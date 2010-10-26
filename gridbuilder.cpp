@@ -11,9 +11,12 @@
 #include "common.h"
 #include "parameters.h"
 #include "grid.h"
-#include "devicegrid.h"
 #include "logger.h"
 #include "project.h"
+
+#ifndef NOCUDA
+  #include "devicegrid.h"
+#endif
 
 using namespace std;
 
@@ -24,12 +27,16 @@ inline uint velblock(cuint& iv,cuint& jv,cuint& kv) {
    return kv*P::vyblocks_ini*P::vxblocks_ini + jv*P::vxblocks_ini + iv;
 }
 
-inline uint index(cuint& i,cuint& j,cuint& k) {
+uint cellIndex(cuint& i,cuint& j,cuint& k) {
    typedef Parameters P;
    return k*P::ycells_ini*P::xcells_ini + j*P::xcells_ini + i;
 }
 
+#ifndef NOCUDA
 bool buildBaseGrid(Grid& grid,DeviceGrid& deviceGrid) {
+#else
+bool buildBaseGrid(Grid& grid) {
+#endif
    typedef Parameters P;
    
    real x,y,z;
@@ -54,8 +61,10 @@ bool buildBaseGrid(Grid& grid,DeviceGrid& deviceGrid) {
 	 logger << "(GRIDBUILDER): Failed to get a spatial cell from grid!" << endl;
 	 return false;
       }
+      #ifndef NOCUDA
       deviceGrid.initSpatialCell(*(grid[spaCellIndex]));
-      cellIndices[index(i,j,k)] = spaCellIndex;
+      #endif
+      cellIndices[cellIndex(i,j,k)] = spaCellIndex;
       
       grid[spaCellIndex]->i_ind = i;
       grid[spaCellIndex]->j_ind = j;
@@ -94,15 +103,15 @@ bool buildBaseGrid(Grid& grid,DeviceGrid& deviceGrid) {
       if (nbr_zneg >= P::zcells_ini) nbr_zneg = P::zcells_ini-1;
       if (nbr_zpos == P::zcells_ini) nbr_zpos = 0;
       
-      spaCellIndex = cellIndices[index(i,j,k)];
+      spaCellIndex = cellIndices[cellIndex(i,j,k)];
       grid[spaCellIndex]->cpu_nbrsSpa[NbrsSpa::STATE] = NbrsSpa::INNER;
       grid[spaCellIndex]->cpu_nbrsSpa[NbrsSpa::MYIND] = spaCellIndex;
-      grid[spaCellIndex]->cpu_nbrsSpa[NbrsSpa::XNEG] = cellIndices[index(nbr_xneg,j,k)];
-      grid[spaCellIndex]->cpu_nbrsSpa[NbrsSpa::XPOS] = cellIndices[index(nbr_xpos,j,k)];
-      grid[spaCellIndex]->cpu_nbrsSpa[NbrsSpa::YNEG] = cellIndices[index(i,nbr_yneg,k)];
-      grid[spaCellIndex]->cpu_nbrsSpa[NbrsSpa::YPOS] = cellIndices[index(i,nbr_ypos,k)];
-      grid[spaCellIndex]->cpu_nbrsSpa[NbrsSpa::ZNEG] = cellIndices[index(i,j,nbr_zneg)];
-      grid[spaCellIndex]->cpu_nbrsSpa[NbrsSpa::ZPOS] = cellIndices[index(i,j,nbr_zpos)];
+      grid[spaCellIndex]->cpu_nbrsSpa[NbrsSpa::XNEG] = cellIndices[cellIndex(nbr_xneg,j,k)];
+      grid[spaCellIndex]->cpu_nbrsSpa[NbrsSpa::XPOS] = cellIndices[cellIndex(nbr_xpos,j,k)];
+      grid[spaCellIndex]->cpu_nbrsSpa[NbrsSpa::YNEG] = cellIndices[cellIndex(i,nbr_yneg,k)];
+      grid[spaCellIndex]->cpu_nbrsSpa[NbrsSpa::YPOS] = cellIndices[cellIndex(i,nbr_ypos,k)];
+      grid[spaCellIndex]->cpu_nbrsSpa[NbrsSpa::ZNEG] = cellIndices[cellIndex(i,j,nbr_zneg)];
+      grid[spaCellIndex]->cpu_nbrsSpa[NbrsSpa::ZPOS] = cellIndices[cellIndex(i,j,nbr_zpos)];
       /*
       cout << "Spatial Cell " << i << ' ' << j << ' ' << k << endl;
       cout << "\t" << nbr_xneg << ' ' << nbr_xpos << ' ' << nbr_yneg << ' ' << nbr_ypos << ' ' << nbr_zneg << ' ' << nbr_zpos << endl;

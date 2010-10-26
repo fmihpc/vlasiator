@@ -8,6 +8,8 @@ include Makefile.inc
 DEPS_COMMON = common.h definitions.h logger.h
 DEPS_CELL_SPATIAL = cell_spatial.h cell_spatial.cpp
 DEPS_CELLSYNC = cell_spatial.h cellsync.cpp
+DEPS_CPU_ACC = cpu_common.h project.h cpu_acc.cpp
+DEPS_CPU_TRANS = cpu_common.h project.h cpu_trans.cpp
 DEPS_CUDA_ACC = cuda_common.cu cudalaunch.h devicegrid.h grid.h parameters.h project.cu cuda_acc.cu
 DEPS_CUDA_TRANS = cuda_common.cu cudalaunch.h devicegrid.h grid.h parameters.h project.cu cuda_trans.cu
 DEPS_CUDAFUNCS = cudafuncs.h cudafuncs.cpp
@@ -23,6 +25,8 @@ DEPS_WRITEVARS = cudafuncs.h grid.h devicegrid.h silowriter.h writevars.h writev
 
 DEPS_CELL_SPATIAL += $(DEPS_COMMON)
 DEPS_CELLSYNC += $(DEPS_COMMON)
+DEPS_CPU_ACC += ${DEPS_COMMON}
+DEPS_CPU_TRANS += ${DEPS_COMMON}
 DEPS_CUDA_ACC += $(DEPS_COMMON)
 DEPS_CUDA_TRANS += $(DEPS_COMMON)
 DEPS_CUDAFUNCS += $(DEPS_COMMON)
@@ -36,16 +40,27 @@ DEPS_PROJECT += $(DEPS_COMMON)
 DEPS_SILOWRITER += $(DEPS_COMMON)
 DEPS_WRITEVARS += ${DEPS_COMMON}
 
-HDRS = cell_spatial.h common.h cudafuncs.h cudalaunch.h definitions.h devicegrid.h grid.h \
-	 logger.h parameters.h project.h silowriter.h writevars.h
+HDRS = cell_spatial.h common.h definitions.h grid.h \
+	 logger.h parameters.h silowriter.h writevars.h
 
-SRC = cell_spatial.cpp cellsync.cpp cuda_acc.cu cuda_common.cu cuda_trans.cu \
-	cudafuncs.cpp gpudevicegrid.cpp grid.cpp gridbuilder.cpp \
+CUDA_HDRS = cudafuncs.h cudalaunch.h devicegrid.h
+
+SRC = cell_spatial.cpp cpu_acc.cpp cpu_trans.cpp\
+	grid.cpp gridbuilder.cpp \
 	logger.cpp main.cpp parameters.cpp silowriter.cpp writevars.cpp
 
-OBJS = cell_spatial.o cellsync.o cuda_acc.o cuda_trans.o cudafuncs.o grid.o\
-	gridbuilder.o logger.o main.o parameters.o gpudevicegrid.o project.o\
+CUDA_SRC = cellsync.cpp cuda_acc.cu cuda_common.cu cuda_trans.cu\
+	cudafuncs.cpp gpudevicegrid.cpp
+
+CUDA_OBJS = cellsync.o cuda_acc.o cuda_trans.o cudafuncs.o gpudevicegrid.o
+
+OBJS = cell_spatial.o cpu_acc.o cpu_trans.o grid.o\
+	gridbuilder.o logger.o main.o parameters.o project.o\
 	silowriter.o writevars.o
+
+HDRS += ${CUDA_HDRS}
+SRC += ${CUDA_SRC}
+OBJS += ${CUDA_OBJS}
 
 clean:
 	make clean -C projects
@@ -57,6 +72,12 @@ cell_spatial.o: $(DEPS_CELL_SPATIAL)
 
 cellsync.o: $(DEPS_CELLSYNC)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c cellsync.cpp $(INC_CUDA)
+
+cpu_acc.o: ${DEPS_CPU_ACC}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c cpu_acc.cpp
+
+cpu_trans.o: ${DEPS_CPU_TRANS}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c cpu_trans.cpp
 
 cuda_acc.o: $(DEPS_CUDA_ACC)
 	$(NVCC) $(NVCCFLAGS) $(FLAGS) -c cuda_acc.cu
@@ -104,4 +125,4 @@ dist:
 
 # Make executable
 main: projinstall $(OBJS)
-	$(LINK) -o main $(OBJS) $(LIB)
+	$(LINK) -O3 -o main $(OBJS) $(LIB)

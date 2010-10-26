@@ -11,4 +11,6 @@ typedef const long unsigned int cluint;
 
 typedef cuint csize;
 
+template<typename T> T convert(const T& number) {return number;}
+
 #endif

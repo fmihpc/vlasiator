@@ -105,10 +105,11 @@ void DeviceGrid::initSpatialCell(SpatialCell& cell) {
    cell.gpu_avgs        = blockArray  + cell.velBlockIndex*SIZE_VELBLOCK;
    cell.gpu_nbrsVel     = nbrsVel     + cell.velBlockIndex*SIZE_NBRS_VEL;
    cell.gpu_blockParams = blockParams + cell.velBlockIndex*SIZE_BLOCKPARAMS;
-
-   //cerr << "SpatialCell #" << cell.cellIndex << " gpu_avgs = " << cell.gpu_avgs << "\t blockArray = " << blockArray << endl;   
-   //cerr << "GPU memory offsets:" << endl;
-   //cerr << "\t gpu_avgs = " << cell.gpu_avgs - blockArray << endl;
-   //cerr << "\t gpu_nbrsVel = " << cell.gpu_nbrsVel - nbrsVel << endl;
-   //cerr << "\t gpu_blockParams = " << cell.gpu_blockParams - blockParams << endl;
+   
+   cell.gpu_fx = fx + cell.velBlockIndex*SIZE_FLUXS;
+   cell.gpu_fy = fy + cell.velBlockIndex*SIZE_FLUXS;
+   cell.gpu_fz = fz + cell.velBlockIndex*SIZE_FLUXS;
+   cell.gpu_d1x = d1x + cell.velBlockIndex*SIZE_DERIV;
+   cell.gpu_d1y = d1y + cell.velBlockIndex*SIZE_DERIV;
+   cell.gpu_d1z = d1z + cell.velBlockIndex*SIZE_DERIV;
 }

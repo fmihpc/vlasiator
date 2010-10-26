@@ -35,8 +35,7 @@ __device__ void velDerivs(uint MYIND,real* sha_avg,real* d1,real* d2) {
    real xr2 = sha_avg[MYIND + 2*WID2 + 2*WID2];
    
    // Calculate 1st and 2nd derivatives:
-   d1[MYIND] = vanLeer(xl1,xcc,xr1);
-   //d1[MYIND] = 0.0f;
+   d1[MYIND] = superbee(xl1,xcc,xr1);
    d2[MYIND] = 0.0f;
 }
 
@@ -101,7 +100,7 @@ __global__ void calcVelDerivs_1warp(uint OFFSET,real* avgs,real* avgnbrx,real* a
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
    uint MYIND = tindex3(threadIdx.x,threadIdx.y,threadIdx.z);
-
+   
    // Fetch volume averages of the block to the middle of the shared mem array
    sha_avg[MYIND+2*WID2] = avgs[MYBLOCK*SIZE_VELBLOCK+MYIND       ];
    sha_avg[MYIND+4*WID2] = avgs[MYBLOCK*SIZE_VELBLOCK+MYIND+2*WID2];
@@ -970,7 +969,7 @@ bool acceleration(Grid& grid,DeviceGrid& deviceGrid,creal& DT) {
       
       // Copy derivatives to ghost cells:
       copyVelDerivatives(grid,deviceGrid,cell,offset,gridSize,gridSizeExtra,blockSizes);
-      
+
       // Calculate vx,vy,vz -fluxes:
       calcFluxVZ(grid,deviceGrid,cell,offset,gridSize,gridSizeExtra,blockSizes);
       calcFluxVY(grid,deviceGrid,cell,offset,gridSize,gridSizeExtra,blockSizes);
@@ -981,6 +980,7 @@ bool acceleration(Grid& grid,DeviceGrid& deviceGrid,creal& DT) {
 
       // Propagate volume averages in velocity space:
       velPropagate(grid,deviceGrid,cell,offset,gridSize,gridSizeExtra,blockSizes,DT);
+
    }
    return success;
 }

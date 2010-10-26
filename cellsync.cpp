@@ -37,6 +37,36 @@ bool SpatialCell::devSync(const Cell::Array& array,const Cell::Dir direction) {
       gpuArray = gpu_cellParams;
       bytes = SIZE_CELLPARAMS*sizeof(real);
       break;
+    case Cell::Fx:
+      cpuArray = cpu_fx;
+      gpuArray = gpu_fx;
+      bytes = N_blocks*SIZE_FLUXS*sizeof(real);
+      break;
+    case Cell::Fy:
+      cpuArray = cpu_fy;
+      gpuArray = gpu_fy;
+      bytes = N_blocks*SIZE_FLUXS*sizeof(real);
+      break;
+    case Cell::Fz:
+      cpuArray = cpu_fz;
+      gpuArray = gpu_fz;
+      bytes = N_blocks*SIZE_FLUXS*sizeof(real);
+      break;
+    case Cell::D1x:
+      cpuArray = cpu_d1x;
+      gpuArray = gpu_d1x;
+      bytes = N_blocks*SIZE_DERIV*sizeof(real);
+      break;
+    case Cell::D1y:
+      cpuArray = cpu_d1y;
+      gpuArray = gpu_d1y;
+      bytes = N_blocks*SIZE_DERIV*sizeof(real);
+      break;
+    case Cell::D1z:
+      cpuArray = cpu_d1z;
+      gpuArray = gpu_d1z;
+      bytes = N_blocks*SIZE_DERIV*sizeof(real);
+      break;
    }
    // Set destination and source arrays:
    void* src;

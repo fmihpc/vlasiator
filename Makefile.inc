@@ -1,5 +1,5 @@
 # Compile directory: 
-INSTALL = /home/sandroos/codes/cuda/FVM2
+INSTALL = /home/sandroos/codes/cuda/cudafvm
 
 # Path to CUDA programming examples:
 CUDASDK = /home/sandroos/NVIDIA_GPU_Computing_SDK
@@ -33,9 +33,11 @@ INC_SILO = -I${SILOPTH}/include
 LIB_CUDA = -L${CUDAPTH}/lib64 -lcudart
 LIB_CUTIL = -L${CUDASDK}/C/lib -lcutil_x86_64
 LIB_SILO = -L${SILOPTH}/lib -lsilo
+LIB_OPENMP = -lgomp
 
 LIB = ${LIB_CUDA}
 LIB += ${LIB_SILO}
+LIB += ${LIB_OPENMP}
 
 CXXFLAGS =
 NVCCFLAGS = --ptxas-options=-v -ccbin $(CMP) -D${DEVICE}

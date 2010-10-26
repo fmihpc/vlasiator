@@ -26,8 +26,8 @@ __host__ bool bindTexture(texture<real,1,cudaReadModeElementType>& texRef,real* 
 
 // ------------------ DEVICE FUNCTIONS -------------------
 __device__ real spatDerivs(real xl1,real xcc,real xr1) {
-   return MClimiter(xl1,xcc,xr1);
-   //return superbee(xl1,xcc,xr1);
+   //return MClimiter(xl1,xcc,xr1);
+   return superbee(xl1,xcc,xr1);
    //return vanLeer(xl1,xcc,xr1);
 }
 

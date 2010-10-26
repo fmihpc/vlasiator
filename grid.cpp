@@ -5,11 +5,38 @@
 #include "common.h"
 #include "grid.h"
 #include "logger.h"
-#include "cudafuncs.h"
+
+#ifndef NOCUDA
+  #include "cudafuncs.h"
+#endif
 
 using namespace std;
 
 extern Logger logger;
+
+#ifndef NOCUDA
+bool Grid::allocateArray(const string& name,const size_t& BYTES,real*& arrptr) {
+   if (deviceCreateArray(arrptr,BYTES) == false) {
+      logger << "\t Failed to allocate page-locked memory for " << name << endl;
+      arrptr = NULL;
+      return false;
+   } else {
+      logger << "\t Allocated " << BYTES << " bytes of page-locked memory for array " << name << endl;
+      return true;
+   }
+}
+
+bool Grid::allocateArray(const string& name,const size_t& BYTES,uint*& arrptr) {
+   if (deviceCreateArray(arrptr,BYTES) == false) {
+      logger << "\t Failed to allocate page-locked memory for " << name << endl;
+      arrptr = NULL;
+      return false;
+   } else {
+      logger << "\t Allocated " << BYTES << " bytes of page-locked memory for array " << name << endl;
+      return true;
+   }
+}
+#endif
 
 /** Creates a new Grid and allocates arrays for storing velocity grid blocks and other 
  * data structures in CPU memory.
@@ -29,40 +56,44 @@ Grid::Grid() {
    nbrsVel = NULL;
    blockParams = NULL;
    blockArray = NULL;
-   if (deviceCreateArray(nbrsVel,MAX_VEL_BLOCKS*SIZE_NBRS_VEL*sizeof(uint)) == false) {
-      initialized = false;
-      logger << "\t Failed to allocate page-locked memory for nbrsVel!" << endl;
-   } else {
-      logger << "\t Allocated " << MAX_VEL_BLOCKS*SIZE_NBRS_VEL*sizeof(uint) << " bytes of page-locked CPU memory for array nbrsVel" << endl;
-   }
-
-   if (deviceCreateArray(blockParams,MAX_VEL_BLOCKS*SIZE_BLOCKPARAMS*sizeof(real)) == false) {
-      initialized = false;
-      logger << "\t Failed to allocate page-locked memory for blockParams!" << endl;
-   } else {
-     logger << "\t Allocated " << MAX_VEL_BLOCKS*SIZE_BLOCKPARAMS*sizeof(real) << " bytes of page-locked CPU memory for array blockParams" << endl;
-   }
-   
-   if (deviceCreateArray(blockArray,MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(real)) == false) {
-      initialized = false;
-      logger << "\t Failed to allocate page-locked memory for blockArray!" << endl;
-   } else {
-      logger << "\t Allocated " << MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(real) << " bytes of page-locked CPU memory for array blockArray" << endl;
-   }
-
-   if (deviceCreateArray(cellParams,MAX_SPA_CELLS*SIZE_CELLPARAMS*sizeof(real)) == false) {
-      initialized = false;
-      logger << "\t Failed to allocate page-locked memory for cellParams!" << endl;
-   } else {
-      logger << "\t Allocated " << MAX_SPA_CELLS*SIZE_CELLPARAMS*sizeof(real) << " bytes of page-locked CPU memory for array cellParams" << endl;
-   }
+   #ifndef NOCUDA
+     if (allocateArray("nbrsVel",MAX_VEL_BLOCKS*SIZE_NBRS_VEL*sizeof(uint),nbrsVel) == false) initialized = false;
+     if (allocateArray("blockParams",MAX_VEL_BLOCKS*SIZE_BLOCKPARAMS*sizeof(real),blockParams) == false) initialized = false;
+     if (allocateArray("blockArray",MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(real),blockArray) == false) initialized = false;
+     if (allocateArray("cellParams",MAX_SPA_CELLS*SIZE_CELLPARAMS*sizeof(real),cellParams) == false) initialized = false;
+     if (allocateArray("fx",MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(real),fx) == false) initialized = false;
+     if (allocateArray("fy",MAX_VEL_BLOCKS*SIZE_FLUXS*sizeof(real),fy) == false) initialized = false;
+     if (allocateArray("fz",MAX_VEL_BLOCKS*SIZE_FLUXS*sizeof(real),fz) == false) initialized = false;
+     if (allocateArray("d1x",MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real),d1x) == false) initialized = false;
+     if (allocateArray("d1y",MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real),d1y) == false) initialized = false;
+     if (allocateArray("d1z",MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real),d1z) == false) initialized = false;
+     if (allocateArray("d2x",MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real),d2x) == false) initialized = false;
+     if (allocateArray("d2y",MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real),d2y) == false) initialized = false;
+     if (allocateArray("d2z",MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real),d2z) == false) initialized = false;
+   #else
+     nbrsVel = new uint[MAX_VEL_BLOCKS*SIZE_NBRS_VEL];
+     blockParams = new real[MAX_VEL_BLOCKS*SIZE_BLOCKPARAMS];
+     blockArray = new real[MAX_VEL_BLOCKS*SIZE_VELBLOCK];
+     cellParams = new real[MAX_SPA_CELLS*SIZE_CELLPARAMS];
+     fx = new real[MAX_VEL_BLOCKS*SIZE_FLUXS];
+     fy = new real[MAX_VEL_BLOCKS*SIZE_FLUXS];
+     fz = new real[MAX_VEL_BLOCKS*SIZE_FLUXS];
+     d1x = new real[MAX_VEL_BLOCKS*SIZE_DERIV];
+     d1y = new real[MAX_VEL_BLOCKS*SIZE_DERIV];
+     d1z = new real[MAX_VEL_BLOCKS*SIZE_DERIV];
+     d2x = new real[MAX_VEL_BLOCKS*SIZE_DERIV];
+     d2y = new real[MAX_VEL_BLOCKS*SIZE_DERIV];
+     d2z = new real[MAX_VEL_BLOCKS*SIZE_DERIV];
+   #endif
    
    if (initialized == false) {
       logger << "\t Failed to allocate all requested memory!" << endl;
-      deviceDeleteArray(nbrsVel);
-      deviceDeleteArray(blockParams);
-      deviceDeleteArray(blockArray);
-      deviceDeleteArray(cellParams);
+      #ifndef NOCUDA
+        deviceDeleteArray(nbrsVel);
+        deviceDeleteArray(blockParams);
+        deviceDeleteArray(blockArray);
+        deviceDeleteArray(cellParams);
+      #endif
       delete nbrsSpa;
       delete cells;
       nbrsSpa = NULL;
@@ -81,11 +112,35 @@ Grid::Grid() {
  */
 Grid::~Grid() {
    logger << "(GRID): Freeing up CPU grid." << endl;
-   
-   deviceDeleteArray(nbrsVel);
-   deviceDeleteArray(blockParams);
-   deviceDeleteArray(blockArray);
-   deviceDeleteArray(cellParams);
+   #ifndef NOCUDA
+     deviceDeleteArray(nbrsVel);
+     deviceDeleteArray(blockParams);
+     deviceDeleteArray(blockArray);
+     deviceDeleteArray(cellParams);
+     deviceDeleteArray(fx);
+     deviceDeleteArray(fy);
+     deviceDeleteArray(fz);
+     deviceDeleteArray(d1x);
+     deviceDeleteArray(d1y);
+     deviceDeleteArray(d1z);
+     deviceDeleteArray(d2x);
+     deviceDeleteArray(d2y);
+     deviceDeleteArray(d2z);
+   #else
+     delete nbrsVel;
+     delete blockParams;
+     delete blockArray;
+     delete cellParams;
+     delete fx;
+     delete fy;
+     delete fz;
+     delete d1x;
+     delete d2x;
+     delete d1y;
+     delete d2y;
+     delete d1z;
+     delete d2z;
+   #endif
    delete nbrsSpa;
    delete [] cells;
    
@@ -116,7 +171,16 @@ uint Grid::getSpatialCell(const uint& velBlocks) {
    cells[nextSpaCell].cpu_nbrsVel     = nbrsVel     + nextVelBlock*SIZE_NBRS_VEL;
    cells[nextSpaCell].cpu_avgs        = blockArray  + nextVelBlock*SIZE_VELBLOCK;
    cells[nextSpaCell].cpu_blockParams = blockParams + nextVelBlock*SIZE_BLOCKPARAMS;
-   
+   cells[nextSpaCell].cpu_fx          = fx + nextVelBlock*SIZE_FLUXS;
+   cells[nextSpaCell].cpu_fy          = fy + nextVelBlock*SIZE_FLUXS;
+   cells[nextSpaCell].cpu_fz          = fz + nextVelBlock*SIZE_FLUXS;
+   cells[nextSpaCell].cpu_d1x         = d1x + nextVelBlock*SIZE_DERIV;
+   cells[nextSpaCell].cpu_d1y         = d1y + nextVelBlock*SIZE_DERIV;
+   cells[nextSpaCell].cpu_d1z         = d1z + nextVelBlock*SIZE_DERIV;
+   cells[nextSpaCell].cpu_d2x         = d2x + nextVelBlock*SIZE_DERIV;
+   cells[nextSpaCell].cpu_d2y         = d2y + nextVelBlock*SIZE_DERIV;
+   cells[nextSpaCell].cpu_d2z         = d2z + nextVelBlock*SIZE_DERIV;
+
    ++nextSpaCell;
    nextVelBlock += velBlocks;
    return nextSpaCell-1;
