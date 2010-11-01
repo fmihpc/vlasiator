@@ -73,6 +73,7 @@ bool freeCells() {
 
 bool reserveSpatialCells(cuint& CELLS) {
    allocateCellArrays(CELLS);
+   return true;
 }
 
 bool reserveVelocityBlocks(cuint& BLOCKS) {
@@ -108,7 +109,8 @@ bool writeReservedBlocks(const std::string& gridName) {
    crdNames[2] = const_cast<char*>("Z-axis");
    real* crdArrays[] = {x,y,z};
    
-   DBPutUcdmesh(fileptr,gridName.c_str(),Ndims,crdNames,crdArrays,Nzones*8,Nzones,"zonelist",NULL,DB_FLOAT,NULL);
+   if (DBPutUcdmesh(fileptr,gridName.c_str(),Ndims,crdNames,crdArrays,Nzones*8,Nzones,"zonelist",NULL,DB_FLOAT,NULL) < 0) return false;
+   return true;
 }
 /*
 bool addVelocityBlock(real* blockParams,real* block) {
@@ -141,6 +143,7 @@ bool writeSpatialCells(const std::string& gridName,const std::string& varName) {
    DBPutUcdmesh(fileptr,gridName.c_str(),Ndims,crdNames,crdArrays,Nzones*8,Nzones,"zonelist",NULL,DB_FLOAT,NULL);
    
    if (DBPutUcdvar1(fileptr,varName.c_str(),gridName.c_str(),avgs,blockCntr,NULL,0,DB_FLOAT,DB_ZONECENT,NULL) < 0) return false;
+   return true;
 }
 
 bool addSpatialCell(real* cellParams,creal& avg) {
@@ -177,6 +180,7 @@ bool addSpatialCell(real* cellParams,creal& avg) {
    
    avgs[blockCntr] = avg;
    ++blockCntr;
+   return true;
 }
 
 bool addVelocityGridBlock3D(real* blockParams) {
