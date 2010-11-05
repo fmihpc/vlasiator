@@ -20,7 +20,9 @@ NVCC = nvcc
 # Linker:
 LINK = /usr/bin/g++-4.3
 # Flags for C++ and CUDA compilers:
-FLAGS = -O3
+FLAGS = -O3 -DNOCUDA
+CXXFLAGS = -funroll-loops -fopenmp
+NVCCFLAGS = --ptxas-options=-v -ccbin $(CMP) -D${DEVICE}
 
 # -------------------------------------------
 # Automatically set parameters, DO NOT CHANGE
@@ -29,16 +31,22 @@ FLAGS = -O3
 INC_CUDA = -I${CUDAPTH}/include
 INC_SDK = -I${CUDASDK}/C/common/inc
 INC_SILO = -I${SILOPTH}/include
+INC_DCCRG = -I${HOME}/codes/include
+INC_MPI = -I/usr/lib/openmpi/include
+INC_BOOST = -I/usr/local/boost_1_43_0/include
 
 LIB_CUDA = -L${CUDAPTH}/lib64 -lcudart
 LIB_CUTIL = -L${CUDASDK}/C/lib -lcutil_x86_64
 LIB_SILO = -L${SILOPTH}/lib -lsilo
+LIB_BOOST = -L/usr/local/boost_1_43_0/lib -lboost_mpi -lboost_serialization
 LIB_OPENMP = -lgomp
+LIB_ZOLTAN = -lzoltan
+LIB_MPI =
 
 LIB = ${LIB_CUDA}
 LIB += ${LIB_SILO}
 LIB += ${LIB_OPENMP}
-
-CXXFLAGS =
-NVCCFLAGS = --ptxas-options=-v -ccbin $(CMP) -D${DEVICE}
+LIB += ${LIB_BOOST}
+LIB += ${LIB_ZOLTAN}
+LIB += ${LIB_MPI}
 

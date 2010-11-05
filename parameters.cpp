@@ -6,12 +6,16 @@ using namespace std;
 
 typedef Parameters P;
 
+// Define static members:
 real P::xmin = NAN;
 real P::xmax = NAN;
 real P::ymin = NAN;
 real P::ymax = NAN;
 real P::zmin = NAN;
 real P::zmax = NAN;
+real P::dx_ini = NAN;
+real P::dy_ini = NAN;
+real P::dz_ini = NAN;
 
 real P::vxmin = NAN;
 real P::vxmax = NAN;
@@ -27,9 +31,13 @@ uint P::vxblocks_ini = numeric_limits<uint>::max();
 uint P::vyblocks_ini = numeric_limits<uint>::max();
 uint P::vzblocks_ini = numeric_limits<uint>::max();
 
+real P::dt = NAN;
+uint P::tstep = 0;
 uint P::tsteps = 0;
 uint P::saveInterval = numeric_limits<uint>::max();
 uint P::diagnInterval = numeric_limits<uint>::max();
+
+uint P::transmit = 0;
 
 Parameters::Parameters() {
    xmin = -1.2;
@@ -53,8 +61,13 @@ Parameters::Parameters() {
    vyblocks_ini = 5;
    vzblocks_ini = 5;
    
-   tsteps = 21;
-   diagnInterval = 10;
+   dx_ini = (xmax-xmin)/xcells_ini;
+   dy_ini = (ymax-ymin)/ycells_ini;
+   dz_ini = (zmax-zmin)/zcells_ini;
+
+   dt = 0.025;
+   tsteps = 100;
+   diagnInterval = 101;
 }
 
 

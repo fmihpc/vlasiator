@@ -22,18 +22,18 @@ DeviceGrid::DeviceGrid() {
    if (allocateArray("avgnbrx", MAX_VEL_BLOCKS*SIZE_BOUND*sizeof(real), avgnbrx) == false) success = false;
    if (allocateArray("avgnbry", MAX_VEL_BLOCKS*SIZE_BOUND*sizeof(real), avgnbry) == false) success = false;
    if (allocateArray("avgnbrz", MAX_VEL_BLOCKS*SIZE_BOUND*sizeof(real), avgnbrz) == false) success = false;
-   if (allocateArray("fx     ", MAX_VEL_BLOCKS*SIZE_FLUXS*sizeof(real), fx) == false) success = false;
-   if (allocateArray("fy     ", MAX_VEL_BLOCKS*SIZE_FLUXS*sizeof(real), fy) == false) success = false;
-   if (allocateArray("fz     ", MAX_VEL_BLOCKS*SIZE_FLUXS*sizeof(real), fz) == false) success = false;
-   if (allocateArray("fxnbr  ", MAX_VEL_BLOCKS*SIZE_BFLUX*sizeof(real), fxnbr) == false) success = false;
-   if (allocateArray("fynbr  ", MAX_VEL_BLOCKS*SIZE_BFLUX*sizeof(real), fynbr) == false) success = false;
-   if (allocateArray("fznbr  ", MAX_VEL_BLOCKS*SIZE_BFLUX*sizeof(real), fznbr) == false) success = false;
-   if (allocateArray("d1x    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real), d1x) == false) success = false;
-   if (allocateArray("d1y    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real), d1y) == false) success = false;
-   if (allocateArray("d1z    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real), d1z) == false) success = false;
-   if (allocateArray("d2x    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real), d2x) == false) success = false;
-   if (allocateArray("d2y    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real), d2y) == false) success = false;
-   if (allocateArray("d2z    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real), d2z) == false) success = false;
+   if (allocateArray("fx     ", MAX_VEL_BLOCKS*SIZE_FLUXS*sizeof(real), fx    ) == false) success = false;
+   if (allocateArray("fy     ", MAX_VEL_BLOCKS*SIZE_FLUXS*sizeof(real), fy    ) == false) success = false;
+   if (allocateArray("fz     ", MAX_VEL_BLOCKS*SIZE_FLUXS*sizeof(real), fz    ) == false) success = false;
+   if (allocateArray("fxnbr  ", MAX_VEL_BLOCKS*SIZE_BFLUX*sizeof(real), fxnbr ) == false) success = false;
+   if (allocateArray("fynbr  ", MAX_VEL_BLOCKS*SIZE_BFLUX*sizeof(real), fynbr ) == false) success = false;
+   if (allocateArray("fznbr  ", MAX_VEL_BLOCKS*SIZE_BFLUX*sizeof(real), fznbr ) == false) success = false;
+   if (allocateArray("d1x    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real), d1x   ) == false) success = false;
+   if (allocateArray("d1y    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real), d1y   ) == false) success = false;
+   if (allocateArray("d1z    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real), d1z   ) == false) success = false;
+   if (allocateArray("d2x    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real), d2x   ) == false) success = false;
+   if (allocateArray("d2y    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real), d2y   ) == false) success = false;
+   if (allocateArray("d2z    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real), d2z   ) == false) success = false;
    if (allocateArray("d1xnbr ", MAX_VEL_BLOCKS*SIZE_BDERI*sizeof(real), d1xnbr) == false) success = false;
    if (allocateArray("d1ynbr ", MAX_VEL_BLOCKS*SIZE_BDERI*sizeof(real), d1ynbr) == false) success = false;
    if (allocateArray("d1znbr ", MAX_VEL_BLOCKS*SIZE_BDERI*sizeof(real), d1znbr) == false) success = false;
@@ -48,6 +48,7 @@ DeviceGrid::DeviceGrid() {
       nextInner = 0;
       nextBoundary = MAX_VEL_BLOCKS-1;
    }
+   initialized = success;
 }
 
 DeviceGrid::~DeviceGrid() {

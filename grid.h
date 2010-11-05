@@ -16,7 +16,7 @@ class Grid {
     * the simulation should be aborted.
     */
    bool isInitialized() const {return initialized;}
-   
+
    uint getSpatialCell(const uint& velBlocks);
 
    /** Get a pointer to the array containing velocity grid blocks.

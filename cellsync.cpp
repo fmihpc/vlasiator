@@ -10,6 +10,7 @@ using namespace std;
 
 extern Logger logger;
 
+#ifndef NOCUDA
 bool SpatialCell::devSync(const Cell::Array& array,const Cell::Dir direction) {
    // Set pointers to cpu and gpu arrays which are to be synced, 
    // and calculate the amount of bytes to transfer:
@@ -92,7 +93,7 @@ bool SpatialCell::devSync(const Cell::Array& array,const Cell::Dir direction) {
    logger << "(CELLSYNC): Error occurred while copying data, error = '" << cudaGetErrorString(result) << "'" << endl;
    return false;
 }
-
+#endif
 
 
 

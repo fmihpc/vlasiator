@@ -64,7 +64,7 @@ OBJS += ${CUDA_OBJS}
 
 clean:
 	make clean -C projects
-	rm -rf *.o *.ptx *.tar* *.txt *.silo project.cu project.cpp main *~
+	rm -rf *.o *.ptx *.tar* *.txt *.silo project.h project.cu project.cpp main *~
 
 # Rules for making each object file needed by the executable
 cell_spatial.o: $(DEPS_CELL_SPATIAL)
@@ -101,7 +101,7 @@ logger.o: $(DEPS_LOGGER)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c logger.cpp
 
 main.o: $(DEPS_MAIN)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c main.cpp
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c main.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST}
 
 parameters.o: $(DEPS_PARAMETERS)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c parameters.cpp
