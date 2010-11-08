@@ -40,11 +40,48 @@ extern bool cpu_translation2(cuint& cellIndex,SpatialCell& cell,Grid& grid,creal
 extern bool cpu_translation3(cuint& cellIndex,SpatialCell& cell,Grid& grid,creal& DT);
 
 extern bool cpu_acceleration(SpatialCell& cell);
-extern bool cpu_translation1(SpatialCell& cell,std::vector<SpatialCell*>& nbrPtrs);
-extern bool cpu_translation2(SpatialCell& cell,std::vector<SpatialCell*>& nbrPtrs);
-extern bool cpu_translation3(SpatialCell& cell,std::vector<SpatialCell*>& nbrPtrs);
+extern bool cpu_translation1(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
+extern bool cpu_translation2(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
+extern bool cpu_translation3(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
 
 Logger logger("logfile.txt");
+
+#ifdef COUNTERS
+void printCounters() {
+   extern luint cntr_cpu_acc;
+   extern luint cntr_acc_derivs;
+   extern luint cntr_acc_flux_x;
+   extern luint cntr_acc_flux_y;
+   extern luint cntr_acc_flux_z;
+   extern luint cntr_acc_prop;
+   extern luint cntr_cpu_trans1;
+   extern luint cntr_cpu_trans2;
+   extern luint cntr_cpu_trans3;
+   extern luint cntr_spat_derivs;
+   extern luint cntr_spat_flux_x;
+   extern luint cntr_spat_flux_y;
+   extern luint cntr_spat_flux_z;
+   extern luint cntr_spat_prop;
+   
+   std::cout << "CPU propagators called for # cells:" << std::endl;
+   std::cout << "\t cpu_acc \t" << cntr_cpu_acc << std::endl;
+   std::cout << "\t\t derivs \t" << cntr_acc_derivs << std::endl;
+   std::cout << "\t\t flux_x \t" << cntr_acc_flux_x << std::endl;
+   std::cout << "\t\t flux_y \t" << cntr_acc_flux_y << std::endl;
+   std::cout << "\t\t flux_z \t" << cntr_acc_flux_z << std::endl;
+   std::cout << "\t\t prop   \t" << cntr_acc_prop << std::endl;
+   std::cout << std::endl;
+   std::cout << "\t cpu_trans1 \t" << cntr_cpu_trans1 << std::endl;
+   std::cout << "\t\t derivs \t" << cntr_spat_derivs << std::endl;
+   std::cout << "\t cpu_trans2 \t" << cntr_cpu_trans2 << std::endl;
+   std::cout << "\t\t flux_x \t" << cntr_spat_flux_x << std::endl;
+   std::cout << "\t\t flux_y \t" << cntr_spat_flux_y << std::endl;
+   std::cout << "\t\t flux_z \t" << cntr_spat_flux_z << std::endl;
+   std::cout << "\t cpu_trans3 \t" << cntr_cpu_trans3 << std::endl;
+   std::cout << "\t\t spat   \t" << cntr_spat_prop << std::endl;
+   std::cout << std::endl;
+}
+#endif
 
 void initSpatialCells(dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm) {
    // This can be replaced by an iterator.
@@ -158,7 +195,7 @@ void writeVelocityBlocks(const boost::mpi::communicator& comm,dccrg<SpatialCell>
    closeOutputFile();
 }
 
-bool findNeighbours(std::vector<SpatialCell*>& nbrPtr,dccrg<SpatialCell>& mpiGrid,const uint64_t& cell) {
+bool findNeighbours(std::vector<const SpatialCell*>& nbrPtr,dccrg<SpatialCell>& mpiGrid,const uint64_t& cell) {
    std::vector<uint64_t> nbrs;
    // Get a pointer to each neighbour. If the neighbour does not exists, insert a NULL ptr.
    nbrs = mpiGrid.get_neighbours_x(cell,-1.0);
@@ -241,12 +278,12 @@ int main(int argn,char* args[]) {
    mpiGrid.start_remote_neighbour_data_update(); // TEST
    mpiGrid.wait_neighbour_data_update();
    comm.barrier();
-   
+
    // Write initial state:
    writeSpatialCells(comm,mpiGrid);
    writeVelocityBlocks(comm,mpiGrid);
    comm.barrier();
-   
+
    /*
    // Create initial state to CPU memory:
    #ifndef NOCUDA
@@ -285,7 +322,7 @@ int main(int argn,char* args[]) {
       #endif
       */
       std::vector<uint64_t> cells;
-      std::vector<SpatialCell*> nbrPtrs(6,NULL);
+      std::vector<const SpatialCell*> nbrPtrs(6,NULL);
       SpatialCell* cellPtr;
       
       // Calculate acceleration for each cell on this process:
@@ -355,12 +392,12 @@ int main(int argn,char* args[]) {
       ++P::tstep;
       
       // Check if the full simulation state should be written to disk
-      if (tstep % P::saveInterval == 0) {
+      if (P::tstep % P::saveInterval == 0) {
 	 logger << "(MAIN): Saving full state to disk at tstep = " << tstep << std::endl;
       }
 
       // Check if variables and derived quantities should be written to disk
-      if (tstep % P::diagnInterval == 0) {
+      if (P::tstep % P::diagnInterval == 0) {
 	 logger << "(MAIN): Saving variables to disk at tstep = " << tstep << std::endl;
 
 	 #ifndef NOCUDA
@@ -378,12 +415,16 @@ int main(int argn,char* args[]) {
    }
    logger << "(MAIN): All timesteps calculated." << std::endl;
    logger << "\t (TIME) reports value " << std::time(NULL) << std::endl;
-   
+
    // Write final state:
    writeSpatialCells(comm,mpiGrid);
    writeVelocityBlocks(comm,mpiGrid);
-   
+
    logger << "(MAIN): Exiting." << std::endl;
+   
+   #ifdef COUNTERS
+     printCounters();
+   #endif
    return 0;
 }
 

@@ -12,6 +12,15 @@
 
 using namespace std;
 
+#ifdef COUNTERS
+  luint cntr_cpu_acc = 0;
+  luint cntr_acc_derivs = 0;
+  luint cntr_acc_flux_x = 0;
+  luint cntr_acc_flux_y = 0;
+  luint cntr_acc_flux_z = 0;
+  luint cntr_acc_prop = 0;
+#endif
+
 uint accIndex(cuint& i,cuint& j,cuint& k) {return k*WID2+j*WID+i;}
 inline uint fullInd(cuint& i,cuint& j,cuint& k) {return k*64+j*8+i;}
 
@@ -408,6 +417,10 @@ void cpu_calcVelDerivs(SpatialCell& cell,cuint& BLOCK) {
       d1z[BLOCK*SIZE_DERIV + accIndex(i,j,k)] = velDerivs1(xl2,xl1,xcc,xr1,xr2);
       d2z[BLOCK*SIZE_DERIV + accIndex(i,j,k)] = velDerivs2(xl2,xl1,xcc,xr1,xr2);
    }
+   #ifdef COUNTERS
+     #pragma omp atomic
+     ++cntr_acc_derivs;
+   #endif
 }
 
 void calcVelFluxesX(cuint& SPATCELL,cuint& BLOCK,Grid& grid) {
@@ -460,6 +473,10 @@ void cpu_calcVelFluxesX(SpatialCell& cell,cuint& BLOCK) {
       fx[BLOCK*SIZE_FLUXS + accIndex(i,j,k)] = velocityFluxX(i,j,k,avg_neg,avg_pos,cell.cpu_cellParams,
 							     cell.cpu_blockParams+BLOCK*SIZE_BLOCKPARAMS);
    }
+   #ifdef COUNTERS
+     #pragma omp atomic
+     ++cntr_acc_flux_x;
+   #endif
 }
 
 void calcVelFluxesY(cuint& SPATCELL,cuint& BLOCK,Grid& grid) {
@@ -512,6 +529,10 @@ void cpu_calcVelFluxesY(SpatialCell& cell,cuint& BLOCK) {
       fy[BLOCK*SIZE_FLUXS + accIndex(i,j,k)] = velocityFluxY(i,j,k,avg_neg,avg_pos,cell.cpu_cellParams,
 							     cell.cpu_blockParams+BLOCK*SIZE_BLOCKPARAMS);
    }
+   #ifdef COUNTERS
+     #pragma omp atomic
+     ++cntr_acc_flux_y;
+   #endif
 }
 
 void calcVelFluxesZ(cuint& SPATCELL,cuint& BLOCK,Grid& grid) {
@@ -564,6 +585,10 @@ void cpu_calcVelFluxesZ(SpatialCell& cell,cuint& BLOCK) {
       fz[BLOCK*SIZE_FLUXS + accIndex(i,j,k)] = velocityFluxZ(i,j,k,avg_neg,avg_pos,cell.cpu_cellParams,
 							     cell.cpu_blockParams+BLOCK*SIZE_BLOCKPARAMS);
    }
+   #ifdef COUNTERS
+     #pragma omp atomic
+     ++cntr_acc_flux_z;
+   #endif
 }
 
 void propagateVel(cuint& SPATCELL,cuint& BLOCK,Grid& grid,creal& DT) {
@@ -642,6 +667,10 @@ void cpu_propagateVel(SpatialCell& cell,cuint& BLOCK,creal& DT) {
    for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
       cell.cpu_avgs[BLOCK*SIZE_VELBLOCK + accIndex(i,j,k)] += avgs[accIndex(i,j,k)];
    }
+   #ifdef COUNTERS
+     #pragma omp atomic
+     ++cntr_acc_prop;
+   #endif
 }
 
 bool cpu_acceleration(cuint& cellIndex,SpatialCell& cell,Grid& grid,creal& DT) {
@@ -673,26 +702,29 @@ bool cpu_acceleration(cuint& cellIndex,SpatialCell& cell,Grid& grid,creal& DT) {
 bool cpu_acceleration(SpatialCell& cell) {
    bool success = true;
    creal DT = Parameters::dt;
-   #pragma omp parallel 
-     {
-	#pragma omp for
-	// Calculate derivatives in vx,vy,vz:
-	for (uint block=0; block<cell.N_blocks; ++block) {
-	   cpu_calcVelDerivs(cell,block);
-	}
-	#pragma omp for
-	// Calculate velocity fluxes:
-	for (uint block=0; block<cell.N_blocks; ++block) {
-	   cpu_calcVelFluxesX(cell,block);
-	   cpu_calcVelFluxesY(cell,block);
-	   cpu_calcVelFluxesZ(cell,block);
-	}	
-	// Propagate volume averages in velocity space:
-	#pragma omp for
-	for (uint block=0; block<cell.N_blocks; ++block) {
-	   cpu_propagateVel(cell,block,DT);
-	}
-     }
+   // Calculate derivatives in vx,vy,vz:
+   #pragma omp parallel for
+   for (uint block=0; block<cell.N_blocks; ++block) {
+      cpu_calcVelDerivs(cell,block);
+   }
+	
+   // Calculate velocity fluxes:
+   #pragma omp parallel for
+   for (uint block=0; block<cell.N_blocks; ++block) {
+      cpu_calcVelFluxesX(cell,block);
+      cpu_calcVelFluxesY(cell,block);
+      cpu_calcVelFluxesZ(cell,block);
+   }
+	
+   // Propagate volume averages in velocity space:
+   #pragma omp parallel for
+   for (uint block=0; block<cell.N_blocks; ++block) {
+      cpu_propagateVel(cell,block,DT);
+   }
+
+   #ifdef COUNTERS
+     ++cntr_cpu_acc;
+   #endif
    return success;
 }
 

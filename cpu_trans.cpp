@@ -12,6 +12,17 @@
 
 using namespace std;
 
+#ifdef COUNTERS
+  luint cntr_cpu_trans1 = 0;
+  luint cntr_cpu_trans2 = 0;
+  luint cntr_cpu_trans3 = 0;
+  luint cntr_spat_derivs = 0;
+  luint cntr_spat_flux_x = 0;
+  luint cntr_spat_flux_y = 0;
+  luint cntr_spat_flux_z = 0;
+  luint cntr_spat_prop = 0;
+#endif
+
 inline uint trIndex(cuint& i,cuint& j,cuint& k) {return k*WID2+j*WID+i;}
 inline uint isBoundary(cuint& STATE,cuint& BND) {return STATE & BND;}
 
@@ -98,7 +109,7 @@ void cpu_calcSpatDerivs(cuint& SPATCELL,cuint& BLOCK,Grid& grid) {
    }
 }
 
-void cpu_calcSpatDerivs(SpatialCell& cell,cuint& BLOCK,std::vector<SpatialCell*>& nbrPtrs) {
+void cpu_calcSpatDerivs(SpatialCell& cell,cuint& BLOCK,const std::vector<const SpatialCell*>& nbrPtrs) {
    //cuint* const nbrs = cell.cpu_nbrsVel + BLOCK*SIZE_NBRS_VEL;
    //real* const avgs  = cell.cpu_blockArray + BLOCK*SIZE_VELBLOCK;
    real* const d1x   = cell.cpu_d1x + BLOCK*SIZE_DERIV;
@@ -172,6 +183,10 @@ void cpu_calcSpatDerivs(SpatialCell& cell,cuint& BLOCK,std::vector<SpatialCell*>
       d1z[trIndex(i,j,k)] = spatDerivs1(xl2,xl1,xcc,xr1,xr2);
       d2z[trIndex(i,j,k)] = spatDerivs2(xl2,xl1,xcc,xr1,xr2);      
    }
+   #ifdef COUNTERS
+     #pragma omp atomic
+     ++cntr_spat_derivs;
+   #endif
 }
 
 void cpu_calcSpatFluxesX(cuint& SPATCELL,cuint& BLOCK,Grid& grid) {
@@ -208,7 +223,7 @@ void cpu_calcSpatFluxesX(cuint& SPATCELL,cuint& BLOCK,Grid& grid) {
    }
 }
 
-void cpu_calcSpatFluxesX(SpatialCell& cell,cuint& BLOCK,std::vector<SpatialCell*>& nbrPtrs) {
+void cpu_calcSpatFluxesX(SpatialCell& cell,cuint& BLOCK,const std::vector<const SpatialCell*>& nbrPtrs) {
    creal* const avgs = cell.cpu_avgs + BLOCK*SIZE_VELBLOCK;
    creal* const d1x  = cell.cpu_d1x  + BLOCK*SIZE_DERIV;
    creal* const d2x  = cell.cpu_d2x  + BLOCK*SIZE_DERIV;
@@ -240,6 +255,10 @@ void cpu_calcSpatFluxesX(SpatialCell& cell,cuint& BLOCK,std::vector<SpatialCell*
       fx[trIndex(i,j,k)] = spatialFluxX(i,avg_neg,avg_pos,cell.cpu_blockParams+BLOCK*SIZE_BLOCKPARAMS);
       //fx[trIndex(i,j,k)] = avg_neg;
    }
+   #ifdef COUNTERS
+     #pragma omp atomic
+     ++cntr_spat_flux_x;
+   #endif
 }
 
 void cpu_calcSpatFluxesY(cuint& SPATCELL,cuint& BLOCK,Grid& grid) {
@@ -276,7 +295,7 @@ void cpu_calcSpatFluxesY(cuint& SPATCELL,cuint& BLOCK,Grid& grid) {
    }   
 }
 
-void cpu_calcSpatFluxesY(SpatialCell& cell,cuint& BLOCK,std::vector<SpatialCell*>& nbrPtrs) {
+void cpu_calcSpatFluxesY(SpatialCell& cell,cuint& BLOCK,const std::vector<const SpatialCell*>& nbrPtrs) {
    creal* const avgs = cell.cpu_avgs + BLOCK*SIZE_VELBLOCK;
    creal* const d1y  = cell.cpu_d1y  + BLOCK*SIZE_DERIV;
    creal* const d2y  = cell.cpu_d2y  + BLOCK*SIZE_DERIV;
@@ -308,6 +327,10 @@ void cpu_calcSpatFluxesY(SpatialCell& cell,cuint& BLOCK,std::vector<SpatialCell*
       //fy[trIndex(i,j,k)] = spatialFluxY(j,avg_neg,avg_pos,cell.cpu_blockParams+BLOCK*SIZE_BLOCKPARAMS);
       fy[trIndex(i,j,k)] = spatialFluxY(j,0.0f,0.0f,cell.cpu_blockParams+BLOCK*SIZE_BLOCKPARAMS);
    }
+   #ifdef COUNTERS
+     #pragma omp atomic
+     ++cntr_spat_flux_y;
+   #endif
 }
 
 void cpu_calcSpatFluxesZ(cuint& SPATCELL,cuint& BLOCK,Grid& grid) {
@@ -344,7 +367,7 @@ void cpu_calcSpatFluxesZ(cuint& SPATCELL,cuint& BLOCK,Grid& grid) {
    }
 }
 
-void cpu_calcSpatFluxesZ(SpatialCell& cell,cuint& BLOCK,std::vector<SpatialCell*>& nbrPtrs) {
+void cpu_calcSpatFluxesZ(SpatialCell& cell,cuint& BLOCK,const std::vector<const SpatialCell*>& nbrPtrs) {
    creal* const avgs = cell.cpu_avgs + BLOCK*SIZE_VELBLOCK;
    creal* const d1z  = cell.cpu_d1z  + BLOCK*SIZE_DERIV;
    creal* const d2z  = cell.cpu_d2z  + BLOCK*SIZE_DERIV;
@@ -376,6 +399,10 @@ void cpu_calcSpatFluxesZ(SpatialCell& cell,cuint& BLOCK,std::vector<SpatialCell*
       fz[trIndex(i,j,k)] = spatialFluxZ(k,avg_neg,avg_pos,cell.cpu_blockParams+BLOCK*SIZE_BLOCKPARAMS);
       //fz[trIndex(i,j,k)] = avg_pos;
    }
+   #ifdef COUNTERS
+     #pragma omp atomic
+     ++cntr_spat_flux_z;
+   #endif
 }
 
 void cpu_propagateSpat(cuint& SPATCELL,cuint& BLOCK,Grid& grid,creal& DT) {
@@ -426,7 +453,7 @@ void cpu_propagateSpat(cuint& SPATCELL,cuint& BLOCK,Grid& grid,creal& DT) {
    }
 }
 
-void cpu_propagateSpat(SpatialCell& cell,cuint& BLOCK,std::vector<SpatialCell*>& nbrPtrs,creal& DT) {
+void cpu_propagateSpat(SpatialCell& cell,cuint& BLOCK,const std::vector<const SpatialCell*>& nbrPtrs,creal& DT) {
    real* const avgs = cell.cpu_avgs + BLOCK*SIZE_VELBLOCK;
    creal* const fx = cell.cpu_fx + BLOCK*SIZE_FLUXS;
    creal* const fy = cell.cpu_fy + BLOCK*SIZE_FLUXS;
@@ -471,6 +498,10 @@ void cpu_propagateSpat(SpatialCell& cell,cuint& BLOCK,std::vector<SpatialCell*>&
       // Store new volume average:
       avgs[trIndex(i,j,k)] += avg;
    }
+   #ifdef COUNTERS
+     #pragma omp atomic
+     ++cntr_spat_prop;
+   #endif
 }
 
 bool cpu_translation1(cuint& cellIndex,SpatialCell& cell,Grid& grid,creal& DT) {
@@ -499,30 +530,39 @@ bool cpu_translation3(cuint& cellIndex,SpatialCell& cell,Grid& grid,creal& DT) {
    return true;
 }
 
-bool cpu_translation1(SpatialCell& cell,vector<SpatialCell*>& spatNbrs) {
+bool cpu_translation1(SpatialCell& cell,const std::vector<const SpatialCell*>& spatNbrs) {
    #pragma omp parallel for
    for (uint block=0; block<cell.N_blocks; ++block) {
       cpu_calcSpatDerivs(cell,block,spatNbrs);
    }
+   #ifdef COUNTERS
+     ++cntr_cpu_trans1;
+   #endif
    return true;
 }
 
-bool cpu_translation2(SpatialCell& cell,vector<SpatialCell*>& spatNbrs) {
+bool cpu_translation2(SpatialCell& cell,const std::vector<const SpatialCell*>& spatNbrs) {
    #pragma omp parallel for
    for (uint block=0; block<cell.N_blocks; ++block) {
       cpu_calcSpatFluxesX(cell,block,spatNbrs);
       cpu_calcSpatFluxesY(cell,block,spatNbrs);
       cpu_calcSpatFluxesZ(cell,block,spatNbrs);
    }
+   #ifdef COUNTERS
+     ++cntr_cpu_trans2;
+   #endif
    return true;
 }
 
-bool cpu_translation3(SpatialCell& cell,vector<SpatialCell*>& spatNbrs) {
+bool cpu_translation3(SpatialCell& cell,const std::vector<const SpatialCell*>& spatNbrs) {
    creal DT = Parameters::dt;
    #pragma omp parallel for
    for (uint block=0; block<cell.N_blocks; ++block) {
       cpu_propagateSpat(cell,block,spatNbrs,DT);
    }
+   #ifdef COUNTERS
+     ++cntr_cpu_trans3;
+   #endif
    return true;
 }
       
