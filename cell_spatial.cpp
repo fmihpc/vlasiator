@@ -11,6 +11,9 @@
 using namespace std;
 
 real* allocateReal(cuint& ELEMENTS,const bool& PAGELOCKED) {
+   #ifdef NOCUDA
+   return new real[ELEMENTS];
+   #else
    if (PAGELOCKED == true) {
       real* ptr;
       if (deviceCreateArray(ptr,ELEMENTS*sizeof(real)) == false) return NULL;
@@ -18,9 +21,13 @@ real* allocateReal(cuint& ELEMENTS,const bool& PAGELOCKED) {
    } else {
       return new real[ELEMENTS];
    }
+   #endif
 }
 
 uint* allocateUint(cuint& ELEMENTS,const bool& PAGELOCKED) {
+   #ifdef NOCUDA
+   return new uint[ELEMENTS];
+   #else
    if (PAGELOCKED == true) {
       uint* ptr;
       if (deviceCreateArray(ptr,ELEMENTS*sizeof(uint)) == false) return NULL;
@@ -28,23 +35,32 @@ uint* allocateUint(cuint& ELEMENTS,const bool& PAGELOCKED) {
    } else {
       return new uint[ELEMENTS];
    }
+   #endif
 }
 
 void freeReal(real*& ptr,const bool& PAGELOCKED) {
+   #ifdef NOCUDA
+   delete ptr;
+   #else
    if (PAGELOCKED == true) {
       deviceDeleteArray(ptr);
    } else {
       delete ptr;
    }
+   #endif
    ptr = NULL;
 }
 
 void freeUint(uint*& ptr,const bool& PAGELOCKED) {
+   #ifdef NOCUDA
+   delete ptr;
+   #else
    if (PAGELOCKED == true) {
       deviceDeleteArray(ptr);
    } else {
       delete ptr;
    }
+   #endif
    ptr = NULL;
 } 
 
