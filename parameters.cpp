@@ -7,22 +7,22 @@ using namespace std;
 typedef Parameters P;
 
 // Define static members:
-real P::xmin = NAN;
-real P::xmax = NAN;
-real P::ymin = NAN;
-real P::ymax = NAN;
-real P::zmin = NAN;
-real P::zmax = NAN;
-real P::dx_ini = NAN;
-real P::dy_ini = NAN;
-real P::dz_ini = NAN;
+Real P::xmin = NAN;
+Real P::xmax = NAN;
+Real P::ymin = NAN;
+Real P::ymax = NAN;
+Real P::zmin = NAN;
+Real P::zmax = NAN;
+Real P::dx_ini = NAN;
+Real P::dy_ini = NAN;
+Real P::dz_ini = NAN;
 
-real P::vxmin = NAN;
-real P::vxmax = NAN;
-real P::vymin = NAN;
-real P::vymax = NAN;
-real P::vzmin = NAN;
-real P::vzmax = NAN;
+Real P::vxmin = NAN;
+Real P::vxmax = NAN;
+Real P::vymin = NAN;
+Real P::vymax = NAN;
+Real P::vzmin = NAN;
+Real P::vzmax = NAN;
 
 uint P::xcells_ini = numeric_limits<uint>::max();
 uint P::ycells_ini = numeric_limits<uint>::max();
@@ -31,7 +31,7 @@ uint P::vxblocks_ini = numeric_limits<uint>::max();
 uint P::vyblocks_ini = numeric_limits<uint>::max();
 uint P::vzblocks_ini = numeric_limits<uint>::max();
 
-real P::dt = NAN;
+Real P::dt = NAN;
 uint P::tstep = 0;
 uint P::tsteps = 0;
 uint P::saveInterval = numeric_limits<uint>::max();
@@ -57,17 +57,17 @@ Parameters::Parameters() {
    xcells_ini = 34;
    ycells_ini = 7;
    zcells_ini = 1;
-   vxblocks_ini = 5;
-   vyblocks_ini = 5;
-   vzblocks_ini = 5;
+   vxblocks_ini = 10;
+   vyblocks_ini = 10;
+   vzblocks_ini = 10;
    
    dx_ini = (xmax-xmin)/xcells_ini;
    dy_ini = (ymax-ymin)/ycells_ini;
    dz_ini = (zmax-zmin)/zcells_ini;
 
    dt = 0.025;
-   tsteps = 100;
-   diagnInterval = 101;
+   tsteps = 50;
+   diagnInterval = 5;
 }
 
 

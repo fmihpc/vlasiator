@@ -14,15 +14,16 @@ DEVICE = DEVICE_DEFAULT
 PROJ = harm1D
 
 # C++ compiler:
-CMP = /usr/bin/g++-4.3
+CMP = /usr/bin/g++
+NVCMP = /usr/bin/g++-4.3
 # CUDA compiler:
 NVCC = nvcc
 # Linker:
-LINK = /usr/bin/g++-4.3
+LINK = /usr/bin/g++
 # Flags for C++ and CUDA compilers:
-FLAGS = -O3 -DNOCUDA
-CXXFLAGS = -funroll-loops -fopenmp
-NVCCFLAGS = --ptxas-options=-v -ccbin $(CMP) -D${DEVICE}
+FLAGS = -DNOCUDA
+CXXFLAGS = -O3 -DCOUNTERS -fopenmp -funroll-loops
+NVCCFLAGS = --ptxas-options=-v -ccbin $(NVCMP) -D${DEVICE}
 
 # -------------------------------------------
 # Automatically set parameters, DO NOT CHANGE
@@ -41,7 +42,7 @@ LIB_SILO = -L${SILOPTH}/lib -lsilo
 LIB_BOOST = -L/usr/local/boost_1_43_0/lib -lboost_mpi -lboost_serialization
 LIB_OPENMP = -lgomp
 LIB_ZOLTAN = -lzoltan
-LIB_MPI =
+LIB_MPI = -static-libgcc
 
 LIB = ${LIB_CUDA}
 LIB += ${LIB_SILO}

@@ -21,12 +21,12 @@ void closeOutputFile(const std::string& fileName) {
    closeOutputFile();
 }
 
-void writeVelocityBlockGrid(const string& gridName,cuint& BLOCKS,real* blockParams) {
+void writeVelocityBlockGrid(const string& gridName,cuint& BLOCKS,Real* blockParams) {
    //cout << "Writing " << BLOCKS << " blocks to silo" << endl;
    writeVelocityBlockGrid3D(gridName,BLOCKS,blockParams);
 }
 
-void writeVelocityBlockScalar(const string& varName,const string& gridName,cuint& BLOCKS,real* array) {
+void writeVelocityBlockScalar(const string& varName,const string& gridName,cuint& BLOCKS,Real* array) {
    //cout << "Writing data from address " << array << endl;
    writeVelocityBlockGridScalar3D(varName,gridName,BLOCKS,array);
 }
@@ -103,22 +103,22 @@ void writeBlocks(Grid& grid,cuint& STEP,const vector<uint>& spaIndices) {
    
    
    /*
-   gpuCopyArray("Avg",MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(real),grid.getBlockArray(),deviceGrid.getBlockArray(),false);
+   gpuCopyArray("Avg",MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(Real),grid.getBlockArray(),deviceGrid.getBlockArray(),false);
    for (uint i=0; i<spaIndices.size(); ++i) {
       stringstream cmp; cmp.width(3); cmp.fill('0'); cmp << "Avg" << spaIndices[i];
       writeVelocityBlockGridScalar3D(cmp.str().c_str(),"velgrid",grid[spaIndices[i]]->N_blocks,grid[spaIndices[i]]->cpu_avgs);
    }
-   gpuCopyArray("Fz",MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(real),grid.getBlockArray(),deviceGrid.getFz(),false);
+   gpuCopyArray("Fz",MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(Real),grid.getBlockArray(),deviceGrid.getFz(),false);
    for (uint i=0; i<spaIndices.size(); ++i) {
       stringstream cmp; cmp.width(3); cmp.fill('0'); cmp << "Fz" << spaIndices[i];
       writeVelocityBlockGridScalar3D(cmp.str().c_str(),"velgrid",grid[spaIndices[i]]->N_blocks,grid[spaIndices[i]]->cpu_avgs);
    }
-   gpuCopyArray("Fy",MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(real),grid.getBlockArray(),deviceGrid.getFy(),false);
+   gpuCopyArray("Fy",MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(Real),grid.getBlockArray(),deviceGrid.getFy(),false);
    for (uint i=0; i<spaIndices.size(); ++i) {
       stringstream cmp; cmp.width(3); cmp.fill('0'); cmp << "Fy" << spaIndices[i];
       writeVelocityBlockGridScalar3D(cmp.str().c_str(),"velgrid",grid[spaIndices[i]]->N_blocks,grid[spaIndices[i]]->cpu_avgs);
    }
-   gpuCopyArray("Fx",MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(real),grid.getBlockArray(),deviceGrid.getFx(),false);
+   gpuCopyArray("Fx",MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(Real),grid.getBlockArray(),deviceGrid.getFx(),false);
    for (uint i=0; i<spaIndices.size(); ++i) {
       stringstream cmp; cmp.width(3); cmp.fill('0'); cmp << "Fx" << spaIndices[i];
       writeVelocityBlockGridScalar3D(cmp.str().c_str(),"velgrid",grid[spaIndices[i]]->N_blocks,grid[spaIndices[i]]->cpu_avgs);

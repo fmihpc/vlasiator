@@ -16,30 +16,30 @@ DeviceGrid::DeviceGrid() {
    
    logger << "(DEVICEGRID): Initializing." << endl;
    if (allocateArray("nbrsVel", MAX_VEL_BLOCKS*SIZE_NBRS_VEL*sizeof(uint), nbrsVel) == false) success = false;
-   if (allocateArray("blockArray", MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(real), blockArray) == false) success = false;
-   if (allocateArray("blockParams", MAX_VEL_BLOCKS*SIZE_BLOCKPARAMS*sizeof(real), blockParams) == false) success = false;
-   if (allocateArray("cellParams", MAX_SPA_CELLS*SIZE_CELLPARAMS*sizeof(real), cellParams) == false) success = false;
-   if (allocateArray("avgnbrx", MAX_VEL_BLOCKS*SIZE_BOUND*sizeof(real), avgnbrx) == false) success = false;
-   if (allocateArray("avgnbry", MAX_VEL_BLOCKS*SIZE_BOUND*sizeof(real), avgnbry) == false) success = false;
-   if (allocateArray("avgnbrz", MAX_VEL_BLOCKS*SIZE_BOUND*sizeof(real), avgnbrz) == false) success = false;
-   if (allocateArray("fx     ", MAX_VEL_BLOCKS*SIZE_FLUXS*sizeof(real), fx    ) == false) success = false;
-   if (allocateArray("fy     ", MAX_VEL_BLOCKS*SIZE_FLUXS*sizeof(real), fy    ) == false) success = false;
-   if (allocateArray("fz     ", MAX_VEL_BLOCKS*SIZE_FLUXS*sizeof(real), fz    ) == false) success = false;
-   if (allocateArray("fxnbr  ", MAX_VEL_BLOCKS*SIZE_BFLUX*sizeof(real), fxnbr ) == false) success = false;
-   if (allocateArray("fynbr  ", MAX_VEL_BLOCKS*SIZE_BFLUX*sizeof(real), fynbr ) == false) success = false;
-   if (allocateArray("fznbr  ", MAX_VEL_BLOCKS*SIZE_BFLUX*sizeof(real), fznbr ) == false) success = false;
-   if (allocateArray("d1x    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real), d1x   ) == false) success = false;
-   if (allocateArray("d1y    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real), d1y   ) == false) success = false;
-   if (allocateArray("d1z    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real), d1z   ) == false) success = false;
-   if (allocateArray("d2x    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real), d2x   ) == false) success = false;
-   if (allocateArray("d2y    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real), d2y   ) == false) success = false;
-   if (allocateArray("d2z    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real), d2z   ) == false) success = false;
-   if (allocateArray("d1xnbr ", MAX_VEL_BLOCKS*SIZE_BDERI*sizeof(real), d1xnbr) == false) success = false;
-   if (allocateArray("d1ynbr ", MAX_VEL_BLOCKS*SIZE_BDERI*sizeof(real), d1ynbr) == false) success = false;
-   if (allocateArray("d1znbr ", MAX_VEL_BLOCKS*SIZE_BDERI*sizeof(real), d1znbr) == false) success = false;
-   if (allocateArray("d2xnbr ", MAX_VEL_BLOCKS*SIZE_BDERI*sizeof(real), d2xnbr) == false) success = false;
-   if (allocateArray("d2ynbr ", MAX_VEL_BLOCKS*SIZE_BDERI*sizeof(real), d2ynbr) == false) success = false;
-   if (allocateArray("d2znbr ", MAX_VEL_BLOCKS*SIZE_BDERI*sizeof(real), d2znbr) == false) success = false;
+   if (allocateArray("blockArray", MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(Real), blockArray) == false) success = false;
+   if (allocateArray("blockParams", MAX_VEL_BLOCKS*SIZE_BLOCKPARAMS*sizeof(Real), blockParams) == false) success = false;
+   if (allocateArray("cellParams", MAX_SPA_CELLS*SIZE_CELLPARAMS*sizeof(Real), cellParams) == false) success = false;
+   if (allocateArray("avgnbrx", MAX_VEL_BLOCKS*SIZE_BOUND*sizeof(Real), avgnbrx) == false) success = false;
+   if (allocateArray("avgnbry", MAX_VEL_BLOCKS*SIZE_BOUND*sizeof(Real), avgnbry) == false) success = false;
+   if (allocateArray("avgnbrz", MAX_VEL_BLOCKS*SIZE_BOUND*sizeof(Real), avgnbrz) == false) success = false;
+   if (allocateArray("fx     ", MAX_VEL_BLOCKS*SIZE_FLUXS*sizeof(Real), fx    ) == false) success = false;
+   if (allocateArray("fy     ", MAX_VEL_BLOCKS*SIZE_FLUXS*sizeof(Real), fy    ) == false) success = false;
+   if (allocateArray("fz     ", MAX_VEL_BLOCKS*SIZE_FLUXS*sizeof(Real), fz    ) == false) success = false;
+   if (allocateArray("fxnbr  ", MAX_VEL_BLOCKS*SIZE_BFLUX*sizeof(Real), fxnbr ) == false) success = false;
+   if (allocateArray("fynbr  ", MAX_VEL_BLOCKS*SIZE_BFLUX*sizeof(Real), fynbr ) == false) success = false;
+   if (allocateArray("fznbr  ", MAX_VEL_BLOCKS*SIZE_BFLUX*sizeof(Real), fznbr ) == false) success = false;
+   if (allocateArray("d1x    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(Real), d1x   ) == false) success = false;
+   if (allocateArray("d1y    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(Real), d1y   ) == false) success = false;
+   if (allocateArray("d1z    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(Real), d1z   ) == false) success = false;
+   if (allocateArray("d2x    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(Real), d2x   ) == false) success = false;
+   if (allocateArray("d2y    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(Real), d2y   ) == false) success = false;
+   if (allocateArray("d2z    ", MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(Real), d2z   ) == false) success = false;
+   if (allocateArray("d1xnbr ", MAX_VEL_BLOCKS*SIZE_BDERI*sizeof(Real), d1xnbr) == false) success = false;
+   if (allocateArray("d1ynbr ", MAX_VEL_BLOCKS*SIZE_BDERI*sizeof(Real), d1ynbr) == false) success = false;
+   if (allocateArray("d1znbr ", MAX_VEL_BLOCKS*SIZE_BDERI*sizeof(Real), d1znbr) == false) success = false;
+   if (allocateArray("d2xnbr ", MAX_VEL_BLOCKS*SIZE_BDERI*sizeof(Real), d2xnbr) == false) success = false;
+   if (allocateArray("d2ynbr ", MAX_VEL_BLOCKS*SIZE_BDERI*sizeof(Real), d2ynbr) == false) success = false;
+   if (allocateArray("d2znbr ", MAX_VEL_BLOCKS*SIZE_BDERI*sizeof(Real), d2znbr) == false) success = false;
    
    if (success == false) {
       nextInner = 0;
@@ -81,7 +81,7 @@ DeviceGrid::~DeviceGrid() {
    logger << "\t Deallocating 'd2znbr': " << cudaGetErrorString( cudaFree(d2znbr) ) << endl;
 }
 
-bool DeviceGrid::allocateArray(const std::string& name,const uint& bytes,real*& arrptr) {
+bool DeviceGrid::allocateArray(const std::string& name,const uint& bytes,Real*& arrptr) {
    logger << "\t Reserving " << bytes << " bytes of GPU memory for array '" << name << "': ";
    cudaError_t error = cudaMalloc(&arrptr,bytes);
    logger << cudaGetErrorString(error) << endl;

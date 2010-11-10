@@ -44,7 +44,7 @@ extern bool cpu_translation1(SpatialCell& cell,const std::vector<const SpatialCe
 extern bool cpu_translation2(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
 extern bool cpu_translation3(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
 
-Logger logger("logfile.txt");
+Logger logger;
 
 void initSpatialCells(dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm) {
    // This can be replaced by an iterator.
@@ -53,7 +53,7 @@ void initSpatialCells(dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm
    // cpu memory, physical parameters and volume averages for each phase space 
    // point in the velocity grid. Velocity block neighbour list is also 
    // constructed here:
-   real xmin,ymin,zmin,dx,dy,dz;
+   Real xmin,ymin,zmin,dx,dy,dz;
    for (uint i=0; i<cells.size(); ++i) {
       dx = mpiGrid.get_cell_x_size(cells[i]);
       dy = mpiGrid.get_cell_y_size(cells[i]);
@@ -83,12 +83,12 @@ void writeSpatialCells(const boost::mpi::communicator& comm,dccrg<SpatialCell>& 
    openOutputFile(fname.str(),"spatial_cells");
    reserveSpatialCells(cells.size());
    for (uint i=0; i<cells.size(); ++i) {
-      real* const avgs = mpiGrid[cells[i]]->cpu_avgs;
+      Real* const avgs = mpiGrid[cells[i]]->cpu_avgs;
       if (avgs == NULL) {
 	 std::cerr << "(MAIN) ERROR expected a pointer, got NULL" << std::endl;
 	 continue;
       }
-      real n = 0.0;
+      Real n = 0.0;
       for (uint b=0; b<SIZE_VELBLOCK*mpiGrid[cells[i]]->N_blocks; ++b) n += avgs[b];
       addSpatialCell(mpiGrid[cells[i]]->cpu_cellParams,n);
    }
@@ -188,6 +188,13 @@ bool findNeighbours(std::vector<const SpatialCell*>& nbrPtr,dccrg<SpatialCell>& 
 
 int main(int argn,char* args[]) {
    typedef Parameters P;
+   boost::mpi::environment env(argn,args);
+   boost::mpi::communicator comm;
+     {
+	std::stringstream ss;
+	ss << "logfile." << comm.rank() << ".txt";
+	logger.setOutputFile(ss.str());
+     }
    
    logger << "(MAIN): Starting up." << std::endl;
    Parameters parameters;
@@ -213,8 +220,6 @@ int main(int argn,char* args[]) {
    #endif
       
    // Create parallel MPI grid and init Zoltan:
-   boost::mpi::environment env(argn,args);
-   boost::mpi::communicator comm;
    float zoltanVersion;
    if (Zoltan_Initialize(argn,args,&zoltanVersion) != ZOLTAN_OK) {
       logger << "\t ERROR: Zoltan initialization failed, aborting." << std::endl;

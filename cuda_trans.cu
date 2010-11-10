@@ -13,26 +13,26 @@ __host__ bool bindTexture(texture<uint,1,cudaReadModeElementType>& texRef,uint* 
    return success;
 }
 
-__host__ bool bindTexture(texture<real,1,cudaReadModeElementType>& texRef,real* arrptr,cuint& BYTES,size_t& offset) {
+__host__ bool bindTexture(texture<Real,1,cudaReadModeElementType>& texRef,Real* arrptr,cuint& BYTES,size_t& offset) {
    bool success = true;
    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32,0,0,0,cudaChannelFormatKindFloat);
    cudaError_t cudaError = cudaBindTexture(&offset,&texRef,arrptr,&channelDesc,BYTES);
    if (cudaError != cudaSuccess) {
-      logger << "(CUDA_TRANS): Failed to bind textures to real*!" << endl;
+      logger << "(CUDA_TRANS): Failed to bind textures to Real*!" << endl;
       success = false;
       }
    return success;
 }
 
 // ------------------ DEVICE FUNCTIONS -------------------
-__device__ real spatDerivs(real xl1,real xcc,real xr1) {
+__device__ Real spatDerivs(Real xl1,Real xcc,Real xr1) {
    //return MClimiter(xl1,xcc,xr1);
    return superbee(xl1,xcc,xr1);
    //return vanLeer(xl1,xcc,xr1);
 }
 
 // ---------------------- KERNELS ------------------------
-__global__ void calcSpatDerivs_1warp(uint OFFSET,real* d1x,real* d1y,real* d1z,real* d2x,real* d2y,real* d2z,uint* nbrs) {
+__global__ void calcSpatDerivs_1warp(uint OFFSET,Real* d1x,Real* d1y,Real* d1z,Real* d2x,Real* d2y,Real* d2z,uint* nbrs) {
    __shared__ uint sha_nbr[2*SIZE_NBRS_VEL];
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
@@ -50,10 +50,10 @@ __global__ void calcSpatDerivs_1warp(uint OFFSET,real* d1x,real* d1y,real* d1z,r
    creal xcc_2 = tex1Dfetch(texRef_avgs,MYBLOCK*SIZE_VELBLOCK + MYIND2);   
    
    // Fetch +/- x-neighbours and calculate derivatives:
-   real xl1_1 = tex1Dfetch(texRef_avgs,sha_nbr[NbrsVel::XNEG]*SIZE_VELBLOCK + MYIND1);
-   real xl1_2 = tex1Dfetch(texRef_avgs,sha_nbr[NbrsVel::XNEG]*SIZE_VELBLOCK + MYIND2);
-   real xr1_1 = tex1Dfetch(texRef_avgs,sha_nbr[NbrsVel::XPOS]*SIZE_VELBLOCK + MYIND1);
-   real xr1_2 = tex1Dfetch(texRef_avgs,sha_nbr[NbrsVel::XPOS]*SIZE_VELBLOCK + MYIND2);
+   Real xl1_1 = tex1Dfetch(texRef_avgs,sha_nbr[NbrsVel::XNEG]*SIZE_VELBLOCK + MYIND1);
+   Real xl1_2 = tex1Dfetch(texRef_avgs,sha_nbr[NbrsVel::XNEG]*SIZE_VELBLOCK + MYIND2);
+   Real xr1_1 = tex1Dfetch(texRef_avgs,sha_nbr[NbrsVel::XPOS]*SIZE_VELBLOCK + MYIND1);
+   Real xr1_2 = tex1Dfetch(texRef_avgs,sha_nbr[NbrsVel::XPOS]*SIZE_VELBLOCK + MYIND2);
    d1x[MYBLOCK*SIZE_DERIV + MYIND1] = spatDerivs(xl1_1,xcc_1,xr1_1);
    d1x[MYBLOCK*SIZE_DERIV + MYIND2] = spatDerivs(xl1_2,xcc_2,xr1_2);
    
@@ -74,7 +74,7 @@ __global__ void calcSpatDerivs_1warp(uint OFFSET,real* d1x,real* d1y,real* d1z,r
    d1z[MYBLOCK*SIZE_DERIV + MYIND2] = spatDerivs(xl1_2,xcc_2,xr1_2);
 }
 
-__global__ void calcSpatDerivs_2warp(uint OFFSET,real* d1x,real* d1y,real* d1z,real* d2x,real* d2y,real* d2z,uint* nbrs) {
+__global__ void calcSpatDerivs_2warp(uint OFFSET,Real* d1x,Real* d1y,Real* d1z,Real* d2x,Real* d2y,Real* d2z,uint* nbrs) {
    __shared__ uint sha_nbr[SIZE_NBRS_VEL];
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
@@ -88,8 +88,8 @@ __global__ void calcSpatDerivs_2warp(uint OFFSET,real* d1x,real* d1y,real* d1z,r
    creal xcc_1 = tex1Dfetch(texRef_avgs,MYBLOCK*SIZE_VELBLOCK + MYIND);
    
    // Fetch +/- x-neighbours and calculate derivatives:
-   real xl1_1 = tex1Dfetch(texRef_avgs,sha_nbr[NbrsVel::XNEG]*SIZE_VELBLOCK + MYIND);
-   real xr1_1 = tex1Dfetch(texRef_avgs,sha_nbr[NbrsVel::XPOS]*SIZE_VELBLOCK + MYIND);
+   Real xl1_1 = tex1Dfetch(texRef_avgs,sha_nbr[NbrsVel::XNEG]*SIZE_VELBLOCK + MYIND);
+   Real xr1_1 = tex1Dfetch(texRef_avgs,sha_nbr[NbrsVel::XPOS]*SIZE_VELBLOCK + MYIND);
    d1x[MYBLOCK*SIZE_DERIV + MYIND] = spatDerivs(xl1_1,xcc_1,xr1_1);
 
    // Fetch +/- y-neighbours and calculate derivatives:
@@ -103,7 +103,7 @@ __global__ void calcSpatDerivs_2warp(uint OFFSET,real* d1x,real* d1y,real* d1z,r
    d1z[MYBLOCK*SIZE_DERIV + MYIND] = spatDerivs(xl1_1,xcc_1,xr1_1);
 }
 
-template<uint WARPS> __global__ void calcSpatDerivs_n2warp(uint OFFSET,real* d1x,real* d1y,real* d1z,real* d2x,real* d2y,real* d2z,uint* nbrs) {
+template<uint WARPS> __global__ void calcSpatDerivs_n2warp(uint OFFSET,Real* d1x,Real* d1y,Real* d1z,Real* d2x,Real* d2y,Real* d2z,uint* nbrs) {
    __shared__ uint sha_nbr[SIZE_NBRS_VEL*WARPS*4];
    
    cuint MYBLOCK = OFFSET + (blockIdx.y*WARPS + threadIdx.z/4)*gridDim.x + blockIdx.x;
@@ -116,8 +116,8 @@ template<uint WARPS> __global__ void calcSpatDerivs_n2warp(uint OFFSET,real* d1x
    creal xcc_1 = tex1Dfetch(texRef_avgs,MYBLOCK*SIZE_VELBLOCK + MYIND);
     
    // Fetch +/- x-neighbours and calculate derivatives:
-   real xl1_1 = tex1Dfetch(texRef_avgs,sha_nbr[threadIdx.z*SIZE_NBRS_VEL + NbrsVel::XNEG]*SIZE_VELBLOCK + MYIND);
-   real xr1_1 = tex1Dfetch(texRef_avgs,sha_nbr[threadIdx.z*SIZE_NBRS_VEL + NbrsVel::XPOS]*SIZE_VELBLOCK + MYIND);
+   Real xl1_1 = tex1Dfetch(texRef_avgs,sha_nbr[threadIdx.z*SIZE_NBRS_VEL + NbrsVel::XNEG]*SIZE_VELBLOCK + MYIND);
+   Real xr1_1 = tex1Dfetch(texRef_avgs,sha_nbr[threadIdx.z*SIZE_NBRS_VEL + NbrsVel::XPOS]*SIZE_VELBLOCK + MYIND);
    d1x[MYBLOCK*SIZE_DERIV + MYIND] = spatDerivs(xl1_1,xcc_1,xr1_1);
    
    // Fetch +/- y-neighbours and calculate derivatives:
@@ -131,7 +131,7 @@ template<uint WARPS> __global__ void calcSpatDerivs_n2warp(uint OFFSET,real* d1x
    d1z[MYBLOCK*SIZE_DERIV + MYIND] = spatDerivs(xl1_1,xcc_1,xr1_1);
 }
 
-template<uint WARPS> __global__ void calcSpatDerivs_nwarp(uint OFFSET,real* d1x,real* d1y,real* d1z,real* d2x,real* d2y,real* d2z,uint* nbrs) {
+template<uint WARPS> __global__ void calcSpatDerivs_nwarp(uint OFFSET,Real* d1x,Real* d1y,Real* d1z,Real* d2x,Real* d2y,Real* d2z,uint* nbrs) {
    //__shared__ uint sha_nbr[2*SIZE_NBRS_VEL*WARPS];
    __shared__ uint sha_nbr[SIZE_NBRS_VEL*WARPS];
    
@@ -152,10 +152,10 @@ template<uint WARPS> __global__ void calcSpatDerivs_nwarp(uint OFFSET,real* d1x,
    creal xcc_2 = tex1Dfetch(texRef_avgs,MYBLOCK*SIZE_VELBLOCK + MYIND2);
    
    // Fetch +/- x-neighbours and calculate derivatives:
-   real xl1_1 = tex1Dfetch(texRef_avgs,sha_nbr[(threadIdx.z/2)*SIZE_NBRS_VEL + NbrsVel::XNEG]*SIZE_VELBLOCK + MYIND1);
-   real xl1_2 = tex1Dfetch(texRef_avgs,sha_nbr[(threadIdx.z/2)*SIZE_NBRS_VEL + NbrsVel::XNEG]*SIZE_VELBLOCK + MYIND2);
-   real xr1_1 = tex1Dfetch(texRef_avgs,sha_nbr[(threadIdx.z/2)*SIZE_NBRS_VEL + NbrsVel::XPOS]*SIZE_VELBLOCK + MYIND1);
-   real xr1_2 = tex1Dfetch(texRef_avgs,sha_nbr[(threadIdx.z/2)*SIZE_NBRS_VEL + NbrsVel::XPOS]*SIZE_VELBLOCK + MYIND2);
+   Real xl1_1 = tex1Dfetch(texRef_avgs,sha_nbr[(threadIdx.z/2)*SIZE_NBRS_VEL + NbrsVel::XNEG]*SIZE_VELBLOCK + MYIND1);
+   Real xl1_2 = tex1Dfetch(texRef_avgs,sha_nbr[(threadIdx.z/2)*SIZE_NBRS_VEL + NbrsVel::XNEG]*SIZE_VELBLOCK + MYIND2);
+   Real xr1_1 = tex1Dfetch(texRef_avgs,sha_nbr[(threadIdx.z/2)*SIZE_NBRS_VEL + NbrsVel::XPOS]*SIZE_VELBLOCK + MYIND1);
+   Real xr1_2 = tex1Dfetch(texRef_avgs,sha_nbr[(threadIdx.z/2)*SIZE_NBRS_VEL + NbrsVel::XPOS]*SIZE_VELBLOCK + MYIND2);
    d1x[MYBLOCK*SIZE_DERIV + MYIND1] = spatDerivs(xl1_1,xcc_1,xr1_1);
    d1x[MYBLOCK*SIZE_DERIV + MYIND2] = spatDerivs(xl1_2,xcc_2,xr1_2);
    
@@ -179,8 +179,8 @@ template<uint WARPS> __global__ void calcSpatDerivs_nwarp(uint OFFSET,real* d1x,
 
 
 
-__global__ void zFlux_1warp(uint OFFSET,uint SPATCELL,real* fz,real* blockParams,uint* nbrs) {
-   __shared__ real sha_bparms[SIZE_BLOCKPARAMS];
+__global__ void zFlux_1warp(uint OFFSET,uint SPATCELL,Real* fz,Real* blockParams,uint* nbrs) {
+   __shared__ Real sha_bparms[SIZE_BLOCKPARAMS];
    __shared__ uint sha_nbr[SIZE_NBRS_VEL];
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
@@ -192,7 +192,7 @@ __global__ void zFlux_1warp(uint OFFSET,uint SPATCELL,real* fz,real* blockParams
 
    // Fetch volume averages and z-derivatives for this block and -z neighbour, 
    // reconstruct face values and calculate z-flux:
-   real avg_neg,avg_pos,d1z_neg,d1z_pos,d2z_neg,d2z_pos;
+   Real avg_neg,avg_pos,d1z_neg,d1z_pos,d2z_neg,d2z_pos;
    avg_neg = tex1Dfetch(texRef_avgs,sha_nbr[NbrsVel::ZNEG]*SIZE_VELBLOCK+MYIND);
    d1z_neg = tex1Dfetch(texRef_d1z ,sha_nbr[NbrsVel::ZNEG]*SIZE_DERIV+MYIND);
    d2z_neg = 0.0f;
@@ -215,8 +215,8 @@ __global__ void zFlux_1warp(uint OFFSET,uint SPATCELL,real* fz,real* blockParams
    fz[MYBLOCK*SIZE_FLUXS+MYIND] = spatialFluxZ(avg_neg,avg_pos,sha_bparms,threadIdx.z+2);
 }
 
-__global__ void zFlux_2warp(uint OFFSET,uint SPATCELL,real* fz,real* blockParams,uint* nbrs) {
-   __shared__ real sha_bparms[SIZE_BLOCKPARAMS*4];
+__global__ void zFlux_2warp(uint OFFSET,uint SPATCELL,Real* fz,Real* blockParams,uint* nbrs) {
+   __shared__ Real sha_bparms[SIZE_BLOCKPARAMS*4];
    __shared__ uint sha_nbr[SIZE_NBRS_VEL*4];
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
@@ -228,22 +228,22 @@ __global__ void zFlux_2warp(uint OFFSET,uint SPATCELL,real* fz,real* blockParams
    
    // Fetch volume averages and x-derivatives for this block and -x neighbour,
    // reconstruct face values and calculate x-flux:
-   real avg_pos = tex1Dfetch(texRef_avgs,MYBLOCK*SIZE_VELBLOCK+MYIND);
-   real d1z_pos = tex1Dfetch(texRef_d1z ,MYBLOCK*SIZE_DERIV+MYIND);
-   real d2z_pos = 0.0f;
+   Real avg_pos = tex1Dfetch(texRef_avgs,MYBLOCK*SIZE_VELBLOCK+MYIND);
+   Real d1z_pos = tex1Dfetch(texRef_d1z ,MYBLOCK*SIZE_DERIV+MYIND);
+   Real d2z_pos = 0.0f;
    avg_pos = reconstruct_pos(avg_pos,d1z_pos,d2z_pos);
    
    cuint MYZNEG = sha_nbr[threadIdx.z*SIZE_NBRS_VEL + NbrsVel::ZNEG];
-   real avg_neg = tex1Dfetch(texRef_avgs,MYZNEG*SIZE_VELBLOCK+MYIND);
-   real d1z_neg = tex1Dfetch(texRef_d1z ,MYZNEG*SIZE_DERIV+MYIND);
-   real d2z_neg = 0.0f;
+   Real avg_neg = tex1Dfetch(texRef_avgs,MYZNEG*SIZE_VELBLOCK+MYIND);
+   Real d1z_neg = tex1Dfetch(texRef_d1z ,MYZNEG*SIZE_DERIV+MYIND);
+   Real d2z_neg = 0.0f;
    avg_neg = reconstruct_neg(avg_neg,d1z_neg,d2z_neg);
    
    fz[MYBLOCK*SIZE_FLUXS+MYIND] = spatialFluxZ(avg_neg,avg_pos,sha_bparms+threadIdx.z*SIZE_BLOCKPARAMS,threadIdx.z);
 }
 
-template<uint WARPS> __global__ void zFlux_n2warp(uint OFFSET,uint SPATCELL,real* fz,real* blockParams,uint* nbrs) {
-   __shared__ real sha_bparms[SIZE_BLOCKPARAMS*WARPS*4];
+template<uint WARPS> __global__ void zFlux_n2warp(uint OFFSET,uint SPATCELL,Real* fz,Real* blockParams,uint* nbrs) {
+   __shared__ Real sha_bparms[SIZE_BLOCKPARAMS*WARPS*4];
    __shared__ uint sha_nbr[SIZE_NBRS_VEL*WARPS*4];
    
    cuint MYBLOCK = OFFSET + (blockIdx.y*WARPS + threadIdx.z/4)*gridDim.x + blockIdx.x;
@@ -255,22 +255,22 @@ template<uint WARPS> __global__ void zFlux_n2warp(uint OFFSET,uint SPATCELL,real
    
    // Fetch volume averages and x-derivatives for this block and -x neighbour,
    // reconstruct face values and calculate x-flux:
-   real avg_pos = tex1Dfetch(texRef_avgs,MYBLOCK*SIZE_VELBLOCK+MYIND);
-   real d1z_pos = tex1Dfetch(texRef_d1z ,MYBLOCK*SIZE_DERIV+MYIND);
-   real d2z_pos = 0.0f;
+   Real avg_pos = tex1Dfetch(texRef_avgs,MYBLOCK*SIZE_VELBLOCK+MYIND);
+   Real d1z_pos = tex1Dfetch(texRef_d1z ,MYBLOCK*SIZE_DERIV+MYIND);
+   Real d2z_pos = 0.0f;
    avg_pos = reconstruct_pos(avg_pos,d1z_pos,d2z_pos);
    
    cuint MYZNEG = sha_nbr[threadIdx.z*SIZE_NBRS_VEL + NbrsVel::ZNEG];
-   real avg_neg = tex1Dfetch(texRef_avgs,MYZNEG*SIZE_VELBLOCK+MYIND);
-   real d1z_neg = tex1Dfetch(texRef_d1z ,MYZNEG*SIZE_DERIV+MYIND);
-   real d2z_neg = 0.0f;
+   Real avg_neg = tex1Dfetch(texRef_avgs,MYZNEG*SIZE_VELBLOCK+MYIND);
+   Real d1z_neg = tex1Dfetch(texRef_d1z ,MYZNEG*SIZE_DERIV+MYIND);
+   Real d2z_neg = 0.0f;
    avg_neg = reconstruct_neg(avg_neg,d1z_neg,d2z_neg);
    
    fz[MYBLOCK*SIZE_FLUXS+MYIND] = spatialFluxZ(avg_neg,avg_pos,sha_bparms+threadIdx.z*SIZE_BLOCKPARAMS,threadIdx.z%4);
 }
 
-__global__ void yFlux_1warp(uint OFFSET,uint SPATCELL,real* fy,real* blockParams,uint* nbrs) {
-   __shared__ real sha_bparms[SIZE_BLOCKPARAMS];
+__global__ void yFlux_1warp(uint OFFSET,uint SPATCELL,Real* fy,Real* blockParams,uint* nbrs) {
+   __shared__ Real sha_bparms[SIZE_BLOCKPARAMS];
    __shared__ uint sha_nbr[SIZE_NBRS_VEL];
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
@@ -282,13 +282,13 @@ __global__ void yFlux_1warp(uint OFFSET,uint SPATCELL,real* fy,real* blockParams
    
    // Fetch volume averages and y-derivatives for this block and -y neighbour,
    // reconstruct face values and calculate y-flux:
-   real avg_neg = tex1Dfetch(texRef_avgs,sha_nbr[NbrsVel::YNEG]*SIZE_VELBLOCK+MYIND);
-   real d1y_neg = tex1Dfetch(texRef_d1y ,sha_nbr[NbrsVel::YNEG]*SIZE_DERIV+MYIND);
-   real d2y_neg = 0.0f;
+   Real avg_neg = tex1Dfetch(texRef_avgs,sha_nbr[NbrsVel::YNEG]*SIZE_VELBLOCK+MYIND);
+   Real d1y_neg = tex1Dfetch(texRef_d1y ,sha_nbr[NbrsVel::YNEG]*SIZE_DERIV+MYIND);
+   Real d2y_neg = 0.0f;
    avg_neg = reconstruct_neg(avg_neg,d1y_neg,d2y_neg);
-   real avg_pos = tex1Dfetch(texRef_avgs,MYBLOCK*SIZE_VELBLOCK+MYIND);
-   real d1y_pos = tex1Dfetch(texRef_d1y ,MYBLOCK*SIZE_DERIV+MYIND);
-   real d2y_pos = 0.0f;
+   Real avg_pos = tex1Dfetch(texRef_avgs,MYBLOCK*SIZE_VELBLOCK+MYIND);
+   Real d1y_pos = tex1Dfetch(texRef_d1y ,MYBLOCK*SIZE_DERIV+MYIND);
+   Real d2y_pos = 0.0f;
    avg_pos = reconstruct_pos(avg_pos,d1y_pos,d2y_pos);
    fy[MYBLOCK*SIZE_FLUXS+MYIND] = spatialFluxY(avg_neg,avg_pos,sha_bparms);
 
@@ -304,8 +304,8 @@ __global__ void yFlux_1warp(uint OFFSET,uint SPATCELL,real* fy,real* blockParams
    fy[MYBLOCK*SIZE_FLUXS+MYIND] = spatialFluxY(avg_neg,avg_pos,sha_bparms);
 }
 
-__global__ void yFlux_2warp(uint OFFSET,uint SPATCELL,real* fy,real* blockParams,uint* nbrs) {
-   __shared__ real sha_bparms[SIZE_BLOCKPARAMS*4];
+__global__ void yFlux_2warp(uint OFFSET,uint SPATCELL,Real* fy,Real* blockParams,uint* nbrs) {
+   __shared__ Real sha_bparms[SIZE_BLOCKPARAMS*4];
    __shared__ uint sha_nbr[SIZE_NBRS_VEL*4];
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
@@ -317,22 +317,22 @@ __global__ void yFlux_2warp(uint OFFSET,uint SPATCELL,real* fy,real* blockParams
    
    // Fetch volume averages and x-derivatives for this block and -x neighbour,
    // reconstruct face values and calculate x-flux:
-   real avg_pos = tex1Dfetch(texRef_avgs,MYBLOCK*SIZE_VELBLOCK+MYIND);
-   real d1y_pos = tex1Dfetch(texRef_d1y ,MYBLOCK*SIZE_DERIV+MYIND);
-   real d2y_pos = 0.0f;
+   Real avg_pos = tex1Dfetch(texRef_avgs,MYBLOCK*SIZE_VELBLOCK+MYIND);
+   Real d1y_pos = tex1Dfetch(texRef_d1y ,MYBLOCK*SIZE_DERIV+MYIND);
+   Real d2y_pos = 0.0f;
    avg_pos = reconstruct_pos(avg_pos,d1y_pos,d2y_pos);
    
    cuint MYYNEG = sha_nbr[threadIdx.z*SIZE_NBRS_VEL + NbrsVel::YNEG];
-   real avg_neg = tex1Dfetch(texRef_avgs,MYYNEG*SIZE_VELBLOCK+MYIND);
-   real d1y_neg = tex1Dfetch(texRef_d1y ,MYYNEG*SIZE_DERIV+MYIND);
-   real d2y_neg = 0.0f;
+   Real avg_neg = tex1Dfetch(texRef_avgs,MYYNEG*SIZE_VELBLOCK+MYIND);
+   Real d1y_neg = tex1Dfetch(texRef_d1y ,MYYNEG*SIZE_DERIV+MYIND);
+   Real d2y_neg = 0.0f;
    avg_neg = reconstruct_neg(avg_neg,d1y_neg,d2y_neg);
    
    fy[MYBLOCK*SIZE_FLUXS+MYIND] = spatialFluxY(avg_neg,avg_pos,sha_bparms+threadIdx.z*SIZE_BLOCKPARAMS);
 }
 
-template<uint WARPS> __global__ void yFlux_n2warp(uint OFFSET,uint SPATCELL,real* fy,real* blockParams,uint* nbrs) {
-   __shared__ real sha_bparms[SIZE_BLOCKPARAMS*WARPS*4];
+template<uint WARPS> __global__ void yFlux_n2warp(uint OFFSET,uint SPATCELL,Real* fy,Real* blockParams,uint* nbrs) {
+   __shared__ Real sha_bparms[SIZE_BLOCKPARAMS*WARPS*4];
    __shared__ uint sha_nbr[SIZE_NBRS_VEL*WARPS*4];
    
    cuint MYBLOCK = OFFSET + (blockIdx.y*WARPS + threadIdx.z/4)*gridDim.x + blockIdx.x;
@@ -344,22 +344,22 @@ template<uint WARPS> __global__ void yFlux_n2warp(uint OFFSET,uint SPATCELL,real
    
    // Fetch volume averages and x-derivatives for this block and -x neighbour,
    // reconstruct face values and calculate x-flux:
-   real avg_pos = tex1Dfetch(texRef_avgs,MYBLOCK*SIZE_VELBLOCK+MYIND);
-   real d1y_pos = tex1Dfetch(texRef_d1y ,MYBLOCK*SIZE_DERIV+MYIND);
-   real d2y_pos = 0.0f;
+   Real avg_pos = tex1Dfetch(texRef_avgs,MYBLOCK*SIZE_VELBLOCK+MYIND);
+   Real d1y_pos = tex1Dfetch(texRef_d1y ,MYBLOCK*SIZE_DERIV+MYIND);
+   Real d2y_pos = 0.0f;
    avg_pos = reconstruct_pos(avg_pos,d1y_pos,d2y_pos);
    
    cuint MYYNEG = sha_nbr[threadIdx.z*SIZE_NBRS_VEL + NbrsVel::YNEG];
-   real avg_neg = tex1Dfetch(texRef_avgs,MYYNEG*SIZE_VELBLOCK+MYIND);
-   real d1y_neg = tex1Dfetch(texRef_d1y ,MYYNEG*SIZE_DERIV+MYIND);
-   real d2y_neg = 0.0f;
+   Real avg_neg = tex1Dfetch(texRef_avgs,MYYNEG*SIZE_VELBLOCK+MYIND);
+   Real d1y_neg = tex1Dfetch(texRef_d1y ,MYYNEG*SIZE_DERIV+MYIND);
+   Real d2y_neg = 0.0f;
    avg_neg = reconstruct_neg(avg_neg,d1y_neg,d2y_neg);
     
    fy[MYBLOCK*SIZE_FLUXS+MYIND] = spatialFluxY(avg_neg,avg_pos,sha_bparms+threadIdx.z*SIZE_BLOCKPARAMS);
 }
 
-__global__ void xFlux_1warp(uint OFFSET,uint SPATCELL,real* fx,real* blockParams,uint* nbrs) {
-   __shared__ real sha_bparms[SIZE_BLOCKPARAMS];
+__global__ void xFlux_1warp(uint OFFSET,uint SPATCELL,Real* fx,Real* blockParams,uint* nbrs) {
+   __shared__ Real sha_bparms[SIZE_BLOCKPARAMS];
    __shared__ uint sha_nbr[SIZE_NBRS_VEL];
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
@@ -371,13 +371,13 @@ __global__ void xFlux_1warp(uint OFFSET,uint SPATCELL,real* fx,real* blockParams
    
    // Fetch volume averages and x-derivatives for this block and -x neighbour,
    // reconstruct face values and calculate x-flux:
-   real avg_neg = tex1Dfetch(texRef_avgs,sha_nbr[NbrsVel::XNEG]*SIZE_VELBLOCK+MYIND);
-   real d1x_neg = tex1Dfetch(texRef_d1x ,sha_nbr[NbrsVel::XNEG]*SIZE_DERIV+MYIND);
-   real d2x_neg = 0.0f;
+   Real avg_neg = tex1Dfetch(texRef_avgs,sha_nbr[NbrsVel::XNEG]*SIZE_VELBLOCK+MYIND);
+   Real d1x_neg = tex1Dfetch(texRef_d1x ,sha_nbr[NbrsVel::XNEG]*SIZE_DERIV+MYIND);
+   Real d2x_neg = 0.0f;
    avg_neg = reconstruct_neg(avg_neg,d1x_neg,d2x_neg);
-   real avg_pos = tex1Dfetch(texRef_avgs,MYBLOCK*SIZE_VELBLOCK+MYIND);
-   real d1x_pos = tex1Dfetch(texRef_d1x ,MYBLOCK*SIZE_DERIV+MYIND);
-   real d2x_pos = 0.0f;
+   Real avg_pos = tex1Dfetch(texRef_avgs,MYBLOCK*SIZE_VELBLOCK+MYIND);
+   Real d1x_pos = tex1Dfetch(texRef_d1x ,MYBLOCK*SIZE_DERIV+MYIND);
+   Real d2x_pos = 0.0f;
    avg_pos = reconstruct_pos(avg_pos,d1x_pos,d2x_pos);
    fx[MYBLOCK*SIZE_FLUXS+MYIND] = spatialFluxX(avg_neg,avg_pos,sha_bparms);
    
@@ -393,8 +393,8 @@ __global__ void xFlux_1warp(uint OFFSET,uint SPATCELL,real* fx,real* blockParams
    fx[MYBLOCK*SIZE_FLUXS+MYIND] = spatialFluxX(avg_neg,avg_pos,sha_bparms);
 }
 
-__global__ void xFlux_2warp(uint OFFSET,uint SPATCELL,real* fx,real* blockParams,uint* nbrs) {
-   __shared__ real sha_bparms[SIZE_BLOCKPARAMS*4];
+__global__ void xFlux_2warp(uint OFFSET,uint SPATCELL,Real* fx,Real* blockParams,uint* nbrs) {
+   __shared__ Real sha_bparms[SIZE_BLOCKPARAMS*4];
    __shared__ uint sha_nbr[SIZE_NBRS_VEL*4];
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
@@ -406,22 +406,22 @@ __global__ void xFlux_2warp(uint OFFSET,uint SPATCELL,real* fx,real* blockParams
    
    // Fetch volume averages and x-derivatives for this block and -x neighbour,
    // reconstruct face values and calculate x-flux:
-   real avg_pos = tex1Dfetch(texRef_avgs,MYBLOCK*SIZE_VELBLOCK+MYIND);
-   real d1x_pos = tex1Dfetch(texRef_d1x ,MYBLOCK*SIZE_DERIV+MYIND);
-   real d2x_pos = 0.0f;
+   Real avg_pos = tex1Dfetch(texRef_avgs,MYBLOCK*SIZE_VELBLOCK+MYIND);
+   Real d1x_pos = tex1Dfetch(texRef_d1x ,MYBLOCK*SIZE_DERIV+MYIND);
+   Real d2x_pos = 0.0f;
    avg_pos = reconstruct_pos(avg_pos,d1x_pos,d2x_pos);
    
    cuint MYXNEG = sha_nbr[threadIdx.z*SIZE_NBRS_VEL + NbrsVel::XNEG];
-   real avg_neg = tex1Dfetch(texRef_avgs,MYXNEG*SIZE_VELBLOCK+MYIND);
-   real d1x_neg = tex1Dfetch(texRef_d1x ,MYXNEG*SIZE_DERIV+MYIND);
-   real d2x_neg = 0.0f;
+   Real avg_neg = tex1Dfetch(texRef_avgs,MYXNEG*SIZE_VELBLOCK+MYIND);
+   Real d1x_neg = tex1Dfetch(texRef_d1x ,MYXNEG*SIZE_DERIV+MYIND);
+   Real d2x_neg = 0.0f;
    avg_neg = reconstruct_neg(avg_neg,d1x_neg,d2x_neg);
    
    fx[MYBLOCK*SIZE_FLUXS+MYIND] = spatialFluxX(avg_neg,avg_pos,sha_bparms+threadIdx.z*SIZE_BLOCKPARAMS);
 }
 
-template<uint WARPS> __global__ void xFlux_n2warp(uint OFFSET,uint SPATCELL,real* fx,real* blockParams,uint* nbrs) {
-   __shared__ real sha_bparms[SIZE_BLOCKPARAMS*WARPS*4];
+template<uint WARPS> __global__ void xFlux_n2warp(uint OFFSET,uint SPATCELL,Real* fx,Real* blockParams,uint* nbrs) {
+   __shared__ Real sha_bparms[SIZE_BLOCKPARAMS*WARPS*4];
    __shared__ uint sha_nbr[SIZE_NBRS_VEL*WARPS*4];
    
    cuint MYBLOCK = OFFSET + (blockIdx.y*WARPS + threadIdx.z/4)*gridDim.x + blockIdx.x;
@@ -433,15 +433,15 @@ template<uint WARPS> __global__ void xFlux_n2warp(uint OFFSET,uint SPATCELL,real
    
    // Fetch volume averages and x-derivatives for this block and -x neighbour,
    // reconstruct face values and calculate x-flux:
-   real avg_pos = tex1Dfetch(texRef_avgs,MYBLOCK*SIZE_VELBLOCK+MYIND);
-   real d1x_pos = tex1Dfetch(texRef_d1x ,MYBLOCK*SIZE_DERIV+MYIND);
-   real d2x_pos = 0.0f;
+   Real avg_pos = tex1Dfetch(texRef_avgs,MYBLOCK*SIZE_VELBLOCK+MYIND);
+   Real d1x_pos = tex1Dfetch(texRef_d1x ,MYBLOCK*SIZE_DERIV+MYIND);
+   Real d2x_pos = 0.0f;
    avg_pos = reconstruct_pos(avg_pos,d1x_pos,d2x_pos);
    
    cuint MYXNEG = sha_nbr[threadIdx.z*SIZE_NBRS_VEL + NbrsVel::XNEG];
-   real avg_neg = tex1Dfetch(texRef_avgs,MYXNEG*SIZE_VELBLOCK+MYIND);
-   real d1x_neg = tex1Dfetch(texRef_d1x ,MYXNEG*SIZE_DERIV+MYIND);
-   real d2x_neg = 0.0f;
+   Real avg_neg = tex1Dfetch(texRef_avgs,MYXNEG*SIZE_VELBLOCK+MYIND);
+   Real d1x_neg = tex1Dfetch(texRef_d1x ,MYXNEG*SIZE_DERIV+MYIND);
+   Real d2x_neg = 0.0f;
    avg_neg = reconstruct_neg(avg_neg,d1x_neg,d2x_neg);
    
    fx[MYBLOCK*SIZE_FLUXS+MYIND] = spatialFluxX(avg_neg,avg_pos,sha_bparms+threadIdx.z*SIZE_BLOCKPARAMS);
@@ -451,8 +451,8 @@ template<uint WARPS> __global__ void xFlux_n2warp(uint OFFSET,uint SPATCELL,real
 
 
 
-__global__ void propagateSpat_1warp(uint OFFSET,uint SPATCELL,real* avgs,real* fx,real* fy,real* fz,uint* nbrs,real DT) {
-   __shared__ real sha_avg[SIZE_VELBLOCK];          // Shared mem array for volume averages
+__global__ void propagateSpat_1warp(uint OFFSET,uint SPATCELL,Real* avgs,Real* fx,Real* fy,Real* fz,uint* nbrs,Real DT) {
+   __shared__ Real sha_avg[SIZE_VELBLOCK];          // Shared mem array for volume averages
    __shared__ uint sha_nbr[SIZE_NBRS_VEL];
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
@@ -461,7 +461,7 @@ __global__ void propagateSpat_1warp(uint OFFSET,uint SPATCELL,real* avgs,real* f
    
    if (threadIdx.z == 0) loadVelNbrs(MYBLOCK,nbrs,sha_nbr);
    
-   real F_neg1,F_neg2,F_pos1,F_pos2;
+   Real F_neg1,F_neg2,F_pos1,F_pos2;
 
    // Fetch x-fluxes and calculate the contribution to total time derivative:
    F_neg1 = fx[MYBLOCK*SIZE_FLUXS + MYIND1];
@@ -492,7 +492,7 @@ __global__ void propagateSpat_1warp(uint OFFSET,uint SPATCELL,real* avgs,real* f
    avgs[MYBLOCK*SIZE_VELBLOCK+MYIND2] += sha_avg[MYIND2];
 }
 
-__global__ void propagateSpat_2warp(uint OFFSET,uint SPATCELL,real* avgs,real* fx,real* fy,real* fz,uint* nbrs,real DT) {
+__global__ void propagateSpat_2warp(uint OFFSET,uint SPATCELL,Real* avgs,Real* fx,Real* fy,Real* fz,uint* nbrs,Real DT) {
    __shared__ uint sha_nbr[SIZE_NBRS_VEL*4];
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
@@ -500,12 +500,12 @@ __global__ void propagateSpat_2warp(uint OFFSET,uint SPATCELL,real* avgs,real* f
    // Fetch neighbour indices:
    sha_nbr[threadIdx.z*SIZE_NBRS_VEL + threadIdx.y*WID+threadIdx.x] = tex1Dfetch(texRef_nbrs,MYBLOCK*SIZE_NBRS_VEL + threadIdx.y*WID+threadIdx.x);
    
-   real F_neg,F_pos;
+   Real F_neg,F_pos;
    // Fetch x-fluxes and calculate the contribution to total time derivative:
    F_neg = fx[MYBLOCK*SIZE_FLUXS + MYIND];
    uint MYNBR = sha_nbr[threadIdx.z*SIZE_NBRS_VEL+NbrsVel::XPOS];
    F_pos = fx[MYNBR*SIZE_FLUXS + MYIND];
-   real myavg = (F_neg-F_pos)*DT/tex1Dfetch(texRef_cellParams,SPATCELL*SIZE_BLOCKPARAMS+CellParams::DX);
+   Real myavg = (F_neg-F_pos)*DT/tex1Dfetch(texRef_cellParams,SPATCELL*SIZE_BLOCKPARAMS+CellParams::DX);
    
    // Fetch y-fluxes and calculate the contribution to total time derivative:
    F_neg = fy[MYBLOCK*SIZE_FLUXS + MYIND];
@@ -523,7 +523,7 @@ __global__ void propagateSpat_2warp(uint OFFSET,uint SPATCELL,real* avgs,real* f
    avgs[MYBLOCK*SIZE_VELBLOCK+MYIND] += myavg;
 }
 
-template<uint WARPS> __global__ void propagateSpat_n2warp(uint OFFSET,uint SPATCELL,real* avgs,real* fx,real* fy,real* fz,uint* nbrs,real DT) {
+template<uint WARPS> __global__ void propagateSpat_n2warp(uint OFFSET,uint SPATCELL,Real* avgs,Real* fx,Real* fy,Real* fz,uint* nbrs,Real DT) {
    __shared__ uint sha_nbr[SIZE_NBRS_VEL*4*WARPS];
    
    cuint MYBLOCK = OFFSET + (blockIdx.y*WARPS + threadIdx.z/4)*gridDim.x + blockIdx.x;
@@ -531,12 +531,12 @@ template<uint WARPS> __global__ void propagateSpat_n2warp(uint OFFSET,uint SPATC
    // Fetch neighbour indices:
    sha_nbr[threadIdx.z*SIZE_NBRS_VEL + threadIdx.y*WID+threadIdx.x] = tex1Dfetch(texRef_nbrs,MYBLOCK*SIZE_NBRS_VEL + threadIdx.y*WID+threadIdx.x);
    
-   real F_neg,F_pos;
+   Real F_neg,F_pos;
    // Fetch x-fluxes and calculate the contribution to total time derivative:
    F_neg = fx[MYBLOCK*SIZE_FLUXS + MYIND];
    uint MYNBR = sha_nbr[threadIdx.z*SIZE_NBRS_VEL+NbrsVel::XPOS];
    F_pos = fx[MYNBR*SIZE_FLUXS + MYIND];
-   real myavg = (F_neg-F_pos)*DT/tex1Dfetch(texRef_cellParams,SPATCELL*SIZE_BLOCKPARAMS+CellParams::DX);
+   Real myavg = (F_neg-F_pos)*DT/tex1Dfetch(texRef_cellParams,SPATCELL*SIZE_BLOCKPARAMS+CellParams::DX);
    
    // Fetch y-fluxes and calculate the contribution to total time derivative:
    F_neg = fy[MYBLOCK*SIZE_FLUXS + MYIND];

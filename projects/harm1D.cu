@@ -1,6 +1,6 @@
 
 
-inline __device__ real velocityFluxX(real avg_neg,real avg_pos,real* cellParams,real* blockParams) {
+inline __device__ Real velocityFluxX(Real avg_neg,Real avg_pos,Real* cellParams,Real* blockParams) {
 
    creal VY = blockParams[BlockParams::VYCRD] + (threadIdx.z+0.5f)*blockParams[BlockParams::DVY];
    creal VZ = blockParams[BlockParams::VZCRD] + (threadIdx.y+0.5f)*blockParams[BlockParams::DVZ];
@@ -12,7 +12,7 @@ inline __device__ real velocityFluxX(real avg_neg,real avg_pos,real* cellParams,
    return 0.5f*AX*(avg_neg + avg_pos) - 0.5f*fabsf(AX)*(avg_pos-avg_neg);
 }
 
-inline __device__ real velocityFluxY(real avg_neg,real avg_pos,real* cellParams,real* blockParams) {
+inline __device__ Real velocityFluxY(Real avg_neg,Real avg_pos,Real* cellParams,Real* blockParams) {
    /*
     creal VX = blockParams[BlockParams::VXCRD] + (threadIdx.x+0.5f)*blockParams[BlockParams::DVX];
     creal VZ = blockParams[BlockParams::VZCRD] + (threadIdx.y+0.5f)*blockParams[BlockParams::DVZ];
@@ -26,7 +26,7 @@ inline __device__ real velocityFluxY(real avg_neg,real avg_pos,real* cellParams,
    return 0.0f;
 }
 
-inline __device__ real velocityFluxZ(real avg_neg,real avg_pos,real* cellParams,real* blockParams) {
+inline __device__ Real velocityFluxZ(Real avg_neg,Real avg_pos,Real* cellParams,Real* blockParams) {
    /*
     creal VX = blockParams[BlockParams::VXCRD] + (threadIdx.x+0.5f)*blockParams[BlockParams::DVX];
     creal VY = blockParams[BlockParams::VYCRD] + (threadIdx.y+0.5f)*blockParams[BlockParams::DVY];
@@ -40,19 +40,19 @@ inline __device__ real velocityFluxZ(real avg_neg,real avg_pos,real* cellParams,
    return 0.0f;
 }
 
-inline __device__ real spatialFluxX(real avg_neg,real avg_pos,real* blockParams) {
+inline __device__ Real spatialFluxX(Real avg_neg,Real avg_pos,Real* blockParams) {
    //creal VX = 0.25f;
    creal VX = blockParams[BlockParams::VXCRD] + threadIdx.x*blockParams[BlockParams::DVX];
    return 0.5f*VX*(avg_neg + avg_pos) - 0.5f*fabsf(VX)*(avg_pos-avg_neg);
 }
 
-inline __device__ real spatialFluxY(real avg_neg,real avg_pos,real* blockParams) {
+inline __device__ Real spatialFluxY(Real avg_neg,Real avg_pos,Real* blockParams) {
    //creal VY = 0.0f;
    creal VY = blockParams[BlockParams::VYCRD] + threadIdx.y*blockParams[BlockParams::DVY];
    return 0.5f*VY*(avg_neg + avg_pos) - 0.5f*fabsf(VY)*(avg_pos-avg_neg);
 }
 
-inline __device__ real spatialFluxZ(real avg_neg,real avg_pos,real* blockParams,uint z_ind) {
+inline __device__ Real spatialFluxZ(Real avg_neg,Real avg_pos,Real* blockParams,uint z_ind) {
    //creal VZ = 0.0f;
    creal VZ = blockParams[BlockParams::VZCRD] + z_ind*blockParams[BlockParams::DVZ];
    return 0.5f*VZ*(avg_neg + avg_pos) - 0.5f*fabsf(VZ)*(avg_pos-avg_neg);

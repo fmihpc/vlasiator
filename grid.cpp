@@ -15,7 +15,7 @@ using namespace std;
 extern Logger logger;
 
 #ifndef NOCUDA
-bool Grid::allocateArray(const string& name,const size_t& BYTES,real*& arrptr) {
+bool Grid::allocateArray(const string& name,const size_t& BYTES,Real*& arrptr) {
    if (deviceCreateArray(arrptr,BYTES) == false) {
       logger << "\t Failed to allocate page-locked memory for " << name << endl;
       arrptr = NULL;
@@ -58,32 +58,32 @@ Grid::Grid() {
    blockArray = NULL;
    #ifndef NOCUDA
      if (allocateArray("nbrsVel",MAX_VEL_BLOCKS*SIZE_NBRS_VEL*sizeof(uint),nbrsVel) == false) initialized = false;
-     if (allocateArray("blockParams",MAX_VEL_BLOCKS*SIZE_BLOCKPARAMS*sizeof(real),blockParams) == false) initialized = false;
-     if (allocateArray("blockArray",MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(real),blockArray) == false) initialized = false;
-     if (allocateArray("cellParams",MAX_SPA_CELLS*SIZE_CELLPARAMS*sizeof(real),cellParams) == false) initialized = false;
-     if (allocateArray("fx",MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(real),fx) == false) initialized = false;
-     if (allocateArray("fy",MAX_VEL_BLOCKS*SIZE_FLUXS*sizeof(real),fy) == false) initialized = false;
-     if (allocateArray("fz",MAX_VEL_BLOCKS*SIZE_FLUXS*sizeof(real),fz) == false) initialized = false;
-     if (allocateArray("d1x",MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real),d1x) == false) initialized = false;
-     if (allocateArray("d1y",MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real),d1y) == false) initialized = false;
-     if (allocateArray("d1z",MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real),d1z) == false) initialized = false;
-     if (allocateArray("d2x",MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real),d2x) == false) initialized = false;
-     if (allocateArray("d2y",MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real),d2y) == false) initialized = false;
-     if (allocateArray("d2z",MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(real),d2z) == false) initialized = false;
+     if (allocateArray("blockParams",MAX_VEL_BLOCKS*SIZE_BLOCKPARAMS*sizeof(Real),blockParams) == false) initialized = false;
+     if (allocateArray("blockArray",MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(Real),blockArray) == false) initialized = false;
+     if (allocateArray("cellParams",MAX_SPA_CELLS*SIZE_CELLPARAMS*sizeof(Real),cellParams) == false) initialized = false;
+     if (allocateArray("fx",MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(Real),fx) == false) initialized = false;
+     if (allocateArray("fy",MAX_VEL_BLOCKS*SIZE_FLUXS*sizeof(Real),fy) == false) initialized = false;
+     if (allocateArray("fz",MAX_VEL_BLOCKS*SIZE_FLUXS*sizeof(Real),fz) == false) initialized = false;
+     if (allocateArray("d1x",MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(Real),d1x) == false) initialized = false;
+     if (allocateArray("d1y",MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(Real),d1y) == false) initialized = false;
+     if (allocateArray("d1z",MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(Real),d1z) == false) initialized = false;
+     if (allocateArray("d2x",MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(Real),d2x) == false) initialized = false;
+     if (allocateArray("d2y",MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(Real),d2y) == false) initialized = false;
+     if (allocateArray("d2z",MAX_VEL_BLOCKS*SIZE_DERIV*sizeof(Real),d2z) == false) initialized = false;
    #else
      nbrsVel = new uint[MAX_VEL_BLOCKS*SIZE_NBRS_VEL];
-     blockParams = new real[MAX_VEL_BLOCKS*SIZE_BLOCKPARAMS];
-     blockArray = new real[MAX_VEL_BLOCKS*SIZE_VELBLOCK];
-     cellParams = new real[MAX_SPA_CELLS*SIZE_CELLPARAMS];
-     fx = new real[MAX_VEL_BLOCKS*SIZE_FLUXS];
-     fy = new real[MAX_VEL_BLOCKS*SIZE_FLUXS];
-     fz = new real[MAX_VEL_BLOCKS*SIZE_FLUXS];
-     d1x = new real[MAX_VEL_BLOCKS*SIZE_DERIV];
-     d1y = new real[MAX_VEL_BLOCKS*SIZE_DERIV];
-     d1z = new real[MAX_VEL_BLOCKS*SIZE_DERIV];
-     d2x = new real[MAX_VEL_BLOCKS*SIZE_DERIV];
-     d2y = new real[MAX_VEL_BLOCKS*SIZE_DERIV];
-     d2z = new real[MAX_VEL_BLOCKS*SIZE_DERIV];
+     blockParams = new Real[MAX_VEL_BLOCKS*SIZE_BLOCKPARAMS];
+     blockArray = new Real[MAX_VEL_BLOCKS*SIZE_VELBLOCK];
+     cellParams = new Real[MAX_SPA_CELLS*SIZE_CELLPARAMS];
+     fx = new Real[MAX_VEL_BLOCKS*SIZE_FLUXS];
+     fy = new Real[MAX_VEL_BLOCKS*SIZE_FLUXS];
+     fz = new Real[MAX_VEL_BLOCKS*SIZE_FLUXS];
+     d1x = new Real[MAX_VEL_BLOCKS*SIZE_DERIV];
+     d1y = new Real[MAX_VEL_BLOCKS*SIZE_DERIV];
+     d1z = new Real[MAX_VEL_BLOCKS*SIZE_DERIV];
+     d2x = new Real[MAX_VEL_BLOCKS*SIZE_DERIV];
+     d2y = new Real[MAX_VEL_BLOCKS*SIZE_DERIV];
+     d2z = new Real[MAX_VEL_BLOCKS*SIZE_DERIV];
    #endif
    
    if (initialized == false) {

@@ -1,7 +1,8 @@
 #ifndef DEFINITIONS_H
 #define DEFINITIONS_H
 
-typedef float real;
+typedef float Real;
+//typedef float real;
 typedef const float creal;
 typedef const int cint;
 typedef unsigned int uint;

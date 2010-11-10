@@ -13,27 +13,27 @@ static DBfile* fileptr = NULL;
 
 static int* nodeList = NULL;
 static uint blockCntr = 0;
-static real* x = NULL;
-static real* y = NULL;
-static real* z = NULL;
-static real* avgs = NULL;
+static Real* x = NULL;
+static Real* y = NULL;
+static Real* z = NULL;
+static Real* avgs = NULL;
 
 void allocateArrays(cuint& BLOCKS) {
    blockCntr = 0;
    nodeList = new int[BLOCKS*SIZE_VELBLOCK*8];
-   x = new real[BLOCKS*SIZE_VELBLOCK*8];
-   y = new real[BLOCKS*SIZE_VELBLOCK*8];
-   z = new real[BLOCKS*SIZE_VELBLOCK*8];
-   avgs = new real[BLOCKS*SIZE_VELBLOCK];
+   x = new Real[BLOCKS*SIZE_VELBLOCK*8];
+   y = new Real[BLOCKS*SIZE_VELBLOCK*8];
+   z = new Real[BLOCKS*SIZE_VELBLOCK*8];
+   avgs = new Real[BLOCKS*SIZE_VELBLOCK];
 }
 
 void allocateCellArrays(cuint& CELLS) {
    blockCntr = 0;
    nodeList = new int[CELLS*8];
-   x = new real[CELLS*8];
-   y = new real[CELLS*8];
-   z = new real[CELLS*8];
-   avgs = new real[CELLS];
+   x = new Real[CELLS*8];
+   y = new Real[CELLS*8];
+   z = new Real[CELLS*8];
+   avgs = new Real[CELLS];
 }
 
 void deallocateArrays() {
@@ -107,13 +107,13 @@ bool writeReservedBlocks(const std::string& gridName) {
    crdNames[0] = const_cast<char*>("X-axis");
    crdNames[1] = const_cast<char*>("Y-axis");
    crdNames[2] = const_cast<char*>("Z-axis");
-   real* crdArrays[] = {x,y,z};
+   Real* crdArrays[] = {x,y,z};
    
    if (DBPutUcdmesh(fileptr,gridName.c_str(),Ndims,crdNames,crdArrays,Nzones*8,Nzones,"zonelist",NULL,DB_FLOAT,NULL) < 0) return false;
    return true;
 }
 /*
-bool addVelocityBlock(real* blockParams,real* block) {
+bool addVelocityBlock(Real* blockParams,Real* block) {
    if (fileptr == NULL) return false;
 
    for (uint i=0; i<WID3; ++i) avgs[blockCntr*SIZE_VELBLOCK + i] = block[i];
@@ -138,7 +138,7 @@ bool writeSpatialCells(const std::string& gridName,const std::string& varName) {
    crdNames[0] = const_cast<char*>("X-axis");
    crdNames[1] = const_cast<char*>("Y-axis");
    crdNames[2] = const_cast<char*>("Z-axis");
-   real* crdArrays[] = {x,y,z};
+   Real* crdArrays[] = {x,y,z};
       
    DBPutUcdmesh(fileptr,gridName.c_str(),Ndims,crdNames,crdArrays,Nzones*8,Nzones,"zonelist",NULL,DB_FLOAT,NULL);
    
@@ -146,7 +146,7 @@ bool writeSpatialCells(const std::string& gridName,const std::string& varName) {
    return true;
 }
 
-bool addSpatialCell(real* cellParams,creal& avg) {
+bool addSpatialCell(Real* cellParams,creal& avg) {
    if (fileptr == NULL) return false;
    
    x[blockCntr*8 + 0] = cellParams[CellParams::XCRD];
@@ -183,7 +183,7 @@ bool addSpatialCell(real* cellParams,creal& avg) {
    return true;
 }
 
-bool addVelocityGridBlock3D(real* blockParams) {
+bool addVelocityGridBlock3D(Real* blockParams) {
    if (fileptr == NULL) return false;
    
    for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
@@ -223,7 +223,7 @@ bool addVelocityGridBlock3D(real* blockParams) {
    return true;
 }
 
-bool writeVelocityBlockGrid3D(const std::string& gridName,cuint& N_BLOCKS,real* blockParams) {
+bool writeVelocityBlockGrid3D(const std::string& gridName,cuint& N_BLOCKS,Real* blockParams) {
    if (fileptr == NULL) return false;
 
    allocateArrays(N_BLOCKS);
@@ -236,7 +236,7 @@ bool writeVelocityBlockGrid3D(const std::string& gridName,cuint& N_BLOCKS,real* 
    return true;
 }
 
-bool writeVelocityBlockGridScalar3D(const std::string& varName,const std::string& gridName,cuint& N_BLOCKS,real* data) {
+bool writeVelocityBlockGridScalar3D(const std::string& varName,const std::string& gridName,cuint& N_BLOCKS,Real* data) {
    if (fileptr == NULL) return false;
       
    if (DBPutUcdvar1(fileptr,varName.c_str(),gridName.c_str(),data,N_BLOCKS*SIZE_VELBLOCK,NULL,0,DB_FLOAT,DB_ZONECENT,NULL) < 0) return false;   

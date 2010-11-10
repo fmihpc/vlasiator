@@ -77,8 +77,8 @@ bool buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
    creal dvy_blockCell = dvy_block / WID;                 //                                vy
    creal dvz_blockCell = dvz_block / WID;                 //                                vz
    creal dV = dvx_blockCell*dvy_blockCell*dvz_blockCell;  // Volume of one cell in a block
-   real* const blockParams = cell.cpu_blockParams;
-   real* const avgs = cell.cpu_avgs;
+   Real* const blockParams = cell.cpu_blockParams;
+   Real* const avgs = cell.cpu_avgs;
    uint* const nbrsVel = cell.cpu_nbrsVel;
    
    for (uint kv=0; kv<P::vzblocks_ini; ++kv) for (uint jv=0; jv<P::vyblocks_ini; ++jv) for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
@@ -159,7 +159,7 @@ bool buildBaseGrid(Grid& grid) {
 #endif
    typedef Parameters P;
    
-   real x,y,z;
+   Real x,y,z;
    creal dx = (P::xmax-P::xmin)/P::xcells_ini;
    creal dy = (P::ymax-P::ymin)/P::ycells_ini;
    creal dz = (P::zmax-P::zmin)/P::zcells_ini;

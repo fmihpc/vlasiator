@@ -35,9 +35,9 @@ template<typename T> T superbee(const T& xl1,const T& xcc,const T& xr1) {
    tmp = std::min(tmp,static_cast<T>(0.5*fabs(back)));
    tmp = std::min(tmp,static_cast<T>(fabs(forw)));
    
-   real sgnfwd = convert<T>(1.0);
+   T sgnfwd = convert<T>(1.0);
    if (forw < convert<T>(0.0)) sgnfwd = convert<T>(-1.0);
-   real sgnbck = convert<T>(1.0);
+   T sgnbck = convert<T>(1.0);
    if (back < convert<T>(0.0)) sgnbck = convert<T>(-1.0);
    
    return (sgnfwd+sgnbck)*tmp;

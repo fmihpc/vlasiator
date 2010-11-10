@@ -13,12 +13,12 @@ __host__ bool bindTextureAcc(texture<uint,1,cudaReadModeElementType>& texRef,uin
    return success;
 }
 
-__host__ bool bindTextureAcc(texture<real,1,cudaReadModeElementType>& texRef,real* arrptr,cuint& BYTES,size_t& offset) {
+__host__ bool bindTextureAcc(texture<Real,1,cudaReadModeElementType>& texRef,Real* arrptr,cuint& BYTES,size_t& offset) {
    bool success = true;
    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32,0,0,0,cudaChannelFormatKindFloat);
    cudaError_t cudaError = cudaBindTexture(&offset,&texRef,arrptr,&channelDesc,BYTES);
    if (cudaError != cudaSuccess) {
-      logger << "(CUDA_TRANS): Failed to bind textures to real*!" << endl;
+      logger << "(CUDA_TRANS): Failed to bind textures to Real*!" << endl;
       success = false;
    }
    return success;
@@ -26,13 +26,13 @@ __host__ bool bindTextureAcc(texture<real,1,cudaReadModeElementType>& texRef,rea
 
 // ------------------- DEVICE FUNCTIONS ------------------
 
-__device__ void velDerivs(uint MYIND,real* sha_avg,real* d1,real* d2) {
+__device__ void velDerivs(uint MYIND,Real* sha_avg,Real* d1,Real* d2) {
    // Read a five-point stencil into registers:
-   real xl2 = sha_avg[MYIND + 2*WID2 - 2*WID2];
-   real xl1 = sha_avg[MYIND + 2*WID2 -   WID2];
-   real xcc = sha_avg[MYIND + 2*WID2         ];
-   real xr1 = sha_avg[MYIND + 2*WID2 +   WID2];
-   real xr2 = sha_avg[MYIND + 2*WID2 + 2*WID2];
+   Real xl2 = sha_avg[MYIND + 2*WID2 - 2*WID2];
+   Real xl1 = sha_avg[MYIND + 2*WID2 -   WID2];
+   Real xcc = sha_avg[MYIND + 2*WID2         ];
+   Real xr1 = sha_avg[MYIND + 2*WID2 +   WID2];
+   Real xr2 = sha_avg[MYIND + 2*WID2 + 2*WID2];
    
    // Calculate 1st and 2nd derivatives:
    d1[MYIND] = superbee(xl1,xcc,xr1);
@@ -41,7 +41,7 @@ __device__ void velDerivs(uint MYIND,real* sha_avg,real* d1,real* d2) {
 
 // ---------------------- KERNELS ------------------------
 
-__global__ void copyVelBlocks_1warp(cuint OFFSET,real* avgs,real* avgnbrx,real* avgnbry,real* avgnbrz,uint* nbrs) {
+__global__ void copyVelBlocks_1warp(cuint OFFSET,Real* avgs,Real* avgnbrx,Real* avgnbry,Real* avgnbrz,uint* nbrs) {
    __shared__ uint sha_nbr[SIZE_NBRS_VEL];
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
@@ -94,9 +94,9 @@ __global__ void copyVelBlocks_1warp(cuint OFFSET,real* avgs,real* avgnbrx,real* 
 }
 
 
-__global__ void calcVelDerivs_1warp(uint OFFSET,real* avgs,real* avgnbrx,real* avgnbry,real* avgnbrz,
-				    real* d1x,real* d1y,real* d1z,real* d2x,real* d2y,real* d2z) {
-   __shared__ real sha_avg[SIZE_VELBLOCK+SIZE_BOUND]; // Shared mem array for holding volume averages + ghosts
+__global__ void calcVelDerivs_1warp(uint OFFSET,Real* avgs,Real* avgnbrx,Real* avgnbry,Real* avgnbrz,
+				    Real* d1x,Real* d1y,Real* d1z,Real* d2x,Real* d2y,Real* d2z) {
+   __shared__ Real sha_avg[SIZE_VELBLOCK+SIZE_BOUND]; // Shared mem array for holding volume averages + ghosts
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
    uint MYIND = tindex3(threadIdx.x,threadIdx.y,threadIdx.z);
@@ -126,7 +126,7 @@ __global__ void calcVelDerivs_1warp(uint OFFSET,real* avgs,real* avgnbrx,real* a
    velDerivs(MYIND+2*WID2,sha_avg,d1x+MYBLOCK*SIZE_DERIV,d2x+MYBLOCK*SIZE_DERIV);
 }
 
-__global__ void copyVelDerivs_hwarp(uint OFFSET,real* dx,real* dy,real* dz,real* dxnbr,real* dynbr,real* dznbr,uint* nbrs) {
+__global__ void copyVelDerivs_hwarp(uint OFFSET,Real* dx,Real* dy,Real* dz,Real* dxnbr,Real* dynbr,Real* dznbr,uint* nbrs) {
    __shared__ uint sha_nbr[SIZE_NBRS_VEL];
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
@@ -155,12 +155,12 @@ __global__ void copyVelDerivs_hwarp(uint OFFSET,real* dx,real* dy,real* dz,real*
 // ------------ FUNCTIONS FOR CALCULATING Z-COMPONENT OF VELOCITY FLUXES ------------
 // ----------------------------------------------------------------------------------
 
-__global__ void vzFlux_1warp(uint OFFSET,uint SPATCELL,real* avgs,real* avgnbrz,real* d1z,real* d2z,real* d1znbr,real* d2znbr,real* fz,real* blockParams) {
-   __shared__ real sha_avg[SIZE_VELBLOCK+WID2];
-   __shared__ real sha_d1z[SIZE_DERIV+SIZE_BDERI];
-   __shared__ real sha_d2z[SIZE_DERIV+SIZE_BDERI];
-   __shared__ real sha_cparms[SIZE_CELLPARAMS];
-   __shared__ real sha_bparms[SIZE_BLOCKPARAMS];
+__global__ void vzFlux_1warp(uint OFFSET,uint SPATCELL,Real* avgs,Real* avgnbrz,Real* d1z,Real* d2z,Real* d1znbr,Real* d2znbr,Real* fz,Real* blockParams) {
+   __shared__ Real sha_avg[SIZE_VELBLOCK+WID2];
+   __shared__ Real sha_d1z[SIZE_DERIV+SIZE_BDERI];
+   __shared__ Real sha_d2z[SIZE_DERIV+SIZE_BDERI];
+   __shared__ Real sha_cparms[SIZE_CELLPARAMS];
+   __shared__ Real sha_bparms[SIZE_BLOCKPARAMS];
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
    uint MYIND = tindex3(threadIdx.x,threadIdx.y,threadIdx.z);
@@ -186,22 +186,22 @@ __global__ void vzFlux_1warp(uint OFFSET,uint SPATCELL,real* avgs,real* avgnbrz,
 
    // Reconstruct negative and positive side values at the -vz face, and store calculated flux:
    for (int cntr=0; cntr<2; ++cntr) {
-      real avg_neg = reconstruct_neg(sha_avg[MYIND     ],sha_d1z[MYIND     ],sha_d2z[MYIND     ]);
-      real avg_pos = reconstruct_pos(sha_avg[MYIND+WID2],sha_d1z[MYIND+WID2],sha_d2z[MYIND+WID2]);
+      Real avg_neg = reconstruct_neg(sha_avg[MYIND     ],sha_d1z[MYIND     ],sha_d2z[MYIND     ]);
+      Real avg_pos = reconstruct_pos(sha_avg[MYIND+WID2],sha_d1z[MYIND+WID2],sha_d2z[MYIND+WID2]);
       fz[MYBLOCK*SIZE_FLUXS+MYIND] = velocityFluxZ(avg_neg,avg_pos,sha_cparms,sha_bparms);
       MYIND += 2*WID2;
    }
 }
 
-template<uint WARPS> __global__ void vzFlux_n1warp(uint OFFSET,uint SPATCELL,real* avgs,real* avgnbrz,real* d1z,real* d2z,real* d1znbr,real* d2znbr,real* fz,real* blockParams) {
+template<uint WARPS> __global__ void vzFlux_n1warp(uint OFFSET,uint SPATCELL,Real* avgs,Real* avgnbrz,Real* d1z,Real* d2z,Real* d1znbr,Real* d2znbr,Real* fz,Real* blockParams) {
    cuint SIZE_VEL = SIZE_VELBLOCK+WID2;
    cuint SIZE_DER = SIZE_DERIV+SIZE_BDERI;
    
-   __shared__ real sha_avg[WARPS*SIZE_VEL];
-   __shared__ real sha_d1z[WARPS*SIZE_DER];
-   __shared__ real sha_d2z[WARPS*SIZE_DER];
-   __shared__ real sha_cparms[WARPS*2*SIZE_CELLPARAMS];
-   __shared__ real sha_bparms[WARPS*2*SIZE_BLOCKPARAMS];
+   __shared__ Real sha_avg[WARPS*SIZE_VEL];
+   __shared__ Real sha_d1z[WARPS*SIZE_DER];
+   __shared__ Real sha_d2z[WARPS*SIZE_DER];
+   __shared__ Real sha_cparms[WARPS*2*SIZE_CELLPARAMS];
+   __shared__ Real sha_bparms[WARPS*2*SIZE_BLOCKPARAMS];
    
    cuint MYBLOCK = OFFSET + (blockIdx.y*WARPS + threadIdx.z/2)*gridDim.x + blockIdx.x;
    cuint MYIND1 = tindex3(threadIdx.x,threadIdx.y,threadIdx.z%2);
@@ -229,7 +229,7 @@ template<uint WARPS> __global__ void vzFlux_n1warp(uint OFFSET,uint SPATCELL,rea
    if (threadIdx.z % 2 == 0) sha_d2z[(threadIdx.z/2)*SIZE_DER+MYIND1] = d2znbr[MYBLOCK*SIZE_BDERI+MYIND1];
    //__syncthreads();
 
-   real avg_neg,avg_pos;
+   Real avg_neg,avg_pos;
    avg_neg = reconstruct_neg(sha_avg[(threadIdx.z/2)*SIZE_VEL+MYIND1     ],sha_d1z[(threadIdx.z/2)*SIZE_DER+MYIND1     ],sha_d2z[(threadIdx.z/2)*SIZE_DER+MYIND1     ]);
    avg_pos = reconstruct_pos(sha_avg[(threadIdx.z/2)*SIZE_VEL+MYIND1+WID2],sha_d1z[(threadIdx.z/2)*SIZE_DER+MYIND1+WID2],sha_d2z[(threadIdx.z/2)*SIZE_DER+MYIND1+WID2]);
    fz[MYBLOCK*SIZE_FLUXS+MYIND1] = velocityFluxZ(avg_neg,avg_pos,sha_cparms+threadIdx.z*SIZE_CELLPARAMS,sha_bparms+threadIdx.z*SIZE_BLOCKPARAMS);
@@ -239,12 +239,12 @@ template<uint WARPS> __global__ void vzFlux_n1warp(uint OFFSET,uint SPATCELL,rea
    fz[MYBLOCK*SIZE_FLUXS+MYIND2] = velocityFluxZ(avg_neg,avg_pos,sha_cparms+threadIdx.z*SIZE_CELLPARAMS,sha_bparms+threadIdx.z*SIZE_BLOCKPARAMS);
 }
 
-__global__ void vzFlux_2warp(uint OFFSET,uint SPATCELL,real* avgs,real* avgnbrz,real* d1z,real* d2z,real* d1znbr,real* d2znbr,real* fz,real* blockParams) {
-   __shared__ real sha_avg[SIZE_VELBLOCK+WID2];
-   __shared__ real sha_d1z[SIZE_DERIV+SIZE_BDERI];
-   __shared__ real sha_d2z[SIZE_DERIV+SIZE_BDERI];
-   __shared__ real sha_cparms[SIZE_CELLPARAMS];
-   __shared__ real sha_bparms[SIZE_BLOCKPARAMS];
+__global__ void vzFlux_2warp(uint OFFSET,uint SPATCELL,Real* avgs,Real* avgnbrz,Real* d1z,Real* d2z,Real* d1znbr,Real* d2znbr,Real* fz,Real* blockParams) {
+   __shared__ Real sha_avg[SIZE_VELBLOCK+WID2];
+   __shared__ Real sha_d1z[SIZE_DERIV+SIZE_BDERI];
+   __shared__ Real sha_d2z[SIZE_DERIV+SIZE_BDERI];
+   __shared__ Real sha_cparms[SIZE_CELLPARAMS];
+   __shared__ Real sha_bparms[SIZE_BLOCKPARAMS];
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
    uint MYIND = tindex3(threadIdx.x,threadIdx.y,threadIdx.z);
@@ -264,8 +264,8 @@ __global__ void vzFlux_2warp(uint OFFSET,uint SPATCELL,real* avgs,real* avgnbrz,
    if (threadIdx.z == 0) sha_avg[threadIdx.y*WID+threadIdx.x] = avgnbrz[MYBLOCK*SIZE_BOUND+WID2+threadIdx.y*WID+threadIdx.x];
    __syncthreads();
    
-   real avg_neg = reconstruct_neg(sha_avg[MYIND     ],sha_d1z[MYIND     ],sha_d2z[MYIND     ]);
-   real avg_pos = reconstruct_pos(sha_avg[MYIND+WID2],sha_d1z[MYIND+WID2],sha_d2z[MYIND+WID2]);
+   Real avg_neg = reconstruct_neg(sha_avg[MYIND     ],sha_d1z[MYIND     ],sha_d2z[MYIND     ]);
+   Real avg_pos = reconstruct_pos(sha_avg[MYIND+WID2],sha_d1z[MYIND+WID2],sha_d2z[MYIND+WID2]);
    fz[MYBLOCK*SIZE_FLUXS+MYIND] = velocityFluxZ(avg_neg,avg_pos,sha_cparms,sha_bparms);
 }
 
@@ -273,12 +273,12 @@ __global__ void vzFlux_2warp(uint OFFSET,uint SPATCELL,real* avgs,real* avgnbrz,
 // ------------ FUNCTIONS FOR CALCULATING Y-COMPONENT OF VELOCITY FLUXES ------------
 // ----------------------------------------------------------------------------------
 
-__global__ void vyFlux_1warp(uint OFFSET,uint SPATCELL,real* avgs,real* avgnbry,real* d1y,real* d2y,real* d1ynbr,real* d2ynbr,real* fy,real* blockParams) {
-   __shared__ real sha_avg[SIZE_VELBLOCK+WID2];
-   __shared__ real sha_d1y[SIZE_DERIV+SIZE_BDERI];
-   __shared__ real sha_d2y[SIZE_DERIV+SIZE_BDERI];
-   __shared__ real sha_cparms[SIZE_CELLPARAMS];
-   __shared__ real sha_bparms[SIZE_BLOCKPARAMS];
+__global__ void vyFlux_1warp(uint OFFSET,uint SPATCELL,Real* avgs,Real* avgnbry,Real* d1y,Real* d2y,Real* d1ynbr,Real* d2ynbr,Real* fy,Real* blockParams) {
+   __shared__ Real sha_avg[SIZE_VELBLOCK+WID2];
+   __shared__ Real sha_d1y[SIZE_DERIV+SIZE_BDERI];
+   __shared__ Real sha_d2y[SIZE_DERIV+SIZE_BDERI];
+   __shared__ Real sha_cparms[SIZE_CELLPARAMS];
+   __shared__ Real sha_bparms[SIZE_BLOCKPARAMS];
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
    uint MYIND = tindex3(threadIdx.x,threadIdx.y,threadIdx.z);
@@ -305,22 +305,22 @@ __global__ void vyFlux_1warp(uint OFFSET,uint SPATCELL,real* avgs,real* avgnbry,
    
    // Reconstruct negative and positive side values at the -vy face, and store calculated flux.
    for (int cntr=0; cntr<2; ++cntr) {
-      real avg_neg = reconstruct_neg(sha_avg[MYIND     ],sha_d1y[MYIND     ],sha_d2y[MYIND     ]);
-      real avg_pos = reconstruct_pos(sha_avg[MYIND+WID2],sha_d1y[MYIND+WID2],sha_d2y[MYIND+WID2]);
+      Real avg_neg = reconstruct_neg(sha_avg[MYIND     ],sha_d1y[MYIND     ],sha_d2y[MYIND     ]);
+      Real avg_pos = reconstruct_pos(sha_avg[MYIND+WID2],sha_d1y[MYIND+WID2],sha_d2y[MYIND+WID2]);
       fy[MYBLOCK*SIZE_FLUXS+MYIND] = velocityFluxY(avg_neg,avg_pos,sha_cparms,sha_bparms);
       MYIND += 2*WID2;
    }
 }
 
-template<uint WARPS> __global__ void vyFlux_n1warp(uint OFFSET,uint SPATCELL,real* avgs,real* avgnbry,real* d1y,real* d2y,real* d1ynbr,real* d2ynbr,real* fy,real* blockParams) {
+template<uint WARPS> __global__ void vyFlux_n1warp(uint OFFSET,uint SPATCELL,Real* avgs,Real* avgnbry,Real* d1y,Real* d2y,Real* d1ynbr,Real* d2ynbr,Real* fy,Real* blockParams) {
    cuint SIZE_VEL = SIZE_VELBLOCK+WID2;
    cuint SIZE_DER = SIZE_DERIV+SIZE_BDERI;
    
-   __shared__ real sha_avg[WARPS*SIZE_VEL];
-   __shared__ real sha_d1y[WARPS*SIZE_DER];
-   __shared__ real sha_d2y[WARPS*SIZE_DER];
-   __shared__ real sha_cparms[WARPS*2*SIZE_CELLPARAMS];
-   __shared__ real sha_bparms[WARPS*2*SIZE_BLOCKPARAMS];
+   __shared__ Real sha_avg[WARPS*SIZE_VEL];
+   __shared__ Real sha_d1y[WARPS*SIZE_DER];
+   __shared__ Real sha_d2y[WARPS*SIZE_DER];
+   __shared__ Real sha_cparms[WARPS*2*SIZE_CELLPARAMS];
+   __shared__ Real sha_bparms[WARPS*2*SIZE_BLOCKPARAMS];
    
    cuint MYBLOCK = OFFSET + (blockIdx.y*WARPS + threadIdx.z/2)*gridDim.x + blockIdx.x;
    cuint MYIND1 = tindex3(threadIdx.x,threadIdx.y,threadIdx.z%2);
@@ -348,7 +348,7 @@ template<uint WARPS> __global__ void vyFlux_n1warp(uint OFFSET,uint SPATCELL,rea
    transpose_yz_1warp(sha_avg+(threadIdx.z/2)*SIZE_VEL+WID2);
    
    // Reconstruct negative and positive side values at the -vy face, and store calculated flux.
-   real avg_neg,avg_pos;
+   Real avg_neg,avg_pos;
    avg_neg = reconstruct_neg(sha_avg[(threadIdx.z/2)*SIZE_VEL+MYIND1     ],sha_d1y[(threadIdx.z/2)*SIZE_DER+MYIND1     ],sha_d2y[(threadIdx.z/2)*SIZE_DER+MYIND1     ]);
    avg_pos = reconstruct_pos(sha_avg[(threadIdx.z/2)*SIZE_VEL+MYIND1+WID2],sha_d1y[(threadIdx.z/2)*SIZE_DER+MYIND1+WID2],sha_d2y[(threadIdx.z/2)*SIZE_DER+MYIND1+WID2]);
    fy[MYBLOCK*SIZE_FLUXS+MYIND1] = velocityFluxY(avg_neg,avg_pos,sha_cparms+threadIdx.z*SIZE_CELLPARAMS,sha_bparms+threadIdx.z*SIZE_BLOCKPARAMS);
@@ -358,12 +358,12 @@ template<uint WARPS> __global__ void vyFlux_n1warp(uint OFFSET,uint SPATCELL,rea
    fy[MYBLOCK*SIZE_FLUXS+MYIND2] = velocityFluxY(avg_neg,avg_pos,sha_cparms+threadIdx.z*SIZE_CELLPARAMS,sha_bparms+threadIdx.z*SIZE_BLOCKPARAMS);
 }
 
-__global__ void vyFlux_2warp(uint OFFSET,uint SPATCELL,real* avgs,real* avgnbry,real* d1y,real* d2y,real* d1ynbr,real* d2ynbr,real* fy,real* blockParams) {
-   __shared__ real sha_avg[SIZE_VELBLOCK+WID2];
-   __shared__ real sha_d1y[SIZE_DERIV+SIZE_BDERI];
-   __shared__ real sha_d2y[SIZE_DERIV+SIZE_BDERI];
-   __shared__ real sha_cparms[SIZE_CELLPARAMS];
-   __shared__ real sha_bparms[SIZE_BLOCKPARAMS];
+__global__ void vyFlux_2warp(uint OFFSET,uint SPATCELL,Real* avgs,Real* avgnbry,Real* d1y,Real* d2y,Real* d1ynbr,Real* d2ynbr,Real* fy,Real* blockParams) {
+   __shared__ Real sha_avg[SIZE_VELBLOCK+WID2];
+   __shared__ Real sha_d1y[SIZE_DERIV+SIZE_BDERI];
+   __shared__ Real sha_d2y[SIZE_DERIV+SIZE_BDERI];
+   __shared__ Real sha_cparms[SIZE_CELLPARAMS];
+   __shared__ Real sha_bparms[SIZE_BLOCKPARAMS];
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
    uint MYIND = tindex3(threadIdx.x,threadIdx.y,threadIdx.z);
@@ -386,8 +386,8 @@ __global__ void vyFlux_2warp(uint OFFSET,uint SPATCELL,real* avgs,real* avgnbry,
    transpose_yz_2warp(sha_avg+WID2);
    
    // Reconstruct negative and positive side values at the -vy face, and store calculated flux.
-   real avg_neg = reconstruct_neg(sha_avg[MYIND     ],sha_d1y[MYIND     ],sha_d2y[MYIND     ]);
-   real avg_pos = reconstruct_pos(sha_avg[MYIND+WID2],sha_d1y[MYIND+WID2],sha_d2y[MYIND+WID2]);
+   Real avg_neg = reconstruct_neg(sha_avg[MYIND     ],sha_d1y[MYIND     ],sha_d2y[MYIND     ]);
+   Real avg_pos = reconstruct_pos(sha_avg[MYIND+WID2],sha_d1y[MYIND+WID2],sha_d2y[MYIND+WID2]);
    fy[MYBLOCK*SIZE_FLUXS+MYIND] = velocityFluxY(avg_neg,avg_pos,sha_cparms,sha_bparms);
 }
 
@@ -395,12 +395,12 @@ __global__ void vyFlux_2warp(uint OFFSET,uint SPATCELL,real* avgs,real* avgnbry,
 // ------------ FUNCTIONS FOR CALCULATING X-COMPONENT OF VELOCITY FLUXES ------------
 // ----------------------------------------------------------------------------------
 
-__global__ void vxFlux_1warp(uint OFFSET,uint SPATCELL,real* avgs,real* avgnbrx,real* d1x,real* d2x,real* d1xnbr,real* d2xnbr,real* fx,real* blockParams) {
-   __shared__ real sha_avg[SIZE_VELBLOCK+WID2];
-   __shared__ real sha_d1x[SIZE_DERIV+SIZE_BDERI];
-   __shared__ real sha_d2x[SIZE_DERIV+SIZE_BDERI];
-   __shared__ real sha_cparms[SIZE_CELLPARAMS];
-   __shared__ real sha_bparms[SIZE_BLOCKPARAMS];
+__global__ void vxFlux_1warp(uint OFFSET,uint SPATCELL,Real* avgs,Real* avgnbrx,Real* d1x,Real* d2x,Real* d1xnbr,Real* d2xnbr,Real* fx,Real* blockParams) {
+   __shared__ Real sha_avg[SIZE_VELBLOCK+WID2];
+   __shared__ Real sha_d1x[SIZE_DERIV+SIZE_BDERI];
+   __shared__ Real sha_d2x[SIZE_DERIV+SIZE_BDERI];
+   __shared__ Real sha_cparms[SIZE_CELLPARAMS];
+   __shared__ Real sha_bparms[SIZE_BLOCKPARAMS];
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
    uint MYIND = tindex3(threadIdx.x,threadIdx.y,threadIdx.z);
@@ -428,22 +428,22 @@ __global__ void vxFlux_1warp(uint OFFSET,uint SPATCELL,real* avgs,real* avgnbrx,
    
    // Reconstruct negative and positive side values at the -vx face, and store calculated flux.
    for (int cntr=0; cntr<2; ++cntr) {
-      real avg_neg = reconstruct_neg(sha_avg[MYIND     ],sha_d1x[MYIND     ],sha_d2x[MYIND     ]);
-      real avg_pos = reconstruct_pos(sha_avg[MYIND+WID2],sha_d1x[MYIND+WID2],sha_d2x[MYIND+WID2]);
+      Real avg_neg = reconstruct_neg(sha_avg[MYIND     ],sha_d1x[MYIND     ],sha_d2x[MYIND     ]);
+      Real avg_pos = reconstruct_pos(sha_avg[MYIND+WID2],sha_d1x[MYIND+WID2],sha_d2x[MYIND+WID2]);
       fx[MYBLOCK*SIZE_FLUXS+MYIND] = velocityFluxX(avg_neg,avg_pos,sha_cparms,sha_bparms);
       MYIND += 2*WID2;
    }
 }
 
-template<uint WARPS> __global__ void vxFlux_n1warp(uint OFFSET,uint SPATCELL,real* avgs,real* avgnbrx,real* d1x,real* d2x,real* d1xnbr,real* d2xnbr,real* fx,real* blockParams) {
+template<uint WARPS> __global__ void vxFlux_n1warp(uint OFFSET,uint SPATCELL,Real* avgs,Real* avgnbrx,Real* d1x,Real* d2x,Real* d1xnbr,Real* d2xnbr,Real* fx,Real* blockParams) {
    cuint SIZE_VEL = SIZE_VELBLOCK+WID2;
    cuint SIZE_DER = SIZE_DERIV+SIZE_BDERI;
    
-   __shared__ real sha_avg[WARPS*SIZE_VEL];
-   __shared__ real sha_d1x[WARPS*SIZE_DER];
-   __shared__ real sha_d2x[WARPS*SIZE_DER];
-   __shared__ real sha_cparms[WARPS*2*SIZE_CELLPARAMS];
-   __shared__ real sha_bparms[WARPS*2*SIZE_BLOCKPARAMS];
+   __shared__ Real sha_avg[WARPS*SIZE_VEL];
+   __shared__ Real sha_d1x[WARPS*SIZE_DER];
+   __shared__ Real sha_d2x[WARPS*SIZE_DER];
+   __shared__ Real sha_cparms[WARPS*2*SIZE_CELLPARAMS];
+   __shared__ Real sha_bparms[WARPS*2*SIZE_BLOCKPARAMS];
    
    cuint MYBLOCK = OFFSET + (blockIdx.y*WARPS + threadIdx.z/2)*gridDim.x + blockIdx.x;
    cuint MYIND1 = tindex3(threadIdx.x,threadIdx.y,threadIdx.z%2);
@@ -470,7 +470,7 @@ template<uint WARPS> __global__ void vxFlux_n1warp(uint OFFSET,uint SPATCELL,rea
    transpose_xz_1warp(sha_avg+(threadIdx.z/2)*SIZE_VEL+WID2);
    
    // Reconstruct negative and positive side values at the -vx face, and store calculated fluxes:
-   real avg_neg,avg_pos;
+   Real avg_neg,avg_pos;
    avg_neg = reconstruct_neg(sha_avg[(threadIdx.z/2)*SIZE_VEL+MYIND1     ],sha_d1x[(threadIdx.z/2)*SIZE_DER+MYIND1     ],sha_d2x[(threadIdx.z/2)*SIZE_DER+MYIND1     ]);
    avg_pos = reconstruct_pos(sha_avg[(threadIdx.z/2)*SIZE_VEL+MYIND1+WID2],sha_d1x[(threadIdx.z/2)*SIZE_DER+MYIND1+WID2],sha_d2x[(threadIdx.z/2)*SIZE_DER+MYIND1+WID2]);
    fx[MYBLOCK*SIZE_FLUXS+MYIND1] = velocityFluxX(avg_neg,avg_pos,sha_cparms+threadIdx.z*SIZE_CELLPARAMS,sha_bparms+threadIdx.z*SIZE_BLOCKPARAMS);
@@ -479,12 +479,12 @@ template<uint WARPS> __global__ void vxFlux_n1warp(uint OFFSET,uint SPATCELL,rea
    fx[MYBLOCK*SIZE_FLUXS+MYIND2] = velocityFluxX(avg_neg,avg_pos,sha_cparms+threadIdx.z*SIZE_CELLPARAMS,sha_bparms+threadIdx.z*SIZE_BLOCKPARAMS);
 }
 
-__global__ void vxFlux_2warp(uint OFFSET,uint SPATCELL,real* avgs,real* avgnbrx,real* d1x,real* d2x,real* d1xnbr,real* d2xnbr,real* fx,real* blockParams) {
-   __shared__ real sha_avg[SIZE_VELBLOCK+WID2];
-   __shared__ real sha_d1x[SIZE_DERIV+SIZE_BDERI];
-   __shared__ real sha_d2x[SIZE_DERIV+SIZE_BDERI];
-   __shared__ real sha_cparms[SIZE_CELLPARAMS];
-   __shared__ real sha_bparms[SIZE_BLOCKPARAMS];
+__global__ void vxFlux_2warp(uint OFFSET,uint SPATCELL,Real* avgs,Real* avgnbrx,Real* d1x,Real* d2x,Real* d1xnbr,Real* d2xnbr,Real* fx,Real* blockParams) {
+   __shared__ Real sha_avg[SIZE_VELBLOCK+WID2];
+   __shared__ Real sha_d1x[SIZE_DERIV+SIZE_BDERI];
+   __shared__ Real sha_d2x[SIZE_DERIV+SIZE_BDERI];
+   __shared__ Real sha_cparms[SIZE_CELLPARAMS];
+   __shared__ Real sha_bparms[SIZE_BLOCKPARAMS];
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
    uint MYIND = tindex3(threadIdx.x,threadIdx.y,threadIdx.z);
@@ -509,12 +509,12 @@ __global__ void vxFlux_2warp(uint OFFSET,uint SPATCELL,real* avgs,real* avgnbrx,
    __syncthreads();
    
    // Reconstruct negative and positive side values at the -vx face, and store calculated flux.
-   real avg_neg = reconstruct_neg(sha_avg[MYIND     ],sha_d1x[MYIND     ],sha_d2x[MYIND     ]);
-   real avg_pos = reconstruct_pos(sha_avg[MYIND+WID2],sha_d1x[MYIND+WID2],sha_d2x[MYIND+WID2]);
+   Real avg_neg = reconstruct_neg(sha_avg[MYIND     ],sha_d1x[MYIND     ],sha_d2x[MYIND     ]);
+   Real avg_pos = reconstruct_pos(sha_avg[MYIND+WID2],sha_d1x[MYIND+WID2],sha_d2x[MYIND+WID2]);
    fx[MYBLOCK*SIZE_FLUXS+MYIND] = velocityFluxX(avg_neg,avg_pos,sha_cparms,sha_bparms);
 }
 
-__global__ void copyVelFlux_hwarp(uint OFFSET,real* fx,real* fy,real* fz,real* fxnbr,real* fynbr,real* fznbr,uint* nbrs) {
+__global__ void copyVelFlux_hwarp(uint OFFSET,Real* fx,Real* fy,Real* fz,Real* fxnbr,Real* fynbr,Real* fznbr,uint* nbrs) {
    __shared__ uint sha_nbr[SIZE_NBRS_VEL]; // Shared memory array for neighbour indices.
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
@@ -545,7 +545,7 @@ __global__ void copyVelFlux_hwarp(uint OFFSET,real* fx,real* fy,real* fz,real* f
    }
 }
 
-template<uint WARPS> __global__ void copyVelFlux_nhwarp(uint OFFSET,real* fx,real* fy,real* fz,real* fxnbr,real* fynbr,real* fznbr,uint* nbrs) {
+template<uint WARPS> __global__ void copyVelFlux_nhwarp(uint OFFSET,Real* fx,Real* fy,Real* fz,Real* fxnbr,Real* fynbr,Real* fznbr,uint* nbrs) {
    //__shared__ uint sha_nbr[WARPS*SIZE_NBRS_VEL]; // Shared memory array for neighbour indices.
    cuint SIZE_NBRS = SIZE_NBRS_VEL+1;
    __shared__ uint sha_nbr[WARPS*SIZE_NBRS];
@@ -580,11 +580,11 @@ template<uint WARPS> __global__ void copyVelFlux_nhwarp(uint OFFSET,real* fx,rea
 // ---------- FUNCTIONS FOR PROPAGATING VOLUME AVERAGES IN VELOCITY SPACE ----------
 // ---------------------------------------------------------------------------------
 
-__global__ void propagateVel_1warp(uint OFFSET,uint SPATCELL,real* avgs,real* fx,real* fy,real* fz,
-				       real* fxnbr,real* fynbr,real* fznbr,real* blockParams,real DT) {
-   __shared__ real sha_avg[SIZE_VELBLOCK];          // Shared mem array for volume averages
-   __shared__ real sha_bparams[SIZE_BLOCKPARAMS];   //                      block parameters
-   __shared__ real sha_flux[SIZE_FLUXS+SIZE_BFLUX]; //                      flux
+__global__ void propagateVel_1warp(uint OFFSET,uint SPATCELL,Real* avgs,Real* fx,Real* fy,Real* fz,
+				       Real* fxnbr,Real* fynbr,Real* fznbr,Real* blockParams,Real DT) {
+   __shared__ Real sha_avg[SIZE_VELBLOCK];          // Shared mem array for volume averages
+   __shared__ Real sha_bparams[SIZE_BLOCKPARAMS];   //                      block parameters
+   __shared__ Real sha_flux[SIZE_FLUXS+SIZE_BFLUX]; //                      flux
    
    cuint MYBLOCK = OFFSET + bindex2(blockIdx.x,blockIdx.y);
    uint MYIND = tindex3(threadIdx.x,threadIdx.y,threadIdx.z);

@@ -7,7 +7,7 @@
 
 using namespace std;
 
-real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& vx,creal& vy,creal& vz) {
+Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& vx,creal& vy,creal& vz) {
    /*
     creal VX0 = 0.5;
     creal VY0 = 0.0;
@@ -38,11 +38,11 @@ real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& vx,creal& vy,creal&
    return 1.0;
 }
 
-void calcBlockParameters(real* blockParams) {
+void calcBlockParameters(Real* blockParams) {
    blockParams[BlockParams::Q_PER_M] = 1.0;
 }
 
-void calcCellParameters(real* cellParams) {
+void calcCellParameters(Real* cellParams) {
    creal x = cellParams[CellParams::XCRD];
    creal dx = cellParams[CellParams::DX];
    

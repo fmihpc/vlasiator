@@ -22,15 +22,15 @@ class Grid {
    /** Get a pointer to the array containing velocity grid blocks.
     * @return A pointer to blockArray.
     */
-   real* getBlockArray() const {return blockArray;}
+   Real* getBlockArray() const {return blockArray;}
    /** Get a pointer to the array containing parameters of the velocity grid blocks.
     * @return A pointer to blockParams.
     */
-   real* getBlockParams() const {return blockParams;}
+   Real* getBlockParams() const {return blockParams;}
    /** Get a pointer to the array containing parameters of the spatial cells.
     * @return A pointer to cellParams.
     */
-   real* getCellParams() const {return cellParams;}
+   Real* getCellParams() const {return cellParams;}
    /** Get a pointer to the array containing neighbour lists for spatial cells.
     * @return A pointer to nbrsSpa.
     */
@@ -45,15 +45,15 @@ class Grid {
     */
    uint size() const {return nextSpaCell;}
 
-   real* getFx() const {return fx;}
-   real* getFy() const {return fy;}
-   real* getFz() const {return fz;}
-   real* getD1x() const {return d1x;}
-   real* getD1y() const {return d1y;}
-   real* getD1z() const {return d1z;}
-   real* getD2x() const {return d2x;}
-   real* getD2y() const {return d2y;}
-   real* getD2z() const {return d2z;}
+   Real* getFx() const {return fx;}
+   Real* getFy() const {return fy;}
+   Real* getFz() const {return fz;}
+   Real* getD1x() const {return d1x;}
+   Real* getD1y() const {return d1y;}
+   Real* getD1z() const {return d1z;}
+   Real* getD2x() const {return d2x;}
+   Real* getD2y() const {return d2y;}
+   Real* getD2z() const {return d2z;}
    
    /** Return a pointer to the requested spatial cell.
     * @param index The index of the cell in blockArray.
@@ -73,23 +73,23 @@ class Grid {
    
    uint* nbrsSpa; /**< Pointer to array which is used to store spatial cell neighbour lists in CPU memory.*/
    uint* nbrsVel; /**< Pointer to array which is used to store velocity block neighbour lists in CPU memory.*/
-   real* blockParams; /**< Pointer to array which is used to store velocity block parameters in CPU memory.*/
-   real* cellParams; /**< Pointer to array which is used to store spatial cell parameters in CPU memory.*/
-   real* blockArray; /**< Pointer to array which is used to store velocity blocks in CPU memory.*/
+   Real* blockParams; /**< Pointer to array which is used to store velocity block parameters in CPU memory.*/
+   Real* cellParams; /**< Pointer to array which is used to store spatial cell parameters in CPU memory.*/
+   Real* blockArray; /**< Pointer to array which is used to store velocity blocks in CPU memory.*/
 
-   real* fx; /**< Pointer to array containing fluxes to x-direction.*/
-   real* fy; /**< Pointer to array containing fluxes to y-direction.*/
-   real* fz; /**< Pointer to array containing fluxes to z-direction.*/
-   real* d1x; /**< Pointer to array containing 1st derivatives to x-direction.*/
-   real* d1y; /**< Pointer to array containing 1st derivatives to y-direction.*/
-   real* d1z; /**< Pointer to array containing 1st derivatives to z-direction.*/
-   real* d2x; /**< Pointer to array containing 2nd derivatives to x-direction.*/
-   real* d2y; /**< Pointer to array containing 2nd derivatives to y-direction.*/
-   real* d2z; /**< Pointer to array containing 2nd derivatives to z-direction.*/
+   Real* fx; /**< Pointer to array containing fluxes to x-direction.*/
+   Real* fy; /**< Pointer to array containing fluxes to y-direction.*/
+   Real* fz; /**< Pointer to array containing fluxes to z-direction.*/
+   Real* d1x; /**< Pointer to array containing 1st derivatives to x-direction.*/
+   Real* d1y; /**< Pointer to array containing 1st derivatives to y-direction.*/
+   Real* d1z; /**< Pointer to array containing 1st derivatives to z-direction.*/
+   Real* d2x; /**< Pointer to array containing 2nd derivatives to x-direction.*/
+   Real* d2y; /**< Pointer to array containing 2nd derivatives to y-direction.*/
+   Real* d2z; /**< Pointer to array containing 2nd derivatives to z-direction.*/
    
    SpatialCell* cells; /**< Pointer to array which is used to store the spatial cells.*/   
    
-   bool allocateArray(const std::string& name,const size_t& BYTES,real*& arrptr);
+   bool allocateArray(const std::string& name,const size_t& BYTES,Real*& arrptr);
    bool allocateArray(const std::string& name,const size_t& BYTES,uint*& arrptr);
 };
 

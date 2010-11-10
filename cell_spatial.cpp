@@ -10,16 +10,16 @@
 
 using namespace std;
 
-real* allocateReal(cuint& ELEMENTS,const bool& PAGELOCKED) {
+Real* allocateReal(cuint& ELEMENTS,const bool& PAGELOCKED) {
    #ifdef NOCUDA
-   return new real[ELEMENTS];
+   return new Real[ELEMENTS];
    #else
    if (PAGELOCKED == true) {
-      real* ptr;
-      if (deviceCreateArray(ptr,ELEMENTS*sizeof(real)) == false) return NULL;
+      Real* ptr;
+      if (deviceCreateArray(ptr,ELEMENTS*sizeof(Real)) == false) return NULL;
       return ptr;
    } else {
-      return new real[ELEMENTS];
+      return new Real[ELEMENTS];
    }
    #endif
 }
@@ -38,7 +38,7 @@ uint* allocateUint(cuint& ELEMENTS,const bool& PAGELOCKED) {
    #endif
 }
 
-void freeReal(real*& ptr,const bool& PAGELOCKED) {
+void freeReal(Real*& ptr,const bool& PAGELOCKED) {
    #ifdef NOCUDA
    delete ptr;
    #else

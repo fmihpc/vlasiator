@@ -8,7 +8,7 @@ using namespace std;
 
 extern Logger logger;
 
-bool deviceCreateArray(real*& arrptr,const size_t& bytes) {
+bool deviceCreateArray(Real*& arrptr,const size_t& bytes) {
    cudaError_t error = cudaHostAlloc(reinterpret_cast<void**>(&arrptr),bytes,cudaHostAllocDefault);
    if (error == cudaSuccess) return true;
    logger << "\t CUDA error '" << cudaGetErrorString(error) << endl;
@@ -22,7 +22,7 @@ bool deviceCreateArray(uint*& arrptr,const size_t& bytes) {
    return false;
 }
 
-bool deviceDeleteArray(real*& arrptr) {
+bool deviceDeleteArray(Real*& arrptr) {
    cudaError_t error = cudaFreeHost(arrptr);
    if (error == cudaSuccess) {
       arrptr = NULL;
