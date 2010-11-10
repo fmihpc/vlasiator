@@ -58,9 +58,9 @@ OBJS = cell_spatial.o cpu_acc.o cpu_trans.o grid.o\
 	gridbuilder.o logger.o main.o parameters.o project.o\
 	silowriter.o writevars.o
 
-HDRS += ${CUDA_HDRS}
-SRC += ${CUDA_SRC}
-OBJS += ${CUDA_OBJS}
+HDRS +=
+SRC +=
+OBJS +=
 
 clean:
 	make clean -C projects
@@ -68,22 +68,22 @@ clean:
 
 # Rules for making each object file needed by the executable
 cell_spatial.o: $(DEPS_CELL_SPATIAL)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c cell_spatial.cpp
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c cell_spatial.cpp ${INC_MPI} ${INC_BOOST}
 
 cellsync.o: $(DEPS_CELLSYNC)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c cellsync.cpp $(INC_CUDA)
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c cellsync.cpp $(INC_CUDA) ${INC}
 
 cpu_acc.o: ${DEPS_CPU_ACC}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c cpu_acc.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c cpu_acc.cpp ${INC}
 
 cpu_trans.o: ${DEPS_CPU_TRANS}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c cpu_trans.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c cpu_trans.cpp ${INC}
 
 cuda_acc.o: $(DEPS_CUDA_ACC)
-	$(NVCC) $(NVCCFLAGS) $(FLAGS) -c cuda_acc.cu
+	$(NVCC) $(NVCCFLAGS) $(FLAGS) -c cuda_acc.cu ${INC}
 
 cuda_trans.o: $(DEPS_CUDA_TRANS)
-	$(NVCC) $(NVCCFLAGS) $(FLAGS) -c cuda_trans.cu
+	$(NVCC) $(NVCCFLAGS) $(FLAGS) -c cuda_trans.cu ${INC}
 
 cudafuncs.o: $(DEPS_CUDAFUNCS)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c cudafuncs.cpp $(INC_CUDA)
@@ -92,10 +92,10 @@ gpudevicegrid.o: $(DEPS_GPU_DEVICE_GRID)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c gpudevicegrid.cpp $(INC_CUDA)
 
 grid.o: $(DEPS_GRID)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c grid.cpp
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c grid.cpp ${INC}
 
 gridbuilder.o: $(DEPS_GRIDBUILDER)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c gridbuilder.cpp
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c gridbuilder.cpp ${INC}
 
 logger.o: $(DEPS_LOGGER)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c logger.cpp
@@ -113,10 +113,10 @@ projinstall:
 	make project -C projects
 
 silowriter.o: $(DEPS_SILOWRITER)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c silowriter.cpp ${INC_SILO}
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c silowriter.cpp ${INC_SILO} ${INC}
 
 writevars.o: ${DEPS_WRITEVARS}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c writevars.cpp ${INC_SILO}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c writevars.cpp ${INC_SILO} ${INC}
 
 # Make a tar file containing the source code
 dist:
