@@ -5,8 +5,10 @@
 
 class Logger {
  public:
+   Logger();
    Logger(const std::string& fname);
    ~Logger();
+   bool setOutputFile(const std::string& fname);
    
    Logger& endl(Logger& lgr);
    Logger& operator<<(std::ostream& os);
