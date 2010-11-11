@@ -74,10 +74,10 @@ cellsync.o: $(DEPS_CELLSYNC)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c cellsync.cpp $(INC_CUDA) ${INC}
 
 cpu_acc.o: ${DEPS_CPU_ACC}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c cpu_acc.cpp ${INC}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c cpu_acc.cpp ${INC} ${INC_BOOST}
 
 cpu_trans.o: ${DEPS_CPU_TRANS}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c cpu_trans.cpp ${INC}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c cpu_trans.cpp ${INC} ${INC_BOOST}
 
 cuda_acc.o: $(DEPS_CUDA_ACC)
 	$(NVCC) $(NVCCFLAGS) $(FLAGS) -c cuda_acc.cu ${INC}
@@ -92,10 +92,10 @@ gpudevicegrid.o: $(DEPS_GPU_DEVICE_GRID)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c gpudevicegrid.cpp $(INC_CUDA)
 
 grid.o: $(DEPS_GRID)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c grid.cpp ${INC}
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c grid.cpp ${INC} ${INC_BOOST}
 
 gridbuilder.o: $(DEPS_GRIDBUILDER)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c gridbuilder.cpp ${INC}
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c gridbuilder.cpp ${INC} ${INC_BOOST}
 
 logger.o: $(DEPS_LOGGER)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c logger.cpp
@@ -113,10 +113,10 @@ projinstall:
 	make project -C projects
 
 silowriter.o: $(DEPS_SILOWRITER)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c silowriter.cpp ${INC_SILO} ${INC}
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c silowriter.cpp ${INC_SILO} ${INC} ${INC_BOOST}
 
 writevars.o: ${DEPS_WRITEVARS}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c writevars.cpp ${INC_SILO} ${INC}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c writevars.cpp ${INC_SILO} ${INC} ${INC_BOOST}
 
 # Make a tar file containing the source code
 dist:
@@ -125,4 +125,4 @@ dist:
 
 # Make executable
 main: projinstall $(OBJS)
-	$(LINK) -O3 -o main $(OBJS) $(LIB)
+	$(LINK) -o main $(OBJS) $(LIB)
