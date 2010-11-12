@@ -3,6 +3,7 @@
 #include <cmath>
 #include <limits>
 
+#include "logger.h"
 #include "common.h"
 #include "cell_spatial.h"
 #include "parameters.h"
@@ -10,214 +11,162 @@
 
 using namespace std;
 
-Real* allocateReal(cuint& ELEMENTS,const bool& PAGELOCKED) {
-   #ifdef NOCUDA
-   return new Real[ELEMENTS];
-   #else
-   if (PAGELOCKED == true) {
-      Real* ptr;
-      if (deviceCreateArray(ptr,ELEMENTS*sizeof(Real)) == false) return NULL;
-      return ptr;
-   } else {
-      return new Real[ELEMENTS];
-   }
-   #endif
-}
-
-uint* allocateUint(cuint& ELEMENTS,const bool& PAGELOCKED) {
-   #ifdef NOCUDA
-   return new uint[ELEMENTS];
-   #else
-   if (PAGELOCKED == true) {
-      uint* ptr;
-      if (deviceCreateArray(ptr,ELEMENTS*sizeof(uint)) == false) return NULL;
-      return ptr;
-   } else {
-      return new uint[ELEMENTS];
-   }
-   #endif
-}
-
-void freeReal(Real*& ptr,const bool& PAGELOCKED) {
-   #ifdef NOCUDA
-   delete ptr;
-   #else
-   if (PAGELOCKED == true) {
-      deviceDeleteArray(ptr);
-   } else {
-      delete ptr;
-   }
-   #endif
-   ptr = NULL;
-}
-
-void freeUint(uint*& ptr,const bool& PAGELOCKED) {
-   #ifdef NOCUDA
-   delete ptr;
-   #else
-   if (PAGELOCKED == true) {
-      deviceDeleteArray(ptr);
-   } else {
-      delete ptr;
-   }
-   #endif
-   ptr = NULL;
-} 
+extern Grid grid;
+extern Logger logger;
 
 SpatialCell::SpatialCell() {
    typedef Parameters P;
-   pageLocked = false; // Should determine this from somewhere
-   N_blocks = P::vxblocks_ini*P::vyblocks_ini*P::vzblocks_ini;
+   //N_blocks = P::vxblocks_ini*P::vyblocks_ini*P::vzblocks_ini;
+   N_blocks = 0;
    
    cpuIndex = numeric_limits<uint>::max();
-   gpuIndex = numeric_limits<uint>::max();
-   
-   cellType = Cell::UNINITIALIZED;
-   cellIndex = numeric_limits<uint>::max();
-   velBlockIndex = numeric_limits<uint>::max();
-   i_ind = numeric_limits<uint>::max();
-   j_ind = numeric_limits<uint>::max();
-   k_ind = numeric_limits<uint>::max();
-   
-   // Allocate memory for data in CPU memory:
-   allocateMemory();
-
-   // Pointers to corresponding data in GPU memory. Leave as NULL for now.
-   gpu_cellParams = NULL;   
-   gpu_nbrsVel = NULL;
-   gpu_avgs = NULL;
-   gpu_blockParams = NULL;
-   gpu_fx = NULL;
-   gpu_fy = NULL;
-   gpu_fz = NULL;
-   gpu_d1x = NULL;
-   gpu_d1y = NULL;
-   gpu_d1z = NULL;
+   cpu_cellParams = new Real[SIZE_CELLPARAMS];
+   cpu_nbrsSpa    = new uint[SIZE_NBRS_SPA];
 }
 
 SpatialCell::SpatialCell(const SpatialCell& s) {
-   //std::cerr << "SpatialCell copy constructor called" << std::endl;
-   
-   // Determine the amount of data and allocate arrays:
-   N_blocks = s.N_blocks;
-   pageLocked = s.pageLocked;
-   allocateMemory();
-   // Copy CPU data:
-   copyMemory(s);
-   /*
-   for (uint i=0; i<SIZE_NBRS_SPA; ++i) cpu_nbrsSpa[i] = s.cpu_nbrsSpa[i];
+   // Copy variables related to the spatial cell:
+   N_blocks       = s.N_blocks;
+   cpu_cellParams = new Real[SIZE_CELLPARAMS];
+   cpu_nbrsSpa    = new uint[SIZE_NBRS_SPA];
    for (uint i=0; i<SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
-   for (uint i=0; i<N_blocks*SIZE_NBRS_VEL; ++i) cpu_nbrsVel[i] = s.cpu_nbrsVel[i];
-   for (uint i=0; i<N_blocks*SIZE_BLOCKPARAMS; ++i) cpu_blockParams[i] = s.cpu_blockParams[i];
-   for (uint i=0; i<N_blocks*SIZE_VELBLOCK; ++i) cpu_avgs[i] = s.cpu_avgs[i];
-   for (uint i=0; i<N_blocks*SIZE_FLUXS; ++i) cpu_fx[i] = s.cpu_fx[i];
-   for (uint i=0; i<N_blocks*SIZE_FLUXS; ++i) cpu_fy[i] = s.cpu_fy[i];
-   for (uint i=0; i<N_blocks*SIZE_FLUXS; ++i) cpu_fz[i] = s.cpu_fz[i];
-   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i) cpu_d1x[i] = s.cpu_d1x[i];
-   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i) cpu_d1y[i] = s.cpu_d1y[i];
-   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i) cpu_d1z[i] = s.cpu_d1z[i];
-   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i) cpu_d2x[i] = s.cpu_d2x[i];
-   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i) cpu_d2y[i] = s.cpu_d2y[i];
-   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i) cpu_d2z[i] = s.cpu_d2z[i];
-   */
-   copyVariables(s);
-   /*
-   // Copy the rest of member variables:
-   cpuIndex = s.cpuIndex;
-   gpuIndex = s.gpuIndex;
+   for (uint i=0; i<SIZE_NBRS_SPA; ++i  ) cpu_nbrsSpa[i]    = s.cpu_nbrsSpa[i];
    
-   cellType = s.cellType;
-   cellIndex = s.cellIndex;
-   velBlockIndex = s.velBlockIndex;
-   i_ind = s.i_ind;
-   j_ind = s.j_ind;
-   k_ind = s.k_ind;
+   cpuIndex = s.cpuIndex;
+   // If the SpatialCell to copy has allocated memory, increase the reference count 
+   // and set pointers:
+   if (cpuIndex == numeric_limits<uint>::max()) return;
+   if (grid.addReference(cpuIndex) == false) {
+      logger << "SpatialCell: reference increase failed, aborting." << endl << flush;
+      exit(1);
+   }
+   cpu_nbrsVel     = s.cpu_nbrsVel;
+   cpu_blockParams = s.cpu_blockParams;
+   cpu_avgs        = s.cpu_avgs;
+   cpu_fx          = s.cpu_fx;
+   cpu_fy          = s.cpu_fy;
+   cpu_fz          = s.cpu_fz;
+   cpu_d1x         = s.cpu_d1x;
+   cpu_d1y         = s.cpu_d1y;
+   cpu_d1z         = s.cpu_d1z;
+   cpu_d2x         = s.cpu_d2x;
+   cpu_d2y         = s.cpu_d2y;
+   cpu_d2z         = s.cpu_d2z;
+}
 
-   // For now, just copy the pointers to GPU memory:
-   gpu_cellParams = s.gpu_cellParams;   
-   gpu_nbrsVel = s.gpu_nbrsVel;
-   gpu_avgs = s.gpu_avgs;
-   gpu_blockParams = s.gpu_blockParams;
-   gpu_fx = s.gpu_fx;
-   gpu_fy = s.gpu_fy;
-   gpu_fz = s.gpu_fz;
-   gpu_d1x = s.gpu_d1x;
-   gpu_d1y = s.gpu_d1y;
-   gpu_d1z = s.gpu_d1z;
-    */
+SpatialCell& SpatialCell::operator=(const SpatialCell& s) {
+   // Clear previous memory:
+   if (cpuIndex != numeric_limits<uint>::max()) {
+      if (grid.removeReference(cpuIndex) == false) {
+	 cerr << "SpatialCell operator=: Failed to remove reference." << endl;
+      }
+   }
+   // Copy variables related to the spatial cell:
+   N_blocks = s.N_blocks;
+   for (uint i=0; i<SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
+   for (uint i=0; i<SIZE_NBRS_SPA; ++i  ) cpu_nbrsSpa[i]    = s.cpu_nbrsSpa[i];
+   
+   // Copy variables related to the velocity grid:
+   cpuIndex = s.cpuIndex;
+   if (cpuIndex == numeric_limits<uint>::max()) return *this;
+   
+   if (grid.addReference(cpuIndex) == false) {
+      logger << "SpatialCell: reference increase failed, aborting." << endl << flush;
+      logger << "\t operator= got cpuIndex " << s.cpuIndex << " from copied SpatialCell." << endl << flush;
+      exit(1);
+   }
+   cpu_nbrsVel     = s.cpu_nbrsVel;
+   cpu_blockParams = s.cpu_blockParams;
+   cpu_avgs        = s.cpu_avgs;
+   cpu_fx          = s.cpu_fx;
+   cpu_fy          = s.cpu_fy;
+   cpu_fz          = s.cpu_fz;
+   cpu_d1x         = s.cpu_d1x;
+   cpu_d1y         = s.cpu_d1y;
+   cpu_d1z         = s.cpu_d1z;
+   cpu_d2x         = s.cpu_d2x;
+   cpu_d2y         = s.cpu_d2y;
+   cpu_d2z         = s.cpu_d2z;
+   return *this;
 }
 
 SpatialCell::~SpatialCell() {
-   //cerr << "Cell #" << cpuIndex << " freeing up memory" << endl;
-   
    // Free CPU memory:
    freeMemory();
-   
-   // GPU data, CHECK THIS !!!
-   gpu_cellParams = NULL;   
-   gpu_nbrsVel = NULL;
-   gpu_avgs = NULL;
-   gpu_blockParams = NULL;
-   gpu_fx = NULL;
-   gpu_fy = NULL;
-   gpu_fz = NULL;
-   gpu_d1x = NULL;
-   gpu_d1y = NULL;
-   gpu_d1z = NULL;
 }
 
-void SpatialCell::allocateMemory() {
-   // Allocate memory for cell data:
-   cpu_nbrsSpa    = allocateUint(SIZE_NBRS_SPA,pageLocked);
-   cpu_cellParams = allocateReal(SIZE_CELLPARAMS,pageLocked);
-   // Allocate memory for velocity grid block data:
-   cpu_nbrsVel = allocateUint(N_blocks*SIZE_NBRS_VEL,pageLocked);
-   cpu_blockParams = allocateReal(N_blocks*SIZE_BLOCKPARAMS,pageLocked);
-   cpu_avgs = allocateReal(N_blocks*SIZE_VELBLOCK,pageLocked);
-   cpu_fx   = allocateReal(N_blocks*SIZE_FLUXS,pageLocked);
-   cpu_fy   = allocateReal(N_blocks*SIZE_FLUXS,pageLocked);
-   cpu_fz   = allocateReal(N_blocks*SIZE_FLUXS,pageLocked);
-   cpu_d1x  = allocateReal(N_blocks*SIZE_DERIV,pageLocked);
-   cpu_d1y  = allocateReal(N_blocks*SIZE_DERIV,pageLocked);
-   cpu_d1z  = allocateReal(N_blocks*SIZE_DERIV,pageLocked);
-   cpu_d2x  = allocateReal(N_blocks*SIZE_DERIV,pageLocked);
-   cpu_d2y  = allocateReal(N_blocks*SIZE_DERIV,pageLocked);
-   cpu_d2z  = allocateReal(N_blocks*SIZE_DERIV,pageLocked);
+bool SpatialCell::allocateMemory(const uint& BLOCKS) {
+   N_blocks = BLOCKS;
+   // Attempt to get pointers to available memory from Grid:
+   cpuIndex = grid.getFreeMemory(N_blocks);
+   if (cpuIndex == numeric_limits<uint>::max()) return false;
+   cpu_nbrsVel     = grid.getNbrsVel()     + cpuIndex*SIZE_NBRS_VEL;
+   cpu_blockParams = grid.getBlockParams() + cpuIndex*SIZE_BLOCKPARAMS;
+   cpu_avgs        = grid.getAvgs()        + cpuIndex*SIZE_VELBLOCK;
+   cpu_fx          = grid.getFx()          + cpuIndex*SIZE_FLUXS;
+   cpu_fy          = grid.getFy()          + cpuIndex*SIZE_FLUXS;
+   cpu_fz          = grid.getFz()          + cpuIndex*SIZE_FLUXS;
+   cpu_d1x         = grid.getD1x()         + cpuIndex*SIZE_DERIV;
+   cpu_d1y         = grid.getD1y()         + cpuIndex*SIZE_DERIV;
+   cpu_d1z         = grid.getD1z()         + cpuIndex*SIZE_DERIV;
+   cpu_d2x         = grid.getD2x()         + cpuIndex*SIZE_DERIV;
+   cpu_d2y         = grid.getD2y()         + cpuIndex*SIZE_DERIV;
+   cpu_d2z         = grid.getD2z()         + cpuIndex*SIZE_DERIV;
+   return true;
 }
 
-void SpatialCell::freeMemory() {
-   freeUint(cpu_nbrsSpa,pageLocked);
-   freeReal(cpu_cellParams,pageLocked);
-
-   freeUint(cpu_nbrsVel,pageLocked);
-   freeReal(cpu_blockParams,pageLocked);
-   freeReal(cpu_avgs,pageLocked);
-   freeReal(cpu_fx  ,pageLocked);
-   freeReal(cpu_fy  ,pageLocked);
-   freeReal(cpu_fz  ,pageLocked);
-   freeReal(cpu_d1x ,pageLocked);
-   freeReal(cpu_d1y ,pageLocked);
-   freeReal(cpu_d1z ,pageLocked);
-   freeReal(cpu_d2x ,pageLocked);
-   freeReal(cpu_d2y ,pageLocked);
-   freeReal(cpu_d2z ,pageLocked);
+bool SpatialCell::freeMemory() {
+   if (cpuIndex != numeric_limits<uint>::max()) {
+      if (grid.removeReference(cpuIndex) == false) {
+	 logger << "SpatialCell ERROR: Reference removal failed" << endl << flush;
+      }
+      cpuIndex = numeric_limits<uint>::max();
+   }
+   delete cpu_cellParams;
+   delete cpu_nbrsSpa;
 }
 
-void SpatialCell::copyMemory(const SpatialCell& s) {
-   for (uint i=0; i<SIZE_NBRS_SPA; ++i) cpu_nbrsSpa[i] = s.cpu_nbrsSpa[i];
+void SpatialCell::getMemInfo() {
+   logger << "cpuIndex = " << cpuIndex << endl << flush;
+}
+
+bool SpatialCell::clone(const SpatialCell& s) {
+   N_blocks = s.N_blocks;
+   if (allocateMemory(N_blocks) == false) return false;
+   // Copy cell contents to new memory locations:
    for (uint i=0; i<SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
-   for (uint i=0; i<N_blocks*SIZE_NBRS_VEL; ++i) cpu_nbrsVel[i] = s.cpu_nbrsVel[i];
+   for (uint i=0; i<SIZE_NBRS_SPA; ++i  ) cpu_nbrsSpa[i]    = s.cpu_nbrsSpa[i];
+   
+   for (uint i=0; i<N_blocks*SIZE_NBRS_VEL; ++i)    cpu_nbrsVel[i]     = s.cpu_nbrsVel[i];
    for (uint i=0; i<N_blocks*SIZE_BLOCKPARAMS; ++i) cpu_blockParams[i] = s.cpu_blockParams[i];
-   for (uint i=0; i<N_blocks*SIZE_VELBLOCK; ++i) cpu_avgs[i] = s.cpu_avgs[i];
-   for (uint i=0; i<N_blocks*SIZE_FLUXS; ++i) cpu_fx[i] = s.cpu_fx[i];
-   for (uint i=0; i<N_blocks*SIZE_FLUXS; ++i) cpu_fy[i] = s.cpu_fy[i];
-   for (uint i=0; i<N_blocks*SIZE_FLUXS; ++i) cpu_fz[i] = s.cpu_fz[i];
-   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i) cpu_d1x[i] = s.cpu_d1x[i];
-   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i) cpu_d1y[i] = s.cpu_d1y[i];
-   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i) cpu_d1z[i] = s.cpu_d1z[i];
-   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i) cpu_d2x[i] = s.cpu_d2x[i];
-   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i) cpu_d2y[i] = s.cpu_d2y[i];
-   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i) cpu_d2z[i] = s.cpu_d2z[i];
+   for (uint i=0; i<N_blocks*SIZE_VELBLOCK; ++i)    cpu_avgs[i]        = s.cpu_avgs[i];
+   for (uint i=0; i<N_blocks*SIZE_FLUXS; ++i)       cpu_fx[i]          = s.cpu_fx[i];
+   for (uint i=0; i<N_blocks*SIZE_FLUXS; ++i)       cpu_fy[i]          = s.cpu_fy[i];
+   for (uint i=0; i<N_blocks*SIZE_FLUXS; ++i)       cpu_fz[i]          = s.cpu_fz[i];
+   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d1x[i]         = s.cpu_d1x[i];
+   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d1y[i]         = s.cpu_d1y[i];
+   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d1z[i]         = s.cpu_d1z[i];
+   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d2x[i]         = s.cpu_d2x[i];
+   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d2y[i]         = s.cpu_d2y[i];
+   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d2z[i]         = s.cpu_d2z[i];
+}
+
+/*
+void SpatialCell::copyMemory(const SpatialCell& s) {
+   for (uint i=0; i<SIZE_NBRS_SPA; ++i)             cpu_nbrsSpa[i] = s.cpu_nbrsSpa[i];
+   for (uint i=0; i<SIZE_CELLPARAMS; ++i)           cpu_cellParams[i] = s.cpu_cellParams[i];
+   for (uint i=0; i<N_blocks*SIZE_NBRS_VEL; ++i)    cpu_nbrsVel[i] = s.cpu_nbrsVel[i];
+   for (uint i=0; i<N_blocks*SIZE_BLOCKPARAMS; ++i) cpu_blockParams[i] = s.cpu_blockParams[i];
+   for (uint i=0; i<N_blocks*SIZE_VELBLOCK; ++i)    cpu_avgs[i] = s.cpu_avgs[i];
+   for (uint i=0; i<N_blocks*SIZE_FLUXS; ++i)       cpu_fx[i] = s.cpu_fx[i];
+   for (uint i=0; i<N_blocks*SIZE_FLUXS; ++i)       cpu_fy[i] = s.cpu_fy[i];
+   for (uint i=0; i<N_blocks*SIZE_FLUXS; ++i)       cpu_fz[i] = s.cpu_fz[i];
+   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d1x[i] = s.cpu_d1x[i];
+   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d1y[i] = s.cpu_d1y[i];
+   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d1z[i] = s.cpu_d1z[i];
+   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d2x[i] = s.cpu_d2x[i];
+   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d2y[i] = s.cpu_d2y[i];
+   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d2z[i] = s.cpu_d2z[i];
 }
 
 void SpatialCell::copyVariables(const SpatialCell& s) {
@@ -250,21 +199,7 @@ void SpatialCell::copyVariables(const SpatialCell& s) {
 void SpatialCell::swapMemoryType() {
    // Not implemented yet
 }
+*/
 
-SpatialCell& SpatialCell::operator=(const SpatialCell& s) {
-   //std::cerr << "SpatialCell operator= called" << std::endl;
-
-   // Deallocate old arrays, allocate new ones with the correct size, and copy:
-   freeMemory();
-   N_blocks = s.N_blocks;
-   pageLocked = s.pageLocked;
-   allocateMemory();
-   copyMemory(s);
-   
-   // Copy the rest of member variables:
-   copyVariables(s);
-   
-   return *this;
-}
 
 

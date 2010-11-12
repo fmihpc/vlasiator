@@ -21,7 +21,7 @@
   #include "cudafuncs.h"
 #endif
 
-//using namespace std;
+using namespace std;
 
 #ifndef NOCUDA
   extern void buildBaseGrid(Grid& grid,DeviceGrid& deviceGrid);
@@ -45,8 +45,11 @@ extern bool cpu_translation2(SpatialCell& cell,const std::vector<const SpatialCe
 extern bool cpu_translation3(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
 
 Logger logger;
+Grid grid;
 
 void initSpatialCells(dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm) {
+   typedef Parameters P;
+   
    // This can be replaced by an iterator.
    std::vector<uint64_t> cells = mpiGrid.get_cells();
    // Go through every cell on this node and initialize the pointers to 
@@ -65,7 +68,8 @@ void initSpatialCells(dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm
       ymin -= 0.5*dy;
       zmin -= 0.5*dz;
 
-      mpiGrid[cells[i]]->cpuIndex = cells[i];
+      //mpiGrid[cells[i]]->cpuIndex = cells[i];
+      mpiGrid[cells[i]]->allocateMemory(P::vxblocks_ini*P::vyblocks_ini*P::vzblocks_ini);
       buildSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz);
    }
 }
@@ -110,7 +114,9 @@ void writeVelocityBlocks(const boost::mpi::communicator& comm,dccrg<SpatialCell>
    // Write velocity grid
    openOutputFile(fname.str(),"vel_blocks");
    SpatialCell cell;
-   cell = *(mpiGrid[cells[0]]);
+   //cell = *(mpiGrid[cells[0]]);
+   cell.clone(*(mpiGrid[cells[0]]));
+   
    reserveVelocityBlocks(cell.N_blocks);
    for (uint b=0; b<cell.N_blocks; ++b) {
       addVelocityGridBlock3D(cell.cpu_blockParams+b*SIZE_BLOCKPARAMS);
@@ -200,18 +206,12 @@ int main(int argn,char* args[]) {
    Parameters parameters;
 
    // Allocate memory for grids 
-   //Grid grid;
    #ifndef NOCUDA
    DeviceGrid deviceGrid;
    #endif
 
    // Check that requested memory was allocated:
    bool success = true;
-   /*
-   if (grid.isInitialized() == false) {
-      logger << "\t ERROR: Grid initialization failed." << std::endl;
-      success = false;
-   }*/
    #ifndef NOCUDA
    if (deviceGrid.isInitialized() == false) {
       logger << "\t ERROR: DeviceGrid initialization failed." << std::endl;
@@ -228,7 +228,7 @@ int main(int argn,char* args[]) {
       logger << "\t Zoltan initialized successfully" << std::endl;
    }
    dccrg<SpatialCell> mpiGrid(comm,"RCB",P::xmin,P::ymin,P::zmin,P::dx_ini,P::xcells_ini,P::ycells_ini,P::zcells_ini,1,0);
-
+   
    // If initialization was not successful, abort.
    if (success == false) {
       std::cerr << "An error has occurred, aborting. See logfile for details." << std::endl;
@@ -239,14 +239,16 @@ int main(int argn,char* args[]) {
    // Do initial load balancing:
    mpiGrid.balance_load();
    comm.barrier();
+   
    // Go through every spatial cell on this CPU, and create the initial state:
    initSpatialCells(mpiGrid,comm);
    comm.barrier();
-
+   
+   // Fetch neighbour data:
    mpiGrid.start_remote_neighbour_data_update(); // TEST
    mpiGrid.wait_neighbour_data_update();
    comm.barrier();
-
+   
    // Write initial state:
    writeSpatialCells(comm,mpiGrid);
    writeVelocityBlocks(comm,mpiGrid);
@@ -374,8 +376,6 @@ int main(int argn,char* args[]) {
 	      grid[cell]->devSync(Cell::Blocks,Cell::DevToCpu);
 	   }
 	 #endif
-	 //writeBlocks(grid,tstep+1,spaIndices);
-	 //writeSpatialCells(grid,tstep+1);
 	 writeSpatialCells(comm,mpiGrid);
 	 writeVelocityBlocks(comm,mpiGrid);
       }

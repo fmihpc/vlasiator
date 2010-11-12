@@ -41,13 +41,13 @@ DEPS_SILOWRITER += $(DEPS_COMMON)
 DEPS_WRITEVARS += ${DEPS_COMMON}
 
 HDRS = cell_spatial.h common.h definitions.h grid.h \
-	 logger.h parameters.h silowriter.h writevars.h
+	 logger.h parameters.h silowriter.h
 
 CUDA_HDRS = cudafuncs.h cudalaunch.h devicegrid.h
 
 SRC = cell_spatial.cpp cpu_acc.cpp cpu_trans.cpp\
 	grid.cpp gridbuilder.cpp \
-	logger.cpp main.cpp parameters.cpp silowriter.cpp writevars.cpp
+	logger.cpp main.cpp parameters.cpp silowriter.cpp
 
 CUDA_SRC = cellsync.cpp cuda_acc.cu cuda_common.cu cuda_trans.cu\
 	cudafuncs.cpp gpudevicegrid.cpp
@@ -56,7 +56,7 @@ CUDA_OBJS = cellsync.o cuda_acc.o cuda_trans.o cudafuncs.o gpudevicegrid.o
 
 OBJS = cell_spatial.o cpu_acc.o cpu_trans.o grid.o\
 	gridbuilder.o logger.o main.o parameters.o project.o\
-	silowriter.o writevars.o
+	silowriter.o 
 
 HDRS +=
 SRC +=
