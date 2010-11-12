@@ -124,6 +124,7 @@ bool SpatialCell::freeMemory() {
    }
    delete cpu_cellParams;
    delete cpu_nbrsSpa;
+   return true;
 }
 
 void SpatialCell::getMemInfo() {
@@ -149,6 +150,7 @@ bool SpatialCell::clone(const SpatialCell& s) {
    for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d2x[i]         = s.cpu_d2x[i];
    for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d2y[i]         = s.cpu_d2y[i];
    for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d2z[i]         = s.cpu_d2z[i];
+   return  true;
 }
 
 /*
