@@ -69,7 +69,10 @@ void initSpatialCells(dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm
       zmin -= 0.5*dz;
 
       //mpiGrid[cells[i]]->cpuIndex = cells[i];
-      mpiGrid[cells[i]]->allocateMemory(P::vxblocks_ini*P::vyblocks_ini*P::vzblocks_ini);
+      if (mpiGrid[cells[i]]->allocateMemory(P::vxblocks_ini*P::vyblocks_ini*P::vzblocks_ini) == false) {
+	 logger << "Cell " << cells[i] << " failed to allocate memory, exiting" << endl;
+	 exit(1);
+      }
       buildSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz);
    }
 }
@@ -187,8 +190,8 @@ bool findNeighbours(std::vector<const SpatialCell*>& nbrPtr,dccrg<SpatialCell>& 
    else nbrPtr[5] = NULL;
    
    // Periodic boundary conditions in z: FIX THIS!
-   nbrPtr[4] = mpiGrid[cell];
-   nbrPtr[5] = mpiGrid[cell];
+   //nbrPtr[4] = mpiGrid[cell];
+   //nbrPtr[5] = mpiGrid[cell];
    return true;
 }
 
@@ -239,11 +242,11 @@ int main(int argn,char* args[]) {
    // Do initial load balancing:
    mpiGrid.balance_load();
    comm.barrier();
-   
+
    // Go through every spatial cell on this CPU, and create the initial state:
    initSpatialCells(mpiGrid,comm);
    comm.barrier();
-   
+
    // Fetch neighbour data:
    mpiGrid.start_remote_neighbour_data_update(); // TEST
    mpiGrid.wait_neighbour_data_update();

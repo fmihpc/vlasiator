@@ -146,6 +146,7 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatFluxesY(CEL
       avg_neg = reconstruct_neg(avg_neg,d1_neg,d2_neg);
       // Calculate y-flux:
       fy[trIndex(i,j,k)] = spatialFluxY(j,0.0f,0.0f,cell.cpu_blockParams+BLOCK*SIZE_BLOCKPARAMS);
+      //fy[trIndex(i,j,k)] = spatialFluxY(j,avg_neg,avg_pos,cell.cpu_blockParams+BLOCK*SIZE_BLOCKPARAMS);
    }
 }
       
@@ -176,7 +177,8 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatFluxesZ(CEL
       }
       avg_neg = reconstruct_neg(avg_neg,d1_neg,d2_neg);
       // Calculate z-flux:
-      fz[trIndex(i,j,k)] = spatialFluxZ(k,avg_neg,avg_pos,cell.cpu_blockParams+BLOCK*SIZE_BLOCKPARAMS);
+      //fz[trIndex(i,j,k)] = spatialFluxZ(k,avg_neg,avg_pos,cell.cpu_blockParams+BLOCK*SIZE_BLOCKPARAMS);
+      fz[trIndex(i,j,k)] = spatialFluxZ(k,0.0f,0.0f,cell.cpu_blockParams+BLOCK*SIZE_BLOCKPARAMS);
    }
 }
 

@@ -51,7 +51,8 @@ Grid::~Grid() {
    // Check that SpatialCells have no remaining references to the memory:
    map<uint,int>::iterator it = referenceCount.begin();
    while (it != referenceCount.end()) {
-      if (it->second > 0) logger << "Cell #" << it->first << " has " << it->second << " references remaining!" << endl << flush;
+      if (it->second > 0) 
+	logger << "Grid: Cell #" << it->first << " has " << it->second << " references remaining!" << endl << flush;
       ++it;
    }
 }
