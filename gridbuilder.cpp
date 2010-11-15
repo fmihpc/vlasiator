@@ -11,13 +11,8 @@
 #include "common.h"
 #include "parameters.h"
 #include "cell_spatial.h"
-#include "grid.h"
 #include "logger.h"
 #include "project.h"
-
-#ifndef NOCUDA
-  #include "devicegrid.h"
-#endif
 
 using namespace std;
 

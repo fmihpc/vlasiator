@@ -1,27 +1,23 @@
 include Makefile.inc
 
-#LIB = -L/usr/local/cuda/lib64 -lcudart -lsilo
-
-#INC_CUDA = -I/usr/local/cuda/include
-
 # Define dependencies of each object file
 DEPS_COMMON = common.h definitions.h logger.h
-DEPS_CELL_SPATIAL = cell_spatial.h cell_spatial.cpp
+DEPS_CELL_SPATIAL = cell_spatial.h grid.h parameters.h cell_spatial.cpp
 DEPS_CELLSYNC = cell_spatial.h cellsync.cpp
-DEPS_CPU_ACC = cpu_common.h project.h cpu_acc.cpp
-DEPS_CPU_TRANS = cpu_common.h project.h cpu_trans.cpp
+DEPS_CPU_ACC = cell_spatial.h cpu_acc.h cpu_common.h project.h cpu_acc.cpp
+DEPS_CPU_TRANS = cell_spatial.h cpu_common.h cpu_trans.h project.h cpu_trans.cpp
 DEPS_CUDA_ACC = cuda_common.cu cudalaunch.h devicegrid.h grid.h parameters.h project.cu cuda_acc.cu
 DEPS_CUDA_TRANS = cuda_common.cu cudalaunch.h devicegrid.h grid.h parameters.h project.cu cuda_trans.cu
 DEPS_CUDAFUNCS = cudafuncs.h cudafuncs.cpp
 DEPS_GPU_DEVICE_GRID = cell_spatial.h parameters.h devicegrid.h gpudevicegrid.cpp
-DEPS_GRID = cell_spatial.h cudafuncs.h parameters.h grid.h grid.cpp
-DEPS_GRIDBUILDER = cell_spatial.h devicegrid.h grid.h parameters.h project.h gridbuilder.cpp
+DEPS_GRID = grid.h parameters.h grid.cpp
+DEPS_GRIDBUILDER = cell_spatial.h parameters.h project.h gridbuilder.cpp
 DEPS_LOGGER = logger.h logger.cpp
-DEPS_MAIN = cudafuncs.h parameters.h grid.h devicegrid.h writevars.h main.cpp
+DEPS_MAIN = parameters.h grid.h silowriter.h main.cpp
 DEPS_PARAMETERS = parameters.h parameters.cpp
 DEPS_PROJECT = project.h project.cpp
 DEPS_SILOWRITER = cell_spatial.h silowriter.h silowriter.cpp
-DEPS_WRITEVARS = cudafuncs.h grid.h devicegrid.h silowriter.h writevars.h writevars.cpp
+DEPS_WRITEVARS = silowriter.h writevars.h writevars.cpp
 
 DEPS_CELL_SPATIAL += $(DEPS_COMMON)
 DEPS_CELLSYNC += $(DEPS_COMMON)
@@ -40,7 +36,8 @@ DEPS_PROJECT += $(DEPS_COMMON)
 DEPS_SILOWRITER += $(DEPS_COMMON)
 DEPS_WRITEVARS += ${DEPS_COMMON}
 
-HDRS = cell_spatial.h common.h definitions.h grid.h \
+HDRS = cpu_acc.h cpu_common.h cpu_trans.h cell_spatial.h \
+	common.h definitions.h grid.h \
 	 logger.h parameters.h silowriter.h
 
 CUDA_HDRS = cudafuncs.h cudalaunch.h devicegrid.h
@@ -74,10 +71,10 @@ cellsync.o: $(DEPS_CELLSYNC)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c cellsync.cpp $(INC_CUDA) ${INC}
 
 cpu_acc.o: ${DEPS_CPU_ACC}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c cpu_acc.cpp ${INC} ${INC_BOOST}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c cpu_acc.cpp ${INC} ${INC_BOOST} ${INC_MPI}
 
 cpu_trans.o: ${DEPS_CPU_TRANS}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c cpu_trans.cpp ${INC} ${INC_BOOST}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c cpu_trans.cpp ${INC} ${INC_BOOST} ${INC_MPI}
 
 cuda_acc.o: $(DEPS_CUDA_ACC)
 	$(NVCC) $(NVCCFLAGS) $(FLAGS) -c cuda_acc.cu ${INC}
@@ -113,7 +110,7 @@ projinstall:
 	make project -C projects
 
 silowriter.o: $(DEPS_SILOWRITER)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c silowriter.cpp ${INC_SILO} ${INC} ${INC_BOOST}
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c silowriter.cpp ${INC_SILO} ${INC} ${INC_BOOST} ${INC_MPI}
 
 writevars.o: ${DEPS_WRITEVARS}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c writevars.cpp ${INC_SILO} ${INC} ${INC_BOOST}

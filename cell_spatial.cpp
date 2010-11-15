@@ -7,7 +7,6 @@
 #include "common.h"
 #include "cell_spatial.h"
 #include "parameters.h"
-#include "cudafuncs.h"
 
 using namespace std;
 
@@ -16,7 +15,6 @@ extern Logger logger;
 
 SpatialCell::SpatialCell() {
    typedef Parameters P;
-   //N_blocks = P::vxblocks_ini*P::vyblocks_ini*P::vzblocks_ini;
    N_blocks = 0;
    
    cpuIndex = numeric_limits<uint>::max();
@@ -152,56 +150,4 @@ bool SpatialCell::clone(const SpatialCell& s) {
    for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d2z[i]         = s.cpu_d2z[i];
    return  true;
 }
-
-/*
-void SpatialCell::copyMemory(const SpatialCell& s) {
-   for (uint i=0; i<SIZE_NBRS_SPA; ++i)             cpu_nbrsSpa[i] = s.cpu_nbrsSpa[i];
-   for (uint i=0; i<SIZE_CELLPARAMS; ++i)           cpu_cellParams[i] = s.cpu_cellParams[i];
-   for (uint i=0; i<N_blocks*SIZE_NBRS_VEL; ++i)    cpu_nbrsVel[i] = s.cpu_nbrsVel[i];
-   for (uint i=0; i<N_blocks*SIZE_BLOCKPARAMS; ++i) cpu_blockParams[i] = s.cpu_blockParams[i];
-   for (uint i=0; i<N_blocks*SIZE_VELBLOCK; ++i)    cpu_avgs[i] = s.cpu_avgs[i];
-   for (uint i=0; i<N_blocks*SIZE_FLUXS; ++i)       cpu_fx[i] = s.cpu_fx[i];
-   for (uint i=0; i<N_blocks*SIZE_FLUXS; ++i)       cpu_fy[i] = s.cpu_fy[i];
-   for (uint i=0; i<N_blocks*SIZE_FLUXS; ++i)       cpu_fz[i] = s.cpu_fz[i];
-   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d1x[i] = s.cpu_d1x[i];
-   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d1y[i] = s.cpu_d1y[i];
-   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d1z[i] = s.cpu_d1z[i];
-   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d2x[i] = s.cpu_d2x[i];
-   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d2y[i] = s.cpu_d2y[i];
-   for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d2z[i] = s.cpu_d2z[i];
-}
-
-void SpatialCell::copyVariables(const SpatialCell& s) {
-   N_blocks = s.N_blocks;
-   pageLocked = s.pageLocked;
-   
-   cpuIndex = s.cpuIndex;
-   gpuIndex = s.gpuIndex;
-   
-   cellType = s.cellType;
-   cellIndex = s.cellIndex;
-   velBlockIndex = s.velBlockIndex;
-   i_ind = s.i_ind;
-   j_ind = s.j_ind;
-   k_ind = s.k_ind;
-   
-   // For now, just copy GPU memory pointers:
-   gpu_cellParams = s.gpu_cellParams;
-   gpu_nbrsVel = s.gpu_nbrsVel;
-   gpu_avgs = s.gpu_avgs;
-   gpu_blockParams = s.gpu_blockParams;
-   gpu_fx = s.gpu_fx;
-   gpu_fy = s.gpu_fy;
-   gpu_fz = s.gpu_fz;
-   gpu_d1x = s.gpu_d1x;
-   gpu_d1y = s.gpu_d1y;
-   gpu_d1z = s.gpu_d1z;
-}
-
-void SpatialCell::swapMemoryType() {
-   // Not implemented yet
-}
-*/
-
-
 

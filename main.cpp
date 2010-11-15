@@ -13,32 +13,10 @@
 #include "logger.h"
 #include "parameters.h"
 #include "grid.h"
-#include "writevars.h"
 #include "silowriter.h"
-
-#ifndef NOCUDA
-  #include "devicegrid.h"
-  #include "cudafuncs.h"
-#endif
-
-using namespace std;
-
-#ifndef NOCUDA
-  extern void buildBaseGrid(Grid& grid,DeviceGrid& deviceGrid);
-  extern bool acceleration(Grid& grid,DeviceGrid& deviceGrid,creal& DT);
-  extern bool translation_step1(Grid& grid,DeviceGrid& deviceGrid,creal& DT);
-  extern bool translation_step2(Grid& grid,DeviceGrid& deviceGrid,creal& DT);
-  extern bool translation_step3(Grid& grid,DeviceGrid& deviceGrid,creal& DT);
-#else
-  extern void buildBaseGrid(Grid& grid);
-#endif
+#include "cell_spatial.h"
 
 extern void buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,creal& zmin,creal& dx,creal& dy,creal& dz);
-extern bool cpu_acceleration(cuint& cellIndex,SpatialCell& cell,Grid& grid,creal& DT);
-extern bool cpu_translation1(cuint& cellIndex,SpatialCell& cell,Grid& grid,creal& DT);
-extern bool cpu_translation2(cuint& cellIndex,SpatialCell& cell,Grid& grid,creal& DT);
-extern bool cpu_translation3(cuint& cellIndex,SpatialCell& cell,Grid& grid,creal& DT);
-
 extern bool cpu_acceleration(SpatialCell& cell);
 extern bool cpu_translation1(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
 extern bool cpu_translation2(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
@@ -46,6 +24,8 @@ extern bool cpu_translation3(SpatialCell& cell,const std::vector<const SpatialCe
 
 Logger logger;
 Grid grid;
+
+using namespace std;
 
 void initSpatialCells(dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm) {
    typedef Parameters P;
