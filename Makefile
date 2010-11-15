@@ -95,7 +95,7 @@ grid.o: $(DEPS_GRID)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c grid.cpp ${INC} ${INC_BOOST}
 
 gridbuilder.o: $(DEPS_GRIDBUILDER)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c gridbuilder.cpp ${INC} ${INC_BOOST}
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c gridbuilder.cpp ${INC} ${INC_BOOST} ${INC_MPI}
 
 logger.o: $(DEPS_LOGGER)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c logger.cpp
