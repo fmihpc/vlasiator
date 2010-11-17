@@ -259,7 +259,8 @@ int main(int argn,char* args[]) {
 
    // Main simulation loop:
    logger << "(MAIN): Starting main simulation loop." << std::endl;
-   logger << "\t (TIME) reports value " << std::time(NULL) << std::endl;
+   time_t before = std::time(NULL);
+   logger << "\t (TIME) reports value " << before << std::endl;
    for (uint tstep=0; tstep < P::tsteps; ++tstep) {
       /*
       #ifndef NOCUDA
@@ -365,7 +366,9 @@ int main(int argn,char* args[]) {
       comm.barrier();
    }
    logger << "(MAIN): All timesteps calculated." << std::endl;
-   logger << "\t (TIME) reports value " << std::time(NULL) << std::endl;
+   time_t after = std::time(NULL);
+   logger << "\t (TIME) reports value " << after << std::endl;
+   logger << "\t (TIME) total run time " << after - before << " s" << std::endl;
 
    // Write final state:
    writeSpatialCells(comm,mpiGrid);
