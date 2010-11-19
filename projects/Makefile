@@ -1,5 +1,3 @@
-include ../Makefile.inc
-
 clean:
 	rm -rf *.o *~
 

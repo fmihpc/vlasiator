@@ -176,6 +176,8 @@ bool findNeighbours(std::vector<const SpatialCell*>& nbrPtr,dccrg<SpatialCell>& 
 }
 
 int main(int argn,char* args[]) {
+   bool success = true;
+   
    typedef Parameters P;
    boost::mpi::environment env(argn,args);
    boost::mpi::communicator comm;
@@ -188,20 +190,6 @@ int main(int argn,char* args[]) {
    logger << "(MAIN): Starting up." << std::endl;
    Parameters parameters;
 
-   // Allocate memory for grids 
-   #ifndef NOCUDA
-   DeviceGrid deviceGrid;
-   #endif
-
-   // Check that requested memory was allocated:
-   bool success = true;
-   #ifndef NOCUDA
-   if (deviceGrid.isInitialized() == false) {
-      logger << "\t ERROR: DeviceGrid initialization failed." << std::endl;
-      success = false;
-   }
-   #endif
-      
    // Create parallel MPI grid and init Zoltan:
    float zoltanVersion;
    if (Zoltan_Initialize(argn,args,&zoltanVersion) != ZOLTAN_OK) {
@@ -210,7 +198,7 @@ int main(int argn,char* args[]) {
    } else {
       logger << "\t Zoltan initialized successfully" << std::endl;
    }
-   dccrg<SpatialCell> mpiGrid(comm,"RCB",P::xmin,P::ymin,P::zmin,P::dx_ini,P::xcells_ini,P::ycells_ini,P::zcells_ini,1,0);
+   dccrg<SpatialCell> mpiGrid(comm,"RCB",P::xmin,P::ymin,P::zmin,P::dx_ini,P::dy_ini,P::dz_ini,P::xcells_ini,P::ycells_ini,P::zcells_ini,1,0);
    
    // If initialization was not successful, abort.
    if (success == false) {
@@ -237,44 +225,11 @@ int main(int argn,char* args[]) {
    writeVelocityBlocks(comm,mpiGrid);
    comm.barrier();
 
-   /*
-   // Create initial state to CPU memory:
-   #ifndef NOCUDA
-   buildBaseGrid(grid,deviceGrid);
-   #else
-   buildBaseGrid(grid);
-   #endif
-   
-   #ifndef NOCUDA
-     // Copy volume averages, spatial cell parameters, velocity grid block parameters, 
-     // and neighbour lists to device:
-     for (uint i=0; i<grid.size(); ++i) {
-	if (grid[i]->devSync(Cell::Blocks,Cell::CpuToDev) == false) cerr << "Error while copying blockArray" << endl;
-	if (grid[i]->devSync(Cell::BlockParams,Cell::CpuToDev) == false) cerr << "Error while copying blockParams" << endl;
-	if (grid[i]->devSync(Cell::CellParams,Cell::CpuToDev) == false) cerr << "Error while copying cellParams" << endl;
-	if (grid[i]->devSync(Cell::NbrsVel,Cell::CpuToDev) == false) cerr << "Error while copying nbrsVel" << endl;
-     }
-   #endif
-    */
-
    // Main simulation loop:
    logger << "(MAIN): Starting main simulation loop." << std::endl;
    time_t before = std::time(NULL);
    logger << "\t (TIME) reports value " << before << std::endl;
    for (uint tstep=0; tstep < P::tsteps; ++tstep) {
-      /*
-      #ifndef NOCUDA
-        acceleration(grid,deviceGrid,0.025);
-        translation_step1(grid,deviceGrid,0.025);
-        translation_step2(grid,deviceGrid,0.025);
-        translation_step3(grid,deviceGrid,0.025);
-      #else
-        for (uint i=0; i<grid.size(); ++i) cpu_acceleration(i,*(grid[i]),grid,0.025);
-        for (uint i=0; i<grid.size(); ++i) cpu_translation1(i,*(grid[i]),grid,0.025);
-        for (uint i=0; i<grid.size(); ++i) cpu_translation2(i,*(grid[i]),grid,0.025);
-        for (uint i=0; i<grid.size(); ++i) cpu_translation3(i,*(grid[i]),grid,0.025);
-      #endif
-      */
       std::vector<uint64_t> cells;
       std::vector<const SpatialCell*> nbrPtrs(6,NULL);
       SpatialCell* cellPtr;
@@ -353,13 +308,6 @@ int main(int argn,char* args[]) {
       // Check if variables and derived quantities should be written to disk
       if (P::tstep % P::diagnInterval == 0) {
 	 logger << "(MAIN): Saving variables to disk at tstep = " << tstep << std::endl;
-
-	 #ifndef NOCUDA
-	   // Load data from device before plotting:
-	   for (uint cell=0; cell<grid.size(); ++cell) {
-	      grid[cell]->devSync(Cell::Blocks,Cell::DevToCpu);
-	   }
-	 #endif
 	 writeSpatialCells(comm,mpiGrid);
 	 writeVelocityBlocks(comm,mpiGrid);
       }

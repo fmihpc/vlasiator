@@ -3,8 +3,7 @@
 
 #include "definitions.h"
 
-cuint MAX_SPA_CELLS = 240;
-cuint MAX_VEL_BLOCKS = 30000;
+cuint MAX_VEL_BLOCKS = 2001001;
 
 namespace Transmit {
    cuint CELL_PARAMS  = 1;

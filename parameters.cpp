@@ -54,9 +54,9 @@ Parameters::Parameters() {
    vzmin = -1.0;
    vzmax = +1.0;
    
-   xcells_ini = 34;
-   ycells_ini = 7;
-   zcells_ini = 1;
+   xcells_ini = 20;
+   ycells_ini = 10;
+   zcells_ini = 10;
    vxblocks_ini = 10;
    vyblocks_ini = 10;
    vzblocks_ini = 10;

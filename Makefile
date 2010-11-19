@@ -1,4 +1,15 @@
-include Makefile.inc
+include Makefile.arto
+
+# Compile directory:
+INSTALL=${HOME}/codes/cuda/cudafvm
+# Which project is compiled:
+PROJ=harm1D
+
+# Collect libraries into single variable:
+LIBS = ${LIB_BOOST}
+LIBS += ${LIB_SILO}
+LIBS += ${LIB_ZOLTAN}
+LIBS += ${LIB_MPI}
 
 # Define dependencies of each object file
 DEPS_COMMON = common.h definitions.h logger.h
@@ -107,7 +118,7 @@ project.o: $(DEPS_PROJECT)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c project.cpp
 
 projinstall:
-	make project -C projects
+	make project -C projects "INSTALL=${INSTALL}" "PROJ=${PROJ}"
 
 silowriter.o: $(DEPS_SILOWRITER)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c silowriter.cpp ${INC_SILO} ${INC} ${INC_BOOST} ${INC_MPI}
@@ -117,9 +128,14 @@ writevars.o: ${DEPS_WRITEVARS}
 
 # Make a tar file containing the source code
 dist:
-	tar -cf cudaFVM.tar $(HDRS) $(SRC) Doxyfile Makefile Makefile.inc projects
-	gzip cudaFVM.tar
+	mkdir cudaFVM
+	cp ${HDRS} ${SRC} INSTALL cudaFVM/
+	cp Doxyfile Makefile Makefile.gnu Makefile.intel Makefile.pgi cudaFVM/
+	cp -R projects cudaFVM/
+	tar -cf cudaFVM.tar cudaFVM
+	gzip -9 cudaFVM.tar
+	rm -rf cudaFVM
 
 # Make executable
 main: projinstall $(OBJS)
-	$(LINK) -o main $(OBJS) $(LIB)
+	$(LNK) ${LDFLAGS} -o main $(OBJS) $(LIBS)
