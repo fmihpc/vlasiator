@@ -78,7 +78,7 @@ bool buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
    uint* const nbrsVel = cell.cpu_nbrsVel;
    
    for (uint kv=0; kv<P::vzblocks_ini; ++kv) for (uint jv=0; jv<P::vyblocks_ini; ++jv) for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
-      cuint velIndex = kv*P::vyblocks_ini*P::vxblocks_ini+jv*P::vxblocks_ini+iv;
+      cuint velIndex = velblock(iv, jv, kv);
       
       creal vx_block = P::vxmin + iv*dvx_block; // vx-coordinate of the lower left corner
       creal vy_block = P::vymin + jv*dvy_block; // vy-
