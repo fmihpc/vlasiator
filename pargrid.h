@@ -632,6 +632,7 @@ template<class C> std::string ParGrid<C>::loadBalanceMethod(const LBM& method) c
       return "GRAPH";
       break;
    }
+   return std::string("");
 }
 
 template<class C> C* ParGrid<C>::operator[](const ID::type& id) const {
