@@ -40,7 +40,8 @@ uint cellIndex(cuint& i,cuint& j,cuint& k) {
  * occurred and the simulation should be aborted.
  */
 bool buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
-		      creal& zmin,creal& dx,creal& dy,creal& dz) {
+		      creal& zmin,creal& dx,creal& dy,creal& dz,
+		     const bool& isRemote) {
    typedef Parameters P;
    
    cuint VELBLOCKS = P::vxblocks_ini*P::vyblocks_ini*P::vzblocks_ini;
@@ -91,7 +92,8 @@ bool buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
       blockParams[velIndex*SIZE_BLOCKPARAMS + BlockParams::DVX  ] = dvx_blockCell;
       blockParams[velIndex*SIZE_BLOCKPARAMS + BlockParams::DVY  ] = dvy_blockCell;
       blockParams[velIndex*SIZE_BLOCKPARAMS + BlockParams::DVZ  ] = dvz_blockCell;
-      
+
+      if (isRemote == true) continue;
       // Calculate volume average of distrib. function for each cell in the block.
       // NOTE: THIS NEEDS TO BE IMPROVED
       for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {

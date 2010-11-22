@@ -21,14 +21,19 @@ namespace Cell {
 };
 
 struct SpatialCell {
+   #ifndef PARGRID
    friend class boost::serialization::access;
-   
    template<typename Archive> void save(Archive& ar,cuint& version) const;   
    template<typename Archive> void load(Archive& ar,cuint& version);
    BOOST_SERIALIZATION_SPLIT_MEMBER()
-   
-   uint cpuIndex;
-   uint N_blocks;
+   #else
+   void* baseAddress;
+   void allocate();
+   void* getBaseAddress(cuint& identifier);
+   static void getMPIdatatype(cuint& identifier,MPI_Datatype& dataType);
+   #endif
+   uint cpuIndex;         /**< An index to Grid which is used to calculate the data array pointers (cpu_avgs etc.).*/
+   uint N_blocks;         /**< Number of velocity blocks in this cell.*/
 
    // Pointers to arrays containing spatial cell parameters in CPU memory
    Real* cpu_cellParams;  /**< Pointer to physical cell parameters in cpu memory.*/
@@ -38,15 +43,15 @@ struct SpatialCell {
    uint* cpu_nbrsVel;     /**< Pointer to velocity neighbour list in CPU memory.*/
    Real* cpu_avgs;        /**< Pointer to velocity block array in CPU memory.*/
    Real* cpu_blockParams; /**< Pointer to velocity block parameter array in CPU memory.*/
-   Real* cpu_fx;
-   Real* cpu_fy;
-   Real* cpu_fz;
-   Real* cpu_d1x;
-   Real* cpu_d2x;
-   Real* cpu_d1y;
-   Real* cpu_d2y;
-   Real* cpu_d1z;
-   Real* cpu_d2z;
+   Real* cpu_fx;          /**< Pointer to x-flux array in CPU memory.*/
+   Real* cpu_fy;          /**< Pointer to y-flux array in CPU memory.*/
+   Real* cpu_fz;          /**< Pointer to z-flux array in CPU memory.*/
+   Real* cpu_d1x;         /**< Pointer to array in CPU memory that contains 1st derivatives to x-direction.*/
+   Real* cpu_d2x;         /**< Pointer to array in CPU memory that contains 2nd derivatives to x-direction.*/
+   Real* cpu_d1y;         /**< Pointer to array in CPU memory that contains 1st derivatives to y-direction.*/
+   Real* cpu_d2y;         /**< Pointer to array in CPU memory that contains 2nd derivatives to y-direction.*/
+   Real* cpu_d1z;         /**< Pointer to array in CPU memory that contains 1st derivatives to z-direction.*/
+   Real* cpu_d2z;         /**< Pointer to array in CPU memory that contains 2nd derivatives to z-direction.*/
    
    SpatialCell();
    SpatialCell(const SpatialCell& s);
@@ -61,10 +66,12 @@ struct SpatialCell {
    bool freeMemory();
    bool clone(const SpatialCell& s);
    void getMemInfo();
+   
  private:
    
 };
 
+#ifndef PARGRID
 template<typename Archive> void SpatialCell::save(Archive& ar,cuint& version) const {
    typedef Parameters P;
    ar << BOOST_SERIALIZATION_NVP(N_blocks);
@@ -144,6 +151,7 @@ template<typename Archive> void SpatialCell::load(Archive& ar,cuint& version) {
       ar >> boost::serialization::make_array(cpu_nbrsVel,N_blocks*SIZE_NBRS_VEL);
    }
 }
+#endif // #ifndef PARGRID
 
 #endif
 

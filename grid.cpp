@@ -23,22 +23,47 @@ Grid::Grid() {
    
    nbrsVel     = new uint[MAX_VEL_BLOCKS*SIZE_NBRS_VEL];
    blockParams = new Real[MAX_VEL_BLOCKS*SIZE_BLOCKPARAMS];
+   /*
    avgs        = new Real[MAX_VEL_BLOCKS*SIZE_VELBLOCK];
    fx          = new Real[MAX_VEL_BLOCKS*SIZE_FLUXS];
    fy          = new Real[MAX_VEL_BLOCKS*SIZE_FLUXS];
    fz          = new Real[MAX_VEL_BLOCKS*SIZE_FLUXS];
-   d1x         = new Real[MAX_VEL_BLOCKS*SIZE_FLUXS];
-   d1y         = new Real[MAX_VEL_BLOCKS*SIZE_FLUXS];
-   d1z         = new Real[MAX_VEL_BLOCKS*SIZE_FLUXS];
-   d2x         = new Real[MAX_VEL_BLOCKS*SIZE_FLUXS];
-   d2y         = new Real[MAX_VEL_BLOCKS*SIZE_FLUXS];
-   d2z         = new Real[MAX_VEL_BLOCKS*SIZE_FLUXS];
+   d1x         = new Real[MAX_VEL_BLOCKS*SIZE_DERIV];
+   d1y         = new Real[MAX_VEL_BLOCKS*SIZE_DERIV];
+   d1z         = new Real[MAX_VEL_BLOCKS*SIZE_DERIV];
+   d2x         = new Real[MAX_VEL_BLOCKS*SIZE_DERIV];
+   d2y         = new Real[MAX_VEL_BLOCKS*SIZE_DERIV];
+   d2z         = new Real[MAX_VEL_BLOCKS*SIZE_DERIV];
+   */
+   cluint SIZE = 
+     MAX_VEL_BLOCKS*SIZE_VELBLOCK
+     + MAX_VEL_BLOCKS*SIZE_FLUXS
+     + MAX_VEL_BLOCKS*SIZE_FLUXS
+     + MAX_VEL_BLOCKS*SIZE_FLUXS
+     + MAX_VEL_BLOCKS*SIZE_DERIV
+     + MAX_VEL_BLOCKS*SIZE_DERIV
+     + MAX_VEL_BLOCKS*SIZE_DERIV
+     + MAX_VEL_BLOCKS*SIZE_DERIV
+     + MAX_VEL_BLOCKS*SIZE_DERIV
+     + MAX_VEL_BLOCKS*SIZE_DERIV;
+   
+   avgs = new Real[SIZE];
+   fx = avgs + MAX_VEL_BLOCKS*SIZE_VELBLOCK;
+   fy = fx + MAX_VEL_BLOCKS*SIZE_FLUXS;
+   fz = fy + MAX_VEL_BLOCKS*SIZE_FLUXS;
+   d1x = fz + MAX_VEL_BLOCKS*SIZE_FLUXS;
+   d1y = d1x + MAX_VEL_BLOCKS*SIZE_DERIV;
+   d1z = d1y + MAX_VEL_BLOCKS*SIZE_DERIV;
+   d2x = d1z + MAX_VEL_BLOCKS*SIZE_DERIV;
+   d2y = d2x + MAX_VEL_BLOCKS*SIZE_DERIV;
+   d2z = d2y + MAX_VEL_BLOCKS*SIZE_DERIV;
 }
 
 Grid::~Grid() {
    delete nbrsVel;
    delete blockParams;
    delete avgs;
+   /*
    delete fx;
    delete fy;
    delete fz;
@@ -48,6 +73,7 @@ Grid::~Grid() {
    delete d2x;
    delete d2y;
    delete d2z;
+    */
    // Check that SpatialCells have no remaining references to the memory:
    map<uint,int>::iterator it = referenceCount.begin();
    while (it != referenceCount.end()) {

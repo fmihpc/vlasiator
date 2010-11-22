@@ -5,9 +5,13 @@
 #include <sstream>
 #include <ctime>
 
-#include <dccrg.hpp>
-#include <boost/mpi.hpp>
-#include <zoltan.h>
+#ifndef PARGRID
+   #include <dccrg.hpp>
+   #include <boost/mpi.hpp>
+   #include <zoltan.h>
+#else
+   #include "pargrid.h"
+#endif
 
 #include "definitions.h"
 #include "logger.h"
@@ -16,7 +20,7 @@
 #include "silowriter.h"
 #include "cell_spatial.h"
 
-extern void buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,creal& zmin,creal& dx,creal& dy,creal& dz);
+extern void buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,creal& zmin,creal& dx,creal& dy,creal& dz,const bool& isRemote);
 extern bool cpu_acceleration(SpatialCell& cell);
 extern bool cpu_translation1(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
 extern bool cpu_translation2(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
@@ -27,11 +31,21 @@ Grid grid;
 
 using namespace std;
 
+#ifndef PARGRID
 void initSpatialCells(dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm) {
+#else
+void initSpatialCells(const ParGrid<SpatialCell>& mpiGrid) {
+#endif
    typedef Parameters P;
    
    // This can be replaced by an iterator.
+   #ifndef PARGRID
    std::vector<uint64_t> cells = mpiGrid.get_cells();
+   #else
+   std::vector<ID::type> cells;
+   mpiGrid.getCells(cells);
+   #endif
+   
    // Go through every cell on this node and initialize the pointers to 
    // cpu memory, physical parameters and volume averages for each phase space 
    // point in the velocity grid. Velocity block neighbour list is also 
@@ -47,22 +61,56 @@ void initSpatialCells(dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm
       xmin -= 0.5*dx;
       ymin -= 0.5*dy;
       zmin -= 0.5*dz;
-
-      //mpiGrid[cells[i]]->cpuIndex = cells[i];
+      
       if (mpiGrid[cells[i]]->allocateMemory(P::vxblocks_ini*P::vyblocks_ini*P::vzblocks_ini) == false) {
 	 logger << "Cell " << cells[i] << " failed to allocate memory, exiting" << endl;
 	 exit(1);
       }
-      buildSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz);
+      buildSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
    }
+   
+   #ifdef PARGRID
+     mpiGrid.getRemoteCells(cells);
+     for (uint i=0; i<cells.size(); ++i) {
+	dx = mpiGrid.get_cell_x_size(cells[i]);
+	dy = mpiGrid.get_cell_y_size(cells[i]);
+	dz = mpiGrid.get_cell_z_size(cells[i]);
+	xmin = mpiGrid.get_cell_x(cells[i]);
+	ymin = mpiGrid.get_cell_y(cells[i]);
+	zmin = mpiGrid.get_cell_z(cells[i]);
+	xmin -= 0.5*dx;
+	ymin -= 0.5*dy;
+	zmin -= 0.5*dz;
+	
+	if (mpiGrid[cells[i]]->allocateMemory(P::vxblocks_ini*P::vyblocks_ini*P::vzblocks_ini) == false) {
+	   logger << "Cell " << cells[i] << " failed to allocate memory, exiting" << endl;
+	   logger << "\t Process " << mpiGrid.rank() << " has " << cells.size() << " remote cells" << std::endl;
+	   exit(1);
+	}
+	buildSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,true);
+     }
+   #endif
 }
 
+#ifndef PARGRID
 void writeSpatialCells(const boost::mpi::communicator& comm,dccrg<SpatialCell>& mpiGrid) {
+#else
+void writeSpatialCells(const ParGrid<SpatialCell>& mpiGrid) {
+#endif
    // This can be replaced by an iterator.
+   #ifndef PARGRID
    std::vector<uint64_t> cells = mpiGrid.get_cells();
+   #else
+   std::vector<ID::type> cells;
+   mpiGrid.getCells(cells);
+   #endif
 
    std::stringstream fname;
+   #ifndef PARGRID
    fname << "cells." << comm.rank() << '.';
+   #else
+   fname << "cells." << mpiGrid.rank() << '.';
+   #endif
    fname.width(5);
    fname.fill('0');
    fname << Parameters::tstep << ".silo";
@@ -84,12 +132,86 @@ void writeSpatialCells(const boost::mpi::communicator& comm,dccrg<SpatialCell>& 
    freeCells();
 }
 
+#ifndef PARGRID
+   
+#else
+void writeRemoteCells(const ParGrid<SpatialCell>& mpiGrid) {
+   #ifndef PARGRID
+   
+   #else
+      std::vector<ID::type> cells;
+      mpiGrid.getRemoteCells(cells);
+   #endif
+   if (cells.size() == 0) return;
+   std::stringstream fname;
+   #ifndef PARGRID
+   
+   #else
+      fname << "remcells." << mpiGrid.rank() << '.';
+   #endif
+   fname.width(5);
+   fname.fill('0');
+   fname << Parameters::tstep << ".silo";
+   
+   openOutputFile(fname.str(),"remote_cells");
+   reserveSpatialCells(cells.size());
+   for (uint i=0; i<cells.size(); ++i) {
+      Real* const avgs = mpiGrid[cells[i]]->cpu_avgs;
+      if (avgs == NULL) {
+	 std::cerr << "(MAIN) ERROR expected a pointer, got NULL" << std::endl;
+	 continue;
+      }
+      Real n = 0.0;
+      for (uint b=0; b<SIZE_VELBLOCK*mpiGrid[cells[i]]->N_blocks; ++b) n += avgs[b];
+      addSpatialCell(mpiGrid[cells[i]]->cpu_cellParams,n);
+   }
+   writeSpatialCells("remotecells","n");
+   closeOutputFile();
+   freeCells();
+   /*
+   cuint BIND = 8;
+   
+   if (mpiGrid.rank() == 0) {
+      vector<pair<ID::type,int> > receives;
+      mpiGrid.getReceiveList(receives);
+      for (uint i=0; i<receives.size(); ++i) {
+	 logger << receives[i].first << ' ' << receives[i].second << endl;
+	 SpatialCell* SC = mpiGrid[receives[i].first];
+	 if (SC == NULL) cerr << "PROC 0 ERROR" << endl;
+	 for (int iv=0; iv<WID3; ++iv) logger << '\t' << SC->cpu_d1y[BIND*SIZE_DERIV+iv] << endl;
+      }
+   } else {
+      vector<pair<ID::type,int> > sends;
+      mpiGrid.getSendList(sends);
+      for (uint i=0; i<sends.size(); ++i) {
+	 logger << sends[i].first << ' ' << sends[i].second << endl;
+	 SpatialCell* SC = mpiGrid[sends[i].first];
+	 if (SC == NULL) cerr << "PROC 1 ERROR" << endl;
+	 for (int iv=0; iv<WID3; ++iv) logger << '\t' << SC->cpu_d1y[BIND*SIZE_DERIV+iv] << endl;
+      }
+   }*/
+}
+#endif
+   
+#ifndef PARGRID
 void writeVelocityBlocks(const boost::mpi::communicator& comm,dccrg<SpatialCell>& mpiGrid) {
+#else
+void writeVelocityBlocks(const ParGrid<SpatialCell>& mpiGrid) {
+#endif
    // This can be replaced by an iterator.
+   #ifndef PARGRID
    std::vector<uint64_t> cells = mpiGrid.get_cells();
+   #else
+   std::vector<ID::type> cells;
+   mpiGrid.getCells(cells);
+   #endif
    
    std::stringstream fname;
+   #ifndef PARGRID
    fname << "blocks." << comm.rank() << '.';
+   #else
+   fname << "blocks." << mpiGrid.rank() << '.';
+   #endif
    fname.width(5);
    fname.fill('0');
    fname << Parameters::tstep << ".silo";
@@ -147,6 +269,7 @@ void writeVelocityBlocks(const boost::mpi::communicator& comm,dccrg<SpatialCell>
    closeOutputFile();
 }
 
+#ifndef PARGRID
 bool findNeighbours(std::vector<const SpatialCell*>& nbrPtr,dccrg<SpatialCell>& mpiGrid,const uint64_t& cell) {
    std::vector<uint64_t> nbrs;
    // Get a pointer to each neighbour. If the neighbour does not exists, insert a NULL ptr.
@@ -174,11 +297,36 @@ bool findNeighbours(std::vector<const SpatialCell*>& nbrPtr,dccrg<SpatialCell>& 
    //nbrPtr[5] = mpiGrid[cell];
    return true;
 }
-
+#else
+bool findNeighbours(std::vector<const SpatialCell*>& nbrPtr,const ParGrid<SpatialCell>& mpiGrid,const ID::type& CELLID) {
+   std::vector<ID::type> nbrs;
+   mpiGrid.getNeighbours(nbrs,CELLID);
+   if (nbrs.size() != 6) {
+      logger << "findNeighbours ERROR: Failed to get neighbour indices!" << std::endl;
+      return false;
+   }
+   // Get a pointer to each neighbour. If the neighbour does not exists, insert a NULL ptr.
+   if (nbrs[0] != std::numeric_limits<ID::type>::max()) nbrPtr[0] = mpiGrid[nbrs[0]];
+   else nbrPtr[0] = NULL;
+   if (nbrs[1] != std::numeric_limits<ID::type>::max()) nbrPtr[1] = mpiGrid[nbrs[1]];
+   else nbrPtr[1] = NULL;
+   if (nbrs[2] != std::numeric_limits<ID::type>::max()) nbrPtr[2] = mpiGrid[nbrs[2]];
+   else nbrPtr[2] = NULL;
+   if (nbrs[3] != std::numeric_limits<ID::type>::max()) nbrPtr[3] = mpiGrid[nbrs[3]];
+   else nbrPtr[3] = NULL;
+   if (nbrs[4] != std::numeric_limits<ID::type>::max()) nbrPtr[4] = mpiGrid[nbrs[4]];
+   else nbrPtr[4] = NULL;
+   if (nbrs[5] != std::numeric_limits<ID::type>::max()) nbrPtr[5] = mpiGrid[nbrs[5]];
+   else nbrPtr[5] = NULL;
+   return true;
+}
+#endif
+   
 int main(int argn,char* args[]) {
    bool success = true;
    
    typedef Parameters P;
+   /*
    boost::mpi::environment env(argn,args);
    boost::mpi::communicator comm;
      {
@@ -188,8 +336,19 @@ int main(int argn,char* args[]) {
      }
    
    logger << "(MAIN): Starting up." << std::endl;
+    */
    Parameters parameters;
 
+   #ifndef PARGRID // INITIALIZE USING DCCRG
+   boost::mpi::environment env(argn,args);
+   boost::mpi::communicator comm;
+     {
+	std::stringstream ss;
+	ss << "logfile." << comm.rank() << ".txt";
+	logger.setOutputFile(ss.str());
+     }
+   logger << "(MAIN): Starting up." << std::endl;
+   
    // Create parallel MPI grid and init Zoltan:
    float zoltanVersion;
    if (Zoltan_Initialize(argn,args,&zoltanVersion) != ZOLTAN_OK) {
@@ -200,42 +359,84 @@ int main(int argn,char* args[]) {
    }
    dccrg<SpatialCell> mpiGrid(comm,"RCB",P::xmin,P::ymin,P::zmin,P::dx_ini,P::dy_ini,P::dz_ini,P::xcells_ini,P::ycells_ini,P::zcells_ini,1,0);
    
+   #else           // INITIALIZE USING PARGRID
+   ParGrid<SpatialCell> mpiGrid(P::xcells_ini,P::ycells_ini,P::zcells_ini,P::xmin,P::ymin,P::zmin,
+				P::xmax,P::ymax,P::zmax,Graph,argn,args);
+     {
+	std::stringstream ss;
+	ss << "logfile." << mpiGrid.rank() << ".txt";
+	logger.setOutputFile(ss.str());
+     }
+   logger << "(MAIN): Starting up." << std::endl;
+   #endif
+   
    // If initialization was not successful, abort.
    if (success == false) {
       std::cerr << "An error has occurred, aborting. See logfile for details." << std::endl;
       logger << "Aborting" << std::endl;
       return 1;
    }
-
    // Do initial load balancing:
-   mpiGrid.balance_load();
-   comm.barrier();
-
+   #ifndef PARGRID
+      mpiGrid.balance_load();
+      comm.barrier();
+   #else
+      // ParGrid does initial load balancing automatically
+   #endif
+   
    // Go through every spatial cell on this CPU, and create the initial state:
-   initSpatialCells(mpiGrid,comm);
-   comm.barrier();
+   #ifndef PARGRID
+      initSpatialCells(mpiGrid,comm);
+      comm.barrier();
+   #else
+      initSpatialCells(mpiGrid);
+      mpiGrid.barrier();
+   #endif
 
    // Fetch neighbour data:
-   mpiGrid.start_remote_neighbour_data_update(); // TEST
-   mpiGrid.wait_neighbour_data_update();
-   comm.barrier();
+   #ifndef PARGRID
+      P::transmit = Transmit::AVGS;
+      mpiGrid.start_remote_neighbour_data_update(); // TEST
+      mpiGrid.wait_neighbour_data_update();
+      comm.barrier();
+   #else
+      P::transmit = Transmit::AVGS;
+      mpiGrid.startNeighbourExchange(1);
+      mpiGrid.waitAll();
+      mpiGrid.barrier();
+   #endif
    
    // Write initial state:
-   writeSpatialCells(comm,mpiGrid);
-   writeVelocityBlocks(comm,mpiGrid);
-   comm.barrier();
+   #ifndef PARGRID
+      writeSpatialCells(comm,mpiGrid);
+      writeVelocityBlocks(comm,mpiGrid);
+      comm.barrier();
+   #else
+      writeSpatialCells(mpiGrid);
+      writeRemoteCells(mpiGrid);
+      writeVelocityBlocks(mpiGrid);
+      mpiGrid.barrier();
+   #endif
 
    // Main simulation loop:
    logger << "(MAIN): Starting main simulation loop." << std::endl;
    time_t before = std::time(NULL);
    logger << "\t (TIME) reports value " << before << std::endl;
    for (uint tstep=0; tstep < P::tsteps; ++tstep) {
-      std::vector<uint64_t> cells;
+      #ifndef PARGRID
+         std::vector<uint64_t> cells;
+      #else
+         std::vector<ID::type> cells;
+      #endif
       std::vector<const SpatialCell*> nbrPtrs(6,NULL);
       SpatialCell* cellPtr;
       
       // Calculate acceleration for each cell on this process:
-      cells = mpiGrid.get_cells();
+      #ifndef PARGRID
+         cells = mpiGrid.get_cells();
+      #else
+         mpiGrid.getCells(cells);
+      #endif
       for (size_t c=0; c<cells.size(); ++c) {
 	 cellPtr = mpiGrid[cells[c]];
 	 if (cellPtr != NULL) cpu_acceleration(*cellPtr);
@@ -243,16 +444,25 @@ int main(int argn,char* args[]) {
 
       // Calculate derivatives in spatial coordinates:
       P::transmit = Transmit::AVGS;
-      mpiGrid.start_remote_neighbour_data_update();
-      cells = mpiGrid.get_cells_with_local_neighbours();
+      #ifndef PARGRID
+         mpiGrid.start_remote_neighbour_data_update();
+         cells = mpiGrid.get_cells_with_local_neighbours();
+      #else
+         mpiGrid.startNeighbourExchange(0);
+         mpiGrid.getInnerCells(cells);
+      #endif
       for (size_t c=0; c<cells.size(); ++c) {
 	 cellPtr = mpiGrid[cells[c]];
-	 if (findNeighbours(nbrPtrs,mpiGrid,cells[c]) == false) 
-	   {std::cerr << "Failed to find neighbours." << std::endl; continue;}
+	 if (findNeighbours(nbrPtrs,mpiGrid,cells[c]) == false) {std::cerr << "Failed to find neighbours." << std::endl; continue;}
 	 if (cellPtr != NULL) cpu_translation1(*cellPtr,nbrPtrs);
       }
-      mpiGrid.wait_neighbour_data_update();
-      cells = mpiGrid.get_cells_with_remote_neighbour();
+      #ifndef PARGRID
+         mpiGrid.wait_neighbour_data_update();
+         cells = mpiGrid.get_cells_with_remote_neighbour();
+      #else
+         mpiGrid.waitAll();
+         mpiGrid.getBoundaryCells(cells);
+      #endif
       for (size_t c=0; c<cells.size(); ++c) {
 	 cellPtr = mpiGrid[cells[c]];
 	 if (findNeighbours(nbrPtrs,mpiGrid,cells[c]) == false) 
@@ -262,16 +472,26 @@ int main(int argn,char* args[]) {
       
       // Calculate fluxes in spatial coordinates:
       P::transmit = Transmit::AVGS | Transmit::DERIV1 | Transmit::DERIV2;
-      mpiGrid.start_remote_neighbour_data_update();
-      cells = mpiGrid.get_cells_with_local_neighbours();
+      #ifndef PARGRID
+         mpiGrid.start_remote_neighbour_data_update();
+         cells = mpiGrid.get_cells_with_local_neighbours();
+      #else
+         mpiGrid.startNeighbourExchange(1);
+         mpiGrid.getInnerCells(cells);
+      #endif
       for (size_t c=0; c<cells.size(); ++c) {
 	 cellPtr = mpiGrid[cells[c]];
 	 if (findNeighbours(nbrPtrs,mpiGrid,cells[c]) == false)
 	   {std::cerr << "Failed to find neighbours." << std::endl; continue;}
 	 if (cellPtr != NULL) cpu_translation2(*cellPtr,nbrPtrs);
       }
-      mpiGrid.wait_neighbour_data_update();
-      cells = mpiGrid.get_cells_with_remote_neighbour();
+      #ifndef PARGRID
+         mpiGrid.wait_neighbour_data_update();
+         cells = mpiGrid.get_cells_with_remote_neighbour();
+      #else
+         mpiGrid.waitAll();
+         mpiGrid.getBoundaryCells(cells);
+      #endif
       for (size_t c=0; c<cells.size(); ++c) {
 	 cellPtr = mpiGrid[cells[c]];
 	 if (findNeighbours(nbrPtrs,mpiGrid,cells[c]) == false)
@@ -281,16 +501,26 @@ int main(int argn,char* args[]) {
 
       // Calculate propagation in spatial coordinates:
       P::transmit = Transmit::FLUXES;
-      mpiGrid.start_remote_neighbour_data_update();
-      cells = mpiGrid.get_cells_with_local_neighbours();
+      #ifndef PARGRID
+         mpiGrid.start_remote_neighbour_data_update();
+         cells = mpiGrid.get_cells_with_local_neighbours();
+      #else
+         mpiGrid.startNeighbourExchange(2);
+         mpiGrid.getInnerCells(cells);
+      #endif
       for (size_t c=0; c<cells.size(); ++c) {
 	 cellPtr = mpiGrid[cells[c]];
 	 if (findNeighbours(nbrPtrs,mpiGrid,cells[c]) == false)
 	   {std::cerr << "Failed to find neighbours." << std::endl; continue;}
 	 if (cellPtr != NULL) cpu_translation3(*cellPtr,nbrPtrs);
       }
-      mpiGrid.wait_neighbour_data_update();
-      cells = mpiGrid.get_cells_with_remote_neighbour();
+      #ifndef PARGRID
+         mpiGrid.wait_neighbour_data_update();
+         cells = mpiGrid.get_cells_with_remote_neighbour();
+      #else
+         mpiGrid.waitAll();
+         mpiGrid.getBoundaryCells(cells);
+      #endif
       for (size_t c=0; c<cells.size(); ++c) {
 	 cellPtr = mpiGrid[cells[c]];
 	 if (findNeighbours(nbrPtrs,mpiGrid,cells[c]) == false)
@@ -308,10 +538,20 @@ int main(int argn,char* args[]) {
       // Check if variables and derived quantities should be written to disk
       if (P::tstep % P::diagnInterval == 0) {
 	 logger << "(MAIN): Saving variables to disk at tstep = " << tstep << std::endl;
-	 writeSpatialCells(comm,mpiGrid);
-	 writeVelocityBlocks(comm,mpiGrid);
+	 #ifndef PARGRID
+	    writeSpatialCells(comm,mpiGrid);
+	    writeVelocityBlocks(comm,mpiGrid);
+	 #else
+	    writeSpatialCells(mpiGrid);
+	    writeRemoteCells(mpiGrid);
+	    writeVelocityBlocks(mpiGrid);
+	 #endif
       }
-      comm.barrier();
+      #ifndef PARGRID
+         comm.barrier();
+      #else
+         mpiGrid.barrier();
+      #endif
    }
    logger << "(MAIN): All timesteps calculated." << std::endl;
    time_t after = std::time(NULL);
@@ -319,8 +559,14 @@ int main(int argn,char* args[]) {
    logger << "\t (TIME) total run time " << after - before << " s" << std::endl;
 
    // Write final state:
-   writeSpatialCells(comm,mpiGrid);
-   writeVelocityBlocks(comm,mpiGrid);
+   #ifndef PARGRID
+      writeSpatialCells(comm,mpiGrid);
+      writeVelocityBlocks(comm,mpiGrid);
+   #else
+      writeSpatialCells(mpiGrid);
+      writeRemoteCells(mpiGrid);
+      writeVelocityBlocks(mpiGrid);
+   #endif
 
    logger << "(MAIN): Exiting." << std::endl;
    return 0;

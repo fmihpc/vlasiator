@@ -151,3 +151,96 @@ bool SpatialCell::clone(const SpatialCell& s) {
    return  true;
 }
 
+#ifdef PARGRID
+#include <mpi.h>
+void SpatialCell::allocate() {
+   
+}
+
+void* SpatialCell::getBaseAddress(cuint& identifier) {
+   // Hack: make sure that the pointers in SpatialCell are correct:
+   switch (identifier) {
+    case 0:
+      //cpu_avgs = grid.getAvgs() + cpuIndex*SIZE_VELBLOCK;
+      return cpu_avgs;
+      break;
+    case 1:
+      /*
+      cpu_avgs = grid.getAvgs() + cpuIndex*SIZE_VELBLOCK;
+      cpu_d1x  = grid.getD1x()  + cpuIndex*SIZE_DERIV;
+      cpu_d1y  = grid.getD1y()  + cpuIndex*SIZE_DERIV;
+      cpu_d1z  = grid.getD1z()  + cpuIndex*SIZE_DERIV;
+      cpu_d2x  = grid.getD2x()  + cpuIndex*SIZE_DERIV;
+      cpu_d2y  = grid.getD2y()  + cpuIndex*SIZE_DERIV;
+      cpu_d2z  = grid.getD2z()  + cpuIndex*SIZE_DERIV;
+       */
+      return cpu_avgs;
+      break;
+    case 2:
+      /*
+      cpu_fx   = grid.getFx()   + cpuIndex*SIZE_FLUXS;
+      cpu_fy   = grid.getFy()   + cpuIndex*SIZE_FLUXS;
+      cpu_fz   = grid.getFz()   + cpuIndex*SIZE_FLUXS;
+       */
+      return cpu_fx;
+      break;
+   }
+   return cpu_avgs;
+}
+
+void SpatialCell::getMPIdatatype(cuint& identifier,MPI_Datatype& dataType) {
+   // Another hack: this is a spatial member function, so SpatialCell::N_blocks 
+   // cannot be used below:
+   typedef Parameters P;
+   cuint N_BLOCKS = P::vxblocks_ini*P::vyblocks_ini*P::vzblocks_ini;
+   
+   MPI_Datatype dataTypes[7];
+   int blockLengths[7];
+   MPI_Aint displacements[7];
+   
+   switch (identifier) {
+    case 0: // Transfer averages:
+      dataTypes[0] = MPI_FLOAT;
+      blockLengths[0] = N_BLOCKS*SIZE_VELBLOCK;
+      displacements[0] = 0;                   // Base address is cpu_avgs
+      if (MPI_Type_create_struct(1,blockLengths,displacements,dataTypes,&dataType) != MPI_SUCCESS) {
+	 #ifndef NDEBUG
+	 cerr << "SpatialCell::getMPIdatatype ERROR failed to create MPI_Datatype!" << endl;
+	 #endif
+      }
+      break;
+    case 1: // Transfer averages + 1st and 2nd derivatives:
+      for (int i=0; i<7; ++i) dataTypes[i] = MPI_FLOAT;
+      for (int i=0; i<7; ++i) blockLengths[i] = N_BLOCKS*SIZE_VELBLOCK;
+      displacements[0] = 0;                              // Base address is cpu_avgs
+      displacements[1] = 1*MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(Real); // d1x
+      displacements[2] = 2*MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(Real); // d1y
+      displacements[3] = 3*MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(Real); // d1z
+      displacements[4] = 4*MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(Real); // d2x
+      displacements[5] = 5*MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(Real); // d2y
+      displacements[6] = 6*MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(Real); // d2z
+      if (MPI_Type_create_struct(7,blockLengths,displacements,dataTypes,&dataType) != MPI_SUCCESS) {
+	 #ifndef NDEBUG
+	 cerr << "SpatialCell::getMPIdatatype ERROR failed to create MPI_Datatype!" << endl;
+	 #endif
+      }
+      break;
+    case 2: // Transfer fluxes:
+      for (int i=0; i<3; ++i) dataTypes[i] = MPI_FLOAT;
+      for (int i=0; i<3; ++i) blockLengths[i] = N_BLOCKS*SIZE_VELBLOCK;
+      displacements[0] = 0;                   // Base address is cpu_fx
+      displacements[1] = 1*MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(Real);
+      displacements[2] = 2*MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(Real);
+      if (MPI_Type_create_struct(3,blockLengths,displacements,dataTypes,&dataType) != MPI_SUCCESS) {
+	 #ifndef NDEBUG
+	 cerr << "SpatialCell::getMPIdatatype ERROR failed to create MPI_Datatype!" << endl;
+	 #endif
+      }
+      break;
+   }
+}
+
+#endif
+
+
+
