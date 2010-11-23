@@ -405,6 +405,8 @@ int main(int argn,char* args[]) {
       mpiGrid.waitAll();
       mpiGrid.barrier();
    #endif
+   logger << "(MAIN): Total no. reserved velocity blocks in Grid = ";
+   logger << grid.getTotalNumberOfBlocks() << std::endl;
    
    // Write initial state:
    #ifndef PARGRID
@@ -533,6 +535,10 @@ int main(int argn,char* args[]) {
       // Check if the full simulation state should be written to disk
       if (P::tstep % P::saveInterval == 0) {
 	 logger << "(MAIN): Saving full state to disk at tstep = " << tstep << std::endl;
+	 #ifdef PARGRID
+	    logger << "\t # sends to other MPI processes      = " << mpiGrid.getNumberOfSends() << std::endl;
+	    logger << "\t # receives from other MPI processes = " << mpi.getNumberOfReceives() << std::endl;
+	 #endif
       }
 
       // Check if variables and derived quantities should be written to disk

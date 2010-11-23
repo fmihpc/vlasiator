@@ -65,6 +65,8 @@ template<class C> class ParGrid {
    template<class CONT> void getCells(CONT& rlist) const;
    template<class CONT> void getInnerCells(CONT& rlist) const;
    template<class CONT> void getNeighbours(CONT& rlist,const ID::type& globalID) const;
+   uint getNumberOfReceives() const {return receiveList.size();}
+   uint getNumberOfSends() const {return sendList.size();}
    template<class CONT> void getReceiveList(CONT& rlist) const;
    template<class CONT> void getRemoteCells(CONT& rlist) const;
    template<class CONT> void getSendList(CONT& rlist) const;
