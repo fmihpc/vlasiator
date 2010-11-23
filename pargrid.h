@@ -77,7 +77,7 @@ template<class C> class ParGrid {
    bool startNeighbourExchange(const uint& identifier);
    bool waitAll();
 
-   class iterator;
+   /*class iterator;
    friend class iterator;
    class iterator {
     public:
@@ -96,7 +96,7 @@ template<class C> class ParGrid {
    iterator boundaryCellsBegin();
    iterator innerCellsBegin();
    iterator end();
-   
+   */
    // Zoltan callback functions
    static void getCellCoordinates(void* data,int N_globalEntries,int N_localEntries,ZOLTAN_ID_PTR globalID,
 				  ZOLTAN_ID_PTR localID,double* geometryData,int* rcode);
@@ -313,7 +313,6 @@ void ParGrid<C>::buildExchangeLists() {
 	 // Cell has a remote neighbour. Add this cell to sendList, and its remote 
 	 // neighbour to receiveList.
 	 hasRemotes = true;
-	 //sendList[it->first] = hostID;
 	 sendList[std::pair<ID::type,int>(it->first,hostID)] = 1;
 	 receiveList[nbrID] = hostID;
       }
@@ -414,13 +413,6 @@ template<class C> void ParGrid<C>::buildUnrefNeighbourLists() {
       it->second.neighbours[3] = y_pos;
       it->second.neighbours[4] = z_neg;
       it->second.neighbours[5] = z_pos;
-      /*
-      if (myrank == 0) {
-	 std::cout << "Cell #" << it->first << " (" << i << ',' << j << ',' << k <<") has nbrs = ";
-	 for (int i=0; i<6; ++i) if (it->second.neighbours[i] != std::numeric_limits<ID::type>::max())
-	   std::cout << i << ":" << it->second.neighbours[i] << ' ';
-	 std::cout << std::endl;
-      }*/
    }
 }
 
@@ -471,11 +463,6 @@ template<class C> bool ParGrid<C>::startNeighbourExchange(cuint& identifier) {
       if (MPI_Issend(buffer,count,MPIdataType,dest,tag,MPI_COMM_WORLD,&dummyRequest) != MPI_SUCCESS) rvalue=false;
       if (MPI_Request_free(&dummyRequest) != MPI_SUCCESS) rvalue=false;
    }
-   /*
-   if (myrank == 0) {
-      std::cerr << "MPIrequests.size() = " << MPIrequests.size() << " MPIstatuses.size() = " << MPIstatuses.size() << std::endl;
-   }*/
-   //MPI_Barrier(MPI_COMM_WORLD); // This seems to be necessary...
    return rvalue;
 }
 
@@ -744,7 +731,6 @@ template<class C> void ParGrid<C>::syncCellCoordinates() {
       const int source = it->second;                  // Rank of source MPI process
       const int tag = it->first;                      // Message tag
       MPI_Irecv(buffer,count,MPIdataType,source,tag,MPI_COMM_WORLD,&(MPIrequests[counter]));
-      //MPI_Irecv(buffer,count,CellType,source,tag,MPI_COMM_WORLD,&(MPIrequests[counter]));
       ++counter;
    }
    MPI_Barrier(MPI_COMM_WORLD);
@@ -756,7 +742,6 @@ template<class C> void ParGrid<C>::syncCellCoordinates() {
       const int tag = it->first.first;                     // Message tag
       MPI_Request dummyRequest;
       MPI_Issend(buffer,count,MPIdataType,dest,tag,MPI_COMM_WORLD,&dummyRequest);
-      //MPI_Issend(buffer,count,CellType,dest,tag,MPI_COMM_WORLD,&dummyRequest);
       MPI_Request_free(&dummyRequest);
    }
    // Wait until all data has been received and deallocate memory:
@@ -769,10 +754,11 @@ template<class C> bool ParGrid<C>::waitAll() {
    #ifndef NDEBUG
    for (uint i=0; i<MPIstatuses.size(); ++i) if (MPIstatuses[i].MPI_ERROR != MPI_SUCCESS) rvalue=false;
    #endif
-   
-   // Free memory allocated for the transmission:
+   /*
+   // Free memory allocated for the transmission: DONE BY MPI
    for (uint i=0; i<MPIrequests.size(); ++i)
      if (MPI_Request_free(&(MPIrequests[i])) != MPI_SUCCESS) rvalue=false;
+   */
    MPI_Type_free(&MPIdataType);
    MPIrequests.clear();
    MPIstatuses.clear();
@@ -782,7 +768,7 @@ template<class C> bool ParGrid<C>::waitAll() {
 // *************************************************************
 // ************************ ITERATORS ************************** 
 // *************************************************************
-
+/*
 template<class C> typename ParGrid<C>::iterator ParGrid<C>::begin() {
    ParGrid<C>::iterator i;
    i.set(localCells.begin());
@@ -838,7 +824,7 @@ template<class C> void ParGrid<C>::set(typename std::map<ID::type,ParCell<C> >::
    it = i;
    return *this;
 }*/
-
+/*
 template<class C> bool ParGrid<C>::iterator::operator==(const ParGrid<C>::iterator& x) {
    return it == x.it;
 }
@@ -846,7 +832,7 @@ template<class C> bool ParGrid<C>::iterator::operator==(const ParGrid<C>::iterat
 template<class C> bool ParGrid<C>::iterator::operator!=(const ParGrid<C>::iterator& x) {
    return it != x.it;
 }
-
+*/
 // *************************************************************
 // ***************** ZOLTAN CALLBACK FUNCTIONS *****************
 // *************************************************************
@@ -888,7 +874,6 @@ void ParGrid<C>::getLocalCellList(void* parGridPtr,int N_globalIDs,int N_localID
    ParGrid<C>* parGrid = reinterpret_cast<ParGrid<C>*>(parGridPtr);
 
    int i=0;
-   //std::map<ID::type,ParCell<C> >::const_iterator it = parGrid->localCells.begin();
    for (typename std::map<ID::type,ParCell<C> >::const_iterator it = parGrid->localCells.begin(); it!=localCells.end(); ++it) {
       globalIDs[i] = it->first;
       ++i;
