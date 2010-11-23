@@ -537,7 +537,7 @@ int main(int argn,char* args[]) {
 	 logger << "(MAIN): Saving full state to disk at tstep = " << tstep << std::endl;
 	 #ifdef PARGRID
 	    logger << "\t # sends to other MPI processes      = " << mpiGrid.getNumberOfSends() << std::endl;
-	    logger << "\t # receives from other MPI processes = " << mpi.getNumberOfReceives() << std::endl;
+	    logger << "\t # receives from other MPI processes = " << mpiGrid.getNumberOfReceives() << std::endl;
 	 #endif
       }
 
