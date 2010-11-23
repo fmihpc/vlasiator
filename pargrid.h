@@ -265,7 +265,7 @@ template<class C> ParGrid<C>::~ParGrid() {
    delete zoltan;
    zoltan = NULL;
    
-   if (initialized == true) MPI_Finalize();
+   MPI_Finalize();
 }
 
 /** Call the constructor of each user-defined data cell. Here we also allocate 
