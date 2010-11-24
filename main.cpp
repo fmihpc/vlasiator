@@ -406,7 +406,9 @@ int main(int argn,char* args[]) {
       mpiGrid.barrier();
    #endif
    logger << "(MAIN): Total no. reserved velocity blocks in Grid = ";
+   #ifdef PARGRID
    logger << grid.getTotalNumberOfBlocks() << std::endl;
+   #endif
    
    // Write initial state:
    #ifndef PARGRID
