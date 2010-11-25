@@ -69,7 +69,9 @@ template<class C> class ParGrid {
    template<class CONT> void getCells(CONT& rlist) const;
    template<class CONT> void getInnerCells(CONT& rlist) const;
    template<class CONT> void getNeighbours(CONT& rlist,const ID::type& globalID) const;
+   uint getNumberOfLocalCells() const {return localCells.size();}
    uint getNumberOfReceives() const {return receiveList.size();}
+   uint getNumberOfRemoteCells() const {return remoteCells.size();}
    uint getNumberOfSends() const {return sendList.size();}
    template<class CONT> void getReceiveList(CONT& rlist) const;
    template<class CONT> void getRemoteCells(CONT& rlist) const;
@@ -224,6 +226,7 @@ template<class C> ParGrid<C>::ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,cre
    zoltan->Set_Param("NUM_GID_ENTRIES","1");
    zoltan->Set_Param("LB_METHOD",loadBalanceMethod(balanceMethod).c_str());
    zoltan->Set_Param("RETURN_LISTS","ALL");
+   //zoltan->Set_Param("GRAPH_PACKAGE","PARMETIS");
    
    // Register generic callback functions:
    zoltan->Set_Num_Obj_Fn(&ParGrid<C>::getNumberOfLocalCells,this);
@@ -282,6 +285,10 @@ template<class C> void ParGrid<C>::allocateCells() {
    for (std::map<ID::type,int>::const_iterator it=receiveList.begin(); it!=receiveList.end(); ++it) {
       remoteCells[it->first];
    }
+   #ifndef NDEBUG
+      std::cout << "ParGrid::allocateCells for process " << myrank << " requires " << localCells.size() << " local cells, ";
+      std::cout << remoteCells.size() << " remote cells." << std::endl;
+   #endif
    for (int i=0; i<N_processes; ++i) {
       if (i==myrank) {
 	 // Now ask user to allocate memory for each cell (if necessary):

@@ -13,21 +13,21 @@ bool cpu_acceleration(SpatialCell& cell) {
      {
 	creal DT = Parameters::dt;
 	// Calculate derivatives in vx,vy,vz:
-        #pragma omp for nowait
+        #pragma omp for
 	for (uint block=0; block<cell.N_blocks; ++block) {
 	   cpu_calcVelDerivs<Real>(cell,block);
 	}
 	
 	// Calculate velocity fluxes:
-        #pragma omp for nowait
+        #pragma omp for
 	for (uint block=0; block<cell.N_blocks; ++block) {
 	   cpu_calcVelFluxesX<Real>(cell,block);
 	   cpu_calcVelFluxesY<Real>(cell,block);
 	   cpu_calcVelFluxesZ<Real>(cell,block);
 	}
-
+	
 	// Propagate volume averages in velocity space:
-        #pragma omp for nowait
+        #pragma omp for
 	for (uint block=0; block<cell.N_blocks; ++block) {
 	   cpu_propagateVel<Real>(cell,block,DT);
 	}

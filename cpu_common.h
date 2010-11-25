@@ -49,11 +49,17 @@ template<typename T> T vanLeer(const T& xl1,const T& xcc,const T& xr1) {
 }
 
 template<typename T> T reconstruct_neg(const T& avg,const T& d1,const T& d2) {
-   return avg - d2/convert<T>(24.0) + convert<T>(0.5)*d1 + d2/convert<T>(8.0);
+   const T INV08 = 1.0/8.0;
+   const T INV24 = 1.0/24.0;
+   return avg - d2*INV24 + convert<T>(5.0)*d1 + d2*INV08;
+   //return avg - d2/convert<T>(24.0) + convert<T>(0.5)*d1 + d2/convert<T>(8.0);
 }
 
 template<typename T> T reconstruct_pos(const T& avg,const T& d1,const T& d2) {
-   return avg - d2/convert<T>(24.0) - convert<T>(0.5)*d1 + d2/convert<T>(8.0);
+   const T INV08 = 1.0/8.0;
+   const T INV24 = 1.0/24.0;
+   return avg - d2*INV24 - convert<T>(5.0)*d1 + d2*INV08;
+   //return avg - d2/convert<T>(24.0) - convert<T>(0.5)*d1 + d2/convert<T>(8.0);
 }
 
 

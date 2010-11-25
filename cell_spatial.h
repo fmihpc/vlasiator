@@ -3,10 +3,13 @@
 
 #include <utility>
 #include <vector>
-#include <boost/serialization/array.hpp>
-#include <boost/serialization/split_member.hpp>
-#include <boost/mpi/datatype.hpp>
-
+#ifndef PARGRID
+   #include <boost/serialization/array.hpp>
+   #include <boost/serialization/split_member.hpp>
+   #include <boost/mpi/datatype.hpp>
+#else
+   #include <mpi.h>
+#endif
 #include "definitions.h"
 #include "common.h"
 #include "parameters.h"
@@ -18,7 +21,7 @@ namespace Cell {
    enum CellType {INNER,BOUNDARY,GHOST,UNINITIALIZED};
    enum Array {Blocks,BlockParams,NbrsVel,CellParams,Fx,Fy,Fz,D1x,D1y,D1z};
    enum Dir {CpuToDev,DevToCpu};
-};
+}
 
 struct SpatialCell {
    #ifndef PARGRID
