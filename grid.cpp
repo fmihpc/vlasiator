@@ -164,6 +164,9 @@ void Grid::printReferences() {
    logger << flush;
 }
 
+uint Grid::getTotalNumberOfBlocks() const {
+   return nextBlock;
+}
 
 
 

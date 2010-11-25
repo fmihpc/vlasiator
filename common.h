@@ -26,7 +26,7 @@ namespace NbrsSpa {
       YPOS,  /**< The index of the +y neighbour.*/
       ZPOS   /**< The index of the +z neighbour.*/
    };
-};
+}
 
 /** A namespace for storing indices into an array containing neighbour information 
  * of velocity grid blocks. These indices are used by the device.
@@ -61,7 +61,7 @@ namespace NbrsVel {
       VYPOS, /**< The index of +vy neighbour.*/
       VZPOS  /**< The index of +vz neighbour.*/
    };
-};
+}
 
 /** A namespace for storing indices into an array which contains 
  * the physical parameters of each velocity block.*/
@@ -98,7 +98,7 @@ namespace CellParams {
       RHOVY, /**< y-component of the momentum density.*/
       RHOVZ  /**< z-component of the momentum density.*/
    };
-};
+}
 
 cuint WID = 4;         /**< Number of cells per coordinate in a velocity block. */
 cuint WID2 = WID*WID;

@@ -11,6 +11,7 @@ class Grid {
    uint getFreeMemory(cuint& BLOCKS);
    bool addReference(cuint& INDEX);
    bool removeReference(cuint& INDEX);
+   uint getTotalNumberOfBlocks() const;
 
    uint* getNbrsVel() const {return nbrsVel;}
    Real* getBlockParams() const {return blockParams;}
