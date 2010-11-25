@@ -1,3 +1,6 @@
+#ifndef PARGRID_H
+#define PARGRID_H
+
 #include <cstdlib>
 #include <iostream>
 #include <map>
@@ -62,6 +65,7 @@ template<class C> class ParGrid {
    
    void barrier() {MPI_Barrier(MPI_COMM_WORLD);}
    template<class CONT> void getBoundaryCells(CONT& rlist) const;
+   void getCellDistribution(std::map<ID::type,int>& rlist) const {rlist=hostProcesses;}
    template<class CONT> void getCells(CONT& rlist) const;
    template<class CONT> void getInnerCells(CONT& rlist) const;
    template<class CONT> void getNeighbours(CONT& rlist,const ID::type& globalID) const;
@@ -154,8 +158,8 @@ template<class C> class ParGrid {
    void buildExchangeLists();
    void buildInitialGrid();
    void buildUnrefNeighbourLists();
-   ID::type calculateUnrefinedIndex(const ID::type& i,const ID::type& j,const ID::type& k);
-   void calculateUnrefinedIndices(const ID::type& index,ID::type& i,ID::type& j,ID::type& k);
+   ID::type calculateUnrefinedIndex(const ID::type& i,const ID::type& j,const ID::type& k) const;
+   void calculateUnrefinedIndices(const ID::type& index,ID::type& i,ID::type& j,ID::type& k) const;
    std::string loadBalanceMethod(const LBM& method) const;
    void syncCellAssignments();
    void syncCellCoordinates();
@@ -418,11 +422,11 @@ template<class C> void ParGrid<C>::buildUnrefNeighbourLists() {
    }
 }
 
-template<class C> ID::type ParGrid<C>::calculateUnrefinedIndex(const ID::type& i,const ID::type& j,const ID::type& k) {
+template<class C> ID::type ParGrid<C>::calculateUnrefinedIndex(const ID::type& i,const ID::type& j,const ID::type& k) const {
    return k*unrefSize_y*unrefSize_x + j*unrefSize_x + i;
 }
 
-template<class C> void ParGrid<C>::calculateUnrefinedIndices(const ID::type& index,ID::type& i,ID::type& j,ID::type& k) {
+template<class C> void ParGrid<C>::calculateUnrefinedIndices(const ID::type& index,ID::type& i,ID::type& j,ID::type& k) const {
    cuint N_total = unrefSize_x*unrefSize_y*unrefSize_z;
    uint ind = index;
    k = ind / (unrefSize_x*unrefSize_y);
@@ -469,11 +473,17 @@ template<class C> bool ParGrid<C>::startNeighbourExchange(cuint& identifier) {
 }
 
 template<class C> Real ParGrid<C>::get_cell_x(const ID::type& globalID) const {
+   // Try to find the cell from maps:
    typename std::map<ID::type,ParCell<C> >::const_iterator it = localCells.find(globalID);
    if (it != localCells.end()) return it->second.xcrd + 0.5*unref_dx;
    it = remoteCells.find(globalID);
    if (it != remoteCells.end()) return it->second.xcrd + 0.5*unref_dx;
-   return NAN;
+
+   // Calculate the x-coordinate of the unrefined cell:
+   ID::type i,j,k;
+   calculateUnrefinedIndices(globalID,i,j,k);
+   return grid_xmin + (i+0.5)*unref_dx;
+   //return NAN;
 }
 
 template<class C> Real ParGrid<C>::get_cell_y(const ID::type& globalID) const {
@@ -481,7 +491,12 @@ template<class C> Real ParGrid<C>::get_cell_y(const ID::type& globalID) const {
    if (it != localCells.end()) return it->second.ycrd + 0.5*unref_dy;
    it = remoteCells.find(globalID);
    if (it != remoteCells.end()) return it->second.ycrd + 0.5*unref_dy;
-   return NAN;
+   
+   // Calculate the y-coordinate of the unrefined cell:
+   ID::type i,j,k;
+   calculateUnrefinedIndices(globalID,i,j,k);
+   return grid_ymin + (j+0.5)*unref_dy;
+   //return NAN;
 }
 
 template<class C> Real ParGrid<C>::get_cell_z(const ID::type& globalID) const {
@@ -489,7 +504,12 @@ template<class C> Real ParGrid<C>::get_cell_z(const ID::type& globalID) const {
    if (it != localCells.end()) return it->second.zcrd + 0.5*unref_dz;
    it = remoteCells.find(globalID);
    if (it != remoteCells.end()) return it->second.zcrd + 0.5*unref_dz;
-   return NAN;
+   
+   // Calculate the z-coordinate of the unrefined cell:
+   ID::type i,j,k;
+   calculateUnrefinedIndices(globalID,i,j,k);
+   return grid_zmin + (k+0.5)*unref_dz;
+   //return NAN;
 }
 
 template<class C> template<class CONT> void ParGrid<C>::getBoundaryCells(CONT& rlist) const {
@@ -1011,13 +1031,4 @@ void ParGrid<C>::getEdgeList(void* parGridPtr,int N_globalIDs,int N_localIDs,ZOL
    *rcode = ZOLTAN_OK;
 }
 
-
-
-
-
-
-
-
-
-
-
+#endif

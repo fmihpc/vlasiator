@@ -19,6 +19,7 @@
 #include "grid.h"
 #include "silowriter.h"
 #include "cell_spatial.h"
+#include "writevars.h"
 
 extern void buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,creal& zmin,creal& dx,creal& dy,creal& dz,const bool& isRemote);
 extern bool cpu_acceleration(SpatialCell& cell);
@@ -168,28 +169,6 @@ void writeRemoteCells(const ParGrid<SpatialCell>& mpiGrid) {
    writeSpatialCells("remotecells","n");
    closeOutputFile();
    freeCells();
-   /*
-   cuint BIND = 8;
-   
-   if (mpiGrid.rank() == 0) {
-      vector<pair<ID::type,int> > receives;
-      mpiGrid.getReceiveList(receives);
-      for (uint i=0; i<receives.size(); ++i) {
-	 logger << receives[i].first << ' ' << receives[i].second << endl;
-	 SpatialCell* SC = mpiGrid[receives[i].first];
-	 if (SC == NULL) cerr << "PROC 0 ERROR" << endl;
-	 for (int iv=0; iv<WID3; ++iv) logger << '\t' << SC->cpu_d1y[BIND*SIZE_DERIV+iv] << endl;
-      }
-   } else {
-      vector<pair<ID::type,int> > sends;
-      mpiGrid.getSendList(sends);
-      for (uint i=0; i<sends.size(); ++i) {
-	 logger << sends[i].first << ' ' << sends[i].second << endl;
-	 SpatialCell* SC = mpiGrid[sends[i].first];
-	 if (SC == NULL) cerr << "PROC 1 ERROR" << endl;
-	 for (int iv=0; iv<WID3; ++iv) logger << '\t' << SC->cpu_d1y[BIND*SIZE_DERIV+iv] << endl;
-      }
-   }*/
 }
 #endif
    
@@ -326,48 +305,37 @@ int main(int argn,char* args[]) {
    bool success = true;
    
    typedef Parameters P;
-   /*
-   boost::mpi::environment env(argn,args);
-   boost::mpi::communicator comm;
-     {
-	std::stringstream ss;
-	ss << "logfile." << comm.rank() << ".txt";
-	logger.setOutputFile(ss.str());
-     }
-   
-   logger << "(MAIN): Starting up." << std::endl;
-    */
    Parameters parameters;
 
    #ifndef PARGRID // INITIALIZE USING DCCRG
-   boost::mpi::environment env(argn,args);
-   boost::mpi::communicator comm;
-     {
-	std::stringstream ss;
-	ss << "logfile." << comm.rank() << ".txt";
-	logger.setOutputFile(ss.str());
-     }
-   logger << "(MAIN): Starting up." << std::endl;
+      boost::mpi::environment env(argn,args);
+      boost::mpi::communicator comm;
+        {
+	   std::stringstream ss;
+	   ss << "logfile." << comm.rank() << ".txt";
+	   logger.setOutputFile(ss.str());
+	}
+      logger << "(MAIN): Starting up." << std::endl;
    
-   // Create parallel MPI grid and init Zoltan:
-   float zoltanVersion;
-   if (Zoltan_Initialize(argn,args,&zoltanVersion) != ZOLTAN_OK) {
-      logger << "\t ERROR: Zoltan initialization failed, aborting." << std::endl;
-      success = false;
-   } else {
-      logger << "\t Zoltan initialized successfully" << std::endl;
-   }
-   dccrg<SpatialCell> mpiGrid(comm,"RCB",P::xmin,P::ymin,P::zmin,P::dx_ini,P::dy_ini,P::dz_ini,P::xcells_ini,P::ycells_ini,P::zcells_ini,1,0);
+      // Create parallel MPI grid and init Zoltan:
+      float zoltanVersion;
+      if (Zoltan_Initialize(argn,args,&zoltanVersion) != ZOLTAN_OK) {
+	 logger << "\t ERROR: Zoltan initialization failed, aborting." << std::endl;
+	 success = false;
+      } else {
+	 logger << "\t Zoltan initialized successfully" << std::endl;
+      }
+      dccrg<SpatialCell> mpiGrid(comm,"RCB",P::xmin,P::ymin,P::zmin,P::dx_ini,P::dy_ini,P::dz_ini,P::xcells_ini,P::ycells_ini,P::zcells_ini,1,0);
    
    #else           // INITIALIZE USING PARGRID
-   ParGrid<SpatialCell> mpiGrid(P::xcells_ini,P::ycells_ini,P::zcells_ini,P::xmin,P::ymin,P::zmin,
-				P::xmax,P::ymax,P::zmax,Graph,argn,args);
-     {
-	std::stringstream ss;
-	ss << "logfile." << mpiGrid.rank() << ".txt";
-	logger.setOutputFile(ss.str());
-     }
-   logger << "(MAIN): Starting up." << std::endl;
+      ParGrid<SpatialCell> mpiGrid(P::xcells_ini,P::ycells_ini,P::zcells_ini,P::xmin,P::ymin,P::zmin,
+				   P::xmax,P::ymax,P::zmax,Graph,argn,args);
+        {
+	   std::stringstream ss;
+	   ss << "logfile." << mpiGrid.rank() << ".txt";
+	   logger.setOutputFile(ss.str());
+	}
+      logger << "(MAIN): Starting up." << std::endl;
    #endif
    
    // If initialization was not successful, abort.
@@ -390,6 +358,7 @@ int main(int argn,char* args[]) {
       comm.barrier();
    #else
       initSpatialCells(mpiGrid);
+      writeCellDistribution(mpiGrid);
       mpiGrid.barrier();
    #endif
 
@@ -407,18 +376,18 @@ int main(int argn,char* args[]) {
    #endif
    logger << "(MAIN): Total no. reserved velocity blocks in Grid = ";
    #ifdef PARGRID
-   logger << grid.getTotalNumberOfBlocks() << std::endl;
+      logger << grid.getTotalNumberOfBlocks() << std::endl;
    #endif
    
    // Write initial state:
    #ifndef PARGRID
       writeSpatialCells(comm,mpiGrid);
-      writeVelocityBlocks(comm,mpiGrid);
+      //writeVelocityBlocks(comm,mpiGrid);
       comm.barrier();
    #else
       writeSpatialCells(mpiGrid);
-      writeRemoteCells(mpiGrid);
-      writeVelocityBlocks(mpiGrid);
+      //writeRemoteCells(mpiGrid);
+      //writeVelocityBlocks(mpiGrid);
       mpiGrid.barrier();
    #endif
 
@@ -548,11 +517,11 @@ int main(int argn,char* args[]) {
 	 logger << "(MAIN): Saving variables to disk at tstep = " << tstep << std::endl;
 	 #ifndef PARGRID
 	    writeSpatialCells(comm,mpiGrid);
-	    writeVelocityBlocks(comm,mpiGrid);
+	    //writeVelocityBlocks(comm,mpiGrid);
 	 #else
 	    writeSpatialCells(mpiGrid);
-	    writeRemoteCells(mpiGrid);
-	    writeVelocityBlocks(mpiGrid);
+	    //writeRemoteCells(mpiGrid);
+	    //writeVelocityBlocks(mpiGrid);
 	 #endif
       }
       #ifndef PARGRID
@@ -569,11 +538,11 @@ int main(int argn,char* args[]) {
    // Write final state:
    #ifndef PARGRID
       writeSpatialCells(comm,mpiGrid);
-      writeVelocityBlocks(comm,mpiGrid);
+      //writeVelocityBlocks(comm,mpiGrid);
    #else
       writeSpatialCells(mpiGrid);
-      writeRemoteCells(mpiGrid);
-      writeVelocityBlocks(mpiGrid);
+      //writeRemoteCells(mpiGrid);
+      //writeVelocityBlocks(mpiGrid);
    #endif
 
    logger << "(MAIN): Exiting." << std::endl;
