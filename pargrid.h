@@ -18,7 +18,7 @@ namespace ID {
 }
 
 enum LBM {
-   Block,Random,RCB,RIB,HSFC,Graph
+   Block,Random,RCB,RIB,HSFC,Graph,Hypergraph
 };
 
 template<typename T> MPI_Datatype MPI_Type() {return 0;}
@@ -84,27 +84,8 @@ template<class C> class ParGrid {
    bool setLoadBalancingMethod(const LBM& method);
    bool startNeighbourExchange(const uint& identifier);
    bool waitAll();
+   void writeLoadDistribution();
 
-   /*class iterator;
-   friend class iterator;
-   class iterator {
-    public:
-      iterator(const bool& allCells=true,const bool& iteratingInner=false);
-      iterator& operator++();
-      void set(typename std::map<ID::type,ParCell<C> >::iterator& it);
-      bool operator==(const ParGrid<C>::iterator& x);
-      bool operator!=(const ParGrid<C>::iterator& x);
-    private:
-      bool allCells;
-      bool iteratingInner;
-      typename std::map<ID::type,ParCell<C> >::iterator it;
-   };
-   
-   iterator begin();
-   iterator boundaryCellsBegin();
-   iterator innerCellsBegin();
-   iterator end();
-   */
    // Zoltan callback functions
    static void getCellCoordinates(void* data,int N_globalEntries,int N_localEntries,ZOLTAN_ID_PTR globalID,
 				  ZOLTAN_ID_PTR localID,double* geometryData,int* rcode);
@@ -114,32 +95,43 @@ template<class C> class ParGrid {
    static void getEdgeList(void* parGridPtr,int N_globalIDs,int N_localIDs,ZOLTAN_ID_PTR globalID,
 			   ZOLTAN_ID_PTR localID,ZOLTAN_ID_PTR nbrGlobalIDs,int* nbrHosts,
 			   int N_weights,float* weight,int* rcode);
+   static void getHyperedges(void* parGridPtr,int N_globalIDs,int N_vtxedges,int N_pins,int format,
+			     ZOLTAN_ID_PTR vtxedge_GID,int* vtxedge_ptr,ZOLTAN_ID_PTR pin_GID,int* rcode);
+   static void getHyperedgeWeights(void* parGridPtr,int N_globalIDs,int N_localIDs,int N_edges,int N_weights,
+				   ZOLTAN_ID_PTR edgeGlobalID,ZOLTAN_ID_PTR edgeLocalID,float* edgeWeights,int* rcode);
    static int getNumberOfEdges(void* parGridPtr,int N_globalIDs,int N_localIDs,ZOLTAN_ID_PTR globalIDs,
 			       ZOLTAN_ID_PTR localIDs,int* rcode);
+   static void getNumberOfHyperedges(void* parGridPtr,int* N_lists,int* N_pins,int* format,int* rcode);
+   static void getNumberOfHyperedgeWeights(void* parGridPtr,int* N_edges,int* rcode);
    static int getNumberOfLocalCells(void* data,int* rcode);
    
  private:
-   LBM balanceMethod;        /**< The load balance method currently in use. Default is RCB.*/
-   Real grid_xmin;           /**< x-coordinate of the lower left corner of the grid.*/
-   Real grid_xmax;           /**< x-coordinate of the upper right corner of the grid.*/
-   Real grid_ymin;           /**< y-coordinate of the lower left corner of the grid.*/
-   Real grid_ymax;           /**< y-coordinate of the upper right corner of the grid.*/
-   Real grid_zmin;           /**< z-coordinate of the lower left corner of the grid.*/
-   Real grid_zmax;           /**< z-coordinate of the upper right corner of the grid.*/
-   bool initialized;         /**< If true, ParGrid was initialized successfully and is ready for use.*/
-   MPI_Datatype MPIdataType; /**< The MPI datatype which is currently used in communications.*/
-   int myrank;               /**< The rank if this MPI process.*/
-   int N_processes;          /**< Total number of MPI processes.*/
-   bool periodic_x;          /**< If true, x-direction is periodic.*/
-   bool periodic_y;          /**< If true, y-direction is periodic.*/
-   bool periodic_z;          /**< If true, z-direction is periodic.*/
-   Real unref_dx;            /**< Unrefined cell size in x-direction.*/
-   Real unref_dy;            /**< Unrefined cell size in y-direction.*/
-   Real unref_dz;            /**< Unrefined cell size in z-direction.*/
-   uint unrefSize_x;         /**< Number of x-cells in unrefined grid.*/
-   uint unrefSize_y;         /**< Number of y-cells in unrefined grid.*/
-   uint unrefSize_z;         /**< Number of z-cells in unrefined grid.*/
-   Zoltan* zoltan;           /**< Pointer to Zoltan load balancing library.*/
+   LBM balanceMethod;          /**< The load balance method currently in use. Default is RCB.*/
+   Real grid_xmin;             /**< x-coordinate of the lower left corner of the grid.*/
+   Real grid_xmax;             /**< x-coordinate of the upper right corner of the grid.*/
+   Real grid_ymin;             /**< y-coordinate of the lower left corner of the grid.*/
+   Real grid_ymax;             /**< y-coordinate of the upper right corner of the grid.*/
+   Real grid_zmin;             /**< z-coordinate of the lower left corner of the grid.*/
+   Real grid_zmax;             /**< z-coordinate of the upper right corner of the grid.*/
+   std::string imbalanceTolerance; /**< Imbalance tolerance of the load balancing.*/
+   bool initialized;           /**< If true, ParGrid was initialized successfully and is ready for use.*/
+   MPI_Datatype MPIdataType;   /**< The MPI datatype which is currently used in communications.*/
+   int myrank;                 /**< The rank if this MPI process.*/
+   int N_processes;            /**< Total number of MPI processes.*/
+   std::string N_weights_cell; /**< Number of weights assigned to each cell.*/
+   std::string N_weights_edge; /**< Number of weights assigned to each edge.*/
+   bool periodic_x;            /**< If true, x-direction is periodic.*/
+   bool periodic_y;            /**< If true, y-direction is periodic.*/
+   bool periodic_z;            /**< If true, z-direction is periodic.*/
+   Real unref_dx;              /**< Unrefined cell size in x-direction.*/
+   Real unref_dy;              /**< Unrefined cell size in y-direction.*/
+   Real unref_dz;              /**< Unrefined cell size in z-direction.*/
+   uint unrefSize_x;           /**< Number of x-cells in unrefined grid.*/
+   uint unrefSize_y;           /**< Number of y-cells in unrefined grid.*/
+   uint unrefSize_z;           /**< Number of z-cells in unrefined grid.*/
+   static float weightCell;    /**< Weight of each cell.*/
+   static float weightEdge;    /**< Weight of each edge.*/
+   Zoltan* zoltan;             /**< Pointer to Zoltan load balancing library.*/
    
    static std::map<ID::type,int> hostProcesses;            /**< For each cell, the host process that contains that cell.
 							    * The contents of this array should be the same on each MPI
@@ -160,6 +152,9 @@ template<class C> class ParGrid {
    void buildExchangeLists();
    void buildInitialGrid();
    void buildUnrefNeighbourLists();
+   static float calculateCellWeight(const ID::type& globalID);
+   static float calculateEdgeWeight(const ID::type& globalID);
+   static float calculateHyperedgeWeight(const ID::type& globalID);
    ID::type calculateUnrefinedIndex(const ID::type& i,const ID::type& j,const ID::type& k) const;
    void calculateUnrefinedIndices(const ID::type& index,ID::type& i,ID::type& j,ID::type& k) const;
    std::string loadBalanceMethod(const LBM& method) const;
@@ -170,6 +165,8 @@ template<class C> class ParGrid {
 // ***************************************************************
 // ************** DEFINITIONS FOR STATIC MEMBERS *****************
 // ***************************************************************
+template<class C> float ParGrid<C>::weightCell;
+template<class C> float ParGrid<C>::weightEdge;
 template<class C> std::map<ID::type,int> ParGrid<C>::hostProcesses;
 template<class C> std::map<ID::type,ParCell<C> > ParGrid<C>::localCells;
 template<class C> std::map<ID::type,int> ParGrid<C>::receiveList;
@@ -198,6 +195,11 @@ template<class C> ParGrid<C>::ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,cre
    periodic_x = false;
    periodic_y = false;
    periodic_z = false;
+   N_weights_cell = "1";
+   N_weights_edge = "0";
+   imbalanceTolerance = "1.05";
+   weightCell = 1.0;
+   weightEdge = 10.0;
    
    // Attempt to init MPI:
    int rvalue = MPI_Init(&argn,&args);
@@ -226,7 +228,10 @@ template<class C> ParGrid<C>::ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,cre
    zoltan->Set_Param("NUM_GID_ENTRIES","1");
    zoltan->Set_Param("LB_METHOD",loadBalanceMethod(balanceMethod).c_str());
    zoltan->Set_Param("RETURN_LISTS","ALL");
-   //zoltan->Set_Param("GRAPH_PACKAGE","PARMETIS");
+   zoltan->Set_Param("OBJ_WEIGHT_DIM",N_weights_cell.c_str());
+   zoltan->Set_Param("EDGE_WEIGHT_DIM",N_weights_edge.c_str());
+   zoltan->Set_Param("DEBUG_LEVEL","1");
+   zoltan->Set_Param("IMBALANCE_TOL",imbalanceTolerance.c_str());
    
    // Register generic callback functions:
    zoltan->Set_Num_Obj_Fn(&ParGrid<C>::getNumberOfLocalCells,this);
@@ -237,6 +242,11 @@ template<class C> ParGrid<C>::ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,cre
    // Register graph-based load balancing callback functions:
    zoltan->Set_Num_Edges_Fn(&ParGrid<C>::getNumberOfEdges,this);
    zoltan->Set_Edge_List_Fn(&ParGrid<C>::getEdgeList,this);
+   // Register hypergraph-based load balancing callback functions:
+   zoltan->Set_HG_Size_CS_Fn(getNumberOfHyperedges,this);
+   zoltan->Set_HG_CS_Fn(getHyperedges,this);
+   zoltan->Set_HG_Size_Edge_Wts_Fn(getNumberOfHyperedgeWeights,this);
+   zoltan->Set_HG_Edge_Wts_Fn(getHyperedgeWeights,this);
    
    buildInitialGrid();    // Build an initial guess for the grid
    syncCellAssignments();
@@ -427,6 +437,36 @@ template<class C> void ParGrid<C>::buildUnrefNeighbourLists() {
       it->second.neighbours[4] = z_neg;
       it->second.neighbours[5] = z_pos;
    }
+}
+
+/** Calculate the statistical weight of the given cell. This weight is passed to Zoltan to be 
+ * used in load balancing. Here each cell is given the same weight, as given by parameter 
+ * ParGrid::weightCell.
+ * @param globalID The global ID of the spatial cell whose weight is requested.
+ * @return The weight of the given spatial cell.
+ */
+template<class C> float ParGrid<C>::calculateCellWeight(const ID::type& globalID) {return weightCell;}
+
+/** Calculate the statistical weight of the given edge. This weight is passed to Zoltan to 
+ * be used in graph-based load balancing. Here each edge is given the same weight, as given by 
+ * parameter ParGrid::weightEdge. The sum of all edge weights for a given spatial cell is then 
+ * the number of existing neighbours multiplied by weightEdge, in accordance with 
+ * ParGrid::calculateHyperedgeWeight.
+ * @param globalID The global ID of the spatial cell whose edge weight is requested.
+ * @return The weight of the requested edge.
+ */
+template<class C> float ParGrid<C>::calculateEdgeWeight(const ID::type& globalID) {return weightEdge;}
+
+/** Calculate the statistical weight of the given hyperedge. This weight is passed to Zoltan 
+ * to be used in hypergraph-based load balancing. Here the weight of a hyperedge is calculated 
+ * as the number of existing neighbours multiplied by parameter ParGrid::weightEdge.
+ * @param globalID The global ID of the hyperedge whose weight is requested.
+ * @return The weight of the requested hyperedge.
+ */
+template<class C> float ParGrid<C>::calculateHyperedgeWeight(const ID::type& globalID) {
+   uint N_neighbours = 0;
+   for (int i=0; i<6; ++i) if (localCells[globalID].neighbours[i] != std::numeric_limits<ID::type>::max()) ++N_neighbours;
+   return weightEdge*N_neighbours;
 }
 
 template<class C> ID::type ParGrid<C>::calculateUnrefinedIndex(const ID::type& i,const ID::type& j,const ID::type& k) const {
@@ -647,6 +687,9 @@ template<class C> std::string ParGrid<C>::loadBalanceMethod(const LBM& method) c
     case Graph:
       return "GRAPH";
       break;
+    case Hypergraph:
+      return "HYPERGRAPH";
+      break;
    }
    return std::string("");
 }
@@ -794,6 +837,32 @@ template<class C> bool ParGrid<C>::waitAll() {
    return rvalue;
 }
 
+template<class C>
+void ParGrid<C>::writeLoadDistribution() {
+   uint N_localCells[N_processes];
+   uint N_remoteCells[N_processes];
+   uint N_sends[N_processes];
+   uint N_receives[N_processes];
+   
+   uint N_myLocals = localCells.size();
+   uint N_myRemotes = remoteCells.size();
+   uint N_mySends = sendList.size();
+   uint N_myReceives = receiveList.size();
+   
+   MPI_Gather(&N_myLocals,  1,MPI_UNSIGNED,N_localCells, 1,MPI_UNSIGNED,0,MPI_COMM_WORLD);
+   MPI_Gather(&N_myRemotes, 1,MPI_UNSIGNED,N_remoteCells,1,MPI_UNSIGNED,0,MPI_COMM_WORLD);
+   MPI_Gather(&N_mySends,   1,MPI_UNSIGNED,N_sends,      1,MPI_UNSIGNED,0,MPI_COMM_WORLD);
+   MPI_Gather(&N_myReceives,1,MPI_UNSIGNED,N_receives,   1,MPI_UNSIGNED,0,MPI_COMM_WORLD);
+   
+   if (myrank == 0) {
+      std::cerr << "# local cells\tremote cells\tsends\treceives\tsends+receives" << std::endl;
+      for (int i=0; i<N_processes; ++i) {
+	 std::cerr << N_localCells[i] << '\t' << N_remoteCells[i] << '\t' << N_sends[i] << '\t' << N_receives[i] << '\t';
+	 std::cerr << N_sends[i]+N_receives[i] << std::endl;
+      }
+   }
+}
+
 // *************************************************************
 // ************************ ITERATORS ************************** 
 // *************************************************************
@@ -903,17 +972,25 @@ void ParGrid<C>::getLocalCellList(void* parGridPtr,int N_globalIDs,int N_localID
    ParGrid<C>* parGrid = reinterpret_cast<ParGrid<C>*>(parGridPtr);
 
    int i=0;
-   for (typename std::map<ID::type,ParCell<C> >::const_iterator it = parGrid->localCells.begin(); it!=localCells.end(); ++it) {
-      globalIDs[i] = it->first;
-      ++i;
-   }   
+   if (N_weights == 0) { // No cell weights
+      for (typename std::map<ID::type,ParCell<C> >::const_iterator it = parGrid->localCells.begin(); it!=localCells.end(); ++it) {
+	 globalIDs[i] = it->first;
+	 ++i;
+      }
+   } else { // Cell weights are used
+      for (typename std::map<ID::type,ParCell<C> >::const_iterator it = parGrid->localCells.begin(); it!=localCells.end(); ++it) {
+	 globalIDs[i] = it->first;
+	 cellWeights[i] = calculateCellWeight(it->first);
+	 ++i;
+      }
+   }
    *rcode = ZOLTAN_OK;
 }
 
 
 // GEOMETRY-BASED LOAD BALANCING:                                                          
 // The functions below are for geometry-based load balancing
-// functions (RCB,RIB,HSFC,Reftree).                         
+// functions (BLOCK,RCB,RIB,HSFC,Reftree).                         
 // -------------------------------------------------------------- 
 
 /** Definition for Zoltan callback function ZOLTAN_NUM_GEOM_FN. This function is 
@@ -1028,14 +1105,136 @@ void ParGrid<C>::getEdgeList(void* parGridPtr,int N_globalIDs,int N_localIDs,ZOL
    }
    #endif
    int index = 0;
-   for (int i=0; i<6; ++i) {
-      if (it->second.neighbours[i] != std::numeric_limits<ID::type>::max()) {
-	 nbrGlobalIDs[index] = it->second.neighbours[i];
-	 nbrHosts[index] = hostProcesses[it->second.neighbours[i]];
-	 ++index;
+   if (N_weights == 0) { // No edge weights
+      for (int i=0; i<6; ++i) {
+	 if (it->second.neighbours[i] != std::numeric_limits<ID::type>::max()) {
+	    nbrGlobalIDs[index] = it->second.neighbours[i];
+	    nbrHosts[index] = hostProcesses[it->second.neighbours[i]];
+	    ++index;
+	 }
+      }
+   } else { // Edge weights are used
+      for (int i=0; i<6; ++i) {
+	 if (it->second.neighbours[i] != std::numeric_limits<ID::type>::max()) {
+	    nbrGlobalIDs[index] = it->second.neighbours[i];
+	    nbrHosts[index] = hostProcesses[it->second.neighbours[i]];
+	    weight[index] = calculateEdgeWeight(it->first);
+	    ++index;
+	 }
       }
    }
    *rcode = ZOLTAN_OK;
 }
 
+// HYPERGRAPH-BASED LOAD BALANCING:
+// --------------------------------------------------------------
+
+/** Definition for Zoltan callback function ZOLTAN_HG_SIZE_CS_FN. This function is required 
+ * for hypergraph-based load balancing. The purpose is to tell Zoltan which hypergraph format 
+ * is used (ZOLTAN_COMPRESSED_EDGE or ZOLTAN_COMPRESSED_VERTEX), how many hyperedges and 
+ * vertices there will be, and how many pins.
+ * @param parGridPtr A pointer to ParGrid.
+ * @param N_lists The total number of vertices or hyperedges (depending on the format) 
+ * is written to this variable.
+ * @param N_pins The total number of pins (connections between vertices and hyperedges) is 
+ * written to this variable.
+ * @param format The chosen hyperedge storage format is written to this variable.
+ * @param The return code. Upon success should be ZOLTAN_OK.
+ */
+template<class C>
+void ParGrid<C>::getNumberOfHyperedges(void* parGridPtr,int* N_lists,int* N_pins,int* format,int* rcode) {
+   *N_lists = localCells.size();
+   *format = ZOLTAN_COMPRESSED_VERTEX;
+   
+   // Calculate the total number of pins:
+   unsigned int totalNumberOfPins = 0;
+   for (typename std::map<ID::type,ParCell<C> >::const_iterator it=localCells.begin(); it!=localCells.end(); ++it) {
+      // Every cell has its own hyperedge:
+      ++totalNumberOfPins;
+      // Every existing neighbour belongs to cell's hyperedge:
+      for (int i=0; i<6; ++i) if (it->second.neighbours[i] != std::numeric_limits<ID::type>::max()) ++totalNumberOfPins;
+      
+   }
+   *N_pins = totalNumberOfPins;
+   *rcode = ZOLTAN_OK;
+}
+
+/** Definition for Zoltan callback function ZOLTAN_HG_CS_FN. This function is required for 
+ * hypergraph-based load balancing. The purpose is to give Zoltan the hypergraph in a compressed format.
+ * @param parGridPtr A pointer to ParGrid.
+ * @param N_globalIDs The size of globalID.
+ * @param N_vtxedges The number of entries that need to be written to vtxedge_GID.
+ * @param N_pins The number of pins that need to be written to pin_GID.
+ * @param format The format that is used to represent the hypergraph, either ZOLTAN_COMPRESSED_EDGE or ZOLTAN_COMPRESSED_VERTEX.
+ * @param vtxedge_GID An array where the hypergraph global IDs are written into.
+ * @param vtxedge_ptr An array where, for each hyperedge, an index into pin_GID is given from where the pins for that 
+ * hyperedge are given.
+ * @param pin_GID An array where the pins are written to.
+ * @param rcode The return code. Upon success should be ZOLTAN_OK.
+ */
+template<class C>
+void ParGrid<C>::getHyperedges(void* parGridPtr,int N_globalIDs,int N_vtxedges,int N_pins,int format,ZOLTAN_ID_PTR vtxedge_GID,
+			       int* vtxedge_ptr,ZOLTAN_ID_PTR pin_GID,int* rcode) {
+   uint edgeCounter = 0;
+   uint pinCounter = 0;
+   if (format == ZOLTAN_COMPRESSED_VERTEX) {
+      // Go through every local cell:
+      for (typename std::map<ID::type,ParCell<C> >::const_iterator it=localCells.begin(); it!=localCells.end(); ++it) {
+	 vtxedge_GID[edgeCounter] = it->first;  // The hyperedge has the same global ID as the cell
+	 vtxedge_ptr[edgeCounter] = pinCounter; // An index into pin_GID where the pins for this cell are written
+	 pin_GID[pinCounter] = it->first;       // Every cell belong in its own hyperedge
+	 ++pinCounter;
+	 // Add pins to every existing neighbour:
+	 for (int i=0; i<6; ++i) {
+	    if (it->second.neighbours[i] != std::numeric_limits<ID::type>::max()) {
+	       pin_GID[pinCounter] = it->second.neighbours[i];
+	       ++pinCounter;
+	    }
+	 }
+	 ++edgeCounter;
+      }
+   } else {
+      std::cerr << "ParGrid: ZOLTAN_COMPRESSED_EDGE not implemented, exiting." << std::endl;
+      exit(1);
+   }
+   *rcode = ZOLTAN_OK;
+}
+
+/** Definition for Zoltan callback function ZOLTAN_HG_SIZE_EDGE_WTS_FN. This is an optional function 
+ * for hypergraph-based load balancing. The purpose is to tell Zoltan how many hyperedges will have 
+ * a weight factor. Here we give a weight to each hyperedge.
+ * @param parGridPtr A pointer to ParGrid.
+ * @param N_edges A parameter where the number of weight-supplying hyperedges is written into.
+ * @param rcode The return code. Upon success should be ZOLTAN_OK.
+ */
+template<class C>
+void ParGrid<C>::getNumberOfHyperedgeWeights(void* parGridPtr,int* N_edges,int* rcode) {
+   *N_edges = localCells.size();
+   *rcode = ZOLTAN_OK;
+}
+
+/** Definition for Zoltan callback function ZOLTAN_HG_EDGE_WTS_FN. This is an optional function 
+ * for hypergraph-based load balancing. The purpose is to tell Zoltan the weight of each hyperedge.
+ * @param parGridPtr A pointer to ParGrid.
+ * @param N_globalIDs The size of edgeGlobalID entry.
+ * @param N_localIDs The size of edgeLocalID entry.
+ * @param N_edges The number of hyperedge weights that need to be written to edgeWeights.
+ * @param edgeGlobalIDs An array where the global IDs of each weight-supplying hyperedge are written into.
+ * @param edgeLocalIDs An array where the local IDs of each weight-supplying hyperedge are written into. 
+ * This array can be left empty.
+ * @param edgeWeights An array where the hyperedge weights are written into.
+ * @param rcode The return code. Upon success should be ZOLTAN_OK.
+ */
+template<class C>
+void ParGrid<C>::getHyperedgeWeights(void* parGridPtr,int N_globalIDs,int N_localIDs,int N_edges,int N_weights,
+				     ZOLTAN_ID_PTR edgeGlobalID,ZOLTAN_ID_PTR edgeLocalID,float* edgeWeights,int* rcode) {
+   uint counter = 0;
+   for (typename std::map<ID::type,ParCell<C> >::const_iterator it=localCells.begin(); it!=localCells.end(); ++it) {
+      edgeGlobalID[counter] = it->first;
+      edgeWeights[counter] = calculateHyperedgeWeight(it->first);
+      ++counter;
+   }
+}
+
 #endif
+
