@@ -230,7 +230,7 @@ template<class C> ParGrid<C>::ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,cre
    zoltan->Set_Param("RETURN_LISTS","ALL");
    zoltan->Set_Param("OBJ_WEIGHT_DIM",N_weights_cell.c_str());
    zoltan->Set_Param("EDGE_WEIGHT_DIM",N_weights_edge.c_str());
-   zoltan->Set_Param("DEBUG_LEVEL","1");
+   zoltan->Set_Param("DEBUG_LEVEL","0");
    zoltan->Set_Param("IMBALANCE_TOL",imbalanceTolerance.c_str());
    
    // Register generic callback functions:

@@ -6,11 +6,9 @@
 #include <ctime>
 
 #ifndef PARGRID
-   #include <dccrg.hpp>
-   #include <boost/mpi.hpp>
-   #include <zoltan.h>
+   #include "main_dccrg.h"
 #else
-   #include "pargrid.h"
+   #include "main_pargrid.h"
 #endif
 
 #include "definitions.h"
@@ -22,12 +20,7 @@
 #include "writevars.h"
 
 extern void buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,creal& zmin,creal& dx,creal& dy,creal& dz,const bool& isRemote);
-extern bool cpu_acceleration(SpatialCell& cell);
-extern bool cpu_translation1(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
-extern bool cpu_translation2(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
-extern bool cpu_translation3(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
 
-Logger logger;
 Grid grid;
 
 using namespace std;
@@ -248,59 +241,6 @@ void writeVelocityBlocks(const ParGrid<SpatialCell>& mpiGrid) {
    closeOutputFile();
 }
 
-#ifndef PARGRID
-bool findNeighbours(std::vector<const SpatialCell*>& nbrPtr,dccrg<SpatialCell>& mpiGrid,const uint64_t& cell) {
-   std::vector<uint64_t> nbrs;
-   // Get a pointer to each neighbour. If the neighbour does not exists, insert a NULL ptr.
-   nbrs = mpiGrid.get_neighbours_x(cell,-1.0);
-   if (nbrs.size() > 0) nbrPtr[0] = mpiGrid[nbrs[0]]; // Get ptr to -x neighbour
-   else nbrPtr[0] = NULL;
-   nbrs = mpiGrid.get_neighbours_x(cell,+1.0);
-   if (nbrs.size() > 0) nbrPtr[1] = mpiGrid[nbrs[0]]; //            +x
-   else nbrPtr[1] = NULL;
-   nbrs = mpiGrid.get_neighbours_y(cell,-1.0);
-   if (nbrs.size() > 0) nbrPtr[2] = mpiGrid[nbrs[0]]; //            -y
-   else nbrPtr[2] = NULL;
-   nbrs = mpiGrid.get_neighbours_y(cell,+1.0);
-   if (nbrs.size() > 0) nbrPtr[3] = mpiGrid[nbrs[0]]; //            +y
-   else nbrPtr[3] = NULL;
-   nbrs = mpiGrid.get_neighbours_z(cell,-1.0);
-   if (nbrs.size() > 0) nbrPtr[4] = mpiGrid[nbrs[0]]; //            -z
-   else nbrPtr[4] = NULL;
-   nbrs = mpiGrid.get_neighbours_z(cell,+1.0);
-   if (nbrs.size() > 0) nbrPtr[5] = mpiGrid[nbrs[0]]; //            +z
-   else nbrPtr[5] = NULL;
-   
-   // Periodic boundary conditions in z: FIX THIS!
-   //nbrPtr[4] = mpiGrid[cell];
-   //nbrPtr[5] = mpiGrid[cell];
-   return true;
-}
-#else
-bool findNeighbours(std::vector<const SpatialCell*>& nbrPtr,const ParGrid<SpatialCell>& mpiGrid,const ID::type& CELLID) {
-   std::vector<ID::type> nbrs;
-   mpiGrid.getNeighbours(nbrs,CELLID);
-   if (nbrs.size() != 6) {
-      logger << "findNeighbours ERROR: Failed to get neighbour indices!" << std::endl;
-      return false;
-   }
-   // Get a pointer to each neighbour. If the neighbour does not exists, insert a NULL ptr.
-   if (nbrs[0] != std::numeric_limits<ID::type>::max()) nbrPtr[0] = mpiGrid[nbrs[0]];
-   else nbrPtr[0] = NULL;
-   if (nbrs[1] != std::numeric_limits<ID::type>::max()) nbrPtr[1] = mpiGrid[nbrs[1]];
-   else nbrPtr[1] = NULL;
-   if (nbrs[2] != std::numeric_limits<ID::type>::max()) nbrPtr[2] = mpiGrid[nbrs[2]];
-   else nbrPtr[2] = NULL;
-   if (nbrs[3] != std::numeric_limits<ID::type>::max()) nbrPtr[3] = mpiGrid[nbrs[3]];
-   else nbrPtr[3] = NULL;
-   if (nbrs[4] != std::numeric_limits<ID::type>::max()) nbrPtr[4] = mpiGrid[nbrs[4]];
-   else nbrPtr[4] = NULL;
-   if (nbrs[5] != std::numeric_limits<ID::type>::max()) nbrPtr[5] = mpiGrid[nbrs[5]];
-   else nbrPtr[5] = NULL;
-   return true;
-}
-#endif
-   
 int main(int argn,char* args[]) {
    bool success = true;
    
@@ -345,12 +285,7 @@ int main(int argn,char* args[]) {
       return 1;
    }
    // Do initial load balancing:
-   #ifndef PARGRID
-      mpiGrid.balance_load();
-      comm.barrier();
-   #else
-      // ParGrid does initial load balancing automatically
-   #endif
+   initialLoadBalance(mpiGrid);
    
    // Go through every spatial cell on this CPU, and create the initial state:
    #ifndef PARGRID
@@ -396,111 +331,10 @@ int main(int argn,char* args[]) {
    time_t before = std::time(NULL);
    logger << "\t (TIME) reports value " << before << std::endl;
    for (uint tstep=0; tstep < P::tsteps; ++tstep) {
-      #ifndef PARGRID
-         std::vector<uint64_t> cells;
-      #else
-         std::vector<ID::type> cells;
-      #endif
-      std::vector<const SpatialCell*> nbrPtrs(6,NULL);
-      SpatialCell* cellPtr;
-      
-      // Calculate acceleration for each cell on this process:
-      #ifndef PARGRID
-         cells = mpiGrid.get_cells();
-      #else
-         mpiGrid.getCells(cells);
-      #endif
-      for (size_t c=0; c<cells.size(); ++c) {
-	 cellPtr = mpiGrid[cells[c]];
-	 if (cellPtr != NULL) cpu_acceleration(*cellPtr);
-      }
-
-      // Calculate derivatives in spatial coordinates:
-      P::transmit = Transmit::AVGS;
-      #ifndef PARGRID
-         mpiGrid.start_remote_neighbour_data_update();
-         cells = mpiGrid.get_cells_with_local_neighbours();
-      #else
-         mpiGrid.startNeighbourExchange(0);
-         mpiGrid.getInnerCells(cells);
-      #endif
-      for (size_t c=0; c<cells.size(); ++c) {
-	 cellPtr = mpiGrid[cells[c]];
-	 if (findNeighbours(nbrPtrs,mpiGrid,cells[c]) == false) {std::cerr << "Failed to find neighbours." << std::endl; continue;}
-	 if (cellPtr != NULL) cpu_translation1(*cellPtr,nbrPtrs);
-      }
-      #ifndef PARGRID
-         mpiGrid.wait_neighbour_data_update();
-         cells = mpiGrid.get_cells_with_remote_neighbour();
-      #else
-         mpiGrid.waitAll();
-         mpiGrid.getBoundaryCells(cells);
-      #endif
-      for (size_t c=0; c<cells.size(); ++c) {
-	 cellPtr = mpiGrid[cells[c]];
-	 if (findNeighbours(nbrPtrs,mpiGrid,cells[c]) == false) 
-	   {std::cerr << "Failed to find neighbours." << std::endl; continue;}
-	 if (cellPtr != NULL) cpu_translation1(*cellPtr,nbrPtrs);
-      }
-      
-      // Calculate fluxes in spatial coordinates:
-      P::transmit = Transmit::AVGS | Transmit::DERIV1 | Transmit::DERIV2;
-      #ifndef PARGRID
-         mpiGrid.start_remote_neighbour_data_update();
-         cells = mpiGrid.get_cells_with_local_neighbours();
-      #else
-         mpiGrid.startNeighbourExchange(1);
-         mpiGrid.getInnerCells(cells);
-      #endif
-      for (size_t c=0; c<cells.size(); ++c) {
-	 cellPtr = mpiGrid[cells[c]];
-	 if (findNeighbours(nbrPtrs,mpiGrid,cells[c]) == false)
-	   {std::cerr << "Failed to find neighbours." << std::endl; continue;}
-	 if (cellPtr != NULL) cpu_translation2(*cellPtr,nbrPtrs);
-      }
-      #ifndef PARGRID
-         mpiGrid.wait_neighbour_data_update();
-         cells = mpiGrid.get_cells_with_remote_neighbour();
-      #else
-         mpiGrid.waitAll();
-         mpiGrid.getBoundaryCells(cells);
-      #endif
-      for (size_t c=0; c<cells.size(); ++c) {
-	 cellPtr = mpiGrid[cells[c]];
-	 if (findNeighbours(nbrPtrs,mpiGrid,cells[c]) == false)
-	   {std::cerr << "Failed to find neighbours." << std::endl; continue;}
-	 if (cellPtr != NULL) cpu_translation2(*cellPtr,nbrPtrs);
-      }
-
-      // Calculate propagation in spatial coordinates:
-      P::transmit = Transmit::FLUXES;
-      #ifndef PARGRID
-         mpiGrid.start_remote_neighbour_data_update();
-         cells = mpiGrid.get_cells_with_local_neighbours();
-      #else
-         mpiGrid.startNeighbourExchange(2);
-         mpiGrid.getInnerCells(cells);
-      #endif
-      for (size_t c=0; c<cells.size(); ++c) {
-	 cellPtr = mpiGrid[cells[c]];
-	 if (findNeighbours(nbrPtrs,mpiGrid,cells[c]) == false)
-	   {std::cerr << "Failed to find neighbours." << std::endl; continue;}
-	 if (cellPtr != NULL) cpu_translation3(*cellPtr,nbrPtrs);
-      }
-      #ifndef PARGRID
-         mpiGrid.wait_neighbour_data_update();
-         cells = mpiGrid.get_cells_with_remote_neighbour();
-      #else
-         mpiGrid.waitAll();
-         mpiGrid.getBoundaryCells(cells);
-      #endif
-      for (size_t c=0; c<cells.size(); ++c) {
-	 cellPtr = mpiGrid[cells[c]];
-	 if (findNeighbours(nbrPtrs,mpiGrid,cells[c]) == false)
-	   {std::cerr << "Failed to find neighbours." << std::endl; continue;}
-	 if (cellPtr != NULL) cpu_translation3(*cellPtr,nbrPtrs);
-      }
-
+      calculateAcceleration(mpiGrid);
+      calculateSpatialDerivatives(mpiGrid);
+      calculateSpatialFluxes(mpiGrid);
+      calculateSpatialPropagation(mpiGrid);
       ++P::tstep;
       
       // Check if the full simulation state should be written to disk
