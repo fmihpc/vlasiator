@@ -21,9 +21,9 @@ template<typename T> T minmod(const T& a,const T& b) {
 template<typename T> T MClimiter(const T& xl1,const T& xcc,const T& xr1) {
    const T forw = xr1-xcc;
    const T back = xcc-xl1;
-   const T cntr = 0.5*(xr1-xl1);
-   const T slope1 = minmod(2.0*forw,cntr);
-   const T slope2 = minmod(2.0*back,cntr);
+   const T cntr = convert<T>(0.5)*(xr1-xl1);
+   const T slope1 = minmod(convert<T>(2.0)*forw,cntr);
+   const T slope2 = minmod(convert<T>(2.0)*back,cntr);
    return minmod(slope1,slope2);
 }
 
@@ -51,14 +51,14 @@ template<typename T> T vanLeer(const T& xl1,const T& xcc,const T& xr1) {
 template<typename T> T reconstruct_neg(const T& avg,const T& d1,const T& d2) {
    const T INV08 = 1.0/8.0;
    const T INV24 = 1.0/24.0;
-   return avg - d2*INV24 + convert<T>(5.0)*d1 + d2*INV08;
+   return avg - d2*INV24 + convert<T>(0.5)*d1 + d2*INV08;
    //return avg - d2/convert<T>(24.0) + convert<T>(0.5)*d1 + d2/convert<T>(8.0);
 }
 
 template<typename T> T reconstruct_pos(const T& avg,const T& d1,const T& d2) {
    const T INV08 = 1.0/8.0;
    const T INV24 = 1.0/24.0;
-   return avg - d2*INV24 - convert<T>(5.0)*d1 + d2*INV08;
+   return avg - d2*INV24 - convert<T>(0.5)*d1 + d2*INV08;
    //return avg - d2/convert<T>(24.0) - convert<T>(0.5)*d1 + d2/convert<T>(8.0);
 }
 
