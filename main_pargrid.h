@@ -81,7 +81,8 @@ void calculateSpatialDerivatives(ParGrid<SpatialCell>& mpiGrid) {
       if (Main::cellPtr != NULL) cpu_translation1(*Main::cellPtr,Main::nbrPtrs);
    }
    // Calculate derivatives for boundary cells when transfers have completed:
-   mpiGrid.waitAll();
+   //mpiGrid.waitAll();
+   mpiGrid.waitAllReceives();
    mpiGrid.getBoundaryCells(Main::cells);
    for (size_t c=0; c<Main::cells.size(); ++c) {
       Main::cellPtr = mpiGrid[Main::cells[c]];
@@ -91,6 +92,7 @@ void calculateSpatialDerivatives(ParGrid<SpatialCell>& mpiGrid) {
       }
       if (Main::cellPtr != NULL) cpu_translation1(*Main::cellPtr,Main::nbrPtrs);
    }
+   mpiGrid.waitAllSends();
 }
 
 void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
@@ -107,7 +109,8 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
       if (Main::cellPtr != NULL) cpu_translation2(*Main::cellPtr,Main::nbrPtrs);
    }
    // Calculate fluxes for boundary cells when transfers have completed:
-   mpiGrid.waitAll();
+   //mpiGrid.waitAll();
+   mpiGrid.waitAllReceives();
    mpiGrid.getBoundaryCells(Main::cells);
    for (size_t c=0; c<Main::cells.size(); ++c) {
       Main::cellPtr = mpiGrid[Main::cells[c]];
@@ -117,6 +120,7 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
       }
       if (Main::cellPtr != NULL) cpu_translation2(*Main::cellPtr,Main::nbrPtrs);
    }
+   mpiGrid.waitAllSends();
 }
 
 void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid) {
@@ -133,7 +137,8 @@ void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid) {
       if (Main::cellPtr != NULL) cpu_translation3(*Main::cellPtr,Main::nbrPtrs);
    }
    // Propagate boundary cells when transfers have completed:
-   mpiGrid.waitAll();
+   //mpiGrid.waitAll();
+   mpiGrid.waitAllReceives();
    mpiGrid.getBoundaryCells(Main::cells);
    for (size_t c=0; c<Main::cells.size(); ++c) {
       Main::cellPtr = mpiGrid[Main::cells[c]];
@@ -143,6 +148,7 @@ void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid) {
       }
       if (Main::cellPtr != NULL) cpu_translation3(*Main::cellPtr,Main::nbrPtrs);
    }
+   mpiGrid.waitAllSends();
 }
    
 #endif // #ifndef MAIN_H

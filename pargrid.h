@@ -84,6 +84,8 @@ template<class C> class ParGrid {
    bool setLoadBalancingMethod(const LBM& method);
    bool startNeighbourExchange(const uint& identifier);
    bool waitAll();
+   bool waitAllReceives();
+   bool waitAllSends();
    void writeLoadDistribution();
 
    // Zoltan callback functions
@@ -116,6 +118,7 @@ template<class C> class ParGrid {
    std::string imbalanceTolerance; /**< Imbalance tolerance of the load balancing.*/
    bool initialized;           /**< If true, ParGrid was initialized successfully and is ready for use.*/
    MPI_Datatype MPIdataType;   /**< The MPI datatype which is currently used in communications.*/
+   bool MPItypeFreed;          /**< If true, MPIdataType has been deallocated and it is safe to create a new one.*/
    int myrank;                 /**< The rank if this MPI process.*/
    int N_processes;            /**< Total number of MPI processes.*/
    std::string N_weights_cell; /**< Number of weights assigned to each cell.*/
@@ -138,7 +141,8 @@ template<class C> class ParGrid {
 							    * process.*/
    static std::map<ID::type,ParCell<C> > localCells;       /**< Associative container containing all cells that are currently 
 							    * assigned to this process.*/
-   std::vector<MPI_Request> MPIrequests;
+   std::vector<MPI_Request> MPIrecvRequests;
+   std::vector<MPI_Request> MPIsendRequests;
    std::vector<MPI_Status> MPIstatuses;
    static std::map<ID::type,int> receiveList;              /**< A list of cells, identified by their global ID, that are 
 							    * sent to this process during neighbour data exchange, and the 
@@ -179,6 +183,7 @@ template<class C> std::map<std::pair<ID::type,int>,char> ParGrid<C>::sendList;
 template<class C> ParGrid<C>::ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,creal& xmin,creal& ymin,creal& zmin,
 				      creal& xmax,creal& ymax,creal& zmax,const LBM& method,int& argn,char* args[]) {
    initialized = true;
+   MPItypeFreed = true;
    unrefSize_x = xsize;
    unrefSize_y = ysize;
    unrefSize_z = zsize;
@@ -486,35 +491,34 @@ template<class C> bool ParGrid<C>::startNeighbourExchange(cuint& identifier) {
    bool rvalue = true;
    // Get the MPI_Datatype used in communication from user and pass it to MPI:
    // (This does not work with variable-lenght user data)
+   if (MPItypeFreed == false) MPI_Type_free(&MPIdataType);
    C::getMPIdatatype(identifier,MPIdataType);   
    int rcode = MPI_Type_commit(&MPIdataType);
+   MPItypeFreed = false;
    #ifndef NDEBUG
    if (rcode != MPI_SUCCESS) {std::cerr << "ParGrid::exchangeNeighbourData MPI_Type_commit failed!" << std::endl; rvalue=false;}
    #endif
    
    // Post receives for each remote cell:
    uint counter = 0;
-   //if (MPIrequests.size() < receiveList.size()) MPIrequests.resize(receiveList.size());
-   //if (MPIstatuses.size() < receiveList.size()) MPIstatuses.resize(receiveList.size());
    for (std::map<ID::type,int>::const_iterator it=receiveList.begin(); it!=receiveList.end(); ++it) {
       void* const buffer = (remoteCells[it->first].dataptr)->getBaseAddress(identifier); // Starting address of receive buffer
       const int count = 1;                            // Number of elements in receive buffer
       const int source = it->second;                  // Rank of source MPI process
       const int tag = it->first;                      // Message tag (use global ID)
-      MPIrequests.push_back(MPI_Request());
-      if (MPI_Irecv(buffer,count,MPIdataType,source,tag,MPI_COMM_WORLD,&(MPIrequests.back())) != MPI_SUCCESS) rvalue=false;
+      MPIrecvRequests.push_back(MPI_Request());
+      if (MPI_Irecv(buffer,count,MPIdataType,source,tag,MPI_COMM_WORLD,&(MPIrecvRequests.back())) != MPI_SUCCESS) rvalue=false;
       ++counter;
    }
+   
    // Post sends for each boundary cell:
    for (std::map<std::pair<ID::type,int>,char>::const_iterator it=sendList.begin(); it!=sendList.end(); ++it) {
       void* const buffer = (localCells[it->first.first].dataptr)->getBaseAddress(identifier); // Starting address of send buffer
       const int count = 1;                            // Number of elements in send buffer
       const int dest = it->first.second;              // Rank of destination MPI process
       const int tag = it->first.first;                // Message tag
-      MPI_Request dummyRequest;
-      MPIstatuses.push_back(MPI_Status());
-      if (MPI_Issend(buffer,count,MPIdataType,dest,tag,MPI_COMM_WORLD,&dummyRequest) != MPI_SUCCESS) rvalue=false;
-      if (MPI_Request_free(&dummyRequest) != MPI_SUCCESS) rvalue=false;
+      MPIsendRequests.push_back(MPI_Request());
+      if (MPI_Isend(buffer,count,MPIdataType,dest,tag,MPI_COMM_WORLD,&(MPIsendRequests.back())) != MPI_SUCCESS) rvalue=false;
    }
    return rvalue;
 }
@@ -768,8 +772,7 @@ template<class C> void ParGrid<C>::syncCellCoordinates() {
    #endif
    
    // Here we send other MPI processes the coordinates of each cell.
-   // First construct an appropriate MPI datatype.
-   //MPI_Datatype CellType;
+   // First we need to construct an appropriate MPI datatype:
    MPI_Datatype type[6] = {MPI_UNSIGNED,MPI_UNSIGNED,MPI_UNSIGNED,MPI_Type<Real>(),MPI_Type<Real>(),MPI_Type<Real>()};
    int blockLen[6] = {1,1,1,1,1,1};
    MPI_Aint disp[6]; // Byte displacements of each variable
@@ -780,41 +783,42 @@ template<class C> void ParGrid<C>::syncCellCoordinates() {
    disp[4] = 16;
    disp[5] = 20;
    
-   //int result = MPI_Type_create_struct(6,blockLen,disp,type,&CellType);
    int result = MPI_Type_create_struct(6,blockLen,disp,type,&MPIdataType);
    #ifndef NDEBUG
    if (result != MPI_SUCCESS) {std::cerr << "ParGrid::syncCellCoordinates MPI_Type_create_struct failed!" << std::endl;}
    #endif
    
-   //result = MPI_Type_commit(&CellType);
+   if (MPItypeFreed == false) MPI_Type_free(&MPIdataType);
    result = MPI_Type_commit(&MPIdataType);
+   MPItypeFreed = false;
    #ifndef NDEBUG
    if (result != MPI_SUCCESS) {std::cerr << "ParGrid::syncCellCoordinates MPI_Type_commit failed!" << std::endl;}
    #endif
    
    // Create an array for the MPI requests. Make it large enough for both sends and receives:
-   if (MPIrequests.size() < receiveList.size()) MPIrequests.resize(receiveList.size());
-   if (MPIstatuses.size() < receiveList.size()) MPIstatuses.resize(receiveList.size());
-   // Post receives for each remote cell, then sends for each boundary cell:
+   if (MPIrecvRequests.size() < receiveList.size()) MPIrecvRequests.resize(receiveList.size());
+   if (MPIsendRequests.size() < sendList.size()) MPIsendRequests.resize(sendList.size());
+
+   // Post receives for each remote cell:
    uint counter = 0;
    for (std::map<ID::type,int>::const_iterator it=receiveList.begin(); it!=receiveList.end(); ++it) {
       void* const buffer = &(remoteCells[it->first]); // Starting address of receive buffer
       const int count = 1;                            // Number of elements in receive buffer
       const int source = it->second;                  // Rank of source MPI process
       const int tag = it->first;                      // Message tag
-      MPI_Irecv(buffer,count,MPIdataType,source,tag,MPI_COMM_WORLD,&(MPIrequests[counter]));
+      MPI_Irecv(buffer,count,MPIdataType,source,tag,MPI_COMM_WORLD,&(MPIrecvRequests[counter]));
       ++counter;
    }
-   MPI_Barrier(MPI_COMM_WORLD);
-
+   
+   // Post sends for each boundary cell:
+   counter = 0;
    for (std::map<std::pair<ID::type,int>,char>::const_iterator it=sendList.begin(); it!=sendList.end(); ++it) {
       void* const buffer = &(localCells[it->first.first]); // Starting address of send buffer
       const int count = 1;                                 // Number of elements in send buffer
       const int dest = it->first.second;                   // Rank of destination MPI process
       const int tag = it->first.first;                     // Message tag
-      MPI_Request dummyRequest;
-      MPI_Issend(buffer,count,MPIdataType,dest,tag,MPI_COMM_WORLD,&dummyRequest);
-      MPI_Request_free(&dummyRequest);
+      MPI_Isend(buffer,count,MPIdataType,dest,tag,MPI_COMM_WORLD,&(MPIsendRequests[counter]));
+      ++counter;
    }
    // Wait until all data has been received and deallocate memory:
    waitAll();
@@ -822,17 +826,60 @@ template<class C> void ParGrid<C>::syncCellCoordinates() {
 
 template<class C> bool ParGrid<C>::waitAll() {
    bool rvalue = true;
-   MPI_Waitall(MPIrequests.size(),&(MPIrequests[0]),&(MPIstatuses[0]));
+   // Reserve enough space for MPI status messages:
+   MPIstatuses.resize(std::max(MPIrecvRequests.size(),MPIsendRequests.size()));
+
+   // Wait for all receives to complete:
+   MPI_Waitall(MPIrecvRequests.size(),&(MPIrecvRequests[0]),&(MPIstatuses[0]));
    #ifndef NDEBUG
-   for (uint i=0; i<MPIstatuses.size(); ++i) if (MPIstatuses[i].MPI_ERROR != MPI_SUCCESS) rvalue=false;
+      for (uint i=0; i<MPIrecvRequests.size(); ++i) if (MPIstatuses[i].MPI_ERROR != MPI_SUCCESS) rvalue=false;
    #endif
-   /*
-   // Free memory allocated for the transmission: DONE BY MPI
-   for (uint i=0; i<MPIrequests.size(); ++i)
-     if (MPI_Request_free(&(MPIrequests[i])) != MPI_SUCCESS) rvalue=false;
-   */
+
+   // Wait for all sends to complete:
+   MPI_Waitall(MPIsendRequests.size(),&(MPIsendRequests[0]),&(MPIstatuses[0]));
+   #ifndef NDEBUG
+      for (uint i=0; i<MPIsendRequests.size(); ++i) if (MPIstatuses[i].MPI_ERROR != MPI_SUCCESS) rvalue=false;
+   #endif
+   
+   // Free memory:
    MPI_Type_free(&MPIdataType);
-   MPIrequests.clear();
+   MPItypeFreed = true;
+   MPIrecvRequests.clear();
+   MPIsendRequests.clear();
+   MPIstatuses.clear();
+   return rvalue;
+}
+
+template<class C> bool ParGrid<C>::waitAllReceives() {
+   bool rvalue = true;
+   // Reserve enough space for MPI status messages:
+   MPIstatuses.resize(MPIrecvRequests.size());
+   
+   // Wait for all receives to complete:
+   MPI_Waitall(MPIrecvRequests.size(),&(MPIrecvRequests[0]),&(MPIstatuses[0]));
+   #ifndef NDEBUG
+      for (uint i=0; i<MPIrecvRequests.size(); ++i) if (MPIstatuses[i].MPI_ERROR != MPI_SUCCESS) rvalue=false;
+   #endif
+   
+   // Free memory:
+   MPIrecvRequests.clear();
+   MPIstatuses.clear();
+   return rvalue;
+}
+
+template<class C> bool ParGrid<C>::waitAllSends() {
+   bool rvalue = true;
+   // Reserve enough space for MPI status messages:
+   MPIstatuses.resize(MPIsendRequests.size());
+   
+   // Wait for all sends to complete:
+   MPI_Waitall(MPIsendRequests.size(),&(MPIsendRequests[0]),&(MPIstatuses[0]));
+   #ifndef NDEBUG
+      for (uint i=0; i<MPIsendRequests.size(); ++i) if (MPIstatuses[i].MPI_ERROR != MPI_SUCCESS) rvalue=false;
+   #endif
+   
+   // Free memory:
+   MPIsendRequests.clear();
    MPIstatuses.clear();
    return rvalue;
 }
