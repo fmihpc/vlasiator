@@ -74,6 +74,7 @@ bool buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
    creal dvy_blockCell = dvy_block / WID;                 //                                vy
    creal dvz_blockCell = dvz_block / WID;                 //                                vz
    creal dV = dvx_blockCell*dvy_blockCell*dvz_blockCell;  // Volume of one cell in a block
+   creal d6V = dV*dx*dy*dz;
    Real* const blockParams = cell.cpu_blockParams;
    Real* const avgs = cell.cpu_avgs;
    uint* const nbrsVel = cell.cpu_nbrsVel;
@@ -97,15 +98,11 @@ bool buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
       // Calculate volume average of distrib. function for each cell in the block.
       // NOTE: THIS NEEDS TO BE IMPROVED
       for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-	 //creal vx_cell = vx_block + (ic+0.5)*dvx_blockCell;
-	 //creal vy_cell = vy_block + (jc+0.5)*dvy_blockCell;
-	 //creal vz_cell = vz_block + (kc+0.5)*dvz_blockCell;
 	 creal vx_cell = vx_block + ic*dvx_blockCell;
 	 creal vy_cell = vy_block + jc*dvy_blockCell;
 	 creal vz_cell = vz_block + kc*dvz_blockCell;
 	 avgs[velIndex*SIZE_VELBLOCK + kc*WID2+jc*WID+ic] =
-	   calcPhaseSpaceDensity(xmin,ymin,zmin,dx,dy,dz,vx_cell,vy_cell,vz_cell,dvx_blockCell,dvy_blockCell,dvz_blockCell);
-	   //calcPhaseSpaceDensity(xmin+0.5*dx,ymin+0.5*dy,zmin+0.5*dz,vx_cell,vy_cell,vz_cell)*dV;
+	   calcPhaseSpaceDensity(xmin,ymin,zmin,dx,dy,dz,vx_cell,vy_cell,vz_cell,dvx_blockCell,dvy_blockCell,dvz_blockCell)*d6V;
       }
       
       // Since the whole velocity space is inside the spatial cell and the initial 
