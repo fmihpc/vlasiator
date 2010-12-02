@@ -1,6 +1,7 @@
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
 
+#include "boost/program_options.hpp"
 #include "definitions.h"
 
 cuint MAX_VEL_BLOCKS = 2001001;
@@ -49,6 +50,8 @@ struct Parameters {
    static uint transmit; /**< Indicates the data that needs to be transmitted to remote nodes.
 			  * This is created with bitwise or from the values defined in 
 			  * namespace Transmit.*/
+
+   static boost::program_options::options_description options; /**< Handles parameter processing from the user*/
    
    Parameters(int argc, char* argv[]);
 };
