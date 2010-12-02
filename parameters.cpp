@@ -39,7 +39,7 @@ uint P::diagnInterval = numeric_limits<uint>::max();
 
 uint P::transmit = 0;
 
-Parameters::Parameters() {
+Parameters::Parameters(int argc, char* argv[]) {
    xmin = -1.2;
    xmax = +1.2;
    ymin = -1.2;

@@ -50,7 +50,7 @@ struct Parameters {
 			  * This is created with bitwise or from the values defined in 
 			  * namespace Transmit.*/
    
-   Parameters();
+   Parameters(int argc, char* argv[]);
 };
 
 #endif
