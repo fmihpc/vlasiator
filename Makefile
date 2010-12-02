@@ -24,7 +24,7 @@ DEPS_GPU_DEVICE_GRID = cell_spatial.h parameters.h devicegrid.h gpudevicegrid.cp
 DEPS_GRID = grid.h parameters.h grid.cpp
 DEPS_GRIDBUILDER = cell_spatial.h parameters.h project.h gridbuilder.cpp
 DEPS_LOGGER = logger.h logger.cpp
-DEPS_MAIN = parameters.h pargrid.h grid.h silowriter.h writevars.h main.cpp
+DEPS_MAIN = main_dccrg.h main_pargrid.h parameters.h pargrid.h project.h grid.h silowriter.h writevars.h main.cpp
 DEPS_PARAMETERS = parameters.h parameters.cpp
 DEPS_PROJECT = project.h project.cpp
 DEPS_SILOWRITER = cell_spatial.h silowriter.h silowriter.cpp
@@ -47,9 +47,10 @@ DEPS_PROJECT += $(DEPS_COMMON)
 DEPS_SILOWRITER += $(DEPS_COMMON)
 DEPS_WRITEVARS += ${DEPS_COMMON}
 
-HDRS = cpu_acc.h cpu_common.h cpu_trans.h cell_spatial.h \
-	common.h definitions.h grid.h \
-	 logger.h parameters.h pargrid.h silowriter.h
+HDRS = cpu_acc.h cpu_common.h cpu_trans.h cell_spatial.h\
+	common.h definitions.h grid.h\
+	logger.h main_dccrg.h main_pargrid.h parameters.h\
+	pargrid.h silowriter.h writevars.h
 
 CUDA_HDRS = cudafuncs.h cudalaunch.h devicegrid.h
 
@@ -112,7 +113,7 @@ main.o: $(DEPS_MAIN)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c main.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST}
 
 parameters.o: $(DEPS_PARAMETERS)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c parameters.cpp
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c parameters.cpp ${INC_BOOST}
 
 project.o: $(DEPS_PROJECT)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c project.cpp
