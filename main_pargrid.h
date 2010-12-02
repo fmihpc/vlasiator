@@ -10,6 +10,7 @@
 #include "pargrid.h"
 #include "definitions.h"
 #include "cell_spatial.h"
+#include "project.h"
 
 Logger logger;
 
@@ -48,6 +49,13 @@ bool findNeighbours(std::vector<const SpatialCell*>& nbrPtr,const ParGrid<Spatia
    if (nbrs[5] != std::numeric_limits<ID::type>::max()) nbrPtr[5] = mpiGrid[nbrs[5]];
    else nbrPtr[5] = NULL;
    return true;
+}
+
+void calculateCellParameters(ParGrid<SpatialCell>& mpiGrid,creal& t) {
+   // First check if the cell parameters really need to be recalculated:
+   if (cellParametersChanged(t) == false) return;
+   mpiGrid.getCells(Main::cells);
+   for (size_t i=0; i<Main::cells.size(); ++i) calcCellParameters(mpiGrid[Main::cells[i]]->cpu_cellParams,t);
 }
 
 void calculateAcceleration(ParGrid<SpatialCell>& mpiGrid) {

@@ -286,6 +286,9 @@ int main(int argn,char* args[]) {
    }
    // Do initial load balancing:
    initialLoadBalance(mpiGrid);
+   #ifndef PARGRID
+      comm.barrier();
+   #endif
    
    // Go through every spatial cell on this CPU, and create the initial state:
    #ifndef PARGRID
@@ -331,6 +334,11 @@ int main(int argn,char* args[]) {
    time_t before = std::time(NULL);
    logger << "\t (TIME) reports value " << before << std::endl;
    for (uint tstep=0; tstep < P::tsteps; ++tstep) {
+      // Check if spatial cell parameters need to be recalculated, i.e. if they 
+      // are time-dependent:
+      calculateCellParameters(mpiGrid,P::tstep*P::dt);
+      
+      // Propagate the state of simulation forward in time by dt:
       calculateAcceleration(mpiGrid);
       calculateSpatialDerivatives(mpiGrid);
       calculateSpatialFluxes(mpiGrid);

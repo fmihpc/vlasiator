@@ -14,6 +14,7 @@
 #include "definitions.h"
 #include "parameters.h"
 #include "cell_spatial.h"
+#include "project.h"
 
 namespace Main {
    std::vector<uint64_t> cells;
@@ -30,7 +31,6 @@ extern bool cpu_translation3(SpatialCell& cell,const std::vector<const SpatialCe
 
 void initialLoadBalance(dccrg<SpatialCell>& mpiGrid) {
    mpiGrid.balance_load();
-   comm.barrier();
 }
 
 bool findNeighbours(std::vector<const SpatialCell*>& nbrPtr,dccrg<SpatialCell>& mpiGrid,const uint64_t& cell) {
@@ -56,6 +56,13 @@ bool findNeighbours(std::vector<const SpatialCell*>& nbrPtr,dccrg<SpatialCell>& 
    if (nbrs.size() > 0) nbrPtr[5] = mpiGrid[nbrs[0]]; //            +z
    else nbrPtr[5] = NULL;
    return true;
+}
+
+void calculateCellParameters(dccrg<SpatialCell>& mpiGrid,creal& t) {
+   // First check if the cell parameters really need to be recalculated:
+   if (cellParametersChanged(t) == false) return;
+   Main::cells = mpiGrid.get_cells();
+   for (size_t i=0; i<Main::cells.size(); ++i) calcCellParameters(mpiGrid[Main::cells[i]]->cpu_cellParams,t);
 }
 
 void calculateAcceleration(dccrg<SpatialCell>& mpiGrid) {
