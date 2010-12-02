@@ -245,7 +245,7 @@ int main(int argn,char* args[]) {
    bool success = true;
    
    typedef Parameters P;
-   Parameters parameters;
+   Parameters parameters(argn,args);
 
    #ifndef PARGRID // INITIALIZE USING DCCRG
       boost::mpi::environment env(argn,args);
@@ -269,7 +269,7 @@ int main(int argn,char* args[]) {
    
    #else           // INITIALIZE USING PARGRID
       ParGrid<SpatialCell> mpiGrid(P::xcells_ini,P::ycells_ini,P::zcells_ini,P::xmin,P::ymin,P::zmin,
-				   P::xmax,P::ymax,P::zmax,Graph,argn,args);
+				   P::xmax,P::ymax,P::zmax,Hypergraph,argn,args);
         {
 	   std::stringstream ss;
 	   ss << "logfile." << mpiGrid.rank() << ".txt";
