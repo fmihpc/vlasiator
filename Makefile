@@ -1,5 +1,7 @@
 include Makefile.arto
 
+default: main
+
 # Compile directory:
 INSTALL=${HOME}/codes/cuda/cudafvm
 # Which project is compiled:
