@@ -17,10 +17,14 @@ namespace ID {
    typedef unsigned int type;
 }
 
+// Partitioners which can be used.
 enum LBM {
    Block,Random,RCB,RIB,HSFC,Graph,Hypergraph
 };
 
+// Overloaded templates which should return the corresponding data type 
+// for some C++ native data types. For example, if float has been 
+// typedef'd as Real, then MPI_Type<Real>() should return MPI_FLOAT.
 template<typename T> MPI_Datatype MPI_Type() {return 0;}
 template<> MPI_Datatype MPI_Type<int>() {return MPI_INT;}
 template<> MPI_Datatype MPI_Type<unsigned int>() {return MPI_UNSIGNED;}
@@ -28,13 +32,13 @@ template<> MPI_Datatype MPI_Type<float>() {return MPI_FLOAT;}
 template<> MPI_Datatype MPI_Type<double>() {return MPI_DOUBLE;}
 
 template<class C> struct ParCell {
-   uint unrefInd_i;
-   uint unrefInd_j;
-   uint unrefInd_k;
-   Real xcrd;
-   Real ycrd;
-   Real zcrd;
-   uint N_blocks;    /**< Number of velocity blocks in the cell.*/
+   uint unrefInd_i; /**< The i index of the cell.*/
+   uint unrefInd_j; /**< The j index of the cell.*/
+   uint unrefInd_k; /**< The k index of the cell.*/
+   Real xcrd;       /**< The x-coordinate of the midpoint of the cell.*/
+   Real ycrd;       /**< The y-coordinate of the midpoint of the cell.*/
+   Real zcrd;       /**< The z-coordinate of the midpoint of the cell.*/
+   uint N_blocks;   /**< Number of velocity blocks in the cell.*/
    
    bool hasRemoteNeighbours; /**< If true, at least one of the cell's neighbours are 
 			      * assigned to a different MPI process.*/
@@ -108,7 +112,7 @@ template<class C> class ParGrid {
    static int getNumberOfLocalCells(void* data,int* rcode);
    
  private:
-   LBM balanceMethod;          /**< The load balance method currently in use. Default is RCB.*/
+   LBM balanceMethod;          /**< The load balance method currently in use.*/
    Real grid_xmin;             /**< x-coordinate of the lower left corner of the grid.*/
    Real grid_xmax;             /**< x-coordinate of the upper right corner of the grid.*/
    Real grid_ymin;             /**< y-coordinate of the lower left corner of the grid.*/
@@ -132,8 +136,8 @@ template<class C> class ParGrid {
    uint unrefSize_x;           /**< Number of x-cells in unrefined grid.*/
    uint unrefSize_y;           /**< Number of y-cells in unrefined grid.*/
    uint unrefSize_z;           /**< Number of z-cells in unrefined grid.*/
-   static float weightCell;    /**< Weight of each cell.*/
-   static float weightEdge;    /**< Weight of each edge.*/
+   static float weightCell;    /**< Weight of each cell (Zoltan).*/
+   static float weightEdge;    /**< Weight of each edge (Zoltan).*/
    Zoltan* zoltan;             /**< Pointer to Zoltan load balancing library.*/
    
    static std::map<ID::type,int> hostProcesses;            /**< For each cell, the host process that contains that cell.
@@ -518,7 +522,7 @@ template<class C> bool ParGrid<C>::startNeighbourExchange(cuint& identifier) {
       const int dest = it->first.second;              // Rank of destination MPI process
       const int tag = it->first.first;                // Message tag
       MPIsendRequests.push_back(MPI_Request());
-      if (MPI_Isend(buffer,count,MPIdataType,dest,tag,MPI_COMM_WORLD,&(MPIsendRequests.back())) != MPI_SUCCESS) rvalue=false;
+      if (MPI_Issend(buffer,count,MPIdataType,dest,tag,MPI_COMM_WORLD,&(MPIsendRequests.back())) != MPI_SUCCESS) rvalue=false;
    }
    return rvalue;
 }
@@ -698,6 +702,11 @@ template<class C> std::string ParGrid<C>::loadBalanceMethod(const LBM& method) c
    return std::string("");
 }
 
+/** Return a pointer to the cell with the given global index.
+ * @param id The global ID of the requested cell.
+ * @return If NULL, the cell was not found on this process. Otherwise a pointer to 
+ * the cell data is returned.
+ */
 template<class C> C* ParGrid<C>::operator[](const ID::type& id) const {
    typename std::map<ID::type,ParCell<C> >::const_iterator it = localCells.find(id);
    if (it != localCells.end()) return it->second.dataptr;
@@ -762,6 +771,9 @@ template<class C> void ParGrid<C>::syncCellAssignments() {
    delete cellsPerProcess;
 }
 
+/** Exchance unrefined cell indices and midpoint coordinates between neighbouring 
+ * MPI processes.
+ */
 template<class C> void ParGrid<C>::syncCellCoordinates() {
    #ifndef NDEBUG
    if (remoteCells.size() != receiveList.size()) {
@@ -771,7 +783,8 @@ template<class C> void ParGrid<C>::syncCellCoordinates() {
    }
    #endif
    
-   // Here we send other MPI processes the coordinates of each cell.
+   // Here we send other MPI processes the coordinates of each cell. What is communicated are 
+   // unrefInd_i,unrefInd_j,unrefInd_k,xcrd,ycrd,zcrd.
    // First we need to construct an appropriate MPI datatype:
    MPI_Datatype type[6] = {MPI_UNSIGNED,MPI_UNSIGNED,MPI_UNSIGNED,MPI_Type<Real>(),MPI_Type<Real>(),MPI_Type<Real>()};
    int blockLen[6] = {1,1,1,1,1,1};
@@ -824,6 +837,9 @@ template<class C> void ParGrid<C>::syncCellCoordinates() {
    waitAll();
 }
 
+/** Wait until all sends and receives have been completed.
+ * @return True if all communication was successful.
+ */
 template<class C> bool ParGrid<C>::waitAll() {
    bool rvalue = true;
    // Reserve enough space for MPI status messages:
@@ -850,6 +866,10 @@ template<class C> bool ParGrid<C>::waitAll() {
    return rvalue;
 }
 
+/** Wait until all remote cell data has arrived from other MPI processes.
+ * Vector MPIrecvRequests is cleared here.
+ * @return True if all receives were successful.
+ */
 template<class C> bool ParGrid<C>::waitAllReceives() {
    bool rvalue = true;
    // Reserve enough space for MPI status messages:
@@ -867,6 +887,10 @@ template<class C> bool ParGrid<C>::waitAllReceives() {
    return rvalue;
 }
 
+/** Wait until all cells have been sent to other MPI processes.
+ * Vector MPIsendRequests is cleared here.
+ * @return True if all sends were successful.
+ */
 template<class C> bool ParGrid<C>::waitAllSends() {
    bool rvalue = true;
    // Reserve enough space for MPI status messages:
@@ -910,74 +934,6 @@ void ParGrid<C>::writeLoadDistribution() {
    }
 }
 
-// *************************************************************
-// ************************ ITERATORS ************************** 
-// *************************************************************
-/*
-template<class C> typename ParGrid<C>::iterator ParGrid<C>::begin() {
-   ParGrid<C>::iterator i;
-   i.set(localCells.begin());
-   return i;
-}
-
-template<class C> typename ParGrid<C>::iterator ParGrid<C>::boundaryCellsBegin() {
-   ParGrid<C>::iterator i;
-   i.allCells = false;
-   i.iteratingInner = false;
-   i.it = localCells.begin();
-   // Set the iterator to point to first cell with remote neighbours:
-   while (i.it->second.hasRemotes == false && i.it != localCells.end()) {
-      ++(i.it);
-   }
-   return i;
-}
-
-template<class C> typename ParGrid<C>::iterator ParGrid<C>::innerCellsBegin() {
-   ParGrid<C>::iterator i;
-   i.allCells = false;
-   i.iteratingInner = true;
-   // Set the iterator to point to a first cell without remote neighbours:
-   while (i.it->second.hasRemotes == true && i.it != localCells.end()) {
-      ++(i.it);
-   }
-   return i;
-}
-
-template<class C> typename ParGrid<C>::iterator ParGrid<C>::end() {
-   ParGrid<C>::iterator i;
-   i.set(localCells.end());
-   return i;
-}
-
-template<class C> ParGrid<C>::iterator::iterator(const bool& allCells,const bool& iteratingInner): 
-allCells(allCells),iteratingInner(iteratingInner) {
-   it = localCells.end();
-}
-
-template<class C> typename ParGrid<C>::iterator& ParGrid<C>::iterator::operator++() {
-   ++it;
-   if (allCells == false) {
-      if (iteratingInner == true)
-	while (it != localCells.end() && it->second.hasRemotes == true) ++it;
-      else 
-	while (it != localCells.end() && it->second.hasRemotes == false) ++it; 
-   }
-   return *this;
-}
-/*
-template<class C> void ParGrid<C>::set(typename std::map<ID::type,ParCell<C> >::iterator& i) {
-   it = i;
-   return *this;
-}*/
-/*
-template<class C> bool ParGrid<C>::iterator::operator==(const ParGrid<C>::iterator& x) {
-   return it == x.it;
-}
-
-template<class C> bool ParGrid<C>::iterator::operator!=(const ParGrid<C>::iterator& x) {
-   return it != x.it;
-}
-*/
 // *************************************************************
 // ***************** ZOLTAN CALLBACK FUNCTIONS *****************
 // *************************************************************
