@@ -151,6 +151,39 @@ bool SpatialCell::clone(const SpatialCell& s) {
    return  true;
 }
 
+uint SpatialCell::base_address_identifier = 0;
+
+size_t SpatialCell::size(void) {
+   cuint N_BLOCKS = Parameters::vxblocks_ini * Parameters::vyblocks_ini * Parameters::vzblocks_ini;
+   switch (SpatialCell::base_address_identifier) {
+   case 0:
+      return sizeof(Real) * N_BLOCKS * SIZE_VELBLOCK;
+   case 1:
+      return sizeof(Real) * 7 * MAX_VEL_BLOCKS * SIZE_VELBLOCK;
+   case 2:
+      return sizeof(Real) * 3 * MAX_VEL_BLOCKS * SIZE_VELBLOCK;
+      break;
+   }
+}
+
+void* SpatialCell::at(void) {
+   switch (SpatialCell::base_address_identifier) {
+    case 0:
+      return cpu_avgs;
+      break;
+    case 1:
+      return cpu_avgs;
+      break;
+    case 2:
+      return cpu_fx;
+      break;
+    default:
+      return cpu_avgs;
+      break;
+   }
+}
+
+
 #ifdef PARGRID
 #include <mpi.h>
 void SpatialCell::allocate() {

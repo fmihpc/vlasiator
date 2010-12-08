@@ -1,9 +1,9 @@
-include Makefile.arto
+include Makefile.ilja
 
 default: main
 
 # Compile directory:
-INSTALL=${HOME}/codes/cuda/cudafvm
+INSTALL=${HOME}/QuESpace/sandroos/cudafvm
 # Which project is compiled:
 PROJ=harm1D
 
@@ -26,7 +26,7 @@ DEPS_GPU_DEVICE_GRID = cell_spatial.h parameters.h devicegrid.h gpudevicegrid.cp
 DEPS_GRID = grid.h parameters.h grid.cpp
 DEPS_GRIDBUILDER = cell_spatial.h parameters.h project.h gridbuilder.cpp
 DEPS_LOGGER = logger.h logger.cpp
-DEPS_MAIN = main_dccrg.h main_pargrid.h parameters.h pargrid.h project.h grid.h silowriter.h writevars.h main.cpp
+DEPS_MAIN = main_dccrg.h main_pargrid.h parameters.h pargrid.h project.h grid.h silowriter.h writevars.h cell_spatial.h main.cpp
 DEPS_PARAMETERS = parameters.h parameters.cpp
 DEPS_PROJECT = project.h project.cpp
 DEPS_SILOWRITER = cell_spatial.h silowriter.h silowriter.cpp

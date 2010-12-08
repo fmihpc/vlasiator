@@ -1,6 +1,7 @@
 #ifndef CELL_SPATIAL
 #define CELL_SPATIAL
 
+#include <cstring>
 #include <utility>
 #include <vector>
 #ifndef PARGRID
@@ -29,6 +30,9 @@ struct SpatialCell {
    template<typename Archive> void save(Archive& ar,cuint& version) const;   
    template<typename Archive> void load(Archive& ar,cuint& version);
    BOOST_SERIALIZATION_SPLIT_MEMBER()
+   static size_t size();
+   static uint base_address_identifier;
+   void* at(void);
    #else
    void* baseAddress;
    void allocate();
