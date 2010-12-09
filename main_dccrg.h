@@ -78,6 +78,7 @@ void calculateSpatialDerivatives(dccrg<SpatialCell>& mpiGrid) {
    typedef Parameters P;
    // Start neighbour data exchange:
    P::transmit = Transmit::AVGS;
+   SpatialCell::base_address_identifier = 0;
    mpiGrid.start_remote_neighbour_data_update();
    // Calculate derivatives for inner cells:
    Main::cells = mpiGrid.get_cells_with_local_neighbours();
@@ -106,6 +107,7 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    typedef Parameters P;
    // Start neighbour data exchange:
    P::transmit = Transmit::AVGS | Transmit::DERIV1 | Transmit::DERIV2;
+   SpatialCell::base_address_identifier = 1;
    mpiGrid.start_remote_neighbour_data_update();
    // Calculate fluxes for inner cells:
    Main::cells = mpiGrid.get_cells_with_local_neighbours();
@@ -134,6 +136,7 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid) {
    typedef Parameters P;
    // Start neighbour data exchange:
    P::transmit = Transmit::FLUXES;
+   SpatialCell::base_address_identifier = 2;
    mpiGrid.start_remote_neighbour_data_update();
    // Propagate inner cells:
    Main::cells = mpiGrid.get_cells_with_local_neighbours();
