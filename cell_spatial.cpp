@@ -163,6 +163,9 @@ size_t SpatialCell::size(void) {
    case 2:
       return sizeof(Real) * 3 * MAX_VEL_BLOCKS * SIZE_VELBLOCK;
       break;
+   default:
+      return sizeof(Real) * N_BLOCKS * SIZE_VELBLOCK;
+      break;
    }
 }
 
