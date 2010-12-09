@@ -118,7 +118,7 @@ parameters.o: $(DEPS_PARAMETERS)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c parameters.cpp ${INC_BOOST}
 
 project.o: $(DEPS_PROJECT)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c project.cpp
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c project.cpp ${INC_BOOST}
 
 projinstall:
 	make project -C projects "INSTALL=${INSTALL}" "PROJ=${PROJ}"
