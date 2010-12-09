@@ -30,15 +30,16 @@ struct SpatialCell {
    BOOST_SERIALIZATION_SPLIT_MEMBER()
    template<typename Archive> void save(Archive& ar,cuint& version) const;
    template<typename Archive> void load(Archive& ar,cuint& version);
-   static size_t size();
+   static size_t size(void);
    static uint base_address_identifier;
    void* at(void);
+   static MPI_Datatype mpi_data_type(void);
    #else
    void* baseAddress;
    void allocate();
-   void* getBaseAddress(cuint& identifier);
-   static void getMPIdatatype(cuint& identifier,MPI_Datatype& dataType);
    #endif
+   void* getBaseAddress(cuint identifier);
+   static void getMPIdatatype(cuint identifier,MPI_Datatype& dataType);
    uint cpuIndex;         /**< An index to Grid which is used to calculate the data array pointers (cpu_avgs etc.).*/
    uint N_blocks;         /**< Number of velocity blocks in this cell.*/
 

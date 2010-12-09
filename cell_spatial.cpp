@@ -169,21 +169,16 @@ size_t SpatialCell::size(void) {
    }
 }
 
+MPI_Datatype SpatialCell::mpi_data_type(void)
+{
+   MPI_Datatype data_type;
+
+   SpatialCell::getMPIdatatype(SpatialCell::base_address_identifier, data_type);
+   return data_type;
+}
+
 void* SpatialCell::at(void) {
-   switch (SpatialCell::base_address_identifier) {
-    case 0:
-      return cpu_avgs;
-      break;
-    case 1:
-      return cpu_avgs;
-      break;
-    case 2:
-      return cpu_fx;
-      break;
-    default:
-      return cpu_avgs;
-      break;
-   }
+   return this->getBaseAddress(SpatialCell::base_address_identifier);
 }
 
 
@@ -193,7 +188,9 @@ void SpatialCell::allocate() {
    
 }
 
-void* SpatialCell::getBaseAddress(cuint& identifier) {
+#endif
+
+void* SpatialCell::getBaseAddress(cuint identifier) {
    // Hack: make sure that the pointers in SpatialCell are correct:
    switch (identifier) {
     case 0:
@@ -224,7 +221,7 @@ void* SpatialCell::getBaseAddress(cuint& identifier) {
    return cpu_avgs;
 }
 
-void SpatialCell::getMPIdatatype(cuint& identifier,MPI_Datatype& dataType) {
+void SpatialCell::getMPIdatatype(cuint identifier,MPI_Datatype& dataType) {
    // Another hack: this is a spatial member function, so SpatialCell::N_blocks 
    // cannot be used below:
    typedef Parameters P;
@@ -275,8 +272,4 @@ void SpatialCell::getMPIdatatype(cuint& identifier,MPI_Datatype& dataType) {
       break;
    }
 }
-
-#endif
-
-
 
