@@ -27,9 +27,9 @@ namespace Cell {
 struct SpatialCell {
    #ifndef PARGRID
    friend class boost::serialization::access;
-   template<typename Archive> void save(Archive& ar,cuint& version) const;   
-   template<typename Archive> void load(Archive& ar,cuint& version);
    BOOST_SERIALIZATION_SPLIT_MEMBER()
+   template<typename Archive> void save(Archive& ar,cuint& version) const;
+   template<typename Archive> void load(Archive& ar,cuint& version);
    static size_t size();
    static uint base_address_identifier;
    void* at(void);
