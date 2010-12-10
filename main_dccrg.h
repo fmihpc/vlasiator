@@ -6,9 +6,13 @@
 #include <cstdlib>
 #include <iostream>
 #include <vector>
-#include <dccrg.hpp>
 #include <boost/mpi.hpp>
 #include <zoltan.h>
+
+#define DCCRG_SEND_SINGLE_CELLS
+#define DCCRG_CELL_DATA_SIZE_FROM_USER
+#define DCCRG_USER_MPI_DATA_TYPE
+#include <dccrg.hpp>
 
 #include "logger.h"
 #include "definitions.h"

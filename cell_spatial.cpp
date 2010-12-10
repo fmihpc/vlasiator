@@ -14,15 +14,37 @@ extern Grid grid;
 extern Logger logger;
 
 SpatialCell::SpatialCell() {
-   typedef Parameters P;
-   N_blocks = 0;
-   
-   cpuIndex = numeric_limits<uint>::max();
+
+   //cout << "Spatial cell default constructor called" << endl;
+
    cpu_cellParams = new Real[SIZE_CELLPARAMS];
    cpu_nbrsSpa    = new uint[SIZE_NBRS_SPA];
+
+   N_blocks = Parameters::vxblocks_ini * Parameters::vyblocks_ini * Parameters::vzblocks_ini;
+   cpuIndex = grid.getFreeMemory(N_blocks);
+   if (cpuIndex == numeric_limits<uint>::max()) {
+      cerr << "Couldn't reserve memory for spatial cell" << endl;
+      exit(1);
+   }
+
+   cpu_nbrsVel     = grid.getNbrsVel()     + cpuIndex*SIZE_NBRS_VEL;
+   cpu_blockParams = grid.getBlockParams() + cpuIndex*SIZE_BLOCKPARAMS;
+   cpu_avgs        = grid.getAvgs()        + cpuIndex*SIZE_VELBLOCK;
+   cpu_fx          = grid.getFx()          + cpuIndex*SIZE_FLUXS;
+   cpu_fy          = grid.getFy()          + cpuIndex*SIZE_FLUXS;
+   cpu_fz          = grid.getFz()          + cpuIndex*SIZE_FLUXS;
+   cpu_d1x         = grid.getD1x()         + cpuIndex*SIZE_DERIV;
+   cpu_d1y         = grid.getD1y()         + cpuIndex*SIZE_DERIV;
+   cpu_d1z         = grid.getD1z()         + cpuIndex*SIZE_DERIV;
+   cpu_d2x         = grid.getD2x()         + cpuIndex*SIZE_DERIV;
+   cpu_d2y         = grid.getD2y()         + cpuIndex*SIZE_DERIV;
+   cpu_d2z         = grid.getD2z()         + cpuIndex*SIZE_DERIV;
 }
 
 SpatialCell::SpatialCell(const SpatialCell& s) {
+
+   //cout << "Spatial cell copy constructor called" << endl;
+
    // Copy variables related to the spatial cell:
    N_blocks       = s.N_blocks;
    cpu_cellParams = new Real[SIZE_CELLPARAMS];
@@ -53,6 +75,9 @@ SpatialCell::SpatialCell(const SpatialCell& s) {
 }
 
 SpatialCell& SpatialCell::operator=(const SpatialCell& s) {
+
+   //cout << "Spatial cell assignment operator called" << endl;
+
    // Clear previous memory:
    if (cpuIndex != numeric_limits<uint>::max()) {
       if (grid.removeReference(cpuIndex) == false) {
@@ -89,6 +114,7 @@ SpatialCell& SpatialCell::operator=(const SpatialCell& s) {
 }
 
 SpatialCell::~SpatialCell() {
+   //cout << "Spatial cell destructor called" << endl;
    // Free CPU memory:
    freeMemory();
 }
@@ -130,8 +156,8 @@ void SpatialCell::getMemInfo() {
 }
 
 bool SpatialCell::clone(const SpatialCell& s) {
+   //cout << "Spatial cell cloned" << endl;
    N_blocks = s.N_blocks;
-   if (allocateMemory(N_blocks) == false) return false;
    // Copy cell contents to new memory locations:
    for (uint i=0; i<SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
    for (uint i=0; i<SIZE_NBRS_SPA; ++i  ) cpu_nbrsSpa[i]    = s.cpu_nbrsSpa[i];

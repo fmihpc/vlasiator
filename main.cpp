@@ -56,10 +56,6 @@ void initSpatialCells(const ParGrid<SpatialCell>& mpiGrid) {
       ymin -= 0.5*dy;
       zmin -= 0.5*dz;
       
-      if (mpiGrid[cells[i]]->allocateMemory(P::vxblocks_ini*P::vyblocks_ini*P::vzblocks_ini) == false) {
-	 logger << "Cell " << cells[i] << " failed to allocate memory, exiting" << endl;
-	 exit(1);
-      }
       buildSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
    }
    
@@ -76,11 +72,6 @@ void initSpatialCells(const ParGrid<SpatialCell>& mpiGrid) {
 	ymin -= 0.5*dy;
 	zmin -= 0.5*dz;
 	
-	if (mpiGrid[cells[i]]->allocateMemory(P::vxblocks_ini*P::vyblocks_ini*P::vzblocks_ini) == false) {
-	   logger << "Cell " << cells[i] << " failed to allocate memory, exiting" << endl;
-	   logger << "\t Process " << mpiGrid.rank() << " has " << cells.size() << " remote cells" << std::endl;
-	   exit(1);
-	}
 	buildSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,true);
      }
    #endif
