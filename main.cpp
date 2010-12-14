@@ -155,7 +155,7 @@ void writeRemoteCells(const ParGrid<SpatialCell>& mpiGrid) {
    freeCells();
 }
 #endif
-   
+
 #ifndef PARGRID
 void writeVelocityBlocks(const boost::mpi::communicator& comm,dccrg<SpatialCell>& mpiGrid) {
 #else
@@ -230,6 +230,59 @@ void writeVelocityBlocks(const ParGrid<SpatialCell>& mpiGrid) {
    writeVelocityBlockGridScalar3D("D2y","velgrid",cell.N_blocks,cell.cpu_d2y);
    writeVelocityBlockGridScalar3D("D2z","velgrid",cell.N_blocks,cell.cpu_d2z);
    closeOutputFile();
+}
+
+#ifndef PARGRID
+void writeVelocityBlocks(const boost::mpi::communicator& comm, dccrg<SpatialCell>& mpiGrid, const uint64_t cell) {
+#else
+void writeVelocityBlocks(const ParGrid<SpatialCell>& mpiGrid, const ID::type cell) {
+#endif
+   std::stringstream fname;
+   #ifndef PARGRID
+   fname << "block_" << cell << "." << comm.rank() << '.';
+   #else
+   fname << "block_" << cell << "." << mpiGrid.rank() << '.';
+   #endif
+   fname.width(5);
+   fname.fill('0');
+   fname << Parameters::tstep << ".silo";
+
+   // Write velocity grid
+   openOutputFile(fname.str(),"vel_blocks");
+
+   writeVelocityBlockGridScalar3D("f", "velgrid", mpiGrid[cell]->N_blocks, mpiGrid[cell]->cpu_avgs);
+   writeVelocityBlockGridScalar3D("Fx", "velgrid", mpiGrid[cell]->N_blocks, mpiGrid[cell]->cpu_fx);
+   writeVelocityBlockGridScalar3D("Fy", "velgrid", mpiGrid[cell]->N_blocks, mpiGrid[cell]->cpu_fy);
+   writeVelocityBlockGridScalar3D("Fz", "velgrid", mpiGrid[cell]->N_blocks, mpiGrid[cell]->cpu_fz);
+   writeVelocityBlockGridScalar3D("D1x", "velgrid", mpiGrid[cell]->N_blocks, mpiGrid[cell]->cpu_d1x);
+   writeVelocityBlockGridScalar3D("D1y", "velgrid", mpiGrid[cell]->N_blocks, mpiGrid[cell]->cpu_d1y);
+   writeVelocityBlockGridScalar3D("D1z", "velgrid", mpiGrid[cell]->N_blocks, mpiGrid[cell]->cpu_d1z);
+   writeVelocityBlockGridScalar3D("D2x", "velgrid", mpiGrid[cell]->N_blocks, mpiGrid[cell]->cpu_d2x);
+   writeVelocityBlockGridScalar3D("D2y", "velgrid", mpiGrid[cell]->N_blocks, mpiGrid[cell]->cpu_d2y);
+   writeVelocityBlockGridScalar3D("D2z", "velgrid", mpiGrid[cell]->N_blocks, mpiGrid[cell]->cpu_d2z);
+   closeOutputFile();
+}
+
+#ifndef PARGRID
+void writeAllVelocityBlocks(const boost::mpi::communicator& comm, dccrg<SpatialCell>& mpiGrid) {
+#else
+void writeAllVelocityBlocks(const ParGrid<SpatialCell>& mpiGrid) {
+#endif
+
+   #ifndef PARGRID
+   std::vector<uint64_t> cells = mpiGrid.get_cells();
+   #else
+   std::vector<ID::type> cells;
+   mpiGrid.getCells(cells);
+   #endif
+
+   for (uint i = 0; i < cells.size(); ++i) {
+      #ifndef PARGRID
+      writeVelocityBlocks(comm, mpiGrid, cells[i]);
+      #else
+      writeVelocityBlocks(mpiGrid, cells[i]);
+      #endif
+   }
 }
 
 int main(int argn,char* args[]) {
@@ -312,11 +365,13 @@ int main(int argn,char* args[]) {
    #ifndef PARGRID
       writeSpatialCells(comm,mpiGrid);
       //writeVelocityBlocks(comm,mpiGrid);
+      writeAllVelocityBlocks(comm, mpiGrid);
       comm.barrier();
    #else
       writeSpatialCells(mpiGrid);
       //writeRemoteCells(mpiGrid);
       //writeVelocityBlocks(mpiGrid);
+      writeAllVelocityBlocks(mpiGrid);
       mpiGrid.barrier();
    #endif
 

@@ -6,6 +6,11 @@ default: main
 INSTALL=${HOME}/QuESpace/sandroos/cudafvm
 # Which project is compiled:
 PROJ=harm1D
+#PROJ=velocity_rotation_1+3d
+#PROJ=solar_wind_test
+#PROJ=Bx_const
+#PROJ=By_const
+#PROJ=Bz_const
 
 # Collect libraries into single variable:
 LIBS = ${LIB_BOOST}
