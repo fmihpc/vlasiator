@@ -26,6 +26,8 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatDerivs(CELL
    REAL* const d2y   = cell.cpu_d2y + BLOCK*SIZE_DERIV;
    REAL* const d1z   = cell.cpu_d1z + BLOCK*SIZE_DERIV;
    REAL* const d2z   = cell.cpu_d2z + BLOCK*SIZE_DERIV;
+   const REAL* const cellParams = cell.cpu_cellParams;
+   const REAL* const blockParams = cell.cpu_blockParams + BLOCK*SIZE_BLOCKPARAMS;
    const UINT STATE = cell.cpu_nbrsVel[BLOCK*SIZE_NBRS_VEL + NbrsVel::STATE];
 
    REAL xl2,xl1,xcc,xr1,xr2;
@@ -36,13 +38,13 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatDerivs(CELL
       xcc = cell.cpu_avgs[BLOCK*SIZE_VELBLOCK + trIndex(i,j,k)];
       // Get vol.avg. from -x neighbour, or calculate it using a boundary function:
       if (nbrPtrs[0] == NULL) {
-	 xl1 = 0.0; // Boundary value!
+	 xl1 = calcBoundVolAvg(i,j,k,cellParams,blockParams,xcc,0,true);
       } else {
 	 xl1 = nbrPtrs[0]->cpu_avgs[BLOCK*SIZE_VELBLOCK + trIndex(i,j,k)];
       }
       // Get vol.avg. from +x neighbour, or calculate it using a boundary function:
       if (nbrPtrs[1] == NULL) {
-	 xr1 = 0.0; // Boundary value!
+	 xr1 = calcBoundVolAvg(i,j,k,cellParams,blockParams,xcc,0,false);
       } else {
 	 xr1 = nbrPtrs[1]->cpu_avgs[BLOCK*SIZE_VELBLOCK + trIndex(i,j,k)];
       }
@@ -54,13 +56,13 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatDerivs(CELL
       xcc = cell.cpu_avgs[BLOCK*SIZE_VELBLOCK + trIndex(i,j,k)];
       // Get vol.avg. from -y neighbour, or calculate it using a boundary function:
       if (nbrPtrs[2] == NULL) {
-	 xl1 = 0.0; // Boundary value!
+	 xl1 = calcBoundVolAvg(i,j,k,cellParams,blockParams,xcc,1,true);
       } else {
 	 xl1 = nbrPtrs[2]->cpu_avgs[BLOCK*SIZE_VELBLOCK + trIndex(i,j,k)];
       }
       // Get vol.avg. from +y neighbour, or calculate it using a boundary function:
       if (nbrPtrs[3] == NULL) {
-	 xr1 = 0.0; // Boundary value!
+	 xr1 = calcBoundVolAvg(i,j,k,cellParams,blockParams,xcc,1,false);
       } else {
 	 xr1 = nbrPtrs[3]->cpu_avgs[BLOCK*SIZE_VELBLOCK + trIndex(i,j,k)];
       }
@@ -72,13 +74,13 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatDerivs(CELL
       xcc = cell.cpu_avgs[BLOCK*SIZE_VELBLOCK + trIndex(i,j,k)];
       // Get vol.avg. from -z neighbour, or calculate it using a boundary function:
       if (nbrPtrs[4] == NULL) {
-	 xl1 = 0.0; // Boundary value!
+	 xl1 = calcBoundVolAvg(i,j,k,cellParams,blockParams,xcc,2,true);
       } else {
 	 xl1 = nbrPtrs[4]->cpu_avgs[BLOCK*SIZE_VELBLOCK + trIndex(i,j,k)];
       }
       // Get vol.avg. from +z neighbour, or calculate it using a boundary function:
       if (nbrPtrs[5] == NULL) {
-	 xr1 = 0.0; // Boundary value!
+	 xr1 = calcBoundVolAvg(i,j,k,cellParams,blockParams,xcc,2,false);
       } else {
 	 xr1 = nbrPtrs[5]->cpu_avgs[BLOCK*SIZE_VELBLOCK + trIndex(i,j,k)];
       }
@@ -92,6 +94,8 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatFluxesX(CEL
    const REAL* const d1x  = cell.cpu_d1x  + BLOCK*SIZE_DERIV;
    const REAL* const d2x  = cell.cpu_d2x  + BLOCK*SIZE_DERIV;
    REAL* const fx         = cell.cpu_fx   + BLOCK*SIZE_FLUXS;
+   const REAL* const cellParams  = cell.cpu_cellParams;
+   const REAL* const blockParams = cell.cpu_blockParams + BLOCK*SIZE_BLOCKPARAMS;
    
    REAL avg_pos,d1_pos,d2_pos;
    REAL avg_neg,d1_neg,d2_neg;
@@ -104,7 +108,7 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatFluxesX(CEL
       // Reconstruct volume average at negative side of x-face.
       // Fetch vol.avg and derivatives from -x neighbour, or calculate them using a boundary func.:
       if (nbrPtrs[0] == NULL) {
-	 avg_neg = 0.0; // Boundary values !
+	 avg_neg = calcBoundVolAvg(i,j,k,cellParams,blockParams,avg_pos,0,true);
 	 d1_neg = 0.0;
 	 d2_neg = 0.0;
       } else {
@@ -123,6 +127,8 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatFluxesY(CEL
    const REAL* const d1y  = cell.cpu_d1y  + BLOCK*SIZE_DERIV;
    const REAL* const d2y  = cell.cpu_d2y  + BLOCK*SIZE_DERIV;
    REAL* const fy         = cell.cpu_fy   + BLOCK*SIZE_FLUXS;
+   const REAL* const cellParams  = cell.cpu_cellParams;
+   const REAL* const blockParams = cell.cpu_blockParams + BLOCK*SIZE_BLOCKPARAMS;
    
    REAL avg_pos,d1_pos,d2_pos;
    REAL avg_neg,d1_neg,d2_neg;
@@ -135,7 +141,7 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatFluxesY(CEL
       // Reconstruct volume average at negative side of y-face.
       // Fetch vol.avg and derivatives from -y neighbour, or calculate them using a boundary func.:
       if (nbrPtrs[2] == NULL) {
-	 avg_neg = 0.0; // Boundary values !
+	 avg_neg = calcBoundVolAvg(i,j,k,cellParams,blockParams,avg_pos,1,true);
 	 d1_neg = 0.0;
 	 d2_neg = 0.0;
       } else {
@@ -145,8 +151,7 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatFluxesY(CEL
       }
       avg_neg = reconstruct_neg(avg_neg,d1_neg,d2_neg);
       // Calculate y-flux:
-      fy[trIndex(i,j,k)] = spatialFluxY(j,0.0f,0.0f,cell.cpu_blockParams+BLOCK*SIZE_BLOCKPARAMS);
-      //fy[trIndex(i,j,k)] = spatialFluxY(j,avg_neg,avg_pos,cell.cpu_blockParams+BLOCK*SIZE_BLOCKPARAMS);
+      fy[trIndex(i,j,k)] = spatialFluxY(j,avg_neg,avg_pos,cell.cpu_blockParams+BLOCK*SIZE_BLOCKPARAMS);
    }
 }
       
@@ -155,6 +160,8 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatFluxesZ(CEL
    const REAL* const d1z  = cell.cpu_d1z  + BLOCK*SIZE_DERIV;
    const REAL* const d2z  = cell.cpu_d2z  + BLOCK*SIZE_DERIV;
    REAL* const fz         = cell.cpu_fz   + BLOCK*SIZE_FLUXS;
+   const REAL* const cellParams  = cell.cpu_cellParams;
+   const REAL* const blockParams = cell.cpu_blockParams + BLOCK*SIZE_BLOCKPARAMS;
    
    REAL avg_pos,d1_pos,d2_pos;
    REAL avg_neg,d1_neg,d2_neg;
@@ -167,7 +174,7 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatFluxesZ(CEL
       // Reconstruct volume average at negative side of z-face.
       // Fetch vol.avg and derivatives from -z neighbour, or calculate them using a boundary func.:
       if (nbrPtrs[4] == NULL) {
-	 avg_neg = 0.0; // Boundary values !
+	 avg_neg = calcBoundVolAvg(i,j,k,cellParams,blockParams,avg_pos,2,true);
 	 d1_neg = 0.0;
 	 d2_neg = 0.0;
       } else {
@@ -177,8 +184,7 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatFluxesZ(CEL
       }
       avg_neg = reconstruct_neg(avg_neg,d1_neg,d2_neg);
       // Calculate z-flux:
-      //fz[trIndex(i,j,k)] = spatialFluxZ(k,avg_neg,avg_pos,cell.cpu_blockParams+BLOCK*SIZE_BLOCKPARAMS);
-      fz[trIndex(i,j,k)] = spatialFluxZ(k,0.0f,0.0f,cell.cpu_blockParams+BLOCK*SIZE_BLOCKPARAMS);
+      fz[trIndex(i,j,k)] = spatialFluxZ(k,avg_neg,avg_pos,cell.cpu_blockParams+BLOCK*SIZE_BLOCKPARAMS);
    }
 }
 
@@ -187,6 +193,11 @@ template<typename REAL,typename UINT,typename CELL> void cpu_propagateSpat(CELL&
    const REAL* const fx = cell.cpu_fx + BLOCK*SIZE_FLUXS;
    const REAL* const fy = cell.cpu_fy + BLOCK*SIZE_FLUXS;
    const REAL* const fz = cell.cpu_fz + BLOCK*SIZE_FLUXS;
+   const REAL* const d1x = cell.cpu_d1x + BLOCK*SIZE_DERIV;
+   const REAL* const d1y = cell.cpu_d1y + BLOCK*SIZE_DERIV;
+   const REAL* const d1z = cell.cpu_d1z + BLOCK*SIZE_DERIV;
+   const REAL* const cellParams =  cell.cpu_cellParams;
+   const REAL* const blockParams = cell.cpu_blockParams + BLOCK*SIZE_BLOCKPARAMS;
    
    const REAL DTDX = DT / cell.cpu_cellParams[CellParams::DX];
    const REAL DTDY = DT / cell.cpu_cellParams[CellParams::DY];
@@ -198,7 +209,9 @@ template<typename REAL,typename UINT,typename CELL> void cpu_propagateSpat(CELL&
       flux_neg = fx[trIndex(i,j,k)];
       // Get positive face flux from +x neighbour, or calculate it using a bound.func.:
       if (nbrPtrs[1] == NULL) {	
-	 flux_pos = 0.0; // Boundary value!
+	 flux_pos = spatialFluxX(i,reconstruct_neg(avgs[trIndex(i,j,k)],d1x[trIndex(i,j,k)],convert<REAL>(0.0)),
+				 reconstruct_pos(calcBoundVolAvg(i,j,k,cellParams,blockParams,avgs[trIndex(i,j,k)],0,false),
+						 convert<REAL>(0.0),convert<REAL>(0.0)),blockParams);
       } else {
 	 flux_pos = nbrPtrs[1]->cpu_fx[BLOCK*SIZE_FLUXS + trIndex(i,j,k)];
       }
@@ -207,7 +220,10 @@ template<typename REAL,typename UINT,typename CELL> void cpu_propagateSpat(CELL&
       flux_neg = fy[trIndex(i,j,k)];
       // Get positive face flux from +y neighbour, or calculate it using a bound.func.:
       if (nbrPtrs[3] == NULL) {
-	 flux_pos = 0.0; // Boundary value!
+	 flux_pos = spatialFluxY(j,reconstruct_neg(avgs[trIndex(i,j,k)],d1y[trIndex(i,j,k)],convert<REAL>(0.0)),
+				 reconstruct_pos(calcBoundVolAvg(i,j,k,cellParams,blockParams,avgs[trIndex(i,j,k)],1,false),
+						 convert<REAL>(0.0),convert<REAL>(0.0)),blockParams);
+				 
       } else {
 	 flux_pos = nbrPtrs[3]->cpu_fy[BLOCK*SIZE_FLUXS + trIndex(i,j,k)];
       }
@@ -216,7 +232,9 @@ template<typename REAL,typename UINT,typename CELL> void cpu_propagateSpat(CELL&
       flux_neg = fz[trIndex(i,j,k)];
       // Get positive face flux from +z neighbour, or calculate it using a bound.func.:
       if (nbrPtrs[5] == NULL) {
-	 flux_pos = 0.0; // Boundary value!
+	 flux_pos = spatialFluxZ(k,reconstruct_neg(avgs[trIndex(i,j,k)],d1z[trIndex(i,j,k)],convert<REAL>(0.0)),
+				 reconstruct_pos(calcBoundVolAvg(i,j,k,cellParams,blockParams,avgs[trIndex(i,j,k)],2,false),
+						 convert<REAL>(0.0),convert<REAL>(0.0)),blockParams);
       } else {
 	 flux_pos = nbrPtrs[5]->cpu_fz[BLOCK*SIZE_FLUXS + trIndex(i,j,k)];
       }

@@ -46,6 +46,12 @@ void calcCellParameters(Real* cellParams,creal& t);
 Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
 			   creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz);
 
+template<typename T>
+T calcBoundVolAvg(cuint& iv,cuint& jv,cuint& kv,const T* const cellParams,
+		  const T* const blockParams,const T& avg,const int& crd,const bool& negSide) {
+   return avg;
+}
+
 template<typename T> T spatialFluxX(cuint& i,const T& avg_neg,const T& avg_pos,const T* const blockParams) {
    return 0.0;
 }
