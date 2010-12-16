@@ -249,6 +249,12 @@ void writeVelocityBlocks(const ParGrid<SpatialCell>& mpiGrid, const ID::type cel
 
    // Write velocity grid
    openOutputFile(fname.str(),"vel_blocks");
+   reserveVelocityBlocks(mpiGrid[cell]->N_blocks);
+   for (uint i = 0; i < mpiGrid[cell]->N_blocks; ++i) {
+      addVelocityGridBlock3D(mpiGrid[cell]->cpu_blockParams + i * SIZE_BLOCKPARAMS);
+   }
+   writeReservedBlocks("velgrid");
+   freeBlocks();
 
    writeVelocityBlockGridScalar3D("f", "velgrid", mpiGrid[cell]->N_blocks, mpiGrid[cell]->cpu_avgs);
    writeVelocityBlockGridScalar3D("Fx", "velgrid", mpiGrid[cell]->N_blocks, mpiGrid[cell]->cpu_fx);

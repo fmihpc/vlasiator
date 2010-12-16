@@ -51,6 +51,10 @@ bool findNeighbours(std::vector<const SpatialCell*>& nbrPtr,const ParGrid<Spatia
    return true;
 }
 
+void calculateCellParameters(ParGrid<SpatialCell>& mpiGrid, creal& t) {
+   return;
+}
+
 void calculateCellParameters(ParGrid<SpatialCell>& mpiGrid,creal& t) {
    // First check if the cell parameters really need to be recalculated:
    if (cellParametersChanged(t) == false) return;

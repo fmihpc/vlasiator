@@ -62,6 +62,10 @@ bool findNeighbours(std::vector<const SpatialCell*>& nbrPtr,dccrg<SpatialCell>& 
    return true;
 }
 
+void calculateSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t) {
+   return;
+}
+
 void calculateCellParameters(dccrg<SpatialCell>& mpiGrid,creal& t) {
    // First check if the cell parameters really need to be recalculated:
    if (cellParametersChanged(t) == false) return;
