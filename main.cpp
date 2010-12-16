@@ -371,13 +371,13 @@ int main(int argn,char* args[]) {
    #ifndef PARGRID
       writeSpatialCells(comm,mpiGrid);
       //writeVelocityBlocks(comm,mpiGrid);
-      writeAllVelocityBlocks(comm, mpiGrid);
+      //writeAllVelocityBlocks(comm, mpiGrid);
       comm.barrier();
    #else
       writeSpatialCells(mpiGrid);
       //writeRemoteCells(mpiGrid);
       //writeVelocityBlocks(mpiGrid);
-      writeAllVelocityBlocks(mpiGrid);
+      //writeAllVelocityBlocks(mpiGrid);
       mpiGrid.barrier();
    #endif
 
@@ -386,9 +386,8 @@ int main(int argn,char* args[]) {
    time_t before = std::time(NULL);
    logger << "\t (TIME) reports value " << before << std::endl;
    for (uint tstep=0; tstep < P::tsteps; ++tstep) {
-      // Check if spatial cell parameters need to be recalculated, i.e. if they 
-      // are time-dependent:
-      calculateCellParameters(mpiGrid,P::tstep*P::dt);
+      // Recalculate (maybe) spatial cell parameters
+      calculateSimParameters(mpiGrid, P::tstep*P::dt);
       
       // Propagate the state of simulation forward in time by dt:
       calculateAcceleration(mpiGrid);
@@ -399,24 +398,26 @@ int main(int argn,char* args[]) {
       
       // Check if the full simulation state should be written to disk
       if (P::tstep % P::saveInterval == 0) {
-	 logger << "(MAIN): Saving full state to disk at tstep = " << tstep << std::endl;
-	 #ifdef PARGRID
+         logger << "(MAIN): Saving full state to disk at tstep = " << tstep << std::endl;
+         #ifdef PARGRID
 	    logger << "\t # sends to other MPI processes      = " << mpiGrid.getNumberOfSends() << std::endl;
 	    logger << "\t # receives from other MPI processes = " << mpiGrid.getNumberOfReceives() << std::endl;
-	 #endif
+         #endif
       }
 
       // Check if variables and derived quantities should be written to disk
       if (P::tstep % P::diagnInterval == 0) {
-	 logger << "(MAIN): Saving variables to disk at tstep = " << tstep << std::endl;
-	 #ifndef PARGRID
-	    writeSpatialCells(comm,mpiGrid);
-	    //writeVelocityBlocks(comm,mpiGrid);
-	 #else
-	    writeSpatialCells(mpiGrid);
-	    //writeRemoteCells(mpiGrid);
-	    //writeVelocityBlocks(mpiGrid);
-	 #endif
+         logger << "(MAIN): Saving variables to disk at tstep = " << tstep << std::endl;
+         #ifndef PARGRID
+            writeSpatialCells(comm,mpiGrid);
+            //writeVelocityBlocks(comm,mpiGrid);
+            //writeAllVelocityBlocks(comm, mpiGrid);
+         #else
+            writeSpatialCells(mpiGrid);
+            //writeRemoteCells(mpiGrid);
+            //writeVelocityBlocks(mpiGrid);
+            //writeAllVelocityBlocks(mpiGrid);
+         #endif
       }
       #ifndef PARGRID
          comm.barrier();
@@ -433,10 +434,12 @@ int main(int argn,char* args[]) {
    #ifndef PARGRID
       writeSpatialCells(comm,mpiGrid);
       //writeVelocityBlocks(comm,mpiGrid);
+      //writeAllVelocityBlocks(comm, mpiGrid);
    #else
       writeSpatialCells(mpiGrid);
       //writeRemoteCells(mpiGrid);
       //writeVelocityBlocks(mpiGrid);
+      //writeAllVelocityBlocks(mpiGrid);
    #endif
 
    logger << "(MAIN): Exiting." << std::endl;

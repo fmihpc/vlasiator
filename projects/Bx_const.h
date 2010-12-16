@@ -1,4 +1,17 @@
+#ifndef BX_CONST_H
+#define BX_CONST_H
+
 #include "definitions.h"
+#include "cell_spatial.h"
+
+#ifndef PARGRID
+	#define DCCRG_SEND_SINGLE_CELLS
+	#define DCCRG_CELL_DATA_SIZE_FROM_USER
+	#define DCCRG_USER_MPI_DATA_TYPE
+	#include "dccrg.hpp"
+#else
+	#include "pargrid.h"
+#endif
 
 /** Query if spatial cell parameters (of any cell) have changed and need to be 
  * recalculated. If you have a completely static case, then you can always return 
@@ -27,6 +40,12 @@ void calcBlockParameters(Real* blockParams);
  * of the state of the simulation, you can read it from Parameters.
  */
 void calcCellParameters(Real* cellParams,creal& t);
+
+#ifndef PARGRID
+void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t);
+#else
+void calcSimParameters(ParGrid<SpatialCell>& mpiGrid, creal& t);
+#endif
 
 /** Integrate the distribution function over the given six-dimensional phase-space cell.
  * @param x Starting value of the x-coordinate of the cell.
@@ -89,5 +108,5 @@ template<typename T> T velocityFluxZ(const T& I,const T& J,const T& avg_neg,cons
    return convert<T>(0.5)*AZ*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AZ)*(avg_pos-avg_neg);
 }
 
-
+#endif
 
