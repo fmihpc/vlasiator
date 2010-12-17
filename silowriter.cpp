@@ -18,6 +18,8 @@ static Real* y = NULL;
 static Real* z = NULL;
 static Real* avgs = NULL;
 
+static uint N_cells = 0;
+
 void allocateArrays(cuint& BLOCKS) {
    blockCntr = 0;
    nodeList = new int[BLOCKS*SIZE_VELBLOCK*8];
@@ -27,13 +29,14 @@ void allocateArrays(cuint& BLOCKS) {
    avgs = new Real[BLOCKS*SIZE_VELBLOCK];
 }
 
-void allocateCellArrays(cuint& CELLS) {
+void allocateCellArrays(cuint& CELLS,cuint& N_components) {
+   N_cells = CELLS;
    blockCntr = 0;
    nodeList = new int[CELLS*8];
    x = new Real[CELLS*8];
    y = new Real[CELLS*8];
    z = new Real[CELLS*8];
-   avgs = new Real[CELLS];
+   avgs = new Real[CELLS*N_components];
 }
 
 void deallocateArrays() {
@@ -72,7 +75,7 @@ bool freeCells() {
 }
 
 bool reserveSpatialCells(cuint& CELLS) {
-   allocateCellArrays(CELLS);
+   allocateCellArrays(CELLS,10);
    return true;
 }
 
@@ -120,7 +123,7 @@ bool addVelocityBlock(Real* blockParams,Real* block) {
    addVelocityGridBlock3D(blockParams);
 }*/
 
-bool writeSpatialCells(const std::string& gridName,const std::string& varName) {
+bool writeSpatialCells(const std::string& gridName) {
    if (fileptr == NULL) return false;
    
    int Ndims = 3;
@@ -141,12 +144,22 @@ bool writeSpatialCells(const std::string& gridName,const std::string& varName) {
    Real* crdArrays[] = {x,y,z};
       
    DBPutUcdmesh(fileptr,gridName.c_str(),Ndims,crdNames,crdArrays,Nzones*8,Nzones,"zonelist",NULL,DB_FLOAT,NULL);
-   
-   if (DBPutUcdvar1(fileptr,varName.c_str(),gridName.c_str(),avgs,blockCntr,NULL,0,DB_FLOAT,DB_ZONECENT,NULL) < 0) return false;
-   return true;
+
+   bool success = true;
+   if (DBPutUcdvar1(fileptr,"Ex",gridName.c_str(),avgs+0*N_cells,blockCntr,NULL,0,DB_FLOAT,DB_ZONECENT,NULL) < 0) success = false;
+   if (DBPutUcdvar1(fileptr,"Ey",gridName.c_str(),avgs+1*N_cells,blockCntr,NULL,0,DB_FLOAT,DB_ZONECENT,NULL) < 0) success = false;
+   if (DBPutUcdvar1(fileptr,"Ez",gridName.c_str(),avgs+2*N_cells,blockCntr,NULL,0,DB_FLOAT,DB_ZONECENT,NULL) < 0) success = false;
+   if (DBPutUcdvar1(fileptr,"Bx",gridName.c_str(),avgs+3*N_cells,blockCntr,NULL,0,DB_FLOAT,DB_ZONECENT,NULL) < 0) success = false;
+   if (DBPutUcdvar1(fileptr,"By",gridName.c_str(),avgs+4*N_cells,blockCntr,NULL,0,DB_FLOAT,DB_ZONECENT,NULL) < 0) success = false;
+   if (DBPutUcdvar1(fileptr,"Bz",gridName.c_str(),avgs+5*N_cells,blockCntr,NULL,0,DB_FLOAT,DB_ZONECENT,NULL) < 0) success = false;
+   if (DBPutUcdvar1(fileptr,"rho",gridName.c_str(),avgs+6*N_cells,blockCntr,NULL,0,DB_FLOAT,DB_ZONECENT,NULL) < 0) success = false;
+   if (DBPutUcdvar1(fileptr,"rhovx",gridName.c_str(),avgs+7*N_cells,blockCntr,NULL,0,DB_FLOAT,DB_ZONECENT,NULL) < 0) success = false;
+   if (DBPutUcdvar1(fileptr,"rhovy",gridName.c_str(),avgs+8*N_cells,blockCntr,NULL,0,DB_FLOAT,DB_ZONECENT,NULL) < 0) success = false;
+   if (DBPutUcdvar1(fileptr,"rhovz",gridName.c_str(),avgs+9*N_cells,blockCntr,NULL,0,DB_FLOAT,DB_ZONECENT,NULL) < 0) success = false;
+   return success;
 }
 
-bool addSpatialCell(Real* cellParams,creal& avg) {
+bool addSpatialCell(Real* cellParams) {
    if (fileptr == NULL) return false;
    
    x[blockCntr*8 + 0] = cellParams[CellParams::XCRD];
@@ -178,7 +191,17 @@ bool addSpatialCell(Real* cellParams,creal& avg) {
 
    for (uint i=0; i<8; ++i) nodeList[blockCntr*8+i] = blockCntr*8+i;
    
-   avgs[blockCntr] = avg;
+   avgs[0*N_cells + blockCntr] = cellParams[CellParams::EX];
+   avgs[1*N_cells + blockCntr] = cellParams[CellParams::EY];
+   avgs[2*N_cells + blockCntr] = cellParams[CellParams::EZ];
+   avgs[3*N_cells + blockCntr] = cellParams[CellParams::BX];
+   avgs[4*N_cells + blockCntr] = cellParams[CellParams::BY];
+   avgs[5*N_cells + blockCntr] = cellParams[CellParams::BZ];
+   avgs[6*N_cells + blockCntr] = cellParams[CellParams::RHO];
+   avgs[7*N_cells + blockCntr] = cellParams[CellParams::RHOVX];
+   avgs[8*N_cells + blockCntr] = cellParams[CellParams::RHOVY];
+   avgs[9*N_cells + blockCntr] = cellParams[CellParams::RHOVZ];
+   
    ++blockCntr;
    return true;
 }

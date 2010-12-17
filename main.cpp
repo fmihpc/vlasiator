@@ -110,9 +110,13 @@ void writeSpatialCells(const ParGrid<SpatialCell>& mpiGrid) {
       }
       Real n = 0.0;
       for (uint b=0; b<SIZE_VELBLOCK*mpiGrid[cells[i]]->N_blocks; ++b) n += avgs[b];
-      addSpatialCell(mpiGrid[cells[i]]->cpu_cellParams,n);
+      mpiGrid[cells[i]]->cpu_cellParams[CellParams::RHO] = n;
+      mpiGrid[cells[i]]->cpu_cellParams[CellParams::RHOVX] = 0.0;
+      mpiGrid[cells[i]]->cpu_cellParams[CellParams::RHOVY] = 0.0;
+      mpiGrid[cells[i]]->cpu_cellParams[CellParams::RHOVZ] = 0.0;
+      addSpatialCell(mpiGrid[cells[i]]->cpu_cellParams);
    }
-   writeSpatialCells("spatcells","n");
+   writeSpatialCells("spatcells");
    closeOutputFile();
    freeCells();
 }
