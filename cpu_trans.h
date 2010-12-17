@@ -1,6 +1,11 @@
 #ifndef CPU_TRANS_H
 #define CPU_TRANS_H
 
+#ifdef DEBUG_SOLVERS
+#include "cstdlib"
+#include "iostream"
+using namespace std;
+#endif
 #include <vector>
 #include "definitions.h"
 #include "common.h"
@@ -12,6 +17,12 @@ template<typename T> T trIndex(const T& i,const T& j,const T& k) {return k*WID2+
 template<typename T> T isBoundary(const T& STATE,const T& BND) {return STATE & BND;}
 
 template<typename T> T spatDerivs1(const T& xl2,const T& xl1,const T& xcc,const T& xr1,const T& xr2) {
+   #ifdef DEBUG_SOLVERS
+   if (superbee<T>(xl1,xcc,xr1) != superbee<T>(xl1,xcc,xr1)) {
+      cout << "Nan returned from superbee with xl1, xcc, xr1 given to spatDerivs1 being: " << xl1 << " " << xcc << " " << xr1 << endl;
+      exit(EXIT_FAILURE);
+   }
+   #endif
    return superbee<T>(xl1,xcc,xr1);
 }
 
@@ -36,18 +47,39 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatDerivs(CELL
    // *************** X DERIVATIVES ******************
    for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
       xcc = cell.cpu_avgs[BLOCK*SIZE_VELBLOCK + trIndex(i,j,k)];
+      #ifdef DEBUG_SOLVERS
+      if (xcc != xcc) {
+         cout << "xcc in x derivatives is nan for i, j, k: " << i << " " << j << " " << k << endl;
+         exit(EXIT_FAILURE);
+      }
+      #endif
+
       // Get vol.avg. from -x neighbour, or calculate it using a boundary function:
       if (nbrPtrs[0] == NULL) {
 	 xl1 = calcBoundVolAvg(i,j,k,cellParams,blockParams,xcc,0,true);
       } else {
 	 xl1 = nbrPtrs[0]->cpu_avgs[BLOCK*SIZE_VELBLOCK + trIndex(i,j,k)];
       }
+      #ifdef DEBUG_SOLVERS
+      if (xl1 != xl1) {
+         cout << "xl1 in x derivatives is nan for i, j, k: " << i << " " << j << " " << k << endl;
+         exit(EXIT_FAILURE);
+      }
+      #endif
+
       // Get vol.avg. from +x neighbour, or calculate it using a boundary function:
       if (nbrPtrs[1] == NULL) {
 	 xr1 = calcBoundVolAvg(i,j,k,cellParams,blockParams,xcc,0,false);
       } else {
 	 xr1 = nbrPtrs[1]->cpu_avgs[BLOCK*SIZE_VELBLOCK + trIndex(i,j,k)];
       }
+      #ifdef DEBUG_SOLVERS
+      if (xr1 != xr1) {
+         cout << "xr1 in x derivatives is nan for i, j, k: " << i << " " << j << " " << k << endl;
+         exit(EXIT_FAILURE);
+      }
+      #endif
+
       d1x[trIndex(i,j,k)] = spatDerivs1(xl2,xl1,xcc,xr1,xr2);
       d2x[trIndex(i,j,k)] = spatDerivs2(xl2,xl1,xcc,xr1,xr2);
    }
@@ -119,6 +151,12 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatFluxesX(CEL
       avg_neg = reconstruct_neg(avg_neg,d1_neg,d2_neg);
       // Calculate x-flux:
       fx[trIndex(i,j,k)] = spatialFluxX(i,avg_neg,avg_pos,cell.cpu_blockParams+BLOCK*SIZE_BLOCKPARAMS);
+      #ifdef DEBUG_SOLVERS
+      if (fx[trIndex(i,j,k)] != fx[trIndex(i,j,k)]) {
+         cout << "fx is nan for i, j, k: " << i << " " << j << " " << k << endl;
+         exit(EXIT_FAILURE);
+      }
+      #endif
    }
 }
 
@@ -152,6 +190,12 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatFluxesY(CEL
       avg_neg = reconstruct_neg(avg_neg,d1_neg,d2_neg);
       // Calculate y-flux:
       fy[trIndex(i,j,k)] = spatialFluxY(j,avg_neg,avg_pos,cell.cpu_blockParams+BLOCK*SIZE_BLOCKPARAMS);
+      #ifdef DEBUG_SOLVERS
+      if (fy[trIndex(i,j,k)] != fy[trIndex(i,j,k)]) {
+         cout << "fy is nan for i, j, k: " << i << " " << j << " " << k << endl;
+         exit(EXIT_FAILURE);
+      }
+      #endif
    }
 }
       
@@ -185,6 +229,12 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatFluxesZ(CEL
       avg_neg = reconstruct_neg(avg_neg,d1_neg,d2_neg);
       // Calculate z-flux:
       fz[trIndex(i,j,k)] = spatialFluxZ(k,avg_neg,avg_pos,cell.cpu_blockParams+BLOCK*SIZE_BLOCKPARAMS);
+      #ifdef DEBUG_SOLVERS
+      if (fz[trIndex(i,j,k)] != fz[trIndex(i,j,k)]) {
+         cout << "fz is nan for i, j, k: " << i << " " << j << " " << k << endl;
+         exit(EXIT_FAILURE);
+      }
+      #endif
    }
 }
 
@@ -241,8 +291,14 @@ template<typename REAL,typename UINT,typename CELL> void cpu_propagateSpat(CELL&
       avg += (flux_neg - flux_pos)*DTDZ;
       // Store new volume average:
       avgs[trIndex(i,j,k)] += avg;
+      #ifdef DEBUG_SOLVERS
+      if (avgs[trIndex(i,j,k)] != avgs[trIndex(i,j,k)]) {
+         cout << "new volume average is nan for i, j, k: " << i << " " << j << " " << k << endl;
+         exit(EXIT_FAILURE);
+      }
+      #endif
    }
 }
-      
+
 #endif
-      
+

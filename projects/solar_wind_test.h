@@ -1,6 +1,12 @@
 #ifndef SOLAR_WIND_TEST_H
 #define SOLAR_WIND_TEST_H
 
+#ifdef DEBUG_SOLVERS
+#include "cstdlib"
+#include "iostream"
+using namespace std;
+#endif
+
 #include "definitions.h"
 #include "cell_spatial.h"
 
@@ -88,12 +94,72 @@ template<typename T> T spatialFluxZ(cuint& k,const T& avg_neg,const T& avg_pos,c
 }
 
 template<typename T> T velocityFluxX(const T& j,const T& k,const T& avg_neg,const T& avg_pos,const T* const cellParams,const T* const blockParams) {
+   #ifdef DEBUG_SOLVERS
+   if (avg_neg != avg_neg) {
+      cout << "avg_neg is nan" << endl;
+      exit(EXIT_FAILURE);
+   }
+   if (avg_pos != avg_pos) {
+      cout << "avg_pos is nan" << endl;
+      exit(EXIT_FAILURE);
+   }
+   #endif
+
    const T VY = blockParams[BlockParams::VYCRD] + (j+convert<T>(0.5))*blockParams[BlockParams::DVY];
+   #ifdef DEBUG_SOLVERS
+   if (VY != VY) {
+      cout << "VY is nan" << endl;
+      exit(EXIT_FAILURE);
+   }
+   #endif
+
    const T VZ = blockParams[BlockParams::VZCRD] + (k+convert<T>(0.5))*blockParams[BlockParams::DVZ];
+   #ifdef DEBUG_SOLVERS
+   if (VZ != VZ) {
+      cout << "VZ is nan" << endl;
+      exit(EXIT_FAILURE);
+   }
+   #endif
+
    const T EX = cellParams[CellParams::EX];
+   #ifdef DEBUG_SOLVERS
+   if (EX != EX) {
+      cout << "EX is nan" << endl;
+      exit(EXIT_FAILURE);
+   }
+   #endif
+
    const T BY = cellParams[CellParams::BY];
+   #ifdef DEBUG_SOLVERS
+   if (BY != BY) {
+      cout << "VY is nan" << endl;
+      exit(EXIT_FAILURE);
+   }
+   #endif
+
    const T BZ = cellParams[CellParams::BZ];
+   #ifdef DEBUG_SOLVERS
+   if (BZ != BZ) {
+      cout << "BZ is nan" << endl;
+      exit(EXIT_FAILURE);
+   }
+   #endif
+
    const T AX = blockParams[BlockParams::Q_PER_M]*(EX + VY*BZ - VZ*BY);
+   #ifdef DEBUG_SOLVERS
+   if (AX != AX) {
+      cout << "AX is nan" << endl;
+      exit(EXIT_FAILURE);
+   }
+   #endif
+
+   #ifdef DEBUG_SOLVERS
+   if (convert<T>(0.5)*AX*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AX)*(avg_pos-avg_neg) != convert<T>(0.5)*AX*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AX)*(avg_pos-avg_neg)) {
+      cout << "result from velocityFluxX is nan, with AX, avg_neg, avg_pos, VY, VZ, EX, BY, BZ, j, k:" << endl;
+      cout << AX << " " << avg_neg << " " << avg_pos << " " << VY << " " << VZ << " " << EX << " " << BY << " " << BZ << " " << j << " " << k << endl;
+      exit(EXIT_FAILURE);
+   }
+   #endif
    return convert<T>(0.5)*AX*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AX)*(avg_pos-avg_neg);
 }
 

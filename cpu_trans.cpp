@@ -33,4 +33,4 @@ bool cpu_translation3(SpatialCell& cell,const std::vector<const SpatialCell*>& s
    }
    return true;
 }
-      
+

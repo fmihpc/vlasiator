@@ -29,7 +29,7 @@ Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal&
 	#define kB 1.38e-23
 
 	#define R_E 6.3712e6
-	if (x < 24 * R_E) {
+	if (fabs(x - 25 * R_E) > dx) {
 		return 0;
 	}
 
@@ -62,54 +62,16 @@ ptime loaded_EB_time(not_a_date_time);
 #ifndef PARGRID
 void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t) {
 
-	// search for nans
+	// zero out fields before loading
 	vector<uint64_t> cells = mpiGrid.get_cells();
 	for (vector<uint64_t>::const_iterator cell = cells.begin(); cell != cells.end(); cell++) {
-		Real value = mpiGrid[*cell]->cpu_cellParams[CellParams::EX];
-		if (value != value) {
-			cout << "Ex of cell " << *cell << " is nan" << endl;
-			exit(EXIT_FAILURE);
-		}
-
-		value = mpiGrid[*cell]->cpu_cellParams[CellParams::EY];
-		if (value != value) {
-			cout << "Ey of cell " << *cell << " is nan" << endl;
-			exit(EXIT_FAILURE);
-		}
-
-		value = mpiGrid[*cell]->cpu_cellParams[CellParams::EZ];
-		if (value != value) {
-			cout << "Ez of cell " << *cell << " is nan" << endl;
-			exit(EXIT_FAILURE);
-		}
-
-		value = mpiGrid[*cell]->cpu_cellParams[CellParams::BX];
-		if (value != value) {
-			cout << "Bx of cell " << *cell << " is nan" << endl;
-			exit(EXIT_FAILURE);
-		}
-
-		value = mpiGrid[*cell]->cpu_cellParams[CellParams::BY];
-		if (value != value) {
-			cout << "By of cell " << *cell << " is nan" << endl;
-			exit(EXIT_FAILURE);
-		}
-
-		value = mpiGrid[*cell]->cpu_cellParams[CellParams::BZ];
-		if (value != value) {
-			cout << "Bz of cell " << *cell << " is nan" << endl;
-			exit(EXIT_FAILURE);
-		}
-
-		Real* avgs = mpiGrid[*cell]->cpu_avgs;
-		for (int i = 0; i < 64000; i++) {
-			if (avgs[i] != avgs[i] ) {
-				cout << "Nan found at time " << t << " in spatial cell " << *cell << ", velocity array index " << i << endl;
-				exit(EXIT_FAILURE);
-			}
-		}
+		mpiGrid[*cell]->cpu_cellParams[CellParams::EX] = 0;
+		mpiGrid[*cell]->cpu_cellParams[CellParams::EY] = 0;
+		mpiGrid[*cell]->cpu_cellParams[CellParams::EZ] = 0;
+		mpiGrid[*cell]->cpu_cellParams[CellParams::BX] = 0;
+		mpiGrid[*cell]->cpu_cellParams[CellParams::BY] = 0;
+		mpiGrid[*cell]->cpu_cellParams[CellParams::BZ] = 0;
 	}
-
 
 	ptime current_time = first_EB_time + seconds(t);
 
@@ -193,11 +155,35 @@ void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t) {
 			cerr << "Couldn't read cell E" << endl;
 			exit(EXIT_FAILURE);
 		}
+		if (E[0] > 1) {
+			cerr << "Too large Ex" << endl;
+			exit(EXIT_FAILURE);
+		}
+		if (E[1] > 1) {
+			cerr << "Too large Ey" << endl;
+			exit(EXIT_FAILURE);
+		}
+		if (E[2] > 1) {
+			cerr << "Too large Ez" << endl;
+			exit(EXIT_FAILURE);
+		}
 
 		double B[3];
 		result = fread(B, sizeof(B), 1, infile);
 		if (result != 1) {
 			cerr << "Couldn't read cell B" << endl;
+			exit(EXIT_FAILURE);
+		}
+		if (B[0] > 1) {
+			cerr << "Too large Bx" << endl;
+			exit(EXIT_FAILURE);
+		}
+		if (B[1] > 1) {
+			cerr << "Too large By" << endl;
+			exit(EXIT_FAILURE);
+		}
+		if (B[2] > 1) {
+			cerr << "Too large Bz" << endl;
 			exit(EXIT_FAILURE);
 		}
 
