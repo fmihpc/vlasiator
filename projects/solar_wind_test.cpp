@@ -62,6 +62,55 @@ ptime loaded_EB_time(not_a_date_time);
 #ifndef PARGRID
 void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t) {
 
+	// search for nans
+	vector<uint64_t> cells = mpiGrid.get_cells();
+	for (vector<uint64_t>::const_iterator cell = cells.begin(); cell != cells.end(); cell++) {
+		Real value = mpiGrid[*cell]->cpu_cellParams[CellParams::EX];
+		if (value != value) {
+			cout << "Ex of cell " << *cell << " is nan" << endl;
+			exit(EXIT_FAILURE);
+		}
+
+		value = mpiGrid[*cell]->cpu_cellParams[CellParams::EY];
+		if (value != value) {
+			cout << "Ey of cell " << *cell << " is nan" << endl;
+			exit(EXIT_FAILURE);
+		}
+
+		value = mpiGrid[*cell]->cpu_cellParams[CellParams::EZ];
+		if (value != value) {
+			cout << "Ez of cell " << *cell << " is nan" << endl;
+			exit(EXIT_FAILURE);
+		}
+
+		value = mpiGrid[*cell]->cpu_cellParams[CellParams::BX];
+		if (value != value) {
+			cout << "Bx of cell " << *cell << " is nan" << endl;
+			exit(EXIT_FAILURE);
+		}
+
+		value = mpiGrid[*cell]->cpu_cellParams[CellParams::BY];
+		if (value != value) {
+			cout << "By of cell " << *cell << " is nan" << endl;
+			exit(EXIT_FAILURE);
+		}
+
+		value = mpiGrid[*cell]->cpu_cellParams[CellParams::BZ];
+		if (value != value) {
+			cout << "Bz of cell " << *cell << " is nan" << endl;
+			exit(EXIT_FAILURE);
+		}
+
+		Real* avgs = mpiGrid[*cell]->cpu_avgs;
+		for (int i = 0; i < 64000; i++) {
+			if (avgs[i] != avgs[i] ) {
+				cout << "Nan found at time " << t << " in spatial cell " << *cell << ", velocity array index " << i << endl;
+				exit(EXIT_FAILURE);
+			}
+		}
+	}
+
+
 	ptime current_time = first_EB_time + seconds(t);
 
 	// check whether EB have to updated
