@@ -95,9 +95,9 @@ Parameters::Parameters(int argc, char* argv[]) {
 		("save_interval", boost::program_options::value<uint>(&P::diagnInterval)->default_value(1), "Save the simulation every arg time steps")
 		("save_spatial_grid", boost::program_options::value<bool>(&P::save_spatial_grid)->default_value(true), "Save spatial cell averages for the whole simulation")
 		("save_velocity_grid", boost::program_options::value<bool>(&P::save_velocity_grid)->default_value(false), "Save velocity grid from every spatial cell in the simulation")
-		("save_spatial_cells_at_x,X", boost::program_options::value<std::vector<Real> >(&P::save_spatial_cells_x), "Save the velocity grid in spatial cells at these coordinates (x components, also give as many y and z components)")
-		("save_spatial_cells_at_y,Y", boost::program_options::value<std::vector<Real> >(&P::save_spatial_cells_y), "Save the velocity grid in spatial cells at these coordinates (y components, also give as many x and z components)")
-		("save_spatial_cells_at_z,Z", boost::program_options::value<std::vector<Real> >(&P::save_spatial_cells_z), "Save the velocity grid in spatial cells at these coordinates (z components, also give as many x and y components)");
+		("save_spatial_cells_at_x,X", boost::program_options::value<std::vector<Real> >(&P::save_spatial_cells_x)->composing(), "Save the velocity grid in spatial cells at these coordinates (x components, also give as many y and z components, values from command line, configuration files and environment variables are added together [short version only works on command line])")
+		("save_spatial_cells_at_y,Y", boost::program_options::value<std::vector<Real> >(&P::save_spatial_cells_y)->composing(), "Save the velocity grid in spatial cells at these coordinates (y components, also give as many x and z components, values from command line, configuration files and environment variables are added together [short version only works on command line])")
+		("save_spatial_cells_at_z,Z", boost::program_options::value<std::vector<Real> >(&P::save_spatial_cells_z)->composing(), "Save the velocity grid in spatial cells at these coordinates (z components, also give as many x and y components, values from command line, configuration files and environment variables are added together [short version only works on command line])");
 
 
 	boost::program_options::variables_map variables;
