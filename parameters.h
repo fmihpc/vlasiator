@@ -3,6 +3,7 @@
 
 #include "boost/program_options.hpp"
 #include "definitions.h"
+#include "vector"
 
 cuint MAX_VEL_BLOCKS = 2001001;
 
@@ -46,6 +47,12 @@ struct Parameters {
    static uint tsteps; /**< Total number of timesteps to calculate. */
    static uint saveInterval;
    static uint diagnInterval;
+
+   static bool save_spatial_grid;	/**< Save spatial cell averages for the whole simulation. */
+   static bool save_velocity_grid;	/**< Save the velocity grid of every spatial cell in the simulation. */
+   static std::vector<Real> save_spatial_cells_x;	/**< Save the velocity grid of spatial cells at these locations. */
+   static std::vector<Real> save_spatial_cells_y;
+   static std::vector<Real> save_spatial_cells_z;
    
    static uint transmit; /**< Indicates the data that needs to be transmitted to remote nodes.
 			  * This is created with bitwise or from the values defined in 

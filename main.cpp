@@ -295,6 +295,49 @@ void writeAllVelocityBlocks(const ParGrid<SpatialCell>& mpiGrid) {
    }
 }
 
+
+#ifndef PARGRID
+void writeSomeVelocityGrids(const boost::mpi::communicator& comm, dccrg<SpatialCell>& mpiGrid, const std::vector<Real> x, const std::vector<Real> y, const std::vector<Real> z) {
+#else
+void writeSomeVelocityGrids(const ParGrid<SpatialCell>& mpiGrid, const std::vector<Real> x, const std::vector<Real> y, const std::vector<Real> z) {
+#endif
+
+	#ifndef PARGRID
+	std::vector<uint64_t> cells = mpiGrid.get_cells();
+	#else
+	std::vector<ID::type> cells;
+	mpiGrid.getCells(cells);
+	#endif
+
+	if (x.size() != y.size() || x.size() != z.size()) {
+		cerr << "writeSomeVelocityGrids: x, y and z sizes must be equal" << endl;
+		exit(EXIT_FAILURE);
+	}
+
+	for (int i = 0; i < x.size(); i++) {
+		for (unsigned int j = 0; j < cells.size(); j++) {
+			#ifndef PARGRID
+			double cell_x = mpiGrid.get_cell_x(cells[j]);
+			double cell_y = mpiGrid.get_cell_y(cells[j]);
+			double cell_z = mpiGrid.get_cell_z(cells[j]);
+			double cell_dx = mpiGrid.get_cell_x_size(cells[j]);
+			double cell_dy = mpiGrid.get_cell_y_size(cells[j]);
+			double cell_dz = mpiGrid.get_cell_z_size(cells[j]);
+
+			if (fabs(x[i] - cell_x) <= cell_dx / 2
+			&& fabs(y[i] - cell_y) <= cell_dy / 2
+			&& fabs(z[i] - cell_z) <= cell_dz / 2) {
+				writeVelocityBlocks(comm, mpiGrid, cells[j]);
+			}
+			#else
+			#error writeSomeVelocityGrids not supported with PARGRID
+			//writeVelocityBlocks(mpiGrid, cells[i]);
+			#endif
+		}
+	}
+}
+
+
 int main(int argn,char* args[]) {
    bool success = true;
    
@@ -366,23 +409,38 @@ int main(int argn,char* args[]) {
       mpiGrid.waitAll();
       mpiGrid.barrier();
    #endif
-   logger << "(MAIN): Total no. reserved velocity blocks in Grid = ";
+
    #ifdef PARGRID
-      logger << grid.getTotalNumberOfBlocks() << std::endl;
+   logger << "(MAIN): Total no. reserved velocity blocks in Grid = ";
+   logger << grid.getTotalNumberOfBlocks() << std::endl;
    #endif
    
    // Write initial state:
    #ifndef PARGRID
+
+   if (P::save_spatial_grid) {
       writeSpatialCells(comm,mpiGrid);
-      //writeVelocityBlocks(comm,mpiGrid);
-      //writeAllVelocityBlocks(comm, mpiGrid);
-      comm.barrier();
+   }
+   //writeVelocityBlocks(comm,mpiGrid);
+   if (P::save_velocity_grid) {
+      writeAllVelocityBlocks(comm, mpiGrid);
+   }
+   writeSomeVelocityGrids(comm, mpiGrid, P::save_spatial_cells_x, P::save_spatial_cells_y, P::save_spatial_cells_z);
+   comm.barrier();
+
    #else
+
+   if (P::save_spatial_grid) {
       writeSpatialCells(mpiGrid);
-      //writeRemoteCells(mpiGrid);
-      //writeVelocityBlocks(mpiGrid);
-      //writeAllVelocityBlocks(mpiGrid);
-      mpiGrid.barrier();
+   }
+   //writeRemoteCells(mpiGrid);
+   //writeVelocityBlocks(mpiGrid);
+   if (P::save_velocity_grid) {
+      writeAllVelocityBlocks(mpiGrid);
+   }
+   // not supported yet writeSomeVelocityGrids(comm, mpiGrid, P::save_spatial_cells_x, P::save_spatial_cells_y, P::save_spatial_cells_z);
+   mpiGrid.barrier();
+
    #endif
 
    // Main simulation loop:
@@ -412,15 +470,30 @@ int main(int argn,char* args[]) {
       // Check if variables and derived quantities should be written to disk
       if (P::tstep % P::diagnInterval == 0) {
          logger << "(MAIN): Saving variables to disk at tstep = " << tstep << std::endl;
+
          #ifndef PARGRID
+
+         if (P::save_spatial_grid) {
             writeSpatialCells(comm,mpiGrid);
-            //writeVelocityBlocks(comm,mpiGrid);
-            //writeAllVelocityBlocks(comm, mpiGrid);
+         }
+         //writeVelocityBlocks(comm,mpiGrid);
+         if (P::save_velocity_grid) {
+            writeAllVelocityBlocks(comm, mpiGrid);
+         }
+         writeSomeVelocityGrids(comm, mpiGrid, P::save_spatial_cells_x, P::save_spatial_cells_y, P::save_spatial_cells_z);
+
          #else
+
+         if (P::save_spatial_grid) {
             writeSpatialCells(mpiGrid);
-            //writeRemoteCells(mpiGrid);
-            //writeVelocityBlocks(mpiGrid);
-            //writeAllVelocityBlocks(mpiGrid);
+         }
+         //writeRemoteCells(mpiGrid);
+         //writeVelocityBlocks(mpiGrid);
+         if (P::save_velocity_grid) {
+            writeAllVelocityBlocks(mpiGrid);
+         }
+         // not supported yet    writeSomeVelocityGrids(comm, mpiGrid, P::save_spatial_cells_x, P::save_spatial_cells_y, P::save_spatial_cells_z);
+
          #endif
       }
       #ifndef PARGRID
@@ -429,6 +502,7 @@ int main(int argn,char* args[]) {
          mpiGrid.barrier();
       #endif
    }
+
    logger << "(MAIN): All timesteps calculated." << std::endl;
    time_t after = std::time(NULL);
    logger << "\t (TIME) reports value " << after << std::endl;
@@ -436,20 +510,31 @@ int main(int argn,char* args[]) {
 
    // Write final state:
    #ifndef PARGRID
+
+   if (P::save_spatial_grid) {
       writeSpatialCells(comm,mpiGrid);
-      //writeVelocityBlocks(comm,mpiGrid);
-      //writeAllVelocityBlocks(comm, mpiGrid);
+   }
+   //writeVelocityBlocks(comm,mpiGrid);
+   if (P::save_velocity_grid) {
+      writeAllVelocityBlocks(comm, mpiGrid);
+   }
+   writeSomeVelocityGrids(comm, mpiGrid, P::save_spatial_cells_x, P::save_spatial_cells_y, P::save_spatial_cells_z);
+
    #else
+
+   if (P::save_spatial_grid) {
       writeSpatialCells(mpiGrid);
-      //writeRemoteCells(mpiGrid);
-      //writeVelocityBlocks(mpiGrid);
-      //writeAllVelocityBlocks(mpiGrid);
+   }
+   //writeRemoteCells(mpiGrid);
+   //writeVelocityBlocks(mpiGrid);
+   if (P::save_velocity_grid) {
+      writeAllVelocityBlocks(mpiGrid);
+   }
+   // not supported yet writeSomeVelocityGrids(comm, mpiGrid, P::save_spatial_cells_x, P::save_spatial_cells_y, P::save_spatial_cells_z);
+
    #endif
 
    logger << "(MAIN): Exiting." << std::endl;
    return 0;
 }
-
-
-
 

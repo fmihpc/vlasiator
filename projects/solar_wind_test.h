@@ -74,7 +74,7 @@ Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal&
 template<typename T>
 T calcBoundVolAvg(cuint& iv,cuint& jv,cuint& kv,const T* const cellParams,
 		  const T* const blockParams,const T& avg,const int& crd,const bool& negSide) {
-   return avg;
+   return 0;
 }
 
 
