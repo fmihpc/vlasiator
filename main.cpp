@@ -507,6 +507,7 @@ int main(int argn,char* args[]) {
    time_t after = std::time(NULL);
    logger << "\t (TIME) reports value " << after << std::endl;
    logger << "\t (TIME) total run time " << after - before << " s" << std::endl;
+   logger << "\t (TIME) seconds per timestep " << double(after - before) / P::tsteps << std::endl;
 
    // Write final state:
    #ifndef PARGRID
