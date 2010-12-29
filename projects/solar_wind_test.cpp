@@ -279,26 +279,26 @@ void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt) {
 
 	// get maximum field in cells
 	//logger << "Maximum field in current grid from file " << EB_file_name << ": ";
-	Real B_max[3] = {numeric_limits<Real>::min(), numeric_limits<Real>::min(), numeric_limits<Real>::min()};
-	Real E_max[3] = {numeric_limits<Real>::min(), numeric_limits<Real>::min(), numeric_limits<Real>::min()};
+	Real B_max[3] = {0, 0, 0};
+	Real E_max[3] = {0, 0, 0};
 	for (vector<uint64_t>::const_iterator cell = cells.begin(); cell != cells.end(); cell++) {
-		if (E_max[0] < mpiGrid[*cell]->cpu_cellParams[CellParams::EX]) {
-			E_max[0] = mpiGrid[*cell]->cpu_cellParams[CellParams::EX];
+		if (E_max[0] < fabs(mpiGrid[*cell]->cpu_cellParams[CellParams::EX])) {
+			E_max[0] = fabs(mpiGrid[*cell]->cpu_cellParams[CellParams::EX]);
 		}
-		if (E_max[1] < mpiGrid[*cell]->cpu_cellParams[CellParams::EY]) {
-			E_max[1] = mpiGrid[*cell]->cpu_cellParams[CellParams::EY];
+		if (E_max[1] < fabs(mpiGrid[*cell]->cpu_cellParams[CellParams::EY])) {
+			E_max[1] = fabs(mpiGrid[*cell]->cpu_cellParams[CellParams::EY]);
 		}
-		if (E_max[2] < mpiGrid[*cell]->cpu_cellParams[CellParams::EZ]) {
-			E_max[2] = mpiGrid[*cell]->cpu_cellParams[CellParams::EZ];
+		if (E_max[2] < fabs(mpiGrid[*cell]->cpu_cellParams[CellParams::EZ])) {
+			E_max[2] = fabs(mpiGrid[*cell]->cpu_cellParams[CellParams::EZ]);
 		}
-		if (B_max[0] < mpiGrid[*cell]->cpu_cellParams[CellParams::BX]) {
-			B_max[0] = mpiGrid[*cell]->cpu_cellParams[CellParams::BX];
+		if (B_max[0] < fabs(mpiGrid[*cell]->cpu_cellParams[CellParams::BX])) {
+			B_max[0] = fabs(mpiGrid[*cell]->cpu_cellParams[CellParams::BX]);
 		}
-		if (B_max[1] < mpiGrid[*cell]->cpu_cellParams[CellParams::BY]) {
-			B_max[1] = mpiGrid[*cell]->cpu_cellParams[CellParams::BY];
+		if (B_max[1] < fabs(mpiGrid[*cell]->cpu_cellParams[CellParams::BY])) {
+			B_max[1] = fabs(mpiGrid[*cell]->cpu_cellParams[CellParams::BY]);
 		}
-		if (B_max[2] < mpiGrid[*cell]->cpu_cellParams[CellParams::BZ]) {
-			B_max[2] = mpiGrid[*cell]->cpu_cellParams[CellParams::BZ];
+		if (B_max[2] < fabs(mpiGrid[*cell]->cpu_cellParams[CellParams::BZ])) {
+			B_max[2] = fabs(mpiGrid[*cell]->cpu_cellParams[CellParams::BZ]);
 		}
 	}
 
