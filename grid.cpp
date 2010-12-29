@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <exception>
 #include <iostream>
 #include <limits>
 #include <list>
@@ -20,9 +21,22 @@ static list<uint> freePositions;
 
 Grid::Grid() {
    typedef Parameters P;
-   
-   nbrsVel     = new uint[MAX_VEL_BLOCKS*SIZE_NBRS_VEL];
-   blockParams = new Real[MAX_VEL_BLOCKS*SIZE_BLOCKPARAMS];
+
+   try {
+      nbrsVel     = new uint[MAX_VEL_BLOCKS*SIZE_NBRS_VEL];
+   }
+   catch (exception& e) {
+      cerr << "Couldn't allocate memory for nbrsVel: " << e.what() << endl;
+      exit(EXIT_FAILURE);
+   }
+
+   try {
+      blockParams = new Real[MAX_VEL_BLOCKS*SIZE_BLOCKPARAMS];
+   }
+   catch (exception& e) {
+      cerr << "Couldn't allocate memory for blockParams: " << e.what() << endl;
+      exit(EXIT_FAILURE);
+   }
    /*
    avgs        = new Real[MAX_VEL_BLOCKS*SIZE_VELBLOCK];
    fx          = new Real[MAX_VEL_BLOCKS*SIZE_FLUXS];
@@ -47,7 +61,14 @@ Grid::Grid() {
      + MAX_VEL_BLOCKS*SIZE_DERIV
      + MAX_VEL_BLOCKS*SIZE_DERIV;
    
-   avgs = new Real[SIZE];
+   try {
+      avgs = new Real[SIZE];
+   }
+   catch (exception& e) {
+      cerr << "Couldn't allocate memory for avgs: " << e.what() << endl;
+      exit(EXIT_FAILURE);
+   }
+
    fx = avgs + MAX_VEL_BLOCKS*SIZE_VELBLOCK;
    fy = fx + MAX_VEL_BLOCKS*SIZE_FLUXS;
    fz = fy + MAX_VEL_BLOCKS*SIZE_FLUXS;

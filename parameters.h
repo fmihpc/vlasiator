@@ -42,6 +42,7 @@ struct Parameters {
    static uint vyblocks_ini; /**< Initial number of velocity grid blocks in vy-direction. */
    static uint vzblocks_ini; /**< Initial number of velocity grid blocks in vz-direction. */
 
+   static Real t;      /**< Current simulation time. */
    static Real dt;     /**< The value of the timestep to use in propagation. */
    static uint tstep;  /**< The number of the current timestep. 0=initial state. */
    static uint tsteps; /**< Total number of timesteps to calculate. */

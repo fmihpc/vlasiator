@@ -72,8 +72,9 @@ const ptime first_EB_time = get_EB_time(first_EB_file_name);
 ptime loaded_EB_time(not_a_date_time);
 
 // TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
+// Possibly changes given maximum timestep based on loaded E & B.
 #ifndef PARGRID
-void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t) {
+void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt) {
 
 	// apply the solar wind boundary
 	vector<uint64_t> cells = mpiGrid.get_cells();
@@ -200,6 +201,12 @@ void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t) {
 			exit(EXIT_FAILURE);
 		}
 
+		result = fseek(infile, sizeof(double) * 6, SEEK_CUR);
+		if (result != 0) {
+			cerr << "SEEK_CUR unsuccessfull" << endl;
+			exit(EXIT_FAILURE);
+		}
+
 		uint64_t cell = mpiGrid.get_cell(r[0], r[1], r[2]);
 		if (cell == 0) {
 			continue;
@@ -209,12 +216,6 @@ void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t) {
 			values_per_cell[cell] = 1;
 		} else {
 			values_per_cell[cell]++;
-		}
-
-		result = fseek(infile, sizeof(double) * 6, SEEK_CUR);
-		if (result != 0) {
-			cerr << "SEEK_CUR unsuccessfull" << endl;
-			exit(EXIT_FAILURE);
 		}
 	}
 
@@ -240,35 +241,11 @@ void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t) {
 			cerr << "Couldn't read cell E" << endl;
 			exit(EXIT_FAILURE);
 		}
-		if (E[0] > 1) {
-			cerr << "Too large Ex" << endl;
-			exit(EXIT_FAILURE);
-		}
-		if (E[1] > 1) {
-			cerr << "Too large Ey" << endl;
-			exit(EXIT_FAILURE);
-		}
-		if (E[2] > 1) {
-			cerr << "Too large Ez" << endl;
-			exit(EXIT_FAILURE);
-		}
 
 		double B[3];
 		result = fread(B, sizeof(B), 1, infile);
 		if (result != 1) {
 			cerr << "Couldn't read cell B" << endl;
-			exit(EXIT_FAILURE);
-		}
-		if (B[0] > 1) {
-			cerr << "Too large Bx" << endl;
-			exit(EXIT_FAILURE);
-		}
-		if (B[1] > 1) {
-			cerr << "Too large By" << endl;
-			exit(EXIT_FAILURE);
-		}
-		if (B[2] > 1) {
-			cerr << "Too large Bz" << endl;
 			exit(EXIT_FAILURE);
 		}
 
@@ -300,8 +277,8 @@ void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t) {
 		}
 	}
 
-	// print maximum field in cells
-	logger << "Maximum field in current grid from file " << EB_file_name << ": ";
+	// get maximum field in cells
+	//logger << "Maximum field in current grid from file " << EB_file_name << ": ";
 	Real B_max[3] = {numeric_limits<Real>::min(), numeric_limits<Real>::min(), numeric_limits<Real>::min()};
 	Real E_max[3] = {numeric_limits<Real>::min(), numeric_limits<Real>::min(), numeric_limits<Real>::min()};
 	for (vector<uint64_t>::const_iterator cell = cells.begin(); cell != cells.end(); cell++) {
@@ -324,7 +301,39 @@ void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t) {
 			B_max[2] = mpiGrid[*cell]->cpu_cellParams[CellParams::BZ];
 		}
 	}
-	logger << "Ex " << E_max[0] << ", Ey " << E_max[1] << ", Ez " << E_max[2] << ", Bx " << B_max[0] << ", By " << B_max[1] << ", Bz " << B_max[2] << endl;
+
+	// get minimum dx and dvx
+	typedef Parameters P;
+	Real min_dx = numeric_limits<Real>::max();
+	Real min_dvx = numeric_limits<Real>::max();
+	for (vector<uint64_t>::const_iterator cell = cells.begin(); cell != cells.end(); cell++) {
+		creal dx = mpiGrid.get_cell_x_size(*cell);
+		creal dy = mpiGrid.get_cell_y_size(*cell);
+		creal dz = mpiGrid.get_cell_z_size(*cell);
+
+		min_dx = min(min_dx, min(dx, min(dy, dz)));
+
+		// TODO: take into account smaller than initial velocity blocks
+		creal block_dvx = (P::vxmax - P::vxmin) / P::vxblocks_ini;
+		creal block_dvy = (P::vymax - P::vymin) / P::vyblocks_ini;
+		creal block_dvz = (P::vzmax - P::vzmin) / P::vzblocks_ini;
+		creal cell_dvx = block_dvx / WID;
+		creal cell_dvy = block_dvy / WID;
+		creal cell_dvz = block_dvz / WID;
+
+		min_dvx = min(min_dvx, min(cell_dvx, min(cell_dvy, cell_dvz)));
+	}
+
+	// calculate maximum timestep
+	// TODO: use maximum Q_PER_M from the simulation, in case there are more than one species of particles
+	Real max_E = max(E_max[0], max(E_max[1], E_max[2]));
+	Real max_B = max(B_max[0], max(B_max[1], B_max[2]));
+	Real max_v = max(fabs(P::vxmin), max(fabs(P::vymin), max(fabs(P::vzmin), max(fabs(P::vxmax), max(fabs(P::vymax), fabs(P::vzmax))))));
+	Real a_E = Q_P / M_P * max_E;
+	Real a_B = Q_P / M_P * max_v * max_B;
+	dt = min(min_dx / max_v, min(min_dx / a_E, min_dvx / a_B));
+	//logger << "Ex " << E_max[0] << ", Ey " << E_max[1] << ", Ez " << E_max[2] << ", Bx " << B_max[0] << ", By " << B_max[1] << ", Bz " << B_max[2] << endl;
+	logger << "New timestep: " << dt << endl;
 
 	fclose(infile);
 }

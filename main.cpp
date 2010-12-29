@@ -446,10 +446,9 @@ int main(int argn,char* args[]) {
    // Main simulation loop:
    logger << "(MAIN): Starting main simulation loop." << std::endl;
    time_t before = std::time(NULL);
-   logger << "\t (TIME) reports value " << before << std::endl;
    for (uint tstep=0; tstep < P::tsteps; ++tstep) {
       // Recalculate (maybe) spatial cell parameters
-      calculateSimParameters(mpiGrid, P::tstep*P::dt);
+      calculateSimParameters(mpiGrid, P::tstep * P::dt, P::dt);
       
       // Propagate the state of simulation forward in time by dt:
       calculateAcceleration(mpiGrid);
@@ -457,6 +456,7 @@ int main(int argn,char* args[]) {
       calculateSpatialFluxes(mpiGrid);
       calculateSpatialPropagation(mpiGrid);
       ++P::tstep;
+      P::t += P::dt;
       
       // Check if the full simulation state should be written to disk
       if (P::tstep % P::saveInterval == 0) {
@@ -469,7 +469,7 @@ int main(int argn,char* args[]) {
 
       // Check if variables and derived quantities should be written to disk
       if (P::tstep % P::diagnInterval == 0) {
-         logger << "(MAIN): Saving variables to disk at tstep = " << tstep << std::endl;
+         logger << "(MAIN): Saving variables to disk at tstep = " << tstep << ", time = " << P::t << std::endl;
 
          #ifndef PARGRID
 
@@ -505,9 +505,8 @@ int main(int argn,char* args[]) {
 
    logger << "(MAIN): All timesteps calculated." << std::endl;
    time_t after = std::time(NULL);
-   logger << "\t (TIME) reports value " << after << std::endl;
-   logger << "\t (TIME) total run time " << after - before << " s" << std::endl;
-   logger << "\t (TIME) seconds per timestep " << double(after - before) / P::tsteps << std::endl;
+   logger << "\t (TIME) total run time " << after - before << " s, total simulated time " << P::t << " s" << std::endl;
+   logger << "\t (TIME) seconds per timestep " << double(after - before) / P::tsteps << ", seconds per simulated second " << double(after - before) / P::t << std::endl;
 
    // Write final state:
    #ifndef PARGRID

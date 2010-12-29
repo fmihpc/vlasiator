@@ -48,9 +48,9 @@ void calcBlockParameters(Real* blockParams);
 void calcCellParameters(Real* cellParams,creal& t);
 
 #ifndef PARGRID
-void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t);
+void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt);
 #else
-void calcSimParameters(ParGrid<SpatialCell>& mpiGrid, creal& t);
+void calcSimParameters(ParGrid<SpatialCell>& mpiGrid, creal& t, Real& dt);
 #endif
 
 /** Integrate the distribution function over the given six-dimensional phase-space cell.

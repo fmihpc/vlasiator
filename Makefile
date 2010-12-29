@@ -5,9 +5,9 @@ default: main
 # Compile directory:
 INSTALL=${HOME}/QuESpace/sandroos/cudafvm
 # Which project is compiled:
-PROJ=harm1D
+#PROJ=harm1D
 #PROJ=velocity_rotation_1+3d
-#PROJ=solar_wind_test
+PROJ=solar_wind_test
 #PROJ=Bx_const
 #PROJ=By_const
 #PROJ=Bz_const
@@ -80,7 +80,7 @@ OBJS +=
 
 clean:
 	make clean -C projects
-	rm -rf *.o *.ptx *.tar* *.txt *.silo project.h project.cu project.cpp main *~
+	rm -rf *.o *.ptx *.tar* *.txt *.silo project.h project.cu project.cpp main *~ visitlog.py
 
 # Rules for making each object file needed by the executable
 cell_spatial.o: $(DEPS_CELL_SPATIAL)

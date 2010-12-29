@@ -36,6 +36,7 @@ uint P::vxblocks_ini = numeric_limits<uint>::max();
 uint P::vyblocks_ini = numeric_limits<uint>::max();
 uint P::vzblocks_ini = numeric_limits<uint>::max();
 
+Real P::t = 0;
 Real P::dt = NAN;
 uint P::tstep = 0;
 uint P::tsteps = 0;
