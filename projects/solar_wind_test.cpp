@@ -331,7 +331,7 @@ void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt) {
 	Real max_v = max(fabs(P::vxmin), max(fabs(P::vymin), max(fabs(P::vzmin), max(fabs(P::vxmax), max(fabs(P::vymax), fabs(P::vzmax))))));
 	Real a_E = Q_P / M_P * max_E;
 	Real a_B = Q_P / M_P * max_v * max_B;
-	dt = min(min_dx / max_v, min(min_dx / a_E, min_dvx / a_B));
+	dt = 0.2 * min(min_dx / max_v, min(min_dx / a_E, min_dvx / a_B));
 	//logger << "Ex " << E_max[0] << ", Ey " << E_max[1] << ", Ez " << E_max[2] << ", Bx " << B_max[0] << ", By " << B_max[1] << ", Bz " << B_max[2] << endl;
 	logger << "New timestep: " << dt << endl;
 
