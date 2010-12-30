@@ -1,5 +1,7 @@
+#include "boost/array.hpp"
 #include "boost/date_time/posix_time/posix_time.hpp"
 #include "boost/unordered_map.hpp"
+#include "boost/unordered_set.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
@@ -76,6 +78,8 @@ ptime loaded_EB_time(not_a_date_time);
 #ifndef PARGRID
 void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt) {
 
+	typedef Parameters P;
+
 	// apply the solar wind boundary
 	vector<uint64_t> cells = mpiGrid.get_cells();
 	for (vector<uint64_t>::const_iterator cell = cells.begin(); cell != cells.end(); cell++) {
@@ -94,8 +98,6 @@ void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt) {
 		double z = mpiGrid.get_cell_z(*cell);
 		double dy = mpiGrid.get_cell_y_size(*cell);
 		double dz = mpiGrid.get_cell_z_size(*cell);
-
-		typedef Parameters P;
 
 		creal block_dvx = (P::vxmax - P::vxmin) / P::vxblocks_ini;	// Size of a block in vx-direction
 		creal block_dvy = (P::vymax - P::vymin) / P::vyblocks_ini;
@@ -159,12 +161,13 @@ void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt) {
 
 	// zero out fields before loading
 	for (vector<uint64_t>::const_iterator cell = cells.begin(); cell != cells.end(); cell++) {
-		mpiGrid[*cell]->cpu_cellParams[CellParams::EX] = 0;
-		mpiGrid[*cell]->cpu_cellParams[CellParams::EY] = 0;
-		mpiGrid[*cell]->cpu_cellParams[CellParams::EZ] = 0;
-		mpiGrid[*cell]->cpu_cellParams[CellParams::BX] = 0;
-		mpiGrid[*cell]->cpu_cellParams[CellParams::BY] = 0;
-		mpiGrid[*cell]->cpu_cellParams[CellParams::BZ] = 0;
+		SpatialCell* cell_data = mpiGrid[*cell];
+		cell_data->cpu_cellParams[CellParams::EX] = 0;
+		cell_data->cpu_cellParams[CellParams::EY] = 0;
+		cell_data->cpu_cellParams[CellParams::EZ] = 0;
+		cell_data->cpu_cellParams[CellParams::BX] = 0;
+		cell_data->cpu_cellParams[CellParams::BY] = 0;
+		cell_data->cpu_cellParams[CellParams::BZ] = 0;
 	}
 
 	// figure out the file name to use
@@ -176,53 +179,20 @@ void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt) {
 	//logger << "Time given: " << t << ", loading EB from file " << EB_file_name << endl;
 
 	// load EB data from gumics
-	boost::unordered_map<uint64_t, unsigned int> values_per_cell;
 	int result;
-
 	FILE* infile = fopen(EB_file_name.c_str(), "rb");
 	if (infile == NULL) {
 		cerr << "Couldn't open file " << EB_file_name << endl;
 		exit(EXIT_FAILURE);
 	}
 
+	// store fields in memory for fast searching, in case given grid is finer than the one used in gumics
+	vector<boost::array<double, 9> > EB;
+
 	uint64_t number_of_values;
 	result = fread(&number_of_values, sizeof(uint64_t), 1, infile);
 	if (result != 1) {
 		cerr << "number_of_values read unsuccessfull" << endl;
-		exit(EXIT_FAILURE);
-	}
-
-	for (uint64_t i = 0; i < number_of_values; i++) {
-
-		double r[3];
-		result = fread(r, sizeof(r), 1, infile);
-		if (result != 1) {
-			cerr << "r read unsuccessfull" << endl;
-			exit(EXIT_FAILURE);
-		}
-
-		result = fseek(infile, sizeof(double) * 6, SEEK_CUR);
-		if (result != 0) {
-			cerr << "SEEK_CUR unsuccessfull" << endl;
-			exit(EXIT_FAILURE);
-		}
-
-		uint64_t cell = mpiGrid.get_cell(r[0], r[1], r[2]);
-		if (cell == 0) {
-			continue;
-		}
-
-		if (values_per_cell.count(cell) == 0) {
-			values_per_cell[cell] = 1;
-		} else {
-			values_per_cell[cell]++;
-		}
-	}
-
-	// Read values into cells
-	result = fseek(infile, sizeof(uint64_t), SEEK_SET);
-	if (result != 0) {
-		cerr << "SEEK_SET unsuccessfull" << endl;
 		exit(EXIT_FAILURE);
 	}
 
@@ -254,26 +224,78 @@ void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt) {
 			continue;
 		}
 
-		SpatialCell* cell_data = mpiGrid[cell];
-		if (cell_data == NULL) {
-			continue;
+		boost::array<double, 9> data = {{r[0], r[1], r[2], E[0], E[1], E[2], B[0], B[1], B[2]}};
+		EB.push_back(data);
+	}
+
+	// put gumics fields into given grid
+	for (vector<uint64_t>::const_iterator cell = cells.begin(); cell != cells.end(); cell++) {
+		const double x = mpiGrid.get_cell_x(*cell);
+		const double y = mpiGrid.get_cell_y(*cell);
+		const double z = mpiGrid.get_cell_z(*cell);
+		const double dx = mpiGrid.get_cell_x_size(*cell);
+		const double dy = mpiGrid.get_cell_y_size(*cell);
+		const double dz = mpiGrid.get_cell_z_size(*cell);
+
+		SpatialCell* cell_data = mpiGrid[*cell];
+
+		// if gumics didn't have the fields in this cell, use the closest fields that gumics had
+		int number_of_values = 0;
+		double closest = numeric_limits<double>::max();
+		boost::array<double, 9> closest_EB;
+
+		for (vector<boost::array<double, 9> >::const_iterator item = EB.begin(); item != EB.end(); item++) {
+			const double distance_x = fabs(x - (*item)[0]);
+			const double distance_y = fabs(y - (*item)[1]);
+			const double distance_z = fabs(z - (*item)[2]);
+			const double distance = sqrt(distance_x * distance_x + distance_y * distance_y + distance_z * distance_z);
+			if (closest > distance) {
+				closest = distance;
+				closest_EB = (*item);
+			}
+
+			if (distance_x > dx / 2) {
+				continue;
+			}
+			if (distance_y > dy / 2) {
+				continue;
+			}
+			if (distance_z > dz / 2) {
+				continue;
+			}
+			number_of_values++;
+
+			cell_data->cpu_cellParams[CellParams::EX] += (*item)[3];
+			cell_data->cpu_cellParams[CellParams::EY] += (*item)[4];
+			cell_data->cpu_cellParams[CellParams::EZ] += (*item)[5];
+			cell_data->cpu_cellParams[CellParams::BX] += (*item)[6];
+			cell_data->cpu_cellParams[CellParams::BY] += (*item)[7];
+			cell_data->cpu_cellParams[CellParams::BZ] += (*item)[8];
 		}
 
-		if (values_per_cell.count(cell) == 0 || values_per_cell[cell] == 0) {
-			// gumics didn't have the fields
-			mpiGrid[cell]->cpu_cellParams[CellParams::EX] = 0;
-			mpiGrid[cell]->cpu_cellParams[CellParams::EY] = 0;
-			mpiGrid[cell]->cpu_cellParams[CellParams::EZ] = 0;
-			mpiGrid[cell]->cpu_cellParams[CellParams::BX] = 0;
-			mpiGrid[cell]->cpu_cellParams[CellParams::BY] = 0;
-			mpiGrid[cell]->cpu_cellParams[CellParams::BZ] = 0;
+		if (number_of_values == 0) {
+			cell_data->cpu_cellParams[CellParams::EX] += closest_EB[3];
+			cell_data->cpu_cellParams[CellParams::EY] += closest_EB[4];
+			cell_data->cpu_cellParams[CellParams::EZ] += closest_EB[5];
+			cell_data->cpu_cellParams[CellParams::BX] += closest_EB[6];
+			cell_data->cpu_cellParams[CellParams::BY] += closest_EB[7];
+			cell_data->cpu_cellParams[CellParams::BZ] += closest_EB[8];
 		} else {
-			mpiGrid[cell]->cpu_cellParams[CellParams::EX] += E[0] / values_per_cell[cell];
-			mpiGrid[cell]->cpu_cellParams[CellParams::EY] += E[1] / values_per_cell[cell];
-			mpiGrid[cell]->cpu_cellParams[CellParams::EZ] += E[2] / values_per_cell[cell];
-			mpiGrid[cell]->cpu_cellParams[CellParams::BX] += B[0] / values_per_cell[cell];
-			mpiGrid[cell]->cpu_cellParams[CellParams::BY] += B[1] / values_per_cell[cell];
-			mpiGrid[cell]->cpu_cellParams[CellParams::BZ] += B[2] / values_per_cell[cell];
+			cell_data->cpu_cellParams[CellParams::EX] /= number_of_values;
+			cell_data->cpu_cellParams[CellParams::EY] /= number_of_values;
+			cell_data->cpu_cellParams[CellParams::EZ] /= number_of_values;
+			cell_data->cpu_cellParams[CellParams::BX] /= number_of_values;
+			cell_data->cpu_cellParams[CellParams::BY] /= number_of_values;
+			cell_data->cpu_cellParams[CellParams::BZ] /= number_of_values;
+		}
+
+		if (cell_data->cpu_cellParams[CellParams::EX] == 0
+		&& cell_data->cpu_cellParams[CellParams::EY] == 0
+		&& cell_data->cpu_cellParams[CellParams::EZ] == 0
+		&& cell_data->cpu_cellParams[CellParams::BX] == 0
+		&& cell_data->cpu_cellParams[CellParams::BY] == 0
+		&& cell_data->cpu_cellParams[CellParams::BZ] == 0) {
+			logger << "Didn't get fields for cell " << *cell << endl;
 		}
 	}
 
