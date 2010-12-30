@@ -1,3 +1,4 @@
+#include "boost/mpi.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
@@ -243,9 +244,9 @@ void writeVelocityBlocks(const ParGrid<SpatialCell>& mpiGrid, const ID::type cel
 #endif
    std::stringstream fname;
    #ifndef PARGRID
-   fname << "block_" << cell << "." << comm.rank() << '.';
+   fname << "block_" << cell << ".";
    #else
-   fname << "block_" << cell << "." << mpiGrid.rank() << '.';
+   fname << "block_" << cell << ".";
    #endif
    fname.width(5);
    fname.fill('0');
@@ -448,8 +449,15 @@ int main(int argn,char* args[]) {
    time_t before = std::time(NULL);
    for (uint tstep=0; tstep < P::tsteps; ++tstep) {
       // Recalculate (maybe) spatial cell parameters
-      calculateSimParameters(mpiGrid, P::tstep * P::dt, P::dt);
-      
+      calculateSimParameters(mpiGrid, P::t, P::dt);
+
+      // use globally minimum timestep
+      #ifndef PARGRID
+      P::dt = all_reduce(comm, P::dt, boost::mpi::minimum<Real>());
+      #else
+      #error No communicator for all_reduce when using PARGRID
+      #endif
+
       // Propagate the state of simulation forward in time by dt:
       calculateAcceleration(mpiGrid);
       calculateSpatialDerivatives(mpiGrid);
