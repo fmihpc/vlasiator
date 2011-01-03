@@ -97,7 +97,7 @@ void writeSpatialCells(const ParGrid<SpatialCell>& mpiGrid) {
    #else
    fname << "cells." << mpiGrid.rank() << '.';
    #endif
-   fname.width(5);
+   fname.width(7);
    fname.fill('0');
    fname << Parameters::tstep << ".silo";
    
@@ -139,7 +139,7 @@ void writeRemoteCells(const ParGrid<SpatialCell>& mpiGrid) {
    #else
       fname << "remcells." << mpiGrid.rank() << '.';
    #endif
-   fname.width(5);
+   fname.width(7);
    fname.fill('0');
    fname << Parameters::tstep << ".silo";
    
@@ -180,7 +180,7 @@ void writeVelocityBlocks(const ParGrid<SpatialCell>& mpiGrid) {
    #else
    fname << "blocks." << mpiGrid.rank() << '.';
    #endif
-   fname.width(5);
+   fname.width(7);
    fname.fill('0');
    fname << Parameters::tstep << ".silo";
    
@@ -248,7 +248,7 @@ void writeVelocityBlocks(const ParGrid<SpatialCell>& mpiGrid, const ID::type cel
    #else
    fname << "block_" << cell << ".";
    #endif
-   fname.width(5);
+   fname.width(7);
    fname.fill('0');
    fname << Parameters::tstep << ".silo";
 
