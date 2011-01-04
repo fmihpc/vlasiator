@@ -36,7 +36,6 @@ using namespace std;
 using namespace boost::posix_time;
 
 extern Logger logger;
-extern std::string Parameters::solar_wind_file;
 
 solar_wind::Solar_wind sw;
 

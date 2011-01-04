@@ -46,7 +46,7 @@ uint P::diagnInterval = numeric_limits<uint>::max();
 bool P::save_spatial_grid;
 bool P::save_velocity_grid;
 
-std::string solar_wind_file;
+std::string P::solar_wind_file;
 
 std::vector<Real> P::save_spatial_cells_x;
 std::vector<Real> P::save_spatial_cells_y;
