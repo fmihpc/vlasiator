@@ -4,6 +4,7 @@
 #include "boost/program_options.hpp"
 #include "definitions.h"
 #include "vector"
+#include "string"
 
 cuint MAX_VEL_BLOCKS = 2001001;
 
@@ -48,6 +49,8 @@ struct Parameters {
    static uint tsteps; /**< Total number of timesteps to calculate. */
    static uint saveInterval;
    static uint diagnInterval;
+
+   static std::string solar_wind_file;	/**< Read solar wind data from this file. */
 
    static bool save_spatial_grid;	/**< Save spatial cell averages for the whole simulation. */
    static bool save_velocity_grid;	/**< Save the velocity grid of every spatial cell in the simulation. */

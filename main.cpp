@@ -468,7 +468,7 @@ int main(int argn,char* args[]) {
       
       // Check if the full simulation state should be written to disk
       if (P::tstep % P::saveInterval == 0) {
-         logger << "(MAIN): Saving full state to disk at tstep = " << tstep << std::endl;
+         logger << "(MAIN): Saving full state to disk at tstep = " << tstep << ", time = " << P::t << std::endl;
          #ifdef PARGRID
 	    logger << "\t # sends to other MPI processes      = " << mpiGrid.getNumberOfSends() << std::endl;
 	    logger << "\t # receives from other MPI processes = " << mpiGrid.getNumberOfReceives() << std::endl;

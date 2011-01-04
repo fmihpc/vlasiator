@@ -46,6 +46,8 @@ uint P::diagnInterval = numeric_limits<uint>::max();
 bool P::save_spatial_grid;
 bool P::save_velocity_grid;
 
+std::string solar_wind_file;
+
 std::vector<Real> P::save_spatial_cells_x;
 std::vector<Real> P::save_spatial_cells_y;
 std::vector<Real> P::save_spatial_cells_z;
@@ -88,9 +90,12 @@ Parameters::Parameters(int argc, char* argv[]) {
 		("vy_length", boost::program_options::value<uint>(&P::vyblocks_ini)->default_value(1), "Length of the velocity grid in unrefined blocks in the y direction")
 		("vz_length", boost::program_options::value<uint>(&P::vzblocks_ini)->default_value(1), "Length of the velocity grid in unrefined blocks in the z direction")
 
-		// time stepping parameters
+		// time stepping options
 		("dt", boost::program_options::value<Real>(&P::dt)->default_value(1), "Length of one time step in seconds")
 		("time_steps", boost::program_options::value<uint>(&P::tsteps)->default_value(1), "Number of time steps to take")
+
+		// solar wind options
+		("solar_wind_file", boost::program_options::value<std::string>(&P::solar_wind_file)->default_value(""), "Read solar wind data from the file arg")
 
 		// saving options
 		("save_interval", boost::program_options::value<uint>(&P::diagnInterval)->default_value(1), "Save the simulation every arg time steps")
