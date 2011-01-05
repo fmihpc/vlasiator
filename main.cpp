@@ -243,11 +243,10 @@ void writeVelocityBlocks(const boost::mpi::communicator& comm, dccrg<SpatialCell
 void writeVelocityBlocks(const ParGrid<SpatialCell>& mpiGrid, const ID::type cell) {
 #endif
    std::stringstream fname;
-   #ifndef PARGRID
-   fname << "block_" << cell << ".";
-   #else
-   fname << "block_" << cell << ".";
-   #endif
+   double x = mpiGrid.get_cell_x(cell);
+   double y = mpiGrid.get_cell_y(cell);
+   double z = mpiGrid.get_cell_z(cell);
+   fname << "block_" << x / 6.3712e6 << "_" << y / 6.3712e6 << "_" << z / 6.3712e6 << "_";
    fname.width(7);
    fname.fill('0');
    fname << Parameters::tstep << ".silo";
