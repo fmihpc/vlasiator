@@ -122,6 +122,7 @@ bool VlsWriter::calculateVariableSizes() {
    varNameFieldByteSize = it->second[0];
    
    headerElements.clear();
+   return true;
 }
 
 /** Close a Vlasov file which has been previously opened by calling 
