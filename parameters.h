@@ -1,13 +1,12 @@
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
 
-#include <boost/program_options.hpp>
 #include "definitions.h"
-#include "vector"
-#include "string"
+#include <vector>
+#include <string>
 
-cuint MAX_VEL_BLOCKS = 2001001;
-
+cuint MAX_VEL_BLOCKS = 460000;
+//cuint MAX_VEL_BLOCKS = 3000000;
 namespace Transmit {
    cuint CELL_PARAMS  = 1;
    cuint BLOCK_PARAMS = CELL_PARAMS << 1;
@@ -16,7 +15,7 @@ namespace Transmit {
    cuint DERIV1       = CELL_PARAMS << 4;
    cuint DERIV2       = CELL_PARAMS << 5;
    cuint NBRSVEL      = CELL_PARAMS << 6;
-};
+}
 
 struct Parameters {
    static Real xmin;  /**< X-coordinate of the lower left corner of the spatial grid. */
@@ -62,8 +61,6 @@ struct Parameters {
 			  * This is created with bitwise or from the values defined in 
 			  * namespace Transmit.*/
 
-   static boost::program_options::options_description options; /**< Handles parameter processing from the user*/
-   
    Parameters(int argc, char* argv[]);
 };
 

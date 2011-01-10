@@ -4,7 +4,8 @@
 #include <limits.h>
 #include <mpi.h>
 #include <fstream>
-
+#include <assert.h> 
+#include <sstream>
 #include "vlswriter.h"
 
 using namespace std;
@@ -221,6 +222,7 @@ bool writeVtkCell(fstream& out,const map<NodeCrd<VtkReal>,VtkInt,NodeComp>& node
       //if (it != nodes.end()) out.write(reinterpret_cast<char*>(const_cast<VtkInt*>(&(it->second))),sizeof(VtkInt));
       if (it != nodes.end()) writeStream(out,it->second);
    }
+   return true;
 }
 
 bool writeVtkCellTypes(fstream& out,unsigned int N_cells) {
@@ -237,6 +239,7 @@ bool writeVtkCellTypes(fstream& out,unsigned int N_cells) {
       }
       out << endl;
    }
+   return true;
 }
 
 bool writeVtkComponentHeader(fstream& fout,const size_t& varID,VlsWriter& vlsWriter) {

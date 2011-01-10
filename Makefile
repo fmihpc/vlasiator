@@ -1,9 +1,10 @@
-include Makefile.arto
+include Makefile.intel
 
 default: main
 
 # Compile directory:
-INSTALL=${HOME}/codes/cuda/cudafvm
+INSTALL=${HOME}/codes/cudafvm2
+
 # Which project is compiled:
 PROJ=harm1D
 #PROJ=velocity_rotation_1+3d
@@ -106,10 +107,10 @@ cellsync.o: $(DEPS_CELLSYNC)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c cellsync.cpp $(INC_CUDA) ${INC}
 
 cpu_acc.o: ${DEPS_CPU_ACC}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c cpu_acc.cpp ${INC} ${INC_BOOST} ${INC_MPI}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${FLAG_OPENMP} -c cpu_acc.cpp ${INC} ${INC_BOOST} ${INC_MPI}
 
 cpu_trans.o: ${DEPS_CPU_TRANS}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c cpu_trans.cpp ${INC} ${INC_BOOST} ${INC_MPI}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${FLAG_OPENMP} -c cpu_trans.cpp ${INC} ${INC_BOOST} ${INC_MPI}
 
 cuda_acc.o: $(DEPS_CUDA_ACC)
 	$(NVCC) $(NVCCFLAGS) $(FLAGS) -c cuda_acc.cu ${INC}
@@ -139,7 +140,7 @@ logger.o: $(DEPS_LOGGER)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c logger.cpp
 
 main.o: $(DEPS_MAIN)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c main.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST}
+	$(CMP) $(CXXFLAGS) $(FLAGS) ${FLAG_OPENMP} -c main.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
 
 mpifile.o: ${DEPS_MPIFILE}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c mpifile.cpp ${INC_MPI}

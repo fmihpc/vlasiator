@@ -1,11 +1,15 @@
-#include "boost/program_options.hpp"
+#include <boost/program_options.hpp>
 #include <cmath>
-#include "fstream"
-#include "iostream"
+#include <fstream>
+#include <iostream>
 #include <limits>
-#include "string"
+#include <string>
 
 #include "parameters.h"
+
+#ifndef NAN
+  #define NAN 0
+#endif
 
 using namespace std;
 
@@ -54,7 +58,9 @@ std::vector<Real> P::save_spatial_cells_z;
 
 uint P::transmit = 0;
 
-boost::program_options::options_description P::options = boost::program_options::options_description("Usage: main [options (options given on the command line override options given everywhere else)], where options are:");
+// Handles parameter processing from the user
+static boost::program_options::options_description options 
+  = boost::program_options::options_description("Usage: main [options (options given on the command line override options given everywhere else)], where options are:");
 
 Parameters::Parameters(int argc, char* argv[]) {
 
