@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <map>
-#include <limits.h>
+#include <limits>
 #include <mpi.h>
 #include <fstream>
 #include <assert.h> 
