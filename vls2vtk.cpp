@@ -459,7 +459,7 @@ int main(int argn,char* args[]) {
       }
    }
    vlsWriter.close();
-   cerr << "nodes.size() = " << nodes.size() << endl;
+   //cerr << "nodes.size() = " << nodes.size() << endl;
    
    // Give each node a unique ID:
    if (myrank == 0 && success == true) {
@@ -476,7 +476,7 @@ int main(int argn,char* args[]) {
       fileout = infile;
       size_t pos = fileout.rfind(".vlsv");
       if (pos != string::npos) fileout.replace(pos,5,".vtk");
-      cerr << "out file is '" << fileout << "'" << endl;
+      //cerr << "out file is '" << fileout << "'" << endl;
       
       if (writeBinary == false) out.open(fileout.c_str(),fstream::out);
       else out.open(fileout.c_str(),fstream::out);
@@ -576,7 +576,7 @@ int main(int argn,char* args[]) {
 	 
 	 string command = "cat " + ss.str();
 	 command = command + " >> " + fileout;
-	 cout << "Command is '" << command << "'" << endl;
+	 //cout << "Command is '" << command << "'" << endl;
 	 if (system(command.c_str()) != 0) {
 	    cerr << "An ERROR occurred while appending variable file '" << ss.str() << "'" << endl;
 	 }
@@ -600,7 +600,7 @@ int main(int argn,char* args[]) {
 	 ss.fill('0');
 	 ss << i << ".vtk";
 	 string command = "rm " + ss.str();
-	 cout << "Command is '" << command << "'" << endl;
+	 //cout << "Command is '" << command << "'" << endl;
 	 if (system(command.c_str()) != 0) {
 	    cerr << "An ERROR occurred while removing temporary variable file '" << ss.str() << "'" << endl;
 	 }

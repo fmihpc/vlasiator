@@ -83,89 +83,6 @@ void initSpatialCells(const ParGrid<SpatialCell>& mpiGrid) {
 }
 
 #ifndef PARGRID
-void writeSpatialCells(const boost::mpi::communicator& comm,dccrg<SpatialCell>& mpiGrid) {
-#else
-void writeSpatialCells(const ParGrid<SpatialCell>& mpiGrid) {
-#endif
-   // This can be replaced by an iterator.
-   #ifndef PARGRID
-   std::vector<uint64_t> cells = mpiGrid.get_cells();
-   #else
-   std::vector<ID::type> cells;
-   mpiGrid.getCells(cells);
-   #endif
-
-   std::stringstream fname;
-   #ifndef PARGRID
-   fname << "cells." << comm.rank() << '.';
-   #else
-   fname << "cells." << mpiGrid.rank() << '.';
-   #endif
-   fname.width(7);
-   fname.fill('0');
-   fname << Parameters::tstep << ".silo";
-   
-   openOutputFile(fname.str(),"spatial_cells");
-   reserveSpatialCells(cells.size());
-   for (uint i=0; i<cells.size(); ++i) {
-      Real* const avgs = mpiGrid[cells[i]]->cpu_avgs;
-      if (avgs == NULL) {
-	 std::cerr << "(MAIN) ERROR expected a pointer, got NULL" << std::endl;
-	 continue;
-      }
-      Real n = 0.0;
-      for (uint b=0; b<SIZE_VELBLOCK*mpiGrid[cells[i]]->N_blocks; ++b) n += avgs[b];
-      mpiGrid[cells[i]]->cpu_cellParams[CellParams::RHO] = n;
-      mpiGrid[cells[i]]->cpu_cellParams[CellParams::RHOVX] = 0.0;
-      mpiGrid[cells[i]]->cpu_cellParams[CellParams::RHOVY] = 0.0;
-      mpiGrid[cells[i]]->cpu_cellParams[CellParams::RHOVZ] = 0.0;
-      addSpatialCell(mpiGrid[cells[i]]->cpu_cellParams);
-   }
-   writeSpatialCells("spatcells");
-   closeOutputFile();
-   freeCells();
-}
-
-#ifndef PARGRID
-   
-#else
-void writeRemoteCells(const ParGrid<SpatialCell>& mpiGrid) {
-   #ifndef PARGRID
-   
-   #else
-      std::vector<ID::type> cells;
-      mpiGrid.getRemoteCells(cells);
-   #endif
-   if (cells.size() == 0) return;
-   std::stringstream fname;
-   #ifndef PARGRID
-   
-   #else
-      fname << "remcells." << mpiGrid.rank() << '.';
-   #endif
-   fname.width(7);
-   fname.fill('0');
-   fname << Parameters::tstep << ".silo";
-   
-   openOutputFile(fname.str(),"remote_cells");
-   reserveSpatialCells(cells.size());
-   for (uint i=0; i<cells.size(); ++i) {
-      Real* const avgs = mpiGrid[cells[i]]->cpu_avgs;
-      if (avgs == NULL) {
-	 std::cerr << "(MAIN) ERROR expected a pointer, got NULL" << std::endl;
-	 continue;
-      }
-      Real n = 0.0;
-      for (uint b=0; b<SIZE_VELBLOCK*mpiGrid[cells[i]]->N_blocks; ++b) n += avgs[b];
-      addSpatialCell(mpiGrid[cells[i]]->cpu_cellParams);
-   }
-   writeSpatialCells("remotecells");
-   closeOutputFile();
-   freeCells();
-}
-#endif
-
-#ifndef PARGRID
 void writeVelocityBlocks(const boost::mpi::communicator& comm,dccrg<SpatialCell>& mpiGrid) {
 #else
 void writeVelocityBlocks(const ParGrid<SpatialCell>& mpiGrid) {
@@ -349,9 +266,15 @@ bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter
    bool success = true;
    int myrank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+
+   stringstream fname;
+   fname << "celldata.";
+   fname.width(7);
+   fname.fill('0');
+   fname << Parameters::tstep << ".vlsv";
    
    // Open a file for writing using MPI I/O:
-   if (vlsWriter.openWrite(MPI_COMM_WORLD,"testfile.vlsv") == false) {
+   if (vlsWriter.openWrite(MPI_COMM_WORLD,fname.str()) == false) {
       logger << "Error opening output file on process " << mpiGrid.rank() << endl;
       success = false;
    }
@@ -480,45 +403,34 @@ int main(int argn,char* args[]) {
    logger << grid.getTotalNumberOfBlocks() << std::endl;
    #endif
    
-   // Write initial state:
-   #ifndef PARGRID
-
-   if (P::save_spatial_grid) {
-      writeSpatialCells(comm,mpiGrid);
-   }
-   //writeVelocityBlocks(comm,mpiGrid);
-   if (P::save_velocity_grid) {
-      writeAllVelocityBlocks(comm, mpiGrid);
-   }
-   writeSomeVelocityGrids(comm, mpiGrid, P::save_spatial_cells_x, P::save_spatial_cells_y, P::save_spatial_cells_z);
-   comm.barrier();
-
-   #else
-
-   if (P::save_spatial_grid) {
-      writeSpatialCells(mpiGrid);
-   }
-   //writeRemoteCells(mpiGrid);
-   //writeVelocityBlocks(mpiGrid);
-   if (P::save_velocity_grid) {
-      writeAllVelocityBlocks(mpiGrid);
-   }
-   // not supported yet writeSomeVelocityGrids(comm, mpiGrid, P::save_spatial_cells_x, P::save_spatial_cells_y, P::save_spatial_cells_z);
-   mpiGrid.barrier();
-
-   #endif
-
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
    // user-defined operators:
    DataReducer reducer;
+   reducer.addOperator(new DRO::VariableB);
+   reducer.addOperator(new DRO::VariableE);
    reducer.addOperator(new DRO::VariableRho);
+   reducer.addOperator(new DRO::VariableRhoV);
    reducer.addOperator(new DRO::MPIrank);
    VlsWriter vlsWriter;
 
    // Write initial state:
-   if (writeSpatialCellData(mpiGrid,vlsWriter,reducer) == false) {
-      logger << "(MAIN): ERROR occurred while writing data to file!" << endl;
+   if (P::save_spatial_grid) {
+      if (writeSpatialCellData(mpiGrid,vlsWriter,reducer) == false) {
+	 logger << "(MAIN): ERROR occurred while writing data to file!" << endl;
+      }
    }
+   #ifndef PARGRID
+      if (P::save_velocity_grid) {
+	 writeAllVelocityBlocks(comm, mpiGrid);
+      }
+      writeSomeVelocityGrids(comm, mpiGrid, P::save_spatial_cells_x, P::save_spatial_cells_y, P::save_spatial_cells_z);
+      comm.barrier();
+   #else
+      if (P::save_velocity_grid) {
+	 writeAllVelocityBlocks(mpiGrid);
+      }
+      mpiGrid.barrier();
+   #endif
    
    // Main simulation loop:
    logger << "(MAIN): Starting main simulation loop." << std::endl;
@@ -555,28 +467,22 @@ int main(int argn,char* args[]) {
       if (P::tstep % P::diagnInterval == 0) {
          logger << "(MAIN): Saving variables to disk at tstep = " << tstep << ", time = " << P::t << std::endl;
 
+	 if (P::save_spatial_grid) {
+	    if (writeSpatialCellData(mpiGrid,vlsWriter,reducer) == false) {
+	       logger << "(MAIN): ERROR occurred while writing data to file!" << endl;
+	    }
+	 }
+	 
          #ifndef PARGRID
-
-         if (P::save_spatial_grid) {
-            writeSpatialCells(comm,mpiGrid);
-         }
-         //writeVelocityBlocks(comm,mpiGrid);
          if (P::save_velocity_grid) {
             writeAllVelocityBlocks(comm, mpiGrid);
          }
          writeSomeVelocityGrids(comm, mpiGrid, P::save_spatial_cells_x, P::save_spatial_cells_y, P::save_spatial_cells_z);
 
          #else
-
-         if (P::save_spatial_grid) {
-            writeSpatialCells(mpiGrid);
-         }
-         //writeRemoteCells(mpiGrid);
-         //writeVelocityBlocks(mpiGrid);
          if (P::save_velocity_grid) {
             writeAllVelocityBlocks(mpiGrid);
          }
-         // not supported yet    writeSomeVelocityGrids(comm, mpiGrid, P::save_spatial_cells_x, P::save_spatial_cells_y, P::save_spatial_cells_z);
 
          #endif
       }
@@ -593,12 +499,14 @@ int main(int argn,char* args[]) {
    logger << "\t (TIME) seconds per timestep " << double(after - before) / P::tsteps << ", seconds per simulated second " << double(after - before) / P::t << std::endl;
 
    // Write final state:
-   #ifndef PARGRID
-
    if (P::save_spatial_grid) {
-      writeSpatialCells(comm,mpiGrid);
+      if (writeSpatialCellData(mpiGrid,vlsWriter,reducer) == false) {
+	 logger << "(MAIN): ERROR occurred while writing data to file!" << endl;
+      }
    }
-   //writeVelocityBlocks(comm,mpiGrid);
+
+
+   #ifndef PARGRID
    if (P::save_velocity_grid) {
       writeAllVelocityBlocks(comm, mpiGrid);
    }
@@ -606,15 +514,9 @@ int main(int argn,char* args[]) {
 
    #else
 
-   if (P::save_spatial_grid) {
-      writeSpatialCells(mpiGrid);
-   }
-   //writeRemoteCells(mpiGrid);
-   //writeVelocityBlocks(mpiGrid);
    if (P::save_velocity_grid) {
       writeAllVelocityBlocks(mpiGrid);
    }
-   // not supported yet writeSomeVelocityGrids(comm, mpiGrid, P::save_spatial_cells_x, P::save_spatial_cells_y, P::save_spatial_cells_z);
 
    #endif
 

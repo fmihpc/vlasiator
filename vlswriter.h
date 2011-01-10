@@ -138,16 +138,23 @@ template<typename T> T VlsWriter::getSpatCellGID() const {return static_cast<T>(
 
 template<typename T> T VlsWriter::getStaticVar(const size_t& varID,const unsigned int& element) const {
    if (varID >= staticSizeVars.size()) return NAN;
-   //if (staticSizeVars[varID].byteSize == 4) return static_cast<T*>(*(reinterpret_cast<float*>(&(byteArray[staticSizeVars[varID].offset]))));
-   //if (staticSizeVars[varID].byteSize == 8) return static_cast<T*>(*(reinterpret_cast<double*>(&(byteArray[staticSizeVars[varID].offset]))));
-   //if (staticSizeVars[varID].byteSize == 16) return static_cast<T*>(*(reinterpret_cast<long double*>(&(byteArray[staticSizeVars[varID].offset]))));
-   
    if (element >= staticSizeVars[varID].elements) return NAN;
+   /*
    if (staticSizeVars[varID].byteSize == 4) {
       return static_cast<T>(*(reinterpret_cast<float*>(&(byteArray[staticSizeVars[varID].offset + element*4]))));
    } else if (staticSizeVars[varID].byteSize == 8) { 
       return static_cast<T>(*(reinterpret_cast<double*>(&(byteArray[staticSizeVars[varID].offset + element*8]))));
    } else if (staticSizeVars[varID].byteSize == 16) {
+      return static_cast<T>(*(reinterpret_cast<long double*>(&(byteArray[staticSizeVars[varID].offset + element*16]))));
+   } else {
+      return NAN;
+   }
+   */
+   if (staticSizeVars[varID].elementBytes == 4) {
+      return static_cast<T>(*(reinterpret_cast<float*>(&(byteArray[staticSizeVars[varID].offset + element*4]))));
+   } else if (staticSizeVars[varID].elementBytes == 8) {
+      return static_cast<T>(*(reinterpret_cast<double*>(&(byteArray[staticSizeVars[varID].offset + element*8]))));
+   } else if (staticSizeVars[varID].elementBytes == 16) {
       return static_cast<T>(*(reinterpret_cast<long double*>(&(byteArray[staticSizeVars[varID].offset + element*16]))));
    } else {
       return NAN;
