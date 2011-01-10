@@ -1,12 +1,6 @@
 #ifndef CPU_ACC_H
 #define CPU_ACC_H
 
-#ifdef DEBUG_SOLVERS
-#include "cstdlib"
-#include "iostream"
-using namespace std;
-#endif
-
 #include "definitions.h"
 #include "common.h"
 #include "cell_spatial.h"
@@ -18,12 +12,6 @@ template<typename T> T fullInd(const T& i,const T& j,const T& k) {return k*64+j*
 template<typename T> T isBoundary(const T& STATE,const T& BND) {return STATE & BND;}
 
 template<typename T> T velDerivs1(const T& xl2,const T& xl1,const T& xcc,const T& xr1,const T& xr2) {
-   #ifdef DEBUG_SOLVERS
-   if (superbee<T>(xl1,xcc,xr1) != superbee<T>(xl1,xcc,xr1)) {
-      cout << "Nan returned from superbee with xl1, xcc, xr1 given to velDerivs1 being: " << xl1 << " " << xcc << " " << xr1 << endl;
-      exit(EXIT_FAILURE);
-   }
-   #endif
    return superbee(xl1,xcc,xr1);
 }
 
@@ -407,29 +395,9 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxesX(CELL
 	 #pragma ivdep
 	 for (UINT i=0; i<WID; ++i) {
 	    avg_neg = reconstruct_neg(avgs[k*YSXS+j*XS+(i  )],d1x[k*YSXS+j*XS+(i  )],d2x[k*YSXS+j*XS+(i  )]);
-            #ifdef DEBUG_SOLVERS
-            if (avg_neg != avg_neg) {
-               cout << "avg_neg is nan for i, j, k: "  << i << " " << j << " " << k << endl;
-               exit(EXIT_FAILURE);
-            }
-            #endif
-
 	    avg_pos = reconstruct_pos(avgs[k*YSXS+j*XS+(i+1)],d1x[k*YSXS+j*XS+(i+1)],d2x[k*YSXS+j*XS+(i+1)]);
-            #ifdef DEBUG_SOLVERS
-            if (avg_pos != avg_pos) {
-               cout << "avg_pos is nan for i, j, k: "  << i << " " << j << " " << k << endl;
-               exit(EXIT_FAILURE);
-            }
-            #endif
-
 	    //fx[accIndex(i,j,k)] = velocityFluxX(i,j,k,avg_neg,avg_pos,cell.cpu_cellParams,blockParams);
 	    fx[accIndex(i,j,k)] = velocityFluxX(J,K,avg_neg,avg_pos,cell.cpu_cellParams,blockParams);
-            #ifdef DEBUG_SOLVERS
-            if (fx[accIndex(i,j,k)] != fx[accIndex(i,j,k)]) {
-               cout << "fx is nan for i, j, k: "  << i << " " << j << " " << k << endl;
-               exit(EXIT_FAILURE);
-            }
-            #endif
 	 }
       }
    }
@@ -463,12 +431,6 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxesY(CELL
 	    avg_pos = reconstruct_pos(avgs[k*YSXS+(j+1)*XS+i],d1y[k*YSXS+(j+1)*XS+i],d2y[k*YSXS+(j+1)*XS+i]);
 	    //fy[accIndex(i,j,k)] = velocityFluxY(i,j,k,avg_neg,avg_pos,cell.cpu_cellParams,blockParams);
 	    fy[accIndex(i,j,k)] = velocityFluxY(I,K,avg_neg,avg_pos,cell.cpu_cellParams,blockParams);
-            #ifdef DEBUG_SOLVERS
-            if (fy[accIndex(i,j,k)] != fy[accIndex(i,j,k)]) {
-               cout << "fy is nan for i, j, k: "  << i << " " << j << " " << k << endl;
-               exit(EXIT_FAILURE);
-            }
-            #endif
 	 }
       }
    }
@@ -501,12 +463,6 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxesZ(CELL
 	    avg_neg = reconstruct_neg(avgs[(k  )*YSXS+j*XS+i],d1z[(k  )*YSXS+j*XS+i],d2z[(k  )*YSXS+j*XS+i]);
 	    avg_pos = reconstruct_pos(avgs[(k+1)*YSXS+j*XS+i],d1z[(k+1)*YSXS+j*XS+i],d2z[(k+1)*YSXS+j*XS+i]);
 	    fz[accIndex(i,j,k)] = velocityFluxZ(I,J,avg_neg,avg_pos,cell.cpu_cellParams,blockParams);
-            #ifdef DEBUG_SOLVERS
-            if (fz[accIndex(i,j,k)] != fz[accIndex(i,j,k)]) {
-               cout << "fz is nan for i, j, k: "  << i << " " << j << " " << k << endl;
-               exit(EXIT_FAILURE);
-            }
-            #endif
 	    //fz[accIndex(i,j,k)] = velocityFluxZ(i,j,k,avg_neg,avg_pos,cell.cpu_cellParams,blockParams);
 	 }
       }
@@ -550,13 +506,6 @@ template<typename REAL,typename UINT,typename CELL> void cpu_propagateVel(CELL& 
    // Store results:
    REAL* const cpu_avgs = cell.cpu_avgs + BLOCK*SIZE_VELBLOCK;
    for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
-      #ifdef DEBUG_SOLVERS
-      if (avgs[accIndex(i,j,k)] != avgs[accIndex(i,j,k)]) {
-         cout << "velocity result is nan for i, j, k: "  << i << " " << j << " " << k << endl;
-         exit(EXIT_FAILURE);
-      }
-      #endif
-
       cpu_avgs[accIndex(i,j,k)] += avgs[accIndex(i,j,k)];
    }
 }

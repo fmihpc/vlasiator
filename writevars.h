@@ -52,11 +52,11 @@ template<> void writeCellDistribution(const ParGrid<SpatialCell>& mpiGrid) {
       cell.cpu_cellParams[CellParams::XCRD] = mpiGrid.get_cell_x(it->first) - 0.5*cell.cpu_cellParams[CellParams::DX];
       cell.cpu_cellParams[CellParams::YCRD] = mpiGrid.get_cell_y(it->first) - 0.5*cell.cpu_cellParams[CellParams::DY];
       cell.cpu_cellParams[CellParams::ZCRD] = mpiGrid.get_cell_z(it->first) - 0.5*cell.cpu_cellParams[CellParams::DZ];
-      addSpatialCell(cell.cpu_cellParams,it->second);
+      addSpatialCell(cell.cpu_cellParams);
    }
    
    // Write output file and release resources:
-   writeSpatialCells("spatcells","host");
+   writeSpatialCells("spatcells");
    closeOutputFile();
    freeCells();
 }

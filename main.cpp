@@ -20,6 +20,10 @@
 #include "cell_spatial.h"
 #include "writevars.h"
 
+#include "datareducer.h"
+#include "datareductionoperator.h"
+#include "vlswriter.h"
+
 extern void buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,creal& zmin,creal& dx,creal& dy,creal& dz,const bool& isRemote);
 
 Grid grid;
@@ -153,9 +157,9 @@ void writeRemoteCells(const ParGrid<SpatialCell>& mpiGrid) {
       }
       Real n = 0.0;
       for (uint b=0; b<SIZE_VELBLOCK*mpiGrid[cells[i]]->N_blocks; ++b) n += avgs[b];
-      addSpatialCell(mpiGrid[cells[i]]->cpu_cellParams,n);
+      addSpatialCell(mpiGrid[cells[i]]->cpu_cellParams);
    }
-   writeSpatialCells("remotecells","n");
+   writeSpatialCells("remotecells");
    closeOutputFile();
    freeCells();
 }
@@ -314,29 +318,90 @@ void writeSomeVelocityGrids(const ParGrid<SpatialCell>& mpiGrid, const std::vect
 		exit(EXIT_FAILURE);
 	}
 
-	for (int i = 0; i < x.size(); i++) {
-		for (unsigned int j = 0; j < cells.size(); j++) {
-			#ifndef PARGRID
-			double cell_x = mpiGrid.get_cell_x(cells[j]);
-			double cell_y = mpiGrid.get_cell_y(cells[j]);
-			double cell_z = mpiGrid.get_cell_z(cells[j]);
-			double cell_dx = mpiGrid.get_cell_x_size(cells[j]);
-			double cell_dy = mpiGrid.get_cell_y_size(cells[j]);
-			double cell_dz = mpiGrid.get_cell_z_size(cells[j]);
-
-			if (fabs(x[i] - cell_x) <= cell_dx / 2
-			&& fabs(y[i] - cell_y) <= cell_dy / 2
-			&& fabs(z[i] - cell_z) <= cell_dz / 2) {
-				writeVelocityBlocks(comm, mpiGrid, cells[j]);
-			}
-			#else
-			#error writeSomeVelocityGrids not supported with PARGRID
-			//writeVelocityBlocks(mpiGrid, cells[i]);
-			#endif
-		}
-	}
+   for (int i = 0; i < x.size(); i++) {
+      for (unsigned int j = 0; j < cells.size(); j++) {
+         #ifndef PARGRID
+	 double cell_x = mpiGrid.get_cell_x(cells[j]);
+	 double cell_y = mpiGrid.get_cell_y(cells[j]);
+	 double cell_z = mpiGrid.get_cell_z(cells[j]);
+	 double cell_dx = mpiGrid.get_cell_x_size(cells[j]);
+	 double cell_dy = mpiGrid.get_cell_y_size(cells[j]);
+	 double cell_dz = mpiGrid.get_cell_z_size(cells[j]);
+	 
+	 if (fabs(x[i] - cell_x) <= cell_dx / 2
+	     && fabs(y[i] - cell_y) <= cell_dy / 2
+	     && fabs(z[i] - cell_z) <= cell_dz / 2) {
+	    writeVelocityBlocks(comm, mpiGrid, cells[j]);
+	 }
+         #else
+         //#error writeSomeVelocityGrids not supported with PARGRID
+	 //writeVelocityBlocks(mpiGrid, cells[i]);
+         #endif
+      }
+   }
 }
 
+#ifdef PARGRID
+bool writeSpatialCellData(const ParGrid<SpatialCell>& mpiGrid,VlsWriter& vlsWriter,DataReducer& dataReducer) {
+#else
+bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter,DataReducer& dataReducer) {
+#endif
+   bool success = true;
+   int myrank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+   
+   // Open a file for writing using MPI I/O:
+   if (vlsWriter.openWrite(MPI_COMM_WORLD,"testfile.vlsv") == false) {
+      logger << "Error opening output file on process " << mpiGrid.rank() << endl;
+      success = false;
+   }
+   
+   // Master process (rank=0) within the given communicator writes the file header:
+   if (vlsWriter.writeHeader(MPI_COMM_WORLD,0) == false) {
+      logger << "Error writing header on process " << mpiGrid.rank() << endl;
+      success = false;
+   }
+   
+   // Master process writes description of static-size variables. Here "static-size" 
+   // means that the size of variable data is the same for all spatial cells.
+   if (vlsWriter.writeStaticVariableDesc(MPI_COMM_WORLD,0,&dataReducer) == false) {
+      logger << "Error writing variable description on process " << mpiGrid.rank() << endl;
+      success = false;
+   }
+   
+   // Get the global IDs of all local cells:
+   #ifdef PARGRID
+      mpiGrid.getCells(Main::cells);
+      ID::type cellGID;
+   #else
+      Main::cells = mpiGrid.get_cells();
+      uint64_t cellGID;
+   #endif
+   
+   // Write local cell data to file:
+   SpatialCell* cellptr;
+   for (size_t i=0; i<Main::cells.size(); ++i) {
+      cellGID = Main::cells[i];
+      cellptr = mpiGrid[cellGID];
+      if (cellptr != NULL) {
+	 if (vlsWriter.writeSpatCellCoordEntry(cellGID,*cellptr,&dataReducer) == false) {
+	    logger << "Error writing spatial cell with global ID " << cellGID << " on process " << myrank << endl;
+	    success = false;
+	 }
+      } else {
+	 cerr << "Proc #" << myrank << " received NULL pointer, i = " << i << " global ID = " << Main::cells[i] << endl;
+	 success = false;
+      }
+   }
+   MPI_Barrier(MPI_COMM_WORLD);
+   
+   // Close output file and exit:
+   if (vlsWriter.close() == false) {
+      logger << "Error closing file on process " << mpiGrid.rank() << endl;
+      success = false;
+   }
+   return success;
+}
 
 int main(int argn,char* args[]) {
    bool success = true;
@@ -443,6 +508,18 @@ int main(int argn,char* args[]) {
 
    #endif
 
+   // Initialize data reduction operators. This should be done elsewhere in order to initialize 
+   // user-defined operators:
+   DataReducer reducer;
+   reducer.addOperator(new DRO::VariableRho);
+   reducer.addOperator(new DRO::MPIrank);
+   VlsWriter vlsWriter;
+
+   // Write initial state:
+   if (writeSpatialCellData(mpiGrid,vlsWriter,reducer) == false) {
+      logger << "(MAIN): ERROR occurred while writing data to file!" << endl;
+   }
+   
    // Main simulation loop:
    logger << "(MAIN): Starting main simulation loop." << std::endl;
    time_t before = std::time(NULL);
@@ -454,7 +531,7 @@ int main(int argn,char* args[]) {
       #ifndef PARGRID
       P::dt = all_reduce(comm, P::dt, boost::mpi::minimum<Real>());
       #else
-      #error No communicator for all_reduce when using PARGRID
+      //#error No communicator for all_reduce when using PARGRID
       #endif
 
       // Propagate the state of simulation forward in time by dt:

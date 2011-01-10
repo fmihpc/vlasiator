@@ -176,7 +176,7 @@ bool SpatialCell::clone(const SpatialCell& s) {
    for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d2z[i]         = s.cpu_d2z[i];
    return  true;
 }
-
+#ifndef PARGRID
 uint SpatialCell::base_address_identifier = 0;
 
 size_t SpatialCell::size(void) {
@@ -206,7 +206,7 @@ MPI_Datatype SpatialCell::mpi_data_type(void)
 void* SpatialCell::at(void) {
    return this->getBaseAddress(SpatialCell::base_address_identifier);
 }
-
+#endif
 
 #ifdef PARGRID
 #include <mpi.h>
