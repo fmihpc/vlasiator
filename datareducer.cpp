@@ -37,7 +37,7 @@ bool DataReducer::appendReducedData(const SpatialCell& cell,unsigned char* const
    return true;
 }
 
-unsigned int DataReducer::getByteSize() {
+unsigned int DataReducer::getByteSize() const {
    unsigned int size = 0;
    for (vector<DRO::DataReductionOperator*>::const_iterator it=operators.begin(); it!=operators.end(); ++it) {
       size += (*it)->getOutputByteSize();

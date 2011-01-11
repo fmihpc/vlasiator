@@ -1,4 +1,3 @@
-#include "boost/mpi.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
@@ -293,21 +292,23 @@ bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter
       uint64_t cellGID;
    #endif
    
-   // Write local cell data to file:
+   // Write local cell data to file using a buffer:
+   vlsWriter.reserveSpatCellCoordBuffer(Main::cells.size(),&dataReducer);
    SpatialCell* cellptr;
    for (size_t i=0; i<Main::cells.size(); ++i) {
       cellGID = Main::cells[i];
       cellptr = mpiGrid[cellGID];
       if (cellptr != NULL) {
-	 if (vlsWriter.writeSpatCellCoordEntry(cellGID,*cellptr,&dataReducer) == false) {
+	 if (vlsWriter.writeSpatCellCoordEntryBuffered(cellGID,*cellptr,&dataReducer) == false) {
 	    logger << "Error writing spatial cell with global ID " << cellGID << " on process " << myrank << endl;
 	    success = false;
 	 }
       } else {
-	 cerr << "Proc #" << myrank << " received NULL pointer, i = " << i << " global ID = " << Main::cells[i] << endl;
+	 logger << "ERROR: Received NULL pointer, i = " << i << " global ID = " << Main::cells[i] << endl;
 	 success = false;
       }
    }
+   vlsWriter.flushBuffer();
    MPI_Barrier(MPI_COMM_WORLD);
    
    // Close output file and exit:

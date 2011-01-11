@@ -59,6 +59,7 @@ class VlsWriter {
    ~VlsWriter();
    
    bool close();
+   bool flushBuffer();
    template<typename T> T getCrdX() const;
    template<typename T> T getCrdY() const;
    template<typename T> T getCrdZ() const;
@@ -78,9 +79,11 @@ class VlsWriter {
    bool readHeader(MPI_Comm comm,const int& masterRank);
    bool readSpatCellCoordEntry();
    bool readStaticVariableDesc(MPI_Comm comm,const int& masterRank);
+   bool reserveSpatCellCoordBuffer(const unsigned int& N_cells,const DataReducer* const dr);
    bool sync();
    bool writeHeader(MPI_Comm comm,const int& masterRank);   
    bool writeSpatCellCoordEntry(cuint& cellID,const SpatialCell& cell,DataReducer* const dr);
+   bool writeSpatCellCoordEntryBuffered(cuint& cellID,const SpatialCell& cell,DataReducer* const dr);
    bool writeStaticVariableDesc(MPI_Comm comm,const int& masterRank,DataReducer* const dr);
 
  private:
@@ -94,7 +97,9 @@ class VlsWriter {
       
       VarDesc(const std::string& name,const unsigned char& typeID,const unsigned char& elementBytes);
    };
-   
+
+   size_t bufferPointer;
+   size_t bufferSize;
    unsigned char* byteArray;
    VlsHeader::Real dx;
    VlsHeader::Real dy;

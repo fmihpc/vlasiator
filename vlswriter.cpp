@@ -48,6 +48,8 @@ name(name),typeID(typeID),elementBytes(elementBytes) {
 }
 
 VlsWriter::VlsWriter() {
+   bufferPointer = 0;
+   bufferSize = 0;
    byteArray = NULL;
    N_dimensions = 0;
    sizeByteArray = 0;
@@ -132,6 +134,16 @@ bool VlsWriter::calculateVariableSizes() {
  * @see VlsWriter::openWrite
  */
 bool VlsWriter::close() {return mpiFile.close();}
+
+bool VlsWriter::flushBuffer() {
+   // Write buffer to file:
+   bool rvalue = true;
+   if (bufferPointer == 0 || bufferSize == 0) return rvalue;
+   if (mpiFile.write(bufferPointer,byteArray) == false) rvalue = false;
+   if (mpiFile.getCount<unsigned int>() != bufferPointer) rvalue = false;
+   bufferPointer = 0;
+   return rvalue;
+}
 
 size_t VlsWriter::getNumberOfStaticVars() const {return staticSizeVars.size();}
 
@@ -348,6 +360,19 @@ bool VlsWriter::readStaticVariableDesc(MPI_Comm comm,const int& masterRank) {
    return success;
 }
 
+bool VlsWriter::reserveSpatCellCoordBuffer(const unsigned int& N_cells,const DataReducer* const dr) {
+   delete byteArray;
+   
+   // Calculate byte size of one coordinate entry, and reserve large enough array:
+   size_t entrySize = sizeof(uint) + 6*sizeof(Real);
+   if (dr != NULL) entrySize += dr->getByteSize();   
+   bufferSize = N_cells * entrySize;
+   bufferPointer = 0;
+   
+   byteArray = new unsigned char[bufferSize];
+   return true;
+}
+
 bool VlsWriter::setInternalPointers() {
    bool rvalue = true;
    // Set converter for spatial cell coordinate value:
@@ -474,6 +499,37 @@ bool VlsWriter::writeSpatCellCoordEntry(cuint& cellID,const SpatialCell& cell,Da
    bool rvalue = true; //mpiFile.write(SIZE,byteArray);
    if (mpiFile.write(SIZE,byteArray) == false) rvalue = false;
    if (mpiFile.getCount<unsigned int>() != SIZE) rvalue = false;
+   return rvalue;
+}
+
+bool VlsWriter::writeSpatCellCoordEntryBuffered(cuint& cellID,const SpatialCell& cell,DataReducer* dr) {
+   bool rvalue = true;
+   // Check that buffer has space for the entry. If it doesn't, 
+   // flush buffer to file before appending the given data:
+   size_t entrySize = sizeof(uint) + 6*sizeof(Real);
+   if (dr != NULL) entrySize += dr->getByteSize();
+   if (bufferPointer + entrySize > bufferSize) {
+      if (flushBuffer() == false) rvalue = false;
+   }
+   
+   // Append cell global ID to buffer:
+   const unsigned char* ptr;
+   ptr = reinterpret_cast<const unsigned char*>(&cellID);
+   for (int i=0; i<sizeof(cellID); ++i) {byteArray[bufferPointer] = ptr[i]; ++bufferPointer;}
+   // Append cell x,y,z,dx,dy,dz to buffer:
+   ptr = reinterpret_cast<const unsigned char*>(cell.cpu_cellParams);
+   for (int i=0; i<6*sizeof(Real); ++i) {byteArray[bufferPointer] = ptr[i]; ++bufferPointer;}
+   
+   // Reduce cell data and add to buffer:
+   if (dr != NULL) {
+      if (dr->reduceData(cell) == false) {
+	 cerr << "VlsWriter::writeSpatCellCoordEntry ERROR: DataReducer failed to reduce data!" << endl;
+	 rvalue = false;
+      } else {
+	 dr->appendReducedData(cell,byteArray + bufferPointer);
+	 bufferPointer += dr->getByteSize();
+      }
+   }
    return rvalue;
 }
 

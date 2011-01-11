@@ -117,25 +117,13 @@ template<typename T,typename INT> inline bool MPIFile::read(const INT& count,T* 
  * @see MPIFile::resetPosition
  */
 template<typename T,typename INT> inline bool MPIFile::write(const INT& count,const T* const array) {
-   //int mpiRank;
-   //MPI_Comm_rank(MPI_COMM_WORLD,&mpiRank);
-   //std::cerr << "\t Proc #" << mpiRank << " writing " << sizeof(T)*count << " bytes" << std::endl;
-   
    ptr = static_cast<void*>(const_cast<T*>(array));
-   //if (MPI_File_write_shared(fileptr,ptr,sizeof(T)*count,MPI_BYTE,&MPIstatus) == MPI_SUCCESS) return true;
-   //return false;
-
    bool rvalue = true;
-   if (MPI_File_write_shared(fileptr,ptr,sizeof(T)*count,MPI_BYTE,&MPIstatus) != MPI_SUCCESS) rvalue = false;
-   /*
-   MPI_Datatype cur_etype;
-   MPI_Datatype cur_ftype;
-   MPI_Offset cur_disp;
-   char strarray[100];
-   MPI_File_get_view(fileptr,&cur_disp,&cur_etype,&cur_ftype,strarray);
-   std::cerr << "\t Current displacement after write is " << (unsigned long long int)cur_disp << std::endl;
-   */
-   //resetPosition();
+   //if (MPI_File_write_shared(fileptr,ptr,sizeof(T)*count,MPI_BYTE,&MPIstatus) != MPI_SUCCESS) rvalue = false;   
+   MPI_Request mpiRequest;
+   if (MPI_File_iwrite_shared(fileptr,ptr,sizeof(T)*count,MPI_BYTE,&mpiRequest) != MPI_SUCCESS) rvalue = false;
+   MPI_Wait(&mpiRequest,&MPIstatus);
+   
    return rvalue;
 }
 
