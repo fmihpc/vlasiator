@@ -23,7 +23,7 @@ namespace ID {
 
 // Partitioners which can be used.
 enum LBM {
-   Block,Random,RCB,RIB,HSFC,Graph,Hypergraph
+   Block,Random,RCB,RIB,HSFC,Graph,Hypergraph,HierHG
 };
 
 // Overloaded templates which should return the corresponding data type 
@@ -115,30 +115,35 @@ template<class C> class ParGrid {
    static void getEdgeList(void* parGridPtr,int N_globalIDs,int N_localIDs,ZOLTAN_ID_PTR globalID,
 			   ZOLTAN_ID_PTR localID,ZOLTAN_ID_PTR nbrGlobalIDs,int* nbrHosts,
 			   int N_weights,float* weight,int* rcode);
+   static void getHierarchicalParameters(void* parGridPtr,int level,Zoltan_Struct* zs,int* rcode);
+   static int getHierarchicalPartNumber(void* parGridPtr,int level,int* rcode);
    static void getHyperedges(void* parGridPtr,int N_globalIDs,int N_vtxedges,int N_pins,int format,
 			     ZOLTAN_ID_PTR vtxedge_GID,int* vtxedge_ptr,ZOLTAN_ID_PTR pin_GID,int* rcode);
    static void getHyperedgeWeights(void* parGridPtr,int N_globalIDs,int N_localIDs,int N_edges,int N_weights,
 				   ZOLTAN_ID_PTR edgeGlobalID,ZOLTAN_ID_PTR edgeLocalID,float* edgeWeights,int* rcode);
    static int getNumberOfEdges(void* parGridPtr,int N_globalIDs,int N_localIDs,ZOLTAN_ID_PTR globalIDs,
 			       ZOLTAN_ID_PTR localIDs,int* rcode);
+   static int getNumberOfHierarchicalLevels(void* parGridPtr,int* rcode);
    static void getNumberOfHyperedges(void* parGridPtr,int* N_lists,int* N_pins,int* format,int* rcode);
    static void getNumberOfHyperedgeWeights(void* parGridPtr,int* N_edges,int* rcode);
    static int getNumberOfLocalCells(void* data,int* rcode);
-   
+
  private:
-   LBM balanceMethod;          /**< The load balance method currently in use.*/
+   static LBM balanceMethod;          /**< The load balance method currently in use.*/
    Real grid_xmin;             /**< x-coordinate of the lower left corner of the grid.*/
    Real grid_xmax;             /**< x-coordinate of the upper right corner of the grid.*/
    Real grid_ymin;             /**< y-coordinate of the lower left corner of the grid.*/
    Real grid_ymax;             /**< y-coordinate of the upper right corner of the grid.*/
    Real grid_zmin;             /**< z-coordinate of the lower left corner of the grid.*/
    Real grid_zmax;             /**< z-coordinate of the upper right corner of the grid.*/
-   std::string imbalanceTolerance; /**< Imbalance tolerance of the load balancing.*/
+   static std::string imbalanceTolerance; /**< Imbalance tolerance of the load balancing.*/
    bool initialized;           /**< If true, ParGrid was initialized successfully and is ready for use.*/
    MPI_Datatype MPIdataType;   /**< The MPI datatype which is currently used in communications.*/
    bool MPItypeFreed;          /**< If true, MPIdataType has been deallocated and it is safe to create a new one.*/
-   int myrank;                 /**< The rank if this MPI process.*/
+   static int myrank;                 /**< The rank if this MPI process.*/
+   static uint N_hierarchicalLevels;
    int N_processes;            /**< Total number of MPI processes.*/
+   static uint N_processesPerPart;
    uint N_receivesRemaining;   /**< Number of remote cells this process has received.*/
    std::string N_weights_cell; /**< Number of weights assigned to each cell.*/
    std::string N_weights_edge; /**< Number of weights assigned to each edge.*/
@@ -161,9 +166,9 @@ template<class C> class ParGrid {
    static std::map<ID::type,ParCell<C> > localCells;       /**< Associative container containing all cells that are currently 
 							    * assigned to this process.*/
    std::multimap<ID::type,ID::type> remoteToLocal;
-   std::vector<MPI_Request> MPIrecvRequests;
-   std::vector<MPI_Request> MPIsendRequests;
-   std::vector<MPI_Status> MPIstatuses;
+   std::vector<MPI_Request> MPIrecvRequests;               /**< Container for active MPI_Requests due to receives.*/
+   std::vector<MPI_Request> MPIsendRequests;               /**< Container for active MPI_Requests due to sends.*/
+   std::vector<MPI_Status> MPIstatuses;                    /**< Container for holding MPI_Status messages from sends and receives.*/
    std::list<ID::type> readyCells;
    static std::map<ID::type,int> receiveList;              /**< A list of cells, identified by their global ID, that are 
 							    * sent to this process during neighbour data exchange, and the 
@@ -182,7 +187,7 @@ template<class C> class ParGrid {
    static float calculateHyperedgeWeight(const ID::type& globalID);
    ID::type calculateUnrefinedIndex(const ID::type& i,const ID::type& j,const ID::type& k) const;
    void calculateUnrefinedIndices(const ID::type& index,ID::type& i,ID::type& j,ID::type& k) const;
-   std::string loadBalanceMethod(const LBM& method) const;
+   static std::string loadBalanceMethod(const LBM& method); // TEST: const removed
    void syncCellAssignments();
    void syncCellCoordinates();
 };
@@ -197,6 +202,12 @@ template<class C> std::map<ID::type,ParCell<C> > ParGrid<C>::localCells;
 template<class C> std::map<ID::type,int> ParGrid<C>::receiveList;
 template<class C> std::map<ID::type,ParCell<C> > ParGrid<C>::remoteCells;
 template<class C> std::map<std::pair<ID::type,int>,char> ParGrid<C>::sendList;
+
+template<class C> uint ParGrid<C>::N_processesPerPart;
+template<class C> uint ParGrid<C>::N_hierarchicalLevels;
+template<class C> int ParGrid<C>::myrank;
+template<class C> std::string ParGrid<C>::imbalanceTolerance;
+template<class C> LBM ParGrid<C>::balanceMethod;
 
 // ***************************************************************
 // ************** BEGIN MEMBER FUNCTION DEFITINIONS **************
@@ -226,6 +237,8 @@ template<class C> ParGrid<C>::ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,cre
    imbalanceTolerance = "1.05";
    weightCell = 1.0;
    weightEdge = 10.0;
+   N_hierarchicalLevels = 2;
+   N_processesPerPart = 12;
    
    // Attempt to init MPI:
    int rvalue = MPI_Init(&argn,&args);
@@ -273,6 +286,10 @@ template<class C> ParGrid<C>::ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,cre
    zoltan->Set_HG_CS_Fn(getHyperedges,this);
    zoltan->Set_HG_Size_Edge_Wts_Fn(getNumberOfHyperedgeWeights,this);
    zoltan->Set_HG_Edge_Wts_Fn(getHyperedgeWeights,this);
+   // Register hierarchical load balancing callback functions:
+   zoltan->Set_Hier_Num_Levels_Fn(getNumberOfHierarchicalLevels,this);
+   zoltan->Set_Hier_Part_Fn(getHierarchicalPartNumber,this);
+   zoltan->Set_Hier_Method_Fn(getHierarchicalParameters,this);
    
    buildInitialGrid();    // Build an initial guess for the grid
    syncCellAssignments();
@@ -777,7 +794,8 @@ template<class C> bool ParGrid<C>::initialLoadBalance() {
    return rvalue;
 }
 
-template<class C> std::string ParGrid<C>::loadBalanceMethod(const LBM& method) const {
+template<class C> std::string ParGrid<C>::loadBalanceMethod(const LBM& method) {
+//template<class C> std::string ParGrid<C>::loadBalanceMethod(const LBM& method) const {
    switch (method) {
     case Block:
       return "BLOCK";
@@ -799,6 +817,9 @@ template<class C> std::string ParGrid<C>::loadBalanceMethod(const LBM& method) c
       break;
     case Hypergraph:
       return "HYPERGRAPH";
+      break;
+    case HierHG:
+      return "HIER";
       break;
    }
    return std::string("");
@@ -1404,6 +1425,54 @@ void ParGrid<C>::getHyperedgeWeights(void* parGridPtr,int N_globalIDs,int N_loca
       edgeGlobalID[counter] = it->first;
       edgeWeights[counter] = calculateHyperedgeWeight(it->first);
       ++counter;
+   }
+   *rcode = ZOLTAN_OK;
+}
+
+template<class C>
+int ParGrid<C>::getNumberOfHierarchicalLevels(void* parGridPtr,int* rcode) {   
+   *rcode = ZOLTAN_OK;
+   return N_hierarchicalLevels;
+}
+
+template<class C>
+int ParGrid<C>::getHierarchicalPartNumber(void* parGridPtr,int level,int* rcode) {
+   int rvalue;
+   *rcode = ZOLTAN_OK;
+   switch (level) {
+    case 0:
+      // Rank of superpartition containing this process:
+      rvalue = myrank / N_processesPerPart;
+      break;
+    case 1:
+      // Rank of this process within the superpartition:
+      rvalue = myrank % N_processesPerPart;
+      break;
+    default:
+      // Incorrect number of partitioning levels:
+      *rcode = ZOLTAN_FATAL;
+      break;
+   }
+   return rvalue;
+}
+
+template<class C>
+void ParGrid<C>::getHierarchicalParameters(void* parGridPtr,int level,Zoltan_Struct* zs,int* rcode) {
+   *rcode = ZOLTAN_OK;
+   switch (level) {
+    case 0:
+      // Refinement parameters for superpartitions:
+      Zoltan_Set_Param(zs,"LB_METHOD",loadBalanceMethod(balanceMethod).c_str());
+      Zoltan_Set_Param(zs,"IMBALANCE_TOL",imbalanceTolerance.c_str());
+      break;
+    case 1:
+      // Refinement parameters for partitioning a superpartition:
+      Zoltan_Set_Param(zs,"LB_METHOD",loadBalanceMethod(balanceMethod).c_str());
+      Zoltan_Set_Param(zs,"IMBALANCE_TOL",imbalanceTolerance.c_str());
+      break;
+    default:
+      *rcode = ZOLTAN_FATAL;
+      break;
    }
 }
 
