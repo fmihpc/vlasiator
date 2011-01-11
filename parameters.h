@@ -46,7 +46,7 @@ struct Parameters {
    static Real dt;     /**< The value of the timestep to use in propagation. */
    static uint tstep;  /**< The number of the current timestep. 0=initial state. */
    static uint tsteps; /**< Total number of timesteps to calculate. */
-   static uint saveInterval;
+   static uint saveRestartInterval;
    static uint diagnInterval;
 
    static std::string solar_wind_file;	/**< Read solar wind data from this file. */

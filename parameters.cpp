@@ -44,7 +44,7 @@ Real P::t = 0;
 Real P::dt = NAN;
 uint P::tstep = 0;
 uint P::tsteps = 0;
-uint P::saveInterval = numeric_limits<uint>::max();
+uint P::saveRestartInterval = numeric_limits<uint>::max();
 uint P::diagnInterval = numeric_limits<uint>::max();
 
 bool P::save_spatial_grid;
@@ -105,6 +105,7 @@ Parameters::Parameters(int argc, char* argv[]) {
 
 		// saving options
 		("save_interval", boost::program_options::value<uint>(&P::diagnInterval)->default_value(1), "Save the simulation every arg time steps")
+		("restart_interval", boost::program_options::value<uint>(&P::saveRestartInterval)->default_value(numeric_limits<uint>::max()), "Save the complete simulation every arg time steps")
 		("save_spatial_grid", boost::program_options::value<bool>(&P::save_spatial_grid)->default_value(true), "Save spatial cell averages for the whole simulation")
 		("save_velocity_grid", boost::program_options::value<bool>(&P::save_velocity_grid)->default_value(false), "Save velocity grid from every spatial cell in the simulation")
 		("save_spatial_cells_at_x,X", boost::program_options::value<std::vector<Real> >(&P::save_spatial_cells_x)->composing(), "Save the velocity grid in spatial cells at these coordinates (x components, also give as many y and z components, values from command line, configuration files and environment variables are added together [short version only works on command line])")

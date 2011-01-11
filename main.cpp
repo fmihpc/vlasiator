@@ -54,12 +54,9 @@ void initSpatialCells(const ParGrid<SpatialCell>& mpiGrid) {
       dx = mpiGrid.get_cell_x_size(cells[i]);
       dy = mpiGrid.get_cell_y_size(cells[i]);
       dz = mpiGrid.get_cell_z_size(cells[i]);
-      xmin = mpiGrid.get_cell_x(cells[i]);
-      ymin = mpiGrid.get_cell_y(cells[i]);
-      zmin = mpiGrid.get_cell_z(cells[i]);
-      xmin -= 0.5*dx;
-      ymin -= 0.5*dy;
-      zmin -= 0.5*dz;
+      xmin = mpiGrid.get_cell_x_min(cells[i]);
+      ymin = mpiGrid.get_cell_y_min(cells[i]);
+      zmin = mpiGrid.get_cell_z_min(cells[i]);
       
       buildSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
    }
@@ -251,7 +248,7 @@ void writeSomeVelocityGrids(const ParGrid<SpatialCell>& mpiGrid, const std::vect
 	    writeVelocityBlocks(comm, mpiGrid, cells[j]);
 	 }
          #else
-         //#error writeSomeVelocityGrids not supported with PARGRID
+         #warning writeSomeVelocityGrids not supported with PARGRID
 	 //writeVelocityBlocks(mpiGrid, cells[i]);
          #endif
       }
@@ -443,7 +440,7 @@ int main(int argn,char* args[]) {
       #ifndef PARGRID
       P::dt = all_reduce(comm, P::dt, boost::mpi::minimum<Real>());
       #else
-      //#error No communicator for all_reduce when using PARGRID
+      #warning No communicator for all_reduce when using PARGRID
       #endif
 
       // Propagate the state of simulation forward in time by dt:
@@ -455,11 +452,17 @@ int main(int argn,char* args[]) {
       P::t += P::dt;
       
       // Check if the full simulation state should be written to disk
-      if (P::tstep % P::saveInterval == 0) {
+      if (P::tstep % P::saveRestartInterval == 0) {
+         // TODO: implement full state saving
          logger << "(MAIN): Saving full state to disk at tstep = " << tstep << ", time = " << P::t << std::endl;
-         #ifdef PARGRID
-	    logger << "\t # sends to other MPI processes      = " << mpiGrid.getNumberOfSends() << std::endl;
-	    logger << "\t # receives from other MPI processes = " << mpiGrid.getNumberOfReceives() << std::endl;
+         #ifndef PARGRID
+            logger << "\t # sends to other MPI processes      = " << mpiGrid.get_number_of_update_send_cells() << std::endl;
+            logger << "\t # receives from other MPI processes = " << mpiGrid.get_number_of_update_receive_cells() << std::endl;
+            logger << "\t # total = " << mpiGrid.get_number_of_update_send_cells() + mpiGrid.get_number_of_update_receive_cells() << std::endl;
+         #else
+            logger << "\t # sends to other MPI processes      = " << mpiGrid.getNumberOfSends() << std::endl;
+            logger << "\t # receives from other MPI processes = " << mpiGrid.getNumberOfReceives() << std::endl;
+            logger << "\t # total = " << mpiGrid.getNumberOfSends() + mpiGrid.getNumberOfReceives() << std::endl;
          #endif
       }
 
