@@ -43,15 +43,8 @@ bool buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
 		      creal& zmin,creal& dx,creal& dy,creal& dz,
 		     const bool& isRemote) {
    typedef Parameters P;
-   
+
    cuint VELBLOCKS = P::vxblocks_ini*P::vyblocks_ini*P::vzblocks_ini;
-   /*
-   // Request memory for the velocity blocks from Grid, 
-   // set pointers to correct memory locations etc.
-   if (grid.initSpatialCell(cell,VELBLOCKS)  == std::numeric_limits<uint>::max()) {
-      return false;
-   }
-   */
    // Set up cell parameters:
    cell.cpu_cellParams[CellParams::XCRD] = xmin;
    cell.cpu_cellParams[CellParams::YCRD] = ymin;
@@ -77,7 +70,7 @@ bool buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
    Real* const blockParams = cell.cpu_blockParams;
    Real* const avgs = cell.cpu_avgs;
    uint* const nbrsVel = cell.cpu_nbrsVel;
-   
+
    for (uint kv=0; kv<P::vzblocks_ini; ++kv) for (uint jv=0; jv<P::vyblocks_ini; ++jv) for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
       cuint velIndex = velblock(iv, jv, kv);
       
@@ -101,6 +94,12 @@ bool buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
 	 creal vz_cell = vz_block + kc*dvz_blockCell;
 	 avgs[velIndex*SIZE_VELBLOCK + kc*WID2+jc*WID+ic] =
 	   calcPhaseSpaceDensity(xmin,ymin,zmin,dx,dy,dz,vx_cell,vy_cell,vz_cell,dvx_blockCell,dvy_blockCell,dvz_blockCell);
+	 
+	 // Add contributions to spatial cell velocity moments:
+	 cell.cpu_cellParams[CellParams::RHO  ] += avgs[velIndex*SIZE_VELBLOCK + kc*WID2+jc*WID+ic]*dV;
+	 cell.cpu_cellParams[CellParams::RHOVX] += avgs[velIndex*SIZE_VELBLOCK + kc*WID2+jc*WID+ic]*(vx_block + (ic+convert<Real>(0.5))*dvx_blockCell)*dV;
+	 cell.cpu_cellParams[CellParams::RHOVY] += avgs[velIndex*SIZE_VELBLOCK + kc*WID2+jc*WID+ic]*(vy_block + (jc+convert<Real>(0.5))*dvy_blockCell)*dV;
+	 cell.cpu_cellParams[CellParams::RHOVZ] += avgs[velIndex*SIZE_VELBLOCK + kc*WID2+jc*WID+ic]*(vz_block + (kc+convert<Real>(0.5))*dvz_blockCell)*dV;
       }
       
       // Since the whole velocity space is inside the spatial cell and the initial 

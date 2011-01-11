@@ -39,10 +39,9 @@ void initSpatialCells(const ParGrid<SpatialCell>& mpiGrid) {
    
    // This can be replaced by an iterator.
    #ifndef PARGRID
-   //std::vector<uint64_t> cells = mpiGrid.get_cells();
+     Main::cells = mpiGrid.get_cells();
    #else
-   //std::vector<ID::type> cells;
-   //mpiGrid.getCells(cells);
+     mpiGrid.getCells(Main::cells);
    #endif
    
    // Go through every cell on this node and initialize the pointers to 
@@ -50,30 +49,26 @@ void initSpatialCells(const ParGrid<SpatialCell>& mpiGrid) {
    // point in the velocity grid. Velocity block neighbour list is also 
    // constructed here:
    Real xmin,ymin,zmin,dx,dy,dz;
-   #ifndef PARGRID
-     Main::cells = mpiGrid.get_cells();
+   //Main::cells = mpiGrid.get_cells();
+   for (uint i=0; i<Main::cells.size(); ++i) {
+      dx = mpiGrid.get_cell_x_size(Main::cells[i]);
+      dy = mpiGrid.get_cell_y_size(Main::cells[i]);
+      dz = mpiGrid.get_cell_z_size(Main::cells[i]);
+      xmin = mpiGrid.get_cell_x_min(Main::cells[i]);
+      ymin = mpiGrid.get_cell_y_min(Main::cells[i]);
+      zmin = mpiGrid.get_cell_z_min(Main::cells[i]);
+      buildSpatialCell(*(mpiGrid[Main::cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
+   }
+   #ifdef PARGRID
+     // For ParGrid memory for remote cells needs to be allocated here:
+     mpiGrid.getRemoteCells(Main::cells);
      for (uint i=0; i<Main::cells.size(); ++i) {
 	dx = mpiGrid.get_cell_x_size(Main::cells[i]);
 	dy = mpiGrid.get_cell_y_size(Main::cells[i]);
 	dz = mpiGrid.get_cell_z_size(Main::cells[i]);
 	xmin = mpiGrid.get_cell_x_min(Main::cells[i]);
 	ymin = mpiGrid.get_cell_y_min(Main::cells[i]);
-	zmin = mpiGrid.get_cell_z_min(Main::cells[i]);      
-	buildSpatialCell(*(mpiGrid[Main::cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
-     }
-   #else
-     //mpiGrid.getRemoteCells(cells);
-     mpiGrid.getCells(Main::cells);
-     for (uint i=0; i<Main::cells.size(); ++i) {
-	dx = mpiGrid.get_cell_x_size(Main::cells[i]);
-	dy = mpiGrid.get_cell_y_size(Main::cells[i]);
-	dz = mpiGrid.get_cell_z_size(Main::cells[i]);
-	xmin = mpiGrid.get_cell_x(Main::cells[i]);
-	ymin = mpiGrid.get_cell_y(Main::cells[i]);
-	zmin = mpiGrid.get_cell_z(Main::cells[i]);
-	xmin -= 0.5*dx;
-	ymin -= 0.5*dy;
-	zmin -= 0.5*dz;	
+	zmin = mpiGrid.get_cell_z_min(Main::cells[i]);
 	buildSpatialCell(*(mpiGrid[Main::cells[i]]),xmin,ymin,zmin,dx,dy,dz,true);
      }
    #endif
@@ -161,9 +156,9 @@ void writeVelocityBlocks(const boost::mpi::communicator& comm, dccrg<SpatialCell
 void writeVelocityBlocks(const ParGrid<SpatialCell>& mpiGrid, const ID::type cell) {
 #endif
    std::stringstream fname;
-   double x = mpiGrid.get_cell_x(cell);
-   double y = mpiGrid.get_cell_y(cell);
-   double z = mpiGrid.get_cell_z(cell);
+   double x = mpiGrid.get_cell_x_min(cell);
+   double y = mpiGrid.get_cell_y_min(cell);
+   double z = mpiGrid.get_cell_z_min(cell);
    fname << "block_" << x / 6.3712e6 << "_" << y / 6.3712e6 << "_" << z / 6.3712e6 << "_";
    fname.width(7);
    fname.fill('0');

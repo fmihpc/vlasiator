@@ -8,6 +8,12 @@
 using namespace std;
 
 bool cpu_acceleration(SpatialCell& cell) {
+   // Clear spatial cell velocity moments:
+   cell.cpu_cellParams[CellParams::RHO]   = 0.0;
+   cell.cpu_cellParams[CellParams::RHOVX] = 0.0;
+   cell.cpu_cellParams[CellParams::RHOVY] = 0.0;
+   cell.cpu_cellParams[CellParams::RHOVZ] = 0.0;
+   
    bool success = true;
    #pragma omp parallel 
      {

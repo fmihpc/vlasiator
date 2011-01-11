@@ -196,52 +196,80 @@ template<typename REAL,typename UINT,typename CELL> void cpu_propagateSpat(CELL&
    const REAL* const d1x = cell.cpu_d1x + BLOCK*SIZE_DERIV;
    const REAL* const d1y = cell.cpu_d1y + BLOCK*SIZE_DERIV;
    const REAL* const d1z = cell.cpu_d1z + BLOCK*SIZE_DERIV;
-   const REAL* const cellParams =  cell.cpu_cellParams;
+   REAL* const cellParams =  cell.cpu_cellParams;
    const REAL* const blockParams = cell.cpu_blockParams + BLOCK*SIZE_BLOCKPARAMS;
    
-   const REAL DTDX = DT / cell.cpu_cellParams[CellParams::DX];
-   const REAL DTDY = DT / cell.cpu_cellParams[CellParams::DY];
-   const REAL DTDZ = DT / cell.cpu_cellParams[CellParams::DZ];
+   const REAL DTDX = DT / cellParams[CellParams::DX];
+   const REAL DTDY = DT / cellParams[CellParams::DY];
+   const REAL DTDZ = DT / cellParams[CellParams::DZ];
+   const REAL DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
    
    REAL avg,flux_neg,flux_pos;
-   for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
-      // Calculate the contribution coming from x-fluxes:
-      flux_neg = fx[trIndex(i,j,k)];
-      // Get positive face flux from +x neighbour, or calculate it using a bound.func.:
-      if (nbrPtrs[1] == NULL) {	
-	 flux_pos = spatialFluxX(i,reconstruct_neg(avgs[trIndex(i,j,k)],d1x[trIndex(i,j,k)],convert<REAL>(0.0)),
-				 reconstruct_pos(calcBoundVolAvg(i,j,k,cellParams,blockParams,avgs[trIndex(i,j,k)],0,false),
-						 convert<REAL>(0.0),convert<REAL>(0.0)),blockParams);
-      } else {
-	 flux_pos = nbrPtrs[1]->cpu_fx[BLOCK*SIZE_FLUXS + trIndex(i,j,k)];
+   REAL sum_n   = 0.0;
+   REAL sum_nvx = 0.0;
+   REAL sum_nvy = 0.0;
+   REAL sum_nvz = 0.0;
+   for (uint k=0; k<WID; ++k) {
+      const REAL VZ = blockParams[BlockParams::VZCRD] + (k+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
+      for (uint j=0; j<WID; ++j) {
+	 const REAL VY = blockParams[BlockParams::VYCRD] + (j+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
+	 for (uint i=0; i<WID; ++i) {
+	    const REAL VX = blockParams[BlockParams::VXCRD] + (i+convert<REAL>(0.5))*blockParams[BlockParams::DVX];
+	    // Calculate the contribution coming from x-fluxes:
+	    flux_neg = fx[trIndex(i,j,k)];
+	    // Get positive face flux from +x neighbour, or calculate it using a bound.func.:
+	    if (nbrPtrs[1] == NULL) {	
+	       flux_pos = spatialFluxX(i,reconstruct_neg(avgs[trIndex(i,j,k)],d1x[trIndex(i,j,k)],convert<REAL>(0.0)),
+				       reconstruct_pos(calcBoundVolAvg(i,j,k,cellParams,blockParams,avgs[trIndex(i,j,k)],0,false),
+						       convert<REAL>(0.0),convert<REAL>(0.0)),blockParams);
+	    } else {
+	       flux_pos = nbrPtrs[1]->cpu_fx[BLOCK*SIZE_FLUXS + trIndex(i,j,k)];
+	    }
+	    avg = (flux_neg - flux_pos)*DTDX;
+	    // Calculate the contribution coming from y-fluxes:
+	    flux_neg = fy[trIndex(i,j,k)];
+	    // Get positive face flux from +y neighbour, or calculate it using a bound.func.:
+	    if (nbrPtrs[3] == NULL) {
+	       flux_pos = spatialFluxY(j,reconstruct_neg(avgs[trIndex(i,j,k)],d1y[trIndex(i,j,k)],convert<REAL>(0.0)),
+				       reconstruct_pos(calcBoundVolAvg(i,j,k,cellParams,blockParams,avgs[trIndex(i,j,k)],1,false),
+						       convert<REAL>(0.0),convert<REAL>(0.0)),blockParams);
+	       
+	    } else {
+	       flux_pos = nbrPtrs[3]->cpu_fy[BLOCK*SIZE_FLUXS + trIndex(i,j,k)];
+	    }
+	    avg += (flux_neg - flux_pos)*DTDY;
+	    // Calculate the contribution coming from z-fluxes:
+	    flux_neg = fz[trIndex(i,j,k)];
+	    // Get positive face flux from +z neighbour, or calculate it using a bound.func.:
+	    if (nbrPtrs[5] == NULL) {
+	       flux_pos = spatialFluxZ(k,reconstruct_neg(avgs[trIndex(i,j,k)],d1z[trIndex(i,j,k)],convert<REAL>(0.0)),
+				       reconstruct_pos(calcBoundVolAvg(i,j,k,cellParams,blockParams,avgs[trIndex(i,j,k)],2,false),
+						       convert<REAL>(0.0),convert<REAL>(0.0)),blockParams);
+	    } else {
+	       flux_pos = nbrPtrs[5]->cpu_fz[BLOCK*SIZE_FLUXS + trIndex(i,j,k)];
+	    }
+	    avg += (flux_neg - flux_pos)*DTDZ;
+	    // Store new volume average:
+	    avgs[trIndex(i,j,k)] += avg;
+	    // Calculate contribution to spatial cell velocity moments:
+	    sum_n   += avgs[trIndex(i,j,k)];
+	    sum_nvx += avgs[trIndex(i,j,k)] * VX;
+	    sum_nvy += avgs[trIndex(i,j,k)] * VY;
+	    sum_nvz += avgs[trIndex(i,j,k)] * VZ;
+	 }
       }
-      avg = (flux_neg - flux_pos)*DTDX;
-      // Calculate the contribution coming from y-fluxes:
-      flux_neg = fy[trIndex(i,j,k)];
-      // Get positive face flux from +y neighbour, or calculate it using a bound.func.:
-      if (nbrPtrs[3] == NULL) {
-	 flux_pos = spatialFluxY(j,reconstruct_neg(avgs[trIndex(i,j,k)],d1y[trIndex(i,j,k)],convert<REAL>(0.0)),
-				 reconstruct_pos(calcBoundVolAvg(i,j,k,cellParams,blockParams,avgs[trIndex(i,j,k)],1,false),
-						 convert<REAL>(0.0),convert<REAL>(0.0)),blockParams);
-				 
-      } else {
-	 flux_pos = nbrPtrs[3]->cpu_fy[BLOCK*SIZE_FLUXS + trIndex(i,j,k)];
-      }
-      avg += (flux_neg - flux_pos)*DTDY;
-      // Calculate the contribution coming from z-fluxes:
-      flux_neg = fz[trIndex(i,j,k)];
-      // Get positive face flux from +z neighbour, or calculate it using a bound.func.:
-      if (nbrPtrs[5] == NULL) {
-	 flux_pos = spatialFluxZ(k,reconstruct_neg(avgs[trIndex(i,j,k)],d1z[trIndex(i,j,k)],convert<REAL>(0.0)),
-				 reconstruct_pos(calcBoundVolAvg(i,j,k,cellParams,blockParams,avgs[trIndex(i,j,k)],2,false),
-						 convert<REAL>(0.0),convert<REAL>(0.0)),blockParams);
-      } else {
-	 flux_pos = nbrPtrs[5]->cpu_fz[BLOCK*SIZE_FLUXS + trIndex(i,j,k)];
-      }
-      avg += (flux_neg - flux_pos)*DTDZ;
-      // Store new volume average:
-      avgs[trIndex(i,j,k)] += avg;
    }
+   
+   // Add contributions to spatial cell velocity moments. These updates need 
+   // to be atomic (OpenMP):
+   #pragma omp atomic
+      cellParams[CellParams::RHO  ] += sum_n  *DV3;
+   #pragma omp atomic
+      cellParams[CellParams::RHOVX] += sum_nvx*DV3;
+   #pragma omp atomic
+      cellParams[CellParams::RHOVY] += sum_nvy*DV3;
+   #pragma omp atomic
+      cellParams[CellParams::RHOVZ] += sum_nvz*DV3;
 }
       
 #endif

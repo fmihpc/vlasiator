@@ -72,6 +72,9 @@ template<class C> class ParGrid {
    Real get_cell_x(const ID::type& globalID) const;
    Real get_cell_y(const ID::type& globalID) const;
    Real get_cell_z(const ID::type& globalID) const;
+   Real get_cell_x_min(const ID::type& globalID) const;
+   Real get_cell_y_min(const ID::type& globalID) const;
+   Real get_cell_z_min(const ID::type& globalID) const;
    
    void barrier() {MPI_Barrier(MPI_COMM_WORLD);}
    template<class CONT> void getBoundaryCells(CONT& rlist) const;
@@ -569,12 +572,11 @@ template<class C> Real ParGrid<C>::get_cell_x(const ID::type& globalID) const {
    if (it != localCells.end()) return it->second.xcrd + 0.5*unref_dx;
    it = remoteCells.find(globalID);
    if (it != remoteCells.end()) return it->second.xcrd + 0.5*unref_dx;
-
+      
    // Calculate the x-coordinate of the unrefined cell:
    ID::type i,j,k;
    calculateUnrefinedIndices(globalID,i,j,k);
    return grid_xmin + (i+0.5)*unref_dx;
-   //return NAN;
 }
 
 template<class C> Real ParGrid<C>::get_cell_y(const ID::type& globalID) const {
@@ -587,7 +589,6 @@ template<class C> Real ParGrid<C>::get_cell_y(const ID::type& globalID) const {
    ID::type i,j,k;
    calculateUnrefinedIndices(globalID,i,j,k);
    return grid_ymin + (j+0.5)*unref_dy;
-   //return NAN;
 }
 
 template<class C> Real ParGrid<C>::get_cell_z(const ID::type& globalID) const {
@@ -600,7 +601,43 @@ template<class C> Real ParGrid<C>::get_cell_z(const ID::type& globalID) const {
    ID::type i,j,k;
    calculateUnrefinedIndices(globalID,i,j,k);
    return grid_zmin + (k+0.5)*unref_dz;
-   //return NAN;
+}
+
+template<class C> Real ParGrid<C>::get_cell_x_min(const ID::type& globalID) const {
+   // Try to find the cell from maps:
+   typename std::map<ID::type,ParCell<C> >::const_iterator it = localCells.find(globalID);
+   if (it != localCells.end()) return it->second.xcrd;
+   it = remoteCells.find(globalID);
+   if (it != remoteCells.end()) return it->second.xcrd;
+
+   // Calculate the x-coordinate of the unrefined cell:
+   ID::type i,j,k;
+   calculateUnrefinedIndices(globalID,i,j,k);
+   return grid_xmin;
+}
+
+template<class C> Real ParGrid<C>::get_cell_y_min(const ID::type& globalID) const {
+   typename std::map<ID::type,ParCell<C> >::const_iterator it = localCells.find(globalID);
+   if (it != localCells.end()) return it->second.ycrd;
+   it = remoteCells.find(globalID);
+   if (it != remoteCells.end()) return it->second.ycrd;
+   
+   // Calculate the y-coordinate of the unrefined cell:
+   ID::type i,j,k;
+   calculateUnrefinedIndices(globalID,i,j,k);
+   return grid_ymin;
+}
+
+template<class C> Real ParGrid<C>::get_cell_z_min(const ID::type& globalID) const {
+   typename std::map<ID::type,ParCell<C> >::const_iterator it = localCells.find(globalID);
+   if (it != localCells.end()) return it->second.zcrd;
+   it = remoteCells.find(globalID);
+   if (it != remoteCells.end()) return it->second.zcrd;
+   
+   // Calculate the z-coordinate of the unrefined cell:
+   ID::type i,j,k;
+   calculateUnrefinedIndices(globalID,i,j,k);
+   return grid_zmin;
 }
 
 template<class C> template<class CONT> void ParGrid<C>::getBoundaryCells(CONT& rlist) const {
