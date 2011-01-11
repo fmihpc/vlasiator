@@ -389,7 +389,7 @@ void apply_solar_wind_boundary(dccrg<SpatialCell>& mpiGrid, ptime time)
 		double x = mpiGrid.get_cell_x(*cell);
 		double dx = mpiGrid.get_cell_x_size(*cell);
 
-		if (fabs(x - 28 * R_E) > dx) {
+		if (fabs(x - 16 * R_E) > dx) {
 			continue;
 		}
 
