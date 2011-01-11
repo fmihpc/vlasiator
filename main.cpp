@@ -272,20 +272,20 @@ bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter
    
    // Open a file for writing using MPI I/O:
    if (vlsWriter.openWrite(MPI_COMM_WORLD,fname.str()) == false) {
-      logger << "Error opening output file on process " << mpiGrid.rank() << endl;
+      logger << "Error opening output file on process " << myrank << endl;
       success = false;
    }
    
    // Master process (rank=0) within the given communicator writes the file header:
    if (vlsWriter.writeHeader(MPI_COMM_WORLD,0) == false) {
-      logger << "Error writing header on process " << mpiGrid.rank() << endl;
+      logger << "Error writing header on process " << myrank << endl;
       success = false;
    }
    
    // Master process writes description of static-size variables. Here "static-size" 
    // means that the size of variable data is the same for all spatial cells.
    if (vlsWriter.writeStaticVariableDesc(MPI_COMM_WORLD,0,&dataReducer) == false) {
-      logger << "Error writing variable description on process " << mpiGrid.rank() << endl;
+      logger << "Error writing variable description on process " << myrank << endl;
       success = false;
    }
    
@@ -317,7 +317,7 @@ bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter
    
    // Close output file and exit:
    if (vlsWriter.close() == false) {
-      logger << "Error closing file on process " << mpiGrid.rank() << endl;
+      logger << "Error closing file on process " << myrank << endl;
       success = false;
    }
    return success;
@@ -378,7 +378,7 @@ int main(int argn,char* args[]) {
       comm.barrier();
    #else
       initSpatialCells(mpiGrid);
-      writeCellDistribution(mpiGrid);
+      //writeCellDistribution(mpiGrid);
       mpiGrid.barrier();
    #endif
 
