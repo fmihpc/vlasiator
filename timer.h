@@ -26,7 +26,7 @@ class Timer {
     */
    struct TimerData {
       std::string name; /**< The name of the timer.*/
-      std::clock_t startClock; /**< The value of clock() when the timer was started via call to Timer::start.*/
+      clock_t startClock; /**< The value of clock() when the timer was started via call to Timer::start.*/
       double timeInSeconds; /**< The total time in seconds for the timer.*/
    };
    

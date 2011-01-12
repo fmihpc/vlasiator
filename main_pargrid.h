@@ -109,21 +109,52 @@ void calculateSpatialDerivatives(ParGrid<SpatialCell>& mpiGrid) {
       }
       if (Main::cellPtr != NULL) cpu_translation1(*Main::cellPtr,Main::nbrPtrs);
    }
-   // Calculate derivatives for boundary cells when transfers have completed:
-   Timer::start(Main::spatDerivsMPIRecv);
-   mpiGrid.waitAllReceives();
-   Timer::stop(Main::spatDerivsMPIRecv);
-   
-   mpiGrid.getBoundaryCells(Main::cells);
-   for (size_t c=0; c<Main::cells.size(); ++c) {
-      Main::cellPtr = mpiGrid[Main::cells[c]];
-      if (findNeighbours(Main::nbrPtrs,mpiGrid,Main::cells[c]) == false) {
-	 std::cerr << "Failed to find neighbours." << std::endl; 
-	 continue;
+
+   #ifdef PARGRID_WAITANY
+      // Loop until all remote cell data has been received:
+      ID::type readyCellID;
+      while (mpiGrid.waitAnyReceive() == true) {
+	 // Calculate all ready local cells:
+	 while (mpiGrid.getReadyCell(readyCellID) == true) {
+	    Main::cellPtr = mpiGrid[readyCellID];
+	    if (findNeighbours(Main::nbrPtrs,mpiGrid,readyCellID) == false) {
+	       logger << "Failed to find neighbours." << std::endl;
+	       continue;
+	    }
+	    if (Main::cellPtr != NULL) cpu_translation1(*Main::cellPtr,Main::nbrPtrs);
+	 }
       }
-      if (Main::cellPtr != NULL) cpu_translation1(*Main::cellPtr,Main::nbrPtrs);
-   }
+   #elif PARGRID_WAITSOME
+      // Loop until all remote cell data has been received:
+      ID::type readyCellID;
+      while (mpiGrid.waitSomeReceives() == true) {
+	 // Calculate all ready local cells:
+	 while (mpiGrid.getReadyCell(readyCellID) == true) {
+	    Main::cellPtr = mpiGrid[readyCellID];
+	    if (findNeighbours(Main::nbrPtrs,mpiGrid,readyCellID) == false) {
+	       logger << "Failed to find neighbours." << std::endl;
+	       continue;
+	    }
+	    if (Main::cellPtr != NULL) cpu_translation1(*Main::cellPtr,Main::nbrPtrs);
+	 }
+      }
+   #else
+      // Calculate derivatives for boundary cells when transfers have completed:
+      Timer::start(Main::spatDerivsMPIRecv);
+      mpiGrid.waitAllReceives();
+      Timer::stop(Main::spatDerivsMPIRecv);
    
+      mpiGrid.getBoundaryCells(Main::cells);
+      for (size_t c=0; c<Main::cells.size(); ++c) {
+	 Main::cellPtr = mpiGrid[Main::cells[c]];
+	 if (findNeighbours(Main::nbrPtrs,mpiGrid,Main::cells[c]) == false) {
+	    std::cerr << "Failed to find neighbours." << std::endl;
+	    continue;
+	 }
+	 if (Main::cellPtr != NULL) cpu_translation1(*Main::cellPtr,Main::nbrPtrs);
+      }
+   #endif
+   // Wait for all sends to complete:
    Timer::start(Main::spatDerivsMPISend);
    mpiGrid.waitAllSends();
    Timer::stop(Main::spatDerivsMPISend);
@@ -145,21 +176,37 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
       }
       if (Main::cellPtr != NULL) cpu_translation2(*Main::cellPtr,Main::nbrPtrs);
    }
-   // Calculate fluxes for boundary cells when transfers have completed:
-   Timer::start(Main::spatFluxesMPIRecv);
-   mpiGrid.waitAllReceives();
-   Timer::stop(Main::spatFluxesMPIRecv);
    
-   mpiGrid.getBoundaryCells(Main::cells);
-   for (size_t c=0; c<Main::cells.size(); ++c) {
-      Main::cellPtr = mpiGrid[Main::cells[c]];
-      if (findNeighbours(Main::nbrPtrs,mpiGrid,Main::cells[c]) == false) {
-	 std::cerr << "Failed to find neighbours." << std::endl; 
-	 continue;
+   #ifdef PARGRID_WAITSOME
+      // Loop until all remote cell data has been received:
+      ID::type readyCellID;
+      while (mpiGrid.waitSomeReceives() == true) {
+	 // Calculate all ready local cells:
+	 while (mpiGrid.getReadyCell(readyCellID) == true) {
+	    Main::cellPtr = mpiGrid[readyCellID];
+	    if (findNeighbours(Main::nbrPtrs,mpiGrid,readyCellID) == false) {
+	       logger << "Failed to find neighbours." << std::endl;
+	       continue;
+	    }
+	    if (Main::cellPtr != NULL) cpu_translation2(*Main::cellPtr,Main::nbrPtrs);
+	 }
       }
-      if (Main::cellPtr != NULL) cpu_translation2(*Main::cellPtr,Main::nbrPtrs);
-   }
+   #else
+      // Calculate fluxes for boundary cells when transfers have completed:
+      Timer::start(Main::spatFluxesMPIRecv);
+      mpiGrid.waitAllReceives();
+      Timer::stop(Main::spatFluxesMPIRecv);
    
+      mpiGrid.getBoundaryCells(Main::cells);
+      for (size_t c=0; c<Main::cells.size(); ++c) {
+	 Main::cellPtr = mpiGrid[Main::cells[c]];
+	 if (findNeighbours(Main::nbrPtrs,mpiGrid,Main::cells[c]) == false) {
+	    std::cerr << "Failed to find neighbours." << std::endl; 
+	    continue;
+	 }
+	 if (Main::cellPtr != NULL) cpu_translation2(*Main::cellPtr,Main::nbrPtrs);
+      }
+   #endif
    Timer::start(Main::spatFluxesMPISend);
    mpiGrid.waitAllSends();
    Timer::stop(Main::spatFluxesMPISend);
@@ -181,21 +228,36 @@ void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid) {
       }
       if (Main::cellPtr != NULL) cpu_translation3(*Main::cellPtr,Main::nbrPtrs);
    }
-   // Propagate boundary cells when transfers have completed:
-   Timer::start(Main::spatPropMPIRecv);
-   mpiGrid.waitAllReceives();
-   Timer::stop(Main::spatPropMPIRecv);
-   
-   mpiGrid.getBoundaryCells(Main::cells);
-   for (size_t c=0; c<Main::cells.size(); ++c) {
-      Main::cellPtr = mpiGrid[Main::cells[c]];
-      if (findNeighbours(Main::nbrPtrs,mpiGrid,Main::cells[c]) == false) {
-	 std::cerr << "Failed to find neighbours." << std::endl;
-	 continue;
+   #ifdef PARGRID_WAITSOME
+      // Loop until all remote cell data has been received:
+      ID::type readyCellID;
+      while (mpiGrid.waitSomeReceives() == true) {
+	 // Calculate all ready local cells:
+	 while (mpiGrid.getReadyCell(readyCellID) == true) {
+	    Main::cellPtr = mpiGrid[readyCellID];
+	    if (findNeighbours(Main::nbrPtrs,mpiGrid,readyCellID) == false) {
+	       logger << "Failed to find neighbours." << std::endl;
+	       continue;
+	    }
+	    if (Main::cellPtr != NULL) cpu_translation3(*Main::cellPtr,Main::nbrPtrs);
+	 }
       }
-      if (Main::cellPtr != NULL) cpu_translation3(*Main::cellPtr,Main::nbrPtrs);
-   }
+   #else
+      // Propagate boundary cells when transfers have completed:
+      Timer::start(Main::spatPropMPIRecv);
+      mpiGrid.waitAllReceives();
+      Timer::stop(Main::spatPropMPIRecv);
    
+      mpiGrid.getBoundaryCells(Main::cells);
+      for (size_t c=0; c<Main::cells.size(); ++c) {
+	 Main::cellPtr = mpiGrid[Main::cells[c]];
+	 if (findNeighbours(Main::nbrPtrs,mpiGrid,Main::cells[c]) == false) {
+	    std::cerr << "Failed to find neighbours." << std::endl;
+	    continue;
+	 }
+	 if (Main::cellPtr != NULL) cpu_translation3(*Main::cellPtr,Main::nbrPtrs);
+      }
+   #endif
    Timer::start(Main::spatPropMPISend);
    mpiGrid.waitAllSends();
    Timer::stop(Main::spatPropMPISend);
