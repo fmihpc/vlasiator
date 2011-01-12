@@ -150,7 +150,7 @@ void writeVelocityBlocks(const ParGrid<SpatialCell>& mpiGrid) {
 }
 
 #ifndef PARGRID
-void writeVelocityBlocks(const boost::mpi::communicator& comm, dccrg<SpatialCell>& mpiGrid, const uint64_t cell) {
+void writeVelocityBlocks(dccrg<SpatialCell>& mpiGrid, const uint64_t cell) {
 #else
 void writeVelocityBlocks(const ParGrid<SpatialCell>& mpiGrid, const ID::type cell) {
 #endif
@@ -204,11 +204,7 @@ void writeAllVelocityBlocks(const ParGrid<SpatialCell>& mpiGrid) {
    #endif
 
    for (uint i = 0; i < cells.size(); ++i) {
-      #ifndef PARGRID
-      writeVelocityBlocks(comm, mpiGrid, cells[i]);
-      #else
       writeVelocityBlocks(mpiGrid, cells[i]);
-      #endif
    }
 }
 
@@ -244,7 +240,7 @@ void writeSomeVelocityGrids(const ParGrid<SpatialCell>& mpiGrid, const std::vect
 	 if (fabs(x[i] - cell_x) <= cell_dx / 2
 	     && fabs(y[i] - cell_y) <= cell_dy / 2
 	     && fabs(z[i] - cell_z) <= cell_dz / 2) {
-	    writeVelocityBlocks(comm, mpiGrid, cells[j]);
+	    writeVelocityBlocks(mpiGrid, cells[j]);
 	 }
          #else
          #warning writeSomeVelocityGrids not supported with PARGRID
