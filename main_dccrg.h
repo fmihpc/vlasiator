@@ -19,11 +19,23 @@
 #include "parameters.h"
 #include "cell_spatial.h"
 #include "project.h"
+#include "timer.h"
 
 namespace Main {
    std::vector<uint64_t> cells;
    std::vector<const SpatialCell*> nbrPtrs(6,NULL);
    SpatialCell* cellPtr;
+   
+   cuint calcAcc           = Timer::create("Computing: vel. propagation  (total) : ");
+   cuint calcSpatDerivs    = Timer::create("Computing: spat. derivatives (total) : ");
+   cuint spatDerivsMPIRecv = Timer::create("MPI Recv : spat. derivs              : ");
+   cuint spatDerivsMPISend = Timer::create("MPI Send : spat. derivs              : ");
+   cuint calcSpatFluxes    = Timer::create("Computing: spat. fluxes      (total) : ");
+   cuint spatFluxesMPIRecv = Timer::create("MPI Recv : spat. fluxes              : ");
+   cuint spatFluxesMPISend = Timer::create("MPI Send : spat. fluxes              : ");
+   cuint calcSpatProp      = Timer::create("Computing: spat. propag      (total) : ");
+   cuint spatPropMPIRecv   = Timer::create("MPI Recv : spat. propag              : ");
+   cuint spatPropMPISend   = Timer::create("MPI Send : spat. propag              : ");
 }
 
 Logger logger;
@@ -79,15 +91,21 @@ void calculateCellParameters(dccrg<SpatialCell>& mpiGrid,creal& t, uint64_t cell
 }
 
 void calculateAcceleration(dccrg<SpatialCell>& mpiGrid) {
+   Timer::start(Main::calcAcc);
+   
    // Calculate acceleration for all cells (inner + boundary):
    Main::cells = mpiGrid.get_cells();
    for (size_t i=0; i<Main::cells.size(); ++i) {
       Main::cellPtr = mpiGrid[Main::cells[i]];
       if (Main::cellPtr != NULL) cpu_acceleration(*Main::cellPtr);
-   }   
+   }
+   
+   Timer::stop(Main::calcAcc);
 }
 
 void calculateSpatialDerivatives(dccrg<SpatialCell>& mpiGrid) {
+   Timer::start(Main::calcSpatDerivs);
+   
    typedef Parameters P;
    // Start neighbour data exchange:
    P::transmit = Transmit::AVGS;
@@ -104,7 +122,10 @@ void calculateSpatialDerivatives(dccrg<SpatialCell>& mpiGrid) {
       if (Main::cellPtr != NULL) cpu_translation1(*Main::cellPtr,Main::nbrPtrs);
    }
    // Calculate derivatives for boundary cells when transfers have completed:
+   Timer::start(Main::spatDerivsMPIRecv);
    mpiGrid.wait_neighbour_data_update();
+   Timer::stop(Main::spatDerivsMPIRecv);
+   
    Main::cells = mpiGrid.get_cells_with_remote_neighbour();
    for (size_t c=0; c<Main::cells.size(); ++c) {
       Main::cellPtr = mpiGrid[Main::cells[c]];
@@ -114,9 +135,16 @@ void calculateSpatialDerivatives(dccrg<SpatialCell>& mpiGrid) {
       }
       if (Main::cellPtr != NULL) cpu_translation1(*Main::cellPtr,Main::nbrPtrs);
    }
+   
+   Timer::start(Main::spatDerivsMPISend);
+   #warning MPI sends cannot be timed with DCCRG, recv contains sends and receives
+   Timer::stop(Main::spatDerivsMPISend);
+   Timer::stop(Main::calcSpatDerivs);
 }
 
 void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
+   Timer::start(Main::calcSpatFluxes);
+   
    typedef Parameters P;
    // Start neighbour data exchange:
    P::transmit = Transmit::AVGS | Transmit::DERIV1 | Transmit::DERIV2;
@@ -133,7 +161,10 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
       if (Main::cellPtr != NULL) cpu_translation2(*Main::cellPtr,Main::nbrPtrs);
    }
    // Calculate fluxes for boundary cells when transfers have completed:
+   Timer::start(Main::spatFluxesMPIRecv);
    mpiGrid.wait_neighbour_data_update();
+   Timer::stop(Main::spatFluxesMPIRecv);
+   
    Main::cells = mpiGrid.get_cells_with_remote_neighbour();
    for (size_t c=0; c<Main::cells.size(); ++c) {
       Main::cellPtr = mpiGrid[Main::cells[c]];
@@ -143,9 +174,16 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
       }
       if (Main::cellPtr != NULL) cpu_translation2(*Main::cellPtr,Main::nbrPtrs);
    }
+   
+   Timer::start(Main::spatFluxesMPISend);
+   #warning MPI sends cannot be timed with DCCRG, recv contains sends and receives
+   Timer::stop(Main::spatFluxesMPISend);
+   Timer::stop(Main::calcSpatFluxes);
 }
 
 void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid) {
+   Timer::start(Main::calcSpatProp);
+   
    typedef Parameters P;
    // Start neighbour data exchange:
    P::transmit = Transmit::FLUXES;
@@ -162,7 +200,10 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid) {
       if (Main::cellPtr != NULL) cpu_translation3(*Main::cellPtr,Main::nbrPtrs);
    }
    // Propagate boundary cells when transfers have completed:
+   Timer::start(Main::spatPropMPIRecv);
    mpiGrid.wait_neighbour_data_update();
+   Timer::stop(Main::spatPropMPIRecv);
+   
    Main::cells = mpiGrid.get_cells_with_remote_neighbour();
    for (size_t c=0; c<Main::cells.size(); ++c) {
       Main::cellPtr = mpiGrid[Main::cells[c]];
@@ -172,7 +213,14 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid) {
       }
       if (Main::cellPtr != NULL) cpu_translation3(*Main::cellPtr,Main::nbrPtrs);
    }
+   
+   Timer::start(Main::spatPropMPISend);
+   #warning MPI sends cannot be timed with DCCRG, recv contains sends and receives
+   Timer::stop(Main::spatPropMPISend);
+   Timer::stop(Main::calcSpatProp);
 }
+
+void writeTimers() {Timer::print();}
 
 #endif // #ifndef MAIN_H
 #endif // #ifndef PARGRID

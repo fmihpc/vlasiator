@@ -520,6 +520,8 @@ int main(int argn,char* args[]) {
 
    #endif
 
+   // Write the timer values (if timers have been defined):
+   writeTimers();
    logger << "(MAIN): Exiting." << std::endl;
    return 0;
 }
