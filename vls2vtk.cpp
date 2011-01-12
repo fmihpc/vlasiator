@@ -388,8 +388,8 @@ bool writeVtkStaticVariable(fstream& fout,const size_t& varID,VlsWriter& vlsWrit
 }
 
 int main(int argn,char* args[]) {
-   if (argn != 2) {
-      cerr << endl << "USAGE: ./vls2vtk <input file>" << endl << endl;
+   if (argn < 2) {
+      cerr << endl << "USAGE: ./vls2vtk <input file 1> <input file 2> ..." << endl << endl;
       return 1;
    }
    
@@ -408,203 +408,206 @@ int main(int argn,char* args[]) {
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
 
    bool success = true;
-   VlsWriter vlsWriter;
-   VtkReal x,y,z,dx,dy,dz;
-   map<NodeCrd<VtkReal>,VtkInt,NodeComp> nodes;
-   fstream out;
 
-   unsigned int N_cells = 0;
-   
-   // Open file for reading:
-   const string infile = args[1];
-   if (infile.find(".vlsv") == string::npos) {
-      cerr << "ERROR: Input file is not a .vlsv file!" << endl;
-      success == false;      
-   }
-   
-   if (success == true) if (vlsWriter.openRead(MPI_COMM_WORLD,infile) == false) {
-      cerr << "ERROR: Could not open file '" << infile << "' for reading!" << endl; 
-      success = false;
-   }
-   
-   // Read file header:
-   if (success == true) if (vlsWriter.readHeader(MPI_COMM_WORLD,0) == false) {
-      cerr << "ERROR when reading header!" << endl;
-      vlsWriter.close();
-      success = false;
-   }
+   for (int arg = 1; arg < argn; arg++) {
+	   VlsWriter vlsWriter;
+	   VtkReal x,y,z,dx,dy,dz;
+	   map<NodeCrd<VtkReal>,VtkInt,NodeComp> nodes;
+	   fstream out;
 
-   // Read coordinate entries and push all unique node coordinates into map nodes:
-   if (myrank == 0 && success == true) {
-      while (vlsWriter.readSpatCellCoordEntry() == true) {
-	 // Get coordinate entry values:
-	 x = vlsWriter.getCrdX<VtkReal>();
-	 y = vlsWriter.getCrdY<VtkReal>();
-	 z = vlsWriter.getCrdZ<VtkReal>();
-	 dx = vlsWriter.getDx<VtkReal>();
-	 dy = vlsWriter.getDy<VtkReal>();
-	 dz = vlsWriter.getDz<VtkReal>();
+	   unsigned int N_cells = 0;
+	   
+	   // Open file for reading:
+	   const string infile = args[arg];
+	   if (infile.find(".vlsv") == string::npos) {
+	      cerr << "ERROR: Input file is not a .vlsv file!" << endl;
+	      success == false;      
+	   }
+	   
+	   if (success == true) if (vlsWriter.openRead(MPI_COMM_WORLD,infile) == false) {
+	      cerr << "ERROR: Could not open file '" << infile << "' for reading!" << endl; 
+	      success = false;
+	   }
+	   
+	   // Read file header:
+	   if (success == true) if (vlsWriter.readHeader(MPI_COMM_WORLD,0) == false) {
+	      cerr << "ERROR when reading header!" << endl;
+	      vlsWriter.close();
+	      success = false;
+	   }
 
-	 // Push nodes into map:
-	 pair<map<NodeCrd<VtkReal>,VtkInt>::iterator,bool> pos;
-	 pos = nodes.insert( pair<NodeCrd<VtkReal>,VtkInt>(NodeCrd<VtkReal>(x   ,y   ,z   ),numeric_limits<VtkInt>::max()) );
-	 pos = nodes.insert( pair<NodeCrd<VtkReal>,VtkInt>(NodeCrd<VtkReal>(x+dx,y   ,z   ),numeric_limits<VtkInt>::max()) );
-	 pos = nodes.insert( pair<NodeCrd<VtkReal>,VtkInt>(NodeCrd<VtkReal>(x+dx,y+dy,z   ),numeric_limits<VtkInt>::max()) );
-	 pos = nodes.insert( pair<NodeCrd<VtkReal>,VtkInt>(NodeCrd<VtkReal>(x   ,y+dy,z   ),numeric_limits<VtkInt>::max()) );
-	 pos = nodes.insert( pair<NodeCrd<VtkReal>,VtkInt>(NodeCrd<VtkReal>(x   ,y   ,z+dz),numeric_limits<VtkInt>::max()) );
-	 pos = nodes.insert( pair<NodeCrd<VtkReal>,VtkInt>(NodeCrd<VtkReal>(x+dx,y   ,z+dz),numeric_limits<VtkInt>::max()) );
-	 pos = nodes.insert( pair<NodeCrd<VtkReal>,VtkInt>(NodeCrd<VtkReal>(x+dx,y+dy,z+dz),numeric_limits<VtkInt>::max()) );
-	 pos = nodes.insert( pair<NodeCrd<VtkReal>,VtkInt>(NodeCrd<VtkReal>(x   ,y+dy,z+dz),numeric_limits<VtkInt>::max()) );
-	 ++N_cells;
-      }
-   }
-   vlsWriter.close();
-   //cerr << "nodes.size() = " << nodes.size() << endl;
-   
-   // Give each node a unique ID:
-   if (myrank == 0 && success == true) {
-      unsigned int counter = 0;
-      for (map<NodeCrd<VtkReal>,VtkInt,NodeComp>::iterator it=nodes.begin(); it!=nodes.end(); ++it) {
-	 it->second = counter;
-	 ++counter;
-      }
-   }
-   
-   // Open Vtk file for writing:
-   string fileout;
-   if (myrank == 0 && success == true) {
-      fileout = infile;
-      size_t pos = fileout.rfind(".vlsv");
-      if (pos != string::npos) fileout.replace(pos,5,".vtk");
-      //cerr << "out file is '" << fileout << "'" << endl;
-      
-      if (writeBinary == false) out.open(fileout.c_str(),fstream::out);
-      else out.open(fileout.c_str(),fstream::out);
-      if (out.good() == false) {
-	 cerr << "ERROR: Could not open '" << fileout << "' for writing!" << endl;
-	 success = false;
-      }
-   }
-   
-   // Write Vtk header:
-   if (myrank == 0 && success == true) {
-      if (writeVtkHeader(out) == false) {
-	 cerr << "ERROR: Failed to write Vtk header!" << endl;
-	 success = false;
-      }
-   }
+	   // Read coordinate entries and push all unique node coordinates into map nodes:
+	   if (myrank == 0 && success == true) {
+	      while (vlsWriter.readSpatCellCoordEntry() == true) {
+		 // Get coordinate entry values:
+		 x = vlsWriter.getCrdX<VtkReal>();
+		 y = vlsWriter.getCrdY<VtkReal>();
+		 z = vlsWriter.getCrdZ<VtkReal>();
+		 dx = vlsWriter.getDx<VtkReal>();
+		 dy = vlsWriter.getDy<VtkReal>();
+		 dz = vlsWriter.getDz<VtkReal>();
 
-   // Write node coordinates into Vtk file:
-   if (myrank == 0 && success == true) {
-      if (writeVtkPoints(out,nodes) == false) {
-	 cerr << "ERROR: Failed to write Vtk file!" << endl;
-	 success = false;
-      }
-   }
+		 // Push nodes into map:
+		 pair<map<NodeCrd<VtkReal>,VtkInt>::iterator,bool> pos;
+		 pos = nodes.insert( pair<NodeCrd<VtkReal>,VtkInt>(NodeCrd<VtkReal>(x   ,y   ,z   ),numeric_limits<VtkInt>::max()) );
+		 pos = nodes.insert( pair<NodeCrd<VtkReal>,VtkInt>(NodeCrd<VtkReal>(x+dx,y   ,z   ),numeric_limits<VtkInt>::max()) );
+		 pos = nodes.insert( pair<NodeCrd<VtkReal>,VtkInt>(NodeCrd<VtkReal>(x+dx,y+dy,z   ),numeric_limits<VtkInt>::max()) );
+		 pos = nodes.insert( pair<NodeCrd<VtkReal>,VtkInt>(NodeCrd<VtkReal>(x   ,y+dy,z   ),numeric_limits<VtkInt>::max()) );
+		 pos = nodes.insert( pair<NodeCrd<VtkReal>,VtkInt>(NodeCrd<VtkReal>(x   ,y   ,z+dz),numeric_limits<VtkInt>::max()) );
+		 pos = nodes.insert( pair<NodeCrd<VtkReal>,VtkInt>(NodeCrd<VtkReal>(x+dx,y   ,z+dz),numeric_limits<VtkInt>::max()) );
+		 pos = nodes.insert( pair<NodeCrd<VtkReal>,VtkInt>(NodeCrd<VtkReal>(x+dx,y+dy,z+dz),numeric_limits<VtkInt>::max()) );
+		 pos = nodes.insert( pair<NodeCrd<VtkReal>,VtkInt>(NodeCrd<VtkReal>(x   ,y+dy,z+dz),numeric_limits<VtkInt>::max()) );
+		 ++N_cells;
+	      }
+	   }
+	   vlsWriter.close();
+	   //cerr << "nodes.size() = " << nodes.size() << endl;
+	   
+	   // Give each node a unique ID:
+	   if (myrank == 0 && success == true) {
+	      unsigned int counter = 0;
+	      for (map<NodeCrd<VtkReal>,VtkInt,NodeComp>::iterator it=nodes.begin(); it!=nodes.end(); ++it) {
+		 it->second = counter;
+		 ++counter;
+	      }
+	   }
+	   
+	   // Open Vtk file for writing:
+	   string fileout;
+	   if (myrank == 0 && success == true) {
+	      fileout = infile;
+	      size_t pos = fileout.rfind(".vlsv");
+	      if (pos != string::npos) fileout.replace(pos,5,".vtk");
+	      //cerr << "out file is '" << fileout << "'" << endl;
+	      
+	      if (writeBinary == false) out.open(fileout.c_str(),fstream::out);
+	      else out.open(fileout.c_str(),fstream::out);
+	      if (out.good() == false) {
+		 cerr << "ERROR: Could not open '" << fileout << "' for writing!" << endl;
+		 success = false;
+	      }
+	   }
+	   
+	   // Write Vtk header:
+	   if (myrank == 0 && success == true) {
+	      if (writeVtkHeader(out) == false) {
+		 cerr << "ERROR: Failed to write Vtk header!" << endl;
+		 success = false;
+	      }
+	   }
 
-   // Open one output file per variable:
-   size_t N_staticVars = vlsWriter.getNumberOfStaticVars();
-   vector<fstream*> varFiles(N_staticVars);
-   for (size_t i=0; i<N_staticVars; ++i) {
-      stringstream ss;
-      ss << "var";
-      ss.width(5);
-      ss.fill('0');
-      ss << i << ".vtk";
-      string fname;
-      ss >> fname;
+	   // Write node coordinates into Vtk file:
+	   if (myrank == 0 && success == true) {
+	      if (writeVtkPoints(out,nodes) == false) {
+		 cerr << "ERROR: Failed to write Vtk file!" << endl;
+		 success = false;
+	      }
+	   }
 
-      varFiles[i] = new fstream;
-      varFiles[i]->open(fname.c_str(), fstream::out);
-      if (varFiles[i]->good() == false) {
-	 cerr << "ERROR: Failed to create outfile for variable '" << vlsWriter.getStaticVarName(i) << "'" << endl;
-      }
-      
-      //*(varFiles[i]) << "SCALARS " << vlsWriter.getStaticVarName(i) << " float 1" << endl;
-      //*(varFiles[i]) << "LOOKUP_TABLE default" << endl;
-      writeVtkComponentHeader(*(varFiles[i]),i,vlsWriter);
-   }
+	   // Open one output file per variable:
+	   size_t N_staticVars = vlsWriter.getNumberOfStaticVars();
+	   vector<fstream*> varFiles(N_staticVars);
+	   for (size_t i=0; i<N_staticVars; ++i) {
+	      stringstream ss;
+	      ss << "var";
+	      ss.width(5);
+	      ss.fill('0');
+	      ss << i << ".vtk";
+	      string fname;
+	      ss >> fname;
 
-   // Write cells into Vtk file:
-   if (success == true) if (vlsWriter.openRead(MPI_COMM_WORLD,infile) == false) success = false;
-   if (success == true) if (vlsWriter.readHeader(MPI_COMM_WORLD,0) == false) success = false;
-   if (myrank == 0 && success == true) {
-      out << "CELLS " << N_cells << ' ' << N_cells*9 << endl;
-      
-      while (vlsWriter.readSpatCellCoordEntry() == true) {
-	 x = vlsWriter.getCrdX<VtkReal>();
-	 y = vlsWriter.getCrdY<VtkReal>();
-	 z = vlsWriter.getCrdZ<VtkReal>();
-	 dx = vlsWriter.getDx<VtkReal>();
-	 dy = vlsWriter.getDy<VtkReal>();
-	 dz = vlsWriter.getDz<VtkReal>();
+	      varFiles[i] = new fstream;
+	      varFiles[i]->open(fname.c_str(), fstream::out);
+	      if (varFiles[i]->good() == false) {
+		 cerr << "ERROR: Failed to create outfile for variable '" << vlsWriter.getStaticVarName(i) << "'" << endl;
+	      }
+	      
+	      //*(varFiles[i]) << "SCALARS " << vlsWriter.getStaticVarName(i) << " float 1" << endl;
+	      //*(varFiles[i]) << "LOOKUP_TABLE default" << endl;
+	      writeVtkComponentHeader(*(varFiles[i]),i,vlsWriter);
+	   }
 
-	 writeVtkCell(out,nodes,x,y,z,dx,dy,dz);
-	 
-	 for (size_t i=0; i<N_staticVars; ++i) {
-	    if (writeVtkStaticVariable(*(varFiles[i]),i,vlsWriter) == false) {
-	       cerr << "vls2vtk: An ERROR has occurred while writing component '" << vlsWriter.getStaticVarName(i) << "'" << endl;
-	       break;
-	    }
-	 }
-      }
-      
-      out << endl;
-      for (size_t i=0; i<N_staticVars; ++i) *(varFiles[i]) << endl;
-   }
-   vlsWriter.close();
+	   // Write cells into Vtk file:
+	   if (success == true) if (vlsWriter.openRead(MPI_COMM_WORLD,infile) == false) success = false;
+	   if (success == true) if (vlsWriter.readHeader(MPI_COMM_WORLD,0) == false) success = false;
+	   if (myrank == 0 && success == true) {
+	      out << "CELLS " << N_cells << ' ' << N_cells*9 << endl;
+	      
+	      while (vlsWriter.readSpatCellCoordEntry() == true) {
+		 x = vlsWriter.getCrdX<VtkReal>();
+		 y = vlsWriter.getCrdY<VtkReal>();
+		 z = vlsWriter.getCrdZ<VtkReal>();
+		 dx = vlsWriter.getDx<VtkReal>();
+		 dy = vlsWriter.getDy<VtkReal>();
+		 dz = vlsWriter.getDz<VtkReal>();
 
-   // Write cell types into Vtk file:
-   if (success == true && myrank == 0) {
-      if (writeVtkCellTypes(out,N_cells) == false) {
-	 cerr << "ERROR: Failed to write cell types!" << endl;
-	 success = false;
-      }
-   }
-   
-   // Append each component file to the output vtk file:
-   if (myrank == 0) {
-      out << "CELL_DATA " << N_cells << endl;
-      out.close();
-      
-      for (size_t i=0; i<N_staticVars; ++i) {
-	 stringstream ss;
-	 ss << "var";
-	 ss.width(5);
-	 ss.fill('0');
-	 ss << i << ".vtk";
-	 
-	 string command = "cat " + ss.str();
-	 command = command + " >> " + fileout;
-	 //cout << "Command is '" << command << "'" << endl;
-	 if (system(command.c_str()) != 0) {
-	    cerr << "An ERROR occurred while appending variable file '" << ss.str() << "'" << endl;
-	 }
-      }
-   }
-   
-   // Close files:
-   out.close();
-   for (size_t i=0; i<varFiles.size(); ++i) {
-      varFiles[i]->close();
-      delete varFiles[i];
-      varFiles[i] = NULL;
-   }
-   
-   // Delete temporary variable files:
-   if (myrank == 0) {
-      for (size_t i=0; i<N_staticVars; ++i) {
-	 stringstream ss;
-	 ss << "var";
-	 ss.width(5);
-	 ss.fill('0');
-	 ss << i << ".vtk";
-	 string command = "rm " + ss.str();
-	 //cout << "Command is '" << command << "'" << endl;
-	 if (system(command.c_str()) != 0) {
-	    cerr << "An ERROR occurred while removing temporary variable file '" << ss.str() << "'" << endl;
-	 }
-      }
+		 writeVtkCell(out,nodes,x,y,z,dx,dy,dz);
+		 
+		 for (size_t i=0; i<N_staticVars; ++i) {
+		    if (writeVtkStaticVariable(*(varFiles[i]),i,vlsWriter) == false) {
+		       cerr << "vls2vtk: An ERROR has occurred while writing component '" << vlsWriter.getStaticVarName(i) << "'" << endl;
+		       break;
+		    }
+		 }
+	      }
+	      
+	      out << endl;
+	      for (size_t i=0; i<N_staticVars; ++i) *(varFiles[i]) << endl;
+	   }
+	   vlsWriter.close();
+
+	   // Write cell types into Vtk file:
+	   if (success == true && myrank == 0) {
+	      if (writeVtkCellTypes(out,N_cells) == false) {
+		 cerr << "ERROR: Failed to write cell types!" << endl;
+		 success = false;
+	      }
+	   }
+	   
+	   // Append each component file to the output vtk file:
+	   if (myrank == 0) {
+	      out << "CELL_DATA " << N_cells << endl;
+	      out.close();
+	      
+	      for (size_t i=0; i<N_staticVars; ++i) {
+		 stringstream ss;
+		 ss << "var";
+		 ss.width(5);
+		 ss.fill('0');
+		 ss << i << ".vtk";
+		 
+		 string command = "cat " + ss.str();
+		 command = command + " >> " + fileout;
+		 //cout << "Command is '" << command << "'" << endl;
+		 if (system(command.c_str()) != 0) {
+		    cerr << "An ERROR occurred while appending variable file '" << ss.str() << "'" << endl;
+		 }
+	      }
+	   }
+	   
+	   // Close files:
+	   out.close();
+	   for (size_t i=0; i<varFiles.size(); ++i) {
+	      varFiles[i]->close();
+	      delete varFiles[i];
+	      varFiles[i] = NULL;
+	   }
+	   
+	   // Delete temporary variable files:
+	   if (myrank == 0) {
+	      for (size_t i=0; i<N_staticVars; ++i) {
+		 stringstream ss;
+		 ss << "var";
+		 ss.width(5);
+		 ss.fill('0');
+		 ss << i << ".vtk";
+		 string command = "rm " + ss.str();
+		 //cout << "Command is '" << command << "'" << endl;
+		 if (system(command.c_str()) != 0) {
+		    cerr << "An ERROR occurred while removing temporary variable file '" << ss.str() << "'" << endl;
+		 }
+	      }
+	   }
    }
    
    // Exit program:
