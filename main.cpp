@@ -154,6 +154,11 @@ void writeVelocityBlocks(const boost::mpi::communicator& comm, dccrg<SpatialCell
 #else
 void writeVelocityBlocks(const ParGrid<SpatialCell>& mpiGrid, const ID::type cell) {
 #endif
+
+   if (mpiGrid[cell] == NULL) {
+      return;
+   }
+
    std::stringstream fname;
    double x = mpiGrid.get_cell_x_min(cell);
    double y = mpiGrid.get_cell_y_min(cell);
