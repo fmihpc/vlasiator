@@ -4,7 +4,6 @@
 #include <time.h>
 #include <vector>
 
-#ifdef PROFILE
 /** A simple class for timing the wall-clock time spent in 
  * functions. Using Timer class one can create, start and stop 
  * timers. The timers are based on std::clock().
@@ -33,23 +32,5 @@ class Timer {
    
    static std::vector<TimerData> timers; /**< Container for all timers.*/
 };
-
-#else 
-
-class Timer {
- public:
-   Timer() { }
-   ~Timer() { }
-   
-   static unsigned int create(const std::string& name) {return 0;}
-   static double getValue(const unsigned int& timerID) {return 0.0;}
-   static void print() { }
-   static void start(const unsigned int& timerID) { }
-   static void stop(const unsigned int& timerID) { }
- private:
-   
-};
-
-#endif // #ifdef PROFILE
 
 #endif

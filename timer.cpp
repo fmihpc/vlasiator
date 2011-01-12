@@ -1,5 +1,3 @@
-#ifdef PROFILE
-
 #include <cstdlib>
 #include <iostream>
 
@@ -16,6 +14,8 @@ Timer::Timer() { }
 
 /** Destructor for Timer. The destructor does not do anything.*/
 Timer::~Timer() { }
+
+#ifdef PROFILE
 
 /** Create a new timer.
  * @param name The name of the timer.
@@ -64,5 +64,13 @@ void Timer::stop(const unsigned int& timerID) {
    clock_t endClock = clock();
    timers[timerID].timeInSeconds += (1.0*(endClock - timers[timerID].startClock))/CLOCKS_PER_SEC;
 }
+
+#else
+
+unsigned int Timer::create(const std::string& name) {return 0;}
+double Timer::getValue(const unsigned int& timerID) {return 0.0;}
+void Timer::print() { }
+void Timer::start(const unsigned int& timerID) { }
+void Timer::stop(const unsigned int& timerID) { }
 
 #endif // #ifdef PROFILE
