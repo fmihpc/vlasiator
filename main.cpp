@@ -160,9 +160,9 @@ void writeVelocityBlocks(const ParGrid<SpatialCell>& mpiGrid, const ID::type cel
    }
 
    std::stringstream fname;
-   double x = mpiGrid.get_cell_x_min(cell);
-   double y = mpiGrid.get_cell_y_min(cell);
-   double z = mpiGrid.get_cell_z_min(cell);
+   double x = mpiGrid.get_cell_x(cell);
+   double y = mpiGrid.get_cell_y(cell);
+   double z = mpiGrid.get_cell_z(cell);
    fname << "block_" << x / 6.3712e6 << "_" << y / 6.3712e6 << "_" << z / 6.3712e6 << "_";
    fname.width(7);
    fname.fill('0');
