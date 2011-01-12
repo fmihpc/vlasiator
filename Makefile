@@ -39,6 +39,7 @@ DEPS_MPIFILE = mpifile.h mpifile.cpp
 DEPS_PARAMETERS = parameters.h parameters.cpp
 DEPS_PROJECT = project.h project.cpp
 DEPS_SILOWRITER = cell_spatial.h silowriter.h silowriter.cpp
+DEPS_TIMER = timer.h timer.cpp
 DEPS_VLSWRITER = cell_spatial.h mpifile.h vlswriter.h vlswriter.cpp
 DEPS_VLS2VTK = cell_spatial.h mpifile.h vlswriter.h vls2vtk.cpp
 DEPS_WRITEVARS = pargrid.h silowriter.h writevars.h writevars.cpp
@@ -87,7 +88,7 @@ CUDA_OBJS = cellsync.o cuda_acc.o cuda_trans.o cudafuncs.o gpudevicegrid.o
 OBJS = cell_spatial.o cpu_acc.o cpu_trans.o datareducer.o\
 	datareductionoperator.o grid.o\
 	gridbuilder.o logger.o main.o mpifile.o parameters.o project.o\
-	silowriter.o vlswriter.o
+	silowriter.o timer.o vlswriter.o
 
 OBJS_VLS2VTK = datareducer.o datareductionoperator.o mpifile.o vlswriter.o
 
@@ -156,6 +157,9 @@ projinstall:
 
 silowriter.o: $(DEPS_SILOWRITER)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c silowriter.cpp ${INC_SILO} ${INC} ${INC_BOOST} ${INC_MPI}
+
+timer.o: ${DEPS_TIMER}
+	${CMP} $(CXXFLAGS) $(FLAGS) -c timer.cpp
 
 vlswriter.o: ${DEPS_VLSWRITER}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlswriter.cpp ${INC_MPI}

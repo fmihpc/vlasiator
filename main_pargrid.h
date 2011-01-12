@@ -12,6 +12,10 @@
 #include "cell_spatial.h"
 #include "project.h"
 
+#ifdef PROFILE
+   #include "timer.h"
+#endif
+
 Logger logger;
 
 extern bool cpu_acceleration(SpatialCell& cell);
@@ -23,6 +27,15 @@ namespace Main {
    std::vector<ID::type> cells;
    std::vector<const SpatialCell*> nbrPtrs(6,NULL);
    SpatialCell* cellPtr;
+   
+   #ifdef PROFILE
+      cuint calcAccDerivs  = Timer::create();
+      cuint calcAccFluxes  = Timer::create();
+      cuint calcAccProp    = Timer::create();
+      cuint calcSpatDerivs = Timer::create();
+      cuint calcSpatFluxes = Timer::create();
+      cuint calcSpatProp   = Timer::create();
+   #endif
 }
 
 void initialLoadBalance(ParGrid<SpatialCell>& mpiGrid) { }
@@ -68,15 +81,24 @@ void calculateCellParameters(ParGrid<SpatialCell>& mpiGrid, creal& t, ID::type c
 }
 
 void calculateAcceleration(ParGrid<SpatialCell>& mpiGrid) {
+   #ifdef PROFILE
+      Timer::start(Main::calcAccDerivs);
+   #endif
    // Calculate acceleration for all cells (inner + boundary):
    mpiGrid.getCells(Main::cells);
    for (size_t c=0; c<Main::cells.size(); ++c) {
       Main::cellPtr = mpiGrid[Main::cells[c]];
       if (Main::cellPtr != NULL) cpu_acceleration(*Main::cellPtr);
    }
+   #ifdef PROFILE
+      Timer::stop(Main::calcAccDerivs);
+   #endif
 }
 
 void calculateSpatialDerivatives(ParGrid<SpatialCell>& mpiGrid) {
+   #ifdef PROFILE
+      Timer::start(Main::calcSpatDerivs);
+   #endif
    // Start neighbour data exchange:
    mpiGrid.startNeighbourExchange(0);
    // Calculate derivatives for inner cells:
@@ -102,9 +124,15 @@ void calculateSpatialDerivatives(ParGrid<SpatialCell>& mpiGrid) {
       if (Main::cellPtr != NULL) cpu_translation1(*Main::cellPtr,Main::nbrPtrs);
    }
    mpiGrid.waitAllSends();
+   #ifdef PROFILE
+      Timer::stop(Main::calcSpatDerivs);
+   #endif
 }
 
 void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
+   #ifdef PROFILE
+      Timer::start(Main::calcSpatFluxes);
+   #endif
    // Start neighbour data exchange:
    mpiGrid.startNeighbourExchange(1);
    // Calculate fluxes for inner cells:
@@ -130,9 +158,15 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
       if (Main::cellPtr != NULL) cpu_translation2(*Main::cellPtr,Main::nbrPtrs);
    }
    mpiGrid.waitAllSends();
+   #ifdef PROFILE
+      Timer::stop(Main::calcSpatFluxes);
+   #endif
 }
 
 void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid) {
+   #ifdef PROFILE
+      Timer::start(Main::calcSpatProp);
+   #endif
    // Start neighbour data exchange:
    mpiGrid.startNeighbourExchange(2);
    // Start neighbour data exchange:
@@ -158,7 +192,24 @@ void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid) {
       if (Main::cellPtr != NULL) cpu_translation3(*Main::cellPtr,Main::nbrPtrs);
    }
    mpiGrid.waitAllSends();
+
+
+
+#ifdef PROFILE
+      Timer::stop(Main::calcSpatProp);
+   #endif
 }
-   
+
+#ifdef PROFILE
+void writeTimers() {
+   logger << "(PROFILE): Time spent in calcAccDerivs  " << Timer::getValue(Main::calcAccDerivs ) << std::endl;
+   logger << "(PROFILE):               calcAccFluxes  " << Timer::getValue(Main::calcAccFluxes ) << std::endl;
+   logger << "(PROFILE):               calcAccProp    " << Timer::getValue(Main::calcAccProp   ) << std::endl;
+   logger << "(PROFILE):               calcSpatDerics " << Timer::getValue(Main::calcSpatDerivs) << std::endl;
+   logger << "(PROFILE):               calcSpatFluxes " << Timer::getValue(Main::calcSpatFluxes) << std::endl;
+   logger << "(PROFILE):               calcSpatProp   " << Timer::getValue(Main::calcSpatProp  ) << std::endl;
+}
+#endif
+
 #endif // #ifndef MAIN_H
 #endif // #ifdef PARGRID
