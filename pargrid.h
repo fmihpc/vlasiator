@@ -95,6 +95,7 @@ template<class C> class ParGrid {
    bool isInitialized() const {return initialized;}
    C* operator[](const ID::type& id) const;
    void print() const;
+   void printTransfers() const;
    int rank() const;
    bool setLoadBalancingMethod(const LBM& method);
    bool startNeighbourExchange(const uint& identifier);
@@ -239,7 +240,7 @@ template<class C> ParGrid<C>::ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,cre
    weightCell = 1.0;
    weightEdge = 10.0;
    N_hierarchicalLevels = 2;
-   N_processesPerPart = 2;
+   N_processesPerPart = 12;
    
    // Attempt to init MPI:
    int rvalue = MPI_Init(&argn,&args);
@@ -275,6 +276,7 @@ template<class C> ParGrid<C>::ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,cre
    zoltan->Set_Param("IMBALANCE_TOL",imbalanceTolerance.c_str());
    zoltan->Set_Param("HIER_CHECKS","0");
    zoltan->Set_Param("HIER_DEBUG_LEVEL","0");
+   zoltan->Set_Param("PHG_CUT_OBJECTIVE","CONNECTIVITY");
    
    // Register generic callback functions:
    zoltan->Set_Num_Obj_Fn(&ParGrid<C>::getNumberOfLocalCells,this);
@@ -835,6 +837,38 @@ template<class C> void ParGrid<C>::print() const {
    std::cerr << "ParGrid:" << std::endl;
    std::cerr << "\tMPI reports " << N_processes << " processes." << std::endl;
    std::cerr << "\tMPI says my rank is " << myrank << std::endl;
+}
+
+template<class C> void ParGrid<C>::printTransfers() const {
+   logger << "(PARGRID): Sends and receives per MPI rank:" << std::endl;
+   for (int i=0; i<N_processes; ++i) {
+      if (i == myrank) continue;
+      uint N_sends = 0;
+      uint N_recvs = 0;
+      for (std::map<std::pair<ID::type,int>,char>::const_iterator it=sendList.begin(); it!=sendList.end(); ++it) {
+	 if (it->first.second == i) ++N_sends;
+      }
+      for (std::map<ID::type,int>::const_iterator it=receiveList.begin(); it!=receiveList.end(); ++it) {
+	 if (it->second == i) ++N_recvs;
+      }
+      if (N_sends == 0 && N_recvs == 0) continue;
+      logger << "\tProc " << "\t#" << i << "\tSends: " << N_sends << "\tReceives: " << N_recvs << std::endl;
+      /*
+      if (N_sends != N_recvs) {
+	 logger << "\t\tSending: ";
+	 for (std::map<std::pair<ID::type,int>,char>::const_iterator it=sendList.begin(); it!=sendList.end(); ++it) {
+	    if (it->first.second == i) logger << it->first.first << ' ';
+	 }
+	 logger << std::endl;
+	 logger << "\t\tReceiving: ";
+	 for (std::map<ID::type,int>::const_iterator it=receiveList.begin(); it!=receiveList.end(); ++it) {
+	    if (it->second == i) logger << it->first << ' ';
+	 }
+	 logger << std::endl;
+      }
+      */
+   }
+   logger << "\t Local Cells = " << localCells.size() << "\t Remote Cells = " << remoteCells.size() << std::endl;
 }
 
 template<class C> int ParGrid<C>::rank() const {return myrank;}

@@ -329,11 +329,11 @@ int main(int argn,char* args[]) {
    #ifndef PARGRID // INITIALIZE USING DCCRG
       boost::mpi::environment env(argn,args);
       boost::mpi::communicator comm;
-        {
-	   std::stringstream ss;
-	   ss << "logfile." << comm.rank() << ".txt";
-	   logger.setOutputFile(ss.str());
-	}
+         {
+	    std::stringstream ss;
+	    ss << "logfile." << comm.rank() << ".txt";
+	    logger.setOutputFile(ss.str());
+	 }
       logger << "(MAIN): Starting up." << std::endl;
    
       // Create parallel MPI grid and init Zoltan:
@@ -348,13 +348,14 @@ int main(int argn,char* args[]) {
    
    #else           // INITIALIZE USING PARGRID
       ParGrid<SpatialCell> mpiGrid(P::xcells_ini,P::ycells_ini,P::zcells_ini,P::xmin,P::ymin,P::zmin,
-				   P::xmax,P::ymax,P::zmax,Hypergraph,argn,args);
+				   P::xmax,P::ymax,P::zmax,Hierarchical,argn,args);
         {
 	   std::stringstream ss;
 	   ss << "logfile." << mpiGrid.rank() << ".txt";
 	   logger.setOutputFile(ss.str());
 	}
       logger << "(MAIN): Starting up." << std::endl;
+      mpiGrid.printTransfers();
    #endif
    
    // If initialization was not successful, abort.
