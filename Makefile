@@ -3,7 +3,7 @@ include Makefile.intel
 default: main
 
 # Compile directory:
-INSTALL=${HOME}/codes/cudafvm2
+INSTALL=${HOME}/QuESpace/sandroos/cudafvm
 
 # Which project is compiled:
 PROJ=harm1D
@@ -123,10 +123,10 @@ cudafuncs.o: $(DEPS_CUDAFUNCS)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c cudafuncs.cpp $(INC_CUDA)
 
 datareducer.o: ${DEPS_DATAREDUCER}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c datareducer.cpp ${INC_MPI}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c datareducer.cpp ${INC_MPI} ${INC_BOOST}
 
 datareductionoperator.o: ${DEPS_DATAREDUCTIONOPERATOR}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c datareductionoperator.cpp ${INC_MPI}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c datareductionoperator.cpp ${INC_MPI} ${INC_BOOST}
 
 gpudevicegrid.o: $(DEPS_GPU_DEVICE_GRID)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c gpudevicegrid.cpp $(INC_CUDA)
@@ -162,7 +162,7 @@ timer.o: ${DEPS_TIMER}
 	${CMP} $(CXXFLAGS) $(FLAGS) -c timer.cpp
 
 vlswriter.o: ${DEPS_VLSWRITER}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c vlswriter.cpp ${INC_MPI}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c vlswriter.cpp ${INC_MPI} ${INC_BOOST}
 
 vls2vtk: ${DEPS_VLS2VTK} ${OBJS_VLS2VTK}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vls2vtk.cpp ${INC_MPI}
