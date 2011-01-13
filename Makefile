@@ -98,7 +98,7 @@ OBJS +=
 
 clean:
 	make clean -C projects
-	rm -rf *.o *.ptx *.tar* *.txt *.silo project.h project.cu project.cpp main *~ visitlog.py
+	rm -rf *.o *.ptx *.tar* *.txt *.silo project.h project.cu project.cpp main *~ visitlog.py vls2vtk
 
 # Rules for making each object file needed by the executable
 cell_spatial.o: $(DEPS_CELL_SPATIAL)
