@@ -344,7 +344,7 @@ int main(int argn,char* args[]) {
       } else {
 	 logger << "\t Zoltan initialized successfully" << std::endl;
       }
-      dccrg<SpatialCell> mpiGrid(comm,"HYPERGRAPH",P::xmin,P::ymin,P::zmin,P::dx_ini,P::dy_ini,P::dz_ini,P::xcells_ini,P::ycells_ini,P::zcells_ini,1,0);
+      dccrg<SpatialCell> mpiGrid(comm,"HYPERGRAPH",P::xmin,P::ymin,P::zmin,P::dx_ini,P::dy_ini,P::dz_ini,P::xcells_ini,P::ycells_ini,P::zcells_ini,0,0);
    
    #else           // INITIALIZE USING PARGRID
       ParGrid<SpatialCell> mpiGrid(P::xcells_ini,P::ycells_ini,P::zcells_ini,P::xmin,P::ymin,P::zmin,
