@@ -13,14 +13,21 @@ VlsHeader::Real (*ptrCellCRD)(const unsigned char* const);
 VlsHeader::Int (*ptrCellGID)(const unsigned char* const);
 VlsHeader::Int (*ptrVarNameSize)(const unsigned char* const);
 
-VlsHeader::Int convUInt1(const unsigned char* const ptr) {return *(reinterpret_cast<uint8_t*>(const_cast<unsigned char* const>(ptr)));}
-VlsHeader::Int convUInt2(const unsigned char* const ptr) {return *(reinterpret_cast<uint16_t*>(const_cast<unsigned char* const>(ptr)));}
-VlsHeader::Int convUInt4(const unsigned char* const ptr) {return *(reinterpret_cast<uint32_t*>(const_cast<unsigned char* const>(ptr)));}
-VlsHeader::Int convUInt8(const unsigned char* const ptr) {return *(reinterpret_cast<uint64_t*>(const_cast<unsigned char* const>(ptr)));}
+//VlsHeader::Int convUInt1(const unsigned char* const ptr) {return *(reinterpret_cast<uint8_t*>(const_cast<unsigned char* const>(ptr)));}
+//VlsHeader::Int convUInt2(const unsigned char* const ptr) {return *(reinterpret_cast<uint16_t*>(const_cast<unsigned char* const>(ptr)));}
+//VlsHeader::Int convUInt4(const unsigned char* const ptr) {return *(reinterpret_cast<uint32_t*>(const_cast<unsigned char* const>(ptr)));}
+//VlsHeader::Int convUInt8(const unsigned char* const ptr) {return *(reinterpret_cast<uint64_t*>(const_cast<unsigned char* const>(ptr)));}
+VlsHeader::Int convUInt1(const unsigned char* const ptr) {return *(reinterpret_cast<const uint8_t*>(ptr));}
+VlsHeader::Int convUInt2(const unsigned char* const ptr) {return *(reinterpret_cast<const uint16_t*>(ptr));}
+VlsHeader::Int convUInt4(const unsigned char* const ptr) {return *(reinterpret_cast<const uint32_t*>(ptr));}
+VlsHeader::Int convUInt8(const unsigned char* const ptr) {return *(reinterpret_cast<const uint64_t*>(ptr));}
 
-VlsHeader::Real convReal4(const unsigned char* const ptr) {return *(reinterpret_cast<float*>(const_cast<unsigned char* const>(ptr)));}
-VlsHeader::Real convReal8(const unsigned char* const ptr) {return *(reinterpret_cast<double*>(const_cast<unsigned char* const>(ptr)));}
-VlsHeader::Real convReal16(const unsigned char* const ptr) {return *(reinterpret_cast<long double*>(const_cast<unsigned char* const>(ptr)));}
+//VlsHeader::Real convReal4(const unsigned char* const ptr) {return *(reinterpret_cast<float*>(const_cast<unsigned char* const>(ptr)));}
+//VlsHeader::Real convReal8(const unsigned char* const ptr) {return *(reinterpret_cast<double*>(const_cast<unsigned char* const>(ptr)));}
+//VlsHeader::Real convReal16(const unsigned char* const ptr) {return *(reinterpret_cast<long double*>(const_cast<unsigned char* const>(ptr)));}
+VlsHeader::Real convReal4(const unsigned char* const ptr) {return *(reinterpret_cast<const float*>(ptr));}
+VlsHeader::Real convReal8(const unsigned char* const ptr) {return *(reinterpret_cast<const double*>(ptr));}
+VlsHeader::Real convReal16(const unsigned char* const ptr) {return *(reinterpret_cast<const long double*>(ptr));}
 
 enum VersionNumber {
    Unknown,

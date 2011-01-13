@@ -23,7 +23,7 @@ namespace ID {
 
 // Partitioners which can be used.
 enum LBM {
-   Block,Random,RCB,RIB,HSFC,Graph,Hypergraph,HierHG
+   Block,Random,RCB,RIB,HSFC,Graph,Hypergraph,Hierarchical
 };
 
 // Overloaded templates which should return the corresponding data type 
@@ -239,7 +239,7 @@ template<class C> ParGrid<C>::ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,cre
    weightCell = 1.0;
    weightEdge = 10.0;
    N_hierarchicalLevels = 2;
-   N_processesPerPart = 2;
+   N_processesPerPart = 4;
    
    // Attempt to init MPI:
    int rvalue = MPI_Init(&argn,&args);
@@ -272,9 +272,9 @@ template<class C> ParGrid<C>::ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,cre
    zoltan->Set_Param("EDGE_WEIGHT_DIM",N_weights_edge.c_str());
    zoltan->Set_Param("DEBUG_LEVEL","0");
    zoltan->Set_Param("IMBALANCE_TOL",imbalanceTolerance.c_str());
-
-   zoltan->Set_Param("HIER_CHECKS","1");
-   zoltan->Set_Param("HIER_DEBUG_LEVEL","2");
+   //zoltan->Set_Param("PHG_CUT_OBJECTIVE","CONNECTIVITY");
+   zoltan->Set_Param("HIER_CHECKS","0");
+   zoltan->Set_Param("HIER_DEBUG_LEVEL","0");
    
    // Register generic callback functions:
    zoltan->Set_Num_Obj_Fn(&ParGrid<C>::getNumberOfLocalCells,this);
@@ -811,7 +811,7 @@ template<class C> std::string ParGrid<C>::loadBalanceMethod(const LBM& method) {
     case Hypergraph:
       return "HYPERGRAPH";
       break;
-    case HierHG:
+    case Hierarchical:
       return "HIER";
       break;
    }
@@ -1456,13 +1456,12 @@ void ParGrid<C>::getHyperedgeWeights(void* parGridPtr,int N_globalIDs,int N_loca
 template<class C>
 int ParGrid<C>::getNumberOfHierarchicalLevels(void* parGridPtr,int* rcode) {   
    *rcode = ZOLTAN_OK;
-   std::cerr << "ParGrid::getNumberOfHierarchicalLevels called, returning " << N_hierarchicalLevels << std::endl;
+   //std::cerr << "ParGrid::getNumberOfHierarchicalLevels called, returning " << N_hierarchicalLevels << std::endl;
    return N_hierarchicalLevels;
 }
 
 template<class C>
 int ParGrid<C>::getHierarchicalPartNumber(void* parGridPtr,int level,int* rcode) {
-   std::cerr << "ParGrid::getHierarchicalPartNumber called for level=" << level;
    int rvalue;
    *rcode = ZOLTAN_OK;
    switch (level) {
@@ -1479,23 +1478,25 @@ int ParGrid<C>::getHierarchicalPartNumber(void* parGridPtr,int level,int* rcode)
       *rcode = ZOLTAN_FATAL;
       break;
    }
-   std::cerr << " myrank=" << myrank << " returning value " << rvalue << std::endl;
+   //std::cerr << "Rank in level " << level << " hier for proc #" << myrank << " is " << rvalue << std::endl;
    return rvalue;
 }
 
 template<class C>
 void ParGrid<C>::getHierarchicalParameters(void* parGridPtr,int level,Zoltan_Struct* zs,int* rcode) {
-   std::cerr << "ParGrid::getHierarchicalParameters called for level=" << level << " on process " << myrank << std::endl;
+   //std::cerr << "ParGrid::getHierarchicalParameters called for level=" << level << " on process " << myrank << std::endl;
    *rcode = ZOLTAN_OK;
    switch (level) {
     case 0:
       // Refinement parameters for superpartitions:
-      Zoltan_Set_Param(zs,"LB_METHOD",loadBalanceMethod(balanceMethod).c_str());
+      //Zoltan_Set_Param(zs,"LB_METHOD",loadBalanceMethod(balanceMethod).c_str());
+      Zoltan_Set_Param(zs,"LB_METHOD","RCB");
       Zoltan_Set_Param(zs,"IMBALANCE_TOL",imbalanceTolerance.c_str());
       break;
     case 1:
       // Refinement parameters for partitioning a superpartition:
-      Zoltan_Set_Param(zs,"LB_METHOD",loadBalanceMethod(balanceMethod).c_str());
+      //Zoltan_Set_Param(zs,"LB_METHOD",loadBalanceMethod(balanceMethod).c_str());
+      Zoltan_Set_Param(zs,"LB_METHOD","RIB");
       Zoltan_Set_Param(zs,"IMBALANCE_TOL",imbalanceTolerance.c_str());
       break;
     default:
