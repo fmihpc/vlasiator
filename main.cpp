@@ -35,7 +35,7 @@ void initSpatialCells(dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm
 void initSpatialCells(const ParGrid<SpatialCell>& mpiGrid) {
 #endif
    typedef Parameters P;
-   
+
    // This can be replaced by an iterator.
    #ifndef PARGRID
      Main::cells = mpiGrid.get_cells();
