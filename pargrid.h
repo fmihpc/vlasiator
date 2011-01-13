@@ -239,7 +239,7 @@ template<class C> ParGrid<C>::ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,cre
    weightCell = 1.0;
    weightEdge = 10.0;
    N_hierarchicalLevels = 2;
-   N_processesPerPart = 4;
+   N_processesPerPart = 2;
    
    // Attempt to init MPI:
    int rvalue = MPI_Init(&argn,&args);
@@ -267,12 +267,12 @@ template<class C> ParGrid<C>::ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,cre
    // Set Zoltan parameters:
    zoltan->Set_Param("NUM_GID_ENTRIES","1");
    zoltan->Set_Param("LB_METHOD",loadBalanceMethod(balanceMethod).c_str());
+   zoltan->Set_Param("LB_APPROACH","PARTITION");
    zoltan->Set_Param("RETURN_LISTS","ALL");
    zoltan->Set_Param("OBJ_WEIGHT_DIM",N_weights_cell.c_str());
    zoltan->Set_Param("EDGE_WEIGHT_DIM",N_weights_edge.c_str());
    zoltan->Set_Param("DEBUG_LEVEL","0");
    zoltan->Set_Param("IMBALANCE_TOL",imbalanceTolerance.c_str());
-   //zoltan->Set_Param("PHG_CUT_OBJECTIVE","CONNECTIVITY");
    zoltan->Set_Param("HIER_CHECKS","0");
    zoltan->Set_Param("HIER_DEBUG_LEVEL","0");
    
@@ -1489,14 +1489,18 @@ void ParGrid<C>::getHierarchicalParameters(void* parGridPtr,int level,Zoltan_Str
    switch (level) {
     case 0:
       // Refinement parameters for superpartitions:
-      //Zoltan_Set_Param(zs,"LB_METHOD",loadBalanceMethod(balanceMethod).c_str());
-      Zoltan_Set_Param(zs,"LB_METHOD","RCB");
+      Zoltan_Set_Param(zs,"LB_METHOD","HYPERGRAPH");
+      Zoltan_Set_Param(zs,"PHG_CUT_OBJECTIVE","CONNECTIVITY");
+      Zoltan_Set_Param(zs,"OBJ_WEIGHT_DIM","1");
+      Zoltan_Set_Param(zs,"EDGE_WEIGHT_DIM","0");
       Zoltan_Set_Param(zs,"IMBALANCE_TOL",imbalanceTolerance.c_str());
       break;
     case 1:
       // Refinement parameters for partitioning a superpartition:
-      //Zoltan_Set_Param(zs,"LB_METHOD",loadBalanceMethod(balanceMethod).c_str());
-      Zoltan_Set_Param(zs,"LB_METHOD","RIB");
+      Zoltan_Set_Param(zs,"LB_METHOD","HYPERGRAPH");
+      Zoltan_Set_Param(zs,"PHG_CUT_OBJECTIVE","CONNECTIVITY");
+      Zoltan_Set_Param(zs,"OBJ_WEIGHT_DIM","1");
+      Zoltan_Set_Param(zs,"EDGE_WEIGHT_DIM","0");
       Zoltan_Set_Param(zs,"IMBALANCE_TOL",imbalanceTolerance.c_str());
       break;
     default:
