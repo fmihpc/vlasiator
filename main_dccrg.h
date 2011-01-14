@@ -46,6 +46,8 @@ extern bool cpu_translation2(SpatialCell& cell,const std::vector<const SpatialCe
 extern bool cpu_translation3(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
 
 void initialLoadBalance(dccrg<SpatialCell>& mpiGrid) {
+   typedef Parameters P;
+   P::transmit = Transmit::AVGS;
    mpiGrid.balance_load();
 }
 
@@ -147,7 +149,7 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    
    typedef Parameters P;
    // Start neighbour data exchange:
-   P::transmit = Transmit::AVGS | Transmit::DERIV1 | Transmit::DERIV2;
+   P::transmit = Transmit::DERIV1;
    SpatialCell::base_address_identifier = 1;
    mpiGrid.start_remote_neighbour_data_update();
    // Calculate fluxes for inner cells:
