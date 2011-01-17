@@ -1,6 +1,6 @@
 include Makefile.intel
 
-default: main
+default: main vls2vtk
 
 # Compile directory:
 INSTALL=${HOME}/QuESpace/sandroos/cudafvm
