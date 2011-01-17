@@ -31,6 +31,12 @@ bool cpu_translation3(SpatialCell& cell,const std::vector<const SpatialCell*>& s
    for (uint block=0; block<cell.N_blocks; ++block) {
       cpu_propagateSpat(cell,block,spatNbrs,DT);
    }
+   creal volume = cell.cpu_cellParams[CellParams::DX] * cell.cpu_cellParams[CellParams::DY] * cell.cpu_cellParams[CellParams::DZ];
+   cell.cpu_cellParams[CellParams::RHO  ] /= volume;
+   cell.cpu_cellParams[CellParams::RHOVX] /= volume;
+   cell.cpu_cellParams[CellParams::RHOVY] /= volume;
+   cell.cpu_cellParams[CellParams::RHOVZ] /= volume;
+
    return true;
 }
 
