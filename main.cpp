@@ -160,10 +160,11 @@ void writeVelocityBlocks(const ParGrid<SpatialCell>& mpiGrid, const ID::type cel
    }
 
    std::stringstream fname;
+   fname.precision(1);
    double x = mpiGrid.get_cell_x(cell);
    double y = mpiGrid.get_cell_y(cell);
    double z = mpiGrid.get_cell_z(cell);
-   fname << "block_" << x / 6.3712e6 << "_" << y / 6.3712e6 << "_" << z / 6.3712e6 << "_";
+   fname << "block_" << std::fixed << x / 6.3712e6 << "_" << y / 6.3712e6 << "_" << z / 6.3712e6 << "_";
    fname.width(7);
    fname.fill('0');
    fname << Parameters::tstep << ".silo";
@@ -320,6 +321,26 @@ bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter
    return success;
 }
 
+
+#ifdef PARGRID
+void log_send_receive_info(const ParGrid<SpatialCell>& mpiGrid)
+#else
+void log_send_receive_info(const dccrg<SpatialCell>& mpiGrid)
+#endif
+{
+	logger << "Number of sends / receives:" << std::endl;
+	#ifndef PARGRID
+	logger << "\tto other MPI processes   = " << mpiGrid.get_number_of_update_send_cells() << std::endl;
+	logger << "\tfrom other MPI processes = " << mpiGrid.get_number_of_update_receive_cells() << std::endl;
+	logger << "\ttotal = " << mpiGrid.get_number_of_update_send_cells() + mpiGrid.get_number_of_update_receive_cells() << std::endl;
+	#else
+	logger << "\tto other MPI processes   = " << mpiGrid.getNumberOfSends() << std::endl;
+	logger << "\tfrom other MPI processes = " << mpiGrid.getNumberOfReceives() << std::endl;
+	logger << "\ttotal = " << mpiGrid.getNumberOfSends() + mpiGrid.getNumberOfReceives() << std::endl;
+	#endif
+}
+
+
 int main(int argn,char* args[]) {
    bool success = true;
    
@@ -393,6 +414,8 @@ int main(int argn,char* args[]) {
       mpiGrid.barrier();
    #endif
 
+   log_send_receive_info(mpiGrid);
+
    #ifdef PARGRID
    logger << "(MAIN): Total no. reserved velocity blocks in Grid = ";
    logger << grid.getTotalNumberOfBlocks() << std::endl;
@@ -410,6 +433,7 @@ int main(int argn,char* args[]) {
 
    // Write initial state:
    if (P::save_spatial_grid) {
+      logger << "(MAIN): Saving initial state of variables to disk." << endl;
       if (writeSpatialCellData(mpiGrid,vlsWriter,reducer) == false) {
 	 logger << "(MAIN): ERROR occurred while writing data to file!" << endl;
       }
@@ -452,21 +476,12 @@ int main(int argn,char* args[]) {
       // Check if the full simulation state should be written to disk
       if (P::tstep % P::saveRestartInterval == 0) {
          // TODO: implement full state saving
-         logger << "(MAIN): Saving full state to disk at tstep = " << tstep << ", time = " << P::t << std::endl;
-         #ifndef PARGRID
-            logger << "\t # sends to other MPI processes      = " << mpiGrid.get_number_of_update_send_cells() << std::endl;
-            logger << "\t # receives from other MPI processes = " << mpiGrid.get_number_of_update_receive_cells() << std::endl;
-            logger << "\t # total = " << mpiGrid.get_number_of_update_send_cells() + mpiGrid.get_number_of_update_receive_cells() << std::endl;
-         #else
-            logger << "\t # sends to other MPI processes      = " << mpiGrid.getNumberOfSends() << std::endl;
-            logger << "\t # receives from other MPI processes = " << mpiGrid.getNumberOfReceives() << std::endl;
-            logger << "\t # total = " << mpiGrid.getNumberOfSends() + mpiGrid.getNumberOfReceives() << std::endl;
-         #endif
+         //logger << "(MAIN): Saving full state to disk at tstep = " << P::tstep << ", time = " << P::t << std::endl;
       }
 
       // Check if variables and derived quantities should be written to disk
       if (P::tstep % P::diagnInterval == 0) {
-         logger << "(MAIN): Saving variables to disk at tstep = " << tstep << ", time = " << P::t << std::endl;
+         logger << "(MAIN): Saving variables to disk at tstep = " << P::tstep << ", time = " << P::t << std::endl;
 
 	 if (P::save_spatial_grid) {
 	    if (writeSpatialCellData(mpiGrid,vlsWriter,reducer) == false) {

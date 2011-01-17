@@ -48,6 +48,9 @@ bool cellParametersChanged(creal& t) {return true;}
 #define M_P 1.672621637e-27
 #define R_E 6.3712e6
 
+// cells closer than this to origin are ignored by the test particle simulation
+#define INNER_BOUNDARY (7 * R_E)
+
 Real get_initial_velocity_cell_value(const Real vx, const Real vy, const Real vz, const Real sw_vx, const Real sw_vy, const Real sw_vz, const Real T)
 {
 	Real f_x, f_y, f_z;
@@ -57,7 +60,7 @@ Real get_initial_velocity_cell_value(const Real vx, const Real vy, const Real vz
 	f_z = sqrt(M_P / (2 * M_PI * kB * T)) * exp(-M_P * (vz - sw_vz) * (vz - sw_vz) / 2 / kB / T);
 
 	// bring the total value closer to 1 for accuracy, final scaling is done later anyway
-	return f_x * f_y * f_z * 1e50;
+	return f_x * f_y * f_z * 1e20;
 }
 
 Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz, creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {
@@ -130,6 +133,11 @@ Real get_min_timestep(dccrg<SpatialCell>& mpiGrid, string filename)
 			exit(EXIT_FAILURE);
 		}
 
+		// exclude inner boundary
+		if (sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]) < INNER_BOUNDARY) {
+			continue;
+		}
+
 		uint64_t cell = mpiGrid.get_cell(r[0], r[1], r[2]);
 		if (cell == 0) {
 			continue;
@@ -193,7 +201,7 @@ Real get_min_timestep(dccrg<SpatialCell>& mpiGrid, string filename)
 	Real max_v = max(fabs(P::vxmin), max(fabs(P::vymin), max(fabs(P::vzmin), max(fabs(P::vxmax), max(fabs(P::vymax), fabs(P::vzmax))))));
 	Real a_E = Q_P / M_P * max_E;
 	Real a_B = Q_P / M_P * max_v * max_B;
-	return 0.2 * min(min_dx / max_v, min(min_dvx / a_E, min_dvx / a_B));
+	return 0.4 * min(min_dx / max_v, min(min_dvx / a_E, min_dvx / a_B));
 }
 
 /*!
@@ -213,7 +221,7 @@ Real get_min_timestep(dccrg<SpatialCell>& mpiGrid)
 	logger << "Reading EB files." << endl;
 
 	// loop from 16:00 to 23:59
-	for (int minute = 0; minute <= (23 - 16) * 60 + 59; minute++) {
+	for (int minute = 0; minute <= 1 /*(23 - 16) * 60 + 59*/; minute++) {
 		ptime current_time = first_EB_time + minutes(minute);
 
 		string EB_filename("mstate");
@@ -291,6 +299,11 @@ void load_EB(dccrg<SpatialCell>& mpiGrid, string filename)
 			exit(EXIT_FAILURE);
 		}
 
+		// exclude inner boundary
+		if (sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]) < INNER_BOUNDARY) {
+			continue;
+		}
+
 		uint64_t cell = mpiGrid.get_cell(r[0], r[1], r[2]);
 		if (cell == 0) {
 			continue;
@@ -310,6 +323,17 @@ void load_EB(dccrg<SpatialCell>& mpiGrid, string filename)
 		const double dz = mpiGrid.get_cell_z_size(*cell);
 
 		SpatialCell* cell_data = mpiGrid[*cell];
+
+		// exclude inner boundary
+		if (sqrt(x * x + y * y + z * z) < INNER_BOUNDARY) {
+			cell_data->cpu_cellParams[CellParams::EX] = 0;
+			cell_data->cpu_cellParams[CellParams::EY] = 0;
+			cell_data->cpu_cellParams[CellParams::EZ] = 0;
+			cell_data->cpu_cellParams[CellParams::BX] = 0;
+			cell_data->cpu_cellParams[CellParams::BY] = 0;
+			cell_data->cpu_cellParams[CellParams::BZ] = 0;
+			continue;
+		}
 
 		// if gumics didn't have the fields in this cell, use the closest fields that gumics had
 		int number_of_values = 0;
@@ -360,22 +384,13 @@ void load_EB(dccrg<SpatialCell>& mpiGrid, string filename)
 			cell_data->cpu_cellParams[CellParams::BY] /= number_of_values;
 			cell_data->cpu_cellParams[CellParams::BZ] /= number_of_values;
 		}
-
-		if (cell_data->cpu_cellParams[CellParams::EX] == 0
-		&& cell_data->cpu_cellParams[CellParams::EY] == 0
-		&& cell_data->cpu_cellParams[CellParams::EZ] == 0
-		&& cell_data->cpu_cellParams[CellParams::BX] == 0
-		&& cell_data->cpu_cellParams[CellParams::BY] == 0
-		&& cell_data->cpu_cellParams[CellParams::BZ] == 0) {
-			logger << "Didn't get fields for cell " << *cell << endl;
-		}
 	}
 
 	fclose(infile);
 }
 
 #ifndef PARGRID
-void apply_solar_wind_boundary(dccrg<SpatialCell>& mpiGrid, ptime time)
+void apply_boundaries(dccrg<SpatialCell>& mpiGrid, ptime time)
 #else
 #error get_min_timestep not supported with PARGRID
 #endif
@@ -387,72 +402,90 @@ void apply_solar_wind_boundary(dccrg<SpatialCell>& mpiGrid, ptime time)
 	vector<uint64_t> cells = mpiGrid.get_cells();
 	for (vector<uint64_t>::const_iterator cell = cells.begin(); cell != cells.end(); cell++) {
 		double x = mpiGrid.get_cell_x(*cell);
-		double dx = mpiGrid.get_cell_x_size(*cell);
-
-		if (fabs(x - 16 * R_E) > dx) {
-			continue;
-		}
-
-		// preliminary distribution
-		Real total_amount = 0;
-
 		double y = mpiGrid.get_cell_y(*cell);
 		double z = mpiGrid.get_cell_z(*cell);
+
+		double dx = mpiGrid.get_cell_x_size(*cell);
 		double dy = mpiGrid.get_cell_y_size(*cell);
 		double dz = mpiGrid.get_cell_z_size(*cell);
 
-		creal block_dvx = (P::vxmax - P::vxmin) / P::vxblocks_ini;	// Size of a block in vx-direction
-		creal block_dvy = (P::vymax - P::vymin) / P::vyblocks_ini;
-		creal block_dvz = (P::vzmax - P::vzmin) / P::vzblocks_ini;
-		creal cell_dvx = block_dvx / WID;	// Size of one cell in a block in vx-direction
-		creal cell_dvy = block_dvy / WID;
-		creal cell_dvz = block_dvz / WID;
+		// solar wind
+		// TODO: doesn't support variable sized velocity blocks
+		if (fabs(x - 16 * R_E) < dx) {
 
-		for (uint block_zi = 0; block_zi < P::vzblocks_ini; block_zi++)
-		for (uint block_yi = 0; block_yi < P::vyblocks_ini; block_yi++)
-		for (uint block_xi = 0; block_xi < P::vxblocks_ini; block_xi++) {
+			const Real* const blockParams = mpiGrid[*cell]->cpu_blockParams;
+			const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
 
-			cuint velIndex = block_xi + block_yi * P::vxblocks_ini + block_zi * P::vyblocks_ini * P::vxblocks_ini;
-			creal block_vx = P::vxmin + block_xi * block_dvx; // vx-coordinate of the lower left corner
-			creal block_vy = P::vymin + block_yi * block_dvy;
-			creal block_vz = P::vzmin + block_zi * block_dvz;
+			// preliminary distribution
+			Real total_amount = 0;
 
-			for (uint cell_zi = 0; cell_zi < WID; cell_zi++)
-			for (uint cell_yi = 0; cell_yi < WID; cell_yi++)
-			for (uint cell_xi = 0; cell_xi < WID; cell_xi++) {
-				creal cell_vx = block_vx + cell_xi * cell_dvx;
-				creal cell_vy = block_vy + cell_yi * cell_dvy;
-				creal cell_vz = block_vz + cell_zi * cell_dvz;
+			creal block_dvx = (P::vxmax - P::vxmin) / P::vxblocks_ini;	// Size of a block in vx-direction
+			creal block_dvy = (P::vymax - P::vymin) / P::vyblocks_ini;
+			creal block_dvz = (P::vzmax - P::vzmin) / P::vzblocks_ini;
+			creal cell_dvx = block_dvx / WID;	// Size of one cell in a block in vx-direction
+			creal cell_dvy = block_dvy / WID;
+			creal cell_dvz = block_dvz / WID;
 
-				mpiGrid[*cell]->cpu_avgs[velIndex * SIZE_VELBLOCK + cell_zi * WID2 + cell_yi * WID + cell_xi] = get_initial_velocity_cell_value(cell_vx, cell_vy, cell_vz, sw_data[solar_wind::vx], sw_data[solar_wind::vy], sw_data[solar_wind::vz], sw_data[solar_wind::T]);
-				total_amount += mpiGrid[*cell]->cpu_avgs[velIndex * SIZE_VELBLOCK + cell_zi * WID2 + cell_yi * WID + cell_xi];
+			for (uint block_zi = 0; block_zi < P::vzblocks_ini; block_zi++)
+			for (uint block_yi = 0; block_yi < P::vyblocks_ini; block_yi++)
+			for (uint block_xi = 0; block_xi < P::vxblocks_ini; block_xi++) {
+
+				cuint velIndex = block_xi + block_yi * P::vxblocks_ini + block_zi * P::vyblocks_ini * P::vxblocks_ini;
+				creal block_vx = P::vxmin + block_xi * block_dvx; // vx-coordinate of the lower left corner
+				creal block_vy = P::vymin + block_yi * block_dvy;
+				creal block_vz = P::vzmin + block_zi * block_dvz;
+
+				for (uint cell_zi = 0; cell_zi < WID; cell_zi++)
+				for (uint cell_yi = 0; cell_yi < WID; cell_yi++)
+				for (uint cell_xi = 0; cell_xi < WID; cell_xi++) {
+					creal cell_vx = block_vx + cell_xi * cell_dvx;
+					creal cell_vy = block_vy + cell_yi * cell_dvy;
+					creal cell_vz = block_vz + cell_zi * cell_dvz;
+
+					mpiGrid[*cell]->cpu_avgs[velIndex * SIZE_VELBLOCK + cell_zi * WID2 + cell_yi * WID + cell_xi] = get_initial_velocity_cell_value(cell_vx, cell_vy, cell_vz, sw_data[solar_wind::vx], sw_data[solar_wind::vy], sw_data[solar_wind::vz], sw_data[solar_wind::T]);
+					total_amount += mpiGrid[*cell]->cpu_avgs[velIndex * SIZE_VELBLOCK + cell_zi * WID2 + cell_yi * WID + cell_xi];
+				}
+			}
+
+			Real current_density = total_amount / (dx * dy * dz);
+
+			// final distribution
+			for (uint block_zi = 0; block_zi < P::vzblocks_ini; block_zi++)
+			for (uint block_yi = 0; block_yi < P::vyblocks_ini; block_yi++)
+			for (uint block_xi = 0; block_xi < P::vxblocks_ini; block_xi++) {
+
+				cuint velIndex = block_xi + block_yi * P::vxblocks_ini + block_zi * P::vyblocks_ini * P::vxblocks_ini;
+				creal block_vx = P::vxmin + block_xi * block_dvx; // vx-coordinate of the lower left corner
+				creal block_vy = P::vymin + block_yi * block_dvy;
+				creal block_vz = P::vzmin + block_zi * block_dvz;
+
+				for (uint cell_zi = 0; cell_zi < WID; cell_zi++)
+				for (uint cell_yi = 0; cell_yi < WID; cell_yi++)
+				for (uint cell_xi = 0; cell_xi < WID; cell_xi++) {
+					creal cell_vx = block_vx + cell_xi * cell_dvx;
+					creal cell_vy = block_vy + cell_yi * cell_dvy;
+					creal cell_vz = block_vz + cell_zi * cell_dvz;
+
+					mpiGrid[*cell]->cpu_avgs[velIndex * SIZE_VELBLOCK + cell_zi * WID2 + cell_yi * WID + cell_xi] *= sw_data[solar_wind::density] / current_density / DV3;
+				}
 			}
 		}
 
-		Real current_density = total_amount / (dx * dy * dz);
+		// "ionosphere"
+		if (sqrt(x * x + y * y + z * z) < INNER_BOUNDARY) {
+			for (uint block_zi = 0; block_zi < P::vzblocks_ini; block_zi++) {
+			for (uint block_yi = 0; block_yi < P::vyblocks_ini; block_yi++) {
+			for (uint block_xi = 0; block_xi < P::vxblocks_ini; block_xi++) {
 
-		// final distribution
-		for (uint block_zi = 0; block_zi < P::vzblocks_ini; block_zi++)
-		for (uint block_yi = 0; block_yi < P::vyblocks_ini; block_yi++)
-		for (uint block_xi = 0; block_xi < P::vxblocks_ini; block_xi++) {
-
-			cuint velIndex = block_xi + block_yi * P::vxblocks_ini + block_zi * P::vyblocks_ini * P::vxblocks_ini;
-			creal block_vx = P::vxmin + block_xi * block_dvx; // vx-coordinate of the lower left corner
-			creal block_vy = P::vymin + block_yi * block_dvy;
-			creal block_vz = P::vzmin + block_zi * block_dvz;
-
-			for (uint cell_zi = 0; cell_zi < WID; cell_zi++)
-			for (uint cell_yi = 0; cell_yi < WID; cell_yi++)
-			for (uint cell_xi = 0; cell_xi < WID; cell_xi++) {
-				creal cell_vx = block_vx + cell_xi * cell_dvx;
-				creal cell_vy = block_vy + cell_yi * cell_dvy;
-				creal cell_vz = block_vz + cell_zi * cell_dvz;
-
-				mpiGrid[*cell]->cpu_avgs[velIndex * SIZE_VELBLOCK + cell_zi * WID2 + cell_yi * WID + cell_xi] *= sw_data[solar_wind::density] / current_density;
-			}
+				cuint velIndex = block_xi + block_yi * P::vxblocks_ini + block_zi * P::vyblocks_ini * P::vxblocks_ini;
+				for (uint cell_zi = 0; cell_zi < WID; cell_zi++) {
+				for (uint cell_yi = 0; cell_yi < WID; cell_yi++) {
+				for (uint cell_xi = 0; cell_xi < WID; cell_xi++) {
+					mpiGrid[*cell]->cpu_avgs[velIndex * SIZE_VELBLOCK + cell_zi * WID2 + cell_yi * WID + cell_xi] = 0;
+				}}}
+			}}}
 		}
 	}
-
 }
 
 // TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
@@ -465,7 +498,7 @@ void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt)
 {
 	ptime current_time = first_EB_time + seconds(t);
 
-	apply_solar_wind_boundary(mpiGrid, current_time);
+	apply_boundaries(mpiGrid, current_time);
 
 	// check whether EB have to updated
 	if (!loaded_EB_time.is_not_a_date_time()
