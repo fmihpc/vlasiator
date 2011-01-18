@@ -85,7 +85,7 @@ const string first_EB_file_name("mstate20040218_160000.EB");
 const ptime first_EB_time = get_EB_time(first_EB_file_name);
 ptime loaded_EB_time(not_a_date_time);
 
-// Returns 0.2 * the minimum allowed timestep based on given EB file for the current grid
+// Returns 0.4 * the minimum allowed timestep based on given EB file for the current grid
 #ifndef PARGRID
 Real get_min_timestep(dccrg<SpatialCell>& mpiGrid, string filename)
 #else
