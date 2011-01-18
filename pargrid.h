@@ -72,9 +72,13 @@ template<class C> class ParGrid {
    Real get_cell_x(const ID::type& globalID) const;
    Real get_cell_y(const ID::type& globalID) const;
    Real get_cell_z(const ID::type& globalID) const;
+   Real get_cell_x_max(const ID::type& globalID) const;
    Real get_cell_x_min(const ID::type& globalID) const;
+   Real get_cell_y_max(const ID::type& globalID) const;
    Real get_cell_y_min(const ID::type& globalID) const;
+   Real get_cell_z_max(const ID::type& globalID) const;
    Real get_cell_z_min(const ID::type& globalID) const;
+   ID::type get_cell(const Real& x,const Real& y,const Real& z) const;
    
    void barrier() {MPI_Barrier(MPI_COMM_WORLD);}
    template<class CONT> void getBoundaryCells(CONT& rlist) const;
@@ -587,6 +591,25 @@ template<class C> bool ParGrid<C>::startNeighbourExchange(cuint& identifier) {
    return rvalue;
 }
 
+/** Return the global ID of the unrefined cell in which the given point belongs.
+ * @param x X-coordinate.
+ * @param y Y-coordinate.
+ * @param z Z-coordinate.
+ * @return The global ID of the cell containing the given point. If the cell does not exists, 
+ * value numeric_limits<ID::type>::max() is returned.
+ */
+template<class C> ID::type ParGrid<C>::get_cell(const Real& x,const Real& y,const Real& z) const {
+   // Check that the cell exists:
+   if (x < grid_xmin || x > grid_xmax) return std::numeric_limits<ID::type>::max();
+   if (y < grid_ymin || y > grid_ymax) return std::numeric_limits<ID::type>::max();
+   if (z < grid_zmin || z > grid_zmax) return std::numeric_limits<ID::type>::max();
+   // Calculate unrefined indices:
+   const ID::type I = static_cast<ID::type>(floor((x - grid_xmin) / unref_dx));
+   const ID::type J = static_cast<ID::type>(floor((y - grid_ymin) / unref_dy));
+   const ID::type K = static_cast<ID::type>(floor((z - grid_zmin) / unref_dz));
+   return calculateUnrefinedIndex(I,J,K);
+}
+
 template<class C> Real ParGrid<C>::get_cell_x(const ID::type& globalID) const {
    // Try to find the cell from maps:
    typename std::map<ID::type,ParCell<C> >::const_iterator it = localCells.find(globalID);
@@ -624,6 +647,19 @@ template<class C> Real ParGrid<C>::get_cell_z(const ID::type& globalID) const {
    return grid_zmin + (k+0.5)*unref_dz;
 }
 
+template<class C> Real ParGrid<C>::get_cell_x_max(const ID::type& globalID) const {
+   // Try to find the cell from maps:
+   typename std::map<ID::type,ParCell<C> >::const_iterator it = localCells.find(globalID);
+   if (it != localCells.end()) return it->second.xcrd + unref_dx;
+   it = remoteCells.find(globalID);
+   if (it != remoteCells.end()) return it->second.xcrd + unref_dx;
+   
+   // Calculate the x-coordinate of the unrefined cell:
+   ID::type i,j,k;
+   calculateUnrefinedIndices(globalID,i,j,k);
+   return grid_xmin + (i+1)*unref_dx;
+}
+
 template<class C> Real ParGrid<C>::get_cell_x_min(const ID::type& globalID) const {
    // Try to find the cell from maps:
    typename std::map<ID::type,ParCell<C> >::const_iterator it = localCells.find(globalID);
@@ -637,6 +673,18 @@ template<class C> Real ParGrid<C>::get_cell_x_min(const ID::type& globalID) cons
    return grid_xmin;
 }
 
+template<class C> Real ParGrid<C>::get_cell_y_max(const ID::type& globalID) const {
+   typename std::map<ID::type,ParCell<C> >::const_iterator it = localCells.find(globalID);
+   if (it != localCells.end()) return it->second.ycrd + unref_dy;
+   it = remoteCells.find(globalID);
+   if (it != remoteCells.end()) return it->second.ycrd + unref_dy;
+   
+   // Calculate the y-coordinate of the unrefined cell:
+   ID::type i,j,k;
+   calculateUnrefinedIndices(globalID,i,j,k);
+   return grid_ymin + (j+1)*unref_dy;
+}
+
 template<class C> Real ParGrid<C>::get_cell_y_min(const ID::type& globalID) const {
    typename std::map<ID::type,ParCell<C> >::const_iterator it = localCells.find(globalID);
    if (it != localCells.end()) return it->second.ycrd;
@@ -647,6 +695,18 @@ template<class C> Real ParGrid<C>::get_cell_y_min(const ID::type& globalID) cons
    ID::type i,j,k;
    calculateUnrefinedIndices(globalID,i,j,k);
    return grid_ymin;
+}
+
+template<class C> Real ParGrid<C>::get_cell_z_max(const ID::type& globalID) const {
+   typename std::map<ID::type,ParCell<C> >::const_iterator it = localCells.find(globalID);
+   if (it != localCells.end()) return it->second.zcrd + unref_dz;
+   it = remoteCells.find(globalID);
+   if (it != remoteCells.end()) return it->second.zcrd + unref_dz;
+   
+   // Calculate the z-coordinate of the unrefined cell:
+   ID::type i,j,k;
+   calculateUnrefinedIndices(globalID,i,j,k);
+   return grid_zmin + (k+1)*unref_dz;
 }
 
 template<class C> Real ParGrid<C>::get_cell_z_min(const ID::type& globalID) const {
@@ -693,7 +753,7 @@ template<class C> template<class CONT> void ParGrid<C>::getInnerCells(CONT& rlis
  * e.g. due to the cell being on the boundary of the simulation box, the neighbour index is 
  * equal to std::numeric_limits<ID::type>::max(). If the given cell is not local to this 
  * MPI process, the rlist container is empty.
- * @param CONT An STL container where the neighbour indices are inserted.
+ * @param rlist An STL container where the neighbour indices are inserted.
  * @param globalID The global ID of the cell whose neighbours are queried.
  */
 template<class C> template<class CONT> void ParGrid<C>::getNeighbours(CONT& rlist,const ID::type& globalID) const {
@@ -1389,7 +1449,7 @@ void ParGrid<C>::getEdgeList(void* parGridPtr,int N_globalIDs,int N_localIDs,ZOL
  * @param N_pins The total number of pins (connections between vertices and hyperedges) is 
  * written to this variable.
  * @param format The chosen hyperedge storage format is written to this variable.
- * @param The return code. Upon success should be ZOLTAN_OK.
+ * @param rcode The return code. Upon success should be ZOLTAN_OK.
  */
 template<class C>
 void ParGrid<C>::getNumberOfHyperedges(void* parGridPtr,int* N_lists,int* N_pins,int* format,int* rcode) {
@@ -1469,8 +1529,9 @@ void ParGrid<C>::getNumberOfHyperedgeWeights(void* parGridPtr,int* N_edges,int* 
  * @param N_globalIDs The size of edgeGlobalID entry.
  * @param N_localIDs The size of edgeLocalID entry.
  * @param N_edges The number of hyperedge weights that need to be written to edgeWeights.
- * @param edgeGlobalIDs An array where the global IDs of each weight-supplying hyperedge are written into.
- * @param edgeLocalIDs An array where the local IDs of each weight-supplying hyperedge are written into. 
+ * @param N_weights Number of weights per hyperedge that need to be written.
+ * @param edgeGlobalID An array where the global IDs of each weight-supplying hyperedge are to be written.
+ * @param edgeLocalID An array where the local IDs of each weight-supplying hyperedge are to be written.
  * This array can be left empty.
  * @param edgeWeights An array where the hyperedge weights are written into.
  * @param rcode The return code. Upon success should be ZOLTAN_OK.
