@@ -1,0 +1,256 @@
+/** \class VlsWriter
+<H1>VLSV file format</H1>
+
+Vlasov simulation writes data into its own binary file format. The
+file format is quite flexible on datatypes. For example, in some files the
+data may be written in 4-byte floating point values, and 8-byte
+floating point values in another file(s). For this reason (and
+portability as well) each vlsv file contains the instructions on how 
+to read the data.
+
+It is expected that vlsv files can be efficiently written in parallel,
+for example by using MPI I/O.
+
+<H2>1. Endianness</H2>
+Endianness basically means the byte order of within longer data words,
+i.e. whether the most (big-endian) or least (little-endian) significant byte is written first.
+For example, floats and ints are typically 4-byte wide. There is no
+universal agreement on the order of the \"sub-bytes\". According to Wikipedia,
+\verbatim 
+On some machines, while integers are represented in little-endian
+form, floating point numbers are represented in big-endian form. 
+\endverbatim 
+Thus, a portable file format has to take care of
+endianness for integer and floating point datatypes separately.
+
+Most modern computers (x86) use little-endian notation.
+As a side note, VisIt visualization tool natively reads VTK files which, in
+binary format, need to be written using big-endian notation.
+
+The endianness of datatypes in a VLSV file is given in the header
+section. As a suggestion, these two fields should be the first two
+entries so that rest of the data can be read successfully. This
+behaviour is not required, however.
+
+<H2>2. Header</H2>
+The header portion consists of [{size}, {tag %ID}, {value}] tuples. 
+Each member of the tuple is an array, with number of elements and
+element byte sizes given in table below.
+<TABLE>
+<TR>
+<TH>Array Content</TH>
+<TH>Array Size</TH>
+<TH>Element Byte Size</TH>
+<TH>Element Datatype</TH>
+</TR>
+<TR>
+<TD>Size</TD>
+<TD>1</TD>
+<TD>1</TD>
+<TD>unsigned integer</TD>
+</TR>
+<TR>
+<TD>Header %ID</TD>
+<TD>1</TD>
+<TD>1</TD>
+<TD>unsigned integer</TD>
+</TR>
+<TR>
+<TD>Value</TD>
+<TD>Size</TD>
+<TD>1</TD>
+<TD>depends on Header %ID</TD>
+</TR>
+</TABLE>
+
+The header should be read as follows:
+<OL>
+<LI>Read one byte. This is the {size} fields.</LI>
+<LI>If {size} is zero, stop reading header. Otherwise continue to next
+step.</LI>
+<LI>Read one byte. This is the {tag %ID} field.
+<LI>Read {size} bytes. This is the data for {value} field.</LI>
+</OL>
+It is thus possible to read the header of a VLSV file
+without understanding its contents. However, in order
+to read the rest of the file correctly, some values given
+in header have to be parsed correctly.
+
+Here is a list of {tag %ID}s that are currently in use:
+<UL>
+<LI><STRONG>BYTES_PER_CELL_CRD</STRONG> Byte size of {cell crd} field,
+used when reading cell coordinates and data. {value} is an unsigned integer.</LI>
+<LI><STRONG>BYTES_PER_CELL_GID</STRONG> Byte size of {cell gid} field,
+used when reading cell coordinates and data. {value} is an unsigned integer.</LI>
+<LI><STRONG>BYTES_PER_VARNAME_SIZE</STRONG> Byte size of {name size}
+field, used when reading static-size variable descriptions. {value}
+is an unsigned integer.</LI>
+<LI><STRONG>DIMENSIONS</STRONG> The spatial dimensionality of the data
+in the file. {value} is an integer with allowed values 1, 2, or 3.
+This affects how cell coordinates and data are read.</LI>
+<LI><STRONG>ENDIANNESS_FLOAT</STRONG> Endianness of floating point
+datatypes in the VLSV file. This field has a default value zero
+(little-endian).</LI>
+<LI><STRONG>ENDIANNESS_INT</STRONG> Endianness of integer datatypes in
+the VLSV file. This field has a default value zero (little-endian).</LI>
+<LI><STRONG>VERSION</STRONG> VLSV file format version number. {value}
+is a string (character array). Each character in the string has byte
+size one.</LI>
+</UL>
+
+\verbatim
+Morale: The {size} and {tag %ID} fields are one byte wide entries.
+This guarantees that the header can be read correctly whether or not
+the reader's endianness agrees with the endianness of datatypes in the
+file. The header then contains instructions on how to read the rest of
+the file.
+\endverbatim
+
+<H2>3. Static-Size Variable Description</H2>
+A "static-size variable" here means that for each cell, such
+variable has the same (byte) size, in oppose to a "dynamic-size
+variables". A <VAR>bona fide</VAR> example of a static-size variable is the number 
+density of particles, which for each cell is just a scalar value. An
+example of a dynamic-size variable is the velocity space grid stored in
+each cell. If the velocity space grid is adapted, it may have a
+different (byte) size for each spatial cell.
+
+The description part consists of [{name size}, {name}, {varType},
+{element size}] tuples. You can think that each member in the tuple is
+an array, with number of elements and element byte size given in table
+below.
+
+Note that
+<UL>
+<LI>Variable descriptions are in same order as they appear in the cell
+data (see Section 4).</LI>
+<LI>\"Variable Type\" contains one of the values defined in namespace
+VlsVariable.</LI>
+<LI>The data for each variable is an array.</LI>
+<LI>The number of elements in the data array can be deduced from the
+variable's type.</LI>
+<LI>Byte size of data array elements is given in \"Data Slement Size\"
+field.
+</UL>
+
+<TABLE>
+<CAPTION>Contents of an entry containing a description of a static-size
+variable stored in a VLSV file.
+</CAPTION>
+<TR>
+<TH>Array Content</TH>
+<TH>Array Size</TH>
+<TH>Element Byte Size</TH>
+<TH>Element Datatype</TH>
+</TR>
+<TR>
+<TD>Name Size</TD>
+<TD>1</TD>
+<TD>BYTES_PER_VARNAME_SIZE</TD>
+<TD>unsigned integer</TD>
+</TR>
+<TR>
+<TD>Variable Name</TD>
+<TD>Name Size</TD>
+<TD>1</TD>
+<TD>character</TD>
+</TR>
+<TR>
+<TD>Variable Type</TD>
+<TD>1</TD>
+<TD>1</TD>
+<TD>unsigned integer</TD>
+</TR>
+<TR>
+<TD>Data Element Size</TD>
+<TD>1</TD>
+<TD>1</TD>
+<TD>unsigned integer</TD>
+</TR>
+</TABLE>
+
+The variable descriptions should be read as follows:
+<OL>
+<LI>Read n bytes, where n is the value of BYTES_PER_VARNAME_SIZE
+header {tag %ID}. This is the {name size} field.</LI>
+<LI>If {name size} has a zero value, stop reading descriptions.
+Otherwise continue to next step.</LI>
+<LI>Read {name size} bytes. This is the {name} field, which should be
+treated as a char array.</LI>
+<LI>Read one byte. This is the {varType} field.</LI>
+<LI>Read one byte. This is the {element size} field.</LI>
+</OL>
+The variable descriptions are requested from DataReducer, via a call
+to DataReducer::getDescription.
+\verbatim
+Morale 1: Static-size variables are separated from dynamic-size
+variables in order to reduce file size. Each dynamic-size variable
+needs to be accompanied by its size for each cell. If the size field
+was included for each static-size variable in each cell, the size of
+cell data might increase by 25% in worst-case scenario. It is also, of
+course, faster to read smaller files.
+
+Morale 2: In the case of Vlasov simulations the user might want to get
+the full six-dimensional distribution function for some cells. Writing
+the distribution function for every cell results in HUGE output files
+- 100 computation nodes having 16 GB memory each would already lead to
+1.6 TB files!
+\endverbatim
+
+<H2>4. %Cell coordinates and static-size data</H2>
+This part of a VLSV file contains the physical coordinate values of
+each cell, as well as the static-size data. The contents of a cell entry 
+depend on the dimensionality of the data, and on the definitions of 
+static-size variables.
+
+A cell entry consists of [{cell %ID}, {cell crd}, {cell size},
+{static data}] tuples. It is easiest to think of each element of the
+tuple as an array. The array sizes, byte sizes of each array element,
+and the element datatypes are given in table below.
+
+Note that cell entries are in no particular order. This makes
+parallel writing of VLSV files convenient, as processes do not need to
+care about the order in which they write their local data to the file.
+The data per process can, however, be written one, few, or all cells
+at a time if needed.
+
+<TABLE>
+<CAPTION>Description of the cell coordinate entry in VLSV file.
+Consider an entry to consist of four arrays with numbers of elements,
+and element byte sizes, given here.
+</CAPTION>
+<TR>
+<TH>Array Contents</TH>
+<TH>Array Size</TH>
+<TH>Element Byte Size</TH>
+<TH>Element Datatype</TH>
+</TR>
+<TR>
+<TD>%Cell %ID</TD>
+<TD>1</TD>
+<TD>BYTES_PER_CELL_GID</TD>
+<TD>unsigned integer</TD>
+</TR>
+<TR>
+<TD>%Cell crd</TD>
+<TD>DIMENSIONS</TD>
+<TD>BYTES_PER_CELL_CRD</TD>
+<TD>floating point</TD>
+</TR>
+<TR>
+<TD>%Cell size</TD>
+<TD>DIMENSIONS</TD>
+<TD>BYTES_PER_CELL_CRD</TD>
+<TD>floating point</TD>
+</TR>
+<TR>
+<TD>Static Data</TD>
+<TD>See static-size data</TD>
+<TD>See static-size data</TD>
+<TD>floating point</TD>
+</TR>
+</TABLE>
+
+*/
+
+
