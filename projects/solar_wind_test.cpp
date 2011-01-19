@@ -87,9 +87,9 @@ ptime loaded_EB_time(not_a_date_time);
 
 // Returns 0.4 * the minimum allowed timestep based on given EB file for the current grid
 #ifndef PARGRID
-Real get_min_timestep(dccrg<SpatialCell>& mpiGrid, string filename)
+Real get_min_timestep(const dccrg<SpatialCell>& mpiGrid, string filename)
 #else
-#error get_min_timestep not supported with PARGRID
+Real get_min_timestep(const ParGrid<SpatialCell>& mpiGrid, string filename)
 #endif
 {
 	// maximum absolute values and maximum absolute values of components in current grid from EB files
@@ -103,7 +103,7 @@ Real get_min_timestep(dccrg<SpatialCell>& mpiGrid, string filename)
 		exit(EXIT_FAILURE);
 	}
 
-	uint64_t number_of_values;
+	uint64_t number_of_values;	// of EB
 	result = fread(&number_of_values, sizeof(uint64_t), 1, infile);
 	if (result != 1) {
 		cerr << "number_of_values read unsuccessfull" << endl;
@@ -138,8 +138,13 @@ Real get_min_timestep(dccrg<SpatialCell>& mpiGrid, string filename)
 			continue;
 		}
 
+		#ifndef PARGRID
 		uint64_t cell = mpiGrid.get_cell(r[0], r[1], r[2]);
 		if (cell == 0) {
+		#else
+		ID::type cell = mpiGrid.get_cell(r[0], r[1], r[2]);
+		if (cell == numeric_limits<ID::type>::max()) {
+		#endif
 			continue;
 		}
 
@@ -178,8 +183,15 @@ Real get_min_timestep(dccrg<SpatialCell>& mpiGrid, string filename)
 	typedef Parameters P;
 	Real min_dx = numeric_limits<Real>::max();
 	Real min_dvx = numeric_limits<Real>::max();
+
+	#ifndef PARGRID
 	vector<uint64_t> cells = mpiGrid.get_cells();
 	for (vector<uint64_t>::const_iterator cell = cells.begin(); cell != cells.end(); cell++) {
+	#else
+	vector<ID::type> cells;
+	mpiGrid.getCells(cells);
+	for (vector<ID::type>::const_iterator cell = cells.begin(); cell != cells.end(); cell++) {
+	#endif
 		creal dx = mpiGrid.get_cell_x_size(*cell);
 		creal dy = mpiGrid.get_cell_y_size(*cell);
 		creal dz = mpiGrid.get_cell_z_size(*cell);
@@ -211,17 +223,17 @@ Also initializes the solar wind.
 #ifndef PARGRID
 Real get_min_timestep(dccrg<SpatialCell>& mpiGrid)
 #else
-#error get_min_timestep not supported with PARGRID
+Real get_min_timestep(ParGrid<SpatialCell>& mpiGrid)
 #endif
 {
 	sw.load(Parameters::solar_wind_file);
 
 	Real min_dt = numeric_limits<Real>::max();
 
-	logger << "Reading EB files." << endl;
+	logger << "Reading EB files..." << endl;
 
 	// loop from 16:00 to 23:59
-	for (int minute = 0; minute <= 1 /*(23 - 16) * 60 + 59*/; minute++) {
+	for (int minute = 0; minute <= (23 - 16) * 60 + 59; minute++) {
 		ptime current_time = first_EB_time + minutes(minute);
 
 		string EB_filename("mstate");
@@ -243,12 +255,18 @@ Real get_min_timestep(dccrg<SpatialCell>& mpiGrid)
 #ifndef PARGRID
 void load_EB(dccrg<SpatialCell>& mpiGrid, string filename)
 #else
-#error get_min_timestep not supported with PARGRID
+void load_EB(ParGrid<SpatialCell>& mpiGrid, string filename)
 #endif
 {
 	// zero out fields before loading
+	#ifndef PARGRID
 	vector<uint64_t> cells = mpiGrid.get_cells();
 	for (vector<uint64_t>::const_iterator cell = cells.begin(); cell != cells.end(); cell++) {
+	#else
+	vector<ID::type> cells;
+	mpiGrid.getCells(cells);
+	for (vector<ID::type>::const_iterator cell = cells.begin(); cell != cells.end(); cell++) {
+	#endif
 		SpatialCell* cell_data = mpiGrid[*cell];
 		cell_data->cpu_cellParams[CellParams::EX] = 0;
 		cell_data->cpu_cellParams[CellParams::EY] = 0;
@@ -269,7 +287,7 @@ void load_EB(dccrg<SpatialCell>& mpiGrid, string filename)
 	// store fields in memory for fast searching, in case given grid is finer than the one used in gumics
 	vector<boost::array<double, 9> > EB;
 
-	uint64_t number_of_values;
+	uint64_t number_of_values;	// of EB
 	result = fread(&number_of_values, sizeof(uint64_t), 1, infile);
 	if (result != 1) {
 		cerr << "number_of_values read unsuccessfull" << endl;
@@ -304,8 +322,13 @@ void load_EB(dccrg<SpatialCell>& mpiGrid, string filename)
 			continue;
 		}
 
+		#ifndef PARGRID
 		uint64_t cell = mpiGrid.get_cell(r[0], r[1], r[2]);
 		if (cell == 0) {
+		#else
+		ID::type cell = mpiGrid.get_cell(r[0], r[1], r[2]);
+		if (cell == numeric_limits<ID::type>::max()) {
+		#endif
 			continue;
 		}
 
@@ -314,7 +337,11 @@ void load_EB(dccrg<SpatialCell>& mpiGrid, string filename)
 	}
 
 	// put gumics fields into given grid
+	#ifndef PARGRID
 	for (vector<uint64_t>::const_iterator cell = cells.begin(); cell != cells.end(); cell++) {
+	#else
+	for (vector<ID::type>::const_iterator cell = cells.begin(); cell != cells.end(); cell++) {
+	#endif
 		const double x = mpiGrid.get_cell_x(*cell);
 		const double y = mpiGrid.get_cell_y(*cell);
 		const double z = mpiGrid.get_cell_z(*cell);
@@ -335,12 +362,14 @@ void load_EB(dccrg<SpatialCell>& mpiGrid, string filename)
 			continue;
 		}
 
-		// if gumics didn't have the fields in this cell, use the closest fields that gumics had
+		// assign the average field value if more than one exists within a cell
 		int number_of_values = 0;
 		double closest = numeric_limits<double>::max();
 		boost::array<double, 9> closest_EB;
 
 		for (vector<boost::array<double, 9> >::const_iterator item = EB.begin(); item != EB.end(); item++) {
+
+			// if gumics didn't have the fields in this cell, use the closest fields that gumics had
 			const double distance_x = fabs(x - (*item)[0]);
 			const double distance_y = fabs(y - (*item)[1]);
 			const double distance_z = fabs(z - (*item)[2]);
@@ -392,15 +421,21 @@ void load_EB(dccrg<SpatialCell>& mpiGrid, string filename)
 #ifndef PARGRID
 void apply_boundaries(dccrg<SpatialCell>& mpiGrid, ptime time)
 #else
-#error get_min_timestep not supported with PARGRID
+void apply_boundaries(ParGrid<SpatialCell>& mpiGrid, ptime time)
 #endif
 {
 	solar_wind::solar_wind_t sw_data = sw.get_solar_wind(time);
 
 	typedef Parameters P;
 
+	#ifndef PARGRID
 	vector<uint64_t> cells = mpiGrid.get_cells();
 	for (vector<uint64_t>::const_iterator cell = cells.begin(); cell != cells.end(); cell++) {
+	#else
+	vector<ID::type> cells;
+	mpiGrid.getCells(cells);
+	for (vector<ID::type>::const_iterator cell = cells.begin(); cell != cells.end(); cell++) {
+	#endif
 		double x = mpiGrid.get_cell_x(*cell);
 		double y = mpiGrid.get_cell_y(*cell);
 		double z = mpiGrid.get_cell_z(*cell);
@@ -471,7 +506,7 @@ void apply_boundaries(dccrg<SpatialCell>& mpiGrid, ptime time)
 			}
 		}
 
-		// "ionosphere"
+		// zero out cells "in ionosphere"
 		if (sqrt(x * x + y * y + z * z) < INNER_BOUNDARY) {
 			for (uint block_zi = 0; block_zi < P::vzblocks_ini; block_zi++) {
 			for (uint block_yi = 0; block_yi < P::vyblocks_ini; block_yi++) {
@@ -493,7 +528,7 @@ void apply_boundaries(dccrg<SpatialCell>& mpiGrid, ptime time)
 #ifndef PARGRID
 void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt)
 #else
-#error get_min_timestep not supported with PARGRID
+void calcSimParameters(ParGrid<SpatialCell>& mpiGrid, creal& t, Real& dt)
 #endif
 {
 	ptime current_time = first_EB_time + seconds(t);
