@@ -6,15 +6,16 @@
 #include <fstream>
 #include <assert.h> 
 #include <sstream>
-#include "vlswriter.h"
+#include "vlsreader.h"
 
 using namespace std;
 using namespace VlsHeader;
+using namespace VlsVariable;
 
 typedef int VtkInt;
 typedef float VtkReal;
 
-bool writeBinary = true;
+bool writeBinary = false;
 bool writerIsLittleEndian; // If true, vls2vtk is run on LittleEndian computer.
 
 bool almostEqual(const float& a,const float& b,const int& maxDiff) {
@@ -242,33 +243,33 @@ bool writeVtkCellTypes(fstream& out,unsigned int N_cells) {
    return true;
 }
 
-bool writeVtkComponentHeader(fstream& fout,const size_t& varID,VlsWriter& vlsWriter) {
+bool writeVtkComponentHeader(fstream& fout,const size_t& varID,VlsReader& vlsReader) {
    if (fout.good() == false) return false;
-   switch (vlsWriter.getStaticVarType(varID)) {
+   switch (vlsReader.getStaticVarType(varID)) {
     case NULLVARIABLE:
       return false;
       break;
     case SCALAR:
-      fout << "SCALARS " << vlsWriter.getStaticVarName(varID) << " float 1" << endl;
+      fout << "SCALARS " << vlsReader.getStaticVarName(varID) << " float 1" << endl;
       fout << "LOOKUP_TABLE default" << endl;
       break;
     case VECTOR2:
-      fout << "VECTORS " << vlsWriter.getStaticVarName(varID) << " float" << endl;
+      fout << "VECTORS " << vlsReader.getStaticVarName(varID) << " float" << endl;
       break;
     case VECTOR3:
-      fout << "VECTORS " << vlsWriter.getStaticVarName(varID) << " float" << endl;
+      fout << "VECTORS " << vlsReader.getStaticVarName(varID) << " float" << endl;
       break;
     case TENSOR22:
-      fout << "TENSORS " << vlsWriter.getStaticVarName(varID) << " float" << endl;
+      fout << "TENSORS " << vlsReader.getStaticVarName(varID) << " float" << endl;
       break;
     case TENSOR23:
-      fout << "TENSORS " << vlsWriter.getStaticVarName(varID) << " float" << endl;
+      fout << "TENSORS " << vlsReader.getStaticVarName(varID) << " float" << endl;
       break;
     case TENSOR32:
-      fout << "TENSORS " << vlsWriter.getStaticVarName(varID) << " float" << endl;
+      fout << "TENSORS " << vlsReader.getStaticVarName(varID) << " float" << endl;
       break;
     case TENSOR33:
-      fout << "TENSORS " << vlsWriter.getStaticVarName(varID) << " float" << endl;
+      fout << "TENSORS " << vlsReader.getStaticVarName(varID) << " float" << endl;
       break;
     default:
       return false;
@@ -277,110 +278,110 @@ bool writeVtkComponentHeader(fstream& fout,const size_t& varID,VlsWriter& vlsWri
    return true;
 }
 
-bool writeVtkStaticVariable(fstream& fout,const size_t& varID,VlsWriter& vlsWriter) {
+bool writeVtkStaticVariable(fstream& fout,const size_t& varID,VlsReader& vlsReader) {
    if (fout.good() == false) return false;
    if (writeBinary == false) {
-      switch (vlsWriter.getStaticVarType(varID)) {
+      switch (vlsReader.getStaticVarType(varID)) {
        case NULLVARIABLE:
 	 break;
        case SCALAR:
-	 fout << vlsWriter.getStaticVar<VtkReal>(varID,0) << endl;
+	 fout << vlsReader.getStaticVar<VtkReal>(varID,0) << endl;
 	 break;
        case VECTOR2:
-	 fout << vlsWriter.getStaticVar<VtkReal>(varID,0) << ' ' << vlsWriter.getStaticVar<VtkReal>(varID,1) << ' ' << "0.0" << endl;
+	 fout << vlsReader.getStaticVar<VtkReal>(varID,0) << ' ' << vlsReader.getStaticVar<VtkReal>(varID,1) << ' ' << "0.0" << endl;
 	 break;
        case VECTOR3:
-	 fout << vlsWriter.getStaticVar<VtkReal>(varID,0) << ' ' << vlsWriter.getStaticVar<VtkReal>(varID,1) << ' ';
-	 fout << vlsWriter.getStaticVar<VtkReal>(varID,2) << endl;
+	 fout << vlsReader.getStaticVar<VtkReal>(varID,0) << ' ' << vlsReader.getStaticVar<VtkReal>(varID,1) << ' ';
+	 fout << vlsReader.getStaticVar<VtkReal>(varID,2) << endl;
 	 break;
        case TENSOR22:
-	 fout << vlsWriter.getStaticVar<VtkReal>(varID,0) << ' ' << vlsWriter.getStaticVar<VtkReal>(varID,1) << ' ' << "0.0" << endl;
-	 fout << vlsWriter.getStaticVar<VtkReal>(varID,2) << ' ' << vlsWriter.getStaticVar<VtkReal>(varID,3) << ' ' << "0.0" << endl;
+	 fout << vlsReader.getStaticVar<VtkReal>(varID,0) << ' ' << vlsReader.getStaticVar<VtkReal>(varID,1) << ' ' << "0.0" << endl;
+	 fout << vlsReader.getStaticVar<VtkReal>(varID,2) << ' ' << vlsReader.getStaticVar<VtkReal>(varID,3) << ' ' << "0.0" << endl;
 	 fout << "0.0" << ' ' << "0.0" << ' ' << "0.0" << endl;
 	 break;
        case TENSOR23:
-	 fout << vlsWriter.getStaticVar<VtkReal>(varID,0) << ' ' << vlsWriter.getStaticVar<VtkReal>(varID,1) << ' ' << "0.0" << endl;
-	 fout << vlsWriter.getStaticVar<VtkReal>(varID,2) << ' ' << vlsWriter.getStaticVar<VtkReal>(varID,3) << ' ' << "0.0" << endl;
-	 fout << vlsWriter.getStaticVar<VtkReal>(varID,4) << ' ' << vlsWriter.getStaticVar<VtkReal>(varID,5) << ' ' << "0.0" << endl;
+	 fout << vlsReader.getStaticVar<VtkReal>(varID,0) << ' ' << vlsReader.getStaticVar<VtkReal>(varID,1) << ' ' << "0.0" << endl;
+	 fout << vlsReader.getStaticVar<VtkReal>(varID,2) << ' ' << vlsReader.getStaticVar<VtkReal>(varID,3) << ' ' << "0.0" << endl;
+	 fout << vlsReader.getStaticVar<VtkReal>(varID,4) << ' ' << vlsReader.getStaticVar<VtkReal>(varID,5) << ' ' << "0.0" << endl;
 	 break;
        case TENSOR32:
-	 fout << vlsWriter.getStaticVar<VtkReal>(varID,0) << ' ' << vlsWriter.getStaticVar<VtkReal>(varID,1) << ' ';
-	 fout << vlsWriter.getStaticVar<VtkReal>(varID,2) << endl;
-	 fout << vlsWriter.getStaticVar<VtkReal>(varID,3) << ' ' << vlsWriter.getStaticVar<VtkReal>(varID,4) << ' ';
-	 fout << vlsWriter.getStaticVar<VtkReal>(varID,5) << endl;
+	 fout << vlsReader.getStaticVar<VtkReal>(varID,0) << ' ' << vlsReader.getStaticVar<VtkReal>(varID,1) << ' ';
+	 fout << vlsReader.getStaticVar<VtkReal>(varID,2) << endl;
+	 fout << vlsReader.getStaticVar<VtkReal>(varID,3) << ' ' << vlsReader.getStaticVar<VtkReal>(varID,4) << ' ';
+	 fout << vlsReader.getStaticVar<VtkReal>(varID,5) << endl;
 	 fout << "0.0" << ' ' << "0.0" << ' ' << "0.0" << endl;
 	 break;
        case TENSOR33:
-	 fout << vlsWriter.getStaticVar<VtkReal>(varID,0) << ' ' << vlsWriter.getStaticVar<VtkReal>(varID,1) << ' ';
-	 fout << vlsWriter.getStaticVar<VtkReal>(varID,2) << endl;
-	 fout << vlsWriter.getStaticVar<VtkReal>(varID,3) << ' ' << vlsWriter.getStaticVar<VtkReal>(varID,4) << ' ';
-	 fout << vlsWriter.getStaticVar<VtkReal>(varID,5) << endl;
-	 fout << vlsWriter.getStaticVar<VtkReal>(varID,6) << ' ' << vlsWriter.getStaticVar<VtkReal>(varID,7) << ' ';
-	 fout << vlsWriter.getStaticVar<VtkReal>(varID,8) << endl;
+	 fout << vlsReader.getStaticVar<VtkReal>(varID,0) << ' ' << vlsReader.getStaticVar<VtkReal>(varID,1) << ' ';
+	 fout << vlsReader.getStaticVar<VtkReal>(varID,2) << endl;
+	 fout << vlsReader.getStaticVar<VtkReal>(varID,3) << ' ' << vlsReader.getStaticVar<VtkReal>(varID,4) << ' ';
+	 fout << vlsReader.getStaticVar<VtkReal>(varID,5) << endl;
+	 fout << vlsReader.getStaticVar<VtkReal>(varID,6) << ' ' << vlsReader.getStaticVar<VtkReal>(varID,7) << ' ';
+	 fout << vlsReader.getStaticVar<VtkReal>(varID,8) << endl;
 	 break;
        default:
 	 break;
       }
    } else {
-      switch (vlsWriter.getStaticVarType(varID)) {
+      switch (vlsReader.getStaticVarType(varID)) {
        case NULLVARIABLE:
 	 break;
        case SCALAR:
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,0));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,0));
 	 break;
        case VECTOR2:
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,0));
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,1));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,0));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,1));
 	 writeStream(fout,(VtkReal)0.0);
 	 break;
        case VECTOR3:
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,0));
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,1));
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,2));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,0));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,1));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,2));
 	 break;
        case TENSOR22:
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,0));
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,1));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,0));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,1));
 	 writeStream(fout,(VtkReal)0.0);
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,2));
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,3));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,2));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,3));
 	 writeStream(fout,(VtkReal)0.0);
 	 writeStream(fout,(VtkReal)0.0);
 	 writeStream(fout,(VtkReal)0.0);
 	 writeStream(fout,(VtkReal)0.0);
 	 break;
        case TENSOR23:
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,0));
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,1));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,0));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,1));
 	 writeStream(fout,(VtkReal)0.0);
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,2));
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,3));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,2));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,3));
 	 writeStream(fout,(VtkReal)0.0);
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,4));
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,5));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,4));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,5));
 	 writeStream(fout,(VtkReal)0.0);
 	 break;
        case TENSOR32:
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,0));
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,1));
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,2));
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,3));
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,4));
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,5));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,0));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,1));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,2));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,3));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,4));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,5));
 	 writeStream(fout,(VtkReal)0.0);
 	 writeStream(fout,(VtkReal)0.0);
 	 writeStream(fout,(VtkReal)0.0);
 	 break;
        case TENSOR33:
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,0));
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,1));
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,2));
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,3));
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,4));
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,5));
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,6));
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,7));
-	 writeStream(fout,vlsWriter.getStaticVar<VtkReal>(varID,8));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,0));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,1));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,2));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,3));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,4));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,5));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,6));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,7));
+	 writeStream(fout,vlsReader.getStaticVar<VtkReal>(varID,8));
 	 break;
       }
    }
@@ -410,7 +411,7 @@ int main(int argn,char* args[]) {
    bool success = true;
 
    for (int arg = 1; arg < argn; arg++) {
-	   VlsWriter vlsWriter;
+	   VlsReader vlsReader;
 	   VtkReal x,y,z,dx,dy,dz;
 	   map<NodeCrd<VtkReal>,VtkInt,NodeComp> nodes;
 	   fstream out;
@@ -424,28 +425,28 @@ int main(int argn,char* args[]) {
 	      success == false;      
 	   }
 	   
-	   if (success == true) if (vlsWriter.openRead(MPI_COMM_WORLD,infile) == false) {
+	   if (success == true) if (vlsReader.open(infile) == false) {
 	      cerr << "ERROR: Could not open file '" << infile << "' for reading!" << endl; 
 	      success = false;
 	   }
 	   
 	   // Read file header:
-	   if (success == true) if (vlsWriter.readHeader(MPI_COMM_WORLD,0) == false) {
+	   if (success == true) if (vlsReader.readHeader() == false) {
 	      cerr << "ERROR when reading header!" << endl;
-	      vlsWriter.close();
+	      vlsReader.close();
 	      success = false;
 	   }
 
 	   // Read coordinate entries and push all unique node coordinates into map nodes:
 	   if (myrank == 0 && success == true) {
-	      while (vlsWriter.readSpatCellCoordEntry() == true) {
+	      while (vlsReader.readSpatCellCoordEntry() == true) {
 		 // Get coordinate entry values:
-		 x = vlsWriter.getCrdX<VtkReal>();
-		 y = vlsWriter.getCrdY<VtkReal>();
-		 z = vlsWriter.getCrdZ<VtkReal>();
-		 dx = vlsWriter.getDx<VtkReal>();
-		 dy = vlsWriter.getDy<VtkReal>();
-		 dz = vlsWriter.getDz<VtkReal>();
+		 x = vlsReader.getCrdX<VtkReal>();
+		 y = vlsReader.getCrdY<VtkReal>();
+		 z = vlsReader.getCrdZ<VtkReal>();
+		 dx = vlsReader.getDx<VtkReal>();
+		 dy = vlsReader.getDy<VtkReal>();
+		 dz = vlsReader.getDz<VtkReal>();
 
 		 // Push nodes into map:
 		 pair<map<NodeCrd<VtkReal>,VtkInt>::iterator,bool> pos;
@@ -460,7 +461,7 @@ int main(int argn,char* args[]) {
 		 ++N_cells;
 	      }
 	   }
-	   vlsWriter.close();
+	   vlsReader.close();
 	   //cerr << "nodes.size() = " << nodes.size() << endl;
 	   
 	   // Give each node a unique ID:
@@ -505,7 +506,7 @@ int main(int argn,char* args[]) {
 	   }
 
 	   // Open one output file per variable:
-	   size_t N_staticVars = vlsWriter.getNumberOfStaticVars();
+	   size_t N_staticVars = vlsReader.getNumberOfStaticVars();
 	   vector<fstream*> varFiles(N_staticVars);
 	   for (size_t i=0; i<N_staticVars; ++i) {
 	      stringstream ss;
@@ -519,33 +520,33 @@ int main(int argn,char* args[]) {
 	      varFiles[i] = new fstream;
 	      varFiles[i]->open(fname.c_str(), fstream::out);
 	      if (varFiles[i]->good() == false) {
-		 cerr << "ERROR: Failed to create outfile for variable '" << vlsWriter.getStaticVarName(i) << "'" << endl;
+		 cerr << "ERROR: Failed to create outfile for variable '" << vlsReader.getStaticVarName(i) << "'" << endl;
 	      }
 	      
-	      //*(varFiles[i]) << "SCALARS " << vlsWriter.getStaticVarName(i) << " float 1" << endl;
+	      //*(varFiles[i]) << "SCALARS " << vlsReader.getStaticVarName(i) << " float 1" << endl;
 	      //*(varFiles[i]) << "LOOKUP_TABLE default" << endl;
-	      writeVtkComponentHeader(*(varFiles[i]),i,vlsWriter);
+	      writeVtkComponentHeader(*(varFiles[i]),i,vlsReader);
 	   }
 
 	   // Write cells into Vtk file:
-	   if (success == true) if (vlsWriter.openRead(MPI_COMM_WORLD,infile) == false) success = false;
-	   if (success == true) if (vlsWriter.readHeader(MPI_COMM_WORLD,0) == false) success = false;
+	   if (success == true) if (vlsReader.open(infile) == false) success = false;
+	   if (success == true) if (vlsReader.readHeader() == false) success = false;
 	   if (myrank == 0 && success == true) {
 	      out << "CELLS " << N_cells << ' ' << N_cells*9 << endl;
 	      
-	      while (vlsWriter.readSpatCellCoordEntry() == true) {
-		 x = vlsWriter.getCrdX<VtkReal>();
-		 y = vlsWriter.getCrdY<VtkReal>();
-		 z = vlsWriter.getCrdZ<VtkReal>();
-		 dx = vlsWriter.getDx<VtkReal>();
-		 dy = vlsWriter.getDy<VtkReal>();
-		 dz = vlsWriter.getDz<VtkReal>();
+	      while (vlsReader.readSpatCellCoordEntry() == true) {
+		 x = vlsReader.getCrdX<VtkReal>();
+		 y = vlsReader.getCrdY<VtkReal>();
+		 z = vlsReader.getCrdZ<VtkReal>();
+		 dx = vlsReader.getDx<VtkReal>();
+		 dy = vlsReader.getDy<VtkReal>();
+		 dz = vlsReader.getDz<VtkReal>();
 
 		 writeVtkCell(out,nodes,x,y,z,dx,dy,dz);
 		 
 		 for (size_t i=0; i<N_staticVars; ++i) {
-		    if (writeVtkStaticVariable(*(varFiles[i]),i,vlsWriter) == false) {
-		       cerr << "vls2vtk: An ERROR has occurred while writing component '" << vlsWriter.getStaticVarName(i) << "'" << endl;
+		    if (writeVtkStaticVariable(*(varFiles[i]),i,vlsReader) == false) {
+		       cerr << "vls2vtk: An ERROR has occurred while writing component '" << vlsReader.getStaticVarName(i) << "'" << endl;
 		       break;
 		    }
 		 }
@@ -554,7 +555,7 @@ int main(int argn,char* args[]) {
 	      out << endl;
 	      for (size_t i=0; i<N_staticVars; ++i) *(varFiles[i]) << endl;
 	   }
-	   vlsWriter.close();
+	   vlsReader.close();
 
 	   // Write cell types into Vtk file:
 	   if (success == true && myrank == 0) {

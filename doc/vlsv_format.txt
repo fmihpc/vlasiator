@@ -35,8 +35,9 @@ behaviour is not required, however.
 <H2>2. Header</H2>
 The header portion consists of [{size}, {tag %ID}, {value}] tuples. 
 Each member of the tuple is an array, with number of elements and
-element byte sizes given in table below.
+element byte sizes given in Table 1.
 <TABLE>
+<CAPTION>Table 1. The structure of header entries.</CAPTION>
 <TR>
 <TH>Array Content</TH>
 <TH>Array Size</TH>
@@ -65,38 +66,56 @@ element byte sizes given in table below.
 
 The header should be read as follows:
 <OL>
-<LI>Read one byte. This is the {size} fields.</LI>
-<LI>If {size} is zero, stop reading header. Otherwise continue to next
+<LI>Read one byte. This is the size fields.</LI>
+<LI>If size is zero, stop reading header. Otherwise continue to next
 step.</LI>
-<LI>Read one byte. This is the {tag %ID} field.
-<LI>Read {size} bytes. This is the data for {value} field.</LI>
+<LI>Read one byte. This is the %ID field.
+<LI>Read size bytes. This is the value field.</LI>
+<LI>Go back to step 1.</LI>
 </OL>
 It is thus possible to read the header of a VLSV file
 without understanding its contents. However, in order
 to read the rest of the file correctly, some values given
-in header have to be parsed correctly.
+in header have to be parsed correctly. The possible header tags are
+given in a Table 2.
 
-Here is a list of {tag %ID}s that are currently in use:
-<UL>
-<LI><STRONG>BYTES_PER_CELL_CRD</STRONG> Byte size of {cell crd} field,
-used when reading cell coordinates and data. {value} is an unsigned integer.</LI>
-<LI><STRONG>BYTES_PER_CELL_GID</STRONG> Byte size of {cell gid} field,
-used when reading cell coordinates and data. {value} is an unsigned integer.</LI>
-<LI><STRONG>BYTES_PER_VARNAME_SIZE</STRONG> Byte size of {name size}
-field, used when reading static-size variable descriptions. {value}
-is an unsigned integer.</LI>
-<LI><STRONG>DIMENSIONS</STRONG> The spatial dimensionality of the data
-in the file. {value} is an integer with allowed values 1, 2, or 3.
-This affects how cell coordinates and data are read.</LI>
-<LI><STRONG>ENDIANNESS_FLOAT</STRONG> Endianness of floating point
-datatypes in the VLSV file. This field has a default value zero
-(little-endian).</LI>
-<LI><STRONG>ENDIANNESS_INT</STRONG> Endianness of integer datatypes in
-the VLSV file. This field has a default value zero (little-endian).</LI>
-<LI><STRONG>VERSION</STRONG> VLSV file format version number. {value}
-is a string (character array). Each character in the string has byte
-size one.</LI>
-</UL>
+<TABLE>
+<CAPTION>Table 2. List of header entries, and the datatypes of their value
+fields.
+</CAPTION>
+<TR>
+<TH>Tag Name</TH>
+<TH>Value Datatype</TH>
+</TR>
+<TR>
+<TD>BYTES_PER_CELL_CRD</TD>
+<TD>unsigned integer</TD>
+</TR>
+<TR>
+<TD>BYTES_PER_CELL_GID</TD>
+<TD>unsigned integer</TD>
+</TR>
+<TR>
+<TD>BYTES_PER_VARNAME_SIZE</TD>
+<TD>unsigned integer</TD>
+</TR>
+<TR>
+<TD>DIMENSIONS</TD>
+<TD>unsigned integer</TD>
+</TR>
+<TR>
+<TD>ENDIANNESS_FLOAT</TD>
+<TD>unsigned integer</TD>
+</TR>
+<TR>
+<TD>ENDIANNESS_INT</TD>
+<TD>unsigned integer</TD>
+</TR>
+<TR>
+<TD>VERSION</TD>
+<TD>character array</TD>
+</TR>
+</TABLE>
 
 \verbatim
 Morale: The {size} and {tag %ID} fields are one byte wide entries.
@@ -117,8 +136,8 @@ different (byte) size for each spatial cell.
 
 The description part consists of [{name size}, {name}, {varType},
 {element size}] tuples. You can think that each member in the tuple is
-an array, with number of elements and element byte size given in table
-below.
+an array, with number of elements and element byte size given in Table
+3.
 
 Note that
 <UL>
@@ -134,7 +153,7 @@ field.
 </UL>
 
 <TABLE>
-<CAPTION>Contents of an entry containing a description of a static-size
+<CAPTION>Table 3. Contents of an entry containing a description of a static-size
 variable stored in a VLSV file.
 </CAPTION>
 <TR>
@@ -171,17 +190,17 @@ variable stored in a VLSV file.
 
 The variable descriptions should be read as follows:
 <OL>
-<LI>Read n bytes, where n is the value of BYTES_PER_VARNAME_SIZE
-header {tag %ID}. This is the {name size} field.</LI>
-<LI>If {name size} has a zero value, stop reading descriptions.
+<LI>Read BYTES_PER_VARNAME_SIZE bytes. This is the name size field.</LI>
+<LI>If name size has a zero value, stop reading descriptions.
 Otherwise continue to next step.</LI>
-<LI>Read {name size} bytes. This is the {name} field, which should be
-treated as a char array.</LI>
-<LI>Read one byte. This is the {varType} field.</LI>
-<LI>Read one byte. This is the {element size} field.</LI>
+<LI>Read name size bytes. This is the name field, which should be
+treated as a character array.</LI>
+<LI>Read one byte. This is the variable type field.</LI>
+<LI>Read one byte. This is the element size field.</LI>
+<LI>Go back to step 1.</LI>
 </OL>
 The variable descriptions are requested from DataReducer, via a call
-to DataReducer::getDescription.
+to DataReducer::getDescription, when a VLSV file is written.
 \verbatim
 Morale 1: Static-size variables are separated from dynamic-size
 variables in order to reduce file size. Each dynamic-size variable
@@ -197,6 +216,57 @@ the distribution function for every cell results in HUGE output files
 1.6 TB files!
 \endverbatim
 
+After the variable descriptions have been read, the total byte size of
+static variable data per cell should be calculated, as the total size
+is needed when reading cell entries. Number of elements
+in a data array per variable type are given in Table 4.
+
+Example: Variable description contained three entries: a SCALAR with
+element size 4, a VECTOR3 with element size 8, and a TENSOR33 with
+element size 4. Total size of static variable data per cell is thus 4
++ 4*8 + 9*4 = 72 bytes.
+
+<TABLE>
+<CAPTION>Table 4. Variable types defined in namespace VlsHeader, and the number
+of elements in the data arrays.</CAPTION>
+<TR>
+<TH>Variable Type</TH>
+<TH>Number of Elements</TH>
+</TR>
+<TR>
+<TD>NULLVARIABLE</TD>
+<TD>0</TD>
+</TR>
+<TR>
+<TD>SCALAR</TD>
+<TD>1</TD>
+</TR>
+<TR>
+<TD>VECTOR2</TD>
+<TD>2</TD>
+</TR>
+<TR>
+<TD>VECTOR3</TD>
+<TD>3</TD>
+</TR>
+<TR>
+<TD>TENSOR22</TD>
+<TD>4</TD>
+</TR>
+<TR>
+<TD>TENSOR23</TD>
+<TD>6</TD>
+</TR>
+<TR>
+<TD>TENSOR32</TD>
+<TD>6</TD>
+</TR>
+<TR>
+<TD>TENSOR33</TD>
+<TD>9</TD>
+</TR>
+</TABLE>
+
 <H2>4. %Cell coordinates and static-size data</H2>
 This part of a VLSV file contains the physical coordinate values of
 each cell, as well as the static-size data. The contents of a cell entry 
@@ -206,16 +276,16 @@ static-size variables.
 A cell entry consists of [{cell %ID}, {cell crd}, {cell size},
 {static data}] tuples. It is easiest to think of each element of the
 tuple as an array. The array sizes, byte sizes of each array element,
-and the element datatypes are given in table below.
+and the element datatypes are given in Table 5.
 
 Note that cell entries are in no particular order. This makes
 parallel writing of VLSV files convenient, as processes do not need to
 care about the order in which they write their local data to the file.
 The data per process can, however, be written one, few, or all cells
-at a time if needed.
+at a time.
 
 <TABLE>
-<CAPTION>Description of the cell coordinate entry in VLSV file.
+<CAPTION>Table 5. Description of the cell coordinate entry in VLSV file.
 Consider an entry to consist of four arrays with numbers of elements,
 and element byte sizes, given here.
 </CAPTION>
@@ -245,12 +315,24 @@ and element byte sizes, given here.
 </TR>
 <TR>
 <TD>Static Data</TD>
-<TD>See static-size data</TD>
-<TD>See static-size data</TD>
+<TD>See Section 3.</TD>
+<TD>See Section 3.</TD>
 <TD>floating point</TD>
 </TR>
 </TABLE>
 
+The cell data entries should be read as follows:
+<OL>
+<LI>Read BYTES_PER_CELL_GID bytes, this gives the spatial cell global %ID..</LI>
+<LI>If each byte in %ID has a value 255, i.e. all bits have unit value, stop reading. Otherwise
+continue to next step.</LI>
+<LI>Read 2*DIMENSIONS*BYTES_PER_CELL_CRD bytes. These are the x_min,
+y_min, z_min, dx, dy, dz values for the cell (in the case of
+three-dimensional data).</LI>
+<LI>Read static-size variable data. See Section 3 how to calculate the
+byte size.</LI>
+<LI>Go back to step 1.</LI>
+</OL>
 */
 
 

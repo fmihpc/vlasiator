@@ -36,7 +36,9 @@ uint cellIndex(cuint& i,cuint& j,cuint& k) {
  * @param dx Size of the cell in x-direction.
  * @param dy Size of the cell in y-direction.
  * @param dz Size of the cell in z-direction.
- * @rvalue If true, the cell was initialized successfully. Otherwise an error has 
+ * @param isRemote If true, the given cell is a remote cell (resides on another process) 
+ * and its initial state need not be calculated.
+ * @return If true, the cell was initialized successfully. Otherwise an error has 
  * occurred and the simulation should be aborted.
  */
 bool buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,

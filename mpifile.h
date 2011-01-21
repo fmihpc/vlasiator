@@ -23,8 +23,8 @@ namespace MPIConv {
    template<> inline MPI_Datatype MPItype<unsigned short int>() {return MPI_UNSIGNED_SHORT;}
 }
 
-/**
- * Note that MPI must have been initialized prior to using this class.
+/** A small class for writing data as byte arrays into a file in parallel.
+ * MPI must have been initialized prior to using this class.
  */
 class MPIFile {
  public:
@@ -33,6 +33,10 @@ class MPIFile {
    
    bool open(MPI_Comm comm,const std::string& fname,MPI_Info file,const int& accessMode,const bool& deleteFile=false);
    bool close();
+   /** Get the MPI status struct related to the previous MPI command.
+    * See MPI specification for more details.
+    * @return MPI status.
+    */
    MPI_Status getStatus() const {return MPIstatus;}
    bool resetPosition();
    
@@ -43,10 +47,10 @@ class MPIFile {
    template<typename T,typename INT> bool write(const INT& count,const T* const array);
    
  private:
-   MPI_File fileptr;     /**< Pointer to file opened with MPI.*/
-   MPI_Info MPIinfo;     /**< Variable for holding MPI file info.*/
-   MPI_Status MPIstatus; /**< Variable for holding MPI status messages.*/
-   void* ptr;            /**< Pointer used to write bytes to MPI files.*/
+   MPI_File fileptr;     /**< Pointer to file opened with MPI. See MPI specification for more details.*/
+   MPI_Info MPIinfo;     /**< Variable for holding MPI file info. See MPI specification for more details.*/
+   MPI_Status MPIstatus; /**< Variable for holding MPI status messages. See MPI specification for more details.*/
+   void* ptr;            /**< A pointer used when writing datatypes to files as byte arrays.*/
 };
 
 // ********************************************************
@@ -85,6 +89,10 @@ template<typename T> inline MPIFile& MPIFile::operator>>(T& value) {
    return *this;
 }
 
+/** Get the number of bytes that were written to file with the last 
+ * write command.
+ * @return The number of bytes successfully written to file.
+ */
 template<typename T> inline T MPIFile::getCount() {
    int count;
    MPI_Get_count(&MPIstatus,MPI_BYTE,&count);

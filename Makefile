@@ -1,9 +1,9 @@
-include Makefile.intel
+include Makefile.arto
 
 default: main vls2vtk
 
 # Compile directory:
-INSTALL=${HOME}/QuESpace/sandroos/cudafvm
+INSTALL=${HOME}/codes/cuda/cudafvm
 
 # Which project is compiled:
 PROJ=harm1D
@@ -40,8 +40,10 @@ DEPS_PARAMETERS = parameters.h parameters.cpp
 DEPS_PROJECT = project.h project.cpp
 DEPS_SILOWRITER = cell_spatial.h silowriter.h silowriter.cpp
 DEPS_TIMER = timer.h timer.cpp
+DEPS_VLSCOMMON = vlscommon.h vlscommon.cpp
+DEPS_VLSREADER = vlscommon.h vlsreader.h vlsreader.cpp
 DEPS_VLSWRITER = cell_spatial.h mpifile.h vlswriter.h vlswriter.cpp
-DEPS_VLS2VTK = cell_spatial.h mpifile.h vlswriter.h vls2vtk.cpp
+DEPS_VLS2VTK = cell_spatial.h mpifile.h vlsreader.h vls2vtk.cpp
 DEPS_WRITEVARS = pargrid.h silowriter.h writevars.h writevars.cpp
 
 DEPS_CELL_SPATIAL += $(DEPS_COMMON)
@@ -62,6 +64,8 @@ DEPS_MPIFILE += ${DEPS_COMMON}
 DEPS_PARAMETERS += $(DEPS_COMMON)
 DEPS_PROJECT += $(DEPS_COMMON)
 DEPS_SILOWRITER += $(DEPS_COMMON)
+DEPS_VLSCOMMON += ${DEPS_COMMON}
+DEPS_VLSREADER += ${DEPS_COMMON}
 DEPS_VLSWRITER += ${DEPS_COMMON}
 DEPS_VLS2VTK += ${DEPS_COMMON}
 DEPS_WRITEVARS += ${DEPS_COMMON}
@@ -70,7 +74,8 @@ HDRS = cpu_acc.h cpu_common.h cpu_trans.h cell_spatial.h\
 	common.h datareducer.h datareductionoperator.h\
 	definitions.h grid.h\
 	logger.h main_dccrg.h main_pargrid.h mpifile.h parameters.h\
-	pargrid.h silowriter.h vlswriter.h writevars.h
+	pargrid.h silowriter.h vlscommon.h vlsreader.h vlswriter.h\
+	writevars.h
 
 CUDA_HDRS = cudafuncs.h cudalaunch.h devicegrid.h
 
@@ -78,7 +83,7 @@ SRC = cell_spatial.cpp cpu_acc.cpp cpu_trans.cpp\
 	datareducer.cpp datareductionoperator.cpp\
 	grid.cpp gridbuilder.cpp\
 	logger.cpp main.cpp mpifile.cpp parameters.cpp silowriter.cpp\
-	vlswriter.cpp vls2vtk.cpp
+	vlscommon.cpp vlsreader.cpp vlswriter.cpp vls2vtk.cpp
 
 CUDA_SRC = cellsync.cpp cuda_acc.cu cuda_common.cu cuda_trans.cu\
 	cudafuncs.cpp gpudevicegrid.cpp
@@ -88,9 +93,9 @@ CUDA_OBJS = cellsync.o cuda_acc.o cuda_trans.o cudafuncs.o gpudevicegrid.o
 OBJS = cell_spatial.o cpu_acc.o cpu_trans.o datareducer.o\
 	datareductionoperator.o grid.o\
 	gridbuilder.o logger.o main.o mpifile.o parameters.o project.o\
-	silowriter.o timer.o vlswriter.o
+	silowriter.o timer.o vlscommon.o vlswriter.o
 
-OBJS_VLS2VTK = datareducer.o datareductionoperator.o mpifile.o vlswriter.o
+OBJS_VLS2VTK = vlscommon.o vlsreader.o
 
 HDRS +=
 SRC +=
@@ -160,6 +165,12 @@ silowriter.o: $(DEPS_SILOWRITER)
 
 timer.o: ${DEPS_TIMER}
 	${CMP} $(CXXFLAGS) $(FLAGS) -c timer.cpp
+
+vlscommon.o: ${DEPS_VLSCOMMON}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c vlscommon.cpp
+
+vlsreader.o: ${DEPS_VLSREADER}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsreader.cpp
 
 vlswriter.o: ${DEPS_VLSWRITER}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlswriter.cpp ${INC_MPI} ${INC_BOOST}

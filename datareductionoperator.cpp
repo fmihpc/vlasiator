@@ -4,7 +4,7 @@
 #include <mpi.h>
 
 #include "datareductionoperator.h"
-#include "vlswriter.h"
+#include "vlscommon.h"
 
 using namespace std;
 
@@ -14,38 +14,38 @@ namespace DRO {
    // ***** DEFINITIONS FOR DATAREDUCTIONOPERATOR BASE CLASS *****
    // ************************************************************
    
-   /** DataReductionOperator base class constructor. The constructor is empty, 
-    * i.e. it does not initialize anything.
-    */
+   /** DataReductionOperator base class constructor. The constructor is empty.*/
    DataReductionOperator::DataReductionOperator() { }
 
-   /** DataReductionOperator base class virtual destructor. The destructor is empty, 
-    * i.e. it does not deallocate anything.
-    */
+   /** DataReductionOperator base class virtual destructor. The destructor is empty.*/
    DataReductionOperator::~DataReductionOperator() { }
 
-   /** Append the reduced data into the given byte array. The number of bytes appended 
-    * must equal the value returned by getOutputSizeBytes.
+   /** Write the reduced data into the given byte array. The number of bytes written
+    * must equal the value returned by DRO::DataReductionOperator::getOutputByteSize.
     * @param byteArray Pointer to the byte array.
     * @return If true, the bytes were appended successfully. The base class function returns false.
-    * @see getOutputSizeBytes
+    * @see DRO::DataReductionOperator::getOutputByteSize
     */
    bool DataReductionOperator::appendReducedData(unsigned char* const byteArray) {
       cerr << "ERROR: DataReductionOperator::appendReducedData called instead of derived class function!" << endl;
       return false;
    }
 
-   /** Get the byte size of one element in the array containing reduced data. 
-    * Typically one wants to return sizeof(float) or sizeof(double).
-    * @param Byte size of array element.
+   /** Get the byte size of one element in the array of reduced data calculated by 
+    * this DRO::DataReductionOperator. For example, if this DRO::DataReductionOperator 
+    * produces a vector of floats, then the size of an entry is sizeof(float). If this 
+    * DRO::DataReductionOperator calculates a scalar value, it is treated as an array 
+    * of size one.
+    * @return The byte size of an entry in reduced data array. The base class function 
+    * returns zero.
     */
    unsigned char DataReductionOperator::getElementByteSize() const {
       cerr << "ERROR: DataReductionOperator::getElementByteSize called instead of derived class function!" << endl;
       return 0;
    }
 
-   /** Get the name of the reduced data. The name is written to the disk as-is and used in 
-    * visualization.
+   /** Get the name of the reduced data variable. The name is written to the disk as-is 
+    * and is used in visualization.
     * @return The name of the data. The base class function returns an empty string.
     */
    std::string DataReductionOperator::getName() const {
@@ -54,35 +54,37 @@ namespace DRO {
    }
 
    /** Get the size of the reduced data. The value returned by this function equals 
-    * getElementByteSize() times the number of returned variables.
+    * DRO::DataReductionOperator::getElementByteSize() times the number of elements
+    * in the reduced data array, which is deduced from the value returned by 
+    * DRO::DataReductionOperator::getVariableType.
     * @return The size of reduced data in bytes.
     */
    unsigned int DataReductionOperator::getOutputByteSize() const {
       unsigned int rvalue = this->getElementByteSize();
       // Multiply element byte size by the number of elements in output array:
       switch (this->getVariableType()) {
-       case VlsHeader::NULLVARIABLE:
+       case VlsVariable::NULLVARIABLE:
 	 rvalue *= 0;
 	 break;
-       case VlsHeader::SCALAR:
+       case VlsVariable::SCALAR:
 	 rvalue *= 1;
 	 break;
-       case VlsHeader::VECTOR2:
+       case VlsVariable::VECTOR2:
 	 rvalue *= 2;
 	 break;
-       case VlsHeader::VECTOR3:
+       case VlsVariable::VECTOR3:
 	 rvalue *= 3;
 	 break;
-       case VlsHeader::TENSOR22:
+       case VlsVariable::TENSOR22:
 	 rvalue *= 4;
 	 break;
-       case VlsHeader::TENSOR23:
+       case VlsVariable::TENSOR23:
 	 rvalue *= 6;
 	 break;
-       case VlsHeader::TENSOR32:
+       case VlsVariable::TENSOR32:
 	 rvalue *= 6;
 	 break;
-       case VlsHeader::TENSOR33:
+       case VlsVariable::TENSOR33:
 	 rvalue *= 9;
 	 break;
        default:
@@ -93,18 +95,39 @@ namespace DRO {
 }
    
    /** Reduce the given data and store the value into internal variables.
+    * @param block A velocity block in the current SpatialCell. The size of the block is 
+    * WID times WID times WID.
+    * @param blockParams %Parameters of the given velocity block, which can be accessed by 
+    * using the values defined in namespace BlockParams. For example, the vx-coordinate of the 
+    * lower left corner of the block is blockParams[%BlockParams::VXCRD].
     * @return If true, the data was reduced successfully. The base class function returns false.
     */
-   bool DataReductionOperator::reduceData(const Real* const avgs,const Real* const blockParams) {
+   bool DataReductionOperator::reduceData(const Real* const block,const Real* const blockParams) {
       cerr << "ERROR: DataReductionOperator::reduceData called instead of derived class function!" << endl;
       return false;
    }
    
+   /** Get the type of variable returned by this DRO::DataReductionOperator. This 
+    * function should return one of the values defined in namespace VlsHeader. 
+    * For example, if the intent is to write out a scalar field, then VlsHeader::SCALAR 
+    * should be returned.
+    * @return The type ID of the reduced data variable written out by this operator.
+    */
    unsigned char DataReductionOperator::getVariableType() const {
       cerr << "ERROR: DataReductionOperator::getVariableType called instead of derived class function!" << endl;
-      return VlsHeader::NULLVARIABLE;
+      return VlsVariable::NULLVARIABLE;
    }
    
+   /** Set the SpatialCell whose data is going to be reduced by subsequent calls to 
+    * DRO::DataReductionOperator::reduceData. This function is provided so that 
+    * variables stored per SpatialCell can be accessed.
+    * 
+    * Spatial cell variables are stored in array SpatialCell::cpu_cellParams. 
+    * The contents of array elements are stored in namespace CellParams. For example, 
+    * cell.cpu_cellParams[%CellParams::EX] contains the electric field.
+    * @param cell The SpatialCell whose data is to be reduced next.
+    * @return If true, the SpatialCell was set correctly.
+    */
    bool DataReductionOperator::setSpatialCell(const SpatialCell& cell) {
       cerr << "ERROR: DataReductionOperator::setSpatialCell called instead of derived class function!" << endl;
       return false;
@@ -139,7 +162,7 @@ namespace DRO {
    
    bool VariableE::reduceData(const Real* const avgs,const Real* const blockParams) {return true;}
    
-   unsigned char VariableE::getVariableType() const {return VlsHeader::VECTOR3;}
+   unsigned char VariableE::getVariableType() const {return VlsVariable::VECTOR3;}
    
    bool VariableE::setSpatialCell(const SpatialCell& cell) {
       Ex = cell.cpu_cellParams[CellParams::EX];
@@ -177,7 +200,7 @@ namespace DRO {
    
    bool VariableB::reduceData(const Real* const avgs,const Real* const blockParams) {return true;}
    
-   unsigned char VariableB::getVariableType() const {return VlsHeader::VECTOR3;}
+   unsigned char VariableB::getVariableType() const {return VlsVariable::VECTOR3;}
    
    bool VariableB::setSpatialCell(const SpatialCell& cell) {
       Bx = cell.cpu_cellParams[CellParams::BX];
@@ -201,7 +224,7 @@ namespace DRO {
    
    bool VariableRho::reduceData(const Real* const avgs,const Real* const blockParams) {return true;}
    
-   unsigned char VariableRho::getVariableType() const {return VlsHeader::SCALAR;}
+   unsigned char VariableRho::getVariableType() const {return VlsVariable::SCALAR;}
    
    bool VariableRho::setSpatialCell(const SpatialCell& cell) {
       rho = cell.cpu_cellParams[CellParams::RHO];
@@ -224,7 +247,7 @@ namespace DRO {
    
    bool MPIrank::reduceData(const Real* const avgs,const Real* const blockParams) {return true;}
    
-   unsigned char MPIrank::getVariableType() const {return VlsHeader::SCALAR;}
+   unsigned char MPIrank::getVariableType() const {return VlsVariable::SCALAR;}
    
    bool MPIrank::setSpatialCell(const SpatialCell& cell) {
       int intRank;
@@ -262,7 +285,7 @@ namespace DRO {
    
    bool VariableRhoV::reduceData(const Real* const avgs,const Real* const blockParams) {return true;}
    
-   unsigned char VariableRhoV::getVariableType() const {return VlsHeader::VECTOR3;}
+   unsigned char VariableRhoV::getVariableType() const {return VlsVariable::VECTOR3;}
    
    bool VariableRhoV::setSpatialCell(const SpatialCell& cell) {
       rhovx = cell.cpu_cellParams[CellParams::RHOVX];

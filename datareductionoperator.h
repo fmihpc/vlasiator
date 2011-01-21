@@ -6,15 +6,15 @@
 
 namespace DRO {
 
-   /** DataReductionOperator defines a base class for reducing simulation data
+   /** DRO::DataReductionOperator defines a base class for reducing simulation data
     * (six-dimensional distribution function) into more compact variables, e.g. 
-    * scalar fields, which can be written into disk and visualized.
+    * scalar fields, which can be written into file(s) and visualized.
     * 
-    * The intention is that each DataReductionOperator stores the reduced data 
-    * into internal variables, whose values are appended into a byte array when 
-    * appendReducedData is called.
+    * The intention is that each DRO::DataReductionOperator stores the reduced data 
+    * into internal variables, whose values are written into a byte array when 
+    * DRO::DataReductionOperator::appendReducedData is called.
     * 
-    * If needed, the user can write his or her own DataReductionOperators, which 
+    * If needed, a user can write his or her own DRO::DataReductionOperators, which 
     * are loaded when the simulation initializes.
     */
    class DataReductionOperator {
