@@ -262,7 +262,7 @@ bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter
    fname << Parameters::tstep << ".vlsv";
    
    // Open a file for writing using MPI I/O:
-   if (vlsWriter.openWrite(MPI_COMM_WORLD,fname.str()) == false) {
+   if (vlsWriter.open(MPI_COMM_WORLD,fname.str()) == false) {
       logger << "Error opening output file on process " << myrank << endl;
       success = false;
    }
@@ -306,6 +306,7 @@ bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter
       }
    }
    vlsWriter.flushBuffer();
+   vlsWriter.writeSpatCellCoordEntryEndMarker(MPI_COMM_WORLD,0);
    MPI_Barrier(MPI_COMM_WORLD);
    
    // Close output file and exit:
@@ -335,7 +336,6 @@ void log_send_receive_info(const dccrg<SpatialCell>& mpiGrid)
 	#endif
 }
 
-
 int main(int argn,char* args[]) {
    bool success = true;
    
@@ -364,7 +364,7 @@ int main(int argn,char* args[]) {
    
    #else           // INITIALIZE USING PARGRID
       ParGrid<SpatialCell> mpiGrid(P::xcells_ini,P::ycells_ini,P::zcells_ini,P::xmin,P::ymin,P::zmin,
-				   P::xmax,P::ymax,P::zmax,Hierarchical,argn,args);
+				   P::xmax,P::ymax,P::zmax,Hypergraph,argn,args);
         {
 	   std::stringstream ss;
 	   ss << "logfile." << mpiGrid.rank() << ".txt";
