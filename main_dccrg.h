@@ -125,7 +125,7 @@ void calculateSpatialDerivatives(dccrg<SpatialCell>& mpiGrid) {
    }
    // Calculate derivatives for boundary cells when transfers have completed:
    Timer::start(Main::spatDerivsMPIRecv);
-   mpiGrid.wait_neighbour_data_update();
+   mpiGrid.wait_neighbour_data_update_receives();
    Timer::stop(Main::spatDerivsMPIRecv);
    
    Main::cells = mpiGrid.get_cells_with_remote_neighbour();
@@ -139,7 +139,7 @@ void calculateSpatialDerivatives(dccrg<SpatialCell>& mpiGrid) {
    }
    
    Timer::start(Main::spatDerivsMPISend);
-   #warning MPI sends cannot be timed with DCCRG, recv contains sends and receives
+   mpiGrid.wait_neighbour_data_update_sends();
    Timer::stop(Main::spatDerivsMPISend);
    Timer::stop(Main::calcSpatDerivs);
 }
@@ -164,7 +164,7 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    }
    // Calculate fluxes for boundary cells when transfers have completed:
    Timer::start(Main::spatFluxesMPIRecv);
-   mpiGrid.wait_neighbour_data_update();
+   mpiGrid.wait_neighbour_data_update_receives();
    Timer::stop(Main::spatFluxesMPIRecv);
    
    Main::cells = mpiGrid.get_cells_with_remote_neighbour();
@@ -178,7 +178,7 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    }
    
    Timer::start(Main::spatFluxesMPISend);
-   #warning MPI sends cannot be timed with DCCRG, recv contains sends and receives
+   mpiGrid.wait_neighbour_data_update_sends();
    Timer::stop(Main::spatFluxesMPISend);
    Timer::stop(Main::calcSpatFluxes);
 }
@@ -203,7 +203,7 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid) {
    }
    // Propagate boundary cells when transfers have completed:
    Timer::start(Main::spatPropMPIRecv);
-   mpiGrid.wait_neighbour_data_update();
+   mpiGrid.wait_neighbour_data_update_receives();
    Timer::stop(Main::spatPropMPIRecv);
    
    Main::cells = mpiGrid.get_cells_with_remote_neighbour();
@@ -217,7 +217,7 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid) {
    }
    
    Timer::start(Main::spatPropMPISend);
-   #warning MPI sends cannot be timed with DCCRG, recv contains sends and receives
+   mpiGrid.wait_neighbour_data_update_sends();
    Timer::stop(Main::spatPropMPISend);
    Timer::stop(Main::calcSpatProp);
 }
