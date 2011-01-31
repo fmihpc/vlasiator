@@ -25,6 +25,19 @@ class Grid {
    Real* getD2x() const {return d2x;}
    Real* getD2y() const {return d2y;}
    Real* getD2z() const {return d2z;}
+
+   uint* getNbrsVel(cuint& INDEX) const;
+   Real* getBlockParams(cuint& INDEX) const;
+   Real* getAvgs(cuint& INDEX) const;
+   Real* getFx(cuint& INDEX) const;
+   Real* getFy(cuint& INDEX) const;
+   Real* getFz(cuint& INDEX) const;
+   Real* getD1x(cuint& INDEX) const;
+   Real* getD1y(cuint& INDEX) const;
+   Real* getD1z(cuint& INDEX) const;
+   Real* getD2x(cuint& INDEX) const;
+   Real* getD2y(cuint& INDEX) const;
+   Real* getD2z(cuint& INDEX) const;
    
    void printReferences();
    
