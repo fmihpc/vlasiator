@@ -12,7 +12,7 @@
 #endif
 
 #include "definitions.h"
-#include "logger.h"
+#include "mpilogger.h"
 #include "parameters.h"
 #include "grid.h"
 #include "silowriter.h"
@@ -263,20 +263,20 @@ bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter
    
    // Open a file for writing using MPI I/O:
    if (vlsWriter.open(MPI_COMM_WORLD,fname.str()) == false) {
-      logger << "Error opening output file on process " << myrank << endl;
+      mpilogger << "Error opening output file on process " << myrank << endl << write;
       success = false;
    }
    
    // Master process (rank=0) within the given communicator writes the file header:
    if (vlsWriter.writeHeader(MPI_COMM_WORLD,0) == false) {
-      logger << "Error writing header on process " << myrank << endl;
+      mpilogger << "Error writing header on process " << myrank << endl << write;
       success = false;
    }
    
    // Master process writes description of static-size variables. Here "static-size" 
    // means that the size of variable data is the same for all spatial cells.
    if (vlsWriter.writeStaticVariableDesc(MPI_COMM_WORLD,0,&dataReducer) == false) {
-      logger << "Error writing variable description on process " << myrank << endl;
+      mpilogger << "Error writing variable description on process " << myrank << endl << write;
       success = false;
    }
    
@@ -297,11 +297,11 @@ bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter
       cellptr = mpiGrid[cellGID];
       if (cellptr != NULL) {
 	 if (vlsWriter.writeSpatCellCoordEntryBuffered(cellGID,*cellptr,&dataReducer) == false) {
-	    logger << "Error writing spatial cell with global ID " << cellGID << " on process " << myrank << endl;
+	    mpilogger << "Error writing spatial cell with global ID " << cellGID << " on process " << myrank << endl << write;
 	    success = false;
 	 }
       } else {
-	 logger << "ERROR: Received NULL pointer, i = " << i << " global ID = " << Main::cells[i] << endl;
+	 mpilogger << "ERROR: Received NULL pointer, i = " << i << " global ID = " << Main::cells[i] << endl << write;
 	 success = false;
       }
    }
@@ -311,7 +311,7 @@ bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter
    
    // Close output file and exit:
    if (vlsWriter.close() == false) {
-      logger << "Error closing file on process " << myrank << endl;
+      mpilogger << "Error closing file on process " << myrank << endl << write;
       success = false;
    }
    return success;
@@ -319,21 +319,21 @@ bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter
 
 
 #ifdef PARGRID
-void log_send_receive_info(const ParGrid<SpatialCell>& mpiGrid)
+void log_send_receive_info(const ParGrid<SpatialCell>& mpiGrid) {
 #else
-void log_send_receive_info(const dccrg<SpatialCell>& mpiGrid)
+void log_send_receive_info(const dccrg<SpatialCell>& mpiGrid) {
 #endif
-{
-	logger << "Number of sends / receives:" << std::endl;
-	#ifndef PARGRID
-	logger << "\tto other MPI processes   = " << mpiGrid.get_number_of_update_send_cells() << std::endl;
-	logger << "\tfrom other MPI processes = " << mpiGrid.get_number_of_update_receive_cells() << std::endl;
-	logger << "\ttotal = " << mpiGrid.get_number_of_update_send_cells() + mpiGrid.get_number_of_update_receive_cells() << std::endl;
-	#else
-	logger << "\tto other MPI processes   = " << mpiGrid.getNumberOfSends() << std::endl;
-	logger << "\tfrom other MPI processes = " << mpiGrid.getNumberOfReceives() << std::endl;
-	logger << "\ttotal = " << mpiGrid.getNumberOfSends() + mpiGrid.getNumberOfReceives() << std::endl;
-	#endif
+   mpilogger << "Number of sends / receives:" << endl;
+   #ifndef PARGRID
+   mpilogger << "\tto other MPI processes   = " << mpiGrid.get_number_of_update_send_cells() << endl;
+   mpilogger << "\tfrom other MPI processes = " << mpiGrid.get_number_of_update_receive_cells() << endl;
+   mpilogger << "\ttotal = " << mpiGrid.get_number_of_update_send_cells() + mpiGrid.get_number_of_update_receive_cells() << endl;
+   #else
+   mpilogger << "\tto other MPI processes   = " << mpiGrid.getNumberOfSends() << endl;
+   mpilogger << "\tfrom other MPI processes = " << mpiGrid.getNumberOfReceives() << endl;
+   mpilogger << "\ttotal = " << mpiGrid.getNumberOfSends() + mpiGrid.getNumberOfReceives() << endl;
+   #endif
+   mpilogger << write;
 }
 
 int main(int argn,char* args[]) {
@@ -341,43 +341,54 @@ int main(int argn,char* args[]) {
    
    typedef Parameters P;
    Parameters parameters(argn,args);
-
-   #ifndef PARGRID // INITIALIZE USING DCCRG
+   
+   // Init MPI:
+   #ifndef PARGRID
       boost::mpi::environment env(argn,args);
       boost::mpi::communicator comm;
-         {
-	    std::stringstream ss;
-	    ss << "logfile." << comm.rank() << ".txt";
-	    logger.setOutputFile(ss.str());
-	 }
-      logger << "(MAIN): Starting up." << std::endl;
+   #else
+      if (MPI_Init(&argn,&args) != MPI_SUCCESS) {
+	 cerr << "(MAIN): MPI init failed!" << endl;
+	 exit(1);
+      }
+   #endif
+
+   // Init parallel logger:
+   //MPILogger mpilogger;
+   if (mpilogger.open(MPI_COMM_WORLD,"logfile.txt") == false) {
+      cerr << "ERROR: MPILogger failed to open output file!" << endl;
+      exit(1);
+   }
+   const int MASTER_RANK = 0;
+   int myrank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+   mpilogger << "Reporting for duty." << endl << write;
    
+   #ifndef PARGRID // INITIALIZE USING DCCRG
       // Create parallel MPI grid and init Zoltan:
       float zoltanVersion;
       if (Zoltan_Initialize(argn,args,&zoltanVersion) != ZOLTAN_OK) {
-	 logger << "\t ERROR: Zoltan initialization failed, aborting." << std::endl;
+	 mpilogger << "\t ERROR: Zoltan initialization failed, aborting." << std::endl << write;
 	 success = false;
       } else {
-	 logger << "\t Zoltan initialized successfully" << std::endl;
+	 mpilogger << "\t Zoltan initialized successfully" << std::endl << write;
       }
       dccrg<SpatialCell> mpiGrid(comm,"GRAPH",P::xmin,P::ymin,P::zmin,P::dx_ini,P::dy_ini,P::dz_ini,P::xcells_ini,P::ycells_ini,P::zcells_ini,0,0);
    
    #else           // INITIALIZE USING PARGRID
       ParGrid<SpatialCell> mpiGrid(P::xcells_ini,P::ycells_ini,P::zcells_ini,P::xmin,P::ymin,P::zmin,
 				   P::xmax,P::ymax,P::zmax,Hypergraph,argn,args);
-        {
-	   std::stringstream ss;
-	   ss << "logfile." << mpiGrid.rank() << ".txt";
-	   logger.setOutputFile(ss.str());
-	}
-      logger << "(MAIN): Starting up." << std::endl;
-      mpiGrid.printTransfers();
    #endif
+
+   // Open logfile for parallel writing:
+   if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting up." << endl << write; 
    
    // If initialization was not successful, abort.
    if (success == false) {
-      std::cerr << "An error has occurred, aborting. See logfile for details." << std::endl;
-      logger << "Aborting" << std::endl;
+      if (myrank == MASTER_RANK) {
+	 std::cerr << "An error has occurred, aborting. See logfile for details." << std::endl;
+	 mpilogger << "Aborting" << std::endl << write;
+      }
       return 1;
    }
    // Do initial load balancing:
@@ -412,8 +423,8 @@ int main(int argn,char* args[]) {
    log_send_receive_info(mpiGrid);
 
    #ifdef PARGRID
-   logger << "(MAIN): Total no. reserved velocity blocks in Grid = ";
-   logger << grid.getTotalNumberOfBlocks() << std::endl;
+   mpilogger << "(MAIN): Total no. reserved velocity blocks in Grid = ";
+   mpilogger << grid.getTotalNumberOfBlocks() << std::endl << write;
    #endif
    
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
@@ -428,9 +439,11 @@ int main(int argn,char* args[]) {
 
    // Write initial state:
    if (P::save_spatial_grid) {
-      logger << "(MAIN): Saving initial state of variables to disk." << endl;
+      if (myrank == MASTER_RANK) {
+	 mpilogger << "(MAIN): Saving initial state of variables to disk." << endl << write;
+      }
       if (writeSpatialCellData(mpiGrid,vlsWriter,reducer) == false) {
-	 logger << "(MAIN): ERROR occurred while writing data to file!" << endl;
+	 mpilogger << "(MAIN): ERROR occurred while writing data to file!" << endl << write;
       }
    }
 
@@ -445,7 +458,8 @@ int main(int argn,char* args[]) {
    #endif
    
    // Main simulation loop:
-   logger << "(MAIN): Starting main simulation loop." << std::endl;
+   if (myrank == MASTER_RANK) 
+     mpilogger << "(MAIN): Starting main simulation loop." << std::endl;
    time_t before = std::time(NULL);
    for (uint tstep=0; tstep < P::tsteps; ++tstep) {
       // Recalculate (maybe) spatial cell parameters
@@ -469,16 +483,20 @@ int main(int argn,char* args[]) {
       // Check if the full simulation state should be written to disk
       if (P::tstep % P::saveRestartInterval == 0) {
          // TODO: implement full state saving
-         //logger << "(MAIN): Saving full state to disk at tstep = " << P::tstep << ", time = " << P::t << std::endl;
+	 if (myrank == MASTER_RANK) {
+	    mpilogger << "(MAIN): Writing restart files to disk at tstep = " << P::tstep << ", time = " << P::t << endl;
+	    mpilogger << "\t NOT IMPLEMENTED YET" << endl << write;
+	 }
       }
 
       // Check if variables and derived quantities should be written to disk
       if (P::tstep % P::diagnInterval == 0) {
-         logger << "(MAIN): Saving variables to disk at tstep = " << P::tstep << ", time = " << P::t << std::endl;
-
+	 if (myrank == MASTER_RANK) {
+	    mpilogger << "(MAIN): Saving variables to disk at tstep = " << P::tstep << ", time = " << P::t << endl << write;
+	 }
 	 if (P::save_spatial_grid) {
 	    if (writeSpatialCellData(mpiGrid,vlsWriter,reducer) == false) {
-	       logger << "(MAIN): ERROR occurred while writing data to file!" << endl;
+	       mpilogger << "(MAIN): ERROR occurred while writing data to file!" << endl << write;
 	    }
 	 }
 	 
@@ -495,15 +513,18 @@ int main(int argn,char* args[]) {
       #endif
    }
 
-   logger << "(MAIN): All timesteps calculated." << std::endl;
-   time_t after = std::time(NULL);
-   logger << "\t (TIME) total run time " << after - before << " s, total simulated time " << P::t << " s" << std::endl;
-   logger << "\t (TIME) seconds per timestep " << double(after - before) / P::tsteps << ", seconds per simulated second " << double(after - before) / P::t << std::endl;
-
+   if (myrank == MASTER_RANK) {
+      mpilogger << "(MAIN): All timesteps calculated." << endl;
+      time_t after = std::time(NULL);
+      mpilogger << "\t (TIME) total run time " << after - before << " s, total simulated time " << P::t << " s" << endl;
+      mpilogger << "\t (TIME) seconds per timestep " << double(after - before) / P::tsteps << ", seconds per simulated second " << double(after - before) / P::t << endl;
+      mpilogger << write;
+   }
+   
    // Write final state:
    if (P::save_spatial_grid) {
       if (writeSpatialCellData(mpiGrid,vlsWriter,reducer) == false) {
-	 logger << "(MAIN): ERROR occurred while writing data to file!" << endl;
+	 mpilogger << "(MAIN): ERROR occurred while writing data to file!" << endl << write;
       }
    }
 
@@ -515,7 +536,8 @@ int main(int argn,char* args[]) {
 
    // Write the timer values (if timers have been defined):
    writeTimers();
-   logger << "(MAIN): Exiting." << std::endl;
+   if (myrank == MASTER_RANK) mpilogger << "(MAIN): Exiting." << endl << write;
+   mpilogger.close();
    return 0;
 }
 

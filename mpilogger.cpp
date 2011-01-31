@@ -52,9 +52,9 @@ bool MPILogger::flush() {
    // and the user-given message. Attempt to write it to file.
    stringstream tmp;
    tmp << "PROC #" << mpiRank << ' ';
-   tmp << strTime << ' ' << std::endl;
+   tmp << strTime << ' ' << endl;
    strTime = outStream.str();
-   tmp << strTime;
+   tmp << strTime << endl;
    
    mpiFile << tmp.str();
 

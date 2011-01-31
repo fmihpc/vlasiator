@@ -14,7 +14,7 @@
 #define DCCRG_USER_MPI_DATA_TYPE
 #include <dccrg.hpp>
 
-#include "logger.h"
+#include "mpilogger.h"
 #include "definitions.h"
 #include "parameters.h"
 #include "cell_spatial.h"
@@ -38,7 +38,7 @@ namespace Main {
    cuint spatPropMPISend   = Timer::create("MPI Send : spat. propag              : ");
 }
 
-Logger logger;
+MPILogger mpilogger;
 
 extern bool cpu_acceleration(SpatialCell& cell);
 extern bool cpu_translation1(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
@@ -118,7 +118,7 @@ void calculateSpatialDerivatives(dccrg<SpatialCell>& mpiGrid) {
    for (size_t c=0; c<Main::cells.size(); ++c) {
       Main::cellPtr = mpiGrid[Main::cells[c]];
       if (findNeighbours(Main::nbrPtrs,mpiGrid,Main::cells[c]) == false) {
-	 std::cerr << "Failed to find neighbours." << std::endl; 
+	 mpilogger << "Failed to find neighbours." << std::endl << write; 
 	 continue;
       }
       if (Main::cellPtr != NULL) cpu_translation1(*Main::cellPtr,Main::nbrPtrs);
@@ -132,8 +132,8 @@ void calculateSpatialDerivatives(dccrg<SpatialCell>& mpiGrid) {
    for (size_t c=0; c<Main::cells.size(); ++c) {
       Main::cellPtr = mpiGrid[Main::cells[c]];
       if (findNeighbours(Main::nbrPtrs,mpiGrid,Main::cells[c]) == false) {
-	   std::cerr << "Failed to find neighbours." << std::endl; 
-	   continue;
+	 mpilogger << "Failed to find neighbours." << std::endl << write; 
+	 continue;
       }
       if (Main::cellPtr != NULL) cpu_translation1(*Main::cellPtr,Main::nbrPtrs);
    }
@@ -157,7 +157,7 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    for (size_t c=0; c<Main::cells.size(); ++c) {
       Main::cellPtr = mpiGrid[Main::cells[c]];
       if (findNeighbours(Main::nbrPtrs,mpiGrid,Main::cells[c]) == false) {
-	 std::cerr << "Failed to find neighbours." << std::endl; 
+	 mpilogger << "Failed to find neighbours." << std::endl << write; 
 	 continue;
       }
       if (Main::cellPtr != NULL) cpu_translation2(*Main::cellPtr,Main::nbrPtrs);
@@ -171,7 +171,7 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    for (size_t c=0; c<Main::cells.size(); ++c) {
       Main::cellPtr = mpiGrid[Main::cells[c]];
       if (findNeighbours(Main::nbrPtrs,mpiGrid,Main::cells[c]) == false) {
-	 std::cerr << "Failed to find neighbours." << std::endl; 
+	 mpilogger << "Failed to find neighbours." << std::endl << write; 
 	 continue;
       }
       if (Main::cellPtr != NULL) cpu_translation2(*Main::cellPtr,Main::nbrPtrs);
@@ -196,7 +196,7 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid) {
    for (size_t c=0; c<Main::cells.size(); ++c) {
       Main::cellPtr = mpiGrid[Main::cells[c]];
       if (findNeighbours(Main::nbrPtrs,mpiGrid,Main::cells[c]) == false) {
-	 std::cerr << "Failed to find neighbours." << std::endl; 
+	 mpilogger << "Failed to find neighbours." << std::endl << write; 
 	 continue;
       }
       if (Main::cellPtr != NULL) cpu_translation3(*Main::cellPtr,Main::nbrPtrs);
@@ -210,7 +210,7 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid) {
    for (size_t c=0; c<Main::cells.size(); ++c) {
       Main::cellPtr = mpiGrid[Main::cells[c]];
       if (findNeighbours(Main::nbrPtrs,mpiGrid,Main::cells[c]) == false) {
-	 std::cerr << "Failed to find neighbours." << std::endl; 
+	 mpilogger << "Failed to find neighbours." << std::endl << write;
 	 continue;
       }
       if (Main::cellPtr != NULL) cpu_translation3(*Main::cellPtr,Main::nbrPtrs);

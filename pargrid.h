@@ -14,8 +14,8 @@
 #include "definitions.h"
 #include "parameters.h"
 
-#include "logger.h"
-extern Logger logger;
+#include "mpilogger.h"
+extern MPILogger mpilogger;
 
 namespace ID {
    typedef unsigned int type;
@@ -62,7 +62,7 @@ template<class C> class ParGrid {
  public: 
    
    ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,creal& xmin,creal& ymin,creal& zmin,
-	   creal& xmax,creal& ymax,creal& zmax,const LBM& method,int& argn,char* args[]);
+	   creal& xmax,creal& ymax,creal& zmax,const LBM& method,int argn,char* args[]);
    ~ParGrid();
 
    // Some functions which have the same name as in dccrg:
@@ -219,7 +219,7 @@ template<class C> LBM ParGrid<C>::balanceMethod;
 // ************** BEGIN MEMBER FUNCTION DEFITINIONS **************
 // ***************************************************************
 template<class C> ParGrid<C>::ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,creal& xmin,creal& ymin,creal& zmin,
-				      creal& xmax,creal& ymax,creal& zmax,const LBM& method,int& argn,char* args[]) {
+				      creal& xmax,creal& ymax,creal& zmax,const LBM& method,int argn,char* args[]) {
    initialized = true;
    MPItypeFreed = true;
    unrefSize_x = xsize;
@@ -245,7 +245,7 @@ template<class C> ParGrid<C>::ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,cre
    weightEdge = 10.0;
    N_hierarchicalLevels = 2;
    N_processesPerPart = 12;
-   
+   /*
    // Attempt to init MPI:
    int rvalue = MPI_Init(&argn,&args);
    if (rvalue != MPI_SUCCESS) {
@@ -253,13 +253,14 @@ template<class C> ParGrid<C>::ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,cre
       initialized = false;
    }
    if (initialized == false) return;
+   */
    // Get the rank of this process, and the total number of MPI processes:
    MPI_Comm_size(MPI_COMM_WORLD,&N_processes);
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
    
    // Attempt to init Zoltan:
    float zoltanVersion;
-   rvalue = Zoltan_Initialize(argn,args,&zoltanVersion);
+   int rvalue = Zoltan_Initialize(argn,args,&zoltanVersion);
    if (rvalue != ZOLTAN_OK) {
       std::cerr << "ParGrid: Zoltan init failed!" << std::endl;
       initialized = false;
@@ -379,7 +380,6 @@ void ParGrid<C>::buildExchangeLists() {
    bool hasRemotes;
    typename std::map<ID::type,ParCell<C> >::iterator it = localCells.begin();
    while (it != localCells.end()) {
-      logger << "Local cell #" << it->first << " has the following remote neighbours:" << std::endl;
       hasRemotes = false;
       it->second.N_remNbrs = 0;
       // Go through the cell's neighbour list
@@ -900,7 +900,7 @@ template<class C> void ParGrid<C>::print() const {
 }
 
 template<class C> void ParGrid<C>::printTransfers() const {
-   logger << "(PARGRID): Sends and receives per MPI rank:" << std::endl;
+   mpilogger << "(PARGRID): Sends and receives per MPI rank:" << std::endl;
    for (int i=0; i<N_processes; ++i) {
       if (i == myrank) continue;
       uint N_sends = 0;
@@ -912,7 +912,7 @@ template<class C> void ParGrid<C>::printTransfers() const {
 	 if (it->second == i) ++N_recvs;
       }
       if (N_sends == 0 && N_recvs == 0) continue;
-      logger << "\tProc " << "\t#" << i << "\tSends: " << N_sends << "\tReceives: " << N_recvs << std::endl;
+      mpilogger << "\tProc " << "\t#" << i << "\tSends: " << N_sends << "\tReceives: " << N_recvs << std::endl;
       /*
       if (N_sends != N_recvs) {
 	 logger << "\t\tSending: ";
@@ -928,7 +928,7 @@ template<class C> void ParGrid<C>::printTransfers() const {
       }
       */
    }
-   logger << "\t Local Cells = " << localCells.size() << "\t Remote Cells = " << remoteCells.size() << std::endl;
+   mpilogger << "\t Local Cells = " << localCells.size() << "\t Remote Cells = " << remoteCells.size() << std::endl << write;
 }
 
 template<class C> int ParGrid<C>::rank() const {return myrank;}

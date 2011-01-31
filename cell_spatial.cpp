@@ -3,7 +3,7 @@
 #include <cmath>
 #include <limits>
 
-#include "logger.h"
+#include "mpilogger.h"
 #include "common.h"
 #include "cell_spatial.h"
 #include "parameters.h"
@@ -11,7 +11,7 @@
 using namespace std;
 
 extern Grid grid;
-extern Logger logger;
+extern MPILogger mpilogger;
 
 SpatialCell::SpatialCell() {
 
@@ -57,7 +57,7 @@ SpatialCell::SpatialCell(const SpatialCell& s) {
    // and set pointers:
    if (cpuIndex == numeric_limits<uint>::max()) return;
    if (grid.addReference(cpuIndex) == false) {
-      logger << "SpatialCell: reference increase failed, aborting." << endl << flush;
+      mpilogger << "SpatialCell: reference increase failed, aborting." << endl << write;
       exit(1);
    }
    cpu_nbrsVel     = s.cpu_nbrsVel;
@@ -81,7 +81,7 @@ SpatialCell& SpatialCell::operator=(const SpatialCell& s) {
    // Clear previous memory:
    if (cpuIndex != numeric_limits<uint>::max()) {
       if (grid.removeReference(cpuIndex) == false) {
-	 cerr << "SpatialCell operator=: Failed to remove reference." << endl;
+	 mpilogger << "SpatialCell operator=: Failed to remove reference." << endl << write;
       }
    }
    // Copy variables related to the spatial cell:
@@ -94,8 +94,8 @@ SpatialCell& SpatialCell::operator=(const SpatialCell& s) {
    if (cpuIndex == numeric_limits<uint>::max()) return *this;
    
    if (grid.addReference(cpuIndex) == false) {
-      logger << "SpatialCell: reference increase failed, aborting." << endl << flush;
-      logger << "\t operator= got cpuIndex " << s.cpuIndex << " from copied SpatialCell." << endl << flush;
+      mpilogger << "SpatialCell: reference increase failed, aborting." << endl;
+      mpilogger << "\t operator= got cpuIndex " << s.cpuIndex << " from copied SpatialCell." << endl << write;
       exit(1);
    }
    cpu_nbrsVel     = s.cpu_nbrsVel;
@@ -142,7 +142,7 @@ bool SpatialCell::allocateMemory(const uint& BLOCKS) {
 bool SpatialCell::freeMemory() {
    if (cpuIndex != numeric_limits<uint>::max()) {
       if (grid.removeReference(cpuIndex) == false) {
-	 logger << "SpatialCell ERROR: Reference removal failed" << endl << flush;
+	 mpilogger << "SpatialCell ERROR: Reference removal failed" << endl << write;
       }
       cpuIndex = numeric_limits<uint>::max();
    }
@@ -152,7 +152,7 @@ bool SpatialCell::freeMemory() {
 }
 
 void SpatialCell::getMemInfo() {
-   logger << "cpuIndex = " << cpuIndex << endl << flush;
+   mpilogger << "cpuIndex = " << cpuIndex << endl << write;
 }
 
 bool SpatialCell::clone(const SpatialCell& s) {
@@ -249,8 +249,8 @@ void SpatialCell::getMPIdatatype(cuint identifier,MPI_Datatype& dataType) {
       displacements[0] = 0;                   // Base address is cpu_avgs
       if (MPI_Type_create_struct(1,blockLengths,displacements,dataTypes,&dataType) != MPI_SUCCESS) {
 	 #ifndef NDEBUG
-	 cerr << "SpatialCell::getMPIdatatype ERROR failed to create MPI_Datatype!" << endl;
-	 #endif
+	    mpilogger << "SpatialCell::getMPIdatatype ERROR failed to create MPI_Datatype!" << endl << write;
+         #endif
       }
       break;
     case 1: // Transfer 1st derivatives:
@@ -261,7 +261,7 @@ void SpatialCell::getMPIdatatype(cuint identifier,MPI_Datatype& dataType) {
       displacements[2] = 2*MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(Real); // d1z
       if (MPI_Type_create_struct(3,blockLengths,displacements,dataTypes,&dataType) != MPI_SUCCESS) {
          #ifndef NDEBUG
-	    cerr << "SpatialCell::getMPIdatatype ERROR failed to create MPI_Datatype!" << endl;
+	    mpilogger << "SpatialCell::getMPIdatatype ERROR failed to create MPI_Datatype!" << endl << write;
          #endif
       }      
       break;
@@ -273,7 +273,7 @@ void SpatialCell::getMPIdatatype(cuint identifier,MPI_Datatype& dataType) {
       displacements[2] = 2*MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(Real);
       if (MPI_Type_create_struct(3,blockLengths,displacements,dataTypes,&dataType) != MPI_SUCCESS) {
 	 #ifndef NDEBUG
-	 cerr << "SpatialCell::getMPIdatatype ERROR failed to create MPI_Datatype!" << endl;
+	    mpilogger << "SpatialCell::getMPIdatatype ERROR failed to create MPI_Datatype!" << endl << write;
 	 #endif
       }
       break;

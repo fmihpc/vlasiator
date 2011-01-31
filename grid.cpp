@@ -8,12 +8,12 @@
 
 #include "common.h"
 #include "grid.h"
-#include "logger.h"
+#include "mpilogger.h"
 #include "parameters.h"
 
 using namespace std;
 
-extern Logger logger;
+extern MPILogger mpilogger;
 
 static uint nextBlock;
 static map<uint,int> referenceCount;
@@ -99,18 +99,18 @@ Grid::~Grid() {
    map<uint,int>::iterator it = referenceCount.begin();
    while (it != referenceCount.end()) {
       if (it->second > 0) 
-	logger << "Grid: Cell #" << it->first << " has " << it->second << " references remaining!" << endl << flush;
+	mpilogger << "Grid: Cell #" << it->first << " has " << it->second << " references remaining!" << endl << write;
       ++it;
    }
 }
 
 bool Grid::addReference(cuint& INDEX) {
    #ifdef DEBUG
-      logger << "Grid::addReference called for index " << INDEX;
+      mpilogger << "Grid::addReference called for index " << INDEX;
       if (referenceCount.find(INDEX) != referenceCount.end()) {
-	 logger << ", now has " << referenceCount[INDEX]+1 << " refs" << endl << flush;
+	 mpilogger << ", now has " << referenceCount[INDEX]+1 << " refs" << endl << write;
       } else {
-	 logger << ", now has 1 refs" << endl << flush;
+	 mpilogger << ", now has 1 refs" << endl << write;
       }
    #endif
    if (referenceCount.find(INDEX) == referenceCount.end()) return false;
@@ -120,11 +120,11 @@ bool Grid::addReference(cuint& INDEX) {
 
 bool Grid::removeReference(cuint& INDEX) {
    #ifdef DEBUG
-      logger << "Grid: removeReference called for index " << INDEX;
+      mpilogger << "Grid: removeReference called for index " << INDEX;
       if (referenceCount.find(INDEX) != referenceCount.end()) {
-	 logger << ", " << referenceCount[INDEX]-1 << " refs remaining" << endl << flush;
+	 mpilogger << ", " << referenceCount[INDEX]-1 << " refs remaining" << endl << write;
       } else {
-	 logger << " CELL NOT FOUND!" << endl << flush;
+	 mpilogger << " CELL NOT FOUND!" << endl << write;
       }
    #endif
    if (referenceCount.find(INDEX) == referenceCount.end()) return false;
@@ -138,7 +138,7 @@ bool Grid::removeReference(cuint& INDEX) {
 
 uint Grid::getFreeMemory(cuint& BLOCKS) {
    if (BLOCKS == 0) {
-      logger << "Grid ERROR: getFreeMemory called with BLOCKS=0, aborting." << endl << flush;
+      mpilogger << "Grid ERROR: getFreeMemory called with BLOCKS=0, aborting." << endl << write;
       exit(1);
    }
    
@@ -148,7 +148,7 @@ uint Grid::getFreeMemory(cuint& BLOCKS) {
       freePositions.pop_front();
       ++referenceCount[rvalue];
       #ifdef DEBUG
-         logger << "Grid getFreeMemory: Cell " << rvalue << " returned, now has " << referenceCount[rvalue] << " refs." << endl;
+         mpilogger << "Grid getFreeMemory: Cell " << rvalue << " returned, now has " << referenceCount[rvalue] << " refs." << endl << write;
       #endif
       return rvalue;
    } else if (nextBlock+BLOCKS <= MAX_VEL_BLOCKS) {
@@ -157,7 +157,7 @@ uint Grid::getFreeMemory(cuint& BLOCKS) {
       nextBlock += BLOCKS;
       ++referenceCount[rvalue];
       #ifdef DEBUG
-         logger << "Grid getFreeMemory: Cell " << rvalue << " returned, now has " << referenceCount[rvalue] << " refs." << endl;
+         mpilogger << "Grid getFreeMemory: Cell " << rvalue << " returned, now has " << referenceCount[rvalue] << " refs." << endl << write;
       #endif
       return rvalue;
    } else {
@@ -168,21 +168,20 @@ uint Grid::getFreeMemory(cuint& BLOCKS) {
 }
 
 void Grid::printReferences() {
-   logger << "Grid: printReferences:" << endl;
+   mpilogger << "Grid: printReferences:" << endl;
    map<uint,int>::iterator it = referenceCount.begin();
    while (it != referenceCount.end()) {
-      logger << "\t Cell " << it->first << " refs = " << it->second << endl;
+      mpilogger << "\t Cell " << it->first << " refs = " << it->second << endl;
       ++it;
    }
-   logger << flush;
    
-   logger << "     freePositions:" << endl;
+   mpilogger << "     freePositions:" << endl;
    list<uint>::iterator itt = freePositions.begin();
    while (itt != freePositions.end()) {
-      logger << "\t Position #" << *itt << " is free" << endl;
+      mpilogger << "\t Position #" << *itt << " is free" << endl;
       ++itt;
    }
-   logger << flush;
+   mpilogger << write;
 }
 
 uint Grid::getTotalNumberOfBlocks() const {
