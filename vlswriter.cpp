@@ -228,9 +228,7 @@ bool VlsWriter::writeSpatCellCoordEntryEndMarker(MPI_Comm comm,const int& master
    int myrank;
    MPI_Comm_rank(comm,&myrank);
    if (myrank != masterRank) return true;
-   cerr << "Writing end marker" << endl;
    cuint END_VALUE = numeric_limits<uint>::max();
-   cerr << "\t End marker value = '" << (cuint)END_VALUE << "'" << endl;
    mpiFile << END_VALUE;
    return true;
 }

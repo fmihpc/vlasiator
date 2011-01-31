@@ -73,6 +73,12 @@ template<typename T> inline MPIFile& MPIFile::operator<<(const T& value) {
    return *this;
 }
 
+template<> inline MPIFile& MPIFile::operator<<(const std::string& value) {
+   ptr = static_cast<void*>(const_cast<char*>(&(value[0])));
+   MPI_File_write_shared(fileptr,ptr,value.size(),MPI_BYTE,&MPIstatus);
+   return *this;
+}
+
 /** Stream output operator for reading a primitive datatype from an MPI file.
  * This function should work for all datatypes for which sizeof gives an 
  * accurate and portable size, i.e. do not use this function for reading
