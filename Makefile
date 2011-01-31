@@ -1,9 +1,9 @@
-include Makefile.arto
+include Makefile.gnu
 
 default: main vls2vtk
 
 # Compile directory:
-INSTALL=${HOME}/codes/cuda/cudafvm
+INSTALL=${HOME}/codes/cudafvm2
 
 # Which project is compiled:
 PROJ=harm1D
@@ -20,7 +20,7 @@ LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_MPI}
 
 # Define dependencies of each object file
-DEPS_COMMON = common.h definitions.h logger.h
+DEPS_COMMON = common.h definitions.h
 DEPS_CELL_SPATIAL = cell_spatial.h grid.h parameters.h cell_spatial.cpp
 DEPS_CELLSYNC = cell_spatial.h cellsync.cpp
 DEPS_CPU_ACC = cell_spatial.h cpu_acc.h cpu_common.h project.h cpu_acc.cpp

@@ -61,13 +61,16 @@ Grid::Grid() {
      + MAX_VEL_BLOCKS*SIZE_DERIV
      + MAX_VEL_BLOCKS*SIZE_DERIV;
    
+   cout << "(GRID): Starting to init" << endl;
    try {
       avgs = new Real[SIZE];
+      for (unsigned long long int i=0; i<SIZE; ++i) avgs[i] = 0.0;
    }
    catch (exception& e) {
-      cerr << "Couldn't allocate memory for avgs: " << e.what() << endl;
+      cerr << "\tERROR Couldn't allocate memory for avgs: " << e.what() << endl;
       exit(EXIT_FAILURE);
    }
+   cout << "\tCompleted" << endl;
 
    fx = avgs + MAX_VEL_BLOCKS*SIZE_VELBLOCK;
    fy = fx + MAX_VEL_BLOCKS*SIZE_FLUXS;
@@ -117,6 +120,19 @@ bool Grid::addReference(cuint& INDEX) {
    ++referenceCount[INDEX];
    return true;
 }
+
+uint* Grid::getNbrsVel(cuint& cpuIndex) const {return nbrsVel + cpuIndex*SIZE_NBRS_VEL;}
+Real* Grid::getBlockParams(cuint& cpuIndex) const {return blockParams + cpuIndex*SIZE_BLOCKPARAMS;}
+Real* Grid::getAvgs(cuint& cpuIndex) const {return avgs + cpuIndex*SIZE_VELBLOCK;}
+Real* Grid::getFx(cuint& cpuIndex) const {return fx + cpuIndex*SIZE_FLUXS;}
+Real* Grid::getFy(cuint& cpuIndex) const {return fy + cpuIndex*SIZE_FLUXS;}
+Real* Grid::getFz(cuint& cpuIndex) const {return fz + cpuIndex*SIZE_FLUXS;}
+Real* Grid::getD1x(cuint& cpuIndex) const {return d1x + cpuIndex*SIZE_DERIV;}
+Real* Grid::getD1y(cuint& cpuIndex) const {return d1y + cpuIndex*SIZE_DERIV;}
+Real* Grid::getD1z(cuint& cpuIndex) const {return d1z + cpuIndex*SIZE_DERIV;}
+Real* Grid::getD2x(cuint& cpuIndex) const {return d2x + cpuIndex*SIZE_DERIV;}
+Real* Grid::getD2y(cuint& cpuIndex) const {return d2y + cpuIndex*SIZE_DERIV;}
+Real* Grid::getD2z(cuint& cpuIndex) const {return d2z + cpuIndex*SIZE_DERIV;}
 
 bool Grid::removeReference(cuint& INDEX) {
    #ifdef DEBUG

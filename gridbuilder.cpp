@@ -11,12 +11,9 @@
 #include "common.h"
 #include "parameters.h"
 #include "cell_spatial.h"
-#include "logger.h"
 #include "project.h"
 
 using namespace std;
-
-extern Logger logger;
 
 inline uint velblock(cuint& iv,cuint& jv,cuint& kv) {
    typedef Parameters P;

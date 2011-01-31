@@ -362,7 +362,6 @@ int main(int argn,char* args[]) {
    const int MASTER_RANK = 0;
    int myrank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
-   mpilogger << "Reporting for duty." << endl << write;
    
    #ifndef PARGRID // INITIALIZE USING DCCRG
       // Create parallel MPI grid and init Zoltan:
@@ -459,7 +458,7 @@ int main(int argn,char* args[]) {
    
    // Main simulation loop:
    if (myrank == MASTER_RANK) 
-     mpilogger << "(MAIN): Starting main simulation loop." << std::endl;
+     mpilogger << "(MAIN): Starting main simulation loop." << endl << write;
    time_t before = std::time(NULL);
    for (uint tstep=0; tstep < P::tsteps; ++tstep) {
       // Recalculate (maybe) spatial cell parameters

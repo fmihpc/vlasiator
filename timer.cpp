@@ -1,12 +1,12 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "logger.h"
+#include "mpilogger.h"
 #include "timer.h"
 
 using namespace std;
 
-extern Logger logger;
+extern MPILogger mpilogger;
 std::vector<Timer::TimerData> Timer::timers;
 
 /** Constuctor for Timer. The constructor does not do anything.*/
@@ -43,8 +43,9 @@ double Timer::getValue(const unsigned int& timerID) {
  */
 void Timer::print() {
    for (vector<TimerData>::const_iterator it=timers.begin(); it!=timers.end(); ++it) {
-      logger << "(TIMER) Value of timer '" << it->name << "' is " << it->timeInSeconds << " s." << endl;
+      mpilogger << "(TIMER) Value of timer '" << it->name << "' is " << it->timeInSeconds << " s." << endl;
    }
+   mpilogger << write;
 }
 
 /** Start the given timer.
