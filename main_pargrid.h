@@ -44,23 +44,23 @@ void initialLoadBalance(ParGrid<SpatialCell>& mpiGrid) { }
 bool findNeighbours(std::vector<const SpatialCell*>& nbrPtr,const ParGrid<SpatialCell>& mpiGrid,const ID::type& CELLID) {
    std::vector<ID::type> nbrs;
    mpiGrid.getNeighbours(nbrs,CELLID);
-   if (nbrs.size() != 6) {
+   if (nbrs.size() != 24) {
       mpilogger << "findNeighbours ERROR: Failed to get neighbour indices!" << std::endl << write;
       return false;
    }
    // Get a pointer to each neighbour. If the neighbour does not exists, 
    // a NULL pointer is inserted:
-   if (nbrs[0] != std::numeric_limits<ID::type>::max()) nbrPtr[0] = mpiGrid[nbrs[0]];
+   if (nbrs[ 0] != std::numeric_limits<ID::type>::max()) nbrPtr[0] = mpiGrid[nbrs[ 0]];
    else nbrPtr[0] = NULL;
-   if (nbrs[1] != std::numeric_limits<ID::type>::max()) nbrPtr[1] = mpiGrid[nbrs[1]];
+   if (nbrs[ 4] != std::numeric_limits<ID::type>::max()) nbrPtr[1] = mpiGrid[nbrs[ 4]];
    else nbrPtr[1] = NULL;
-   if (nbrs[2] != std::numeric_limits<ID::type>::max()) nbrPtr[2] = mpiGrid[nbrs[2]];
+   if (nbrs[ 8] != std::numeric_limits<ID::type>::max()) nbrPtr[2] = mpiGrid[nbrs[ 8]];
    else nbrPtr[2] = NULL;
-   if (nbrs[3] != std::numeric_limits<ID::type>::max()) nbrPtr[3] = mpiGrid[nbrs[3]];
+   if (nbrs[12] != std::numeric_limits<ID::type>::max()) nbrPtr[3] = mpiGrid[nbrs[12]];
    else nbrPtr[3] = NULL;
-   if (nbrs[4] != std::numeric_limits<ID::type>::max()) nbrPtr[4] = mpiGrid[nbrs[4]];
+   if (nbrs[16] != std::numeric_limits<ID::type>::max()) nbrPtr[4] = mpiGrid[nbrs[16]];
    else nbrPtr[4] = NULL;
-   if (nbrs[5] != std::numeric_limits<ID::type>::max()) nbrPtr[5] = mpiGrid[nbrs[5]];
+   if (nbrs[20] != std::numeric_limits<ID::type>::max()) nbrPtr[5] = mpiGrid[nbrs[20]];
    else nbrPtr[5] = NULL;
    return true;
 }

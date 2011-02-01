@@ -48,13 +48,14 @@ template<class C> struct ParCell {
 			      * assigned to a different MPI process.*/
    uint N_remNbrs;           /**< Total number of remote neighbours this cell has.*/
    uint N_receivedRemNbrs;   /**< Number of this cell's remote neighbours that have been received from other MPI processes.*/
-   ID::type neighbours[6];   /**< The global ID of each neighbour. [0]=-x, [1]=+x
+   ID::type neighbours[24];  /**< The global ID of each neighbour. [0]=-x, [1]=+x
 			      * [2]=-y, [3]=+y, [4]=-z, [5]=+z. If the neighbour does 
 			      * not exist, the value is std::numeric_limits<ID::type>::max().*/
-
+   uint refLevel;            /**< Refinement level of the cell, 0 = base grid (unrefined).*/
    C* dataptr;               /**< Pointer to user data.*/
    ParCell(): dataptr(NULL),N_blocks(0),hasRemoteNeighbours(false) {
-      for (int i=0; i<6; ++i) neighbours[i] = std::numeric_limits<ID::type>::max();
+      for (int i=0; i<24; ++i) neighbours[i] = std::numeric_limits<ID::type>::max();
+      refLevel = 0;
    }
 };
 
@@ -383,7 +384,7 @@ void ParGrid<C>::buildExchangeLists() {
       hasRemotes = false;
       it->second.N_remNbrs = 0;
       // Go through the cell's neighbour list
-      for (int i=0; i<6; ++i) {
+      for (int i=0; i<24; ++i) {
 	 // Check that the neighbour exists and that it is not assigned to this process:
 	 const ID::type nbrID = it->second.neighbours[i];
 	 if (nbrID == std::numeric_limits<ID::type>::max()) continue;
@@ -492,12 +493,12 @@ template<class C> void ParGrid<C>::buildUnrefNeighbourLists() {
       if (y_pos != std::numeric_limits<ID::type>::max()) y_pos = calculateUnrefinedIndex(i,y_pos,k);
       if (z_neg != std::numeric_limits<ID::type>::max()) z_neg = calculateUnrefinedIndex(i,j,z_neg);
       if (z_pos != std::numeric_limits<ID::type>::max()) z_pos = calculateUnrefinedIndex(i,j,z_pos);
-      it->second.neighbours[0] = x_neg;
-      it->second.neighbours[1] = x_pos;
-      it->second.neighbours[2] = y_neg;
-      it->second.neighbours[3] = y_pos;
-      it->second.neighbours[4] = z_neg;
-      it->second.neighbours[5] = z_pos;
+      it->second.neighbours[ 0] = x_neg;
+      it->second.neighbours[ 4] = x_pos;
+      it->second.neighbours[ 8] = y_neg;
+      it->second.neighbours[12] = y_pos;
+      it->second.neighbours[16] = z_neg;
+      it->second.neighbours[20] = z_pos;
    }
 }
 
@@ -527,7 +528,7 @@ template<class C> float ParGrid<C>::calculateEdgeWeight(const ID::type& globalID
  */
 template<class C> float ParGrid<C>::calculateHyperedgeWeight(const ID::type& globalID) {
    uint N_neighbours = 0;
-   for (int i=0; i<6; ++i) if (localCells[globalID].neighbours[i] != std::numeric_limits<ID::type>::max()) ++N_neighbours;
+   for (int i=0; i<24; ++i) if (localCells[globalID].neighbours[i] != std::numeric_limits<ID::type>::max()) ++N_neighbours;
    return weightEdge*N_neighbours;
 }
 
@@ -760,7 +761,7 @@ template<class C> template<class CONT> void ParGrid<C>::getNeighbours(CONT& rlis
    rlist.clear();
    typename std::map<ID::type,ParCell<C> >::const_iterator it = localCells.find(globalID);
    if (it == localCells.end()) return;
-   for (int i=0; i<6; ++i) rlist.push_back((it->second).neighbours[i]);
+   for (int i=0; i<24; ++i) rlist.push_back((it->second).neighbours[i]);
 }
 
 template<class C> bool ParGrid<C>::getReadyCell(ID::type& globalID) {
@@ -1378,7 +1379,7 @@ int ParGrid<C>::getNumberOfEdges(void* parGridPtr,int N_globalIDs,int N_localIDs
    #endif
    // Calculate the number of edges the cell has:
    int edges = 0;
-   for (int i=0; i<6; ++i) 
+   for (int i=0; i<24; ++i) 
      if (it->second.neighbours[i] != std::numeric_limits<ID::type>::max()) ++edges;
    
    *rcode = ZOLTAN_OK;
@@ -1416,7 +1417,7 @@ void ParGrid<C>::getEdgeList(void* parGridPtr,int N_globalIDs,int N_localIDs,ZOL
    #endif
    int index = 0;
    if (N_weights == 0) { // No edge weights
-      for (int i=0; i<6; ++i) {
+      for (int i=0; i<24; ++i) {
 	 if (it->second.neighbours[i] != std::numeric_limits<ID::type>::max()) {
 	    nbrGlobalIDs[index] = it->second.neighbours[i];
 	    nbrHosts[index] = hostProcesses[it->second.neighbours[i]];
@@ -1424,7 +1425,7 @@ void ParGrid<C>::getEdgeList(void* parGridPtr,int N_globalIDs,int N_localIDs,ZOL
 	 }
       }
    } else { // Edge weights are used
-      for (int i=0; i<6; ++i) {
+      for (int i=0; i<24; ++i) {
 	 if (it->second.neighbours[i] != std::numeric_limits<ID::type>::max()) {
 	    nbrGlobalIDs[index] = it->second.neighbours[i];
 	    nbrHosts[index] = hostProcesses[it->second.neighbours[i]];
@@ -1462,7 +1463,7 @@ void ParGrid<C>::getNumberOfHyperedges(void* parGridPtr,int* N_lists,int* N_pins
       // Every cell has its own hyperedge:
       ++totalNumberOfPins;
       // Every existing neighbour belongs to cell's hyperedge:
-      for (int i=0; i<6; ++i) if (it->second.neighbours[i] != std::numeric_limits<ID::type>::max()) ++totalNumberOfPins;
+      for (int i=0; i<24; ++i) if (it->second.neighbours[i] != std::numeric_limits<ID::type>::max()) ++totalNumberOfPins;
       
    }
    *N_pins = totalNumberOfPins;
@@ -1494,8 +1495,8 @@ void ParGrid<C>::getHyperedges(void* parGridPtr,int N_globalIDs,int N_vtxedges,i
 	 vtxedge_ptr[edgeCounter] = pinCounter; // An index into pin_GID where the pins for this cell are written
 	 pin_GID[pinCounter] = it->first;       // Every cell belong in its own hyperedge
 	 ++pinCounter;
-	 // Add pins to every existing neighbour:
-	 for (int i=0; i<6; ++i) {
+	 // Add pin to every existing neighbour:
+	 for (int i=0; i<24; ++i) {
 	    if (it->second.neighbours[i] != std::numeric_limits<ID::type>::max()) {
 	       pin_GID[pinCounter] = it->second.neighbours[i];
 	       ++pinCounter;
