@@ -12,6 +12,7 @@
 #endif
 
 #include "definitions.h"
+#include "mpiconversion.h"
 #include "mpilogger.h"
 #include "parameters.h"
 #include "grid.h"
@@ -252,6 +253,7 @@ bool writeSpatialCellData(const ParGrid<SpatialCell>& mpiGrid,VlsWriter& vlsWrit
 bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter,DataReducer& dataReducer) {
 #endif
    bool success = true;
+   bool writeSpatNbrLists = true;
    int myrank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
 
@@ -266,6 +268,14 @@ bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter
       mpilogger << "Error opening output file on process " << myrank << endl << write;
       success = false;
    }
+
+   // Set some parameters:
+   #ifdef PARGRID
+      vlsWriter.setBytesPerCellGID(sizeof(ID::type));
+   #else
+      vlsWriter.setBytesPerCellGID(sizeof(uint64_t));
+   #endif
+   vlsWriter.setWriteSpatNbrsLists(writeSpatNbrLists);
    
    // Master process (rank=0) within the given communicator writes the file header:
    if (vlsWriter.writeHeader(MPI_COMM_WORLD,0) == false) {
@@ -284,19 +294,46 @@ bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter
    #ifdef PARGRID
       mpiGrid.getCells(Main::cells);
       ID::type cellGID;
+      vector<ID::type> nbrs;
    #else
       Main::cells = mpiGrid.get_cells();
       uint64_t cellGID;
+      vector<uint64_t> nbrs;
    #endif
    
    // Write local cell data to file using a buffer:
-   vlsWriter.reserveSpatCellCoordBuffer(Main::cells.size(),&dataReducer);
+   if (vlsWriter.reserveSpatCellCoordBuffer(Main::cells.size(),&dataReducer) == false) {
+      mpilogger << "ERROR: VlsWriter failed to reserve cell buffer!" << endl;
+      success = false;
+   }
+   
+   // If errors have come up, exit:
+   if (success == false) {
+      vlsWriter.close();
+      return success;
+   }
+   
+   // Write spatial cell data:
    SpatialCell* cellptr;
+   unsigned char refLevel;
    for (size_t i=0; i<Main::cells.size(); ++i) {
       cellGID = Main::cells[i];
       cellptr = mpiGrid[cellGID];
+      
+      if (writeSpatNbrLists == true) {
+         #ifdef PARGRID
+            mpiGrid.getExistingNeighbours(nbrs,cellGID);
+            refLevel = mpiGrid.getRefinementLevel(cellGID);
+            if (refLevel == numeric_limits<unsigned char>::max())
+	       mpilogger << "Received erroneous refinement level for cell with global ID " << cellGID << endl << write;
+         #else
+	    nbrs.clear();
+            refLevel = 0;
+         #endif
+      }
+      
       if (cellptr != NULL) {
-	 if (vlsWriter.writeSpatCellCoordEntryBuffered(cellGID,*cellptr,&dataReducer) == false) {
+	 if (vlsWriter.writeSpatCellCoordEntryBuffered(cellGID,*cellptr,&dataReducer,nbrs,refLevel) == false) {
 	    mpilogger << "Error writing spatial cell with global ID " << cellGID << " on process " << myrank << endl << write;
 	    success = false;
 	 }
@@ -305,9 +342,17 @@ bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter
 	 success = false;
       }
    }
-   vlsWriter.flushBuffer();
-   vlsWriter.writeSpatCellCoordEntryEndMarker(MPI_COMM_WORLD,0);
+   if (vlsWriter.flushBuffer() == false) {
+      mpilogger << "ERROR: VlsWriter failed to flush buffer!" << endl << write;
+      success = false;
+   }
+   
+   // Wait until all processes have completed writing before inserting the end marker:
    MPI_Barrier(MPI_COMM_WORLD);
+   if (vlsWriter.writeSpatCellCoordEntryEndMarker(MPI_COMM_WORLD,0) == false) {
+      mpilogger << "ERROR: VlsWriter failed to write end marker!" << endl << write;
+      success = false;
+   }
    
    // Close output file and exit:
    if (vlsWriter.close() == false) {
@@ -316,7 +361,6 @@ bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter
    }
    return success;
 }
-
 
 #ifdef PARGRID
 void log_send_receive_info(const ParGrid<SpatialCell>& mpiGrid) {
@@ -354,7 +398,6 @@ int main(int argn,char* args[]) {
    #endif
 
    // Init parallel logger:
-   //MPILogger mpilogger;
    if (mpilogger.open(MPI_COMM_WORLD,"logfile.txt") == false) {
       cerr << "ERROR: MPILogger failed to open output file!" << endl;
       exit(1);
@@ -375,8 +418,17 @@ int main(int argn,char* args[]) {
       dccrg<SpatialCell> mpiGrid(comm,"GRAPH",P::xmin,P::ymin,P::zmin,P::dx_ini,P::dy_ini,P::dz_ini,P::xcells_ini,P::ycells_ini,P::zcells_ini,0,0);
    
    #else           // INITIALIZE USING PARGRID
-      ParGrid<SpatialCell> mpiGrid(P::xcells_ini,P::ycells_ini,P::zcells_ini,P::xmin,P::ymin,P::zmin,
-				   P::xmax,P::ymax,P::zmax,Hypergraph,argn,args);
+      ParGrid<SpatialCell> mpiGrid(Hypergraph,argn,args);
+      /*
+      if (initFromRestartFile("celldata.0000005.vlsv",myrank,mpiGrid) == false) {
+	 cerr << "Failed to restart!" << endl;
+      }
+      mpiGrid.barrier();
+      mpilogger.close();
+      MPI_Finalize();
+      return 0;
+      */
+      mpiGrid.initialize(P::xcells_ini,P::ycells_ini,P::zcells_ini,P::xmin,P::ymin,P::zmin,P::xmax,P::ymax,P::zmax);
    #endif
 
    // Open logfile for parallel writing:
@@ -522,6 +574,7 @@ int main(int argn,char* args[]) {
    
    // Write final state:
    if (P::save_spatial_grid) {
+      mpilogger << "(MAIN): Saving variables to disk at tstep = " << P::tstep << ", time = " << P::t << endl << write;
       if (writeSpatialCellData(mpiGrid,vlsWriter,reducer) == false) {
 	 mpilogger << "(MAIN): ERROR occurred while writing data to file!" << endl << write;
       }

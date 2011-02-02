@@ -1,6 +1,7 @@
 #ifndef DATAREDUCTIONOPERATOR_H
 #define DATAREDUCTIONOPERATOR_H
 
+#include <vector>
 #include "definitions.h"
 #include "cell_spatial.h"
 
@@ -23,6 +24,7 @@ namespace DRO {
       virtual ~DataReductionOperator();
       
       virtual bool appendReducedData(unsigned char* const byteArray);
+      virtual bool appendReducedData(std::vector<unsigned char>& byteArray);
       virtual unsigned char getElementByteSize() const;
       virtual std::string getName() const;
       virtual unsigned int getOutputByteSize() const;
@@ -40,6 +42,7 @@ namespace DRO {
       ~MPIrank();
       
       bool appendReducedData(unsigned char* const byteArray);
+      bool appendReducedData(std::vector<unsigned char>& byteArray);
       unsigned char getElementByteSize() const;
       std::string getName() const;
       unsigned char getVariableType() const;
@@ -56,6 +59,7 @@ namespace DRO {
       ~VariableB();
       
       bool appendReducedData(unsigned char* const byteArray);
+      bool appendReducedData(std::vector<unsigned char>& byteArray);
       unsigned char getElementByteSize() const;
       std::string getName() const;
       unsigned char getVariableType() const;
@@ -74,6 +78,7 @@ namespace DRO {
       ~VariableE();
       
       bool appendReducedData(unsigned char* const byteArray);
+      bool appendReducedData(std::vector<unsigned char>& byteArray);
       unsigned char getElementByteSize() const;
       std::string getName() const;
       unsigned char getVariableType() const;
@@ -92,6 +97,7 @@ namespace DRO {
       ~VariableRho();
       
       bool appendReducedData(unsigned char* const byteArray);
+      bool appendReducedData(std::vector<unsigned char>& byteArray);
       unsigned char getElementByteSize() const;
       std::string getName() const;
       unsigned char getVariableType() const;
@@ -108,6 +114,7 @@ namespace DRO {
       ~VariableRhoV();
       
       bool appendReducedData(unsigned char* const byteArray);
+      bool appendReducedData(std::vector<unsigned char>& byteArray);
       unsigned char getElementByteSize() const;
       std::string getName() const;
       unsigned char getVariableType() const;

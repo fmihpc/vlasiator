@@ -18,21 +18,22 @@ namespace VlsHeader {
    // *******************************************
    // ***** ID numbers for header elements ******
    // *******************************************
-   const unsigned char BYTES_PER_CELL_CRD     = 0; /**< Bytes per spatial cell coordinate value (>0).*/
-   const unsigned char BYTES_PER_CELL_GID     = 1; /**< Bytes per spatial cell global ID (>0).*/
-   const unsigned char DIMENSIONS             = 2; /**< Spatial dimensionality of data (1, 2, or 3).*/
-   const unsigned char VERSION                = 3; /**< Version number of the file (string).*/
-   const unsigned char BYTES_PER_VARNAME_SIZE = 4; /**< Byte size of field that gives the byte size of variable name entry.*/
-   const unsigned char ENDIANNESS_INT         = 5; /**< Endianness of integer datatypes in the VLSV file 
-						    * (0=little-endian, 1=big-endian). This field must default to zero value.*/
-   const unsigned char ENDIANNESS_FLOAT       = 6; /**< Endianness of floating point datatypes in the VLSV file. 
-						    * (0=little-endian, 1=big-endian). This field must default to zero value.*/
-   const unsigned char CONTAINS_SPAT_NBR_LIST = 7; /**< If this field has nonzero value, cell coordinate entries contain 
-						    * spatial neighbour lists. Defaults to zero value, i.e. neighbour lists 
-						    * are not included.*/
-   const unsigned char CONTAINS_DYNAMIC_DATA  = 8; /**< If this has nonzero value, cell entries contain dynamic-size data.
-						    * Defaults to zero value, i.e. no dynamic-size data.*/
-
+   const unsigned char BYTES_PER_CELL_CRD     = 0;  /**< Bytes per spatial cell coordinate value (>0).*/
+   const unsigned char BYTES_PER_CELL_GID     = 1;  /**< Bytes per spatial cell global ID (>0).*/
+   const unsigned char DIMENSIONS             = 2;  /**< Spatial dimensionality of data (1, 2, or 3).*/
+   const unsigned char VERSION                = 3;  /**< Version number of the file (string).*/
+   const unsigned char BYTES_PER_VARNAME_SIZE = 4;  /**< Byte size of field that gives the byte size of variable name entry.*/
+   const unsigned char ENDIANNESS_INT         = 5;  /**< Endianness of integer datatypes in the VLSV file 
+						     * (0=little-endian, 1=big-endian). This field must default to zero value.*/
+   const unsigned char ENDIANNESS_FLOAT       = 6;  /**< Endianness of floating point datatypes in the VLSV file. 
+						     * (0=little-endian, 1=big-endian). This field must default to zero value.*/
+   const unsigned char CONTAINS_SPAT_NBR_LIST = 7;  /**< If this field has nonzero value, cell coordinate entries contain 
+						     * spatial neighbour lists. Defaults to zero value, i.e. neighbour lists 
+						     * are not included.*/
+   const unsigned char CONTAINS_DYNAMIC_DATA  = 8;  /**< If this has nonzero value, cell entries contain dynamic-size data.
+						     * Defaults to zero value, i.e. no dynamic-size data.*/
+   const unsigned char BYTES_PER_SPAT_NBR_SIZE = 9; /**< Byte size of a field which gives the byte size of spatial 
+						     * neighbour list entry.*/
    
    const unsigned char LITTLE_END = 0;          /**< Special value indicating little-endianness.*/
    const unsigned char BIG_END    = 1;          /**< Special value indicating big-endianness.*/

@@ -52,6 +52,18 @@ bool DataReducer::appendReducedData(const SpatialCell& cell,unsigned char* const
    return true;
 }
 
+bool DataReducer::appendReducedData(const SpatialCell& cell,std::vector<unsigned char>& byteArray) {
+   for (vector<DRO::DataReductionOperator*>::iterator it=operators.begin(); it!=operators.end(); ++it) {
+      //if ((*it)->appendReducedData(ptr) == false) return false;
+      if ((*it)->appendReducedData(byteArray) == false) {
+	 cerr << "DRO named '" << (*it)->getName() << "' failed" << endl;
+	 return false;
+      }
+      //ptr += (*it)->getOutputByteSize();
+   }
+   return true;
+}
+
 /** Get the total size of the output data from all DRO::DataReductionOperators, in bytes.
  * @return The output size of reduced data for one SpatialCell.
  */

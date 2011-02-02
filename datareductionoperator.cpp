@@ -31,6 +31,11 @@ namespace DRO {
       return false;
    }
 
+   bool DataReductionOperator::appendReducedData(vector<unsigned char>& byteArray) {
+      cerr << "ERROR: DataReductionOperator::appendReducedData called instead of derived class function!" << endl;
+      return false;
+   }
+   
    /** Get the byte size of one element in the array of reduced data calculated by 
     * this DRO::DataReductionOperator. For example, if this DRO::DataReductionOperator 
     * produces a vector of floats, then the size of an entry is sizeof(float). If this 
@@ -139,20 +144,34 @@ namespace DRO {
    bool VariableE::appendReducedData(unsigned char* const byteArray) {
       unsigned char* ptr;      
       ptr = reinterpret_cast<unsigned char*>(&Ex);
-      byteArray[ 0] = ptr[0];
-      byteArray[ 1] = ptr[1];
-      byteArray[ 2] = ptr[2];
-      byteArray[ 3] = ptr[3];
+      for (int i=0; i<sizeof(Ex); ++i) byteArray[               i] = ptr[i];
+      //byteArray[ 0] = ptr[0];
+      //byteArray[ 1] = ptr[1];
+      //byteArray[ 2] = ptr[2];
+      //byteArray[ 3] = ptr[3];
       ptr = reinterpret_cast<unsigned char*>(&Ey);
-      byteArray[ 4] = ptr[0];
-      byteArray[ 5] = ptr[1];
-      byteArray[ 6] = ptr[2];
-      byteArray[ 7] = ptr[3];
+      for (int i=0; i<sizeof(Ey); ++i) byteArray[1*sizeof(Real)+i] = ptr[i];
+      //byteArray[ 4] = ptr[0];
+      //byteArray[ 5] = ptr[1];
+      //byteArray[ 6] = ptr[2];
+      //byteArray[ 7] = ptr[3];
       ptr = reinterpret_cast<unsigned char*>(&Ez);
-      byteArray[ 8] = ptr[0];
-      byteArray[ 9] = ptr[1];
-      byteArray[10] = ptr[2];
-      byteArray[11] = ptr[3];
+      for (int i=0; i<sizeof(Ez); ++i) byteArray[2*sizeof(Real)+i] = ptr[i];
+      //byteArray[ 8] = ptr[0];
+      //byteArray[ 9] = ptr[1];
+      //byteArray[10] = ptr[2];
+      //byteArray[11] = ptr[3];
+      return true;
+   }
+
+   bool VariableE::appendReducedData(vector<unsigned char>& byteArray) {
+      const unsigned char* ptr;
+      ptr = reinterpret_cast<const unsigned char*>(&Ex);
+      for (int i=0; i<sizeof(Ex); ++i) byteArray.push_back(ptr[i]);
+      ptr = reinterpret_cast<const unsigned char*>(&Ey);
+      for (int i=0; i<sizeof(Ey); ++i) byteArray.push_back(ptr[i]);
+      ptr = reinterpret_cast<const unsigned char*>(&Ez);
+      for (int i=0; i<sizeof(Ez); ++i) byteArray.push_back(ptr[i]);
       return true;
    }
    
@@ -177,20 +196,34 @@ namespace DRO {
    bool VariableB::appendReducedData(unsigned char* const byteArray) {
       unsigned char* ptr;
       ptr = reinterpret_cast<unsigned char*>(&Bx);
-      byteArray[ 0] = ptr[0];
-      byteArray[ 1] = ptr[1];
-      byteArray[ 2] = ptr[2];
-      byteArray[ 3] = ptr[3];
+      for (int i=0; i<sizeof(Bx); ++i) byteArray[               i] = ptr[i];
+      //byteArray[ 0] = ptr[0];
+      //byteArray[ 1] = ptr[1];
+      //byteArray[ 2] = ptr[2];
+      //byteArray[ 3] = ptr[3];
       ptr = reinterpret_cast<unsigned char*>(&By);
-      byteArray[ 4] = ptr[0];
-      byteArray[ 5] = ptr[1];
-      byteArray[ 6] = ptr[2];
-      byteArray[ 7] = ptr[3];
+      for (int i=0; i<sizeof(By); ++i) byteArray[1*sizeof(Real)+i] = ptr[i];
+      //byteArray[ 4] = ptr[0];
+      //byteArray[ 5] = ptr[1];
+      //byteArray[ 6] = ptr[2];
+      //byteArray[ 7] = ptr[3];
       ptr = reinterpret_cast<unsigned char*>(&Bz);
-      byteArray[ 8] = ptr[0];
-      byteArray[ 9] = ptr[1];
-      byteArray[10] = ptr[2];
-      byteArray[11] = ptr[3];
+      for (int i=0; i<sizeof(Bz); ++i) byteArray[2*sizeof(Real)+i] = ptr[i];
+      //byteArray[ 8] = ptr[0];
+      //byteArray[ 9] = ptr[1];
+      //byteArray[10] = ptr[2];
+      //byteArray[11] = ptr[3];
+      return true;
+   }
+
+   bool VariableB::appendReducedData(std::vector<unsigned char>& byteArray) {
+      unsigned char* ptr;
+      ptr = reinterpret_cast<unsigned char*>(&Bx);
+      for (int i=0; i<sizeof(Bx); ++i) byteArray.push_back(ptr[i]);
+      ptr = reinterpret_cast<unsigned char*>(&By);
+      for (int i=0; i<sizeof(By); ++i) byteArray.push_back(ptr[i]);
+      ptr = reinterpret_cast<unsigned char*>(&Bz);
+      for (int i=0; i<sizeof(Bz); ++i) byteArray.push_back(ptr[i]);
       return true;
    }
    
@@ -217,6 +250,12 @@ namespace DRO {
       for (unsigned int i=0; i<sizeof(rho); ++i) byteArray[i] = ptr[i];
       return true;
    }
+
+   bool VariableRho::appendReducedData(std::vector<unsigned char>& byteArray) {
+      unsigned char* ptr = reinterpret_cast<unsigned char*>(&rho);
+      for (unsigned int i=0; i<sizeof(rho); ++i) byteArray.push_back(ptr[i]);
+      return true;
+   }
    
    unsigned char VariableRho::getElementByteSize() const {return sizeof(rho);}
    
@@ -238,6 +277,12 @@ namespace DRO {
    bool MPIrank::appendReducedData(unsigned char* const byteArray) {
       unsigned char* ptr = reinterpret_cast<unsigned char*>(&rank);
       for (unsigned int i=0; i<sizeof(rank); ++i) byteArray[i] = ptr[i];
+      return true;
+   }
+
+   bool MPIrank::appendReducedData(std::vector<unsigned char>& byteArray) {
+      unsigned char* ptr = reinterpret_cast<unsigned char*>(&rank);
+      for (unsigned int i=0; i<sizeof(rank); ++i) byteArray.push_back(ptr[i]);
       return true;
    }
    
@@ -262,20 +307,34 @@ namespace DRO {
    bool VariableRhoV::appendReducedData(unsigned char* const byteArray) {
       unsigned char* ptr;
       ptr = reinterpret_cast<unsigned char*>(&rhovx);
-      byteArray[ 0] = ptr[0];
-      byteArray[ 1] = ptr[1];
-      byteArray[ 2] = ptr[2];
-      byteArray[ 3] = ptr[3];
+      for (int i=0; i<sizeof(rhovx); ++i) byteArray[               i] = ptr[i];
+      //byteArray[ 0] = ptr[0];
+      //byteArray[ 1] = ptr[1];
+      //byteArray[ 2] = ptr[2];
+      //byteArray[ 3] = ptr[3];
       ptr = reinterpret_cast<unsigned char*>(&rhovy);
-      byteArray[ 4] = ptr[0];
-      byteArray[ 5] = ptr[1];
-      byteArray[ 6] = ptr[2];
-      byteArray[ 7] = ptr[3];
+      for (int i=0; i<sizeof(rhovy); ++i) byteArray[1*sizeof(Real)+i] = ptr[i];
+      //byteArray[ 4] = ptr[0];
+      //byteArray[ 5] = ptr[1];
+      //byteArray[ 6] = ptr[2];
+      //byteArray[ 7] = ptr[3];
       ptr = reinterpret_cast<unsigned char*>(&rhovz);
-      byteArray[ 8] = ptr[0];
-      byteArray[ 9] = ptr[1];
-      byteArray[10] = ptr[2];
-      byteArray[11] = ptr[3];
+      for (int i=0; i<sizeof(rhovz); ++i) byteArray[2*sizeof(Real)+i] = ptr[i];
+      //byteArray[ 8] = ptr[0];
+      //byteArray[ 9] = ptr[1];
+      //byteArray[10] = ptr[2];
+      //byteArray[11] = ptr[3];
+      return true;
+   }
+   
+   bool VariableRhoV::appendReducedData(std::vector<unsigned char>& byteArray) {
+      unsigned char* ptr;
+      ptr = reinterpret_cast<unsigned char*>(&rhovx);
+      for (int i=0; i<sizeof(rhovx); ++i) byteArray.push_back(ptr[i]);
+      ptr = reinterpret_cast<unsigned char*>(&rhovy);
+      for (int i=0; i<sizeof(rhovy); ++i) byteArray.push_back(ptr[i]);
+      ptr = reinterpret_cast<unsigned char*>(&rhovz);
+      for (int i=0; i<sizeof(rhovz); ++i) byteArray.push_back(ptr[i]);
       return true;
    }
    

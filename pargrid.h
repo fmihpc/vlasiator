@@ -13,7 +13,7 @@
 
 #include "definitions.h"
 #include "parameters.h"
-
+#include "mpiconversion.h"
 #include "mpilogger.h"
 extern MPILogger mpilogger;
 
@@ -25,15 +25,24 @@ namespace ID {
 enum LBM {
    Block,Random,RCB,RIB,HSFC,Graph,Hypergraph,Hierarchical
 };
-
+/*
 // Overloaded templates which should return the corresponding data type 
 // for some C++ native data types. For example, if float has been 
 // typedef'd as Real, then MPI_Type<Real>() should return MPI_FLOAT.
 template<typename T> inline MPI_Datatype MPI_Type() {return 0;}
+template<> inline MPI_Datatype MPI_Type<char>() {return MPI_CHAR;}
+template<> inline MPI_Datatype MPI_Type<short int>() {return MPI_SHORT;}
+template<> inline MPI_Datatype MPI_Type<unsigned short int>() {return MPI_UNSIGNED_SHORT;}
 template<> inline MPI_Datatype MPI_Type<int>() {return MPI_INT;}
 template<> inline MPI_Datatype MPI_Type<unsigned int>() {return MPI_UNSIGNED;}
+template<> inline MPI_Datatype MPI_Type<long int>() {return MPI_LONG;}
+template<> inline MPI_Datatype MPI_Type<unsigned long int>() {return MPI_UNSIGNED_LONG;}
+template<> inline MPI_Datatype MPI_Type<long long int>() {return MPI_LONG_LONG;}
+template<> inline MPI_Datatype MPI_Type<unsigned long long int>() {return MPI_UNSIGNED_LONG_LONG;}
 template<> inline MPI_Datatype MPI_Type<float>() {return MPI_FLOAT;}
 template<> inline MPI_Datatype MPI_Type<double>() {return MPI_DOUBLE;}
+template<> inline MPI_Datatype MPI_Type<long double>() {return MPI_LONG_DOUBLE;}
+*/
 
 template<class C> struct ParCell {
    uint unrefInd_i; /**< The i index of the cell.*/
@@ -51,7 +60,7 @@ template<class C> struct ParCell {
    ID::type neighbours[24];  /**< The global ID of each neighbour. [0]=-x, [1]=+x
 			      * [2]=-y, [3]=+y, [4]=-z, [5]=+z. If the neighbour does 
 			      * not exist, the value is std::numeric_limits<ID::type>::max().*/
-   uint refLevel;            /**< Refinement level of the cell, 0 = base grid (unrefined).*/
+   unsigned char refLevel;   /**< Refinement level of the cell, 0 = base grid (unrefined).*/
    C* dataptr;               /**< Pointer to user data.*/
    ParCell(): dataptr(NULL),N_blocks(0),hasRemoteNeighbours(false) {
       for (int i=0; i<24; ++i) neighbours[i] = std::numeric_limits<ID::type>::max();
@@ -62,8 +71,7 @@ template<class C> struct ParCell {
 template<class C> class ParGrid {
  public: 
    
-   ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,creal& xmin,creal& ymin,creal& zmin,
-	   creal& xmax,creal& ymax,creal& zmax,const LBM& method,int argn,char* args[]);
+   ParGrid(const LBM& method,int argn,char* args[]);
    ~ParGrid();
 
    // Some functions which have the same name as in dccrg:
@@ -80,11 +88,14 @@ template<class C> class ParGrid {
    Real get_cell_z_max(const ID::type& globalID) const;
    Real get_cell_z_min(const ID::type& globalID) const;
    ID::type get_cell(const Real& x,const Real& y,const Real& z) const;
-   
+
+   bool addCell(const ID::type& cellID,creal& xcrd,creal& ycrd,creal& zcrd,
+		creal& dx,creal& dy,creal& dz,cuchar& refLevel,ID::type nbrs[24]);
    void barrier() {MPI_Barrier(MPI_COMM_WORLD);}
    template<class CONT> void getBoundaryCells(CONT& rlist) const;
    void getCellDistribution(std::map<ID::type,int>& rlist) const {rlist=hostProcesses;}
    template<class CONT> void getCells(CONT& rlist) const;
+   template<class CONT> void getExistingNeighbours(CONT& rlist,const ID::type& globalID) const;
    template<class CONT> void getInnerCells(CONT& rlist) const;
    template<class CONT> void getNeighbours(CONT& rlist,const ID::type& globalID) const;
    uint getNumberOfLocalCells() const {return localCells.size();}
@@ -93,11 +104,16 @@ template<class C> class ParGrid {
    uint getNumberOfSends() const {return sendList.size();}
    bool getReadyCell(ID::type& globalID);
    template<class CONT> void getReceiveList(CONT& rlist) const;
+   unsigned char getRefinementLevel(const ID::type& globalID) const;
    uint getRemainingReceives() const;
    template<class CONT> void getRemoteCells(CONT& rlist) const;
    template<class CONT> void getSendList(CONT& rlist) const;
+   bool initialize();
+   bool initialize(cuint& xsize,cuint& ysize,cuint& zsize,creal& xmin,creal& ymin,creal& zmin,
+		   creal& xmax,creal& ymax,creal& zmax);
    bool initialLoadBalance();
    bool isInitialized() const {return initialized;}
+   bool loadBalance();
    C* operator[](const ID::type& id) const;
    void print() const;
    void printTransfers() const;
@@ -192,6 +208,7 @@ template<class C> class ParGrid {
    static float calculateCellWeight(const ID::type& globalID);
    static float calculateEdgeWeight(const ID::type& globalID);
    static float calculateHyperedgeWeight(const ID::type& globalID);
+   uint calculateNbrIndex(const ID::type& globalID,const ID::type& nbrID);
    ID::type calculateUnrefinedIndex(const ID::type& i,const ID::type& j,const ID::type& k) const;
    void calculateUnrefinedIndices(const ID::type& index,ID::type& i,ID::type& j,ID::type& k) const;
    static std::string loadBalanceMethod(const LBM& method); // TEST: const removed
@@ -219,26 +236,14 @@ template<class C> LBM ParGrid<C>::balanceMethod;
 // ***************************************************************
 // ************** BEGIN MEMBER FUNCTION DEFITINIONS **************
 // ***************************************************************
-template<class C> ParGrid<C>::ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,creal& xmin,creal& ymin,creal& zmin,
-				      creal& xmax,creal& ymax,creal& zmax,const LBM& method,int argn,char* args[]) {
+template<class C> ParGrid<C>::ParGrid(const LBM& method,int argn,char* args[]) {
    initialized = true;
-   MPItypeFreed = true;
-   unrefSize_x = xsize;
-   unrefSize_y = ysize;
-   unrefSize_z = zsize;
-   unref_dx = (xmax - xmin) / xsize;
-   unref_dy = (ymax - ymin) / ysize;
-   unref_dz = (zmax - zmin) / zsize;
-   grid_xmin = xmin;
-   grid_xmax = xmax;
-   grid_ymin = ymin;
-   grid_ymax = ymax;
-   grid_zmin = zmin;
-   grid_zmax = zmax;
+   unref_dx = 0.0;
+   unref_dy = 0.0;
+   unref_dz = 0.0;
+   
+   // Set load balancing parameters:
    balanceMethod = method;
-   periodic_x = false;
-   periodic_y = false;
-   periodic_z = false;
    N_weights_cell = "1";
    N_weights_edge = "0";
    imbalanceTolerance = "1.05";
@@ -246,15 +251,7 @@ template<class C> ParGrid<C>::ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,cre
    weightEdge = 10.0;
    N_hierarchicalLevels = 2;
    N_processesPerPart = 12;
-   /*
-   // Attempt to init MPI:
-   int rvalue = MPI_Init(&argn,&args);
-   if (rvalue != MPI_SUCCESS) {
-      std::cerr << "ParGrid: MPI init failed!" << std::endl;
-      initialized = false;
-   }
-   if (initialized == false) return;
-   */
+
    // Get the rank of this process, and the total number of MPI processes:
    MPI_Comm_size(MPI_COMM_WORLD,&N_processes);
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
@@ -302,22 +299,6 @@ template<class C> ParGrid<C>::ParGrid(cuint& xsize,cuint& ysize,cuint& zsize,cre
    zoltan->Set_Hier_Num_Levels_Fn(getNumberOfHierarchicalLevels,this);
    zoltan->Set_Hier_Part_Fn(getHierarchicalPartNumber,this);
    zoltan->Set_Hier_Method_Fn(getHierarchicalParameters,this);
-   
-   buildInitialGrid();    // Build an initial guess for the grid
-   syncCellAssignments();
-   buildUnrefNeighbourLists();
-   
-   initialLoadBalance();  // Load balance grid. Invalidates contents of hostProcesses
-                          // and neighbour lists (since no data is actually transmitted).
-   syncCellAssignments();
-   buildUnrefNeighbourLists();
-   buildExchangeLists();  // Build send/receive lists.
-   
-   // Now cells have been assigned to this process, and we also know which 
-   // cells this process will receive from other MPI processes. Allocate 
-   // memory:
-   allocateCells();
-   syncCellCoordinates();
 }
 
 template<class C> ParGrid<C>::~ParGrid() {
@@ -340,6 +321,23 @@ template<class C> ParGrid<C>::~ParGrid() {
    zoltan = NULL;
    
    MPI_Finalize();
+}
+
+template<class C>
+bool ParGrid<C>::addCell(const ID::type& cellID,creal& xcrd,creal& ycrd,creal& zcrd,
+			 creal& dx,creal& dy,creal& dz,cuchar& refLevel,ID::type nbrs[24]) {
+   localCells[cellID];
+   localCells[cellID].xcrd = xcrd;
+   localCells[cellID].ycrd = ycrd;
+   localCells[cellID].zcrd = zcrd;
+   localCells[cellID].refLevel = refLevel;
+   for (int i=0; i<24; ++i) localCells[cellID].neighbours[i] = nbrs[i];
+
+   if (refLevel == 0) {
+      unref_dx = dx;
+      unref_dy = dy;
+      unref_dz = dz;
+   }
 }
 
 /** Call the constructor of each user-defined data cell. Here we also allocate 
@@ -530,6 +528,30 @@ template<class C> float ParGrid<C>::calculateHyperedgeWeight(const ID::type& glo
    uint N_neighbours = 0;
    for (int i=0; i<24; ++i) if (localCells[globalID].neighbours[i] != std::numeric_limits<ID::type>::max()) ++N_neighbours;
    return weightEdge*N_neighbours;
+}
+
+template<class C> uint ParGrid<C>::calculateNbrIndex(const ID::type& cellID,const ID::type& nbrID) {
+   // Get pointers to cell and its neighbour:
+   ParCell<C>* cellPtr = &(localCells[cellID]);
+   ParCell<C>* nbrPtr;
+   if (localCells.find(nbrID) != localCells.end()) nbrPtr = &(localCells[nbrID]);
+   else if (remoteCells.find(nbrID) != remoteCells.end()) nbrPtr = &(remoteCells[nbrID]);
+   else {
+      std::cerr << "ParGrid ERROR: Could not find neighbour!" << std::endl;
+      exit(1);
+   }
+   
+   if (cellPtr->refLevel == nbrPtr->refLevel) {
+      Real dx = unref_dx / (cellPtr->refLevel + 1);
+      Real dy = unref_dy / (cellPtr->refLevel + 1);
+      Real dz = unref_dz / (cellPtr->refLevel + 1);
+      if (nbrPtr->xcrd < cellPtr->xcrd - 0.1*dx) return  0;
+      if (nbrPtr->xcrd > cellPtr->xcrd + 0.1*dx) return  4;
+      if (nbrPtr->ycrd < cellPtr->ycrd - 0.1*dy) return  8;
+      if (nbrPtr->ycrd > cellPtr->ycrd + 0.1*dy) return 12;
+      if (nbrPtr->zcrd < cellPtr->zcrd - 0.1*dz) return 16;
+      if (nbrPtr->zcrd > cellPtr->zcrd + 0.1*dz) return 20;
+   }
 }
 
 template<class C> ID::type ParGrid<C>::calculateUnrefinedIndex(const ID::type& i,const ID::type& j,const ID::type& k) const {
@@ -740,6 +762,16 @@ template<class C> template<class CONT> void ParGrid<C>::getCells(CONT& rlist) co
    }
 }
 
+template<class C> template<class CONT> void ParGrid<C>::getExistingNeighbours(CONT& rlist,const ID::type& globalID) const {
+   rlist.clear();
+   typename std::map<ID::type,ParCell<C> >::const_iterator it = localCells.find(globalID);
+   if (it == localCells.end()) return;
+   for (int i=0; i<24; ++i) {
+      if ((it->second).neighbours[i] != std::numeric_limits<ID::type>::max()) 
+	rlist.push_back((it->second).neighbours[i]);
+   }
+}
+
 template<class C> template<class CONT> void ParGrid<C>::getInnerCells(CONT& rlist) const {
    rlist.clear();
    typename std::map<ID::type,ParCell<C> >::const_iterator it = localCells.begin();
@@ -781,6 +813,11 @@ template<class C> template<class CONT> void ParGrid<C>::getReceiveList(CONT& rli
    }
 }
 
+template<class C> unsigned char ParGrid<C>::getRefinementLevel(const ID::type& globalID) const {
+   if (localCells.find(globalID) == localCells.end()) return std::numeric_limits<unsigned char>::max();
+   return localCells[globalID].refLevel;
+}
+
 template<class C> uint ParGrid<C>::getRemainingReceives() const {
    #ifndef NDEBUG
       if (N_receivesRemaining > 0.1*std::numeric_limits<uint>::max()) {
@@ -805,6 +842,136 @@ template<class C> template<class CONT> void ParGrid<C>::getSendList(CONT& rlist)
    for (std::map<std::pair<ID::type,int>,char>::const_iterator it = sendList.begin(); it != sendList.end(); ++it) {
       rlist.push_back(std::pair<ID::type,int>(it->first.first,it->first.second));
    }
+}
+
+template<class C> bool ParGrid<C>::initialize() {
+   bool success = true;
+   
+   MPItypeFreed = true;
+   periodic_x = false;
+   periodic_y = false;
+   periodic_z = false;
+   
+   // Cell global IDs, cell coordinates and neighbour global IDs have been 
+   // loaded with ParGrid::addCell. We do not necessarily know the correct values 
+   // of internal variables (some processes do know), so the correct values need to be 
+   // distributed.
+   grid_xmin = std::numeric_limits<Real>::max();
+   grid_ymin = std::numeric_limits<Real>::max();
+   grid_zmin = std::numeric_limits<Real>::max();
+   grid_xmax = -std::numeric_limits<Real>::max();
+   grid_ymax = -std::numeric_limits<Real>::max();
+   grid_zmax = -std::numeric_limits<Real>::max();
+   for (typename std::map<ID::type,ParCell<C> >::const_iterator it=localCells.begin(); it!=localCells.end(); ++it) {
+      if (it->second.refLevel > 0) continue;
+      if (it->second.xcrd < grid_xmin) grid_xmin = it->second.xcrd;
+      if (it->second.xcrd > grid_xmax) grid_xmax = it->second.xcrd;
+      if (it->second.ycrd < grid_ymin) grid_ymin = it->second.ycrd;
+      if (it->second.xcrd > grid_ymax) grid_ymax = it->second.ycrd;
+      if (it->second.zcrd < grid_zmin) grid_zmin = it->second.zcrd;
+      if (it->second.xcrd > grid_zmax) grid_zmax = it->second.zcrd;
+   }
+   // Figure out global min/max values:
+   Real xmin,ymin,zmin,xmax,ymax,zmax,dx,dy,dz;
+   if (MPI_Allreduce(&grid_xmin,&xmin,1,MPI_Type<Real>(),MPI_MIN,MPI_COMM_WORLD) != MPI_SUCCESS) success = false;
+   if (MPI_Allreduce(&grid_ymin,&ymin,1,MPI_Type<Real>(),MPI_MIN,MPI_COMM_WORLD) != MPI_SUCCESS) success = false;
+   if (MPI_Allreduce(&grid_zmin,&zmin,1,MPI_Type<Real>(),MPI_MIN,MPI_COMM_WORLD) != MPI_SUCCESS) success = false;
+   if (MPI_Allreduce(&grid_xmax,&xmax,1,MPI_Type<Real>(),MPI_MAX,MPI_COMM_WORLD) != MPI_SUCCESS) success = false;
+   if (MPI_Allreduce(&grid_ymax,&ymax,1,MPI_Type<Real>(),MPI_MAX,MPI_COMM_WORLD) != MPI_SUCCESS) success = false;
+   if (MPI_Allreduce(&grid_zmax,&zmax,1,MPI_Type<Real>(),MPI_MAX,MPI_COMM_WORLD) != MPI_SUCCESS) success = false;
+   if (MPI_Allreduce(&unref_dx,&dx,1,MPI_Type<Real>(),MPI_MAX,MPI_COMM_WORLD) != MPI_SUCCESS) success = false;
+   if (MPI_Allreduce(&unref_dy,&dy,1,MPI_Type<Real>(),MPI_MAX,MPI_COMM_WORLD) != MPI_SUCCESS) success = false;
+   if (MPI_Allreduce(&unref_dz,&dz,1,MPI_Type<Real>(),MPI_MAX,MPI_COMM_WORLD) != MPI_SUCCESS) success = false;
+   unref_dx = dx;
+   unref_dy = dy;
+   unref_dz = dz;
+   grid_xmin = xmin;
+   grid_ymin = ymin;
+   grid_zmin = zmin;
+   grid_xmax = xmax + unref_dx;
+   grid_ymax = ymax + unref_dy;
+   grid_zmax = zmax + unref_dz;
+   unrefSize_x = static_cast<unsigned long long>((grid_xmax-grid_xmin)/unref_dx);
+   unrefSize_y = static_cast<unsigned long long>((grid_ymax-grid_ymin)/unref_dy);
+   unrefSize_z = static_cast<unsigned long long>((grid_zmax-grid_zmin)/unref_dz);
+
+   syncCellAssignments();
+   buildExchangeLists();
+   // Insert remote cells:
+   for (std::map<ID::type,int>::const_iterator it=receiveList.begin(); it!=receiveList.end(); ++it) {
+      remoteCells[it->first];
+   }
+   syncCellCoordinates();
+   
+   // Now we can go through local cells and rearrange the neighbours into correct order.
+   for (typename std::map<ID::type,ParCell<C> >::iterator it=localCells.begin(); it!=localCells.end(); ++it) {
+      std::vector<ID::type> tmpnbrs;
+      for (int i=0; i<24; ++i) {
+	 if (it->second.neighbours[i] == std::numeric_limits<ID::type>::max()) break;
+	 tmpnbrs.push_back(it->second.neighbours[i]);
+	 it->second.neighbours[i] = std::numeric_limits<ID::type>::max();
+      }
+      
+      for (size_t i=0; i<tmpnbrs.size(); ++i) {
+	 /*
+	 if (myrank == 0) {
+	    std::cerr << "Cell #" << it->first << " nbr " << tmpnbrs[i] << " is nbr index ";
+	    std::cerr << calculateNbrIndex(it->first,tmpnbrs[i]) << std::endl;
+	 }
+	 */
+	 it->second.neighbours[calculateNbrIndex(it->first,tmpnbrs[i])] = tmpnbrs[i];
+      }
+   }
+
+   // Allocate memory for local and remote cells:
+   for (typename std::map<ID::type,ParCell<C> >::iterator it=localCells.begin(); it!=localCells.end(); ++it) {
+      it->second.dataptr = new C;
+   }
+   for (typename std::map<ID::type,ParCell<C> >::iterator it=remoteCells.begin(); it!=remoteCells.end(); ++it) {
+      it->second.dataptr = new C;
+   }
+   
+   std::cerr << "init complete" << std::endl;
+   return success;
+}
+
+template<class C>
+bool ParGrid<C>::initialize(cuint& xsize,cuint& ysize,cuint& zsize,creal& xmin,creal& ymin,creal& zmin,
+			    creal& xmax,creal& ymax,creal& zmax) {
+   MPItypeFreed = true;
+   unrefSize_x = xsize;
+   unrefSize_y = ysize;
+   unrefSize_z = zsize;
+   unref_dx = (xmax - xmin) / xsize;
+   unref_dy = (ymax - ymin) / ysize;
+   unref_dz = (zmax - zmin) / zsize;
+   grid_xmin = xmin;
+   grid_xmax = xmax;
+   grid_ymin = ymin;
+   grid_ymax = ymax;
+   grid_zmin = zmin;
+   grid_zmax = zmax;
+   
+   periodic_x = false;
+   periodic_y = false;
+   periodic_z = false;
+   
+   buildInitialGrid();    // Build an initial guess for the grid
+   syncCellAssignments();
+   buildUnrefNeighbourLists();
+  
+   // Load balance grid. Invalidates contents of hostProcesses
+   // and neighbour lists (since no data is actually transmitted).
+   initialLoadBalance();
+   syncCellAssignments();
+   buildUnrefNeighbourLists();
+   buildExchangeLists();  // Build send/receive lists.
+   
+   // Now cells have been assigned to this process, and we also know which 
+   // cells this process will receive from other MPI processes. Allocate
+   // memory:
+   allocateCells();
+   syncCellCoordinates();
 }
 
 template<class C> bool ParGrid<C>::initialLoadBalance() {
@@ -848,6 +1015,45 @@ template<class C> bool ParGrid<C>::initialLoadBalance() {
    zoltan->LB_Free_Part(&importGlobalIDs,&importLocalIDs,&importProcesses,&importParts);
    zoltan->LB_Free_Part(&exportGlobalIDs,&exportLocalIDs,&exportProcesses,&exportParts);
    return rvalue;
+}
+
+template<class C> bool ParGrid<C>::loadBalance() {
+   bool rvalue = true;
+   int changes,N_globalIDs,N_localIDs,N_import,N_export;
+   int* importProcesses;
+   int* importParts;
+   int* exportProcesses;
+   int* exportParts;
+   ZOLTAN_ID_PTR importGlobalIDs;
+   ZOLTAN_ID_PTR importLocalIDs;
+   ZOLTAN_ID_PTR exportGlobalIDs;
+   ZOLTAN_ID_PTR exportLocalIDs;
+   
+   std::cerr << "Balancing load" << std::endl;
+   
+   // Ask Zoltan the cells which should be imported and exported:
+   if (zoltan->LB_Partition(changes,N_globalIDs,N_localIDs,N_import,importGlobalIDs,importLocalIDs,
+			    importProcesses,importParts,N_export,exportGlobalIDs,exportLocalIDs,
+			    exportProcesses,exportParts) == ZOLTAN_OK) {
+      
+      for (int i=0; i<N_processes; ++i) {
+	 if (i == myrank) {
+	    std::cerr << "Proc #" << myrank << " exporting cells:" << std::endl;
+	    for (int j=0; j<N_export; ++j) {
+	       std::cerr << exportGlobalIDs[j] << " to proc #" << exportProcesses[j] << " to part " << exportParts[j] << std::endl;
+	    }
+	    std::cerr << std::endl;
+	    std::cerr << "Proc #" << myrank << " importing cells:" << std::endl;
+	    for (int j=0; j<N_import; ++j) {
+	       std::cerr << importGlobalIDs[j] << " to proc #" << importProcesses[j] << " to part " << importParts[j] << std::endl;
+	    }
+	    std::cerr << std::endl;
+	 }
+	 barrier();
+      }
+   } else {
+      std::cerr << "(ParGrid) ERROR: Zoltan failed to balance load!" << std::endl;
+   }
 }
 
 template<class C> std::string ParGrid<C>::loadBalanceMethod(const LBM& method) {
@@ -982,8 +1188,8 @@ template<class C> void ParGrid<C>::syncCellAssignments() {
    delete cellsPerProcess;
 }
 
-/** Exchance unrefined cell indices and midpoint coordinates between neighbouring 
- * MPI processes.
+/** Exchances unrefined cell indices and lower left corner coordinates of boundary 
+ * cells between between neighbouring MPI processes.
  */
 template<class C> void ParGrid<C>::syncCellCoordinates() {
    #ifndef NDEBUG

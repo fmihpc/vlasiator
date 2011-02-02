@@ -116,11 +116,6 @@ VlsHeader::Real (*ptrCellCRD)(const unsigned char* const,const bool&);
 VlsHeader::Int (*ptrCellGID)(const unsigned char* const,const bool&);
 VlsHeader::Int (*ptrVarNameSize)(const unsigned char* const,const bool&);
 
-VlsHeader::Int VlsReader::getNeighbourID(const unsigned int& nbr) const {
-   if (nbr > 23) return numeric_limits<VlsHeader::Int>::max();
-   return nbrIDArray[nbr];
-}
-
 VlsHeader::Int VlsReader::getUInt(const unsigned char* const ptr,const int& size,const bool& swapIntEndian) const {
    switch (size) {
     case 1:
@@ -175,6 +170,7 @@ VersionNumber getVersionNumber(const std::string& stringVersion) {
 // ********************************************************
 
 VlsReader::VlsReader(): byteArray(NULL),fileptr(NULL) { 
+   bytesPerSpatNbrListSize = 1;
    N_dimensions = 0;
    readDynamicData = false;
    readSpatNbrList = false;
@@ -309,8 +305,14 @@ bool VlsReader::calculateVariableSizes() {
       VlsHeader::UInt tmp = getUInt(&(it->second[0]),it->second.size(),swapIntEndian);
       if (tmp != 0) readDynamicData = true;
    }
+
+   // Size of field giving the byte size of spatial cell neighbour list entry:
+   it = headerElements.find(VlsHeader::BYTES_PER_SPAT_NBR_SIZE);
+   if (it != headerElements.end()) {
+      bytesPerSpatNbrListSize = getUInt(&(it->second[0]),it->second.size(),swapIntEndian);
+   }
    
-   headerElements.clear();
+   //headerElements.clear();
    return success;
 }
 
@@ -336,7 +338,20 @@ bool VlsReader::close() {
    return true;
 }
 
+VlsHeader::UInt VlsReader::getNeighbourID(const unsigned int& nbr) const {
+   if (nbr >= sizeSpatNbrList/sizeCellGID) return numeric_limits<VlsHeader::UInt>::max();
+   return getUInt(baNbrList+nbr*sizeCellGID,sizeCellGID,swapIntEndian);
+}
+
+VlsHeader::UInt VlsReader::getNumberOfSpatialNbrs() const {
+   return sizeSpatNbrList/sizeCellGID;
+}
+
 size_t VlsReader::getNumberOfStaticVars() const {return staticSizeVars.size();}
+
+VlsHeader::UInt VlsReader::getRefinementLevel() const {
+   return cellRefLevel;
+}
 
 unsigned int VlsReader::getStaticVarElements(const size_t& varID) const {
    if (varID >= staticSizeVars.size()) return 0;
@@ -427,7 +442,7 @@ bool VlsReader::readSpatCellCoordEntry() {
 
    // Read the rest of the cell entry:
    fileptr->read(reinterpret_cast<char*>(byteArray),sizeCellCoordEntry-sizeCellGID);
-   if (fileptr->gcount() < (sizeCellCoordEntry-sizeCellGID)) return false;
+   if (fileptr->gcount() != (sizeCellCoordEntry-sizeCellGID)) return false;
    if (fileptr->good() == false) return false;
    
    // Store values to internal variables, taking care of endianness:
@@ -439,8 +454,9 @@ bool VlsReader::readSpatCellCoordEntry() {
       dy          = ptrCellCRD(byteArray + 4*sizeCellCRD,swapFloatEndian);
       dz          = ptrCellCRD(byteArray + 5*sizeCellCRD,swapFloatEndian);
    }
-   
+
    // Read neighbour list if it is included:
+   /*
    if (readSpatNbrList == true) {
       // Read neighbour refinement status field, and based on its value 
       // calculate the byte size of neighbour list. The +1 below comes from 
@@ -464,6 +480,31 @@ bool VlsReader::readSpatCellCoordEntry() {
       }
       cellRefLevel = getUInt(baNbrList,1,swapIntEndian);
       parseNeighbourIndices();
+   }
+   */
+   if (readSpatNbrList == true) {
+      // Read the byte size of spatial neighbour list:
+      //fileptr->read(reinterpret_cast<char*>(byteArray),bytesPerSpatNbrListSize);
+      //if (fileptr->gcount() != bytesPerSpatNbrListSize) return false;
+      //sizeSpatNbrList = getUInt(byteArray,bytesPerSpatNbrListSize,swapIntEndian);
+      
+      unsigned char tmp;
+      fileptr->read(reinterpret_cast<char*>(&tmp),1);
+      if (fileptr->gcount() != 1) return false;
+      sizeSpatNbrList = tmp;
+      
+      // Check that nbr list byte array is large enough:
+      if (sizeBaNbrList < sizeSpatNbrList) {
+	 delete baNbrList;
+	 baNbrList = new unsigned char[sizeSpatNbrList];
+	 sizeBaNbrList = sizeSpatNbrList;
+      }
+      // Read cell refinement level:
+      fileptr->read(reinterpret_cast<char*>(&cellRefLevel),1);
+      if (fileptr->gcount() != 1) return false;
+      // Read neighbour list:
+      fileptr->read(reinterpret_cast<char*>(baNbrList),sizeSpatNbrList);
+      if (fileptr->gcount() != sizeSpatNbrList) return false;
    }
    
    // Read dynamic-size data if it is included:

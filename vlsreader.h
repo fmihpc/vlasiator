@@ -21,8 +21,10 @@ class VlsReader {
    template<typename T> T getDy() const;
    template<typename T> T getDz() const;
    template<typename T> bool getHeaderElement(const unsigned char& ID,T& value) const;
-   VlsHeader::Int getNeighbourID(const unsigned int& nbr) const;
+   VlsHeader::UInt getNeighbourID(const unsigned int& nbr) const;
+   VlsHeader::UInt getNumberOfSpatialNbrs() const;
    size_t getNumberOfStaticVars() const;
+   VlsHeader::UInt getRefinementLevel() const;
    template<typename T> T getSpatCellGID() const;
    template<typename T> T getStaticVar(const size_t& varID,const unsigned int& element) const;
    unsigned int getStaticVarElements(const size_t& varID) const;
@@ -53,6 +55,8 @@ class VlsReader {
    };
 
    unsigned char* byteArray;
+   VlsHeader::UInt bytesPerSpatNbrListSize; /**< Byte size of field that gives the byte size of spatial neighbour 
+					     * list entry. Defaults to unit value.*/
    unsigned char cellRefLevel;
    VlsHeader::Real dx;                  /**< Width of a cell in x-direction.*/
    VlsHeader::Real dy;                  /**< Width of a cell in y-direction.*/
@@ -69,7 +73,8 @@ class VlsReader {
    unsigned int sizeCellCoordEntry;     /**< The size of spatial cell coordinate entry, in bytes.*/
    unsigned char sizeCellCRD;           /**< Size of spatial cell coordinate value entry, in bytes.*/
    unsigned char sizeCellGID;           /**< Size of spatial cell global ID entry, in bytes.*/
-   VlsHeader::Int  spatCellGID;         /**< Global ID of the cell which was read from the vlsv file.*/
+   VlsHeader::UInt sizeSpatNbrList;     /**< Byte size of spatial neighbour list entry.*/
+   VlsHeader::Int spatCellGID;          /**< Global ID of the cell which was read from the vlsv file.*/
    std::vector<VarDesc> staticSizeVars; /**< Container for the descriptions of static-size variables
 					 * stored in the vlsv file.*/
    bool swapFloatEndian;                /**< If true, floating point byte order should be swapped when

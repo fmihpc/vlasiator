@@ -12,6 +12,12 @@
 #include "cell_spatial.h"
 #include "datareducer.h"
 
+#ifdef PARGRID
+namespace ID {
+   typedef uint type;
+}
+#endif
+
 class VlsWriter {
  public:
    
@@ -22,20 +28,30 @@ class VlsWriter {
    bool flushBuffer();
    bool open(MPI_Comm comm,const std::string& fname);
    bool reserveSpatCellCoordBuffer(const unsigned int& N_cells,const DataReducer* const dr);
+   bool setBytesPerCellGID(const unsigned char& bytes);
+   bool setWriteSpatNbrsLists(const bool& writeLists);
    bool sync();
    bool writeHeader(MPI_Comm comm,const int& masterRank);   
-   bool writeSpatCellCoordEntry(cuint& cellID,const SpatialCell& cell,DataReducer* const dr);
-   bool writeSpatCellCoordEntryBuffered(cuint& cellID,const SpatialCell& cell,DataReducer* const dr);
    bool writeSpatCellCoordEntryEndMarker(MPI_Comm comm,const int& masterRank);
    bool writeStaticVariableDesc(MPI_Comm comm,const int& masterRank,DataReducer* const dr);
 
+   #ifdef PARGRID
+   bool writeSpatCellCoordEntry(const ID::type& cellID,const SpatialCell& cell,DataReducer* const dr);
+   bool writeSpatCellCoordEntryBuffered(const ID::type& cellID,const SpatialCell& cell,DataReducer* const dr,const std::vector<ID::type>& nbrs,cuchar& refLevel);
+   #else
+   bool writeSpatCellCoordEntry(const uint64_t& cellID,const SpatialCell& cell,DataReducer* const dr);
+   bool writeSpatCellCoordEntryBuffered(const uint64_t& cellID,const SpatialCell& cell,DataReducer* const dr,const std::vector<uint64_t>& nbrs,cuchar& refLevel);
+   #endif
+   
  private:
-   size_t bufferPointer;                /**< Next free position in VlsWriter::byteArray where data can 
-					 * be written.*/
-   size_t bufferSize;                   /**< The size of VlsWriter::byteArray.*/
-   unsigned char* byteArray;            /**< Byte array which is used for buffered writing to a vlsv file.*/
+   unsigned int bufferedCells;           /**< How many cells are currently in buffer.*/
+   unsigned int bufferSize;              /**< Size of buffer, measured in cells.*/
+   unsigned char bytesPerCellGID;        /**< The size of spatial cell global ID field, in bytes. This value is written to header.*/
+   unsigned char bytesPerSpatNbrListSize; /**< The byte size of a field giving the byte size spatial cell neighbour list entry.*/
+   std::vector<unsigned char> byteArray;
    MPIFile mpiFile;                     /**< MPIFile which is used for I/O.*/
-   unsigned int sizeByteArray;
+   unsigned char N_dimensions;          /**< Dimensionality (spatial) of the data. Allowed values are 1, 2, or 3.*/
+   bool writeSpatNbrList;               /**< If true, spatial neighbour lists are written. This value is written to header.*/
    
    template<typename T> void appendHeaderElement(std::vector<unsigned char>& byteArray,const unsigned char& typeID,const T& element);
    void appendHeaderElement(std::vector<unsigned char>& byteArray,const unsigned char& typeID,const unsigned char* const array,const unsigned int& arraySize);

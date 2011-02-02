@@ -5,6 +5,8 @@ typedef float Real;
 //typedef float real;
 typedef const float creal;
 typedef const int cint;
+typedef unsigned char uchar;
+typedef const unsigned char cuchar;
 typedef unsigned int uint;
 typedef const unsigned int cuint;
 typedef long unsigned int luint;

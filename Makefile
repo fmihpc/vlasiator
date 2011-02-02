@@ -1,9 +1,9 @@
-include Makefile.gnu
+include Makefile.arto
 
 default: main vls2vtk
 
 # Compile directory:
-INSTALL=${HOME}/codes/cudafvm2
+INSTALL=${HOME}/codes/cuda/cudafvm
 
 # Which project is compiled:
 PROJ=harm1D
@@ -72,7 +72,7 @@ DEPS_WRITEVARS += ${DEPS_COMMON}
 HDRS = cpu_acc.h cpu_common.h cpu_trans.h cell_spatial.h\
 	common.h datareducer.h datareductionoperator.h\
 	definitions.h grid.h\
-	main_dccrg.h main_pargrid.h mpifile.h mpilogger.h\
+	main_dccrg.h main_pargrid.h mpiconversion.h mpifile.h mpilogger.h\
 	parameters.h\
 	pargrid.h silowriter.h vlscommon.h vlsreader.h vlswriter.h\
 	writevars.h
@@ -95,7 +95,7 @@ OBJS = cell_spatial.o cpu_acc.o cpu_trans.o datareducer.o\
 	datareductionoperator.o grid.o\
 	gridbuilder.o main.o mpifile.o mpilogger.o\
 	 parameters.o project.o\
-	silowriter.o timer.o vlscommon.o vlswriter.o
+	silowriter.o timer.o vlscommon.o vlsreader.o vlswriter.o
 
 OBJS_VLS2VTK = vlscommon.o vlsreader.o
 
