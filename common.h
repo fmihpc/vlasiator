@@ -48,12 +48,12 @@ namespace NbrsVel {
    enum {
       STATE, /**< Contains the neighbour information bits of a velocity block.*/
       MYIND, /**< The index of the block.*/   
-      XNEG,  /**< The index of -x neighbour.*/
-      YNEG,  /**< The index of -y neighbour.*/
-      ZNEG,  /**< The index of -z neighbour.*/
-      XPOS,  /**< The index of +x neighbour.*/
-      YPOS,  /**< The index of +y neighbour.*/
-      ZPOS,  /**< The index of +z neighbour.*/
+      //XNEG,  /**< The index of -x neighbour.*/
+      //YNEG,  /**< The index of -y neighbour.*/
+      //ZNEG,  /**< The index of -z neighbour.*/
+      //XPOS,  /**< The index of +x neighbour.*/
+      //YPOS,  /**< The index of +y neighbour.*/
+      //ZPOS,  /**< The index of +z neighbour.*/
       VXNEG, /**< The index of -vx neighbour.*/
       VYNEG, /**< The index of -vy neighbour.*/
       VZNEG, /**< The index of -vz neighbour.*/
@@ -67,7 +67,7 @@ namespace NbrsVel {
  * the physical parameters of each velocity block.*/
 namespace BlockParams {
    enum {
-      Q_PER_M, /**< The charge-to-mass ratio of the particle species. DEPRECATED: GOING TO BE REMOVED!.*/
+      //Q_PER_M, /**< The charge-to-mass ratio of the particle species. DEPRECATED: GOING TO BE REMOVED!.*/
       VXCRD,   /**< vx-coordinate of the bottom left corner of the block.*/
       VYCRD,   /**< vy-coordinate of the bottom left corner of the block.*/
       VZCRD,   /**< vz-coordinate of the bottom left corner of the block.*/
@@ -105,10 +105,10 @@ cuint WID2 = WID*WID;
 cuint WID3 = WID2*WID; 
 
 cuint SIZE_CELLPARAMS  = 16;   /**< The number of parameters for one spatial cell. */
-cuint SIZE_NBRS_VEL    = 16;   /**< The size of velocity grid neighbour list per velocity block. */
+cuint SIZE_NBRS_VEL    = 8;    /**< The size of velocity grid neighbour list per velocity block. */
 cuint SIZE_NBRS_SPA    = 16;   /**< The size of spatial grid neighbour list per spatial cell. */
 cuint SIZE_VELBLOCK    = WID3; /**< Number of cells in a velocity block. */
-cuint SIZE_BLOCKPARAMS = 16;   /**< Number of parameters per velocity block. */
+cuint SIZE_BLOCKPARAMS = 6;    /**< Number of parameters per velocity block. */
 
 cuint SIZE_BOUND       = WID3;
 cuint SIZE_BDERI       = WID2;
