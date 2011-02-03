@@ -21,8 +21,11 @@ Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal&
    
    const Real DV2 = DV*DV;                 // Square of sigma
    const Real NORM = convert<Real>(1.0) / pow(convert<Real>(2.0)*M_PI*DV2,convert<Real>(3.0/2.0)); // Normalization const.
-   const Real PHI_MIN = -20.0*M_PI/180.0;
-   const Real PHI_MAX = +20.0*M_PI/180.0;
+   const Real PHI_MIN = +25.0*M_PI/180.0;
+   const Real PHI_MAX = +65.0*M_PI/180.0;
+
+   if (x < -0.3 || x+dx > +0.3) return 0.0;
+   if (y < -0.3 || y+dy > +0.3) return 0.0;
    
    // Sample the distribution with N points in each coordinate direction:
    const uint N = 2;
@@ -46,7 +49,7 @@ Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal&
 }
 
 void calcBlockParameters(Real* blockParams) {
-   blockParams[BlockParams::Q_PER_M] = 1.0;
+   //blockParams[BlockParams::Q_PER_M] = 1.0;
 }
 
 void calcCellParameters(Real* cellParams,creal& t) {
@@ -58,8 +61,13 @@ void calcCellParameters(Real* cellParams,creal& t) {
    cellParams[CellParams::EZ   ] = 0.0;
    cellParams[CellParams::BX   ] = 0.0;
    cellParams[CellParams::BY   ] = 0.0;
-   cellParams[CellParams::BZ   ] = 1.0;
+   cellParams[CellParams::BZ   ] = 0.1;
 }
+/*
+Real calcBoundVolAvg(cuint& iv,cuint& jv,cuint& kv,const Real* const cellParams,
+		     const Real* const blockParams,const Real& avg,const int& crd,const bool& negSide) {
+   return avg;
+}*/
 
 // TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
 #ifndef PARGRID

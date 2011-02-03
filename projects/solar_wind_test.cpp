@@ -68,7 +68,7 @@ Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal&
 }
 
 void calcBlockParameters(Real* blockParams) {
-   blockParams[BlockParams::Q_PER_M] = Q_P / M_P;
+   //blockParams[BlockParams::Q_PER_M] = Q_P / M_P;
 }
 
 ptime get_EB_time(string EB_file_name)

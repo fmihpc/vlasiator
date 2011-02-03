@@ -46,7 +46,7 @@ Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal&
 }
 
 void calcBlockParameters(Real* blockParams) {
-   blockParams[BlockParams::Q_PER_M] = 1.0;
+   //blockParams[BlockParams::Q_PER_M] = 1.0;
 }
 
 void calcCellParameters(Real* cellParams,creal& t) {

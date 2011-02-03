@@ -67,7 +67,7 @@ namespace NbrsVel {
  * the physical parameters of each velocity block.*/
 namespace BlockParams {
    enum {
-      Q_PER_M, /**< The charge-to-mass ratio of the particle species.*/
+      Q_PER_M, /**< The charge-to-mass ratio of the particle species. DEPRECATED: GOING TO BE REMOVED!.*/
       VXCRD,   /**< vx-coordinate of the bottom left corner of the block.*/
       VYCRD,   /**< vy-coordinate of the bottom left corner of the block.*/
       VZCRD,   /**< vz-coordinate of the bottom left corner of the block.*/

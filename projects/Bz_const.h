@@ -90,7 +90,7 @@ template<typename T> T velocityFluxX(const T& J,const T& K,const T& avg_neg,cons
    const T VY = blockParams[BlockParams::VYCRD] + (J+convert<T>(0.5))*blockParams[BlockParams::DVY];
    const T VZ = blockParams[BlockParams::VZCRD] + (K+convert<T>(0.5))*blockParams[BlockParams::DVZ];
    const T BZ = cellParams[CellParams::BZ];
-   const T AX = blockParams[BlockParams::Q_PER_M]*(VY*BZ);
+   const T AX = Parameters::q_per_m*(VY*BZ);
    return convert<T>(0.5)*AX*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AX)*(avg_pos-avg_neg);
 }
 
@@ -99,7 +99,7 @@ template<typename T> T velocityFluxY(const T& I,const T& K,const T& avg_neg,cons
    const T VZ = blockParams[BlockParams::VZCRD] + (K+convert<T>(0.5))*blockParams[BlockParams::DVZ];
    const T BZ = cellParams[CellParams::BZ];
    
-   const T AY = blockParams[BlockParams::Q_PER_M]*(-VX*BZ);
+   const T AY = Parameters::q_per_m*(-VX*BZ);
    return convert<T>(0.5)*AY*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AY)*(avg_pos-avg_neg);
 }
 
