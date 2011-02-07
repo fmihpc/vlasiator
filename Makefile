@@ -13,6 +13,9 @@ PROJ=harm1D
 #PROJ=By_const
 #PROJ=Bz_const
 
+# Which grid builder is used:
+BUILDER=rect_cuboid_builder
+
 # Collect libraries into single variable:
 LIBS = ${LIB_BOOST}
 LIBS += ${LIB_SILO}
@@ -20,7 +23,7 @@ LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_MPI}
 
 # Define dependencies of each object file
-DEPS_COMMON = common.h definitions.h
+DEPS_COMMON = common.h definitions.h mpiconversion.h
 DEPS_CELL_SPATIAL = cell_spatial.h grid.h parameters.h cell_spatial.cpp
 DEPS_CELLSYNC = cell_spatial.h cellsync.cpp
 DEPS_CPU_ACC = cell_spatial.h cpu_acc.h cpu_common.h project.h cpu_acc.cpp
@@ -32,8 +35,8 @@ DEPS_DATAREDUCER = cell_spatial.h datareducer.h datareductionoperator.h dataredu
 DEPS_DATAREDUCTIONOPERATOR = cell_spatial.h datareductionoperator.h datareductionoperator.cpp
 DEPS_GPU_DEVICE_GRID = cell_spatial.h parameters.h devicegrid.h gpudevicegrid.cpp
 DEPS_GRID = grid.h parameters.h grid.cpp
-DEPS_GRIDBUILDER = cell_spatial.h parameters.h project.h gridbuilder.cpp
-DEPS_MAIN = main_dccrg.h main_pargrid.h parameters.h pargrid.h project.h grid.h silowriter.h writevars.h cell_spatial.h main.cpp
+DEPS_GRIDBUILDER = cell_spatial.h parameters.h pargrid.h project.h gridbuilder.h gridbuilder.cpp
+DEPS_MAIN = gridbuilder.h main_dccrg.h main_pargrid.h parameters.h pargrid.h project.h grid.h silowriter.h writevars.h cell_spatial.h main.cpp
 DEPS_MPIFILE = mpifile.h mpifile.cpp
 DEPS_MPILOGGER = mpifile.h mpilogger.h mpilogger.cpp
 DEPS_PARAMETERS = parameters.h parameters.cpp
@@ -71,7 +74,7 @@ DEPS_WRITEVARS += ${DEPS_COMMON}
 
 HDRS = cpu_acc.h cpu_common.h cpu_trans.h cell_spatial.h\
 	common.h datareducer.h datareductionoperator.h\
-	definitions.h grid.h\
+	definitions.h grid.h gridbuilder.h\
 	main_dccrg.h main_pargrid.h mpiconversion.h mpifile.h mpilogger.h\
 	parameters.h\
 	pargrid.h silowriter.h vlscommon.h vlsreader.h vlswriter.h\
@@ -91,7 +94,7 @@ CUDA_SRC = cellsync.cpp cuda_acc.cu cuda_common.cu cuda_trans.cu\
 
 CUDA_OBJS = cellsync.o cuda_acc.o cuda_trans.o cudafuncs.o gpudevicegrid.o
 
-OBJS = cell_spatial.o cpu_acc.o cpu_trans.o datareducer.o\
+OBJS = builder.o cell_spatial.o cpu_acc.o cpu_trans.o datareducer.o\
 	datareductionoperator.o grid.o\
 	gridbuilder.o main.o mpifile.o mpilogger.o\
 	 parameters.o project.o\
@@ -103,7 +106,11 @@ HDRS +=
 SRC +=
 OBJS +=
 
+builderinstall:
+	make ${BUILDER} -C gridbuilders "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS}"
+
 clean:
+	make clean -C gridbuilders
 	make clean -C projects
 	rm -rf *.o *.ptx *.tar* *.txt *.silo *.vtk *.vlsv project.h project.cu project.cpp main *~ visitlog.py vls2vtk
 
@@ -195,5 +202,5 @@ dist:
 	rm -rf cudaFVM
 
 # Make executable
-main: projinstall $(OBJS)
+main: builderinstall projinstall $(OBJS)
 	$(LNK) ${LDFLAGS} -o main $(OBJS) $(LIBS)

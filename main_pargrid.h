@@ -40,8 +40,23 @@ namespace Main {
    cuint spatPropMPISend   = Timer::create("MPI Send : spat. propag              : ");
 }
 
-void initialLoadBalance(ParGrid<SpatialCell>& mpiGrid) { }
-
+void initialLoadBalance(ParGrid<SpatialCell>& mpiGrid) { 
+   /*
+   int myrank;
+   int N_processes;
+   MPI_Comm_size(MPI_COMM_WORLD,&N_processes);
+   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+   for (int i=0; i<N_processes; ++i) {
+      if (i == myrank) {
+	 mpiGrid.getCells(Main::cells);
+	 std::cerr << "Proc #" << myrank << " has cells:" << std::endl;
+	 for (uint j=0; j<Main::cells.size(); ++j) std::cerr << "\t" << Main::cells[j] << std::endl;
+      }
+      mpiGrid.barrier();
+   }
+    */
+}
+/*
 bool initFromRestartFile(const std::string& fname,const int& myrank,ParGrid<SpatialCell>& mpiGrid) {
    const int MASTER_RANK = 0;
    bool success = true;
@@ -238,8 +253,9 @@ bool initFromRestartFile(const std::string& fname,const int& myrank,ParGrid<Spat
    vlsReader.close();
    return success;
 }
-
+*/
 bool findNeighbours(std::vector<const SpatialCell*>& nbrPtr,const ParGrid<SpatialCell>& mpiGrid,const ID::type& CELLID) {
+   /*
    std::vector<ID::type> nbrs;
    mpiGrid.getNeighbours(nbrs,CELLID);
    if (nbrs.size() != 24) {
@@ -260,6 +276,22 @@ bool findNeighbours(std::vector<const SpatialCell*>& nbrPtr,const ParGrid<Spatia
    else nbrPtr[4] = NULL;
    if (nbrs[20] != std::numeric_limits<ID::type>::max()) nbrPtr[5] = mpiGrid[nbrs[20]];
    else nbrPtr[5] = NULL;
+   */
+   ID::type nbrID;
+   for (int i=0; i<6; ++i) nbrPtr[i] = NULL;
+   nbrID = mpiGrid.getNeighbour(CELLID, 0);
+   if (nbrID != std::numeric_limits<ID::type>::max()) nbrPtr[0] = mpiGrid[nbrID];
+   nbrID = mpiGrid.getNeighbour(CELLID, 8);
+   if (nbrID != std::numeric_limits<ID::type>::max()) nbrPtr[1] = mpiGrid[nbrID];
+   nbrID = mpiGrid.getNeighbour(CELLID,16);
+   if (nbrID != std::numeric_limits<ID::type>::max()) nbrPtr[2] = mpiGrid[nbrID];
+   nbrID = mpiGrid.getNeighbour(CELLID,24);
+   if (nbrID != std::numeric_limits<ID::type>::max()) nbrPtr[3] = mpiGrid[nbrID];
+   nbrID = mpiGrid.getNeighbour(CELLID,32);
+   if (nbrID != std::numeric_limits<ID::type>::max()) nbrPtr[4] = mpiGrid[nbrID];
+   nbrID = mpiGrid.getNeighbour(CELLID,40);
+   if (nbrID != std::numeric_limits<ID::type>::max()) nbrPtr[5] = mpiGrid[nbrID];
+   
    return true;
 }
 

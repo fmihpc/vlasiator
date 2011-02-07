@@ -455,39 +455,9 @@ bool VlsReader::readSpatCellCoordEntry() {
       dz          = ptrCellCRD(byteArray + 5*sizeCellCRD,swapFloatEndian);
    }
 
-   // Read neighbour list if it is included:
-   /*
-   if (readSpatNbrList == true) {
-      // Read neighbour refinement status field, and based on its value 
-      // calculate the byte size of neighbour list. The +1 below comes from 
-      // the refinement level field (which is one byte).
-      char nbrStatus;
-      fileptr->read(&nbrStatus,1);
-      unsigned int nbrListSize = countNbrListSize(nbrStatus) * sizeCellGID + 1;
-      
-      // Check that byte array is large enough:
-      if (sizeBaNbrList < nbrListSize) {
-	 delete baNbrList;
-	 baNbrList = new unsigned char[nbrListSize];
-	 sizeBaNbrList = nbrListSize;
-      }
-
-      // Read the refinement level and neighbour list:
-      fileptr->read(reinterpret_cast<char*>(baNbrList),nbrListSize);
-      if (fileptr->gcount() != nbrListSize) {
-	 cerr << "VlsReader::readSpatCellCoordEntry ERROR! Could not read neighbour list!" << endl;
-	 return false;
-      }
-      cellRefLevel = getUInt(baNbrList,1,swapIntEndian);
-      parseNeighbourIndices();
-   }
-   */
+   // Read spatial neighbour list (if it is included):
    if (readSpatNbrList == true) {
       // Read the byte size of spatial neighbour list:
-      //fileptr->read(reinterpret_cast<char*>(byteArray),bytesPerSpatNbrListSize);
-      //if (fileptr->gcount() != bytesPerSpatNbrListSize) return false;
-      //sizeSpatNbrList = getUInt(byteArray,bytesPerSpatNbrListSize,swapIntEndian);
-      
       unsigned char tmp;
       fileptr->read(reinterpret_cast<char*>(&tmp),1);
       if (fileptr->gcount() != 1) return false;

@@ -38,9 +38,13 @@ class VlsWriter {
    #ifdef PARGRID
    bool writeSpatCellCoordEntry(const ID::type& cellID,const SpatialCell& cell,DataReducer* const dr);
    bool writeSpatCellCoordEntryBuffered(const ID::type& cellID,const SpatialCell& cell,DataReducer* const dr,const std::vector<ID::type>& nbrs,cuchar& refLevel);
+   bool writeVelocityBlockEntryBuffered(const ID::type& cellID,const SpatialCell& cell);
+   bool writeVelocityBlockEntryHeaderBuffered(const ID::type& cellID,cuint& N_blocks);
    #else
    bool writeSpatCellCoordEntry(const uint64_t& cellID,const SpatialCell& cell,DataReducer* const dr);
    bool writeSpatCellCoordEntryBuffered(const uint64_t& cellID,const SpatialCell& cell,DataReducer* const dr,const std::vector<uint64_t>& nbrs,cuchar& refLevel);
+   bool writeVelocityBlockEntryBuffered(const uint64_t& cellID,const SpatialCell& cell);
+   bool writeVelocityBlockEntryHeaderBuffered(const uint64_t& cellID,cuint& N_blocks);
    #endif
    
  private:

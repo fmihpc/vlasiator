@@ -10,21 +10,15 @@
 using namespace std;
 
 VlsWriter::VlsWriter() {
-   //bufferPointer = 0;
    bufferedCells = 0;
    bufferSize = 0;
    bytesPerCellGID = numeric_limits<unsigned char>::max();
    bytesPerSpatNbrListSize = 1;
-   //byteArray = NULL;
-   //sizeByteArray = 0;
    N_dimensions = 3;    // This should be given by user
    writeSpatNbrList = false;
 }
 
-VlsWriter::~VlsWriter() {
-   //delete byteArray;
-   //byteArray = NULL;
-}
+VlsWriter::~VlsWriter() { }
 
 void VlsWriter::appendHeaderElement(std::vector<unsigned char>& byteArray,const unsigned char& typeID,
 				    const unsigned char* const array,const unsigned int& arraySize) {
@@ -49,23 +43,14 @@ bool VlsWriter::close() {
 bool VlsWriter::flushBuffer() {
    // Write buffer to file:
    bool rvalue = true;
-   //if (bufferPointer == 0 || bufferSize == 0) return rvalue;
    if (byteArray.size() == 0 || bufferedCells == 0) return rvalue;
    
    int myrank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
    
-   //if (mpiFile.write(bufferPointer,byteArray) == false) rvalue = false;
    if (mpiFile.write(byteArray.size(),&(byteArray[0])) == false) rvalue = false;
-   //if (mpiFile.getCount<unsigned int>() != bufferPointer) rvalue = false;
    if (mpiFile.getCount<size_t>() != byteArray.size()) rvalue = false;
    // Clear buffer:
-   /*
-   delete byteArray;
-   byteArray = NULL;
-   bufferPointer = 0;
-   bufferSize = 0;
-   */
    bufferedCells = 0;
    byteArray.clear();
    return rvalue;
@@ -85,16 +70,6 @@ bool VlsWriter::open(MPI_Comm comm,const std::string& fname) {
 }
 
 bool VlsWriter::reserveSpatCellCoordBuffer(const unsigned int& N_cells,const DataReducer* const dr) {
-   //delete byteArray;   
-   /*
-   // Calculate byte size of one coordinate entry, and reserve large enough array:
-   size_t entrySize = sizeof(uint) + 6*sizeof(Real);
-   if (dr != NULL) entrySize += dr->getByteSize();   
-   bufferSize = N_cells * entrySize;
-   bufferPointer = 0;
-   
-   byteArray = new unsigned char[bufferSize];
-   */
    bufferedCells = 0;
    bufferSize = N_cells;
    byteArray.clear();
@@ -227,7 +202,6 @@ bool VlsWriter::writeHeader(MPI_Comm comm,const int& masterRank) {
    
    // Write Version_1_0_0 data:
    const unsigned int SIZE = 6*sizeof(Real) + sizeof(cellID) + varDataByteSize;
-   //char byteArray[SIZE];
    byteArray.reserve(SIZE);
       
    unsigned int index = 0;
@@ -235,23 +209,19 @@ bool VlsWriter::writeHeader(MPI_Comm comm,const int& masterRank) {
    
    // Append cell global ID to byteArray:
    ptr = reinterpret_cast<unsigned char*>(const_cast<uint*>(&cellID));
-   //for (int i=0; i<sizeof(cellID); ++i) {byteArray[index] = ptr[i]; ++index;}
    for (int i=0; i<sizeof(cellID); ++i) byteArray.push_back(ptr[i]);
    
    // Append cell x,y,z,dx,dy,dz to byteArray:
    ptr = reinterpret_cast<unsigned char*>(cell.cpu_cellParams);
-   //for (int i=0; i<6*sizeof(Real); ++i) {byteArray[index] = ptr[i]; ++index;}   
    for (int i=0; i<6*sizeof(Real); ++i) byteArray.push_back(ptr[i]);
       
    // Append static-size variable data from varByteData to byteArray:
-   //for (unsigned int i=0; i<varDataByteSize; ++i) {byteArray[index] = varByteData[i]; ++index;}
    for (unsigned int i=0; i<varDataByteSize; ++i) byteArray.push_back(varByteData[i]);
    delete varByteData;
    varByteData = NULL;
    
    // Write byteArray to file:
    bool rvalue = true; //mpiFile.write(SIZE,byteArray);
-   //if (mpiFile.write(SIZE,byteArray) == false) rvalue = false;
    if (mpiFile.write(byteArray.size(),&(byteArray[0])) == false) rvalue = false;
    if (mpiFile.getCount<unsigned int>() != SIZE) rvalue = false;
    return rvalue;
@@ -265,16 +235,6 @@ bool VlsWriter::writeSpatCellCoordEntryBuffered(const uint64_t& cellID,const Spa
    typedef uint64_t GIDtype;
 #endif
    bool rvalue = true;
-   /*
-   // Check that buffer has space for the entry. If it doesn't, 
-   // flush buffer to file before appending the given data:
-   size_t entrySize = sizeof(uint) + 6*sizeof(Real);
-   if (dr != NULL) entrySize += dr->getByteSize();
-   if (bufferPointer + entrySize > bufferSize) {
-      if (flushBuffer() == false) rvalue = false;
-   }
-   */
-
    // Check that cell global ID is sane:
    if (cellID == numeric_limits<GIDtype>::max()) {
       cerr << "VlsWriter::writeSpatCellCoordEntryBuffered ERROR: invalid cellID!" << endl;
@@ -284,11 +244,9 @@ bool VlsWriter::writeSpatCellCoordEntryBuffered(const uint64_t& cellID,const Spa
    // Append cell global ID to buffer:
    const unsigned char* ptr;
    ptr = reinterpret_cast<const unsigned char*>(&cellID);
-   //for (int i=0; i<sizeof(cellID); ++i) {byteArray[bufferPointer] = ptr[i]; ++bufferPointer;}
    for (int i=0; i<sizeof(cellID); ++i) byteArray.push_back(ptr[i]);
    // Append cell x,y,z,dx,dy,dz to buffer:
    ptr = reinterpret_cast<const unsigned char*>(cell.cpu_cellParams);
-   //for (int i=0; i<6*sizeof(Real); ++i) {byteArray[bufferPointer] = ptr[i]; ++bufferPointer;}
    for (int i=0; i<6*sizeof(Real); ++i) byteArray.push_back(ptr[i]);
    
    // Reduce cell data and add to buffer:
@@ -297,10 +255,6 @@ bool VlsWriter::writeSpatCellCoordEntryBuffered(const uint64_t& cellID,const Spa
 	 cerr << "VlsWriter::writeSpatCellCoordEntry ERROR: DataReducer failed to reduce data!" << endl;
 	 rvalue = false;
       } else {
-	 /*
-	 dr->appendReducedData(cell,byteArray + bufferPointer);
-	 bufferPointer += dr->getByteSize();
-	 */
 	if (dr->appendReducedData(cell,byteArray) == false) {
 	   cerr << "VlsWriter::writeSpatCellCoordEntry ERROR: DataReducer failed to append data!" << endl;
 	}
@@ -320,57 +274,10 @@ bool VlsWriter::writeSpatCellCoordEntryBuffered(const uint64_t& cellID,const Spa
       // Append refinement level:
       byteArray.push_back(refLevel);
       // Append neighbour global IDs:
-      /*
-      for (size_t i=0; i<nbrs.size(); ++i) {
-	 ptr = reinterpret_cast<const unsigned char*>(&(nbrs[i]));
-	 for (int j=0; j<bytesPerCellGID; ++j) byteArray.push_back(ptr[j]);
-      }
-      */
       ptr = reinterpret_cast<const unsigned char*>(&(nbrs[0]));
       for (unsigned int i=0; i<bytesPerCellGID*nbrs.size(); ++i) byteArray.push_back(ptr[i]);
    }
    
-   /*
-   // Write neighbour list (if requested):
-   if (writeSpatNbrList == true) {
-      // Determine the contents of neighbour refinement status field. If the cell 
-      // has more than one neighbour per coordinate direction, raise the corresponding 
-      // bit in refStatus:
-      unsigned char refStatus = 0;
-      if (nbrs[ 1] != numeric_limits<GIDtype>::max()) refStatus = (refStatus |  1);
-      if (nbrs[ 5] != numeric_limits<GIDtype>::max()) refStatus = (refStatus |  2);
-      if (nbrs[ 9] != numeric_limits<GIDtype>::max()) refStatus = (refStatus |  4);
-      if (nbrs[13] != numeric_limits<GIDtype>::max()) refStatus = (refStatus |  8);
-      if (nbrs[17] != numeric_limits<GIDtype>::max()) refStatus = (refStatus | 16);
-      if (nbrs[21] != numeric_limits<GIDtype>::max()) refStatus = (refStatus | 32);
-
-      // Append refinement status field to buffer:
-      //byteArray[bufferPointer] = refStatus; ++bufferPointer;
-      byteArray.push_back(refStatus);
-      // Append refinement level to buffer:
-      //byteArray[bufferPointer] = refLevel; ++bufferPointer;
-      byteArray.push_back(refLevel);
-      // Append existing neighbour global IDs to buffer:
-      unsigned int nbrPointer = 0;
-      ptr = reinterpret_cast<const unsigned char*>(&(nbrs[0]));
-      // Loop over coordinate directions (-x,+x,-y,+y,-z,+z)
-      for (int counter=0; counter<2*N_dimensions; ++counter) {
-	 if (nbrs[nbrPointer+1] == numeric_limits<GIDtype>::max()) {
-	    // Cell has one neighbour in current coordinate direction
-	    //for (int i=0; i<sizeof(cellID); ++i) {byteArray[bufferPointer] = ptr[i]; ++bufferPointer;}
-	    for (int i=0; i<sizeof(cellID); ++i) byteArray.push_back(ptr[i]);
-	    nbrPointer += 1;
-	    ptr += sizeof(cellID);
-	 } else {
-	    // Cell has four neighbours in current coordinate direction
-	    //for (int i=0; i<4*sizeof(cellID); ++i) {byteArray[bufferPointer] = ptr[i]; ++bufferPointer;}
-	    for (int i=0; i<4*sizeof(cellID); ++i) byteArray.push_back(ptr[i]);
-	    nbrPointer += 4;
-	    ptr += 4*sizeof(cellID);
-	 }
-      }      
-   }
-   */
    // If buffer is full, flush it to file:
    ++bufferedCells;
    if (bufferedCells == bufferSize)
@@ -442,6 +349,46 @@ exitWrite:
    return success;
 }
 
-
+#ifdef PARGRID
+bool VlsWriter::writeVelocityBlockEntryBuffered(const ID::type& cellID,const SpatialCell& cell) {
+#else
+bool VlsWriter::writeVelocityBlockEntryBuffered(const uint64_t& cellID,const SpatialCell& cell) {
+#endif
+   bool rvalue = true;
+   const char* ptr;
+   for (uint b=0; b<cell.N_blocks; ++b) {
+      // Write velocity block ID:
+      ptr = reinterpret_cast<const char*>(&b);
+      for (uint i=0; i<sizeof(b); ++i) byteArray.push_back(ptr[i]);
+      // Write velocity block coordinates and size:
+      ptr = reinterpret_cast<const char*>(&(cell.cpu_blockParams[b*SIZE_BLOCKPARAMS+BlockParams::VXCRD]));
+      for (uint i=0; i<6*sizeof(Real); ++i) byteArray.push_back(ptr[i]);
+      // Write velocity block neighbours:
+      ptr = reinterpret_cast<const char*>(&(cell.cpu_nbrsVel[b*SIZE_NBRS_VEL+NbrsVel::VXNEG]));
+      for (uint i=0; i<6*sizeof(uint); ++i) byteArray.push_back(ptr[i]);
+      // Write distribution function data:
+      ptr = reinterpret_cast<const char*>(&(cell.cpu_avgs[b*SIZE_VELBLOCK]));
+      for (uint i=0; i<WID3*sizeof(Real); ++i) byteArray.push_back(ptr[i]);
+   }
+   
+   ++bufferedCells;
+   if (bufferedCells == bufferSize)
+     if (flushBuffer() == false) rvalue = false;
+   return rvalue;
+}
+   
+#ifdef PARGRID
+bool VlsWriter::writeVelocityBlockEntryHeaderBuffered(const ID::type& cellID,cuint& N_blocks) {
+#else
+bool VlsWriter::writeVelocityBlockEntryHeaderBuffered(const uint64_t& cellID,cuint& N_blocks) {
+#endif
+   const char* ptr;
+   // Write spatial cell global ID:
+   ptr = reinterpret_cast<const char*>(&cellID);
+   for (uint i=0; i<sizeof(cellID); ++i) byteArray.push_back(ptr[i]);
+   // Write number of velocity blocks:
+   ptr = reinterpret_cast<const char*>(&N_blocks);
+   for (uint i=0; i<sizeof(N_blocks); ++i) byteArray.push_back(ptr[i]);
+}
 
 

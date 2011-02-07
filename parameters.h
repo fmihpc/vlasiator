@@ -66,6 +66,31 @@ struct Parameters {
 			  * namespace Transmit.*/
 
    Parameters(int argc, char* argv[]);
+   
+   static bool add(const std::string& name,const std::string& desc,char& var,const char& defValue);
+   static bool add(const std::string& name,const std::string& desc,int& var,const int& defValue);
+   static bool add(const std::string& name,const std::string& desc,unsigned int& var,const unsigned int& defValue);
+   static bool add(const std::string& name,const std::string& desc,float& var,const float& defValue);
+   static bool add(const std::string& name,const std::string& desc,double& var,const double& defValue);
+   static bool add(const std::string& name,const std::string& desc,std::string& var,const std::string& defValue);
+
+   static bool finalize();
+   
+   static bool get(const std::string& name,char& value);
+   static bool get(const std::string& name,int& value);
+   static bool get(const std::string& name,unsigned int& value);
+   static bool get(const std::string& name,float& value);
+   static bool get(const std::string& name,double& value);
+   static bool get(const std::string& name,std::string& value);
+   
+   static bool helpMessage();
+   static bool isInitialized();
+   static bool parse();
+   
+ private:
+   static int argc;                  /**< How many entries argv contains.*/
+   static char** argv;              /**< Pointer to char* array containing command line parameters.*/
+   static bool addDefaultParameters();
 };
 
 #endif

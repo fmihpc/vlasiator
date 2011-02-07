@@ -25,6 +25,7 @@
 #include "vlswriter.h"
 
 extern void buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,creal& zmin,creal& dx,creal& dy,creal& dz,const bool& isRemote);
+extern bool buildGrid(ParGrid<SpatialCell>&);
 
 Grid grid;
 
@@ -49,7 +50,6 @@ void initSpatialCells(const ParGrid<SpatialCell>& mpiGrid) {
    // point in the velocity grid. Velocity block neighbour list is also 
    // constructed here:
    Real xmin,ymin,zmin,dx,dy,dz;
-   //Main::cells = mpiGrid.get_cells();
    for (uint i=0; i<Main::cells.size(); ++i) {
       dx = mpiGrid.get_cell_x_size(Main::cells[i]);
       dy = mpiGrid.get_cell_y_size(Main::cells[i]);
@@ -253,7 +253,7 @@ bool writeSpatialCellData(const ParGrid<SpatialCell>& mpiGrid,VlsWriter& vlsWrit
 bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter,DataReducer& dataReducer) {
 #endif
    bool success = true;
-   bool writeSpatNbrLists = true;
+   bool writeSpatNbrLists = false;
    int myrank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
 
@@ -282,14 +282,14 @@ bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter
       mpilogger << "Error writing header on process " << myrank << endl << write;
       success = false;
    }
-   
+
    // Master process writes description of static-size variables. Here "static-size" 
    // means that the size of variable data is the same for all spatial cells.
    if (vlsWriter.writeStaticVariableDesc(MPI_COMM_WORLD,0,&dataReducer) == false) {
       mpilogger << "Error writing variable description on process " << myrank << endl << write;
       success = false;
    }
-   
+
    // Get the global IDs of all local cells:
    #ifdef PARGRID
       mpiGrid.getCells(Main::cells);
@@ -331,7 +331,7 @@ bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter
             refLevel = 0;
          #endif
       }
-      
+
       if (cellptr != NULL) {
 	 if (vlsWriter.writeSpatCellCoordEntryBuffered(cellGID,*cellptr,&dataReducer,nbrs,refLevel) == false) {
 	    mpilogger << "Error writing spatial cell with global ID " << cellGID << " on process " << myrank << endl << write;
@@ -385,6 +385,7 @@ int main(int argn,char* args[]) {
    
    typedef Parameters P;
    Parameters parameters(argn,args);
+   parameters.parse();
    
    // Init MPI:
    #ifndef PARGRID
@@ -419,18 +420,34 @@ int main(int argn,char* args[]) {
    
    #else           // INITIALIZE USING PARGRID
       ParGrid<SpatialCell> mpiGrid(Hypergraph,argn,args);
-      /*
-      if (initFromRestartFile("celldata.0000005.vlsv",myrank,mpiGrid) == false) {
-	 cerr << "Failed to restart!" << endl;
+     /* 
+      // Add all cells to mpiGrid:
+      if (buildGrid(mpiGrid) == false) {
+	 mpilogger << "(MAIN) Grid builder failed!" << endl << write;
+      } else {
+	 mpilogger << "(MAIN) Grid built successfully" << endl << write;
       }
-      mpiGrid.barrier();
+      // Load balance is most likely far from optimal. Do an 
+      // initial load balance before reading cell data:
+      mpiGrid.initialize();
+      cerr << "Initializing spat cells" << endl;
+      initSpatialCells(mpiGrid);
+   
+      DataReducer reducer;
+      reducer.addOperator(new DRO::VariableE);
+      reducer.addOperator(new DRO::MPIrank);
+      VlsWriter vlsWriter;
+      if (writeSpatialCellData(mpiGrid,vlsWriter,reducer) == false) {
+	 mpilogger << "(MAIN): ERROR occurred while writing data to file!" << endl << write;
+      }
+
+      MPI_Barrier(MPI_COMM_WORLD);
       mpilogger.close();
-      MPI_Finalize();
-      return 0;
-      */
+      exit(1);
+   */
       mpiGrid.initialize(P::xcells_ini,P::ycells_ini,P::zcells_ini,P::xmin,P::ymin,P::zmin,P::xmax,P::ymax,P::zmax);
    #endif
-
+cerr << "pargrid initialized" << endl;
    // Open logfile for parallel writing:
    if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting up." << endl << write; 
    
@@ -440,6 +457,7 @@ int main(int argn,char* args[]) {
 	 std::cerr << "An error has occurred, aborting. See logfile for details." << std::endl;
 	 mpilogger << "Aborting" << std::endl << write;
       }
+      MPI_Barrier(MPI_COMM_WORLD);
       return 1;
    }
    // Do initial load balancing:

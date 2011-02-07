@@ -11,6 +11,8 @@ typedef unsigned int uint;
 typedef const unsigned int cuint;
 typedef long unsigned int luint;
 typedef const long unsigned int cluint;
+typedef long long unsigned int lluint;
+typedef const long long unsigned int clluint;
 
 typedef cuint csize;
 
