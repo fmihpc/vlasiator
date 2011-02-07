@@ -850,15 +850,15 @@ template<class C> template<class CONT> void ParGrid<C>::getSendList(CONT& rlist)
 }
 
 template<class C> bool ParGrid<C>::initialize() {
-   bool success = true;
+   initialized = true;
    // At this point we do not know who owns the boundary cells, 
    // i.e. with which processes I need to exchange data with.
-   if (syncCellAssignments() == false) success = false;
+   if (syncCellAssignments() == false) initialized = false;
 
    buildExchangeLists();
    allocateCells();
    syncCellCoordinates();
-   return success;
+   return initialized;
 }
 
 template<class C>
@@ -897,6 +897,8 @@ bool ParGrid<C>::initialize(cuint& xsize,cuint& ysize,cuint& zsize,creal& xmin,c
    // memory:
    allocateCells();
    syncCellCoordinates();
+   initialized = true;
+   return initialized;
 }
 
 template<class C> bool ParGrid<C>::initialLoadBalance() {
