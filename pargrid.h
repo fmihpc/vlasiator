@@ -11,6 +11,7 @@
 #include <zoltan_cpp.h>
 #include <ctime>
 #include <set>
+#include <cmath>
 
 #include "definitions.h"
 #include "parameters.h"

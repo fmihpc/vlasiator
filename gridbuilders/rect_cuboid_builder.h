@@ -1,6 +1,7 @@
 #ifndef RECT_CUBOID_BUILDER_H
 #define RECT_CUBOID_BUILDER_H
 
+#include <vector>
 #include <map>
 #include "../gridbuilder.h"
 
@@ -13,14 +14,27 @@ class RectCuboidBuilder: public GridBuilder {
    ~RectCuboidBuilder();
    
    bool finalize();
-   bool getNextCell(uint maxNbrs,lluint& cellID,Real* coords,Real* sizes,lluint* nbrs,uchar* nbrTypes);
+   bool getNextCell(lluint& cellID,Real* coords,Real* sizes,std::vector<std::pair<lluint,uchar> >& nbrs);
    bool getParameter(const std::string& parameterName,std::string& value);
    bool getTotalNumberOfCells(lluint& N_cells);
    bool initialize();
    
  protected:
    bool initialized;
-   std::map<std::string,std::string> parameters;
+   Real dx;
+   Real dy;
+   Real dz;
+   Real xmin;
+   Real xmax;
+   Real ymin;
+   Real ymax;
+   Real zmin;
+   Real zmax;
+   uint xsize;
+   uint ysize;
+   uint zsize;
+   
+   uint calcIndex(cuint& i,cuint& j,cuint& k);
 };
 
 #endif

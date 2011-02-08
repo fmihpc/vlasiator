@@ -72,7 +72,7 @@ struct Parameters {
    static bool add(const std::string& name,const std::string& desc,unsigned int& var,const unsigned int& defValue);
    static bool add(const std::string& name,const std::string& desc,float& var,const float& defValue);
    static bool add(const std::string& name,const std::string& desc,double& var,const double& defValue);
-   static bool add(const std::string& name,const std::string& desc,std::string& var,const std::string& defValue);
+   static bool add(const std::string& name,const std::string& desc,std::string& var,const std::string& defValue,const bool& multitoken=false);
 
    static bool finalize();
    
@@ -90,6 +90,10 @@ struct Parameters {
  private:
    static int argc;                  /**< How many entries argv contains.*/
    static char** argv;              /**< Pointer to char* array containing command line parameters.*/
+   
+   /** Private default constructor to prevent incorrect initialization.*/
+   Parameters();
+   
    static bool addDefaultParameters();
 };
 

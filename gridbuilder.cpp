@@ -19,25 +19,46 @@ using namespace std;
 // ***** GRIDBUILDERFACTORY *****
 // ******************************
 
+// Init static member functions:
 GridBuilderCreator GridBuilderFactory::gbc = NULL;
 
+/** Constructor for GridBuilderFactory. The constructor is empty.
+ */
 GridBuilderFactory::GridBuilderFactory() { }
 
+/** Destructor for GridBuilderFactory. The destructor is empty.
+ */
 GridBuilderFactory::~GridBuilderFactory() { }
 
+/** Request a GridBuilder from GridBuilderFactory. The returned 
+ * GridBuilder must be deallocated via GridBuilderFactory::deleteBuilder.
+ * @return A pointer to a new GridBuilder. If a GridBuilder has not 
+ * been registered, a NULL pointer is returned.
+ * @see GridBuilderFactory::deleteBuilder
+ * @see GridBuilderFactory::registerBuilder
+ */
 GridBuilder* GridBuilderFactory::createBuilder() {
    if (gbc == NULL) return NULL;
    return (*gbc)();
 }
 
+/** Deallocate a GridBuilder.
+ * @param gb Pointer to GridBuilder which has been created with a call to GridBuilderFactory::createBuilder.
+ * @return If true, the GridBuilder was deallocated successfully.
+ * @see GridBuilderFactory::createBuilder
+ */
 bool GridBuilderFactory::deleteBuilder(GridBuilder*& gb) {
    delete gb;
    gb = NULL;
    return true;
 }
 
+/** Register a GridBuilder to GridBuilderFactory. If this is called multiple 
+ * times, newer GridBuilderCreator functions overwrites the old one.
+ * @param gbc A function which creates a new GridBuilder.
+ * @return If true, the GridBuilder was registered successfully.
+ */
 bool GridBuilderFactory::registerBuilder(GridBuilderCreator gbc) {
-   //cerr << "registerBuilder called" << endl;
    if (gbc == NULL) return false;
    GridBuilderFactory::gbc = gbc;
    return true;
@@ -47,8 +68,12 @@ bool GridBuilderFactory::registerBuilder(GridBuilderCreator gbc) {
 // ***** GRIDBUILDER BASE CLASS *****
 // **********************************
 
+/** GridBuilder base class constructor. The constructor is empty.
+ */
 GridBuilder::GridBuilder() { }
 
+/** GridBuilder base class virtual destructor. The destructor is empty.
+ */
 GridBuilder::~GridBuilder() { }
 
 
@@ -186,6 +211,7 @@ bool buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
    return true;
 }
 
+#ifdef PARGRID
 bool buildGrid(ParGrid<SpatialCell>& mpiGrid) {
    bool globalSuccess = 0;
    bool success = true;
@@ -211,6 +237,7 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid) {
       cerr << "(BUILDGRID) ERROR: Allreduce failed!" << std::endl; exit(1);
    }
    if (globalSuccess == false) {
+      builder->finalize();
       GridBuilderFactory::deleteBuilder(builder);
       return false;
    }
@@ -221,19 +248,20 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid) {
       mpilogger << "(BUILDGRID) ERROR: Failed to get number of cells to create from GridBuilder!" << endl << write;
       success = false;
    }
-   
+
    // ********************************************
    // ***** START TO PASS CELLS TO PROCESSES *****
    // ********************************************
    
    cuint MAX_NBRS = 49; // Cells can have max. 48 spatial neighbours
    lluint cellID;
-   lluint nbrs[MAX_NBRS];
+   lluint nbrIDs[MAX_NBRS];
    uchar nbrTypes[MAX_NBRS];
+   vector<pair<lluint,uchar> > nbrs;
    Real coords[3];
    Real sizes[3];
    MPI_Status mpiStatus;
-   for (uint i=0; i<49; ++i) nbrs[i] = numeric_limits<lluint>::max();
+   //for (uint i=0; i<49; ++i) nbrs[i] = numeric_limits<lluint>::max();
    if (myrank == MASTER_RANK) {
       lluint cellsCreated = 0;
       for (int proc=0; proc<N_processes; ++proc) {
@@ -243,8 +271,10 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid) {
 	 
 	 lluint cellCounter = 0;
 	 while (cellCounter < cellsToProc) {
-	    for (uint i=0; i<MAX_NBRS; ++i) nbrs[i] = numeric_limits<lluint>::max();
-	    if (builder->getNextCell(48,cellID,coords,sizes,nbrs,nbrTypes) == false) {
+	    //for (uint i=0; i<MAX_NBRS; ++i) nbrs[i] = numeric_limits<lluint>::max();
+	    nbrs.clear();
+	    if (builder->getNextCell(cellID,coords,sizes,nbrs) == false) {
+	    //if (builder->getNextCell(48,cellID,coords,sizes,nbrs,nbrTypes) == false) {
 	       // Check that we received the correct number of cells:
 	       if (cellsCreated != N_cells) {
 		  mpilogger << "(BUILDGRID) ERROR: GridBuilder gave too few cells!" << endl << write; 
@@ -252,10 +282,18 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid) {
 	       }
 	       break; // while
 	    }
+
+	    // Copy nbr IDs and types to array for sending over MPI:
+	    for (uint i=0; i<MAX_NBRS; ++i) nbrIDs[i] = numeric_limits<lluint>::max();
+	    for (uint i=0; i<MAX_NBRS; ++i) {
+	       if (i == nbrs.size()) break;
+	       nbrIDs[i]   = nbrs[i].first;
+	       nbrTypes[i] = nbrs[i].second;
+	    }
 	    
 	    if (proc == myrank) {
 	       // Cells are for me. Add them to grid:
-	       if (mpiGrid.addCell(cellID,coords,sizes,nbrs,nbrTypes) == false) {
+	       if (mpiGrid.addCell(cellID,coords,sizes,nbrIDs,nbrTypes) == false) {
 		  mpilogger << "(BUILDGRID) ERROR: Failed to add cell to grid!" << endl << write;
 		  success = false; 
 		  break; // while
@@ -275,7 +313,7 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid) {
 		  mpilogger << "(BUILDGRID) ERROR occurred while sending cell data!" << endl << write; 
 		  success = false;
 	       }
-	       if (MPI_Send(nbrs,MAX_NBRS,MPI_Type<lluint>(),proc,0,MPI_COMM_WORLD) != MPI_SUCCESS) {
+	       if (MPI_Send(nbrIDs,MAX_NBRS,MPI_Type<lluint>(),proc,0,MPI_COMM_WORLD) != MPI_SUCCESS) {
 		  mpilogger << "(BUILDGRID) ERROR occurred while sending cell data!" << endl << write; 
 		  success = false;
 	       }
@@ -310,14 +348,14 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid) {
 	 if (MPI_Recv(sizes,3,MPI_Type<Real>(),MASTER_RANK,MPI_ANY_TAG,MPI_COMM_WORLD,&mpiStatus) != MPI_SUCCESS) {
 	    mpilogger << "(BUILDGRID) ERROR occurred while receiving cells!" << endl << write; success = false;
 	 }
-	 if (MPI_Recv(nbrs,MAX_NBRS,MPI_Type<lluint>(),MASTER_RANK,MPI_ANY_TAG,MPI_COMM_WORLD,&mpiStatus) != MPI_SUCCESS) {
+	 if (MPI_Recv(nbrIDs,MAX_NBRS,MPI_Type<lluint>(),MASTER_RANK,MPI_ANY_TAG,MPI_COMM_WORLD,&mpiStatus) != MPI_SUCCESS) {
 	    mpilogger << "(BUILDGRID) ERROR occurred while receiving cells!" << endl << write; success = false;
 	 }
 	 if (MPI_Recv(nbrTypes,MAX_NBRS,MPI_Type<uchar>(),MASTER_RANK,MPI_ANY_TAG,MPI_COMM_WORLD,&mpiStatus) != MPI_SUCCESS) {
 	    mpilogger << "(BUILDGRID) ERROR occurred while receiving cells!" << endl << write; success = false;
 	 }
 	 // Add cell to grid:
-	 if (mpiGrid.addCell(cellID,coords,sizes,nbrs,nbrTypes) == false) {
+	 if (mpiGrid.addCell(cellID,coords,sizes,nbrIDs,nbrTypes) == false) {
 	    mpilogger << "(BUILDGRID) ERROR: Failed to add cell to grid!" << endl << write;
 	    success = false;
 	 }
@@ -348,4 +386,4 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid) {
    GridBuilderFactory::deleteBuilder(builder);
    return success;
 }
-
+#endif

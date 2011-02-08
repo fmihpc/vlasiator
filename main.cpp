@@ -19,13 +19,10 @@
 #include "silowriter.h"
 #include "cell_spatial.h"
 #include "writevars.h"
-
+#include "gridbuilder.h"
 #include "datareducer.h"
 #include "datareductionoperator.h"
 #include "vlswriter.h"
-
-extern void buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,creal& zmin,creal& dx,creal& dy,creal& dz,const bool& isRemote);
-extern bool buildGrid(ParGrid<SpatialCell>&);
 
 Grid grid;
 
@@ -383,9 +380,15 @@ void log_send_receive_info(const dccrg<SpatialCell>& mpiGrid) {
 int main(int argn,char* args[]) {
    bool success = true;
    
+   // Init parameter file reader:
    typedef Parameters P;
    Parameters parameters(argn,args);
    parameters.parse();
+   if (parameters.isInitialized() == false) {
+      success = false;
+      cerr << "(MAIN) Parameters failed to init, aborting!" << endl;
+      return 1;
+   }
    
    // Init MPI:
    #ifndef PARGRID
@@ -397,15 +400,15 @@ int main(int argn,char* args[]) {
 	 exit(1);
       }
    #endif
-
-   // Init parallel logger:
-   if (mpilogger.open(MPI_COMM_WORLD,"logfile.txt") == false) {
-      cerr << "ERROR: MPILogger failed to open output file!" << endl;
-      exit(1);
-   }
    const int MASTER_RANK = 0;
    int myrank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+   
+   // Init parallel logger:
+   if (mpilogger.open(MPI_COMM_WORLD,"logfile.txt") == false) {
+      cerr << "(MAIN) ERROR: MPILogger failed to open output file!" << endl;
+      exit(1);
+   }
    
    #ifndef PARGRID // INITIALIZE USING DCCRG
       // Create parallel MPI grid and init Zoltan:
@@ -420,18 +423,18 @@ int main(int argn,char* args[]) {
    
    #else           // INITIALIZE USING PARGRID
       ParGrid<SpatialCell> mpiGrid(Hypergraph,argn,args);
-     /* 
+
       // Add all cells to mpiGrid:
       if (buildGrid(mpiGrid) == false) {
 	 mpilogger << "(MAIN) Grid builder failed!" << endl << write;
+	 success = false;
       } else {
 	 mpilogger << "(MAIN) Grid built successfully" << endl << write;
       }
       // Load balance is most likely far from optimal. Do an 
       // initial load balance before reading cell data:
       mpiGrid.initialize();
-      cerr << "Initializing spat cells" << endl;
-      initSpatialCells(mpiGrid);
+   /*   initSpatialCells(mpiGrid);
    
       DataReducer reducer;
       reducer.addOperator(new DRO::VariableE);
@@ -444,22 +447,21 @@ int main(int argn,char* args[]) {
       MPI_Barrier(MPI_COMM_WORLD);
       mpilogger.close();
       exit(1);
-   */
-      mpiGrid.initialize(P::xcells_ini,P::ycells_ini,P::zcells_ini,P::xmin,P::ymin,P::zmin,P::xmax,P::ymax,P::zmax);
+*/
+      //mpiGrid.initialize(P::xcells_ini,P::ycells_ini,P::zcells_ini,P::xmin,P::ymin,P::zmin,P::xmax,P::ymax,P::zmax);
    #endif
-cerr << "pargrid initialized" << endl;
-   // Open logfile for parallel writing:
-   if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting up." << endl << write; 
-   
+
    // If initialization was not successful, abort.
    if (success == false) {
       if (myrank == MASTER_RANK) {
 	 std::cerr << "An error has occurred, aborting. See logfile for details." << std::endl;
-	 mpilogger << "Aborting" << std::endl << write;
       }
       MPI_Barrier(MPI_COMM_WORLD);
+      mpilogger.close();
       return 1;
    }
+   if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting up." << endl << write;
+   
    // Do initial load balancing:
    initialLoadBalance(mpiGrid);
    #ifndef PARGRID
@@ -506,6 +508,13 @@ cerr << "pargrid initialized" << endl;
    reducer.addOperator(new DRO::MPIrank);
    VlsWriter vlsWriter;
 
+   // ***********************************
+   // ***** INITIALIZATION COMPLETE *****
+   // ***********************************
+   
+   // Free up memory:
+   parameters.finalize();
+   
    // Write initial state:
    if (P::save_spatial_grid) {
       if (myrank == MASTER_RANK) {

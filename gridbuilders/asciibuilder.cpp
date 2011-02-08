@@ -16,7 +16,7 @@ AsciiBuilder::~AsciiBuilder() {filein.close();}
 
 bool AsciiBuilder::finalize() {filein.close(); return true;}
 
-bool AsciiBuilder::getNextCell(uint maxNbrs,lluint& cellID,Real* coords,Real* sizes,lluint* nbrs,uchar* nbrTypes) { 
+bool AsciiBuilder::getNextCell(lluint& cellID,Real* coords,Real* sizes,std::vector<std::pair<lluint,uchar> >& nbrs) {
    if (initialized == false) return false;
 
    // Read next cell:
@@ -35,8 +35,9 @@ bool AsciiBuilder::getNextCell(uint maxNbrs,lluint& cellID,Real* coords,Real* si
    while (offset < line.size()) {
       const unsigned long long int nbrID = atoi(line[offset].substr(0,line[offset].find(':')).c_str());
       const unsigned int nbrType = atoi(line[offset].substr(line[offset].find(':')+1,line[offset].size()-line[offset].find(':')-1).c_str());
-      nbrs[i] = nbrID;
-      nbrTypes[i] = nbrType;
+      //nbrs[i] = nbrID;
+      //nbrTypes[i] = nbrType;
+      nbrs.push_back(make_pair(nbrID,nbrType));
       ++offset;
       ++i;
    }

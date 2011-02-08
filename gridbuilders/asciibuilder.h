@@ -1,6 +1,7 @@
 #ifndef ASCIIREADER_H
 #define ASCIIREADER_H
 
+#include <vector>
 #include "../gridbuilder.h"
 
 class AsciiBuilder: public GridBuilder {
@@ -9,7 +10,7 @@ class AsciiBuilder: public GridBuilder {
    ~AsciiBuilder();
    
    bool finalize();
-   bool getNextCell(uint maxNbrs,lluint& cellID,Real* coords,Real* sizes,lluint* nbrs,uchar* nbrTypes);
+   bool getNextCell(lluint& cellID,Real* coords,Real* sizes,std::vector<std::pair<lluint,uchar> >& nbrs);
    bool getParameter(const std::string& parameterName,std::string& value);
    bool getTotalNumberOfCells(lluint& N_cells);
    bool initialize();
