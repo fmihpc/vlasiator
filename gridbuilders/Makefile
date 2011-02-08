@@ -1,6 +1,6 @@
 
 DEPS_ASCIIREADER = ${INSTALL}/gridbuilder.h asciireaders.h asciibuilder.h asciibuilder.cpp
-DEPS_RECTCUBOID = ${INSTALL}/gridbuilder.h ${INSTALL}/parameters.h ${INSTALL}/utility.h rect_cuboid_builder.h rect_cuboid_builder.cpp
+DEPS_RECTCUBOID = ${INSTALL}/gridbuilder.h ${INSTALL}/parameters.h rect_cuboid_builder.h rect_cuboid_builder.cpp
 
 asciibuilder: ${DEPS_ASCIIREADER}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c asciibuilder.cpp

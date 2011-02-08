@@ -1,9 +1,9 @@
-include Makefile.arto
+include Makefile.intel
 
 default: main vls2vtk
 
 # Compile directory:
-INSTALL=${HOME}/codes/cuda/cudafvm
+INSTALL=${HOME}/codes/cudafvm2
 
 # Which project is compiled:
 PROJ=harm1D
@@ -107,7 +107,7 @@ SRC +=
 OBJS +=
 
 builderinstall:
-	make ${BUILDER} -C gridbuilders "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS}"
+	make ${BUILDER} -C gridbuilders "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS} ${INC_ZOLTAN}"
 
 clean:
 	make clean -C gridbuilders
