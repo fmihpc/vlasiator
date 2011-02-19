@@ -15,7 +15,7 @@ using namespace VlsVariable;
 typedef int VtkInt;
 typedef float VtkReal;
 
-bool writeBinary = false;
+bool writeBinary = true;
 bool writerIsLittleEndian; // If true, vls2vtk is run on LittleEndian computer.
 
 bool almostEqual(const float& a,const float& b,const int& maxDiff) {

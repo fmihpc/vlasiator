@@ -44,6 +44,7 @@ extern bool cpu_acceleration(SpatialCell& cell);
 extern bool cpu_translation1(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
 extern bool cpu_translation2(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
 extern bool cpu_translation3(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
+extern bool cpu_calcVelocityMoments(SpatialCell& cell);
 
 void initialLoadBalance(dccrg<SpatialCell>& mpiGrid) {
    typedef Parameters P;

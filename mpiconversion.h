@@ -1,12 +1,16 @@
 #ifndef MPI_CONVERSION_H
 #define MPI_CONVERSION_H
-
+#include <cstdlib>
+#include <iostream>
 #include <mpi.h>
 
 // Overloaded templates which should return the corresponding data type
 // for some C++ native data types. For example, if float has been 
 // typedef'd as Real, then MPI_Type<Real>() should return MPI_FLOAT.
-template<typename T> inline MPI_Datatype MPI_Type() {return 0;}
+template<typename T> inline MPI_Datatype MPI_Type() {
+   std::cerr << "NULL datatype returned" << std::endl;
+   return 0;
+}
 template<> inline MPI_Datatype MPI_Type<char>() {return MPI_CHAR;}
 template<> inline MPI_Datatype MPI_Type<unsigned char>() {return MPI_UNSIGNED_CHAR;}
 template<> inline MPI_Datatype MPI_Type<short int>() {return MPI_SHORT;}

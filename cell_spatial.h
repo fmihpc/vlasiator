@@ -36,7 +36,7 @@ struct SpatialCell {
    static MPI_Datatype mpi_data_type(void);
    #else
    void* baseAddress;
-   void allocate();
+   //void allocate();
    #endif
    void* getBaseAddress(cuint identifier);
    static void getMPIdatatype(cuint identifier,MPI_Datatype& dataType);
@@ -70,10 +70,13 @@ struct SpatialCell {
      bool devSync(const Cell::Array& array,const Cell::Dir direction);
    #endif
 
-   bool allocateMemory(const uint& BLOCKS);
-   bool freeMemory();
+   //bool allocateMemory(const uint& BLOCKS);
+   //bool freeMemory();
    bool clone(const SpatialCell& s);
    void getMemInfo();
+   
+   bool initialize(cuint& N_blocks);
+   bool finalize();
    
  private:
    

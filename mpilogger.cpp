@@ -71,19 +71,32 @@ bool MPILogger::flush() {
  * @param fname The name of the logfile.
  * @return If true, the file was opened successfully and MPILogger is ready for use.
  */
-bool MPILogger::open(MPI_Comm comm,const std::string& fname) {
+bool MPILogger::open(MPI_Comm comm,const int& MASTER_RANK,const std::string& fname,const bool& deleteFile) {
    // Store the MPI rank of this process
    MPI_Comm_rank(comm,&mpiRank);
+   masterRank = MASTER_RANK;
+   if (deleteFile == true) MPI_File_delete(const_cast<char*>(fname.c_str()),MPI_INFO_NULL);
    
+   // If NDEBUG has been defined, only master process writes log messages.
    const int accessMode = (MPI_MODE_WRONLY | MPI_MODE_SEQUENTIAL | MPI_MODE_CREATE);
    bool rvalue = true;
-   if (mpiFile.open(comm,fname,MPI_INFO_NULL,accessMode,true) == false) rvalue = false;
-   if (mpiFile.resetPosition() == false) rvalue = false;
-   if (rvalue == true) fileOpen = true;
+   #ifndef NDEBUG
+      if (mpiFile.open(comm,fname,MPI_INFO_NULL,accessMode,true) == false) rvalue = false;
+      if (mpiFile.resetPosition() == false) rvalue = false;
+      if (rvalue == true) fileOpen = true;
+   #else
+      if (mpiRank != MASTER_RANK) return rvalue;
+      if (mpiFile.open(MPI_COMM_SELF,fname,MPI_INFO_NULL,accessMode,true) == false) rvalue = false;
+      if (mpiFile.resetPosition() == false) rvalue = false;
+      if (rvalue == true) fileOpen = true;
+   #endif
    return rvalue;
 }
 
 bool MPILogger::print(const std::string& s) {
+   #ifdef NDEBUG
+      if (mpiRank != masterRank) return true;
+   #endif
    mpiFile << s;
    if (mpiFile.getCount<size_t>() != s.size()) return false;
    return true;
@@ -100,6 +113,9 @@ bool MPILogger::print(const std::string& s) {
  * @return A reference to MPILogger.
  */
 MPILogger& MPILogger::operator<<(MPILogger& (*pf)(MPILogger&)) {
+   #ifdef NDEBUG
+      if (mpiRank != masterRank) return *this;
+   #endif
    return (*pf)(*this);
 }
 
@@ -110,6 +126,9 @@ MPILogger& MPILogger::operator<<(MPILogger& (*pf)(MPILogger&)) {
  * @return Reference to MPILogger.
  */
 MPILogger& MPILogger::operator<<(std::ostream& (*pf)(std::ostream& )) {
+   #ifdef NDEBUG
+      if (mpiRank != masterRank) return *this;
+   #endif
    (*pf)(outStream);
    return *this;
 }

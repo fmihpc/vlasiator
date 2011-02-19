@@ -32,7 +32,7 @@ class MPILogger {
    bool close();
    bool flush();
    std::stringstream& getStream() {return outStream;}
-   bool open(MPI_Comm comm,const std::string& fname);
+   bool open(MPI_Comm comm,const int& MASTER_RANK,const std::string& fname,const bool& deleteFile=true);
    bool print(const std::string& s);
    std::string str() {return outStream.str();}
 
@@ -48,6 +48,7 @@ class MPILogger {
    bool fileOpen;                       /**< If true, the class has an open MPIFile.*/
    MPIFile mpiFile;                     /**< MPIFile which is used for parallel I/O.*/
    int mpiRank;                         /**< The rank of the process using MPILogger within a user-defined communicator.*/
+   int masterRank;                      /**< MPI rank of the master process.*/
    std::stringstream outStream;         /**< Output buffer.*/
 };
 

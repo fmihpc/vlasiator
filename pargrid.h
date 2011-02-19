@@ -50,6 +50,7 @@ template<class C> struct ParCell {
    unsigned char refLevel;   /**< Refinement level of the cell, 0 = base grid (unrefined).*/
    C* dataptr;               /**< Pointer to user data.*/
    ParCell(): dataptr(NULL),N_blocks(0),hasRemoteNeighbours(false),refLevel(0) { }
+   ~ParCell() {delete dataptr; dataptr=NULL;}
 };
 
 template<class C> class ParGrid {
@@ -74,7 +75,7 @@ template<class C> class ParGrid {
    ID::type get_cell(const Real& x,const Real& y,const Real& z) const;
 
    template<typename T> bool addCell(const T& cellID,const Real* const coords,const Real* const sizes,
-				     const T* const nbrs,const uchar* const nbrTypes);
+				     const std::vector<T>& nbrIDs,const std::vector<uchar>& nbrTypes);
    void barrier() {MPI_Barrier(MPI_COMM_WORLD);}
    template<class CONT> void getBoundaryCells(CONT& rlist) const;
    void getCellDistribution(std::map<ID::type,int>& rlist) const {rlist=hostProcesses;}
@@ -172,6 +173,7 @@ template<class C> class ParGrid {
 							    * process.*/
    static std::map<ID::type,ParCell<C> > localCells;       /**< Associative container containing all cells that are currently 
 							    * assigned to this process.*/
+   std::map<ID::type,uint> nbrReferences;
    std::multimap<ID::type,ID::type> remoteToLocal;
    std::vector<MPI_Request> MPIrecvRequests;               /**< Container for active MPI_Requests due to receives.*/
    std::vector<MPI_Request> MPIsendRequests;               /**< Container for active MPI_Requests due to sends.*/
@@ -225,6 +227,7 @@ template<class C> ParGrid<C>::ParGrid(const LBM& method,int argn,char* args[]) {
    unref_dx = 0.0;
    unref_dy = 0.0;
    unref_dz = 0.0;
+   MPItypeFreed = true;
    
    // Set load balancing parameters:
    balanceMethod = method;
@@ -309,7 +312,14 @@ template<class C> ParGrid<C>::~ParGrid() {
 
 template<class C> template<typename T>
 bool ParGrid<C>::addCell(const T& cellID,const Real* const coords,const Real* sizes,
-		      const T* const nbrs,const uchar* const nbrTypes) {
+			 const std::vector<T>& nbrIDs,const std::vector<uchar>& nbrTypes) {
+   /*
+   std::cerr << "ParGrid received cell #" << cellID << ' ';
+   for (int i=0; i<3; ++i) std::cerr << coords[i] << ' ';
+   for (int i=0; i<3; ++i) std::cerr << sizes[i] << ' ';   
+   for (size_t i=0; i<nbrIDs.size(); ++i) std::cerr << nbrIDs[i] << ":" << (int)nbrTypes[i] << ' ';
+   std::cerr << std::endl;
+   */
    localCells[cellID];
    localCells[cellID].xcrd = coords[0];
    localCells[cellID].ycrd = coords[1];
@@ -317,10 +327,10 @@ bool ParGrid<C>::addCell(const T& cellID,const Real* const coords,const Real* si
    localCells[cellID].dx = sizes[0];
    localCells[cellID].dy = sizes[1];
    localCells[cellID].dz = sizes[2];
-   uint index = 0;
-   while (nbrs[index] != std::numeric_limits<T>::max()) {
-      localCells[cellID].neighbours[nbrTypes[index]] = nbrs[index];
-      ++index;
+   for (size_t i=0; i<nbrIDs.size(); ++i) {
+      localCells[cellID].neighbours[nbrTypes[i]] = nbrIDs[i];
+      if (nbrReferences.find(nbrIDs[i]) == nbrReferences.end()) nbrReferences[nbrIDs[i]] = 0;
+      ++nbrReferences[nbrIDs[i]];
    }
    return true;
 }
@@ -367,11 +377,13 @@ void ParGrid<C>::buildExchangeLists() {
 	 // Check that the neighbour exists and that it is not assigned to this process:
 	 const ID::type nbrID = itt->second;
 	 if (nbrID == std::numeric_limits<ID::type>::max()) continue;
+	 #ifndef NDEBUG
 	 if (hostProcesses.find(nbrID) == hostProcesses.end()) {
 	    std::cerr << "ParGrid CRITICAL ERROR: ";
 	    std::cerr << "Proc #" << myrank << " nbrID " << nbrID << " not in hostProcesses!" << std::endl;
 	    exit(1);
 	 }
+	 #endif
 	 const int hostID = hostProcesses[nbrID];
 	 if (hostID == myrank) continue;
 	 // Cell has a remote neighbour. Add this cell to sendList, and its remote 
@@ -570,7 +582,22 @@ template<class C> bool ParGrid<C>::startNeighbourExchange(cuint& identifier) {
    #ifndef NDEBUG
       if (rcode != MPI_SUCCESS) {std::cerr << "ParGrid::startNeighbourExchange MPI_Type_commit failed!" << std::endl; rvalue=false;}
    #endif
-   
+   /*
+   for (int i=0; i<N_processes; ++i) {
+      if (i == myrank) {
+	 std::cerr << "PROC #" << myrank << " RECEIVES:" << std::endl;
+	 for (std::map<ID::type,int>::const_iterator it=receiveList.begin(); it!=receiveList.end(); ++it) {
+	    std::cerr << "\t recv cell#" << it->first << " from proc#" << it->second << std::endl;
+	 }
+	 std::cerr << "PROC #" << myrank << " SENDS:" << std::endl;
+	 for (std::map<std::pair<ID::type,int>,char>::const_iterator it=sendList.begin(); it!=sendList.end(); ++it) {
+	    std::cerr << "\t send cell#" << it->first.first << " to proc #" << it->first.second << std::endl;
+	 }
+      }
+      barrier();
+   }
+   barrier();
+   */
    // Post receives for each remote cell:
    for (std::map<ID::type,int>::const_iterator it=receiveList.begin(); it!=receiveList.end(); ++it) {
       void* const buffer = (remoteCells[it->first].dataptr)->getBaseAddress(identifier); // Starting address of receive buffer
@@ -852,12 +879,24 @@ template<class C> template<class CONT> void ParGrid<C>::getSendList(CONT& rlist)
 
 template<class C> bool ParGrid<C>::initialize() {
    initialized = true;
+   MPItypeFreed = true;
    // At this point we do not know who owns the boundary cells, 
    // i.e. with which processes I need to exchange data with.
    if (syncCellAssignments() == false) initialized = false;
 
    buildExchangeLists();
-   allocateCells();
+   initialLoadBalance();
+   buildExchangeLists();
+   // Allocate memory for user data:
+   for (typename std::map<ID::type,ParCell<C> >::iterator it=localCells.begin(); it!= localCells.end(); ++it) {
+      it->second.dataptr = new C;
+   }
+   for (std::map<ID::type,int>::const_iterator it=receiveList.begin(); it!=receiveList.end(); ++it) {
+      remoteCells[it->first];
+   }
+   for (typename std::map<ID::type,ParCell<C> >::iterator it=remoteCells.begin(); it!=remoteCells.end(); ++it) {
+      it->second.dataptr = new C;
+   }
    syncCellCoordinates();
    return initialized;
 }
@@ -904,6 +943,8 @@ bool ParGrid<C>::initialize(cuint& xsize,cuint& ysize,cuint& zsize,creal& xmin,c
 
 template<class C> bool ParGrid<C>::initialLoadBalance() {
    bool rvalue = true;
+
+   // Request load balance from Zoltan, and get cells which should be imported and exported:
    int changes,N_globalIDs,N_localIDs,N_import,N_export;
    int* importProcesses;
    int* importParts;
@@ -913,98 +954,196 @@ template<class C> bool ParGrid<C>::initialLoadBalance() {
    ZOLTAN_ID_PTR importLocalIDs;
    ZOLTAN_ID_PTR exportGlobalIDs;
    ZOLTAN_ID_PTR exportLocalIDs;
+   if (zoltan->LB_Partition(changes,N_globalIDs,N_localIDs,N_import,importGlobalIDs,importLocalIDs,
+			    importProcesses,importParts,N_export,exportGlobalIDs,exportLocalIDs,
+			    exportProcesses,exportParts) != ZOLTAN_OK) { 
+      std::cerr << "ParGrid FATAL ERROR: Zoltan failed on load balancing!" << std::endl;
+      zoltan->LB_Free_Part(&importGlobalIDs,&importLocalIDs,&importProcesses,&importParts);
+      zoltan->LB_Free_Part(&exportGlobalIDs,&exportLocalIDs,&exportProcesses,&exportParts);
+      rvalue = false;
+      exit(1);
+   }
+   
+   // Do a pass of hostProcesses updates. We need to exchange lists of migrating cells 
+   // and their new hosts to every neighbouring process. A process is a neighbouring process if that 
+   // process has at least one of my local cells' (remote) neighbours.
+   std::set<int>                       neighbouringHosts;      // Ranks of neighbouring processes
+   for (std::map<ID::type,int>::const_iterator it=hostProcesses.begin(); it!=hostProcesses.end(); ++it) {
+      if (it->second != myrank) neighbouringHosts.insert(it->second);
+   }
 
+   // Update hostProcesses based on local information available to this process. 
+   // This needs to occur after neighbouringHosts has been updated.
+   for (int i=0; i<N_export; ++i) hostProcesses[exportGlobalIDs[i]] = exportProcesses[i];
+   for (int i=0; i<N_import; ++i) hostProcesses[importGlobalIDs[i]] = myrank;
+
+   // Exchange information on cell migrations between neighbouring processes.
+   int* neighbourChanges                    = new int[neighbouringHosts.size()];              // Number of exports nbr. proc. has
+   ZOLTAN_ID_TYPE** neighbourMigratingCells = new ZOLTAN_ID_TYPE* [neighbouringHosts.size()]; // Global IDs of cells nbr. proc. is exporting
+   int** neighbourMigratingHosts            = new int* [neighbouringHosts.size()];            // New hosts for cells nbr. proc. exports
+   ID::type counter = 0;
+   MPIrecvRequests.resize(neighbouringHosts.size());
+   for (std::set<int>::const_iterator it=neighbouringHosts.begin(); it!=neighbouringHosts.end(); ++it) {
+      // Receive nmbr. of exports from nbr. proc. *it
+      if (MPI_Irecv(&(neighbourChanges[counter]),1,MPI_INT,*it,*it   ,MPI_COMM_WORLD,&(MPIrecvRequests[counter])) != MPI_SUCCESS) rvalue = false;
+      // Send nmbr. of my exports, list of exported cells & new hosts to nbr. proc *it
+      MPI_Request mpiRequest1;
+      MPI_Request mpiRequest2;
+      MPI_Request mpiRequest3;
+      if (MPI_Isend(&N_export      ,1       ,MPI_INT                   ,*it,myrank,MPI_COMM_WORLD,&mpiRequest1) != MPI_SUCCESS) rvalue = false;
+      if (MPI_Isend(exportGlobalIDs,N_export,MPI_Type<ZOLTAN_ID_TYPE>(),*it,myrank,MPI_COMM_WORLD,&mpiRequest2) != MPI_SUCCESS) rvalue = false;
+      if (MPI_Isend(exportProcesses,N_export,MPI_INT                   ,*it,myrank,MPI_COMM_WORLD,&mpiRequest3) != MPI_SUCCESS) rvalue = false;
+      MPI_Request_free(&mpiRequest1);
+      MPI_Request_free(&mpiRequest2);
+      MPI_Request_free(&mpiRequest3);
+      ++counter;
+   }
+   // Wait for the numbers of exported cells to arrive from each rem. nbr.
+   if (MPI_Waitall(neighbouringHosts.size(),&(MPIrecvRequests[0]),MPI_STATUSES_IGNORE) != MPI_SUCCESS) rvalue = false;
+
+   // Allocate buffers for receiving lists of exported cells & new hosts based on
+   // numbers of exported cells, and receive data:
+   counter = 0;
+   MPIrecvRequests.resize(neighbouringHosts.size()*2);
+   for (std::set<int>::const_iterator it=neighbouringHosts.begin(); it!=neighbouringHosts.end(); ++it) {
+      neighbourMigratingCells[counter] = new ZOLTAN_ID_TYPE[neighbourChanges[counter]];
+      neighbourMigratingHosts[counter] = new int[neighbourChanges[counter]];
+      int tag = *it;
+      if (MPI_Irecv(neighbourMigratingCells[counter],neighbourChanges[counter],MPI_Type<ZOLTAN_ID_TYPE>(),*it,tag,MPI_COMM_WORLD,&(MPIrecvRequests[2*counter+0])) != MPI_SUCCESS) rvalue = false;
+      if (MPI_Irecv(neighbourMigratingHosts[counter],neighbourChanges[counter],MPI_INT                   ,*it,tag,MPI_COMM_WORLD,&(MPIrecvRequests[2*counter+1])) != MPI_SUCCESS) rvalue = false;
+      ++counter;
+   }
+   if (MPI_Waitall(2*neighbouringHosts.size(),&(MPIrecvRequests[0]),MPI_STATUSES_IGNORE) != MPI_SUCCESS) rvalue = false;
+
+   // Go through the lists of migrations received from neighbouring hosts. If those
+   // lists contain cells that I have in hostProcesses, update their statuses:
+   counter = 0;
+   for (std::set<int>::const_iterator it=neighbouringHosts.begin(); it!=neighbouringHosts.end(); ++it) {
+      for (int i=0; i<neighbourChanges[counter]; ++i) {
+	 std::map<ID::type,int>::iterator tmp = hostProcesses.find(neighbourMigratingCells[counter][i]);
+	 if (tmp != hostProcesses.end()) tmp->second = neighbourMigratingHosts[counter][i];
+      }
+      ++counter;
+   }
+   delete neighbourChanges;
+   delete [] neighbourMigratingCells;
+   delete [] neighbourMigratingHosts;
+   neighbourChanges = NULL;
+   neighbourMigratingCells = NULL;
+   neighbourMigratingHosts = NULL;
+
+   // **********************************************************
+   // ***** SEND EXPORTED CELLS AND RECEIVE IMPORTED CELLS *****
+   // **********************************************************
+   
+   // Create a suitable MPI type for sending & receiving cells:
    struct CellData {
       ID::type IDs[49];
       Real coords[6];
       uchar nbrTypes[49];
+      int nbrHosts[49];
    } cellData;
    
-   // Create a suitable MPI type for sending & receiving cells:
-   MPI_Datatype types[] = {MPI_Type<ID::type>(),MPI_Type<Real>(),MPI_Type<uchar>()};
-   int lengths[] = {49,6,49};
-   MPI_Aint disp[3];
+   MPI_Datatype types[] = {MPI_Type<ID::type>(),MPI_Type<Real>(),MPI_Type<uchar>(),MPI_Type<int>()};
+   int lengths[] = {49,6,49,49};
+   MPI_Aint disp[4];
    disp[0] = 0;
    disp[1] = reinterpret_cast<char*>(cellData.coords)-reinterpret_cast<char*>(cellData.IDs);
    disp[2] = reinterpret_cast<char*>(cellData.nbrTypes)-reinterpret_cast<char*>(cellData.IDs);
-   MPI_Type_create_struct(3,lengths,disp,types,&MPIdataType);
+   disp[3] = reinterpret_cast<char*>(cellData.nbrHosts)-reinterpret_cast<char*>(cellData.IDs);
+   MPI_Type_create_struct(4,lengths,disp,types,&MPIdataType);
    MPI_Type_commit(&MPIdataType);
    MPItypeFreed = false;
    
-   // Ask Zoltan the cells which should be imported and exported:
-   if (zoltan->LB_Partition(changes,N_globalIDs,N_localIDs,N_import,importGlobalIDs,importLocalIDs,
-			    importProcesses,importParts,N_export,exportGlobalIDs,exportLocalIDs,
-			    exportProcesses,exportParts) == ZOLTAN_OK) {
-      // All required data is now known. Since this is an initial load balance, we actually don't 
-      // need to send/receive anything. The unrefined indices and coordinates can be recalculated 
-      // from the global IDs.
-      CellData sendBuffer[N_export];
-      CellData receiveBuffer[N_import];
-      
-      // Insert each imported cell to receiveBuffer and post receives:
-      for (int i=0; i<N_import; ++i) {
-	 void* const buffer = &(receiveBuffer[i]);
-	 const int count = 1;
-	 const int tag = 0;
-	 const int source = importProcesses[i];
-	 MPIrecvRequests.push_back(MPI_Request());
-	 if (MPI_Irecv(buffer,count,MPIdataType,source,tag,MPI_COMM_WORLD,&(MPIrecvRequests.back())) != MPI_SUCCESS) rvalue=false;
-      }      
-      
-      // Insert each exported cell to sendBuffer, erase it from localCells, and post send:
-      for (int i=0; i<N_export; ++i) {
-	 sendBuffer[i].IDs[0] = exportGlobalIDs[i];
-	 sendBuffer[i].nbrTypes[0] = localCells[exportGlobalIDs[i]].refLevel;
-	 int index=1;	 
-	 for (std::map<uchar,ID::type>::const_iterator it=localCells[exportGlobalIDs[i]].neighbours.begin(); it!=localCells[exportGlobalIDs[i]].neighbours.end(); ++it) {
-	    sendBuffer[i].IDs[index] = it->second;
-	    sendBuffer[i].nbrTypes[index] = it->first;
-	    ++index;
-	 }
-	 for (int j=index; j<49; ++j) {sendBuffer[i].IDs[j] = std::numeric_limits<ID::type>::max();}
-	 sendBuffer[i].coords[0] = localCells[exportGlobalIDs[i]].xcrd;
-	 sendBuffer[i].coords[1] = localCells[exportGlobalIDs[i]].ycrd;
-	 sendBuffer[i].coords[2] = localCells[exportGlobalIDs[i]].zcrd;
-	 sendBuffer[i].coords[3] = localCells[exportGlobalIDs[i]].dx;
-	 sendBuffer[i].coords[4] = localCells[exportGlobalIDs[i]].dy;
-	 sendBuffer[i].coords[5] = localCells[exportGlobalIDs[i]].dz;
-	 
-	 localCells.erase(exportGlobalIDs[i]);
-	 
-	 void* const buffer = &(sendBuffer[i]);
-	 const int count = 1;
-	 const int tag = 0;
-	 const int dest = exportProcesses[i];
-	 MPIsendRequests.push_back(MPI_Request());
-	 if (MPI_Issend(buffer,count,MPIdataType,dest,tag,MPI_COMM_WORLD,&(MPIsendRequests.back())) != MPI_SUCCESS) rvalue=false;
-      }
-      
-      // Wait for sends & receives to complete. waitAll() unallocates MPIdataType.
-      waitAll();
+   // Insert each imported cell to receiveBuffer and post receives:
+   CellData* sendBuffer    = new CellData[N_export];
+   CellData* receiveBuffer = new CellData[N_import];
+   MPIrecvRequests.resize(N_import);
+   for (int i=0; i<N_import; ++i) {
+      void* const buffer = &(receiveBuffer[i]);
+      const int  count   = 1;
+      const int  tag     = 0;
+      const int  source  = importProcesses[i];
+      if (MPI_Irecv(buffer,count,MPIdataType,source,tag,MPI_COMM_WORLD,&(MPIrecvRequests[i])) != MPI_SUCCESS) rvalue=false;
+   }      
 
-      // Insert all received cells:
-      for (int i=0; i<N_import; ++i) {
-	 ParCell<C> p;
-	 const ID::type globalID = receiveBuffer[i].IDs[0];
-	 p.refLevel = receiveBuffer[i].nbrTypes[0];
-	 p.xcrd = receiveBuffer[i].coords[0];
-	 p.ycrd = receiveBuffer[i].coords[1];
-	 p.zcrd = receiveBuffer[i].coords[2];
-	 p.dx = receiveBuffer[i].coords[3];
-	 p.dy = receiveBuffer[i].coords[4];
-	 p.dz = receiveBuffer[i].coords[5];
-	 int j=1;
-	 while (j < 49 && receiveBuffer[i].IDs[j] != std::numeric_limits<ID::type>::max()) {
-	    p.neighbours[receiveBuffer[i].nbrTypes[j]] = receiveBuffer[i].IDs[j];
-	    ++j;
-	 }	 
-	 localCells[globalID] = p;
+   // Insert each exported cell to sendBuffer and post send:
+   MPIsendRequests.resize(N_export);
+   for (int i=0; i<N_export; ++i) {
+      sendBuffer[i].IDs[0] = exportGlobalIDs[i];
+      sendBuffer[i].nbrTypes[0] = localCells[exportGlobalIDs[i]].refLevel;
+      int index=1;
+      for (std::map<uchar,ID::type>::const_iterator it=localCells[exportGlobalIDs[i]].neighbours.begin(); it!=localCells[exportGlobalIDs[i]].neighbours.end(); ++it) {
+	 sendBuffer[i].IDs[index] = it->second;
+	 sendBuffer[i].nbrTypes[index] = it->first;
+	 sendBuffer[i].nbrHosts[index] = hostProcesses[it->second];
+	 // Reduce reference count to neighbours:
+	 --nbrReferences[it->second];
+	 
+	 ++index;
       }
-   } else {
-      rvalue = false;
+      for (int j=index; j<49; ++j) {sendBuffer[i].IDs[j] = std::numeric_limits<ID::type>::max();}
+      sendBuffer[i].coords[0] = localCells[exportGlobalIDs[i]].xcrd;
+      sendBuffer[i].coords[1] = localCells[exportGlobalIDs[i]].ycrd;
+      sendBuffer[i].coords[2] = localCells[exportGlobalIDs[i]].zcrd;
+      sendBuffer[i].coords[3] = localCells[exportGlobalIDs[i]].dx;
+      sendBuffer[i].coords[4] = localCells[exportGlobalIDs[i]].dy;
+      sendBuffer[i].coords[5] = localCells[exportGlobalIDs[i]].dz;
+      
+      void* const buffer = &(sendBuffer[i]);
+      const int   count  = 1;
+      const int   tag    = 0;
+      const int   dest   = exportProcesses[i];
+      if (MPI_Issend(buffer,count,MPIdataType,dest,tag,MPI_COMM_WORLD,&(MPIsendRequests[i])) != MPI_SUCCESS) rvalue=false;
    }
+   // Wait for sends & receives to complete. waitAll() unallocates MPIdataType.
+   waitAll();
 
-   // Deallocate arrays:
+   // Insert all received cells:
+   for (int i=0; i<N_import; ++i) {
+      ParCell<C> p;
+      const ID::type globalID = receiveBuffer[i].IDs[0];
+      p.refLevel = receiveBuffer[i].nbrTypes[0];
+      p.xcrd     = receiveBuffer[i].coords[0];
+      p.ycrd     = receiveBuffer[i].coords[1];
+      p.zcrd     = receiveBuffer[i].coords[2];
+      p.dx       = receiveBuffer[i].coords[3];
+      p.dy       = receiveBuffer[i].coords[4];
+      p.dz       = receiveBuffer[i].coords[5];
+      int j=1;
+      while (j < 49 && receiveBuffer[i].IDs[j] != std::numeric_limits<ID::type>::max()) {
+	 p.neighbours[receiveBuffer[i].nbrTypes[j]] = receiveBuffer[i].IDs[j];
+	 hostProcesses[receiveBuffer[i].IDs[j]] = receiveBuffer[i].nbrHosts[j];
+	 // Increase reference count for all neighbours:
+	 if (nbrReferences.find(receiveBuffer[i].IDs[j]) == nbrReferences.end()) nbrReferences[receiveBuffer[i].IDs[j]] = 0;
+	 ++nbrReferences[receiveBuffer[i].IDs[j]];
+	 
+	 ++j;
+      }
+      localCells[globalID] = p;
+   }
+   delete sendBuffer;
+   delete receiveBuffer;
+   sendBuffer = NULL;
+   receiveBuffer = NULL;
+   
+   // Erase exported cells:
+   for (int i=0; i<N_export; ++i) localCells.erase(exportGlobalIDs[i]);
+
+   // Erase entries from hostProcesses with 0 references remaining:
+   std::map<ID::type,uint>::iterator it = nbrReferences.begin();
+   while (it != nbrReferences.end()) {
+      if (it->second == 0) {
+	 std::map<ID::type,uint>::iterator tmp = it;
+	 ++it;
+	 nbrReferences.erase(tmp);
+	 hostProcesses.erase(tmp->first);
+      } else {
+	 ++it;
+      }
+   }
+   
+   // Deallocate Zoltan arrays:
    zoltan->LB_Free_Part(&importGlobalIDs,&importLocalIDs,&importProcesses,&importParts);
    zoltan->LB_Free_Part(&exportGlobalIDs,&exportLocalIDs,&exportProcesses,&exportParts);
    return rvalue;
@@ -1123,7 +1262,7 @@ template<class C> int ParGrid<C>::rank() const {return myrank;}
  */
 template<class C> bool ParGrid<C>::syncCellAssignments() {
    bool success = true;
-   hostProcesses.clear();
+   //hostProcesses.clear();
    // Go through every neighbour of every cell. If I do not own the
    // neighbour, add it to remNbrs:
    std::set<ID::type> remNbrs;
@@ -1131,7 +1270,24 @@ template<class C> bool ParGrid<C>::syncCellAssignments() {
       for (std::map<uchar,ID::type>::const_iterator i=it->second.neighbours.begin(); i!=it->second.neighbours.end(); ++i) {
 	 const ID::type nbrID = i->second;
 	 if (localCells.find(nbrID) == localCells.end()) remNbrs.insert(nbrID);
+	 /*
+	 // TEMP
+	 if (hostProcesses.find(nbrID) == hostProcesses.end()) {
+	    std::cerr << "Proc #" << myrank << " nbr cell #" << nbrID << " not in hostProcs" << std::endl;
+	 }*/
       }
+      /*
+      // TEMP
+      if (hostProcesses.find(it->first) == hostProcesses.end()) {
+	 std::cerr << "Proc #" << myrank << " local cell #" << it->first << " not in hostProcs" << std::endl;
+      } else {
+	 if (hostProcesses[it->first] != myrank) {
+	    std::cerr << "Proc #" << myrank << " local cell #" << it->first << " = " << hostProcesses[it->first];
+	    std::cerr << " but I have it!" << std::endl;
+	 }
+      }
+      // END TEMP
+      */
       // Add my own cells to hostProcesses:
       hostProcesses[it->first] = myrank;
    }
@@ -1139,14 +1295,14 @@ template<class C> bool ParGrid<C>::syncCellAssignments() {
    // Each process sends everyone the IDs of the cells it owns.
    // We can then update hostProcesses based on this information:
    for (int i=0; i<N_processes; ++i) {
-      lluint N_cells;
+      ID::type N_cells;
       
       if (i == myrank) {
 	 // Tell everyone how many cells I have:
    	 N_cells = localCells.size();
-	 if (MPI_Bcast(&N_cells,1,MPI_Type<lluint>(),i,MPI_COMM_WORLD) != MPI_SUCCESS) success = false;
+	 if (MPI_Bcast(&N_cells,1,MPI_Type<ID::type>(),i,MPI_COMM_WORLD) != MPI_SUCCESS) success = false;
 	 // Send my cell IDs to everyone:
-	 lluint counter = 0;
+	 ID::type counter = 0;
 	 ID::type* cellIDs = new ID::type[N_cells];
 	 for (typename std::map<ID::type,ParCell<C> >::const_iterator it=localCells.begin(); it!=localCells.end(); ++it) {
 	    cellIDs[counter] = it->first;
@@ -1156,7 +1312,7 @@ template<class C> bool ParGrid<C>::syncCellAssignments() {
 	 delete cellIDs;
       } else {
 	 // Receive the number of cells proc i has:
-	 if (MPI_Bcast(&N_cells,1,MPI_Type<lluint>(),i,MPI_COMM_WORLD) != MPI_SUCCESS) success = false;
+	 if (MPI_Bcast(&N_cells,1,MPI_Type<ID::type>(),i,MPI_COMM_WORLD) != MPI_SUCCESS) success = false;
 	 // Create a buffer and receive cell IDs from proc i:
 	 ID::type* cellIDs = new ID::type[N_cells];
 	 if (MPI_Bcast(cellIDs,N_cells,MPI_Type<ID::type>(),i,MPI_COMM_WORLD) != MPI_SUCCESS) success = false;
@@ -1164,13 +1320,46 @@ template<class C> bool ParGrid<C>::syncCellAssignments() {
 	 // Go through the list of cells, and if one of my boundary cells is on that list,
 	 // add an entry to hostProcesses:
 	 for (lluint k=0; k<N_cells; ++k) {
-	    if (remNbrs.find(cellIDs[k]) != remNbrs.end()) hostProcesses[cellIDs[k]] = i;
+	    if (remNbrs.find(cellIDs[k]) != remNbrs.end()) {
+	       /*
+	       // TEMP
+	       if (hostProcesses.find(cellIDs[k]) == hostProcesses.end()) 
+		 std::cerr << "Proc #" << myrank << " nbr cell#" << cellIDs[k] << " not in hostProcs" << std::endl;
+	       else
+		 if (hostProcesses[cellIDs[k]] != i) {
+		    std::cerr << "Proc #" << myrank << " hostProcs nbr #" << cellIDs[k] << " = " << hostProcesses[cellIDs[k]];
+		    std::cerr << " should equal to " << i << std::endl;
+		 }
+	       // END TEMP
+	       */
+	       hostProcesses[cellIDs[k]] = i;
+	    }
 	 }
 	 delete cellIDs;
       }
       barrier();
    }
    remNbrs.clear();
+   /*
+   // TEMP
+   for (int p=0; p<N_processes; ++p) {
+      if (myrank == p) {
+	 std::cerr << "Proc #" << myrank << " cell information:" << std::endl;
+	 for (typename std::map<ID::type,ParCell<C> >::const_iterator it=localCells.begin(); it!=localCells.end(); ++it) {
+	    std::cerr << it->first << ": ";
+	    for (std::map<uchar,ID::type>::const_iterator i=it->second.neighbours.begin(); i!=it->second.neighbours.end(); ++i) {
+	       std::cerr << i->second << "-";
+	       if (hostProcesses.find(i->second) == hostProcesses.end()) std::cerr << "? ";
+	       else std::cerr << hostProcesses[i->second] << " ";
+	    }
+	    std::cerr << std::endl;
+	 }
+      }
+      barrier();
+   }
+   barrier();
+   // END TEMP
+    */
    return success;
 }
 
@@ -1198,13 +1387,13 @@ template<class C> void ParGrid<C>::syncCellCoordinates() {
    disp[3] = 12;
    disp[4] = 16;
    disp[5] = 20;
-   
+
+   if (MPItypeFreed == false) MPI_Type_free(&MPIdataType);
    int result = MPI_Type_create_struct(6,blockLen,disp,type,&MPIdataType);
    #ifndef NDEBUG
    if (result != MPI_SUCCESS) {std::cerr << "ParGrid::syncCellCoordinates MPI_Type_create_struct failed!" << std::endl;}
    #endif
    
-   if (MPItypeFreed == false) MPI_Type_free(&MPIdataType);
    result = MPI_Type_commit(&MPIdataType);
    MPItypeFreed = false;
    #ifndef NDEBUG

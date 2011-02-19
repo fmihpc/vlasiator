@@ -208,8 +208,14 @@ bool VlsWriter::writeHeader(MPI_Comm comm,const int& masterRank) {
    unsigned char* ptr;
    
    // Append cell global ID to byteArray:
-   ptr = reinterpret_cast<unsigned char*>(const_cast<uint*>(&cellID));
-   for (int i=0; i<sizeof(cellID); ++i) byteArray.push_back(ptr[i]);
+   #ifndef PARGRID
+      uint tmpID = static_cast<uint>(cellID);
+      ptr = reinterpret_cast<unsigned char*>(const_cast<uint*>(&tmpID));
+      for (int i=0; i<sizeof(cellID); ++i) byteArray.push_back(ptr[i]);
+   #else
+      ptr = reinterpret_cast<unsigned char*>(const_cast<uint*>(&cellID));
+      for (int i=0; i<sizeof(tmpID); ++i) byteArray.push_back(ptr[i]);
+   #endif
    
    // Append cell x,y,z,dx,dy,dz to byteArray:
    ptr = reinterpret_cast<unsigned char*>(cell.cpu_cellParams);

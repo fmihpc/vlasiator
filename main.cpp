@@ -253,7 +253,7 @@ bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter
    bool writeSpatNbrLists = false;
    int myrank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
-
+   
    stringstream fname;
    fname << "celldata.";
    fname.width(7);
@@ -405,7 +405,7 @@ int main(int argn,char* args[]) {
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
    
    // Init parallel logger:
-   if (mpilogger.open(MPI_COMM_WORLD,"logfile.txt") == false) {
+   if (mpilogger.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt") == false) {
       cerr << "(MAIN) ERROR: MPILogger failed to open output file!" << endl;
       exit(1);
    }
@@ -419,13 +419,19 @@ int main(int argn,char* args[]) {
       } else {
 	 mpilogger << "\t Zoltan initialized successfully" << std::endl << write;
       }
+      if (buildGrid(MPI_COMM_WORLD,MASTER_RANK) == false) {
+	 mpilogger << "(MAIN) Grid builder failed!" << endl << write;
+	 success = false;
+      } else {
+	 mpilogger << "(MAIN) Grid built successfully" << endl << write;
+      }
       dccrg<SpatialCell> mpiGrid(comm,"GRAPH",P::xmin,P::ymin,P::zmin,P::dx_ini,P::dy_ini,P::dz_ini,P::xcells_ini,P::ycells_ini,P::zcells_ini,0,0);
    
    #else           // INITIALIZE USING PARGRID
       ParGrid<SpatialCell> mpiGrid(Hypergraph,argn,args);
 
       // Add all cells to mpiGrid:
-      if (buildGrid(mpiGrid) == false) {
+      if (buildGrid(mpiGrid,MPI_COMM_WORLD,MASTER_RANK) == false) {
 	 mpilogger << "(MAIN) Grid builder failed!" << endl << write;
 	 success = false;
       } else {
@@ -433,22 +439,7 @@ int main(int argn,char* args[]) {
       }
       // Load balance is most likely far from optimal. Do an 
       // initial load balance before reading cell data:
-      mpiGrid.initialize();
-   /*   initSpatialCells(mpiGrid);
-   
-      DataReducer reducer;
-      reducer.addOperator(new DRO::VariableE);
-      reducer.addOperator(new DRO::MPIrank);
-      VlsWriter vlsWriter;
-      if (writeSpatialCellData(mpiGrid,vlsWriter,reducer) == false) {
-	 mpilogger << "(MAIN): ERROR occurred while writing data to file!" << endl << write;
-      }
-
-      MPI_Barrier(MPI_COMM_WORLD);
-      mpilogger.close();
-      exit(1);
-*/
-      //mpiGrid.initialize(P::xcells_ini,P::ycells_ini,P::zcells_ini,P::xmin,P::ymin,P::zmin,P::xmax,P::ymax,P::zmax);
+      //mpiGrid.initialize();
    #endif
 
    // If initialization was not successful, abort.
@@ -473,9 +464,8 @@ int main(int argn,char* args[]) {
       initSpatialCells(mpiGrid,comm);
       comm.barrier();
    #else
-      initSpatialCells(mpiGrid);
-      //writeCellDistribution(mpiGrid);
-      mpiGrid.barrier();
+      //initSpatialCells(mpiGrid);
+      //mpiGrid.barrier();
    #endif
 
    // Fetch neighbour data:
@@ -517,6 +507,14 @@ int main(int argn,char* args[]) {
    
    // Write initial state:
    if (P::save_spatial_grid) {
+      #ifdef PARGRID
+         mpiGrid.getCells(Main::cells);
+      #else
+         Main::cells = mpiGrid.get_cells();
+      #endif
+      for (size_t i=0; i<Main::cells.size(); ++i) {
+	 cpu_calcVelocityMoments(*(mpiGrid[Main::cells[i]]));
+      }
       if (myrank == MASTER_RANK) {
 	 mpilogger << "(MAIN): Saving initial state of variables to disk." << endl << write;
       }
@@ -539,7 +537,7 @@ int main(int argn,char* args[]) {
    if (myrank == MASTER_RANK) 
      mpilogger << "(MAIN): Starting main simulation loop." << endl << write;
    time_t before = std::time(NULL);
-   for (uint tstep=0; tstep < P::tsteps; ++tstep) {
+   for (luint tstep=P::tstep_min; tstep < P::tsteps; ++tstep) {
       // Recalculate (maybe) spatial cell parameters
       calculateSimParameters(mpiGrid, P::t, P::dt);
 

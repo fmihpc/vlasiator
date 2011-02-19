@@ -61,7 +61,6 @@ Grid::Grid() {
      + MAX_VEL_BLOCKS*SIZE_DERIV
      + MAX_VEL_BLOCKS*SIZE_DERIV;
    
-   cout << "(GRID): Starting to init" << endl;
    try {
       avgs = new Real[SIZE];
       for (unsigned long long int i=0; i<SIZE; ++i) avgs[i] = 0.0;
@@ -70,7 +69,6 @@ Grid::Grid() {
       cerr << "\tERROR Couldn't allocate memory for avgs: " << e.what() << endl;
       exit(EXIT_FAILURE);
    }
-   cout << "\tCompleted" << endl;
 
    fx = avgs + MAX_VEL_BLOCKS*SIZE_VELBLOCK;
    fy = fx + MAX_VEL_BLOCKS*SIZE_FLUXS;

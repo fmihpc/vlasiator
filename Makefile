@@ -3,7 +3,7 @@ include Makefile.intel
 default: main vls2vtk
 
 # Compile directory:
-INSTALL=${HOME}/codes/cudafvm2
+INSTALL=${HOME}/codes/cuda/cudafvm
 
 # Which project is compiled:
 PROJ=harm1D
@@ -14,7 +14,7 @@ PROJ=harm1D
 #PROJ=Bz_const
 
 # Which grid builder is used:
-BUILDER=rect_cuboid_builder
+BUILDER=mpibuilder.o rect_cuboid_builder.o
 
 # Collect libraries into single variable:
 LIBS = ${LIB_BOOST}
@@ -23,7 +23,7 @@ LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_MPI}
 
 # Define dependencies of each object file
-DEPS_COMMON = common.h definitions.h mpiconversion.h
+DEPS_COMMON = common.h definitions.h mpiconversion.h mpilogger.h
 DEPS_CELL_SPATIAL = cell_spatial.h grid.h parameters.h cell_spatial.cpp
 DEPS_CELLSYNC = cell_spatial.h cellsync.cpp
 DEPS_CPU_ACC = cell_spatial.h cpu_acc.h cpu_common.h project.h cpu_acc.cpp
@@ -77,7 +77,7 @@ HDRS = cpu_acc.h cpu_common.h cpu_trans.h cell_spatial.h\
 	definitions.h grid.h gridbuilder.h\
 	main_dccrg.h main_pargrid.h mpiconversion.h mpifile.h mpilogger.h\
 	parameters.h\
-	pargrid.h silowriter.h vlscommon.h vlsreader.h vlswriter.h\
+	pargrid.h silowriter.h timer.h vlscommon.h vlsreader.h vlswriter.h\
 	writevars.h
 
 CUDA_HDRS = cudafuncs.h cudalaunch.h devicegrid.h
@@ -86,7 +86,7 @@ SRC = cell_spatial.cpp cpu_acc.cpp cpu_trans.cpp\
 	datareducer.cpp datareductionoperator.cpp\
 	grid.cpp gridbuilder.cpp\
 	main.cpp mpifile.cpp mpilogger.cpp\
-	parameters.cpp silowriter.cpp\
+	parameters.cpp silowriter.cpp timer.cpp\
 	vlscommon.cpp vlsreader.cpp vlswriter.cpp vls2vtk.cpp
 
 CUDA_SRC = cellsync.cpp cuda_acc.cu cuda_common.cu cuda_trans.cu\
@@ -94,7 +94,7 @@ CUDA_SRC = cellsync.cpp cuda_acc.cu cuda_common.cu cuda_trans.cu\
 
 CUDA_OBJS = cellsync.o cuda_acc.o cuda_trans.o cudafuncs.o gpudevicegrid.o
 
-OBJS = builder.o cell_spatial.o cpu_acc.o cpu_trans.o datareducer.o\
+OBJS = cell_spatial.o cpu_acc.o cpu_trans.o datareducer.o\
 	datareductionoperator.o grid.o\
 	gridbuilder.o main.o mpifile.o mpilogger.o\
 	 parameters.o project.o\
@@ -107,7 +107,7 @@ SRC +=
 OBJS +=
 
 builderinstall:
-	make ${BUILDER} -C gridbuilders "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS} ${INC_ZOLTAN}"
+	make ${BUILDER} -C gridbuilders "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS} ${INC_ZOLTAN} ${INC_MPI}"
 
 clean:
 	make clean -C gridbuilders
@@ -148,10 +148,14 @@ gpudevicegrid.o: $(DEPS_GPU_DEVICE_GRID)
 grid.o: $(DEPS_GRID)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c grid.cpp ${INC} ${INC_BOOST}
 
+# -O1 switch is here to make the code run correctly with intel
 gridbuilder.o: $(DEPS_GRIDBUILDER)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c gridbuilder.cpp ${INC} ${INC_BOOST} ${INC_MPI}
+	$(CMP) $(CXXFLAGS) $(FLAGS) -O1 -c gridbuilder.cpp ${INC} ${INC_BOOST} ${INC_MPI}
 
-main.o: $(DEPS_MAIN)
+#libbuilder.a:
+#	make ${BUILDER} -C gridbuilders "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS} ${INC_ZOLTAN} ${INC_MPI}"
+
+main.o: $(DEPS_MAIN) ${BUILDER}
 	$(CMP) $(CXXFLAGS) $(FLAGS) ${FLAG_OPENMP} -c main.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
 
 mpifile.o: ${DEPS_MPIFILE}
@@ -196,11 +200,12 @@ dist:
 	mkdir cudaFVM
 	cp ${HDRS} ${SRC} INSTALL cudaFVM/
 	cp Doxyfile Makefile Makefile.gnu Makefile.intel Makefile.pgi cudaFVM/
+	cp -R gridbuilders cudaFVM/
 	cp -R projects cudaFVM/
 	tar -cf cudaFVM.tar cudaFVM
 	gzip -9 cudaFVM.tar
 	rm -rf cudaFVM
 
 # Make executable
-main: builderinstall projinstall $(OBJS)
-	$(LNK) ${LDFLAGS} -o main $(OBJS) $(LIBS)
+main: projinstall builderinstall $(OBJS)
+	$(LNK) ${LDFLAGS} -o main $(OBJS) $(LIBS) ${BUILDER}

@@ -116,14 +116,33 @@ SpatialCell& SpatialCell::operator=(const SpatialCell& s) {
 SpatialCell::~SpatialCell() {
    //cout << "Spatial cell destructor called" << endl;
    // Free CPU memory:
-   freeMemory();
+   finalize();
+   //freeMemory();
 }
 
-bool SpatialCell::allocateMemory(const uint& BLOCKS) {
-   N_blocks = BLOCKS;
+bool SpatialCell::initialize(cuint& N_blocks) {
+   bool success = true;
+   // Deallocate previous memory (if required):
+   if (cpuIndex != numeric_limits<uint>::max()) {
+      if (grid.removeReference(cpuIndex) == false) success = false;
+      cpu_nbrsVel     = NULL;
+      cpu_blockParams = NULL;
+      cpu_avgs        = NULL;
+      cpu_fx          = NULL;
+      cpu_fy          = NULL;
+      cpu_fz          = NULL;
+      cpu_d1x         = NULL;
+      cpu_d1x         = NULL;
+      cpu_d1y         = NULL;
+      cpu_d2z         = NULL;
+      cpu_d2y         = NULL;
+      cpu_d2z         = NULL;
+   }
+   
    // Attempt to get pointers to available memory from Grid:
    cpuIndex = grid.getFreeMemory(N_blocks);
    if (cpuIndex == numeric_limits<uint>::max()) return false;
+   this->N_blocks = N_blocks;
    cpu_nbrsVel     = grid.getNbrsVel()     + cpuIndex*SIZE_NBRS_VEL;
    cpu_blockParams = grid.getBlockParams() + cpuIndex*SIZE_BLOCKPARAMS;
    cpu_avgs        = grid.getAvgs()        + cpuIndex*SIZE_VELBLOCK;
@@ -136,10 +155,11 @@ bool SpatialCell::allocateMemory(const uint& BLOCKS) {
    cpu_d2x         = grid.getD2x()         + cpuIndex*SIZE_DERIV;
    cpu_d2y         = grid.getD2y()         + cpuIndex*SIZE_DERIV;
    cpu_d2z         = grid.getD2z()         + cpuIndex*SIZE_DERIV;
-   return true;
+   return success;
 }
 
-bool SpatialCell::freeMemory() {
+bool SpatialCell::finalize() {
+//bool SpatialCell::freeMemory() {
    if (cpuIndex != numeric_limits<uint>::max()) {
       if (grid.removeReference(cpuIndex) == false) {
 	 mpilogger << "SpatialCell ERROR: Reference removal failed" << endl << write;
@@ -208,6 +228,7 @@ void* SpatialCell::at(void) {
 }
 #endif
 
+/*
 #ifdef PARGRID
 #include <mpi.h>
 void SpatialCell::allocate() {
@@ -215,6 +236,7 @@ void SpatialCell::allocate() {
 }
 
 #endif
+*/
 
 void* SpatialCell::getBaseAddress(cuint identifier) {
    // Hack: make sure that the pointers in SpatialCell are correct:
