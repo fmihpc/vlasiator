@@ -480,7 +480,19 @@ int main(int argn,char* args[]) {
       } else {
 	 mpilogger << "(MAIN) Grid built successfully" << endl << write;
       }
-      dccrg<SpatialCell> mpiGrid(comm,"GRAPH",P::xmin,P::ymin,P::zmin,P::dx_ini,P::dy_ini,P::dz_ini,P::xcells_ini,P::ycells_ini,P::zcells_ini,0,0);
+      dccrg<SpatialCell> mpiGrid(comm,"HIER",P::xmin,P::ymin,P::zmin,P::dx_ini,P::dy_ini,P::dz_ini,P::xcells_ini,P::ycells_ini,P::zcells_ini,0,0);
+
+      // set hierarchial partitioning parameters for first level
+      mpiGrid.add_partitioning_level(12);
+      mpiGrid.add_partitioning_option(0, "LB_METHOD", "HYPERGRAPH");
+      mpiGrid.add_partitioning_option(0, "PHG_CUT_OBJECTIVE", "CONNECTIVITY");
+      mpiGrid.add_partitioning_option(0, "IMBALANCE_TOL", "1.05");
+
+      // set hierarchial partitioning parameters for second level
+      mpiGrid.add_partitioning_level(1);
+      mpiGrid.add_partitioning_option(1, "LB_METHOD", "HYPERGRAPH");
+      mpiGrid.add_partitioning_option(1, "PHG_CUT_OBJECTIVE", "CONNECTIVITY");
+      mpiGrid.add_partitioning_option(1, "IMBALANCE_TOL", "1.05");
    
    #else           // INITIALIZE USING PARGRID
       ParGrid<SpatialCell> mpiGrid(Hypergraph,argn,args);
