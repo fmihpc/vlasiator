@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "cell_spatial.h"
 #include "common.h"
-#include "logger.h"
+#include "mpilogger.h"
 #include "parameters.h"
 #include "project.h"
 #include "solar_wind.hpp"
@@ -35,7 +35,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 using namespace std;
 using namespace boost::posix_time;
 
-extern Logger logger;
+extern MPILogger mpilogger;
 
 solar_wind::Solar_wind sw;
 
@@ -230,7 +230,7 @@ Real get_min_timestep(ParGrid<SpatialCell>& mpiGrid)
 
 	Real min_dt = numeric_limits<Real>::max();
 
-	logger << "Reading EB files..." << endl;
+	mpilogger << "Reading EB files..." << endl << write;
 
 	// loop from 16:00 to 23:59
 	for (int minute = 0; minute <= (23 - 16) * 60 + 59; minute++) {
@@ -247,7 +247,7 @@ Real get_min_timestep(ParGrid<SpatialCell>& mpiGrid)
 		}
 	}
 
-	logger << "Reading of EB files finished." << endl;
+	mpilogger << "Reading of EB files finished." << endl << write;
 
 	return min_dt;
 }
@@ -552,13 +552,13 @@ void calcSimParameters(ParGrid<SpatialCell>& mpiGrid, creal& t, Real& dt)
 	EB_filename.append(to_iso_string(loaded_EB_time));
 	EB_filename[14] = '_';
 	EB_filename.append(".EB");
-	//logger << "Time given: " << t << ", loading EB from file " << EB_file_name << endl;
+	//mpilogger << "Time given: " << t << ", loading EB from file " << EB_file_name << endl << write;
 
 	load_EB(mpiGrid, EB_filename);
 
 	if (!min_timestep_loaded) {
 		dt = get_min_timestep(mpiGrid);
-		logger << "Timestep: " << dt << " s" << endl;
+		mpilogger << "Timestep: " << dt << " s" << endl << write;
 	}
 }
 
