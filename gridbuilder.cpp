@@ -259,6 +259,8 @@ extern MPILogger mpilogger;
 
 bool buildGrid(MPI_Comm comm,const int& MASTER_RANK) {
    bool success = true;
+   int myrank;
+   MPI_Comm_rank(comm,&myrank);
    GridBuilder* builder = GridBuilderFactory::createBuilder();
    if (builder == NULL) {
       mpilogger << "(BUILDGRID) ERROR: Received NULL GridBuilder!" << endl << write;
@@ -268,6 +270,9 @@ bool buildGrid(MPI_Comm comm,const int& MASTER_RANK) {
       mpilogger << "(BUILDGRID) ERROR: GridBuilder failed to initialize!" << endl << write;
       success = false;
    }
+
+   if (broadcastMandatoryParameters(myrank,MASTER_RANK,comm,builder) == false) success = false;
+
    builder->finalize();
    GridBuilderFactory::deleteBuilder(builder);
    return success;
