@@ -24,6 +24,10 @@
 #include "datareductionoperator.h"
 #include "vlswriter.h"
 
+#ifdef CRAYPAT
+//include craypat api headers if compiled with craypat on Cray XT/XE
+#include "pat_api.h"
+#endif 
 Grid grid;
 
 using namespace std;
@@ -379,8 +383,9 @@ void log_send_receive_info(const dccrg<SpatialCell>& mpiGrid) {
 
 int main(int argn,char* args[]) {
    bool success = true;
-   
-   // Init parameter file reader:
+
+
+// Init parameter file reader:
    typedef Parameters P;
    Parameters parameters(argn,args);
    parameters.parse();
@@ -400,9 +405,59 @@ int main(int argn,char* args[]) {
 	 exit(1);
       }
    #endif
+      
    const int MASTER_RANK = 0;
    int myrank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+
+
+#ifdef CRAYPAT
+/*initialize variables for reducing sampling & tracing to a slice in iteration & process
+  space.
+*/
+   char *envvar;
+   int firstiter=-1;
+   int lastiter=numeric_limits<int>::max();
+   int firstrank=-1;
+   int lastrank=numeric_limits<int>::max();       
+#warning Including CrayPAT API 
+   if(myrank==0){
+       envvar=getenv("CRAYPAT_FIRSTITER");
+       if(envvar!=NULL){
+           //FIXME, happily we do no error checking here...
+           firstiter=atoi(envvar);
+       }
+       envvar=getenv("CRAYPAT_LASTITER");
+       if(envvar!=NULL){
+       //FIXME, happily we do no error checking here...
+           lastiter=atoi(envvar);
+       }
+       envvar=getenv("CRAYPAT_FIRSTRANK");
+       if(envvar!=NULL){
+           //FIXME, happily we do no error checking here...
+           firstrank=atoi(envvar);
+       }
+       envvar=getenv("CRAYPAT_LASTRANK");
+       if(envvar!=NULL){
+           //FIXME, happily we do no error checking here...
+           lastrank=atoi(envvar);
+       }
+   }
+   
+   MPI_Bcast(&firstiter,1,MPI_INT,0,MPI_COMM_WORLD);
+   MPI_Bcast(&lastiter,1,MPI_INT,0,MPI_COMM_WORLD);
+   MPI_Bcast(&firstrank,1,MPI_INT,0,MPI_COMM_WORLD);
+   MPI_Bcast(&lastrank,1,MPI_INT,0,MPI_COMM_WORLD);
+
+   //turn off craypat sampling & tracing based on the defined slices.
+   if(firstiter>0){
+       PAT_state(PAT_STATE_OFF);
+   }
+   else if(myrank<firstrank || myrank> lastrank){
+       PAT_state(PAT_STATE_OFF);
+   }
+#endif
+
    
    // Init parallel logger:
    if (mpilogger.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt") == false) {
@@ -538,7 +593,14 @@ int main(int argn,char* args[]) {
      mpilogger << "(MAIN): Starting main simulation loop." << endl << write;
    time_t before = std::time(NULL);
    for (luint tstep=P::tstep_min; tstep < P::tsteps; ++tstep) {
-      // Recalculate (maybe) spatial cell parameters
+#ifdef CRAYPAT
+//turn on & off sampling & tracing
+       if(myrank>=firstrank && myrank<=lastrank){
+           if(tstep==firstiter) PAT_state(PAT_STATE_ON);
+           if(tstep>lastiter) PAT_state(PAT_STATE_OFF);
+       }
+#endif 
+       // Recalculate (maybe) spatial cell parameters
       calculateSimParameters(mpiGrid, P::t, P::dt);
 
       // use globally minimum timestep
@@ -549,10 +611,28 @@ int main(int argn,char* args[]) {
       #endif
 
       // Propagate the state of simulation forward in time by dt:
+#ifdef CRAYPAT
+      PAT_region_begin(1,"calculateAcceleration");
+#endif 
       calculateAcceleration(mpiGrid);
+#ifdef CRAYPAT
+      PAT_region_end(1);
+      PAT_region_begin(2,"calculateSpatialDerivatives");
+#endif 
       calculateSpatialDerivatives(mpiGrid);
+#ifdef CRAYPAT
+      PAT_region_end(2);
+      PAT_region_begin(3,"calculateSpatialFluxes");
+#endif 
       calculateSpatialFluxes(mpiGrid);
+#ifdef CRAYPAT
+      PAT_region_end(3);
+      PAT_region_begin(4,"calculateSpatialPropagation");
+#endif 
       calculateSpatialPropagation(mpiGrid);
+#ifdef CRAYPAT
+      PAT_region_end(4);
+#endif 
       ++P::tstep;
       P::t += P::dt;
       
