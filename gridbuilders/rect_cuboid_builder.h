@@ -54,6 +54,8 @@ class RectCuboidBuilder: public MPIBuilder {
    bool periodicInY;  /**< If true, grid is periodic in y-direction.*/
    bool periodicInZ;  /**< If true, grid is periodic in z-direction.*/
    
+   std::map<std::string,std::string> options;
+   
    uint calculateNeighbours(const VirtualCell::ID& i,const VirtualCell::ID& j,const VirtualCell::ID& k,
 			    VirtualCell::ID& x_neg,VirtualCell::ID& x_pos,VirtualCell::ID& y_neg,
 			    VirtualCell::ID& y_pos,VirtualCell::ID& z_neg,VirtualCell::ID& z_pos);

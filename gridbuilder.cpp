@@ -259,8 +259,10 @@ extern MPILogger mpilogger;
 
 bool buildGrid(MPI_Comm comm,const int& MASTER_RANK) {
    bool success = true;
-   int myrank;
-   MPI_Comm_rank(comm,&myrank);
+   int myrank,N_processes;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+   MPI_Comm_size(MPI_COMM_WORLD,&N_processes);
+   
    GridBuilder* builder = GridBuilderFactory::createBuilder();
    if (builder == NULL) {
       mpilogger << "(BUILDGRID) ERROR: Received NULL GridBuilder!" << endl << write;
@@ -270,9 +272,128 @@ bool buildGrid(MPI_Comm comm,const int& MASTER_RANK) {
       mpilogger << "(BUILDGRID) ERROR: GridBuilder failed to initialize!" << endl << write;
       success = false;
    }
-
    if (broadcastMandatoryParameters(myrank,MASTER_RANK,comm,builder) == false) success = false;
+   
+   typedef Parameters P;
+   
+   // Query parameters needed by dccrg from GridBuilder. Note that all GridBuilders are not 
+   // required to provide these parameters, i.e. dccrg is in general not compatible with all 
+   // possible GridBuilders.
+   Real xmin,ymin,zmin,dx,dy,dz;
+   VC::ID x_length,y_length,z_length;   
+   string s;
+   if (myrank == MASTER_RANK) {
+      if (builder->getParameter("gridbuilder.x_min",s) == false) success = false; xmin = atof(s.c_str());
+      if (builder->getParameter("gridbuilder.y_min",s) == false) success = false; ymin = atof(s.c_str());
+      if (builder->getParameter("gridbuilder.z_min",s) == false) success = false; zmin = atof(s.c_str());
+      if (builder->getParameter("gridbuilder.x_length",s) == false) success = false; x_length = atoi(s.c_str());
+      if (builder->getParameter("gridbuilder.y_length",s) == false) success = false; y_length = atoi(s.c_str());
+      if (builder->getParameter("gridbuilder.z_length",s) == false) success = false; z_length = atoi(s.c_str());
+      if (builder->getParameter("gridbuilder.dx_unref",s) == false) success = false; dx = atof(s.c_str());
+      if (builder->getParameter("gridbuilder.dy_unref",s) == false) success = false; dy = atof(s.c_str());
+      if (builder->getParameter("gridbuilder.dz_unref",s) == false) success = false; dz = atof(s.c_str());   
+   }
+   
+   // Bcast values to all processes:
+   if (MPI_Bcast(&xmin    ,1,MPI_Type<Real>()  ,MASTER_RANK,comm) != MPI_SUCCESS) success = false;
+   if (MPI_Bcast(&ymin    ,1,MPI_Type<Real>()  ,MASTER_RANK,comm) != MPI_SUCCESS) success = false;
+   if (MPI_Bcast(&zmin    ,1,MPI_Type<Real>()  ,MASTER_RANK,comm) != MPI_SUCCESS) success = false;
+   if (MPI_Bcast(&dx      ,1,MPI_Type<Real>()  ,MASTER_RANK,comm) != MPI_SUCCESS) success = false;
+   if (MPI_Bcast(&dy      ,1,MPI_Type<Real>()  ,MASTER_RANK,comm) != MPI_SUCCESS) success = false;
+   if (MPI_Bcast(&dz      ,1,MPI_Type<Real>()  ,MASTER_RANK,comm) != MPI_SUCCESS) success = false;
+   if (MPI_Bcast(&x_length,1,MPI_Type<VC::ID>(),MASTER_RANK,comm) != MPI_SUCCESS) success = false;
+   if (MPI_Bcast(&y_length,1,MPI_Type<VC::ID>(),MASTER_RANK,comm) != MPI_SUCCESS) success = false;
+   if (MPI_Bcast(&z_length,1,MPI_Type<VC::ID>(),MASTER_RANK,comm) != MPI_SUCCESS) success = false;
+   
+   // Init dccrg 
+   // TODO
+   
+   // Get the total number of cells in grid:
+   VC::ID N_cells;
+   if (myrank == MASTER_RANK) if (builder->getTotalNumberOfCells(N_cells) == false) {
+      mpilogger << "(BUILDGRID) ERROR: Failed to get number of cells to create from GridBuilder!" << endl << write;
+      success = false;
+   }
 
+   // Master process requests cell IDs. If all processes need the IDs, then master must bcast them.
+   // NOTE: dccrg does not need spatial neighbour information, so spatNbrsPerCell can be ignored.
+   // NOTE: cells need to be distributed to N processes here.
+   // TODO
+   vector<VC::ID> cellIDs;
+   vector<uchar>  spatNbrsPerCell;
+   if (myrank == MASTER_RANK) if (builder->getCellIDs(cellIDs,spatNbrsPerCell) == false) success = false;
+
+   // Add cells to dccrg / tell dccrg to refine the grid based on the obtained cell IDs on every process.
+   // TODO
+   
+   // Code below was copy-pasted from ParGrid-specific code, and it should work with 
+   // dccrg once stuff mentioned above has been implemented...
+   
+   /*
+   // Get the IDs of cells local to each process. These need to be copied to another array.
+   vector<uint64_t> localCells;
+   localCells = mpiGrid.get_cells();
+   VC::ID* myCellIDs = new VC::ID[localCells.size()];
+   VC::ID N_myCells = localCells.size();
+   for (size_t i=0; i<localCells.size(); ++i) {
+      myCellIDs[i] = localCells[i];
+   }
+   
+   // Get cell parameters for all local cells to buffer, and copy values from buffer 
+   // to SpatialCell::cpu_cellParams.
+   Real* cellParamsBuffer = new Real[SIZE_CELLPARAMS*N_myCells];
+   if (builder->addCellParamsRequests(N_myCells,myCellIDs,cellParamsBuffer) == false) success = false;
+   if (builder->processCellParamsRequests() == false) success = false;
+   if (builder->waitCellParamsRequests() == false) success = false;
+   
+   for (VC::ID i=0; i<N_myCells; ++i) {
+      SpatialCell* SC = mpiGrid[localCells[i]];
+      for (uint j=0; j<SIZE_CELLPARAMS; ++j) SC->cpu_cellParams[j] = cellParamsBuffer[i*SIZE_CELLPARAMS+j];
+   }
+   delete cellParamsBuffer;
+   cellParamsBuffer = NULL;
+   
+   // Get the number of velocity blocks in each local cell (required for mem alloc):
+   uint* blocksPerCell = new uint[N_myCells];
+   builder->addCellBlockNumberRequests(N_myCells,myCellIDs,blocksPerCell);
+   builder->processCellBlockNumberRequests();
+   builder->waitCellBlockNumberRequests();
+   for (size_t i=0; i<localCells.size(); ++i) {
+      mpiGrid[localCells[i]]->initialize(blocksPerCell[i]);
+   }
+   
+   // Create buffers for receiving distribution function. Note that we are actually 
+   // sending the SpatialCell array pointers to GridBuilder:
+   Real** avgsBuffer        = new Real*[N_myCells];
+   Real** blockParamsBuffer = new Real*[N_myCells];
+   uint** nbrsVelBuffer     = new uint*[N_myCells];
+   for (size_t i=0; i<localCells.size(); ++i) {
+      SpatialCell* SC      = mpiGrid[localCells[i]];
+      avgsBuffer[i]        = SC->cpu_avgs;
+      blockParamsBuffer[i] = SC->cpu_blockParams;
+      nbrsVelBuffer[i]     = SC->cpu_nbrsVel;      
+      for (uint j=0; j<SIZE_VELBLOCK*blocksPerCell[i]; ++j) avgsBuffer[i][j] = 1.0;
+   }
+   if (builder->addCellBlockDataRequests(N_myCells,myCellIDs,blocksPerCell,avgsBuffer,blockParamsBuffer,nbrsVelBuffer) == false) success = false;
+   if (builder->processCellBlockDataRequests() == false) success = false;
+   if (builder->waitCellBlockDataRequests() == false) success = false;
+   
+   // Deallocate memory:
+   for (VC::ID i=0; i<localCells.size(); ++i) {
+      avgsBuffer[i] = NULL;
+      blockParamsBuffer[i] = NULL;
+      nbrsVelBuffer[i] = NULL;
+   }
+   delete avgsBuffer;
+   delete blockParamsBuffer;
+   delete nbrsVelBuffer;
+   delete blocksPerCell;
+   blocksPerCell = NULL;
+   delete myCellIDs;
+   myCellIDs = NULL;
+   */
+   
+   // Deallocate memory and exit:
    builder->finalize();
    GridBuilderFactory::deleteBuilder(builder);
    return success;
