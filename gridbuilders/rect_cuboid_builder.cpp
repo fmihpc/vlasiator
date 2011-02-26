@@ -116,16 +116,15 @@ bool RectCuboidBuilder::getCellBlockData(const VirtualCell::ID& cellID,cuint& N_
       cuint BLOCKID = kv*vy_blocks*vx_blocks + jv*vx_blocks + iv;
       // Calculate velocity block parameters:
       creal vx_block = vx_min + iv*dvx_block;
-      creal vy_block = vy_min + iv*dvy_block;
-      creal vz_block = vz_min + iv*dvz_block;
-      blockParams[BLOCKID*SIZE_BLOCKPARAMS + BlockParams::VXCRD] = vx_block;
+      creal vy_block = vy_min + jv*dvy_block;
+      creal vz_block = vz_min + kv*dvz_block;
       blockParams[BLOCKID*SIZE_BLOCKPARAMS + BlockParams::VXCRD] = vx_block;
       blockParams[BLOCKID*SIZE_BLOCKPARAMS + BlockParams::VYCRD] = vy_block;
       blockParams[BLOCKID*SIZE_BLOCKPARAMS + BlockParams::VZCRD] = vz_block;
       blockParams[BLOCKID*SIZE_BLOCKPARAMS + BlockParams::DVX  ] = dvx_blockCell;
       blockParams[BLOCKID*SIZE_BLOCKPARAMS + BlockParams::DVY  ] = dvy_blockCell;
       blockParams[BLOCKID*SIZE_BLOCKPARAMS + BlockParams::DVZ  ] = dvz_blockCell;
-      
+
       for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
 	 creal vx_cell = vx_block + ic*dvx_blockCell;
 	 creal vy_cell = vy_block + jc*dvy_blockCell;
