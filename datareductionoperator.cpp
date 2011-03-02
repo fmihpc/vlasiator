@@ -35,6 +35,11 @@ namespace DRO {
       cerr << "ERROR: DataReductionOperator::appendReducedData called instead of derived class function!" << endl;
       return false;
    }
+
+   bool DataReductionOperator::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      cerr << "ERROR: DataReductionOperator::getDataVectorInfo called insted of derived class function!" << endl;
+      return false;
+   }
    
    /** Get the byte size of one element in the array of reduced data calculated by 
     * this DRO::DataReductionOperator. For example, if this DRO::DataReductionOperator 
@@ -97,7 +102,7 @@ namespace DRO {
 	 break;
       }
       return rvalue;
-}
+   }
    
    /** Reduce the given data and store the value into internal variables.
     * @param block A velocity block in the current SpatialCell. The size of the block is 
@@ -108,6 +113,11 @@ namespace DRO {
     * @return If true, the data was reduced successfully. The base class function returns false.
     */
    bool DataReductionOperator::reduceData(const Real* const block,const Real* const blockParams) {
+      cerr << "ERROR: DataReductionOperator::reduceData called instead of derived class function!" << endl;
+      return false;
+   }
+   
+   bool DataReductionOperator::reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer) {
       cerr << "ERROR: DataReductionOperator::reduceData called instead of derived class function!" << endl;
       return false;
    }
@@ -175,15 +185,29 @@ namespace DRO {
       return true;
    }
    
+   bool VariableE::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize = 4;
+      vectorSize = 3;
+      return true;
+   }
+   
    unsigned char VariableE::getElementByteSize() const {return sizeof(Ex);}
    
    std::string VariableE::getName() const {return "E";}
    
    bool VariableE::reduceData(const Real* const avgs,const Real* const blockParams) {return true;}
    
+   bool VariableE::reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(E);
+      for (int i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
    unsigned char VariableE::getVariableType() const {return VlsVariable::VECTOR3;}
    
    bool VariableE::setSpatialCell(const SpatialCell& cell) {
+      E = &(cell.cpu_cellParams[CellParams::EX]);
       Ex = cell.cpu_cellParams[CellParams::EX];
       Ey = cell.cpu_cellParams[CellParams::EY];
       Ez = cell.cpu_cellParams[CellParams::EZ];
@@ -226,6 +250,13 @@ namespace DRO {
       for (int i=0; i<sizeof(Bz); ++i) byteArray.push_back(ptr[i]);
       return true;
    }
+
+   bool VariableB::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize = 4;
+      vectorSize = 3;
+      return true;
+   }
    
    unsigned char VariableB::getElementByteSize() const {return sizeof(Bx);}
    
@@ -233,9 +264,16 @@ namespace DRO {
    
    bool VariableB::reduceData(const Real* const avgs,const Real* const blockParams) {return true;}
    
+   bool VariableB::reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(B);
+      for (int i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
    unsigned char VariableB::getVariableType() const {return VlsVariable::VECTOR3;}
    
    bool VariableB::setSpatialCell(const SpatialCell& cell) {
+      B  = &(cell.cpu_cellParams[CellParams::BX]);
       Bx = cell.cpu_cellParams[CellParams::BX];
       By = cell.cpu_cellParams[CellParams::BY];
       Bz = cell.cpu_cellParams[CellParams::BZ];
@@ -261,7 +299,20 @@ namespace DRO {
    
    std::string VariableRho::getName() const {return "rho";}
    
+   bool VariableRho::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize = 4;
+      vectorSize = 1;
+      return true;
+   }
+   
    bool VariableRho::reduceData(const Real* const avgs,const Real* const blockParams) {return true;}
+   
+   bool VariableRho::reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(&rho);
+      for (int i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
    
    unsigned char VariableRho::getVariableType() const {return VlsVariable::SCALAR;}
    
@@ -286,11 +337,24 @@ namespace DRO {
       return true;
    }
    
+   bool MPIrank::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "int";
+      dataSize = 4;
+      vectorSize = 1;
+      return true;
+   }
+   
    unsigned char MPIrank::getElementByteSize() const {return sizeof(rank);}
    
    std::string MPIrank::getName() const {return "MPI_rank";}
    
    bool MPIrank::reduceData(const Real* const avgs,const Real* const blockParams) {return true;}
+   
+   bool MPIrank::reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(&mpiRank);
+      for (int i=0; i<sizeof(int); ++i) buffer[i] = ptr[i];
+      return true;
+   }
    
    unsigned char MPIrank::getVariableType() const {return VlsVariable::SCALAR;}
    
@@ -298,6 +362,7 @@ namespace DRO {
       int intRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&intRank);
       rank = 1.0*intRank;
+      mpiRank = intRank;
       return true;
    }
 
@@ -338,15 +403,29 @@ namespace DRO {
       return true;
    }
    
+   bool VariableRhoV::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize = 4;
+      vectorSize = 3;
+      return true;
+   }
+   
    unsigned char VariableRhoV::getElementByteSize() const {return sizeof(rhovx);}
    
    std::string VariableRhoV::getName() const {return "rho_v";}
    
    bool VariableRhoV::reduceData(const Real* const avgs,const Real* const blockParams) {return true;}
    
+   bool VariableRhoV::reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(rhov);
+      for (int i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
    unsigned char VariableRhoV::getVariableType() const {return VlsVariable::VECTOR3;}
    
    bool VariableRhoV::setSpatialCell(const SpatialCell& cell) {
+      rhov  = &(cell.cpu_cellParams[CellParams::RHOVX]);
       rhovx = cell.cpu_cellParams[CellParams::RHOVX];
       rhovy = cell.cpu_cellParams[CellParams::RHOVY];
       rhovz = cell.cpu_cellParams[CellParams::RHOVZ];

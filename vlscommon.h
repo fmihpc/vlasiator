@@ -8,7 +8,7 @@
  * backward compability with older file versions, you can only add new values.
  */
 namespace VlsHeader {
-   typedef uint64_t Int;
+   typedef int64_t Int;
    typedef uint64_t UInt;
    typedef double Real;
    typedef float Real4;
@@ -54,6 +54,15 @@ namespace VlsVariable {
    const unsigned char TENSOR33 = 7;     /**< Variable is a 3x3 tensor, i.e. an array with nine elements.*/
 }
 
+namespace VLSV {
+   const unsigned char LITTLE_END = 0;
+   const unsigned char BIG_END    = 1;
+   
+   enum datatype {INT,UINT,FLOAT};
+}
+
+unsigned char detectEndianness();
+
 VlsHeader::Int convUInt1(const unsigned char* const ptr,const bool& swapEndian=false);
 VlsHeader::Int convUInt2(const unsigned char* const ptr,const bool& swapEndian=false);
 VlsHeader::Int convUInt4(const unsigned char* const ptr,const bool& swapEndian=false);
@@ -61,5 +70,16 @@ VlsHeader::Int convUInt8(const unsigned char* const ptr,const bool& swapEndian=f
 VlsHeader::Real convReal4(const unsigned char* const ptr,const bool& swapEndian=false);
 VlsHeader::Real convReal8(const unsigned char* const ptr,const bool& swapEndian=false);
 VlsHeader::Real convReal16(const unsigned char* const ptr,const bool& swapEndian=false);
+
+VlsHeader::Int convInt8(const char* const ptr,const bool& swapEndian=false);
+VlsHeader::Int convInt16(const char* const ptr,const bool& swapEndian=false);
+VlsHeader::Int convInt32(const char* const ptr,const bool& swapEndian=false);
+VlsHeader::Int convInt64(const char* const ptr,const bool& swapEndian=false);
+VlsHeader::UInt convUInt8(const char* const ptr,const bool& swapEndian=false);
+VlsHeader::UInt convUInt16(const char* const ptr,const bool& swapEndian=false);
+VlsHeader::UInt convUInt32(const char* const ptr,const bool& swapEndian=false);
+VlsHeader::UInt convUInt64(const char* const ptr,const bool& swapEndian=false);
+float convReal4(const char* const ptr,const bool& swapEndian=false);
+double convReal8(const char* const ptr,const bool& swapEndian=false);
 
 #endif

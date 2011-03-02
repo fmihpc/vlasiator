@@ -24,6 +24,8 @@
 #include "datareductionoperator.h"
 #include "vlswriter.h"
 
+#include "vlsvwriter2.h" // TEST
+
 #ifdef CRAYPAT
 //include craypat api headers if compiled with craypat on Cray XT/XE
 #include "pat_api.h"
@@ -248,6 +250,144 @@ void writeSomeVelocityGrids(const ParGrid<SpatialCell>& mpiGrid, const std::vect
 	}
 }
 
+#ifdef PARGRID
+bool writeGrid(const ParGrid<SpatialCell>& mpiGrid,DataReducer& dataReducer) {
+#else
+bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer) {
+#endif
+   clock_t allStart = clock();
+   bool success = true;
+   int myrank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+
+   // Create a name for the output file and open it with VLSVWriter:
+   stringstream fname;
+   fname << "grid.";
+   fname.width(7);
+   fname.fill('0');
+   fname << Parameters::tstep << ".vlsv";
+   
+   VLSVWriter vlsvWriter;
+   vlsvWriter.open(fname.str(),MPI_COMM_WORLD,0);
+   
+   // Get all local cell IDs and write to file:
+   map<string,string> attribs;
+   #ifdef PARGRID
+      mpiGrid.getCells(Main::cells);
+   #else 
+      Main::cells = mpiGrid.get_cells();
+   #endif
+
+   if (vlsvWriter.writeArray("MESH","SpatialGrid",attribs,Main::cells.size(),1,&(Main::cells[0])) == false) {
+      cerr << "Proc #" << myrank << " failed to write cell IDs!" << endl;
+   }
+
+   // Create a buffer for spatial cell coordinates. Copy all coordinates to 
+   // buffer and write:
+   Real* buffer = new Real[6*Main::cells.size()];
+   for (size_t i=0; i<Main::cells.size(); ++i) {
+      SpatialCell* SC = mpiGrid[Main::cells[i]];
+      for (int j=0; j<6; ++j) {
+	 buffer[6*i+j] = SC->cpu_cellParams[j];
+      }
+   }
+   if (vlsvWriter.writeArray("COORDS","SpatialGrid",attribs,Main::cells.size(),6,buffer) == false) {
+      cerr << "Proc #" << myrank << " failed to write cell coords!" << endl;
+   }
+   delete buffer;
+
+
+   // Write variables calculated by DataReductionOperators (DRO). We do not know how many 
+   // numbers each DRO calculates, so a buffer has to be re-allocated for each DRO:
+   char* varBuffer;
+   attribs.clear();
+   attribs["mesh"] = "SpatialGrid";
+   for (uint i=0; i<dataReducer.size(); ++i) {
+      string variableName,dataType;
+      uint dataSize,vectorSize;
+      variableName = dataReducer.getName(i);
+      if (dataReducer.getDataVectorInfo(i,dataType,dataSize,vectorSize) == false) {
+	 cerr << "ERROR when requesting info from DRO " << i << endl;
+      }
+      uint64_t arraySize = Main::cells.size()*vectorSize*dataSize;
+      
+      // Request DataReductionOperator to calculate the reduced data for all local cells:
+      varBuffer = new char[arraySize];
+      for (uint64_t cell=0; cell<Main::cells.size(); ++cell) {
+	 if (dataReducer.reduceData(mpiGrid[Main::cells[cell]],i,varBuffer + cell*vectorSize*dataSize) == false) success = false;
+      }
+      
+      // Write reduced data to file:
+      if (vlsvWriter.writeArray("VARIABLE",variableName,attribs,Main::cells.size(),vectorSize,dataType,dataSize,varBuffer) == false) success = false;      
+      delete varBuffer;
+      varBuffer = NULL;
+   }
+
+   // Write velocity blocks and related data. Which cells write velocity grids 
+   // should be requested from a function, but for now we just write velocity grids for all cells:
+   attribs.clear();
+   
+   // First write global IDs of those cells which write velocity blocks (here: all cells):
+   if (vlsvWriter.writeArray("CELLSWITHBLOCKS","SpatialGrid",attribs,Main::cells.size(),1,&(Main::cells[0])) == false) success = false;
+   
+   // Write the number of velocity blocks in each spatial cell. Again a temporary buffer is used:
+   uint* N_blocks = new uint[Main::cells.size()];
+   uint64_t totalBlocks = 0;
+   for (size_t cell=0; cell<Main::cells.size(); ++cell) {
+      N_blocks[cell] = mpiGrid[Main::cells[cell]]->N_blocks;
+      totalBlocks += mpiGrid[Main::cells[cell]]->N_blocks;
+   }
+   if (vlsvWriter.writeArray("NBLOCKS","SpatialGrid",attribs,Main::cells.size(),1,N_blocks) == false) success = false;
+
+   clock_t start = clock();
+   
+   // Write velocity block coordinates. At this point the data may get too large to be buffered, 
+   // so a "multi-write" mode is used - coordinates are written one velocity grid at a time. Besides, 
+   // the velocity block coordinates are already stored in a suitable format for writing in SpatialCells:
+   if (vlsvWriter.startMultiwrite("float",totalBlocks,6,sizeof(Real)) == false) success = false;
+   if (success == true) {
+      uint64_t counter = 0;
+      SpatialCell* SC;
+      for (size_t cell=0; cell<Main::cells.size(); ++cell) {
+	 SC = mpiGrid[Main::cells[cell]];
+	 if (vlsvWriter.multiwriteArray(counter,N_blocks[cell],SC->cpu_blockParams) == false) success = false;
+	 counter += N_blocks[cell];
+      }
+   }
+   if (success == true) if (vlsvWriter.endMultiwrite("BLOCKCOORDINATES","SpatialGrid",attribs) == false) success = false;
+   
+   // Write values of distribution function:
+   if (vlsvWriter.startMultiwrite("float",totalBlocks,64,sizeof(Real)) == false) success = false;
+   if (success == true) {
+      uint64_t counter = 0;
+      SpatialCell* SC;
+      for (size_t cell=0; cell<Main::cells.size(); ++cell) {
+	 SC = mpiGrid[Main::cells[cell]];
+	 if (vlsvWriter.multiwriteArray(counter,N_blocks[cell],SC->cpu_avgs) == false) success = false;
+	 counter += N_blocks[cell];
+      }
+   }
+   attribs["mesh"] = "SpatialGrid";
+   if (success == true) if (vlsvWriter.endMultiwrite("BLOCKVARIABLE","avgs",attribs) == false) success = false;
+   
+   clock_t end = clock();
+    
+   delete N_blocks;
+
+   vlsvWriter.close();
+
+   clock_t allEnd = clock();
+   
+   double bytesWritten = Main::cells.size()*1000*4*(64+6);
+   double secs = (1.0*(end-start))/CLOCKS_PER_SEC;
+   mpilogger << "Wrote " << bytesWritten/1.0e6 << " MB of data in " << secs << " seconds, datarate is " << bytesWritten/secs/1.0e9 << " GB/s" << endl << write;
+   
+   double allSecs = (1.0*(allEnd-allStart))/CLOCKS_PER_SEC;
+   if (myrank == 0) mpilogger << "All data written in " << allSecs << " seconds" << endl << write;
+   
+   return success;
+}
+   
 #ifdef PARGRID
 bool writeSpatialCellData(const ParGrid<SpatialCell>& mpiGrid,VlsWriter& vlsWriter,DataReducer& dataReducer) {
 #else
@@ -585,6 +725,7 @@ int main(int argn,char* args[]) {
       if (myrank == MASTER_RANK) {
 	 mpilogger << "(MAIN): Saving initial state of variables to disk." << endl << write;
       }
+      //writeGrid(mpiGrid,reducer);
       if (writeSpatialCellData(mpiGrid,vlsWriter,reducer) == false) {
 	 mpilogger << "(MAIN): ERROR occurred while writing data to file!" << endl << write;
       }

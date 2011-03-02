@@ -24,6 +24,13 @@ class DataReducer {
    bool getDescription(unsigned char*& byteArray,unsigned int& arraySize);
    static unsigned char getNameSizeEntryByteSize();
    bool reduceData(const SpatialCell& cell);
+
+   // New interface
+   unsigned int getByteSize(const unsigned int& operatorID) const;
+   bool getDataVectorInfo(const unsigned int& operatorID,std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+   std::string getName(const unsigned int& operatorID) const;
+   bool reduceData(const SpatialCell* cell,const unsigned int& operatorID,char* buffer);
+   unsigned int size() const;
    
  private:
    /** Private copy-constructor to prevent copying the class.

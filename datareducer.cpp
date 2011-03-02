@@ -75,6 +75,16 @@ unsigned int DataReducer::getByteSize() const {
    return size;
 }
 
+unsigned int DataReducer::getByteSize(const unsigned int& operatorID) const {
+   if (operatorID >= operators.size()) return 0;
+   return operators[operatorID]->getOutputByteSize();
+}
+
+std::string DataReducer::getName(const unsigned int& operatorID) const {
+   if (operatorID >= operators.size()) return "";
+   return operators[operatorID]->getName();
+}
+
 /** Get description of reduced data from each stored DRO::DataReductionOperator, and write 
  * the description and its size (in bytes) to the given variables. Array byteArray 
  * is allocated here, so the user has to take care of deleting it elsewhere.
@@ -133,6 +143,11 @@ bool DataReducer::getDescription(unsigned char*& byteArray,unsigned int& arraySi
  */
 unsigned char DataReducer::getNameSizeEntryByteSize() {return sizeof(unsigned int);}
 
+bool DataReducer::getDataVectorInfo(const unsigned int& operatorID,std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+   if (operatorID >= operators.size()) return false;
+   return operators[operatorID]->getDataVectorInfo(dataType,dataSize,vectorSize);
+}
+
 /** Reduce the given SpatialCell data. This function 
  * calls DRO::DataReductionOperator::reduceData member function of each
  * DRO::DataReductionOperator stored in DataReducer for the given SpatialCell.
@@ -154,3 +169,15 @@ bool DataReducer::reduceData(const SpatialCell& cell) {
    }
    return true;
 }
+
+bool DataReducer::reduceData(const SpatialCell* cell,const unsigned int& operatorID,char* buffer) {
+   // Tell the chosen operator which spatial cell we are counting:
+   if (operatorID >= operators.size()) return false;
+   if (operators[operatorID]->setSpatialCell(*cell) == false) return false;
+
+   if (operators[operatorID]->reduceData(cell->N_blocks,cell->cpu_avgs,cell->cpu_blockParams,buffer) == false) return false;
+   return true;
+}
+
+unsigned int DataReducer::size() const {return operators.size();}
+

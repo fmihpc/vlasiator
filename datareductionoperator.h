@@ -31,9 +31,13 @@ namespace DRO {
       virtual unsigned char getVariableType() const;
       virtual bool reduceData(const Real* const avgs,const Real* const blockParams);
       virtual bool setSpatialCell(const SpatialCell& cell);
-   
-    protected:
+
+      // New interface
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer);
       
+    protected:
+	
    };
    
    class MPIrank: public DataReductionOperator {
@@ -43,14 +47,17 @@ namespace DRO {
       
       bool appendReducedData(unsigned char* const byteArray);
       bool appendReducedData(std::vector<unsigned char>& byteArray);
+      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       unsigned char getElementByteSize() const;
       std::string getName() const;
       unsigned char getVariableType() const;
       bool reduceData(const Real* const avgs,const Real* const blockParams);
+      bool reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer);
       bool setSpatialCell(const SpatialCell& cell);
       
     protected:
       Real rank;
+      int mpiRank;
    };
 
    class VariableB: public DataReductionOperator {
@@ -60,16 +67,19 @@ namespace DRO {
       
       bool appendReducedData(unsigned char* const byteArray);
       bool appendReducedData(std::vector<unsigned char>& byteArray);
+      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       unsigned char getElementByteSize() const;
       std::string getName() const;
       unsigned char getVariableType() const;
       bool reduceData(const Real* const avgs,const Real* const blockParams);
+      bool reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer);
       bool setSpatialCell(const SpatialCell& cell);
       
     protected:
       Real Bx;
       Real By;
       Real Bz;
+      Real* B;
    };
    
    class VariableE: public DataReductionOperator {
@@ -79,16 +89,19 @@ namespace DRO {
       
       bool appendReducedData(unsigned char* const byteArray);
       bool appendReducedData(std::vector<unsigned char>& byteArray);
+      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       unsigned char getElementByteSize() const;
       std::string getName() const;
       unsigned char getVariableType() const;
       bool reduceData(const Real* const avgs,const Real* const blockParams);
+      bool reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer);
       bool setSpatialCell(const SpatialCell& cell);
       
     protected:
       Real Ex;
       Real Ey;
       Real Ez;
+      Real* E;
    };
    
    class VariableRho: public DataReductionOperator {
@@ -98,10 +111,12 @@ namespace DRO {
       
       bool appendReducedData(unsigned char* const byteArray);
       bool appendReducedData(std::vector<unsigned char>& byteArray);
+      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       unsigned char getElementByteSize() const;
       std::string getName() const;
       unsigned char getVariableType() const;
       bool reduceData(const Real* const avgs,const Real* const blockParams);
+      bool reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer);
       bool setSpatialCell(const SpatialCell& cell);
       
     protected:
@@ -115,18 +130,21 @@ namespace DRO {
       
       bool appendReducedData(unsigned char* const byteArray);
       bool appendReducedData(std::vector<unsigned char>& byteArray);
+      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       unsigned char getElementByteSize() const;
       std::string getName() const;
       unsigned char getVariableType() const;
       bool reduceData(const Real* const avgs,const Real* const blockParams);
+      bool reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer);
       bool setSpatialCell(const SpatialCell& cell);
       
     protected:
       Real rhovx;
       Real rhovy;
       Real rhovz;
+      Real* rhov;
    };
-   
+
 } // namespace DRO
 
 #endif
