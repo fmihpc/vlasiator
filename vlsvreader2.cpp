@@ -120,6 +120,7 @@ bool VLSVReader::getBlockVariableNames(const std::string& meshName,std::list<std
 	 }
       }
    }
+   return true;
 }
    
 
@@ -146,6 +147,7 @@ bool VLSVReader::getVariableNames(const std::string& meshName,std::list<std::str
 	 }
       }
    }
+   return true;
 }
 
 bool VLSVReader::open(const std::string& fname) {

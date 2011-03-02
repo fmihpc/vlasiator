@@ -1,13 +1,13 @@
-include Makefile.arto
+include Makefile.intel
 
 default: main vls2vtk vlsv2silo
 
 # Compile directory:
-INSTALL=${HOME}/codes/cuda/cudafvm
+INSTALL=${HOME}/codes/cudafvm2
 
 # Which project is compiled:
-#PROJ=harm1D
-PROJ=velrot2+2
+PROJ=harm1D
+#PROJ=velrot2+2
 #PROJ=velocity_rotation_1+3d
 #PROJ=solar_wind_test
 #PROJ=Bx_const
@@ -211,7 +211,7 @@ vls2vtk: ${DEPS_VLS2VTK} ${OBJS_VLS2VTK}
 	${LNK} -o vls2vtk vls2vtk.o ${OBJS_VLS2VTK} ${LIB_MPI}
 
 vlsv2silo: ${DEPS_VLSV2SILO} ${OBJS_VLSV2SILO}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2silo.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2silo.cpp ${INC_SILO}
 	${LNK} -o vlsv2silo vlsv2silo.o ${OBJS_VLSV2SILO} ${LIB_SILO}
 
 writevars.o: ${DEPS_WRITEVARS}
