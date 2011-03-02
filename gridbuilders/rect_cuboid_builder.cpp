@@ -40,6 +40,8 @@ RectCuboidBuilder::RectCuboidBuilder(): MPIBuilder(),initialized(false) {
 
 RectCuboidBuilder::~RectCuboidBuilder() { }
 
+bool RectCuboidBuilder::calculatesAnalyticInitialState() {return true;}
+
 uint RectCuboidBuilder::calculateNeighbours(const VirtualCell::ID& i,const VirtualCell::ID& j,const VirtualCell::ID& k,
 					    VirtualCell::ID& x_neg,VirtualCell::ID& x_pos,
 					    VirtualCell::ID& y_neg,VirtualCell::ID& y_pos,VirtualCell::ID& z_neg,VirtualCell::ID& z_pos) {
@@ -98,7 +100,7 @@ bool RectCuboidBuilder::finalize() {return true;}
 
 bool RectCuboidBuilder::getCellBlockData(const VirtualCell::ID& cellID,cuint& N_blocks,Real* blocks,Real* blockParams,uint* nbrsVel) {
    if (initialized == false) return false;
-   if (mpiRank != mpiMasterRank) return true;
+   //if (mpiRank != mpiMasterRank) return true;
    
    const VC::ID K = cellID / (ysize*xsize);
    const VC::ID J = (cellID - K*ysize*xsize)/xsize;

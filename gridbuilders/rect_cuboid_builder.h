@@ -15,6 +15,7 @@ class RectCuboidBuilder: public MPIBuilder {
    
    bool finalize();
 
+   bool calculatesAnalyticInitialState();
    bool getCellBlockData(const VirtualCell::ID& cellID,cuint& N_blocks,Real* blocks,Real* blockParams,uint* nbrsVel);
    bool getCellIDs(std::vector<VirtualCell::ID>& cellIDs,std::vector<uchar>& N_nbrs);
    bool getCellNbrData(const VirtualCell::ID& N_cells,VirtualCell::ID* cellIDs,Real* coords,VirtualCell::ID* spatNbrIDs,uchar* nbrTypes);

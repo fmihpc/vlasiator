@@ -117,6 +117,16 @@ bool MPIBuilder::addCellBlockDataRequests(VirtualCell::ID& totalCells,VirtualCel
 			      Real** avgs,Real** blockParams,uint** nbrsVel) {
    if (initialized == false) return false;
    bool success = true;
+
+   // Analytic initial state - all processes can request data from rect_cuboid_builder 
+   // directly:
+   if (calculatesAnalyticInitialState() == true) {
+      cerr << "Proc #" << mpiRank << " calculating analytic initial state" << endl;
+      for (VC::ID c=0; c<totalCells; ++c) {
+	 if (getCellBlockData(cellIDs[c],blocksPerCell[c],avgs[c],blockParams[c],nbrsVel[c]) == false) success = false;
+      }
+      return success;
+   }
    
    // Gather the number of cells requested per process to master:
    VC::ID* cellsPerProcess = NULL;

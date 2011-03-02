@@ -37,6 +37,7 @@ class MPIBuilder: public GridBuilder {
    // *****  IMPLEMENTING CLASS MUST DEFINE THESE  *****
    // **************************************************
 
+   virtual bool calculatesAnalyticInitialState() = 0;
    virtual bool getCellBlockData(const VirtualCell::ID& cellID,cuint& N_blocks,Real* avgs,Real* blockParams,uint* nbrsVel) = 0;
    virtual bool getCellNumberOfBlocks(const VirtualCell::ID& N_cells,const VirtualCell::ID* const cellIDs,uint* N_blocks) = 0;
    virtual bool getCellParams(const VirtualCell::ID& N_cells,const VirtualCell::ID* const cellIDs,Real* cellParams) = 0;
