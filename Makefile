@@ -1,12 +1,13 @@
-include Makefile.intel
+include Makefile.arto
 
-default: main vls2vtk
+default: main vls2vtk vlsv2silo
 
 # Compile directory:
 INSTALL=${HOME}/codes/cuda/cudafvm
 
 # Which project is compiled:
-PROJ=harm1D
+#PROJ=harm1D
+PROJ=velrot2+2
 #PROJ=velocity_rotation_1+3d
 #PROJ=solar_wind_test
 #PROJ=Bx_const
@@ -39,13 +40,16 @@ DEPS_GRIDBUILDER = cell_spatial.h parameters.h pargrid.h project.h gridbuilder.h
 DEPS_MAIN = gridbuilder.h main_dccrg.h main_pargrid.h parameters.h pargrid.h project.h grid.h silowriter.h writevars.h cell_spatial.h main.cpp
 DEPS_MPIFILE = mpifile.h mpifile.cpp
 DEPS_MPILOGGER = mpifile.h mpilogger.h mpilogger.cpp
+DEPS_MUXML = muxml.h muxml.cpp
 DEPS_PARAMETERS = parameters.h parameters.cpp
 DEPS_PROJECT = project.h project.cpp
 DEPS_SILOWRITER = cell_spatial.h silowriter.h silowriter.cpp
 DEPS_TIMER = timer.h timer.cpp
 DEPS_VLSCOMMON = vlscommon.h vlscommon.cpp
 DEPS_VLSREADER = vlscommon.h vlsreader.h vlsreader.cpp
+DEPS_VLSVREADER2 = muxml.h vlscommon.h vlsvreader2.h vlsvreader2.cpp
 DEPS_VLSWRITER = cell_spatial.h mpifile.h vlswriter.h vlswriter.cpp
+DEPS_VLSVWRITER2 = mpiconversion.h muxml.h vlscommon.h vlsvwriter2.h vlsvwriter2.cpp
 DEPS_VLS2VTK = cell_spatial.h mpifile.h vlsreader.h vls2vtk.cpp
 DEPS_WRITEVARS = pargrid.h silowriter.h writevars.h writevars.cpp
 
@@ -78,7 +82,8 @@ HDRS = cpu_acc.h cpu_common.h cpu_trans.h cell_spatial.h\
 	main_dccrg.h main_pargrid.h mpiconversion.h mpifile.h mpilogger.h\
 	parameters.h\
 	pargrid.h silowriter.h timer.h vlscommon.h vlsreader.h vlswriter.h\
-	writevars.h
+	writevars.h\
+	vlsvwriter2.h vlsvreader2.h muxml.h
 
 CUDA_HDRS = cudafuncs.h cudalaunch.h devicegrid.h
 
@@ -87,7 +92,8 @@ SRC = cell_spatial.cpp cpu_acc.cpp cpu_trans.cpp\
 	grid.cpp gridbuilder.cpp\
 	main.cpp mpifile.cpp mpilogger.cpp\
 	parameters.cpp silowriter.cpp timer.cpp\
-	vlscommon.cpp vlsreader.cpp vlswriter.cpp vls2vtk.cpp
+	vlscommon.cpp vlsreader.cpp vlswriter.cpp vls2vtk.cpp\
+	vlsvreader2.cpp vlsvwriter2.cpp muxml.cpp vlsv2silo.cpp
 
 CUDA_SRC = cellsync.cpp cuda_acc.cu cuda_common.cu cuda_trans.cu\
 	cudafuncs.cpp gpudevicegrid.cpp
@@ -98,9 +104,12 @@ OBJS = cell_spatial.o cpu_acc.o cpu_trans.o datareducer.o\
 	datareductionoperator.o grid.o\
 	gridbuilder.o main.o mpifile.o mpilogger.o\
 	 parameters.o project.o\
-	silowriter.o timer.o vlscommon.o vlsreader.o vlswriter.o
+	silowriter.o timer.o vlscommon.o vlsreader.o vlswriter.o\
+	muxml.o vlsvwriter2.o
 
 OBJS_VLS2VTK = vlscommon.o vlsreader.o
+
+OBJS_VLSV2SILO = muxml.o vlscommon.o vlsvreader2.o
 
 HDRS +=
 SRC +=
@@ -164,6 +173,9 @@ mpifile.o: ${DEPS_MPIFILE}
 mpilogger.o: ${DEPS_MPILOGGER}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c mpilogger.cpp ${INC_MPI}
 
+muxml.o: ${DEPS_MUXML}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c muxml.cpp
+
 parameters.o: $(DEPS_PARAMETERS)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c parameters.cpp ${INC_BOOST}
 
@@ -185,12 +197,22 @@ vlscommon.o: ${DEPS_VLSCOMMON}
 vlsreader.o: ${DEPS_VLSREADER}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsreader.cpp
 
+vlsvreader2.o: ${DEPS_VLSVREADER2}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvreader2.cpp
+
 vlswriter.o: ${DEPS_VLSWRITER}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlswriter.cpp ${INC_MPI} ${INC_BOOST}
+
+vlsvwriter2.o: ${DEPS_VLSVWRITER2}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvwriter2.cpp ${INC_MPI}
 
 vls2vtk: ${DEPS_VLS2VTK} ${OBJS_VLS2VTK}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vls2vtk.cpp ${INC_MPI}
 	${LNK} -o vls2vtk vls2vtk.o ${OBJS_VLS2VTK} ${LIB_MPI}
+
+vlsv2silo: ${DEPS_VLSV2SILO} ${OBJS_VLSV2SILO}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2silo.cpp
+	${LNK} -o vlsv2silo vlsv2silo.o ${OBJS_VLSV2SILO} ${LIB_SILO}
 
 writevars.o: ${DEPS_WRITEVARS}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c writevars.cpp ${INC_SILO} ${INC} ${INC_BOOST}
