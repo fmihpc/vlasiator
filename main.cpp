@@ -1,3 +1,5 @@
+
+
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
@@ -34,12 +36,17 @@ Grid grid;
 
 using namespace std;
 
+
+
+
 #ifndef PARGRID
 void initSpatialCells(const dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm) {
 #else
 void initSpatialCells(const ParGrid<SpatialCell>& mpiGrid) {
 #endif
-   typedef Parameters P;
+    
+    typedef Parameters P;
+
 
    // This can be replaced by an iterator.
    #ifndef PARGRID
@@ -255,7 +262,7 @@ bool writeGrid(const ParGrid<SpatialCell>& mpiGrid,DataReducer& dataReducer) {
 #else
 bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer) {
 #endif
-   clock_t allStart = clock();
+   double allStart = MPI_Wtime();
    bool success = true;
    int myrank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
@@ -339,7 +346,7 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer) {
    }
    if (vlsvWriter.writeArray("NBLOCKS","SpatialGrid",attribs,Main::cells.size(),1,N_blocks) == false) success = false;
 
-   clock_t start = clock();
+   double start = MPI_Wtime();
    
    // Write velocity block coordinates. At this point the data may get too large to be buffered, 
    // so a "multi-write" mode is used - coordinates are written one velocity grid at a time. Besides, 
@@ -370,19 +377,19 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer) {
    attribs["mesh"] = "SpatialGrid";
    if (success == true) if (vlsvWriter.endMultiwrite("BLOCKVARIABLE","avgs",attribs) == false) success = false;
    
-   clock_t end = clock();
+   double end = MPI_Wtime();
     
    delete N_blocks;
 
    vlsvWriter.close();
 
-   clock_t allEnd = clock();
+   double allEnd = MPI_Wtime();
    
    double bytesWritten = Main::cells.size()*1000*4*(64+6);
-   double secs = (1.0*(end-start))/CLOCKS_PER_SEC;
+   double secs = end-start;
    mpilogger << "Wrote " << bytesWritten/1.0e6 << " MB of data in " << secs << " seconds, datarate is " << bytesWritten/secs/1.0e9 << " GB/s" << endl << write;
    
-   double allSecs = (1.0*(allEnd-allStart))/CLOCKS_PER_SEC;
+   double allSecs = allEnd-allStart;
    if (myrank == 0) mpilogger << "All data written in " << allSecs << " seconds" << endl << write;
    
    return success;
@@ -525,15 +532,7 @@ int main(int argn,char* args[]) {
    bool success = true;
 
 
-// Init parameter file reader:
-   typedef Parameters P;
-   Parameters parameters(argn,args);
-   parameters.parse();
-   if (parameters.isInitialized() == false) {
-      success = false;
-      cerr << "(MAIN) Parameters failed to init, aborting!" << endl;
-      return 1;
-   }
+
    
    // Init MPI:
    #ifndef PARGRID
@@ -545,6 +544,17 @@ int main(int argn,char* args[]) {
 	 exit(1);
       }
    #endif
+      
+// Init parameter file reader:
+   typedef Parameters P;
+   typedef Readparameters RP;
+   Readparameters readparameters(argn,args,MPI_COMM_WORLD);
+   readparameters.parse();
+   if (readparameters.isInitialized() == false) {
+      success = false;
+      cerr << "(MAIN) Readparameters failed to init, aborting!" << endl;
+      return 1;
+   }
       
    const int MASTER_RANK = 0;
    int myrank;
@@ -622,17 +632,53 @@ int main(int argn,char* args[]) {
       }
       dccrg<SpatialCell> mpiGrid(comm,"HIER",P::xmin,P::ymin,P::zmin,P::dx_ini,P::dy_ini,P::dz_ini,P::xcells_ini,P::ycells_ini,P::zcells_ini,0,0);
 
-      // set hierarchial partitioning parameters for first level
-      mpiGrid.add_partitioning_level(12);
-      mpiGrid.add_partitioning_option(0, "LB_METHOD", "HYPERGRAPH");
-      mpiGrid.add_partitioning_option(0, "PHG_CUT_OBJECTIVE", "CONNECTIVITY");
-      mpiGrid.add_partitioning_option(0, "IMBALANCE_TOL", "1.05");
+      vector< map<string,string> > partitionOptions;
+      int levels;          
+      RP::add("dccrg.lb_levels","Number of hierarchial levels in load balance",1);
+      RP::parse();
+      RP::get("dccrg.lb_levels",levels);
 
-      // set hierarchial partitioning parameters for second level
-      mpiGrid.add_partitioning_level(1);
-      mpiGrid.add_partitioning_option(1, "LB_METHOD", "HYPERGRAPH");
-      mpiGrid.add_partitioning_option(1, "PHG_CUT_OBJECTIVE", "CONNECTIVITY");
-      mpiGrid.add_partitioning_option(1, "IMBALANCE_TOL", "1.05");
+      //add options for reading in levels
+      for(int i=0;i<levels;i++){
+          stringstream ss;
+          string prefix;
+          map<string,string> lvlOptions;
+               
+          ss<< "dccrg.lvl_"<<i<<"_";
+          prefix=ss.str();
+          RP::add(prefix+"procs","Procs per load balance group","1");
+          RP::add(prefix+"lb_method","Load balance method","HYPERGRAPH");
+          RP::add(prefix+"imbalance_tol","Imbalance tolerance","1.1");
+
+          RP::parse();
+          lvlOptions["procs"]="";
+          lvlOptions["LB_METHOD"]="";
+          lvlOptions["IMBALANCE_TOL"]="";
+          RP::get(prefix+"procs",lvlOptions["procs"]);
+          RP::get(prefix+"lb_method",lvlOptions["LB_METHOD"]);
+          RP::get(prefix+"imbalance_tol",lvlOptions["IMBALANCE_TOL"]);
+          
+          //add copy of this map to partitionOptions vector
+          partitionOptions.push_back(lvlOptions);
+      }
+    
+
+      //set options 
+      for(int i=0;i<partitionOptions.size();i++){
+          // set hierarchial partitioning parameters for first level
+          int procs=atoi(partitionOptions[i]["procs"].c_str());
+          if(myrank==0){
+              mpilogger << "(MAIN) Partition parameters level "<<i <<" procs: " << procs << " LB_METHOD: " <<
+                  partitionOptions[i]["LB_METHOD"]<< " IMBALANCE_TOL: "<< partitionOptions[i]["IMBALANCE_TOL"] <<
+                  endl << write;
+          }
+          
+          mpiGrid.add_partitioning_level(procs);
+          mpiGrid.add_partitioning_option(i, "LB_METHOD", partitionOptions[i]["LB_METHOD"]);
+          mpiGrid.add_partitioning_option(i, "IMBALANCE_TOL", partitionOptions[i]["IMBALANCE_TOL"]);
+          if(procs==1) break; //this is the last level, all procs are accounted for
+      }
+      
    
    #else           // INITIALIZE USING PARGRID
       ParGrid<SpatialCell> mpiGrid(Hypergraph,argn,args);
@@ -710,7 +756,7 @@ int main(int argn,char* args[]) {
    // ***********************************
    
    // Free up memory:
-   parameters.finalize();
+   readparameters.finalize();
    
    // Write initial state:
    if (P::save_spatial_grid) {
@@ -744,7 +790,7 @@ int main(int argn,char* args[]) {
    // Main simulation loop:
    if (myrank == MASTER_RANK) 
      mpilogger << "(MAIN): Starting main simulation loop." << endl << write;
-   time_t before = std::time(NULL);
+   double before = MPI_Wtime();
    for (luint tstep=P::tstep_min; tstep < P::tsteps; ++tstep) {
 #ifdef CRAYPAT
 //turn on & off sampling & tracing
@@ -824,9 +870,9 @@ int main(int argn,char* args[]) {
 
    if (myrank == MASTER_RANK) {
       mpilogger << "(MAIN): All timesteps calculated." << endl;
-      time_t after = std::time(NULL);
+      double after = MPI_Wtime();
       mpilogger << "\t (TIME) total run time " << after - before << " s, total simulated time " << P::t << " s" << endl;
-      mpilogger << "\t (TIME) seconds per timestep " << double(after - before) / P::tsteps << ", seconds per simulated second " << double(after - before) / P::t << endl;
+      mpilogger << "\t (TIME) seconds per timestep " << (after - before) / P::tsteps << ", seconds per simulated second " << (after - before) / P::t << endl;
       mpilogger << write;
    }
    

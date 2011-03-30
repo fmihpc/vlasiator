@@ -379,6 +379,7 @@ bool MPIBuilder::finalize() {return true;}
 
 bool MPIBuilder::initialize(MPI_Comm comm,const int& MASTER_RANK) {
    typedef Parameters P;
+   typedef Readparameters RP;
    initialized = true;
 
    MPI_Comm_rank(comm,&mpiRank);
@@ -386,34 +387,34 @@ bool MPIBuilder::initialize(MPI_Comm comm,const int& MASTER_RANK) {
    mpiMasterRank = MASTER_RANK;
    this->comm = comm;
    
-   // Only master process reads parameters:
-   if (mpiRank == mpiMasterRank) {
-      // Define the required parameters and query their values from Parameters:
-      P::add("mpibuilder.send_buffer_size","Size of send buffer (measured in number of cells), defaults to value 100.",sendBufferSize,100);
-      P::add("mpibuilder.block_buffer_size","Size of send buffer (measured in number of spatial cells) when distributing velocity blocks, defaults to value 10.",blockBufferSize,10);
-      P::add("gridbuilder.q","Charge of simulated particle species, in Coulombs.",q,numeric_limits<Real>::max());
-      P::add("gridbuilder.m","Mass of simulated particle species, in kilograms.",m,numeric_limits<Real>::max());
-      P::add("gridbuilder.dt","Timestep in seconds.",dt,numeric_limits<Real>::max());
-      P::add("gridbuilder.t_min","Simulation time at timestep 0, in seconds.",t_min,numeric_limits<Real>::max());
-      P::add("gridbuilder.timestep","Timestep when grid is loaded. Defaults to value zero.",timestep,0);
-      P::add("gridbuilder.max_timesteps","Max. value for timesteps. Defaults to value zero.",max_timesteps,0);
-      P::parse();
-      
-      // Check that we got sane values:
-      if (q == numeric_limits<Real>::max()) initialized = false;
-      if (m == numeric_limits<Real>::max()) initialized = false;
-      if (dt == numeric_limits<Real>::max()) initialized = false;
-      if (t_min == numeric_limits<Real>::max()) initialized = false;
-   }
+   // Define the required parameters and query their values from Parameters:
+   RP::add("mpibuilder.send_buffer_size","Size of send buffer (measured in number of cells), defaults to value 100.",100);
+   RP::add("mpibuilder.block_buffer_size","Size of send buffer (measured in number of spatial cells) when distributing velocity blocks, defaults to value 10.",10);
+   RP::add("gridbuilder.q","Charge of simulated particle species, in Coulombs.",numeric_limits<Real>::max());
+   RP::add("gridbuilder.m","Mass of simulated particle species, in kilograms.",numeric_limits<Real>::max());
+   RP::add("gridbuilder.dt","Timestep in seconds.",numeric_limits<Real>::max());
+   RP::add("gridbuilder.t_min","Simulation time at timestep 0, in seconds.",numeric_limits<Real>::max());
+   RP::add("gridbuilder.timestep","Timestep when grid is loaded. Defaults to value zero.",0);
+   RP::add("gridbuilder.max_timesteps","Max. value for timesteps. Defaults to value zero.",0);
+   RP::parse();
+   RP::get("mpibuilder.send_buffer_size",sendBufferSize);
+   RP::get("mpibuilder.block_buffer_size",blockBufferSize);
+   RP::get("gridbuilder.q",q);
+   RP::get("gridbuilder.m",m);
+   RP::get("gridbuilder.dt",dt);
+   RP::get("gridbuilder.t_min",t_min);
+   RP::get("gridbuilder.timestep",timestep);
+   RP::get("gridbuilder.max_timesteps",max_timesteps);
+
+   // Check that we got sane values:
+   if (q == numeric_limits<Real>::max()) initialized = false;
+   if (m == numeric_limits<Real>::max()) initialized = false;
+   if (dt == numeric_limits<Real>::max()) initialized = false;
+   if (t_min == numeric_limits<Real>::max()) initialized = false;
    
-   // Master process lets everyone know if everything is ok:
-   bool globalSuccess = initialized;
-   if (MPI_Bcast(&globalSuccess,1,MPI_BYTE,MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
-   if (globalSuccess == false) initialized = false;
    if (initialized == false) return initialized;
    
-   // Broadcast the values of internal variables, if needed:
-   if (MPI_Bcast(&sendBufferSize,1,MPI_Type<uint>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
+   
    return initialized;
 }
 

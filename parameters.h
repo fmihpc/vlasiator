@@ -4,6 +4,7 @@
 #include "definitions.h"
 #include <vector>
 #include <string>
+#include "mpi.h"
 
 //cuint MAX_VEL_BLOCKS = 300000;
 cuint MAX_VEL_BLOCKS = 300000;
@@ -66,38 +67,42 @@ struct Parameters {
 			  * This is created with bitwise or from the values defined in 
 			  * namespace Transmit.*/
 
-   Parameters(int argc, char* argv[]);
-   
-   static bool add(const std::string& name,const std::string& desc,char& var,const char& defValue);
-   static bool add(const std::string& name,const std::string& desc,int& var,const int& defValue);
-   static bool add(const std::string& name,const std::string& desc,unsigned int& var,const unsigned int& defValue);
-   static bool add(const std::string& name,const std::string& desc,long unsigned int& var,const long unsigned int& defValue);
-   static bool add(const std::string& name,const std::string& desc,float& var,const float& defValue);
-   static bool add(const std::string& name,const std::string& desc,double& var,const double& defValue);
-   static bool add(const std::string& name,const std::string& desc,std::string& var,const std::string& defValue,const bool& multitoken=false);
-
-   static bool finalize();
-   
-   static bool get(const std::string& name,char& value);
-   static bool get(const std::string& name,int& value);
-   static bool get(const std::string& name,unsigned int& value);
-   static bool get(const std::string& name,long unsigned int& value);
-   static bool get(const std::string& name,float& value);
-   static bool get(const std::string& name,double& value);
-   static bool get(const std::string& name,std::string& value);
-   
-   static bool helpMessage();
-   static bool isInitialized();
-   static bool parse();
-   
- private:
-   static int argc;                  /**< How many entries argv contains.*/
-   static char** argv;              /**< Pointer to char* array containing command line parameters.*/
-   
-   /** Private default constructor to prevent incorrect initialization.*/
-   Parameters();
-   
-   static bool addDefaultParameters();
 };
+
+
+
+
+
+struct Readparameters {
+    Readparameters(int argc, char* argv[],MPI_Comm comm);
+    static bool add(const std::string& name,const std::string& desc,const std::string& defValue);
+    static bool add(const std::string& name,const std::string& desc,const int& defValue);
+    static bool add(const std::string& name,const std::string& desc,const unsigned int& defValue);
+    static bool add(const std::string& name,const std::string& desc,const float& defValue);
+    static bool add(const std::string& name,const std::string& desc,const double& defValue);
+
+    static bool get(const std::string& name,std::string& value);
+    static bool get(const std::string& name,int& value);
+    static bool get(const std::string& name,unsigned int& value);
+    static bool get(const std::string& name,unsigned long& value);
+    static bool get(const std::string& name,float& value);
+    static bool get(const std::string& name,double& value);
+    static bool finalize();
+    static bool helpMessage();
+    static bool isInitialized();
+    static bool parse();
+   
+private:
+    static int argc;                  /**< How many entries argv contains.*/
+    static char** argv;              /**< Pointer to char* array containing command line parameters.*/
+    static int rank;
+    static MPI_Comm comm;
+
+  
+    /** Private default constructor to prevent incorrect initialization.*/
+    Readparameters();
+    static bool addDefaultParameters();
+};
+
 
 #endif

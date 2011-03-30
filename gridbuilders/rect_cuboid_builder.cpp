@@ -263,171 +263,115 @@ bool RectCuboidBuilder::getTotalNumberOfCells(VirtualCell::ID& N_cells) {
 bool RectCuboidBuilder::initialize(MPI_Comm comm,const int& MASTER_RANK) {
    // Init MPIBuilder first:
    typedef Parameters P;
+   typedef Readparameters RP;
    initialized = MPIBuilder::initialize(comm,MASTER_RANK);
 
-   // Only master process reads parameters:
-   if (mpiRank == mpiMasterRank) {
-      // Define required input file options:
-      options["gridbuilder.x_min"] = "";
-      options["gridbuilder.x_max"] = "";
-      options["gridbuilder.y_min"] = "";
-      options["gridbuilder.y_max"] = "";
-      options["gridbuilder.z_min"] = "";
-      options["gridbuilder.z_max"] = "";
-      options["gridbuilder.x_length"] = "";
-      options["gridbuilder.y_length"] = "";
-      options["gridbuilder.z_length"] = "";
-      options["gridbuilder.vx_min"] = "";
-      options["gridbuilder.vx_max"] = "";
-      options["gridbuilder.vy_min"] = "";
-      options["gridbuilder.vy_max"] = "";
-      options["gridbuilder.vz_min"] = "";
-      options["gridbuilder.vz_max"] = "";
-      options["gridbuilder.vx_length"] = "";
-      options["gridbuilder.vy_length"] = "";
-      options["gridbuilder.vz_length"] = "";
-      options["gridbuilder.periodic_x"] = "";
-      options["gridbuilder.periodic_y"] = "";
-      options["gridbuilder.periodic_z"] = "";
-      
-      P::add("gridbuilder.x_min","Minimum value of the x-coordinate.",options["gridbuilder.x_min"],"");
-      P::add("gridbuilder.x_max","Minimum value of the x-coordinate.",options["gridbuilder.x_max"],"");
-      P::add("gridbuilder.y_min","Minimum value of the y-coordinate.",options["gridbuilder.y_min"],"");
-      P::add("gridbuilder.y_max","Minimum value of the y-coordinate.",options["gridbuilder.y_max"],"");
-      P::add("gridbuilder.z_min","Minimum value of the z-coordinate.",options["gridbuilder.z_min"],"");
-      P::add("gridbuilder.z_max","Minimum value of the z-coordinate.",options["gridbuilder.z_max"],"");
-      P::add("gridbuilder.x_length","Number of cells in x-direction in initial grid.",options["gridbuilder.x_length"],"");
-      P::add("gridbuilder.y_length","Number of cells in y-direction in initial grid.",options["gridbuilder.y_length"],"");
-      P::add("gridbuilder.z_length","Number of cells in z-direction in initial grid.",options["gridbuilder.z_length"],"");
-      P::add("gridbuilder.vx_min","Minimum value for velocity block vx-coordinates.",options["gridbuilder.vx_min"],"");
-      P::add("gridbuilder.vx_max","Maximum value for velocity block vx-coordinates.",options["gridbuilder.vx_max"],"");
-      P::add("gridbuilder.vy_min","Minimum value for velocity block vy-coordinates.",options["gridbuilder.vy_min"],"");
-      P::add("gridbuilder.vy_max","Maximum value for velocity block vy-coordinates.",options["gridbuilder.vy_max"],"");
-      P::add("gridbuilder.vz_min","Minimum value for velocity block vz-coordinates.",options["gridbuilder.vz_min"],"");
-      P::add("gridbuilder.vz_max","Maximum value for velocity block vz-coordinates.",options["gridbuilder.vz_max"],"");
-      P::add("gridbuilder.vx_length","Initial number of velocity blocks in vx-direction.",options["gridbuilder.vx_length"],"");
-      P::add("gridbuilder.vy_length","Initial number of velocity blocks in vy-direction.",options["gridbuilder.vy_length"],"");
-      P::add("gridbuilder.vz_length","Initial number of velocity blocks in vz-direction.",options["gridbuilder.vz_length"],"");
-      P::add("gridbuilder.periodic_x","If 'yes' the grid is periodic in x-direction. Defaults to 'no'.",options["gridbuilder.periodic_x"],"no");
-      P::add("gridbuilder.periodic_y","If 'yes' the grid is periodic in y-direction. Defaults to 'no'.",options["gridbuilder.periodic_y"],"no");
-      P::add("gridbuilder.periodic_z","If 'yes' the grid is periodic in z-direction. Defaults to 'no'.",options["gridbuilder.periodic_z"],"no");
-      P::parse();
-      
-      /*
-      string periodicX,periodicY,periodicZ;
-      // Define the required parameters and query their values from Parameters:
-      P::add("gridbuilder.x_min","Minimum value of the x-coordinate.",xmin,numeric_limits<Real>::max());
-      P::add("gridbuilder.x_max","Minimum value of the x-coordinate.",xmax,numeric_limits<Real>::max());
-      P::add("gridbuilder.y_min","Minimum value of the y-coordinate.",ymin,numeric_limits<Real>::max());
-      P::add("gridbuilder.y_max","Minimum value of the y-coordinate.",ymax,numeric_limits<Real>::max());
-      P::add("gridbuilder.z_min","Minimum value of the z-coordinate.",zmin,numeric_limits<Real>::max());
-      P::add("gridbuilder.z_max","Minimum value of the z-coordinate.",zmax,numeric_limits<Real>::max());
-      P::add("gridbuilder.x_length","Number of cells in x-direction in initial grid.",xsize,numeric_limits<uint>::max());
-      P::add("gridbuilder.y_length","Number of cells in y-direction in initial grid.",ysize,numeric_limits<uint>::max());
-      P::add("gridbuilder.z_length","Number of cells in z-direction in initial grid.",zsize,numeric_limits<uint>::max());
-      P::add("gridbuilder.vx_min","Minimum value for velocity block vx-coordinates.",vx_min,numeric_limits<Real>::max());
-      P::add("gridbuilder.vx_max","Maximum value for velocity block vx-coordinates.",vx_max,numeric_limits<Real>::max());
-      P::add("gridbuilder.vy_min","Minimum value for velocity block vy-coordinates.",vy_min,numeric_limits<Real>::max());
-      P::add("gridbuilder.vy_max","Maximum value for velocity block vy-coordinates.",vy_max,numeric_limits<Real>::max());
-      P::add("gridbuilder.vz_min","Minimum value for velocity block vz-coordinates.",vz_min,numeric_limits<Real>::max());
-      P::add("gridbuilder.vz_max","Maximum value for velocity block vz-coordinates.",vz_max,numeric_limits<Real>::max());
-      P::add("gridbuilder.vx_length","Initial number of velocity blocks in vx-direction.",vx_blocks,numeric_limits<uint>::max());
-      P::add("gridbuilder.vy_length","Initial number of velocity blocks in vy-direction.",vy_blocks,numeric_limits<uint>::max());
-      P::add("gridbuilder.vz_length","Initial number of velocity blocks in vz-direction.",vz_blocks,numeric_limits<uint>::max());
-      P::add("gridbuilder.periodic_x","If 'yes' the grid is periodic in x-direction. Defaults to 'no'.",periodicX,"no");
-      P::add("gridbuilder.periodic_y","If 'yes' the grid is periodic in y-direction. Defaults to 'no'.",periodicY,"no");
-      P::add("gridbuilder.periodic_z","If 'yes' the grid is periodic in z-direction. Defaults to 'no'.",periodicZ,"no");
-      P::parse();
-      */
-      
-      xmin = atof(options["gridbuilder.x_min"].c_str());
-      xmax = atof(options["gridbuilder.x_max"].c_str());
-      ymin = atof(options["gridbuilder.y_min"].c_str());
-      ymax = atof(options["gridbuilder.y_max"].c_str());
-      zmin = atof(options["gridbuilder.z_min"].c_str());
-      zmax = atof(options["gridbuilder.z_max"].c_str());
-      if (xmax < xmin || (ymax < ymin || zmax < zmin)) initialized = false;
-      xsize = atoi(options["gridbuilder.x_length"].c_str());
-      ysize = atoi(options["gridbuilder.y_length"].c_str());
-      zsize = atoi(options["gridbuilder.z_length"].c_str());
-      vx_min = atof(options["gridbuilder.vx_min"].c_str());
-      vx_max = atof(options["gridbuilder.vx_max"].c_str());
-      vy_min = atof(options["gridbuilder.vy_min"].c_str());
-      vy_max = atof(options["gridbuilder.vy_max"].c_str());
-      vz_min = atof(options["gridbuilder.vz_min"].c_str());
-      vz_max = atof(options["gridbuilder.vz_max"].c_str());
-      if (vx_max < vx_min || (vy_max < vy_min || vz_max < vz_min)) initialized = false;
-      vx_blocks = atoi(options["gridbuilder.vx_length"].c_str());
-      vy_blocks = atoi(options["gridbuilder.vy_length"].c_str());
-      vz_blocks = atoi(options["gridbuilder.vz_length"].c_str());
 
-      periodicInX = false;
-      periodicInY = false;
-      periodicInZ = false;
-      if (options["gridbuilder.periodic_x"] == "yes") periodicInX = true;
-      if (options["gridbuilder.periodic_y"] == "yes") periodicInY = true;
-      if (options["gridbuilder.periodic_z"] == "yes") periodicInZ = true;
-      /*
-      // Check that we received sane values:
-      if (xmin == numeric_limits<Real>::max()) initialized = false;
-      if (xmax == numeric_limits<Real>::max()) initialized = false;
-      if (ymin == numeric_limits<Real>::max()) initialized = false;
-      if (ymax == numeric_limits<Real>::max()) initialized = false;
-      if (zmin == numeric_limits<Real>::max()) initialized = false;
-      if (zmax == numeric_limits<Real>::max()) initialized = false;
-      if (xmax < xmin || (ymax < ymin || zmax < zmin)) initialized = false;
-      if (xsize == numeric_limits<uint>::max()) initialized = false;
-      if (ysize == numeric_limits<uint>::max()) initialized = false;
-      if (zsize == numeric_limits<uint>::max()) initialized = false;
-      if (vx_min == numeric_limits<Real>::max()) initialized = false;
-      if (vx_max == numeric_limits<Real>::max()) initialized = false;
-      if (vy_min == numeric_limits<Real>::max()) initialized = false;
-      if (vy_max == numeric_limits<Real>::max()) initialized = false;
-      if (vz_min == numeric_limits<Real>::max()) initialized = false;
-      if (vz_max == numeric_limits<Real>::max()) initialized = false;
-      if (vx_max < vx_min || (vy_max < vy_min || vz_max < vz_min)) initialized = false;
-      if (vx_blocks == numeric_limits<uint>::max()) initialized = false;
-      if (vy_blocks == numeric_limits<uint>::max()) initialized = false;
-      if (vz_blocks == numeric_limits<uint>::max()) initialized = false;
-   
-      if (periodicX == "yes") periodicInX = true;
-      if (periodicY == "yes") periodicInY = true;
-      if (periodicZ == "yes") periodicInZ = true;
-      */
-      dx = (xmax-xmin)/xsize;
-      dy = (ymax-ymin)/ysize;
-      dz = (zmax-zmin)/zsize;
-      options["gridbuilder.dx_unref"] = toString(dx);
-      options["gridbuilder.dy_unref"] = toString(dy);
-      options["gridbuilder.dz_unref"] = toString(dz);
-   }   
-   
-   // Master process lets everyone know if everything is ok:
-   bool globalSuccess = initialized;
-   if (MPI_Bcast(&globalSuccess,1,MPI_BYTE,MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
-   if (globalSuccess == false) initialized = false;   
-   if (initialized == false) return initialized;
-   
-   // Master broadcasts some global parameter values:
-   if (MPI_Bcast(&xsize,1,MPI_Type<uint>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
-   if (MPI_Bcast(&ysize,1,MPI_Type<uint>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
-   if (MPI_Bcast(&zsize,1,MPI_Type<uint>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
-   if (MPI_Bcast(&vx_blocks,1,MPI_Type<uint>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
-   if (MPI_Bcast(&vy_blocks,1,MPI_Type<uint>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
-   if (MPI_Bcast(&vz_blocks,1,MPI_Type<uint>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
-   if (MPI_Bcast(&vx_min,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
-   if (MPI_Bcast(&vx_max,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
-   if (MPI_Bcast(&vy_min,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
-   if (MPI_Bcast(&vy_max,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
-   if (MPI_Bcast(&vz_min,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
-   if (MPI_Bcast(&vz_max,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
+   // Define required input file options:
+   options["gridbuilder.x_min"] = "";
+   options["gridbuilder.x_max"] = "";
+   options["gridbuilder.y_min"] = "";
+   options["gridbuilder.y_max"] = "";
+   options["gridbuilder.z_min"] = "";
+   options["gridbuilder.z_max"] = "";
+   options["gridbuilder.x_length"] = "";
+   options["gridbuilder.y_length"] = "";
+   options["gridbuilder.z_length"] = "";
+   options["gridbuilder.vx_min"] = "";
+   options["gridbuilder.vx_max"] = "";
+   options["gridbuilder.vy_min"] = "";
+   options["gridbuilder.vy_max"] = "";
+   options["gridbuilder.vz_min"] = "";
+   options["gridbuilder.vz_max"] = "";
+   options["gridbuilder.vx_length"] = "";
+   options["gridbuilder.vy_length"] = "";
+   options["gridbuilder.vz_length"] = "";
+   options["gridbuilder.periodic_x"] = "";
+   options["gridbuilder.periodic_y"] = "";
+   options["gridbuilder.periodic_z"] = "";
 
-   if (MPI_Bcast(&xmin,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
-   if (MPI_Bcast(&ymin,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
-   if (MPI_Bcast(&zmin,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
-   if (MPI_Bcast(&dx,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
-   if (MPI_Bcast(&dy,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
-   if (MPI_Bcast(&dz,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
+   //Add options, only root needs to do this, for the others it has no effect
+   RP::add("gridbuilder.x_min","Minimum value of the x-coordinate.","");
+   RP::add("gridbuilder.x_max","Minimum value of the x-coordinate.","");
+   RP::add("gridbuilder.y_min","Minimum value of the y-coordinate.","");
+   RP::add("gridbuilder.y_max","Minimum value of the y-coordinate.","");
+   RP::add("gridbuilder.z_min","Minimum value of the z-coordinate.","");
+   RP::add("gridbuilder.z_max","Minimum value of the z-coordinate.","");
+   RP::add("gridbuilder.x_length","Number of cells in x-direction in initial grid.","");
+   RP::add("gridbuilder.y_length","Number of cells in y-direction in initial grid.","");
+   RP::add("gridbuilder.z_length","Number of cells in z-direction in initial grid.","");
+   RP::add("gridbuilder.vx_min","Minimum value for velocity block vx-coordinates.","");
+   RP::add("gridbuilder.vx_max","Maximum value for velocity block vx-coordinates.","");
+   RP::add("gridbuilder.vy_min","Minimum value for velocity block vy-coordinates.","");
+   RP::add("gridbuilder.vy_max","Maximum value for velocity block vy-coordinates.","");
+   RP::add("gridbuilder.vz_min","Minimum value for velocity block vz-coordinates.","");
+   RP::add("gridbuilder.vz_max","Maximum value for velocity block vz-coordinates.","");
+   RP::add("gridbuilder.vx_length","Initial number of velocity blocks in vx-direction.","");
+   RP::add("gridbuilder.vy_length","Initial number of velocity blocks in vy-direction.","");
+   RP::add("gridbuilder.vz_length","Initial number of velocity blocks in vz-direction.","");
+   RP::add("gridbuilder.periodic_x","If 'yes' the grid is periodic in x-direction. Defaults to 'no'.","no");
+   RP::add("gridbuilder.periodic_y","If 'yes' the grid is periodic in y-direction. Defaults to 'no'.","no");
+   RP::add("gridbuilder.periodic_z","If 'yes' the grid is periodic in z-direction. Defaults to 'no'.","no");
+   //Read in the added parameters, collective call
+   RP::parse();
+   //All ranks can get their parameters, these incur no communication cost as all communication was done in parse
+   RP::get("gridbuilder.x_min",options["gridbuilder.x_min"]);
+   RP::get("gridbuilder.x_max",options["gridbuilder.x_max"]);
+   RP::get("gridbuilder.y_min",options["gridbuilder.y_min"]);
+   RP::get("gridbuilder.y_max",options["gridbuilder.y_max"]);
+   RP::get("gridbuilder.z_min",options["gridbuilder.z_min"]);
+   RP::get("gridbuilder.z_max",options["gridbuilder.z_max"]);
+   RP::get("gridbuilder.x_length",options["gridbuilder.x_length"]);
+   RP::get("gridbuilder.y_length",options["gridbuilder.y_length"]);
+   RP::get("gridbuilder.z_length",options["gridbuilder.z_length"]);
+   RP::get("gridbuilder.vx_min",options["gridbuilder.vx_min"]);
+   RP::get("gridbuilder.vx_max",options["gridbuilder.vx_max"]);
+   RP::get("gridbuilder.vy_min",options["gridbuilder.vy_min"]);
+   RP::get("gridbuilder.vy_max",options["gridbuilder.vy_max"]);
+   RP::get("gridbuilder.vz_min",options["gridbuilder.vz_min"]);
+   RP::get("gridbuilder.vz_max",options["gridbuilder.vz_max"]);
+   RP::get("gridbuilder.vx_length",options["gridbuilder.vx_length"]);
+   RP::get("gridbuilder.vy_length",options["gridbuilder.vy_length"]);
+   RP::get("gridbuilder.vz_length",options["gridbuilder.vz_length"]);
+   RP::get("gridbuilder.periodic_x",options["gridbuilder.periodic_x"]);
+   RP::get("gridbuilder.periodic_y",options["gridbuilder.periodic_y"]);
+   RP::get("gridbuilder.periodic_z",options["gridbuilder.periodic_z"]);
+     
+   /*get numerical values, let Readparamers handle the conversions*/
+   RP::get("gridbuilder.x_min",xmin);
+   RP::get("gridbuilder.x_max",xmax);
+   RP::get("gridbuilder.y_min",ymin);
+   RP::get("gridbuilder.y_max",ymax);
+   RP::get("gridbuilder.z_min",zmin);
+   RP::get("gridbuilder.z_max",zmax);
+   RP::get("gridbuilder.x_length",xsize);
+   RP::get("gridbuilder.y_length",ysize);
+   RP::get("gridbuilder.z_length",zsize);
+   RP::get("gridbuilder.vx_min",vx_min);
+   RP::get("gridbuilder.vx_max",vx_max);
+   RP::get("gridbuilder.vy_min",vy_min);
+   RP::get("gridbuilder.vy_max",vy_max);
+   RP::get("gridbuilder.vz_min",vz_min);
+   RP::get("gridbuilder.vz_max",vz_max);
+   RP::get("gridbuilder.vx_length",vx_blocks);
+   RP::get("gridbuilder.vy_length",vy_blocks);
+   RP::get("gridbuilder.vz_length",vz_blocks);
+
+   if (xmax < xmin || (ymax < ymin || zmax < zmin)) initialized = false;
+   if (vx_max < vx_min || (vy_max < vy_min || vz_max < vz_min)) initialized = false;
+   periodicInX = false;
+   periodicInY = false;
+   periodicInZ = false;
+   if (options["gridbuilder.periodic_x"] == "yes") periodicInX = true;
+   if (options["gridbuilder.periodic_y"] == "yes") periodicInY = true;
+   if (options["gridbuilder.periodic_z"] == "yes") periodicInZ = true;
+     
+   dx = (xmax-xmin)/xsize;
+   dy = (ymax-ymin)/ysize;
+   dz = (zmax-zmin)/zsize;
+   options["gridbuilder.dx_unref"] = toString(dx);
+   options["gridbuilder.dy_unref"] = toString(dy);
+   options["gridbuilder.dz_unref"] = toString(dz);
    
    // Set some parameter values. 
    // NOTE: SOME OF THESE ARE ONLY NEEDED BECAUSE OF DCCRG

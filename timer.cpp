@@ -1,8 +1,9 @@
-#include <cstdlib>
 #include <iostream>
+#include <iomanip>
 
 #include "mpilogger.h"
 #include "timer.h"
+#include "mpi.h"
 
 using namespace std;
 
@@ -43,7 +44,7 @@ double Timer::getValue(const unsigned int& timerID) {
  */
 void Timer::print() {
    for (vector<TimerData>::const_iterator it=timers.begin(); it!=timers.end(); ++it) {
-      mpilogger << "(TIMER) Value of timer '" << it->name << "' is " << it->timeInSeconds << " s." << endl;
+       mpilogger << "(TIMER) Value of timer '" << it->name << "' is " <<setiosflags(ios::fixed) << setprecision(6) << it->timeInSeconds << " s." << endl;
    }
    mpilogger << write;
 }
@@ -52,7 +53,7 @@ void Timer::print() {
  * @param timerID The ID number of the timer.
  */
 void Timer::start(const unsigned int& timerID) {
-   timers[timerID].startClock = clock();
+   timers[timerID].startClock = MPI_Wtime();
 }
 
 /** Stop the given timer. The time elapsed between calls to 
@@ -62,8 +63,8 @@ void Timer::start(const unsigned int& timerID) {
  * @param timerID the ID number of the timer.
  */
 void Timer::stop(const unsigned int& timerID) {
-   clock_t endClock = clock();
-   timers[timerID].timeInSeconds += (1.0*(endClock - timers[timerID].startClock))/CLOCKS_PER_SEC;
+   double endClock = MPI_Wtime();
+   timers[timerID].timeInSeconds += endClock - timers[timerID].startClock;
 }
 
 #else
