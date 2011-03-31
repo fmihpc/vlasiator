@@ -530,8 +530,8 @@ void log_send_receive_info(const dccrg<SpatialCell>& mpiGrid) {
 
 int main(int argn,char* args[]) {
    bool success = true;
-
-
+   double totTime;
+   double initTime;
 
    
    // Init MPI:
@@ -544,21 +544,66 @@ int main(int argn,char* args[]) {
 	 exit(1);
       }
    #endif
+   const int MASTER_RANK = 0;
+   int myrank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+
       
-// Init parameter file reader:
+   totTime=MPI_Wtime();
+   initTime=MPI_Wtime();    
+
+   // Init parameter file reader:
    typedef Parameters P;
    typedef Readparameters RP;
    Readparameters readparameters(argn,args,MPI_COMM_WORLD);
    readparameters.parse();
    if (readparameters.isInitialized() == false) {
-      success = false;
-      cerr << "(MAIN) Readparameters failed to init, aborting!" << endl;
-      return 1;
+       success = false;
+       cerr << "(MAIN) Readparameters failed to init, aborting!" << endl;
+       return 1;
    }
-      
-   const int MASTER_RANK = 0;
-   int myrank;
-   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+   
+   // Read in some parameters
+   // Parameters related to solar wind simulations:
+   // DEPRECATED: These will be moved to somewhere else in the future
+
+   RP::add("solar_wind_file","Read solar wind data from the file arg","");        
+   
+   
+   // Parameters related to saving data:
+   // WARNING: Some of these parameters may become deprecated in the future.
+
+   RP::add("save_interval", "Save the simulation every arg time steps",1);
+   RP::add("restart_interval","Save the complete simulation every arg time steps",numeric_limits<uint>::max());
+   RP::add("save_spatial_grid", "Save spatial cell averages for the whole simulation",true);
+   RP::add("save_velocity_grid","Save velocity grid from every spatial cell in the simulation",false);
+   RP::addComposing("save_spatial_cells_at_x,X","Save the velocity grid in spatial cells at these coordinates (x components, also give as many y and z components, values from command line, configuration files and environment variables are added together [short version only works on command line])");
+   RP::addComposing("save_spatial_cells_at_y,Y","Save the velocity grid in spatial cells at these (y components, also give as many x and z components, values from command line, configuration files and environment variables are added together [short version only works on command line])");
+   
+   RP::addComposing("save_spatial_cells_at_z,Z","Save the velocity grid in spatial cells at these coordinates (z components, also give as many x and y components, values from command line, configuration files and environment variables are added together [short version only works on command line])");
+   
+   RP::parse();
+   RP::get("solar_wind_file",P::solar_wind_file);
+   RP::get("save_interval", P::diagnInterval);
+   RP::get("restart_interval", P::saveRestartInterval);
+   RP::get("save_spatial_grid", P::save_spatial_grid);
+   RP::get("save_velocity_grid", P::save_velocity_grid);
+   RP::get("save_spatial_cells_at_x,X", P::save_spatial_cells_x);
+   RP::get("save_spatial_cells_at_y,Y", P::save_spatial_cells_y);
+   RP::get("save_spatial_cells_at_z,Z", P::save_spatial_cells_z);
+
+   
+   // Sanity checks (DEPRECATED):
+   if (P::save_spatial_cells_x.size() != P::save_spatial_cells_y.size()
+       || P::save_spatial_cells_x.size() != P::save_spatial_cells_z.size()) {
+       cerr << "Must have equal number of values for x, y and z components, but given: x " << P::save_spatial_cells_x.size();
+       cerr << ", y " << P::save_spatial_cells_y.size() << ", z " << P::save_spatial_cells_z.size() << endl;
+       MPI_Finalize();
+       exit(1);
+   }
+   
+   
+
 
 
 #ifdef CRAYPAT
@@ -630,54 +675,55 @@ int main(int argn,char* args[]) {
       } else {
 	 mpilogger << "(MAIN) Grid built successfully" << endl << write;
       }
+
+      
       dccrg<SpatialCell> mpiGrid(comm,"HIER",P::xmin,P::ymin,P::zmin,P::dx_ini,P::dy_ini,P::dz_ini,P::xcells_ini,P::ycells_ini,P::zcells_ini,0,0);
+      //read in partitioning levels from input
+      RP::addComposing("dccrg.partition_procs","Procs per load balance group");
+      RP::addComposing("dccrg.partition_lb_method","Load balance method");
+      RP::addComposing("dccrg.partition_imbalance_tol","Imbalance tolerance");
 
-      vector< map<string,string> > partitionOptions;
-      int levels;          
-      RP::add("dccrg.lb_levels","Number of hierarchial levels in load balance",1);
       RP::parse();
-      RP::get("dccrg.lb_levels",levels);
+      vector<int> partitionProcs;
+      vector<string> partitionLbMethod;
+      vector<string> partitionImbalanceTol;
+      RP::get("dccrg.partition_procs",partitionProcs);
+      RP::get("dccrg.partition_lb_method",partitionLbMethod);
+      RP::get("dccrg.partition_imbalance_tol",partitionImbalanceTol);
 
-      //add options for reading in levels
-      for(int i=0;i<levels;i++){
-          stringstream ss;
-          string prefix;
-          map<string,string> lvlOptions;
-               
-          ss<< "dccrg.lvl_"<<i<<"_";
-          prefix=ss.str();
-          RP::add(prefix+"procs","Procs per load balance group","1");
-          RP::add(prefix+"lb_method","Load balance method","HYPERGRAPH");
-          RP::add(prefix+"imbalance_tol","Imbalance tolerance","1.1");
-
-          RP::parse();
-          lvlOptions["procs"]="";
-          lvlOptions["LB_METHOD"]="";
-          lvlOptions["IMBALANCE_TOL"]="";
-          RP::get(prefix+"procs",lvlOptions["procs"]);
-          RP::get(prefix+"lb_method",lvlOptions["LB_METHOD"]);
-          RP::get(prefix+"imbalance_tol",lvlOptions["IMBALANCE_TOL"]);
-          
-          //add copy of this map to partitionOptions vector
-          partitionOptions.push_back(lvlOptions);
+      //check that all options set for all levels
+      if ( partitionProcs.size()!=partitionLbMethod.size() ||
+           partitionProcs.size()!=partitionImbalanceTol.size()){
+          if(myrank==0){
+              cerr << "DCCRG partition levels not defined completely! Needed options per level are:" <<endl;
+              cerr << " partition_procs "<<endl << " partition_lb_method " <<endl << " partition_imbalance_tol " <<endl;
+          }
+          MPI_Finalize();
+          exit(1);
       }
-    
+       
+      // set default values if nothing has been defined
+      if ( partitionProcs.size()==0){
+          partitionProcs.push_back(1);
+          partitionLbMethod.push_back("HYPERGRAPH");
+          partitionImbalanceTol.push_back("1.1");
+      }
 
       //set options 
-      for(int i=0;i<partitionOptions.size();i++){
+      for(int i=0;i<partitionProcs.size();i++){
           // set hierarchial partitioning parameters for first level
-          int procs=atoi(partitionOptions[i]["procs"].c_str());
           if(myrank==0){
-              mpilogger << "(MAIN) Partition parameters level "<<i <<" procs: " << procs << " LB_METHOD: " <<
-                  partitionOptions[i]["LB_METHOD"]<< " IMBALANCE_TOL: "<< partitionOptions[i]["IMBALANCE_TOL"] <<
-                  endl << write;
+              mpilogger << "(MAIN) Partition parameters level "<<i <<" procs: " << partitionProcs[i] << " LB_METHOD: " <<
+                  partitionLbMethod[i]<< " IMBALANCE_TOL: "<< partitionImbalanceTol[i] << endl << write;
           }
           
-          mpiGrid.add_partitioning_level(procs);
-          mpiGrid.add_partitioning_option(i, "LB_METHOD", partitionOptions[i]["LB_METHOD"]);
-          mpiGrid.add_partitioning_option(i, "IMBALANCE_TOL", partitionOptions[i]["IMBALANCE_TOL"]);
-          if(procs==1) break; //this is the last level, all procs are accounted for
+          mpiGrid.add_partitioning_level(partitionProcs[i]);
+          mpiGrid.add_partitioning_option(i, "LB_METHOD", partitionLbMethod[i]);
+          mpiGrid.add_partitioning_option(i, "IMBALANCE_TOL", partitionImbalanceTol[i]);
       }
+      
+
+  
       
    
    #else           // INITIALIZE USING PARGRID
@@ -757,7 +803,10 @@ int main(int argn,char* args[]) {
    
    // Free up memory:
    readparameters.finalize();
+   initTime=MPI_Wtime()-initTime;
    
+   double initIoTime=MPI_Wtime();
+   double loopIoTime=0;
    // Write initial state:
    if (P::save_spatial_grid) {
       #ifdef PARGRID
@@ -776,7 +825,8 @@ int main(int argn,char* args[]) {
 	 mpilogger << "(MAIN): ERROR occurred while writing data to file!" << endl << write;
       }
    }
-
+   initIoTime=MPI_Wtime()-initIoTime;
+   
    if (P::save_velocity_grid) {
       writeAllVelocityBlocks(mpiGrid);
    }
@@ -790,6 +840,7 @@ int main(int argn,char* args[]) {
    // Main simulation loop:
    if (myrank == MASTER_RANK) 
      mpilogger << "(MAIN): Starting main simulation loop." << endl << write;
+
    double before = MPI_Wtime();
    for (luint tstep=P::tstep_min; tstep < P::tsteps; ++tstep) {
 #ifdef CRAYPAT
@@ -836,6 +887,7 @@ int main(int argn,char* args[]) {
       P::t += P::dt;
       
       // Check if the full simulation state should be written to disk
+      double t1=MPI_Wtime();
       if (P::tstep % P::saveRestartInterval == 0) {
          // TODO: implement full state saving
 	 if (myrank == MASTER_RANK) {
@@ -859,23 +911,18 @@ int main(int argn,char* args[]) {
             writeAllVelocityBlocks(mpiGrid);
          }
          writeSomeVelocityGrids(mpiGrid, P::save_spatial_cells_x, P::save_spatial_cells_y, P::save_spatial_cells_z);
-
       }
+      loopIoTime+=MPI_Wtime()-t1;
+          
       #ifndef PARGRID
          comm.barrier();
       #else
          mpiGrid.barrier();
       #endif
    }
-
-   if (myrank == MASTER_RANK) {
-      mpilogger << "(MAIN): All timesteps calculated." << endl;
-      double after = MPI_Wtime();
-      mpilogger << "\t (TIME) total run time " << after - before << " s, total simulated time " << P::t << " s" << endl;
-      mpilogger << "\t (TIME) seconds per timestep " << (after - before) / P::tsteps << ", seconds per simulated second " << (after - before) / P::t << endl;
-      mpilogger << write;
-   }
    
+ 
+   double finalIoTime=MPI_Wtime();
    // Write final state:
    if (P::save_spatial_grid) {
       mpilogger << "(MAIN): Saving variables to disk at tstep = " << P::tstep << ", time = " << P::t << endl << write;
@@ -883,12 +930,30 @@ int main(int argn,char* args[]) {
 	 mpilogger << "(MAIN): ERROR occurred while writing data to file!" << endl << write;
       }
    }
-
-
    if (P::save_velocity_grid) {
       writeAllVelocityBlocks(mpiGrid);
    }
    writeSomeVelocityGrids(mpiGrid, P::save_spatial_cells_x, P::save_spatial_cells_y, P::save_spatial_cells_z);
+
+   finalIoTime=MPI_Wtime()-finalIoTime;
+   totTime=MPI_Wtime()-totTime;
+   
+   if (myrank == MASTER_RANK) {
+      mpilogger << "(MAIN): All timesteps calculated." << endl;
+      double after = MPI_Wtime();
+      mpilogger << "(TIME) total simulated time " << P::t << " s" << endl;
+      mpilogger << "(TIME) Total time " << totTime << " s" << endl;
+      mpilogger << "(TIME)   Initialization time " << initTime << " s" << endl;
+      mpilogger << "(TIME)   Initial IO time " << initIoTime << " s" << endl;
+      mpilogger << "(TIME)   Main loop: total run time  " << after - before << " s" << endl;
+      mpilogger << "(TIME)     Main loop: Compute+MPI " << after - before - loopIoTime << " s" << endl;
+      mpilogger << "(TIME)     Main loop: IO " << loopIoTime << " s" << endl;
+      mpilogger << "(TIME)   Final IO time " << finalIoTime << " s" << endl;
+      mpilogger << write;
+   }
+
+
+
 
    // Write the timer values (if timers have been defined):
    writeTimers();
