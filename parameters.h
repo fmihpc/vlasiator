@@ -3,10 +3,9 @@
 
 #include "definitions.h"
 #include <vector>
-#include <string>
 #include "mpi.h"
+#include <string>
 
-//cuint MAX_VEL_BLOCKS = 300000;
 cuint MAX_VEL_BLOCKS = 300000;
 namespace Transmit {
    cuint CELL_PARAMS  = 1;

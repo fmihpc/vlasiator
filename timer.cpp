@@ -1,9 +1,9 @@
+#include "mpi.h"
 #include <iostream>
 #include <iomanip>
 
 #include "mpilogger.h"
 #include "timer.h"
-#include "mpi.h"
 
 using namespace std;
 

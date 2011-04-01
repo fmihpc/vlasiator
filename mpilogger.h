@@ -1,8 +1,8 @@
 #ifndef MPILOGGER_H
 #define MPILOGGER_H
 
-#include <sstream>
 #include "mpifile.h"
+#include <sstream>
 
 /** A class for writing log messages in parallel. MPILogger functions in 
  * the same way as standard C++ input streams, i.e. you insert values by 

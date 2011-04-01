@@ -1,9 +1,10 @@
 #include <cstdlib>
-#include <iostream>
 #include <cmath>
 #include <limits>
 
 #include "mpilogger.h"
+#include <iostream>
+
 #include "common.h"
 #include "cell_spatial.h"
 #include "parameters.h"

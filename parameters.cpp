@@ -1,13 +1,14 @@
+#include "parameters.h"
+
 #include <boost/program_options.hpp>
 #include <boost/lexical_cast.hpp>
 #include <cmath>
+#include <limits>
+
+#include <iomanip>
+#include <string>
 #include <fstream>
 #include <iostream>
-#include <iomanip>
-#include <limits>
-#include <string>
-
-#include "parameters.h"
 
 #ifndef NAN
 #define NAN 0

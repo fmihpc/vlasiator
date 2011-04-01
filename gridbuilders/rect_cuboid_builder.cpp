@@ -1,9 +1,9 @@
 #include <cstdlib>
+#include <mpi.h>
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <limits>
-#include <mpi.h>
 #include <sstream>
 
 #include "../definitions.h"

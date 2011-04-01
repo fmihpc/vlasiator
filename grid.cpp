@@ -1,6 +1,5 @@
 #include <cstdlib>
 #include <exception>
-#include <iostream>
 #include <limits>
 #include <list>
 #include <map>
@@ -8,7 +7,10 @@
 
 #include "common.h"
 #include "grid.h"
+
 #include "mpilogger.h"
+#include <iostream>
+
 #include "parameters.h"
 
 using namespace std;

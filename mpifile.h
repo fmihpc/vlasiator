@@ -2,6 +2,7 @@
 #define MPIWRITER_H
 
 #include <mpi.h>
+#include <string>
 
 namespace MPIConv {
    // Template for converting a native C datatype into MPI datatype.

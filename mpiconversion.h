@@ -1,8 +1,8 @@
 #ifndef MPI_CONVERSION_H
 #define MPI_CONVERSION_H
 #include <cstdlib>
-#include <iostream>
 #include <mpi.h>
+#include <iostream>
 
 // Overloaded templates which should return the corresponding data type
 // for some C++ native data types. For example, if float has been 

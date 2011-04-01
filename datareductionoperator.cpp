@@ -1,7 +1,7 @@
 #include <cstdlib>
+#include <mpi.h>
 #include <iostream>
 #include <limits>
-#include <mpi.h>
 
 #include "datareductionoperator.h"
 #include "vlscommon.h"
