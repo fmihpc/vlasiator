@@ -920,8 +920,8 @@ int main(int argn,char* args[]) {
          mpiGrid.barrier();
       #endif
    }
-   
- 
+   double after = MPI_Wtime();
+
    double finalIoTime=MPI_Wtime();
    // Write final state:
    if (P::save_spatial_grid) {
@@ -940,7 +940,6 @@ int main(int argn,char* args[]) {
    
    if (myrank == MASTER_RANK) {
       mpilogger << "(MAIN): All timesteps calculated." << endl;
-      double after = MPI_Wtime();
       mpilogger << "(TIME) total simulated time " << P::t << " s" << endl;
       mpilogger << "(TIME) Total time " << totTime << " s" << endl;
       mpilogger << "(TIME)   Initialization time " << initTime << " s" << endl;
