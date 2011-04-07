@@ -7,6 +7,13 @@
 #include "mpiconversion.h"
 #include "muxml.h"
 
+struct WriteUnit {
+    char *array;     //  pointer to data to be writte
+    MPI_Datatype mpiType;     //  type of data that is written
+    uint64_t begin;  // where to begin writing in file compared to current offset (bytes)
+    uint64_t amount; // how much to write (elements)
+};
+
 class VLSVWriter {
  public:
    VLSVWriter();
@@ -18,12 +25,12 @@ class VLSVWriter {
    
    bool startMultiwrite(const std::string& dataType,const uint64_t& arraySize,const uint64_t& vectorSize,const uint64_t& dataSize);
    
-   template<typename T> bool multiwriteArray(const uint64_t& begin,const uint64_t& amount,T* array);
-   template<typename T> 
+   template<typename T> bool multiwriteArray(const uint64_t& amount,T* array);
+  template<typename T> 
      bool writeArray(const std::string& tagName,const std::string& arrayName,const std::map<std::string,std::string>& attribs,
 		     const uint64_t& arraySize,const uint64_t& vectorSize,T* array);
-   bool writeArray(const std::string& tagName,const std::string& arrayName,const std::map<std::string,std::string>& attribs,
-		   const uint64_t& arraySize,const uint64_t& vectorSize,const std::string& dataType,const uint64_t& dataSize,char* array);
+    bool writeArray(const std::string& tagName,const std::string& arrayName,const std::map<std::string,std::string>& attribs,
+		   const uint64_t& arraySize,const uint64_t& vectorSize,const std::string& dataType,const uint64_t& dataSize,void* array);
  private:
    MPI_Comm comm;            /**< MPI communicator which is writing to the file.*/
    int myrank;               /**< Rank of this process in communicator comm.*/
@@ -35,21 +42,25 @@ class VLSVWriter {
    MPI_File fileptr;         /**< MPI file pointer to the output file.*/
    uint64_t myBytes;         /**< Number of bytes this process is writing to the current array.*/
    MPI_Offset offset;        /**< MPI offset into output file for this process.*/
-   MPI_Offset offsetIn;
-   MPI_Offset offsetOut;
-   MPI_Request mpiRequest;
-   MPI_Request recvRequest;
+    
    MuXML* xmlWriter;         /**< Pointer to XML writer, used for writing a footer to the VLSV file.*/
    
    // Variables needed for multi-write mode. Multi-write mode 
    // is used for arrays which are too large to be buffered.
    
-   std::string dataType;
-   uint64_t arraySize;
-   uint64_t dataSize;
-   uint64_t vectorSize;
+    std::string dataType;
+    uint64_t arraySize;
+    uint64_t dataSize;
+    uint64_t vectorSize;
+
+    //store the multiwrite requests in this vector
+    std::vector<WriteUnit> multiWriteUnits;
+    
+    
+    uint64_t* bytesPerProcess; //array with N_processes elements. Used to gather myBytes
+    MPI_Offset* offsets; //array with N_processes elements. Used to scatter offsets 
    
-   template<typename T> std::string arrayDataType();
+    template<typename T> std::string arrayDataType();
 };
 
 // Templates which give the string datatype corresponding to the given datatype:
@@ -65,44 +76,53 @@ template<> inline std::string VLSVWriter::arrayDataType<float>() {return "float"
 template<> inline std::string VLSVWriter::arrayDataType<double>() {return "float";}
 template<> inline std::string VLSVWriter::arrayDataType<long double>() {return "float";}
 
-template<typename T> inline bool VLSVWriter::multiwriteArray(const uint64_t& begin,const uint64_t& amount,T* array) {
+template<typename T> inline bool VLSVWriter::multiwriteArray(const uint64_t& amount,T* array) {
    bool success = true;
-   if (MPI_File_write_at(fileptr,offset+begin*vectorSize*sizeof(T),array,amount*vectorSize,MPI_Type<T>(),MPI_STATUS_IGNORE) != MPI_SUCCESS) success = false;
-   return success;
+   //record the write, but only do it in the end routine
+   WriteUnit writeUnit;   
+   writeUnit.array=(char*)array;
+   writeUnit.mpiType=MPI_Type<T>();
+   writeUnit.amount=amount*vectorSize;
+   multiWriteUnits.push_back(writeUnit);
+   return success; 
 }
 
-template<typename T>
-inline bool VLSVWriter::writeArray(const std::string& tagName,const std::string& arrayName,const std::map<std::string,std::string>& attribs,
-				   const uint64_t& arraySize,const uint64_t& vectorSize,T* array) {
-   bool success = true;
-   // All processes except the master receive the offset from process with rank = myrank-1, 
-   if (myrank != masterRank) {
-      if (MPI_Wait(&recvRequest,MPI_STATUS_IGNORE) != MPI_SUCCESS) success = false;
-      offset = offsetIn;
-      int source = myrank - 1;
-      MPI_Irecv(&offsetIn,1,MPI_Type<MPI_Offset>(),source,0,comm,&recvRequest);
-   }
-   
-   // Calculate the amount of data written by this process in bytes, and 
-   // send the next process its offset:
-   uint64_t myBytes = arraySize * vectorSize * sizeof(T);
-   offsetOut = offset+myBytes;
 
-   int target = myrank+1;
-   if (target == N_processes) target = 0;
-   if (MPI_Wait(&mpiRequest,MPI_STATUS_IGNORE) != MPI_SUCCESS) success = false;
-   if (MPI_Isend(&offsetOut,1,MPI_Type<MPI_Offset>(),target,0,comm,&mpiRequest) != MPI_SUCCESS) success = false;
-   
-   // Write this process's data:
-   if (MPI_File_write_at_all(fileptr,offset,array,arraySize*vectorSize,MPI_Type<T>(),MPI_STATUS_IGNORE) != MPI_SUCCESS) success = false;
+template<typename T>
+inline bool VLSVWriter::writeArray(const std::string& tagName,const std::string& arrayName,
+                                   const std::map<std::string,std::string>& attribs,
+				   const uint64_t& arraySize,const uint64_t& vectorSize,T* array) {
+    bool success = true;
+    // All processes except the master receive the offset from process with rank = myrank-1:
+    // Calculate the amount of data written by this process in bytes, and 
+    // send the next process its offset:
+    myBytes = arraySize * vectorSize *sizeof(T);
+    MPI_Gather(&myBytes,sizeof(uint64_t),MPI_BYTE,
+               bytesPerProcess,sizeof(uint64_t),MPI_BYTE,
+               0,comm);
+    
+    if (myrank == 0) {
+        offsets[0]=offset; //rank 0 handles the starting point of this block of data
+        for(int i=1;i<N_processes;i++)
+            offsets[i]=offsets[i-1]+bytesPerProcess[i-1];
+    }
+
+    //scatter offsets so that everybody has the correct offset
+    //scatter offsets so that everybody has the correct offset
+    MPI_Scatter(offsets,sizeof(MPI_Offset),MPI_BYTE,&offset,sizeof(MPI_Offset),MPI_BYTE,
+                0,comm);    
+     
+    // Write this process's data:
+    if (MPI_File_write_at_all(fileptr,offset,array,arraySize*vectorSize,
+                              MPI_Type<T>(),MPI_STATUS_IGNORE)!= MPI_SUCCESS)
+        success = false;
 
    // Master writes footer tag:
    if (myrank == masterRank) {
-      if (MPI_Wait(&recvRequest,MPI_STATUS_IGNORE) != MPI_SUCCESS) success = false;
-      uint64_t totalBytes = offsetIn-offset;
-
-      int source = N_processes-1;
-      MPI_Irecv(&offsetIn,1,MPI_Type<MPI_Offset>(),source,0,comm,&recvRequest);
+      uint64_t totalBytes = 0;
+      for(int i=0;i<N_processes;i++)
+          totalBytes+=bytesPerProcess[i];
+      
       
       XMLNode* root = xmlWriter->getRoot();
       XMLNode* xmlnode = xmlWriter->find("VLSV",root);
@@ -115,7 +135,9 @@ inline bool VLSVWriter::writeArray(const std::string& tagName,const std::string&
       xmlWriter->addAttribute(node,"datatype",arrayDataType<T>());
       xmlWriter->addAttribute(node,"datasize",sizeof(T));
       
-      offset = offsetIn;
+   
+       //move forward by the amount of written data
+      offset += totalBytes ;
    }
    return success;
 }

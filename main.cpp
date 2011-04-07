@@ -357,8 +357,7 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer) {
       SpatialCell* SC;
       for (size_t cell=0; cell<Main::cells.size(); ++cell) {
 	 SC = mpiGrid[Main::cells[cell]];
-	 if (vlsvWriter.multiwriteArray(counter,N_blocks[cell],SC->cpu_blockParams) == false) success = false;
-	 counter += N_blocks[cell];
+	 if (vlsvWriter.multiwriteArray(N_blocks[cell],SC->cpu_blockParams) == false) success = false;
       }
    }
    if (success == true) if (vlsvWriter.endMultiwrite("BLOCKCOORDINATES","SpatialGrid",attribs) == false) success = false;
@@ -370,7 +369,7 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer) {
       SpatialCell* SC;
       for (size_t cell=0; cell<Main::cells.size(); ++cell) {
 	 SC = mpiGrid[Main::cells[cell]];
-	 if (vlsvWriter.multiwriteArray(counter,N_blocks[cell],SC->cpu_avgs) == false) success = false;
+	 if (vlsvWriter.multiwriteArray(N_blocks[cell],SC->cpu_avgs) == false) success = false;
 	 counter += N_blocks[cell];
       }
    }
@@ -820,22 +819,23 @@ int main(int argn,char* args[]) {
       if (myrank == MASTER_RANK) {
 	 mpilogger << "(MAIN): Saving initial state of variables to disk." << endl << write;
       }
+      //writegrid has new vlsvwriter routines
       //writeGrid(mpiGrid,reducer);
       if (writeSpatialCellData(mpiGrid,vlsWriter,reducer) == false) {
-	 mpilogger << "(MAIN): ERROR occurred while writing data to file!" << endl << write;
+          mpilogger << "(MAIN): ERROR occurred while writing data to file!" << endl << write;
       }
    }
-   initIoTime=MPI_Wtime()-initIoTime;
    
    if (P::save_velocity_grid) {
-      writeAllVelocityBlocks(mpiGrid);
+       writeAllVelocityBlocks(mpiGrid);
    }
    writeSomeVelocityGrids(mpiGrid, P::save_spatial_cells_x, P::save_spatial_cells_y, P::save_spatial_cells_z);
-   #ifndef PARGRID
-      comm.barrier();
-   #else
-      mpiGrid.barrier();
-   #endif
+#ifndef PARGRID
+   comm.barrier();
+#else
+   mpiGrid.barrier();
+#endif
+   initIoTime=MPI_Wtime()-initIoTime;
    
    // Main simulation loop:
    if (myrank == MASTER_RANK) 
