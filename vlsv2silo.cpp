@@ -95,18 +95,18 @@ template<typename REAL> struct NodeCrd {
 struct NodeComp {
    bool operator()(const NodeCrd<float>& a,const NodeCrd<float>& b) const {
       if (a.comp(b) == true) return false;
-      float EPS = 0.5e-6 * (fabs(a.z) + fabs(b.z));      
+      float EPS = 0.5e-5 * (fabs(a.z) + fabs(b.z));      
       if (a.z > b.z + EPS) return false;
       if (a.z < b.z - EPS) return true;
       
-      EPS = 0.5e-6 * (fabs(a.y) + fabs(b.y));      
+      EPS = 0.5e-5 * (fabs(a.y) + fabs(b.y));      
       if (a.y > b.y + EPS) return false;
       if (a.y < b.y - EPS) return true;
       
-      EPS = 0.5e-6 * (fabs(a.x) + fabs(b.x));      
+      EPS = 0.5e-5 * (fabs(a.x) + fabs(b.x));      
       if (a.x > b.x + EPS) return false;
       if (a.x < b.x - EPS) return true;
-      cerr << "ERROR" << endl;
+      //cerr << "ERROR" << endl;
       return false;
    }
 };
@@ -775,7 +775,7 @@ bool convertMesh(VLSVReader& vlsvReader,const string& meshName) {
    
    // Write zone list into silo file:
    const string zoneListName = meshName + "Zones";
-   if (DBPutZonelist2(fileptr,zoneListName.c_str(),N_zones,N_dims,nodelist,8*N_nodes,0,0,0,shapeTypes,shapeSizes,shapeCnt,N_shapes,NULL) < 0) success = false;
+   if (DBPutZonelist2(fileptr,zoneListName.c_str(),N_zones,N_dims,nodelist,8*arraySize,0,0,0,shapeTypes,shapeSizes,shapeCnt,N_shapes,NULL) < 0) success = false;
    
    // Write grid into silo file:
    if (DBPutUcdmesh(fileptr,meshName.c_str(),N_dims,NULL,coords,N_nodes,N_zones,zoneListName.c_str(),NULL,DB_FLOAT,NULL) < 0) success = false;
