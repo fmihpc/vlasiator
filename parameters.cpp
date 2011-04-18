@@ -263,7 +263,7 @@ bool Readparameters::addComposing(const string& name,const string& desc) {
 
     if(rank==0){
         isVectorOptionParsed[name]=false;
-        descriptions->add_options()(name.c_str(), PO::value<vector<string>>(&(vectorOptions[name]))->composing(), desc.c_str());
+        descriptions->add_options()(name.c_str(), PO::value<vector<string> >(&(vectorOptions[name]))->composing(), desc.c_str());
     }
     return true;
 }
