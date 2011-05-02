@@ -39,30 +39,22 @@ Grid::Grid() {
       cerr << "Couldn't allocate memory for blockParams: " << e.what() << endl;
       exit(EXIT_FAILURE);
    }
-   /*
-   avgs        = new Real[MAX_VEL_BLOCKS*SIZE_VELBLOCK];
-   fx          = new Real[MAX_VEL_BLOCKS*SIZE_FLUXS];
-   fy          = new Real[MAX_VEL_BLOCKS*SIZE_FLUXS];
-   fz          = new Real[MAX_VEL_BLOCKS*SIZE_FLUXS];
-   d1x         = new Real[MAX_VEL_BLOCKS*SIZE_DERIV];
-   d1y         = new Real[MAX_VEL_BLOCKS*SIZE_DERIV];
-   d1z         = new Real[MAX_VEL_BLOCKS*SIZE_DERIV];
-   d2x         = new Real[MAX_VEL_BLOCKS*SIZE_DERIV];
-   d2y         = new Real[MAX_VEL_BLOCKS*SIZE_DERIV];
-   d2z         = new Real[MAX_VEL_BLOCKS*SIZE_DERIV];
-   */
-   cluint SIZE = 
-     MAX_VEL_BLOCKS*SIZE_VELBLOCK
-     + MAX_VEL_BLOCKS*SIZE_FLUXS
-     + MAX_VEL_BLOCKS*SIZE_FLUXS
-     + MAX_VEL_BLOCKS*SIZE_FLUXS
-     + MAX_VEL_BLOCKS*SIZE_DERIV
-     + MAX_VEL_BLOCKS*SIZE_DERIV
-     + MAX_VEL_BLOCKS*SIZE_DERIV
-     + MAX_VEL_BLOCKS*SIZE_DERIV
-     + MAX_VEL_BLOCKS*SIZE_DERIV
-     + MAX_VEL_BLOCKS*SIZE_DERIV;
    
+   #ifdef CUDA
+      cluint SIZE = MAX_VEL_BLOCKS*WID3;
+   #else
+      cluint SIZE = 
+        MAX_VEL_BLOCKS*SIZE_VELBLOCK
+        + MAX_VEL_BLOCKS*SIZE_FLUXS
+        + MAX_VEL_BLOCKS*SIZE_FLUXS
+        + MAX_VEL_BLOCKS*SIZE_FLUXS
+        + MAX_VEL_BLOCKS*SIZE_DERIV
+        + MAX_VEL_BLOCKS*SIZE_DERIV
+        + MAX_VEL_BLOCKS*SIZE_DERIV
+        + MAX_VEL_BLOCKS*SIZE_DERIV
+        + MAX_VEL_BLOCKS*SIZE_DERIV
+        + MAX_VEL_BLOCKS*SIZE_DERIV;
+   #endif
    try {
       avgs = new Real[SIZE];
       for (unsigned long long int i=0; i<SIZE; ++i) avgs[i] = 0.0;
@@ -72,32 +64,24 @@ Grid::Grid() {
       exit(EXIT_FAILURE);
    }
 
-   fx = avgs + MAX_VEL_BLOCKS*SIZE_VELBLOCK;
-   fy = fx + MAX_VEL_BLOCKS*SIZE_FLUXS;
-   fz = fy + MAX_VEL_BLOCKS*SIZE_FLUXS;
-   d1x = fz + MAX_VEL_BLOCKS*SIZE_FLUXS;
-   d1y = d1x + MAX_VEL_BLOCKS*SIZE_DERIV;
-   d1z = d1y + MAX_VEL_BLOCKS*SIZE_DERIV;
-   d2x = d1z + MAX_VEL_BLOCKS*SIZE_DERIV;
-   d2y = d2x + MAX_VEL_BLOCKS*SIZE_DERIV;
-   d2z = d2y + MAX_VEL_BLOCKS*SIZE_DERIV;
+   #ifndef CUDA
+      fx = avgs + MAX_VEL_BLOCKS*SIZE_VELBLOCK;
+      fy = fx + MAX_VEL_BLOCKS*SIZE_FLUXS;
+      fz = fy + MAX_VEL_BLOCKS*SIZE_FLUXS;
+      d1x = fz + MAX_VEL_BLOCKS*SIZE_FLUXS;
+      d1y = d1x + MAX_VEL_BLOCKS*SIZE_DERIV;
+      d1z = d1y + MAX_VEL_BLOCKS*SIZE_DERIV;
+      d2x = d1z + MAX_VEL_BLOCKS*SIZE_DERIV;
+      d2y = d2x + MAX_VEL_BLOCKS*SIZE_DERIV;
+      d2z = d2y + MAX_VEL_BLOCKS*SIZE_DERIV;
+   #endif
 }
 
 Grid::~Grid() {
    delete nbrsVel;
    delete blockParams;
    delete avgs;
-   /*
-   delete fx;
-   delete fy;
-   delete fz;
-   delete d1x;
-   delete d1y;
-   delete d1z;
-   delete d2x;
-   delete d2y;
-   delete d2z;
-    */
+
    // Check that SpatialCells have no remaining references to the memory:
    map<uint,int>::iterator it = referenceCount.begin();
    while (it != referenceCount.end()) {
@@ -124,15 +108,18 @@ bool Grid::addReference(cuint& INDEX) {
 uint* Grid::getNbrsVel(cuint& cpuIndex) const {return nbrsVel + cpuIndex*SIZE_NBRS_VEL;}
 Real* Grid::getBlockParams(cuint& cpuIndex) const {return blockParams + cpuIndex*SIZE_BLOCKPARAMS;}
 Real* Grid::getAvgs(cuint& cpuIndex) const {return avgs + cpuIndex*SIZE_VELBLOCK;}
-Real* Grid::getFx(cuint& cpuIndex) const {return fx + cpuIndex*SIZE_FLUXS;}
-Real* Grid::getFy(cuint& cpuIndex) const {return fy + cpuIndex*SIZE_FLUXS;}
-Real* Grid::getFz(cuint& cpuIndex) const {return fz + cpuIndex*SIZE_FLUXS;}
-Real* Grid::getD1x(cuint& cpuIndex) const {return d1x + cpuIndex*SIZE_DERIV;}
-Real* Grid::getD1y(cuint& cpuIndex) const {return d1y + cpuIndex*SIZE_DERIV;}
-Real* Grid::getD1z(cuint& cpuIndex) const {return d1z + cpuIndex*SIZE_DERIV;}
-Real* Grid::getD2x(cuint& cpuIndex) const {return d2x + cpuIndex*SIZE_DERIV;}
-Real* Grid::getD2y(cuint& cpuIndex) const {return d2y + cpuIndex*SIZE_DERIV;}
-Real* Grid::getD2z(cuint& cpuIndex) const {return d2z + cpuIndex*SIZE_DERIV;}
+
+#ifndef CUDA
+   Real* Grid::getFx(cuint& cpuIndex) const {return fx + cpuIndex*SIZE_FLUXS;}
+   Real* Grid::getFy(cuint& cpuIndex) const {return fy + cpuIndex*SIZE_FLUXS;}
+   Real* Grid::getFz(cuint& cpuIndex) const {return fz + cpuIndex*SIZE_FLUXS;}
+   Real* Grid::getD1x(cuint& cpuIndex) const {return d1x + cpuIndex*SIZE_DERIV;}
+   Real* Grid::getD1y(cuint& cpuIndex) const {return d1y + cpuIndex*SIZE_DERIV;}
+   Real* Grid::getD1z(cuint& cpuIndex) const {return d1z + cpuIndex*SIZE_DERIV;}
+   Real* Grid::getD2x(cuint& cpuIndex) const {return d2x + cpuIndex*SIZE_DERIV;}
+   Real* Grid::getD2y(cuint& cpuIndex) const {return d2y + cpuIndex*SIZE_DERIV;}
+   Real* Grid::getD2z(cuint& cpuIndex) const {return d2z + cpuIndex*SIZE_DERIV;}
+#endif
 
 bool Grid::removeReference(cuint& INDEX) {
    #ifdef DEBUG

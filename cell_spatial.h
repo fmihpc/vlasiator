@@ -51,6 +51,7 @@ struct SpatialCell {
    uint* cpu_nbrsVel;     /**< Pointer to velocity neighbour list in CPU memory.*/
    Real* cpu_avgs;        /**< Pointer to velocity block array in CPU memory.*/
    Real* cpu_blockParams; /**< Pointer to velocity block parameter array in CPU memory.*/
+   #ifndef CUDA
    Real* cpu_fx;          /**< Pointer to x-flux array in CPU memory.*/
    Real* cpu_fy;          /**< Pointer to y-flux array in CPU memory.*/
    Real* cpu_fz;          /**< Pointer to z-flux array in CPU memory.*/
@@ -60,7 +61,7 @@ struct SpatialCell {
    Real* cpu_d2y;         /**< Pointer to array in CPU memory that contains 2nd derivatives to y-direction.*/
    Real* cpu_d1z;         /**< Pointer to array in CPU memory that contains 1st derivatives to z-direction.*/
    Real* cpu_d2z;         /**< Pointer to array in CPU memory that contains 2nd derivatives to z-direction.*/
-   
+   #endif
    SpatialCell();
    SpatialCell(const SpatialCell& s);
    ~SpatialCell();

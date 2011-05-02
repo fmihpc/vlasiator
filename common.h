@@ -19,12 +19,18 @@ namespace NbrsSpa {
    enum {
       STATE, /**< Contains the neighbour information of this cell, i.e. whether it is an inner cell or a boundary cell in one or more coordinate directions.*/
       MYIND, /**< The index of this cell.*/
-      XNEG,  /**< The index of the -x neighbour.*/
-      YNEG,  /**< The index of the -y neighbour.*/
-      ZNEG,  /**< The index of the -z neighbour.*/
-      XPOS,  /**< The index of the +x neighbour.*/
-      YPOS,  /**< The index of the +y neighbour.*/
-      ZPOS   /**< The index of the +z neighbour.*/
+      X1NEG,  /**< The index of the -x neighbouring block, distance 1.*/
+      Y1NEG,  /**< The index of the -y neighbouring block, distance 1.*/
+      Z1NEG,  /**< The index of the -z neighbouring block, distance 1.*/
+      X1POS,  /**< The index of the +x neighbouring block, distance 1.*/
+      Y1POS,  /**< The index of the +y neighbouring block, distance 1.*/
+      Z1POS,  /**< The index of the +z neighbouring block, distance 1.*/
+      X2NEG,  /**< The index of the -x neighbouring block, distance 1.*/
+      Y2NEG,  /**< The index of the -y neighbouring block, distance 1.*/
+      Z2NEG,  /**< The index of the -z neighbouring block, distance 1.*/
+      X2POS,  /**< The index of the +x neighbouring block, distance 1.*/
+      Y2POS,  /**< The index of the +y neighbouring block, distance 1.*/
+      Z2POS   /**< The index of the +z neighbouring block, distance 1.*/
    };
 }
 
@@ -106,7 +112,7 @@ cuint WID3 = WID2*WID;
 
 cuint SIZE_CELLPARAMS  = 16;   /**< The number of parameters for one spatial cell. */
 cuint SIZE_NBRS_VEL    = 8;    /**< The size of velocity grid neighbour list per velocity block. */
-cuint SIZE_NBRS_SPA    = 16;   /**< The size of spatial grid neighbour list per spatial cell. */
+cuint SIZE_NBRS_SPA    = 31;   /**< The size of spatial grid neighbour list per spatial cell. */
 cuint SIZE_VELBLOCK    = WID3; /**< Number of cells in a velocity block. */
 cuint SIZE_BLOCKPARAMS = 6;    /**< Number of parameters per velocity block. */
 

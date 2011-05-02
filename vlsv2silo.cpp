@@ -803,6 +803,7 @@ bool convertMesh(VLSVReader& vlsvReader,const string& meshName) {
    for (list<string>::const_iterator it=variables.begin(); it!=variables.end(); ++it) {
       if (convertMeshVariable(vlsvReader,meshName,*it) == false) success = false;
    }
+   return success;
    
    // Write all velocity grids on this mesh into silo file as separate grids:
    if (convertVelocityBlocks2(vlsvReader,meshName) == false) success = false;

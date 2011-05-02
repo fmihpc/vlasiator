@@ -6,7 +6,13 @@
 #include "mpi.h"
 #include <string>
 
-cuint MAX_VEL_BLOCKS = 300000;
+cuint MAX_SPAT_CELLS = 10;
+cuint MAX_VEL_BLOCKS = 100000;
+
+cuint CUDA_WIDTH = 65536; // Width of CUDA array (for 2D textures)
+cuint CUDA_HEIGHT = 3000; // Height of CUDA array
+                          // Make sure width*height / 64 >= MAX_VEL_BLOCKS
+
 namespace Transmit {
    cuint CELL_PARAMS  = 1;
    cuint BLOCK_PARAMS = CELL_PARAMS << 1;

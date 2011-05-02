@@ -1,11 +1,11 @@
 #ifndef CPU_ACC_H
 #define CPU_ACC_H
 
-#include "definitions.h"
-#include "common.h"
-#include "cell_spatial.h"
+#include <definitions.h>
+#include <common.h>
+#include <cell_spatial.h>
 #include "cpu_common.h"
-#include "project.h"
+#include <project.h>
 
 template<typename T> T accIndex(const T& i,const T& j,const T& k) {return k*WID2+j*WID+i;}
 template<typename T> T fullInd(const T& i,const T& j,const T& k) {return k*64+j*8+i;}
@@ -105,7 +105,7 @@ template<typename REAL,typename UINT> void fetchAllAverages(const UINT& BLOCK,RE
       }
    }
    // Copy averages from +z neighbour, or calculate using a boundary function:
-   if (isBoundary(STATE,NbrsVel::VZ_NEG_BND) > 0) {
+   if (isBoundary(STATE,NbrsVel::VZ_POS_BND) > 0) {
       for (UINT k=0; k<2; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
 	 avgs[fullInd(i+2,j+2,k+6)] = 0.0; // BOUNDARY VALUE
       }

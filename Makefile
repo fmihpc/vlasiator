@@ -1,13 +1,14 @@
-include Makefile.intel
+include Makefile.arto
 
 default: main vls2vtk vlsv2silo
 
 # Compile directory:
-INSTALL=${HOME}/codes/cudafvm2
+INSTALL=${HOME}/codes/cuda/cudafvm
 
 # Which project is compiled:
-PROJ=harm1D
-#PROJ=velrot2+2
+#PROJ=test
+#PROJ=harm1D
+PROJ=velrot2+3
 #PROJ=velocity_rotation_1+3d
 #PROJ=solar_wind_test
 #PROJ=Bx_const
@@ -16,22 +17,19 @@ PROJ=harm1D
 
 # Which grid builder is used:
 BUILDER=mpibuilder.o rect_cuboid_builder.o
+MOVER=cpu
 
 # Collect libraries into single variable:
 LIBS = ${LIB_BOOST}
 LIBS += ${LIB_SILO}
 LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_MPI}
+LIBS += ${LIB_CUDA}
 
 # Define dependencies of each object file
 DEPS_COMMON = common.h definitions.h mpiconversion.h mpilogger.h
 DEPS_CELL_SPATIAL = cell_spatial.h grid.h parameters.h cell_spatial.cpp
 DEPS_CELLSYNC = cell_spatial.h cellsync.cpp
-DEPS_CPU_ACC = cell_spatial.h cpu_acc.h cpu_common.h project.h cpu_acc.cpp
-DEPS_CPU_TRANS = cell_spatial.h cpu_common.h cpu_trans.h project.h cpu_trans.cpp
-DEPS_CUDA_ACC = cuda_common.cu cudalaunch.h devicegrid.h grid.h parameters.h project.cu cuda_acc.cu
-DEPS_CUDA_TRANS = cuda_common.cu cudalaunch.h devicegrid.h grid.h parameters.h project.cu cuda_trans.cu
-DEPS_CUDAFUNCS = cudafuncs.h cudafuncs.cpp
 DEPS_DATAREDUCER = cell_spatial.h datareducer.h datareductionoperator.h datareducer.cpp
 DEPS_DATAREDUCTIONOPERATOR = cell_spatial.h datareductionoperator.h datareductionoperator.cpp
 DEPS_GPU_DEVICE_GRID = cell_spatial.h parameters.h devicegrid.h gpudevicegrid.cpp
@@ -50,15 +48,12 @@ DEPS_VLSREADER = vlscommon.h vlsreader.h vlsreader.cpp
 DEPS_VLSVREADER2 = muxml.h vlscommon.h vlsvreader2.h vlsvreader2.cpp
 DEPS_VLSWRITER = cell_spatial.h mpifile.h vlswriter.h vlswriter.cpp
 DEPS_VLSVWRITER2 = mpiconversion.h muxml.h vlscommon.h vlsvwriter2.h vlsvwriter2.cpp
+DEPS_VLSV2SILO = vlsv2silo.cpp
 DEPS_VLS2VTK = cell_spatial.h mpifile.h vlsreader.h vls2vtk.cpp
 DEPS_WRITEVARS = pargrid.h silowriter.h writevars.h writevars.cpp
 
 DEPS_CELL_SPATIAL += $(DEPS_COMMON)
 DEPS_CELLSYNC += $(DEPS_COMMON)
-DEPS_CPU_ACC += ${DEPS_COMMON}
-DEPS_CPU_TRANS += ${DEPS_COMMON}
-DEPS_CUDA_ACC += $(DEPS_COMMON)
-DEPS_CUDA_TRANS += $(DEPS_COMMON)
 DEPS_CUDAFUNCS += $(DEPS_COMMON)
 DEPS_DATAREDUCER += ${DEPS_COMMON}
 DEPS_DATAREDUCTIONOPERATOR += ${DEPS_COMMON}
@@ -76,7 +71,7 @@ DEPS_VLSWRITER += ${DEPS_COMMON}
 DEPS_VLS2VTK += ${DEPS_COMMON}
 DEPS_WRITEVARS += ${DEPS_COMMON}
 
-HDRS = cpu_acc.h cpu_common.h cpu_trans.h cell_spatial.h\
+HDRS = cpu_acc.h cpu_acc_ppm.h cpu_common.h cpu_trans.h cell_spatial.h\
 	common.h datareducer.h datareductionoperator.h\
 	definitions.h grid.h gridbuilder.h\
 	main_dccrg.h main_pargrid.h mpiconversion.h mpifile.h mpilogger.h\
@@ -87,7 +82,7 @@ HDRS = cpu_acc.h cpu_common.h cpu_trans.h cell_spatial.h\
 
 CUDA_HDRS = cudafuncs.h cudalaunch.h devicegrid.h
 
-SRC = cell_spatial.cpp cpu_acc.cpp cpu_trans.cpp\
+SRC = cell_spatial.cpp cpu_acc.cpp cpu_trans.cpp cpu_acc_ppm.cpp\
 	datareducer.cpp datareductionoperator.cpp\
 	grid.cpp gridbuilder.cpp\
 	main.cpp mpifile.cpp mpilogger.cpp\
@@ -100,12 +95,12 @@ CUDA_SRC = cellsync.cpp cuda_acc.cu cuda_common.cu cuda_trans.cu\
 
 CUDA_OBJS = cellsync.o cuda_acc.o cuda_trans.o cudafuncs.o gpudevicegrid.o
 
-OBJS = cell_spatial.o cpu_acc.o cpu_trans.o datareducer.o\
+OBJS = cell_spatial.o datareducer.o\
 	datareductionoperator.o grid.o\
-	gridbuilder.o main.o mpifile.o mpilogger.o\
-	 parameters.o project.o\
+	gridbuilder.o main.o mpifile.o mpilogger.o muxml.o\
+	parameters.o project.o\
 	silowriter.o timer.o vlscommon.o vlsreader.o vlswriter.o\
-	muxml.o vlsvwriter2.o
+	vlsvwriter2.o
 
 OBJS_VLS2VTK = vlscommon.o vlsreader.o
 
@@ -121,6 +116,9 @@ builderinstall:
 clean:
 	make clean -C gridbuilders
 	make clean -C projects
+	make clean -C cpu
+	make clean -C cuda
+	rm -rf libvlasovmover.a
 	rm -rf *.o *.ptx *.tar* *.txt *.silo *.vtk *.vlsv project.h project.cu project.cpp main *~ visitlog.py vls2vtk
 
 # Rules for making each object file needed by the executable
@@ -132,6 +130,18 @@ cellsync.o: $(DEPS_CELLSYNC)
 
 cpu_acc.o: ${DEPS_CPU_ACC}
 	${CMP} ${CXXFLAGS} ${FLAGS} ${FLAG_OPENMP} -c cpu_acc.cpp ${INC} ${INC_BOOST} ${INC_MPI}
+
+cpu_acc_cweno3.o: ${DEPS_CPU_ACC_CWENO}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${FLAG_OPENMP} -c cpu_acc_cweno3.cpp ${INC} ${INC_BOOST} ${INC_MPI}
+
+cpu_acc_kt.o: ${DEPS_CPU_ACC_KT}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${FLAG_OPENMP} -c cpu_acc_kt.cpp ${INC} ${INC_BOOST} ${INC_MPI}
+
+cpu_acc_ppm.o: ${DEPS_CPU_ACC_PPM}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${FLAG_OPENMP} -c cpu_acc_ppm.cpp ${INC} ${INC_BOOST} ${INC_MPI}
+
+cpu_acc_leveque.o: ${DEPS_CPU_ACC_LEVEQUE}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${FLAG_OPENMP} -c cpu_acc_leveque.cpp ${INC} ${INC_BOOST} ${INC_MPI}
 
 cpu_trans.o: ${DEPS_CPU_TRANS}
 	${CMP} ${CXXFLAGS} ${FLAGS} ${FLAG_OPENMP} -c cpu_trans.cpp ${INC} ${INC_BOOST} ${INC_MPI}
@@ -161,11 +171,12 @@ grid.o: $(DEPS_GRID)
 gridbuilder.o: $(DEPS_GRIDBUILDER)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -O1 -c gridbuilder.cpp ${INC} ${INC_BOOST} ${INC_MPI}
 
-#libbuilder.a:
-#	make ${BUILDER} -C gridbuilders "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS} ${INC_ZOLTAN} ${INC_MPI}"
-
 main.o: $(DEPS_MAIN) ${BUILDER}
 	$(CMP) $(CXXFLAGS) $(FLAGS) ${FLAG_OPENMP} -c main.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
+
+moverinstall:
+	make libvlasovmover.a -C ${MOVER} "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS} ${INC_ZOLTAN} ${INC_MPI}"
+	ln -s -f ${MOVER}/libvlasovmover.a .
 
 mpifile.o: ${DEPS_MPIFILE}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c mpifile.cpp ${INC_MPI}
@@ -229,5 +240,5 @@ dist:
 	rm -rf cudaFVM
 
 # Make executable
-main: projinstall builderinstall $(OBJS)
-	$(LNK) ${LDFLAGS} -o main $(OBJS) $(LIBS) ${BUILDER}
+main: projinstall builderinstall moverinstall $(OBJS)
+	$(LNK) ${LDFLAGS} -o main $(OBJS) -L${INSTALL} -lvlasovmover $(LIBS) ${BUILDER}

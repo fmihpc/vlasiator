@@ -1,0 +1,39 @@
+DEPS_KT = ../cell_spatial.h ../project.h cpu_acc.h cpu_acc.cpp cpu_trans.h cpu_trans.cpp cpu_common.h
+DEPS_LEVEQUE = ../cell_spatial.h ../project.h cpu_acc_leveque.h cpu_acc_leveque.cpp cpu_trans.h cpu_trans.cpp cpu_common.h
+DEPS_MEMALLOC = ../memalloc.h memalloc.cpp
+DEPS_PPM = ../cell_spatial.h ../project.h cpu_acc_ppm.h cpu_acc_ppm.cpp cpu_trans.h cpu_trans.cpp cpu_common.h
+
+MOVER = leveque
+
+clean:
+	rm -f *.a *.o *~ libvlasovmover.a
+
+kt: ${DEPS_KT}
+	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -c cpu_acc.cpp
+	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -c cpu_trans.cpp
+	ar r libvlasovmover.a cpu_acc.o
+	ar r libvlasovmover.a cpu_trans.o
+
+leveque: ${DEPS_LEVEQUE}
+	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -I${INSTALL} -c cpu_acc_leveque.cpp
+	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -I${INSTALL} -c cpu_trans.cpp
+	ar r libvlasovmover.a cpu_acc_leveque.o
+	ar r libvlasovmover.a cpu_trans.o
+
+memalloc.o: ${DEPS_MEMALLOC}
+	${CMP} ${FLAGS} ${CXXFLAGS} -c memalloc.cpp
+
+ppm: ${DEPS_PPM}
+	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -c cpu_acc_ppm.cpp
+	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -c cpu_trans.cpp
+	ar r libvlasovmover.a cpu_acc_ppm.o
+	ar r libvlasovmover.a cpu_trans.o
+
+libvlasovmover.a:
+	make memalloc.o
+	make ${MOVER}
+	ln -s -f pargrid/main_pargrid.cpp ./vlasovmover.cpp
+	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -I${INSTALL} -c vlasovmover.cpp
+	ar r libvlasovmover.a memalloc.o
+	ar r libvlasovmover.a vlasovmover.o
+

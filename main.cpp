@@ -1,5 +1,3 @@
-
-
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
@@ -7,12 +5,7 @@
 #include <sstream>
 #include <ctime>
 
-#ifndef PARGRID
-   #include "main_dccrg.h"
-#else
-   #include "main_pargrid.h"
-#endif
-
+#include "vlasovmover.h"
 #include "definitions.h"
 #include "mpiconversion.h"
 #include "mpilogger.h"
@@ -32,12 +25,13 @@
 //include craypat api headers if compiled with craypat on Cray XT/XE
 #include "pat_api.h"
 #endif 
+
 Grid grid;
+MPILogger mpilogger;
+
+bool inistate = true;
 
 using namespace std;
-
-
-
 
 #ifndef PARGRID
 void initSpatialCells(const dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm) {
@@ -50,9 +44,10 @@ void initSpatialCells(const ParGrid<SpatialCell>& mpiGrid) {
 
    // This can be replaced by an iterator.
    #ifndef PARGRID
-     Main::cells = mpiGrid.get_cells();
+      vector<ID::type> cells = mpiGrid.get_cells();
    #else
-     mpiGrid.getCells(Main::cells);
+      vector<uint64_t> cells;
+      mpiGrid.getCells(cells);
    #endif
    
    // Go through every cell on this node and initialize the pointers to 
@@ -60,30 +55,31 @@ void initSpatialCells(const ParGrid<SpatialCell>& mpiGrid) {
    // point in the velocity grid. Velocity block neighbour list is also 
    // constructed here:
    Real xmin,ymin,zmin,dx,dy,dz;
-   for (uint i=0; i<Main::cells.size(); ++i) {
-      dx = mpiGrid.get_cell_x_size(Main::cells[i]);
-      dy = mpiGrid.get_cell_y_size(Main::cells[i]);
-      dz = mpiGrid.get_cell_z_size(Main::cells[i]);
-      xmin = mpiGrid.get_cell_x_min(Main::cells[i]);
-      ymin = mpiGrid.get_cell_y_min(Main::cells[i]);
-      zmin = mpiGrid.get_cell_z_min(Main::cells[i]);
-      buildSpatialCell(*(mpiGrid[Main::cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
+   for (uint i=0; i<cells.size(); ++i) {
+      dx = mpiGrid.get_cell_x_size(cells[i]);
+      dy = mpiGrid.get_cell_y_size(cells[i]);
+      dz = mpiGrid.get_cell_z_size(cells[i]);
+      xmin = mpiGrid.get_cell_x_min(cells[i]);
+      ymin = mpiGrid.get_cell_y_min(cells[i]);
+      zmin = mpiGrid.get_cell_z_min(cells[i]);
+      buildSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
    }
    #ifdef PARGRID
      // For ParGrid memory for remote cells needs to be allocated here:
-     mpiGrid.getRemoteCells(Main::cells);
-     for (uint i=0; i<Main::cells.size(); ++i) {
-	dx = mpiGrid.get_cell_x_size(Main::cells[i]);
-	dy = mpiGrid.get_cell_y_size(Main::cells[i]);
-	dz = mpiGrid.get_cell_z_size(Main::cells[i]);
-	xmin = mpiGrid.get_cell_x_min(Main::cells[i]);
-	ymin = mpiGrid.get_cell_y_min(Main::cells[i]);
-	zmin = mpiGrid.get_cell_z_min(Main::cells[i]);
-	buildSpatialCell(*(mpiGrid[Main::cells[i]]),xmin,ymin,zmin,dx,dy,dz,true);
+     mpiGrid.getRemoteCells(cells);
+     for (uint i=0; i<cells.size(); ++i) {
+	dx = mpiGrid.get_cell_x_size(cells[i]);
+	dy = mpiGrid.get_cell_y_size(cells[i]);
+	dz = mpiGrid.get_cell_z_size(cells[i]);
+	xmin = mpiGrid.get_cell_x_min(cells[i]);
+	ymin = mpiGrid.get_cell_y_min(cells[i]);
+	zmin = mpiGrid.get_cell_z_min(cells[i]);
+	buildSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,true);
      }
    #endif
 }
-
+#ifndef CUDA
+   
 #ifndef PARGRID
 void writeVelocityBlocks(const boost::mpi::communicator& comm, const dccrg<SpatialCell>& mpiGrid) {
 #else
@@ -105,7 +101,11 @@ void writeVelocityBlocks(const ParGrid<SpatialCell>& mpiGrid) {
    #endif
    fname.width(7);
    fname.fill('0');
-   fname << Parameters::tstep << ".silo";
+   //fname << Parameters::tstep << ".silo";
+   if (inistate == false)
+     fname << Parameters::tstep+1 << ".silo";
+   else 
+     fname << 0 << ".silo";
    
    // Write velocity grid
    openOutputFile(fname.str(),"vel_blocks");
@@ -257,6 +257,8 @@ void writeSomeVelocityGrids(const ParGrid<SpatialCell>& mpiGrid, const std::vect
 	}
 }
 
+#endif // #ifndef CUDA
+   
 #ifdef PARGRID
 bool writeGrid(const ParGrid<SpatialCell>& mpiGrid,DataReducer& dataReducer) {
 #else
@@ -280,25 +282,26 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer) {
    // Get all local cell IDs and write to file:
    map<string,string> attribs;
    #ifdef PARGRID
-      mpiGrid.getCells(Main::cells);
+      vector<ID::type> cells;
+      mpiGrid.getCells(cells);
    #else 
-      Main::cells = mpiGrid.get_cells();
+      vector<uint64_t> cells = mpiGrid.get_cells();
    #endif
 
-   if (vlsvWriter.writeArray("MESH","SpatialGrid",attribs,Main::cells.size(),1,&(Main::cells[0])) == false) {
+   if (vlsvWriter.writeArray("MESH","SpatialGrid",attribs,cells.size(),1,&(cells[0])) == false) {
       cerr << "Proc #" << myrank << " failed to write cell IDs!" << endl;
    }
 
    // Create a buffer for spatial cell coordinates. Copy all coordinates to 
    // buffer and write:
-   Real* buffer = new Real[6*Main::cells.size()];
-   for (size_t i=0; i<Main::cells.size(); ++i) {
-      SpatialCell* SC = mpiGrid[Main::cells[i]];
+   Real* buffer = new Real[6*cells.size()];
+   for (size_t i=0; i<cells.size(); ++i) {
+      SpatialCell* SC = mpiGrid[cells[i]];
       for (int j=0; j<6; ++j) {
 	 buffer[6*i+j] = SC->cpu_cellParams[j];
       }
    }
-   if (vlsvWriter.writeArray("COORDS","SpatialGrid",attribs,Main::cells.size(),6,buffer) == false) {
+   if (vlsvWriter.writeArray("COORDS","SpatialGrid",attribs,cells.size(),6,buffer) == false) {
       cerr << "Proc #" << myrank << " failed to write cell coords!" << endl;
    }
    delete buffer;
@@ -316,16 +319,16 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer) {
       if (dataReducer.getDataVectorInfo(i,dataType,dataSize,vectorSize) == false) {
 	 cerr << "ERROR when requesting info from DRO " << i << endl;
       }
-      uint64_t arraySize = Main::cells.size()*vectorSize*dataSize;
+      uint64_t arraySize = cells.size()*vectorSize*dataSize;
       
       // Request DataReductionOperator to calculate the reduced data for all local cells:
       varBuffer = new char[arraySize];
-      for (uint64_t cell=0; cell<Main::cells.size(); ++cell) {
-	 if (dataReducer.reduceData(mpiGrid[Main::cells[cell]],i,varBuffer + cell*vectorSize*dataSize) == false) success = false;
+      for (uint64_t cell=0; cell<cells.size(); ++cell) {
+	 if (dataReducer.reduceData(mpiGrid[cells[cell]],i,varBuffer + cell*vectorSize*dataSize) == false) success = false;
       }
       
       // Write reduced data to file:
-      if (vlsvWriter.writeArray("VARIABLE",variableName,attribs,Main::cells.size(),vectorSize,dataType,dataSize,varBuffer) == false) success = false;      
+      if (vlsvWriter.writeArray("VARIABLE",variableName,attribs,cells.size(),vectorSize,dataType,dataSize,varBuffer) == false) success = false;      
       delete varBuffer;
       varBuffer = NULL;
    }
@@ -335,16 +338,16 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer) {
    attribs.clear();
    
    // First write global IDs of those cells which write velocity blocks (here: all cells):
-   if (vlsvWriter.writeArray("CELLSWITHBLOCKS","SpatialGrid",attribs,Main::cells.size(),1,&(Main::cells[0])) == false) success = false;
+   if (vlsvWriter.writeArray("CELLSWITHBLOCKS","SpatialGrid",attribs,cells.size(),1,&(cells[0])) == false) success = false;
    
    // Write the number of velocity blocks in each spatial cell. Again a temporary buffer is used:
-   uint* N_blocks = new uint[Main::cells.size()];
+   uint* N_blocks = new uint[cells.size()];
    uint64_t totalBlocks = 0;
-   for (size_t cell=0; cell<Main::cells.size(); ++cell) {
-      N_blocks[cell] = mpiGrid[Main::cells[cell]]->N_blocks;
-      totalBlocks += mpiGrid[Main::cells[cell]]->N_blocks;
+   for (size_t cell=0; cell<cells.size(); ++cell) {
+      N_blocks[cell] = mpiGrid[cells[cell]]->N_blocks;
+      totalBlocks += mpiGrid[cells[cell]]->N_blocks;
    }
-   if (vlsvWriter.writeArray("NBLOCKS","SpatialGrid",attribs,Main::cells.size(),1,N_blocks) == false) success = false;
+   if (vlsvWriter.writeArray("NBLOCKS","SpatialGrid",attribs,cells.size(),1,N_blocks) == false) success = false;
 
    double start = MPI_Wtime();
    
@@ -355,8 +358,8 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer) {
    if (success == true) {
       uint64_t counter = 0;
       SpatialCell* SC;
-      for (size_t cell=0; cell<Main::cells.size(); ++cell) {
-	 SC = mpiGrid[Main::cells[cell]];
+      for (size_t cell=0; cell<cells.size(); ++cell) {
+	 SC = mpiGrid[cells[cell]];
 	 if (vlsvWriter.multiwriteArray(N_blocks[cell],SC->cpu_blockParams) == false) success = false;
       }
    }
@@ -367,9 +370,10 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer) {
    if (success == true) {
       uint64_t counter = 0;
       SpatialCell* SC;
-      for (size_t cell=0; cell<Main::cells.size(); ++cell) {
-	 SC = mpiGrid[Main::cells[cell]];
+      for (size_t cell=0; cell<cells.size(); ++cell) {
+	 SC = mpiGrid[cells[cell]];
 	 if (vlsvWriter.multiwriteArray(N_blocks[cell],SC->cpu_avgs) == false) success = false;
+	 //if (vlsvWriter.multiwriteArray(counter,N_blocks[cell],SC->cpu_fx) == false) success = false;
 	 counter += N_blocks[cell];
       }
    }
@@ -384,7 +388,7 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer) {
 
    double allEnd = MPI_Wtime();
    
-   double bytesWritten = Main::cells.size()*1000*4*(64+6);
+   double bytesWritten = cells.size()*1000*4*(64+6);
    double secs = end-start;
    mpilogger << "Wrote " << bytesWritten/1.0e6 << " MB of data in " << secs << " seconds, datarate is " << bytesWritten/secs/1.0e9 << " GB/s" << endl << write;
    
@@ -439,17 +443,18 @@ bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter
 
    // Get the global IDs of all local cells:
    #ifdef PARGRID
-      mpiGrid.getCells(Main::cells);
+      vector<ID::type> cells;
+      mpiGrid.getCells(cells);
       ID::type cellGID;
       vector<ID::type> nbrs;
    #else
-      Main::cells = mpiGrid.get_cells();
+      vector<uint64_t> cells = mpiGrid.get_cells();
       uint64_t cellGID;
       vector<uint64_t> nbrs;
    #endif
    
    // Write local cell data to file using a buffer:
-   if (vlsWriter.reserveSpatCellCoordBuffer(Main::cells.size(),&dataReducer) == false) {
+   if (vlsWriter.reserveSpatCellCoordBuffer(cells.size(),&dataReducer) == false) {
       mpilogger << "ERROR: VlsWriter failed to reserve cell buffer!" << endl;
       success = false;
    }
@@ -463,8 +468,8 @@ bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter
    // Write spatial cell data:
    SpatialCell* cellptr;
    unsigned char refLevel;
-   for (size_t i=0; i<Main::cells.size(); ++i) {
-      cellGID = Main::cells[i];
+   for (size_t i=0; i<cells.size(); ++i) {
+      cellGID = cells[i];
       cellptr = mpiGrid[cellGID];
       
       if (writeSpatNbrLists == true) {
@@ -485,7 +490,7 @@ bool writeSpatialCellData(const dccrg<SpatialCell>& mpiGrid,VlsWriter& vlsWriter
 	    success = false;
 	 }
       } else {
-	 mpilogger << "ERROR: Received NULL pointer, i = " << i << " global ID = " << Main::cells[i] << endl << write;
+	 mpilogger << "ERROR: Received NULL pointer, i = " << i << " global ID = " << cells[i] << endl << write;
 	 success = false;
       }
    }
@@ -738,6 +743,7 @@ int main(int argn,char* args[]) {
       // Load balance is most likely far from optimal. Do an 
       // initial load balance before reading cell data:
       //mpiGrid.initialize();
+   
    #endif
 
    // If initialization was not successful, abort.
@@ -803,53 +809,52 @@ int main(int argn,char* args[]) {
    // Free up memory:
    readparameters.finalize();
    initTime=MPI_Wtime()-initTime;
+   writeSpatialCellData(mpiGrid,vlsWriter,reducer);
+   initializeMover(mpiGrid);
    
    double initIoTime=MPI_Wtime();
    double loopIoTime=0;
    // Write initial state:
    if (P::save_spatial_grid) {
-      #ifdef PARGRID
-         mpiGrid.getCells(Main::cells);
-      #else
-         Main::cells = mpiGrid.get_cells();
-      #endif
-      for (size_t i=0; i<Main::cells.size(); ++i) {
-	 cpu_calcVelocityMoments(*(mpiGrid[Main::cells[i]]));
-      }
+      calculateVelocityMoments(mpiGrid);
+      
       if (myrank == MASTER_RANK) {
 	 mpilogger << "(MAIN): Saving initial state of variables to disk." << endl << write;
       }
+
       //writegrid has new vlsvwriter routines
-      //writeGrid(mpiGrid,reducer);
+      writeGrid(mpiGrid,reducer);
       if (writeSpatialCellData(mpiGrid,vlsWriter,reducer) == false) {
           mpilogger << "(MAIN): ERROR occurred while writing data to file!" << endl << write;
       }
+      //writeVelocityBlocks(mpiGrid);
    }
    
-   if (P::save_velocity_grid) {
-       writeAllVelocityBlocks(mpiGrid);
-   }
-   writeSomeVelocityGrids(mpiGrid, P::save_spatial_cells_x, P::save_spatial_cells_y, P::save_spatial_cells_z);
+   //if (P::save_velocity_grid) {
+   //   writeAllVelocityBlocks(mpiGrid);
+   //}
+   //writeSomeVelocityGrids(mpiGrid, P::save_spatial_cells_x, P::save_spatial_cells_y, P::save_spatial_cells_z);
+
 #ifndef PARGRID
    comm.barrier();
 #else
    mpiGrid.barrier();
 #endif
    initIoTime=MPI_Wtime()-initIoTime;
-   
+
+   inistate = false;
    // Main simulation loop:
    if (myrank == MASTER_RANK) 
      mpilogger << "(MAIN): Starting main simulation loop." << endl << write;
 
    double before = MPI_Wtime();
    for (luint tstep=P::tstep_min; tstep < P::tsteps; ++tstep) {
-#ifdef CRAYPAT
-//turn on & off sampling & tracing
-       if(myrank>=firstrank && myrank<=lastrank){
-           if(tstep==firstiter) PAT_state(PAT_STATE_ON);
-           if(tstep>lastiter) PAT_state(PAT_STATE_OFF);
-       }
-#endif 
+      #ifdef CRAYPAT //turn on & off sampling & tracing
+         if(myrank>=firstrank && myrank<=lastrank){
+	    if(tstep==firstiter) PAT_state(PAT_STATE_ON);
+	    if(tstep>lastiter) PAT_state(PAT_STATE_OFF);
+	 }
+      #endif 
        // Recalculate (maybe) spatial cell parameters
       calculateSimParameters(mpiGrid, P::t, P::dt);
 
@@ -861,28 +866,49 @@ int main(int argn,char* args[]) {
       #endif
 
       // Propagate the state of simulation forward in time by dt:
-#ifdef CRAYPAT
-      PAT_region_begin(1,"calculateAcceleration");
-#endif 
-      calculateAcceleration(mpiGrid);
-#ifdef CRAYPAT
-      PAT_region_end(1);
-      PAT_region_begin(2,"calculateSpatialDerivatives");
-#endif 
+      #ifdef CRAYPAT
+         PAT_region_begin(2,"calculateSpatialDerivatives");
+      #endif
       calculateSpatialDerivatives(mpiGrid);
-#ifdef CRAYPAT
-      PAT_region_end(2);
-      PAT_region_begin(3,"calculateSpatialFluxes");
-#endif 
+      #ifdef CRAYPAT
+         PAT_region_end(2);
+         PAT_region_begin(3,"calculateSpatialFluxes");
+      #endif
       calculateSpatialFluxes(mpiGrid);
-#ifdef CRAYPAT
-      PAT_region_end(3);
-      PAT_region_begin(4,"calculateSpatialPropagation");
-#endif 
-      calculateSpatialPropagation(mpiGrid);
-#ifdef CRAYPAT
-      PAT_region_end(4);
-#endif 
+      #ifdef CRAYPAT
+         PAT_region_end(3);
+         PAT_region_begin(4,"calculateSpatialPropagation");
+      #endif
+      calculateSpatialPropagation(mpiGrid,false,false);
+      #ifdef CRAYPAT
+         PAT_region_end(4);
+      #endif
+      
+      bool transferAvgs = false;
+      if (P::tstep % P::saveRestartInterval == 0 || P::tstep == P::tsteps-1) transferAvgs = true;
+      
+      #ifdef CRAYPAT
+         PAT_region_begin(1,"calculateAcceleration");
+      #endif 
+      calculateAcceleration(mpiGrid);
+      #ifdef CRAYPAT
+         PAT_region_end(1);
+         PAT_region_begin(2,"calculateSpatialDerivatives");
+      #endif 
+      calculateSpatialDerivatives(mpiGrid);
+      #ifdef CRAYPAT
+         PAT_region_end(2);
+         PAT_region_begin(3,"calculateSpatialFluxes");
+      #endif 
+      calculateSpatialFluxes(mpiGrid);
+      #ifdef CRAYPAT
+         PAT_region_end(3);
+         PAT_region_begin(4,"calculateSpatialPropagation");
+      #endif 
+      calculateSpatialPropagation(mpiGrid,true,transferAvgs);
+      #ifdef CRAYPAT
+         PAT_region_end(4);
+      #endif 
       ++P::tstep;
       P::t += P::dt;
       
@@ -892,8 +918,9 @@ int main(int argn,char* args[]) {
          // TODO: implement full state saving
 	 if (myrank == MASTER_RANK) {
 	    mpilogger << "(MAIN): Writing restart files to disk at tstep = " << P::tstep << ", time = " << P::t << endl;
-	    mpilogger << "\t NOT IMPLEMENTED YET" << endl << write;
+	    //mpilogger << "\t NOT IMPLEMENTED YET" << endl << write;
 	 }
+	 writeGrid(mpiGrid,reducer);
       }
 
       // Check if variables and derived quantities should be written to disk
@@ -905,12 +932,13 @@ int main(int argn,char* args[]) {
 	    if (writeSpatialCellData(mpiGrid,vlsWriter,reducer) == false) {
 	       mpilogger << "(MAIN): ERROR occurred while writing data to file!" << endl << write;
 	    }
+	    //writeVelocityBlocks(mpiGrid);
 	 }
 	 
-         if (P::save_velocity_grid) {
-            writeAllVelocityBlocks(mpiGrid);
-         }
-         writeSomeVelocityGrids(mpiGrid, P::save_spatial_cells_x, P::save_spatial_cells_y, P::save_spatial_cells_z);
+         //if (P::save_velocity_grid) {
+         //   writeAllVelocityBlocks(mpiGrid);
+         //}
+         //writeSomeVelocityGrids(mpiGrid, P::save_spatial_cells_x, P::save_spatial_cells_y, P::save_spatial_cells_z);
       }
       loopIoTime+=MPI_Wtime()-t1;
           
@@ -922,18 +950,30 @@ int main(int argn,char* args[]) {
    }
    double after = MPI_Wtime();
 
+   finalizeMover();
+   
+   if (myrank == MASTER_RANK) {
+      mpilogger << "(MAIN): All timesteps calculated." << endl;
+      time_t after = std::time(NULL);
+      mpilogger << "\t (TIME) total run time " << after - before << " s, total simulated time " << P::t << " s" << endl;
+      mpilogger << "\t (TIME) seconds per timestep " << double(after - before) / P::tsteps << ", seconds per simulated second " << double(after - before) / P::t << endl;
+      mpilogger << write;
+   }
+   
    double finalIoTime=MPI_Wtime();
+
    // Write final state:
    if (P::save_spatial_grid) {
       mpilogger << "(MAIN): Saving variables to disk at tstep = " << P::tstep << ", time = " << P::t << endl << write;
       if (writeSpatialCellData(mpiGrid,vlsWriter,reducer) == false) {
 	 mpilogger << "(MAIN): ERROR occurred while writing data to file!" << endl << write;
       }
+      //writeVelocityBlocks(mpiGrid);
    }
-   if (P::save_velocity_grid) {
-      writeAllVelocityBlocks(mpiGrid);
-   }
-   writeSomeVelocityGrids(mpiGrid, P::save_spatial_cells_x, P::save_spatial_cells_y, P::save_spatial_cells_z);
+   //if (P::save_velocity_grid) {
+   //   writeAllVelocityBlocks(mpiGrid);
+   //}
+   //writeSomeVelocityGrids(mpiGrid, P::save_spatial_cells_x, P::save_spatial_cells_y, P::save_spatial_cells_z);
 
    finalIoTime=MPI_Wtime()-finalIoTime;
    totTime=MPI_Wtime()-totTime;
@@ -950,12 +990,9 @@ int main(int argn,char* args[]) {
       mpilogger << "(TIME)   Final IO time " << finalIoTime << " s" << endl;
       mpilogger << write;
    }
-
-
-
-
+   
    // Write the timer values (if timers have been defined):
-   writeTimers();
+   //writeTimers();
    if (myrank == MASTER_RANK) mpilogger << "(MAIN): Exiting." << endl << write;
    mpilogger.close();
    return 0;
