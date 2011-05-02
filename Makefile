@@ -1,14 +1,14 @@
-include Makefile.arto
+include Makefile.intel
 
 default: main vls2vtk vlsv2silo
 
 # Compile directory:
-INSTALL=${HOME}/codes/cuda/cudafvm
+INSTALL=${HOME}/codes/cudafvm
 
 # Which project is compiled:
 #PROJ=test
-#PROJ=harm1D
-PROJ=velrot2+3
+PROJ=harm1D
+#PROJ=velrot2+3
 #PROJ=velocity_rotation_1+3d
 #PROJ=solar_wind_test
 #PROJ=Bx_const
@@ -175,7 +175,7 @@ main.o: $(DEPS_MAIN) ${BUILDER}
 	$(CMP) $(CXXFLAGS) $(FLAGS) ${FLAG_OPENMP} -c main.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
 
 moverinstall:
-	make libvlasovmover.a -C ${MOVER} "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS} ${INC_ZOLTAN} ${INC_MPI}"
+	make libvlasovmover.a -C ${MOVER} "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS} ${INC_ZOLTAN} ${INC_MPI}" "FLAG_OPENMP=${FLAG_OPENMP}"
 	ln -s -f ${MOVER}/libvlasovmover.a .
 
 mpifile.o: ${DEPS_MPIFILE}
