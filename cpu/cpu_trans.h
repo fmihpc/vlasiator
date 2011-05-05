@@ -2,10 +2,10 @@
 #define CPU_TRANS_H
 
 #include <vector>
-#include "definitions.h"
-#include "common.h"
-#include "cell_spatial.h"
-#include "project.h"
+#include "../definitions.h"
+#include "../common.h"
+#include "../cell_spatial.h"
+#include "../project.h"
 #include "cpu_common.h"
 
 template<typename T> T trIndex(const T& i,const T& j,const T& k) {return k*WID2+j*WID+i;}

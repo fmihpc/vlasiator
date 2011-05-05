@@ -1,9 +1,9 @@
-include Makefile.intel
+include Makefile.arto
 
-default: main vls2vtk vlsv2silo
+default: main vlsv2silo
 
 # Compile directory:
-INSTALL=${HOME}/codes/cudafvm
+INSTALL=${HOME}/codes/cuda/cudafvm
 
 # Which project is compiled:
 #PROJ=test
@@ -35,7 +35,7 @@ DEPS_DATAREDUCTIONOPERATOR = cell_spatial.h datareductionoperator.h datareductio
 DEPS_GPU_DEVICE_GRID = cell_spatial.h parameters.h devicegrid.h gpudevicegrid.cpp
 DEPS_GRID = grid.h parameters.h grid.cpp
 DEPS_GRIDBUILDER = cell_spatial.h parameters.h pargrid.h project.h gridbuilder.h gridbuilder.cpp
-DEPS_MAIN = gridbuilder.h main_dccrg.h main_pargrid.h parameters.h pargrid.h project.h grid.h silowriter.h writevars.h cell_spatial.h main.cpp
+DEPS_MAIN = gridbuilder.h main_dccrg.h main_pargrid.h parameters.h pargrid.h project.h grid.h silowriter.h cell_spatial.h main.cpp
 DEPS_MPIFILE = mpifile.h mpifile.cpp
 DEPS_MPILOGGER = mpifile.h mpilogger.h mpilogger.cpp
 DEPS_MUXML = muxml.h muxml.cpp
@@ -44,17 +44,12 @@ DEPS_PROJECT = project.h project.cpp
 DEPS_SILOWRITER = cell_spatial.h silowriter.h silowriter.cpp
 DEPS_TIMER = timer.h timer.cpp
 DEPS_VLSCOMMON = vlscommon.h vlscommon.cpp
-DEPS_VLSREADER = vlscommon.h vlsreader.h vlsreader.cpp
 DEPS_VLSVREADER2 = muxml.h vlscommon.h vlsvreader2.h vlsvreader2.cpp
-DEPS_VLSWRITER = cell_spatial.h mpifile.h vlswriter.h vlswriter.cpp
 DEPS_VLSVWRITER2 = mpiconversion.h muxml.h vlscommon.h vlsvwriter2.h vlsvwriter2.cpp
 DEPS_VLSV2SILO = vlsv2silo.cpp
-DEPS_VLS2VTK = cell_spatial.h mpifile.h vlsreader.h vls2vtk.cpp
-DEPS_WRITEVARS = pargrid.h silowriter.h writevars.h writevars.cpp
 
 DEPS_CELL_SPATIAL += $(DEPS_COMMON)
 DEPS_CELLSYNC += $(DEPS_COMMON)
-DEPS_CUDAFUNCS += $(DEPS_COMMON)
 DEPS_DATAREDUCER += ${DEPS_COMMON}
 DEPS_DATAREDUCTIONOPERATOR += ${DEPS_COMMON}
 DEPS_GPU_DEVICE_GRID += $(DEPS_COMMON)
@@ -66,28 +61,22 @@ DEPS_PARAMETERS += $(DEPS_COMMON)
 DEPS_PROJECT += $(DEPS_COMMON)
 DEPS_SILOWRITER += $(DEPS_COMMON)
 DEPS_VLSCOMMON += ${DEPS_COMMON}
-DEPS_VLSREADER += ${DEPS_COMMON}
-DEPS_VLSWRITER += ${DEPS_COMMON}
-DEPS_VLS2VTK += ${DEPS_COMMON}
-DEPS_WRITEVARS += ${DEPS_COMMON}
 
 HDRS = cpu_acc.h cpu_acc_ppm.h cpu_common.h cpu_trans.h cell_spatial.h\
 	common.h datareducer.h datareductionoperator.h\
 	definitions.h grid.h gridbuilder.h\
 	main_dccrg.h main_pargrid.h mpiconversion.h mpifile.h mpilogger.h\
 	parameters.h\
-	pargrid.h silowriter.h timer.h vlscommon.h vlsreader.h vlswriter.h\
-	writevars.h\
+	pargrid.h silowriter.h timer.h vlscommon.h\
 	vlsvwriter2.h vlsvreader2.h muxml.h
 
 CUDA_HDRS = cudafuncs.h cudalaunch.h devicegrid.h
 
-SRC = cell_spatial.cpp cpu_acc.cpp cpu_trans.cpp cpu_acc_ppm.cpp\
-	datareducer.cpp datareductionoperator.cpp\
+SRC = 	datareducer.cpp datareductionoperator.cpp\
 	grid.cpp gridbuilder.cpp\
 	main.cpp mpifile.cpp mpilogger.cpp\
 	parameters.cpp silowriter.cpp timer.cpp\
-	vlscommon.cpp vlsreader.cpp vlswriter.cpp vls2vtk.cpp\
+	vlscommon.cpp vls2vtk.cpp\
 	vlsvreader2.cpp vlsvwriter2.cpp muxml.cpp vlsv2silo.cpp
 
 CUDA_SRC = cellsync.cpp cuda_acc.cu cuda_common.cu cuda_trans.cu\
@@ -99,10 +88,8 @@ OBJS = cell_spatial.o datareducer.o\
 	datareductionoperator.o grid.o\
 	gridbuilder.o main.o mpifile.o mpilogger.o muxml.o\
 	parameters.o project.o\
-	silowriter.o timer.o vlscommon.o vlsreader.o vlswriter.o\
+	silowriter.o timer.o vlscommon.o\
 	vlsvwriter2.o
-
-OBJS_VLS2VTK = vlscommon.o vlsreader.o
 
 OBJS_VLSV2SILO = muxml.o vlscommon.o vlsvreader2.o
 
@@ -124,36 +111,6 @@ clean:
 # Rules for making each object file needed by the executable
 cell_spatial.o: $(DEPS_CELL_SPATIAL)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c cell_spatial.cpp ${INC_MPI} ${INC_BOOST}
-
-cellsync.o: $(DEPS_CELLSYNC)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c cellsync.cpp $(INC_CUDA) ${INC}
-
-cpu_acc.o: ${DEPS_CPU_ACC}
-	${CMP} ${CXXFLAGS} ${FLAGS} ${FLAG_OPENMP} -c cpu_acc.cpp ${INC} ${INC_BOOST} ${INC_MPI}
-
-cpu_acc_cweno3.o: ${DEPS_CPU_ACC_CWENO}
-	${CMP} ${CXXFLAGS} ${FLAGS} ${FLAG_OPENMP} -c cpu_acc_cweno3.cpp ${INC} ${INC_BOOST} ${INC_MPI}
-
-cpu_acc_kt.o: ${DEPS_CPU_ACC_KT}
-	${CMP} ${CXXFLAGS} ${FLAGS} ${FLAG_OPENMP} -c cpu_acc_kt.cpp ${INC} ${INC_BOOST} ${INC_MPI}
-
-cpu_acc_ppm.o: ${DEPS_CPU_ACC_PPM}
-	${CMP} ${CXXFLAGS} ${FLAGS} ${FLAG_OPENMP} -c cpu_acc_ppm.cpp ${INC} ${INC_BOOST} ${INC_MPI}
-
-cpu_acc_leveque.o: ${DEPS_CPU_ACC_LEVEQUE}
-	${CMP} ${CXXFLAGS} ${FLAGS} ${FLAG_OPENMP} -c cpu_acc_leveque.cpp ${INC} ${INC_BOOST} ${INC_MPI}
-
-cpu_trans.o: ${DEPS_CPU_TRANS}
-	${CMP} ${CXXFLAGS} ${FLAGS} ${FLAG_OPENMP} -c cpu_trans.cpp ${INC} ${INC_BOOST} ${INC_MPI}
-
-cuda_acc.o: $(DEPS_CUDA_ACC)
-	$(NVCC) $(NVCCFLAGS) $(FLAGS) -c cuda_acc.cu ${INC}
-
-cuda_trans.o: $(DEPS_CUDA_TRANS)
-	$(NVCC) $(NVCCFLAGS) $(FLAGS) -c cuda_trans.cu ${INC}
-
-cudafuncs.o: $(DEPS_CUDAFUNCS)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c cudafuncs.cpp $(INC_CUDA)
 
 datareducer.o: ${DEPS_DATAREDUCER}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareducer.cpp ${INC_MPI} ${INC_BOOST}
@@ -205,21 +162,11 @@ timer.o: ${DEPS_TIMER}
 vlscommon.o: ${DEPS_VLSCOMMON}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlscommon.cpp
 
-vlsreader.o: ${DEPS_VLSREADER}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsreader.cpp
-
 vlsvreader2.o: ${DEPS_VLSVREADER2}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvreader2.cpp
 
-vlswriter.o: ${DEPS_VLSWRITER}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c vlswriter.cpp ${INC_MPI} ${INC_BOOST}
-
 vlsvwriter2.o: ${DEPS_VLSVWRITER2}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvwriter2.cpp ${INC_MPI}
-
-vls2vtk: ${DEPS_VLS2VTK} ${OBJS_VLS2VTK}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c vls2vtk.cpp ${INC_MPI}
-	${LNK} -o vls2vtk vls2vtk.o ${OBJS_VLS2VTK} ${LIB_MPI}
 
 vlsv2silo: ${DEPS_VLSV2SILO} ${OBJS_VLSV2SILO}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2silo.cpp ${INC_SILO}

@@ -1,11 +1,11 @@
 #ifndef CPU_ACC_H
 #define CPU_ACC_H
 
-#include <definitions.h>
-#include <common.h>
-#include <cell_spatial.h>
+#include "../definitions.h"
+#include "../common.h"
+#include "../cell_spatial.h"
 #include "cpu_common.h"
-#include <project.h>
+#include "../project.h"
 
 template<typename T> T accIndex(const T& i,const T& j,const T& k) {return k*WID2+j*WID+i;}
 template<typename T> T fullInd(const T& i,const T& j,const T& k) {return k*64+j*8+i;}

@@ -150,24 +150,27 @@ bool VLSVWriter::endMultiwrite(const std::string& tagName,const std::string& arr
 
     
     if (multiWriteUnits.size() >0 ){
-        //create data type for data that we use to do all writes at once
-        MPI_Aint displacements[multiWriteUnits.size()];
-        MPI_Datatype types[multiWriteUnits.size()];
-        MPI_Datatype blockLengths[multiWriteUnits.size()];
-        for(int i=0;i<multiWriteUnits.size();i++){
-            displacements[i]=multiWriteUnits[i].array-multiWriteUnits[0].array;
-            types[i]=multiWriteUnits[0].mpiType;
-            blockLengths[i]=multiWriteUnits[0].amount;
-        }
-        MPI_Datatype outputType;
-        MPI_Type_create_struct(multiWriteUnits.size(),blockLengths,displacements,types,&outputType);
-        //write out actual data with one collective call
-        
-        if(MPI_File_write_at_all(fileptr,offset,multiWriteUnits[0].array,
-                                 1,outputType,MPI_STATUS_IGNORE) != MPI_SUCCESS)
-            success = false;
-        //free type
-        MPI_Type_free(&outputType);
+       //create data type for data that we use to do all writes at once
+       MPI_Aint* displacements = new MPI_Aint[multiWriteUnits.size()];
+       MPI_Datatype* types = new MPI_Datatype[multiWriteUnits.size()];
+       int* blockLengths = new int[multiWriteUnits.size()];
+       for (int i=0; i<multiWriteUnits.size(); ++i){
+	  displacements[i] = multiWriteUnits[i].array - multiWriteUnits[0].array;
+	  types[i]         = multiWriteUnits[0].mpiType;
+	  blockLengths[i]  = multiWriteUnits[0].amount;
+       }
+       MPI_Datatype outputType;
+       MPI_Type_create_struct(multiWriteUnits.size(),blockLengths,displacements,types,&outputType);
+       //write out actual data with one collective call
+       
+       if(MPI_File_write_at_all(fileptr,offset,multiWriteUnits[0].array,
+				1,outputType,MPI_STATUS_IGNORE) != MPI_SUCCESS)
+	 success = false;
+       //free type
+       MPI_Type_free(&outputType);
+       delete displacements;
+       delete types;
+       delete blockLengths;
     }
     
    // Master writes footer tag:
