@@ -1,0 +1,922 @@
+#LyX 1.6.5 created this file. For more info see http://www.lyx.org/
+\lyxformat 345
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\language english
+\inputencoding auto
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\paperfontsize default
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_amsmath 1
+\use_esint 1
+\cite_engine basic
+\use_bibtopic false
+\paperorientation portrait
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\defskip medskip
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\author "" 
+\end_header
+
+\begin_body
+
+\begin_layout Title
+VLSV2 File Format Specification
+\end_layout
+
+\begin_layout Author
+Sandroos, A.
+\end_layout
+
+\begin_layout Date
+May, 2011.
+\end_layout
+
+\begin_layout Part
+VLSV2 File Format
+\end_layout
+
+\begin_layout Section
+Introduction
+\end_layout
+
+\begin_layout Standard
+VLSV2 file format reads and writes arrays that consist of vector elements.
+ Additional metadata can be supplemented in the form of XML tags.
+ A VLSV2 file contains one or more arrays (in binary) and a footer, which
+ contains the necessary information to interpret and read the file contents.
+ The arrays can be written and read in parallel with collective MPI functions.
+ 
+\end_layout
+
+\begin_layout Standard
+VLSV2 file format does not specify the kind of data in the file, i.e.
+ the file format is not specific to Vlasov simulations as such - it just
+ contains quite general arrays.
+ A creation of yet another file format was necessary, however, because of
+ difficulties in writing Vlasov data to files using existing libraries,
+ e.g.
+ Adios.
+\end_layout
+
+\begin_layout Section
+VLSV2 File Structure
+\end_layout
+
+\begin_layout Standard
+A VLSV2 file contains arrays whose elements are vectors, which consist of
+ one or more components.
+ An array specification is static in the sense that each vector in a given
+ array is of fixed size.
+ Vector sizes can, of course, vary between different arrays.
+ Furthermore, each component of a vector has a byte size corresponding to
+ the byte size of a native C++ datatype.
+ Array and vector sizes are given in footer XML tags.
+ The footer always contains an XML tag per array (Fig.
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:vlsv2-structure"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename vlsv2_structure.eps
+	width 40col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+General structure of a VLSV2 file.
+ The file always begins with an unsigned int of size eight bytes giving
+ the offset to the start of the footer.
+ The footer contains XML tags describing the contents of arrays, written
+ in binary, as well as offsets to the start of each array.
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:vlsv2-structure"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+XML Tags
+\end_layout
+
+\begin_layout Standard
+The footer contains one XML tag (in human-readable form) per an array in
+ the file.
+ The XML tag tree begins with a tag called 
+\family typewriter
+<VLSV>
+\family default
+ as a root, which does not have any attributes nor a value.
+ The rest of the tags are children of the root and are user-specific.
+\end_layout
+
+\begin_layout Standard
+Each XML tag has a name and value as well as several attributes, some of
+ which are mandatory (Algorithm 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "alg:Mandatory-XML-tag"
+
+\end_inset
+
+).
+ The (XML tag name, array name) pair is used as a unique identifier.
+ The value of the tag is always the offset (in ascii) into the beginning
+ of the array data.
+ Note that attributes 
+\family typewriter
+datatype
+\family default
+ and 
+\family typewriter
+datasize
+\family default
+ together uniquely define the C++ datatype written in each array.
+ For example, if 
+\family typewriter
+datatype=float
+\family default
+ and 
+\family typewriter
+datasize=8
+\family default
+, then the array contains 
+\family typewriter
+doubles
+\family default
+.
+ In practice the reading and writing of XML tags and arrays is handled through
+ 
+\family typewriter
+VlsvReader2
+\family default
+ and 
+\family typewriter
+VlsvWriter2
+\family default
+ class interfaces.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float algorithm
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+arrayname     string    Name of the array
+\end_layout
+
+\begin_layout Plain Layout
+arraysize     uint      Size of array
+\end_layout
+
+\begin_layout Plain Layout
+vectorsize    uint      Size of vector
+\end_layout
+
+\begin_layout Plain Layout
+datatype      string    int/uint/float
+\end_layout
+
+\begin_layout Plain Layout
+datasize      uint      Byte size of vector comp.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Mandatory XML tag attributes in a VLSV2 file footer.
+\begin_inset CommandInset label
+LatexCommand label
+name "alg:Mandatory-XML-tag"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Part
+Vlasov VLSV2 Files
+\end_layout
+
+\begin_layout Section
+Vlasov Data
+\end_layout
+
+\begin_layout Standard
+A Vlasov output file contains at minimum spatial cell data, and values computed
+ by data reduction operators (DROs).
+ At least spatial cell global IDs, coordinates, and cell sizes have to be
+ written in order to be able to reconstruct the grid from file.
+ Spatial cell IDs are written to an array with 
+\family typewriter
+tagname=MESH
+\family default
+, 
+\family typewriter
+name=SpatialGrid
+\family default
+.
+ The coordinates of the bottom lower left corner of each cell, and size
+ of cell in xyz-directions, are written into an array with 
+\family typewriter
+tagname=COORDS
+\family default
+, 
+\family typewriter
+name=SpatialGrid
+\family default
+.
+ The coordinate array contains values 
+\begin_inset Formula $x,y,z,dx,dy,dz$
+\end_inset
+
+.
+ Thus, 
+\family typewriter
+vectorsize=6
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+DRO variables are written into arrays with 
+\family typewriter
+tagname=VARIABLE
+\family default
+, 
+\family typewriter
+name=<var name>
+\family default
+, where 
+\family typewriter
+<var name>
+\family default
+ is a variable name issued by each DRO.
+ More information is required to associate the variables with a spatial
+ mesh, and this is handled by adding an attribute 
+\family typewriter
+mesh=SpatialGrid
+\family default
+ into the corresponding XML tags.
+ 
+\family typewriter
+vectorsize
+\family default
+ for DRO variables is given by the DROs themselves.
+ For example, 3D-vector variables have a 
+\family typewriter
+vectorsize=3
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+The spatial cell ID array defines the ordering of data in arrays 
+\family typewriter
+(COORDS, SpatialGrid)
+\family default
+ and 
+\family typewriter
+(VARIABLE, <var name>)
+\family default
+.
+ In other words, the data in the abovementioned arrays is in the same order
+ as in array 
+\family typewriter
+(MESH, SpatialGrid)
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+Velocity block data is handled in a similar manner, although more (meta)data
+ is required because every spatial cell may not have written its velocity
+ grid, and the velocity grids may be of different sizes.
+ Velocity grid blocks, however, have the same size over the lifetime of
+ the simulation (typically 
+\begin_inset Formula $4^{3}=64$
+\end_inset
+
+), which is used as the 
+\family typewriter
+vectorsize
+\family default
+ XML attribute in the array containing volume averages.
+\end_layout
+
+\begin_layout Standard
+Global ID numbers of spatial cells whose velocity grids are stored are written
+ into an array 
+\family typewriter
+(CELLSWITHBLOCKS, SpatialGrid)
+\family default
+.
+ This array also defines the order in which data is written into subsequent
+ arrays described below.
+\end_layout
+
+\begin_layout Standard
+Each velocity grid may contain a different amount of velocity grid blocks.
+ The number of blocks in each stored velocity grid is written into an array
+ 
+\family typewriter
+(NBLOCKS, SpatialGrid)
+\family default
+.
+ The coordinates of the bottom lower left corner of each velocity grid block,
+ and the sizes of cells in each coordinate direction in each block, are
+ written into an array 
+\family typewriter
+(BLOCKCOORDINATES, SpatialGrid)
+\family default
+.
+ Block coordinate array contains values 
+\begin_inset Formula $v_{x},v_{y},v_{z},dv_{x},dv_{y},dv_{z}$
+\end_inset
+
+, thus 
+\family typewriter
+vectorsize=6
+\family default
+.
+ Finally, the volume averages are written into an array 
+\family typewriter
+(BLOCKVARIABLE, avgs)
+\family default
+, which also has an attribute 
+\family typewriter
+mesh=SpatialGrid
+\family default
+ to associate the block variable with the spatial mesh.
+\end_layout
+
+\begin_layout Part
+Sample VLSV2 XML Tree
+\end_layout
+
+\begin_layout Standard
+Below is a sample XML tree from a VLSV2 Vlasov file.
+ The file contains the spatial cells (IDs and coordinates), data written
+ by DROs (E, B, rho, rho_v, MPI_Rank), and velocity blocks.
+ Note that there is only one spatial cell in the file, thus the array sizes
+ are equal to unity.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize}"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+<VLSV>
+\end_layout
+
+\begin_layout Plain Layout
+
+	<BLOCKCOORDINATES
+\end_layout
+
+\begin_layout Plain Layout
+
+		arraysize="640"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datasize="4"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datatype="float"
+\end_layout
+
+\begin_layout Plain Layout
+
+		name="SpatialGrid"
+\end_layout
+
+\begin_layout Plain Layout
+
+		vectorsize="6">
+\end_layout
+
+\begin_layout Plain Layout
+
+		96
+\end_layout
+
+\begin_layout Plain Layout
+
+	</BLOCKCOORDINATES>
+\end_layout
+
+\begin_layout Plain Layout
+
+	<BLOCKVARIABLE
+\end_layout
+
+\begin_layout Plain Layout
+
+		arraysize="640"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datasize="4"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datatype="float"
+\end_layout
+
+\begin_layout Plain Layout
+
+		mesh="SpatialGrid"
+\end_layout
+
+\begin_layout Plain Layout
+
+		name="avgs"
+\end_layout
+
+\begin_layout Plain Layout
+
+		vectorsize="64">
+\end_layout
+
+\begin_layout Plain Layout
+
+		15456
+\end_layout
+
+\begin_layout Plain Layout
+
+	</BLOCKVARIABLE>
+\end_layout
+
+\begin_layout Plain Layout
+
+	<CELLSWITHBLOCKS
+\end_layout
+
+\begin_layout Plain Layout
+
+		arraysize="1"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datasize="4"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datatype="uint"
+\end_layout
+
+\begin_layout Plain Layout
+
+		name="SpatialGrid"
+\end_layout
+
+\begin_layout Plain Layout
+
+		vectorsize="1">
+\end_layout
+
+\begin_layout Plain Layout
+
+		88
+\end_layout
+
+\begin_layout Plain Layout
+
+	</CELLSWITHBLOCKS>
+\end_layout
+
+\begin_layout Plain Layout
+
+	<COORDS arraysize="1"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datasize="4"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datatype="float"
+\end_layout
+
+\begin_layout Plain Layout
+
+		name="SpatialGrid"
+\end_layout
+
+\begin_layout Plain Layout
+
+		vectorsize="6">
+\end_layout
+
+\begin_layout Plain Layout
+
+		20
+\end_layout
+
+\begin_layout Plain Layout
+
+	</COORDS>
+\end_layout
+
+\begin_layout Plain Layout
+
+	<MESH arraysize="1"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datasize="4"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datatype="uint"
+\end_layout
+
+\begin_layout Plain Layout
+
+		name="SpatialGrid"
+\end_layout
+
+\begin_layout Plain Layout
+
+		vectorsize="1">
+\end_layout
+
+\begin_layout Plain Layout
+
+		16
+\end_layout
+
+\begin_layout Plain Layout
+
+	</MESH>
+\end_layout
+
+\begin_layout Plain Layout
+
+	<NBLOCKS
+\end_layout
+
+\begin_layout Plain Layout
+
+		arraysize="1"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datasize="4"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datatype="uint"
+\end_layout
+
+\begin_layout Plain Layout
+
+		name="SpatialGrid"
+\end_layout
+
+\begin_layout Plain Layout
+
+		vectorsize="1">
+\end_layout
+
+\begin_layout Plain Layout
+
+		92
+\end_layout
+
+\begin_layout Plain Layout
+
+	</NBLOCKS>
+\end_layout
+
+\begin_layout Plain Layout
+
+	<VARIABLE
+\end_layout
+
+\begin_layout Plain Layout
+
+		arraysize="1"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datasize="4"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datatype="float"
+\end_layout
+
+\begin_layout Plain Layout
+
+		mesh="SpatialGrid"
+\end_layout
+
+\begin_layout Plain Layout
+
+		name="B"
+\end_layout
+
+\begin_layout Plain Layout
+
+		vectorsize="3">
+\end_layout
+
+\begin_layout Plain Layout
+
+		44
+\end_layout
+
+\begin_layout Plain Layout
+
+	</VARIABLE>
+\end_layout
+
+\begin_layout Plain Layout
+
+	<VARIABLE
+\end_layout
+
+\begin_layout Plain Layout
+
+		arraysize="1"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datasize="4"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datatype="float"
+\end_layout
+
+\begin_layout Plain Layout
+
+		mesh="SpatialGrid"
+\end_layout
+
+\begin_layout Plain Layout
+
+		name="E"
+\end_layout
+
+\begin_layout Plain Layout
+
+		vectorsize="3">
+\end_layout
+
+\begin_layout Plain Layout
+
+		56
+\end_layout
+
+\begin_layout Plain Layout
+
+	</VARIABLE>
+\end_layout
+
+\begin_layout Plain Layout
+
+	<VARIABLE
+\end_layout
+
+\begin_layout Plain Layout
+
+		arraysize="1"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datasize="4"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datatype="float"
+\end_layout
+
+\begin_layout Plain Layout
+
+		mesh="SpatialGrid"
+\end_layout
+
+\begin_layout Plain Layout
+
+		name="rho" 
+\end_layout
+
+\begin_layout Plain Layout
+
+		vectorsize="1">
+\end_layout
+
+\begin_layout Plain Layout
+
+		68
+\end_layout
+
+\begin_layout Plain Layout
+
+	</VARIABLE>
+\end_layout
+
+\begin_layout Plain Layout
+
+	<VARIABLE
+\end_layout
+
+\begin_layout Plain Layout
+
+		arraysize="1"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datasize="4"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datatype="float"
+\end_layout
+
+\begin_layout Plain Layout
+
+		mesh="SpatialGrid"
+\end_layout
+
+\begin_layout Plain Layout
+
+		name="rho_v"
+\end_layout
+
+\begin_layout Plain Layout
+
+		vectorsize="3">
+\end_layout
+
+\begin_layout Plain Layout
+
+		72
+\end_layout
+
+\begin_layout Plain Layout
+
+	</VARIABLE>
+\end_layout
+
+\begin_layout Plain Layout
+
+	<VARIABLE
+\end_layout
+
+\begin_layout Plain Layout
+
+		arraysize="1"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datasize="4"
+\end_layout
+
+\begin_layout Plain Layout
+
+		datatype="int"
+\end_layout
+
+\begin_layout Plain Layout
+
+		mesh="SpatialGrid"
+\end_layout
+
+\begin_layout Plain Layout
+
+		name="MPI_rank"
+\end_layout
+
+\begin_layout Plain Layout
+
+		vectorsize="1">
+\end_layout
+
+\begin_layout Plain Layout
+
+		84
+\end_layout
+
+\begin_layout Plain Layout
+
+	</VARIABLE>
+\end_layout
+
+\begin_layout Plain Layout
+
+</VLSV>
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document
