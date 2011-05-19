@@ -65,6 +65,7 @@ std::vector<Real> P::save_spatial_cells_z;
 
 uint P::transmit = 0;
 
+bool P::recalculateStencils = true;
 
 
 // Handles parameter processing from the user

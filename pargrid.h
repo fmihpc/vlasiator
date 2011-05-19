@@ -86,6 +86,7 @@ template<class C> class ParGrid {
    template<class CONT> void getInnerCells(CONT& rlist) const;
    ID::type getNeighbour(const ID::type globalID,cuchar& nbrTypeID) const;
    uint getNumberOfLocalCells() const {return localCells.size();}
+   uint getNumberOfNeighbours(const ID::type& globalID) const;
    uint getNumberOfReceives() const {return receiveList.size();}
    uint getNumberOfRemoteCells() const {return remoteCells.size();}
    uint getNumberOfRemoteNeighbours(const ID::type& globalID) const; 
@@ -123,7 +124,7 @@ template<class C> class ParGrid {
    uint singleModeWaitSome();
    uint singleModeWaitSome2();
    bool singleReceive(const ID::type& sourceID,const int& tag,const size_t& byteSize,char* buffer,const ID::type& localID);
-   bool singleReceive2(const int& hostID,const int& tag,const size_t& byteSize,char* buffer,const ID::type& localID);
+   bool singleReceive2(const ID::type& sourceID,const int& tag,const size_t& byteSize,char* buffer,const ID::type& localID);
    bool singleSend(const int& destHost,const int& tag,const size_t& byteSize,char* buffer,const ID::type& localID);
    bool singleSend2(const int& destHost,const int& tag,const size_t& byteSize,char* buffer,const ID::type& localID);
    bool startNeighbourExchange(const uint& identifier);
@@ -201,7 +202,6 @@ template<class C> class ParGrid {
    std::vector<uint> localReceiveIDs;
    std::vector<uint> localReceiveIDs2;
    std::map<ID::type,uint> nbrReferences;
-   std::multimap<ID::type,ID::type> remoteToLocal;
    std::vector<MPI_Request> MPIrecvRequests;               /**< Container for active MPI_Requests due to receives.*/
    std::vector<MPI_Request> MPIrecvRequests2;
    std::vector<MPI_Request> MPIsendRequests;               /**< Container for active MPI_Requests due to sends.*/
@@ -213,6 +213,7 @@ template<class C> class ParGrid {
 							    * sent to this process during neighbour data exchange, and the 
 							    * rank of the MPI process that sends the cell.*/
    static std::map<ID::type,ParCell<C> > remoteCells;
+   std::multimap<ID::type,ID::type> remoteToLocal;
    static std::map<std::pair<ID::type,int>,char> sendList; /**< A list of cells, identified by their global ID, that this 
 							    * MPI process has to send during neighbour data exchange, and 
 							    * the rank of the receiving MPI process.*/
@@ -883,6 +884,12 @@ ID::type ParGrid<C>::getNeighbour(const ID::type globalID,cuchar& nbrTypeID) con
    return itt->second;
 }
 
+template<class C> uint ParGrid<C>::getNumberOfNeighbours(const ID::type& globalID) const {
+   typename std::map<ID::type,ParCell<C> >::const_iterator it = localCells.find(globalID);
+   if (it == localCells.end()) return std::numeric_limits<ID::type>::max();
+   return it->second.neighbours.size();
+}
+
 template<class C> uint ParGrid<C>::getNumberOfRemoteNeighbours(const ID::type& globalID) const {
    typename std::map<ID::type,ParCell<C> >::const_iterator it = localCells.find(globalID);
    if (it == localCells.end()) return std::numeric_limits<ID::type>::max();   
@@ -1408,6 +1415,7 @@ template<class C>bool ParGrid<C>::singleModeWaitAllSends() {
    if (MPIstatuses.size() < MPIsendRequests.size()) MPIstatuses.resize(MPIsendRequests.size());
        
    // Wait for all sends to complete:
+   //std::cerr << "(PARGRID) Proc " << myrank << " waiting for sends to complete, MPIsendRequests.size() = " << MPIsendRequests.size() << std::endl;
    MPI_Waitall(MPIsendRequests.size(),&(MPIsendRequests[0]),&(MPIstatuses[0]));
    #ifndef NDEBUG
       for (uint i=0; i<MPIsendRequests.size(); ++i) if (MPIstatuses[i].MPI_ERROR != MPI_SUCCESS) rvalue=false;
@@ -1422,7 +1430,8 @@ template<class C>bool ParGrid<C>::singleModeWaitAllSends2() {
    bool rvalue = true;
    
    if (MPIstatuses.size() < MPIsendRequests2.size()) MPIstatuses.resize(MPIsendRequests2.size());
-   
+
+   //std::cerr << "(PARGRID) Proc " << myrank << " waiting for sends2 to complete, MPIsendRequests2.size() = " << MPIsendRequests2.size() << std::endl;
    MPI_Waitall(MPIsendRequests2.size(),&(MPIsendRequests2[0]),&(MPIstatuses[0]));
    
    MPIsendRequests2.clear();
@@ -1437,7 +1446,7 @@ template<class C> uint ParGrid<C>::singleModeWaitSome() {
    
    // Wait until at least one receive that has been posted with singleReceive has completed:
    int receives = 0;
-   int readyIndices[MPIrecvRequests.size()];
+   int* readyIndices = new int[MPIrecvRequests.size()];
    while (receives == 0) {
       // Wait for at least one receive to complete:
       //std::cerr << "ParGrid: proc #" << myrank << " receivesRemaining = " << N_receivesRemaining << ' ' << MPIrecvRequests.size() << std::endl;
@@ -1454,6 +1463,7 @@ template<class C> uint ParGrid<C>::singleModeWaitSome() {
       N_receivesRemaining -= receives;
    }
    if (N_receivesRemaining == 0) MPIrecvRequests.clear();
+   delete readyIndices;
    return receives;
 }
 
@@ -1465,7 +1475,7 @@ template<class C> uint ParGrid<C>::singleModeWaitSome2() {
    
    // Wait until at least one receive has completed:
    int receives = 0;
-   int readyIndices[MPIrecvRequests2.size()];
+   int* readyIndices = new int[MPIrecvRequests2.size()];
    while (receives == 0) {
       if (MPI_Waitsome(MPIrecvRequests2.size(),&(MPIrecvRequests2[0]),&receives,readyIndices,&(MPIstatuses[0])) != MPI_SUCCESS) {
 	 std::cerr << "ParGrid::singleModeWaitSome2 failed on process #" << myrank << std::endl << std::flush;
@@ -1480,6 +1490,7 @@ template<class C> uint ParGrid<C>::singleModeWaitSome2() {
       N_receivesRemaining2 -= receives;
    }
    if (N_receivesRemaining2 == 0) MPIrecvRequests2.clear();
+   delete readyIndices;
    return receives;
 }
 
@@ -1497,15 +1508,15 @@ template<class C> bool ParGrid<C>::singleReceive(const ID::type& sourceID,const 
    return true;
 }
 
-template<class C> bool ParGrid<C>::singleReceive2(const int& hostID,const int& tag,const size_t& byteSize,char* buffer,const ID::type& localID) {
-   //std::map<ID::type,int>::const_iterator host = hostProcesses.find(sourceID);
-   //if (host == hostProcesses.end()) return false;
-   //if (host->second == myrank) return false;
+template<class C> bool ParGrid<C>::singleReceive2(const ID::type& sourceID,const int& tag,const size_t& byteSize,char* buffer,const ID::type& localID) {
+   std::map<ID::type,int>::const_iterator host = hostProcesses.find(sourceID);
+   if (host == hostProcesses.end()) return false;
+   if (host->second == myrank) return false;
 
    ++N_receivesRemaining2;
    localReceiveIDs2.push_back(localID);
    MPIrecvRequests2.push_back(MPI_Request());
-   if (MPI_Irecv(buffer,byteSize,MPI_BYTE,hostID,tag,MPI_COMM_WORLD,&(MPIrecvRequests2.back())) != MPI_SUCCESS) return false;
+   if (MPI_Irecv(buffer,byteSize,MPI_BYTE,host->second,tag,MPI_COMM_WORLD,&(MPIrecvRequests2.back())) != MPI_SUCCESS) return false;
    return true;
 }
    

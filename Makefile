@@ -6,8 +6,8 @@ default: main vlsv2silo
 INSTALL=${HOME}/codes/cuda/cudafvm
 
 # Which project is compiled:
-#PROJ=test
-PROJ=harm1D
+PROJ=test_fp
+#PROJ=harm1D
 #PROJ=velrot2+3
 #PROJ=velocity_rotation_1+3d
 #PROJ=solar_wind_test
@@ -27,6 +27,7 @@ LIBS += ${LIB_MPI}
 LIBS += ${LIB_CUDA}
 
 # Define dependencies of each object file
+DEPS_ARRAYALLOCATOR = arrayallocator.h arrayallocator.cpp
 DEPS_COMMON = common.h definitions.h mpiconversion.h mpilogger.h
 DEPS_CELL_SPATIAL = cell_spatial.h grid.h parameters.h cell_spatial.cpp
 DEPS_CELLSYNC = cell_spatial.h cellsync.cpp
@@ -48,6 +49,7 @@ DEPS_VLSVREADER2 = muxml.h vlscommon.h vlsvreader2.h vlsvreader2.cpp
 DEPS_VLSVWRITER2 = mpiconversion.h muxml.h vlscommon.h vlsvwriter2.h vlsvwriter2.cpp
 DEPS_VLSV2SILO = vlsv2silo.cpp
 
+DEPS_ARRAYALLOCATOR += ${DEPS_COMMON}
 DEPS_CELL_SPATIAL += $(DEPS_COMMON)
 DEPS_CELLSYNC += $(DEPS_COMMON)
 DEPS_DATAREDUCER += ${DEPS_COMMON}
@@ -62,7 +64,7 @@ DEPS_PROJECT += $(DEPS_COMMON)
 DEPS_SILOWRITER += $(DEPS_COMMON)
 DEPS_VLSCOMMON += ${DEPS_COMMON}
 
-HDRS = cpu_acc.h cpu_acc_ppm.h cpu_common.h cpu_trans.h cell_spatial.h\
+HDRS = arrayallocator.h cpu_acc.h cpu_acc_ppm.h cpu_common.h cpu_trans.h cell_spatial.h\
 	common.h datareducer.h datareductionoperator.h\
 	definitions.h grid.h gridbuilder.h\
 	main_dccrg.h main_pargrid.h mpiconversion.h mpifile.h mpilogger.h\
@@ -72,7 +74,7 @@ HDRS = cpu_acc.h cpu_acc_ppm.h cpu_common.h cpu_trans.h cell_spatial.h\
 
 CUDA_HDRS = cudafuncs.h cudalaunch.h devicegrid.h
 
-SRC = 	datareducer.cpp datareductionoperator.cpp\
+SRC = 	arrayallocator.cpp datareducer.cpp datareductionoperator.cpp\
 	grid.cpp gridbuilder.cpp\
 	main.cpp mpifile.cpp mpilogger.cpp\
 	parameters.cpp silowriter.cpp timer.cpp\
@@ -84,7 +86,7 @@ CUDA_SRC = cellsync.cpp cuda_acc.cu cuda_common.cu cuda_trans.cu\
 
 CUDA_OBJS = cellsync.o cuda_acc.o cuda_trans.o cudafuncs.o gpudevicegrid.o
 
-OBJS = cell_spatial.o datareducer.o\
+OBJS = arrayallocator.o cell_spatial.o datareducer.o\
 	datareductionoperator.o grid.o\
 	gridbuilder.o main.o mpifile.o mpilogger.o muxml.o\
 	parameters.o project.o\
@@ -105,10 +107,14 @@ clean:
 	make clean -C projects
 	make clean -C cpu
 	make clean -C cuda
+	make clean -C fieldsolver
 	rm -rf libvlasovmover.a
 	rm -rf *.o *.ptx *.tar* *.txt *.silo *.vtk *.vlsv project.h project.cu project.cpp main *~ visitlog.py vls2vtk
 
 # Rules for making each object file needed by the executable
+arrayallocator.o: ${DEPS_ARRAYALLOCATOR}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c arrayallocator.cpp 
+
 cell_spatial.o: $(DEPS_CELL_SPATIAL)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c cell_spatial.cpp ${INC_MPI} ${INC_BOOST}
 
@@ -117,6 +123,10 @@ datareducer.o: ${DEPS_DATAREDUCER}
 
 datareductionoperator.o: ${DEPS_DATAREDUCTIONOPERATOR}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareductionoperator.cpp ${INC_MPI} ${INC_BOOST}
+
+fieldsolverinstall:
+	make libfieldsolver.a -C fieldsolver "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS} ${INC_ZOLTAN} ${INC_MPI}" "FLAG_OPENMP=${FLAG_OPENMP}"
+	ln -s -f fieldsolver/libfieldsolver.a .
 
 gpudevicegrid.o: $(DEPS_GPU_DEVICE_GRID)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c gpudevicegrid.cpp $(INC_CUDA)
@@ -187,5 +197,5 @@ dist:
 	rm -rf cudaFVM
 
 # Make executable
-main: projinstall builderinstall moverinstall $(OBJS)
-	$(LNK) ${LDFLAGS} -o main $(OBJS) -L${INSTALL} -lvlasovmover $(LIBS) ${BUILDER}
+main: projinstall fieldsolverinstall builderinstall moverinstall $(OBJS)
+	$(LNK) ${LDFLAGS} -o main $(OBJS) -L${INSTALL} -lvlasovmover -lfieldsolver $(LIBS) ${BUILDER}

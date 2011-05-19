@@ -6,8 +6,8 @@
 #include "mpi.h"
 #include <string>
 
-cuint MAX_SPAT_CELLS = 10;
-cuint MAX_VEL_BLOCKS = 100000;
+cuint MAX_SPAT_CELLS = 300;
+cuint MAX_VEL_BLOCKS = 500000;
 
 cuint CUDA_WIDTH = 65536; // Width of CUDA array (for 2D textures)
 cuint CUDA_HEIGHT = 3000; // Height of CUDA array
@@ -72,6 +72,8 @@ struct Parameters {
 			  * This is created with bitwise or from the values defined in 
 			  * namespace Transmit.*/
 
+   static bool recalculateStencils; /**< If true, MPI stencils should be recalculated because of 
+				     * load balancing.*/
 };
 
 
