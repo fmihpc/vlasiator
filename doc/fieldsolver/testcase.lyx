@@ -1,0 +1,960 @@
+#LyX 1.6.5 created this file. For more info see http://www.lyx.org/
+\lyxformat 345
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\language english
+\inputencoding auto
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\paperfontsize default
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_amsmath 1
+\use_esint 1
+\cite_engine basic
+\use_bibtopic false
+\paperorientation portrait
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\defskip medskip
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\author "" 
+\author "" 
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Field Solver Test
+\end_layout
+
+\begin_layout Author
+Sandroos, Arto
+\end_layout
+
+\begin_layout Date
+20.5.
+ 2011
+\end_layout
+
+\begin_layout Section
+Introduction
+\end_layout
+
+\begin_layout Standard
+The purpose of the test was to demonstrate that the field solver works,
+ and to test the effects of grid refinement and increase of the order of
+ accuracy of the solver on the results.
+ The field solver is developed by Londrillo and del Zanna 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "key-1"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Section
+Test Case
+\end_layout
+
+\begin_layout Standard
+Field solver test was made by using a simple advection setup in a 
+\begin_inset Formula $(x,y,z)\in[-1,1]\times[-1,1]\times[-1,1]$
+\end_inset
+
+ grid and by using periodic boundary conditions.
+ The initial condition was 
+\begin_inset Formula $B_{x}=1$
+\end_inset
+
+ in 
+\begin_inset Formula $(y,z)\in[-0.25,0.25]\times[-0.25,0.25]$
+\end_inset
+
+ and zero elsewhere.
+ The field was then propagated with a constant velocity 
+\begin_inset Formula $\mathbf{V}=(0,-1,-1)$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Test case was run with two different cell sizes, 
+\begin_inset Formula $10\times10$
+\end_inset
+
+ (sparse) and 
+\begin_inset Formula $20\times20$
+\end_inset
+
+ (dense).
+ Time step in sparse grid was 
+\begin_inset Formula $\Delta t=0.05$
+\end_inset
+
+ and in total 40 time steps were calculated.
+ In dense grid the time step was halved, 
+\begin_inset Formula $\Delta t=0.025$
+\end_inset
+
+ and in total 80 time steps were calculated.
+ The time step was chosen in such a way that at the end of simulation the
+ advected field was back at its initial position.
+\end_layout
+
+\begin_layout Section
+Results
+\end_layout
+
+\begin_layout Standard
+Figures 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:1st-sparse"
+
+\end_inset
+
+-
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:dense-comparison"
+
+\end_inset
+
+ show selected results from field solver test in sparse and dense grid,
+ and with 
+\begin_inset Formula $1^{\mathrm{st}}$
+\end_inset
+
+- and 
+\begin_inset Formula $2^{\mathrm{nd}}$
+\end_inset
+
+-order accurate solvers.
+ In 
+\begin_inset Formula $2^{\mathrm{nd}}$
+\end_inset
+
+-order accurate cases three different slope limiters were used (minmod,
+ MC limiter, Van Leer).
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Tabular
+<lyxtabular version="3" rows="5" columns="3">
+<features>
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Solver
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+sparse grid
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+dense grid
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $1^{\mathrm{st}}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $8.33\%$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $16.1\%$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $2^{\mathrm{nd}}$
+\end_inset
+
+ (minmod)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $21.2\%$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $50.6\%$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $2^{\mathrm{nd}}$
+\end_inset
+
+ (MC limiter)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $38.7\%$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $93.1\%$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $2^{\mathrm{nd}}$
+\end_inset
+
+ (Van Leer)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $15.7\%$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $34.4\%$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Peak value of 
+\begin_inset Formula $B_{x}$
+\end_inset
+
+, as percentage of initial value, with different solver versions in sparse
+ and dense grid.
+\begin_inset CommandInset label
+LatexCommand label
+name "tab:results"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Formal demonstration of solver accuracy would be made by comparing the solutions
+ against the initial state after a full period and by calculating the 
+\begin_inset Formula $L^{1}$
+\end_inset
+
+ error norms.
+ Here the peak value of 
+\begin_inset Formula $B_{x}$
+\end_inset
+
+ at the end of simulation is used as a proxy for solver accuracy instead.
+ The 
+\begin_inset Formula $L^{1}$
+\end_inset
+
+ error norms are not diffucult to calculate in this case, however.
+ 
+\end_layout
+
+\begin_layout Standard
+The results indicate that moving into 
+\begin_inset Formula $2^{\mathrm{nd}}$
+\end_inset
+
+-order accuracy has a larger impact on the quality of the solution than
+ doubling of the grid size (which is what adaptive mesh refinement effectively
+ does).
+ Obviously the best results were obtained with a 
+\begin_inset Formula $2^{\mathrm{nd}}$
+\end_inset
+
+-order accurate solver in denser grid.
+ The results are summarized in Table 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "tab:results"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "1"
+key "key-1"
+
+\end_inset
+
+Londrillo and del Zanna, J.
+ Comp.
+ Phys., 195, 2004.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fs_1st_000000.png
+	width 50text%
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename fs_1st_100000.png
+	width 50text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fs_1st_300000.png
+	width 50text%
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename fs_1st_400000.png
+	width 50text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Propagation of 
+\begin_inset Formula $B_{x}$
+\end_inset
+
+ with a 
+\begin_inset Formula $1^{\mathrm{st}}$
+\end_inset
+
+-order accurate field solver in a sparse grid.
+ The pictures show the initial state, and solutions after 10, 30, and 40
+ time steps with periodic boundary conditions.
+ Maximum value at 40 time steps is 
+\begin_inset Formula $8.33\%$
+\end_inset
+
+ of initial value.
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:1st-sparse"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fs_1st_ref1_000000.png
+	width 50text%
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename fs_1st_ref1_100000.png
+	width 50text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fs_1st_ref1_300000.png
+	width 50text%
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename fs_1st_ref1_400000.png
+	width 50text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Propagation of 
+\begin_inset Formula $B_{x}$
+\end_inset
+
+ with a 
+\begin_inset Formula $1^{\mathrm{st}}$
+\end_inset
+
+-order accurate field solver in a dense grid.
+ The pictures show the initial state, and solutions after 10, 30, and 40
+ time steps with periodic boundary conditions.
+ Maximum value at 80 time steps is 
+\begin_inset Formula $16.1\%$
+\end_inset
+
+ of initial value.
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:1st-dense"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fs_1st_000000.png
+	width 50text%
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename fs_2nd_minmod_100000.png
+	width 50text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fs_2nd_minmod_300000.png
+	width 50text%
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename fs_2nd_minmod_400000.png
+	width 50text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Propagation of 
+\begin_inset Formula $B_{x}$
+\end_inset
+
+ with a 
+\begin_inset Formula $2^{\mathrm{nd}}$
+\end_inset
+
+-order accurate field solver in a sparse grid.
+ The pictures show the initial state, and solutions after 10, 30, and 40
+ time steps with periodic boundary conditions.
+ Maximum value at 40 time steps is 
+\begin_inset Formula $21.2\%$
+\end_inset
+
+ of initial value.
+ Minmod limiter was used.
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:2nd-sparse-minmod"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fs_1st_000000.png
+	width 50text%
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename fs_2nd_MClimiter_100000.png
+	width 50text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fs_2nd_MClimiter_300000.png
+	width 50text%
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename fs_2nd_MClimiter_400000.png
+	width 50text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Propagation of 
+\begin_inset Formula $B_{x}$
+\end_inset
+
+ with a 
+\begin_inset Formula $2^{\mathrm{nd}}$
+\end_inset
+
+-order accurate field solver in a sparse grid.
+ The pictures show the initial state, and solutions after 10, 30, and 40
+ time steps with periodic boundary conditions.
+ Maximum value at 40 time steps is 
+\begin_inset Formula $38.7\%$
+\end_inset
+
+ of initial value.
+ MC limiter was used.
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:2nd-order-mclimiter"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fs_1st_000000.png
+	width 50text%
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename fs_2nd_vanleer_100000.png
+	width 50text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fs_2nd_vanleer_300000.png
+	width 50text%
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename fs_2nd_vanleer_400000.png
+	width 50text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Propagation of 
+\begin_inset Formula $B_{x}$
+\end_inset
+
+ with a 
+\begin_inset Formula $2^{\mathrm{nd}}$
+\end_inset
+
+-order accurate field solver in a sparse grid.
+ The pictures show the initial state, and solutions after 10, 30, and 40
+ time steps with periodic boundary conditions.
+ Maximum value at 40 time steps is 
+\begin_inset Formula $15.7\%$
+\end_inset
+
+ of initial value.
+ Van Leer limiter was used.
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:2nd-sparse-vanleer"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fs_1st_ref1_400000.png
+	width 50text%
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename fs_2nd_minmod_ref1_400000.png
+	width 50text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fs_2nd_MClimiter_ref1_400000.png
+	width 50text%
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename fs_2nd_vanleer_ref1_400000.png
+	width 50text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Numerical results of 
+\begin_inset Formula $B_{x}$
+\end_inset
+
+ propagation after 80 time steps in dense grid with (top left) 
+\begin_inset Formula $1^{\mathrm{st}}$
+\end_inset
+
+-order accurate solver (
+\begin_inset Formula $B_{x,\mathrm{max}}=16.1\%$
+\end_inset
+
+ of initial), and with 
+\begin_inset Formula $2^{\mathrm{nd}}$
+\end_inset
+
+-order accurate solver with (top right) minmod limiter (
+\begin_inset Formula $B_{x,\mathrm{max}}=50.6\%$
+\end_inset
+
+ of initial), (bottom left) MC limiter (
+\begin_inset Formula $B_{x,\mathrm{max}}=93.1\%$
+\end_inset
+
+ of initial), (bottom right) Van Leer limiter (
+\begin_inset Formula $B_{x,\mathrm{max}}=34.4\%$
+\end_inset
+
+ of initial).
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:dense-comparison"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document
