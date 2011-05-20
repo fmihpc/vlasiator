@@ -1,11 +1,19 @@
 // ***************************************************************
-// ***** UPWIND CONSTRAINED TRANSPORT METHOD FOR PROPAGATING *****
-// *****           FACE-AVERAGED MAGNETIC FIELD              *****
-// *****  LONDRILLO AND DEL ZANNA, J. COMP. PH., 195, 2004.  *****
-// *****                                                     *****
-// *****            RECONSTRUCTIONS TAKEN FROM               *****
-// *****      BALSARA ET AL., J. COMP. PH., 228, 2009.       *****
-// *****         BALSARA, J. COMP. PH., 228, 2009.           *****
+// On the divergence-free condition in Godunov-type schemes for
+// ideal magnetohydrodynamics: the upwind constrained transport method,
+// P. Londrillo and L. Del Zanna, J. Comp. Phys., 195, 2004.
+// http://dx.doi.org/10.1016/j.jcp.2003.09.016
+//
+// Reconstructions taken from:
+// Efficient, high accuracy ADER-WENO schemes for hydrodynamics and
+// divergence-free magnetohydrodynamics, D. S. Balsaraa, T. Rumpfa,
+// M. Dumbserb, C.-D. Munzc, J. Comp. Phys, 228, 2480-2516, 2009.
+// http://dx.doi.org/10.1016/j.jcp.2008.12.003
+// and
+// Divergence-free reconstruction of magnetic fields and WENO
+// schemes for magnetohydrodynamics, D. S. Balsara, J. Comp. Phys.,
+// 228, 5040-5056, 2009.
+// http://dx.doi.org/10.1016/j.jcp.2009.03.038
 // *****                                                     *****
 // *****  NOTATION USED FOR VARIABLES FOLLOWS THE ONES USED  *****
 // *****      IN THE ABOVEMENTIONED PUBLICATION(S)           *****
