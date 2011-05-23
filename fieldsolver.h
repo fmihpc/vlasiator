@@ -13,20 +13,6 @@ namespace fieldsolver {
 	dVxdx,dVxdy,dVxdz,dVydx,dVydy,dVydz,dVzdx,dVzdy,dVzdz
    };
    
-   enum CharSpeeds {ax_neg,ax_pos,ay_neg,ay_pos,az_neg,az_pos};
-   
-   /*
-   struct CellData {
-      Real Ex[4];
-      Real Ey[4];
-      Real Ez[4];
-      
-      Real dBxdy,dBxdz,dBydx,dBydz,dBzdx,dBzdy;
-      Real dVxdx,dVxdy,dVxdz,dVydx,dVydy,dVydz,dVzdx,dVzdy,dVzdz;
-   };
-   
-   */
-   
 } // namespace fieldsolver
 
 bool finalizeFieldPropagator(ParGrid<SpatialCell>& mpiGrid);

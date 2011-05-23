@@ -74,6 +74,9 @@ struct Parameters {
 
    static bool recalculateStencils; /**< If true, MPI stencils should be recalculated because of 
 				     * load balancing.*/
+   
+   static bool propagateField;      /**< If true, magnetic field is propagated during the simulation.*/
+   static bool propagateVlasov;     /**< If true, distribution function is propagated during the simulation.*/
 };
 
 

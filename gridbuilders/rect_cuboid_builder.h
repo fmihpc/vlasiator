@@ -56,10 +56,13 @@ class RectCuboidBuilder: public MPIBuilder {
    bool periodicInZ;  /**< If true, grid is periodic in z-direction.*/
    
    std::map<std::string,std::string> options;
-   
+
+   uint calculateNeighbourID(const VirtualCell::ID& i,const VirtualCell::ID& j,const VirtualCell::ID& k,
+			     const int& i_nbr,const int& j_nbr,const int& k_nbr);
    uint calculateNeighbours(const VirtualCell::ID& i,const VirtualCell::ID& j,const VirtualCell::ID& k,
 			    VirtualCell::ID& x_neg,VirtualCell::ID& x_pos,VirtualCell::ID& y_neg,
 			    VirtualCell::ID& y_pos,VirtualCell::ID& z_neg,VirtualCell::ID& z_pos);
+   uint countNeighbours(const VirtualCell::ID& i,const VirtualCell::ID& j,const VirtualCell::ID& k);
    uint spatCellIndex(cuint& i,cuint& j,cuint& k);
    uint velBlockIndex(cuint& iv,cuint& jv,cuint& kv);
 };

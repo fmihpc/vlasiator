@@ -19,6 +19,8 @@
 using namespace std;
 namespace VC = VirtualCell;
 
+inline uchar calcNbrTypeID(const uchar &i,const uchar& j,const uchar& k) {return k*25+j*5+i;}
+
 string toString(const Real& value) {
    stringstream ss;
    ss << value;
@@ -41,6 +43,69 @@ RectCuboidBuilder::RectCuboidBuilder(): MPIBuilder(),initialized(false) {
 RectCuboidBuilder::~RectCuboidBuilder() { }
 
 bool RectCuboidBuilder::calculatesAnalyticInitialState() {return true;}
+
+uint RectCuboidBuilder::countNeighbours(const VirtualCell::ID& i,const VirtualCell::ID& j,const VirtualCell::ID& k) {
+   uint N_neighbours = 0;
+   for (int ii=-1; ii<2; ++ii) for (int jj=-1; jj<2; ++jj) for (int kk=-1; kk<2; ++kk) {
+      if (ii == 0 && (jj == 0 && kk == 0)) continue; // cell is not its own neighbour
+      if (i + ii > xsize-1 && periodicInX == false) continue;
+      if (j + jj > ysize-1 && periodicInY == false) continue;
+      if (k + kk > zsize-1 && periodicInZ == false) continue;
+      ++N_neighbours;
+   }   
+   return N_neighbours;
+}
+
+uint RectCuboidBuilder::calculateNeighbourID(const VirtualCell::ID& i,const VirtualCell::ID& j,const VirtualCell::ID& k,
+					     const int& i_nbr,const int& j_nbr,const int& k_nbr) {
+   // Check that the given neighbour is within the simulation box:
+   VirtualCell::ID i_out = i + i_nbr;
+   VirtualCell::ID j_out = j + j_nbr;
+   VirtualCell::ID k_out = k + k_nbr;
+   // Check that neighbour i-index is within the simulation volume:
+   if (i_out > xsize-1) {
+      if (periodicInX == false) {
+	 return numeric_limits<uint>::max();
+      } else {
+	 if (i == 0) { 
+	    // i == 0, i_nbr < 0:
+	    i_out = xsize + i_nbr;
+	 } else {
+	    // i == xsize-1, i_nbr > 0:
+	    i_out = i_nbr - 1;
+	 }
+      }
+   }
+   // Check that neighbour j-index is within the simulation volume:
+   if (j_out > ysize-1) {
+      if (periodicInY == false) {
+	 return numeric_limits<uint>::max();
+      } else {
+	 if (j == 0) {
+	    // j == 0, j_nbr < 0:
+	    j_out = ysize + j_nbr;
+	 } else {
+	    // j == ysize-1, j_nbr > 0:
+	    j_out = j_nbr - 1;
+	 }
+      }
+   }
+   // Check that neighbour k-index is within the simulation volume:
+   if (k_out > zsize-1) {
+      if (periodicInZ == false) {
+	 return numeric_limits<uint>::max();
+      } else {
+	 if (k == 0) {
+	    // k == 0, k_nbr < 0:
+	    k_out = zsize + k_nbr;
+	 } else {
+	    // k == zsize-1, k_nbr > 0:
+	    k_out = k_nbr - 1;
+	 }
+      }
+   }
+   return spatCellIndex(i_out,j_out,k_out);
+}
 
 uint RectCuboidBuilder::calculateNeighbours(const VirtualCell::ID& i,const VirtualCell::ID& j,const VirtualCell::ID& k,
 					    VirtualCell::ID& x_neg,VirtualCell::ID& x_pos,
@@ -177,7 +242,9 @@ bool RectCuboidBuilder::getCellIDs(std::vector<VirtualCell::ID>& cellIDs,std::ve
    for (luint k=0; k<zsize; ++k) for (luint j=0; j<ysize; ++j) for (luint i=0; i<xsize; ++i) {
       cellID = k*ysize*xsize + j*xsize + i;
       cellIDs[cellID] = cellID;      
-      N_nbrs[cellID] = calculateNeighbours(i,j,k,x_neg,x_pos,y_neg,y_pos,z_neg,z_pos);
+      //N_nbrs[cellID] = calculateNeighbours(i,j,k,x_neg,x_pos,y_neg,y_pos,z_neg,z_pos);
+      N_nbrs[cellID] = countNeighbours(i,j,k);
+      //cerr << "Cell " << i << ' ' << j << ' ' << k << " has " << countNeighbours(i,j,k) << " nbrs" << endl;
    }
    return true;
 }
@@ -210,13 +277,36 @@ bool RectCuboidBuilder::getCellNbrData(const VirtualCell::ID& N_cells,VirtualCel
       coords[6*c+3] = dx;
       coords[6*c+4] = dy;
       coords[6*c+5] = dz;
+      /*
       if (x_neg != numeric_limits<VC::ID>::max()) {spatNbrIDs[counter] = x_neg; spatNbrTypes[counter] =  0; ++counter;}
       if (x_pos != numeric_limits<VC::ID>::max()) {spatNbrIDs[counter] = x_pos; spatNbrTypes[counter] =  8; ++counter;}
       if (y_neg != numeric_limits<VC::ID>::max()) {spatNbrIDs[counter] = y_neg; spatNbrTypes[counter] = 16; ++counter;}
       if (y_pos != numeric_limits<VC::ID>::max()) {spatNbrIDs[counter] = y_pos; spatNbrTypes[counter] = 24; ++counter;}
       if (z_neg != numeric_limits<VC::ID>::max()) {spatNbrIDs[counter] = z_neg; spatNbrTypes[counter] = 32; ++counter;}
-      if (z_pos != numeric_limits<VC::ID>::max()) {spatNbrIDs[counter] = z_pos; spatNbrTypes[counter] = 40; ++counter;}
+      if (z_pos != numeric_limits<VC::ID>::max()) {spatNbrIDs[counter] = z_pos; spatNbrTypes[counter] = 40; ++counter;}*/
+      /*
+      if (x_neg != numeric_limits<VC::ID>::max()) {spatNbrIDs[counter] = x_neg; spatNbrTypes[counter] = calcNbrTypeID(2-1,2  ,2  ); ++counter;}
+      if (x_pos != numeric_limits<VC::ID>::max()) {spatNbrIDs[counter] = x_pos; spatNbrTypes[counter] = calcNbrTypeID(2+1,2  ,2  ); ++counter;}
+      if (y_neg != numeric_limits<VC::ID>::max()) {spatNbrIDs[counter] = y_neg; spatNbrTypes[counter] = calcNbrTypeID(2  ,2-1,2  ); ++counter;}
+      if (y_pos != numeric_limits<VC::ID>::max()) {spatNbrIDs[counter] = y_pos; spatNbrTypes[counter] = calcNbrTypeID(2  ,2+2,2  ); ++counter;}
+      if (z_neg != numeric_limits<VC::ID>::max()) {spatNbrIDs[counter] = z_neg; spatNbrTypes[counter] = calcNbrTypeID(2  ,2  ,2-1); ++counter;}
+      if (z_pos != numeric_limits<VC::ID>::max()) {spatNbrIDs[counter] = z_pos; spatNbrTypes[counter] = calcNbrTypeID(2  ,2  ,2+1); ++counter;}
+       */
+      //cerr << "Cell #" << cellIDs[c] << " nbrs: ";
+      for (int i=-1; i<2; ++i) for (int j=-1; j<2; ++j) for (int k=-1; k<2; ++k) {
+	 if (i == 0 && (j == 0 && k == 0)) continue;
+	 cuint nbrID = calculateNeighbourID(I,J,K,i,j,k);
+	 const uchar nbrTypeID = calcNbrTypeID(i+2,j+2,k+2);
+	 if (nbrID == numeric_limits<uint>::max()) continue;
+	 
+	 spatNbrIDs[counter] = nbrID;
+	 spatNbrTypes[counter] = nbrTypeID;
+	 ++counter;
+	 //cerr << nbrID << ' ';
+      }
+      //cerr << endl;
    }
+   cerr << "COUNTER = " << counter << endl;
    return true;
 }
 

@@ -66,7 +66,8 @@ std::vector<Real> P::save_spatial_cells_z;
 uint P::transmit = 0;
 
 bool P::recalculateStencils = true;
-
+bool P::propagateVlasov = true;
+bool P::propagateField = true;
 
 // Handles parameter processing from the user
 namespace PO = boost::program_options;

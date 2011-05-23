@@ -19,6 +19,7 @@
 #include "datareductionoperator.h"
 
 #include "vlsvwriter2.h" // TEST
+#include "fieldsolver.h"
 
 #ifdef CRAYPAT
 //include craypat api headers if compiled with craypat on Cray XT/XE
@@ -292,9 +293,10 @@ int main(int argn,char* args[]) {
    RP::add("save_spatial_grid", "Save spatial cell averages for the whole simulation",true);
    RP::add("save_velocity_grid","Save velocity grid from every spatial cell in the simulation",false);
    RP::addComposing("save_spatial_cells_at_x,X","Save the velocity grid in spatial cells at these coordinates (x components, also give as many y and z components, values from command line, configuration files and environment variables are added together [short version only works on command line])");
-   RP::addComposing("save_spatial_cells_at_y,Y","Save the velocity grid in spatial cells at these (y components, also give as many x and z components, values from command line, configuration files and environment variables are added together [short version only works on command line])");
-   
+   RP::addComposing("save_spatial_cells_at_y,Y","Save the velocity grid in spatial cells at these (y components, also give as many x and z components, values from command line, configuration files and environment variables are added together [short version only works on command line])");   
    RP::addComposing("save_spatial_cells_at_z,Z","Save the velocity grid in spatial cells at these coordinates (z components, also give as many x and y components, values from command line, configuration files and environment variables are added together [short version only works on command line])");
+   RP::add("propagate_field","Propagate magnetic field during the simulation",true);
+   RP::add("propagate_vlasov","Propagate distribution functions during the simulation",true);
    
    RP::parse();
    RP::get("solar_wind_file",P::solar_wind_file);
@@ -305,7 +307,8 @@ int main(int argn,char* args[]) {
    RP::get("save_spatial_cells_at_x,X", P::save_spatial_cells_x);
    RP::get("save_spatial_cells_at_y,Y", P::save_spatial_cells_y);
    RP::get("save_spatial_cells_at_z,Z", P::save_spatial_cells_z);
-
+   RP::get("propagate_field",P::propagateField);
+   RP::get("propagate_vlasov",P::propagateVlasov);
    
    // Sanity checks (DEPRECATED):
    if (P::save_spatial_cells_x.size() != P::save_spatial_cells_y.size()
@@ -504,6 +507,18 @@ int main(int argn,char* args[]) {
    reducer.addOperator(new DRO::MPIrank);
    //VlsWriter vlsWriter;
 
+   // Initialize Vlasov propagator:
+   if (initializeMover(mpiGrid) == false) {
+      mpilogger << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << write;
+      exit(1);
+   }
+   
+   // Initialize field propagator:
+   if (initializeFieldPropagator(mpiGrid) == false) {
+      mpilogger << "(MAIN): Field propagator did not initialize correctly!" << endl << write;
+      exit(1);
+   }   
+   
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****
    // ***********************************
@@ -511,7 +526,6 @@ int main(int argn,char* args[]) {
    // Free up memory:
    readparameters.finalize();
    initTime=MPI_Wtime()-initTime;
-   initializeMover(mpiGrid);
    
    double initIoTime=MPI_Wtime();
    double loopIoTime=0;
@@ -538,6 +552,7 @@ int main(int argn,char* args[]) {
 
    inistate = false;
    // Main simulation loop:
+
    if (myrank == MASTER_RANK) 
      mpilogger << "(MAIN): Starting main simulation loop." << endl << write;
 
@@ -559,6 +574,7 @@ int main(int argn,char* args[]) {
       #warning Cannot calculate minimum timestep when using PARGRID: no communicator for all_reduce
       #endif
 
+      if (P::propagateVlasov == true) {
       // Propagate the state of simulation forward in time by dt:
       #ifdef CRAYPAT
          PAT_region_begin(2,"calculateSpatialDerivatives");
@@ -603,6 +619,12 @@ int main(int argn,char* args[]) {
       #ifdef CRAYPAT
          PAT_region_end(4);
       #endif 
+      }
+      
+      if (P::propagateField == true) {
+	 propagateFields(mpiGrid,P::dt);
+      }
+      
       ++P::tstep;
       P::t += P::dt;
       
@@ -630,6 +652,7 @@ int main(int argn,char* args[]) {
    double after = MPI_Wtime();
 
    finalizeMover();
+   finalizeFieldPropagator(mpiGrid);
    
    if (myrank == MASTER_RANK) {
       mpilogger << "(MAIN): All timesteps calculated." << endl;
