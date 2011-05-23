@@ -72,8 +72,19 @@ key "key-1"
 .
 \end_layout
 
+\begin_layout Part
+Solver Accuracy and Correctness
+\end_layout
+
 \begin_layout Section
 Test Case
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:correctness-test-case"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -431,6 +442,108 @@ reference "tab:results"
 \end_inset
 
 .
+\end_layout
+
+\begin_layout Part
+Boundary Conditions
+\end_layout
+
+\begin_layout Section
+Test Case
+\end_layout
+
+\begin_layout Standard
+The test case used to verify that boundary conditions work is the same as
+ used for solver correctness (Sect.
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:correctness-test-case"
+
+\end_inset
+
+).
+ Here we are propagating 
+\begin_inset Formula $B_{x}$
+\end_inset
+
+ to 
+\begin_inset Formula $(-y,+z)$
+\end_inset
+
+ direction with a constant velocity.
+ When the field is hits the boundary, it should flow through.
+ Also the values of face-averaged 
+\begin_inset Formula $B$
+\end_inset
+
+ on 
+\begin_inset Quotes eld
+\end_inset
+
+dummy faces
+\begin_inset Quotes erd
+\end_inset
+
+ must not effect the solution inside the simulation domain - here 
+\begin_inset Formula $B$
+\end_inset
+
+ on dummy faces was set to value 
+\begin_inset Formula $666$
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Standard
+Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:boundary-test-1st"
+
+\end_inset
+
+ shows the numerical solution after 10, 20, and 80 time steps.
+ Evidently the dummy faces do not affect the solution as there are no visible
+ artifacts.
+ The initial (physical) magnetic field also propagates neatly through the
+ corner of the simulation domain.
+ Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:boundary-test-2nd"
+
+\end_inset
+
+ shows the numerical solutions at the same time steps for a 
+\begin_inset Formula $2^{\mathrm{nd}}$
+\end_inset
+
+-order accurate solver version.
+ Again, no visible artifacts are present indicating that the boundaries
+ are working as expected.
+ The solution is also less diffusive than the one calculated with 
+\begin_inset Formula $1^{\mathrm{st}}$
+\end_inset
+
+-order accurate solver (compate the rightmost panels on Figs.
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:boundary-test-1st"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:boundary-test-2nd"
+
+\end_inset
+
+).
 \end_layout
 
 \begin_layout Bibliography
@@ -864,7 +977,7 @@ name "fig:2nd-sparse-vanleer"
 \begin_inset Float figure
 wide false
 sideways false
-status open
+status collapsed
 
 \begin_layout Plain Layout
 \begin_inset Graphics
@@ -936,6 +1049,156 @@ Numerical results of
 \begin_inset CommandInset label
 LatexCommand label
 name "fig:dense-comparison"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename boundary_test_1st_10.png
+	width 33text%
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename boundary_test_1st_20.png
+	width 33text%
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename boundary_test_1st_80.png
+	width 33text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Propagation of 
+\begin_inset Formula $B_{x}$
+\end_inset
+
+ through the boundary of simulation domain with a constant velocity, using
+ 
+\begin_inset Formula $1^{\mathrm{st}}$
+\end_inset
+
+-order accurate solver.
+ The panels show the numerical solution after 10 (left), 20 (middle), and
+ 80 (right) time steps.
+ Face-averaged 
+\begin_inset Formula $B$
+\end_inset
+
+ was set to value 
+\begin_inset Formula $666.0$
+\end_inset
+
+ on faces external to the simulation domain that should not affect the solution
+ (cells drawn in red).
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:boundary-test-1st"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename boundary_test_2nd_10.png
+	width 33text%
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename boundary_test_2nd_20.png
+	width 33text%
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename boundary_test_2nd_80.png
+	width 33text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Propagation of 
+\begin_inset Formula $B_{x}$
+\end_inset
+
+ through the boundary of simulation domain with a constant velocity, using
+ 
+\begin_inset Formula $2^{\mathrm{nd}}$
+\end_inset
+
+-order accurate solver.
+ The panels show the numerical solution after 10 (left), 20 (middle), and
+ 80 (right) time steps.
+ Here face-averaged 
+\begin_inset Formula $B$
+\end_inset
+
+ was set to zero value faces external to the simulation domain that should
+ not affect the solution (cells drawn in red).
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:boundary-test-2nd"
 
 \end_inset
 
