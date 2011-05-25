@@ -62,14 +62,347 @@ Introduction
 The purpose of the test was to demonstrate that the field solver works,
  and to test the effects of grid refinement and increase of the order of
  accuracy of the solver on the results.
- The field solver is developed by Londrillo and del Zanna 
-\begin_inset CommandInset citation
-LatexCommand cite
-key "key-1"
+ The field solver is described in Londrillo and del Zanna (2004).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement h
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename variables.eps
+	width 75text%
 
 \end_inset
 
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Edge-averaged values of projections of electric field 
+\begin_inset Formula $\Delta s^{-1}\int_{\mathrm{edge}}\mathbf{E}\cdot d\mathbf{s}$
+\end_inset
+
+ are stored on three edges per cell (thick lines).
+ Face-averaged normal component of magnetic field 
+\begin_inset Formula $A^{-1}\oint_{\mathrm{face}}\mathbf{B}\cdot d\mathbf{A}$
+\end_inset
+
+ is stored on marked three cell faces (gray diamond).
+ Here face normals 
+\begin_inset Formula $d\mathbf{A}$
+\end_inset
+
+ and edge line elements 
+\begin_inset Formula $d\mathbf{S}$
+\end_inset
+
+ always point to positive coordinate directions.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In Londrillo and del Zanna method face-averaged normal components of magnetic
+ field are propagated forward in time using integral form of Faraday's law,
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula \begin{equation}
+\frac{\partial}{\partial t}\oint_{\mathrm{face}}\mathbf{B}\cdot d\mathbf{A}=-\int_{C}\mathbf{E}\cdot d\mathbf{S},\end{equation}
+
+\end_inset
+
+where the integral on the left hand side is taken over a cell face, and
+ the line integral is evaluated along the contour 
+\begin_inset Formula $C$
+\end_inset
+
+ of the cell face.
+ If the magnetic field is averaged over the cell face, and projections of
+ electric field averaged over cell edges, the Faraday's law for 
+\begin_inset Formula $B_{z}$
+\end_inset
+
+-component takes the form
+\begin_inset Formula \begin{eqnarray}
+\frac{\partial}{\partial t}\langle B_{z}\rangle\Delta x\Delta y & = & -\left(\langle E_{x}\rangle^{(i,j,k)}-\langle E_{x}\rangle^{(i,j+1,k)}\right)\Delta x\nonumber \\
+ &  & -\left(\langle E_{y}\rangle^{(i+1,j,k)}-\langle E_{y}\rangle^{(i,j,k)}\right)\Delta y,\label{eq:faraday-cell}\end{eqnarray}
+
+\end_inset
+
+where 
+\begin_inset Formula $\left\langle \ldots\right\rangle $
+\end_inset
+
+ indicates an averaged quantity and 
+\begin_inset Formula $(i,j,k)$
+\end_inset
+
+ etc.
+ the indices of the cell in which the quantity is stored.
+ Similar expressions are obtained for time derivatives of 
+\begin_inset Formula $\left\langle B_{x}\right\rangle $
+\end_inset
+
+ and 
+\begin_inset Formula $\left\langle B_{y}\right\rangle $
+\end_inset
+
 .
+\end_layout
+
+\begin_layout Standard
+The main task in Londrillo and del Zanna algorithm is thus the calculation
+ of the edge-averaged electric field components.
+ Once those are known, it is straightforward to propagate 
+\begin_inset Formula $\mathbf{B}$
+\end_inset
+
+ forward in time using equation (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:faraday-cell"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+As a side note, numerical algorithms in which the integral form of Faraday's
+ law is used to propagate 
+\begin_inset Formula $\mathbf{B}$
+\end_inset
+
+ are known as constrained transport methods.
+ Londrillo and del Zanna method is a constrained transport upwinded (CTU)
+ method, i.e.
+ out of the four possible candidates for each edge-averaged 
+\begin_inset Formula $\mathbf{E}$
+\end_inset
+
+, the upwinded value is chosen in supersonic case.
+ In subsonic cases the edge-averaged E is calculated with weighed averages
+ of the four candidate 
+\begin_inset Formula $\mathbf{E}$
+\end_inset
+
+'s, additionally a diffusive flux is added to stabilise the scheme.
+ Contrained transport methods satisfy 
+\begin_inset Formula $\nabla\cdot\mathbf{B}=0$
+\end_inset
+
+ by construction, provided that the initial state and boundary conditions
+ are divergence-free.
+\end_layout
+
+\begin_layout Part
+Reconstruction
+\end_layout
+
+\begin_layout Section
+Magnetic Field
+\end_layout
+
+\begin_layout Standard
+Reconstruction of face-averaged magnetic field follows Balsara (2009).
+ In practice the magnetic field needs to be reconstructed on the edges and
+ averaged over the coordinate aligned with the edge, as edge-averaged electric
+ field components are used to propagate 
+\begin_inset Formula $\mathbf{B}$
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Standard
+Divergence-free reconstruction of 
+\begin_inset Formula $\mathbf{B}$
+\end_inset
+
+ begins by reconstructing face-averaged components of 
+\begin_inset Formula $\mathbf{B}$
+\end_inset
+
+ along the cell faces.
+ Reconstruction is done using Legendre polynomials which are orthogonal
+ over the interval 
+\begin_inset Formula $\left[-1/2,+1/2\right]$
+\end_inset
+
+.
+ Coefficients of Legendre polynomials are obtained by calculating slope-limited
+ derivatives of 
+\begin_inset Formula $B_{\mathrm{face}}$
+\end_inset
+
+ values.
+ For example, reconstruction polynomial of 
+\begin_inset Formula $B_{x}$
+\end_inset
+
+ along x-faces is given by
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula \begin{eqnarray*}
+B_{x}(x=\pm1/2,y,z) & = & B_{0}^{x\pm}+B_{y}^{x\pm}P_{1}(x)+B_{z}^{x\pm}P_{1}(z)\qquad\qquad\quad\longleftarrow\mathrm{2^{nd}\; order}\\
+ & + & B_{yy}^{x\pm}P_{2}(y)+B_{yz}^{x\pm}P_{1}(y)P_{1}(z)+B_{zz}^{x\pm}P_{2}(z),\;\;\longleftarrow\mathrm{3^{rd}\: order}\end{eqnarray*}
+
+\end_inset
+
+where 
+\begin_inset Formula $B_{y}^{x\pm}$
+\end_inset
+
+ is the slope limited 
+\begin_inset Formula $y$
+\end_inset
+
+-derivative of the 
+\begin_inset Formula $B_{x}$
+\end_inset
+
+ and so forth.
+ Second-order accurate reconstruction of 
+\begin_inset Formula $B_{x}$
+\end_inset
+
+ in the cell interior is given by
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula \begin{eqnarray*}
+B_{x}(x,y,z) & = & a_{0}+a_{x}P_{1}(x)+a_{y}P_{1}(y)+a_{z}P_{1}(z)\\
+ & + & a_{xx}P_{2}(x)+a_{xy}P_{1}(x)P_{1}(y)+a_{xz}P_{1}(x)P_{1}(z).\end{eqnarray*}
+
+\end_inset
+
+Higher-order reconstruction formulas are given in Balsara (2009).
+ Coefficients for reconstructing the 
+\begin_inset Formula $\mathbf{B}$
+\end_inset
+
+ in the interior of the cell can be expressed using the derivatives along
+ the faces.
+ For example, the reconstruction coefficients for 
+\begin_inset Formula $B_{x}$
+\end_inset
+
+ are
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula \begin{eqnarray}
+a_{0} & = & \frac{1}{2}\left[B_{0}^{x+}+B_{0}^{x-}\right]-\frac{1}{6}a_{xx},\label{eq:a0}\\
+a_{x} & = & \left[B_{0}^{x+}-B_{0}^{x-}\right],\label{eq:ax}\\
+a_{y} & = & \frac{1}{2}\left[B_{y}^{x+}+B_{y}^{x-}\right],\label{eq:ay}\\
+a_{z} & = & \frac{1}{2}\left[B_{z}^{x+}+B_{y}^{x-}\right],\label{eq:az}\\
+a_{xx} & = & -\frac{1}{2}\left[b_{xy}+c_{xz}\right],\label{eq:axx}\\
+a_{xy} & = & \left[B_{y}^{x+}-B_{y}^{x-}\right],\label{eq:axy}\\
+a_{xz} & = & \left[B_{z}^{x+}-B_{z}^{x-}\right].\label{eq:axz}\end{eqnarray}
+
+\end_inset
+
+Similar expressions are obtained for 
+\begin_inset Formula $B_{y}$
+\end_inset
+
+ and 
+\begin_inset Formula $B_{z}$
+\end_inset
+
+.
+ Equation (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:axx"
+
+\end_inset
+
+) follows from 
+\begin_inset Formula $\nabla\cdot\mathbf{B}=0$
+\end_inset
+
+ requirement for the reconstruction, the rest of equations are obtained
+ by requiring that the reconstruction at the cell interior agrees with the
+ derivatives of face-averaged 
+\begin_inset Formula $\mathbf{B}$
+\end_inset
+
+ at the cell faces.
+\end_layout
+
+\begin_layout Standard
+In calculation of maximum characteristic speed, which in case of ideal MHD
+ is the fast magnetosonic speed, reconstructed values of 
+\begin_inset Formula $B^{2}$
+\end_inset
+
+ is also needed on the edges.
+ Here the value at an edge aligned with 
+\begin_inset Formula $z$
+\end_inset
+
+-coordinate is given:
+\begin_inset Formula \begin{eqnarray}
+\left\langle B_{x}^{2}\right\rangle _{z} & = & \left[B_{0}^{x\pm}+B_{y}^{x\pm}P_{1}(y)\right]^{2}+\frac{1}{12}\left[B_{z}^{x\pm}\right]^{2},\label{eq:Bx2-zedge}\\
+\left\langle B_{y}^{2}\right\rangle _{z} & = & \left[B_{0}^{y\pm}+B_{x}^{y\pm}P_{1}(x)\right]^{2}+\frac{1}{12}\left[B_{z}^{y\pm}\right]^{2},\label{eq:By2-zedge}\\
+\left\langle B_{z}^{2}\right\rangle _{z} & = & \left[c_{0}+c_{x}P_{1}(x)+c_{y}P_{1}(y)\right]^{2}\nonumber \\
+ & + & \frac{1}{12}\left[c_{z}+c_{xz}P_{1}(x)+c_{yz}P_{1}(y)\right]^{2}+\frac{1}{180}c_{zz}^{2},\label{eq:Bz2-zedge}\\
+\left\langle B^{2}\right\rangle _{z} & = & \left\langle B_{x}^{2}\right\rangle _{z}+\left\langle B_{y}^{2}\right\rangle _{z}+\left\langle B_{z}^{2}\right\rangle _{z}.\label{eq:B2-zedge}\end{eqnarray}
+
+\end_inset
+
+In equations (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:Bx2-zedge"
+
+\end_inset
+
+)-(
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:B2-zedge"
+
+\end_inset
+
+) 
+\begin_inset Formula $B_{x},\, B_{y}$
+\end_inset
+
+ are reconstructed along cell faces, while 
+\begin_inset Formula $B_{z}$
+\end_inset
+
+ is reconstructed inside the cell (see Balsara, 2009 for equations).
+ 
+\end_layout
+
+\begin_layout Section
+Volume-averaged Quantities
 \end_layout
 
 \begin_layout Part
@@ -449,6 +782,139 @@ Boundary Conditions
 \end_layout
 
 \begin_layout Section
+Introduction
+\end_layout
+
+\begin_layout Standard
+Magnetic field propagator in general is discussed in detail in Londrillo
+ and del Zanna (2004).
+ The behaviour of the solver at the boundaries is usually not discussed
+ on publications as it heavily depends on what is simulated.
+ Here the boundaries are discussed, and a rectangular cuboid simulation
+ domain is used as an example.
+ A two-dimensional slice of the domain near the boundaries is illustrated
+ in Fig.
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:simulation-boundary-B"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement h
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename boundaries.eps
+	width 90text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Illustration of simulation volume (white cells) and the faces on which face-aver
+aged magnetic field is propagated (black), set via boundary conditions (green),
+ and set by 
+\begin_inset Formula $\nabla\cdot\mathbf{B}=0$
+\end_inset
+
+ condition (red).
+ Here the surface of the simulation domain has been defined to be included
+ in the simulation domain, i.e.
+ 
+\begin_inset Formula $\mathbf{B}$
+\end_inset
+
+ is propagated on the surface.
+ Edge-averaged electric field has to be calculated on the marked edges (orange).
+ Three-dimensional generalisation follows in the obvious way.
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:simulation-boundary-B"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The outmost layer of the mesh is taken to be a 
+\begin_inset Quotes eld
+\end_inset
+
+ghost layer
+\begin_inset Quotes erd
+\end_inset
+
+ (gray cells), which here mostly means that the distribution functions are
+ set on these cells via boundary conditions and not propageted with the
+ Vlasov solver.
+ Velocity moments 
+\begin_inset Formula $(n,n\mathbf{V},\mathbf{p})$
+\end_inset
+
+ of the distribution function are then calculated in the same manner as
+ for the simulation cells (white).
+ If magnetic field is propagated on the surface of the simulation domain,
+ components of the electric field must be calculated on all cell edges within
+ and on the surface of the domain, as illustrated by the orange circles
+ in Fig.
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:simulation-boundary-B"
+
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Standard
+Magnetic field must be set on some of the faces (green) in the ghost layer
+ with boundary conditions - these values are used when the electric field
+ is calculated on the cell edges on the domain's surface.
+ Divergence-free condition of the magnetic field must of course be fulfilled
+ in the ghost layer as well, in practice the easiest way to reach this is
+ to leave at least one of the face values undefined by boundary conditions
+ (red faces).
+ These values are calculated from 
+\begin_inset Formula $\nabla\cdot\mathbf{B}=0$
+\end_inset
+
+ condition instead.
+ One can, of course, make another choise on which which cell face values
+ are set with boundary conditions.
+\end_layout
+
+\begin_layout Section
 Test Case
 \end_layout
 
@@ -546,11 +1012,49 @@ reference "fig:boundary-test-2nd"
 ).
 \end_layout
 
+\begin_layout Standard
+Performing the same test but with 
+\begin_inset Formula $B_{y}$
+\end_inset
+
+ or 
+\begin_inset Formula $B_{z}$
+\end_inset
+
+ component, and using different combinations of the propagation velocity,
+ i.e.
+ 
+\begin_inset Formula $(+y,-z)$
+\end_inset
+
+ instead of 
+\begin_inset Formula $(-y,+z)$
+\end_inset
+
+, produced the same results for 
+\begin_inset Formula $2^{\mathrm{nd}}$
+\end_inset
+
+-order accurate solver (with and without MPI).
+\end_layout
+
 \begin_layout Bibliography
 \begin_inset CommandInset bibitem
 LatexCommand bibitem
-label "1"
 key "key-1"
+
+\end_inset
+
+Balsara, J.
+ Comp.
+ Phys., 228, 2009.
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "2"
+key "key-2"
 
 \end_inset
 
@@ -1148,7 +1652,7 @@ name "fig:boundary-test-1st"
 \begin_inset Float figure
 wide false
 sideways false
-status open
+status collapsed
 
 \begin_layout Plain Layout
 \begin_inset Graphics
