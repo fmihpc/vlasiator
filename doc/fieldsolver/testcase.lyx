@@ -42,7 +42,7 @@
 \begin_body
 
 \begin_layout Title
-Field Solver Test
+Magnetic Field Propagator
 \end_layout
 
 \begin_layout Author
@@ -50,8 +50,7 @@ Sandroos, Arto
 \end_layout
 
 \begin_layout Date
-20.5.
- 2011
+May 2011
 \end_layout
 
 \begin_layout Section
@@ -138,8 +137,8 @@ where the integral on the left hand side is taken over a cell face, and
 \end_inset
 
  of the cell face.
- If the magnetic field is averaged over the cell face, and projections of
- electric field averaged over cell edges, the Faraday's law for 
+ If the magnetic field is averaged over the cell face, and electric field
+ projected to cell edges and averaged, the Faraday's law for 
 \begin_inset Formula $B_{z}$
 \end_inset
 
@@ -195,25 +194,92 @@ As a side note, numerical algorithms in which the integral form of Faraday's
 \end_inset
 
  are known as constrained transport methods.
- Londrillo and del Zanna method is a constrained transport upwinded (CTU)
- method, i.e.
+ Londrillo and del Zanna method is a constrained transport upwinded method,
+ i.e.
  out of the four possible candidates for each edge-averaged 
 \begin_inset Formula $\mathbf{E}$
 \end_inset
 
 , the upwinded value is chosen in supersonic case.
- In subsonic cases the edge-averaged E is calculated with weighed averages
- of the four candidate 
+ In subsonic cases the edge-averaged 
+\begin_inset Formula $\mathbf{E}$
+\end_inset
+
+ is calculated with weighed averages of the four candidate 
 \begin_inset Formula $\mathbf{E}$
 \end_inset
 
 's, additionally a diffusive flux is added to stabilise the scheme.
- Contrained transport methods satisfy 
+ Constrained transport methods satisfy 
 \begin_inset Formula $\nabla\cdot\mathbf{B}=0$
 \end_inset
 
  by construction, provided that the initial state and boundary conditions
  are divergence-free.
+\end_layout
+
+\begin_layout Standard
+The switch to subsonic solver is done based on the value of characteristic
+ speed vs.
+ the speed of plasma.
+ If values such as
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula \begin{equation}
+\alpha_{x}^{\pm}=\mathrm{max}(0,\pm[V_{x}\pm c_{s,x}]),\end{equation}
+
+\end_inset
+
+where 
+\begin_inset Formula $V_{x}$
+\end_inset
+
+ and 
+\begin_inset Formula $c_{s,x}$
+\end_inset
+
+ are the plasma and characteristic speeds to 
+\begin_inset Formula $x$
+\end_inset
+
+-direction, is non-zero for both possibilities, diffusive terms are switched
+ on.
+ The characteristic speed is usually the speed of the fastest wave mode
+ (speed of sound in hydrodynamics, fast magnetosonic speed in MHD).
+ See a textbook on numerical solutions of hyperbolic equations for more
+ detailed discussion.
+ Fast magnetosonic speed is 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula \begin{eqnarray}
+V_{\mathrm{ms}}^{2} & = & V_{A}^{2}+c_{s}^{2},\label{eq:fast-ms-speed}\\
+V_{A}^{2} & = & B^{2}/\sqrt{\mu_{0}\rho_{m}},\label{eq:alfven-speed}\\
+c_{s}^{2} & = & \gamma p/\rho_{m}.\label{eq:sound-speed}\end{eqnarray}
+
+\end_inset
+
+Here (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:alfven-speed"
+
+\end_inset
+
+) is the Alfvén speed and (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:sound-speed"
+
+\end_inset
+
+) the speed of sound in adiabatic ideal gas.
+ 
+\begin_inset Formula $\gamma$
+\end_inset
+
+ is the polytropic index.
 \end_layout
 
 \begin_layout Part
@@ -246,8 +312,17 @@ Divergence-free reconstruction of
 \end_inset
 
  along the cell faces.
- Reconstruction is done using Legendre polynomials which are orthogonal
- over the interval 
+ Reconstruction is done using Legendre polynomials 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula \begin{eqnarray}
+P_{1}(x) & = & x,\label{eq:legendre-P1}\\
+P_{2}(x) & = & x^{2}-1/12,\label{eq:P2-legendre}\end{eqnarray}
+
+\end_inset
+
+which are orthogonal over the interval 
 \begin_inset Formula $\left[-1/2,+1/2\right]$
 \end_inset
 
@@ -305,7 +380,7 @@ Higher-order reconstruction formulas are given in Balsara (2009).
 \end_inset
 
  in the interior of the cell can be expressed using the derivatives along
- the faces.
+ the cell faces.
  For example, the reconstruction coefficients for 
 \begin_inset Formula $B_{x}$
 \end_inset
@@ -345,9 +420,8 @@ reference "eq:axx"
 \begin_inset Formula $\nabla\cdot\mathbf{B}=0$
 \end_inset
 
- requirement for the reconstruction, the rest of equations are obtained
- by requiring that the reconstruction at the cell interior agrees with the
- derivatives of face-averaged 
+ requirement, the rest of equations are obtained by requiring that the interior
+ reconstruction agrees with the derivatives of face-averaged 
 \begin_inset Formula $\mathbf{B}$
 \end_inset
 
@@ -355,8 +429,8 @@ reference "eq:axx"
 \end_layout
 
 \begin_layout Standard
-In calculation of maximum characteristic speed, which in case of ideal MHD
- is the fast magnetosonic speed, reconstructed values of 
+In calculation of maximum characteristic speed, which in ideal MHD is the
+ fast magnetosonic speed, reconstructed values of 
 \begin_inset Formula $B^{2}$
 \end_inset
 
@@ -390,15 +464,32 @@ reference "eq:B2-zedge"
 \end_inset
 
 ) 
-\begin_inset Formula $B_{x},\, B_{y}$
+\begin_inset Formula $\langle B_{x}^{2}\rangle,\,\langle B_{y}^{2}\rangle$
 \end_inset
 
- are reconstructed along cell faces, while 
-\begin_inset Formula $B_{z}$
-\end_inset
-
- is reconstructed inside the cell (see Balsara, 2009 for equations).
+ were computed using the (simpler) reconstructions along cell faces, while
  
+\begin_inset Formula $\langle B_{z}^{2}\rangle$
+\end_inset
+
+ was calculated using cell interior reconstruction (see Balsara, 2009 for
+ equations).
+ Equation (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:B2-zedge"
+
+\end_inset
+
+) gives the second-order accurate value of 
+\begin_inset Formula $B^{2}$
+\end_inset
+
+ averaged over the cell edge aligned with 
+\begin_inset Formula $z$
+\end_inset
+
+-coordinate.
 \end_layout
 
 \begin_layout Section
