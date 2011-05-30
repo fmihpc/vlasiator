@@ -122,4 +122,10 @@ cuint SIZE_BFLUX       = WID2;
 cuint SIZE_DERIV       = WID3;
 cuint SIZE_FLUXS       = WID3;
 
+// Natural constants
+namespace physicalconstants {
+   //creal MU_0 = 1.25663706e-6;
+   creal MU_0 = 1.0;
+}
+
 #endif
