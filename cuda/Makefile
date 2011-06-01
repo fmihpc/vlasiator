@@ -3,10 +3,10 @@ NVCMP = nvcc
 NVFLAGS = -O2 --ptxas-options=-v -DPARGRID -arch sm_13 -DNDEBUGCUDA
 
 INC_CUDA = 
-INC_MPI =-I/usr/lib64/openmpi/include
+#INC_MPI =-I/usr/lib64/openmpi/1.4-gcc/include
 
 LIB_CUDA =
-LIB_MPI =-L/usr/lib64/openmpi/lib -lmpi_cxx
+#LIB_MPI =-L/usr/lib64/openmpi/1.4-gcc/lib -lmpi_cxx
 
 DEPS_DEVICEGRID  = devicegrid.h devicegrid.cpp
 DEPS_EVENTCONTAINER = eventcontainer.h eventcontainer.cpp
@@ -20,7 +20,7 @@ clean:
 devicegrid.o: ${DEPS_DEVICEGRID}
 	${NVCMP} ${NVFLAGS} ${CXXFLAGS} -c devicegrid.cpp ${INC_CUDA} ${INC_MPI}
 
-eventcontainer.o: ${DEPS_EVENTCONTAINER} 
+eventcontainer.o: ${DEPS_EVENTCONTAINER}
 	${NVCMP} ${NVFLAGS} ${CXXFLAGS} -c eventcontainer.cpp ${INC_CUDA} ${INC_MPI}
 
 memalloc.o: ${DEPS_MEMALLOC}
@@ -30,7 +30,7 @@ streampool.o: ${DEPS_STREAMPOOL}
 	${NVCMP} ${NVFLAGS} ${CXXFLAGS} -c streampool.cpp ${INC_CUDA}
 
 vlasovmover.o: ${DEPS_VLASOVMOVER}
-	${NVCMP} ${NVFLAGS} ${CXXFLAGS} -c vlasovmover.cu ${INC_CUDA} ${INC_MPI}
+	${NVCMP} ${NVFLAGS} ${CXXFLAGS} -c vlasovmover.cu ${INC_CUDA} ${INC_MPI} ${INC_ZOLTAN}
 
 libvlasovmover.a: devicegrid.o eventcontainer.o memalloc.o streampool.o vlasovmover.o
 	ar r libvlasovmover.a devicegrid.o

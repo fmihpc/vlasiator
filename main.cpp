@@ -146,9 +146,11 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const 
       for (uint64_t cell=0; cell<cells.size(); ++cell) {
 	 if (dataReducer.reduceData(mpiGrid[cells[cell]],i,varBuffer + cell*vectorSize*dataSize) == false) success = false;
       }
+      if (success == false) mpilogger << "(MAIN) writeGrid: ERROR datareductionoperator '" << dataReducer.getName(i) << "' returned false!" << endl << write;
       
       // Write reduced data to file:
-      if (vlsvWriter.writeArray("VARIABLE",variableName,attribs,cells.size(),vectorSize,dataType,dataSize,varBuffer) == false) success = false;      
+      if (vlsvWriter.writeArray("VARIABLE",variableName,attribs,cells.size(),vectorSize,dataType,dataSize,varBuffer) == false) success = false;
+      if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to write datareductionoperator data to file!" << endl << write;
       delete varBuffer;
       varBuffer = NULL;
    }
@@ -166,6 +168,7 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const 
    
    // First write global IDs of those cells which write velocity blocks (here: all cells):
    if (vlsvWriter.writeArray("CELLSWITHBLOCKS","SpatialGrid",attribs,cells.size(),1,&(cells[0])) == false) success = false;
+   if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to write CELLSWITHBLOCKS to file!" << endl << write;
    
    // Write the number of velocity blocks in each spatial cell. Again a temporary buffer is used:
    uint* N_blocks = new uint[cells.size()];
@@ -175,6 +178,7 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const 
       totalBlocks += mpiGrid[cells[cell]]->N_blocks;
    }
    if (vlsvWriter.writeArray("NBLOCKS","SpatialGrid",attribs,cells.size(),1,N_blocks) == false) success = false;
+   if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to write NBLOCKS to file!" << endl << write;
 
    double start = MPI_Wtime();
    
@@ -182,6 +186,7 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const 
    // so a "multi-write" mode is used - coordinates are written one velocity grid at a time. Besides, 
    // the velocity block coordinates are already stored in a suitable format for writing in SpatialCells:
    if (vlsvWriter.startMultiwrite("float",totalBlocks,6,sizeof(Real)) == false) success = false;
+   if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to start BLOCKCOORDINATES multiwrite!" << endl << write;
    if (success == true) {
       uint64_t counter = 0;
       SpatialCell* SC;
@@ -190,10 +195,14 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const 
 	 if (vlsvWriter.multiwriteArray(N_blocks[cell],SC->cpu_blockParams) == false) success = false;
       }
    }
-   if (success == true) if (vlsvWriter.endMultiwrite("BLOCKCOORDINATES","SpatialGrid",attribs) == false) success = false;
+   if (success == true) {
+      if (vlsvWriter.endMultiwrite("BLOCKCOORDINATES","SpatialGrid",attribs) == false) success = false;
+      if (success == false) mpilogger << "(MAIN) writeGrid: ERROR occurred when ending BLOCKCOORDINATES multiwrite!" << endl << write;
+   }
    
    // Write values of distribution function:
    if (vlsvWriter.startMultiwrite("float",totalBlocks,64,sizeof(Real)) == false) success = false;
+   if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to start BLOCKVARIABLE avgs multiwrite!" << endl << write;
    if (success == true) {
       uint64_t counter = 0;
       SpatialCell* SC;
@@ -205,8 +214,10 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const 
       }
    }
    attribs["mesh"] = "SpatialGrid";
-   if (success == true) if (vlsvWriter.endMultiwrite("BLOCKVARIABLE","avgs",attribs) == false) success = false;
-   
+   if (success == true) {
+      if (vlsvWriter.endMultiwrite("BLOCKVARIABLE","avgs",attribs) == false) success = false;
+      if (success == false) mpilogger << "(MAIN) writeGrid: ERROR occurred when ending BLOCKVARIABLE avgs multiwrite!" << endl << write;
+   }
    double end = MPI_Wtime();
     
    delete N_blocks;

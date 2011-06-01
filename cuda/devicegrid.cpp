@@ -5,10 +5,10 @@
 
 #include <cuda_runtime.h>
 
-#include <mpilogger.h>
+//#include <mpilogger.h>
 #include "devicegrid.h"
 
-extern MPILogger mpilogger;
+//extern MPILogger mpilogger;
 
 using namespace std;
 
@@ -64,14 +64,14 @@ bool DeviceGrid::allocateDeviceArray(cuint& byteSize) {
 
    cudaError_t result;
    if (cudaMalloc(&array,byteSize) != cudaSuccess) {
-      mpilogger << "DeviceGrid: An error '" << cudaGetErrorString(cudaGetLastError()) << "' during GPU memory allocation!" << endl;
+      //mpilogger << "DeviceGrid: An error '" << cudaGetErrorString(cudaGetLastError()) << "' during GPU memory allocation!" << endl;
       int deviceID;
       cudaGetDevice(&deviceID);
-      mpilogger << "\t Device #" << deviceID << " is being used by this process" << endl << write;
+      //mpilogger << "\t Device #" << deviceID << " is being used by this process" << endl << write;
       cerr << "CRITICAL ERROR: Failed to allocate requested " << byteSize << " B of device memory!" << endl;
       success = false;
    } else {
-      mpilogger << "DeviceGrid: Allocated " << byteSize << " B GPU array to address " << array << endl << write;
+      //mpilogger << "DeviceGrid: Allocated " << byteSize << " B GPU array to address " << array << endl << write;
    }
    return success;
 }

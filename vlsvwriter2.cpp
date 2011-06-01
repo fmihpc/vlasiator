@@ -161,8 +161,9 @@ bool VLSVWriter::endMultiwrite(const std::string& tagName,const std::string& arr
        }
        MPI_Datatype outputType;
        MPI_Type_create_struct(multiWriteUnits.size(),blockLengths,displacements,types,&outputType);
-       //write out actual data with one collective call
+       MPI_Type_commit(&outputType);
        
+       //write out actual data with one collective call       
        if(MPI_File_write_at_all(fileptr,offset,multiWriteUnits[0].array,
 				1,outputType,MPI_STATUS_IGNORE) != MPI_SUCCESS)
 	 success = false;

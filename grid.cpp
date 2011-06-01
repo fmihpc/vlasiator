@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <iostream>
 #include <exception>
 #include <limits>
 #include <list>
@@ -6,12 +7,10 @@
 #include <utility>
 
 #include "common.h"
-#include "grid.h"
-
-#include "mpilogger.h"
-#include <iostream>
-
 #include "parameters.h"
+#include "grid.h"
+#include "mpilogger.h"
+#include "memalloc.h"
 
 using namespace std;
 
@@ -55,6 +54,7 @@ Grid::Grid() {
         + MAX_VEL_BLOCKS*SIZE_DERIV
         + MAX_VEL_BLOCKS*SIZE_DERIV;
    #endif
+   /*
    try {
       avgs = new Real[SIZE];
       for (unsigned long long int i=0; i<SIZE; ++i) avgs[i] = 0.0;
@@ -63,6 +63,8 @@ Grid::Grid() {
       cerr << "\tERROR Couldn't allocate memory for avgs: " << e.what() << endl;
       exit(EXIT_FAILURE);
    }
+   */
+   allocateArray(&avgs,SIZE);
 
    #ifndef CUDA
       fx = avgs + MAX_VEL_BLOCKS*SIZE_VELBLOCK;
@@ -80,8 +82,9 @@ Grid::Grid() {
 Grid::~Grid() {
    delete nbrsVel;
    delete blockParams;
-   delete avgs;
-
+   //delete avgs;
+   freeArray(avgs);
+   
    // Check that SpatialCells have no remaining references to the memory:
    map<uint,int>::iterator it = referenceCount.begin();
    while (it != referenceCount.end()) {

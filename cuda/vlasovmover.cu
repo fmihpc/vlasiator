@@ -6,17 +6,17 @@
 #include <list>
 #include <set>
 
-#include "vlasovmover.h"
+#include "../vlasovmover.h"
+#include "../parameters.h"
+#include "../memalloc.h"
+#include "../mpilogger.h"
+
 #include "devicegrid.h"
 #include "cuda_acc_leveque.cu"
 #include "cuda_trans_leveque.cu"
 #include "streampool.h"
 #include "eventcontainer.h"
 #include "priorityqueue.h"
-#include <blockarray.h>
-#include <parameters.h>
-#include <memalloc.h>
-#include <mpilogger.h>
 
 extern MPILogger mpilogger;
 
@@ -202,7 +202,7 @@ bool bindTexture2D(texture<Real,2,cudaReadModeElementType>& texRef,Real* arrptr,
    }
    return success;
 }
-
+/*
 void appendExistingBlocks(cuint& N_blocks,Real* blockParams,cuint& offset,map<uint,uint>& searchTree) {
    cerr << "Appending existing blocks, offset = " << offset << endl;
    // Go through all velocity blocks on this spatial cell, calculate their index and 
@@ -213,7 +213,7 @@ void appendExistingBlocks(cuint& N_blocks,Real* blockParams,cuint& offset,map<ui
       BlockArray::appendToSearchTree(blockIndex,offset + block,searchTree);
    }
 }
-
+*/
 // Create a spatial neighbour list entry for each velocity block in the given spatial cell.
 // The last entry in the neighbour list of each block is a status word, in which each existing 
 // neighbouring block has its bit flipped to unit value. Function spatialFluxes needs this information 

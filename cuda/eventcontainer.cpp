@@ -2,7 +2,7 @@
 #include <iostream>
 #include <limits>
 
-#include <mpilogger.h>
+#include "../mpilogger.h"
 
 #include "eventcontainer.h"
 

@@ -1,13 +1,13 @@
 #include <cstdlib>
+#include <iostream>
 #include <cmath>
 #include <limits>
 
 #include "mpilogger.h"
-#include <iostream>
-
 #include "common.h"
 #include "cell_spatial.h"
 #include "parameters.h"
+#include "memalloc.h"
 
 using namespace std;
 
@@ -18,7 +18,8 @@ SpatialCell::SpatialCell() {
 
    //cout << "Spatial cell default constructor called" << endl;
 
-   cpu_cellParams = new Real[SIZE_CELLPARAMS];
+   //cpu_cellParams = new Real[SIZE_CELLPARAMS];
+   allocateArray(&cpu_cellParams,SIZE_CELLPARAMS);
    cpu_nbrsSpa    = new uint[SIZE_NBRS_SPA];
 
    N_blocks = Parameters::vxblocks_ini * Parameters::vyblocks_ini * Parameters::vzblocks_ini;
@@ -50,7 +51,8 @@ SpatialCell::SpatialCell(const SpatialCell& s) {
 
    // Copy variables related to the spatial cell:
    N_blocks       = s.N_blocks;
-   cpu_cellParams = new Real[SIZE_CELLPARAMS];
+   //cpu_cellParams = new Real[SIZE_CELLPARAMS];
+   allocateArray(&cpu_cellParams,SIZE_CELLPARAMS);
    cpu_nbrsSpa    = new uint[SIZE_NBRS_SPA];
    for (uint i=0; i<SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
    for (uint i=0; i<SIZE_NBRS_SPA; ++i  ) cpu_nbrsSpa[i]    = s.cpu_nbrsSpa[i];
@@ -177,7 +179,8 @@ bool SpatialCell::finalize() {
       }
       cpuIndex = numeric_limits<uint>::max();
    }
-   delete cpu_cellParams;
+   //delete cpu_cellParams;
+   freeArray(cpu_cellParams);
    delete cpu_nbrsSpa;
    return true;
 }

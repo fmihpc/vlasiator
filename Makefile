@@ -1,4 +1,4 @@
-include Makefile.arto
+include Makefile.pupu
 
 default: main vlsv2silo
 
@@ -6,8 +6,8 @@ default: main vlsv2silo
 INSTALL=${HOME}/codes/cuda/cudafvm
 
 # Which project is compiled:
-PROJ=test_fp
-#PROJ=harm1D
+#PROJ=test_fp
+PROJ=msphere
 #PROJ=velrot2+3
 #PROJ=velocity_rotation_1+3d
 #PROJ=solar_wind_test
@@ -16,8 +16,8 @@ PROJ=test_fp
 #PROJ=Bz_const
 
 # Which grid builder is used:
-BUILDER=mpibuilder.o rect_cuboid_builder.o
-MOVER=cpu
+BUILDER=mpibuilder.o asciibuilder.o
+MOVER=cuda
 
 # Collect libraries into single variable:
 LIBS = ${LIB_BOOST}
@@ -108,7 +108,7 @@ clean:
 	make clean -C cpu
 	make clean -C cuda
 	make clean -C fieldsolver
-	rm -rf libvlasovmover.a
+	rm -rf libvlasovmover.a libfieldsolver.a
 	rm -rf *.o *.ptx *.tar* *.txt *.silo *.vtk *.vlsv project.h project.cu project.cpp main *~ visitlog.py vls2vtk
 
 # Rules for making each object file needed by the executable
@@ -142,7 +142,7 @@ main.o: $(DEPS_MAIN) ${BUILDER}
 	$(CMP) $(CXXFLAGS) $(FLAGS) ${FLAG_OPENMP} -c main.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
 
 moverinstall:
-	make libvlasovmover.a -C ${MOVER} "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS} ${INC_ZOLTAN} ${INC_MPI}" "FLAG_OPENMP=${FLAG_OPENMP}"
+	make libvlasovmover.a -C ${MOVER} "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS}" "INC_ZOLTAN=${INC_ZOLTAN}" "INC_MPI=${INC_MPI}" "FLAG_OPENMP=${FLAG_OPENMP}"
 	ln -s -f ${MOVER}/libvlasovmover.a .
 
 mpifile.o: ${DEPS_MPIFILE}
