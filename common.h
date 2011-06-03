@@ -9,12 +9,12 @@
  */
 namespace NbrsSpa {
    cuint INNER = 0;      /**< The cell is an inner cell, i.e. all its neighbours are located on the same computation node.*/
-   cuint X_NEG_BND = 1;  /**< The cell is a boundary cell in -x direction.*/
-   cuint X_POS_BND = 2;  /**< The cell is a boundary cell in +x direction.*/
-   cuint Y_NEG_BND = 4;  /**< The cell is a boundary cell in -y direction.*/
-   cuint Y_POS_BND = 8;  /**< The cell is a boundary cell in +y direction.*/
-   cuint Z_NEG_BND = 16; /**< The cell is a boundary cell in -z direction.*/
-   cuint Z_POS_BND = 32; /**< The cell is a boundary cell in +z direction.*/
+   cuint X_NEG_BND = (1 << 0);  /**< The cell is a boundary cell in -x direction.*/
+   cuint X_POS_BND = (1 << 1);  /**< The cell is a boundary cell in +x direction.*/
+   cuint Y_NEG_BND = (1 << 2);  /**< The cell is a boundary cell in -y direction.*/
+   cuint Y_POS_BND = (1 << 3);  /**< The cell is a boundary cell in +y direction.*/
+   cuint Z_NEG_BND = (1 << 4); /**< The cell is a boundary cell in -z direction.*/
+   cuint Z_POS_BND = (1 << 5); /**< The cell is a boundary cell in +z direction.*/
    
    enum {
       STATE, /**< Contains the neighbour information of this cell, i.e. whether it is an inner cell or a boundary cell in one or more coordinate directions.*/
@@ -39,18 +39,18 @@ namespace NbrsSpa {
  */
 namespace NbrsVel {
    cuint INNER = 0;         /**< The block is an inner block, i.e. all its neighbours are stored on the same computation node.*/
-   cuint X_NEG_BND = 1;     /**< The block is a boundary block in -x direction.*/
-   cuint X_POS_BND = 2;     /**< The block is a boundary block in +x direction.*/
-   cuint Y_NEG_BND = 4;     /**< The block is a boundary block in -y direction.*/
-   cuint Y_POS_BND = 8;     /**< The block is a boundary block in +y direction.*/
-   cuint Z_NEG_BND = 16;    /**< The block is a boundary block in -z direction.*/
-   cuint Z_POS_BND = 32;    /**< The block is a boundary block in +z direction.*/
-   cuint VX_NEG_BND = 64;   /**< The block is a boundary block in -vx direction.*/
-   cuint VX_POS_BND = 128;  /**< The block is a boundary block in +vx direction.*/
-   cuint VY_NEG_BND = 256;  /**< The block is a boundary block in -vy direction.*/
-   cuint VY_POS_BND = 512;  /**< The block is a boundary block in +vy direction.*/
-   cuint VZ_NEG_BND = 1024; /**< The block is a boundary block in -vz direction.*/
-   cuint VZ_POS_BND = 2048; /**< The block is a boundary block in +vz direction.*/
+   cuint X_NEG_BND = (1 << 0);     /**< The block is a boundary block in -x direction.*/
+   cuint X_POS_BND = (1 << 1);     /**< The block is a boundary block in +x direction.*/
+   cuint Y_NEG_BND = (1 << 2);     /**< The block is a boundary block in -y direction.*/
+   cuint Y_POS_BND = (1 << 3);     /**< The block is a boundary block in +y direction.*/
+   cuint Z_NEG_BND = (1 << 4);    /**< The block is a boundary block in -z direction.*/
+   cuint Z_POS_BND = (1 << 5);    /**< The block is a boundary block in +z direction.*/
+   cuint VX_NEG_BND = (1 << 6);   /**< The block is a boundary block in -vx direction.*/
+   cuint VX_POS_BND = (1 << 7);  /**< The block is a boundary block in +vx direction.*/
+   cuint VY_NEG_BND = (1 << 8);  /**< The block is a boundary block in -vy direction.*/
+   cuint VY_POS_BND = (1 << 9);  /**< The block is a boundary block in +vy direction.*/
+   cuint VZ_NEG_BND = (1 << 10); /**< The block is a boundary block in -vz direction.*/
+   cuint VZ_POS_BND = (1 << 11); /**< The block is a boundary block in +vz direction.*/
    enum {
       STATE, /**< Contains the neighbour information bits of a velocity block.*/
       MYIND, /**< The index of the block.*/   
