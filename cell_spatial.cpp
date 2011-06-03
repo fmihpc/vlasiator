@@ -317,6 +317,10 @@ void SpatialCell::getMPIdatatype(cuint identifier,MPI_Datatype& dataType) {
 	 #endif
       }
       break;
+    case 3: // transfer everything
+      cerr << "getMPIdatatype for identifier 3 not implemented yet" << endl;
+      abort();
+      break;
    }
 }
 
