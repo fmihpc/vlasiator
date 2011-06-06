@@ -37,36 +37,80 @@ bool AsciiBuilder::getTotalNumberOfCells(VirtualCell::ID& N_cells) {
 bool AsciiBuilder::initialize(MPI_Comm comm,const int& MASTER_RANK) {
    initialized = MPIBuilder::initialize(comm,MASTER_RANK);
    typedef Parameters P;
+   typedef Readparameters RP;
    if (mpiRank == mpiMasterRank) {
       //vx_blocks = 10;
       //vy_blocks = 10;
       //vz_blocks = 10;
+      /*
+      RP::add("gridbuilder.x_min","Minimum value of the x-coordinate.",xmin,0.0);
+      RP::add("gridbuilder.x_max","Minimum value of the x-coordinate.",xmax,1.0);
+      RP::add("gridbuilder.y_min","Minimum value of the y-coordinate.",ymin,0.0);
+      RP::add("gridbuilder.y_max","Minimum value of the y-coordinate.",ymax,1.0);
+      RP::add("gridbuilder.z_min","Minimum value of the z-coordinate.",zmin,0.0);
+      RP::add("gridbuilder.z_max","Minimum value of the z-coordinate.",zmax,1.0);
+      RP::add("gridbuilder.x_length","Number of cells in x-direction in initial grid.",xsize,1);
+      RP::add("gridbuilder.y_length","Number of cells in y-direction in initial grid.",ysize,1);
+      RP::add("gridbuilder.z_length","Number of cells in z-direction in initial grid.",zsize,1);
+      RP::add("gridbuilder.vx_min","Minimum value for velocity block vx-coordinates.",vx_min,-numeric_limits<Real>::max());
+      RP::add("gridbuilder.vx_max","Maximum value for velocity block vx-coordinates.",vx_max,+numeric_limits<Real>::max());
+      RP::add("gridbuilder.vy_min","Minimum value for velocity block vy-coordinates.",vy_min,-numeric_limits<Real>::max());
+      RP::add("gridbuilder.vy_max","Maximum value for velocity block vy-coordinates.",vy_max,+numeric_limits<Real>::max());
+      RP::add("gridbuilder.vz_min","Minimum value for velocity block vz-coordinates.",vz_min,-numeric_limits<Real>::max());
+      RP::add("gridbuilder.vz_max","Maximum value for velocity block vz-coordinates.",vz_max,+numeric_limits<Real>::max());
+      RP::add("gridbuilder.vx_length","Number of cells in vx-direction in initial grid.",vx_blocks,1);
+      RP::add("gridbuilder.vy_length","Number of cells in vy-direction in initial grid.",vy_blocks,1);
+      RP::add("gridbuilder.vz_length","Number of cells in vz-direction in initial grid.",vz_blocks,1);
+      */
+      RP::add("gridbuilder.x_min","Minimum value of the x-coordinate.",0.0);
+      RP::add("gridbuilder.x_max","Minimum value of the x-coordinate.",1.0);
+      RP::add("gridbuilder.y_min","Minimum value of the y-coordinate.",0.0);
+      RP::add("gridbuilder.y_max","Minimum value of the y-coordinate.",1.0);
+      RP::add("gridbuilder.z_min","Minimum value of the z-coordinate.",0.0);
+      RP::add("gridbuilder.z_max","Minimum value of the z-coordinate.",1.0);
+      RP::add("gridbuilder.x_length","Number of cells in x-direction in initial grid.",1);
+      RP::add("gridbuilder.y_length","Number of cells in y-direction in initial grid.",1);
+      RP::add("gridbuilder.z_length","Number of cells in z-direction in initial grid.",1);
+      RP::add("gridbuilder.vx_min","Minimum value for velocity block vx-coordinates.",-numeric_limits<Real>::max());
+      RP::add("gridbuilder.vx_max","Maximum value for velocity block vx-coordinates.",+numeric_limits<Real>::max());
+      RP::add("gridbuilder.vy_min","Minimum value for velocity block vy-coordinates.",-numeric_limits<Real>::max());
+      RP::add("gridbuilder.vy_max","Maximum value for velocity block vy-coordinates.",+numeric_limits<Real>::max());
+      RP::add("gridbuilder.vz_min","Minimum value for velocity block vz-coordinates.",-numeric_limits<Real>::max());
+      RP::add("gridbuilder.vz_max","Maximum value for velocity block vz-coordinates.",+numeric_limits<Real>::max());
+      RP::add("gridbuilder.vx_length","Number of cells in vx-direction in initial grid.",1);
+      RP::add("gridbuilder.vy_length","Number of cells in vy-direction in initial grid.",1);
+      RP::add("gridbuilder.vz_length","Number of cells in vz-direction in initial grid.",1);
+      RP::parse();
 
-      P::add("gridbuilder.x_min","Minimum value of the x-coordinate.",xmin,0.0);
-      P::add("gridbuilder.x_max","Minimum value of the x-coordinate.",xmax,1.0);
-      P::add("gridbuilder.y_min","Minimum value of the y-coordinate.",ymin,0.0);
-      P::add("gridbuilder.y_max","Minimum value of the y-coordinate.",ymax,1.0);
-      P::add("gridbuilder.z_min","Minimum value of the z-coordinate.",zmin,0.0);
-      P::add("gridbuilder.z_max","Minimum value of the z-coordinate.",zmax,1.0);
-      P::add("gridbuilder.x_length","Number of cells in x-direction in initial grid.",xsize,1);
-      P::add("gridbuilder.y_length","Number of cells in y-direction in initial grid.",ysize,1);
-      P::add("gridbuilder.z_length","Number of cells in z-direction in initial grid.",zsize,1);
-      P::add("gridbuilder.vx_min","Minimum value for velocity block vx-coordinates.",vx_min,-numeric_limits<Real>::max());
-      P::add("gridbuilder.vx_max","Maximum value for velocity block vx-coordinates.",vx_max,+numeric_limits<Real>::max());
-      P::add("gridbuilder.vy_min","Minimum value for velocity block vy-coordinates.",vy_min,-numeric_limits<Real>::max());
-      P::add("gridbuilder.vy_max","Maximum value for velocity block vy-coordinates.",vy_max,+numeric_limits<Real>::max());
-      P::add("gridbuilder.vz_min","Minimum value for velocity block vz-coordinates.",vz_min,-numeric_limits<Real>::max());
-      P::add("gridbuilder.vz_max","Maximum value for velocity block vz-coordinates.",vz_max,+numeric_limits<Real>::max());
-      P::add("gridbuilder.vx_length","Number of cells in vx-direction in initial grid.",vx_blocks,1);
-      P::add("gridbuilder.vy_length","Number of cells in vy-direction in initial grid.",vy_blocks,1);
-      P::add("gridbuilder.vz_length","Number of cells in vz-direction in initial grid.",vz_blocks,1);
-      P::parse();
+      RP::get("gridbuilder.x_min",xmin);
+      RP::get("gridbuilder.x_max",xmax);
+      RP::get("gridbuilder.y_min",ymin);
+      RP::get("gridbuilder.y_max",ymax);
+      RP::get("gridbuilder.z_min",zmin);
+      RP::get("gridbuilder.z_max",zmax);
+      RP::get("gridbuilder.x_length",xsize);
+      RP::get("gridbuilder.y_length",ysize);
+      RP::get("gridbuilder.z_length",zsize);
+      RP::get("gridbuilder.vx_min",vx_min);
+      RP::get("gridbuilder.vx_max",vx_max);
+      RP::get("gridbuilder.vy_min",vy_min);
+      RP::get("gridbuilder.vy_max",vy_max);
+      RP::get("gridbuilder.vz_min",vz_min);
+      RP::get("gridbuilder.vz_max",vz_max);
+      RP::get("gridbuilder.vx_length",vx_blocks);
+      RP::get("gridbuilder.vy_length",vy_blocks);
+      RP::get("gridbuilder.vz_length",vz_blocks);
+      /*
+      cerr << xmin << ' ' << xmax << ' ' << ymin << ' ' << ymax << ' ' << zmin << ' ' << zmax << endl;
+      cerr << xsize << ' ' << ysize << ' ' << zsize << endl;
+      cerr << vx_min << ' ' << vx_max << ' ' << vy_min << ' ' << vy_max << ' ' << vz_min << ' ' << vz_max << endl;
+      cerr << vx_blocks << ' ' << vy_blocks << ' ' << vz_blocks << endl;
+      */
       dx = (xmax-xmin)/xsize;
       dy = (ymax-ymin)/ysize;
       dz = (zmax-zmin)/zsize;
       
       // Open input file. Get the filename from somewhere.
-      //filein.open("vlasov.grid");
       filein.open(inputFile.c_str());
       if (filein.good() == false) return false;
       initialized = true;
@@ -92,18 +136,39 @@ bool AsciiBuilder::initialize(MPI_Comm comm,const int& MASTER_RANK) {
    if (MPI_Bcast(&vx_blocks,1,MPI_Type<uint>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
    if (MPI_Bcast(&vy_blocks,1,MPI_Type<uint>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
    if (MPI_Bcast(&vz_blocks,1,MPI_Type<uint>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
+   if (MPI_Bcast(&xsize,1,MPI_Type<uint>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
+   if (MPI_Bcast(&ysize,1,MPI_Type<uint>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
+   if (MPI_Bcast(&zsize,1,MPI_Type<uint>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
+   if (MPI_Bcast(&xmin,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
+   if (MPI_Bcast(&ymin,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
+   if (MPI_Bcast(&zmin,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
+   if (MPI_Bcast(&xmax,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
+   if (MPI_Bcast(&ymax,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
+   if (MPI_Bcast(&zmax,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
+   if (MPI_Bcast(&vx_min,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
+   if (MPI_Bcast(&vy_min,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
+   if (MPI_Bcast(&vz_min,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
+   if (MPI_Bcast(&vx_max,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
+   if (MPI_Bcast(&vy_max,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
+   if (MPI_Bcast(&vz_max,1,MPI_Type<Real>(),MASTER_RANK,comm) != MPI_SUCCESS) initialized = false;
    
    // Set some parameter values (temp solution):
    Parameters::vxblocks_ini = vx_blocks;
    Parameters::vyblocks_ini = vy_blocks;
    Parameters::vzblocks_ini = vz_blocks;
+   Parameters::xcells_ini = xsize;
+   Parameters::ycells_ini = ysize;
+   Parameters::zcells_ini = zsize;
+   Parameters::xmin = xmin;
+   Parameters::ymin = ymin;
+   Parameters::zmin = zmin;
    
    return initialized;
 }
 
 bool AsciiBuilder::getCellBlockData(const VirtualCell::ID& cellID,cuint& N_blocks,Real* blocks,Real* blockParams,uint* nbrsVel) {
    bool success = true;
-   return true;
+   //return true;
    /*
    for (uint b=0; b<N_blocks; ++b) {
       for (uint j=0; j<SIZE_VELBLOCK; ++j)    blocks[b*SIZE_VELBLOCK+j]         = 0.0;
@@ -114,6 +179,8 @@ bool AsciiBuilder::getCellBlockData(const VirtualCell::ID& cellID,cuint& N_block
    const VC::ID K = cellID / (ysize*xsize);
    const VC::ID J = (cellID - K*ysize*xsize)/xsize;
    const VC::ID I = cellID - K*ysize*xsize - J*xsize;
+
+   //cerr << xmin << ' ' << dx << ' ' << xsize << ' ' << ysize << endl;
    
    creal dvx_block = (vx_max-vx_min)/vx_blocks; // Size of velocity block in  vx
    creal dvy_block = (vy_max-vy_min)/vy_blocks; //                            vy
@@ -206,7 +273,6 @@ bool AsciiBuilder::getCellNumberOfBlocks(const VirtualCell::ID& N_cells,const Vi
 }
 
 bool AsciiBuilder::getCellNbrData(const VirtualCell::ID& N_cells,VirtualCell::ID* cellIDs,Real* coords,VirtualCell::ID* spatNbrIDs,uchar* nbrTypes) {
-   cerr << "getCellNbrData starting" << endl;
    if (initialized == false) return false;
    if (mpiRank != mpiMasterRank) return false;
    bool success = true;
@@ -297,7 +363,6 @@ bool AsciiBuilder::getCellNbrData(const VirtualCell::ID& N_cells,VirtualCell::ID
 }
 
 bool AsciiBuilder::getCellParams(const VirtualCell::ID& N_cells,const VirtualCell::ID* const cellIDs,Real* cellParams) {
-   cerr << "getCellParams starting" << endl;
    bool success = true;
    if (initialized == false) return false;
    if (mpiRank != mpiMasterRank) return false;
@@ -340,7 +405,6 @@ bool AsciiBuilder::getCellParams(const VirtualCell::ID& N_cells,const VirtualCel
       cellParams[i*SIZE_CELLPARAMS+CellParams::RHOVY] = 0.0;
       cellParams[i*SIZE_CELLPARAMS+CellParams::RHOVZ] = 0.0;
    }
-   cerr << "\t Finished" << endl;
    return success;
    /*
    for (VirtualCell::ID i=0; i<N_cells; ++i) {
