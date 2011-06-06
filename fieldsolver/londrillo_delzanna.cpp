@@ -33,6 +33,8 @@
 #include "priorityqueue.h"
 #include "limiters.h"
 
+#include "../transferstencil.h"
+
 using namespace std;
 
 #ifdef PARGRID
@@ -45,32 +47,6 @@ using namespace std;
 #endif
 
 static creal EPS = 1.0e-30;
-
-/** Definition of a general MPI transfer stencil. 
- * This can be used to send and receive data with 
- * arbitrary asymmetric stencils, i.e. send and 
- * receive stencils do not have to be equal.
- */
-struct TransferStencil {
-   set<CellID> innerCells;                   /**< List of local cells that do not have any remote neighbours on the stencil.*/
-   map<CellID,pair<uint,uint> > neighbours;  /**< For each local cell the number of required neighbour data (pair.first), and the 
-					      * number of remote data received so far (pair.second).*/
-   multimap<CellID,CellID> remoteToLocalMap; /**< List of (remote ID,local ID) pairs giving for each remote cell the local cells
-					      * that need the remote cell data for computations.*/
-   multimap<CellID,pair<int,int> > sends;    /**< List of (local ID,(host,tag)) pairs giving for each local cell the remote
-					      * (host,tag) pair for sending data over MPI.*/
-   map<pair<int,int>,CellID> recvs;          /**< List of ((host,tag),remote ID) pairs giving remote host number, tag, 
-					      * and remote cell ID to receive.*/
-
-   /** Clear the contents of TransferStencil.*/
-   void clear() {
-      innerCells.clear();
-      neighbours.clear();
-      remoteToLocalMap.clear();
-      sends.clear();
-      recvs.clear();
-   }
-};
 
 static ArrayAllocator derivatives;            // Memory for auxiliary cell variables used by field propagator (derivatives etc.)
 static set<CellID> ghostCells;
@@ -97,8 +73,8 @@ static map<CellID,uint> boundaryFlags;        // Boundary status flags for all c
 					      // should only change for a cell if some of its neighbours are deleted or 
 					      // created during the simulation.
 
-static TransferStencil stencil1;     // MPI-stencil used to receive data for derivatives & edge-E calculation
-static TransferStencil stencil2;     // MPI-stencil used to receive data for propagation of B
+static TransferStencil<CellID> stencil1(INVALID_CELLID);     // MPI-stencil used to receive data for derivatives & edge-E calculation
+static TransferStencil<CellID> stencil2(INVALID_CELLID);     // MPI-stencil used to receive data for propagation of B
 
 static uint CALCULATE_DX; /**< Bit mask determining if x-derivatives can be calculated on a cell.*/
 static uint CALCULATE_DY; /**< Bit mask determining if y-derivatives can be calculated on a cell.*/
@@ -878,32 +854,14 @@ static void calculateEdgeElectricFieldZ(const CellID& cellID,ParGrid<SpatialCell
 }
 
 static void calculateTransferStencil1(ParGrid<SpatialCell>& mpiGrid,const vector<CellID>& localCells,
-				      TransferStencil& stencil) {
-   stencil.clear();
-   ghostCells.clear();
-   
-   int host;
+				      TransferStencil<CellID>& stencil) {
    CellID cellID;
-   CellID nbrID;
-   set<pair<int,CellID> > tmpReceiveList; // (rem. host,global ID) for all remote neighbours to receive.
-   set<pair<int,CellID> > tmpSendList;    // (rem. host,global ID) for all local cells sent to neighbouring processes.
-   
-   // Go through all local cells and push the pair (global ID,host) into map 
-   // tmpReceiveList for all remote neighbours. Set is used here to sort the 
-   // receives and to remove duplicate receives.
-   // 
-   // Send lists can be calculated simultaneously as the send/receive stencils
-   // are symmetric. 
+
+   // Flag neighbour bits for each existing neighbour
+   // this cell has within stencil size 1 (i-1,j-1,k-1 neighbour is
+   // within the stencil, but i-2,j-2,k-2 is not).
    for (size_t cell=0; cell<localCells.size(); ++cell) {
-      // Push the global IDs of the remote neighbours into map tmpReceiveList. 
-      // Note that we go over all face neighbours below, but if the face neigbour 
-      // is on this process it is not inserted into transfer lists.
       cellID = localCells[cell];
-      uint N_remoteNbrs = 0;
-      
-      // Flag neighbour bits for each existing neighbour 
-      // this cell has within stencil size 1 (i-1,j-1,k-1 neighbour is 
-      // within the stencil, but i-2,j-2,k-2 is not).
       uint boundaryFlag = (1 << calcNbrNumber(1,1,1)); // The cell itself exists (bit 13 set to 1)
       for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
 	 if (i == 0 && (j == 0 && k == 0)) continue;
@@ -911,212 +869,66 @@ static void calculateTransferStencil1(ParGrid<SpatialCell>& mpiGrid,const vector
 	 boundaryFlag = boundaryFlag | (1 << calcNbrNumber(1+i,1+j,1+k));
       }
       boundaryFlags[cellID] = boundaryFlag;
-
-      // Calculate receive list (18/26 = 69% of neighbours). It is actually 
-      // easier to check if a neighbour should not be stored to the 
-      // transfer list (continue statements below):
-      for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
-	 if (i ==  0 && (j ==  0 && k ==  0)) continue;
-	 if (i ==  0 && (j ==  1 && k ==  1)) continue;
-	 if (i == -1 && (j ==  1 && k ==  1)) continue;
-	 if (i == -1 && (j == -1 && k == -1)) continue;
-	 if (i ==  1 && (j ==  0 && k ==  1)) continue;
-	 if (i ==  1 && (j ==  1 && k ==  0)) continue;
-	 if (i ==  1 && (j ==  1 && k ==  1)) continue;
-	 if (i ==  1 && (j == -1 && k ==  1)) continue;
-	 if (i ==  1 && (j ==  1 && k == -1)) continue;
-	 nbrID = mpiGrid.getRemoteNeighbour(cellID,calcNbrTypeID(2+i,2+j,2+k));
-	 if (nbrID == INVALID_CELLID) continue;
-	 
-	 mpiGrid.getHost(nbrID,host);
-	 stencil.remoteToLocalMap.insert(make_pair(nbrID,cellID));
-	 tmpReceiveList.insert(make_pair(host,nbrID));
-	 ++N_remoteNbrs;
-      }
+   }
       
-      // Calculate send list (18/26 = 69% of neighbours). It is actually easier 
-      // here to check if a neighbour should not be stored to the 
-      // transfer list (continue statements below):
-      for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
-	 if (i ==  0 && (j ==  0 && k ==  0)) continue;
-	 if (i ==  0 && (j == -1 && k == -1)) continue;
-	 if (i == +1 && (j == -1 && k == -1)) continue;
-	 if (i == +1 && (j == +1 && k == +1)) continue;
-	 if (i == -1 && (j ==  0 && k == -1)) continue;
-	 if (i == -1 && (j == -1 && k ==  0)) continue;
-	 if (i == -1 && (j == -1 && k == -1)) continue;
-	 if (i == -1 && (j == +1 && k == -1)) continue;
-	 if (i == -1 && (j == -1 && k == +1)) continue;
-	 nbrID = mpiGrid.getRemoteNeighbour(cellID,calcNbrTypeID(2+i,2+j,2+k));
-	 if (nbrID == INVALID_CELLID) continue;
-	 
-	 mpiGrid.getHost(nbrID,host);
-	 tmpSendList.insert(make_pair(host,cellID));
-      }
-
-      // Store the number of required remote neighbour data. If this cell does not 
-      // require any remote data it is an inner cell and can be calculated immediately. 
-      // Also do ghost cell classification here - if all neighbours of this cell do not 
-      // exist, it is a ghost cell, i.e. is situated at the boundary of the simulation
-      // volume.
-      //if (N_remoteNbrs == 0) stencil.innerCells.push_back(cellID);
-      if (N_remoteNbrs == 0) stencil.innerCells.insert(cellID);
-      stencil.neighbours[cellID].first = N_remoteNbrs;
-      if (mpiGrid.getNumberOfNeighbours(cellID) < 26) ghostCells.insert(cellID);
+   // Calculate receive list (18/26 = 69% of neighbours). It is actually 
+   // easier to check if a neighbour should not be stored to the 
+   // transfer list (continue statements below):
+   vector<uchar> nbrIDs;
+   for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
+      if (i ==  0 && (j ==  0 && k ==  0)) continue;
+      if (i ==  0 && (j ==  1 && k ==  1)) continue;
+      if (i == -1 && (j ==  1 && k ==  1)) continue;
+      if (i == -1 && (j == -1 && k == -1)) continue;
+      if (i ==  1 && (j ==  0 && k ==  1)) continue;
+      if (i ==  1 && (j ==  1 && k ==  0)) continue;
+      if (i ==  1 && (j ==  1 && k ==  1)) continue;
+      if (i ==  1 && (j == -1 && k ==  1)) continue;
+      if (i ==  1 && (j ==  1 && k == -1)) continue;
+      nbrIDs.push_back(calcNbrTypeID(2+i,2+j,2+k));
    }
-
-   // Assign an MPI tag value for each receive with the following convention: tag value zero is 
-   // assigned for the cell with the smallest global ID per neighbouring process, and then 
-   // increases with increasing global ID. For example, if we are to receive cells with global IDs 
-   // (42,55,69) from process #1, then cell #42 is given tag #0, cell #55 tag #1, and cell #69 tag #2.
-   // This allows one to transfer cells with global IDs exceeding the maximum MPI tag values 
-   // (defined by MPI_TAG_UB).
-   int tagValue = 0;
-   int hostID = 0;
-   if (tmpReceiveList.size() > 0) hostID = tmpReceiveList.begin()->first;
-   for (set<pair<int,CellID> >::const_iterator it=tmpReceiveList.begin(); it!=tmpReceiveList.end(); ++it) {
-      if (it->first != hostID) {
-	 tagValue = 0;
-	 hostID = it->first;
-      }
-      stencil.recvs[make_pair(hostID,tagValue)] = it->second;
-      ++tagValue;
+   stencil.addReceives(mpiGrid,nbrIDs);
+   
+   // Calculate send list (18/26 = 69% of neighbours). It is actually easier 
+   // here to check if a neighbour should not be stored to the 
+   // transfer list (continue statements below):
+   nbrIDs.clear();
+   for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
+      if (i ==  0 && (j ==  0 && k ==  0)) continue;
+      if (i ==  0 && (j == -1 && k == -1)) continue;
+      if (i == +1 && (j == -1 && k == -1)) continue;
+      if (i == +1 && (j == +1 && k == +1)) continue;
+      if (i == -1 && (j ==  0 && k == -1)) continue;
+      if (i == -1 && (j == -1 && k ==  0)) continue;
+      if (i == -1 && (j == -1 && k == -1)) continue;
+      if (i == -1 && (j == +1 && k == -1)) continue;
+      if (i == -1 && (j == -1 && k == +1)) continue;
+      nbrIDs.push_back(calcNbrTypeID(2+i,2+j,2+k));
    }
-   // Assign a unique tag value for each send, corresponding to the tag values in receive lists:
-   tagValue = 0;
-   hostID = 0;
-   if (tmpSendList.size() > 0) hostID = tmpSendList.begin()->first;
-   for (set<pair<int,CellID> >::const_iterator it=tmpSendList.begin(); it!=tmpSendList.end(); ++it) {
-      if (it->first != hostID) {
-	 tagValue = 0;
-	 hostID = it->first;
-      }
-      stencil.sends.insert(make_pair(it->second,make_pair(hostID,tagValue)));
-      ++tagValue;
-   }
+   stencil.addSends(mpiGrid,nbrIDs);
 }
 
 static void calculateTransferStencil2(ParGrid<SpatialCell>& mpiGrid,const vector<CellID>& localCells,
-				      TransferStencil& stencil) {
-   stencil.clear();
+				      TransferStencil<CellID>& stencil) {
+   // ***** RECV STENCIL *****
+   vector<uchar> nbrTypeIDs;
+   nbrTypeIDs.push_back(calcNbrTypeID(2+1,2  ,2  ));
+   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2+1,2  ));
+   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2  ,2+1));
+   nbrTypeIDs.push_back(calcNbrTypeID(2+1,2+1,2  ));
+   nbrTypeIDs.push_back(calcNbrTypeID(2+1,2  ,2+1));
+   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2+1,2+1));
+   stencil.addReceives(mpiGrid,nbrTypeIDs);
 
-   CellID cellID;
-   int host;
-   CellID nbrID;
-   set<pair<int,CellID> > tmpReceiveList;
-   set<pair<int,CellID> > tmpSendList;
-   
-   // Go through all local cells and calculate the sends and receives. 
-   // The sends and receives are stored into tmpReceiveList and tmpSendList 
-   // first, because we cannot calculate tag values until all sends and 
-   // recvs are known:
-   for (size_t cell=0; cell<localCells.size(); ++cell) {
-      cellID = localCells[cell];
-      // ***** SEND STENCIL FOR DERIVATIVES *****
-      nbrID = mpiGrid.getRemoteNeighbour(cellID,calcNbrTypeID(2-1,2  ,2  ));
-      if (nbrID != INVALID_CELLID) {
-	 mpiGrid.getHost(nbrID,host);
-	 tmpSendList.insert(make_pair(host,cellID));
-      }
-      nbrID = mpiGrid.getRemoteNeighbour(cellID,calcNbrTypeID(2  ,2-1,2  ));
-      if (nbrID != INVALID_CELLID) {
-	 mpiGrid.getHost(nbrID,host);
-	 tmpSendList.insert(make_pair(host,cellID));
-      }
-      nbrID = mpiGrid.getRemoteNeighbour(cellID,calcNbrTypeID(2  ,2  ,2-1));
-      if (nbrID != INVALID_CELLID) {
-	 mpiGrid.getHost(nbrID,host);
-	 tmpSendList.insert(make_pair(host,cellID));
-      }
-      nbrID = mpiGrid.getRemoteNeighbour(cellID,calcNbrTypeID(2-1,2-1,2  ));
-      if (nbrID != INVALID_CELLID) {
-	 mpiGrid.getHost(nbrID,host);
-	 tmpSendList.insert(make_pair(host,cellID));
-      }
-      nbrID = mpiGrid.getRemoteNeighbour(cellID,calcNbrTypeID(2-1,2  ,2-1));
-      if (nbrID != INVALID_CELLID) {
-	 mpiGrid.getHost(nbrID,host);
-	 tmpSendList.insert(make_pair(host,cellID));
-      }
-      nbrID = mpiGrid.getRemoteNeighbour(cellID,calcNbrTypeID(2  ,2-1,2-1));
-      if (nbrID != INVALID_CELLID) {
-	 mpiGrid.getHost(nbrID,host);
-	 tmpSendList.insert(make_pair(host,cellID));
-      }
-      
-      // ***** RECEIVE STENCIL FOR DERIVATIVES *****
-      uint N_remoteNbrs = 0;
-      nbrID = mpiGrid.getRemoteNeighbour(cellID,calcNbrTypeID(2+1,2  ,2  ));
-      if (nbrID != INVALID_CELLID) {
-	 mpiGrid.getHost(nbrID,host);
-	 stencil.remoteToLocalMap.insert(make_pair(nbrID,cellID));
-	 tmpReceiveList.insert(make_pair(host,nbrID));
-	 ++N_remoteNbrs;
-      }
-      nbrID = mpiGrid.getRemoteNeighbour(cellID,calcNbrTypeID(2  ,2+1,2  ));
-      if (nbrID != INVALID_CELLID) {
-	 mpiGrid.getHost(nbrID,host);
-	 stencil.remoteToLocalMap.insert(make_pair(nbrID,cellID));
-	 tmpReceiveList.insert(make_pair(host,nbrID));
-	 ++N_remoteNbrs;
-      }
-      nbrID = mpiGrid.getRemoteNeighbour(cellID,calcNbrTypeID(2  ,2  ,2+1));
-      if (nbrID != INVALID_CELLID) {
-	 mpiGrid.getHost(nbrID,host);
-	 stencil.remoteToLocalMap.insert(make_pair(nbrID,cellID));
-	 tmpReceiveList.insert(make_pair(host,nbrID));
-	 ++N_remoteNbrs;
-      }
-      nbrID = mpiGrid.getRemoteNeighbour(cellID,calcNbrTypeID(2+1,2+1,2  ));
-      if (nbrID != INVALID_CELLID) {
-	 mpiGrid.getHost(nbrID,host);
-	 stencil.remoteToLocalMap.insert(make_pair(nbrID,cellID));
-	 tmpReceiveList.insert(make_pair(host,nbrID));
-	 ++N_remoteNbrs;
-      }
-      nbrID = mpiGrid.getRemoteNeighbour(cellID,calcNbrTypeID(2+1,2  ,2+1));
-      if (nbrID != INVALID_CELLID) {
-	 mpiGrid.getHost(nbrID,host);
-	 stencil.remoteToLocalMap.insert(make_pair(nbrID,cellID));
-	 tmpReceiveList.insert(make_pair(host,nbrID));
-	 ++N_remoteNbrs;
-      }
-      nbrID = mpiGrid.getRemoteNeighbour(cellID,calcNbrTypeID(2  ,2+1,2+1));
-      if (nbrID != INVALID_CELLID) {
-	 mpiGrid.getHost(nbrID,host);
-	 stencil.remoteToLocalMap.insert(make_pair(nbrID,cellID));
-	 tmpReceiveList.insert(make_pair(host,nbrID));
-	 ++N_remoteNbrs;
-      }
-      
-      // Store the number of required remote neighbour data:
-      stencil.neighbours[cellID].first = N_remoteNbrs;
-      if (N_remoteNbrs == 0) stencil.innerCells.insert(cellID);
-   }
-
-   // Calculate MPI tag values:
-   int tagValue = 0;
-   int hostID = 0;
-   if (tmpReceiveList.size() > 0) hostID = tmpReceiveList.begin()->first;
-   for (set<pair<int,CellID> >::const_iterator it=tmpReceiveList.begin(); it!=tmpReceiveList.end(); ++it) {
-      if (it->first != hostID) {
-	 hostID = it->first;
-	 tagValue = 0;
-      }
-      stencil.recvs[make_pair(hostID,tagValue)] = it->second;
-      ++tagValue;
-   }
-   tagValue = 0;
-   hostID = 0;
-   if (tmpSendList.size() > 0) hostID = tmpSendList.begin()->first;
-   for (set<pair<int,CellID> >::const_iterator it=tmpSendList.begin(); it!=tmpSendList.end(); ++it) {
-      if (it->first != hostID) {
-	 hostID = it->first;
-	 tagValue = 0;
-      }
-      stencil.sends.insert(make_pair(it->second,make_pair(hostID,tagValue)));
-      ++tagValue;
-   }
+   // ***** SEND STENCIL *****
+   nbrTypeIDs.clear();
+   nbrTypeIDs.push_back(calcNbrTypeID(2-1,2  ,2  ));
+   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2-1,2  ));
+   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2  ,2-1));
+   nbrTypeIDs.push_back(calcNbrTypeID(2-1,2-1,2  ));
+   nbrTypeIDs.push_back(calcNbrTypeID(2-1,2  ,2-1));
+   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2-1,2-1));
+   stencil.addSends(mpiGrid,nbrTypeIDs);
 }
    
 bool initializeFieldPropagator(ParGrid<SpatialCell>& mpiGrid) {
@@ -1530,7 +1342,7 @@ bool propagateFields(ParGrid<SpatialCell>& mpiGrid,creal& dt) {
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       mpiGrid[localCells[cell]]->cpu_cellParams[CellParams::RHO  ] = 1.0;
       mpiGrid[localCells[cell]]->cpu_cellParams[CellParams::RHOVX] = 0.0;
-      mpiGrid[localCells[cell]]->cpu_cellParams[CellParams::RHOVY] = -1.0;
+      mpiGrid[localCells[cell]]->cpu_cellParams[CellParams::RHOVY] = 1.0;
       mpiGrid[localCells[cell]]->cpu_cellParams[CellParams::RHOVZ] = 1.0;
    }
    // END TEST

@@ -6,7 +6,7 @@ DEPS_PPM = ../cell_spatial.h ../project.h cpu_acc_ppm.h cpu_acc_ppm.cpp cpu_tran
 MOVER = kt
 
 clean:
-	rm -f *.a *.o *~ libvlasovmover.a
+	rm -f *.a *.o *~ vlasovmover.cpp libvlasovmover.a
 
 kt: ${DEPS_KT}
 	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -c cpu_acc.cpp ${INC_ZOLTAN}
