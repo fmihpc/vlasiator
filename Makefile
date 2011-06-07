@@ -3,7 +3,7 @@ include Makefile.pupu
 default: main vlsv2silo
 
 # Compile directory:
-INSTALL=${HOME}/codes/cuda/cudafvm
+INSTALL = $(CURDIR)
 
 # Which project is compiled:
 #PROJ=test_fp
