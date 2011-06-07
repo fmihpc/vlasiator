@@ -1,6 +1,7 @@
 #ifndef PARGRID_H
 #define PARGRID_H
 
+#include <mpi.h>
 #include <cstdlib>
 #include <iostream>
 #include <map>

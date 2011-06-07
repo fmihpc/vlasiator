@@ -1,7 +1,7 @@
 #ifndef MPI_CONVERSION_H
 #define MPI_CONVERSION_H
-#include <cstdlib>
 #include <mpi.h>
+#include <cstdlib>
 #include <iostream>
 
 // Overloaded templates which should return the corresponding data type

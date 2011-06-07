@@ -1,10 +1,11 @@
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
 
-#include "definitions.h"
+#include <mpi.h>
 #include <vector>
-#include "mpi.h"
 #include <string>
+
+#include "definitions.h"
 
 cuint MAX_SPAT_CELLS = 300;
 cuint MAX_VEL_BLOCKS = 500000;
