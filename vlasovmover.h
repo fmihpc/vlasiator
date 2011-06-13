@@ -22,7 +22,7 @@ void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid,const bool& secon
 void initialLoadBalance(ParGrid<SpatialCell>& mpiGrid);
 void calculateVelocityMoments(ParGrid<SpatialCell>& mpiGrid);
 
-#else // DCCRG
+#else // ifdef PARGRID
 
 #include <stdint.h>
 #include <dccrg.hpp>
@@ -31,7 +31,7 @@ namespace Main {
    std::vector<uint64_t> cells;
 }
 
-void initializeMover(ParGrid<SpatialCell>& mpiGrid);
+bool initializeMover(dccrg<SpatialCell>& mpiGrid);
 void calculateSimParameters(dccrg<SpatialCell>& mpiGrid,creal& t,Real& dt);
 void calculateCellParameters(dccrg<SpatialCell>& mpiGrid,creal& t,uint64_t& cell);
 void calculateAcceleration(dccrg<SpatialCell>& mpiGrid);
@@ -41,7 +41,7 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
 void initialLoadBalance(dccrg<SpatialCell>& mpiGrid);
 void calculateVelocityMoments(dccrg<SpatialCell>& mpiGrid);
 
-#endif
+#endif	// ifdef PARGRID
 
 #endif
 
