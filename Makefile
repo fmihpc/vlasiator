@@ -21,7 +21,7 @@ default: vlasiator vlsv2silo
 INSTALL = $(CURDIR)
 
 # Which grid builder is used:
-BUILDER=mpibuilder.o asciibuilder.o
+BUILDER=mpibuilder.o rect_cuboid_builder.o
 
 # Collect libraries into single variable:
 LIBS = ${LIB_BOOST}
