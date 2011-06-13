@@ -1,9 +1,13 @@
-include Makefile.meteo
 
+#set default architecture, can be overridden from the compile line
+ARCH = meteo
+include Makefile.${ARCH}
+
+#Add -DPARGRID to use pargrid instead of DCCRG
 FLAGS += -DPARGRID
-MOVER=cpu
 
 # Which project is compiled:
+# Here a default value can be set, can be overridden from the compile line
 PROJ = harm1D
 #PROJ=test_fp
 #PROJ=msphere
@@ -13,6 +17,8 @@ PROJ = harm1D
 #PROJ=Bx_const
 #PROJ=By_const
 #PROJ=Bz_const
+#include gridbuilder parameters for this project
+include projects/Makefile.${PROJ}
 
 # The rest of this file users shouldn't need to change
 default: vlasiator vlsv2silo
@@ -20,8 +26,9 @@ default: vlasiator vlsv2silo
 # Compile directory:
 INSTALL = $(CURDIR)
 
-# Which grid builder is used:
-BUILDER=mpibuilder.o rect_cuboid_builder.o
+# Executable:
+EXE = vlasiator_${ARCH}_${PROJ}
+
 
 # Collect libraries into single variable:
 LIBS = ${LIB_BOOST}
@@ -100,6 +107,15 @@ HDRS +=
 SRC +=
 OBJS +=
 
+help:
+	@echo ''
+	@echo 'make clean               delete all object files'
+	@echo 'make dist                make tar file of the source code'
+	@echo 'make ARCH=arch PROJ=proj Compile vlasiator '
+	@echo '                           ARCH:  Set machine specific Makefile Makefile.arch'
+	@echo '                           PROJ:  Set project'
+
+
 builderinstall:
 	make ${BUILDER} -C gridbuilders "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS} ${INC_ZOLTAN} ${INC_MPI}"
 
@@ -110,7 +126,7 @@ clean:
 	make clean -C cuda
 	make clean -C fieldsolver
 	rm -rf libvlasovmover.a libfieldsolver.a
-	rm -rf .goutputstream* *.o *.ptx *.tar* *.txt *.silo *.vtk *.vlsv project.h project.cu project.cpp vlasiator *~ visitlog.py vls2vtk vlsv2silo
+	rm -rf .goutputstream* *.o *.ptx *.tar* *.txt *.silo *.vtk *.vlsv project.h project.cu project.cpp vlasiator_* *~ visitlog.py vls2vtk vlsv2silo
 
 # Rules for making each object file needed by the executable
 arrayallocator.o: ${DEPS_ARRAYALLOCATOR}
@@ -185,15 +201,15 @@ writevars.o: ${DEPS_WRITEVARS}
 
 # Make a tar file containing the source code
 dist:
-	mkdir cudaFVM
-	cp ${HDRS} ${SRC} INSTALL cudaFVM/
-	cp Doxyfile Makefile Makefile.gnu Makefile.intel Makefile.pgi cudaFVM/
-	cp -R gridbuilders cudaFVM/
-	cp -R projects cudaFVM/
-	tar -cf cudaFVM.tar cudaFVM
-	gzip -9 cudaFVM.tar
-	rm -rf cudaFVM
+	mkdir vlasiator
+	cp ${HDRS} ${SRC} INSTALL vlasiator/
+	cp Doxyfile Makefile Makefile.gnu Makefile.intel Makefile.pgi vlasiator/
+	cp -R gridbuilders vlasiator/
+	cp -R projects vlasiator/
+	tar -cf vlasiator.tar vlasiator
+	gzip -9 vlasiator.tar
+	rm -rf vlasiator
 
 # Make executable
 vlasiator: projinstall fieldsolverinstall builderinstall moverinstall $(OBJS)
-	$(LNK) ${LDFLAGS} -o vlasiator $(OBJS) -L${INSTALL} -L${INSTALL}/cpu -lvlasovmover -lfieldsolver $(LIBS) ${BUILDER}
+	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) -L${INSTALL} -L${INSTALL}/cpu -lvlasovmover -lfieldsolver $(LIBS) ${BUILDER}

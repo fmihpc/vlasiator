@@ -1,3 +1,5 @@
+MOVER=cpu
+
 CMP = CC
 LNK = CC
 
@@ -29,3 +31,4 @@ INC_SILO = -I/stornext/field/users/honkonen/libraries/mpt/$(MPT_VERSION)/$(CC_BR
 LIB_SILO = -L/stornext/field/users/honkonen/libraries/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/lib -lsilo
 
 INC_DCCRG = -I/stornext/field/users/honkonen/libraries/dccrg
+
