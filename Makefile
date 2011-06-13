@@ -21,6 +21,10 @@ PROJ = harm1D
 include projects/Makefile.${PROJ}
 
 # The rest of this file users shouldn't need to change
+
+# set a default mover
+MOVER ?= cpu
+
 default: vlasiator vlsv2silo
 
 # Compile directory:
