@@ -33,11 +33,11 @@ vlasovmover.o: ${DEPS_VLASOVMOVER}
 	${NVCMP} ${NVFLAGS} ${CXXFLAGS} -c vlasovmover.cu ${INC_CUDA} ${INC_MPI} ${INC_ZOLTAN}
 
 libvlasovmover.a: devicegrid.o eventcontainer.o memalloc.o streampool.o vlasovmover.o
-	ar r libvlasovmover.a devicegrid.o
-	ar r libvlasovmover.a eventcontainer.o
-	ar r libvlasovmover.a memalloc.o
-	ar r libvlasovmover.a streampool.o
-	ar r libvlasovmover.a vlasovmover.o
+	${AR} r libvlasovmover.a devicegrid.o
+	${AR} r libvlasovmover.a eventcontainer.o
+	${AR} r libvlasovmover.a memalloc.o
+	${AR} r libvlasovmover.a streampool.o
+	${AR} r libvlasovmover.a vlasovmover.o
 
 
 

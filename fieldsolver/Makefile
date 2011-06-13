@@ -7,7 +7,7 @@ clean:
 
 ldz: ${DEPS_LDZ}
 	${CMP} ${FLAGS} ${CXXFLAGS} -c londrillo_delzanna.cpp
-	ar r libfieldsolver.a londrillo_delzanna.o
+	${AR} r libfieldsolver.a londrillo_delzanna.o
 
 libfieldsolver.a: ${DEPS_LDZ}
 	make ${MOVER}

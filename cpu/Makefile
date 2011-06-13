@@ -11,14 +11,14 @@ clean:
 kt: ${DEPS_KT}
 	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -c cpu_acc.cpp ${INC_ZOLTAN}
 	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -c cpu_trans.cpp ${INC_ZOLTAN}
-	ar r libvlasovmover.a cpu_acc.o
-	ar r libvlasovmover.a cpu_trans.o
+	${AR} r libvlasovmover.a cpu_acc.o
+	${AR} r libvlasovmover.a cpu_trans.o
 
 leveque: ${DEPS_LEVEQUE}
 	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -I${INSTALL} -c cpu_acc_leveque.cpp ${INC_ZOLTAN}
 	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -I${INSTALL} -c cpu_trans.cpp ${INC_ZOLTAN}
-	ar r libvlasovmover.a cpu_acc_leveque.o
-	ar r libvlasovmover.a cpu_trans.o
+	${AR} r libvlasovmover.a cpu_acc_leveque.o
+	${AR} r libvlasovmover.a cpu_trans.o
 
 memalloc.o: ${DEPS_MEMALLOC}
 	${CMP} ${FLAGS} ${CXXFLAGS} -c memalloc.cpp
@@ -26,13 +26,13 @@ memalloc.o: ${DEPS_MEMALLOC}
 ppm: ${DEPS_PPM}
 	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -c cpu_acc_ppm.cpp ${INC_ZOLTAN}
 	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -c cpu_trans.cpp ${INC_ZOLTAN}
-	ar r libvlasovmover.a cpu_acc_ppm.o
-	ar r libvlasovmover.a cpu_trans.o
+	${AR} r libvlasovmover.a cpu_acc_ppm.o
+	${AR} r libvlasovmover.a cpu_trans.o
 
 libvlasovmover.a:
 	make memalloc.o
 	make ${MOVER}
 	ln -s -f pargrid/main_pargrid.cpp ./vlasovmover.cpp
 	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -I${INSTALL} -c vlasovmover.cpp ${INC_ZOLTAN}
-	ar r libvlasovmover.a memalloc.o
-	ar r libvlasovmover.a vlasovmover.o
+	${AR} r libvlasovmover.a memalloc.o
+	${AR} r libvlasovmover.a vlasovmover.o
