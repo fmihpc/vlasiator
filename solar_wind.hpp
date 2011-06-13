@@ -1,7 +1,7 @@
 /*
 Class for loading, storing and interpolating solar wind data.
 
-Copyright 2010, 2011 Ilja Honkonen
+Copyright 2010, 2011 Finnish Meteorological Institute
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 3
@@ -115,7 +115,7 @@ public:
 		boost::posix_time::ptime default_time(from_iso_extended_string("1970-01-01T00:00:00Z"));
 
 		// assume spiral angle at the Earth is 45 degrees
-		solar_wind_t default_data = { 6.5e6, 1e5, -4e5, 29, 0, -6e-9 * M_SQRT1_2, 6e-9 * M_SQRT1_2 };
+		solar_wind_t default_data = { 6.5e6, 1e5, -4e5, 29, 0, 0, -6e-9 * M_SQRT1_2, 6e-9 * M_SQRT1_2 };
 
 		this->solar_wind_data.push_back(std::make_pair(default_time, default_data));
 	}
@@ -140,7 +140,7 @@ public:
 	One solar wind value consists of a date and time in extended format of ISO 8601 and density, temperature, velocity components and magnetic field components in SI units and GSE coordinates.
 	Fractional seconds are ignored at the moment.
 	For example:
-	1970-01-01T00:00:00Z 6.5e6 1e5 -4e5 29 9 -4 4 0
+	1970-01-01T00:00:00Z 6.5e6 1e5 -4e5 29 9 0 -4 4
 	*/
 	void load(const char* filename) {
 		std::ifstream infile(filename, std::ifstream::in);
