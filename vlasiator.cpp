@@ -19,7 +19,9 @@
 #include "datareductionoperator.h"
 
 #include "vlsvwriter2.h" // TEST
+#ifdef PARGRID
 #include "fieldsolver.h"
+#endif
 
 #ifdef CRAYPAT
 //include craypat api headers if compiled with craypat on Cray XT/XE
@@ -523,13 +525,14 @@ int main(int argn,char* args[]) {
       mpilogger << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << write;
       exit(1);
    }
-   
+
+#ifdef PARGRID
    // Initialize field propagator:
    if (initializeFieldPropagator(mpiGrid) == false) {
       mpilogger << "(MAIN): Field propagator did not initialize correctly!" << endl << write;
       exit(1);
    }   
-   
+#endif
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****
    // ***********************************
@@ -631,11 +634,11 @@ int main(int argn,char* args[]) {
          PAT_region_end(4);
       #endif 
       }
-      
+#ifdef PARGRID      
       if (P::propagateField == true) {
 	 propagateFields(mpiGrid,P::dt);
       }
-      
+#endif
       ++P::tstep;
       P::t += P::dt;
       
@@ -663,7 +666,9 @@ int main(int argn,char* args[]) {
    double after = MPI_Wtime();
 
    finalizeMover();
+#ifdef PARGRID
    finalizeFieldPropagator(mpiGrid);
+#endif
    
    if (myrank == MASTER_RANK) {
       mpilogger << "(MAIN): All timesteps calculated." << endl;
