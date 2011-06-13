@@ -61,6 +61,7 @@ template<typename CELLID> TransferStencil<CELLID>::TransferStencil(const CELLID&
  * @param nbrTypeIDs Neighbour type ID numbers that indicate which cells to receive data from.
  * @return If true, the receive stencil was added successfully.
  */
+#ifdef PARGRID
 template<typename CELLID> bool TransferStencil<CELLID>::addReceives(ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs) {
    bool success = true;
    clear();
@@ -166,6 +167,7 @@ template<typename CELLID> bool TransferStencil<CELLID>::addSends(ParGrid<Spatial
    
    return success;
 }
+#endif	// ifdef PARGRID
 
 /** Clear the contents.*/
 template<typename CELLID> void TransferStencil<CELLID>::clear() {
