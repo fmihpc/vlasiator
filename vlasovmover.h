@@ -27,10 +27,6 @@ void calculateVelocityMoments(ParGrid<SpatialCell>& mpiGrid);
 #include <stdint.h>
 #include <dccrg.hpp>
 
-namespace Main {
-   std::vector<uint64_t> cells;
-}
-
 bool initializeMover(dccrg<SpatialCell>& mpiGrid);
 void calculateSimParameters(dccrg<SpatialCell>& mpiGrid,creal& t,Real& dt);
 void calculateCellParameters(dccrg<SpatialCell>& mpiGrid,creal& t,uint64_t& cell);

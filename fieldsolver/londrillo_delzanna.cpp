@@ -127,15 +127,17 @@ inline uchar calcNbrNumber(const uchar& i,const uchar& j,const uchar& k) {return
 
 inline uchar calcNbrTypeID(const uchar& i,const uchar& j,const uchar& k) {return k*25+j*5+i;}
 
-CellID getNeighbourID(ParGrid<SpatialCell>& mpiGrid,const CellID& cellID,const uchar& i,const uchar& j,const uchar& k) {
-   const uchar nbrTypeID = calcNbrTypeID(i,j,k);
-   return mpiGrid.getNeighbour(cellID,nbrTypeID);
-}
-
 Real limiter(creal& left,creal& cent,creal& rght) {
    //return minmod(left,cent,rght);
    return MClimiter(left,cent,rght);
    //return vanLeer(left,cent,rght);
+}
+
+#ifdef PARGRID
+
+CellID getNeighbourID(ParGrid<SpatialCell>& mpiGrid,const CellID& cellID,const uchar& i,const uchar& j,const uchar& k) {
+   const uchar nbrTypeID = calcNbrTypeID(i,j,k);
+   return mpiGrid.getNeighbour(cellID,nbrTypeID);
 }
 
 static void boundaryConditionBx(ParGrid<SpatialCell>& mpiGrid,Real* const cellParams,const CellID& cellID,cuint& boundaryFlag) {
@@ -1709,5 +1711,11 @@ static void propagateMagneticField(const CellID& cellID,ParGrid<SpatialCell>& mp
    }
 }
 
+#else // #ifdef PARGRID
 
+bool finalizeFieldPropagator(dccrg<SpatialCell>& mpiGrid) { }
+bool initializeFieldPropagator(dccrg<SpatialCell>& mpiGrid) { }
+bool propagateFields(dccrg<SpatialCell>& mpiGrid,creal& dt) { }
+
+#endif
 

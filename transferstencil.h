@@ -20,10 +20,12 @@
  * receive stencils do not have to be equal.
  */
 template<typename CELLID> struct TransferStencil {
-   std::set<CELLID> innerCells;                       /**< List of local cells that do not have any remote neighbours on the stencil.
-						       * These cells can be computed immediately.*/
+   std::set<CELLID> innerCells;                       /**< List of local cells that do not have any remote neighbours on the stencil.*/
+   std::set<CELLID> boundaryCells;                    /**< List of local cells that have at least one remote neighbour on the stencil.*/
    std::map<CELLID,std::pair<uint,uint> > neighbours; /**< For each local cell the number of required neighbour data (pair.first), and the
 						       * number of remote data received so far (pair.second).*/
+   std::map<CELLID,std::pair<uint,uint> > updates;    /**< For each remote neighbour the total number of local updates (pair.first), and 
+						       * the number of local updates calculated so far (pair.second).*/
    std::multimap<CELLID,CELLID> remoteToLocalMap;     /**< List of (remote ID,local ID) pairs giving for each remote cell the local cells
 						       * that need the remote cell data for computations.*/
    std::multimap<CELLID,std::pair<int,int> > sends;   /**< List of (local ID,(host,tag)) pairs giving for each local cell the remote
@@ -32,8 +34,10 @@ template<typename CELLID> struct TransferStencil {
 						       * and remote cell ID to receive.*/
 
    #ifdef PARGRID
-      bool addReceives(ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs);
-      bool addSends(ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs);
+      bool addReceives(const ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs);
+      bool addSends(const ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs);
+      bool addRemoteUpdateReceives(const ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs);
+      bool addRemoteUpdateSends(const ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs);
    #endif
    
    TransferStencil(const CELLID& invalidCellID);
@@ -62,7 +66,7 @@ template<typename CELLID> TransferStencil<CELLID>::TransferStencil(const CELLID&
  * @return If true, the receive stencil was added successfully.
  */
 #ifdef PARGRID
-template<typename CELLID> bool TransferStencil<CELLID>::addReceives(ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs) {
+template<typename CELLID> bool TransferStencil<CELLID>::addReceives(const ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs) {
    bool success = true;
    clear();
    
@@ -93,6 +97,7 @@ template<typename CELLID> bool TransferStencil<CELLID>::addReceives(ParGrid<Spat
       }
       
       if (N_remoteNbrs == 0) innerCells.insert(cellID);
+      else boundaryCells.insert(cellID);
       neighbours[cellID].first = N_remoteNbrs;
    }
    
@@ -122,7 +127,7 @@ template<typename CELLID> bool TransferStencil<CELLID>::addReceives(ParGrid<Spat
  * @param nbrTypeIDs Neighbour type ID numbers that indicate which cells to send data.
  * @return If true, the send stencil was added successfully.
  */
-template<typename CELLID> bool TransferStencil<CELLID>::addSends(ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs) {
+template<typename CELLID> bool TransferStencil<CELLID>::addSends(const ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs) {
    bool success = true;
 
    int host;
@@ -167,11 +172,106 @@ template<typename CELLID> bool TransferStencil<CELLID>::addSends(ParGrid<Spatial
    
    return success;
 }
-#endif	// ifdef PARGRID
+
+template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateSends(const ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs) {
+   bool success = true;
+   
+   int host;
+   std::set<std::pair<int,CELLID> > tmpSendList;
+   std::vector<CELLID> cells;
+
+   // Iterate through all local cells:
+   mpiGrid.getCells(cells);
+   for (size_t c=0; c<cells.size(); ++c) {
+      const CELLID cellID = cells[c];
+      // Iterate through all neighbours in the given send stencil:
+      for (size_t n=0; n<nbrTypeIDs.size(); ++n) {
+	 cuchar nbrTypeID = nbrTypeIDs[n];
+	 // Check that the neighbour exists and that it is not local:
+	 const CELLID nbrID = mpiGrid.getRemoteNeighbour(cellID,nbrTypeID);
+	 if (nbrID == INVALID_CELLID) continue;
+
+	 // If an entry for remote neighbour does not exist in updates, 
+	 // add one and initialize it to zero:
+	 typename std::map<CELLID,std::pair<uint,uint> >::iterator it = updates.find(nbrID);
+	 if (it == updates.end()) {
+	    updates[nbrID] = std::make_pair(0,0);
+	 }
+	 
+	 mpiGrid.getHost(nbrID,host);
+	 tmpSendList.insert(std::make_pair(host,nbrID));
+	 ++updates[nbrID].first;
+      }
+   }
+
+   // Calculate unique MPI tag values for sends and add entries to send list:
+   int tagValue = 0;
+   host = 0;
+   if (tmpSendList.size() > 0) host = tmpSendList.begin()->first;
+   for (typename std::set<std::pair<int,CELLID> >::const_iterator it=tmpSendList.begin(); it!=tmpSendList.end(); ++it) {
+      if (it->first != host) {
+	 tagValue = 0;
+	 host = it->first;
+      }
+      sends.insert(std::make_pair(it->second,std::make_pair(host,tagValue)));
+      ++tagValue;
+   }
+   return success;
+}
+
+template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateReceives(const ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs) {
+   bool success = true;
+   
+   int host;
+   std::set<std::pair<int,CELLID> > tmpReceiveList;
+   std::vector<CELLID> cells;
+   
+   // Iterate through all local cells:
+   mpiGrid.getCells(cells);
+   for (size_t c=0; c<cells.size(); ++c) {
+      const CELLID cellID = cells[c];
+      neighbours[cellID] = std::make_pair(0,0);
+      
+      // Iterate through all neighbours in the given receive stencil:
+      for (size_t n=0; n<nbrTypeIDs.size(); ++n) {
+	 cuchar nbrTypeID = nbrTypeIDs[n];
+	 // Check that the neighbour exists and that it is not local:
+	 const CELLID nbrID = mpiGrid.getRemoteNeighbour(cellID,nbrTypeID);
+	 if (nbrID == INVALID_CELLID) continue;
+
+	 // Add receive from remote process:
+	 mpiGrid.getHost(nbrID,host);
+	 tmpReceiveList.insert(std::make_pair(host,cellID));
+	 ++neighbours[cellID].first;
+      }
+      
+      // If a cell does not have any remote neighbours, it is an inner cell:
+      if (neighbours[cellID].first == 0) innerCells.insert(cellID);
+      else boundaryCells.insert(cellID);
+   }
+
+   // Calculate unique MPI tag values for receives and add entries to recv list:
+   int tagValue = 0;
+   host = 0;
+   if (tmpReceiveList.size() > 0) host = tmpReceiveList.begin()->first;
+   for (typename std::set<std::pair<int,CELLID> >::const_iterator it=tmpReceiveList.begin(); it!=tmpReceiveList.end(); ++it) {
+      if (it->first != host) {
+	 tagValue = 0;
+	 host = it->first;
+      }
+      recvs[std::make_pair(host,tagValue)] = it->second;
+      ++tagValue;
+   }
+   
+   return success;
+}
+
+#endif // #ifdef PARGRID
 
 /** Clear the contents.*/
 template<typename CELLID> void TransferStencil<CELLID>::clear() {
    innerCells.clear();
+   boundaryCells.clear();
    neighbours.clear();
    remoteToLocalMap.clear();
    sends.clear();

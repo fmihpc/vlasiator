@@ -59,6 +59,8 @@ bool initializeMover() {
    Main::calcSpatProp      = Timer::create("Computing: spat. propag      (total) : ");
    Main::spatPropMPIRecv   = Timer::create("MPI Recv : spat. propag              : ");
    Main::spatPropMPISend   = Timer::create("MPI Send : spat. propag              : ");
+   
+   #warning Spatial neighbour lists not populated for dccrg!   
    return true;
 }
 
@@ -208,7 +210,7 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    Timer::stop(Main::calcSpatFluxes);
 }
 
-void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid) {
+void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondStep,const bool& transferAvgs) {
    Timer::start(Main::calcSpatProp);
    
    typedef Parameters P;
