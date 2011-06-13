@@ -1,0 +1,31 @@
+CMP = CC
+LNK = CC
+
+LIB_MPI = -lgomp
+
+FLAGS = -DMPICH_IGNORE_CXX_SEEK
+
+CC_BRAND = gcc
+CC_BRAND_VERSION = 4.5.2
+FLAGS += -O3 -fopenmp -funroll-loops -DNDEBUG -std=c++0x
+
+#CC_BRAND = intel
+#CC_BRAND_VERSION = 11.1.046
+#FLAGS += -O3 -fast -openmp -DNDEBUG
+#LDFLAGS = -static -openmp
+
+BOOST_VERSION = 1.46.1
+MPT_VERSION = 3.4.1
+ZOLTAN_VERSION = 3.5
+SILO_VERSION = 4.8
+
+INC_BOOST = -I/stornext/field/users/honkonen/libraries/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/$(BOOST_VERSION)/include
+LIB_BOOST = -L/stornext/field/users/honkonen/libraries/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/$(BOOST_VERSION)/lib -lboost_mpi -lboost_serialization -lboost_program_options
+
+INC_ZOLTAN = -I/stornext/field/users/honkonen/libraries/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/$(ZOLTAN_VERSION)/include
+LIB_ZOLTAN = -L/stornext/field/users/honkonen/libraries/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/$(ZOLTAN_VERSION)/lib -lzoltan
+
+INC_SILO = -I/stornext/field/users/honkonen/libraries/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/include
+LIB_SILO = -L/stornext/field/users/honkonen/libraries/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/lib -lsilo
+
+INC_DCCRG = -I/stornext/field/users/honkonen/libraries/dccrg

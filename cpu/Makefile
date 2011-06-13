@@ -36,4 +36,3 @@ libvlasovmover.a:
 	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -I${INSTALL} -c vlasovmover.cpp ${INC_ZOLTAN}
 	ar r libvlasovmover.a memalloc.o
 	ar r libvlasovmover.a vlasovmover.o
-

@@ -47,8 +47,9 @@ extern bool cpu_translation3(SpatialCell& cell,const std::vector<const SpatialCe
 extern bool cpu_calcVelocityMoments(SpatialCell& cell);
 
 void initialLoadBalance(dccrg<SpatialCell>& mpiGrid) {
+   /* These seem to lock up the run for some reason
    typedef Parameters P;
-   P::transmit = Transmit::AVGS;
+   P::transmit = Transmit::AVGS;*/
    mpiGrid.balance_load();
 }
 

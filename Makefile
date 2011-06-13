@@ -1,13 +1,12 @@
-include Makefile.pupu
+include Makefile.meteo
 
-default: main vlsv2silo
-
-# Compile directory:
-INSTALL = $(CURDIR)
+FLAGS += -DPARGRID
+MOVER=cpu
 
 # Which project is compiled:
+PROJ = harm1D
 #PROJ=test_fp
-PROJ=msphere
+#PROJ=msphere
 #PROJ=velrot2+3
 #PROJ=velocity_rotation_1+3d
 #PROJ=solar_wind_test
@@ -15,9 +14,14 @@ PROJ=msphere
 #PROJ=By_const
 #PROJ=Bz_const
 
+# The rest of this file users shouldn't need to change
+default: vlasiator vlsv2silo
+
+# Compile directory:
+INSTALL = $(CURDIR)
+
 # Which grid builder is used:
 BUILDER=mpibuilder.o asciibuilder.o
-MOVER=cuda
 
 # Collect libraries into single variable:
 LIBS = ${LIB_BOOST}
@@ -36,13 +40,12 @@ DEPS_DATAREDUCTIONOPERATOR = cell_spatial.h datareductionoperator.h datareductio
 DEPS_GPU_DEVICE_GRID = cell_spatial.h parameters.h devicegrid.h gpudevicegrid.cpp
 DEPS_GRID = grid.h parameters.h grid.cpp
 DEPS_GRIDBUILDER = cell_spatial.h parameters.h pargrid.h project.h gridbuilder.h gridbuilder.cpp
-DEPS_MAIN = gridbuilder.h main_dccrg.h main_pargrid.h parameters.h pargrid.h project.h grid.h silowriter.h cell_spatial.h main.cpp
+DEPS_MAIN = gridbuilder.h main_dccrg.h main_pargrid.h parameters.h pargrid.h project.h grid.h cell_spatial.h vlasiator.cpp
 DEPS_MPIFILE = mpifile.h mpifile.cpp
 DEPS_MPILOGGER = mpifile.h mpilogger.h mpilogger.cpp
 DEPS_MUXML = muxml.h muxml.cpp
 DEPS_PARAMETERS = parameters.h parameters.cpp
 DEPS_PROJECT = project.h project.cpp
-DEPS_SILOWRITER = cell_spatial.h silowriter.h silowriter.cpp
 DEPS_TIMER = timer.h timer.cpp
 DEPS_VLSCOMMON = vlscommon.h vlscommon.cpp
 DEPS_VLSVREADER2 = muxml.h vlscommon.h vlsvreader2.h vlsvreader2.cpp
@@ -61,7 +64,6 @@ DEPS_MAIN += $(DEPS_COMMON)
 DEPS_MPIFILE += ${DEPS_COMMON}
 DEPS_PARAMETERS += $(DEPS_COMMON)
 DEPS_PROJECT += $(DEPS_COMMON)
-DEPS_SILOWRITER += $(DEPS_COMMON)
 DEPS_VLSCOMMON += ${DEPS_COMMON}
 
 HDRS = arrayallocator.h cpu_acc.h cpu_acc_ppm.h cpu_common.h cpu_trans.h cell_spatial.h\
@@ -69,15 +71,15 @@ HDRS = arrayallocator.h cpu_acc.h cpu_acc_ppm.h cpu_common.h cpu_trans.h cell_sp
 	definitions.h grid.h gridbuilder.h\
 	main_dccrg.h main_pargrid.h mpiconversion.h mpifile.h mpilogger.h\
 	parameters.h\
-	pargrid.h silowriter.h timer.h vlscommon.h\
+	pargrid.h timer.h vlscommon.h\
 	vlsvwriter2.h vlsvreader2.h muxml.h
 
 CUDA_HDRS = cudafuncs.h cudalaunch.h devicegrid.h
 
 SRC = 	arrayallocator.cpp datareducer.cpp datareductionoperator.cpp\
 	grid.cpp gridbuilder.cpp\
-	main.cpp mpifile.cpp mpilogger.cpp\
-	parameters.cpp silowriter.cpp timer.cpp\
+	vlasiator.cpp mpifile.cpp mpilogger.cpp\
+	parameters.cpp timer.cpp\
 	vlscommon.cpp vls2vtk.cpp\
 	vlsvreader2.cpp vlsvwriter2.cpp muxml.cpp vlsv2silo.cpp
 
@@ -86,12 +88,11 @@ CUDA_SRC = cellsync.cpp cuda_acc.cu cuda_common.cu cuda_trans.cu\
 
 CUDA_OBJS = cellsync.o cuda_acc.o cuda_trans.o cudafuncs.o gpudevicegrid.o
 
-OBJS = arrayallocator.o cell_spatial.o datareducer.o\
-	datareductionoperator.o grid.o\
-	gridbuilder.o main.o mpifile.o mpilogger.o muxml.o\
-	parameters.o project.o\
-	silowriter.o timer.o vlscommon.o\
-	vlsvwriter2.o
+OBJS = arrayallocator.o cell_spatial.o cpu/memalloc.o		\
+	datareducer.o datareductionoperator.o grid.o		\
+	gridbuilder.o vlasiator.o mpifile.o mpilogger.o muxml.o	\
+	parameters.o project.o					\
+	timer.o vlscommon.o vlsvwriter2.o
 
 OBJS_VLSV2SILO = muxml.o vlscommon.o vlsvreader2.o
 
@@ -109,7 +110,7 @@ clean:
 	make clean -C cuda
 	make clean -C fieldsolver
 	rm -rf libvlasovmover.a libfieldsolver.a
-	rm -rf *.o *.ptx *.tar* *.txt *.silo *.vtk *.vlsv project.h project.cu project.cpp main *~ visitlog.py vls2vtk
+	rm -rf .goutputstream* *.o *.ptx *.tar* *.txt *.silo *.vtk *.vlsv project.h project.cu project.cpp vlasiator *~ visitlog.py vls2vtk vlsv2silo
 
 # Rules for making each object file needed by the executable
 arrayallocator.o: ${DEPS_ARRAYALLOCATOR}
@@ -125,7 +126,7 @@ datareductionoperator.o: ${DEPS_DATAREDUCTIONOPERATOR}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareductionoperator.cpp ${INC_MPI} ${INC_BOOST}
 
 fieldsolverinstall:
-	make libfieldsolver.a -C fieldsolver "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS} ${INC_ZOLTAN} ${INC_MPI}" "FLAG_OPENMP=${FLAG_OPENMP}"
+	make libfieldsolver.a -C fieldsolver "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_DCCRG}" "FLAG_OPENMP=${FLAG_OPENMP}"
 	ln -s -f fieldsolver/libfieldsolver.a .
 
 gpudevicegrid.o: $(DEPS_GPU_DEVICE_GRID)
@@ -136,10 +137,10 @@ grid.o: $(DEPS_GRID)
 
 # -O1 switch is here to make the code run correctly with intel
 gridbuilder.o: $(DEPS_GRIDBUILDER)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -O1 -c gridbuilder.cpp ${INC} ${INC_BOOST} ${INC_MPI}
+	$(CMP) $(CXXFLAGS) $(FLAGS) -O1 -c gridbuilder.cpp ${INC} ${INC_BOOST} ${INC_ZOLTAN} ${INC_MPI}
 
-main.o: $(DEPS_MAIN) ${BUILDER}
-	$(CMP) $(CXXFLAGS) $(FLAGS) ${FLAG_OPENMP} -c main.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
+vlasiator.o: $(DEPS_MAIN) ${BUILDER}
+	$(CMP) $(CXXFLAGS) $(FLAGS) ${FLAG_OPENMP} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
 
 moverinstall:
 	make libvlasovmover.a -C ${MOVER} "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS}" "INC_ZOLTAN=${INC_ZOLTAN}" "INC_MPI=${INC_MPI}" "FLAG_OPENMP=${FLAG_OPENMP}"
@@ -158,13 +159,10 @@ parameters.o: $(DEPS_PARAMETERS)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c parameters.cpp ${INC_BOOST}
 
 project.o: $(DEPS_PROJECT)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c project.cpp ${INC_BOOST} ${INC_MPI}
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c project.cpp ${INC_BOOST} ${INC_ZOLTAN} ${INC_DCCRG} ${INC_MPI}
 
 projinstall:
 	make project -C projects "INSTALL=${INSTALL}" "PROJ=${PROJ}"
-
-silowriter.o: $(DEPS_SILOWRITER)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c silowriter.cpp ${INC_SILO} ${INC} ${INC_BOOST} ${INC_MPI}
 
 timer.o: ${DEPS_TIMER}
 	${CMP} $(CXXFLAGS) $(FLAGS) -c timer.cpp
@@ -197,5 +195,5 @@ dist:
 	rm -rf cudaFVM
 
 # Make executable
-main: projinstall fieldsolverinstall builderinstall moverinstall $(OBJS)
-	$(LNK) ${LDFLAGS} -o main $(OBJS) -L${INSTALL} -lvlasovmover -lfieldsolver $(LIBS) ${BUILDER}
+vlasiator: projinstall fieldsolverinstall builderinstall moverinstall $(OBJS)
+	$(LNK) ${LDFLAGS} -o vlasiator $(OBJS) -L${INSTALL} -L${INSTALL}/cpu -lvlasovmover -lfieldsolver $(LIBS) ${BUILDER}
