@@ -46,7 +46,7 @@ void initSpatialCells(const ParGrid<SpatialCell>& mpiGrid) {
 
    // This can be replaced by an iterator.
    #ifndef PARGRID
-      vector<ID::type> cells = mpiGrid.get_cells();
+      vector<uint64_t> cells = mpiGrid.get_cells();
    #else
       vector<uint64_t> cells;
       mpiGrid.getCells(cells);
