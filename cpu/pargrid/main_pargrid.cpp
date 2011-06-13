@@ -13,6 +13,8 @@
 #include <vlsreader.h>
 #include "vlasovmover.h"
 
+using namespace std;
+
 // NOTE: If preprocessor flag PROFILE is undefined, the compiler should optimize out Timer:: calls.
 
 extern MPILogger mpilogger;
@@ -22,6 +24,8 @@ extern bool cpu_translation1(SpatialCell& cell,const std::vector<const SpatialCe
 extern bool cpu_translation2(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
 extern bool cpu_translation3(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
 extern bool cpu_calcVelocityMoments(SpatialCell& cell);
+
+inline uchar calcNbrTypeID(cuchar& i,cuchar& j,cuchar& k) {return k*25+j*5+i;}
 
 namespace Main {
    std::vector<ID::type> cells;
@@ -66,17 +70,17 @@ void initialLoadBalance(ParGrid<SpatialCell>& mpiGrid) {
 bool findNeighbours(std::vector<const SpatialCell*>& nbrPtr,const ParGrid<SpatialCell>& mpiGrid,const ID::type& CELLID) {
    ID::type nbrID;
    for (int i=0; i<6; ++i) nbrPtr[i] = NULL;
-   nbrID = mpiGrid.getNeighbour(CELLID, 0);
+   nbrID = mpiGrid.getNeighbour(CELLID,calcNbrTypeID(2-1,2  ,2  ));
    if (nbrID != std::numeric_limits<ID::type>::max()) nbrPtr[0] = mpiGrid[nbrID];
-   nbrID = mpiGrid.getNeighbour(CELLID, 8);
+   nbrID = mpiGrid.getNeighbour(CELLID,calcNbrTypeID(2+1,2  ,2  ));
    if (nbrID != std::numeric_limits<ID::type>::max()) nbrPtr[1] = mpiGrid[nbrID];
-   nbrID = mpiGrid.getNeighbour(CELLID,16);
+   nbrID = mpiGrid.getNeighbour(CELLID,calcNbrTypeID(2  ,2-1,2  ));
    if (nbrID != std::numeric_limits<ID::type>::max()) nbrPtr[2] = mpiGrid[nbrID];
-   nbrID = mpiGrid.getNeighbour(CELLID,24);
+   nbrID = mpiGrid.getNeighbour(CELLID,calcNbrTypeID(2  ,2+1,2  ));
    if (nbrID != std::numeric_limits<ID::type>::max()) nbrPtr[3] = mpiGrid[nbrID];
-   nbrID = mpiGrid.getNeighbour(CELLID,32);
+   nbrID = mpiGrid.getNeighbour(CELLID,calcNbrTypeID(2  ,2  ,2-1));
    if (nbrID != std::numeric_limits<ID::type>::max()) nbrPtr[4] = mpiGrid[nbrID];
-   nbrID = mpiGrid.getNeighbour(CELLID,40);
+   nbrID = mpiGrid.getNeighbour(CELLID,calcNbrTypeID(2  ,2  ,2+1));
    if (nbrID != std::numeric_limits<ID::type>::max()) nbrPtr[5] = mpiGrid[nbrID];
    
    return true;
