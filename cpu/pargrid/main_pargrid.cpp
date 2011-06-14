@@ -60,6 +60,50 @@ bool initializeMover(ParGrid<SpatialCell>& mpiGrid) {
    Main::calcSpatProp      = Timer::create("Computing: spat. propag      (total) : ");
    Main::spatPropMPIRecv   = Timer::create("MPI Recv : spat. propag              : ");
    Main::spatPropMPISend   = Timer::create("MPI Send : spat. propag              : ");
+
+   // Populate spatial neighbour list:
+   mpiGrid.getAllCells(Main::cells);
+   for (size_t cell=0; cell<Main::cells.size(); ++cell) {
+      cuint cellID = Main::cells[cell];
+      uint* const nbrsSpa = mpiGrid[cellID]->cpu_nbrsSpa;
+
+      // Get spatial neighbour IDs and store them into a vector:
+      uint counter = 0;
+      vector<uint> nbrIDs;
+      for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
+	 if (i == 0 & (j == 0 & k == 0)) nbrIDs.push_back(cellID); // in ParGrid cells do not consider themselves as their own neighbours
+	 else nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2+i,2+j,2+k)));
+	 ++counter;
+      }
+      nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(0,2,2))); // i-1,j,k nbr, goes to index 27
+      nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,0,2))); // i,j-2,k nbr, goes to index 28
+      nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,2,0))); // i,j,k-2 nbr, goes to index 29
+
+      // Store neighbour offsets into a vector:
+      vector<uint> cellOffsets(nbrIDs.size());
+      for (size_t i=0; i<nbrIDs.size(); ++i) {
+	 if (nbrIDs[i] == numeric_limits<uint>::max()) cellOffsets[i] = numeric_limits<uint>::max();
+	 else cellOffsets[i] = mpiGrid[nbrIDs[i]]->cpuIndex * SIZE_VELBLOCK;
+      }
+      
+      // Create spatial neighbour list entry for each block:
+      for (uint block=0; block<mpiGrid[cellID]->N_blocks; ++block) {
+	 uint boundaryFlag = 0;
+	 // Store offsets to each spatial neighbour of this block. Note that 
+	 // the offset to this block is stored to index 13:
+	 for (size_t i=0; i<nbrIDs.size(); ++i) {
+	    if (cellOffsets[i] == numeric_limits<uint>::max()) {
+	       nbrsSpa[block*SIZE_NBRS_SPA + i] = numeric_limits<uint>::max();
+	    } else {
+	       boundaryFlag = boundaryFlag | (1 << i);
+	       nbrsSpa[block*SIZE_NBRS_SPA + i] = cellOffsets[i] + block*SIZE_VELBLOCK;
+	    }
+	 }
+	 // Boundary flags are stored to the last position in nbrsSpa array:
+	 nbrsSpa[block*SIZE_NBRS_SPA + 30] = boundaryFlag;
+      }
+   }
+   
    return true;
 }
 

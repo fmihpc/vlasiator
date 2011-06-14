@@ -30,7 +30,7 @@
 #include "../common.h"
 #include "../arrayallocator.h"
 #include "../fieldsolver.h"
-#include "priorityqueue.h"
+#include "../priorityqueue.h"
 #include "limiters.h"
 
 #include "../transferstencil.h"

@@ -1,19 +1,27 @@
+#ifndef CPU_COMMON_H
+#define CPU_COMMON_H
+
 #include "../definitions.h"
+#include "../common.h"
 
 // ******************* DECLARATIONS *******************
+
+template<typename UINT> inline UINT cellIndex(const UINT& i,const UINT& j,const UINT& k) {
+   return k*WID2 + j*WID + i;
+}
 
 // ****************************************************
 // ***** SLOPE LIMITERS FOR 2ND ORDER FVM SOLVERS *****
 // ****************************************************
 
-template<typename T> T minmod(const T& a,const T& b);
-template<typename T> T nolimiter(const T& xl1,const T& xcc,const T& xr1);
-template<typename T> T MClimiter(const T& theta);
-template<typename T> T MClimiter(const T& xl1,const T& xcc,const T& xr1);
-template<typename T> T superbee(const T& theta);
-template<typename T> T superbee(const T& xl1,const T& xcc,const T& xr1);
-template<typename T> T vanLeer(const T& theta);
-template<typename T> T vanLeer(const T& xl1,const T& xcc,const T& xr1);
+template<typename T> inline T minmod(const T& a,const T& b);
+template<typename T> inline T nolimiter(const T& xl1,const T& xcc,const T& xr1);
+template<typename T> inline T MClimiter(const T& theta);
+template<typename T> inline T MClimiter(const T& xl1,const T& xcc,const T& xr1);
+template<typename T> inline T superbee(const T& theta);
+template<typename T> inline T superbee(const T& xl1,const T& xcc,const T& xr1);
+template<typename T> inline T vanLeer(const T& theta);
+template<typename T> inline T vanLeer(const T& xl1,const T& xcc,const T& xr1);
 
 // ***************************************************
 // ***** FUNCTIONS WHICH RECONSTRUCT FACE VALUES *****
@@ -21,38 +29,38 @@ template<typename T> T vanLeer(const T& xl1,const T& xcc,const T& xr1);
 // *****         2ND ORDER FVM SOLVERS           *****
 // ***************************************************
 
-template<typename T> T reconstruct_neg(const T& avg,const T& d1,const T& d2);
-template<typename T> T reconstruct_pos(const T& avg,const T& d1,const T& d2);
+template<typename T> inline T reconstruct_neg(const T& avg,const T& d1,const T& d2);
+template<typename T> inline T reconstruct_pos(const T& avg,const T& d1,const T& d2);
 
 // **********************************************
 // ***** LIMITERS AND RECONSTRUCT FUNCTIONS *****
 // *****         SPECIFIC TO PPM            *****
 // **********************************************
 
-template<typename T> T limiter_ppm(const T& xl1,const T& xcc,const T& xr1);
-template<typename T> T reconstruct_neg_ppm(const T& avg,const T& d1,const T& d2);
-template<typename T> T reconstruct_pos_ppm(const T& avg,const T& d1,const T& d2);
+template<typename T> inline T limiter_ppm(const T& xl1,const T& xcc,const T& xr1);
+template<typename T> inline T reconstruct_neg_ppm(const T& avg,const T& d1,const T& d2);
+template<typename T> inline T reconstruct_pos_ppm(const T& avg,const T& d1,const T& d2);
 
 // ******************* DEFINITIONS *******************
 
-template<typename T> T minmod(const T& a,const T& b) {
+template<typename T> inline T minmod(const T& a,const T& b) {
    if (a*b < convert<T>(0.0)) return 0.0;
    if (fabs(a) < fabs(b)) return a;
    else return b;
 }
 
-template<typename T> T nolimiter(const T& xl1,const T& xcc,const T& xr1) {
+template<typename T> inline T nolimiter(const T& xl1,const T& xcc,const T& xr1) {
    return convert<T>(0.5)*(xr1-xl1);
 }
    
-template<typename T> T MClimiter(const T& theta) {
+template<typename T> inline T MClimiter(const T& theta) {
    T val1;
    val1 = std::min(convert<T>(0.5)*(convert<T>(1.0)+theta),convert<T>(2.0));
    val1 = std::min(val1,2*theta);
    return std::max(convert<T>(0.0),val1);
 }
 
-template<typename T> T MClimiter(const T& xl1,const T& xcc,const T& xr1) {
+template<typename T> inline T MClimiter(const T& xl1,const T& xcc,const T& xr1) {
    const T forw = xr1-xcc;
    const T back = xcc-xl1;
    const T cntr = convert<T>(0.5)*(xr1-xl1);
@@ -61,7 +69,7 @@ template<typename T> T MClimiter(const T& xl1,const T& xcc,const T& xr1) {
    return minmod(slope1,slope2);
 }
 
-template<typename T> T modbee(const T& theta) {
+template<typename T> inline T modbee(const T& theta) {
    const T lim = convert<T>(0.5)*(convert<T>(1.0)-std::tanh(convert<T>(0.8)*(theta-convert<T>(6.0))));
    return std::max(convert<T>(0.0),std::max(std::min(convert<T>(2.0)*theta,convert<T>(1.0)),std::min(theta,convert<T>(2.0))*lim));
    //static const T CNST = 0.8;
@@ -71,21 +79,21 @@ template<typename T> T modbee(const T& theta) {
    //return std::max(T0,rvalue);
 }
 
-template<typename T> T modbee2(const T& theta) {
+template<typename T> inline T modbee2(const T& theta) {
    T rvalue = superbee(theta);
    const T theta_pos = std::max(convert<T>(0.0),theta);
    const T CONST = 1000.0;
    return rvalue - (1.0 - std::exp(-theta_pos/CONST));
 }
 
-template<typename T> T superbee(const T& theta) {
+template<typename T> inline T superbee(const T& theta) {
    T value1 = std::min(convert<T>(2.0),theta);
    T value2 = std::min(convert<T>(1.0),convert<T>(2.0)*theta);
    value1 = std::max(convert<T>(0.0),value1);
    return std::max(value1,value2);
 }
 
-template<typename T> T superbee(const T& xl1,const T& xcc,const T& xr1) {
+template<typename T> inline T superbee(const T& xl1,const T& xcc,const T& xr1) {
    const T forw = xr1-xcc;
    const T back = xcc-xl1;
    
@@ -101,16 +109,16 @@ template<typename T> T superbee(const T& xl1,const T& xcc,const T& xr1) {
    return (sgnfwd+sgnbck)*tmp;
 }
 
-template<typename T> T vanLeer(const T& theta) {
+template<typename T> inline T vanLeer(const T& theta) {
    return (theta + fabs(theta))/(convert<T>(1.0)+fabs(theta));
 }
 
-template<typename T> T vanLeer(const T& xl1,const T& xcc,const T& xr1) {
+template<typename T> inline T vanLeer(const T& xl1,const T& xcc,const T& xr1) {
    const T EPS = convert<T>(1.0e-20);
    return std::max((xr1-xcc)*(xcc-xl1),convert<T>(0.0))/(EPS+xr1-xl1);
 }
 
-template<typename T> T limiter_ppm(const T& xl1,const T& xcc,const T& xr1) {
+template<typename T> inline T limiter_ppm(const T& xl1,const T& xcc,const T& xr1) {
    const T forw = xr1 - xcc;
    const T back = xcc - xl1;
    if (forw*back < 0.0) return 0.0;
@@ -121,26 +129,26 @@ template<typename T> T limiter_ppm(const T& xl1,const T& xcc,const T& xr1) {
    return rvalue;
 }
 
-template<typename T> T reconstruct_neg(const T& avg,const T& d1,const T& d2) {
+template<typename T> inline T reconstruct_neg(const T& avg,const T& d1,const T& d2) {
    const T INV08 = 1.0/8.0;
    const T INV24 = 1.0/24.0;
    return avg - d2*INV24 + convert<T>(0.5)*d1 + d2*INV08;
    //return avg - d2/convert<T>(24.0) + convert<T>(0.5)*d1 + d2/convert<T>(8.0);
 }
 
-template<typename T> T reconstruct_pos(const T& avg,const T& d1,const T& d2) {
+template<typename T> inline T reconstruct_pos(const T& avg,const T& d1,const T& d2) {
    const T INV08 = 1.0/8.0;
    const T INV24 = 1.0/24.0;
    return avg - d2*INV24 - convert<T>(0.5)*d1 + d2*INV08;
    //return avg - d2/convert<T>(24.0) - convert<T>(0.5)*d1 + d2/convert<T>(8.0);
 }
 
-template<typename T> T reconstruct_neg_ppm(const T& avg,const T& d1,const T& d2) {
+template<typename T> inline T reconstruct_neg_ppm(const T& avg,const T& d1,const T& d2) {
    return d2;
 }
 
-template<typename T> T reconstruct_pos_ppm(const T& avg,const T& d1,const T& d2) {
+template<typename T> inline T reconstruct_pos_ppm(const T& avg,const T& d1,const T& d2) {
    return d1;
 }
 
-
+#endif

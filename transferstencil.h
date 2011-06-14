@@ -179,6 +179,7 @@ template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateSends(con
    int host;
    std::set<std::pair<int,CELLID> > tmpSendList;
    std::vector<CELLID> cells;
+   remoteToLocalMap.clear();
 
    // Iterate through all local cells:
    mpiGrid.getCells(cells);
@@ -201,6 +202,7 @@ template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateSends(con
 	 mpiGrid.getHost(nbrID,host);
 	 tmpSendList.insert(std::make_pair(host,nbrID));
 	 ++updates[nbrID].first;
+	 remoteToLocalMap.insert(std::make_pair(cellID,nbrID));
       }
    }
 
@@ -221,6 +223,7 @@ template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateSends(con
 
 template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateReceives(const ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs) {
    bool success = true;
+   clear();
    
    int host;
    std::set<std::pair<int,CELLID> > tmpReceiveList;
@@ -233,6 +236,7 @@ template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateReceives(
       neighbours[cellID] = std::make_pair(0,0);
       
       // Iterate through all neighbours in the given receive stencil:
+      std::set<int> nbrHosts;
       for (size_t n=0; n<nbrTypeIDs.size(); ++n) {
 	 cuchar nbrTypeID = nbrTypeIDs[n];
 	 // Check that the neighbour exists and that it is not local:
@@ -242,12 +246,15 @@ template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateReceives(
 	 // Add receive from remote process:
 	 mpiGrid.getHost(nbrID,host);
 	 tmpReceiveList.insert(std::make_pair(host,cellID));
-	 ++neighbours[cellID].first;
+	 nbrHosts.insert(host);
       }
       
       // If a cell does not have any remote neighbours, it is an inner cell:
-      if (neighbours[cellID].first == 0) innerCells.insert(cellID);
+      if (nbrHosts.size() == 0) innerCells.insert(cellID);
       else boundaryCells.insert(cellID);
+      
+      // Count the number of remote updates needed for this cell:
+      neighbours[cellID].first = nbrHosts.size();
    }
 
    // Calculate unique MPI tag values for receives and add entries to recv list:
@@ -272,6 +279,7 @@ template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateReceives(
 template<typename CELLID> void TransferStencil<CELLID>::clear() {
    innerCells.clear();
    boundaryCells.clear();
+   updates.clear();
    neighbours.clear();
    remoteToLocalMap.clear();
    sends.clear();

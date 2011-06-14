@@ -16,6 +16,11 @@ Timer::Timer() { }
 /** Destructor for Timer. The destructor does not do anything.*/
 Timer::~Timer() { }
 
+// If the code is compiled with -DPROFILE option, timer functions 
+// measure time spent and return sensible values. If -DPROFILE is 
+// not used, there are separate (empty) definitions for Timer 
+// member functions which do nothing.
+
 #ifdef PROFILE
 
 /** Create a new timer.

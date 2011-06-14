@@ -1508,7 +1508,7 @@ template<class C> bool ParGrid<C>::singleReceive(const int& host,const int& tag,
 
 template<class C> bool ParGrid<C>::singleReceive2(const int& host,const int& tag,const size_t& byteSize,char* buffer,const ID::type& localID) {
    ++N_receivesRemaining2;
-   localReceiveIDs2.push_back(tag);
+   localReceiveIDs2.push_back(localID);
    MPIrecvRequests2.push_back(MPI_Request());
    if (MPI_Irecv(buffer,byteSize,MPI_BYTE,host,tag,MPI_COMM_WORLD,&(MPIrecvRequests2.back())) != MPI_SUCCESS) return false;
    return true;

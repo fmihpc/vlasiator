@@ -13,6 +13,7 @@ class Grid {
    bool removeReference(cuint& INDEX);
    uint getTotalNumberOfBlocks() const;
 
+   uint* getNbrsSpa() const {return nbrsSpa;}
    uint* getNbrsVel() const {return nbrsVel;}
    Real* getBlockParams() const {return blockParams;}
    Real* getAvgs() const {return avgs;}
@@ -28,7 +29,8 @@ class Grid {
       Real* getD2y() const {return d2y;}
       Real* getD2z() const {return d2z;}
    #endif
-   
+
+   uint* getNbrsSpa(cuint& INDEX) const;
    uint* getNbrsVel(cuint& INDEX) const;
    Real* getBlockParams(cuint& INDEX) const;
    Real* getAvgs(cuint& INDEX) const;
@@ -49,7 +51,8 @@ class Grid {
    
  private:
    Grid(const Grid& g);
-   
+
+   uint* nbrsSpa; /**< Pointer to array which contains spatial neighbour lists.*/
    uint* nbrsVel; /**< Pointer to array which is used to store velocity block neighbour lists in CPU memory.*/
    Real* blockParams; /**< Pointer to array which is used to store velocity block parameters in CPU memory.*/
    Real* avgs; /**< Pointer to array which is used to store velocity blocks in CPU memory.*/

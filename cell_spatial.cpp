@@ -20,7 +20,7 @@ SpatialCell::SpatialCell() {
 
    //cpu_cellParams = new Real[SIZE_CELLPARAMS];
    allocateArray(&cpu_cellParams,SIZE_CELLPARAMS);
-   cpu_nbrsSpa    = new uint[SIZE_NBRS_SPA];
+   //cpu_nbrsSpa    = new uint[SIZE_NBRS_SPA];
 
    N_blocks = Parameters::vxblocks_ini * Parameters::vyblocks_ini * Parameters::vzblocks_ini;
    cpuIndex = grid.getFreeMemory(N_blocks);
@@ -29,6 +29,7 @@ SpatialCell::SpatialCell() {
       exit(1);
    }
 
+   cpu_nbrsSpa     = grid.getNbrsSpa()     + cpuIndex*SIZE_NBRS_SPA;
    cpu_nbrsVel     = grid.getNbrsVel()     + cpuIndex*SIZE_NBRS_VEL;
    cpu_blockParams = grid.getBlockParams() + cpuIndex*SIZE_BLOCKPARAMS;
    cpu_avgs        = grid.getAvgs()        + cpuIndex*SIZE_VELBLOCK;
@@ -53,9 +54,9 @@ SpatialCell::SpatialCell(const SpatialCell& s) {
    N_blocks       = s.N_blocks;
    //cpu_cellParams = new Real[SIZE_CELLPARAMS];
    allocateArray(&cpu_cellParams,SIZE_CELLPARAMS);
-   cpu_nbrsSpa    = new uint[SIZE_NBRS_SPA];
+   //cpu_nbrsSpa    = new uint[SIZE_NBRS_SPA];
    for (uint i=0; i<SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
-   for (uint i=0; i<SIZE_NBRS_SPA; ++i  ) cpu_nbrsSpa[i]    = s.cpu_nbrsSpa[i];
+   //for (uint i=0; i<SIZE_NBRS_SPA; ++i  ) cpu_nbrsSpa[i]    = s.cpu_nbrsSpa[i];
    
    cpuIndex = s.cpuIndex;
    // If the SpatialCell to copy has allocated memory, increase the reference count 
@@ -65,6 +66,7 @@ SpatialCell::SpatialCell(const SpatialCell& s) {
       mpilogger << "SpatialCell: reference increase failed, aborting." << endl << write;
       exit(1);
    }
+   cpu_nbrsSpa     = s.cpu_nbrsSpa;
    cpu_nbrsVel     = s.cpu_nbrsVel;
    cpu_blockParams = s.cpu_blockParams;
    cpu_avgs        = s.cpu_avgs;
@@ -94,7 +96,7 @@ SpatialCell& SpatialCell::operator=(const SpatialCell& s) {
    // Copy variables related to the spatial cell:
    N_blocks = s.N_blocks;
    for (uint i=0; i<SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
-   for (uint i=0; i<SIZE_NBRS_SPA; ++i  ) cpu_nbrsSpa[i]    = s.cpu_nbrsSpa[i];
+   //for (uint i=0; i<SIZE_NBRS_SPA; ++i  ) cpu_nbrsSpa[i]    = s.cpu_nbrsSpa[i];
    
    // Copy variables related to the velocity grid:
    cpuIndex = s.cpuIndex;
@@ -105,6 +107,7 @@ SpatialCell& SpatialCell::operator=(const SpatialCell& s) {
       mpilogger << "\t operator= got cpuIndex " << s.cpuIndex << " from copied SpatialCell." << endl << write;
       exit(1);
    }
+   cpu_nbrsSpa     = s.cpu_nbrsSpa;
    cpu_nbrsVel     = s.cpu_nbrsVel;
    cpu_blockParams = s.cpu_blockParams;
    cpu_avgs        = s.cpu_avgs;
@@ -134,6 +137,7 @@ bool SpatialCell::initialize(cuint& N_blocks) {
    // Deallocate previous memory (if required):
    if (cpuIndex != numeric_limits<uint>::max()) {
       if (grid.removeReference(cpuIndex) == false) success = false;
+      cpu_nbrsSpa     = NULL;
       cpu_nbrsVel     = NULL;
       cpu_blockParams = NULL;
       cpu_avgs        = NULL;
@@ -154,6 +158,7 @@ bool SpatialCell::initialize(cuint& N_blocks) {
    cpuIndex = grid.getFreeMemory(N_blocks);
    if (cpuIndex == numeric_limits<uint>::max()) return false;
    this->N_blocks = N_blocks;
+   cpu_nbrsSpa     = grid.getNbrsSpa()     + cpuIndex*SIZE_NBRS_SPA;
    cpu_nbrsVel     = grid.getNbrsVel()     + cpuIndex*SIZE_NBRS_VEL;
    cpu_blockParams = grid.getBlockParams() + cpuIndex*SIZE_BLOCKPARAMS;
    cpu_avgs        = grid.getAvgs()        + cpuIndex*SIZE_VELBLOCK;
@@ -181,7 +186,7 @@ bool SpatialCell::finalize() {
    }
    //delete cpu_cellParams;
    freeArray(cpu_cellParams);
-   delete cpu_nbrsSpa;
+   //delete cpu_nbrsSpa;
    return true;
 }
 

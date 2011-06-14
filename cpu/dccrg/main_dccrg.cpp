@@ -48,7 +48,7 @@ bool finalizeMover() {
    return true;
 }
 
-bool initializeMover(dccrg<SpatialCell>& /*mpiGrid*/) {
+bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
    Main::calcAcc           = Timer::create("Computing: vel. propagation  (total) : ");
    Main::calcSpatDerivs    = Timer::create("Computing: spat. derivatives (total) : ");
    Main::spatDerivsMPIRecv = Timer::create("MPI Recv : spat. derivs              : ");

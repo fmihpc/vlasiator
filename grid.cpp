@@ -24,6 +24,7 @@ Grid::Grid() {
    typedef Parameters P;
 
    try {
+      nbrsSpa     = new uint[MAX_VEL_BLOCKS*SIZE_NBRS_SPA];
       nbrsVel     = new uint[MAX_VEL_BLOCKS*SIZE_NBRS_VEL];
    }
    catch (exception& e) {
@@ -80,6 +81,7 @@ Grid::Grid() {
 }
 
 Grid::~Grid() {
+   delete nbrsSpa;
    delete nbrsVel;
    delete blockParams;
    //delete avgs;
@@ -108,6 +110,7 @@ bool Grid::addReference(cuint& INDEX) {
    return true;
 }
 
+uint* Grid::getNbrsSpa(cuint& cpuIndex) const {return nbrsSpa + cpuIndex*SIZE_NBRS_SPA;}
 uint* Grid::getNbrsVel(cuint& cpuIndex) const {return nbrsVel + cpuIndex*SIZE_NBRS_VEL;}
 Real* Grid::getBlockParams(cuint& cpuIndex) const {return blockParams + cpuIndex*SIZE_BLOCKPARAMS;}
 Real* Grid::getAvgs(cuint& cpuIndex) const {return avgs + cpuIndex*SIZE_VELBLOCK;}

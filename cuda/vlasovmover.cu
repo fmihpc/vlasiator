@@ -16,7 +16,7 @@
 #include "cuda_trans_leveque.cu"
 #include "streampool.h"
 #include "eventcontainer.h"
-#include "priorityqueue.h"
+#include "../priorityqueue.h"
 
 extern MPILogger mpilogger;
 
@@ -47,29 +47,30 @@ map<uint,CellState> cellStates;
 
 const int MAX_COMPUTE_SUBMITS = 5;
 
-DeviceGrid gpu_avgs;
-DeviceGrid gpu_dfdt;
-DeviceGrid gpu_flux;
-DeviceGrid gpu_nbrsSpa;
-DeviceGrid gpu_nbrsVel;
-DeviceGrid gpu_blockParams;
-DeviceGrid gpu_cellParams;
+DeviceGrid gpu_avgs;         /**< Volume averages.*/
+DeviceGrid gpu_dfdt;         
+DeviceGrid gpu_flux;         
+DeviceGrid gpu_nbrsSpa;      /**< Neighbour lists in spatial space.*/
+DeviceGrid gpu_nbrsVel;      /**< Neighbour lists in velocity space.*/
+DeviceGrid gpu_blockParams;  /**< Velocity block parameters.*/
+DeviceGrid gpu_cellParams;   /**< Spatial cell parameters.*/
 
 // Following are for reducing velocity moments:
-DeviceGrid gpuRhoBuffers;
-DeviceGrid gpuRhovxBuffers;
-DeviceGrid gpuRhovyBuffers;
-DeviceGrid gpuRhovzBuffers;
+DeviceGrid gpuRhoBuffers;    /**< Buffers for reducing rho.*/
+DeviceGrid gpuRhovxBuffers;  /**< Buffers for reducing rhovx.*/
+DeviceGrid gpuRhovyBuffers;  /**< Buffers for reducing rhovy.*/
+DeviceGrid gpuRhovzBuffers;  /**< Buffers for reducing rhovz.*/
 cuint VEL_MOMENT_BUFFERS = 100;
 
 DeviceGrid gpuFluxBuffers; // Buffers for receiving flux updates from remote processes
 
 int* gpu_dfdt_flags;
 
+// Containers for CUDA events, used to track the completion of streams:
+StreamPool streamPool;
 EventContainer computationEvents;
 EventContainer transfersToCpuEvents;
 EventContainer transfersToGpuEvents;
-StreamPool streamPool;
 
 PriorityQueue<uint> readyGpuCells;
 
@@ -345,8 +346,7 @@ bool initCudaDevices(const int& mpirank) {
    cudaGetDevice(&deviceNumber);
    mpilogger << "\t CUDA reports that device #" << deviceNumber << " is now in use." << endl << write;
 
-   cerr << "Proc #" << mpirank << " is using device #" << deviceNumber << endl;
-   
+   //cerr << "Proc #" << mpirank << " is using device #" << deviceNumber << endl;   
    if (deviceNumber != mpirank) success = false;   
    return success;
 }

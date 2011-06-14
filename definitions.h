@@ -2,7 +2,6 @@
 #define DEFINITIONS_H
 
 typedef float Real;
-//typedef float real;
 typedef const float creal;
 typedef const int cint;
 typedef unsigned char uchar;

@@ -8,13 +8,13 @@
 #include "cpu_common.h"
 #include "project.h"
 
-template<typename T> T accIndex(const T& i,const T& j,const T& k) {return k*WID2+j*WID+i;}
-template<typename T> T fullInd(const T& i,const T& j,const T& k) {return k*64+j*8+i;}
-template<typename T> T isBoundary(const T& STATE,const T& BND) {return STATE & BND;}
+template<typename T> inline T accIndex(const T& i,const T& j,const T& k) {return k*WID2+j*WID+i;}
+template<typename T> inline T fullInd(const T& i,const T& j,const T& k) {return k*64+j*8+i;}
+template<typename T> inline T isBoundary(const T& STATE,const T& BND) {return STATE & BND;}
 
-template<typename T> T findex(const T& i,const T& j,const T& k) {return k*36+j*6+i;}
+template<typename T> inline T findex(const T& i,const T& j,const T& k) {return k*36+j*6+i;}
 
-template<typename T> T limiter(const T& THETA) {
+template<typename T> inline T limiter(const T& THETA) {
    //return vanLeer(THETA);
    //return MClimiter(THETA);
    return superbee(THETA);
@@ -561,12 +561,12 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL&
       VX = blockParams[BlockParams::VXCRD];
       VY = blockParams[BlockParams::VYCRD] + (j+0.5)*DVY;
       VZ = blockParams[BlockParams::VZCRD] + (k+0.5)*DVZ;
-      //AX = Parameters::q_per_m * (VY*cellParams[CellParams::BZ] - VZ*cellParams[CellParams::BY]);
-      //AY = Parameters::q_per_m * (VZ*cellParams[CellParams::BX] - VX*cellParams[CellParams::BZ]);
-      //AZ = Parameters::q_per_m * (VX*cellParams[CellParams::BY] - VY*cellParams[CellParams::BX]);
-      AX = accmat[0]*VX + accmat[1]*VY + accmat[2]*VZ;
-      AY = accmat[3]*VX + accmat[4]*VY + accmat[5]*VZ;
-      AZ = accmat[6]*VX + accmat[7]*VY + accmat[8]*VZ;
+      AX = Parameters::q_per_m * (cellParams[CellParams::EX] + VY*cellParams[CellParams::BZ] - VZ*cellParams[CellParams::BY]);
+      AY = Parameters::q_per_m * (cellParams[CellParams::EY] + VZ*cellParams[CellParams::BX] - VX*cellParams[CellParams::BZ]);
+      AZ = Parameters::q_per_m * (cellParams[CellParams::EZ] + VX*cellParams[CellParams::BY] - VY*cellParams[CellParams::BX]);
+      //AX = accmat[0]*VX + accmat[1]*VY + accmat[2]*VZ;
+      //AY = accmat[3]*VX + accmat[4]*VY + accmat[5]*VZ;
+      //AZ = accmat[6]*VX + accmat[7]*VY + accmat[8]*VZ;
       
       //AX = -1.0;
       //AY = -1.0;
@@ -599,6 +599,7 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL&
       INCR_WAVE = -0.5*DT/DVX*dF;
       CORR_WAVE *= DT/DVX;
       //CORR_WAVE = 0.0;
+
       // Transverse propagation, Fy updates:
       dFdt[findex(i+1,j+2,k+1)] += (INCR_WAVE*AX_POS*AY_POS + CORR_WAVE*AY_POS)*DT/DVY; // Fy: i,j+1
       dFdt[findex(i+1,j+1,k+1)] -= (INCR_WAVE*AX_POS*AY_POS + CORR_WAVE*AY_POS)*DT/DVY; 
@@ -683,6 +684,7 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL&
       dFdt[findex(i  ,j+2,k  )] += INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVZ;
       dFdt[findex(i  ,j  ,k+1)] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVZ;
       dFdt[findex(i  ,j  ,k  )] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVZ;
+
       
       /*
       // Double transverse y/z propagations:
@@ -712,12 +714,12 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL&
       VX = blockParams[BlockParams::VXCRD] + (i+0.5)*DVX;
       VY = blockParams[BlockParams::VYCRD];
       VZ = blockParams[BlockParams::VZCRD] + (k+0.5)*DVZ;
-      //AX = Parameters::q_per_m * (VY*cellParams[CellParams::BZ] - VZ*cellParams[CellParams::BY]);
-      //AY = Parameters::q_per_m * (VZ*cellParams[CellParams::BX] - VX*cellParams[CellParams::BZ]);
-      //AZ = Parameters::q_per_m * (VX*cellParams[CellParams::BY] - VY*cellParams[CellParams::BX]);
-      AX = accmat[0]*VX + accmat[1]*VY + accmat[2]*VZ;
-      AY = accmat[3]*VX + accmat[4]*VY + accmat[5]*VZ;
-      AZ = accmat[6]*VX + accmat[7]*VY + accmat[8]*VZ;
+      AX = Parameters::q_per_m * (VY*cellParams[CellParams::BZ] - VZ*cellParams[CellParams::BY]);
+      AY = Parameters::q_per_m * (VZ*cellParams[CellParams::BX] - VX*cellParams[CellParams::BZ]);
+      AZ = Parameters::q_per_m * (VX*cellParams[CellParams::BY] - VY*cellParams[CellParams::BX]);
+      //AX = accmat[0]*VX + accmat[1]*VY + accmat[2]*VZ;
+      //AY = accmat[3]*VX + accmat[4]*VY + accmat[5]*VZ;
+      //AZ = accmat[6]*VX + accmat[7]*VY + accmat[8]*VZ;
 
       AX_NEG = std::min(convert<REAL>(0.0),AX);
       AX_POS = std::max(convert<REAL>(0.0),AX);
@@ -856,12 +858,12 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL&
       VX = blockParams[BlockParams::VXCRD] + (i+0.5)*blockParams[BlockParams::DVX];
       VY = blockParams[BlockParams::VYCRD] + (j+0.5)*blockParams[BlockParams::DVY];
       VZ = blockParams[BlockParams::VZCRD];
-      //AX = Parameters::q_per_m * (VY*cellParams[CellParams::BZ] - VZ*cellParams[CellParams::BY]);
-      //AY = Parameters::q_per_m * (VZ*cellParams[CellParams::BX] - VX*cellParams[CellParams::BZ]);
-      //AZ = Parameters::q_per_m * (VX*cellParams[CellParams::BY] - VY*cellParams[CellParams::BX]);
-      AX = accmat[0]*VX + accmat[1]*VY + accmat[2]*VZ;
-      AY = accmat[3]*VX + accmat[4]*VY + accmat[5]*VZ;
-      AZ = accmat[6]*VX + accmat[7]*VY + accmat[8]*VZ;
+      AX = Parameters::q_per_m * (VY*cellParams[CellParams::BZ] - VZ*cellParams[CellParams::BY]);
+      AY = Parameters::q_per_m * (VZ*cellParams[CellParams::BX] - VX*cellParams[CellParams::BZ]);
+      AZ = Parameters::q_per_m * (VX*cellParams[CellParams::BY] - VY*cellParams[CellParams::BX]);
+      //AX = accmat[0]*VX + accmat[1]*VY + accmat[2]*VZ;
+      //AY = accmat[3]*VX + accmat[4]*VY + accmat[5]*VZ;
+      //AZ = accmat[6]*VX + accmat[7]*VY + accmat[8]*VZ;
 
       AX_NEG = std::min(convert<REAL>(0.0),AX);
       AX_POS = std::max(convert<REAL>(0.0),AX);
