@@ -33,6 +33,7 @@ libvlasovmover.a:
 	make memalloc.o
 	make ${MOVER}
 	ln -s -f pargrid/main_pargrid.cpp ./vlasovmover.cpp
-	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -I${INSTALL} -c vlasovmover.cpp ${INC_ZOLTAN}
+	#ln -s -f dccrg/main_dccrg.cpp ./vlasovmover.cpp
+	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -I${INSTALL} -c vlasovmover.cpp ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG}
 	${AR} r libvlasovmover.a memalloc.o
 	${AR} r libvlasovmover.a vlasovmover.o
