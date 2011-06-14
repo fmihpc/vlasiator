@@ -55,7 +55,7 @@ DEPS_DATAREDUCTIONOPERATOR = cell_spatial.h datareductionoperator.h datareductio
 DEPS_GPU_DEVICE_GRID = cell_spatial.h parameters.h devicegrid.h gpudevicegrid.cpp
 DEPS_GRID = grid.h parameters.h grid.cpp
 DEPS_GRIDBUILDER = cell_spatial.h parameters.h pargrid.h project.h gridbuilder.h gridbuilder.cpp
-DEPS_MAIN = gridbuilder.h main_dccrg.h main_pargrid.h parameters.h pargrid.h project.h grid.h cell_spatial.h vlasiator.cpp
+DEPS_MAIN = gridbuilder.h parameters.h pargrid.h project.h grid.h cell_spatial.h vlasiator.cpp
 DEPS_MPIFILE = mpifile.h mpifile.cpp
 DEPS_MPILOGGER = mpifile.h mpilogger.h mpilogger.cpp
 DEPS_MUXML = muxml.h muxml.cpp
@@ -84,7 +84,7 @@ DEPS_VLSCOMMON += ${DEPS_COMMON}
 HDRS = arrayallocator.h cpu_acc.h cpu_acc_ppm.h cpu_common.h cpu_trans.h cell_spatial.h\
 	common.h datareducer.h datareductionoperator.h\
 	definitions.h grid.h gridbuilder.h\
-	main_dccrg.h main_pargrid.h mpiconversion.h mpifile.h mpilogger.h\
+	mpiconversion.h mpifile.h mpilogger.h\
 	parameters.h\
 	pargrid.h timer.h vlscommon.h\
 	vlsvwriter2.h vlsvreader2.h muxml.h
@@ -103,7 +103,7 @@ CUDA_SRC = cellsync.cpp cuda_acc.cu cuda_common.cu cuda_trans.cu\
 
 CUDA_OBJS = cellsync.o cuda_acc.o cuda_trans.o cudafuncs.o gpudevicegrid.o
 
-OBJS = arrayallocator.o cell_spatial.o cpu/memalloc.o		\
+OBJS = arrayallocator.o cell_spatial.o		\
 	datareducer.o datareductionoperator.o grid.o		\
 	gridbuilder.o vlasiator.o mpifile.o mpilogger.o muxml.o	\
 	parameters.o project.o					\
