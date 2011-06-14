@@ -33,7 +33,7 @@ struct SpatialCell {
    static size_t size(void);
    static uint base_address_identifier;
    void* at(void);
-   static MPI_Datatype mpi_data_type(void);
+   static MPI_Datatype mpi_datatype(void);
    #else
    void* baseAddress;
    //void allocate();
