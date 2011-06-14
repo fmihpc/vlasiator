@@ -9,8 +9,8 @@ clean:
 	rm -f *.a *.o *~ vlasovmover.cpp libvlasovmover.a
 
 kt: ${DEPS_KT}
-	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -c cpu_acc.cpp ${INC_ZOLTAN}
-	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -c cpu_trans.cpp ${INC_ZOLTAN}
+	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -c cpu_acc.cpp ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG}
+	${CMP} ${FLAGS} ${CXXFLAGS} ${FLAG_OPENMP} -c cpu_trans.cpp ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG}
 	${AR} r libvlasovmover.a cpu_acc.o
 	${AR} r libvlasovmover.a cpu_trans.o
 
