@@ -231,7 +231,7 @@ size_t SpatialCell::size(void) {
    }
 }
 
-MPI_Datatype SpatialCell::mpi_data_type(void)
+MPI_Datatype SpatialCell::mpi_datatype(void)
 {
    MPI_Datatype data_type;
 
