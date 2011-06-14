@@ -124,6 +124,8 @@ template<class C> class ParGrid {
    bool singleModeWaitAllSends2();
    uint singleModeWaitSome();
    uint singleModeWaitSome2();
+   bool singleReceive(const int& host,const int& tag,const size_t& byteSize,char* buffer,const ID::type& localID);
+   bool singleReceive2(const int& host,const int& tag,const size_t& byteSize,char* buffer,const ID::type& localID);
    bool singleReceive(const ID::type& sourceID,const int& tag,const size_t& byteSize,char* buffer,const ID::type& localID);
    bool singleReceive2(const ID::type& sourceID,const int& tag,const size_t& byteSize,char* buffer,const ID::type& localID);
    bool singleSend(const int& destHost,const int& tag,const size_t& byteSize,char* buffer,const ID::type& localID);
@@ -1002,14 +1004,14 @@ template<class C> bool ParGrid<C>::initialize() {
    initialLoadBalance();
    buildExchangeLists();
    // Allocate memory for user data:
-   std::cerr << "ParGrid: Allocating " << localCells.size() << " local cells" << std::endl;
+   //std::cerr << "ParGrid: Allocating " << localCells.size() << " local cells" << std::endl;
    for (typename std::map<ID::type,ParCell<C> >::iterator it=localCells.begin(); it!= localCells.end(); ++it) {
       it->second.dataptr = new C;
    }
    for (std::map<ID::type,int>::const_iterator it=receiveList.begin(); it!=receiveList.end(); ++it) {
       remoteCells[it->first];
    }
-   std::cerr << "ParGrid: Allocating " << remoteCells.size() << " remote cells" << std::endl;
+   //std::cerr << "ParGrid: Allocating " << remoteCells.size() << " remote cells" << std::endl;
    for (typename std::map<ID::type,ParCell<C> >::iterator it=remoteCells.begin(); it!=remoteCells.end(); ++it) {
       it->second.dataptr = new C;
    }
@@ -1493,6 +1495,23 @@ template<class C> uint ParGrid<C>::singleModeWaitSome2() {
    if (N_receivesRemaining2 == 0) MPIrecvRequests2.clear();
    delete readyIndices;
    return receives;
+}
+
+template<class C> bool ParGrid<C>::singleReceive(const int& host,const int& tag,const size_t& byteSize,char* buffer,const ID::type& localID) {
+   //std::cerr << "Proc #" << myrank << " recv from host #" << host << " tag #" << tag << std::endl;
+   ++N_receivesRemaining;
+   localReceiveIDs.push_back(localID);
+   MPIrecvRequests.push_back(MPI_Request());
+   if (MPI_Irecv(buffer,byteSize,MPI_BYTE,host,tag,MPI_COMM_WORLD,&(MPIrecvRequests.back())) != MPI_SUCCESS) return false;
+   return true;
+}
+
+template<class C> bool ParGrid<C>::singleReceive2(const int& host,const int& tag,const size_t& byteSize,char* buffer,const ID::type& localID) {
+   ++N_receivesRemaining2;
+   localReceiveIDs2.push_back(tag);
+   MPIrecvRequests2.push_back(MPI_Request());
+   if (MPI_Irecv(buffer,byteSize,MPI_BYTE,host,tag,MPI_COMM_WORLD,&(MPIrecvRequests2.back())) != MPI_SUCCESS) return false;
+   return true;
 }
 
 template<class C> bool ParGrid<C>::singleReceive(const ID::type& sourceID,const int& tag,const size_t& byteSize,char* buffer,const ID::type& localID) {

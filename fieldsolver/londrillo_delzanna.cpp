@@ -1322,7 +1322,7 @@ bool propagateFieldsSimple(ParGrid<SpatialCell>& mpiGrid,creal& dt) {
 bool propagateFields(ParGrid<SpatialCell>& mpiGrid,creal& dt) {
    typedef Parameters P;
    namespace fs = fieldsolver;
-   cerr << "Propagating tstep " << P::tstep << endl;
+
    // *******************************
    // ***** INITIALIZATION STEP *****
    // *******************************

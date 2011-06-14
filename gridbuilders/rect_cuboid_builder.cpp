@@ -292,7 +292,7 @@ bool RectCuboidBuilder::getCellNbrData(const VirtualCell::ID& N_cells,VirtualCel
       if (z_neg != numeric_limits<VC::ID>::max()) {spatNbrIDs[counter] = z_neg; spatNbrTypes[counter] = calcNbrTypeID(2  ,2  ,2-1); ++counter;}
       if (z_pos != numeric_limits<VC::ID>::max()) {spatNbrIDs[counter] = z_pos; spatNbrTypes[counter] = calcNbrTypeID(2  ,2  ,2+1); ++counter;}
        */
-      //cerr << "Cell #" << cellIDs[c] << " nbrs: ";
+
       for (int i=-1; i<2; ++i) for (int j=-1; j<2; ++j) for (int k=-1; k<2; ++k) {
 	 if (i == 0 && (j == 0 && k == 0)) continue;
 	 cuint nbrID = calculateNeighbourID(I,J,K,i,j,k);
@@ -302,11 +302,9 @@ bool RectCuboidBuilder::getCellNbrData(const VirtualCell::ID& N_cells,VirtualCel
 	 spatNbrIDs[counter] = nbrID;
 	 spatNbrTypes[counter] = nbrTypeID;
 	 ++counter;
-	 //cerr << nbrID << ' ';
       }
-      //cerr << endl;
    }
-   cerr << "COUNTER = " << counter << endl;
+
    return true;
 }
 
