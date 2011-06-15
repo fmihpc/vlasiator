@@ -274,7 +274,7 @@ bool buildGrid(MPI_Comm comm,const int& MASTER_RANK) {
    }
    if (broadcastMandatoryParameters(myrank,MASTER_RANK,comm,builder) == false) success = false;
    
-   typedef Parameters P;
+   /*typedef Parameters P;
    
    // Query parameters needed by dccrg from GridBuilder. Note that all GridBuilders are not 
    // required to provide these parameters, i.e. dccrg is in general not compatible with all 
@@ -303,25 +303,25 @@ bool buildGrid(MPI_Comm comm,const int& MASTER_RANK) {
    if (MPI_Bcast(&dz      ,1,MPI_Type<Real>()  ,MASTER_RANK,comm) != MPI_SUCCESS) success = false;
    if (MPI_Bcast(&x_length,1,MPI_Type<VC::ID>(),MASTER_RANK,comm) != MPI_SUCCESS) success = false;
    if (MPI_Bcast(&y_length,1,MPI_Type<VC::ID>(),MASTER_RANK,comm) != MPI_SUCCESS) success = false;
-   if (MPI_Bcast(&z_length,1,MPI_Type<VC::ID>(),MASTER_RANK,comm) != MPI_SUCCESS) success = false;
+   if (MPI_Bcast(&z_length,1,MPI_Type<VC::ID>(),MASTER_RANK,comm) != MPI_SUCCESS) success = false;*/
    
    // Init dccrg 
    // TODO
    
    // Get the total number of cells in grid:
-   VC::ID N_cells;
+   /*VC::ID N_cells;
    if (myrank == MASTER_RANK) if (builder->getTotalNumberOfCells(N_cells) == false) {
       mpilogger << "(BUILDGRID) ERROR: Failed to get number of cells to create from GridBuilder!" << endl << write;
       success = false;
-   }
+   }*/
 
    // Master process requests cell IDs. If all processes need the IDs, then master must bcast them.
    // NOTE: dccrg does not need spatial neighbour information, so spatNbrsPerCell can be ignored.
    // NOTE: cells need to be distributed to N processes here.
    // TODO
-   vector<VC::ID> cellIDs;
+   /*vector<VC::ID> cellIDs;
    vector<uchar>  spatNbrsPerCell;
-   if (myrank == MASTER_RANK) if (builder->getCellIDs(cellIDs,spatNbrsPerCell) == false) success = false;
+   if (myrank == MASTER_RANK) if (builder->getCellIDs(cellIDs,spatNbrsPerCell) == false) success = false;*/
 
    // Add cells to dccrg / tell dccrg to refine the grid based on the obtained cell IDs on every process.
    // TODO
