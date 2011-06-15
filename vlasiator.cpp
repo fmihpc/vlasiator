@@ -393,7 +393,7 @@ int main(int argn,char* args[]) {
 	 mpilogger << "\t ERROR: Zoltan initialization failed, aborting." << std::endl << write;
 	 success = false;
       } else {
-	 mpilogger << "\t Zoltan initialized successfully" << std::endl << write;
+	 mpilogger << "\t Zoltan " << zoltanVersion << " initialized successfully" << std::endl << write;
       }
       if (buildGrid(MPI_COMM_WORLD,MASTER_RANK) == false) {
 	 mpilogger << "(MAIN) Grid builder failed!" << endl << write;
