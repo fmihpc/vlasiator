@@ -14,6 +14,7 @@ FLAGS += -DPARGRID
 
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
+#PROJ = test_trans
 PROJ = harm1D
 #PROJ=test_fp
 #PROJ=msphere
@@ -104,7 +105,7 @@ CUDA_SRC = cellsync.cpp cuda_acc.cu cuda_common.cu cuda_trans.cu\
 CUDA_OBJS = cellsync.o cuda_acc.o cuda_trans.o cudafuncs.o gpudevicegrid.o
 
 OBJS = arrayallocator.o cell_spatial.o		\
-	cpu/vlasovmover.o cpu/cpu_acc.o cpu/cpu_trans.o		\
+	cpu/vlasovmover.o\
 	datareducer.o datareductionoperator.o grid.o		\
 	gridbuilder.o vlasiator.o mpifile.o mpilogger.o muxml.o	\
 	parameters.o project.o					\
