@@ -171,7 +171,6 @@ uint Grid::getFreeMemory(cuint& BLOCKS) {
       return rvalue;
    } else {
       // Out of memory:
-      //logger << "Out of memory" << endl << flush;
       return numeric_limits<uint>::max();
    }
 }
