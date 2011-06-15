@@ -104,6 +104,7 @@ CUDA_SRC = cellsync.cpp cuda_acc.cu cuda_common.cu cuda_trans.cu\
 CUDA_OBJS = cellsync.o cuda_acc.o cuda_trans.o cudafuncs.o gpudevicegrid.o
 
 OBJS = arrayallocator.o cell_spatial.o		\
+	cpu/vlasovmover.o cpu/cpu_acc.o cpu/cpu_trans.o		\
 	datareducer.o datareductionoperator.o grid.o		\
 	gridbuilder.o vlasiator.o mpifile.o mpilogger.o muxml.o	\
 	parameters.o project.o					\
@@ -134,7 +135,7 @@ clean:
 	make clean -C cuda
 	make clean -C fieldsolver
 	rm -rf libvlasovmover.a libfieldsolver.a
-	rm -rf .goutputstream* *.o *.ptx *.tar* *.txt *.silo *.vtk *.vlsv project.h project.cu project.cpp vlasiator_* *~ visitlog.py vls2vtk vlsv2silo
+	rm -rf .goutputstream* .logfile* *.o *.ptx *.tar* *.txt *.silo *.vtk *.vlsv project.h project.cu project.cpp vlasiator_* *~ visitlog.py vls2vtk vlsv2silo
 
 # Rules for making each object file needed by the executable
 arrayallocator.o: ${DEPS_ARRAYALLOCATOR}
