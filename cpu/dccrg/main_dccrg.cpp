@@ -65,33 +65,65 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
 }
 
 void initialLoadBalance(dccrg<SpatialCell>& mpiGrid) {
-   typedef Parameters P;
-   P::transmit = Transmit::AVGS;
+   /*typedef Parameters P;
+   P::transmit = Transmit::AVGS;*/
    mpiGrid.balance_load();
 }
 
+/*!
+Fills nbrPtr with pointers to data in neighbour cells or NULL if neighbour doesn't exist.
+*/
 bool findNeighbours(std::vector<const SpatialCell*>& nbrPtr,dccrg<SpatialCell>& mpiGrid,const uint64_t& cell) {
-   std::vector<uint64_t> nbrs;
-   // Get a pointer to each neighbour. If the neighbour does not exists, 
-   // a NULL pointer is inserted.
-   nbrs = mpiGrid.get_neighbours_x(cell,-1.0);
-   if (nbrs.size() > 0) nbrPtr[0] = mpiGrid[nbrs[0]]; // Get ptr to -x neighbour
-   else nbrPtr[0] = NULL;
-   nbrs = mpiGrid.get_neighbours_x(cell,+1.0);
-   if (nbrs.size() > 0) nbrPtr[1] = mpiGrid[nbrs[0]]; //            +x
-   else nbrPtr[1] = NULL;
-   nbrs = mpiGrid.get_neighbours_y(cell,-1.0);
-   if (nbrs.size() > 0) nbrPtr[2] = mpiGrid[nbrs[0]]; //            -y
-   else nbrPtr[2] = NULL;
-   nbrs = mpiGrid.get_neighbours_y(cell,+1.0);
-   if (nbrs.size() > 0) nbrPtr[3] = mpiGrid[nbrs[0]]; //            +y
-   else nbrPtr[3] = NULL;
-   nbrs = mpiGrid.get_neighbours_z(cell,-1.0);
-   if (nbrs.size() > 0) nbrPtr[4] = mpiGrid[nbrs[0]]; //            -z
-   else nbrPtr[4] = NULL;
-   nbrs = mpiGrid.get_neighbours_z(cell,+1.0);
-   if (nbrs.size() > 0) nbrPtr[5] = mpiGrid[nbrs[0]]; //            +z
-   else nbrPtr[5] = NULL;
+
+   const std::vector<uint64_t>* neighbours = mpiGrid.get_neighbours(cell);
+   int index = 0;
+
+   // neighbours are in a certain order in the neighbour list, -z first
+   if ((*neighbours)[index] > 0) {
+      nbrPtr[4] = mpiGrid[(*neighbours)[index]];
+   } else {
+      nbrPtr[4] = NULL;
+   }
+   index++;
+
+   // -y
+   if ((*neighbours)[index] > 0) {
+      nbrPtr[2] = mpiGrid[(*neighbours)[index]];
+   } else {
+      nbrPtr[2] = NULL;
+   }
+   index++;
+   // -x
+   if ((*neighbours)[index] > 0) {
+      nbrPtr[0] = mpiGrid[(*neighbours)[index]];
+   } else {
+      nbrPtr[0] = NULL;
+   }
+   index++;
+
+   // +x
+   if ((*neighbours)[index] > 0) {
+      nbrPtr[1] = mpiGrid[(*neighbours)[index]];
+   } else {
+      nbrPtr[1] = NULL;
+   }
+   index++;
+
+   // +y
+   if ((*neighbours)[index] > 0) {
+      nbrPtr[3] = mpiGrid[(*neighbours)[index]];
+   } else {
+      nbrPtr[3] = NULL;
+   }
+   index++;
+
+   // +z
+   if ((*neighbours)[index] > 0) {
+      nbrPtr[5] = mpiGrid[(*neighbours)[index]];
+   } else {
+      nbrPtr[5] = NULL;
+   }
+
    return true;
 }
 
