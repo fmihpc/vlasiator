@@ -118,7 +118,7 @@ OBJS +=
 
 help:
 	@echo ''
-	@echo 'make clean               delete all object files'
+	@echo 'make c(lean)             delete all generated files'
 	@echo 'make dist                make tar file of the source code'
 	@echo 'make ARCH=arch PROJ=proj Compile vlasiator '
 	@echo '                           ARCH:  Set machine specific Makefile Makefile.arch'
@@ -128,6 +128,7 @@ help:
 builderinstall:
 	make ${BUILDER} -C gridbuilders "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_DCCRG}"
 
+c: clean
 clean:
 	make clean -C gridbuilders
 	make clean -C projects
