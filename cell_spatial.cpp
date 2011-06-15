@@ -249,16 +249,6 @@ void* SpatialCell::at(void) {
 }
 #endif
 
-/*
-#ifdef PARGRID
-#include <mpi.h>
-void SpatialCell::allocate() {
-   
-}
-
-#endif
-*/
-
 void* SpatialCell::getBaseAddress(cuint identifier) {
    // Hack: make sure that the pointers in SpatialCell are correct:
    switch (identifier) {
