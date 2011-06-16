@@ -173,6 +173,12 @@ bool VLSVWriter::endMultiwrite(const std::string& tagName,const std::string& arr
        delete types;
        delete blockLengths;
     }
+    else{
+        //we have no data to write, write out zero data to participate in collective call
+        if(MPI_File_write_at_all(fileptr,offset,NULL,
+                                 0,MPI_BYTE,MPI_STATUS_IGNORE) != MPI_SUCCESS)
+	 success = false;
+    }
     
    // Master writes footer tag:
    if (myrank == masterRank) {
