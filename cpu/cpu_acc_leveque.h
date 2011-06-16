@@ -518,16 +518,6 @@ template<typename REAL,typename UINT> void fetchFluxesZ(const UINT& BLOCK,REAL* 
 
 template<typename REAL,typename UINT,typename CELL> void cpu_clearVelFluxes(CELL& cell,const UINT& BLOCK) {
    for (UINT i=0; i<SIZE_FLUXS; ++i) cell.cpu_fx[BLOCK*SIZE_FLUXS + i] = 0.0;
-   /*
-   REAL* f = cell.cpu_fx + BLOCK*SIZE_FLUXS;   
-   for (UINT i=0; i<SIZE_FLUXS; ++i) f[i] = 0.0;
-   
-   f = cell.cpu_fy + BLOCK*SIZE_FLUXS;
-   for (UINT i=0; i<SIZE_FLUXS; ++i) f[i] = 0.0;
-   
-   f = cell.cpu_fz + BLOCK*SIZE_FLUXS;
-   for (UINT i=0; i<SIZE_FLUXS; ++i) f[i] = 0.0;
-    */
 }
 
 template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL& cell,const UINT& BLOCK,const REAL& DT,creal* const accmat) {
@@ -564,13 +554,6 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL&
       AX = Parameters::q_per_m * (cellParams[CellParams::EX] + VY*cellParams[CellParams::BZ] - VZ*cellParams[CellParams::BY]);
       AY = Parameters::q_per_m * (cellParams[CellParams::EY] + VZ*cellParams[CellParams::BX] - VX*cellParams[CellParams::BZ]);
       AZ = Parameters::q_per_m * (cellParams[CellParams::EZ] + VX*cellParams[CellParams::BY] - VY*cellParams[CellParams::BX]);
-      //AX = accmat[0]*VX + accmat[1]*VY + accmat[2]*VZ;
-      //AY = accmat[3]*VX + accmat[4]*VY + accmat[5]*VZ;
-      //AZ = accmat[6]*VX + accmat[7]*VY + accmat[8]*VZ;
-      
-      //AX = -1.0;
-      //AY = -1.0;
-      //AZ = -1.0;
       
       AX_NEG = std::min(convert<REAL>(0.0),AX);
       AX_POS = std::max(convert<REAL>(0.0),AX);
@@ -589,7 +572,7 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL&
       dF = avgs[fullInd(i+2,j+2,k+2)] - avgs[fullInd(i+1,j+2,k+2)]; // F(i,j,k) - F(i-1,j,k), jump in F
       INCR_WAVE = AX_POS*avgs[fullInd(i+1,j+2,k+2)] + AX_NEG*avgs[fullInd(i+2,j+2,k+2)];// + 0.5*fabs(AX)*(1.0-fabs(AX)*DT/DVX)*dF*theta;
       CORR_WAVE = 0.5*fabs(AX)*(1.0-fabs(AX)*DT/DVX)*dF*theta;
-      //CORR_WAVE = 0.0;
+
       cell.cpu_d1x[BLOCK*SIZE_DERIV+accIndex(i,j,k)] = theta;
       cell.cpu_d2x[BLOCK*SIZE_DERIV+accIndex(i,j,k)] = dF*theta;
 
@@ -598,7 +581,6 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL&
 
       INCR_WAVE = -0.5*DT/DVX*dF;
       CORR_WAVE *= DT/DVX;
-      //CORR_WAVE = 0.0;
 
       // Transverse propagation, Fy updates:
       dFdt[findex(i+1,j+2,k+1)] += (INCR_WAVE*AX_POS*AY_POS + CORR_WAVE*AY_POS)*DT/DVY; // Fy: i,j+1
@@ -668,9 +650,6 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL&
       dFdt[findex(i  ,j  ,k+2)] += INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVZ;
       dFdt[findex(i  ,j  ,k+1)] += INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVZ;
       
-      
-      
-      
       dFdt[findex(i+1,j+1,k+1)] -= INCR_WAVE*AX_POS*fabs(AY)*AZ_POS*DT/DVZ; // Ax > 0
       dFdt[findex(i+1,j+1,k  )] -= INCR_WAVE*AX_POS*fabs(AY)*AZ_NEG*DT/DVZ;
       dFdt[findex(i  ,j+1,k+1)] -= INCR_WAVE*AX_NEG*fabs(AY)*AZ_POS*DT/DVZ; // Ax < 0
@@ -684,28 +663,7 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL&
       dFdt[findex(i  ,j+2,k  )] += INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVZ;
       dFdt[findex(i  ,j  ,k+1)] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVZ;
       dFdt[findex(i  ,j  ,k  )] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVZ;
-
-      
-      /*
-      // Double transverse y/z propagations:
-      Fy[(k+2)*YSXS+(j+2)*XS+i+1] -= AX_POS*AY_POS*AZ_POS*DT*DT*dF/6.0 - CORR_WAVE*AY_POS*AZ_POS;
-      Fy[(k+2)*YSXS+(j+2)*XS+i  ] -= AX_NEG*AY_POS*AZ_POS*DT*DT*dF/6.0 + CORR_WAVE*AY_POS*AZ_POS;
-      Fy[(k+2)*YSXS+(j+1)*XS+i+1] -= AX_POS*AY_NEG*AZ_POS*DT*DT*dF/6.0 - CORR_WAVE*AY_NEG*AZ_POS;
-      Fy[(k+2)*YSXS+(j+1)*XS+i  ] -= AX_NEG*AY_NEG*AZ_POS*DT*DT*dF/6.0 + CORR_WAVE*AY_NEG*AZ_POS;
-      Fy[(k  )*YSXS+(j+2)*XS+i+1] += AX_POS*AY_POS*AZ_NEG*DT*DT*dF/6.0 - CORR_WAVE*AY_POS*AZ_NEG;
-      Fy[(k  )*YSXS+(j+2)*XS+i  ] += AX_NEG*AY_POS*AZ_NEG*DT*DT*dF/6.0 + CORR_WAVE*AY_POS*AZ_NEG;
-      Fy[(k  )*YSXS+(j+1)*XS+i+1] += AX_POS*AY_NEG*AZ_NEG*DT*DT*dF/6.0 - CORR_WAVE*AY_NEG*AZ_NEG;
-      Fy[(k  )*YSXS+(j+1)*XS+i  ] += AX_NEG*AY_NEG*AZ_NEG*DT*DT*dF/6.0 + CORR_WAVE*AY_NEG*AZ_NEG;
-      
-      Fz[(k+2)*YSXS+(j+2)*XS+i+1] -= AX_POS*AY_POS*AZ_POS*DT*DT*dF/6.0 - CORR_WAVE*AY_POS*AZ_POS;
-      Fz[(k+2)*YSXS+(j+2)*XS+i  ] -= AX_NEG*AY_POS*AZ_POS*DT*DT*dF/6.0 + CORR_WAVE*AY_POS*AZ_POS;
-      Fz[(k+2)*YSXS+(j  )*XS+i+1] -= AX_POS*AY_NEG*AZ_POS*DT*DT*dF/6.0 - CORR_WAVE*AY_NEG*AZ_POS;
-      Fz[(k+2)*YSXS+(j  )*XS+i  ] -= AX_NEG*AY_NEG*AZ_POS*DT*DT*dF/6.0 + CORR_WAVE*AY_NEG*AZ_POS;
-      Fz[(k+1)*YSXS+(j+2)*XS+i+1] -= AX_POS*AY_POS*AZ_NEG*DT*DT*dF/6.0 - CORR_WAVE*AY_POS*AZ_NEG;
-      Fz[(k+1)*YSXS+(j+2)*XS+i  ] -= AX_NEG*AY_POS*AZ_NEG*DT*DT*dF/6.0 + CORR_WAVE*AY_POS*AZ_NEG;
-      Fz[(k+1)*YSXS+(j  )*XS+i+1] -= AX_POS*AY_NEG*AZ_NEG*DT*DT*dF/6.0 - CORR_WAVE*AY_NEG*AZ_NEG;
-      Fz[(k+1)*YSXS+(j  )*XS+i  ] -= AX_NEG*AY_NEG*AZ_NEG*DT*DT*dF/6.0 + CORR_WAVE*AY_NEG*AZ_NEG;
-      */
+   
       // ***********************************
       // ***** INTERFACE BETWEEN J,J-1 *****
       // ***********************************
@@ -717,9 +675,6 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL&
       AX = Parameters::q_per_m * (VY*cellParams[CellParams::BZ] - VZ*cellParams[CellParams::BY]);
       AY = Parameters::q_per_m * (VZ*cellParams[CellParams::BX] - VX*cellParams[CellParams::BZ]);
       AZ = Parameters::q_per_m * (VX*cellParams[CellParams::BY] - VY*cellParams[CellParams::BX]);
-      //AX = accmat[0]*VX + accmat[1]*VY + accmat[2]*VZ;
-      //AY = accmat[3]*VX + accmat[4]*VY + accmat[5]*VZ;
-      //AZ = accmat[6]*VX + accmat[7]*VY + accmat[8]*VZ;
 
       AX_NEG = std::min(convert<REAL>(0.0),AX);
       AX_POS = std::max(convert<REAL>(0.0),AX);
@@ -829,27 +784,7 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL&
       dFdt[findex(i  ,j+1,k  )] -= INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVZ;
       dFdt[findex(i+2,j  ,k  )] += INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVZ;
       dFdt[findex(i  ,j  ,k  )] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVZ;
-      
-      /*
-      // Double transverse x/z propagations:
-      Fx[(k+2)*YSXS+(j+1)*XS+i+2] -= AX_POS*AY_POS*AZ_POS*DT*DT*dF/6.0 - CORR_WAVE*AX_POS*AZ_POS;
-      Fx[(k+2)*YSXS+(j  )*XS+i+2] -= AX_POS*AY_NEG*AZ_POS*DT*DT*dF/6.0 + CORR_WAVE*AX_POS*AZ_POS;
-      Fx[(k+2)*YSXS+(j+1)*XS+i+1] -= AX_NEG*AY_POS*AZ_POS*DT*DT*dF/6.0 - CORR_WAVE*AX_NEG*AZ_POS;
-      Fx[(k+2)*YSXS+(j  )*XS+i+1] -= AX_NEG*AY_NEG*AZ_POS*DT*DT*dF/6.0 + CORR_WAVE*AX_NEG*AZ_POS;
-      Fx[(k  )*YSXS+(j+1)*XS+i+2] += AX_POS*AY_POS*AZ_NEG*DT*DT*dF/6.0 - CORR_WAVE*AX_POS*AZ_NEG;
-      Fx[(k  )*YSXS+(j  )*XS+i+2] += AX_POS*AY_NEG*AZ_NEG*DT*DT*dF/6.0 + CORR_WAVE*AX_POS*AZ_NEG;
-      Fx[(k  )*YSXS+(j+1)*XS+i+1] += AX_NEG*AY_POS*AZ_NEG*DT*DT*dF/6.0 - CORR_WAVE*AX_NEG*AZ_NEG;
-      Fx[(k  )*YSXS+(j  )*XS+i+1] += AX_NEG*AY_NEG*AZ_NEG*DT*DT*dF/6.0 + CORR_WAVE*AX_NEG*AZ_NEG;
-      
-      Fz[(k+2)*YSXS+(j+1)*XS+i+2] -= AX_POS*AY_POS*AZ_POS*DT*DT*dF/6.0 - CORR_WAVE*AX_POS*AZ_POS;
-      Fz[(k+2)*YSXS+(j  )*XS+i+2] -= AX_POS*AY_NEG*AZ_POS*DT*DT*dF/6.0 + CORR_WAVE*AX_POS*AZ_POS;
-      Fz[(k+2)*YSXS+(j+1)*XS+i  ] += AX_NEG*AY_POS*AZ_POS*DT*DT*dF/6.0 - CORR_WAVE*AX_NEG*AZ_POS;
-      Fz[(k+2)*YSXS+(j  )*XS+i  ] += AX_NEG*AY_NEG*AZ_POS*DT*DT*dF/6.0 + CORR_WAVE*AX_NEG*AZ_POS;
-      Fz[(k+1)*YSXS+(j+1)*XS+i+2] -= AX_POS*AY_POS*AZ_NEG*DT*DT*dF/6.0 - CORR_WAVE*AX_POS*AZ_NEG;
-      Fz[(k+1)*YSXS+(j  )*XS+i+2] -= AX_POS*AY_NEG*AZ_NEG*DT*DT*dF/6.0 + CORR_WAVE*AX_POS*AZ_NEG;
-      Fz[(k+1)*YSXS+(j+1)*XS+i  ] += AX_NEG*AY_POS*AZ_NEG*DT*DT*dF/6.0 - CORR_WAVE*AX_NEG*AZ_NEG;
-      Fz[(k+1)*YSXS+(j  )*XS+i  ] += AX_NEG*AY_NEG*AZ_NEG*DT*DT*dF/6.0 + CORR_WAVE*AX_NEG*AZ_NEG;
-      */
+   
       // ***********************************
       // ***** INTERFACE BETWEEN K,K-1 *****
       // ***********************************
@@ -861,9 +796,6 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL&
       AX = Parameters::q_per_m * (VY*cellParams[CellParams::BZ] - VZ*cellParams[CellParams::BY]);
       AY = Parameters::q_per_m * (VZ*cellParams[CellParams::BX] - VX*cellParams[CellParams::BZ]);
       AZ = Parameters::q_per_m * (VX*cellParams[CellParams::BY] - VY*cellParams[CellParams::BX]);
-      //AX = accmat[0]*VX + accmat[1]*VY + accmat[2]*VZ;
-      //AY = accmat[3]*VX + accmat[4]*VY + accmat[5]*VZ;
-      //AZ = accmat[6]*VX + accmat[7]*VY + accmat[8]*VZ;
 
       AX_NEG = std::min(convert<REAL>(0.0),AX);
       AX_POS = std::max(convert<REAL>(0.0),AX);
@@ -929,7 +861,6 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL&
       dFdt[findex(i+2,j  ,k  )] += INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVX;
       dFdt[findex(i+1,j  ,k  )] += INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVX;
       
-      
       dFdt[findex(i+1,j+1,k+1)] -= INCR_WAVE*AX_POS*fabs(AY)*AZ_POS*DT/DVX;
       dFdt[findex(i  ,j+1,k+1)] -= INCR_WAVE*AX_NEG*fabs(AY)*AZ_POS*DT/DVX;
       dFdt[findex(i+1,j+1,k  )] -= INCR_WAVE*AX_POS*fabs(AY)*AZ_NEG*DT/DVX;
@@ -974,344 +905,11 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL&
       dFdt[findex(i  ,j+1,k  )] -= INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVY;
       dFdt[findex(i+2,j  ,k  )] += INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVY;
       dFdt[findex(i  ,j  ,k  )] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVY;
-      
-      /*
-      dF = avgs[fullInd(i+2,j+2,k+2)] - avgs[fullInd(i+2,j+2,k+1)];
-      CORR_WAVE = 0.25*DT*DT*fabs(AZ)*(1.0-fabs(AZ)*DT)*dFdz;
-      
-      // Donor cell upwind method:
-      Fz[(k+1)*YSXS+(j+1)*XS+i+1] += AZ_POS*avgs[fullInd(i+2,j+2,k+1)] + AZ_NEG*avgs[fullInd(i+2.j+2,k+2)] + 0.5*fabs(AZ)*(1.0-fabs(AZ)*DT)*dFdz;
-      
-      // Transverse x/y propagations:
-      Fx[(k+1)*YSXS+(j+1)*XS+i+2] += -0.5*DT*AX_POS*AZ_POS*dF + AX_POS*fabs(AY)*AZ_POS*DT*DT*dF/6.0 + 2.0/DT*CORR_WAVE*AX_POS;
-      Fx[(k+1)*YSXS+(j+1)*XS+i+1] += -0.5*DT*AX_NEG*AZ_POS*dF + AX_NEG*fabs(AY)*AZ_POS*DT*DT*dF/6.0 + 2.0/DT*CORR_WAVE*AX_NEG;
-      Fx[(k  )*YSXS+(j+1)*XS+i+2] += -0.5*DT*AX_POS*AZ_NEG*dF + AX_POS*fabs(AY)*AZ_NEG*DT*DT*dF/6.0 - 2.0/DT*CORR_WAVE*AX_POS;
-      Fx[(k  )*YSXS+(j+1)*XS+i+1] += -0.5*DT*AX_NEG*AZ_NEG*dF + AX_NEG*fabs(AY)*AZ_NEG*DT*DT*dF/6.0 - 2.0/DT*CORR_WAVE*AX_NEG;
-      
-      Fy[(k+1)*YSXS+(j+2)*XS+i+1] += -0.5*DT*AY_POS*AZ_POS*dF + fabs(AX)*AY_POS*AZ_POS*DT*DT*dF/6.0 + 2.0/DT*CORR_WAVE*AY_POS;
-      Fy[(k+1)*YSXS+(j+1)*XS+i+1] += -0.5*DT*AY_NEG*AZ_POS*dF + fabs(AX)*AY_NEG*AZ_POS*DT*DT*dF/6.0 + 2.0/DT*CORR_WAVE*AY_NEG;
-      Fy[(k  )*YSXS+(j+2)*XS+i+1] += -0.5*DT*AY_POS*AZ_NEG*dF + fabs(AX)*AY_POS*AZ_NEG*DT*DT*dF/6.0 - 2.0/DT*CORR_WAVE*AY_POS;
-      Fy[(k  )*YSXS+(j+1)*XS+i+1] += -0.5*DT*AY_NEG*AZ_NEG*dF + fabs(AX)*AY_NEG*AZ_NEG*DT*DT*dF/6.0 - 2.0/DT*CORR_WAVE*AY_NEG;
-      
-      // Double transverse x/y propagations:
-      Fx[(k+1)*YSXS+(j+2)*XS+i+2] -= AX_POS*AY_POS*AZ_POS*DT*DT*dF/6.0 - CORR_WAVE*AX_POS*AY_POS;
-      Fx[(k  )*YSXS+(j+2)*XS+i+2] -= AX_POS*AY_POS*AZ_NEG*DT*DT*dF/6.0 + CORR_WAVE*AX_POS*AY_POS;
-      Fx[(k+1)*YSXS+(j+2)*XS+i+1] -= AX_NEG*AY_POS*AZ_POS*DT*DT*dF/6.0 - CORR_WAVE*AX_NEG*AY_POS;
-      Fx[(k  )*YSXS+(j+2)*XS+i+1] -= AX_NEG*AY_POS*AZ_NEG*DT*DT*dF/6.0 + CORR_WAVE*AX_NEG*AY_POS;
-      Fx[(k+1)*YSXS+(j  )*XS+i+2] += AX_POS*AY_NEG*AZ_POS*DT*DT*dF/6.0 - CORR_WAVE*AX_POS*AY_NEG;
-      Fx[(k  )*YSXS+(j  )*XS+i+2] += AX_POS*AY_NEG*AZ_NEG*DT*DT*dF/6.0 + CORR_WAVE*AX_POS*AY_NEG;
-      Fx[(k+1)*YSXS+(j  )*XS+i+1] += AX_NEG*AY_NEG*AZ_POS*DT*DT*dF/6.0 - CORR_WAVE*AX_NEG*AY_NEG;
-      Fx[(k  )*YSXS+(j  )*XS+i+1] += AX_NEG*AY_NEG*AZ_NEG*DT*DT*dF/6.0 + CORR_WAVE*AX_NEG*AY_NEG;
-      
-      Fy[(k+1)*YSXS+(j+2)*XS+i+2] -= AX_POS*AY_POS*AZ_POS*DT*DT*dF/6.0 - CORR_WAVE*AX_POS*AY_POS;
-      Fy[(k  )*YSXS+(j+2)*XS+i+2] -= AX_POS*AY_POS*AZ_NEG*DT*DT*dF/6.0 + CORR_WAVE*AX_POS*AY_POS;
-      Fy[(k+1)*YSXS+(j+2)*XS+i  ] += AX_NEG*AY_POS*AZ_POS*DT*DT*dF/6.0 - CORR_WAVE*AX_NEG*AY_POS;
-      Fy[(k  )*YSXS+(j+2)*XS+i  ] += AX_NEG*AY_POS*AZ_NEG*DT*DT*dF/6.0 + CORR_WAVE*AX_NEG*AY_POS;
-      Fy[(k+1)*YSXS+(j+1)*XS+i+2] -= AX_POS*AY_NEG*AZ_POS*DT*DT*dF/6.0 - CORR_WAVE*AX_POS*AY_NEG;
-      Fy[(k  )*YSXS+(j+1)*XS+i+2] -= AX_POS*AY_NEG*AZ_NEG*DT*DT*dF/6.0 + CORR_WAVE*AX_POS*AY_NEG;
-      Fy[(k+1)*YSXS+(j+1)*XS+i  ] += AX_NEG*AY_NEG*AZ_POS*DT*DT*dF/6.0 - CORR_WAVE*AX_NEG*AY_NEG;
-      Fy[(k  )*YSXS+(j+1)*XS+i  ] += AX_NEG*AY_NEG*AZ_NEG*DT*DT*dF/6.0 + CORR_WAVE*AX_NEG*AY_NEG;
-       */
    }
    accumulateChanges(BLOCK,dFdt,cell.cpu_fx,cell.cpu_nbrsVel+BLOCK*SIZE_NBRS_VEL);
 }
-/*   
-template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL& cell,const UINT& BLOCK,const REAL& DT) {
-   // Copy volume averages and ghost cells values to a temporary array,
-   // which is easier to use to calculate derivatives:
 
-   const REAL EPSILON = 1.0e-15;
-   const int OFF_OBL_RIGHT_BOTTOM_NBR = -9;
-   const int OFF_OBL_LEFT_TOP_NBR = 9;
-   
-   Real Fx[100];
-   Real Fy[100];
-   for (UINT i=0; i<100; ++i) Fx[i] = 0.0;
-   for (UINT i=0; i<100; ++i) Fy[i] = 0.0;
-   
-   const REAL* const cellParams = cell.cpu_cellParams;
-   const REAL* const blockParams = cell.cpu_blockParams + BLOCK*SIZE_BLOCKPARAMS;
-   
-   REAL avgs[8*WID3];
-   fetchAllAverages(BLOCK,avgs,cell.cpu_avgs,cell.cpu_nbrsVel);
-   
-   UINT I,J;
-   REAL VX_I,VY_I,VX_J,VY_J,R;
-   REAL xl2,xl1,xcc,xr1,xr2;
-   for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
-      // Calculate velocities on vx,vy faces:
-      VX_I = blockParams[BlockParams::VXCRD] + i*blockParams[BlockParams::DVX];
-      VY_J = blockParams[BlockParams::VYCRD] + j*blockParams[BlockParams::DVY];
-      VY_I = VY_J + 0.5*blockParams[BlockParams::DVY];
-      VX_J = VX_I + 0.5*blockParams[BlockParams::DVX];
-      
-      // Calculate acceleration on vx,vy faces:
-      R = -VX_I;
-      VX_I = Parameters::q_per_m * cellParams[CellParams::BZ] * VY_I;
-      VY_I = Parameters::q_per_m * cellParams[CellParams::BZ] * R;
-      R = -VX_J;
-      VX_J = Parameters::q_per_m * cellParams[CellParams::BZ] * VY_J;
-      VY_J = Parameters::q_per_m * cellParams[CellParams::BZ] * R;
-      
-      // ***** VX-FLUXES *****
-      
-      R = avgs[fullInd(i+2,j+2,k+2)] - avgs[fullInd(i+1,j+2,k+2)]; // x(i,j) - x(i-1,j)
-      if (VX_I > 0.0) I = i+1;
-      else I = i+2;
-      //fx[accIndex(i,j,k)] += VX_I*avgs[fullInd(I,j+2,k+2)];
-      Fx[k*25+(j+1)*5+i] += VX_I*avgs[fullInd(I,j+2,k+2)];
-      // End of Method #1
-
-      if (VX_I > 0.0) I = i+2;
-      else I = i+2-1;
-      if (VY_I > 0.0) J = j+2+1;
-      else J = j+2;
-      const REAL SX = 0.5*DT/blockParams[BlockParams::DVX]*VX_I*VY_I*R;
-      Fy[k*25+(J-2)*5+I+1-2] -= SX;
-      // End of Method #2
-      
-      if (VX_I > 0.0) I = i+2-1;
-      else I = i+2+1;
-      const REAL THETA_UPX = avgs[fullInd(I  ,j+2,k+2)] - avgs[fullInd(I-1,j+2,k+2)];
-      const REAL THETA_LOX = avgs[fullInd(i+2,j+2,k+2)] - avgs[fullInd(i+1,j+2,k+2)] + EPSILON;
-      //std::cerr << R << '\t';
-      R *= limiter(THETA_UPX/THETA_LOX);
-      //std::cerr << R << std::endl;
-      Fx[k*25+(j+1)*5+i] += 0.5*fabs(VX_I)*(1.0-DT/blockParams[BlockParams::DVX]*fabs(VX_I))*R;
-      // End of Method #3
-
-      Fy[k*25+(J-2)*5+i+1] += DT/blockParams[BlockParams::DVX]*VY_I*SX;
-      Fy[k*25+(J-2)*5+i  ] -= DT/blockParams[BlockParams::DVX]*VY_I*SX;
-      // End of Method #4
-      
-      // ***** VY-FLUXES *****
-      
-      R = avgs[fullInd(i+2,j+2,k+2)] - avgs[fullInd(i+2,j+1,k+2)]; // x(i,j) - x(i,j-1)
-      if (VY_J > 0.0) J = j+1;
-      else J = j+2;
-      //fy[accIndex(i,j,k)] += VY_J*avgs[fullInd(i+2,J,k+2)];
-      Fy[k*25+j*5+i+1] += VY_J*avgs[fullInd(i+2,J,k+2)];
-      // End of Method #1
-      
-      if (VY_J > 0.0) J = j+2;
-      else J = j+2-1;
-      if (VX_J > 0.0) I = i+2+1;
-      else I = i+2;
-      const REAL SY = 0.5*DT/blockParams[BlockParams::DVY]*VX_J*VY_J*R;
-      Fx[k*25+(J+1-2)*5+I-2] -= SY;
-      // End of Method #2
-      
-      if (VY_J > 0.0) J = j+2-1;
-      else J = j+2+1;
-      const REAL THETA_UPY = avgs[fullInd(i+2,J  ,k+2)] - avgs[fullInd(i+2,J-1,k+2)];
-      const REAL THETA_LOY = avgs[fullInd(i+2,j+2,k+2)] - avgs[fullInd(i+2,j+1,k+2)] + EPSILON;
-      R *= limiter(THETA_UPY/THETA_LOY);
-      
-      Fy[k*25+j*5+i+1] += 0.5*fabs(VY_J)*(1.0-DT/blockParams[BlockParams::DVY]*fabs(VY_J))*R;
-      // End of Method #3
-      
-      Fx[k*25+(j+1)*5+I-2] += DT/blockParams[BlockParams::DVY]*VX_J*SY;
-      Fx[k*25+(j  )*5+I-2] -= DT/blockParams[BlockParams::DVY]*VX_J*SY;
-      // End of Method #4
-   }
-   
-   // Copy Fx fluxes from temporary blocks:
-   const UINT* const nbrsVel = cell.cpu_nbrsVel + BLOCK*SIZE_NBRS_VEL;
-   if (isBoundary(nbrsVel[NbrsVel::STATE],NbrsVel::VX_POS_BND) == 0) { // Copy to +vx nbr
-      const UINT VXPOSNBR = nbrsVel[NbrsVel::VXPOS];
-      REAL* nbrFx = cell.cpu_fx + VXPOSNBR*SIZE_FLUXS;
-      for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) {
-	 nbrFx[accIndex(convert<UINT>(0),j,k)] += Fx[k*25+(j+1)*5+4];
-      }
-      // Check if fluxes copied to right bottom nbr:
-      if (isBoundary(nbrsVel[NbrsVel::STATE],NbrsVel::VY_NEG_BND) == 0) {
-	 const UINT OBL_NBR = BLOCK - Parameters::vyblocks_ini + 1;
-	 nbrFx = cell.cpu_fx + OBL_NBR*SIZE_FLUXS;
-	 for (UINT k=0; k<WID; ++k) 
-	   nbrFx[accIndex(convert<UINT>(0),convert<UINT>(3),k)] += Fx[k*25+4];
-      }
-   }
-   if (isBoundary(nbrsVel[NbrsVel::STATE],NbrsVel::VY_NEG_BND) == 0) { // Copy to -vy nbr
-      const UINT VYNEGNBR = nbrsVel[NbrsVel::VYNEG];
-      REAL* const nbrFx = cell.cpu_fx + VYNEGNBR*SIZE_FLUXS;
-      for (UINT k=0; k<WID; ++k) for (UINT i=0; i<WID; ++i) {
-	 nbrFx[accIndex(i,convert<UINT>(3),k)] += Fx[k*25+i];
-      }
-   }
-   for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) 
-     cell.cpu_fx[BLOCK*SIZE_FLUXS + accIndex(i,j,k)] += Fx[k*25+(j+1)*5+i];
-
-   // Copy Fy fluxes from temporary blocks:
-   if (isBoundary(nbrsVel[NbrsVel::STATE],NbrsVel::VX_NEG_BND) == 0) { // Copy to -vx nbr
-      const UINT VXNEGNBR = nbrsVel[NbrsVel::VXNEG];
-      REAL* nbrFy = cell.cpu_fy + VXNEGNBR*SIZE_FLUXS;
-      for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) {
-	nbrFy[accIndex(convert<UINT>(3),j,k)] += Fy[k*25+j*5];
-      }
-      // Check if fluxes copied to upper left nbr:
-      if (isBoundary(nbrsVel[NbrsVel::STATE],NbrsVel::VY_POS_BND) == 0) {
-	 const UINT OBL_NBR = BLOCK + Parameters::vyblocks_ini - 1;
-	 nbrFy = cell.cpu_fy + OBL_NBR*SIZE_FLUXS;
-	 for (UINT k=0; k<WID; ++k)
-	   nbrFy[accIndex(convert<UINT>(3),convert<UINT>(0),k)] += Fy[k*25+4*5];
-      }
-   }
-   if (isBoundary(nbrsVel[NbrsVel::STATE],NbrsVel::VY_POS_BND) == 0) { // Copy to +vy nbr
-      const UINT VYPOSNBR = nbrsVel[NbrsVel::VYPOS];
-      REAL* const nbrFy = cell.cpu_fy + VYPOSNBR*SIZE_FLUXS;
-      for (UINT k=0; k<WID; ++k) for (UINT i=0; i<WID; ++i) {
-	 nbrFy[accIndex(i,convert<UINT>(0),k)] += Fy[k*25+4*5+i+1];
-      }
-   }
-   for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i)
-     cell.cpu_fy[BLOCK*SIZE_FLUXS + accIndex(i,j,k)] += Fy[k*25+j*5+i+1];
-
-   
-}
- */
-/*
-template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxesX(CELL& cell,const UINT& BLOCK) {
-   // The size of array is (5,4,4)
-   const UINT XS = 5;
-   const UINT YS = 4;
-   const UINT YSXS = YS*XS;
-   // Copy volume averages and fluxes to temporary arrays, which are easier
-   // to use to calculate fluxes:
-   REAL avgs[SIZE_VELBLOCK + WID2];
-   REAL d1x[SIZE_DERIV + SIZE_BDERI];
-   REAL d2x[SIZE_DERIV + SIZE_BDERI];
-   fetchAveragesX(BLOCK,avgs,cell.cpu_avgs,cell.cpu_nbrsVel);
-   fetchDerivsX(BLOCK,d1x,cell.cpu_d1x,cell.cpu_nbrsVel);
-   fetchDerivsX(BLOCK,d2x,cell.cpu_d2x,cell.cpu_nbrsVel);
-   
-   // Reconstruct volume averages at negative and positive side of the face,
-   // and calculate vx-flux for each cell in the block:
-   REAL avg_neg,avg_pos;
-   REAL* const fx           = cell.cpu_fx          + BLOCK*SIZE_FLUXS;
-   creal* const blockParams = cell.cpu_blockParams + BLOCK*SIZE_BLOCKPARAMS;
-   for (UINT k=0; k<WID; ++k) {
-      REAL K = convert<REAL>(1.0)*k;
-      for (UINT j=0; j<WID; ++j) {
-	 REAL J = convert<REAL>(1.0)*j;
-	 #pragma ivdep
-	 for (UINT i=0; i<WID; ++i) {
-	    avg_neg = reconstruct_neg(avgs[k*YSXS+j*XS+(i  )],d1x[k*YSXS+j*XS+(i  )],d2x[k*YSXS+j*XS+(i  )]);
-	    avg_pos = reconstruct_pos(avgs[k*YSXS+j*XS+(i+1)],d1x[k*YSXS+j*XS+(i+1)],d2x[k*YSXS+j*XS+(i+1)]);
-	    //fx[accIndex(i,j,k)] = velocityFluxX(i,j,k,avg_neg,avg_pos,cell.cpu_cellParams,blockParams);
-	    fx[accIndex(i,j,k)] = velocityFluxX(J,K,avg_neg,avg_pos,cell.cpu_cellParams,blockParams);
-	 }
-      }
-   }
-}
-   
-template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxesY(CELL& cell,const UINT& BLOCK) {
-   // The size of the array avgs is (4,5,4)
-   const UINT XS = 4;
-   const UINT YS = 5;
-   const UINT YSXS = YS*XS;
-   // Copy volume averages and fluxes to temporary arrays, which are easier
-   // to use to calculate fluxes:
-   REAL avgs[SIZE_VELBLOCK + WID2];
-   REAL d1y[SIZE_DERIV + SIZE_BDERI];
-   REAL d2y[SIZE_DERIV + SIZE_BDERI];
-   fetchAveragesY(BLOCK,avgs,cell.cpu_avgs,cell.cpu_nbrsVel);
-   fetchDerivsY(BLOCK,d1y,cell.cpu_d1y,cell.cpu_nbrsVel);
-   fetchDerivsY(BLOCK,d2y,cell.cpu_d2y,cell.cpu_nbrsVel);
-       
-   // Reconstruct volume averages at negative and positive side of the face,
-   // and calculate vy-flux for each cell in the block:
-   REAL avg_neg,avg_pos;
-   REAL* const fy           = cell.cpu_fy          + BLOCK*SIZE_FLUXS;
-   creal* const blockParams = cell.cpu_blockParams + BLOCK*SIZE_BLOCKPARAMS;
-   for (UINT k=0; k<WID; ++k) {
-      const REAL K = convert<REAL>(1.0)*k;
-      for (UINT j=0; j<WID; ++j) {
-	 for (UINT i=0; i<WID; ++i) {
-	    const REAL I = convert<REAL>(1.0)*i;
-	    avg_neg = reconstruct_neg(avgs[k*YSXS+(j  )*XS+i],d1y[k*YSXS+(j  )*XS+i],d2y[k*YSXS+(j  )*XS+i]);
-	    avg_pos = reconstruct_pos(avgs[k*YSXS+(j+1)*XS+i],d1y[k*YSXS+(j+1)*XS+i],d2y[k*YSXS+(j+1)*XS+i]);
-	    //fy[accIndex(i,j,k)] = velocityFluxY(i,j,k,avg_neg,avg_pos,cell.cpu_cellParams,blockParams);
-	    fy[accIndex(i,j,k)] = velocityFluxY(I,K,avg_neg,avg_pos,cell.cpu_cellParams,blockParams);
-	 }
-      }
-   }
-}
-
-template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxesZ(CELL& cell,const UINT& BLOCK) {
-   // The size of array avgs is (4,4,5)
-   const UINT XS = 4;
-   const UINT YS = 4;
-   const UINT YSXS = YS*XS;
-   // Copy volume averages and fluxes to temporary arrays, which are easier
-   // to use to calculate fluxes:
-   REAL avgs[SIZE_VELBLOCK + WID2];
-   REAL d1z[SIZE_DERIV + SIZE_BDERI];
-   REAL d2z[SIZE_DERIV + SIZE_BDERI];
-   fetchAveragesZ(BLOCK,avgs,cell.cpu_avgs,cell.cpu_nbrsVel);
-   fetchDerivsZ(BLOCK,d1z,cell.cpu_d1z,cell.cpu_nbrsVel);
-   fetchDerivsZ(BLOCK,d2z,cell.cpu_d2z,cell.cpu_nbrsVel);
-   
-   // Reconstruct volume averages at negative and positive side of the face,
-   // and calculate vz-flux:
-   REAL avg_neg,avg_pos;
-   REAL* const fz           = cell.cpu_fz          + BLOCK*SIZE_FLUXS;
-   creal* const blockParams = cell.cpu_blockParams + BLOCK*SIZE_BLOCKPARAMS;
-   for (UINT k=0; k<WID; ++k) {
-      for (UINT j=0; j<WID; ++j) {
-	 const REAL J = convert<REAL>(1.0)*j;
-	 for (UINT i=0; i<WID; ++i) {
-	    const REAL I = convert<REAL>(1.0)*i;
-	    avg_neg = reconstruct_neg(avgs[(k  )*YSXS+j*XS+i],d1z[(k  )*YSXS+j*XS+i],d2z[(k  )*YSXS+j*XS+i]);
-	    avg_pos = reconstruct_pos(avgs[(k+1)*YSXS+j*XS+i],d1z[(k+1)*YSXS+j*XS+i],d2z[(k+1)*YSXS+j*XS+i]);
-	    fz[accIndex(i,j,k)] = velocityFluxZ(I,J,avg_neg,avg_pos,cell.cpu_cellParams,blockParams);
-	    //fz[accIndex(i,j,k)] = velocityFluxZ(i,j,k,avg_neg,avg_pos,cell.cpu_cellParams,blockParams);
-	 }
-      }
-   }      
-}
-*/
 template<typename REAL,typename UINT,typename CELL> void cpu_propagateVel(CELL& cell,const UINT& BLOCK,const REAL& DT) {
-   //REAL avgs[SIZE_VELBLOCK];
-   //REAL flux[SIZE_FLUXS + SIZE_BFLUX];
-   //const REAL* const blockParams = cell.cpu_blockParams + BLOCK*SIZE_BLOCKPARAMS;
-   
    for (UINT i=0; i<WID3; ++i) cell.cpu_avgs[BLOCK*SIZE_VELBLOCK+i] += cell.cpu_fx[BLOCK*SIZE_VELBLOCK+i];
-   
-   /*
-   // Calculate the contribution to d(avg)/dt from vx-fluxes:
-   UINT XS = 5;
-   UINT YS = 4;
-   UINT YSXS = YS*XS;
-   REAL cnst = DT / blockParams[BlockParams::DVX];
-   fetchFluxesX(BLOCK,flux,cell.cpu_fx,cell.cpu_nbrsVel);
-   for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
-      avgs[accIndex(i,j,k)] = (flux[k*YSXS+j*XS+i] - flux[k*YSXS+j*XS+(i+1)])*cnst;
-   }
-   // Calculate the contribution to d(avg)/dt from vy-fluxes:
-   XS = 4;
-   YS = 5;
-   YSXS = YS*XS;
-   cnst = DT / blockParams[BlockParams::DVY];
-   fetchFluxesY(BLOCK,flux,cell.cpu_fy,cell.cpu_nbrsVel);
-   //for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
-   //   avgs[accIndex(i,j,k)] += (flux[k*YSXS+j*XS+i] - flux[k*YSXS+(j+1)*XS+i])*cnst;
-   //}
-   for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) avgs[accIndex(i,j,k)] += flux[k*YSXS+j*XS+i]*cnst;
-   for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) avgs[accIndex(i,j,k)] -= flux[k*YSXS+(j+1)*XS+i]*cnst;
-   // Calculate the contribution to d(avg)/dt from vz-fluxes:
-   XS = 4;
-   YS = 4;
-   YSXS = YS*XS;
-   cnst = DT / blockParams[BlockParams::DVZ];
-   fetchFluxesZ(BLOCK,flux,cell.cpu_fz,cell.cpu_nbrsVel);
-   for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
-      avgs[accIndex(i,j,k)] += (flux[k*YSXS+j*XS+i] - flux[(k+1)*YSXS+j*XS+i])*cnst;
-   }
-   // Store results:
-   REAL* const cpu_avgs = cell.cpu_avgs + BLOCK*SIZE_VELBLOCK;
-   for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
-      cpu_avgs[accIndex(i,j,k)] += avgs[accIndex(i,j,k)];
-   }
-   */
 }
 #endif
