@@ -21,14 +21,15 @@ MPT_VERSION = 3.4.1
 ZOLTAN_VERSION = 3.5
 SILO_VERSION = 4.8
 
-INC_BOOST = -I/stornext/field/users/honkonen/libraries/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/$(BOOST_VERSION)/include
-LIB_BOOST = -L/stornext/field/users/honkonen/libraries/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/$(BOOST_VERSION)/lib -lboost_mpi -lboost_serialization -lboost_program_options
+LIBRARY_PREFIX = /stornext/field/users/honkonen/libraries
 
-INC_ZOLTAN = -I/stornext/field/users/honkonen/libraries/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/$(ZOLTAN_VERSION)/include
-LIB_ZOLTAN = -L/stornext/field/users/honkonen/libraries/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/$(ZOLTAN_VERSION)/lib -lzoltan
+INC_BOOST = -I$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/$(BOOST_VERSION)/include
+LIB_BOOST = -L$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/$(BOOST_VERSION)/lib -lboost_mpi -lboost_serialization -lboost_program_options
 
-INC_SILO = -I/stornext/field/users/honkonen/libraries/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/include
-LIB_SILO = -L/stornext/field/users/honkonen/libraries/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/lib -lsilo
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/$(ZOLTAN_VERSION)/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/$(ZOLTAN_VERSION)/lib -lzoltan
 
-INC_DCCRG = -I/stornext/field/users/honkonen/libraries/dccrg
+INC_SILO = -I$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/include
+LIB_SILO = -L$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/lib -lsilo
 
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg
