@@ -9,7 +9,7 @@ FLAGS = -DMPICH_IGNORE_CXX_SEEK
 
 CC_BRAND = gcc
 CC_BRAND_VERSION = 4.5.2
-FLAGS += -O3 -fopenmp -funroll-loops -DNDEBUG -std=c++0x
+FLAGS += -O3 -fopenmp -funroll-loops -DNDEBUG -std=c++0x -W -Wall -pedantic
 
 #CC_BRAND = intel
 #CC_BRAND_VERSION = 11.1.046
