@@ -63,13 +63,13 @@ uint RectCuboidBuilder::countNeighbours(const VirtualCell::ID& i,const VirtualCe
    if (j - 2 <= ysize-1 || periodicInY == true) ++N_neighbours;
    if (k - 2 <= zsize-1 || periodicInZ == true) ++N_neighbours;
    if (i + 2 <= xsize-1 || periodicInX == true) ++N_neighbours;
-   if (j + 2 <= ysize-1 || periodicInX == true) ++N_neighbours;
-   if (k + 2 <= zsize-1 || periodicInX == true) ++N_neighbours;
+   if (j + 2 <= ysize-1 || periodicInY == true) ++N_neighbours;
+   if (k + 2 <= zsize-1 || periodicInZ == true) ++N_neighbours;
    return N_neighbours;
 }
 
-uint RectCuboidBuilder::calculateNeighbourID(const VirtualCell::ID& i,const VirtualCell::ID& j,const VirtualCell::ID& k,
-					     const int& i_nbr,const int& j_nbr,const int& k_nbr) {
+VirtualCell::ID RectCuboidBuilder::calculateNeighbourID(const VirtualCell::ID& i,const VirtualCell::ID& j,const VirtualCell::ID& k,
+							const int& i_nbr,const int& j_nbr,const int& k_nbr) {
    // Check that the given neighbour is within the simulation box:
    VC::ID i_out = i + i_nbr;
    VC::ID j_out = j + j_nbr;
@@ -77,16 +77,17 @@ uint RectCuboidBuilder::calculateNeighbourID(const VirtualCell::ID& i,const Virt
    // Check that neighbour i-index is within the simulation volume:
    if (i_out > xsize-1) {
       if (periodicInX == false) {
-	 return numeric_limits<uint>::max();
+	 return numeric_limits<VC::ID>::max();
       } else {
 	 if (i_out > MAX_INDEX) i_out = xsize-1 - (numeric_limits<VC::ID>::max()-i_out);
 	 else i_out -= xsize;	 
       }
    }
+   
    // Check that neighbour j-index is within the simulation volume:
    if (j_out > ysize-1) {
       if (periodicInY == false) {
-	 return numeric_limits<uint>::max();
+	 return numeric_limits<VC::ID>::max();
       } else {
 	 if (j_out > MAX_INDEX) j_out = ysize-1 - (numeric_limits<VC::ID>::max()-j_out);
 	 else j_out -= ysize;
@@ -95,7 +96,7 @@ uint RectCuboidBuilder::calculateNeighbourID(const VirtualCell::ID& i,const Virt
    // Check that neighbour k-index is within the simulation volume:
    if (k_out > zsize-1) {
       if (periodicInZ == false) {
-	 return numeric_limits<uint>::max();
+	 return numeric_limits<VC::ID>::max();
       } else {
 	 if (k_out > MAX_INDEX) k_out = zsize-1 - (numeric_limits<VC::ID>::max()-k_out);
 	 else k_out -= zsize;
@@ -182,7 +183,7 @@ bool RectCuboidBuilder::getCellIDs(std::vector<VirtualCell::ID>& cellIDs,std::ve
    // for each cell ID.
    VC::ID cellID;
    VC::ID x_neg,x_pos,y_neg,y_pos,z_neg,z_pos;
-   for (luint k=0; k<zsize; ++k) for (luint j=0; j<ysize; ++j) for (luint i=0; i<xsize; ++i) {
+   for (VC::ID k=0; k<zsize; ++k) for (VC::ID j=0; j<ysize; ++j) for (VC::ID i=0; i<xsize; ++i) {
       cellID = k*ysize*xsize + j*xsize + i;
       cellIDs[cellID] = cellID;
       N_nbrs[cellID] = countNeighbours(i,j,k);
@@ -215,12 +216,14 @@ bool RectCuboidBuilder::getCellNbrData(const VirtualCell::ID& N_cells,VirtualCel
       coords[6*c+4] = dy;
       coords[6*c+5] = dz;
 
+      uint oldCounter = counter;
+      
       // Add neighbours that exist inside 3x3x3 cube of cells centered at this cell:
       for (int i=-1; i<2; ++i) for (int j=-1; j<2; ++j) for (int k=-1; k<2; ++k) {
 	 if (i == 0 && (j == 0 && k == 0)) continue;
-	 cuint nbrID = calculateNeighbourID(I,J,K,i,j,k);
+	 VC::ID nbrID = calculateNeighbourID(I,J,K,i,j,k);
 	 const uchar nbrTypeID = calcNbrTypeID(i+2,j+2,k+2);
-	 if (nbrID == numeric_limits<uint>::max()) continue;
+	 if (nbrID == numeric_limits<VC::ID>::max()) continue;
 	 
 	 spatNbrIDs[counter] = nbrID;
 	 spatNbrTypes[counter] = nbrTypeID;
@@ -228,21 +231,20 @@ bool RectCuboidBuilder::getCellNbrData(const VirtualCell::ID& N_cells,VirtualCel
       }
       
       // Add existing --x,--y,--z,++x,++y,++z neighbours:
-      spatNbrIDs[counter+0]   = calculateNeighbourID(I,J,K,-2, 0, 0);
-      spatNbrTypes[counter+0] = calcNbrTypeID(2-2,2+0,2+0);
-      spatNbrIDs[counter+1]   = calculateNeighbourID(I,J,K,0 ,-2, 0);
-      spatNbrTypes[counter+1] = calcNbrTypeID(2+0,2-2,2+0);
-      spatNbrIDs[counter+2]   = calculateNeighbourID(I,J,K,0 , 0,-2);
-      spatNbrTypes[counter+2] = calcNbrTypeID(2+0,2+0,2-2);
-      spatNbrIDs[counter+3]   = calculateNeighbourID(I,J,K,+2, 0, 0);
-      spatNbrTypes[counter+3] = calcNbrTypeID(2+2,2+0,2+0);
-      spatNbrIDs[counter+4]   = calculateNeighbourID(I,J,K,0 ,+2, 0);
-      spatNbrTypes[counter+4] = calcNbrTypeID(2+0,2+2,2+0);
-      spatNbrIDs[counter+5]   = calculateNeighbourID(I,J,K,0 , 0,+2);
-      spatNbrTypes[counter+5] = calcNbrTypeID(2+0,2+0,2+2);
-      counter += 6;
+      VC::ID nbrID;
+      nbrID = calculateNeighbourID(I,J,K,-2, 0, 0);
+      if (nbrID != numeric_limits<VC::ID>::max()) {spatNbrIDs[counter]=nbrID; spatNbrTypes[counter]=calcNbrTypeID(0,2,2); ++counter;}
+      nbrID = calculateNeighbourID(I,J,K, 0,-2, 0);
+      if (nbrID != numeric_limits<VC::ID>::max()) {spatNbrIDs[counter]=nbrID; spatNbrTypes[counter]=calcNbrTypeID(2,0,2); ++counter;}
+      nbrID = calculateNeighbourID(I,J,K, 0, 0,-2);
+      if (nbrID != numeric_limits<VC::ID>::max()) {spatNbrIDs[counter]=nbrID; spatNbrTypes[counter]=calcNbrTypeID(2,2,0); ++counter;}
+      nbrID = calculateNeighbourID(I,J,K,+2, 0, 0);
+      if (nbrID != numeric_limits<VC::ID>::max()) {spatNbrIDs[counter]=nbrID; spatNbrTypes[counter]=calcNbrTypeID(4,2,2); ++counter;}
+      nbrID = calculateNeighbourID(I,J,K, 0,+2, 0);
+      if (nbrID != numeric_limits<VC::ID>::max()) {spatNbrIDs[counter]=nbrID; spatNbrTypes[counter]=calcNbrTypeID(2,4,2); ++counter;}
+      nbrID = calculateNeighbourID(I,J,K, 0, 0,+2);
+      if (nbrID != numeric_limits<VC::ID>::max()) {spatNbrIDs[counter]=nbrID; spatNbrTypes[counter]=calcNbrTypeID(2,2,4); ++counter;}
    }
-
    return true;
 }
 
@@ -253,9 +255,9 @@ bool RectCuboidBuilder::getCellParams(const VirtualCell::ID& N_cells,const Virtu
    for (VC::ID c=0; c<N_cells; ++c) {
       // Calculate i,j,k indices for give cell:
       const VC::ID CELLID = cellIDs[c];
-      cuint k = CELLID / (xsize*ysize);
-      cuint j = (CELLID - k*xsize*ysize)/xsize;
-      cuint i = CELLID - k*xsize*ysize - j*xsize;
+      const VC::ID k = CELLID / (xsize*ysize);
+      const VC::ID j = (CELLID - k*xsize*ysize)/xsize;
+      const VC::ID i = CELLID - k*xsize*ysize - j*xsize;
       
       cellParams[c*SIZE_CELLPARAMS+CellParams::XCRD] = xmin + i*dx;
       cellParams[c*SIZE_CELLPARAMS+CellParams::YCRD] = ymin + j*dy;
@@ -423,7 +425,7 @@ bool RectCuboidBuilder::initialize(MPI_Comm comm,const int& MASTER_RANK) {
    return initialized;
 }
 
-uint RectCuboidBuilder::spatCellIndex(cuint& i,cuint& j,cuint& k) {return k*ysize*xsize + j*xsize + i;}
+VirtualCell::ID RectCuboidBuilder::spatCellIndex(const VirtualCell::ID& i,const VirtualCell::ID& j,const VirtualCell::ID& k) {return k*ysize*xsize + j*xsize + i;}
 
 uint RectCuboidBuilder::velBlockIndex(cuint& iv,cuint& jv,cuint& kv) {
    return kv*vy_blocks*vx_blocks + jv*vx_blocks + iv;
