@@ -26,7 +26,9 @@
 #ifdef CRAYPAT
 //include craypat api headers if compiled with craypat on Cray XT/XE
 #include "pat_api.h"
-#endif 
+#endif
+
+#include "profile.h"
 
 Grid grid;
 MPILogger mpilogger;
@@ -86,6 +88,7 @@ bool writeGrid(const ParGrid<SpatialCell>& mpiGrid,DataReducer& dataReducer,cons
 #else
 bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const bool& writeRestart) {
 #endif
+    
    double allStart = MPI_Wtime();
    bool success = true;
    int myrank;
@@ -258,10 +261,6 @@ void log_send_receive_info(const dccrg<SpatialCell>& mpiGrid) {
 
 int main(int argn,char* args[]) {
    bool success = true;
-   double totTime;
-   double initTime;
-
-   
    // Init MPI:
    #ifndef PARGRID
       boost::mpi::environment env(argn,args);
@@ -276,10 +275,10 @@ int main(int argn,char* args[]) {
    int myrank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
 
-      
-   totTime=MPI_Wtime();
-   initTime=MPI_Wtime();    
+   profile::start("main");
+   profile::start("Initialization");
 
+   profile::start("Read parameters");
    // Init parameter file reader:
    typedef Parameters P;
    typedef Readparameters RP;
@@ -290,7 +289,7 @@ int main(int argn,char* args[]) {
        cerr << "(MAIN) Readparameters failed to init, aborting!" << endl;
        return 1;
    }
-   
+
    // Read in some parameters
    // Parameters related to solar wind simulations:
    // DEPRECATED: These will be moved to somewhere else in the future
@@ -332,61 +331,46 @@ int main(int argn,char* args[]) {
        exit(1);
    }
 
+   profile::stop("Read parameters");
+
 #ifdef CRAYPAT
-/*initialize variables for reducing sampling & tracing to a slice in iteration & process
-  space.
+/*initialize variables for reducing sampling & tracing to a slice of all iterations.
 */
    char *envvar;
    int firstiter=-1;
    int lastiter=numeric_limits<int>::max();
-   int firstrank=-1;
-   int lastrank=numeric_limits<int>::max();       
 #warning Including CrayPAT API 
    if(myrank==0){
        envvar=getenv("CRAYPAT_FIRSTITER");
        if(envvar!=NULL){
-           //FIXME, happily we do no error checking here...
            firstiter=atoi(envvar);
        }
        envvar=getenv("CRAYPAT_LASTITER");
        if(envvar!=NULL){
-       //FIXME, happily we do no error checking here...
            lastiter=atoi(envvar);
        }
-       envvar=getenv("CRAYPAT_FIRSTRANK");
-       if(envvar!=NULL){
-           //FIXME, happily we do no error checking here...
-           firstrank=atoi(envvar);
-       }
-       envvar=getenv("CRAYPAT_LASTRANK");
-       if(envvar!=NULL){
-           //FIXME, happily we do no error checking here...
-           lastrank=atoi(envvar);
-       }
+       
    }
    
    MPI_Bcast(&firstiter,1,MPI_INT,0,MPI_COMM_WORLD);
    MPI_Bcast(&lastiter,1,MPI_INT,0,MPI_COMM_WORLD);
-   MPI_Bcast(&firstrank,1,MPI_INT,0,MPI_COMM_WORLD);
-   MPI_Bcast(&lastrank,1,MPI_INT,0,MPI_COMM_WORLD);
 
    //turn off craypat sampling & tracing based on the defined slices.
    if(firstiter>0){
        PAT_state(PAT_STATE_OFF);
    }
-   else if(myrank<firstrank || myrank> lastrank){
-       PAT_state(PAT_STATE_OFF);
-   }
-#endif
-
    
+#endif
+   
+   profile::start("open mpilogger");
    // Init parallel logger:
    if (mpilogger.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt") == false) {
       cerr << "(MAIN) ERROR: MPILogger failed to open output file!" << endl;
       exit(1);
    }
-   
-   #ifndef PARGRID // INITIALIZE USING DCCRG
+   profile::stop("open mpilogger");
+   profile::start("Initialize Grid");
+#ifndef PARGRID // INITIALIZE USING DCCRG
       // Create parallel MPI grid and init Zoltan:
       float zoltanVersion;
       if (Zoltan_Initialize(argn,args,&zoltanVersion) != ZOLTAN_OK) {
@@ -463,8 +447,9 @@ int main(int argn,char* args[]) {
       //mpiGrid.initialize();
    
    #endif
+      profile::stop("Initialize Grid");
 
-   // If initialization was not successful, abort.
+      // If initialization was not successful, abort.
    if (success == false) {
       if (myrank == MASTER_RANK) {
 	 std::cerr << "An error has occurred, aborting. See logfile for details." << std::endl;
@@ -474,22 +459,25 @@ int main(int argn,char* args[]) {
       return 1;
    }
    if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting up." << endl << write;
-   
+
+   profile::start("Initial load-balancing");
    // Do initial load balancing:
    initialLoadBalance(mpiGrid);
    #ifndef PARGRID
       comm.barrier();
    #endif
-   
+   profile::stop("Initial load-balancing");
+   profile::start("Set initial state");
    // Go through every spatial cell on this CPU, and create the initial state:
    #ifndef PARGRID
       initSpatialCells(mpiGrid,comm);
       comm.barrier();
-   #else
+#else
       //initSpatialCells(mpiGrid);
       //mpiGrid.barrier();
    #endif
-
+      profile::stop("Set initial state");
+      profile::start("Fetch Neighbour data");
    // Fetch neighbour data:
    #ifndef PARGRID
       P::transmit = Transmit::AVGS;
@@ -502,7 +490,7 @@ int main(int argn,char* args[]) {
       mpiGrid.waitAll();
       mpiGrid.barrier();
    #endif
-
+      profile::stop("Fetch Neighbour data");
    log_send_receive_info(mpiGrid);
 
    #ifdef PARGRID
@@ -519,19 +507,21 @@ int main(int argn,char* args[]) {
    reducer.addOperator(new DRO::VariableRhoV);
    reducer.addOperator(new DRO::MPIrank);
    //VlsWriter vlsWriter;
-
+   profile::start("Init vlasov propagator");
    // Initialize Vlasov propagator:
    if (initializeMover(mpiGrid) == false) {
       mpilogger << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << write;
       exit(1);
    }
-
+   profile::stop("Init vlasov propagator");
 #ifdef PARGRID
+   profile::start("Init field propagator");
    // Initialize field propagator:
    if (initializeFieldPropagator(mpiGrid) == false) {
       mpilogger << "(MAIN): Field propagator did not initialize correctly!" << endl << write;
       exit(1);
-   }   
+   }
+   profile::stop("Init field propagator");
 #endif
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****
@@ -539,10 +529,7 @@ int main(int argn,char* args[]) {
    
    // Free up memory:
    readparameters.finalize();
-   initTime=MPI_Wtime()-initTime;
-   
-   double initIoTime=MPI_Wtime();
-   double loopIoTime=0;
+   profile::start("Save initial state");
    // Write initial state:
    if (P::save_spatial_grid) {
       calculateVelocityMoments(mpiGrid);
@@ -556,14 +543,13 @@ int main(int argn,char* args[]) {
 	 mpilogger << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
       }
    }
-
+   profile::stop("Save initial state");
+   profile::stop("Initialization");
 #ifndef PARGRID
    comm.barrier();
 #else
    mpiGrid.barrier();
 #endif
-   initIoTime=MPI_Wtime()-initIoTime;
-
    inistate = false;
    // Main simulation loop:
 
@@ -571,13 +557,15 @@ int main(int argn,char* args[]) {
      mpilogger << "(MAIN): Starting main simulation loop." << endl << write;
 
    double before = MPI_Wtime();
+
+   profile::start("Simulation");
    for (luint tstep=P::tstep_min; tstep < P::tsteps; ++tstep) {
-      #ifdef CRAYPAT //turn on & off sampling & tracing
-         if(myrank>=firstrank && myrank<=lastrank){
-	    if(tstep==firstiter) PAT_state(PAT_STATE_ON);
-	    if(tstep>lastiter) PAT_state(PAT_STATE_OFF);
-	 }
-      #endif 
+#ifdef CRAYPAT //turn on & off sampling & tracing
+       if(myrank>=firstrank && myrank<=lastrank){
+           if(tstep==firstiter) PAT_state(PAT_STATE_ON);
+           if(tstep>lastiter) PAT_state(PAT_STATE_OFF);
+       }
+#endif 
        // Recalculate (maybe) spatial cell parameters
       calculateSimParameters(mpiGrid, P::t, P::dt);
 
@@ -589,50 +577,20 @@ int main(int argn,char* args[]) {
       #endif
 
       if (P::propagateVlasov == true) {
-      // Propagate the state of simulation forward in time by dt:
-      #ifdef CRAYPAT
-         PAT_region_begin(2,"calculateSpatialDerivatives");
-      #endif
-      calculateSpatialDerivatives(mpiGrid);
-      #ifdef CRAYPAT
-         PAT_region_end(2);
-         PAT_region_begin(3,"calculateSpatialFluxes");
-      #endif
-      calculateSpatialFluxes(mpiGrid);
-      #ifdef CRAYPAT
-         PAT_region_end(3);
-         PAT_region_begin(4,"calculateSpatialPropagation");
-      #endif
-      calculateSpatialPropagation(mpiGrid,false,false);
-      #ifdef CRAYPAT
-         PAT_region_end(4);
-      #endif
-      
-      bool transferAvgs = false;
-      if (P::tstep % P::saveRestartInterval == 0 || P::tstep == P::tsteps-1) transferAvgs = true;
-      
-      #ifdef CRAYPAT
-         PAT_region_begin(1,"calculateAcceleration");
-      #endif 
-      calculateAcceleration(mpiGrid);
-      #ifdef CRAYPAT
-         PAT_region_end(1);
-         PAT_region_begin(2,"calculateSpatialDerivatives");
-      #endif 
-      calculateSpatialDerivatives(mpiGrid);
-      #ifdef CRAYPAT
-         PAT_region_end(2);
-         PAT_region_begin(3,"calculateSpatialFluxes");
-      #endif 
-      calculateSpatialFluxes(mpiGrid);
-      #ifdef CRAYPAT
-         PAT_region_end(3);
-         PAT_region_begin(4,"calculateSpatialPropagation");
-      #endif 
-      calculateSpatialPropagation(mpiGrid,true,transferAvgs);
-      #ifdef CRAYPAT
-         PAT_region_end(4);
-      #endif 
+          // Propagate the state of simulation forward in time by dt:
+          calculateSpatialDerivatives(mpiGrid);
+          calculateSpatialFluxes(mpiGrid);
+          calculateSpatialPropagation(mpiGrid,false,false);
+          
+          bool transferAvgs = false;
+          if (P::tstep % P::saveRestartInterval == 0 ||
+              P::tstep == P::tsteps-1) transferAvgs = true;
+          
+          calculateAcceleration(mpiGrid);
+
+          calculateSpatialDerivatives(mpiGrid);
+          calculateSpatialFluxes(mpiGrid);
+          calculateSpatialPropagation(mpiGrid,true,transferAvgs);
       }
 #ifdef PARGRID      
       if (P::propagateField == true) {
@@ -643,7 +601,6 @@ int main(int argn,char* args[]) {
       P::t += P::dt;
       
       // Check if data needs to be written to disk:
-      double t1=MPI_Wtime();
       if (P::tstep % P::saveRestartInterval == 0) {
 	 if (myrank == MASTER_RANK)
 	   mpilogger << "(MAIN): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl;
@@ -660,50 +617,36 @@ int main(int argn,char* args[]) {
 	 }
       }
 
-      loopIoTime+=MPI_Wtime()-t1;
       MPI_Barrier(MPI_COMM_WORLD);
    }
    double after = MPI_Wtime();
-
+   profile::stop("Simulation");
+   profile::start("Finalization");   
    finalizeMover();
 #ifdef PARGRID
    finalizeFieldPropagator(mpiGrid);
 #endif
    
    if (myrank == MASTER_RANK) {
-      mpilogger << "(MAIN): All timesteps calculated." << endl;
-      time_t after = std::time(NULL);
-      mpilogger << "\t (TIME) total run time " << after - before << " s, total simulated time " << P::t << " s" << endl;
-      mpilogger << "\t (TIME) seconds per timestep " << double(after - before) / P::tsteps << ", seconds per simulated second " << double(after - before) / P::t << endl;
-      mpilogger << write;
+       mpilogger << "(MAIN): All timesteps calculated." << endl;
+       mpilogger << "\t (TIME) total run time " << after - before << " s, total simulated time " << P::t << " s" << endl;
+       mpilogger << "\t (TIME) seconds per timestep " << double(after - before) / P::tsteps <<
+           ", seconds per simulated second " << double(after - before) / P::t << endl;
+       mpilogger << write;
    }
-   
-   double finalIoTime=MPI_Wtime();
 
    // Write final state to disk:
    if (P::save_spatial_grid) {
       if (myrank == MASTER_RANK)
-	mpilogger << "(MAIN): Writing spatial cell data to disk, tstep = " << P::tstep << " t = " << P::t << endl;
+          mpilogger << "(MAIN): Writing spatial cell data to disk, tstep = " << P::tstep << " t = " << P::t << endl;
       if (writeGrid(mpiGrid,reducer,false) == false) 
-	if (myrank == MASTER_RANK) 
-	  mpilogger << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
+          if (myrank == MASTER_RANK) 
+              mpilogger << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
    }
-
-   finalIoTime=MPI_Wtime()-finalIoTime;
-   totTime=MPI_Wtime()-totTime;
    
-   if (myrank == MASTER_RANK) {
-      mpilogger << "(MAIN): All timesteps calculated." << endl;
-      mpilogger << "(TIME) total simulated time " << P::t << " s" << endl;
-      mpilogger << "(TIME) Total time " << totTime << " s" << endl;
-      mpilogger << "(TIME)   Initialization time " << initTime << " s" << endl;
-      mpilogger << "(TIME)   Initial IO time " << initIoTime << " s" << endl;
-      mpilogger << "(TIME)   Main loop: total run time  " << after - before << " s" << endl;
-      mpilogger << "(TIME)     Main loop: Compute+MPI " << after - before - loopIoTime << " s" << endl;
-      mpilogger << "(TIME)     Main loop: IO " << loopIoTime << " s" << endl;
-      mpilogger << "(TIME)   Final IO time " << finalIoTime << " s" << endl;
-      mpilogger << write;
-   }
+   profile::stop("Finalization");   
+   profile::stop("main");
+   profile::print(MPI_COMM_WORLD);
    
    // Write the timer values (if timers have been defined):
    //writeTimers();

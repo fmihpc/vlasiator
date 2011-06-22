@@ -10,8 +10,8 @@ MOVER ?= cpu
 
 
 #Add -DPARGRID to use pargrid instead of DCCRG
-FLAGS += -DPARGRID
-
+#FLAGS += -DPARGRID
+FLAGS += -DPROFILE
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
 #PROJ = test_trans
@@ -63,6 +63,7 @@ DEPS_MUXML = muxml.h muxml.cpp
 DEPS_PARAMETERS = parameters.h parameters.cpp
 DEPS_PROJECT = project.h project.cpp
 DEPS_TIMER = timer.h timer.cpp
+DEPS_PROFILE = profile.h profile.cpp
 DEPS_VLSCOMMON = vlscommon.h vlscommon.cpp
 DEPS_VLSVREADER2 = muxml.h vlscommon.h vlsvreader2.h vlsvreader2.cpp
 DEPS_VLSVWRITER2 = mpiconversion.h muxml.h vlscommon.h vlsvwriter2.h vlsvwriter2.cpp
@@ -88,14 +89,14 @@ HDRS = arrayallocator.h cpu_acc.h cpu_acc_ppm.h cpu_common.h cpu_trans.h cell_sp
 	mpiconversion.h mpifile.h mpilogger.h\
 	parameters.h\
 	pargrid.h timer.h vlscommon.h\
-	vlsvwriter2.h vlsvreader2.h muxml.h
+	vlsvwriter2.h vlsvreader2.h muxml.h profile.h
 
 CUDA_HDRS = cudafuncs.h cudalaunch.h devicegrid.h
 
 SRC = 	arrayallocator.cpp datareducer.cpp datareductionoperator.cpp\
 	grid.cpp gridbuilder.cpp\
 	vlasiator.cpp mpifile.cpp mpilogger.cpp\
-	parameters.cpp timer.cpp\
+	parameters.cpp timer.cpp profile.cpp\
 	vlscommon.cpp vls2vtk.cpp\
 	vlsvreader2.cpp vlsvwriter2.cpp muxml.cpp vlsv2silo.cpp
 
@@ -109,7 +110,7 @@ OBJS = arrayallocator.o cell_spatial.o		\
 	datareducer.o datareductionoperator.o grid.o		\
 	gridbuilder.o vlasiator.o mpifile.o mpilogger.o muxml.o	\
 	parameters.o project.o					\
-	timer.o vlscommon.o vlsvwriter2.o
+	timer.o profile.o vlscommon.o vlsvwriter2.o
 
 OBJS_VLSV2SILO = muxml.o vlscommon.o vlsvreader2.o
 
@@ -193,6 +194,9 @@ projinstall:
 
 timer.o: ${DEPS_TIMER}
 	${CMP} $(CXXFLAGS) $(FLAGS) -c timer.cpp
+
+profile.o: ${DEPS_PROFILE}
+	${CMP} $(CXXFLAGS) $(FLAGS) -c profile.cpp
 
 vlscommon.o: ${DEPS_VLSCOMMON}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlscommon.cpp
