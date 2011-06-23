@@ -1,8 +1,9 @@
 #ifndef MPILOGGER_H
 #define MPILOGGER_H
 
-#include "mpifile.h"
+#include <fstream>
 #include <sstream>
+#include "mpifile.h"
 
 /** A class for writing log messages in parallel. MPILogger functions in 
  * the same way as standard C++ input streams, i.e. you insert values by 
@@ -50,6 +51,7 @@ class MPILogger {
    int mpiRank;                         /**< The rank of the process using MPILogger within a user-defined communicator.*/
    int masterRank;                      /**< MPI rank of the master process.*/
    std::stringstream outStream;         /**< Output buffer.*/
+   std::fstream* masterStream;          /**< Output stream for master process only.*/
 };
 
 /** Stream insertion operator for inserting values to the input stream.
