@@ -74,22 +74,24 @@ VirtualCell::ID RectCuboidBuilder::calculateNeighbourID(const VirtualCell::ID& i
    VC::ID i_out = i + i_nbr;
    VC::ID j_out = j + j_nbr;
    VC::ID k_out = k + k_nbr;
-   // Check that neighbour i-index is within the simulation volume:
+   // Check that neighbour i-index is within the simulation volume. 
+   // The general solution does not work for xsize==1:
    if (i_out > xsize-1) {
       if (periodicInX == false) {
 	 return numeric_limits<VC::ID>::max();
       } else {
-	 if (i_out > MAX_INDEX) i_out = xsize-1 - (numeric_limits<VC::ID>::max()-i_out);
+	 if (xsize == 1) return 0; 
+	 else if (i_out > MAX_INDEX) i_out = xsize-1 - (numeric_limits<VC::ID>::max()-i_out);
 	 else i_out -= xsize;	 
       }
-   }
-   
+   }   
    // Check that neighbour j-index is within the simulation volume:
    if (j_out > ysize-1) {
       if (periodicInY == false) {
 	 return numeric_limits<VC::ID>::max();
       } else {
-	 if (j_out > MAX_INDEX) j_out = ysize-1 - (numeric_limits<VC::ID>::max()-j_out);
+	 if (ysize == 1) return 0;
+	 else if (j_out > MAX_INDEX) j_out = ysize-1 - (numeric_limits<VC::ID>::max()-j_out);
 	 else j_out -= ysize;
       }
    }
@@ -98,7 +100,8 @@ VirtualCell::ID RectCuboidBuilder::calculateNeighbourID(const VirtualCell::ID& i
       if (periodicInZ == false) {
 	 return numeric_limits<VC::ID>::max();
       } else {
-	 if (k_out > MAX_INDEX) k_out = zsize-1 - (numeric_limits<VC::ID>::max()-k_out);
+	 if (zsize == 1) return 0;
+	 else if (k_out > MAX_INDEX) k_out = zsize-1 - (numeric_limits<VC::ID>::max()-k_out);
 	 else k_out -= zsize;
       }
    }
