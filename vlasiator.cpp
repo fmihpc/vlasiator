@@ -89,11 +89,15 @@ bool writeGrid(const ParGrid<SpatialCell>& mpiGrid,DataReducer& dataReducer,cons
 bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const bool& writeRestart) {
 #endif
     
-   double allStart = MPI_Wtime();
-   bool success = true;
-   int myrank;
-   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
-
+    double allStart = MPI_Wtime();
+    bool success = true;
+    int myrank;
+    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+    if(writeRestart)
+        profile::start("writeGrid-restart");
+    else
+        profile::start("writeGrid-reduced");
+    
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
    fname << "grid.";
@@ -164,6 +168,7 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const 
    if (writeRestart == false) {
       MPI_Barrier(MPI_COMM_WORLD);
       vlsvWriter.close();
+      profile::stop("writeGrid-reduced");
       return success;
    }
    
@@ -237,7 +242,8 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const 
    
    double allSecs = allEnd-allStart;
    if (myrank == 0) mpilogger << "All data written in " << allSecs << " seconds" << endl << write;
-   
+
+   profile::stop("writeGrid-restart",1.0e-6*bytesWritten,"MB");
    return success;
 }
 
