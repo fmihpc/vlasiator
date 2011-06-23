@@ -47,6 +47,8 @@ namespace timer {
    uint recvAverages;
    uint sendUpdates;
    uint recvUpdates;
+   
+   uint memoryCopies;
 }
 
 static map<pair<CellID,int>,Real*> updateBuffers;
@@ -67,6 +69,8 @@ bool initializeMover(ParGrid<SpatialCell>& mpiGrid) {
    timer::sendAverages  = Timer::create("(    MPI    ) send averages                   : ");
    timer::recvUpdates   = Timer::create("(    MPI    ) receive remote updates          : ");
    timer::sendUpdates   = Timer::create("(    MPI    ) send updates                    : ");
+   
+   timer::memoryCopies  = Timer::create("( MEM COPY  ) memory copies                   : ");
    
    // Populate spatial neighbour list:
    vector<CellID> cells;
@@ -141,8 +145,8 @@ bool initializeMover(ParGrid<SpatialCell>& mpiGrid) {
    
    // Send/receive stencils for df/dt updates:
    nbrTypeIDs.clear();
-   for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
-      nbrTypeIDs.push_back(calcNbrTypeID(2+i,2+j,2  ));
+   for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
+      nbrTypeIDs.push_back(calcNbrTypeID(2+i,2+j,2+k));
    }
    stencilUpdates.addRemoteUpdateReceives(mpiGrid,nbrTypeIDs);
    stencilUpdates.addRemoteUpdateSends(mpiGrid,nbrTypeIDs);
@@ -160,27 +164,6 @@ bool initializeMover(ParGrid<SpatialCell>& mpiGrid) {
       updateBuffers.insert(make_pair(make_pair(localID,host),buffer));
       remoteUpdates[localID].insert(buffer);
    }
-   /*
-   for (int p=0; p<mpiGrid.processes(); ++p) {
-      if (p == mpiGrid.rank()) {
-	 //cerr << "PROC #" << p << " stencilUpdates neighbours:" << endl;
-	 //for (map<CellID,pair<uint,uint> >::const_iterator it=stencilUpdates.neighbours.begin(); it!=stencilUpdates.neighbours.end(); ++it) {
-	 //   cerr << '\t' << it->first << "\t required: " << it->second.first << " received: " << it->second.second << endl;
-	 //}
-	 cerr << "PROC #" << p << " remote updates:" << endl;
-	 mpiGrid.getRemoteCells(cells);
-	 for (size_t c=0; c<cells.size(); ++c) {
-	    cerr << " Cell #" << cells[c] << " : ";
-	    map<CellID,pair<uint,uint> >::const_iterator it=stencilUpdates.updates.find(cells[c]);
-	    if (it == stencilUpdates.updates.end()) cerr << "NOT FOUND";
-	    else cerr << it->second.first;
-	    cerr << endl;
-	 }
-      }
-      mpiGrid.barrier();
-   }
-   mpiGrid.barrier();
-   */
    return true;
 }
 
@@ -202,7 +185,6 @@ void calculateCellParameters(ParGrid<SpatialCell>& mpiGrid,creal& t,ID::type cel
 void calculateAcceleration(ParGrid<SpatialCell>& mpiGrid) { 
    typedef Parameters P;
    
-   //Timer::start(timer::calcAcc);
    vector<CellID> cells;
    mpiGrid.getCells(cells);
 
@@ -244,7 +226,6 @@ void calculateAcceleration(ParGrid<SpatialCell>& mpiGrid) {
          PAT_region_end(4);
       #endif
    }
-   //Timer::stop(timer::calcAcc);
 }
 
 void calculateSpatialDerivatives(ParGrid<SpatialCell>& mpiGrid) { }
@@ -457,7 +438,7 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
    bool allTasksCompleted;
    size_t calculatedCells = 0;
    uint priority;
-   
+
    // *****************************************
    // ***** CALCULATE DF/DT CONTRIBUTIONS *****
    // *****************************************
@@ -537,7 +518,7 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
       cellID = *it;
       readyCells.insert(cellID,0);
    }
-
+   
    do {
       allTasksCompleted = true;
 
@@ -683,7 +664,6 @@ void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid,const bool& secon
    Timer::stop(timer::calcPropag);
 
    // Wait for remote neighbour updates to arrive:
-   //cerr << "PROC #" << mpiGrid.rank() << " waiting df/dt update receives" << endl;
    Timer::start(timer::recvUpdates);
    mpiGrid.waitAllReceives();
    Timer::stop(timer::recvUpdates);
@@ -728,7 +708,6 @@ void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid,const bool& secon
    Timer::stop(timer::calcPropag);
 
    // Wait for neighbour update sends:
-   //cerr << "PROC #" << mpiGrid.rank() << " waiting df/dt update sends" << endl;
    Timer::start(timer::sendUpdates);
    mpiGrid.singleModeWaitAllSends();
    Timer::stop(timer::sendUpdates);

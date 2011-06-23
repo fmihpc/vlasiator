@@ -13,7 +13,6 @@
 #include "grid.h"
 #include "silowriter.h"
 #include "cell_spatial.h"
-//#include "writevars.h"
 #include "gridbuilder.h"
 #include "datareducer.h"
 #include "datareductionoperator.h"
@@ -451,7 +450,7 @@ int main(int argn,char* args[]) {
       // Load balance is most likely far from optimal. Do an 
       // initial load balance before reading cell data:
       //mpiGrid.initialize();
-   
+
    #endif
       profile::stop("Initialize Grid");
 
@@ -609,14 +608,14 @@ int main(int argn,char* args[]) {
       // Check if data needs to be written to disk:
       if (P::tstep % P::saveRestartInterval == 0) {
 	 if (myrank == MASTER_RANK)
-	   mpilogger << "(MAIN): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl;
+	   mpilogger << "(MAIN): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << write;
 	 if (writeGrid(mpiGrid,reducer,true) == false) {
 	    if (myrank == MASTER_RANK) 
 	      mpilogger << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
 	 }
       } else if (P::tstep % P::diagnInterval == 0) {
 	 if (myrank == MASTER_RANK)
-	   mpilogger << "(MAIN): Writing spatial cell data to disk, tstep = " << P::tstep << " t = " << P::t << endl;
+	   mpilogger << "(MAIN): Writing spatial cell data to disk, tstep = " << P::tstep << " t = " << P::t << endl << write;
 	 if (writeGrid(mpiGrid,reducer,false) == false) {
 	    if (myrank == MASTER_RANK) 
 	      mpilogger << "(MAIN): ERROR occurred while writing spatial cell data!" << endl << write;

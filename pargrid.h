@@ -1003,6 +1003,7 @@ template<class C> bool ParGrid<C>::initialize() {
    buildExchangeLists();
    initialLoadBalance();
    buildExchangeLists();
+   
    // Allocate memory for user data:
    //std::cerr << "ParGrid: Allocating " << localCells.size() << " local cells" << std::endl;
    for (typename std::map<ID::type,ParCell<C> >::iterator it=localCells.begin(); it!= localCells.end(); ++it) {
@@ -1395,10 +1396,9 @@ template<class C> uint ParGrid<C>::singleModeTestSome() {
    // Ensure that enough status messages have been allocated:
    if (MPIstatuses.size() < MPIrecvRequests.size()) MPIstatuses.resize(MPIrecvRequests.size());
    
-   // Test if some of the active receives has completed, and insert all completed 
-   // localIDs to readyCells:
+   // Test if some of active receives posted with singleReceive have completed:
    int receives = 0;
-   int readyIndices[MPIrecvRequests.size()];
+   int* readyIndices = new int[MPIrecvRequests.size()];
    if (MPI_Testsome(MPIrecvRequests.size(),&(MPIrecvRequests[0]),&receives,readyIndices,&(MPIstatuses[0])) != MPI_SUCCESS) {
       std::cerr << "ParGrid::singleModeTestSome failed on process #" << myrank << std::endl;
       exit(1);
@@ -1409,6 +1409,30 @@ template<class C> uint ParGrid<C>::singleModeTestSome() {
    }
    for (int i=0; i<receives; ++i) readyCells.push_back(localReceiveIDs[readyIndices[i]]);
    N_receivesRemaining -= receives;
+   delete readyIndices;
+   return receives;
+}
+
+template<class C> uint ParGrid<C>::singleModeTestSome2() {
+   if (N_receivesRemaining2 == 0) return 0;
+   
+   // Ensure that enough status messages have been allocated:
+   if (MPIstatuses.size() < MPIrecvRequests2.size()) MPIstatuses.resize(MPIrecvRequests2.size());
+   
+   // Test if some of active receives posted with singleReceive2 have completed:
+   int receives = 0;
+   int* readyIndices = new int[MPIrecvRequests2.size()];
+   if (MPI_Testsome(MPIrecvRequests2.size(),&(MPIrecvRequests2[0]),&receives,readyIndices,&(MPIstatuses[0])) != MPI_SUCCESS) {
+      std::cerr << "ParGrid::singleModeTestSome2 failed on process #" << myrank << std::endl;
+      exit(1);
+   }
+   if (receives == MPI_UNDEFINED) {
+      std::cerr << "ParGrid::singleModeTestSome2 receives is MPI_UNDEFINED!" << std::endl;
+      exit(1);
+   }
+   for (int i=0; i<receives; ++i) readyCells2.push_back(localReceiveIDs2[readyIndices[i]]);
+   N_receivesRemaining2 -= receives;
+   delete readyIndices;
    return receives;
 }
 

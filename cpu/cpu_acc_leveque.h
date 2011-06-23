@@ -593,76 +593,76 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL&
       dFdt[findex(i  ,j  ,k+1)] -= (INCR_WAVE*AX_NEG*AY_NEG - CORR_WAVE*AY_NEG)*DT/DVY;
 
       // Transverse propagation, Fz updates:
-      dFdt[findex(i+1,j+1,k+2)] += (INCR_WAVE*AX_POS*AZ_POS + CORR_WAVE*AZ_POS)*DT/DVZ;
+      dFdt[findex(i+1,j+1,k+2)] += (INCR_WAVE*AX_POS*AZ_POS + CORR_WAVE*AZ_POS)*DT/DVZ; // Ax > 0, Az > 0
       dFdt[findex(i+1,j+1,k+1)] -= (INCR_WAVE*AX_POS*AZ_POS + CORR_WAVE*AZ_POS)*DT/DVZ;
-      dFdt[findex(i+1,j+1,k+1)] += (INCR_WAVE*AX_POS*AZ_NEG + CORR_WAVE*AZ_NEG)*DT/DVZ;
+      dFdt[findex(i+1,j+1,k+1)] += (INCR_WAVE*AX_POS*AZ_NEG + CORR_WAVE*AZ_NEG)*DT/DVZ; // Ax > 0, Az < 0
       dFdt[findex(i+1,j+1,k  )] -= (INCR_WAVE*AX_POS*AZ_NEG + CORR_WAVE*AZ_NEG)*DT/DVZ;
-      dFdt[findex(i  ,j+1,k+2)] += (INCR_WAVE*AX_NEG*AZ_POS - CORR_WAVE*AZ_POS)*DT/DVZ;
+      dFdt[findex(i  ,j+1,k+2)] += (INCR_WAVE*AX_NEG*AZ_POS - CORR_WAVE*AZ_POS)*DT/DVZ; // Ax < 0, Az > 0
       dFdt[findex(i  ,j+1,k+1)] -= (INCR_WAVE*AX_NEG*AZ_POS - CORR_WAVE*AZ_POS)*DT/DVZ;
-      dFdt[findex(i  ,j+1,k+1)] += (INCR_WAVE*AX_NEG*AZ_NEG - CORR_WAVE*AZ_NEG)*DT/DVZ;
+      dFdt[findex(i  ,j+1,k+1)] += (INCR_WAVE*AX_NEG*AZ_NEG - CORR_WAVE*AZ_NEG)*DT/DVZ; // Ax < 0, Az < 0
       dFdt[findex(i  ,j+1,k  )] -= (INCR_WAVE*AX_NEG*AZ_NEG - CORR_WAVE*AZ_NEG)*DT/DVZ;
 
       INCR_WAVE = DT*DT/DVX/DVZ*dF/6.0;
 
       // Double transverse propagation, Fy updates:
-      dFdt[findex(i+1,j+2,k+1)] += INCR_WAVE*AX_POS*AY_POS*fabs(AZ)*DT/DVY; // Ax > 0
-      dFdt[findex(i+1,j+1,k+1)] += INCR_WAVE*AX_POS*AY_NEG*fabs(AZ)*DT/DVY;
-      dFdt[findex(i  ,j+2,k+1)] += INCR_WAVE*AX_NEG*AY_POS*fabs(AZ)*DT/DVY; // Ax < 0
-      dFdt[findex(i  ,j+1,k+1)] += INCR_WAVE*AX_NEG*AY_NEG*fabs(AZ)*DT/DVY;
+      dFdt[findex(i+1,j+2,k+1)] += INCR_WAVE*AX_POS*AY_POS*fabs(AZ)*DT/DVY; // Ax > 0, Ay > 0
+      dFdt[findex(i+1,j+1,k+1)] += INCR_WAVE*AX_POS*AY_NEG*fabs(AZ)*DT/DVY; //         Ay < 0
+      dFdt[findex(i  ,j+2,k+1)] += INCR_WAVE*AX_NEG*AY_POS*fabs(AZ)*DT/DVY; // Ax < 0, Ay > 0
+      dFdt[findex(i  ,j+1,k+1)] += INCR_WAVE*AX_NEG*AY_NEG*fabs(AZ)*DT/DVY; //         Ay < 0
       
-      dFdt[findex(i+1,j+2,k+2)] -= INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVY; // Ax > 0
-      dFdt[findex(i+1,j+1,k+2)] -= INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVY;
-      dFdt[findex(i+1,j+2,k  )] += INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVY;
-      dFdt[findex(i+1,j+1,k  )] += INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVY;
-      dFdt[findex(i  ,j+2,k+2)] -= INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVY; // Ax < 0
-      dFdt[findex(i  ,j+1,k+2)] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVY;
-      dFdt[findex(i  ,j+2,k  )] += INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVY;
-      dFdt[findex(i  ,j+1,k  )] += INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVY;
+      dFdt[findex(i+1,j+2,k+2)] -= INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVY; // Ax > 0, Ay > 0, Az > 0
+      dFdt[findex(i+1,j+1,k+2)] -= INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVY; //         Ay < 0
+      dFdt[findex(i+1,j+2,k  )] += INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVY; //         Ay > 0, Az < 0
+      dFdt[findex(i+1,j+1,k  )] += INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVY; //         Ay < 0
+      dFdt[findex(i  ,j+2,k+2)] -= INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVY; // Ax < 0, Ay > 0, Az > 0
+      dFdt[findex(i  ,j+1,k+2)] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVY; //         Ay < 0
+      dFdt[findex(i  ,j+2,k  )] += INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVY; //         Ay > 0, Az < 0
+      dFdt[findex(i  ,j+1,k  )] += INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVY; //         Ay < 0
       
-      dFdt[findex(i+1,j+1,k+1)] -= INCR_WAVE*AX_POS*AY_POS*fabs(AZ)*DT/DVY; // Ax > 0
-      dFdt[findex(i+1,j  ,k+1)] -= INCR_WAVE*AX_POS*AY_NEG*fabs(AZ)*DT/DVY;
-      dFdt[findex(i  ,j+1,k+1)] -= INCR_WAVE*AX_NEG*AY_POS*fabs(AZ)*DT/DVY; // Ax < 0
-      dFdt[findex(i  ,j  ,k+1)] -= INCR_WAVE*AX_NEG*AY_NEG*fabs(AZ)*DT/DVY;
+      dFdt[findex(i+1,j+1,k+1)] -= INCR_WAVE*AX_POS*AY_POS*fabs(AZ)*DT/DVY; // Ax > 0, Ay > 0
+      dFdt[findex(i+1,j  ,k+1)] -= INCR_WAVE*AX_POS*AY_NEG*fabs(AZ)*DT/DVY; //         Ay < 0
+      dFdt[findex(i  ,j+1,k+1)] -= INCR_WAVE*AX_NEG*AY_POS*fabs(AZ)*DT/DVY; // Ax < 0, Ay > 0
+      dFdt[findex(i  ,j  ,k+1)] -= INCR_WAVE*AX_NEG*AY_NEG*fabs(AZ)*DT/DVY; //         Ay < 0
       
-      dFdt[findex(i+1,j+1,k+2)] += INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVY; // Ax > 0
-      dFdt[findex(i+1,j  ,k+2)] += INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVY;
-      dFdt[findex(i+1,j+1,k  )] -= INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVY;
-      dFdt[findex(i+1,j  ,k  )] -= INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVY;
-      dFdt[findex(i  ,j+1,k+2)] += INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVY; // Ax < 0
-      dFdt[findex(i  ,j  ,k+2)] += INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVY;
-      dFdt[findex(i  ,j+1,k  )] -= INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVY;
-      dFdt[findex(i  ,j  ,k  )] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVY;
+      dFdt[findex(i+1,j+1,k+2)] += INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVY; // Ax > 0, Ay > 0, Az > 0
+      dFdt[findex(i+1,j  ,k+2)] += INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVY; //         Ay < 0
+      dFdt[findex(i+1,j+1,k  )] -= INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVY; //         Ay > 0, Az < 0
+      dFdt[findex(i+1,j  ,k  )] -= INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVY; //         Ay < 0
+      dFdt[findex(i  ,j+1,k+2)] += INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVY; // Ax < 0, Ay > 0, Az > 0
+      dFdt[findex(i  ,j  ,k+2)] += INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVY; //         Ay < 0
+      dFdt[findex(i  ,j+1,k  )] -= INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVY; //         Ay > 0, Az < 0
+      dFdt[findex(i  ,j  ,k  )] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVY; //         Ay < 0
       
       INCR_WAVE = DT*DT/DVX/DVY*dF/6.0;
       
       // Double transverse propagation, Fz updates:
-      dFdt[findex(i+1,j+1,k+2)] += INCR_WAVE*AX_POS*fabs(AY)*AZ_POS*DT/DVZ; // Ax > 0
+      dFdt[findex(i+1,j+1,k+2)] += INCR_WAVE*AX_POS*fabs(AY)*AZ_POS*DT/DVZ; // Ax > 0, Az > 0
       dFdt[findex(i+1,j+1,k+1)] += INCR_WAVE*AX_POS*fabs(AY)*AZ_NEG*DT/DVZ;
       dFdt[findex(i  ,j+1,k+2)] += INCR_WAVE*AX_NEG*fabs(AY)*AZ_POS*DT/DVZ; // Ax < 0
       dFdt[findex(i  ,j+1,k+1)] += INCR_WAVE*AX_NEG*fabs(AY)*AZ_NEG*DT/DVZ;
       
-      dFdt[findex(i+1,j+2,k+2)] -= INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVZ; // Ax > 0
-      dFdt[findex(i+1,j+2,k+1)] -= INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVZ;
-      dFdt[findex(i+1,j  ,k+2)] += INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVZ;
-      dFdt[findex(i+1,j  ,k+1)] += INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVZ;
-      dFdt[findex(i  ,j+2,k+2)] -= INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVZ; // Ax < 0
-      dFdt[findex(i  ,j+2,k+1)] -= INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVZ;
-      dFdt[findex(i  ,j  ,k+2)] += INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVZ;
-      dFdt[findex(i  ,j  ,k+1)] += INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVZ;
+      dFdt[findex(i+1,j+2,k+2)] -= INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVZ; // Ax > 0, Ay > 0, Az > 0
+      dFdt[findex(i+1,j+2,k+1)] -= INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVZ; //                 Az < 0
+      dFdt[findex(i+1,j  ,k+2)] += INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVZ; //         Ay < 0, Az > 0
+      dFdt[findex(i+1,j  ,k+1)] += INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVZ; //                 Az < 0
+      dFdt[findex(i  ,j+2,k+2)] -= INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVZ; // Ax < 0, Ay > 0, Az > 0
+      dFdt[findex(i  ,j+2,k+1)] -= INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVZ; //                 Az < 0
+      dFdt[findex(i  ,j  ,k+2)] += INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVZ; //         Ay < 0, Az > 0
+      dFdt[findex(i  ,j  ,k+1)] += INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVZ; //                 Az < 0
       
-      dFdt[findex(i+1,j+1,k+1)] -= INCR_WAVE*AX_POS*fabs(AY)*AZ_POS*DT/DVZ; // Ax > 0
+      dFdt[findex(i+1,j+1,k+1)] -= INCR_WAVE*AX_POS*fabs(AY)*AZ_POS*DT/DVZ; // Ax > 0, Az > 0
       dFdt[findex(i+1,j+1,k  )] -= INCR_WAVE*AX_POS*fabs(AY)*AZ_NEG*DT/DVZ;
       dFdt[findex(i  ,j+1,k+1)] -= INCR_WAVE*AX_NEG*fabs(AY)*AZ_POS*DT/DVZ; // Ax < 0
       dFdt[findex(i  ,j+1,k  )] -= INCR_WAVE*AX_NEG*fabs(AY)*AZ_NEG*DT/DVZ;
       
-      dFdt[findex(i+1,j+2,k+1)] += INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVZ; // Ax > 0
-      dFdt[findex(i+1,j+2,k  )] += INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVZ;
-      dFdt[findex(i+1,j  ,k+1)] -= INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVZ;
-      dFdt[findex(i+1,j  ,k  )] -= INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVZ;
-      dFdt[findex(i  ,j+2,k+1)] += INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVZ; // Ax < 0
-      dFdt[findex(i  ,j+2,k  )] += INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVZ;
-      dFdt[findex(i  ,j  ,k+1)] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVZ;
-      dFdt[findex(i  ,j  ,k  )] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVZ;
+      dFdt[findex(i+1,j+2,k+1)] += INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVZ; // Ax > 0, Ay > 0, Az > 0
+      dFdt[findex(i+1,j+2,k  )] += INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVZ; //                 Az < 0
+      dFdt[findex(i+1,j  ,k+1)] -= INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVZ; //         Ay < 0, Az > 0
+      dFdt[findex(i+1,j  ,k  )] -= INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVZ; //                 Az < 0
+      dFdt[findex(i  ,j+2,k+1)] += INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVZ; // Ax < 0, Ay > 0, Az > 0
+      dFdt[findex(i  ,j+2,k  )] += INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVZ; //                 Az < 0
+      dFdt[findex(i  ,j  ,k+1)] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVZ; //         Ay < 0, Az > 0
+      dFdt[findex(i  ,j  ,k  )] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVZ; //                 Az < 0
    
       // ***********************************
       // ***** INTERFACE BETWEEN J,J-1 *****
@@ -726,63 +726,63 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL&
       INCR_WAVE = DT*DT/DVY/DVZ*dF/6.0;
       
       // Double transverse propagation, Fx updates:
-      dFdt[findex(i+2,j+1,k+1)] += INCR_WAVE*AX_POS*AY_POS*fabs(AZ)*DT/DVX;
+      dFdt[findex(i+2,j+1,k+1)] += INCR_WAVE*AX_POS*AY_POS*fabs(AZ)*DT/DVX; // Ax > 0, Ay > 0
       dFdt[findex(i+1,j+1,k+1)] += INCR_WAVE*AX_NEG*AY_POS*fabs(AZ)*DT/DVX;
       dFdt[findex(i+2,j  ,k+1)] += INCR_WAVE*AX_POS*AY_NEG*fabs(AZ)*DT/DVX;
       dFdt[findex(i+1,j  ,k+1)] += INCR_WAVE*AX_NEG*AY_NEG*fabs(AZ)*DT/DVX;
       
-      dFdt[findex(i+2,j+1,k+2)] -= INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVX;
-      dFdt[findex(i+1,j+1,k+2)] -= INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVX;
-      dFdt[findex(i+2,j  ,k+2)] -= INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVX;
-      dFdt[findex(i+1,j  ,k+2)] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVX;
-      dFdt[findex(i+2,j+1,k  )] += INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVX;
-      dFdt[findex(i+1,j+1,k  )] += INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVX;
-      dFdt[findex(i+2,j  ,k  )] += INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVX;
-      dFdt[findex(i+1,j  ,k  )] += INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVX;
+      dFdt[findex(i+2,j+1,k+2)] -= INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVX;   // Ax > 0, Ay > 0, Az > 0
+      dFdt[findex(i+1,j+1,k+2)] -= INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVX;   // Ax < 0
+      dFdt[findex(i+2,j  ,k+2)] -= INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVX;   // Ax > 0, Ay < 0
+      dFdt[findex(i+1,j  ,k+2)] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVX;   // Ax < 0
+      dFdt[findex(i+2,j+1,k  )] += INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVX;   // Ax > 0, Ay > 0, Az < 0
+      dFdt[findex(i+1,j+1,k  )] += INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVX;   // Ax < 0
+      dFdt[findex(i+2,j  ,k  )] += INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVX;   // Ax > 0, Ay < 0
+      dFdt[findex(i+1,j  ,k  )] += INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVX;   // Ax < 0
       
-      dFdt[findex(i+1,j+1,k+1)] -= INCR_WAVE*AX_POS*AY_POS*fabs(AZ)*DT/DVX;
+      dFdt[findex(i+1,j+1,k+1)] -= INCR_WAVE*AX_POS*AY_POS*fabs(AZ)*DT/DVX; // Ax > 0, Ay > 0
       dFdt[findex(i  ,j+1,k+1)] -= INCR_WAVE*AX_NEG*AY_POS*fabs(AZ)*DT/DVX;
       dFdt[findex(i+1,j  ,k+1)] -= INCR_WAVE*AX_POS*AY_NEG*fabs(AZ)*DT/DVX;
       dFdt[findex(i  ,j  ,k+1)] -= INCR_WAVE*AX_NEG*AY_NEG*fabs(AZ)*DT/DVX;
       
-      dFdt[findex(i+1,j+1,k+2)] += INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVX;
-      dFdt[findex(i  ,j+1,k+2)] += INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVX;
-      dFdt[findex(i+1,j  ,k+2)] += INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVX;
-      dFdt[findex(i  ,j  ,k+2)] += INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVX;
-      dFdt[findex(i+1,j+1,k  )] -= INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVX;
-      dFdt[findex(i  ,j+1,k  )] -= INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVX;
-      dFdt[findex(i+1,j  ,k  )] -= INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVX;
-      dFdt[findex(i  ,j  ,k  )] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVX;
+      dFdt[findex(i+1,j+1,k+2)] += INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVX;   // Ax > 0, Ay > 0, Az > 0
+      dFdt[findex(i  ,j+1,k+2)] += INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVX;   // Ax < 0
+      dFdt[findex(i+1,j  ,k+2)] += INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVX;   // Ax > 0, Ay < 0
+      dFdt[findex(i  ,j  ,k+2)] += INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVX;   // Ax < 0
+      dFdt[findex(i+1,j+1,k  )] -= INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVX;   // Ax > 0, Ay > 0, Az < 0
+      dFdt[findex(i  ,j+1,k  )] -= INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVX;   // Ax < 0
+      dFdt[findex(i+1,j  ,k  )] -= INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVX;   // Ax > 0, Ay < 0, Az < 0
+      dFdt[findex(i  ,j  ,k  )] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVX;   // Ax < 0
       
       INCR_WAVE = DT*DT/DVX/DVY*dF/6.0;
       
       // Double transverse propagation, Fz updates:
-      dFdt[findex(i+1,j+1,k+2)] += INCR_WAVE*fabs(AX)*AY_POS*AZ_POS*DT/DVZ;
+      dFdt[findex(i+1,j+1,k+2)] += INCR_WAVE*fabs(AX)*AY_POS*AZ_POS*DT/DVZ; // Ay > 0, Az > 0
       dFdt[findex(i+1,j  ,k+2)] += INCR_WAVE*fabs(AX)*AY_NEG*AZ_POS*DT/DVZ;
       dFdt[findex(i+1,j+1,k+1)] += INCR_WAVE*fabs(AX)*AY_POS*AZ_NEG*DT/DVZ;
       dFdt[findex(i+1,j  ,k+1)] += INCR_WAVE*fabs(AX)*AY_NEG*AZ_NEG*DT/DVZ;
       
-      dFdt[findex(i+2,j+1,k+2)] -= INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVZ;
-      dFdt[findex(i  ,j+1,k+2)] += INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVZ;
-      dFdt[findex(i+2,j  ,k+2)] -= INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVZ;
-      dFdt[findex(i  ,j  ,k+2)] += INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVZ;
-      dFdt[findex(i+2,j+1,k+1)] -= INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVZ;
-      dFdt[findex(i  ,j+1,k+1)] += INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVZ;
-      dFdt[findex(i+2,j  ,k+1)] -= INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVZ;
-      dFdt[findex(i  ,j  ,k+1)] += INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVZ;
+      dFdt[findex(i+2,j+1,k+2)] -= INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVZ;   // Ax > 0, Ay > 0, Az > 0
+      dFdt[findex(i  ,j+1,k+2)] += INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVZ;   // Ax < 0
+      dFdt[findex(i+2,j  ,k+2)] -= INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVZ;   // Ax > 0, Ay < 0
+      dFdt[findex(i  ,j  ,k+2)] += INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVZ;   // Ax < 0
+      dFdt[findex(i+2,j+1,k+1)] -= INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVZ;   // Ax > 0, Ay > 0, Az < 0
+      dFdt[findex(i  ,j+1,k+1)] += INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVZ;   // Ax < 0
+      dFdt[findex(i+2,j  ,k+1)] -= INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVZ;   // Ax > 0, Ay < 0
+      dFdt[findex(i  ,j  ,k+1)] += INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVZ;   // Ax < 0
       
-      dFdt[findex(i+1,j+1,k+1)] -= INCR_WAVE*fabs(AX)*AY_POS*AZ_POS*DT/DVZ;
+      dFdt[findex(i+1,j+1,k+1)] -= INCR_WAVE*fabs(AX)*AY_POS*AZ_POS*DT/DVZ; // Ay > 0, Az > 0
       dFdt[findex(i+1,j  ,k+1)] -= INCR_WAVE*fabs(AX)*AY_NEG*AZ_POS*DT/DVZ;
       dFdt[findex(i+1,j+1,k  )] -= INCR_WAVE*fabs(AX)*AY_POS*AZ_NEG*DT/DVZ;
       dFdt[findex(i+1,j  ,k  )] -= INCR_WAVE*fabs(AX)*AY_NEG*AZ_NEG*DT/DVZ;
       
-      dFdt[findex(i+2,j+1,k+1)] += INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVZ;
-      dFdt[findex(i  ,j+1,k+1)] -= INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVZ;
-      dFdt[findex(i+2,j  ,k+1)] += INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVZ;
-      dFdt[findex(i  ,j  ,k+1)] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVZ;
-      dFdt[findex(i+2,j+1,k  )] += INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVZ;
-      dFdt[findex(i  ,j+1,k  )] -= INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVZ;
-      dFdt[findex(i+2,j  ,k  )] += INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVZ;
+      dFdt[findex(i+2,j+1,k+1)] += INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVZ;   // Ax > 0, Ay > 0, Az > 0
+      dFdt[findex(i  ,j+1,k+1)] -= INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVZ;   // Ax < 0
+      dFdt[findex(i+2,j  ,k+1)] += INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVZ;   // Ax > 0, Ay < 0
+      dFdt[findex(i  ,j  ,k+1)] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVZ;   // Ax < 0
+      dFdt[findex(i+2,j+1,k  )] += INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVZ;   // Ax > 0, Ay > 0, Az < 0
+      dFdt[findex(i  ,j+1,k  )] -= INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVZ;   // Ax < 0
+      dFdt[findex(i+2,j  ,k  )] += INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVZ;   // Ax > 0, Ay < 0
       dFdt[findex(i  ,j  ,k  )] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVZ;
    
       // ***********************************
@@ -847,64 +847,64 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL&
       INCR_WAVE = DT*DT/DVY/DVZ*dF/6.0;
       
       // Double transverse propagation, Fx updates:
-      dFdt[findex(i+2,j+1,k+1)] += INCR_WAVE*AX_POS*fabs(AY)*AZ_POS*DT/DVX;
+      dFdt[findex(i+2,j+1,k+1)] += INCR_WAVE*AX_POS*fabs(AY)*AZ_POS*DT/DVX; // Ax > 0, Az > 0
       dFdt[findex(i+1,j+1,k+1)] += INCR_WAVE*AX_NEG*fabs(AY)*AZ_POS*DT/DVX;
       dFdt[findex(i+2,j+1,k  )] += INCR_WAVE*AX_POS*fabs(AY)*AZ_NEG*DT/DVX;
       dFdt[findex(i+1,j+1,k  )] += INCR_WAVE*AX_NEG*fabs(AY)*AZ_NEG*DT/DVX;
       
-      dFdt[findex(i+2,j+2,k+1)] -= INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVX;
-      dFdt[findex(i+1,j+2,k+1)] -= INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVX;
-      dFdt[findex(i+2,j  ,k+1)] += INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVX;
-      dFdt[findex(i+1,j  ,k+1)] += INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVX;
-      dFdt[findex(i+2,j+2,k  )] -= INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVX;
-      dFdt[findex(i+1,j+2,k  )] -= INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVX;
-      dFdt[findex(i+2,j  ,k  )] += INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVX;
-      dFdt[findex(i+1,j  ,k  )] += INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVX;
+      dFdt[findex(i+2,j+2,k+1)] -= INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVX;   // Ax > 0, Ay > 0, Az > 0
+      dFdt[findex(i+1,j+2,k+1)] -= INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVX;   // Ax < 0
+      dFdt[findex(i+2,j  ,k+1)] += INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVX;   // Ax > 0, Ay < 0
+      dFdt[findex(i+1,j  ,k+1)] += INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVX;   // Ax < 0
+      dFdt[findex(i+2,j+2,k  )] -= INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVX;   // Ax > 0, Ay > 0, Az < 0
+      dFdt[findex(i+1,j+2,k  )] -= INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVX;   // Ax < 0
+      dFdt[findex(i+2,j  ,k  )] += INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVX;   // Ax > 0, Ay < 0
+      dFdt[findex(i+1,j  ,k  )] += INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVX;   // Ax < 0
       
-      dFdt[findex(i+1,j+1,k+1)] -= INCR_WAVE*AX_POS*fabs(AY)*AZ_POS*DT/DVX;
+      dFdt[findex(i+1,j+1,k+1)] -= INCR_WAVE*AX_POS*fabs(AY)*AZ_POS*DT/DVX; // Ax > 0, Az > 0
       dFdt[findex(i  ,j+1,k+1)] -= INCR_WAVE*AX_NEG*fabs(AY)*AZ_POS*DT/DVX;
       dFdt[findex(i+1,j+1,k  )] -= INCR_WAVE*AX_POS*fabs(AY)*AZ_NEG*DT/DVX;
       dFdt[findex(i  ,j+1,k  )] -= INCR_WAVE*AX_NEG*fabs(AY)*AZ_NEG*DT/DVX;
       
-      dFdt[findex(i+1,j+2,k+1)] += INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVX;
-      dFdt[findex(i  ,j+2,k+1)] += INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVX;
-      dFdt[findex(i+1,j  ,k+1)] -= INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVX;
-      dFdt[findex(i  ,j  ,k+1)] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVX;
-      dFdt[findex(i+1,j+2,k  )] += INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVX;
-      dFdt[findex(i  ,j+2,k  )] += INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVX;
-      dFdt[findex(i+1,j  ,k  )] -= INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVX;
-      dFdt[findex(i  ,j  ,k  )] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVX;
+      dFdt[findex(i+1,j+2,k+1)] += INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVX;   // Ax > 0, Ay > 0, Az > 0
+      dFdt[findex(i  ,j+2,k+1)] += INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVX;   // Ax < 0
+      dFdt[findex(i+1,j  ,k+1)] -= INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVX;   // Ax > 0, Ay < 0
+      dFdt[findex(i  ,j  ,k+1)] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVX;   // Ax < 0
+      dFdt[findex(i+1,j+2,k  )] += INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVX;   // Ax > 0, Ay > 0, Az < 0
+      dFdt[findex(i  ,j+2,k  )] += INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVX;   // Ax < 0
+      dFdt[findex(i+1,j  ,k  )] -= INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVX;   // Ax > 0, Ay < 0
+      dFdt[findex(i  ,j  ,k  )] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVX;   // Ax < 0
       
       INCR_WAVE = DT*DT/DVX/DVZ*dF/6.0;
       
       // Double transverse propagation, Fy updates:
-      dFdt[findex(i+1,j+2,k+1)] += INCR_WAVE*fabs(AX)*AY_POS*AZ_POS*DT/DVY;
+      dFdt[findex(i+1,j+2,k+1)] += INCR_WAVE*fabs(AX)*AY_POS*AZ_POS*DT/DVY; // Ay > 0, Az > 0
       dFdt[findex(i+1,j+1,k+1)] += INCR_WAVE*fabs(AX)*AY_NEG*AZ_POS*DT/DVY;
       dFdt[findex(i+1,j+2,k  )] += INCR_WAVE*fabs(AX)*AY_POS*AZ_NEG*DT/DVY;
       dFdt[findex(i+1,j+1,k  )] += INCR_WAVE*fabs(AX)*AY_NEG*AZ_NEG*DT/DVY;
       
-      dFdt[findex(i+2,j+2,k+1)] -= INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVY;
-      dFdt[findex(i  ,j+2,k+1)] += INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVY;
-      dFdt[findex(i+2,j+1,k+1)] -= INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVY;
-      dFdt[findex(i  ,j+1,k+1)] += INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVY;
-      dFdt[findex(i+2,j+2,k  )] -= INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVY;
-      dFdt[findex(i  ,j+2,k  )] += INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVY;
-      dFdt[findex(i+2,j+1,k  )] -= INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVY;
-      dFdt[findex(i  ,j+1,k  )] += INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVY;
+      dFdt[findex(i+2,j+2,k+1)] -= INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVY;   // Ax > 0, Ay > 0, Az > 0
+      dFdt[findex(i  ,j+2,k+1)] += INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVY;   // Ax < 0
+      dFdt[findex(i+2,j+1,k+1)] -= INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVY;   // Ax > 0, Ay < 0
+      dFdt[findex(i  ,j+1,k+1)] += INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVY;   // Ax < 0
+      dFdt[findex(i+2,j+2,k  )] -= INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVY;   // Ax > 0, Ay > 0, Az < 0
+      dFdt[findex(i  ,j+2,k  )] += INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVY;   // Ax < 0
+      dFdt[findex(i+2,j+1,k  )] -= INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVY;   // Ax > 0, Ay < 0
+      dFdt[findex(i  ,j+1,k  )] += INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVY;   // Ax < 0
       
-      dFdt[findex(i+1,j+1,k+1)] -= INCR_WAVE*fabs(AX)*AY_POS*AZ_POS*DT/DVY;
+      dFdt[findex(i+1,j+1,k+1)] -= INCR_WAVE*fabs(AX)*AY_POS*AZ_POS*DT/DVY; // Ay > 0, Az > 0
       dFdt[findex(i+1,j  ,k+1)] -= INCR_WAVE*fabs(AX)*AY_NEG*AZ_POS*DT/DVY;
       dFdt[findex(i+1,j+1,k  )] -= INCR_WAVE*fabs(AX)*AY_POS*AZ_NEG*DT/DVY;
       dFdt[findex(i+1,j  ,k  )] -= INCR_WAVE*fabs(AX)*AY_NEG*AZ_NEG*DT/DVY;
       
-      dFdt[findex(i+2,j+1,k+1)] += INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVY;
-      dFdt[findex(i  ,j+1,k+1)] -= INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVY;
-      dFdt[findex(i+2,j  ,k+1)] += INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVY;
-      dFdt[findex(i  ,j  ,k+1)] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVY;
-      dFdt[findex(i+2,j+1,k  )] += INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVY;
-      dFdt[findex(i  ,j+1,k  )] -= INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVY;
-      dFdt[findex(i+2,j  ,k  )] += INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVY;
-      dFdt[findex(i  ,j  ,k  )] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVY;
+      dFdt[findex(i+2,j+1,k+1)] += INCR_WAVE*AX_POS*AY_POS*AZ_POS*DT/DVY;   // Ax > 0, Ay > 0, Az > 0
+      dFdt[findex(i  ,j+1,k+1)] -= INCR_WAVE*AX_NEG*AY_POS*AZ_POS*DT/DVY;   // Ax < 0
+      dFdt[findex(i+2,j  ,k+1)] += INCR_WAVE*AX_POS*AY_NEG*AZ_POS*DT/DVY;   // Ax > 0, Ay < 0
+      dFdt[findex(i  ,j  ,k+1)] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_POS*DT/DVY;   // Ax < 0
+      dFdt[findex(i+2,j+1,k  )] += INCR_WAVE*AX_POS*AY_POS*AZ_NEG*DT/DVY;   // Ax > 0, Ay > 0, Az < 0
+      dFdt[findex(i  ,j+1,k  )] -= INCR_WAVE*AX_NEG*AY_POS*AZ_NEG*DT/DVY;   // Ax < 0
+      dFdt[findex(i+2,j  ,k  )] += INCR_WAVE*AX_POS*AY_NEG*AZ_NEG*DT/DVY;   // Ax > 0, Ay < 0
+      dFdt[findex(i  ,j  ,k  )] -= INCR_WAVE*AX_NEG*AY_NEG*AZ_NEG*DT/DVY;   // Ax < 0
    }
    accumulateChanges(BLOCK,dFdt,cell.cpu_fx,cell.cpu_nbrsVel+BLOCK*SIZE_NBRS_VEL);
 }

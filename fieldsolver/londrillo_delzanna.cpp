@@ -1639,6 +1639,8 @@ bool propagateFields(ParGrid<SpatialCell>& mpiGrid,creal& dt) {
    mpiGrid.getAllCells(localCells);
    for (size_t i=0; i<localCells.size(); ++i) derivatives.releaseArray(localCells[i]);
    derivatives.finalize();
+   
+   return true;
 }
 
 static void propagateMagneticField(const CellID& cellID,ParGrid<SpatialCell>& mpiGrid,creal& dt) {

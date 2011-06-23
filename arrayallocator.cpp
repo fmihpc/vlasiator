@@ -34,6 +34,7 @@ bool ArrayAllocator::finalize() {
    initialized = false;
    allocations.clear();
    freeSlots.clear();
+   return true;
 }
 
 /** Initialize ArrayAllocator. 
