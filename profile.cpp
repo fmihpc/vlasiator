@@ -5,12 +5,17 @@
 #include <string>
 #include <vector>
 #include <map>
-#ifdef CRAYPAT
+
 //include craypat api headers if compiled with craypat on Cray XT/XE
+#ifdef CRAYPAT
 #include "pat_api.h"
 #endif
 
+#include "mpilogger.h"
+extern MPILogger mpilogger;
+
 using namespace std;
+
 #ifdef PROFILE
 
 namespace profile 
@@ -20,10 +25,12 @@ namespace profile
         struct TimerData{
             string parent; //key of parent (fullLabel)
             string label; //print label 
+            string workUnitLabel; //unit for the counter workUnitCount
             double time; // total time accumulated
             int level;  //what hierarchy level
             int count; //how many times have this been accumulated
             int index; // unique index identifying this timer (usefule for Craypat)
+            double workUnits; // how many units of work have we done. If -1 it is not counted, or printed
         };
         //store all timers in map, key is fullLabel name
         std::map<string,TimerData> timers;
@@ -71,6 +78,7 @@ namespace profile
             timerData.level=currentLevel;
             timerData.time=0;
             timerData.count=0;
+            //timerData.workUnitCount initialized in stop
             timerData.parent=constructFullLabel(currentLevel-1);
             timerData.label=label;
             timerData.index=timers.size(); 
@@ -84,27 +92,48 @@ namespace profile
         startTime[currentLevel]=MPI_Wtime();
         return true;        
     }
+
     
-    bool stop(const string &label){
+
+    //stop with workunits
+    bool stop (const std::string &label,double workUnits,
+               const std::string &workUnitLabel){
         double stopTime=MPI_Wtime();
         string fullName=constructFullLabel(currentLevel);
 #ifdef CRAYPAT
         PAT_region_end(timers[fullName].index);
 #endif
-        
-
-        
         if(currentLevel<=-1){
-            cout << "ERROR: nothing to stop in profile::stop Stopping "<< label <<endl;
+            mpilogger << "ERROR: nothing to stop in profile::stop Stopping "<<
+                label <<endl;
             return false;
         }
-        
         if(labels[currentLevel] != label){
-            cout << "ERROR: label missmatch in profile::stop Stopping "<< label <<" at level " <<fullName << endl;
+            mpilogger << "ERROR: label missmatch in profile::stop Stopping "<<
+                label <<" at level " <<fullName << endl;
             return false;
         }
         
-        
+        //firsttime, initialize workUnit stuff here
+        if(timers[fullName].count==0){
+            if(workUnits>=0.0 ){
+                //we have workUnits for this counter
+                timers[fullName].workUnits=workUnits;
+                timers[fullName].workUnitLabel+=workUnitLabel;
+            }
+            else{
+                //no workUnits for this counter
+                timers[fullName].workUnits=-1.0;
+            }
+        }
+        //if this, or a previous, stop did not include work units then do not add them
+        //work units have to be defined for all stops with a certain (full)label
+        if(workUnits<0 || timers[fullName].workUnits<0){
+            timers[fullName].workUnits=-1;
+        }
+        else{
+            timers[fullName].workUnits+=workUnits;
+        }
         
         timers[fullName].time+=(stopTime-startTime[currentLevel]);
         timers[fullName].count++;
@@ -112,25 +141,32 @@ namespace profile
 
         return true;
     }
-
- 
+    
+    
     //print out global timers
     //This will assume that all processes have identical labels, will fail otherwise (FIXME)
     bool print(MPI_Comm comm){
-        size_t maxWidth=0;
         int rank,nProcesses;
         int nTimers;
-        const int indentWidth=2; //how many spaces each level is indented
         vector<int> nAllTimers;
-        MPI_Comm_rank(comm,&rank);
-        MPI_Comm_size(comm,&nProcesses);
+
+        const int indentWidth=2; //how many spaces each level is indented
+        const int floatWidth=12; //width of float fields;
+        const int intWidth=6;   //width of int fields;
+        const int unitWidth=4;  //width of workunit label
+        size_t labelWidth=0;    //width of first column with timer labels
+        int totalWidth;       //total width of the table
         
+        //compute labelWidth
         for (std::map<string,TimerData>::iterator timer=timers.begin();
              timer!=timers.end();++timer){
             size_t width=timer->second.label.length()+timer->second.level*indentWidth;
-            maxWidth=max(maxWidth,width);
+            labelWidth=max(labelWidth,width);
         }
-        
+        totalWidth=labelWidth+1+floatWidth*6+intWidth*2+unitWidth;
+
+        MPI_Comm_rank(comm,&rank);
+        MPI_Comm_size(comm,&nProcesses);
         nAllTimers.resize(nProcesses);
         nTimers=timers.size();
         MPI_Allgather(&nTimers,1,MPI_INT,&(nAllTimers[0]),1,MPI_INT,comm);
@@ -140,7 +176,7 @@ namespace profile
         for(int i=0;i<nProcesses;i++){
             if(nTimers!=nAllTimers[i]){
                 if(rank==0){
-                    cout <<"Error in profile::print, different number of labels on different processes" <<endl;
+                    mpilogger <<"Error in profile::print, different number of labels on different processes" <<endl;
                 }
                 return false;
             }
@@ -148,30 +184,39 @@ namespace profile
 
         //print out header
         if(rank==0){
+            for(int i=0;i<totalWidth/2-5;i++)mpilogger <<"-";
+            mpilogger << " Profile ";
+            for(int i=0;i<totalWidth/2-5;i++)mpilogger <<"-";
+            mpilogger<<endl;
             
-            cout<<setw(maxWidth+1)<< setiosflags(ios::left) << "Label";
-            cout<<setw(68) <<"Time(s)";
-            cout<<setw(14)<<"Call count";
-            cout<<endl;
+            mpilogger<<setw(labelWidth+1)<< setiosflags(ios::left) << "";
+            mpilogger<<setw(4*floatWidth+2*intWidth) <<"Time(s)";
+            mpilogger<<setw(floatWidth)<<"Call-count";
+            mpilogger<<setw(2*floatWidth)<<"Workunit-rate";
+            mpilogger<<endl;
             
-            cout<<setw(maxWidth+1)<< " ";
+            mpilogger<<setw(labelWidth+1)<< "Label";
             //time
-            cout<<setw(14) <<"Average";
-            cout<<setw(14) <<" % of parent";
-            cout<<setw(14) <<"Maximum";
-            cout<<setw(6) << "Rank";
-            cout<<setw(14)<< "Minimum";
-            cout<<setw(6) << "rank";
+            mpilogger<<setw(floatWidth) <<"Average";
+            mpilogger<<setw(floatWidth) <<"% of parent";
+            mpilogger<<setw(floatWidth) <<"Maximum";
+            mpilogger<<setw(intWidth) << "Rank";
+            mpilogger<<setw(floatWidth)<< "Minimum";
+            mpilogger<<setw(intWidth) << "Rank";
             //call count
-            cout<<setw(14) << "Average";
-
-            cout<<endl;
+            mpilogger<<setw(floatWidth) << "Average";
+            // workunit rate
+            mpilogger<<setw(floatWidth) << "Average";
+            mpilogger<<endl;
+            for(int i=0;i<totalWidth;i++) mpilogger <<"-";
+            mpilogger<<endl;            
         }
         
         for (std::map<string,TimerData>::iterator timer=timers.begin();
              timer!=timers.end();++timer){
             
             double sum,parentSum;
+            double aveTime;
             int intSum;
             doubleRankPair in;
             doubleRankPair out;
@@ -192,39 +237,63 @@ namespace profile
             
             if(rank==0){
                 int indent=timer->second.level*indentWidth;
-                cout<<setw(indent)<<"";
-                cout<<setw(maxWidth+1-indent)<< setiosflags(ios::left)
+                mpilogger<<setw(indent)<<"";
+                mpilogger<<setw(labelWidth+1-indent)<< setiosflags(ios::left)
                     << timer->second.label;
 
-                cout << setw(14) << sum/nProcesses;
+                aveTime= sum/nProcesses;
+                mpilogger << setw(floatWidth) << aveTime;
                 if(timer->second.level>0)
-                    cout << setw(14) << 100.0*sum/parentSum;
+                    mpilogger << setw(floatWidth) << 100.0*sum/parentSum;
                 else
-                    cout << setw(14) << " ";
+                    mpilogger << setw(floatWidth) << " ";
                 
             }
             MPI_Reduce(&in,&out,1,MPI_DOUBLE_INT,MPI_MAXLOC,0,comm);            
             if(rank==0){
-                cout << setw(14) << out.val;
-                cout << setw(6) <<out.rank;
+                mpilogger << setw(floatWidth) << out.val;
+                mpilogger << setw(intWidth) <<out.rank;
             }
             
             MPI_Reduce(&in,&out,1,MPI_DOUBLE_INT,MPI_MINLOC,0,comm);
             if(rank==0){
-                cout << setw(14) << out.val;
-                cout << setw(7)<<out.rank;
+                mpilogger << setw(floatWidth) << out.val;
+                mpilogger << setw(intWidth)<<out.rank;
             }
             
             //current count statistics
             MPI_Reduce(&( timer->second.count),&intSum,1,MPI_INT,MPI_SUM,0,comm);
             if(rank==0){
-                cout << setw(14) << (double)intSum/nProcesses;
-                cout<<endl;
+                mpilogger << setw(floatWidth) << (double)intSum/nProcesses;
             }
+             
+            //workunits/time statistics
+            double workRate[2];
+            double sums[2];
 
+            workRate[0]=timer->second.workUnits/timer->second.time;
+            if (workRate[0]<0)
+                workRate[1]=1.0;//use this to check if for any process the units were not defined
+            else
+                workRate[1]=0.0;
             
+            MPI_Reduce(workRate,sums,2,MPI_DOUBLE,MPI_SUM,0,comm);
+            //print if rank is zero, and units defined for all processes
+            if(rank==0 && sums[1] < 0.5){
+                mpilogger << setw(floatWidth) << sums[0]/nProcesses;
+                mpilogger << timer->second.workUnitLabel<<"/s";
+            ;
+            }
+            if(rank==0){
+                mpilogger<<endl;
+            }
         }
-         return true;
+        //footer line
+        if(rank==0){
+            for(int i=0;i<totalWidth;i++) mpilogger <<"-";
+            mpilogger<<endl;            
+        }
+        return true;
     }
 }
 
@@ -232,9 +301,9 @@ namespace profile
 //Profiling disabled
 namespace profile 
 {
-  
     bool start(const std::string &label){return true;}
-    bool stop (const std::string &label){return true;}
+    bool stop (const std::string &label,double workUnits,
+               const std::string &workUnitLabel){return true;}
     bool print(MPI_Comm comm){return true;}
 }
 
