@@ -119,26 +119,28 @@ namespace profile
             if(workUnits>=0.0 ){
                 //we have workUnits for this counter
                 timers[fullName].workUnits=workUnits;
-                timers[fullName].workUnitLabel+=workUnitLabel;
+                timers[fullName].workUnitLabel=workUnitLabel;
             }
             else{
                 //no workUnits for this counter
                 timers[fullName].workUnits=-1.0;
             }
         }
-        //if this, or a previous, stop did not include work units then do not add them
-        //work units have to be defined for all stops with a certain (full)label
-        if(workUnits<0 || timers[fullName].workUnits<0){
-            timers[fullName].workUnits=-1;
+        else {
+            //if this, or a previous, stop did not include work units then do not add them
+            //work units have to be defined for all stops with a certain (full)label
+            
+            if(workUnits<0 || timers[fullName].workUnits<0){
+                timers[fullName].workUnits=-1;
+            }
+            else{
+                timers[fullName].workUnits+=workUnits;
+            }
         }
-        else{
-            timers[fullName].workUnits+=workUnits;
-        }
-        
+
         timers[fullName].time+=(stopTime-startTime[currentLevel]);
         timers[fullName].count++;
         currentLevel--;
-
         return true;
     }
     
@@ -163,7 +165,7 @@ namespace profile
             size_t width=timer->second.label.length()+timer->second.level*indentWidth;
             labelWidth=max(labelWidth,width);
         }
-        totalWidth=labelWidth+1+floatWidth*6+intWidth*2+unitWidth;
+        totalWidth=labelWidth+1+floatWidth*7+intWidth*2+unitWidth;
 
         MPI_Comm_rank(comm,&rank);
         MPI_Comm_size(comm,&nProcesses);
@@ -206,6 +208,7 @@ namespace profile
             //call count
             mpilogger<<setw(floatWidth) << "Average";
             // workunit rate
+            mpilogger<<setw(floatWidth) << "Total";
             mpilogger<<setw(floatWidth) << "Average";
             mpilogger<<endl;
             for(int i=0;i<totalWidth;i++) mpilogger <<"-";
@@ -280,9 +283,9 @@ namespace profile
             MPI_Reduce(workRate,sums,2,MPI_DOUBLE,MPI_SUM,0,comm);
             //print if rank is zero, and units defined for all processes
             if(rank==0 && sums[1] < 0.5){
+                mpilogger << setw(floatWidth) << sums[0];
                 mpilogger << setw(floatWidth) << sums[0]/nProcesses;
                 mpilogger << timer->second.workUnitLabel<<"/s";
-            ;
             }
             if(rank==0){
                 mpilogger<<endl;
@@ -291,7 +294,7 @@ namespace profile
         //footer line
         if(rank==0){
             for(int i=0;i<totalWidth;i++) mpilogger <<"-";
-            mpilogger<<endl;            
+            mpilogger<<endl<<write;          
         }
         return true;
     }

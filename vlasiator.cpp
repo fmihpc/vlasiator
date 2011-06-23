@@ -562,7 +562,7 @@ int main(int argn,char* args[]) {
      mpilogger << "(MAIN): Starting main simulation loop." << endl << write;
 
    double before = MPI_Wtime();
-
+   unsigned int computedSpatialCells=0;
    profile::start("Simulation");
    for (luint tstep=P::tstep_min; tstep < P::tsteps; ++tstep) {
 #ifdef CRAYPAT //turn on & off sampling & tracing
@@ -570,9 +570,20 @@ int main(int argn,char* args[]) {
            if(tstep==firstiter) PAT_state(PAT_STATE_ON);
            if(tstep>lastiter) PAT_state(PAT_STATE_OFF);
        }
-#endif 
+#endif
+
+       
+       //compute how many spatial cells we solve for this step
+#ifndef PARGRID
+       computedSpatialCells+=mpiGrid.get_cells().size();
+#else
+       vector<uint64_t> cells;
+       mpiGrid.getCells(cells);
+       computedSpatialCells+=cells.size();
+#endif
+       
        // Recalculate (maybe) spatial cell parameters
-      calculateSimParameters(mpiGrid, P::t, P::dt);
+       calculateSimParameters(mpiGrid, P::t, P::dt);
 
       // use globally minimum timestep
       #ifndef PARGRID
@@ -625,7 +636,7 @@ int main(int argn,char* args[]) {
       MPI_Barrier(MPI_COMM_WORLD);
    }
    double after = MPI_Wtime();
-   profile::stop("Simulation");
+   profile::stop("Simulation",computedSpatialCells,"SpatialCells");
    profile::start("Finalization");   
    finalizeMover();
 #ifdef PARGRID
@@ -643,7 +654,7 @@ int main(int argn,char* args[]) {
    // Write final state to disk:
    if (P::save_spatial_grid) {
       if (myrank == MASTER_RANK)
-          mpilogger << "(MAIN): Writing spatial cell data to disk, tstep = " << P::tstep << " t = " << P::t << endl;
+          mpilogger << "(MAIN): Writing spatial cell data to disk, tstep = " << P::tstep << " t = " << P::t << endl<<write;
       if (writeGrid(mpiGrid,reducer,false) == false) 
           if (myrank == MASTER_RANK) 
               mpilogger << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
