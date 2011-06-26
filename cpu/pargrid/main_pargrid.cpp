@@ -14,7 +14,7 @@
 #include <profile.h>
 using namespace std;
 
-// NOTE: If preprocessor flag PROFILE is undefined, the compiler should optimize out Timer:: calls.
+// NOTE: If preprocessor flag PROFILE is undefined, the compiler should optimize out profile:: calls.
 
 extern MPILogger mpilogger;
 
@@ -152,15 +152,18 @@ void calculateAcceleration(ParGrid<SpatialCell>& mpiGrid) {
       if (Main::cellPtr != NULL) cpu_acceleration(*Main::cellPtr);
    }
 
-   profile::stop("calcAcc");
+   profile::stop("calcAcc",Main::cells.size(),"SpatialCells");
 }
 
 void calculateSpatialDerivatives(ParGrid<SpatialCell>& mpiGrid) {
-   profile::start("calcSpatDerivs");
-
+   profile::start("calcSpatDerivatives");
+   unsigned int computedCells;
    // Start neighbour data exchange:
+   profile::start("Start data exchange");
    mpiGrid.startNeighbourExchange(0);
+   profile::stop("Start data exchange");
    // Calculate derivatives for inner cells:
+   profile::start("Compute inner cells");
    mpiGrid.getInnerCells(Main::cells);
    for (size_t c=0; c<Main::cells.size(); ++c) {
       Main::cellPtr = mpiGrid[Main::cells[c]];
@@ -170,10 +173,13 @@ void calculateSpatialDerivatives(ParGrid<SpatialCell>& mpiGrid) {
       }
       if (Main::cellPtr != NULL) cpu_translation1(*Main::cellPtr,Main::nbrPtrs);
    }
+   computedCells=Main::cells.size();
+   profile::stop("Compute inner cells",Main::cells.size(),"SpatialCells");
 
-   #ifdef PARGRID_WAITANY
+#ifdef PARGRID_WAITANY
       // Loop until all remote cell data has been received:
-      ID::type readyCellID;
+   profile::start(" Wait receives & Compute border");
+   ID::type readyCellID;
       while (mpiGrid.waitAnyReceive() == true) {
 	 // Calculate all ready local cells:
 	 while (mpiGrid.getReadyCell(readyCellID) == true) {
@@ -185,8 +191,10 @@ void calculateSpatialDerivatives(ParGrid<SpatialCell>& mpiGrid) {
 	    if (Main::cellPtr != NULL) cpu_translation1(*Main::cellPtr,Main::nbrPtrs);
 	 }
       }
+      profile::stop(" Wait receives & Compute border");
    #elif PARGRID_WAITSOME
       // Loop until all remote cell data has been received:
+      profile::start(" Wait receives & Compute border");
       ID::type readyCellID;
       while (mpiGrid.waitSomeReceives() == true) {
 	 // Calculate all ready local cells:
@@ -199,12 +207,14 @@ void calculateSpatialDerivatives(ParGrid<SpatialCell>& mpiGrid) {
 	    if (Main::cellPtr != NULL) cpu_translation1(*Main::cellPtr,Main::nbrPtrs);
 	 }
       }
+      profile::stop(" Wait receives & Compute border");
    #else
       // Calculate derivatives for boundary cells when transfers have completed:
-      profile::start("spatDerivsMPIRecv");
+      profile::start("Wait for receives");
       mpiGrid.waitAllReceives();
-      profile::stop("spatDerivsMPIRecv");
-   
+      profile::stop("Wait for receives");
+
+      profile::start("Compute border cells");
       mpiGrid.getBoundaryCells(Main::cells);
       for (size_t c=0; c<Main::cells.size(); ++c) {
 	 Main::cellPtr = mpiGrid[Main::cells[c]];
@@ -214,12 +224,14 @@ void calculateSpatialDerivatives(ParGrid<SpatialCell>& mpiGrid) {
 	 }
 	 if (Main::cellPtr != NULL) cpu_translation1(*Main::cellPtr,Main::nbrPtrs);
       }
+      profile::stop("Compute border cells",Main::cells.size(),"SpatialCells");
+      computedCells+=Main::cells.size();
    #endif
    // Wait for all sends to complete:
-   profile::start("spatDerivsMPISend");
+   profile::start("Wait for sends");
    mpiGrid.waitAllSends();
-   profile::stop("spatDerivsMPISend");
-   profile::stop("calcSpatDerivs");
+   profile::stop("Wait for sends");
+   profile::stop("calcSpatDerivatives");
 }
 
 void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {

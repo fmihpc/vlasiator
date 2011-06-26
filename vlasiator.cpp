@@ -594,19 +594,21 @@ int main(int argn,char* args[]) {
 
       if (P::propagateVlasov == true) {
           // Propagate the state of simulation forward in time by dt:
+          profile::start("First half-step");
           calculateSpatialDerivatives(mpiGrid);
           calculateSpatialFluxes(mpiGrid);
           calculateSpatialPropagation(mpiGrid,false,false);
-          
+          profile::stop("First half-step");
           bool transferAvgs = false;
           if (P::tstep % P::saveRestartInterval == 0 ||
               P::tstep == P::tsteps-1) transferAvgs = true;
           
           calculateAcceleration(mpiGrid);
-
+          profile::start("Second half-step");
           calculateSpatialDerivatives(mpiGrid);
           calculateSpatialFluxes(mpiGrid);
           calculateSpatialPropagation(mpiGrid,true,transferAvgs);
+          profile::stop("Second half-step");
       }
 #ifdef PARGRID      
       if (P::propagateField == true) {

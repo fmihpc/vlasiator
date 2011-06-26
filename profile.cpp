@@ -39,8 +39,8 @@ namespace profile
         int currentLevel=-1;
         std::vector<string> labels;
         std::vector<double> startTime;
-
-        
+        double overHeadTime=0;
+        unsigned int startStopCalls=0;
         struct doubleRankPair {
             double val;
             int rank;
@@ -60,6 +60,7 @@ namespace profile
     }
     
     bool start(const string &label){
+        double t1=MPI_Wtime();
         currentLevel++;
         //resize vectors if needed
         if(labels.size()<=currentLevel)
@@ -81,7 +82,7 @@ namespace profile
             //timerData.workUnitCount initialized in stop
             timerData.parent=constructFullLabel(currentLevel-1);
             timerData.label=label;
-            timerData.index=timers.size(); 
+            timerData.index=timers.size();  //index will be consecutive starting from 0
             timers[fullName]=timerData;
         }
         
@@ -90,6 +91,10 @@ namespace profile
         PAT_region_begin(timers[fullName].index,label.c_str());
 #endif
         startTime[currentLevel]=MPI_Wtime();
+
+        //collect information for overHEad statistics
+        startStopCalls++;
+        overHeadTime+=MPI_Wtime()-t1;
         return true;        
     }
 
@@ -98,6 +103,7 @@ namespace profile
     //stop with workunits
     bool stop (const std::string &label,double workUnits,
                const std::string &workUnitLabel){
+        double t1=MPI_Wtime();
         double stopTime=MPI_Wtime();
         string fullName=constructFullLabel(currentLevel);
 #ifdef CRAYPAT
@@ -141,6 +147,10 @@ namespace profile
         timers[fullName].time+=(stopTime-startTime[currentLevel]);
         timers[fullName].count++;
         currentLevel--;
+
+        //collect information for overHead computation
+        startStopCalls++;
+        overHeadTime+=MPI_Wtime()-t1;
         return true;
     }
     
@@ -170,11 +180,12 @@ namespace profile
         MPI_Comm_rank(comm,&rank);
         MPI_Comm_size(comm,&nProcesses);
         nAllTimers.resize(nProcesses);
+
         nTimers=timers.size();
         MPI_Allgather(&nTimers,1,MPI_INT,&(nAllTimers[0]),1,MPI_INT,comm);
 
         //check that all processes have identical number of timers to avoid deadlocks
-        //does not ensure the labels themselves are the same.
+        //does not ensure the labels themselves are the same (FIXME with e.g. with hash of labels)
         for(int i=0;i<nProcesses;i++){
             if(nTimers!=nAllTimers[i]){
                 if(rank==0){
@@ -214,16 +225,23 @@ namespace profile
             for(int i=0;i<totalWidth;i++) mpilogger <<"-";
             mpilogger<<endl;            
         }
-        
+
+        //sort labels according to index (corresponds to first creation time)
+        std::vector<string> listOrder(timers.size(),"");
         for (std::map<string,TimerData>::iterator timer=timers.begin();
              timer!=timers.end();++timer){
-            
+            listOrder[timer->second.index]=timer->first;
+        }
+
+        //loop over listOrder so that timers are printed in order of creation
+        for(int i=0;i<listOrder.size();i++){
             double sum,parentSum;
             double aveTime;
             int intSum;
             doubleRankPair in;
             doubleRankPair out;
-            
+            //get timer that is now to be computed
+            std::map<string,TimerData>::iterator timer=timers.find(listOrder[i]);
 
             //first compute parent sum of times
             if(timer->second.level>0){
@@ -291,6 +309,24 @@ namespace profile
                 mpilogger<<endl;
             }
         }
+        //Overhead statistics
+        double sum;
+        double aveOverhead=overHeadTime/startStopCalls;
+        MPI_Reduce(&aveOverhead,&sum,1,MPI_DOUBLE,MPI_SUM,0,comm);
+        if(rank==0){
+            for(int i=0;i<totalWidth;i++) mpilogger <<"-";
+            mpilogger<<endl;
+            mpilogger << setw(labelWidth+1) << "Overhed per call";
+            mpilogger << setw(floatWidth) << sum/nProcesses;
+            mpilogger<<endl;
+        }
+        MPI_Reduce(&overHeadTime,&sum,1,MPI_DOUBLE,MPI_SUM,0,comm);
+        if(rank==0){
+            mpilogger << setw(labelWidth+1) << "Total profiling overhed";
+            mpilogger << setw(floatWidth) << sum/nProcesses;
+            mpilogger << endl;
+        }
+        
         //footer line
         if(rank==0){
             for(int i=0;i<totalWidth;i++) mpilogger <<"-";

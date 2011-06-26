@@ -155,14 +155,14 @@ void calculateAcceleration(dccrg<SpatialCell>& mpiGrid) {
 
 void calculateSpatialDerivatives(dccrg<SpatialCell>& mpiGrid) {
    profile::start("calcSpatDerivatives");
-   profile::start("Start data update");
+   profile::start("Start data exchange");
    unsigned int computedCells;
    typedef Parameters P;
    // Start neighbour data exchange:
    P::transmit = Transmit::AVGS;
    SpatialCell::base_address_identifier = 0;
    mpiGrid.start_remote_neighbour_data_update();
-   profile::stop("Start data update");
+   profile::stop("Start data exchange");
    profile::start("Compute inner cells");
    // Calculate derivatives for inner cells:
    Main::cells = mpiGrid.get_cells_with_local_neighbours();
@@ -200,14 +200,14 @@ void calculateSpatialDerivatives(dccrg<SpatialCell>& mpiGrid) {
 
 void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    profile::start("calcSpatFluxes");
-   profile::start("Start data update");
+   profile::start("Start data exchange");
    unsigned int computedCells;
    typedef Parameters P;
    // Start neighbour data exchange:
    P::transmit = Transmit::DERIV1;
    SpatialCell::base_address_identifier = 1;
    mpiGrid.start_remote_neighbour_data_update();
-   profile::stop("Start data update");
+   profile::stop("Start data exchange");
    profile::start("Compute inner cells");
    // Calculate fluxes for inner cells:
    Main::cells = mpiGrid.get_cells_with_local_neighbours();
@@ -245,7 +245,7 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
 
 void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondStep,const bool& transferAvgs) {
    profile::start("calcSpatProp");
-   profile::start("Start data update");
+   profile::start("Start data exchange");
    unsigned int computedCells;
 
    typedef Parameters P;
@@ -253,7 +253,7 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
    P::transmit = Transmit::FLUXES;
    SpatialCell::base_address_identifier = 2;
    mpiGrid.start_remote_neighbour_data_update();
-   profile::stop("Start data update");
+   profile::stop("Start data exchange");
    profile::start("Compute inner cells");
    // Propagate inner cells:
    Main::cells = mpiGrid.get_cells_with_local_neighbours();
