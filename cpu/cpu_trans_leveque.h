@@ -6,35 +6,39 @@
 #include "../common.h"
 #include "cpu_common.h"
 
-const uint I0_J0_K0 = 0;
-const uint I1_J0_K0 = 1;
-const uint I2_J0_K0 = 2;
-const uint I0_J1_K0 = 3;
-const uint I1_J1_K0 = 4;
-const uint I2_J1_K0 = 5;
-const uint I0_J2_K0 = 6;
-const uint I1_J2_K0 = 7;
-const uint I2_J2_K0 = 8;
+namespace timer {
+   extern uint memoryCopies;
+}
 
-const uint I0_J0_K1 = 9;
-const uint I1_J0_K1 = 10;
-const uint I2_J0_K1 = 11;
-const uint I0_J1_K1 = 12;
-const uint I1_J1_K1 = 13;
-const uint I2_J1_K1 = 14;
-const uint I0_J2_K1 = 15;
-const uint I1_J2_K1 = 16;
-const uint I2_J2_K1 = 17;
+const uint I0_J0_K0 = 0*WID3;
+const uint I1_J0_K0 = 1*WID3;
+const uint I2_J0_K0 = 2*WID3;
+const uint I0_J1_K0 = 3*WID3;
+const uint I1_J1_K0 = 4*WID3;
+const uint I2_J1_K0 = 5*WID3;
+const uint I0_J2_K0 = 6*WID3;
+const uint I1_J2_K0 = 7*WID3;
+const uint I2_J2_K0 = 8*WID3;
 
-const uint I0_J0_K2 = 18;
-const uint I1_J0_K2 = 19;
-const uint I2_J0_K2 = 20;
-const uint I0_J1_K2 = 21;
-const uint I1_J1_K2 = 22;
-const uint I2_J1_K2 = 23;
-const uint I0_J2_K2 = 24;
-const uint I1_J2_K2 = 25;
-const uint I2_J2_K2 = 26;
+const uint I0_J0_K1 = 9*WID3;
+const uint I1_J0_K1 = 10*WID3;
+const uint I2_J0_K1 = 11*WID3;
+const uint I0_J1_K1 = 12*WID3;
+const uint I1_J1_K1 = 13*WID3;
+const uint I2_J1_K1 = 14*WID3;
+const uint I0_J2_K1 = 15*WID3;
+const uint I1_J2_K1 = 16*WID3;
+const uint I2_J2_K1 = 17*WID3;
+
+const uint I0_J0_K2 = 18*WID3;
+const uint I1_J0_K2 = 19*WID3;
+const uint I2_J0_K2 = 20*WID3;
+const uint I0_J1_K2 = 21*WID3;
+const uint I1_J1_K2 = 22*WID3;
+const uint I2_J1_K2 = 23*WID3;
+const uint I0_J2_K2 = 24*WID3;
+const uint I1_J2_K2 = 25*WID3;
+const uint I2_J2_K2 = 26*WID3;
 
 const Real EPSILON = 1.0e-25;
 const Real ZERO    = 0.0;
@@ -135,10 +139,723 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
    const REAL dt_per_dx = DT / CELL_PARAMS[CellParams::DX];
    const REAL dt_per_dy = DT / CELL_PARAMS[CellParams::DY];
    const REAL dt_per_dz = DT / CELL_PARAMS[CellParams::DZ];
-   const REAL* nbr_minus1 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 12]*SIZE_VELBLOCK; //  -x nbr
+
+   const REAL* const xnbr_plus1  = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 14]*SIZE_VELBLOCK; //  +x nbr
+   const REAL* const xnbr_minus1 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 12]*SIZE_VELBLOCK; //  -x nbr
+   const REAL* const xnbr_minus2 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 27]*SIZE_VELBLOCK; // --x nbr
+   const REAL* const ynbr_plus1  = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 16]*SIZE_VELBLOCK; //  +y nbr
+   const REAL* const ynbr_minus1 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 10]*SIZE_VELBLOCK;
+   const REAL* const ynbr_minus2 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 28]*SIZE_VELBLOCK; // --y nbr
+   const REAL* const znbr_plus1  = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 22]*SIZE_VELBLOCK; // +z nbr
+   const REAL* const znbr_minus1 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 4 ]*SIZE_VELBLOCK;
+   const REAL* const znbr_minus2 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 29]*SIZE_VELBLOCK; // --z nbr
    
+   for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
+      const REAL Vz = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
+      const REAL Vy = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
+      const REAL Vx = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
+
+      const UINT MYIND = cellIndex(i,j,k);
+      const REAL xcc = blockAvgs[MYIND];
+      const REAL xp1 = xnbr_plus1[MYIND];
+      const REAL xm1 = xnbr_minus1[MYIND];
+      const REAL xm2 = xnbr_minus2[MYIND];
+      const REAL yp1 = ynbr_plus1[MYIND];
+      const REAL ym1 = ynbr_minus1[MYIND];
+      const REAL ym2 = ynbr_minus2[MYIND];
+      const REAL zp1 = znbr_plus1[MYIND];
+      const REAL zm1 = znbr_minus1[MYIND];
+      const REAL zm2 = znbr_minus2[MYIND];
+      
+      if (Vx >= ZERO) {
+	 const REAL RX = xcc - xm1;
+	 const REAL incrWaveX = Vx*xm1*dt_per_dx;
+	 dfdt[I1_J1_K1 + MYIND] += incrWaveX;
+	 dfdt[I0_J1_K1 + MYIND] -= incrWaveX;
+	 #ifndef LEV_1ST_ORDER
+	 const REAL corrWaveX = HALF*Vx*(ONE - dt_per_dx*Vx)*RX*limiter(xm1-xm2,RX+EPSILON,xcc)*dt_per_dx;
+	 dfdt[I1_J1_K1 + MYIND] += corrWaveX;
+	 dfdt[I0_J1_K1 + MYIND] -= corrWaveX;
+         #endif
+	 
+	 const REAL RY = xcc - ym1;
+	 const REAL RZ = xcc - zm1;
+	 if (Vy >= ZERO) { // Vx > 0 Vy > 0
+	    const REAL transIncrWaveXY = HALF*Vx*Vy*dt_per_dx*dt_per_dy*RX - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RX;
+	    dfdt[I1_J2_K1 + MYIND] -= transIncrWaveXY;
+	    dfdt[I1_J1_K1 + MYIND] += transIncrWaveXY;
+	    const REAL transIncrWaveYX = HALF*Vx*Vy*dt_per_dx*dt_per_dy*RY - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RY;
+	    dfdt[I2_J1_K1 + MYIND] -= transIncrWaveYX;
+	    dfdt[I1_J1_K1 + MYIND] += transIncrWaveYX;
+	    
+	    #ifndef LEV_1ST_ORDER
+	    const REAL transCorrWaveXY = HALF*Vx*Vy*(ONE - dt_per_dx*Vx)*RX*limiter(xm1-xm2,RX+EPSILON,xcc)*dt_per_dx*dt_per_dy;
+	    dfdt[I1_J2_K1 + MYIND] += transCorrWaveXY;
+	    dfdt[I0_J2_K1 + MYIND] -= transCorrWaveXY;
+	    dfdt[I1_J1_K1 + MYIND] -= transCorrWaveXY;
+	    dfdt[I0_J1_K1 + MYIND] += transCorrWaveXY;
+	    const REAL transCorrWaveYX = HALF*Vx*Vy*(ONE - dt_per_dy*Vy)*RY*limiter(ym1-ym2,RY+EPSILON,xcc)*dt_per_dx*dt_per_dy;
+	    dfdt[I2_J1_K1 + MYIND] += transCorrWaveYX;
+	    dfdt[I1_J1_K1 + MYIND] -= transCorrWaveYX;
+	    dfdt[I2_J0_K1 + MYIND] -= transCorrWaveYX;
+	    dfdt[I1_J0_K1 + MYIND] += transCorrWaveYX;
+	    #endif
+	    
+	    if (Vz >= ZERO) { // Vx > 0 Vy > 0 Vz > 0
+	       const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
+	       dfdt[I1_J2_K2 + MYIND] -= doubleTransIncrWave*RX; // x
+	       dfdt[I1_J1_K2 + MYIND] += doubleTransIncrWave*RX;
+	       dfdt[I1_J2_K2 + MYIND] -= doubleTransIncrWave*RX;
+	       dfdt[I1_J2_K1 + MYIND] += doubleTransIncrWave*RX;
+	       dfdt[I2_J1_K2 + MYIND] -= doubleTransIncrWave*RY; // y
+	       dfdt[I1_J1_K2 + MYIND] += doubleTransIncrWave*RY;
+	       dfdt[I2_J1_K2 + MYIND] -= doubleTransIncrWave*RY;
+	       dfdt[I2_J1_K1 + MYIND] += doubleTransIncrWave*RY;
+	       dfdt[I2_J2_K1 + MYIND] -= doubleTransIncrWave*RZ; // z
+	       dfdt[I1_J2_K1 + MYIND] += doubleTransIncrWave*RZ;
+	       dfdt[I2_J2_K1 + MYIND] -= doubleTransIncrWave*RZ;
+	       dfdt[I2_J1_K1 + MYIND] += doubleTransIncrWave*RZ;
+	       
+	       #ifndef LEV_1ST_ORDER
+	       const REAL doubleTransCorrWaveXYZ = HALF*Vx*Vy*Vz*(ONE - dt_per_dx*Vx)*dt_per_dx*dt_per_dy*dt_per_dz*RX*limiter(xm1-xm2,RX+EPSILON,xcc);
+	       dfdt[I1_J2_K1 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I0_J2_K1 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I0_J1_K1 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I1_J2_K2 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I1_J1_K2 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I0_J2_K2 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I0_J1_K2 + MYIND] += doubleTransCorrWaveXYZ;
+	       const REAL doubleTransCorrWaveYZX = HALF*Vx*Vy*Vz*(ONE - dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*RY*limiter(ym1-ym2,RY+EPSILON,xcc);
+	       dfdt[I2_J1_K1 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I2_J0_K1 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I1_J0_K1 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I2_J1_K2 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I1_J1_K2 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I2_J0_K2 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I1_J0_K2 + MYIND] += doubleTransCorrWaveYZX;
+	       const REAL doubleTransCorrWaveZXY = HALF*Vx*Vy*Vz*(ONE - dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RZ*limiter(zm1-zm2,RZ+EPSILON,xcc);
+	       dfdt[I2_J1_K1 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I2_J1_K0 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I1_J1_K0 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I2_J2_K1 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I1_J2_K1 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I2_J2_K0 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I1_J2_K0 + MYIND] += doubleTransCorrWaveZXY;
+	       #endif
+	    } else { // Vx > 0 Vy > 0 Vz < 0
+	       const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
+	       dfdt[I1_J2_K0 + MYIND] += doubleTransIncrWave*RX; // x
+	       dfdt[I1_J1_K0 + MYIND] -= doubleTransIncrWave*RX;
+	       dfdt[I1_J2_K1 + MYIND] -= doubleTransIncrWave*RX;
+	       dfdt[I1_J2_K0 + MYIND] += doubleTransIncrWave*RX;
+	       dfdt[I2_J1_K0 + MYIND] += doubleTransIncrWave*RY; // y
+	       dfdt[I1_J1_K0 + MYIND] -= doubleTransIncrWave*RY;
+	       dfdt[I2_J1_K1 + MYIND] -= doubleTransIncrWave*RY;
+	       dfdt[I2_J1_K0 + MYIND] += doubleTransIncrWave*RY;
+	       dfdt[I2_J2_K0 + MYIND] -= doubleTransIncrWave*RZ; // z
+	       dfdt[I1_J2_K0 + MYIND] += doubleTransIncrWave*RZ;
+	       dfdt[I2_J2_K0 + MYIND] -= doubleTransIncrWave*RZ;
+	       dfdt[I2_J1_K0 + MYIND] += doubleTransIncrWave*RZ;
+	       
+	       #ifndef LEV_1ST_ORDER
+	       const REAL doubleTransCorrWaveXYZ = HALF*Vx*Vy*Vz*(ONE - Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*RX*limiter(xm1-xm2,RX+EPSILON,xcc);
+	       dfdt[I1_J2_K1 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I0_J2_K1 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I0_J1_K1 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I1_J2_K0 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I1_J1_K0 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I0_J2_K0 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I0_J1_K0 + MYIND] -= doubleTransCorrWaveXYZ;
+	       const REAL doubleTransCorrWaveYZX = HALF*Vx*Vy*Vz*(ONE - dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*RY*limiter(ym1-ym2,RY+EPSILON,xcc);
+	       dfdt[I2_J1_K1 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I2_J0_K1 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I1_J0_K1 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I2_J1_K0 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I1_J1_K0 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I2_J0_K0 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I1_J0_K0 + MYIND] -= doubleTransCorrWaveYZX;
+	       const REAL doubleTransCorrWaveZXY = -HALF*Vx*Vy*Vz*(ONE + dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RZ*limiter(zp1-xcc,RZ+EPSILON,xcc);
+	       dfdt[I2_J1_K1 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I2_J1_K0 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I1_J1_K0 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I2_J2_K1 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I1_J2_K1 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I2_J2_K0 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I1_J2_K0 + MYIND] += doubleTransCorrWaveZXY;
+	       #endif
+	    }
+	 } else { // Vx > 0 Vy < 0
+	    const REAL transIncrWaveXY = HALF*Vx*Vy*dt_per_dx*dt_per_dy*RX - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RX;
+	    dfdt[I1_J0_K1 + MYIND] += transIncrWaveXY;
+	    dfdt[I1_J1_K1 + MYIND] -= transIncrWaveXY;
+	    const REAL transIncrWaveYX = HALF*Vx*Vy*dt_per_dx*dt_per_dy*RY - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RY;
+	    dfdt[I2_J0_K1 + MYIND] -= transIncrWaveYX;
+	    dfdt[I1_J0_K1 + MYIND] += transIncrWaveYX;
+	    
+	    #ifndef LEV_1ST_ORDER
+	    const REAL transCorrWaveXY = HALF*Vx*Vy*(ONE - dt_per_dx*Vx)*RX*limiter(xm1-xm2,RX+EPSILON,xcc)*dt_per_dx*dt_per_dy;
+	    dfdt[I1_J0_K1 + MYIND] -= transCorrWaveXY;
+	    dfdt[I1_J1_K1 + MYIND] += transCorrWaveXY;
+	    dfdt[I0_J0_K1 + MYIND] += transCorrWaveXY;
+	    dfdt[I0_J1_K1 + MYIND] -= transCorrWaveXY;
+	    const REAL transCorrWaveYX = -HALF*Vx*Vy*(ONE + dt_per_dy*Vy)*RY*limiter(yp1-xcc,RY+EPSILON,xcc)*dt_per_dx*dt_per_dy;
+	    dfdt[I2_J1_K1 + MYIND] += transCorrWaveYX;
+	    dfdt[I1_J1_K1 + MYIND] -= transCorrWaveYX;
+	    dfdt[I2_J0_K1 + MYIND] -= transCorrWaveYX;
+	    dfdt[I1_J0_K1 + MYIND] += transCorrWaveYX;
+	    #endif
+	    
+	    if (Vz >= ZERO) { // Vx > 0 Vy < 0 Vz > 0
+	       const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
+	       dfdt[I1_J1_K2 + MYIND] -= doubleTransIncrWave*RX; // x
+	       dfdt[I1_J0_K2 + MYIND] += doubleTransIncrWave*RX;
+	       dfdt[I1_J0_K2 + MYIND] += doubleTransIncrWave*RX;
+	       dfdt[I1_J0_K1 + MYIND] -= doubleTransIncrWave*RX;
+	       dfdt[I2_J0_K2 + MYIND] -= doubleTransIncrWave*RY; // y
+	       dfdt[I1_J0_K2 + MYIND] += doubleTransIncrWave*RY;
+	       dfdt[I2_J0_K2 + MYIND] -= doubleTransIncrWave*RY;
+	       dfdt[I2_J0_K1 + MYIND] += doubleTransIncrWave*RY;
+	       dfdt[I2_J0_K1 + MYIND] += doubleTransIncrWave*RZ; // z
+	       dfdt[I1_J0_K1 + MYIND] -= doubleTransIncrWave*RZ;
+	       dfdt[I2_J1_K1 + MYIND] -= doubleTransIncrWave*RZ;
+	       dfdt[I2_J0_K1 + MYIND] += doubleTransIncrWave*RZ;
+	       
+	       #ifndef LEV_1ST_ORDER
+	       const REAL doubleTransCorrWaveXYZ = HALF*Vx*Vy*Vz*(ONE-Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*RX*limiter(xm1-xm2,RX+EPSILON,xcc);
+	       dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I1_J0_K1 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I0_J1_K1 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I0_J0_K1 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I1_J1_K2 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I1_J0_K2 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I0_J1_K2 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I0_J0_K2 + MYIND] += doubleTransCorrWaveXYZ;
+	       const REAL doubleTransCorrWaveYZX = -HALF*Vx*Vy*Vz*(ONE + dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*RY*limiter(yp1-xcc,RY+EPSILON,xcc);
+	       dfdt[I2_J1_K1 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I2_J0_K1 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I1_J0_K1 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I2_J1_K2 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I1_J1_K2 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I2_J0_K2 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I1_J0_K2 + MYIND] += doubleTransCorrWaveYZX;
+	       const REAL doubleTransCorrWaveZXY = HALF*Vx*Vy*Vz*(ONE - dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RZ*limiter(zm1-zm2,RZ+EPSILON,xcc);
+	       dfdt[I2_J0_K1 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I1_J0_K1 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I2_J0_K0 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I1_J0_K0 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I2_J1_K1 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I2_J1_K0 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I1_J1_K0 + MYIND] += doubleTransCorrWaveZXY;
+	       #endif
+	    } else { // Vx > 0 Vy < 0 Vz < 0
+	       const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
+	       dfdt[I1_J1_K0 + MYIND] += doubleTransIncrWave*RX; // x
+	       dfdt[I1_J0_K0 + MYIND] -= doubleTransIncrWave*RX;
+	       dfdt[I1_J0_K1 + MYIND] += doubleTransIncrWave*RX;
+	       dfdt[I1_J0_K0 + MYIND] -= doubleTransIncrWave*RX;
+	       dfdt[I2_J0_K0 + MYIND] += doubleTransIncrWave*RY; // y
+	       dfdt[I1_J0_K0 + MYIND] -= doubleTransIncrWave*RY;
+	       dfdt[I2_J0_K1 + MYIND] -= doubleTransIncrWave*RY;
+	       dfdt[I2_J0_K0 + MYIND] += doubleTransIncrWave*RY;
+	       dfdt[I2_J0_K0 + MYIND] += doubleTransIncrWave*RZ; // z
+	       dfdt[I1_J0_K0 + MYIND] -= doubleTransIncrWave*RZ;
+	       dfdt[I2_J1_K0 + MYIND] -= doubleTransIncrWave*RZ;
+	       dfdt[I2_J0_K0 + MYIND] += doubleTransIncrWave*RZ;
+	       
+	       #ifndef LEV_1ST_ORDER
+	       const REAL doubleTransCorrWaveXYZ = HALF*Vx*Vy*Vz*(ONE-Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*RX*limiter(xm1-xm2,RX+EPSILON,xcc);
+	       dfdt[I1_J1_K0 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I1_J0_K0 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I0_J1_K0 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I0_J0_K0 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I1_J0_K1 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I0_J1_K1 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I0_J0_K1 + MYIND] += doubleTransCorrWaveXYZ;
+	       const REAL doubleTransCorrWaveYZX = -HALF*Vx*Vy*Vz*(ONE + dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*RY*limiter(yp1-xcc,RY+EPSILON,xcc);
+	       dfdt[I2_J1_K0 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I1_J1_K0 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I2_J0_K0 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I1_J0_K0 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I2_J1_K1 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I2_J0_K1 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I1_J0_K1 + MYIND] += doubleTransCorrWaveYZX;
+	       const REAL doubleTransCorrWaveZXY = -HALF*Vx*Vy*Vz*(ONE + dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RZ*limiter(zp1-xcc,RZ+EPSILON,xcc);
+	       dfdt[I2_J0_K1 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I1_J0_K1 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I2_J0_K0 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I1_J0_K0 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I2_J1_K1 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I2_J1_K0 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I1_J1_K0 + MYIND] += doubleTransCorrWaveZXY;
+	       #endif
+	    }
+	 }
+	 
+	 if (Vz >= ZERO) {
+	    const REAL transIncrWaveXZ = HALF*Vx*Vz*dt_per_dx*dt_per_dz*RX - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RX;
+	    dfdt[I1_J1_K2 + MYIND] -= transIncrWaveXZ;
+	    dfdt[I1_J1_K1 + MYIND] += transIncrWaveXZ;
+	    const REAL transIncrWaveZX = HALF*Vx*Vz*dt_per_dx*dt_per_dz*RZ - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RZ;
+	    dfdt[I2_J1_K1 + MYIND] -= transIncrWaveZX;
+	    dfdt[I1_J1_K1 + MYIND] += transIncrWaveZX;
+	    
+	    #ifndef LEV_1ST_ORDER
+	    const REAL transCorrWaveXZ = HALF*Vx*Vz*(ONE - dt_per_dx*Vx)*RX*limiter(xm1-xm2,RX+EPSILON,xcc)*dt_per_dx*dt_per_dz;
+	    dfdt[I1_J1_K2 + MYIND] += transCorrWaveXZ;
+	    dfdt[I0_J1_K2 + MYIND] -= transCorrWaveXZ;
+	    dfdt[I1_J1_K1 + MYIND] -= transCorrWaveXZ;
+	    dfdt[I0_J1_K1 + MYIND] += transCorrWaveXZ;
+	    const REAL transCorrWaveZX = HALF*Vx*Vz*(ONE - dt_per_dz*Vz)*RZ*limiter(zm1-zm2,RZ+EPSILON,xcc)*dt_per_dx*dt_per_dz;
+	    dfdt[I2_J1_K1 + MYIND] += transCorrWaveZX;
+	    dfdt[I1_J1_K1 + MYIND] -= transCorrWaveZX;
+	    dfdt[I2_J1_K0 + MYIND] -= transCorrWaveZX;
+	    dfdt[I1_J1_K0 + MYIND] += transCorrWaveZX;
+	    #endif
+	 } else {
+	    const REAL transIncrWaveXZ = HALF*Vx*Vz*dt_per_dx*dt_per_dz*RX - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RX;
+	    dfdt[I1_J1_K0 + MYIND] += transIncrWaveXZ;
+	    dfdt[I1_J1_K1 + MYIND] -= transIncrWaveXZ;
+	    const REAL transIncrWaveZX = HALF*Vx*Vz*dt_per_dx*dt_per_dz*RZ - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RZ;
+	    dfdt[I2_J1_K0 + MYIND] -= transIncrWaveZX;
+	    dfdt[I1_J1_K0 + MYIND] += transIncrWaveZX;
+
+	    #ifndef LEV_1ST_ORDER
+	    const REAL transCorrWaveXZ = HALF*Vx*Vz*(ONE - dt_per_dx*Vx)*RX*limiter(xm1-xm2,RX+EPSILON,xcc)*dt_per_dx*dt_per_dz;
+	    dfdt[I1_J1_K1 + MYIND] += transCorrWaveXZ;
+	    dfdt[I1_J1_K0 + MYIND] -= transCorrWaveXZ;
+	    dfdt[I0_J1_K1 + MYIND] -= transCorrWaveXZ;
+	    dfdt[I0_J1_K0 + MYIND] += transCorrWaveXZ;
+	    const REAL transCorrWaveZX = -HALF*Vx*Vz*(ONE + dt_per_dz*Vz)*RZ*limiter(zp1-xcc,RZ+EPSILON,xcc)*dt_per_dx*dt_per_dz;
+	    dfdt[I2_J1_K1 + MYIND] += transCorrWaveZX;
+	    dfdt[I1_J1_K1 + MYIND] -= transCorrWaveZX;
+	    dfdt[I2_J1_K0 + MYIND] -= transCorrWaveZX;
+	    dfdt[I1_J1_K0 + MYIND] += transCorrWaveZX;
+            #endif
+	 }
+      } else { // Vx < 0
+	 const REAL RX = xcc - xm1;
+	 const REAL incrWaveX = Vx*xcc*dt_per_dx;
+	 dfdt[I1_J1_K1 + MYIND] += incrWaveX;
+	 dfdt[I0_J1_K1 + MYIND] -= incrWaveX;
+	 #ifndef LEV_1ST_ORDER
+	 const REAL corrWaveX = -HALF*Vx*(ONE + dt_per_dx*Vx)*RX*limiter(xp1-xcc,RX+EPSILON,xcc)*dt_per_dx;
+	 dfdt[I1_J1_K1 + MYIND] += corrWaveX;
+	 dfdt[I0_J1_K1 + MYIND] -= corrWaveX;
+	 #endif
+  
+	 const REAL RY = xcc - ym1;
+	 const REAL RZ = xcc - zm1;
+	 if (Vy >= ZERO) { // Vx < 0 Vy > 0
+	    const REAL transIncrWaveXY = HALF*Vx*Vy*dt_per_dx*dt_per_dy*RX - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RX;
+	    dfdt[I0_J2_K1 + MYIND] -= transIncrWaveXY;
+	    dfdt[I0_J1_K1 + MYIND] += transIncrWaveXY;
+	    const REAL transIncrWaveYX = HALF*Vx*Vy*dt_per_dx*dt_per_dy*RY - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RY;
+	    dfdt[I0_J1_K1 + MYIND] += transIncrWaveYX;
+	    dfdt[I1_J1_K1 + MYIND] -= transIncrWaveYX;
+
+	    #ifndef LEV_1ST_ORDER
+	    const REAL transCorrWaveXY = -HALF*Vx*Vy*(ONE + dt_per_dx*Vx)*RX*limiter(xp1-xcc,RX+EPSILON,xcc)*dt_per_dx*dt_per_dy;
+	    dfdt[I1_J2_K1 + MYIND] += transCorrWaveXY;
+	    dfdt[I1_J1_K1 + MYIND] -= transCorrWaveXY;
+	    dfdt[I0_J2_K1 + MYIND] -= transCorrWaveXY;
+	    dfdt[I0_J1_K1 + MYIND] += transCorrWaveXY;
+	    const REAL transCorrWaveYX = HALF*Vx*Vy*(ONE - dt_per_dy*Vy)*RY*limiter(ym1-ym2,RY+EPSILON,xcc)*dt_per_dx*dt_per_dy;
+	    dfdt[I0_J1_K1 + MYIND] -= transCorrWaveYX;
+	    dfdt[I1_J1_K1 + MYIND] += transCorrWaveYX;
+	    dfdt[I0_J0_K1 + MYIND] += transCorrWaveYX;
+	    dfdt[I1_J0_K1 + MYIND] -= transCorrWaveYX;
+	    #endif
+	    
+	    if (Vz >= ZERO) { // Vx < 0 Vy > 0 Vz > 0
+	       const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
+	       dfdt[I0_J2_K2 + MYIND] -= doubleTransIncrWave*RX; // x
+	       dfdt[I0_J1_K2 + MYIND] += doubleTransIncrWave*RX;
+	       dfdt[I0_J2_K2 + MYIND] -= doubleTransIncrWave*RX;
+	       dfdt[I0_J2_K1 + MYIND] += doubleTransIncrWave*RX;
+	       dfdt[I1_J1_K2 + MYIND] -= doubleTransIncrWave*RY; // y
+	       dfdt[I0_J1_K2 + MYIND] += doubleTransIncrWave*RY;
+	       dfdt[I0_J1_K2 + MYIND] += doubleTransIncrWave*RY;
+	       dfdt[I0_J1_K1 + MYIND] -= doubleTransIncrWave*RY;
+	       dfdt[I1_J2_K1 + MYIND] -= doubleTransIncrWave*RZ; // z
+	       dfdt[I0_J2_K1 + MYIND] += doubleTransIncrWave*RZ;
+	       dfdt[I0_J2_K1 + MYIND] += doubleTransIncrWave*RZ;
+	       dfdt[I0_J1_K1 + MYIND] -= doubleTransIncrWave*RZ;
+
+	       #ifndef LEV_1ST_ORDER
+	       const REAL doubleTransCorrWaveXYZ = -HALF*Vx*Vy*Vz*(ONE+Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*RX*limiter(xp1-xcc,RX+EPSILON,xcc);
+	       dfdt[I1_J2_K1 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I0_J2_K1 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I0_J1_K1 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I1_J2_K2 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I1_J1_K2 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I0_J2_K2 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I0_J1_K2 + MYIND] += doubleTransCorrWaveXYZ;
+	       const REAL doubleTransCorrWaveYZX = HALF*Vx*Vy*Vz*(ONE - dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*RY*limiter(ym1-ym2,RY+EPSILON,xcc);
+	       dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I0_J1_K1 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I1_J0_K1 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I0_J0_K1 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I1_J1_K2 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I0_J1_K2 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I1_J0_K2 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I0_J0_K2 + MYIND] += doubleTransCorrWaveYZX;
+	       const REAL doubleTransCorrWaveZXY = HALF*Vx*Vy*Vz*(ONE - dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RZ*limiter(zm1-zm2,RZ+EPSILON,xcc);
+	       dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I0_J1_K1 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I1_J1_K0 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I0_J1_K0 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I1_J2_K1 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I0_J2_K1 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I1_J2_K0 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I0_J2_K0 + MYIND] += doubleTransCorrWaveZXY;
+               #endif
+	    } else { // Vx < 0 Vy > 0 Vz < 0
+	       const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
+	       dfdt[I0_J2_K0 + MYIND] += doubleTransIncrWave*RX; // x
+	       dfdt[I0_J1_K0 + MYIND] -= doubleTransIncrWave*RX;
+	       dfdt[I0_J2_K1 + MYIND] -= doubleTransIncrWave*RX;
+	       dfdt[I0_J2_K0 + MYIND] += doubleTransIncrWave*RX;
+	       dfdt[I1_J1_K0 + MYIND] += doubleTransIncrWave*RY; // y
+	       dfdt[I0_J1_K0 + MYIND] -= doubleTransIncrWave*RY;
+	       dfdt[I0_J1_K1 + MYIND] += doubleTransIncrWave*RY;
+	       dfdt[I0_J1_K0 + MYIND] -= doubleTransIncrWave*RY;
+	       dfdt[I1_J2_K0 + MYIND] -= doubleTransIncrWave*RZ; // z
+	       dfdt[I0_J2_K0 + MYIND] += doubleTransIncrWave*RZ;
+	       dfdt[I0_J2_K0 + MYIND] += doubleTransIncrWave*RZ;
+	       dfdt[I0_J1_K0 + MYIND] -= doubleTransIncrWave*RZ;
+	       
+	       #ifndef LEV_1ST_ORDER
+	       const REAL doubleTransCorrWaveXYZ = -HALF*Vx*Vy*Vz*(ONE+Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*RX*limiter(xp1-xcc,RX+EPSILON,xcc);
+	       dfdt[I1_J2_K0 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I1_J1_K0 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I0_J2_K0 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I0_J1_K0 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I1_J2_K1 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I0_J2_K1 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I0_J1_K1 + MYIND] += doubleTransCorrWaveXYZ;
+	       const REAL doubleTransCorrWaveYZX = HALF*Vx*Vy*Vz*(ONE - dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*RY*limiter(ym1-ym2,RY+EPSILON,xcc);
+	       dfdt[I1_J1_K0 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I0_J1_K0 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I1_J0_K0 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I0_J0_K0 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I0_J1_K1 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I1_J0_K1 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I0_J0_K1 + MYIND] += doubleTransCorrWaveYZX;
+	       const REAL doubleTransCorrWaveZXY = -HALF*Vx*Vy*Vz*(ONE + dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RZ*limiter(zp1-xcc,RZ+EPSILON,xcc);
+	       dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I0_J1_K1 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I1_J1_K0 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I0_J1_K0 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I1_J2_K1 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I0_J2_K1 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I1_J2_K0 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I0_J2_K0 + MYIND] += doubleTransCorrWaveZXY;
+               #endif
+	    }
+	 } else { // Vx < 0 Vy < 0
+	    const REAL transIncrWaveXY = HALF*Vx*Vy*dt_per_dx*dt_per_dy*RX - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RX;
+	    dfdt[I0_J0_K1 + MYIND] += transIncrWaveXY;
+	    dfdt[I0_J1_K1 + MYIND] -= transIncrWaveXY;
+	    const REAL transIncrWaveYX = HALF*Vx*Vy*dt_per_dx*dt_per_dy*RY - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RY;
+	    dfdt[I0_J0_K1 + MYIND] += transIncrWaveYX;
+	    dfdt[I1_J0_K1 + MYIND] -= transIncrWaveYX;
+
+	    #ifndef LEV_1ST_ORDER
+	    const REAL transCorrWaveXY = -HALF*Vx*Vy*(ONE + dt_per_dx*Vx)*RX*limiter(xp1-xcc,RX+EPSILON,xcc)*dt_per_dx*dt_per_dy;
+	    dfdt[I1_J0_K1 + MYIND] -= transCorrWaveXY;
+	    dfdt[I1_J1_K1 + MYIND] += transCorrWaveXY;
+	    dfdt[I0_J0_K1 + MYIND] += transCorrWaveXY;
+	    dfdt[I0_J1_K1 + MYIND] -= transCorrWaveXY;
+	    const REAL transCorrWaveYX = -HALF*Vx*Vy*(ONE + dt_per_dy*Vy)*RY*limiter(yp1-xcc,RY+EPSILON,xcc)*dt_per_dx*dt_per_dy;
+	    dfdt[I0_J1_K1 + MYIND] -= transCorrWaveYX;
+	    dfdt[I1_J1_K1 + MYIND] += transCorrWaveYX;
+	    dfdt[I0_J0_K1 + MYIND] += transCorrWaveYX;
+	    dfdt[I1_J0_K1 + MYIND] -= transCorrWaveYX;
+	    #endif
+	    
+	    if (Vz >= ZERO) { // Vx < 0 Vy < 0 Vz > 0
+	       const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
+	       dfdt[I0_J1_K2 + MYIND] -= doubleTransIncrWave*RX; // x
+	       dfdt[I0_J0_K2 + MYIND] += doubleTransIncrWave*RX;
+	       dfdt[I0_J0_K2 + MYIND] += doubleTransIncrWave*RX;
+	       dfdt[I0_J0_K1 + MYIND] -= doubleTransIncrWave*RX;
+	       dfdt[I1_J0_K2 + MYIND] -= doubleTransIncrWave*RY; // y
+	       dfdt[I0_J0_K2 + MYIND] += doubleTransIncrWave*RY;
+	       dfdt[I0_J0_K2 + MYIND] += doubleTransIncrWave*RY;
+	       dfdt[I0_J0_K1 + MYIND] -= doubleTransIncrWave*RY;
+	       dfdt[I1_J0_K1 + MYIND] += doubleTransIncrWave*RZ; // z
+	       dfdt[I0_J0_K1 + MYIND] -= doubleTransIncrWave*RZ;
+	       dfdt[I0_J1_K1 + MYIND] += doubleTransIncrWave*RZ;
+	       dfdt[I0_J0_K1 + MYIND] -= doubleTransIncrWave*RZ;
+	       
+	       #ifndef LEV_1ST_ORDER
+	       const REAL doubleTransCorrWaveXYZ = -HALF*Vx*Vy*Vz*(ONE+Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*RX*limiter(xp1-xcc,RX+EPSILON,xcc);
+	       dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I1_J0_K1 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I0_J1_K1 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I0_J0_K1 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I1_J1_K2 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I1_J0_K2 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I0_J1_K2 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I0_J0_K2 + MYIND] += doubleTransCorrWaveXYZ;
+	       const REAL doubleTransCorrWaveYZX = -HALF*Vx*Vy*Vz*(ONE + dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*RY*limiter(yp1-xcc,RY+EPSILON,xcc);
+	       dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I0_J1_K1 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I1_J0_K1 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I0_J0_K1 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I1_J1_K2 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I0_J1_K2 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I1_J0_K2 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I0_J0_K2 + MYIND] += doubleTransCorrWaveYZX;
+	       const REAL doubleTransCorrWaveZXY = HALF*Vx*Vy*Vz*(ONE - dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RZ*limiter(zm1-zm2,RZ+EPSILON,xcc);
+	       dfdt[I1_J0_K1 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I0_J0_K1 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I1_J0_K0 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I0_J0_K0 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I0_J1_K1 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I1_J1_K0 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I0_J1_K0 + MYIND] += doubleTransCorrWaveZXY;
+               #endif
+	    } else { // Vx < 0 Vy < 0 Vz < 0
+	       const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
+	       dfdt[I0_J1_K0 + MYIND] += doubleTransIncrWave*RX; // x
+	       dfdt[I0_J0_K0 + MYIND] -= doubleTransIncrWave*RX;
+	       dfdt[I0_J0_K1 + MYIND] += doubleTransIncrWave*RX;
+	       dfdt[I0_J0_K0 + MYIND] -= doubleTransIncrWave*RX;
+	       dfdt[I1_J0_K0 + MYIND] += doubleTransIncrWave*RY; // y
+	       dfdt[I0_J0_K0 + MYIND] -= doubleTransIncrWave*RY;
+	       dfdt[I0_J0_K1 + MYIND] += doubleTransIncrWave*RY;
+	       dfdt[I0_J0_K0 + MYIND] -= doubleTransIncrWave*RY;
+	       dfdt[I1_J0_K0 + MYIND] += doubleTransIncrWave*RZ; // z
+	       dfdt[I0_J0_K0 + MYIND] -= doubleTransIncrWave*RZ;
+	       dfdt[I0_J1_K0 + MYIND] += doubleTransIncrWave*RZ;
+	       dfdt[I0_J0_K0 + MYIND] -= doubleTransIncrWave*RZ;
+	       
+	       #ifndef LEV_1ST_ORDER
+	       const REAL doubleTransCorrWaveXYZ = -HALF*Vx*Vy*Vz*(ONE+Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*RX*limiter(xp1-xcc,RX+EPSILON,xcc);
+	       dfdt[I1_J1_K0 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I1_J0_K0 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I0_J1_K0 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I0_J0_K0 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWaveXYZ;
+	       dfdt[I1_J0_K1 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I0_J1_K1 + MYIND] -= doubleTransCorrWaveXYZ;
+	       dfdt[I0_J0_K1 + MYIND] += doubleTransCorrWaveXYZ;
+	       const REAL doubleTransCorrWaveYZX = -HALF*Vx*Vy*Vz*(ONE + dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*RY*limiter(yp1-xcc,RY+EPSILON,xcc);
+	       dfdt[I1_J1_K0 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I0_J1_K0 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I1_J0_K0 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I0_J0_K0 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWaveYZX;
+	       dfdt[I0_J1_K1 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I1_J0_K1 + MYIND] -= doubleTransCorrWaveYZX;
+	       dfdt[I0_J0_K1 + MYIND] += doubleTransCorrWaveYZX;
+	       const REAL doubleTransCorrWaveZXY = -HALF*Vx*Vy*Vz*(ONE + dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RZ*limiter(zp1-xcc,RZ+EPSILON,xcc);
+	       dfdt[I1_J0_K1 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I0_J0_K1 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I1_J0_K0 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I0_J0_K0 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWaveZXY;
+	       dfdt[I0_J1_K1 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I1_J1_K0 + MYIND] -= doubleTransCorrWaveZXY;
+	       dfdt[I0_J1_K0 + MYIND] += doubleTransCorrWaveZXY;
+	       #endif
+	    }
+	 }
+	 
+	 if (Vz >= ZERO) {
+	    const REAL transIncrWaveXZ = HALF*Vx*Vz*dt_per_dx*dt_per_dz*RX - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RX;
+	    dfdt[I0_J1_K2 + MYIND] -= transIncrWaveXZ;
+	    dfdt[I0_J1_K1 + MYIND] += transIncrWaveXZ;
+	    const REAL transIncrWaveZX = HALF*Vx*Vz*dt_per_dx*dt_per_dz*RZ - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RZ;
+	    dfdt[I0_J1_K1 + MYIND] += transIncrWaveZX;
+	    dfdt[I1_J1_K1 + MYIND] -= transIncrWaveZX;
+	    
+	    #ifndef LEV_1ST_ORDER
+	    const REAL transCorrWaveXZ = -HALF*Vx*Vz*(ONE + dt_per_dx*Vx)*RX*limiter(xp1-xcc,RX+EPSILON,xcc)*dt_per_dx*dt_per_dz;
+	    dfdt[I1_J1_K2 + MYIND] += transCorrWaveXZ;
+	    dfdt[I1_J1_K1 + MYIND] -= transCorrWaveXZ;
+	    dfdt[I0_J1_K2 + MYIND] -= transCorrWaveXZ;
+	    dfdt[I0_J1_K1 + MYIND] += transCorrWaveXZ;
+	    const REAL transCorrWaveZX = HALF*Vx*Vz*(ONE - dt_per_dz*Vz)*RZ*limiter(zm1-zm2,RZ+EPSILON,xcc)*dt_per_dx*dt_per_dz;
+	    dfdt[I1_J1_K1 + MYIND] += transCorrWaveZX;
+	    dfdt[I0_J1_K1 + MYIND] -= transCorrWaveZX;
+	    dfdt[I1_J1_K0 + MYIND] -= transCorrWaveZX;
+	    dfdt[I0_J1_K0 + MYIND] += transCorrWaveZX;
+	    #endif	    
+	 } else {
+	    const REAL transIncrWaveXZ = HALF*Vx*Vz*dt_per_dx*dt_per_dz*RX - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RX;
+	    dfdt[I0_J1_K0 + MYIND] += transIncrWaveXZ;
+	    dfdt[I0_J1_K1 + MYIND] -= transIncrWaveXZ;
+	    const REAL transIncrWaveZX = HALF*Vx*Vz*dt_per_dx*dt_per_dz*RZ - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RZ;
+	    dfdt[I0_J1_K0 + MYIND] += transIncrWaveZX;
+	    dfdt[I1_J1_K0 + MYIND] -= transIncrWaveZX;
+	    
+	    #ifndef LEV_1ST_ORDER
+	    const REAL transCorrWaveXZ = -HALF*Vx*Vz*(ONE + dt_per_dx*Vx)*RX*limiter(xp1-xcc,RX+EPSILON,xcc)*dt_per_dx*dt_per_dz;
+	    dfdt[I1_J1_K1 + MYIND] += transCorrWaveXZ;
+	    dfdt[I1_J1_K0 + MYIND] -= transCorrWaveXZ;
+	    dfdt[I0_J1_K1 + MYIND] -= transCorrWaveXZ;
+	    dfdt[I0_J1_K0 + MYIND] += transCorrWaveXZ;
+	    const REAL transCorrWaveZX = -HALF*Vx*Vz*(ONE + dt_per_dz*Vz)*RZ*limiter(zp1-xcc,RZ+EPSILON,xcc)*dt_per_dx*dt_per_dz;
+	    dfdt[I1_J1_K1 + MYIND] += transCorrWaveZX;
+	    dfdt[I0_J1_K1 + MYIND] -= transCorrWaveZX;
+	    dfdt[I1_J1_K0 + MYIND] -= transCorrWaveZX;
+	    dfdt[I0_J1_K0 + MYIND] += transCorrWaveZX;
+	    #endif
+	 }
+      }
+      
+      if (Vy >= ZERO) {
+	 const REAL RY = xcc - ym1;
+	 const REAL incrWaveY = Vy*ym1*dt_per_dy;
+	 dfdt[I1_J1_K1 + MYIND] += incrWaveY;
+	 dfdt[I1_J0_K1 + MYIND] -= incrWaveY;
+	 #ifndef LEV_1ST_ORDER
+	 const REAL corrWaveY = HALF*Vy*(ONE - dt_per_dy*Vy)*RY*limiter(ym1-ym2,RY+EPSILON,xcc)*dt_per_dy;
+	 dfdt[I1_J1_K1 + MYIND] += corrWaveY;
+	 dfdt[I1_J0_K1 + MYIND] -= corrWaveY;
+         #endif
+	 
+	 const REAL RZ = xcc - zm1;
+	 if (Vz >= ZERO) {
+	    const REAL transIncrWaveYZ = HALF*Vy*Vz*dt_per_dy*dt_per_dz*RY - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RY;
+	    dfdt[I1_J1_K2 + MYIND] -= transIncrWaveYZ;
+	    dfdt[I1_J1_K1 + MYIND] += transIncrWaveYZ;
+	    const REAL transIncrWaveZY = HALF*Vy*Vz*dt_per_dy*dt_per_dz*RZ - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RZ;
+	    dfdt[I1_J2_K1 + MYIND] -= transIncrWaveZY;
+	    dfdt[I1_J1_K1 + MYIND] += transIncrWaveZY;
+	    
+	    #ifndef LEV_1ST_ORDER
+	    const REAL transCorrWaveYZ = HALF*Vy*Vz*(ONE - dt_per_dy*Vy)*RY*limiter(ym1-ym2,RY+EPSILON,xcc)*dt_per_dy*dt_per_dz;
+	    dfdt[I1_J1_K2 + MYIND] += transCorrWaveYZ;
+	    dfdt[I1_J1_K1 + MYIND] -= transCorrWaveYZ;
+	    dfdt[I1_J0_K2 + MYIND] -= transCorrWaveYZ;
+	    dfdt[I1_J0_K1 + MYIND] += transCorrWaveYZ;
+	    const REAL transCorrWaveZY = HALF*Vy*Vz*(ONE - dt_per_dz*Vz)*RZ*limiter(zm1-zm2,RZ+EPSILON,xcc)*dt_per_dy*dt_per_dz;
+	    dfdt[I1_J2_K1 + MYIND] += transCorrWaveZY;
+	    dfdt[I1_J1_K1 + MYIND] -= transCorrWaveZY;
+	    dfdt[I1_J2_K0 + MYIND] -= transCorrWaveZY;
+	    dfdt[I1_J1_K0 + MYIND] += transCorrWaveZY;
+	    #endif
+	 } else {
+	    const REAL transIncrWaveYZ = HALF*Vy*Vz*dt_per_dy*dt_per_dz*RY - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RY;
+	    dfdt[I1_J1_K0 + MYIND] += transIncrWaveYZ;
+	    dfdt[I1_J1_K1 + MYIND] -= transIncrWaveYZ;
+	    const REAL transIncrWaveZY = HALF*Vy*Vz*dt_per_dy*dt_per_dz*RZ - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RZ;
+	    dfdt[I1_J2_K0 + MYIND] -= transIncrWaveZY;
+	    dfdt[I1_J1_K0 + MYIND] += transIncrWaveZY;
+	    
+	    #ifndef LEV_1ST_ORDER
+	    const REAL transCorrWaveYZ = HALF*Vy*Vz*(ONE - dt_per_dy*Vy)*RY*limiter(ym1-ym2,RY+EPSILON,xcc)*dt_per_dy*dt_per_dz;
+	    dfdt[I1_J1_K1 + MYIND] += transCorrWaveYZ;
+	    dfdt[I1_J1_K0 + MYIND] -= transCorrWaveYZ;
+	    dfdt[I1_J0_K1 + MYIND] -= transCorrWaveYZ;
+	    dfdt[I1_J0_K0 + MYIND] += transCorrWaveYZ;
+	    const REAL transCorrWaveZY = -HALF*Vy*Vz*(ONE + dt_per_dz*Vz)*RZ*limiter(zp1-xcc,RZ+EPSILON,xcc)*dt_per_dy*dt_per_dz;
+	    dfdt[I1_J2_K1 + MYIND] += transCorrWaveZY;
+	    dfdt[I1_J1_K1 + MYIND] -= transCorrWaveZY;
+	    dfdt[I1_J2_K0 + MYIND] -= transCorrWaveZY;
+	    dfdt[I1_J1_K0 + MYIND] += transCorrWaveZY;
+	    #endif
+	 }
+      } else { // Vy < 0
+	 const REAL RY = xcc - ym1;
+	 const REAL incrWaveY = Vy*xcc*dt_per_dy;
+	 dfdt[I1_J1_K1 + MYIND] += incrWaveY;
+	 dfdt[I1_J0_K1 + MYIND] -= incrWaveY;
+	 #ifndef LEV_1ST_ORDER
+	 const REAL corrWaveY = -HALF*Vy*(ONE + dt_per_dy*Vy)*RY*limiter(yp1-xcc,RY+EPSILON,xcc)*dt_per_dy;
+	 dfdt[I1_J1_K1 + MYIND] += corrWaveY;
+	 dfdt[I1_J0_K1 + MYIND] -= corrWaveY;
+         #endif
+
+	 const REAL RZ = xcc - zm1;
+	 if (Vz >= ZERO) {
+	    const REAL transIncrWaveYZ = HALF*Vy*Vz*dt_per_dy*dt_per_dz*RY - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RY;
+	    dfdt[I1_J0_K2 + MYIND] -= transIncrWaveYZ;
+	    dfdt[I1_J0_K1 + MYIND] += transIncrWaveYZ;
+	    const REAL transIncrWaveZY = HALF*Vy*Vz*dt_per_dy*dt_per_dz*RZ - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RZ;
+	    dfdt[I1_J0_K1 + MYIND] += transIncrWaveZY;
+	    dfdt[I1_J1_K1 + MYIND] -= transIncrWaveZY;
+	    
+	    #ifndef LEV_1ST_ORDER
+	    const REAL transCorrWaveYZ = -HALF*Vy*Vz*(ONE + dt_per_dy*Vy)*RY*limiter(yp1-xcc,RY+EPSILON,xcc)*dt_per_dy*dt_per_dz;
+	    dfdt[I1_J1_K2 + MYIND] += transCorrWaveYZ;
+	    dfdt[I1_J1_K1 + MYIND] -= transCorrWaveYZ;
+	    dfdt[I1_J0_K2 + MYIND] -= transCorrWaveYZ;
+	    dfdt[I1_J0_K1 + MYIND] += transCorrWaveYZ;
+	    const REAL transCorrWaveZY = HALF*Vy*Vz*(ONE - dt_per_dz*Vz)*RZ*limiter(zm1-zm2,RZ+EPSILON,xcc)*dt_per_dy*dt_per_dz;
+	    dfdt[I1_J1_K1 + MYIND] += transCorrWaveZY;
+	    dfdt[I1_J0_K1 + MYIND] -= transCorrWaveZY;
+	    dfdt[I1_J1_K0 + MYIND] -= transCorrWaveZY;
+	    dfdt[I1_J0_K0 + MYIND] += transCorrWaveZY;
+	    #endif
+	 } else {
+	    const REAL transIncrWaveYZ = HALF*Vy*Vz*dt_per_dy*dt_per_dz*RY - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RY;
+	    dfdt[I1_J0_K0 + MYIND] += transIncrWaveYZ;
+	    dfdt[I1_J0_K1 + MYIND] -= transIncrWaveYZ;
+	    const REAL transIncrWaveZY = HALF*Vy*Vz*dt_per_dy*dt_per_dz*RZ - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RZ;
+	    dfdt[I1_J0_K0 + MYIND] += transIncrWaveZY;
+	    dfdt[I1_J1_K0 + MYIND] -= transIncrWaveZY;
+	    
+	    #ifndef LEV_1ST_ORDER
+	    const REAL transCorrWaveYZ = -HALF*Vy*Vz*(ONE + dt_per_dy*Vy)*RY*limiter(yp1-xcc,RY+EPSILON,xcc)*dt_per_dy*dt_per_dz;
+	    dfdt[I1_J1_K1 + MYIND] += transCorrWaveYZ;
+	    dfdt[I1_J1_K0 + MYIND] -= transCorrWaveYZ;
+	    dfdt[I1_J0_K1 + MYIND] -= transCorrWaveYZ;
+	    dfdt[I1_J0_K0 + MYIND] += transCorrWaveYZ;
+	    const REAL transCorrWaveZY = -HALF*Vy*Vz*(ONE + dt_per_dz*Vz)*RZ*limiter(zp1-xcc,RZ+EPSILON,xcc)*dt_per_dy*dt_per_dz;
+	    dfdt[I1_J1_K1 + MYIND] += transCorrWaveZY;
+	    dfdt[I1_J0_K1 + MYIND] -= transCorrWaveZY;
+	    dfdt[I1_J1_K0 + MYIND] -= transCorrWaveZY;
+	    dfdt[I1_J0_K0 + MYIND] += transCorrWaveZY;
+	    #endif
+	 }
+      }
+      
+      if (Vz >= ZERO) {
+	 const REAL R = xcc - zm1;
+	 const REAL incrWaveZ = Vz*zm1*dt_per_dz;
+	 dfdt[I1_J1_K1 + MYIND] += incrWaveZ;
+	 dfdt[I1_J1_K0 + MYIND] -= incrWaveZ;
+	 #ifndef LEV_1ST_ORDER
+	 const REAL corrWaveZ = HALF*Vz*(ONE - dt_per_dz*Vz)*R*limiter(zm1-zm2,R+EPSILON,xcc)*dt_per_dz;
+	 dfdt[I1_J1_K1 + MYIND] += corrWaveZ;
+	 dfdt[I1_J1_K0 + MYIND] -= corrWaveZ;
+         #endif
+      } else {
+	 const REAL RZ = xcc - zm1;
+	 const REAL incrWaveZ = Vz*xcc*dt_per_dz;
+	 dfdt[I1_J1_K1 + MYIND] += incrWaveZ;
+	 dfdt[I1_J1_K0 + MYIND] -= incrWaveZ;
+	 #ifndef LEV_1ST_ORDER
+	 const REAL corrWaveZ = -HALF*Vz*(ONE + dt_per_dz*Vz)*RZ*limiter(zp1-xcc,RZ+EPSILON,xcc)*dt_per_dz;
+	 dfdt[I1_J1_K1 + MYIND] += corrWaveZ;
+	 dfdt[I1_J1_K0 + MYIND] -= corrWaveZ;
+         #endif
+      }      
+   }
+   
+   /*
    // Case Vx > 0:
-   const REAL* nbr_minus2 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 27]*SIZE_VELBLOCK; // --x nbr
+   const REAL* const xnbr_minus1 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 12]*SIZE_VELBLOCK;
+   const REAL* const xnbr_minus2 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 27]*SIZE_VELBLOCK; // --x nbr
    if (sign_vx_constant == false || vx_sign > ZERO) {
       for (UINT k=0; k<WID; ++k) {
 	 const REAL Vz = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
@@ -147,217 +864,180 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    const REAL Vy = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
 	    //const REAL Vy = ZERO;
 	    for (UINT i=0; i<WID; ++i) {
-	       const REAL Vx = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
+	       const REAL Vx = std::max(ZERO,blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX]);
 	       //const REAL Vx = ZERO;
 	 
 	       const UINT MYIND = cellIndex(i,j,k);
 	       const REAL xcc = blockAvgs[MYIND];
-	       const REAL xm1 = nbr_minus1[MYIND];
-	       const REAL xm2 = nbr_minus2[MYIND];
+	       const REAL xm1 = xnbr_minus1[MYIND];
+	       const REAL xm2 = xnbr_minus2[MYIND];
 	       
-	       const REAL R = xcc - xm1;
-
 	       // Increment waves:
 	       const REAL incrWaveX = Vx*xm1*dt_per_dx;
-	       dfdt[I1_J1_K1*WID3 + MYIND] += incrWaveX;
-	       dfdt[I0_J1_K1*WID3 + MYIND] -= incrWaveX;
+	       dfdt[I1_J1_K1 + MYIND] += incrWaveX;
+	       dfdt[I0_J1_K1 + MYIND] -= incrWaveX;
 	       #ifndef LEV_1ST_ORDER
 	       // Correction waves:
+	       const REAL R = xcc - xm1;
 	       const REAL corrWaveX = HALF*Vx*(ONE - dt_per_dx*Vx)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dx;
-	       dfdt[I1_J1_K1*WID3 + MYIND] += corrWaveX;
-	       dfdt[I0_J1_K1*WID3 + MYIND] -= corrWaveX;
+	       dfdt[I1_J1_K1 + MYIND] += corrWaveX;
+	       dfdt[I0_J1_K1 + MYIND] -= corrWaveX;
 	       #endif
 	       if (Vy >= ZERO && Vz >= ZERO) {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveXY = HALF*Vx*Vy*dt_per_dx*dt_per_dy*R - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J2_K1*WID3 + MYIND] -= transIncrWaveXY;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transIncrWaveXY;
+		  dfdt[I1_J2_K1 + MYIND] -= transIncrWaveXY;
+		  dfdt[I1_J1_K1 + MYIND] += transIncrWaveXY;
 		  const REAL transIncrWaveXZ = HALF*Vx*Vz*dt_per_dx*dt_per_dz*R - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J1_K2*WID3 + MYIND] -= transIncrWaveXZ;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transIncrWaveXZ;
+		  dfdt[I1_J1_K2 + MYIND] -= transIncrWaveXZ;
+		  dfdt[I1_J1_K1 + MYIND] += transIncrWaveXZ;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveXY = HALF*Vx*Vy*(ONE - dt_per_dx*Vx)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dx*dt_per_dy;
-		  dfdt[I1_J2_K1*WID3 + MYIND] += transCorrWaveXY;
-		  dfdt[I0_J2_K1*WID3 + MYIND] -= transCorrWaveXY;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveXY;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += transCorrWaveXY;
+		  dfdt[I1_J2_K1 + MYIND] += transCorrWaveXY;
+		  dfdt[I0_J2_K1 + MYIND] -= transCorrWaveXY;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveXY;
+		  dfdt[I0_J1_K1 + MYIND] += transCorrWaveXY;
 		  const REAL transCorrWaveXZ = HALF*Vx*Vz*(ONE - dt_per_dx*Vx)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dx*dt_per_dz;
-		  dfdt[I1_J1_K2*WID3 + MYIND] += transCorrWaveXZ;
-		  dfdt[I0_J1_K2*WID3 + MYIND] -= transCorrWaveXZ;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveXZ;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += transCorrWaveXZ;
+		  dfdt[I1_J1_K2 + MYIND] += transCorrWaveXZ;
+		  dfdt[I0_J1_K2 + MYIND] -= transCorrWaveXZ;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveXZ;
+		  dfdt[I0_J1_K1 + MYIND] += transCorrWaveXZ;
 		  #endif
 		  // Double transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J2_K2*WID3 + MYIND] -= doubleTransIncrWave; // Fy
-		  dfdt[I1_J1_K2*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I1_J2_K2*WID3 + MYIND] -= doubleTransIncrWave; // Fz
-		  dfdt[I1_J2_K1*WID3 + MYIND] += doubleTransIncrWave;
+		  dfdt[I1_J2_K2 + MYIND] -= doubleTransIncrWave; // Fy
+		  dfdt[I1_J1_K2 + MYIND] += doubleTransIncrWave;
+		  dfdt[I1_J2_K2 + MYIND] -= doubleTransIncrWave; // Fz
+		  dfdt[I1_J2_K1 + MYIND] += doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = FOURTH*Vx*Vy*Vz*(ONE-Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
-		  dfdt[I1_J2_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fy
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J2_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J2_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J2_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J1_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  
-		  dfdt[I1_J1_K2*WID3 + MYIND] -= doubleTransCorrWave; // Fz 
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J2_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J2_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J2_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J2_K1*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = HALF*Vx*Vy*Vz*(ONE - dt_per_dx*Vx)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
+		  dfdt[I1_J2_K1 + MYIND] -= doubleTransCorrWave; // Fy
+		  dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J2_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J1_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J2_K2 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J1_K2 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J2_K2 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J1_K2 + MYIND] += doubleTransCorrWave;
 		  #endif
 	       } else if (Vy >= ZERO && Vz < ZERO) {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveXY = HALF*Vx*Vy*dt_per_dx*dt_per_dy*R - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J2_K1*WID3 + MYIND] -= transIncrWaveXY;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transIncrWaveXY;
+		  dfdt[I1_J2_K1 + MYIND] -= transIncrWaveXY;
+		  dfdt[I1_J1_K1 + MYIND] += transIncrWaveXY;
 		  const REAL transIncrWaveXZ = HALF*Vx*Vz*dt_per_dx*dt_per_dz*R - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += transIncrWaveXZ;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transIncrWaveXZ;
+		  dfdt[I1_J1_K0 + MYIND] += transIncrWaveXZ;
+		  dfdt[I1_J1_K1 + MYIND] -= transIncrWaveXZ;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveXY = HALF*Vx*Vy*(ONE - dt_per_dx*Vx)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dx*dt_per_dy;
-		  dfdt[I1_J2_K1*WID3 + MYIND] += transCorrWaveXY;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveXY;
-		  dfdt[I0_J2_K1*WID3 + MYIND] -= transCorrWaveXY;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += transCorrWaveXY;
+		  dfdt[I1_J2_K1 + MYIND] += transCorrWaveXY;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveXY;
+		  dfdt[I0_J2_K1 + MYIND] -= transCorrWaveXY;
+		  dfdt[I0_J1_K1 + MYIND] += transCorrWaveXY;
 		  const REAL transCorrWaveXZ = HALF*Vx*Vz*(ONE - dt_per_dx*Vx)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dx*dt_per_dz;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveXZ;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= transCorrWaveXZ;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= transCorrWaveXZ;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += transCorrWaveXZ;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveXZ;
+		  dfdt[I1_J1_K0 + MYIND] -= transCorrWaveXZ;
+		  dfdt[I0_J1_K1 + MYIND] -= transCorrWaveXZ;
+		  dfdt[I0_J1_K0 + MYIND] += transCorrWaveXZ;
 		  #endif
 		  // Double transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J2_K0*WID3 + MYIND] += doubleTransIncrWave; // Fy
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I1_J2_K1*WID3 + MYIND] -= doubleTransIncrWave; // Fz
-		  dfdt[I1_J2_K0*WID3 + MYIND] += doubleTransIncrWave;
+		  dfdt[I1_J2_K0 + MYIND] += doubleTransIncrWave; // Fy
+		  dfdt[I1_J1_K0 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I1_J2_K1 + MYIND] -= doubleTransIncrWave; // Fz
+		  dfdt[I1_J2_K0 + MYIND] += doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = +FOURTH*Vx*Vy*Vz*(ONE - Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
-		  dfdt[I1_J2_K1*WID3 + MYIND] += doubleTransCorrWave; // Fy
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J2_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J2_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J2_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fz
-		  dfdt[I1_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J2_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J2_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J2_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J2_K0*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = HALF*Vx*Vy*Vz*(ONE - Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
+		  dfdt[I1_J2_K1 + MYIND] += doubleTransCorrWave; // Fy
+		  dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J2_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J2_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J1_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J2_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J1_K0 + MYIND] -= doubleTransCorrWave;
 		  #endif
 	       } else if (Vy < ZERO && Vz >= ZERO) {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveXY = HALF*Vx*Vy*dt_per_dx*dt_per_dy*R - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += transIncrWaveXY;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transIncrWaveXY;
+		  dfdt[I1_J0_K1 + MYIND] += transIncrWaveXY;
+		  dfdt[I1_J1_K1 + MYIND] -= transIncrWaveXY;
 		  const REAL transIncrWaveXZ = HALF*Vx*Vz*dt_per_dx*dt_per_dz*R - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J1_K2*WID3 + MYIND] -= transIncrWaveXZ;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transIncrWaveXZ;
+		  dfdt[I1_J1_K2 + MYIND] -= transIncrWaveXZ;
+		  dfdt[I1_J1_K1 + MYIND] += transIncrWaveXZ;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveXY = HALF*Vx*Vy*(ONE - dt_per_dx*Vx)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dx*dt_per_dy;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= transCorrWaveXY;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveXY;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += transCorrWaveXY;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= transCorrWaveXY;
+		  dfdt[I1_J0_K1 + MYIND] -= transCorrWaveXY;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveXY;
+		  dfdt[I0_J0_K1 + MYIND] += transCorrWaveXY;
+		  dfdt[I0_J1_K1 + MYIND] -= transCorrWaveXY;
 		  const REAL transCorrWaveXZ = HALF*Vx*Vz*(ONE - dt_per_dx*Vx)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dx*dt_per_dz;
-		  dfdt[I1_J1_K2*WID3 + MYIND] += transCorrWaveXZ;
-		  dfdt[I0_J1_K2*WID3 + MYIND] -= transCorrWaveXZ;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveXZ;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += transCorrWaveXZ;
+		  dfdt[I1_J1_K2 + MYIND] += transCorrWaveXZ;
+		  dfdt[I0_J1_K2 + MYIND] -= transCorrWaveXZ;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveXZ;
+		  dfdt[I0_J1_K1 + MYIND] += transCorrWaveXZ;
 		  #endif
 		  // Double transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J1_K2*WID3 + MYIND] -= doubleTransIncrWave; // Fy
-		  dfdt[I1_J0_K2*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I1_J0_K2*WID3 + MYIND] += doubleTransIncrWave; // Fz
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I1_J1_K2 + MYIND] -= doubleTransIncrWave; // Fy
+		  dfdt[I1_J0_K2 + MYIND] += doubleTransIncrWave;
+		  dfdt[I1_J0_K2 + MYIND] += doubleTransIncrWave; // Fz
+		  dfdt[I1_J0_K1 + MYIND] -= doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = FOURTH*Vx*Vy*Vz*(ONE-Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fy
-		  dfdt[I1_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J1_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J0_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  
-		  dfdt[I1_J0_K2*WID3 + MYIND] -= doubleTransCorrWave; // Fz
-		  dfdt[I1_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J1_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = HALF*Vx*Vy*Vz*(ONE-Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
+		  dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWave; // Fy
+		  dfdt[I1_J0_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J0_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J1_K2 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J0_K2 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J1_K2 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J0_K2 + MYIND] += doubleTransCorrWave;
                   #endif
 	       } else {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveXY = HALF*Vx*Vy*dt_per_dx*dt_per_dy*R - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += transIncrWaveXY;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transIncrWaveXY;
+		  dfdt[I1_J0_K1 + MYIND] += transIncrWaveXY;
+		  dfdt[I1_J1_K1 + MYIND] -= transIncrWaveXY;
 		  const REAL transIncrWaveXZ = HALF*Vx*Vz*dt_per_dx*dt_per_dz*R - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += transIncrWaveXZ;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transIncrWaveXZ;
+		  dfdt[I1_J1_K0 + MYIND] += transIncrWaveXZ;
+		  dfdt[I1_J1_K1 + MYIND] -= transIncrWaveXZ;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveXY = HALF*Vx*Vy*(ONE - dt_per_dx*Vx)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dx*dt_per_dy;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= transCorrWaveXY;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveXY;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += transCorrWaveXY;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= transCorrWaveXY;
+		  dfdt[I1_J0_K1 + MYIND] -= transCorrWaveXY;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveXY;
+		  dfdt[I0_J0_K1 + MYIND] += transCorrWaveXY;
+		  dfdt[I0_J1_K1 + MYIND] -= transCorrWaveXY;
 		  const REAL transCorrWaveXZ = HALF*Vx*Vz*(ONE - dt_per_dx*Vx)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dx*dt_per_dz;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveXZ;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= transCorrWaveXZ;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= transCorrWaveXZ;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += transCorrWaveXZ;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveXZ;
+		  dfdt[I1_J1_K0 + MYIND] -= transCorrWaveXZ;
+		  dfdt[I0_J1_K1 + MYIND] -= transCorrWaveXZ;
+		  dfdt[I0_J1_K0 + MYIND] += transCorrWaveXZ;
 		  #endif
 		  // Double transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += doubleTransIncrWave; // Fy
-		  dfdt[I1_J0_K0*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += doubleTransIncrWave; // Fz
-		  dfdt[I1_J0_K0*WID3 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I1_J1_K0 + MYIND] += doubleTransIncrWave; // Fy
+		  dfdt[I1_J0_K0 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I1_J0_K1 + MYIND] += doubleTransIncrWave; // Fz
+		  dfdt[I1_J0_K0 + MYIND] -= doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = FOURTH*Vx*Vy*Vz*(ONE-Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= doubleTransCorrWave; // Fy
-		  dfdt[I1_J0_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fz
-		  dfdt[I1_J0_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = HALF*Vx*Vy*Vz*(ONE-Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
+		  dfdt[I1_J1_K0 + MYIND] -= doubleTransCorrWave; // Fy
+		  dfdt[I1_J0_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J1_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J0_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J0_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J1_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J0_K1 + MYIND] += doubleTransCorrWave;
                   #endif
 	       }
 	    }
@@ -366,7 +1046,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
    }
 
    // Case Vx < 0:
-   const REAL* nbr_plus1 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 14]*SIZE_VELBLOCK; //  +x nbr
+   const REAL* const xnbr_plus1 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 14]*SIZE_VELBLOCK; //  +x nbr
    if (sign_vx_constant == false || vx_sign < ZERO) {
       for (UINT k=0; k<WID; ++k) {
 	 const REAL Vz = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
@@ -375,218 +1055,182 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    const REAL Vy = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
 	    //const REAL Vy = ZERO;
 	    for (UINT i=0; i<WID; ++i) {
-	       const REAL Vx = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
+	       const REAL Vx = std::min(ZERO,blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX]);
 	       //const REAL Vx = ZERO;
 	    
 	       const UINT MYIND = cellIndex(i,j,k);
 	       const REAL xcc = blockAvgs[MYIND];
-	       const REAL xm1 = nbr_minus1[MYIND];
-	       const REAL xm2 = nbr_plus1[MYIND];
+	       const REAL xm1 = xnbr_minus1[MYIND];
+	       const REAL xm2 = xnbr_plus1[MYIND];
 	       
 	       const REAL R = xcc - xm1;
 	       //const REAL corr_wave = -HALF*Vx*(ONE + dt_per_dx*Vx)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dx;
 	       
 	       // Increment waves:
 	       const REAL incrWaveX = Vx*xcc*dt_per_dx;
-	       dfdt[I1_J1_K1*WID3 + MYIND] += incrWaveX;
-	       dfdt[I0_J1_K1*WID3 + MYIND] -= incrWaveX;
+	       dfdt[I1_J1_K1 + MYIND] += incrWaveX;
+	       dfdt[I0_J1_K1 + MYIND] -= incrWaveX;
 	       #ifndef LEV_1ST_ORDER
 	       // Correction waves:
 	       const REAL corrWaveX = -HALF*Vx*(ONE + dt_per_dx*Vx)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dx;
-	       dfdt[I1_J1_K1*WID3 + MYIND] += corrWaveX;
-	       dfdt[I0_J1_K1*WID3 + MYIND] -= corrWaveX;
+	       dfdt[I1_J1_K1 + MYIND] += corrWaveX;
+	       dfdt[I0_J1_K1 + MYIND] -= corrWaveX;
 	       #endif
 	       if (Vy >= ZERO && Vz >= ZERO) {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveXY = HALF*Vx*Vy*dt_per_dx*dt_per_dy*R - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I0_J2_K1*WID3 + MYIND] -= transIncrWaveXY;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += transIncrWaveXY;
+		  dfdt[I0_J2_K1 + MYIND] -= transIncrWaveXY;
+		  dfdt[I0_J1_K1 + MYIND] += transIncrWaveXY;
 		  const REAL transIncrWaveXZ = HALF*Vx*Vz*dt_per_dx*dt_per_dz*R - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I0_J1_K2*WID3 + MYIND] -= transIncrWaveXZ;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += transIncrWaveXZ;
+		  dfdt[I0_J1_K2 + MYIND] -= transIncrWaveXZ;
+		  dfdt[I0_J1_K1 + MYIND] += transIncrWaveXZ;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveXY = -HALF*Vx*Vy*(ONE + dt_per_dx*Vx)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dx*dt_per_dy;
-		  dfdt[I1_J2_K1*WID3 + MYIND] += transCorrWaveXY;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveXY;
-		  dfdt[I0_J2_K1*WID3 + MYIND] -= transCorrWaveXY;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += transCorrWaveXY;
+		  dfdt[I1_J2_K1 + MYIND] += transCorrWaveXY;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveXY;
+		  dfdt[I0_J2_K1 + MYIND] -= transCorrWaveXY;
+		  dfdt[I0_J1_K1 + MYIND] += transCorrWaveXY;
 		  const REAL transCorrWaveXZ = -HALF*Vx*Vz*(ONE + dt_per_dx*Vx)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dx*dt_per_dz;
-		  dfdt[I1_J1_K2*WID3 + MYIND] += transCorrWaveXZ;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveXZ;
-		  dfdt[I0_J1_K2*WID3 + MYIND] -= transCorrWaveXZ;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += transCorrWaveXZ;
+		  dfdt[I1_J1_K2 + MYIND] += transCorrWaveXZ;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveXZ;
+		  dfdt[I0_J1_K2 + MYIND] -= transCorrWaveXZ;
+		  dfdt[I0_J1_K1 + MYIND] += transCorrWaveXZ;
 		  #endif
 		  // Double transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I0_J2_K2*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I0_J1_K2*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I0_J2_K2*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I0_J2_K1*WID3 + MYIND] += doubleTransIncrWave;
+		  dfdt[I0_J2_K2 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I0_J1_K2 + MYIND] += doubleTransIncrWave;
+		  dfdt[I0_J2_K2 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I0_J2_K1 + MYIND] += doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = -FOURTH*Vx*Vy*Vz*(ONE+Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
-		  dfdt[I1_J2_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fy
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J2_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J2_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J2_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J1_K2*WID3 + MYIND] += doubleTransCorrWave;
-
-		  dfdt[I1_J1_K2*WID3 + MYIND] -= doubleTransCorrWave; // Fz
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J2_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J2_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J2_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J2_K1*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = -HALF*Vx*Vy*Vz*(ONE+Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
+		  dfdt[I1_J2_K1 + MYIND] -= doubleTransCorrWave; // Fy
+		  dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J2_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J1_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J2_K2 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J1_K2 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J2_K2 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J1_K2 + MYIND] += doubleTransCorrWave;
                   #endif
 	       } else if (Vy >= ZERO && Vz < ZERO) {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveXY = HALF*Vx*Vy*dt_per_dx*dt_per_dy*R - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I0_J2_K1*WID3 + MYIND] -= transIncrWaveXY;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += transIncrWaveXY;
+		  dfdt[I0_J2_K1 + MYIND] -= transIncrWaveXY;
+		  dfdt[I0_J1_K1 + MYIND] += transIncrWaveXY;
 		  const REAL transIncrWaveXZ = HALF*Vx*Vz*dt_per_dx*dt_per_dz*R - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += transIncrWaveXZ;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= transIncrWaveXZ;
+		  dfdt[I0_J1_K0 + MYIND] += transIncrWaveXZ;
+		  dfdt[I0_J1_K1 + MYIND] -= transIncrWaveXZ;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveXY = -HALF*Vx*Vy*(ONE + dt_per_dx*Vx)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dx*dt_per_dy;
-		  dfdt[I1_J2_K1*WID3 + MYIND] += transCorrWaveXY;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveXY;
-		  dfdt[I0_J2_K1*WID3 + MYIND] -= transCorrWaveXY;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += transCorrWaveXY;
+		  dfdt[I1_J2_K1 + MYIND] += transCorrWaveXY;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveXY;
+		  dfdt[I0_J2_K1 + MYIND] -= transCorrWaveXY;
+		  dfdt[I0_J1_K1 + MYIND] += transCorrWaveXY;
 		  const REAL transCorrWaveXZ = -HALF*Vx*Vz*(ONE + dt_per_dx*Vx)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dx*dt_per_dz;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveXZ;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= transCorrWaveXZ;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= transCorrWaveXZ;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += transCorrWaveXZ;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveXZ;
+		  dfdt[I1_J1_K0 + MYIND] -= transCorrWaveXZ;
+		  dfdt[I0_J1_K1 + MYIND] -= transCorrWaveXZ;
+		  dfdt[I0_J1_K0 + MYIND] += transCorrWaveXZ;
 		  #endif
 		  // Double transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I0_J2_K0*WID3 + MYIND] += doubleTransIncrWave; // Fy
-		  dfdt[I0_J1_K0*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I0_J2_K1*WID3 + MYIND] -= doubleTransIncrWave; // Fz
-		  dfdt[I0_J2_K0*WID3 + MYIND] += doubleTransIncrWave;
+		  dfdt[I0_J2_K0 + MYIND] += doubleTransIncrWave; // Fy
+		  dfdt[I0_J1_K0 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I0_J2_K1 + MYIND] -= doubleTransIncrWave; // Fz
+		  dfdt[I0_J2_K0 + MYIND] += doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = -FOURTH*Vx*Vy*Vz*(ONE+Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
-		  dfdt[I1_J2_K0*WID3 + MYIND] -= doubleTransCorrWave; // Fy
-		  dfdt[I1_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J2_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J2_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J2_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fz
-		  dfdt[I1_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J2_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J2_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J2_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J2_K0*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = -HALF*Vx*Vy*Vz*(ONE+Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
+		  dfdt[I1_J2_K0 + MYIND] -= doubleTransCorrWave; // Fy
+		  dfdt[I1_J1_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J2_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J1_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J2_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J2_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J1_K1 + MYIND] += doubleTransCorrWave;
                   #endif
 	       } else if (Vy < ZERO && Vz >= ZERO) {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveXY = HALF*Vx*Vy*dt_per_dx*dt_per_dy*R - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += transIncrWaveXY;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= transIncrWaveXY;
+		  dfdt[I0_J0_K1 + MYIND] += transIncrWaveXY;
+		  dfdt[I0_J1_K1 + MYIND] -= transIncrWaveXY;
 		  const REAL transIncrWaveXZ = HALF*Vx*Vz*dt_per_dx*dt_per_dz*R - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I0_J1_K2*WID3 + MYIND] -= transIncrWaveXZ;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += transIncrWaveXZ;
+		  dfdt[I0_J1_K2 + MYIND] -= transIncrWaveXZ;
+		  dfdt[I0_J1_K1 + MYIND] += transIncrWaveXZ;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveXY = -HALF*Vx*Vy*(ONE + dt_per_dx*Vx)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dx*dt_per_dy;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= transCorrWaveXY;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveXY;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += transCorrWaveXY;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= transCorrWaveXY;
+		  dfdt[I1_J0_K1 + MYIND] -= transCorrWaveXY;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveXY;
+		  dfdt[I0_J0_K1 + MYIND] += transCorrWaveXY;
+		  dfdt[I0_J1_K1 + MYIND] -= transCorrWaveXY;
 		  const REAL transCorrWaveXZ = -HALF*Vx*Vz*(ONE + dt_per_dx*Vx)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dx*dt_per_dz;
-		  dfdt[I1_J1_K2*WID3 + MYIND] += transCorrWaveXZ;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveXZ;
-		  dfdt[I0_J1_K2*WID3 + MYIND] -= transCorrWaveXZ;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += transCorrWaveXZ;
+		  dfdt[I1_J1_K2 + MYIND] += transCorrWaveXZ;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveXZ;
+		  dfdt[I0_J1_K2 + MYIND] -= transCorrWaveXZ;
+		  dfdt[I0_J1_K1 + MYIND] += transCorrWaveXZ;
 		  #endif
 		  // Double transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I0_J1_K2*WID3 + MYIND] -= doubleTransIncrWave; // Fy
-		  dfdt[I0_J0_K2*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I0_J0_K2*WID3 + MYIND] += doubleTransIncrWave; // Fz
-		  dfdt[I0_J0_K1*WID3 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I0_J1_K2 + MYIND] -= doubleTransIncrWave; // Fy
+		  dfdt[I0_J0_K2 + MYIND] += doubleTransIncrWave;
+		  dfdt[I0_J0_K2 + MYIND] += doubleTransIncrWave; // Fz
+		  dfdt[I0_J0_K1 + MYIND] -= doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = -FOURTH*Vx*Vy*Vz*(ONE+Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fy
-		  dfdt[I1_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J1_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J0_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  
-		  dfdt[I1_J0_K2*WID3 + MYIND] -= doubleTransCorrWave; // Fz
-		  dfdt[I1_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J1_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = -HALF*Vx*Vy*Vz*(ONE+Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
+		  dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWave; // Fy
+		  dfdt[I1_J0_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J0_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J1_K2 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J0_K2 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J1_K2 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J0_K2 + MYIND] += doubleTransCorrWave;
                   #endif
 	       } else {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveXY = HALF*Vx*Vy*dt_per_dx*dt_per_dy*R - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += transIncrWaveXY;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= transIncrWaveXY;
+		  dfdt[I0_J0_K1 + MYIND] += transIncrWaveXY;
+		  dfdt[I0_J1_K1 + MYIND] -= transIncrWaveXY;
 		  const REAL transIncrWaveXZ = HALF*Vx*Vz*dt_per_dx*dt_per_dz*R - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += transIncrWaveXZ;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= transIncrWaveXZ;
+		  dfdt[I0_J1_K0 + MYIND] += transIncrWaveXZ;
+		  dfdt[I0_J1_K1 + MYIND] -= transIncrWaveXZ;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveXY = -HALF*Vx*Vy*(ONE + dt_per_dx*Vx)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dx*dt_per_dy;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= transCorrWaveXY;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveXY;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += transCorrWaveXY;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= transCorrWaveXY;
+		  dfdt[I1_J0_K1 + MYIND] -= transCorrWaveXY;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveXY;
+		  dfdt[I0_J0_K1 + MYIND] += transCorrWaveXY;
+		  dfdt[I0_J1_K1 + MYIND] -= transCorrWaveXY;
 		  const REAL transCorrWaveXZ = -HALF*Vx*Vz*(ONE + dt_per_dx*Vx)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dx*dt_per_dz;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveXZ;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= transCorrWaveXZ;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= transCorrWaveXZ;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += transCorrWaveXZ;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveXZ;
+		  dfdt[I1_J1_K0 + MYIND] -= transCorrWaveXZ;
+		  dfdt[I0_J1_K1 + MYIND] -= transCorrWaveXZ;
+		  dfdt[I0_J1_K0 + MYIND] += transCorrWaveXZ;
 		  #endif
 		  // Double transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += doubleTransIncrWave; // Fy
-		  dfdt[I0_J0_K0*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += doubleTransIncrWave; // Fz
-		  dfdt[I0_J0_K0*WID3 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I0_J1_K0 + MYIND] += doubleTransIncrWave; // Fy
+		  dfdt[I0_J0_K0 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I0_J0_K1 + MYIND] += doubleTransIncrWave; // Fz
+		  dfdt[I0_J0_K0 + MYIND] -= doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = -FOURTH*Vx*Vy*Vz*(ONE+Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= doubleTransCorrWave; // Fy
-		  dfdt[I1_J0_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fz
-		  dfdt[I1_J0_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = -HALF*Vx*Vy*Vz*(ONE+Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
+		  dfdt[I1_J1_K0 + MYIND] -= doubleTransCorrWave; // Fy
+		  dfdt[I1_J0_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J1_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J0_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J0_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J1_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J0_K1 + MYIND] += doubleTransCorrWave;
                   #endif
 	       }
 	    }
@@ -595,10 +1239,10 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
    }
 
    // ***** Consider the interface between (i,j-1,k) and (i,j,k): *****
-   nbr_minus1 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 10]*SIZE_VELBLOCK;
+   const REAL* const ynbr_minus1 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 10]*SIZE_VELBLOCK;
 
    // Case Vy > 0:
-   nbr_minus2 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 28]*SIZE_VELBLOCK; // --y nbr
+   const REAL* const ynbr_minus2 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 28]*SIZE_VELBLOCK; // --y nbr
    if (sign_vy_constant == false || vy_sign > ZERO) {
       for (UINT k=0; k<WID; ++k) {
 	 const REAL Vz = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
@@ -607,218 +1251,181 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    const REAL Vx = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
 	    //const REAL Vx = ZERO;
 	    for (UINT j=0; j<WID; ++j) {
-	       const REAL Vy = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
+	       const REAL Vy = std::max(ZERO,blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY]);
 	       //const REAL Vy = ZERO;
 	    
 	       const UINT MYIND = cellIndex(i,j,k);
 	       const REAL xcc = blockAvgs[MYIND];
-	       const REAL xm1 = nbr_minus1[MYIND];
-	       const REAL xm2 = nbr_minus2[MYIND];
+	       const REAL xm1 = ynbr_minus1[MYIND];
+	       const REAL xm2 = ynbr_minus2[MYIND];
 	    
 	       const REAL R = xcc - xm1;
-	       //const REAL corr_wave = HALF*Vy*(ONE - dt_per_dy*Vy)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dy;
 	    
 	       // Increment waves:
 	       const REAL incrWaveY = Vy*xm1*dt_per_dy;
-	       dfdt[I1_J1_K1*WID3 + MYIND] += incrWaveY;
-	       dfdt[I1_J0_K1*WID3 + MYIND] -= incrWaveY;
+	       dfdt[I1_J1_K1 + MYIND] += incrWaveY;
+	       dfdt[I1_J0_K1 + MYIND] -= incrWaveY;
 	       #ifndef LEV_1ST_ORDER
 	       // Correction waves:
 	       const REAL corrWaveY = HALF*Vy*(ONE - dt_per_dy*Vy)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dy;
-	       dfdt[I1_J1_K1*WID3 + MYIND] += corrWaveY;
-	       dfdt[I1_J0_K1*WID3 + MYIND] -= corrWaveY;
+	       dfdt[I1_J1_K1 + MYIND] += corrWaveY;
+	       dfdt[I1_J0_K1 + MYIND] -= corrWaveY;
 	       #endif
 	       if (Vx >= ZERO && Vz >= ZERO) {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveYX = HALF*Vx*Vy*dt_per_dx*dt_per_dy*R - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I2_J1_K1*WID3 + MYIND] -= transIncrWaveYX;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transIncrWaveYX;
+		  dfdt[I2_J1_K1 + MYIND] -= transIncrWaveYX;
+		  dfdt[I1_J1_K1 + MYIND] += transIncrWaveYX;
 		  const REAL transIncrWaveYZ = HALF*Vy*Vz*dt_per_dy*dt_per_dz*R - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J1_K2*WID3 + MYIND] -= transIncrWaveYZ;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transIncrWaveYZ;
+		  dfdt[I1_J1_K2 + MYIND] -= transIncrWaveYZ;
+		  dfdt[I1_J1_K1 + MYIND] += transIncrWaveYZ;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveYX = HALF*Vx*Vy*(ONE - dt_per_dy*Vy)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dx*dt_per_dy;
-		  dfdt[I2_J1_K1*WID3 + MYIND] += transCorrWaveYX;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveYX;
-		  dfdt[I2_J0_K1*WID3 + MYIND] -= transCorrWaveYX;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += transCorrWaveYX;
+		  dfdt[I2_J1_K1 + MYIND] += transCorrWaveYX;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveYX;
+		  dfdt[I2_J0_K1 + MYIND] -= transCorrWaveYX;
+		  dfdt[I1_J0_K1 + MYIND] += transCorrWaveYX;
 		  const REAL transCorrWaveYZ = HALF*Vy*Vz*(ONE - dt_per_dy*Vy)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dy*dt_per_dz;
-		  dfdt[I1_J1_K2*WID3 + MYIND] += transCorrWaveYZ;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveYZ;
-		  dfdt[I1_J0_K2*WID3 + MYIND] -= transCorrWaveYZ;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += transCorrWaveYZ;
+		  dfdt[I1_J1_K2 + MYIND] += transCorrWaveYZ;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveYZ;
+		  dfdt[I1_J0_K2 + MYIND] -= transCorrWaveYZ;
+		  dfdt[I1_J0_K1 + MYIND] += transCorrWaveYZ;
 		  #endif
 		  // Double transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I2_J1_K2*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I1_J1_K2*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I2_J1_K2*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I2_J1_K1*WID3 + MYIND] += doubleTransIncrWave;
+		  dfdt[I2_J1_K2 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I1_J1_K2 + MYIND] += doubleTransIncrWave;
+		  dfdt[I2_J1_K2 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I2_J1_K1 + MYIND] += doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = FOURTH*Vx*Vy*Vz*(ONE - dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
-		  dfdt[I2_J1_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fx
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I2_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J1_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J0_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J0_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  
-		  dfdt[I1_J1_K2*WID3 + MYIND] -= doubleTransCorrWave; // Fz
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J1_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I2_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J0_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = HALF*Vx*Vy*Vz*(ONE - dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
+		  dfdt[I2_J1_K1 + MYIND] -= doubleTransCorrWave; // Fx
+		  dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I2_J0_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J0_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I2_J1_K2 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J1_K2 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I2_J0_K2 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J0_K2 + MYIND] += doubleTransCorrWave;
 		  #endif
 	       } else if (Vx >= ZERO && Vz < ZERO) {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveYX = HALF*Vx*Vy*dt_per_dx*dt_per_dy*R - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I2_J1_K1*WID3 + MYIND] -= transIncrWaveYX;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transIncrWaveYX;
+		  dfdt[I2_J1_K1 + MYIND] -= transIncrWaveYX;
+		  dfdt[I1_J1_K1 + MYIND] += transIncrWaveYX;
 		  const REAL transIncrWaveYZ = HALF*Vy*Vz*dt_per_dy*dt_per_dz*R - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += transIncrWaveYZ;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transIncrWaveYZ;
+		  dfdt[I1_J1_K0 + MYIND] += transIncrWaveYZ;
+		  dfdt[I1_J1_K1 + MYIND] -= transIncrWaveYZ;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveYX = HALF*Vx*Vy*(ONE - dt_per_dy*Vy)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dx*dt_per_dy;
-		  dfdt[I2_J1_K1*WID3 + MYIND] += transCorrWaveYX;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveYX;
-		  dfdt[I2_J0_K1*WID3 + MYIND] -= transCorrWaveYX;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += transCorrWaveYX;
+		  dfdt[I2_J1_K1 + MYIND] += transCorrWaveYX;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveYX;
+		  dfdt[I2_J0_K1 + MYIND] -= transCorrWaveYX;
+		  dfdt[I1_J0_K1 + MYIND] += transCorrWaveYX;
 		  const REAL transCorrWaveYZ = HALF*Vy*Vz*(ONE - dt_per_dy*Vy)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dy*dt_per_dz;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveYZ;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= transCorrWaveYZ;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= transCorrWaveYZ;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += transCorrWaveYZ;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveYZ;
+		  dfdt[I1_J1_K0 + MYIND] -= transCorrWaveYZ;
+		  dfdt[I1_J0_K1 + MYIND] -= transCorrWaveYZ;
+		  dfdt[I1_J0_K0 + MYIND] += transCorrWaveYZ;
 		  #endif
 		  // Double transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I2_J1_K0*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I2_J1_K1*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I2_J1_K0*WID3 + MYIND] += doubleTransIncrWave;
+		  dfdt[I2_J1_K0 + MYIND] += doubleTransIncrWave;
+		  dfdt[I1_J1_K0 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I2_J1_K1 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I2_J1_K0 + MYIND] += doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = FOURTH*Vx*Vy*Vz*(ONE - dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
-		  dfdt[I2_J1_K1*WID3 + MYIND] += doubleTransCorrWave; // Fx
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I2_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I2_J0_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fz
-		  dfdt[I1_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I2_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J0_K0*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = HALF*Vx*Vy*Vz*(ONE - dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
+		  dfdt[I2_J1_K1 + MYIND] += doubleTransCorrWave; // Fx
+		  dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I2_J0_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J0_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I2_J1_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J1_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I2_J0_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J0_K0 + MYIND] -= doubleTransCorrWave;
 		  #endif
 	       } else if (Vx < ZERO && Vz >= ZERO) {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveYX = HALF*Vx*Vy*dt_per_dx*dt_per_dy*R - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += transIncrWaveYX;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transIncrWaveYX;
+		  dfdt[I0_J1_K1 + MYIND] += transIncrWaveYX;
+		  dfdt[I1_J1_K1 + MYIND] -= transIncrWaveYX;
 		  const REAL transIncrWaveYZ = HALF*Vy*Vz*dt_per_dy*dt_per_dz*R - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J1_K2*WID3 + MYIND] -= transIncrWaveYZ;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transIncrWaveYZ;
+		  dfdt[I1_J1_K2 + MYIND] -= transIncrWaveYZ;
+		  dfdt[I1_J1_K1 + MYIND] += transIncrWaveYZ;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveYX = HALF*Vx*Vy*(ONE - dt_per_dy*Vy)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dx*dt_per_dy;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= transCorrWaveYX;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveYX;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += transCorrWaveYX;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= transCorrWaveYX;
+		  dfdt[I0_J1_K1 + MYIND] -= transCorrWaveYX;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveYX;
+		  dfdt[I0_J0_K1 + MYIND] += transCorrWaveYX;
+		  dfdt[I1_J0_K1 + MYIND] -= transCorrWaveYX;
 		  const REAL transCorrWaveYZ = HALF*Vy*Vz*(ONE - dt_per_dy*Vy)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dy*dt_per_dz;
-		  dfdt[I1_J1_K2*WID3 + MYIND] += transCorrWaveYZ;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveYZ;
-		  dfdt[I1_J0_K2*WID3 + MYIND] -= transCorrWaveYZ;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += transCorrWaveYZ;
+		  dfdt[I1_J1_K2 + MYIND] += transCorrWaveYZ;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveYZ;
+		  dfdt[I1_J0_K2 + MYIND] -= transCorrWaveYZ;
+		  dfdt[I1_J0_K1 + MYIND] += transCorrWaveYZ;
 		  #endif
 		  // Double transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J1_K2*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I0_J1_K2*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I0_J1_K2*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I1_J1_K2 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I0_J1_K2 + MYIND] += doubleTransIncrWave;
+		  dfdt[I0_J1_K2 + MYIND] += doubleTransIncrWave;
+		  dfdt[I0_J1_K1 + MYIND] -= doubleTransIncrWave;
                   #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = FOURTH*Vx*Vy*Vz*(ONE - dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fx
-		  dfdt[I0_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J0_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J0_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  
-		  dfdt[I0_J1_K2*WID3 + MYIND] -= doubleTransCorrWave; // Fz
-		  dfdt[I0_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J0_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = HALF*Vx*Vy*Vz*(ONE - dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
+		  dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWave; // Fx
+		  dfdt[I0_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J0_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J0_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J1_K2 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J1_K2 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J0_K2 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J0_K2 + MYIND] += doubleTransCorrWave;
                   #endif
 	       } else {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveYX = HALF*Vx*Vy*dt_per_dx*dt_per_dy*R - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += transIncrWaveYX;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transIncrWaveYX;
+		  dfdt[I0_J1_K1 + MYIND] += transIncrWaveYX;
+		  dfdt[I1_J1_K1 + MYIND] -= transIncrWaveYX;
 		  const REAL transIncrWaveYZ = HALF*Vy*Vz*dt_per_dy*dt_per_dz*R - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += transIncrWaveYZ;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transIncrWaveYZ;
+		  dfdt[I1_J1_K0 + MYIND] += transIncrWaveYZ;
+		  dfdt[I1_J1_K1 + MYIND] -= transIncrWaveYZ;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveYX = HALF*Vx*Vy*(ONE - dt_per_dy*Vy)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dx*dt_per_dy;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= transCorrWaveYX;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveYX;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += transCorrWaveYX;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= transCorrWaveYX;
+		  dfdt[I0_J1_K1 + MYIND] -= transCorrWaveYX;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveYX;
+		  dfdt[I0_J0_K1 + MYIND] += transCorrWaveYX;
+		  dfdt[I1_J0_K1 + MYIND] -= transCorrWaveYX;
 		  const REAL transCorrWaveYZ = HALF*Vy*Vz*(ONE - dt_per_dy*Vy)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dy*dt_per_dz;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveYZ;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= transCorrWaveYZ;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= transCorrWaveYZ;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += transCorrWaveYZ;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveYZ;
+		  dfdt[I1_J1_K0 + MYIND] -= transCorrWaveYZ;
+		  dfdt[I1_J0_K1 + MYIND] -= transCorrWaveYZ;
+		  dfdt[I1_J0_K0 + MYIND] += transCorrWaveYZ;
 		  #endif
 		  // Double transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I0_J1_K0*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I0_J1_K0*WID3 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I1_J1_K0 + MYIND] += doubleTransIncrWave;
+		  dfdt[I0_J1_K0 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I0_J1_K1 + MYIND] += doubleTransIncrWave;
+		  dfdt[I0_J1_K0 + MYIND] -= doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = FOURTH*Vx*Vy*Vz*(ONE - dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= doubleTransCorrWave; // Fx
-		  dfdt[I0_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fz
-		  dfdt[I0_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = HALF*Vx*Vy*Vz*(ONE - dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
+		  dfdt[I1_J1_K0 + MYIND] -= doubleTransCorrWave; // Fx
+		  dfdt[I0_J1_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J0_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J0_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J1_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J0_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J0_K1 + MYIND] += doubleTransCorrWave;
                   #endif
 	       }
 	    }
@@ -827,7 +1434,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
    }
 
    // Case Vy < 0:
-   nbr_plus1 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 16]*SIZE_VELBLOCK; //  +y nbr
+   const REAL* const ynbr_plus1 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 16]*SIZE_VELBLOCK; //  +y nbr
    if (sign_vy_constant == false || vy_sign < ZERO) {
       for (UINT k=0; k<WID; ++k) {
 	 const REAL Vz = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
@@ -836,218 +1443,181 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    const REAL Vx = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
 	    //const REAL Vx = ZERO;
 	    for (UINT j=0; j<WID; ++j) {
-	       const REAL Vy = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
+	       const REAL Vy = std::min(ZERO,blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY]);
 	       //const REAL Vy = ZERO;
 	    
 	       const UINT MYIND = cellIndex(i,j,k);
 	       const REAL xcc = blockAvgs[MYIND];
-	       const REAL xm1 = nbr_minus1[MYIND];
-	       const REAL xm2 = nbr_plus1[MYIND];
+	       const REAL xm1 = ynbr_minus1[MYIND];
+	       const REAL xm2 = ynbr_plus1[MYIND];
 	       
 	       const REAL R = xcc - xm1;
-	       //const REAL corr_wave = -HALF*Vy*(ONE + dt_per_dy*Vy)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dy;
 
 	       // Increment waves:
 	       const REAL incrWaveY = Vy*xcc*dt_per_dy;
-	       dfdt[I1_J1_K1*WID3 + MYIND] += incrWaveY;
-	       dfdt[I1_J0_K1*WID3 + MYIND] -= incrWaveY;
+	       dfdt[I1_J1_K1 + MYIND] += incrWaveY;
+	       dfdt[I1_J0_K1 + MYIND] -= incrWaveY;
 	       #ifndef LEV_1ST_ORDER
 	       // Correction waves:
 	       const REAL corrWaveY = -HALF*Vy*(ONE + dt_per_dy*Vy)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dy;
-	       dfdt[I1_J1_K1*WID3 + MYIND] += corrWaveY;
-	       dfdt[I1_J0_K1*WID3 + MYIND] -= corrWaveY;
+	       dfdt[I1_J1_K1 + MYIND] += corrWaveY;
+	       dfdt[I1_J0_K1 + MYIND] -= corrWaveY;
 	       #endif
 	       if (Vx >= ZERO && Vz >= ZERO) {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveYX = HALF*Vx*Vy*dt_per_dx*dt_per_dy*R - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I2_J0_K1*WID3 + MYIND] -= transIncrWaveYX;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += transIncrWaveYX;
+		  dfdt[I2_J0_K1 + MYIND] -= transIncrWaveYX;
+		  dfdt[I1_J0_K1 + MYIND] += transIncrWaveYX;
 		  const REAL transIncrWaveYZ = HALF*Vy*Vz*dt_per_dy*dt_per_dz*R - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J0_K2*WID3 + MYIND] -= transIncrWaveYZ;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += transIncrWaveYZ;
+		  dfdt[I1_J0_K2 + MYIND] -= transIncrWaveYZ;
+		  dfdt[I1_J0_K1 + MYIND] += transIncrWaveYZ;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveYX = -HALF*Vx*Vy*(ONE + dt_per_dy*Vy)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dx*dt_per_dy;
-		  dfdt[I2_J1_K1*WID3 + MYIND] += transCorrWaveYX;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveYX;
-		  dfdt[I2_J0_K1*WID3 + MYIND] -= transCorrWaveYX;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += transCorrWaveYX;
+		  dfdt[I2_J1_K1 + MYIND] += transCorrWaveYX;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveYX;
+		  dfdt[I2_J0_K1 + MYIND] -= transCorrWaveYX;
+		  dfdt[I1_J0_K1 + MYIND] += transCorrWaveYX;
 		  const REAL transCorrWaveYZ = -HALF*Vy*Vz*(ONE + dt_per_dy*Vy)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dy*dt_per_dz;
-		  dfdt[I1_J1_K2*WID3 + MYIND] += transCorrWaveYZ;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveYZ;
-		  dfdt[I1_J0_K2*WID3 + MYIND] -= transCorrWaveYZ;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += transCorrWaveYZ;
+		  dfdt[I1_J1_K2 + MYIND] += transCorrWaveYZ;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveYZ;
+		  dfdt[I1_J0_K2 + MYIND] -= transCorrWaveYZ;
+		  dfdt[I1_J0_K1 + MYIND] += transCorrWaveYZ;
 		  #endif
 		  // Double transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I2_J0_K2*WID3 + MYIND] -= doubleTransIncrWave; // Fx
-		  dfdt[I1_J0_K2*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I2_J0_K2*WID3 + MYIND] -= doubleTransIncrWave; // FZ
-		  dfdt[I2_J0_K1*WID3 + MYIND] += doubleTransIncrWave;
+		  dfdt[I2_J0_K2 + MYIND] -= doubleTransIncrWave; // Fx
+		  dfdt[I1_J0_K2 + MYIND] += doubleTransIncrWave;
+		  dfdt[I2_J0_K2 + MYIND] -= doubleTransIncrWave; // FZ
+		  dfdt[I2_J0_K1 + MYIND] += doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = -FOURTH*Vx*Vy*Vz*(ONE + dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
-		  dfdt[I2_J1_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fx
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I2_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J1_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J0_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J0_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  
-		  dfdt[I1_J1_K2*WID3 + MYIND] -= doubleTransCorrWave; // Fz
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J1_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I2_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J0_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = -HALF*Vx*Vy*Vz*(ONE + dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
+		  dfdt[I2_J1_K1 + MYIND] -= doubleTransCorrWave; // Fx
+		  dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I2_J0_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J0_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I2_J1_K2 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J1_K2 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I2_J0_K2 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J0_K2 + MYIND] += doubleTransCorrWave;
                   #endif
 	       } else if (Vx >= ZERO && Vz < ZERO) {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveYX = HALF*Vx*Vy*dt_per_dx*dt_per_dy*R - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I2_J0_K1*WID3 + MYIND] -= transIncrWaveYX;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += transIncrWaveYX;
+		  dfdt[I2_J0_K1 + MYIND] -= transIncrWaveYX;
+		  dfdt[I1_J0_K1 + MYIND] += transIncrWaveYX;
 		  const REAL transIncrWaveYZ = HALF*Vy*Vz*dt_per_dy*dt_per_dz*R - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += transIncrWaveYZ;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= transIncrWaveYZ;
+		  dfdt[I1_J0_K0 + MYIND] += transIncrWaveYZ;
+		  dfdt[I1_J0_K1 + MYIND] -= transIncrWaveYZ;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveYX = -HALF*Vx*Vy*(ONE + dt_per_dy*Vy)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dx*dt_per_dy;
-		  dfdt[I2_J1_K1*WID3 + MYIND] += transCorrWaveYX;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveYX;
-		  dfdt[I2_J0_K1*WID3 + MYIND] -= transCorrWaveYX;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += transCorrWaveYX;
+		  dfdt[I2_J1_K1 + MYIND] += transCorrWaveYX;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveYX;
+		  dfdt[I2_J0_K1 + MYIND] -= transCorrWaveYX;
+		  dfdt[I1_J0_K1 + MYIND] += transCorrWaveYX;
 		  const REAL transCorrWaveYZ = -HALF*Vy*Vz*(ONE + dt_per_dy*Vy)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dy*dt_per_dz;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveYZ;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= transCorrWaveYZ;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= transCorrWaveYZ;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += transCorrWaveYZ;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveYZ;
+		  dfdt[I1_J1_K0 + MYIND] -= transCorrWaveYZ;
+		  dfdt[I1_J0_K1 + MYIND] -= transCorrWaveYZ;
+		  dfdt[I1_J0_K0 + MYIND] += transCorrWaveYZ;
 		  #endif
 		  // Double transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I2_J0_K0*WID3 + MYIND] += doubleTransIncrWave; // Fx
-		  dfdt[I1_J0_K0*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I2_J0_K1*WID3 + MYIND] -= doubleTransIncrWave; // Fz
-		  dfdt[I2_J0_K0*WID3 + MYIND] += doubleTransIncrWave;
+		  dfdt[I2_J0_K0 + MYIND] += doubleTransIncrWave; // Fx
+		  dfdt[I1_J0_K0 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I2_J0_K1 + MYIND] -= doubleTransIncrWave; // Fz
+		  dfdt[I2_J0_K0 + MYIND] += doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = -FOURTH*Vx*Vy*Vz*(ONE + dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
-		  dfdt[I2_J1_K0*WID3 + MYIND] -= doubleTransCorrWave; // Fx
-		  dfdt[I1_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I2_J0_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fz
-		  dfdt[I1_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I2_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J0_K0*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = -HALF*Vx*Vy*Vz*(ONE + dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
+		  dfdt[I2_J1_K0 + MYIND] -= doubleTransCorrWave; // Fx
+		  dfdt[I1_J1_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I2_J0_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J0_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I2_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I2_J0_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J0_K1 + MYIND] += doubleTransCorrWave;
                   #endif
 	       } else if (Vx < ZERO && Vz >= ZERO) {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveYX = HALF*Vx*Vy*dt_per_dx*dt_per_dy*R - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += transIncrWaveYX;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= transIncrWaveYX;
+		  dfdt[I0_J0_K1 + MYIND] += transIncrWaveYX;
+		  dfdt[I1_J0_K1 + MYIND] -= transIncrWaveYX;
 		  const REAL transIncrWaveYZ = HALF*Vy*Vz*dt_per_dy*dt_per_dz*R - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J0_K2*WID3 + MYIND] -= transIncrWaveYZ;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += transIncrWaveYZ;
+		  dfdt[I1_J0_K2 + MYIND] -= transIncrWaveYZ;
+		  dfdt[I1_J0_K1 + MYIND] += transIncrWaveYZ;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveYX = -HALF*Vx*Vy*(ONE + dt_per_dy*Vy)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dx*dt_per_dy;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= transCorrWaveYX;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveYX;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += transCorrWaveYX;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= transCorrWaveYX;
+		  dfdt[I0_J1_K1 + MYIND] -= transCorrWaveYX;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveYX;
+		  dfdt[I0_J0_K1 + MYIND] += transCorrWaveYX;
+		  dfdt[I1_J0_K1 + MYIND] -= transCorrWaveYX;
 		  const REAL transCorrWaveYZ = -HALF*Vy*Vz*(ONE + dt_per_dy*Vy)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dy*dt_per_dz;
-		  dfdt[I1_J1_K2*WID3 + MYIND] += transCorrWaveYZ;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveYZ;
-		  dfdt[I1_J0_K2*WID3 + MYIND] -= transCorrWaveYZ;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += transCorrWaveYZ;
+		  dfdt[I1_J1_K2 + MYIND] += transCorrWaveYZ;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveYZ;
+		  dfdt[I1_J0_K2 + MYIND] -= transCorrWaveYZ;
+		  dfdt[I1_J0_K1 + MYIND] += transCorrWaveYZ;
 		  #endif
 		  // Double transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J0_K2*WID3 + MYIND] -= doubleTransIncrWave; // Fx
-		  dfdt[I0_J0_K2*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I0_J0_K2*WID3 + MYIND] += doubleTransIncrWave; // Fz
-		  dfdt[I0_J0_K1*WID3 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I1_J0_K2 + MYIND] -= doubleTransIncrWave; // Fx
+		  dfdt[I0_J0_K2 + MYIND] += doubleTransIncrWave;
+		  dfdt[I0_J0_K2 + MYIND] += doubleTransIncrWave; // Fz
+		  dfdt[I0_J0_K1 + MYIND] -= doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = -FOURTH*Vx*Vy*Vz*(ONE + dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fx
-		  dfdt[I0_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J0_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J0_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  
-		  dfdt[I0_J1_K2*WID3 + MYIND] -= doubleTransCorrWave; // Fz
-		  dfdt[I0_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K2*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J0_K2*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = -HALF*Vx*Vy*Vz*(ONE + dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
+		  dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWave; // Fx
+		  dfdt[I0_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J0_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J0_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J1_K2 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J1_K2 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J0_K2 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J0_K2 + MYIND] += doubleTransCorrWave;
                   #endif
 	       } else {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveYX = HALF*Vx*Vy*dt_per_dx*dt_per_dy*R - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += transIncrWaveYX;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= transIncrWaveYX;
+		  dfdt[I0_J0_K1 + MYIND] += transIncrWaveYX;
+		  dfdt[I1_J0_K1 + MYIND] -= transIncrWaveYX;
 		  const REAL transIncrWaveYZ = HALF*Vy*Vz*dt_per_dy*dt_per_dz*R - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += transIncrWaveYZ;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= transIncrWaveYZ;
+		  dfdt[I1_J0_K0 + MYIND] += transIncrWaveYZ;
+		  dfdt[I1_J0_K1 + MYIND] -= transIncrWaveYZ;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveYX = -HALF*Vx*Vy*(ONE + dt_per_dy*Vy)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dx*dt_per_dy;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= transCorrWaveYX;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveYX;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += transCorrWaveYX;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= transCorrWaveYX;
+		  dfdt[I0_J1_K1 + MYIND] -= transCorrWaveYX;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveYX;
+		  dfdt[I0_J0_K1 + MYIND] += transCorrWaveYX;
+		  dfdt[I1_J0_K1 + MYIND] -= transCorrWaveYX;
 		  const REAL transCorrWaveYZ = -HALF*Vy*Vz*(ONE + dt_per_dy*Vy)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dy*dt_per_dz;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveYZ;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= transCorrWaveYZ;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= transCorrWaveYZ;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += transCorrWaveYZ;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveYZ;
+		  dfdt[I1_J1_K0 + MYIND] -= transCorrWaveYZ;
+		  dfdt[I1_J0_K1 + MYIND] -= transCorrWaveYZ;
+		  dfdt[I1_J0_K0 + MYIND] += transCorrWaveYZ;
 		  #endif
 		  // Double transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += doubleTransIncrWave; // Fx
-		  dfdt[I0_J0_K0*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += doubleTransIncrWave; // Fz
-		  dfdt[I0_J0_K0*WID3 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I1_J0_K0 + MYIND] += doubleTransIncrWave; // Fx
+		  dfdt[I0_J0_K0 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I0_J0_K1 + MYIND] += doubleTransIncrWave; // Fz
+		  dfdt[I0_J0_K0 + MYIND] -= doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = -FOURTH*Vx*Vy*Vz*(ONE + dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= doubleTransCorrWave; // Fx
-		  dfdt[I0_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fz
-		  dfdt[I0_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = -HALF*Vx*Vy*Vz*(ONE + dt_per_dy*Vy)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
+		  dfdt[I1_J1_K0 + MYIND] -= doubleTransCorrWave; // Fx
+		  dfdt[I0_J1_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J0_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J0_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J1_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J0_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J0_K1 + MYIND] += doubleTransCorrWave;
                   #endif
 	       }
 	    }
@@ -1056,11 +1626,11 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
    }
 
    // ***** Consider the interface between (i,j,k-1) and (i,j,k): *****
-   nbr_minus1 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 4]*SIZE_VELBLOCK;
+   const REAL* const znbr_minus1 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 4]*SIZE_VELBLOCK;
 
    // Case Vz > 0:
    if (sign_vz_constant == false || vz_sign > ZERO) {
-      nbr_minus2 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 29]*SIZE_VELBLOCK; // --z nbr
+      const REAL* const znbr_minus2 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 29]*SIZE_VELBLOCK; // --z nbr
       for (UINT j=0; j<WID; ++j) {
 	 const REAL Vy = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
 	 //const REAL Vy = ZERO;
@@ -1068,217 +1638,181 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    const REAL Vx = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
 	    //const REAL Vx = ZERO;
 	    for (UINT k=0; k<WID; ++k) {
-	       const REAL Vz = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
+	       const REAL Vz = std::max(ZERO,blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ]);
 	       //const REAL Vz = ZERO;
 	       
 	       const UINT MYIND = cellIndex(i,j,k);
 	       const REAL xcc = blockAvgs[MYIND];
-	       const REAL xm1 = nbr_minus1[MYIND];
-	       const REAL xm2 = nbr_minus2[MYIND];
+	       const REAL xm1 = znbr_minus1[MYIND];
+	       const REAL xm2 = znbr_minus2[MYIND];
 
 	       const REAL R = xcc - xm1;
 	       
 	       // Increment waves:
 	       const REAL incrWaveZ = Vz*xm1*dt_per_dz;
-	       dfdt[I1_J1_K1*WID3 + MYIND] += incrWaveZ;
-	       dfdt[I1_J1_K0*WID3 + MYIND] -= incrWaveZ;
+	       dfdt[I1_J1_K1 + MYIND] += incrWaveZ;
+	       dfdt[I1_J1_K0 + MYIND] -= incrWaveZ;
 	       #ifndef LEV_1ST_ORDER
 	       // Correction waves:
 	       const REAL corrWaveZ = HALF*Vz*(ONE - dt_per_dz*Vz)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dz;
-	       dfdt[I1_J1_K1*WID3 + MYIND] += corrWaveZ;
-	       dfdt[I1_J1_K0*WID3 + MYIND] -= corrWaveZ;
+	       dfdt[I1_J1_K1 + MYIND] += corrWaveZ;
+	       dfdt[I1_J1_K0 + MYIND] -= corrWaveZ;
 	       #endif
 	       if (Vx >= ZERO && Vy >= ZERO) {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveZX = HALF*Vx*Vz*dt_per_dx*dt_per_dz*R - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I2_J1_K1*WID3 + MYIND] -= transIncrWaveZX;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transIncrWaveZX;
+		  dfdt[I2_J1_K1 + MYIND] -= transIncrWaveZX;
+		  dfdt[I1_J1_K1 + MYIND] += transIncrWaveZX;
 		  const REAL transIncrWaveZY = HALF*Vy*Vz*dt_per_dy*dt_per_dz*R - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J2_K1*WID3 + MYIND] -= transIncrWaveZY;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transIncrWaveZY;
+		  dfdt[I1_J2_K1 + MYIND] -= transIncrWaveZY;
+		  dfdt[I1_J1_K1 + MYIND] += transIncrWaveZY;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveZX = HALF*Vx*Vz*(ONE - dt_per_dz*Vz)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dx*dt_per_dz;
-		  dfdt[I2_J1_K1*WID3 + MYIND] += transCorrWaveZX;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveZX;
-		  dfdt[I2_J1_K0*WID3 + MYIND] -= transCorrWaveZX;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += transCorrWaveZX;
+		  dfdt[I2_J1_K1 + MYIND] += transCorrWaveZX;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveZX;
+		  dfdt[I2_J1_K0 + MYIND] -= transCorrWaveZX;
+		  dfdt[I1_J1_K0 + MYIND] += transCorrWaveZX;
 		  const REAL transCorrWaveZY = HALF*Vy*Vz*(ONE - dt_per_dz*Vz)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dy*dt_per_dz;
-		  dfdt[I1_J2_K1*WID3 + MYIND] += transCorrWaveZY;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveZY;
-		  dfdt[I1_J2_K0*WID3 + MYIND] -= transCorrWaveZY;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += transCorrWaveZY;
+		  dfdt[I1_J2_K1 + MYIND] += transCorrWaveZY;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveZY;
+		  dfdt[I1_J2_K0 + MYIND] -= transCorrWaveZY;
+		  dfdt[I1_J1_K0 + MYIND] += transCorrWaveZY;
 		  #endif
 		  // Double Transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I2_J2_K1*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I1_J2_K1*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I2_J2_K1*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I2_J1_K1*WID3 + MYIND] += doubleTransIncrWave;
+		  dfdt[I2_J2_K1 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I1_J2_K1 + MYIND] += doubleTransIncrWave;
+		  dfdt[I2_J2_K1 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I2_J1_K1 + MYIND] += doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = FOURTH*Vx*Vy*Vz*(ONE - dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
-		  dfdt[I2_J1_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fx
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I2_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;		  
-		  dfdt[I2_J2_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J2_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J2_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J2_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  
-		  dfdt[I1_J2_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fy
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J2_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J2_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I2_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J2_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = HALF*Vx*Vy*Vz*(ONE - dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
+		  dfdt[I2_J1_K1 + MYIND] -= doubleTransCorrWave; // Fx
+		  dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I2_J1_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J1_K0 + MYIND] -= doubleTransCorrWave;		  
+		  dfdt[I2_J2_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J2_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I2_J2_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J2_K0 + MYIND] += doubleTransCorrWave;
 		  #endif
 	       } else if (Vx >= ZERO && Vy < ZERO) {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveZX = HALF*Vx*Vz*dt_per_dx*dt_per_dz*R - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I2_J1_K1*WID3 + MYIND] -= transIncrWaveZX;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transIncrWaveZX;
+		  dfdt[I2_J1_K1 + MYIND] -= transIncrWaveZX;
+		  dfdt[I1_J1_K1 + MYIND] += transIncrWaveZX;
 		  const REAL transIncrWaveZY = HALF*Vy*Vz*dt_per_dy*dt_per_dz*R - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += transIncrWaveZY;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transIncrWaveZY;
+		  dfdt[I1_J0_K1 + MYIND] += transIncrWaveZY;
+		  dfdt[I1_J1_K1 + MYIND] -= transIncrWaveZY;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveZX = HALF*Vx*Vz*(ONE - dt_per_dz*Vz)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dx*dt_per_dz;
-		  dfdt[I2_J1_K1*WID3 + MYIND] += transCorrWaveZX;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveZX;
-		  dfdt[I2_J1_K0*WID3 + MYIND] -= transCorrWaveZX;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += transCorrWaveZX;
+		  dfdt[I2_J1_K1 + MYIND] += transCorrWaveZX;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveZX;
+		  dfdt[I2_J1_K0 + MYIND] -= transCorrWaveZX;
+		  dfdt[I1_J1_K0 + MYIND] += transCorrWaveZX;
 		  const REAL transCorrWaveZY = HALF*Vy*Vz*(ONE - dt_per_dz*Vz)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dy*dt_per_dz;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveZY;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= transCorrWaveZY;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= transCorrWaveZY;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += transCorrWaveZY;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveZY;
+		  dfdt[I1_J0_K1 + MYIND] -= transCorrWaveZY;
+		  dfdt[I1_J1_K0 + MYIND] -= transCorrWaveZY;
+		  dfdt[I1_J0_K0 + MYIND] += transCorrWaveZY;
 		  #endif
 		  // Double Transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I2_J0_K1*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I2_J1_K1*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I2_J0_K1*WID3 + MYIND] += doubleTransIncrWave;
+		  dfdt[I2_J0_K1 + MYIND] += doubleTransIncrWave;
+		  dfdt[I1_J0_K1 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I2_J1_K1 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I2_J0_K1 + MYIND] += doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = FOURTH*Vx*Vy*Vz*(ONE - dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
-		  dfdt[I2_J0_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fx
-		  dfdt[I1_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I2_J0_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fy
-		  dfdt[I1_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I2_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J0_K0*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = HALF*Vx*Vy*Vz*(ONE - dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
+		  dfdt[I2_J0_K1 + MYIND] -= doubleTransCorrWave; // Fx
+		  dfdt[I1_J0_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I2_J0_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J0_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I2_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I2_J1_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J1_K0 + MYIND] += doubleTransCorrWave;
                   #endif
 	       } else if (Vx < ZERO && Vy >= ZERO) {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveZX = HALF*Vx*Vz*dt_per_dx*dt_per_dz*R - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += transIncrWaveZX;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transIncrWaveZX;
+		  dfdt[I0_J1_K1 + MYIND] += transIncrWaveZX;
+		  dfdt[I1_J1_K1 + MYIND] -= transIncrWaveZX;
 		  const REAL transIncrWaveZY = HALF*Vy*Vz*dt_per_dy*dt_per_dz*R - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J2_K1*WID3 + MYIND] -= transIncrWaveZY;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transIncrWaveZY;
+		  dfdt[I1_J2_K1 + MYIND] -= transIncrWaveZY;
+		  dfdt[I1_J1_K1 + MYIND] += transIncrWaveZY;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveZX = HALF*Vx*Vz*(ONE - dt_per_dz*Vz)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dx*dt_per_dz;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveZX;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= transCorrWaveZX;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= transCorrWaveZX;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += transCorrWaveZX;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveZX;
+		  dfdt[I0_J1_K1 + MYIND] -= transCorrWaveZX;
+		  dfdt[I1_J1_K0 + MYIND] -= transCorrWaveZX;
+		  dfdt[I0_J1_K0 + MYIND] += transCorrWaveZX;
 		  const REAL transCorrWaveZY = HALF*Vy*Vz*(ONE - dt_per_dz*Vz)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dy*dt_per_dz;
-		  dfdt[I1_J2_K1*WID3 + MYIND] += transCorrWaveZY;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveZY;
-		  dfdt[I1_J2_K0*WID3 + MYIND] -= transCorrWaveZY;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += transCorrWaveZY;
+		  dfdt[I1_J2_K1 + MYIND] += transCorrWaveZY;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveZY;
+		  dfdt[I1_J2_K0 + MYIND] -= transCorrWaveZY;
+		  dfdt[I1_J1_K0 + MYIND] += transCorrWaveZY;
 		  #endif
 		  // Double Transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J2_K1*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I0_J2_K1*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I0_J2_K1*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I1_J2_K1 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I0_J2_K1 + MYIND] += doubleTransIncrWave;
+		  dfdt[I0_J2_K1 + MYIND] += doubleTransIncrWave;
+		  dfdt[I0_J1_K1 + MYIND] -= doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = FOURTH*Vx*Vy*Vz*(ONE - dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fx
-		  dfdt[I0_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J2_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J2_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J2_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J2_K0*WID3 + MYIND] += doubleTransCorrWave;
-
-		  dfdt[I0_J2_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fy
-		  dfdt[I0_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J2_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J2_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J2_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = HALF*Vx*Vy*Vz*(ONE - dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
+		  dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWave; // Fx
+		  dfdt[I0_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J1_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J1_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J2_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J2_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J2_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J2_K0 + MYIND] += doubleTransCorrWave;
                   #endif
 	       } else {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveZX = HALF*Vx*Vz*dt_per_dx*dt_per_dz*R - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += transIncrWaveZX;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transIncrWaveZX;
+		  dfdt[I0_J1_K1 + MYIND] += transIncrWaveZX;
+		  dfdt[I1_J1_K1 + MYIND] -= transIncrWaveZX;
 		  const REAL transIncrWaveZY = HALF*Vy*Vz*dt_per_dy*dt_per_dz*R - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += transIncrWaveZY;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transIncrWaveZY;
+		  dfdt[I1_J0_K1 + MYIND] += transIncrWaveZY;
+		  dfdt[I1_J1_K1 + MYIND] -= transIncrWaveZY;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveZX = HALF*Vx*Vz*(ONE - dt_per_dz*Vz)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dx*dt_per_dz;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveZX;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= transCorrWaveZX;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= transCorrWaveZX;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += transCorrWaveZX;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveZX;
+		  dfdt[I0_J1_K1 + MYIND] -= transCorrWaveZX;
+		  dfdt[I1_J1_K0 + MYIND] -= transCorrWaveZX;
+		  dfdt[I0_J1_K0 + MYIND] += transCorrWaveZX;
 		  const REAL transCorrWaveZY = HALF*Vy*Vz*(ONE - dt_per_dz*Vz)*R*limiter(xm1-xm2,R+EPSILON,xcc)*dt_per_dy*dt_per_dz;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveZY;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= transCorrWaveZY;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= transCorrWaveZY;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += transCorrWaveZY;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveZY;
+		  dfdt[I1_J0_K1 + MYIND] -= transCorrWaveZY;
+		  dfdt[I1_J1_K0 + MYIND] -= transCorrWaveZY;
+		  dfdt[I1_J0_K0 + MYIND] += transCorrWaveZY;
 		  #endif
 		  // Double Transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J0_K1*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I0_J0_K1*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I0_J0_K1*WID3 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I1_J0_K1 + MYIND] += doubleTransIncrWave;
+		  dfdt[I0_J0_K1 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I0_J1_K1 + MYIND] += doubleTransIncrWave;
+		  dfdt[I0_J0_K1 + MYIND] -= doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = FOURTH*Vx*Vy*Vz*(ONE - dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fx
-		  dfdt[I0_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fy
-		  dfdt[I0_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = HALF*Vx*Vy*Vz*(ONE - dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm1-xm2,R+EPSILON,xcc);
+		  dfdt[I1_J0_K1 + MYIND] -= doubleTransCorrWave; // Fx
+		  dfdt[I0_J0_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J0_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J0_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J1_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J1_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J1_K0 + MYIND] += doubleTransCorrWave;
                   #endif
 	       }
 	    }
@@ -1288,7 +1822,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
    
    // Case Vz < 0:
    if (sign_vz_constant == false || vz_sign < ZERO) {
-      nbr_plus1 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 22]*SIZE_VELBLOCK; // +z nbr
+      const REAL* const znbr_plus1 = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 22]*SIZE_VELBLOCK; // +z nbr
       for (UINT j=0; j<WID; ++j) {
 	 const REAL Vy = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
 	 //const REAL Vy = ZERO;
@@ -1296,224 +1830,189 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    const REAL Vx = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
 	    //const REAL Vx = ZERO;
 	    for (UINT k=0; k<WID; ++k) {
-	       const REAL Vz = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
+	       const REAL Vz = std::min(ZERO,blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ]);
 	       //const REAL Vz = ZERO;
 	       
 	       const UINT MYIND = cellIndex(i,j,k);
 	       const REAL xcc = blockAvgs[MYIND];
-	       const REAL xm1 = nbr_minus1[MYIND];
-	       const REAL xm2 = nbr_plus1[MYIND];
+	       const REAL xm1 = znbr_minus1[MYIND];
+	       const REAL xm2 = znbr_plus1[MYIND];
 	       
 	       const REAL R = xcc - xm1;
 	       
 	       // Increment waves:
 	       const REAL incrWaveZ = Vz*xcc*dt_per_dz;
-	       dfdt[I1_J1_K1*WID3 + MYIND] += incrWaveZ;
-	       dfdt[I1_J1_K0*WID3 + MYIND] -= incrWaveZ;
+	       dfdt[I1_J1_K1 + MYIND] += incrWaveZ;
+	       dfdt[I1_J1_K0 + MYIND] -= incrWaveZ;
 	       #ifndef LEV_1ST_ORDER
 	       const REAL corrWaveZ = -HALF*Vz*(ONE + dt_per_dz*Vz)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dz;
-	       dfdt[I1_J1_K1*WID3 + MYIND] += corrWaveZ;
-	       dfdt[I1_J1_K0*WID3 + MYIND] -= corrWaveZ;
+	       dfdt[I1_J1_K1 + MYIND] += corrWaveZ;
+	       dfdt[I1_J1_K0 + MYIND] -= corrWaveZ;
                #endif
 	       
 	       if (Vx >= ZERO && Vy >= ZERO) {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveZX = HALF*Vx*Vz*dt_per_dx*dt_per_dz*R - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I2_J1_K0*WID3 + MYIND] -= transIncrWaveZX;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += transIncrWaveZX;
+		  dfdt[I2_J1_K0 + MYIND] -= transIncrWaveZX;
+		  dfdt[I1_J1_K0 + MYIND] += transIncrWaveZX;
 		  const REAL transIncrWaveZY = HALF*Vy*Vz*dt_per_dy*dt_per_dz*R - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J2_K0*WID3 + MYIND] -= transIncrWaveZY;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += transIncrWaveZY;
+		  dfdt[I1_J2_K0 + MYIND] -= transIncrWaveZY;
+		  dfdt[I1_J1_K0 + MYIND] += transIncrWaveZY;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveZX = -HALF*Vx*Vz*(ONE + dt_per_dz*Vz)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dx*dt_per_dz;
-		  dfdt[I2_J1_K1*WID3 + MYIND] += transCorrWaveZX;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveZX;
-		  dfdt[I2_J1_K0*WID3 + MYIND] -= transCorrWaveZX;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += transCorrWaveZX;
+		  dfdt[I2_J1_K1 + MYIND] += transCorrWaveZX;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveZX;
+		  dfdt[I2_J1_K0 + MYIND] -= transCorrWaveZX;
+		  dfdt[I1_J1_K0 + MYIND] += transCorrWaveZX;
 		  const REAL transCorrWaveZY = -HALF*Vy*Vz*(ONE + dt_per_dz*Vz)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dy*dt_per_dz;
-		  dfdt[I1_J2_K1*WID3 + MYIND] += transCorrWaveZY;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveZY;
-		  dfdt[I1_J2_K0*WID3 + MYIND] -= transCorrWaveZY;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += transCorrWaveZY;
+		  dfdt[I1_J2_K1 + MYIND] += transCorrWaveZY;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveZY;
+		  dfdt[I1_J2_K0 + MYIND] -= transCorrWaveZY;
+		  dfdt[I1_J1_K0 + MYIND] += transCorrWaveZY;
                   #endif
 		  // Double transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I2_J2_K0*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I1_J2_K0*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I2_J2_K0*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I2_J1_K0*WID3 + MYIND] += doubleTransIncrWave;
+		  dfdt[I2_J2_K0 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I1_J2_K0 + MYIND] += doubleTransIncrWave;
+		  dfdt[I2_J2_K0 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I2_J1_K0 + MYIND] += doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = -FOURTH*Vx*Vy*Vz*(ONE + dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
-		  dfdt[I2_J1_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fx
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I2_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J2_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J2_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J2_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J2_K0*WID3 + MYIND] += doubleTransCorrWave;
-
-		  dfdt[I1_J2_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fy
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J2_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J2_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I2_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J2_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = -HALF*Vx*Vy*Vz*(ONE + dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
+		  dfdt[I2_J1_K1 + MYIND] -= doubleTransCorrWave; // Fx
+		  dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I2_J1_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J1_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I2_J2_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J2_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I2_J2_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J2_K0 + MYIND] += doubleTransCorrWave;
 		  #endif
 	       } else if (Vx >= ZERO && Vy < ZERO) {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveZX = HALF*Vx*Vz*dt_per_dx*dt_per_dz*R - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I2_J1_K0*WID3 + MYIND] -= transIncrWaveZX;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += transIncrWaveZX;
+		  dfdt[I2_J1_K0 + MYIND] -= transIncrWaveZX;
+		  dfdt[I1_J1_K0 + MYIND] += transIncrWaveZX;
 		  const REAL transIncrWaveZY = HALF*Vy*Vz*dt_per_dy*dt_per_dz*R - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += transIncrWaveZY;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= transIncrWaveZY;
+		  dfdt[I1_J0_K0 + MYIND] += transIncrWaveZY;
+		  dfdt[I1_J1_K0 + MYIND] -= transIncrWaveZY;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveZX = -HALF*Vx*Vz*(ONE + dt_per_dz*Vz)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dx*dt_per_dz;
-		  dfdt[I2_J1_K1*WID3 + MYIND] += transCorrWaveZX;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveZX;
-		  dfdt[I2_J1_K0*WID3 + MYIND] -= transCorrWaveZX;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += transCorrWaveZX;
+		  dfdt[I2_J1_K1 + MYIND] += transCorrWaveZX;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveZX;
+		  dfdt[I2_J1_K0 + MYIND] -= transCorrWaveZX;
+		  dfdt[I1_J1_K0 + MYIND] += transCorrWaveZX;
 		  const REAL transCorrWaveZY = -HALF*Vy*Vz*(ONE + dt_per_dz*Vz)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dy*dt_per_dz;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveZY;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= transCorrWaveZY;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= transCorrWaveZY;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += transCorrWaveZY;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveZY;
+		  dfdt[I1_J0_K1 + MYIND] -= transCorrWaveZY;
+		  dfdt[I1_J1_K0 + MYIND] -= transCorrWaveZY;
+		  dfdt[I1_J0_K0 + MYIND] += transCorrWaveZY;
 		  #endif
 		  // Double transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I2_J0_K0*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I1_J0_K0*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I2_J1_K0*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I2_J0_K0*WID3 + MYIND] += doubleTransIncrWave;
+		  dfdt[I2_J0_K0 + MYIND] += doubleTransIncrWave;
+		  dfdt[I1_J0_K0 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I2_J1_K0 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I2_J0_K0 + MYIND] += doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = -FOURTH*Vx*Vy*Vz*(ONE + dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
-		  dfdt[I2_J0_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fx
-		  dfdt[I1_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I2_J0_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fy
-		  dfdt[I1_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I2_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I2_J0_K0*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = -HALF*Vx*Vy*Vz*(ONE + dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
+		  dfdt[I2_J0_K1 + MYIND] -= doubleTransCorrWave; // Fx
+		  dfdt[I1_J0_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I2_J0_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J0_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I2_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I2_J1_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J1_K0 + MYIND] += doubleTransCorrWave;
                   #endif
 	       } else if (Vx < ZERO && Vy >= ZERO) {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveZX = HALF*Vx*Vz*dt_per_dx*dt_per_dz*R - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += transIncrWaveZX;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= transIncrWaveZX;
+		  dfdt[I0_J1_K0 + MYIND] += transIncrWaveZX;
+		  dfdt[I1_J1_K0 + MYIND] -= transIncrWaveZX;
 		  const REAL transIncrWaveZY = HALF*Vy*Vz*dt_per_dy*dt_per_dz*R - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J2_K0*WID3 + MYIND] -= transIncrWaveZY;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += transIncrWaveZY;
+		  dfdt[I1_J2_K0 + MYIND] -= transIncrWaveZY;
+		  dfdt[I1_J1_K0 + MYIND] += transIncrWaveZY;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveZX = -HALF*Vx*Vz*(ONE + dt_per_dz*Vz)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dx*dt_per_dz;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveZX;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= transCorrWaveZX;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= transCorrWaveZX;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += transCorrWaveZX;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveZX;
+		  dfdt[I0_J1_K1 + MYIND] -= transCorrWaveZX;
+		  dfdt[I1_J1_K0 + MYIND] -= transCorrWaveZX;
+		  dfdt[I0_J1_K0 + MYIND] += transCorrWaveZX;
 		  const REAL transCorrWaveZY = -HALF*Vy*Vz*(ONE + dt_per_dz*Vz)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dy*dt_per_dz;
-		  dfdt[I1_J2_K1*WID3 + MYIND] += transCorrWaveZY;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= transCorrWaveZY;
-		  dfdt[I1_J2_K0*WID3 + MYIND] -= transCorrWaveZY;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += transCorrWaveZY;
+		  dfdt[I1_J2_K1 + MYIND] += transCorrWaveZY;
+		  dfdt[I1_J1_K1 + MYIND] -= transCorrWaveZY;
+		  dfdt[I1_J2_K0 + MYIND] -= transCorrWaveZY;
+		  dfdt[I1_J1_K0 + MYIND] += transCorrWaveZY;
 		  #endif
 		  // Double transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J2_K0*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I0_J2_K0*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I0_J2_K0*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I0_J1_K0*WID3 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I1_J2_K0 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I0_J2_K0 + MYIND] += doubleTransIncrWave;
+		  dfdt[I0_J2_K0 + MYIND] += doubleTransIncrWave;
+		  dfdt[I0_J1_K0 + MYIND] -= doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = -FOURTH*Vx*Vy*Vz*(ONE + dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fx
-		  dfdt[I0_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J2_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J2_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J2_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J2_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  
-		  dfdt[I0_J2_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fy
-		  dfdt[I0_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J2_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J2_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J2_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = -HALF*Vx*Vy*Vz*(ONE + dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
+		  dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWave; // Fx
+		  dfdt[I0_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J1_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J1_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J2_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J2_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J2_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J2_K0 + MYIND] += doubleTransCorrWave;
                   #endif
 	       } else {
 		  // Transverse increment waves:
 		  const REAL transIncrWaveZX = HALF*Vx*Vz*dt_per_dx*dt_per_dz*R - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += transIncrWaveZX;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= transIncrWaveZX;
+		  dfdt[I0_J1_K0 + MYIND] += transIncrWaveZX;
+		  dfdt[I1_J1_K0 + MYIND] -= transIncrWaveZX;
 		  const REAL transIncrWaveZY = HALF*Vy*Vz*dt_per_dy*dt_per_dz*R - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += transIncrWaveZY;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= transIncrWaveZY;
+		  dfdt[I1_J0_K0 + MYIND] += transIncrWaveZY;
+		  dfdt[I1_J1_K0 + MYIND] -= transIncrWaveZY;
 		  #ifndef LEV_1ST_ORDER
 		  // Transverse correction waves:
 		  const REAL transCorrWaveZX = -HALF*Vx*Vz*(ONE + dt_per_dz*Vz)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dx*dt_per_dz;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveZX;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= transCorrWaveZX;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= transCorrWaveZX;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += transCorrWaveZX;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveZX;
+		  dfdt[I0_J1_K1 + MYIND] -= transCorrWaveZX;
+		  dfdt[I1_J1_K0 + MYIND] -= transCorrWaveZX;
+		  dfdt[I0_J1_K0 + MYIND] += transCorrWaveZX;
 		  const REAL transCorrWaveZY = -HALF*Vy*Vz*(ONE + dt_per_dz*Vz)*R*limiter(xm2-xcc,R+EPSILON,xcc)*dt_per_dy*dt_per_dz;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += transCorrWaveZY;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= transCorrWaveZY;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= transCorrWaveZY;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += transCorrWaveZY;
+		  dfdt[I1_J1_K1 + MYIND] += transCorrWaveZY;
+		  dfdt[I1_J0_K1 + MYIND] -= transCorrWaveZY;
+		  dfdt[I1_J1_K0 + MYIND] -= transCorrWaveZY;
+		  dfdt[I1_J0_K0 + MYIND] += transCorrWaveZY;
 		  #endif
 		  // Double transverse increment waves:
 		  const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*R;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I0_J0_K0*WID3 + MYIND] -= doubleTransIncrWave;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += doubleTransIncrWave;
-		  dfdt[I0_J0_K0*WID3 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I1_J0_K0 + MYIND] += doubleTransIncrWave;
+		  dfdt[I0_J0_K0 + MYIND] -= doubleTransIncrWave;
+		  dfdt[I0_J1_K0 + MYIND] += doubleTransIncrWave;
+		  dfdt[I0_J0_K0 + MYIND] -= doubleTransIncrWave;
 		  #ifndef LEV_1ST_ORDER
 		  // Double transverse correction waves:
-		  const REAL doubleTransCorrWave = -FOURTH*Vx*Vy*Vz*(ONE + dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fx
-		  dfdt[I0_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  
-		  dfdt[I0_J1_K1*WID3 + MYIND] -= doubleTransCorrWave; // Fy
-		  dfdt[I0_J0_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J1_K0*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I0_J0_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K1*WID3 + MYIND] += doubleTransCorrWave;
-		  dfdt[I1_J0_K1*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J1_K0*WID3 + MYIND] -= doubleTransCorrWave;
-		  dfdt[I1_J0_K0*WID3 + MYIND] += doubleTransCorrWave;
+		  const REAL doubleTransCorrWave = -HALF*Vx*Vy*Vz*(ONE + dt_per_dz*Vz)*dt_per_dx*dt_per_dy*dt_per_dz*R*limiter(xm2-xcc,R+EPSILON,xcc);
+		  dfdt[I1_J0_K1 + MYIND] -= doubleTransCorrWave; // Fx
+		  dfdt[I0_J0_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I1_J0_K0 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J0_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWave;
+		  dfdt[I0_J1_K1 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I1_J1_K0 + MYIND] -= doubleTransCorrWave;
+		  dfdt[I0_J1_K0 + MYIND] += doubleTransCorrWave;
                   #endif
 	       }
 	    }
 	 }
       }
    }
-   
+   */
+   Timer::start(timer::memoryCopies);
    // Accumulate calculated df/dt values from temporary buffer to 
    // main memory. If multithreading is used, these updates need 
    // to be atomistic:
@@ -1525,6 +2024,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
       const UINT nbrBlock = nbrsSpa[BLOCK*SIZE_NBRS_SPA + nbr];
       for (uint i=0; i<SIZE_VELBLOCK; ++i) flux[nbrBlock*WID3 + i] += dfdt[nbr*WID3 + i];
    }
+   Timer::stop(timer::memoryCopies);
 }
 
 template<typename REAL,typename UINT> void cpu_propagateSpat(REAL* const avgs,const REAL* const flux,const REAL* const nbrFluxes,
