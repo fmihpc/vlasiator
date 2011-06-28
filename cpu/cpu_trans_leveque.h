@@ -42,6 +42,7 @@ const Real SIXTH   = 1.0/6.0;
 const Real FOURTH  = 0.25;
 const Real HALF    = 0.5;
 const Real ONE     = 1.0;
+creal TWO    = 2.0;
 
 template<typename REAL> REAL limiter(const REAL& theta_up,const REAL& theta_lo,const REAL& xcc) {
    return superbee(theta_up/theta_lo);
@@ -147,6 +148,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
       const REAL Vy = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
       const REAL Vx = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
 
+      // Fetch required values from global arrays:
       const UINT MYIND = cellIndex(i,j,k);
       const REAL xcc = blockAvgs[MYIND];
       const REAL xp1 = xnbr_plus1[MYIND];
@@ -160,6 +162,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
       const REAL zm2 = znbr_minus2[MYIND];
       
       if (Vx >= ZERO) {
+	 // 1D increment and correction waves:
 	 const REAL RX = xcc - xm1;
 	 const REAL incrWaveX = Vx*xm1*dt_per_dx;
 	 dfdt[I1_J1_K1 + MYIND] += incrWaveX;
@@ -173,12 +176,11 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	 const REAL RY = xcc - ym1;
 	 const REAL RZ = xcc - zm1;
 	 if (Vy >= ZERO) { // Vx > 0 Vy > 0
-	    const REAL transIncrWaveXY = HALF*Vx*Vy*dt_per_dx*dt_per_dy*RX - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RX;
-	    dfdt[I1_J2_K1 + MYIND] -= transIncrWaveXY;
-	    dfdt[I1_J1_K1 + MYIND] += transIncrWaveXY;
-	    const REAL transIncrWaveYX = HALF*Vx*Vy*dt_per_dx*dt_per_dy*RY - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RY;
-	    dfdt[I2_J1_K1 + MYIND] -= transIncrWaveYX;
-	    dfdt[I1_J1_K1 + MYIND] += transIncrWaveYX;
+	    const REAL transIncrWave = HALF*Vx*Vy*dt_per_dx*dt_per_dy - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz;
+	    dfdt[I1_J2_K1 + MYIND] -= transIncrWave*RX;
+	    dfdt[I1_J1_K1 + MYIND] += transIncrWave*RX;
+	    dfdt[I2_J1_K1 + MYIND] -= transIncrWave*RY;
+	    dfdt[I1_J1_K1 + MYIND] += transIncrWave*RY;
 	    
 	    #ifndef LEV_1ST_ORDER
 	    const REAL transCorrWaveXY = HALF*Vx*Vy*(ONE - dt_per_dx*Vx)*RX*limiter(xm1-xm2,RX+EPSILON,xcc)*dt_per_dx*dt_per_dy;
@@ -195,17 +197,14 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    
 	    if (Vz >= ZERO) { // Vx > 0 Vy > 0 Vz > 0
 	       const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
-	       dfdt[I1_J2_K2 + MYIND] -= doubleTransIncrWave*RX; // x
+	       dfdt[I1_J2_K2 + MYIND] -= TWO*doubleTransIncrWave*RX; // x
 	       dfdt[I1_J1_K2 + MYIND] += doubleTransIncrWave*RX;
-	       dfdt[I1_J2_K2 + MYIND] -= doubleTransIncrWave*RX;
 	       dfdt[I1_J2_K1 + MYIND] += doubleTransIncrWave*RX;
-	       dfdt[I2_J1_K2 + MYIND] -= doubleTransIncrWave*RY; // y
+	       dfdt[I2_J1_K2 + MYIND] -= TWO*doubleTransIncrWave*RY; // y
 	       dfdt[I1_J1_K2 + MYIND] += doubleTransIncrWave*RY;
-	       dfdt[I2_J1_K2 + MYIND] -= doubleTransIncrWave*RY;
 	       dfdt[I2_J1_K1 + MYIND] += doubleTransIncrWave*RY;
-	       dfdt[I2_J2_K1 + MYIND] -= doubleTransIncrWave*RZ; // z
+	       dfdt[I2_J2_K1 + MYIND] -= TWO*doubleTransIncrWave*RZ; // z
 	       dfdt[I1_J2_K1 + MYIND] += doubleTransIncrWave*RZ;
-	       dfdt[I2_J2_K1 + MYIND] -= doubleTransIncrWave*RZ;
 	       dfdt[I2_J1_K1 + MYIND] += doubleTransIncrWave*RZ;
 	       
 	       #ifndef LEV_1ST_ORDER
@@ -239,17 +238,14 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	       #endif
 	    } else { // Vx > 0 Vy > 0 Vz < 0
 	       const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
-	       dfdt[I1_J2_K0 + MYIND] += doubleTransIncrWave*RX; // x
+	       dfdt[I1_J2_K0 + MYIND] += TWO*doubleTransIncrWave*RX; // x
 	       dfdt[I1_J1_K0 + MYIND] -= doubleTransIncrWave*RX;
 	       dfdt[I1_J2_K1 + MYIND] -= doubleTransIncrWave*RX;
-	       dfdt[I1_J2_K0 + MYIND] += doubleTransIncrWave*RX;
-	       dfdt[I2_J1_K0 + MYIND] += doubleTransIncrWave*RY; // y
+	       dfdt[I2_J1_K0 + MYIND] += TWO*doubleTransIncrWave*RY; // y
 	       dfdt[I1_J1_K0 + MYIND] -= doubleTransIncrWave*RY;
 	       dfdt[I2_J1_K1 + MYIND] -= doubleTransIncrWave*RY;
-	       dfdt[I2_J1_K0 + MYIND] += doubleTransIncrWave*RY;
-	       dfdt[I2_J2_K0 + MYIND] -= doubleTransIncrWave*RZ; // z
+	       dfdt[I2_J2_K0 + MYIND] -= TWO*doubleTransIncrWave*RZ; // z
 	       dfdt[I1_J2_K0 + MYIND] += doubleTransIncrWave*RZ;
-	       dfdt[I2_J2_K0 + MYIND] -= doubleTransIncrWave*RZ;
 	       dfdt[I2_J1_K0 + MYIND] += doubleTransIncrWave*RZ;
 	       
 	       #ifndef LEV_1ST_ORDER
@@ -283,12 +279,11 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	       #endif
 	    }
 	 } else { // Vx > 0 Vy < 0
-	    const REAL transIncrWaveXY = HALF*Vx*Vy*dt_per_dx*dt_per_dy*RX - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RX;
-	    dfdt[I1_J0_K1 + MYIND] += transIncrWaveXY;
-	    dfdt[I1_J1_K1 + MYIND] -= transIncrWaveXY;
-	    const REAL transIncrWaveYX = HALF*Vx*Vy*dt_per_dx*dt_per_dy*RY - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RY;
-	    dfdt[I2_J0_K1 + MYIND] -= transIncrWaveYX;
-	    dfdt[I1_J0_K1 + MYIND] += transIncrWaveYX;
+	    const REAL transIncrWave = HALF*Vx*Vy*dt_per_dx*dt_per_dy - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz;
+	    dfdt[I1_J0_K1 + MYIND] += transIncrWave*RX;
+	    dfdt[I1_J1_K1 + MYIND] -= transIncrWave*RX;
+	    dfdt[I2_J0_K1 + MYIND] -= transIncrWave*RY;
+	    dfdt[I1_J0_K1 + MYIND] += transIncrWave*RY;
 	    
 	    #ifndef LEV_1ST_ORDER
 	    const REAL transCorrWaveXY = HALF*Vx*Vy*(ONE - dt_per_dx*Vx)*RX*limiter(xm1-xm2,RX+EPSILON,xcc)*dt_per_dx*dt_per_dy;
@@ -305,18 +300,15 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    
 	    if (Vz >= ZERO) { // Vx > 0 Vy < 0 Vz > 0
 	       const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
-	       dfdt[I1_J1_K2 + MYIND] -= doubleTransIncrWave*RX; // x
-	       dfdt[I1_J0_K2 + MYIND] += doubleTransIncrWave*RX;
-	       dfdt[I1_J0_K2 + MYIND] += doubleTransIncrWave*RX;
+	       dfdt[I1_J0_K2 + MYIND] += TWO*doubleTransIncrWave*RX; // x
+	       dfdt[I1_J1_K2 + MYIND] -= doubleTransIncrWave*RX;
 	       dfdt[I1_J0_K1 + MYIND] -= doubleTransIncrWave*RX;
-	       dfdt[I2_J0_K2 + MYIND] -= doubleTransIncrWave*RY; // y
+	       dfdt[I2_J0_K2 + MYIND] -= TWO*doubleTransIncrWave*RY; // y
 	       dfdt[I1_J0_K2 + MYIND] += doubleTransIncrWave*RY;
-	       dfdt[I2_J0_K2 + MYIND] -= doubleTransIncrWave*RY;
 	       dfdt[I2_J0_K1 + MYIND] += doubleTransIncrWave*RY;
-	       dfdt[I2_J0_K1 + MYIND] += doubleTransIncrWave*RZ; // z
+	       dfdt[I2_J0_K1 + MYIND] += TWO*doubleTransIncrWave*RZ; // z
 	       dfdt[I1_J0_K1 + MYIND] -= doubleTransIncrWave*RZ;
 	       dfdt[I2_J1_K1 + MYIND] -= doubleTransIncrWave*RZ;
-	       dfdt[I2_J0_K1 + MYIND] += doubleTransIncrWave*RZ;
 	       
 	       #ifndef LEV_1ST_ORDER
 	       const REAL doubleTransCorrWaveXYZ = HALF*Vx*Vy*Vz*(ONE-Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*RX*limiter(xm1-xm2,RX+EPSILON,xcc);
@@ -349,18 +341,15 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	       #endif
 	    } else { // Vx > 0 Vy < 0 Vz < 0
 	       const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
-	       dfdt[I1_J1_K0 + MYIND] += doubleTransIncrWave*RX; // x
-	       dfdt[I1_J0_K0 + MYIND] -= doubleTransIncrWave*RX;
+	       dfdt[I1_J0_K0 + MYIND] -= TWO*doubleTransIncrWave*RX; // x
 	       dfdt[I1_J0_K1 + MYIND] += doubleTransIncrWave*RX;
-	       dfdt[I1_J0_K0 + MYIND] -= doubleTransIncrWave*RX;
-	       dfdt[I2_J0_K0 + MYIND] += doubleTransIncrWave*RY; // y
+	       dfdt[I1_J1_K0 + MYIND] += doubleTransIncrWave*RX;
+	       dfdt[I2_J0_K0 + MYIND] += TWO*doubleTransIncrWave*RY; // y
 	       dfdt[I1_J0_K0 + MYIND] -= doubleTransIncrWave*RY;
 	       dfdt[I2_J0_K1 + MYIND] -= doubleTransIncrWave*RY;
-	       dfdt[I2_J0_K0 + MYIND] += doubleTransIncrWave*RY;
-	       dfdt[I2_J0_K0 + MYIND] += doubleTransIncrWave*RZ; // z
+	       dfdt[I2_J0_K0 + MYIND] += TWO*doubleTransIncrWave*RZ; // z
 	       dfdt[I1_J0_K0 + MYIND] -= doubleTransIncrWave*RZ;
 	       dfdt[I2_J1_K0 + MYIND] -= doubleTransIncrWave*RZ;
-	       dfdt[I2_J0_K0 + MYIND] += doubleTransIncrWave*RZ;
 	       
 	       #ifndef LEV_1ST_ORDER
 	       const REAL doubleTransCorrWaveXYZ = HALF*Vx*Vy*Vz*(ONE-Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*RX*limiter(xm1-xm2,RX+EPSILON,xcc);
@@ -395,12 +384,11 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	 }
 	 
 	 if (Vz >= ZERO) {
-	    const REAL transIncrWaveXZ = HALF*Vx*Vz*dt_per_dx*dt_per_dz*RX - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RX;
-	    dfdt[I1_J1_K2 + MYIND] -= transIncrWaveXZ;
-	    dfdt[I1_J1_K1 + MYIND] += transIncrWaveXZ;
-	    const REAL transIncrWaveZX = HALF*Vx*Vz*dt_per_dx*dt_per_dz*RZ - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RZ;
-	    dfdt[I2_J1_K1 + MYIND] -= transIncrWaveZX;
-	    dfdt[I1_J1_K1 + MYIND] += transIncrWaveZX;
+	    const REAL transIncrWave = HALF*Vx*Vz*dt_per_dx*dt_per_dz - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
+	    dfdt[I1_J1_K2 + MYIND] -= transIncrWave*RX;
+	    dfdt[I1_J1_K1 + MYIND] += transIncrWave*RX;
+	    dfdt[I2_J1_K1 + MYIND] -= transIncrWave*RZ;
+	    dfdt[I1_J1_K1 + MYIND] += transIncrWave*RZ;
 	    
 	    #ifndef LEV_1ST_ORDER
 	    const REAL transCorrWaveXZ = HALF*Vx*Vz*(ONE - dt_per_dx*Vx)*RX*limiter(xm1-xm2,RX+EPSILON,xcc)*dt_per_dx*dt_per_dz;
@@ -415,12 +403,11 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    dfdt[I1_J1_K0 + MYIND] += transCorrWaveZX;
 	    #endif
 	 } else {
-	    const REAL transIncrWaveXZ = HALF*Vx*Vz*dt_per_dx*dt_per_dz*RX - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RX;
-	    dfdt[I1_J1_K0 + MYIND] += transIncrWaveXZ;
-	    dfdt[I1_J1_K1 + MYIND] -= transIncrWaveXZ;
-	    const REAL transIncrWaveZX = HALF*Vx*Vz*dt_per_dx*dt_per_dz*RZ - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RZ;
-	    dfdt[I2_J1_K0 + MYIND] -= transIncrWaveZX;
-	    dfdt[I1_J1_K0 + MYIND] += transIncrWaveZX;
+	    const REAL transIncrWave = HALF*Vx*Vz*dt_per_dx*dt_per_dz - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
+	    dfdt[I1_J1_K0 + MYIND] += transIncrWave*RX;
+	    dfdt[I1_J1_K1 + MYIND] -= transIncrWave*RX;
+	    dfdt[I2_J1_K0 + MYIND] -= transIncrWave*RZ;
+	    dfdt[I1_J1_K0 + MYIND] += transIncrWave*RZ;
 
 	    #ifndef LEV_1ST_ORDER
 	    const REAL transCorrWaveXZ = HALF*Vx*Vz*(ONE - dt_per_dx*Vx)*RX*limiter(xm1-xm2,RX+EPSILON,xcc)*dt_per_dx*dt_per_dz;
@@ -449,12 +436,11 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	 const REAL RY = xcc - ym1;
 	 const REAL RZ = xcc - zm1;
 	 if (Vy >= ZERO) { // Vx < 0 Vy > 0
-	    const REAL transIncrWaveXY = HALF*Vx*Vy*dt_per_dx*dt_per_dy*RX - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RX;
-	    dfdt[I0_J2_K1 + MYIND] -= transIncrWaveXY;
-	    dfdt[I0_J1_K1 + MYIND] += transIncrWaveXY;
-	    const REAL transIncrWaveYX = HALF*Vx*Vy*dt_per_dx*dt_per_dy*RY - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RY;
-	    dfdt[I0_J1_K1 + MYIND] += transIncrWaveYX;
-	    dfdt[I1_J1_K1 + MYIND] -= transIncrWaveYX;
+	    const REAL transIncrWave = HALF*Vx*Vy*dt_per_dx*dt_per_dy - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz;
+	    dfdt[I0_J2_K1 + MYIND] -= transIncrWave*RX;
+	    dfdt[I0_J1_K1 + MYIND] += transIncrWave*RX;
+	    dfdt[I0_J1_K1 + MYIND] += transIncrWave*RY;
+	    dfdt[I1_J1_K1 + MYIND] -= transIncrWave*RY;
 
 	    #ifndef LEV_1ST_ORDER
 	    const REAL transCorrWaveXY = -HALF*Vx*Vy*(ONE + dt_per_dx*Vx)*RX*limiter(xp1-xcc,RX+EPSILON,xcc)*dt_per_dx*dt_per_dy;
@@ -471,19 +457,16 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    
 	    if (Vz >= ZERO) { // Vx < 0 Vy > 0 Vz > 0
 	       const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
-	       dfdt[I0_J2_K2 + MYIND] -= doubleTransIncrWave*RX; // x
-	       dfdt[I0_J1_K2 + MYIND] += doubleTransIncrWave*RX;
-	       dfdt[I0_J2_K2 + MYIND] -= doubleTransIncrWave*RX;
+	       dfdt[I0_J2_K2 + MYIND] -= TWO*doubleTransIncrWave*RX; // x
 	       dfdt[I0_J2_K1 + MYIND] += doubleTransIncrWave*RX;
-	       dfdt[I1_J1_K2 + MYIND] -= doubleTransIncrWave*RY; // y
-	       dfdt[I0_J1_K2 + MYIND] += doubleTransIncrWave*RY;
-	       dfdt[I0_J1_K2 + MYIND] += doubleTransIncrWave*RY;
+	       dfdt[I0_J1_K2 + MYIND] += doubleTransIncrWave*RX;
+	       dfdt[I0_J1_K2 + MYIND] += TWO*doubleTransIncrWave*RY; // y
+	       dfdt[I1_J1_K2 + MYIND] -= doubleTransIncrWave*RY;
 	       dfdt[I0_J1_K1 + MYIND] -= doubleTransIncrWave*RY;
-	       dfdt[I1_J2_K1 + MYIND] -= doubleTransIncrWave*RZ; // z
-	       dfdt[I0_J2_K1 + MYIND] += doubleTransIncrWave*RZ;
-	       dfdt[I0_J2_K1 + MYIND] += doubleTransIncrWave*RZ;
+	       dfdt[I0_J2_K1 + MYIND] += TWO*doubleTransIncrWave*RZ; // z
 	       dfdt[I0_J1_K1 + MYIND] -= doubleTransIncrWave*RZ;
-
+	       dfdt[I1_J2_K1 + MYIND] -= doubleTransIncrWave*RZ;
+	       
 	       #ifndef LEV_1ST_ORDER
 	       const REAL doubleTransCorrWaveXYZ = -HALF*Vx*Vy*Vz*(ONE+Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*RX*limiter(xp1-xcc,RX+EPSILON,xcc);
 	       dfdt[I1_J2_K1 + MYIND] -= doubleTransCorrWaveXYZ;
@@ -515,17 +498,14 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
                #endif
 	    } else { // Vx < 0 Vy > 0 Vz < 0
 	       const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
-	       dfdt[I0_J2_K0 + MYIND] += doubleTransIncrWave*RX; // x
+	       dfdt[I0_J2_K0 + MYIND] += TWO*doubleTransIncrWave*RX; // x
 	       dfdt[I0_J1_K0 + MYIND] -= doubleTransIncrWave*RX;
 	       dfdt[I0_J2_K1 + MYIND] -= doubleTransIncrWave*RX;
-	       dfdt[I0_J2_K0 + MYIND] += doubleTransIncrWave*RX;
-	       dfdt[I1_J1_K0 + MYIND] += doubleTransIncrWave*RY; // y
-	       dfdt[I0_J1_K0 + MYIND] -= doubleTransIncrWave*RY;
+	       dfdt[I0_J1_K0 + MYIND] -= TWO*doubleTransIncrWave*RY; // y
+	       dfdt[I1_J1_K0 + MYIND] += doubleTransIncrWave*RY;
 	       dfdt[I0_J1_K1 + MYIND] += doubleTransIncrWave*RY;
-	       dfdt[I0_J1_K0 + MYIND] -= doubleTransIncrWave*RY;
-	       dfdt[I1_J2_K0 + MYIND] -= doubleTransIncrWave*RZ; // z
-	       dfdt[I0_J2_K0 + MYIND] += doubleTransIncrWave*RZ;
-	       dfdt[I0_J2_K0 + MYIND] += doubleTransIncrWave*RZ;
+	       dfdt[I0_J2_K0 + MYIND] += TWO*doubleTransIncrWave*RZ; // z
+	       dfdt[I1_J2_K0 + MYIND] -= doubleTransIncrWave*RZ;
 	       dfdt[I0_J1_K0 + MYIND] -= doubleTransIncrWave*RZ;
 	       
 	       #ifndef LEV_1ST_ORDER
@@ -559,12 +539,11 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
                #endif
 	    }
 	 } else { // Vx < 0 Vy < 0
-	    const REAL transIncrWaveXY = HALF*Vx*Vy*dt_per_dx*dt_per_dy*RX - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RX;
-	    dfdt[I0_J0_K1 + MYIND] += transIncrWaveXY;
-	    dfdt[I0_J1_K1 + MYIND] -= transIncrWaveXY;
-	    const REAL transIncrWaveYX = HALF*Vx*Vy*dt_per_dx*dt_per_dy*RY - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz*RY;
-	    dfdt[I0_J0_K1 + MYIND] += transIncrWaveYX;
-	    dfdt[I1_J0_K1 + MYIND] -= transIncrWaveYX;
+	    const REAL transIncrWave = HALF*Vx*Vy*dt_per_dx*dt_per_dy - SIXTH*Vx*Vy*fabs(Vz)*dt_per_dx*dt_per_dy*dt_per_dz;
+	    dfdt[I0_J0_K1 + MYIND] += transIncrWave*RX;
+	    dfdt[I0_J1_K1 + MYIND] -= transIncrWave*RX;
+	    dfdt[I0_J0_K1 + MYIND] += transIncrWave*RY;
+	    dfdt[I1_J0_K1 + MYIND] -= transIncrWave*RY;
 
 	    #ifndef LEV_1ST_ORDER
 	    const REAL transCorrWaveXY = -HALF*Vx*Vy*(ONE + dt_per_dx*Vx)*RX*limiter(xp1-xcc,RX+EPSILON,xcc)*dt_per_dx*dt_per_dy;
@@ -581,18 +560,15 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    
 	    if (Vz >= ZERO) { // Vx < 0 Vy < 0 Vz > 0
 	       const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
-	       dfdt[I0_J1_K2 + MYIND] -= doubleTransIncrWave*RX; // x
-	       dfdt[I0_J0_K2 + MYIND] += doubleTransIncrWave*RX;
-	       dfdt[I0_J0_K2 + MYIND] += doubleTransIncrWave*RX;
+	       dfdt[I0_J0_K2 + MYIND] += TWO*doubleTransIncrWave*RX; // x
+	       dfdt[I0_J1_K2 + MYIND] -= doubleTransIncrWave*RX;
 	       dfdt[I0_J0_K1 + MYIND] -= doubleTransIncrWave*RX;
-	       dfdt[I1_J0_K2 + MYIND] -= doubleTransIncrWave*RY; // y
-	       dfdt[I0_J0_K2 + MYIND] += doubleTransIncrWave*RY;
-	       dfdt[I0_J0_K2 + MYIND] += doubleTransIncrWave*RY;
+	       dfdt[I0_J0_K2 + MYIND] += TWO*doubleTransIncrWave*RY; // y
+	       dfdt[I1_J0_K2 + MYIND] -= doubleTransIncrWave*RY;
 	       dfdt[I0_J0_K1 + MYIND] -= doubleTransIncrWave*RY;
-	       dfdt[I1_J0_K1 + MYIND] += doubleTransIncrWave*RZ; // z
-	       dfdt[I0_J0_K1 + MYIND] -= doubleTransIncrWave*RZ;
+	       dfdt[I0_J0_K1 + MYIND] -= TWO*doubleTransIncrWave*RZ; // z
+	       dfdt[I1_J0_K1 + MYIND] += doubleTransIncrWave*RZ;
 	       dfdt[I0_J1_K1 + MYIND] += doubleTransIncrWave*RZ;
-	       dfdt[I0_J0_K1 + MYIND] -= doubleTransIncrWave*RZ;
 	       
 	       #ifndef LEV_1ST_ORDER
 	       const REAL doubleTransCorrWaveXYZ = -HALF*Vx*Vy*Vz*(ONE+Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*RX*limiter(xp1-xcc,RX+EPSILON,xcc);
@@ -625,18 +601,15 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
                #endif
 	    } else { // Vx < 0 Vy < 0 Vz < 0
 	       const REAL doubleTransIncrWave = SIXTH*Vx*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
-	       dfdt[I0_J1_K0 + MYIND] += doubleTransIncrWave*RX; // x
-	       dfdt[I0_J0_K0 + MYIND] -= doubleTransIncrWave*RX;
+	       dfdt[I0_J0_K0 + MYIND] -= TWO*doubleTransIncrWave*RX; // x
+	       dfdt[I0_J1_K0 + MYIND] += doubleTransIncrWave*RX;
 	       dfdt[I0_J0_K1 + MYIND] += doubleTransIncrWave*RX;
-	       dfdt[I0_J0_K0 + MYIND] -= doubleTransIncrWave*RX;
-	       dfdt[I1_J0_K0 + MYIND] += doubleTransIncrWave*RY; // y
-	       dfdt[I0_J0_K0 + MYIND] -= doubleTransIncrWave*RY;
+	       dfdt[I0_J0_K0 + MYIND] -= TWO*doubleTransIncrWave*RY; // y
 	       dfdt[I0_J0_K1 + MYIND] += doubleTransIncrWave*RY;
-	       dfdt[I0_J0_K0 + MYIND] -= doubleTransIncrWave*RY;
-	       dfdt[I1_J0_K0 + MYIND] += doubleTransIncrWave*RZ; // z
-	       dfdt[I0_J0_K0 + MYIND] -= doubleTransIncrWave*RZ;
+	       dfdt[I1_J0_K0 + MYIND] += doubleTransIncrWave*RY;
+	       dfdt[I0_J0_K0 + MYIND] -= TWO*doubleTransIncrWave*RZ; // z
 	       dfdt[I0_J1_K0 + MYIND] += doubleTransIncrWave*RZ;
-	       dfdt[I0_J0_K0 + MYIND] -= doubleTransIncrWave*RZ;
+	       dfdt[I1_J0_K0 + MYIND] += doubleTransIncrWave*RZ;
 	       
 	       #ifndef LEV_1ST_ORDER
 	       const REAL doubleTransCorrWaveXYZ = -HALF*Vx*Vy*Vz*(ONE+Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*RX*limiter(xp1-xcc,RX+EPSILON,xcc);
@@ -671,12 +644,11 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	 }
 	 
 	 if (Vz >= ZERO) {
-	    const REAL transIncrWaveXZ = HALF*Vx*Vz*dt_per_dx*dt_per_dz*RX - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RX;
-	    dfdt[I0_J1_K2 + MYIND] -= transIncrWaveXZ;
-	    dfdt[I0_J1_K1 + MYIND] += transIncrWaveXZ;
-	    const REAL transIncrWaveZX = HALF*Vx*Vz*dt_per_dx*dt_per_dz*RZ - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RZ;
-	    dfdt[I0_J1_K1 + MYIND] += transIncrWaveZX;
-	    dfdt[I1_J1_K1 + MYIND] -= transIncrWaveZX;
+	    const REAL transIncrWave = HALF*Vx*Vz*dt_per_dx*dt_per_dz - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
+	    dfdt[I0_J1_K2 + MYIND] -= transIncrWave*RX;
+	    dfdt[I0_J1_K1 + MYIND] += transIncrWave*RX;
+	    dfdt[I0_J1_K1 + MYIND] += transIncrWave*RZ;
+	    dfdt[I1_J1_K1 + MYIND] -= transIncrWave*RZ;
 	    
 	    #ifndef LEV_1ST_ORDER
 	    const REAL transCorrWaveXZ = -HALF*Vx*Vz*(ONE + dt_per_dx*Vx)*RX*limiter(xp1-xcc,RX+EPSILON,xcc)*dt_per_dx*dt_per_dz;
@@ -691,12 +663,11 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    dfdt[I0_J1_K0 + MYIND] += transCorrWaveZX;
 	    #endif	    
 	 } else {
-	    const REAL transIncrWaveXZ = HALF*Vx*Vz*dt_per_dx*dt_per_dz*RX - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RX;
-	    dfdt[I0_J1_K0 + MYIND] += transIncrWaveXZ;
-	    dfdt[I0_J1_K1 + MYIND] -= transIncrWaveXZ;
-	    const REAL transIncrWaveZX = HALF*Vx*Vz*dt_per_dx*dt_per_dz*RZ - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RZ;
-	    dfdt[I0_J1_K0 + MYIND] += transIncrWaveZX;
-	    dfdt[I1_J1_K0 + MYIND] -= transIncrWaveZX;
+	    const REAL transIncrWave = HALF*Vx*Vz*dt_per_dx*dt_per_dz - SIXTH*Vx*fabs(Vy)*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
+	    dfdt[I0_J1_K0 + MYIND] += transIncrWave*RX;
+	    dfdt[I0_J1_K1 + MYIND] -= transIncrWave*RX;
+	    dfdt[I0_J1_K0 + MYIND] += transIncrWave*RZ;
+	    dfdt[I1_J1_K0 + MYIND] -= transIncrWave*RZ;
 	    
 	    #ifndef LEV_1ST_ORDER
 	    const REAL transCorrWaveXZ = -HALF*Vx*Vz*(ONE + dt_per_dx*Vx)*RX*limiter(xp1-xcc,RX+EPSILON,xcc)*dt_per_dx*dt_per_dz;
@@ -726,12 +697,11 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	 
 	 const REAL RZ = xcc - zm1;
 	 if (Vz >= ZERO) {
-	    const REAL transIncrWaveYZ = HALF*Vy*Vz*dt_per_dy*dt_per_dz*RY - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RY;
-	    dfdt[I1_J1_K2 + MYIND] -= transIncrWaveYZ;
-	    dfdt[I1_J1_K1 + MYIND] += transIncrWaveYZ;
-	    const REAL transIncrWaveZY = HALF*Vy*Vz*dt_per_dy*dt_per_dz*RZ - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RZ;
-	    dfdt[I1_J2_K1 + MYIND] -= transIncrWaveZY;
-	    dfdt[I1_J1_K1 + MYIND] += transIncrWaveZY;
+	    const REAL transIncrWave = HALF*Vy*Vz*dt_per_dy*dt_per_dz - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
+	    dfdt[I1_J1_K2 + MYIND] -= transIncrWave*RY;
+	    dfdt[I1_J1_K1 + MYIND] += transIncrWave*RY;
+	    dfdt[I1_J2_K1 + MYIND] -= transIncrWave*RZ;
+	    dfdt[I1_J1_K1 + MYIND] += transIncrWave*RZ;
 	    
 	    #ifndef LEV_1ST_ORDER
 	    const REAL transCorrWaveYZ = HALF*Vy*Vz*(ONE - dt_per_dy*Vy)*RY*limiter(ym1-ym2,RY+EPSILON,xcc)*dt_per_dy*dt_per_dz;
@@ -746,12 +716,11 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    dfdt[I1_J1_K0 + MYIND] += transCorrWaveZY;
 	    #endif
 	 } else {
-	    const REAL transIncrWaveYZ = HALF*Vy*Vz*dt_per_dy*dt_per_dz*RY - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RY;
-	    dfdt[I1_J1_K0 + MYIND] += transIncrWaveYZ;
-	    dfdt[I1_J1_K1 + MYIND] -= transIncrWaveYZ;
-	    const REAL transIncrWaveZY = HALF*Vy*Vz*dt_per_dy*dt_per_dz*RZ - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RZ;
-	    dfdt[I1_J2_K0 + MYIND] -= transIncrWaveZY;
-	    dfdt[I1_J1_K0 + MYIND] += transIncrWaveZY;
+	    const REAL transIncrWave = HALF*Vy*Vz*dt_per_dy*dt_per_dz - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
+	    dfdt[I1_J1_K0 + MYIND] += transIncrWave*RY;
+	    dfdt[I1_J1_K1 + MYIND] -= transIncrWave*RY;
+	    dfdt[I1_J2_K0 + MYIND] -= transIncrWave*RZ;
+	    dfdt[I1_J1_K0 + MYIND] += transIncrWave*RZ;
 	    
 	    #ifndef LEV_1ST_ORDER
 	    const REAL transCorrWaveYZ = HALF*Vy*Vz*(ONE - dt_per_dy*Vy)*RY*limiter(ym1-ym2,RY+EPSILON,xcc)*dt_per_dy*dt_per_dz;
@@ -779,12 +748,11 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 
 	 const REAL RZ = xcc - zm1;
 	 if (Vz >= ZERO) {
-	    const REAL transIncrWaveYZ = HALF*Vy*Vz*dt_per_dy*dt_per_dz*RY - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RY;
-	    dfdt[I1_J0_K2 + MYIND] -= transIncrWaveYZ;
-	    dfdt[I1_J0_K1 + MYIND] += transIncrWaveYZ;
-	    const REAL transIncrWaveZY = HALF*Vy*Vz*dt_per_dy*dt_per_dz*RZ - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RZ;
-	    dfdt[I1_J0_K1 + MYIND] += transIncrWaveZY;
-	    dfdt[I1_J1_K1 + MYIND] -= transIncrWaveZY;
+	    const REAL transIncrWave = HALF*Vy*Vz*dt_per_dy*dt_per_dz - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
+	    dfdt[I1_J0_K2 + MYIND] -= transIncrWave*RY;
+	    dfdt[I1_J0_K1 + MYIND] += transIncrWave*RY;
+	    dfdt[I1_J0_K1 + MYIND] += transIncrWave*RZ;
+	    dfdt[I1_J1_K1 + MYIND] -= transIncrWave*RZ;
 	    
 	    #ifndef LEV_1ST_ORDER
 	    const REAL transCorrWaveYZ = -HALF*Vy*Vz*(ONE + dt_per_dy*Vy)*RY*limiter(yp1-xcc,RY+EPSILON,xcc)*dt_per_dy*dt_per_dz;
@@ -799,12 +767,11 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    dfdt[I1_J0_K0 + MYIND] += transCorrWaveZY;
 	    #endif
 	 } else {
-	    const REAL transIncrWaveYZ = HALF*Vy*Vz*dt_per_dy*dt_per_dz*RY - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RY;
-	    dfdt[I1_J0_K0 + MYIND] += transIncrWaveYZ;
-	    dfdt[I1_J0_K1 + MYIND] -= transIncrWaveYZ;
-	    const REAL transIncrWaveZY = HALF*Vy*Vz*dt_per_dy*dt_per_dz*RZ - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz*RZ;
-	    dfdt[I1_J0_K0 + MYIND] += transIncrWaveZY;
-	    dfdt[I1_J1_K0 + MYIND] -= transIncrWaveZY;
+	    const REAL transIncrWave = HALF*Vy*Vz*dt_per_dy*dt_per_dz - SIXTH*fabs(Vx)*Vy*Vz*dt_per_dx*dt_per_dy*dt_per_dz;
+	    dfdt[I1_J0_K0 + MYIND] += transIncrWave*RY;
+	    dfdt[I1_J0_K1 + MYIND] -= transIncrWave*RY;
+	    dfdt[I1_J0_K0 + MYIND] += transIncrWave*RZ;
+	    dfdt[I1_J1_K0 + MYIND] -= transIncrWave*RZ;
 	    
 	    #ifndef LEV_1ST_ORDER
 	    const REAL transCorrWaveYZ = -HALF*Vy*Vz*(ONE + dt_per_dy*Vy)*RY*limiter(yp1-xcc,RY+EPSILON,xcc)*dt_per_dy*dt_per_dz;
