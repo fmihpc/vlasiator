@@ -6,7 +6,7 @@ clean:
 	rm -rf *.a *.o *~
 
 ldz: ${DEPS_LDZ}
-	${CMP} ${FLAGS} ${CXXFLAGS} -c londrillo_delzanna.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c londrillo_delzanna.cpp
 	${AR} r libfieldsolver.a londrillo_delzanna.o
 
 libfieldsolver.a: ${DEPS_LDZ}

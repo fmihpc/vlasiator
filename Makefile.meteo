@@ -3,18 +3,30 @@ MOVER=cpu
 CMP = CC
 LNK = CC
 
-LIB_MPI = -lgomp
+CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK
+FLAGS =
 
-FLAGS = -DMPICH_IGNORE_CXX_SEEK
+# NOTES on compiler flags:
+# CXXFLAGS is for mandatory compiler flags, they are always used
+# FLAGS is for user-defined flags, this must be left empty on all Makefiles
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
 
+#GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 4.5.2
-FLAGS += -O3 -fopenmp -funroll-loops -DNDEBUG -std=c++0x -W -Wall -pedantic
+CXXFLAGS += -O3 -fopenmp -funroll-loops -DNDEBUG -std=c++0x -W -Wall -pedantic
+MATHFLAGS = -ffast-math
+LDFLAGS =
+LIB_MPI = -lgomp
 
+#INTEL flags:
 #CC_BRAND = intel
 #CC_BRAND_VERSION = 11.1.046
-#FLAGS += -O3 -fast -openmp -DNDEBUG
+#CXXFLAGS += -O3 -fast -openmp -DNDEBUG
+#MATHFLAGS =
 #LDFLAGS = -static -openmp
+#LIB_MPI =
 
 BOOST_VERSION = 1.46.1
 MPT_VERSION = 3.4.1
