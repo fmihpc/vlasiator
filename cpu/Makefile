@@ -3,7 +3,7 @@ DEPS_LEVEQUE = ../cell_spatial.h ../project.h ../transferstencil.h ../pargrid.h 
 DEPS_MEMALLOC = ../memalloc.h memalloc.cpp
 DEPS_PPM = ../cell_spatial.h ../project.h cpu_acc_ppm.h cpu_acc_ppm.cpp cpu_trans.h cpu_trans.cpp cpu_common.h
 
-MOVER = leveque
+MOVER = kt
 
 clean:
 	rm -f *.a *.o *~ vlasovmover.cpp libvlasovmover.a
@@ -27,6 +27,7 @@ ppm: ${DEPS_PPM}
 	${AR} r libvlasovmover.a cpu_trans.o
 
 libvlasovmover.a:
+	echo MATHFLAGS=${MATHFLAGS}
 	make memalloc.o
 	make ${MOVER}
 	ln -s -f pargrid/main_pargrid.cpp ./vlasovmover.cpp
