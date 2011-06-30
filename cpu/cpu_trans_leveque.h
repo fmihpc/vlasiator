@@ -4,7 +4,7 @@
 #include <vector>
 #include "../definitions.h"
 #include "../common.h"
-#include "cpu_common.h"
+#include "leveque_common.h"
 
 const uint I0_J0_K0 = 0*WID3;
 const uint I1_J0_K0 = 1*WID3;
@@ -35,18 +35,6 @@ const uint I2_J1_K2 = 23*WID3;
 const uint I0_J2_K2 = 24*WID3;
 const uint I1_J2_K2 = 25*WID3;
 const uint I2_J2_K2 = 26*WID3;
-
-const Real EPSILON = 1.0e-25;
-const Real ZERO    = 0.0;
-const Real SIXTH   = 1.0/6.0;
-const Real FOURTH  = 0.25;
-const Real HALF    = 0.5;
-const Real ONE     = 1.0;
-creal TWO    = 2.0;
-
-template<typename REAL> REAL limiter(const REAL& theta_up,const REAL& theta_lo,const REAL& xcc) {
-   return superbee(theta_up/theta_lo);
-}
 
 template<typename REAL> bool signs(const REAL& a,const REAL& b,REAL& sign) {
    const REAL PLUS_ONE = 1.0;
@@ -115,9 +103,6 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
    const UINT SIZE_FLUXBUFFER = 27*WID3;
    REAL dfdt[SIZE_FLUXBUFFER];
    for (uint i=0; i<SIZE_FLUXBUFFER; ++i) dfdt[i] = 0.0;
-   #ifdef SPAT3D
-      #warning Not enough dfdt buffers for 3D
-   #endif
    
    // Pointer to velocity block whose df/dt contributions are calculated:
    const REAL* const blockAvgs   = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 13]*SIZE_VELBLOCK;
@@ -160,14 +145,14 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
       const REAL zp1 = znbr_plus1[MYIND];
       const REAL zm1 = znbr_minus1[MYIND];
       const REAL zm2 = znbr_minus2[MYIND];
-      
+
       if (Vx >= ZERO) {
 	 // 1D increment and correction waves:
 	 const REAL RX = xcc - xm1;
 	 const REAL incrWaveX = Vx*xm1*dt_per_dx;
 	 dfdt[I1_J1_K1 + MYIND] += incrWaveX;
 	 dfdt[I0_J1_K1 + MYIND] -= incrWaveX;
-	 #ifndef LEV_1ST_ORDER
+	 #if MOVER_VLASOV_ORDER > 1
 	 const REAL corrWaveX = HALF*Vx*(ONE - dt_per_dx*Vx)*RX*limiter(xm1-xm2,RX+EPSILON,xcc)*dt_per_dx;
 	 dfdt[I1_J1_K1 + MYIND] += corrWaveX;
 	 dfdt[I0_J1_K1 + MYIND] -= corrWaveX;
@@ -182,7 +167,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    dfdt[I2_J1_K1 + MYIND] -= transIncrWave*RY;
 	    dfdt[I1_J1_K1 + MYIND] += transIncrWave*RY;
 	    
-	    #ifndef LEV_1ST_ORDER
+	    #if MOVER_VLASOV_ORDER > 1
 	    const REAL transCorrWaveXY = HALF*Vx*Vy*(ONE - dt_per_dx*Vx)*RX*limiter(xm1-xm2,RX+EPSILON,xcc)*dt_per_dx*dt_per_dy;
 	    dfdt[I1_J2_K1 + MYIND] += transCorrWaveXY;
 	    dfdt[I0_J2_K1 + MYIND] -= transCorrWaveXY;
@@ -207,7 +192,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	       dfdt[I1_J2_K1 + MYIND] += doubleTransIncrWave*RZ;
 	       dfdt[I2_J1_K1 + MYIND] += doubleTransIncrWave*RZ;
 	       
-	       #ifndef LEV_1ST_ORDER
+	       #if MOVER_VLASOV_ORDER > 1
 	       const REAL doubleTransCorrWaveXYZ = HALF*Vx*Vy*Vz*(ONE - dt_per_dx*Vx)*dt_per_dx*dt_per_dy*dt_per_dz*RX*limiter(xm1-xm2,RX+EPSILON,xcc);
 	       dfdt[I1_J2_K1 + MYIND] -= doubleTransCorrWaveXYZ;
 	       dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWaveXYZ;
@@ -248,7 +233,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	       dfdt[I1_J2_K0 + MYIND] += doubleTransIncrWave*RZ;
 	       dfdt[I2_J1_K0 + MYIND] += doubleTransIncrWave*RZ;
 	       
-	       #ifndef LEV_1ST_ORDER
+	       #if MOVER_VLASOV_ORDER > 1
 	       const REAL doubleTransCorrWaveXYZ = HALF*Vx*Vy*Vz*(ONE - Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*RX*limiter(xm1-xm2,RX+EPSILON,xcc);
 	       dfdt[I1_J2_K1 + MYIND] += doubleTransCorrWaveXYZ;
 	       dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWaveXYZ;
@@ -285,7 +270,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    dfdt[I2_J0_K1 + MYIND] -= transIncrWave*RY;
 	    dfdt[I1_J0_K1 + MYIND] += transIncrWave*RY;
 	    
-	    #ifndef LEV_1ST_ORDER
+	    #if MOVER_VLASOV_ORDER > 1
 	    const REAL transCorrWaveXY = HALF*Vx*Vy*(ONE - dt_per_dx*Vx)*RX*limiter(xm1-xm2,RX+EPSILON,xcc)*dt_per_dx*dt_per_dy;
 	    dfdt[I1_J0_K1 + MYIND] -= transCorrWaveXY;
 	    dfdt[I1_J1_K1 + MYIND] += transCorrWaveXY;
@@ -310,7 +295,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	       dfdt[I1_J0_K1 + MYIND] -= doubleTransIncrWave*RZ;
 	       dfdt[I2_J1_K1 + MYIND] -= doubleTransIncrWave*RZ;
 	       
-	       #ifndef LEV_1ST_ORDER
+	       #if MOVER_VLASOV_ORDER > 1
 	       const REAL doubleTransCorrWaveXYZ = HALF*Vx*Vy*Vz*(ONE-Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*RX*limiter(xm1-xm2,RX+EPSILON,xcc);
 	       dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWaveXYZ;
 	       dfdt[I1_J0_K1 + MYIND] += doubleTransCorrWaveXYZ;
@@ -351,7 +336,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	       dfdt[I1_J0_K0 + MYIND] -= doubleTransIncrWave*RZ;
 	       dfdt[I2_J1_K0 + MYIND] -= doubleTransIncrWave*RZ;
 	       
-	       #ifndef LEV_1ST_ORDER
+	       #if MOVER_VLASOV_ORDER > 1
 	       const REAL doubleTransCorrWaveXYZ = HALF*Vx*Vy*Vz*(ONE-Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*RX*limiter(xm1-xm2,RX+EPSILON,xcc);
 	       dfdt[I1_J1_K0 + MYIND] -= doubleTransCorrWaveXYZ;
 	       dfdt[I1_J0_K0 + MYIND] += doubleTransCorrWaveXYZ;
@@ -390,7 +375,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    dfdt[I2_J1_K1 + MYIND] -= transIncrWave*RZ;
 	    dfdt[I1_J1_K1 + MYIND] += transIncrWave*RZ;
 	    
-	    #ifndef LEV_1ST_ORDER
+	    #if MOVER_VLASOV_ORDER > 1
 	    const REAL transCorrWaveXZ = HALF*Vx*Vz*(ONE - dt_per_dx*Vx)*RX*limiter(xm1-xm2,RX+EPSILON,xcc)*dt_per_dx*dt_per_dz;
 	    dfdt[I1_J1_K2 + MYIND] += transCorrWaveXZ;
 	    dfdt[I0_J1_K2 + MYIND] -= transCorrWaveXZ;
@@ -409,7 +394,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    dfdt[I2_J1_K0 + MYIND] -= transIncrWave*RZ;
 	    dfdt[I1_J1_K0 + MYIND] += transIncrWave*RZ;
 
-	    #ifndef LEV_1ST_ORDER
+	    #if MOVER_VLASOV_ORDER > 1
 	    const REAL transCorrWaveXZ = HALF*Vx*Vz*(ONE - dt_per_dx*Vx)*RX*limiter(xm1-xm2,RX+EPSILON,xcc)*dt_per_dx*dt_per_dz;
 	    dfdt[I1_J1_K1 + MYIND] += transCorrWaveXZ;
 	    dfdt[I1_J1_K0 + MYIND] -= transCorrWaveXZ;
@@ -427,7 +412,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	 const REAL incrWaveX = Vx*xcc*dt_per_dx;
 	 dfdt[I1_J1_K1 + MYIND] += incrWaveX;
 	 dfdt[I0_J1_K1 + MYIND] -= incrWaveX;
-	 #ifndef LEV_1ST_ORDER
+	 #if MOVER_VLASOV_ORDER > 1
 	 const REAL corrWaveX = -HALF*Vx*(ONE + dt_per_dx*Vx)*RX*limiter(xp1-xcc,RX+EPSILON,xcc)*dt_per_dx;
 	 dfdt[I1_J1_K1 + MYIND] += corrWaveX;
 	 dfdt[I0_J1_K1 + MYIND] -= corrWaveX;
@@ -442,7 +427,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    dfdt[I0_J1_K1 + MYIND] += transIncrWave*RY;
 	    dfdt[I1_J1_K1 + MYIND] -= transIncrWave*RY;
 
-	    #ifndef LEV_1ST_ORDER
+	    #if MOVER_VLASOV_ORDER > 1
 	    const REAL transCorrWaveXY = -HALF*Vx*Vy*(ONE + dt_per_dx*Vx)*RX*limiter(xp1-xcc,RX+EPSILON,xcc)*dt_per_dx*dt_per_dy;
 	    dfdt[I1_J2_K1 + MYIND] += transCorrWaveXY;
 	    dfdt[I1_J1_K1 + MYIND] -= transCorrWaveXY;
@@ -467,7 +452,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	       dfdt[I0_J1_K1 + MYIND] -= doubleTransIncrWave*RZ;
 	       dfdt[I1_J2_K1 + MYIND] -= doubleTransIncrWave*RZ;
 	       
-	       #ifndef LEV_1ST_ORDER
+	       #if MOVER_VLASOV_ORDER > 1
 	       const REAL doubleTransCorrWaveXYZ = -HALF*Vx*Vy*Vz*(ONE+Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*RX*limiter(xp1-xcc,RX+EPSILON,xcc);
 	       dfdt[I1_J2_K1 + MYIND] -= doubleTransCorrWaveXYZ;
 	       dfdt[I1_J1_K1 + MYIND] += doubleTransCorrWaveXYZ;
@@ -508,7 +493,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	       dfdt[I1_J2_K0 + MYIND] -= doubleTransIncrWave*RZ;
 	       dfdt[I0_J1_K0 + MYIND] -= doubleTransIncrWave*RZ;
 	       
-	       #ifndef LEV_1ST_ORDER
+	       #if MOVER_VLASOV_ORDER > 1
 	       const REAL doubleTransCorrWaveXYZ = -HALF*Vx*Vy*Vz*(ONE+Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*RX*limiter(xp1-xcc,RX+EPSILON,xcc);
 	       dfdt[I1_J2_K0 + MYIND] -= doubleTransCorrWaveXYZ;
 	       dfdt[I1_J1_K0 + MYIND] += doubleTransCorrWaveXYZ;
@@ -545,7 +530,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    dfdt[I0_J0_K1 + MYIND] += transIncrWave*RY;
 	    dfdt[I1_J0_K1 + MYIND] -= transIncrWave*RY;
 
-	    #ifndef LEV_1ST_ORDER
+	    #if MOVER_VLASOV_ORDER > 1
 	    const REAL transCorrWaveXY = -HALF*Vx*Vy*(ONE + dt_per_dx*Vx)*RX*limiter(xp1-xcc,RX+EPSILON,xcc)*dt_per_dx*dt_per_dy;
 	    dfdt[I1_J0_K1 + MYIND] -= transCorrWaveXY;
 	    dfdt[I1_J1_K1 + MYIND] += transCorrWaveXY;
@@ -570,7 +555,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	       dfdt[I1_J0_K1 + MYIND] += doubleTransIncrWave*RZ;
 	       dfdt[I0_J1_K1 + MYIND] += doubleTransIncrWave*RZ;
 	       
-	       #ifndef LEV_1ST_ORDER
+	       #if MOVER_VLASOV_ORDER > 1
 	       const REAL doubleTransCorrWaveXYZ = -HALF*Vx*Vy*Vz*(ONE+Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*RX*limiter(xp1-xcc,RX+EPSILON,xcc);
 	       dfdt[I1_J1_K1 + MYIND] -= doubleTransCorrWaveXYZ;
 	       dfdt[I1_J0_K1 + MYIND] += doubleTransCorrWaveXYZ;
@@ -611,7 +596,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	       dfdt[I0_J1_K0 + MYIND] += doubleTransIncrWave*RZ;
 	       dfdt[I1_J0_K0 + MYIND] += doubleTransIncrWave*RZ;
 	       
-	       #ifndef LEV_1ST_ORDER
+	       #if MOVER_VLASOV_ORDER > 1
 	       const REAL doubleTransCorrWaveXYZ = -HALF*Vx*Vy*Vz*(ONE+Vx*dt_per_dx)*dt_per_dx*dt_per_dy*dt_per_dz*RX*limiter(xp1-xcc,RX+EPSILON,xcc);
 	       dfdt[I1_J1_K0 + MYIND] -= doubleTransCorrWaveXYZ;
 	       dfdt[I1_J0_K0 + MYIND] += doubleTransCorrWaveXYZ;
@@ -650,7 +635,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    dfdt[I0_J1_K1 + MYIND] += transIncrWave*RZ;
 	    dfdt[I1_J1_K1 + MYIND] -= transIncrWave*RZ;
 	    
-	    #ifndef LEV_1ST_ORDER
+	    #if MOVER_VLASOV_ORDER > 1
 	    const REAL transCorrWaveXZ = -HALF*Vx*Vz*(ONE + dt_per_dx*Vx)*RX*limiter(xp1-xcc,RX+EPSILON,xcc)*dt_per_dx*dt_per_dz;
 	    dfdt[I1_J1_K2 + MYIND] += transCorrWaveXZ;
 	    dfdt[I1_J1_K1 + MYIND] -= transCorrWaveXZ;
@@ -669,7 +654,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    dfdt[I0_J1_K0 + MYIND] += transIncrWave*RZ;
 	    dfdt[I1_J1_K0 + MYIND] -= transIncrWave*RZ;
 	    
-	    #ifndef LEV_1ST_ORDER
+	    #if MOVER_VLASOV_ORDER > 1
 	    const REAL transCorrWaveXZ = -HALF*Vx*Vz*(ONE + dt_per_dx*Vx)*RX*limiter(xp1-xcc,RX+EPSILON,xcc)*dt_per_dx*dt_per_dz;
 	    dfdt[I1_J1_K1 + MYIND] += transCorrWaveXZ;
 	    dfdt[I1_J1_K0 + MYIND] -= transCorrWaveXZ;
@@ -689,7 +674,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	 const REAL incrWaveY = Vy*ym1*dt_per_dy;
 	 dfdt[I1_J1_K1 + MYIND] += incrWaveY;
 	 dfdt[I1_J0_K1 + MYIND] -= incrWaveY;
-	 #ifndef LEV_1ST_ORDER
+	 #if MOVER_VLASOV_ORDER > 1
 	 const REAL corrWaveY = HALF*Vy*(ONE - dt_per_dy*Vy)*RY*limiter(ym1-ym2,RY+EPSILON,xcc)*dt_per_dy;
 	 dfdt[I1_J1_K1 + MYIND] += corrWaveY;
 	 dfdt[I1_J0_K1 + MYIND] -= corrWaveY;
@@ -703,7 +688,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    dfdt[I1_J2_K1 + MYIND] -= transIncrWave*RZ;
 	    dfdt[I1_J1_K1 + MYIND] += transIncrWave*RZ;
 	    
-	    #ifndef LEV_1ST_ORDER
+	    #if MOVER_VLASOV_ORDER > 1
 	    const REAL transCorrWaveYZ = HALF*Vy*Vz*(ONE - dt_per_dy*Vy)*RY*limiter(ym1-ym2,RY+EPSILON,xcc)*dt_per_dy*dt_per_dz;
 	    dfdt[I1_J1_K2 + MYIND] += transCorrWaveYZ;
 	    dfdt[I1_J1_K1 + MYIND] -= transCorrWaveYZ;
@@ -722,7 +707,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    dfdt[I1_J2_K0 + MYIND] -= transIncrWave*RZ;
 	    dfdt[I1_J1_K0 + MYIND] += transIncrWave*RZ;
 	    
-	    #ifndef LEV_1ST_ORDER
+	    #if MOVER_VLASOV_ORDER > 1
 	    const REAL transCorrWaveYZ = HALF*Vy*Vz*(ONE - dt_per_dy*Vy)*RY*limiter(ym1-ym2,RY+EPSILON,xcc)*dt_per_dy*dt_per_dz;
 	    dfdt[I1_J1_K1 + MYIND] += transCorrWaveYZ;
 	    dfdt[I1_J1_K0 + MYIND] -= transCorrWaveYZ;
@@ -740,7 +725,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	 const REAL incrWaveY = Vy*xcc*dt_per_dy;
 	 dfdt[I1_J1_K1 + MYIND] += incrWaveY;
 	 dfdt[I1_J0_K1 + MYIND] -= incrWaveY;
-	 #ifndef LEV_1ST_ORDER
+	 #if MOVER_VLASOV_ORDER > 1
 	 const REAL corrWaveY = -HALF*Vy*(ONE + dt_per_dy*Vy)*RY*limiter(yp1-xcc,RY+EPSILON,xcc)*dt_per_dy;
 	 dfdt[I1_J1_K1 + MYIND] += corrWaveY;
 	 dfdt[I1_J0_K1 + MYIND] -= corrWaveY;
@@ -754,7 +739,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    dfdt[I1_J0_K1 + MYIND] += transIncrWave*RZ;
 	    dfdt[I1_J1_K1 + MYIND] -= transIncrWave*RZ;
 	    
-	    #ifndef LEV_1ST_ORDER
+	    #if MOVER_VLASOV_ORDER > 1
 	    const REAL transCorrWaveYZ = -HALF*Vy*Vz*(ONE + dt_per_dy*Vy)*RY*limiter(yp1-xcc,RY+EPSILON,xcc)*dt_per_dy*dt_per_dz;
 	    dfdt[I1_J1_K2 + MYIND] += transCorrWaveYZ;
 	    dfdt[I1_J1_K1 + MYIND] -= transCorrWaveYZ;
@@ -773,7 +758,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	    dfdt[I1_J0_K0 + MYIND] += transIncrWave*RZ;
 	    dfdt[I1_J1_K0 + MYIND] -= transIncrWave*RZ;
 	    
-	    #ifndef LEV_1ST_ORDER
+	    #if MOVER_VLASOV_ORDER > 1
 	    const REAL transCorrWaveYZ = -HALF*Vy*Vz*(ONE + dt_per_dy*Vy)*RY*limiter(yp1-xcc,RY+EPSILON,xcc)*dt_per_dy*dt_per_dz;
 	    dfdt[I1_J1_K1 + MYIND] += transCorrWaveYZ;
 	    dfdt[I1_J1_K0 + MYIND] -= transCorrWaveYZ;
@@ -789,12 +774,12 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
       }
       
       if (Vz >= ZERO) {
-	 const REAL R = xcc - zm1;
+	 const REAL RZ = xcc - zm1;
 	 const REAL incrWaveZ = Vz*zm1*dt_per_dz;
 	 dfdt[I1_J1_K1 + MYIND] += incrWaveZ;
 	 dfdt[I1_J1_K0 + MYIND] -= incrWaveZ;
-	 #ifndef LEV_1ST_ORDER
-	 const REAL corrWaveZ = HALF*Vz*(ONE - dt_per_dz*Vz)*R*limiter(zm1-zm2,R+EPSILON,xcc)*dt_per_dz;
+	 #if MOVER_VLASOV_ORDER > 1
+	 const REAL corrWaveZ = HALF*Vz*(ONE - dt_per_dz*Vz)*RZ*limiter(zm1-zm2,RZ+EPSILON,xcc)*dt_per_dz;
 	 dfdt[I1_J1_K1 + MYIND] += corrWaveZ;
 	 dfdt[I1_J1_K0 + MYIND] -= corrWaveZ;
          #endif
@@ -803,7 +788,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
 	 const REAL incrWaveZ = Vz*xcc*dt_per_dz;
 	 dfdt[I1_J1_K1 + MYIND] += incrWaveZ;
 	 dfdt[I1_J1_K0 + MYIND] -= incrWaveZ;
-	 #ifndef LEV_1ST_ORDER
+	 #if MOVER_VLASOV_ORDER > 1
 	 const REAL corrWaveZ = -HALF*Vz*(ONE + dt_per_dz*Vz)*RZ*limiter(zp1-xcc,RZ+EPSILON,xcc)*dt_per_dz;
 	 dfdt[I1_J1_K1 + MYIND] += corrWaveZ;
 	 dfdt[I1_J1_K0 + MYIND] -= corrWaveZ;
