@@ -1,11 +1,11 @@
 #ifndef CPU_ACC_H
 #define CPU_ACC_H
 
-#include "definitions.h"
-#include "common.h"
-#include "cell_spatial.h"
+#include "../definitions.h"
+#include "../common.h"
+#include "../cell_spatial.h"
 #include "cpu_common.h"
-#include "project.h"
+#include "../project.h"
 
 template<typename T> T accIndex(const T& i,const T& j,const T& k) {return k*WID2+j*WID+i;}
 template<typename T> T fullInd(const T& i,const T& j,const T& k) {return k*64+j*8+i;}
@@ -329,11 +329,16 @@ template<typename REAL,typename UINT> void fetchFluxesZ(const UINT& BLOCK,REAL* 
    }
 }
 
-template<typename REAL,typename UINT,typename CELL> void cpu_calcVelDerivsX(CELL& cell,const UINT& BLOCK) {
+template<typename REAL,typename UINT,typename CELL> void cpu_calcVelDerivs(CELL& cell,const UINT& BLOCK) {
    // Copy volume averages and ghost cells values to a temporary array,
    // which is easier to use to calculate derivatives:
    REAL* const d1x = cell.cpu_d1x + BLOCK*SIZE_DERIV;
+   REAL* const d1y = cell.cpu_d1y + BLOCK*SIZE_DERIV;
+   REAL* const d1z = cell.cpu_d1z + BLOCK*SIZE_DERIV;
    REAL* const d2x = cell.cpu_d2x + BLOCK*SIZE_DERIV;
+   REAL* const d2y = cell.cpu_d2y + BLOCK*SIZE_DERIV;
+   REAL* const d2z = cell.cpu_d2z + BLOCK*SIZE_DERIV;
+   
    REAL avgs[8*WID3];
    fetchAllAverages(BLOCK,avgs,cell.cpu_avgs,cell.cpu_nbrsVel);
    
@@ -347,50 +352,23 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelDerivsX(CELL
       xr2 = avgs[fullInd(i+4,j+2,k+2)];
       d1x[accIndex(i,j,k)] = velDerivs1(xl2,xl1,xcc,xr1,xr2);
       d2x[accIndex(i,j,k)] = velDerivs2(xl2,xl1,xcc,xr1,xr2);
-   }
-}
-
-template<typename REAL,typename UINT,typename CELL> void cpu_calcVelDerivsY(CELL& cell,const UINT& BLOCK) {
-   // Copy volume averages and ghost cells values to a temporary array,
-   // which is easier to use to calculate derivatives:
-   REAL* const d1y = cell.cpu_d1y + BLOCK*SIZE_DERIV;
-   REAL* const d2y = cell.cpu_d2y + BLOCK*SIZE_DERIV;
-   REAL avgs[8*WID3];
-   fetchAllAverages(BLOCK,avgs,cell.cpu_avgs,cell.cpu_nbrsVel);
-   
-   REAL xl2,xl1,xcc,xr1,xr2;
-   for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
       // Calculate 1st & 2nd derivatives to vy-direction:
       xl2 = avgs[fullInd(i+2,j  ,k+2)];
       xl1 = avgs[fullInd(i+2,j+1,k+2)];
-      xcc = avgs[fullInd(i+2,j+2,k+2)];
       xr1 = avgs[fullInd(i+2,j+3,k+2)];
       xr2 = avgs[fullInd(i+2,j+4,k+2)];
       d1y[accIndex(i,j,k)] = velDerivs1(xl2,xl1,xcc,xr1,xr2);
       d2y[accIndex(i,j,k)] = velDerivs2(xl2,xl1,xcc,xr1,xr2);
-   }
-}
-
-template<typename REAL,typename UINT,typename CELL> void cpu_calcVelDerivsZ(CELL& cell,const UINT& BLOCK) {
-   // Copy volume averages and ghost cells values to a temporary array,
-   // which is easier to use to calculate derivatives:
-   REAL* const d1z = cell.cpu_d1z + BLOCK*SIZE_DERIV;
-   REAL* const d2z = cell.cpu_d2z + BLOCK*SIZE_DERIV;
-   REAL avgs[8*WID3];
-   fetchAllAverages(BLOCK,avgs,cell.cpu_avgs,cell.cpu_nbrsVel);
-   
-   REAL xl2,xl1,xcc,xr1,xr2;
-   for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
+      // Calculate 1st & 2nd derivatives to vz-direction:
       xl2 = avgs[fullInd(i+2,j+2,k  )];
       xl1 = avgs[fullInd(i+2,j+2,k+1)];
-      xcc = avgs[fullInd(i+2,j+2,k+2)];
       xr1 = avgs[fullInd(i+2,j+2,k+3)];
       xr2 = avgs[fullInd(i+2,j+2,k+4)];
       d1z[accIndex(i,j,k)] = velDerivs1(xl2,xl1,xcc,xr1,xr2);
       d2z[accIndex(i,j,k)] = velDerivs2(xl2,xl1,xcc,xr1,xr2);
    }
 }
-   
+
 template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxesX(CELL& cell,const UINT& BLOCK) {
    // The size of array is (5,4,4)
    const UINT XS = 5;
@@ -491,49 +469,44 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxesZ(CELL
    }      
 }
 
-template<typename REAL,typename UINT,typename CELL> void cpu_propagateVelX(CELL& cell,const UINT& BLOCK,const REAL& DT) {
-   REAL* const avgs = cell.cpu_avgs + BLOCK*SIZE_VELBLOCK;
+template<typename REAL,typename UINT,typename CELL> void cpu_propagateVel(CELL& cell,const UINT& BLOCK,const REAL& DT) {
+   REAL avgs[SIZE_VELBLOCK];
    REAL flux[SIZE_FLUXS + SIZE_BFLUX];
    const REAL* const blockParams = cell.cpu_blockParams + BLOCK*SIZE_BLOCKPARAMS;
    
-   const UINT XS = 5;
-   const UINT YS = 4;
-   const UINT YSXS = YS*XS;
-   const REAL cnst = DT / blockParams[BlockParams::DVX];
+   // Calculate the contribution to d(avg)/dt from vx-fluxes:
+   UINT XS = 5;
+   UINT YS = 4;
+   UINT YSXS = YS*XS;
+   REAL cnst = DT / blockParams[BlockParams::DVX];
    fetchFluxesX(BLOCK,flux,cell.cpu_fx,cell.cpu_nbrsVel);
    for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
-      avgs[accIndex(i,j,k)] += (flux[k*YSXS+j*XS+i] - flux[k*YSXS+j*XS+(i+1)])*cnst;
+      avgs[accIndex(i,j,k)] = (flux[k*YSXS+j*XS+i] - flux[k*YSXS+j*XS+(i+1)])*cnst;
    }
-}
-
-template<typename REAL,typename UINT,typename CELL> void cpu_propagateVelY(CELL& cell,const UINT& BLOCK,const REAL& DT) {
-   REAL* const avgs = cell.cpu_avgs + BLOCK*SIZE_VELBLOCK;
-   REAL flux[SIZE_FLUXS + SIZE_BFLUX];
-   const REAL* const blockParams = cell.cpu_blockParams + BLOCK*SIZE_BLOCKPARAMS;
-   
-   const UINT XS = 4;
-   const UINT YS = 5;
-   const UINT YSXS = YS*XS;
-   const REAL cnst = DT / blockParams[BlockParams::DVY];
+   // Calculate the contribution to d(avg)/dt from vy-fluxes:
+   XS = 4;
+   YS = 5;
+   YSXS = YS*XS;
+   cnst = DT / blockParams[BlockParams::DVY];
    fetchFluxesY(BLOCK,flux,cell.cpu_fy,cell.cpu_nbrsVel);
-   for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
-      avgs[accIndex(i,j,k)] += (flux[k*YSXS+j*XS+i] - flux[k*YSXS+(j+1)*XS+i])*cnst;
-   }
-}
-   
-template<typename REAL,typename UINT,typename CELL> void cpu_propagateVelZ(CELL& cell,const UINT& BLOCK,const REAL& DT) {
-   REAL* const avgs = cell.cpu_avgs + BLOCK*SIZE_VELBLOCK;
-   REAL flux[SIZE_FLUXS + SIZE_BFLUX];
-   const REAL* const blockParams = cell.cpu_blockParams + BLOCK*SIZE_BLOCKPARAMS;
-   
-   const UINT XS = 4;
-   const UINT YS = 4;
-   const UINT YSXS = YS*XS;
-   const REAL cnst = DT / blockParams[BlockParams::DVZ];
+   //for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
+   //   avgs[accIndex(i,j,k)] += (flux[k*YSXS+j*XS+i] - flux[k*YSXS+(j+1)*XS+i])*cnst;
+   //}
+   for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) avgs[accIndex(i,j,k)] += flux[k*YSXS+j*XS+i]*cnst;
+   for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) avgs[accIndex(i,j,k)] -= flux[k*YSXS+(j+1)*XS+i]*cnst;
+   // Calculate the contribution to d(avg)/dt from vz-fluxes:
+   XS = 4;
+   YS = 4;
+   YSXS = YS*XS;
+   cnst = DT / blockParams[BlockParams::DVZ];
    fetchFluxesZ(BLOCK,flux,cell.cpu_fz,cell.cpu_nbrsVel);
    for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
       avgs[accIndex(i,j,k)] += (flux[k*YSXS+j*XS+i] - flux[(k+1)*YSXS+j*XS+i])*cnst;
    }
+   // Store results:
+   REAL* const cpu_avgs = cell.cpu_avgs + BLOCK*SIZE_VELBLOCK;
+   for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
+      cpu_avgs[accIndex(i,j,k)] += avgs[accIndex(i,j,k)];
+   }
 }
-
 #endif

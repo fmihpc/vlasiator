@@ -5,8 +5,11 @@ include Makefile.${ARCH}
 
 #set a default archive utility, can also be set in Makefile.arch
 AR ?= ar
-# set a default mover, can/should be set in Makefile.arch
+#set a default mover, can/should be set in Makefile.arch
 MOVER ?= cpu
+#set a default vlasov solver, can/should be set in Makefile.arch
+#Valid values are KT and LEVEQUE
+SOLVER ?= KT
 
 #Add -DPARGRID to use pargrid instead of DCCRG
 CXXFLAGS += -DPARGRID
@@ -104,7 +107,6 @@ CUDA_SRC = cellsync.cpp cuda_acc.cu cuda_common.cu cuda_trans.cu\
 CUDA_OBJS = cellsync.o cuda_acc.o cuda_trans.o cudafuncs.o gpudevicegrid.o
 
 OBJS = arrayallocator.o cell_spatial.o		\
-	cpu/vlasovmover.o\
 	datareducer.o datareductionoperator.o grid.o		\
 	gridbuilder.o vlasiator.o mpifile.o mpilogger.o muxml.o	\
 	parameters.o project.o					\
@@ -169,7 +171,7 @@ vlasiator.o: $(DEPS_MAIN) ${BUILDER}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
 
 moverinstall:
-	make libvlasovmover.a -C ${MOVER} "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS}" "INC_ZOLTAN=${INC_ZOLTAN}" "INC_MPI=${INC_MPI}" "INC_BOOST=${INC_BOOST}" "INC_DCCRG=${INC_DCCRG}" "FLAG_OPENMP=${FLAG_OPENMP}" "AR=${AR}" "MATHFLAGS=${MATHFLAGS}"
+	make libvlasovmover.a -C ${MOVER} "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS}" "INC_ZOLTAN=${INC_ZOLTAN}" "INC_MPI=${INC_MPI}" "INC_BOOST=${INC_BOOST}" "INC_DCCRG=${INC_DCCRG}" "FLAG_OPENMP=${FLAG_OPENMP}" "AR=${AR}" "MATHFLAGS=${MATHFLAGS}" "SOLVER=${SOLVER}"
 	ln -s -f ${MOVER}/libvlasovmover.a .
 
 mpifile.o: ${DEPS_MPIFILE}

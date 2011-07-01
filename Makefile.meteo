@@ -1,4 +1,6 @@
+# Vlasov mover (cpu or cuda) and solver (KT or LEVEQUE)
 MOVER=cpu
+SOLVER=KT
 
 CMP = CC
 LNK = CC
