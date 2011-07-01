@@ -3,7 +3,7 @@
 #include <cmath>
 #include <omp.h>
 
-#include "cpu_acc.h"
+#include "cpu_acc_kt.h"
 
 using namespace std;
 

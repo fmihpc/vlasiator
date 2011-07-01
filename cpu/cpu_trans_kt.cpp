@@ -3,7 +3,7 @@
 #include <cmath>
 #include <omp.h>
 
-#include "cpu_trans.h"
+#include "cpu_trans_kt.h"
 
 using namespace std;
 
