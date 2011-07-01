@@ -150,5 +150,53 @@ template<typename T> T velocityFluxZ(const T& i,const T& j,const T& avg_neg,cons
    return convert<T>(0.5)*AZ*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AZ)*(avg_pos-avg_neg);
 }
 
+template<typename UINT,typename REAL> void calcAccFaceX(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
+							const REAL* const cellParams,const REAL* const blockParams) {
+   const REAL VX = blockParams[BlockParams::VXCRD] + I*blockParams[BlockParams::DVX];
+   const REAL VY = blockParams[BlockParams::VYCRD] + (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
+   const REAL VZ = blockParams[BlockParams::VZCRD] + (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
+   const REAL EX = cellParams[CellParams::EX];
+   const REAL EY = cellParams[CellParams::EY];
+   const REAL EZ = cellParams[CellParams::EZ];
+   const REAL BX = cellParams[CellParams::BX];
+   const REAL BY = cellParams[CellParams::BY];
+   const REAL BZ = cellParams[CellParams::BZ];
+   ax = Parameters::q_per_m*(EX + VY*BZ - VZ*BY);
+   ay = Parameters::q_per_m*(EY + VZ*BX - VX*BZ);
+   az = Parameters::q_per_m*(EZ + VX*BY - VY*BX);
+}
+   
+template<typename UINT,typename REAL> void calcAccFaceY(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
+							const REAL* const cellParams,const REAL* const blockParams) {
+   const REAL VX = blockParams[BlockParams::VXCRD] + (I+convert<REAL>(0.5))*blockParams[BlockParams::DVX];
+   const REAL VY = blockParams[BlockParams::VYCRD] + J*blockParams[BlockParams::DVY];
+   const REAL VZ = blockParams[BlockParams::VZCRD] + (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
+   const REAL EX = cellParams[CellParams::EX];
+   const REAL EY = cellParams[CellParams::EY];
+   const REAL EZ = cellParams[CellParams::EZ];
+   const REAL BX = cellParams[CellParams::BX];
+   const REAL BY = cellParams[CellParams::BY];
+   const REAL BZ = cellParams[CellParams::BZ];
+   ax = Parameters::q_per_m*(EX + VY*BZ - VZ*BY);
+   ay = Parameters::q_per_m*(EY + VZ*BX - VX*BZ);
+   az = Parameters::q_per_m*(EZ + VX*BY - VY*BX);
+}
+
+template<typename UINT,typename REAL> void calcAccFaceZ(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
+							const REAL* const cellParams,const REAL* const blockParams) {
+   const REAL VX = blockParams[BlockParams::VXCRD] + (I+convert<REAL>(0.5))*blockParams[BlockParams::DVX];
+   const REAL VY = blockParams[BlockParams::VYCRD] + (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
+   const REAL VZ = blockParams[BlockParams::VZCRD] + K*blockParams[BlockParams::DVZ];
+   const REAL EX = cellParams[CellParams::EX];
+   const REAL EY = cellParams[CellParams::EY];
+   const REAL EZ = cellParams[CellParams::EZ];
+   const REAL BX = cellParams[CellParams::BX];
+   const REAL BY = cellParams[CellParams::BY];
+   const REAL BZ = cellParams[CellParams::BZ];
+   ax = Parameters::q_per_m*(EX + VY*BZ - VZ*BY);
+   ay = Parameters::q_per_m*(EY + VZ*BX - VX*BZ);
+   az = Parameters::q_per_m*(EZ + VX*BY - VY*BX);
+}
+
 #endif
 
