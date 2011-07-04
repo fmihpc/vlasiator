@@ -7,8 +7,9 @@
 
 #include "definitions.h"
 
-cuint MAX_SPAT_CELLS = 300;
-cuint MAX_VEL_BLOCKS = 500000;
+cuint MAX_SPAT_CELLS = 8100;
+//cuint MAX_VEL_BLOCKS = 250000;
+cuint MAX_VEL_BLOCKS = 2500000;
 
 cuint CUDA_WIDTH = 65536; // Width of CUDA array (for 2D textures)
 cuint CUDA_HEIGHT = 3000; // Height of CUDA array
@@ -78,6 +79,12 @@ struct Parameters {
    
    static bool propagateField;      /**< If true, magnetic field is propagated during the simulation.*/
    static bool propagateVlasov;     /**< If true, distribution function is propagated during the simulation.*/
+   
+   #ifdef PARGRID
+      static uint INVALID_CELLID;
+   #else
+      static uint64_t INVALID_CELLID;
+   #endif
 };
 
 

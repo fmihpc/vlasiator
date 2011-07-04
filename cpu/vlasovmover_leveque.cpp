@@ -23,9 +23,8 @@ using namespace std;
    #include "../transferstencil.h"
 
    typedef uint CellID;
-   const CellID INVALID_CELLID = numeric_limits<CellID>::max();
-   static TransferStencil<CellID> stencilAverages(INVALID_CELLID);
-   static TransferStencil<CellID> stencilUpdates(INVALID_CELLID);
+   static TransferStencil<CellID> stencilAverages(Parameters::INVALID_CELLID);
+   static TransferStencil<CellID> stencilUpdates(Parameters::INVALID_CELLID);
 #else
    #include <stdint.h>
    #include <dccrg.hpp>
@@ -87,7 +86,7 @@ bool initializeMover(ParGrid<SpatialCell>& mpiGrid) {
 	 else nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2+i,2+j,2+k)));
 	 ++counter;
       }
-      nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(0,2,2))); // i-1,j,k nbr, goes to index 27
+      nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(0,2,2))); // i-2,j,k nbr, goes to index 27
       nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,0,2))); // i,j-2,k nbr, goes to index 28
       nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,2,0))); // i,j,k-2 nbr, goes to index 29
       
