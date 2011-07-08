@@ -173,6 +173,13 @@ template<typename CELLID> bool TransferStencil<CELLID>::addSends(const ParGrid<S
    return success;
 }
 
+/** Add remote update sends. A "remote update" means that a local cell calculates an 
+ * update for a remote cell and sends it to remote cell's process. All incoming 
+ * updates are summed in receicing host.
+ * @param mpiGrid Parallel grid.
+ * @param nbrTypeIDs Neighbour type IDs that indicate the cells who to send updates.
+ * @return If true, the send stencil was added successfully.
+ */
 template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateSends(const ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs) {
    bool success = true;
    
@@ -221,6 +228,12 @@ template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateSends(con
    return success;
 }
 
+/** Add remote update receives.
+ * @param mpiGrid Parallel grid.
+ * @param nbrTypeIDs Neighbour type IDs that indicate the cells whom to receive updates.
+ * @return If true, receive stencil was added successfully.
+ * @see TransferStencil::addRemoteUpdateSends.
+ */
 template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateReceives(const ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs) {
    bool success = true;
    clear();
