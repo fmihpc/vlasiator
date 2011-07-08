@@ -868,6 +868,65 @@ reference "tab:results"
 .
 \end_layout
 
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename conservation.eps
+	width 75text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Relative error in conservation of magnetic field in the test case.
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:Relative-error-B"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:Relative-error-B"
+
+\end_inset
+
+ shows the relative error in conservation of magnetic field in the test
+ case.
+ The solver is conservative to the seventh decimal over the simulated 80
+ time steps.
+ The test case was computed using single-precision floating point numbers.
+\end_layout
+
 \begin_layout Part
 Boundary Conditions
 \end_layout

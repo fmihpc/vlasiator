@@ -1,0 +1,7 @@
+set terminal postscript color enhanced eps "Helvetica-Bold,22"
+
+set xlabel 'time step'
+set ylabel 'relative error ({/Sigma} B - B_{0}) / B_{0}'
+
+plot "B_sum.dat" using 1:4 w lp lw 5 t "Relative error"
+
