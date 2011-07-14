@@ -4,6 +4,7 @@
 #include <mpi.h>
 #include <vector>
 #include <string>
+#include <limits>
 
 #include "definitions.h"
 
@@ -14,6 +15,12 @@ cuint MAX_VEL_BLOCKS = 2500000;
 cuint CUDA_WIDTH = 65536; // Width of CUDA array (for 2D textures)
 cuint CUDA_HEIGHT = 3000; // Height of CUDA array
                           // Make sure width*height / 64 >= MAX_VEL_BLOCKS
+
+#ifdef PARGRID
+   cuint INVALID_CELLID = std::numeric_limits<uint>::max();
+#else
+   const uint64_t INVALID_CELLID = std::numeric_limits<uint64_t>::max();
+#endif
 
 namespace Transmit {
    cuint CELL_PARAMS  = 1;
@@ -79,17 +86,7 @@ struct Parameters {
    
    static bool propagateField;      /**< If true, magnetic field is propagated during the simulation.*/
    static bool propagateVlasov;     /**< If true, distribution function is propagated during the simulation.*/
-   
-   #ifdef PARGRID
-      static uint INVALID_CELLID;
-   #else
-      static uint64_t INVALID_CELLID;
-   #endif
 };
-
-
-
-
 
 struct Readparameters {
     Readparameters(int argc, char* argv[],MPI_Comm comm);

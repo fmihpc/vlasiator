@@ -16,6 +16,7 @@
 #include "gridbuilder.h"
 #include "datareducer.h"
 #include "datareductionoperator.h"
+#include "transferstencil.h"
 
 #include "vlsvwriter2.h" // TEST
 #ifdef PARGRID
@@ -134,7 +135,6 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const 
    }
    delete buffer;
 
-
    // Write variables calculated by DataReductionOperators (DRO). We do not know how many 
    // numbers each DRO calculates, so a buffer has to be re-allocated for each DRO:
    char* varBuffer;
@@ -171,10 +171,57 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const 
       return success;
    }
    
-   // Write velocity blocks and related data. Which cells write velocity grids 
-   // should be requested from a function, but for now we just write velocity grids for all cells:
    attribs.clear();
+
+   // Write spatial cell parameters:
+   Real* paramsBuffer = new Real[cells.size()*SIZE_CELLPARAMS];
+   for (size_t i=0; i<cells.size(); ++i) for (uint j=0; j<SIZE_CELLPARAMS; ++j) 
+     paramsBuffer[i*SIZE_CELLPARAMS+j] = mpiGrid[cells[i]]->cpu_cellParams[j];   
+   if (vlsvWriter.writeArray("CELLPARAMS","SpatialGrid",attribs,cells.size(),SIZE_CELLPARAMS,paramsBuffer) == false) {
+      mpilogger << "(MAIN) writeGrid: ERROR failed to write spatial cell parameters!" << endl << write;
+      success = false;
+   }
+   delete paramsBuffer;
    
+   // Write the number of spatial neighbours each cell has:
+   uchar* N_neighbours = new uchar[cells.size()];
+   uint64_t neighbourSum = 0;
+   for (size_t i=0; i<cells.size(); ++i) {
+      #ifdef PARGRID
+         N_neighbours[i] = mpiGrid.getNumberOfNeighbours(cells[i]);
+      #else
+      
+      #endif
+      neighbourSum += N_neighbours[i];
+   }
+   if (vlsvWriter.writeArray("NBRSUM","SpatialGrid",attribs,cells.size(),1,N_neighbours) == false) success = false;
+   delete N_neighbours;
+   
+   // Write global IDs of spatial neighbours:
+   #ifdef PARGRID
+      ID::type* nbrIDs = new ID::type[neighbourSum];
+      uchar* nbrTypeIDs = new uchar[neighbourSum];
+      vector<uchar> tmpTypes;
+      vector<uint> tmpIDs;
+      size_t counter = 0;
+      for (size_t i=0; i<cells.size(); ++i) {
+	 mpiGrid.getExistingNeighbours(cells[i],tmpIDs,tmpTypes);
+	 for (size_t j=0; j<tmpTypes.size(); ++j) {
+	    nbrTypeIDs[counter] = tmpTypes[j];
+	    nbrIDs[counter] = tmpIDs[j];
+	    ++counter;
+	 }
+      }
+      if (vlsvWriter.writeArray("NBRTYPES","SpatialGrid",attribs,neighbourSum,1,nbrTypeIDs) == false) success = false;
+      if (vlsvWriter.writeArray("NBRIDS","SpatialGrid",attribs,neighbourSum,1,nbrIDs) == false) success = false;
+      delete nbrIDs;
+      delete nbrTypeIDs;
+   #else
+
+   #endif
+   
+   // Write velocity blocks and related data. Which cells write velocity grids 
+   // should be requested from a function, but for now we just write velocity grids for all cells.
    // First write global IDs of those cells which write velocity blocks (here: all cells):
    if (vlsvWriter.writeArray("CELLSWITHBLOCKS","SpatialGrid",attribs,cells.size(),1,&(cells[0])) == false) success = false;
    if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to write CELLSWITHBLOCKS to file!" << endl << write;
@@ -194,7 +241,7 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const 
    // Write velocity block coordinates. At this point the data may get too large to be buffered, 
    // so a "multi-write" mode is used - coordinates are written one velocity grid at a time. Besides, 
    // the velocity block coordinates are already stored in a suitable format for writing in SpatialCells:
-   if (vlsvWriter.startMultiwrite("float",totalBlocks,6,sizeof(Real)) == false) success = false;
+   if (vlsvWriter.startMultiwrite("float",totalBlocks,SIZE_BLOCKPARAMS,sizeof(Real)) == false) success = false;
    if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to start BLOCKCOORDINATES multiwrite!" << endl << write;
    if (success == true) {
       uint64_t counter = 0;
@@ -210,7 +257,7 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const 
    }
    
    // Write values of distribution function:
-   if (vlsvWriter.startMultiwrite("float",totalBlocks,64,sizeof(Real)) == false) success = false;
+   if (vlsvWriter.startMultiwrite("float",totalBlocks,SIZE_VELBLOCK,sizeof(Real)) == false) success = false;
    if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to start BLOCKVARIABLE avgs multiwrite!" << endl << write;
    if (success == true) {
       uint64_t counter = 0;
@@ -227,15 +274,32 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const 
       if (vlsvWriter.endMultiwrite("BLOCKVARIABLE","avgs",attribs) == false) success = false;
       if (success == false) mpilogger << "(MAIN) writeGrid: ERROR occurred when ending BLOCKVARIABLE avgs multiwrite!" << endl << write;
    }
+   
+   // Write velocity block neighbour lists:
+   if (vlsvWriter.startMultiwrite("uint",totalBlocks,SIZE_NBRS_VEL,sizeof(uint)) == false) {
+      success = false;
+      mpilogger << "(MAIN) writeGrid: ERROR failed to start BLOCKNBRS multiwrite!" << endl << write;
+   } else {
+      SpatialCell* SC;
+      for (size_t cell=0; cell<cells.size(); ++cell) {
+	 SC = mpiGrid[cells[cell]];
+	 if (vlsvWriter.multiwriteArray(N_blocks[cell],SC->cpu_nbrsVel) == false) success = false;
+      }
+   }
+   if (success == true) {
+      if (vlsvWriter.endMultiwrite("BLOCKNBRS","SpatialGrid",attribs) == false) {
+	 success = false;
+	 mpilogger << "(MAIN) writeGrid: ERROR occurred when ending BLOCKNBRS multiwrite!" << endl << write;
+      }
+   }
    double end = MPI_Wtime();
-    
    delete N_blocks;
 
    vlsvWriter.close();
 
    double allEnd = MPI_Wtime();
    
-   double bytesWritten = cells.size()*1000*4*(64+6);
+   double bytesWritten = totalBlocks*((SIZE_VELBLOCK+SIZE_BLOCKPARAMS)*sizeof(Real)+(SIZE_NBRS_VEL)*sizeof(uint));
    double secs = end-start;
    mpilogger << "Wrote " << bytesWritten/1.0e6 << " MB of data in " << secs << " seconds, datarate is " << bytesWritten/secs/1.0e9 << " GB/s" << endl << write;
    
@@ -246,6 +310,56 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const 
    return success;
 }
 
+#ifdef PARGRID
+void exchangeVelocityGridMetadata(ParGrid<SpatialCell>& mpiGrid) {
+#else
+void exchangeVelocityGridMetadata(dccrg<SpatialCell>& mpiGrid) {
+#endif
+   #ifndef PARGRID
+      #warning CRITICAL dccrg does not fetch remote cells!
+      exit(1);
+   #endif
+   
+   vector<uchar> nbrTypes;
+   for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
+      if (i == 0 & (j== 0 & k == 0)) continue;
+      const int ii = i+2;
+      const int jj = j+2;
+      const int kk = k+2;
+      nbrTypes.push_back(kk*25+jj*5+ii);
+   }
+   nbrTypes.push_back((2+0)*25+(2+0)*5+(2-2)); // --x 
+   nbrTypes.push_back((2+0)*25+(2+0)*5+(2+2)); // ++x
+   nbrTypes.push_back((2+0)*25+(2-2)*5+(2-0)); // --y
+   nbrTypes.push_back((2+0)*25+(2+2)*5+(2+0)); // ++y
+   nbrTypes.push_back((2-2)*25+(2+0)*5+(2-0)); // --z
+   nbrTypes.push_back((2+2)*25+(2+0)*5+(2+0)); // ++z
+   
+   TransferStencil<ID::type> stencil(numeric_limits<ID::type>::max());
+   stencil.addReceives(mpiGrid,nbrTypes);
+   stencil.addSends(mpiGrid,nbrTypes);
+   
+   // Post receives for N_blocks
+   mpiGrid.startSingleMode();
+   for (map<pair<int,int>,ID::type>::const_iterator i=stencil.recvs.begin(); i!=stencil.recvs.end(); ++i) {
+      const int host        = i->first.first;
+      const int tag         = i->first.second;
+      const ID::type cellID = i->second;
+      char* buffer          = reinterpret_cast<char*>(&(mpiGrid[cellID]->N_blocks));
+      mpiGrid.singleReceive(host,tag,sizeof(uint),buffer,cellID);
+   }
+   // Post sends for N_blocks
+   for (multimap<ID::type,pair<int,int> >::const_iterator i=stencil.sends.begin(); i!=stencil.sends.end(); ++i) {
+      const ID::type cellID = i->first;
+      const int dest        = i->second.first;
+      const int tag         = i->second.second;
+      char* buffer          = reinterpret_cast<char*>(&(mpiGrid[cellID]->N_blocks));
+      mpiGrid.singleSend(dest,tag,sizeof(uint),buffer,cellID);
+   }
+   mpiGrid.waitAllReceives();
+   mpiGrid.waitAllSends();
+}
+   
 #ifdef PARGRID
 void log_send_receive_info(const ParGrid<SpatialCell>& mpiGrid) {
 #else
@@ -465,6 +579,16 @@ int main(int argn,char* args[]) {
    }
    if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting up." << endl << write;
 
+   // Receive N_blocks from remote neighbours
+   exchangeVelocityGridMetadata(mpiGrid);
+   #ifdef PARGRID
+      vector<ID::type> remoteCells;
+      mpiGrid.getRemoteCells(remoteCells);
+      for (size_t i=0; i<remoteCells.size(); ++i) mpiGrid[remoteCells[i]]->initialize(mpiGrid[remoteCells[i]]->N_blocks);
+   #else
+      #warning CRITICAL dccrg does not init remote cells!
+   #endif
+   
    profile::start("Initial load-balancing");
    // Do initial load balancing:
    initialLoadBalance(mpiGrid);
@@ -477,12 +601,9 @@ int main(int argn,char* args[]) {
    #ifndef PARGRID
       initSpatialCells(mpiGrid,comm);
       comm.barrier();
-#else
-      //initSpatialCells(mpiGrid);
-      //mpiGrid.barrier();
    #endif
-      profile::stop("Set initial state");
-      profile::start("Fetch Neighbour data");
+   profile::stop("Set initial state");
+   profile::start("Fetch Neighbour data");
    // Fetch neighbour data:
    #ifndef PARGRID
       P::transmit = Transmit::AVGS;
@@ -490,12 +611,13 @@ int main(int argn,char* args[]) {
       mpiGrid.wait_neighbour_data_update();
       comm.barrier();
    #else
+      /*
       P::transmit = Transmit::AVGS;
-      mpiGrid.startNeighbourExchange(1);
+      mpiGrid.startNeighbourExchange(0);
       mpiGrid.waitAll();
-      mpiGrid.barrier();
+      mpiGrid.barrier();*/
    #endif
-      profile::stop("Fetch Neighbour data");
+   profile::stop("Fetch Neighbour data");
    log_send_receive_info(mpiGrid);
 
    #ifdef PARGRID
@@ -604,11 +726,13 @@ int main(int argn,char* args[]) {
               P::tstep == P::tsteps-1) transferAvgs = true;
           
           calculateAcceleration(mpiGrid);
+
           profile::start("Second half-step");
           calculateSpatialDerivatives(mpiGrid);
           calculateSpatialFluxes(mpiGrid);
           calculateSpatialPropagation(mpiGrid,true,transferAvgs);
           profile::stop("Second half-step");
+
       }
 #ifdef PARGRID      
       if (P::propagateField == true) {

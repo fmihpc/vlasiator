@@ -8,7 +8,7 @@
 // for some C++ native data types. For example, if float has been 
 // typedef'd as Real, then MPI_Type<Real>() should return MPI_FLOAT.
 template<typename T> inline MPI_Datatype MPI_Type() {
-   std::cerr << "NULL datatype returned" << std::endl;
+   std::cerr << "(mpiconversion.h): NULL datatype returned" << std::endl;
    return 0;
 }
 template<> inline MPI_Datatype MPI_Type<char>() {return MPI_CHAR;}

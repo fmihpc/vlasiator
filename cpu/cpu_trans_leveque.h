@@ -78,10 +78,10 @@ template<typename REAL> void cpu_blockVelocityMoments(const REAL* const avgs,con
    // spatial cell velocity moments. If multithreading / OpenMP is used, 
    // these updates need to be atomic:
    const REAL DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
-   cellParams[CellParams::RHO  ] += n_sum / DV3;
-   cellParams[CellParams::RHOVX] += nvx_sum / DV3;
-   cellParams[CellParams::RHOVY] += nvy_sum / DV3;
-   cellParams[CellParams::RHOVZ] += nvz_sum / DV3;
+   cellParams[CellParams::RHO  ] += n_sum * DV3;
+   cellParams[CellParams::RHOVX] += nvx_sum * DV3;
+   cellParams[CellParams::RHOVY] += nvy_sum * DV3;
+   cellParams[CellParams::RHOVZ] += nvz_sum * DV3;
 }
 
 template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatDerivs(CELL& cell,const UINT& BLOCK,const std::vector<const CELL*>& nbrPtrs) { }

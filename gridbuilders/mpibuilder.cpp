@@ -113,7 +113,7 @@ MPIBuilder::~MPIBuilder() {
 }
 
 // Be careful here, we really can run out of memory in this function....
-bool MPIBuilder::addCellBlockDataRequests(VirtualCell::ID& totalCells,VirtualCell::ID* cellIDs,uint* blocksPerCell,
+bool MPIBuilder::addCellBlockDataRequests(VirtualCell::ID& totalCells,VirtualCell::ID& blockOffset,VirtualCell::ID* cellIDs,uint* blocksPerCell,
 			      Real** avgs,Real** blockParams,uint** nbrsVel) {
    if (initialized == false) return false;
    bool success = true;
@@ -204,7 +204,7 @@ bool MPIBuilder::addCellBlockDataRequests(VirtualCell::ID& totalCells,VirtualCel
    return success;
 }
 
-bool MPIBuilder::addCellBlockNumberRequests(VirtualCell::ID& totalCells,VirtualCell::ID* cellIDs,uint* N_blocks) {
+bool MPIBuilder::addCellBlockNumberRequests(VirtualCell::ID& totalCells,VirtualCell::ID& cellOffset,VirtualCell::ID* cellIDs,uint* N_blocks) {
    if (initialized == false) return false;
    bool success = true;
    
@@ -263,7 +263,8 @@ bool MPIBuilder::addCellBlockNumberRequests(VirtualCell::ID& totalCells,VirtualC
  * @return If true, the request was posted successfully. If any process returns false at any 
  * point, program execution should be aborted.
  */
-bool MPIBuilder::addCellNbrRequests(VirtualCell::ID& totalCells,VirtualCell::ID& totalNbrs,VirtualCell::ID* cellIDs,
+bool MPIBuilder::addCellNbrRequests(VirtualCell::ID& totalCells,VirtualCell::ID& totalNbrs,VirtualCell::ID& cellOffset,
+				    VirtualCell::ID& nbrOffset,VirtualCell::ID* cellIDs,
 				    uchar* nbrsPerCell,Real* coords,VirtualCell::ID* nbrIDs,uchar* nbrTypes) {
    if (initialized == false) return false;
    bool success = true;
@@ -326,7 +327,7 @@ bool MPIBuilder::addCellNbrRequests(VirtualCell::ID& totalCells,VirtualCell::ID&
    return success;
 }
 
-bool MPIBuilder::addCellParamsRequests(VirtualCell::ID& totalCells,VirtualCell::ID* cellIDs,Real* cellParams) {
+bool MPIBuilder::addCellParamsRequests(VirtualCell::ID& totalCells,VirtualCell::ID& cellOffset,VirtualCell::ID* cellIDs,Real* cellParams) {
    bool success = true;
    if (initialized == false) return false;
 

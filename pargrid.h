@@ -77,12 +77,13 @@ template<class C> class ParGrid {
 
    template<typename T> bool addCell(const T& cellID,const Real* const coords,const Real* const sizes,
 				     const std::vector<T>& nbrIDs,const std::vector<uchar>& nbrTypes);
-   void barrier() {MPI_Barrier(MPI_COMM_WORLD);}
+   void barrier() const {MPI_Barrier(MPI_COMM_WORLD);}
    template<class CONT> void getAllCells(CONT& rlist) const;
    template<class CONT> void getBoundaryCells(CONT& rlist) const;
    void getCellDistribution(std::map<ID::type,int>& rlist) const {rlist=hostProcesses;}
    template<class CONT> void getCells(CONT& rlist) const;
    template<class CONT> void getExistingNeighbours(CONT& rlist,const ID::type& globalID) const;
+   template<class IDCONT,class TYPECONT> void getExistingNeighbours(const ID::type& globalID,IDCONT& IDs,TYPECONT& nbrTypes) const;
    bool getHost(const ID::type& cellID,int& host) const;
    template<class CONT> void getInnerCells(CONT& rlist) const;
    ID::type getNeighbour(const ID::type globalID,cuchar& nbrTypeID) const;
@@ -104,7 +105,7 @@ template<class C> class ParGrid {
    template<class CONT> void getRemoteToLocalMapping(const ID::type& remoteID,CONT& rlist) const;
    template<class CONT> void getSendList(CONT& rlist) const;
    bool hasRemoteNeighbours(const ID::type& globalID) const;
-   bool initialize();
+   bool initialize(const bool& balanceLoad=true);
    bool initialize(cuint& xsize,cuint& ysize,cuint& zsize,creal& xmin,creal& ymin,creal& zmin,
 		   creal& xmax,creal& ymax,creal& zmax);
    bool initialLoadBalance();
@@ -221,7 +222,7 @@ template<class C> class ParGrid {
 							    * MPI process has to send during neighbour data exchange, and 
 							    * the rank of the receiving MPI process.*/
 
-   void allocateCells();
+   //void allocateCells();
    void buildExchangeLists();
    void buildInitialGrid();
    void buildUnrefNeighbourLists();
@@ -347,13 +348,13 @@ template<class C> ParGrid<C>::~ParGrid() {
 template<class C> template<typename T>
 bool ParGrid<C>::addCell(const T& cellID,const Real* const coords,const Real* sizes,
 			 const std::vector<T>& nbrIDs,const std::vector<uchar>& nbrTypes) {
-   /*
-   std::cerr << "ParGrid: proc #" << myrank << " received cell #" << cellID << ' ';
-   for (int i=0; i<3; ++i) std::cerr << coords[i] << ' ';
-   for (int i=0; i<3; ++i) std::cerr << sizes[i] << ' ';   
-   for (size_t i=0; i<nbrIDs.size(); ++i) std::cerr << nbrIDs[i] << ":" << (int)nbrTypes[i] << ' ';
-   std::cerr << std::endl;
-   */
+   
+   //std::cerr << "ParGrid: proc #" << myrank << " received cell #" << cellID << ' ';
+   //for (int i=0; i<3; ++i) std::cerr << coords[i] << ' ';
+   //for (int i=0; i<3; ++i) std::cerr << sizes[i] << ' ';   
+   //for (size_t i=0; i<nbrIDs.size(); ++i) std::cerr << nbrIDs[i] << ":" << (int)nbrTypes[i] << ' ';
+   //std::cerr << std::endl;
+   
    localCells[cellID];
    localCells[cellID].xcrd = coords[0];
    localCells[cellID].ycrd = coords[1];
@@ -372,7 +373,7 @@ bool ParGrid<C>::addCell(const T& cellID,const Real* const coords,const Real* si
 /** Call the constructor of each user-defined data cell. Here we also allocate 
  * memory for remote cells.
  */
-template<class C> void ParGrid<C>::allocateCells() {
+/*template<class C> void ParGrid<C>::allocateCells() {
    // Local cells have been pushed to localCells, but remoteCells is empty. Insert remote cells.
    for (std::map<ID::type,int>::const_iterator it=receiveList.begin(); it!=receiveList.end(); ++it) {
       remoteCells[it->first];
@@ -389,7 +390,7 @@ template<class C> void ParGrid<C>::allocateCells() {
    for (typename std::map<ID::type,ParCell<C> >::iterator it=remoteCells.begin(); it!=remoteCells.end(); ++it) {
       it->second.dataptr = new C;
    }
-}
+}*/
 
 /**
  * Prerequisite: the neighour lists must be up-to-date.
@@ -860,6 +861,22 @@ template<class C> template<class CONT> void ParGrid<C>::getExistingNeighbours(CO
    }
 }
 
+template<typename C> template<class IDCONT,class TYPECONT> 
+void ParGrid<C>::getExistingNeighbours(const ID::type& globalID,IDCONT& IDs,TYPECONT& nbrTypes) const {
+   IDs.clear();
+   nbrTypes.clear();
+   typename std::map<ID::type,ParCell<C> >::const_iterator it = localCells.find(globalID);
+   if (it == localCells.end()) return;
+   
+   //std::cerr << "Cell #" << globalID << " nbrs: ";
+   for (std::map<uchar,ID::type>::const_iterator itt = it->second.neighbours.begin(); itt!=it->second.neighbours.end(); ++itt) {
+      nbrTypes.push_back(itt->first);
+      IDs.push_back(itt->second);
+      //std::cerr << '(' << (int)itt->first << ')' << itt->second << ' ';
+   }
+   //std::cerr << std::endl;
+}
+
 template<class C> bool ParGrid<C>::getHost(const ID::type& cellID,int& host) const {
    std::map<ID::type,int>::const_iterator it = hostProcesses.find(cellID);
    if (it == hostProcesses.end()) return false;
@@ -993,16 +1010,19 @@ template<class C> bool ParGrid<C>::hasRemoteNeighbours(const ID::type& globalID)
    return it->second.hasRemoteNeighbours;
 }
 
-template<class C> bool ParGrid<C>::initialize() {
+template<class C> bool ParGrid<C>::initialize(const bool& balanceLoad) {
    initialized = true;
    MPItypeFreed = true;
    // At this point we do not know who owns the boundary cells, 
    // i.e. with which processes I need to exchange data with.
    if (syncCellAssignments() == false) initialized = false;
 
+   // Do an initial load balance (if allowed):
    buildExchangeLists();
-   initialLoadBalance();
-   buildExchangeLists();
+   if (balanceLoad == true) {
+      initialLoadBalance();
+      buildExchangeLists();
+   }
    
    // Allocate memory for user data:
    //std::cerr << "ParGrid: Allocating " << localCells.size() << " local cells" << std::endl;
@@ -1019,7 +1039,7 @@ template<class C> bool ParGrid<C>::initialize() {
    syncCellCoordinates();
    return initialized;
 }
-
+/*
 template<class C>
 bool ParGrid<C>::initialize(cuint& xsize,cuint& ysize,cuint& zsize,creal& xmin,creal& ymin,creal& zmin,
 			    creal& xmax,creal& ymax,creal& zmax) {
@@ -1058,7 +1078,7 @@ bool ParGrid<C>::initialize(cuint& xsize,cuint& ysize,cuint& zsize,creal& xmin,c
    syncCellCoordinates();
    initialized = true;
    return initialized;
-}
+}*/
 
 template<class C> bool ParGrid<C>::initialLoadBalance() {
    bool rvalue = true;

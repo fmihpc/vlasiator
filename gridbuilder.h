@@ -46,6 +46,8 @@ class GridBuilder {
     * GridBuilder::processCellBlockDataRequests and GridBuilder::waitCellBlockDataRequests 
     * need to be called (in that order).
     * @param totalCells Number of spatial cells this process has.
+    * @param blockOffset Offset into arrays where this process reads its velocity block data.
+    * This parameter is mainly required for restarts.
     * @param cellIDs Global IDs of spatial cells allocated to this process.
     * @param blocksPerCell Number of velocity blocks in each spatial cell.
     * @param avgsBuffer Pointer to arrays in which the velocity block data is to be written.
@@ -55,7 +57,7 @@ class GridBuilder {
     * @see GridBuilder::processCellBlockDataRequests
     * @see GridBuilder::waitCellBlockDataRequests
     */
-   virtual bool addCellBlockDataRequests(VirtualCell::ID& totalCells,VirtualCell::ID* cellIDs,uint* blocksPerCell,
+   virtual bool addCellBlockDataRequests(VirtualCell::ID& totalCells,VirtualCell::ID& blockOffset,VirtualCell::ID* cellIDs,uint* blocksPerCell,
 					 Real** avgsBuffer,Real** blockParamsBuffer,uint** nbrsVelBuffer) = 0;
    
    /** Add a request to obtain the number of velocity blocks in each spatial cell allocated 
@@ -63,13 +65,15 @@ class GridBuilder {
     * GridBuilder::processCellBlockNumberRequests and GridBuilder::waitCellBlockNumberRequests
     * need to be called (in that order).
     * @param totalCells Number of spatial cells this process has.
+    * @param cellOffset Offset into arrays where this process reads its per-spatial-cell data.
+    * This parameter is mainly required for restarts.
     * @param cellID Global IDs of spatial cell allocated to this process.
     * @param N_blocks Array in which the number of velocity blocks in each cell is to be written.
     * @return If true, the request was added successfully.
     * @see GridBuilder::processCellBlockNumberRequests
     * @see GridBuilder::waitCellBlockNumberRequests
     */
-   virtual bool addCellBlockNumberRequests(VirtualCell::ID& totalCells,VirtualCell::ID* cellIDs,uint* N_blocks) = 0;
+   virtual bool addCellBlockNumberRequests(VirtualCell::ID& totalCells,VirtualCell::ID& cellOffset,VirtualCell::ID* cellIDs,uint* N_blocks) = 0;
    
    /** Add a request to obtain spatial cell coordinates and neighbour data.
     * When process has placed all its requests,
@@ -84,6 +88,10 @@ class GridBuilder {
     * horribly bad partition into a better one.
     * @param totalCells Number of cells allocated to this process.
     * @param totalNbrs Neighbour count over all cells, i.e. sum(i) sum(j) cell[i].neighbours[j]. 
+    * @param cellOffset Offset into arrays where this process reads its per-spatial-cell data. 
+    * This parameter is mainly required for restarts.
+    * @param nbrOffset Offset into arrays where this process reads its spatial cell neighbour data.
+    * This parameter is mainly required for restarts.
     * @param cellID Global IDs of all spatial cells allocated to this process.
     * @param nbrsPerCell Array containing the number of spatial neighbours each cell has.
     * @param coords A buffer in which the cells' coordinates and sizes will be written, the 
@@ -94,7 +102,8 @@ class GridBuilder {
     * @see GridBuilder::processCellNbrRequests
     * @see GridBuilder::waitCellNbrRequests
     */
-   virtual bool addCellNbrRequests(VirtualCell::ID& totalCells,VirtualCell::ID& totalNbrs,VirtualCell::ID* cellIDs,
+   virtual bool addCellNbrRequests(VirtualCell::ID& totalCells,VirtualCell::ID& totalNbrs,VirtualCell::ID& cellOffset,
+				   VirtualCell::ID& nbrOffset,VirtualCell::ID* cellIDs,
 				   uchar* nbrsPerCell,Real* coords,VirtualCell::ID* nbrIDs,uchar* nbrTypes) = 0;
 
    /** Add a request to obtain parameters of a given spatial cell.
@@ -102,6 +111,8 @@ class GridBuilder {
     * GridBuilder::processCellParamsRequests and GridBuilder::waitCellParamsRequests
     * need to be called (in that order). 
     * @param totalCells Number of spatial cells this process has.
+    * @param cellOffset Offset into arrays where this process reads its per-spatial-cell data.
+    * This parameter is mainly required for restarts.
     * @param cellID Global IDs of spatial cell allocated to this process.
     * @param cellParams A buffer in which the parameters of each cell are to be written. 
     * The size of this buffer is SIZE_CELLPARAMS*totalCells.
@@ -109,7 +120,14 @@ class GridBuilder {
     * @see GridBuilder::processCellParamsRequests
     * @see GridBuilder::waitCellParamsRequests
     */
-   virtual bool addCellParamsRequests(VirtualCell::ID& totalCells,VirtualCell::ID* cellIDs,Real* cellParams) = 0;
+   virtual bool addCellParamsRequests(VirtualCell::ID& totalCells,VirtualCell::ID& cellOffset,VirtualCell::ID* cellIDs,Real* cellParams) = 0;
+
+   /** Query if parallel grid is allowed to do a load balance before 
+    * all data has been created by a GridBuilder. The default behaviour is 
+    * to allow a load balance.
+    * @return If true, grid is allowed to do a load balance. 
+    */
+   virtual bool doInitialLoadBalance();
    
    /** Deallocate all memory reserved by GridBuilder. This function is called 
     * just before GridBuilder is deleted.
@@ -148,7 +166,7 @@ class GridBuilder {
     * @return If true, neighbour data was successfully written to given buffers. Return value 
     * false may also indicate that this function was called by a process other than the master.
     */
-   virtual bool getCellNbrData(const VirtualCell::ID& N_cells,VirtualCell::ID* cellIDs,Real* coords,VirtualCell::ID* spatNbrIDs,uchar* nbrTypes) = 0;
+   //virtual bool getCellNbrData(const VirtualCell::ID& N_cells,VirtualCell::ID* cellIDs,Real* coords,VirtualCell::ID* spatNbrIDs,uchar* nbrTypes) = 0;
    
    /** Request the value of an input parameter. This function is provided in 
     * cases where the user might want to know the values of grid-related input 

@@ -153,9 +153,10 @@ __global__ void cuda_trans_fluxes(Real* avgs,Real* flux,uint offsetNbrs,uint off
    dfdt[I0_J1*WID3 + MYIND] -= HALF*dt_per_dx*Vx*fmin(ZERO,Vy)*R * dt_per_dy;
 
    // Correction Waves:
-   nbrBlock = tex1Dfetch(texRef_nbrsSpa, offsetNbrs + MYOFFSET*SIZE_NBRS_SPA + 14);
+   nbrBlock = tex1Dfetch(texRef_nbrsSpa, offsetNbrs + MYOFFSET*SIZE_NBRS_SPA + 14); // x+1 nbr
    xm2 = fetchAvgs(nbrBlock*WID3 + MYIND);
-   R *= limiter(xm1-xcc,R+EPSILON,xcc);
+   //R *= limiter(xm1-xcc,R+EPSILON,xcc);
+   R *= limiter(xm2-xcc,R+EPSILON,xcc);
    corr_wave = -HALF*Vx*(ONE + dt_per_dx*Vx)*R;
    dfdt[I1_J1*WID3 + MYIND] += corr_wave * dt_per_dx;
    dfdt[I0_J1*WID3 + MYIND] -= corr_wave * dt_per_dx;
@@ -165,6 +166,7 @@ __global__ void cuda_trans_fluxes(Real* avgs,Real* flux,uint offsetNbrs,uint off
    dfdt[I1_J1*WID3 + MYIND] -= fmax(ZERO,Vy)*dt_per_dx*corr_wave * dt_per_dy;
    dfdt[I0_J2*WID3 + MYIND] -= fmax(ZERO,Vy)*dt_per_dx*corr_wave * dt_per_dy;
    dfdt[I0_J1*WID3 + MYIND] += fmax(ZERO,Vy)*dt_per_dx*corr_wave * dt_per_dy;
+   
    dfdt[I1_J0*WID3 + MYIND] -= fmin(ZERO,Vy)*dt_per_dx*corr_wave * dt_per_dy; // Vy < 0
    dfdt[I1_J1*WID3 + MYIND] += fmin(ZERO,Vy)*dt_per_dx*corr_wave * dt_per_dy;
    dfdt[I0_J0*WID3 + MYIND] += fmin(ZERO,Vy)*dt_per_dx*corr_wave * dt_per_dy;

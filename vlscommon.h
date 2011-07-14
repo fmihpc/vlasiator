@@ -63,10 +63,10 @@ namespace VLSV {
 
 unsigned char detectEndianness();
 
-VlsHeader::Int convUInt1(const unsigned char* const ptr,const bool& swapEndian=false);
-VlsHeader::Int convUInt2(const unsigned char* const ptr,const bool& swapEndian=false);
-VlsHeader::Int convUInt4(const unsigned char* const ptr,const bool& swapEndian=false);
-VlsHeader::Int convUInt8(const unsigned char* const ptr,const bool& swapEndian=false);
+VlsHeader::UInt convUInt1(const unsigned char* const ptr,const bool& swapEndian=false);
+VlsHeader::UInt convUInt2(const unsigned char* const ptr,const bool& swapEndian=false);
+VlsHeader::UInt convUInt4(const unsigned char* const ptr,const bool& swapEndian=false);
+VlsHeader::UInt convUInt8(const unsigned char* const ptr,const bool& swapEndian=false);
 VlsHeader::Real convReal4(const unsigned char* const ptr,const bool& swapEndian=false);
 VlsHeader::Real convReal8(const unsigned char* const ptr,const bool& swapEndian=false);
 VlsHeader::Real convReal16(const unsigned char* const ptr,const bool& swapEndian=false);

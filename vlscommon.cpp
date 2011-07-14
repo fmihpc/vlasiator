@@ -13,12 +13,12 @@ unsigned char detectEndianness() {
    else return VLSV::BIG_END;
 }
 
-VlsHeader::Int convUInt1(const unsigned char* const ptr,const bool& swapEndian) {
+VlsHeader::UInt convUInt1(const unsigned char* const ptr,const bool& swapEndian) {
    // No need to swap byte order
    return *(reinterpret_cast<const uint8_t*>(ptr));
 }
 
-VlsHeader::Int convUInt2(const unsigned char* const ptr,const bool& swapEndian) {
+VlsHeader::UInt convUInt2(const unsigned char* const ptr,const bool& swapEndian) {
    if (swapEndian == false) return *(reinterpret_cast<const uint16_t*>(ptr));
    else {
       // Swap byte order:
@@ -33,7 +33,7 @@ VlsHeader::Int convUInt2(const unsigned char* const ptr,const bool& swapEndian) 
    }
 }
 
-VlsHeader::Int convUInt4(const unsigned char* const ptr,const bool& swapEndian) {
+VlsHeader::UInt convUInt4(const unsigned char* const ptr,const bool& swapEndian) {
    if (swapEndian == false) return *(reinterpret_cast<const uint32_t*>(ptr));
    else {
       // Swap byte order:
@@ -48,7 +48,7 @@ VlsHeader::Int convUInt4(const unsigned char* const ptr,const bool& swapEndian) 
    }
 }
 
-VlsHeader::Int convUInt8(const unsigned char* const ptr,const bool& swapEndian) {
+VlsHeader::UInt convUInt8(const unsigned char* const ptr,const bool& swapEndian) {
    if (swapEndian == false) return *(reinterpret_cast<const uint64_t*>(ptr));
    else {
       // Swap byte order

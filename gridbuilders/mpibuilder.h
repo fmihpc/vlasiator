@@ -15,12 +15,13 @@ class MPIBuilder: public GridBuilder {
    // *****        DEFINED BY MPIBUILDER.          *****
    // **************************************************
    
-   virtual bool addCellBlockDataRequests(VirtualCell::ID& totalCells,VirtualCell::ID* cellIDs,uint* blocksPerCell,
+   virtual bool addCellBlockDataRequests(VirtualCell::ID& totalCells,VirtualCell::ID& blockOffset,VirtualCell::ID* cellIDs,uint* blocksPerCell,
 					 Real** avgsBuffer,Real** blockParamsBuffer,uint** nbrsVelBuffer);
-   virtual bool addCellBlockNumberRequests(VirtualCell::ID& totalCells,VirtualCell::ID* cellIDs,uint* N_blocks);
-   virtual bool addCellNbrRequests(VirtualCell::ID& totalCells,VirtualCell::ID& totalNbrs,VirtualCell::ID* cellIDs,
+   virtual bool addCellBlockNumberRequests(VirtualCell::ID& totalCells,VirtualCell::ID& cellOffset,VirtualCell::ID* cellIDs,uint* N_blocks);
+   virtual bool addCellNbrRequests(VirtualCell::ID& totalCells,VirtualCell::ID& totalNbrs,VirtualCell::ID& cellOffset,
+				   VirtualCell::ID& nbrOffset,VirtualCell::ID* cellIDs,
 				   uchar* nbrsPerCell,Real* coords,VirtualCell::ID* nbrIDs,uchar* nbrTypes);
-   virtual bool addCellParamsRequests(VirtualCell::ID& totalCells,VirtualCell::ID* cellIDs,Real* cellParams);
+   virtual bool addCellParamsRequests(VirtualCell::ID& totalCells,VirtualCell::ID& cellOffset,VirtualCell::ID* cellIDs,Real* cellParams);
    virtual bool finalize();
    virtual bool initialize(MPI_Comm comm,const int& MASTER_RANK);
    virtual bool processCellBlockDataRequests();
@@ -49,7 +50,7 @@ class MPIBuilder: public GridBuilder {
    // **************************************************
    
    //virtual bool getCellIDs(std::vector<VirtualCell::ID>& cellIDs,std::vector<uchar>& N_nbrs) = 0;
-   //virtual bool getCellNbrData(const VirtualCell::ID& N_cells,VirtualCell::ID* cellIDs,Real* coords,VirtualCell::ID* spatNbrIDs,uchar* nbrTypes) = 0;
+   virtual bool getCellNbrData(const VirtualCell::ID& N_cells,VirtualCell::ID* cellIDs,Real* coords,VirtualCell::ID* spatNbrIDs,uchar* nbrTypes) = 0;
    //virtual bool getParameter(const std::string& parameterName,std::string& value) = 0;
    //virtual bool getTotalNumberOfCells(VirtualCell::ID& N_cells) = 0;
    

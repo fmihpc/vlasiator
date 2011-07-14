@@ -3,6 +3,12 @@
 
 #include "definitions.h"
 #include "cell_spatial.h"
+#include "projects/projects_common.h"
+#include "projects/projects_fieldboundary.h"
+#include "projects/projects_vlasov_acceleration.h"
+#include "projects/projects_vlasov_boundary.h"
+#include "fieldsolver.h"
+#include "arrayallocator.h"
 
 #ifndef PARGRID
 	#define DCCRG_SEND_SINGLE_CELLS
@@ -129,7 +135,7 @@ template<typename T> T velocityFluxX(const T& j,const T& k,const T& avg_neg,cons
    const T AX = Parameters::q_per_m*(EX + VY*BZ - VZ*BY);
    return convert<T>(0.5)*AX*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AX)*(avg_pos-avg_neg);
 }
-
+                                                                        
 template<typename T> T velocityFluxY(const T& i,const T& k,const T& avg_neg,const T& avg_pos,const T* const cellParams,const T* const blockParams) {
    const T VX = blockParams[BlockParams::VXCRD] + (i+convert<T>(0.5))*blockParams[BlockParams::DVX];
    const T VZ = blockParams[BlockParams::VZCRD] + (k+convert<T>(0.5))*blockParams[BlockParams::DVZ];
@@ -150,52 +156,60 @@ template<typename T> T velocityFluxZ(const T& i,const T& j,const T& avg_neg,cons
    return convert<T>(0.5)*AZ*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AZ)*(avg_pos-avg_neg);
 }
 
+
+
+
+template<typename CELLID,typename UINT,typename REAL>
+void fieldSolverBoundaryCondDerivX(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
+				   const ArrayAllocator& derivatives,const ParGrid<SpatialCell>& mpiGrid) {
+   fieldSolverBoundarySetValueDerivX(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
+}
+
+template<typename CELLID,typename UINT,typename REAL>
+void fieldSolverBoundaryCondDerivY(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
+				   const ArrayAllocator& derivatives,const ParGrid<SpatialCell>& mpiGrid) {
+   fieldSolverBoundarySetValueDerivY(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
+}
+
+template<typename CELLID,typename UINT,typename REAL>
+void fieldSolverBoundaryCondDerivZ(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
+				   const ArrayAllocator& derivatives,const ParGrid<SpatialCell>& mpiGrid) {
+   fieldSolverBoundarySetValueDerivZ(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
+}
+
+template<typename CELLID,typename UINT,typename REAL>
+REAL fieldSolverBoundaryCondBx(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const ParGrid<SpatialCell>& mpiGrid) {
+   return fieldBoundaryCopyFromExistingFaceNbrBx<CELLID,UINT,REAL>(cellID,existingCells,nonExistingCells,mpiGrid);
+}
+
+template<typename CELLID,typename UINT,typename REAL>
+REAL fieldSolverBoundaryCondBy(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const ParGrid<SpatialCell>& mpiGrid) {
+   return fieldBoundaryCopyFromExistingFaceNbrBy<CELLID,UINT,REAL>(cellID,existingCells,nonExistingCells,mpiGrid);
+}
+
+template<typename CELLID,typename UINT,typename REAL>
+REAL fieldSolverBoundaryCondBz(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const ParGrid<SpatialCell>& mpiGrid) {
+   return fieldBoundaryCopyFromExistingFaceNbrBz<CELLID,UINT,REAL>(cellID,existingCells,nonExistingCells,mpiGrid);
+}
+
+template<typename CELLID,typename UINT> 
+void vlasovBoundaryCondition(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const ParGrid<SpatialCell>& mpiGrid) {
+   vlasovBoundaryCopyFromExistingFaceNbr(cellID,existingCells,nonExistingCells,mpiGrid);
+}
+
 template<typename UINT,typename REAL> void calcAccFaceX(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
 							const REAL* const cellParams,const REAL* const blockParams) {
-   const REAL VX = blockParams[BlockParams::VXCRD] + I*blockParams[BlockParams::DVX];
-   const REAL VY = blockParams[BlockParams::VYCRD] + (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
-   const REAL VZ = blockParams[BlockParams::VZCRD] + (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
-   const REAL EX = cellParams[CellParams::EX];
-   const REAL EY = cellParams[CellParams::EY];
-   const REAL EZ = cellParams[CellParams::EZ];
-   const REAL BX = cellParams[CellParams::BX];
-   const REAL BY = cellParams[CellParams::BY];
-   const REAL BZ = cellParams[CellParams::BZ];
-   ax = Parameters::q_per_m*(EX + VY*BZ - VZ*BY);
-   ay = Parameters::q_per_m*(EY + VZ*BX - VX*BZ);
-   az = Parameters::q_per_m*(EZ + VX*BY - VY*BX);
+   lorentzForceFaceX(ax,ay,az,I,J,K,cellParams,blockParams);
 }
    
 template<typename UINT,typename REAL> void calcAccFaceY(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
 							const REAL* const cellParams,const REAL* const blockParams) {
-   const REAL VX = blockParams[BlockParams::VXCRD] + (I+convert<REAL>(0.5))*blockParams[BlockParams::DVX];
-   const REAL VY = blockParams[BlockParams::VYCRD] + J*blockParams[BlockParams::DVY];
-   const REAL VZ = blockParams[BlockParams::VZCRD] + (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
-   const REAL EX = cellParams[CellParams::EX];
-   const REAL EY = cellParams[CellParams::EY];
-   const REAL EZ = cellParams[CellParams::EZ];
-   const REAL BX = cellParams[CellParams::BX];
-   const REAL BY = cellParams[CellParams::BY];
-   const REAL BZ = cellParams[CellParams::BZ];
-   ax = Parameters::q_per_m*(EX + VY*BZ - VZ*BY);
-   ay = Parameters::q_per_m*(EY + VZ*BX - VX*BZ);
-   az = Parameters::q_per_m*(EZ + VX*BY - VY*BX);
+   lorentzForceFaceY(ax,ay,az,I,J,K,cellParams,blockParams);
 }
 
 template<typename UINT,typename REAL> void calcAccFaceZ(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
 							const REAL* const cellParams,const REAL* const blockParams) {
-   const REAL VX = blockParams[BlockParams::VXCRD] + (I+convert<REAL>(0.5))*blockParams[BlockParams::DVX];
-   const REAL VY = blockParams[BlockParams::VYCRD] + (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
-   const REAL VZ = blockParams[BlockParams::VZCRD] + K*blockParams[BlockParams::DVZ];
-   const REAL EX = cellParams[CellParams::EX];
-   const REAL EY = cellParams[CellParams::EY];
-   const REAL EZ = cellParams[CellParams::EZ];
-   const REAL BX = cellParams[CellParams::BX];
-   const REAL BY = cellParams[CellParams::BY];
-   const REAL BZ = cellParams[CellParams::BZ];
-   ax = Parameters::q_per_m*(EX + VY*BZ - VZ*BY);
-   ay = Parameters::q_per_m*(EY + VZ*BX - VX*BZ);
-   az = Parameters::q_per_m*(EZ + VX*BY - VY*BX);
+   lorentzForceFaceZ(ax,ay,az,I,J,K,cellParams,blockParams);
 }
 
 #endif

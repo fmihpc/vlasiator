@@ -69,12 +69,6 @@ bool P::recalculateStencils = true;
 bool P::propagateVlasov = true;
 bool P::propagateField = true;
 
-#ifdef PARGRID
-   uint P::INVALID_CELLID = numeric_limits<uint>::max();
-#else
-   uint64_t P::INVALID_CELLID = 0;
-#endif
-
 // Handles parameter processing from the user
 namespace PO = boost::program_options;
 
@@ -98,7 +92,7 @@ char** Readparameters::argv;
 int Readparameters::rank;
 MPI_Comm Readparameters::comm;
 
-/** Constructor for class Parameters. The constructor defines some 
+/** Constructor for class ReadParameters. The constructor defines some 
  * default parameters and parses the input files. 
  * @param argc Command line argc.
  * @param argv Command line argv.

@@ -77,7 +77,7 @@ GridBuilder::GridBuilder() { }
  */
 GridBuilder::~GridBuilder() { }
 
-
+bool GridBuilder::doInitialLoadBalance() {return true;}
 
 
 inline uint velblock(cuint& iv,cuint& jv,cuint& kv) {
@@ -457,51 +457,65 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid,MPI_Comm comm,const int& MASTER_RAN
       return false;
    }
    
-   // Count the number of cells allocated to each process and scatter to all processes:
-   VC::ID* cellsPerProcess;
+   // Count the number of cells allocated to each process and scatter to all processes.
+   // Also calculate an offset into cell list for each process (needed for restart):
+   //VC::ID* cellsPerProcess = NULL;
+   int* cellsPerProcess = NULL;
+   VC::ID* cellOffsets = NULL;
+   VC::ID* nbrOffsets = NULL;
    if (myrank == MASTER_RANK) {
-      cellsPerProcess = new VC::ID[N_processes];
+      //cellsPerProcess = new VC::ID[N_processes];
+      cellsPerProcess = new int[N_processes];
+      cellOffsets = new VC::ID[N_processes];
+      VC::ID offset = 0;
       for (int proc=0; proc<N_processes; ++proc) {
+	 cellOffsets[proc] = offset;
 	 cellsPerProcess[proc] = N_cells/N_processes;
 	 if (proc < N_cells%N_processes) ++cellsPerProcess[proc];
+	 offset += cellsPerProcess[proc];
+      }
+      // Calculate an offset into spatial neighbour list for each process 
+      // (needed for restart):
+      nbrOffsets = new VC::ID[N_processes];
+      nbrOffsets[0] = 0;
+      VC::ID counter = 0;
+      for (int proc=1; proc<N_processes; ++proc) {
+	 nbrOffsets[proc] = 0;
+	 for (VC::ID j=0; j<cellsPerProcess[proc-1]; ++j) {
+	    nbrOffsets[proc] += spatNbrsPerCell[counter]; 
+	    ++counter;
+	 }
       }
    }
+   int tmp = 0;
    VC::ID N_myCells = 0;
-   if (MPI_Scatter(cellsPerProcess,1,MPI_Type<VC::ID>(),&N_myCells,1,MPI_Type<VC::ID>(),MASTER_RANK,comm) != MPI_SUCCESS) success = false;
+   VC::ID myCellOffset = 0; // Needed for restart
+   VC::ID myNbrOffset = 0;  // Needed for restart
+   if (MPI_Scatter(cellsPerProcess,1,MPI_Type<int>()   ,&tmp,         1,MPI_Type<int>(),MASTER_RANK,comm) != MPI_SUCCESS) success = false;
+   if (MPI_Scatter(cellOffsets,    1,MPI_Type<VC::ID>(),&myCellOffset,1,MPI_Type<VC::ID>(),MASTER_RANK,comm) != MPI_SUCCESS) success = false;
+   if (MPI_Scatter(nbrOffsets,     1,MPI_Type<VC::ID>(),&myNbrOffset, 1,MPI_Type<VC::ID>(),MASTER_RANK,comm) != MPI_SUCCESS) success = false;
+   N_myCells = tmp;
+   delete cellOffsets;
+   delete nbrOffsets;
+   cellOffsets = NULL;
+   nbrOffsets = NULL;
    
-   // Send allocated cells, and number of spatial neighbours per each cell, to all processes:
+   // Scatter allocated cells & amount of spatial neighbours per cell to all processes:
    VC::ID* myCellIDs  = new VC::ID[N_myCells];
    uchar*  myCellNbrs = new uchar[N_myCells];
-   MPI_Request* mpiRequests = NULL;
+   int* displacements = NULL;
    if (myrank == MASTER_RANK) {
-      VC::ID counter = 0;
-      mpiRequests = new MPI_Request[2*N_processes];
-      for (uint i=0; i<2*N_processes; ++i) mpiRequests[i] = MPI_REQUEST_NULL;
-      for (int proc=0; proc<N_processes; ++proc) {
-	 if (myrank != proc) {
-	    MPI_Isend(&(cellIDs[counter])        ,cellsPerProcess[proc],MPI_Type<VC::ID>(),proc,proc,comm,&(mpiRequests[2*proc+0]));
-	    MPI_Isend(&(spatNbrsPerCell[counter]),cellsPerProcess[proc],MPI_Type<uchar>() ,proc,proc,comm,&(mpiRequests[2*proc+1]));
-	 }
-	 counter += cellsPerProcess[proc];
-      }
-      // Master copies its own cells & neighbours manually (assume MASTER_RANK=0):
-      for (VC::ID i=0; i<N_myCells; ++i) {
-	 myCellIDs[i]  = cellIDs[i];
-	 myCellNbrs[i] = spatNbrsPerCell[i];
-      }
-      if (MPI_Waitall(2*N_processes,mpiRequests,MPI_STATUSES_IGNORE) != MPI_SUCCESS) success = false;
-      delete cellsPerProcess;
-      cellIDs.resize(0);
-      spatNbrsPerCell.resize(0);
-   } else {
-      // Slave processes post receives and wait:
-      mpiRequests = new MPI_Request[2];
-      MPI_Irecv(myCellIDs ,N_myCells,MPI_Type<VC::ID>(),MASTER_RANK,myrank,comm,&(mpiRequests[0]));
-      MPI_Irecv(myCellNbrs,N_myCells,MPI_Type<uchar>() ,MASTER_RANK,myrank,comm,&(mpiRequests[1]));
-      if (MPI_Waitall(2,mpiRequests,MPI_STATUSES_IGNORE) != MPI_SUCCESS) success = false;
+      displacements = new int[N_processes];
+      displacements[0] = 0;
+      for (int proc=1; proc<N_processes; ++proc) displacements[proc] = displacements[proc-1] + cellsPerProcess[proc-1];
    }
-   delete mpiRequests;
-   
+   MPI_Scatterv(&(cellIDs[0]),        cellsPerProcess,displacements,MPI_Type<VC::ID>(),myCellIDs, N_myCells,MPI_Type<VC::ID>(),MASTER_RANK,comm);
+   MPI_Scatterv(&(spatNbrsPerCell[0]),cellsPerProcess,displacements,MPI_Type<uchar>() ,myCellNbrs,N_myCells,MPI_Type<uchar>(), MASTER_RANK,comm);
+   delete displacements;
+   delete cellsPerProcess;
+   cellsPerProcess = NULL;
+   displacements=NULL;
+
    // Now every process knows how many cells it will initially have, as well as 
    // the number of spatial neighbours and velocity blocks for every cell. Very likely 
    // the obtained partitioning of cells is a poor one, thus we should do an initial 
@@ -527,14 +541,15 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid,MPI_Comm comm,const int& MASTER_RAN
    // and wait for data to arrive (all):
    neighbourCount = 0;
 
-   if (builder->addCellNbrRequests(N_myCells,N_myNbrCount,myCellIDs,myCellNbrs,coordsBuffer,nbrIDBuffer,nbrTypesBuffer) == false) return false;
+   if (builder->addCellNbrRequests(N_myCells,N_myNbrCount,myCellOffset,myNbrOffset,myCellIDs,
+				   myCellNbrs,coordsBuffer,nbrIDBuffer,nbrTypesBuffer) == false) return false;
    if (builder->processCellNbrRequests() == false) success = false;
    if (builder->waitCellNbrRequests() == false) success = false;
 
    if (success == false) {
       cerr << "Failed to get cell nbr data!" << endl;
    }
-
+   
    // Now we have the cell IDs, their global IDs of their neighbours and cell coordinates. 
    // We can add cells to parallel grid:
    neighbourCount = 0;
@@ -548,14 +563,13 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid,MPI_Comm comm,const int& MASTER_RAN
       if (mpiGrid.addCell(myCellIDs[i],&(coordsBuffer[i*6]),&(coordsBuffer[i*6+3]),tmpNbrIDs,tmpNbrTypes) == false) success = false;
       neighbourCount += myCellNbrs[i];
    }
-   if (success == true) if (mpiGrid.initialize() == false) success = false;
+   if (success == true) if (mpiGrid.initialize(builder->doInitialLoadBalance()) == false) success = false;
    
    // Check that everything is ok:
    if (MPI_Allreduce(&success,&globalSuccess,1,MPI_Type<uchar>(),MPI_MIN,comm) != MPI_SUCCESS) {
       cerr << "(BUILDGRID) ERROR: Allreduce failed!" << std::endl; exit(1);
    }
    if (globalSuccess == false) success = false;
-   delete myCellIDs;
    delete myCellNbrs;
    delete coordsBuffer;
    delete nbrIDBuffer;
@@ -563,11 +577,16 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid,MPI_Comm comm,const int& MASTER_RAN
    nbrTypesBuffer = NULL;
    nbrIDBuffer = NULL;
    coordsBuffer = NULL;
-   myCellIDs = NULL;
    myCellNbrs = NULL;
+   // Delete following arrays if initial lb was done because their contents have changed:
+   if (builder->doInitialLoadBalance() == true) {
+      delete myCellIDs;
+      myCellIDs = NULL;
+   }
    
    // Parallel grid has possibly done a load balance, so we need to request them 
    // from the grid (instead of using the ones we got from GridBuilder).
+   /*
    vector<ID::type> localCells;
    mpiGrid.getCells(localCells);
    myCellIDs = new VC::ID[localCells.size()];
@@ -587,13 +606,24 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid,MPI_Comm comm,const int& MASTER_RAN
       // here):
       myCellIDs[i] = localCells[i];
    }
+   */
+   // If initial lb was done request new cell IDs from parallel grid:
+   if (builder->doInitialLoadBalance() == true) {
+      vector<ID::type> localCells;
+      mpiGrid.getCells(localCells);
+      N_myCells = localCells.size();
+      myCellIDs = new VC::ID[N_myCells];
+      for (size_t i=0; i<localCells.size(); ++i) myCellIDs[i] = localCells[i];
+   }
+   
    Real* cellParamsBuffer = new Real[SIZE_CELLPARAMS*N_myCells];
-   if (builder->addCellParamsRequests(N_myCells,myCellIDs,cellParamsBuffer) == false) success = false;
+   if (builder->addCellParamsRequests(N_myCells,myCellOffset,myCellIDs,cellParamsBuffer) == false) success = false;
    if (builder->processCellParamsRequests() == false) success = false;
    if (builder->waitCellParamsRequests() == false) success = false;
 
    for (VC::ID i=0; i<N_myCells; ++i) {
-      SpatialCell* SC = mpiGrid[localCells[i]];
+      //SpatialCell* SC = mpiGrid[localCells[i]];
+      SpatialCell* SC = mpiGrid[myCellIDs[i]];
       for (uint j=0; j<SIZE_CELLPARAMS; ++j) SC->cpu_cellParams[j] = cellParamsBuffer[i*SIZE_CELLPARAMS+j];
    }
    delete cellParamsBuffer;
@@ -602,32 +632,53 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid,MPI_Comm comm,const int& MASTER_RAN
    // Get the number of velocity blocks per cell so that we can allocate memory for 
    // blocks and block neighbour lists:
    uint* blocksPerCell = new uint[N_myCells];
-   builder->addCellBlockNumberRequests(N_myCells,myCellIDs,blocksPerCell);
+   builder->addCellBlockNumberRequests(N_myCells,myCellOffset,myCellIDs,blocksPerCell);
    builder->processCellBlockNumberRequests();
    builder->waitCellBlockNumberRequests();
-   for (size_t i=0; i<localCells.size(); ++i) {
+   /*for (size_t i=0; i<localCells.size(); ++i) {
       mpiGrid[localCells[i]]->initialize(blocksPerCell[i]);
-   }
+   }*/
+   for (VC::ID i=0; i<N_myCells; ++i) mpiGrid[myCellIDs[i]]->initialize(blocksPerCell[i]);
 
+   // Count the total number of velocity blocks on this process and share 
+   // the result with other processes:
+   VirtualCell::ID N_blocks = 0;
+   for (VirtualCell::ID i=0; i<N_myCells; ++i) N_blocks += blocksPerCell[i];
+   VirtualCell::ID* blockOffsets = new VirtualCell::ID[N_processes];
+   MPI_Allgather(&N_blocks,1,MPI_Type<VirtualCell::ID>(),blockOffsets,1,MPI_Type<VirtualCell::ID>(),comm);
+   
+   // Calculate offsets into block array data (needed for reading restart file):
+   VirtualCell::ID sum = 0;
+   for (VirtualCell::ID i=0; i<N_processes; ++i) {
+      VirtualCell::ID tmp = blockOffsets[i];
+      blockOffsets[i] = sum;
+      sum += tmp;
+   }
+   VirtualCell::ID myBlockOffset = blockOffsets[myrank];
+   delete blockOffsets;
+   blockOffsets = NULL;
+   
    // Now we can finally load values of distribution function, block parameters 
    // and neighbour lists for each block:
    Real** avgsBuffer        = new Real*[N_myCells];
    Real** blockParamsBuffer = new Real*[N_myCells];
    uint** nbrsVelBuffer     = new uint*[N_myCells];
-   for (size_t i=0; i<localCells.size(); ++i) {
-      SpatialCell* SC      = mpiGrid[localCells[i]];
+   for (VC::ID i=0; i<N_myCells; ++i) {
+   //for (size_t i=0; i<localCells.size(); ++i) {
+      //SpatialCell* SC      = mpiGrid[localCells[i]];
+      SpatialCell* SC      = mpiGrid[myCellIDs[i]];
       avgsBuffer[i]        = SC->cpu_avgs;
       blockParamsBuffer[i] = SC->cpu_blockParams;
-      nbrsVelBuffer[i]     = SC->cpu_nbrsVel;
-      
-      for (uint j=0; j<SIZE_VELBLOCK*blocksPerCell[i]; ++j) avgsBuffer[i][j] = 1.0;
+      nbrsVelBuffer[i]     = SC->cpu_nbrsVel;      
+      //for (uint j=0; j<SIZE_VELBLOCK*blocksPerCell[i]; ++j) avgsBuffer[i][j] = 1.0;
    }
-   if (builder->addCellBlockDataRequests(N_myCells,myCellIDs,blocksPerCell,avgsBuffer,blockParamsBuffer,nbrsVelBuffer) == false) success = false;
+   if (builder->addCellBlockDataRequests(N_myCells,myBlockOffset,myCellIDs,blocksPerCell,avgsBuffer,blockParamsBuffer,nbrsVelBuffer) == false) success = false;
    if (builder->processCellBlockDataRequests() == false) success = false;
    if (builder->waitCellBlockDataRequests() == false) success = false;
 
    // Deallocate memory:
-   for (VC::ID i=0; i<localCells.size(); ++i) {
+   for (VC::ID i=0; i<N_myCells; ++i) {
+   //for (VC::ID i=0; i<localCells.size(); ++i) {
       avgsBuffer[i] = NULL;
       blockParamsBuffer[i] = NULL;
       nbrsVelBuffer[i] = NULL;

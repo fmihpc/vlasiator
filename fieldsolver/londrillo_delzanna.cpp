@@ -32,19 +32,17 @@
 #include "../arrayallocator.h"
 #include "../fieldsolver.h"
 #include "../priorityqueue.h"
-#include "limiters.h"
-
 #include "../transferstencil.h"
+#include "limiters.h"
+#include "../project.h"
 
 using namespace std;
 
 #ifdef PARGRID
    typedef uint CellID;
-   //const CellID INVALID_CELLID = numeric_limits<CellID>::max();
 #else
    #include <stdint.h>
    typedef uint64_t CellID;
-   //const CellID INVALID_CELLID = 0;
 #endif
 
 static creal EPS = 1.0e-30;
@@ -74,8 +72,8 @@ static map<CellID,uint> boundaryFlags;        // Boundary status flags for all c
 					      // should only change for a cell if some of its neighbours are deleted or 
 					      // created during the simulation.
 
-static TransferStencil<CellID> stencil1(Parameters::INVALID_CELLID);     // MPI-stencil used to receive data for derivatives & edge-E calculation
-static TransferStencil<CellID> stencil2(Parameters::INVALID_CELLID);     // MPI-stencil used to receive data for propagation of B
+static TransferStencil<CellID> stencil1(INVALID_CELLID);     // MPI-stencil used to receive data for derivatives & edge-E calculation
+static TransferStencil<CellID> stencil2(INVALID_CELLID);     // MPI-stencil used to receive data for propagation of B
 
 static uint CALCULATE_DX; /**< Bit mask determining if x-derivatives can be calculated on a cell.*/
 static uint CALCULATE_DY; /**< Bit mask determining if y-derivatives can be calculated on a cell.*/
@@ -86,24 +84,6 @@ static uint CALCULATE_EZ; /**< Bit mask determining if edge Ez can be calculated
 static uint PROPAGATE_BX; /**< Bit mask determining if face Bx is propagated on a cell.*/
 static uint PROPAGATE_BY; /**< Bit mask determining if face By is propagated on a cell.*/
 static uint PROPAGATE_BZ; /**< Bit mask determining if face Bz is propagated on a cell.*/
-
-static uint BX_FROM_Y_POS;
-static uint BX_FROM_Y_NEG;
-static uint BX_FROM_Z_NEG;
-static uint BX_FROM_Z_POS;
-static uint BOUNDARY_BX_MASK;
-
-static uint BY_FROM_X_POS;
-static uint BY_FROM_X_NEG;
-static uint BY_FROM_Z_NEG;
-static uint BY_FROM_Z_POS;
-static uint BOUNDARY_BY_MASK;
-
-static uint BZ_FROM_Y_POS;
-static uint BZ_FROM_Y_NEG;
-static uint BZ_FROM_X_NEG;
-static uint BZ_FROM_X_POS;
-static uint BOUNDARY_BZ_MASK;
 
 // Constants: not needed as such, but if field solver is implemented on GPUs 
 // these force CPU to use float accuracy, which in turn helps to compare 
@@ -141,116 +121,7 @@ CellID getNeighbourID(ParGrid<SpatialCell>& mpiGrid,const CellID& cellID,const u
    return mpiGrid.getNeighbour(cellID,nbrTypeID);
 }
 
-static void boundaryConditionBx(ParGrid<SpatialCell>& mpiGrid,Real* const cellParams,const CellID& cellID,cuint& boundaryFlag) {
-   // If -x neighbour is missing it is difficult to calculate Bx 
-   // and maintain div B = 0.
-   typedef Parameters P;
-   
-   cuint result = (boundaryFlag & BOUNDARY_BX_MASK);
-   if (result == BX_FROM_Y_NEG) {
-      cuint nbrID = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,1,2));
-      #ifndef NDEBUG
-         if (nbrID == P::INVALID_CELLID) {cerr << "ERROR Could not find -y neighbour!" << endl; exit(1);}
-      #endif
-      cellParams[CellParams::BX] = mpiGrid[nbrID]->cpu_cellParams[CellParams::BX]; // BOUNDARY CONDITION
-   } else if (result == BX_FROM_Y_POS) {
-      cuint nbrID = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,3,2));
-      #ifndef NDEBUG
-         if (nbrID == P::INVALID_CELLID) {cerr << "ERROR Could not find +y neighbour!" << endl; exit(1);}
-      #endif
-      cellParams[CellParams::BX] = mpiGrid[nbrID]->cpu_cellParams[CellParams::BX]; // BOUNDARY CONDITION
-   } else if (result == BX_FROM_Z_NEG) {
-      cuint nbrID = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,2,1));
-      #ifndef NDEBUG
-         if (nbrID == P::INVALID_CELLID) {cerr << "ERROR Could not find -z neighbour!" << endl; exit(1);}
-      #endif 
-      cellParams[CellParams::BX] = mpiGrid[nbrID]->cpu_cellParams[CellParams::BX]; // BOUNDARY CONDITION
-   } else if (result == BX_FROM_Z_POS) {
-      cuint nbrID = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,2,3));
-      #ifndef NDEBUG
-         if (nbrID == P::INVALID_CELLID) {cerr << "ERROR Could not find +z neighbour!" << endl; exit(1);}
-      #endif
-      cellParams[CellParams::BX] = mpiGrid[nbrID]->cpu_cellParams[CellParams::BX]; // BOUNDARY CONDITION
-   } else {
-      cellParams[CellParams::BX] = 0.0; // Dummy value, error in propagator if ends up being used
-   }
-}
-
-static void boundaryConditionBy(ParGrid<SpatialCell>& mpiGrid,Real* const cellParams,const CellID& cellID,cuint& boundaryFlag) {
-   // If -y neighbour is missing it is difficult to calculate By
-   // and maintain div B = 0.
-   typedef Parameters P;
-   
-   cuint result = (boundaryFlag & BOUNDARY_BY_MASK);
-   if (result == BY_FROM_X_NEG) {
-      cuint nbrID = mpiGrid.getNeighbour(cellID,calcNbrTypeID(1,2,2));
-      #ifndef NDEBUG
-         if (nbrID == P::INVALID_CELLID) {cerr << "ERROR Could not find -x neighbour!" << endl; exit(1);}
-      #endif
-      cellParams[CellParams::BY] = mpiGrid[nbrID]->cpu_cellParams[CellParams::BY]; // BOUNDARY CONDITION
-   } else if (result == BY_FROM_X_POS) {
-      cuint nbrID = mpiGrid.getNeighbour(cellID,calcNbrTypeID(3,2,2));
-      #ifndef NDEBUG
-         if (nbrID == P::INVALID_CELLID) {cerr << "ERROR Could not find +x neighbour!" << endl; exit(1);}
-      #endif
-      cellParams[CellParams::BY] = mpiGrid[nbrID]->cpu_cellParams[CellParams::BY]; // BOUNDARY CONDITION
-   } else if (result == BY_FROM_Z_NEG) {
-      cuint nbrID = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,2,1));
-      #ifndef NDEBUG
-         if (nbrID == P::INVALID_CELLID) {cerr << "ERROR Could not find -y neighbour!" << endl; exit(1);}
-      #endif
-      cellParams[CellParams::BY] = mpiGrid[nbrID]->cpu_cellParams[CellParams::BY]; // BOUNDARY CONDITION
-   } else if (result == BY_FROM_Z_POS) {
-      cuint nbrID = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,2,3));
-      #ifndef NDEBUG
-         if (nbrID == P::INVALID_CELLID) {cerr << "ERROR Could not find +y neighbour!" << endl; exit(1);}
-      #endif
-      cellParams[CellParams::BY] = mpiGrid[nbrID]->cpu_cellParams[CellParams::BY]; // BOUNDARY CONDITION
-   } else {
-      cellParams[CellParams::BY] = 0.0; // Dummy value, error in propagator if ends up being used
-   }   
-}
-
-static void boundaryConditionBz(ParGrid<SpatialCell>& mpiGrid,Real* const cellParams,const CellID& cellID,cuint& boundaryFlag) {
-   typedef Parameters P;
-   // If -z neighbour is missing it is difficult to calculate Bz and maintain div B = 0.
-   // Bz should not be needed on -z boundaries anyway, thus Bz is not calculated on those cells.
-
-   // switch statement would be ideal here, but you can only use
-   // const values in case. In principle the required const values 
-   // can be calculated by hand.
-   cuint result = (boundaryFlag & BOUNDARY_BZ_MASK);
-   if (result == BZ_FROM_X_NEG) {
-      cuint nbrID = mpiGrid.getNeighbour(cellID,calcNbrTypeID(1,2,2));
-      #ifndef NDEBUG
-         if (nbrID == P::INVALID_CELLID) {cerr << "ERROR Could not find -x neighbour!" << endl; exit(1);}
-      #endif
-      cellParams[CellParams::BZ] = mpiGrid[nbrID]->cpu_cellParams[CellParams::BZ]; // BOUNDARY CONDITION
-   } else if (result == BZ_FROM_X_POS) {
-      cuint nbrID = mpiGrid.getNeighbour(cellID,calcNbrTypeID(3,2,2));
-      #ifndef NDEBUG
-         if (nbrID == P::INVALID_CELLID) {cerr << "ERROR Could not find +x neighbour!" << endl; exit(1);}
-      #endif
-      cellParams[CellParams::BZ] = mpiGrid[nbrID]->cpu_cellParams[CellParams::BZ]; // BOUNDARY CONDITION
-   } else if (result == BZ_FROM_Y_NEG) {
-      cuint nbrID = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,1,2));
-      #ifndef NDEBUG
-         if (nbrID == P::INVALID_CELLID) {cerr << "ERROR Could not find -y neighbour!" << endl; exit(1);}
-      #endif
-      cellParams[CellParams::BZ] = mpiGrid[nbrID]->cpu_cellParams[CellParams::BZ]; // BOUNDARY CONDITION
-   } else if (result == BZ_FROM_Y_POS) {
-      cuint nbrID = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,3,2));
-      #ifndef NDEBUG
-         if (nbrID == P::INVALID_CELLID) {cerr << "ERROR Could not find +y neighbour!" << endl; exit(1);}
-      #endif
-      cellParams[CellParams::BZ] = mpiGrid[nbrID]->cpu_cellParams[CellParams::BZ]; // BOUNDARY CONDITION
-   } else {
-      cellParams[CellParams::BZ] = 0.0; // Dummy value, error in propagator if ends up being used
-   }
-}
-
 static void calculateBoundaryFlags(ParGrid<SpatialCell>& mpiGrid,const vector<CellID>& localCells) {
-   typedef Parameters P;
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];
       
@@ -261,7 +132,7 @@ static void calculateBoundaryFlags(ParGrid<SpatialCell>& mpiGrid,const vector<Ce
       for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
 	 if (i == 0 && (j == 0 && k == 0)) continue;
 	 const CellID nbr = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2+i,2+j,2+k));
-	 if (nbr == P::INVALID_CELLID) continue;
+	 if (nbr == INVALID_CELLID) continue;
 	 boundaryFlag = boundaryFlag | (1 << calcNbrNumber(1+i,1+j,1+k));
       }
       boundaryFlags[cellID] = boundaryFlag;
@@ -278,17 +149,18 @@ static void calculateDerivatives(const CellID& cellID,ParGrid<SpatialCell>& mpiG
    #ifndef NDEBUG
       map<CellID,uint>::const_iterator it = boundaryFlags.find(cellID);
       if (it == boundaryFlags.end()) {cerr << "ERROR Could not find boundary flag for cell #" << cellID << endl; exit(1);}
-      cuint boundaryFlag = it->second;
+      cuint existingCells = it->second;
    #else
-      cuint boundaryFlag = boundaryFlags[cellID];
+      cuint existingCells = boundaryFlags[cellID];
    #endif
+   cuint nonExistingCells = (existingCells ^ numeric_limits<uint>::max());
    
    CellID leftNbrID,rghtNbrID;
    creal* left = NULL;
    creal* cent = mpiGrid[cellID   ]->cpu_cellParams;
    creal* rght = NULL;
    // Calculate x-derivatives (is not TVD for AMR mesh):
-   if ((boundaryFlag & CALCULATE_DX) == CALCULATE_DX) {
+   if ((existingCells & CALCULATE_DX) == CALCULATE_DX) {
       leftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2  ,2  );
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2  ,2  );
       left = mpiGrid[leftNbrID]->cpu_cellParams;
@@ -300,16 +172,11 @@ static void calculateDerivatives(const CellID& cellID,ParGrid<SpatialCell>& mpiG
       array[fs::dVydx]  = limiter(left[cp::RHOVY]/left[cp::RHO],cent[cp::RHOVY]/cent[cp::RHO],rght[cp::RHOVY]/rght[cp::RHO]);
       array[fs::dVzdx]  = limiter(left[cp::RHOVZ]/left[cp::RHO],cent[cp::RHOVZ]/cent[cp::RHO],rght[cp::RHOVZ]/rght[cp::RHO]);
    } else {
-      array[fs::drhodx] = 0.0;
-      array[fs::dBydx]  = 0.0;
-      array[fs::dBzdx]  = 0.0;
-      array[fs::dVxdx]  = 0.0;
-      array[fs::dVydx]  = 0.0;
-      array[fs::dVzdx]  = 0.0;
+      fieldSolverBoundaryCondDerivX(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid);
    }
    
    // Calculate y-derivatives (is not TVD for AMR mesh):
-   if ((boundaryFlag & CALCULATE_DY) == CALCULATE_DY) {
+   if ((existingCells & CALCULATE_DY) == CALCULATE_DY) {
       leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2-1,2  );
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2+1,2  );
       left = mpiGrid[leftNbrID]->cpu_cellParams;
@@ -321,16 +188,11 @@ static void calculateDerivatives(const CellID& cellID,ParGrid<SpatialCell>& mpiG
       array[fs::dVydy]  = limiter(left[cp::RHOVY]/left[cp::RHO],cent[cp::RHOVY]/cent[cp::RHO],rght[cp::RHOVY]/rght[cp::RHO]);
       array[fs::dVzdy]  = limiter(left[cp::RHOVZ]/left[cp::RHO],cent[cp::RHOVZ]/cent[cp::RHO],rght[cp::RHOVZ]/rght[cp::RHO]);
    } else {
-      array[fs::drhody] = 0.0;
-      array[fs::dBxdy]  = 0.0;
-      array[fs::dBzdy]  = 0.0;
-      array[fs::dVxdy]  = 0.0;
-      array[fs::dVydy]  = 0.0;
-      array[fs::dVzdy]  = 0.0;
+      fieldSolverBoundaryCondDerivY(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid);
    }
    
    // Calculate z-derivatives (is not TVD for AMR mesh):
-   if ((boundaryFlag & CALCULATE_DZ) == CALCULATE_DZ) {
+   if ((existingCells & CALCULATE_DZ) == CALCULATE_DZ) {
       leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2-1);
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2+1);
       left = mpiGrid[leftNbrID]->cpu_cellParams;
@@ -342,12 +204,7 @@ static void calculateDerivatives(const CellID& cellID,ParGrid<SpatialCell>& mpiG
       array[fs::dVydz]  = limiter(left[cp::RHOVY]/left[cp::RHO],cent[cp::RHOVY]/cent[cp::RHO],rght[cp::RHOVY]/rght[cp::RHO]);
       array[fs::dVzdz]  = limiter(left[cp::RHOVZ]/left[cp::RHO],cent[cp::RHOVZ]/cent[cp::RHO],rght[cp::RHOVZ]/rght[cp::RHO]);
    } else {
-      array[fs::drhodz] = 0.0;
-      array[fs::dBxdz]  = 0.0;
-      array[fs::dBydz]  = 0.0;
-      array[fs::dVxdz]  = 0.0;
-      array[fs::dVydz]  = 0.0;
-      array[fs::dVzdz]  = 0.0;
+      fieldSolverBoundaryCondDerivZ(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid);
    }
 }
 
@@ -423,7 +280,6 @@ template<typename REAL> REAL calculateFastMSspeedXY(const REAL* cp,const REAL* d
 
 static void calculateEdgeElectricFieldX(const CellID& cellID,ParGrid<SpatialCell>& mpiGrid) {
    namespace fs = fieldsolver;
-   typedef Parameters P;
    
    // An edge has four neighbouring spatial cells. Calculate
    // electric field in each of the four cells per edge.   
@@ -437,9 +293,9 @@ static void calculateEdgeElectricFieldX(const CellID& cellID,ParGrid<SpatialCell
    const CellID nbr_NE = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2  ,2-1,2-1));
    const CellID nbr_NW = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2  ,2  ,2-1));
    #ifndef NDEBUG
-      if (nbr_SE == P::INVALID_CELLID) {cerr << "ERROR: Could not find SE neighbour!" << endl; exit(1);}
-      if (nbr_NE == P::INVALID_CELLID) {cerr << "ERROR: Could not find NE neighbour!" << endl; exit(1);}
-      if (nbr_NW == P::INVALID_CELLID) {cerr << "ERROR: Could not find NW neighbour!" << endl; exit(1);}
+      if (nbr_SE == INVALID_CELLID) {cerr << "ERROR: Could not find SE neighbour!" << endl; exit(1);}
+      if (nbr_NE == INVALID_CELLID) {cerr << "ERROR: Could not find NE neighbour!" << endl; exit(1);}
+      if (nbr_NW == INVALID_CELLID) {cerr << "ERROR: Could not find NW neighbour!" << endl; exit(1);}
    #endif
    
    Real*  const cp_SW = mpiGrid[cellID]->cpu_cellParams;
@@ -572,7 +428,6 @@ static void calculateEdgeElectricFieldY(const CellID& cellID,ParGrid<SpatialCell
    // An edge has four neighbouring spatial cells. Calculate
    // electric field in each of the four cells per edge. 
    namespace fs = fieldsolver;
-   typedef Parameters P;
    
    Real ax_pos,ax_neg;              // Max. characteristic velocities to x-direction
    Real az_pos,az_neg;              // Max. characteristic velocities to y-direction
@@ -584,9 +439,9 @@ static void calculateEdgeElectricFieldY(const CellID& cellID,ParGrid<SpatialCell
    const CellID nbr_NW = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2-1,2  ,2  ));
    const CellID nbr_NE = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2-1,2  ,2-1));
    #ifndef NDEBUG
-      if (nbr_SE == P::INVALID_CELLID) {cerr << "ERROR: Could not find SE neighbour!" << endl; exit(1);}
-      if (nbr_NE == P::INVALID_CELLID) {cerr << "ERROR: Could not find NE neighbour!" << endl; exit(1);}
-      if (nbr_NW == P::INVALID_CELLID) {cerr << "ERROR: Could not find NW neighbour!" << endl; exit(1);}
+      if (nbr_SE == INVALID_CELLID) {cerr << "ERROR: Could not find SE neighbour!" << endl; exit(1);}
+      if (nbr_NE == INVALID_CELLID) {cerr << "ERROR: Could not find NE neighbour!" << endl; exit(1);}
+      if (nbr_NW == INVALID_CELLID) {cerr << "ERROR: Could not find NW neighbour!" << endl; exit(1);}
    #endif
    
    Real* const  cp_SW = mpiGrid[cellID]->cpu_cellParams;
@@ -717,7 +572,6 @@ static void calculateEdgeElectricFieldY(const CellID& cellID,ParGrid<SpatialCell
 static void calculateEdgeElectricFieldZ(const CellID& cellID,ParGrid<SpatialCell>& mpiGrid) {
    namespace fs = fieldsolver;
    namespace pc = physicalconstants;
-   typedef Parameters P;
    
    // An edge has four neighbouring spatial cells. Calculate 
    // electric field in each of the four cells per edge.
@@ -731,9 +585,9 @@ static void calculateEdgeElectricFieldZ(const CellID& cellID,ParGrid<SpatialCell
    const CellID nbr_NE = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2-1,2-1,2  ));
    const CellID nbr_NW = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2  ,2-1,2  ));
    #ifndef NDEBUG
-      if (nbr_SE == P::INVALID_CELLID) {cerr << "ERROR: Could not find SE neighbour!" << endl; exit(1);}
-      if (nbr_NE == P::INVALID_CELLID) {cerr << "ERROR: Could not find NE neighbour!" << endl; exit(1);}
-      if (nbr_NW == P::INVALID_CELLID) {cerr << "ERROR: Could not find NW neighbour!" << endl; exit(1);}
+      if (nbr_SE == INVALID_CELLID) {cerr << "ERROR: Could not find SE neighbour!" << endl; exit(1);}
+      if (nbr_NE == INVALID_CELLID) {cerr << "ERROR: Could not find NE neighbour!" << endl; exit(1);}
+      if (nbr_NW == INVALID_CELLID) {cerr << "ERROR: Could not find NW neighbour!" << endl; exit(1);}
    #endif
    
    Real* const cp_SW  = mpiGrid[cellID]->cpu_cellParams;
@@ -865,7 +719,6 @@ static void calculateEdgeElectricFieldZ(const CellID& cellID,ParGrid<SpatialCell
 
 static void calculateTransferStencil1(ParGrid<SpatialCell>& mpiGrid,const vector<CellID>& localCells,
 				      TransferStencil<CellID>& stencil) {
-   typedef Parameters P;
    CellID cellID;
 
    // Flag neighbour bits for each existing neighbour
@@ -876,7 +729,7 @@ static void calculateTransferStencil1(ParGrid<SpatialCell>& mpiGrid,const vector
       uint boundaryFlag = (1 << calcNbrNumber(1,1,1)); // The cell itself exists (bit 13 set to 1)
       for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
 	 if (i == 0 && (j == 0 && k == 0)) continue;
-	 if (mpiGrid.getNeighbour(cellID,calcNbrTypeID(2+i,2+j,2+k)) == P::INVALID_CELLID) continue;	 
+	 if (mpiGrid.getNeighbour(cellID,calcNbrTypeID(2+i,2+j,2+k)) == INVALID_CELLID) continue;	 
 	 boundaryFlag = boundaryFlag | (1 << calcNbrNumber(1+i,1+j,1+k));
       }
       boundaryFlags[cellID] = boundaryFlag;
@@ -1018,115 +871,6 @@ bool initializeFieldPropagator(ParGrid<SpatialCell>& mpiGrid) {
    PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(2,1,1)); // +x nbr
    PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,0,1)); // -y nbr
    PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,2,1)); // +y nbr
-
-   // Bx is calculated using value from -y neighbour, if -y, +/-z, -x neighbours exist:
-   BX_FROM_Y_NEG = 0;
-   BX_FROM_Y_NEG = BX_FROM_Y_NEG | (1 << calcNbrNumber(1,0,1));
-   BX_FROM_Y_NEG = BX_FROM_Y_NEG | (1 << calcNbrNumber(1,1,0));
-   BX_FROM_Y_NEG = BX_FROM_Y_NEG | (1 << calcNbrNumber(1,1,2));
-   BX_FROM_Y_NEG = BX_FROM_Y_NEG | (1 << calcNbrNumber(0,1,1));
-
-   // Bx is calculated using value from +y neighbour, if +y, +/-z, -x neighbours exist:
-   BX_FROM_Y_POS = 0;
-   BX_FROM_Y_POS = BX_FROM_Y_POS | (1 << calcNbrNumber(1,2,1));
-   BX_FROM_Y_POS = BX_FROM_Y_POS | (1 << calcNbrNumber(1,1,0));
-   BX_FROM_Y_POS = BX_FROM_Y_POS | (1 << calcNbrNumber(1,1,2));
-   BX_FROM_Y_POS = BX_FROM_Y_POS | (1 << calcNbrNumber(0,1,1));
-   
-   // Bx is calculated using value from -z neighbour, -z, if +/-y, -x neighbours exist:
-   BX_FROM_Z_NEG = 0;
-   BX_FROM_Z_NEG = BX_FROM_Z_NEG | (1 << calcNbrNumber(1,0,1));
-   BX_FROM_Z_NEG = BX_FROM_Z_NEG | (1 << calcNbrNumber(1,2,1));
-   BX_FROM_Z_NEG = BX_FROM_Z_NEG | (1 << calcNbrNumber(1,1,0));
-   BX_FROM_Z_NEG = BX_FROM_Z_NEG | (1 << calcNbrNumber(0,1,1));
-   
-   // Bx is calculated using value from +z neighbour, if +z, +/-y, -x neighbours exist:
-   BX_FROM_Z_POS = 0;
-   BX_FROM_Z_POS = BX_FROM_Z_POS | (1 << calcNbrNumber(1,0,1));
-   BX_FROM_Z_POS = BX_FROM_Z_POS | (1 << calcNbrNumber(1,2,1));
-   BX_FROM_Z_POS = BX_FROM_Z_POS | (1 << calcNbrNumber(1,1,2));
-   BX_FROM_Z_POS = BX_FROM_Z_POS | (1 << calcNbrNumber(0,1,1));
-   
-   // Test existence of -x, +/-y, +/-z neighbours for Bx boundary condition:
-   BOUNDARY_BX_MASK = 0;
-   BOUNDARY_BX_MASK = BOUNDARY_BX_MASK | (1 << calcNbrNumber(0,1,1));
-   BOUNDARY_BX_MASK = BOUNDARY_BX_MASK | (1 << calcNbrNumber(1,0,1));
-   BOUNDARY_BX_MASK = BOUNDARY_BX_MASK | (1 << calcNbrNumber(1,2,1));
-   BOUNDARY_BX_MASK = BOUNDARY_BX_MASK | (1 << calcNbrNumber(1,1,0));
-   BOUNDARY_BX_MASK = BOUNDARY_BX_MASK | (1 << calcNbrNumber(1,1,2));
-   
-   // By is calculated using value from -x neighbour, if -x, -y, +/-z neighbours exist:
-   BY_FROM_X_NEG = 0;
-   BY_FROM_X_NEG = BY_FROM_X_NEG | (1 << calcNbrNumber(0,1,1));
-   BY_FROM_X_NEG = BY_FROM_X_NEG | (1 << calcNbrNumber(1,1,0));
-   BY_FROM_X_NEG = BY_FROM_X_NEG | (1 << calcNbrNumber(1,1,2));
-   BY_FROM_X_NEG = BY_FROM_X_NEG | (1 << calcNbrNumber(1,0,1));
-   
-   // By is calculated using value from +x neighbour, if +x, -y, +/-z neighbours exist:
-   BY_FROM_X_POS = 0;
-   BY_FROM_X_POS = BY_FROM_X_POS | (1 << calcNbrNumber(2,1,1));
-   BY_FROM_X_POS = BY_FROM_X_POS | (1 << calcNbrNumber(1,1,0));
-   BY_FROM_X_POS = BY_FROM_X_POS | (1 << calcNbrNumber(1,1,2));
-   BY_FROM_X_POS = BY_FROM_X_POS | (1 << calcNbrNumber(1,0,1));
-   
-   // By is calculated using value from -z neighbour, if +/-x, -y, -z neighbours exist:
-   BY_FROM_Z_NEG = 0;
-   BY_FROM_Z_NEG = BY_FROM_Z_NEG | (1 << calcNbrNumber(0,1,1));
-   BY_FROM_Z_NEG = BY_FROM_Z_NEG | (1 << calcNbrNumber(2,1,1));
-   BY_FROM_Z_NEG = BY_FROM_Z_NEG | (1 << calcNbrNumber(1,1,0));
-   BY_FROM_Z_NEG = BY_FROM_Z_NEG | (1 << calcNbrNumber(1,0,1));
-   
-   // By is calculated using value from +z neighbour, if +/-x, -y, +z neighbours exist:
-   BY_FROM_Z_POS = 0;
-   BY_FROM_Z_POS = BY_FROM_Z_POS | (1 << calcNbrNumber(0,1,1));
-   BY_FROM_Z_POS = BY_FROM_Z_POS | (1 << calcNbrNumber(2,1,1));
-   BY_FROM_Z_POS = BY_FROM_Z_POS | (1 << calcNbrNumber(1,1,2));
-   BY_FROM_Z_POS = BY_FROM_Z_POS | (1 << calcNbrNumber(1,0,1));
-   
-   // Test existence of +/-x, -y, +/-z neighbours for By boundary condition:
-   BOUNDARY_BY_MASK = 0;
-   BOUNDARY_BY_MASK = BOUNDARY_BY_MASK | (1 << calcNbrNumber(0,1,1));
-   BOUNDARY_BY_MASK = BOUNDARY_BY_MASK | (1 << calcNbrNumber(2,1,1));
-   BOUNDARY_BY_MASK = BOUNDARY_BY_MASK | (1 << calcNbrNumber(1,0,1));
-   BOUNDARY_BY_MASK = BOUNDARY_BY_MASK | (1 << calcNbrNumber(1,1,0));
-   BOUNDARY_BY_MASK = BOUNDARY_BY_MASK | (1 << calcNbrNumber(1,1,2));
-
-   // Bz is calculated using value from -x neighbour, if -x, +/-y, -z neighbours exist:
-   BZ_FROM_X_NEG = 0;
-   BZ_FROM_X_NEG = BZ_FROM_X_NEG | (1 << calcNbrNumber(0,1,1));
-   BZ_FROM_X_NEG = BZ_FROM_X_NEG | (1 << calcNbrNumber(1,0,1));
-   BZ_FROM_X_NEG = BZ_FROM_X_NEG | (1 << calcNbrNumber(1,2,1));
-   BZ_FROM_X_NEG = BZ_FROM_X_NEG | (1 << calcNbrNumber(1,1,0));
-
-   // Bz is calculated using value from +x neighbour, if +x, +/-y, -z neighbours exist:
-   BZ_FROM_X_POS = 0;
-   BZ_FROM_X_POS = BZ_FROM_X_POS | (1 << calcNbrNumber(2,1,1));
-   BZ_FROM_X_POS = BZ_FROM_X_POS | (1 << calcNbrNumber(1,0,1));
-   BZ_FROM_X_POS = BZ_FROM_X_POS | (1 << calcNbrNumber(1,2,1));
-   BZ_FROM_X_POS = BZ_FROM_X_POS | (1 << calcNbrNumber(1,1,0));
-   
-   // Bz is calculated using value from -y neighbour, if +/-x, -y, -z neighbours exist:
-   BZ_FROM_Y_NEG = 0;
-   BZ_FROM_Y_NEG = BZ_FROM_Y_NEG | (1 << calcNbrNumber(0,1,1));
-   BZ_FROM_Y_NEG = BZ_FROM_Y_NEG | (1 << calcNbrNumber(2,1,1));
-   BZ_FROM_Y_NEG = BZ_FROM_Y_NEG | (1 << calcNbrNumber(1,0,1));
-   BZ_FROM_Y_NEG = BZ_FROM_Y_NEG | (1 << calcNbrNumber(1,1,0));
-   
-   // Bz is calculated using value from +y neighbour, if +/-x, +y, -z neighbours exist:
-   BZ_FROM_Y_POS = 0;
-   BZ_FROM_Y_POS = BZ_FROM_Y_POS | (1 << calcNbrNumber(0,1,1));
-   BZ_FROM_Y_POS = BZ_FROM_Y_POS | (1 << calcNbrNumber(2,1,1));
-   BZ_FROM_Y_POS = BZ_FROM_Y_POS | (1 << calcNbrNumber(1,2,1));
-   BZ_FROM_Y_POS = BZ_FROM_Y_POS | (1 << calcNbrNumber(1,1,0));
-   
-   // Test existence of +/-x, +/-y, -z neighbours for Bz boundary condition:
-   BOUNDARY_BZ_MASK = 0;
-   BOUNDARY_BZ_MASK = BOUNDARY_BZ_MASK | (1 << calcNbrNumber(0,1,1));
-   BOUNDARY_BZ_MASK = BOUNDARY_BZ_MASK | (1 << calcNbrNumber(2,1,1));
-   BOUNDARY_BZ_MASK = BOUNDARY_BZ_MASK | (1 << calcNbrNumber(1,0,1));
-   BOUNDARY_BZ_MASK = BOUNDARY_BZ_MASK | (1 << calcNbrNumber(1,2,1));
-   BOUNDARY_BZ_MASK = BOUNDARY_BZ_MASK | (1 << calcNbrNumber(1,1,0));
-   
    return true;
 }
 
@@ -1329,8 +1073,8 @@ bool propagateFieldsSimple(ParGrid<SpatialCell>& mpiGrid,creal& dt) {
 }
 */
 bool propagateFields(ParGrid<SpatialCell>& mpiGrid,creal& dt) {
-   typedef Parameters P;
    namespace fs = fieldsolver;
+   typedef Parameters P;
 
    // *******************************
    // ***** INITIALIZATION STEP *****
@@ -1635,25 +1379,27 @@ bool propagateFields(ParGrid<SpatialCell>& mpiGrid,creal& dt) {
       #ifndef NDEBUG
          const map<CellID,uint>::const_iterator it = boundaryFlags.find(cellID);
          if (it == boundaryFlags.end()) {cerr << "ERROR Could not find boundary flag for cell #" << cellID << endl; exit(1);}
-         cuint boundaryFlag = it->second;
+         cuint existingCells = it->second;
       #else
-         cuint boundaryFlag = boundaryFlags[cellID];
+         cuint existingCells = boundaryFlags[cellID];
       #endif
-      if ((boundaryFlag & PROPAGATE_BX) != PROPAGATE_BX) boundaryConditionBx(mpiGrid,mpiGrid[cellID]->cpu_cellParams,cellID,boundaryFlag);
-      if ((boundaryFlag & PROPAGATE_BY) != PROPAGATE_BY) boundaryConditionBy(mpiGrid,mpiGrid[cellID]->cpu_cellParams,cellID,boundaryFlag);
-      if ((boundaryFlag & PROPAGATE_BZ) != PROPAGATE_BZ) boundaryConditionBz(mpiGrid,mpiGrid[cellID]->cpu_cellParams,cellID,boundaryFlag);
+      cuint nonExistingCells = (existingCells ^ numeric_limits<uint>::max());
+      if ((existingCells & PROPAGATE_BX) != PROPAGATE_BX) 
+	mpiGrid[cellID]->cpu_cellParams[CellParams::BX] = fieldSolverBoundaryCondBx<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
+      if ((existingCells & PROPAGATE_BY) != PROPAGATE_BY) 
+	mpiGrid[cellID]->cpu_cellParams[CellParams::BY] = fieldSolverBoundaryCondBy<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
+      if ((existingCells & PROPAGATE_BZ) != PROPAGATE_BZ) 
+	mpiGrid[cellID]->cpu_cellParams[CellParams::BZ] = fieldSolverBoundaryCondBz<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
    }
    
    // Deallocate temporary memory:
    mpiGrid.getAllCells(localCells);
    for (size_t i=0; i<localCells.size(); ++i) derivatives.releaseArray(localCells[i]);
-   derivatives.finalize();
-   
+   derivatives.finalize();   
    return true;
 }
 
 static void propagateMagneticField(const CellID& cellID,ParGrid<SpatialCell>& mpiGrid,creal& dt) {
-   typedef Parameters P;
    CellID nbrID;
    Real* const cp0 = mpiGrid[cellID]->cpu_cellParams;
     creal* cp1;
@@ -1675,13 +1421,13 @@ static void propagateMagneticField(const CellID& cellID,ParGrid<SpatialCell>& mp
    if ((boundaryFlag & PROPAGATE_BX) == PROPAGATE_BX) {
       nbrID = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2  ,2+1,2  ));
       #ifndef NDEBUG
-         if (nbrID == P::INVALID_CELLID) {cerr << "Failed to get nbr pointer!" << endl; exit(1);}
+         if (nbrID == INVALID_CELLID) {cerr << "Failed to get nbr pointer!" << endl; exit(1);}
       #endif
       cp1 = mpiGrid[nbrID]->cpu_cellParams;
   
       nbrID = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2  ,2  ,2+1));
       #ifndef NDEBUG
-         if (nbrID == P::INVALID_CELLID) {cerr << "Failed to get nbr pointer!" << endl; exit(1);}
+         if (nbrID == INVALID_CELLID) {cerr << "Failed to get nbr pointer!" << endl; exit(1);}
       #endif
       cp2 = mpiGrid[nbrID]->cpu_cellParams;
 
@@ -1692,13 +1438,13 @@ static void propagateMagneticField(const CellID& cellID,ParGrid<SpatialCell>& mp
    if ((boundaryFlag & PROPAGATE_BY) == PROPAGATE_BY) {
       nbrID = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2  ,2  ,2+1));
       #ifndef NDEBUG
-         if (nbrID == P::INVALID_CELLID) {cerr << "Failed to get nbr pointer!" << endl; exit(1);}
+         if (nbrID == INVALID_CELLID) {cerr << "Failed to get nbr pointer!" << endl; exit(1);}
       #endif
       cp1 = mpiGrid[nbrID]->cpu_cellParams;
    
       nbrID = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2+1,2  ,2  ));
       #ifndef NDEBUG
-         if (nbrID == P::INVALID_CELLID) {cerr << "Failed to get nbr pointer!" << endl; exit(1);}
+         if (nbrID == INVALID_CELLID) {cerr << "Failed to get nbr pointer!" << endl; exit(1);}
       #endif
       cp2 = mpiGrid[nbrID]->cpu_cellParams;
    
@@ -1709,13 +1455,13 @@ static void propagateMagneticField(const CellID& cellID,ParGrid<SpatialCell>& mp
    if ((boundaryFlag & PROPAGATE_BZ) == PROPAGATE_BZ) {
       nbrID = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2+1,2  ,2  ));
       #ifndef NDEBUG
-         if (nbrID == P::INVALID_CELLID) {cerr << "Failed to get nbr pointer!" << endl; exit(1);}
+         if (nbrID == INVALID_CELLID) {cerr << "Failed to get nbr pointer!" << endl; exit(1);}
       #endif
       cp1 = mpiGrid[nbrID]->cpu_cellParams;
    
       nbrID = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2  ,2+1,2  ));
       #ifndef NDEBUG
-         if (nbrID == P::INVALID_CELLID) {cerr << "Failed to get nbr pointer!" << endl; exit(1);}
+         if (nbrID == INVALID_CELLID) {cerr << "Failed to get nbr pointer!" << endl; exit(1);}
       #endif
       cp2 = mpiGrid[nbrID]->cpu_cellParams;
    

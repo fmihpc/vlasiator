@@ -1,4 +1,4 @@
-DEPS_LDZ = ../common.h ../parameters.h ../cell_spatial.h ../fieldsolver.h ../priorityqueue.h londrillo_delzanna.cpp
+DEPS_LDZ = ../common.h ../parameters.h ../cell_spatial.h ../fieldsolver.h ../priorityqueue.h ../transferstencil.h londrillo_delzanna.cpp
 
 MOVER = ldz
 

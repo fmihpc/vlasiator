@@ -15,17 +15,14 @@ extern Grid grid;
 extern MPILogger mpilogger;
 
 SpatialCell::SpatialCell() {
-
    //cout << "Spatial cell default constructor called" << endl;
-
-   //cpu_cellParams = new Real[SIZE_CELLPARAMS];
+   /*
    allocateArray(&cpu_cellParams,SIZE_CELLPARAMS);
-   //cpu_nbrsSpa    = new uint[SIZE_NBRS_SPA];
 
    N_blocks = Parameters::vxblocks_ini * Parameters::vyblocks_ini * Parameters::vzblocks_ini;
    cpuIndex = grid.getFreeMemory(N_blocks);
    if (cpuIndex == numeric_limits<uint>::max()) {
-      cerr << "Couldn't reserve memory for spatial cell" << endl;
+      cerr << "Couldn't reserve memory for spatial cell, N_blocks = " << N_blocks << endl;
       exit(1);
    }
 
@@ -44,19 +41,36 @@ SpatialCell::SpatialCell() {
    cpu_d2y         = grid.getD2y()         + cpuIndex*SIZE_DERIV;
    cpu_d2z         = grid.getD2z()         + cpuIndex*SIZE_DERIV;
    #endif
+   */
+   N_blocks = 0;
+   cpuIndex = numeric_limits<uint>::max();
+   allocateArray(&cpu_cellParams,SIZE_CELLPARAMS);
+   cpu_nbrsSpa     = NULL;
+   cpu_nbrsVel     = NULL;
+   cpu_blockParams = NULL;
+   cpu_avgs        = NULL;
+   #ifndef CUDA
+   cpu_fx          = NULL;
+   cpu_fy          = NULL;
+   cpu_fz          = NULL;
+   cpu_d1x         = NULL;
+   cpu_d1y         = NULL;
+   cpu_d1z         = NULL;
+   cpu_d2x         = NULL;
+   cpu_d2y         = NULL;
+   cpu_d2z         = NULL;
+   #endif
 }
 
 SpatialCell::SpatialCell(const SpatialCell& s) {
-
    //cout << "Spatial cell copy constructor called" << endl;
 
+   if (cpu_cellParams != NULL) freeArray(cpu_cellParams);
+   
    // Copy variables related to the spatial cell:
    N_blocks       = s.N_blocks;
-   //cpu_cellParams = new Real[SIZE_CELLPARAMS];
    allocateArray(&cpu_cellParams,SIZE_CELLPARAMS);
-   //cpu_nbrsSpa    = new uint[SIZE_NBRS_SPA];
    for (uint i=0; i<SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
-   //for (uint i=0; i<SIZE_NBRS_SPA; ++i  ) cpu_nbrsSpa[i]    = s.cpu_nbrsSpa[i];
    
    cpuIndex = s.cpuIndex;
    // If the SpatialCell to copy has allocated memory, increase the reference count 
@@ -84,7 +98,6 @@ SpatialCell::SpatialCell(const SpatialCell& s) {
 }
 
 SpatialCell& SpatialCell::operator=(const SpatialCell& s) {
-
    //cout << "Spatial cell assignment operator called" << endl;
 
    // Clear previous memory:
@@ -93,10 +106,12 @@ SpatialCell& SpatialCell::operator=(const SpatialCell& s) {
 	 mpilogger << "SpatialCell operator=: Failed to remove reference." << endl << write;
       }
    }
+   if (cpu_cellParams != NULL) freeArray(cpu_cellParams);
+   allocateArray(&cpu_cellParams,SIZE_CELLPARAMS);
+   
    // Copy variables related to the spatial cell:
    N_blocks = s.N_blocks;
    for (uint i=0; i<SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
-   //for (uint i=0; i<SIZE_NBRS_SPA; ++i  ) cpu_nbrsSpa[i]    = s.cpu_nbrsSpa[i];
    
    // Copy variables related to the velocity grid:
    cpuIndex = s.cpuIndex;
@@ -129,7 +144,6 @@ SpatialCell::~SpatialCell() {
    //cout << "Spatial cell destructor called" << endl;
    // Free CPU memory:
    finalize();
-   //freeMemory();
 }
 
 bool SpatialCell::initialize(cuint& N_blocks) {
@@ -177,16 +191,13 @@ bool SpatialCell::initialize(cuint& N_blocks) {
 }
 
 bool SpatialCell::finalize() {
-//bool SpatialCell::freeMemory() {
    if (cpuIndex != numeric_limits<uint>::max()) {
       if (grid.removeReference(cpuIndex) == false) {
 	 mpilogger << "SpatialCell ERROR: Reference removal failed" << endl << write;
       }
       cpuIndex = numeric_limits<uint>::max();
    }
-   //delete cpu_cellParams;
    freeArray(cpu_cellParams);
-   //delete cpu_nbrsSpa;
    return true;
 }
 

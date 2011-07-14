@@ -110,7 +110,7 @@ OBJS = arrayallocator.o cell_spatial.o		\
 	datareducer.o datareductionoperator.o grid.o		\
 	gridbuilder.o vlasiator.o mpifile.o mpilogger.o muxml.o	\
 	parameters.o project.o					\
-	timer.o profile.o vlscommon.o vlsvwriter2.o
+	timer.o profile.o vlscommon.o vlsvreader2.o vlsvwriter2.o
 
 OBJS_VLSV2SILO = muxml.o vlscommon.o vlsvreader2.o
 
