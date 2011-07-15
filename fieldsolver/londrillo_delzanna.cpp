@@ -1092,7 +1092,7 @@ bool propagateFields(ParGrid<SpatialCell>& mpiGrid,creal& dt) {
    mpiGrid.getAllCells(localCells);
    derivatives.initialize(localCells.size()*(fieldsolver::dVzdz+1),sizeof(Real));
    for (size_t i=0; i<localCells.size(); ++i) derivatives.reserveArray(localCells[i],fieldsolver::dVzdz+1);
-
+   /*
    // TEST
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       mpiGrid[localCells[cell]]->cpu_cellParams[CellParams::RHO  ] = 1.0;
@@ -1101,7 +1101,7 @@ bool propagateFields(ParGrid<SpatialCell>& mpiGrid,creal& dt) {
       mpiGrid[localCells[cell]]->cpu_cellParams[CellParams::RHOVZ] = 1.0;
    }
    // END TEST
-   
+   */
    // Check if MPI transfer stencils need to be recalculated:
    if (P::recalculateStencils == true) {
       mpiGrid.getCells(localCells);

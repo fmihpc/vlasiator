@@ -167,8 +167,11 @@ cuint SIZE_FLUXS       = WID3;
 
 // Natural constants
 namespace physicalconstants {
-   //creal MU_0 = 1.25663706e-6;
-   creal MU_0 = 1.0;
+   creal MU_0 = 1.25663706e-6;  /**< Permeability of vacuo, unit: (kg m) / (s^2 A^2).*/
+   creal K_B = 1.3806503e-23;   /**< Boltzmann's constant, unit: (kg m^2) / (s^2 K).*/
+   
+   creal MASS_ELECTRON = 1.60238188e-31; /**< Electron rest mass.*/
+   creal MASS_PROTON = 1.67262158e-27; /**< Proton rest mass.*/
 }
 
 #endif

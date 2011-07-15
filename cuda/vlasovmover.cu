@@ -1232,14 +1232,6 @@ void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid,const bool& secon
 	 gpuRhovyBuffers.releaseArray(cellID);
 	 gpuRhovzBuffers.releaseArray(cellID);
 	 
-	 // Divide velocity moments by spatial cell volume in order to get 1/m^3 units:
-	 Main::cellPtr = mpiGrid[cellID];
-	 creal dV = Main::cellPtr->cpu_cellParams[CellParams::DX]*Main::cellPtr->cpu_cellParams[CellParams::DY]*Main::cellPtr->cpu_cellParams[CellParams::DZ];
-	 Main::cellPtr->cpu_cellParams[CellParams::RHO  ] /= dV;
-	 Main::cellPtr->cpu_cellParams[CellParams::RHOVX] /= dV;
-	 Main::cellPtr->cpu_cellParams[CellParams::RHOVY] /= dV;
-	 Main::cellPtr->cpu_cellParams[CellParams::RHOVZ] /= dV;
-	 
 	 // REMOTE COUNTERS
 	 if (secondStep == true) if (stencilAcceleration[cellID].outgoing.size() > 0) {
 	    Main::cellPtr = mpiGrid[cellID];
@@ -1413,9 +1405,6 @@ void calculateVelocityMoments(ParGrid<SpatialCell>& mpiGrid) {
       
       if (cudaMemcpy(Main::cellPtr->cpu_cellParams,gpuCellParams,SIZE_CELLPARAMS*sizeof(Real),cudaMemcpyDeviceToHost) != cudaSuccess) 
 	 cerr << "ERROR '" << cudaGetErrorString(cudaGetLastError()) << "' occurred while copying cellParams to CPU!" << endl;
-
-      creal dV = Main::cellPtr->cpu_cellParams[CellParams::DX]*Main::cellPtr->cpu_cellParams[CellParams::DY]*Main::cellPtr->cpu_cellParams[CellParams::DZ];
-      for (int i=CellParams::RHO; i<SIZE_CELLPARAMS; ++i) Main::cellPtr->cpu_cellParams[i] /= dV;
    }
 }
 
