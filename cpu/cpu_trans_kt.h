@@ -28,7 +28,6 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatDerivs(CELL
    REAL* const d2z   = cell.cpu_d2z + BLOCK*SIZE_DERIV;
    const REAL* const cellParams = cell.cpu_cellParams;
    const REAL* const blockParams = cell.cpu_blockParams + BLOCK*SIZE_BLOCKPARAMS;
-   const UINT STATE = cell.cpu_nbrsVel[BLOCK*SIZE_NBRS_VEL + NbrsVel::STATE];
 
    REAL xl2,xl1,xcc,xr1,xr2;
    xl2 = 0.0;

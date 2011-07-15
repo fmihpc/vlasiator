@@ -39,20 +39,9 @@ using namespace std;
 
 #ifndef PARGRID
 void initSpatialCells(const dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm) {
-#else
-void initSpatialCells(const ParGrid<SpatialCell>& mpiGrid) {
-#endif
-    
     typedef Parameters P;
 
-
-   // This can be replaced by an iterator.
-   #ifndef PARGRID
-      vector<uint64_t> cells = mpiGrid.get_cells();
-   #else
-      vector<uint64_t> cells;
-      mpiGrid.getCells(cells);
-   #endif
+   vector<uint64_t> cells = mpiGrid.get_cells();
    
    // Go through every cell on this node and initialize the pointers to 
    // cpu memory, physical parameters and volume averages for each phase space 
@@ -68,20 +57,8 @@ void initSpatialCells(const ParGrid<SpatialCell>& mpiGrid) {
       zmin = mpiGrid.get_cell_z_min(cells[i]);
       buildSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
    }
-   #ifdef PARGRID
-     // For ParGrid memory for remote cells needs to be allocated here:
-     mpiGrid.getRemoteCells(cells);
-     for (uint i=0; i<cells.size(); ++i) {
-	dx = mpiGrid.get_cell_x_size(cells[i]);
-	dy = mpiGrid.get_cell_y_size(cells[i]);
-	dz = mpiGrid.get_cell_z_size(cells[i]);
-	xmin = mpiGrid.get_cell_x_min(cells[i]);
-	ymin = mpiGrid.get_cell_y_min(cells[i]);
-	zmin = mpiGrid.get_cell_z_min(cells[i]);
-	buildSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,true);
-     }
-   #endif
 }
+#endif
 
 #ifdef PARGRID
 bool writeGrid(const ParGrid<SpatialCell>& mpiGrid,DataReducer& dataReducer,const bool& writeRestart) {
@@ -504,7 +481,6 @@ int main(int argn,char* args[]) {
       } else {
 	 mpilogger << "(MAIN) Grid built successfully" << endl << write;
       }
-
       
       dccrg<SpatialCell> mpiGrid(comm,"HIER",P::xmin,P::ymin,P::zmin,P::dx_ini,P::dy_ini,P::dz_ini,P::xcells_ini,P::ycells_ini,P::zcells_ini,0,0);
       //read in partitioning levels from input

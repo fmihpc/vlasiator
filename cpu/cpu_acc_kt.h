@@ -22,10 +22,10 @@ template<typename T> T velDerivs2(const T& xl2,const T& xl1,const T& xcc,const T
 template<typename REAL,typename UINT> void fetchAllAverages(const UINT& BLOCK,REAL* const avgs,const REAL* const cpu_avgs,const UINT* const nbrsVel) {
    UINT nbrBlock;
    for (UINT i=0; i<8*WID3; ++i) avgs[i] = 0.0;
-   const UINT STATE = nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::STATE];
+   const UINT STATE = nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::NBRFLAGS];
    
    // Copy averages from -x neighbour, or calculate using a boundary function:
-   if (isBoundary(STATE,NbrsVel::VX_NEG_BND) > 0) {
+   if (isBoundary(STATE,NbrsVel::VX_NEG_BND) == 0) {
       for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<2; ++i) {
 	 avgs[fullInd(i  ,j+2,k+2)] = 0.0; // BOUNDARY VALUE
       }
@@ -35,13 +35,12 @@ template<typename REAL,typename UINT> void fetchAllAverages(const UINT& BLOCK,RE
       for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) {
 	 #pragma ivdep
 	 for (UINT i=0; i<2; ++i) {
-	 //avgs[fullInd(i  ,j+2,k+2)] = cpu_avgs[nbrBlock*SIZE_VELBLOCK + accIndex(i+2,j,k)];
-	 avgs[fullInd(i  ,j+2,k+2)] = tmp[accIndex(i+2,j,k)];
+	    avgs[fullInd(i  ,j+2,k+2)] = tmp[accIndex(i+2,j,k)];
 	 }
       }
    }
    // Copy averages from +x neighbour, or calculate using a boundary function:
-   if (isBoundary(STATE,NbrsVel::VX_POS_BND) > 0) {
+   if (isBoundary(STATE,NbrsVel::VX_POS_BND) == 0) {
       for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<2; ++i) {
 	 avgs[fullInd(i+6,j+2,k+2)] = 0.0; // BOUNDARY VALUE
       }
@@ -51,13 +50,12 @@ template<typename REAL,typename UINT> void fetchAllAverages(const UINT& BLOCK,RE
       for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) {
 	 #pragma ivdep
 	 for (UINT i=0; i<2; ++i) {
-	    //avgs[fullInd(i+6,j+2,k+2)] = cpu_avgs[nbrBlock*SIZE_VELBLOCK + accIndex(i  ,j,k)];
 	    avgs[fullInd(i+6,j+2,k+2)] = tmp[accIndex(i  ,j,k)];
 	 }
       }
    }
    // Copy averages from -y neighbour, or calculate using a boundary function:
-   if (isBoundary(STATE,NbrsVel::VY_NEG_BND) > 0) {
+   if (isBoundary(STATE,NbrsVel::VY_NEG_BND) == 0) {
       for (UINT k=0; k<WID; ++k) for (UINT j=0; j<2; ++j) for (UINT i=0; i<WID; ++i) {
 	 avgs[fullInd(i+2,j  ,k+2)] = 0.0; // BOUNDARY VALUE
       }
@@ -67,13 +65,12 @@ template<typename REAL,typename UINT> void fetchAllAverages(const UINT& BLOCK,RE
       for (UINT k=0; k<WID; ++k) for (UINT j=0; j<2; ++j) {
 	 #pragma ivdep
 	 for (UINT i=0; i<WID; ++i) {
-	    //avgs[fullInd(i+2,j  ,k+2)] = cpu_avgs[nbrBlock*SIZE_VELBLOCK + accIndex(i,j+2,k)];
 	    avgs[fullInd(i+2,j  ,k+2)] = tmp[accIndex(i,j+2,k)];
 	 }
       }
    }
    // Copy averages from +y neighbour, or calculate using a boundary function:
-   if (isBoundary(STATE,NbrsVel::VY_POS_BND) > 0) {
+   if (isBoundary(STATE,NbrsVel::VY_POS_BND) == 0) {
       for (UINT k=0; k<WID; ++k) for (UINT j=0; j<2; ++j) for (UINT i=0; i<WID; ++i) {
 	 avgs[fullInd(i+2,j+6,k+2)] = 0.0; // BOUNDARY VALUE
       }
@@ -83,13 +80,12 @@ template<typename REAL,typename UINT> void fetchAllAverages(const UINT& BLOCK,RE
       for (UINT k=0; k<WID; ++k) for (UINT j=0; j<2; ++j) {
 	 #pragma ivdep
 	 for (UINT i=0; i<WID; ++i) {
-	    //avgs[fullInd(i+2,j+6,k+2)] = cpu_avgs[nbrBlock*SIZE_VELBLOCK + accIndex(i,j  ,k)];
 	    avgs[fullInd(i+2,j+6,k+2)] = tmp[accIndex(i,j  ,k)];
 	 }
       }
    }
    // Copy averages from -z neighbour, or calculate using a boundary function:
-   if (isBoundary(STATE,NbrsVel::VZ_NEG_BND) > 0) {
+   if (isBoundary(STATE,NbrsVel::VZ_NEG_BND) == 0) {
       for (UINT k=0; k<2; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
 	 avgs[fullInd(i+2,j+2,k  )] = 0.0; // BOUNDARY VALUE
       }
@@ -99,13 +95,12 @@ template<typename REAL,typename UINT> void fetchAllAverages(const UINT& BLOCK,RE
       for (UINT k=0; k<2; ++k) for (UINT j=0; j<WID; ++j) {
 	 #pragma ivdep
 	 for (UINT i=0; i<WID; ++i) {
-	    //avgs[fullInd(i+2,j+2,k  )] = cpu_avgs[nbrBlock*SIZE_VELBLOCK + accIndex(i,j,k+2)];
 	    avgs[fullInd(i+2,j+2,k  )] = tmp[accIndex(i,j,k+2)];
 	 }
       }
    }
    // Copy averages from +z neighbour, or calculate using a boundary function:
-   if (isBoundary(STATE,NbrsVel::VZ_POS_BND) > 0) {
+   if (isBoundary(STATE,NbrsVel::VZ_POS_BND) == 0) {
       for (UINT k=0; k<2; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
 	 avgs[fullInd(i+2,j+2,k+6)] = 0.0; // BOUNDARY VALUE
       }
@@ -115,7 +110,6 @@ template<typename REAL,typename UINT> void fetchAllAverages(const UINT& BLOCK,RE
       for (UINT k=0; k<2; ++k) for (UINT j=0; j<WID; ++j) {
 	 #pragma ivdep
 	 for (UINT i=0; i<WID; ++i) {
-	    //avgs[fullInd(i+2,j+2,k+6)] = cpu_avgs[nbrBlock*SIZE_VELBLOCK + accIndex(i,j,k)];
 	    avgs[fullInd(i+2,j+2,k+6)] = tmp[accIndex(i,j,k)];
 	 }
       }
@@ -125,7 +119,6 @@ template<typename REAL,typename UINT> void fetchAllAverages(const UINT& BLOCK,RE
    for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) {
       #pragma ivdep
       for (UINT i=0; i<WID; ++i) {
-	 //avgs[fullInd(i+2,j+2,k+2)] = cpu_avgs[BLOCK*SIZE_VELBLOCK + accIndex(i,j,k)];
 	 avgs[fullInd(i+2,j+2,k+2)] = tmp[accIndex(i,j,k)];
       }
    }
@@ -137,7 +130,7 @@ template<typename REAL,typename UINT> void fetchAveragesX(const UINT& BLOCK,REAL
    const UINT YS=4;
    const UINT YSXS = YS*XS;
    // Copy averages from -x neighbour, or calculate using a boundary function:
-   if (isBoundary(nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::STATE],NbrsVel::VX_NEG_BND) > 0) {
+   if (isBoundary(nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::NBRFLAGS],NbrsVel::VX_NEG_BND) == 0) {
       for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) {
 	 avgs[k*YSXS+j*XS] = 0.0; // BOUNDARY VALUE
       }
@@ -159,7 +152,7 @@ template<typename REAL,typename UINT> void fetchAveragesY(const UINT& BLOCK,REAL
    cuint YS=5;
    cuint YSXS = YS*XS;
    // Copy averages from -y neighbour, or calculate using a boundary function:
-   if (isBoundary(nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::STATE],NbrsVel::VY_NEG_BND) > 0) {
+   if (isBoundary(nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::NBRFLAGS],NbrsVel::VY_NEG_BND) == 0) {
       for (UINT k=0; k<WID; ++k) for (UINT i=0; i<WID; ++i) {
 	 avgs[k*YSXS+i] = 0.0; // BOUNDARY VALUE
       }
@@ -181,7 +174,7 @@ template<typename REAL,typename UINT> void fetchAveragesZ(const UINT& BLOCK,REAL
    const UINT YS=4;
    const UINT YSXS=YS*XS;
    // Copy averages from -z neighbour, or calculate using a boundary function:
-   if (isBoundary(nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::STATE],NbrsVel::VZ_NEG_BND) > 0) {
+   if (isBoundary(nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::NBRFLAGS],NbrsVel::VZ_NEG_BND) == 0) {
       for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
 	 avgs[j*XS+i] = 0.0; // BOUNDARY VALUE
       }
@@ -203,7 +196,7 @@ template<typename REAL,typename UINT> void fetchDerivsX(const UINT& BLOCK,REAL* 
    const UINT YS=4;
    const UINT YSXS=YS*XS;
    // Copy derivatives from -x neighbour, or calculate using a boundary function:
-   if (isBoundary(nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::STATE],NbrsVel::VX_NEG_BND) > 0) {
+   if (isBoundary(nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::NBRFLAGS],NbrsVel::VX_NEG_BND) == 0) {
       for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) {
 	 d1x[k*YSXS+j*XS] = 0.0; // BOUNDARY VALUE
       }
@@ -225,7 +218,7 @@ template<typename REAL,typename UINT> void fetchDerivsY(const UINT& BLOCK,REAL* 
    const UINT YS=5;
    const UINT YSXS=YS*XS;
    // Copy derivatives from -y neighbour, or calculate using a boundary function:
-   if (isBoundary(nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::STATE],NbrsVel::VY_NEG_BND) > 0) {
+   if (isBoundary(nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::NBRFLAGS],NbrsVel::VY_NEG_BND) == 0) {
       for (UINT k=0; k<WID; ++k) for (UINT i=0; i<WID; ++i) {
 	 d1y[k*YSXS+i] = 0.0; // BOUNDARY VALUE
       }
@@ -247,7 +240,7 @@ template<typename REAL,typename UINT> void fetchDerivsZ(const UINT& BLOCK,REAL* 
    const UINT YS=4;
    const UINT YSXS=YS*XS;
    // Copy derivatives from -z neighbour, or calculate using a boundary function:
-   if (isBoundary(nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::STATE],NbrsVel::VZ_NEG_BND) > 0) {
+   if (isBoundary(nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::NBRFLAGS],NbrsVel::VZ_NEG_BND) == 0) {
       for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
 	 d1z[j*XS+i] = 0.0; // BOUNDARY VALUE
       }
@@ -269,7 +262,7 @@ template<typename REAL,typename UINT> void fetchFluxesX(const UINT& BLOCK,REAL* 
    const UINT YS = 4;
    const UINT YSXS = YS*XS;
    // Fetch fluxes from +x neighbour, or calculate using a boundary function:
-   if (isBoundary(nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::STATE],NbrsVel::VX_POS_BND) > 0) {
+   if (isBoundary(nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::NBRFLAGS],NbrsVel::VX_POS_BND) == 0) {
       for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) {
 	 flux[k*YSXS+j*XS+4] = 0.0; // BOUNDARY VALUE
       }
@@ -291,7 +284,7 @@ template<typename REAL,typename UINT> void fetchFluxesY(const UINT& BLOCK,REAL* 
    const UINT YS = 5;
    const UINT YSXS = YS*XS;
    // Fetch fluxes from +y neighbour, or calculate using a boundary function:
-   if (isBoundary(nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::STATE],NbrsVel::VY_POS_BND) > 0) {
+   if (isBoundary(nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::NBRFLAGS],NbrsVel::VY_POS_BND) == 0) {
       for (UINT k=0; k<WID; ++k) for (UINT i=0; i<WID; ++i) {
 	 flux[k*YSXS+4*XS+i] = 0.0; // BOUNDARY VALUE
       }
@@ -313,7 +306,7 @@ template<typename REAL,typename UINT> void fetchFluxesZ(const UINT& BLOCK,REAL* 
    const UINT YS = 4;
    const UINT YSXS = YS*XS;
    // Fetch fluxes from +z neighbour, or calculate using a boundary function:
-   if (isBoundary(nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::STATE],NbrsVel::VZ_POS_BND) > 0) {
+   if (isBoundary(nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::NBRFLAGS],NbrsVel::VZ_POS_BND) == 0) {
       for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
 	 flux[4*YSXS+j*XS+i] = 0.0; // BOUNDARY VALUE
       }
@@ -396,7 +389,6 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxesX(CELL
 	 for (UINT i=0; i<WID; ++i) {
 	    avg_neg = reconstruct_neg(avgs[k*YSXS+j*XS+(i  )],d1x[k*YSXS+j*XS+(i  )],d2x[k*YSXS+j*XS+(i  )]);
 	    avg_pos = reconstruct_pos(avgs[k*YSXS+j*XS+(i+1)],d1x[k*YSXS+j*XS+(i+1)],d2x[k*YSXS+j*XS+(i+1)]);
-	    //fx[accIndex(i,j,k)] = velocityFluxX(i,j,k,avg_neg,avg_pos,cell.cpu_cellParams,blockParams);
 	    fx[accIndex(i,j,k)] = velocityFluxX(J,K,avg_neg,avg_pos,cell.cpu_cellParams,blockParams);
 	 }
       }
@@ -429,7 +421,6 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxesY(CELL
 	    const REAL I = convert<REAL>(1.0)*i;
 	    avg_neg = reconstruct_neg(avgs[k*YSXS+(j  )*XS+i],d1y[k*YSXS+(j  )*XS+i],d2y[k*YSXS+(j  )*XS+i]);
 	    avg_pos = reconstruct_pos(avgs[k*YSXS+(j+1)*XS+i],d1y[k*YSXS+(j+1)*XS+i],d2y[k*YSXS+(j+1)*XS+i]);
-	    //fy[accIndex(i,j,k)] = velocityFluxY(i,j,k,avg_neg,avg_pos,cell.cpu_cellParams,blockParams);
 	    fy[accIndex(i,j,k)] = velocityFluxY(I,K,avg_neg,avg_pos,cell.cpu_cellParams,blockParams);
 	 }
       }
@@ -463,7 +454,6 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxesZ(CELL
 	    avg_neg = reconstruct_neg(avgs[(k  )*YSXS+j*XS+i],d1z[(k  )*YSXS+j*XS+i],d2z[(k  )*YSXS+j*XS+i]);
 	    avg_pos = reconstruct_pos(avgs[(k+1)*YSXS+j*XS+i],d1z[(k+1)*YSXS+j*XS+i],d2z[(k+1)*YSXS+j*XS+i]);
 	    fz[accIndex(i,j,k)] = velocityFluxZ(I,J,avg_neg,avg_pos,cell.cpu_cellParams,blockParams);
-	    //fz[accIndex(i,j,k)] = velocityFluxZ(i,j,k,avg_neg,avg_pos,cell.cpu_cellParams,blockParams);
 	 }
       }
    }      
@@ -489,9 +479,7 @@ template<typename REAL,typename UINT,typename CELL> void cpu_propagateVel(CELL& 
    YSXS = YS*XS;
    cnst = DT / blockParams[BlockParams::DVY];
    fetchFluxesY(BLOCK,flux,cell.cpu_fy,cell.cpu_nbrsVel);
-   //for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
-   //   avgs[accIndex(i,j,k)] += (flux[k*YSXS+j*XS+i] - flux[k*YSXS+(j+1)*XS+i])*cnst;
-   //}
+
    for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) avgs[accIndex(i,j,k)] += flux[k*YSXS+j*XS+i]*cnst;
    for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) avgs[accIndex(i,j,k)] -= flux[k*YSXS+(j+1)*XS+i]*cnst;
    // Calculate the contribution to d(avg)/dt from vz-fluxes:

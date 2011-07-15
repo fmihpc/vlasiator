@@ -166,49 +166,25 @@ bool buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
 	 cell.cpu_cellParams[CellParams::RHOVY] += avgs[velIndex*SIZE_VELBLOCK + kc*WID2+jc*WID+ic]*(vy_block + (jc+convert<Real>(0.5))*dvy_blockCell)*dV;
 	 cell.cpu_cellParams[CellParams::RHOVZ] += avgs[velIndex*SIZE_VELBLOCK + kc*WID2+jc*WID+ic]*(vz_block + (kc+convert<Real>(0.5))*dvz_blockCell)*dV;
       }
-      
-      // Since the whole velocity space is inside the spatial cell and the initial 
-      // velocity grid contains just unrefined blocks,
-      // the velocity neighbour lists can be constructed now:
-      uint vxneg_nbr = iv-1;
-      uint vxpos_nbr = iv+1;
-      uint vyneg_nbr = jv-1;
-      uint vypos_nbr = jv+1;
-      uint vzneg_nbr = kv-1;
-      uint vzpos_nbr = kv+1;
-      uint state = 0;
-      if (iv == 0) {              // -vx boundary
-	 state = state | NbrsVel::VX_NEG_BND;
-	 vxneg_nbr = P::vxblocks_ini-1;
+      // Create velocity neighbour list entry:
+      uint nbrFlags = 0;
+      for (uint kkv=0; kkv<3; ++kkv) for (uint jjv=0; jjv<3; ++jjv) for (uint iiv=0; iiv<3; ++iiv) {
+	 // By default set the block as non-existing:
+	 nbrsVel[velIndex*SIZE_NBRS_VEL + kkv*9+jjv*3+iiv] = numeric_limits<uint>::max();
+	 
+	 // Then check if the block actually exists:
+	 cuint iindex = iv + iiv - 1;
+	 cuint jindex = jv + jjv - 1;
+	 cuint kindex = kv + kkv - 1;
+	 if (iindex >= P::vxblocks_ini) continue;
+	 if (jindex >= P::vyblocks_ini) continue;
+	 if (kindex >= P::vzblocks_ini) continue;
+	 
+	 // Block exists, override values set above:
+	 nbrsVel[velIndex*SIZE_NBRS_VEL + kkv*9+jjv*3+iiv] = velblock(iindex,jindex,kindex);
+	 nbrFlags = (nbrFlags | (1 << (kkv*9+jjv*3+iiv)));
       }
-      if (iv == P::vxblocks_ini-1) { // +vx boundary
-	 state = state | NbrsVel::VX_POS_BND;
-	 vxpos_nbr = 0;
-      }
-      if (jv == 0) {              // -vy boundary
-	 state = state | NbrsVel::VY_NEG_BND;
-	 vyneg_nbr = P::vyblocks_ini-1;
-      }
-      if (jv == P::vyblocks_ini-1) { // +vy boundary
-	 state = state | NbrsVel::VY_POS_BND;
-	 vypos_nbr = 0;
-      }
-      if (kv == 0) {              // -vz boundary
-	 state = state | NbrsVel::VZ_NEG_BND;
-	 vzneg_nbr = P::vzblocks_ini-1;
-      }
-      if (kv == P::vzblocks_ini-1) { // +vz boundary
-	 state = state | NbrsVel::VZ_POS_BND;
-	 vzpos_nbr = 0;
-      }
-      nbrsVel[velIndex*SIZE_NBRS_VEL + NbrsVel::STATE] = state;
-      nbrsVel[velIndex*SIZE_NBRS_VEL + NbrsVel::MYIND] = velIndex;
-      nbrsVel[velIndex*SIZE_NBRS_VEL + NbrsVel::VXNEG] = velblock(vxneg_nbr,jv,kv);
-      nbrsVel[velIndex*SIZE_NBRS_VEL + NbrsVel::VXPOS] = velblock(vxpos_nbr,jv,kv);
-      nbrsVel[velIndex*SIZE_NBRS_VEL + NbrsVel::VYNEG] = velblock(iv,vyneg_nbr,kv);
-      nbrsVel[velIndex*SIZE_NBRS_VEL + NbrsVel::VYPOS] = velblock(iv,vypos_nbr,kv);
-      nbrsVel[velIndex*SIZE_NBRS_VEL + NbrsVel::VZNEG] = velblock(iv,jv,vzneg_nbr);
-      nbrsVel[velIndex*SIZE_NBRS_VEL + NbrsVel::VZPOS] = velblock(iv,jv,vzpos_nbr);      
+      nbrsVel[velIndex*SIZE_NBRS_VEL + NbrsVel::NBRFLAGS] = nbrFlags;	 
    }
    creal spatialVolume = cell.cpu_cellParams[CellParams::DX]*cell.cpu_cellParams[CellParams::DY]*cell.cpu_cellParams[CellParams::DZ];
    cell.cpu_cellParams[CellParams::RHO  ] /= spatialVolume;
@@ -584,30 +560,8 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid,MPI_Comm comm,const int& MASTER_RAN
       myCellIDs = NULL;
    }
    
-   // Parallel grid has possibly done a load balance, so we need to request them 
-   // from the grid (instead of using the ones we got from GridBuilder).
-   /*
-   vector<ID::type> localCells;
-   mpiGrid.getCells(localCells);
-   myCellIDs = new VC::ID[localCells.size()];
-   N_myCells = localCells.size();
-   for (size_t i=0; i<localCells.size(); ++i) {
-      // Copy cell coordinates to SpatialCell
-      SpatialCell* SC = mpiGrid[localCells[i]];
-      SC->cpu_cellParams[CellParams::XCRD] = mpiGrid.get_cell_x(localCells[i]);
-      SC->cpu_cellParams[CellParams::YCRD] = mpiGrid.get_cell_y(localCells[i]);
-      SC->cpu_cellParams[CellParams::ZCRD] = mpiGrid.get_cell_z(localCells[i]);
-      SC->cpu_cellParams[CellParams::DX  ] = mpiGrid.get_cell_x_size(localCells[i]);
-      SC->cpu_cellParams[CellParams::DY  ] = mpiGrid.get_cell_y_size(localCells[i]);
-      SC->cpu_cellParams[CellParams::DZ  ] = mpiGrid.get_cell_z_size(localCells[i]);
-      
-      // Request cell parameters for each spatial cell (need to copy cell IDs from 
-      // mpiGrid to a temp array, because pargrid has uint IDs and we need VirtualCell::IDs
-      // here):
-      myCellIDs[i] = localCells[i];
-   }
-   */
-   // If initial lb was done request new cell IDs from parallel grid:
+   // Parallel grid has possibly done a load balance, so we need to request new cell IDs
+   // from the grid (instead of using the ones we got from GridBuilder):
    if (builder->doInitialLoadBalance() == true) {
       vector<ID::type> localCells;
       mpiGrid.getCells(localCells);
@@ -622,7 +576,6 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid,MPI_Comm comm,const int& MASTER_RAN
    if (builder->waitCellParamsRequests() == false) success = false;
 
    for (VC::ID i=0; i<N_myCells; ++i) {
-      //SpatialCell* SC = mpiGrid[localCells[i]];
       SpatialCell* SC = mpiGrid[myCellIDs[i]];
       for (uint j=0; j<SIZE_CELLPARAMS; ++j) SC->cpu_cellParams[j] = cellParamsBuffer[i*SIZE_CELLPARAMS+j];
    }
@@ -635,9 +588,6 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid,MPI_Comm comm,const int& MASTER_RAN
    builder->addCellBlockNumberRequests(N_myCells,myCellOffset,myCellIDs,blocksPerCell);
    builder->processCellBlockNumberRequests();
    builder->waitCellBlockNumberRequests();
-   /*for (size_t i=0; i<localCells.size(); ++i) {
-      mpiGrid[localCells[i]]->initialize(blocksPerCell[i]);
-   }*/
    for (VC::ID i=0; i<N_myCells; ++i) mpiGrid[myCellIDs[i]]->initialize(blocksPerCell[i]);
 
    // Count the total number of velocity blocks on this process and share 
@@ -664,13 +614,10 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid,MPI_Comm comm,const int& MASTER_RAN
    Real** blockParamsBuffer = new Real*[N_myCells];
    uint** nbrsVelBuffer     = new uint*[N_myCells];
    for (VC::ID i=0; i<N_myCells; ++i) {
-   //for (size_t i=0; i<localCells.size(); ++i) {
-      //SpatialCell* SC      = mpiGrid[localCells[i]];
       SpatialCell* SC      = mpiGrid[myCellIDs[i]];
       avgsBuffer[i]        = SC->cpu_avgs;
       blockParamsBuffer[i] = SC->cpu_blockParams;
       nbrsVelBuffer[i]     = SC->cpu_nbrsVel;      
-      //for (uint j=0; j<SIZE_VELBLOCK*blocksPerCell[i]; ++j) avgsBuffer[i][j] = 1.0;
    }
    if (builder->addCellBlockDataRequests(N_myCells,myBlockOffset,myCellIDs,blocksPerCell,avgsBuffer,blockParamsBuffer,nbrsVelBuffer) == false) success = false;
    if (builder->processCellBlockDataRequests() == false) success = false;
@@ -678,7 +625,6 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid,MPI_Comm comm,const int& MASTER_RAN
 
    // Deallocate memory:
    for (VC::ID i=0; i<N_myCells; ++i) {
-   //for (VC::ID i=0; i<localCells.size(); ++i) {
       avgsBuffer[i] = NULL;
       blockParamsBuffer[i] = NULL;
       nbrsVelBuffer[i] = NULL;

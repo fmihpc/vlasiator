@@ -64,9 +64,9 @@ template<typename REAL> void cpu_blockVelocityMoments(const REAL* const avgs,con
    REAL nvy_sum = 0.0;
    REAL nvz_sum = 0.0;
    for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
-      const REAL VX = blockParams[BlockParams::VXCRD] + HALF*blockParams[BlockParams::DVX];
-      const REAL VY = blockParams[BlockParams::VYCRD] + HALF*blockParams[BlockParams::DVY];
-      const REAL VZ = blockParams[BlockParams::VZCRD] + HALF*blockParams[BlockParams::DVZ];
+      const REAL VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
+      const REAL VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
+      const REAL VZ = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
       
       n_sum   += avgs[cellIndex(i,j,k)];
       nvx_sum += avgs[cellIndex(i,j,k)]*VX;

@@ -26,7 +26,6 @@ template<typename T> inline T findex(const T& i,const T& j,const T& k) {return k
 template<typename REAL,typename UINT> void accumulateChanges(const UINT& BLOCK,const REAL* const dF,REAL* const flux,const UINT* const nbrsVel) {
    UINT nbrBlock;
    REAL* nbrFlux;
-   const UINT STATE = nbrsVel[NbrsVel::STATE];
    typedef Parameters P;
 
    // NOTE: velocity block can have up to 26 neighbours, and we need to copy changes 
@@ -38,265 +37,237 @@ template<typename REAL,typename UINT> void accumulateChanges(const UINT& BLOCK,c
    const UINT ACCMIN = 0;
    const UINT ACCMAX = 3;
    
-   // Accumulate changes to this block:
-   for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) 
-     flux[BLOCK*SIZE_FLUXS+accIndex(i,j,k)] += dF[findex(i+1,j+1,k+1)];
-   
-   // Accumulate changes to (iv-1,jv,kv) neighbour if it exists:
-   if (isBoundary(STATE,NbrsVel::VX_NEG_BND) == 0) {
-      nbrBlock = nbrsVel[NbrsVel::VXNEG];
-      nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-      for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) nbrFlux[accIndex(ACCMAX,j,k)] += dF[findex(MIN,j+1,k+1)];
-      // Accumulate changes to (iv-1,jv+-1,kv) neighbours if they exist:
-      if (isBoundary(STATE,NbrsVel::VY_NEG_BND) == 0) {
-	 nbrBlock = BLOCK - P::vxblocks_ini - 1; // temp solution
-	 nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-	 for (UINT k=0; k<WID; ++k) nbrFlux[accIndex(ACCMAX,ACCMAX,k)] += dF[findex(MIN,MIN,k+1)];
-      }
-      if (isBoundary(STATE,NbrsVel::VY_POS_BND) == 0) {
-	 nbrBlock = BLOCK + P::vxblocks_ini - 1; // temp solution
-	 nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-	 for (UINT k=0; k<WID; ++k) nbrFlux[accIndex(ACCMAX,ACCMIN,k)] += dF[findex(MIN,MAX,k+1)];
-      }
+   // ***** NEIGHBOURS TO NEGATIVE VZ DIRECTION *****   
+   // Neighbour (iv-1,jv-1,kv-1):
+   if (nbrsVel[NbrsVel::XM1_YM1_ZM1] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XM1_YM1_ZM1]*SIZE_FLUXS;
+      nbrFlux[accIndex(ACCMAX,ACCMAX,ACCMAX)] += dF[findex(MIN,MIN,MIN)];
    }
-   // Accumulate changes to (iv+1,jv,kv) neighbour if it exists:
-   if (isBoundary(STATE,NbrsVel::VX_POS_BND) == 0) {
-      nbrBlock = nbrsVel[NbrsVel::VXPOS];
-      nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-      for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) nbrFlux[accIndex(ACCMIN,j,k)] += dF[findex(MAX,j+1,k+1)];
-      // Accumulate changes to (iv+1,jv+-1,kv) neighbours if they exist:
-      if (isBoundary(STATE,NbrsVel::VY_NEG_BND) == 0) {
-	 nbrBlock = BLOCK - P::vxblocks_ini + 1; // temp solution
-	 nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-	 for (UINT k=0; k<WID; ++k) nbrFlux[accIndex(ACCMIN,ACCMAX,k)] += dF[findex(MAX,MIN,k+1)];
-      }
-      if (isBoundary(STATE,NbrsVel::VY_POS_BND) == 0) {
-	 nbrBlock = BLOCK + P::vxblocks_ini + 1; // temp solution
-	 nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-	 for (UINT k=0; k<WID; ++k) nbrFlux[accIndex(ACCMIN,ACCMIN,k)] += dF[findex(MAX,MAX,k+1)];
-      }
+   // Neighbour (iv  ,jv-1,kv-1):
+   if (nbrsVel[NbrsVel::XCC_YM1_ZM1] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XCC_YM1_ZM1]*SIZE_FLUXS;
+      for (UINT i=0; i<WID; ++i) nbrFlux[accIndex(i,ACCMAX,ACCMAX)] += dF[findex(i+1,MIN,MIN)];
    }
-   // Accumulate changes to -vy neighbour if it exists:
-   if (isBoundary(STATE,NbrsVel::VY_NEG_BND) == 0) {
-      nbrBlock = nbrsVel[NbrsVel::VYNEG];
-      nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-      for (UINT k=0; k<WID; ++k) for (UINT i=0; i<WID; ++i) nbrFlux[accIndex(i,ACCMAX,k)] += dF[findex(i+1,MIN,k+1)];
-      // Accumulate changes to (iv,jv-1,kv+-1) neighbours if they exist:
-      if (isBoundary(STATE,NbrsVel::VZ_NEG_BND) == 0) {
-	 nbrBlock = BLOCK - P::vyblocks_ini*P::vxblocks_ini - P::vxblocks_ini; // temp solution
-	 nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-	 for (UINT i=0; i<WID; ++i) nbrFlux[accIndex(i,ACCMAX,ACCMAX)] += dF[findex(i+1,MIN,MIN)];
-      }
-      if (isBoundary(STATE,NbrsVel::VZ_POS_BND) == 0) {
-	 nbrBlock = BLOCK + P::vyblocks_ini*P::vxblocks_ini - P::vxblocks_ini; // temp solution
-	 nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-	 for (UINT i=0; i<WID; ++i) nbrFlux[accIndex(i,ACCMAX,ACCMIN)] += dF[findex(i+1,MIN,MAX)];
-      }
+   // Neighbour (iv+1,jv-1,kv-1):
+   if (nbrsVel[NbrsVel::XP1_YM1_ZM1] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XP1_YM1_ZM1]*SIZE_FLUXS;
+      nbrFlux[accIndex(ACCMIN,ACCMAX,ACCMAX)] += dF[findex(MAX,MIN,MIN)];
    }
-   // Accumulate changes to +vy neighbour if it exists:
-   if (isBoundary(STATE,NbrsVel::VY_POS_BND) == 0) {
-      nbrBlock = nbrsVel[NbrsVel::VYPOS];
-      nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-      for (UINT k=0; k<WID; ++k) for (UINT i=0; i<WID; ++i) nbrFlux[accIndex(i,ACCMIN,k)] += dF[findex(i+1,MAX,k+1)];
-      // Accumulate changes to (iv,jv+1,kv+-1) neighbours if they exist:
-      if (isBoundary(STATE,NbrsVel::VZ_NEG_BND) == 0) {
-	 nbrBlock = BLOCK - P::vyblocks_ini*P::vxblocks_ini + P::vxblocks_ini; // temp solution
-      	 nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-	 for (UINT i=0; i<WID; ++i) nbrFlux[accIndex(i,ACCMIN,ACCMAX)] += dF[findex(i+1,MAX,MIN)];
-      }
-      if (isBoundary(STATE,NbrsVel::VZ_POS_BND) == 0) {
-	 nbrBlock = BLOCK + P::vyblocks_ini*P::vxblocks_ini + P::vxblocks_ini; // temp solution
-	 nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-	 for (UINT i=0; i<WID; ++i) nbrFlux[accIndex(i,ACCMIN,ACCMIN)] += dF[findex(i+1,MAX,MAX)];
-      }
+   // Neighbour (iv-1,jv  ,kv-1):
+   if (nbrsVel[NbrsVel::XM1_YCC_ZM1] != NbrsVel::NON_EXISTING) {
+      nbrFlux  = flux + nbrsVel[NbrsVel::XM1_YCC_ZM1]*SIZE_FLUXS;
+      for (UINT j=0; j<WID; ++j) nbrFlux[accIndex(ACCMAX,j,ACCMAX)] += dF[findex(MIN,j+1,MIN)];
    }
-   // Accumulate changes to -vz neighbour if it exists:
-   if (isBoundary(STATE,NbrsVel::VZ_NEG_BND) == 0) {
-      nbrBlock = nbrsVel[NbrsVel::VZNEG];
-      nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
+   // Neighbour (iv  ,jv  ,kv-1):
+   if (nbrsVel[NbrsVel::XCC_YCC_ZM1] != NbrsVel::NON_EXISTING) {
+      nbrFlux  = flux + nbrsVel[NbrsVel::XCC_YCC_ZM1]*SIZE_FLUXS;
       for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) nbrFlux[accIndex(i,j,ACCMAX)] += dF[findex(i+1,j+1,MIN)];
-      // Accumulate changes to (iv+-1,jv,kv-1) neighbours if they exist:
-      if (isBoundary(STATE,NbrsVel::VX_NEG_BND) == 0) {
-	 nbrBlock = BLOCK - P::vyblocks_ini*P::vxblocks_ini - 1; // temp solution
-	 nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-	 for (UINT j=0; j<WID; ++j) nbrFlux[accIndex(ACCMAX,j,ACCMAX)] += dF[findex(MIN,j+1,MIN)];
-      }
-      if (isBoundary(STATE,NbrsVel::VX_POS_BND) == 0) {
-	 nbrBlock = BLOCK - P::vyblocks_ini*P::vxblocks_ini + 1; // temp solution
-	 nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-	 for (UINT j=0; j<WID; ++j) nbrFlux[accIndex(ACCMIN,j,ACCMAX)] += dF[findex(MAX,j+1,MIN)];
-      }
    }
-   // Accumulate changes to +vz neighbour if it exists:
-   if (isBoundary(STATE,NbrsVel::VZ_POS_BND) == 0) {
-      nbrBlock = nbrsVel[NbrsVel::VZPOS];
-      nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-      for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) nbrFlux[accIndex(i,j,ACCMIN)] += dF[findex(i+1,j+1,MAX)];
-      // Accumulate changes to (iv+-1,jv,kv+1) neighbours if they exist:
-      if (isBoundary(STATE,NbrsVel::VX_NEG_BND) == 0) {
-	 nbrBlock = BLOCK + P::vyblocks_ini*P::vxblocks_ini - 1; // temp solution
-	 nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-	 for (UINT j=0; j<WID; ++j) nbrFlux[accIndex(ACCMAX,j,ACCMIN)] += dF[findex(MIN,j+1,MAX)];
-      }
-      if (isBoundary(STATE,NbrsVel::VX_POS_BND) == 0) {
-	 nbrBlock = BLOCK + P::vyblocks_ini*P::vxblocks_ini + 1; // temp solution
-	 nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-	 for (UINT j=0; j<WID; ++j) nbrFlux[accIndex(ACCMIN,j,ACCMIN)] += dF[findex(MAX,j+1,MAX)];
-      }
+   // Neighbour (iv+1,jv  ,kv-1):
+   if (nbrsVel[NbrsVel::XP1_YCC_ZM1] != NbrsVel::NON_EXISTING) {
+      nbrFlux  = flux + nbrsVel[NbrsVel::XP1_YCC_ZM1]*SIZE_FLUXS;
+      for (UINT j=0; j<WID; ++j) nbrFlux[accIndex(ACCMIN,j,ACCMAX)] += dF[findex(MAX,j+1,MIN)];
+   }
+   // Neighbour (iv-1,jv+1,kv-1):
+   if (nbrsVel[NbrsVel::XM1_YP1_ZM1] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XM1_YP1_ZM1]*SIZE_FLUXS;
+      nbrFlux[accIndex(ACCMAX,ACCMIN,ACCMAX)] += dF[findex(MIN,MAX,MIN)];
+   }
+   // Neighbour (iv  ,jv+1,kv-1):
+   if (nbrsVel[NbrsVel::XCC_YP1_ZM1] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XCC_YP1_ZM1]*SIZE_FLUXS;
+      for (UINT i=0; i<WID; ++i) nbrFlux[accIndex(i,ACCMIN,ACCMAX)] += dF[findex(i+1,MAX,MIN)];
+   }
+   // Neighbour (iv+1,jv+1,kv-1):
+   if (nbrsVel[NbrsVel::XP1_YP1_ZM1] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XP1_YP1_ZM1]*SIZE_FLUXS;
+      nbrFlux[accIndex(ACCMIN,ACCMIN,ACCMAX)] += dF[findex(MAX,MAX,MIN)];
    }
    
-   // Accumulate changes to 8 corner neighbours:
-   if (isBoundary(STATE,NbrsVel::VX_NEG_BND) == 0) {
-      if (isBoundary(STATE,NbrsVel::VY_NEG_BND) == 0) {
-	 if (isBoundary(STATE,NbrsVel::VZ_NEG_BND) == 0) { // (iv-1,jv-1,kv-1)
-	    nbrBlock = BLOCK - P::vyblocks_ini*P::vxblocks_ini - P::vxblocks_ini - 1; // temp solution
-	    nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-	    nbrFlux[accIndex(ACCMAX,ACCMAX,ACCMAX)] += dF[findex(MIN,MIN,MIN)];
-	 }
-	 if (isBoundary(STATE,NbrsVel::VZ_POS_BND) == 0) { // (iv-1,jv-1,kv+1)
-	    nbrBlock = BLOCK + P::vyblocks_ini*P::vxblocks_ini - P::vxblocks_ini - 1; // temp solution
-	    nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-	    nbrFlux[accIndex(ACCMAX,ACCMAX,ACCMIN)] += dF[findex(MIN,MIN,MAX)];
-	 }
-      }
-      if (isBoundary(STATE,NbrsVel::VY_POS_BND) == 0) {
-	 if (isBoundary(STATE,NbrsVel::VZ_NEG_BND) == 0) { // (iv-1,jv+1,kv-1)
-	    nbrBlock = BLOCK - P::vyblocks_ini*P::vxblocks_ini + P::vxblocks_ini - 1; // temp solution
-	    nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-	    nbrFlux[accIndex(ACCMAX,ACCMIN,ACCMAX)] += dF[findex(MIN,MAX,MIN)];
-	 } 
-	 if (isBoundary(STATE,NbrsVel::VZ_POS_BND) == 0) { // (iv-1,jv+1,kv+1)
-	    nbrBlock = BLOCK + P::vyblocks_ini*P::vxblocks_ini + P::vxblocks_ini - 1; // temp solution
-	    nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-	    nbrFlux[accIndex(ACCMAX,ACCMIN,ACCMIN)] += dF[findex(MIN,MAX,MAX)];
-	 }
-      }
+   // ***** NEIGHBOURS IN SAME VZ PLANE *****
+   // Neighbour (iv-1,jv-1,kv  ):
+   if (nbrsVel[NbrsVel::XM1_YM1_ZCC] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XM1_YM1_ZCC]*SIZE_FLUXS;
+      for (UINT k=0; k<WID; ++k) nbrFlux[accIndex(ACCMAX,ACCMAX,k)] += dF[findex(MIN,MIN,k+1)];
    }
-   if (isBoundary(STATE,NbrsVel::VX_POS_BND) == 0) {
-      if (isBoundary(STATE,NbrsVel::VY_NEG_BND) == 0) {
-	 if (isBoundary(STATE,NbrsVel::VZ_NEG_BND) == 0) { // (iv+1,jv-1,kv-1)
-	    nbrBlock = BLOCK - P::vyblocks_ini*P::vxblocks_ini - P::vxblocks_ini + 1; // temp solution
-	    nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-	    nbrFlux[accIndex(ACCMIN,ACCMAX,ACCMAX)] += dF[findex(MAX,MIN,MIN)];
-	 }
-	 if (isBoundary(STATE,NbrsVel::VZ_POS_BND) == 0) { // (iv+1,jv-1,kv+1)
-	    nbrBlock = BLOCK + P::vyblocks_ini*P::vxblocks_ini - P::vxblocks_ini + 1; // temp solution
-	    nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-	    nbrFlux[accIndex(ACCMIN,ACCMAX,ACCMIN)] += dF[findex(MAX,MIN,MAX)];
-	 }
-      }
-      if (isBoundary(STATE,NbrsVel::VY_POS_BND) == 0) { 
-	 if (isBoundary(STATE,NbrsVel::VZ_NEG_BND) == 0) { // (iv+1,jv+1,kv-1)
-	    nbrBlock = BLOCK - P::vyblocks_ini*P::vxblocks_ini + P::vxblocks_ini + 1; // temp solution
-	    nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-	    nbrFlux[accIndex(ACCMIN,ACCMIN,ACCMAX)] += dF[findex(MAX,MAX,MIN)];
-	 }
-	 if (isBoundary(STATE,NbrsVel::VZ_POS_BND) == 0) { // (iv+1,jv+1,kv+1)
-	    nbrBlock = BLOCK + P::vyblocks_ini*P::vxblocks_ini + P::vxblocks_ini + 1; // temp solution
-	    nbrFlux  = flux + nbrBlock*SIZE_FLUXS;
-	    nbrFlux[accIndex(ACCMIN,ACCMIN,ACCMIN)] += dF[findex(MAX,MAX,MAX)];
-	 }
-      }
+   // Neighbour (iv  ,jv-1,kv  ):
+   if (nbrsVel[NbrsVel::XCC_YM1_ZCC] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XCC_YM1_ZCC]*SIZE_FLUXS;
+      for (UINT k=0; k<WID; ++k) for (UINT i=0; i<WID; ++i) nbrFlux[accIndex(i,ACCMAX,k)] += dF[findex(i+1,MIN,k+1)];
+   }
+   // Neighbour (iv+1,jv-1,kv  ):
+   if (nbrsVel[NbrsVel::XP1_YM1_ZCC] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XP1_YM1_ZCC]*SIZE_FLUXS;
+      for (UINT k=0; k<WID; ++k) nbrFlux[accIndex(ACCMIN,ACCMAX,k)] += dF[findex(MAX,MIN,k+1)];
+   }
+   // Neighbour (iv-1,jv  ,kv  ):
+   if (nbrsVel[NbrsVel::XM1_YCC_ZCC] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XM1_YCC_ZCC]*SIZE_FLUXS;
+      for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) nbrFlux[accIndex(ACCMAX,j,k)] += dF[findex(MIN,j+1,k+1)];
+   }
+   // This block (iv  ,jv  ,kv  ):
+   for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
+     flux[BLOCK*SIZE_FLUXS+accIndex(i,j,k)] += dF[findex(i+1,j+1,k+1)];
+   }
+   // Neighbour (iv+1,jv  ,kv  ):
+   if (nbrsVel[NbrsVel::XP1_YCC_ZCC] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XP1_YCC_ZCC]*SIZE_FLUXS;
+      for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) nbrFlux[accIndex(ACCMIN,j,k)] += dF[findex(MAX,j+1,k+1)];
+   }
+   // Neighbour (iv-1,jv+1,kv  ):
+   if (nbrsVel[NbrsVel::XM1_YP1_ZCC] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XM1_YP1_ZCC]*SIZE_FLUXS;
+      for (UINT k=0; k<WID; ++k) nbrFlux[accIndex(ACCMAX,ACCMIN,k)] += dF[findex(MIN,MAX,k+1)];
+   }
+   // Neighbour (iv  ,jv+1,kv  ):
+   if (nbrsVel[NbrsVel::XCC_YP1_ZCC] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XCC_YP1_ZCC]*SIZE_FLUXS;
+      for (UINT k=0; k<WID; ++k) for (UINT i=0; i<WID; ++i) nbrFlux[accIndex(i,ACCMIN,k)] += dF[findex(i+1,MAX,k+1)];
+   }   
+   // Neighbour (iv+1,jv+1,kv  ):
+   if (nbrsVel[NbrsVel::XP1_YP1_ZCC] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XP1_YP1_ZCC]*SIZE_FLUXS;
+      for (UINT k=0; k<WID; ++k) nbrFlux[accIndex(ACCMIN,ACCMIN,k)] += dF[findex(MAX,MAX,k+1)];
+   }
+
+   // ***** NEIGHBOURS TO POSITIVE VZ DIRECTION *****
+   // Neighbour (iv-1,jv-1,kv+1):
+   if (nbrsVel[NbrsVel::XM1_YM1_ZP1] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XM1_YM1_ZP1]*SIZE_FLUXS;
+      nbrFlux[accIndex(ACCMAX,ACCMAX,ACCMIN)] += dF[findex(MIN,MIN,MAX)];
+   }   
+   // Neighbour (iv  ,jv-1,kv+1):
+   if (nbrsVel[NbrsVel::XCC_YM1_ZP1] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XCC_YM1_ZP1]*SIZE_FLUXS;
+      for (UINT i=0; i<WID; ++i) nbrFlux[accIndex(i,ACCMAX,ACCMIN)] += dF[findex(i+1,MIN,MAX)];
+   }
+   // Neighbour (iv+1,jv-1,kv+1):
+   if (nbrsVel[NbrsVel::XP1_YM1_ZP1] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XP1_YM1_ZP1]*SIZE_FLUXS;
+      nbrFlux[accIndex(ACCMIN,ACCMAX,ACCMIN)] += dF[findex(MAX,MIN,MAX)];
+   }
+   // Neighbour (iv-1,jv  ,kv+1):
+   if (nbrsVel[NbrsVel::XM1_YCC_ZP1] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XM1_YCC_ZP1]*SIZE_FLUXS;
+      for (UINT j=0; j<WID; ++j) nbrFlux[accIndex(ACCMAX,j,ACCMIN)] += dF[findex(MIN,j+1,MAX)];
+   }
+   // Neighbour (iv  ,jv  ,kv+1):
+   if (nbrsVel[NbrsVel::XCC_YCC_ZP1] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XCC_YCC_ZP1]*SIZE_FLUXS;
+      for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) nbrFlux[accIndex(i,j,ACCMIN)] += dF[findex(i+1,j+1,MAX)];
+   }
+   // Neighbour (iv+1,jv  ,kv+1):
+   if (nbrsVel[NbrsVel::XP1_YCC_ZP1] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XP1_YCC_ZP1]*SIZE_FLUXS;
+      for (UINT j=0; j<WID; ++j) nbrFlux[accIndex(ACCMIN,j,ACCMIN)] += dF[findex(MAX,j+1,MAX)];
+   }
+   // Neighbour (iv-1,jv+1,kv+1):
+   if (nbrsVel[NbrsVel::XM1_YP1_ZP1] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XM1_YP1_ZP1]*SIZE_FLUXS;
+      nbrFlux[accIndex(ACCMAX,ACCMIN,ACCMIN)] += dF[findex(MIN,MAX,MAX)];
+   }
+   // Neighbour (iv  ,jv+1,kv+1):
+   if (nbrsVel[NbrsVel::XCC_YP1_ZP1] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XCC_YP1_ZP1]*SIZE_FLUXS;
+      for (UINT i=0; i<WID; ++i) nbrFlux[accIndex(i,ACCMIN,ACCMIN)] += dF[findex(i+1,MAX,MAX)];
+   }
+   // Neighbour (iv+1,jv+1,kv+1):
+   if (nbrsVel[NbrsVel::XP1_YP1_ZP1] != NbrsVel::NON_EXISTING) {
+      nbrFlux = flux + nbrsVel[NbrsVel::XP1_YP1_ZP1]*SIZE_FLUXS;
+      nbrFlux[accIndex(ACCMIN,ACCMIN,ACCMIN)] += dF[findex(MAX,MAX,MAX)];
    }
 }
 
 template<typename REAL,typename UINT> void fetchAllAverages(const UINT& BLOCK,REAL* const avgs,const REAL* const cpu_avgs,const UINT* const nbrsVel) {
    UINT nbrBlock;
    for (UINT i=0; i<8*WID3; ++i) avgs[i] = 0.0;
-   const UINT STATE = nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::STATE];
 
    // Copy averages from -x neighbour, or calculate using a boundary function:
-   if (isBoundary(STATE,NbrsVel::VX_NEG_BND) > 0) {
+   if (nbrsVel[NbrsVel::XM1_YCC_ZCC] == NbrsVel::NON_EXISTING) {
       for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<2; ++i) {
 	 avgs[fullInd(i  ,j+2,k+2)] = 0.0; // BOUNDARY VALUE
       }
    } else {
-      nbrBlock = nbrsVel[BLOCK*SIZE_NBRS_VEL + NbrsVel::VXNEG];
+      nbrBlock = nbrsVel[NbrsVel::XM1_YCC_ZCC];
       creal* const tmp = cpu_avgs + nbrBlock*SIZE_VELBLOCK; 
       for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) {
 	 #pragma ivdep
 	 for (UINT i=0; i<2; ++i) {
-	 //avgs[fullInd(i  ,j+2,k+2)] = cpu_avgs[nbrBlock*SIZE_VELBLOCK + accIndex(i+2,j,k)];
 	 avgs[fullInd(i  ,j+2,k+2)] = tmp[accIndex(i+2,j,k)];
 	 }
       }
    }
    // Copy averages from +x neighbour, or calculate using a boundary function:
-   if (isBoundary(STATE,NbrsVel::VX_POS_BND) > 0) {
+   if (nbrsVel[NbrsVel::XP1_YCC_ZCC] == NbrsVel::NON_EXISTING) {
       for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<2; ++i) {
 	 avgs[fullInd(i+6,j+2,k+2)] = 0.0; // BOUNDARY VALUE
       }
    } else {
-      nbrBlock = nbrsVel[BLOCK*SIZE_NBRS_VEL + NbrsVel::VXPOS];
+      nbrBlock = nbrsVel[NbrsVel::XP1_YCC_ZCC];
       creal* const tmp = cpu_avgs + nbrBlock*SIZE_VELBLOCK;
       for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) {
 	 #pragma ivdep
 	 for (UINT i=0; i<2; ++i) {
-	    //avgs[fullInd(i+6,j+2,k+2)] = cpu_avgs[nbrBlock*SIZE_VELBLOCK + accIndex(i  ,j,k)];
 	    avgs[fullInd(i+6,j+2,k+2)] = tmp[accIndex(i  ,j,k)];
 	 }
       }
    }
    // Copy averages from -y neighbour, or calculate using a boundary function:
-   if (isBoundary(STATE,NbrsVel::VY_NEG_BND) > 0) {
+   if (nbrsVel[NbrsVel::XCC_YM1_ZCC] == NbrsVel::NON_EXISTING) {
       for (UINT k=0; k<WID; ++k) for (UINT j=0; j<2; ++j) for (UINT i=0; i<WID; ++i) {
 	 avgs[fullInd(i+2,j  ,k+2)] = 0.0; // BOUNDARY VALUE
       }
    } else {
-      nbrBlock = nbrsVel[BLOCK*SIZE_NBRS_VEL + NbrsVel::VYNEG];
+      nbrBlock = nbrsVel[NbrsVel::XCC_YM1_ZCC];
       creal* const tmp = cpu_avgs + nbrBlock*SIZE_VELBLOCK;
       for (UINT k=0; k<WID; ++k) for (UINT j=0; j<2; ++j) {
 	 #pragma ivdep
 	 for (UINT i=0; i<WID; ++i) {
-	    //avgs[fullInd(i+2,j  ,k+2)] = cpu_avgs[nbrBlock*SIZE_VELBLOCK + accIndex(i,j+2,k)];
 	    avgs[fullInd(i+2,j  ,k+2)] = tmp[accIndex(i,j+2,k)];
 	 }
       }
    }
    // Copy averages from +y neighbour, or calculate using a boundary function:
-   if (isBoundary(STATE,NbrsVel::VY_POS_BND) > 0) {
+   if (nbrsVel[NbrsVel::XCC_YP1_ZCC] == NbrsVel::NON_EXISTING) {
       for (UINT k=0; k<WID; ++k) for (UINT j=0; j<2; ++j) for (UINT i=0; i<WID; ++i) {
 	 avgs[fullInd(i+2,j+6,k+2)] = 0.0; // BOUNDARY VALUE
       }
    } else {
-      nbrBlock = nbrsVel[BLOCK*SIZE_NBRS_VEL + NbrsVel::VYPOS];
+      nbrBlock = nbrsVel[NbrsVel::XCC_YP1_ZCC];
       creal* const tmp = cpu_avgs + nbrBlock*SIZE_VELBLOCK;
       for (UINT k=0; k<WID; ++k) for (UINT j=0; j<2; ++j) {
 	 #pragma ivdep
 	 for (UINT i=0; i<WID; ++i) {
-	    //avgs[fullInd(i+2,j+6,k+2)] = cpu_avgs[nbrBlock*SIZE_VELBLOCK + accIndex(i,j  ,k)];
 	    avgs[fullInd(i+2,j+6,k+2)] = tmp[accIndex(i,j  ,k)];
 	 }
       }
    }
    // Copy averages from -z neighbour, or calculate using a boundary function:
-   if (isBoundary(STATE,NbrsVel::VZ_NEG_BND) > 0) {
+   if (nbrsVel[NbrsVel::XCC_YCC_ZM1] == NbrsVel::NON_EXISTING) {
       for (UINT k=0; k<2; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
 	 avgs[fullInd(i+2,j+2,k  )] = 0.0; // BOUNDARY VALUE
       }
    } else {
-      nbrBlock = nbrsVel[BLOCK*SIZE_NBRS_VEL + NbrsVel::VZNEG];
+      nbrBlock = nbrsVel[NbrsVel::XCC_YCC_ZM1];
       creal* const tmp = cpu_avgs + nbrBlock*SIZE_VELBLOCK;
       for (UINT k=0; k<2; ++k) for (UINT j=0; j<WID; ++j) {
 	 #pragma ivdep
 	 for (UINT i=0; i<WID; ++i) {
-	    //avgs[fullInd(i+2,j+2,k  )] = cpu_avgs[nbrBlock*SIZE_VELBLOCK + accIndex(i,j,k+2)];
 	    avgs[fullInd(i+2,j+2,k  )] = tmp[accIndex(i,j,k+2)];
 	 }
       }
    }
    // Copy averages from +z neighbour, or calculate using a boundary function:
-   if (isBoundary(STATE,NbrsVel::VZ_POS_BND) > 0) {
+   if (nbrsVel[NbrsVel::XCC_YCC_ZP1] == NbrsVel::NON_EXISTING) {
       for (UINT k=0; k<2; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
 	 avgs[fullInd(i+2,j+2,k+6)] = 0.0; // BOUNDARY VALUE
       }
    } else {
-      nbrBlock = nbrsVel[BLOCK*SIZE_NBRS_VEL + NbrsVel::VZPOS];
+      nbrBlock = nbrsVel[NbrsVel::XCC_YCC_ZP1];
       creal* const tmp = cpu_avgs + nbrBlock*SIZE_VELBLOCK;
       for (UINT k=0; k<2; ++k) for (UINT j=0; j<WID; ++j) {
 	 #pragma ivdep
 	 for (UINT i=0; i<WID; ++i) {
-	    //avgs[fullInd(i+2,j+2,k+6)] = cpu_avgs[nbrBlock*SIZE_VELBLOCK + accIndex(i,j,k)];
 	    avgs[fullInd(i+2,j+2,k+6)] = tmp[accIndex(i,j,k)];
 	 }
       }
@@ -305,7 +276,6 @@ template<typename REAL,typename UINT> void fetchAllAverages(const UINT& BLOCK,RE
    // Copy volume averages of this block:
    creal* const tmp = cpu_avgs + BLOCK*SIZE_VELBLOCK;
    for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
-      //avgs[fullInd(i+2,j+2,k+2)] = cpu_avgs[BLOCK*SIZE_VELBLOCK + accIndex(i,j,k)];
       avgs[fullInd(i+2,j+2,k+2)] = tmp[accIndex(i,j,k)];
    }
 }
@@ -327,7 +297,7 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL&
    const REAL* const cellParams = cell.cpu_cellParams;
    const REAL* const blockParams = cell.cpu_blockParams + BLOCK*SIZE_BLOCKPARAMS; 
    REAL avgs[8*WID3];
-   fetchAllAverages(BLOCK,avgs,cell.cpu_avgs,cell.cpu_nbrsVel);
+   fetchAllAverages(BLOCK,avgs,cell.cpu_avgs,cell.cpu_nbrsVel+BLOCK*SIZE_NBRS_VEL);
 
    const REAL DVX = blockParams[BlockParams::DVX];
    const REAL DVY = blockParams[BlockParams::DVY];
@@ -1497,7 +1467,6 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL&
          #endif
 	 break;
       }
-
    }
    
    // If multithreading is used (OpenMP/pthreads), then some of the updates 

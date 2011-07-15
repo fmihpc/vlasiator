@@ -145,28 +145,25 @@ bool RectCuboidBuilder::getCellBlockData(const VirtualCell::ID& cellID,cuint& N_
 	   calcPhaseSpaceDensity(xmin+I*dx,ymin+J*dy,zmin+K*dz,dx,dy,dz,vx_cell,
 				 vy_cell,vz_cell,dvx_blockCell,dvy_blockCell,dvz_blockCell);
       }
-      cuint vxneg_nbr = iv-1;
-      cuint vxpos_nbr = iv+1;
-      cuint vyneg_nbr = jv-1;
-      cuint vypos_nbr = jv+1;
-      cuint vzneg_nbr = kv-1;
-      cuint vzpos_nbr = kv+1;
-      uint state = 0;
-      if (iv == 0)           state = state | NbrsVel::VX_NEG_BND; // Check for boundaries
-      if (iv == vx_blocks-1) state = state | NbrsVel::VX_POS_BND;
-      if (jv == 0)           state = state | NbrsVel::VY_NEG_BND;
-      if (jv == vy_blocks-1) state = state | NbrsVel::VY_POS_BND;
-      if (kv == 0)           state = state | NbrsVel::VZ_NEG_BND;
-      if (kv == vz_blocks-1) state = state | NbrsVel::VZ_POS_BND;
-      
-      nbrsVel[BLOCKID*SIZE_NBRS_VEL + NbrsVel::STATE] = state;
-      nbrsVel[BLOCKID*SIZE_NBRS_VEL + NbrsVel::MYIND] = BLOCKID;
-      nbrsVel[BLOCKID*SIZE_NBRS_VEL + NbrsVel::VXNEG] = velBlockIndex(vxneg_nbr,jv,kv);
-      nbrsVel[BLOCKID*SIZE_NBRS_VEL + NbrsVel::VXPOS] = velBlockIndex(vxpos_nbr,jv,kv);
-      nbrsVel[BLOCKID*SIZE_NBRS_VEL + NbrsVel::VYNEG] = velBlockIndex(iv,vyneg_nbr,kv);
-      nbrsVel[BLOCKID*SIZE_NBRS_VEL + NbrsVel::VYPOS] = velBlockIndex(iv,vypos_nbr,kv);
-      nbrsVel[BLOCKID*SIZE_NBRS_VEL + NbrsVel::VZNEG] = velBlockIndex(iv,jv,vzneg_nbr);
-      nbrsVel[BLOCKID*SIZE_NBRS_VEL + NbrsVel::VZPOS] = velBlockIndex(iv,jv,vzpos_nbr);
+      // Create velocity neighbour list entry:
+      uint nbrFlags = 0;
+      for (uint kkv=0; kkv<3; ++kkv) for (uint jjv=0; jjv<3; ++jjv) for (uint iiv=0; iiv<3; ++iiv) {
+	 // By default set the block as non-existing:
+	 nbrsVel[BLOCKID*SIZE_NBRS_VEL + kkv*9+jjv*3+iiv] = numeric_limits<uint>::max();
+	 
+	 // Then check if the block actually exists:
+	 cuint iindex = iv + iiv - 1;
+	 cuint jindex = jv + jjv - 1;
+	 cuint kindex = kv + kkv - 1;	 
+	 if (iindex >= vx_blocks) continue;
+	 if (jindex >= vy_blocks) continue;
+	 if (kindex >= vz_blocks) continue;
+	 
+	 // Block exists, override values set above:
+	 nbrsVel[BLOCKID*SIZE_NBRS_VEL + kkv*9+jjv*3+iiv] = velBlockIndex(iindex,jindex,kindex);
+	 nbrFlags = (nbrFlags | (1 << (kkv*9+jjv*3+iiv)));
+      }
+      nbrsVel[BLOCKID*SIZE_NBRS_VEL + NbrsVel::NBRFLAGS] = nbrFlags;
    }      
    return true;
 }

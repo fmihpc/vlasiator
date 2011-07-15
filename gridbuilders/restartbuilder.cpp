@@ -42,8 +42,7 @@ bool RestartBuilder::addCellBlockDataRequests(VirtualCell::ID& totalCells,Virtua
 	 success = false;
 	 mpilogger << "(RESTARTBUILDER) ERROR: Failed to read distrib. function values!" << endl << write;
       }
-   }
-   
+   }   
    // Read velocity block parameters:
    attribs.clear();
    attribs.push_back(make_pair("name","SpatialGrid"));
@@ -64,8 +63,7 @@ bool RestartBuilder::addCellBlockDataRequests(VirtualCell::ID& totalCells,Virtua
 	 success = false;
 	 mpilogger << "(RESTARTBUILDER) ERROR: Failed to read vel. block coordinates!" << endl << write;
       }
-   }
-   
+   }   
    // Read velocity block neighbour lists:
    attribs.clear();
    attribs.push_back(make_pair("name","SpatialGrid"));
@@ -88,22 +86,6 @@ bool RestartBuilder::addCellBlockDataRequests(VirtualCell::ID& totalCells,Virtua
 	 mpilogger << "(RESTARTBUILDER) ERROR: Failed to read vel. block neighbours!" << endl << write;
       }
    }
-   /*
-   int myrank;
-   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
-   if (myrank == 1) {
-      cerr << "totalcells: " << totalCells << endl;
-      for (uint i=0; i<totalCells; ++i) {
-	 cerr << "Cell #" << cellIDs[i] << " blocks: " << blocksPerCell[i] << endl;
-	 for (uint j=0; j<blocksPerCell[i]; ++j) {
-	    cerr << "Block #" << j << ": ";
-	 //   for (uint k=0; k<WID3; ++k) cerr << avgsBuffer[i][j*WID3+k] << ' ';
-	 // for (uint k=0; k<SIZE_BLOCKPARAMS; ++k) cerr << blockParamsBuffer[i][j*SIZE_BLOCKPARAMS+k] << ' ';
-	    for (uint k=0; k<SIZE_NBRS_VEL; ++k) cerr << nbrsVelBuffer[i][j*SIZE_NBRS_VEL+k] << ' ';
-	    cerr << endl;
-	 }
-      }
-   }*/
    return success;
 }
 
@@ -439,9 +421,6 @@ bool RestartBuilder::initialize(MPI_Comm comm,const int& masterRank) {
       mpilogger << "(RESTARTBUILDER) VLSVParReader failed to open restart file '" << fileName << "' for reading!" << endl << write;
       initialized = false;
    }
-
-   //cerr << "filename = '" << fileName << "'" << endl;
-   //cerr << q << ' ' << m << ' ' << dt << ' ' << t_min << ' ' << timestep << ' ' << max_timesteps << endl;   
    return initialized;
 }
 
