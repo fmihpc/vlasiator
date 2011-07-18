@@ -5,6 +5,7 @@
 #include <list>
 #include <silo.h>
 #include <sstream>
+#include <dirent.h>
 
 #include "vlsvreader2.h"
 #include "definitions.h"
@@ -377,178 +378,6 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader,const string& meshName) {
    return success;
 }
    
-/*   
-// NOTE: This function seems to be incredibly slow for multiple meshes, 
-// seems that writing several thousand meshes into a SILO file gets slow very 
-// fast.
-bool convertVelocityBlocks(VLSVReader& vlsvReader,const string& meshName) {
-   bool success = true;
-   
-   list<pair<string,string> > attribs;
-   attribs.push_back(make_pair("name",meshName));
-
-   // Check if velocity blocks have been saved:
-   // "cwb" = "cells with blocks"
-   // "nb"  = "number of blocks"
-   // "bc"  = "block coordinates"
-   VLSV::datatype cwb_dataType,nb_dataType,bc_dataType;
-   uint64_t cwb_arraySize,cwb_vectorSize,cwb_dataSize;
-   uint64_t nb_arraySize,nb_vectorSize,nb_dataSize;
-   uint64_t bc_arraySize,bc_vectorSize,bc_dataSize;
-   
-   if (vlsvReader.getArrayInfo("CELLSWITHBLOCKS",attribs,cwb_arraySize,cwb_vectorSize,cwb_dataType,cwb_dataSize) == false) return true;
-   if (vlsvReader.getArrayInfo("NBLOCKS",attribs,nb_arraySize,nb_vectorSize,nb_dataType,nb_dataSize) == false) return true;
-   if (vlsvReader.getArrayInfo("BLOCKCOORDINATES",attribs,bc_arraySize,bc_vectorSize,bc_dataType,bc_dataSize) == false) return true;
-   
-   char* cwb_buffer = new char[cwb_arraySize*cwb_vectorSize*cwb_dataSize];
-   char* nb_buffer = new char[nb_arraySize*nb_vectorSize*nb_dataSize];
-   
-   if (vlsvReader.readArray("CELLSWITHBLOCKS",meshName,0,cwb_arraySize,cwb_buffer) == false) success = false;
-   if (vlsvReader.readArray("NBLOCKS",meshName,0,nb_arraySize,nb_buffer) == false) success = false;
-   if (success == false) {
-      cerr << "Failed to read block metadata for mesh '" << meshName << "'" << endl;
-      delete cwb_buffer;
-      delete nb_buffer;
-      return success;
-   }
-
-   // For each spatial cell with velocity grid, create a new SILO grid:
-   char* bc_buffer = new char[bc_vectorSize*bc_dataSize];
-   float vxcrds_float[5]; // 4x4x4 blocks
-   float vycrds_float[5];
-   float vzcrds_float[5];
-   float vxcrds_dbl[5];
-   float vycrds_dbl[5];
-   float vzcrds_dbl[5];
-
-   uint64_t blockOffset = 0;
-   for (uint64_t cell=0; cell<cwb_arraySize; ++cell) {
-      const uint64_t cellID = convUInt(cwb_buffer+cell*cwb_dataSize,cwb_dataType,cwb_dataSize);
-      const uint N_blocks   = convUInt(nb_buffer+cell*nb_dataSize,nb_dataType,nb_dataSize);      
-      int N_dims[] = {5,5,5}; // Number of nodes per coordinate in each velocity block
-      string blockName;
-      char** blockNames = new char*[N_blocks];
-      int* blockTypes = new int[N_blocks];
-      for (uint64_t i=0; i<N_blocks; ++i) blockTypes[i] = DB_QUAD_RECT;
-
-      int extentsSize = 6;                  // 2*dimensionality 
-      double* extents = new double[extentsSize*N_blocks];
-      int* zoneCounts = new int[N_blocks];
-      for (uint64_t i=0; i<N_blocks; ++i) zoneCounts[i] = 64;
-      
-      stringstream ss;
-      ss << "cell" << cellID;
-      const string dirName = ss.str();
-      
-      cerr << "Writing cell #" << cellID << endl;
-      
-      // Create a new SILO file directory for this spatial cell, and descend into it:
-      if (DBMkDir(fileptr,dirName.c_str()) < 0) {
-	 cerr << "Error when creating a subdir for spatial cell" << endl;
-	 success = false;
-      }
-      if (DBSetDir(fileptr,dirName.c_str()) < 0) {
-	 cerr << "Error when descending to spatial cell subdir" << endl;
-	 success = false;
-	 continue;
-      }
-      
-      // Create each velocity block as a separate quad mesh:
-      for (uint64_t b=0; b<N_blocks; ++b) {
-	 //cerr << "\t writing block no. " << b << endl;
-	 vlsvReader.readArray("BLOCKCOORDINATES",meshName,blockOffset+b,1,bc_buffer);
-	 
-	 // Now bc_buffer contains block bottom left corner coordinates and the sizes 
-	 // of cells in block. The data can be stored as floats or doubles, and we 
-	 // need to create coordinate arrays for SILO.
-	 string blockName;
-	 void* coords[3];
-	 
-	 if (bc_dataSize == 4) { 
-	    // floats
-	    float vx_min = *reinterpret_cast<float*>(bc_buffer+0*sizeof(float));
-	    float vy_min = *reinterpret_cast<float*>(bc_buffer+1*sizeof(float));
-	    float vz_min = *reinterpret_cast<float*>(bc_buffer+2*sizeof(float));
-	    float dvx    = *reinterpret_cast<float*>(bc_buffer+3*sizeof(float));
-	    float dvy    = *reinterpret_cast<float*>(bc_buffer+4*sizeof(float));
-	    float dvz    = *reinterpret_cast<float*>(bc_buffer+5*sizeof(float));
-	    
-	    for (int i=0; i<5; ++i) {
-	       vxcrds_float[i] = vx_min + i*dvx;
-	       vycrds_float[i] = vy_min + i*dvy;
-	       vzcrds_float[i] = vz_min + i*dvz;
-	    }
-	    
-	    stringstream sss;
-	    sss << "SC" << cellID << "B" << b; // b here shoud be correct block ID
-	    blockName = sss.str();
-	    sss.str("");
-	    
-	    sss << dirName << '/' << blockName;
-	    blockNames[b] = new char[sss.str().size()+1];
-	    for (int i=0; i<sss.str().size(); ++i) blockNames[b][i] = sss.str()[i];
-	    blockNames[b][sss.str().size()] = '\0';
-
-	    coords[0] = vxcrds_float;
-	    coords[1] = vycrds_float;
-	    coords[2] = vzcrds_float;
-
-	    // Min/Max values for coordinates, should accelerate VisIt:
-	    extents[b*extentsSize + 0] = vx_min;
-	    extents[b*extentsSize + 1] = vy_min;
-	    extents[b*extentsSize + 2] = vz_min;
-	    extents[b*extentsSize + 3] = vx_min + 4*dvx;
-	    extents[b*extentsSize + 4] = vy_min + 4*dvy;
-	    extents[b*extentsSize + 5] = vz_min + 4*dvz;
-	    
-	    //cerr << blockName << '\t' << blockNames[b] << endl;
-	 } else {
-	    // doubles
-	    
-	 }
-	 if (DBPutQuadmesh(fileptr,blockName.c_str(),NULL,coords,N_dims,3,SiloType(bc_dataType,bc_dataSize),DB_COLLINEAR,NULL) < 0) success = false;
-      }
-      
-      if (success == false) {
-	 cerr << "Error when writing velocity grids" << endl;
-      }
-      
-      // Return back to top level directory:
-      if (DBSetDir(fileptr,"..") < 0) {
-	 cerr << "Error when returning back to top level SILO dir" << endl;
-	 success = false;
-      }
-      
-      // Write a multimesh object:
-      string multimeshName;
-      stringstream sss;
-      sss << "SC" << cellID << "VelGrid";
-      multimeshName = sss.str();
-      
-      DBoptlist* optList = DBMakeOptlist(3);
-      if (DBAddOption(optList,DBOPT_ZONECOUNTS,zoneCounts) < 0) {cerr << "Failed to zone count" << endl;}
-      if (DBAddOption(optList,DBOPT_EXTENTS_SIZE,&extentsSize) < 0) {cerr << "Failed to add extents size" << endl;}
-      if (DBAddOption(optList,DBOPT_EXTENTS,extents) < 0) {cerr << "Failed to add extents" << endl;}
-      
-      if (DBPutMultimesh(fileptr,multimeshName.c_str(),N_blocks,blockNames,blockTypes,optList) < 0) success = false;
-
-      DBFreeOptlist(optList);
-      
-      blockOffset += N_blocks;
-
-      delete extents;
-      delete zoneCounts;
-      delete [] blockNames;
-      delete blockTypes;
-      //break;
-   }
-   delete bc_buffer;
-   delete cwb_buffer;
-   delete nb_buffer;
-   return success;
-}
-*/
-
 bool convertMeshVariable(VLSVReader& vlsvReader,const string& meshName,const string& varName) {
    bool success = true;
 
@@ -648,16 +477,7 @@ bool convertMesh(VLSVReader& vlsvReader,const string& meshName) {
       if (fabs(Y1) < EPS) Y1 = 0.0;
       if (fabs(Z0) < EPS) Z0 = 0.0;
       if (fabs(Z1) < EPS) Z1 = 0.0;
-      /*
-      nodes.insert(pair<NodeCrd<Real>,uint64_t>(NodeCrd<Real>(x   ,y   ,z   ),0));
-      nodes.insert(pair<NodeCrd<Real>,uint64_t>(NodeCrd<Real>(x+dx,y   ,z   ),0));
-      nodes.insert(pair<NodeCrd<Real>,uint64_t>(NodeCrd<Real>(x+dx,y+dy,z   ),0));
-      nodes.insert(pair<NodeCrd<Real>,uint64_t>(NodeCrd<Real>(x   ,y+dy,z   ),0));
-      nodes.insert(pair<NodeCrd<Real>,uint64_t>(NodeCrd<Real>(x   ,y   ,z+dz),0));
-      nodes.insert(pair<NodeCrd<Real>,uint64_t>(NodeCrd<Real>(x+dx,y   ,z+dz),0));
-      nodes.insert(pair<NodeCrd<Real>,uint64_t>(NodeCrd<Real>(x+dx,y+dy,z+dz),0));
-      nodes.insert(pair<NodeCrd<Real>,uint64_t>(NodeCrd<Real>(x   ,y+dy,z+dz),0));
-       */
+
       nodes.insert(make_pair(NodeCrd<Real>(X0,Y0,Z0),0));
       nodes.insert(make_pair(NodeCrd<Real>(X1,Y0,Z0),0));
       nodes.insert(make_pair(NodeCrd<Real>(X1,Y1,Z0),0));
@@ -726,33 +546,6 @@ bool convertMesh(VLSVReader& vlsvReader,const string& meshName) {
       it = nodes.find(NodeCrd<Real>(X1,Y0,Z1)); if (it == nodes.end()) success = false; nodelist[i*8+5] = it->second;
       it = nodes.find(NodeCrd<Real>(X1,Y1,Z1)); if (it == nodes.end()) success = false; nodelist[i*8+6] = it->second;
       it = nodes.find(NodeCrd<Real>(X0,Y1,Z1)); if (it == nodes.end()) success = false; nodelist[i*8+7] = it->second;
-      
-      /*
-      map<NodeCrd<Real>,uint64_t,NodeComp>::const_iterator it;
-      it = nodes.find(NodeCrd<Real>(x   ,y   ,z   )); if (it == nodes.end()) {success = false; } nodelist[i*8+0] = it->second;
-      if (it == nodes.end()) cerr << "Fail: " << x << ' ' << y << ' ' << z << endl;
-      
-      it = nodes.find(NodeCrd<Real>(x+dx,y   ,z   )); if (it == nodes.end()) {success = false; } nodelist[i*8+1] = it->second;
-      if (it == nodes.end()) cerr << "Fail: " << x+dx << ' ' << y << ' ' << z << endl;
-      
-      it = nodes.find(NodeCrd<Real>(x+dx,y+dy,z   )); if (it == nodes.end()) {success = false; } nodelist[i*8+2] = it->second;
-      if (it == nodes.end()) cerr << "Fail: " << x+dx << ' ' << y+dy << ' ' << z << endl;
-      
-      it = nodes.find(NodeCrd<Real>(x   ,y+dy,z   )); if (it == nodes.end()) {success = false; } nodelist[i*8+3] = it->second;
-      if (it == nodes.end()) cerr << "Fail: " << x << ' ' << y+dy << ' ' << z << endl;
-      
-      it = nodes.find(NodeCrd<Real>(x   ,y   ,z+dz)); if (it == nodes.end()) {success = false; } nodelist[i*8+4] = it->second;
-      if (it == nodes.end()) cerr << "Fail: " << x << ' ' << y << ' ' << z+dz << endl;
-      
-      it = nodes.find(NodeCrd<Real>(x+dx,y   ,z+dz)); if (it == nodes.end()) {success = false; } nodelist[i*8+5] = it->second;
-      if (it == nodes.end()) cerr << "Fail: " << x+dx << ' ' << y << ' ' << z+dz << endl;
-      
-      it = nodes.find(NodeCrd<Real>(x+dx,y+dy,z+dz)); if (it == nodes.end()) {success = false; } nodelist[i*8+6] = it->second;
-      if (it == nodes.end()) cerr << "Fail: " << x+dx << ' ' << y+dy << ' ' << z+dz << endl;
-      
-      it = nodes.find(NodeCrd<Real>(x   ,y+dy,z+dz)); if (it == nodes.end()) {success = false; } nodelist[i*8+7] = it->second;
-      if (it == nodes.end()) cerr << "Fail: " << x << ' ' << y+dy << ' ' << z+dz << endl;
-      */
    }
    delete coordsBuffer;
    if (success == false) {
@@ -849,14 +642,43 @@ bool convertSILO(const string& fname) {
 int main(int argn,char* args[]) {
    
    if (argn < 2) {
-      cerr << endl;
-      cerr << "USAGE: ./vlsv2vtk <input file(s)>" << endl;
-      cerr << endl;
+      cout << endl;
+      cout << "USAGE: ./vlsv2vtk <input file mask(s)>" << endl;
+      cout << "Each VLSV in the current directory is compared against the given file mask(s)," << endl;
+      cout << "and if match is found, that file is converted into SILO format." << endl;
+      cout << endl;
       return 1;
    }
    
-   for (int i=1; i<argn; ++i) {
-      convertSILO(args[i]);
+   // Convert file masks into strings:
+   vector<string> masks;
+   for (int i=1; i<argn; ++i) masks.push_back(args[i]);
+
+   // Compare directory contents against each mask:
+   const string directory = ".";
+   const string suffix = ".vlsv";
+   for (size_t mask=0; mask<masks.size(); ++mask) {
+      cout << "Comparing mask '" << masks[mask] << "'" << endl;
+      unsigned int filesConverted = 0;
+      DIR* dir = opendir(directory.c_str());
+      if (dir == NULL) continue;
+      
+      struct dirent* entry = readdir(dir);
+      while (entry != NULL) {
+	 const string entryName = entry->d_name;
+	 // Compare entry name against given mask and file suffix ".vlsv":
+	 if (entryName.find(masks[mask]) == string::npos || entryName.find(suffix) == string::npos) {
+	    entry = readdir(dir);
+	    continue;
+	 }
+	 cout << "\t converting '" << entryName << "'" << endl;
+	 convertSILO(entryName);
+	 ++filesConverted;
+	 entry = readdir(dir);
+      }
+      closedir(dir);
+      
+      if (filesConverted == 0) cout << "\t no matches found" << endl;
    }
    return 0;
 }
