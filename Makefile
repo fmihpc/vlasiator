@@ -68,7 +68,7 @@ DEPS_PROFILE = profile.h profile.cpp
 DEPS_VLSCOMMON = vlscommon.h vlscommon.cpp
 DEPS_VLSVEXTRACT = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp vlsvextract.cpp
 DEPS_VLSVREADER2 = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
-DEPS_VLSVWRITER2 = mpiconversion.h muxml.h muxml.xpp vlscommon.h vlsvwriter2.h vlsvwriter2.cpp
+DEPS_VLSVWRITER2 = mpiconversion.h muxml.h muxml.cpp vlscommon.h vlsvwriter2.h vlsvwriter2.cpp
 DEPS_VLSV2SILO = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp vlsv2silo.cpp
 
 DEPS_ARRAYALLOCATOR += ${DEPS_COMMON}
