@@ -31,7 +31,7 @@ include projects/Makefile.${PROJ}
 # The rest of this file users shouldn't need to change
 
 
-default: vlasiator vlsv2silo
+default: vlasiator vlsv2silo vlsvextract
 
 # Compile directory:
 INSTALL = $(CURDIR)
@@ -66,9 +66,10 @@ DEPS_PROJECT = project.h project.cpp
 DEPS_TIMER = timer.h timer.cpp
 DEPS_PROFILE = profile.h profile.cpp
 DEPS_VLSCOMMON = vlscommon.h vlscommon.cpp
+DEPS_VLSVEXTRACT = vlsvreader2.o vlsvextract.cpp
 DEPS_VLSVREADER2 = muxml.h vlscommon.h vlsvreader2.h vlsvreader2.cpp
 DEPS_VLSVWRITER2 = mpiconversion.h muxml.h vlscommon.h vlsvwriter2.h vlsvwriter2.cpp
-DEPS_VLSV2SILO = vlsv2silo.cpp
+DEPS_VLSV2SILO = vlsvreader2.o vlsv2silo.cpp
 
 DEPS_ARRAYALLOCATOR += ${DEPS_COMMON}
 DEPS_CELL_SPATIAL += $(DEPS_COMMON)
@@ -112,6 +113,7 @@ OBJS = arrayallocator.o cell_spatial.o		\
 	parameters.o project.o					\
 	timer.o profile.o vlscommon.o vlsvreader2.o vlsvwriter2.o
 
+OBJS_VLSVEXTRACT = muxml.o vlscommon.o vlsvreader2.o
 OBJS_VLSV2SILO = muxml.o vlscommon.o vlsvreader2.o
 
 HDRS +=
@@ -200,6 +202,10 @@ profile.o: ${DEPS_PROFILE}
 
 vlscommon.o: ${DEPS_VLSCOMMON}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlscommon.cpp
+
+vlsvextract: ${DEPS_VLSVEXTRACT}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvextract.cpp ${INC_SILO}
+	${LNK} -o vlsvextract vlsvextract.o ${OBJS_VLSVEXTRACT} ${LIB_SILO}
 
 vlsvreader2.o: ${DEPS_VLSVREADER2}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvreader2.cpp
