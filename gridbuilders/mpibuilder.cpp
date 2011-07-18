@@ -405,16 +405,14 @@ bool MPIBuilder::initialize(MPI_Comm comm,const int& MASTER_RANK) {
    RP::get("gridbuilder.t_min",t_min);
    RP::get("gridbuilder.timestep",timestep);
    RP::get("gridbuilder.max_timesteps",max_timesteps);
-
+   
    // Check that we got sane values:
    if (q == numeric_limits<Real>::max()) initialized = false;
    if (m == numeric_limits<Real>::max()) initialized = false;
    if (dt == numeric_limits<Real>::max()) initialized = false;
    if (t_min == numeric_limits<Real>::max()) initialized = false;
    
-   if (initialized == false) return initialized;
-   
-   
+   if (initialized == false) return initialized;   
    return initialized;
 }
 

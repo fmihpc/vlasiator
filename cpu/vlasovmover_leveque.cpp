@@ -573,14 +573,6 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
 	 #ifdef PAT_PROFILE
 	    PAT_region_end(2);
 	 #endif
-	 
-	 // Divide calculated velocity moments by spatial cell volume to get SI units:
-	 creal VOLUME = cellParams[CellParams::DX]*cellParams[CellParams::DY]*cellParams[CellParams::DZ];
-	 cellParams[CellParams::RHO  ] /= VOLUME;
-	 cellParams[CellParams::RHOVX] /= VOLUME;
-	 cellParams[CellParams::RHOVY] /= VOLUME;
-	 cellParams[CellParams::RHOVZ] /= VOLUME;
-	 
 	 ++calculatedCells;
       }
       Timer::stop(timer::calcPropag);
@@ -654,14 +646,6 @@ void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid,const bool& secon
 	    cpu_calcVelocityMoments(avgs,blockParams,cellParams,block);
 	 }
       }
-      
-      // Divide calculated velocity moments by spatial cell volume 
-      // in order to get SI units:
-      creal VOLUME = cellParams[CellParams::DX]*cellParams[CellParams::DY]*cellParams[CellParams::DZ];
-      cellParams[CellParams::RHO  ] /= VOLUME;
-      cellParams[CellParams::RHOVX] /= VOLUME;
-      cellParams[CellParams::RHOVY] /= VOLUME;
-      cellParams[CellParams::RHOVZ] /= VOLUME;
    }
    Timer::stop(timer::calcPropag);
 
