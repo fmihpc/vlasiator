@@ -752,15 +752,6 @@ int main(int argn,char* args[]) {
            ", seconds per simulated second " << double(after - before) / P::t << endl;
        mpilogger << write;
    }
-
-   // Write final state to disk:
-   if (P::save_spatial_grid) {
-      if (myrank == MASTER_RANK)
-          mpilogger << "(MAIN): Writing spatial cell data to disk, tstep = " << P::tstep << " t = " << P::t << endl<<write;
-      if (writeGrid(mpiGrid,reducer,false) == false) 
-          if (myrank == MASTER_RANK) 
-              mpilogger << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
-   }
    
    profile::stop("Finalization");   
    profile::stop("main");
