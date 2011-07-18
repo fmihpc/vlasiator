@@ -21,6 +21,7 @@ VLSVReader::~VLSVReader() {
 
 bool VLSVReader::close() {
    filein.close();
+   xmlReader.clear();
    return true;
 }
 

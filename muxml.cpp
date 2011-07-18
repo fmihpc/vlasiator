@@ -25,9 +25,13 @@ MuXML::~MuXML() {
    root = NULL;
 }
 
+void MuXML::clear() {
+   delete root;
+   root = new XMLNode(NULL);
+}
+
 XMLNode* MuXML::find(const std::string& nodeName,const XMLNode* node) const {
    if (node == NULL) node = root;
-   
    // Recursive depth-first find. First check if child's name matches the searched name. If it does, return 
    // pointer to child. Otherwise search through child's children to see if it has the searched node.
    for (multimap<string,XMLNode*>::const_iterator it=node->children.begin(); it!=node->children.end(); ++it) {
@@ -40,7 +44,6 @@ XMLNode* MuXML::find(const std::string& nodeName,const XMLNode* node) const {
 
 XMLNode* MuXML::find(const std::string& nodeName,const std::list<std::pair<std::string,std::string> >& attribs,const XMLNode* node) const {
    if (node == NULL) node = root;
-   
    list<pair<string,string> >::const_iterator jt;
    for (multimap<string,XMLNode*>::const_iterator it=node->children.begin(); it!=node->children.end(); ++it) {
       bool matchFound = true;

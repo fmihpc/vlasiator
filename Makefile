@@ -66,10 +66,10 @@ DEPS_PROJECT = project.h project.cpp
 DEPS_TIMER = timer.h timer.cpp
 DEPS_PROFILE = profile.h profile.cpp
 DEPS_VLSCOMMON = vlscommon.h vlscommon.cpp
-DEPS_VLSVEXTRACT = vlsvreader2.o vlsvextract.cpp
-DEPS_VLSVREADER2 = muxml.h vlscommon.h vlsvreader2.h vlsvreader2.cpp
-DEPS_VLSVWRITER2 = mpiconversion.h muxml.h vlscommon.h vlsvwriter2.h vlsvwriter2.cpp
-DEPS_VLSV2SILO = vlsvreader2.o vlsv2silo.cpp
+DEPS_VLSVEXTRACT = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp vlsvextract.cpp
+DEPS_VLSVREADER2 = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
+DEPS_VLSVWRITER2 = mpiconversion.h muxml.h muxml.xpp vlscommon.h vlsvwriter2.h vlsvwriter2.cpp
+DEPS_VLSV2SILO = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp vlsv2silo.cpp
 
 DEPS_ARRAYALLOCATOR += ${DEPS_COMMON}
 DEPS_CELL_SPATIAL += $(DEPS_COMMON)
@@ -203,7 +203,7 @@ profile.o: ${DEPS_PROFILE}
 vlscommon.o: ${DEPS_VLSCOMMON}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlscommon.cpp
 
-vlsvextract: ${DEPS_VLSVEXTRACT}
+vlsvextract: ${DEPS_VLSVEXTRACT} ${OBJS_VLSVEXTRACT}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvextract.cpp ${INC_SILO}
 	${LNK} -o vlsvextract vlsvextract.o ${OBJS_VLSVEXTRACT} ${LIB_SILO}
 

@@ -28,6 +28,7 @@ class MuXML {
    template<typename T> bool addAttribute(XMLNode* node,const std::string& attribName,const T& attribValue);
    template<typename T> XMLNode* addNode(XMLNode* parent,const std::string& nodeName,const T& nodeValue);
    template<typename T> bool changeValue(XMLNode* node,const T& value);
+   void clear();
    XMLNode* find(const std::string& nodeName,const XMLNode* node = NULL) const;
    XMLNode* find(const std::string& nodeName,const std::list<std::pair<std::string,std::string> >& attribs,const XMLNode* node=NULL) const;
 

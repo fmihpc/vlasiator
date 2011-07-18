@@ -7,6 +7,8 @@
 #include <list>
 #include <silo.h>
 #include <sstream>
+#include <dirent.h>
+#include <stdio.h>
 
 #include "vlsvreader2.h"
 #include "definitions.h"
@@ -173,16 +175,16 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader,const string& meshName,const 
    uint64_t bc_arraySize,bc_vectorSize,bc_dataSize;
    
    if (vlsvReader.getArrayInfo("CELLSWITHBLOCKS",attribs,cwb_arraySize,cwb_vectorSize,cwb_dataType,cwb_dataSize) == false) {
-      cerr << "Could not find array CELLSWITHBLOCKS" << endl;
-      return true;
+      //cerr << "Could not find array CELLSWITHBLOCKS" << endl;
+      return false;
    }
    if (vlsvReader.getArrayInfo("NBLOCKS",attribs,nb_arraySize,nb_vectorSize,nb_dataType,nb_dataSize) == false) {
-      cerr << "Could not find array NBLOCKS" << endl;
-      return true;
+      //cerr << "Could not find array NBLOCKS" << endl;
+      return false;
    }
    if (vlsvReader.getArrayInfo("BLOCKCOORDINATES",attribs,bc_arraySize,bc_vectorSize,bc_dataType,bc_dataSize) == false) {
-      cerr << "Could not find array BLOCKCOORDINATES" << endl;
-      return true;
+      //cerr << "Could not find array BLOCKCOORDINATES" << endl;
+      return false;
    }
 
    // Create buffers for cwb,nb and read data:
@@ -211,10 +213,10 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader,const string& meshName,const 
       blockOffset += N_blocks;
    }
    if (cellIndex == numeric_limits<uint64_t>::max()) {
-      cerr << "Spatial cell #" << cellID << " not found!" << endl;
+      //cerr << "Spatial cell #" << cellID << " not found!" << endl;
       return false;
    } else {
-      cout << "Spatial cell #" << cellID << " has offset " << blockOffset << endl;
+      //cout << "Spatial cell #" << cellID << " has offset " << blockOffset << endl;
    }
    
    map<NodeCrd<float>,uint64_t,NodeComp> nodes;
@@ -380,52 +382,101 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader,const string& meshName,const 
 
 int main(int argn,char* args[]) {
    if (argn != 3) {
-      cerr << "USAGE: ./vlsvextract <file name> <cell ID>" << endl;
-      cerr << endl;
+      cout << endl;
+      cout << "USAGE: ./vlsvextract <file name mask> <cell ID>" << endl;
+      cout << endl;
+      cout << "Each VLSV file in the currect directory is compared against the mask," << endl;
+      cout << "and if the file name matches the mask, the given velocity grid is " << endl;
+      cout << "written to a SILO file." << endl;
+      cout << endl;
+      cout << "Cell ID is the ID of the spatial cell whose velocity grid is to be extracted." << endl;
+      cout << endl;
       return 1;
    }
-   const string fname = args[1];
+   //const string fname = args[1];
+   const string mask = args[1];
    const uint64_t cellID = atoi(args[2]);
    
+   const string directory = ".";
+   const string suffix = ".vlsv";
+   DIR* dir = opendir(directory.c_str());
+   if (dir == NULL) {
+      cerr << "ERROR in reading directory contents!" << endl;
+      closedir(dir);
+      return 1;
+   }
+   
    VLSVReader vlsvReader;
-   if (vlsvReader.open(fname) == false) {
-      cerr << "Failed to open '" << fname << "'" << endl;
-      return false;
-   }
-
-   // Create a new file suffix for the velocity grid file:
-   stringstream ss;
-   ss << '.' << cellID << ".silo";
-   string newSuffix;
-   ss >> newSuffix;
-   
-   string fileout = fname;
-   size_t pos = fileout.rfind(".vlsv");
-   //if (pos != string::npos) fileout.replace(pos,5,".silo");
-   if (pos != string::npos) fileout.replace(pos,5,newSuffix);
-   
-   fileptr = DBCreate(fileout.c_str(),DB_CLOBBER,DB_LOCAL,"Vlasov data file",DB_PDB);
-   if (fileptr == NULL) {
-      cerr << "Failed to create output SILO file!" << endl;
-      return false;
-   }
-   
-   list<string> meshNames;
-   if (vlsvReader.getMeshNames(meshNames) == false) {
-      cerr << "Failed to find mesh names!" << endl;
-      DBClose(fileptr);
-      return false;
-   }
-
-   for (list<string>::const_iterator it=meshNames.begin(); it!=meshNames.end(); ++it) {
-      if (convertVelocityBlocks2(vlsvReader,*it,cellID) == false) {
-	 cerr << "An error has occurred while writing mesh '" << *it << "'" << endl;
-	 return 1;
+   struct dirent* entry = readdir(dir);
+   while (entry != NULL) {
+      const string entryName = entry->d_name;
+      if (entryName.find(mask) == string::npos || entryName.find(suffix) == string::npos) {
+	 entry = readdir(dir);
+	 continue;
       }
+      
+      // Open VLSV file and read mesh names:
+      vlsvReader.open(entryName);
+      list<string> meshNames;
+      if (vlsvReader.getMeshNames(meshNames) == false) {
+	 cout << "\t file '" << entryName << "' not compatible" << endl;
+	 vlsvReader.close();
+	 entry = readdir(dir);
+	 continue;
+      }
+      
+      // Create a new file suffix for the output file:
+      stringstream ss1;
+      ss1 << ".silo";
+      string newSuffix;
+      ss1 >> newSuffix;
+
+      // Create a new file prefix for the output file:
+      stringstream ss2;
+      ss2 << "velgrid" << '.' << cellID;
+      string newPrefix;
+      ss2 >> newPrefix; 
+      
+      // Replace .vlsv with the new suffix:
+      string fileout = entryName;
+      size_t pos = fileout.rfind(".vlsv");
+      if (pos != string::npos) fileout.replace(pos,5,newSuffix);
+      
+      pos = fileout.find(".");
+      if (pos != string::npos) fileout.replace(0,pos,newPrefix);
+      
+      // Create a SILO file for writing:
+      fileptr = DBCreate(fileout.c_str(),DB_CLOBBER,DB_LOCAL,"Vlasov data file",DB_PDB);
+      if (fileptr == NULL) {
+	 cerr << "\t failed to create output SILO file for input file '" << entryName << "'" << endl;
+	 DBClose(fileptr);
+	 vlsvReader.close();
+	 entry = readdir(dir);
+	 continue;
+      }
+      
+      // Extract velocity grid from VLSV file, if possible, and convert into SILO format:
+      bool velGridExtracted = true;
+      for (list<string>::const_iterator it=meshNames.begin(); it!=meshNames.end(); ++it) {
+	 if (convertVelocityBlocks2(vlsvReader,*it,cellID) == false) {
+	    velGridExtracted = false;
+	 } else {
+	    cout << "\t extracted from '" << entryName << "'" << endl;
+	 }
+      }
+      DBClose(fileptr);
+      
+      // If velocity grid was not extracted, delete the SILO file:
+      if (velGridExtracted == false) {
+	 if (remove(fileout.c_str()) != 0) {
+	    cerr << "\t ERROR: failed to remote dummy output file!" << endl;
+	 }
+      }
+      
+      vlsvReader.close();
+      entry = readdir(dir);
    }
-   
-   vlsvReader.close();
-   DBClose(fileptr);   
+   closedir(dir);
    return 0;
 }
 
