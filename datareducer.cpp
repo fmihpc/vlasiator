@@ -37,139 +37,36 @@ bool DataReducer::addOperator(DRO::DataReductionOperator* op) {
    return true;
 }
 
-/** Asks each DRO::DataReductionOperator to write its data into the given byte array.
- * @param cell SpatialCell whose distribution function was reduced.
- * @param byteArray Byte array where reduced data should be inserted.
- * @return If true, all data was appended successfully.
- * @see DataReducer::reduceData.
+/** Get the name of a DataReductionOperator.
+ * @param operatorID ID number of the operator whose name is requested.
+ * @return Name of the operator.
  */
-bool DataReducer::appendReducedData(const SpatialCell& cell,unsigned char* const byteArray) {
-   unsigned char* ptr = byteArray;
-   for (vector<DRO::DataReductionOperator*>::iterator it=operators.begin(); it!=operators.end(); ++it) {
-      if ((*it)->appendReducedData(ptr) == false) return false;
-      ptr += (*it)->getOutputByteSize();
-   }
-   return true;
-}
-
-bool DataReducer::appendReducedData(const SpatialCell& cell,std::vector<unsigned char>& byteArray) {
-   for (vector<DRO::DataReductionOperator*>::iterator it=operators.begin(); it!=operators.end(); ++it) {
-      //if ((*it)->appendReducedData(ptr) == false) return false;
-      if ((*it)->appendReducedData(byteArray) == false) {
-	 cerr << "DRO named '" << (*it)->getName() << "' failed" << endl;
-	 return false;
-      }
-      //ptr += (*it)->getOutputByteSize();
-   }
-   return true;
-}
-
-/** Get the total size of the output data from all DRO::DataReductionOperators, in bytes.
- * @return The output size of reduced data for one SpatialCell.
- */
-unsigned int DataReducer::getByteSize() const {
-   unsigned int size = 0;
-   for (vector<DRO::DataReductionOperator*>::const_iterator it=operators.begin(); it!=operators.end(); ++it) {
-      size += (*it)->getOutputByteSize();
-   }
-   return size;
-}
-
-unsigned int DataReducer::getByteSize(const unsigned int& operatorID) const {
-   if (operatorID >= operators.size()) return 0;
-   return operators[operatorID]->getOutputByteSize();
-}
-
 std::string DataReducer::getName(const unsigned int& operatorID) const {
    if (operatorID >= operators.size()) return "";
    return operators[operatorID]->getName();
 }
 
-/** Get description of reduced data from each stored DRO::DataReductionOperator, and write 
- * the description and its size (in bytes) to the given variables. Array byteArray 
- * is allocated here, so the user has to take care of deleting it elsewhere.
- * The byteArray should be written into a .vlsv file as it is.
- * 
- * @param byteArray A pointer to a byte array which should be allocated, and 
- * where the descriptions should be written to.
- * @param arraySize The size of allocated byteArray.
- * @return If true, the descriptions were written successfully. 
- * It is always safe to delete byteArray.
- * @see VlsWriter for more information on vlsv file format.
+/** Get info on the type of data calculated by the given DataReductionOperator.
+ * A DataReductionOperator writes an array on disk. Each element of the array is a vector with n elements. Finally, each
+ * vector element has a byte size, as given by the sizeof function.
+ * @param operatorID ID number of the DataReductionOperator whose output data info is requested.
+ * @param dataType Basic datatype, must be int, uint, or float.
+ * @param dataSize Byte size of written datatype, for example double-precision floating points
+ * have byte size of sizeof(double).
+ * @param vectorSize How many elements are in the vector returned by the DataReductionOperator.
+ * @return If true, DataReductionOperator was found and it returned sensible values.
  */
-bool DataReducer::getDescription(unsigned char*& byteArray,unsigned int& arraySize) {
-   byteArray = NULL;
-   vector<unsigned char> array; // Temp array 
-   
-   unsigned int nameByteSize;
-   string varName;
-   unsigned char varType;
-   unsigned char elementByteSize;
-   const unsigned char* ptr;
-   
-   // Request necessary information from each DataReductionOperator and append the data 
-   // into array as unsigned chars:
-   for (vector<DRO::DataReductionOperator*>::const_iterator it=operators.begin(); it!=operators.end(); ++it) {
-      varName = (*it)->getName();
-      nameByteSize = varName.size() + 1; // +1 is for end-of-character.
-      varType = (*it)->getVariableType();
-      elementByteSize = (*it)->getElementByteSize();
-      
-      ptr = reinterpret_cast<unsigned char*>(&nameByteSize);
-      for (size_t i=0; i<sizeof(nameByteSize); ++i) array.push_back(ptr[i]);
-      
-      for (size_t i=0; i<varName.size(); ++i) array.push_back(static_cast<unsigned char>(varName[i]));
-      array.push_back(static_cast<unsigned char>('\0'));
-      array.push_back(varType);
-      array.push_back(elementByteSize);
-   }
-   // nameByteSize=0 signals the end of variable descriptions:
-   nameByteSize = 0;
-   ptr = reinterpret_cast<unsigned char*>(&nameByteSize);
-   for (size_t i=0; i<sizeof(nameByteSize); ++i) array.push_back(ptr[i]);
-
-   // Copy contents of temp array to byteArray:
-   delete byteArray;
-   byteArray = new unsigned char[array.size()];
-   for (size_t i=0; i<array.size(); ++i) byteArray[i] = array[i];
-   arraySize = array.size();
-   
-   return true;
-}
-
-/** Get the byte size of an entry, which gives the byte size of a variable name 
- * (which is a string). 
- * @return The size of a field which contains the size of a variable name.
- */
-unsigned char DataReducer::getNameSizeEntryByteSize() {return sizeof(unsigned int);}
-
 bool DataReducer::getDataVectorInfo(const unsigned int& operatorID,std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
    if (operatorID >= operators.size()) return false;
    return operators[operatorID]->getDataVectorInfo(dataType,dataSize,vectorSize);
 }
 
-/** Reduce the given SpatialCell data. This function 
- * calls DRO::DataReductionOperator::reduceData member function of each
- * DRO::DataReductionOperator stored in DataReducer for the given SpatialCell.
- * @param cell SpatialCell whose distribution function should be reduced.
- * @return If true, all reduced data was calculated successfully.
+/** Request a DataReductionOperator to calculate its output data and to write it to the given buffer.
+ * @param cell Pointer to spatial cell whose data is to be reduced.
+ * @param operatorID ID number of the applied DataReductionOperator.
+ * @param buffer Buffer in which DataReductionOperator should write its data.
+ * @return If true, DataReductionOperator calculated and wrote data successfully.
  */
-bool DataReducer::reduceData(const SpatialCell& cell) {
-   // Tell each reduction operator which spatial cell we are dealing with:
-   for (vector<DRO::DataReductionOperator*>::iterator it=operators.begin(); it!=operators.end(); ++it) {
-      if ((*it)->setSpatialCell(cell) == false) return false;
-   }
-   
-   // Go through all velocity blocks in the spatial cell:
-   for (unsigned int i=0; i<cell.N_blocks; ++i) {
-      // Send each velocity block to data reduction operator:
-      for (vector<DRO::DataReductionOperator*>::iterator it=operators.begin(); it!=operators.end(); ++it) {
-	 if ((*it)->reduceData(cell.cpu_avgs+i*SIZE_VELBLOCK,cell.cpu_blockParams+i*SIZE_BLOCKPARAMS) == false) return false;
-      }
-   }
-   return true;
-}
-
 bool DataReducer::reduceData(const SpatialCell* cell,const unsigned int& operatorID,char* buffer) {
    // Tell the chosen operator which spatial cell we are counting:
    if (operatorID >= operators.size()) return false;
@@ -179,5 +76,8 @@ bool DataReducer::reduceData(const SpatialCell* cell,const unsigned int& operato
    return true;
 }
 
+/** Get the number of DataReductionOperators stored in DataReducer.
+ * @return Number of DataReductionOperators stored in DataReducer.
+ */
 unsigned int DataReducer::size() const {return operators.size();}
 

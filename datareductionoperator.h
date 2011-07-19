@@ -23,18 +23,10 @@ namespace DRO {
       DataReductionOperator();
       virtual ~DataReductionOperator();
       
-      virtual bool appendReducedData(unsigned char* const byteArray);
-      virtual bool appendReducedData(std::vector<unsigned char>& byteArray);
-      virtual unsigned char getElementByteSize() const;
-      virtual std::string getName() const;
-      virtual unsigned int getOutputByteSize() const;
-      virtual unsigned char getVariableType() const;
-      virtual bool reduceData(const Real* const avgs,const Real* const blockParams);
-      virtual bool setSpatialCell(const SpatialCell& cell);
-
-      // New interface
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
       virtual bool reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell& cell);
       
     protected:
 	
@@ -45,13 +37,8 @@ namespace DRO {
       MPIrank();
       ~MPIrank();
       
-      bool appendReducedData(unsigned char* const byteArray);
-      bool appendReducedData(std::vector<unsigned char>& byteArray);
       bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      unsigned char getElementByteSize() const;
       std::string getName() const;
-      unsigned char getVariableType() const;
-      bool reduceData(const Real* const avgs,const Real* const blockParams);
       bool reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer);
       bool setSpatialCell(const SpatialCell& cell);
       
@@ -65,13 +52,8 @@ namespace DRO {
       VariableB();
       ~VariableB();
       
-      bool appendReducedData(unsigned char* const byteArray);
-      bool appendReducedData(std::vector<unsigned char>& byteArray);
       bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      unsigned char getElementByteSize() const;
       std::string getName() const;
-      unsigned char getVariableType() const;
-      bool reduceData(const Real* const avgs,const Real* const blockParams);
       bool reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer);
       bool setSpatialCell(const SpatialCell& cell);
       
@@ -87,13 +69,8 @@ namespace DRO {
       VariableE();
       ~VariableE();
       
-      bool appendReducedData(unsigned char* const byteArray);
-      bool appendReducedData(std::vector<unsigned char>& byteArray);
       bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      unsigned char getElementByteSize() const;
       std::string getName() const;
-      unsigned char getVariableType() const;
-      bool reduceData(const Real* const avgs,const Real* const blockParams);
       bool reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer);
       bool setSpatialCell(const SpatialCell& cell);
       
@@ -109,13 +86,8 @@ namespace DRO {
       VariableRho();
       ~VariableRho();
       
-      bool appendReducedData(unsigned char* const byteArray);
-      bool appendReducedData(std::vector<unsigned char>& byteArray);
       bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      unsigned char getElementByteSize() const;
       std::string getName() const;
-      unsigned char getVariableType() const;
-      bool reduceData(const Real* const avgs,const Real* const blockParams);
       bool reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer);
       bool setSpatialCell(const SpatialCell& cell);
       
@@ -128,13 +100,8 @@ namespace DRO {
       VariableRhoV();
       ~VariableRhoV();
       
-      bool appendReducedData(unsigned char* const byteArray);
-      bool appendReducedData(std::vector<unsigned char>& byteArray);
       bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      unsigned char getElementByteSize() const;
       std::string getName() const;
-      unsigned char getVariableType() const;
-      bool reduceData(const Real* const avgs,const Real* const blockParams);
       bool reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer);
       bool setSpatialCell(const SpatialCell& cell);
       
