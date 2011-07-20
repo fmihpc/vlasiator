@@ -30,13 +30,13 @@ bool MPILogger::close() {
    if (fileOpen == false) return false;
    #ifndef NDEBUG
       bool success = mpiFile.close();
-      if (success == true) fileOpen = false;
    #else 
       bool success = true;
       masterStream->close();
       delete masterStream;
       masterStream = NULL;
    #endif
+   fileOpen = false;
    return success;
 }
 
