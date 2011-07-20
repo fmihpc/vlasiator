@@ -1,0 +1,111 @@
+<?xml version="1.0"?>
+<Object name="ExpressionList">
+    <Object name="Expression">
+        <Field name="name" type="string">"Vx"</Field>
+        <Field name="definition" type="string">"rho_v[0] / rho"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">"ScalarMeshVar"</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">"__none__"</Field>
+        <Field name="meshName" type="string">""</Field>
+        <Field name="dbName" type="string">"__none__"</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">"Vy"</Field>
+        <Field name="definition" type="string">"rho_v[1]/rho"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">"ScalarMeshVar"</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">"__none__"</Field>
+        <Field name="meshName" type="string">""</Field>
+        <Field name="dbName" type="string">"__none__"</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">"Vz"</Field>
+        <Field name="definition" type="string">"rho_v[2]/rho"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">"ScalarMeshVar"</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">"__none__"</Field>
+        <Field name="meshName" type="string">""</Field>
+        <Field name="dbName" type="string">"__none__"</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">"Ex"</Field>
+        <Field name="definition" type="string">"E[0]"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">"ScalarMeshVar"</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">"__none__"</Field>
+        <Field name="meshName" type="string">""</Field>
+        <Field name="dbName" type="string">"__none__"</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">"Ey"</Field>
+        <Field name="definition" type="string">"E[1]"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">"ScalarMeshVar"</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">"__none__"</Field>
+        <Field name="meshName" type="string">""</Field>
+        <Field name="dbName" type="string">"__none__"</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">"Ez"</Field>
+        <Field name="definition" type="string">"E[2]"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">"ScalarMeshVar"</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">"__none__"</Field>
+        <Field name="meshName" type="string">""</Field>
+        <Field name="dbName" type="string">"__none__"</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">"Bx"</Field>
+        <Field name="definition" type="string">"B[0]"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">"ScalarMeshVar"</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">"__none__"</Field>
+        <Field name="meshName" type="string">""</Field>
+        <Field name="dbName" type="string">"__none__"</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">"By"</Field>
+        <Field name="definition" type="string">"B[1]"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">"ScalarMeshVar"</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">"__none__"</Field>
+        <Field name="meshName" type="string">""</Field>
+        <Field name="dbName" type="string">"__none__"</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">"Bz"</Field>
+        <Field name="definition" type="string">"B[2]"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">"ScalarMeshVar"</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">"__none__"</Field>
+        <Field name="meshName" type="string">""</Field>
+        <Field name="dbName" type="string">"__none__"</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+</Object>
