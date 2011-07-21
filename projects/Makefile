@@ -5,5 +5,6 @@ project:
 	ln -f -s ${INSTALL}/projects/${PROJ}.h ${INSTALL}/project.h
 	ln -f -s ${INSTALL}/projects/${PROJ}.cu ${INSTALL}/project.cu
 	ln -f -s ${INSTALL}/projects/${PROJ}.cpp ${INSTALL}/project.cpp
+	rm -f ${INSTALL}/project.o
 
 
