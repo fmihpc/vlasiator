@@ -564,8 +564,11 @@ bool Readparameters::parse() {
             if (run_config_file.good() == true) {
                 PO::store(PO::parse_config_file(run_config_file, *descriptions, ALLOW_UNKNOWN), *variables);
                 PO::notify(*variables);
+                run_config_file.close();
+            } else {
+                cerr << "Couldn't open or read run config file " << run_config_file_name << endl;
+                abort();
             }
-            run_config_file.close();
         }
         // Read options from user config file:
         if (user_config_file_name.size() > 0) {
@@ -573,8 +576,11 @@ bool Readparameters::parse() {
             if (user_config_file.good() == true) {
                 PO::store(PO::parse_config_file(user_config_file, *descriptions, ALLOW_UNKNOWN), *variables);
                 PO::notify(*variables);
+                user_config_file.close();
+            } else {
+                cerr << "Couldn't open or read user config file " << user_config_file_name << endl;
+                abort();
             }
-            user_config_file.close();
         }
         // Read options from global config file:
         if (global_config_file_name.size() > 0) {
@@ -582,8 +588,11 @@ bool Readparameters::parse() {
             if (global_config_file.good() == true) {
                 PO::store(PO::parse_config_file(global_config_file, *descriptions, ALLOW_UNKNOWN), *variables);
                 PO::notify(*variables);
+                global_config_file.close();
+            } else {
+                cerr << "Couldn't open or read global config file " << global_config_file_name << endl;
+                abort();
             }
-            global_config_file.close();
         }
         
     }
