@@ -138,34 +138,40 @@ namespace CellParams {
       DX,      /**< Grid separation in x-coordinate.*/
       DY,      /**< Grid separation in y-coordinate.*/
       DZ,      /**< Grid separation in z-coordinate.*/
-      EX,      /**< Electric field x-component, averaged over cell edge.*/
-      EY,      /**< Electric field y-component, averaged over cell edge.*/
-      EZ,      /**< Electric field z-component, averaged over cell edge.*/
-      BX,      /**< Magnetic field x-component, averaged over cell x-face.*/
-      BY,      /**< Magnetic field y-component, averaged over cell y-face.*/
-      BZ,      /**< Magnetic field z-component, averaged over cell z-face.*/
-      RHO,     /**< Number density.*/
-      RHOVX,   /**< x-component of number density times Vx.*/
-      RHOVY,   /**< y-component of number density times Vy.*/
-      RHOVZ,   /**< z-component of number density times Vz.*/
-      BXFACEX, /**< Bx averaged over x-face.*/
-      BYFACEX, /**< By averaged over x-face.*/
-      BZFACEX, /**< Bz averaged over x-face.*/
-      BXFACEY, /**< Bx averaged over y-face.*/
-      BYFACEY, /**< By averaged over y-face.*/
-      BZFACEY, /**< Bz averaged over y-face.*/
-      BXFACEZ, /**< Bx averaged over z-face.*/
-      BYFACEZ, /**< By averaged over z-face.*/
-      BZFACEZ, /**< Bz averaged over z-face.*/
-      EXFACEX, /**< Ex averaged over x-face.*/
-      EYFACEX, /**< Ey averaged over x-face.*/
-      EZFACEX, /**< Ez averaged over x-face.*/
-      EXFACEY, /**< Ex averaged over y-face.*/
-      EYFACEY, /**< Ey averaged over y-face.*/
-      EZFACEY, /**< Ez averaged over y-face.*/
-      EXFACEZ, /**< Ex averaged over z-face.*/
-      EYFACEZ, /**< Ey averaged over z-face.*/
-      EZFACEZ  /**< Ez averaged over z-face.*/
+      EX,      /**< Electric field x-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
+      EY,      /**< Electric field y-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
+      EZ,      /**< Electric field z-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
+      BX,      /**< Magnetic field x-component, averaged over cell x-face. Propagated by field solver.*/
+      BY,      /**< Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
+      BZ,      /**< Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
+      RHO,     /**< Number density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      RHOVX,   /**< x-component of number density times Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      RHOVY,   /**< y-component of number density times Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      RHOVZ,   /**< z-component of number density times Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      BXFACEX, /**< Bx averaged over x-face. Used to propagate distribution function.*/
+      BYFACEX, /**< By averaged over x-face. Used to propagate distribution function.*/
+      BZFACEX, /**< Bz averaged over x-face. Used to propagate distribution function.*/
+      BXFACEY, /**< Bx averaged over y-face. Used to propagate distribution function.*/
+      BYFACEY, /**< By averaged over y-face. Used to propagate distribution function.*/
+      BZFACEY, /**< Bz averaged over y-face. Used to propagate distribution function.*/
+      BXFACEZ, /**< Bx averaged over z-face. Used to propagate distribution function.*/
+      BYFACEZ, /**< By averaged over z-face. Used to propagate distribution function.*/
+      BZFACEZ, /**< Bz averaged over z-face. Used to propagate distribution function.*/
+      EXFACEX, /**< Ex averaged over x-face. Used to propagate distribution function.*/
+      EYFACEX, /**< Ey averaged over x-face. Used to propagate distribution function.*/
+      EZFACEX, /**< Ez averaged over x-face. Used to propagate distribution function.*/
+      EXFACEY, /**< Ex averaged over y-face. Used to propagate distribution function.*/
+      EYFACEY, /**< Ey averaged over y-face. Used to propagate distribution function.*/
+      EZFACEY, /**< Ez averaged over y-face. Used to propagate distribution function.*/
+      EXFACEZ, /**< Ex averaged over z-face. Used to propagate distribution function.*/
+      EYFACEZ, /**< Ey averaged over z-face. Used to propagate distribution function.*/
+      EZFACEZ, /**< Ez averaged over z-face. Used to propagate distribution function.*/
+      BXVOL,   /**< Bx averaged over spatial cell.*/
+      BYVOL,   /**< By averaged over spatial cell.*/
+      BZVOL,   /**< Bz averaged over spatial cell.*/
+      EXVOL,   /**< Ex averaged over spatial cell.*/
+      EYVOL,   /**< Ey averaged over spatial cell.*/
+      EZVOL    /**< Ez averaged over spatial cell.*/
    };
 }
 
@@ -204,7 +210,7 @@ cuint WID2 = WID*WID;
 cuint WID3 = WID2*WID; 
 
 cuint SIZE_DERIVATIVES = fieldsolver::dVzdz+1;
-cuint SIZE_CELLPARAMS  = 34;   /**< The number of parameters for one spatial cell. */
+cuint SIZE_CELLPARAMS  = 40;   /**< The number of parameters for one spatial cell. */
 //cuint SIZE_NBRS_VEL    = 8;    /**< The size of velocity grid neighbour list per velocity block. */
 cuint SIZE_NBRS_VEL    = 28;    /**< The size of velocity grid neighbour list per velocity block. */
 cuint SIZE_NBRS_SPA    = 31;   /**< The size of spatial grid neighbour list per spatial cell. */

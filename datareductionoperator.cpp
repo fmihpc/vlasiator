@@ -95,6 +95,29 @@ namespace DRO {
       Ez = cell.cpu_cellParams[CellParams::EZ];
       return true;
    }
+
+   VariableVolE::VariableVolE(): DataReductionOperator() { }
+   VariableVolE::~VariableVolE() { }
+   
+   bool VariableVolE::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize = 4;
+      vectorSize = 3;
+      return true;
+   }
+         
+   std::string VariableVolE::getName() const {return "E_vol";}
+      
+   bool VariableVolE::reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(E);
+      for (int i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariableVolE::setSpatialCell(const SpatialCell& cell) {
+      E = &(cell.cpu_cellParams[CellParams::EXVOL]);
+      return true;
+   }
    
    VariableB::VariableB(): DataReductionOperator() { }
    VariableB::~VariableB() { }
@@ -119,6 +142,29 @@ namespace DRO {
       Bx = cell.cpu_cellParams[CellParams::BX];
       By = cell.cpu_cellParams[CellParams::BY];
       Bz = cell.cpu_cellParams[CellParams::BZ];
+      return true;
+   }
+
+   VariableVolB::VariableVolB(): DataReductionOperator() { }
+   VariableVolB::~VariableVolB() { }
+   
+   bool VariableVolB::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize = 4;
+      vectorSize = 3;
+      return true;
+   }
+   
+   std::string VariableVolB::getName() const {return "B_vol";}
+   
+   bool VariableVolB::reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(B);
+      for (int i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariableVolB::setSpatialCell(const SpatialCell& cell) {
+      B  = &(cell.cpu_cellParams[CellParams::BXVOL]);
       return true;
    }
    
@@ -197,5 +243,4 @@ namespace DRO {
       rhovz = cell.cpu_cellParams[CellParams::RHOVZ];
       return true;
    }
-   
 } // namespace DRO

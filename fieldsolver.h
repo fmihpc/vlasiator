@@ -22,14 +22,18 @@ namespace fieldsolver {
 */
 #ifdef PARGRID
 
-bool calculateEdgeElectricField(ParGrid<SpatialCell>& mpiGrid);
+//bool calculateEdgeElectricField(ParGrid<SpatialCell>& mpiGrid);
+void calculateFaceAveragedFields(ParGrid<SpatialCell>& mpiGrid);
+void calculateVolumeAveragedFields(ParGrid<SpatialCell>& mpiGrid);
 bool finalizeFieldPropagator(ParGrid<SpatialCell>& mpiGrid);
 bool initializeFieldPropagator(ParGrid<SpatialCell>& mpiGrid);
 bool propagateFields(ParGrid<SpatialCell>& mpiGrid,creal& dt);
 
 #else
 
-bool calculateEdgeElectricField(dccrg<SpatialCell>& mpiGrid);
+//bool calculateEdgeElectricField(dccrg<SpatialCell>& mpiGrid);
+void calculateFaceAveragedFields(dccrg<SpatialCell>& mpiGrid);
+void calculateVolumeAveragedFields(dccrg<SpatialCell>& mpiGrid);
 bool finalizeFieldPropagator(dccrg<SpatialCell>& mpiGrid);
 bool initializeFieldPropagator(dccrg<SpatialCell>& mpiGrid);
 bool propagateFields(dccrg<SpatialCell>& mpiGrid,creal& dt);

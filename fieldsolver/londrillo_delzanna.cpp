@@ -91,6 +91,7 @@ creal HALF    = 0.5;
 creal MINUS   = -1.0;
 creal PLUS    = +1.0;
 creal EIGTH   = 1.0/8.0;
+creal FOURTH  = 1.0/4.0;
 creal SIXTH   = 1.0/6.0;
 creal TWELWTH = 1.0/12.0;
 creal TWO     = 2.0;
@@ -99,7 +100,7 @@ creal ZERO    = 0.0;
 #ifdef PARGRID
 void calculateDerivativesSimple(ParGrid<SpatialCell>& mpiGrid,const vector<CellID>& localCells);
 void calculateUpwindedElectricFieldSimple(ParGrid<SpatialCell>& mpiGrid,const vector<CellID>& localCells);
-void calculateFaceAveragedFields(ParGrid<SpatialCell>& mpiGrid);
+//void calculateFaceAveragedFields(ParGrid<SpatialCell>& mpiGrid);
 #else
 
 #endif
@@ -730,7 +731,6 @@ static void propagateMagneticField(const CellID& cellID,ParGrid<SpatialCell>& mp
    Real* const cp0 = mpiGrid[cellID]->cpu_cellParams;
    creal* cp1;
    creal* cp2;
-   
    creal dx = cp0[CellParams::DX];
    creal dy = cp0[CellParams::DY];
    creal dz = cp0[CellParams::DZ];
@@ -1437,7 +1437,7 @@ static void propagateMagneticFieldSimple(ParGrid<SpatialCell>& mpiGrid,creal& dt
 	mpiGrid[cellID]->cpu_cellParams[CellParams::BZ] = fieldSolverBoundaryCondBz<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
    }
 }
-
+/*
 bool calculateEdgeElectricField(ParGrid<SpatialCell>& mpiGrid) {
    bool success = true;
    
@@ -1461,7 +1461,7 @@ bool calculateEdgeElectricField(ParGrid<SpatialCell>& mpiGrid) {
    calculateUpwindedElectricFieldSimple(mpiGrid,localCells);   
    return success;
 }
-
+*/
 bool propagateFields(ParGrid<SpatialCell>& mpiGrid,creal& dt) {
    typedef Parameters P;
 
@@ -1747,7 +1747,7 @@ void calculateFaceAveragedFields(ParGrid<SpatialCell>& mpiGrid) {
    
    uint existingCells = 0;
    for (size_t cell=0; cell<localCells.size(); ++cell) {
-      const CellID cellID     = localCells[cell];
+      const CellID cellID = localCells[cell];
       
       // Get neighbour flags for the cell:
       map<CellID,uint>::const_iterator it = boundaryFlags.find(cellID);
@@ -1816,9 +1816,80 @@ void calculateFaceAveragedFields(ParGrid<SpatialCell>& mpiGrid) {
    }
 }
 
+void calculateVolumeAveragedFields(ParGrid<SpatialCell>& mpiGrid) {
+   namespace fs = fieldsolver;
+   namespace cp = CellParams;
+                                   
+   vector<CellID> localCells;
+   mpiGrid.getCells(localCells);
+   
+   Real coefficients[Rec::c_zz+1];
+      
+   cuint EX_CELLS = (1 << calcNbrNumber(1,1,1)) | (1 << calcNbrNumber(1,2,1)) | (1 << calcNbrNumber(1,1,2)) | (1 << calcNbrNumber(1,2,2));
+   cuint EY_CELLS = (1 << calcNbrNumber(1,1,1)) | (1 << calcNbrNumber(2,1,1)) | (1 << calcNbrNumber(1,1,2)) | (1 << calcNbrNumber(2,1,2));
+   cuint EZ_CELLS = (1 << calcNbrNumber(1,1,1)) | (1 << calcNbrNumber(2,1,1)) | (1 << calcNbrNumber(1,2,1)) | (1 << calcNbrNumber(2,2,1));
+   
+   uint existingCells = 0;
+   for (size_t cell=0; cell<localCells.size(); ++cell) {
+      const CellID cellID = localCells[cell];
+      
+      // Get neighbour flags for the cell:
+      map<CellID,uint>::const_iterator it = boundaryFlags.find(cellID);
+      if (it == boundaryFlags.end()) existingCells = 0;
+      else existingCells = it->second;
+      
+      // Calculate reconstruction coefficients for this cell:
+      const CellID nbr_i2j1k1 = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2+1,2  ,2  ));
+      const CellID nbr_i1j2k1 = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2  ,2+1,2  ));
+      const CellID nbr_i1j1k2 = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2  ,2  ,2+1));
+      reconstructionCoefficients(cellID,nbr_i2j1k1,nbr_i1j2k1,nbr_i1j1k2,mpiGrid,coefficients);
+      
+      // Calculate volume average of B:
+      Real* const cellParams = mpiGrid[cellID]->cpu_cellParams;
+      cellParams[cp::BXVOL] = coefficients[Rec::a_0];
+      cellParams[cp::BYVOL] = coefficients[Rec::b_0];
+      cellParams[cp::BZVOL] = coefficients[Rec::c_0];
+      
+      // Calculate volume average of E (NEEDS IMPROVEMENT):
+      const CellID nbr_i1j2k2 = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2  ,2+1,2+1));
+      const CellID nbr_i2j1k2 = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2+1,2  ,2+1));
+      const CellID nbr_i2j2k1 = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2+1,2+1,2  ));
+      creal* const cep_i1j1k1 = cellParams;
+      
+      if ((existingCells & EX_CELLS) == EX_CELLS) {
+	 creal* const cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->cpu_cellParams;
+	 creal* const cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->cpu_cellParams;
+	 creal* const cep_i1j2k2 = mpiGrid[nbr_i1j2k2]->cpu_cellParams;
+	 cellParams[cp::EXVOL] = FOURTH*(cep_i1j1k1[cp::EX] + cep_i1j2k1[cp::EX] + cep_i1j1k2[cp::EX] + cep_i1j2k2[cp::EX]);
+      } else {
+	 cellParams[cp::EXVOL] = 0.0;
+      }
+      
+      if ((existingCells & EY_CELLS) == EY_CELLS) {
+	 creal* const cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->cpu_cellParams;
+	 creal* const cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->cpu_cellParams;
+	 creal* const cep_i2j1k2 = mpiGrid[nbr_i2j1k2]->cpu_cellParams;
+	 cellParams[cp::EYVOL] = FOURTH*(cep_i1j1k1[cp::EY] + cep_i2j1k1[cp::EY] + cep_i1j1k2[cp::EY] + cep_i2j1k2[cp::EY]);
+      } else {
+	 cellParams[cp::EYVOL] = 0.0;
+      }
+      
+      if ((existingCells & EZ_CELLS) == EZ_CELLS) {
+	 creal* const cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->cpu_cellParams;
+	 creal* const cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->cpu_cellParams;
+	 creal* const cep_i2j2k1 = mpiGrid[nbr_i2j2k1]->cpu_cellParams;
+	 cellParams[cp::EZVOL] = FOURTH*(cep_i1j1k1[cp::EZ] + cep_i2j1k1[cp::EZ] + cep_i1j2k1[cp::EZ] + cep_i2j2k1[cp::EZ]);
+      } else {
+	 cellParams[cp::EZVOL] = 0.0;
+      }
+   }
+}
+
 #else // #ifdef PARGRID
 
 bool calculateEdgeElectricField(dccrg<SpatialCell>& mpiGrid) { }
+void calculateFaceAveragedFields(dccrg<SpatialCell>& mpiGrid) { }
+void calculateVolumeAveragedFields(dccrg<SpatialCell>& mpiGrid) { }
 bool finalizeFieldPropagator(dccrg<SpatialCell>& mpiGrid) { }
 bool initializeFieldPropagator(dccrg<SpatialCell>& mpiGrid) { }
 bool propagateFields(dccrg<SpatialCell>& mpiGrid,creal& dt) { }

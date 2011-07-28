@@ -603,6 +603,8 @@ int main(int argn,char* args[]) {
    reducer.addOperator(new DRO::VariableRho);
    reducer.addOperator(new DRO::VariableRhoV);
    reducer.addOperator(new DRO::MPIrank);
+   reducer.addOperator(new DRO::VariableVolE);
+   reducer.addOperator(new DRO::VariableVolB);
    
    //VlsWriter vlsWriter;
    profile::start("Init vlasov propagator");
@@ -621,6 +623,7 @@ int main(int argn,char* args[]) {
       mpilogger << "(MAIN): Field propagator did not initialize correctly!" << endl << write;
       exit(1);
    }
+   calculateVolumeAveragedFields(mpiGrid);
    profile::stop("Init field propagator");
 #endif
    // ***********************************
@@ -713,6 +716,7 @@ int main(int argn,char* args[]) {
       P::t += P::dt;
       
       // Check if data needs to be written to disk:
+      /*
       if (P::tstep % P::saveRestartInterval == 0) {
 	 if (myrank == MASTER_RANK)
 	   mpilogger << "(MAIN): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << write;
@@ -728,7 +732,20 @@ int main(int argn,char* args[]) {
 	      mpilogger << "(MAIN): ERROR occurred while writing spatial cell data!" << endl << write;
 	 }
       }
-
+      */
+      if (P::tstep % P::saveRestartInterval == 0 || P::tstep % P::diagnInterval == 0) {
+	 bool writeRestartData = false;
+	 if (P::tstep % P::saveRestartInterval == 0) writeRestartData = true;
+	 if (myrank == MASTER_RANK)
+	   mpilogger << "(MAIN): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << write;
+	 
+	 calculateVolumeAveragedFields(mpiGrid);
+	 if (writeGrid(mpiGrid,reducer,writeRestartData) == false) {
+	    if (myrank == MASTER_RANK)
+	      mpilogger << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
+	 }	 
+      }
+      
       MPI_Barrier(MPI_COMM_WORLD);
    }
    double after = MPI_Wtime();

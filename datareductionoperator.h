@@ -63,6 +63,20 @@ namespace DRO {
       Real Bz;
       Real* B;
    };
+
+   class VariableVolB: public DataReductionOperator {
+    public:
+      VariableVolB();
+      ~VariableVolB();
+      
+      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      std::string getName() const;
+      bool reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer);
+      bool setSpatialCell(const SpatialCell& cell);
+      
+    protected:
+      Real* B;
+   };
    
    class VariableE: public DataReductionOperator {
     public:
@@ -78,6 +92,20 @@ namespace DRO {
       Real Ex;
       Real Ey;
       Real Ez;
+      Real* E;
+   };
+
+   class VariableVolE: public DataReductionOperator {
+    public:
+      VariableVolE();
+      ~VariableVolE();
+      
+      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      std::string getName() const;
+      bool reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer);
+      bool setSpatialCell(const SpatialCell& cell);
+      
+    protected:
       Real* E;
    };
    
@@ -111,7 +139,6 @@ namespace DRO {
       Real rhovz;
       Real* rhov;
    };
-
 } // namespace DRO
 
 #endif
