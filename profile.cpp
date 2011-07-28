@@ -11,8 +11,13 @@
 #include "pat_api.h"
 #endif
 
-#include "mpilogger.h"
-extern MPILogger mpilogger;
+#ifdef NO_MPILOGGER
+    #define mpilogger cerr
+    #define write flush
+#else
+    #include "mpilogger.h"
+    extern MPILogger mpilogger;
+#endif
 
 using namespace std;
 
@@ -63,9 +68,9 @@ namespace profile
         double t1=MPI_Wtime();
         currentLevel++;
         //resize vectors if needed
-        if(labels.size()<=currentLevel)
+        if(int(labels.size())<=currentLevel)
             labels.resize(currentLevel+5);
-        if(startTime.size()<=currentLevel)
+        if(int(startTime.size())<=currentLevel)
             startTime.resize(currentLevel+5);
         
         labels[currentLevel]=label;
@@ -234,7 +239,7 @@ namespace profile
         }
 
         //loop over listOrder so that timers are printed in order of creation
-        for(int i=0;i<listOrder.size();i++){
+        for(unsigned int i=0;i<listOrder.size();i++){
             double sum,parentSum;
             double aveTime;
             int intSum;
@@ -346,4 +351,10 @@ namespace profile
     bool print(MPI_Comm comm){return true;}
 }
 
+#ifdef NO_MPILOGGER
+    #undef mpilogger
+    #undef write
 #endif
+
+#endif
+
