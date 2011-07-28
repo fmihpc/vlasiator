@@ -161,19 +161,19 @@ template<typename T> T velocityFluxZ(const T& i,const T& j,const T& avg_neg,cons
 
 template<typename CELLID,typename UINT,typename REAL>
 void fieldSolverBoundaryCondDerivX(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
-				   const ArrayAllocator& derivatives,const ParGrid<SpatialCell>& mpiGrid) {
+				   creal* const derivatives,const ParGrid<SpatialCell>& mpiGrid) {
    fieldSolverBoundarySetValueDerivX(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
 }
 
 template<typename CELLID,typename UINT,typename REAL>
 void fieldSolverBoundaryCondDerivY(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
-				   const ArrayAllocator& derivatives,const ParGrid<SpatialCell>& mpiGrid) {
+				   creal* const derivatives,const ParGrid<SpatialCell>& mpiGrid) {
    fieldSolverBoundarySetValueDerivY(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
 }
 
 template<typename CELLID,typename UINT,typename REAL>
 void fieldSolverBoundaryCondDerivZ(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
-				   const ArrayAllocator& derivatives,const ParGrid<SpatialCell>& mpiGrid) {
+				   creal* const derivatives,const ParGrid<SpatialCell>& mpiGrid) {
    fieldSolverBoundarySetValueDerivZ(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
 }
 
