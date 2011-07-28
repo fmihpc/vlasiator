@@ -37,6 +37,7 @@ struct SpatialCell {
    // Pointers to arrays containing spatial cell parameters in CPU memory
    Real* cpu_cellParams;  /**< Pointer to physical cell parameters in cpu memory.*/
    uint* cpu_nbrsSpa;     /**< Pointer to spatial  neighbout list in CPU memory.*/
+   Real* cpu_derivatives;
    
    // Pointers to arrays containing velocity block parameters in CPU memory
    uint* cpu_nbrsVel;     /**< Pointer to velocity neighbour list in CPU memory.*/

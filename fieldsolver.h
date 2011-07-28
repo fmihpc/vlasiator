@@ -10,7 +10,7 @@
 #else
    #include <dccrg.hpp>
 #endif
-
+/*
 namespace fieldsolver {
    
    enum RecVars {drhodx,drhody,drhodz,
@@ -19,15 +19,17 @@ namespace fieldsolver {
    };
    
 } // namespace fieldsolver
-
+*/
 #ifdef PARGRID
 
+bool calculateEdgeElectricField(ParGrid<SpatialCell>& mpiGrid);
 bool finalizeFieldPropagator(ParGrid<SpatialCell>& mpiGrid);
 bool initializeFieldPropagator(ParGrid<SpatialCell>& mpiGrid);
 bool propagateFields(ParGrid<SpatialCell>& mpiGrid,creal& dt);
 
 #else
 
+bool calculateEdgeElectricField(dccrg<SpatialCell>& mpiGrid);
 bool finalizeFieldPropagator(dccrg<SpatialCell>& mpiGrid);
 bool initializeFieldPropagator(dccrg<SpatialCell>& mpiGrid);
 bool propagateFields(dccrg<SpatialCell>& mpiGrid,creal& dt);

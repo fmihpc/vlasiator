@@ -45,6 +45,7 @@ SpatialCell::SpatialCell() {
    N_blocks = 0;
    cpuIndex = numeric_limits<uint>::max();
    allocateArray(&cpu_cellParams,SIZE_CELLPARAMS);
+   cpu_derivatives = new Real[SIZE_DERIVATIVES];
    cpu_nbrsSpa     = NULL;
    cpu_nbrsVel     = NULL;
    cpu_blockParams = NULL;
@@ -71,6 +72,7 @@ SpatialCell::SpatialCell(const SpatialCell& s) {
    N_blocks       = s.N_blocks;
    allocateArray(&cpu_cellParams,SIZE_CELLPARAMS);
    for (uint i=0; i<SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
+   for (uint i=0; i<SIZE_DERIVATIVES; ++i) cpu_derivatives[i] = s.cpu_derivatives[i];
    
    cpuIndex = s.cpuIndex;
    // If the SpatialCell to copy has allocated memory, increase the reference count 
@@ -112,6 +114,7 @@ SpatialCell& SpatialCell::operator=(const SpatialCell& s) {
    // Copy variables related to the spatial cell:
    N_blocks = s.N_blocks;
    for (uint i=0; i<SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
+   for (uint i=0; i<SIZE_DERIVATIVES; ++i) cpu_derivatives[i] = s.cpu_derivatives[i];
    
    // Copy variables related to the velocity grid:
    cpuIndex = s.cpuIndex;
@@ -198,6 +201,8 @@ bool SpatialCell::finalize() {
       cpuIndex = numeric_limits<uint>::max();
    }
    freeArray(cpu_cellParams);
+   delete cpu_derivatives;
+   cpu_derivatives = NULL;
    return true;
 }
 
@@ -210,6 +215,7 @@ bool SpatialCell::clone(const SpatialCell& s) {
    N_blocks = s.N_blocks;
    // Copy cell contents to new memory locations:
    for (uint i=0; i<SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
+   for (uint i=0; i<SIZE_DERIVATIVES; ++i) cpu_derivatives[i] = s.cpu_derivatives[i];
    for (uint i=0; i<SIZE_NBRS_SPA; ++i  ) cpu_nbrsSpa[i]    = s.cpu_nbrsSpa[i];
    
    for (uint i=0; i<N_blocks*SIZE_NBRS_VEL; ++i)    cpu_nbrsVel[i]     = s.cpu_nbrsVel[i];

@@ -448,7 +448,8 @@ bool convertMesh(VLSVReader& vlsvReader,const string& meshName) {
    uint64_t arraySize,vectorSize,dataSize;
    if (vlsvReader.getArrayInfo("COORDS",meshName,arraySize,vectorSize,dataType,dataSize) == false) return false;
    
-   // Read the coordinate array one node (of a spatial cell) at a time:
+   // Read the coordinate array one node (of a spatial cell) at a time 
+   // and create a map which only contains each existing node once.
    char* coordsBuffer = new char[vectorSize*dataSize];
    Real* ptr = reinterpret_cast<Real*>(coordsBuffer);
    for (uint64_t i=0; i<arraySize; ++i) {
@@ -471,6 +472,7 @@ bool convertMesh(VLSVReader& vlsvReader,const string& meshName) {
       Real Z0 = z;
       Real Z1 = z+dz;
       
+      // Flush very small coordinate values to zero:
       if (fabs(X0) < EPS) X0 = 0.0;
       if (fabs(X1) < EPS) X1 = 0.0;
       if (fabs(Y0) < EPS) Y0 = 0.0;
@@ -502,7 +504,6 @@ bool convertMesh(VLSVReader& vlsvReader,const string& meshName) {
       xcrds[counter] = it->first.x;
       ycrds[counter] = it->first.y;
       zcrds[counter] = it->first.z;
-      //cerr << it->first.x << ' ' << it->first.y << ' ' << it->first.z << endl;
       ++counter;
    }
 
@@ -512,6 +513,8 @@ bool convertMesh(VLSVReader& vlsvReader,const string& meshName) {
    // Here we create a list of indices into xcrds,ycrds,zcrds arrays, with eight entries per cell:
    int* nodelist = new int[8*arraySize];
    for (uint64_t i=0; i<arraySize; ++i) {
+      // Read the bottom lower left corner coordinates of a cell and its sizes. Note 
+      // that zones will end up in SILO file in the same order as they are in VLSV file.
       if (vlsvReader.readArray("COORDS",meshName,i,1,coordsBuffer) == false) {
 	 cerr << "Failed to read array coords" << endl;
 	 success = false; 
@@ -524,12 +527,15 @@ bool convertMesh(VLSVReader& vlsvReader,const string& meshName) {
       creal dy = ptr[4];
       creal dz = ptr[5];
 
+      // Calculate x,y,z coordinates of the eight nodes of the cell:
       Real X0 = x;
       Real X1 = x+dx;
       Real Y0 = y;
       Real Y1 = y+dy;
       Real Z0 = z;
-      Real Z1 = z+dz;      
+      Real Z1 = z+dz;
+      
+      // Flush very small coordinate values to zero:
       if (fabs(X0) < EPS) X0 = 0.0;
       if (fabs(X1) < EPS) X1 = 0.0;
       if (fabs(Y0) < EPS) Y0 = 0.0;
@@ -537,6 +543,8 @@ bool convertMesh(VLSVReader& vlsvReader,const string& meshName) {
       if (fabs(Z0) < EPS) Z0 = 0.0;
       if (fabs(Z1) < EPS) Z1 = 0.0;
       
+      // Search the cell's nodes from the map created above. For each node in nodelist 
+      // store an index into an array which only contains the unique nodes:
       map<NodeCrd<Real>,uint64_t,NodeComp>::const_iterator it;
       it = nodes.find(NodeCrd<Real>(X0,Y0,Z0)); if (it == nodes.end()) success = false; nodelist[i*8+0] = it->second;
       it = nodes.find(NodeCrd<Real>(X1,Y0,Z0)); if (it == nodes.end()) success = false; nodelist[i*8+1] = it->second;
@@ -597,10 +605,11 @@ bool convertMesh(VLSVReader& vlsvReader,const string& meshName) {
       if (convertMeshVariable(vlsvReader,meshName,*it) == false) success = false;
    }
    return success;
-   
+   /*
    // Write all velocity grids on this mesh into silo file as separate grids:
    if (convertVelocityBlocks2(vlsvReader,meshName) == false) success = false;
    return success;
+    */
 }
 
 bool convertSILO(const string& fname) {

@@ -26,7 +26,7 @@ template<typename T> inline T findex(const T& i,const T& j,const T& k) {return k
 template<typename REAL,typename UINT> void accumulateChanges(const UINT& BLOCK,const REAL* const dF,REAL* const flux,const UINT* const nbrsVel) {
    UINT nbrBlock;
    REAL* nbrFlux;
-   typedef Parameters P;
+   //typedef Parameters P;
 
    // NOTE: velocity block can have up to 26 neighbours, and we need to copy changes 
    // to each existing neighbour here.

@@ -126,25 +126,76 @@ namespace BlockParams {
 }
 
 /** A namespace for storing indices into an array which contains the 
- * physical parameters of each spatial cell.*/
+ * physical parameters of each spatial cell. Do not change the order 
+ * of variables unless you know what you are doing - MPI transfers in 
+ * field solver are optimised for this particular ordering.
+ */
 namespace CellParams {
    enum {
-      XCRD,  /**< x-coordinate of the bottom left corner.*/
-      YCRD,  /**< y-coordinate of the bottom left corner.*/
-      ZCRD,  /**< z-coordinate of the bottom left corner.*/
-      DX,    /**< Grid separation in x-coordinate.*/
-      DY,    /**< Grid separation in y-coordinate.*/
-      DZ,    /**< Grid separation in z-coordinate.*/
-      EX,    /**< Electric field x-component.*/
-      EY,    /**< Electric field y-component.*/
-      EZ,    /**< Electric field z-component.*/
-      BX,    /**< Magnetic field x-component.*/
-      BY,    /**< Magnetic field y-component.*/
-      BZ,    /**< Magnetic field z-component.*/
-      RHO,   /**< Density.*/
-      RHOVX, /**< x-component of the momentum density.*/
-      RHOVY, /**< y-component of the momentum density.*/
-      RHOVZ  /**< z-component of the momentum density.*/
+      XCRD,    /**< x-coordinate of the bottom left corner.*/
+      YCRD,    /**< y-coordinate of the bottom left corner.*/
+      ZCRD,    /**< z-coordinate of the bottom left corner.*/
+      DX,      /**< Grid separation in x-coordinate.*/
+      DY,      /**< Grid separation in y-coordinate.*/
+      DZ,      /**< Grid separation in z-coordinate.*/
+      EX,      /**< Electric field x-component, averaged over cell edge.*/
+      EY,      /**< Electric field y-component, averaged over cell edge.*/
+      EZ,      /**< Electric field z-component, averaged over cell edge.*/
+      BX,      /**< Magnetic field x-component, averaged over cell x-face.*/
+      BY,      /**< Magnetic field y-component, averaged over cell y-face.*/
+      BZ,      /**< Magnetic field z-component, averaged over cell z-face.*/
+      RHO,     /**< Number density.*/
+      RHOVX,   /**< x-component of number density times Vx.*/
+      RHOVY,   /**< y-component of number density times Vy.*/
+      RHOVZ,   /**< z-component of number density times Vz.*/
+      BXFACEX, /**< Bx averaged over x-face.*/
+      BYFACEX, /**< By averaged over x-face.*/
+      BZFACEX, /**< Bz averaged over x-face.*/
+      BXFACEY, /**< Bx averaged over y-face.*/
+      BYFACEY, /**< By averaged over y-face.*/
+      BZFACEY, /**< Bz averaged over y-face.*/
+      BXFACEZ, /**< Bx averaged over z-face.*/
+      BYFACEZ, /**< By averaged over z-face.*/
+      BZFACEZ, /**< Bz averaged over z-face.*/
+      EXFACEX, /**< Ex averaged over x-face.*/
+      EYFACEX, /**< Ey averaged over x-face.*/
+      EZFACEX, /**< Ez averaged over x-face.*/
+      EXFACEY, /**< Ex averaged over y-face.*/
+      EYFACEY, /**< Ey averaged over y-face.*/
+      EZFACEY, /**< Ez averaged over y-face.*/
+      EXFACEZ, /**< Ex averaged over z-face.*/
+      EYFACEZ, /**< Ey averaged over z-face.*/
+      EZFACEZ  /**< Ez averaged over z-face.*/
+   };
+}
+
+/** Namespace fieldsolver contains indices into arrays which store 
+ * variables required by the field solver. These quantities are derivatives 
+ * of variables described in namespace CellParams.
+ * Do not change the order of variables unless you know what you are doing: 
+ * in several places the size of cpu_derivatives array in cell_spatial is calculated 
+ * as fieldsolver::dVzdz+1.
+ */
+namespace fieldsolver {
+   enum {
+      drhodx,    /**< Derivative of volume-averaged number density to x-direction. */
+      drhody,    /**< Derivative of volume-averaged number density to y-direction. */
+      drhodz,    /**< Derivative of volume-averaged number density to z-direction. */
+      dBxdy,     /**< Derivative of face-averaged Bx to y-direction. */
+      dBxdz,     /**< Derivative of face-averaged Bx to z-direction. */
+      dBydx,     /**< Derivative of face-averaged By to x-direction. */
+      dBydz,     /**< Derivative of face-averaged By to z-direction. */
+      dBzdx,     /**< Derivative of face-averaged Bz to x-direction. */
+      dBzdy,     /**< Derivative of face-averaged Bz to y-direction. */
+      dVxdx,     /**< Derivative of volume-averaged Vx to x-direction. */
+      dVxdy,     /**< Derivative of volume-averaged Vx to y-direction. */
+      dVxdz,     /**< Derivative of volume-averaged Vx to z-direction. */
+      dVydx,     /**< Derivative of volume-averaged Vy to x-direction. */
+      dVydy,     /**< Derivative of volume-averaged Vy to y-direction. */
+      dVydz,     /**< Derivative of volume-averaged Vy to z-direction. */
+      dVzdx,     /**< Derivative of volume-averaged Vz to x-direction. */
+      dVzdy,     /**< Derivative of volume-averaged Vz to y-direction. */
+      dVzdz      /**< Derivative of volume-averaged Vz to z-direction. */
    };
 }
 
@@ -152,7 +203,8 @@ cuint WID = 4;         /**< Number of cells per coordinate in a velocity block. 
 cuint WID2 = WID*WID;
 cuint WID3 = WID2*WID; 
 
-cuint SIZE_CELLPARAMS  = 16;   /**< The number of parameters for one spatial cell. */
+cuint SIZE_DERIVATIVES = fieldsolver::dVzdz+1;
+cuint SIZE_CELLPARAMS  = 34;   /**< The number of parameters for one spatial cell. */
 //cuint SIZE_NBRS_VEL    = 8;    /**< The size of velocity grid neighbour list per velocity block. */
 cuint SIZE_NBRS_VEL    = 28;    /**< The size of velocity grid neighbour list per velocity block. */
 cuint SIZE_NBRS_SPA    = 31;   /**< The size of spatial grid neighbour list per spatial cell. */

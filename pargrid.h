@@ -137,7 +137,9 @@ template<class C> class ParGrid {
    bool uncalculatedCells() const;
    bool waitAll();
    bool waitAllReceives();
+   bool waitAllReceives2();
    bool waitAllSends();
+   bool waitAllSends2();
    bool waitAnyReceive();
    void waitForReceives() const;
    bool waitSomeReceives();
@@ -1867,18 +1869,18 @@ template<class C> bool ParGrid<C>::waitAll() {
  */
 template<class C> bool ParGrid<C>::waitAllReceives() {
    bool rvalue = true;
-   // Reserve enough space for MPI status messages:
-   MPIstatuses.resize(MPIrecvRequests.size());
-   
    // Wait for all receives to complete:
-   MPI_Waitall(MPIrecvRequests.size(),&(MPIrecvRequests[0]),&(MPIstatuses[0]));
-   #ifndef NDEBUG
-      for (uint i=0; i<MPIrecvRequests.size(); ++i) if (MPIstatuses[i].MPI_ERROR != MPI_SUCCESS) rvalue=false;
-   #endif
+   MPI_Waitall(MPIrecvRequests.size(),&(MPIrecvRequests[0]),MPI_STATUSES_IGNORE);
    
    // Free memory:
    MPIrecvRequests.clear();
-   MPIstatuses.clear();
+   return rvalue;
+}
+
+template<class C> bool ParGrid<C>::waitAllReceives2() {
+   bool rvalue = true;
+   MPI_Waitall(MPIrecvRequests2.size(),&(MPIrecvRequests2[0]),MPI_STATUSES_IGNORE);
+   MPIrecvRequests2.clear();
    return rvalue;
 }
 
@@ -1888,18 +1890,19 @@ template<class C> bool ParGrid<C>::waitAllReceives() {
  */
 template<class C> bool ParGrid<C>::waitAllSends() {
    bool rvalue = true;
-   // Reserve enough space for MPI status messages:
-   MPIstatuses.resize(MPIsendRequests.size());
    
    // Wait for all sends to complete:
-   MPI_Waitall(MPIsendRequests.size(),&(MPIsendRequests[0]),&(MPIstatuses[0]));
-   #ifndef NDEBUG
-      for (uint i=0; i<MPIsendRequests.size(); ++i) if (MPIstatuses[i].MPI_ERROR != MPI_SUCCESS) rvalue=false;
-   #endif
+   MPI_Waitall(MPIsendRequests.size(),&(MPIsendRequests[0]),MPI_STATUSES_IGNORE);
    
    // Free memory:
    MPIsendRequests.clear();
-   MPIstatuses.clear();
+   return rvalue;
+}
+
+template<class C> bool ParGrid<C>::waitAllSends2() {
+   bool rvalue = true;
+   MPI_Waitall(MPIsendRequests2.size(),&(MPIsendRequests2[0]),MPI_STATUSES_IGNORE);
+   MPIsendRequests2.clear();
    return rvalue;
 }
 

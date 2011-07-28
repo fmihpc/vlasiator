@@ -586,12 +586,6 @@ int main(int argn,char* args[]) {
       mpiGrid.start_remote_neighbour_data_update(); // TEST
       mpiGrid.wait_neighbour_data_update();
       comm.barrier();
-   #else
-      /*
-      P::transmit = Transmit::AVGS;
-      mpiGrid.startNeighbourExchange(0);
-      mpiGrid.waitAll();
-      mpiGrid.barrier();*/
    #endif
    profile::stop("Fetch Neighbour data");
    log_send_receive_info(mpiGrid);
@@ -609,6 +603,7 @@ int main(int argn,char* args[]) {
    reducer.addOperator(new DRO::VariableRho);
    reducer.addOperator(new DRO::VariableRhoV);
    reducer.addOperator(new DRO::MPIrank);
+   
    //VlsWriter vlsWriter;
    profile::start("Init vlasov propagator");
    // Initialize Vlasov propagator:
@@ -616,7 +611,9 @@ int main(int argn,char* args[]) {
       mpilogger << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << write;
       exit(1);
    }
+   calculateVelocityMoments(mpiGrid);
    profile::stop("Init vlasov propagator");
+   
 #ifdef PARGRID
    profile::start("Init field propagator");
    // Initialize field propagator:
@@ -635,8 +632,6 @@ int main(int argn,char* args[]) {
    profile::start("Save initial state");
    // Write initial state:
    if (P::save_spatial_grid) {
-      calculateVelocityMoments(mpiGrid);
-      
       if (myrank == MASTER_RANK) {
 	 mpilogger << "(MAIN): Saving initial state of variables to disk." << endl << write;
       }
@@ -655,9 +650,7 @@ int main(int argn,char* args[]) {
 #endif
    inistate = false;
    // Main simulation loop:
-
-   if (myrank == MASTER_RANK) 
-     mpilogger << "(MAIN): Starting main simulation loop." << endl << write;
+   if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting main simulation loop." << endl << write;
 
    double before = MPI_Wtime();
    unsigned int computedSpatialCells=0;
@@ -690,8 +683,8 @@ int main(int argn,char* args[]) {
       #warning Cannot calculate minimum timestep when using PARGRID: no communicator for all_reduce
       #endif
 
+      // Propagate the state of simulation forward in time by dt:      
       if (P::propagateVlasov == true) {
-          // Propagate the state of simulation forward in time by dt:
           profile::start("First propagation");
           calculateSpatialDerivatives(mpiGrid);
           calculateSpatialFluxes(mpiGrid);
@@ -711,11 +704,11 @@ int main(int argn,char* args[]) {
           calculateSpatialPropagation(mpiGrid,true,transferAvgs);
           profile::stop("Second propagation");
       }
-#ifdef PARGRID      
+
       if (P::propagateField == true) {
 	 propagateFields(mpiGrid,P::dt);
       }
-#endif
+
       ++P::tstep;
       P::t += P::dt;
       
