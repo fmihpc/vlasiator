@@ -221,7 +221,6 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const 
    if (vlsvWriter.startMultiwrite("float",totalBlocks,SIZE_BLOCKPARAMS,sizeof(Real)) == false) success = false;
    if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to start BLOCKCOORDINATES multiwrite!" << endl << write;
    if (success == true) {
-      uint64_t counter = 0;
       SpatialCell* SC;
       for (size_t cell=0; cell<cells.size(); ++cell) {
 	 SC = mpiGrid[cells[cell]];
@@ -299,7 +298,7 @@ void exchangeVelocityGridMetadata(dccrg<SpatialCell>& mpiGrid) {
    
    vector<uchar> nbrTypes;
    for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
-      if (i == 0 & (j== 0 & k == 0)) continue;
+      if ((i == 0) & ((j== 0) & (k == 0))) continue;
       const int ii = i+2;
       const int jj = j+2;
       const int kk = k+2;
@@ -716,23 +715,6 @@ int main(int argn,char* args[]) {
       P::t += P::dt;
       
       // Check if data needs to be written to disk:
-      /*
-      if (P::tstep % P::saveRestartInterval == 0) {
-	 if (myrank == MASTER_RANK)
-	   mpilogger << "(MAIN): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << write;
-	 if (writeGrid(mpiGrid,reducer,true) == false) {
-	    if (myrank == MASTER_RANK) 
-	      mpilogger << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
-	 }
-      } else if (P::tstep % P::diagnInterval == 0) {
-	 if (myrank == MASTER_RANK)
-	   mpilogger << "(MAIN): Writing spatial cell data to disk, tstep = " << P::tstep << " t = " << P::t << endl << write;
-	 if (writeGrid(mpiGrid,reducer,false) == false) {
-	    if (myrank == MASTER_RANK) 
-	      mpilogger << "(MAIN): ERROR occurred while writing spatial cell data!" << endl << write;
-	 }
-      }
-      */
       if (P::tstep % P::saveRestartInterval == 0 || P::tstep % P::diagnInterval == 0) {
 	 bool writeRestartData = false;
 	 if (P::tstep % P::saveRestartInterval == 0) writeRestartData = true;

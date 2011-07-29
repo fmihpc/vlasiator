@@ -82,7 +82,7 @@ bool MPILogger::flush() {
       outStream.str(string(""));
       outStream.clear();
    #endif
-   return true;
+   return success;
 }
 
 /** Open a logfile for parallel writing within the given MPI communicator. 

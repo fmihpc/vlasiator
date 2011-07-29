@@ -85,7 +85,7 @@ bool initializeMover(ParGrid<SpatialCell>& mpiGrid) {
       uint counter = 0;
       vector<uint> nbrIDs;
       for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
-	 if (i == 0 & (j == 0 & k == 0)) nbrIDs.push_back(cellID); // in ParGrid cells do not consider themselves as their own neighbours
+	 if ((i == 0) & ((j == 0) & (k == 0))) nbrIDs.push_back(cellID); // in ParGrid cells do not consider themselves as their own neighbours
 	 else {
 	    nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2+i,2+j,2+k)));
 	    if (nbrIDs.back() == INVALID_CELLID) isGhost = true;
@@ -170,7 +170,7 @@ bool initializeMover(ParGrid<SpatialCell>& mpiGrid) {
    // buffer must be allocated using page-locked memory:
    for (map<pair<int,int>,CellID>::const_iterator it=stencilUpdates.recvs.begin(); it!=stencilUpdates.recvs.end(); ++it) {
       cint host            = it->first.first;
-      cint tag             = it->first.second;
+      //cint tag             = it->first.second;
       const CellID localID = it->second;
       Real* buffer = NULL;
       const size_t elements = mpiGrid[localID]->N_blocks*SIZE_VELBLOCK;

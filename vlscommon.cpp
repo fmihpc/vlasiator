@@ -79,11 +79,11 @@ VlsHeader::Real convReal4(const unsigned char* const ptr,const bool& swapEndian)
    if (swapEndian == false) return *(reinterpret_cast<const float*>(ptr));
    else {
       // Swap byte order
-      int index;
+      int index = 0;
       Real4 tmp = 0.0;
       unsigned char* const ptrtmp = reinterpret_cast<unsigned char*>(&tmp);
-      for (int i=0; i<sizeof(tmp); ++i) ptrtmp[i] = 0;
-      for (int i=sizeof(Real4)-1; i>=0; --i) {
+      for (uint i=0; i<sizeof(tmp); ++i) ptrtmp[i] = 0;
+      for (uint i=sizeof(Real4)-1; i>=0; --i) {
 	 ptrtmp[index] = ptr[i];
 	 ++index;
       }
@@ -95,11 +95,11 @@ VlsHeader::Real convReal8(const unsigned char* const ptr,const bool& swapEndian)
    if (swapEndian == false) return *(reinterpret_cast<const double*>(ptr));
    else {
       // Swap byte order
-      int index;
+      int index = 0;
       Real8 tmp = 0.0;
       unsigned char* const ptrtmp = reinterpret_cast<unsigned char*>(&tmp);
-      for (int i=0; i<sizeof(tmp); ++i) ptrtmp[i] = 0;
-      for (int i=sizeof(Real8)-1; i>=0; --i) {
+      for (uint i=0; i<sizeof(tmp); ++i) ptrtmp[i] = 0;
+      for (uint i=sizeof(Real8)-1; i>=0; --i) {
 	 ptrtmp[index] = ptr[i];
 	 ++index;
       }
@@ -111,11 +111,11 @@ VlsHeader::Real convReal16(const unsigned char* const ptr,const bool& swapEndian
    if (swapEndian == false) return *(reinterpret_cast<const long double*>(ptr));
    else {
       // Swap byte order
-      int index;
+      int index = 0;
       Real16 tmp = 0.0;
       unsigned char* const ptrtmp = reinterpret_cast<unsigned char*>(&tmp);
-      for (int i=0; i<sizeof(tmp); ++i) ptrtmp[i] = 0;
-      for (int i=sizeof(Real16)-1; i>=0; --i) {
+      for (uint i=0; i<sizeof(tmp); ++i) ptrtmp[i] = 0;
+      for (uint i=sizeof(Real16)-1; i>=0; --i) {
 	 ptrtmp[index] = ptr[i];
 	 ++index;
       }

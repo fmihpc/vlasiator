@@ -70,7 +70,7 @@ template<typename CELLID> bool TransferStencil<CELLID>::addReceives(const ParGri
    bool success = true;
    clear();
    
-   int host;
+   int host = std::numeric_limits<int>::max();
    CELLID cellID;
    CELLID nbrID;
    std::set<std::pair<int,CELLID> > tmpReceiveList; // (rem. host,global ID) for all remote neighbours to receive.
@@ -130,7 +130,7 @@ template<typename CELLID> bool TransferStencil<CELLID>::addReceives(const ParGri
 template<typename CELLID> bool TransferStencil<CELLID>::addSends(const ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs) {
    bool success = true;
 
-   int host;
+   int host = std::numeric_limits<int>::max();
    CELLID cellID;
    CELLID nbrID;
    std::set<std::pair<int,CELLID> > tmpSendList;
@@ -183,7 +183,7 @@ template<typename CELLID> bool TransferStencil<CELLID>::addSends(const ParGrid<S
 template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateSends(const ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs) {
    bool success = true;
    
-   int host;
+   int host = std::numeric_limits<int>::max();
    std::set<std::pair<int,CELLID> > tmpSendList;
    std::vector<CELLID> cells;
    remoteToLocalMap.clear();
@@ -238,7 +238,7 @@ template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateReceives(
    bool success = true;
    clear();
    
-   int host;
+   int host = std::numeric_limits<int>::max();
    std::set<std::pair<int,CELLID> > tmpReceiveList;
    std::vector<CELLID> cells;
    

@@ -283,7 +283,15 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader,const string& meshName,const 
 	 dvy    = *reinterpret_cast<float*>(bc_buffer+b*bc_vectorSize*bc_dataSize+4*sizeof(float));
 	 dvz    = *reinterpret_cast<float*>(bc_buffer+b*bc_vectorSize*bc_dataSize+5*sizeof(float));
       } else {
-      
+	 // doubles
+	 vx_min = 0.0;
+	 vy_min = 0.0;
+	 vz_min = 0.0;
+	 dvx    = 0.0;
+	 dvy    = 0.0;
+	 dvz    = 0.0;
+	 cerr << "doubles not implemented in vlsvextract!" << endl;
+	 exit(1);
       }
       float VX,VY,VZ;
       const float EPS = 1.0e-7;

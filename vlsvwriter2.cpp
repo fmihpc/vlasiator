@@ -88,7 +88,7 @@ bool VLSVWriter::open(const std::string& fname,MPI_Comm comm,const int& MASTER_R
     if (myrank == masterRank) {
         xmlWriter = new MuXML();
         XMLNode* root = xmlWriter->getRoot();
-        XMLNode* xmlnode = xmlWriter->addNode(root,"VLSV","");
+        xmlWriter->addNode(root,"VLSV","");
     }
     
     // Master writes 2 64bit integers to the start of file:
@@ -113,31 +113,29 @@ return success;
 bool VLSVWriter::startMultiwrite(const std::string& dataType,const uint64_t& arraySize,
                                  const uint64_t& vectorSize,const uint64_t& dataSize) {
     bool success = true;
-    double t1=MPI_Wtime();
     
-// Calculate the amount of data written by this process in bytes, 
-// and send offset to process myrank+1:
-    myBytes = arraySize * vectorSize * dataSize;
-    MPI_Gather(&myBytes,sizeof(uint64_t),MPI_BYTE,
-               bytesPerProcess,sizeof(uint64_t),MPI_BYTE,
-               0,comm);
+   // Calculate the amount of data written by this process in bytes, 
+   // and send offset to process myrank+1:
+   myBytes = arraySize * vectorSize * dataSize;
+   MPI_Gather(&myBytes,sizeof(uint64_t),MPI_BYTE,
+	      bytesPerProcess,sizeof(uint64_t),MPI_BYTE,
+	      0,comm);
     
-    if (myrank == 0) {
-        offsets[0]=offset; //rank 0 handles the starting point of this block of data
-        for(int i=1;i<N_processes;i++)
-            offsets[i]=offsets[i-1]+bytesPerProcess[i-1];
-    }
-    
-    //scatter offsets so that everybody has the correct offset
-    MPI_Scatter(offsets,sizeof(MPI_Offset),MPI_BYTE,&offset,sizeof(MPI_Offset),MPI_BYTE,
-                0,comm);
-
-                
+   if (myrank == 0) {
+      offsets[0]=offset; //rank 0 handles the starting point of this block of data
+      for(int i=1;i<N_processes;i++)
+	offsets[i]=offsets[i-1]+bytesPerProcess[i-1];
+   }
+   
+   //scatter offsets so that everybody has the correct offset
+   MPI_Scatter(offsets,sizeof(MPI_Offset),MPI_BYTE,&offset,sizeof(MPI_Offset),MPI_BYTE,
+	       0,comm);
+      
    this->dataType = dataType;
    this->arraySize = arraySize;
    this->vectorSize = vectorSize;
    this->dataSize = dataSize;
-
+   
    multiWriteUnits.clear();
    
    return success;
@@ -145,16 +143,14 @@ bool VLSVWriter::startMultiwrite(const std::string& dataType,const uint64_t& arr
 bool VLSVWriter::endMultiwrite(const std::string& tagName,const std::string& arrayName,
     const std::map<std::string,std::string>& attribs) {
     bool success = true;
-    uint64_t registeredBytes=0;
     MPI_Barrier(comm);
-
     
     if (multiWriteUnits.size() >0 ){
        //create data type for data that we use to do all writes at once
        MPI_Aint* displacements = new MPI_Aint[multiWriteUnits.size()];
        MPI_Datatype* types = new MPI_Datatype[multiWriteUnits.size()];
        int* blockLengths = new int[multiWriteUnits.size()];
-       for (int i=0; i<multiWriteUnits.size(); ++i){
+       for (uint i=0; i<multiWriteUnits.size(); ++i){
 	  displacements[i] = multiWriteUnits[i].array - multiWriteUnits[0].array;
 	  types[i]         = multiWriteUnits[0].mpiType;
 	  blockLengths[i]  = multiWriteUnits[0].amount;
@@ -182,7 +178,6 @@ bool VLSVWriter::endMultiwrite(const std::string& tagName,const std::string& arr
     
    // Master writes footer tag:
    if (myrank == masterRank) {
-       double t1=MPI_Wtime();
        uint64_t totalBytes = 0;
        for(int i=0;i<N_processes;i++)
            totalBytes+=bytesPerProcess[i];

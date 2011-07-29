@@ -84,7 +84,7 @@ namespace DRO {
    
    bool VariableE::reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(E);
-      for (int i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
    
@@ -110,7 +110,7 @@ namespace DRO {
       
    bool VariableVolE::reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(E);
-      for (int i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
    
@@ -133,7 +133,7 @@ namespace DRO {
    
    bool VariableB::reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(B);
-      for (int i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
    
@@ -159,7 +159,7 @@ namespace DRO {
    
    bool VariableVolB::reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(B);
-      for (int i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
    
@@ -182,7 +182,7 @@ namespace DRO {
    
    bool VariableRho::reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(&rho);
-      for (int i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
+      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
    
@@ -206,7 +206,7 @@ namespace DRO {
    
    bool MPIrank::reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(&mpiRank);
-      for (int i=0; i<sizeof(int); ++i) buffer[i] = ptr[i];
+      for (uint i=0; i<sizeof(int); ++i) buffer[i] = ptr[i];
       return true;
    }
    
@@ -232,7 +232,7 @@ namespace DRO {
    
    bool VariableRhoV::reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(rhov);
-      for (int i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
    

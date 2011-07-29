@@ -50,7 +50,7 @@ template<class C> struct ParCell {
    
    unsigned char refLevel;   /**< Refinement level of the cell, 0 = base grid (unrefined).*/
    C* dataptr;               /**< Pointer to user data.*/
-   ParCell(): dataptr(NULL),N_blocks(0),hasRemoteNeighbours(false),refLevel(0) { }
+   ParCell(): N_blocks(0),hasRemoteNeighbours(false),refLevel(0),dataptr(NULL) { }
    ~ParCell() {delete dataptr; dataptr=NULL;}
 };
 
@@ -2150,7 +2150,6 @@ template<class C>
 int ParGrid<C>::getNumberOfEdges(void* parGridPtr,int N_globalIDs,int N_localIDs,ZOLTAN_ID_PTR globalID,
 		     ZOLTAN_ID_PTR localID,int* rcode) {
 
-   ParGrid<C>* parGrid = reinterpret_cast<ParGrid<C>*>(parGridPtr);
    typename std::map<ID::type,ParCell<C> >::const_iterator it = localCells.find(globalID[0]);
    #ifndef NDEBUG
    if (it == localCells.end()) {
@@ -2185,7 +2184,6 @@ template<class C>
 void ParGrid<C>::getEdgeList(void* parGridPtr,int N_globalIDs,int N_localIDs,ZOLTAN_ID_PTR globalID,
 			     ZOLTAN_ID_PTR localID,ZOLTAN_ID_PTR nbrGlobalIDs,int* nbrHosts,
 			    int N_weights,float* weight,int* rcode) {
-   ParGrid<C>* parGrid = reinterpret_cast<ParGrid<C>*>(parGridPtr);
    typename std::map<ID::type,ParCell<C> >::const_iterator it = localCells.find(globalID[0]);
    #ifndef NDEBUG
    if (it == localCells.end()) {
@@ -2330,7 +2328,7 @@ int ParGrid<C>::getNumberOfHierarchicalLevels(void* parGridPtr,int* rcode) {
 
 template<class C>
 int ParGrid<C>::getHierarchicalPartNumber(void* parGridPtr,int level,int* rcode) {
-   int rvalue;
+   int rvalue = 0;
    *rcode = ZOLTAN_OK;
    switch (level) {
     case 0:

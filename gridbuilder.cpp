@@ -109,7 +109,6 @@ bool buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
 		     const bool& isRemote) {
    typedef Parameters P;
 
-   cuint VELBLOCKS = P::vxblocks_ini*P::vyblocks_ini*P::vzblocks_ini;
    // Set up cell parameters:
    cell.cpu_cellParams[CellParams::XCRD] = xmin;
    cell.cpu_cellParams[CellParams::YCRD] = ymin;
@@ -382,7 +381,6 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid,MPI_Comm comm,const int& MASTER_RAN
    MPI_Comm_rank(comm,&myrank);
    int N_processes;
    MPI_Comm_size(comm,&N_processes);
-   VC::ID INVALID_CELL_ID = numeric_limits<VC::ID>::max();
    
    // Create a GridBuilder:
    GridBuilder* builder = GridBuilderFactory::createBuilder();
@@ -444,7 +442,7 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid,MPI_Comm comm,const int& MASTER_RAN
       cellsPerProcess = new int[N_processes];
       cellOffsets = new VC::ID[N_processes];
       VC::ID offset = 0;
-      for (int proc=0; proc<N_processes; ++proc) {
+      for (uint proc=0; proc<N_processes; ++proc) {
 	 cellOffsets[proc] = offset;
 	 cellsPerProcess[proc] = N_cells/N_processes;
 	 if (proc < N_cells%N_processes) ++cellsPerProcess[proc];
@@ -457,7 +455,7 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid,MPI_Comm comm,const int& MASTER_RAN
       VC::ID counter = 0;
       for (int proc=1; proc<N_processes; ++proc) {
 	 nbrOffsets[proc] = 0;
-	 for (VC::ID j=0; j<cellsPerProcess[proc-1]; ++j) {
+	 for (int j=0; j<cellsPerProcess[proc-1]; ++j) {
 	    nbrOffsets[proc] += spatNbrsPerCell[counter]; 
 	    ++counter;
 	 }
@@ -599,7 +597,7 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid,MPI_Comm comm,const int& MASTER_RAN
    
    // Calculate offsets into block array data (needed for reading restart file):
    VirtualCell::ID sum = 0;
-   for (VirtualCell::ID i=0; i<N_processes; ++i) {
+   for (int i=0; i<N_processes; ++i) {
       VirtualCell::ID tmp = blockOffsets[i];
       blockOffsets[i] = sum;
       sum += tmp;

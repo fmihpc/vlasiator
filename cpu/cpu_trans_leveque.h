@@ -108,11 +108,6 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
    const REAL* const blockAvgs   = AVGS + nbrsSpa[BLOCK*SIZE_NBRS_SPA + 13]*SIZE_VELBLOCK;
    const REAL* const blockParams = BLOCK_PARAMS + BLOCK*SIZE_BLOCKPARAMS;
    
-   Real vx_sign,vy_sign,vz_sign;
-   bool sign_vx_constant = signs(blockParams[BlockParams::VXCRD],blockParams[BlockParams::VXCRD] + (WID-1+HALF)*blockParams[BlockParams::DVX],vx_sign);
-   bool sign_vy_constant = signs(blockParams[BlockParams::VYCRD],blockParams[BlockParams::VYCRD] + (WID-1+HALF)*blockParams[BlockParams::DVY],vy_sign);
-   bool sign_vz_constant = signs(blockParams[BlockParams::VZCRD],blockParams[BlockParams::VZCRD] + (WID-1+HALF)*blockParams[BlockParams::DVZ],vz_sign);
-
    // ***** Consider the interface between (i-1,j,k) and (i,j,k): *****
    const REAL dt_per_dx = DT / CELL_PARAMS[CellParams::DX];
    const REAL dt_per_dy = DT / CELL_PARAMS[CellParams::DY];

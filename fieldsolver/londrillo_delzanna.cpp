@@ -637,7 +637,6 @@ static void calculateEdgeElectricFieldZ(const CellID& cellID,ParGrid<SpatialCell
 
    // Calculate maximum wave speed (fast magnetosonic speed) on SW cell. In order 
    // to get Alfven speed we need to calculate some reconstruction coeff. for Bz:
-   Real Bx2,By2,Bz2;
    const CellID nbrID_SW      = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2  ,2  ,2+1));
    creal* const nbr_cp_SW     = mpiGrid[nbrID_SW]->cpu_cellParams;
    creal* const nbr_derivs_SW = mpiGrid[nbrID_SW]->cpu_derivatives;
@@ -705,8 +704,8 @@ static void calculateEdgeElectricFieldZ(const CellID& cellID,ParGrid<SpatialCell
    #endif
    
    const CellID nbrID_NE      = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2-1,2-1,2+1));
-   creal* const nbr_cp_NE     = mpiGrid[nbrID_NW]->cpu_cellParams;
-   creal* const nbr_derivs_NE = mpiGrid[nbrID_NW]->cpu_derivatives;
+   creal* const nbr_cp_NE     = mpiGrid[nbrID_NE]->cpu_cellParams;
+   creal* const nbr_derivs_NE = mpiGrid[nbrID_NE]->cpu_derivatives;
    c_x = calculateFastMSspeedXY(cp_NE,derivs_NE,nbr_cp_NE,nbr_derivs_NE,Bx_N,By_E,dBxdy_N,dBxdz_N,dBydx_E,dBydz_E,PLUS,PLUS);
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x);
@@ -1282,16 +1281,13 @@ void propagateMagneticFieldTaskQueue(ParGrid<SpatialCell>& mpiGrid,creal& dt,con
 }
 */
 void calculateDerivativesSimple(ParGrid<SpatialCell>& mpiGrid,const vector<CellID>& localCells) {
-   bool allTasksCompleted = true;
-   CellID cellID = numeric_limits<CellID>::max();
-   uint priority = 0;
    namespace fs = fieldsolver;
    
    // Exchange cellParams with neighbours (2nd order accuracy). Post receives:
    mpiGrid.startSingleMode();
    //for (map<pair<int,int>,CellID>::const_iterator it=stencil1.recvs.begin(); it!=stencil1.recvs.end(); ++it) {
    for (map<pair<int,int>,CellID>::const_iterator it=stencil3.recvs.begin(); it!=stencil3.recvs.end(); ++it) {
-      const int host     = it->first.first;
+      //const int host     = it->first.first;
       const int tag      = it->first.second;
       const CellID nbrID = it->second;
       const int bytes    = 7*sizeof(Real); // BX,BY,BZ,RHO,RHOVX,RHOVY,RHOVZ
@@ -1340,7 +1336,7 @@ void calculateUpwindedElectricFieldSimple(ParGrid<SpatialCell>& mpiGrid,const ve
    mpiGrid.startSingleMode();
    //for (map<pair<int,int>,CellID>::const_iterator it=stencil1.recvs.begin(); it!=stencil1.recvs.end(); ++it) {
    for (map<pair<int,int>,CellID>::const_iterator it=stencil3.recvs.begin(); it!=stencil3.recvs.end(); ++it) {
-      const int host     = it->first.first;
+      //const int host     = it->first.first;
       const int tag      = it->first.second;
       const CellID nbrID = it->second;
       const uint bytes   = SIZE_DERIVATIVES*sizeof(Real);
@@ -1388,7 +1384,7 @@ void calculateUpwindedElectricFieldSimple(ParGrid<SpatialCell>& mpiGrid,const ve
    mpiGrid.startSingleMode();
    //for (map<pair<int,int>,CellID>::const_iterator it=stencil2.recvs.begin(); it!=stencil2.recvs.end(); ++it) {
    for (map<pair<int,int>,CellID>::const_iterator it=stencil3.recvs.begin(); it!=stencil3.recvs.end(); ++it) {
-      const int host     = it->first.first;
+      //const int host     = it->first.first;
       const int tag      = it->first.second;
       const int bytes    = 3*sizeof(Real);
       const CellID nbrID = it->second;
@@ -1504,7 +1500,7 @@ void reconstructionCoefficients(const CellID& cellID,const CellID& nbr_i2j1k1,co
    
    // Create a dummy array for containing zero values for cellParams on non-existing cells:
    Real dummyCellParams[SIZE_CELLPARAMS];
-   for (int i=0; i<SIZE_CELLPARAMS; ++i) dummyCellParams[i] = 0.0;
+   for (uint i=0; i<SIZE_CELLPARAMS; ++i) dummyCellParams[i] = 0.0;
    
    Real* cep_i2j1k1 = NULL;
    Real* cep_i1j2k1 = NULL;
@@ -1521,7 +1517,7 @@ void reconstructionCoefficients(const CellID& cellID,const CellID& nbr_i2j1k1,co
 
       // Create a dummy array for containing zero values for derivatives on non-existing cells:
       Real dummyDerivatives[SIZE_DERIVATIVES];
-      for (int i=0; i<SIZE_DERIVATIVES; ++i) dummyDerivatives[i] = 0.0;
+      for (uint i=0; i<SIZE_DERIVATIVES; ++i) dummyDerivatives[i] = 0.0;
    
       // Fetch neighbour cell derivatives, or in case the neighbour does not 
       // exist, use dummyDerivatives array:

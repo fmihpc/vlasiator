@@ -24,7 +24,6 @@ template<typename T> inline T isBoundary(const T& STATE,const T& BND) {return ST
 template<typename T> inline T findex(const T& i,const T& j,const T& k) {return k*36+j*6+i;}
 
 template<typename REAL,typename UINT> void accumulateChanges(const UINT& BLOCK,const REAL* const dF,REAL* const flux,const UINT* const nbrsVel) {
-   UINT nbrBlock;
    REAL* nbrFlux;
    //typedef Parameters P;
 
@@ -299,9 +298,6 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(CELL&
    REAL avgs[8*WID3];
    fetchAllAverages(BLOCK,avgs,cell.cpu_avgs,cell.cpu_nbrsVel+BLOCK*SIZE_NBRS_VEL);
 
-   const REAL DVX = blockParams[BlockParams::DVX];
-   const REAL DVY = blockParams[BlockParams::DVY];
-   const REAL DVZ = blockParams[BlockParams::DVZ];
    const REAL dt_per_dvx = DT / blockParams[BlockParams::DVX];
    const REAL dt_per_dvy = DT / blockParams[BlockParams::DVY];
    const REAL dt_per_dvz = DT / blockParams[BlockParams::DVZ];

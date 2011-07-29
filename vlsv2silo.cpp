@@ -274,6 +274,14 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader,const string& meshName) {
 	    dvz    = *reinterpret_cast<float*>(bc_buffer+b*bc_vectorSize*bc_dataSize+5*sizeof(float));
 	 } else {
 	    // doubles
+	    vx_min = 0.0;
+	    vy_min = 0.0;
+	    vz_min = 0.0;
+	    dvx    = 0.0;
+	    dvy    = 0.0;
+	    dvz    = 0.0;
+	    cerr << "Doubles not implemented in vlsv2silo!" << endl; 
+	    exit(1);
 	 }
 	 
 	 // Add nodelist entry for each cell in the velocity block. Again, numbers very close to 
@@ -388,12 +396,6 @@ bool convertMeshVariable(VLSVReader& vlsvReader,const string& meshName,const str
    VLSV::datatype dataType;
    uint64_t arraySize,vectorSize,dataSize;
    if (vlsvReader.getArrayInfo("VARIABLE",varName,meshName,arraySize,vectorSize,dataType,dataSize) == false) return false;
-   
-   int16_t* ptrShort;
-   int32_t* ptrInt;
-   int64_t* ptrLong;
-   float* ptrFloat;
-   double* ptrDouble;
    
    // Read variable data. Note that we do not actually need to care if 
    // the data is given as floats or doubles.

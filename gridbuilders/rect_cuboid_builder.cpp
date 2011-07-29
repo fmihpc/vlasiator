@@ -180,7 +180,6 @@ bool RectCuboidBuilder::getCellIDs(std::vector<VirtualCell::ID>& cellIDs,std::ve
    // sizes of velocity grids as well as the numbers of spatial neighbours 
    // for each cell ID.
    VC::ID cellID;
-   VC::ID x_neg,x_pos,y_neg,y_pos,z_neg,z_pos;
    for (VC::ID k=0; k<zsize; ++k) for (VC::ID j=0; j<ysize; ++j) for (VC::ID i=0; i<xsize; ++i) {
       cellID = k*ysize*xsize + j*xsize + i;
       cellIDs[cellID] = cellID;
@@ -214,8 +213,6 @@ bool RectCuboidBuilder::getCellNbrData(const VirtualCell::ID& N_cells,VirtualCel
       coords[6*c+4] = dy;
       coords[6*c+5] = dz;
 
-      uint oldCounter = counter;
-      
       // Add neighbours that exist inside 3x3x3 cube of cells centered at this cell:
       for (int i=-1; i<2; ++i) for (int j=-1; j<2; ++j) for (int k=-1; k<2; ++k) {
 	 if (i == 0 && (j == 0 && k == 0)) continue;
