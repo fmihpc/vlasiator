@@ -707,8 +707,15 @@ int main(int argn,char* args[]) {
           profile::stop("Second propagation");
       }
 
+      // Propagate fields forward in time by dt. If field is not 
+      // propagated self-consistently (test-Vlasov simulation), then 
+      // re-calculate face-averaged E,B fields. This requires that 
+      // edge-E and face-B have been shared with remote neighbours 
+      // (not done by calculateFaceAveragedFields).
       if (P::propagateField == true) {
 	 propagateFields(mpiGrid,P::dt);
+      } else {
+	 calculateFaceAveragedFields(mpiGrid);
       }
 
       ++P::tstep;
