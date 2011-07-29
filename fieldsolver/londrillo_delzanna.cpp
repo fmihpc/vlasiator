@@ -1480,10 +1480,12 @@ bool propagateFields(ParGrid<SpatialCell>& mpiGrid,creal& dt) {
    return true;
 }
 
-enum Rec {a_0,a_x,a_y,a_z,a_xx,a_xy,a_xz,
-     b_0,b_x,b_y,b_z,b_yx,b_yy,b_yz,
-     c_0,c_x,c_y,c_z,c_zx,c_zy,c_zz
-};
+namespace Rec {
+   enum Rec {a_0,a_x,a_y,a_z,a_xx,a_xy,a_xz,
+	b_0,b_x,b_y,b_z,b_yx,b_yy,b_yz,
+	c_0,c_x,c_y,c_z,c_zx,c_zy,c_zz
+   };
+}
 
 void reconstructionCoefficients(const CellID& cellID,const CellID& nbr_i2j1k1,const CellID& nbr_i1j2k1,const CellID& nbr_i1j1k2,
 				ParGrid<SpatialCell>& mpiGrid,Real* result) {
@@ -1788,7 +1790,7 @@ void calculateFaceAveragedFields(ParGrid<SpatialCell>& mpiGrid) {
 
       // Calculate E vector on y-face (NEEDS IMPROVEMENT):
       averageFaceYElectricField(cellID,nbr_i2j1k1,nbr_i1j1k2,nbr_i2j1k2,nbr_i1j0k1,nbr_i2j0k1,nbr_i1j0k2,nbr_i2j0k2,
-				existingCells,mpiGrid,cellParams+CellParams::EXFACEX);
+				existingCells,mpiGrid,cellParams+CellParams::EXFACEY);
       
       // Calculate B vector on both sides of z-face:
       const CellID nbr_i2j2k1 = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2+1,2+1,2  ));
@@ -1803,7 +1805,7 @@ void calculateFaceAveragedFields(ParGrid<SpatialCell>& mpiGrid) {
 
       // Calculate E vector on z-face (NEEDS IMPROVEMENT):
       averageFaceZElectricField(cellID,nbr_i2j1k1,nbr_i1j2k1,nbr_i2j2k1,nbr_i1j1k0,nbr_i2j1k0,nbr_i1j2k0,nbr_i2j2k0,
-				existingCells,mpiGrid,cellParams+CellParams::EXFACEX);
+				existingCells,mpiGrid,cellParams+CellParams::EXFACEZ);
       
       // Store the average value (maybe should store upwinded value?): 
       for (uint i=0; i<9; ++i) {
