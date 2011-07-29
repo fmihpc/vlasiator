@@ -91,6 +91,7 @@ Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal&
    creal v = sqrt(vx*vx+vy*vy);
    Real theta = acos(vx/v);
    if (vy < 0.0) theta = 2.0*M_PI - theta;
+   //if (vz < 0.0) theta = 2.0*M_PI - theta;
    creal EPSTHETA = acos(dvx/v);
    
    Real THETA0 = PHI0 - M_PI/2.0;
@@ -101,13 +102,15 @@ Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal&
    
    // Sample the 4D distribution function.
    creal OMEGA = 1.0;
-   cuint N_samples = 30;
+   cuint N_samples = 100;
 
    creal d_x = dx / (N_samples+1);
    creal d_y = dy / (N_samples+1);
+   creal d_z = dz / (N_samples+1);
    Real avg = 0.0;
    for (uint i=0; i<N_samples; ++i) for (uint j=0; j<N_samples; ++j) {
       avg += getDistribValue(OMEGA,x+i*d_x,y+j*d_y,vx,vy,dvx,dvy);
+      //avg += getDistribValue(OMEGA,x+i*d_x,z+j*d_z,vx,vz,dvx,dvz);
    }
    return avg / N_samples/N_samples;
 

@@ -3,6 +3,12 @@
 
 #include "definitions.h"
 #include "cell_spatial.h"
+#include "arrayallocator.h"
+#include "fieldsolver.h"
+#include "projects/projects_common.h"
+#include "projects/projects_vlasov_acceleration.h"
+#include "projects/projects_fieldboundary.h"
+#include "projects/projects_vlasov_boundary.h"
 
 #ifndef PARGRID
 	#define DCCRG_SEND_SINGLE_CELLS
@@ -120,24 +126,93 @@ template<typename T> T spatialFluxZ(cuint& k,const T& avg_neg,const T& avg_pos,c
    return convert<T>(0.5)*VZ*(avg_neg+avg_pos) - convert<T>(0.5)*fabs(VZ)*(avg_pos-avg_neg);
 }
 
-template<typename T> T velocityFluxX(const T& J,const T& K,const T& avg_neg,const T& avg_pos,const T* const cellParams,const T* const blockParams) {
-   const T VY = blockParams[BlockParams::VYCRD] + (J+convert<T>(0.5))*blockParams[BlockParams::DVY];
-   //const T VZ = blockParams[BlockParams::VZCRD] + (K+convert<T>(0.5))*blockParams[BlockParams::DVZ];
+template<typename T> T velocityFluxX(const T& j,const T& k,const T& avg_neg,const T& avg_pos,const T* const cellParams,const T* const blockParams) {
+   const T VY = blockParams[BlockParams::VYCRD] + (j+convert<T>(0.5))*blockParams[BlockParams::DVY];
+   const T VZ = blockParams[BlockParams::VZCRD] + (k+convert<T>(0.5))*blockParams[BlockParams::DVZ];
+   const T EX = cellParams[CellParams::EX];
+   const T BY = cellParams[CellParams::BY];
    const T BZ = cellParams[CellParams::BZ];
-   const T AX = Parameters::q_per_m*(VY*BZ);
+   const T AX = Parameters::q_per_m*(EX + VY*BZ - VZ*BY);
    return convert<T>(0.5)*AX*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AX)*(avg_pos-avg_neg);
 }
 
 template<typename T> T velocityFluxY(const T& I,const T& K,const T& avg_neg,const T& avg_pos,const T* const cellParams,const T* const blockParams) {
-   const T VX = blockParams[BlockParams::VXCRD] + (I+convert<T>(0.5))*blockParams[BlockParams::DVX];
-   //const T VZ = blockParams[BlockParams::VZCRD] + (K+convert<T>(0.5))*blockParams[BlockParams::DVZ];
-   const T BZ = cellParams[CellParams::BZ];    
-   const T AY = Parameters::q_per_m*(-VX*BZ);
-   return convert<T>(0.5)*AY*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AY)*(avg_pos-avg_neg);
+   return convert<T>(0.0);
 }
 
 template<typename T> T velocityFluxZ(const T& I,const T& J,const T& avg_neg,const T& avg_pos,const T* const cellParams,const T* const blockParams) {
    return convert<T>(0.0);
+}
+
+template<typename CELLID,typename UINT,typename REAL>
+void fieldSolverBoundaryCondDerivX(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
+				   Real* const derivatives,const ParGrid<SpatialCell>& mpiGrid) {
+   namespace fs = fieldsolver;
+   array[fs::drhodx] = 0.0;
+   array[fs::dBydx]  = 0.0;
+   array[fs::dBzdx]  = 0.0;
+   array[fs::dVxdx]  = 0.0;
+   array[fs::dVydx]  = 0.0;
+   array[fs::dVzdx]  = 0.0;
+}
+
+template<typename CELLID,typename UINT,typename REAL>
+void fieldSolverBoundaryCondDerivY(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
+				   Real* const derivatives,const ParGrid<SpatialCell>& mpiGrid) {
+   namespace fs = fieldsolver;
+   array[fs::drhody] = 0.0;
+   array[fs::dBxdy]  = 0.0;
+   array[fs::dBzdy]  = 0.0;
+   array[fs::dVxdy]  = 0.0;
+   array[fs::dVydy]  = 0.0;
+   array[fs::dVzdy]  = 0.0;
+}
+
+template<typename CELLID,typename UINT,typename REAL>
+void fieldSolverBoundaryCondDerivZ(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
+				   Real* const derivatives,const ParGrid<SpatialCell>& mpiGrid) {
+   namespace fs = fieldsolver;
+   array[fs::drhodz] = 0.0;
+   array[fs::dBxdz]  = 0.0;
+   array[fs::dBydz]  = 0.0;
+   array[fs::dVxdz]  = 0.0;
+   array[fs::dVydz]  = 0.0;
+   array[fs::dVzdz]  = 0.0;
+}
+
+template<typename CELLID,typename UINT,typename REAL>
+REAL fieldSolverBoundaryCondBx(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const ParGrid<SpatialCell>& mpiGrid) {
+   return fieldBoundaryCopyFromExistingFaceNbrBx<CELLID,UINT,REAL>(cellID,existingCells,nonExistingCells,mpiGrid);
+}
+
+template<typename CELLID,typename UINT,typename REAL>
+REAL fieldSolverBoundaryCondBy(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const ParGrid<SpatialCell>& mpiGrid) {
+   return fieldBoundaryCopyFromExistingFaceNbrBy<CELLID,UINT,REAL>(cellID,existingCells,nonExistingCells,mpiGrid);
+}
+   
+template<typename CELLID,typename UINT,typename REAL>
+REAL fieldSolverBoundaryCondBz(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const ParGrid<SpatialCell>& mpiGrid) {
+   return fieldBoundaryCopyFromExistingFaceNbrBz<CELLID,UINT,REAL>(cellID,existingCells,nonExistingCells,mpiGrid);
+}
+
+template<typename CELLID,typename UINT> 
+void vlasovBoundaryCondition(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const ParGrid<SpatialCell>& mpiGrid) {
+   vlasovBoundaryCopyFromExistingFaceNbr(cellID,existingCells,nonExistingCells,mpiGrid);
+}
+
+template<typename UINT,typename REAL> 
+void calcAccFaceX(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,const REAL* const cellParams,const REAL* const blockParams) {
+   lorentzForceFaceX(ax,ay,az,I,J,K,cellParams,blockParams);
+}
+   
+template<typename UINT,typename REAL> 
+void calcAccFaceY(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,const REAL* const cellParams,const REAL* const blockParams) {
+   lorentzForceFaceY(ax,ay,az,I,J,K,cellParams,blockParams);
+}
+
+template<typename UINT,typename REAL>
+void calcAccFaceZ(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,const REAL* const cellParams,const REAL* const blockParams) {
+   lorentzForceFaceZ(ax,ay,az,I,J,K,cellParams,blockParams);
 }
 
 #endif

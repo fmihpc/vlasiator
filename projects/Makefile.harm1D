@@ -1,3 +1,4 @@
 
 # Which grid builder is used:
-BUILDER=mpibuilder.o rect_cuboid_builder.o
+#BUILDER=mpibuilder.o rect_cuboid_builder.o
+BUILDER=restartbuilder.o
