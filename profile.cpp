@@ -321,13 +321,13 @@ namespace profile
         if(rank==0){
             for(int i=0;i<totalWidth;i++) mpilogger <<"-";
             mpilogger<<endl;
-            mpilogger << setw(labelWidth+1) << "Overhed per call";
+            mpilogger << setw(labelWidth+1) << "Overhead per call";
             mpilogger << setw(floatWidth) << sum/nProcesses;
             mpilogger<<endl;
         }
         MPI_Reduce(&overHeadTime,&sum,1,MPI_DOUBLE,MPI_SUM,0,comm);
         if(rank==0){
-            mpilogger << setw(labelWidth+1) << "Total profiling overhed";
+            mpilogger << setw(labelWidth+1) << "Total profiling overhead";
             mpilogger << setw(floatWidth) << sum/nProcesses;
             mpilogger << endl;
         }
