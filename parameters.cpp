@@ -69,6 +69,10 @@ bool P::recalculateStencils = true;
 bool P::propagateVlasov = true;
 bool P::propagateField = true;
 
+bool P::periodic_x = false;
+bool P::periodic_y = false;
+bool P::periodic_z = false;
+
 // Handles parameter processing from the user
 namespace PO = boost::program_options;
 

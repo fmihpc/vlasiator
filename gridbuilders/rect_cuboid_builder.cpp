@@ -399,7 +399,7 @@ bool RectCuboidBuilder::initialize(MPI_Comm comm,const int& MASTER_RANK) {
    options["gridbuilder.dz_unref"] = toString(dz);
    
    // Set some parameter values. 
-   // NOTE: SOME OF THESE ARE ONLY NEEDED BECAUSE OF DCCRG
+   // TODO: make all RP variables visible in vlasiator.cpp
    P::xmin = xmin;
    P::ymin = ymin;
    P::zmin = zmin;
@@ -418,6 +418,9 @@ bool RectCuboidBuilder::initialize(MPI_Comm comm,const int& MASTER_RANK) {
    P::vymax = vy_max;
    P::vzmin = vz_min;
    P::vzmax = vz_max;
+   P::periodic_x = periodicInX;
+   P::periodic_y = periodicInY;
+   P::periodic_z = periodicInZ;
    
    return initialized;
 }

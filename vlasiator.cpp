@@ -491,7 +491,9 @@ int main(int argn,char* args[]) {
          P::dx_ini, P::dy_ini, P::dz_ini,
          P::xcells_ini, P::ycells_ini, P::zcells_ini,
          2,
-         0);
+         0,
+         P::periodic_x, P::periodic_y, P::periodic_z
+      );
       //read in partitioning levels from input
       RP::addComposing("dccrg.partition_procs","Procs per load balance group");
       RP::addComposing("dccrg.partition_lb_method","Load balance method");

@@ -9,8 +9,8 @@
 #include "definitions.h"
 
 cuint MAX_SPAT_CELLS = 8100;
-//cuint MAX_VEL_BLOCKS = 250000;
-cuint MAX_VEL_BLOCKS = 2500000;
+cuint MAX_VEL_BLOCKS = 250000;
+//cuint MAX_VEL_BLOCKS = 2500000;
 
 cuint CUDA_WIDTH = 65536; // Width of CUDA array (for 2D textures)
 cuint CUDA_HEIGHT = 3000; // Height of CUDA array
@@ -86,6 +86,8 @@ struct Parameters {
    
    static bool propagateField;      /**< If true, magnetic field is propagated during the simulation.*/
    static bool propagateVlasov;     /**< If true, distribution function is propagated during the simulation.*/
+   static bool periodic_x, periodic_y, periodic_z; /**< Whether spatial vlasov grid is periodic */
+
 };
 
 struct Readparameters {
