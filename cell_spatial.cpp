@@ -19,7 +19,15 @@ SpatialCell::SpatialCell() {
    N_blocks = 0;
    cpuIndex = numeric_limits<uint>::max();
    allocateArray(&cpu_cellParams,SIZE_CELLPARAMS);
-   cpu_derivatives = new Real[SIZE_DERIVATIVES];
+   try {
+      cpu_derivatives = new Real[SIZE_DERIVATIVES];
+   }
+   catch (exception& e) {
+      cerr << __FILE__ << ":" << __LINE__
+         << "Couldn't allocate memory for cpu_derivatives: " << e.what()
+         << endl;
+      abort();
+   }
    cpu_nbrsSpa     = NULL;
    cpu_nbrsVel     = NULL;
    cpu_blockParams = NULL;
@@ -41,6 +49,15 @@ SpatialCell::SpatialCell(const SpatialCell& s) {
    //cout << "Spatial cell copy constructor called" << endl;
 
    if (cpu_cellParams != NULL) freeArray(cpu_cellParams);
+   try {
+      cpu_derivatives = new Real[SIZE_DERIVATIVES];
+   }
+   catch (exception& e) {
+      cerr << __FILE__ << ":" << __LINE__
+         << "Couldn't allocate memory for cpu_derivatives: " << e.what()
+         << endl;
+      abort();
+   }
    
    // Copy variables related to the spatial cell:
    N_blocks       = s.N_blocks;
