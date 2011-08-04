@@ -19,7 +19,7 @@ cuint CUDA_HEIGHT = 3000; // Height of CUDA array
 #ifdef PARGRID
    cuint INVALID_CELLID = std::numeric_limits<uint>::max();
 #else
-   const uint64_t INVALID_CELLID = std::numeric_limits<uint64_t>::max();
+   const uint64_t INVALID_CELLID = 0;
 #endif
 
 namespace Transmit {

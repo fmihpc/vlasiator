@@ -8,6 +8,9 @@
 #ifdef PARGRID
    #include "pargrid.h"
 #else
+   #define DCCRG_SEND_SINGLE_CELLS
+   #define DCCRG_CELL_DATA_SIZE_FROM_USER
+   #define DCCRG_USER_MPI_DATA_TYPE
    #include <dccrg.hpp>
 #endif
 /*
@@ -22,7 +25,6 @@ namespace fieldsolver {
 */
 #ifdef PARGRID
 
-//bool calculateEdgeElectricField(ParGrid<SpatialCell>& mpiGrid);
 void calculateFaceAveragedFields(ParGrid<SpatialCell>& mpiGrid);
 void calculateVolumeAveragedFields(ParGrid<SpatialCell>& mpiGrid);
 bool finalizeFieldPropagator(ParGrid<SpatialCell>& mpiGrid);
@@ -31,7 +33,6 @@ bool propagateFields(ParGrid<SpatialCell>& mpiGrid,creal& dt);
 
 #else
 
-//bool calculateEdgeElectricField(dccrg<SpatialCell>& mpiGrid);
 void calculateFaceAveragedFields(dccrg<SpatialCell>& mpiGrid);
 void calculateVolumeAveragedFields(dccrg<SpatialCell>& mpiGrid);
 bool finalizeFieldPropagator(dccrg<SpatialCell>& mpiGrid);

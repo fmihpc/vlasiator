@@ -19,9 +19,7 @@
 #include "transferstencil.h"
 
 #include "vlsvwriter2.h" // TEST
-#ifdef PARGRID
 #include "fieldsolver.h"
-#endif
 
 #ifdef CRAYPAT
 //include craypat api headers if compiled with craypat on Cray XT/XE
@@ -286,16 +284,14 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const 
    return success;
 }
 
-#ifdef PARGRID
-void exchangeVelocityGridMetadata(ParGrid<SpatialCell>& mpiGrid) {
-#else
-void exchangeVelocityGridMetadata(dccrg<SpatialCell>& mpiGrid) {
-#endif
-   #ifndef PARGRID
-      #warning CRITICAL dccrg does not fetch remote cells!
-      exit(1);
-   #endif
-   
+void exchangeVelocityGridMetadata(
+	#ifdef PARGRID
+	ParGrid<SpatialCell>& mpiGrid
+	#else
+	dccrg<SpatialCell>& mpiGrid
+	#endif
+) {
+   #ifdef PARGRID
    vector<uchar> nbrTypes;
    for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
       if ((i == 0) & ((j== 0) & (k == 0))) continue;
@@ -334,6 +330,13 @@ void exchangeVelocityGridMetadata(dccrg<SpatialCell>& mpiGrid) {
    }
    mpiGrid.waitAllReceives();
    mpiGrid.waitAllSends();
+
+   #else	// ifdef PARGRID
+
+   SpatialCell::base_address_identifier = 5;
+   mpiGrid.update_remote_neighbour_data();
+
+   #endif	// ifdef PARGRID
 }
    
 #ifdef PARGRID
@@ -514,7 +517,7 @@ int main(int argn,char* args[]) {
       }
 
       //set options 
-      for(int i=0;i<partitionProcs.size();i++){
+      for(unsigned int i=0;i<partitionProcs.size();i++){
           // set hierarchial partitioning parameters for first level
           if(myrank==0){
               mpilogger << "(MAIN) Partition parameters level "<<i <<" procs: " << partitionProcs[i] << " LB_METHOD: " <<
@@ -561,15 +564,24 @@ int main(int argn,char* args[]) {
       mpiGrid.getRemoteCells(remoteCells);
       for (size_t i=0; i<remoteCells.size(); ++i) mpiGrid[remoteCells[i]]->initialize(mpiGrid[remoteCells[i]]->N_blocks);
    #else
-      #warning CRITICAL dccrg does not init remote cells!
+   // reserve space for velocity blocks in local copies of remote neighbors
+   const boost::unordered_set<uint64_t>* incoming_cells = mpiGrid.get_remote_cells_with_local_neighbours();
+   for (boost::unordered_set<uint64_t>::const_iterator
+      cell_id = incoming_cells->begin();
+      cell_id != incoming_cells->end();
+      cell_id++
+   ) {
+      SpatialCell* cell = mpiGrid[*cell_id];
+      if (cell == NULL) {
+         cerr << "No data for spatial cell " << *cell_id << endl;
+         abort();
+      }
+      cell->initialize(cell->N_blocks);
+   }
    #endif
    
    profile::start("Initial load-balancing");
-   // Do initial load balancing:
    initialLoadBalance(mpiGrid);
-   #ifndef PARGRID
-      comm.barrier();
-   #endif
    profile::stop("Initial load-balancing");
    profile::start("Set initial state");
    // Go through every spatial cell on this CPU, and create the initial state:
@@ -581,10 +593,9 @@ int main(int argn,char* args[]) {
    profile::start("Fetch Neighbour data");
    // Fetch neighbour data:
    #ifndef PARGRID
-      P::transmit = Transmit::AVGS;
-      mpiGrid.start_remote_neighbour_data_update(); // TEST
-      mpiGrid.wait_neighbour_data_update();
-      comm.barrier();
+      // FIXME: add a mpi_datatype to send all cell data
+      P::transmit = 5;
+      mpiGrid.update_remote_neighbour_data(); // TEST
    #endif
    profile::stop("Fetch Neighbour data");
    log_send_receive_info(mpiGrid);

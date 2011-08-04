@@ -22,15 +22,15 @@ namespace Cell {
 
 struct SpatialCell {
    #ifndef PARGRID
-   static size_t size(void);
+   size_t size(void);
    static uint base_address_identifier;
    void* at(void);
-   static MPI_Datatype mpi_datatype(void);
+   MPI_Datatype mpi_datatype(void);
    #else
    void* baseAddress;
    #endif
    void* getBaseAddress(cuint identifier);
-   static void getMPIdatatype(cuint identifier,MPI_Datatype& dataType);
+   void getMPIdatatype(cuint identifier,MPI_Datatype& dataType);
    uint cpuIndex;         /**< An index to Grid which is used to calculate the data array pointers (cpu_avgs etc.).*/
    uint N_blocks;         /**< Number of velocity blocks in this cell.*/
 
