@@ -14,7 +14,16 @@ using namespace std;
  * @param elements Requested number of elements in the array.
  */
 void allocateArray(float** ptr,const size_t& elements) {
-   *ptr = new float[elements];
+   try {
+	   *ptr = new float[elements];
+   }
+   catch (exception& e) {
+      cerr << __FILE__ << ":" << __LINE__
+         << "Couldn't allocate memory: " << e.what()
+         << endl;
+      abort();
+   }
+
 }
 
 /** Free an array which has been previously allocated with allocateArray. The functionality 
