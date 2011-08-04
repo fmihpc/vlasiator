@@ -6,8 +6,13 @@
 #include "projects_common.h"
 
 template<typename CELLID,typename UINT,typename REAL>
+#ifdef PARGRID
 REAL fieldBoundaryCopyFromExistingFaceNbrBx(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const ParGrid<SpatialCell>& mpiGrid) {
-   namespace p = projects;
+#else
+REAL fieldBoundaryCopyFromExistingFaceNbrBx(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const dccrg<SpatialCell>& mpiGrid) {
+#endif
+    
+    namespace p = projects;
    switch ((nonExistingCells & p::FACE_NBR_BITMASK)) {
     case p::MISSING_ZNEG:
       // If +z neighbour exists, copy value from there:
@@ -40,8 +45,12 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBx(const CELLID& cellID,const UINT& exi
 }
 
 template<typename CELLID,typename UINT,typename REAL>
+#ifdef PARGRID
 REAL fieldBoundaryCopyFromExistingFaceNbrBy(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const ParGrid<SpatialCell>& mpiGrid) {
-   namespace p = projects;
+#else
+REAL fieldBoundaryCopyFromExistingFaceNbrBy(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const dccrg<SpatialCell>& mpiGrid) {
+#endif
+    namespace p = projects;
    switch ((nonExistingCells & p::FACE_NBR_BITMASK)) {
     case p::MISSING_ZNEG:
       // If +z neighbour exists, copy value from there:
@@ -74,8 +83,13 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBy(const CELLID& cellID,const UINT& exi
 }
 
 template<typename CELLID,typename UINT,typename REAL>
+#ifdef PARGRID
 REAL fieldBoundaryCopyFromExistingFaceNbrBz(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const ParGrid<SpatialCell>& mpiGrid) {
-   namespace p = projects;
+#else
+REAL fieldBoundaryCopyFromExistingFaceNbrBz(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const dccrg<SpatialCell>& mpiGrid) {
+#endif
+
+    namespace p = projects;
    switch ((nonExistingCells & p::FACE_NBR_BITMASK)) {
     case p::MISSING_YNEG:
       // If +y neighbour exists, copy value from there:
@@ -108,9 +122,14 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBz(const CELLID& cellID,const UINT& exi
 }
 
 template<typename CELLID,typename UINT,typename REAL>
+#ifdef PARGRID
 void fieldSolverBoundarySetValueDerivX(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
 				       creal* derivatives,const ParGrid<SpatialCell>& mpiGrid,const REAL& value) {
-   namespace fs = fieldsolver;
+#else
+void fieldSolverBoundarySetValueDerivX(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
+                                           creal* derivatives,const dccrg<SpatialCell>& mpiGrid,const REAL& value) {
+#endif
+    namespace fs = fieldsolver;
    array[fs::drhodx] = value;
    array[fs::dBydx]  = value;
    array[fs::dBzdx]  = value;
@@ -120,8 +139,13 @@ void fieldSolverBoundarySetValueDerivX(const CELLID& cellID,REAL* const array,co
 }
 
 template<typename CELLID,typename UINT,typename REAL>
+#ifdef PARGRID
 void fieldSolverBoundarySetValueDerivY(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
 				       creal* derivatives,const ParGrid<SpatialCell>& mpiGrid,const REAL& value) {
+#else    
+void fieldSolverBoundarySetValueDerivY(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
+				       creal* derivatives,const dccrg<SpatialCell>& mpiGrid,const REAL& value) {
+#endif
    namespace fs = fieldsolver;
    array[fs::drhody] = value;
    array[fs::dBxdy]  = value;
@@ -132,9 +156,14 @@ void fieldSolverBoundarySetValueDerivY(const CELLID& cellID,REAL* const array,co
 }
 
 template<typename CELLID,typename UINT,typename REAL>
+#ifdef PARGRID
 void fieldSolverBoundarySetValueDerivZ(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
 				       creal* derivatives,const ParGrid<SpatialCell>& mpiGrid,const REAL& value) {
-   namespace fs = fieldsolver;
+#else
+void fieldSolverBoundarySetValueDerivZ(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
+				       creal* derivatives,const dccrg<SpatialCell>& mpiGrid,const REAL& value) {
+#endif
+    namespace fs = fieldsolver;
    array[fs::drhodz] = value;
    array[fs::dBxdz]  = value;
    array[fs::dBydz]  = value;
