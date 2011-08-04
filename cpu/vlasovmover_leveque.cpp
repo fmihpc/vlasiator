@@ -27,6 +27,9 @@ using namespace std;
    static TransferStencil<CellID> stencilUpdates(INVALID_CELLID);
 #else
    #include <stdint.h>
+   #define DCCRG_SEND_SINGLE_CELLS
+   #define DCCRG_CELL_DATA_SIZE_FROM_USER
+   #define DCCRG_USER_MPI_DATA_TYPE
    #include <dccrg.hpp>
    typedef uint64_t CellID;
 #endif
