@@ -484,7 +484,14 @@ int main(int argn,char* args[]) {
 	 mpilogger << "(MAIN) Grid built successfully" << endl << write;
       }
       
-      dccrg<SpatialCell> mpiGrid(comm,"HIER",P::xmin,P::ymin,P::zmin,P::dx_ini,P::dy_ini,P::dz_ini,P::xcells_ini,P::ycells_ini,P::zcells_ini,0,0);
+      dccrg<SpatialCell> mpiGrid(
+         comm,
+         "HIER",
+         P::xmin, P::ymin, P::zmin,
+         P::dx_ini, P::dy_ini, P::dz_ini,
+         P::xcells_ini, P::ycells_ini, P::zcells_ini,
+         2,
+         0);
       //read in partitioning levels from input
       RP::addComposing("dccrg.partition_procs","Procs per load balance group");
       RP::addComposing("dccrg.partition_lb_method","Load balance method");
