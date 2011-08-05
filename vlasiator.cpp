@@ -53,6 +53,7 @@ void initSpatialCells(const dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator
       xmin = mpiGrid.get_cell_x_min(cells[i]);
       ymin = mpiGrid.get_cell_y_min(cells[i]);
       zmin = mpiGrid.get_cell_z_min(cells[i]);
+      mpiGrid[cells[i]]->initialize(mpiGrid[cells[i]]->N_blocks);
       buildSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
    }
 }
@@ -486,7 +487,7 @@ int main(int argn,char* args[]) {
       
       dccrg<SpatialCell> mpiGrid(
          comm,
-         "HIER",
+         "HYPERGRAPH",
          P::xmin, P::ymin, P::zmin,
          P::dx_ini, P::dy_ini, P::dz_ini,
          P::xcells_ini, P::ycells_ini, P::zcells_ini,
@@ -519,7 +520,7 @@ int main(int argn,char* args[]) {
       }
        
       // set default values if nothing has been defined
-      if ( partitionProcs.size()==0){
+      /*if ( partitionProcs.size()==0){
           partitionProcs.push_back(1);
           partitionLbMethod.push_back("HYPERGRAPH");
           partitionImbalanceTol.push_back("1.1");
@@ -536,7 +537,7 @@ int main(int argn,char* args[]) {
           mpiGrid.add_partitioning_level(partitionProcs[i]);
           mpiGrid.add_partitioning_option(i, "LB_METHOD", partitionLbMethod[i]);
           mpiGrid.add_partitioning_option(i, "IMBALANCE_TOL", partitionImbalanceTol[i]);
-      }
+      }*/
    
    #else           // INITIALIZE USING PARGRID
       ParGrid<SpatialCell> mpiGrid(Hypergraph,argn,args);
@@ -568,12 +569,12 @@ int main(int argn,char* args[]) {
 
    // Receive N_blocks from remote neighbours
    exchangeVelocityGridMetadata(mpiGrid);
+   // reserve space for velocity blocks in local copies of remote neighbors
    #ifdef PARGRID
       vector<ID::type> remoteCells;
       mpiGrid.getRemoteCells(remoteCells);
       for (size_t i=0; i<remoteCells.size(); ++i) mpiGrid[remoteCells[i]]->initialize(mpiGrid[remoteCells[i]]->N_blocks);
    #else
-   // reserve space for velocity blocks in local copies of remote neighbors
    const boost::unordered_set<uint64_t>* incoming_cells = mpiGrid.get_remote_cells_with_local_neighbours();
    for (boost::unordered_set<uint64_t>::const_iterator
       cell_id = incoming_cells->begin();
@@ -589,16 +590,17 @@ int main(int argn,char* args[]) {
    }
    #endif
    
-   profile::start("Initial load-balancing");
-   initialLoadBalance(mpiGrid);
-   profile::stop("Initial load-balancing");
-   profile::start("Set initial state");
    // Go through every spatial cell on this CPU, and create the initial state:
+   profile::start("Set initial state");
    #ifndef PARGRID
-      initSpatialCells(mpiGrid,comm);
-      comm.barrier();
+   initSpatialCells(mpiGrid,comm);
    #endif
    profile::stop("Set initial state");
+
+   profile::start("Initial load-balancing");
+   if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting initial load balance." << endl << write;
+   initialLoadBalance(mpiGrid);
+   profile::stop("Initial load-balancing");
    profile::start("Fetch Neighbour data");
    // Fetch neighbour data:
    #ifndef PARGRID

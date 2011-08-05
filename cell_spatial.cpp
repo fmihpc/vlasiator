@@ -16,7 +16,7 @@ extern MPILogger mpilogger;
 
 SpatialCell::SpatialCell() {
    //cout << "Spatial cell default constructor called" << endl;
-   N_blocks = 0;
+   N_blocks = Parameters::vzblocks_ini * Parameters::vyblocks_ini * Parameters::vxblocks_ini;
    cpuIndex = numeric_limits<uint>::max();
    allocateArray(&cpu_cellParams,SIZE_CELLPARAMS);
    try {
@@ -164,7 +164,10 @@ bool SpatialCell::initialize(cuint& N_blocks) {
    
    // Attempt to get pointers to available memory from Grid:
    cpuIndex = grid.getFreeMemory(N_blocks);
-   if (cpuIndex == numeric_limits<uint>::max()) return false;
+   if (cpuIndex == numeric_limits<uint>::max()) {
+      mpilogger << "SpatialCell " << cpuIndex << " : initialization failed." << endl;
+      return false;
+   }
    this->N_blocks = N_blocks;
    cpu_nbrsSpa     = grid.getNbrsSpa()     + cpuIndex*SIZE_NBRS_SPA;
    cpu_nbrsVel     = grid.getNbrsVel()     + cpuIndex*SIZE_NBRS_VEL;

@@ -14,8 +14,6 @@
 #include <profile.h>
 using namespace std;
 
-// NOTE: If preprocessor flag PROFILE is undefined, the compiler should optimize out profile:: calls.
-
 extern MPILogger mpilogger;
 
 extern bool cpu_acceleration(SpatialCell& cell);

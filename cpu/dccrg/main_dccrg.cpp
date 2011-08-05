@@ -21,6 +21,12 @@
 
 extern MPILogger mpilogger;
 
+#ifdef PARGRID
+typedef uint CellID;
+#else
+typedef uint64_t CellID;
+#endif
+
 extern bool cpu_acceleration(SpatialCell& cell);
 extern bool cpu_translation1(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
 extern bool cpu_translation2(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
@@ -28,7 +34,7 @@ extern bool cpu_translation3(SpatialCell& cell,const std::vector<const SpatialCe
 extern bool cpu_calcVelocityMoments(SpatialCell& cell);
 
 namespace Main {
-   std::vector<uint64_t> cells;
+   std::vector<CellID> cells;
    std::vector<const SpatialCell*> nbrPtrs(6,NULL);
    SpatialCell* cellPtr;
    
@@ -48,71 +54,123 @@ bool finalizeMover() {
    return true;
 }
 
+// TODO these are almost identical to the ones in ldz.cpp, merge
+inline uchar calcNbrNumber(const uchar& i,const uchar& j,const uchar& k) {return k*9+j*3+i;}
+
+inline uchar calcNbrTypeID(const uchar& i,const uchar& j,const uchar& k) {return k*25+j*5+i;}
+
+CellID getNeighbourID(
+	#ifdef PARGRID
+	const ParGrid<SpatialCell>& mpiGrid,
+	#else
+	const dccrg<SpatialCell>& mpiGrid,
+	#endif
+	const CellID& cellID,
+	const uchar& i,
+	const uchar& j,
+	const uchar& k
+) {
+   #ifdef PARGRID
+   const uchar nbrTypeID = calcNbrTypeID(i,j,k);
+   return mpiGrid.getNeighbour(cellID,nbrTypeID);
+   #else
+   const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of(cellID, i - 2, j - 2, k - 2);
+   if (neighbors.size() == 0) {
+      std::cerr << __FILE__ << ":" << __LINE__
+         << " No neighbor for cell " << cellID
+         << " at offsets " << (uint16_t) i - 2 << ", " << (uint16_t) j - 2 << ", " << (uint16_t) k - 2
+         << std::endl;
+      abort();
+   }
+   // TODO support spatial refinement
+   return neighbors[0];
+   #endif
+}
+
+
 bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
-   #warning Spatial neighbour lists not populated for dccrg!   
+
+   // Populate spatial neighbour list:
+   Main::cells = mpiGrid.get_cells();
+   for (size_t cell=0; cell<Main::cells.size(); ++cell) {
+      CellID cellID = Main::cells[cell];
+      uint* const nbrsSpa = mpiGrid[cellID]->cpu_nbrsSpa;
+
+      // Get spatial neighbour IDs and store them into a vector:
+      uint counter = 0;
+      std::vector<uint> nbrIDs;
+      for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
+	 if ((i == 0) & (j == 0) & (k == 0)) nbrIDs.push_back(cellID); // in ParGrid cells do not consider themselves as their own neighbours
+	 else nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2 + i, 2 + j, 2 + k));
+	 ++counter;
+      }
+      nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 0, 2, 2));	// i-2, j, k nbr, goes to index 27
+      nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2, 0, 2));	// i, j-2, k nbr, goes to index 28
+      nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2, 2, 0));	// i, j, k-2 nbr, goes to index 29
+
+      // Store neighbour offsets into a vector:
+      std::vector<uint> cellOffsets(nbrIDs.size());
+      for (size_t i=0; i<nbrIDs.size(); ++i) {
+	 if (nbrIDs[i] == INVALID_CELLID) cellOffsets[i] = INVALID_CELLID;
+	 else cellOffsets[i] = mpiGrid[nbrIDs[i]]->cpuIndex * SIZE_VELBLOCK;
+      }
+      
+      // Create spatial neighbour list entry for each block:
+      for (uint block=0; block<mpiGrid[cellID]->N_blocks; ++block) {
+	 uint boundaryFlag = 0;
+	 // Store offsets to each spatial neighbour of this block. Note that 
+	 // the offset to this block is stored to index 13:
+	 for (size_t i=0; i<nbrIDs.size(); ++i) {
+	    if (cellOffsets[i] == INVALID_CELLID) {
+	       nbrsSpa[block*SIZE_NBRS_SPA + i] = INVALID_CELLID;
+	    } else {
+	       boundaryFlag = boundaryFlag | (1 << i);
+	       nbrsSpa[block*SIZE_NBRS_SPA + i] = cellOffsets[i] + block*SIZE_VELBLOCK;
+	    }
+	 }
+	 // Boundary flags are stored to the last position in nbrsSpa array:
+	 nbrsSpa[block*SIZE_NBRS_SPA + 30] = boundaryFlag;
+      }
+   }
+
    return true;
 }
 
 void initialLoadBalance(dccrg<SpatialCell>& mpiGrid) {
-   /*typedef Parameters P;
-   P::transmit = Transmit::AVGS;*/
+   SpatialCell::base_address_identifier = 5;
    mpiGrid.balance_load();
 }
 
 /*!
-Fills nbrPtr with pointers to data in neighbour cells or NULL if neighbour doesn't exist.
+Sets spatial neighbor pointers of given cell to given list.
+
+Non-existing neighbor pointers are set to NULL.
 */
-bool findNeighbours(std::vector<const SpatialCell*>& nbrPtr,dccrg<SpatialCell>& mpiGrid,const uint64_t& cell) {
+bool findNeighbours(
+	std::vector<const SpatialCell*>& nbrPtr,
+	#ifdef PARGRID
+	const ParGrid<SpatialCell>& mpiGrid,
+	#else
+	const dccrg<SpatialCell>& mpiGrid,
+	#endif
+	const CellID& CELLID
+) {
 
-   const std::vector<uint64_t>* neighbours = mpiGrid.get_neighbours(cell);
-   int index = 0;
-
-   // neighbours are in a certain order in the neighbour list, -z first
-   if ((*neighbours)[index] > 0) {
-      nbrPtr[4] = mpiGrid[(*neighbours)[index]];
-   } else {
-      nbrPtr[4] = NULL;
-   }
-   index++;
-
-   // -y
-   if ((*neighbours)[index] > 0) {
-      nbrPtr[2] = mpiGrid[(*neighbours)[index]];
-   } else {
-      nbrPtr[2] = NULL;
-   }
-   index++;
-   // -x
-   if ((*neighbours)[index] > 0) {
-      nbrPtr[0] = mpiGrid[(*neighbours)[index]];
-   } else {
-      nbrPtr[0] = NULL;
-   }
-   index++;
-
-   // +x
-   if ((*neighbours)[index] > 0) {
-      nbrPtr[1] = mpiGrid[(*neighbours)[index]];
-   } else {
-      nbrPtr[1] = NULL;
-   }
-   index++;
-
-   // +y
-   if ((*neighbours)[index] > 0) {
-      nbrPtr[3] = mpiGrid[(*neighbours)[index]];
-   } else {
-      nbrPtr[3] = NULL;
-   }
-   index++;
-
-   // +z
-   if ((*neighbours)[index] > 0) {
-      nbrPtr[5] = mpiGrid[(*neighbours)[index]];
-   } else {
-      nbrPtr[5] = NULL;
-   }
-
+   CellID nbrID;
+   for (int i=0; i<6; ++i) nbrPtr[i] = NULL;
+   nbrID = getNeighbourID(mpiGrid, CELLID, 2-1, 2  , 2  );
+   if (nbrID != INVALID_CELLID) nbrPtr[0] = mpiGrid[nbrID];
+   nbrID = getNeighbourID(mpiGrid, CELLID, 2+1, 2  , 2  );
+   if (nbrID != INVALID_CELLID) nbrPtr[1] = mpiGrid[nbrID];
+   nbrID = getNeighbourID(mpiGrid, CELLID, 2  , 2-1, 2  );
+   if (nbrID != INVALID_CELLID) nbrPtr[2] = mpiGrid[nbrID];
+   nbrID = getNeighbourID(mpiGrid, CELLID, 2  , 2+1, 2  );
+   if (nbrID != INVALID_CELLID) nbrPtr[3] = mpiGrid[nbrID];
+   nbrID = getNeighbourID(mpiGrid, CELLID, 2  , 2  , 2-1);
+   if (nbrID != INVALID_CELLID) nbrPtr[4] = mpiGrid[nbrID];
+   nbrID = getNeighbourID(mpiGrid, CELLID, 2  , 2  , 2+1);
+   if (nbrID != INVALID_CELLID) nbrPtr[5] = mpiGrid[nbrID];
+   
    return true;
 }
 
@@ -157,9 +215,11 @@ void calculateSpatialDerivatives(dccrg<SpatialCell>& mpiGrid) {
    profile::start("calcSpatDerivatives");
    profile::start("Start data exchange");
    unsigned int computedCells;
-   typedef Parameters P;
+   /* TODO: update N_blocks first if needed?
+   SpatialCell::base_address_identifier = 5;
+   mpiGrid.update_remote_neighbour_data();*/
+
    // Start neighbour data exchange:
-   P::transmit = Transmit::AVGS;
    SpatialCell::base_address_identifier = 0;
    mpiGrid.start_remote_neighbour_data_update();
    profile::stop("Start data exchange");
@@ -202,9 +262,11 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    profile::start("calcSpatFluxes");
    profile::start("Start data exchange");
    unsigned int computedCells;
-   typedef Parameters P;
+   /* TODO: update N_blocks first if needed?
+   SpatialCell::base_address_identifier = 5;
+   mpiGrid.update_remote_neighbour_data();*/
+
    // Start neighbour data exchange:
-   P::transmit = Transmit::DERIV1;
    SpatialCell::base_address_identifier = 1;
    mpiGrid.start_remote_neighbour_data_update();
    profile::stop("Start data exchange");
@@ -247,10 +309,11 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
    profile::start("calcSpatProp");
    profile::start("Start data exchange");
    unsigned int computedCells;
+   /* TODO: update N_blocks first if needed?
+   SpatialCell::base_address_identifier = 5;
+   mpiGrid.update_remote_neighbour_data();*/
 
-   typedef Parameters P;
    // Start neighbour data exchange:
-   P::transmit = Transmit::FLUXES;
    SpatialCell::base_address_identifier = 2;
    mpiGrid.start_remote_neighbour_data_update();
    profile::stop("Start data exchange");
