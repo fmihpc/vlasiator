@@ -140,7 +140,7 @@ clean:
 	make clean -C cuda
 	make clean -C fieldsolver
 	rm -rf libvlasovmover.a libfieldsolver.a
-	rm -rf .goutputstream* .logfile* *.o *.ptx *.tar* *.txt *.silo *.vtk *.vlsv project.h project.cu project.cpp vlasiator_* *~ visitlog.py vls2vtk vlsv2silo
+	rm -rf .goutputstream* .logfile* *.o *.ptx *.tar* *.txt *.silo *.vtk *.vlsv project.h project.cu project.cpp vlasiator_* *~ visitlog.py vls2vtk vlsv2silo vlsvextract
 
 # Rules for making each object file needed by the executable
 arrayallocator.o: ${DEPS_ARRAYALLOCATOR}
