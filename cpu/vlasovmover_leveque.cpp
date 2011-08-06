@@ -55,8 +55,15 @@ namespace timer {
    uint memoryCopies;
 }
 
-static map<pair<CellID,int>,Real*> updateBuffers;
-static map<CellID,set<Real*> > remoteUpdates;
+static map<pair<CellID,int>,Real*> updateBuffers; /**< For each local cell receiving one or more remote df/dt updates,
+						   * MPI rank of remote process sending an update and address to the 
+						   * allocated buffer. */
+static map<CellID,set<Real*> > remoteUpdates;     /**< For each local cell receiving one or more remote df/dt updates, 
+						   * a set containing addresses of all allocated buffers. Note that map 
+						   * remoteUpdates is only used to iterate over all df/dt buffers, which 
+						   * is inconvenient to do with updateBuffers. updateBuffers is in convenient 
+						   * form to post MPI receives, remoteUpdates is convenient to iterate 
+						   * all cell's remote updates.*/
 
 static PriorityQueue<CellID> readyCells;
 

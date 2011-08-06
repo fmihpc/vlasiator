@@ -1026,17 +1026,17 @@ bool initializeFieldPropagator(
 	#endif
 ) {
    #ifdef PARGRID
-   vector<uint> cells;
-   mpiGrid.getCells(cells);
+   vector<uint> localCells;
+   mpiGrid.getCells(localCells);
    #else
-   vector<uint64_t> cells = mpiGrid.get_cells();
+   vector<uint64_t> localCells = mpiGrid.get_cells();
    #endif
 
-   calculateBoundaryFlags(mpiGrid,cells);
+   calculateBoundaryFlags(mpiGrid,localCells);
    #ifdef PARGRID
-   calculateTransferStencil1(mpiGrid,cells,stencil1);
-   calculateTransferStencil2(mpiGrid,cells,stencil2);
-   calculateTransferStencil3(mpiGrid,cells,stencil3);
+   calculateTransferStencil1(mpiGrid,localCells,stencil1);
+   calculateTransferStencil2(mpiGrid,localCells,stencil2);
+   calculateTransferStencil3(mpiGrid,localCells,stencil3);
    #endif
    
    // Calculate bit masks used for if-statements by field propagator. 
@@ -1112,12 +1112,6 @@ bool initializeFieldPropagator(
    // and edge-E:s between neighbouring processes and calculate 
    // face-averaged E,B fields. Note that calculateUpwindedElectricField 
    // does not exchange edge-E:
-   #ifdef PARGRID
-   vector<CellID> localCells;
-   mpiGrid.getCells(localCells);
-   #else
-   vector<uint64_t> localCells = mpiGrid.get_cells();
-   #endif
    calculateDerivativesSimple(mpiGrid,localCells);
    calculateUpwindedElectricFieldSimple(mpiGrid,localCells);
    calculateFaceAveragedFields(mpiGrid);
@@ -1695,7 +1689,7 @@ bool propagateFields(
    if (P::recalculateStencils == true) {
       calculateTransferStencil1(mpiGrid,localCells,stencil1);
       calculateTransferStencil2(mpiGrid,localCells,stencil2);
-      calculateTransferStencil2(mpiGrid,localCells,stencil3);
+      calculateTransferStencil3(mpiGrid,localCells,stencil3);
       P::recalculateStencils = false;
    }
    #endif
