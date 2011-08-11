@@ -746,9 +746,13 @@ int main(int argn,char* args[]) {
       // Check if data needs to be written to disk:
       if (P::tstep % P::saveRestartInterval == 0 || P::tstep % P::diagnInterval == 0) {
 	 bool writeRestartData = false;
-	 if (P::tstep % P::saveRestartInterval == 0) writeRestartData = true;
-	 if (myrank == MASTER_RANK)
+	 if (P::tstep % P::saveRestartInterval == 0) {
+	   writeRestartData = true;
+	   if (myrank == MASTER_RANK)
 	   mpilogger << "(MAIN): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << write;
+	 } else
+	   if (myrank == MASTER_RANK)
+	     mpilogger << "(MAIN): Writing spatial cell data to disk, tstep = " << P::tstep << " t = " << P::t << endl << write;
 	 
 	 calculateVolumeAveragedFields(mpiGrid);
 	 if (writeGrid(mpiGrid,reducer,writeRestartData) == false) {
