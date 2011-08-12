@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <iostream>
 
+#include "../definitions.h"
 #include "../memalloc.h"
 
 using namespace std;
@@ -13,9 +14,9 @@ using namespace std;
  * @param ptr Pointer to the array.
  * @param elements Requested number of elements in the array.
  */
-void allocateArray(float** ptr,const size_t& elements) {
+void allocateArray(Real** ptr,const size_t& elements) {
    try {
-	   *ptr = new float[elements];
+	   *ptr = new Real[elements];
    }
    catch (exception& e) {
       cerr << __FILE__ << ":" << __LINE__
@@ -32,7 +33,7 @@ void allocateArray(float** ptr,const size_t& elements) {
  * freed with delete operator.
  * @param ptr Pointer to the array to be deallocated.
  */
-void freeArray(float* ptr) {
+void freeArray(Real* ptr) {
    delete ptr;
 }
 

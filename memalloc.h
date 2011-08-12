@@ -3,8 +3,9 @@
 
 #include <cstdlib>
 #include <iostream>
+#include "definitions.h"
 
-void allocateArray(float** ptr,const size_t& size);
-void freeArray(float* ptr);
+void allocateArray(Real** ptr,const size_t& size);
+void freeArray(Real* ptr);
 
 #endif
