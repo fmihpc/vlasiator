@@ -677,6 +677,7 @@ int main(int argn,char* args[]) {
    if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting main simulation loop." << endl << write;
 
    double before = MPI_Wtime();
+   unsigned int totalComputedSpatialCells=0;
    unsigned int computedSpatialCells=0;
    profile::start("Simulation");
    for (luint tstep=P::tstep_min; tstep < P::tsteps; ++tstep) {
@@ -690,13 +691,15 @@ int main(int argn,char* args[]) {
        
        //compute how many spatial cells we solve for this step
 #ifndef PARGRID
-       computedSpatialCells+=mpiGrid.get_cells().size();
+       computedSpatialCells=mpiGrid.get_cells().size();
 #else
        vector<uint64_t> cells;
        mpiGrid.getCells(cells);
-       computedSpatialCells+=cells.size();
+       computedSpatialCells=cells.size();
 #endif
        
+       totalComputedSpatialCells+=computedSpatialCells;
+       profile::start("Propagate");
        // Recalculate (maybe) spatial cell parameters
        calculateSimParameters(mpiGrid, P::t, P::dt);
 
@@ -709,24 +712,26 @@ int main(int argn,char* args[]) {
 
       // Propagate the state of simulation forward in time by dt:      
       if (P::propagateVlasov == true) {
+          profile::start("Propagate Vlasov");
           profile::start("First propagation");
           calculateSpatialDerivatives(mpiGrid);
           calculateSpatialFluxes(mpiGrid);
           calculateSpatialPropagation(mpiGrid,false,false);
-          profile::stop("First propagation");
+          profile::stop("First propagation",computedSpatialCells,"SpatialCells");
           bool transferAvgs = false;
           if (P::tstep % P::saveRestartInterval == 0 ||
               P::tstep == P::tsteps-1) transferAvgs = true;
           
 	  profile::start("Acceleration");
           calculateAcceleration(mpiGrid);
-	  profile::stop("Acceleration");
+	  profile::stop("Acceleration",computedSpatialCells,"SpatialCells");
 	 
           profile::start("Second propagation");
           calculateSpatialDerivatives(mpiGrid);
           calculateSpatialFluxes(mpiGrid);
           calculateSpatialPropagation(mpiGrid,true,transferAvgs);
-          profile::stop("Second propagation");
+          profile::stop("Second propagation",computedSpatialCells,"SpatialCells");
+          profile::stop("Propagate Vlasov",computedSpatialCells,"SpatialCells");
       }
 
       // Propagate fields forward in time by dt. If field is not 
@@ -734,17 +739,21 @@ int main(int argn,char* args[]) {
       // re-calculate face-averaged E,B fields. This requires that 
       // edge-E and face-B have been shared with remote neighbours 
       // (not done by calculateFaceAveragedFields).
+
       if (P::propagateField == true) {
-	 propagateFields(mpiGrid,P::dt);
+          profile::start("Propagate Fields");
+          propagateFields(mpiGrid,P::dt);
+          profile::stop("Propagate Fields",computedSpatialCells,"SpatialCells");
       } else {
 	 calculateFaceAveragedFields(mpiGrid);
       }
-
+      profile::stop("Propagate",computedSpatialCells,"SpatialCells");
       ++P::tstep;
       P::t += P::dt;
       
       // Check if data needs to be written to disk:
       if (P::tstep % P::saveRestartInterval == 0 || P::tstep % P::diagnInterval == 0) {
+          profile::start("IO");
 	 bool writeRestartData = false;
 	 if (P::tstep % P::saveRestartInterval == 0) {
 	   writeRestartData = true;
@@ -758,13 +767,14 @@ int main(int argn,char* args[]) {
 	 if (writeGrid(mpiGrid,reducer,writeRestartData) == false) {
 	    if (myrank == MASTER_RANK)
 	      mpilogger << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
-	 }	 
+	 }
+         profile::stop("IO");
       }
       
       MPI_Barrier(MPI_COMM_WORLD);
    }
    double after = MPI_Wtime();
-   profile::stop("Simulation",computedSpatialCells,"SpatialCells");
+   profile::stop("Simulation",totalComputedSpatialCells,"SpatialCells");
    profile::start("Finalization");   
    finalizeMover();
 #ifdef PARGRID

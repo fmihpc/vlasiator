@@ -200,13 +200,17 @@ namespace profile
             }
         }
 
+        //make sure we use default floats, and not fixed or other format
+        mpilogger <<resetiosflags( ios::floatfield );
+        //set float precision
+        mpilogger <<setprecision(floatWidth-6); //6 is needed for ".", "e+xx" and a space
         //print out header
         if(rank==0){
             for(int i=0;i<totalWidth/2-5;i++)mpilogger <<"-";
             mpilogger << " Profile ";
             for(int i=0;i<totalWidth/2-5;i++)mpilogger <<"-";
             mpilogger<<endl;
-            
+
             mpilogger<<setw(labelWidth+1)<< setiosflags(ios::left) << "";
             mpilogger<<setw(4*floatWidth+2*intWidth) <<"Time(s)";
             mpilogger<<setw(floatWidth)<<"Call-count";
