@@ -168,7 +168,7 @@ namespace profile
         vector<int> nAllTimers;
 
         const int indentWidth=2; //how many spaces each level is indented
-        const int floatWidth=12; //width of float fields;
+        const int floatWidth=10; //width of float fields;
         const int intWidth=6;   //width of int fields;
         const int unitWidth=4;  //width of workunit label
         size_t labelWidth=0;    //width of first column with timer labels
@@ -213,14 +213,14 @@ namespace profile
 
             mpilogger<<setw(labelWidth+1)<< setiosflags(ios::left) << "";
             mpilogger<<setw(4*floatWidth+2*intWidth) <<"Time(s)";
-            mpilogger<<setw(floatWidth)<<"Call-count";
+            mpilogger<<setw(floatWidth)<<"Calls";
             mpilogger<<setw(2*floatWidth)<<"Workunit-rate";
             mpilogger<<endl;
             
             mpilogger<<setw(labelWidth+1)<< "Label";
             //time
             mpilogger<<setw(floatWidth) <<"Average";
-            mpilogger<<setw(floatWidth) <<"% of parent";
+            mpilogger<<setw(floatWidth) <<"parent %";
             mpilogger<<setw(floatWidth) <<"Maximum";
             mpilogger<<setw(intWidth) << "Rank";
             mpilogger<<setw(floatWidth)<< "Minimum";
