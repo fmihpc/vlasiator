@@ -88,12 +88,18 @@ Grid::~Grid() {
    freeArray(avgs);
    
    // Check that SpatialCells have no remaining references to the memory:
+   // This loop is commented out as it hangs sometimes, there is a bug somewhere.
+   //It is only called after the program has finished, so disabling these cleanups is not that bad
+   /*
+     
    map<uint,int>::iterator it = referenceCount.begin();
    while (it != referenceCount.end()) {
       if (it->second > 0) 
 	mpilogger << "Grid: Cell #" << it->first << " has " << it->second << " references remaining!" << endl << write;
       ++it;
    }
+   */
+   
 }
 
 bool Grid::addReference(cuint& INDEX) {
