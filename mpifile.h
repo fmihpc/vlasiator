@@ -4,25 +4,6 @@
 #include <mpi.h>
 #include <string>
 
-namespace MPIConv {
-   // Template for converting a native C datatype into MPI datatype.
-   template<typename T> inline MPI_Datatype MPItype();
-   
-   template<> inline MPI_Datatype MPItype<char>() {return MPI_CHAR;}
-   template<> inline MPI_Datatype MPItype<float>() {return MPI_FLOAT;}
-   template<> inline MPI_Datatype MPItype<double>() {return MPI_DOUBLE;}
-   template<> inline MPI_Datatype MPItype<int>() {return MPI_INT;}
-   template<> inline MPI_Datatype MPItype<long double>() {return MPI_LONG_DOUBLE;}
-   template<> inline MPI_Datatype MPItype<long int>() {return MPI_LONG;}
-   template<> inline MPI_Datatype MPItype<long long int>() {return MPI_LONG_LONG;}
-   template<> inline MPI_Datatype MPItype<short int>() {return MPI_SHORT;}
-   template<> inline MPI_Datatype MPItype<signed char>() {return MPI_SIGNED_CHAR;}
-   template<> inline MPI_Datatype MPItype<unsigned char>() {return MPI_UNSIGNED_CHAR;}
-   template<> inline MPI_Datatype MPItype<unsigned int>() {return MPI_UNSIGNED;}
-   template<> inline MPI_Datatype MPItype<unsigned long int>() {return MPI_UNSIGNED_LONG;}
-   template<> inline MPI_Datatype MPItype<unsigned long long int>() {return MPI_UNSIGNED_LONG_LONG;}
-   template<> inline MPI_Datatype MPItype<unsigned short int>() {return MPI_UNSIGNED_SHORT;}
-}
 
 /** A small class for writing data as byte arrays into a file in parallel.
  * MPI must have been initialized prior to using this class.

@@ -6,6 +6,7 @@
 #include "datareductionoperator.h"
 #include "vlscommon.h"
 
+
 using namespace std;
 
 namespace DRO {
@@ -23,7 +24,7 @@ namespace DRO {
    /** Get info on the data the DataReductionOperator writes on disk. A DataReductionOperator writes 
     * an array on disk. Each element of the array is a vector with n elements. Finally, each 
     * vector element has a byte size, as given by the sizeof function.
-    * @param dataType Basic datatype, must be int, uint, or float.
+    * @param dataType Basic datatype, must be int, uint, float
     * @param dataSize Byte size of written datatype, for example double-precision floating points
     * have byte size of sizeof(double).
     * @param vectorSize How many elements are in the vector returned by the DataReductionOperator.
@@ -75,7 +76,7 @@ namespace DRO {
    
    bool VariableE::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
-      dataSize = 4;
+      dataSize = sizeof(Real);
       vectorSize = 3;
       return true;
    }
@@ -101,7 +102,7 @@ namespace DRO {
    
    bool VariableVolE::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
-      dataSize = 4;
+      dataSize =  sizeof(Real);
       vectorSize = 3;
       return true;
    }
@@ -124,7 +125,7 @@ namespace DRO {
 
    bool VariableB::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
-      dataSize = 4;
+      dataSize =  sizeof(Real);
       vectorSize = 3;
       return true;
    }
@@ -150,7 +151,7 @@ namespace DRO {
    
    bool VariableVolB::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
-      dataSize = 4;
+      dataSize =  sizeof(Real);
       vectorSize = 3;
       return true;
    }
@@ -175,7 +176,7 @@ namespace DRO {
    
    bool VariableRho::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
-      dataSize = 4;
+      dataSize =  sizeof(Real);
       vectorSize = 1;
       return true;
    }
@@ -223,7 +224,7 @@ namespace DRO {
    
    bool VariableRhoV::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
-      dataSize = 4;
+      dataSize =  sizeof(Real);
       vectorSize = 3;
       return true;
    }

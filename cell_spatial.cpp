@@ -4,6 +4,7 @@
 #include <limits>
 
 #include "mpilogger.h"
+#include "mpiconversion.h"
 #include "common.h"
 #include "cell_spatial.h"
 #include "parameters.h"
@@ -285,7 +286,7 @@ void SpatialCell::getMPIdatatype(cuint identifier,MPI_Datatype& dataType) {
    
    switch (identifier) {
     case 0: // Transfer averages:
-      dataTypes[0] = MPI_FLOAT;
+      dataTypes[0] = MPI_Type<Real>();
       blockLengths[0] = this->N_blocks*SIZE_VELBLOCK;
       displacements[0] = 0;                   // Base address is cpu_avgs
       if (MPI_Type_create_struct(1,blockLengths,displacements,dataTypes,&dataType) != MPI_SUCCESS) {
@@ -295,7 +296,7 @@ void SpatialCell::getMPIdatatype(cuint identifier,MPI_Datatype& dataType) {
       }
       break;
     case 1: // Transfer 1st derivatives:
-      for (int i=0; i<3; ++i) dataTypes[i] = MPI_FLOAT;
+      for (int i=0; i<3; ++i) dataTypes[i] =  MPI_Type<Real>();;
       for (int i=0; i<3; ++i) blockLengths[i] = this->N_blocks*SIZE_VELBLOCK;
       displacements[0] = 0;                       // Base address is cpu_d1x
       displacements[1] = 1*MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(Real); // d1y
@@ -307,7 +308,7 @@ void SpatialCell::getMPIdatatype(cuint identifier,MPI_Datatype& dataType) {
       }      
       break;
     case 2: // Transfer fluxes:
-      for (int i=0; i<3; ++i) dataTypes[i] = MPI_FLOAT;
+      for (int i=0; i<3; ++i) dataTypes[i] =  MPI_Type<Real>();
       for (int i=0; i<3; ++i) blockLengths[i] = this->N_blocks*SIZE_VELBLOCK;
       displacements[0] = 0;                   // Base address is cpu_fx
       displacements[1] = 1*MAX_VEL_BLOCKS*SIZE_VELBLOCK*sizeof(Real);
