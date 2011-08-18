@@ -793,8 +793,7 @@ int main(int argn,char* args[]) {
    profile::stop("main");
    profile::print(MPI_COMM_WORLD);
    
-   // Write the timer values (if timers have been defined):
-   //writeTimers();
+
    if (myrank == MASTER_RANK) mpilogger << "(MAIN): Exiting." << endl << write;
    mpilogger.close();
    return 0;

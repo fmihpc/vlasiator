@@ -4,7 +4,7 @@ ARCH = meteo
 include Makefile.${ARCH}
 
 #set FP precision to SP (single) or DP (double)
-FP_PRECISION = DP
+FP_PRECISION = SP
 CXXFLAGS += -D${FP_PRECISION} 
 
 #set a default archive utility, can also be set in Makefile.arch
@@ -27,6 +27,7 @@ CXXFLAGS += -DNDEBUG
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
 PROJ = harm1D
+#PROJ = Harris
 #PROJ=test_fp
 #PROJ=msphere
 #PROJ=velrot2+3
@@ -73,7 +74,6 @@ DEPS_MPILOGGER = mpifile.h mpilogger.h mpilogger.cpp
 DEPS_MUXML = muxml.h muxml.cpp
 DEPS_PARAMETERS = parameters.h parameters.cpp
 DEPS_PROJECT = project.h project.cpp
-DEPS_TIMER = timer.h timer.cpp
 DEPS_PROFILE = profile.h profile.cpp
 DEPS_VLSCOMMON = vlscommon.h vlscommon.cpp
 DEPS_VLSVEXTRACT = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp vlsvextract.cpp
@@ -100,7 +100,7 @@ HDRS = arrayallocator.h cpu_acc.h cpu_acc_ppm.h cpu_common.h cpu_trans.h cell_sp
 	definitions.h grid.h gridbuilder.h\
 	mpiconversion.h mpifile.h mpilogger.h\
 	parameters.h\
-	pargrid.h timer.h vlscommon.h\
+	pargrid.h  vlscommon.h\
 	vlsvwriter2.h vlsvreader2.h muxml.h profile.h
 
 CUDA_HDRS = cudafuncs.h cudalaunch.h devicegrid.h
@@ -108,7 +108,7 @@ CUDA_HDRS = cudafuncs.h cudalaunch.h devicegrid.h
 SRC = 	arrayallocator.cpp datareducer.cpp datareductionoperator.cpp\
 	grid.cpp gridbuilder.cpp\
 	vlasiator.cpp mpifile.cpp mpilogger.cpp\
-	parameters.cpp timer.cpp profile.cpp\
+	parameters.cpp profile.cpp\
 	vlscommon.cpp vls2vtk.cpp\
 	vlsvreader2.cpp vlsvwriter2.cpp muxml.cpp vlsv2silo.cpp
 
@@ -121,7 +121,7 @@ OBJS = arrayallocator.o cell_spatial.o		\
 	datareducer.o datareductionoperator.o grid.o		\
 	gridbuilder.o vlasiator.o mpifile.o mpilogger.o muxml.o	\
 	parameters.o project.o					\
-	timer.o profile.o vlscommon.o vlsvreader2.o vlsvwriter2.o
+	profile.o vlscommon.o vlsvreader2.o vlsvwriter2.o
 
 OBJS_VLSVEXTRACT = muxml.o vlscommon.o vlsvreader2.o
 OBJS_VLSV2SILO = muxml.o vlscommon.o vlsvreader2.o
@@ -150,7 +150,7 @@ clean:
 	make clean -C cuda
 	make clean -C fieldsolver
 	rm -rf libvlasovmover.a libfieldsolver.a
-	rm -rf .goutputstream* .logfile* *.o *.ptx *.tar* *.txt *.silo *.vtk *.vlsv project.h project.cu project.cpp vlasiator_* *~ visitlog.py vls2vtk vlsv2silo vlsvextract
+	rm -rf .goutputstream* .logfile* *.o *.ptx *.tar* *.txt *.silo *.vtk *.vlsv project.h project.cu project.cpp  *~ visitlog.py  
 
 # Rules for making each object file needed by the executable
 arrayallocator.o: ${DEPS_ARRAYALLOCATOR}
@@ -204,9 +204,6 @@ project.o: $(DEPS_PROJECT)
 projinstall:
 	make project -C projects "INSTALL=${INSTALL}" "PROJ=${PROJ}"
 
-timer.o: ${DEPS_TIMER}
-	${CMP} $(CXXFLAGS) $(FLAGS) -c timer.cpp
-
 profile.o: ${DEPS_PROFILE}
 	${CMP} $(CXXFLAGS) $(FLAGS) -c profile.cpp
 
@@ -215,7 +212,7 @@ vlscommon.o: ${DEPS_VLSCOMMON}
 
 vlsvextract: ${DEPS_VLSVEXTRACT} ${OBJS_VLSVEXTRACT}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvextract.cpp ${INC_SILO}
-	${LNK} -o vlsvextract vlsvextract.o ${OBJS_VLSVEXTRACT} ${LIB_SILO}
+	${LNK} -o vlsvextract_${FP_PRECISION} vlsvextract.o ${OBJS_VLSVEXTRACT} ${LIB_SILO}
 
 vlsvreader2.o: ${DEPS_VLSVREADER2}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvreader2.cpp
@@ -225,7 +222,7 @@ vlsvwriter2.o: ${DEPS_VLSVWRITER2}
 
 vlsv2silo: ${DEPS_VLSV2SILO} ${OBJS_VLSV2SILO}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2silo.cpp ${INC_SILO}
-	${LNK} -o vlsv2silo vlsv2silo.o ${OBJS_VLSV2SILO} ${LIB_SILO}
+	${LNK} -o vlsv2silo_${FP_PRECISION} vlsv2silo.o ${OBJS_VLSV2SILO} ${LIB_SILO}
 
 writevars.o: ${DEPS_WRITEVARS}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c writevars.cpp ${INC_SILO} ${INC} ${INC_BOOST}

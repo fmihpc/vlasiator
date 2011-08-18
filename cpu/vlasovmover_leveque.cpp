@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "../vlasovmover.h"
-#include "../timer.h"
+#include "../profile.h"
 #include "../memalloc.h"
 #include "cpu_acc_leveque.h"
 #include "cpu_trans_leveque.h"
@@ -42,18 +42,7 @@ static set<CellID> ghostCells;
 
 #ifdef PARGRID
 
-namespace timer {
-   uint calcVelFluxes;
-   uint calcVelPropag;
-   uint calcUpdates;
-   uint calcPropag;
-   uint sendAverages;
-   uint recvAverages;
-   uint sendUpdates;
-   uint recvUpdates;
-   
-   uint memoryCopies;
-}
+
 
 static map<pair<CellID,int>,Real*> updateBuffers; /**< For each local cell receiving one or more remote df/dt updates,
 						   * MPI rank of remote process sending an update and address to the 
@@ -72,16 +61,6 @@ inline uchar calcNbrTypeID(cuchar& i,cuchar& j,cuchar& k) {
 }
 
 bool initializeMover(ParGrid<SpatialCell>& mpiGrid) { 
-   timer::calcVelFluxes = Timer::create("(COMPUTATION) df/dt updates in velocity space : ");
-   timer::calcVelPropag = Timer::create("(COMPUTATION) velocity acceleration           : ");
-   timer::calcUpdates   = Timer::create("(COMPUTATION) df/dt updates in spatial space  : ");
-   timer::calcPropag    = Timer::create("(COMPUTATION) spatial translation             : ");
-   timer::recvAverages  = Timer::create("(    MPI    ) receive remote averages         : ");
-   timer::sendAverages  = Timer::create("(    MPI    ) send averages                   : ");
-   timer::recvUpdates   = Timer::create("(    MPI    ) receive remote updates          : ");
-   timer::sendUpdates   = Timer::create("(    MPI    ) send updates                    : ");
-   
-   timer::memoryCopies  = Timer::create("( MEM COPY  ) memory copies                   : ");
    
    // Populate spatial neighbour list:
    vector<CellID> cells;
@@ -193,8 +172,6 @@ bool initializeMover(ParGrid<SpatialCell>& mpiGrid) {
 }
 
 bool finalizeMover() {
-   Timer::print();
-   
    // Free allocated buffers:
    for (map<pair<CellID,int>,Real*>::iterator it=updateBuffers.begin(); it!=updateBuffers.end(); ++it) {
       freeArray(it->second);
@@ -231,11 +208,11 @@ void calculateAcceleration(ParGrid<SpatialCell>& mpiGrid) {
       #endif
       
       // Calculate df/dt contributions of all blocks in the cell:
-      Timer::start(timer::calcVelFluxes);
+      profile::start("df/dt updates in velocity space");
       for (uint block=0; block<mpiGrid[cellID]->N_blocks; ++block) {
 	 cpu_calcVelFluxes<Real>(*SC,block,P::dt,NULL);
       }
-      Timer::stop(timer::calcVelFluxes);
+      profile::stop("df/dt updates in velocity space");
       
       #ifdef PAT_PROFILE
          PAT_region_end(3);
@@ -243,11 +220,11 @@ void calculateAcceleration(ParGrid<SpatialCell>& mpiGrid) {
       #endif
       
       // Propagate distribution functions in velocity space:
-      Timer::start(timer::calcVelPropag);
+      profile::start("velocity acceleration");
       for (uint block=0; block<mpiGrid[cellID]->N_blocks; ++block) {
 	 cpu_propagateVel<Real>(*SC,block,P::dt);
       }
-      Timer::stop(timer::calcVelPropag);
+      profile::stop("velocity acceleration");
       #ifdef PAT_PROFILE
          PAT_region_end(4);
       #endif
@@ -299,7 +276,7 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
    
    // Clear spatial fluxes to zero value. Remote neighbour df/dt arrays 
    // need to be cleared as well:
-   Timer::start(timer::calcUpdates);
+   profile::start("df/dt updates in spatial space");
    mpiGrid.getAllCells(cells);
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
@@ -325,15 +302,15 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
 	 cpu_calcSpatDfdt(avgs,cellParams,blockParams,dfdt,nbrsSpa,block,P::dt);
       }
    }
-   Timer::stop(timer::calcUpdates);
+   profile::stop("df/dt updates in spatial space");
 
    // Wait for remote avgs:
-   Timer::start(timer::recvAverages);
+   profile::start("(MPI) receive remote averages");
    mpiGrid.waitAllReceives();
-   Timer::stop(timer::recvAverages);
+   profile::stop("(MPI) receive remote averages");
    
    // Iterate through the rest of local cells:
-   Timer::start(timer::calcUpdates);
+   profile::start("df/dt updates in spatial space");
    for (set<CellID>::iterator cell=stencilAverages.boundaryCells.begin(); cell!=stencilAverages.boundaryCells.end(); ++cell) {
       const CellID cellID      = *cell;
       creal* const avgs        = grid.getAvgs();
@@ -348,12 +325,12 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
 	 cpu_calcSpatDfdt(avgs,cellParams,blockParams,dfdt,nbrsSpa,block,P::dt);
       }
    }
-   Timer::stop(timer::calcUpdates);
+   profile::stop("df/dt updates in spatial space");
    
    // Wait for sends to complete:
-   Timer::start(timer::sendAverages);
+   profile::start("(MPI) send averages");
    mpiGrid.waitAllSends();
-   Timer::stop(timer::sendAverages);
+   profile::stop("(MPI) send averages");
 }
 
 #else // #ifdef SIMPLE
@@ -452,7 +429,7 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
       allTasksCompleted = true;
       
       // Check if avgs have been received from remote neighbours:
-      Timer::start(timer::recvAverages);
+      profile::start("(MPI) receive remote averages");
       mpiGrid.singleModeWaitSome();
       while (mpiGrid.getReadyCell(cellID) == true) {
 	 // Increase counter on all local cells requiring the received neighbour data.
@@ -465,10 +442,10 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
 	    }
 	 }
       }
-      Timer::stop(timer::recvAverages);
+      profile::stop("(MPI) receive remote averages");
       
       // Calculate a cell if possible:
-      Timer::start(timer::calcUpdates);
+      profile::start("df/dt updates in spatial space");
       if (readyCells.empty() == false) {
 	 readyCells.pop(cellID,priority);
 	 creal* const avgs        = grid.getAvgs();
@@ -504,14 +481,14 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
 	 }
 	 ++calculatedCells;
       }
-      Timer::stop(timer::calcUpdates);
+      profile::stop("df/dt updates in spatial space");
       
       if (calculatedCells != mpiGrid.getNumberOfLocalCells()) allTasksCompleted = false;
    } while (allTasksCompleted == false);
    
-   Timer::start(timer::sendAverages);
+   profile::start("(MPI) send averages");
    mpiGrid.singleModeWaitAllSends();
-   Timer::stop(timer::sendAverages);
+   profile::stop("(MPI) send averages");
    
    // **************************************
    // ***** PROPAGATE IN SPATIAL SPACE *****
@@ -528,7 +505,7 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
 
       // Check if remote contributions to df/dt have been received. If a local cell has 
       // all required neighbour updates add it to readyCells:
-      Timer::start(timer::recvUpdates);
+      profile::start("(MPI) receive remote updates");
       mpiGrid.singleModeWaitSome2();
       while (mpiGrid.getReadyCell2(cellID) == true) {
 	 ++(stencilUpdates.neighbours[cellID].second);
@@ -547,10 +524,10 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
 	    readyCells.insert(cellID,0);
 	 }
       }
-      Timer::stop(timer::recvUpdates);
+      profile::stop("(MPI) receive remote updates");
 
       // Propagate a local cell if possible:
-      Timer::start(timer::calcPropag);
+      profile::start("spatial translation");
       if (readyCells.empty() == false) {
 	 readyCells.pop(cellID,priority);
 	 
@@ -585,15 +562,15 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
 	 #endif
 	 ++calculatedCells;
       }
-      Timer::stop(timer::calcPropag);
+      profile::stop("spatial translation");
       
       if (calculatedCells != mpiGrid.getNumberOfLocalCells()) allTasksCompleted = false;
    } while (allTasksCompleted == false);
 
    
-   Timer::start(timer::sendUpdates);
+   profile::start("(MPI) send updates");
    mpiGrid.singleModeWaitAllSends2();
-   Timer::stop(timer::recvUpdates);
+   profile::stop("(MPI) send updates");
 
 }
 
@@ -630,7 +607,7 @@ void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid,const bool& secon
       mpiGrid.singleSend(host,tag,SIZE_DFDT,buffer,tag);
    }
       
-   Timer::start(timer::calcPropag);
+   profile::start("spatial translation");
    for (set<CellID>::iterator c=stencilUpdates.innerCells.begin(); c!=stencilUpdates.innerCells.end(); ++c) {
       const CellID cellID = *c;
       Real* const avgs         = mpiGrid[cellID]->cpu_avgs;
@@ -657,16 +634,16 @@ void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid,const bool& secon
 	 }
       }
    }
-   Timer::stop(timer::calcPropag);
+   profile::stop("spatial translation");
 
    // Wait for remote neighbour updates to arrive:
-   Timer::start(timer::recvUpdates);
+   profile::start("(MPI) receive remote updates");
    mpiGrid.waitAllReceives();
-   Timer::stop(timer::recvUpdates);
+   profile::stop("(MPI) receive remote updates");
    
    // Sum remote neighbour updates to the first buffer of each 
    // local cell, if necessary:
-   Timer::start(timer::calcPropag);
+   profile::start("spatial translation");
    for (map<CellID,set<Real*> >::iterator it=remoteUpdates.begin(); it!=remoteUpdates.end(); ++it) {
       const CellID cellID = it->first;
       set<Real*>::iterator buffer = it->second.begin();
@@ -701,12 +678,12 @@ void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid,const bool& secon
 	 }
       }
    }
-   Timer::stop(timer::calcPropag);
+   profile::stop("spatial translation");
 
    // Wait for neighbour update sends:
-   Timer::start(timer::sendUpdates);
+   profile::start("(MPI) send updates");
    mpiGrid.singleModeWaitAllSends();
-   Timer::stop(timer::sendUpdates);
+   profile::stop("(MPI) send updates");
 }
 
 #else
