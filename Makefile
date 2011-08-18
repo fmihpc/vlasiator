@@ -3,16 +3,26 @@
 ARCH = meteo
 include Makefile.${ARCH}
 
+#set FP precision to SP (single) or DP (double)
+FP_PRECISION = DP
+CXXFLAGS += -D${FP_PRECISION} 
+
 #set a default archive utility, can also be set in Makefile.arch
 AR ?= ar
 #set a default mover, can/should be set in Makefile.arch
 MOVER ?= cpu
-#set a default vlasov solver, can/should be set in Makefile.arch
+#set a default vlasov solver, can also be set in Makefile.arch
 #Valid values are KT and LEVEQUE
-SOLVER ?= KT
+SOLVER ?= LEVEQUE
 
 #Add -DPARGRID to use pargrid instead of DCCRG
-CXXFLAGS += -DPARGRID
+CXXFLAGS += -DPARGRID 
+
+#Add -DPROFILE to get performance profiling information in the logfile
+CXXFLAGS += -DPROFILE
+
+#Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
+CXXFLAGS += -DNDEBUG
 
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
@@ -37,7 +47,7 @@ default: vlasiator vlsv2silo vlsvextract
 INSTALL = $(CURDIR)
 
 # Executable:
-EXE = vlasiator_${ARCH}_${PROJ}
+EXE = vlasiator_${ARCH}_${FP_PRECISION}_${PROJ}
 
 
 # Collect libraries into single variable:

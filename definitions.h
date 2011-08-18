@@ -1,8 +1,16 @@
 #ifndef DEFINITIONS_H
 #define DEFINITIONS_H
+#include "mpi.h"
 
+//set floating point precision here. Default is single precision, use -DDP to set double precision
+#ifdef DP
+typedef double Real;
+typedef const double creal;
+#else
 typedef float Real;
 typedef const float creal;
+#endif
+
 typedef const int cint;
 typedef unsigned char uchar;
 typedef const unsigned char cuchar;
