@@ -520,12 +520,12 @@ int main(int argn,char* args[]) {
       }
        
       // set default values if nothing has been defined
-      /*if ( partitionProcs.size()==0){
+      if ( partitionProcs.size()==0){
           partitionProcs.push_back(1);
           partitionLbMethod.push_back("HYPERGRAPH");
           partitionImbalanceTol.push_back("1.1");
       }
-
+      
       //set options 
       for(unsigned int i=0;i<partitionProcs.size();i++){
           // set hierarchial partitioning parameters for first level
@@ -537,7 +537,13 @@ int main(int argn,char* args[]) {
           mpiGrid.add_partitioning_level(partitionProcs[i]);
           mpiGrid.add_partitioning_option(i, "LB_METHOD", partitionLbMethod[i]);
           mpiGrid.add_partitioning_option(i, "IMBALANCE_TOL", partitionImbalanceTol[i]);
-      }*/
+      }
+
+      profile::start("Initial load-balancing");
+      if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting initial load balance." << endl << write;
+      initialLoadBalance(mpiGrid);
+      profile::stop("Initial load-balancing");
+   
    
    #else           // INITIALIZE USING PARGRID
       ParGrid<SpatialCell> mpiGrid(Hypergraph,argn,args);
@@ -591,16 +597,15 @@ int main(int argn,char* args[]) {
    #endif
    
    // Go through every spatial cell on this CPU, and create the initial state:
-   profile::start("Set initial state");
-   #ifndef PARGRID
-   initSpatialCells(mpiGrid,comm);
-   #endif
-   profile::stop("Set initial state");
 
-   profile::start("Initial load-balancing");
-   if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting initial load balance." << endl << write;
-   initialLoadBalance(mpiGrid);
-   profile::stop("Initial load-balancing");
+#ifndef PARGRID
+   profile::start("Set initial state");
+   initSpatialCells(mpiGrid,comm);
+   profile::stop("Set initial state");
+#endif
+
+  
+
    profile::start("Fetch Neighbour data");
    // Fetch neighbour data:
    #ifndef PARGRID
