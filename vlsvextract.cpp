@@ -51,6 +51,21 @@ template<typename REAL> struct NodeCrd {
 };
 
 struct NodeComp {
+   bool operator()(const NodeCrd<double>& a,const NodeCrd<double>& b) const {
+     double EPS = 0.5e-3 * (fabs(a.z) + fabs(b.z));
+     if (a.z > b.z + EPS) return false;
+     if (a.z < b.z - EPS) return true;
+     
+     EPS = 0.5e-3 * (fabs(a.y) + fabs(b.y));
+     if (a.y > b.y + EPS) return false;
+     if (a.y < b.y - EPS) return true;
+     
+     EPS = 0.5e-3 * (fabs(a.x) + fabs(b.x));
+     if (a.x > b.x + EPS) return false;
+     if (a.x < b.x - EPS) return true;
+     return false;
+   }
+   
    bool operator()(const NodeCrd<float>& a,const NodeCrd<float>& b) const {
       float EPS = 0.5e-3 * (fabs(a.z) + fabs(b.z));
       if (a.z > b.z + EPS) return false;
@@ -150,7 +165,6 @@ bool convertVelocityBlockVariable(VLSVReader& vlsvReader,const string& spatGridN
    DBAddOption(optList,DBOPT_EXTENTS_SIZE,const_cast<char*>(unit.c_str()));
    DBAddOption(optList,DBOPT_CONSERVED,&conserved);
    DBAddOption(optList,DBOPT_EXTENSIVE,&extensive);
-   
    DBPutUcdvar1(fileptr,varName2.c_str(),velGridName.c_str(),buffer,N_blocks*vectorSize,NULL,0,SiloType(dataType,dataSize),DB_ZONECENT,optList);
    
    DBFreeOptlist(optList);
@@ -219,13 +233,13 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader,const string& meshName,const 
       //cout << "Spatial cell #" << cellID << " has offset " << blockOffset << endl;
    }
    
-   map<NodeCrd<float>,uint64_t,NodeComp> nodes;
+   map<NodeCrd<Real>,uint64_t,NodeComp> nodes;
    
    // Read all block coordinates of the velocity grid:
    char* bc_buffer = new char[N_blocks*bc_vectorSize*bc_dataSize];
    vlsvReader.readArray("BLOCKCOORDINATES",meshName,blockOffset,N_blocks,bc_buffer);
    for (uint64_t b=0; b<N_blocks; ++b) {
-      float vx_min,vy_min,vz_min,dvx,dvy,dvz;
+      Real vx_min,vy_min,vz_min,dvx,dvy,dvz;
       if (bc_dataSize == 4) {
 	 vx_min = *reinterpret_cast<float*>(bc_buffer +b*bc_vectorSize*bc_dataSize + 0*bc_dataSize );
 	 vy_min = *reinterpret_cast<float*>(bc_buffer +b*bc_vectorSize*bc_dataSize + 1*bc_dataSize );
@@ -242,27 +256,27 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader,const string& meshName,const 
 	 dvz    = *reinterpret_cast<double*>(bc_buffer +b*bc_vectorSize*bc_dataSize + 5*bc_dataSize );
       }
       
-      const float EPS = 1.0e-7;
+      creal EPS = 1.0e-7;
       for (int kv=0; kv<5; ++kv) {
-	 float VZ = vz_min + kv*dvz;
+	 Real VZ = vz_min + kv*dvz;
 	 if (fabs(VZ) < EPS) VZ = 0.0;
 	 for (int jv=0; jv<5; ++jv) {
-	    float VY = vy_min + jv*dvy;
+	    Real VY = vy_min + jv*dvy;
 	    if (fabs(VY) < EPS) VY = 0.0;
 	    for (int iv=0; iv<5; ++iv) {
-	       float VX = vx_min + iv*dvx;
+	       Real VX = vx_min + iv*dvx;
 	       if (fabs(VX) < EPS) VX = 0.0;
-	       nodes.insert(make_pair(NodeCrd<float>(VX,VY,VZ),(uint64_t)0));
+	       nodes.insert(make_pair(NodeCrd<Real>(VX,VY,VZ),(uint64_t)0));
 	    }
 	 }
       }
    }
       
-   float* vx_crds = new float[nodes.size()];
-   float* vy_crds = new float[nodes.size()];
-   float* vz_crds = new float[nodes.size()];
+   Real* vx_crds = new Real[nodes.size()];
+   Real* vy_crds = new Real[nodes.size()];
+   Real* vz_crds = new Real[nodes.size()];
    uint64_t counter = 0;
-   for (map<NodeCrd<float>,uint64_t>::iterator it=nodes.begin(); it!=nodes.end(); ++it) {
+   for (map<NodeCrd<Real>,uint64_t>::iterator it=nodes.begin(); it!=nodes.end(); ++it) {
       it->second = counter;
       vx_crds[counter] = it->first.x;
       vy_crds[counter] = it->first.y;
@@ -273,7 +287,7 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader,const string& meshName,const 
    const uint64_t nodeListSize = N_blocks*64*8;
    int* nodeList = new int[nodeListSize];
    for (uint64_t b=0; b<N_blocks; ++b) {
-      float vx_min,vy_min,vz_min,dvx,dvy,dvz;
+      Real vx_min,vy_min,vz_min,dvx,dvy,dvz;
       if (bc_dataSize == 4) {
 	 // floats
 	 vx_min = *reinterpret_cast<float*>(bc_buffer+b*bc_vectorSize*bc_dataSize+0*sizeof(float));
@@ -284,18 +298,17 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader,const string& meshName,const 
 	 dvz    = *reinterpret_cast<float*>(bc_buffer+b*bc_vectorSize*bc_dataSize+5*sizeof(float));
       } else {
 	 // doubles
-	 vx_min = 0.0;
-	 vy_min = 0.0;
-	 vz_min = 0.0;
-	 dvx    = 0.0;
-	 dvy    = 0.0;
-	 dvz    = 0.0;
-	 cerr << "doubles not implemented in vlsvextract!" << endl;
-	 exit(1);
+	 vx_min = *reinterpret_cast<double*>(bc_buffer+b*bc_vectorSize*bc_dataSize+0*sizeof(double));
+	 vy_min = *reinterpret_cast<double*>(bc_buffer+b*bc_vectorSize*bc_dataSize+1*sizeof(double));
+	 vz_min = *reinterpret_cast<double*>(bc_buffer+b*bc_vectorSize*bc_dataSize+2*sizeof(double));
+	 dvx    = *reinterpret_cast<double*>(bc_buffer+b*bc_vectorSize*bc_dataSize+3*sizeof(double));
+	 dvy    = *reinterpret_cast<double*>(bc_buffer+b*bc_vectorSize*bc_dataSize+4*sizeof(double));
+	 dvz    = *reinterpret_cast<double*>(bc_buffer+b*bc_vectorSize*bc_dataSize+5*sizeof(double));
+//	 cout << "doubles experimental (YK) in vlsvextract!" << endl;
       }
-      float VX,VY,VZ;
-      const float EPS = 1.0e-7;
-      map<NodeCrd<float>,uint64_t>::const_iterator it;
+      Real VX,VY,VZ;
+      creal EPS = 1.0e-7;
+      map<NodeCrd<Real>,uint64_t>::const_iterator it;
       for (int kv=0; kv<4; ++kv) {
 	 for (int jv=0; jv<4; ++jv) {
 	    for (int iv=0; iv<4; ++iv) {
@@ -303,43 +316,43 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader,const string& meshName,const 
 	       VX = vx_min + iv*dvx; if (fabs(VX) < EPS) VX = 0.0;
 	       VY = vy_min + jv*dvy; if (fabs(VY) < EPS) VY = 0.0;
 	       VZ = vz_min + kv*dvz; if (fabs(VZ) < EPS) VZ = 0.0;
-	       it = nodes.find(NodeCrd<float>(VX,VY,VZ));
+	       it = nodes.find(NodeCrd<Real>(VX,VY,VZ));
 	       if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
 	       nodeList[b*64*8+cellInd*8+0] = it->second;
 	 
 	       VX = vx_min + (iv+1)*dvx; if (fabs(VX) < EPS) VX = 0.0;
-	       it = nodes.find(NodeCrd<float>(VX,VY,VZ));
+	       it = nodes.find(NodeCrd<Real>(VX,VY,VZ));
 	       if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
 	       nodeList[b*64*8+cellInd*8+1] = it->second;
 	       
 	       VY = vy_min + (jv+1)*dvy; if (fabs(VY) < EPS) VY = 0.0;
-	       it = nodes.find(NodeCrd<float>(VX,VY,VZ));
+	       it = nodes.find(NodeCrd<Real>(VX,VY,VZ));
 	       if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
 	       nodeList[b*64*8+cellInd*8+2] = it->second;
 	       
 	       VX = vx_min + iv*dvx; if (fabs(VX) < EPS) VX = 0.0;
-	       it = nodes.find(NodeCrd<float>(VX,VY,VZ));
+	       it = nodes.find(NodeCrd<Real>(VX,VY,VZ));
 	       if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
 	       nodeList[b*64*8+cellInd*8+3] = it->second;
 	 
 	       VY = vy_min + jv*dvy; if (fabs(VY) < EPS) VY = 0.0;
 	       VZ = vz_min + (kv+1)*dvz; if (fabs(VZ) < EPS) VZ = 0.0;
-	       it = nodes.find(NodeCrd<float>(VX,VY,VZ));
+	       it = nodes.find(NodeCrd<Real>(VX,VY,VZ));
 	       if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
 	       nodeList[b*64*8+cellInd*8+4] = it->second;
 	       
 	       VX = vx_min + (iv+1)*dvx; if (fabs(VX) < EPS) VX = 0.0;
-	       it = nodes.find(NodeCrd<float>(VX,VY,VZ));
+	       it = nodes.find(NodeCrd<Real>(VX,VY,VZ));
 	       if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
 	       nodeList[b*64*8+cellInd*8+5] = it->second;
 	       
 	       VY = vy_min + (jv+1)*dvy; if (fabs(VY) < EPS) VY = 0.0;
-	       it = nodes.find(NodeCrd<float>(VX,VY,VZ));
+	       it = nodes.find(NodeCrd<Real>(VX,VY,VZ));
 	       if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
 	       nodeList[b*64*8+cellInd*8+6] = it->second;
 	       
 	       VX = vx_min + iv*dvx; if (fabs(VX) < EPS) VX = 0.0;
-	       it = nodes.find(NodeCrd<float>(VX,VY,VZ));
+	       it = nodes.find(NodeCrd<Real>(VX,VY,VZ));
 	       if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY+dvy << ' ' << VZ+dvz << endl;
 	       nodeList[b*64*8+cellInd*8+7] = it->second;
 	    }
@@ -360,13 +373,15 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader,const string& meshName,const 
    coords[1] = vy_crds;
    coords[2] = vz_crds;
    
+   // Write zone list into silo file:
    stringstream ss;
    ss << "VelGrid" << cellID;
    const string zoneListName = ss.str()+"Zones";
    if (DBPutZonelist2(fileptr,zoneListName.c_str(),N_zones,N_dims,nodeList,nodeListSize,0,0,0,shapeTypes,shapeSizes,shapeCnt,N_shapes,NULL) < 0) success = false;
    
+   // Write grid into silo file:
    const string gridName = ss.str();
-   if (DBPutUcdmesh(fileptr,gridName.c_str(),N_dims,NULL,coords,N_nodes,N_zones,zoneListName.c_str(),NULL,DB_FLOAT,NULL) < 0) success = false;
+   if (DBPutUcdmesh(fileptr,gridName.c_str(),N_dims,NULL,coords,N_nodes,N_zones,zoneListName.c_str(),NULL,SiloType(bc_dataType,bc_dataSize),NULL) < 0) success = false;
    
    delete nodeList;
    delete vx_crds;
