@@ -32,13 +32,13 @@ namespace projects {
       ZP1_YP1_XP1
    };
    
-   cuint MISSING_ZNEG = (1 << projects::ZM1_YCC_XCC);
-   cuint MISSING_YNEG = (1 << projects::ZCC_YM1_XCC);
-   cuint MISSING_XNEG = (1 << projects::ZCC_YCC_XM1);
-   cuint MISSING_XPOS = (1 << projects::ZCC_YCC_XP1);
-   cuint MISSING_YPOS = (1 << projects::ZCC_YP1_XCC);
-   cuint MISSING_ZPOS = (1 << projects::ZP1_YCC_XCC);
-   cuint FACE_NBR_BITMASK = (MISSING_ZNEG | MISSING_YNEG | MISSING_XNEG | MISSING_XPOS | MISSING_YPOS | MISSING_ZPOS);
+   const uint MISSING_ZNEG = (1 << projects::ZM1_YCC_XCC);
+   const uint MISSING_YNEG = (1 << projects::ZCC_YM1_XCC);
+   const uint MISSING_XNEG = (1 << projects::ZCC_YCC_XM1);
+   const uint MISSING_XPOS = (1 << projects::ZCC_YCC_XP1);
+   const uint MISSING_YPOS = (1 << projects::ZCC_YP1_XCC);
+   const uint MISSING_ZPOS = (1 << projects::ZP1_YCC_XCC);
+   const uint FACE_NBR_BITMASK = (MISSING_ZNEG | MISSING_YNEG | MISSING_XNEG | MISSING_XPOS | MISSING_YPOS | MISSING_ZPOS);
 }
 
 // *********************************

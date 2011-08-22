@@ -14,7 +14,7 @@ FLAGS =
 #XLC flags:
 CC_BRAND = xlc
 CC_BRAND_VERSION = 9.0
-CXXFLAGS += -O4 -qarch=450 -qtune=450
+CXXFLAGS += -O2 -qarch=450 -qtune=450
 MATHFLAGS = 
 LDFLAGS =
 LIB_MPI = 

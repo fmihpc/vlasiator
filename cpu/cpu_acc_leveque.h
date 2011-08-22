@@ -9,14 +9,14 @@
 
 // Constant for switch statement in solver to decide which of the eight 
 // possibilities should be calculated. 
-cuint AXP_AYP_AZP = 0; // Ax > 0, Ay > 0, Az > 0
-cuint AXP_AYP_AZN = 1; //                 Az < 0
-cuint AXP_AYN_AZP = 2; //         Ay < 0, Az > 0
-cuint AXP_AYN_AZN = 3; //                 Az < 0
-cuint AXN_AYP_AZP = 4; // Ax < 0, Ay > 0, Az > 0
-cuint AXN_AYP_AZN = 5; //                 Az < 0
-cuint AXN_AYN_AZP = 6; //         Ay < 0, Az > 0
-cuint AXN_AYN_AZN = 7; //                 Az < 0
+const uint AXP_AYP_AZP = 0; // Ax > 0, Ay > 0, Az > 0
+const uint AXP_AYP_AZN = 1; //                 Az < 0
+const uint AXP_AYN_AZP = 2; //         Ay < 0, Az > 0
+const uint AXP_AYN_AZN = 3; //                 Az < 0
+const uint AXN_AYP_AZP = 4; // Ax < 0, Ay > 0, Az > 0
+const uint AXN_AYP_AZN = 5; //                 Az < 0
+const uint AXN_AYN_AZP = 6; //         Ay < 0, Az > 0
+const uint AXN_AYN_AZN = 7; //                 Az < 0
 
 template<typename T> inline T accIndex(const T& i,const T& j,const T& k) {return k*WID2+j*WID+i;}
 template<typename T> inline T fullInd(const T& i,const T& j,const T& k) {return k*64+j*8+i;}

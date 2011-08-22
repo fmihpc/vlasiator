@@ -8,28 +8,28 @@
 
 #include "definitions.h"
 
-cuint MAX_SPAT_CELLS = 8100;
-cuint MAX_VEL_BLOCKS = 250000;
-//cuint MAX_VEL_BLOCKS = 2500000;
+const uint MAX_SPAT_CELLS = 8100;
+const uint MAX_VEL_BLOCKS = 250000;
+//const uint MAX_VEL_BLOCKS = 2500000;
 
-cuint CUDA_WIDTH = 65536; // Width of CUDA array (for 2D textures)
-cuint CUDA_HEIGHT = 3000; // Height of CUDA array
+const uint CUDA_WIDTH = 65536; // Width of CUDA array (for 2D textures)
+const uint CUDA_HEIGHT = 3000; // Height of CUDA array
                           // Make sure width*height / 64 >= MAX_VEL_BLOCKS
 
 #ifdef PARGRID
-   cuint INVALID_CELLID = std::numeric_limits<uint>::max();
+   const uint INVALID_CELLID = std::numeric_limits<uint>::max();
 #else
    const uint64_t INVALID_CELLID = 0;
 #endif
 
 namespace Transmit {
-   cuint CELL_PARAMS  = 1;
-   cuint BLOCK_PARAMS = CELL_PARAMS << 1;
-   cuint AVGS         = CELL_PARAMS << 2;
-   cuint FLUXES       = CELL_PARAMS << 3;
-   cuint DERIV1       = CELL_PARAMS << 4;
-   cuint DERIV2       = CELL_PARAMS << 5;
-   cuint NBRSVEL      = CELL_PARAMS << 6;
+   const uint CELL_PARAMS  = 1;
+   const uint BLOCK_PARAMS = CELL_PARAMS << 1;
+   const uint AVGS         = CELL_PARAMS << 2;
+   const uint FLUXES       = CELL_PARAMS << 3;
+   const uint DERIV1       = CELL_PARAMS << 4;
+   const uint DERIV2       = CELL_PARAMS << 5;
+   const uint NBRSVEL      = CELL_PARAMS << 6;
 }
 
 struct Parameters {

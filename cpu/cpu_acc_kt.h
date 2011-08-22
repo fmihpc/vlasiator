@@ -148,9 +148,9 @@ template<typename REAL,typename UINT> void fetchAveragesX(const UINT& BLOCK,REAL
 
 template<typename REAL,typename UINT> void fetchAveragesY(const UINT& BLOCK,REAL* const avgs,const REAL* const cpu_avgs,const UINT* const nbrsVel) {
    // The size of array avgs (4,5,4).
-   cuint XS=4;
-   cuint YS=5;
-   cuint YSXS = YS*XS;
+   const uint XS=4;
+   const uint YS=5;
+   const uint YSXS = YS*XS;
    // Copy averages from -y neighbour, or calculate using a boundary function:
    if (isBoundary(nbrsVel[BLOCK*SIZE_NBRS_VEL+NbrsVel::NBRFLAGS],NbrsVel::VY_NEG_BND) == 0) {
       for (UINT k=0; k<WID; ++k) for (UINT i=0; i<WID; ++i) {

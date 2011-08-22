@@ -53,7 +53,6 @@ EXE = vlasiator_${ARCH}_${FP_PRECISION}_${PROJ}
 
 # Collect libraries into single variable:
 LIBS = ${LIB_BOOST}
-LIBS += ${LIB_SILO}
 LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_MPI}
 LIBS += ${LIB_CUDA}
