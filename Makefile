@@ -16,7 +16,7 @@ MOVER ?= cpu
 SOLVER ?= LEVEQUE
 
 #Add -DPARGRID to use pargrid instead of DCCRG
-CXXFLAGS += -DPARGRID 
+CXXFLAGS += -DPARGRID  -DSIMPLE
 
 #Add -DPROFILE to get performance profiling information in the logfile
 CXXFLAGS += -DPROFILE
