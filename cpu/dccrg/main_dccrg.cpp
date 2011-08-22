@@ -35,7 +35,7 @@ extern bool cpu_calcVelocityMoments(SpatialCell& cell);
 
 namespace Main {
    std::vector<CellID> cells;
-   std::vector<const SpatialCell*> nbrPtrs(6,NULL);
+  std::vector<const SpatialCell*> nbrPtrs(6,(SpatialCell *)NULL);
    SpatialCell* cellPtr;
    
    uint calcAcc;
