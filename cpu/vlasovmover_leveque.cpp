@@ -592,9 +592,9 @@ void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid,const bool& secon
       const CellID localID  = it->second;
       cint host             = it->first.first;
       cint tag              = it->first.second;
-      map<pair<CellID,int>,Real*>::iterator it = updateBuffers.find(make_pair(localID,host));
-      if (it == updateBuffers.end()) {cerr << "FATAL ERROR: Could not find update buffer!" << endl; exit(1);}
-      char* const buffer    = reinterpret_cast<char*>(it->second);
+      map<pair<CellID,int>,Real*>::iterator it2 = updateBuffers.find(make_pair(localID,host));
+      if (it2 == updateBuffers.end()) {cerr << "FATAL ERROR: Could not find update buffer!" << endl; exit(1);}
+      char* const buffer    = reinterpret_cast<char*>(it2->second);
       
       mpiGrid.singleReceive(host,tag,SIZE_DFDT,buffer,localID);
    }
