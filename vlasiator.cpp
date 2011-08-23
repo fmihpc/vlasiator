@@ -53,7 +53,13 @@ void initSpatialCells(const dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator
       xmin = mpiGrid.get_cell_x_min(cells[i]);
       ymin = mpiGrid.get_cell_y_min(cells[i]);
       zmin = mpiGrid.get_cell_z_min(cells[i]);
-      mpiGrid[cells[i]]->initialize(mpiGrid[cells[i]]->N_blocks);
+      if (!mpiGrid[cells[i]]->initialize(mpiGrid[cells[i]]->N_blocks)) {
+         std::cerr << __FILE__ << ":" << __LINE__
+            << " Failed to initialize spatial cell " << cells[i]
+            << ", too small MAX_VEL_BLOCKS in parameters.h?"
+            << std::endl;
+         abort();
+      }
       buildSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
    }
 }
