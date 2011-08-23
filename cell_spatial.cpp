@@ -166,7 +166,7 @@ bool SpatialCell::initialize(cuint& N_blocks) {
    // Attempt to get pointers to available memory from Grid:
    cpuIndex = grid.getFreeMemory(N_blocks);
    if (cpuIndex == numeric_limits<uint>::max()) {
-      // FIXME: following doesn't produce output if vlasiator segfault right afterwards
+      // FIXME: following doesn't produce output if vlasiator segfaults right afterwards
       mpilogger << "SpatialCell " << cpuIndex << " : initialization failed." << endl;
       return false;
    }
