@@ -8,6 +8,14 @@
 #include <iostream>
 #include <vector>
 
+#include <boost/mpi.hpp>
+#include <zoltan.h>
+
+#define DCCRG_SEND_SINGLE_CELLS
+#define DCCRG_CELL_DATA_SIZE_FROM_USER
+#define DCCRG_USER_MPI_DATA_TYPE
+#include <dccrg.hpp>
+
 #include "../vlasovmover.h"
 #include "../profile.h"
 #include "../memalloc.h"
@@ -17,31 +25,14 @@
 
 using namespace std;
 
-#ifdef PARGRID
-   #include <limits>
-   #include "../pargrid.h"
-   #include "../transferstencil.h"
-
-   typedef uint CellID;
-   static TransferStencil<CellID> stencilAverages(INVALID_CELLID);
-   static TransferStencil<CellID> stencilUpdates(INVALID_CELLID);
-#else
-   #include <stdint.h>
-   #define DCCRG_SEND_SINGLE_CELLS
-   #define DCCRG_CELL_DATA_SIZE_FROM_USER
-   #define DCCRG_USER_MPI_DATA_TYPE
-   #include <dccrg.hpp>
-   typedef uint64_t CellID;
-#endif
-
-#ifdef PAT_PROFILE
-   #include "pat_api.h"
-#endif
+#include <stdint.h>
+#define DCCRG_SEND_SINGLE_CELLS
+#define DCCRG_CELL_DATA_SIZE_FROM_USER
+#define DCCRG_USER_MPI_DATA_TYPE
+#include <dccrg.hpp>
+typedef uint64_t CellID;
 
 static set<CellID> ghostCells;
-
-#ifdef PARGRID
-
 
 
 static map<pair<CellID,int>,Real*> updateBuffers; /**< For each local cell receiving one or more remote df/dt updates,
@@ -60,7 +51,7 @@ inline uchar calcNbrTypeID(cuchar& i,cuchar& j,cuchar& k) {
    return k*25 + j*5 + i;
 }
 
-bool initializeMover(ParGrid<SpatialCell>& mpiGrid) { 
+bool initializeMover(dccrg<SpatialCell>& mpiGrid) { 
    
    // Populate spatial neighbour list:
    vector<CellID> cells;
@@ -74,7 +65,7 @@ bool initializeMover(ParGrid<SpatialCell>& mpiGrid) {
       uint counter = 0;
       vector<uint> nbrIDs;
       for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
-	 if ((i == 0) & ((j == 0) & (k == 0))) nbrIDs.push_back(cellID); // in ParGrid cells do not consider themselves as their own neighbours
+	 if ((i == 0) & ((j == 0) & (k == 0))) nbrIDs.push_back(cellID); // in dccrg cells do not consider themselves as their own neighbours
 	 else {
 	    nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2+i,2+j,2+k)));
 	    if (nbrIDs.back() == INVALID_CELLID) isGhost = true;
@@ -180,11 +171,11 @@ bool finalizeMover() {
    return true;
 }
 
-void calculateSimParameters(ParGrid<SpatialCell>& mpiGrid,creal& t,Real& dt) { }
+void calculateSimParameters(dccrg<SpatialCell>& mpiGrid,creal& t,Real& dt) { }
 
-void calculateCellParameters(ParGrid<SpatialCell>& mpiGrid,creal& t,ID::type cell) { }
+void calculateCellParameters(dccrg<SpatialCell>& mpiGrid,creal& t,ID::type cell) { }
 
-void calculateAcceleration(ParGrid<SpatialCell>& mpiGrid) { 
+void calculateAcceleration(dccrg<SpatialCell>& mpiGrid) { 
    typedef Parameters P;
    
    vector<CellID> cells;
@@ -203,10 +194,6 @@ void calculateAcceleration(ParGrid<SpatialCell>& mpiGrid) {
 	 cpu_clearVelFluxes<Real>(*SC,block);
       }
       
-      #ifdef PAT_PROFILE
-         PAT_region_begin(3,"calcVelFluxes");
-      #endif
-      
       // Calculate df/dt contributions of all blocks in the cell:
       profile::start("df/dt updates in velocity space");
       for (uint block=0; block<mpiGrid[cellID]->N_blocks; ++block) {
@@ -214,27 +201,20 @@ void calculateAcceleration(ParGrid<SpatialCell>& mpiGrid) {
       }
       profile::stop("df/dt updates in velocity space");
       
-      #ifdef PAT_PROFILE
-         PAT_region_end(3);
-         PAT_region_begin(4,"calcVelPropag");
-      #endif
-      
       // Propagate distribution functions in velocity space:
       profile::start("velocity acceleration");
       for (uint block=0; block<mpiGrid[cellID]->N_blocks; ++block) {
 	 cpu_propagateVel<Real>(*SC,block,P::dt);
       }
       profile::stop("velocity acceleration");
-      #ifdef PAT_PROFILE
-         PAT_region_end(4);
-      #endif
+
    }
 }
 
-void calculateSpatialDerivatives(ParGrid<SpatialCell>& mpiGrid) { }
+void calculateSpatialDerivatives(dccrg<SpatialCell>& mpiGrid) { }
 
 #ifdef SIMPLE
-void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
+void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    typedef Parameters P;
    
    vector<CellID> cells;
@@ -335,7 +315,7 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
 
 #else // #ifdef SIMPLE
 
-void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
+void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    typedef Parameters P;
       
    vector<CellID> cells;
@@ -454,17 +434,12 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
 	 Real*  const dfdt        = grid.getFx();
 	 cuint* const nbrsSpa     = mpiGrid[cellID]->cpu_nbrsSpa;
 
-	 #ifdef PAT_PROFILE
-	    PAT_region_begin(1,"calcSpatDfdt");
-	 #endif	 
+
 	 // Iterate through all velocity blocks in the spatial cell and calculate
 	 // contributions to df/dt:
 	 for (uint block=0; block<mpiGrid[cellID]->N_blocks; ++block) {
 	    cpu_calcSpatDfdt(avgs,cellParams,blockParams,dfdt,nbrsSpa,block,P::dt);
 	 }
-	 #ifdef PAT_PROFILE
-	    PAT_region_end(1);
-	 #endif
 
 	 // Increase counter on all df/dt updates to remote cells. If all local 
 	 // modifications have been calculated, send update to remote neighbour:
@@ -545,9 +520,7 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
 	 cellParams[CellParams::RHOVY] = 0.0;
 	 cellParams[CellParams::RHOVZ] = 0.0;
 
-	 #ifdef PAT_PROFILE
-	    PAT_region_begin(2,"propagateWithMoments");
-	 #endif
+
 	 if (ghostCells.find(cellID) == ghostCells.end()) {
 	    for (uint block=0; block<mpiGrid[cellID]->N_blocks; ++block) {
 	       cpu_propagateSpatWithMoments(avgs,dfdt,nbr_dfdt,blockParams,cellParams,block);
@@ -557,9 +530,7 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
 	       cpu_calcVelocityMoments(avgs,blockParams,cellParams,block);
 	    }
 	 }	 
-	 #ifdef PAT_PROFILE
-	    PAT_region_end(2);
-	 #endif
+
 	 ++calculatedCells;
       }
       profile::stop("spatial translation");
@@ -578,7 +549,7 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
    
 #ifdef SIMPLE
 
-void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid,const bool& secondStep,const bool& transferAvgs) { 
+void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondStep,const bool& transferAvgs) { 
    vector<CellID> cells;
    // Post receives for remote updates:
    
@@ -686,15 +657,15 @@ void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid,const bool& secon
    profile::stop("(MPI) send updates");
 }
 
-#else
+#else //ifdef SIMPLE
 
-void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid,const bool& secondStep,const bool& transferAvgs) { }
+void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondStep,const bool& transferAvgs) { }
 
 #endif
 
-void initialLoadBalance(ParGrid<SpatialCell>& mpiGrid) { }
+void initialLoadBalance(dccrg<SpatialCell>& mpiGrid) { }
 
-void calculateVelocityMoments(ParGrid<SpatialCell>& mpiGrid) { 
+void calculateVelocityMoments(dccrg<SpatialCell>& mpiGrid) { 
    vector<CellID> cells;
    mpiGrid.getCells(cells);
    
@@ -719,4 +690,4 @@ void calculateVelocityMoments(ParGrid<SpatialCell>& mpiGrid) {
    }
 }
 
-#endif
+
