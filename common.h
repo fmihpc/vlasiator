@@ -121,7 +121,8 @@ namespace BlockParams {
       VZCRD,   /**< vz-coordinate of the bottom left corner of the block.*/
       DVX,     /**< Grid separation in vx-coordinate for the block.*/
       DVY,     /**< Grid separation in vy-coordinate for the block.*/
-      DVZ      /**< Grid separation in vz-coordinate for the block.*/
+      DVZ,     /**< Grid separation in vz-coordinate for the block.*/
+      N_VELOCITY_BLOCK_PARAMS
    };
 }
 
@@ -171,7 +172,8 @@ namespace CellParams {
       BZVOL,   /**< Bz averaged over spatial cell.*/
       EXVOL,   /**< Ex averaged over spatial cell.*/
       EYVOL,   /**< Ey averaged over spatial cell.*/
-      EZVOL    /**< Ez averaged over spatial cell.*/
+      EZVOL,   /**< Ez averaged over spatial cell.*/
+      N_SPATIAL_CELL_PARAMS
    };
 }
 
