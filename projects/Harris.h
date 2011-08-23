@@ -26,7 +26,7 @@
 //# define SCA_LX (1500.0 * d_i)
 //# define SCA_LZ (3000.0 * d_i)
 // Magnetic field at "infinity", T
-# define B0 5.89063e-8
+# define B0 8.33061003094e-8
 # define TEMPERATURE 2.0e6
 // At "infinity", m^-3
 # define DENSITY 1.0e7
