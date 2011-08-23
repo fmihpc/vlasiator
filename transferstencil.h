@@ -33,15 +33,22 @@ template<typename CELLID> struct TransferStencil {
 						       * that need the remote cell data for computations.*/
    std::multimap<CELLID,std::pair<int,int> > sends;   /**< List of (local ID,(host,tag)) pairs giving for each local cell the remote
 						       * (host,tag) pair for sending data over MPI.*/
-   std::map<std::pair<int,int>,CELLID> recvs;         /**< List of ((host,tag),remote ID) pairs giving remote host number, tag,
+    std::map<std::pair<int,int>,CELLID> recvs;         /**< List of ((host,tag),remote ID) pairs giving remote host number, tag,
 						       * and remote cell ID to receive.*/
 
-   #ifdef PARGRID
-      bool addReceives(const ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs);
-      bool addSends(const ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs);
-      bool addRemoteUpdateReceives(const ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs);
-      bool addRemoteUpdateSends(const ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs);
-   #endif
+#ifdef PARGRID
+    bool addReceives(const ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs);
+    bool addSends(const ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs);
+    bool addRemoteUpdateReceives(const ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs);
+    bool addRemoteUpdateSends(const ParGrid<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs);
+#else
+    bool addReceives(const dccrg<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs);
+    bool addSends(const dccrg<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs);
+    bool addRemoteUpdateReceives(const dccrg<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs);
+    bool addRemoteUpdateSends(const dccrg<SpatialCell>& mpiGrid,const std::vector<uchar>& nbrTypeIDs);
+#endif
+
+    
    
    TransferStencil(const CELLID& invalidCellID);
    void clear();
