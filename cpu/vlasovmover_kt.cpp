@@ -1,1 +1,1 @@
-pargrid/main_pargrid.cpp
+dccrg/main_dccrg.cpp

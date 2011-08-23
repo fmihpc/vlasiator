@@ -37,7 +37,7 @@ cpu_trans_kt.o: ${DEPS_CPU_TRANS_KT}
 	${AR} r libvlasovmover.a cpu_trans_kt.o
 
 ifeq ($(findstring PARGRID,$(CXXFLAGS)),PARGRID)
-vlasovmover_kt.o: ${DEPS_VLASOVMOVER_KT}
+vlasovmover_kt.o: ${DEPS_VLASOVMOVER_KT}   
 	ln -s -f pargrid/main_pargrid.cpp ./vlasovmover_kt.cpp
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -DMOVER_VLASOV_ORDER=2 -I${INSTALL} -c vlasovmover_kt.cpp ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG}
 	${AR} r libvlasovmover.a vlasovmover_kt.o
@@ -54,12 +54,19 @@ KT: ${DEPS_KT}
 # Rules specific to LEVEQUE solver #
 ####################################
 DEPS_LEVEQUE=memalloc.o vlasovmover_leveque.o
-DEPS_VLASOVMOVER_LEVEQUE=../cell_spatial.h ../project.h ../transferstencil.h ../pargrid.h cpu_acc_leveque.h cpu_trans_leveque.h cpu_common.h leveque_common.h vlasovmover_leveque.cpp
+DEPS_VLASOVMOVER_LEVEQUE=../cell_spatial.h ../project.h ../transferstencil.h ../pargrid.h cpu_acc_leveque.h cpu_trans_leveque.h cpu_common.h leveque_common.h dccrg/vlasovmover_leveque.cpp pargrid/vlasovmover_leveque.cpp
 
+ifeq ($(findstring PARGRID,$(CXXFLAGS)),PARGRID)
 vlasovmover_leveque.o: ${DEPS_VLASOVMOVER_LEVEQUE}
+	ln -s -f pargrid/vlasovmover_leveque.cpp ./vlasovmover_leveque.cpp
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -DMOVER_VLASOV_ORDER=2 -I${INSTALL} -c vlasovmover_leveque.cpp ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG}
 	${AR} r libvlasovmover.a vlasovmover_leveque.o
-
+else
+vlasovmover_leveque.o: ${DEPS_VLASOVMOVER_LEVEQUE}
+	ln -s -f dccrg/vlasovmover_leveque.cpp ./vlasovmover_leveque.cpp
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -DSIMPLE -DMOVER_VLASOV_ORDER=2 -I${INSTALL} -c vlasovmover_leveque.cpp ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG}
+	${AR} r libvlasovmover.a vlasovmover_leveque.o
+endif
 LEVEQUE: ${DEPS_LEVEQUE}
 
 ###############################################
