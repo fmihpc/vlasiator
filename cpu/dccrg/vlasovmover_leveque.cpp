@@ -63,9 +63,6 @@ static PriorityQueue<CellID> readyCells;
 */
 #endif
 
-inline uchar calcNbrTypeID(cuchar& i,cuchar& j,cuchar& k) {
-   return k*25 + j*5 + i;
-}
 
 bool initializeMover(dccrg<SpatialCell>& mpiGrid) { 
    
@@ -138,7 +135,40 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
    // ***** Calculate MPI send/receive stencils *****
 
    // Send/receive stencils for avgs:
-   vector<uchar> nbrTypeIDs;
+   vector<Offset> nbrOffsets;   
+   nbrOffsets.push_back(Offset(2-1,2  ,2  ));
+   nbrOffsets.push_back(Offset(2+1,2  ,2  ));
+   nbrOffsets.push_back(Offset(2  ,2-1,2  ));
+   nbrOffsets.push_back(Offset(2  ,2+1,2  ));
+   nbrOffsets.push_back(Offset(2  ,2  ,2-1));
+   nbrOffsets.push_back(Offset(2  ,2  ,2+1));
+   nbrOffsets.push_back(Offset(2-2,2  ,2  ));
+   nbrOffsets.push_back(Offset(2  ,2-2,2  ));
+   nbrOffsets.push_back(Offset(2  ,2  ,2-2));
+   stencilAverages.addReceives(mpiGrid,nbrOffsets);
+   nbrOffsets.clear();
+
+   nbrOffsets.push_back(Offset(2-1,2  ,2  ));
+   nbrOffsets.push_back(Offset(2+1,2  ,2  ));
+   nbrOffsets.push_back(Offset(2  ,2-1,2  ));
+   nbrOffsets.push_back(Offset(2  ,2+1,2  ));
+   nbrOffsets.push_back(Offset(2  ,2  ,2-1));
+   nbrOffsets.push_back(Offset(2  ,2  ,2+1));
+   nbrOffsets.push_back(Offset(2+2,2  ,2  ));
+   nbrOffsets.push_back(Offset(2  ,2+2,2  ));
+   nbrOffsets.push_back(Offset(2  ,2  ,2+2));
+   stencilAverages.addSends(mpiGrid,nbrOffsets);
+   nbrOffsets.clear();
+
+      // Send/receive stencils for df/dt updates:
+
+   for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
+       nbrOffsets.push_back(Offset(2+i,2+j,2+k));
+   }
+   stencilUpdates.addRemoteUpdateReceives(mpiGrid,nbrOffsets);
+   stencilUpdates.addRemoteUpdateSends(mpiGrid,nbrOffsets);
+   /*
+     REPLACED
    nbrTypeIDs.push_back(calcNbrTypeID(2-1,2  ,2  ));
    nbrTypeIDs.push_back(calcNbrTypeID(2+1,2  ,2  ));
    nbrTypeIDs.push_back(calcNbrTypeID(2  ,2-1,2  ));
@@ -161,27 +191,30 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
    nbrTypeIDs.push_back(calcNbrTypeID(2  ,2+2,2  ));
    nbrTypeIDs.push_back(calcNbrTypeID(2  ,2  ,2+2));
    stencilAverages.addSends(mpiGrid,nbrTypeIDs);
-   
-   // Send/receive stencils for df/dt updates:
    nbrTypeIDs.clear();
+   // Send/receive stencils for df/dt updates:
+
    for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
-      nbrTypeIDs.push_back(calcNbrTypeID(2+i,2+j,2+k));
+   nbrTypeIDs.push_back(calcNbrTypeID(2+i,2+j,2+k));
    }
    stencilUpdates.addRemoteUpdateReceives(mpiGrid,nbrTypeIDs);
    stencilUpdates.addRemoteUpdateSends(mpiGrid,nbrTypeIDs);
+   
+   */
 
    // Allocate receive buffers for all local cells that 
    // have at least one remote neighbour. For GPUs the first 
    // buffer must be allocated using page-locked memory:
+
    for (map<pair<int,int>,CellID>::const_iterator it=stencilUpdates.recvs.begin(); it!=stencilUpdates.recvs.end(); ++it) {
-      cint host            = it->first.first;
-      //cint tag             = it->first.second;
-      const CellID localID = it->second;
-      Real* buffer = NULL;
-      const size_t elements = mpiGrid[localID]->N_blocks*SIZE_VELBLOCK;
-      allocateArray(&buffer,elements);
-      updateBuffers.insert(make_pair(make_pair(localID,host),buffer));
-      remoteUpdates[localID].insert(buffer);
+       cint host            = it->first.first;
+       //cint tag             = it->first.second;
+       const CellID localID = it->second;
+       Real* buffer = NULL;
+       const size_t elements = mpiGrid[localID]->N_blocks*SIZE_VELBLOCK;
+       allocateArray(&buffer,elements);
+       updateBuffers.insert(make_pair(make_pair(localID,host),buffer));
+       remoteUpdates[localID].insert(buffer);
    }
    
    return true;
