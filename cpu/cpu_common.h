@@ -1,6 +1,8 @@
 #ifndef CPU_COMMON_H
 #define CPU_COMMON_H
 
+#include "cmath"
+
 #include "../definitions.h"
 #include "../common.h"
 
