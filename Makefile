@@ -14,9 +14,10 @@ MOVER ?= cpu
 #set a default vlasov solver, can also be set in Makefile.arch
 #Valid values are KT and LEVEQUE
 SOLVER ?= LEVEQUE
-
+#Add -DKT or -DLEVEQUE to compiler options (mandatory)
+CXXFLAGS += -DSOLVER_${SOLVER}
 #Add -DPARGRID to use pargrid instead of DCCRG
-CXXFLAGS += -DPARGRID  -DSIMPLE
+#CXXFLAGS += -DPARGRID -DSIMPLE 
 
 #Add -DPROFILE to get performance profiling information in the logfile
 CXXFLAGS += -DPROFILE

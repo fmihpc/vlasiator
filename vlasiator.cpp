@@ -475,6 +475,7 @@ int main(int argn,char* args[]) {
    }
    profile::stop("open mpilogger");
    profile::start("Initialize Grid");
+
 #ifndef PARGRID // INITIALIZE USING DCCRG
       // Create parallel MPI grid and init Zoltan:
       float zoltanVersion;
@@ -490,6 +491,7 @@ int main(int argn,char* args[]) {
       } else {
 	 mpilogger << "(MAIN) Grid built successfully" << endl << write;
       }
+
       
       dccrg<SpatialCell> mpiGrid(
          comm,
@@ -497,7 +499,11 @@ int main(int argn,char* args[]) {
          P::xmin, P::ymin, P::zmin,
          P::dx_ini, P::dy_ini, P::dz_ini,
          P::xcells_ini, P::ycells_ini, P::zcells_ini,
+#ifdef SOLVER_KT
          2, // neighborhood size
+#elif defined SOLVER_LEVEQUE
+         4, //neighborhood size
+#endif
          0, // maximum refinement level
          P::periodic_x, P::periodic_y, P::periodic_z
       );
