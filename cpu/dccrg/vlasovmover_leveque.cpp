@@ -17,7 +17,7 @@
 #include "cpu_acc_leveque.h"
 #include "cpu_trans_leveque.h"
 #include "../priorityqueue.h"
-
+#include "../mpilogger.h"
 using namespace std;
 
 #include <stdint.h>
@@ -50,6 +50,7 @@ namespace ID {
    typedef unsigned int type;
 }
 
+extern MPILogger mpilogger;
 
 bool initializeMover(dccrg<SpatialCell>& mpiGrid) { 
    
@@ -384,7 +385,9 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    std::vector<MPI_Status> MPIstatuses;
    MPIstatuses.resize(MPIsendRequests.size());
    MPI_Waitall(MPIsendRequests.size(),&(MPIsendRequests[0]),&(MPIstatuses[0]));   
-   for (uint i=0; i<MPIsendRequests.size(); ++i) if (MPIstatuses[i].MPI_ERROR != MPI_SUCCESS) rvalue=false;
+   for (uint i=0; i<MPIsendRequests.size(); ++i) if (MPIstatuses[i].MPI_ERROR != MPI_SUCCESS){
+       mpilogger <<" Some sends failed for leveque solver "<<endl<<write;
+   }
 #endif
    MPIsendRequests.clear();
    
@@ -763,7 +766,9 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
    std::vector<MPI_Status> MPIstatuses;
    MPIstatuses.resize(MPIsendRequests.size());
    MPI_Waitall(MPIsendRequests.size(),&(MPIsendRequests[0]),&(MPIstatuses[0]));   
-   for (uint i=0; i<MPIsendRequests.size(); ++i) if (MPIstatuses[i].MPI_ERROR != MPI_SUCCESS) rvalue=false;
+   for (uint i=0; i<MPIsendRequests.size(); ++i) if (MPIstatuses[i].MPI_ERROR != MPI_SUCCESS){
+       mpilogger <<" Some sends failed for leveque solver "<<endl<<write;
+   }
 #endif
    // Free memory:
    MPIsendRequests.clear();
