@@ -44,24 +44,11 @@ static map<CellID,set<Real*> > remoteUpdates;     /**< For each local cell recei
 						   * form to post MPI receives, remoteUpdates is convenient to iterate 
 						   * all cell's remote updates.*/
 
-std::vector<MPI_Request> MPIrecvRequests;               /**< Container for active MPI_Requests due to receives.*/
-std::vector<MPI_Request> MPIsendRequests;               /**< Container for active MPI_Requests due to sends.*/
-
 
 //??
 namespace ID {
    typedef unsigned int type;
 }
-
-#ifndef SIMPLE
-/*
-std::vector<MPI_Request> MPIrecvRequests2;
-std::vector<MPI_Request> MPIsendRequests2;
-
-
-static PriorityQueue<CellID> readyCells;
-*/
-#endif
 
 
 bool initializeMover(dccrg<SpatialCell>& mpiGrid) { 
@@ -275,7 +262,10 @@ void calculateSpatialDerivatives(dccrg<SpatialCell>& mpiGrid) { }
 #ifdef SIMPLE
 void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    typedef Parameters P;
-   
+   std::vector<MPI_Request> MPIrecvRequests;               /**< Container for active MPI_Requests due to receives.*/
+   std::vector<MPI_Request> MPIsendRequests;               /**< Container for active MPI_Requests due to sends.*/
+
+
    vector<CellID> cells;
    
    // TEMPORARY SOLUTION
@@ -640,7 +630,11 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
 #ifdef SIMPLE
 
 void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondStep,const bool& transferAvgs) { 
-   vector<CellID> cells;
+    std::vector<MPI_Request> MPIrecvRequests;               /**< Container for active MPI_Requests due to receives.*/
+    std::vector<MPI_Request> MPIsendRequests;               /**< Container for active MPI_Requests due to sends.*/
+
+
+    vector<CellID> cells;
    // Post receives for remote updates:
    
    // TEMPORARY SOLUTION
