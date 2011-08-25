@@ -1,10 +1,15 @@
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
 
-#include <mpi.h>
-#include <vector>
-#include <string>
 #include <limits>
+#include <mpi.h>
+
+#ifndef PARGRID
+#include <stdint.h>
+#endif
+
+#include <string>
+#include <vector>
 
 #include "definitions.h"
 
