@@ -74,11 +74,12 @@ CellID getNeighbourID(
    const uchar nbrTypeID = calcNbrTypeID(i,j,k);
    return mpiGrid.getNeighbour(cellID,nbrTypeID);
    #else
-   const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of(cellID, i - 2, j - 2, k - 2);
+   // TODO: merge this with the one in lond...anna.cpp and probably in ...mover_leveque.cpp
+   const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of(cellID, int(i) - 2, int(j) - 2, int(k) - 2);
    if (neighbors.size() == 0) {
       std::cerr << __FILE__ << ":" << __LINE__
          << " No neighbor for cell " << cellID
-         << " at offsets " << (uint16_t) i - 2 << ", " << (uint16_t) j - 2 << ", " << (uint16_t) k - 2
+         << " at offsets " << int(i) - 2 << ", " << int(j) - 2 << ", " << int(k) - 2
          << std::endl;
       abort();
    }

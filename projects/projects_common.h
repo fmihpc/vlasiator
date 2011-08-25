@@ -69,13 +69,14 @@ template<typename CELLID> CELLID getNeighbour(const ParGrid<SpatialCell>& mpiGri
 #else
 
 template<typename CELLID> CELLID getNeighbour(const dccrg<SpatialCell>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k){
-    std::vector<uint64_t> neighbors=mpiGrid.get_neighbors_of(cellID,i,j,k);
+    std::vector<uint64_t> neighbors = mpiGrid.get_neighbors_of(cellID, i, j, k);
 
-    //FIXME no support for refined grids
-    if(neighbors.size()!=1)
+    //FIXME: support refined grids
+    if(neighbors.size() > 0) {
         return neighbors[0];
-    else
+    } else {
         return INVALID_CELLID;
+    }
 }
 
 #endif

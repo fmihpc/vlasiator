@@ -497,8 +497,8 @@ int main(int argn,char* args[]) {
          P::xmin, P::ymin, P::zmin,
          P::dx_ini, P::dy_ini, P::dz_ini,
          P::xcells_ini, P::ycells_ini, P::zcells_ini,
-         2,
-         0,
+         2, // neighborhood size
+         0, // maximum refinement level
          P::periodic_x, P::periodic_y, P::periodic_z
       );
       //read in partitioning levels from input
@@ -648,7 +648,6 @@ int main(int argn,char* args[]) {
    calculateVelocityMoments(mpiGrid);
    profile::stop("Init vlasov propagator");
    
-#ifdef PARGRID
    profile::start("Init field propagator");
    // Initialize field propagator:
    if (initializeFieldPropagator(mpiGrid) == false) {
@@ -657,7 +656,7 @@ int main(int argn,char* args[]) {
    }
    calculateVolumeAveragedFields(mpiGrid);
    profile::stop("Init field propagator");
-#endif
+
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****
    // ***********************************

@@ -147,11 +147,11 @@ CellID getNeighbourID(
    const uchar nbrTypeID = calcNbrTypeID(i,j,k);
    return mpiGrid.getNeighbour(cellID,nbrTypeID);
    #else
-   const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of(cellID, i - 1, j - 1, k - 1);
+   const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of(cellID, int(i) - 2, int(j) - 2, int(k) - 2);
    if (neighbors.size() == 0) {
       cerr << __FILE__ << ":" << __LINE__
          << " No neighbor for cell " << cellID
-         << " at offsets " << i << ", " << j << ", " << k
+         << " at offsets " << int(i) - 2 << ", " << int(j) - 2 << ", " << int(k) - 2
          << endl;
       abort();
    }
@@ -178,17 +178,10 @@ static void calculateBoundaryFlags(
       for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
 	 if (i == 0 && (j == 0 && k == 0)) continue;
          #ifdef PARGRID
+	 // TODO: use getNeighbourID below
 	 const CellID nbr = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2+i,2+j,2+k));
 	 #else
-	 const vector<CellID> nbrs = mpiGrid.get_neighbors_of(cellID, 1+i, 1+j, 1+k);
-         if (nbrs.size() == 0) {
-            cerr << __FILE__ << ":" << __LINE__
-               << " No neighbor for cell " << cellID
-               << " at offsets " << i << ", " << j << ", " << k
-               << endl;
-            abort();
-         }
-         const CellID nbr = nbrs[0];
+         const CellID nbr = getNeighbourID(mpiGrid, cellID, 2 + i, 2 + j, 2 + k);
 	 #endif
 	 if (nbr == INVALID_CELLID) continue;
 	 boundaryFlag = boundaryFlag | (1 << calcNbrNumber(1+i,1+j,1+k));
@@ -869,14 +862,32 @@ static void propagateMagneticField(
       #ifndef NDEBUG
          if (nbrID == INVALID_CELLID) {cerr << "Failed to get nbr pointer!" << endl; exit(1);}
       #endif
+
+      if (mpiGrid[nbrID] == NULL) {
+         std::cerr << __FILE__ << ":" << __LINE__
+            << " No data for cell " << nbrID
+            << " while solving cell " << cellID
+            << " in positive y direction"
+            << std::endl;
+         abort();
+      }
       cp1 = mpiGrid[nbrID]->cpu_cellParams;
-      
+
       nbrID = getNeighbourID(mpiGrid, cellID, 2  , 2  , 2+1);
       #ifndef NDEBUG
          if (nbrID == INVALID_CELLID) {cerr << "Failed to get nbr pointer!" << endl; exit(1);}
       #endif
+
+      if (mpiGrid[nbrID] == NULL) {
+         std::cerr << __FILE__ << ":" << __LINE__
+            << " No data for cell " << nbrID
+            << " while solving cell " << cellID
+            << " in positive z direction"
+            << std::endl;
+         abort();
+      }
       cp2 = mpiGrid[nbrID]->cpu_cellParams;
-      
+
       cp0[CellParams::BX] += dt/dz*(cp2[CellParams::EY] - cp0[CellParams::EY]) + dt/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ]);
    }
    
@@ -886,14 +897,32 @@ static void propagateMagneticField(
       #ifndef NDEBUG
          if (nbrID == INVALID_CELLID) {cerr << "Failed to get nbr pointer!" << endl; exit(1);}
       #endif
+
+      if (mpiGrid[nbrID] == NULL) {
+         std::cerr << __FILE__ << ":" << __LINE__
+            << " No data for cell " << nbrID
+            << " while solving cell " << cellID
+            << " in positive z direction"
+            << std::endl;
+         abort();
+      }
       cp1 = mpiGrid[nbrID]->cpu_cellParams;
-      
+
       nbrID = getNeighbourID(mpiGrid, cellID, 2+1, 2  , 2  );
       #ifndef NDEBUG
          if (nbrID == INVALID_CELLID) {cerr << "Failed to get nbr pointer!" << endl; exit(1);}
       #endif
+
+      if (mpiGrid[nbrID] == NULL) {
+         std::cerr << __FILE__ << ":" << __LINE__
+            << " No data for cell " << nbrID
+            << " while solving cell " << cellID
+            << " in positive x direction"
+            << std::endl;
+         abort();
+      }
       cp2 = mpiGrid[nbrID]->cpu_cellParams;
-      
+
       cp0[CellParams::BY] += dt/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) + dt/dz*(cp0[CellParams::EX] - cp1[CellParams::EX]);
    }
       
@@ -903,14 +932,32 @@ static void propagateMagneticField(
       #ifndef NDEBUG
          if (nbrID == INVALID_CELLID) {cerr << "Failed to get nbr pointer!" << endl; exit(1);}
       #endif
+
+      if (mpiGrid[nbrID] == NULL) {
+         std::cerr << __FILE__ << ":" << __LINE__
+            << " No data for cell " << nbrID
+            << " while solving cell " << cellID
+            << " in positive x direction"
+            << std::endl;
+         abort();
+      }
       cp1 = mpiGrid[nbrID]->cpu_cellParams;
-      
+
       nbrID = getNeighbourID(mpiGrid, cellID, 2  , 2+1, 2  );
       #ifndef NDEBUG
          if (nbrID == INVALID_CELLID) {cerr << "Failed to get nbr pointer!" << endl; exit(1);}
       #endif
+
+      if (mpiGrid[nbrID] == NULL) {
+         std::cerr << __FILE__ << ":" << __LINE__
+            << " No data for cell " << nbrID
+            << " while solving cell " << cellID
+            << " in positive y direction"
+            << std::endl;
+         abort();
+      }
       cp2 = mpiGrid[nbrID]->cpu_cellParams;
-      
+
       cp0[CellParams::BZ] += dt/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) + dt/dx*(cp0[CellParams::EY] - cp1[CellParams::EY]);
    }
 }
@@ -1658,12 +1705,20 @@ static void propagateMagneticFieldSimple(
          cuint existingCells = boundaryFlags[cellID];
       #endif
       cuint nonExistingCells = (existingCells ^ numeric_limits<uint>::max());
+      if (mpiGrid[cellID] == NULL) {
+         std::cerr << __FILE__ << ":" << __LINE__
+            << " No data for cell " << cellID
+            << std::endl;
+         abort();
+      }
+
       if ((existingCells & PROPAGATE_BX) != PROPAGATE_BX)
 	mpiGrid[cellID]->cpu_cellParams[CellParams::BX] = fieldSolverBoundaryCondBx<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
       if ((existingCells & PROPAGATE_BY) != PROPAGATE_BY)
 	mpiGrid[cellID]->cpu_cellParams[CellParams::BY] = fieldSolverBoundaryCondBy<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
-      if ((existingCells & PROPAGATE_BZ) != PROPAGATE_BZ)
-	mpiGrid[cellID]->cpu_cellParams[CellParams::BZ] = fieldSolverBoundaryCondBz<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
+      if ((existingCells & PROPAGATE_BZ) != PROPAGATE_BZ) {
+         mpiGrid[cellID]->cpu_cellParams[CellParams::BZ] = fieldSolverBoundaryCondBz<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
+      }
    }
 }
 
