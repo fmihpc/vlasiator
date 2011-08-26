@@ -346,11 +346,12 @@ template<typename CELLID> bool TransferStencil<CELLID>::addReceives(const dccrg<
                                                                   nbrOffsets[i].x,
                                                                   nbrOffsets[i].y,
                                                                   nbrOffsets[i].z);
-            if (nbrIDs.size()<0)
+            if (nbrIDs.size()==0)
                 continue; // Skip non-existing neighbours
             if (nbrIDs.size() >1 )
                 return (!success); //no support for refined case
             const CELLID nbrID=nbrIDs[0];
+            if (nbrID == INVALID_CELLID) continue; // Skip non-existing neighbours
             host=mpiGrid.get_process(nbrID);
             if(host==localHost) continue; //only remote neighbours 
             
@@ -422,11 +423,12 @@ template<typename CELLID> bool TransferStencil<CELLID>::addSends(const dccrg<Spa
                                                                   nbrOffsets[i].x,
                                                                   nbrOffsets[i].y,
                                                                   nbrOffsets[i].z);
-            if (nbrIDs.size()<0)
+            if (nbrIDs.size()==0)
                 continue; // Skip non-existing neighbours
             if (nbrIDs.size() >1 )
                 return (!success); //no support for refined case
             const CELLID nbrID=nbrIDs[0];
+            if (nbrID == INVALID_CELLID) continue; // Skip non-existing neighbours
             host=mpiGrid.get_process(nbrID);
             if(host==localHost) continue; //only remote neighbours 
 
@@ -490,11 +492,12 @@ template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateSends(con
                                                                  nbrOffsets[i].x,
                                                                  nbrOffsets[i].y,
                                                                  nbrOffsets[i].z);
-           if (nbrIDs.size()<0)
+           if (nbrIDs.size()==0)
                 continue; // Skip non-existing neighbours
            if (nbrIDs.size() >1 )
                return (!success); //no support for refined case
            const CELLID nbrID=nbrIDs[0];
+            if (nbrID == INVALID_CELLID) continue; // Skip non-existing neighbours
            host=mpiGrid.get_process(nbrID);
            if(host==localHost) continue; //only remote neighbours
            
@@ -562,11 +565,12 @@ template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateReceives(
                                                                  nbrOffsets[i].x,
                                                                  nbrOffsets[i].y,
                                                                  nbrOffsets[i].z);
-           if (nbrIDs.size()<0)
+           if (nbrIDs.size()==0)
                 continue; // Skip non-existing neighbours
            if (nbrIDs.size() >1 )
                return (!success); //no support for refined case
            const CELLID nbrID=nbrIDs[0];
+           if (nbrID == INVALID_CELLID) continue; // Skip non-existing neighbours
            host=mpiGrid.get_process(nbrID);
            if(host==localHost) continue; //only remote neighbours 
 

@@ -55,10 +55,16 @@ extern MPILogger mpilogger;
 bool initializeMover(dccrg<SpatialCell>& mpiGrid) { 
    
    // Populate spatial neighbour list:
-   vector<CellID> cells;
-   cells=mpiGrid.get_all_cells();
+   vector<CellID> cells,remoteCells;
+   std::vector<CellID> nbrs; //temporary vector for neighbors at certain offset
+/* REPLACED  mpiGrid.getAllCells(cells); */
+   
+   cells=mpiGrid.get_cells();
+   remoteCells=mpiGrid.get_remote_cells();
+   cells.insert( cells.end(), remoteCells.begin(), remoteCells.end() );
+   
    for (size_t cell=0; cell<cells.size(); ++cell) {
-      cuint cellID = cells[cell];
+       cuint cellID = cells[cell];
       uint* const nbrsSpa = mpiGrid[cellID]->cpu_nbrsSpa;
       bool isGhost = false;
       
@@ -69,10 +75,17 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
           if ((i == 0) & ((j == 0) & (k == 0))) nbrIDs.push_back(cellID); // in dccrg cells do not consider themselves as their own neighbours
           else {
               //REPLACED nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2+i,2+j,2+k)));
-              //FIXME no support for refined grids, assume vector size is always 1
-              nbrIDs.push_back(mpiGrid.get_neighbors_of(cellID,i,j,k)[0]);
+              //FIXME no subpport for refined grids, assume vector size is always 1
+              nbrs = mpiGrid.get_neighbors_of(cellID,i,j,k);
+              if (nbrs.size() >1 )
+                  return false; //no support for refined case
+              else if (nbrs.size()==0)
+                  nbrIDs.push_back(INVALID_CELLID); //does not exist
+              else
+                  nbrIDs.push_back(nbrs[0]);
               //CHECKME is this also true for DCCRG
-              if (nbrIDs.back() == INVALID_CELLID) isGhost = true;
+              if (nbrIDs.back() == INVALID_CELLID)
+                  isGhost = true;
           }
           ++counter;
       }
@@ -81,9 +94,29 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
       nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,0,2))); // i,j-2,k nbr, goes to index 28
       nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,2,0))); // i,j,k-2 nbr, goes to index 29
       */
-      nbrIDs.push_back(mpiGrid.get_neighbors_of(cellID,0,2,2)[0]); 
-      nbrIDs.push_back(mpiGrid.get_neighbors_of(cellID,2,0,2)[0]); 
-      nbrIDs.push_back(mpiGrid.get_neighbors_of(cellID,2,2,0)[0]); 
+      nbrs = mpiGrid.get_neighbors_of(cellID,0,2,2);
+      if (nbrs.size() >1 )
+          return false; //no support for refined case
+      else if (nbrs.size()==0)
+          nbrIDs.push_back(INVALID_CELLID); //does not exist
+      else
+          nbrIDs.push_back(nbrs[0]);
+
+      nbrs = mpiGrid.get_neighbors_of(cellID,2,0,2);
+      if (nbrs.size() >1 )
+          return false; //no support for refined case
+      else if (nbrs.size()==0)
+          nbrIDs.push_back(INVALID_CELLID); //does not exist
+      else
+          nbrIDs.push_back(nbrs[0]);      
+
+      nbrs = mpiGrid.get_neighbors_of(cellID,2,2,0);
+      if (nbrs.size() >1 )
+          return false; //no support for refined case
+      else if (nbrs.size()==0)
+          nbrIDs.push_back(INVALID_CELLID); //does not exist
+      else
+          nbrIDs.push_back(nbrs[0]);      
 
       
       // Store neighbour offsets into a vector:
@@ -322,7 +355,10 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    // Clear spatial fluxes to zero value. Remote neighbour df/dt arrays 
    // need to be cleared as well:
    profile::start("df/dt updates in spatial space");
-   cells=mpiGrid.get_all_cells();
+   cells=mpiGrid.get_cells();
+   vector<CellID> remoteCells=mpiGrid.get_remote_cells();
+   cells.insert( cells.end(), remoteCells.begin(), remoteCells.end() );
+   
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       Real*  const dfdt   = mpiGrid[cellID]->cpu_fx;      
