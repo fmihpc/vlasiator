@@ -492,18 +492,18 @@ int main(int argn,char* args[]) {
 	 mpilogger << "(MAIN) Grid built successfully" << endl << write;
       }
 
-      
       dccrg<SpatialCell> mpiGrid(
          comm,
          "HYPERGRAPH",
          P::xmin, P::ymin, P::zmin,
          P::dx_ini, P::dy_ini, P::dz_ini,
          P::xcells_ini, P::ycells_ini, P::zcells_ini,
-#ifdef SOLVER_KT
-         0, // neighborhood size
-#elif defined SOLVER_LEVEQUE
-         2, //neighborhood size
-#endif
+         // neighborhood size
+         #ifdef SOLVER_KT
+         1, // kt need 0 but field volume average calculation needs 1
+         #elif defined SOLVER_LEVEQUE
+         2,
+         #endif
          0, // maximum refinement level
          P::periodic_x, P::periodic_y, P::periodic_z
       );
@@ -654,7 +654,7 @@ int main(int argn,char* args[]) {
    calculateVelocityMoments(mpiGrid);
    profile::stop("Init vlasov propagator");
    
-   /*profile::start("Init field propagator");
+   profile::start("Init field propagator");
    // Initialize field propagator:
    if (P::propagateField == true) {
       if (initializeFieldPropagator(mpiGrid) == false) {
@@ -663,7 +663,7 @@ int main(int argn,char* args[]) {
       }
    }
    calculateVolumeAveragedFields(mpiGrid);
-   profile::stop("Init field propagator");*/
+   profile::stop("Init field propagator");
 
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****
@@ -758,13 +758,13 @@ int main(int argn,char* args[]) {
       // edge-E and face-B have been shared with remote neighbours 
       // (not done by calculateFaceAveragedFields).
 
-      /*if (P::propagateField == true) {
+      if (P::propagateField == true) {
           profile::start("Propagate Fields");
           propagateFields(mpiGrid,P::dt);
           profile::stop("Propagate Fields",computedSpatialCells,"SpatialCells");
       } else {
 	 calculateFaceAveragedFields(mpiGrid);
-      }*/
+      }
       profile::stop("Propagate",computedSpatialCells,"SpatialCells");
       ++P::tstep;
       P::t += P::dt;
@@ -781,7 +781,7 @@ int main(int argn,char* args[]) {
 	   if (myrank == MASTER_RANK)
 	     mpilogger << "(MAIN): Writing spatial cell data to disk, tstep = " << P::tstep << " t = " << P::t << endl << write;
 	 
-	 //calculateVolumeAveragedFields(mpiGrid);
+	 calculateVolumeAveragedFields(mpiGrid);
 	 if (writeGrid(mpiGrid,reducer,writeRestartData) == false) {
 	    if (myrank == MASTER_RANK)
 	      mpilogger << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
@@ -795,7 +795,7 @@ int main(int argn,char* args[]) {
    profile::stop("Simulation",totalComputedSpatialCells,"SpatialCells");
    profile::start("Finalization");   
    finalizeMover();
-   //finalizeFieldPropagator(mpiGrid);
+   finalizeFieldPropagator(mpiGrid);
    
    if (myrank == MASTER_RANK) {
        mpilogger << "(MAIN): All timesteps calculated." << endl;
