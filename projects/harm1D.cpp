@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
+#include <limits>
 
 #include "cell_spatial.h"
 #include "common.h"
@@ -33,8 +34,8 @@ Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal&
    creal VSIGMA = 0.2;
    creal INVVSIG2 = 1.0/(VSIGMA*VSIGMA);
    
-   if (fabs(x + 0.6) > dx) return 0.0;
-   if (fabs(vx) > 0.051) return 0.0;
+   if (fabs(x + 0.6) > dx) return 1e-10;
+   if (fabs(vx) > 0.051) return 1e-10;
    //if (fabs(x) > X0 || fabs(y) > Y0) return 0.0;
    //if (fabs(vx-VX0) > DVX) return 0.0;
    //if (fabs(vy-VY0) > DVY) return 0.0;
