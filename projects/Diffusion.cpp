@@ -47,18 +47,6 @@ void calcCellParameters(Real* cellParams,creal& t) {
   cellParams[CellParams::BZ   ] = B0;
 }
 
-/*void calcCellParameters(Real* cellParams,creal& t) {
-   creal y = cellParams[CellParams::YCRD];
-   creal dy = cellParams[CellParams::DY];
-   
-   cellParams[CellParams::EX   ] = 0.0;
-   cellParams[CellParams::EY   ] = 0.0;
-   cellParams[CellParams::EZ   ] = 0.0;
-   cellParams[CellParams::BY   ] = 0.0;
-   cellParams[CellParams::BZ   ] = 0.0;
-   cellParams[CellParams::BX   ] = B0 * tanh((y + 0.5 * dy) / SCA_LAMBDA);
-}*/
-
 // TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
 #ifndef PARGRID
 void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
