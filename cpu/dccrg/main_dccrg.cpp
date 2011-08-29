@@ -100,14 +100,12 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
       // Get spatial neighbour IDs and store them into a vector:
       uint counter = 0;
       std::vector<uint> nbrIDs;
-      for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
-	 if ((i == 0) & (j == 0) & (k == 0)) nbrIDs.push_back(cellID); // in ParGrid cells do not consider themselves as their own neighbours
-	 else nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2 + i, 2 + j, 2 + k));
-	 ++counter;
-      }
-      nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 0, 2, 2));	// i-2, j, k nbr, goes to index 27
-      nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2, 0, 2));	// i, j-2, k nbr, goes to index 28
-      nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2, 2, 0));	// i, j, k-2 nbr, goes to index 29
+      nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2 - 1, 2    , 2    ));
+      nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2 + 1, 2    , 2    ));
+      nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2    , 2 - 1, 2    ));
+      nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2    , 2 + 1, 2    ));
+      nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2    , 2    , 2 - 1));
+      nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2    , 2    , 2 + 1));
 
       // Store neighbour offsets into a vector:
       std::vector<uint> cellOffsets(nbrIDs.size());
