@@ -60,7 +60,7 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
 /* REPLACED  mpiGrid.getAllCells(cells); */
    
    cells=mpiGrid.get_cells();
-   remoteCells=mpiGrid.get_remote_cells();
+   remoteCells=mpiGrid.get_list_of_remote_cells_with_local_neighbours();
    cells.insert( cells.end(), remoteCells.begin(), remoteCells.end() );
    
    for (size_t cell=0; cell<cells.size(); ++cell) {
@@ -356,7 +356,7 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    // need to be cleared as well:
    profile::start("df/dt updates in spatial space");
    cells=mpiGrid.get_cells();
-   vector<CellID> remoteCells=mpiGrid.get_remote_cells();
+   vector<CellID> remoteCells=mpiGrid.get_list_of_remote_cells_with_local_neighbours();
    cells.insert( cells.end(), remoteCells.begin(), remoteCells.end() );
    
    for (size_t c=0; c<cells.size(); ++c) {
