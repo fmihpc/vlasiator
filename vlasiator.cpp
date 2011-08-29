@@ -500,7 +500,7 @@ int main(int argn,char* args[]) {
          P::xcells_ini, P::ycells_ini, P::zcells_ini,
          // neighborhood size
          #ifdef SOLVER_KT
-         1, // kt need 0 but field volume average calculation needs 1
+         1, // kt needs 0 but field volume average calculation needs 1
          #elif defined SOLVER_LEVEQUE
          2,
          #endif
