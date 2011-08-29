@@ -216,13 +216,31 @@ static void calculateDerivatives(
    CellID leftNbrID,rghtNbrID;
    creal* left = NULL;
    creal* cent = mpiGrid[cellID   ]->cpu_cellParams;
+   if (cent[cp::RHO] == 0) {
+      std::cerr << __FILE__ << ":" << __LINE__
+         << " Zero density in spatial cell " << cellID
+         << std::endl;
+      abort();
+   }
    creal* rght = NULL;
    // Calculate x-derivatives (is not TVD for AMR mesh):
    if ((existingCells & CALCULATE_DX) == CALCULATE_DX) {
       leftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2  ,2  );
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2  ,2  );
       left = mpiGrid[leftNbrID]->cpu_cellParams;
+      if (left[cp::RHO] == 0) {
+         std::cerr << __FILE__ << ":" << __LINE__
+            << " Zero density in spatial cell " << leftNbrID
+            << std::endl;
+         abort();
+      }
       rght = mpiGrid[rghtNbrID]->cpu_cellParams;
+      if (rght[cp::RHO] == 0) {
+         std::cerr << __FILE__ << ":" << __LINE__
+            << " Zero density in spatial cell " << rghtNbrID
+            << std::endl;
+         abort();
+      }
       array[fs::drhodx] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
       array[fs::dBydx]  = limiter(left[cp::BY],cent[cp::BY],rght[cp::BY]);
       array[fs::dBzdx]  = limiter(left[cp::BZ],cent[cp::BZ],rght[cp::BZ]);
@@ -238,7 +256,19 @@ static void calculateDerivatives(
       leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2-1,2  );
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2+1,2  );
       left = mpiGrid[leftNbrID]->cpu_cellParams;
+      if (left[cp::RHO] == 0) {
+         std::cerr << __FILE__ << ":" << __LINE__
+            << " Zero density in spatial cell " << leftNbrID
+            << std::endl;
+         abort();
+      }
       rght = mpiGrid[rghtNbrID]->cpu_cellParams;
+      if (rght[cp::RHO] == 0) {
+         std::cerr << __FILE__ << ":" << __LINE__
+            << " Zero density in spatial cell " << rghtNbrID
+            << std::endl;
+         abort();
+      }
       array[fs::drhody] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
       array[fs::dBxdy]  = limiter(left[cp::BX],cent[cp::BX],rght[cp::BX]);
       array[fs::dBzdy]  = limiter(left[cp::BZ],cent[cp::BZ],rght[cp::BZ]);
@@ -254,7 +284,19 @@ static void calculateDerivatives(
       leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2-1);
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2+1);
       left = mpiGrid[leftNbrID]->cpu_cellParams;
+      if (left[cp::RHO] == 0) {
+         std::cerr << __FILE__ << ":" << __LINE__
+            << " Zero density in spatial cell " << leftNbrID
+            << std::endl;
+         abort();
+      }
       rght = mpiGrid[rghtNbrID]->cpu_cellParams;
+      if (rght[cp::RHO] == 0) {
+         std::cerr << __FILE__ << ":" << __LINE__
+            << " Zero density in spatial cell " << rghtNbrID
+            << std::endl;
+         abort();
+      }
       array[fs::drhodz] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
       array[fs::dBxdz]  = limiter(left[cp::BX],cent[cp::BX],rght[cp::BX]);
       array[fs::dBydz]  = limiter(left[cp::BY],cent[cp::BY],rght[cp::BY]);
@@ -1693,8 +1735,6 @@ static void propagateMagneticFieldSimple(
    }
    
    // Calculate new B on faces outside the simulation domain using boundary conditions.
-   // Vector localCells contains all cells (local + remote neighbours) stored on this 
-   // process, so boundary conditions are correctly calculated for remote ghost cells as well.
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];
       #ifndef NDEBUG
