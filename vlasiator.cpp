@@ -656,9 +656,11 @@ int main(int argn,char* args[]) {
    
    profile::start("Init field propagator");
    // Initialize field propagator:
-   if (initializeFieldPropagator(mpiGrid) == false) {
-      mpilogger << "(MAIN): Field propagator did not initialize correctly!" << endl << write;
-      exit(1);
+   if (P::propagateField == true) {
+      if (initializeFieldPropagator(mpiGrid) == false) {
+         mpilogger << "(MAIN): Field propagator did not initialize correctly!" << endl << write;
+         exit(1);
+      }
    }
    calculateVolumeAveragedFields(mpiGrid);
    profile::stop("Init field propagator");
@@ -793,9 +795,7 @@ int main(int argn,char* args[]) {
    profile::stop("Simulation",totalComputedSpatialCells,"SpatialCells");
    profile::start("Finalization");   
    finalizeMover();
-#ifdef PARGRID
    finalizeFieldPropagator(mpiGrid);
-#endif
    
    if (myrank == MASTER_RANK) {
        mpilogger << "(MAIN): All timesteps calculated." << endl;
