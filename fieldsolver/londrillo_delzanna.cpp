@@ -127,9 +127,22 @@ inline uchar calcNbrNumber(const uchar& i,const uchar& j,const uchar& k) {return
 inline uchar calcNbrTypeID(const uchar& i,const uchar& j,const uchar& k) {return k*25+j*5+i;}
 
 Real limiter(creal& left,creal& cent,creal& rght) {
-   //return minmod(left,cent,rght);
-   return MClimiter(left,cent,rght);
-   //return vanLeer(left,cent,rght);
+   //const Real limited = minmod(left,cent,rght);
+   const Real limited = MClimiter(left,cent,rght);
+   //const Real limited = vanLeer(left,cent,rght);
+
+   #ifdef DEBUG_SOLVERS
+   if (limited != limited
+   || limited * 0 != 0) {
+      std::cerr << __FILE__ << ":" << __LINE__
+         << " Limiter returned an invalid value " << limited
+         << " with left, center, right: " << left << ", " << cent << ", " << rght
+         << std::endl;
+      abort();
+   }
+   #endif
+
+   return limited;
 }
 
 CellID getNeighbourID(
@@ -241,12 +254,28 @@ static void calculateDerivatives(
             << std::endl;
          abort();
       }
+
       array[fs::drhodx] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
+      CHECK_FLOAT(array[fs::drhodx])
+
+      CHECK_FLOAT(left[cp::BY])
+      CHECK_FLOAT(cent[cp::BY])
+      CHECK_FLOAT(rght[cp::BY])
       array[fs::dBydx]  = limiter(left[cp::BY],cent[cp::BY],rght[cp::BY]);
+      CHECK_FLOAT(array[fs::dBydx])
+
+      CHECK_FLOAT(left[cp::BZ])
+      CHECK_FLOAT(cent[cp::BZ])
+      CHECK_FLOAT(rght[cp::BZ])
       array[fs::dBzdx]  = limiter(left[cp::BZ],cent[cp::BZ],rght[cp::BZ]);
+      CHECK_FLOAT(array[fs::dBzdx])
+
       array[fs::dVxdx]  = limiter(left[cp::RHOVX]/left[cp::RHO],cent[cp::RHOVX]/cent[cp::RHO],rght[cp::RHOVX]/rght[cp::RHO]);
+      CHECK_FLOAT(array[fs::dVxdx])
       array[fs::dVydx]  = limiter(left[cp::RHOVY]/left[cp::RHO],cent[cp::RHOVY]/cent[cp::RHO],rght[cp::RHOVY]/rght[cp::RHO]);
+      CHECK_FLOAT(array[fs::dVydx])
       array[fs::dVzdx]  = limiter(left[cp::RHOVZ]/left[cp::RHO],cent[cp::RHOVZ]/cent[cp::RHO],rght[cp::RHOVZ]/rght[cp::RHO]);
+      CHECK_FLOAT(array[fs::dVzdx])
    } else {
       fieldSolverBoundaryCondDerivX(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid);
    }
@@ -255,6 +284,7 @@ static void calculateDerivatives(
    if ((existingCells & CALCULATE_DY) == CALCULATE_DY) {
       leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2-1,2  );
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2+1,2  );
+
       left = mpiGrid[leftNbrID]->cpu_cellParams;
       if (left[cp::RHO] == 0) {
          std::cerr << __FILE__ << ":" << __LINE__
@@ -262,6 +292,7 @@ static void calculateDerivatives(
             << std::endl;
          abort();
       }
+
       rght = mpiGrid[rghtNbrID]->cpu_cellParams;
       if (rght[cp::RHO] == 0) {
          std::cerr << __FILE__ << ":" << __LINE__
@@ -269,12 +300,30 @@ static void calculateDerivatives(
             << std::endl;
          abort();
       }
+
+      CHECK_FLOAT(left[cp::RHO])
+      CHECK_FLOAT(cent[cp::RHO])
+      CHECK_FLOAT(rght[cp::RHO])
       array[fs::drhody] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
+
+      CHECK_FLOAT(left[cp::BX])
+      CHECK_FLOAT(cent[cp::BX])
+      CHECK_FLOAT(rght[cp::BX])
       array[fs::dBxdy]  = limiter(left[cp::BX],cent[cp::BX],rght[cp::BX]);
+      CHECK_FLOAT(array[fs::dBxdy])
+
+      CHECK_FLOAT(left[cp::BZ])
+      CHECK_FLOAT(cent[cp::BZ])
+      CHECK_FLOAT(rght[cp::BZ])
       array[fs::dBzdy]  = limiter(left[cp::BZ],cent[cp::BZ],rght[cp::BZ]);
+      CHECK_FLOAT(array[fs::dBzdy])
+
       array[fs::dVxdy]  = limiter(left[cp::RHOVX]/left[cp::RHO],cent[cp::RHOVX]/cent[cp::RHO],rght[cp::RHOVX]/rght[cp::RHO]);
+      CHECK_FLOAT(array[fs::dVxdy])
       array[fs::dVydy]  = limiter(left[cp::RHOVY]/left[cp::RHO],cent[cp::RHOVY]/cent[cp::RHO],rght[cp::RHOVY]/rght[cp::RHO]);
+      CHECK_FLOAT(array[fs::dVydy])
       array[fs::dVzdy]  = limiter(left[cp::RHOVZ]/left[cp::RHO],cent[cp::RHOVZ]/cent[cp::RHO],rght[cp::RHOVZ]/rght[cp::RHO]);
+      CHECK_FLOAT(array[fs::dVzdy])
    } else {
       fieldSolverBoundaryCondDerivY(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid);
    }
@@ -297,12 +346,30 @@ static void calculateDerivatives(
             << std::endl;
          abort();
       }
+
+      CHECK_FLOAT(left[cp::RHO])
+      CHECK_FLOAT(cent[cp::RHO])
+      CHECK_FLOAT(rght[cp::RHO])
       array[fs::drhodz] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
+
+      CHECK_FLOAT(left[cp::BX])
+      CHECK_FLOAT(cent[cp::BX])
+      CHECK_FLOAT(rght[cp::BX])
       array[fs::dBxdz]  = limiter(left[cp::BX],cent[cp::BX],rght[cp::BX]);
+      CHECK_FLOAT(array[fs::dBxdz])
+
+      CHECK_FLOAT(left[cp::BY])
+      CHECK_FLOAT(cent[cp::BY])
+      CHECK_FLOAT(rght[cp::BY])
       array[fs::dBydz]  = limiter(left[cp::BY],cent[cp::BY],rght[cp::BY]);
+      CHECK_FLOAT(array[fs::dBydz])
+
       array[fs::dVxdz]  = limiter(left[cp::RHOVX]/left[cp::RHO],cent[cp::RHOVX]/cent[cp::RHO],rght[cp::RHOVX]/rght[cp::RHO]);
+      CHECK_FLOAT(array[fs::dVxdz])
       array[fs::dVydz]  = limiter(left[cp::RHOVY]/left[cp::RHO],cent[cp::RHOVY]/cent[cp::RHO],rght[cp::RHOVY]/rght[cp::RHO]);
+      CHECK_FLOAT(array[fs::dVydz])
       array[fs::dVzdz]  = limiter(left[cp::RHOVZ]/left[cp::RHO],cent[cp::RHOVZ]/cent[cp::RHO],rght[cp::RHOVZ]/rght[cp::RHO]);
+      CHECK_FLOAT(array[fs::dVzdz])
    } else {
       fieldSolverBoundaryCondDerivZ(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid);
    }
@@ -327,7 +394,7 @@ template<typename REAL> REAL calculateFastMSspeedYZ(const REAL* cp,const REAL* d
    const REAL By2  = (By + zdir*HALF*dBydz)*(By + zdir*HALF*dBydz) + TWELWTH*dBydx*dBydx; // OK
    const REAL Bz2  = (Bz + ydir*HALF*dBzdy)*(Bz + ydir*HALF*dBzdy) + TWELWTH*dBzdx*dBzdx; // OK
    
-   const REAL rho = Parameters::m*(cp[CellParams::RHO] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz]);   
+   const REAL rho = Parameters::m*(cp[CellParams::RHO] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz]);
    return sqrt((Bx2+By2+Bz2) / (pc::MU_0 * rho));
 }
 
@@ -863,13 +930,19 @@ static void calculateEdgeElectricFieldZ(
    
    // Calculate properly upwinded edge-averaged Ez:
    cp_SW[CellParams::EZ] = ax_pos*ay_pos*Ez_NE + ax_pos*ay_neg*Ez_SE + ax_neg*ay_pos*Ez_NW + ax_neg*ay_neg*Ez_SW;
+   CHECK_FLOAT(cp_SW[CellParams::EZ])
    cp_SW[CellParams::EZ] /= ((ax_pos+ax_neg)*(ay_pos+ay_neg)+EPS);
+   CHECK_FLOAT(cp_SW[CellParams::EZ])
    #ifdef FS_1ST_ORDER
       cp_SW[CellParams::EZ] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bx_S-Bx_N);
+      CHECK_FLOAT(cp_SW[CellParams::EZ])
       cp_SW[CellParams::EZ] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(By_W-By_E);
+      CHECK_FLOAT(cp_SW[CellParams::EZ])
    #else
       cp_SW[CellParams::EZ] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bx_S-HALF*dBxdy_S) - (Bx_N+HALF*dBxdy_N));
+      CHECK_FLOAT(cp_SW[CellParams::EZ])
       cp_SW[CellParams::EZ] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((By_W-HALF*dBydx_W) - (By_E+HALF*dBydx_E));
+      CHECK_FLOAT(cp_SW[CellParams::EZ])
    #endif
 }
 
@@ -887,8 +960,11 @@ static void propagateMagneticField(
    creal* cp1;
    creal* cp2;
    creal dx = cp0[CellParams::DX];
+   CHECK_FLOAT(dx)
    creal dy = cp0[CellParams::DY];
+   CHECK_FLOAT(dy)
    creal dz = cp0[CellParams::DZ];
+   CHECK_FLOAT(dz)
    
    #ifndef NDEBUG
       map<CellID,uint>::const_iterator it = boundaryFlags.find(cellID);
@@ -930,7 +1006,12 @@ static void propagateMagneticField(
       }
       cp2 = mpiGrid[nbrID]->cpu_cellParams;
 
+      CHECK_FLOAT(cp0[CellParams::EY])
+      CHECK_FLOAT(cp0[CellParams::EZ])
+      CHECK_FLOAT(cp1[CellParams::EZ])
+      CHECK_FLOAT(cp2[CellParams::EY])
       cp0[CellParams::BX] += dt/dz*(cp2[CellParams::EY] - cp0[CellParams::EY]) + dt/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ]);
+      CHECK_FLOAT(cp0[CellParams::BX])
    }
    
    // Propagate face-averaged By:
@@ -965,7 +1046,12 @@ static void propagateMagneticField(
       }
       cp2 = mpiGrid[nbrID]->cpu_cellParams;
 
+      CHECK_FLOAT(cp0[CellParams::EZ])
+      CHECK_FLOAT(cp0[CellParams::EX])
+      CHECK_FLOAT(cp1[CellParams::EX])
+      CHECK_FLOAT(cp2[CellParams::EZ])
       cp0[CellParams::BY] += dt/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) + dt/dz*(cp0[CellParams::EX] - cp1[CellParams::EX]);
+      CHECK_FLOAT(cp0[CellParams::BY])
    }
       
    // Propagate face-averaged Bz:
@@ -1000,7 +1086,12 @@ static void propagateMagneticField(
       }
       cp2 = mpiGrid[nbrID]->cpu_cellParams;
 
+      CHECK_FLOAT(cp0[CellParams::EX])
+      CHECK_FLOAT(cp0[CellParams::EY])
+      CHECK_FLOAT(cp1[CellParams::EY])
+      CHECK_FLOAT(cp2[CellParams::EX])
       cp0[CellParams::BZ] += dt/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) + dt/dx*(cp0[CellParams::EY] - cp1[CellParams::EY]);
+      CHECK_FLOAT(cp0[CellParams::BZ])
    }
 }
 
@@ -1862,34 +1953,55 @@ void reconstructionCoefficients(
 
       // Calculate 2nd order reconstruction coefficients:
       result[Rec::a_xy] = der_i2j1k1[fs::dBxdy] - der_i1j1k1[fs::dBxdy];
+      CHECK_FLOAT(result[Rec::a_xy])
       result[Rec::a_xz] = der_i2j1k1[fs::dBxdz] - der_i1j1k1[fs::dBxdz];
+      CHECK_FLOAT(result[Rec::a_xz])
       result[Rec::a_x ] = cep_i2j1k1[cp::BX] - cep_i1j1k1[cp::BX];
+      CHECK_FLOAT(result[Rec::a_x ])
       result[Rec::a_y ] = HALF*(der_i2j1k1[fs::dBxdy] + der_i1j1k1[fs::dBxdy]);
+      CHECK_FLOAT(result[Rec::a_y ])
       result[Rec::a_z ] = HALF*(der_i2j1k1[fs::dBxdz] + der_i1j1k1[fs::dBxdz]);
+      CHECK_FLOAT(result[Rec::a_z ])
    
       result[Rec::b_yx] = der_i1j2k1[fs::dBydx] - der_i1j1k1[fs::dBydx];
+      CHECK_FLOAT(result[Rec::b_yx])
       result[Rec::b_yz] = der_i1j2k1[fs::dBydz] - der_i1j1k1[fs::dBydz];
+      CHECK_FLOAT(result[Rec::b_yz])
       result[Rec::b_x ] = HALF*(der_i1j2k1[fs::dBydx] + der_i1j1k1[fs::dBydx]);
+      CHECK_FLOAT(result[Rec::b_x ])
       result[Rec::b_y ] = cep_i1j2k1[cp::BY] - cep_i1j1k1[cp::BY];
+      CHECK_FLOAT(result[Rec::b_y ])
       result[Rec::b_z ] = HALF*(der_i1j2k1[fs::dBydz] + der_i1j1k1[fs::dBydz]);
+      CHECK_FLOAT(result[Rec::b_z ])
    
       result[Rec::c_zx] = der_i1j1k2[fs::dBzdx] - der_i1j1k1[fs::dBzdx];
+      CHECK_FLOAT(result[Rec::c_zx])
       result[Rec::c_zy] = der_i1j1k2[fs::dBzdy] - der_i1j1k1[fs::dBzdy];
+      CHECK_FLOAT(result[Rec::c_zy])
       result[Rec::c_x ] = HALF*(der_i1j1k2[fs::dBzdx] + der_i1j1k1[fs::dBzdx]);
+      CHECK_FLOAT(result[Rec::c_x ])
       result[Rec::c_y ] = HALF*(der_i1j1k2[fs::dBzdy] + der_i1j1k1[fs::dBzdy]);
+      CHECK_FLOAT(result[Rec::c_y ])
       result[Rec::c_z ] = cep_i1j1k2[cp::BZ] - cep_i1j1k1[cp::BZ];
+      CHECK_FLOAT(result[Rec::c_z ])
    
       result[Rec::a_xx] = -HALF*(result[Rec::b_yx] + result[Rec::c_zx]);
+      CHECK_FLOAT(result[Rec::a_xx])
       result[Rec::b_yy] = -HALF*(result[Rec::a_xy] + result[Rec::c_zy]);
+      CHECK_FLOAT(result[Rec::b_yy])
       result[Rec::c_zz] = -HALF*(result[Rec::a_xz] + result[Rec::b_yz]);
+      CHECK_FLOAT(result[Rec::c_zz])
    #else
       for (int i=0; i<Rec::c_zz+1; ++i) result[i] = 0.0;
    #endif
    
    // Calculate 1st order reconstruction coefficients:
    result[Rec::a_0 ] = HALF*(cep_i2j1k1[cp::BX] + cep_i1j1k1[cp::BX]) - SIXTH*result[Rec::a_xx];
+   CHECK_FLOAT(result[Rec::a_0 ])
    result[Rec::b_0 ] = HALF*(cep_i1j2k1[cp::BY] + cep_i1j1k1[cp::BY]) - SIXTH*result[Rec::b_yy];
+   CHECK_FLOAT(result[Rec::b_0 ])
    result[Rec::c_0 ] = HALF*(cep_i1j1k2[cp::BZ] + cep_i1j1k1[cp::BZ]) - SIXTH*result[Rec::c_zz];
+   CHECK_FLOAT(result[Rec::c_0 ])
 }
 
 void averageFaceXElectricField(
@@ -1918,6 +2030,12 @@ void averageFaceXElectricField(
       result[2] = 0.0;
       return;
    }
+
+   if (mpiGrid[cellID] == NULL) {
+      std::cerr << __FILE__ << ":" << __LINE__
+         << " No data for cell " << cellID << std::endl;
+      abort();
+   }
    
    cuint REQUIRED_CELLS = (1 << calcNbrNumber(1,1,1)) | (1 << calcNbrNumber(1,2,1)) | (1 << calcNbrNumber(1,1,2)) | (1 << calcNbrNumber(1,2,2))
      | (1 << calcNbrNumber(0,1,1)) | (1 << calcNbrNumber(0,2,1)) | (1 << calcNbrNumber(0,1,2)) | (1 << calcNbrNumber(0,2,2));
@@ -1934,10 +2052,25 @@ void averageFaceXElectricField(
       creal* const cep_i0j1k2 = mpiGrid[nbr_i0j1k2]->cpu_cellParams;
       creal* const cep_i0j2k2 = mpiGrid[nbr_i0j2k2]->cpu_cellParams;
    
+      CHECK_FLOAT(cep_i1j1k1[cp::EX])
+      CHECK_FLOAT(cep_i1j2k1[cp::EX])
+      CHECK_FLOAT(cep_i1j1k2[cp::EX])
+      CHECK_FLOAT(cep_i1j2k2[cp::EX])
+      CHECK_FLOAT(cep_i0j1k1[cp::EX])
+      CHECK_FLOAT(cep_i0j2k1[cp::EX])
+      CHECK_FLOAT(cep_i0j1k2[cp::EX])
+      CHECK_FLOAT(cep_i0j2k2[cp::EX])
       result[0] = EIGTH*(cep_i1j1k1[cp::EX] + cep_i1j2k1[cp::EX] + cep_i1j1k2[cp::EX] + cep_i1j2k2[cp::EX]
 			 + cep_i0j1k1[cp::EX] + cep_i0j2k1[cp::EX] + cep_i0j1k2[cp::EX] + cep_i0j2k2[cp::EX]);
+
+      CHECK_FLOAT(cep_i1j1k1[cp::EY])
+      CHECK_FLOAT(cep_i1j1k2[cp::EY])
       result[1] = HALF*(cep_i1j1k1[cp::EY] + cep_i1j1k2[cp::EY]);
+
+      CHECK_FLOAT(cep_i1j1k1[cp::EZ])
+      CHECK_FLOAT(cep_i1j2k1[cp::EZ])
       result[2] = HALF*(cep_i1j1k1[cp::EZ] + cep_i1j2k1[cp::EZ]);
+      CHECK_FLOAT(result[2])
    } else {
       result[0] = 0.0;
       result[1] = 0.0;
@@ -1987,9 +2120,23 @@ void averageFaceYElectricField(
       creal* const cep_i1j0k2 = mpiGrid[nbr_i1j0k2]->cpu_cellParams;
       creal* const cep_i2j0k2 = mpiGrid[nbr_i2j0k2]->cpu_cellParams;
       
+      CHECK_FLOAT(cep_i1j1k1[cp::EX])
+      CHECK_FLOAT(cep_i1j1k2[cp::EX])
       result[0] = HALF*(cep_i1j1k1[cp::EX] + cep_i1j1k2[cp::EX]);
+
+      CHECK_FLOAT(cep_i1j1k1[cp::EY])
+      CHECK_FLOAT(cep_i2j1k1[cp::EY])
+      CHECK_FLOAT(cep_i1j1k2[cp::EY])
+      CHECK_FLOAT(cep_i2j1k2[cp::EY])
+      CHECK_FLOAT(cep_i1j0k1[cp::EY])
+      CHECK_FLOAT(cep_i2j0k1[cp::EY])
+      CHECK_FLOAT(cep_i1j0k2[cp::EY])
+      CHECK_FLOAT(cep_i2j0k2[cp::EY])
       result[1] = EIGTH*(cep_i1j1k1[cp::EY] + cep_i2j1k1[cp::EY] + cep_i1j1k2[cp::EY] + cep_i2j1k2[cp::EY]
 		       + cep_i1j0k1[cp::EY] + cep_i2j0k1[cp::EY] + cep_i1j0k2[cp::EY] + cep_i2j0k2[cp::EY]);
+
+      CHECK_FLOAT(cep_i1j1k1[cp::EZ])
+      CHECK_FLOAT(cep_i2j1k1[cp::EZ])
       result[2] = HALF*(cep_i1j1k1[cp::EZ] + cep_i2j1k1[cp::EZ]);
    } else {
       result[0] = 0.0;
@@ -2025,8 +2172,20 @@ void averageFaceZElectricField(
       return;
    }
 
-   cuint REQUIRED_CELLS = (1 << calcNbrNumber(1,1,1)) | (1 << calcNbrNumber(2,1,1)) | (1 << calcNbrNumber(1,2,1)) | (1 << calcNbrNumber(2,2,1))
-     | (1 << calcNbrNumber(1,1,0)) | (1 << calcNbrNumber(2,1,0)) | (1 << calcNbrNumber(1,2,0)) | (1 << calcNbrNumber(2,2,0));
+   if (mpiGrid[cellID] == NULL) {
+      std::cerr << __FILE__ << ":" << __LINE__
+         << " No data for cell " << cellID << std::endl;
+      abort();
+   }
+
+   cuint REQUIRED_CELLS = (1 << calcNbrNumber(1,1,1))
+      | (1 << calcNbrNumber(2,1,1)) 
+      | (1 << calcNbrNumber(1,2,1)) 
+      | (1 << calcNbrNumber(2,2,1))
+      | (1 << calcNbrNumber(1,1,0))
+      | (1 << calcNbrNumber(2,1,0))
+      | (1 << calcNbrNumber(1,2,0))
+      | (1 << calcNbrNumber(2,2,0));
    
    // If all required neighbour data exists, calculate E vector on
    // y-face. NEEDS IMPROVEMENT!
@@ -2042,8 +2201,18 @@ void averageFaceZElectricField(
       
       result[0] = HALF*(cep_i1j1k1[cp::EX] + cep_i1j2k1[cp::EX]);
       result[1] = HALF*(cep_i1j1k1[cp::EY] + cep_i2j1k1[cp::EY]);
+
+      CHECK_FLOAT(cep_i1j1k1[cp::EZ])
+      CHECK_FLOAT(cep_i2j1k1[cp::EZ])
+      CHECK_FLOAT(cep_i1j2k1[cp::EZ])
+      CHECK_FLOAT(cep_i2j2k1[cp::EZ])
+      CHECK_FLOAT(cep_i1j1k0[cp::EZ])
+      CHECK_FLOAT(cep_i2j1k0[cp::EZ])
+      CHECK_FLOAT(cep_i1j2k0[cp::EZ])
+      CHECK_FLOAT(cep_i2j2k0[cp::EZ])
       result[2] = EIGTH*(cep_i1j1k1[cp::EZ] + cep_i2j1k1[cp::EZ] + cep_i1j2k1[cp::EZ] + cep_i2j2k1[cp::EZ]
 		       + cep_i1j1k0[cp::EZ] + cep_i2j1k0[cp::EZ] + cep_i1j2k0[cp::EZ] + cep_i2j2k0[cp::EZ]);
+      CHECK_FLOAT(result[2])
    } else {
       result[0] = 0.0;
       result[1] = 0.0;
@@ -2053,9 +2222,9 @@ void averageFaceZElectricField(
 
 void averageFaceXMagnField(
 	const CellID& cellID,
-	const CellID& nbr_i2j1k1,
-	const CellID& nbr_i1j2k1,
-	const CellID& nbr_i1j1k2,
+	const CellID& /*nbr_i2j1k1*/,
+	const CellID& /*nbr_i1j2k1*/,
+	const CellID& /*nbr_i1j1k2*/,
 	creal* const coefficients,
 	#ifdef PARGRID
 	ParGrid<SpatialCell>& mpiGrid,
@@ -2075,16 +2244,23 @@ void averageFaceXMagnField(
    Real*  const cep_i1j1k1 = mpiGrid[cellID]->cpu_cellParams;
 
    // Store calculated face-averaged B on x-faces:
+   CHECK_FLOAT(cep_i1j1k1[CellParams::BX])
    result[0] = cep_i1j1k1[CellParams::BX];
+
+   CHECK_FLOAT(coefficients[Rec::b_0])
+   CHECK_FLOAT(coefficients[Rec::b_x])
    result[1] = coefficients[Rec::b_0] + I*HALF*coefficients[Rec::b_x];
+
+   CHECK_FLOAT(coefficients[Rec::c_0])
+   CHECK_FLOAT(coefficients[Rec::c_x])
    result[2] = coefficients[Rec::c_0] + I*HALF*coefficients[Rec::c_x];
 }
 
 void averageFaceYMagnField(
 	const CellID& cellID,
-	const CellID& nbr_i2j1k1,
-	const CellID& nbr_i1j2k1,
-	const CellID& nbr_i1j1k2,
+	const CellID& /*nbr_i2j1k1*/,
+	const CellID& /*nbr_i1j2k1*/,
+	const CellID& /*nbr_i1j1k2*/,
 	creal* const coefficients,
 	#ifdef PARGRID
 	ParGrid<SpatialCell>& mpiGrid,
@@ -2111,9 +2287,9 @@ void averageFaceYMagnField(
 
 void averageFaceZMagnField(
 	const CellID& cellID,
-	const CellID& nbr_i2j1k1,
-	const CellID& nbr_i1j2k1,
-	const CellID& nbr_i1j1k2,
+	const CellID& /*nbr_i2j1k1*/,
+	const CellID& /*nbr_i1j2k1*/,
+	const CellID& /*nbr_i1j1k2*/,
 	creal* const coefficients,
 	#ifdef PARGRID
 	ParGrid<SpatialCell>& mpiGrid,
@@ -2157,10 +2333,20 @@ void calculateFaceAveragedFields(
    Real faceMagnField[9];
    Real coefficients[Rec::c_zz+1];
    Real coefficients2[Rec::c_zz+1];
-   
+
+   #ifdef DEBUG_SOLVERS
+   Real debug_EZ;
+   #endif
+
    uint existingCells = 0;
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];
+
+      if (mpiGrid[cellID] == NULL) {
+         std::cerr << __FILE__ << ":" << __LINE__
+            << " No data for cell " << cellID << std::endl;
+         abort();
+      }
       
       // Get neighbour flags for the cell:
       map<CellID,uint>::const_iterator it = boundaryFlags.find(cellID);
@@ -2325,7 +2511,13 @@ void calculateVolumeAveragedFields(
 	 creal* const cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->cpu_cellParams;
 	 creal* const cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->cpu_cellParams;
 	 creal* const cep_i1j2k2 = mpiGrid[nbr_i1j2k2]->cpu_cellParams;
+
+         CHECK_FLOAT(cep_i1j1k1[cp::EX])
+         CHECK_FLOAT(cep_i1j2k1[cp::EX])
+         CHECK_FLOAT(cep_i1j1k2[cp::EX])
+         CHECK_FLOAT(cep_i1j2k2[cp::EX])
 	 cellParams[cp::EXVOL] = FOURTH*(cep_i1j1k1[cp::EX] + cep_i1j2k1[cp::EX] + cep_i1j1k2[cp::EX] + cep_i1j2k2[cp::EX]);
+	 CHECK_FLOAT(cellParams[cp::EXVOL])
       } else {
 	 cellParams[cp::EXVOL] = 0.0;
       }
@@ -2334,7 +2526,13 @@ void calculateVolumeAveragedFields(
 	 creal* const cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->cpu_cellParams;
 	 creal* const cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->cpu_cellParams;
 	 creal* const cep_i2j1k2 = mpiGrid[nbr_i2j1k2]->cpu_cellParams;
+
+         CHECK_FLOAT(cep_i1j1k1[cp::EY])
+         CHECK_FLOAT(cep_i2j1k1[cp::EY])
+         CHECK_FLOAT(cep_i1j1k2[cp::EY])
+         CHECK_FLOAT(cep_i2j1k2[cp::EY])
 	 cellParams[cp::EYVOL] = FOURTH*(cep_i1j1k1[cp::EY] + cep_i2j1k1[cp::EY] + cep_i1j1k2[cp::EY] + cep_i2j1k2[cp::EY]);
+	 CHECK_FLOAT(cellParams[cp::EYVOL])
       } else {
 	 cellParams[cp::EYVOL] = 0.0;
       }
@@ -2343,7 +2541,13 @@ void calculateVolumeAveragedFields(
 	 creal* const cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->cpu_cellParams;
 	 creal* const cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->cpu_cellParams;
 	 creal* const cep_i2j2k1 = mpiGrid[nbr_i2j2k1]->cpu_cellParams;
+
+	 CHECK_FLOAT(cep_i1j1k1[cp::EZ])
+	 CHECK_FLOAT(cep_i2j1k1[cp::EZ])
+	 CHECK_FLOAT(cep_i1j2k1[cp::EZ])
+	 CHECK_FLOAT(cep_i2j2k1[cp::EZ])
 	 cellParams[cp::EZVOL] = FOURTH*(cep_i1j1k1[cp::EZ] + cep_i2j1k1[cp::EZ] + cep_i1j2k1[cp::EZ] + cep_i2j2k1[cp::EZ]);
+	 CHECK_FLOAT(cellParams[cp::EZVOL])
       } else {
 	 cellParams[cp::EZVOL] = 0.0;
       }
