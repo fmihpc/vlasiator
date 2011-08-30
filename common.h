@@ -4,6 +4,16 @@
 #include <limits>
 #include "definitions.h"
 
+#ifdef DEBUG_SOLVERS
+#define CHECK_FLOAT(x) \
+	if ((x) != (x)) {\
+		std::cerr << __FILE__ << ":" << __LINE__ << " Illegal value: " << x << std::endl;\
+		abort();\
+	}
+#else
+#define CHECK_FLOAT(x) {}
+#endif
+
 /** A namespace for storing indices into an array which contains 
  * neighbour list for each spatial cell. These indices refer to 
  * the CPU memory, i.e. the device does not use these.
