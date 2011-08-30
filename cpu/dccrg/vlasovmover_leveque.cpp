@@ -157,34 +157,34 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
 
    // Send/receive stencils for avgs:
    vector<Offset> nbrOffsets;   
-   nbrOffsets.push_back(Offset(2-1,2  ,2  ));
-   nbrOffsets.push_back(Offset(2+1,2  ,2  ));
-   nbrOffsets.push_back(Offset(2  ,2-1,2  ));
-   nbrOffsets.push_back(Offset(2  ,2+1,2  ));
-   nbrOffsets.push_back(Offset(2  ,2  ,2-1));
-   nbrOffsets.push_back(Offset(2  ,2  ,2+1));
-   nbrOffsets.push_back(Offset(2-2,2  ,2  ));
-   nbrOffsets.push_back(Offset(2  ,2-2,2  ));
-   nbrOffsets.push_back(Offset(2  ,2  ,2-2));
+   nbrOffsets.push_back(Offset(-1,0,0));
+   nbrOffsets.push_back(Offset(1,0,0));
+   nbrOffsets.push_back(Offset(0,-1,0));
+   nbrOffsets.push_back(Offset(0,1,0));
+   nbrOffsets.push_back(Offset(0,0,-1));
+   nbrOffsets.push_back(Offset(0,0,1));
+   nbrOffsets.push_back(Offset(-2,0,0));
+   nbrOffsets.push_back(Offset(0,-2,0));
+   nbrOffsets.push_back(Offset(0,0,-2));
    stencilAverages.addReceives(mpiGrid,nbrOffsets);
    nbrOffsets.clear();
 
-   nbrOffsets.push_back(Offset(2-1,2  ,2  ));
-   nbrOffsets.push_back(Offset(2+1,2  ,2  ));
-   nbrOffsets.push_back(Offset(2  ,2-1,2  ));
-   nbrOffsets.push_back(Offset(2  ,2+1,2  ));
-   nbrOffsets.push_back(Offset(2  ,2  ,2-1));
-   nbrOffsets.push_back(Offset(2  ,2  ,2+1));
-   nbrOffsets.push_back(Offset(2+2,2  ,2  ));
-   nbrOffsets.push_back(Offset(2  ,2+2,2  ));
-   nbrOffsets.push_back(Offset(2  ,2  ,2+2));
+   nbrOffsets.push_back(Offset(-1 ,0  ,0));
+   nbrOffsets.push_back(Offset(1  ,0  ,0));
+   nbrOffsets.push_back(Offset(0  ,-1 ,0));
+   nbrOffsets.push_back(Offset(0  ,1  ,0));
+   nbrOffsets.push_back(Offset(0  ,0  ,-1));
+   nbrOffsets.push_back(Offset(0  ,0  ,1));
+   nbrOffsets.push_back(Offset(2  ,0  ,0 ));
+   nbrOffsets.push_back(Offset(0  ,2  ,0));
+   nbrOffsets.push_back(Offset(0  ,0  ,2));
    stencilAverages.addSends(mpiGrid,nbrOffsets);
    nbrOffsets.clear();
 
       // Send/receive stencils for df/dt updates:
 
    for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
-       nbrOffsets.push_back(Offset(2+i,2+j,2+k));
+       nbrOffsets.push_back(Offset(i,j,k));
    }
    stencilUpdates.addRemoteUpdateReceives(mpiGrid,nbrOffsets);
    stencilUpdates.addRemoteUpdateSends(mpiGrid,nbrOffsets);
