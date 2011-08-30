@@ -263,13 +263,16 @@ void* SpatialCell::getBaseAddress(cuint identifier) {
       return this->cpu_fx;
       break;
     case 3:
-      return this->cpu_cellParams + CellParams::EX;
+      return this->cpu_cellParams + CellParams::BX;
       break;
     case 4:
       return this->cpu_derivatives;
       break;
     case 5:
       return &(this->N_blocks);
+    case 6:
+      return this->cpu_cellParams + CellParams::EX;
+      break;
     #endif
     default:
       cerr << "Unsupported base address" << endl;
@@ -320,10 +323,10 @@ void SpatialCell::getMPIdatatype(cuint identifier,MPI_Datatype& dataType) {
 	 #endif
       }
       break;
-    case 3: // transfer cell EX,EY,EZ,BX,BY,BZ,RHO,RHOVX,RHOVY,RHOVZ
+    case 3: // transfer cell BX,BY,BZ,RHO,RHOVX,RHOVY,RHOVZ
       dataTypes[0] = MPI_BYTE;
-      blockLengths[0] = sizeof(Real) * 10;
-      displacements[0] = 0;	// Base address starts at CellParams::EX
+      blockLengths[0] = sizeof(Real) * 7;
+      displacements[0] = 0;	// Base address starts at CellParams::BX
       if (MPI_Type_create_struct(1,blockLengths,displacements,dataTypes,&dataType) != MPI_SUCCESS) {
 	 #ifndef NDEBUG
 	    mpilogger << "SpatialCell::getMPIdatatype ERROR failed to create MPI_Datatype!" << endl << write;
@@ -344,6 +347,16 @@ void SpatialCell::getMPIdatatype(cuint identifier,MPI_Datatype& dataType) {
       dataTypes[0] = MPI_BYTE;
       blockLengths[0] = sizeof(uint);
       displacements[0] = 0;	// Base address is N_blocks
+      if (MPI_Type_create_struct(1,blockLengths,displacements,dataTypes,&dataType) != MPI_SUCCESS) {
+	 #ifndef NDEBUG
+	    mpilogger << "SpatialCell::getMPIdatatype ERROR failed to create MPI_Datatype!" << endl << write;
+	 #endif
+      }
+      break;
+    case 6: // transfer cell EX,EY,EZ
+      dataTypes[0] = MPI_BYTE;
+      blockLengths[0] = sizeof(Real) * 3;
+      displacements[0] = 0;	// Base address starts at CellParams::EX
       if (MPI_Type_create_struct(1,blockLengths,displacements,dataTypes,&dataType) != MPI_SUCCESS) {
 	 #ifndef NDEBUG
 	    mpilogger << "SpatialCell::getMPIdatatype ERROR failed to create MPI_Datatype!" << endl << write;

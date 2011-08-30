@@ -1669,7 +1669,7 @@ void calculateDerivativesSimple(
 
    #else	// ifdef PARGRID
 
-   // Exchange EX,EY,EZ,BX,BY,BZ,RHO,RHOVX,RHOVY,RHOVZ with neighbours
+   // Exchange BX,BY,BZ,RHO,RHOVX,RHOVY,RHOVZ with neighbours
    SpatialCell::base_address_identifier = 3;
    mpiGrid.start_remote_neighbour_data_update();
    // Calculate derivatives on inner cells
@@ -1805,7 +1805,7 @@ void calculateUpwindedElectricFieldSimple(
    mpiGrid.wait_neighbour_data_update_sends();
    
    // Exchange electric field with neighbouring processes
-   SpatialCell::base_address_identifier = 4;
+   SpatialCell::base_address_identifier = 6;
    mpiGrid.update_remote_neighbour_data();
    #endif	//ifdef PARGRID
 }
