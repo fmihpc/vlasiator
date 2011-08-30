@@ -1669,7 +1669,7 @@ void calculateDerivativesSimple(
 
    #else	// ifdef PARGRID
 
-   // Exchange BX,BY,BZ,RHO,RHOVX,RHOVY,RHOVZ with neighbours
+   // Exchange EX,EY,EZ,BX,BY,BZ,RHO,RHOVX,RHOVY,RHOVZ with neighbours
    SpatialCell::base_address_identifier = 3;
    mpiGrid.start_remote_neighbour_data_update();
    // Calculate derivatives on inner cells
