@@ -122,7 +122,7 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
       // Store neighbour offsets into a vector:
       vector<uint> cellOffsets(nbrIDs.size());
       for (size_t i=0; i<nbrIDs.size(); ++i) {
-	 if (nbrIDs[i] == INVALID_CELLID) cellOffsets[i] = numeric_limits<CellID>::max();
+	 if (nbrIDs[i] == INVALID_CELLID) cellOffsets[i] = numeric_limits<uint>::max();
 	 else cellOffsets[i] = mpiGrid[nbrIDs[i]]->cpuIndex;
       }
       
@@ -136,7 +136,7 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
 	 // Store offsets to each spatial neighbour of this block. Note that
 	 // the offset to this block is stored to index 13:
 	 for (size_t i=0; i<nbrIDs.size(); ++i) {
-	    if (cellOffsets[i] == numeric_limits<CellID>::max()) {
+	    if (cellOffsets[i] == numeric_limits<uint>::max()) {
 	       //nbrsSpa[block*SIZE_NBRS_SPA + i] = numeric_limits<CellID>::max();
 	       nbrsSpa[block*SIZE_NBRS_SPA + i] = cellOffsets[13] + block;
 	    } else {
