@@ -614,52 +614,7 @@ template<class C> bool ParGrid<C>::startNeighbourExchange(cuint& identifier) {
    // Get the MPI Datatype used in communication from user and pass it to MPI:
    // (This does not work with variable-length user data)
    if (MPItypeFreed == false) MPI_Type_free(&MPIdataType);
-   /*
-   C::getMPIdatatype(identifier,MPIdataType);
-   int rcode = MPI_Type_commit(&MPIdataType);
-   MPItypeFreed = false;
-   */
-   #ifndef NDEBUG
-      if (rcode != MPI_SUCCESS) {std::cerr << "ParGrid::startNeighbourExchange MPI_Type_commit failed!" << std::endl; rvalue=false;}
-   #endif
 
-   /*
-   for (int i=0; i<N_processes; ++i) {
-      if (i == myrank) {
-	 std::cerr << "PROC #" << myrank << " RECEIVES:" << std::endl;
-	 for (std::map<ID::type,int>::const_iterator it=receiveList.begin(); it!=receiveList.end(); ++it) {
-	    std::cerr << "\t recv cell#" << it->first << " from proc#" << it->second << std::endl;
-	 }
-	 std::cerr << "PROC #" << myrank << " SENDS:" << std::endl;
-	 for (std::map<std::pair<ID::type,int>,char>::const_iterator it=sendList.begin(); it!=sendList.end(); ++it) {
-	    std::cerr << "\t send cell#" << it->first.first << " to proc #" << it->first.second << std::endl;
-	 }
-      }
-      barrier();
-   }
-   barrier();
-   */
-   /*
-   // Post receives for each remote cell:
-   for (std::map<ID::type,int>::const_iterator it=receiveList.begin(); it!=receiveList.end(); ++it) {
-      void* const buffer = (remoteCells[it->first].dataptr)->getBaseAddress(identifier); // Starting address of receive buffer
-      const int count = 1;                            // Number of elements in receive buffer
-      const int source = it->second;                  // Rank of source MPI process
-      const int tag = it->first;                      // Message tag (use global ID)
-      MPIrecvRequests.push_back(MPI_Request());
-      if (MPI_Irecv(buffer,count,MPIdataType,source,tag,MPI_COMM_WORLD,&(MPIrecvRequests.back())) != MPI_SUCCESS) rvalue=false;
-   }
-
-   // Post sends for each boundary cell:
-   for (std::map<std::pair<ID::type,int>,char>::const_iterator it=sendList.begin(); it!=sendList.end(); ++it) {
-      void* const buffer = (localCells[it->first.first].dataptr)->getBaseAddress(identifier); // Starting address of send buffer
-      const int count = 1;                            // Number of elements in send buffer
-      const int dest = it->first.second;              // Rank of destination MPI process
-      const int tag = it->first.first;                // Message tag
-      MPIsendRequests.push_back(MPI_Request());
-      if (MPI_Issend(buffer,count,MPIdataType,dest,tag,MPI_COMM_WORLD,&(MPIsendRequests.back())) != MPI_SUCCESS) rvalue=false;
-   }
-    */
    // Post receives for each remote cell:
    for (std::map<ID::type,int>::const_iterator it=receiveList.begin(); it!=receiveList.end(); ++it) {
       C* const dataptr   = remoteCells[it->first].dataptr;        // Pointer to user data
