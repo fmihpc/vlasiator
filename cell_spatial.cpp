@@ -263,7 +263,7 @@ void* SpatialCell::getBaseAddress(cuint identifier) {
       return this->cpu_fx;
       break;
     case 3:
-      return this->cpu_cellParams + CellParams::BX;
+      return this->cpu_cellParams + CellParams::EX;
       break;
     case 4:
       return this->cpu_derivatives;
@@ -320,10 +320,10 @@ void SpatialCell::getMPIdatatype(cuint identifier,MPI_Datatype& dataType) {
 	 #endif
       }
       break;
-    case 3: // transfer cell BX,BY,BZ,RHO,RHOVX,RHOVY,RHOVZ
+    case 3: // transfer cell EX,EY,EZ,BX,BY,BZ,RHO,RHOVX,RHOVY,RHOVZ
       dataTypes[0] = MPI_BYTE;
-      blockLengths[0] = sizeof(Real) * 7;
-      displacements[0] = 0;	// Base address starts at CellParams::BX
+      blockLengths[0] = sizeof(Real) * 10;
+      displacements[0] = 0;	// Base address starts at CellParams::EX
       if (MPI_Type_create_struct(1,blockLengths,displacements,dataTypes,&dataType) != MPI_SUCCESS) {
 	 #ifndef NDEBUG
 	    mpilogger << "SpatialCell::getMPIdatatype ERROR failed to create MPI_Datatype!" << endl << write;
