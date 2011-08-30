@@ -94,7 +94,7 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
       nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,0,2))); // i,j-2,k nbr, goes to index 28
       nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,2,0))); // i,j,k-2 nbr, goes to index 29
       */
-      nbrs = mpiGrid.get_neighbors_of(cellID,0,2,2);
+      nbrs = mpiGrid.get_neighbors_of(cellID,-2,0,0);
       if (nbrs.size() >1 )
           return false; //no support for refined case
       else if (nbrs.size()==0)
@@ -102,7 +102,7 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
       else
           nbrIDs.push_back(nbrs[0]);
 
-      nbrs = mpiGrid.get_neighbors_of(cellID,2,0,2);
+      nbrs = mpiGrid.get_neighbors_of(cellID,0,-2,0);
       if (nbrs.size() >1 )
           return false; //no support for refined case
       else if (nbrs.size()==0)
@@ -110,7 +110,7 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
       else
           nbrIDs.push_back(nbrs[0]);      
 
-      nbrs = mpiGrid.get_neighbors_of(cellID,2,2,0);
+      nbrs = mpiGrid.get_neighbors_of(cellID,0,0,-2);
       if (nbrs.size() >1 )
           return false; //no support for refined case
       else if (nbrs.size()==0)
