@@ -106,7 +106,7 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
              nbrIDs.push_back(cellID);
           } else {
               //REPLACED nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2+i,2+j,2+k)));
-              nbrs = getNeighbourID(mpiGrid, cellID, 2+i, 2+j, 2+k);
+              nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2+i, 2+j, 2+k));
               if (nbrIDs.back() == INVALID_CELLID) {
                   isGhost = true;
               }
@@ -118,9 +118,9 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
       nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,0,2))); // i,j-2,k nbr, goes to index 28
       nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,2,0))); // i,j,k-2 nbr, goes to index 29
       */
-      nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 0, 2, 2);
-      nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2, 0, 2);
-      nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2, 2, 0);
+      nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 0, 2, 2));
+      nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2, 0, 2));
+      nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2, 2, 0));
 
       
       // Store neighbour offsets into a vector:
@@ -188,6 +188,9 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
       // Send/receive stencils for df/dt updates:
 
    for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
+       if (i == 0 && j == 0 && k == 0) {
+           continue;
+       }
        nbrOffsets.push_back(Offset(i,j,k));
    }
    stencilUpdates.addRemoteUpdateReceives(mpiGrid,nbrOffsets);
@@ -261,9 +264,7 @@ void calculateCellParameters(dccrg<SpatialCell>& mpiGrid,creal& t,ID::type cell)
 void calculateAcceleration(dccrg<SpatialCell>& mpiGrid) { 
    typedef Parameters P;
    
-   vector<CellID> cells;
-//REPLACED   mpiGrid.getCells(cells);
-   cells=mpiGrid.get_cells();
+   const vector<CellID> cells = mpiGrid.get_cells();
 
    // Iterate through all local cells and propagate distribution functions 
    // in velocity space. Ghost cells (spatial cells at the boundary of the simulation 
@@ -304,7 +305,7 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    std::vector<MPI_Request> MPIsendRequests;               /**< Container for active MPI_Requests due to sends.*/
    
    // TEMPORARY SOLUTION
-   const vector<CellID> cells = mpiGrid.get_cells();
+   vector<CellID> cells = mpiGrid.get_cells();
    cuint avgsByteSize = mpiGrid[cells[0]]->N_blocks * SIZE_VELBLOCK * sizeof(Real);
    // END TEMPORARY SOLUTION
 
