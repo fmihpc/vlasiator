@@ -52,6 +52,35 @@ namespace ID {
 
 extern MPILogger mpilogger;
 
+CellID getNeighbourID(
+	#ifdef PARGRID
+	const ParGrid<SpatialCell>& mpiGrid,
+	#else
+	const dccrg<SpatialCell>& mpiGrid,
+	#endif
+	const CellID& cellID,
+	const uchar& i,
+	const uchar& j,
+	const uchar& k
+) {
+   #ifdef PARGRID
+   const uchar nbrTypeID = calcNbrTypeID(i,j,k);
+   return mpiGrid.getNeighbour(cellID,nbrTypeID);
+   #else
+   // TODO: merge this with the one in lond...anna.cpp
+   const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of(cellID, int(i) - 2, int(j) - 2, int(k) - 2);
+   if (neighbors.size() == 0) {
+      std::cerr << __FILE__ << ":" << __LINE__
+         << " No neighbor for cell " << cellID
+         << " at offsets " << int(i) - 2 << ", " << int(j) - 2 << ", " << int(k) - 2
+         << std::endl;
+      abort();
+   }
+   // TODO support spatial refinement
+   return neighbors[0];
+   #endif
+}
+
 bool initializeMover(dccrg<SpatialCell>& mpiGrid) { 
    
    // Populate spatial neighbour list:
@@ -72,20 +101,15 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
       uint counter = 0;
       vector<CellID> nbrIDs;
       for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
-          if ((i == 0) & ((j == 0) & (k == 0))) nbrIDs.push_back(cellID); // in dccrg cells do not consider themselves as their own neighbours
-          else {
+          // in dccrg cells are neighbors of themselves only with periodic boundaries
+          if (i == 0 && j == 0 && k == 0) {
+             nbrIDs.push_back(cellID);
+          } else {
               //REPLACED nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2+i,2+j,2+k)));
-              //FIXME no subpport for refined grids, assume vector size is always 1
-              nbrs = mpiGrid.get_neighbors_of(cellID,i,j,k);
-              if (nbrs.size() >1 )
-                  return false; //no support for refined case
-              else if (nbrs.size()==0)
-                  nbrIDs.push_back(INVALID_CELLID); //does not exist
-              else
-                  nbrIDs.push_back(nbrs[0]);
-              //CHECKME is this also true for DCCRG
-              if (nbrIDs.back() == INVALID_CELLID)
+              nbrs = getNeighbourID(mpiGrid, cellID, 2+i, 2+j, 2+k);
+              if (nbrIDs.back() == INVALID_CELLID) {
                   isGhost = true;
+              }
           }
           ++counter;
       }
@@ -94,29 +118,9 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
       nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,0,2))); // i,j-2,k nbr, goes to index 28
       nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,2,0))); // i,j,k-2 nbr, goes to index 29
       */
-      nbrs = mpiGrid.get_neighbors_of(cellID,-2,0,0);
-      if (nbrs.size() >1 )
-          return false; //no support for refined case
-      else if (nbrs.size()==0)
-          nbrIDs.push_back(INVALID_CELLID); //does not exist
-      else
-          nbrIDs.push_back(nbrs[0]);
-
-      nbrs = mpiGrid.get_neighbors_of(cellID,0,-2,0);
-      if (nbrs.size() >1 )
-          return false; //no support for refined case
-      else if (nbrs.size()==0)
-          nbrIDs.push_back(INVALID_CELLID); //does not exist
-      else
-          nbrIDs.push_back(nbrs[0]);      
-
-      nbrs = mpiGrid.get_neighbors_of(cellID,0,0,-2);
-      if (nbrs.size() >1 )
-          return false; //no support for refined case
-      else if (nbrs.size()==0)
-          nbrIDs.push_back(INVALID_CELLID); //does not exist
-      else
-          nbrIDs.push_back(nbrs[0]);      
+      nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 0, 2, 2);
+      nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2, 0, 2);
+      nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2, 2, 0);
 
       
       // Store neighbour offsets into a vector:
@@ -157,27 +161,27 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
 
    // Send/receive stencils for avgs:
    vector<Offset> nbrOffsets;   
-   nbrOffsets.push_back(Offset(-1,0,0));
-   nbrOffsets.push_back(Offset(1,0,0));
-   nbrOffsets.push_back(Offset(0,-1,0));
-   nbrOffsets.push_back(Offset(0,1,0));
-   nbrOffsets.push_back(Offset(0,0,-1));
-   nbrOffsets.push_back(Offset(0,0,1));
-   nbrOffsets.push_back(Offset(-2,0,0));
-   nbrOffsets.push_back(Offset(0,-2,0));
-   nbrOffsets.push_back(Offset(0,0,-2));
+   nbrOffsets.push_back(Offset(-1, 0, 0));
+   nbrOffsets.push_back(Offset( 1, 0, 0));
+   nbrOffsets.push_back(Offset( 0,-1, 0));
+   nbrOffsets.push_back(Offset( 0, 1, 0));
+   nbrOffsets.push_back(Offset( 0, 0,-1));
+   nbrOffsets.push_back(Offset( 0, 0, 1));
+   nbrOffsets.push_back(Offset(-2, 0, 0));
+   nbrOffsets.push_back(Offset( 0,-2, 0));
+   nbrOffsets.push_back(Offset( 0, 0,-2));
    stencilAverages.addReceives(mpiGrid,nbrOffsets);
    nbrOffsets.clear();
 
-   nbrOffsets.push_back(Offset(-1 ,0  ,0));
-   nbrOffsets.push_back(Offset(1  ,0  ,0));
-   nbrOffsets.push_back(Offset(0  ,-1 ,0));
-   nbrOffsets.push_back(Offset(0  ,1  ,0));
-   nbrOffsets.push_back(Offset(0  ,0  ,-1));
-   nbrOffsets.push_back(Offset(0  ,0  ,1));
-   nbrOffsets.push_back(Offset(2  ,0  ,0 ));
-   nbrOffsets.push_back(Offset(0  ,2  ,0));
-   nbrOffsets.push_back(Offset(0  ,0  ,2));
+   nbrOffsets.push_back(Offset(-1, 0, 0));
+   nbrOffsets.push_back(Offset( 1, 0, 0));
+   nbrOffsets.push_back(Offset( 0,-1, 0));
+   nbrOffsets.push_back(Offset( 0, 1, 0));
+   nbrOffsets.push_back(Offset( 0, 0,-1));
+   nbrOffsets.push_back(Offset( 0, 0, 1));
+   nbrOffsets.push_back(Offset( 2, 0, 0 ));
+   nbrOffsets.push_back(Offset( 0, 2, 0));
+   nbrOffsets.push_back(Offset( 0, 0, 2));
    stencilAverages.addSends(mpiGrid,nbrOffsets);
    nbrOffsets.clear();
 
@@ -298,13 +302,9 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    typedef Parameters P;
    std::vector<MPI_Request> MPIrecvRequests;               /**< Container for active MPI_Requests due to receives.*/
    std::vector<MPI_Request> MPIsendRequests;               /**< Container for active MPI_Requests due to sends.*/
-
-
-   vector<CellID> cells;
    
    // TEMPORARY SOLUTION
-   //REPLCED mpiGrid.getCells(cells);
-   cells=mpiGrid.get_cells();
+   const vector<CellID> cells = mpiGrid.get_cells();
    cuint avgsByteSize = mpiGrid[cells[0]]->N_blocks * SIZE_VELBLOCK * sizeof(Real);
    // END TEMPORARY SOLUTION
 
