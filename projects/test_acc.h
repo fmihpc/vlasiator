@@ -47,11 +47,14 @@ void calcBlockParameters(Real* blockParams);
  */
 void calcCellParameters(Real* cellParams,creal& t);
 
-#ifndef PARGRID
-void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt);
-#else
-void calcSimParameters(ParGrid<SpatialCell>& mpiGrid, creal& t, Real& dt);
-#endif
+void calcSimParameters(
+	#ifndef PARGRID
+	dccrg<SpatialCell>& mpiGrid,
+	#else
+	ParGrid<SpatialCell>& mpiGrid
+	#endif
+	creal& t,
+	Real& dt);
 
 /** Integrate the distribution function over the given six-dimensional phase-space cell.
  * @param x Starting value of the x-coordinate of the cell.
@@ -105,52 +108,120 @@ Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal&
  * @return Volume average of distribution function at the given boundary. The physical 
  * unit of this quantity is 1 / (m^3 (m/s)^3).
  */
-template<typename T>
-T calcBoundVolAvg(cuint& iv,cuint& jv,cuint& kv,const T* const cellParams,
-		  const T* const blockParams,const T& avg,const int& crd,const bool& negSide) {
+template<typename T> T calcBoundVolAvg(
+	cuint& /*iv*/, cuint& /*jv*/, cuint& /*kv*/,
+	const T* const /*cellParams*/,
+	const T* const /*blockParams*/,
+	const T& avg,
+	const int& /*crd*/,
+	const bool& /*negSide*/
+) {
    return avg;
 }
 
-template<typename CELLID,typename UINT,typename REAL>
-void fieldSolverBoundaryCondDerivX(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
-				   creal* const derivatives,const ParGrid<SpatialCell>& mpiGrid) {
+template<typename CELLID,typename UINT,typename REAL> void fieldSolverBoundaryCondDerivX(
+	const CELLID& cellID,
+	REAL* const array,
+	const UINT& existingCells,
+	const UINT& nonExistingCells,
+	creal* const derivatives,
+	#ifdef PARGRID
+	const ParGrid<SpatialCell>& mpiGrid
+	#else
+	const dccrg<SpatialCell>& mpiGrid
+	#endif
+) {
    fieldSolverBoundarySetValueDerivX(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
 }
 
-template<typename CELLID,typename UINT,typename REAL>
-void fieldSolverBoundaryCondDerivY(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
-				   creal* const derivatives,const ParGrid<SpatialCell>& mpiGrid) {
+template<typename CELLID,typename UINT,typename REAL> void fieldSolverBoundaryCondDerivY(
+	const CELLID& cellID,
+	REAL* const array,
+	const UINT& existingCells,
+	const UINT& nonExistingCells,
+	creal* const derivatives,
+	#ifdef PARGRID
+	const ParGrid<SpatialCell>& mpiGrid
+	#else
+	const dccrg<SpatialCell>& mpiGrid
+	#endif
+) {
    fieldSolverBoundarySetValueDerivY(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
 }
 
-template<typename CELLID,typename UINT,typename REAL>
-void fieldSolverBoundaryCondDerivZ(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
-				   creal* const derivatives,const ParGrid<SpatialCell>& mpiGrid) {
+template<typename CELLID,typename UINT,typename REAL> void fieldSolverBoundaryCondDerivZ(
+	const CELLID& cellID,
+	REAL* const array,
+	const UINT& existingCells,
+	const UINT& nonExistingCells,
+	creal* const derivatives,
+	#ifdef PARGRID
+	const ParGrid<SpatialCell>& mpiGrid
+	#else
+	const dccrg<SpatialCell>& mpiGrid
+	#endif
+) {
    fieldSolverBoundarySetValueDerivZ(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
 }
 
-template<typename CELLID,typename UINT,typename REAL>
-REAL fieldSolverBoundaryCondBx(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const ParGrid<SpatialCell>& mpiGrid) {
+template<typename CELLID,typename UINT,typename REAL> REAL fieldSolverBoundaryCondBx(
+	const CELLID& cellID,
+	const UINT& existingCells,
+	const UINT& nonExistingCells,
+	#ifdef PARGRID
+	const ParGrid<SpatialCell>& mpiGrid
+	#else
+	const dccrg<SpatialCell>& mpiGrid
+	#endif
+) {
    return fieldBoundaryCopyFromExistingFaceNbrBx<CELLID,UINT,REAL>(cellID,existingCells,nonExistingCells,mpiGrid);
 }
 
-template<typename CELLID,typename UINT,typename REAL>
-REAL fieldSolverBoundaryCondBy(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const ParGrid<SpatialCell>& mpiGrid) {
+template<typename CELLID,typename UINT,typename REAL> REAL fieldSolverBoundaryCondBy(
+	const CELLID& cellID,
+	const UINT& existingCells,
+	const UINT& nonExistingCells,
+	#ifdef PARGRID
+	const ParGrid<SpatialCell>& mpiGrid
+	#else
+	const dccrg<SpatialCell>& mpiGrid
+	#endif
+) {
    return fieldBoundaryCopyFromExistingFaceNbrBy<CELLID,UINT,REAL>(cellID,existingCells,nonExistingCells,mpiGrid);
 }
 
-template<typename CELLID,typename UINT,typename REAL>
-REAL fieldSolverBoundaryCondBz(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const ParGrid<SpatialCell>& mpiGrid) {
+template<typename CELLID,typename UINT,typename REAL> REAL fieldSolverBoundaryCondBz(
+	const CELLID& cellID,
+	const UINT& existingCells,
+	const UINT& nonExistingCells,
+	#ifdef PARGRID
+	const ParGrid<SpatialCell>& mpiGrid
+	#else
+	const dccrg<SpatialCell>& mpiGrid
+	#endif
+) {
    return fieldBoundaryCopyFromExistingFaceNbrBz<CELLID,UINT,REAL>(cellID,existingCells,nonExistingCells,mpiGrid);
 }
 
-template<typename CELLID,typename UINT>
-void vlasovBoundaryCondition(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const ParGrid<SpatialCell>& mpiGrid) {
+template<typename CELLID,typename UINT> void vlasovBoundaryCondition(
+	const CELLID& cellID,
+	const UINT& existingCells,
+	const UINT& nonExistingCells,
+	#ifdef PARGRID
+	const ParGrid<SpatialCell>& mpiGrid
+	#else
+	const dccrg<SpatialCell>& mpiGrid
+	#endif
+) {
    vlasovBoundaryCopyFromExistingFaceNbr(cellID,existingCells,nonExistingCells,mpiGrid);
 }
 
-template<typename UINT,typename REAL> void calcAccFaceX(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
-							const REAL* const cellParams,const REAL* const blockParams) {
+template<typename UINT,typename REAL> void calcAccFaceX(
+	REAL& ax, REAL& ay, REAL& az,
+	const UINT& I, const UINT& J, const UINT& K,
+	const REAL* const cellParams,
+	const REAL* const blockParams
+) {
    ax = blockParams[BlockParams::VXCRD] + (I+convert<REAL>(0.5))*blockParams[BlockParams::DVX];
    ay = blockParams[BlockParams::VYCRD] + (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
    az = blockParams[BlockParams::VZCRD] + (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
@@ -165,8 +236,12 @@ template<typename UINT,typename REAL> void calcAccFaceX(REAL& ax,REAL& ay,REAL& 
    else az = -SPEED;
 }
 
-template<typename UINT,typename REAL> void calcAccFaceY(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
-							const REAL* const cellParams,const REAL* const blockParams) {
+template<typename UINT,typename REAL> void calcAccFaceY(
+	REAL& ax, REAL& ay, REAL& az,
+	const UINT& I,const UINT& J,const UINT& K,
+	const REAL* const cellParams,
+	const REAL* const blockParams
+) {
    ax = blockParams[BlockParams::VXCRD] + (I+convert<REAL>(0.5))*blockParams[BlockParams::DVX];
    ay = blockParams[BlockParams::VYCRD] + (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
    az = blockParams[BlockParams::VZCRD] + (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
@@ -181,8 +256,12 @@ template<typename UINT,typename REAL> void calcAccFaceY(REAL& ax,REAL& ay,REAL& 
    else az = -SPEED;
 }
 
-template<typename UINT,typename REAL> void calcAccFaceZ(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
-							const REAL* const cellParams,const REAL* const blockParams) {
+template<typename UINT,typename REAL> void calcAccFaceZ(
+	REAL& ax, REAL& ay, REAL& az,
+	const UINT& I,const UINT& J,const UINT& K,
+	const REAL* const cellParams,
+	const REAL* const blockParams
+) {
    ax = blockParams[BlockParams::VXCRD] + (I+convert<REAL>(0.5))*blockParams[BlockParams::DVX];
    ay = blockParams[BlockParams::VYCRD] + (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
    az = blockParams[BlockParams::VZCRD] + (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
@@ -196,7 +275,6 @@ template<typename UINT,typename REAL> void calcAccFaceZ(REAL& ax,REAL& ay,REAL& 
    if (az > convert<REAL>(0.0)) az = SPEED;
    else az = -SPEED;
 }
-
 
 #endif
 
