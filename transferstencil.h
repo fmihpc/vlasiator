@@ -407,8 +407,6 @@ template<typename CELLID> bool TransferStencil<CELLID>::addSends(const dccrg<Spa
     
     int host;
     int localHost;
-    CELLID cellID;
-    CELLID nbrID;
     std::set<std::pair<int,CELLID> > tmpSendList;
     
     std::vector<CELLID> localCells;
