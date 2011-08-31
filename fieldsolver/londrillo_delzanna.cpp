@@ -2334,10 +2334,6 @@ void calculateFaceAveragedFields(
    Real coefficients[Rec::c_zz+1];
    Real coefficients2[Rec::c_zz+1];
 
-   #ifdef DEBUG_SOLVERS
-   Real debug_EZ;
-   #endif
-
    uint existingCells = 0;
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];
