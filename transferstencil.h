@@ -346,14 +346,21 @@ template<typename CELLID> bool TransferStencil<CELLID>::addReceives(const dccrg<
                                                                   nbrOffsets[i].x,
                                                                   nbrOffsets[i].y,
                                                                   nbrOffsets[i].z);
-            if (nbrIDs.size()==0)
-                continue; // Skip non-existing neighbours
-            if (nbrIDs.size() >1 )
+            if (nbrIDs.size()== 0) {
+               std::cerr << __FILE__ << ":" << __LINE__
+                  << " No neighbors for cell " << cellID
+                  << " at offsets " << nbrOffsets[i].x << ", " << nbrOffsets[i].y << ", " << nbrOffsets[i].z
+                  << std::endl;
+               abort();
+            }
+
+            if (nbrIDs.size() > 1) {
                 return (!success); //no support for refined case
+            }
+
             const CELLID nbrID=nbrIDs[0];
             if (nbrID == INVALID_CELLID) continue; // Skip non-existing neighbours
-            host=mpiGrid.get_process(nbrID);
-            if(host==localHost) continue; //only remote neighbours 
+            if (mpiGrid.is_local(nbrID)) continue; // Skip local neighbours 
             
             remoteToLocalMap.insert(std::make_pair(nbrID,cellID));
             tmpReceiveList.insert(std::make_pair(host,nbrID));
@@ -423,14 +430,21 @@ template<typename CELLID> bool TransferStencil<CELLID>::addSends(const dccrg<Spa
                                                                   nbrOffsets[i].x,
                                                                   nbrOffsets[i].y,
                                                                   nbrOffsets[i].z);
-            if (nbrIDs.size()==0)
-                continue; // Skip non-existing neighbours
-            if (nbrIDs.size() >1 )
+            if (nbrIDs.size()== 0) {
+               std::cerr << __FILE__ << ":" << __LINE__
+                  << " No neighbors for cell " << cellID
+                  << " at offsets " << nbrOffsets[i].x << ", " << nbrOffsets[i].y << ", " << nbrOffsets[i].z
+                  << std::endl;
+               abort();
+            }
+
+            if (nbrIDs.size() > 1) {
                 return (!success); //no support for refined case
+            }
+
             const CELLID nbrID=nbrIDs[0];
             if (nbrID == INVALID_CELLID) continue; // Skip non-existing neighbours
-            host=mpiGrid.get_process(nbrID);
-            if(host==localHost) continue; //only remote neighbours 
+            if (mpiGrid.is_local(nbrID)) continue; // Skip local neighbours 
 
             tmpSendList.insert(std::make_pair(host,cellID));
         }
@@ -492,15 +506,22 @@ template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateSends(con
                                                                  nbrOffsets[i].x,
                                                                  nbrOffsets[i].y,
                                                                  nbrOffsets[i].z);
-           if (nbrIDs.size()==0)
-                continue; // Skip non-existing neighbours
-           if (nbrIDs.size() >1 )
-               return (!success); //no support for refined case
-           const CELLID nbrID=nbrIDs[0];
+            if (nbrIDs.size()== 0) {
+               std::cerr << __FILE__ << ":" << __LINE__
+                  << " No neighbors for cell " << cellID
+                  << " at offsets " << nbrOffsets[i].x << ", " << nbrOffsets[i].y << ", " << nbrOffsets[i].z
+                  << std::endl;
+               abort();
+            }
+
+            if (nbrIDs.size() > 1) {
+                return (!success); //no support for refined case
+            }
+
+            const CELLID nbrID=nbrIDs[0];
             if (nbrID == INVALID_CELLID) continue; // Skip non-existing neighbours
-           host=mpiGrid.get_process(nbrID);
-           if(host==localHost) continue; //only remote neighbours
-           
+            if (mpiGrid.is_local(nbrID)) continue; // Skip local neighbours 
+            
            // If an entry for remote neighbour does not exist in updates, 
            // add one and initialize it to zero:
            typename std::map<CELLID,std::pair<uint,uint> >::iterator it = updates.find(nbrID);
@@ -565,16 +586,22 @@ template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateReceives(
                                                                  nbrOffsets[i].x,
                                                                  nbrOffsets[i].y,
                                                                  nbrOffsets[i].z);
-           if (nbrIDs.size()==0)
-                continue; // Skip non-existing neighbours
-           if (nbrIDs.size() >1 )
-               return (!success); //no support for refined case
-           const CELLID nbrID=nbrIDs[0];
-           if (nbrID == INVALID_CELLID) continue; // Skip non-existing neighbours
-           host=mpiGrid.get_process(nbrID);
-           if(host==localHost) continue; //only remote neighbours 
+            if (nbrIDs.size()== 0) {
+               std::cerr << __FILE__ << ":" << __LINE__
+                  << " No neighbors for cell " << cellID
+                  << " at offsets " << nbrOffsets[i].x << ", " << nbrOffsets[i].y << ", " << nbrOffsets[i].z
+                  << std::endl;
+               abort();
+            }
 
+            if (nbrIDs.size() > 1) {
+                return (!success); //no support for refined case
+            }
 
+            const CELLID nbrID=nbrIDs[0];
+            if (nbrID == INVALID_CELLID) continue; // Skip non-existing neighbours
+            if (mpiGrid.is_local(nbrID)) continue; // Skip local neighbours 
+            
            // Add receive from remote process:
            tmpReceiveList.insert(std::make_pair(host,cellID));
            nbrHosts.insert(host);
