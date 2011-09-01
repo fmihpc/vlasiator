@@ -819,7 +819,10 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
 
 #endif
 
-void initialLoadBalance(dccrg<SpatialCell>& mpiGrid) { }
+void initialLoadBalance(dccrg<SpatialCell>& mpiGrid) {
+  SpatialCell::base_address_identifier = 5;
+  mpiGrid.balance_load();
+}
 
 void calculateVelocityMoments(dccrg<SpatialCell>& mpiGrid) { 
    vector<CellID> cells;
