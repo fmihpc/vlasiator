@@ -70,11 +70,15 @@ CellID getNeighbourID(
    // TODO: merge this with the one in lond...anna.cpp
    const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of(cellID, int(i) - 2, int(j) - 2, int(k) - 2);
    if (neighbors.size() == 0) {
-      std::cerr << __FILE__ << ":" << __LINE__
+       return INVALID_CELLID;
+       /* We cannot abort when there is no match, as this (at the moment) is also called for boundary cells where it is supposed to fail.
+         
+       std::cerr << __FILE__ << ":" << __LINE__
          << " No neighbor for cell " << cellID
          << " at offsets " << int(i) - 2 << ", " << int(j) - 2 << ", " << int(k) - 2
          << std::endl;
       abort();
+       */
    }
    // TODO support spatial refinement
    return neighbors[0];
@@ -86,7 +90,6 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
    // Populate spatial neighbour list:
    vector<CellID> cells,remoteCells;
    std::vector<CellID> nbrs; //temporary vector for neighbors at certain offset
-/* REPLACED  mpiGrid.getAllCells(cells); */
    
    cells=mpiGrid.get_cells();
    remoteCells=mpiGrid.get_list_of_remote_cells_with_local_neighbours();
@@ -105,7 +108,6 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
           if (i == 0 && j == 0 && k == 0) {
              nbrIDs.push_back(cellID);
           } else {
-              //REPLACED nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2+i,2+j,2+k)));
               nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2+i, 2+j, 2+k));
               if (nbrIDs.back() == INVALID_CELLID) {
                   isGhost = true;
@@ -113,11 +115,6 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
           }
           ++counter;
       }
-      /*REPLACED
-      nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(0,2,2))); // i-2,j,k nbr, goes to index 27
-      nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,0,2))); // i,j-2,k nbr, goes to index 28
-      nbrIDs.push_back(mpiGrid.getNeighbour(cellID,calcNbrTypeID(2,2,0))); // i,j,k-2 nbr, goes to index 29
-      */
       nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 0, 2, 2));
       nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2, 0, 2));
       nbrIDs.push_back(getNeighbourID(mpiGrid, cellID, 2, 2, 0));
@@ -195,41 +192,8 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
    }
    stencilUpdates.addRemoteUpdateReceives(mpiGrid,nbrOffsets);
    stencilUpdates.addRemoteUpdateSends(mpiGrid,nbrOffsets);
-   /*
-     REPLACED
-   nbrTypeIDs.push_back(calcNbrTypeID(2-1,2  ,2  ));
-   nbrTypeIDs.push_back(calcNbrTypeID(2+1,2  ,2  ));
-   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2-1,2  ));
-   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2+1,2  ));
-   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2  ,2-1));
-   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2  ,2+1));
-   nbrTypeIDs.push_back(calcNbrTypeID(2-2,2  ,2  ));
-   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2-2,2  ));
-   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2  ,2-2));
-   stencilAverages.addReceives(mpiGrid,nbrTypeIDs);
-   
-   nbrTypeIDs.clear();
-   nbrTypeIDs.push_back(calcNbrTypeID(2-1,2  ,2  ));
-   nbrTypeIDs.push_back(calcNbrTypeID(2+1,2  ,2  ));
-   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2-1,2  ));
-   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2+1,2  ));
-   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2  ,2-1));
-   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2  ,2+1));
-   nbrTypeIDs.push_back(calcNbrTypeID(2+2,2  ,2  ));
-   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2+2,2  ));
-   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2  ,2+2));
-   stencilAverages.addSends(mpiGrid,nbrTypeIDs);
-   nbrTypeIDs.clear();
-   // Send/receive stencils for df/dt updates:
 
-   for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
-   nbrTypeIDs.push_back(calcNbrTypeID(2+i,2+j,2+k));
-   }
-   stencilUpdates.addRemoteUpdateReceives(mpiGrid,nbrTypeIDs);
-   stencilUpdates.addRemoteUpdateSends(mpiGrid,nbrTypeIDs);
    
-   */
-
    // Allocate receive buffers for all local cells that 
    // have at least one remote neighbour. For GPUs the first 
    // buffer must be allocated using page-locked memory:
@@ -310,7 +274,6 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    // END TEMPORARY SOLUTION
 
    // Post receives for avgs: 
-// REPLACE    mpiGrid.startSingleMode();
    MPIsendRequests.clear();                                                                                                  
    MPIrecvRequests.clear();
    
@@ -322,7 +285,6 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
       char* buffer        = reinterpret_cast<char*>(mpiGrid[cellID]->cpu_avgs);
       cuint byteSize      = avgsByteSize;
       
-      //REPLACED mpiGrid.singleReceive(host,tag,byteSize,buffer,cellID);
       MPIrecvRequests.push_back(MPI_Request());
       MPI_Irecv(buffer,byteSize,MPI_BYTE,host,tag,MPI_COMM_WORLD,&(MPIrecvRequests.back()));
       
@@ -345,7 +307,6 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
       char* buffer        = reinterpret_cast<char*>(mpiGrid[cellID]->cpu_avgs);
       cuint byteSize      = avgsByteSize;
 
-      //REPLACED       mpiGrid.singleSend(host,tag,byteSize,buffer,cellID);
       MPIsendRequests.push_back(MPI_Request());
       //std::cerr << "ParGrid proc #" << myrank << " MPIsendRequests.size() = " << MPIsendRequests.size() << std::endl;
       if (MPI_Isend(buffer,byteSize,MPI_BYTE,host,tag,MPI_COMM_WORLD,&(MPIsendRequests.back())) != MPI_SUCCESS) {
@@ -388,7 +349,6 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
 
    // Wait for remote avgs:
    profile::start("(MPI) receive remote averages");
-   //REPLACED mpiGrid.waitAllReceives();
    // Wait for all receives to complete:
    MPI_Waitall(MPIrecvRequests.size(),&(MPIrecvRequests[0]),MPI_STATUSES_IGNORE);
    // Free memory:
@@ -415,7 +375,6 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    
    // Wait for sends to complete:
    profile::start("(MPI) send averages");
-   //REPLACED mpiGrid.waitAllSends();
 #ifdef NDEBUG
    MPI_Waitall(MPIsendRequests.size(),&(MPIsendRequests[0]),MPI_STATUSES_IGNORE);
 #else
@@ -678,12 +637,10 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
    // Post receives for remote updates:
    
    // TEMPORARY SOLUTION
-   //REPLACED mpiGrid.getCells(cells);
    cells=mpiGrid.get_cells();
    const size_t SIZE_DFDT = mpiGrid[cells[0]]->N_blocks*SIZE_VELBLOCK*sizeof(Real);
    // END TEMPORARY SOLUTION
    
-   //REPLACED mpiGrid.startSingleMode();
    MPIsendRequests.clear(); 
    MPIrecvRequests.clear();
    
@@ -695,7 +652,6 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
       if (it2 == updateBuffers.end()) {cerr << "FATAL ERROR: Could not find update buffer!" << endl; exit(1);}
       char* const buffer    = reinterpret_cast<char*>(it2->second);
       
-//REPLACED      mpiGrid.singleReceive(host,tag,SIZE_DFDT,buffer,localID);
       MPIrecvRequests.push_back(MPI_Request());
       MPI_Irecv(buffer,SIZE_DFDT,MPI_BYTE,host,tag,MPI_COMM_WORLD,&(MPIrecvRequests.back()));
 
@@ -707,7 +663,6 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
       cint tag              = it->second.second;
       char* buffer          = reinterpret_cast<char*>(mpiGrid[nbrID]->cpu_fx);
 
-// REPLACED    mpiGrid.singleSend(host,tag,SIZE_DFDT,buffer,tag);
       MPIsendRequests.push_back(MPI_Request());
       //std::cerr << "ParGrid proc #" << myrank << " MPIsendRequests.size() = " << MPIsendRequests.size() << std::endl;
       if (MPI_Isend(buffer,SIZE_DFDT,MPI_BYTE,host,tag,MPI_COMM_WORLD,&(MPIsendRequests.back())) != MPI_SUCCESS) {
@@ -748,7 +703,6 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
    
    // Wait for remote neighbour updates to arrive:
    profile::start("(MPI) receive remote updates");
-    // REPLACED   mpiGrid.waitAllReceives();
    // Wait for all receives to complete:
    MPI_Waitall(MPIrecvRequests.size(),&(MPIrecvRequests[0]),MPI_STATUSES_IGNORE);
    // Free memory:
@@ -796,7 +750,6 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
 
    // Wait for neighbour update sends:
    profile::start("(MPI) send updates");
-// REPLACE   mpiGrid.singleModeWaitAllSends();
 #ifdef NDEBUG
    MPI_Waitall(MPIsendRequests.size(),&(MPIsendRequests[0]),MPI_STATUSES_IGNORE);
 #else
@@ -826,7 +779,6 @@ void initialLoadBalance(dccrg<SpatialCell>& mpiGrid) {
 
 void calculateVelocityMoments(dccrg<SpatialCell>& mpiGrid) { 
    vector<CellID> cells;
-   //REPLCED mpiGrid.getCells(cells);
    cells=mpiGrid.get_cells();
    
    // Iterate through all local cells (incl. ghosts):
