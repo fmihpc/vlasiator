@@ -49,7 +49,6 @@ SpatialCell::SpatialCell() {
 SpatialCell::SpatialCell(const SpatialCell& s) {
    //cout << "Spatial cell copy constructor called" << endl;
 
-   if (cpu_cellParams != NULL) freeArray(cpu_cellParams);
    try {
       cpu_derivatives = new Real[SIZE_DERIVATIVES];
    }
