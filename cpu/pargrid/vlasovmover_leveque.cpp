@@ -237,23 +237,12 @@ void calculateSpatialDerivatives(ParGrid<SpatialCell>& mpiGrid) { }
 void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
    typedef Parameters P;
    
-   vector<CellID> cells;
+   //vector<CellID> cells;
    
    // TEMPORARY SOLUTION
-   mpiGrid.getCells(cells);
-   cuint avgsByteSize = mpiGrid[cells[0]]->N_blocks * SIZE_VELBLOCK * sizeof(Real);
+   //mpiGrid.getCells(cells);
+   //cuint avgsByteSize = mpiGrid[cells[0]]->N_blocks * SIZE_VELBLOCK * sizeof(Real);
    // END TEMPORARY SOLUTION
-
-   // Post receives for avgs: 
-   mpiGrid.startSingleMode();
-   for (map<pair<int,int>,CellID>::iterator it=stencilAverages.recvs.begin(); it!=stencilAverages.recvs.end(); ++it) {
-      cint host           = it->first.first;
-      cint tag            = it->first.second;
-      const CellID cellID = it->second;
-      char* buffer        = reinterpret_cast<char*>(mpiGrid[cellID]->cpu_avgs);
-      cuint byteSize      = avgsByteSize;
-      mpiGrid.singleReceive(host,tag,byteSize,buffer,cellID);
-   }
 
    // Apply boundary conditions. This must be done before sending avgs!
    for (set<CellID>::const_iterator it=ghostCells.begin(); it!=ghostCells.end(); ++it) {
@@ -264,19 +253,33 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
       vlasovBoundaryCondition(cellID,existingCells,nonExistingCells,mpiGrid);
    }
    
+   // Post receives for avgs: 
+   mpiGrid.startSingleMode();
+   for (map<pair<int,int>,CellID>::iterator it=stencilAverages.recvs.begin(); it!=stencilAverages.recvs.end(); ++it) {
+      cint host           = it->first.first;
+      cint tag            = it->first.second;
+      const CellID cellID = it->second;
+      char* buffer        = reinterpret_cast<char*>(mpiGrid[cellID]->cpu_avgs);
+      //cuint byteSize      = avgsByteSize;
+      cuint byteSize      = mpiGrid[cellID]->N_blocks*SIZE_VELBLOCK*sizeof(Real);
+      mpiGrid.singleReceive(host,tag,byteSize,buffer,cellID);
+   }
+
    // Post sends for avgs:
    for (multimap<CellID,pair<int,int> >::iterator it=stencilAverages.sends.begin(); it!=stencilAverages.sends.end(); ++it) {
       const CellID cellID = it->first;
       cint host           = it->second.first;
       cint tag            = it->second.second;
       char* buffer        = reinterpret_cast<char*>(mpiGrid[cellID]->cpu_avgs);
-      cuint byteSize      = avgsByteSize;
+      //cuint byteSize      = avgsByteSize;
+      cuint byteSize      = mpiGrid[cellID]->N_blocks*SIZE_VELBLOCK*sizeof(Real);
       mpiGrid.singleSend(host,tag,byteSize,buffer,cellID);
    }
    
    // Clear spatial fluxes to zero value. Remote neighbour df/dt arrays 
    // need to be cleared as well:
    profile::start("df/dt updates in spatial space");
+   vector<CellID> cells;
    mpiGrid.getAllCells(cells);
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
@@ -337,25 +340,6 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
 
 void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
    typedef Parameters P;
-      
-   vector<CellID> cells;
-         
-   // TEMPORARY SOLUTION
-   mpiGrid.getCells(cells);
-   cuint avgsByteSize = mpiGrid[cells[0]]->N_blocks * SIZE_VELBLOCK * sizeof(Real);
-   const size_t SIZE_DFDT = mpiGrid[cells[0]]->N_blocks * SIZE_VELBLOCK*sizeof(Real);
-   // END TEMPORARY SOLUTION
-
-   // Post receives for avgs:
-   mpiGrid.startSingleMode();
-   for (map<pair<int,int>,CellID>::iterator it=stencilAverages.recvs.begin(); it!=stencilAverages.recvs.end(); ++it) {
-      cint host           = it->first.first;
-      cint tag            = it->first.second;
-      const CellID cellID = it->second;
-      char* buffer        = reinterpret_cast<char*>(mpiGrid[cellID]->cpu_avgs);
-      cuint byteSize      = avgsByteSize;
-      mpiGrid.singleReceive(host,tag,byteSize,buffer,cellID);
-   }
 
    // Apply boundary conditions. This must be done before sending avgs!
    for (set<CellID>::const_iterator it=ghostCells.begin(); it!=ghostCells.end(); ++it) {
@@ -366,13 +350,24 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
       vlasovBoundaryCondition(cellID,existingCells,nonExistingCells,mpiGrid);
    }
    
+   // Post receives for avgs:
+   mpiGrid.startSingleMode();
+   for (map<pair<int,int>,CellID>::iterator it=stencilAverages.recvs.begin(); it!=stencilAverages.recvs.end(); ++it) {
+      cint host           = it->first.first;
+      cint tag            = it->first.second;
+      const CellID cellID = it->second;
+      char* buffer        = reinterpret_cast<char*>(mpiGrid[cellID]->cpu_avgs);
+      cuint byteSize      = mpiGrid[cellID]->N_blocks * SIZE_VELBLOCK*sizeof(Real);
+      mpiGrid.singleReceive(host,tag,byteSize,buffer,cellID);
+   }
+
    // Post sends for avgs:
    for (multimap<CellID,pair<int,int> >::iterator it=stencilAverages.sends.begin(); it!=stencilAverages.sends.end(); ++it) {
       const CellID cellID = it->first;
       cint host           = it->second.first;
       cint tag            = it->second.second;
       char* buffer        = reinterpret_cast<char*>(mpiGrid[cellID]->cpu_avgs);
-      cuint byteSize      = avgsByteSize;
+      cuint byteSize      = mpiGrid[cellID]->N_blocks * SIZE_VELBLOCK*sizeof(Real);
       mpiGrid.singleSend(host,tag,byteSize,buffer,cellID);
    }
 
@@ -382,15 +377,17 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
       const CellID localID  = it->second;
       cint host             = it->first.first;
       cint tag              = it->first.second;
+      cuint byteSize        = mpiGrid[localID]->N_blocks*SIZE_VELBLOCK*sizeof(Real);
       
       map<pair<CellID,int>,Real*>::iterator it = updateBuffers.find(make_pair(localID,host));
       if (it == updateBuffers.end()) {cerr << "FATAL ERROR: Could not find update buffer!" << endl; exit(1);}
       char* const buffer    = reinterpret_cast<char*>(it->second);
       
-      mpiGrid.singleReceive2(host,tag,SIZE_DFDT,buffer,localID);
+      mpiGrid.singleReceive2(host,tag,byteSize,buffer,localID);
    }
 
    // Clear spatial fluxes to zero value. Remote neighbour df/dt arrays need to be cleared as well:
+   vector<CellID> cells;
    mpiGrid.getAllCells(cells);
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
@@ -475,8 +472,9 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
 	       multimap<CellID,pair<int,int> >::const_iterator jt=stencilUpdates.sends.find(nbrID);
 	       cint host             = jt->second.first;
 	       cint tag              = jt->second.second;
+	       cuint byteSize        = mpiGrid[nbrID]->N_blocks*SIZE_VELBLOCK*sizeof(Real);
 	       char* buffer          = reinterpret_cast<char*>(mpiGrid[nbrID]->cpu_fx);
-	       mpiGrid.singleSend2(host,tag,SIZE_DFDT,buffer,tag);
+	       mpiGrid.singleSend2(host,tag,byteSize,buffer,tag);
 	    }
 	 }
 	 ++calculatedCells;
