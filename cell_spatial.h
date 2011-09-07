@@ -31,7 +31,10 @@ struct SpatialCell {
    #endif
    void* getBaseAddress(cuint identifier);
    void getMPIdatatype(cuint identifier,MPI_Datatype& dataType);
+   
    uint cpuIndex;         /**< An index to Grid which is used to calculate the data array pointers (cpu_avgs etc.).*/
+   bool isGhostCell;      /**< If true, this cell is a ghost cell, i.e. Vlasov boundary condition functions 
+			   * need to be called for this cell.*/
    uint N_blocks;         /**< Number of velocity blocks in this cell.*/
 
    // Pointers to arrays containing spatial cell parameters in CPU memory

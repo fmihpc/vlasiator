@@ -19,6 +19,8 @@ SpatialCell::SpatialCell() {
    //cout << "Spatial cell default constructor called" << endl;
    N_blocks = Parameters::vzblocks_ini * Parameters::vyblocks_ini * Parameters::vxblocks_ini;
    cpuIndex = numeric_limits<uint>::max();
+   isGhostCell = false;
+   
    allocateArray(&cpu_cellParams,SIZE_CELLPARAMS);
    try {
       cpu_derivatives = new Real[SIZE_DERIVATIVES];
@@ -61,6 +63,7 @@ SpatialCell::SpatialCell(const SpatialCell& s) {
    
    // Copy variables related to the spatial cell:
    N_blocks       = s.N_blocks;
+   isGhostCell    = s.isGhostCell;
    allocateArray(&cpu_cellParams,SIZE_CELLPARAMS);
    for (uint i=0; i<SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
    for (uint i=0; i<SIZE_DERIVATIVES; ++i) cpu_derivatives[i] = s.cpu_derivatives[i];
@@ -104,6 +107,7 @@ SpatialCell& SpatialCell::operator=(const SpatialCell& s) {
    
    // Copy variables related to the spatial cell:
    N_blocks = s.N_blocks;
+   isGhostCell = s.isGhostCell;
    for (uint i=0; i<SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
    for (uint i=0; i<SIZE_DERIVATIVES; ++i) cpu_derivatives[i] = s.cpu_derivatives[i];
    
@@ -169,7 +173,8 @@ bool SpatialCell::initialize(cuint& N_blocks) {
       mpilogger << "SpatialCell " << cpuIndex << " : initialization failed." << endl;
       return false;
    }
-   this->N_blocks = N_blocks;
+   this->N_blocks  = N_blocks;
+   isGhostCell     = false;
    cpu_nbrsSpa     = grid.getNbrsSpa()     + cpuIndex*SIZE_NBRS_SPA;
    cpu_nbrsVel     = grid.getNbrsVel()     + cpuIndex*SIZE_NBRS_VEL;
    cpu_blockParams = grid.getBlockParams() + cpuIndex*SIZE_BLOCKPARAMS;
@@ -208,6 +213,7 @@ void SpatialCell::getMemInfo() {
 bool SpatialCell::clone(const SpatialCell& s) {
    //cout << "Spatial cell cloned" << endl;
    N_blocks = s.N_blocks;
+   isGhostCell = s.isGhostCell;
    // Copy cell contents to new memory locations:
    for (uint i=0; i<SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
    for (uint i=0; i<SIZE_DERIVATIVES; ++i) cpu_derivatives[i] = s.cpu_derivatives[i];
@@ -273,6 +279,9 @@ void* SpatialCell::getBaseAddress(cuint identifier) {
       return this->cpu_cellParams + CellParams::EX;
       break;
     #endif
+    case 7:
+      return &(isGhostCell);
+      break;
     default:
       cerr << "Unsupported base address" << endl;
       abort();
@@ -360,6 +369,16 @@ void SpatialCell::getMPIdatatype(cuint identifier,MPI_Datatype& dataType) {
 	 #ifndef NDEBUG
 	    mpilogger << "SpatialCell::getMPIdatatype ERROR failed to create MPI_Datatype!" << endl << write;
 	 #endif
+      }
+      break;
+    case 7: // Transfer isGhostCell
+      dataTypes[0]     = MPI_BYTE;
+      blockLengths[0]  = sizeof(bool);
+      displacements[0] = 0;
+      if (MPI_Type_create_struct(1,blockLengths,displacements,dataTypes,&dataType) != MPI_SUCCESS) {
+	 #ifndef NDEBUG
+	    mpilogger << "SpatialCell::getMPIdatatype ERROR failed to create MPI_Datatype!" << endl << write;
+         #endif
       }
       break;
    }

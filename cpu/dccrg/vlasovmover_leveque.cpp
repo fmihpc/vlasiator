@@ -92,8 +92,8 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
    std::vector<CellID> nbrs; //temporary vector for neighbors at certain offset
    
    cells=mpiGrid.get_cells();
-   remoteCells=mpiGrid.get_list_of_remote_cells_with_local_neighbours();
-   cells.insert( cells.end(), remoteCells.begin(), remoteCells.end() );
+   //remoteCells=mpiGrid.get_list_of_remote_cells_with_local_neighbours();
+   //cells.insert( cells.end(), remoteCells.begin(), remoteCells.end() );
    
    for (size_t cell=0; cell<cells.size(); ++cell) {
        cuint cellID = cells[cell];
@@ -148,10 +148,9 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
 	 // Boundary flags are stored to the last position in nbrsSpa array:
 	 nbrsSpa[block*SIZE_NBRS_SPA + 30] = boundaryFlag;
       }
-      
-      if (isGhost == true) {
-	 ghostCells.insert(cellID);
-      }
+
+      if (isGhost == true) mpiGrid[cellID]->isGhostCell = true;
+      else mpiGrid[cellID]->isGhostCell = false;
    }
    
    // ***** Calculate MPI send/receive stencils *****
@@ -208,7 +207,23 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
        updateBuffers.insert(make_pair(make_pair(localID,host),buffer));
        remoteUpdates[localID].insert(buffer);
    }
+
+   // Exchange ghostFlags between neighbouring processes, 
+   // so that boundary condition functions are correctly called 
+   // for remote ghost cells:
+   SpatialCell::base_address_identifier = 7;
+   mpiGrid.start_remote_neighbour_data_update();
+   mpiGrid.wait_neighbour_data_update_receives();
    
+   // Now iterate through all cells (local + remote), and insert the cells 
+   // with isGhostCell flag turned on into ghostCells list. Boundary condition 
+   // functions are called for every cell in ghostCells:
+   remoteCells=mpiGrid.get_list_of_remote_cells_with_local_neighbours();
+   cells.insert( cells.end(), remoteCells.begin(), remoteCells.end() );
+   for (uint c=0; c<cells.size(); ++c) {
+      const CellID cellID = cells[c];
+      if (mpiGrid[cellID]->isGhostCell == true) ghostCells.insert(cellID);
+   }   
    return true;
 }
 
@@ -276,9 +291,11 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    MPIsendRequests.clear(); // Note: unnecessary
    MPIrecvRequests.clear(); // Note: unnecessary
    
-   // Apply boundary conditions. This must be done before sending avgs!
-   for (set<CellID>::const_iterator it=ghostCells.begin(); it!=ghostCells.end(); ++it) {
-      const CellID cellID = *it;
+   // Apply boundary conditions on local ghost cells, these need to be up-to-date for 
+   // local cell propagation below:
+   for (set<CellID>::iterator cell=stencilAverages.innerCells.begin(); cell!=stencilAverages.innerCells.end(); ++cell) {
+      const CellID cellID = *cell;
+      if (ghostCells.find(cellID) == ghostCells.end()) continue;
       cuint* const nbrsSpa   = mpiGrid[cellID]->cpu_nbrsSpa;
       cuint existingCells    = nbrsSpa[30];
       cuint nonExistingCells = (existingCells ^ numeric_limits<uint>::max());
@@ -340,7 +357,7 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
       // Iterate through all velocity blocks in the spatial cell and calculate 
       // contributions to df/dt:
       for (uint block=0; block<mpiGrid[cellID]->N_blocks; ++block) {
-	 cpu_calcSpatDfdt(avgs,cellParams,blockParams,dfdt,nbrsSpa,block,P::dt);
+	 cpu_calcSpatDfdt(avgs,cellParams,blockParams,dfdt,nbrsSpa,block,HALF*P::dt);
       }
    }
    profile::stop("df/dt updates in spatial space");
@@ -352,6 +369,17 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    // Free memory:
    MPIrecvRequests.clear();
    profile::stop("(MPI) receive remote averages");
+   
+   // Apply boundary conditions on local ghost cells, these need to be up-to-date for 
+   // boundary cell propagation below:
+   for (set<CellID>::iterator cell=stencilAverages.boundaryCells.begin(); cell!=stencilAverages.boundaryCells.end(); ++cell) {
+      const CellID cellID = *cell;
+      if (ghostCells.find(cellID) == ghostCells.end()) continue;
+      cuint* const nbrsSpa   = mpiGrid[cellID]->cpu_nbrsSpa;
+      cuint existingCells    = nbrsSpa[30];
+      cuint nonExistingCells = (existingCells ^ numeric_limits<uint>::max());
+      vlasovBoundaryCondition(cellID,existingCells,nonExistingCells,mpiGrid);
+   }
    
    // Iterate through the rest of local cells:
    profile::start("df/dt updates in spatial space");
@@ -366,7 +394,7 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
       // Iterate through all velocity blocks in the spatial cell and calculate
       // contributions to df/dt:
       for (uint block=0; block<mpiGrid[cellID]->N_blocks; ++block) {
-	 cpu_calcSpatDfdt(avgs,cellParams,blockParams,dfdt,nbrsSpa,block,P::dt);
+	 cpu_calcSpatDfdt(avgs,cellParams,blockParams,dfdt,nbrsSpa,block,HALF*P::dt);
       }
    }
    profile::stop("df/dt updates in spatial space");
@@ -514,7 +542,7 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
 	 // Iterate through all velocity blocks in the spatial cell and calculate
 	 // contributions to df/dt:
 	 for (uint block=0; block<mpiGrid[cellID]->N_blocks; ++block) {
-	    cpu_calcSpatDfdt(avgs,cellParams,blockParams,dfdt,nbrsSpa,block,P::dt);
+	    cpu_calcSpatDfdt(avgs,cellParams,blockParams,dfdt,nbrsSpa,block,HALF*P::dt);
 	 }
 
 	 // increase counter on all df/dt updates to remote cells. If all local 
