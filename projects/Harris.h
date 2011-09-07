@@ -207,22 +207,7 @@ void fieldSolverBoundaryCondDerivZ(const CELLID& cellID,REAL* const array,const 
 				   & mpiGrid) {
    fieldSolverBoundarySetValueDerivZ(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
 }
-
-template<typename CELLID,typename UINT,typename REAL>
-REAL fieldSolverBoundaryCondBx(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const
-#ifdef PARGRID
-ParGrid<SpatialCell>
-#else
-dccrg<SpatialCell>
-#endif
-& mpiGrid) {
-   REAL x = mpiGrid[cellID]->cpu_cellParams[CellParams::XCRD];
-   REAL z = mpiGrid[cellID]->cpu_cellParams[CellParams::ZCRD];
-   REAL dz = mpiGrid[cellID]->cpu_cellParams[CellParams::DZ];
-   return 0.0;
-   //mpiGrid[cellID]->cpu_cellParams[CellParams::XCRD];
-}
-
+/*
 template<typename CELLID,typename UINT,typename REAL>
 REAL fieldSolverBoundaryCondBy(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const
 #ifdef PARGRID
@@ -232,6 +217,7 @@ dccrg<SpatialCell>
 #endif
 & mpiGrid) {
    return 0.0;
+   //mpiGrid[cellID]->cpu_cellParams[CellParams::XCRD];
 }
 
 template<typename CELLID,typename UINT,typename REAL>
@@ -242,10 +228,56 @@ ParGrid<SpatialCell>
 dccrg<SpatialCell>
 #endif
 & mpiGrid) {
-   REAL x = mpiGrid[cellID]->cpu_cellParams[CellParams::XCRD];
-   REAL z = mpiGrid[cellID]->cpu_cellParams[CellParams::ZCRD];
-   REAL dx = mpiGrid[cellID]->cpu_cellParams[CellParams::DX];
-   return B0 * tanh((x + 0.5 * dx) / (SCA_LAMBDA));
+   return 0.0;
+}
+
+template<typename CELLID,typename UINT,typename REAL>
+REAL fieldSolverBoundaryCondBx(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const
+#ifdef PARGRID
+ParGrid<SpatialCell>
+#else
+dccrg<SpatialCell>
+#endif
+& mpiGrid) {
+   REAL y = mpiGrid[cellID]->cpu_cellParams[CellParams::YCRD];
+   REAL dy = mpiGrid[cellID]->cpu_cellParams[CellParams::DY];
+   return B0 * tanh((y + 0.5 * dy) / (SCA_LAMBDA));
+}
+*/
+template<typename CELLID,typename UINT,typename REAL>
+REAL fieldSolverBoundaryCondBx(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const
+#ifdef PARGRID
+ParGrid<SpatialCell>
+#else
+dccrg<SpatialCell>
+#endif
+& mpiGrid) {
+  return 0.0;
+  //mpiGrid[cellID]->cpu_cellParams[CellParams::XCRD];
+}
+
+template<typename CELLID,typename UINT,typename REAL>
+REAL fieldSolverBoundaryCondBy(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const
+#ifdef PARGRID
+ParGrid<SpatialCell>
+#else
+dccrg<SpatialCell>
+#endif
+& mpiGrid) {
+  return 0.0;
+}
+
+template<typename CELLID,typename UINT,typename REAL>
+REAL fieldSolverBoundaryCondBz(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const
+#ifdef PARGRID
+ParGrid<SpatialCell>
+#else
+dccrg<SpatialCell>
+#endif
+& mpiGrid) {
+  REAL x = mpiGrid[cellID]->cpu_cellParams[CellParams::XCRD];
+  REAL dx = mpiGrid[cellID]->cpu_cellParams[CellParams::DX];
+  return B0 * tanh((x + 0.5 * dx) / (SCA_LAMBDA));
 }
 
 template<typename CELLID,typename UINT> 
