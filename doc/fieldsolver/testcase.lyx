@@ -327,6 +327,29 @@ which are orthogonal over the interval
 \end_inset
 
 .
+ One also needs averages of Legendre polynomials, which often have simple
+ forms:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula \begin{eqnarray}
+\langle P_{1}(x)\rangle_{x} & = & \int_{-1/2}^{+1/2}P_{1}(x)dx=0,\label{eq:P1X-averageX}\\
+\langle P_{2}(x)\rangle_{x} & = & \int_{-1/2}^{+1/2}P_{2}(x)dx=0,\label{eq:P2X-averageX}\\
+\langle P_{1}(x)P_{1}(y)\rangle_{xy} & = & 0,\label{eq:P1XP1Y-averageXY}\\
+\langle P_{1}(x)\rangle_{y} & = & P_{1}(x)\Delta y,\label{eq:P1X-averageY}\end{eqnarray}
+
+\end_inset
+
+and so forth.
+ In practice only quadratic terms, such as 
+\begin_inset Formula $\langle P_{1}^{2}(x)\rangle=1/12$
+\end_inset
+
+ or 
+\begin_inset Formula $\langle P_{2}^{2}(x)\rangle=1/180$
+\end_inset
+
+, have non-zero averages.
  Coefficients of Legendre polynomials are obtained by calculating slope-limited
  derivatives of 
 \begin_inset Formula $B_{\mathrm{face}}$
@@ -368,9 +391,9 @@ where
 \end_layout
 
 \begin_layout Standard
-\begin_inset Formula \begin{eqnarray*}
-B_{x}(x,y,z) & = & a_{0}+a_{x}P_{1}(x)+a_{y}P_{1}(y)+a_{z}P_{1}(z)\\
- & + & a_{xx}P_{2}(x)+a_{xy}P_{1}(x)P_{1}(y)+a_{xz}P_{1}(x)P_{1}(z).\end{eqnarray*}
+\begin_inset Formula \begin{eqnarray}
+B_{x}(x,y,z) & = & a_{0}+a_{x}P_{1}(x)+a_{y}P_{1}(y)+a_{z}P_{1}(z)\nonumber \\
+ & + & a_{xx}P_{2}(x)+a_{xy}P_{1}(x)P_{1}(y)+a_{xz}P_{1}(x)P_{1}(z).\label{eq:Bx-interior}\end{eqnarray}
 
 \end_inset
 
@@ -493,7 +516,185 @@ reference "eq:B2-zedge"
 \end_layout
 
 \begin_layout Section
+Face-averaged Magnetic Field
+\end_layout
+
+\begin_layout Standard
+In propagation of distribution function one needs the complete magnetic
+ field vector, averaged over each cell face.
+ These are easy to calculate using the averaging rules of Legendre polynomials
+ (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:P1X-averageX"
+
+\end_inset
+
+)-(
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:P1X-averageY"
+
+\end_inset
+
+) and expressions for the reconstructed magnetic field in the cell interior
+ (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:Bx-interior"
+
+\end_inset
+
+).
+ For example, 
+\begin_inset Formula $\langle\boldsymbol{B}\rangle_{yz}$
+\end_inset
+
+ on 
+\begin_inset Formula $x$
+\end_inset
+
+-faces is given by
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula \begin{eqnarray*}
+\langle B_{x}\rangle_{yz} & = & B_{0}^{x\pm},\\
+\langle B_{y}\rangle_{yz} & = & b_{0}+b_{x}P_{1}(x),\\
+\langle B_{z}\rangle_{yz} & = & c_{0}+c_{x}P_{1}(x),\end{eqnarray*}
+
+\end_inset
+
+where 
+\begin_inset Formula $B_{0}^{x\pm}$
+\end_inset
+
+ is the face-averaged normal component of 
+\series bold
+
+\begin_inset Formula $\mathbf{B}$
+\end_inset
+
+
+\series default
+ stored to the face.
+\end_layout
+
+\begin_layout Section
 Volume-averaged Quantities
+\end_layout
+
+\begin_layout Standard
+Volume-averaged quantities, such as the bulk velocity, have much simpler
+ reconstructions.
+ For example, 
+\begin_inset Formula $x$
+\end_inset
+
+-component of bulk velocity is reconstructed with the following polynomial
+ to the second order:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula \begin{equation}
+V_{x}(x,y,z)=V_{x0}+V_{xx}P_{1}(x)+V_{xy}P_{1}(y)+V_{xz}P_{1}(z).\label{eq:volume-rec}\end{equation}
+
+\end_inset
+
+In equation (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:volume-rec"
+
+\end_inset
+
+) 
+\begin_inset Formula $V_{xx}$
+\end_inset
+
+ is the slope-limited derivative to the 
+\begin_inset Formula $x$
+\end_inset
+
+-direction and so forth.
+\end_layout
+
+\begin_layout Section
+Electric Field
+\end_layout
+
+\begin_layout Standard
+Reconstruction of the electric field is a bit more complicated, because
+ the electric field is obtained using an Ohm's law such as
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula \begin{equation}
+\mathbf{E}=-\mathbf{V}\times\mathbf{B},\end{equation}
+
+\end_inset
+
+and the vectors 
+\begin_inset Formula $\mathbf{V}$
+\end_inset
+
+ and 
+\begin_inset Formula $\mathbf{B}$
+\end_inset
+
+ have their own reconstructions.
+ Electric field needs to be reconstructed for, at least, cell edges (propagation
+ of B) and faces (propagation of distribution function).
+ Electric field, reconstructed and averaged over cell x-face, is given by
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula \begin{eqnarray*}
+\langle E_{x}(x)\rangle_{yz} & = & \langle B_{y}V_{z}-B_{z}V_{y}\rangle_{yz}\\
+ & = & \left[b_{0}+b_{x}P_{1}(x)\right]\left[V_{z0}+V_{zx}P_{1}(x)\right]\\
+ & + & \frac{1}{12}\left[b_{y}V_{zy}+b_{z}V_{zz}+b_{yx}V_{zy}P_{1}(x)\right]\\
+ & - & \left[c_{0}+c_{x}P_{1}(x)\right]\left[V_{y0}+V_{yx}P_{1}(x)\right]\\
+ & - & \frac{1}{12}\left[c_{y}V_{yy}+c_{z}V_{yz}+c_{zx}V_{yz}P_{1}(x)\right],\\
+\langle E_{y}(x)\rangle_{yz} & = & \langle B_{z}V_{x}-B_{x}V_{z}\rangle_{yz}\\
+ & = & \left[c_{0}+c_{x}P_{1}(x)\right]\left[V_{x0}+V_{xx}P_{1}(x)\right]\\
+ & + & \frac{1}{12}\left[c_{y}V_{xy}+c_{z}V_{xz}+c_{zx}V_{xz}P_{1}(x)\right]\\
+ & - & \left[a_{0}+a_{x}P_{1}(x)\right]\left[V_{z0}+V_{zx}P_{1}(x)\right]\\
+ & - & \frac{1}{12}\left[a_{y}V_{zy}+a_{z}V_{zz}+(a_{xy}V_{zx}+a_{xz}V_{zz})P_{1}(x)\right]\\
+\langle E_{z}(x)\rangle_{yz} & = & \langle B_{x}V_{y}-B_{y}V_{x}\rangle_{yz}\\
+ & = & \left[a_{0}+a_{x}P_{1}(x)\right]\left[V_{y0}+V_{yx}P_{1}(x)\right]\\
+ & + & \frac{1}{12}\left[a_{y}V_{yy}+a_{z}V_{yz}+(a_{xy}V_{yy}+a_{yz}V_{zz})P_{1}(x)\right]\\
+ & - & \left[b_{0}+b_{x}P_{1}(x)\right]\left[V_{x0}+V_{xx}P_{1}(x)\right]\\
+ & - & \frac{1}{12}\left[b_{y}V_{xy}+b_{z}V_{xz}+b_{yx}V_{xy}P_{1}(x)\right].\end{eqnarray*}
+
+\end_inset
+
+Note that 
+\begin_inset Formula $B_{x}$
+\end_inset
+
+ can also be reconstructed using the simpler reconstruction formula on cell
+ x-face, while 
+\begin_inset Formula $B_{y}$
+\end_inset
+
+ and 
+\begin_inset Formula $B_{z}$
+\end_inset
+
+ have to be reconstructed using the cell interior formulas.
+ Although 
+\begin_inset Formula $P_{1}(x)$
+\end_inset
+
+ appears in the formulas above, it should be replaced with value 
+\begin_inset Formula $\pm1/2$
+\end_inset
+
+ on the 
+\begin_inset Formula $\pm x$
+\end_inset
+
+ faces.
 \end_layout
 
 \begin_layout Part
