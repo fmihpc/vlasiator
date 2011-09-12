@@ -2061,7 +2061,7 @@ void averageFaceXElectricField(
       CHECK_FLOAT(cep_i0j1k2[cp::EX])
       CHECK_FLOAT(cep_i0j2k2[cp::EX])
       result[0] = EIGTH*(cep_i1j1k1[cp::EX] + cep_i1j2k1[cp::EX] + cep_i1j1k2[cp::EX] + cep_i1j2k2[cp::EX]
-			 + cep_i0j1k1[cp::EX] + cep_i0j2k1[cp::EX] + cep_i0j1k2[cp::EX] + cep_i0j2k2[cp::EX]);
+			+cep_i0j1k1[cp::EX] + cep_i0j2k1[cp::EX] + cep_i0j1k2[cp::EX] + cep_i0j2k2[cp::EX]);
 
       CHECK_FLOAT(cep_i1j1k1[cp::EY])
       CHECK_FLOAT(cep_i1j1k2[cp::EY])
@@ -2196,7 +2196,7 @@ void averageFaceZElectricField(
       creal* const cep_i2j2k1 = mpiGrid[nbr_i2j2k1]->cpu_cellParams;
       creal* const cep_i1j1k0 = mpiGrid[nbr_i1j1k0]->cpu_cellParams;
       creal* const cep_i2j1k0 = mpiGrid[nbr_i2j1k0]->cpu_cellParams;
-      creal* const cep_i1j2k0 = mpiGrid[nbr_i1j1k0]->cpu_cellParams;
+      creal* const cep_i1j2k0 = mpiGrid[nbr_i1j2k0]->cpu_cellParams;
       creal* const cep_i2j2k0 = mpiGrid[nbr_i2j2k0]->cpu_cellParams;
       
       result[0] = HALF*(cep_i1j1k1[cp::EX] + cep_i1j2k1[cp::EX]);
