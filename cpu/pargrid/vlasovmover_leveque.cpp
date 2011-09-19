@@ -224,9 +224,11 @@ void calculateAcceleration(ParGrid<SpatialCell>& mpiGrid) {
    // Iterate through all local cells and propagate distribution functions 
    // in velocity space. Ghost cells (spatial cells at the boundary of the simulation 
    // volume) do not need to be propagated:
+   bool noAcceleration = true; // Check whether the loop has been entered and the profiler calls done.
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       if (ghostCells.find(cellID) != ghostCells.end()) continue;
+      noAcceleration = false;
       SpatialCell* SC = mpiGrid[cellID];
       
       // Clear df/dt contributions:
@@ -259,6 +261,13 @@ void calculateAcceleration(ParGrid<SpatialCell>& mpiGrid) {
       #ifdef PAT_PROFILE
          PAT_region_end(4);
       #endif
+   }
+   if(noAcceleration) // The loop has not been entered; creation of the profiler labels on this process.
+   {
+      profile::start("df/dt updates in velocity space");
+      profile::stop("df/dt updates in velocity space");
+      profile::start("velocity acceleration");
+      profile::stop("velocity acceleration");
    }
 }
 
@@ -366,9 +375,9 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
    profile::stop("df/dt updates in spatial space");
    
    // Wait for sends to complete:
-   profile::start("(MPI) send averages");
+//   profile::start("(MPI) send averages");
    mpiGrid.waitAllSends();
-   profile::stop("(MPI) send averages");
+//   profile::stop("(MPI) send averages");
 }
 
 #else // #ifdef SIMPLE
