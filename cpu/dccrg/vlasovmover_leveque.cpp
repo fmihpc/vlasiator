@@ -252,7 +252,7 @@ void calculateAcceleration(dccrg<SpatialCell>& mpiGrid) {
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       if (ghostCells.find(cellID) != ghostCells.end()) continue;
-      }
+      noAcceleration=false;
       SpatialCell* SC = mpiGrid[cellID];
       
       // Clear df/dt contributions:
@@ -331,7 +331,7 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
       //cuint byteSize      = avgsByteSize; // NOTE: N_blocks should be ok in buffer cells
       cuint byteSize      = mpiGrid[cellID]->N_blocks*SIZE_VELBLOCK*sizeof(Real);
       MPIsendRequests.push_back(MPI_Request());
-      //std::cerr << "ParGrid proc #" << myrank << " MPIsendRequests.size() = " << MPIsendRequests.size() << std::endl;
+
       if (MPI_Isend(buffer,byteSize,MPI_BYTE,host,tag,MPI_COMM_WORLD,&(MPIsendRequests.back())) != MPI_SUCCESS) {
           std::cerr << "calculateSpatialFlux failed to send data!" << std::endl;
       }
