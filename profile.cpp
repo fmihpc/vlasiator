@@ -62,6 +62,31 @@ namespace profile
             }
             return label;
         }
+
+        //djb2 hash function copied from
+        //http://www.cse.yorku.ca/~oz/hash.html
+        unsigned long hash(const char *str)
+        {
+            unsigned long hash = 5381;
+            int c;
+            
+            while ( (c = *str++) )
+                hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+            return hash;
+        }
+
+        //Hash value identifying all labels and workunitlabels. If any strings differ, hash should differ.
+        int getTimersHash(){
+            string allLabels;
+
+            for ( std::map< string, TimerData>::const_iterator iter = timers.begin();
+                  iter != timers.end(); ++iter ) {
+                allLabels.append(iter->first);
+                allLabels.append(iter->second.workUnitLabel);
+            }
+            return (int)hash(allLabels.c_str());
+        }
+
     }
     
     bool start(const string &label){
@@ -161,11 +186,11 @@ namespace profile
     
     
     //print out global timers
-    //This will assume that all processes have identical labels, will fail otherwise (FIXME)
+    // If any labels differ, then the print cannot proceed. It has to be consistent for all processes in communicator
     bool print(MPI_Comm comm){
         int rank,nProcesses;
-        int nTimers;
-        vector<int> nAllTimers;
+        int timersHash;
+        vector<int> allTimersHash;
 
         const int indentWidth=2; //how many spaces each level is indented
         const int floatWidth=10; //width of float fields;
@@ -184,17 +209,17 @@ namespace profile
 
         MPI_Comm_rank(comm,&rank);
         MPI_Comm_size(comm,&nProcesses);
-        nAllTimers.resize(nProcesses);
 
-        nTimers=timers.size();
-        MPI_Allgather(&nTimers,1,MPI_INT,&(nAllTimers[0]),1,MPI_INT,comm);
 
-        //check that all processes have identical number of timers to avoid deadlocks
-        //does not ensure the labels themselves are the same (FIXME with e.g. with hash of labels)
+        timersHash=getTimersHash();
+        allTimersHash.resize(nProcesses);
+        MPI_Allgather(&timersHash,1,MPI_INT,&(allTimersHash[0]),1,MPI_INT,comm);
+
+        //check that all processes have identical number of labels to avoid deadlocks
         for(int i=0;i<nProcesses;i++){
-            if(nTimers!=nAllTimers[i]){
+            if(timersHash!=allTimersHash[i]){
                 if(rank==0){
-                    mpilogger <<"Error in profile::print, different number of labels on different processes" <<endl;
+                    mpilogger <<"Error in profile::print, labels on different processes do not match" <<endl;
                 }
                 return false;
             }
@@ -228,8 +253,8 @@ namespace profile
             //call count
             mpilogger<<setw(floatWidth) << "Average";
             // workunit rate
-            mpilogger<<setw(floatWidth) << "Total";
             mpilogger<<setw(floatWidth) << "Average";
+            mpilogger<<setw(floatWidth) << "Per process";
             mpilogger<<endl;
             for(int i=0;i<totalWidth;i++) mpilogger <<"-";
             mpilogger<<endl;            
@@ -298,20 +323,20 @@ namespace profile
             }
              
             //workunits/time statistics
-            double workRate[2];
+            double workUnits[2];
             double sums[2];
 
-            workRate[0]=timer->second.workUnits/timer->second.time;
-            if (workRate[0]<0)
-                workRate[1]=1.0;//use this to check if for any process the units were not defined
+            workUnits[0]=timer->second.workUnits;
+            if (workUnits[0]<0)
+                workUnits[1]=1.0;//use this to check if for any process the units were not defined
             else
-                workRate[1]=0.0;
+                workUnits[1]=0.0;
             
-            MPI_Reduce(workRate,sums,2,MPI_DOUBLE,MPI_SUM,0,comm);
+            MPI_Reduce(workUnits,sums,2,MPI_DOUBLE,MPI_SUM,0,comm);
             //print if rank is zero, and units defined for all processes
             if(rank==0 && sums[1] < 0.5){
-                mpilogger << setw(floatWidth) << sums[0];
-                mpilogger << setw(floatWidth) << sums[0]/nProcesses;
+                mpilogger << setw(floatWidth) << sums[0]/aveTime;
+                mpilogger << setw(floatWidth) << sums[0]/aveTime/nProcesses;
                 mpilogger << timer->second.workUnitLabel<<"/s";
             }
             if(rank==0){
