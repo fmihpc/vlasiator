@@ -18,6 +18,7 @@
 #include "parameters.h"
 #include "mpiconversion.h"
 #include "mpilogger.h"
+#include "profile.h"
 extern MPILogger mpilogger;
 
 namespace ID {
@@ -1109,7 +1110,9 @@ template<class C> bool ParGrid<C>::initialize(const bool& balanceLoad) {
    // Do an initial load balance (if allowed):
    buildExchangeLists();
    if (balanceLoad == true) {
-      initialLoadBalance();
+     profile::start("Initial load-balancing");
+     initialLoadBalance();
+     profile::stop("Initial load-balancing");
       //hostProcesses.clear();
       //syncCellAssignments();
       //checkCellAssignments();
