@@ -28,8 +28,10 @@ CXXFLAGS += -DNDEBUG
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
 PROJ = harm1D
+#PROJ = Diffusion
 #PROJ = Harris
 #PROJ=test_fp
+#PROJ=test_acc
 #PROJ=msphere
 #PROJ=velrot2+3
 #PROJ=velocity_rotation_1+3d
@@ -241,3 +243,40 @@ dist:
 # Make executable
 vlasiator: projinstall fieldsolverinstall builderinstall moverinstall $(OBJS)
 	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) -L${INSTALL} -L${INSTALL}/cpu -lvlasovmover -lfieldsolver $(LIBS) ${BUILDER}
+
+VLASIATOR_HEADERS = \
+	arrayallocator.h cpu/cpu_acc_kt.h cpu/cpu_acc_leveque.h cpu/cpu_acc_ppm.h \
+	cpu/cpu_common.h cpu/cpu_trans_kt.h cpu/cpu_trans_leveque.h cell_spatial.h \
+	common.h datareducer.h datareductionoperator.h \
+	definitions.h grid.h gridbuilder.h \
+	mpiconversion.h mpifile.h mpilogger.h \
+	parameters.h \
+	pargrid.h vlscommon.h \
+	vlsvwriter2.h vlsvreader2.h muxml.h profile.h
+
+VLASIATOR_SOURCES = \
+	arrayallocator.cpp \
+	cell_spatial.cpp \
+	datareducer.cpp \
+	datareductionoperator.cpp \
+	grid.cpp gridbuilder.cpp \
+	fieldsolver/londrillo_delzanna.cpp \
+	vlasiator.cpp \
+	cpu/cpu_acc_kt.cpp \
+	cpu/cpu_trans_kt.cpp \
+	cpu/dccrg/main_dccrg.cpp \
+	#cpu/dccrg/vlasovmover_leveque.cpp \
+	cpu/memalloc.cpp \
+	mpifile.cpp \
+	mpilogger.cpp \
+	parameters.cpp \
+	project.cpp \
+	profile.cpp \
+	vlscommon.cpp \
+	vlsvreader2.cpp \
+	vlsvwriter2.cpp \
+	muxml.cpp
+
+vlasiator2: projinstall $(VLASIATOR_SOURCES) $(VLASIATOR_HEADERS) Makefile Makefile.${ARCH}
+	$(CMP) $(VLASIATOR_HEADERS) $(VLASIATOR_SOURCES) vlasiator.cpp -o ${EXE} $(LIBS) -I. -I./cpu
+
