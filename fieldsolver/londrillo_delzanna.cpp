@@ -459,7 +459,6 @@ template<typename REAL> REAL calculateFastMSspeedXY(const REAL* cp,const REAL* d
    const REAL By2  = (By + xdir*HALF*dBydx)*(By + xdir*HALF*dBydx) + TWELWTH*dBydz*dBydz;
    
    const REAL rho = Parameters::m*(cp[CellParams::RHO] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody]);
-   
    return sqrt((Bx2+By2+Bz2) / (pc::MU_0 * rho));
 }
 
@@ -613,7 +612,7 @@ static void calculateEdgeElectricFieldX(
    ay_pos   = max(ay_pos,+Vy0 + c_y);
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
-
+   
    // Calculate properly upwinded edge-averaged Ex:
    cp_SW[CellParams::EX]  = ay_pos*az_pos*Ex_NE + ay_pos*az_neg*Ex_SE + ay_neg*az_pos*Ex_NW + ay_neg*az_neg*Ex_SW;
    cp_SW[CellParams::EX] /= ((ay_pos+ay_neg)*(az_pos+az_neg)+EPS);
@@ -1313,7 +1312,8 @@ bool initializeFieldPropagator(
    // does not exchange edge-E:
    calculateDerivativesSimple(mpiGrid,localCells);
    calculateUpwindedElectricFieldSimple(mpiGrid,localCells);
-   calculateFaceAveragedFields(mpiGrid);
+// YK   calculateFaceAveragedFields(mpiGrid);
+   calculateVolumeAveragedFields(mpiGrid);
    return true;
 }
 
@@ -1902,7 +1902,8 @@ bool propagateFields(
    propagateMagneticFieldSimple(mpiGrid,dt,localCells);
    calculateDerivativesSimple(mpiGrid,localCells);
    calculateUpwindedElectricFieldSimple(mpiGrid,localCells);
-   calculateFaceAveragedFields(mpiGrid);
+// YK   calculateFaceAveragedFields(mpiGrid);
+   calculateVolumeAveragedFields(mpiGrid);
    return true;
 }
 
@@ -2079,7 +2080,7 @@ void averageFaceXElectricField(
       CHECK_FLOAT(cep_i0j1k2[cp::EX])
       CHECK_FLOAT(cep_i0j2k2[cp::EX])
       result[0] = EIGTH*(cep_i1j1k1[cp::EX] + cep_i1j2k1[cp::EX] + cep_i1j1k2[cp::EX] + cep_i1j2k2[cp::EX]
-			+cep_i0j1k1[cp::EX] + cep_i0j2k1[cp::EX] + cep_i0j1k2[cp::EX] + cep_i0j2k2[cp::EX]);
+			 + cep_i0j1k1[cp::EX] + cep_i0j2k1[cp::EX] + cep_i0j1k2[cp::EX] + cep_i0j2k2[cp::EX]);
 
       CHECK_FLOAT(cep_i1j1k1[cp::EY])
       CHECK_FLOAT(cep_i1j1k2[cp::EY])
@@ -2206,7 +2207,7 @@ void averageFaceZElectricField(
       | (1 << calcNbrNumber(2,2,0));
    
    // If all required neighbour data exists, calculate E vector on
-   // y-face. NEEDS IMPROVEMENT!
+   // z-face. NEEDS IMPROVEMENT!
    if ((existingCells & REQUIRED_CELLS) == REQUIRED_CELLS) {
       creal* const cep_i1j1k1 = mpiGrid[cellID]->cpu_cellParams;
       creal* const cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->cpu_cellParams;
