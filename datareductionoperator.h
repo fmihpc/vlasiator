@@ -157,6 +157,21 @@ namespace DRO {
       Real rhovz;
       Real* rhov;
    };
+   
+   // Added by YK
+   class VariablePressure: public DataReductionOperator {
+   public:
+     VariablePressure();
+     ~VariablePressure();
+     
+     bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+     std::string getName() const;
+     bool reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer);
+     bool setSpatialCell(const SpatialCell& cell);
+     
+   protected:
+     Real Pressure;
+   };
 } // namespace DRO
 
 #endif

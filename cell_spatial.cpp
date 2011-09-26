@@ -39,7 +39,7 @@ SpatialCell::SpatialCell() {
    cpuIndex = numeric_limits<uint>::max();
    isGhostCell = false;
    
-   allocateArray(&cpu_cellParams,SIZE_CELLPARAMS);
+   allocateArray(&cpu_cellParams,CellParams::SIZE_CELLPARAMS);
    try {
       cpu_derivatives = new Real[SIZE_DERIVATIVES];
    }
@@ -82,8 +82,8 @@ SpatialCell::SpatialCell(const SpatialCell& s) {
    // Copy variables related to the spatial cell:
    N_blocks       = s.N_blocks;
    isGhostCell    = s.isGhostCell;
-   allocateArray(&cpu_cellParams,SIZE_CELLPARAMS);
-   for (uint i=0; i<SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
+   allocateArray(&cpu_cellParams,CellParams::SIZE_CELLPARAMS);
+   for (uint i=0; i<CellParams::SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
    for (uint i=0; i<SIZE_DERIVATIVES; ++i) cpu_derivatives[i] = s.cpu_derivatives[i];
    
    cpuIndex = s.cpuIndex;
@@ -121,12 +121,12 @@ SpatialCell& SpatialCell::operator=(const SpatialCell& s) {
       }
    }
    if (cpu_cellParams != NULL) freeArray(cpu_cellParams);
-   allocateArray(&cpu_cellParams,SIZE_CELLPARAMS);
+   allocateArray(&cpu_cellParams,CellParams::SIZE_CELLPARAMS);
    
    // Copy variables related to the spatial cell:
    N_blocks = s.N_blocks;
    isGhostCell = s.isGhostCell;
-   for (uint i=0; i<SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
+   for (uint i=0; i<CellParams::SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
    for (uint i=0; i<SIZE_DERIVATIVES; ++i) cpu_derivatives[i] = s.cpu_derivatives[i];
    
    // Copy variables related to the velocity grid:
@@ -233,7 +233,7 @@ bool SpatialCell::clone(const SpatialCell& s) {
    N_blocks = s.N_blocks;
    isGhostCell = s.isGhostCell;
    // Copy cell contents to new memory locations:
-   for (uint i=0; i<SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
+   for (uint i=0; i<CellParams::SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
    for (uint i=0; i<SIZE_DERIVATIVES; ++i) cpu_derivatives[i] = s.cpu_derivatives[i];
    for (uint i=0; i<SIZE_NBRS_SPA; ++i  ) cpu_nbrsSpa[i]    = s.cpu_nbrsSpa[i];
    

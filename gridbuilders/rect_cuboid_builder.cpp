@@ -274,17 +274,17 @@ bool RectCuboidBuilder::getCellParams(const VirtualCell::ID& N_cells,const Virtu
       const VC::ID j = (CELLID - k*xsize*ysize)/xsize;
       const VC::ID i = CELLID - k*xsize*ysize - j*xsize;
       
-      cellParams[c*SIZE_CELLPARAMS+CellParams::XCRD] = xmin + i*dx;
-      cellParams[c*SIZE_CELLPARAMS+CellParams::YCRD] = ymin + j*dy;
-      cellParams[c*SIZE_CELLPARAMS+CellParams::ZCRD] = zmin + k*dz;
-      cellParams[c*SIZE_CELLPARAMS+CellParams::DX  ] = dx;
-      cellParams[c*SIZE_CELLPARAMS+CellParams::DY  ] = dy;
-      cellParams[c*SIZE_CELLPARAMS+CellParams::DZ  ] = dz;
-      calcCellParameters(cellParams+c*SIZE_CELLPARAMS,0.0);
-      cellParams[c*SIZE_CELLPARAMS+CellParams::RHO  ] = 0.0;
-      cellParams[c*SIZE_CELLPARAMS+CellParams::RHOVX] = 0.0;
-      cellParams[c*SIZE_CELLPARAMS+CellParams::RHOVY] = 0.0;
-      cellParams[c*SIZE_CELLPARAMS+CellParams::RHOVZ] = 0.0;
+      cellParams[c*CellParams::SIZE_CELLPARAMS+CellParams::XCRD] = xmin + i*dx;
+      cellParams[c*CellParams::SIZE_CELLPARAMS+CellParams::YCRD] = ymin + j*dy;
+      cellParams[c*CellParams::SIZE_CELLPARAMS+CellParams::ZCRD] = zmin + k*dz;
+      cellParams[c*CellParams::SIZE_CELLPARAMS+CellParams::DX  ] = dx;
+      cellParams[c*CellParams::SIZE_CELLPARAMS+CellParams::DY  ] = dy;
+      cellParams[c*CellParams::SIZE_CELLPARAMS+CellParams::DZ  ] = dz;
+      calcCellParameters(cellParams+c*CellParams::SIZE_CELLPARAMS,0.0);
+      cellParams[c*CellParams::SIZE_CELLPARAMS+CellParams::RHO  ] = 0.0;
+      cellParams[c*CellParams::SIZE_CELLPARAMS+CellParams::RHOVX] = 0.0;
+      cellParams[c*CellParams::SIZE_CELLPARAMS+CellParams::RHOVY] = 0.0;
+      cellParams[c*CellParams::SIZE_CELLPARAMS+CellParams::RHOVZ] = 0.0;
    }
    return success;
 }

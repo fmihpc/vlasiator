@@ -1938,8 +1938,8 @@ void reconstructionCoefficients(
    Real* const cep_i1j1k1 = mpiGrid[cellID]->cpu_cellParams;
    
    // Create a dummy array for containing zero values for cellParams on non-existing cells:
-   Real dummyCellParams[SIZE_CELLPARAMS];
-   for (uint i=0; i<SIZE_CELLPARAMS; ++i) dummyCellParams[i] = 0.0;
+   Real dummyCellParams[CellParams::SIZE_CELLPARAMS];
+   for (uint i=0; i<CellParams::SIZE_CELLPARAMS; ++i) dummyCellParams[i] = 0.0;
    
    Real* cep_i2j1k1 = NULL;
    Real* cep_i1j2k1 = NULL;

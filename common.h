@@ -201,7 +201,8 @@ namespace CellParams {
       EXVOL,   /**< Ex averaged over spatial cell.*/
       EYVOL,   /**< Ey averaged over spatial cell.*/
       EZVOL,   /**< Ez averaged over spatial cell.*/
-      N_SPATIAL_CELL_PARAMS
+      PRESSURE, /**< Added by YK - Scalar pressure. Calculated by Vlasov propagator.*/
+      SIZE_CELLPARAMS
    };
 }
 
@@ -240,7 +241,6 @@ const uint WID2 = WID*WID;
 const uint WID3 = WID2*WID; 
 
 const uint SIZE_DERIVATIVES = fieldsolver::dVzdz+1;
-const uint SIZE_CELLPARAMS  = 40;   /**< The number of parameters for one spatial cell. */
 //const uint SIZE_NBRS_VEL    = 8;    /**< The size of velocity grid neighbour list per velocity block. */
 const uint SIZE_NBRS_VEL    = 28;    /**< The size of velocity grid neighbour list per velocity block. */
 const uint SIZE_NBRS_SPA    = 31;   /**< The size of spatial grid neighbour list per spatial cell. */

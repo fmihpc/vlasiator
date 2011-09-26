@@ -405,23 +405,23 @@ bool AsciiBuilder::getCellParams(const VirtualCell::ID& N_cells,const VirtualCel
       it = inFile.find(cellIDs[i]);
       if (it == inFile.end()) return false;
       
-      cellParams[i*SIZE_CELLPARAMS+CellParams::XCRD] = atof(it->second[1 + 0].c_str());
-      cellParams[i*SIZE_CELLPARAMS+CellParams::YCRD] = atof(it->second[1 + 1].c_str());
-      cellParams[i*SIZE_CELLPARAMS+CellParams::ZCRD] = atof(it->second[1 + 2].c_str());
-      cellParams[i*SIZE_CELLPARAMS+CellParams::DX  ] = atof(it->second[1 + 3].c_str());
-      cellParams[i*SIZE_CELLPARAMS+CellParams::DY  ] = atof(it->second[1 + 4].c_str());
-      cellParams[i*SIZE_CELLPARAMS+CellParams::DZ  ] = atof(it->second[1 + 5].c_str());
+      cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::XCRD] = atof(it->second[1 + 0].c_str());
+      cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::YCRD] = atof(it->second[1 + 1].c_str());
+      cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::ZCRD] = atof(it->second[1 + 2].c_str());
+      cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::DX  ] = atof(it->second[1 + 3].c_str());
+      cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::DY  ] = atof(it->second[1 + 4].c_str());
+      cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::DZ  ] = atof(it->second[1 + 5].c_str());
       
-      cellParams[i*SIZE_CELLPARAMS+CellParams::EX  ]  = atof(it->second[2*N_dimensions+1 + 0].c_str());
-      cellParams[i*SIZE_CELLPARAMS+CellParams::EY  ]  = atof(it->second[2*N_dimensions+1 + 1].c_str());
-      cellParams[i*SIZE_CELLPARAMS+CellParams::EZ  ]  = atof(it->second[2*N_dimensions+1 + 2].c_str());
-      cellParams[i*SIZE_CELLPARAMS+CellParams::BX  ]  = atof(it->second[2*N_dimensions+1 + 3].c_str());
-      cellParams[i*SIZE_CELLPARAMS+CellParams::BY  ]  = atof(it->second[2*N_dimensions+1 + 4].c_str());
-      cellParams[i*SIZE_CELLPARAMS+CellParams::BZ  ]  = atof(it->second[2*N_dimensions+1 + 5].c_str());
-      cellParams[i*SIZE_CELLPARAMS+CellParams::RHO  ] = 0.0;
-      cellParams[i*SIZE_CELLPARAMS+CellParams::RHOVX] = 0.0;
-      cellParams[i*SIZE_CELLPARAMS+CellParams::RHOVY] = 0.0;
-      cellParams[i*SIZE_CELLPARAMS+CellParams::RHOVZ] = 0.0;
+      cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::EX  ]  = atof(it->second[2*N_dimensions+1 + 0].c_str());
+      cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::EY  ]  = atof(it->second[2*N_dimensions+1 + 1].c_str());
+      cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::EZ  ]  = atof(it->second[2*N_dimensions+1 + 2].c_str());
+      cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::BX  ]  = atof(it->second[2*N_dimensions+1 + 3].c_str());
+      cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::BY  ]  = atof(it->second[2*N_dimensions+1 + 4].c_str());
+      cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::BZ  ]  = atof(it->second[2*N_dimensions+1 + 5].c_str());
+      cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::RHO  ] = 0.0;
+      cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::RHOVX] = 0.0;
+      cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::RHOVY] = 0.0;
+      cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::RHOVZ] = 0.0;
    }
    return success;
    /*
@@ -443,25 +443,25 @@ bool AsciiBuilder::getCellParams(const VirtualCell::ID& N_cells,const VirtualCel
 	 Real* tmp = new Real[2*N_dimensions];
 	 for (uint k=0; k<2*N_dimensions; ++k) tmp[k] = atof(line[k+1].c_str());
 	 
-	 cellParams[i*SIZE_CELLPARAMS+CellParams::XCRD] = tmp[0];
-	 cellParams[i*SIZE_CELLPARAMS+CellParams::YCRD] = tmp[1];
-	 cellParams[i*SIZE_CELLPARAMS+CellParams::ZCRD] = tmp[2];
-	 cellParams[i*SIZE_CELLPARAMS+CellParams::DX  ] = tmp[3];
-	 cellParams[i*SIZE_CELLPARAMS+CellParams::DY  ] = tmp[4];
-	 cellParams[i*SIZE_CELLPARAMS+CellParams::DZ  ] = tmp[5];
+	 cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::XCRD] = tmp[0];
+	 cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::YCRD] = tmp[1];
+	 cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::ZCRD] = tmp[2];
+	 cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::DX  ] = tmp[3];
+	 cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::DY  ] = tmp[4];
+	 cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::DZ  ] = tmp[5];
 	 
 	 for (uint k=0; k<6; ++k) tmp[k] = atof(line[1+2*N_dimensions+k].c_str());
 	 
-	 cellParams[i*SIZE_CELLPARAMS+CellParams::EX  ]  = tmp[0];
-	 cellParams[i*SIZE_CELLPARAMS+CellParams::EY  ]  = tmp[1];
-	 cellParams[i*SIZE_CELLPARAMS+CellParams::EZ  ]  = tmp[2];
-	 cellParams[i*SIZE_CELLPARAMS+CellParams::BX  ]  = tmp[3];
-	 cellParams[i*SIZE_CELLPARAMS+CellParams::BY  ]  = tmp[4];
-	 cellParams[i*SIZE_CELLPARAMS+CellParams::BZ  ]  = tmp[5];
-	 cellParams[i*SIZE_CELLPARAMS+CellParams::RHO  ] = 0.0;
-	 cellParams[i*SIZE_CELLPARAMS+CellParams::RHOVX] = 0.0;
-	 cellParams[i*SIZE_CELLPARAMS+CellParams::RHOVY] = 0.0;
-	 cellParams[i*SIZE_CELLPARAMS+CellParams::RHOVZ] = 0.0;
+	 cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::EX  ]  = tmp[0];
+	 cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::EY  ]  = tmp[1];
+	 cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::EZ  ]  = tmp[2];
+	 cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::BX  ]  = tmp[3];
+	 cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::BY  ]  = tmp[4];
+	 cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::BZ  ]  = tmp[5];
+	 cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::RHO  ] = 0.0;
+	 cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::RHOVX] = 0.0;
+	 cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::RHOVY] = 0.0;
+	 cellParams[i*CellParams::SIZE_CELLPARAMS+CellParams::RHOVZ] = 0.0;
 	 found = true;
 	 delete tmp;
 	 tmp = NULL;

@@ -359,7 +359,7 @@ bool MPIBuilder::addCellParamsRequests(VirtualCell::ID& totalCells,VirtualCell::
       if (rqstDataRequests == NULL) {N_rqstDataRequests = 1; rqstDataRequests = new MPI_Request[N_rqstDataRequests];}
       if (rqstDataReceives == NULL) {N_rqstDataReceives = 1; rqstDataReceives = new MPI_Request[N_rqstDataReceives];}
       MPI_Isend(cellIDs    ,totalCells                ,MPI_Type<VC::ID>(),mpiMasterRank,mpiRank,comm,&(rqstDataRequests[0]));
-      MPI_Irecv(cellParams ,totalCells*SIZE_CELLPARAMS,MPI_Type<Real>()  ,mpiMasterRank,mpiRank,comm,&(rqstDataReceives[0]));
+      MPI_Irecv(cellParams ,totalCells*CellParams::SIZE_CELLPARAMS,MPI_Type<Real>()  ,mpiMasterRank,mpiRank,comm,&(rqstDataReceives[0]));
       return success;
    }
    
@@ -378,7 +378,7 @@ bool MPIBuilder::addCellParamsRequests(VirtualCell::ID& totalCells,VirtualCell::
       if (MPI_Recv(cellIDsBuffer,cellsPerProcess[i],MPI_Type<VC::ID>(),i,i,comm,MPI_STATUS_IGNORE) != MPI_SUCCESS) success = false;
 
       // Get a free buffer for sending data to process i:
-      Real* const paramsBuffer = freeBuffers.getBuffer(cellsPerProcess[i]*SIZE_CELLPARAMS);
+      Real* const paramsBuffer = freeBuffers.getBuffer(cellsPerProcess[i]*CellParams::SIZE_CELLPARAMS);
       
       // Get data to buffers and send:
       if (getCellParams(cellsPerProcess[i],cellIDsBuffer,paramsBuffer) == false) success = false;

@@ -334,14 +334,14 @@ bool buildGrid(MPI_Comm comm,const int& MASTER_RANK) {
    
    // Get cell parameters for all local cells to buffer, and copy values from buffer 
    // to SpatialCell::cpu_cellParams.
-   Real* cellParamsBuffer = new Real[SIZE_CELLPARAMS*N_myCells];
+   Real* cellParamsBuffer = new Real[CellParams::SIZE_CELLPARAMS*N_myCells];
    if (builder->addCellParamsRequests(N_myCells,myCellIDs,cellParamsBuffer) == false) success = false;
    if (builder->processCellParamsRequests() == false) success = false;
    if (builder->waitCellParamsRequests() == false) success = false;
    
    for (VC::ID i=0; i<N_myCells; ++i) {
       SpatialCell* SC = mpiGrid[localCells[i]];
-      for (uint j=0; j<SIZE_CELLPARAMS; ++j) SC->cpu_cellParams[j] = cellParamsBuffer[i*SIZE_CELLPARAMS+j];
+      for (uint j=0; j<CellParams::SIZE_CELLPARAMS; ++j) SC->cpu_cellParams[j] = cellParamsBuffer[i*CellParams::SIZE_CELLPARAMS+j];
    }
    delete cellParamsBuffer;
    cellParamsBuffer = NULL;
@@ -586,14 +586,14 @@ bool buildGrid(ParGrid<SpatialCell>& mpiGrid,MPI_Comm comm,const int& MASTER_RAN
       for (size_t i=0; i<localCells.size(); ++i) myCellIDs[i] = localCells[i];
    }
    
-   Real* cellParamsBuffer = new Real[SIZE_CELLPARAMS*N_myCells];
+   Real* cellParamsBuffer = new Real[CellParams::SIZE_CELLPARAMS*N_myCells];
    if (builder->addCellParamsRequests(N_myCells,myCellOffset,myCellIDs,cellParamsBuffer) == false) success = false;
    if (builder->processCellParamsRequests() == false) success = false;
    if (builder->waitCellParamsRequests() == false) success = false;
 
    for (VC::ID i=0; i<N_myCells; ++i) {
       SpatialCell* SC = mpiGrid[myCellIDs[i]];
-      for (uint j=0; j<SIZE_CELLPARAMS; ++j) SC->cpu_cellParams[j] = cellParamsBuffer[i*SIZE_CELLPARAMS+j];
+      for (uint j=0; j<CellParams::SIZE_CELLPARAMS; ++j) SC->cpu_cellParams[j] = cellParamsBuffer[i*CellParams::SIZE_CELLPARAMS+j];
    }
    delete cellParamsBuffer;
    cellParamsBuffer = NULL;

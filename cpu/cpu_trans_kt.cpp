@@ -96,3 +96,41 @@ bool cpu_calcVelocityMoments(SpatialCell& cell) {
    }
    return true;
 }
+
+/** YK Calculate pressure for given spatial cell. This function is only called 
+ * before saving the state.
+ * @param cell The spatial cell whose velocity moments are to be calculated.
+ * @return If true, the velocity moments were calculated successfully.
+ */
+bool cpu_calcPressure(SpatialCell& cell) {
+   cell.cpu_cellParams[CellParams::PRESSURE] = 0.0;
+   
+   #pragma omp parallel for
+   for (uint block=0; block<cell.N_blocks; ++block) {
+      creal* const blockParams = cell.cpu_blockParams + block*SIZE_BLOCKPARAMS;
+      const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
+      Real nvx2_sum = 0.0;
+      Real nvy2_sum = 0.0;
+      Real nvz2_sum = 0.0;
+      
+      Real averageVX = cell.cpu_cellParams[CellParams::RHOVX] / cell.cpu_cellParams[CellParams::RHO];
+      Real averageVY = cell.cpu_cellParams[CellParams::RHOVY] / cell.cpu_cellParams[CellParams::RHO];
+      Real averageVZ = cell.cpu_cellParams[CellParams::RHOVZ] / cell.cpu_cellParams[CellParams::RHO];
+      
+      for (uint k=0; k<WID; ++k) {
+	 const Real VZ = blockParams[BlockParams::VZCRD] + (k+convert<Real>(0.5))*blockParams[BlockParams::DVZ];
+	 for (uint j=0; j<WID; ++j) {
+	    const Real VY = blockParams[BlockParams::VYCRD] + (j+convert<Real>(0.5))*blockParams[BlockParams::DVY];
+	    for (uint i=0; i<WID; ++i) {
+	       const Real VX = blockParams[BlockParams::VXCRD] + (i+convert<Real>(0.5))*blockParams[BlockParams::DVX];
+	       nvx2_sum += cell.cpu_avgs[block*SIZE_VELBLOCK + k*WID2+j*WID+i]*(VX - averageVX)*(VX - averageVX);
+	       nvy2_sum += cell.cpu_avgs[block*SIZE_VELBLOCK + k*WID2+j*WID+i]*(VY - averageVY)*(VY - averageVY);
+	       nvz2_sum += cell.cpu_avgs[block*SIZE_VELBLOCK + k*WID2+j*WID+i]*(VZ - averageVZ)*(VZ - averageVZ);
+	    }
+	 }
+      }
+      #pragma omp atomic
+      cell.cpu_cellParams[CellParams::PRESSURE] += physicalconstants::MASS_PROTON / 3.0 * (nvx2_sum + nvy2_sum + nvz2_sum) * DV3;
+   }
+   return true;
+}

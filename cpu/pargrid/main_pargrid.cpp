@@ -39,6 +39,7 @@ extern bool cpu_translation1(SpatialCell& cell,const std::vector<const SpatialCe
 extern bool cpu_translation2(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
 extern bool cpu_translation3(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
 extern bool cpu_calcVelocityMoments(SpatialCell& cell);
+extern bool cpu_calcPressure(SpatialCell& cell);
 
 inline uchar calcNbrTypeID(cuchar& i,cuchar& j,cuchar& k) {return k*25+j*5+i;}
 
@@ -315,7 +316,13 @@ void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid,const bool& secon
 	 mpilogger << "Failed to find neighbours." << std::endl << write;
 	 continue;
       }
-      if (Main::cellPtr != NULL) cpu_translation3(*Main::cellPtr,Main::nbrPtrs);
+      if (Main::cellPtr != NULL) {
+	 cpu_translation3(*Main::cellPtr,Main::nbrPtrs);
+	 // YK Calculating pressure at the last step before saving
+	 if (transferAvgs == true) {
+	    cpu_calcPressure(*Main::cellPtr);
+	 }
+      }
    }
    #ifdef PARGRID_WAITSOME
       // Loop until all remote cell data has been received:
@@ -328,7 +335,13 @@ void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid,const bool& secon
 	       mpilogger << "Failed to find neighbours." << std::endl << write;
 	       continue;
 	    }
-	    if (Main::cellPtr != NULL) cpu_translation3(*Main::cellPtr,Main::nbrPtrs);
+	    if (Main::cellPtr != NULL) {
+	       cpu_translation3(*Main::cellPtr,Main::nbrPtrs);
+	       // YK Calculating pressure at the last step before saving
+	       if (transferAvgs == true) {
+		  cpu_calcPressure(*Main::cellPtr);
+	       }
+	    }
 	 }
       }
    #else
@@ -344,7 +357,13 @@ void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid,const bool& secon
 	    mpilogger << "Failed to find neighbours." << std::endl << write;
 	    continue;
 	 }
-	 if (Main::cellPtr != NULL) cpu_translation3(*Main::cellPtr,Main::nbrPtrs);
+	 if (Main::cellPtr != NULL)  {
+	    cpu_translation3(*Main::cellPtr,Main::nbrPtrs);
+	    // YK Calculating pressure at the last step before saving
+	    if (transferAvgs == true) {
+	       cpu_calcPressure(*Main::cellPtr);
+	    }
+	 }
       }
    #endif
    profile::start("spatPropMPISend");

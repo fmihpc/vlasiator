@@ -52,6 +52,7 @@ MPILogger mpilogger;
 bool inistate = true;
 
 using namespace std;
+//using namespace CellParams;
 
 #ifndef PARGRID
 void initSpatialCells(const dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm) {
@@ -174,10 +175,10 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const 
    attribs.clear();
 
    // Write spatial cell parameters:
-   Real* paramsBuffer = new Real[cells.size()*SIZE_CELLPARAMS];
-   for (size_t i=0; i<cells.size(); ++i) for (uint j=0; j<SIZE_CELLPARAMS; ++j) 
-     paramsBuffer[i*SIZE_CELLPARAMS+j] = mpiGrid[cells[i]]->cpu_cellParams[j];   
-   if (vlsvWriter.writeArray("CELLPARAMS","SpatialGrid",attribs,cells.size(),SIZE_CELLPARAMS,paramsBuffer) == false) {
+   Real* paramsBuffer = new Real[cells.size()*CellParams::SIZE_CELLPARAMS];
+   for (size_t i=0; i<cells.size(); ++i) for (uint j=0; j<CellParams::SIZE_CELLPARAMS; ++j) 
+      paramsBuffer[i*CellParams::SIZE_CELLPARAMS+j] = mpiGrid[cells[i]]->cpu_cellParams[j];   
+   if (vlsvWriter.writeArray("CELLPARAMS","SpatialGrid",attribs,cells.size(),CellParams::SIZE_CELLPARAMS,paramsBuffer) == false) {
       mpilogger << "(MAIN) writeGrid: ERROR failed to write spatial cell parameters!" << endl << write;
       success = false;
    }
@@ -590,9 +591,9 @@ int main(int argn,char* args[]) {
       //mpiGrid.initialize();
 
    #endif
-      profile::stop("Initialize Grid");
+   profile::stop("Initialize Grid");
 
-      // If initialization was not successful, abort.
+   // If initialization was not successful, abort.
    if (success == false) {
       if (myrank == MASTER_RANK) {
 	 std::cerr << "An error has occurred, aborting. See logfile for details." << std::endl;
@@ -661,6 +662,7 @@ int main(int argn,char* args[]) {
    reducer.addOperator(new DRO::MPIrank);
    reducer.addOperator(new DRO::VariableVolE);
    reducer.addOperator(new DRO::VariableVolB);
+   reducer.addOperator(new DRO::VariablePressure);
    
    //VlsWriter vlsWriter;
    profile::start("Init vlasov propagator");
@@ -735,7 +737,7 @@ int main(int argn,char* args[]) {
 #endif
        
        totalComputedSpatialCells+=computedSpatialCells;
-       profile::start("Propagate");
+        profile::start("Propagate");
        // Recalculate (maybe) spatial cell parameters
        calculateSimParameters(mpiGrid, P::t, P::dt);
 
@@ -789,7 +791,7 @@ int main(int argn,char* args[]) {
       
       // Check if data needs to be written to disk:
       if (P::tstep % P::saveRestartInterval == 0 || P::tstep % P::diagnInterval == 0) {
-          profile::start("IO");
+         profile::start("IO");
 	 bool writeRestartData = false;
 	 if (P::tstep % P::saveRestartInterval == 0) {
 	   writeRestartData = true;

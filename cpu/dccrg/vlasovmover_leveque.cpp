@@ -746,6 +746,13 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
 	    cpu_calcVelocityMoments(avgs,blockParams,cellParams,block);
 	 }
       }
+      // YK Calculating pressure at the last step before saving
+      if (transferAvgs == true) {
+	 cellParams[CellParams::PRESSURE] = 0.0;
+	 for (uint block=0; block<mpiGrid[cellID]->N_blocks; ++block) {
+	    cpu_calcPressure(avgs,blockParams,cellParams,block);
+	 }
+      }
    }
    profile::stop("spatial translation");
    
@@ -791,6 +798,13 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
       } else {
 	 for (uint block=0; block<mpiGrid[cellID]->N_blocks; ++block) {
 	    cpu_calcVelocityMoments(avgs,blockParams,cellParams,block);
+	 }
+      }
+      // YK Calculating pressure at the last step before saving
+      if (transferAvgs == true) {
+	 cellParams[CellParams::PRESSURE] = 0.0;
+	 for (uint block=0; block<mpiGrid[cellID]->N_blocks; ++block) {
+	    cpu_calcPressure(avgs,blockParams,cellParams,block);
 	 }
       }
    }

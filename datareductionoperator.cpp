@@ -262,4 +262,28 @@ namespace DRO {
       rhovz = cell.cpu_cellParams[CellParams::RHOVZ];
       return true;
    }
+   
+   // Added by YK
+   VariablePressure::VariablePressure(): DataReductionOperator() { }
+   VariablePressure::~VariablePressure() { }
+   
+   std::string VariablePressure::getName() const {return "Pressure";}
+   
+   bool VariablePressure::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+     dataType = "float";
+     dataSize =  sizeof(Real);
+     vectorSize = 1;
+     return true;
+   }
+   
+   bool VariablePressure::reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer) {
+     const char* ptr = reinterpret_cast<const char*>(&Pressure);
+     for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
+     return true;
+   }
+   
+   bool VariablePressure::setSpatialCell(const SpatialCell& cell) {
+     Pressure = cell.cpu_cellParams[CellParams::PRESSURE];
+     return true;
+   }
 } // namespace DRO
