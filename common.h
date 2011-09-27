@@ -232,7 +232,8 @@ namespace fieldsolver {
       dVydz,     /**< Derivative of volume-averaged Vy to z-direction. */
       dVzdx,     /**< Derivative of volume-averaged Vz to x-direction. */
       dVzdy,     /**< Derivative of volume-averaged Vz to y-direction. */
-      dVzdz      /**< Derivative of volume-averaged Vz to z-direction. */
+      dVzdz,     /**< Derivative of volume-averaged Vz to z-direction. */
+      SIZE_DERIVATIVES
    };
 }
 
@@ -240,7 +241,6 @@ const uint WID = 4;         /**< Number of cells per coordinate in a velocity bl
 const uint WID2 = WID*WID;
 const uint WID3 = WID2*WID; 
 
-const uint SIZE_DERIVATIVES = fieldsolver::dVzdz+1;
 //const uint SIZE_NBRS_VEL    = 8;    /**< The size of velocity grid neighbour list per velocity block. */
 const uint SIZE_NBRS_VEL    = 28;    /**< The size of velocity grid neighbour list per velocity block. */
 const uint SIZE_NBRS_SPA    = 31;   /**< The size of spatial grid neighbour list per spatial cell. */

@@ -57,6 +57,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 using namespace std;
+using namespace fieldsolver;
 
 #ifdef PARGRID
    typedef uint CellID;

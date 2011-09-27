@@ -29,6 +29,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "memalloc.h"
 
 using namespace std;
+using namespace fieldsolver;
 
 extern Grid grid;
 extern MPILogger mpilogger;
