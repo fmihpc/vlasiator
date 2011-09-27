@@ -760,7 +760,12 @@ int main(int argn,char* args[]) {
           calculateSpatialPropagation(mpiGrid,false,false);
           profile::stop("First propagation",computedSpatialCells,"SpatialCells");
           bool transferAvgs = false;
-	  if (P::tstep % P::saveRestartInterval == 0 || P::tstep % P::diagnInterval == 0 || P::tstep == P::tsteps-1) transferAvgs = true;
+	  if (P::tstep % P::saveRestartInterval == 0
+	  || P::tstep % P::diagnInterval == 0
+	  || P::tstep == P::tsteps-1
+	  ) {
+	     transferAvgs = true;
+	  }
           
 	  profile::start("Acceleration");
           calculateAcceleration(mpiGrid);
