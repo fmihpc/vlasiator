@@ -684,10 +684,9 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
     vector<CellID> cells;
    // Post receives for remote updates:
    
-   // TEMPORARY SOLUTION
+   // FIXME: Support variable number of velocity blocks
    cells=mpiGrid.get_cells();
-   const size_t SIZE_DFDT = mpiGrid[cells[0]]->N_blocks*SIZE_VELBLOCK*sizeof(Real);
-   // END TEMPORARY SOLUTION
+   const size_t SIZE_DFDT = cells.size() > 0 ? mpiGrid[cells[0]]->N_blocks*SIZE_VELBLOCK*sizeof(Real) : 0;
    
    MPIsendRequests.clear(); 
    MPIrecvRequests.clear();
