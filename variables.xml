@@ -181,8 +181,8 @@
         <Field name="autoExpression" type="bool">false</Field>
     </Object>
     <Object name="Expression">
-        <Field name="name" type="string">"K+M+E energy"</Field>
-        <Field name="definition" type="string">"0.5 * 1.6726217e-27 * rho * (\<volume/Vx\>*\<volume/Vx\> + \<volume/Vy\>*\<volume/Vy\> + \<volume/Vz\>*\<volume/Vz\>) + (\<volume/Bx\>*\<volume/Bx\> + \<volume/By\>*\<volume/By\> + \<volume/Bz\>*\<volume/Bz\>) / (2 * 1.25663706144e-6) + 0.5 * 8.85418781762e-12 * (\<volume/Ex\>*\<volume/Ex\> + \<volume/Ey\>*\<volume/Ey\> + \<volume/Ez\>*\<volume/Ez\>)"</Field>
+        <Field name="name" type="string">"Total energy"</Field>
+        <Field name="definition" type="string">"0.5 * 1.6726217e-27 * rho * (\<volume/Vx\>*\<volume/Vx\> + \<volume/Vy\>*\<volume/Vy\> + \<volume/Vz\>*\<volume/Vz\>) + (\<volume/Bx\>*\<volume/Bx\> + \<volume/By\>*\<volume/By\> + \<volume/Bz\>*\<volume/Bz\>) / (2 * 1.25663706144e-6) + 0.5 * 8.85418781762e-12 * (\<volume/Ex\>*\<volume/Ex\> + \<volume/Ey\>*\<volume/Ey\> + \<volume/Ez\>*\<volume/Ez\>) + 1.5 * Pressure / rho"</Field>
         <Field name="hidden" type="bool">false</Field>
         <Field name="type" type="string">ScalarMeshVar</Field>
         <Field name="fromDB" type="bool">false</Field>
@@ -219,6 +219,18 @@
     <Object name="Expression">
         <Field name="name" type="string">"Kinetic energy"</Field>
         <Field name="definition" type="string">"0.5 * 1.6726217e-27 * rho * (\<volume/Vx\>*\<volume/Vx\> + \<volume/Vy\>*\<volume/Vy\> + \<volume/Vz\>*\<volume/Vz\>)"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">"Thermal energy"</Field>
+        <Field name="definition" type="string">"1.5 * Pressure / rho"</Field>
         <Field name="hidden" type="bool">false</Field>
         <Field name="type" type="string">ScalarMeshVar</Field>
         <Field name="fromDB" type="bool">false</Field>
