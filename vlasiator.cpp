@@ -662,6 +662,9 @@ int main(int argn,char* args[]) {
    reducer.addOperator(new DRO::MPIrank);
    reducer.addOperator(new DRO::VariableVolE);
    reducer.addOperator(new DRO::VariableVolB);
+// YK   reducer.addOperator(new DRO::VariableE_facex);
+// YK   reducer.addOperator(new DRO::VariableE_facey);
+// YK   reducer.addOperator(new DRO::VariableE_facez);
    reducer.addOperator(new DRO::VariablePressure);
    
    //VlsWriter vlsWriter;
@@ -757,8 +760,7 @@ int main(int argn,char* args[]) {
           calculateSpatialPropagation(mpiGrid,false,false);
           profile::stop("First propagation",computedSpatialCells,"SpatialCells");
           bool transferAvgs = false;
-          if (P::tstep % P::saveRestartInterval == 0 ||
-              P::tstep == P::tsteps-1) transferAvgs = true;
+	  if (P::tstep % P::saveRestartInterval == 0 || P::tstep % P::diagnInterval == 0 || P::tstep == P::tsteps-1) transferAvgs = true;
           
 	  profile::start("Acceleration");
           calculateAcceleration(mpiGrid);
