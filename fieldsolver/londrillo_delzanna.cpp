@@ -247,9 +247,9 @@ static void calculateDerivatives(
    CellID leftNbrID,rghtNbrID;
    creal* left = NULL;
    creal* cent = mpiGrid[cellID   ]->cpu_cellParams;
-   if (cent[cp::RHO] == 0) {
+   if (cent[cp::RHO] <= 0) {
       std::cerr << __FILE__ << ":" << __LINE__
-         << " Zero density in spatial cell " << cellID
+         << (cent[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << cellID
          << std::endl;
       abort();
    }
@@ -259,20 +259,23 @@ static void calculateDerivatives(
       leftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2  ,2  );
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2  ,2  );
       left = mpiGrid[leftNbrID]->cpu_cellParams;
-      if (left[cp::RHO] == 0) {
+      if (left[cp::RHO] <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
-            << " Zero density in spatial cell " << leftNbrID
+            << (left[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << leftNbrID
             << std::endl;
          abort();
       }
       rght = mpiGrid[rghtNbrID]->cpu_cellParams;
-      if (rght[cp::RHO] == 0) {
+      if (rght[cp::RHO] <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
-            << " Zero density in spatial cell " << rghtNbrID
+            << (rght[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << rghtNbrID
             << std::endl;
          abort();
       }
 
+      CHECK_FLOAT(left[cp::RHO])
+      CHECK_FLOAT(cent[cp::RHO])
+      CHECK_FLOAT(rght[cp::RHO])
       array[fs::drhodx] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
       CHECK_FLOAT(array[fs::drhodx])
 
@@ -304,17 +307,18 @@ static void calculateDerivatives(
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2+1,2  );
 
       left = mpiGrid[leftNbrID]->cpu_cellParams;
-      if (left[cp::RHO] == 0) {
+      if (left[cp::RHO] <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
+            << (left[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << leftNbrID
             << " Zero density in spatial cell " << leftNbrID
             << std::endl;
          abort();
       }
 
       rght = mpiGrid[rghtNbrID]->cpu_cellParams;
-      if (rght[cp::RHO] == 0) {
+      if (rght[cp::RHO] <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
-            << " Zero density in spatial cell " << rghtNbrID
+            << (rght[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << rghtNbrID
             << std::endl;
          abort();
       }
@@ -323,6 +327,7 @@ static void calculateDerivatives(
       CHECK_FLOAT(cent[cp::RHO])
       CHECK_FLOAT(rght[cp::RHO])
       array[fs::drhody] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
+      CHECK_FLOAT(array[fs::drhody])
 
       CHECK_FLOAT(left[cp::BX])
       CHECK_FLOAT(cent[cp::BX])
@@ -351,16 +356,16 @@ static void calculateDerivatives(
       leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2-1);
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2+1);
       left = mpiGrid[leftNbrID]->cpu_cellParams;
-      if (left[cp::RHO] == 0) {
+      if (left[cp::RHO] <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
-            << " Zero density in spatial cell " << leftNbrID
+            << (left[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << leftNbrID
             << std::endl;
          abort();
       }
       rght = mpiGrid[rghtNbrID]->cpu_cellParams;
-      if (rght[cp::RHO] == 0) {
+      if (rght[cp::RHO] <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
-            << " Zero density in spatial cell " << rghtNbrID
+            << (rght[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << rghtNbrID
             << std::endl;
          abort();
       }
@@ -369,6 +374,7 @@ static void calculateDerivatives(
       CHECK_FLOAT(cent[cp::RHO])
       CHECK_FLOAT(rght[cp::RHO])
       array[fs::drhodz] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
+      CHECK_FLOAT(array[fs::drhodz])
 
       CHECK_FLOAT(left[cp::BX])
       CHECK_FLOAT(cent[cp::BX])
