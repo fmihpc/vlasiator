@@ -1336,17 +1336,15 @@ bool initializeFieldPropagator(
        calculateDerivativesSimple(mpiGrid,localCells);
 #ifdef PARGRID
        // fix for parallel and disable fieldsolver not done for pargrid
+#warning Fieldsolver has to be enabled when using PARGRID
 #else    
        //exchange derivatives
        SpatialCell::base_address_identifier = 4;
-       mpiGrid.start_remote_neighbour_data_update();
-       mpiGrid.wait_neighbour_data_update_receives();
-       mpiGrid.wait_neighbour_data_update_sends();
+       mpiGrid.update_remote_neighbour_data();
        //exchange EX EY EZ
        SpatialCell::base_address_identifier = 6;
-       mpiGrid.start_remote_neighbour_data_update();
-       mpiGrid.wait_neighbour_data_update_receives();
-       mpiGrid.wait_neighbour_data_update_sends();
+       mpiGrid.update_remote_neighbour_data();
+
 #endif
        calculateVolumeAveragedFields(mpiGrid);
    }
