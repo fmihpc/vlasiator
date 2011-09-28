@@ -36,6 +36,13 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "cpu_trans_leveque.h"
 #include "../priorityqueue.h"
 #include "../mpilogger.h"
+#ifdef CRAY_TOPOLOGY_OPTIMIZATION
+#include "graph.h"
+#include "mapping.h"
+#include "crayxttorus.h"
+#endif
+
+
 using namespace std;
 
 #include <stdint.h>
@@ -836,6 +843,72 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
 void initialLoadBalance(dccrg<SpatialCell>& mpiGrid) {
   SpatialCell::base_address_identifier = 5;
   mpiGrid.balance_load();
+
+#ifdef CRAY_TOPOLOGY_OPTIMIZATION
+
+  profile::start("Optimize topology mapping");
+  //compute first all edges in communication graph so that processes are the vertexes
+  int rank,nProcs;
+  MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+  MPI_Comm_size(MPI_COMM_WORLD,&nProcs);
+  vector<uint64_t> localCells=mpiGrid.get_cells();
+  map<uint64_t,int>  processConnections;
+  for(vector<uint64_t>::const_iterator cell=localCells.begin();
+      cell!=localCells.end();cell++){
+      const vector<uint64_t> *neighbors=mpiGrid.get_neighbours(*cell);
+      for(vector<uint64_t>::const_iterator neighbor=neighbors->begin();
+          neighbor!=neighbors->end();neighbor++){
+          if((*neighbor)>0 && mpiGrid.get_process(*neighbor)!=rank)
+              processConnections[mpiGrid.get_process(*neighbor)]++;
+      }
+  }
+
+  //create torus (hard-coded meteo)
+  //torus 1x12x16
+  //processors have 6 cores
+  CrayXtTorus t(1,12,16,6,MPI_COMM_WORLD);
+
+  //generate graph, add vertexes & edges in grid
+  Graph g(MPI_COMM_WORLD);
+  g.addVertex(rank);
+  for(map<uint64_t,int>::const_iterator edge=processConnections.begin();edge!=processConnections.end();edge++){
+      g.addEdge(rank,(int)edge->first,(double)edge->second);
+  }
+  g.commitChanges();
+
+  //generate map, add local vertex
+  std::map<int,int> idMap;
+  idMap[rank]=rank; //rank is id for a crayXTtorus graphs
+  //create map with seed from clock
+  Mapping<Graph,CrayXtTorus> m(g,t,idMap,-1,MPI_COMM_WORLD);
+
+  if(rank==0){
+      cout << "Initial Weights " << m.getWeight() <<endl;
+  }
+  m.simulatedAnnealingOptimizer();
+  if(rank==0){
+      cout << "Final Weights " << m.getWeight()<<endl;
+  }
+  profile::stop("Optimize topology mapping");
+  profile::start("Migrate cells");
+  for(vector<uint64_t>::const_iterator cell=localCells.begin();
+      cell!=localCells.end();cell++){
+      //pin all local cells to the rank where they should be sen
+      if(m.getNetworkVertex(rank)>-1 && m.getNetworkVertex(rank)<nProcs){
+          mpiGrid.pin(*cell,m.getNetworkVertex(rank));
+      }
+      else{
+          cout << "ERROR mapping "<<*cell << " " <<rank <<" -> " <<  m.getNetworkVertex(rank)<<endl;
+      }
+  }
+
+  mpiGrid.migrate_cells();
+  mpiGrid.unpin_all_cells();
+  profile::stop("Migrate cells");
+
+  #endif
+  
+
 }
 
 void calculateVelocityMoments(dccrg<SpatialCell>& mpiGrid) { 

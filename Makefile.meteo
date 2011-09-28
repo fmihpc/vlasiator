@@ -15,9 +15,10 @@ FLAGS =
 CC_BRAND = gcc
 CC_BRAND_VERSION = 4.5.2
 CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -pedantic
+#CXXFLAGS += -DCRAY_TOPOLOGY_OPTIMIZATION
 MATHFLAGS = -ffast-math
 LDFLAGS =
-LIB_MPI = -lgomp
+LIB_MPI = -lgomp -lrca
 
 #INTEL flags:
 #CC_BRAND = intel
@@ -44,3 +45,5 @@ INC_SILO = -I$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION
 LIB_SILO = -L$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/lib -lsilo
 
 INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg
+
+INC_TOPO = -I$(LIBRARY_PREFIX)/topologyOptim

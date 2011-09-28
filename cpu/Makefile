@@ -64,7 +64,7 @@ vlasovmover_leveque.o: ${DEPS_VLASOVMOVER_LEVEQUE}
 else
 vlasovmover_leveque.o: ${DEPS_VLASOVMOVER_LEVEQUE}
 	ln -s -f dccrg/vlasovmover_leveque.cpp ./vlasovmover_leveque.cpp
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -DSIMPLE -DMOVER_VLASOV_ORDER=2 -I${INSTALL} -c vlasovmover_leveque.cpp ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -DSIMPLE -DMOVER_VLASOV_ORDER=2 -I${INSTALL} -c vlasovmover_leveque.cpp ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG} ${INC_TOPO}
 	${AR} r libvlasovmover.a vlasovmover_leveque.o
 endif
 LEVEQUE: ${DEPS_LEVEQUE}
