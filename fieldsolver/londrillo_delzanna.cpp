@@ -1225,10 +1225,11 @@ static void calculateTransferStencil3(
 
 bool initializeFieldPropagator(
 	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid
+	ParGrid<SpatialCell>& mpiGrid,
 	#else
-	dccrg<SpatialCell>& mpiGrid
+	dccrg<SpatialCell>& mpiGrid,
 	#endif
+        bool propagateFields
 ) {
    #ifdef PARGRID
    vector<uint> localCells;
@@ -1267,60 +1268,89 @@ bool initializeFieldPropagator(
    CALCULATE_DZ = 0;
    CALCULATE_DZ = CALCULATE_DZ | (1 << calcNbrNumber(1,1,0));
    CALCULATE_DZ = CALCULATE_DZ | (1 << calcNbrNumber(1,1,2));
-   
-   // Edge Ex is calculated if -y,-z,+/-x neighbours exist:
-   CALCULATE_EX = 0;
-   CALCULATE_EX = CALCULATE_EX | (1 << calcNbrNumber(1,0,1)); // -y nbr
-   CALCULATE_EX = CALCULATE_EX | (1 << calcNbrNumber(1,1,0)); // -z nbr
-   CALCULATE_EX = CALCULATE_EX | (1 << calcNbrNumber(0,1,1)); // -x nbr
-   CALCULATE_EX = CALCULATE_EX | (1 << calcNbrNumber(2,1,1)); // +x nbr
-   
-   // Edge Ey is calculated if -x,-z,+/-y neighbours exist:
-   CALCULATE_EY = 0;
-   CALCULATE_EY = CALCULATE_EY | (1 << calcNbrNumber(0,1,1)); // -x nbr
-   CALCULATE_EY = CALCULATE_EY | (1 << calcNbrNumber(1,1,0)); // -z nbr
-   CALCULATE_EY = CALCULATE_EY | (1 << calcNbrNumber(1,0,1)); // -y nbr
-   CALCULATE_EY = CALCULATE_EY | (1 << calcNbrNumber(1,2,1)); // +y nbr
-   
-   // Edge Ez is calculated if -x,-y,+/-z neighbours exist:
-   CALCULATE_EZ = 0;
-   CALCULATE_EZ = CALCULATE_EZ | (1 << calcNbrNumber(0,1,1)); // -x nbr
-   CALCULATE_EZ = CALCULATE_EZ | (1 << calcNbrNumber(1,0,1)); // -y nbr
-   CALCULATE_EZ = CALCULATE_EZ | (1 << calcNbrNumber(1,1,0)); // -z nbr
-   CALCULATE_EZ = CALCULATE_EZ | (1 << calcNbrNumber(1,1,2)); // +z nbr
-   
-   // Bx is propagated if -x,+/-y,+/-z neighbours exist:
-   PROPAGATE_BX = 0;
-   PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(0,1,1)); // -x nbr
-   PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(1,0,1)); // -y nbr
-   PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(1,2,1)); // +y nbr
-   PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(1,1,0)); // -z nbr
-   PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(1,1,2)); // +z nbr
-   
-   // By is propagated if -y,+/-x,+/-z neighbours exist:
-   PROPAGATE_BY = 0;
-   PROPAGATE_BY = PROPAGATE_BY | (1 << calcNbrNumber(1,0,1)); // -y nbr
-   PROPAGATE_BY = PROPAGATE_BY | (1 << calcNbrNumber(0,1,1)); // -x nbr
-   PROPAGATE_BY = PROPAGATE_BY | (1 << calcNbrNumber(2,1,1)); // +x nbr
-   PROPAGATE_BY = PROPAGATE_BY | (1 << calcNbrNumber(1,1,0)); // -z nbr
-   PROPAGATE_BY = PROPAGATE_BY | (1 << calcNbrNumber(1,1,2)); // +z nbr
-   
-   // Bz is propagated if -z,+/-x,+/-y neighbours exist:
-   PROPAGATE_BZ = 0;
-   PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,1,0)); // -z nbr
-   PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(0,1,1)); // -x nbr
-   PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(2,1,1)); // +x nbr
-   PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,0,1)); // -y nbr
-   PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,2,1)); // +y nbr
-   
-   // Calculate derivatives and upwinded edge-E. Exchange derivatives 
-   // and edge-E:s between neighbouring processes and calculate 
-   // face-averaged E,B fields. Note that calculateUpwindedElectricField 
-   // does not exchange edge-E:
-   calculateDerivativesSimple(mpiGrid,localCells);
-   calculateUpwindedElectricFieldSimple(mpiGrid,localCells);
+
+   if(propagateFields){      
+       // Edge Ex is calculated i   f -y,-z,+/-x neighbours exist:
+       CALCULATE_EX = 0;
+       CALCULATE_EX = CALCULATE_EX | (1 << calcNbrNumber(1,0,1)); // -y nbr
+       CALCULATE_EX = CALCULATE_EX | (1 << calcNbrNumber(1,1,0)); // -z nbr
+       CALCULATE_EX = CALCULATE_EX | (1 << calcNbrNumber(0,1,1)); // -x nbr
+       CALCULATE_EX = CALCULATE_EX | (1 << calcNbrNumber(2,1,1)); // +x nbr
+       
+       // E dge Ey is calculated if -x,-z,+/-y neighbours exist:
+       CALCULATE_EY = 0;
+       CALCULATE_EY = CALCULATE_EY | (1 << calcNbrNumber(0,1,1)); // -x nbr
+       CALCULATE_EY = CALCULATE_EY | (1 << calcNbrNumber(1,1,0)); // -z nbr
+       CALCULATE_EY = CALCULATE_EY | (1 << calcNbrNumber(1,0,1)); // -y nbr
+       CALCULATE_EY = CALCULATE_EY | (1 << calcNbrNumber(1,2,1)); // +y nbr
+       
+       // Edge Ez is calculated      if -x,-y,+/-z neighbours exist:
+       CALCULATE_EZ = 0;
+       CALCULATE_EZ = CALCULATE_EZ | (1 << calcNbrNumber(0,1,1)); // -x nbr
+       CALCULATE_EZ = CALCULATE_EZ | (1 << calcNbrNumber(1,0,1)); // -y nbr
+       CALCULATE_EZ = CALCULATE_EZ | (1 << calcNbrNumber(1,1,0)); // -z nbr
+       CALCULATE_EZ = CALCULATE_EZ | (1 << calcNbrNumber(1,1,2)); // +z nbr
+
+
+       // Bx is propagated if -x,+/-y,+/-z neighbours exist:
+       PROPAGATE_BX = 0;
+       PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(0,1,1)); // -x nbr
+       PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(1,0,1)); // -y nbr
+       PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(1,2,1)); // +y nbr
+       PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(1,1,0)); // -z nbr
+       PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(1,1,2)); // +z nbr
+       
+       // B y is propagated if -y,+/-x,+/-z neighbours exist:
+       PROPAGATE_BY = 0;
+       PROPAGATE_BY = PROPAGATE_BY | (1 << calcNbrNumber(1,0,1)); // -y nbr
+       PROPAGATE_BY = PROPAGATE_BY | (1 << calcNbrNumber(0,1,1)); // -x nbr
+       PROPAGATE_BY = PROPAGATE_BY | (1 << calcNbrNumber(2,1,1)); // +x nbr
+       PROPAGATE_BY = PROPAGATE_BY | (1 << calcNbrNumber(1,1,0)); // -z nbr
+       PROPAGATE_BY = PROPAGATE_BY | (1 << calcNbrNumber(1,1,2)); // +z nbr
+       
+       // B z is propagated if -z,+/-x,+/-y neighbours exist:
+       PROPAGATE_BZ = 0;
+       PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,1,0)); // -z nbr
+       PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(0,1,1)); // -x nbr
+       PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(2,1,1)); // +x nbr
+       PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,0,1)); // -y nbr
+       PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,2,1)); // +y nbr
+       
+       // C alculate derivatives and upwinded edge-E. Exchange derivatives 
+       // and ed    ge-E:s between neighbouring processes and calculate 
+       // face-averaged     E,B fields. Note that calculateUpwindedElectricField 
+       // does not exchange edge    -E:
+       calculateDerivativesSimple(mpiGrid,localCells);
+       calculateUpwindedElectricFieldSimple(mpiGrid,localCells);
 // YK   calculateFaceAveragedFields(mpiGrid);
-   calculateVolumeAveragedFields(mpiGrid);
+       calculateVolumeAveragedFields(mpiGrid);
+
+   }
+   else{
+       CALCULATE_EX = 0;
+       CALCULATE_EY = 0;
+       CALCULATE_EZ = 0;
+       PROPAGATE_BX = 0;
+       PROPAGATE_BY = 0;
+       PROPAGATE_BZ = 0;
+       calculateDerivativesSimple(mpiGrid,localCells);
+#ifdef PARGRID
+       // fix for parallel and disable fieldsolver not done for pargrid
+#else    
+       //exchange derivatives
+       SpatialCell::base_address_identifier = 4;
+       mpiGrid.start_remote_neighbour_data_update();
+       mpiGrid.wait_neighbour_data_update_receives();
+       mpiGrid.wait_neighbour_data_update_sends();
+       //exchange EX EY EZ
+       SpatialCell::base_address_identifier = 6;
+       mpiGrid.start_remote_neighbour_data_update();
+       mpiGrid.wait_neighbour_data_update_receives();
+       mpiGrid.wait_neighbour_data_update_sends();
+#endif
+       calculateVolumeAveragedFields(mpiGrid);
+   }
+
    return true;
 }
 
@@ -1654,7 +1684,7 @@ void calculateDerivativesSimple(
 	const vector<CellID>& localCells
 ) {
    namespace fs = fieldsolver;
-   
+
    #ifdef PARGRID
    // Exchange BX,BY,BZ,RHO,RHOVX,RHOVY,RHOVZ with neighbours (2nd order accuracy). Post receives:
    mpiGrid.startSingleMode();
@@ -1706,10 +1736,9 @@ void calculateDerivativesSimple(
    mpiGrid.wait_neighbour_data_update_receives();
    const vector<uint64_t> boundary_cells = mpiGrid.get_cells_with_remote_neighbour();
    for (vector<uint64_t>::const_iterator cell = boundary_cells.begin(); cell != boundary_cells.end(); cell++) {
-      calculateDerivatives(*cell,mpiGrid);
+       calculateDerivatives(*cell,mpiGrid);
    }
    mpiGrid.wait_neighbour_data_update_sends();
-
    #endif	// ifdef PARGRID
 }
 

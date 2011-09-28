@@ -679,11 +679,10 @@ int main(int argn,char* args[]) {
    
    profile::start("Init field propagator");
    // Initialize field propagator:
-   if (P::propagateField == true) {
-      if (initializeFieldPropagator(mpiGrid) == false) {
-         mpilogger << "(MAIN): Field propagator did not initialize correctly!" << endl << write;
-         exit(1);
-      }
+   
+   if (initializeFieldPropagator(mpiGrid,P::propagateField) == false) {
+       mpilogger << "(MAIN): Field propagator did not initialize correctly!" << endl << write;
+       exit(1);
    }
    calculateVolumeAveragedFields(mpiGrid);
    profile::stop("Init field propagator");
