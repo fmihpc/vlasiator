@@ -679,12 +679,10 @@ int main(int argn,char* args[]) {
    
    profile::start("Init field propagator");
    // Initialize field propagator:
-   
    if (initializeFieldPropagator(mpiGrid,P::propagateField) == false) {
        mpilogger << "(MAIN): Field propagator did not initialize correctly!" << endl << write;
        exit(1);
    }
-   calculateVolumeAveragedFields(mpiGrid);
    profile::stop("Init field propagator");
 
    // ***********************************
@@ -807,7 +805,6 @@ int main(int argn,char* args[]) {
 	   if (myrank == MASTER_RANK)
 	     mpilogger << "(MAIN): Writing spatial cell data to disk, tstep = " << P::tstep << " t = " << P::t << endl << write;
 	 
-	 calculateVolumeAveragedFields(mpiGrid);
 	 if (writeGrid(mpiGrid,reducer,writeRestartData) == false) {
 	    if (myrank == MASTER_RANK)
 	      mpilogger << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
