@@ -68,6 +68,7 @@ struct SpatialCell {
    Real* cpu_fx;          /**< Pointer to x-flux array in CPU memory.*/
    Real* cpu_fy;          /**< Pointer to y-flux array in CPU memory.*/
    Real* cpu_fz;          /**< Pointer to z-flux array in CPU memory.*/
+   #ifdef SOLVER_KT
    Real* cpu_d1x;         /**< Pointer to array in CPU memory that contains 1st derivatives to x-direction.*/
    Real* cpu_d2x;         /**< Pointer to array in CPU memory that contains 2nd derivatives to x-direction.*/
    Real* cpu_d1y;         /**< Pointer to array in CPU memory that contains 1st derivatives to y-direction.*/
@@ -75,6 +76,7 @@ struct SpatialCell {
    Real* cpu_d1z;         /**< Pointer to array in CPU memory that contains 1st derivatives to z-direction.*/
    Real* cpu_d2z;         /**< Pointer to array in CPU memory that contains 2nd derivatives to z-direction.*/
    #endif
+   #endif 
    SpatialCell();
    SpatialCell(const SpatialCell& s);
    ~SpatialCell();

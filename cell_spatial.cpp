@@ -58,12 +58,14 @@ SpatialCell::SpatialCell() {
    cpu_fx          = NULL;
    cpu_fy          = NULL;
    cpu_fz          = NULL;
+   #ifdef SOLVER_KT
    cpu_d1x         = NULL;
    cpu_d1y         = NULL;
    cpu_d1z         = NULL;
    cpu_d2x         = NULL;
    cpu_d2y         = NULL;
    cpu_d2z         = NULL;
+   #endif
    #endif
 }
 
@@ -103,12 +105,14 @@ SpatialCell::SpatialCell(const SpatialCell& s) {
    cpu_fx          = s.cpu_fx;
    cpu_fy          = s.cpu_fy;
    cpu_fz          = s.cpu_fz;
+   #ifdef SOLVER_KT
    cpu_d1x         = s.cpu_d1x;
    cpu_d1y         = s.cpu_d1y;
    cpu_d1z         = s.cpu_d1z;
    cpu_d2x         = s.cpu_d2x;
    cpu_d2y         = s.cpu_d2y;
    cpu_d2z         = s.cpu_d2z;
+   #endif
    #endif
 }
 
@@ -147,12 +151,14 @@ SpatialCell& SpatialCell::operator=(const SpatialCell& s) {
    cpu_fx          = s.cpu_fx;
    cpu_fy          = s.cpu_fy;
    cpu_fz          = s.cpu_fz;
+   #ifdef SOLVER_KT
    cpu_d1x         = s.cpu_d1x;
    cpu_d1y         = s.cpu_d1y;
    cpu_d1z         = s.cpu_d1z;
    cpu_d2x         = s.cpu_d2x;
    cpu_d2y         = s.cpu_d2y;
    cpu_d2z         = s.cpu_d2z;
+   #endif
    #endif
    return *this;
 }
@@ -176,12 +182,14 @@ bool SpatialCell::initialize(cuint& N_blocks) {
       cpu_fx          = NULL;
       cpu_fy          = NULL;
       cpu_fz          = NULL;
+      #ifdef SOLVER_KT
       cpu_d1x         = NULL;
       cpu_d1x         = NULL;
       cpu_d1y         = NULL;
       cpu_d2z         = NULL;
       cpu_d2y         = NULL;
       cpu_d2z         = NULL;
+      #endif
       #endif
    }
    
@@ -202,12 +210,14 @@ bool SpatialCell::initialize(cuint& N_blocks) {
    cpu_fx          = grid.getFx()          + cpuIndex*SIZE_FLUXS;
    cpu_fy          = grid.getFy()          + cpuIndex*SIZE_FLUXS;
    cpu_fz          = grid.getFz()          + cpuIndex*SIZE_FLUXS;
+   #ifdef SOLVER_KT
    cpu_d1x         = grid.getD1x()         + cpuIndex*SIZE_DERIV;
    cpu_d1y         = grid.getD1y()         + cpuIndex*SIZE_DERIV;
    cpu_d1z         = grid.getD1z()         + cpuIndex*SIZE_DERIV;
    cpu_d2x         = grid.getD2x()         + cpuIndex*SIZE_DERIV;
    cpu_d2y         = grid.getD2y()         + cpuIndex*SIZE_DERIV;
    cpu_d2z         = grid.getD2z()         + cpuIndex*SIZE_DERIV;
+   #endif
    #endif
    return success;
 }
@@ -245,12 +255,14 @@ bool SpatialCell::clone(const SpatialCell& s) {
    for (uint i=0; i<N_blocks*SIZE_FLUXS; ++i)       cpu_fx[i]          = s.cpu_fx[i];
    for (uint i=0; i<N_blocks*SIZE_FLUXS; ++i)       cpu_fy[i]          = s.cpu_fy[i];
    for (uint i=0; i<N_blocks*SIZE_FLUXS; ++i)       cpu_fz[i]          = s.cpu_fz[i];
+   #ifdef SOLVER_KT
    for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d1x[i]         = s.cpu_d1x[i];
    for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d1y[i]         = s.cpu_d1y[i];
    for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d1z[i]         = s.cpu_d1z[i];
    for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d2x[i]         = s.cpu_d2x[i];
    for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d2y[i]         = s.cpu_d2y[i];
    for (uint i=0; i<N_blocks*SIZE_DERIV; ++i)       cpu_d2z[i]         = s.cpu_d2z[i];
+   #endif
    #endif
    return  true;
 }
@@ -280,9 +292,11 @@ void* SpatialCell::getBaseAddress(cuint identifier) {
       return this->cpu_avgs;
       break;
     #ifndef CUDA
+    #ifdef SOLVER_KT    
     case 1:
       return this->cpu_d1x;
       break;
+    #endif  
     case 2:
       return this->cpu_fx;
       break;

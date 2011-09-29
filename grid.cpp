@@ -60,7 +60,9 @@ Grid::Grid() {
    
    #ifdef CUDA
       cluint SIZE = MAX_VEL_BLOCKS*WID3;
+
    #else
+      #ifdef SOLVER_KT
       cluint SIZE = 
         MAX_VEL_BLOCKS*SIZE_VELBLOCK
         + MAX_VEL_BLOCKS*SIZE_FLUXS
@@ -72,6 +74,13 @@ Grid::Grid() {
         + MAX_VEL_BLOCKS*SIZE_DERIV
         + MAX_VEL_BLOCKS*SIZE_DERIV
         + MAX_VEL_BLOCKS*SIZE_DERIV;
+      #else
+        cluint SIZE = 
+        MAX_VEL_BLOCKS*SIZE_VELBLOCK
+        + MAX_VEL_BLOCKS*SIZE_FLUXS
+        + MAX_VEL_BLOCKS*SIZE_FLUXS
+        + MAX_VEL_BLOCKS*SIZE_FLUXS;
+      #endif
    #endif
    /*
    try {
@@ -89,6 +98,7 @@ Grid::Grid() {
       fx = avgs + MAX_VEL_BLOCKS*SIZE_VELBLOCK;
       fy = fx + MAX_VEL_BLOCKS*SIZE_FLUXS;
       fz = fy + MAX_VEL_BLOCKS*SIZE_FLUXS;
+   #ifdef SOLVER_KT    
       d1x = fz + MAX_VEL_BLOCKS*SIZE_FLUXS;
       d1y = d1x + MAX_VEL_BLOCKS*SIZE_DERIV;
       d1z = d1y + MAX_VEL_BLOCKS*SIZE_DERIV;
@@ -96,6 +106,7 @@ Grid::Grid() {
       d2y = d2x + MAX_VEL_BLOCKS*SIZE_DERIV;
       d2z = d2y + MAX_VEL_BLOCKS*SIZE_DERIV;
    #endif
+   #endif   
 }
 
 Grid::~Grid() {
@@ -143,12 +154,14 @@ Real* Grid::getAvgs(cuint& cpuIndex) const {return avgs + cpuIndex*SIZE_VELBLOCK
    Real* Grid::getFx(cuint& cpuIndex) const {return fx + cpuIndex*SIZE_FLUXS;}
    Real* Grid::getFy(cuint& cpuIndex) const {return fy + cpuIndex*SIZE_FLUXS;}
    Real* Grid::getFz(cuint& cpuIndex) const {return fz + cpuIndex*SIZE_FLUXS;}
+#ifdef SOLVER_KT
    Real* Grid::getD1x(cuint& cpuIndex) const {return d1x + cpuIndex*SIZE_DERIV;}
    Real* Grid::getD1y(cuint& cpuIndex) const {return d1y + cpuIndex*SIZE_DERIV;}
    Real* Grid::getD1z(cuint& cpuIndex) const {return d1z + cpuIndex*SIZE_DERIV;}
    Real* Grid::getD2x(cuint& cpuIndex) const {return d2x + cpuIndex*SIZE_DERIV;}
    Real* Grid::getD2y(cuint& cpuIndex) const {return d2y + cpuIndex*SIZE_DERIV;}
    Real* Grid::getD2z(cuint& cpuIndex) const {return d2z + cpuIndex*SIZE_DERIV;}
+#endif
 #endif
 
 bool Grid::removeReference(cuint& INDEX) {

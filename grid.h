@@ -40,12 +40,14 @@ class Grid {
       Real* getFx() const {return fx;}
       Real* getFy() const {return fy;}
       Real* getFz() const {return fz;}
+   #ifdef SOLVER_KT
       Real* getD1x() const {return d1x;}
       Real* getD1y() const {return d1y;}
       Real* getD1z() const {return d1z;}
       Real* getD2x() const {return d2x;}
       Real* getD2y() const {return d2y;}
       Real* getD2z() const {return d2z;}
+   #endif
    #endif
 
    uint* getNbrsSpa(cuint& INDEX) const;
@@ -57,6 +59,7 @@ class Grid {
       Real* getFx(cuint& INDEX) const;
       Real* getFy(cuint& INDEX) const;
       Real* getFz(cuint& INDEX) const;
+   #ifdef SOLVER_KT
       Real* getD1x(cuint& INDEX) const;
       Real* getD1y(cuint& INDEX) const;
       Real* getD1z(cuint& INDEX) const;
@@ -64,6 +67,7 @@ class Grid {
       Real* getD2y(cuint& INDEX) const;
       Real* getD2z(cuint& INDEX) const;
    #endif
+   #endif 
    
    void printReferences();
    
@@ -79,6 +83,7 @@ class Grid {
       Real* fx; /**< Pointer to array containing fluxes to x-direction.*/
       Real* fy; /**< Pointer to array containing fluxes to y-direction.*/
       Real* fz; /**< Pointer to array containing fluxes to z-direction.*/
+   #ifdef SOLVER_KT
       Real* d1x; /**< Pointer to array containing 1st derivatives to x-direction.*/
       Real* d1y; /**< Pointer to array containing 1st derivatives to y-direction.*/
       Real* d1z; /**< Pointer to array containing 1st derivatives to z-direction.*/
@@ -86,6 +91,7 @@ class Grid {
       Real* d2y; /**< Pointer to array containing 2nd derivatives to y-direction.*/
       Real* d2z; /**< Pointer to array containing 2nd derivatives to z-direction.*/
    #endif
+   #endif 
 };
 
 #endif
