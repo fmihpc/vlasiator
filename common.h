@@ -201,7 +201,6 @@ namespace CellParams {
       EXVOL,   /**< Ex averaged over spatial cell.*/
       EYVOL,   /**< Ey averaged over spatial cell.*/
       EZVOL,   /**< Ez averaged over spatial cell.*/
-      PRESSURE, /**< Added by YK - Scalar pressure. Calculated by Vlasov propagator.*/
       SIZE_CELLPARAMS
    };
 }
