@@ -313,9 +313,9 @@ namespace DRO {
    }
    
    bool VariablePressure::setSpatialCell(const SpatialCell& cell) {
-      Real averageVX = cell.cpu_cellParams[CellParams::RHOVX] / cell.cpu_cellParams[CellParams::RHO];
-      Real averageVY = cell.cpu_cellParams[CellParams::RHOVY] / cell.cpu_cellParams[CellParams::RHO];
-      Real averageVZ = cell.cpu_cellParams[CellParams::RHOVZ] / cell.cpu_cellParams[CellParams::RHO];
+      averageVX = cell.cpu_cellParams[CellParams::RHOVX] / cell.cpu_cellParams[CellParams::RHO];
+      averageVY = cell.cpu_cellParams[CellParams::RHOVY] / cell.cpu_cellParams[CellParams::RHO];
+      averageVZ = cell.cpu_cellParams[CellParams::RHOVZ] / cell.cpu_cellParams[CellParams::RHO];
       Pressure = 0.0;
       return true;
    }
