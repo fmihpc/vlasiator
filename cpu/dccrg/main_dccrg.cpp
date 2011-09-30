@@ -50,7 +50,6 @@ extern bool cpu_translation1(SpatialCell& cell,const std::vector<const SpatialCe
 extern bool cpu_translation2(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
 extern bool cpu_translation3(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
 extern bool cpu_calcVelocityMoments(SpatialCell& cell);
-extern bool cpu_calcPressure(SpatialCell& cell);
 
 namespace Main {
    std::vector<CellID> cells;
@@ -346,10 +345,6 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
       }
       if (Main::cellPtr != NULL)  {
 	 cpu_translation3(*Main::cellPtr,Main::nbrPtrs);
-	 // YK Calculating pressure at the last step before saving
-	 if (transferAvgs == true) {
-	    cpu_calcPressure(*Main::cellPtr);
-	 }
       }
    }
    profile::stop("Compute inner cells",Main::cells.size(),"SpatialCells");
@@ -369,10 +364,6 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
       }
       if (Main::cellPtr != NULL)  {
 	 cpu_translation3(*Main::cellPtr,Main::nbrPtrs);
-	 // YK Calculating pressure at the last step before saving
-	 if (transferAvgs == true) {
-	    cpu_calcPressure(*Main::cellPtr);
-	 }
       }
    }
    profile::stop("Compute border cells",Main::cells.size(),"SpatialCells");

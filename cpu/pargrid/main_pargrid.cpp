@@ -39,7 +39,6 @@ extern bool cpu_translation1(SpatialCell& cell,const std::vector<const SpatialCe
 extern bool cpu_translation2(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
 extern bool cpu_translation3(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
 extern bool cpu_calcVelocityMoments(SpatialCell& cell);
-extern bool cpu_calcPressure(SpatialCell& cell);
 
 inline uchar calcNbrTypeID(cuchar& i,cuchar& j,cuchar& k) {return k*25+j*5+i;}
 
@@ -318,10 +317,6 @@ void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid,const bool& secon
       }
       if (Main::cellPtr != NULL) {
 	 cpu_translation3(*Main::cellPtr,Main::nbrPtrs);
-	 // YK Calculating pressure at the last step before saving
-	 if (transferAvgs == true) {
-	    cpu_calcPressure(*Main::cellPtr);
-	 }
       }
    }
    #ifdef PARGRID_WAITSOME
@@ -337,10 +332,6 @@ void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid,const bool& secon
 	    }
 	    if (Main::cellPtr != NULL) {
 	       cpu_translation3(*Main::cellPtr,Main::nbrPtrs);
-	       // YK Calculating pressure at the last step before saving
-	       if (transferAvgs == true) {
-		  cpu_calcPressure(*Main::cellPtr);
-	       }
 	    }
 	 }
       }
@@ -359,10 +350,6 @@ void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid,const bool& secon
 	 }
 	 if (Main::cellPtr != NULL)  {
 	    cpu_translation3(*Main::cellPtr,Main::nbrPtrs);
-	    // YK Calculating pressure at the last step before saving
-	    if (transferAvgs == true) {
-	       cpu_calcPressure(*Main::cellPtr);
-	    }
 	 }
       }
    #endif

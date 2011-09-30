@@ -102,36 +102,6 @@ template<typename REAL> void cpu_blockVelocityMoments(const REAL* const avgs,con
    cellParams[CellParams::RHOVZ] += nvz_sum * DV3;
 }
 
-// YK Adding pressure calculations to Vlasiator.
-// p = m/3 * integral((v - <V>)^2 * f(r,v) dV), doing the sum of the x, y and z components.
-template<typename REAL> void cpu_blockPressure(const REAL* const avgs,const REAL* const blockParams,REAL* const cellParams) {
-  const REAL HALF = 0.5;
-  const REAL THIRD = 1.0/3.0;
-  
-  REAL nvx2_sum = 0.0;
-  REAL nvy2_sum = 0.0;
-  REAL nvz2_sum = 0.0;
-  
-  REAL averageVX = cellParams[CellParams::RHOVX] / cellParams[CellParams::RHO];
-  REAL averageVY = cellParams[CellParams::RHOVY] / cellParams[CellParams::RHO];
-  REAL averageVZ = cellParams[CellParams::RHOVZ] / cellParams[CellParams::RHO];
-  for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
-    const REAL VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
-    const REAL VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
-    const REAL VZ = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
-    
-    nvx2_sum += avgs[cellIndex(i,j,k)]*(VX - averageVX)*(VX - averageVX);
-    nvy2_sum += avgs[cellIndex(i,j,k)]*(VY - averageVY)*(VY - averageVY);
-    nvz2_sum += avgs[cellIndex(i,j,k)]*(VZ - averageVZ)*(VZ - averageVZ);
-  }
-  
-  // Accumulate contributions coming from this velocity block to the 
-  // spatial cell velocity moments. If multithreading / OpenMP is used, 
-  // these updates need to be atomic:
-  const REAL DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
-  cellParams[CellParams::PRESSURE] += physicalconstants::MASS_PROTON * THIRD * (nvx2_sum + nvy2_sum + nvz2_sum) * DV3;
-}
-
 template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatDerivs(CELL& cell,const UINT& BLOCK,const std::vector<const CELL*>& nbrPtrs) { }
 
 /**
@@ -900,11 +870,6 @@ template<typename REAL,typename UINT> void cpu_propagateSpatWithMoments(REAL* co
 template<typename REAL,typename UINT> void cpu_calcVelocityMoments(const REAL* const avgs,const REAL* const blockParams,REAL* const cellParams,const UINT& BLOCK) {
    // Calculate velocity moments:
    cpu_blockVelocityMoments(avgs+BLOCK*SIZE_VELBLOCK,blockParams+BLOCK*SIZE_BLOCKPARAMS,cellParams);
-}
-
-template<typename REAL,typename UINT> void cpu_calcPressure(const REAL* const avgs,const REAL* const blockParams,REAL* const cellParams,const UINT& BLOCK) {
-   // YK Calculate pressure
-   cpu_blockPressure(avgs+BLOCK*SIZE_VELBLOCK,blockParams+BLOCK*SIZE_BLOCKPARAMS,cellParams);
 }
 
 #endif

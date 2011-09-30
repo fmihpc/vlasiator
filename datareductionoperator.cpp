@@ -23,6 +23,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "datareductionoperator.h"
 #include "vlscommon.h"
+#include "cpu/cpu_common.h"
 
 
 using namespace std;
@@ -127,7 +128,7 @@ namespace DRO {
          
    std::string VariableVolE::getName() const {return "E_vol";}
       
-   bool VariableVolE::reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer) {
+      bool VariableVolE::reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(E);
       for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
@@ -264,6 +265,8 @@ namespace DRO {
    }
    
    // Added by YK
+
+   
    VariablePressure::VariablePressure(): DataReductionOperator() { }
    VariablePressure::~VariablePressure() { }
    
@@ -276,14 +279,44 @@ namespace DRO {
      return true;
    }
    
-   bool VariablePressure::reduceData(const unsigned int& N_blocks,const Real* const avgs,const Real* const blockParams,char* buffer) {
+   // YK Adding pressure calculations to Vlasiator.
+   // p = m/3 * integral((v - <V>)^2 * f(r,v) dV), doing the sum of the x, y and z components.
+   bool VariablePressure::reduceData(const unsigned int& N_blocks, const Real* const avgs, const Real* const blockParams, char* buffer) {
+      const Real HALF = 0.5;
+      const Real THIRD = 1.0/3.0;
+     
+      Real nvx2_sum = 0.0;
+      Real nvy2_sum = 0.0;
+      Real nvz2_sum = 0.0;
+      for (uint n=0; n<N_blocks; ++n)
+	 for (uint k=0; k<WID; ++k)
+	    for (uint j=0; j<WID; ++j)
+	       for (uint i=0; i<WID; ++i) {
+		  const Real VX = blockParams[n*SIZE_BLOCKPARAMS + BlockParams::VXCRD] + (i+HALF) * blockParams[n*SIZE_BLOCKPARAMS + BlockParams::DVX];
+		  const Real VY = blockParams[n*SIZE_BLOCKPARAMS + BlockParams::VYCRD] + (j+HALF) * blockParams[n*SIZE_BLOCKPARAMS + BlockParams::DVY];
+		  const Real VZ = blockParams[n*SIZE_BLOCKPARAMS + BlockParams::VZCRD] + (k+HALF) * blockParams[n*SIZE_BLOCKPARAMS + BlockParams::DVZ];
+	 
+		  nvx2_sum += avgs[n*SIZE_VELBLOCK + cellIndex(i,j,k)]*(VX - averageVX)*(VX - averageVX);
+		  nvy2_sum += avgs[n*SIZE_VELBLOCK + cellIndex(i,j,k)]*(VY - averageVY)*(VY - averageVY);
+		  nvz2_sum += avgs[n*SIZE_VELBLOCK + cellIndex(i,j,k)]*(VZ - averageVZ)*(VZ - averageVZ);
+     }
+     
+     // Accumulate contributions coming from this velocity block to the 
+     // spatial cell velocity moments. If multithreading / OpenMP is used, 
+     // these updates need to be atomic:
+     const Real DV3 = blockParams[BlockParams::DVX] * blockParams[BlockParams::DVY] * blockParams[BlockParams::DVZ];
+     Pressure += physicalconstants::MASS_PROTON * THIRD * (nvx2_sum + nvy2_sum + nvz2_sum) * DV3;
+     
      const char* ptr = reinterpret_cast<const char*>(&Pressure);
      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
      return true;
    }
    
    bool VariablePressure::setSpatialCell(const SpatialCell& cell) {
-     Pressure = cell.cpu_cellParams[CellParams::PRESSURE];
-     return true;
+      Real averageVX = cell.cpu_cellParams[CellParams::RHOVX] / cell.cpu_cellParams[CellParams::RHO];
+      Real averageVY = cell.cpu_cellParams[CellParams::RHOVY] / cell.cpu_cellParams[CellParams::RHO];
+      Real averageVZ = cell.cpu_cellParams[CellParams::RHOVZ] / cell.cpu_cellParams[CellParams::RHO];
+      Pressure = 0.0;
+      return true;
    }
 } // namespace DRO
