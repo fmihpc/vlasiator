@@ -251,32 +251,39 @@ static void calculateDerivatives(
    
    CellID leftNbrID,rghtNbrID;
    creal* left = NULL;
-   creal* cent = mpiGrid[cellID   ]->cpu_cellParams;
+   creal* cent = mpiGrid[cellID   ]->cpu_cellParams;   
+   #ifdef DEBUG_SOLVERS
    if (cent[cp::RHO] <= 0) {
       std::cerr << __FILE__ << ":" << __LINE__
          << (cent[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << cellID
          << std::endl;
       abort();
    }
+   #endif
+   
    creal* rght = NULL;
    // Calculate x-derivatives (is not TVD for AMR mesh):
    if ((existingCells & CALCULATE_DX) == CALCULATE_DX) {
       leftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2  ,2  );
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2  ,2  );
       left = mpiGrid[leftNbrID]->cpu_cellParams;
+      #ifdef DEBUG_SOLVERS
       if (left[cp::RHO] <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
             << (left[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << leftNbrID
             << std::endl;
          abort();
       }
+      #endif
       rght = mpiGrid[rghtNbrID]->cpu_cellParams;
+      #ifdef DEBUG_SOLVERS
       if (rght[cp::RHO] <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
             << (rght[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << rghtNbrID
             << std::endl;
          abort();
       }
+      #endif
 
       CHECK_FLOAT(left[cp::RHO])
       CHECK_FLOAT(cent[cp::RHO])
@@ -312,6 +319,7 @@ static void calculateDerivatives(
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2+1,2  );
 
       left = mpiGrid[leftNbrID]->cpu_cellParams;
+      #ifdef DEBUG_SOLVERS
       if (left[cp::RHO] <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
             << (left[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << leftNbrID
@@ -319,14 +327,17 @@ static void calculateDerivatives(
             << std::endl;
          abort();
       }
-
+      #endif
+      
       rght = mpiGrid[rghtNbrID]->cpu_cellParams;
+      #ifdef DEBUG_SOLVERS
       if (rght[cp::RHO] <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
             << (rght[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << rghtNbrID
             << std::endl;
          abort();
       }
+      #endif
 
       CHECK_FLOAT(left[cp::RHO])
       CHECK_FLOAT(cent[cp::RHO])
@@ -361,19 +372,23 @@ static void calculateDerivatives(
       leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2-1);
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2+1);
       left = mpiGrid[leftNbrID]->cpu_cellParams;
+      #ifdef DEBUG_SOLVERS
       if (left[cp::RHO] <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
             << (left[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << leftNbrID
             << std::endl;
          abort();
       }
+      #endif
       rght = mpiGrid[rghtNbrID]->cpu_cellParams;
+      #ifdef DEBUG_SOLVERS
       if (rght[cp::RHO] <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
             << (rght[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << rghtNbrID
             << std::endl;
          abort();
       }
+      #endif
 
       CHECK_FLOAT(left[cp::RHO])
       CHECK_FLOAT(cent[cp::RHO])
