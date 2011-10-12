@@ -97,6 +97,13 @@ void calcCellParameters(Real* cellParams,creal& t) {
    cellParams[CellParams::BX   ] = 0.0;
    cellParams[CellParams::BY   ] = 0.0;
    cellParams[CellParams::BZ   ] = 0.0;
+   
+   cellParams[CellParams::EXVOL] = 0.0;
+   cellParams[CellParams::EYVOL] = 0.0;
+   cellParams[CellParams::EZVOL] = 0.0;
+   cellParams[CellParams::BXVOL] = 0.0;
+   cellParams[CellParams::BYVOL] = 0.0;
+   cellParams[CellParams::BZVOL] = 0.0;
 }
 
 // TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...

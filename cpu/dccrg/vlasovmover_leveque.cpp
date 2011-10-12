@@ -741,8 +741,7 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
       cellParams[CellParams::RHOVY] = 0.0;
       cellParams[CellParams::RHOVZ] = 0.0;
       
-      // If the spatial cell is classified as a ghost cell, apply
-      // boundary condition before calculating its df/dt contributions:
+      // Do not propagate ghost cells, only calculate their velocity moments:
       if (ghostCells.find(cellID) == ghostCells.end()) {
 	 for (uint block=0; block<mpiGrid[cellID]->N_blocks; ++block) {
 	    cpu_propagateSpatWithMoments(avgs,dfdt,nbr_dfdt,blockParams,cellParams,block);
@@ -763,8 +762,8 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
    MPIrecvRequests.clear();
    profile::stop("(MPI) receive remote updates");
    
-   // Sum remote neighbour updates to the first buffer of each 
-   // local cell, if necessary:
+   // Sum remote neighbour updates to the first receive buffer of each 
+   // local cell (if necessary):
    profile::start("spatial translation");
    for (map<CellID,set<Real*> >::iterator it=remoteUpdates.begin(); it!=remoteUpdates.end(); ++it) {
       const CellID cellID = it->first;
@@ -777,6 +776,7 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
       }
    }
    
+   // Propagate boundary cells:
    for (set<CellID>::iterator c=stencilUpdates.boundaryCells.begin(); c!=stencilUpdates.boundaryCells.end(); ++c) {
       const CellID cellID = *c;
       Real* const avgs         = mpiGrid[cellID]->cpu_avgs;
@@ -790,6 +790,7 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
       cellParams[CellParams::RHOVY] = 0.0;
       cellParams[CellParams::RHOVZ] = 0.0;
 
+      // Do not propagate boundary cells, only calculate their velocity moments:
       if (ghostCells.find(cellID) == ghostCells.end()) {
 	 for (uint block=0; block<mpiGrid[cellID]->N_blocks; ++block) {
 	    cpu_propagateSpatWithMoments(avgs,dfdt,nbr_dfdt,blockParams,cellParams,block);

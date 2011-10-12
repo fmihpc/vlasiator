@@ -65,7 +65,7 @@ template<typename T> T superbee(const T& left,const T& cent,const T& right) {
 }
 
 template<typename T> T vanLeer(const T& left,const T& cent,const T& right) {
-   const T EPSILON = 1.0e-25;
+   const T EPSILON = std::numeric_limits<T>::min();
    const T ZERO    = 0.0;
    return std::max((right-cent)*(cent-left),ZERO)/(right-left+EPSILON);
 }

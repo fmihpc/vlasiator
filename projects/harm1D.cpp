@@ -51,13 +51,23 @@ void calcBlockParameters(Real* blockParams) {
 void calcCellParameters(Real* cellParams,creal& t) {
    creal x = cellParams[CellParams::XCRD];
    creal dx = cellParams[CellParams::DX];
-   
+
+   // Setting these is not needed for correct propagation, 
+   // but may be a good idea for visualization:
    cellParams[CellParams::EX   ] = -1.0*(x+0.5*dx);
    cellParams[CellParams::EY   ] = 0.0;
    cellParams[CellParams::EZ   ] = 0.0;
    cellParams[CellParams::BX   ] = 0.0;
    cellParams[CellParams::BY   ] = 0.0;
    cellParams[CellParams::BZ   ] = 0.0;
+   
+   // Volume-averaged fields need to be set:
+   cellParams[CellParams::EXVOL] = -1.0*(x+0.5*dx);
+   cellParams[CellParams::EYVOL] = 0.0;
+   cellParams[CellParams::EZVOL] = 0.0;
+   cellParams[CellParams::BXVOL] = 0.0;
+   cellParams[CellParams::BYVOL] = 0.0;
+   cellParams[CellParams::BZVOL] = 0.0;
 }
 
 // TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...

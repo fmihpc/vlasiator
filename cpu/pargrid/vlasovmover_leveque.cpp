@@ -224,8 +224,7 @@ bool finalizeMover() {
    // Free allocated buffers:
    for (map<pair<CellID,int>,Real*>::iterator it=updateBuffers.begin(); it!=updateBuffers.end(); ++it) {
       freeArray(it->second);
-   }
-   
+   }   
    return true;
 }
 
@@ -363,7 +362,7 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
    mpiGrid.waitAllReceives();
    profile::stop("(MPI) receive remote averages");
    
-   // Apply boundary conditions on local ghost cells, these need to be up-to-date for 
+   // Apply boundary conditions on remote ghost cells, these need to be up-to-date for 
    // boundary cell propagation below:
    for (set<CellID>::iterator cell=stencilAverages.boundaryCells.begin(); cell!=stencilAverages.boundaryCells.end(); ++cell) {
       const CellID cellID = *cell;
@@ -639,13 +638,6 @@ void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid) {
 #ifdef SIMPLE
 
 void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid,const bool& secondStep,const bool& transferAvgs) { 
-   //vector<CellID> cells;
-   
-   // TEMPORARY SOLUTION
-   //mpiGrid.getCells(cells);
-   //const size_t SIZE_DFDT = mpiGrid[cells[0]]->N_blocks*SIZE_VELBLOCK*sizeof(Real);
-   // END TEMPORARY SOLUTION
-   
    // Post receives for remote updates:
    mpiGrid.startSingleMode();
    for (map<pair<int,int>,CellID>::const_iterator it=stencilUpdates.recvs.begin(); it!=stencilUpdates.recvs.end(); ++it) {
@@ -686,8 +678,7 @@ void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid,const bool& secon
       cellParams[CellParams::RHOVY] = 0.0;
       cellParams[CellParams::RHOVZ] = 0.0;
       
-      // If the spatial cell is classified as a ghost cell, apply
-      // boundary condition before calculating its df/dt contributions:
+      // Do not propagate ghost cells, only calculate their velocity moments:
       if (ghostCells.find(cellID) == ghostCells.end()) {
 	 for (uint block=0; block<mpiGrid[cellID]->N_blocks; ++block) {
 	    cpu_propagateSpatWithMoments(avgs,dfdt,nbr_dfdt,blockParams,cellParams,block);

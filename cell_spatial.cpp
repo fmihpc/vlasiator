@@ -246,8 +246,8 @@ bool SpatialCell::clone(const SpatialCell& s) {
    // Copy cell contents to new memory locations:
    for (uint i=0; i<CellParams::SIZE_CELLPARAMS; ++i) cpu_cellParams[i] = s.cpu_cellParams[i];
    for (uint i=0; i<SIZE_DERIVATIVES; ++i) cpu_derivatives[i] = s.cpu_derivatives[i];
-   for (uint i=0; i<SIZE_NBRS_SPA; ++i  ) cpu_nbrsSpa[i]    = s.cpu_nbrsSpa[i];
-   
+
+   for (uint i=0; i<N_blocks*SIZE_NBRS_SPA; ++i  )  cpu_nbrsSpa[i]     = s.cpu_nbrsSpa[i];   
    for (uint i=0; i<N_blocks*SIZE_NBRS_VEL; ++i)    cpu_nbrsVel[i]     = s.cpu_nbrsVel[i];
    for (uint i=0; i<N_blocks*SIZE_BLOCKPARAMS; ++i) cpu_blockParams[i] = s.cpu_blockParams[i];
    for (uint i=0; i<N_blocks*SIZE_VELBLOCK; ++i)    cpu_avgs[i]        = s.cpu_avgs[i];
