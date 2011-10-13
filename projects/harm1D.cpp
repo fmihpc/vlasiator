@@ -10,6 +10,18 @@
 
 using namespace std;
 
+
+
+#ifndef PARGRID
+bool initializeProject(dccrg<SpatialCell>& mpiGrid) {
+#else
+bool initializeProject(ParGrid<SpatialCell>& mpiGrid) {
+#endif
+   return true;
+} 
+
+
+
 bool cellParametersChanged(creal& t) {return false;}
 
 Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
@@ -83,4 +95,6 @@ void calcSimParameters(ParGrid<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
       calcCellParameters(mpiGrid[cells[i]]->cpu_cellParams, t);
    }
 }
+
+
 

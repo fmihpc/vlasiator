@@ -39,6 +39,14 @@ extern MPILogger mpilogger;
 
 solar_wind::Solar_wind sw;
 
+#ifndef PARGRID
+bool initializeProject(dccrg<SpatialCell>& mpiGrid) {
+#else
+bool initializeProject(ParGrid<SpatialCell>& mpiGrid) {
+#endif
+   return true;
+}
+
 // tell to main.cpp that cell parameters should always be recalculated, figure out in calcSimParameters whether to actually
 bool cellParametersChanged(creal& t) {return true;}
 

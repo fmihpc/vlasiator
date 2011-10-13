@@ -13,6 +13,17 @@
 	#include "pargrid.h"
 #endif
 
+/**
+ * Initialize project. Can be used, e.g., to read in parameters from the input file
+*/
+#ifndef PARGRID
+bool initializeProject(dccrg<SpatialCell>& mpiGrid);
+#else
+bool initializeProject(ParGrid<SpatialCell>& mpiGrid);
+#endif
+
+
+
 /** Query if spatial cell parameters (of any cell) have changed and need to be 
  * recalculated. If you have a completely static case, then you can always return 
  * false here. Otherwise you need to return true so that function calcCellParameters

@@ -38,6 +38,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "vlsvwriter2.h" // TEST
 #include "fieldsolver.h"
+#include "project.h"
 
 #ifdef CRAYPAT
 //include craypat api headers if compiled with craypat on Cray XT/XE
@@ -685,12 +686,23 @@ int main(int argn,char* args[]) {
    }
    profile::stop("Init field propagator");
 
+
+   profile::start("Init project");
+   if (initializeProject(mpiGrid) == false) {
+       mpilogger << "(MAIN): Project did not initialize correctly!" << endl << write;
+       exit(1);
+   }
+   
+   profile::stop("Init project");
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****
-   // ***********************************
-   
+   // **********************    *************
+
    // Free up memory:
    readparameters.finalize();
+
+   profile::stop("Initialization");
+   
    profile::start("Save initial state");
    // Write initial state:
    if (P::save_spatial_grid) {
@@ -704,7 +716,7 @@ int main(int argn,char* args[]) {
       }
    }
    profile::stop("Save initial state");
-   profile::stop("Initialization");
+
 #ifndef PARGRID
    comm.barrier();
 #else

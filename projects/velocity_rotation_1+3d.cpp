@@ -8,6 +8,14 @@
 
 using namespace std;
 
+#ifndef PARGRID
+bool initializeProject(dccrg<SpatialCell>& mpiGrid) {
+#else
+bool initializeProject(ParGrid<SpatialCell>& mpiGrid) {
+#endif
+   return true;
+}
+
 bool cellParametersChanged(creal& t) {return false;}
 
 Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz, creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {

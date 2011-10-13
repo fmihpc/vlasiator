@@ -10,6 +10,15 @@
 
 using namespace std;
 
+#ifndef PARGRID
+bool initializeProject(dccrg<SpatialCell>& mpiGrid) {
+#else
+bool initializeProject(ParGrid<SpatialCell>& mpiGrid) {
+#endif
+   return true;
+}
+
+
 bool cellParametersChanged(creal& t) {return false;}
 
 Real getDistribValue(creal& OMEGA,creal& x,creal& y,creal& vx,creal& vy,creal& dvx,creal& dvy) {
