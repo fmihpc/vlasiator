@@ -37,30 +37,24 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 	#include "pargrid.h"
 #endif
 
-
-// Magnetic field at "infinity", T
-# define B0 1.0e-10
-# define DENSITY 1.0e8
-# define ALPHA ( M_PI / 6.0 )
-//# define ALPHA 0.0
-//# define ALPHA ( M_PI / 2.0 )
-# define WAVELENGTH 10000000.0
-# define TEMPERATURE 0.86456498092
-# define A_MAG 0.1
-# define A_VEL 0.1
-# define ALFVEN_VEL 218.1203587208
-
+struct alfvenParameters {
+   static Real B0;
+   static Real DENSITY;
+   static Real ALPHA;
+   static Real WAVELENGTH;
+   static Real TEMPERATURE;
+   static Real A_VEL;
+   static Real A_MAG;
+   static uint nSpaceSamples;
+   static uint nVelocitySamples;
+} ;
+   
+bool initializeProject(void);
 
 /**
  * Initialize project. Can be used, e.g., to read in parameters from the input file
 */
-#ifndef PARGRID
-bool initializeProject(dccrg<SpatialCell>& mpiGrid);
-#else
-bool initializeProject(ParGrid<SpatialCell>& mpiGrid);
-#endif
-
-
+bool initializeProject(void);
 
 /** Query if spatial cell parameters (of any cell) have changed and need to be 
  * recalculated. If you have a completely static case, then you can always return 
@@ -169,7 +163,7 @@ template<typename T> T spatialFluxZ(cuint& k,const T& avg_neg,const T& avg_pos,c
    return convert<T>(0.5)*VZ*(avg_neg+avg_pos) - convert<T>(0.5)*fabs(VZ)*(avg_pos-avg_neg);
 }
 
-template<typename T> T velocityFluxX(const T& j,const T& k,const T& avg_neg,const T& avg_pos,const T* const cellParams,const T* const blockParams) {
+template<typename T> T velocityFluxX(const T& i,const T& j,const T& k,const T& avg_neg,const T& avg_pos,const T* const cellParams,const T* const blockParams) {
    const T VY = blockParams[BlockParams::VYCRD] + (j+convert<T>(0.5))*blockParams[BlockParams::DVY];
    const T VZ = blockParams[BlockParams::VZCRD] + (k+convert<T>(0.5))*blockParams[BlockParams::DVZ];
    const T EX = cellParams[CellParams::EX];
@@ -179,7 +173,7 @@ template<typename T> T velocityFluxX(const T& j,const T& k,const T& avg_neg,cons
    return convert<T>(0.5)*AX*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AX)*(avg_pos-avg_neg);
 }
                                                                         
-template<typename T> T velocityFluxY(const T& i,const T& k,const T& avg_neg,const T& avg_pos,const T* const cellParams,const T* const blockParams) {
+template<typename T> T velocityFluxY(const T& i,const T& j,const T& k,const T& avg_neg,const T& avg_pos,const T* const cellParams,const T* const blockParams) {
    const T VX = blockParams[BlockParams::VXCRD] + (i+convert<T>(0.5))*blockParams[BlockParams::DVX];
    const T VZ = blockParams[BlockParams::VZCRD] + (k+convert<T>(0.5))*blockParams[BlockParams::DVZ];
    const T EY = cellParams[CellParams::EY];
@@ -189,7 +183,7 @@ template<typename T> T velocityFluxY(const T& i,const T& k,const T& avg_neg,cons
    return convert<T>(0.5)*AY*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AY)*(avg_pos-avg_neg);
 }
 
-template<typename T> T velocityFluxZ(const T& i,const T& j,const T& avg_neg,const T& avg_pos,const T* const cellParams,const T* const blockParams) {
+template<typename T> T velocityFluxZ(const T& i,const T& j,const T& k,const T& avg_neg,const T& avg_pos,const T* const cellParams,const T* const blockParams) {
    const T VX = blockParams[BlockParams::VXCRD] + (i+convert<T>(0.5))*blockParams[BlockParams::DVX];
    const T VY = blockParams[BlockParams::VYCRD] + (j+convert<T>(0.5))*blockParams[BlockParams::DVY];
    const T EZ = cellParams[CellParams::EZ];
@@ -199,42 +193,39 @@ template<typename T> T velocityFluxZ(const T& i,const T& j,const T& avg_neg,cons
    return convert<T>(0.5)*AZ*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AZ)*(avg_pos-avg_neg);
 }
 
-
-
-
 template<typename CELLID,typename UINT,typename REAL>
 void fieldSolverBoundaryCondDerivX(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
-				   creal* const derivatives,const 
-				   #ifdef PARGRID
-				   ParGrid<SpatialCell>
-				   #else
-				   dccrg<SpatialCell>
-				   #endif
-				   & mpiGrid) {
+creal* const derivatives,const 
+#ifdef PARGRID
+ParGrid<SpatialCell>
+#else
+dccrg<SpatialCell>
+#endif
+& mpiGrid) {
    fieldSolverBoundarySetValueDerivX(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
 }
 
 template<typename CELLID,typename UINT,typename REAL>
 void fieldSolverBoundaryCondDerivY(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
-				   creal* const derivatives,const
-				   #ifdef PARGRID
-				   ParGrid<SpatialCell>
-				   #else
-				   dccrg<SpatialCell>
-				   #endif
-				   & mpiGrid) {
+creal* const derivatives,const
+#ifdef PARGRID
+ParGrid<SpatialCell>
+#else
+dccrg<SpatialCell>
+#endif
+& mpiGrid) {
    fieldSolverBoundarySetValueDerivY(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
 }
 
 template<typename CELLID,typename UINT,typename REAL>
 void fieldSolverBoundaryCondDerivZ(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
-				   creal* const derivatives,const
-				   #ifdef PARGRID
-				   ParGrid<SpatialCell>
-				   #else
-				   dccrg<SpatialCell>
-				   #endif
-				   & mpiGrid) {
+creal* const derivatives,const
+#ifdef PARGRID
+ParGrid<SpatialCell>
+#else
+dccrg<SpatialCell>
+#endif
+& mpiGrid) {
    fieldSolverBoundarySetValueDerivZ(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
 }
 /*
@@ -316,7 +307,7 @@ ParGrid<SpatialCell>
 dccrg<SpatialCell>
 #endif
 & mpiGrid) {
-  //vlasovBoundaryCopyFromExistingFaceNbr(cellID,existingCells,nonExistingCells,mpiGrid);
+  vlasovBoundaryCopyFromExistingFaceNbr(cellID,existingCells,nonExistingCells,mpiGrid);
   return;
 }
 
@@ -331,6 +322,8 @@ template<typename UINT,typename REAL> void calcAccFaceY(REAL& ax,REAL& ay,REAL& 
 template<typename UINT,typename REAL> void calcAccFaceZ(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,const REAL* const cellParams,const REAL* const blockParams) {
    lorentzForceFaceZ(ax,ay,az,I,J,K,cellParams,blockParams);
 }
+
+
 
 #endif
 

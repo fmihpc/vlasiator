@@ -494,8 +494,15 @@ int main(int argn,char* args[]) {
       exit(1);
    }
    profile::stop("open mpilogger");
+   
+   profile::start("Init project");
+   if (initializeProject() == false) {
+      mpilogger << "(MAIN): Project did not initialize correctly!" << endl << write;
+      exit(1);
+   }
+   profile::stop("Init project");
+   
    profile::start("Initialize Grid");
-
 #ifndef PARGRID // INITIALIZE USING DCCRG
       // Create parallel MPI grid and init Zoltan:
       float zoltanVersion;
@@ -514,7 +521,7 @@ int main(int argn,char* args[]) {
 
       dccrg<SpatialCell> mpiGrid(
          comm,
-         "HIER",
+         "HYPERGRAPH",
          P::xmin, P::ymin, P::zmin,
          P::dx_ini, P::dy_ini, P::dz_ini,
          P::xcells_ini, P::ycells_ini, P::zcells_ini,
@@ -553,9 +560,10 @@ int main(int argn,char* args[]) {
        
       // set default values if nothing has been defined
       if ( partitionProcs.size()==0){
-          partitionProcs.push_back(1);
+/*          partitionProcs.push_back(1);
           partitionLbMethod.push_back("HYPERGRAPH");
-          partitionImbalanceTol.push_back("1.1");
+          partitionImbalanceTol.push_back("1.1");*/
+	    mpiGrid.set_partitioning_option("IMBALANCE_TOL", "1.05");
       }
       
       //set options 
@@ -603,11 +611,13 @@ int main(int argn,char* args[]) {
       mpilogger.close();
       return 1;
    }
+   
    if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting up." << endl << write;
-
+   
    // Receive N_blocks from remote neighbours
    exchangeVelocityGridMetadata(mpiGrid);
    // reserve space for velocity blocks in local copies of remote neighbors
+   
    #ifdef PARGRID
       vector<ID::type> remoteCells;
       mpiGrid.getRemoteCells(remoteCells);
@@ -636,8 +646,6 @@ int main(int argn,char* args[]) {
    profile::stop("Set initial state");
 #endif
 
-  
-
    profile::start("Fetch Neighbour data");
    // Fetch neighbour data:
    #ifndef PARGRID
@@ -647,7 +655,7 @@ int main(int argn,char* args[]) {
    #endif
    profile::stop("Fetch Neighbour data");
    log_send_receive_info(mpiGrid);
-
+   
    #ifdef PARGRID
    mpilogger << "(MAIN): Total no. reserved velocity blocks in Grid = ";
    mpilogger << grid.getTotalNumberOfBlocks() << std::endl << write;
@@ -667,7 +675,8 @@ int main(int argn,char* args[]) {
 // YK   reducer.addOperator(new DRO::VariableE_facey);
 // YK   reducer.addOperator(new DRO::VariableE_facez);
    reducer.addOperator(new DRO::VariablePressure);
-   
+//   reducer.addOperator(new DRO::DistributionVpar);
+      
    //VlsWriter vlsWriter;
    profile::start("Init vlasov propagator");
    // Initialize Vlasov propagator:
@@ -685,24 +694,16 @@ int main(int argn,char* args[]) {
        exit(1);
    }
    profile::stop("Init field propagator");
-
-
-   profile::start("Init project");
-   if (initializeProject(mpiGrid) == false) {
-       mpilogger << "(MAIN): Project did not initialize correctly!" << endl << write;
-       exit(1);
-   }
    
-   profile::stop("Init project");
+
+   
+   
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****
-   // **********************    *************
-
+   // ***********************************
+   
    // Free up memory:
    readparameters.finalize();
-
-   profile::stop("Initialization");
-   
    profile::start("Save initial state");
    // Write initial state:
    if (P::save_spatial_grid) {
@@ -716,7 +717,7 @@ int main(int argn,char* args[]) {
       }
    }
    profile::stop("Save initial state");
-
+   profile::stop("Initialization");
 #ifndef PARGRID
    comm.barrier();
 #else

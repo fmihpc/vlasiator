@@ -9,14 +9,9 @@
 
 using namespace std;
 
-#ifndef PARGRID
-bool initializeProject(dccrg<SpatialCell>& mpiGrid) {
-#else
-bool initializeProject(ParGrid<SpatialCell>& mpiGrid) {
-#endif
+bool initializeProject(void) {
    return true;
 }
-
 
 bool cellParametersChanged(creal& t) {return false;}
 

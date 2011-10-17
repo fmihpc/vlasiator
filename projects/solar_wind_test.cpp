@@ -39,11 +39,7 @@ extern MPILogger mpilogger;
 
 solar_wind::Solar_wind sw;
 
-#ifndef PARGRID
-bool initializeProject(dccrg<SpatialCell>& mpiGrid) {
-#else
-bool initializeProject(ParGrid<SpatialCell>& mpiGrid) {
-#endif
+bool initializeProject(void) {
    return true;
 }
 

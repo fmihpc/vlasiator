@@ -11,41 +11,48 @@ enum cases {BXCASE,BYCASE,BZCASE};
 
 // SET THIS TO BXCASE,BYCASE,OR BZCASE TO SELECT ONE OF THE THREE CASES
 
-static int CASE = BYCASE;
+static int CASE = BZCASE;
 
 using namespace std;
 
-#ifndef PARGRID
-bool initializeProject(dccrg<SpatialCell>& mpiGrid) {
-#else
-bool initializeProject(ParGrid<SpatialCell>& mpiGrid) {
-#endif
+bool initializeProject(void) {
    return true;
 }
 
-
 bool cellParametersChanged(creal& t) {return false;}
 
-Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
-			   creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {
+Real sign(creal value)
+{
+   if(abs(value) < 1e-5) return 0.0;
+   else return value / abs(value);
+}
+
+Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {
    const Real T  = 1e-6;
    const Real n  = 1.0e7;
+   creal ALPHA = 7.0 * M_PI / 4.0;
 
-   Real VX,VY,VZ;
+   Real VX,VY,VZ,ksi,eta;
    switch (CASE) {
-    case BXCASE:
+      case BXCASE:
+      ksi = ((y + 0.5 * dy)  * cos(ALPHA) + (z + 0.5 * dz) * sin(ALPHA)) / (2.0 * sqrt(2.0));
+      eta = (-(y + 0.5 * dy)  * sin(ALPHA) + (z + 0.5 * dz) * cos(ALPHA)) / (2.0 * sqrt(2.0));
       VX = 0.0;
-      VY = 0.5;
-      VZ = 0.5;
+      VY = sign(cos(ALPHA)) * 0.5 + 0.1*cos(ALPHA) * sin(2.0 * M_PI * eta);
+      VZ = sign(sin(ALPHA)) * 0.5 + 0.1*sin(ALPHA) * sin(2.0 * M_PI * eta); 
       break;
     case BYCASE:
-      VX = 0.5;
+      ksi = ((z + 0.5 * dz)  * cos(ALPHA) + (x + 0.5 * dx) * sin(ALPHA)) / (2.0 * sqrt(2.0));
+      eta = (-(z + 0.5 * dz)  * sin(ALPHA) + (x + 0.5 * dx) * cos(ALPHA)) / (2.0 * sqrt(2.0));
+      VX = sign(sin(ALPHA)) * 0.5 + 0.1*sin(ALPHA) * sin(2.0 * M_PI * eta);
       VY = 0.0;
-      VZ = 0.5;
+      VZ = sign(cos(ALPHA)) * 0.5 + 0.1*cos(ALPHA) * sin(2.0 * M_PI * eta);
       break;
     case BZCASE:
-      VX = 0.5;
-      VY = 0.5;
+      ksi = ((x + 0.5 * dx)  * cos(ALPHA) + (y + 0.5 * dy) * sin(ALPHA)) / (2.0 * sqrt(2.0));
+      eta = (-(x + 0.5 * dx)  * sin(ALPHA) + (y + 0.5 * dy) * cos(ALPHA)) / (2.0 * sqrt(2.0));
+      VX = sign(cos(ALPHA)) * 0.5 + 0.1*cos(ALPHA) * sin(2.0 * M_PI * eta);
+      VY = sign(sin(ALPHA)) * 0.5 + 0.1*sin(ALPHA) * sin(2.0 * M_PI * eta);
       VZ = 0.0;
       break;
    }
@@ -72,26 +79,26 @@ void calcCellParameters(Real* cellParams,creal& t) {
    cellParams[CellParams::BZ   ] = 0.0;
    
    typedef Parameters P;
-   creal x = cellParams[CellParams::XCRD];
-   creal y = cellParams[CellParams::YCRD];
-   creal z = cellParams[CellParams::ZCRD];
+   creal x = cellParams[CellParams::XCRD] + 0.5 * cellParams[CellParams::DX];
+   creal y = cellParams[CellParams::YCRD] + 0.5 * cellParams[CellParams::DY];
+   creal z = cellParams[CellParams::ZCRD] + 0.5 * cellParams[CellParams::DZ];
 
    creal B0 = 1.0e-9;
    
    switch (CASE) {
     case BXCASE:
-      if (y >= -0.25 && y <= 0.2)
-	if (z >= -0.25 && z <= 0.2)
+      if (y >= -0.2 && y <= 0.2)
+	if (z >= -0.2 && z <= 0.2)
 	  cellParams[CellParams::BX] = B0;
       break;
     case BYCASE:
-      if (x >= -0.25 && x <= 0.2)
-	if (z >= -0.25 && z <= 0.2)
+      if (x >= -0.2 && x <= 0.2)
+	if (z >= -0.2 && z <= 0.2)
 	  cellParams[CellParams::BY] = B0;
       break;
     case BZCASE:
-      if (x >= -0.25 && x <= 0.2)
-	if (y >= -0.25 && y <= 0.2)
+      if (x >= -0.2 && x <= 0.2)
+	if (y >= -0.2 && y <= 0.2)
 	  cellParams[CellParams::BZ] = B0;
       break;
    }

@@ -23,20 +23,15 @@
 # define SCA_X (100000.0)
 # define SCA_Y (100000.0)
 // Magnetic field at "infinity", T
-# define B0 0.0
+# define B0 5.0e-9
 # define TEMPERATURE 2.0e6
 // At "infinity", m^-3
 # define DENSITY 1.0e7
 
 /**
  * Initialize project. Can be used, e.g., to read in parameters from the input file
-*/
-#ifndef PARGRID
-bool initializeProject(dccrg<SpatialCell>& mpiGrid);
-#else
-bool initializeProject(ParGrid<SpatialCell>& mpiGrid);
-#endif
-
+ */
+bool initializeProject(void);
 
 /** Query if spatial cell parameters (of any cell) have changed and need to be 
  * recalculated. If you have a completely static case, then you can always return 
