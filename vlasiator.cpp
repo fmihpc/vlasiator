@@ -461,27 +461,15 @@ int main(int argn,char* args[]) {
 #ifdef CRAYPAT
 /*initialize variables for reducing sampling & tracing to a slice of all iterations.
 */
-   char *envvar;
-   int firstiter=-1;
-   int lastiter=numeric_limits<int>::max();
-#warning Including CrayPAT API 
-   if(myrank==0){
-       envvar=getenv("CRAYPAT_FIRSTITER");
-       if(envvar!=NULL){
-           firstiter=atoi(envvar);
-       }
-       envvar=getenv("CRAYPAT_LASTITER");
-       if(envvar!=NULL){
-           lastiter=atoi(envvar);
-       }
-       
-   }
-   
-   MPI_Bcast(&firstiter,1,MPI_INT,0,MPI_COMM_WORLD);
-   MPI_Bcast(&lastiter,1,MPI_INT,0,MPI_COMM_WORLD);
-
+   int tracingFirstStep,tracingLastStep;
+   RP::add("craypat.tracing_first_step","First iteration that CRAYPAT profiles",-1);
+   RP::add("craypat.tracing_last_step","Last iteration that CRAYPAT profiles",numeric_limits<int>::max());
+   RP::parse();
+   RP::get("craypat.tracing_first_step",tracingFirstStep);
+   RP::get("craypat.tracing_last_step", tracingLastStep);
    //turn off craypat sampling & tracing based on the defined slices.
-   if(firstiter>0){
+   // FIXME, here we assume that we start from step 0
+   if(tracingFirstStep>0){
        PAT_state(PAT_STATE_OFF);
    }
    
@@ -733,9 +721,11 @@ int main(int argn,char* args[]) {
    profile::start("Simulation");
    for (luint tstep=P::tstep_min; tstep < P::tsteps; ++tstep) {
 #ifdef CRAYPAT //turn on & off sampling & tracing
-       if(myrank>=firstrank && myrank<=lastrank){
-           if(tstep==firstiter) PAT_state(PAT_STATE_ON);
-           if(tstep>lastiter) PAT_state(PAT_STATE_OFF);
+       if(tstep==(luint)tracingFirstStep){
+           PAT_state(PAT_STATE_ON);
+       }
+       if(tstep==(luint)tracingLastStep+1){
+           PAT_state(PAT_STATE_OFF);
        }
 #endif
 
