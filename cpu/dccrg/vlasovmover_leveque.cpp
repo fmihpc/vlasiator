@@ -282,11 +282,11 @@ void calculateAcceleration(dccrg<SpatialCell>& mpiGrid) {
       }
       
       // Calculate df/dt contributions of all blocks in the cell:
-      profile::start("df/dt updates in velocity space");
+      profile::start("df/dt in velocity space");
       for (uint block=0; block<mpiGrid[cellID]->N_blocks; ++block) {
 	 cpu_calcVelFluxes<Real>(*SC,block,P::dt,NULL);
       }
-      profile::stop("df/dt updates in velocity space");
+      profile::stop("df/dt in velocity space");
       
       // Propagate distribution functions in velocity space:
       profile::start("velocity acceleration");
@@ -297,8 +297,8 @@ void calculateAcceleration(dccrg<SpatialCell>& mpiGrid) {
    }
    if(noAcceleration) // The loop has not been entered; creation of the profiler labels on this process.
    {
-     profile::start("df/dt updates in velocity space");
-     profile::stop("df/dt updates in velocity space");
+     profile::start("df/dt in velocity space");
+     profile::stop("df/dt in velocity space");
      profile::start("velocity acceleration");
      profile::stop("velocity acceleration");
    }
@@ -317,9 +317,11 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    cuint avgsByteSize = mpiGrid[cells[0]]->N_blocks * SIZE_VELBLOCK * sizeof(Real);
    // END TEMPORARY SOLUTION
     */
+   profile::start("calculateSpatialFluxes");
    MPIsendRequests.clear(); // Note: unnecessary
    MPIrecvRequests.clear(); // Note: unnecessary
-   
+
+   profile::start("Boundary conditions (inner)");
    // Apply boundary conditions on local ghost cells, these need to be up-to-date for 
    // local cell propagation below:
    for (set<CellID>::iterator cell=stencilAverages.innerCells.begin(); cell!=stencilAverages.innerCells.end(); ++cell) {
@@ -330,8 +332,10 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
       cuint nonExistingCells = (existingCells ^ numeric_limits<uint>::max());
       vlasovBoundaryCondition(cellID,existingCells,nonExistingCells,mpiGrid);
    }
-
+   profile::stop("Boundary conditions (inner)");
+   
    // Post receives for avgs:
+   profile::start("(MPI) Start receives");
    for (map<pair<int,int>,CellID>::iterator it=stencilAverages.recvs.begin(); it!=stencilAverages.recvs.end(); ++it) {
       cint host           = it->first.first;
       cint tag            = it->first.second;
@@ -342,8 +346,10 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
       MPIrecvRequests.push_back(MPI_Request());
       MPI_Irecv(buffer,byteSize,MPI_BYTE,host,tag,MPI_COMM_WORLD,&(MPIrecvRequests.back()));      
    }
-   
+   profile::stop("(MPI) Start receives");
+
    // Post sends for avgs:
+   profile::start("(MPI) Start sends");
    for (multimap<CellID,pair<int,int> >::iterator it=stencilAverages.sends.begin(); it!=stencilAverages.sends.end(); ++it) {
        const CellID cellID = it->first;
        cint host           = it->second.first;
@@ -357,10 +363,11 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
           std::cerr << "calculateSpatialFlux failed to send data!" << std::endl;
       }
    }
+   profile::stop("(MPI) Start sends");
    
    // Clear spatial fluxes to zero value. Remote neighbour df/dt arrays 
    // need to be cleared as well:
-   profile::start("df/dt updates in spatial space");
+   profile::start("df/dt in real space (inner)");
    vector<CellID> cells=mpiGrid.get_cells();
    vector<CellID> remoteCells=mpiGrid.get_list_of_remote_cells_with_local_neighbours();
    cells.insert( cells.end(), remoteCells.begin(), remoteCells.end() );
@@ -389,18 +396,20 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
 	 cpu_calcSpatDfdt(avgs,cellParams,blockParams,dfdt,nbrsSpa,block,HALF*P::dt);
       }
    }
-   profile::stop("df/dt updates in spatial space");
+   profile::stop("df/dt in real space (inner)");
 
    // Wait for remote avgs:
-   profile::start("(MPI) receive remote averages");
+   profile::start("(MPI) Wait receives");
    // Wait for all receives to complete:
    MPI_Waitall(MPIrecvRequests.size(),&(MPIrecvRequests[0]),MPI_STATUSES_IGNORE);
    // Free memory:
    MPIrecvRequests.clear();
-   profile::stop("(MPI) receive remote averages");
+   profile::stop("(MPI) Wait receives");
    
    // Apply boundary conditions on local ghost cells, these need to be up-to-date for 
    // boundary cell propagation below:
+
+   profile::start("Boundary conditions (boundary)");
    for (set<CellID>::iterator cell=stencilAverages.boundaryCells.begin(); cell!=stencilAverages.boundaryCells.end(); ++cell) {
       const CellID cellID = *cell;
       if (ghostCells.find(cellID) == ghostCells.end()) continue;
@@ -409,9 +418,10 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
       cuint nonExistingCells = (existingCells ^ numeric_limits<uint>::max());
       vlasovBoundaryCondition(cellID,existingCells,nonExistingCells,mpiGrid);
    }
+   profile::stop("Boundary conditions (boundary)");
    
    // Iterate through the rest of local cells:
-   profile::start("df/dt updates in spatial space");
+   profile::start("df/dt in real space (boundary)");
    for (set<CellID>::iterator cell=stencilAverages.boundaryCells.begin(); cell!=stencilAverages.boundaryCells.end(); ++cell) {
       const CellID cellID      = *cell;
       creal* const avgs        = grid.getAvgs();
@@ -426,10 +436,10 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
 	 cpu_calcSpatDfdt(avgs,cellParams,blockParams,dfdt,nbrsSpa,block,HALF*P::dt);
       }
    }
-   profile::stop("df/dt updates in spatial space");
+   profile::stop("df/dt in real space (boundary)");
    
    // Wait for sends to complete:
-   profile::start("(MPI) send averages");
+   profile::start("(MPI) Wait sends");
 #ifdef NDEBUG
    MPI_Waitall(MPIsendRequests.size(),&(MPIsendRequests[0]),MPI_STATUSES_IGNORE);
 #else
@@ -442,7 +452,8 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
 #endif
    MPIsendRequests.clear();
    
-   profile::stop("(MPI) send averages");
+   profile::stop("(MPI) Wait sends");
+   profile::stop("calculateSpatialFluxes");
 }
 
 #else // #ifdef SIMPLE
@@ -687,7 +698,7 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
     std::vector<MPI_Request> MPIrecvRequests;               /**< Container for active MPI_Requests due to receives.*/
     std::vector<MPI_Request> MPIsendRequests;               /**< Container for active MPI_Requests due to sends.*/
 
-
+   profile::start("calculateSpatialPropagation");
     vector<CellID> cells;
    // Post receives for remote updates:
    
@@ -697,7 +708,7 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
    
    MPIsendRequests.clear(); 
    MPIrecvRequests.clear();
-   
+   profile::start("(MPI) Start receives");
    for (map<pair<int,int>,CellID>::const_iterator it=stencilUpdates.recvs.begin(); it!=stencilUpdates.recvs.end(); ++it) {
       const CellID localID  = it->second;
       cint host             = it->first.first;
@@ -710,6 +721,8 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
       MPI_Irecv(buffer,SIZE_DFDT,MPI_BYTE,host,tag,MPI_COMM_WORLD,&(MPIrecvRequests.back()));
 
    }
+   profile::stop("(MPI) Start receives");
+   profile::start("(MPI) Start sends");
    // Post sends for remote updates:
    for (multimap<CellID,pair<int,int> >::const_iterator it=stencilUpdates.sends.begin(); it!=stencilUpdates.sends.end(); ++it) {
       const CellID nbrID    = it->first;
@@ -722,11 +735,10 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
       if (MPI_Isend(buffer,SIZE_DFDT,MPI_BYTE,host,tag,MPI_COMM_WORLD,&(MPIsendRequests.back())) != MPI_SUCCESS) {
           std::cerr << "calculateSpatialPropagation failed to send data!" << std::endl;
       }
-      
-      
    }
+   profile::stop("(MPI) Start sends");
    
-   profile::start("spatial translation");
+   profile::start("Spatial translation (inner)");
    for (set<CellID>::iterator c=stencilUpdates.innerCells.begin(); c!=stencilUpdates.innerCells.end(); ++c) {
       const CellID cellID = *c;
       Real* const avgs         = mpiGrid[cellID]->cpu_avgs;
@@ -752,19 +764,19 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
 	 }
       }
    }
-   profile::stop("spatial translation");
+   profile::stop("Spatial translation (inner)");
    
    // Wait for remote neighbour updates to arrive:
-   profile::start("(MPI) receive remote updates");
+   profile::start("(MPI) Wait receives");
    // Wait for all receives to complete:
    MPI_Waitall(MPIrecvRequests.size(),&(MPIrecvRequests[0]),MPI_STATUSES_IGNORE);
    // Free memory:
    MPIrecvRequests.clear();
-   profile::stop("(MPI) receive remote updates");
+   profile::stop("(MPI) Wait receives");
    
    // Sum remote neighbour updates to the first receive buffer of each 
    // local cell (if necessary):
-   profile::start("spatial translation");
+   profile::start("Spatial translation (boundary)");
    for (map<CellID,set<Real*> >::iterator it=remoteUpdates.begin(); it!=remoteUpdates.end(); ++it) {
       const CellID cellID = it->first;
       set<Real*>::iterator buffer = it->second.begin();
@@ -801,10 +813,10 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
 	 }
       }
    }
-   profile::stop("spatial translation");
+   profile::stop("Spatial translation (boundary)");
 
    // Wait for neighbour update sends:
-   profile::start("(MPI) send updates");
+   profile::start("(MPI) Wait sends");
 #ifdef NDEBUG
    MPI_Waitall(MPIsendRequests.size(),&(MPIsendRequests[0]),MPI_STATUSES_IGNORE);
 #else
@@ -817,7 +829,8 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
 #endif
    // Free memory:
    MPIsendRequests.clear();
-   profile::stop("(MPI) send updates");
+   profile::stop("(MPI) Wait sends");
+   profile::stop("calculateSpatialPropagation");
 }
 
 #else //ifdef SIMPLE
