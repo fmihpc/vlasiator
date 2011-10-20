@@ -41,8 +41,6 @@ struct alfvenParameters {
    static Real B0;
    static Real DENSITY;
    static Real ALPHA;
-    static Real COS_ALPHA;
-    static Real SIN_ALPHA;
    static Real WAVELENGTH;
    static Real TEMPERATURE;
    static Real A_VEL;
@@ -57,8 +55,6 @@ bool initializeProject(void);
  * Initialize project. Can be used, e.g., to read in parameters from the input file
 */
 bool initializeProject(void);
-
-
 
 /** Query if spatial cell parameters (of any cell) have changed and need to be 
  * recalculated. If you have a completely static case, then you can always return 

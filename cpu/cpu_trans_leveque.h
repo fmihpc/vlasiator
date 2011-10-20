@@ -113,13 +113,13 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatDerivs(CELL
  * @param BLOCK Which velocity block is to be calculated, acts as an offset into spatial neighbour list.
  * @param DT Time step.
  */
-template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AVGS,const REAL* const CELL_PARAMS,const REAL* const BLOCK_PARAMS,
-							    const UINT* const nbrsSpa,const UINT& BLOCK,const REAL& DT,const UINT SIZE_FLUXBUFFER,REAL* const dfdt) {
+template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AVGS,const REAL* const CELL_PARAMS,const REAL* const BLOCK_PARAMS,REAL* const flux,
+							    const UINT* const nbrsSpa,const UINT& BLOCK,const REAL& DT) {
    
    // Create a temporary buffer for storing df/dt updates and init to zero value:
    //const UINT SIZE_FLUXBUFFER = 9*WID3;
-//   const UINT SIZE_FLUXBUFFER = 27*WID3;
-    //  REAL dfdt[SIZE_FLUXBUFFER];
+   const UINT SIZE_FLUXBUFFER = 27*WID3;
+   REAL dfdt[SIZE_FLUXBUFFER];
    for (uint i=0; i<SIZE_FLUXBUFFER; ++i) dfdt[i] = 0.0;
    
    // Pointer to velocity block whose df/dt contributions are calculated:
@@ -809,6 +809,17 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
       }      
    }
 
+   // Accumulate calculated df/dt values from temporary buffer to 
+   // main memory. If multithreading is used, these updates need 
+   // to be atomistic:
+   const UINT boundaryFlags = nbrsSpa[BLOCK*SIZE_NBRS_SPA + 30];
+   for (uint nbr=0; nbr<27; ++nbr) {
+      // If the neighbour does not exist, do not copy data:
+      if (((boundaryFlags >> nbr) & 1) == 0) continue;
+      
+      const UINT nbrBlock = nbrsSpa[BLOCK*SIZE_NBRS_SPA + nbr];
+      for (uint i=0; i<SIZE_VELBLOCK; ++i) flux[nbrBlock*WID3 + i] += dfdt[nbr*WID3 + i];
+   }
 }
 
 template<typename REAL,typename UINT> void cpu_propagateSpat(REAL* const avgs,const REAL* const flux,const REAL* const nbrFluxes,
@@ -822,7 +833,7 @@ template<typename REAL,typename UINT> void cpu_propagateSpat(REAL* const avgs,co
    } else {
       // Cell has remote neighbour contributions to df/dt
       for (UINT i=0; i<WID3; ++i) {
-          avgs[BLOCK*WID3 + i] += flux[BLOCK*WID3 + i] + nbrFluxes[BLOCK*WID3 + i];
+	 avgs[BLOCK*WID3 + i] += flux[BLOCK*WID3 + i] + nbrFluxes[BLOCK*WID3 + i];
       }
    }
 }

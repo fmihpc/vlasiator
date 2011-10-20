@@ -4,7 +4,7 @@ ARCH = meteo
 include Makefile.${ARCH}
 
 #set FP precision to SP (single) or DP (double)
-FP_PRECISION = DP
+FP_PRECISION = SP
 CXXFLAGS += -D${FP_PRECISION} 
 
 #set a default archive utility, can also be set in Makefile.arch
@@ -27,8 +27,6 @@ CXXFLAGS += -DNDEBUG
 
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
-#PROJ = Alfven
-#PROJ = Riemann1
 PROJ = harm1D
 #PROJ = Diffusion
 #PROJ = Harris

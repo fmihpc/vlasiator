@@ -52,7 +52,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "limiters.h"
 #include "../project.h"
 
-#include "../profile.h"
 #ifdef PARGRID
 #include "../transferstencil.h"
 #endif
@@ -1760,30 +1759,20 @@ void calculateDerivativesSimple(
 
    // Exchange BX,BY,BZ,RHO,RHOVX,RHOVY,RHOVZ with neighbours
    SpatialCell::base_address_identifier = 3;
-   profile::start("Start remote data update");
    mpiGrid.start_remote_neighbour_data_update();
-   profile::stop("Start remote data update");
    // Calculate derivatives on inner cells
-   profile::start("Compute inner cells");
    const vector<uint64_t> local_cells = mpiGrid.get_cells_with_local_neighbours();
    for (vector<uint64_t>::const_iterator cell = local_cells.begin(); cell != local_cells.end(); cell++) {
       calculateDerivatives(*cell,mpiGrid);
    }
-   profile::stop("Compute inner cells");
    // Calculate derivatives on boundary cells
-   profile::start("Wait receives");
    mpiGrid.wait_neighbour_data_update_receives();
-   profile::stop("Wait receives");
-   profile::start("Compute boundary cells");
    const vector<uint64_t> boundary_cells = mpiGrid.get_cells_with_remote_neighbour();
    for (vector<uint64_t>::const_iterator cell = boundary_cells.begin(); cell != boundary_cells.end(); cell++) {
        calculateDerivatives(*cell,mpiGrid);
    }
-   profile::stop("Compute boundary cells");
-   profile::start("Wait sends");
    mpiGrid.wait_neighbour_data_update_sends();
-   profile::stop("Wait sends");
-#endif	// ifdef PARGRID
+   #endif	// ifdef PARGRID
 }
 
 void calculateUpwindedElectricFieldSimple(
@@ -1982,18 +1971,10 @@ bool propagateFields(
    }
    #endif
 
-   profile::start("Propagate Magnetic");
    propagateMagneticFieldSimple(mpiGrid,dt,localCells);
-   profile::stop("Propagate Magnetic");
-   profile::start("Derivatives");
    calculateDerivativesSimple(mpiGrid,localCells);
-   profile::stop("Derivatives");
-   profile::start("Upwinded Eletric");
    calculateUpwindedElectricFieldSimple(mpiGrid,localCells);
-   profile::stop("Upwinded Eletric");
-   profile::start("Volume averaged");
    calculateVolumeAveragedFields(mpiGrid);
-   profile::stop("Volume averaged");
    return true;
 }
 

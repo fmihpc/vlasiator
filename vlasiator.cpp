@@ -387,24 +387,15 @@ void log_send_receive_info(const dccrg<SpatialCell>& mpiGrid) {
 int main(int argn,char* args[]) {
    bool success = true;
    // Init MPI:
-#ifndef PARGRID
-#ifdef _OPENMP
-      int required=MPI_THREAD_FUNNELED;
-      int provided;
-      MPI_Init_thread(&argn,&args,required,&provided);
-      if ( required >provided){
-	 cerr << "(MAIN): MPI_Init_thread failed!" << endl;
-	 exit(1);
-      }    
-#endif          
+   #ifndef PARGRID
       boost::mpi::environment env(argn,args);
       boost::mpi::communicator comm;
-#else
+   #else
       if (MPI_Init(&argn,&args) != MPI_SUCCESS) {
 	 cerr << "(MAIN): MPI init failed!" << endl;
 	 exit(1);
       }
-#endif
+   #endif
    const int MASTER_RANK = 0;
    int myrank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);

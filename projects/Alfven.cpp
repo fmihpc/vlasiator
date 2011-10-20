@@ -1,4 +1,3 @@
-
 /*
 This file is part of Vlasiator.
 
@@ -33,8 +32,6 @@ typedef alfvenParameters AP;
 Real AP::B0 = NAN;
 Real AP::DENSITY = NAN;
 Real AP::ALPHA = NAN;
-Real AP::COS_ALPHA = NAN;
-Real AP::SIN_ALPHA = NAN;
 Real AP::WAVELENGTH = NAN;
 Real AP::TEMPERATURE = NAN;
 Real AP::A_VEL = NAN;
@@ -74,8 +71,6 @@ bool initializeProject(void) {
    By_guiding /= norm;
    By_guiding /= norm;
    AP::ALPHA = atan(By_guiding/Bx_guiding);
-   AP::COS_ALPHA=cos(AP::ALPHA);
-   AP::SIN_ALPHA=sin(AP::ALPHA);
    
    return true;
 } 
@@ -85,20 +80,19 @@ bool cellParametersChanged(creal& t) {return false;}
 /*Real calcPhaseSpaceDensity(creal& z,creal& x,creal& y,creal& dz,creal& dx,creal& dy,
 			   creal& vz,creal& vx,creal& vy,creal& dvz,creal& dvx,creal& dvy) {*/
 Real getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
-   static creal mass = 1.67262171e-27; // m_p in kg
-   static creal k = 1.3806505e-23; // Boltzmann
-   static creal mu0 = 1.25663706144e-6; // mu_0
+   creal mass = 1.67262171e-27; // m_p in kg
+   creal k = 1.3806505e-23; // Boltzmann
+   creal mu0 = 1.25663706144e-6; // mu_0
 //   creal q = 1.60217653e-19; // q_i
-   static creal ALFVEN_VEL = AP::B0 / sqrt(mu0 * AP::DENSITY * mass);
-   static creal densityFactor=AP::DENSITY * pow(mass / (2.0 * M_PI * k * AP::TEMPERATURE), 1.5);
-   
-   creal ksi = (x * AP::COS_ALPHA + y * AP::SIN_ALPHA) / AP::WAVELENGTH;
-   creal Vx = AP::A_VEL * ALFVEN_VEL * AP::SIN_ALPHA * sin(2.0 * M_PI * ksi);
-   creal Vy = - AP::A_VEL * ALFVEN_VEL * AP::COS_ALPHA * sin(2.0 * M_PI * ksi);
-   creal Vz = - AP::A_VEL * ALFVEN_VEL * cos(2.0 * M_PI * ksi);
+   creal ALFVEN_VEL = AP::B0 / sqrt(mu0 * AP::DENSITY * mass);
 
-   creal den = densityFactor *
-   exp(- mass * ((vx - Vx)*(vx-Vx) + (vy - Vy)*(vy-Vy) + (vz - Vz)*(vz-Vz)) / (2.0 * k * AP::TEMPERATURE));
+   creal ksi = (x * cos(AP::ALPHA) + y * sin(AP::ALPHA)) / AP::WAVELENGTH;
+   creal Vx = AP::A_VEL * ALFVEN_VEL * sin(AP::ALPHA) * sin(2.0 * M_PI * ksi);
+   creal Vy = - AP::A_VEL * ALFVEN_VEL * cos(AP::ALPHA) * sin(2.0 * M_PI * ksi);
+   creal Vz = - AP::A_VEL * ALFVEN_VEL * cos(2.0 * M_PI * ksi);
+  
+   creal den = AP::DENSITY * pow(mass / (2.0 * M_PI * k * AP::TEMPERATURE), 1.5) *
+   exp(- mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * k * AP::TEMPERATURE));
   return den;
 }
 
@@ -110,9 +104,8 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
    creal d_vy = dvy / (AP::nVelocitySamples-1);
    creal d_vz = dvz / (AP::nVelocitySamples-1);
    Real avg = 0.0;
-#pragma omp parallel for collapse(6) reduction(+:avg)
    for (uint i=0; i<AP::nSpaceSamples; ++i)
-       for (uint j=0; j<AP::nSpaceSamples; ++j)
+      for (uint j=0; j<AP::nSpaceSamples; ++j)
 	 for (uint k=0; k<AP::nSpaceSamples; ++k)
 	    for (uint vi=0; vi<AP::nVelocitySamples; ++vi)
 	       for (uint vj=0; vj<AP::nVelocitySamples; ++vj)
@@ -120,8 +113,7 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
 		  {
 		     avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
 		  }
-   return avg / AP::nSpaceSamples*AP::nSpaceSamples*AP::nSpaceSamples / AP::nVelocitySamples*AP::nVelocitySamples*AP::nVelocitySamples;
-
+   return avg / pow(AP::nSpaceSamples, 3.0) / pow(AP::nVelocitySamples, 3.0);
 }
 
 void calcBlockParameters(Real* blockParams) {
@@ -142,18 +134,18 @@ void calcCellParameters(Real* cellParams,creal& t) {
    for (uint i=0; i<AP::nSpaceSamples; ++i)
       for (uint j=0; j<AP::nSpaceSamples; ++j)
 	 for (uint k=0; k<AP::nSpaceSamples; ++k) {
-	    ksi = ((x + i * d_x)  * AP::COS_ALPHA + (y + j * d_y) * AP::SIN_ALPHA) / AP::WAVELENGTH;
+	    ksi = ((x + i * d_x)  * cos(AP::ALPHA) + (y + j * d_y) * sin(AP::ALPHA)) / AP::WAVELENGTH;
 	    dBxavg += sin(2.0 * M_PI * ksi);
 	    dByavg += sin(2.0 * M_PI * ksi);
 	    dBzavg += cos(2.0 * M_PI * ksi);
 	 }
-   cuint nPts = AP::nSpaceSamples*AP::nSpaceSamples*AP::nSpaceSamples;
+   cuint nPts = pow(AP::nSpaceSamples, 3.0);
    
    cellParams[CellParams::EX   ] = 0.0;
    cellParams[CellParams::EY   ] = 0.0;
    cellParams[CellParams::EZ   ] = 0.0;
-   cellParams[CellParams::BX   ] = AP::B0 * AP::COS_ALPHA - AP::A_MAG * AP::B0 * AP::SIN_ALPHA * dBxavg / nPts;
-   cellParams[CellParams::BY   ] = AP::B0 * AP::SIN_ALPHA + AP::A_MAG * AP::B0 * AP::COS_ALPHA * dByavg / nPts;
+   cellParams[CellParams::BX   ] = AP::B0 * cos(AP::ALPHA) - AP::A_MAG * AP::B0 * sin(AP::ALPHA) * dBxavg / nPts;
+   cellParams[CellParams::BY   ] = AP::B0 * sin(AP::ALPHA) + AP::A_MAG * AP::B0 * cos(AP::ALPHA) * dByavg / nPts;
    cellParams[CellParams::BZ   ] = AP::B0 * AP::A_MAG * dBzavg / nPts;
 }
 
