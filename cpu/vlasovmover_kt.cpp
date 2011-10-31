@@ -92,7 +92,6 @@ CellID getNeighbourID(
    }
    // TODO support spatial refinement
    return neighbors[0];
-   #endif
 }
 
 

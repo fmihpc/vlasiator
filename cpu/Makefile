@@ -25,7 +25,7 @@ memalloc.o: ${DEPS_MEMALLOC}
 
 DEPS_CPU_ACC_KT=../cell_spatial.h ../project.h cpu_acc_kt.h cpu_common.h cpu_acc_kt.cpp
 DEPS_CPU_TRANS_KT=../cell_spatial.h ../project.h cpu_trans_kt.h cpu_common.h cpu_trans_kt.cpp
-DEPS_VLASOVMOVER_KT=dccrg/main_dccrg.cpp
+DEPS_VLASOVMOVER_KT=vlasovmover_kt.cpp
 DEPS_KT=memalloc.o cpu_acc_kt.o cpu_trans_kt.o vlasovmover_kt.o
 
 cpu_acc_kt.o: ${DEPS_CPU_ACC_KT}
@@ -38,7 +38,6 @@ cpu_trans_kt.o: ${DEPS_CPU_TRANS_KT}
 
 
 vlasovmover_kt.o: ${DEPS_VLASOVMOVER_KT}
-	ln -s -f dccrg/main_dccrg.cpp ./vlasovmover_kt.cpp
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -DMOVER_VLASOV_ORDER=2 -I${INSTALL} -c vlasovmover_kt.cpp ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG}
 	${AR} r libvlasovmover.a vlasovmover_kt.o
 
@@ -48,10 +47,9 @@ KT: ${DEPS_KT}
 # Rules specific to LEVEQUE solver #
 ####################################
 DEPS_LEVEQUE=memalloc.o vlasovmover_leveque.o
-DEPS_VLASOVMOVER_LEVEQUE=../cell_spatial.h ../project.h ../transferstencil.h  cpu_acc_leveque.h cpu_trans_leveque.h cpu_common.h leveque_common.h dccrg/vlasovmover_leveque.cpp 
+DEPS_VLASOVMOVER_LEVEQUE=../cell_spatial.h ../project.h ../transferstencil.h  cpu_acc_leveque.h cpu_trans_leveque.h cpu_common.h leveque_common.h vlasovmover_leveque.cpp 
 
 vlasovmover_leveque.o: ${DEPS_VLASOVMOVER_LEVEQUE}
-	ln -s -f dccrg/vlasovmover_leveque.cpp ./vlasovmover_leveque.cpp
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -DMOVER_VLASOV_ORDER=2 -I${INSTALL} -c vlasovmover_leveque.cpp ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG} ${INC_TOPO}
 	${AR} r libvlasovmover.a vlasovmover_leveque.o
 
