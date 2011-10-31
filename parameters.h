@@ -32,8 +32,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "definitions.h"
 
 const uint MAX_SPAT_CELLS = 8100;
-const uint MAX_VEL_BLOCKS = 250000;
-//const uint MAX_VEL_BLOCKS = 2500000;
+//const uint MAX_VEL_BLOCKS = 250000;
+const uint MAX_VEL_BLOCKS = 2500000;
 
 const uint CUDA_WIDTH = 65536; // Width of CUDA array (for 2D textures)
 const uint CUDA_HEIGHT = 3000; // Height of CUDA array
