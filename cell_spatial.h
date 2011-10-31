@@ -22,9 +22,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <cstring>
 #include <utility>
 #include <vector>
-#ifdef PARGRID
-   #include <mpi.h>
-#endif
 #include "definitions.h"
 #include "common.h"
 #include "parameters.h"
@@ -39,14 +36,10 @@ namespace Cell {
 }
 
 struct SpatialCell {
-   #ifndef PARGRID
    size_t size(void);
    static uint base_address_identifier;
    void* at(void);
    MPI_Datatype mpi_datatype(void);
-   #else
-   void* baseAddress;
-   #endif
    void* getBaseAddress(cuint identifier);
    void getMPIdatatype(cuint identifier,MPI_Datatype& dataType);
    

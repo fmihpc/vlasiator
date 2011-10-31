@@ -29,12 +29,7 @@ bool buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
 		      creal& zmin,creal& dx,creal& dy,creal& dz,
 		      const bool& isRemote);
 
-#ifdef PARGRID
-   #include "pargrid.h"
-   bool buildGrid(ParGrid<SpatialCell>& mpiGrid,MPI_Comm,const int& MASTER_RANK);
-#else
-   bool buildGrid(MPI_Comm,const int& MASTER_RANK);
-#endif
+bool buildGrid(MPI_Comm,const int& MASTER_RANK);
 
 // NOTE FOR VLASOV SIMULATION NEIGHBOUR TYPE IDENTIFIERS
 // 

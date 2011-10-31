@@ -29,7 +29,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "mpilogger.h"
 #include "parameters.h"
 #include "grid.h"
-#include "silowriter.h"
 #include "cell_spatial.h"
 #include "gridbuilder.h"
 #include "datareducer.h"
@@ -55,7 +54,6 @@ bool inistate = true;
 using namespace std;
 //using namespace CellParams;
 
-#ifndef PARGRID
 void initSpatialCells(const dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm) {
     typedef Parameters P;
 
@@ -83,14 +81,9 @@ void initSpatialCells(const dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator
       buildSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
    }
 }
-#endif
 
-#ifdef PARGRID
-bool writeGrid(const ParGrid<SpatialCell>& mpiGrid,DataReducer& dataReducer,const bool& writeRestart) {
-#else
+
 bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const bool& writeRestart) {
-#endif
-    
     double allStart = MPI_Wtime();
     bool success = true;
     int myrank;
@@ -112,12 +105,7 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const 
    
    // Get all local cell IDs and write to file:
    map<string,string> attribs;
-   #ifdef PARGRID
-      vector<ID::type> cells;
-      mpiGrid.getCells(cells);
-   #else 
-      vector<uint64_t> cells = mpiGrid.get_cells();
-   #endif
+   vector<uint64_t> cells = mpiGrid.get_cells();
 
    if (vlsvWriter.writeArray("MESH","SpatialGrid",attribs,cells.size(),1,&(cells[0])) == false) {
       cerr << "Proc #" << myrank << " failed to write cell IDs!" << endl;
@@ -189,38 +177,10 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const 
    uchar* N_neighbours = new uchar[cells.size()];
    uint64_t neighbourSum = 0;
    for (size_t i=0; i<cells.size(); ++i) {
-      #ifdef PARGRID
-         N_neighbours[i] = mpiGrid.getNumberOfNeighbours(cells[i]);
-      #else
-      
-      #endif
       neighbourSum += N_neighbours[i];
    }
    if (vlsvWriter.writeArray("NBRSUM","SpatialGrid",attribs,cells.size(),1,N_neighbours) == false) success = false;
    delete N_neighbours;
-   
-   // Write global IDs of spatial neighbours:
-   #ifdef PARGRID
-      ID::type* nbrIDs = new ID::type[neighbourSum];
-      uchar* nbrTypeIDs = new uchar[neighbourSum];
-      vector<uchar> tmpTypes;
-      vector<uint> tmpIDs;
-      size_t counter = 0;
-      for (size_t i=0; i<cells.size(); ++i) {
-	 mpiGrid.getExistingNeighbours(cells[i],tmpIDs,tmpTypes);
-	 for (size_t j=0; j<tmpTypes.size(); ++j) {
-	    nbrTypeIDs[counter] = tmpTypes[j];
-	    nbrIDs[counter] = tmpIDs[j];
-	    ++counter;
-	 }
-      }
-      if (vlsvWriter.writeArray("NBRTYPES","SpatialGrid",attribs,neighbourSum,1,nbrTypeIDs) == false) success = false;
-      if (vlsvWriter.writeArray("NBRIDS","SpatialGrid",attribs,neighbourSum,1,nbrIDs) == false) success = false;
-      delete nbrIDs;
-      delete nbrTypeIDs;
-   #else
-
-   #endif
    
    // Write velocity blocks and related data. Which cells write velocity grids 
    // should be requested from a function, but for now we just write velocity grids for all cells.
@@ -312,90 +272,26 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const 
 }
 
 void exchangeVelocityGridMetadata(
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid
-	#else
 	dccrg<SpatialCell>& mpiGrid
-	#endif
 ) {
-   #ifdef PARGRID
-   vector<uchar> nbrTypes;
-   for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
-      if ((i == 0) & ((j== 0) & (k == 0))) continue;
-      const int ii = i+2;
-      const int jj = j+2;
-      const int kk = k+2;
-      nbrTypes.push_back(kk*25+jj*5+ii);
-   }
-   nbrTypes.push_back((2+0)*25+(2+0)*5+(2-2)); // --x 
-   nbrTypes.push_back((2+0)*25+(2+0)*5+(2+2)); // ++x
-   nbrTypes.push_back((2+0)*25+(2-2)*5+(2-0)); // --y
-   nbrTypes.push_back((2+0)*25+(2+2)*5+(2+0)); // ++y
-   nbrTypes.push_back((2-2)*25+(2+0)*5+(2-0)); // --z
-   nbrTypes.push_back((2+2)*25+(2+0)*5+(2+0)); // ++z
-   
-   TransferStencil<ID::type> stencil(numeric_limits<ID::type>::max());
-   stencil.addReceives(mpiGrid,nbrTypes);
-   stencil.addSends(mpiGrid,nbrTypes);
-   
-   // Post receives for N_blocks
-   mpiGrid.startSingleMode();
-   for (map<pair<int,int>,ID::type>::const_iterator i=stencil.recvs.begin(); i!=stencil.recvs.end(); ++i) {
-      const int host        = i->first.first;
-      const int tag         = i->first.second;
-      const ID::type cellID = i->second;
-      char* buffer          = reinterpret_cast<char*>(&(mpiGrid[cellID]->N_blocks));
-      mpiGrid.singleReceive(host,tag,sizeof(uint),buffer,cellID);
-   }
-   // Post sends for N_blocks
-   for (multimap<ID::type,pair<int,int> >::const_iterator i=stencil.sends.begin(); i!=stencil.sends.end(); ++i) {
-      const ID::type cellID = i->first;
-      const int dest        = i->second.first;
-      const int tag         = i->second.second;
-      char* buffer          = reinterpret_cast<char*>(&(mpiGrid[cellID]->N_blocks));
-      mpiGrid.singleSend(dest,tag,sizeof(uint),buffer,cellID);
-   }
-   mpiGrid.waitAllReceives();
-   mpiGrid.waitAllSends();
-
-   #else	// ifdef PARGRID
-
    SpatialCell::base_address_identifier = 5;
    mpiGrid.update_remote_neighbour_data();
-
-   #endif	// ifdef PARGRID
 }
    
-#ifdef PARGRID
-void log_send_receive_info(const ParGrid<SpatialCell>& mpiGrid) {
-#else
+
 void log_send_receive_info(const dccrg<SpatialCell>& mpiGrid) {
-#endif
    mpilogger << "Number of sends / receives:" << endl;
-   #ifndef PARGRID
    mpilogger << "\tto other MPI processes   = " << mpiGrid.get_number_of_update_send_cells() << endl;
    mpilogger << "\tfrom other MPI processes = " << mpiGrid.get_number_of_update_receive_cells() << endl;
    mpilogger << "\ttotal = " << mpiGrid.get_number_of_update_send_cells() + mpiGrid.get_number_of_update_receive_cells() << endl;
-   #else
-   mpilogger << "\tto other MPI processes   = " << mpiGrid.getNumberOfSends() << endl;
-   mpilogger << "\tfrom other MPI processes = " << mpiGrid.getNumberOfReceives() << endl;
-   mpilogger << "\ttotal = " << mpiGrid.getNumberOfSends() + mpiGrid.getNumberOfReceives() << endl;
-   #endif
    mpilogger << write;
 }
 
 int main(int argn,char* args[]) {
    bool success = true;
    // Init MPI:
-   #ifndef PARGRID
-      boost::mpi::environment env(argn,args);
-      boost::mpi::communicator comm;
-   #else
-      if (MPI_Init(&argn,&args) != MPI_SUCCESS) {
-	 cerr << "(MAIN): MPI init failed!" << endl;
-	 exit(1);
-      }
-   #endif
+   boost::mpi::environment env(argn,args);
+   boost::mpi::communicator comm;
    const int MASTER_RANK = 0;
    int myrank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
@@ -491,103 +387,86 @@ int main(int argn,char* args[]) {
    profile::stop("Init project");
    
    profile::start("Initialize Grid");
-#ifndef PARGRID // INITIALIZE USING DCCRG
-      // Create parallel MPI grid and init Zoltan:
-      float zoltanVersion;
-      if (Zoltan_Initialize(argn,args,&zoltanVersion) != ZOLTAN_OK) {
-	 mpilogger << "\t ERROR: Zoltan initialization failed, aborting." << std::endl << write;
-	 success = false;
-      } else {
-	 mpilogger << "\t Zoltan " << zoltanVersion << " initialized successfully" << std::endl << write;
-      }
-      if (buildGrid(MPI_COMM_WORLD,MASTER_RANK) == false) {
-	 mpilogger << "(MAIN) Grid builder failed!" << endl << write;
-	 success = false;
-      } else {
-	 mpilogger << "(MAIN) Grid built successfully" << endl << write;
-      }
-
-      dccrg<SpatialCell> mpiGrid(
-         comm,
-         "HYPERGRAPH",
-         P::xmin, P::ymin, P::zmin,
-         P::dx_ini, P::dy_ini, P::dz_ini,
-         P::xcells_ini, P::ycells_ini, P::zcells_ini,
-         // neighborhood size
-         #ifdef SOLVER_KT
-         1, // kt needs 0 but field volume average calculation needs 1
-         #elif defined SOLVER_LEVEQUE
-         2,
-         #endif
-         0, // maximum refinement level
-         P::periodic_x, P::periodic_y, P::periodic_z
+   // Create parallel MPI grid and init Zoltan:
+   float zoltanVersion;
+   if (Zoltan_Initialize(argn,args,&zoltanVersion) != ZOLTAN_OK) {
+      mpilogger << "\t ERROR: Zoltan initialization failed, aborting." << std::endl << write;
+      success = false;
+   } else {
+      mpilogger << "\t Zoltan " << zoltanVersion << " initialized successfully" << std::endl << write;
+   }
+   if (buildGrid(MPI_COMM_WORLD,MASTER_RANK) == false) {
+      mpilogger << "(MAIN) Grid builder failed!" << endl << write;
+      success = false;
+   } else {
+      mpilogger << "(MAIN) Grid built successfully" << endl << write;
+   }
+   
+   dccrg<SpatialCell> mpiGrid(
+      comm,
+      "HYPERGRAPH",
+      P::xmin, P::ymin, P::zmin,
+      P::dx_ini, P::dy_ini, P::dz_ini,
+      P::xcells_ini, P::ycells_ini, P::zcells_ini,
+      // neighborhood size
+#ifdef SOLVER_KT
+      1, // kt needs 0 but field volume average calculation needs 1
+#elif defined SOLVER_LEVEQUE
+      2,
+#endif
+      0, // maximum refinement level
+      P::periodic_x, P::periodic_y, P::periodic_z
       );
       //read in partitioning levels from input
-      RP::addComposing("dccrg.partition_procs","Procs per load balance group");
-      RP::addComposing("dccrg.partition_lb_method","Load balance method");
-      RP::addComposing("dccrg.partition_imbalance_tol","Imbalance tolerance");
-
-      RP::parse();
-      vector<int> partitionProcs;
-      vector<string> partitionLbMethod;
-      vector<string> partitionImbalanceTol;
-      RP::get("dccrg.partition_procs",partitionProcs);
-      RP::get("dccrg.partition_lb_method",partitionLbMethod);
-      RP::get("dccrg.partition_imbalance_tol",partitionImbalanceTol);
-
-      //check that all options set for all levels
-      if ( partitionProcs.size()!=partitionLbMethod.size() ||
-           partitionProcs.size()!=partitionImbalanceTol.size()){
-          if(myrank==0){
-              cerr << "DCCRG partition levels not defined completely! Needed options per level are:" <<endl;
-              cerr << " partition_procs "<<endl << " partition_lb_method " <<endl << " partition_imbalance_tol " <<endl;
-          }
-          MPI_Finalize();
-          exit(1);
+   RP::addComposing("dccrg.partition_procs","Procs per load balance group");
+   RP::addComposing("dccrg.partition_lb_method","Load balance method");
+   RP::addComposing("dccrg.partition_imbalance_tol","Imbalance tolerance");
+   
+   RP::parse();
+   vector<int> partitionProcs;
+   vector<string> partitionLbMethod;
+   vector<string> partitionImbalanceTol;
+   RP::get("dccrg.partition_procs",partitionProcs);
+   RP::get("dccrg.partition_lb_method",partitionLbMethod);
+   RP::get("dccrg.partition_imbalance_tol",partitionImbalanceTol);
+   
+   //check that all options set for all levels
+   if ( partitionProcs.size()!=partitionLbMethod.size() ||
+        partitionProcs.size()!=partitionImbalanceTol.size()){
+      if(myrank==0){
+         cerr << "DCCRG partition levels not defined completely! Needed options per level are:" <<endl;
+         cerr << " partition_procs "<<endl << " partition_lb_method " <<endl << " partition_imbalance_tol " <<endl;
       }
-       
-      // set default values if nothing has been defined
-      if ( partitionProcs.size()==0){
-/*          partitionProcs.push_back(1);
-          partitionLbMethod.push_back("HYPERGRAPH");
-          partitionImbalanceTol.push_back("1.1");*/
-	    mpiGrid.set_partitioning_option("IMBALANCE_TOL", "1.05");
+      MPI_Finalize();
+      exit(1);
+   }
+   
+   // set default values if nothing has been defined
+   if ( partitionProcs.size()==0){
+/*               partitionProcs.push_back(1);
+                 partitionLbMethod.push_back("HYPERGRAPH");
+                 partitionImbalanceTol.push_back("1.1");*/
+      mpiGrid.set_partitioning_option("IMBALANCE_TOL", "1.05");
+   }
+   
+   //set options 
+   for(unsigned int i=0;i<partitionProcs.size();i++){
+      // set hierarchial partitioning parameters for first level
+      if(myrank==0){
+         mpilogger << "(MAIN) Partition parameters level "<<i <<" procs: " << partitionProcs[i] << " LB_METHOD: " <<
+            partitionLbMethod[i]<< " IMBALANCE_TOL: "<< partitionImbalanceTol[i] << endl << write;
       }
       
-      //set options 
-      for(unsigned int i=0;i<partitionProcs.size();i++){
-          // set hierarchial partitioning parameters for first level
-          if(myrank==0){
-              mpilogger << "(MAIN) Partition parameters level "<<i <<" procs: " << partitionProcs[i] << " LB_METHOD: " <<
-                  partitionLbMethod[i]<< " IMBALANCE_TOL: "<< partitionImbalanceTol[i] << endl << write;
-          }
-          
-          mpiGrid.add_partitioning_level(partitionProcs[i]);
-          mpiGrid.add_partitioning_option(i, "LB_METHOD", partitionLbMethod[i]);
-          mpiGrid.add_partitioning_option(i, "IMBALANCE_TOL", partitionImbalanceTol[i]);
-      }
-
-      profile::start("Initial load-balancing");
-      if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting initial load balance." << endl << write;
-      initialLoadBalance(mpiGrid);
-      profile::stop("Initial load-balancing");
+      mpiGrid.add_partitioning_level(partitionProcs[i]);
+      mpiGrid.add_partitioning_option(i, "LB_METHOD", partitionLbMethod[i]);
+      mpiGrid.add_partitioning_option(i, "IMBALANCE_TOL", partitionImbalanceTol[i]);
+   }
    
+   profile::start("Initial load-balancing");
+   if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting initial load balance." << endl << write;
+   initialLoadBalance(mpiGrid);
+   profile::stop("Initial load-balancing");
    
-   #else           // INITIALIZE USING PARGRID
-      ParGrid<SpatialCell> mpiGrid(Hypergraph,argn,args);
-
-      // Add all cells to mpiGrid:
-      if (buildGrid(mpiGrid,MPI_COMM_WORLD,MASTER_RANK) == false) {
-	 mpilogger << "(MAIN) Grid builder failed!" << endl << write;
-	 success = false;
-      } else {
-	 mpilogger << "(MAIN) Grid built successfully" << endl << write;
-      }
-      // Load balance is most likely far from optimal. Do an 
-      // initial load balance before reading cell data:
-      //mpiGrid.initialize();
-
-   #endif
    profile::stop("Initialize Grid");
 
    // If initialization was not successful, abort.
@@ -606,11 +485,6 @@ int main(int argn,char* args[]) {
    exchangeVelocityGridMetadata(mpiGrid);
    // reserve space for velocity blocks in local copies of remote neighbors
    
-   #ifdef PARGRID
-      vector<ID::type> remoteCells;
-      mpiGrid.getRemoteCells(remoteCells);
-      for (size_t i=0; i<remoteCells.size(); ++i) mpiGrid[remoteCells[i]]->initialize(mpiGrid[remoteCells[i]]->N_blocks);
-   #else
    const boost::unordered_set<uint64_t>* incoming_cells = mpiGrid.get_remote_cells_with_local_neighbours();
    for (boost::unordered_set<uint64_t>::const_iterator
       cell_id = incoming_cells->begin();
@@ -624,30 +498,20 @@ int main(int argn,char* args[]) {
       }
       cell->initialize(cell->N_blocks);
    }
-   #endif
    
    // Go through every spatial cell on this CPU, and create the initial state:
 
-#ifndef PARGRID
    profile::start("Set initial state");
    initSpatialCells(mpiGrid,comm);
    profile::stop("Set initial state");
-#endif
 
    profile::start("Fetch Neighbour data");
    // Fetch neighbour data:
-   #ifndef PARGRID
-      // FIXME: add a mpi_datatype to send all cell data
-      P::transmit = 5;
-      mpiGrid.update_remote_neighbour_data(); // TEST
-   #endif
+   // FIXME: add a mpi_datatype to send all cell data
+   P::transmit = 5;
+   mpiGrid.update_remote_neighbour_data(); // TEST
    profile::stop("Fetch Neighbour data");
    log_send_receive_info(mpiGrid);
-   
-   #ifdef PARGRID
-   mpilogger << "(MAIN): Total no. reserved velocity blocks in Grid = ";
-   mpilogger << grid.getTotalNumberOfBlocks() << std::endl << write;
-   #endif
    
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
    // user-defined operators:
@@ -706,11 +570,8 @@ int main(int argn,char* args[]) {
    }
    profile::stop("Save initial state");
    profile::stop("Initialization");
-#ifndef PARGRID
    comm.barrier();
-#else
-   mpiGrid.barrier();
-#endif
+
    inistate = false;
    // Main simulation loop:
    if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting main simulation loop." << endl << write;
@@ -731,26 +592,14 @@ int main(int argn,char* args[]) {
 
        
        //compute how many spatial cells we solve for this step
-#ifndef PARGRID
        computedSpatialCells=mpiGrid.get_cells().size();
-#else
-       vector<uint64_t> cells;
-       mpiGrid.getCells(cells);
-       computedSpatialCells=cells.size();
-#endif
-       
        totalComputedSpatialCells+=computedSpatialCells;
         profile::start("Propagate");
        // Recalculate (maybe) spatial cell parameters
        calculateSimParameters(mpiGrid, P::t, P::dt);
 
       // use globally minimum timestep
-      #ifndef PARGRID
       P::dt = all_reduce(comm, P::dt, boost::mpi::minimum<Real>());
-      #else
-      #warning Cannot calculate minimum timestep when using PARGRID: no communicator for all_reduce
-      #endif
-
       // Propagate the state of simulation forward in time by dt:      
       if (P::propagateVlasov == true) {
           profile::start("Propagate Vlasov");

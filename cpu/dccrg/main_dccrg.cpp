@@ -16,7 +16,6 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PARGRID // Do not use these functions if ParGrid is used:
 
 #include <cstdlib>
 #include <iostream>
@@ -39,11 +38,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 extern MPILogger mpilogger;
 
-#ifdef PARGRID
-typedef uint CellID;
-#else
+
 typedef uint64_t CellID;
-#endif
 
 extern bool cpu_acceleration(SpatialCell& cell);
 extern bool cpu_translation1(SpatialCell& cell,const std::vector<const SpatialCell*>& nbrPtrs);
@@ -78,20 +74,13 @@ inline uchar calcNbrNumber(const uchar& i,const uchar& j,const uchar& k) {return
 inline uchar calcNbrTypeID(const uchar& i,const uchar& j,const uchar& k) {return k*25+j*5+i;}
 
 CellID getNeighbourID(
-	#ifdef PARGRID
-	const ParGrid<SpatialCell>& mpiGrid,
-	#else
 	const dccrg<SpatialCell>& mpiGrid,
-	#endif
 	const CellID& cellID,
 	const uchar& i,
 	const uchar& j,
 	const uchar& k
 ) {
-   #ifdef PARGRID
-   const uchar nbrTypeID = calcNbrTypeID(i,j,k);
-   return mpiGrid.getNeighbour(cellID,nbrTypeID);
-   #else
+
    // TODO: merge this with the one in lond...anna.cpp and probably in ...mover_leveque.cpp
    const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of(cellID, int(i) - 2, int(j) - 2, int(k) - 2);
    if (neighbors.size() == 0) {
@@ -165,11 +154,7 @@ Non-existing neighbor pointers are set to NULL.
 */
 bool findNeighbours(
 	std::vector<const SpatialCell*>& nbrPtr,
-	#ifdef PARGRID
-	const ParGrid<SpatialCell>& mpiGrid,
-	#else
 	const dccrg<SpatialCell>& mpiGrid,
-	#endif
 	const CellID& CELLID
 ) {
 
@@ -376,5 +361,5 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
 
 
 
-#endif // #ifndef PARGRID
+
 

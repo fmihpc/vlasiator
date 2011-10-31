@@ -10,14 +10,10 @@
 #include "fieldsolver.h"
 #include "arrayallocator.h"
 
-#ifndef PARGRID
-	#define DCCRG_SEND_SINGLE_CELLS
-	#define DCCRG_CELL_DATA_SIZE_FROM_USER
-	#define DCCRG_USER_MPI_DATA_TYPE
-	#include "dccrg.hpp"
-#else
-	#include "pargrid.h"
-#endif
+#define DCCRG_SEND_SINGLE_CELLS
+#define DCCRG_CELL_DATA_SIZE_FROM_USER
+#define DCCRG_USER_MPI_DATA_TYPE
+#include "dccrg.hpp"
 
 /**
  * Initialize project. Can be used, e.g., to read in parameters from the input file
@@ -52,11 +48,8 @@ void calcBlockParameters(Real* blockParams);
  */
 void calcCellParameters(Real* cellParams,creal& t);
 
-#ifndef PARGRID
 void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt);
-#else
-void calcSimParameters(ParGrid<SpatialCell>& mpiGrid, creal& t, Real& dt);
-#endif
+
 
 /** Integrate the distribution function over the given six-dimensional phase-space cell.
  * @param x Starting value of the x-coordinate of the cell.
@@ -171,11 +164,7 @@ void fieldSolverBoundaryCondDerivX(
 	const UINT& existingCells,
 	const UINT& nonExistingCells,
 	creal* const derivatives,
-	#ifndef PARGRID
 	const dccrg<SpatialCell>& mpiGrid
-	#else
-	const ParGrid<SpatialCell>& mpiGrid
-	#endif
 ) {
    fieldSolverBoundarySetValueDerivX(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
 }
@@ -187,11 +176,7 @@ void fieldSolverBoundaryCondDerivY(
 	const UINT& existingCells,
 	const UINT& nonExistingCells,
 	creal* const derivatives,
-	#ifndef PARGRID
 	const dccrg<SpatialCell>& mpiGrid
-	#else
-	const ParGrid<SpatialCell>& mpiGrid
-	#endif
 ) {
    fieldSolverBoundarySetValueDerivY(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
 }
@@ -203,11 +188,7 @@ void fieldSolverBoundaryCondDerivZ(
 	const UINT& existingCells,
 	const UINT& nonExistingCells,
 	creal* const derivatives,
-	#ifndef PARGRID
 	const dccrg<SpatialCell>& mpiGrid
-	#else
-	const ParGrid<SpatialCell>& mpiGrid
-	#endif
 ) {
    fieldSolverBoundarySetValueDerivZ(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
 }
@@ -217,11 +198,7 @@ REAL fieldSolverBoundaryCondBx(
 	const CELLID& cellID,
 	const UINT& existingCells,
 	const UINT& nonExistingCells,
-	#ifndef PARGRID
 	const dccrg<SpatialCell>& mpiGrid
-	#else
-	const ParGrid<SpatialCell>& mpiGrid
-	#endif
 ) {
    return fieldBoundaryCopyFromExistingFaceNbrBx<CELLID,UINT,REAL>(cellID,existingCells,nonExistingCells,mpiGrid);
 }
@@ -231,11 +208,7 @@ REAL fieldSolverBoundaryCondBy(
 	const CELLID& cellID,
 	const UINT& existingCells,
 	const UINT& nonExistingCells,
-	#ifndef PARGRID
 	const dccrg<SpatialCell>& mpiGrid
-	#else
-	const ParGrid<SpatialCell>& mpiGrid
-	#endif
 ) {
    return fieldBoundaryCopyFromExistingFaceNbrBy<CELLID,UINT,REAL>(cellID,existingCells,nonExistingCells,mpiGrid);
 }
@@ -245,11 +218,7 @@ REAL fieldSolverBoundaryCondBz(
 	const CELLID& cellID,
 	const UINT& existingCells,
 	const UINT& nonExistingCells,
-	#ifndef PARGRID
 	const dccrg<SpatialCell>& mpiGrid
-	#else
-	const ParGrid<SpatialCell>& mpiGrid
-	#endif
 ) {
    return fieldBoundaryCopyFromExistingFaceNbrBz<CELLID,UINT,REAL>(cellID,existingCells,nonExistingCells,mpiGrid);
 }
@@ -259,11 +228,8 @@ void vlasovBoundaryCondition(
 	const CELLID& cellID,
 	const UINT& existingCells,
 	const UINT& nonExistingCells,
-	#ifndef PARGRID
 	const dccrg<SpatialCell>& mpiGrid
-	#else
-	const ParGrid<SpatialCell>& mpiGrid
-	#endif
+
 ) {
    vlasovBoundaryCopyFromExistingFaceNbr(cellID,existingCells,nonExistingCells,mpiGrid);
 }

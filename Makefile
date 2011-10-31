@@ -16,8 +16,6 @@ MOVER ?= cpu
 SOLVER ?= LEVEQUE
 #Add -DKT or -DLEVEQUE to compiler options (mandatory)
 CXXFLAGS += -DSOLVER_${SOLVER}
-#Add -DPARGRID to use pargrid instead of DCCRG
-#CXXFLAGS += -DPARGRID -DSIMPLE 
 
 #Add -DPROFILE to get performance profiling information in the logfile
 CXXFLAGS += -DPROFILE
@@ -69,8 +67,8 @@ DEPS_DATAREDUCER = cell_spatial.h datareducer.h datareductionoperator.h dataredu
 DEPS_DATAREDUCTIONOPERATOR = cell_spatial.h datareductionoperator.h datareductionoperator.cpp
 DEPS_GPU_DEVICE_GRID = cell_spatial.h parameters.h devicegrid.h gpudevicegrid.cpp
 DEPS_GRID = grid.h parameters.h grid.cpp
-DEPS_GRIDBUILDER = cell_spatial.h parameters.h pargrid.h project.h gridbuilder.h gridbuilder.cpp
-DEPS_MAIN = gridbuilder.h parameters.h pargrid.h project.h grid.h cell_spatial.h vlasiator.cpp
+DEPS_GRIDBUILDER = cell_spatial.h parameters.h  project.h gridbuilder.h gridbuilder.cpp
+DEPS_MAIN = gridbuilder.h parameters.h  project.h grid.h cell_spatial.h vlasiator.cpp
 DEPS_MPIFILE = mpifile.h mpifile.cpp
 DEPS_MPILOGGER = mpifile.h mpilogger.h mpilogger.cpp
 DEPS_MUXML = muxml.h muxml.cpp
@@ -102,7 +100,7 @@ HDRS = arrayallocator.h cpu_acc.h cpu_acc_ppm.h cpu_common.h cpu_trans.h cell_sp
 	definitions.h grid.h gridbuilder.h\
 	mpiconversion.h mpifile.h mpilogger.h\
 	parameters.h\
-	pargrid.h  vlscommon.h\
+	 vlscommon.h\
 	vlsvwriter2.h vlsvreader2.h muxml.h profile.h
 
 CUDA_HDRS = cudafuncs.h cudalaunch.h devicegrid.h
@@ -251,7 +249,7 @@ VLASIATOR_HEADERS = \
 	definitions.h grid.h gridbuilder.h \
 	mpiconversion.h mpifile.h mpilogger.h \
 	parameters.h \
-	pargrid.h vlscommon.h \
+	 vlscommon.h \
 	vlsvwriter2.h vlsvreader2.h muxml.h profile.h
 
 VLASIATOR_SOURCES = \

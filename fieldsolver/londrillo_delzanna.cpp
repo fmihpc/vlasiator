@@ -52,19 +52,11 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "limiters.h"
 #include "../project.h"
 
-#ifdef PARGRID
-#include "../transferstencil.h"
-#endif
-
 using namespace std;
 using namespace fieldsolver;
 
-#ifdef PARGRID
-   typedef uint CellID;
-#else
-   #include <stdint.h>
-   typedef uint64_t CellID;
-#endif
+#include <stdint.h>
+typedef uint64_t CellID;
 
 static creal EPS = 1.0e-30;
 
@@ -92,11 +84,6 @@ static map<CellID,uint> boundaryFlags;        // Boundary status flags for all c
 					      // should only change for a cell if some of its neighbours are deleted or 
 					      // created during the simulation.
 
-#ifdef PARGRID
-static TransferStencil<CellID> stencil1(INVALID_CELLID);     // MPI-stencil used to receive data for derivatives & edge-E calculation
-static TransferStencil<CellID> stencil2(INVALID_CELLID);     // MPI-stencil used to receive data for propagation of B
-static TransferStencil<CellID> stencil3(INVALID_CELLID);
-#endif
 
 static uint CALCULATE_DX = 0; /**< Bit mask determining if x-derivatives can be calculated on a cell.*/
 static uint CALCULATE_DY = 0; /**< Bit mask determining if y-derivatives can be calculated on a cell.*/
@@ -126,16 +113,10 @@ const Real TWELWTH = 1.0/12.0;
 const Real TWO     = 2.0;
 const Real ZERO    = 0.0;
 
-#ifdef PARGRID
-void calculateDerivativesSimple(ParGrid<SpatialCell>& mpiGrid,const vector<CellID>& localCells);
-void calculateUpwindedElectricFieldSimple(ParGrid<SpatialCell>& mpiGrid,const vector<CellID>& localCells);
-
-#else	// ifdef PARGRID
 
 void calculateDerivativesSimple(dccrg<SpatialCell>& mpiGrid,const vector<CellID>& localCells);
 void calculateUpwindedElectricFieldSimple(dccrg<SpatialCell>& mpiGrid,const vector<CellID>& localCells);
 
-#endif
 
 /** Calculate the neighbour number. For the inspected cell the (i,j,k) are (1,1,1). Add or 
  * reduce one from an index to get the "neighbour number" for the neighbour in that direction. 
@@ -169,20 +150,12 @@ Real limiter(creal& left,creal& cent,creal& rght) {
 }
 
 CellID getNeighbourID(
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid,
-	#else
 	dccrg<SpatialCell>& mpiGrid,
-	#endif
 	const CellID& cellID,
 	const uchar& i,
 	const uchar& j,
 	const uchar& k
 ) {
-   #ifdef PARGRID
-   const uchar nbrTypeID = calcNbrTypeID(i,j,k);
-   return mpiGrid.getNeighbour(cellID,nbrTypeID);
-   #else
    const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of(cellID, int(i) - 2, int(j) - 2, int(k) - 2);
    if (neighbors.size() == 0) {
       cerr << __FILE__ << ":" << __LINE__
@@ -193,15 +166,10 @@ CellID getNeighbourID(
    }
    // TODO support spatial refinement
    return neighbors[0];
-   #endif
 }
 
 static void calculateBoundaryFlags(
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid,
-	#else
 	dccrg<SpatialCell>& mpiGrid,
-	#endif
 	const vector<CellID>& localCells
 ) {
    for (size_t cell=0; cell<localCells.size(); ++cell) {
@@ -213,12 +181,7 @@ static void calculateBoundaryFlags(
       
       for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
 	 if (i == 0 && (j == 0 && k == 0)) continue;
-         #ifdef PARGRID
-	 // TODO: use getNeighbourID below
-	 const CellID nbr = mpiGrid.getNeighbour(cellID,calcNbrTypeID(2+i,2+j,2+k));
-	 #else
          const CellID nbr = getNeighbourID(mpiGrid, cellID, 2 + i, 2 + j, 2 + k);
-	 #endif
 	 if (nbr == INVALID_CELLID) continue;
 	 boundaryFlag = boundaryFlag | (1 << calcNbrNumber(1+i,1+j,1+k));
       }
@@ -228,11 +191,7 @@ static void calculateBoundaryFlags(
 
 static void calculateDerivatives(
 	const CellID& cellID,
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid
-	#else
 	dccrg<SpatialCell>& mpiGrid
-	#endif
 ) {
    namespace cp = CellParams;
    namespace fs = fieldsolver;
@@ -490,11 +449,7 @@ template<typename REAL> REAL calculateFastMSspeedXY(const REAL* cp,const REAL* d
 
 static void calculateEdgeElectricFieldX(
 	const CellID& cellID,
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid
-	#else
 	dccrg<SpatialCell>& mpiGrid
-	#endif
 ) {
    namespace fs = fieldsolver;
    
@@ -655,11 +610,7 @@ static void calculateEdgeElectricFieldX(
 
 static void calculateEdgeElectricFieldY(
 	const CellID& cellID,
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid
-	#else
 	dccrg<SpatialCell>& mpiGrid
-	#endif
 ) {
    // An edge has four neighbouring spatial cells. Calculate
    // electric field in each of the four cells per edge. 
@@ -819,11 +770,7 @@ static void calculateEdgeElectricFieldY(
 
 static void calculateEdgeElectricFieldZ(
 	const CellID& cellID,
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid
-	#else
 	dccrg<SpatialCell>& mpiGrid
-	#endif
 ) {
    namespace fs = fieldsolver;
    namespace pc = physicalconstants;
@@ -991,11 +938,7 @@ static void calculateEdgeElectricFieldZ(
 
 static void propagateMagneticField(
 	const CellID& cellID,
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid,
-	#else
 	dccrg<SpatialCell>& mpiGrid,
-	#endif
 	creal& dt
 ) {
    CellID nbrID;
@@ -1138,133 +1081,16 @@ static void propagateMagneticField(
    }
 }
 
-#ifdef PARGRID
-static void calculateTransferStencil1(
-	ParGrid<SpatialCell>& mpiGrid,
-	const vector<CellID>& localCells,
-	TransferStencil<CellID>& stencil
-) {
-   CellID cellID;
-
-   // Flag neighbour bits for each existing neighbour
-   // this cell has within stencil size 1 (i-1,j-1,k-1 neighbour is
-   // within the stencil, but i-2,j-2,k-2 is not).
-   for (size_t cell=0; cell<localCells.size(); ++cell) {
-      cellID = localCells[cell];
-      uint boundaryFlag = (1 << calcNbrNumber(1,1,1)); // The cell itself exists (bit 13 set to 1)
-      for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
-	 if (i == 0 && (j == 0 && k == 0)) continue;
-	 if (getNeighbourID(mpiGrid, cellID, 2+i, 2+j, 2+k) == INVALID_CELLID) continue;	 
-	 boundaryFlag = boundaryFlag | (1 << calcNbrNumber(1+i,1+j,1+k));
-      }
-      boundaryFlags[cellID] = boundaryFlag;
-   }
-      
-   // Calculate receive list (18/26 = 69% of neighbours). It is actually 
-   // easier to check if a neighbour should not be stored to the 
-   // transfer list (continue statements below):
-   vector<uchar> nbrIDs;
-   for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
-      if (i ==  0 && (j ==  0 && k ==  0)) continue;
-      if (i ==  0 && (j ==  1 && k ==  1)) continue;
-      if (i == -1 && (j ==  1 && k ==  1)) continue;
-      if (i == -1 && (j == -1 && k == -1)) continue;
-      if (i ==  1 && (j ==  0 && k ==  1)) continue;
-      if (i ==  1 && (j ==  1 && k ==  0)) continue;
-      if (i ==  1 && (j ==  1 && k ==  1)) continue;
-      if (i ==  1 && (j == -1 && k ==  1)) continue;
-      if (i ==  1 && (j ==  1 && k == -1)) continue;
-      nbrIDs.push_back(calcNbrTypeID(2+i,2+j,2+k));
-   }
-   stencil.addReceives(mpiGrid,nbrIDs);
-   
-   // Calculate send list (18/26 = 69% of neighbours). It is actually easier 
-   // here to check if a neighbour should not be stored to the 
-   // transfer list (continue statements below):
-   nbrIDs.clear();
-   for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
-      if (i ==  0 && (j ==  0 && k ==  0)) continue;
-      if (i ==  0 && (j == -1 && k == -1)) continue;
-      if (i == +1 && (j == -1 && k == -1)) continue;
-      if (i == +1 && (j == +1 && k == +1)) continue;
-      if (i == -1 && (j ==  0 && k == -1)) continue;
-      if (i == -1 && (j == -1 && k ==  0)) continue;
-      if (i == -1 && (j == -1 && k == -1)) continue;
-      if (i == -1 && (j == +1 && k == -1)) continue;
-      if (i == -1 && (j == -1 && k == +1)) continue;
-      nbrIDs.push_back(calcNbrTypeID(2+i,2+j,2+k));
-   }
-   stencil.addSends(mpiGrid,nbrIDs);
-}
-#endif	// ifdef PARGRID
-
-#ifdef PARGRID
-static void calculateTransferStencil2(
-	ParGrid<SpatialCell>& mpiGrid,
-	const vector<CellID>& localCells,
-	TransferStencil<CellID>& stencil
-) {
-   // ***** RECV STENCIL *****
-   vector<uchar> nbrTypeIDs;
-   nbrTypeIDs.push_back(calcNbrTypeID(2+1,2  ,2  ));
-   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2+1,2  ));
-   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2  ,2+1));
-   nbrTypeIDs.push_back(calcNbrTypeID(2+1,2+1,2  ));
-   nbrTypeIDs.push_back(calcNbrTypeID(2+1,2  ,2+1));
-   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2+1,2+1));
-   stencil.addReceives(mpiGrid,nbrTypeIDs);
-
-   // ***** SEND STENCIL *****
-   nbrTypeIDs.clear();
-   nbrTypeIDs.push_back(calcNbrTypeID(2-1,2  ,2  ));
-   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2-1,2  ));
-   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2  ,2-1));
-   nbrTypeIDs.push_back(calcNbrTypeID(2-1,2-1,2  ));
-   nbrTypeIDs.push_back(calcNbrTypeID(2-1,2  ,2-1));
-   nbrTypeIDs.push_back(calcNbrTypeID(2  ,2-1,2-1));
-   stencil.addSends(mpiGrid,nbrTypeIDs);
-}
-#endif	// ifdef PARGRID
-
-#ifdef PARGRID
-static void calculateTransferStencil3(
-	ParGrid<SpatialCell>& mpiGrid,
-	const vector<CellID>& localCells,
-	TransferStencil<CellID>& stencil
-) {
-   vector<uchar> nbrIDs;
-   for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
-      if (i == 0 && (j == 0 && k == 0)) continue;
-      nbrIDs.push_back(calcNbrTypeID(2+i,2+j,2+k));
-   }
-   stencil.addReceives(mpiGrid,nbrIDs);
-   stencil.addSends(mpiGrid,nbrIDs);
-}
-#endif	//ifdef PARGRID
 
 bool initializeFieldPropagator(
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid,
-	#else
 	dccrg<SpatialCell>& mpiGrid,
-	#endif
         bool propagateFields
 ) {
    fieldsArePropagated = propagateFields;
    
-   #ifdef PARGRID
-   vector<uint> localCells;
-   mpiGrid.getCells(localCells);
-   #else
    vector<uint64_t> localCells = mpiGrid.get_cells();
-   #endif
 
    calculateBoundaryFlags(mpiGrid,localCells);
-   #ifdef PARGRID
-   calculateTransferStencil1(mpiGrid,localCells,stencil1);
-   calculateTransferStencil2(mpiGrid,localCells,stencil2);
-   calculateTransferStencil3(mpiGrid,localCells,stencil3);
-   #endif
    
    // Calculate bit masks used for if-statements by field propagator. 
    // These are used to test whether or not certain combination of 
@@ -1274,22 +1100,7 @@ bool initializeFieldPropagator(
    // Existence of neighbours would also need to be queried from the 
    // parallel grid, i.e. using if-statements is likely to be much 
    // slower.
-   /*
-   // x-derivatives are calculated if x-face neighbours exist:
-   CALCULATE_DX = 0;
-   CALCULATE_DX = CALCULATE_DX | (1 << calcNbrNumber(0,1,1));
-   CALCULATE_DX = CALCULATE_DX | (1 << calcNbrNumber(2,1,1));
-   
-   // y-derivatives are calculated if y-face neighbours exist:
-   CALCULATE_DY = 0;
-   CALCULATE_DY = CALCULATE_DY | (1 << calcNbrNumber(1,0,1));
-   CALCULATE_DY = CALCULATE_DY | (1 << calcNbrNumber(1,2,1));
-   
-   // z-derivatives are calculated if z-face neighbours exist:
-   CALCULATE_DZ = 0;
-   CALCULATE_DZ = CALCULATE_DZ | (1 << calcNbrNumber(1,1,0));
-   CALCULATE_DZ = CALCULATE_DZ | (1 << calcNbrNumber(1,1,2));
-   */
+
    if (fieldsArePropagated == true) {
       // x-derivatives are calculated if x-face neighbours exist:
       CALCULATE_DX = 0;
@@ -1358,52 +1169,20 @@ bool initializeFieldPropagator(
       calculateDerivativesSimple(mpiGrid,localCells);
       calculateUpwindedElectricFieldSimple(mpiGrid,localCells);
       calculateVolumeAveragedFields(mpiGrid);
-   } else {
-      /*
-      CALCULATE_DX = 0;
-      CALCULATE_EX = 0;
-      CALCULATE_EY = 0;
-      CALCULATE_EZ = 0;
-      PROPAGATE_BX = 0;
-      PROPAGATE_BY = 0;
-      PROPAGATE_BZ = 0;
-      
-      calculateDerivativesSimple(mpiGrid,localCells);
-#ifdef PARGRID
-       // fix for parallel and disable fieldsolver not done for pargrid
-#warning Fieldsolver has to be enabled when using PARGRID
-#else    
-       //exchange derivatives
-       SpatialCell::base_address_identifier = 4;
-       mpiGrid.update_remote_neighbour_data();
-       //exchange EX EY EZ
-       SpatialCell::base_address_identifier = 6;
-       mpiGrid.update_remote_neighbour_data();
-
-#endif
-      calculateVolumeAveragedFields(mpiGrid);
-       */
    }
+
    return true;
 }
 
 bool finalizeFieldPropagator(
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid
-	#else
 	dccrg<SpatialCell>& mpiGrid
-	#endif
 ) {
    return true;
 }
 
 static void propagateMagneticField(
 	const CellID& cellID,
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid,
-	#else
 	dccrg<SpatialCell>& mpiGrid,
-	#endif
 	creal& dt
 );
 
@@ -1709,53 +1488,10 @@ void propagateMagneticFieldTaskQueue(ParGrid<SpatialCell>& mpiGrid,creal& dt,con
 }
 */
 void calculateDerivativesSimple(
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid,
-	#else
 	dccrg<SpatialCell>& mpiGrid,
-	#endif
 	const vector<CellID>& localCells
 ) {
    namespace fs = fieldsolver;
-
-   #ifdef PARGRID
-   // Exchange BX,BY,BZ,RHO,RHOVX,RHOVY,RHOVZ with neighbours (2nd order accuracy). Post receives:
-   mpiGrid.startSingleMode();
-   for (map<pair<int,int>,CellID>::const_iterator it=stencil3.recvs.begin(); it!=stencil3.recvs.end(); ++it) {
-      //const int host     = it->first.first;
-      const int tag      = it->first.second;
-      const CellID nbrID = it->second;
-      const int bytes    = 7*sizeof(Real);
-      char* buffer       = reinterpret_cast<char*>(mpiGrid[nbrID]->cpu_cellParams + CellParams::BX);
-      mpiGrid.singleReceive(nbrID,tag,bytes,buffer,nbrID);
-   }
-   // Post sends for cellParams:
-   for (multimap<CellID,pair<int,int> >::const_iterator it=stencil3.sends.begin(); it!=stencil3.sends.end(); ++it) {
-      const int host       = it->second.first;
-      const int tag        = it->second.second;
-      const CellID localID = it->first;
-      const int bytes    = 7*sizeof(Real);
-      char* buffer       = reinterpret_cast<char*>(mpiGrid[localID]->cpu_cellParams + CellParams::BX);
-      mpiGrid.singleSend(host,tag,bytes,buffer,localID);
-   }
-   
-   // Calculate derivatives on inner cells:
-   for (set<CellID>::const_iterator it=stencil3.innerCells.begin(); it!=stencil3.innerCells.end(); ++it) {
-      const CellID cellID = *it;
-      calculateDerivatives(cellID,mpiGrid);
-   }
-   // Wait for all neighbour data:
-   mpiGrid.waitAllReceives();
-   
-   // Calculate derivatives on boundary cells:
-   for (set<CellID>::const_iterator it=stencil3.boundaryCells.begin(); it!=stencil3.boundaryCells.end(); ++it) {
-      const CellID cellID = *it;
-      calculateDerivatives(cellID,mpiGrid);
-   }
-   // Wait for all sends to complete:
-   mpiGrid.waitAllSends();
-
-   #else	// ifdef PARGRID
 
    // Exchange BX,BY,BZ,RHO,RHOVX,RHOVY,RHOVZ with neighbours
    SpatialCell::base_address_identifier = 3;
@@ -1772,100 +1508,13 @@ void calculateDerivativesSimple(
        calculateDerivatives(*cell,mpiGrid);
    }
    mpiGrid.wait_neighbour_data_update_sends();
-   #endif	// ifdef PARGRID
 }
 
 void calculateUpwindedElectricFieldSimple(
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid,
-	#else
 	dccrg<SpatialCell>& mpiGrid,
-	#endif
 	const vector<CellID>& localCells
 ) {
    namespace fs = fieldsolver;
-
-   #ifdef PARGRID
-
-   #ifndef NDEBUG
-      int myrank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
-   #endif
-   
-   // Derivatives are calculated during the first pass over local cells and then exchanged
-   // with remote processes. Post receives for derivatives:
-   mpiGrid.startSingleMode();
-   //for (map<pair<int,int>,CellID>::const_iterator it=stencil1.recvs.begin(); it!=stencil1.recvs.end(); ++it) {
-   for (map<pair<int,int>,CellID>::const_iterator it=stencil3.recvs.begin(); it!=stencil3.recvs.end(); ++it) {
-      //const int host     = it->first.first;
-      const int tag      = it->first.second;
-      const CellID nbrID = it->second;
-      const uint bytes   = SIZE_DERIVATIVES*sizeof(Real);
-      char* buffer       = reinterpret_cast<char*>(mpiGrid[nbrID]->cpu_derivatives);
-      mpiGrid.singleReceive(nbrID,tag,bytes,buffer,nbrID);
-   }
-   // Post sends for derivatives:
-   //for (multimap<CellID,pair<int,int> >::const_iterator it=stencil1.sends.begin(); it!=stencil1.sends.end(); ++it) {
-   for (multimap<CellID,pair<int,int> >::const_iterator it=stencil3.sends.begin(); it!=stencil3.sends.end(); ++it) {
-      const int host       = it->second.first;
-      const int tag        = it->second.second;
-      const int bytes      = SIZE_DERIVATIVES*sizeof(Real);
-      const CellID localID = it->first;
-      char* buffer         = reinterpret_cast<char*>(mpiGrid[localID]->cpu_derivatives);
-      mpiGrid.singleSend(host,tag,bytes,buffer,localID);      
-   }
-   
-   // Calculate upwinded electric field on inner cells:
-   //for (set<CellID>::const_iterator it=stencil1.innerCells.begin(); it!=stencil1.innerCells.end(); ++it) {
-   for (set<CellID>::const_iterator it=stencil3.innerCells.begin(); it!=stencil3.innerCells.end(); ++it) {
-      const CellID cellID = *it;
-      cuint boundaryFlag = boundaryFlags[cellID];
-      if ((boundaryFlag & CALCULATE_EX) == CALCULATE_EX) calculateEdgeElectricFieldX(cellID,mpiGrid);
-      if ((boundaryFlag & CALCULATE_EY) == CALCULATE_EY) calculateEdgeElectricFieldY(cellID,mpiGrid);
-      if ((boundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) calculateEdgeElectricFieldZ(cellID,mpiGrid);
-   }
-   
-   // Wait for all derivative receives:
-   mpiGrid.waitAllReceives();
-   
-   // Calculate upwinded electric field on boundary cells:
-   //for (set<CellID>::const_iterator it=stencil1.boundaryCells.begin(); it!=stencil1.boundaryCells.end(); ++it) {
-   for (set<CellID>::const_iterator it=stencil3.boundaryCells.begin(); it!=stencil3.boundaryCells.end(); ++it) {
-      const CellID cellID = *it;
-      cuint boundaryFlag = boundaryFlags[cellID];
-      if ((boundaryFlag & CALCULATE_EX) == CALCULATE_EX) calculateEdgeElectricFieldX(cellID,mpiGrid);
-      if ((boundaryFlag & CALCULATE_EY) == CALCULATE_EY) calculateEdgeElectricFieldY(cellID,mpiGrid);
-      if ((boundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) calculateEdgeElectricFieldZ(cellID,mpiGrid);
-   }
-   
-   // Wait for all derivative sends to complete:
-   mpiGrid.waitAllSends();
-   
-   // Exchange electric field with neighbouring processes:
-   mpiGrid.startSingleMode();
-   //for (map<pair<int,int>,CellID>::const_iterator it=stencil2.recvs.begin(); it!=stencil2.recvs.end(); ++it) {
-   for (map<pair<int,int>,CellID>::const_iterator it=stencil3.recvs.begin(); it!=stencil3.recvs.end(); ++it) {
-      //const int host     = it->first.first;
-      const int tag      = it->first.second;
-      const int bytes    = 3*sizeof(Real);
-      const CellID nbrID = it->second;
-      char* buffer       = reinterpret_cast<char*>(mpiGrid[nbrID]->cpu_cellParams + CellParams::EX);
-      mpiGrid.singleReceive(nbrID,tag,bytes,buffer,nbrID);
-   }
-   // Post sends for cellParams:
-   //for (multimap<CellID,pair<int,int> >::const_iterator it=stencil2.sends.begin(); it!=stencil2.sends.end(); ++it) {
-   for (multimap<CellID,pair<int,int> >::const_iterator it=stencil3.sends.begin(); it!=stencil3.sends.end(); ++it) {
-      const int host       = it->second.first;
-      const int tag        = it->second.second;
-      const int bytes      = 3*sizeof(Real);
-      const CellID localID = it->first;
-      char* buffer         = reinterpret_cast<char*>(mpiGrid[localID]->cpu_cellParams + CellParams::EX);
-      mpiGrid.singleSend(host,tag,bytes,buffer,localID);
-   }
-   mpiGrid.waitAllReceives();
-   mpiGrid.waitAllSends();
-
-   #else	//ifdef PARGRID
 
    SpatialCell::base_address_identifier = 4;
    mpiGrid.start_remote_neighbour_data_update();
@@ -1894,15 +1543,10 @@ void calculateUpwindedElectricFieldSimple(
    // Exchange electric field with neighbouring processes
    SpatialCell::base_address_identifier = 6;
    mpiGrid.update_remote_neighbour_data();
-   #endif	//ifdef PARGRID
 }
 
 static void propagateMagneticFieldSimple(
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid,
-	#else
 	dccrg<SpatialCell>& mpiGrid,
-	#endif
 	creal& dt,
 	const vector<CellID>& localCells
 ) {
@@ -1941,11 +1585,7 @@ static void propagateMagneticFieldSimple(
 }
 
 bool propagateFields(
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid,
-	#else
 	dccrg<SpatialCell>& mpiGrid,
-	#endif
 	creal& dt
 ) {
    typedef Parameters P;
@@ -1954,22 +1594,7 @@ bool propagateFields(
    if (fieldsArePropagated == false) return true;
 
    // Reserve memory for derivatives for all cells on this process:
-   #ifdef PARGRID
-   vector<CellID> localCells;
-   mpiGrid.getCells(localCells);
-   #else
    vector<CellID> localCells = mpiGrid.get_cells();
-   #endif
-
-   #ifdef PARGRID
-   // Check if MPI transfer stencils need to be recalculated:
-   if (P::recalculateStencils == true) {
-      calculateTransferStencil1(mpiGrid,localCells,stencil1);
-      calculateTransferStencil2(mpiGrid,localCells,stencil2);
-      calculateTransferStencil3(mpiGrid,localCells,stencil3);
-      P::recalculateStencils = false;
-   }
-   #endif
 
    propagateMagneticFieldSimple(mpiGrid,dt,localCells);
    calculateDerivativesSimple(mpiGrid,localCells);
@@ -1990,11 +1615,7 @@ void reconstructionCoefficients(
 	const CellID& nbr_i2j1k1,
 	const CellID& nbr_i1j2k1,
 	const CellID& nbr_i1j1k2,
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid,
-	#else
 	dccrg<SpatialCell>& mpiGrid,
-	#endif
 	Real* result
 ) {
    // Do not calculate values for non-existing cells:
@@ -2104,11 +1725,7 @@ void averageFaceXElectricField(
 	const CellID& nbr_i0j1k2,
 	const CellID& nbr_i0j2k2,
 	cuint& existingCells,
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid,
-	#else
 	dccrg<SpatialCell>& mpiGrid,
-	#endif
 	Real* result
 ) {
    namespace fs = fieldsolver;
@@ -2178,11 +1795,7 @@ void averageFaceYElectricField(
 	const CellID& nbr_i1j0k2,
 	const CellID& nbr_i2j0k2,
 	cuint& existingCells,
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid,
-	#else
 	dccrg<SpatialCell>& mpiGrid,
-	#endif
 	Real* result
 ) {
    namespace fs = fieldsolver;
@@ -2245,11 +1858,7 @@ void averageFaceZElectricField(
 	const CellID& nbr_i1j2k0,
 	const CellID& nbr_i2j2k0,
 	cuint& existingCells,
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid,
-	#else
 	dccrg<SpatialCell>& mpiGrid,
-	#endif
 	Real* result
 ) {
    namespace fs = fieldsolver;
@@ -2316,11 +1925,7 @@ void averageFaceXMagnField(
 	const CellID& /*nbr_i1j2k1*/,
 	const CellID& /*nbr_i1j1k2*/,
 	creal* const coefficients,
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid,
-	#else
 	dccrg<SpatialCell>& mpiGrid,
-	#endif
 	const int& I,
 	Real* result
 ) {
@@ -2352,11 +1957,7 @@ void averageFaceYMagnField(
 	const CellID& /*nbr_i1j2k1*/,
 	const CellID& /*nbr_i1j1k2*/,
 	creal* const coefficients,
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid,
-	#else
 	dccrg<SpatialCell>& mpiGrid,
-	#endif
 	const int& J,
 	Real* result
 ) {
@@ -2381,11 +1982,7 @@ void averageFaceZMagnField(
 	const CellID& /*nbr_i1j2k1*/,
 	const CellID& /*nbr_i1j1k2*/,
 	creal* const coefficients,
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid,
-	#else
 	dccrg<SpatialCell>& mpiGrid,
-	#endif
 	const int& K,
 	Real* result
 ) {
@@ -2405,20 +2002,11 @@ void averageFaceZMagnField(
 }
    
 void calculateFaceAveragedFields(
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid
-	#else
 	dccrg<SpatialCell>& mpiGrid
-	#endif
 ) {
    namespace fs = fieldsolver;
    
-   #ifdef PARGRID
-   vector<CellID> localCells;
-   mpiGrid.getCells(localCells);
-   #else
    vector<uint64_t> localCells = mpiGrid.get_cells();
-   #endif
 
    Real faceMagnField[9];
    Real coefficients[Rec::c_zz+1];
@@ -2535,11 +2123,7 @@ void calculateFaceAveragedFields(
 }
 
 void calculateVolumeAveragedFields(
-	#ifdef PARGRID
-	ParGrid<SpatialCell>& mpiGrid
-	#else
 	dccrg<SpatialCell>& mpiGrid
-	#endif
 ) {
    // If fields are not propagated exit immediately. It is 
    // user's responsibility to set correct values to volume-averaged E,B-fields:
@@ -2548,12 +2132,7 @@ void calculateVolumeAveragedFields(
    namespace fs = fieldsolver;
    namespace cp = CellParams;
                                    
-   #ifdef PARGRID
-   vector<CellID> localCells;
-   mpiGrid.getCells(localCells);
-   #else
    vector<uint64_t> localCells = mpiGrid.get_cells();
-   #endif
    
    Real coefficients[Rec::c_zz+1];
       

@@ -22,9 +22,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <limits>
 #include <mpi.h>
 
-#ifndef PARGRID
 #include <stdint.h>
-#endif
 
 #include <string>
 #include <vector>
@@ -38,12 +36,8 @@ const uint MAX_VEL_BLOCKS = 2500000;
 const uint CUDA_WIDTH = 65536; // Width of CUDA array (for 2D textures)
 const uint CUDA_HEIGHT = 3000; // Height of CUDA array
                           // Make sure width*height / 64 >= MAX_VEL_BLOCKS
+const uint64_t INVALID_CELLID = 0;
 
-#ifdef PARGRID
-   const uint INVALID_CELLID = std::numeric_limits<uint>::max();
-#else
-   const uint64_t INVALID_CELLID = 0;
-#endif
 
 namespace Transmit {
    const uint CELL_PARAMS  = 1;

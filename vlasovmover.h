@@ -26,22 +26,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 bool finalizeMover();
 
-#ifdef PARGRID 
-
-#include "pargrid.h"
-
-bool initializeMover(ParGrid<SpatialCell>& mpiGrid);
-void calculateSimParameters(ParGrid<SpatialCell>& mpiGrid,creal& t,Real& dt);
-void calculateCellParameters(ParGrid<SpatialCell>& mpiGrid,creal& t,ID::type cell);
-void calculateAcceleration(ParGrid<SpatialCell>& mpiGrid);
-void calculateSpatialDerivatives(ParGrid<SpatialCell>& mpiGrid);
-void calculateSpatialFluxes(ParGrid<SpatialCell>& mpiGrid);
-void calculateSpatialPropagation(ParGrid<SpatialCell>& mpiGrid,const bool& secondStep,const bool& transferAvgs);
-void initialLoadBalance(ParGrid<SpatialCell>& mpiGrid);
-void calculateVelocityMoments(ParGrid<SpatialCell>& mpiGrid);
-
-#else // ifdef PARGRID
-
 #include <stdint.h>
 
 #define DCCRG_SEND_SINGLE_CELLS
@@ -58,8 +42,6 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid);
 void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondStep,const bool& transferAvgs);
 void initialLoadBalance(dccrg<SpatialCell>& mpiGrid);
 void calculateVelocityMoments(dccrg<SpatialCell>& mpiGrid);
-
-#endif	// ifdef PARGRID
 
 #endif
 
