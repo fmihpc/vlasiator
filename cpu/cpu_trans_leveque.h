@@ -23,6 +23,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "../definitions.h"
 #include "../common.h"
 #include "leveque_common.h"
+#include <limits>
 
 const uint I0_J0_K0 = 0*WID3;
 const uint I1_J0_K0 = 1*WID3;
@@ -810,15 +811,21 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(const REAL* const AV
    }
 
    // Accumulate calculated df/dt values from temporary buffer to 
-   // main memory. If multithreading is used, these updates need 
-   // to be atomistic:
+   // main memory. If multithreading is used, these updates do
+   //not need to be atomistic as long as all threads work on the same
+   //cell
    const UINT boundaryFlags = nbrsSpa[BLOCK*SIZE_NBRS_SPA + 30];
    for (uint nbr=0; nbr<27; ++nbr) {
-      // If the neighbour does not exist, do not copy data:
+      // If the neighbour does not exist, do not copy data:     
       if (((boundaryFlags >> nbr) & 1) == 0) continue;
       
       const UINT nbrBlock = nbrsSpa[BLOCK*SIZE_NBRS_SPA + nbr];
-      for (uint i=0; i<SIZE_VELBLOCK; ++i) flux[nbrBlock*WID3 + i] += dfdt[nbr*WID3 + i];
+      //the flux array is not zeroed, rather a marker has been put to mark if it is non-initialized
+      //check for that, and initialize by using = instead of += if that is the case
+      if( flux[nbrBlock*WID3] == std::numeric_limits<REAL>::max())
+         for (uint i=0; i<SIZE_VELBLOCK; ++i) flux[nbrBlock*WID3 + i] = dfdt[nbr*WID3 + i];
+      else
+         for (uint i=0; i<SIZE_VELBLOCK; ++i) flux[nbrBlock*WID3 + i] += dfdt[nbr*WID3 + i];
    }
 }
 

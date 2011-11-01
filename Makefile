@@ -26,6 +26,7 @@ CXXFLAGS += -DNDEBUG
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
 PROJ = harm1D
+#PROJ = Alfven
 #PROJ = Diffusion
 #PROJ = Harris
 #PROJ=test_fp

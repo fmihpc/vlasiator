@@ -289,11 +289,26 @@ void log_send_receive_info(const dccrg<SpatialCell>& mpiGrid) {
 
 int main(int argn,char* args[]) {
    bool success = true;
-   // Init MPI:
-   boost::mpi::environment env(argn,args);
-   boost::mpi::communicator comm;
    const int MASTER_RANK = 0;
    int myrank;
+
+   // Init MPI: 
+#ifdef _OPENMP
+   //init threaded MPI when comppiled using openmp
+   int required=MPI_THREAD_FUNNELED;
+   int provided;
+   MPI_Init_thread(&argn,&args,required,&provided);
+   if ( required >provided){
+      MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+      if(myrank==MASTER_RANK)
+         cerr << "(MAIN): MPI_Init_thread failed!" << endl;
+      exit(1);
+   }    
+#endif
+   //Init boost-mpi
+   boost::mpi::environment env(argn,args);
+   boost::mpi::communicator comm;
+   
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
 
    profile::start("main");

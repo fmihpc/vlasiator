@@ -18,9 +18,11 @@ CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x #-W -Wall -pedantic
 #CXXFLAGS += -DCRAY_TOPOLOGY_OPTIMIZATION
 MATHFLAGS = -ffast-math
 LDFLAGS =
-LIB_MPI = -lgomp -lrca
+LIB_MPI = -lgomp -lrca  
 
-#INTEL flags:
+#Add for threaded multiple mode: -lmpich_threadm
+
+ #INTEL flags:
 #CC_BRAND = intel
 #CC_BRAND_VERSION = 11.1.046
 #CXXFLAGS += -O3 -fast -openmp 
@@ -29,7 +31,7 @@ LIB_MPI = -lgomp -lrca
 #LIB_MPI =
 
 BOOST_VERSION = 1.46.1
-MPT_VERSION = 3.4.1
+MPT_VERSION = 5.2.0
 ZOLTAN_VERSION = 3.5
 SILO_VERSION = 4.8
 
