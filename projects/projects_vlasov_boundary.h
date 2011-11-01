@@ -14,9 +14,9 @@ template<typename CELLID,typename UINT,typename REAL>
 void vlasovBoundarySetValue(const CELLID& cellID,const UINT& boundaryFlags,const ParGrid<SpatialCell>& mpiGrid,const REAL& value);
 #else
 template<typename CELLID,typename UINT>
-void vlasovBoundaryCopyFromExistingFaceNbr(const CELLID& cellID,const UINT& boundaryFlags,const dccrg<SpatialCell>& mpiGrid);
+void vlasovBoundaryCopyFromExistingFaceNbr(const CELLID& cellID,const UINT& boundaryFlags,const dccrg::Dccrg<SpatialCell>& mpiGrid);
 template<typename CELLID,typename UINT,typename REAL> 
-void vlasovBoundarySetValue(const CELLID& cellID,const UINT& boundaryFlags,const dccrg<SpatialCell>& mpiGrid,const REAL& value);
+void vlasovBoundarySetValue(const CELLID& cellID,const UINT& boundaryFlags,const dccrg::Dccrg<SpatialCell>& mpiGrid,const REAL& value);
 #endif
 
 // ********************************
@@ -29,7 +29,7 @@ void vlasovBoundaryCopyFromExistingFaceNbr(const CELLID& cellID,const UINT& exis
 #else
 template<typename CELLID,typename UINT>
     void vlasovBoundaryCopyFromExistingFaceNbr(const CELLID& cellID,const UINT& existingCells,
-                                               const UINT& nonExistingCells,const dccrg<SpatialCell>& mpiGrid) {
+                                               const UINT& nonExistingCells,const dccrg::Dccrg<SpatialCell>& mpiGrid) {
 #endif
     const UINT missingPosX = (1 << 14);
    const UINT missingNegX = (1 << 12);
@@ -114,7 +114,7 @@ void vlasovBoundarySetValue(const CELLID& cellID,const UINT& existingCells,
 #else
 template<typename CELLID,typename UINT,typename REAL> 
 void vlasovBoundarySetValue(const CELLID& cellID,const UINT& existingCells,
-                            const UINT& nonExistingCells,const dccrg<SpatialCell>& mpiGrid,const REAL& value) {
+                            const UINT& nonExistingCells,const dccrg::Dccrg<SpatialCell>& mpiGrid,const REAL& value) {
 #endif
     for (size_t i=0; i<mpiGrid[cellID]->N_blocks*SIZE_VELBLOCK; ++i) mpiGrid[cellID]->cpu_avgs[i] = value;
 }

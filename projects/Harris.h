@@ -65,7 +65,7 @@ void calcBlockParameters(Real* blockParams);
 void calcCellParameters(Real* cellParams,creal& t);
 
 #ifndef PARGRID
-void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt);
+void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt);
 #else
 void calcSimParameters(ParGrid<SpatialCell>& mpiGrid, creal& t, Real& dt);
 #endif
@@ -182,7 +182,7 @@ void fieldSolverBoundaryCondDerivX(const CELLID& cellID,REAL* const array,const 
 				   #ifdef PARGRID
 				   ParGrid<SpatialCell>
 				   #else
-				   dccrg<SpatialCell>
+				   dccrg::Dccrg<SpatialCell>
 				   #endif
 				   & mpiGrid) {
    fieldSolverBoundarySetValueDerivX(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
@@ -194,7 +194,7 @@ void fieldSolverBoundaryCondDerivY(const CELLID& cellID,REAL* const array,const 
 				   #ifdef PARGRID
 				   ParGrid<SpatialCell>
 				   #else
-				   dccrg<SpatialCell>
+				   dccrg::Dccrg<SpatialCell>
 				   #endif
 				   & mpiGrid) {
    fieldSolverBoundarySetValueDerivY(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
@@ -206,7 +206,7 @@ void fieldSolverBoundaryCondDerivZ(const CELLID& cellID,REAL* const array,const 
 				   #ifdef PARGRID
 				   ParGrid<SpatialCell>
 				   #else
-				   dccrg<SpatialCell>
+				   dccrg::Dccrg<SpatialCell>
 				   #endif
 				   & mpiGrid) {
    fieldSolverBoundarySetValueDerivZ(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
@@ -217,7 +217,7 @@ REAL fieldSolverBoundaryCondBy(const CELLID& cellID,const UINT& existingCells,co
 #ifdef PARGRID
 ParGrid<SpatialCell>
 #else
-dccrg<SpatialCell>
+dccrg::Dccrg<SpatialCell>
 #endif
 & mpiGrid) {
    return 0.0;
@@ -229,7 +229,7 @@ REAL fieldSolverBoundaryCondBz(const CELLID& cellID,const UINT& existingCells,co
 #ifdef PARGRID
 ParGrid<SpatialCell>
 #else
-dccrg<SpatialCell>
+dccrg::Dccrg<SpatialCell>
 #endif
 & mpiGrid) {
    return 0.0;
@@ -240,7 +240,7 @@ REAL fieldSolverBoundaryCondBx(const CELLID& cellID,const UINT& existingCells,co
 #ifdef PARGRID
 ParGrid<SpatialCell>
 #else
-dccrg<SpatialCell>
+dccrg::Dccrg<SpatialCell>
 #endif
 & mpiGrid) {
    REAL y = mpiGrid[cellID]->cpu_cellParams[CellParams::YCRD];
@@ -253,7 +253,7 @@ REAL fieldSolverBoundaryCondBx(const CELLID& cellID,const UINT& existingCells,co
 #ifdef PARGRID
 ParGrid<SpatialCell>
 #else
-dccrg<SpatialCell>
+dccrg::Dccrg<SpatialCell>
 #endif
 & mpiGrid) {
   return 0.0;
@@ -265,7 +265,7 @@ REAL fieldSolverBoundaryCondBy(const CELLID& cellID,const UINT& existingCells,co
 #ifdef PARGRID
 ParGrid<SpatialCell>
 #else
-dccrg<SpatialCell>
+dccrg::Dccrg<SpatialCell>
 #endif
 & mpiGrid) {
   return 0.0;
@@ -276,7 +276,7 @@ REAL fieldSolverBoundaryCondBz(const CELLID& cellID,const UINT& existingCells,co
 #ifdef PARGRID
 ParGrid<SpatialCell>
 #else
-dccrg<SpatialCell>
+dccrg::Dccrg<SpatialCell>
 #endif
 & mpiGrid) {
   REAL x = mpiGrid[cellID]->cpu_cellParams[CellParams::XCRD];
@@ -289,7 +289,7 @@ void vlasovBoundaryCondition(const CELLID& cellID,const UINT& existingCells,cons
 #ifdef PARGRID
 ParGrid<SpatialCell>
 #else
-dccrg<SpatialCell>
+dccrg::Dccrg<SpatialCell>
 #endif
 & mpiGrid) {
   //vlasovBoundaryCopyFromExistingFaceNbr(cellID,existingCells,nonExistingCells,mpiGrid);

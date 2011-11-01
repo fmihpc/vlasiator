@@ -53,7 +53,7 @@ void calcBlockParameters(Real* blockParams);
 void calcCellParameters(Real* cellParams,creal& t);
 
 #ifndef PARGRID
-void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt);
+void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt);
 #else
 void calcSimParameters(ParGrid<SpatialCell>& mpiGrid, creal& t, Real& dt);
 #endif

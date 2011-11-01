@@ -53,7 +53,7 @@ void calcBlockParameters(Real* blockParams);
 void calcCellParameters(Real* cellParams,creal& t);
 
 #ifndef PARGRID
-void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt);
+void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt);
 #else
 void calcSimParameters(ParGrid<SpatialCell>& mpiGrid, creal& t, Real& dt);
 #endif
@@ -155,7 +155,7 @@ Real* const derivatives,const
 #ifdef PARGRID
 ParGrid<SpatialCell>
 #else
-dccrg<SpatialCell>
+dccrg::Dccrg<SpatialCell>
 #endif
 & mpiGrid) {
    namespace fs = fieldsolver;
@@ -173,7 +173,7 @@ Real* const derivatives,const
 #ifdef PARGRID
 ParGrid<SpatialCell>
 #else
-dccrg<SpatialCell>
+dccrg::Dccrg<SpatialCell>
 #endif
 & mpiGrid) {
    namespace fs = fieldsolver;
@@ -190,7 +190,7 @@ void fieldSolverBoundaryCondDerivZ(const CELLID& cellID,REAL* const array,const 
 #ifdef PARGRID
 ParGrid<SpatialCell>
 #else
-dccrg<SpatialCell>
+dccrg::Dccrg<SpatialCell>
 #endif
 & mpiGrid) {
    namespace fs = fieldsolver;
@@ -207,7 +207,7 @@ REAL fieldSolverBoundaryCondBx(const CELLID& cellID,const UINT& existingCells,co
 #ifdef PARGRID
 ParGrid<SpatialCell>
 #else
-dccrg<SpatialCell>
+dccrg::Dccrg<SpatialCell>
 #endif
 & mpiGrid) {
    return fieldBoundaryCopyFromExistingFaceNbrBx<CELLID,UINT,REAL>(cellID,existingCells,nonExistingCells,mpiGrid);
@@ -218,7 +218,7 @@ REAL fieldSolverBoundaryCondBy(const CELLID& cellID,const UINT& existingCells,co
 #ifdef PARGRID
 ParGrid<SpatialCell>
 #else
-dccrg<SpatialCell>
+dccrg::Dccrg<SpatialCell>
 #endif
 & mpiGrid) {
    return fieldBoundaryCopyFromExistingFaceNbrBy<CELLID,UINT,REAL>(cellID,existingCells,nonExistingCells,mpiGrid);
@@ -229,7 +229,7 @@ REAL fieldSolverBoundaryCondBz(const CELLID& cellID,const UINT& existingCells,co
 #ifdef PARGRID
 ParGrid<SpatialCell>
 #else
-dccrg<SpatialCell>
+dccrg::Dccrg<SpatialCell>
 #endif
 & mpiGrid) {
    return fieldBoundaryCopyFromExistingFaceNbrBz<CELLID,UINT,REAL>(cellID,existingCells,nonExistingCells,mpiGrid);
@@ -240,7 +240,7 @@ void vlasovBoundaryCondition(const CELLID& cellID,const UINT& existingCells,cons
 #ifdef PARGRID
 ParGrid<SpatialCell>
 #else
-dccrg<SpatialCell>
+dccrg::Dccrg<SpatialCell>
 #endif
 & mpiGrid) {
    vlasovBoundaryCopyFromExistingFaceNbr(cellID,existingCells,nonExistingCells,mpiGrid);

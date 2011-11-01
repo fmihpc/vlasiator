@@ -79,7 +79,7 @@ CellID getNeighbourID(
 	#ifdef PARGRID
 	const ParGrid<SpatialCell>& mpiGrid,
 	#else
-	const dccrg<SpatialCell>& mpiGrid,
+	const dccrg::Dccrg<SpatialCell>& mpiGrid,
 	#endif
 	const CellID& cellID,
 	const uchar& i,
@@ -104,7 +104,7 @@ CellID getNeighbourID(
    #endif
 }
 
-bool initializeMover(dccrg<SpatialCell>& mpiGrid) { 
+bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid) { 
    
    // Populate spatial neighbour list:
    vector<CellID> cells,remoteCells;
@@ -255,11 +255,11 @@ bool finalizeMover() {
    return true;
 }
 
-void calculateSimParameters(dccrg<SpatialCell>& mpiGrid,creal& t,Real& dt) { }
-void calculateCellParameters(dccrg<SpatialCell>& mpiGrid,creal& t,ID::type cell) { }
+void calculateSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,Real& dt) { }
+void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,ID::type cell) { }
 
 
-void calculateAcceleration(dccrg<SpatialCell>& mpiGrid) { 
+void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid) { 
    typedef Parameters P;
    
    const vector<CellID> cells = mpiGrid.get_cells();
@@ -299,9 +299,9 @@ void calculateAcceleration(dccrg<SpatialCell>& mpiGrid) {
 
 }
 
-void calculateSpatialDerivatives(dccrg<SpatialCell>& mpiGrid) { }
+void calculateSpatialDerivatives(dccrg::Dccrg<SpatialCell>& mpiGrid) { }
 
-void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
+void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    typedef Parameters P;
    /*
    // TEMPORARY SOLUTION
@@ -533,7 +533,7 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    profile::stop("calculateSpatialFluxes");
 }
 
-void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondStep,const bool& transferAvgs) { 
+void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& secondStep,const bool& transferAvgs) { 
     std::vector<MPI_Request> MPIrecvRequests;               /**< Container for active MPI_Requests due to receives.*/
     std::vector<MPI_Request> MPIsendRequests;               /**< Container for active MPI_Requests due to sends.*/
 
@@ -692,7 +692,7 @@ void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondS
    profile::stop("calculateSpatialPropagation");
 }
 
-void initialLoadBalance(dccrg<SpatialCell>& mpiGrid) {
+void initialLoadBalance(dccrg::Dccrg<SpatialCell>& mpiGrid) {
   SpatialCell::base_address_identifier = 5;
   mpiGrid.balance_load();
 
@@ -762,7 +762,7 @@ void initialLoadBalance(dccrg<SpatialCell>& mpiGrid) {
 
 }
 
-void calculateVelocityMoments(dccrg<SpatialCell>& mpiGrid) { 
+void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid) { 
    vector<CellID> cells;
    cells=mpiGrid.get_cells();
    

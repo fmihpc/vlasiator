@@ -39,9 +39,9 @@ namespace fieldsolver {
    
 } // namespace fieldsolver
 */
-void calculateFaceAveragedFields(dccrg<SpatialCell>& mpiGrid);
-void calculateVolumeAveragedFields(dccrg<SpatialCell>& mpiGrid);
-bool finalizeFieldPropagator(dccrg<SpatialCell>& mpiGrid);
-bool initializeFieldPropagator(dccrg<SpatialCell>& mpiGrid,bool propagateFields);
-bool propagateFields(dccrg<SpatialCell>& mpiGrid,creal& dt);
+void calculateFaceAveragedFields(dccrg::Dccrg<SpatialCell>& mpiGrid);
+void calculateVolumeAveragedFields(dccrg::Dccrg<SpatialCell>& mpiGrid);
+bool finalizeFieldPropagator(dccrg::Dccrg<SpatialCell>& mpiGrid);
+bool initializeFieldPropagator(dccrg::Dccrg<SpatialCell>& mpiGrid,bool propagateFields);
+bool propagateFields(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& dt);
 #endif

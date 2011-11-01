@@ -33,15 +33,15 @@ bool finalizeMover();
 #define DCCRG_USER_MPI_DATA_TYPE
 #include <dccrg.hpp>
 
-bool initializeMover(dccrg<SpatialCell>& mpiGrid);
-void calculateSimParameters(dccrg<SpatialCell>& mpiGrid,creal& t,Real& dt);
-void calculateCellParameters(dccrg<SpatialCell>& mpiGrid,creal& t,uint64_t& cell);
-void calculateAcceleration(dccrg<SpatialCell>& mpiGrid);
-void calculateSpatialDerivatives(dccrg<SpatialCell>& mpiGrid);
-void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid);
-void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondStep,const bool& transferAvgs);
-void initialLoadBalance(dccrg<SpatialCell>& mpiGrid);
-void calculateVelocityMoments(dccrg<SpatialCell>& mpiGrid);
+bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid);
+void calculateSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,Real& dt);
+void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,uint64_t& cell);
+void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid);
+void calculateSpatialDerivatives(dccrg::Dccrg<SpatialCell>& mpiGrid);
+void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid);
+void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& secondStep,const bool& transferAvgs);
+void initialLoadBalance(dccrg::Dccrg<SpatialCell>& mpiGrid);
+void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
 #endif
 

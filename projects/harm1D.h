@@ -48,7 +48,7 @@ void calcBlockParameters(Real* blockParams);
  */
 void calcCellParameters(Real* cellParams,creal& t);
 
-void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt);
+void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt);
 
 
 /** Integrate the distribution function over the given six-dimensional phase-space cell.
@@ -164,7 +164,7 @@ void fieldSolverBoundaryCondDerivX(
 	const UINT& existingCells,
 	const UINT& nonExistingCells,
 	creal* const derivatives,
-	const dccrg<SpatialCell>& mpiGrid
+	const dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
    fieldSolverBoundarySetValueDerivX(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
 }
@@ -176,7 +176,7 @@ void fieldSolverBoundaryCondDerivY(
 	const UINT& existingCells,
 	const UINT& nonExistingCells,
 	creal* const derivatives,
-	const dccrg<SpatialCell>& mpiGrid
+	const dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
    fieldSolverBoundarySetValueDerivY(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
 }
@@ -188,7 +188,7 @@ void fieldSolverBoundaryCondDerivZ(
 	const UINT& existingCells,
 	const UINT& nonExistingCells,
 	creal* const derivatives,
-	const dccrg<SpatialCell>& mpiGrid
+	const dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
    fieldSolverBoundarySetValueDerivZ(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
 }
@@ -198,7 +198,7 @@ REAL fieldSolverBoundaryCondBx(
 	const CELLID& cellID,
 	const UINT& existingCells,
 	const UINT& nonExistingCells,
-	const dccrg<SpatialCell>& mpiGrid
+	const dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
    return fieldBoundaryCopyFromExistingFaceNbrBx<CELLID,UINT,REAL>(cellID,existingCells,nonExistingCells,mpiGrid);
 }
@@ -208,7 +208,7 @@ REAL fieldSolverBoundaryCondBy(
 	const CELLID& cellID,
 	const UINT& existingCells,
 	const UINT& nonExistingCells,
-	const dccrg<SpatialCell>& mpiGrid
+	const dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
    return fieldBoundaryCopyFromExistingFaceNbrBy<CELLID,UINT,REAL>(cellID,existingCells,nonExistingCells,mpiGrid);
 }
@@ -218,7 +218,7 @@ REAL fieldSolverBoundaryCondBz(
 	const CELLID& cellID,
 	const UINT& existingCells,
 	const UINT& nonExistingCells,
-	const dccrg<SpatialCell>& mpiGrid
+	const dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
    return fieldBoundaryCopyFromExistingFaceNbrBz<CELLID,UINT,REAL>(cellID,existingCells,nonExistingCells,mpiGrid);
 }
@@ -228,7 +228,7 @@ void vlasovBoundaryCondition(
 	const CELLID& cellID,
 	const UINT& existingCells,
 	const UINT& nonExistingCells,
-	const dccrg<SpatialCell>& mpiGrid
+	const dccrg::Dccrg<SpatialCell>& mpiGrid
 
 ) {
    vlasovBoundaryCopyFromExistingFaceNbr(cellID,existingCells,nonExistingCells,mpiGrid);

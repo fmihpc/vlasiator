@@ -114,8 +114,8 @@ const Real TWO     = 2.0;
 const Real ZERO    = 0.0;
 
 
-void calculateDerivativesSimple(dccrg<SpatialCell>& mpiGrid,const vector<CellID>& localCells);
-void calculateUpwindedElectricFieldSimple(dccrg<SpatialCell>& mpiGrid,const vector<CellID>& localCells);
+void calculateDerivativesSimple(dccrg::Dccrg<SpatialCell>& mpiGrid,const vector<CellID>& localCells);
+void calculateUpwindedElectricFieldSimple(dccrg::Dccrg<SpatialCell>& mpiGrid,const vector<CellID>& localCells);
 
 
 /** Calculate the neighbour number. For the inspected cell the (i,j,k) are (1,1,1). Add or 
@@ -150,7 +150,7 @@ Real limiter(creal& left,creal& cent,creal& rght) {
 }
 
 CellID getNeighbourID(
-	dccrg<SpatialCell>& mpiGrid,
+	dccrg::Dccrg<SpatialCell>& mpiGrid,
 	const CellID& cellID,
 	const uchar& i,
 	const uchar& j,
@@ -169,7 +169,7 @@ CellID getNeighbourID(
 }
 
 static void calculateBoundaryFlags(
-	dccrg<SpatialCell>& mpiGrid,
+	dccrg::Dccrg<SpatialCell>& mpiGrid,
 	const vector<CellID>& localCells
 ) {
    for (size_t cell=0; cell<localCells.size(); ++cell) {
@@ -191,7 +191,7 @@ static void calculateBoundaryFlags(
 
 static void calculateDerivatives(
 	const CellID& cellID,
-	dccrg<SpatialCell>& mpiGrid
+	dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
    namespace cp = CellParams;
    namespace fs = fieldsolver;
@@ -449,7 +449,7 @@ template<typename REAL> REAL calculateFastMSspeedXY(const REAL* cp,const REAL* d
 
 static void calculateEdgeElectricFieldX(
 	const CellID& cellID,
-	dccrg<SpatialCell>& mpiGrid
+	dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
    namespace fs = fieldsolver;
    
@@ -610,7 +610,7 @@ static void calculateEdgeElectricFieldX(
 
 static void calculateEdgeElectricFieldY(
 	const CellID& cellID,
-	dccrg<SpatialCell>& mpiGrid
+	dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
    // An edge has four neighbouring spatial cells. Calculate
    // electric field in each of the four cells per edge. 
@@ -770,7 +770,7 @@ static void calculateEdgeElectricFieldY(
 
 static void calculateEdgeElectricFieldZ(
 	const CellID& cellID,
-	dccrg<SpatialCell>& mpiGrid
+	dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
    namespace fs = fieldsolver;
    namespace pc = physicalconstants;
@@ -938,7 +938,7 @@ static void calculateEdgeElectricFieldZ(
 
 static void propagateMagneticField(
 	const CellID& cellID,
-	dccrg<SpatialCell>& mpiGrid,
+	dccrg::Dccrg<SpatialCell>& mpiGrid,
 	creal& dt
 ) {
    CellID nbrID;
@@ -1083,7 +1083,7 @@ static void propagateMagneticField(
 
 
 bool initializeFieldPropagator(
-	dccrg<SpatialCell>& mpiGrid,
+	dccrg::Dccrg<SpatialCell>& mpiGrid,
         bool propagateFields
 ) {
    fieldsArePropagated = propagateFields;
@@ -1175,14 +1175,14 @@ bool initializeFieldPropagator(
 }
 
 bool finalizeFieldPropagator(
-	dccrg<SpatialCell>& mpiGrid
+	dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
    return true;
 }
 
 static void propagateMagneticField(
 	const CellID& cellID,
-	dccrg<SpatialCell>& mpiGrid,
+	dccrg::Dccrg<SpatialCell>& mpiGrid,
 	creal& dt
 );
 
@@ -1488,7 +1488,7 @@ void propagateMagneticFieldTaskQueue(ParGrid<SpatialCell>& mpiGrid,creal& dt,con
 }
 */
 void calculateDerivativesSimple(
-	dccrg<SpatialCell>& mpiGrid,
+	dccrg::Dccrg<SpatialCell>& mpiGrid,
 	const vector<CellID>& localCells
 ) {
    namespace fs = fieldsolver;
@@ -1511,7 +1511,7 @@ void calculateDerivativesSimple(
 }
 
 void calculateUpwindedElectricFieldSimple(
-	dccrg<SpatialCell>& mpiGrid,
+	dccrg::Dccrg<SpatialCell>& mpiGrid,
 	const vector<CellID>& localCells
 ) {
    namespace fs = fieldsolver;
@@ -1546,7 +1546,7 @@ void calculateUpwindedElectricFieldSimple(
 }
 
 static void propagateMagneticFieldSimple(
-	dccrg<SpatialCell>& mpiGrid,
+	dccrg::Dccrg<SpatialCell>& mpiGrid,
 	creal& dt,
 	const vector<CellID>& localCells
 ) {
@@ -1585,7 +1585,7 @@ static void propagateMagneticFieldSimple(
 }
 
 bool propagateFields(
-	dccrg<SpatialCell>& mpiGrid,
+	dccrg::Dccrg<SpatialCell>& mpiGrid,
 	creal& dt
 ) {
    typedef Parameters P;
@@ -1615,7 +1615,7 @@ void reconstructionCoefficients(
 	const CellID& nbr_i2j1k1,
 	const CellID& nbr_i1j2k1,
 	const CellID& nbr_i1j1k2,
-	dccrg<SpatialCell>& mpiGrid,
+	dccrg::Dccrg<SpatialCell>& mpiGrid,
 	Real* result
 ) {
    // Do not calculate values for non-existing cells:
@@ -1725,7 +1725,7 @@ void averageFaceXElectricField(
 	const CellID& nbr_i0j1k2,
 	const CellID& nbr_i0j2k2,
 	cuint& existingCells,
-	dccrg<SpatialCell>& mpiGrid,
+	dccrg::Dccrg<SpatialCell>& mpiGrid,
 	Real* result
 ) {
    namespace fs = fieldsolver;
@@ -1795,7 +1795,7 @@ void averageFaceYElectricField(
 	const CellID& nbr_i1j0k2,
 	const CellID& nbr_i2j0k2,
 	cuint& existingCells,
-	dccrg<SpatialCell>& mpiGrid,
+	dccrg::Dccrg<SpatialCell>& mpiGrid,
 	Real* result
 ) {
    namespace fs = fieldsolver;
@@ -1858,7 +1858,7 @@ void averageFaceZElectricField(
 	const CellID& nbr_i1j2k0,
 	const CellID& nbr_i2j2k0,
 	cuint& existingCells,
-	dccrg<SpatialCell>& mpiGrid,
+	dccrg::Dccrg<SpatialCell>& mpiGrid,
 	Real* result
 ) {
    namespace fs = fieldsolver;
@@ -1925,7 +1925,7 @@ void averageFaceXMagnField(
 	const CellID& /*nbr_i1j2k1*/,
 	const CellID& /*nbr_i1j1k2*/,
 	creal* const coefficients,
-	dccrg<SpatialCell>& mpiGrid,
+	dccrg::Dccrg<SpatialCell>& mpiGrid,
 	const int& I,
 	Real* result
 ) {
@@ -1957,7 +1957,7 @@ void averageFaceYMagnField(
 	const CellID& /*nbr_i1j2k1*/,
 	const CellID& /*nbr_i1j1k2*/,
 	creal* const coefficients,
-	dccrg<SpatialCell>& mpiGrid,
+	dccrg::Dccrg<SpatialCell>& mpiGrid,
 	const int& J,
 	Real* result
 ) {
@@ -1982,7 +1982,7 @@ void averageFaceZMagnField(
 	const CellID& /*nbr_i1j2k1*/,
 	const CellID& /*nbr_i1j1k2*/,
 	creal* const coefficients,
-	dccrg<SpatialCell>& mpiGrid,
+	dccrg::Dccrg<SpatialCell>& mpiGrid,
 	const int& K,
 	Real* result
 ) {
@@ -2002,7 +2002,7 @@ void averageFaceZMagnField(
 }
    
 void calculateFaceAveragedFields(
-	dccrg<SpatialCell>& mpiGrid
+	dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
    namespace fs = fieldsolver;
    
@@ -2123,7 +2123,7 @@ void calculateFaceAveragedFields(
 }
 
 void calculateVolumeAveragedFields(
-	dccrg<SpatialCell>& mpiGrid
+	dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
    // If fields are not propagated exit immediately. It is 
    // user's responsibility to set correct values to volume-averaged E,B-fields:

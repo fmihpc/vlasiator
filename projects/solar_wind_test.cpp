@@ -91,7 +91,7 @@ ptime loaded_EB_time(not_a_date_time);
 
 // Returns 0.4 * the minimum allowed timestep based on given EB file for the current grid
 #ifndef PARGRID
-Real get_min_timestep(const dccrg<SpatialCell>& mpiGrid, string filename)
+Real get_min_timestep(const dccrg::Dccrg<SpatialCell>& mpiGrid, string filename)
 #else
 Real get_min_timestep(const ParGrid<SpatialCell>& mpiGrid, string filename)
 #endif
@@ -225,7 +225,7 @@ Returns the minimum allowed timestep based on all EB files in the current direct
 Also initializes the solar wind.
 */
 #ifndef PARGRID
-Real get_min_timestep(dccrg<SpatialCell>& mpiGrid)
+Real get_min_timestep(dccrg::Dccrg<SpatialCell>& mpiGrid)
 #else
 Real get_min_timestep(ParGrid<SpatialCell>& mpiGrid)
 #endif
@@ -257,7 +257,7 @@ Real get_min_timestep(ParGrid<SpatialCell>& mpiGrid)
 }
 
 #ifndef PARGRID
-void load_EB(dccrg<SpatialCell>& mpiGrid, string filename)
+void load_EB(dccrg::Dccrg<SpatialCell>& mpiGrid, string filename)
 #else
 void load_EB(ParGrid<SpatialCell>& mpiGrid, string filename)
 #endif
@@ -423,7 +423,7 @@ void load_EB(ParGrid<SpatialCell>& mpiGrid, string filename)
 }
 
 #ifndef PARGRID
-void apply_boundaries(dccrg<SpatialCell>& mpiGrid, ptime time)
+void apply_boundaries(dccrg::Dccrg<SpatialCell>& mpiGrid, ptime time)
 #else
 void apply_boundaries(ParGrid<SpatialCell>& mpiGrid, ptime time)
 #endif
@@ -530,7 +530,7 @@ void apply_boundaries(ParGrid<SpatialCell>& mpiGrid, ptime time)
 // TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
 // Possibly changes given maximum timestep based on loaded E & B.
 #ifndef PARGRID
-void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt)
+void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt)
 #else
 void calcSimParameters(ParGrid<SpatialCell>& mpiGrid, creal& t, Real& dt)
 #endif

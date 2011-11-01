@@ -74,7 +74,7 @@ inline uchar calcNbrNumber(const uchar& i,const uchar& j,const uchar& k) {return
 inline uchar calcNbrTypeID(const uchar& i,const uchar& j,const uchar& k) {return k*25+j*5+i;}
 
 CellID getNeighbourID(
-	const dccrg<SpatialCell>& mpiGrid,
+	const dccrg::Dccrg<SpatialCell>& mpiGrid,
 	const CellID& cellID,
 	const uchar& i,
 	const uchar& j,
@@ -95,7 +95,7 @@ CellID getNeighbourID(
 }
 
 
-bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
+bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 
    // Populate spatial neighbour list:
    Main::cells = mpiGrid.get_cells();
@@ -141,7 +141,7 @@ bool initializeMover(dccrg<SpatialCell>& mpiGrid) {
    return true;
 }
 
-void initialLoadBalance(dccrg<SpatialCell>& mpiGrid) {
+void initialLoadBalance(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    SpatialCell::base_address_identifier = 5;
    mpiGrid.balance_load();
 }
@@ -153,7 +153,7 @@ Non-existing neighbor pointers are set to NULL.
 */
 bool findNeighbours(
 	std::vector<const SpatialCell*>& nbrPtr,
-	const dccrg<SpatialCell>& mpiGrid,
+	const dccrg::Dccrg<SpatialCell>& mpiGrid,
 	const CellID& CELLID
 ) {
 
@@ -175,7 +175,7 @@ bool findNeighbours(
    return true;
 }
 
-void calculateVelocityMoments(dccrg<SpatialCell>& mpiGrid) {
+void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    Main::cells = mpiGrid.get_cells();
    for (size_t c=0; c<Main::cells.size(); ++c) {
       Main::cellPtr = mpiGrid[Main::cells[c]];
@@ -183,7 +183,7 @@ void calculateVelocityMoments(dccrg<SpatialCell>& mpiGrid) {
    }
 }
 
-void calculateSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt) {
+void calculateSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt) {
    // TODO let the project function decide if something should really be calculated
    if (!cellParametersChanged(t)) {
    	return;
@@ -191,7 +191,7 @@ void calculateSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt) {
    calcSimParameters(mpiGrid, t, dt);
 }
 
-void calculateCellParameters(dccrg<SpatialCell>& mpiGrid,creal& t, uint64_t cell) {
+void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t, uint64_t cell) {
    // TODO let the project function decide if something should really be calculated
    if (!cellParametersChanged(t)) {
    	return;
@@ -199,7 +199,7 @@ void calculateCellParameters(dccrg<SpatialCell>& mpiGrid,creal& t, uint64_t cell
    calcCellParameters(mpiGrid[cell]->cpu_cellParams,t);
 }
 
-void calculateAcceleration(dccrg<SpatialCell>& mpiGrid) {
+void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    profile::start("calcAcceleration");
    
    // Calculate acceleration for all cells (inner + boundary):
@@ -212,7 +212,7 @@ void calculateAcceleration(dccrg<SpatialCell>& mpiGrid) {
    profile::stop("calcAcceleration",Main::cells.size(),"SpatialCells");
 }
 
-void calculateSpatialDerivatives(dccrg<SpatialCell>& mpiGrid) {
+void calculateSpatialDerivatives(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    profile::start("calcSpatDerivatives");
    profile::start("Start data exchange");
    unsigned int computedCells;
@@ -259,7 +259,7 @@ void calculateSpatialDerivatives(dccrg<SpatialCell>& mpiGrid) {
    profile::stop("calcSpatDerivatives",computedCells,"SpatialCells");
 }
 
-void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
+void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    profile::start("calcSpatFluxes");
    profile::start("Start data exchange");
    unsigned int computedCells;
@@ -306,7 +306,7 @@ void calculateSpatialFluxes(dccrg<SpatialCell>& mpiGrid) {
    profile::stop("calcSpatFluxes",computedCells,"SpatialCells");
 }
 
-void calculateSpatialPropagation(dccrg<SpatialCell>& mpiGrid,const bool& secondStep,const bool& transferAvgs) {
+void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& secondStep,const bool& transferAvgs) {
    profile::start("calcSpatProp");
    profile::start("Start data exchange");
    unsigned int computedCells;

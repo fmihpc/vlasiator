@@ -13,7 +13,7 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBx(
 	#ifdef PARGRID
 	const ParGrid<SpatialCell>& mpiGrid
 	#else
-	const dccrg<SpatialCell>& mpiGrid
+	const dccrg::Dccrg<SpatialCell>& mpiGrid
 	#endif
 ) { 
    namespace p = projects;
@@ -88,7 +88,7 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBy(
 	#ifdef PARGRID
 	const ParGrid<SpatialCell>& mpiGrid
 	#else
-	const dccrg<SpatialCell>& mpiGrid
+	const dccrg::Dccrg<SpatialCell>& mpiGrid
 	#endif
 ) {
    namespace p = projects;
@@ -195,7 +195,7 @@ template<typename CELLID,typename UINT,typename REAL>
 #ifdef PARGRID
 REAL fieldBoundaryCopyFromExistingFaceNbrBz(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const ParGrid<SpatialCell>& mpiGrid) {
 #else
-REAL fieldBoundaryCopyFromExistingFaceNbrBz(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const dccrg<SpatialCell>& mpiGrid) {
+REAL fieldBoundaryCopyFromExistingFaceNbrBz(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const dccrg::Dccrg<SpatialCell>& mpiGrid) {
 #endif
 
     namespace p = projects;
@@ -236,7 +236,7 @@ void fieldSolverBoundarySetValueDerivX(const CELLID& cellID,REAL* const array,co
 				       creal* derivatives,const ParGrid<SpatialCell>& mpiGrid,const REAL& value) {
 #else
 void fieldSolverBoundarySetValueDerivX(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
-                                           creal* derivatives,const dccrg<SpatialCell>& mpiGrid,const REAL& value) {
+                                           creal* derivatives,const dccrg::Dccrg<SpatialCell>& mpiGrid,const REAL& value) {
 #endif
     namespace fs = fieldsolver;
    array[fs::drhodx] = value;
@@ -253,7 +253,7 @@ void fieldSolverBoundarySetValueDerivY(const CELLID& cellID,REAL* const array,co
 				       creal* derivatives,const ParGrid<SpatialCell>& mpiGrid,const REAL& value) {
 #else    
 void fieldSolverBoundarySetValueDerivY(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
-				       creal* derivatives,const dccrg<SpatialCell>& mpiGrid,const REAL& value) {
+				       creal* derivatives,const dccrg::Dccrg<SpatialCell>& mpiGrid,const REAL& value) {
 #endif
    namespace fs = fieldsolver;
    array[fs::drhody] = value;
@@ -270,7 +270,7 @@ void fieldSolverBoundarySetValueDerivZ(const CELLID& cellID,REAL* const array,co
 				       creal* derivatives,const ParGrid<SpatialCell>& mpiGrid,const REAL& value) {
 #else
 void fieldSolverBoundarySetValueDerivZ(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
-				       creal* derivatives,const dccrg<SpatialCell>& mpiGrid,const REAL& value) {
+				       creal* derivatives,const dccrg::Dccrg<SpatialCell>& mpiGrid,const REAL& value) {
 #endif
     namespace fs = fieldsolver;
    array[fs::drhodz] = value;

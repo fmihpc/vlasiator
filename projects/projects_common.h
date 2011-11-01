@@ -52,7 +52,7 @@ template<typename CELLID,class CONT> bool classifyLevequeGhostCell(const Spatial
 template<typename CELLID> CELLID getNeighbour(const ParGrid<SpatialCell>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k);
 #else
 #include <dccrg.hpp>
-template<typename CELLID> CELLID getNeighbour(const dccrg<SpatialCell>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k);
+template<typename CELLID> CELLID getNeighbour(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k);
 #endif
 
 // ********************************
@@ -68,7 +68,7 @@ template<typename CELLID> CELLID getNeighbour(const ParGrid<SpatialCell>& mpiGri
 }
 #else
 
-template<typename CELLID> CELLID getNeighbour(const dccrg<SpatialCell>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k){
+template<typename CELLID> CELLID getNeighbour(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k){
     std::vector<uint64_t> neighbors = mpiGrid.get_neighbors_of(cellID, i, j, k);
 
     //FIXME: support refined grids

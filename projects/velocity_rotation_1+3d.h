@@ -53,7 +53,7 @@ void calcBlockParameters(Real* blockParams);
 void calcCellParameters(Real* cellParams,creal& t);
 
 #ifndef PARGRID
-void calcSimParameters(dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt);
+void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt);
 #else
 void calcSimParameters(ParGrid<SpatialCell>& mpiGrid, creal& t, Real& dt);
 #endif
@@ -132,7 +132,7 @@ void fieldSolverBoundaryCondDerivX(
 	const UINT& nonExistingCells,
 	creal* const derivatives,
 	#ifndef PARGRID
-	const dccrg<SpatialCell>& mpiGrid
+	const dccrg::Dccrg<SpatialCell>& mpiGrid
 	#else
 	const ParGrid<SpatialCell>& mpiGrid
 	#endif
@@ -148,7 +148,7 @@ void fieldSolverBoundaryCondDerivY(
 	const UINT& nonExistingCells,
 	creal* const derivatives,
 	#ifndef PARGRID
-	const dccrg<SpatialCell>& mpiGrid
+	const dccrg::Dccrg<SpatialCell>& mpiGrid
 	#else
 	const ParGrid<SpatialCell>& mpiGrid
 	#endif
@@ -164,7 +164,7 @@ void fieldSolverBoundaryCondDerivZ(
 	const UINT& nonExistingCells,
 	creal* const derivatives,
 	#ifndef PARGRID
-	const dccrg<SpatialCell>& mpiGrid
+	const dccrg::Dccrg<SpatialCell>& mpiGrid
 	#else
 	const ParGrid<SpatialCell>& mpiGrid
 	#endif
@@ -178,7 +178,7 @@ REAL fieldSolverBoundaryCondBx(
 	const UINT& existingCells,
 	const UINT& nonExistingCells,
 	#ifndef PARGRID
-	const dccrg<SpatialCell>& mpiGrid
+	const dccrg::Dccrg<SpatialCell>& mpiGrid
 	#else
 	const ParGrid<SpatialCell>& mpiGrid
 	#endif
@@ -192,7 +192,7 @@ REAL fieldSolverBoundaryCondBy(
 	const UINT& existingCells,
 	const UINT& nonExistingCells,
 	#ifndef PARGRID
-	const dccrg<SpatialCell>& mpiGrid
+	const dccrg::Dccrg<SpatialCell>& mpiGrid
 	#else
 	const ParGrid<SpatialCell>& mpiGrid
 	#endif
@@ -206,7 +206,7 @@ REAL fieldSolverBoundaryCondBz(
 	const UINT& existingCells,
 	const UINT& nonExistingCells,
 	#ifndef PARGRID
-	const dccrg<SpatialCell>& mpiGrid
+	const dccrg::Dccrg<SpatialCell>& mpiGrid
 	#else
 	const ParGrid<SpatialCell>& mpiGrid
 	#endif
@@ -220,7 +220,7 @@ void vlasovBoundaryCondition(
 	const UINT& existingCells,
 	const UINT& nonExistingCells,
 	#ifndef PARGRID
-	const dccrg<SpatialCell>& mpiGrid
+	const dccrg::Dccrg<SpatialCell>& mpiGrid
 	#else
 	const ParGrid<SpatialCell>& mpiGrid
 	#endif

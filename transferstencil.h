@@ -62,10 +62,10 @@ template<typename CELLID> struct TransferStencil {
     std::map<std::pair<int,int>,CELLID> recvs;         /**< List of ((host,tag),remote ID) pairs giving remote host number, tag,
                                                         * and remote cell ID to receive.*/
 
-    bool addReceives(const dccrg<SpatialCell>& mpiGrid,const std::vector<Offset>& nbrOffsets);
-    bool addSends(const dccrg<SpatialCell>& mpiGrid,const std::vector<Offset>& nbrOffsets);
-    bool addRemoteUpdateReceives(const dccrg<SpatialCell>& mpiGrid,const std::vector<Offset>& nbrOffsets);
-    bool addRemoteUpdateSends(const dccrg<SpatialCell>& mpiGrid,const std::vector<Offset>& nbrOffsets);
+    bool addReceives(const dccrg::Dccrg<SpatialCell>& mpiGrid,const std::vector<Offset>& nbrOffsets);
+    bool addSends(const dccrg::Dccrg<SpatialCell>& mpiGrid,const std::vector<Offset>& nbrOffsets);
+    bool addRemoteUpdateReceives(const dccrg::Dccrg<SpatialCell>& mpiGrid,const std::vector<Offset>& nbrOffsets);
+    bool addRemoteUpdateSends(const dccrg::Dccrg<SpatialCell>& mpiGrid,const std::vector<Offset>& nbrOffsets);
    
    TransferStencil(const CELLID& invalidCellID);
    void clear();
@@ -94,7 +94,7 @@ template<typename CELLID> TransferStencil<CELLID>::TransferStencil(const CELLID&
  * @return If true, the receive stencil was added successfully.
  */
 
-template<typename CELLID> bool TransferStencil<CELLID>::addReceives(const dccrg<SpatialCell>& mpiGrid,
+template<typename CELLID> bool TransferStencil<CELLID>::addReceives(const dccrg::Dccrg<SpatialCell>& mpiGrid,
                                                                     const std::vector<Offset>& nbrOffsets){
     bool success = true;
     clear();
@@ -175,7 +175,7 @@ template<typename CELLID> bool TransferStencil<CELLID>::addReceives(const dccrg<
  * @param nbrTypeIDs Neighbour type ID numbers that indicate which cells to send data.
  * @return If true, the send stencil was added successfully.
  */
-template<typename CELLID> bool TransferStencil<CELLID>::addSends(const dccrg<SpatialCell>& mpiGrid,
+template<typename CELLID> bool TransferStencil<CELLID>::addSends(const dccrg::Dccrg<SpatialCell>& mpiGrid,
                                                                  const std::vector<Offset>& nbrOffsets){
     bool success = true;
     
@@ -248,7 +248,7 @@ template<typename CELLID> bool TransferStencil<CELLID>::addSends(const dccrg<Spa
  * @param nbrTypeIDs Neighbour type IDs that indicate the cells who to send updates.
  * @return If true, the send stencil was added successfully.
  */
-template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateSends(const dccrg<SpatialCell>& mpiGrid,
+template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateSends(const dccrg::Dccrg<SpatialCell>& mpiGrid,
                                                                              const std::vector<Offset>& nbrOffsets){
     
 
@@ -324,7 +324,7 @@ template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateSends(con
  * @return If true, receive stencil was added successfully.
  * @see TransferStencil::addRemoteUpdateSends.
  */
-template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateReceives(const dccrg<SpatialCell>& mpiGrid,
+template<typename CELLID> bool TransferStencil<CELLID>::addRemoteUpdateReceives(const dccrg::Dccrg<SpatialCell>& mpiGrid,
                                                                                 const std::vector<Offset>& nbrOffsets){
    bool success = true;
    clear();

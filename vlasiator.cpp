@@ -54,7 +54,7 @@ bool inistate = true;
 using namespace std;
 //using namespace CellParams;
 
-void initSpatialCells(const dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm) {
+void initSpatialCells(const dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm) {
     typedef Parameters P;
 
    vector<uint64_t> cells = mpiGrid.get_cells();
@@ -83,7 +83,7 @@ void initSpatialCells(const dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator
 }
 
 
-bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const bool& writeRestart) {
+bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const bool& writeRestart) {
     double allStart = MPI_Wtime();
     bool success = true;
     int myrank;
@@ -272,14 +272,14 @@ bool writeGrid(const dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const 
 }
 
 void exchangeVelocityGridMetadata(
-	dccrg<SpatialCell>& mpiGrid
+	dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
    SpatialCell::base_address_identifier = 5;
    mpiGrid.update_remote_neighbour_data();
 }
    
 
-void log_send_receive_info(const dccrg<SpatialCell>& mpiGrid) {
+void log_send_receive_info(const dccrg::Dccrg<SpatialCell>& mpiGrid) {
    mpilogger << "Number of sends / receives:" << endl;
    mpilogger << "\tto other MPI processes   = " << mpiGrid.get_number_of_update_send_cells() << endl;
    mpilogger << "\tfrom other MPI processes = " << mpiGrid.get_number_of_update_receive_cells() << endl;
@@ -417,22 +417,27 @@ int main(int argn,char* args[]) {
       mpilogger << "(MAIN) Grid built successfully" << endl << write;
    }
    
-   dccrg<SpatialCell> mpiGrid(
+   dccrg::Dccrg<SpatialCell> mpiGrid;
+   mpiGrid.set_geometry(
+      P::xcells_ini, P::ycells_ini, P::zcells_ini,
+      P::xmin, P::ymin, P::zmin,
+      P::dx_ini, P::dy_ini, P::dz_ini
+   );
+
+   mpiGrid.initialize(
       comm,
       "HYPERGRAPH",
-      P::xmin, P::ymin, P::zmin,
-      P::dx_ini, P::dy_ini, P::dz_ini,
-      P::xcells_ini, P::ycells_ini, P::zcells_ini,
       // neighborhood size
-#ifdef SOLVER_KT
+      #ifdef SOLVER_KT
       1, // kt needs 0 but field volume average calculation needs 1
-#elif defined SOLVER_LEVEQUE
+      #elif defined SOLVER_LEVEQUE
       2,
-#endif
+      #endif
       0, // maximum refinement level
       P::periodic_x, P::periodic_y, P::periodic_z
-      );
-      //read in partitioning levels from input
+   );
+
+   //read in partitioning levels from input
    RP::addComposing("dccrg.partition_procs","Procs per load balance group");
    RP::addComposing("dccrg.partition_lb_method","Load balance method");
    RP::addComposing("dccrg.partition_imbalance_tol","Imbalance tolerance");
