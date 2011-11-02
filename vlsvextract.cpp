@@ -322,7 +322,6 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader,const string& meshName,const 
 	 dvx    = *reinterpret_cast<double*>(bc_buffer+b*bc_vectorSize*bc_dataSize+3*sizeof(double));
 	 dvy    = *reinterpret_cast<double*>(bc_buffer+b*bc_vectorSize*bc_dataSize+4*sizeof(double));
 	 dvz    = *reinterpret_cast<double*>(bc_buffer+b*bc_vectorSize*bc_dataSize+5*sizeof(double));
-//	 cout << "doubles experimental (YK) in vlsvextract!" << endl;
       }
       Real VX,VY,VZ;
       creal EPS = 1.0e-7;

@@ -158,9 +158,7 @@ namespace DRO {
       Real* rhov;
    };
    
-   // Added by YK
-
-   
+  // Added by YK
   class VariablePressure: public DataReductionOperator {
      public:
         VariablePressure();

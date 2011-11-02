@@ -543,11 +543,7 @@ int main(int argn,char* args[]) {
    reducer.addOperator(new DRO::MPIrank);
    reducer.addOperator(new DRO::VariableVolE);
    reducer.addOperator(new DRO::VariableVolB);
-// YK   reducer.addOperator(new DRO::VariableE_facex);
-// YK   reducer.addOperator(new DRO::VariableE_facey);
-// YK   reducer.addOperator(new DRO::VariableE_facez);
    reducer.addOperator(new DRO::VariablePressure);
-//   reducer.addOperator(new DRO::DistributionVpar);
       
    //VlsWriter vlsWriter;
    profile::start("Init vlasov propagator");

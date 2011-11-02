@@ -265,8 +265,6 @@ namespace DRO {
    }
    
    // Added by YK
-
-   
    VariablePressure::VariablePressure(): DataReductionOperator() { }
    VariablePressure::~VariablePressure() { }
    
