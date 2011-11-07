@@ -20,13 +20,15 @@
 #endif
 
 
-# define SCA_X (100000.0)
-# define SCA_Y (100000.0)
-// Magnetic field at "infinity", T
-# define B0 5.0e-9
-# define TEMPERATURE 2.0e6
-// At "infinity", m^-3
-# define DENSITY 1.0e7
+struct diffusionParameters {
+   static Real B0;
+   static Real DENSITY;
+   static Real TEMPERATURE;
+   static Real SCA_X;
+   static Real SCA_Y;
+   static uint nSpaceSamples;
+   static uint nVelocitySamples;
+} ;
 
 /**
  * Initialize project. Can be used, e.g., to read in parameters from the input file
