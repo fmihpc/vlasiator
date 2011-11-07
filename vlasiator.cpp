@@ -699,6 +699,8 @@ int main(int argn,char* args[]) {
    profile::stop("Finalization");   
    profile::stop("main");
    profile::print(MPI_COMM_WORLD);
+   profile::print(MPI_COMM_WORLD,1.0);
+   profile::print(MPI_COMM_WORLD,5.0);
    
 
    if (myrank == MASTER_RANK) mpilogger << "(MAIN): Exiting." << endl << write;

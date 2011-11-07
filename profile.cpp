@@ -23,7 +23,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <string>
 #include <vector>
 #include <map>
-
+#include "profile.h"
 //include craypat api headers if compiled with craypat on Cray XT/XE
 #ifdef CRAYPAT
 #include "pat_api.h"
@@ -46,198 +46,567 @@ namespace profile
     namespace 
     {
         struct TimerData{
-            string parent; //key of parent (fullLabel)
-            string label; //print label 
-            string workUnitLabel; //unit for the counter workUnitCount
-            double time; // total time accumulated
-            int level;  //what hierarchy level
-            int count; //how many times have this been accumulated
-            int index; // unique index identifying this timer (usefule for Craypat)
-            double workUnits; // how many units of work have we done. If -1 it is not counted, or printed
+           string label;          //print label 
+           string workUnitLabel;   //unit for the counter workUnitCount
+           double workUnits;        // how many units of work have we done. If -1 it is not counted, or printed
+           vector<string> groups; // What user-defined groups does this timer belong to, e.g., "MPI", "IO", etc..
+
+           int id; // unique id identifying this timer (index for timers)
+           int parentId;  //key of parent (id)
+           vector<int> childIds; //children of this timer
+
+           int level;  //what hierarchy level
+           int count; //how many times have this been accumulated
+           double time; // total time accumulated
+           double startTime; //Starting time of previous start() call
         };
-        //store all timers in map, key is fullLabel name
-        std::map<string,TimerData> timers;
+       
+       //vector with timers
+       vector<TimerData> timers;
+       
+       //current position in timer hierarchy 
+       int currentId=-1;
 
-        //current position in timer hierarchy & label & startTime for the different levels
-        int currentLevel=-1;
-        std::vector<string> labels;
-        std::vector<double> startTime;
-        double overHeadTime=0;
-        unsigned int startStopCalls=0;
-        struct doubleRankPair {
-            double val;
-            int rank;
-        };
+       //is this profiler initialized
+       bool initialized=false;
+       
+       //used with MPI reduction operator
+       struct doubleRankPair {
+          double val;
+          int rank;
+       };
 
+       //defines print-area widths for print() output
+       const int indentWidth=2; //how many spaces each level is indented
+       const int floatWidth=10; //width of float fields;
+       const int intWidth=6;   //width of int fields;
+       const int unitWidth=4;  //width of workunit label
 
-        string constructFullLabel(int maxLevel){
-            string label;
-            if(maxLevel<0)
-                label.append("/");
-            for(int i=0;i<=maxLevel;i++){
-                label.append("/");
-                label.append(labels[i]);
-            }
-            return label;
-        }
-
-        //djb2 hash function copied from
-        //http://www.cse.yorku.ca/~oz/hash.html
-        unsigned long hash(const char *str)
-        {
-            unsigned long hash = 5381;
-            int c;
-            
-            while ( (c = *str++) )
+       
+       //djb2 hash function copied from
+       //http://www.cse.yorku.ca/~oz/hash.html
+       unsigned long hash(const char *str)
+       {
+          unsigned long hash = 5381;
+          int c;
+          while ( (c = *str++) )
                 hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-            return hash;
+          return hash;
         }
 
-        //Hash value identifying all labels and workunitlabels. If any strings differ, hash should differ.
-        int getTimersHash(){
-            string allLabels;
-
-            for ( std::map< string, TimerData>::const_iterator iter = timers.begin();
-                  iter != timers.end(); ++iter ) {
-                allLabels.append(iter->first);
-                allLabels.append(iter->second.workUnitLabel);
-            }
-            return (int)hash(allLabels.c_str());
-        }
-
-    }
+       
+       //Hash value identifying all labels, groups and workunitlabels.
+       //If any strings differ, hash should differ.
+       int getTimersHash(){
+          string allLabels;
+          for (vector<TimerData>::const_iterator timer = timers.begin();
+               timer != timers.end(); ++timer ) {
+             allLabels.append(timer->label);
+             allLabels.append(timer->workUnitLabel);
+             for (vector<string>::const_iterator group = timer->groups.begin();
+                  group != timer->groups.end(); ++group ) {
+                allLabels.append(*group);
+             }
+          }
+          return (int)hash(allLabels.c_str());
+       }
     
-    bool start(const string &label){
-        double t1=MPI_Wtime();
-        currentLevel++;
-        //resize vectors if needed
-        if(int(labels.size())<=currentLevel)
-            labels.resize(currentLevel+5);
-        if(int(startTime.size())<=currentLevel)
-            startTime.resize(currentLevel+5);
-        
-        labels[currentLevel]=label;
+       
+//construct a new timer for the current level.
+       int constructTimer(const string &label,int parentId,const vector<string> groups){
+          TimerData timerData;
+          timerData.label=label;
+          timerData.groups=groups;
+          timerData.id=timers.size(); //will be added last to timers vector
+          timerData.parentId=parentId;
+          
+          timerData.workUnits=-1;
+          timerData.workUnitLabel="";
+          
+          if(parentId!=-1) 
+             timerData.level=timers[parentId].level+1;
+          else //this is the special case when one adds the root timer
+             timerData.level=0;
+          timerData.time=0;
+          timerData.startTime=-1;
+          timerData.count=0;
+          //timerData.work  UnitCount initialized in stop
+          //add timer   
+          timers.push_back(timerData);
+          //add timer to tree
+          if(parentId!=-1)
+             timers[parentId].childIds.push_back(timerData.id);
+          return timerData.id;
+       }
+       
+       //initialize profiler, called by first start/initializeTimer. This adds the root timer
+       bool init(){
+          if(!initialized){
+             initialized=true;
+             vector<string> group;
+             group.push_back("Total");
+             //no timer yet        
+             currentId=-1;
+             //mainId will be 0, parent is -1 (does not exist)
+             int id=constructTimer("total",-1,group);
+             //start root timer, is stopped in print.      
+             start(id);
+          }
+          return true;
+       }
+       
+       //this function returns the time in seconds 
+       double getTime() {
+          return MPI_Wtime();
+       }
+       //this function returns the accuracy of the timer     
+       double getTick() {
+          return MPI_Wtick();
+       }
+       
+       bool computeStatistics(double value,
+                              double *average,double *total,
+                              doubleRankPair *max,doubleRankPair *min,
+                              int rootRank,MPI_Comm comm){
+          int rank,nProcesses;
+          doubleRankPair in;
+          double tot;
+          
+          MPI_Comm_rank(comm,&rank);
+          MPI_Comm_size(comm,&nProcesses);
+          
+          if(average!=NULL || total !=NULL)
+             MPI_Reduce(&value,&tot,1,MPI_DOUBLE,MPI_SUM,rootRank,comm);
 
-        //if fullname timer does not yet exist, it is constructed using the default constructor
-        //it could be constructed also in stop, but here we need the index for craypat so we do it in start
-        string fullName=constructFullLabel(currentLevel);
-        if(timers.find(fullName) == timers.end()){
-            //does not exist, add it
-            TimerData timerData;
-            timerData.level=currentLevel;
-            timerData.time=0;
-            timerData.count=0;
-            //timerData.workUnitCount initialized in stop
-            timerData.parent=constructFullLabel(currentLevel-1);
-            timerData.label=label;
-            timerData.index=timers.size();  //index will be consecutive starting from 0
-            timers[fullName]=timerData;
-        }
-        
+          if(average!=NULL)
+             *average=tot/nProcesses;
+          if(total!=NULL)
+             *total=tot;
 
+          
+          in.val=value;
+          in.rank=rank;
+          if(max!=NULL)
+             MPI_Reduce(&in,max,1,MPI_DOUBLE_INT,MPI_MAXLOC,rootRank,comm);            
+          if(min!=NULL)
+             MPI_Reduce(&in,min,1,MPI_DOUBLE_INT,MPI_MINLOC,rootRank,comm);
+          return true;
+       }
+
+
+       bool getGroupInfo(string group,int id, double &time,MPI_Comm comm){
+          bool hasGroup=false;
+          for (vector<string>::const_iterator g = timers[id].groups.begin();
+               g != timers[id].groups.end(); ++g ) {
+             if(group==*g){
+                time=time+timers[id].time;
+                hasGroup=true;
+                break;
+             }
+          }
+       
+       //recursively collect time data, do not collect if this timer already is ib group, avoid double counting
+          if(!hasGroup) { 
+             for(unsigned int i=0;i<timers[id].childIds.size();i++){
+                getGroupInfo(group,timers[id].childIds[i],time,comm);
+             }
+          }
+          return true;
+       }
+       
+       bool printGroup(string group,double time,double minParentFraction,size_t labelWidth,MPI_Comm comm){
+          int rank,nProcesses;
+          doubleRankPair max;
+          doubleRankPair min;
+          double averageTime,totalTime,totalParentTime;
+          double localGroupTime=time;
+          
+          MPI_Comm_rank(comm,&rank);
+          MPI_Comm_size(comm,&nProcesses);
+
+          computeStatistics(localGroupTime,
+                            &averageTime,&totalTime,&max,&min,0,comm);
+          computeStatistics(timers[0].time,
+                            NULL,&totalParentTime,NULL,NULL,0,comm);
+          if(rank==0 && minParentFraction<=totalTime/totalParentTime){
+             mpilogger << setw(labelWidth+1) << group;
+             mpilogger << setw(floatWidth) << averageTime;
+             mpilogger << setw(floatWidth) << 100.0*totalTime/totalParentTime;
+             mpilogger << setw(floatWidth) << max.val;
+             mpilogger << setw(intWidth)   << max.rank;
+             mpilogger << setw(floatWidth) << min.val;
+             mpilogger << setw(intWidth)   << min.rank;
+             mpilogger << endl;
+          }
+          return true;
+       }
+       
+       //print groups
+       bool printGroups(double minParentFraction,size_t labelWidth,int totalWidth,MPI_Comm comm){
+          //construct map from groups to labels in group
+          int rank;
+          map<string,vector<int> > groups;
+          MPI_Comm_rank(comm,&rank);
+          for(unsigned int id=0;id<timers.size();id++){
+             for (vector<string>::const_iterator group = timers[id].groups.begin();
+                  group != timers[id].groups.end(); ++group ) {
+                groups[*group].push_back(id);
+             }
+          }
+          if(rank==0){
+             for(int i=0;i<totalWidth/2 -4;i++) mpilogger <<"-";
+             mpilogger <<" Groups ";
+             for(int i=0;i<totalWidth/2 -3;i++) mpilogger <<"-";
+             mpilogger<<endl;
+          }
+
+
+          
+          for(map<string, vector<int> >::iterator group=groups.begin();
+              group!=groups.end();++group){
+             double time=0.0;
+             getGroupInfo(group->first,0,time,comm);
+             printGroup(group->first,time,minParentFraction,labelWidth,comm);
+          }
+          
+          return true;
+       }
+
+       //print a timer, call children recursively
+       bool printTimer(int id,double minParentFraction,size_t labelWidth,int totalWidth,MPI_Comm comm){
+          int rank,nProcesses;
+          doubleRankPair max;
+          doubleRankPair min;
+          double averageTime,averageCount,totalTime,totalParentTime;
+          double hasWorkUnits;
+          double totalUnits;
+          double averageUnits;
+          int isPrinted=1;
+          MPI_Comm_rank(comm,&rank);
+          MPI_Comm_size(comm,&nProcesses);
+
+          //do not write out root (id=0)
+          if(id!=0){
+             //coumpute time statistics      
+             computeStatistics(timers[id].time,
+                               &averageTime,&totalTime,&max,&min,0,comm);
+             computeStatistics(timers[timers[id].parentId].time,
+                               NULL,&totalParentTime,NULL,NULL,0,comm);
+
+             if(totalTime/totalParentTime<minParentFraction)
+                isPrinted=0;
+             MPI_Bcast(&isPrinted,1,MPI_INT,0,comm);
+             
+             //label & time statistics
+             if(isPrinted==1 && rank==0){
+                int indent=(timers[id].level-1)*indentWidth;
+                mpilogger<<setw(indent)<<"";
+                mpilogger<<setw(labelWidth+1-indent)<< setiosflags(ios::left)
+                         << timers[id].label;
+                
+                mpilogger << setw(floatWidth) << averageTime;
+                mpilogger << setw(floatWidth) << 100.0*totalTime/totalParentTime;
+                mpilogger << setw(floatWidth) << max.val;
+                mpilogger << setw(intWidth)   << max.rank;
+                mpilogger << setw(floatWidth) << min.val;
+                mpilogger << setw(intWidth)   << min.rank;
+             }
+
+             //count statistics
+             computeStatistics((double)timers[id].count,
+                               &averageCount,NULL,NULL,NULL,0,comm);
+             if(isPrinted==1 && rank==0){
+                mpilogger << setw(floatWidth) << averageCount;
+             }
+             
+             //workunits statistics
+             if (timers[id].workUnits<0)
+                hasWorkUnits=0.0;
+             else
+                hasWorkUnits=1.0;             
+             //collect in min data if everybody has workunits
+             computeStatistics(hasWorkUnits,
+                               NULL,NULL,NULL,&min,0,comm);
+             computeStatistics(timers[id].workUnits,
+                               &averageUnits,&totalUnits,NULL,NULL,0,comm);
+             //print if rank is zero, and units defined for all processes
+             //note how the averages are computed. This is to avoid one process with little data to     
+             //skew results one way or the other     
+             if(isPrinted==1 && rank==0 && min.val >0.5 ){
+                mpilogger << setw(floatWidth) << totalUnits/averageTime;
+                mpilogger << setw(floatWidth) << averageUnits/averageTime;
+                mpilogger << timers[id].workUnitLabel<<"/s";
+             }
+
+             //new line
+             if(isPrinted==1 && rank==0){
+                mpilogger<<endl;
+             }
+          }
+          
+          //recursively print child labels
+          if(isPrinted==1) { //only write out children, it the label itself is printed
+             for(unsigned int i=0;i<timers[id].childIds.size();i++){
+                printTimer(timers[id].childIds[i],minParentFraction,labelWidth,totalWidth,comm);
+             }
+          }
+          return true;
+       }
+       bool printFooter(int totalWidth,MPI_Comm comm){
+          int rank;
+          MPI_Comm_rank(comm,&rank);
+          if(rank==0){
+             for(int i=0;i<totalWidth;i++) mpilogger <<"-";
+             mpilogger<<endl;
+          }
+          return true;
+       }
+       
+       bool printHeader(double minParentFraction,size_t labelWidth,int totalWidth,MPI_Comm comm){
+          int rank;
+          MPI_Comm_rank(comm,&rank);
+          if(rank==0){
+             for(int i=0;i<totalWidth;i++) mpilogger <<"-";
+             mpilogger<<endl;
+             mpilogger << "Profiler results with parent % larger than " << minParentFraction*100.0;
+             mpilogger<<endl;
+             for(int i=0;i<totalWidth;i++) mpilogger <<"-";
+             mpilogger<<endl;
+             mpilogger<<setw(labelWidth+1)<< setiosflags(ios::left) << "";
+             mpilogger<<setw(4*floatWidth+2*intWidth) <<"Time(s)";
+             mpilogger<<setw(floatWidth)<<"Calls";
+             mpilogger<<setw(2*floatWidth)<<"Workunit-rate";
+             mpilogger<<endl;
+             
+             mpilogger<<setw(labelWidth+1)<< "Label";
+             //  time
+             mpilogger<<setw(floatWidth) <<"Average";
+             mpilogger<<setw(floatWidth) <<"parent %";
+             mpilogger<<setw(floatWidth) <<"Maximum";
+             mpilogger<<setw(intWidth) << "Rank";
+             mpilogger<<setw(floatWidth)<< "Minimum";
+             mpilogger<<setw(intWidth) << "Rank";
+             //call count
+             mpilogger<<setw(floatWidth) << "Average";
+             // workunit rate    
+             mpilogger<<setw(floatWidth) << "Average";
+             mpilogger<<setw(floatWidth) << "Per process";
+             mpilogger<<endl;
+          }
+          return true;
+       }
+//print out all timers
+       bool printTimers(double minParentFraction,size_t labelWidth,int totalWidth,MPI_Comm comm){
+          int rank;
+          MPI_Comm_rank(comm,&rank);
+          if(rank==0){
+             for(int i=0;i<totalWidth/2-5;i++) mpilogger <<"-";
+             mpilogger << " Profile ";
+             for(int i=0;i<totalWidth/2-5;i++) mpilogger <<"-";
+             mpilogger<<endl;
+          }
+          //recursively print all timers
+          printTimer(0,minParentFraction,labelWidth,totalWidth,comm);
+          return true;
+       }
+    }
+
+// end unnamed namespace
+//----------------------------------------------------------------------------------------------
+// public functions begin    
+
+   //get id number of a timer, return -1 if it does not exist
+   int getId(const string &label){
+      //find child with this id
+      int childId=-1;
+      for(unsigned int i=0;i<timers[currentId].childIds.size();i++)
+         if (timers[timers[currentId].childIds[i]].label==label){
+            childId=timers[currentId].childIds[i];
+            break;
+         }
+      return childId;
+   }
+
+      
+   //initialize a timer, with a particular label belonging to some groups
+   //returns id of new timer. If timer exists, then that id is returned.
+   int initializeTimer(const string &label,const vector<string> &groups){
+      //check if the global profiler is initialized
+      if(!initialized)
+         init();
+      int id=getId(label); //check if it exists
+      if(id>=0)
+         //do nothing if it exists      
+         return id; 
+      else
+         //create new timer if it did not exist
+         return constructTimer(label,currentId,groups);
+   }
+
+
+   //initialize a timer, with a particular label belonging to a group
+   //returns id of new timer. If timer exists, then that id is returned.
+   int initializeTimer(const string &label,const string &group){
+      //check if the global profiler is initialized
+      vector<string> groups;
+      groups.push_back(group);
+      return initializeTimer(label,groups);
+   }
+
+   //initialize a timer, with a particular label belonging to two groups
+   //returns id of new timer. If timer exists, then that id is returned.
+   int initializeTimer(const string &label,
+                       const string &group1,
+                       const string &group2
+                       ){
+      //check if the global profiler is initialized
+      vector<string> groups;
+      groups.push_back(group1);
+      groups.push_back(group2);
+      return initializeTimer(label,groups);
+   }
+
+   //initialize a timer, with a particular label belonging to three groups
+   //returns id of new  timer. If timer exists, then that id is returned.
+   int initializeTimer(const string &label,
+                       const string &group1,
+                       const string &group2,
+                       const string &group3
+                       ){
+      //check if the global profiler is initialized
+      vector<string> groups;
+      groups.push_back(group1);
+      groups.push_back(group2);
+      groups.push_back(group3);
+      return initializeTimer(label,groups);
+   }
+
+
+   //initialize a timer, with a particular label belonging to no group
+   //returns id of new timer. If timer exists, then that id is returned.
+   int initializeTimer(const string &label){
+      //check if the global profiler is initialized
+      vector<string> groups; //empty vector
+      return initializeTimer(label,groups);
+   }
+   
+   //start timer, with id
+   bool start(int id){
+      if(currentId!=timers[id].parentId){
+         mpilogger << "Starting timer that is not a child of the current profiling region" <<endl;
+         return false;
+      }
+      currentId=id;      
+      //start tuner
+      timers[currentId].startTime=getTime();      
 #ifdef CRAYPAT
-        PAT_region_begin(timers[fullName].index,label.c_str());
+      PAT_region_begin(currentId+1,label.c_str());
 #endif
-        startTime[currentLevel]=MPI_Wtime();
+      return true;        
+   }
 
-        //collect information for overHEad statistics
-        startStopCalls++;
-        overHeadTime+=MPI_Wtime()-t1;
-        return true;        
-    }
+   //start timer, with label
+   bool start(const string &label){
+      //If the timer exists, then initializeTimer just returns its id, otherwise it is constructed.
+      //Make the timer the current one
+      currentId=initializeTimer(label);
+      //start timer
+      timers[currentId].startTime=getTime();
+#ifdef   CRAYPAT
+      PAT_region_begin(currentId+1,label.c_str());
+#endif
+      return true;        
+   }
+   
+   //stop with workunits
+   bool stop (const string &label,
+              const double workUnits,
+              const string &workUnitLabel){
+      if(label != timers[currentId].label ){
+         mpilogger << "ERROR: label missmatch in profile::stop Stopping "<< label <<" at level " << timers[currentId].level << endl;
+         return false;
+      }
+      stop(currentId,workUnits,workUnitLabel);
+      return true;
+   }
 
-    
-
-    //stop with workunits
-    bool stop (const std::string &label,double workUnits,
-               const std::string &workUnitLabel){
-        double t1=MPI_Wtime();
-        double stopTime=MPI_Wtime();
-        string fullName=constructFullLabel(currentLevel);
+   //stop with workunits        
+   bool stop (int id,
+              double workUnits,
+              const string &workUnitLabel){
+      double stopTime=getTime();
+      if(id != currentId ){
+         mpilogger << "ERROR: id missmatch in profile::stop Stopping "<< id <<" at level " << timers[currentId].level << endl;
+         return false;
+      }
+      
 #ifdef CRAYPAT
-        PAT_region_end(timers[fullName].index);
-#endif
-        if(currentLevel<=-1){
-            mpilogger << "ERROR: nothing to stop in profile::stop Stopping "<<
-                label <<endl;
-            return false;
-        }
-        if(labels[currentLevel] != label){
-            mpilogger << "ERROR: label missmatch in profile::stop Stopping "<<
-                label <<" at level " <<fullName << endl;
-            return false;
-        }
-        
-        //firsttime, initialize workUnit stuff here
-        if(timers[fullName].count==0){
-            if(workUnits>=0.0 ){
-                //we have workUnits for this counter
-                timers[fullName].workUnits=workUnits;
-                timers[fullName].workUnitLabel=workUnitLabel;
-            }
-            else{
-                //no workUnits for this counter
-                timers[fullName].workUnits=-1.0;
-            }
-        }
-        else {
-            //if this, or a previous, stop did not include work units then do not add them
-            //work units have to be defined for all stops with a certain (full)label
-            
-            if(workUnits<0 || timers[fullName].workUnits<0){
-                timers[fullName].workUnits=-1;
-            }
-            else{
-                timers[fullName].workUnits+=workUnits;
-            }
-        }
+      PAT_region_end(currentId+1);
+#endif  
+      
+      if(timers[currentId].count!=0){
+         //if this, or a previous, stop did not include work units then do not add them
+         //work units have to be defined for all stops with a certain (full)label
+         if(workUnits<0 || timers[currentId].workUnits<0){
+            timers[currentId].workUnits=-1;
+         }
+         else{
+            timers[currentId].workUnits+=workUnits;
+         }
+      }
+      else{
+         //firsttime, initialize workUnit stuff here
+         if(workUnits>=0.0 ){
+            //we have workUnits for this counter
+            timers[currentId].workUnits=workUnits;
+            timers[currentId].workUnitLabel=workUnitLabel;
+         }
+         else{
+            //no workUnits for this counter
+            timers[currentId].workUnits=-1.0;
+         }
+      }
+      
+      timers[currentId].time+=(stopTime-timers[currentId].startTime);
+      timers[currentId].count++;
+      
+      //go down in hierarchy    
+      currentId=timers[currentId].parentId;
+      return true;
+   }
 
-        timers[fullName].time+=(stopTime-startTime[currentLevel]);
-        timers[fullName].count++;
-        currentLevel--;
-
-        //collect information for overHead computation
-        startStopCalls++;
-        overHeadTime+=MPI_Wtime()-t1;
-        return true;
-    }
-    
-    
-    //print out global timers
-    // If any labels differ, then the print cannot proceed. It has to be consistent for all processes in communicator
-    bool print(MPI_Comm comm){
+   //print out global timers
+   // If any labels differ, then the print cannot proceed. It has to be consistent for all processes in communicator
+   bool print(MPI_Comm comm,double minParentFraction){
         int rank,nProcesses;
         int timersHash;
         vector<int> allTimersHash;
-
-        const int indentWidth=2; //how many spaces each level is indented
-        const int floatWidth=10; //width of float fields;
-        const int intWidth=6;   //width of int fields;
-        const int unitWidth=4;  //width of workunit label
         size_t labelWidth=0;    //width of first column with timer labels
         int totalWidth;       //total width of the table
+
+        //stop main timer, will not be printed, but is used to get total time and to get parent % for level=1 processes
+        stop(0);
+        
+        MPI_Comm_rank(comm,&rank);
+        MPI_Comm_size(comm,&nProcesses);
         
         //compute labelWidth
-        for (std::map<string,TimerData>::iterator timer=timers.begin();
+        for (vector<TimerData>::iterator timer=timers.begin();
              timer!=timers.end();++timer){
-            size_t width=timer->second.label.length()+timer->second.level*indentWidth;
+            size_t width=timer->label.length()+(timer->level-1)*indentWidth;
             labelWidth=max(labelWidth,width);
         }
         totalWidth=labelWidth+1+floatWidth*7+intWidth*2+unitWidth;
 
-        MPI_Comm_rank(comm,&rank);
-        MPI_Comm_size(comm,&nProcesses);
-
-
+        
+        //check that all processes have identical timers to avoid deadlocks
         timersHash=getTimersHash();
         allTimersHash.resize(nProcesses);
         MPI_Allgather(&timersHash,1,MPI_INT,&(allTimersHash[0]),1,MPI_INT,comm);
-
-        //check that all processes have identical number of labels to avoid deadlocks
         for(int i=0;i<nProcesses;i++){
             if(timersHash!=allTimersHash[i]){
                 if(rank==0){
-                    mpilogger <<"Error in profile::print, labels on different processes do not match" <<endl;
+                    mpilogger <<"Error in profile::print, labels, groups or workunits on different processes do not match" <<endl;
                 }
                 return false;
             }
@@ -247,161 +616,44 @@ namespace profile
         mpilogger <<resetiosflags( ios::floatfield );
         //set float precision
         mpilogger <<setprecision(floatWidth-6); //6 is needed for ".", "e+xx" and a space
-        //print out header
-        if(rank==0){
-            for(int i=0;i<totalWidth/2-5;i++)mpilogger <<"-";
-            mpilogger << " Profile ";
-            for(int i=0;i<totalWidth/2-5;i++)mpilogger <<"-";
-            mpilogger<<endl;
 
-            mpilogger<<setw(labelWidth+1)<< setiosflags(ios::left) << "";
-            mpilogger<<setw(4*floatWidth+2*intWidth) <<"Time(s)";
-            mpilogger<<setw(floatWidth)<<"Calls";
-            mpilogger<<setw(2*floatWidth)<<"Workunit-rate";
-            mpilogger<<endl;
-            
-            mpilogger<<setw(labelWidth+1)<< "Label";
-            //time
-            mpilogger<<setw(floatWidth) <<"Average";
-            mpilogger<<setw(floatWidth) <<"parent %";
-            mpilogger<<setw(floatWidth) <<"Maximum";
-            mpilogger<<setw(intWidth) << "Rank";
-            mpilogger<<setw(floatWidth)<< "Minimum";
-            mpilogger<<setw(intWidth) << "Rank";
-            //call count
-            mpilogger<<setw(floatWidth) << "Average";
-            // workunit rate
-            mpilogger<<setw(floatWidth) << "Average";
-            mpilogger<<setw(floatWidth) << "Per process";
-            mpilogger<<endl;
-            for(int i=0;i<totalWidth;i++) mpilogger <<"-";
-            mpilogger<<endl;            
-        }
 
-        //sort labels according to index (corresponds to first creation time)
-        std::vector<string> listOrder(timers.size(),"");
-        for (std::map<string,TimerData>::iterator timer=timers.begin();
-             timer!=timers.end();++timer){
-            listOrder[timer->second.index]=timer->first;
-        }
-
-        //loop over listOrder so that timers are printed in order of creation
-        for(unsigned int i=0;i<listOrder.size();i++){
-            double sum,parentSum;
-            double aveTime;
-            int intSum;
-            doubleRankPair in;
-            doubleRankPair out;
-            //get timer that is now to be computed
-            std::map<string,TimerData>::iterator timer=timers.find(listOrder[i]);
-
-            //first compute parent sum of times
-            if(timer->second.level>0){
-                in.val=timers[timer->second.parent].time;
-                in.rank=rank;
-                MPI_Reduce(&(in.val),&parentSum,1,MPI_DOUBLE,MPI_SUM,0,comm);
-            }
-            
-                
-            //then current timer sums
-            in.val=timer->second.time;
-            in.rank=rank;
-            MPI_Reduce(&(in.val),&sum,1,MPI_DOUBLE,MPI_SUM,0,comm);
-            
-            if(rank==0){
-                int indent=timer->second.level*indentWidth;
-                mpilogger<<setw(indent)<<"";
-                mpilogger<<setw(labelWidth+1-indent)<< setiosflags(ios::left)
-                    << timer->second.label;
-
-                aveTime= sum/nProcesses;
-                mpilogger << setw(floatWidth) << aveTime;
-                if(timer->second.level>0)
-                    mpilogger << setw(floatWidth) << 100.0*sum/parentSum;
-                else
-                    mpilogger << setw(floatWidth) << " ";
-                
-            }
-            MPI_Reduce(&in,&out,1,MPI_DOUBLE_INT,MPI_MAXLOC,0,comm);            
-            if(rank==0){
-                mpilogger << setw(floatWidth) << out.val;
-                mpilogger << setw(intWidth) <<out.rank;
-            }
-            
-            MPI_Reduce(&in,&out,1,MPI_DOUBLE_INT,MPI_MINLOC,0,comm);
-            if(rank==0){
-                mpilogger << setw(floatWidth) << out.val;
-                mpilogger << setw(intWidth)<<out.rank;
-            }
-            
-            //current count statistics
-            MPI_Reduce(&( timer->second.count),&intSum,1,MPI_INT,MPI_SUM,0,comm);
-            if(rank==0){
-                mpilogger << setw(floatWidth) << (double)intSum/nProcesses;
-            }
-             
-            //workunits/time statistics
-            double workUnits[2];
-            double sums[2];
-
-            workUnits[0]=timer->second.workUnits;
-            if (workUnits[0]<0)
-                workUnits[1]=1.0;//use this to check if for any process the units were not defined
-            else
-                workUnits[1]=0.0;
-            
-            MPI_Reduce(workUnits,sums,2,MPI_DOUBLE,MPI_SUM,0,comm);
-            //print if rank is zero, and units defined for all processes
-            if(rank==0 && sums[1] < 0.5){
-                mpilogger << setw(floatWidth) << sums[0]/aveTime;
-                mpilogger << setw(floatWidth) << sums[0]/aveTime/nProcesses;
-                mpilogger << timer->second.workUnitLabel<<"/s";
-            }
-            if(rank==0){
-                mpilogger<<endl;
-            }
-        }
-        //Overhead statistics
-        double sum;
-        double aveOverhead=overHeadTime/startStopCalls;
-        MPI_Reduce(&aveOverhead,&sum,1,MPI_DOUBLE,MPI_SUM,0,comm);
-        if(rank==0){
-            for(int i=0;i<totalWidth;i++) mpilogger <<"-";
-            mpilogger<<endl;
-            mpilogger << setw(labelWidth+1) << "Overhead per call";
-            mpilogger << setw(floatWidth) << sum/nProcesses;
-            mpilogger<<endl;
-        }
-        MPI_Reduce(&overHeadTime,&sum,1,MPI_DOUBLE,MPI_SUM,0,comm);
-        if(rank==0){
-            mpilogger << setw(labelWidth+1) << "Total profiling overhead";
-            mpilogger << setw(floatWidth) << sum/nProcesses;
-            mpilogger << endl;
-        }
-        
-        //footer line
-        if(rank==0){
-            for(int i=0;i<totalWidth;i++) mpilogger <<"-";
-            mpilogger<<endl<<write;          
-        }
+        //print header 
+        printHeader(minParentFraction,labelWidth,totalWidth,comm);
+        //print out all labels recursively
+        printTimers(minParentFraction,labelWidth,totalWidth,comm);
+        //print groups
+        printGroups(minParentFraction,labelWidth,totalWidth,comm);
+        //print footer  
+        printFooter(totalWidth,comm);
+        //start root timer again in case we continue and call print several times
+        start(0);
         return true;
     }
 }
 
 #else
-//Profiling disabled
 namespace profile 
 {
-    bool start(const std::string &label){return true;}
-    bool stop (const std::string &label,double workUnits,
-               const std::string &workUnitLabel){return true;}
-    bool print(MPI_Comm comm){return true;}
+   bool start(int id){return true;}
+   bool stop (int id,double workUnits,
+              const string &workUnitLabel){return true;}
+   bool start(const string &label){return true;}
+   bool stop (const string &label,double workUnits,
+              const string &workUnitLabel){return true;}
+   bool print(MPI_Comm comm,double minParentPercent){return true;}
+   int getId(const string &label) {return 0;}
+
+   int initializeTimer(const string &label,const vector<string> &groups) { return 0;}
+   int initializeTimer(const string &label,const string &group){return 0;}
+   int initializeTimer(const string &label){return 0;}
 }
+#endif
 
 #ifdef NO_MPILOGGER
     #undef mpilogger
     #undef write
 #endif
 
-#endif
+
 

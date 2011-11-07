@@ -51,6 +51,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "../priorityqueue.h"
 #include "limiters.h"
 #include "../project.h"
+#include "../profile.h"
 
 using namespace std;
 using namespace fieldsolver;
@@ -197,7 +198,6 @@ static void calculateDerivatives(
    namespace fs = fieldsolver;
    Real* const array       = mpiGrid[cellID]->cpu_derivatives;
    Real* const derivatives = array;
-   
    // Get boundary flag for the cell:
    #ifndef NDEBUG
       map<CellID,uint>::const_iterator it = boundaryFlags.find(cellID);
@@ -373,7 +373,7 @@ static void calculateDerivatives(
       CHECK_FLOAT(array[fs::dVydz])
       array[fs::dVzdz]  = limiter(left[cp::RHOVZ]/left[cp::RHO],cent[cp::RHOVZ]/cent[cp::RHO],rght[cp::RHOVZ]/rght[cp::RHO]);
       CHECK_FLOAT(array[fs::dVzdz])
-   } else {
+         } else {
       fieldSolverBoundaryCondDerivZ(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid);
    }
 }
@@ -1186,328 +1186,52 @@ static void propagateMagneticField(
 	creal& dt
 );
 
-/*
-void calculateDerivativesTaskQueue(ParGrid<SpatialCell>& mpiGrid,creal& dt,const vector<CellID>& localCells) {
-   bool allTasksCompleted = true;
-   CellID cellID = numeric_limits<CellID>::max();
-   uint priority = 0;
-   namespace fs = fieldsolver;
-   #ifndef NDEBUG
-      int myrank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
-   #endif
-   
-   // Exchange cellParams with neighbours (2nd order accuracy). Post receives:
-   mpiGrid.startSingleMode();
-   for (map<pair<int,int>,CellID>::const_iterator it=stencil1.recvs.begin(); it!=stencil1.recvs.end(); ++it) {
-      const int host     = it->first.first;
-      const int tag      = it->first.second;
-      const int bytes    = 7*sizeof(Real); // BX,BY,BZ,RHO,RHOVX,RHOVY,RHOVZ
-      const CellID nbrID = it->second;
-      char* buffer       = reinterpret_cast<char*>(mpiGrid[nbrID]->cpu_cellParams + CellParams::BX);
-      mpiGrid.singleReceive(nbrID,tag,bytes,buffer,nbrID);
-   }
-   // Post sends for cellParams:
-   for (multimap<CellID,pair<int,int> >::const_iterator it=stencil1.sends.begin(); it!=stencil1.sends.end(); ++it) {
-      const int host       = it->second.first;
-      const int tag        = it->second.second;
-      const int bytes      = 7*sizeof(Real);
-      const CellID localID = it->first;
-      char* buffer       = reinterpret_cast<char*>(mpiGrid[localID]->cpu_cellParams + CellParams::BX);
-      mpiGrid.singleSend(host,tag,bytes,buffer,localID);
-   }
-   // Derivatives are calculated during the first pass over local cells and then exchanged
-   // with remote processes. Post receives for derivatives:
-   mpiGrid.startSingleMode2();
-   for (map<pair<int,int>,CellID>::const_iterator it=stencil1.recvs.begin(); it!=stencil1.recvs.end(); ++it) {
-      const int host     = it->first.first;
-      const int tag      = it->first.second;
-      const CellID nbrID = it->second;
-      //const uint bytes   = (fs::dVzdz+1)*sizeof(Real);
-      const int bytes    = SIZE_DERIVATIVES*sizeof(Real);
-      char* buffer       = reinterpret_cast<char*>(mpiGrid[nbrID]->cpu_derivatives);
-      mpiGrid.singleReceive2(nbrID,tag,bytes,buffer,nbrID);
-   }
-   
-   // Push all inner local cell IDs into priority queue. Number of sends in derivatives
-   // stencil is used as cell's priority:
-   readyCells.clear();
-   for (set<CellID>::const_iterator it=stencil1.innerCells.begin(); it!=stencil1.innerCells.end(); ++it) {
-      const CellID cellID = *it;
-      const size_t N_sends = stencil1.sends.count(cellID);
-      readyCells.insert(cellID,N_sends);
-   }
-   
-   // Clear the number of received remote neighbours:
-   for (map<CellID,pair<uint,uint> >::iterator it=stencil1.neighbours.begin(); it!=stencil1.neighbours.end(); ++it) it->second.second = 0;
-   for (map<CellID,pair<uint,uint> >::iterator it=stencil2.neighbours.begin(); it!=stencil2.neighbours.end(); ++it) it->second.second = 0;
-   
-   size_t calculatedCells = 0;
-   size_t cellsToCalculate = stencil1.innerCells.size() + stencil1.boundaryCells.size();
-   do {
-      allTasksCompleted = true; // Will be set to false if any incomplete tasks are detected
-   
-      // Check if data has been received from remote processes. Flag
-      // local cells as ready to be computed if all required remote neighbour
-      // data has been received:
-      mpiGrid.singleModeWaitSome();
-      while (mpiGrid.getReadyCell(cellID) == true) {
-	 // Increase counter on all local cells requiring remote cell with ID cellID.
-	 // If all required data has arrived, push the local cell into readyCells.
-	 // Number of remote neighbours the local cell has in the derivatives
-	 // stencil is used as its computation priority:
-	 for (multimap<CellID,CellID>::const_iterator it=stencil1.remoteToLocalMap.lower_bound(cellID); it!=stencil1.remoteToLocalMap.upper_bound(cellID); ++it) {
-	    map<CellID,pair<uint,uint> >::iterator localCell = stencil1.neighbours.find(it->second);
-            #ifndef NDEBUG
-	    if (localCell == stencil1.neighbours.end()) {
-	       cerr << "ERROR could not find cell #" << it->second << " from stencil1.neighbours!" << endl;
-	       exit(1);
-	    }
-            #endif
-	    ++(localCell->second.second);
-	    if (localCell->second.second == localCell->second.first) {
-	       readyCells.insert(localCell->first,stencil1.sends.count(localCell->first));
-	    }
-	 }
-	 allTasksCompleted = false;
-      }
-      
-      // Check if a local cell can be computed:
-      if (readyCells.empty() == false) {
-	 readyCells.pop(cellID,priority);
-	 calculateDerivatives(cellID,mpiGrid);
-	 ++calculatedCells;
-	 
-	 // Send the derivatives to remote neighbours (if necessary):
-	 for (multimap<CellID,pair<int,int> >::const_iterator it=stencil1.sends.lower_bound(cellID); it!=stencil1.sends.upper_bound(cellID); ++it) {
-	    const int host       = it->second.first;
-	    const int tag        = it->second.second;
-	    //const int bytes      = (fs::dVzdz+1)*sizeof(Real);
-	    const int bytes      = SIZE_DERIVATIVES*sizeof(Real);
-	    const CellID localID = it->first;
-	    char* buffer         = reinterpret_cast<char*>(mpiGrid[localID]->cpu_derivatives);
-	    mpiGrid.singleSend2(host,tag,bytes,buffer,localID);
-	 }
-      }
-	 
-      if (calculatedCells != cellsToCalculate) allTasksCompleted = false;
-      //if (calculatedCells != localCells.size()) allTasksCompleted = false;      
-   } while (allTasksCompleted == false);
-   
-   // Clear the number of received cells in stencilCellParams:
-   for (map<CellID,pair<uint,uint> >::iterator it=stencil1.neighbours.begin(); it!=stencil1.neighbours.end(); ++it) it->second.second = 0;
-   
-   // Wait for all cellParams sends to complete:
-   cerr << "P#" << mpiGrid.rank() << " wait sends" << endl;
-   mpiGrid.singleModeWaitAllSends();   
-}
 
-void calculateUpwindedElectricFieldTaskQueue(ParGrid<SpatialCell>& mpiGrid,creal& dt,const vector<CellID>& localCells) {
-   bool allTasksCompleted = true;
-   CellID cellID = numeric_limits<CellID>::max();
-   uint priority = 0;
-   
-   // Post receives for cellParams (required for field propagation), upwinded 
-   // electric field is exchanged:
-   mpiGrid.startSingleMode();
-   for (map<pair<int,int>,CellID>::const_iterator it=stencil2.recvs.begin(); it!=stencil2.recvs.end(); ++it) {
-      const int host     = it->first.first;
-      const int tag      = it->first.second;
-      const CellID nbrID = it->second;
-      const int bytes    = 3*sizeof(Real); // EX,EY,EZ
-      char* buffer       = reinterpret_cast<char*>(mpiGrid[nbrID]->cpu_cellParams + CellParams::EX);
-      mpiGrid.singleReceive(nbrID,tag,bytes,buffer,nbrID);
-   }
-   
-   // Push all inner cells of derivatives stencil into readyCells:
-   readyCells.clear();
-   for (set<CellID>::const_iterator it=stencil1.innerCells.begin(); it!=stencil1.innerCells.end(); ++it) {
-      const CellID cellID = *it;
-      const size_t N_sends = stencil2.sends.count(cellID);
-      readyCells.insert(cellID,N_sends);
-   }   
-   
-   size_t calculatedCells = 0;
-   size_t cellsToCalculate = stencil1.innerCells.size() + stencil1.boundaryCells.size();
-   do {
-      allTasksCompleted = true; // Will be set to false if any incomplete tasks are detected
-      
-      // Check if data has been received from remote processes. Flag local cells that have all the
-      // required data on this process as ready:
-      mpiGrid.singleModeWaitSome2();
-      while (mpiGrid.getReadyCell2(cellID) == true) {
-	 for (multimap<CellID,CellID>::const_iterator it=stencil1.remoteToLocalMap.lower_bound(cellID); it!=stencil1.remoteToLocalMap.upper_bound(cellID); ++it) {
-	    map<CellID,pair<uint,uint> >::iterator localCell = stencil1.neighbours.find(it->second);
-            #ifndef NDEBUG
-	    if (localCell == stencil1.neighbours.end()) {
-	       cerr << "ERROR could not find cell #" << it->second << " from stencil1.neighbours!" << endl;
-	       exit(1);
-	    }
-            #endif
-	    ++(localCell->second.second);
-	    if (localCell->second.second == localCell->second.first) {
-	       readyCells.insert(localCell->first,stencil2.sends.count(localCell->first));
-	    }
-	 }
-	 allTasksCompleted = false;
-      }
-      
-      // Check if a local cell can be computed:
-      if (readyCells.empty() == false) {
-	 readyCells.pop(cellID,priority);
-	 cuint boundaryFlag = boundaryFlags[cellID];
-	 if ((boundaryFlag & CALCULATE_EX) == CALCULATE_EX) calculateEdgeElectricFieldX(cellID,mpiGrid);
-	 if ((boundaryFlag & CALCULATE_EY) == CALCULATE_EY) calculateEdgeElectricFieldY(cellID,mpiGrid);
-	 if ((boundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) calculateEdgeElectricFieldZ(cellID,mpiGrid);
-	 ++calculatedCells;
-	 
-	 // Send the calculated electric field to remote neighbours (if necessary):
-	 for (multimap<CellID,pair<int,int> >::const_iterator it=stencil2.sends.lower_bound(cellID); it!=stencil2.sends.upper_bound(cellID); ++it) {
-	    const int host       = it->second.first;
-	    const int tag        = it->second.second;
-	    const int bytes      = 3*sizeof(Real);
-	    const CellID localID = it->first;
-	    char* buffer         = reinterpret_cast<char*>(mpiGrid[localID]->cpu_cellParams + CellParams::EX);
-	    mpiGrid.singleSend(host,tag,bytes,buffer,localID);
-	 }
-      }
-      
-      if (calculatedCells != cellsToCalculate) allTasksCompleted = false;
-      //if (calculatedCells != localCells.size()) allTasksCompleted = false;
-   } while (allTasksCompleted == false);
-   
-   // Clear the number of received cells:
-   for (map<CellID,pair<uint,uint> >::iterator it=stencil2.neighbours.begin(); it!=stencil2.neighbours.end(); ++it) it->second.second = 0;
-   
-   // Wait for all derivative sends to complete:
-   mpiGrid.singleModeWaitAllSends2();
-}   
-
-void propagateMagneticFieldTaskQueue(ParGrid<SpatialCell>& mpiGrid,creal& dt,const vector<CellID>& localCells) {
-   bool allTasksCompleted = false;
-   CellID cellID = numeric_limits<CellID>::max();
-   uint priority = 0;
-   
-   // Post receives for new magnetic field components:
-   mpiGrid.startSingleMode2();
-   for (map<pair<int,int>,CellID>::const_iterator it=stencil2.recvs.begin(); it!=stencil2.recvs.end(); ++it) {
-      const int host     = it->first.first;
-      const int tag      = it->first.second;
-      const uint bytes   = 3*sizeof(Real);
-      const CellID nbrID = it->second;
-      char* const buffer = reinterpret_cast<char*>(mpiGrid[nbrID]->cpu_cellParams + CellParams::BX);
-      mpiGrid.singleReceive2(nbrID,tag,bytes,buffer,nbrID);
-   }
-   // Push all inner cells of cellParams stencil into readyCells:
-   readyCells.clear();
-   for (set<CellID>::const_iterator it=stencil2.innerCells.begin(); it!=stencil2.innerCells.end(); ++it) {
-      const CellID cellID = *it;
-      const size_t N_sends = stencil2.sends.count(cellID);
-      readyCells.insert(cellID,N_sends);
-   }
-   
-   size_t calculatedCells = 0;
-   size_t cellsToCalculate = stencil2.innerCells.size() + stencil2.boundaryCells.size();
-   do {
-      allTasksCompleted = true; // Will be set to false if any incomplete tasks are detected
-      
-      // Check if data has been received from remote processes. Increase
-      // counter on all local cells that need the arrived data. If a
-      // local has all required neighbour data insert it into readyCells.
-      mpiGrid.singleModeWaitSome();
-      while (mpiGrid.getReadyCell(cellID) == true) {
-	 for (multimap<CellID,CellID>::const_iterator it=stencil2.remoteToLocalMap.lower_bound(cellID); it!=stencil2.remoteToLocalMap.upper_bound(cellID); ++it) {
-	    map<CellID,pair<uint,uint> >::iterator localCell = stencil2.neighbours.find(it->second);
-            #ifndef NDEBUG
-	    if (localCell == stencil2.neighbours.end()) {
-	       cerr << "ERROR could not find cell #" << it->second << " from stencil2.neighbours!" << endl;
-	       exit(1);
-	    }
-            #endif
-	    ++(localCell->second.second);
-	    if (localCell->second.second == localCell->second.first) {
-	       readyCells.insert(localCell->first,stencil2.sends.count(localCell->first));
-	    }
-	 }
-	 allTasksCompleted = false;
-      }
-   
-      // Check if a local cell can be computed:
-      if (readyCells.empty() == false) {
-	 readyCells.pop(cellID,priority);
-	 
-	 // Propagate magnetic field forward in time.
-	 // Note: this function does not propagate faces that are outside the simulation volume -
-	 // those faces need to be calculated using boundary conditions. External faces are needed
-	 // if Hall term is included.
-	 propagateMagneticField(cellID,mpiGrid,dt);
-	 ++calculatedCells;
-	 
-	 // Send the new magnetic field to remote neighbours (if necessary):
-	 for (multimap<CellID,pair<int,int> >::const_iterator it=stencil2.sends.lower_bound(cellID); it!=stencil2.sends.upper_bound(cellID); ++it) {
-	    const int host       = it->second.first;
-	    const int tag        = it->second.second;
-	    const int bytes      = 3*sizeof(Real);
-	    const CellID localID = it->first;
-	    char* buffer         = reinterpret_cast<char*>(mpiGrid[localID]->cpu_cellParams + CellParams::BX);
-	    mpiGrid.singleSend2(host,tag,bytes,buffer,localID);
-	 }
-      }
-
-      if (calculatedCells != cellsToCalculate) allTasksCompleted = false;
-      //if (calculatedCells != localCells.size()) allTasksCompleted = false;
-   } while (allTasksCompleted == false);
-   
-   // Wait for cellParams sends to complete (edge E values):
-   mpiGrid.singleModeWaitAllSends();
-   
-   // Wait for cellParams recvs + sends to complete (new B values):
-   while (mpiGrid.getRemainingReceives2() > 0) mpiGrid.singleModeWaitSome2();
-   mpiGrid.singleModeWaitAllSends2();
-
-   // Calculate new B on faces outside the simulation domain using boundary conditions.
-   // Vector localCells contains all cells (local + remote neighbours) stored on this
-   // process, so boundary conditions are correctly calculated for remote ghost cells as well.
-   for (size_t cell=0; cell<localCells.size(); ++cell) { 
-      const CellID cellID = localCells[cell];
-      #ifndef NDEBUG
-         const map<CellID,uint>::const_iterator it = boundaryFlags.find(cellID);
-         if (it == boundaryFlags.end()) {cerr << "ERROR Could not find boundary flag for cell #" << cellID << endl; exit(1);}
-         cuint existingCells = it->second;
-      #else
-         cuint existingCells = boundaryFlags[cellID];
-      #endif
-      cuint nonExistingCells = (existingCells ^ numeric_limits<uint>::max());
-      if ((existingCells & PROPAGATE_BX) != PROPAGATE_BX)
-	mpiGrid[cellID]->cpu_cellParams[CellParams::BX] = fieldSolverBoundaryCondBx<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
-      if ((existingCells & PROPAGATE_BY) != PROPAGATE_BY)
-	mpiGrid[cellID]->cpu_cellParams[CellParams::BY] = fieldSolverBoundaryCondBy<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
-      if ((existingCells & PROPAGATE_BZ) != PROPAGATE_BZ)
-	mpiGrid[cellID]->cpu_cellParams[CellParams::BZ] = fieldSolverBoundaryCondBz<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
-   }
-}
-*/
 void calculateDerivativesSimple(
 	dccrg::Dccrg<SpatialCell>& mpiGrid,
 	const vector<CellID>& localCells
 ) {
+   int timer;
    namespace fs = fieldsolver;
+   profile::start("Calculate derivatives");
 
    // Exchange BX,BY,BZ,RHO,RHOVX,RHOVY,RHOVZ with neighbours
    SpatialCell::base_address_identifier = 3;
+
+   timer=profile::initializeTimer("Start comm of B  and RHOV","MPI");
+   profile::start(timer);
    mpiGrid.start_remote_neighbour_data_update();
+   profile::stop(timer);
+   
+   timer=profile::initializeTimer("Compute inner cells");
+   profile::start(timer);
    // Calculate derivatives on inner cells
    const vector<uint64_t> local_cells = mpiGrid.get_cells_with_local_neighbours();
    for (vector<uint64_t>::const_iterator cell = local_cells.begin(); cell != local_cells.end(); cell++) {
       calculateDerivatives(*cell,mpiGrid);
    }
-   // Calculate derivatives on boundary cells
+   profile::stop(timer);
+
+   timer=profile::initializeTimer("Wait for sends","MPI","Wait");
+   profile::start(timer);
    mpiGrid.wait_neighbour_data_update_receives();
+   profile::stop(timer);
+
+   // Calculate derivatives on boundary cells
+   timer=profile::initializeTimer("Compute boundary cells");
+   profile::start(timer);
    const vector<uint64_t> boundary_cells = mpiGrid.get_cells_with_remote_neighbour();
    for (vector<uint64_t>::const_iterator cell = boundary_cells.begin(); cell != boundary_cells.end(); cell++) {
        calculateDerivatives(*cell,mpiGrid);
    }
+   profile::stop(timer);
+
+   timer=profile::initializeTimer("Wait for sends","MPI","Wait");
+   profile::start(timer);
    mpiGrid.wait_neighbour_data_update_sends();
+   profile::stop(timer);
+   
+   profile::stop("Calculate derivatives");
 }
 
 void calculateUpwindedElectricFieldSimple(
@@ -1515,10 +1239,16 @@ void calculateUpwindedElectricFieldSimple(
 	const vector<CellID>& localCells
 ) {
    namespace fs = fieldsolver;
-
+   int timer;
+   profile::start("Calculate upwinded electric field");
    SpatialCell::base_address_identifier = 4;
+   timer=profile::initializeTimer("Start communication of derivatives","MPI");
+   profile::start(timer);
    mpiGrid.start_remote_neighbour_data_update();
-
+   profile::stop(timer);
+   
+   timer=profile::initializeTimer("Compute inner cells");
+   profile::start(timer);
    // Calculate upwinded electric field on inner cells
    const vector<uint64_t> local_cells = mpiGrid.get_cells_with_local_neighbours();
    for (vector<uint64_t>::const_iterator cell = local_cells.begin(); cell != local_cells.end(); cell++) {
@@ -1527,9 +1257,13 @@ void calculateUpwindedElectricFieldSimple(
       if ((boundaryFlag & CALCULATE_EY) == CALCULATE_EY) calculateEdgeElectricFieldY(*cell,mpiGrid);
       if ((boundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) calculateEdgeElectricFieldZ(*cell,mpiGrid);
    }
-
+   profile::stop(timer);
+   timer=profile::initializeTimer("Wait for receives","MPI","Wait");
+   profile::start(timer);
    mpiGrid.wait_neighbour_data_update_receives();
-
+   profile::stop(timer);
+   timer=profile::initializeTimer("Compute boundary cells");
+   profile::start(timer);
    // Calculate upwinded electric field on boundary cells:
    const vector<uint64_t> boundary_cells = mpiGrid.get_cells_with_remote_neighbour();
    for (vector<uint64_t>::const_iterator cell = boundary_cells.begin(); cell != boundary_cells.end(); cell++) {
@@ -1538,11 +1272,20 @@ void calculateUpwindedElectricFieldSimple(
       if ((boundaryFlag & CALCULATE_EY) == CALCULATE_EY) calculateEdgeElectricFieldY(*cell,mpiGrid);
       if ((boundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) calculateEdgeElectricFieldZ(*cell,mpiGrid);
    }
+   profile::stop(timer);
+   timer=profile::initializeTimer("Wait for sends","MPI","Wait");
+   profile::start(timer);
    mpiGrid.wait_neighbour_data_update_sends();
+   profile::stop(timer);
    
    // Exchange electric field with neighbouring processes
    SpatialCell::base_address_identifier = 6;
+   timer=profile::initializeTimer("Communicate electric fields","MPI","Wait");
+   profile::start(timer);
    mpiGrid.update_remote_neighbour_data();
+   profile::stop(timer);
+
+   profile::stop("Calculate upwinded electric field");
 }
 
 static void propagateMagneticFieldSimple(
@@ -1550,6 +1293,8 @@ static void propagateMagneticFieldSimple(
 	creal& dt,
 	const vector<CellID>& localCells
 ) {
+
+   profile::start("Propagate magnetic field");
    // Propagate B on all local cells:
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];
@@ -1582,6 +1327,8 @@ static void propagateMagneticFieldSimple(
          mpiGrid[cellID]->cpu_cellParams[CellParams::BZ] = fieldSolverBoundaryCondBz<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
       }
    }
+
+   profile::stop("Propagate magnetic field");
 }
 
 bool propagateFields(
@@ -2127,7 +1874,9 @@ void calculateVolumeAveragedFields(
 ) {
    // If fields are not propagated exit immediately. It is 
    // user's responsibility to set correct values to volume-averaged E,B-fields:
+   
    if (fieldsArePropagated == false) return;
+   profile::start("Calculate volume averaged fields");
    
    namespace fs = fieldsolver;
    namespace cp = CellParams;
@@ -2221,5 +1970,6 @@ void calculateVolumeAveragedFields(
 	 cellParams[cp::EZVOL] = 0.0;
       }
    }
+   profile::stop("Calculate volume averaged fields");
 }
 

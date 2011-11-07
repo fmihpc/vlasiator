@@ -344,7 +344,8 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    profile::stop("Boundary conditions (inner)",ghostInnerCellIds.size(),"Cells");
    
    // Post receives for avgs:
-   profile::start("(MPI) Start receives");
+   profile::initializeTimer("Start receives","MPI");
+   profile::start("Start receives");
    for (map<pair<int,int>,CellID>::iterator it=stencilAverages.recvs.begin(); it!=stencilAverages.recvs.end(); ++it) {
       cint host           = it->first.first;
       cint tag            = it->first.second;
@@ -355,10 +356,11 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       MPIrecvRequests.push_back(MPI_Request());
       MPI_Irecv(buffer,byteSize,MPI_BYTE,host,tag,MPI_COMM_WORLD,&(MPIrecvRequests.back()));      
    }
-   profile::stop("(MPI) Start receives");
+   profile::stop("Start receives");
 
    // Post sends for avgs:
-   profile::start("(MPI) Start sends");
+   profile::initializeTimer("Start sends","MPI");
+   profile::start("Start sends");
    for (multimap<CellID,pair<int,int> >::iterator it=stencilAverages.sends.begin(); it!=stencilAverages.sends.end(); ++it) {
        const CellID cellID = it->first;
        cint host           = it->second.first;
@@ -372,7 +374,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
           std::cerr << "calculateSpatialFlux failed to send data!" << std::endl;
       }
    }
-   profile::stop("(MPI) Start sends");
+   profile::stop("Start sends");
    
    // Clear spatial fluxes to zero value. Remote neighbour df/dt arrays 
    // need to be cleared as well:       
@@ -416,12 +418,13 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    profile::stop("df/dt in real space (inner)");
 
    // Wait for remote avgs:
-   profile::start("(MPI) Wait receives");
+   profile::initializeTimer("Wait receives","MPI","Wait");
+   profile::start("Wait receives");
    // Wait for all receives to complete:
    MPI_Waitall(MPIrecvRequests.size(),&(MPIrecvRequests[0]),MPI_STATUSES_IGNORE);
    // Free memory:
    MPIrecvRequests.clear();
-   profile::stop("(MPI) Wait receives");
+   profile::stop("Wait receives");
    
    // Apply boundary conditions on local ghost cells, these need to be up-to-date for 
    // boundary cell propagation below:
@@ -465,7 +468,8 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    profile::stop("df/dt in real space (boundary)");
    
    // Wait for sends to complete:
-   profile::start("(MPI) Wait sends");
+   profile::initializeTimer("Wait sends","MPI","Wait");
+   profile::start("Wait sends");
 #ifdef NDEBUG
    MPI_Waitall(MPIsendRequests.size(),&(MPIsendRequests[0]),MPI_STATUSES_IGNORE);
 #else
@@ -478,7 +482,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 #endif
    MPIsendRequests.clear();
    
-   profile::stop("(MPI) Wait sends");
+   profile::stop("Wait sends");
    profile::stop("calculateSpatialFluxes");
 }
 
@@ -508,7 +512,8 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
    
    MPIsendRequests.clear(); 
    MPIrecvRequests.clear();
-   profile::start("(MPI) Start receives");
+   profile::initializeTimer("Start receives","MPI");
+   profile::start("Start receives");
    for (map<pair<int,int>,CellID>::const_iterator it=stencilUpdates.recvs.begin(); it!=stencilUpdates.recvs.end(); ++it) {
       const CellID localID  = it->second;
       cint host             = it->first.first;
@@ -521,8 +526,9 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
       MPI_Irecv(buffer,SIZE_DFDT,MPI_BYTE,host,tag,MPI_COMM_WORLD,&(MPIrecvRequests.back()));
 
    }
-   profile::stop("(MPI) Start receives");
-   profile::start("(MPI) Start sends");
+   profile::stop("Start receives");
+   profile::initializeTimer("Start sends","MPI");
+   profile::start("Start sends");
    // Post sends for remote updates:
    for (multimap<CellID,pair<int,int> >::const_iterator it=stencilUpdates.sends.begin(); it!=stencilUpdates.sends.end(); ++it) {
       const CellID nbrID    = it->first;
@@ -536,7 +542,7 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
           std::cerr << "calculateSpatialPropagation failed to send data!" << std::endl;
       }
    }
-   profile::stop("(MPI) Start sends");
+   profile::stop("Start sends");
    
    profile::start("Spatial translation (inner)");
 //cpu_propagetSpatWithMoments only write to data in cell cellID, parallel for safe
@@ -569,12 +575,13 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
    profile::stop("Spatial translation (inner)");
    
    // Wait for remote neighbour updates to arrive:
-   profile::start("(MPI) Wait receives");
+   profile::initializeTimer("Wait receives","MPI","Wait");
+   profile::start("Wait receives");
    // Wait for all receives to complete:
    MPI_Waitall(MPIrecvRequests.size(),&(MPIrecvRequests[0]),MPI_STATUSES_IGNORE);
    // Free memory:
    MPIrecvRequests.clear();
-   profile::stop("(MPI) Wait receives");
+   profile::stop("Wait receives");
 
       
    // Sum remote neighbour updates to the first receive buffer of each 
@@ -624,7 +631,8 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
    profile::stop("Spatial translation (boundary)");
 
    // Wait for neighbour update sends:
-   profile::start("(MPI) Wait sends");
+   profile::initializeTimer("Wait sends","MPI","Wait");
+   profile::start("Wait sends");
 #ifdef NDEBUG
    MPI_Waitall(MPIsendRequests.size(),&(MPIsendRequests[0]),MPI_STATUSES_IGNORE);
 #else
@@ -637,7 +645,7 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
 #endif
    // Free memory:
    MPIsendRequests.clear();
-   profile::stop("(MPI) Wait sends");
+   profile::stop("Wait sends");
    profile::stop("calculateSpatialPropagation");
 }
 

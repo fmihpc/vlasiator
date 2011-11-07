@@ -21,14 +21,33 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 namespace profile 
 {
-    //start a profiling block with a certain label
-    bool start(const std::string &label);
-    //stop a profiling block with a certain label
+   //initialize a timer, with a particular label belonging to some groups    
+   //returns id of new timer. If timer exists, then that id is returned.
+   int initializeTimer(const std::string &label);
+   int initializeTimer(const std::string &label,const std::string &group1);
+   int initializeTimer(const std::string &label,const std::string &group1,const std::string &group2);
+   int initializeTimer(const std::string &label,const std::string &group1,const std::string &group2,const std::string &group3);
+   int initializeTimer(const std::string &label,const std::vector<std::string> &groups);
 
-    
-    bool stop (const std::string &label,
-               double workUnits=-1.0,
-               const std::string &workUnitLabel="");
-    bool print(MPI_Comm comm);
+
+   //get id number of a timer, return -1 if it does not exist
+   int getId(const std::string &label);
+   
+   //Start a profiling block with a certain label
+   //If timer does not exist, then it is created
+   bool start(const std::string &label);
+   //start a profiling block with a certain id
+   bool start(int id);
+
+   //stop a profiling block with a certain label
+   bool stop (const std::string &label,
+              double workUnits=-1.0,
+              const std::string &workUnitLabel="");
+   //stop a profiling block with a certain id
+   bool stop (int id,
+              double workUnits=-1.0,
+              const std::string &workUnitLabel="");
+
+   bool print(MPI_Comm comm,double minParentFraction=0.0);
 }
 #endif
