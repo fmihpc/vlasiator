@@ -91,7 +91,7 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
 		  {
 		     avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz);
 		  }
-		  return avg / (DiffP::nSpaceSamples*DiffP::nSpaceSamples*DiffP::nSpaceSamples) / (DiffP::nVelocitySamples*DiffP::nVelocitySamples*DiffP::nVelocitySamples);
+   return avg / (DiffP::nSpaceSamples*DiffP::nSpaceSamples*DiffP::nSpaceSamples) / (DiffP::nVelocitySamples*DiffP::nVelocitySamples*DiffP::nVelocitySamples);
 	       
 }
 
