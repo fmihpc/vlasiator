@@ -4,7 +4,7 @@ ARCH = meteo
 include Makefile.${ARCH}
 
 #set FP precision to SP (single) or DP (double)
-FP_PRECISION = SP
+FP_PRECISION = DP
 CXXFLAGS += -D${FP_PRECISION} 
 
 #set a default archive utility, can also be set in Makefile.arch
@@ -206,7 +206,7 @@ projinstall:
 	make project -C projects "INSTALL=${INSTALL}" "PROJ=${PROJ}"
 
 profile.o: ${DEPS_PROFILE}
-	${CMP} $(CXXFLAGS) $(FLAGS) -c profile.cpp
+	${CMP} $(CXXFLAGS) $(FLAGS) -DMPILOGGER -c profile.cpp 
 
 vlscommon.o: ${DEPS_VLSCOMMON}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlscommon.cpp
