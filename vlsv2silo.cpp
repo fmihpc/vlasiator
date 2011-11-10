@@ -25,6 +25,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <sstream>
 #include <dirent.h>
 
+#include <mpi.h>
+
 #include "vlsvreader2.h"
 #include "definitions.h"
 
@@ -411,8 +413,12 @@ bool convertSILO(const string& fname) {
 }
 
 int main(int argn,char* args[]) {
+   int ntasks, rank;
+   MPI_Init(&argn, &args);
+   MPI_Comm_size(MPI_COMM_WORLD, &ntasks);
+   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    
-   if (argn < 2) {
+   if (rank == 0 && argn < 2) {
       cout << endl;
       cout << "USAGE: ./vlsv2vtk <input file mask(s)>" << endl;
       cout << "Each VLSV in the current directory is compared against the given file mask(s)," << endl;
@@ -420,17 +426,18 @@ int main(int argn,char* args[]) {
       cout << endl;
       return 1;
    }
-   
+
    // Convert file masks into strings:
-   vector<string> masks;
+   vector<string> masks, fileList;
    for (int i=1; i<argn; ++i) masks.push_back(args[i]);
 
    // Compare directory contents against each mask:
    const string directory = ".";
    const string suffix = ".vlsv";
+   int filesFound = 0, entryCounter = 0, filesConverted = 0;
    for (size_t mask=0; mask<masks.size(); ++mask) {
-      cout << "Comparing mask '" << masks[mask] << "'" << endl;
-      unsigned int filesConverted = 0;
+      if(rank == 0) {cout << "Comparing mask '" << masks[mask] << "'" << endl;}
+//      unsigned int filesConverted = 0, entryCounter = 0;
       DIR* dir = opendir(directory.c_str());
       if (dir == NULL) continue;
       
@@ -442,20 +449,26 @@ int main(int argn,char* args[]) {
 	    entry = readdir(dir);
 	    continue;
 	 }
-	 cout << "\t converting '" << entryName << "'" << endl;
-	 convertSILO(entryName);
-	 ++filesConverted;
+	 fileList.push_back(entryName);
+	 filesFound++;
 	 entry = readdir(dir);
       }
       closedir(dir);
-      
-      if (filesConverted == 0) cout << "\t no matches found" << endl;
+      if (rank == 0 && filesFound == 0) cout << "\t no matches found" << endl;
    }
+   
+   for(size_t entryName = 0; entryName < fileList.size(); entryName++) {
+      if(entryCounter++%ntasks == rank) {
+         cout << "\tProc " << rank << " converting '" << fileList[entryName] << "'" << endl;
+         convertSILO(fileList[entryName]);
+	 filesConverted++;
+      }
+   }
+   
+   int totalFilesConverted =0;   
+   MPI_Reduce(&filesConverted, &totalFilesConverted, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+   if (rank == 0 && totalFilesConverted == 0) cout << "\t no files converted" << endl;
+   
+   MPI_Finalize();
    return 0;
 }
-
-
-
-
-
-

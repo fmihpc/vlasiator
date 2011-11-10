@@ -421,7 +421,12 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader,const string& meshName,const 
 }
 
 int main(int argn,char* args[]) {
-   if (argn != 3) {
+   int ntasks, rank;
+   MPI_Init(&argn, &args);
+   MPI_Comm_size(MPI_COMM_WORLD, &ntasks);
+   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+   
+   if (rank == 0 && argn != 3) {
       cout << endl;
       cout << "USAGE: ./vlsvextract <file name mask> <cell ID>" << endl;
       cout << endl;
@@ -447,6 +452,8 @@ int main(int argn,char* args[]) {
    }
    
    VLSVReader vlsvReader;
+   int filesFound = 0, entryCounter = 0;
+   vector<string> fileList;
    struct dirent* entry = readdir(dir);
    while (entry != NULL) {
       const string entryName = entry->d_name;
@@ -454,69 +461,76 @@ int main(int argn,char* args[]) {
 	 entry = readdir(dir);
 	 continue;
       }
-      
-      // Open VLSV file and read mesh names:
-      vlsvReader.open(entryName);
-      list<string> meshNames;
-      if (vlsvReader.getMeshNames(meshNames) == false) {
-	 cout << "\t file '" << entryName << "' not compatible" << endl;
-	 vlsvReader.close();
-	 entry = readdir(dir);
-	 continue;
-      }
-      
-      // Create a new file suffix for the output file:
-      stringstream ss1;
-      ss1 << ".silo";
-      string newSuffix;
-      ss1 >> newSuffix;
-
-      // Create a new file prefix for the output file:
-      stringstream ss2;
-      ss2 << "velgrid" << '.' << cellID;
-      string newPrefix;
-      ss2 >> newPrefix; 
-      
-      // Replace .vlsv with the new suffix:
-      string fileout = entryName;
-      size_t pos = fileout.rfind(".vlsv");
-      if (pos != string::npos) fileout.replace(pos,5,newSuffix);
-      
-      pos = fileout.find(".");
-      if (pos != string::npos) fileout.replace(0,pos,newPrefix);
-      
-      // Create a SILO file for writing:
-      fileptr = DBCreate(fileout.c_str(),DB_CLOBBER,DB_LOCAL,"Vlasov data file",DB_PDB);
-      if (fileptr == NULL) {
-	 cerr << "\t failed to create output SILO file for input file '" << entryName << "'" << endl;
-	 DBClose(fileptr);
-	 vlsvReader.close();
-	 entry = readdir(dir);
-	 continue;
-      }
-      
-      // Extract velocity grid from VLSV file, if possible, and convert into SILO format:
-      bool velGridExtracted = true;
-      for (list<string>::const_iterator it=meshNames.begin(); it!=meshNames.end(); ++it) {
-	 if (convertVelocityBlocks2(vlsvReader,*it,cellID) == false) {
-	    velGridExtracted = false;
-	 } else {
-	    cout << "\t extracted from '" << entryName << "'" << endl;
-	 }
-      }
-      DBClose(fileptr);
-      
-      // If velocity grid was not extracted, delete the SILO file:
-      if (velGridExtracted == false) {
-	 if (remove(fileout.c_str()) != 0) {
-	    cerr << "\t ERROR: failed to remote dummy output file!" << endl;
-	 }
-      }
-      
-      vlsvReader.close();
+      fileList.push_back(entryName);
+      filesFound++;
       entry = readdir(dir);
    }
+   if (rank == 0 && filesFound == 0) cout << "\t no matches found" << endl;
    closedir(dir);
+   
+   for(size_t entryName = 0; entryName < fileList.size(); entryName++) {
+      if(entryCounter++%ntasks == rank) {
+	 // Open VLSV file and read mesh names:
+	 vlsvReader.open(fileList[entryName]);
+	 list<string> meshNames;
+	 if (vlsvReader.getMeshNames(meshNames) == false) {
+	    cout << "\t file '" << fileList[entryName] << "' not compatible" << endl;
+	    vlsvReader.close();
+	    continue;
+	 }
+	 
+	 // Create a new file suffix for the output file:
+	 stringstream ss1;
+	 ss1 << ".silo";
+	 string newSuffix;
+	 ss1 >> newSuffix;
+
+	 // Create a new file prefix for the output file:
+	 stringstream ss2;
+	 ss2 << "velgrid" << '.' << cellID;
+	 string newPrefix;
+	 ss2 >> newPrefix; 
+	 
+	 // Replace .vlsv with the new suffix:
+	 string fileout = fileList[entryName];
+	 size_t pos = fileout.rfind(".vlsv");
+	 if (pos != string::npos) fileout.replace(pos,5,newSuffix);
+	 
+	 pos = fileout.find(".");
+	 if (pos != string::npos) fileout.replace(0,pos,newPrefix);
+	 
+	 // Create a SILO file for writing:
+	 fileptr = DBCreate(fileout.c_str(),DB_CLOBBER,DB_LOCAL,"Vlasov data file",DB_PDB);
+	 if (fileptr == NULL) {
+	    cerr << "\t failed to create output SILO file for input file '" << fileList[entryName] << "'" << endl;
+	    DBClose(fileptr);
+	    vlsvReader.close();
+	    continue;
+	 }
+	 
+	 // Extract velocity grid from VLSV file, if possible, and convert into SILO format:
+	 bool velGridExtracted = true;
+	 for (list<string>::const_iterator it=meshNames.begin(); it!=meshNames.end(); ++it) {
+	    if (convertVelocityBlocks2(vlsvReader,*it,cellID) == false) {
+	       velGridExtracted = false;
+	    } else {
+	       cout << "\t extracted from '" << fileList[entryName] << "'" << endl;
+	    }
+	 }
+	 DBClose(fileptr);
+	 
+	 // If velocity grid was not extracted, delete the SILO file:
+	 if (velGridExtracted == false) {
+	    if (remove(fileout.c_str()) != 0) {
+	       cerr << "\t ERROR: failed to remote dummy output file!" << endl;
+	    }
+	 }
+	 
+	 vlsvReader.close();
+      }
+   }
+   
+   MPI_Finalize();
    return 0;
 }
 
