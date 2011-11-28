@@ -2,7 +2,7 @@
 #define VELOCITY_ROTATION_H
 
 #include "definitions.h"
-#include "cell_spatial.h"
+#include "spatial_cell.hpp"
 #include "projects/projects_common.h"
 #include "projects/projects_fieldboundary.h"
 #include "projects/projects_vlasov_acceleration.h"

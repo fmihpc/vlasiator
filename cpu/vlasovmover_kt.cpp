@@ -31,7 +31,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <mpilogger.h>
 #include <definitions.h>
 #include <parameters.h>
-#include <cell_spatial.h>
+#include <spatial_cell.hpp>
 #include <project.h>
 #include "vlasovmover.h"
 #include <profile.h>

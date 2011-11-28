@@ -29,7 +29,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "mpilogger.h"
 #include "parameters.h"
 #include "grid.h"
-#include "cell_spatial.h"
+#include "spatial_cell.hpp"
 #include "gridbuilder.h"
 #include "datareducer.h"
 #include "datareductionoperator.h"
@@ -54,7 +54,7 @@ bool inistate = true;
 using namespace std;
 //using namespace CellParams;
 
-void initSpatialCells(const dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm) {
+void initSpatialCells(const dccrg::Dccrg<Spatial_Cell>& mpiGrid,boost::mpi::communicator& comm) {
     typedef Parameters P;
 
    vector<uint64_t> cells = mpiGrid.get_cells();
@@ -83,7 +83,7 @@ void initSpatialCells(const dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::commu
 }
 
 
-bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const bool& writeRestart) {
+bool writeGrid(const dccrg::Dccrg<Spatial_Cell>& mpiGrid,DataReducer& dataReducer,const bool& writeRestart) {
     double allStart = MPI_Wtime();
     bool success = true;
     int myrank;
@@ -115,9 +115,9 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    // buffer and write:
    Real* buffer = new Real[6*cells.size()];
    for (size_t i=0; i<cells.size(); ++i) {
-      SpatialCell* SC = mpiGrid[cells[i]];
+      Spatial_Cell* SC = mpiGrid[cells[i]];
       for (int j=0; j<6; ++j) {
-	 buffer[6*i+j] = SC->cpu_cellParams[j];
+	 buffer[6*i+j] = SC->parameters[j];
       }
    }
    if (vlsvWriter.writeArray("COORDS","SpatialGrid",attribs,cells.size(),6,buffer) == false) {
@@ -162,18 +162,20 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    }
    
    attribs.clear();
-
+//START TO WRITE RESTART
+   
    // Write spatial cell parameters:
-   Real* paramsBuffer = new Real[cells.size()*CellParams::SIZE_CELLPARAMS];
-   for (size_t i=0; i<cells.size(); ++i) for (uint j=0; j<CellParams::SIZE_CELLPARAMS; ++j) 
+   Real* paramsBuffer = new Real[cells.size()*CellParams::N_SPATIAL_CELL_PARAMS];
+   for (size_t i=0; i<cells.size(); ++i) for (uint j=0; j<CellParams::N_SPATIAL_CELL_PARAMS; ++j) 
       paramsBuffer[i*CellParams::SIZE_CELLPARAMS+j] = mpiGrid[cells[i]]->cpu_cellParams[j];   
-   if (vlsvWriter.writeArray("CELLPARAMS","SpatialGrid",attribs,cells.size(),CellParams::SIZE_CELLPARAMS,paramsBuffer) == false) {
+   if (vlsvWriter.writeArray("CELLPARAMS","SpatialGrid",attribs,cells.size(),CellParams::N_SPATIAL_CELL_PARAMS,paramsBuffer) == false) {
       mpilogger << "(MAIN) writeGrid: ERROR failed to write spatial cell parameters!" << endl << write;
       success = false;
    }
    delete paramsBuffer;
    
    // Write the number of spatial neighbours each cell has:
+   //FIXME, this does nothing sensible
    uchar* N_neighbours = new uchar[cells.size()];
    uint64_t neighbourSum = 0;
    for (size_t i=0; i<cells.size(); ++i) {
@@ -192,26 +194,38 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    uint* N_blocks = new uint[cells.size()];
    uint64_t totalBlocks = 0;
    for (size_t cell=0; cell<cells.size(); ++cell) {
-      N_blocks[cell] = mpiGrid[cells[cell]]->N_blocks;
-      totalBlocks += mpiGrid[cells[cell]]->N_blocks;
+      N_blocks[cell] = mpiGrid[cells[cell]]->velocity_blocks.size();
+      totalBlocks += mpiGrid[[cell]]->velocity_blocks.size();
    }
    if (vlsvWriter.writeArray("NBLOCKS","SpatialGrid",attribs,cells.size(),1,N_blocks) == false) success = false;
    if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to write NBLOCKS to file!" << endl << write;
 
    double start = MPI_Wtime();
-   
+
    // Write velocity block coordinates. At this point the data may get too large to be buffered, 
-   // so a "multi-write" mode is used - coordinates are written one velocity grid at a time. Besides, 
-   // the velocity block coordinates are already stored in a suitable format for writing in SpatialCells:
-   if (vlsvWriter.startMultiwrite("float",totalBlocks,SIZE_BLOCKPARAMS,sizeof(Real)) == false) success = false;
+   // so a "multi-write" mode is used - coordinates are written one velocity grid at a time.
+
+   if (vlsvWriter.startMultiwrite("float",totalBlocks,BlockParams::N_VELOCITY_BLOCK_PARAMS,sizeof(Real)) == false) success = false;
    if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to start BLOCKCOORDINATES multiwrite!" << endl << write;
    if (success == true) {
-      SpatialCell* SC;
+      Spatial_Cell* SC;
+      std::vector<Real> velocityBlockParameters;
       for (size_t cell=0; cell<cells.size(); ++cell) {
-	 SC = mpiGrid[cells[cell]];
-	 if (vlsvWriter.multiwriteArray(N_blocks[cell],SC->cpu_blockParams) == false) success = false;
+         int index=0;
+         SC = mpiGrid[cells[cell]];
+         if(velocityBlockParameters.size()<SC->velocity_blocks.size()*BlockParams::N_VELOCITY_BLOCK_PARAMS){
+            velocityBlockParameters.resize(SC->velocity_blocks.size()*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+         }
+         for (boost::unordered_map < unsigned int, Velocity_block >::iterator it=SC->velocity_blocks.begin();
+              it!=SC->velocity_blocks.end();++it){
+            for (unsigned int p=0;p<BlockParams::N_VELOCITY_BLOCK_PARAMS;p++){
+               velocityBlockParameters[index++]=it->parameters[p];
+            }
+         }
+         if (vlsvWriter.multiwriteArray(N_blocks[cell],velocityBlockParameters) == false) success = false;
       }
    }
+
    if (success == true) {
       if (vlsvWriter.endMultiwrite("BLOCKCOORDINATES","SpatialGrid",attribs) == false) success = false;
       if (success == false) mpilogger << "(MAIN) writeGrid: ERROR occurred when ending BLOCKCOORDINATES multiwrite!" << endl << write;
@@ -222,37 +236,35 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to start BLOCKVARIABLE avgs multiwrite!" << endl << write;
    if (success == true) {
       uint64_t counter = 0;
-      SpatialCell* SC;
+      std::vector<Real> velocityBlockData;
+      Spatial_Cell* SC;
       for (size_t cell=0; cell<cells.size(); ++cell) {
+         int index=0;
 	 SC = mpiGrid[cells[cell]];
-	 if (vlsvWriter.multiwriteArray(N_blocks[cell],SC->cpu_avgs) == false) success = false;
+         if(velocityBlockData.size()<SC->velocity_blocks.size()*SIZE_VELBLOCK){
+            velocityBlockData.resize(SC->velocity_blocks.size()*SIZE_VELBLOCK);
+         }
+         for (boost::unordered_map <unsigned int,Velocity_block>::iterator it=SC->velocity_blocks.begin();
+              it!=SC->velocity_blocks.end();++it){
+            for (unsigned int vc=0;vc<SIZE_VELBLOCK;vc++){
+               velocityBlockData[index++]=it->data[vc];
+            }
+         }
+	 if (vlsvWriter.multiwriteArray(N_blocks[cell],velocityBlockData) == false) success = false;
 	 //if (vlsvWriter.multiwriteArray(counter,N_blocks[cell],SC->cpu_fx) == false) success = false;
 	 counter += N_blocks[cell];
       }
    }
+   
+
+   
    attribs["mesh"] = "SpatialGrid";
    if (success == true) {
       if (vlsvWriter.endMultiwrite("BLOCKVARIABLE","avgs",attribs) == false) success = false;
       if (success == false) mpilogger << "(MAIN) writeGrid: ERROR occurred when ending BLOCKVARIABLE avgs multiwrite!" << endl << write;
    }
    
-   // Write velocity block neighbour lists:
-   if (vlsvWriter.startMultiwrite("uint",totalBlocks,SIZE_NBRS_VEL,sizeof(uint)) == false) {
-      success = false;
-      mpilogger << "(MAIN) writeGrid: ERROR failed to start BLOCKNBRS multiwrite!" << endl << write;
-   } else {
-      SpatialCell* SC;
-      for (size_t cell=0; cell<cells.size(); ++cell) {
-	 SC = mpiGrid[cells[cell]];
-	 if (vlsvWriter.multiwriteArray(N_blocks[cell],SC->cpu_nbrsVel) == false) success = false;
-      }
-   }
-   if (success == true) {
-      if (vlsvWriter.endMultiwrite("BLOCKNBRS","SpatialGrid",attribs) == false) {
-	 success = false;
-	 mpilogger << "(MAIN) writeGrid: ERROR occurred when ending BLOCKNBRS multiwrite!" << endl << write;
-      }
-   }
+
    double end = MPI_Wtime();
    delete N_blocks;
 
@@ -262,7 +274,8 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    
    double bytesWritten = totalBlocks*((SIZE_VELBLOCK+SIZE_BLOCKPARAMS)*sizeof(Real)+(SIZE_NBRS_VEL)*sizeof(uint));
    double secs = end-start;
-   mpilogger << "Wrote " << bytesWritten/1.0e6 << " MB of data in " << secs << " seconds, datarate is " << bytesWritten/secs/1.0e9 << " GB/s" << endl << write;
+   //FIXME, should be global info
+   //mpilogger << "Wrote " << bytesWritten/1.0e6 << " MB of data in " << secs << " seconds, datarate is " << bytesWritten/secs/1.0e9 << " GB/s" << endl << write;
    
    double allSecs = allEnd-allStart;
    if (myrank == 0) mpilogger << "All data written in " << allSecs << " seconds" << endl << write;
@@ -272,14 +285,14 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
 }
 
 void exchangeVelocityGridMetadata(
-	dccrg::Dccrg<SpatialCell>& mpiGrid
+	dccrg::Dccrg<Spatial_Cell>& mpiGrid
 ) {
-   SpatialCell::base_address_identifier = 5;
+   Spatial_Cell::base_address_identifier = 5;
    mpiGrid.update_remote_neighbour_data();
 }
    
 
-void log_send_receive_info(const dccrg::Dccrg<SpatialCell>& mpiGrid) {
+void log_send_receive_info(const dccrg::Dccrg<Spatial_Cell>& mpiGrid) {
    mpilogger << "Number of sends / receives:" << endl;
    mpilogger << "\tto other MPI processes   = " << mpiGrid.get_number_of_update_send_cells() << endl;
    mpilogger << "\tfrom other MPI processes = " << mpiGrid.get_number_of_update_receive_cells() << endl;
@@ -417,7 +430,7 @@ int main(int argn,char* args[]) {
       mpilogger << "(MAIN) Grid built successfully" << endl << write;
    }
    
-   dccrg::Dccrg<SpatialCell> mpiGrid;
+   dccrg::Dccrg<Spatial_Cell> mpiGrid;
    mpiGrid.set_geometry(
       P::xcells_ini, P::ycells_ini, P::zcells_ini,
       P::xmin, P::ymin, P::zmin,
@@ -436,51 +449,8 @@ int main(int argn,char* args[]) {
       0, // maximum refinement level
       P::periodic_x, P::periodic_y, P::periodic_z
    );
-
-   //read in partitioning levels from input
-   RP::addComposing("dccrg.partition_procs","Procs per load balance group");
-   RP::addComposing("dccrg.partition_lb_method","Load balance method");
-   RP::addComposing("dccrg.partition_imbalance_tol","Imbalance tolerance");
    
-   RP::parse();
-   vector<int> partitionProcs;
-   vector<string> partitionLbMethod;
-   vector<string> partitionImbalanceTol;
-   RP::get("dccrg.partition_procs",partitionProcs);
-   RP::get("dccrg.partition_lb_method",partitionLbMethod);
-   RP::get("dccrg.partition_imbalance_tol",partitionImbalanceTol);
-   
-   //check that all options set for all levels
-   if ( partitionProcs.size()!=partitionLbMethod.size() ||
-        partitionProcs.size()!=partitionImbalanceTol.size()){
-      if(myrank==0){
-         cerr << "DCCRG partition levels not defined completely! Needed options per level are:" <<endl;
-         cerr << " partition_procs "<<endl << " partition_lb_method " <<endl << " partition_imbalance_tol " <<endl;
-      }
-      MPI_Finalize();
-      exit(1);
-   }
-   
-   // set default values if nothing has been defined
-   if ( partitionProcs.size()==0){
-/*               partitionProcs.push_back(1);
-                 partitionLbMethod.push_back("HYPERGRAPH");
-                 partitionImbalanceTol.push_back("1.1");*/
-      mpiGrid.set_partitioning_option("IMBALANCE_TOL", "1.05");
-   }
-   
-   //set options 
-   for(unsigned int i=0;i<partitionProcs.size();i++){
-      // set hierarchial partitioning parameters for first level
-      if(myrank==0){
-         mpilogger << "(MAIN) Partition parameters level "<<i <<" procs: " << partitionProcs[i] << " LB_METHOD: " <<
-            partitionLbMethod[i]<< " IMBALANCE_TOL: "<< partitionImbalanceTol[i] << endl << write;
-      }
-      
-      mpiGrid.add_partitioning_level(partitionProcs[i]);
-      mpiGrid.add_partitioning_option(i, "LB_METHOD", partitionLbMethod[i]);
-      mpiGrid.add_partitioning_option(i, "IMBALANCE_TOL", partitionImbalanceTol[i]);
-   }
+   mpiGrid.set_partitioning_option("IMBALANCE_TOL", "1.05");
    
    profile::start("Initial load-balancing");
    if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting initial load balance." << endl << write;
@@ -511,7 +481,7 @@ int main(int argn,char* args[]) {
       cell_id != incoming_cells->end();
       cell_id++
    ) {
-      SpatialCell* cell = mpiGrid[*cell_id];
+      Spatial_Cell* cell = mpiGrid[*cell_id];
       if (cell == NULL) {
          cerr << "No data for spatial cell " << *cell_id << endl;
          abort();

@@ -2,7 +2,7 @@
 #define HARM1D_H
 
 #include "definitions.h"
-#include "cell_spatial.h"
+#include "spatial_cell.hpp"
 #include "parameters.h"
 #include "projects/projects_common.h"
 #include "projects/projects_fieldboundary.h"

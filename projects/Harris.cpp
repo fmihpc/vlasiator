@@ -3,7 +3,7 @@
 #include <iomanip>
 #include <cmath>
 
-#include "cell_spatial.h"
+#include "spatial_cell.hpp"
 #include "common.h"
 #include "project.h"
 #include "parameters.h"

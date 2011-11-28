@@ -2,7 +2,7 @@
 #define HARM1D_H
 
 #include "definitions.h"
-#include "cell_spatial.h"
+#include "spatial_cell.hpp"
 #include "arrayallocator.h"
 #include "fieldsolver.h"
 #include "projects/projects_common.h"

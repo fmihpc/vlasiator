@@ -23,7 +23,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <vector>
 #include <mpi.h>
 #include "definitions.h"
-#include "cell_spatial.h"
+#include "spatial_cell.hpp"
 
 bool buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
 		      creal& zmin,creal& dx,creal& dy,creal& dz,

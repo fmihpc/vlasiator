@@ -27,7 +27,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "mpiconversion.h"
 #include "common.h"
 #include "parameters.h"
-#include "cell_spatial.h"
+#include "spatial_cell.hpp"
 #include "project.h"
 #include "gridbuilder.h"
 
@@ -128,17 +128,17 @@ bool buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
    typedef Parameters P;
 
    // Set up cell parameters:
-   cell.cpu_cellParams[CellParams::XCRD] = xmin;
-   cell.cpu_cellParams[CellParams::YCRD] = ymin;
-   cell.cpu_cellParams[CellParams::ZCRD] = zmin;
-   cell.cpu_cellParams[CellParams::DX  ] = dx;
-   cell.cpu_cellParams[CellParams::DY  ] = dy;
-   cell.cpu_cellParams[CellParams::DZ  ] = dz;
-   calcCellParameters(cell.cpu_cellParams,0.0);
-   cell.cpu_cellParams[CellParams::RHO  ] = 0.0;
-   cell.cpu_cellParams[CellParams::RHOVX] = 0.0;
-   cell.cpu_cellParams[CellParams::RHOVY] = 0.0;
-   cell.cpu_cellParams[CellParams::RHOVZ] = 0.0;
+   cell.parameters[CellParams::XCRD] = xmin;
+   cell.parameters[CellParams::YCRD] = ymin;
+   cell.parameters[CellParams::ZCRD] = zmin;
+   cell.parameters[CellParams::DX  ] = dx;
+   cell.parameters[CellParams::DY  ] = dy;
+   cell.parameters[CellParams::DZ  ] = dz;
+   calcCellParameters(cell.parameters,0.0);
+   cell.parameters[CellParams::RHO  ] = 0.0;
+   cell.parameters[CellParams::RHOVX] = 0.0;
+   cell.parameters[CellParams::RHOVY] = 0.0;
+   cell.parameters[CellParams::RHOVZ] = 0.0;
    
    // Go through each velocity block in the velocity phase space grid.
    // Set the initial state and block parameters:
@@ -178,10 +178,10 @@ bool buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
 	   calcPhaseSpaceDensity(xmin,ymin,zmin,dx,dy,dz,vx_cell,vy_cell,vz_cell,dvx_blockCell,dvy_blockCell,dvz_blockCell);
 	 
 	 // Add contributions to spatial cell velocity moments:
-	 cell.cpu_cellParams[CellParams::RHO  ] += avgs[velIndex*SIZE_VELBLOCK + kc*WID2+jc*WID+ic]*dV;
-	 cell.cpu_cellParams[CellParams::RHOVX] += avgs[velIndex*SIZE_VELBLOCK + kc*WID2+jc*WID+ic]*(vx_block + (ic+convert<Real>(0.5))*dvx_blockCell)*dV;
-	 cell.cpu_cellParams[CellParams::RHOVY] += avgs[velIndex*SIZE_VELBLOCK + kc*WID2+jc*WID+ic]*(vy_block + (jc+convert<Real>(0.5))*dvy_blockCell)*dV;
-	 cell.cpu_cellParams[CellParams::RHOVZ] += avgs[velIndex*SIZE_VELBLOCK + kc*WID2+jc*WID+ic]*(vz_block + (kc+convert<Real>(0.5))*dvz_blockCell)*dV;
+	 cell.parameters[CellParams::RHO  ] += avgs[velIndex*SIZE_VELBLOCK + kc*WID2+jc*WID+ic]*dV;
+	 cell.parameters[CellParams::RHOVX] += avgs[velIndex*SIZE_VELBLOCK + kc*WID2+jc*WID+ic]*(vx_block + (ic+convert<Real>(0.5))*dvx_blockCell)*dV;
+	 cell.parameters[CellParams::RHOVY] += avgs[velIndex*SIZE_VELBLOCK + kc*WID2+jc*WID+ic]*(vy_block + (jc+convert<Real>(0.5))*dvy_blockCell)*dV;
+	 cell.parameters[CellParams::RHOVZ] += avgs[velIndex*SIZE_VELBLOCK + kc*WID2+jc*WID+ic]*(vz_block + (kc+convert<Real>(0.5))*dvz_blockCell)*dV;
       }
       // Create velocity neighbour list entry:
       uint nbrFlags = 0;
@@ -203,11 +203,11 @@ bool buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
       }
       nbrsVel[velIndex*SIZE_NBRS_VEL + NbrsVel::NBRFLAGS] = nbrFlags;	 
    }
-   creal spatialVolume = cell.cpu_cellParams[CellParams::DX]*cell.cpu_cellParams[CellParams::DY]*cell.cpu_cellParams[CellParams::DZ];
-   cell.cpu_cellParams[CellParams::RHO  ] /= spatialVolume;
-   cell.cpu_cellParams[CellParams::RHOVX] /= spatialVolume;
-   cell.cpu_cellParams[CellParams::RHOVY] /= spatialVolume;
-   cell.cpu_cellParams[CellParams::RHOVZ] /= spatialVolume;
+   creal spatialVolume = cell.parameters[CellParams::DX]*cell.parameters[CellParams::DY]*cell.parameters[CellParams::DZ];
+   cell.parameters[CellParams::RHO  ] /= spatialVolume;
+   cell.parameters[CellParams::RHOVX] /= spatialVolume;
+   cell.parameters[CellParams::RHOVY] /= spatialVolume;
+   cell.parameters[CellParams::RHOVZ] /= spatialVolume;
    return true;
 }
 

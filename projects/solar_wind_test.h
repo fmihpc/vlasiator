@@ -8,7 +8,7 @@ using namespace std;
 #endif
 
 #include "definitions.h"
-#include "cell_spatial.h"
+#include "spatial_cell.hpp"
 
 #ifndef PARGRID
 	#define DCCRG_SEND_SINGLE_CELLS

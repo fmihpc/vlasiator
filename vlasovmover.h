@@ -22,7 +22,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <vector>
 
 #include "definitions.h"
-#include "cell_spatial.h"
+#include "spatial_cell.hpp"
 
 bool finalizeMover();
 

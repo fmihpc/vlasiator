@@ -21,7 +21,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "definitions.h"
 #include "common.h"
-#include "cell_spatial.h"
+#include "spatial_cell.hpp"
 #include "project.h"
 #include "leveque_common.h"
 

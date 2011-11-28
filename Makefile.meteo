@@ -15,14 +15,14 @@ FLAGS =
 CC_BRAND = gcc
 CC_BRAND_VERSION = 4.5.2
 CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x #-W -Wall -pedantic
-#CXXFLAGS += -DCRAY_TOPOLOGY_OPTIMIZATION
+CXXFLAGS += -DCRAY_TOPOLOGY_OPTIMIZATION
 MATHFLAGS = -ffast-math
 LDFLAGS =
 LIB_MPI = -lgomp -lrca  
 
 #Add for threaded multiple mode: -lmpich_threadm
 
- #INTEL flags:
+#INTEL flags:
 #CC_BRAND = intel
 #CC_BRAND_VERSION = 11.1.046
 #CXXFLAGS += -O3 -fast -openmp 

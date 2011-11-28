@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "iostream"
 #include "string"
 
-#include "cell_spatial.h"
+#include "spatial_cell.hpp"
 #include "common.h"
 #include "mpilogger.h"
 #include "parameters.h"
