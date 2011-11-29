@@ -50,6 +50,10 @@ MPILogger mpilogger;
 bool inistate = true;
 
 using namespace std;
+
+
+//FIXME, move all except main out of vlasiator.cpp
+
 //using namespace CellParams;
 
 void initSpatialCells(const dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm) {
@@ -61,8 +65,28 @@ void initSpatialCells(const dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::commu
     Spatial_Cell::set_mpi_transfer_type(0);
     mpiGrid.update_remote_neighbour_data();
     vector<uint64_t> cells = mpiGrid.get_cells();
+
+    /*CHECK WITH ILJA, what are these, what is needed */
+   // Receive N_blocks from remote neighbours
+   exchangeVelocityGridMetadata(mpiGrid);
+   // reserve space for velocity blocks in local copies of remote neighbors
+   
+   const boost::unordered_set<uint64_t>* incoming_cells = mpiGrid.get_remote_cells_with_local_neighbours();
+   for (boost::unordered_set<uint64_t>::const_iterator
+      cell_id = incoming_cells->begin();
+      cell_id != incoming_cells->end();
+      cell_id++
+   ) {
+      SpatialCell* cell = mpiGrid[*cell_id];
+      if (cell == NULL) {
+         cerr << "No data for spatial cell " << *cell_id << endl;
+         abort();
+      }
+      cell->initialize(cell->N_blocks);
+   }
+   
     
-    // Go through every cell on this node and initialize the pointers to 
+    //  Go through every cell on this node and initialize the pointers to 
     // cpu memory, physical parameters and volume averages for each phase space 
     // point in the velocity grid. Velocity block neighbour list is also 
    // constructed here:
@@ -97,20 +121,22 @@ void initSpatialCells(const dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::commu
    // update complete spatial cell data
    Spatial_Cell::set_mpi_transfer_type(6);
    spatial_grid.update_remote_neighbour_data();       
+
+
+   
+   profile::start("Fetch Neighbour data");
+   // Fetch neighbour data:
+   // FIXME: add a mpi_datatype to send all cell data
+   P::transmit = 5;
+   mpiGrid.update_remote_neighbour_data(); // TEST
+   profile::stop("Fetch Neighbour data");
    
 }
 
-bool readConfigFile(int argn, char **argc){
+bool readConfigFile(){
    profile::start("Read parameters");
    typedef Parameters P;
    typedef Readparameters RP;
-   Readparameters readparameters(argn,args,MPI_COMM_WORLD);
-   readparameters.parse();
-   if (readparameters.isInitialized() == false) {
-       success = false;
-       cerr << "(MAIN) Readparameters failed to init, aborting!" << endl;
-       return 1;
-   }
 
    // Read in some parameters
    // Parameters related to solar wind simulations:
@@ -122,6 +148,7 @@ bool readConfigFile(int argn, char **argc){
    // Parameters related to saving data:
    // WARNING: Some of these parameters may become deprecated in the future.
 
+   //FIXME: Better hierarchy for variables
    RP::add("save_interval", "Save the simulation every arg time steps",1);
    RP::add("restart_interval","Save the complete simulation every arg time steps",numeric_limits<uint>::max());
    RP::add("save_spatial_grid", "Save spatial cell averages for the whole simulation",true);
@@ -444,6 +471,8 @@ void exchangeVelocityGridMetadata(
    
 
 void log_send_receive_info(const dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   //.FIXME, this should print global data (ave, max, min...)
+
    mpilogger << "Number of sends / receives:" << endl;
    mpilogger << "\tto other MPI processes   = " << mpiGrid.get_number_of_update_send_cells() << endl;
    mpilogger << "\tfrom other MPI processes = " << mpiGrid.get_number_of_update_receive_cells() << endl;
@@ -478,8 +507,17 @@ int main(int argn,char* args[]) {
    profile::start("main");
    profile::start("Initialization");
 
+   //init parameter file reader
+   Readparameters readparameters(argn,args,MPI_COMM_WORLD);
+   readparameters.parse();
+   if (readparameters == false) {
+       success = false;
+       cerr << "(MAIN) Readparameters failed to init, aborting!" << endl;
+       return 1;
+   }
+
    // Read parameter file 
-   if (readConfigFile(argn,args)  == false) {
+   if (readConfigFile()  == false) {
       cerr << "Failed to read parameter file" << endl;
       exit(1);
    }
@@ -516,6 +554,7 @@ int main(int argn,char* args[]) {
       P::dx_ini, P::dy_ini, P::dz_ini
    );
 
+   //FIXME: HYPERGRAPH and IMBLANACE_TOL should be read in from parameter file 
    mpiGrid.initialize(
       comm,
       "HYPERGRAPH",
@@ -534,7 +573,6 @@ int main(int argn,char* args[]) {
    if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting initial load balance." << endl << write;
    initialLoadBalance(mpiGrid);
    profile::stop("Initial load-balancing");
-   
    profile::stop("Initialize Grid");
 
    // If initialization was not successful, abort.
@@ -548,37 +586,15 @@ int main(int argn,char* args[]) {
    }
    
    if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting up." << endl << write;
-   
-   // Receive N_blocks from remote neighbours
-   exchangeVelocityGridMetadata(mpiGrid);
-   // reserve space for velocity blocks in local copies of remote neighbors
-   
-   const boost::unordered_set<uint64_t>* incoming_cells = mpiGrid.get_remote_cells_with_local_neighbours();
-   for (boost::unordered_set<uint64_t>::const_iterator
-      cell_id = incoming_cells->begin();
-      cell_id != incoming_cells->end();
-      cell_id++
-   ) {
-      SpatialCell* cell = mpiGrid[*cell_id];
-      if (cell == NULL) {
-         cerr << "No data for spatial cell " << *cell_id << endl;
-         abort();
-      }
-      cell->initialize(cell->N_blocks);
-   }
-   
+
+
    // Go through every spatial cell on this CPU, and create the initial state:
 
    profile::start("Set initial state");
    initSpatialCells(mpiGrid,comm);
    profile::stop("Set initial state");
 
-   profile::start("Fetch Neighbour data");
-   // Fetch neighbour data:
-   // FIXME: add a mpi_datatype to send all cell data
-   P::transmit = 5;
-   mpiGrid.update_remote_neighbour_data(); // TEST
-   profile::stop("Fetch Neighbour data");
+
    log_send_receive_info(mpiGrid);
    
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
@@ -620,6 +636,7 @@ int main(int argn,char* args[]) {
    
    // Free up memory:
    readparameters.finalize();
+
    profile::start("Save initial state");
    // Write initial state:
    if (P::save_spatial_grid) {
@@ -636,6 +653,8 @@ int main(int argn,char* args[]) {
    profile::stop("Initialization");
    comm.barrier();
 
+   
+   
    inistate = false;
    // Main simulation loop:
    if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting main simulation loop." << endl << write;
@@ -645,15 +664,6 @@ int main(int argn,char* args[]) {
    unsigned int computedSpatialCells=0;
    profile::start("Simulation");
    for (luint tstep=P::tstep_min; tstep < P::tsteps; ++tstep) {
-#ifdef CRAYPAT //turn on & off sampling & tracing
-       if(tstep==(luint)tracingFirstStep){
-           PAT_state(PAT_STATE_ON);
-       }
-       if(tstep==(luint)tracingLastStep+1){
-           PAT_state(PAT_STATE_OFF);
-       }
-#endif
-
        
        //compute how many spatial cells we solve for this step
        computedSpatialCells=mpiGrid.get_cells().size();
