@@ -24,6 +24,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <mpi.h>
 #include "definitions.h"
 #include "spatial_cell.hpp"
+using namespace vlasiator;
+using namespace spatial_cell;
 
 bool buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
 		      creal& zmin,creal& dx,creal& dy,creal& dz,

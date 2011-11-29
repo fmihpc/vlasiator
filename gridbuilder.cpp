@@ -126,7 +126,6 @@ bool buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
 		      creal& zmin,creal& dx,creal& dy,creal& dz,
 		     const bool& isRemote) {
    typedef Parameters P;
-
    // Set up cell parameters:
    cell.parameters[CellParams::XCRD] = xmin;
    cell.parameters[CellParams::YCRD] = ymin;
@@ -139,69 +138,48 @@ bool buildSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
    cell.parameters[CellParams::RHOVX] = 0.0;
    cell.parameters[CellParams::RHOVY] = 0.0;
    cell.parameters[CellParams::RHOVZ] = 0.0;
-   
+
    // Go through each velocity block in the velocity phase space grid.
    // Set the initial state and block parameters:
+   
    creal dvx_block = (P::vxmax-P::vxmin)/P::vxblocks_ini; // Size of a block in vx-direction
    creal dvy_block = (P::vymax-P::vymin)/P::vyblocks_ini; //                    vy
    creal dvz_block = (P::vzmax-P::vzmin)/P::vzblocks_ini; //                    vz
    creal dvx_blockCell = dvx_block / WID;                 // Size of one cell in a block in vx-direction
    creal dvy_blockCell = dvy_block / WID;                 //                                vy
    creal dvz_blockCell = dvz_block / WID;                 //                                vz
-   creal dV = dvx_blockCell*dvy_blockCell*dvz_blockCell;  // Volume of one cell in a block
-   Real* const blockParams = cell.cpu_blockParams;
-   Real* const avgs = cell.cpu_avgs;
-   uint* const nbrsVel = cell.cpu_nbrsVel;
 
+   
    for (uint kv=0; kv<P::vzblocks_ini; ++kv) for (uint jv=0; jv<P::vyblocks_ini; ++jv) for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
-      cuint velIndex = velblock(iv, jv, kv);
-      
+      cuint velIndex = velblock(iv, jv, kv);      
       creal vx_block = P::vxmin + iv*dvx_block; // vx-coordinate of the lower left corner
       creal vy_block = P::vymin + jv*dvy_block; // vy-
       creal vz_block = P::vzmin + kv*dvz_block; // vz-
-      
-      calcBlockParameters(blockParams + velIndex*SIZE_BLOCKPARAMS);
-      blockParams[velIndex*SIZE_BLOCKPARAMS + BlockParams::VXCRD] = vx_block;
-      blockParams[velIndex*SIZE_BLOCKPARAMS + BlockParams::VYCRD] = vy_block;
-      blockParams[velIndex*SIZE_BLOCKPARAMS + BlockParams::VZCRD] = vz_block;
-      blockParams[velIndex*SIZE_BLOCKPARAMS + BlockParams::DVX  ] = dvx_blockCell;
-      blockParams[velIndex*SIZE_BLOCKPARAMS + BlockParams::DVY  ] = dvy_blockCell;
-      blockParams[velIndex*SIZE_BLOCKPARAMS + BlockParams::DVZ  ] = dvz_blockCell;
 
+      calcBlockParameters(blockParams + velIndex*SIZE_BLOCKPARAMS);
+      
       if (isRemote == true) continue;
       // Calculate volume average of distrib. function for each cell in the block.
       for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
 	 creal vx_cell = vx_block + ic*dvx_blockCell;
 	 creal vy_cell = vy_block + jc*dvy_blockCell;
 	 creal vz_cell = vz_block + kc*dvz_blockCell;
-	 avgs[velIndex*SIZE_VELBLOCK + kc*WID2+jc*WID+ic] =
-	   calcPhaseSpaceDensity(xmin,ymin,zmin,dx,dy,dz,vx_cell,vy_cell,vz_cell,dvx_blockCell,dvy_blockCell,dvz_blockCell);
-	 
-	 // Add contributions to spatial cell velocity moments:
-	 cell.parameters[CellParams::RHO  ] += avgs[velIndex*SIZE_VELBLOCK + kc*WID2+jc*WID+ic]*dV;
-	 cell.parameters[CellParams::RHOVX] += avgs[velIndex*SIZE_VELBLOCK + kc*WID2+jc*WID+ic]*(vx_block + (ic+convert<Real>(0.5))*dvx_blockCell)*dV;
-	 cell.parameters[CellParams::RHOVY] += avgs[velIndex*SIZE_VELBLOCK + kc*WID2+jc*WID+ic]*(vy_block + (jc+convert<Real>(0.5))*dvy_blockCell)*dV;
-	 cell.parameters[CellParams::RHOVZ] += avgs[velIndex*SIZE_VELBLOCK + kc*WID2+jc*WID+ic]*(vz_block + (kc+convert<Real>(0.5))*dvz_blockCell)*dV;
+         Real average=calcPhaseSpaceDensity(xmin,ymin,zmin,dx,dy,dz,vx_cell,vy_cell,vz_cell,dvx_blockCell,dvy_blockCell,dvz_blockCell);
+
+         //FIXME, should the spatialcell even add the average if it is under the treshold? This simple check should be enough anyway.
+         if(average>0){
+            creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
+            creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
+            creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
+            cell.set_value(vx_cell_center,vy_cell_center,vz_cell_center,average);
+            // Add contributions to spatial cell velocity moments: 
+            creal dV = dvx_blockCell*dvy_blockCell*dvz_blockCell;  // Volume of one cell in a block      
+            cell.parameters[CellParams::RHO  ] += average*dV;
+            cell.parameters[CellParams::RHOVX] += average*vx_cell_center*dV;
+            cell.parameters[CellParams::RHOVY] += average*vy_cell_center*dV;
+            cell.parameters[CellParams::RHOVZ] += average*vz_cell_center*dV;
+         }
       }
-      // Create velocity neighbour list entry:
-      uint nbrFlags = 0;
-      for (uint kkv=0; kkv<3; ++kkv) for (uint jjv=0; jjv<3; ++jjv) for (uint iiv=0; iiv<3; ++iiv) {
-	 // By default set the block as non-existing:
-	 nbrsVel[velIndex*SIZE_NBRS_VEL + kkv*9+jjv*3+iiv] = numeric_limits<uint>::max();
-	 
-	 // Then check if the block actually exists:
-	 cuint iindex = iv + iiv - 1;
-	 cuint jindex = jv + jjv - 1;
-	 cuint kindex = kv + kkv - 1;
-	 if (iindex >= P::vxblocks_ini) continue;
-	 if (jindex >= P::vyblocks_ini) continue;
-	 if (kindex >= P::vzblocks_ini) continue;
-	 
-	 // Block exists, override values set above:
-	 nbrsVel[velIndex*SIZE_NBRS_VEL + kkv*9+jjv*3+iiv] = velblock(iindex,jindex,kindex);
-	 nbrFlags = (nbrFlags | (1 << (kkv*9+jjv*3+iiv)));
-      }
-      nbrsVel[velIndex*SIZE_NBRS_VEL + NbrsVel::NBRFLAGS] = nbrFlags;	 
    }
    creal spatialVolume = cell.parameters[CellParams::DX]*cell.parameters[CellParams::DY]*cell.parameters[CellParams::DZ];
    cell.parameters[CellParams::RHO  ] /= spatialVolume;

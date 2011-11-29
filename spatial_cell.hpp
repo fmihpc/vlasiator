@@ -22,64 +22,21 @@ Spatial cell class for Vlasiator that supports a variable number of velocity blo
 #include "vector"
 
 #include "common.h"
+#include "parameters.h"
+
 
 namespace vlasiator {
 namespace spatial_cell {
 
-
-/**************************************
-	User-modifiable part
-**************************************/
-
-// range of velocity grid in m/s
-const double cell_vx_min = -1e6;
-const double cell_vx_max = +1e6;
-const double cell_vy_min = -1e6;
-const double cell_vy_max = +1e6;
-const double cell_vz_min = -1e6;
-const double cell_vz_max = +1e6;
-
+   
 // length of a velocity block in velocity cells
-#ifdef SPATIAL_CELL_BLOCK_LEN_X
-const unsigned int block_len_x = SPATIAL_CELL_BLOCK_LEN_X;
-#else
 const unsigned int block_len_x = WID;
-#endif
-#ifdef SPATIAL_CELL_BLOCK_LEN_Y
-const unsigned int block_len_y = SPATIAL_CELL_BLOCK_LEN_Y;
-#else
 const unsigned int block_len_y = WID;
-#endif
-#ifdef SPATIAL_CELL_BLOCK_LEN_Z
-const unsigned int block_len_z = SPATIAL_CELL_BLOCK_LEN_Z;
-#else
 const unsigned int block_len_z = WID;
-#endif
 
-// lengths of spatial cells' velocity grid in velocity blocks
-#ifdef SPATIAL_CELL_LEN_X
-const unsigned int cell_len_x = SPATIAL_CELL_LEN_X;
-#else
-const unsigned int cell_len_x = 10;
-#endif
-#ifdef SPATIAL_CELL_LEN_Y
-const unsigned int cell_len_y = SPATIAL_CELL_LEN_Y;
-#else
-const unsigned int cell_len_y = 10;
-#endif
-#ifdef SPATIAL_CELL_LEN_Z
-const unsigned int cell_len_z = SPATIAL_CELL_LEN_Z;
-#else
-const unsigned int cell_len_z = 10;
-#endif
-
-/*******************************************
-	End of user-modifiable part
-*******************************************/
-
-const double cell_dvx = (cell_vx_max - cell_vx_min) / (cell_len_x * block_len_x);
-const double cell_dvy = (cell_vy_max - cell_vy_min) / (cell_len_y * block_len_y);
-const double cell_dvz = (cell_vz_max - cell_vz_min) / (cell_len_z * block_len_z);
+const double cell_dvx = (P::vxmax - P::vxmin) / (P::vxblocks_ini * block_len_x);
+const double cell_dvy = (P::vymax - P::vymin) / (P::vyblocks_ini * block_len_y);
+const double cell_dvz = (P::vzmax - P::vzmin) / (P::vzblocks_ini * block_len_z);
 
 // constants for directions for example in neighbour lists
 const unsigned int neg_x_dir = 0;
@@ -177,12 +134,12 @@ as a block that would be outside of the velocity grid in this cell
 */
 const unsigned int error_velocity_block = std::numeric_limits<unsigned int>::max();
 
-const unsigned int max_velocity_blocks = cell_len_x * cell_len_y * cell_len_z;
+const unsigned int max_velocity_blocks = P::vxblocks_ini * P::vyblocks_ini * P::vzblocks_ini;
 
 
-const double cell_dx = (cell_vx_max - cell_vx_min) / cell_len_x;
-const double cell_dy = (cell_vy_max - cell_vy_min) / cell_len_y;
-const double cell_dz = (cell_vz_max - cell_vz_min) / cell_len_z;
+const double cell_dx = (P::vxmax - P::vxmin) / P::vxblocks_ini;
+const double cell_dy = (P::vymax - P::vymin) / P::vyblocks_ini;
+const double cell_dz = (P::vzmax - P::vzmin) / P::vzblocks_ini;
 
 // TODO: typedef unsigned int velocity_cell_t;
 // TODO: typedef unsigned int velocity_block_t;
@@ -200,9 +157,9 @@ velocity_block_indices_t get_velocity_block_indices(const unsigned int block) {
 	if (block >= max_velocity_blocks) {
 		indices[0] = indices[1] = indices[2] = error_velocity_block_index;
 	} else {
-		indices[0] = block % cell_len_x;
-		indices[1] = (block / cell_len_x) % cell_len_y;
-		indices[2] = block / (cell_len_x * cell_len_y);
+		indices[0] = block % P::vxblocks_ini;
+		indices[1] = (block / P::vxblocks_ini) % P::vyblocks_ini;
+		indices[2] = block / (P::vxblocks_ini * P::vyblocks_ini);
 	}
 
 	return indices;
@@ -213,13 +170,13 @@ velocity_block_indices_t get_velocity_block_indices(const unsigned int block) {
 Returns the velocity block at given indices or error_velocity_block
 */
 unsigned int get_velocity_block(const velocity_block_indices_t indices) {
-	if (indices[0] >= cell_len_x
-	|| indices[1] >= cell_len_y
-	|| indices[2] >= cell_len_z) {
+	if (indices[0] >= P::vxblocks_ini
+	|| indices[1] >= P::vyblocks_ini
+	|| indices[2] >= P::vzblocks_ini) {
 		return error_velocity_block;
 	}
 
-	return indices[0] + indices[1] * cell_len_x + indices[2] * cell_len_x * cell_len_y;
+	return indices[0] + indices[1] * P::vxblocks_ini + indices[2] * P::vxblocks_ini * P::vyblocks_ini;
 }
 
 /*!
@@ -232,16 +189,16 @@ unsigned int get_velocity_block(
 	const double vz
 )
 {
-	if (vx < cell_vx_min || vx >= cell_vx_max
-	|| vy < cell_vy_min || vy >= cell_vy_max
-	|| vz < cell_vz_min || vz >= cell_vz_max) {
+	if (vx < P::vxmin || vx >= P::vxmax
+	|| vy < P::vymin || vy >= P::vymax
+	|| vz < P::vzmin || vz >= P::vzmax) {
 		return error_velocity_block;
 	}
 
 	const velocity_block_indices_t indices = {
-		(unsigned int) floor((vx - cell_vx_min) / cell_dx),
-		(unsigned int) floor((vy - cell_vy_min) / cell_dy),
-		(unsigned int) floor((vz - cell_vz_min) / cell_dz)
+		(unsigned int) floor((vx - P::vxmin) / cell_dx),
+		(unsigned int) floor((vy - P::vymin) / cell_dy),
+		(unsigned int) floor((vz - P::vzmin) / cell_dz)
 	};
 
 	return get_velocity_block(indices);
@@ -274,7 +231,7 @@ unsigned int get_velocity_block(
 		break;
 
 	case pos_x_dir:
-		if (indices[0] >= cell_len_x - 1) {
+		if (indices[0] >= P::vxblocks_ini - 1) {
 			return error_velocity_block;
 		} else {
 			return block + 1;
@@ -285,15 +242,15 @@ unsigned int get_velocity_block(
 		if (indices[1] == 0) {
 			return error_velocity_block;
 		} else {
-			return block - cell_len_x;
+			return block - P::vxblocks_ini;
 		}
 		break;
 
 	case pos_y_dir:
-		if (indices[1] >= cell_len_y - 1) {
+		if (indices[1] >= P::vyblocks_ini - 1) {
 			return error_velocity_block;
 		} else {
-			return block + cell_len_x;
+			return block + P::vxblocks_ini;
 		}
 		break;
 
@@ -301,15 +258,15 @@ unsigned int get_velocity_block(
 		if (indices[2] == 0) {
 			return error_velocity_block;
 		} else {
-			return block - cell_len_x * cell_len_y;
+			return block - P::vxblocks_ini * P::vyblocks_ini;
 		}
 		break;
 
 	case pos_z_dir:
-		if (indices[2] >= cell_len_z - 1) {
+		if (indices[2] >= P::vzblocks_ini - 1) {
 			return error_velocity_block;
 		} else {
-			return block + cell_len_x * cell_len_y;
+			return block + P::vxblocks_ini * P::vyblocks_ini;
 		}
 		break;
 
@@ -337,7 +294,7 @@ double get_velocity_block_vx_min(const unsigned int block) {
 		return std::numeric_limits<double>::quiet_NaN();
 	}
 
-	return cell_vx_min + cell_dx * indices[0];
+	return P::vxmin + cell_dx * indices[0];
 }
 
 /*!
@@ -365,7 +322,7 @@ double get_velocity_block_vy_min(const unsigned int block) {
 		return std::numeric_limits<double>::quiet_NaN();
 	}
 
-	return cell_vy_min + cell_dy * indices[1];
+	return P::vymin + cell_dy * indices[1];
 }
 
 /*!
@@ -393,7 +350,7 @@ double get_velocity_block_vz_min(const unsigned int block) {
 		return std::numeric_limits<double>::quiet_NaN();
 	}
 
-	return cell_vz_min + cell_dz * indices[2];
+	return P::vzmin + cell_dz * indices[2];
 }
 
 /*!
@@ -687,10 +644,10 @@ double get_velocity_cell_vz_max(
 }
 
 
-class Spatial_Cell {
+class SpatialCell {
 public:
 
-	Spatial_Cell()
+	SpatialCell()
 	{
 		/*
 		Block list always has room for all blocks
@@ -725,10 +682,11 @@ public:
 			this->parameters.push_back(0);
 		}
 	}
+   
 
-
+       
 	/*!
-	Returns a reference to the given velocity block or to
+        Returns a reference to the given velocity block or to
 	the null block if given velocity block doesn't exist.
 	*/
 	Velocity_Block& at(const unsigned int block)
@@ -828,7 +786,7 @@ public:
 		std::vector<int> block_lengths;
 		unsigned int block_index = 0;
 
-		switch (Spatial_Cell::mpi_transfer_type) {
+		switch (SpatialCell::mpi_transfer_type) {
 		case 0:
 			MPI_Type_contiguous(0, MPI_BYTE, &type);
 			break;
@@ -1312,9 +1270,9 @@ public:
 	*/
 	void adjust_velocity_blocks(
 		#ifdef NO_SPARSE
-		const std::vector<Spatial_Cell*>& /*spatial_neighbors*/
+		const std::vector<SpatialCell*>& /*spatial_neighbors*/
 		#else
-		const std::vector<Spatial_Cell*>& spatial_neighbors
+		const std::vector<SpatialCell*>& spatial_neighbors
 		#endif
 	) {
 		// debug
@@ -1334,7 +1292,7 @@ public:
 
 		// get all velocity blocks with content in neighboring spatial cells
 		boost::unordered_set<unsigned int> neighbors_with_content;
-		for (std::vector<Spatial_Cell*>::const_iterator
+		for (std::vector<SpatialCell*>::const_iterator
 			neighbor = spatial_neighbors.begin();
 			neighbor != spatial_neighbors.end();
 			neighbor++
@@ -1424,9 +1382,9 @@ public:
 		if (block_len_x == 0
 		|| block_len_y == 0
 		|| block_len_z == 0
-		|| cell_len_x == 0
-		|| cell_len_y == 0
-		|| cell_len_z == 0) {
+		|| P::vxblocks_ini == 0
+		|| P::vyblocks_ini == 0
+		|| P::vzblocks_ini == 0) {
 			return;
 		}
 
@@ -1499,55 +1457,55 @@ public:
 		Add small velocity cells to the negative and positive corners of the grid
 		so VisIt knows the maximum size of the velocity grid regardless of existing cells
 		*/
-		outfile << cell_vx_min - 0.1 * cell_dvx << " "
-			<< cell_vy_min - 0.1 * cell_dvy << " "
-			<< cell_vz_min - 0.1 * cell_dvz << std::endl;
-		outfile << cell_vx_min << " "
-			<< cell_vy_min - 0.1 * cell_dvy << " "
-			<< cell_vz_min - 0.1 * cell_dvz << std::endl;
-		outfile << cell_vx_min - 0.1 * cell_dvx << " "
-			<< cell_vy_min << " "
-			<< cell_vz_min - 0.1 * cell_dvz << std::endl;
-		outfile << cell_vx_min << " "
-			<< cell_vy_min << " "
-			<< cell_vz_min - 0.1 * cell_dvz << std::endl;
-		outfile << cell_vx_min - 0.1 * cell_dvx << " "
-			<< cell_vy_min - 0.1 * cell_dvy << " "
-			<< cell_vz_min << std::endl;
-		outfile << cell_vx_min << " "
-			<< cell_vy_min - 0.1 * cell_dvy << " "
-			<< cell_vz_min << std::endl;
-		outfile << cell_vx_min - 0.1 * cell_dvx << " "
-			<< cell_vy_min << " "
-			<< cell_vz_min << std::endl;
-		outfile << cell_vx_min << " "
-			<< cell_vy_min << " "
-			<< cell_vz_min << std::endl;
+		outfile << P::vxmin - 0.1 * cell_dvx << " "
+			<< P::vymin - 0.1 * cell_dvy << " "
+			<< P::vzmin - 0.1 * cell_dvz << std::endl;
+		outfile << P::vxmin << " "
+			<< P::vymin - 0.1 * cell_dvy << " "
+			<< P::vzmin - 0.1 * cell_dvz << std::endl;
+		outfile << P::vxmin - 0.1 * cell_dvx << " "
+			<< P::vymin << " "
+			<< P::vzmin - 0.1 * cell_dvz << std::endl;
+		outfile << P::vxmin << " "
+			<< P::vymin << " "
+			<< P::vzmin - 0.1 * cell_dvz << std::endl;
+		outfile << P::vxmin - 0.1 * cell_dvx << " "
+			<< P::vymin - 0.1 * cell_dvy << " "
+			<< P::vzmin << std::endl;
+		outfile << P::vxmin << " "
+			<< P::vymin - 0.1 * cell_dvy << " "
+			<< P::vzmin << std::endl;
+		outfile << P::vxmin - 0.1 * cell_dvx << " "
+			<< P::vymin << " "
+			<< P::vzmin << std::endl;
+		outfile << P::vxmin << " "
+			<< P::vymin << " "
+			<< P::vzmin << std::endl;
 
-		outfile << cell_vx_max << " "
-			<< cell_vy_max << " "
-			<< cell_vz_max << std::endl;
-		outfile << cell_vx_max + 0.1 * cell_dvx << " "
-			<< cell_vy_max << " "
-			<< cell_vz_max << std::endl;
-		outfile << cell_vx_max << " "
-			<< cell_vy_max + 0.1 * cell_dvy << " "
-			<< cell_vz_max << std::endl;
-		outfile << cell_vx_max + 0.1 * cell_dvx << " "
-			<< cell_vy_max + 0.1 * cell_dvy << " "
-			<< cell_vz_max << std::endl;
-		outfile << cell_vx_max << " "
-			<< cell_vy_max << " "
-			<< cell_vz_max + 0.1 * cell_dvz << std::endl;
-		outfile << cell_vx_max + 0.1 * cell_dvx << " "
-			<< cell_vy_max << " "
-			<< cell_vz_max + 0.1 *  cell_dvz << std::endl;
-		outfile << cell_vx_max << " "
-			<< cell_vy_max + 0.1 * cell_dvy << " "
-			<< cell_vz_max + 0.1 * cell_dvz << std::endl;
-		outfile << cell_vx_max + 0.1 * cell_dvx << " "
-			<< cell_vy_max + 0.1 * cell_dvy << " "
-			<< cell_vz_max + 0.1 * cell_dvz << std::endl;
+		outfile << P::vxmax << " "
+			<< P::vymax << " "
+			<< P::vzmax << std::endl;
+		outfile << P::vxmax + 0.1 * cell_dvx << " "
+			<< P::vymax << " "
+			<< P::vzmax << std::endl;
+		outfile << P::vxmax << " "
+			<< P::vymax + 0.1 * cell_dvy << " "
+			<< P::vzmax << std::endl;
+		outfile << P::vxmax + 0.1 * cell_dvx << " "
+			<< P::vymax + 0.1 * cell_dvy << " "
+			<< P::vzmax << std::endl;
+		outfile << P::vxmax << " "
+			<< P::vymax << " "
+			<< P::vzmax + 0.1 * cell_dvz << std::endl;
+		outfile << P::vxmax + 0.1 * cell_dvx << " "
+			<< P::vymax << " "
+			<< P::vzmax + 0.1 *  cell_dvz << std::endl;
+		outfile << P::vxmax << " "
+			<< P::vymax + 0.1 * cell_dvy << " "
+			<< P::vzmax + 0.1 * cell_dvz << std::endl;
+		outfile << P::vxmax + 0.1 * cell_dvx << " "
+			<< P::vymax + 0.1 * cell_dvy << " "
+			<< P::vzmax + 0.1 * cell_dvz << std::endl;
 
 		// map cells to written points
 		outfile << "CELLS "
@@ -1981,7 +1939,7 @@ public:
 	*/
 	static void set_mpi_transfer_type(const int type)
 	{
-		Spatial_Cell::mpi_transfer_type = type;
+		SpatialCell::mpi_transfer_type = type;
 	}
 
 	/*!
@@ -1989,7 +1947,7 @@ public:
 	*/
 	static int get_mpi_transfer_type(void)
 	{
-		return Spatial_Cell::mpi_transfer_type;
+		return SpatialCell::mpi_transfer_type;
 	}
 
 
@@ -2053,9 +2011,9 @@ public:
 	*/
 	std::vector<double> parameters;
 
-}; // class Spatial_Cell
+}; // class SpatialCell
 
-int Spatial_Cell::mpi_transfer_type = 0;
+int SpatialCell::mpi_transfer_type = 0;
 
 }} // namespaces
 #endif

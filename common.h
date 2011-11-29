@@ -201,7 +201,7 @@ namespace CellParams {
       EXVOL,   /**< Ex averaged over spatial cell.*/
       EYVOL,   /**< Ey averaged over spatial cell.*/
       EZVOL,   /**< Ez averaged over spatial cell.*/
-      SIZE_CELLPARAMS
+      N_SPATIAL_CELL_PARAMS
    };
 }
 
