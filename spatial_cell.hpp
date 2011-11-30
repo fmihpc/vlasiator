@@ -23,9 +23,10 @@ Spatial cell class for Vlasiator that supports a variable number of velocity blo
 
 #include "common.h"
 #include "parameters.h"
+#include "definitions.h"
+typedef Parameters P;
 
 
-namespace vlasiator {
 namespace spatial_cell {
 
    
@@ -34,9 +35,9 @@ const unsigned int block_len_x = WID;
 const unsigned int block_len_y = WID;
 const unsigned int block_len_z = WID;
 
-const double cell_dvx = (P::vxmax - P::vxmin) / (P::vxblocks_ini * block_len_x);
-const double cell_dvy = (P::vymax - P::vymin) / (P::vyblocks_ini * block_len_y);
-const double cell_dvz = (P::vzmax - P::vzmin) / (P::vzblocks_ini * block_len_z);
+const Real cell_dvx = (P::vxmax - P::vxmin) / (P::vxblocks_ini * block_len_x);
+const Real cell_dvy = (P::vymax - P::vymin) / (P::vyblocks_ini * block_len_y);
+const Real cell_dvz = (P::vzmax - P::vzmin) / (P::vzblocks_ini * block_len_z);
 
 // constants for directions for example in neighbour lists
 const unsigned int neg_x_dir = 0;
@@ -74,23 +75,26 @@ const unsigned int n_neighbor_velocity_blocks = 6;
 
 class Velocity_Block {
 public:
-	// value of the distribution function
-	double data[velocity_block_len];
-	// spatial derivatives of the distribution function
-	// TODO: #ifdef USE_KT_SOLVER for derivatives
-	double d1x[SIZE_DERIV];
-	double d2x[SIZE_DERIV];
-	double d1y[SIZE_DERIV];
-	double d2y[SIZE_DERIV];
-	double d1z[SIZE_DERIV];
-	double d2z[SIZE_DERIV];
-	// spatial fluxes of this block
-	double fx[SIZE_FLUXS];
-	// TODO: #ifdef USE_KT_SOLVER for fy and fz
-	double fy[SIZE_FLUXS];
-	double fz[SIZE_FLUXS];
-	double parameters[BlockParams::N_VELOCITY_BLOCK_PARAMS];
-	Velocity_Block* neighbors[n_neighbor_velocity_blocks];
+   // value of the distribution function
+   Real data[velocity_block_len];
+   
+   // spatial fluxes of this block
+   //fixme, fx could be called flux for leveque
+   Real fx[SIZE_FLUXS];
+#ifdef SOLVER_KT
+   Real fy[SIZE_FLUXS];
+   Real fz[SIZE_FLUXS];
+// spatial derivativ es of the distribution functio
+   Real d1x[SIZE_DERIV];
+   Real d2x[SIZE_DERIV];
+   Real d1y[SIZE_DERIV];
+   Real d2y[SIZE_DERIV];
+   Real d1z[SIZE_DERIV];
+   Real d2z[SIZE_DERIV];
+#endif
+   
+   Real parameters[BlockParams::N_VELOCITY_BLOCK_PARAMS];
+   Velocity_Block* neighbors[n_neighbor_velocity_blocks];
 
 	/*!
 	Sets data, derivatives and fluxes of this block to zero.
@@ -100,19 +104,25 @@ public:
 		for (unsigned int i = 0; i < velocity_block_len; i++) {
 			this->data[i] = 0;
 		}
+#ifndef SOLVER_KT       
+ 		for (unsigned int i = 0; i < SIZE_FLUXS; i++) {
+                   this->fx[i] = 0;
+                }
+#else   
 		for (unsigned int i = 0; i < SIZE_DERIV; i++) {
-			this->d1x[i] = 0;
+                   this->d1x[i] = 0;
 			this->d2x[i] = 0;
 			this->d1y[i] = 0;
 			this->d2y[i] = 0;
 			this->d1z[i] = 0;
 			this->d2z[i] = 0;
 		}
-		for (unsigned int i = 0; i < SIZE_FLUXS; i++) {
-			this->fx[i] = 0;
+ 		for (unsigned int i = 0; i < SIZE_FLUXS; i++) {
+                   this->fx[i] = 0;
 			this->fy[i] = 0;
 			this->fz[i] = 0;
 		}
+#endif  
 	}
 };
 
@@ -137,9 +147,9 @@ const unsigned int error_velocity_block = std::numeric_limits<unsigned int>::max
 const unsigned int max_velocity_blocks = P::vxblocks_ini * P::vyblocks_ini * P::vzblocks_ini;
 
 
-const double cell_dx = (P::vxmax - P::vxmin) / P::vxblocks_ini;
-const double cell_dy = (P::vymax - P::vymin) / P::vyblocks_ini;
-const double cell_dz = (P::vzmax - P::vzmin) / P::vzblocks_ini;
+const Real cell_dx = (P::vxmax - P::vxmin) / P::vxblocks_ini;
+const Real cell_dy = (P::vymax - P::vymin) / P::vyblocks_ini;
+const Real cell_dz = (P::vzmax - P::vzmin) / P::vzblocks_ini;
 
 // TODO: typedef unsigned int velocity_cell_t;
 // TODO: typedef unsigned int velocity_block_t;
@@ -184,9 +194,9 @@ Returns the velocity block at given location or
 error_velocity_block if outside of the velocity grid
 */
 unsigned int get_velocity_block(
-	const double vx,
-	const double vy,
-	const double vz
+	const Real vx,
+	const Real vy,
+	const Real vz
 )
 {
 	if (vx < P::vxmin || vx >= P::vxmax
@@ -280,18 +290,18 @@ unsigned int get_velocity_block(
 /*!
 Returns the edge where given velocity block starts.
 */
-double get_velocity_block_vx_min(const unsigned int block) {
+Real get_velocity_block_vx_min(const unsigned int block) {
 	if (block == error_velocity_block) {
-		return std::numeric_limits<double>::quiet_NaN();
+		return std::numeric_limits<Real>::quiet_NaN();
 	}
 
 	if (block >= max_velocity_blocks) {
-		return std::numeric_limits<double>::quiet_NaN();
+		return std::numeric_limits<Real>::quiet_NaN();
 	}
 
 	const velocity_block_indices_t indices = get_velocity_block_indices(block);
 	if (indices[0] == error_velocity_block_index) {
-		return std::numeric_limits<double>::quiet_NaN();
+		return std::numeric_limits<Real>::quiet_NaN();
 	}
 
 	return P::vxmin + cell_dx * indices[0];
@@ -300,7 +310,7 @@ double get_velocity_block_vx_min(const unsigned int block) {
 /*!
 Returns the edge where given velocity block ends.
 */
-double get_velocity_block_vx_max(const unsigned int block) {
+Real get_velocity_block_vx_max(const unsigned int block) {
 	return get_velocity_block_vx_min(block) + cell_dx;
 }
 
@@ -308,18 +318,18 @@ double get_velocity_block_vx_max(const unsigned int block) {
 /*!
 Returns the edge where given velocity block starts.
 */
-double get_velocity_block_vy_min(const unsigned int block) {
+Real get_velocity_block_vy_min(const unsigned int block) {
 	if (block == error_velocity_block) {
-		return std::numeric_limits<double>::quiet_NaN();
+		return std::numeric_limits<Real>::quiet_NaN();
 	}
 
 	if (block >= max_velocity_blocks) {
-		return std::numeric_limits<double>::quiet_NaN();
+		return std::numeric_limits<Real>::quiet_NaN();
 	}
 
 	const velocity_block_indices_t indices = get_velocity_block_indices(block);
 	if (indices[1] == error_velocity_block_index) {
-		return std::numeric_limits<double>::quiet_NaN();
+		return std::numeric_limits<Real>::quiet_NaN();
 	}
 
 	return P::vymin + cell_dy * indices[1];
@@ -328,7 +338,7 @@ double get_velocity_block_vy_min(const unsigned int block) {
 /*!
 Returns the edge where given velocity block ends.
 */
-double get_velocity_block_vy_max(const unsigned int block) {
+Real get_velocity_block_vy_max(const unsigned int block) {
 	return get_velocity_block_vy_min(block) + cell_dy;
 }
 
@@ -336,18 +346,18 @@ double get_velocity_block_vy_max(const unsigned int block) {
 /*!
 Returns the edge where given velocity block starts.
 */
-double get_velocity_block_vz_min(const unsigned int block) {
+Real get_velocity_block_vz_min(const unsigned int block) {
 	if (block == error_velocity_block) {
-		return std::numeric_limits<double>::quiet_NaN();
+		return std::numeric_limits<Real>::quiet_NaN();
 	}
 
 	if (block >= max_velocity_blocks) {
-		return std::numeric_limits<double>::quiet_NaN();
+		return std::numeric_limits<Real>::quiet_NaN();
 	}
 
 	const velocity_block_indices_t indices = get_velocity_block_indices(block);
 	if (indices[2] == error_velocity_block_index) {
-		return std::numeric_limits<double>::quiet_NaN();
+		return std::numeric_limits<Real>::quiet_NaN();
 	}
 
 	return P::vzmin + cell_dz * indices[2];
@@ -356,7 +366,7 @@ double get_velocity_block_vz_min(const unsigned int block) {
 /*!
 Returns the edge where given velocity block ends.
 */
-double get_velocity_block_vz_max(const unsigned int block) {
+Real get_velocity_block_vz_max(const unsigned int block) {
 	return get_velocity_block_vz_min(block) + cell_dz;
 }
 
@@ -475,17 +485,17 @@ error_velocity_cell if outside of given velocity block.
 */
 unsigned int get_velocity_cell(
 	const unsigned int velocity_block,
-	const double vx,
-	const double vy,
-	const double vz
+	const Real vx,
+	const Real vy,
+	const Real vz
 )
 {
-	const double block_vx_min = get_velocity_block_vx_min(velocity_block);
-	const double block_vx_max = get_velocity_block_vx_max(velocity_block);
-	const double block_vy_min = get_velocity_block_vy_min(velocity_block);
-	const double block_vy_max = get_velocity_block_vy_max(velocity_block);
-	const double block_vz_min = get_velocity_block_vz_min(velocity_block);
-	const double block_vz_max = get_velocity_block_vz_max(velocity_block);
+	const Real block_vx_min = get_velocity_block_vx_min(velocity_block);
+	const Real block_vx_max = get_velocity_block_vx_max(velocity_block);
+	const Real block_vy_min = get_velocity_block_vy_min(velocity_block);
+	const Real block_vy_max = get_velocity_block_vy_max(velocity_block);
+	const Real block_vz_min = get_velocity_block_vz_min(velocity_block);
+	const Real block_vz_max = get_velocity_block_vz_max(velocity_block);
 
 	if (vx < block_vx_min || vx >= block_vx_max
 	|| vy < block_vy_min || vy >= block_vy_max
@@ -508,22 +518,22 @@ unsigned int get_velocity_cell(
 Returns the edge where given velocity cell in the given velocity block starts.
 TODO: move these to velocity cell class?
 */
-double get_velocity_cell_vx_min(
+Real get_velocity_cell_vx_min(
 	const unsigned int velocity_block,
 	const unsigned int velocity_cell
 )
 {
 	if (velocity_cell == error_velocity_cell) {
-		return std::numeric_limits<double>::quiet_NaN();
+		return std::numeric_limits<Real>::quiet_NaN();
 	}
 
 	const velocity_cell_indices_t indices = get_velocity_cell_indices(velocity_cell);
 	if (indices[0] == error_velocity_cell_index) {
-		return std::numeric_limits<double>::quiet_NaN();
+		return std::numeric_limits<Real>::quiet_NaN();
 	}
 
-	const double block_vx_min = get_velocity_block_vx_min(velocity_block);
-	const double block_vx_max = get_velocity_block_vx_max(velocity_block);
+	const Real block_vx_min = get_velocity_block_vx_min(velocity_block);
+	const Real block_vx_max = get_velocity_block_vx_max(velocity_block);
 
 	return block_vx_min + (block_vx_max - block_vx_min) / block_len_x * indices[0];
 }
@@ -531,22 +541,22 @@ double get_velocity_cell_vx_min(
 /*!
 Returns the edge where given velocity cell in the given velocity block ends.
 */
-double get_velocity_cell_vx_max(
+Real get_velocity_cell_vx_max(
 	const unsigned int velocity_block,
 	const unsigned int velocity_cell
 )
 {
 	if (velocity_cell == error_velocity_cell) {
-		return std::numeric_limits<double>::quiet_NaN();
+		return std::numeric_limits<Real>::quiet_NaN();
 	}
 
 	const velocity_cell_indices_t indices = get_velocity_cell_indices(velocity_cell);
 	if (indices[0] == error_velocity_cell_index) {
-		return std::numeric_limits<double>::quiet_NaN();
+		return std::numeric_limits<Real>::quiet_NaN();
 	}
 
-	const double block_vx_min = get_velocity_block_vx_min(velocity_block);
-	const double block_vx_max = get_velocity_block_vx_max(velocity_block);
+	const Real block_vx_min = get_velocity_block_vx_min(velocity_block);
+	const Real block_vx_max = get_velocity_block_vx_max(velocity_block);
 
 	return block_vx_min + (block_vx_max - block_vx_min) / block_len_x * (indices[0] + 1);
 }
@@ -554,22 +564,22 @@ double get_velocity_cell_vx_max(
 /*!
 Returns the edge where given velocity cell in the given velocity block starts.
 */
-double get_velocity_cell_vy_min(
+Real get_velocity_cell_vy_min(
 	const unsigned int velocity_block,
 	const unsigned int velocity_cell
 )
 {
 	if (velocity_cell == error_velocity_cell) {
-		return std::numeric_limits<double>::quiet_NaN();
+		return std::numeric_limits<Real>::quiet_NaN();
 	}
 
 	const velocity_cell_indices_t indices = get_velocity_cell_indices(velocity_cell);
 	if (indices[1] == error_velocity_cell_index) {
-		return std::numeric_limits<double>::quiet_NaN();
+		return std::numeric_limits<Real>::quiet_NaN();
 	}
 
-	const double block_vy_min = get_velocity_block_vy_min(velocity_block);
-	const double block_vy_max = get_velocity_block_vy_max(velocity_block);
+	const Real block_vy_min = get_velocity_block_vy_min(velocity_block);
+	const Real block_vy_max = get_velocity_block_vy_max(velocity_block);
 
 	return block_vy_min + (block_vy_max - block_vy_min) / block_len_y * indices[1];
 }
@@ -577,22 +587,22 @@ double get_velocity_cell_vy_min(
 /*!
 Returns the edge where given velocity cell in the given velocity block ends.
 */
-double get_velocity_cell_vy_max(
+Real get_velocity_cell_vy_max(
 	const unsigned int velocity_block,
 	const unsigned int velocity_cell
 )
 {
 	if (velocity_cell == error_velocity_cell) {
-		return std::numeric_limits<double>::quiet_NaN();
+		return std::numeric_limits<Real>::quiet_NaN();
 	}
 
 	const velocity_cell_indices_t indices = get_velocity_cell_indices(velocity_cell);
 	if (indices[1] == error_velocity_cell_index) {
-		return std::numeric_limits<double>::quiet_NaN();
+		return std::numeric_limits<Real>::quiet_NaN();
 	}
 
-	const double block_vy_min = get_velocity_block_vy_min(velocity_block);
-	const double block_vy_max = get_velocity_block_vy_max(velocity_block);
+	const Real block_vy_min = get_velocity_block_vy_min(velocity_block);
+	const Real block_vy_max = get_velocity_block_vy_max(velocity_block);
 
 	return block_vy_min + (block_vy_max - block_vy_min) / block_len_y * (indices[1] + 1);
 }
@@ -600,22 +610,22 @@ double get_velocity_cell_vy_max(
 /*!
 Returns the edge where given velocity cell in the given velocity block starts.
 */
-double get_velocity_cell_vz_min(
+Real get_velocity_cell_vz_min(
 	const unsigned int velocity_block,
 	const unsigned int velocity_cell
 )
 {
 	if (velocity_cell == error_velocity_cell) {
-		return std::numeric_limits<double>::quiet_NaN();
+		return std::numeric_limits<Real>::quiet_NaN();
 	}
 
 	const velocity_cell_indices_t indices = get_velocity_cell_indices(velocity_cell);
 	if (indices[2] == error_velocity_cell_index) {
-		return std::numeric_limits<double>::quiet_NaN();
+		return std::numeric_limits<Real>::quiet_NaN();
 	}
 
-	const double block_vz_min = get_velocity_block_vz_min(velocity_block);
-	const double block_vz_max = get_velocity_block_vz_max(velocity_block);
+	const Real block_vz_min = get_velocity_block_vz_min(velocity_block);
+	const Real block_vz_max = get_velocity_block_vz_max(velocity_block);
 
 	return block_vz_min + (block_vz_max - block_vz_min) / block_len_z * indices[2];
 }
@@ -623,22 +633,22 @@ double get_velocity_cell_vz_min(
 /*!
 Returns the edge where given velocity cell in the given velocity block ends.
 */
-double get_velocity_cell_vz_max(
+Real get_velocity_cell_vz_max(
 	const unsigned int velocity_block,
 	const unsigned int velocity_cell
 )
 {
 	if (velocity_cell == error_velocity_cell) {
-		return std::numeric_limits<double>::quiet_NaN();
+		return std::numeric_limits<Real>::quiet_NaN();
 	}
 
 	const velocity_cell_indices_t indices = get_velocity_cell_indices(velocity_cell);
 	if (indices[2] == error_velocity_cell_index) {
-		return std::numeric_limits<double>::quiet_NaN();
+		return std::numeric_limits<Real>::quiet_NaN();
 	}
 
-	const double block_vz_min = get_velocity_block_vz_min(velocity_block);
-	const double block_vz_max = get_velocity_block_vz_max(velocity_block);
+	const Real block_vz_min = get_velocity_block_vz_min(velocity_block);
+	const Real block_vz_max = get_velocity_block_vz_max(velocity_block);
 
 	return block_vz_min + (block_vz_max - block_vz_min) / block_len_z * (indices[2] + 1);
 }
@@ -753,7 +763,7 @@ public:
 
 	Creates the velocity block at given coordinates if it doesn't exist.
 	*/
-	void set_value(const double vx, const double vy, const double vz, const double value)
+	void set_value(const Real vx, const Real vy, const Real vz, const Real value)
 	{
 		const unsigned int block = get_velocity_block(vx, vy, vz);
 		#ifndef NO_SPARSE
@@ -829,7 +839,7 @@ public:
 
 				// TODO: use cached block addresses
 				displacements.push_back((uint8_t*) this->velocity_blocks.at(this->velocity_block_list[block_index]).data - (uint8_t*) this);
-				block_lengths.push_back(sizeof(double) * velocity_block_len);
+				block_lengths.push_back(sizeof(Real) * velocity_block_len);
 
 				block_index++;
 			}
@@ -870,7 +880,7 @@ public:
 				#endif
 
 				displacements.push_back((uint8_t*) this->velocity_blocks.at(this->velocity_block_list[block_index]).fx - (uint8_t*) this);
-				block_lengths.push_back(sizeof(double) * 3 * SIZE_FLUXS);
+				block_lengths.push_back(sizeof(Real) * 3 * SIZE_FLUXS);
 
 				block_index++;
 			}
@@ -891,13 +901,13 @@ public:
 		// send spatial cell parameters
 		case 4:
 			displacements.push_back((uint8_t*) &(this->velocity_block_min_value) - (uint8_t*) this);
-			block_lengths.push_back(sizeof(double));
+			block_lengths.push_back(sizeof(Real));
 
 			displacements.push_back((uint8_t*) &(this->velocity_block_min_avg_value) - (uint8_t*) this);
-			block_lengths.push_back(sizeof(double));
+			block_lengths.push_back(sizeof(Real));
 
 			displacements.push_back((uint8_t*) &(this->parameters[0]) - (uint8_t*) this);
-			block_lengths.push_back(sizeof(double) * CellParams::N_SPATIAL_CELL_PARAMS);
+			block_lengths.push_back(sizeof(Real) * CellParams::N_SPATIAL_CELL_PARAMS);
 
 			MPI_Type_create_hindexed(
 				displacements.size(),
@@ -912,7 +922,7 @@ public:
 		case 5:
 			displacements.reserve(this->velocity_blocks.size());
 			block_lengths.reserve(this->velocity_blocks.size());
-
+#ifdef  SOLVER_KT
 			while (block_index < max_velocity_blocks
 			&& this->velocity_block_list[block_index] != error_velocity_block) {
 
@@ -929,13 +939,11 @@ public:
 					abort();
 				}
 				#endif
-
 				displacements.push_back((uint8_t*) this->velocity_blocks.at(this->velocity_block_list[block_index]).d1x - (uint8_t*) this);
-				block_lengths.push_back(sizeof(double) * 6 * SIZE_DERIV);
-
+                                block_lengths.push_back(sizeof(Real) * 6 * SIZE_DERIV);
 				block_index++;
 			}
-
+#endif    
 			if (displacements.size() > 0) {
 				MPI_Type_create_hindexed(
 					displacements.size(),
@@ -955,13 +963,13 @@ public:
 			block_lengths.reserve(3 + this->velocity_blocks.size());
 
 			displacements.push_back((uint8_t*) &(this->velocity_block_min_value) - (uint8_t*) this);
-			block_lengths.push_back(sizeof(double));
+			block_lengths.push_back(sizeof(Real));
 
 			displacements.push_back((uint8_t*) &(this->velocity_block_min_avg_value) - (uint8_t*) this);
-			block_lengths.push_back(sizeof(double));
+			block_lengths.push_back(sizeof(Real));
 
 			displacements.push_back((uint8_t*) &(this->parameters[0]) - (uint8_t*) this);
-			block_lengths.push_back(sizeof(double) * CellParams::N_SPATIAL_CELL_PARAMS);
+			block_lengths.push_back(sizeof(Real) * CellParams::N_SPATIAL_CELL_PARAMS);
 
 			while (block_index < max_velocity_blocks
 			&& this->velocity_block_list[block_index] != error_velocity_block) {
@@ -981,7 +989,7 @@ public:
 				#endif
 
 				displacements.push_back((uint8_t*) this->velocity_blocks.at(this->velocity_block_list[block_index]).data - (uint8_t*) this);
-				block_lengths.push_back(sizeof(double) * 10 * velocity_block_len + sizeof(double) * BlockParams::N_VELOCITY_BLOCK_PARAMS);
+				block_lengths.push_back(sizeof(Real) * 10 * velocity_block_len + sizeof(Real) * BlockParams::N_VELOCITY_BLOCK_PARAMS);
 
 				block_index++;
 			}
@@ -1023,7 +1031,7 @@ public:
 
 				// TODO: use cached block addresses
 				displacements.push_back((uint8_t*) this->velocity_blocks.at(this->velocity_block_list[block_index]).parameters - (uint8_t*) this);
-				block_lengths.push_back(sizeof(double) * BlockParams::N_VELOCITY_BLOCK_PARAMS);
+				block_lengths.push_back(sizeof(Real) * BlockParams::N_VELOCITY_BLOCK_PARAMS);
 
 				block_index++;
 			}
@@ -1055,7 +1063,7 @@ public:
 	Sets the minimum velocity cell value of a distrubution function for
 	that velocity block to be considered to have contents.
 	*/
-	void set_block_minimum(const double value)
+	void set_block_minimum(const Real value)
 	{
 		this->velocity_block_min_value = value;
 	}
@@ -1064,7 +1072,7 @@ public:
 	Sets the minimum average velocity cell value of a distrubution function
 	within a block for that block to be considered to have contents.
 	*/
-	void set_block_average_minimum(const double value)
+	void set_block_average_minimum(const Real value)
 	{
 		this->velocity_block_min_avg_value = value;
 	}
@@ -1091,7 +1099,7 @@ public:
 
 		bool has_content = false;
 
-		double total = 0;
+		Real total = 0;
 		const Velocity_Block* block_ptr = &(this->velocity_blocks.at(block));
 
 		for (unsigned int i = 0; i < velocity_block_len; i++) {
@@ -1116,9 +1124,9 @@ public:
 	/*!
 	Returns the total value of the distribution function within this spatial cell.
 	*/
-	double get_total_value(void) const
+	Real get_total_value(void) const
 	{
-		double total = 0;
+		Real total = 0;
 
 		for (auto block = this->velocity_blocks.cbegin(); block != this->velocity_blocks.cend(); block++) {
 			for (unsigned int i = 0; i < velocity_block_len; i++) {
@@ -1143,26 +1151,10 @@ public:
 	{
 		const unsigned int n = this->velocity_blocks.size();
 
-		return 2 * sizeof(double)
+		return 2 * sizeof(Real)
 			+ n * sizeof(unsigned int)
-			+ n * 2 * velocity_block_len * sizeof(double);
+			+ n * 2 * velocity_block_len * sizeof(Real);
 	}
-
-
-	/*!
-	Saves this spatial cell in binary format into the given filename.
-
-	Fileformat, native endian:
-	1 double velocity_block_min_value
-	1 double velocity_block_min_avg_value
-	1 unsigned int random velocity block from the velocity grid
-	N double where N == velocity_block_len, velocity block distribution function data
-	N double velocity block flux data
-	*/
-	/*bool save_bin(const char* filename)
-	{
-		...
-	}*/
 
 
 	/*!
@@ -1401,7 +1393,7 @@ public:
 		outfile << "DATASET UNSTRUCTURED_GRID" << std::endl;
 
 		// write separate points for every velocity cells' corners
-		outfile << "POINTS " << (this->velocity_blocks.size() * velocity_block_len + 2) * 8 << " double" << std::endl;
+		outfile << "POINTS " << (this->velocity_blocks.size() * velocity_block_len + 2) * 8 << " Real" << std::endl;
 		for (std::vector<unsigned int>::const_iterator
 			block = this->velocity_block_list.begin();
 			block != this->velocity_block_list.end();
@@ -1555,11 +1547,11 @@ public:
 		}
 
 		// Put minimum value from existing blocks into two additional cells
-		double min_value = std::numeric_limits<double>::max();
+		Real min_value = std::numeric_limits<Real>::max();
 
 		// distribution function
 		outfile << "CELL_DATA " << this->velocity_blocks.size() * velocity_block_len + 2 << std::endl;
-		outfile << "SCALARS rho double 1" << std::endl;
+		outfile << "SCALARS rho Real 1" << std::endl;
 		outfile << "LOOKUP_TABLE default" << std::endl;
 		for (std::vector<unsigned int>::const_iterator
 			block = this->velocity_block_list.begin();
@@ -1569,7 +1561,7 @@ public:
 
 			if (*block == error_velocity_block) {
 				// assume no blocks after first error block
-				if (min_value == std::numeric_limits<double>::max()) {
+				if (min_value == std::numeric_limits<Real>::max()) {
 					min_value = 0;
 				}
 				break;
@@ -1583,7 +1575,7 @@ public:
 
 				const velocity_cell_indices_t indices = {x_index, y_index, z_index};
 				const unsigned int velocity_cell = get_velocity_cell(indices);
-				const double value = block_ptr->data[velocity_cell];
+				const Real value = block_ptr->data[velocity_cell];
 				outfile << value << " ";
 				min_value = std::min(min_value, value);
 			}
@@ -1968,14 +1960,14 @@ private:
 	in any cell of a velocity block for the
 	block to be considered to have contents
 	*/
-	double velocity_block_min_value;
+	Real velocity_block_min_value;
 
 	/*
 	Minimum value of the average of distribution
 	function within a velocity block for the
 	block to be considered to have contents
 	*/
-	double velocity_block_min_avg_value;
+	Real velocity_block_min_avg_value;
 
 	/*!
 	Used as a neighbour instead of blocks that don't
@@ -2009,12 +2001,12 @@ public:
 	/*
 	Bulk variables in this spatial cell.
 	*/
-	std::vector<double> parameters;
+	std::vector<Real> parameters;
 
 }; // class SpatialCell
 
 int SpatialCell::mpi_transfer_type = 0;
 
-}} // namespaces
+} // namespaces
 #endif
 

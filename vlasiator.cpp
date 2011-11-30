@@ -28,7 +28,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "mpiconversion.h"
 #include "mpilogger.h"
 #include "parameters.h"
-#include "grid.h"
 #include "spatial_cell.hpp"
 #include "datareducer.h"
 #include "datareductionoperator.h"
@@ -37,11 +36,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "vlsvwriter2.h" // TEST
 #include "fieldsolver.h"
 #include "project.h"
-
-#ifdef CRAYPAT
-//include craypat api headers if compiled with craypat on Cray XT/XE
-#include "pat_api.h"
-#endif
 
 #include "profile.h"
 
@@ -54,37 +48,221 @@ using namespace std;
 
 //FIXME, move all except main out of vlasiator.cpp
 
-//using namespace CellParams;
+/** Set up a spatial cell.
+ * @param cell The spatial cell which is to be initialized.
+ * @param xmin x-coordinate of the lower left corner of the cell.
+ * @param ymin y-coordinate of the lower left corner of the cell.
+ * @param zmin z-coordinate of the lower left corner of the cell.
+ * @param dx Size of the cell in x-direction.
+ * @param dy Size of the cell in y-direction.
+ * @param dz Size of the cell in z-direction.
+ * @param isRemote If true, the given cell is a remote cell (resides on another process) 
+ * and its initial state need not be calculated.
+ * @return If true, the cell was initialized successfully. Otherwise an error has 
+ * occurred and the simulation should be aborted.
+ */
+bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
+		      creal& zmin,creal& dx,creal& dy,creal& dz,
+		     const bool& isRemote) {
+   typedef Parameters P;
 
-void initSpatialCells(const dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm) {
+   //FIXME, read in from parameters P
+   cell.set_block_minimum(1);
+   cell.set_block_average_minimum(0.5);
+
+// Set up cell parameters:
+   cell.parameters[CellParams::XCRD] = xmin;
+   cell.parameters[CellParams::YCRD] = ymin;
+   cell.parameters[CellParams::ZCRD] = zmin;
+   cell.parameters[CellParams::DX  ] = dx;
+   cell.parameters[CellParams::DY  ] = dy;
+   cell.parameters[CellParams::DZ  ] = dz;
+   calcCellParameters(&(cell.parameters[0]),0.0);
+   cell.parameters[CellParams::RHO  ] = 0.0;
+   cell.parameters[CellParams::RHOVX] = 0.0;
+   cell.parameters[CellParams::RHOVY] = 0.0;
+   cell.parameters[CellParams::RHOVZ] = 0.0;
+
+   // Go through each velocity block in the velocity phase space grid.
+   // Set the initial state and block parameters:
+   
+   creal dvx_block = (P::vxmax-P::vxmin)/P::vxblocks_ini; // Size of a block in vx-direction
+   creal dvy_block = (P::vymax-P::vymin)/P::vyblocks_ini; //                    vy
+   creal dvz_block = (P::vzmax-P::vzmin)/P::vzblocks_ini; //                    vz
+   creal dvx_blockCell = dvx_block / WID;                 // Size of one cell in a block in vx-direction
+   creal dvy_blockCell = dvy_block / WID;                 //                                vy
+   creal dvz_blockCell = dvz_block / WID;                 //                                vz
+
+   
+   for (uint kv=0; kv<P::vzblocks_ini; ++kv) for (uint jv=0; jv<P::vyblocks_ini; ++jv) for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
+      creal vx_block = P::vxmin + iv*dvx_block; // vx-coordinate of the lower left corner
+      creal vy_block = P::vymin + jv*dvy_block; // vy-
+      creal vz_block = P::vzmin + kv*dvz_block; // vz-
+
+      if (isRemote == true) continue;
+      // Calculate volume average of distrib. function for each cell in the block.
+      for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
+	 creal vx_cell = vx_block + ic*dvx_blockCell;
+	 creal vy_cell = vy_block + jc*dvy_blockCell;
+	 creal vz_cell = vz_block + kc*dvz_blockCell;
+         Real average=calcPhaseSpaceDensity(xmin,ymin,zmin,dx,dy,dz,vx_cell,vy_cell,vz_cell,dvx_blockCell,dvy_blockCell,dvz_blockCell);
+
+         //FIXME, should the spatialcell even add the average if it is under the treshold? This simple check should be enough anyway.
+         if(average>0){
+            creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
+            creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
+            creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
+            cell.set_value(vx_cell_center,vy_cell_center,vz_cell_center,average);
+            // Add contributions to spatial cell velocity moments: 
+            creal dV = dvx_blockCell*dvy_blockCell*dvz_blockCell;  // Volume of one cell in a block      
+            cell.parameters[CellParams::RHO  ] += average*dV;
+            cell.parameters[CellParams::RHOVX] += average*vx_cell_center*dV;
+            cell.parameters[CellParams::RHOVY] += average*vy_cell_center*dV;
+            cell.parameters[CellParams::RHOVZ] += average*vz_cell_center*dV;
+
+            //project cannot modify block parameters anymore (nothing sensible for them to do there)
+//            calcBlockParameters(cell.at(spatial_cell::get_velocity_cell_block);
+      
+
+         }
+      }
+   }
+   creal spatialVolume = cell.parameters[CellParams::DX]*cell.parameters[CellParams::DY]*cell.parameters[CellParams::DZ];
+   cell.parameters[CellParams::RHO  ] /= spatialVolume;
+   cell.parameters[CellParams::RHOVX] /= spatialVolume;
+   cell.parameters[CellParams::RHOVY] /= spatialVolume;
+   cell.parameters[CellParams::RHOVZ] /= spatialVolume;
+   return true;
+}
+
+/*      
+    Adjusts velocity blocks in given spatial cells.
+  
+  If adjust_remote is true then adjusts velocity blocks within local copies of remote neighbors.
+*/
+bool adjust_all_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   profile::start("Adjusting blocks");
+   const boost::unordered_set<uint64_t>* incoming_cells = mpiGrid.get_remote_cells_with_local_neighbours();
+   
+   const vector<uint64_t> cells = mpiGrid.get_cells();
+   for (std::vector<uint64_t>::const_iterator
+           cell_id = cells.begin();
+        cell_id != cells.end();
+        cell_id++
+        ) {
+      SpatialCell* cell = mpiGrid[*cell_id];
+      if (cell == NULL) {
+         std::cerr << __FILE__ << ":" << __LINE__
+                   << " No data for spatial cell " << *cell_id
+                   << endl;
+         abort();
+      }
+      
+      // gather spatial neighbor list
+      const vector<uint64_t>* neighbors = mpiGrid.get_neighbours(*cell_id);
+      vector<SpatialCell*> neighbor_ptrs;
+      neighbor_ptrs.reserve(neighbors->size());
+      
+      for (vector<uint64_t>::const_iterator
+              neighbor_id = neighbors->begin();
+           neighbor_id != neighbors->end();
+           neighbor_id++
+           ) {
+         if (*neighbor_id == 0
+             || *neighbor_id == *cell_id) {
+            continue;
+         }
+         
+         SpatialCell* neighbor = mpiGrid[*neighbor_id];
+         if (neighbor == NULL) {
+            std::cerr << __FILE__ << ":" << __LINE__
+                      << " No data for spatial cell " << *neighbor_id
+                      << endl;
+            abort();
+         }
+         
+         // also adjust velocity blocks in local copy of remote neighbor
+         if (incoming_cells->count(*neighbor_id) > 0) {
+            // FIXME: adjust between copy of remote and more than one local cell
+            vector<SpatialCell*> neighbor_ptrs_of_copy;
+            neighbor_ptrs_of_copy.push_back(cell);
+            neighbor->adjust_velocity_blocks(neighbor_ptrs_of_copy);
+         }
+         neighbor_ptrs.push_back(neighbor);
+      }
+      cell->adjust_velocity_blocks(neighbor_ptrs);
+   }
+   
+   // set cells' weights based on adjusted number of velocity blocks
+   for (std::vector<uint64_t>::const_iterator
+           cell_id = cells.begin();
+        cell_id != cells.end();
+        cell_id++
+	) {
+      SpatialCell* cell = mpiGrid[*cell_id];
+      if (cell == NULL) {
+         std::cerr << __FILE__ << ":" << __LINE__ << " No data for spatial cell " << *cell_id << endl;
+         abort();
+      }
+      
+      mpiGrid.set_cell_weight(*cell_id, cell->size());
+   }
+   profile::stop("Adjusting blocks");
+}
+/*
+Updates velocity block lists between remote neighbors and prepares local
+copies of remote neighbors for receiving velocity block data.
+*/
+void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
+{
+   // update velocity block lists  
+   profile::start("Velocity block list update");
+   SpatialCell::set_mpi_transfer_type(1);
+   mpiGrid.update_remote_neighbour_data();
+   profile::stop("Velocity block list update");
+
+   /*      
+           Prepare spatial cells for receiving velocity block data
+   */
+   profile::start("Preparing receives");
+   const boost::unordered_set<uint64_t>* incoming_cells = mpiGrid.get_remote_cells_with_local_neighbours();
+   for (boost::unordered_set<uint64_t>::const_iterator
+           cell_id = incoming_cells->begin();
+        cell_id != incoming_cells->end();
+        cell_id++
+	) {
+      SpatialCell* cell = mpiGrid[*cell_id];
+      if (cell == NULL) {
+         cerr << __FILE__ << ":" << __LINE__
+              << " No data for spatial cell " << *cell_id
+              << endl;
+         abort();
+      }
+      
+      cell->prepare_to_receive_blocks();
+   }
+   profile::stop("Preparing receives", incoming_cells->size(), "Spatial cells");
+}
+
+
+//using namespace CellParams;
+void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm) {
     typedef Parameters P;
+    vector<uint64_t> cells = mpiGrid.get_cells();
+
     /*
       Create spatial cells for which data will be re    ceived from other processes
       when first adjusting velocity bloc                ks
-    */
-    Spatial_Cell::set_mpi_transfer_type(0);
-    mpiGrid.update_remote_neighbour_data();
-    vector<uint64_t> cells = mpiGrid.get_cells();
 
+      Sp  atialCell::set_mpi_transfer_type(0);
+      mpiGri      d.update_remote_neighbour_data();
+    */
     /*CHECK WITH ILJA, what are these, what is needed */
-   // Receive N_blocks from remote neighbours
-   exchangeVelocityGridMetadata(mpiGrid);
-   // reserve space for velocity blocks in local copies of remote neighbors
-   
-   const boost::unordered_set<uint64_t>* incoming_cells = mpiGrid.get_remote_cells_with_local_neighbours();
-   for (boost::unordered_set<uint64_t>::const_iterator
-      cell_id = incoming_cells->begin();
-      cell_id != incoming_cells->end();
-      cell_id++
-   ) {
-      SpatialCell* cell = mpiGrid[*cell_id];
-      if (cell == NULL) {
-         cerr << "No data for spatial cell " << *cell_id << endl;
-         abort();
-      }
-      cell->initialize(cell->N_blocks);
-   }
-   
+    // Receive N_blocks from remote neighbours
+    // SpatialCell::set_mpi_transfer_type(5);
+    // mpiGrid.update_remote_neighbour_data();
+    // reserve space for velocity blocks in local copies of remote neighbors
+
     
     //  Go through every cell on this node and initialize the pointers to 
     // cpu memory, physical parameters and volume averages for each phase space 
@@ -100,37 +278,25 @@ void initSpatialCells(const dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::commu
       ymin = mpiGrid.get_cell_y_min(cells[i]);
       zmin = mpiGrid.get_cell_z_min(cells[i]);
       
-      //FIXME, read in from parameter file
-      spatial_cell->set_block_minimum(1);
-      spatial_cell->set_block_average_minimum(0.5);
-      
-      buildSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
+      initSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
    }
 
    
-   prepare_to_receive_velocity_block_data(spatial_grid);
-
+   prepare_to_receive_velocity_block_data(mpiGrid);
+   
    // update distribution function
-   Spatial_Cell::set_mpi_transfer_type(2);
-   spatial_grid.update_remote_neighbour_data();
-
-   adjust_all_velocity_blocks(spatial_grid);
-
-   prepare_to_receive_velocity_block_data(spatial_grid);
-
-   // update complete spatial cell data
-   Spatial_Cell::set_mpi_transfer_type(6);
-   spatial_grid.update_remote_neighbour_data();       
-
-
+   SpatialCell::set_mpi_transfer_type(2);
+   mpiGrid.update_remote_neighbour_data();
    
+   adjust_all_velocity_blocks(mpiGrid);
+
+   prepare_to_receive_velocity_block_data(mpiGrid);
+
    profile::start("Fetch Neighbour data");
-   // Fetch neighbour data:
-   // FIXME: add a mpi_datatype to send all cell data
-   P::transmit = 5;
-   mpiGrid.update_remote_neighbour_data(); // TEST
-   profile::stop("Fetch Neighbour data");
-   
+   // update complete spatial cell data
+   SpatialCell::set_mpi_transfer_type(6);
+   mpiGrid.update_remote_neighbour_data();       
+   profile::stop("Fetch Neighbour data");   
 }
 
 bool readConfigFile(){
@@ -211,9 +377,9 @@ bool readConfigFile(){
    RP::get("gridbuilder.y_max",P::ymax);
    RP::get("gridbuilder.z_min",P::zmin);
    RP::get("gridbuilder.z_max",P::zmax);
-   RP::get("gridbuilder.x_length",P::xcellls_ini);
-   RP::get("gridbuilder.y_length",P::ycellls_ini);
-   RP::get("gridbuilder.z_length",P::zcellls_ini);
+   RP::get("gridbuilder.x_length",P::xcells_ini);
+   RP::get("gridbuilder.y_length",P::ycells_ini);
+   RP::get("gridbuilder.z_length",P::zcells_ini);
    RP::get("gridbuilder.vx_min",P::vxmin);
    RP::get("gridbuilder.vx_max",P::vxmax);
    RP::get("gridbuilder.vy_min",P::vymin);
@@ -224,8 +390,8 @@ bool readConfigFile(){
    RP::get("gridbuilder.vy_length",P::vyblocks_ini);
    RP::get("gridbuilder.vz_length",P::vzblocks_ini);
 
-   if (xmax < xmin || (ymax < ymin || zmax < zmin)) return false;
-   if (vx_max < vx_min || (vy_max < vy_min || vz_max < vz_min)) return false;
+   if (P::xmax < P::xmin || (P::ymax < P::ymin || P::zmax < P::zmin)) return false;
+   if (P::vxmax < P::vxmin || (P::vymax < P::vymin || P::vzmax < P::vzmin)) return false;
    
    std::string periodic_x,periodic_y,periodic_z;
    RP::get("gridbuilder.periodic_x",periodic_x);
@@ -243,7 +409,7 @@ bool readConfigFile(){
    P::dy_ini = (P::ymax-P::ymin)/P::ycells_ini;
    P::dz_ini = (P::zmax-P::zmin)/P::zcells_ini;
 
-   Real t_min
+   Real t_min;
    RP::get("gridbuilder.q",P::q);
    RP::get("gridbuilder.m",P::m);
    RP::get("gridbuilder.dt",P::dt);
@@ -345,7 +511,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    // Write spatial cell parameters:
    Real* paramsBuffer = new Real[cells.size()*CellParams::N_SPATIAL_CELL_PARAMS];
    for (size_t i=0; i<cells.size(); ++i) for (uint j=0; j<CellParams::N_SPATIAL_CELL_PARAMS; ++j) 
-      paramsBuffer[i*CellParams::SIZE_CELLPARAMS+j] = mpiGrid[cells[i]]->cpu_cellParams[j];   
+      paramsBuffer[i*CellParams::N_SPATIAL_CELL_PARAMS+j] = mpiGrid[cells[i]]->parameters[j];   
    if (vlsvWriter.writeArray("CELLPARAMS","SpatialGrid",attribs,cells.size(),CellParams::N_SPATIAL_CELL_PARAMS,paramsBuffer) == false) {
       mpilogger << "(MAIN) writeGrid: ERROR failed to write spatial cell parameters!" << endl << write;
       success = false;
@@ -372,8 +538,8 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    uint* N_blocks = new uint[cells.size()];
    uint64_t totalBlocks = 0;
    for (size_t cell=0; cell<cells.size(); ++cell) {
-      N_blocks[cell] = mpiGrid[cells[cell]]->velocity_blocks.size();
-      totalBlocks += mpiGrid[[cell]]->velocity_blocks.size();
+      N_blocks[cell] = mpiGrid[cells[cell]]->size();
+      totalBlocks += mpiGrid[cells[cell]]->size();
    }
    if (vlsvWriter.writeArray("NBLOCKS","SpatialGrid",attribs,cells.size(),1,N_blocks) == false) success = false;
    if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to write NBLOCKS to file!" << endl << write;
@@ -391,19 +557,26 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
       for (size_t cell=0; cell<cells.size(); ++cell) {
          int index=0;
          SC = mpiGrid[cells[cell]];
-         if(velocityBlockParameters.size()<SC->velocity_blocks.size()*BlockParams::N_VELOCITY_BLOCK_PARAMS){
-            velocityBlockParameters.resize(SC->velocity_blocks.size()*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+         
+         if(velocityBlockParameters.size()<SC->size()*BlockParams::N_VELOCITY_BLOCK_PARAMS){
+            velocityBlockParameters.resize(SC->size()*BlockParams::N_VELOCITY_BLOCK_PARAMS);
          }
-         for (boost::unordered_map < unsigned int, Velocity_block >::iterator it=SC->velocity_blocks.begin();
-              it!=SC->velocity_blocks.end();++it){
-            for (unsigned int p=0;p<BlockParams::N_VELOCITY_BLOCK_PARAMS;p++){
-               velocityBlockParameters[index++]=it->parameters[p];
+         
+         for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
+              block_i < spatial_cell::max_velocity_blocks
+                 && SC->velocity_block_list[block_i] != spatial_cell::error_velocity_block;
+              block = SC->velocity_block_list[++block_i]
+              ) {
+            Velocity_Block* block_ptr = &(SC->at(block));
+            for(unsigned int p=0;p<BlockParams::N_VELOCITY_BLOCK_PARAMS;++p){
+               velocityBlockParameters[index++]=block_ptr->parameters[p];
             }
          }
-         if (vlsvWriter.multiwriteArray(N_blocks[cell],velocityBlockParameters) == false) success = false;
+      
+         if (vlsvWriter.multiwriteArray(N_blocks[cell],&(velocityBlockParameters[0])) == false) success = false;
       }
    }
-
+   
    if (success == true) {
       if (vlsvWriter.endMultiwrite("BLOCKCOORDINATES","SpatialGrid",attribs) == false) success = false;
       if (success == false) mpilogger << "(MAIN) writeGrid: ERROR occurred when ending BLOCKCOORDINATES multiwrite!" << endl << write;
@@ -419,16 +592,23 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
       for (size_t cell=0; cell<cells.size(); ++cell) {
          int index=0;
 	 SC = mpiGrid[cells[cell]];
-         if(velocityBlockData.size()<SC->velocity_blocks.size()*SIZE_VELBLOCK){
-            velocityBlockData.resize(SC->velocity_blocks.size()*SIZE_VELBLOCK);
-         }
-         for (boost::unordered_map <unsigned int,Velocity_block>::iterator it=SC->velocity_blocks.begin();
-              it!=SC->velocity_blocks.end();++it){
-            for (unsigned int vc=0;vc<SIZE_VELBLOCK;vc++){
-               velocityBlockData[index++]=it->data[vc];
+         
+
+         if(velocityBlockData.size()<SC->size()*SIZE_VELBLOCK){
+            velocityBlockData.resize(SC->size()*SIZE_VELBLOCK);
+         }         
+         for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
+              block_i < spatial_cell::max_velocity_blocks
+                 && SC->velocity_block_list[block_i] != spatial_cell::error_velocity_block;
+              block = SC->velocity_block_list[++block_i]
+              ) {
+            Velocity_Block* block_ptr = &(SC->at(block));
+            for(unsigned int vc=0;vc<SIZE_VELBLOCK;++vc){
+               velocityBlockData[index++]=block_ptr->data[vc];
             }
          }
-	 if (vlsvWriter.multiwriteArray(N_blocks[cell],velocityBlockData) == false) success = false;
+         
+	 if (vlsvWriter.multiwriteArray(N_blocks[cell],&(velocityBlockData[0])) == false) success = false;
 	 //if (vlsvWriter.multiwriteArray(counter,N_blocks[cell],SC->cpu_fx) == false) success = false;
 	 counter += N_blocks[cell];
       }
@@ -462,12 +642,6 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    return success;
 }
 
-void exchangeVelocityGridMetadata(
-	dccrg::Dccrg<SpatialCell>& mpiGrid
-) {
-   SpatialCell::base_address_identifier = 5;
-   mpiGrid.update_remote_neighbour_data();
-}
    
 
 void log_send_receive_info(const dccrg::Dccrg<SpatialCell>& mpiGrid) {
@@ -509,12 +683,8 @@ int main(int argn,char* args[]) {
 
    //init parameter file reader
    Readparameters readparameters(argn,args,MPI_COMM_WORLD);
+//FIXME check, is this parse needed?
    readparameters.parse();
-   if (readparameters == false) {
-       success = false;
-       cerr << "(MAIN) Readparameters failed to init, aborting!" << endl;
-       return 1;
-   }
 
    // Read parameter file 
    if (readConfigFile()  == false) {
