@@ -251,42 +251,25 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
     typedef Parameters P;
     vector<uint64_t> cells = mpiGrid.get_cells();
 
-    /*
-      Create spatial cells for which data will be re    ceived from other processes
-      when first adjusting velocity bloc                ks
-
-      Sp  atialCell::set_mpi_transfer_type(0);
-      mpiGri      d.update_remote_neighbour_data();
-    */
-    /*CHECK WITH ILJA, what are these, what is needed */
-    // Receive N_blocks from remote neighbours
-    // SpatialCell::set_mpi_transfer_type(5);
-    // mpiGrid.update_remote_neighbour_data();
-    // reserve space for velocity blocks in local copies of remote neighbors
-
-    
     //  Go through every cell on this node and initialize the pointers to 
     // cpu memory, physical parameters and volume averages for each phase space 
     // point in the velocity grid. Velocity block neighbour list is also 
-   // constructed here:
-   Real xmin,ymin,zmin,dx,dy,dz;
-   
-   for (uint i=0; i<cells.size(); ++i) {
+    // constructed here:
+    Real xmin,ymin,zmin,dx,dy,dz;
+    
+    for (uint i=0; i<cells.size(); ++i) {
       dx = mpiGrid.get_cell_x_size(cells[i]);
       dy = mpiGrid.get_cell_y_size(cells[i]);
       dz = mpiGrid.get_cell_z_size(cells[i]);
       xmin = mpiGrid.get_cell_x_min(cells[i]);
       ymin = mpiGrid.get_cell_y_min(cells[i]);
       zmin = mpiGrid.get_cell_z_min(cells[i]);
-      
       initSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
    }
-
-   
    prepare_to_receive_velocity_block_data(mpiGrid);
-   
    // update distribution function
-   SpatialCell::set_mpi_transfer_type(2);
+   // FIXME, only CELL_BLOCK_DATA needed?
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_BLOCK_DATA );
    mpiGrid.update_remote_neighbour_data();
    
    adjust_all_velocity_blocks(mpiGrid);
@@ -294,8 +277,12 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
    prepare_to_receive_velocity_block_data(mpiGrid);
 
    profile::start("Fetch Neighbour data");
-   // update complete spatial cell data
-   SpatialCell::set_mpi_transfer_type(6);
+   // update complete spatial cell data 
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS|
+                                      Transfer::CELL_BLOCK_DATA|
+                                      Transfer::CELL_BLOCK_FLUXES|
+                                      Transfer::CELL_BLOCK_KT_DERIVATIVES|
+                                      Transfer::CELL_BLOCK_PARAMETERS);
    mpiGrid.update_remote_neighbour_data();       
    profile::stop("Fetch Neighbour data");   
 }

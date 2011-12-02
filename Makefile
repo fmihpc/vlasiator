@@ -160,7 +160,7 @@ gpudevicegrid.o: $(DEPS_GPU_DEVICE_GRID)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c gpudevicegrid.cpp $(INC_CUDA)
 
 
-vlasiator.o: $(DEPS_MAIN) ${BUILDER}
+vlasiator.o: $(DEPS_MAIN) 
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
 
 moverinstall:
@@ -219,8 +219,8 @@ dist:
 	rm -rf vlasiator
 
 # Make executable
-vlasiator: projinstall fieldsolverinstall builderinstall moverinstall $(OBJS)
-	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) -L${INSTALL} -L${INSTALL}/cpu -lvlasovmover -lfieldsolver $(LIBS) ${BUILDER}
+vlasiator: projinstall fieldsolverinstall  moverinstall $(OBJS)
+	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) -L${INSTALL} -L${INSTALL}/cpu -lvlasovmover -lfieldsolver $(LIBS) 
 
 VLASIATOR_HEADERS = \
 	arrayallocator.h cpu/cpu_acc_kt.h cpu/cpu_acc_leveque.h cpu/cpu_acc_ppm.h \
