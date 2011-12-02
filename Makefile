@@ -61,12 +61,11 @@ LIBS += ${LIB_CUDA}
 # Define dependencies of each object file
 DEPS_ARRAYALLOCATOR = arrayallocator.h arrayallocator.cpp
 DEPS_COMMON = common.h definitions.h mpiconversion.h mpilogger.h
-DEPS_CELL_SPATIAL = cell_spatial.h parameters.h cell_spatial.cpp
-DEPS_CELLSYNC = cell_spatial.h cellsync.cpp
-DEPS_DATAREDUCER = cell_spatial.h datareducer.h datareductionoperator.h datareducer.cpp
-DEPS_DATAREDUCTIONOPERATOR = cell_spatial.h datareductionoperator.h datareductionoperator.cpp
-DEPS_GPU_DEVICE_GRID = cell_spatial.h parameters.h devicegrid.h gpudevicegrid.cpp
-DEPS_MAIN =  parameters.h  project.h  cell_spatial.h vlasiator.cpp
+DEPS_CELLSYNC = spatial_cell.hpp cellsync.cpp
+DEPS_DATAREDUCER = spatial_cell.hpp datareducer.h datareductionoperator.h datareducer.cpp
+DEPS_DATAREDUCTIONOPERATOR = spatial_cell.hpp datareductionoperator.h datareductionoperator.cpp
+DEPS_GPU_DEVICE_GRID = spatial_cell.hpp parameters.h devicegrid.h gpudevicegrid.cpp
+DEPS_MAIN =  parameters.h  project.h  spatial_cell.hpp vlasiator.cpp
 DEPS_MPIFILE = mpifile.h mpifile.cpp
 DEPS_MPILOGGER = mpifile.h mpilogger.h mpilogger.cpp
 DEPS_MUXML = muxml.h muxml.cpp
@@ -80,7 +79,6 @@ DEPS_VLSVWRITER2 = mpiconversion.h muxml.h muxml.cpp vlscommon.h vlsvwriter2.h v
 DEPS_VLSV2SILO = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp vlsv2silo.cpp
 
 DEPS_ARRAYALLOCATOR += ${DEPS_COMMON}
-DEPS_CELL_SPATIAL += $(DEPS_COMMON)
 DEPS_CELLSYNC += $(DEPS_COMMON)
 DEPS_DATAREDUCER += ${DEPS_COMMON}
 DEPS_DATAREDUCTIONOPERATOR += ${DEPS_COMMON}
@@ -91,7 +89,7 @@ DEPS_PARAMETERS += $(DEPS_COMMON)
 DEPS_PROJECT += $(DEPS_COMMON)
 DEPS_VLSCOMMON += ${DEPS_COMMON}
 
-HDRS = arrayallocator.h cpu_acc.h cpu_acc_ppm.h cpu_common.h cpu_trans.h cell_spatial.h\
+HDRS = arrayallocator.h cpu_acc.h cpu_acc_ppm.h cpu_common.h cpu_trans.h spatial_cell.hpp\
 	common.h datareducer.h datareductionoperator.h\
 	definitions.h \
 	mpiconversion.h mpifile.h mpilogger.h\
@@ -112,7 +110,7 @@ CUDA_SRC = cellsync.cpp cuda_acc.cu cuda_common.cu cuda_trans.cu\
 
 CUDA_OBJS = cellsync.o cuda_acc.o cuda_trans.o cudafuncs.o gpudevicegrid.o
 
-OBJS = arrayallocator.o cell_spatial.o		\
+OBJS = arrayallocator.o 		\
 	datareducer.o datareductionoperator.o 		\
 	vlasiator.o mpifile.o mpilogger.o muxml.o	\
 	parameters.o project.o					\
@@ -147,9 +145,6 @@ clean:
 # Rules for making each object file needed by the executable
 arrayallocator.o: ${DEPS_ARRAYALLOCATOR}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c arrayallocator.cpp 
-
-cell_spatial.o: $(DEPS_CELL_SPATIAL)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c cell_spatial.cpp ${INC_MPI} ${INC_BOOST}
 
 datareducer.o: ${DEPS_DATAREDUCER}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareducer.cpp ${INC_MPI} ${INC_BOOST}
@@ -229,7 +224,7 @@ vlasiator: projinstall fieldsolverinstall builderinstall moverinstall $(OBJS)
 
 VLASIATOR_HEADERS = \
 	arrayallocator.h cpu/cpu_acc_kt.h cpu/cpu_acc_leveque.h cpu/cpu_acc_ppm.h \
-	cpu/cpu_common.h cpu/cpu_trans_kt.h cpu/cpu_trans_leveque.h cell_spatial.h \
+	cpu/cpu_common.h cpu/cpu_trans_kt.h cpu/cpu_trans_leveque.h spatial_cell.hpp \
 	common.h datareducer.h datareductionoperator.h \
 	definitions.h   \
 	mpiconversion.h mpifile.h mpilogger.h \
@@ -239,7 +234,6 @@ VLASIATOR_HEADERS = \
 
 VLASIATOR_SOURCES = \
 	arrayallocator.cpp \
-	cell_spatial.cpp \
 	datareducer.cpp \
 	datareductionoperator.cpp \
 	fieldsolver/londrillo_delzanna.cpp \

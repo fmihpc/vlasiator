@@ -67,31 +67,6 @@ namespace NbrsSpa {
  * of velocity grid blocks. These indices are used by the device.
  */
 namespace NbrsVel {
-//   const uint INNER = 0;         /**< The block is an inner block, i.e. all its neighbours are stored on the same computation node.*/
-//   const uint X_NEG_BND = (1 << 0);     /**< The block is a boundary block in -x direction.*/
-//   const uint X_POS_BND = (1 << 1);     /**< The block is a boundary block in +x direction.*/
-//   const uint Y_NEG_BND = (1 << 2);     /**< The block is a boundary block in -y direction.*/
-//   const uint Y_POS_BND = (1 << 3);     /**< The block is a boundary block in +y direction.*/
-//   const uint Z_NEG_BND = (1 << 4);    /**< The block is a boundary block in -z direction.*/
-//   const uint Z_POS_BND = (1 << 5);    /**< The block is a boundary block in +z direction.*/
-//   const uint VX_NEG_BND = (1 << 6);   /**< The block is a boundary block in -vx direction.*/
-//   const uint VX_POS_BND = (1 << 7);  /**< The block is a boundary block in +vx direction.*/
-//   const uint VY_NEG_BND = (1 << 8);  /**< The block is a boundary block in -vy direction.*/
-//   const uint VY_POS_BND = (1 << 9);  /**< The block is a boundary block in +vy direction.*/
-//   const uint VZ_NEG_BND = (1 << 10); /**< The block is a boundary block in -vz direction.*/
-//   const uint VZ_POS_BND = (1 << 11); /**< The block is a boundary block in +vz direction.*/
-   
-//   enum {
-//      STATE, /**< Contains the neighbour information bits of a velocity block.*/
-//      MYIND, /**< The index of the block.*/   
-//      VXNEG, /**< The index of -vx neighbour.*/
-//      VYNEG, /**< The index of -vy neighbour.*/
-//      VZNEG, /**< The index of -vz neighbour.*/
-//      VXPOS, /**< The index of +vx neighbour.*/
-//      VYPOS, /**< The index of +vy neighbour.*/
-//      VZPOS  /**< The index of +vz neighbour.*/
-//   };
-
    const uint XM1_YM1_ZM1 = 0;  /**< Index of (x-1,y-1,z-1) neighbour.*/
    const uint XCC_YM1_ZM1 = 1;  /**< Index of (x  ,y-1,z-1) neighbour.*/
    const uint XP1_YM1_ZM1 = 2;  /**< Index of (x+1,y-1,z-1) neighbour.*/
@@ -232,17 +207,21 @@ namespace fieldsolver {
       dVzdx,     /**< Derivative of volume-averaged Vz to x-direction. */
       dVzdy,     /**< Derivative of volume-averaged Vz to y-direction. */
       dVzdz,     /**< Derivative of volume-averaged Vz to z-direction. */
-      SIZE_DERIVATIVES
+      N_SPATIAL_CELL_DERIVATIVES
    };
 }
+
+
+
+
 
 const uint WID = 4;         /**< Number of cells per coordinate in a velocity block. */
 const uint WID2 = WID*WID;
 const uint WID3 = WID2*WID; 
 
 //const uint SIZE_NBRS_VEL    = 8;    /**< The size of velocity grid neighbour list per velocity block. */
-const uint SIZE_NBRS_VEL    = 28;    /**< The size of velocity grid neighbour list per velocity block. */
-const uint SIZE_NBRS_SPA    = 31;   /**< The size of spatial grid neighbour list per spatial cell. */
+//const uint SIZE_NBRS_VEL    = 28;    /**< The size of velocity grid neighbour list per velocity block. */
+//const uint SIZE_NBRS_SPA    = 31;   /**< The size of spatial grid neighbour list per spatial cell. */
 const uint SIZE_VELBLOCK    = WID3; /**< Number of cells in a velocity block. */
 const uint SIZE_BLOCKPARAMS = 6;    /**< Number of parameters per velocity block. */
 

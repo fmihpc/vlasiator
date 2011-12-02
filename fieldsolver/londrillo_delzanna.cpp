@@ -196,7 +196,7 @@ static void calculateDerivatives(
 ) {
    namespace cp = CellParams;
    namespace fs = fieldsolver;
-   Real* const array       = mpiGrid[cellID]->cpu_derivatives;
+   Real* const array       = mpiGrid[cellID]->derivatives;
    Real* const derivatives = array;
    // Get boundary flag for the cell:
    #ifndef NDEBUG
@@ -210,7 +210,7 @@ static void calculateDerivatives(
    
    CellID leftNbrID,rghtNbrID;
    creal* left = NULL;
-   creal* cent = mpiGrid[cellID   ]->cpu_cellParams;   
+   creal* cent = mpiGrid[cellID   ]->parameters;   
    #ifdef DEBUG_SOLVERS
    if (cent[cp::RHO] <= 0) {
       std::cerr << __FILE__ << ":" << __LINE__
@@ -225,7 +225,7 @@ static void calculateDerivatives(
    if ((existingCells & CALCULATE_DX) == CALCULATE_DX) {
       leftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2  ,2  );
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2  ,2  );
-      left = mpiGrid[leftNbrID]->cpu_cellParams;
+      left = mpiGrid[leftNbrID]->parameters;
       #ifdef DEBUG_SOLVERS
       if (left[cp::RHO] <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
@@ -234,7 +234,7 @@ static void calculateDerivatives(
          abort();
       }
       #endif
-      rght = mpiGrid[rghtNbrID]->cpu_cellParams;
+      rght = mpiGrid[rghtNbrID]->parameters;
       #ifdef DEBUG_SOLVERS
       if (rght[cp::RHO] <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
@@ -277,7 +277,7 @@ static void calculateDerivatives(
       leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2-1,2  );
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2+1,2  );
 
-      left = mpiGrid[leftNbrID]->cpu_cellParams;
+      left = mpiGrid[leftNbrID]->parameters;
       #ifdef DEBUG_SOLVERS
       if (left[cp::RHO] <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
@@ -288,7 +288,7 @@ static void calculateDerivatives(
       }
       #endif
       
-      rght = mpiGrid[rghtNbrID]->cpu_cellParams;
+      rght = mpiGrid[rghtNbrID]->parameters;
       #ifdef DEBUG_SOLVERS
       if (rght[cp::RHO] <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
@@ -330,7 +330,7 @@ static void calculateDerivatives(
    if ((existingCells & CALCULATE_DZ) == CALCULATE_DZ) {
       leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2-1);
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2+1);
-      left = mpiGrid[leftNbrID]->cpu_cellParams;
+      left = mpiGrid[leftNbrID]->parameters;
       #ifdef DEBUG_SOLVERS
       if (left[cp::RHO] <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
@@ -339,7 +339,7 @@ static void calculateDerivatives(
          abort();
       }
       #endif
-      rght = mpiGrid[rghtNbrID]->cpu_cellParams;
+      rght = mpiGrid[rghtNbrID]->parameters;
       #ifdef DEBUG_SOLVERS
       if (rght[cp::RHO] <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
@@ -470,15 +470,15 @@ static void calculateEdgeElectricFieldX(
       if (nbr_NW == INVALID_CELLID) {cerr << "ERROR: Could not find NW neighbour!" << endl; exit(1);}
    #endif
    
-   Real*  const cp_SW = mpiGrid[cellID]->cpu_cellParams;
-   creal* const cp_SE = mpiGrid[nbr_SE]->cpu_cellParams;
-   creal* const cp_NE = mpiGrid[nbr_NE]->cpu_cellParams;
-   creal* const cp_NW = mpiGrid[nbr_NW]->cpu_cellParams;
+   Real*  const cp_SW = mpiGrid[cellID]->parameters;
+   creal* const cp_SE = mpiGrid[nbr_SE]->parameters;
+   creal* const cp_NE = mpiGrid[nbr_NE]->parameters;
+   creal* const cp_NW = mpiGrid[nbr_NW]->parameters;
    
-   creal* const derivs_SW = mpiGrid[cellID]->cpu_derivatives;
-   creal* const derivs_SE = mpiGrid[nbr_SE]->cpu_derivatives;
-   creal* const derivs_NE = mpiGrid[nbr_NE]->cpu_derivatives;
-   creal* const derivs_NW = mpiGrid[nbr_NW]->cpu_derivatives;
+   creal* const derivs_SW = mpiGrid[cellID]->derivatives;
+   creal* const derivs_SE = mpiGrid[nbr_SE]->derivatives;
+   creal* const derivs_NE = mpiGrid[nbr_NE]->derivatives;
+   creal* const derivs_NW = mpiGrid[nbr_NW]->derivatives;
    
    creal By_S = cp_SW[CellParams::BY];
    creal Bz_W = cp_SW[CellParams::BZ];
@@ -510,8 +510,8 @@ static void calculateEdgeElectricFieldX(
    #ifndef NDEBUG
    if (nbrID_SW == INVALID_CELLID) {cerr << "ERROR: Could not find SW cell!" << endl; exit(1);}
    #endif
-   creal* const nbr_cp_SW     = mpiGrid[nbrID_SW]->cpu_cellParams;
-   creal* const nbr_derivs_SW = mpiGrid[nbrID_SW]->cpu_derivatives;
+   creal* const nbr_cp_SW     = mpiGrid[nbrID_SW]->parameters;
+   creal* const nbr_derivs_SW = mpiGrid[nbrID_SW]->derivatives;
    c_y = calculateFastMSspeedYZ(cp_SW,derivs_SW,nbr_cp_SW,nbr_derivs_SW,By_S,Bz_W,dBydx_S,dBydz_S,dBzdx_W,dBzdy_W,MINUS,MINUS);
    c_z = c_y;
    ay_neg   = max(ZERO,-Vy0 + c_y);
@@ -535,8 +535,8 @@ static void calculateEdgeElectricFieldX(
    #ifndef NDEBUG
    if (nbrID_SE == INVALID_CELLID) {cerr << "ERROR: Could not find SE cell!" << endl; exit(1);}
    #endif
-   creal* const nbr_cp_SE     = mpiGrid[nbrID_SE]->cpu_cellParams;
-   creal* const nbr_derivs_SE = mpiGrid[nbrID_SE]->cpu_derivatives;
+   creal* const nbr_cp_SE     = mpiGrid[nbrID_SE]->parameters;
+   creal* const nbr_derivs_SE = mpiGrid[nbrID_SE]->derivatives;
    c_y = calculateFastMSspeedYZ(cp_SE,derivs_SE,nbr_cp_SE,nbr_derivs_SE,By_S,Bz_E,dBydx_S,dBydz_S,dBzdx_E,dBzdy_E,PLUS,MINUS);
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
@@ -560,8 +560,8 @@ static void calculateEdgeElectricFieldX(
    #ifndef NDEBUG
    if (nbrID_NW == INVALID_CELLID) {cerr << "ERROR: Could not find NW cell!" << endl; exit(1);}
    #endif
-   creal* const nbr_cp_NW     = mpiGrid[nbrID_NW]->cpu_cellParams;
-   creal* const nbr_derivs_NW = mpiGrid[nbrID_NW]->cpu_derivatives;
+   creal* const nbr_cp_NW     = mpiGrid[nbrID_NW]->parameters;
+   creal* const nbr_derivs_NW = mpiGrid[nbrID_NW]->derivatives;
    c_y = calculateFastMSspeedYZ(cp_NW,derivs_NW,nbr_cp_NW,nbr_derivs_NW,By_N,Bz_W,dBydx_N,dBydz_N,dBzdx_W,dBzdy_W,MINUS,PLUS);
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
@@ -585,8 +585,8 @@ static void calculateEdgeElectricFieldX(
    #ifndef NDEBUG
    if (nbrID_NE == INVALID_CELLID) {cerr << "ERROR: Could not find NE cell!" << endl; exit(1);}
    #endif
-   creal* const nbr_cp_NE     = mpiGrid[nbrID_NE]->cpu_cellParams;
-   creal* const nbr_derivs_NE = mpiGrid[nbrID_NE]->cpu_derivatives;
+   creal* const nbr_cp_NE     = mpiGrid[nbrID_NE]->parameters;
+   creal* const nbr_derivs_NE = mpiGrid[nbrID_NE]->derivatives;
    c_y = calculateFastMSspeedYZ(cp_NE,derivs_NE,nbr_cp_NE,nbr_derivs_NE,By_N,Bz_E,dBydx_N,dBydz_N,dBzdx_E,dBzdy_E,PLUS,PLUS);
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
@@ -631,15 +631,15 @@ static void calculateEdgeElectricFieldY(
       if (nbr_NW == INVALID_CELLID) {cerr << "ERROR: Could not find NW neighbour!" << endl; exit(1);}
    #endif
    
-   Real* const  cp_SW = mpiGrid[cellID]->cpu_cellParams;
-   creal* const cp_SE = mpiGrid[nbr_SE]->cpu_cellParams;
-   creal* const cp_NE = mpiGrid[nbr_NE]->cpu_cellParams;
-   creal* const cp_NW = mpiGrid[nbr_NW]->cpu_cellParams;
+   Real* const  cp_SW = mpiGrid[cellID]->parameters;
+   creal* const cp_SE = mpiGrid[nbr_SE]->parameters;
+   creal* const cp_NE = mpiGrid[nbr_NE]->parameters;
+   creal* const cp_NW = mpiGrid[nbr_NW]->parameters;
    
-   creal* const derivs_SW = mpiGrid[cellID]->cpu_derivatives;
-   creal* const derivs_SE = mpiGrid[nbr_SE]->cpu_derivatives;
-   creal* const derivs_NE = mpiGrid[nbr_NE]->cpu_derivatives;
-   creal* const derivs_NW = mpiGrid[nbr_NW]->cpu_derivatives;
+   creal* const derivs_SW = mpiGrid[cellID]->derivatives;
+   creal* const derivs_SE = mpiGrid[nbr_SE]->derivatives;
+   creal* const derivs_NE = mpiGrid[nbr_NE]->derivatives;
+   creal* const derivs_NW = mpiGrid[nbr_NW]->derivatives;
    
    // Fetch required plasma parameters:
    creal Bz_S = cp_SW[CellParams::BZ];
@@ -672,8 +672,8 @@ static void calculateEdgeElectricFieldY(
    #ifndef NDEBUG
    if (nbrID_SW == INVALID_CELLID) {cerr << "ERROR: Could not find SW cell!" << endl; exit(1);}
    #endif
-   creal* const nbr_cp_SW     = mpiGrid[nbrID_SW]->cpu_cellParams;
-   creal* const nbr_derivs_SW = mpiGrid[nbrID_SW]->cpu_derivatives;
+   creal* const nbr_cp_SW     = mpiGrid[nbrID_SW]->parameters;
+   creal* const nbr_derivs_SW = mpiGrid[nbrID_SW]->derivatives;
    c_z = calculateFastMSspeedXZ(cp_SW,derivs_SW,nbr_cp_SW,nbr_derivs_SW,Bx_W,Bz_S,dBxdy_W,dBxdz_W,dBzdx_S,dBzdy_S,MINUS,MINUS);
    c_x = c_z;
    az_neg   = max(ZERO,-Vz0 + c_z);
@@ -697,8 +697,8 @@ static void calculateEdgeElectricFieldY(
    #ifndef NDEBUG
    if (nbrID_SE == INVALID_CELLID) {cerr << "ERROR: Could not find SE cell!" << endl; exit(1);}
    #endif
-   creal* const nbr_cp_SE     = mpiGrid[nbrID_SE]->cpu_cellParams;
-   creal* const nbr_derivs_SE = mpiGrid[nbrID_SE]->cpu_derivatives;
+   creal* const nbr_cp_SE     = mpiGrid[nbrID_SE]->parameters;
+   creal* const nbr_derivs_SE = mpiGrid[nbrID_SE]->derivatives;
    c_z = calculateFastMSspeedXZ(cp_SE,derivs_SE,nbr_cp_SE,nbr_derivs_SE,Bx_E,Bz_S,dBxdy_E,dBxdz_E,dBzdx_S,dBzdy_S,MINUS,PLUS);
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 - c_z);
@@ -722,8 +722,8 @@ static void calculateEdgeElectricFieldY(
    #ifndef NDEBUG
    if (nbrID_NW == INVALID_CELLID) {cerr << "ERROR: Could not find NW cell!" << endl; exit(1);}
    #endif
-   creal* const nbr_cp_NW     = mpiGrid[nbrID_NW]->cpu_cellParams;
-   creal* const nbr_derivs_NW = mpiGrid[nbrID_NW]->cpu_derivatives;
+   creal* const nbr_cp_NW     = mpiGrid[nbrID_NW]->parameters;
+   creal* const nbr_derivs_NW = mpiGrid[nbrID_NW]->derivatives;
    c_z = calculateFastMSspeedXZ(cp_NW,derivs_NW,nbr_cp_NW,nbr_derivs_NW,Bx_W,Bz_N,dBxdy_W,dBxdz_W,dBzdx_N,dBzdy_N,PLUS,MINUS);
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
@@ -747,8 +747,8 @@ static void calculateEdgeElectricFieldY(
    #ifndef NDEBUG
    if (nbrID_NE == INVALID_CELLID) {cerr << "ERROR: Could not find NE cell!" << endl; exit(1);}
    #endif
-   creal* const nbr_cp_NE     = mpiGrid[nbrID_NE]->cpu_cellParams;
-   creal* const nbr_derivs_NE = mpiGrid[nbrID_NE]->cpu_derivatives;
+   creal* const nbr_cp_NE     = mpiGrid[nbrID_NE]->parameters;
+   creal* const nbr_derivs_NE = mpiGrid[nbrID_NE]->derivatives;
    c_z = calculateFastMSspeedXZ(cp_NE,derivs_NE,nbr_cp_NE,nbr_derivs_NE,Bx_E,Bz_N,dBxdy_E,dBxdz_E,dBzdx_N,dBzdy_N,PLUS,PLUS);
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
@@ -792,15 +792,15 @@ static void calculateEdgeElectricFieldZ(
       if (nbr_NW == INVALID_CELLID) {cerr << "ERROR: Could not find NW neighbour!" << endl; exit(1);}
    #endif
    
-   Real* const cp_SW  = mpiGrid[cellID]->cpu_cellParams;
-   creal* const cp_SE = mpiGrid[nbr_SE]->cpu_cellParams;
-   creal* const cp_NE = mpiGrid[nbr_NE]->cpu_cellParams;
-   creal* const cp_NW = mpiGrid[nbr_NW]->cpu_cellParams;
+   Real* const cp_SW  = mpiGrid[cellID]->parameters;
+   creal* const cp_SE = mpiGrid[nbr_SE]->parameters;
+   creal* const cp_NE = mpiGrid[nbr_NE]->parameters;
+   creal* const cp_NW = mpiGrid[nbr_NW]->parameters;
    
-   creal* const derivs_SW = mpiGrid[cellID]->cpu_derivatives;
-   creal* const derivs_SE = mpiGrid[nbr_SE]->cpu_derivatives;
-   creal* const derivs_NE = mpiGrid[nbr_NE]->cpu_derivatives;
-   creal* const derivs_NW = mpiGrid[nbr_NW]->cpu_derivatives;
+   creal* const derivs_SW = mpiGrid[cellID]->derivatives;
+   creal* const derivs_SE = mpiGrid[nbr_SE]->derivatives;
+   creal* const derivs_NE = mpiGrid[nbr_NE]->derivatives;
+   creal* const derivs_NW = mpiGrid[nbr_NW]->derivatives;
    
    // Fetch needed plasma parameters/derivatives from the four cells:
    creal Bx_S    = cp_SW[CellParams::BX];
@@ -834,8 +834,8 @@ static void calculateEdgeElectricFieldZ(
    #ifndef NDEBUG
    if (nbrID_SW == INVALID_CELLID) {cerr << "ERROR: Could not find SW cell!" << endl; exit(1);}
    #endif
-   creal* const nbr_cp_SW     = mpiGrid[nbrID_SW]->cpu_cellParams;
-   creal* const nbr_derivs_SW = mpiGrid[nbrID_SW]->cpu_derivatives;
+   creal* const nbr_cp_SW     = mpiGrid[nbrID_SW]->parameters;
+   creal* const nbr_derivs_SW = mpiGrid[nbrID_SW]->derivatives;
    c_x = calculateFastMSspeedXY(cp_SW,derivs_SW,nbr_cp_SW,nbr_derivs_SW,Bx_S,By_W,dBxdy_S,dBxdz_S,dBydx_W,dBydz_W,MINUS,MINUS);
    c_y = c_x;
    ax_neg   = max(ZERO,-Vx0 + c_x);
@@ -859,8 +859,8 @@ static void calculateEdgeElectricFieldZ(
    #ifndef NDEBUG
    if (nbrID_SE == INVALID_CELLID) {cerr << "ERROR: Could not find SE cell!" << endl; exit(1);}
    #endif
-   creal* const nbr_cp_SE     = mpiGrid[nbrID_SE]->cpu_cellParams;
-   creal* const nbr_derivs_SE = mpiGrid[nbrID_SE]->cpu_derivatives;
+   creal* const nbr_cp_SE     = mpiGrid[nbrID_SE]->parameters;
+   creal* const nbr_derivs_SE = mpiGrid[nbrID_SE]->derivatives;
    c_x = calculateFastMSspeedXY(cp_SE,derivs_SE,nbr_cp_SE,nbr_derivs_SE,Bx_S,By_E,dBxdy_S,dBxdz_S,dBydx_E,dBydz_E,PLUS,MINUS);
    c_y = c_x;   
    ax_neg = max(ax_neg,-Vx0 + c_x);
@@ -884,8 +884,8 @@ static void calculateEdgeElectricFieldZ(
    #ifndef NDEBUG
    if (nbrID_NW == INVALID_CELLID) {cerr << "ERROR: Could not find NW cell!" << endl; exit(1);}
    #endif
-   creal* const nbr_cp_NW     = mpiGrid[nbrID_NW]->cpu_cellParams;
-   creal* const nbr_derivs_NW = mpiGrid[nbrID_NW]->cpu_derivatives;
+   creal* const nbr_cp_NW     = mpiGrid[nbrID_NW]->parameters;
+   creal* const nbr_derivs_NW = mpiGrid[nbrID_NW]->derivatives;
    c_x = calculateFastMSspeedXY(cp_NW,derivs_NW,nbr_cp_NW,nbr_derivs_NW,Bx_N,By_W,dBxdy_N,dBxdz_N,dBydx_W,dBydz_W,MINUS,PLUS);
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x); 
@@ -909,8 +909,8 @@ static void calculateEdgeElectricFieldZ(
    #ifndef NDEBUG
    if (nbrID_NE == INVALID_CELLID) {cerr << "ERROR: Could not find NE cell!" << endl; exit(1);}
    #endif
-   creal* const nbr_cp_NE     = mpiGrid[nbrID_NE]->cpu_cellParams;
-   creal* const nbr_derivs_NE = mpiGrid[nbrID_NE]->cpu_derivatives;
+   creal* const nbr_cp_NE     = mpiGrid[nbrID_NE]->parameters;
+   creal* const nbr_derivs_NE = mpiGrid[nbrID_NE]->derivatives;
    c_x = calculateFastMSspeedXY(cp_NE,derivs_NE,nbr_cp_NE,nbr_derivs_NE,Bx_N,By_E,dBxdy_N,dBxdz_N,dBydx_E,dBydz_E,PLUS,PLUS);
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x);
@@ -942,7 +942,7 @@ static void propagateMagneticField(
 	creal& dt
 ) {
    CellID nbrID;
-   Real* const cp0 = mpiGrid[cellID]->cpu_cellParams;
+   Real* const cp0 = mpiGrid[cellID]->parameters;
    creal* cp1;
    creal* cp2;
    creal dx = cp0[CellParams::DX];
@@ -975,7 +975,7 @@ static void propagateMagneticField(
             << std::endl;
          abort();
       }
-      cp1 = mpiGrid[nbrID]->cpu_cellParams;
+      cp1 = mpiGrid[nbrID]->parameters;
 
       nbrID = getNeighbourID(mpiGrid, cellID, 2  , 2  , 2+1);
       #ifndef NDEBUG
@@ -990,7 +990,7 @@ static void propagateMagneticField(
             << std::endl;
          abort();
       }
-      cp2 = mpiGrid[nbrID]->cpu_cellParams;
+      cp2 = mpiGrid[nbrID]->parameters;
 
       CHECK_FLOAT(cp0[CellParams::EY])
       CHECK_FLOAT(cp0[CellParams::EZ])
@@ -1015,7 +1015,7 @@ static void propagateMagneticField(
             << std::endl;
          abort();
       }
-      cp1 = mpiGrid[nbrID]->cpu_cellParams;
+      cp1 = mpiGrid[nbrID]->parameters;
 
       nbrID = getNeighbourID(mpiGrid, cellID, 2+1, 2  , 2  );
       #ifndef NDEBUG
@@ -1030,7 +1030,7 @@ static void propagateMagneticField(
             << std::endl;
          abort();
       }
-      cp2 = mpiGrid[nbrID]->cpu_cellParams;
+      cp2 = mpiGrid[nbrID]->parameters;
 
       CHECK_FLOAT(cp0[CellParams::EZ])
       CHECK_FLOAT(cp0[CellParams::EX])
@@ -1055,7 +1055,7 @@ static void propagateMagneticField(
             << std::endl;
          abort();
       }
-      cp1 = mpiGrid[nbrID]->cpu_cellParams;
+      cp1 = mpiGrid[nbrID]->parameters;
 
       nbrID = getNeighbourID(mpiGrid, cellID, 2  , 2+1, 2  );
       #ifndef NDEBUG
@@ -1070,7 +1070,7 @@ static void propagateMagneticField(
             << std::endl;
          abort();
       }
-      cp2 = mpiGrid[nbrID]->cpu_cellParams;
+      cp2 = mpiGrid[nbrID]->parameters;
 
       CHECK_FLOAT(cp0[CellParams::EX])
       CHECK_FLOAT(cp0[CellParams::EY])
@@ -1196,8 +1196,8 @@ void calculateDerivativesSimple(
    profile::start("Calculate derivatives");
 
    // Exchange BX,BY,BZ,RHO,RHOVX,RHOVY,RHOVZ with neighbours
-   SpatialCell::base_address_identifier = 3;
-
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_B_RHO_RHOV);
+   
    timer=profile::initializeTimer("Start comm of B  and RHOV","MPI");
    profile::start(timer);
    mpiGrid.start_remote_neighbour_data_update();
@@ -1241,7 +1241,8 @@ void calculateUpwindedElectricFieldSimple(
    namespace fs = fieldsolver;
    int timer;
    profile::start("Calculate upwinded electric field");
-   SpatialCell::base_address_identifier = 4;
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_DERIVATIVES);
+   
    timer=profile::initializeTimer("Start communication of derivatives","MPI");
    profile::start(timer);
    mpiGrid.start_remote_neighbour_data_update();
@@ -1279,7 +1280,7 @@ void calculateUpwindedElectricFieldSimple(
    profile::stop(timer);
    
    // Exchange electric field with neighbouring processes
-   SpatialCell::base_address_identifier = 6;
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_E);
    timer=profile::initializeTimer("Communicate electric fields","MPI","Wait");
    profile::start(timer);
    mpiGrid.update_remote_neighbour_data();
@@ -1320,11 +1321,11 @@ static void propagateMagneticFieldSimple(
       }
 
       if ((existingCells & PROPAGATE_BX) != PROPAGATE_BX)
-	mpiGrid[cellID]->cpu_cellParams[CellParams::BX] = fieldSolverBoundaryCondBx<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
+	mpiGrid[cellID]->parameters[CellParams::BX] = fieldSolverBoundaryCondBx<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
       if ((existingCells & PROPAGATE_BY) != PROPAGATE_BY)
-	mpiGrid[cellID]->cpu_cellParams[CellParams::BY] = fieldSolverBoundaryCondBy<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
+	mpiGrid[cellID]->parameters[CellParams::BY] = fieldSolverBoundaryCondBy<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
       if ((existingCells & PROPAGATE_BZ) != PROPAGATE_BZ) {
-         mpiGrid[cellID]->cpu_cellParams[CellParams::BZ] = fieldSolverBoundaryCondBz<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
+         mpiGrid[cellID]->parameters[CellParams::BZ] = fieldSolverBoundaryCondBz<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
       }
    }
 
@@ -1374,28 +1375,28 @@ void reconstructionCoefficients(
    namespace fs = fieldsolver;
    namespace cp = CellParams;
    
-   Real* const cep_i1j1k1 = mpiGrid[cellID]->cpu_cellParams;
+   Real* const cep_i1j1k1 = mpiGrid[cellID]->parameters;
    
    // Create a dummy array for containing zero values for cellParams on non-existing cells:
-   Real dummyCellParams[CellParams::SIZE_CELLPARAMS];
-   for (uint i=0; i<CellParams::SIZE_CELLPARAMS; ++i) dummyCellParams[i] = 0.0;
+   Real dummyCellParams[CellParams::N_SPATIAL_CELL_PARAMS];
+   for (uint i=0; i<CellParams::N_SPATIAL_CELL_PARAMS; ++i) dummyCellParams[i] = 0.0;
    
    Real* cep_i2j1k1 = NULL;
    Real* cep_i1j2k1 = NULL;
    Real* cep_i1j1k2 = NULL;
    if (nbr_i2j1k1 == INVALID_CELLID) cep_i2j1k1 = dummyCellParams;
-   else cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->cpu_cellParams;
+   else cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->parameters;
    if (nbr_i1j2k1 == INVALID_CELLID) cep_i1j2k1 = dummyCellParams;
-   else cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->cpu_cellParams;
+   else cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->parameters;
    if (nbr_i1j1k2 == INVALID_CELLID) cep_i1j1k2 = dummyCellParams;
-   else cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->cpu_cellParams;
+   else cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->parameters;
 
    #ifndef FS_1ST_ORDER
-      creal* const der_i1j1k1 = mpiGrid[cellID]->cpu_derivatives;
+      creal* const der_i1j1k1 = mpiGrid[cellID]->derivatives;
 
       // Create a dummy array for containing zero values for derivatives on non-existing cells:
-      Real dummyDerivatives[SIZE_DERIVATIVES];
-      for (uint i=0; i<SIZE_DERIVATIVES; ++i) dummyDerivatives[i] = 0.0;
+      Real dummyDerivatives[N_SPATIAL_CELL_DERIVATIVES];
+      for (uint i=0; i<N_SPATIAL_CELL_DERIVATIVES; ++i) dummyDerivatives[i] = 0.0;
    
       // Fetch neighbour cell derivatives, or in case the neighbour does not 
       // exist, use dummyDerivatives array:
@@ -1403,11 +1404,11 @@ void reconstructionCoefficients(
       Real* der_i1j2k1 = NULL;
       Real* der_i1j1k2 = NULL;
       if (nbr_i2j1k1 == INVALID_CELLID) der_i2j1k1 = dummyDerivatives;
-      else der_i2j1k1 = mpiGrid[nbr_i2j1k1]->cpu_derivatives;
+      else der_i2j1k1 = mpiGrid[nbr_i2j1k1]->derivatives;
       if (nbr_i1j2k1 == INVALID_CELLID) der_i1j2k1 = dummyDerivatives;
-      else der_i1j2k1 = mpiGrid[nbr_i1j2k1]->cpu_derivatives;
+      else der_i1j2k1 = mpiGrid[nbr_i1j2k1]->derivatives;
       if (nbr_i1j1k2 == INVALID_CELLID) der_i1j1k2 = dummyDerivatives;
-      else der_i1j1k2 = mpiGrid[nbr_i1j1k2]->cpu_derivatives;
+      else der_i1j1k2 = mpiGrid[nbr_i1j1k2]->derivatives;
 
       // Calculate 2nd order reconstruction coefficients:
       result[Rec::a_xy] = der_i2j1k1[fs::dBxdy] - der_i1j1k1[fs::dBxdy];
@@ -1497,14 +1498,14 @@ void averageFaceXElectricField(
    // If all required neighbour data exists, calculate E vector on 
    // x-face. NEEDS IMPROVEMENT!
    if ((existingCells & REQUIRED_CELLS) == REQUIRED_CELLS) {
-      creal* const cep_i1j1k1 = mpiGrid[cellID]->cpu_cellParams;
-      creal* const cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->cpu_cellParams;
-      creal* const cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->cpu_cellParams;
-      creal* const cep_i1j2k2 = mpiGrid[nbr_i1j2k2]->cpu_cellParams;
-      creal* const cep_i0j1k1 = mpiGrid[nbr_i0j1k1]->cpu_cellParams;
-      creal* const cep_i0j2k1 = mpiGrid[nbr_i0j2k1]->cpu_cellParams;
-      creal* const cep_i0j1k2 = mpiGrid[nbr_i0j1k2]->cpu_cellParams;
-      creal* const cep_i0j2k2 = mpiGrid[nbr_i0j2k2]->cpu_cellParams;
+      creal* const cep_i1j1k1 = mpiGrid[cellID]->parameters;
+      creal* const cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->parameters;
+      creal* const cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->parameters;
+      creal* const cep_i1j2k2 = mpiGrid[nbr_i1j2k2]->parameters;
+      creal* const cep_i0j1k1 = mpiGrid[nbr_i0j1k1]->parameters;
+      creal* const cep_i0j2k1 = mpiGrid[nbr_i0j2k1]->parameters;
+      creal* const cep_i0j1k2 = mpiGrid[nbr_i0j1k2]->parameters;
+      creal* const cep_i0j2k2 = mpiGrid[nbr_i0j2k2]->parameters;
    
       CHECK_FLOAT(cep_i1j1k1[cp::EX])
       CHECK_FLOAT(cep_i1j2k1[cp::EX])
@@ -1561,14 +1562,14 @@ void averageFaceYElectricField(
    // If all required neighbour data exists, calculate E vector on
    // y-face. NEEDS IMPROVEMENT!
    if ((existingCells & REQUIRED_CELLS) == REQUIRED_CELLS) {
-      creal* const cep_i1j1k1 = mpiGrid[cellID]->cpu_cellParams;
-      creal* const cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->cpu_cellParams;
-      creal* const cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->cpu_cellParams;
-      creal* const cep_i2j1k2 = mpiGrid[nbr_i2j1k2]->cpu_cellParams;
-      creal* const cep_i1j0k1 = mpiGrid[nbr_i1j0k1]->cpu_cellParams;
-      creal* const cep_i2j0k1 = mpiGrid[nbr_i2j0k1]->cpu_cellParams;
-      creal* const cep_i1j0k2 = mpiGrid[nbr_i1j0k2]->cpu_cellParams;
-      creal* const cep_i2j0k2 = mpiGrid[nbr_i2j0k2]->cpu_cellParams;
+      creal* const cep_i1j1k1 = mpiGrid[cellID]->parameters;
+      creal* const cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->parameters;
+      creal* const cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->parameters;
+      creal* const cep_i2j1k2 = mpiGrid[nbr_i2j1k2]->parameters;
+      creal* const cep_i1j0k1 = mpiGrid[nbr_i1j0k1]->parameters;
+      creal* const cep_i2j0k1 = mpiGrid[nbr_i2j0k1]->parameters;
+      creal* const cep_i1j0k2 = mpiGrid[nbr_i1j0k2]->parameters;
+      creal* const cep_i2j0k2 = mpiGrid[nbr_i2j0k2]->parameters;
       
       CHECK_FLOAT(cep_i1j1k1[cp::EX])
       CHECK_FLOAT(cep_i1j1k2[cp::EX])
@@ -1636,14 +1637,14 @@ void averageFaceZElectricField(
    // If all required neighbour data exists, calculate E vector on
    // z-face. NEEDS IMPROVEMENT!
    if ((existingCells & REQUIRED_CELLS) == REQUIRED_CELLS) {
-      creal* const cep_i1j1k1 = mpiGrid[cellID]->cpu_cellParams;
-      creal* const cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->cpu_cellParams;
-      creal* const cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->cpu_cellParams;
-      creal* const cep_i2j2k1 = mpiGrid[nbr_i2j2k1]->cpu_cellParams;
-      creal* const cep_i1j1k0 = mpiGrid[nbr_i1j1k0]->cpu_cellParams;
-      creal* const cep_i2j1k0 = mpiGrid[nbr_i2j1k0]->cpu_cellParams;
-      creal* const cep_i1j2k0 = mpiGrid[nbr_i1j2k0]->cpu_cellParams;
-      creal* const cep_i2j2k0 = mpiGrid[nbr_i2j2k0]->cpu_cellParams;
+      creal* const cep_i1j1k1 = mpiGrid[cellID]->parameters;
+      creal* const cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->parameters;
+      creal* const cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->parameters;
+      creal* const cep_i2j2k1 = mpiGrid[nbr_i2j2k1]->parameters;
+      creal* const cep_i1j1k0 = mpiGrid[nbr_i1j1k0]->parameters;
+      creal* const cep_i2j1k0 = mpiGrid[nbr_i2j1k0]->parameters;
+      creal* const cep_i1j2k0 = mpiGrid[nbr_i1j2k0]->parameters;
+      creal* const cep_i2j2k0 = mpiGrid[nbr_i2j2k0]->parameters;
       
       result[0] = HALF*(cep_i1j1k1[cp::EX] + cep_i1j2k1[cp::EX]);
       result[1] = HALF*(cep_i1j1k1[cp::EY] + cep_i2j1k1[cp::EY]);
@@ -1683,7 +1684,7 @@ void averageFaceXMagnField(
       return;
    }
 
-   Real*  const cep_i1j1k1 = mpiGrid[cellID]->cpu_cellParams;
+   Real*  const cep_i1j1k1 = mpiGrid[cellID]->parameters;
 
    // Store calculated face-averaged B on x-faces:
    CHECK_FLOAT(cep_i1j1k1[CellParams::BX])
@@ -1715,7 +1716,7 @@ void averageFaceYMagnField(
       return;
    }
 
-   Real*  const cep_i1j1k1 = mpiGrid[cellID]->cpu_cellParams;
+   Real*  const cep_i1j1k1 = mpiGrid[cellID]->parameters;
 
    // Store calculated face-averaged B on y-faces:
    result[0] = coefficients[Rec::a_0] + J*HALF*coefficients[Rec::a_y];
@@ -1740,7 +1741,7 @@ void averageFaceZMagnField(
       return;
    }
 
-   Real*  const cep_i1j1k1 = mpiGrid[cellID]->cpu_cellParams;
+   Real*  const cep_i1j1k1 = mpiGrid[cellID]->parameters;
 
    // Store calculated face-averaged B on z-faces:
    result[0] = coefficients[Rec::a_0] + K*HALF*coefficients[Rec::a_z];
@@ -1775,7 +1776,7 @@ void calculateFaceAveragedFields(
       else existingCells = it->second;
 
       // Get pointer to cellParams array for cell cellID:
-      Real* const cellParams = mpiGrid[cellID]->cpu_cellParams;
+      Real* const cellParams = mpiGrid[cellID]->parameters;
 
       // Calculate reconstruction coefficients for this cell:
       const CellID nbr_i2j1k1 = getNeighbourID(mpiGrid, cellID, 2+1, 2  , 2  );
@@ -1914,7 +1915,7 @@ void calculateVolumeAveragedFields(
       reconstructionCoefficients(cellID,nbr_i2j1k1,nbr_i1j2k1,nbr_i1j1k2,mpiGrid,coefficients);
       
       // Calculate volume average of B:
-      Real* const cellParams = mpiGrid[cellID]->cpu_cellParams;
+      Real* const cellParams = mpiGrid[cellID]->parameters;
       cellParams[cp::BXVOL] = coefficients[Rec::a_0];
       cellParams[cp::BYVOL] = coefficients[Rec::b_0];
       cellParams[cp::BZVOL] = coefficients[Rec::c_0];
@@ -1926,9 +1927,9 @@ void calculateVolumeAveragedFields(
       creal* const cep_i1j1k1 = cellParams;
       
       if ((existingCells & EX_CELLS) == EX_CELLS) {
-	 creal* const cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->cpu_cellParams;
-	 creal* const cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->cpu_cellParams;
-	 creal* const cep_i1j2k2 = mpiGrid[nbr_i1j2k2]->cpu_cellParams;
+	 creal* const cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->parameters;
+	 creal* const cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->parameters;
+	 creal* const cep_i1j2k2 = mpiGrid[nbr_i1j2k2]->parameters;
 
          CHECK_FLOAT(cep_i1j1k1[cp::EX])
          CHECK_FLOAT(cep_i1j2k1[cp::EX])
@@ -1941,9 +1942,9 @@ void calculateVolumeAveragedFields(
       }
       
       if ((existingCells & EY_CELLS) == EY_CELLS) {
-	 creal* const cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->cpu_cellParams;
-	 creal* const cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->cpu_cellParams;
-	 creal* const cep_i2j1k2 = mpiGrid[nbr_i2j1k2]->cpu_cellParams;
+	 creal* const cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->parameters;
+	 creal* const cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->parameters;
+	 creal* const cep_i2j1k2 = mpiGrid[nbr_i2j1k2]->parameters;
 
          CHECK_FLOAT(cep_i1j1k1[cp::EY])
          CHECK_FLOAT(cep_i2j1k1[cp::EY])
@@ -1956,9 +1957,9 @@ void calculateVolumeAveragedFields(
       }
       
       if ((existingCells & EZ_CELLS) == EZ_CELLS) {
-	 creal* const cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->cpu_cellParams;
-	 creal* const cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->cpu_cellParams;
-	 creal* const cep_i2j2k1 = mpiGrid[nbr_i2j2k1]->cpu_cellParams;
+	 creal* const cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->parameters;
+	 creal* const cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->parameters;
+	 creal* const cep_i2j2k1 = mpiGrid[nbr_i2j2k1]->parameters;
 
 	 CHECK_FLOAT(cep_i1j1k1[cp::EZ])
 	 CHECK_FLOAT(cep_i2j1k1[cp::EZ])

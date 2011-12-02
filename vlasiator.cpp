@@ -15,7 +15,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-
+#include "boost/mpi.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
@@ -38,6 +38,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "project.h"
 
 #include "profile.h"
+
 
 MPILogger mpilogger;
 
@@ -217,7 +218,7 @@ void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
 {
    // update velocity block lists  
    profile::start("Velocity block list update");
-   SpatialCell::set_mpi_transfer_type(1);
+   SpatialCell::set_mpi_transfer_type(SpatialCell::Transfer::VEL_BLOCK_LIST);
    mpiGrid.update_remote_neighbour_data();
    profile::stop("Velocity block list update");
 
@@ -907,10 +908,10 @@ int main(int argn,char* args[]) {
 	 }
          profile::stop("IO");
       }
-      
       MPI_Barrier(MPI_COMM_WORLD);
    }
    double after = MPI_Wtime();
+
    profile::stop("Simulation",totalComputedSpatialCells,"SpatialCells");
    profile::start("Finalization");   
    finalizeMover();

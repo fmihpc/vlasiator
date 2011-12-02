@@ -30,13 +30,15 @@ typedef Parameters P;
 namespace spatial_cell {
    namespace Transfer {
       const unsigned int NONE=0;
-      const unsigned int CELL_PARAMETERS=(1<<1);
-      const unsigned int CELL_DERIVATIVES=(1<<2);
-      const unsigned int VEL_BLOCK_LIST=(1<<3);
-      const unsigned int VEL_BLOCK_DATA=(1<<4);
-      const unsigned int VEL_BLOCK_FLUXES=(1<<5);
-      const unsigned int VEL_BLOCK_KT_DERIVATIVES=(1<<6);
-      const unsigned int VEL_BLOCK_PARAMETERS=(1<<7);
+      const unsigned int CELL_PARAMETERS=(1<<0);
+      const unsigned int CELL_DERIVATIVES=(1<<1);
+      const unsigned int VEL_BLOCK_LIST=(1<<2);
+      const unsigned int VEL_BLOCK_DATA=(1<<3);
+      const unsigned int VEL_BLOCK_FLUXES=(1<<4);
+      const unsigned int VEL_BLOCK_KT_DERIVATIVES=(1<<5);
+      const unsigned int VEL_BLOCK_PARAMETERS=(1<<6);
+      const unsigned int CELL_B_RHO_RHOV=(1<<7);
+      const unsigned int CELL_E=(1<<8);
    };
    
 // length of a velocity block in velocity cells
@@ -93,7 +95,7 @@ namespace spatial_cell {
 #ifdef SOLVER_KT
       Real fy[SIZE_FLUXS];
       Real fz[SIZE_FLUXS];
-// spatial derivativ es of the distribution functio
+// spatial derivatives of the distribution functio
       Real d1x[SIZE_DERIV];
       Real d2x[SIZE_DERIV];
       Real d1y[SIZE_DERIV];
@@ -101,7 +103,7 @@ namespace spatial_cell {
       Real d1z[SIZE_DERIV];
       Real d2z[SIZE_DERIV];
 #endif
-   
+      
       Real parameters[BlockParams::N_VELOCITY_BLOCK_PARAMS];
       Velocity_Block* neighbors[n_neighbor_velocity_blocks];
 
@@ -695,16 +697,14 @@ namespace spatial_cell {
             this->velocity_block_min_value = 0;
             this->velocity_block_min_avg_value = 0;
 
-            // add spatial cell parameters
-            this->parameters.reserve(CellParams::N_SPATIAL_CELL_PARAMS);
+            // reset spatial cell parameters
             for (unsigned int i = 0; i < CellParams::N_SPATIAL_CELL_PARAMS; i++) {
-               this->parameters.push_back(0);
+               this->parameters[i]=0;
             }
 
-            // add spatial cell derivatives
-            this->parameters.reserve(fieldsolver::N_SPATIAL_CELL_DERIVATIVES);
+            // reset spatial cell derivatives
             for (unsigned int i = 0; i < fieldsolver::N_SPATIAL_CELL_DERIVATIVES; i++) {
-               this->derivatives.push_back(0);
+               this->derivatives[i]=0;
             }
          }
    
@@ -861,6 +861,18 @@ namespace spatial_cell {
                 
                 displacements.push_back((uint8_t*) &(this->parameters[0]) - (uint8_t*) this);
                 block_lengths.push_back(sizeof(Real) * CellParams::N_SPATIAL_CELL_PARAMS);
+            }
+
+            // send  BX, BY, BZ, RHO, RHOVx, RHOVY, RHOVZ (order in enum should never change(!)
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_B_RHO_RHOV)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::BX]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 7);
+            }
+
+            // send  BX, BY, BZ, RHO, RHOVx, RHOVY, RHOVZ (order in enum should never change(!)
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_E)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 3);
             }
 
                         // send  spatial cell parameters
@@ -1835,6 +1847,7 @@ namespace spatial_cell {
 
       // data of velocity blocks that exist in this cell
 #ifdef NO_SPARSE
+      
       std::vector<Velocity_Block> velocity_blocks;
 #else
       boost::unordered_map<unsigned int, Velocity_Block> velocity_blocks;
@@ -1842,6 +1855,7 @@ namespace spatial_cell {
         Speed up search of velocity block addresses in the hash table above.
         Addresses of non-existing blocks point to the null block.
       */
+      //FIXME, static array?      
       std::vector<Velocity_Block*> block_address_cache;
 #endif
 
@@ -1853,17 +1867,19 @@ namespace spatial_cell {
         List of velocity blocks in this cell, used for
         transferring spatial cells between processes using MPI.
       */
+      //FIXME, static array?
       std::vector<unsigned int> velocity_block_list;
 
       /*
         Bulk variables in this spatial cell.
       */
-      std::vector<Real> parameters;
-
+//      std::vector<Real> parameters;
+      Real parameters[CellParams::N_SPATIAL_CELL_PARAMS];
       /*
         Derivatives of bulk variables in this spatial cell.
       */
-      std::vector<Real> derivatives;
+      Real derivatives[fieldsolver::N_SPATIAL_CELL_DERIVATIVES];
+//      std::vector<Real> derivatives;
 
    }; // class SpatialCell
 
