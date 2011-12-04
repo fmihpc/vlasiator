@@ -50,22 +50,64 @@ namespace spatial_cell {
    const Real cell_dvy = (P::vymax - P::vymin) / (P::vyblocks_ini * block_len_y);
    const Real cell_dvz = (P::vzmax - P::vzmin) / (P::vzblocks_ini * block_len_z);
 
-// constants for directions for example in neighbour lists
-   const unsigned int neg_x_dir = 0;
-   const unsigned int pos_x_dir = 1;
-   const unsigned int neg_y_dir = 2;
-   const unsigned int pos_y_dir = 3;
-   const unsigned int neg_z_dir = 4;
-   const unsigned int pos_z_dir = 5;
+
+/** A namespace for storing indices into an array containing neighbour information 
+ * of velocity grid blocks. 
+ */
+namespace block_vel_neighbors {
+   const uint SIZE = 28; //number of neighbors per block in velocity space (27) plus one integer for flags
+   const uint XM1_YM1_ZM1 = 0;  /**< Index of (x-1,y-1,z-1) neighbour.*/
+   const uint XCC_YM1_ZM1 = 1;  /**< Index of (x  ,y-1,z-1) neighbour.*/
+   const uint XP1_YM1_ZM1 = 2;  /**< Index of (x+1,y-1,z-1) neighbour.*/
+   const uint XM1_YCC_ZM1 = 3;  /**< Index of (x-1,y  ,z-1) neighbour.*/
+   const uint XCC_YCC_ZM1 = 4;  /**< Index of (x  ,y  ,z-1) neighbour.*/
+   const uint XP1_YCC_ZM1 = 5;  /**< Index of (x+1,y  ,z-1) neighbour.*/
+   const uint XM1_YP1_ZM1 = 6;  /**< Index of (x-1,y+1,z-1) neighbour.*/
+   const uint XCC_YP1_ZM1 = 7;  /**< Index of (x  ,y+1,z-1) neighbour.*/
+   const uint XP1_YP1_ZM1 = 8;  /**< Index of (x+1,y+1,z-1) neighbour.*/   
+   const uint XM1_YM1_ZCC = 9;  /**< Index of (x-1,y-1,z  ) neighbour.*/
+   const uint XCC_YM1_ZCC = 10; /**< Index of (x  ,y-1,z  ) neighbour.*/
+   const uint XP1_YM1_ZCC = 11; /**< Index of (x+1,y-1,z  ) neighbour.*/
+   const uint XM1_YCC_ZCC = 12; /**< Index of (x-1,y  ,z  ) neighbour.*/
+   const uint XCC_YCC_ZCC = 13; /**< Index of (x  ,y  ,z  ) neighbour.*/
+   const uint XP1_YCC_ZCC = 14; /**< Index of (x+1,y  ,z  ) neighbour.*/
+   const uint XM1_YP1_ZCC = 15; /**< Index of (x-1,y+1,z  ) neighbour.*/
+   const uint XCC_YP1_ZCC = 16; /**< Index of (x  ,y+1,z  ) neighbour.*/
+   const uint XP1_YP1_ZCC = 17; /**< Index of (x+1,y+1,z  ) neighbour.*/   
+   const uint XM1_YM1_ZP1 = 18; /**< Index of (x-1,y-1,z+1) neighbour.*/
+   const uint XCC_YM1_ZP1 = 19; /**< Index of (x  ,y-1,z+1) neighbour.*/
+   const uint XP1_YM1_ZP1 = 20; /**< Index of (x+1,y-1,z+1) neighbour.*/
+   const uint XM1_YCC_ZP1 = 21; /**< Index of (x-1,y  ,z+1) neighbour.*/
+   const uint XCC_YCC_ZP1 = 22; /**< Index of (x  ,y  ,z+1) neighbour.*/
+   const uint XP1_YCC_ZP1 = 23; /**< Index of (x+1,y  ,z+1) neighbour.*/
+   const uint XM1_YP1_ZP1 = 24; /**< Index of (x-1,y+1,z+1) neighbour.*/
+   const uint XCC_YP1_ZP1 = 25; /**< Index of (x  ,y+1,z+1) neighbour.*/
+   const uint XP1_YP1_ZP1 = 26; /**< Index of (x+1,y+1,z+1) neighbour.*/
+//   const uint NON_EXISTING = std::numeric_limits<uint>::max(); /**< Invalid block ID, indicating that the block does not exist.*/
+   const uint NBRFLAGS = 27; /**< Index for flags for existing neighbours.*/
+   const uint MYIND    = 13; /**< Index of the block. Required for KT solver.*/
+   const uint VXNEG    = 12; /**< Index of -vx neighbour. Required for KT solver.*/
+   const uint VYNEG    = 10; /**< Index of -vy neighbour. Required for KT solver.*/
+   const uint VZNEG    = 4;  /**< Index of -vz neighbour. Required for KT solver.*/
+   const uint VXPOS    = 14; /**< Index of +vx neighbour. Required for KT solver.*/
+   const uint VYPOS    = 16; /**< Index of +vy neighbour. Required for KT solver.*/
+   const uint VZPOS    = 22; /**< Index of +vz neighbour. Required for KT solver.*/
+   const uint VX_NEG_BND = (1 << VXNEG);
+   const uint VX_POS_BND = (1 << VXPOS);
+   const uint VY_NEG_BND = (1 << VYNEG);
+   const uint VY_POS_BND = (1 << VYPOS);
+   const uint VZ_NEG_BND = (1 << VZNEG);
+   const uint VZ_POS_BND = (1 << VZPOS);
+
+}
+
    
 /*!
+  
   Used as an error from functions returning velocity cells or
   as a cell that would be outside of the velocity block
 */
    const unsigned int error_velocity_cell = std::numeric_limits<unsigned int>::max();
-
-// only velocity cells that share a face are considered neighbors
-   const unsigned int n_neighbor_velocity_cells = 6;
 
 /*!
   Defines the indices of a velocity cell in a velocity block.
@@ -81,8 +123,8 @@ namespace spatial_cell {
 
    const unsigned int velocity_block_len = block_len_x * block_len_y * block_len_z;
 
-// only velocity blocks that share a face are considered neighbors
-   const unsigned int n_neighbor_velocity_blocks = 6;
+// All velocity neigboring velocity blocks are neighbors   
+   const unsigned int n_neighbor_velocity_blocks = 28;
 
    class Velocity_Block {
    public:
@@ -120,6 +162,12 @@ namespace spatial_cell {
                this->fx[i] = 0;
             }
 #else   
+            for (unsigned int i = 0; i < SIZE_FLUXS; i++) {
+               this->fx[i] = 0;
+               this->fy[i] = 0;
+               this->fz[i] = 0;
+            }
+
             for (unsigned int i = 0; i < SIZE_DERIV; i++) {
                this->d1x[i] = 0;
                this->d2x[i] = 0;
@@ -127,11 +175,6 @@ namespace spatial_cell {
                this->d2y[i] = 0;
                this->d1z[i] = 0;
                this->d2z[i] = 0;
-            }
-            for (unsigned int i = 0; i < SIZE_FLUXS; i++) {
-               this->fx[i] = 0;
-               this->fy[i] = 0;
-               this->fz[i] = 0;
             }
 #endif  
          }
@@ -225,77 +268,84 @@ namespace spatial_cell {
       return get_velocity_block(indices);
    }
 
-/*!
-  Returns the id of a velocity block that is neighboring given block in given direction.
+   /*!
+  Returns the id of a velocity beock that is neighboring given block in given direction vx,vy,vz.
   Returns error_velocity_block in case the neighboring velocity block would be outside
   of the velocity grid.
 */
    unsigned int get_velocity_block(
       const unsigned int block,
-      const unsigned int direction
+      const  int direction_vx,
+      const  int direction_vy,
+      const  int direction_vz
       )
    {
+      unsigned int neighborBlock;
       const velocity_block_indices_t indices = get_velocity_block_indices(block);
       if (indices[0] == error_velocity_block_index) {
          return error_velocity_block;
       }
+      
+      int xyzDirection[3];
+      unsigned int vxyzblocks_ini[3];
+      unsigned int offset[3];
+      xyzDirection[0]=direction_vx;
+      xyzDirection[1]=direction_vy;
+      xyzDirection[2]=direction_vz;
+      
+      vxyzblocks_ini[0]=P::vxblocks_ini;
+      vxyzblocks_ini[1]=P::vyblocks_ini;
+      vxyzblocks_ini[2]=P::vzblocks_ini;
 
-      // TODO: iterate over coordinates using a loop
-      switch (direction) {
-          case neg_x_dir:
-             if (indices[0] == 0) {
-                // TODO?: periodic velocity grid
+      offset[0]=1;
+      offset[1]=vxyzblocks_ini[0];
+      offset[2]=vxyzblocks_ini[0]*vxyzblocks_ini[1];
+      
+      
+      neighborBlock=block;
+      //loop over vx,vy,vz
+      for(unsigned int c=0;c<3;c++){
+         switch (xyzDirection[c]) {
+             case -1: //in negative direction
+                if (indices[c] == 0) {
+                   return error_velocity_block;
+                } else {
+                    neighborBlock -= offset[c];
+                }
+                break;
+             case 0:
+                break;
+             case 1: //in positive direction
+                if (indices[c] >= vxyzblocks_ini[c] - 1) {
+                   return error_velocity_block;
+                } else {
+                   neighborBlock += offset[c];
+                }
+                break;
+             default:
                 return error_velocity_block;
-             } else {
-                return block - 1;
-             }
-             break;
-
-          case pos_x_dir:
-             if (indices[0] >= P::vxblocks_ini - 1) {
-                return error_velocity_block;
-             } else {
-                return block + 1;
-             }
-             break;
-
-          case neg_y_dir:
-             if (indices[1] == 0) {
-                return error_velocity_block;
-             } else {
-                return block - P::vxblocks_ini;
-             }
-             break;
-
-          case pos_y_dir:
-             if (indices[1] >= P::vyblocks_ini - 1) {
-                return error_velocity_block;
-             } else {
-                return block + P::vxblocks_ini;
-             }
-             break;
-
-          case neg_z_dir:
-             if (indices[2] == 0) {
-                return error_velocity_block;
-             } else {
-                return block - P::vxblocks_ini * P::vyblocks_ini;
-             }
-             break;
-
-          case pos_z_dir:
-             if (indices[2] >= P::vzblocks_ini - 1) {
-                return error_velocity_block;
-             } else {
-                return block + P::vxblocks_ini * P::vyblocks_ini;
-             }
-             break;
-
-          default:
-             return error_velocity_block;
-             break;
+                break;
+         }
       }
+      return neighborBlock;
    }
+
+   /*!
+  Returns the id of a velocity block that is neighboring given block in given direction.
+  Returns error_velocity_block in case the neighboring velocity block would be outside
+  of the velocity grid.
+*/
+
+   
+   unsigned int get_velocity_block(
+      const unsigned int block,
+      const unsigned int direction
+      )
+   {
+      return get_velocity_block(direction%3-1,(direction/3)%3-1,(direction/9)%3-1);
+   }
+
+
 
 
 /*!
@@ -426,71 +476,60 @@ namespace spatial_cell {
       const unsigned int direction
       )
    {
+      int xyzDirection[3];
+      unsigned int block_len[3];
+      unsigned int offset[3];
+      
+      unsigned int neighborCell;
+      
       const velocity_cell_indices_t indices = get_velocity_cell_indices(cell);
       if (indices[0] == error_velocity_cell_index) {
          return error_velocity_cell;
       }
+      
+      
+      xyzDirection[0]=direction%3-1;
+      xyzDirection[1]=(direction/3)%3-1;
+      xyzDirection[2]=(direction/9)%3-1; 
+      
+      block_len[0]=block_len_x;
+      block_len[1]=block_len_y;
+      block_len[2]=block_len_z;
 
-      // TODO: iterate over coordinates using a loop
-      switch (direction) {
+      offset[0]=1;
+      offset[1]=block_len_x;
+      offset[2]=block_len_x * block_len_y;
 
-          case neg_x_dir:
-             if (indices[0] == 0) {
-                // TODO?: periodic velocity grid
+      neighborCell=cell;
+      //loop over vx,vy,vz
+      for(int c=0;c<3;c++){
+         switch (xyzDirection[c]) {
+             case -1: //in negative direction
+                if (indices[c] == 0) {
+                   return error_velocity_cell;
+                } else {
+                   neighborCell+=-offset[c];
+                }
+                break;
+             case 0:
+                break;
+             case 1: //in positive direction
+                if (indices[c] >= block_len[c] - 1) {
+                   return error_velocity_cell;
+                } else {
+                   neighborCell += offset[c];
+                }
+                break;
+             default:
                 return error_velocity_cell;
-             } else {
-                return cell - 1;
-             }
-             break;
-
-          case pos_x_dir:
-             if (indices[0] >= block_len_x - 1) {
-                return error_velocity_cell;
-             } else {
-                return cell + 1;
-             }
-             break;
-
-          case neg_y_dir:
-             if (indices[1] == 0) {
-                return error_velocity_cell;
-             } else {
-                return cell - block_len_x;
-             }
-             break;
-
-          case pos_y_dir:
-             if (indices[1] >= block_len_y - 1) {
-                return error_velocity_cell;
-             } else {
-                return cell + block_len_x;
-             }
-             break;
-
-          case neg_z_dir:
-             if (indices[2] == 0) {
-                return error_velocity_cell;
-             } else {
-                return cell - block_len_x * block_len_y;
-             }
-             break;
-
-          case pos_z_dir:
-             if (indices[2] >= block_len_z - 1) {
-                return error_velocity_cell;
-             } else {
-                return cell + block_len_x * block_len_y;
-             }
-             break;
-
-          default:
-             return error_velocity_cell;
-             break;
+                break;
+         }
       }
+      return neighborCell;
    }
 
-
-/*!
+   
+/*!     
   Returns the velocity cell at given location or
   error_velocity_cell if outside of given velocity block.
 */
@@ -1185,7 +1224,7 @@ namespace spatial_cell {
             if (original_has_content) {
 
                // add missing neighbors in velocity space
-               for (unsigned int direction = neg_x_dir; direction <= pos_z_dir; direction++) {
+               for (unsigned int direction = 0; direction <27; direction++) {
                   const unsigned int neighbor_block = get_velocity_block(*original, direction);
                   if (neighbor_block == error_velocity_block) {
                      continue;
@@ -1208,14 +1247,14 @@ namespace spatial_cell {
 
                // check if any neighbour has contents
                bool velocity_neighbors_have_content = false;
-               for (unsigned int direction = neg_x_dir; direction <= pos_z_dir; direction++) {
+               for (unsigned int direction = 0; direction <27; direction++) {
                   const unsigned int neighbor_block = get_velocity_block(*original, direction);
                   if (this->velocity_block_has_contents(neighbor_block)) {
                      velocity_neighbors_have_content = true;
                      break;
                   }
                }
-
+               
                if (!velocity_neighbors_have_content
                    && neighbors_with_content.count(*original) == 0) {
                   this->remove_velocity_block(*original);
@@ -1511,98 +1550,33 @@ namespace spatial_cell {
             (get_velocity_block_vz_max(block) - get_velocity_block_vz_min(block)) / 2;
 
          // set neighbour pointers
-         unsigned int neighbour_block;
-
-         // -x direction
-         neighbour_block = get_velocity_block(block, neg_x_dir);
-         if (neighbour_block == error_velocity_block) {
-            block_ptr->neighbors[neg_x_dir] = NULL;
-#ifndef NO_SPARSE
-         } else if (this->velocity_blocks.count(neighbour_block) == 0) {
-            block_ptr->neighbors[neg_x_dir] = &(this->null_block);
-#endif
-         } else {
-            block_ptr->neighbors[neg_x_dir] = &(this->velocity_blocks.at(neighbour_block));
-
-            // update the neighbour list of neighboring block
-            Velocity_Block* neighbour_ptr = &(this->velocity_blocks.at(neighbour_block));
-            neighbour_ptr->neighbors[pos_x_dir] = block_ptr;
+         unsigned int neighbor_block;
+         int neighbor_index=0;
+         for(int neighbor_index=0;neighbor_index<27;neighbor_index++){
+            if(neighbor_index==13) continue; //self index
+            neighbor_block = get_velocity_block(block, neighbor_index);
+            if (neighbor_block == error_velocity_block) {
+               block_ptr->neighbors[neighbor_index] = NULL;
+            }
+#ifndef NO_SPARSE   
+            else if (this->velocity_blocks.count(neighbor_block) == 0) {
+               block_ptr->neighbors[neighbor_index] = &(this->null_block);
+            }
+#endif      
+            else {
+               block_ptr->neighbors[neighbor_index] = &(this->velocity_blocks.at(neighbor_block));
+               
+               //  update the neighbor list of neighboring block
+               int dvx=neighbor_index%3-1;
+               int dvy=(neighbor_index/3)%3-1;
+               int dvz=(neighbor_index/9)-1;
+               //index of current block in neighbors neighbor table
+               int neighbor_neighbor_index=(1-dvx)+(1-dvy)*3+(1-dvz)*9;
+               Velocity_Block* neighbor_ptr = &(this->velocity_blocks.at(neighbor_block));
+               neighbor_ptr->neighbors[neighbor_neighbor_index] = block_ptr;
+            }
          }
 
-         // +x direction
-         neighbour_block = get_velocity_block(block, pos_x_dir);
-         if (neighbour_block == error_velocity_block) {
-            block_ptr->neighbors[pos_x_dir] = NULL;
-#ifndef NO_SPARSE
-         } else if (this->velocity_blocks.count(neighbour_block) == 0) {
-            block_ptr->neighbors[pos_x_dir] = &(this->null_block);
-#endif
-         } else {
-            block_ptr->neighbors[pos_x_dir] = &(this->velocity_blocks.at(neighbour_block));
-
-            Velocity_Block* neighbour_ptr = &(this->velocity_blocks.at(neighbour_block));
-            neighbour_ptr->neighbors[neg_x_dir] = block_ptr;
-         }
-
-         // -y direction
-         neighbour_block = get_velocity_block(block, neg_y_dir);
-         if (neighbour_block == error_velocity_block) {
-            block_ptr->neighbors[neg_y_dir] = NULL;
-#ifndef NO_SPARSE
-         } else if (this->velocity_blocks.count(neighbour_block) == 0) {
-            block_ptr->neighbors[neg_y_dir] = &(this->null_block);
-#endif
-         } else {
-            block_ptr->neighbors[neg_y_dir] = &(this->velocity_blocks.at(neighbour_block));
-
-            Velocity_Block* neighbour_ptr = &(this->velocity_blocks.at(neighbour_block));
-            neighbour_ptr->neighbors[pos_y_dir] = block_ptr;
-         }
-
-         // +y direction
-         neighbour_block = get_velocity_block(block, pos_y_dir);
-         if (neighbour_block == error_velocity_block) {
-            block_ptr->neighbors[pos_y_dir] = NULL;
-#ifndef NO_SPARSE
-         } else if (this->velocity_blocks.count(neighbour_block) == 0) {
-            block_ptr->neighbors[pos_y_dir] = &(this->null_block);
-#endif
-         } else {
-            block_ptr->neighbors[pos_y_dir] = &(this->velocity_blocks.at(neighbour_block));
-
-            Velocity_Block* neighbour_ptr = &(this->velocity_blocks.at(neighbour_block));
-            neighbour_ptr->neighbors[neg_y_dir] = block_ptr;
-         }
-
-         // -z direction
-         neighbour_block = get_velocity_block(block, neg_z_dir);
-         if (neighbour_block == error_velocity_block) {
-            block_ptr->neighbors[neg_z_dir] = NULL;
-#ifndef NO_SPARSE
-         } else if (this->velocity_blocks.count(neighbour_block) == 0) {
-            block_ptr->neighbors[neg_z_dir] = &(this->null_block);
-#endif
-         } else {
-            block_ptr->neighbors[neg_z_dir] = &(this->velocity_blocks.at(neighbour_block));
-
-            Velocity_Block* neighbour_ptr = &(this->velocity_blocks.at(neighbour_block));
-            neighbour_ptr->neighbors[pos_z_dir] = block_ptr;
-         }
-
-         // +z direction
-         neighbour_block = get_velocity_block(block, pos_z_dir);
-         if (neighbour_block == error_velocity_block) {
-            block_ptr->neighbors[pos_z_dir] = NULL;
-#ifndef NO_SPARSE
-         } else if (this->velocity_blocks.count(neighbour_block) == 0) {
-            block_ptr->neighbors[pos_z_dir] = &(this->null_block);
-#endif
-         } else {
-            block_ptr->neighbors[pos_z_dir] = &(this->velocity_blocks.at(neighbour_block));
-
-            Velocity_Block* neighbour_ptr = &(this->velocity_blocks.at(neighbour_block));
-            neighbour_ptr->neighbors[neg_z_dir] = block_ptr;
-         }
 
 #ifndef NO_SPARSE
          unsigned int first_error_block = 0;
@@ -1613,13 +1587,13 @@ namespace spatial_cell {
                 ) {
             first_error_block++;
          }
-
+         
          this->velocity_block_list[first_error_block] = block;
-#endif
-
+#endif                  
+         
          return true;
       }
-
+      
       /*!
         Adds all velocity blocks than don't exist into the velocity grid.
 
@@ -1668,55 +1642,27 @@ namespace spatial_cell {
          // set neighbour pointers to this block to NULL
          unsigned int neighbour_block;
 
-         // -x direction
-         // TODO: use saved neighbor pointers instead of counting in the map
-         neighbour_block = get_velocity_block(block, neg_x_dir);
-         if (neighbour_block != error_velocity_block
-             && this->velocity_blocks.count(neighbour_block) > 0) {
-            // TODO use cached addresses of neighbors
-            Velocity_Block* neighbour_data = &(this->velocity_blocks.at(neighbour_block));
-            neighbour_data->neighbors[pos_x_dir] = &(this->null_block);
-         }
 
-         // +x direction
-         neighbour_block = get_velocity_block(block, pos_x_dir);
-         if (neighbour_block != error_velocity_block
-             && this->velocity_blocks.count(neighbour_block) > 0) {
-            Velocity_Block* neighbour_data = &(this->velocity_blocks.at(neighbour_block));
-            neighbour_data->neighbors[neg_x_dir] = &(this->null_block);
+         //remove block from neighbors neighbor lists
+         unsigned int neighbor_block;
+         int neighbor_index=0;
+         for(int neighbor_index=0;neighbor_index<27;neighbor_index++){
+            if(neighbor_index==13) continue;
+            neighbor_block = get_velocity_block(block, neighbor_index);
+            if (neighbour_block != error_velocity_block
+                && this->velocity_blocks.count(neighbour_block) > 0) {
+               // TODO use cached addresses of neighbors
+               Velocity_Block* neighbour_data = &(this->velocity_blocks.at(neighbour_block));
+               //  update the neighbor list of neighboring block
+               int dvx=neighbor_index%3-1;
+               int dvy=(neighbor_index/3)%3-1;
+               int dvz=(neighbor_index/9)-1;
+               //index of current block in neighbors neighbor table
+               int neighbor_neighbor_index=(1-dvx)+(1-dvy)*3+(1-dvz)*9;
+               neighbour_data->neighbors[neighbor_neighbor_index] = &(this->null_block);
+            }
          }
-
-         // -y direction
-         neighbour_block = get_velocity_block(block, neg_y_dir);
-         if (neighbour_block != error_velocity_block
-             && this->velocity_blocks.count(neighbour_block) > 0) {
-            Velocity_Block* neighbour_data = &(this->velocity_blocks.at(neighbour_block));
-            neighbour_data->neighbors[pos_y_dir] = &(this->null_block);
-         }
-
-         // +y direction
-         neighbour_block = get_velocity_block(block, pos_y_dir);
-         if (neighbour_block != error_velocity_block
-             && this->velocity_blocks.count(neighbour_block) > 0) {
-            Velocity_Block* neighbour_data = &(this->velocity_blocks.at(neighbour_block));
-            neighbour_data->neighbors[neg_y_dir] = &(this->null_block);
-         }
-
-         // -z direction
-         neighbour_block = get_velocity_block(block, neg_z_dir);
-         if (neighbour_block != error_velocity_block
-             && this->velocity_blocks.count(neighbour_block) > 0) {
-            Velocity_Block* neighbour_data = &(this->velocity_blocks.at(neighbour_block));
-            neighbour_data->neighbors[pos_z_dir] = &(this->null_block);
-         }
-
-         // +z direction
-         neighbour_block = get_velocity_block(block, pos_z_dir);
-         if (neighbour_block != error_velocity_block
-             && this->velocity_blocks.count(neighbour_block) > 0) {
-            Velocity_Block* neighbour_data = &(this->velocity_blocks.at(neighbour_block));
-            neighbour_data->neighbors[neg_z_dir] = &(this->null_block);
-         }
+         
 
          this->velocity_blocks.erase(block);
          this->block_address_cache[block] = &(this->null_block);
