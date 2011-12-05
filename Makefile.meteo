@@ -13,7 +13,7 @@ FLAGS =
 
 #GNU flags:
 CC_BRAND = gcc
-CC_BRAND_VERSION = 4.5.2
+CC_BRAND_VERSION = 4.6.1
 CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x #-W -Wall -pedantic
 CXXFLAGS += -DCRAY_TOPOLOGY_OPTIMIZATION
 MATHFLAGS = -ffast-math
@@ -30,9 +30,9 @@ LIB_MPI = -lgomp -lrca
 #LDFLAGS = -static -openmp
 #LIB_MPI =
 
-BOOST_VERSION = 1.46.1
-MPT_VERSION = 5.2.0
-ZOLTAN_VERSION = 3.5
+BOOST_VERSION = 1.47.0
+MPT_VERSION = 5.3.4
+ZOLTAN_VERSION = 3.6
 SILO_VERSION = 4.8
 
 LIBRARY_PREFIX = /stornext/field/users/honkonen/libraries

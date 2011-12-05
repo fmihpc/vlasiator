@@ -272,18 +272,25 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       SpatialCell* SC = mpiGrid[cellID];
       
       // Clear df/dt contributions:
-      for (uint block=0; block<mpiGrid[cellID]->N_blocks; ++block) {
-         cpu_clearVelFluxes<Real>(*SC,block);
+      for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
+           block_i < max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
+           block = SC->velocity_block_list[++block_i]) {
+         cpu_clearVelFluxes<Real>(SC,block);
       }
+               
       
-      // Calculate df/dt contributions of all blocks in the cell:
-      for (uint block=0; block<mpiGrid[cellID]->N_blocks; ++block) {
-         cpu_calcVelFluxes<Real>(*SC,block,P::dt,NULL);
+      // Calculatedf/dt contributions of all blocks in the cell:
+      for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
+           block_i < max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
+           block = SC->velocity_block_list[++block_i]) {
+         cpu_calcVelFluxes<Real>(SC,block,P::dt,NULL);
       }
       
       // Propagate distribution functions in velocity space:
-      for (uint block=0; block<mpiGrid[cellID]->N_blocks; ++block) {
-         cpu_propagateVel<Real>(*SC,block,P::dt);
+      for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
+           block_i < max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
+           block = SC->velocity_block_list[++block_i]) {
+         cpu_propagateVel<Real>(SC,block,P::dt);
       }
    }
    

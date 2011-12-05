@@ -54,7 +54,7 @@ namespace spatial_cell {
 /** A namespace for storing indices into an array containing neighbour information 
  * of velocity grid blocks. 
  */
-namespace block_vel_neighbors {
+namespace velocity_neighbor {
    const uint SIZE = 28; //number of neighbors per block in velocity space (27) plus one integer for flags
    const uint XM1_YM1_ZM1 = 0;  /**< Index of (x-1,y-1,z-1) neighbour.*/
    const uint XCC_YM1_ZM1 = 1;  /**< Index of (x  ,y-1,z-1) neighbour.*/
@@ -85,6 +85,7 @@ namespace block_vel_neighbors {
    const uint XP1_YP1_ZP1 = 26; /**< Index of (x+1,y+1,z+1) neighbour.*/
 //   const uint NON_EXISTING = std::numeric_limits<uint>::max(); /**< Invalid block ID, indicating that the block does not exist.*/
    const uint NBRFLAGS = 27; /**< Index for flags for existing neighbours.*/
+
    const uint MYIND    = 13; /**< Index of the block. Required for KT solver.*/
    const uint VXNEG    = 12; /**< Index of -vx neighbour. Required for KT solver.*/
    const uint VYNEG    = 10; /**< Index of -vy neighbour. Required for KT solver.*/
@@ -98,7 +99,6 @@ namespace block_vel_neighbors {
    const uint VY_POS_BND = (1 << VYPOS);
    const uint VZ_NEG_BND = (1 << VZNEG);
    const uint VZ_POS_BND = (1 << VZPOS);
-
 }
 
    

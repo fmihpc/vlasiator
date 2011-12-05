@@ -63,56 +63,6 @@ namespace NbrsSpa {
    };
 }
 
-/** A namespace for storing indices into an array containing neighbour information 
- * of velocity grid blocks. These indices are used by the device.
- */
-namespace NbrsVel {
-   const uint XM1_YM1_ZM1 = 0;  /**< Index of (x-1,y-1,z-1) neighbour.*/
-   const uint XCC_YM1_ZM1 = 1;  /**< Index of (x  ,y-1,z-1) neighbour.*/
-   const uint XP1_YM1_ZM1 = 2;  /**< Index of (x+1,y-1,z-1) neighbour.*/
-   const uint XM1_YCC_ZM1 = 3;  /**< Index of (x-1,y  ,z-1) neighbour.*/
-   const uint XCC_YCC_ZM1 = 4;  /**< Index of (x  ,y  ,z-1) neighbour.*/
-   const uint XP1_YCC_ZM1 = 5;  /**< Index of (x+1,y  ,z-1) neighbour.*/
-   const uint XM1_YP1_ZM1 = 6;  /**< Index of (x-1,y+1,z-1) neighbour.*/
-   const uint XCC_YP1_ZM1 = 7;  /**< Index of (x  ,y+1,z-1) neighbour.*/
-   const uint XP1_YP1_ZM1 = 8;  /**< Index of (x+1,y+1,z-1) neighbour.*/   
-   const uint XM1_YM1_ZCC = 9;  /**< Index of (x-1,y-1,z  ) neighbour.*/
-   const uint XCC_YM1_ZCC = 10; /**< Index of (x  ,y-1,z  ) neighbour.*/
-   const uint XP1_YM1_ZCC = 11; /**< Index of (x+1,y-1,z  ) neighbour.*/
-   const uint XM1_YCC_ZCC = 12; /**< Index of (x-1,y  ,z  ) neighbour.*/
-   const uint XCC_YCC_ZCC = 13; /**< Index of (x  ,y  ,z  ) neighbour.*/
-   const uint XP1_YCC_ZCC = 14; /**< Index of (x+1,y  ,z  ) neighbour.*/
-   const uint XM1_YP1_ZCC = 15; /**< Index of (x-1,y+1,z  ) neighbour.*/
-   const uint XCC_YP1_ZCC = 16; /**< Index of (x  ,y+1,z  ) neighbour.*/
-   const uint XP1_YP1_ZCC = 17; /**< Index of (x+1,y+1,z  ) neighbour.*/   
-   const uint XM1_YM1_ZP1 = 18; /**< Index of (x-1,y-1,z+1) neighbour.*/
-   const uint XCC_YM1_ZP1 = 19; /**< Index of (x  ,y-1,z+1) neighbour.*/
-   const uint XP1_YM1_ZP1 = 20; /**< Index of (x+1,y-1,z+1) neighbour.*/
-   const uint XM1_YCC_ZP1 = 21; /**< Index of (x-1,y  ,z+1) neighbour.*/
-   const uint XCC_YCC_ZP1 = 22; /**< Index of (x  ,y  ,z+1) neighbour.*/
-   const uint XP1_YCC_ZP1 = 23; /**< Index of (x+1,y  ,z+1) neighbour.*/
-   const uint XM1_YP1_ZP1 = 24; /**< Index of (x-1,y+1,z+1) neighbour.*/
-   const uint XCC_YP1_ZP1 = 25; /**< Index of (x  ,y+1,z+1) neighbour.*/
-   const uint XP1_YP1_ZP1 = 26; /**< Index of (x+1,y+1,z+1) neighbour.*/
-   
-   const uint NON_EXISTING = std::numeric_limits<uint>::max(); /**< Invalid block ID, indicating that the block does not exist.*/
-   
-   const uint NBRFLAGS = 27; /**< Flags for existing neighbours.*/
-   const uint MYIND    = 13; /**< Index of the block. Required for KT solver.*/
-   const uint VXNEG    = 12; /**< Index of -vx neighbour. Required for KT solver.*/
-   const uint VYNEG    = 10; /**< Index of -vy neighbour. Required for KT solver.*/
-   const uint VZNEG    = 4;  /**< Index of -vz neighbour. Required for KT solver.*/
-   const uint VXPOS    = 14; /**< Index of +vx neighbour. Required for KT solver.*/
-   const uint VYPOS    = 16; /**< Index of +vy neighbour. Required for KT solver.*/
-   const uint VZPOS    = 22; /**< Index of +vz neighbour. Required for KT solver.*/
-   
-   const uint VX_NEG_BND = (1 << VXNEG);
-   const uint VX_POS_BND = (1 << VXPOS);
-   const uint VY_NEG_BND = (1 << VYNEG);
-   const uint VY_POS_BND = (1 << VYPOS);
-   const uint VZ_NEG_BND = (1 << VZNEG);
-   const uint VZ_POS_BND = (1 << VZPOS);
-}
 
 /** A namespace for storing indices into an array which contains 
  * the physical parameters of each velocity block.*/

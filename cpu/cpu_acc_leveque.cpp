@@ -25,6 +25,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 using namespace std;
 
+
+///FIXME, is this function an old remnant of KT?? Does not appear to be called for leveque
+
 bool cpu_acceleration(SpatialCell& cell) {
    // Clear spatial cell velocity moments:
    cell.cpu_cellParams[CellParams::RHO]   = 0.0;
