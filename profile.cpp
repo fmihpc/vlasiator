@@ -513,7 +513,7 @@ namespace profile
       //start tuner
       timers[currentId].startTime=getTime();      
 #ifdef CRAYPAT
-      PAT_region_begin(currentId+1,label.c_str());
+      PAT_region_begin(currentId+1,timers[id].label.c_str());
 #endif
       return true;        
    }
@@ -525,7 +525,7 @@ namespace profile
       currentId=initializeTimer(label);
       //start timer
       timers[currentId].startTime=getTime();
-#ifdef   CRAYPAT
+#ifdef CRAYPAT
       PAT_region_begin(currentId+1,label.c_str());
 #endif
       return true;        
