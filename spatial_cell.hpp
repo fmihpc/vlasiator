@@ -28,6 +28,7 @@ typedef Parameters P;
 
 
 namespace spatial_cell {
+   //fixme namespaces in lower case
    namespace Transfer {
       const unsigned int NONE=0;
       const unsigned int CELL_PARAMETERS=(1<<0);
@@ -39,6 +40,7 @@ namespace spatial_cell {
       const unsigned int VEL_BLOCK_PARAMETERS=(1<<6);
       const unsigned int CELL_B_RHO_RHOV=(1<<7);
       const unsigned int CELL_E=(1<<8);
+      const unsigned int CELL_GHOSTFLAG=(1<<9);
    };
    
 // length of a velocity block in velocity cells
@@ -55,7 +57,9 @@ namespace spatial_cell {
  * of velocity grid blocks. 
  */
 namespace velocity_neighbor {
-   const uint SIZE = 28; //number of neighbors per block in velocity space (27) plus one integer for flags
+   const uint WIDTH = 3; //width of neighborhood
+   const uint NNGBRS = WIDTH*WIDTH*WIDTH; //number of neighbors per block in velocity space (27)           
+   const uint SIZE = NNGBRS+1; //number of neighbors per block in velocity space (27) plus one integer for flags
    const uint XM1_YM1_ZM1 = 0;  /**< Index of (x-1,y-1,z-1) neighbour.*/
    const uint XCC_YM1_ZM1 = 1;  /**< Index of (x  ,y-1,z-1) neighbour.*/
    const uint XP1_YM1_ZM1 = 2;  /**< Index of (x+1,y-1,z-1) neighbour.*/
@@ -148,7 +152,8 @@ namespace velocity_neighbor {
       
       Real parameters[BlockParams::N_VELOCITY_BLOCK_PARAMS];
       Velocity_Block* neighbors[n_neighbor_velocity_blocks];
-
+//      Velocity_Block* neighborsSpatial[SIZE_NBRS_SPA];
+      
       /*!
         Sets data, derivatives and fluxes of this block to zero.
       */
@@ -329,7 +334,7 @@ namespace velocity_neighbor {
       }
       return neighborBlock;
    }
-
+   
    /*!
   Returns the id of a velocity block that is neighboring given block in given direction.
   Returns error_velocity_block in case the neighboring velocity block would be outside
@@ -342,7 +347,10 @@ namespace velocity_neighbor {
       const unsigned int direction
       )
    {
-      return get_velocity_block(direction%3-1,(direction/3)%3-1,(direction/9)%3-1);
+      unsigned int w=velocity_neighbor::WIDTH;
+      return get_velocity_block(direction%w-1,
+                                (direction/w)%w-1,
+                                (direction/(w*w))-1);
    }
 
 
@@ -487,10 +495,10 @@ namespace velocity_neighbor {
          return error_velocity_cell;
       }
       
-      
-      xyzDirection[0]=direction%3-1;
-      xyzDirection[1]=(direction/3)%3-1;
-      xyzDirection[2]=(direction/9)%3-1; 
+      unsigned int w=velocity_neighbor::WIDTH;
+      xyzDirection[0]=direction%w-1;
+      xyzDirection[1]=(direction/w)%w-1;
+      xyzDirection[2]=(direction/(w*w))%w-1; 
       
       block_len[0]=block_len_x;
       block_len[1]=block_len_y;
@@ -914,12 +922,18 @@ namespace velocity_neighbor {
                block_lengths.push_back(sizeof(Real) * 3);
             }
 
-                        // send  spatial cell parameters
+            // send  spatial cell parameters
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_DERIVATIVES)!=0){
                 displacements.push_back((uint8_t*) &(this->derivatives[0]) - (uint8_t*) this);
                 block_lengths.push_back(sizeof(Real) * fieldsolver::N_SPATIAL_CELL_DERIVATIVES);
             }
 
+            // send  isGhostCell        
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_GHOSTFLAG)!=0){
+                displacements.push_back((uint8_t*) &(this->isGhostCell) - (uint8_t*) this);
+                block_lengths.push_back(sizeof(Real));
+            }
+            
             
 // send velocity block derivatives
             if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_KT_DERIVATIVES)!=0){
@@ -1224,7 +1238,7 @@ namespace velocity_neighbor {
             if (original_has_content) {
 
                // add missing neighbors in velocity space
-               for (unsigned int direction = 0; direction <27; direction++) {
+               for (unsigned int direction = 0; direction <velocity_neighbor::NNGBRS; direction++) {
                   const unsigned int neighbor_block = get_velocity_block(*original, direction);
                   if (neighbor_block == error_velocity_block) {
                      continue;
@@ -1247,7 +1261,7 @@ namespace velocity_neighbor {
 
                // check if any neighbour has contents
                bool velocity_neighbors_have_content = false;
-               for (unsigned int direction = 0; direction <27; direction++) {
+               for (unsigned int direction = 0; direction <velocity_neighbor::NNGBRS; direction++) {
                   const unsigned int neighbor_block = get_velocity_block(*original, direction);
                   if (this->velocity_block_has_contents(neighbor_block)) {
                      velocity_neighbors_have_content = true;
@@ -1552,8 +1566,8 @@ namespace velocity_neighbor {
          // set neighbour pointers
          unsigned int neighbor_block;
          int neighbor_index=0;
-         for(int neighbor_index=0;neighbor_index<27;neighbor_index++){
-            if(neighbor_index==13) continue; //self index
+         for(int neighbor_index=0;neighbor_index<velocity_neighbor::NNGBRS;neighbor_index++){
+            if(neighbor_index==velocity_neighbor::MYIND) continue; //self index
             neighbor_block = get_velocity_block(block, neighbor_index);
             if (neighbor_block == error_velocity_block) {
                block_ptr->neighbors[neighbor_index] = NULL;
@@ -1567,9 +1581,10 @@ namespace velocity_neighbor {
                block_ptr->neighbors[neighbor_index] = &(this->velocity_blocks.at(neighbor_block));
                
                //  update the neighbor list of neighboring block
-               int dvx=neighbor_index%3-1;
-               int dvy=(neighbor_index/3)%3-1;
-               int dvz=(neighbor_index/9)-1;
+               unsigned int w=velocity_neighbor::WIDTH;
+               int dvx=neighbor_index%w-1;
+               int dvy=(neighbor_index/w)%w-1;
+               int dvz=(neighbor_index/(w*w))-1;
                //index of current block in neighbors neighbor table
                int neighbor_neighbor_index=(1-dvx)+(1-dvy)*3+(1-dvz)*9;
                Velocity_Block* neighbor_ptr = &(this->velocity_blocks.at(neighbor_block));
@@ -1646,17 +1661,18 @@ namespace velocity_neighbor {
          //remove block from neighbors neighbor lists
          unsigned int neighbor_block;
          int neighbor_index=0;
-         for(int neighbor_index=0;neighbor_index<27;neighbor_index++){
-            if(neighbor_index==13) continue;
+         for(int neighbor_index=0;neighbor_index<velocity_neighbor::NNGBRS;neighbor_index++){
+            if(neighbor_index==velocity_neighbor::MYIND) continue;
             neighbor_block = get_velocity_block(block, neighbor_index);
             if (neighbour_block != error_velocity_block
                 && this->velocity_blocks.count(neighbour_block) > 0) {
                // TODO use cached addresses of neighbors
                Velocity_Block* neighbour_data = &(this->velocity_blocks.at(neighbour_block));
                //  update the neighbor list of neighboring block
-               int dvx=neighbor_index%3-1;
-               int dvy=(neighbor_index/3)%3-1;
-               int dvz=(neighbor_index/9)-1;
+               unsigned int w=velocity_neighbor::WIDTH;
+               int dvx=neighbor_index%w-1;
+               int dvy=(neighbor_index/w)%w-1;
+               int dvz=(neighbor_index/(w*w))-1;
                //index of current block in neighbors neighbor table
                int neighbor_neighbor_index=(1-dvx)+(1-dvy)*3+(1-dvz)*9;
                neighbour_data->neighbors[neighbor_neighbor_index] = &(this->null_block);
@@ -1808,14 +1824,13 @@ namespace velocity_neighbor {
 
 
    public:
-
       /*
         List of velocity blocks in this cell, used for
         transferring spatial cells between processes using MPI.
       */
-      //FIXME, static array?
+      
       std::vector<unsigned int> velocity_block_list;
-
+      
       /*
         Bulk variables in this spatial cell.
       */
@@ -1825,6 +1840,12 @@ namespace velocity_neighbor {
         Derivatives of bulk variables in this spatial cell.
       */
       Real derivatives[fieldsolver::N_SPATIAL_CELL_DERIVATIVES];
+      
+      //neighbor id's. Kept up to date in solvers, not by the spatial_cell class
+      std::vector<uint64_t> neighbors;
+      unsigned int boundaryFlag;
+      bool isGhostCell;
+      
 //      std::vector<Real> derivatives;
 
    }; // class SpatialCell

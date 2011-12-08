@@ -171,7 +171,7 @@ const uint WID3 = WID2*WID;
 
 //const uint SIZE_NBRS_VEL    = 8;    /**< The size of velocity grid neighbour list per velocity block. */
 //const uint SIZE_NBRS_VEL    = 28;    /**< The size of velocity grid neighbour list per velocity block. */
-//const uint SIZE_NBRS_SPA    = 31;   /**< The size of spatial grid neighbour list per spatial cell. */
+const uint SIZE_NBRS_SPA    = 31;   /**< The size of spatial grid neighbour list per spatial cell. */
 const uint SIZE_VELBLOCK    = WID3; /**< Number of cells in a velocity block. */
 const uint SIZE_BLOCKPARAMS = 6;    /**< Number of parameters per velocity block. */
 
