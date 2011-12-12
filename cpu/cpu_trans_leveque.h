@@ -833,22 +833,6 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(dccrg::Dccrg<Spatial
    }
 }
 
-template<typename REAL,typename UINT> void cpu_propagateSpat(REAL* const avgs,const REAL* const flux,const REAL* const nbrFluxes,
-							     const REAL* const blockParams,const REAL* const cellParams,const UINT& BLOCK) {
-   // Propagate distribution function:
-   if (nbrFluxes == NULL) {
-      // No remote neighbour contributions to df/dt 
-      for (UINT i=0; i<WID3; ++i) {
-	 avgs[BLOCK*WID3 + i] += flux[BLOCK*WID3 + i];
-      }
-   } else {
-      // Cell has remote neighbour contributions to df/dt
-      for (UINT i=0; i<WID3; ++i) {
-	 avgs[BLOCK*WID3 + i] += flux[BLOCK*WID3 + i] + nbrFluxes[BLOCK*WID3 + i];
-      }
-   }
-}
-
 /** Propagate distribution function in spatial space and calculate 
  * velocity moments rho, rhovx, rhovy, and rhovz simultaneously.
  * @param avgs Array containing volume averages of distribution function for this 
@@ -859,28 +843,35 @@ template<typename REAL,typename UINT> void cpu_propagateSpat(REAL* const avgs,co
  * @param cellParams Array containing spatial cell parameters.
  * @param BLOCK Which velocity block is being propagated, acts as an index into arrays.
  */
-template<typename REAL,typename UINT> void cpu_propagateSpatWithMoments(REAL* const avgs,const REAL* const flux,const REAL* const nbrFluxes,
-								       const REAL* const blockParams,REAL* const cellParams,const UINT& BLOCK) {
-   // Propagate distribution function:
+template<typename REAL,typename UINT> void cpu_propagateSpatWithMoments(REAL * const nbrFluxes,SpatialCell *cell,const UINT blockId,const uint block_i){
+   
+//(REAL* const avgs,const REAL* const flux,const REAL* const nbrFluxes,
+//							       const REAL* const blockParams,REAL* const cellParams,const UINT& BLOCK) {
+
+   Velocity_Block block=cell->at(blockId); //returns a reference to block       
+// Propagate distribution function:
    if (nbrFluxes == NULL) {
       // No remote neighbour contributions to df/dt
       for (UINT i=0; i<WID3; ++i) {
-	 avgs[BLOCK*WID3 + i] += flux[BLOCK*WID3 + i];
+         block.data[i]+=block.fx[i];
       }
    } else {
       // Cell has remote neighbour contributions to df/dt
       for (UINT i=0; i<WID3; ++i) {
-	 avgs[BLOCK*WID3 + i] += flux[BLOCK*WID3 + i] + nbrFluxes[BLOCK*WID3 + i];
+         block.data[i]+=block.fx[i]+nbrFluxes[block_i*WID3 + i];
       }
    }
    
    // Calculate velocity moments:
-   cpu_blockVelocityMoments(avgs+BLOCK*SIZE_VELBLOCK,blockParams+BLOCK*SIZE_BLOCKPARAMS,cellParams);
+   cpu_blockVelocityMoments(block.data,block.parameters,cell->parameters);
+
 }
 
-template<typename REAL,typename UINT> void cpu_calcVelocityMoments(const REAL* const avgs,const REAL* const blockParams,REAL* const cellParams,const UINT& BLOCK) {
+template<typename UINT> void cpu_calcVelocityMoments(SpatialCell *cell,const UINT blockId){
+   Velocity_Block block=cell->at(blockId); //returns a reference to block            
    // Calculate velocity moments:
-   cpu_blockVelocityMoments(avgs+BLOCK*SIZE_VELBLOCK,blockParams+BLOCK*SIZE_BLOCKPARAMS,cellParams);
+   cpu_blockVelocityMoments(block.data,block.parameters,cell->parameters);
+
 }
 
 #endif

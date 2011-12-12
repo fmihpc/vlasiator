@@ -42,8 +42,8 @@ template<typename T> inline T fullInd(const T& i,const T& j,const T& k) {return 
 template<typename T> inline T isBoundary(const T& STATE,const T& BND) {return STATE & BND;}
 template<typename T> inline T findex(const T& i,const T& j,const T& k) {return k*36+j*6+i;}
 
-template<typename REAL> void accumulateChanges(Velocity_Block &block,const REAL* const dF){
-   REAL* nbrFlux;
+void accumulateChanges(Velocity_Block &block,const Real* const dF){
+   Real* nbrFlux;
    //typedef Parameters P;
    
    // NOTE: velocity block can have up to 26 neighbours, and we need to copy changes 
@@ -199,22 +199,23 @@ template<typename REAL> void accumulateChanges(Velocity_Block &block,const REAL*
    }
 }
 
-template<typename REAL,typename UINT> void fetchAllAverages(Velocity_Block &block,REAL* const avgs) {
+
+void fetchAllAverages(Velocity_Block &block,Real* const avgs) {
 
    Velocity_Block *nbrBlock;
-   for (UINT i=0; i<8*WID3; ++i) avgs[i] = 0.0;
+   for (unsigned int i=0; i<8*WID3; ++i) avgs[i] = 0.0;
    
    
    // Copy averages from -x neighbour, or calculate using a boundary function:
    if (block.neighbors[velocity_neighbor::XM1_YCC_ZCC] == NULL) {
-      for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<2; ++i) {
+      for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<WID; ++j) for (unsigned int i=0; i<2; ++i) {
 	 avgs[fullInd(i  ,j+2,k+2)] = 0.0; // BOUNDARY VALUE
       }
    } else {
       nbrBlock = block.neighbors[velocity_neighbor::XM1_YCC_ZCC];
-      for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) {
+      for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<WID; ++j) {
 	 #pragma ivdep
-	 for (UINT i=0; i<2; ++i) {
+	 for (unsigned int i=0; i<2; ++i) {
             avgs[fullInd(i  ,j+2,k+2)] = nbrBlock->data[accIndex(i+2,j,k)];
 	 }
       }
@@ -222,14 +223,14 @@ template<typename REAL,typename UINT> void fetchAllAverages(Velocity_Block &bloc
    
    // Copy averages from +x neighbour, or calculate using a boundary function:
    if (block.neighbors[velocity_neighbor::XP1_YCC_ZCC] == NULL) {
-      for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<2; ++i) {
+      for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<WID; ++j) for (unsigned int i=0; i<2; ++i) {
 	 avgs[fullInd(i+6,j+2,k+2)] = 0.0; // BOUNDARY VALUE
       }
    } else {
       nbrBlock = block.neighbors[velocity_neighbor::XP1_YCC_ZCC];
-      for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) {
+      for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<WID; ++j) {
 	 #pragma ivdep
-	 for (UINT i=0; i<2; ++i) {
+	 for (unsigned int i=0; i<2; ++i) {
 	    avgs[fullInd(i+6,j+2,k+2)] = nbrBlock->data[accIndex(i,j,k)];
 	 }
       }
@@ -237,74 +238,74 @@ template<typename REAL,typename UINT> void fetchAllAverages(Velocity_Block &bloc
    
    // Copy averages from -y neighbour, or calculate using a boundary function:
    if (block.neighbors[velocity_neighbor::XCC_YM1_ZCC] == NULL) {
-      for (UINT k=0; k<WID; ++k) for (UINT j=0; j<2; ++j) for (UINT i=0; i<WID; ++i) {
+      for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<2; ++j) for (unsigned int i=0; i<WID; ++i) {
 	 avgs[fullInd(i+2,j  ,k+2)] = 0.0; // BOUNDARY VALUE
       }
    } else {
       nbrBlock = block.neighbors[velocity_neighbor::XCC_YM1_ZCC];
-      for (UINT k=0; k<WID; ++k) for (UINT j=0; j<2; ++j) {
+      for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<2; ++j) {
 	 #pragma ivdep
-	 for (UINT i=0; i<WID; ++i) {
+	 for (unsigned int i=0; i<WID; ++i) {
 	    avgs[fullInd(i+2,j  ,k+2)] = nbrBlock->data[accIndex(i,j+2,k)];
 	 }
       }
    }
    // Copy averages from +y neighbour, or calculate using a boundary function:
    if (block.neighbors[velocity_neighbor::XCC_YP1_ZCC] == NULL) {
-      for (UINT k=0; k<WID; ++k) for (UINT j=0; j<2; ++j) for (UINT i=0; i<WID; ++i) {
+      for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<2; ++j) for (unsigned int i=0; i<WID; ++i) {
 	 avgs[fullInd(i+2,j+6,k+2)] = 0.0; // BOUNDARY VALUE
       }
    } else {
       nbrBlock = block.neighbors[velocity_neighbor::XCC_YP1_ZCC];
-      for (UINT k=0; k<WID; ++k) for (UINT j=0; j<2; ++j) {
+      for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<2; ++j) {
 	 #pragma ivdep
-	 for (UINT i=0; i<WID; ++i) {
+	 for (unsigned int i=0; i<WID; ++i) {
 	    avgs[fullInd(i+2,j+6,k+2)] = nbrBlock->data[accIndex(i,j,k)];
 	 }
       }
    }
    // Copy averages from -z neighbour, or calculate using a boundary function:
    if (block.neighbors[velocity_neighbor::XCC_YCC_ZM1] == NULL) {
-      for (UINT k=0; k<2; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
+      for (unsigned int k=0; k<2; ++k) for (unsigned int j=0; j<WID; ++j) for (unsigned int i=0; i<WID; ++i) {
 	 avgs[fullInd(i+2,j+2,k  )] = 0.0; // BOUNDARY VALUE
       }
    } else {
       nbrBlock = block.neighbors[velocity_neighbor::XCC_YCC_ZM1];
-      for (UINT k=0; k<2; ++k) for (UINT j=0; j<WID; ++j) {
+      for (unsigned int k=0; k<2; ++k) for (unsigned int j=0; j<WID; ++j) {
 	 #pragma ivdep
-	 for (UINT i=0; i<WID; ++i) {
+	 for (unsigned int i=0; i<WID; ++i) {
 	    avgs[fullInd(i+2,j+2,k  )] = nbrBlock->data[accIndex(i,j,k+2)];
 	 }
       }
    }
    // Copy averages from +z neighbour, or calculate using a boundary function:
    if (block.neighbors[velocity_neighbor::XCC_YCC_ZP1] == NULL) {
-      for (UINT k=0; k<2; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
+      for (unsigned int k=0; k<2; ++k) for (unsigned int j=0; j<WID; ++j) for (unsigned int i=0; i<WID; ++i) {
 	 avgs[fullInd(i+2,j+2,k+6)] = 0.0; // BOUNDARY VALUE
       }
    } else {
       nbrBlock = block.neighbors[velocity_neighbor::XCC_YCC_ZP1];
-      for (UINT k=0; k<2; ++k) for (UINT j=0; j<WID; ++j) {
+      for (unsigned int k=0; k<2; ++k) for (unsigned int j=0; j<WID; ++j) {
 	 #pragma ivdep
-	 for (UINT i=0; i<WID; ++i) {
+	 for (unsigned int i=0; i<WID; ++i) {
 	    avgs[fullInd(i+2,j+2,k+6)] =  nbrBlock->data[accIndex(i,j,k)];
 	 }
       }
    }
 
    // Copy volume averages of this block:
-   for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
+   for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<WID; ++j) for (unsigned int i=0; i<WID; ++i) {
       avgs[fullInd(i+2,j+2,k+2)] = block.data[accIndex(i,j,k)];
    }
 }
 
 //zero fluxes
-template<typename REAL,typename UINT,typename CELL> void cpu_clearVelFluxes(SpatialCell &cell,const UINT& BLOCK) {
-   Velocity_Block block=cell.at(BLOCK);
-   for (UINT i=0; i<SIZE_FLUXS; ++i)  block.fx[i]= 0.0;
+void cpu_clearVelFluxes(SpatialCell *cell,const unsigned int& BLOCK) {
+   Velocity_Block block=cell->at(BLOCK);
+   for (unsigned int i=0; i<SIZE_FLUXS; ++i)  block.fx[i]= 0.0;
 }
 
-template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(SpatialCell &cell,const UINT& BLOCK,const REAL& DT,creal* const accmat) {
+void cpu_calcVelFluxes(SpatialCell *cell,const unsigned int& BLOCK,const Real& DT,creal* const accmat) {
    // Creation of temporary calculation block dfdt and avgs + 
    // value fetching and initializations seem to take about
    // ~4% of time used by calcVelFluxes
@@ -312,30 +313,30 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(Spati
    // Allocate temporary array in which local dF changes are calculated:
    // F is the distribution function, dFdt is its change over timestep DT
    Real dfdt[216];
-   for (UINT i=0; i<216; ++i) dfdt[i] = 0.0;
+   for (unsigned int i=0; i<216; ++i) dfdt[i] = 0.0;
    
-   Velocity_Block block=cell.at(BLOCK);
-   REAL avgs[8*WID3];
+   Velocity_Block block=cell->at(BLOCK);
+   Real avgs[8*WID3];
    fetchAllAverages(block,avgs);
 
-   const REAL dt_per_dvx = DT / block.parameters[BlockParams::DVX];
-   const REAL dt_per_dvy = DT / block.parameters[BlockParams::DVY];
-   const REAL dt_per_dvz = DT / block.parameters[BlockParams::DVZ];
+   const Real dt_per_dvx = DT / block.parameters[BlockParams::DVX];
+   const Real dt_per_dvy = DT / block.parameters[BlockParams::DVY];
+   const Real dt_per_dvz = DT / block.parameters[BlockParams::DVZ];
    
-   REAL Ax,Ay,Az;
-   for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
-      REAL R,incrWave,transIncrWave,doubleTransIncrWave;
-      REAL corrWave,transCorrWave,doubleTransCorrWave;
-      UINT solverFlags;
+   Real Ax,Ay,Az;
+   for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<WID; ++j) for (unsigned int i=0; i<WID; ++i) {
+      Real R,incrWave,transIncrWave,doubleTransIncrWave;
+      Real corrWave,transCorrWave,doubleTransCorrWave;
+      unsigned int solverFlags;
       
       // ***********************************
       // ***** INTERFACE BETWEEN I,I-1 *****
       // ***********************************
-      const REAL xcc = avgs[fullInd(i+2,j+2,k+2)];
-      const REAL xp1 = avgs[fullInd(i+3,j+2,k+2)];
-      const REAL xm1 = avgs[fullInd(i+1,j+2,k+2)];
-      const REAL xm2 = avgs[fullInd(i  ,j+2,k+2)];
-      calcAccFaceX(Ax,Ay,Az,i,j,k,cell.parameters,block.parameters);
+      const Real xcc = avgs[fullInd(i+2,j+2,k+2)];
+      const Real xp1 = avgs[fullInd(i+3,j+2,k+2)];
+      const Real xm1 = avgs[fullInd(i+1,j+2,k+2)];
+      const Real xm2 = avgs[fullInd(i  ,j+2,k+2)];
+      calcAccFaceX(Ax,Ay,Az,i,j,k,cell->parameters,block.parameters);
 
       solverFlags = 0;
       if (Az < ZERO) solverFlags = (solverFlags | (1 << 0));
@@ -719,10 +720,10 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(Spati
       // ***********************************
       // ***** INTERFACE BETWEEN J,J-1 *****
       // ***********************************
-      const REAL yp1 = avgs[fullInd(i+2,j+3,k+2)];
-      const REAL ym1 = avgs[fullInd(i+2,j+1,k+2)];
-      const REAL ym2 = avgs[fullInd(i+2,j  ,k+2)];
-      calcAccFaceY(Ax,Ay,Az,i,j,k,cell.parameters,block.parameters);
+      const Real yp1 = avgs[fullInd(i+2,j+3,k+2)];
+      const Real ym1 = avgs[fullInd(i+2,j+1,k+2)];
+      const Real ym2 = avgs[fullInd(i+2,j  ,k+2)];
+      calcAccFaceY(Ax,Ay,Az,i,j,k,cell->parameters,block.parameters);
       
       solverFlags = 0;
       if (Az < ZERO) solverFlags = (solverFlags | (1 << 0));
@@ -1103,10 +1104,10 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(Spati
       // ***********************************
       // ***** INTERFACE BETWEEN K,K-1 *****
       // ***********************************
-      const REAL zp1 = avgs[fullInd(i+2,j+2,k+3)];
-      const REAL zm1 = avgs[fullInd(i+2,j+2,k+1)];
-      const REAL zm2 = avgs[fullInd(i+2,j+2,k  )];
-      calcAccFaceZ(Ax,Ay,Az,i,j,k,cell.parameters,block.parameters);
+      const Real zp1 = avgs[fullInd(i+2,j+2,k+3)];
+      const Real zm1 = avgs[fullInd(i+2,j+2,k+1)];
+      const Real zm2 = avgs[fullInd(i+2,j+2,k  )];
+      calcAccFaceZ(Ax,Ay,Az,i,j,k,cell->parameters,block.parameters);
       
       solverFlags = 0;
       if (Az < ZERO) solverFlags = (solverFlags | (1 << 0));
@@ -1494,8 +1495,8 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcVelFluxes(Spati
 
 }
 
-template<typename REAL,typename UINT,typename CELL> void cpu_propagateVel(CELL& cell,const UINT& BLOCK,const REAL& DT) {
-   Velocity_Block block=cell.at(BLOCK);
-   for (UINT i=0; i<WID3; ++i) block.data[i] += block.fx[i];
+void cpu_propagateVel(SpatialCell *cell,const unsigned int& BLOCK,const Real& DT) {
+   Velocity_Block block=cell->at(BLOCK);
+   for (unsigned int i=0; i<WID3; ++i) block.data[i] += block.fx[i];
 }
 #endif
