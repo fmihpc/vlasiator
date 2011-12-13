@@ -218,7 +218,7 @@ void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
 {
    // update velocity block lists  
    profile::start("Velocity block list update");
-   SpatialCell::set_mpi_transfer_type(SpatialCell::Transfer::VEL_BLOCK_LIST);
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST);
    mpiGrid.update_remote_neighbour_data();
    profile::stop("Velocity block list update");
 
@@ -269,7 +269,7 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
    prepare_to_receive_velocity_block_data(mpiGrid);
    // update distribution function
    // FIXME, only CELL_BLOCK_DATA needed?
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_BLOCK_DATA );
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA );
    mpiGrid.update_remote_neighbour_data();
    
    adjust_all_velocity_blocks(mpiGrid);
@@ -278,11 +278,7 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
 
    profile::start("Fetch Neighbour data");
    // update complete spatial cell data 
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS|
-                                      Transfer::CELL_BLOCK_DATA|
-                                      Transfer::CELL_BLOCK_FLUXES|
-                                      Transfer::CELL_BLOCK_KT_DERIVATIVES|
-                                      Transfer::CELL_BLOCK_PARAMETERS);
+   SpatialCell::set_mpi_transfer_type(Transfer::ALL);
    mpiGrid.update_remote_neighbour_data();       
    profile::stop("Fetch Neighbour data");   
 }
@@ -618,15 +614,14 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
 
    double allEnd = MPI_Wtime();
    
-   double bytesWritten = totalBlocks*((SIZE_VELBLOCK+SIZE_BLOCKPARAMS)*sizeof(Real)+(SIZE_NBRS_VEL)*sizeof(uint));
+   //double bytesWritten = totalBlocks*((SIZE_VELBLOCK+SIZE_BLOCKPARAMS)*sizeof(Real)+(SIZE_NBRS_VEL)*sizeof(uint));
    double secs = end-start;
    //FIXME, should be global info
    //mpilogger << "Wrote " << bytesWritten/1.0e6 << " MB of data in " << secs << " seconds, datarate is " << bytesWritten/secs/1.0e9 << " GB/s" << endl << write;
    
    double allSecs = allEnd-allStart;
-   if (myrank == 0) mpilogger << "All data written in " << allSecs << " seconds" << endl << write;
 
-   profile::stop("writeGrid-restart",1.0e-6*bytesWritten,"MB");
+   profile::stop("writeGrid-restart");//,1.0e-6*bytesWritten,"MB");
    return success;
 }
 

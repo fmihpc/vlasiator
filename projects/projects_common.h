@@ -1,6 +1,6 @@
 #ifndef PROJECTS_COMMON_H
 #define PROJECTS_COMMON_H
-
+using namespace spatial_cell;
 namespace projects {
    enum Neighbours {
       ZM1_YM1_XM1,

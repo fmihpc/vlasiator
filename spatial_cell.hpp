@@ -41,6 +41,8 @@ namespace spatial_cell {
       const unsigned int CELL_B_RHO_RHOV=(1<<7);
       const unsigned int CELL_E=(1<<8);
       const unsigned int CELL_GHOSTFLAG=(1<<9);
+      const unsigned int ALL = CELL_PARAMETERS|CELL_DERIVATIVES|VEL_BLOCK_LIST|VEL_BLOCK_DATA|
+      VEL_BLOCK_FLUXES | VEL_BLOCK_KT_DERIVATIVES|CELL_GHOSTFLAG;
    };
    
 // length of a velocity block in velocity cells

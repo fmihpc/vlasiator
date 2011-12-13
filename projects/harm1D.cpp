@@ -79,7 +79,7 @@ void calcCellParameters(Real* cellParams,creal& t) {
 void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
    std::vector<uint64_t> cells = mpiGrid.get_cells();
    for (uint i = 0; i < cells.size(); ++i) {
-      calcCellParameters(mpiGrid[cells[i]]->cpu_cellParams, t);
+      calcCellParameters(mpiGrid[cells[i]]->parameters, t);
    }
 }
 

@@ -88,9 +88,9 @@ bool DataReducer::getDataVectorInfo(const unsigned int& operatorID,std::string& 
 bool DataReducer::reduceData(const SpatialCell* cell,const unsigned int& operatorID,char* buffer) {
    // Tell the chosen operator which spatial cell we are counting:
    if (operatorID >= operators.size()) return false;
-   if (operators[operatorID]->setSpatialCell(*cell) == false) return false;
+   if (operators[operatorID]->setSpatialCell(cell) == false) return false;
 
-   if (operators[operatorID]->reduceData(cell->N_blocks,cell->cpu_avgs,cell->cpu_blockParams,buffer) == false) return false;
+   if (operators[operatorID]->reduceData(cell,buffer) == false) return false;
    return true;
 }
 

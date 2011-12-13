@@ -31,7 +31,10 @@ template<typename CELLID,typename UINT>
     void vlasovBoundaryCopyFromExistingFaceNbr(const CELLID& cellID,const UINT& existingCells,
                                                const UINT& nonExistingCells,const dccrg::Dccrg<SpatialCell>& mpiGrid) {
 #endif
-    const UINT missingPosX = (1 << 14);
+
+   std::cout <<"vlasovBounadryCopyFromExistingFaceNbr not yet functional for sparse spatial cells. Needs copyfunctions in spatialCell"<<std::endl;
+   /*
+   const UINT missingPosX = (1 << 14);
    const UINT missingNegX = (1 << 12);
    const UINT missingPosY = (1 << 16);
    const UINT missingNegY = (1 << 10);
@@ -105,6 +108,7 @@ template<typename CELLID,typename UINT>
       for (size_t i=0; i<mpiGrid[cellID]->N_blocks*SIZE_VELBLOCK; ++i) mpiGrid[cellID]->cpu_avgs[i] = 0.0;
       break;
    }
+   */
 }
 
 #ifdef PARGRID 
