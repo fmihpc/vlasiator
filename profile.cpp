@@ -644,7 +644,7 @@ namespace profile
 	    groupIds[*group] = *group;
 	 }
       }
-      int character = 'A'; // ASCII A, TODO skip after Z to a, see ascii table
+      int character = 65; // ASCII A, TODO skip after Z to a, see ascii table
       for(map<string, string>::const_iterator group = groupIds.begin();
 	  group != groupIds.end(); ++group) {
 	 groupIds[group->first] = character++;
