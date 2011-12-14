@@ -679,7 +679,9 @@ namespace profile
    int getId(const string &label) {return 0;}
 
    int initializeTimer(const string &label,const vector<string> &groups) { return 0;}
-   int initializeTimer(const string &label,const string &group){return 0;}
+   int initializeTimer(const string &label,const string &group1){return 0;}
+   int initializeTimer(const string &label,const string &group1,const string &group2){return 0;}
+   int initializeTimer(const string &label,const string &group1,const string &group2,const string &group3){return 0;}
    int initializeTimer(const string &label){return 0;}
 }
 #endif
