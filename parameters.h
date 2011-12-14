@@ -51,11 +51,11 @@ namespace Transmit {
 
 struct Parameters {
    static Real xmin;  /**< X-coordinate of the lower left corner of the spatial grid. */
-   static Real xmax;  /**< Y-coordinate of the lower left corner of the spatial grid. */
+//   static Real xmax;  /**< Y-coordinate of the lower left corner of the spatial grid. */
    static Real ymin;  /**< Z-coordinate of the lower left corner of the spatial grid. */
-   static Real ymax;  /**< X-coordinate of the upper right corner of the spatial grid. */
+   //  static Real ymax;  /**< X-coordinate of the upper right corner of the spatial grid. */
    static Real zmin;  /**< Y-coordinate of the upper right corner of the spatial grid. */
-   static Real zmax;  /**< Z-coordinate of the upper right corner of the spatial grid. */
+   //  static Real zmax;  /**< Z-coordinate of the upper right corner of the spatial grid. */
    static Real dx_ini; /**< Initial size of spatial cell in x-direction. */
    static Real dy_ini; /**< Initial size of spatial cell in y-direction. */
    static Real dz_ini; /**< Initial size of spatial cell in z-direction. */

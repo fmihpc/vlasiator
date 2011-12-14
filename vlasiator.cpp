@@ -44,6 +44,10 @@ MPILogger mpilogger;
 
 bool inistate = true;
 
+//FIXME, move to spatial_cell.cpp
+//Ugly hack, mpu_transfer_type needs to be defined (not only declerad) outside spatialcell. We have no spatialcell.cpp, thus I stuck it here.
+unsigned int SpatialCell::mpi_transfer_type = 0;
+
 using namespace std;
 
 
@@ -287,7 +291,7 @@ bool readConfigFile(){
    profile::start("Read parameters");
    typedef Parameters P;
    typedef Readparameters RP;
-
+   Real xmax,ymax,zmax;
    // Read in some parameters
    // Parameters related to solar wind simulations:
    // DEPRECATED: These will be moved to somewhere else in the future
@@ -356,11 +360,11 @@ bool readConfigFile(){
      
    /*get numerical values, let Readparamers handle the conversions*/
    RP::get("gridbuilder.x_min",P::xmin);
-   RP::get("gridbuilder.x_max",P::xmax);
+   RP::get("gridbuilder.x_max",xmax);
    RP::get("gridbuilder.y_min",P::ymin);
-   RP::get("gridbuilder.y_max",P::ymax);
+   RP::get("gridbuilder.y_max",ymax);
    RP::get("gridbuilder.z_min",P::zmin);
-   RP::get("gridbuilder.z_max",P::zmax);
+   RP::get("gridbuilder.z_max",zmax);
    RP::get("gridbuilder.x_length",P::xcells_ini);
    RP::get("gridbuilder.y_length",P::ycells_ini);
    RP::get("gridbuilder.z_length",P::zcells_ini);
@@ -374,7 +378,7 @@ bool readConfigFile(){
    RP::get("gridbuilder.vy_length",P::vyblocks_ini);
    RP::get("gridbuilder.vz_length",P::vzblocks_ini);
 
-   if (P::xmax < P::xmin || (P::ymax < P::ymin || P::zmax < P::zmin)) return false;
+   if (xmax < P::xmin || (ymax < P::ymin || zmax < P::zmin)) return false;
    if (P::vxmax < P::vxmin || (P::vymax < P::vymin || P::vzmax < P::vzmin)) return false;
    
    std::string periodic_x,periodic_y,periodic_z;
@@ -389,9 +393,9 @@ bool readConfigFile(){
    if (periodic_z == "yes") P::periodic_z = true;
    
    // Set some parameter values. 
-   P::dx_ini = (P::xmax-P::xmin)/P::xcells_ini;
-   P::dy_ini = (P::ymax-P::ymin)/P::ycells_ini;
-   P::dz_ini = (P::zmax-P::zmin)/P::zcells_ini;
+   P::dx_ini = (xmax-P::xmin)/P::xcells_ini;
+   P::dy_ini = (ymax-P::ymin)/P::ycells_ini;
+   P::dz_ini = (zmax-P::zmin)/P::zcells_ini;
 
    Real t_min;
    RP::get("gridbuilder.q",P::q);

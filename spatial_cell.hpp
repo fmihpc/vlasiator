@@ -222,7 +222,7 @@ namespace velocity_neighbor {
 /*!
   Returns the indices of given velocity block
 */
-   velocity_block_indices_t get_velocity_block_indices(const unsigned int block) {
+   inline velocity_block_indices_t get_velocity_block_indices(const unsigned int block) {
       velocity_block_indices_t indices;
 
       if (block >= max_velocity_blocks) {
@@ -240,7 +240,7 @@ namespace velocity_neighbor {
 /*!
   Returns the velocity block at given indices or error_velocity_block
 */
-   unsigned int get_velocity_block(const velocity_block_indices_t indices) {
+   inline   unsigned int get_velocity_block(const velocity_block_indices_t indices) {
       if (indices[0] >= P::vxblocks_ini
           || indices[1] >= P::vyblocks_ini
           || indices[2] >= P::vzblocks_ini) {
@@ -254,7 +254,7 @@ namespace velocity_neighbor {
   Returns the velocity block at given location or
   error_velocity_block if outside of the velocity grid
 */
-   unsigned int get_velocity_block(
+   inline unsigned int get_velocity_block(
       const Real vx,
       const Real vy,
       const Real vz
@@ -280,7 +280,7 @@ namespace velocity_neighbor {
   Returns error_velocity_block in case the neighboring velocity block would be outside
   of the velocity grid.
 */
-   unsigned int get_velocity_block(
+   inline unsigned int get_velocity_block(
       const unsigned int block,
       const  int direction_vx,
       const  int direction_vy,
@@ -344,7 +344,7 @@ namespace velocity_neighbor {
 */
 
    
-   unsigned int get_velocity_block(
+  inline unsigned int get_velocity_block(
       const unsigned int block,
       const unsigned int direction
       )
@@ -361,7 +361,7 @@ namespace velocity_neighbor {
 /*!
   Returns the edge where given velocity block starts.
 */
-   Real get_velocity_block_vx_min(const unsigned int block) {
+   inline Real get_velocity_block_vx_min(const unsigned int block) {
       if (block == error_velocity_block) {
          return std::numeric_limits<Real>::quiet_NaN();
       }
@@ -381,7 +381,7 @@ namespace velocity_neighbor {
 /*!
   Returns the edge where given velocity block ends.
 */
-   Real get_velocity_block_vx_max(const unsigned int block) {
+   inline Real get_velocity_block_vx_max(const unsigned int block) {
       return get_velocity_block_vx_min(block) + cell_dx;
    }
 
@@ -389,7 +389,7 @@ namespace velocity_neighbor {
 /*!
   Returns the edge where given velocity block starts.
 */
-   Real get_velocity_block_vy_min(const unsigned int block) {
+   inline Real get_velocity_block_vy_min(const unsigned int block) {
       if (block == error_velocity_block) {
          return std::numeric_limits<Real>::quiet_NaN();
       }
@@ -409,7 +409,7 @@ namespace velocity_neighbor {
 /*!
   Returns the edge where given velocity block ends.
 */
-   Real get_velocity_block_vy_max(const unsigned int block) {
+   inline Real get_velocity_block_vy_max(const unsigned int block) {
       return get_velocity_block_vy_min(block) + cell_dy;
    }
 
@@ -417,7 +417,7 @@ namespace velocity_neighbor {
 /*!
   Returns the edge where given velocity block starts.
 */
-   Real get_velocity_block_vz_min(const unsigned int block) {
+   inline Real get_velocity_block_vz_min(const unsigned int block) {
       if (block == error_velocity_block) {
          return std::numeric_limits<Real>::quiet_NaN();
       }
@@ -437,7 +437,7 @@ namespace velocity_neighbor {
 /*!
   Returns the edge where given velocity block ends.
 */
-   Real get_velocity_block_vz_max(const unsigned int block) {
+  inline Real get_velocity_block_vz_max(const unsigned int block) {
       return get_velocity_block_vz_min(block) + cell_dz;
    }
 
@@ -449,7 +449,7 @@ namespace velocity_neighbor {
 /*!
   Returns the indices of given velocity cell
 */
-   velocity_cell_indices_t get_velocity_cell_indices(const unsigned int cell) {
+  inline velocity_cell_indices_t get_velocity_cell_indices(const unsigned int cell) {
       velocity_cell_indices_t indices;
 
       if (cell >= velocity_block_len) {
@@ -466,7 +466,7 @@ namespace velocity_neighbor {
 /*!
   Returns the velocity cell at given indices or error_velocity_cell
 */
-   unsigned int get_velocity_cell(const velocity_cell_indices_t indices) {
+  inline unsigned int get_velocity_cell(const velocity_cell_indices_t indices) {
       if (indices[0] >= block_len_x
           || indices[1] >= block_len_y
           || indices[2] >= block_len_z) {
@@ -481,7 +481,7 @@ namespace velocity_neighbor {
   Returns error_velocity_cell in case the neighboring velocity cell would be outside
   of the velocity block.
 */
-   unsigned int get_velocity_cell(
+  inline unsigned int get_velocity_cell(
       const unsigned int cell,
       const unsigned int direction
       )
@@ -543,7 +543,7 @@ namespace velocity_neighbor {
   Returns the velocity cell at given location or
   error_velocity_cell if outside of given velocity block.
 */
-   unsigned int get_velocity_cell(
+   inline unsigned int get_velocity_cell(
       const unsigned int velocity_block,
       const Real vx,
       const Real vy,
@@ -578,7 +578,7 @@ namespace velocity_neighbor {
   Returns the edge where given velocity cell in the given velocity block starts.
   TODO: move these to velocity cell class?
 */
-   Real get_velocity_cell_vx_min(
+   inline Real get_velocity_cell_vx_min(
       const unsigned int velocity_block,
       const unsigned int velocity_cell
       )
@@ -601,7 +601,7 @@ namespace velocity_neighbor {
 /*!
   Returns the edge where given velocity cell in the given velocity block ends.
 */
-   Real get_velocity_cell_vx_max(
+ inline  Real get_velocity_cell_vx_max(
       const unsigned int velocity_block,
       const unsigned int velocity_cell
       )
@@ -624,7 +624,7 @@ namespace velocity_neighbor {
 /*!
   Returns the edge where given velocity cell in the given velocity block starts.
 */
-   Real get_velocity_cell_vy_min(
+  inline Real get_velocity_cell_vy_min(
       const unsigned int velocity_block,
       const unsigned int velocity_cell
       )
@@ -647,7 +647,7 @@ namespace velocity_neighbor {
 /*!
   Returns the edge where given velocity cell in the given velocity block ends.
 */
-   Real get_velocity_cell_vy_max(
+   inline Real get_velocity_cell_vy_max(
       const unsigned int velocity_block,
       const unsigned int velocity_cell
       )
@@ -670,7 +670,7 @@ namespace velocity_neighbor {
 /*!
   Returns the edge where given velocity cell in the given velocity block starts.
 */
-   Real get_velocity_cell_vz_min(
+  inline  Real get_velocity_cell_vz_min(
       const unsigned int velocity_block,
       const unsigned int velocity_cell
       )
@@ -693,7 +693,7 @@ namespace velocity_neighbor {
 /*!
   Returns the edge where given velocity cell in the given velocity block ends.
 */
-   Real get_velocity_cell_vz_max(
+   inline Real get_velocity_cell_vz_max(
       const unsigned int velocity_block,
       const unsigned int velocity_cell
       )
@@ -1778,15 +1778,11 @@ namespace velocity_neighbor {
 
 
    private:
-
       /*
         Which data is transferred by the mpi datatype given by spatial cells.
-
-        If 0 no data is transferred
-        If 1 velocity block lists are transferred
-        If 2 velocity block data is transferred
       */
       static unsigned int mpi_transfer_type;
+
 
       /*
         Minimum value of distribution function
@@ -1851,8 +1847,7 @@ namespace velocity_neighbor {
 //      std::vector<Real> derivatives;
 
    }; // class SpatialCell
-
-   unsigned int SpatialCell::mpi_transfer_type = 0;
+   
 
 } // namespaces
 #endif
