@@ -810,6 +810,9 @@ int main(int argn,char* args[]) {
    profile::stop("Initialization");
    comm.barrier();
 
+   //break here and check that initial state is ok
+   MPI_Finalize();
+   exit(1);
    
    
    inistate = false;
