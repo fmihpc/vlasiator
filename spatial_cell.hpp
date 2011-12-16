@@ -30,19 +30,25 @@ typedef Parameters P;
 namespace spatial_cell {
    //fixme namespaces in lower case
    namespace Transfer {
-      const unsigned int NONE=0;
-      const unsigned int CELL_PARAMETERS=(1<<0);
-      const unsigned int CELL_DERIVATIVES=(1<<1);
-      const unsigned int VEL_BLOCK_LIST=(1<<2);
-      const unsigned int VEL_BLOCK_DATA=(1<<3);
-      const unsigned int VEL_BLOCK_FLUXES=(1<<4);
-      const unsigned int VEL_BLOCK_KT_DERIVATIVES=(1<<5);
-      const unsigned int VEL_BLOCK_PARAMETERS=(1<<6);
-      const unsigned int CELL_B_RHO_RHOV=(1<<7);
-      const unsigned int CELL_E=(1<<8);
-      const unsigned int CELL_GHOSTFLAG=(1<<9);
-      const unsigned int ALL = CELL_PARAMETERS|CELL_DERIVATIVES|VEL_BLOCK_LIST|VEL_BLOCK_DATA|
-      VEL_BLOCK_FLUXES | VEL_BLOCK_KT_DERIVATIVES|CELL_GHOSTFLAG;
+      const unsigned int NONE                     = 0;
+      const unsigned int CELL_PARAMETERS          = (1<<0);
+      const unsigned int CELL_DERIVATIVES         = (1<<1);
+      const unsigned int VEL_BLOCK_LIST           = (1<<2);
+      const unsigned int VEL_BLOCK_DATA           = (1<<3);
+      const unsigned int VEL_BLOCK_FLUXES         = (1<<4);
+      const unsigned int VEL_BLOCK_KT_DERIVATIVES = (1<<5);
+      const unsigned int VEL_BLOCK_PARAMETERS     = (1<<6);
+      const unsigned int CELL_B_RHO_RHOV          = (1<<7);
+      const unsigned int CELL_E                   = (1<<8);
+      const unsigned int CELL_GHOSTFLAG           = (1<<9);
+      const unsigned int ALL =
+        CELL_PARAMETERS
+        | CELL_DERIVATIVES
+        | VEL_BLOCK_LIST
+        | VEL_BLOCK_DATA
+        | VEL_BLOCK_FLUXES
+        | VEL_BLOCK_KT_DERIVATIVES
+        |CELL_GHOSTFLAG;
    };
    
 // length of a velocity block in velocity cells
