@@ -44,10 +44,16 @@ bool VLSVReader::close() {
 }
 
 bool VLSVReader::getArrayInfo(const std::string& tagName,const std::string& arrayName,uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& byteSize) const {   
-   if (fileOpen == false) return false;
+   if (fileOpen == false) {
+   	cerr << __FILE__ << ":" << __LINE__ << " File is not open" << endl;
+   	return false;
+   }
    list<pair<string,string> > attribs;
    XMLNode* node = xmlReader.find(tagName,attribs);
-   if (node == NULL) return false;
+   if (node == NULL) {
+   	cerr << __FILE__ << ":" << __LINE__ << " node == NULL" << endl;
+   	return false;
+   }
 
    arraySize = atoi(node->attributes["arraysize"].c_str());
    vectorSize = atoi(node->attributes["vectorsize"].c_str());
@@ -63,12 +69,18 @@ bool VLSVReader::getArrayInfo(const std::string& tagName,const std::string& arra
 }
 
 bool VLSVReader::getArrayInfo(const std::string& tagName,const std::string& arrayName,const std::string& meshName,uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& byteSize) const {
-   if (fileOpen == false) return false;
+   if (fileOpen == false) {
+   	cerr << __FILE__ << ":" << __LINE__ << " File is not open" << endl;
+   	return false;
+   }
    list<pair<string,string> > attribs;
    attribs.push_back(make_pair("name",arrayName));
    attribs.push_back(make_pair("mesh",meshName));
    XMLNode* node = xmlReader.find(tagName,attribs);
-   if (node == NULL) return false;
+   if (node == NULL) {
+   	cerr << __FILE__ << ":" << __LINE__ << " node == NULL" << endl;
+   	return false;
+   }
 
    arraySize = atoi(node->attributes["arraysize"].c_str());
    vectorSize = atoi(node->attributes["vectorsize"].c_str());
@@ -84,9 +96,15 @@ bool VLSVReader::getArrayInfo(const std::string& tagName,const std::string& arra
 }
 
 bool VLSVReader::getArrayInfo(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& dataSize) const {
-   if (fileOpen == false) return false;
+   if (fileOpen == false) {
+   	cerr << __FILE__ << ":" << __LINE__ << " File is not open" << endl;
+   	return false;
+   }
    XMLNode* node = xmlReader.find(tagName,attribs);
-   if (node == NULL) return false;
+   if (node == NULL) {
+   	cerr << __FILE__ << ":" << __LINE__ << " node == NULL" << endl;
+   	return false;
+   }
    
    arraySize = atoi(node->attributes["arraysize"].c_str());
    vectorSize = atoi(node->attributes["vectorsize"].c_str());
@@ -103,7 +121,10 @@ bool VLSVReader::getArrayInfo(const std::string& tagName,const std::list<std::pa
 
 bool VLSVReader::getMeshNames(list<string>& meshNames) const {
    meshNames.clear();
-   if (fileOpen == false) return false;
+   if (fileOpen == false) {
+   	cerr << __FILE__ << ":" << __LINE__ << " File is not open" << endl;
+   	return false;
+   }
    
    XMLNode* node = xmlReader.find("VLSV");
    for (multimap<string,XMLNode*>::const_iterator it=node->children.lower_bound("MESH"); it!=node->children.upper_bound("MESH"); ++it) {
