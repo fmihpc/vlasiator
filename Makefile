@@ -196,8 +196,8 @@ vlsvextract: ${DEPS_VLSVEXTRACT} ${OBJS_VLSVEXTRACT}
 	${LNK} -o vlsvextract_${FP_PRECISION} vlsvextract.o ${OBJS_VLSVEXTRACT} ${LIB_SILO}
 
 vlsv2vtk: ${DEPS_VLSVEXTRACT} ${OBJS_VLSVEXTRACT}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2vtk.cpp
-	${LNK} -o vlsv2vtk_${FP_PRECISION} vlsv2vtk.o ${OBJS_VLSVEXTRACT}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2vtk.cpp ${INC_BOOST} 
+	${LNK} -o vlsv2vtk_${FP_PRECISION} vlsv2vtk.o ${OBJS_VLSVEXTRACT} ${INC_BOOST} 
 
 vlsvreader2.o: ${DEPS_VLSVREADER2}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvreader2.cpp
