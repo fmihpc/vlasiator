@@ -44,7 +44,7 @@ include projects/Makefile.${PROJ}
 # The rest of this file users shouldn't need to change
 
 
-default: vlasiator vlsv2silo vlsvextract
+default: vlasiator vlsv2silo vlsvextract vlsv2vtk
 
 # Compile directory:
 INSTALL = $(CURDIR)
