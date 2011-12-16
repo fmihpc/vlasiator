@@ -43,7 +43,7 @@ PROJ = harm1D
 # The rest of this file users shouldn't need to change
 
 
-default: vlasiator vlsv2silo vlsvextract
+default: vlasiator vlsv2silo vlsvextract vlsv2vtk
 
 # Compile directory:
 INSTALL = $(CURDIR)
@@ -140,7 +140,7 @@ clean:
 	make clean -C cuda
 	make clean -C fieldsolver
 	rm -rf libvlasovmover.a libfieldsolver.a
-	rm -rf .goutputstream* .logfile* *.o *.ptx *.tar* *.txt *.silo *.vtk *.vlsv project.h project.cu project.cpp  *~ visitlog.py ${EXE} vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION}
+	rm -rf .goutputstream* .logfile* *.o *.ptx *.tar* *.txt *.silo *.vtk *.vlsv project.h project.cu project.cpp  *~ visitlog.py ${EXE} vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION} vlsv2vtk_${FP_PRECISION}
 
 # Rules for making each object file needed by the executable
 arrayallocator.o: ${DEPS_ARRAYALLOCATOR}
@@ -194,6 +194,10 @@ vlscommon.o: ${DEPS_VLSCOMMON}
 vlsvextract: ${DEPS_VLSVEXTRACT} ${OBJS_VLSVEXTRACT}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvextract.cpp ${INC_SILO}
 	${LNK} -o vlsvextract_${FP_PRECISION} vlsvextract.o ${OBJS_VLSVEXTRACT} ${LIB_SILO}
+
+vlsv2vtk: ${DEPS_VLSVEXTRACT} ${OBJS_VLSVEXTRACT}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2vtk.cpp
+	${LNK} -o vlsv2vtk_${FP_PRECISION} vlsv2vtk.o ${OBJS_VLSVEXTRACT}
 
 vlsvreader2.o: ${DEPS_VLSVREADER2}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvreader2.cpp
