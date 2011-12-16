@@ -13,3 +13,5 @@ disabled
 
 
 
+- Not that project cannot modify block parameters anymore (nothing sensible
+  for them to do there) in calcBlockPaameter

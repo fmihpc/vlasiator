@@ -124,11 +124,8 @@ bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
             cell.parameters[CellParams::RHOVX] += average*vx_cell_center*dV;
             cell.parameters[CellParams::RHOVY] += average*vy_cell_center*dV;
             cell.parameters[CellParams::RHOVZ] += average*vz_cell_center*dV;
-
             //project cannot modify block parameters anymore (nothing sensible for them to do there)
 //            calcBlockParameters(cell.at(spatial_cell::get_velocity_cell_block);
-      
-
          }
       }
    }
@@ -645,7 +642,7 @@ int main(int argn,char* args[]) {
    bool success = true;
    const int MASTER_RANK = 0;
    int myrank;
-
+   typedef Parameters P;
    // Init MPI: 
 #ifdef _OPENMP
    //init threaded MPI when comppiled using openmp
@@ -694,7 +691,16 @@ int main(int argn,char* args[]) {
    profile::stop("Init project");
    
    profile::start("Initialize Grid");
-   // Create parallel MPI grid and init Zoltan:
+   
+   //set some static values for spatial_cell;
+   //FIXME, move to spatial cell.
+   spatial_cell::max_velocity_blocks = P::vxblocks_ini * P::vyblocks_ini * P::vzblocks_ini;
+   spatial_cell::cell_dx = (P::vxmax - P::vxmin) / P::vxblocks_ini;
+   spatial_cell::cell_dy = (P::vymax - P::vymin) / P::vyblocks_ini;
+   spatial_cell::cell_dz = (P::vzmax - P::vzmin) / P::vzblocks_ini;
+
+
+// Create parallel MPI grid and init Zoltan:
    float zoltanVersion;
    if (Zoltan_Initialize(argn,args,&zoltanVersion) != ZOLTAN_OK) {
       mpilogger << "\t ERROR: Zoltan initialization failed, aborting." << std::endl << write;
@@ -724,6 +730,13 @@ int main(int argn,char* args[]) {
       0, // maximum refinement level
       P::periodic_x, P::periodic_y, P::periodic_z
    );
+
+
+   cout << "mpiGrid is initialize!!!"<<endl;;
+   MPI_Finalize();
+   exit(0);
+   
+   
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", "1.05");
    
    profile::start("Initial load-balancing");
