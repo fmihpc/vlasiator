@@ -38,7 +38,7 @@ void allocateArray(Real** ptr,const size_t& elements) {
    }
    catch (exception& e) {
       cerr << __FILE__ << ":" << __LINE__
-         << "Couldn't allocate memory: " << e.what()
+         << " Couldn't allocate memory: " << e.what()
          << endl;
       abort();
    }
