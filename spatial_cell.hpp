@@ -211,12 +211,9 @@ namespace velocity_neighbor {
 */
    const unsigned int error_velocity_block = std::numeric_limits<unsigned int>::max();
 
-   const unsigned int max_velocity_blocks = P::vxblocks_ini * P::vyblocks_ini * P::vzblocks_ini;
+   static unsigned int max_velocity_blocks;
 
-
-   const Real cell_dx = (P::vxmax - P::vxmin) / P::vxblocks_ini;
-   const Real cell_dy = (P::vymax - P::vymin) / P::vyblocks_ini;
-   const Real cell_dz = (P::vzmax - P::vzmin) / P::vzblocks_ini;
+   static Real cell_dx, cell_dy, cell_dz;
 
 // TODO: typedef unsigned int velocity_cell_t;
 // TODO: typedef unsigned int velocity_block_t;
