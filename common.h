@@ -164,7 +164,7 @@ namespace fieldsolver {
 
 
 
-
+// TODO: change into a template parameter
 const uint WID = 4;         /**< Number of cells per coordinate in a velocity block. */
 const uint WID2 = WID*WID;
 const uint WID3 = WID2*WID; 

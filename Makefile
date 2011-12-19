@@ -113,7 +113,7 @@ CUDA_OBJS = cellsync.o cuda_acc.o cuda_trans.o cudafuncs.o gpudevicegrid.o
 OBJS = arrayallocator.o 		\
 	datareducer.o datareductionoperator.o 		\
 	vlasiator.o mpifile.o mpilogger.o muxml.o	\
-	parameters.o project.o					\
+	parameters.o project.o	spatial_cell.o		\
 	profile.o vlscommon.o vlsvreader2.o vlsvwriter2.o
 
 OBJS_VLSVEXTRACT = muxml.o vlscommon.o vlsvreader2.o
@@ -159,6 +159,8 @@ fieldsolverinstall:
 gpudevicegrid.o: $(DEPS_GPU_DEVICE_GRID)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c gpudevicegrid.cpp $(INC_CUDA)
 
+spatial_cell.o: spatial_cell.cpp spatial_cell.hpp
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c spatial_cell.cpp
 
 vlasiator.o: $(DEPS_MAIN) 
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}

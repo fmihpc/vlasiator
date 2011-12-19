@@ -44,10 +44,6 @@ MPILogger mpilogger;
 
 bool inistate = true;
 
-//FIXME, move to spatial_cell.cpp
-//Ugly hack, mpu_transfer_type needs to be defined (not only declerad) outside spatialcell. We have no spatialcell.cpp, thus I stuck it here.
-unsigned int SpatialCell::mpi_transfer_type = 0;
-
 using namespace std;
 
 
@@ -549,8 +545,8 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
          }
          
          for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-              block_i < spatial_cell::max_velocity_blocks
-                 && SC->velocity_block_list[block_i] != spatial_cell::error_velocity_block;
+              block_i < spatial_cell::SpatialCell::max_velocity_blocks
+                 && SC->velocity_block_list[block_i] != spatial_cell::SpatialCell::error_velocity_block;
               block = SC->velocity_block_list[++block_i]
               ) {
             Velocity_Block* block_ptr = &(SC->at(block));
@@ -584,10 +580,10 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
             velocityBlockData.resize(SC->size()*SIZE_VELBLOCK);
          }         
          for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-              block_i < spatial_cell::max_velocity_blocks
-                 && SC->velocity_block_list[block_i] != spatial_cell::error_velocity_block;
+              block_i < spatial_cell::SpatialCell::max_velocity_blocks
+                 && SC->velocity_block_list[block_i] != spatial_cell::SpatialCell::error_velocity_block;
               block = SC->velocity_block_list[++block_i]
-              ) {
+         ) {
             Velocity_Block* block_ptr = &(SC->at(block));
             for(unsigned int vc=0;vc<SIZE_VELBLOCK;++vc){
                velocityBlockData[index++]=block_ptr->data[vc];
@@ -595,7 +591,6 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
          }
          
 	 if (vlsvWriter.multiwriteArray(N_blocks[cell],&(velocityBlockData[0])) == false) success = false;
-	 //if (vlsvWriter.multiwriteArray(counter,N_blocks[cell],SC->cpu_fx) == false) success = false;
 	 counter += N_blocks[cell];
       }
    }
@@ -694,12 +689,20 @@ int main(int argn,char* args[]) {
    profile::start("Initialize Grid");
    
    //set some static values for spatial_cell;
-   //FIXME, move to spatial cell.
-   spatial_cell::max_velocity_blocks = P::vxblocks_ini * P::vyblocks_ini * P::vzblocks_ini;
-   spatial_cell::cell_dx = (P::vxmax - P::vxmin) / P::vxblocks_ini;
-   spatial_cell::cell_dy = (P::vymax - P::vymin) / P::vyblocks_ini;
-   spatial_cell::cell_dz = (P::vzmax - P::vzmin) / P::vzblocks_ini;
-
+   spatial_cell::SpatialCell::vx_length = P::vxblocks_ini;
+   spatial_cell::SpatialCell::vy_length = P::vyblocks_ini;
+   spatial_cell::SpatialCell::vz_length = P::vzblocks_ini;
+   spatial_cell::SpatialCell::vx_min = P::vxmin;
+   spatial_cell::SpatialCell::vx_max = P::vxmax;
+   spatial_cell::SpatialCell::vy_min = P::vymin;
+   spatial_cell::SpatialCell::vy_max = P::vymax;
+   spatial_cell::SpatialCell::vz_min = P::vzmin;
+   spatial_cell::SpatialCell::vz_max = P::vzmax;
+   spatial_cell::SpatialCell::grid_dvx = P::vxmax - P::vxmin;
+   spatial_cell::SpatialCell::grid_dvy = P::vymax - P::vymin;
+   spatial_cell::SpatialCell::grid_dvz = P::vzmax - P::vzmin;
+   spatial_cell::SpatialCell::max_velocity_blocks = P::vxblocks_ini * P::vyblocks_ini * P::vzblocks_ini;
+   spatial_cell::SpatialCell::mpi_transfer_type = 0;
 
 // Create parallel MPI grid and init Zoltan:
    float zoltanVersion;
