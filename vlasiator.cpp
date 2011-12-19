@@ -72,6 +72,7 @@ bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
    typedef Parameters P;
 
    //FIXME, read in from parameters P
+
    cell.set_block_minimum(1);
    cell.set_block_average_minimum(0.5);
 
@@ -731,11 +732,6 @@ int main(int argn,char* args[]) {
       P::periodic_x, P::periodic_y, P::periodic_z
    );
 
-
-   cout << "mpiGrid is initialize!!!"<<endl;;
-   MPI_Finalize();
-   exit(0);
-   
    
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", "1.05");
    
