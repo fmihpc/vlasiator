@@ -229,14 +229,24 @@ vlasiator: projinstall fieldsolverinstall  moverinstall $(OBJS)
 	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) -L${INSTALL} -L${INSTALL}/cpu -lvlasovmover -lfieldsolver $(LIBS) 
 
 VLASIATOR_HEADERS = \
-	arrayallocator.h cpu/cpu_acc_kt.h cpu/cpu_acc_leveque.h cpu/cpu_acc_ppm.h \
-	cpu/cpu_common.h cpu/cpu_trans_kt.h cpu/cpu_trans_leveque.h spatial_cell.hpp \
-	common.h datareducer.h datareductionoperator.h \
+	arrayallocator.h \
+	cpu/cpu_acc_leveque.h \
+	cpu/cpu_common.h \
+	cpu/cpu_trans_leveque.h \
+	common.h \
+	datareducer.h \
+	datareductionoperator.h \
 	definitions.h   \
-	mpiconversion.h mpifile.h mpilogger.h \
+	mpiconversion.h \
+	mpifile.h \
+	mpilogger.h \
 	parameters.h \
-	 vlscommon.h \
-	vlsvwriter2.h vlsvreader2.h muxml.h profile.h
+	spatial_cell.hpp \
+	vlscommon.h \
+	vlsvwriter2.h \
+	vlsvreader2.h \
+	muxml.h \
+	profile.h
 
 VLASIATOR_SOURCES = \
 	arrayallocator.cpp \
@@ -244,10 +254,6 @@ VLASIATOR_SOURCES = \
 	datareductionoperator.cpp \
 	fieldsolver/londrillo_delzanna.cpp \
 	vlasiator.cpp \
-	cpu/cpu_acc_kt.cpp \
-	cpu/cpu_trans_kt.cpp \
-	cpu/dccrg/main_dccrg.cpp \
-	#cpu/dccrg/vlasovmover_leveque.cpp \
 	cpu/memalloc.cpp \
 	mpifile.cpp \
 	mpilogger.cpp \
