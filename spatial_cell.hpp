@@ -21,12 +21,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "algorithm"
 #include "boost/array.hpp"
-
-#ifndef NO_SPARSE
 #include "boost/unordered_map.hpp"
 #include "boost/unordered_set.hpp"
-#endif
-
 #include "cmath"
 #include "fstream"
 #include "iostream"
@@ -714,22 +710,15 @@ namespace velocity_neighbor {
       SpatialCell()
       {
          /*
-           Block list always has room for all blocks
+           Block list and cache always have room for all blocks
          */
          this->velocity_block_list.reserve(SpatialCell::max_velocity_blocks);
 
-#ifdef NO_SPARSE
-         this->velocity_blocks.resize(SpatialCell::max_velocity_blocks);
-         for (unsigned int block = 0; block < SpatialCell::max_velocity_blocks; block++) {
-            this->velocity_block_list.push_back(block);
-         }
-#else
          this->block_address_cache.reserve(SpatialCell::max_velocity_blocks);
          for (unsigned int block = 0; block < SpatialCell::max_velocity_blocks; block++) {
             this->velocity_block_list.push_back(error_velocity_block);
             this->block_address_cache.push_back(&(this->null_block));
          }
-#endif
 
          this->null_block.clear();
          // zero neighbor lists of null block
@@ -763,11 +752,7 @@ namespace velocity_neighbor {
                 || block >= SpatialCell::max_velocity_blocks) {
                return this->null_block;
             } else {
-#ifdef NO_SPARSE
-               return this->velocity_blocks.at(block);
-#else
                return *(this->block_address_cache.at(block));
-#endif
             }
          }
 
@@ -780,11 +765,7 @@ namespace velocity_neighbor {
                 || block >= SpatialCell::max_velocity_blocks) {
                return this->null_block;
             } else {
-#ifdef NO_SPARSE
-               return this->velocity_blocks.at(block);
-#else
                return *(this->block_address_cache.at(block));
-#endif
             }
          }
 
@@ -794,16 +775,7 @@ namespace velocity_neighbor {
       */
       size_t count(const unsigned int block) const
          {
-#ifdef NO_SPARSE
-            if (block == error_velocity_block
-                || block >= SpatialCell::max_velocity_blocks) {
-               return 0;
-            } else {
-               return 1;
-            }
-#else
             return this->velocity_blocks.count(block);
-#endif
          }
 
 
@@ -1003,14 +975,9 @@ namespace velocity_neighbor {
         Also returns false if given block doesn't exist or is an error block.
       */
       bool velocity_block_has_contents(
-#ifdef NO_SPARSE
-         const unsigned int /*block*/
-#else
          const unsigned int block
-#endif
-         ) const
-         {
-#ifndef NO_SPARSE
+      ) const
+      {
             if (block == error_velocity_block
                 || this->velocity_blocks.count(block) == 0) {
                return false;
@@ -1034,9 +1001,6 @@ namespace velocity_neighbor {
             }
 
             return has_content;
-#else
-            return true;
-#endif
          }
 
 
@@ -1047,22 +1011,13 @@ namespace velocity_neighbor {
          {
             Real total = 0;
 
-            for (
-               #ifdef NO_SPARSE
-               std::vector<Velocity_Block>::const_iterator
-               #else
-               boost::unordered_map<unsigned int, Velocity_Block>::const_iterator
-               #endif
+            for (boost::unordered_map<unsigned int, Velocity_Block>::const_iterator
                block = this->velocity_blocks.begin();
                block != this->velocity_blocks.end();
                block++
             ) {
                for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
-#ifdef NO_SPARSE
-                  total += block->data[i];
-#else
                   total += block->second.data[i];
-#endif
                }
             }
 
@@ -1103,7 +1058,6 @@ namespace velocity_neighbor {
                   break;
                }
 
-#ifndef NO_SPARSE
                if (this->velocity_blocks.count(this->velocity_block_list[i]) == 0) {
                   std::cerr << __FILE__ << ":" << __LINE__
                             << " Velocity block " << this->velocity_block_list[i]
@@ -1111,7 +1065,6 @@ namespace velocity_neighbor {
                             << std::endl;
                   abort();
                }
-#endif
             }
          }
 
@@ -1142,27 +1095,25 @@ namespace velocity_neighbor {
         Prints given velocity block's velocity neighbor list.
       */
       void print_velocity_neighbor_list(const unsigned int block) const
-         {
-#ifndef NO_SPARSE
-            if (this->velocity_blocks.count(block) == 0) {
-               return;
-            }
-#endif
-
-            const Velocity_Block* block_ptr = &(this->velocity_blocks.at(block));
-
-            std::cout << block << " neighbors: ";
-            for (unsigned int neighbor = 0; neighbor < N_NEIGHBOR_VELOCITY_BLOCKS; neighbor++) {
-               if (block_ptr->neighbors[neighbor] == NULL) {
-                  std::cout << "NULL ";
-               } else if (block_ptr->neighbors[neighbor] == &(this->null_block)) {
-                  std::cout << "null ";
-               } else {
-                  std::cout << block_ptr->neighbors[neighbor] << " ";
-               }
-            }
-            std::cout << std::endl;
+      {
+         if (this->velocity_blocks.count(block) == 0) {
+            return;
          }
+
+         const Velocity_Block* block_ptr = &(this->velocity_blocks.at(block));
+
+         std::cout << block << " neighbors: ";
+         for (unsigned int neighbor = 0; neighbor < N_NEIGHBOR_VELOCITY_BLOCKS; neighbor++) {
+            if (block_ptr->neighbors[neighbor] == NULL) {
+               std::cout << "NULL ";
+            } else if (block_ptr->neighbors[neighbor] == &(this->null_block)) {
+               std::cout << "null ";
+            } else {
+               std::cout << block_ptr->neighbors[neighbor] << " ";
+            }
+         }
+         std::cout << std::endl;
+      }
 
       /*!
         Prints all velocity blocks' velocity neighbor list.
@@ -1188,17 +1139,11 @@ namespace velocity_neighbor {
         Assumes that only blocks with a shared face in velocity space are neighbors.
         All cells in spatial_neighbors are assumed to be neighbors of this cell.
       */
-      void adjust_velocity_blocks(
-#ifdef NO_SPARSE
-         const std::vector<SpatialCell*>& /*spatial_neighbors*/
-#else
-         const std::vector<SpatialCell*>& spatial_neighbors
-#endif
-         ) {
+      void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors)
+      {
          // debug
          this->check_velocity_block_list();
 
-#ifndef NO_SPARSE
          // don't iterate over blocks created / removed by this function
          std::vector<unsigned int> original_block_list;
          for (
@@ -1290,7 +1235,6 @@ namespace velocity_neighbor {
               ) {
             this->add_velocity_block(*neighbor);
          }
-#endif
       }
 
       /*!
@@ -1601,7 +1545,6 @@ namespace velocity_neighbor {
          }
 
          // update block list
-#ifndef NO_SPARSE
          unsigned int first_error_block = 0;
          while (first_error_block < SpatialCell::max_velocity_blocks
                 && this->velocity_block_list[first_error_block] != error_velocity_block
@@ -1612,7 +1555,6 @@ namespace velocity_neighbor {
          }
          
          this->velocity_block_list[first_error_block] = block;
-#endif                  
          
          return true;
       }
@@ -1627,11 +1569,9 @@ namespace velocity_neighbor {
             bool result = true;
 
             for (unsigned int i = 0; i < SpatialCell::max_velocity_blocks; i++) {
-#ifndef NO_SPARSE
                if (this->velocity_blocks.count(i) > 0) {
                   continue;
                }
-#endif
 
                if (!this->add_velocity_block(i)) {
                   result = false;
@@ -1646,14 +1586,8 @@ namespace velocity_neighbor {
         Removes given block from the velocity grid.
         Does nothing if given block doesn't exist.
       */
-      void remove_velocity_block(
-#ifdef NO_SPARSE
-         const unsigned int /*block*/
-#else
-         const unsigned int block
-#endif
-         ) {
-#ifndef NO_SPARSE
+      void remove_velocity_block(const unsigned int block)
+      {
          if (block == error_velocity_block) {
             return;
          }
@@ -1718,7 +1652,6 @@ namespace velocity_neighbor {
             this->velocity_block_list[block_index] = this->velocity_block_list[first_error_block - 1];
             this->velocity_block_list[first_error_block - 1] = error_velocity_block;
          }
-#endif
       }
 
 
@@ -1727,13 +1660,11 @@ namespace velocity_neighbor {
       */
       void clear(void)
          {
-#ifndef NO_SPARSE
             this->velocity_blocks.clear();
             for (unsigned int i = 0; i < SpatialCell::max_velocity_blocks; i++) {
                this->block_address_cache[i] = &(this->null_block);
                this->velocity_block_list[i] = error_velocity_block;
             }
-#endif
          }
 
 
@@ -1742,7 +1673,6 @@ namespace velocity_neighbor {
       */
       void prepare_to_receive_blocks(void)
          {
-#ifndef NO_SPARSE
             unsigned int number_of_blocks = 0;
             while (number_of_blocks < SpatialCell::max_velocity_blocks
                    && this->velocity_block_list[number_of_blocks] != error_velocity_block) {
@@ -1761,7 +1691,6 @@ namespace velocity_neighbor {
             for (unsigned int block_index = 0; block_index < number_of_blocks; block_index++) {
                this->add_velocity_block(old_block_list[block_index]);
             }
-#endif
          }
 
 
@@ -1842,17 +1771,14 @@ namespace velocity_neighbor {
       Velocity_Block null_block;
 
       // data of velocity blocks that exist in this cell
-      #ifdef NO_SPARSE
-      std::vector<Velocity_Block> velocity_blocks;
-      #else
       boost::unordered_map<unsigned int, Velocity_Block> velocity_blocks;
+
       /*
         Speed up search of velocity block addresses in the hash table above.
         Addresses of non-existing blocks point to the null block.
       */
       //FIXME, static array?      
       std::vector<Velocity_Block*> block_address_cache;
-      #endif
 
 
 
