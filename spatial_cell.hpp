@@ -1136,54 +1136,32 @@ namespace velocity_neighbor {
         Removes all velocity blocks from this spatial cell which don't have content
         and don't have spatial or velocity neighbors with content.
         Adds neighbors for all velocity blocks which do have content (including spatial neighbors).
-        Assumes that only blocks with a shared face in velocity space are neighbors.
         All cells in spatial_neighbors are assumed to be neighbors of this cell.
       */
       void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors)
       {
-         // debug
+         #ifdef DEBUG
          this->check_velocity_block_list();
+         #endif
 
          // don't iterate over blocks created / removed by this function
          std::vector<unsigned int> original_block_list;
+         original_block_list.reserve(SpatialCell::max_velocity_blocks);
          for (
             unsigned int block = this->velocity_block_list[0], block_i = 0;
             block_i < SpatialCell::max_velocity_blocks
                && this->velocity_block_list[block_i] != error_velocity_block;
             block = this->velocity_block_list[++block_i]
-            ) {
+         ) {
             original_block_list.push_back(block);
          }
 
-         // get all velocity blocks with content in neighboring spatial cells
-         boost::unordered_set<unsigned int> neighbors_with_content;
-         for (std::vector<SpatialCell*>::const_iterator
-                 neighbor = spatial_neighbors.begin();
-              neighbor != spatial_neighbors.end();
-              neighbor++
-              ) {
-
-            for (std::vector<unsigned int>::const_iterator
-                    block = (*neighbor)->velocity_block_list.begin();
-                 block != (*neighbor)->velocity_block_list.end();
-                 block++
-                 ) {
-               if (*block == error_velocity_block) {
-                  break;
-               }
-
-               if ((*neighbor)->velocity_block_has_contents(*block)) {
-                  neighbors_with_content.insert(*block);
-               }
-            }
-         }
-
-         // remove all local blocks without content and without neighbors with content
+         // remove all blocks in this cell without content + without neighbors with content
          for (std::vector<unsigned int>::const_iterator
-                 original = original_block_list.begin();
+              original = original_block_list.begin();
               original != original_block_list.end();
               original++
-              ) {
+         ) {
             const bool original_has_content = this->velocity_block_has_contents(*original);
 
             if (original_has_content) {
@@ -1192,10 +1170,6 @@ namespace velocity_neighbor {
                for (unsigned int direction = 0; direction <velocity_neighbor::NNGBRS; direction++) {
                   const unsigned int neighbor_block = get_velocity_block(*original, direction);
                   if (neighbor_block == error_velocity_block) {
-                     continue;
-                  }
-
-                  if (this->velocity_blocks.count(neighbor_block) > 0) {
                      continue;
                   }
 
@@ -1210,30 +1184,55 @@ namespace velocity_neighbor {
 
             } else {
 
-               // check if any neighbour has contents
-               bool velocity_neighbors_have_content = false;
+               // remove local block if also no neighbor has content
+               bool neighbors_have_content = false;
+
+               // velocity space neighbors
                for (unsigned int direction = 0; direction <velocity_neighbor::NNGBRS; direction++) {
                   const unsigned int neighbor_block = get_velocity_block(*original, direction);
                   if (this->velocity_block_has_contents(neighbor_block)) {
-                     velocity_neighbors_have_content = true;
+                     neighbors_have_content = true;
                      break;
                   }
                }
-               
-               if (!velocity_neighbors_have_content
-                   && neighbors_with_content.count(*original) == 0) {
+
+               // real space neighbors
+               for (std::vector<SpatialCell*>::const_iterator
+                  neighbor = spatial_neighbors.begin();
+                  neighbor != spatial_neighbors.end();
+                  neighbor++
+               ) {
+                  if ((*neighbor)->velocity_block_has_contents(*original)) {
+                     neighbors_have_content = true;
+                     break;
+                  }
+               }
+
+               if (!neighbors_have_content) {
                   this->remove_velocity_block(*original);
                }
             }
          }
 
-         // add local blocks for spatial neighbors with content
-         for (boost::unordered_set<unsigned int>::const_iterator
-                 neighbor = neighbors_with_content.begin();
-              neighbor != neighbors_with_content.end();
-              neighbor++
-              ) {
-            this->add_velocity_block(*neighbor);
+         // add local blocks for neighbors in real space with content
+         for (std::vector<SpatialCell*>::const_iterator
+            neighbor = spatial_neighbors.begin();
+            neighbor != spatial_neighbors.end();
+            neighbor++
+         ) {
+            for (std::vector<unsigned int>::const_iterator
+                 block = (*neighbor)->velocity_block_list.begin();
+                 block != (*neighbor)->velocity_block_list.end();
+                 block++
+            ) {
+               if (*block == error_velocity_block) {
+                  break;
+               }
+
+               if ((*neighbor)->velocity_block_has_contents(*block)) {
+                  this->add_velocity_block(*block);
+               }
+            }
          }
       }
 
@@ -1505,11 +1504,11 @@ namespace velocity_neighbor {
          block_ptr->parameters[BlockParams::VYCRD] = get_velocity_block_vy_min(block);
          block_ptr->parameters[BlockParams::VZCRD] = get_velocity_block_vz_min(block);
          block_ptr->parameters[BlockParams::DVX] =
-            (get_velocity_block_vx_max(block) - get_velocity_block_vx_min(block)) / 2;
+            (get_velocity_block_vx_max(block) - get_velocity_block_vx_min(block)) / block_vx_length;
          block_ptr->parameters[BlockParams::DVY] =
-            (get_velocity_block_vy_max(block) - get_velocity_block_vy_min(block)) / 2;
+            (get_velocity_block_vy_max(block) - get_velocity_block_vy_min(block)) / block_vx_length;
          block_ptr->parameters[BlockParams::DVZ] =
-            (get_velocity_block_vz_max(block) - get_velocity_block_vz_min(block)) / 2;
+            (get_velocity_block_vz_max(block) - get_velocity_block_vz_min(block)) / block_vx_length;
 
          // set neighbour pointers
          unsigned int neighbor_block;
