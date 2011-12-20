@@ -236,12 +236,14 @@ bool VLSVWriter::writeArray(const std::string& tagName,const std::string& arrayN
         for(int i=1;i<N_processes;i++)
             offsets[i]=offsets[i-1]+bytesPerProcess[i-1];
     }
-//scatter offsets so that everybody has the correct offset
-MPI_Scatter(offsets,sizeof(MPI_Offset),MPI_BYTE,&offset,sizeof(MPI_Offset),MPI_BYTE,
-            0,comm);
+
+   //scatter offsets so that everybody has the correct offset
+   MPI_Scatter(offsets,sizeof(MPI_Offset),MPI_BYTE,&offset,sizeof(MPI_Offset),MPI_BYTE,0,comm);
 
     // Write this process's data:
-   if (MPI_File_write_at_all(fileptr,offset,array,myBytes,MPI_BYTE,MPI_STATUS_IGNORE) != MPI_SUCCESS) success = false;
+   if (MPI_File_write_at_all(fileptr,offset,array,myBytes,MPI_BYTE,MPI_STATUS_IGNORE) != MPI_SUCCESS) {
+      return false;
+   }
    
    // Master writes footer tag:
    if (myrank == masterRank) {

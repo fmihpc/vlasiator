@@ -195,10 +195,10 @@ bool adjust_all_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    
    // set cells' weights based on adjusted number of velocity blocks
    for (std::vector<uint64_t>::const_iterator
-           cell_id = cells.begin();
+        cell_id = cells.begin();
         cell_id != cells.end();
         ++cell_id
-	) {
+   ) {
       SpatialCell* cell = mpiGrid[*cell_id];
       if (cell == NULL) {
          std::cerr << __FILE__ << ":" << __LINE__ << " No data for spatial cell " << *cell_id << endl;
@@ -488,14 +488,17 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
       profile::stop("writeGrid-reduced");
       return success;
    }
-   
+
    attribs.clear();
 //START TO WRITE RESTART
    
    // Write spatial cell parameters:
    Real* paramsBuffer = new Real[cells.size()*CellParams::N_SPATIAL_CELL_PARAMS];
-   for (size_t i=0; i<cells.size(); ++i) for (uint j=0; j<CellParams::N_SPATIAL_CELL_PARAMS; ++j) 
-      paramsBuffer[i*CellParams::N_SPATIAL_CELL_PARAMS+j] = mpiGrid[cells[i]]->parameters[j];   
+   for (size_t i = 0; i < cells.size(); ++i)
+   for (uint j = 0; j < CellParams::N_SPATIAL_CELL_PARAMS; ++j) {
+      paramsBuffer[i*CellParams::N_SPATIAL_CELL_PARAMS+j] = mpiGrid[cells[i]]->parameters[j];
+   }
+
    if (vlsvWriter.writeArray("CELLPARAMS","SpatialGrid",attribs,cells.size(),CellParams::N_SPATIAL_CELL_PARAMS,paramsBuffer) == false) {
       mpilogger << "(MAIN) writeGrid: ERROR failed to write spatial cell parameters!" << endl << write;
       success = false;
@@ -507,6 +510,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    uchar* N_neighbours = new uchar[cells.size()];
    uint64_t neighbourSum = 0;
    for (size_t i=0; i<cells.size(); ++i) {
+      N_neighbours[i] = 0;
       neighbourSum += N_neighbours[i];
    }
    if (vlsvWriter.writeArray("NBRSUM","SpatialGrid",attribs,cells.size(),1,N_neighbours) == false) success = false;
@@ -530,35 +534,35 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
 
    double start = MPI_Wtime();
 
-   // Write velocity block coordinates. At this point the data may get too large to be buffered, 
-   // so a "multi-write" mode is used - coordinates are written one velocity grid at a time.
+   // Write velocity block coordinates.
+   // TODO: add support for MPI_Datatype in startMultiwrite...
+   std::vector<Real> velocityBlockParameters;
+   velocityBlockParameters.reserve(totalBlocks);
 
    if (vlsvWriter.startMultiwrite("float",totalBlocks,BlockParams::N_VELOCITY_BLOCK_PARAMS,sizeof(Real)) == false) success = false;
    if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to start BLOCKCOORDINATES multiwrite!" << endl << write;
    if (success == true) {
-      SpatialCell* SC;
-      std::vector<Real> velocityBlockParameters;
+      SpatialCell* SC = NULL;
+
+      // gather data for writing
       for (size_t cell=0; cell<cells.size(); ++cell) {
          int index=0;
          SC = mpiGrid[cells[cell]];
-         
-         if(velocityBlockParameters.size()<SC->size()*BlockParams::N_VELOCITY_BLOCK_PARAMS){
-            velocityBlockParameters.resize(SC->size()*BlockParams::N_VELOCITY_BLOCK_PARAMS);
-         }
          
          for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
               block_i < spatial_cell::SpatialCell::max_velocity_blocks
                  && SC->velocity_block_list[block_i] != error_velocity_block;
               block = SC->velocity_block_list[++block_i]
-              ) {
-            Velocity_Block* block_ptr = &(SC->at(block));
+         ) {
+            Velocity_Block block_data = SC->at(block);
             for(unsigned int p=0;p<BlockParams::N_VELOCITY_BLOCK_PARAMS;++p){
-               velocityBlockParameters[index++]=block_ptr->parameters[p];
+               velocityBlockParameters.push_back(block_data.parameters[p]);
             }
          }
       
-         if (vlsvWriter.multiwriteArray(N_blocks[cell],&(velocityBlockParameters[0])) == false) success = false;
       }
+
+      if (vlsvWriter.multiwriteArray(totalBlocks,&(velocityBlockParameters[0])) == false) success = false;
    }
    
    if (success == true) {
@@ -567,16 +571,17 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    }
    
    // Write values of distribution function:
+   std::vector<Real> velocityBlockData;
+   velocityBlockData.reserve(totalBlocks);
+
    if (vlsvWriter.startMultiwrite("float",totalBlocks,SIZE_VELBLOCK,sizeof(Real)) == false) success = false;
    if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to start BLOCKVARIABLE avgs multiwrite!" << endl << write;
    if (success == true) {
       uint64_t counter = 0;
-      std::vector<Real> velocityBlockData;
-      SpatialCell* SC;
+      SpatialCell* SC = NULL;
       for (size_t cell=0; cell<cells.size(); ++cell) {
          int index=0;
 	 SC = mpiGrid[cells[cell]];
-         
 
          if(velocityBlockData.size()<SC->size()*SIZE_VELBLOCK){
             velocityBlockData.resize(SC->size()*SIZE_VELBLOCK);
@@ -586,15 +591,16 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
                  && SC->velocity_block_list[block_i] != error_velocity_block;
               block = SC->velocity_block_list[++block_i]
          ) {
-            Velocity_Block* block_ptr = &(SC->at(block));
+            Velocity_Block block_data = SC->at(block);
             for(unsigned int vc=0;vc<SIZE_VELBLOCK;++vc){
-               velocityBlockData[index++]=block_ptr->data[vc];
+               velocityBlockData.push_back(block_data.data[vc]);
             }
          }
          
-	 if (vlsvWriter.multiwriteArray(N_blocks[cell],&(velocityBlockData[0])) == false) success = false;
 	 counter += N_blocks[cell];
       }
+
+      if (vlsvWriter.multiwriteArray(totalBlocks,&(velocityBlockData[0])) == false) success = false;
    }
    
 
@@ -821,7 +827,6 @@ int main(int argn,char* args[]) {
 	 mpilogger << "(MAIN): Saving initial state of variables to disk." << endl << write;
       }
 
-      //writegrid has new vlsvwriter routines
       if (writeGrid(mpiGrid,reducer,true) == false) {
 	 mpilogger << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
       }
@@ -832,7 +837,7 @@ int main(int argn,char* args[]) {
 
    //break here and check that initial state is ok
    MPI_Finalize();
-   exit(1);
+   exit(0);
    
    
    inistate = false;
