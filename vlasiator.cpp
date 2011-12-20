@@ -835,11 +835,6 @@ int main(int argn,char* args[]) {
    profile::stop("Initialization");
    comm.barrier();
 
-   //break here and check that initial state is ok
-   MPI_Finalize();
-   exit(0);
-   
-   
    inistate = false;
    // Main simulation loop:
    if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting main simulation loop." << endl << write;
