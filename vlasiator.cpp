@@ -45,6 +45,7 @@ MPILogger mpilogger;
 bool inistate = true;
 
 using namespace std;
+using namespace profile;
 
 
 //FIXME, move all except main out of vlasiator.cpp
@@ -546,7 +547,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
          
          for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
               block_i < spatial_cell::SpatialCell::max_velocity_blocks
-                 && SC->velocity_block_list[block_i] != spatial_cell::SpatialCell::error_velocity_block;
+                 && SC->velocity_block_list[block_i] != error_velocity_block;
               block = SC->velocity_block_list[++block_i]
               ) {
             Velocity_Block* block_ptr = &(SC->at(block));
@@ -581,7 +582,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
          }         
          for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
               block_i < spatial_cell::SpatialCell::max_velocity_blocks
-                 && SC->velocity_block_list[block_i] != spatial_cell::SpatialCell::error_velocity_block;
+                 && SC->velocity_block_list[block_i] != error_velocity_block;
               block = SC->velocity_block_list[++block_i]
          ) {
             Velocity_Block* block_ptr = &(SC->at(block));

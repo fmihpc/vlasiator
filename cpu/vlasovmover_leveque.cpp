@@ -40,9 +40,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "crayxttorus.h"
 #endif
 
-
-using namespace std;
-
 #include <stdint.h>
 #define DCCRG_SEND_SINGLE_CELLS
 #define DCCRG_CELL_DATA_SIZE_FROM_USER
@@ -51,6 +48,11 @@ using namespace std;
 typedef uint64_t CellID;
 
 #include "../transferstencil.h"
+#include "spatial_cell.hpp"
+
+using namespace std;
+using namespace spatial_cell;
+
 static TransferStencil<CellID> stencilAverages(INVALID_CELLID);
 static TransferStencil<CellID> stencilUpdates(INVALID_CELLID);
 
@@ -234,7 +236,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       
       // Clear df/dt contributions:
       for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-           block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != SpatialCell::error_velocity_block;
+           block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
            block = SC->velocity_block_list[++block_i]) {
          cpu_clearVelFluxes(SC,block);
       }
@@ -242,14 +244,14 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       
       // Calculatedf/dt contributions of all blocks in the cell:
       for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-           block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != SpatialCell::error_velocity_block;
+           block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
            block = SC->velocity_block_list[++block_i]) {
          cpu_calcVelFluxes(SC,block,P::dt,NULL);
       }
       
       // Propagate distribution functions in velocity space:
       for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-           block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != SpatialCell::error_velocity_block;
+           block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
            block = SC->velocity_block_list[++block_i]) {
          cpu_propagateVel(SC,block,P::dt);
       }
@@ -361,7 +363,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       unsigned int block_i;
       SpatialCell* SC=mpiGrid[cellID];
       for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-           block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != SpatialCell::error_velocity_block;
+           block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
            block = SC->velocity_block_list[++block_i]) {
          Velocity_Block* block_ptr = &(SC->at(block));     
          for (uint i=0; i<SIZE_VELBLOCK; i++) block_ptr->fx[i]=0.0;
@@ -386,7 +388,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       //this means that for ghost cells fluxes to cell itself may have race condition (does it matter, is its flux even used?)
 //#pragma omp for
       for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-           block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != SpatialCell::error_velocity_block;
+           block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
            block = SC->velocity_block_list[++block_i]
            ) {
 	 cpu_calcSpatDfdt(mpiGrid,SC,block,HALF*P::dt);
@@ -440,7 +442,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       //this means that for ghost cells fluxes to cell itself may have race condition (does it matter, is its flux even used?)
 //#pragma omp for
       for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-           block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != SpatialCell::error_velocity_block;
+           block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
            block = SC->velocity_block_list[++block_i]) {
 	 cpu_calcSpatDfdt(mpiGrid,SC,block,HALF*P::dt);
       }
@@ -563,13 +565,13 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
       // Do not propagate boundary cells, only calculate their velocity moments:
       if (ghostCells.find(cellID) == ghostCells.end()) {
          for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-              block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != SpatialCell::error_velocity_block;
+              block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
               block = SC->velocity_block_list[++block_i]) {
             cpu_propagateSpatWithMoments(nbr_dfdt,SC,block,block_i);
          }  
       } else {
          for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-              block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != SpatialCell::error_velocity_block;
+              block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
               block = SC->velocity_block_list[++block_i]) {
             
 	    cpu_calcVelocityMoments(SC,block);
@@ -625,13 +627,13 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
       // Do not propagate boundary cells, only calculate their velocity moments:
       if (ghostCells.find(cellID) == ghostCells.end()) {
          for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-              block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != SpatialCell::error_velocity_block;
+              block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
               block = SC->velocity_block_list[++block_i]) {
             cpu_propagateSpatWithMoments(nbr_dfdt,SC,block,block_i);
          }  
       } else {
          for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-              block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != SpatialCell::error_velocity_block;
+              block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
               block = SC->velocity_block_list[++block_i]) {
             
 	    cpu_calcVelocityMoments(SC,block);
@@ -752,7 +754,7 @@ void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       SC->parameters[CellParams::RHOVZ] = 0.0;
 
       for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-           block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != SpatialCell::error_velocity_block;
+           block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
            block = SC->velocity_block_list[++block_i]) {
       
       // Iterate through all velocity blocks in this spatial cell 

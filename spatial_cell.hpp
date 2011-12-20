@@ -49,6 +49,32 @@ typedef Parameters P;
 #define N_NEIGHBOR_VELOCITY_BLOCKS 28
 
 
+/*!
+Used as an error from functions returning velocity cells or
+as a cell that would be outside of the velocity block
+*/
+#define error_velocity_cell 0xFFFFFFFFu
+
+/*!
+Used as an error from functions returning velocity cell indices or
+as an index that would be outside of the velocity block
+*/
+#define error_velocity_cell_index 0xFFFFFFFFu
+
+/*!
+Used as an error from functions returning velocity blocks or
+as a block that would be outside of the velocity grid in this cell
+*/
+#define error_velocity_block 0xFFFFFFFFu
+
+/*!
+Used as an error from functions returning velocity blocks indices or
+as an index that would be outside of the velocity grid in this cell
+*/
+#define error_velocity_block_index 0xFFFFFFFFu
+
+
+
 namespace spatial_cell {
    //fixme namespaces in lower case
    namespace Transfer {
@@ -199,31 +225,6 @@ namespace velocity_neighbor {
 
    class SpatialCell {
    public:
-
-      /*!
-      Used as an error from functions returning velocity cells or
-      as a cell that would be outside of the velocity block
-      */
-      static const unsigned int error_velocity_cell = -1;
-
-      /*!
-      Used as an error from functions returning velocity cell indices or
-      as an index that would be outside of the velocity block
-      */
-      static const unsigned int error_velocity_cell_index = -1;
-
-      /*!
-      Used as an error from functions returning velocity blocks or
-      as a block that would be outside of the velocity grid in this cell
-      */
-      static const unsigned int error_velocity_block = -1;
-
-      /*!
-      Used as an error from functions returning velocity blocks indices or
-      as an index that would be outside of the velocity grid in this cell
-      */
-      static const unsigned int error_velocity_block_index = -1;
-
 
       /****************************
        * Velocity block functions *
@@ -1045,7 +1046,16 @@ namespace velocity_neighbor {
          {
             Real total = 0;
 
-            for (auto block = this->velocity_blocks.cbegin(); block != this->velocity_blocks.cend(); block++) {
+            for (
+               #ifdef NO_SPARSE
+               std::vector<Velocity_Block>::const_iterator
+               #else
+               boost::unordered_map<unsigned int, Velocity_Block>::const_iterator
+               #endif
+               block = this->velocity_blocks.begin();
+               block != this->velocity_blocks.end();
+               block++
+            ) {
                for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
 #ifdef NO_SPARSE
                   total += block->data[i];
@@ -1829,10 +1839,9 @@ namespace velocity_neighbor {
       Velocity_Block null_block;
 
       // data of velocity blocks that exist in this cell
-#ifdef NO_SPARSE
-      
+      #ifdef NO_SPARSE
       std::vector<Velocity_Block> velocity_blocks;
-#else
+      #else
       boost::unordered_map<unsigned int, Velocity_Block> velocity_blocks;
       /*
         Speed up search of velocity block addresses in the hash table above.
@@ -1840,7 +1849,7 @@ namespace velocity_neighbor {
       */
       //FIXME, static array?      
       std::vector<Velocity_Block*> block_address_cache;
-#endif
+      #endif
 
 
 

@@ -20,10 +20,17 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #define CPU_TRANS_H
 
 #include <vector>
+#include <limits>
+
+#define DCCRG_SEND_SINGLE_CELLS
+#define DCCRG_CELL_DATA_SIZE_FROM_USER
+#define DCCRG_USER_MPI_DATA_TYPE
+#include <dccrg.hpp>
+
 #include "../definitions.h"
 #include "../common.h"
 #include "leveque_common.h"
-#include <limits>
+#include "spatial_cell.hpp"
 
 const uint I0_J0_K0 = 0*WID3;
 const uint I1_J0_K0 = 1*WID3;
@@ -114,11 +121,11 @@ template<typename REAL,typename UINT,typename CELL> void cpu_calcSpatDerivs(CELL
  * @param BLOCK Which velocity block is to be calculated, acts as an offset into spatial neighbour list.
  * @param DT Time step.
  */
-template<typename REAL,typename UINT> void cpu_calcSpatDfdt(dccrg::Dccrg<SpatialCell>& mpiGrid, SpatialCell* cell,const UINT& blockId,const REAL& dt) {
+template<typename REAL,typename UINT> void cpu_calcSpatDfdt(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid, spatial_cell::SpatialCell* cell,const UINT& blockId,const REAL& dt) {
 //const REAL* const AVGS,cons        t REAL* const CELL_PARAMS,const REAL* const BLOCK_PARAMS,REAL* const flux,
 //					        		    const UINT* const nbrsSpa
 
-   Velocity_Block block=cell->at(blockId); //returns a reference to block
+   spatial_cell::Velocity_Block block=cell->at(blockId); //returns a reference to block
 // Create a temporary buffer for storing df/dt updates and init to zero value:
    const UINT SIZE_FLUXBUFFER = 27*WID3;
    REAL dfdt[SIZE_FLUXBUFFER] = {};
@@ -823,7 +830,7 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(dccrg::Dccrg<Spatial
       // If the neighbour does not exist, do not copy data:     
       if (((boundaryFlags >> nbr) & 1) == 0) continue;
       
-      Velocity_Block nbrblock = mpiGrid[cell->neighbors[nbr]]->at(blockId);
+      spatial_cell::Velocity_Block nbrblock = mpiGrid[cell->neighbors[nbr]]->at(blockId);
       //the flux array is not zeroed, rather a marker has been put to mark if it is non-initialized
       //check for that, and initialize by using = instead of += if that is the case
       if( nbrblock.fx[0] == std::numeric_limits<REAL>::max())
@@ -843,13 +850,15 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(dccrg::Dccrg<Spatial
  * @param cellParams Array containing spatial cell parameters.
  * @param BLOCK Which velocity block is being propagated, acts as an index into arrays.
  */
-template<typename REAL,typename UINT> void cpu_propagateSpatWithMoments(REAL * const nbrFluxes,SpatialCell *cell,const UINT blockId,const uint block_i){
-   
-//(REAL* const avgs,const REAL* const flux,const REAL* const nbrFluxes,
-//							       const REAL* const blockParams,REAL* const cellParams,const UINT& BLOCK) {
+template<typename REAL,typename UINT> void cpu_propagateSpatWithMoments(
+	REAL * const nbrFluxes,
+	spatial_cell::SpatialCell *cell,
+	const UINT blockId,
+	const uint block_i
+) {
+   spatial_cell::Velocity_Block block=cell->at(blockId);
 
-   Velocity_Block block=cell->at(blockId); //returns a reference to block       
-// Propagate distribution function:
+   // Propagate distribution function:
    if (nbrFluxes == NULL) {
       // No remote neighbour contributions to df/dt
       for (UINT i=0; i<WID3; ++i) {
@@ -867,8 +876,8 @@ template<typename REAL,typename UINT> void cpu_propagateSpatWithMoments(REAL * c
 
 }
 
-template<typename UINT> void cpu_calcVelocityMoments(SpatialCell *cell,const UINT blockId){
-   Velocity_Block block=cell->at(blockId); //returns a reference to block            
+template<typename UINT> void cpu_calcVelocityMoments(spatial_cell::SpatialCell *cell,const UINT blockId){
+   spatial_cell::Velocity_Block block=cell->at(blockId); //returns a reference to block            
    // Calculate velocity moments:
    cpu_blockVelocityMoments(block.data,block.parameters,cell->parameters);
 
