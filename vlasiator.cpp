@@ -148,7 +148,7 @@ bool adjust_all_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    for (std::vector<uint64_t>::const_iterator
            cell_id = cells.begin();
         cell_id != cells.end();
-        cell_id++
+        ++cell_id
         ) {
       SpatialCell* cell = mpiGrid[*cell_id];
       if (cell == NULL) {
@@ -166,7 +166,7 @@ bool adjust_all_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       for (vector<uint64_t>::const_iterator
               neighbor_id = neighbors->begin();
            neighbor_id != neighbors->end();
-           neighbor_id++
+           ++neighbor_id
            ) {
          if (*neighbor_id == 0
              || *neighbor_id == *cell_id) {
@@ -197,7 +197,7 @@ bool adjust_all_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    for (std::vector<uint64_t>::const_iterator
            cell_id = cells.begin();
         cell_id != cells.end();
-        cell_id++
+        ++cell_id
 	) {
       SpatialCell* cell = mpiGrid[*cell_id];
       if (cell == NULL) {
