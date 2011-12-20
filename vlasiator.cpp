@@ -226,10 +226,9 @@ void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
    */
    profile::start("Preparing receives");
    const boost::unordered_set<uint64_t>* incoming_cells = mpiGrid.get_remote_cells_with_local_neighbours();
-   for (boost::unordered_set<uint64_t>::const_iterator
-           cell_id = incoming_cells->begin();
+   for (boost::unordered_set<uint64_t>::const_iterator cell_id = incoming_cells->begin();
         cell_id != incoming_cells->end();
-        cell_id++
+        ++cell_id
 	) {
       SpatialCell* cell = mpiGrid[*cell_id];
       if (cell == NULL) {
@@ -241,6 +240,7 @@ void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
       
       cell->prepare_to_receive_blocks();
    }
+   
    profile::stop("Preparing receives", incoming_cells->size(), "Spatial cells");
 }
 
