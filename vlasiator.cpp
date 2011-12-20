@@ -247,6 +247,7 @@ void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
 
 //using namespace CellParams;
 void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm) {
+
     typedef Parameters P;
     vector<uint64_t> cells = mpiGrid.get_cells();
 
@@ -686,25 +687,31 @@ int main(int argn,char* args[]) {
       exit(1);
    }
    profile::stop("Init project");
-   
-   profile::start("Initialize Grid");
-   
-   //set some static values for spatial_cell;
+
+   // initialize velocity grid of spatial cells before creating cells in dccrg.initialize
    spatial_cell::SpatialCell::vx_length = P::vxblocks_ini;
    spatial_cell::SpatialCell::vy_length = P::vyblocks_ini;
    spatial_cell::SpatialCell::vz_length = P::vzblocks_ini;
+   spatial_cell::SpatialCell::max_velocity_blocks = 
+      spatial_cell::SpatialCell::vx_length * spatial_cell::SpatialCell::vy_length * spatial_cell::SpatialCell::vz_length;
    spatial_cell::SpatialCell::vx_min = P::vxmin;
    spatial_cell::SpatialCell::vx_max = P::vxmax;
    spatial_cell::SpatialCell::vy_min = P::vymin;
    spatial_cell::SpatialCell::vy_max = P::vymax;
    spatial_cell::SpatialCell::vz_min = P::vzmin;
    spatial_cell::SpatialCell::vz_max = P::vzmax;
-   spatial_cell::SpatialCell::grid_dvx = P::vxmax - P::vxmin;
-   spatial_cell::SpatialCell::grid_dvy = P::vymax - P::vymin;
-   spatial_cell::SpatialCell::grid_dvz = P::vzmax - P::vzmin;
-   spatial_cell::SpatialCell::max_velocity_blocks = P::vxblocks_ini * P::vyblocks_ini * P::vzblocks_ini;
-   spatial_cell::SpatialCell::mpi_transfer_type = 0;
+   spatial_cell::SpatialCell::grid_dvx = spatial_cell::SpatialCell::vx_max - spatial_cell::SpatialCell::vx_min;
+   spatial_cell::SpatialCell::grid_dvy = spatial_cell::SpatialCell::vy_max - spatial_cell::SpatialCell::vy_min;
+   spatial_cell::SpatialCell::grid_dvz = spatial_cell::SpatialCell::vz_max - spatial_cell::SpatialCell::vz_min;
+   spatial_cell::SpatialCell::block_dvx = spatial_cell::SpatialCell::grid_dvx / spatial_cell::SpatialCell::vx_length;
+   spatial_cell::SpatialCell::block_dvy = spatial_cell::SpatialCell::grid_dvy / spatial_cell::SpatialCell::vy_length;
+   spatial_cell::SpatialCell::block_dvz = spatial_cell::SpatialCell::grid_dvz / spatial_cell::SpatialCell::vz_length;
+   spatial_cell::SpatialCell::cell_dvx = spatial_cell::SpatialCell::block_dvx / block_vx_length;
+   spatial_cell::SpatialCell::cell_dvy = spatial_cell::SpatialCell::block_dvy / block_vy_length;
+   spatial_cell::SpatialCell::cell_dvz = spatial_cell::SpatialCell::block_dvz / block_vz_length;
 
+   profile::start("Initialize Grid");
+   
 // Create parallel MPI grid and init Zoltan:
    float zoltanVersion;
    if (Zoltan_Initialize(argn,args,&zoltanVersion) != ZOLTAN_OK) {

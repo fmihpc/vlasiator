@@ -279,9 +279,9 @@ namespace velocity_neighbor {
          }
 
          const velocity_block_indices_t indices = {
-            (unsigned int) floor((vx - SpatialCell::vx_min) / SpatialCell::grid_dvx),
-            (unsigned int) floor((vy - SpatialCell::vy_min) / SpatialCell::grid_dvy),
-            (unsigned int) floor((vz - SpatialCell::vz_min) / SpatialCell::grid_dvz)
+            (unsigned int) floor((vx - SpatialCell::vx_min) / SpatialCell::block_dvx),
+            (unsigned int) floor((vy - SpatialCell::vy_min) / SpatialCell::block_dvy),
+            (unsigned int) floor((vz - SpatialCell::vz_min) / SpatialCell::block_dvz)
          };
 
          return SpatialCell::get_velocity_block(indices);
@@ -381,14 +381,14 @@ namespace velocity_neighbor {
             return std::numeric_limits<Real>::quiet_NaN();
          }
 
-         return SpatialCell::vx_min + SpatialCell::grid_dvx * indices[0];
+         return SpatialCell::vx_min + SpatialCell::block_dvx * indices[0];
       }
 
       /*!
       Returns the edge where given velocity block ends.
       */
       static Real get_velocity_block_vx_max(const unsigned int block) {
-         return SpatialCell::get_velocity_block_vx_min(block) + SpatialCell::grid_dvx;
+         return SpatialCell::get_velocity_block_vx_min(block) + SpatialCell::block_dvx;
       }
 
       /*!
@@ -408,14 +408,14 @@ namespace velocity_neighbor {
             return std::numeric_limits<Real>::quiet_NaN();
          }
 
-         return SpatialCell::vy_min + SpatialCell::grid_dvy * indices[1];
+         return SpatialCell::vy_min + SpatialCell::block_dvy * indices[1];
       }
 
       /*!
       Returns the edge where given velocity block ends.
       */
       static Real get_velocity_block_vy_max(const unsigned int block) {
-         return SpatialCell::get_velocity_block_vy_min(block) + SpatialCell::grid_dvy;
+         return SpatialCell::get_velocity_block_vy_min(block) + SpatialCell::block_dvy;
       }
 
       /*!
@@ -435,14 +435,14 @@ namespace velocity_neighbor {
             return std::numeric_limits<Real>::quiet_NaN();
          }
 
-         return SpatialCell::vz_min + SpatialCell::grid_dvz * indices[2];
+         return SpatialCell::vz_min + SpatialCell::block_dvz * indices[2];
       }
 
       /*!
       Returns the edge where given velocity block ends.
       */
       static Real get_velocity_block_vz_max(const unsigned int block) {
-          return SpatialCell::get_velocity_block_vz_min(block) + SpatialCell::grid_dvz;
+          return SpatialCell::get_velocity_block_vz_min(block) + SpatialCell::block_dvz;
       }
 
 
@@ -824,17 +824,18 @@ namespace velocity_neighbor {
       void set_value(const Real vx, const Real vy, const Real vz, const Real value)
          {
             const unsigned int block = get_velocity_block(vx, vy, vz);
-#ifndef NO_SPARSE
             if (this->velocity_blocks.count(block) == 0) {
                if (!this->add_velocity_block(block)) {
                   std::cerr << "Couldn't add velocity block " << block << std::endl;
                   abort();
                }
             }
-#endif
-            std::cout << "Added block " << block << " in set_value" << std::endl;
-
             Velocity_Block* block_ptr = &(this->velocity_blocks.at(block));
+            if (block_ptr == NULL) {
+               std::cerr << __FILE__ << ":" << __LINE__
+                  << " block_ptr == NULL" << std::endl;
+               abort();
+            }
 
             const unsigned int cell = get_velocity_cell(block, vx, vy, vz);
             block_ptr->data[cell] = value;
@@ -1536,24 +1537,22 @@ namespace velocity_neighbor {
             return false;
          }
 
-#ifndef NO_SPARSE
          if (this->velocity_blocks.count(block) > 0) {
             return true;
          }
-#endif
 
-#ifdef NO_SPARSE
-         // assume blocks were added in default constructor
-#else
          this->velocity_blocks[block];
+         if (this->velocity_blocks.count(block) == 0) {
+         }
          this->block_address_cache[block] = &(this->velocity_blocks.at(block));
-#endif
 
-#ifdef NO_SPARSE
-         Velocity_Block* block_ptr = &(this->velocity_blocks.at(block));
-#else
          Velocity_Block* block_ptr = this->block_address_cache[block];
-#endif
+
+	if (block_ptr == NULL) {
+	   std::cerr << __FILE__ << ":" << __LINE__
+	      << " Block pointer == NULL" << std::endl;
+	   abort();
+	}
 
          block_ptr->clear();
 
@@ -1573,15 +1572,14 @@ namespace velocity_neighbor {
          int neighbor_index=0;
          for(int neighbor_index=0;neighbor_index<velocity_neighbor::NNGBRS;neighbor_index++){
             if(neighbor_index==velocity_neighbor::MYIND) continue; //self index
+
             neighbor_block = get_velocity_block(block, neighbor_index);
             if (neighbor_block == error_velocity_block) {
                block_ptr->neighbors[neighbor_index] = NULL;
             }
-#ifndef NO_SPARSE   
             else if (this->velocity_blocks.count(neighbor_block) == 0) {
                block_ptr->neighbors[neighbor_index] = &(this->null_block);
             }
-#endif      
             else {
                block_ptr->neighbors[neighbor_index] = &(this->velocity_blocks.at(neighbor_block));
                
@@ -1593,11 +1591,16 @@ namespace velocity_neighbor {
                //index of current block in neighbors neighbor table
                int neighbor_neighbor_index=(1-dvx)+(1-dvy)*3+(1-dvz)*9;
                Velocity_Block* neighbor_ptr = &(this->velocity_blocks.at(neighbor_block));
+               if (neighbor_ptr == NULL) {
+                  std::cerr << __FILE__ << ":" << __LINE__
+                     << " Block pointer == NULL" << std::endl;
+                  abort();
+               }
                neighbor_ptr->neighbors[neighbor_neighbor_index] = block_ptr;
             }
          }
 
-
+         // update block list
 #ifndef NO_SPARSE
          unsigned int first_error_block = 0;
          while (first_error_block < SpatialCell::max_velocity_blocks
