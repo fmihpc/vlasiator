@@ -19,6 +19,10 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #ifndef PROFILE_H
 #define PROFILE_H
 
+#include "string"
+#include "vector"
+#include "mpi.h"
+
 namespace profile 
 {
    //initialize a timer, with a particular label belonging to some groups    
@@ -50,4 +54,6 @@ namespace profile
 
    bool print(MPI_Comm comm,double minParentFraction=0.0);
 }
+
 #endif
+
