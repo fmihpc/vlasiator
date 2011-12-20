@@ -160,7 +160,7 @@ gpudevicegrid.o: $(DEPS_GPU_DEVICE_GRID)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c gpudevicegrid.cpp $(INC_CUDA)
 
 spatial_cell.o: spatial_cell.cpp spatial_cell.hpp
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c spatial_cell.cpp
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c spatial_cell.cpp $(INC_BOOST)
 
 vlasiator.o: $(DEPS_MAIN) 
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
