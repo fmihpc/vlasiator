@@ -1041,6 +1041,42 @@ namespace velocity_neighbor {
 
 
       /*!
+      Returns a block at given offsets from given block.
+
+      Returns error_velocity_block if the returned block
+      would be outside of the velocity grid or all given
+      offsets are 0.
+      */
+      unsigned int get_velocity_block_from_offsets(
+         const unsigned int block,
+         const int x_offset, 
+         const int y_offset, 
+         const int z_offset
+      ) {
+         if (x_offset == y_offset == z_offset == 0) {
+            return error_velocity_block;
+         }
+
+         const velocity_block_indices_t indices = get_velocity_block_indices(block);
+         if (indices[0] == error_velocity_block_index) {
+            return error_velocity_block;
+         }
+
+         const velocity_block_indices_t neighbor_indices = {
+            indices[0] + x_offset,
+            indices[1] + y_offset,
+            indices[2] + z_offset
+         };
+
+         if (neighbor_indices[0] == error_velocity_block_index) {
+            return error_velocity_block;
+         }
+
+         return get_velocity_block(neighbor_indices);
+      }
+
+
+      /*!
         Checks velocity blocks in the velocity block list.
       */
       void check_velocity_block_list(void) const
