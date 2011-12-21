@@ -255,8 +255,8 @@ namespace velocity_neighbor {
          }
 
          return indices[0]
-                + indices[1] * SpatialCell::vx_length
-                + indices[2] * SpatialCell::vx_length * SpatialCell::vy_length;
+            + indices[1] * SpatialCell::vx_length
+            + indices[2] * SpatialCell::vx_length * SpatialCell::vy_length;
       }
 
       /*!
@@ -282,84 +282,7 @@ namespace velocity_neighbor {
 
          return SpatialCell::get_velocity_block(indices);
       }
-
-      /*!
-      Returns the id of a velocity block that is neighboring given block in given direction vx,vy,vz.
-      Returns error_velocity_block in case the neighboring velocity block would be outside
-      of the velocity grid.
-      */
-      static unsigned int get_velocity_block(
-         const unsigned int block,
-         const  int offset_vx,
-         const  int offset_vy,
-         const  int offset_vz
-      ) {
-         unsigned int neighborBlock;
-         const velocity_block_indices_t indices = get_velocity_block_indices(block);
-         if (indices[0] == error_velocity_block_index) {
-            return error_velocity_block;
-         }
       
-         int xyzOffset[3];
-         unsigned int vxyzblocks_ini[3];
-         unsigned int offset[3];
-         xyzOffset[0]=offset_vx;
-         xyzOffset[1]=offset_vy;
-         xyzOffset[2]=offset_vz;
-
-         vxyzblocks_ini[0]=SpatialCell::vx_length;
-         vxyzblocks_ini[1]=SpatialCell::vy_length;
-         vxyzblocks_ini[2]=SpatialCell::vz_length;
-
-         offset[0]=1;
-         offset[1]=vxyzblocks_ini[0];
-         offset[2]=vxyzblocks_ini[0]*vxyzblocks_ini[1];
-
-         neighborBlock=block;
-         //loop over vx,vy,vz
-         for(unsigned int c=0;c<3;c++){
-            switch (xyzOffset[c]) {
-            case -1: //in negative offset
-               if (indices[c] == 0) {
-                  return error_velocity_block;
-               } else {
-                   neighborBlock -= offset[c];
-               }
-               break;
-
-            case 0:
-               break;
-
-            case 1: //in positive offset
-               if (indices[c] >= vxyzblocks_ini[c] - 1) {
-                  return error_velocity_block;
-               } else {
-                  neighborBlock += offset[c];
-               }
-               break;
-
-            default:
-               return error_velocity_block;
-               break;
-            }
-         }
-         return neighborBlock;
-      }
-   
-      /*!
-      Returns the id of a velocity block that is neighboring given block in given direction.
-      Returns error_velocity_block in case the neighboring velocity block would be outside
-      of the velocity grid.
-      */
-
-      inline unsigned int get_velocity_block(
-         const unsigned int block,
-         const unsigned int direction
-      ) {
-         unsigned int w=velocity_neighbor::WIDTH;
-         return SpatialCell::get_velocity_block(block,direction%w-1, (direction/w)%w-1, (direction/(w*w))-1);
-      }
-
       /*!
       Returns the edge where given velocity block starts.
       */
@@ -546,9 +469,9 @@ namespace velocity_neighbor {
       static unsigned int get_velocity_cell(
          const unsigned int velocity_block,
          const Real vx,
-          const Real vy,
+         const Real vy,
          const Real vz
-      ) {
+         ) {
          const Real block_vx_min = get_velocity_block_vx_min(velocity_block);
          const Real block_vx_max = get_velocity_block_vx_max(velocity_block);
          const Real block_vy_min = get_velocity_block_vy_min(velocity_block);
@@ -1193,24 +1116,23 @@ namespace velocity_neighbor {
          }
          
          // remove all blocks in this cell without content + without neighbors with content
+         // add neighboring blocks in velocity space for blocks with content
          for (std::vector<unsigned int>::const_iterator
               original = original_block_list.begin();
               original != original_block_list.end();
               original++
          ) {
             const bool original_has_content = this->velocity_block_has_contents(*original);
-            if(!original_has_content)
-               this->remove_velocity_block(*original);
-
             
-            if (original_has_content) {
-               
+            if (original_has_content) {             
                // add missing neighbors in velocity space
-               for (unsigned int direction = 0; direction <velocity_neighbor::NNGBRS; direction++) {
-                  const unsigned int neighbor_block = get_velocity_block(*original, direction);
-                  if (neighbor_block == error_velocity_block) {
-                     continue;
-                  }
+               for(int offset_vx=-1;offset_vx<=1;offset_vx++)
+                  for(int offset_vy=-1;offset_vy<=1;offset_vy++)
+                     for(int offset_vz=-1;offset_vz<=1;offset_vz++){
+                        const unsigned int neighbor_block = get_velocity_block_from_offsets(*original, offset_vx,offset_vy,offset_vz);
+                        if (neighbor_block == error_velocity_block) {
+                           continue;
+                        }
 
                   if (!this->add_velocity_block(neighbor_block)) {
                      std::cerr << __FILE__ << ":" << __LINE__
@@ -1231,7 +1153,7 @@ namespace velocity_neighbor {
                for(int offset_vx=-1;offset_vx<=1;offset_vx++){
                   for(int offset_vy=-1;offset_vy<=1;offset_vy++){
                      for(int offset_vz=-1;offset_vz<=1;offset_vz++){
-                        const unsigned int neighbor_block = get_velocity_block(*original, offset_vx,offset_vy,offset_vz);
+                        const unsigned int neighbor_block = get_velocity_block_from_offsets(*original, offset_vx,offset_vy,offset_vz);
                         if (this->velocity_block_has_contents(neighbor_block)) {
                            neighbors_have_content = true;
                            break;
@@ -1239,9 +1161,11 @@ namespace velocity_neighbor {
                      }
                   }
                }
-
+               
                if(!neighbors_have_content){
-                  // real space neighbors  
+                  /*
+// real space neighbors  \
+//removed for testing
                   for (std::vector<SpatialCell*>::const_iterator
                           neighbor = spatial_neighbors.begin();
                        neighbor != spatial_neighbors.end();
@@ -1252,8 +1176,9 @@ namespace velocity_neighbor {
                         break;
                      }
                   }
+                  */
                }
-
+               
                if (!neighbors_have_content) {
                   this->remove_velocity_block(*original);
                }
@@ -1263,6 +1188,7 @@ namespace velocity_neighbor {
          }
 
          // add local blocks for neighbors in real space with content
+//DISABLE FOR TESTING
 /*
          for (std::vector<SpatialCell*>::const_iterator
             neighbor = spatial_neighbors.begin();
@@ -1284,235 +1210,8 @@ namespace velocity_neighbor {
             }
          }
 */
+
       }
-
-      /*!
-        Saves this spatial cell in vtk ascii format into the given filename.
-      */
-      void save_vtk(const char* filename) const {
-
-         // do nothing if one cell or block dimension is 0
-         if (block_vx_length == 0
-             || block_vy_length == 0
-             || block_vz_length == 0
-             || P::vxblocks_ini == 0
-             || P::vyblocks_ini == 0
-             || P::vzblocks_ini == 0) {
-            return;
-         }
-
-         std::ofstream outfile(filename);
-         if (!outfile.is_open()) {
-            std::cerr << "Couldn't open file " << filename << std::endl;
-            // TODO: throw an exception instead
-            abort();
-         }
-
-         outfile << "# vtk DataFile Version 2.0" << std::endl;
-         outfile << "Vlasiator spatial cell" << std::endl;
-         outfile << "ASCII" << std::endl;
-         outfile << "DATASET UNSTRUCTURED_GRID" << std::endl;
-
-         // write separate points for every velocity cells' corners
-         outfile << "POINTS " << (this->velocity_blocks.size() * VELOCITY_BLOCK_LENGTH + 2) * 8 << " Real" << std::endl;
-         for (std::vector<unsigned int>::const_iterator
-                 block = this->velocity_block_list.begin();
-              block != this->velocity_block_list.end();
-              block++
-              ) {
-
-            if (*block == error_velocity_block) {
-               // assume no blocks after first error block
-               break;
-            }
-
-            for (unsigned int z_index = 0; z_index < block_vz_length; z_index++)
-               for (unsigned int y_index = 0; y_index < block_vy_length; y_index++)
-                  for (unsigned int x_index = 0; x_index < block_vx_length; x_index++) {
-
-                     const velocity_cell_indices_t indices = {x_index, y_index, z_index};
-                     const unsigned int velocity_cell = get_velocity_cell(indices);
-
-                     outfile << get_velocity_cell_vx_min(*block, velocity_cell) << " "
-                             << get_velocity_cell_vy_min(*block, velocity_cell) << " "
-                             << get_velocity_cell_vz_min(*block, velocity_cell) << std::endl;
-
-                     outfile << get_velocity_cell_vx_max(*block, velocity_cell) << " "
-                             << get_velocity_cell_vy_min(*block, velocity_cell) << " "
-                             << get_velocity_cell_vz_min(*block, velocity_cell) << std::endl;
-
-                     outfile << get_velocity_cell_vx_min(*block, velocity_cell) << " "
-                             << get_velocity_cell_vy_max(*block, velocity_cell) << " "
-                             << get_velocity_cell_vz_min(*block, velocity_cell) << std::endl;
-
-                     outfile << get_velocity_cell_vx_max(*block, velocity_cell) << " "
-                             << get_velocity_cell_vy_max(*block, velocity_cell) << " "
-                             << get_velocity_cell_vz_min(*block, velocity_cell) << std::endl;
-
-                     outfile << get_velocity_cell_vx_min(*block, velocity_cell) << " "
-                             << get_velocity_cell_vy_min(*block, velocity_cell) << " "
-                             << get_velocity_cell_vz_max(*block, velocity_cell) << std::endl;
-
-                     outfile << get_velocity_cell_vx_max(*block, velocity_cell) << " "
-                             << get_velocity_cell_vy_min(*block, velocity_cell) << " "
-                             << get_velocity_cell_vz_max(*block, velocity_cell) << std::endl;
-
-                     outfile << get_velocity_cell_vx_min(*block, velocity_cell) << " "
-                             << get_velocity_cell_vy_max(*block, velocity_cell) << " "
-                             << get_velocity_cell_vz_max(*block, velocity_cell) << std::endl;
-
-                     outfile << get_velocity_cell_vx_max(*block, velocity_cell) << " "
-                             << get_velocity_cell_vy_max(*block, velocity_cell) << " "
-                             << get_velocity_cell_vz_max(*block, velocity_cell) << std::endl;
-                  }
-         }
-         /*
-           Add small velocity cells to the negative and positive corners of the grid
-           so VisIt knows the maximum size of the velocity grid regardless of existing cells
-         */
-         outfile << P::vxmin - 0.1 * cell_dvx << " "
-                 << P::vymin - 0.1 * cell_dvy << " "
-                 << P::vzmin - 0.1 * cell_dvz << std::endl;
-         outfile << P::vxmin << " "
-                 << P::vymin - 0.1 * cell_dvy << " "
-                 << P::vzmin - 0.1 * cell_dvz << std::endl;
-         outfile << P::vxmin - 0.1 * cell_dvx << " "
-                 << P::vymin << " "
-                 << P::vzmin - 0.1 * cell_dvz << std::endl;
-         outfile << P::vxmin << " "
-                 << P::vymin << " "
-                 << P::vzmin - 0.1 * cell_dvz << std::endl;
-         outfile << P::vxmin - 0.1 * cell_dvx << " "
-                 << P::vymin - 0.1 * cell_dvy << " "
-                 << P::vzmin << std::endl;
-         outfile << P::vxmin << " "
-                 << P::vymin - 0.1 * cell_dvy << " "
-                 << P::vzmin << std::endl;
-         outfile << P::vxmin - 0.1 * cell_dvx << " "
-                 << P::vymin << " "
-                 << P::vzmin << std::endl;
-         outfile << P::vxmin << " "
-                 << P::vymin << " "
-                 << P::vzmin << std::endl;
-
-         outfile << P::vxmax << " "
-                 << P::vymax << " "
-                 << P::vzmax << std::endl;
-         outfile << P::vxmax + 0.1 * cell_dvx << " "
-                 << P::vymax << " "
-                 << P::vzmax << std::endl;
-         outfile << P::vxmax << " "
-                 << P::vymax + 0.1 * cell_dvy << " "
-                 << P::vzmax << std::endl;
-         outfile << P::vxmax + 0.1 * cell_dvx << " "
-                 << P::vymax + 0.1 * cell_dvy << " "
-                 << P::vzmax << std::endl;
-         outfile << P::vxmax << " "
-                 << P::vymax << " "
-                 << P::vzmax + 0.1 * cell_dvz << std::endl;
-         outfile << P::vxmax + 0.1 * cell_dvx << " "
-                 << P::vymax << " "
-                 << P::vzmax + 0.1 *  cell_dvz << std::endl;
-         outfile << P::vxmax << " "
-                 << P::vymax + 0.1 * cell_dvy << " "
-                 << P::vzmax + 0.1 * cell_dvz << std::endl;
-         outfile << P::vxmax + 0.1 * cell_dvx << " "
-                 << P::vymax + 0.1 * cell_dvy << " "
-                 << P::vzmax + 0.1 * cell_dvz << std::endl;
-
-         // map cells to written points
-         outfile << "CELLS "
-                 << this->velocity_blocks.size() * VELOCITY_BLOCK_LENGTH + 2 << " "
-                 << (this->velocity_blocks.size() * VELOCITY_BLOCK_LENGTH + 2)* 9 << std::endl;
-
-         unsigned int j = 0;
-         for (std::vector<unsigned int>::const_iterator
-                 block = this->velocity_block_list.begin();
-              block != this->velocity_block_list.end();
-              block++
-              ) {
-
-            if (*block == error_velocity_block) {
-               // assume no blocks after first error block
-               break;
-            }
-
-            for (unsigned int z_index = 0; z_index < block_vz_length; z_index++)
-               for (unsigned int y_index = 0; y_index < block_vy_length; y_index++)
-                  for (unsigned int x_index = 0; x_index < block_vx_length; x_index++) {
-
-                     outfile << "8 ";
-                     for (int i = 0; i < 8; i++) {
-                        outfile << j * 8 + i << " ";
-                     }
-                     outfile << std::endl;
-
-                     j++;
-                  }
-         }
-         outfile << "8 ";
-         for (unsigned int i = 0; i < 8; i++) {
-            outfile << j * 8 + i << " ";
-         }
-         outfile << std::endl;
-         outfile << "8 ";
-         for (unsigned int i = 0; i < 8; i++) {
-            outfile << j * 8 + i << " ";
-         }
-         outfile << std::endl;
-
-         // cell types
-         outfile << "CELL_TYPES " << this->velocity_blocks.size() * VELOCITY_BLOCK_LENGTH + 2 << std::endl;
-         for (unsigned int i = 0; i < this->velocity_blocks.size() * VELOCITY_BLOCK_LENGTH + 2; i++) {
-            outfile << 11 << std::endl;
-         }
-
-         // Put minimum value from existing blocks into two additional cells
-         Real min_value = std::numeric_limits<Real>::max();
-
-         // distribution function
-         outfile << "CELL_DATA " << this->velocity_blocks.size() * VELOCITY_BLOCK_LENGTH + 2 << std::endl;
-         outfile << "SCALARS rho Real 1" << std::endl;
-         outfile << "LOOKUP_TABLE default" << std::endl;
-         for (std::vector<unsigned int>::const_iterator
-                 block = this->velocity_block_list.begin();
-              block != this->velocity_block_list.end();
-              block++
-              ) {
-
-            if (*block == error_velocity_block) {
-               // assume no blocks after first error block
-               if (min_value == std::numeric_limits<Real>::max()) {
-                  min_value = 0;
-               }
-               break;
-            }
-
-            const Velocity_Block* block_ptr = &(this->velocity_blocks.at(*block));
-
-            for (unsigned int z_index = 0; z_index < block_vz_length; z_index++)
-               for (unsigned int y_index = 0; y_index < block_vy_length; y_index++)
-                  for (unsigned int x_index = 0; x_index < block_vx_length; x_index++) {
-
-                     const velocity_cell_indices_t indices = {x_index, y_index, z_index};
-                     const unsigned int velocity_cell = get_velocity_cell(indices);
-                     const Real value = block_ptr->data[velocity_cell];
-                     outfile << value << " ";
-                     min_value = std::min(min_value, value);
-                  }
-            outfile << std::endl;
-         }
-         outfile << min_value << " " << min_value << std::endl;
-
-         if (!outfile.good()) {
-            std::cerr << "Writing of vtk file probably failed" << std::endl;
-            // TODO: throw an exception instead
-            abort();
-         }
-
-         outfile.close();
-      }
-
 
       /*!
         Adds an empty velocity block into this spatial cell.
@@ -1563,36 +1262,38 @@ namespace velocity_neighbor {
          // set neighbour pointers
          unsigned int neighbor_block;
          int neighbor_index=0;
-         for(int neighbor_index=0;neighbor_index<velocity_neighbor::NNGBRS;neighbor_index++){
-            if(neighbor_index==velocity_neighbor::MYIND) continue; //self index
+         
+         for(int offset_vx=-1;offset_vx<=1;offset_vx++){
+            for(int offset_vy=-1;offset_vy<=1;offset_vy++){
+               for(int offset_vz=-1;offset_vz<=1;offset_vz++){
+                  neighbor_index=(1+offset_vx)+(1+offset_vy)*3+(1+offset_vz)*9;
+                  if(offset_vx==0 && offset_vy==0 && offset_vz==0) continue;
 
-            neighbor_block = get_velocity_block(block, neighbor_index);
-            if (neighbor_block == error_velocity_block) {
-               block_ptr->neighbors[neighbor_index] = NULL;
-            }
-            else if (this->velocity_blocks.count(neighbor_block) == 0) {
-               block_ptr->neighbors[neighbor_index] = &(this->null_block);
-            }
-            else {
-               block_ptr->neighbors[neighbor_index] = &(this->velocity_blocks.at(neighbor_block));
-               
-               //  update the neighbor list of neighboring block
-               unsigned int w=velocity_neighbor::WIDTH;
-               int dvx=neighbor_index%w-1;
-               int dvy=(neighbor_index/w)%w-1;
-               int dvz=(neighbor_index/(w*w))-1;
-               //index of current block in neighbors neighbor table
-               int neighbor_neighbor_index=(1-dvx)+(1-dvy)*3+(1-dvz)*9;
-               Velocity_Block* neighbor_ptr = &(this->velocity_blocks.at(neighbor_block));
-               if (neighbor_ptr == NULL) {
-                  std::cerr << __FILE__ << ":" << __LINE__
-                     << " Block pointer == NULL" << std::endl;
-                  abort();
+                  neighbor_block = get_velocity_block_from_offsets(block, offset_vx,offset_vy,offset_vz);
+                  if (neighbor_block == error_velocity_block) {
+                     block_ptr->neighbors[neighbor_index] = NULL;
+                  }
+                  else if (this->velocity_blocks.count(neighbor_block) == 0) {
+                     block_ptr->neighbors[neighbor_index] = &(this->null_block);
+                  }
+                  else {
+                     block_ptr->neighbors[neighbor_index] = &(this->velocity_blocks.at(neighbor_block));
+                     //update the neighbor list of neighboring block
+                     //index of current block in neighbors neighbor table
+                     //FIXME: check this properly, or write it in a better way
+                     int neighbor_neighbor_index=(1-offset_vx)+(1-offset_vy)*3+(1-offset_vz)*9;
+                     Velocity_Block* neighbor_ptr = &(this->velocity_blocks.at(neighbor_block));
+                     if (neighbor_ptr == NULL) {
+                        std::cerr << __FILE__ << ":" << __LINE__
+                                  << " Block pointer == NULL" << std::endl;
+                        abort();
+                     }
+                     neighbor_ptr->neighbors[neighbor_neighbor_index] = block_ptr;
+                  }
                }
-               neighbor_ptr->neighbors[neighbor_neighbor_index] = block_ptr;
             }
          }
-
+         
          // update block list
          unsigned int first_error_block = 0;
          while (first_error_block < SpatialCell::max_velocity_blocks
@@ -1651,25 +1352,23 @@ namespace velocity_neighbor {
 
          //remove block from neighbors neighbor lists
          unsigned int neighbor_block;
-         int neighbor_index=0;
-         for(int neighbor_index=0;neighbor_index<velocity_neighbor::NNGBRS;neighbor_index++){
-            if(neighbor_index==velocity_neighbor::MYIND) continue;
-            neighbor_block = get_velocity_block(block, neighbor_index);
-            if (neighbour_block != error_velocity_block
-                && this->velocity_blocks.count(neighbour_block) > 0) {
-               // TODO use cached addresses of neighbors
-               Velocity_Block* neighbour_data = &(this->velocity_blocks.at(neighbour_block));
-               //  update the neighbor list of neighboring block
-               unsigned int w=velocity_neighbor::WIDTH;
-               int dvx=neighbor_index%w-1;
-               int dvy=(neighbor_index/w)%w-1;
-               int dvz=(neighbor_index/(w*w))-1;
-               //index of current block in neighbors neighbor table
-               int neighbor_neighbor_index=(1-dvx)+(1-dvy)*3+(1-dvz)*9;
-               neighbour_data->neighbors[neighbor_neighbor_index] = &(this->null_block);
+         for(int offset_vx=-1;offset_vx<=1;offset_vx++){
+            for(int offset_vy=-1;offset_vy<=1;offset_vy++){
+               for(int offset_vz=-1;offset_vz<=1;offset_vz++){
+                  if(offset_vx==0 && offset_vy==0 && offset_vz==0) continue;
+                  neighbor_block = get_velocity_block_from_offsets(block, offset_vx,offset_vy,offset_vz);
+                  if (neighbour_block != error_velocity_block
+                      && this->velocity_blocks.count(neighbour_block) > 0) {
+                     // TODO use cached addresses of neighbors
+                     Velocity_Block* neighbour_data = &(this->velocity_blocks.at(neighbour_block));
+                     //  update the neighbor list of neighboring block
+                     //index of current block in neighbors neighbor table
+                     int neighbor_neighbor_index=(1-offset_vx)+(1-offset_vy)*3+(1-offset_vz)*9;
+                     neighbour_data->neighbors[neighbor_neighbor_index] = &(this->null_block);
+                  }
+               }
             }
          }
-         
 
          this->velocity_blocks.erase(block);
          this->block_address_cache[block] = &(this->null_block);

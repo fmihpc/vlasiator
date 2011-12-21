@@ -40,6 +40,7 @@ Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal&
    
    if ((x + 0.6) > dx) return 1e-10;
    if ((x + 0.6) < -dx) return 0;
+
    if (fabs(vx) > 0.161) return 1e-10;
    //if (fabs(x) > X0 || fabs(y) > Y0) return 0.0;
 

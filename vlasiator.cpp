@@ -116,7 +116,8 @@ bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
             creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
             creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
             cell.set_value(vx_cell_center,vy_cell_center,vz_cell_center,average);
-            // Add contributions to spatial cell velocity moments: 
+            if(average>0.5) cout <<"adding " << vx_cell_center <<","<<vy_cell_center <<","<<vz_cell_center <<endl;
+            // Add contributions to spatial cell velocity moments:
             creal dV = dvx_blockCell*dvy_blockCell*dvz_blockCell;  // Volume of one cell in a block      
             cell.parameters[CellParams::RHO  ] += average*dV;
             cell.parameters[CellParams::RHOVX] += average*vx_cell_center*dV;
@@ -240,7 +241,6 @@ void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
 
 //using namespace CellParams;
 void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm) {
-
     typedef Parameters P;
     vector<uint64_t> cells = mpiGrid.get_cells();
 
@@ -251,15 +251,17 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
     Real xmin,ymin,zmin,dx,dy,dz;
     
     for (uint i=0; i<cells.size(); ++i) {
-      dx = mpiGrid.get_cell_x_size(cells[i]);
-      dy = mpiGrid.get_cell_y_size(cells[i]);
-      dz = mpiGrid.get_cell_z_size(cells[i]);
-      xmin = mpiGrid.get_cell_x_min(cells[i]);
-      ymin = mpiGrid.get_cell_y_min(cells[i]);
-      zmin = mpiGrid.get_cell_z_min(cells[i]);
-      initSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
-   }
-
+       cout<<"initializing cell "<<i<<endl;
+       
+       dx = mpiGrid.get_cell_x_size(cells[i]);
+       dy = mpiGrid.get_cell_y_size(cells[i]);
+       dz = mpiGrid.get_cell_z_size(cells[i]);
+       xmin = mpiGrid.get_cell_x_min(cells[i]);
+       ymin = mpiGrid.get_cell_y_min(cells[i]);
+       zmin = mpiGrid.get_cell_z_min(cells[i]);
+       initSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
+    }
+/*      
     prepare_to_receive_velocity_block_data(mpiGrid);
     // update distribution function
     // FIXME, only CELL_BLOCK_DATA needed?
@@ -268,7 +270,6 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
     
     adjust_all_velocity_blocks(mpiGrid);
 
-   /*
    prepare_to_receive_velocity_block_data(mpiGrid);
 
    profile::start("Fetch Neighbour data");
