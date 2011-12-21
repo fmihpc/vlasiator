@@ -135,21 +135,20 @@ bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
    return true;
 }
 
-/*      
-    Adjusts velocity blocks in given spatial cells.
-  
-  If adjust_remote is true then adjusts velocity blocks within local copies of remote neighbors.
+/*!
+Adjusts velocity blocks in local spatial cells.
+
+Doesn't adjust velocity blocks of copies of remote neighbors.
 */
 bool adjust_all_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    profile::start("Adjusting blocks");
-   const boost::unordered_set<uint64_t>* incoming_cells = mpiGrid.get_remote_cells_with_local_neighbours();
-   
+
    const vector<uint64_t> cells = mpiGrid.get_cells();
    for (std::vector<uint64_t>::const_iterator
-           cell_id = cells.begin();
-        cell_id != cells.end();
-        ++cell_id
-        ) {
+      cell_id = cells.begin();
+      cell_id != cells.end();
+      ++cell_id
+   ) {
       SpatialCell* cell = mpiGrid[*cell_id];
       if (cell == NULL) {
          std::cerr << __FILE__ << ":" << __LINE__
@@ -164,32 +163,26 @@ bool adjust_all_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       neighbor_ptrs.reserve(neighbors->size());
       
       for (vector<uint64_t>::const_iterator
-              neighbor_id = neighbors->begin();
+           neighbor_id = neighbors->begin();
            neighbor_id != neighbors->end();
            ++neighbor_id
-           ) {
-         if (*neighbor_id == 0
-             || *neighbor_id == *cell_id) {
+      ) {
+         if (*neighbor_id == 0 || *neighbor_id == *cell_id) {
             continue;
          }
          
          SpatialCell* neighbor = mpiGrid[*neighbor_id];
          if (neighbor == NULL) {
             std::cerr << __FILE__ << ":" << __LINE__
-                      << " No data for spatial cell " << *neighbor_id
+                      << " No data for neighbor " << *neighbor_id
+                      << " of cell " << *cell_id
                       << endl;
             abort();
          }
-         
-         // also adjust velocity blocks in local copy of remote neighbor
-         if (incoming_cells->count(*neighbor_id) > 0) {
-            // FIXME: adjust between copy of remote and more than one local cell
-            vector<SpatialCell*> neighbor_ptrs_of_copy;
-            neighbor_ptrs_of_copy.push_back(cell);
-            neighbor->adjust_velocity_blocks(neighbor_ptrs_of_copy);
-         }
-         neighbor_ptrs.push_back(neighbor);
+
+         neighbor_ptrs.push_back(neighbor);         
       }
+
       cell->adjust_velocity_blocks(neighbor_ptrs);
    }
    
