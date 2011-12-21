@@ -290,9 +290,9 @@ namespace velocity_neighbor {
       */
       static unsigned int get_velocity_block(
          const unsigned int block,
-         const  int direction_vx,
-         const  int direction_vy,
-         const  int direction_vz
+         const  int offset_vx,
+         const  int offset_vy,
+         const  int offset_vz
       ) {
          unsigned int neighborBlock;
          const velocity_block_indices_t indices = get_velocity_block_indices(block);
@@ -300,12 +300,12 @@ namespace velocity_neighbor {
             return error_velocity_block;
          }
       
-         int xyzDirection[3];
+         int xyzOffset[3];
          unsigned int vxyzblocks_ini[3];
          unsigned int offset[3];
-         xyzDirection[0]=direction_vx;
-         xyzDirection[1]=direction_vy;
-         xyzDirection[2]=direction_vz;
+         xyzOffset[0]=offset_vx;
+         xyzOffset[1]=offset_vy;
+         xyzOffset[2]=offset_vz;
 
          vxyzblocks_ini[0]=SpatialCell::vx_length;
          vxyzblocks_ini[1]=SpatialCell::vy_length;
@@ -318,8 +318,8 @@ namespace velocity_neighbor {
          neighborBlock=block;
          //loop over vx,vy,vz
          for(unsigned int c=0;c<3;c++){
-            switch (xyzDirection[c]) {
-            case -1: //in negative direction
+            switch (xyzOffset[c]) {
+            case -1: //in negative offset
                if (indices[c] == 0) {
                   return error_velocity_block;
                } else {
@@ -330,7 +330,7 @@ namespace velocity_neighbor {
             case 0:
                break;
 
-            case 1: //in positive direction
+            case 1: //in positive offset
                if (indices[c] >= vxyzblocks_ini[c] - 1) {
                   return error_velocity_block;
                } else {
@@ -357,7 +357,7 @@ namespace velocity_neighbor {
          const unsigned int direction
       ) {
          unsigned int w=velocity_neighbor::WIDTH;
-         return SpatialCell::get_velocity_block(direction%w-1, (direction/w)%w-1, (direction/(w*w))-1);
+         return SpatialCell::get_velocity_block(block,direction%w-1, (direction/w)%w-1, (direction/(w*w))-1);
       }
 
       /*!
@@ -1188,10 +1188,10 @@ namespace velocity_neighbor {
             block_i < SpatialCell::max_velocity_blocks
                && this->velocity_block_list[block_i] != error_velocity_block;
             block = this->velocity_block_list[++block_i]
-         ) {
+            ) {
             original_block_list.push_back(block);
          }
-
+         
          // remove all blocks in this cell without content + without neighbors with content
          for (std::vector<unsigned int>::const_iterator
               original = original_block_list.begin();
@@ -1199,9 +1199,12 @@ namespace velocity_neighbor {
               original++
          ) {
             const bool original_has_content = this->velocity_block_has_contents(*original);
+            if(!original_has_content)
+               this->remove_velocity_block(*original);
 
+            
             if (original_has_content) {
-
+               
                // add missing neighbors in velocity space
                for (unsigned int direction = 0; direction <velocity_neighbor::NNGBRS; direction++) {
                   const unsigned int neighbor_block = get_velocity_block(*original, direction);
@@ -1224,33 +1227,43 @@ namespace velocity_neighbor {
                bool neighbors_have_content = false;
 
                // velocity space neighbors
-               for (unsigned int direction = 0; direction <velocity_neighbor::NNGBRS; direction++) {
-                  const unsigned int neighbor_block = get_velocity_block(*original, direction);
-                  if (this->velocity_block_has_contents(neighbor_block)) {
-                     neighbors_have_content = true;
-                     break;
+//               for (unsigned int direction = 0; direction <velocity_neighbor::NNGBRS; direction++) {
+               for(int offset_vx=-1;offset_vx<=1;offset_vx++){
+                  for(int offset_vy=-1;offset_vy<=1;offset_vy++){
+                     for(int offset_vz=-1;offset_vz<=1;offset_vz++){
+                        const unsigned int neighbor_block = get_velocity_block(*original, offset_vx,offset_vy,offset_vz);
+                        if (this->velocity_block_has_contents(neighbor_block)) {
+                           neighbors_have_content = true;
+                           break;
+                        }
+                     }
                   }
                }
 
-               // real space neighbors
-               for (std::vector<SpatialCell*>::const_iterator
-                  neighbor = spatial_neighbors.begin();
-                  neighbor != spatial_neighbors.end();
-                  neighbor++
-               ) {
-                  if ((*neighbor)->velocity_block_has_contents(*original)) {
-                     neighbors_have_content = true;
-                     break;
+               if(!neighbors_have_content){
+                  // real space neighbors  
+                  for (std::vector<SpatialCell*>::const_iterator
+                          neighbor = spatial_neighbors.begin();
+                       neighbor != spatial_neighbors.end();
+                       neighbor++
+                       ) {
+                     if ((*neighbor)->velocity_block_has_contents(*original)) {
+                        neighbors_have_content = true;
+                        break;
+                     }
                   }
                }
 
                if (!neighbors_have_content) {
                   this->remove_velocity_block(*original);
                }
+               
             }
+            
          }
 
          // add local blocks for neighbors in real space with content
+/*
          for (std::vector<SpatialCell*>::const_iterator
             neighbor = spatial_neighbors.begin();
             neighbor != spatial_neighbors.end();
@@ -1270,6 +1283,7 @@ namespace velocity_neighbor {
                }
             }
          }
+*/
       }
 
       /*!

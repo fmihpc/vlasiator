@@ -259,14 +259,16 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
       zmin = mpiGrid.get_cell_z_min(cells[i]);
       initSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
    }
-   prepare_to_receive_velocity_block_data(mpiGrid);
-   // update distribution function
-   // FIXME, only CELL_BLOCK_DATA needed?
-   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA );
-   mpiGrid.update_remote_neighbour_data();
-   
-   adjust_all_velocity_blocks(mpiGrid);
 
+    prepare_to_receive_velocity_block_data(mpiGrid);
+    // update distribution function
+    // FIXME, only CELL_BLOCK_DATA needed?
+    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA );
+    mpiGrid.update_remote_neighbour_data();
+    
+    adjust_all_velocity_blocks(mpiGrid);
+
+   /*
    prepare_to_receive_velocity_block_data(mpiGrid);
 
    profile::start("Fetch Neighbour data");
@@ -274,6 +276,7 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
    SpatialCell::set_mpi_transfer_type(Transfer::ALL);
    mpiGrid.update_remote_neighbour_data();       
    profile::stop("Fetch Neighbour data");   
+*/
 }
 
 bool readConfigFile(){
@@ -528,7 +531,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    double start = MPI_Wtime();
 
    // Write velocity block coordinates.
-   // TODO: add support for MPI_Datatype in startMultiwrite...
+   // TODO: add support for MPI_Datatype in startMultiwrite... or use normal writeArray as all data is collected already in one place
    std::vector<Real> velocityBlockParameters;
    velocityBlockParameters.reserve(totalBlocks);
 
