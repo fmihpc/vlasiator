@@ -89,12 +89,12 @@ bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
    // Go through each velocity block in the velocity phase space grid.
    // Set the initial state and block parameters:
    
-   creal dvx_block = (P::vxmax-P::vxmin)/P::vxblocks_ini; // Size of a block in vx-direction
-   creal dvy_block = (P::vymax-P::vymin)/P::vyblocks_ini; //                    vy
-   creal dvz_block = (P::vzmax-P::vzmin)/P::vzblocks_ini; //                    vz
-   creal dvx_blockCell = dvx_block / WID;                 // Size of one cell in a block in vx-direction
-   creal dvy_blockCell = dvy_block / WID;                 //                                vy
-   creal dvz_blockCell = dvz_block / WID;                 //                                vz
+   creal dvx_block = SpatialCell::block_dvx; // Size of a block in vx-direction
+   creal dvy_block = SpatialCell::block_dvy; //                    vy
+   creal dvz_block = SpatialCell::block_dvz; //                    vz
+   creal dvx_blockCell = SpatialCell::cell_dvx;                 // Size of one cell in a block in vx-direction
+   creal dvy_blockCell = SpatialCell::cell_dvy;                 //                                vy
+   creal dvz_blockCell = SpatialCell::cell_dvz;                 //                                vz
 
    
    for (uint kv=0; kv<P::vzblocks_ini; ++kv) for (uint jv=0; jv<P::vyblocks_ini; ++jv) for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
@@ -116,15 +116,12 @@ bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
             creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
             creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
             cell.set_value(vx_cell_center,vy_cell_center,vz_cell_center,average);
-            if(average>0.5) cout <<"adding " << vx_cell_center <<","<<vy_cell_center <<","<<vz_cell_center <<endl;
             // Add contributions to spatial cell velocity moments:
             creal dV = dvx_blockCell*dvy_blockCell*dvz_blockCell;  // Volume of one cell in a block      
             cell.parameters[CellParams::RHO  ] += average*dV;
             cell.parameters[CellParams::RHOVX] += average*vx_cell_center*dV;
             cell.parameters[CellParams::RHOVY] += average*vy_cell_center*dV;
             cell.parameters[CellParams::RHOVZ] += average*vz_cell_center*dV;
-            //project cannot modify block parameters anymore (nothing sensible for them to do there)
-//            calcBlockParameters(cell.at(spatial_cell::get_velocity_cell_block);
          }
       }
    }
@@ -203,6 +200,7 @@ bool adjust_all_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    }
    profile::stop("Adjusting blocks");
 }
+
 /*
 Updates velocity block lists between remote neighbors and prepares local
 copies of remote neighbors for receiving velocity block data.
@@ -216,7 +214,7 @@ void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
    profile::stop("Velocity block list update");
 
    /*      
-           Prepare spatial cells for receiving velocity block data
+   Prepare spatial cells for receiving velocity block data
    */
    profile::start("Preparing receives");
    const boost::unordered_set<uint64_t>* incoming_cells = mpiGrid.get_remote_cells_with_local_neighbours();
@@ -244,6 +242,24 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
     typedef Parameters P;
     vector<uint64_t> cells = mpiGrid.get_cells();
 
+    // set minimum value for distribution function in all spatial cells
+    for (vector<uint64_t>::const_iterator
+       cell_id = cells.begin();
+       cell_id != cells.end();
+       cell_id++
+    ) {
+      SpatialCell* cell = mpiGrid[*cell_id];
+      if (cell == NULL) {
+         cerr << __FILE__ << ":" << __LINE__
+              << " No data for spatial cell " << *cell_id
+              << endl;
+         abort();
+      }
+
+      cell->set_block_minimum(1);
+      cell->set_block_average_minimum(0.5);
+    }
+
     //  Go through every cell on this node and initialize the pointers to 
     // cpu memory, physical parameters and volume averages for each phase space 
     // point in the velocity grid. Velocity block neighbour list is also 
@@ -251,8 +267,6 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
     Real xmin,ymin,zmin,dx,dy,dz;
     
     for (uint i=0; i<cells.size(); ++i) {
-       cout<<"initializing cell "<<i<<endl;
-       
        dx = mpiGrid.get_cell_x_size(cells[i]);
        dy = mpiGrid.get_cell_y_size(cells[i]);
        dz = mpiGrid.get_cell_z_size(cells[i]);
@@ -261,7 +275,7 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
        zmin = mpiGrid.get_cell_z_min(cells[i]);
        initSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
     }
-/*      
+
     prepare_to_receive_velocity_block_data(mpiGrid);
     // update distribution function
     // FIXME, only CELL_BLOCK_DATA needed?
@@ -270,14 +284,32 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
     
     adjust_all_velocity_blocks(mpiGrid);
 
-   prepare_to_receive_velocity_block_data(mpiGrid);
+    prepare_to_receive_velocity_block_data(mpiGrid);
 
-   profile::start("Fetch Neighbour data");
-   // update complete spatial cell data 
-   SpatialCell::set_mpi_transfer_type(Transfer::ALL);
-   mpiGrid.update_remote_neighbour_data();       
-   profile::stop("Fetch Neighbour data");   
-*/
+    profile::start("Fetch Neighbour data");
+    // update complete spatial cell data 
+    SpatialCell::set_mpi_transfer_type(Transfer::ALL);
+    mpiGrid.update_remote_neighbour_data();       
+    profile::stop("Fetch Neighbour data");   
+
+    for (vector<uint64_t>::const_iterator
+       cell_id = cells.begin();
+       cell_id != cells.end();
+       cell_id++
+    ) {
+      SpatialCell* cell = mpiGrid[*cell_id];
+      if (cell == NULL) {
+         cerr << __FILE__ << ":" << __LINE__
+              << " No data for spatial cell " << *cell_id
+              << endl;
+         abort();
+      }
+
+      string name;
+      name = boost::lexical_cast<string>(*cell_id);
+      name += ".vtk";
+      cell->save_vtk(name.c_str());
+    }
 }
 
 bool readConfigFile(){
@@ -831,6 +863,9 @@ int main(int argn,char* args[]) {
    profile::stop("Save initial state");
    profile::stop("Initialization");
    comm.barrier();
+
+   MPI_Finalize();
+   exit(0);
 
    inistate = false;
    // Main simulation loop:
