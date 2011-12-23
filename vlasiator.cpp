@@ -1,3 +1,4 @@
+
 /*
 This file is part of Vlasiator.
 
@@ -306,7 +307,8 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
       }
 
       string name;
-      name = boost::lexical_cast<string>(*cell_id);
+      name = "velocity_";
+      name += boost::lexical_cast<string>(*cell_id);
       name += ".vtk";
       cell->save_vtk(name.c_str());
     }
@@ -566,81 +568,49 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    // Write velocity block coordinates.
    // TODO: add support for MPI_Datatype in startMultiwrite... or use normal writeArray as all data is collected already in one place
    std::vector<Real> velocityBlockParameters;
-   velocityBlockParameters.reserve(totalBlocks);
+   velocityBlockParameters.reserve(totalBlocks*BlockParams::N_VELOCITY_BLOCK_PARAMS);
 
-   if (vlsvWriter.startMultiwrite("float",totalBlocks,BlockParams::N_VELOCITY_BLOCK_PARAMS,sizeof(Real)) == false) success = false;
-   if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to start BLOCKCOORDINATES multiwrite!" << endl << write;
-   if (success == true) {
-      SpatialCell* SC = NULL;
-
-      // gather data for writing
-      for (size_t cell=0; cell<cells.size(); ++cell) {
-         int index=0;
-         SC = mpiGrid[cells[cell]];
-         
-         for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-              block_i < spatial_cell::SpatialCell::max_velocity_blocks
-                 && SC->velocity_block_list[block_i] != error_velocity_block;
-              block = SC->velocity_block_list[++block_i]
-         ) {
-            Velocity_Block block_data = SC->at(block);
-            for(unsigned int p=0;p<BlockParams::N_VELOCITY_BLOCK_PARAMS;++p){
-               velocityBlockParameters.push_back(block_data.parameters[p]);
-            }
+   // gather data for writing
+   for (size_t cell=0; cell<cells.size(); ++cell) {
+      int index=0;
+      SpatialCell* SC = mpiGrid[cells[cell]];
+      for (unsigned int block_i=0;block_i < spatial_cell::SpatialCell::max_velocity_blocks;block_i++){
+         unsigned int block = SC->velocity_block_list[block_i];
+         if(SC->velocity_block_list[block_i] == error_velocity_block) break;
+         Velocity_Block block_data = SC->at(block);
+         for(unsigned int p=0;p<BlockParams::N_VELOCITY_BLOCK_PARAMS;++p){
+            velocityBlockParameters.push_back(block_data.parameters[p]);
          }
-      
       }
+      
+   }
 
-      if (vlsvWriter.multiwriteArray(totalBlocks,&(velocityBlockParameters[0])) == false) success = false;
-   }
-   
-   if (success == true) {
-      if (vlsvWriter.endMultiwrite("BLOCKCOORDINATES","SpatialGrid",attribs) == false) success = false;
-      if (success == false) mpilogger << "(MAIN) writeGrid: ERROR occurred when ending BLOCKCOORDINATES multiwrite!" << endl << write;
-   }
+   if (vlsvWriter.writeArray("BLOCKCOORDINATES","SpatialGrid",attribs,totalBlocks,BlockParams::N_VELOCITY_BLOCK_PARAMS,&(velocityBlockParameters[0])) == false) success = false;
+   if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to write BLOCKCOORDINATES to file!" << endl << write;
+   velocityBlockParameters.clear();
    
    // Write values of distribution function:
    std::vector<Real> velocityBlockData;
-   velocityBlockData.reserve(totalBlocks);
-
-   if (vlsvWriter.startMultiwrite("float",totalBlocks,SIZE_VELBLOCK,sizeof(Real)) == false) success = false;
-   if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to start BLOCKVARIABLE avgs multiwrite!" << endl << write;
-   if (success == true) {
-      uint64_t counter = 0;
-      SpatialCell* SC = NULL;
-      for (size_t cell=0; cell<cells.size(); ++cell) {
-         int index=0;
-	 SC = mpiGrid[cells[cell]];
-
-         if(velocityBlockData.size()<SC->size()*SIZE_VELBLOCK){
-            velocityBlockData.resize(SC->size()*SIZE_VELBLOCK);
-         }         
-         for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-              block_i < spatial_cell::SpatialCell::max_velocity_blocks
-                 && SC->velocity_block_list[block_i] != error_velocity_block;
-              block = SC->velocity_block_list[++block_i]
-         ) {
-            Velocity_Block block_data = SC->at(block);
-            for(unsigned int vc=0;vc<SIZE_VELBLOCK;++vc){
-               velocityBlockData.push_back(block_data.data[vc]);
-            }
+   velocityBlockData.reserve(totalBlocks*SIZE_VELBLOCK);
+   
+   for (size_t cell=0; cell<cells.size(); ++cell) {
+      int index=0;
+      SpatialCell* SC = mpiGrid[cells[cell]];
+      for (unsigned int block_i=0;block_i < spatial_cell::SpatialCell::max_velocity_blocks;block_i++){
+         unsigned int block = SC->velocity_block_list[block_i];
+         if(SC->velocity_block_list[block_i] == error_velocity_block) break;
+         Velocity_Block block_data = SC->at(block);
+         for(unsigned int vc=0;vc<SIZE_VELBLOCK;++vc){
+            velocityBlockData.push_back(block_data.data[vc]);
          }
-         
-	 counter += N_blocks[cell];
       }
-
-      if (vlsvWriter.multiwriteArray(totalBlocks,&(velocityBlockData[0])) == false) success = false;
    }
-   
 
-   
    attribs["mesh"] = "SpatialGrid";
-   if (success == true) {
-      if (vlsvWriter.endMultiwrite("BLOCKVARIABLE","avgs",attribs) == false) success = false;
-      if (success == false) mpilogger << "(MAIN) writeGrid: ERROR occurred when ending BLOCKVARIABLE avgs multiwrite!" << endl << write;
-   }
+   if (vlsvWriter.writeArray("BLOCKVARIABLE","avgs",attribs,totalBlocks,SIZE_VELBLOCK,&(velocityBlockData[0])) == false) success=false;
+   if (success ==false)      mpilogger << "(MAIN) writeGrid: ERROR occurred when writing BLOCKVARIABLE avgs" << endl << write;
+   velocityBlockData.clear();
    
-
    double end = MPI_Wtime();
    delete N_blocks;
 

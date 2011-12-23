@@ -29,25 +29,12 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "definitions.h"
 
-const uint MAX_SPAT_CELLS = 8100;
-//const uint MAX_VEL_BLOCKS = 250000;
-const uint MAX_VEL_BLOCKS = 2500000;
-
 const uint CUDA_WIDTH = 65536; // Width of CUDA array (for 2D textures)
 const uint CUDA_HEIGHT = 3000; // Height of CUDA array
                           // Make sure width*height / 64 >= MAX_VEL_BLOCKS
 const uint64_t INVALID_CELLID = 0;
 
 
-namespace Transmit {
-   const uint CELL_PARAMS  = 1;
-   const uint BLOCK_PARAMS = CELL_PARAMS << 1;
-   const uint AVGS         = CELL_PARAMS << 2;
-   const uint FLUXES       = CELL_PARAMS << 3;
-   const uint DERIV1       = CELL_PARAMS << 4;
-   const uint DERIV2       = CELL_PARAMS << 5;
-   const uint NBRSVEL      = CELL_PARAMS << 6;
-}
 
 struct Parameters {
    static Real xmin;  /**< X-coordinate of the lower left corner of the spatial grid. */
