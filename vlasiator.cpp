@@ -71,8 +71,6 @@ bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
 
    //FIXME, read in from parameters P
 
-   cell.set_block_minimum(1);
-   cell.set_block_average_minimum(0.5);
 
 // Set up cell parameters:
    cell.parameters[CellParams::XCRD] = xmin;
@@ -243,23 +241,6 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
     typedef Parameters P;
     vector<uint64_t> cells = mpiGrid.get_cells();
 
-    // set minimum value for distribution function in all spatial cells
-    for (vector<uint64_t>::const_iterator
-       cell_id = cells.begin();
-       cell_id != cells.end();
-       cell_id++
-    ) {
-      SpatialCell* cell = mpiGrid[*cell_id];
-      if (cell == NULL) {
-         cerr << __FILE__ << ":" << __LINE__
-              << " No data for spatial cell " << *cell_id
-              << endl;
-         abort();
-      }
-
-      cell->set_block_minimum(1);
-      cell->set_block_average_minimum(0.5);
-    }
 
     //  Go through every cell on this node and initialize the pointers to 
     // cpu memory, physical parameters and volume averages for each phase space 
@@ -293,11 +274,14 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
     mpiGrid.update_remote_neighbour_data();       
     profile::stop("Fetch Neighbour data");   
 
+    /*
+      //write out vtk files of velocity space using internal function in spatialcell, useful for debugging
+      
     for (vector<uint64_t>::const_iterator
        cell_id = cells.begin();
        cell_id != cells.end();
        cell_id++
-    ) {
+       )   {
       SpatialCell* cell = mpiGrid[*cell_id];
       if (cell == NULL) {
          cerr << __FILE__ << ":" << __LINE__
@@ -311,7 +295,8 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
       name += boost::lexical_cast<string>(*cell_id);
       name += ".vtk";
       cell->save_vtk(name.c_str());
-    }
+      }   
+    */
 }
 
 bool readConfigFile(){
@@ -714,7 +699,10 @@ int main(int argn,char* args[]) {
    spatial_cell::SpatialCell::cell_dvx = spatial_cell::SpatialCell::block_dvx / block_vx_length;
    spatial_cell::SpatialCell::cell_dvy = spatial_cell::SpatialCell::block_dvy / block_vy_length;
    spatial_cell::SpatialCell::cell_dvz = spatial_cell::SpatialCell::block_dvz / block_vz_length;
-
+   spatial_cell::SpatialCell::velocity_block_min_value = 1e-5;           //FIXME read in from cfg file. 
+   spatial_cell::SpatialCell::velocity_block_min_avg_value = 0.5e-5;     //FIXME read in from cfg file. 
+ 
+   
    profile::start("Initialize Grid");
    
 // Create parallel MPI grid and init Zoltan:

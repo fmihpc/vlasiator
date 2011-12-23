@@ -650,9 +650,6 @@ namespace velocity_neighbor {
             this->null_block.neighbors[i] = NULL;
          }
 
-         this->velocity_block_min_value = 0;
-         this->velocity_block_min_avg_value = 0;
-
          // reset spatial cell parameters
          for (unsigned int i = 0; i < CellParams::N_SPATIAL_CELL_PARAMS; i++) {
             this->parameters[i]=0;
@@ -793,10 +790,10 @@ namespace velocity_neighbor {
             
             // send  spatial cell parameters
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_PARAMETERS)!=0){
-                displacements.push_back((uint8_t*) &(this->velocity_block_min_value) - (uint8_t*) this);
+                displacements.push_back((uint8_t*) &(SpatialCell::velocity_block_min_value) - (uint8_t*) this);
                 block_lengths.push_back(sizeof(Real));
                 
-                displacements.push_back((uint8_t*) &(this->velocity_block_min_avg_value) - (uint8_t*) this);
+                displacements.push_back((uint8_t*) &(SpatialCell::velocity_block_min_avg_value) - (uint8_t*) this);
                 block_lengths.push_back(sizeof(Real));
                 
                 displacements.push_back((uint8_t*) &(this->parameters[0]) - (uint8_t*) this);
@@ -871,27 +868,9 @@ namespace velocity_neighbor {
             }
             
             return type;
-         }
+      }
       
-
-      /*!
-        Sets the minimum velocity cell value of a distrubution function for
-        that velocity block to be considered to have contents.
-      */
-      void set_block_minimum(const Real value)
-         {
-            this->velocity_block_min_value = value;
-         }
-
-      /*!
-        Sets the minimum average velocity cell value of a distrubution function
-        within a block for that block to be considered to have contents.
-      */
-      void set_block_average_minimum(const Real value)
-         {
-            this->velocity_block_min_avg_value = value;
-         }
-
+      
       /*!
         Returns true if given velocity block has enough of a distribution function.
         Returns false if the value of the distribution function is too low in every
@@ -914,13 +893,13 @@ namespace velocity_neighbor {
 
             for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
                total += block_ptr->data[i];
-               if (block_ptr->data[i] >= this->velocity_block_min_value) {
+               if (block_ptr->data[i] >= SpatialCell::velocity_block_min_value) {
                   has_content = true;
                   break;
                }
             }
 
-            if (total >= this->velocity_block_min_avg_value * VELOCITY_BLOCK_LENGTH) {
+            if (total >= SpatialCell::velocity_block_min_avg_value * VELOCITY_BLOCK_LENGTH) {
                has_content = true;
             }
 
@@ -1699,6 +1678,19 @@ namespace velocity_neighbor {
       */
       static unsigned int mpi_transfer_type;
 
+      /*  
+        Minimum value of distribution function
+        in any cell of a velocity block for the
+        block to be considered to have contents
+      */
+      static Real velocity_block_min_value;
+
+      /*
+        Minimum value of the average of distribution
+        function within a velocity block for the
+        block to be considered to have contents
+      */
+      static Real velocity_block_min_avg_value;
 
    private:
 
@@ -1709,19 +1701,7 @@ namespace velocity_neighbor {
       bool initialized;
       unsigned int current_velocity_blocks;
 
-      /*
-        Minimum value of distribution function
-        in any cell of a velocity block for the
-        block to be considered to have contents
-      */
-      Real velocity_block_min_value;
 
-      /*
-        Minimum value of the average of distribution
-        function within a velocity block for the
-        block to be considered to have contents
-      */
-      Real velocity_block_min_avg_value;
 
       /*!
         Used as a neighbour instead of blocks that don't
