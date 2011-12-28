@@ -560,9 +560,8 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    for (size_t cell=0; cell<cells.size(); ++cell) {
       int index=0;
       SpatialCell* SC = mpiGrid[cells[cell]];
-      for (unsigned int block_i=0;block_i < spatial_cell::SpatialCell::max_velocity_blocks;block_i++){
+      for (unsigned int block_i=0;block_i < SC->number_of_blocks;block_i++){
          unsigned int block = SC->velocity_block_list[block_i];
-         if(SC->velocity_block_list[block_i] == error_velocity_block) break;
          Velocity_Block block_data = SC->at(block);
          for(unsigned int p=0;p<BlockParams::N_VELOCITY_BLOCK_PARAMS;++p){
             velocityBlockParameters.push_back(block_data.parameters[p]);
@@ -582,9 +581,8 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    for (size_t cell=0; cell<cells.size(); ++cell) {
       int index=0;
       SpatialCell* SC = mpiGrid[cells[cell]];
-      for (unsigned int block_i=0;block_i < spatial_cell::SpatialCell::max_velocity_blocks;block_i++){
+      for (unsigned int block_i=0;block_i < SC->number_of_blocks;block_i++){
          unsigned int block = SC->velocity_block_list[block_i];
-         if(SC->velocity_block_list[block_i] == error_velocity_block) break;
          Velocity_Block block_data = SC->at(block);
          for(unsigned int vc=0;vc<SIZE_VELBLOCK;++vc){
             velocityBlockData.push_back(block_data.data[vc]);

@@ -660,7 +660,6 @@ namespace velocity_neighbor {
          for (unsigned int i = 0; i < fieldsolver::N_SPATIAL_CELL_DERIVATIVES; i++) {
             this->derivatives[i]=0;
          }
-         this->check_number_of_blocks(__FILE__,__LINE__);
       }
    
 
@@ -749,7 +748,6 @@ namespace velocity_neighbor {
             std::vector<int> block_lengths;
             unsigned int block_index = 0;
 
-            this->check_number_of_blocks(__FILE__,__LINE__);
             //add data to send/recv to displacement and block length lists
             
             if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST)!=0){
@@ -1168,7 +1166,6 @@ namespace velocity_neighbor {
             }
          }
          
-         this->check_number_of_blocks(__FILE__,__LINE__);
       }
       
       /*!
@@ -1418,7 +1415,6 @@ namespace velocity_neighbor {
             return true;
          }
 
-         this->check_number_of_blocks(__FILE__,__LINE__);
          this->velocity_blocks[block];
          if (this->velocity_blocks.count(block) == 0) {
          }
@@ -1483,7 +1479,6 @@ namespace velocity_neighbor {
          this->number_of_blocks++;
 
 
-         this->check_number_of_blocks(__FILE__,__LINE__);
          return true;
       }
       
@@ -1495,7 +1490,6 @@ namespace velocity_neighbor {
       bool add_all_velocity_blocks(void)
          {
             bool result = true;
-            this->check_number_of_blocks(__FILE__,__LINE__);
             for (unsigned int i = 0; i < SpatialCell::max_velocity_blocks; i++) {
                if (this->velocity_blocks.count(i) > 0) {
                   continue;
@@ -1505,7 +1499,6 @@ namespace velocity_neighbor {
                   result = false;
                }
             }
-            this->check_number_of_blocks(__FILE__,__LINE__);
             return result;
          }
 
@@ -1516,7 +1509,6 @@ namespace velocity_neighbor {
       */
       void remove_velocity_block(const unsigned int block)
       {
-         this->check_number_of_blocks(__FILE__,__LINE__);
          if (block == error_velocity_block) {
             return;
          }
@@ -1577,8 +1569,6 @@ namespace velocity_neighbor {
          }
          this->number_of_blocks--;
 
-         this->check_number_of_blocks(__FILE__,__LINE__);
-         
       }
 
 
@@ -1607,9 +1597,6 @@ namespace velocity_neighbor {
       */
       void prepare_to_receive_blocks(void)
          {
-            this->check_number_of_blocks(__FILE__,__LINE__);
-
-
             unsigned int oldNumBlocks = this->number_of_blocks;
             // clear + add_velocity_block overwrites the block list so:
             std::vector<unsigned int> old_block_list(oldNumBlocks, error_velocity_block);
@@ -1625,7 +1612,6 @@ namespace velocity_neighbor {
             }
 
 
-            this->check_number_of_blocks(__FILE__,__LINE__);
          }
 
 
