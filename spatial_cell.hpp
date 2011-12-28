@@ -812,7 +812,7 @@ namespace velocity_neighbor {
             // send  isGhostCell        
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_GHOSTFLAG)!=0){
                 displacements.push_back((uint8_t*) &(this->isGhostCell) - (uint8_t*) this);
-                block_lengths.push_back(sizeof(Real));
+                block_lengths.push_back(sizeof(bool));
             }
             
             
@@ -1711,6 +1711,8 @@ namespace velocity_neighbor {
       */
       
       std::vector<unsigned int> velocity_block_list;
+      unsigned int number_of_blocks;
+
       /*
         Bulk variables in this spatial cell.
       */
@@ -1725,7 +1727,6 @@ namespace velocity_neighbor {
       std::vector<uint64_t> neighbors;
       unsigned int boundaryFlag;
       bool isGhostCell;
-      unsigned int number_of_blocks;
       
       
    }; // class SpatialCell
