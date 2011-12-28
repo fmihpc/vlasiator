@@ -821,8 +821,6 @@ int main(int argn,char* args[]) {
    profile::stop("Initialization");
    comm.barrier();
 
-   MPI_Finalize();
-   exit(0);
 
    inistate = false;
    // Main simulation loop:
