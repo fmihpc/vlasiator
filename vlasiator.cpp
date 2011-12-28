@@ -266,11 +266,12 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
     
     adjust_all_velocity_blocks(mpiGrid);
 
+    //velocity blocks adjusted, lets prepare again for new lists
     prepare_to_receive_velocity_block_data(mpiGrid);
 
     profile::start("Fetch Neighbour data");
     // update complete spatial cell data 
-    SpatialCell::set_mpi_transfer_type(Transfer::ALL);
+    SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
     mpiGrid.update_remote_neighbour_data();       
     profile::stop("Fetch Neighbour data");   
 
