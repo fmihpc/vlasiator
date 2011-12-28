@@ -235,24 +235,21 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       SpatialCell* SC = mpiGrid[cellID];
       
       // Clear df/dt contributions:
-      for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-           block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
-           block = SC->velocity_block_list[++block_i]) {
+      for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+         unsigned int block = SC->velocity_block_list[block_i];         
          cpu_clearVelFluxes(SC,block);
       }
                
       
       // Calculatedf/dt contributions of all blocks in the cell:
-      for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-           block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
-           block = SC->velocity_block_list[++block_i]) {
+      for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+         unsigned int block = SC->velocity_block_list[block_i];         
          cpu_calcVelFluxes(SC,block,P::dt,NULL);
       }
       
       // Propagate distribution functions in velocity space:
-      for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-           block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
-           block = SC->velocity_block_list[++block_i]) {
+      for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+         unsigned int block = SC->velocity_block_list[block_i];         
          cpu_propagateVel(SC,block,P::dt);
       }
    }
@@ -360,11 +357,10 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 #pragma omp  parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
-      unsigned int block_i;
+
       SpatialCell* SC=mpiGrid[cellID];
-      for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-           block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
-           block = SC->velocity_block_list[++block_i]) {
+      for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+         unsigned int block = SC->velocity_block_list[block_i];         
          Velocity_Block* block_ptr = &(SC->at(block));     
          for (uint i=0; i<SIZE_VELBLOCK; i++) block_ptr->fx[i]=0.0;
       }
@@ -381,16 +377,13 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    
    for (set<CellID>::iterator cell=stencilAverages.innerCells.begin(); cell!=stencilAverages.innerCells.end(); ++cell) {
       SpatialCell* SC = mpiGrid[*cell];
-      unsigned int block_i;
       // Iterate through all velocity blocks in the spatial cell and calculate 
       // contributions to df/dt:
       //fixme/check, for ghost cells the nbrsSpa can point to the cell itself for non-existing neighbours (see initialization in beginning of this file)
       //this means that for ghost cells fluxes to cell itself may have race condition (does it matter, is its flux even used?)
 //#pragma omp for
-      for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-           block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
-           block = SC->velocity_block_list[++block_i]
-           ) {
+      for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+         unsigned int block = SC->velocity_block_list[block_i];         
 	 cpu_calcSpatDfdt(mpiGrid,SC,block,HALF*P::dt);
       }
    }
@@ -435,15 +428,13 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    for (set<CellID>::iterator cell=stencilAverages.boundaryCells.begin(); cell!=stencilAverages.boundaryCells.end(); ++cell) {
       const CellID cellID      = *cell;
       SpatialCell* SC = mpiGrid[cellID];
-      unsigned int block_i;
       // Iterate through all velocity blocks in the spatial cell and calculate 
       // contributions to df/dt:
       //fixme/check, for ghost cells the nbrsSpa can point to the cell itself for non-existing neighbours (see initialization in beginning of this file)
       //this means that for ghost cells fluxes to cell itself may have race condition (does it matter, is its flux even used?)
-//#pragma omp for
-      for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-           block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
-           block = SC->velocity_block_list[++block_i]) {
+#pragma omp for
+      for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+         unsigned int block = SC->velocity_block_list[block_i];         
 	 cpu_calcSpatDfdt(mpiGrid,SC,block,HALF*P::dt);
       }
 
@@ -564,16 +555,13 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
       
       // Do not propagate boundary cells, only calculate their velocity moments:
       if (ghostCells.find(cellID) == ghostCells.end()) {
-         for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-              block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
-              block = SC->velocity_block_list[++block_i]) {
+         for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+            unsigned int block = SC->velocity_block_list[block_i];         
             cpu_propagateSpatWithMoments(nbr_dfdt,SC,block,block_i);
          }  
       } else {
-         for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-              block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
-              block = SC->velocity_block_list[++block_i]) {
-            
+         for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+            unsigned int block = SC->velocity_block_list[block_i];         
 	    cpu_calcVelocityMoments(SC,block);
 	 }
       }
@@ -626,16 +614,13 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
       
       // Do not propagate boundary cells, only calculate their velocity moments:
       if (ghostCells.find(cellID) == ghostCells.end()) {
-         for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-              block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
-              block = SC->velocity_block_list[++block_i]) {
+         for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+            unsigned int block = SC->velocity_block_list[block_i];         
             cpu_propagateSpatWithMoments(nbr_dfdt,SC,block,block_i);
          }  
       } else {
-         for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-              block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
-              block = SC->velocity_block_list[++block_i]) {
-            
+         for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+            unsigned int block = SC->velocity_block_list[block_i];         
 	    cpu_calcVelocityMoments(SC,block);
 	 }
       }
@@ -752,10 +737,9 @@ void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       SC->parameters[CellParams::RHOVX] = 0.0;
       SC->parameters[CellParams::RHOVY] = 0.0;
       SC->parameters[CellParams::RHOVZ] = 0.0;
-
-      for (unsigned int block = SC->velocity_block_list[0], block_i = 0;
-           block_i < SpatialCell::max_velocity_blocks && SC->velocity_block_list[block_i] != error_velocity_block;
-           block = SC->velocity_block_list[++block_i]) {
+      
+      for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+         unsigned int block = SC->velocity_block_list[block_i];         
       
       // Iterate through all velocity blocks in this spatial cell 
       // and calculate velocity moments:        
