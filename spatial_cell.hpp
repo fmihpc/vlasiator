@@ -941,7 +941,7 @@ namespace velocity_neighbor {
          const int y_offset, 
          const int z_offset
       ) {
-         if (x_offset == y_offset == z_offset == 0) {
+         if (x_offset == 0  &&  y_offset == 0 && z_offset == 0) {
             return error_velocity_block;
          }
 
@@ -1101,7 +1101,7 @@ namespace velocity_neighbor {
                // add missing neighbors in velocity space
                for(int offset_vx=-1;offset_vx<=1;offset_vx++)
                for(int offset_vy=-1;offset_vy<=1;offset_vy++)
-               for(int offset_vz=-1;offset_vz<=1;offset_vz++){
+               for(int offset_vz=-1;offset_vz<=1;offset_vz++){                  
                   const unsigned int neighbor_block = get_velocity_block_from_offsets(*original, offset_vx,offset_vy,offset_vz);
                   if (neighbor_block == error_velocity_block) {
                      continue;
@@ -1120,7 +1120,7 @@ namespace velocity_neighbor {
 
                // remove local block if also no neighbor has content
                bool neighbors_have_content = false;
-
+               
                // velocity space neighbors
                for(int offset_vx=-1;offset_vx<=1;offset_vx++)
                for(int offset_vy=-1;offset_vy<=1;offset_vy++)
