@@ -42,7 +42,7 @@ template<typename T> inline T fullInd(const T& i,const T& j,const T& k) {return 
 template<typename T> inline T isBoundary(const T& STATE,const T& BND) {return STATE & BND;}
 template<typename T> inline T findex(const T& i,const T& j,const T& k) {return k*36+j*6+i;}
 
-void accumulateChanges(Velocity_Block &block,const Real* const dF){
+void accumulateChanges(Velocity_Block *block,const Real* const dF){
    Real* nbrFlux;
    //typedef Parameters P;
    
@@ -59,160 +59,160 @@ void accumulateChanges(Velocity_Block &block,const Real* const dF){
    // ***** NEIGHBOURS TO NEGATIVE VZ DIRECTION *****           
    // Neighbour (iv-1,jv-1,kv-1):
    
-   if (block.neighbors[velocity_neighbor::XM1_YM1_ZM1] != NULL){
-      nbrFlux = block.neighbors[velocity_neighbor::XM1_YM1_ZM1]->fx;
+   if (block->neighbors[velocity_neighbor::XM1_YM1_ZM1] != NULL){
+      nbrFlux = block->neighbors[velocity_neighbor::XM1_YM1_ZM1]->fx;
       nbrFlux[accIndex(ACCMAX,ACCMAX,ACCMAX)] += dF[findex(MIN,MIN,MIN)];
    }
    // Neighbour (iv  ,jv-1,kv-1):
-   if (block.neighbors[velocity_neighbor::XCC_YM1_ZM1] != NULL) {
-      nbrFlux = block.neighbors[velocity_neighbor::XCC_YM1_ZM1]->fx;
+   if (block->neighbors[velocity_neighbor::XCC_YM1_ZM1] != NULL) {
+      nbrFlux = block->neighbors[velocity_neighbor::XCC_YM1_ZM1]->fx;
       for (unsigned int i=0; i<WID; ++i) nbrFlux[accIndex(i,ACCMAX,ACCMAX)] += dF[findex(i+1,MIN,MIN)];
    }
    // Neighbour (iv+1,jv-1,kv-1):
-   if (block.neighbors[velocity_neighbor::XP1_YM1_ZM1] != NULL) {
-      nbrFlux = block.neighbors[velocity_neighbor::XP1_YM1_ZM1]->fx;
+   if (block->neighbors[velocity_neighbor::XP1_YM1_ZM1] != NULL) {
+      nbrFlux = block->neighbors[velocity_neighbor::XP1_YM1_ZM1]->fx;
       nbrFlux[accIndex(ACCMIN,ACCMAX,ACCMAX)] += dF[findex(MAX,MIN,MIN)];
    }
    // Neighbour (iv-1,jv  ,kv-1):
-   if (block.neighbors[velocity_neighbor::XM1_YCC_ZM1] != NULL) {
-      nbrFlux = block.neighbors[velocity_neighbor::XM1_YCC_ZM1]->fx;
+   if (block->neighbors[velocity_neighbor::XM1_YCC_ZM1] != NULL) {
+      nbrFlux = block->neighbors[velocity_neighbor::XM1_YCC_ZM1]->fx;
       for (unsigned int j=0; j<WID; ++j) nbrFlux[accIndex(ACCMAX,j,ACCMAX)] += dF[findex(MIN,j+1,MIN)];
    }
    // Neighbour (iv  ,jv  ,kv-1):
-   if (block.neighbors[velocity_neighbor::XCC_YCC_ZM1] != NULL) {
-      nbrFlux = block.neighbors[velocity_neighbor::XCC_YCC_ZM1]->fx;
+   if (block->neighbors[velocity_neighbor::XCC_YCC_ZM1] != NULL) {
+      nbrFlux = block->neighbors[velocity_neighbor::XCC_YCC_ZM1]->fx;
       for (unsigned int j=0; j<WID; ++j) for (unsigned int i=0; i<WID; ++i) nbrFlux[accIndex(i,j,ACCMAX)] += dF[findex(i+1,j+1,MIN)];
    }
    // Neighbour (iv+1,jv  ,kv-1):
-   if (block.neighbors[velocity_neighbor::XP1_YCC_ZM1] != NULL) {
-      nbrFlux  = block.neighbors[velocity_neighbor::XP1_YCC_ZM1]->fx;
+   if (block->neighbors[velocity_neighbor::XP1_YCC_ZM1] != NULL) {
+      nbrFlux  = block->neighbors[velocity_neighbor::XP1_YCC_ZM1]->fx;
       for (unsigned int j=0; j<WID; ++j) nbrFlux[accIndex(ACCMIN,j,ACCMAX)] += dF[findex(MAX,j+1,MIN)];
    }
    // Neighbour (iv-1,jv+1,kv-1):
-   if (block.neighbors[velocity_neighbor::XM1_YP1_ZM1] != NULL) {
-      nbrFlux =  block.neighbors[velocity_neighbor::XM1_YP1_ZM1]->fx;
+   if (block->neighbors[velocity_neighbor::XM1_YP1_ZM1] != NULL) {
+      nbrFlux =  block->neighbors[velocity_neighbor::XM1_YP1_ZM1]->fx;
       nbrFlux[accIndex(ACCMAX,ACCMIN,ACCMAX)] += dF[findex(MIN,MAX,MIN)];
    }
    // Neighbour (iv  ,jv+1,kv-1):
-   if (block.neighbors[velocity_neighbor::XCC_YP1_ZM1] != NULL) {
-      nbrFlux =  block.neighbors[velocity_neighbor::XCC_YP1_ZM1]->fx;
+   if (block->neighbors[velocity_neighbor::XCC_YP1_ZM1] != NULL) {
+      nbrFlux =  block->neighbors[velocity_neighbor::XCC_YP1_ZM1]->fx;
       for (unsigned int i=0; i<WID; ++i) nbrFlux[accIndex(i,ACCMIN,ACCMAX)] += dF[findex(i+1,MAX,MIN)];
    }
    // Neighbour (iv+1,jv+1,kv-1):
-   if (block.neighbors[velocity_neighbor::XP1_YP1_ZM1] != NULL) {
-      nbrFlux =  block.neighbors[velocity_neighbor::XP1_YP1_ZM1]->fx;
+   if (block->neighbors[velocity_neighbor::XP1_YP1_ZM1] != NULL) {
+      nbrFlux =  block->neighbors[velocity_neighbor::XP1_YP1_ZM1]->fx;
       nbrFlux[accIndex(ACCMIN,ACCMIN,ACCMAX)] += dF[findex(MAX,MAX,MIN)];
    }
    
    // ***** NEIGHBOURS IN SAME VZ PLANE *****
    // Neighbour (iv-1,jv-1,kv  ):
-   if (block.neighbors[velocity_neighbor::XM1_YM1_ZCC] != NULL) {
-      nbrFlux =  block.neighbors[velocity_neighbor::XM1_YM1_ZCC]->fx;
+   if (block->neighbors[velocity_neighbor::XM1_YM1_ZCC] != NULL) {
+      nbrFlux =  block->neighbors[velocity_neighbor::XM1_YM1_ZCC]->fx;
       for (unsigned int k=0; k<WID; ++k) nbrFlux[accIndex(ACCMAX,ACCMAX,k)] += dF[findex(MIN,MIN,k+1)];
    }
    // Neighbour (iv  ,jv-1,kv  ):
-   if (block.neighbors[velocity_neighbor::XCC_YM1_ZCC] != NULL) {
-      nbrFlux =  block.neighbors[velocity_neighbor::XCC_YM1_ZCC]->fx;
+   if (block->neighbors[velocity_neighbor::XCC_YM1_ZCC] != NULL) {
+      nbrFlux =  block->neighbors[velocity_neighbor::XCC_YM1_ZCC]->fx;
       for (unsigned int k=0; k<WID; ++k) for (unsigned int i=0; i<WID; ++i) nbrFlux[accIndex(i,ACCMAX,k)] += dF[findex(i+1,MIN,k+1)];
    }
    // Neighbour (iv+1,jv-1,kv  ):
-   if (block.neighbors[velocity_neighbor::XP1_YM1_ZCC] != NULL) {
-      nbrFlux =  block.neighbors[velocity_neighbor::XP1_YM1_ZCC]->fx;
+   if (block->neighbors[velocity_neighbor::XP1_YM1_ZCC] != NULL) {
+      nbrFlux =  block->neighbors[velocity_neighbor::XP1_YM1_ZCC]->fx;
       for (unsigned int k=0; k<WID; ++k) nbrFlux[accIndex(ACCMIN,ACCMAX,k)] += dF[findex(MAX,MIN,k+1)];
    }
    // Neighbour (iv-1,jv  ,kv  ):
-   if (block.neighbors[velocity_neighbor::XM1_YCC_ZCC] != NULL) {
-      nbrFlux =  block.neighbors[velocity_neighbor::XM1_YCC_ZCC]->fx;
+   if (block->neighbors[velocity_neighbor::XM1_YCC_ZCC] != NULL) {
+      nbrFlux =  block->neighbors[velocity_neighbor::XM1_YCC_ZCC]->fx;
       for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<WID; ++j) nbrFlux[accIndex(ACCMAX,j,k)] += dF[findex(MIN,j+1,k+1)];
    }
    
    // This block (iv  ,jv  ,kv  ):
    for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<WID; ++j) for (unsigned int i=0; i<WID; ++i) {
-      block.fx[accIndex(i,j,k)] += dF[findex(i+1,j+1,k+1)];
+      block->fx[accIndex(i,j,k)] += dF[findex(i+1,j+1,k+1)];
    }
    // Neighbour (iv+1,jv  ,kv  ):
-   if (block.neighbors[velocity_neighbor::XP1_YCC_ZCC] != NULL) {
-      nbrFlux =  block.neighbors[velocity_neighbor::XP1_YCC_ZCC]->fx;
+   if (block->neighbors[velocity_neighbor::XP1_YCC_ZCC] != NULL) {
+      nbrFlux =  block->neighbors[velocity_neighbor::XP1_YCC_ZCC]->fx;
       for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<WID; ++j) nbrFlux[accIndex(ACCMIN,j,k)] += dF[findex(MAX,j+1,k+1)];
    }
    // Neighbour (iv-1,jv+1,kv  ):
-   if (block.neighbors[velocity_neighbor::XM1_YP1_ZCC] != NULL) {
-      nbrFlux =  block.neighbors[velocity_neighbor::XM1_YP1_ZCC]->fx;
+   if (block->neighbors[velocity_neighbor::XM1_YP1_ZCC] != NULL) {
+      nbrFlux =  block->neighbors[velocity_neighbor::XM1_YP1_ZCC]->fx;
       for (unsigned int k=0; k<WID; ++k) nbrFlux[accIndex(ACCMAX,ACCMIN,k)] += dF[findex(MIN,MAX,k+1)];
    }
    // Neighbour (iv  ,jv+1,kv  ):
-   if (block.neighbors[velocity_neighbor::XCC_YP1_ZCC] != NULL) {
-      nbrFlux =  block.neighbors[velocity_neighbor::XCC_YP1_ZCC]->fx;
+   if (block->neighbors[velocity_neighbor::XCC_YP1_ZCC] != NULL) {
+      nbrFlux =  block->neighbors[velocity_neighbor::XCC_YP1_ZCC]->fx;
       for (unsigned int k=0; k<WID; ++k) for (unsigned int i=0; i<WID; ++i) nbrFlux[accIndex(i,ACCMIN,k)] += dF[findex(i+1,MAX,k+1)];
    }   
    // Neighbour (iv+1,jv+1,kv  ):
-   if (block.neighbors[velocity_neighbor::XP1_YP1_ZCC] != NULL) {
-      nbrFlux =  block.neighbors[velocity_neighbor::XP1_YP1_ZCC]->fx;
+   if (block->neighbors[velocity_neighbor::XP1_YP1_ZCC] != NULL) {
+      nbrFlux =  block->neighbors[velocity_neighbor::XP1_YP1_ZCC]->fx;
       for (unsigned int k=0; k<WID; ++k) nbrFlux[accIndex(ACCMIN,ACCMIN,k)] += dF[findex(MAX,MAX,k+1)];
    }
 
    // ***** NEIGHBOURS TO POSITIVE VZ DIRECTION *****
    // Neighbour (iv-1,jv-1,kv+1):
-   if (block.neighbors[velocity_neighbor::XM1_YM1_ZP1] != NULL) {
-      nbrFlux =  block.neighbors[velocity_neighbor::XM1_YM1_ZP1]->fx;
+   if (block->neighbors[velocity_neighbor::XM1_YM1_ZP1] != NULL) {
+      nbrFlux =  block->neighbors[velocity_neighbor::XM1_YM1_ZP1]->fx;
       nbrFlux[accIndex(ACCMAX,ACCMAX,ACCMIN)] += dF[findex(MIN,MIN,MAX)];
    }   
    // Neighbour (iv  ,jv-1,kv+1):
-   if (block.neighbors[velocity_neighbor::XCC_YM1_ZP1] != NULL) {
-      nbrFlux =  block.neighbors[velocity_neighbor::XCC_YM1_ZP1]->fx;
+   if (block->neighbors[velocity_neighbor::XCC_YM1_ZP1] != NULL) {
+      nbrFlux =  block->neighbors[velocity_neighbor::XCC_YM1_ZP1]->fx;
       for (unsigned int i=0; i<WID; ++i) nbrFlux[accIndex(i,ACCMAX,ACCMIN)] += dF[findex(i+1,MIN,MAX)];
    }
    // Neighbour (iv+1,jv-1,kv+1):
-   if (block.neighbors[velocity_neighbor::XP1_YM1_ZP1] != NULL) {
-      nbrFlux =  block.neighbors[velocity_neighbor::XP1_YM1_ZP1]->fx;
+   if (block->neighbors[velocity_neighbor::XP1_YM1_ZP1] != NULL) {
+      nbrFlux =  block->neighbors[velocity_neighbor::XP1_YM1_ZP1]->fx;
       nbrFlux[accIndex(ACCMIN,ACCMAX,ACCMIN)] += dF[findex(MAX,MIN,MAX)];
    }
    // Neighbour (iv-1,jv  ,kv+1):
-   if (block.neighbors[velocity_neighbor::XM1_YCC_ZP1] != NULL) {
-      nbrFlux =  block.neighbors[velocity_neighbor::XM1_YCC_ZP1]->fx;
+   if (block->neighbors[velocity_neighbor::XM1_YCC_ZP1] != NULL) {
+      nbrFlux =  block->neighbors[velocity_neighbor::XM1_YCC_ZP1]->fx;
       for (unsigned int j=0; j<WID; ++j) nbrFlux[accIndex(ACCMAX,j,ACCMIN)] += dF[findex(MIN,j+1,MAX)];
    }
    // Neighbour (iv  ,jv  ,kv+1):
-   if (block.neighbors[velocity_neighbor::XCC_YCC_ZP1] != NULL) {
-      nbrFlux =  block.neighbors[velocity_neighbor::XCC_YCC_ZP1]->fx;
+   if (block->neighbors[velocity_neighbor::XCC_YCC_ZP1] != NULL) {
+      nbrFlux =  block->neighbors[velocity_neighbor::XCC_YCC_ZP1]->fx;
       for (unsigned int j=0; j<WID; ++j) for (unsigned int i=0; i<WID; ++i) nbrFlux[accIndex(i,j,ACCMIN)] += dF[findex(i+1,j+1,MAX)];
    }
    // Neighbour (iv+1,jv  ,kv+1):
-   if (block.neighbors[velocity_neighbor::XP1_YCC_ZP1] != NULL) {
-      nbrFlux =  block.neighbors[velocity_neighbor::XP1_YCC_ZP1]->fx;
+   if (block->neighbors[velocity_neighbor::XP1_YCC_ZP1] != NULL) {
+      nbrFlux =  block->neighbors[velocity_neighbor::XP1_YCC_ZP1]->fx;
       for (unsigned int j=0; j<WID; ++j) nbrFlux[accIndex(ACCMIN,j,ACCMIN)] += dF[findex(MAX,j+1,MAX)];
    }
    // Neighbour (iv-1,jv+1,kv+1):
-   if (block.neighbors[velocity_neighbor::XM1_YP1_ZP1] != NULL) {
-      nbrFlux =  block.neighbors[velocity_neighbor::XM1_YP1_ZP1]->fx;
+   if (block->neighbors[velocity_neighbor::XM1_YP1_ZP1] != NULL) {
+      nbrFlux =  block->neighbors[velocity_neighbor::XM1_YP1_ZP1]->fx;
       nbrFlux[accIndex(ACCMAX,ACCMIN,ACCMIN)] += dF[findex(MIN,MAX,MAX)];
    }
    // Neighbour (iv  ,jv+1,kv+1):
-   if (block.neighbors[velocity_neighbor::XCC_YP1_ZP1] != NULL) {
-      nbrFlux =  block.neighbors[velocity_neighbor::XCC_YP1_ZP1]->fx;
+   if (block->neighbors[velocity_neighbor::XCC_YP1_ZP1] != NULL) {
+      nbrFlux =  block->neighbors[velocity_neighbor::XCC_YP1_ZP1]->fx;
       for (unsigned int i=0; i<WID; ++i) nbrFlux[accIndex(i,ACCMIN,ACCMIN)] += dF[findex(i+1,MAX,MAX)];
    }
    // Neighbour (iv+1,jv+1,kv+1):
-   if (block.neighbors[velocity_neighbor::XP1_YP1_ZP1] != NULL) {
-      nbrFlux = block.neighbors[velocity_neighbor::XP1_YP1_ZP1]->fx;
+   if (block->neighbors[velocity_neighbor::XP1_YP1_ZP1] != NULL) {
+      nbrFlux = block->neighbors[velocity_neighbor::XP1_YP1_ZP1]->fx;
       nbrFlux[accIndex(ACCMIN,ACCMIN,ACCMIN)] += dF[findex(MAX,MAX,MAX)];
    }
 }
 
 
-void fetchAllAverages(Velocity_Block &block,Real* const avgs) {
+void fetchAllAverages(Velocity_Block* block,Real* const avgs) {
 
    Velocity_Block *nbrBlock;
    for (unsigned int i=0; i<8*WID3; ++i) avgs[i] = 0.0;
    
    
    // Copy averages from -x neighbour, or calculate using a boundary function:
-   if (block.neighbors[velocity_neighbor::XM1_YCC_ZCC] == NULL) {
+   if (block->neighbors[velocity_neighbor::XM1_YCC_ZCC] == NULL) {
       for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<WID; ++j) for (unsigned int i=0; i<2; ++i) {
 	 avgs[fullInd(i  ,j+2,k+2)] = 0.0; // BOUNDARY VALUE
       }
    } else {
-      nbrBlock = block.neighbors[velocity_neighbor::XM1_YCC_ZCC];
+      nbrBlock = block->neighbors[velocity_neighbor::XM1_YCC_ZCC];
       for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<WID; ++j) {
 	 #pragma ivdep
 	 for (unsigned int i=0; i<2; ++i) {
@@ -222,12 +222,12 @@ void fetchAllAverages(Velocity_Block &block,Real* const avgs) {
    }
    
    // Copy averages from +x neighbour, or calculate using a boundary function:
-   if (block.neighbors[velocity_neighbor::XP1_YCC_ZCC] == NULL) {
+   if (block->neighbors[velocity_neighbor::XP1_YCC_ZCC] == NULL) {
       for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<WID; ++j) for (unsigned int i=0; i<2; ++i) {
 	 avgs[fullInd(i+6,j+2,k+2)] = 0.0; // BOUNDARY VALUE
       }
    } else {
-      nbrBlock = block.neighbors[velocity_neighbor::XP1_YCC_ZCC];
+      nbrBlock = block->neighbors[velocity_neighbor::XP1_YCC_ZCC];
       for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<WID; ++j) {
 	 #pragma ivdep
 	 for (unsigned int i=0; i<2; ++i) {
@@ -237,12 +237,12 @@ void fetchAllAverages(Velocity_Block &block,Real* const avgs) {
    }
    
    // Copy averages from -y neighbour, or calculate using a boundary function:
-   if (block.neighbors[velocity_neighbor::XCC_YM1_ZCC] == NULL) {
+   if (block->neighbors[velocity_neighbor::XCC_YM1_ZCC] == NULL) {
       for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<2; ++j) for (unsigned int i=0; i<WID; ++i) {
 	 avgs[fullInd(i+2,j  ,k+2)] = 0.0; // BOUNDARY VALUE
       }
    } else {
-      nbrBlock = block.neighbors[velocity_neighbor::XCC_YM1_ZCC];
+      nbrBlock = block->neighbors[velocity_neighbor::XCC_YM1_ZCC];
       for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<2; ++j) {
 	 #pragma ivdep
 	 for (unsigned int i=0; i<WID; ++i) {
@@ -251,12 +251,12 @@ void fetchAllAverages(Velocity_Block &block,Real* const avgs) {
       }
    }
    // Copy averages from +y neighbour, or calculate using a boundary function:
-   if (block.neighbors[velocity_neighbor::XCC_YP1_ZCC] == NULL) {
+   if (block->neighbors[velocity_neighbor::XCC_YP1_ZCC] == NULL) {
       for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<2; ++j) for (unsigned int i=0; i<WID; ++i) {
 	 avgs[fullInd(i+2,j+6,k+2)] = 0.0; // BOUNDARY VALUE
       }
    } else {
-      nbrBlock = block.neighbors[velocity_neighbor::XCC_YP1_ZCC];
+      nbrBlock = block->neighbors[velocity_neighbor::XCC_YP1_ZCC];
       for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<2; ++j) {
 	 #pragma ivdep
 	 for (unsigned int i=0; i<WID; ++i) {
@@ -265,12 +265,12 @@ void fetchAllAverages(Velocity_Block &block,Real* const avgs) {
       }
    }
    // Copy averages from -z neighbour, or calculate using a boundary function:
-   if (block.neighbors[velocity_neighbor::XCC_YCC_ZM1] == NULL) {
+   if (block->neighbors[velocity_neighbor::XCC_YCC_ZM1] == NULL) {
       for (unsigned int k=0; k<2; ++k) for (unsigned int j=0; j<WID; ++j) for (unsigned int i=0; i<WID; ++i) {
 	 avgs[fullInd(i+2,j+2,k  )] = 0.0; // BOUNDARY VALUE
       }
    } else {
-      nbrBlock = block.neighbors[velocity_neighbor::XCC_YCC_ZM1];
+      nbrBlock = block->neighbors[velocity_neighbor::XCC_YCC_ZM1];
       for (unsigned int k=0; k<2; ++k) for (unsigned int j=0; j<WID; ++j) {
 	 #pragma ivdep
 	 for (unsigned int i=0; i<WID; ++i) {
@@ -279,12 +279,12 @@ void fetchAllAverages(Velocity_Block &block,Real* const avgs) {
       }
    }
    // Copy averages from +z neighbour, or calculate using a boundary function:
-   if (block.neighbors[velocity_neighbor::XCC_YCC_ZP1] == NULL) {
+   if (block->neighbors[velocity_neighbor::XCC_YCC_ZP1] == NULL) {
       for (unsigned int k=0; k<2; ++k) for (unsigned int j=0; j<WID; ++j) for (unsigned int i=0; i<WID; ++i) {
 	 avgs[fullInd(i+2,j+2,k+6)] = 0.0; // BOUNDARY VALUE
       }
    } else {
-      nbrBlock = block.neighbors[velocity_neighbor::XCC_YCC_ZP1];
+      nbrBlock = block->neighbors[velocity_neighbor::XCC_YCC_ZP1];
       for (unsigned int k=0; k<2; ++k) for (unsigned int j=0; j<WID; ++j) {
 	 #pragma ivdep
 	 for (unsigned int i=0; i<WID; ++i) {
@@ -295,14 +295,14 @@ void fetchAllAverages(Velocity_Block &block,Real* const avgs) {
 
    // Copy volume averages of this block:
    for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<WID; ++j) for (unsigned int i=0; i<WID; ++i) {
-      avgs[fullInd(i+2,j+2,k+2)] = block.data[accIndex(i,j,k)];
+      avgs[fullInd(i+2,j+2,k+2)] = block->data[accIndex(i,j,k)];
    }
 }
 
 //zero fluxes
 void cpu_clearVelFluxes(SpatialCell *cell,const unsigned int& BLOCK) {
-   Velocity_Block block=cell->at(BLOCK);
-   for (unsigned int i=0; i<SIZE_FLUXS; ++i)  block.fx[i]= 0.0;
+   Velocity_Block* block=cell->at(BLOCK);
+   for (unsigned int i=0; i<SIZE_FLUXS; ++i)  block->fx[i]= 0.0;
 }
 
 void cpu_calcVelFluxes(SpatialCell *cell,const unsigned int& BLOCK,const Real& DT,creal* const accmat) {
@@ -315,13 +315,13 @@ void cpu_calcVelFluxes(SpatialCell *cell,const unsigned int& BLOCK,const Real& D
    Real dfdt[216];
    for (unsigned int i=0; i<216; ++i) dfdt[i] = 0.0;
    
-   Velocity_Block block=cell->at(BLOCK);
+   Velocity_Block* block=cell->at(BLOCK);
    Real avgs[8*WID3];
    fetchAllAverages(block,avgs);
 
-   const Real dt_per_dvx = DT / block.parameters[BlockParams::DVX];
-   const Real dt_per_dvy = DT / block.parameters[BlockParams::DVY];
-   const Real dt_per_dvz = DT / block.parameters[BlockParams::DVZ];
+   const Real dt_per_dvx = DT / block->parameters[BlockParams::DVX];
+   const Real dt_per_dvy = DT / block->parameters[BlockParams::DVY];
+   const Real dt_per_dvz = DT / block->parameters[BlockParams::DVZ];
    
    Real Ax,Ay,Az;
    for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<WID; ++j) for (unsigned int i=0; i<WID; ++i) {
@@ -336,7 +336,7 @@ void cpu_calcVelFluxes(SpatialCell *cell,const unsigned int& BLOCK,const Real& D
       const Real xp1 = avgs[fullInd(i+3,j+2,k+2)];
       const Real xm1 = avgs[fullInd(i+1,j+2,k+2)];
       const Real xm2 = avgs[fullInd(i  ,j+2,k+2)];
-      calcAccFaceX(Ax,Ay,Az,i,j,k,cell->parameters,block.parameters);
+      calcAccFaceX(Ax,Ay,Az,i,j,k,cell->parameters,block->parameters);
 
       solverFlags = 0;
       if (Az < ZERO) solverFlags = (solverFlags | (1 << 0));
@@ -723,7 +723,7 @@ void cpu_calcVelFluxes(SpatialCell *cell,const unsigned int& BLOCK,const Real& D
       const Real yp1 = avgs[fullInd(i+2,j+3,k+2)];
       const Real ym1 = avgs[fullInd(i+2,j+1,k+2)];
       const Real ym2 = avgs[fullInd(i+2,j  ,k+2)];
-      calcAccFaceY(Ax,Ay,Az,i,j,k,cell->parameters,block.parameters);
+      calcAccFaceY(Ax,Ay,Az,i,j,k,cell->parameters,block->parameters);
       
       solverFlags = 0;
       if (Az < ZERO) solverFlags = (solverFlags | (1 << 0));
@@ -1107,7 +1107,7 @@ void cpu_calcVelFluxes(SpatialCell *cell,const unsigned int& BLOCK,const Real& D
       const Real zp1 = avgs[fullInd(i+2,j+2,k+3)];
       const Real zm1 = avgs[fullInd(i+2,j+2,k+1)];
       const Real zm2 = avgs[fullInd(i+2,j+2,k  )];
-      calcAccFaceZ(Ax,Ay,Az,i,j,k,cell->parameters,block.parameters);
+      calcAccFaceZ(Ax,Ay,Az,i,j,k,cell->parameters,block->parameters);
       
       solverFlags = 0;
       if (Az < ZERO) solverFlags = (solverFlags | (1 << 0));
@@ -1496,7 +1496,7 @@ void cpu_calcVelFluxes(SpatialCell *cell,const unsigned int& BLOCK,const Real& D
 }
 
 void cpu_propagateVel(SpatialCell *cell,const unsigned int& BLOCK,const Real& DT) {
-   Velocity_Block block=cell->at(BLOCK);
-   for (unsigned int i=0; i<WID3; ++i) block.data[i] += block.fx[i];
+   Velocity_Block* block=cell->at(BLOCK);
+   for (unsigned int i=0; i<WID3; ++i)  block->data[i] += block->fx[i];
 }
 #endif

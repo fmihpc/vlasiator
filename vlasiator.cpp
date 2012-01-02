@@ -157,6 +157,7 @@ bool adjust_all_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       // gather spatial neighbor list
       const vector<uint64_t>* neighbors = mpiGrid.get_neighbours(*cell_id);
       vector<SpatialCell*> neighbor_ptrs;
+
       neighbor_ptrs.reserve(neighbors->size());
       
       for (vector<uint64_t>::const_iterator
@@ -263,9 +264,11 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
     // FIXME, only CELL_BLOCK_DATA needed?
     SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA );
     mpiGrid.update_remote_neighbour_data();
+
     
     adjust_all_velocity_blocks(mpiGrid);
 
+    
     //velocity blocks adjusted, lets prepare again for new lists
     prepare_to_receive_velocity_block_data(mpiGrid);
 
@@ -275,9 +278,9 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
     mpiGrid.update_remote_neighbour_data();       
     profile::stop("Fetch Neighbour data");   
 
-    /*
+
       //write out vtk files of velocity space using internal function in spatialcell, useful for debugging
-      
+/*      
     for (vector<uint64_t>::const_iterator
        cell_id = cells.begin();
        cell_id != cells.end();
@@ -297,7 +300,8 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
       name += ".vtk";
       cell->save_vtk(name.c_str());
       }   
-    */
+*/
+      
 }
 
 bool readConfigFile(){
@@ -562,9 +566,9 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
       SpatialCell* SC = mpiGrid[cells[cell]];
       for (unsigned int block_i=0;block_i < SC->number_of_blocks;block_i++){
          unsigned int block = SC->velocity_block_list[block_i];
-         Velocity_Block block_data = SC->at(block);
+         Velocity_Block* block_data = SC->at(block);
          for(unsigned int p=0;p<BlockParams::N_VELOCITY_BLOCK_PARAMS;++p){
-            velocityBlockParameters.push_back(block_data.parameters[p]);
+            velocityBlockParameters.push_back(block_data->parameters[p]);
          }
       }
       
@@ -583,9 +587,9 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
       SpatialCell* SC = mpiGrid[cells[cell]];
       for (unsigned int block_i=0;block_i < SC->number_of_blocks;block_i++){
          unsigned int block = SC->velocity_block_list[block_i];
-         Velocity_Block block_data = SC->at(block);
+         Velocity_Block* block_data = SC->at(block);
          for(unsigned int vc=0;vc<SIZE_VELBLOCK;++vc){
-            velocityBlockData.push_back(block_data.data[vc]);
+            velocityBlockData.push_back(block_data->data[vc]);
          }
       }
    }

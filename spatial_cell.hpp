@@ -665,29 +665,29 @@ namespace velocity_neighbor {
 
        
       /*!
-        Returns a reference to the given velocity block or to
+        Returns a pointer to the given velocity block or to
         the null block if given velocity block doesn't exist.
       */
-      Velocity_Block& at(const unsigned int block)
+      Velocity_Block* at(const unsigned int block)
          {
             if (block == error_velocity_block
                 || block >= SpatialCell::max_velocity_blocks) {
-               return this->null_block;
+               return &(this->null_block);
             } else {
-               return *(this->block_address_cache.at(block));
+               return this->block_address_cache.at(block);
             }
          }
 
       /*!
         A const version of the non-const at function.
       */
-      Velocity_Block const& at(const unsigned int block) const
+      Velocity_Block const* at(const unsigned int block) const
          {
             if (block == error_velocity_block
                 || block >= SpatialCell::max_velocity_blocks) {
-               return this->null_block;
+               return &(this->null_block);
             } else {
-               return *(this->block_address_cache.at(block));
+               return this->block_address_cache.at(block);
             }
          }
 

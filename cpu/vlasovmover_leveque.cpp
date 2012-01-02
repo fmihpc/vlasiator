@@ -361,7 +361,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       SpatialCell* SC=mpiGrid[cellID];
       for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
          unsigned int block = SC->velocity_block_list[block_i];         
-         Velocity_Block* block_ptr = &(SC->at(block));     
+         Velocity_Block* block_ptr = SC->at(block);     
          for (uint i=0; i<SIZE_VELBLOCK; i++) block_ptr->fx[i]=0.0;
       }
    }

@@ -125,14 +125,14 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(dccrg::Dccrg<spatial
 //const REAL* const AVGS,cons        t REAL* const CELL_PARAMS,const REAL* const BLOCK_PARAMS,REAL* const flux,
 //					        		    const UINT* const nbrsSpa
 
-   spatial_cell::Velocity_Block block=cell->at(blockId); //returns a reference to block
+   spatial_cell::Velocity_Block* block=cell->at(blockId); //returns a reference to block
 // Create a temporary buffer for storing df/dt updates and init to zero value:
    const UINT SIZE_FLUXBUFFER = 27*WID3;
    REAL dfdt[SIZE_FLUXBUFFER] = {};
    
 //  Pointer to velocity block whose df/dt contribution        s are calculated:
-   const REAL* const blockAvgs   = block.data;
-   const REAL* const blockParams = block.parameters;
+   const REAL* const blockAvgs   = block->data;
+   const REAL* const blockParams = block->parameters;
    
    // ***** Consider the interface between (i-1,j,k) and (i,j,k): *****
    const REAL dt_per_dx = dt / cell->parameters[CellParams::DX];
@@ -140,15 +140,15 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(dccrg::Dccrg<spatial
    const REAL dt_per_dz = dt / cell->parameters[CellParams::DZ];
 
 //FIXME, the indices could have a enum or namespace
-   const REAL* const xnbr_plus1  = mpiGrid[cell->neighbors[14]]->at(blockId).data;
-   const REAL* const xnbr_minus1 = mpiGrid[cell->neighbors[12]]->at(blockId).data;
-   const REAL* const xnbr_minus2 = mpiGrid[cell->neighbors[27]]->at(blockId).data; // --x nbr
-   const REAL* const ynbr_plus1  = mpiGrid[cell->neighbors[16]]->at(blockId).data; //  +y nbr
-   const REAL* const ynbr_minus1 = mpiGrid[cell->neighbors[10]]->at(blockId).data;
-   const REAL* const ynbr_minus2 = mpiGrid[cell->neighbors[28]]->at(blockId).data; // --y nbr
-   const REAL* const znbr_plus1  = mpiGrid[cell->neighbors[22]]->at(blockId).data; // +z nbr
-   const REAL* const znbr_minus1 = mpiGrid[cell->neighbors[4]]->at(blockId).data;
-   const REAL* const znbr_minus2 = mpiGrid[cell->neighbors[29]]->at(blockId).data; // --z nbr
+   const REAL* const xnbr_plus1  = mpiGrid[cell->neighbors[14]]->at(blockId)->data;
+   const REAL* const xnbr_minus1 = mpiGrid[cell->neighbors[12]]->at(blockId)->data;
+   const REAL* const xnbr_minus2 = mpiGrid[cell->neighbors[27]]->at(blockId)->data; // --x nbr
+   const REAL* const ynbr_plus1  = mpiGrid[cell->neighbors[16]]->at(blockId)->data; //  +y nbr
+   const REAL* const ynbr_minus1 = mpiGrid[cell->neighbors[10]]->at(blockId)->data;
+   const REAL* const ynbr_minus2 = mpiGrid[cell->neighbors[28]]->at(blockId)->data; // --y nbr
+   const REAL* const znbr_plus1  = mpiGrid[cell->neighbors[22]]->at(blockId)->data; // +z nbr
+   const REAL* const znbr_minus1 = mpiGrid[cell->neighbors[4]]->at(blockId)->data;
+   const REAL* const znbr_minus2 = mpiGrid[cell->neighbors[29]]->at(blockId)->data; // --z nbr
    
    for (UINT k=0; k<WID; ++k) for (UINT j=0; j<WID; ++j) for (UINT i=0; i<WID; ++i) {
       const REAL Vz = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
@@ -824,19 +824,19 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(dccrg::Dccrg<spatial
    //not need to be atomistic as long as all threads work on the same
    //cell
 
-   //FIXME, this extra copying is perhaps not needed, why not use block.fx's directly?  check
+   //FIXME, this extra copying is perhaps not needed, why not use block->fx's directly?  check
    const UINT boundaryFlags = cell->boundaryFlag;
    for (uint nbr=0; nbr<27; ++nbr) {
       // If the neighbour does not exist, do not copy data:     
       if (((boundaryFlags >> nbr) & 1) == 0) continue;
       
-      spatial_cell::Velocity_Block nbrblock = mpiGrid[cell->neighbors[nbr]]->at(blockId);
+      spatial_cell::Velocity_Block* nbrblock = mpiGrid[cell->neighbors[nbr]]->at(blockId);
       //the flux array is not zeroed, rather a marker has been put to mark if it is non-initialized
       //check for that, and initialize by using = instead of += if that is the case
-      if( nbrblock.fx[0] == std::numeric_limits<REAL>::max())
-         for (uint i=0; i<SIZE_VELBLOCK; ++i) nbrblock.fx[i] = dfdt[nbr*WID3 + i];
+      if( nbrblock->fx[0] == std::numeric_limits<REAL>::max())
+         for (uint i=0; i<SIZE_VELBLOCK; ++i) nbrblock->fx[i] = dfdt[nbr*WID3 + i];
       else
-         for (uint i=0; i<SIZE_VELBLOCK; ++i) nbrblock.fx[i] += dfdt[nbr*WID3 + i];
+         for (uint i=0; i<SIZE_VELBLOCK; ++i) nbrblock->fx[i] += dfdt[nbr*WID3 + i];
    }
 }
 
@@ -856,30 +856,30 @@ template<typename REAL,typename UINT> void cpu_propagateSpatWithMoments(
 	const UINT blockId,
 	const uint block_i
 ) {
-   spatial_cell::Velocity_Block block=cell->at(blockId);
+   spatial_cell::Velocity_Block* block=cell->at(blockId);
 
    // Propagate distribution function:
    if (nbrFluxes == NULL) {
       // No remote neighbour contributions to df/dt
       for (UINT i=0; i<WID3; ++i) {
-         block.data[i]+=block.fx[i];
+         block->data[i]+=block->fx[i];
       }
    } else {
       // Cell has remote neighbour contributions to df/dt
       for (UINT i=0; i<WID3; ++i) {
-         block.data[i]+=block.fx[i]+nbrFluxes[block_i*WID3 + i];
+         block->data[i]+=block->fx[i]+nbrFluxes[block_i*WID3 + i];
       }
    }
    
    // Calculate velocity moments:
-   cpu_blockVelocityMoments(block.data,block.parameters,cell->parameters);
+   cpu_blockVelocityMoments(block->data,block->parameters,cell->parameters);
 
 }
 
 template<typename UINT> void cpu_calcVelocityMoments(spatial_cell::SpatialCell *cell,const UINT blockId){
-   spatial_cell::Velocity_Block block=cell->at(blockId); //returns a reference to block            
+   spatial_cell::Velocity_Block* block=cell->at(blockId); //returns a reference to block            
    // Calculate velocity moments:
-   cpu_blockVelocityMoments(block.data,block.parameters,cell->parameters);
+   cpu_blockVelocityMoments(block->data,block->parameters,cell->parameters);
 
 }
 
