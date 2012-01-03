@@ -17,81 +17,64 @@ bool cellParametersChanged(creal& t) {return false;}
 
 Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
 			   creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {
-   if (z >= 0.2 && z <= 0.2+dz) {//|| (z >= -0.38 && z <= -0.2)) {
-      if (x >= -0.38 && x <= -0.2) {
-	 // Lower left corner
-	 if (y >= -0.38 && y <= -0.2) {
-	    if (vx >= -0.5-dvx && vx < -0.5)
-	      if (vy >= -0.5-dvy && vy < -0.5)
-		if (vz >= 0.5 && vz < 0.5+dvz)
-		  return 1.0;
-	 }
-	 // Upper left corner
-	 if (y >= 0.2 && y <= 0.2+dy) {
-	    if (vx >= -0.5-dvx && vx < -0.5)
-	      if (vy >= 0.5 && vy < 0.5+dvy)
-		if (vz >= 0.5 && vz < 0.5+dvz)
-		  return 1.0;
-	 }
+
+   Real xyz[3];
+   Real vxyz[3];
+   Real dxyz[3];
+   Real dvxyz[3];
+
+   dxyz[0]=dx;
+   dxyz[1]=dy;
+   dxyz[2]=dz;
+   dvxyz[0]=dvx;
+   dvxyz[1]=dvy;
+   dvxyz[2]=dvz;
+   xyz[0]=x;
+   xyz[1]=y;
+   xyz[2]=z;
+   vxyz[0]=vx;
+   vxyz[1]=vy;
+   vxyz[2]=vz;
+
+   //in coordinate units of dx,dy,dz
+   const Real box_real[8][3] = { { 2,2,2},
+                                 {-2,2,2},
+                                 {2,-2,2},
+                                 {2,2,-2},
+                                 {-2,-2,2},
+                                 {-2,2,-2},
+                                 {2,-2,-2},
+                                 {-2,-2,-2}};
+   
+   //in coordinate units of dvx,dvy,dvz
+   const Real box_vel[8][3] = { { 1,1,1},
+                                {-1,1,1},
+                                {1,-1,1},
+                                {1,1,-1},
+                                {-1,-1,1},
+                                {-1,1,-1},
+                                {1,-1,-1},
+                                {-1,-1,-1}};
+   
+   
+   for(int box=0;box<8;box++){
+      bool outsideBox=false;
+      for(int i=0;i<3;i++){
+         if(xyz[i]<(box_real[box][i]-0.5)*dxyz[i] ||
+            xyz[i]>(box_real[box][i]+0.5)*dxyz[i] ||
+            vxyz[i]<(box_vel[box][i]-0.5)*dvxyz[i] ||
+            vxyz[i]>(box_vel[box][i]+0.5)*dvxyz[i]){
+            outsideBox=true;
+            break;
+         }
       }
       
-      if (x >= 0.2 && x <= 0.2+dx) {
-	 // Lower right corner
-	 if (y >= -0.38 && y <= -0.2) {
-	    if (vx >= 0.5 && vx < 0.5+dvx)
-	      if (vy >= -0.5-dvx && vy < -0.5)
-		if (vz >= 0.5 && vz < 0.5+dvz)
-		  return 1.0;
-	 }      
-	 // Upper right corner
-	 if (y >= 0.2 && y <= 0.2+dy) {
-	    if (vx >= 0.5 && vx < 0.5+dvx) 
-	      if (vy >= 0.5 && vy < 0.5+dvy)
-		if (vz >= 0.5 && vz < 0.5+dvz)
-		  return 1.0;
-	 }
-      }
+      if(!outsideBox) return 1.0;
    }
-   
-   if (z >= -0.38 && z <= -0.2) {
-      if (x >= -0.38 && x <= -0.2) {
-	 // Lower left corner
-	 if (y >= -0.38 && y <= -0.2) {
-	    if (vx >= -0.5-dvx && vx < -0.5)
-	      if (vy >= -0.5-dvy && vy < -0.5)
-		if (vz >=-0.5-dvz && vz < -0.5)
-		  return 1.0;
-	 }
-	 // Upper left corner
-	 if (y >= 0.2 && y <= 0.2+dy) {
-	    if (vx >= -0.5-dvx && vx < -0.5)
-	      if (vy >= 0.5 && vy < 0.5+dvy)
-		if (vz >=-0.5-dvz && vz < -0.5)
-		  return 1.0;
-	 }
-      }
-      
-      if (x >= 0.2 && x <= 0.2+dx) {
-	 // Lower right corner
-	 if (y >= -0.38 && y <= -0.2) {
-	    if (vx >= 0.5 && vx < 0.5+dvx)
-	      if (vy >= -0.5-dvx && vy < -0.5)
-		if (vz >=-0.5-dvz && vz < -0.5)
-		  return 1.0;
-	 }
-	 // Upper right corner
-	 if (y >= 0.2 && y <= 0.2+dy) {
-	    if (vx >= 0.5 && vx < 0.5+dvx)
-	      if (vy >= 0.5 && vy < 0.5+dvy)
-		if (vz >=-0.5-dvz && vz < -0.5)
-		  return 1.0;
-	 }
-      }
-   }
-   
    return 0.0;
 }
 
+   
 void calcBlockParameters(Real* blockParams) { }
 
 void calcCellParameters(Real* cellParams,creal& t) {
