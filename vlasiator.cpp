@@ -280,13 +280,13 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
 
 
       //write out vtk files of velocity space using internal function in spatialcell, useful for debugging
-/*      
+      /*
     for (vector<uint64_t>::const_iterator
-       cell_id = cells.begin();
-       cell_id != cells.end();
-       cell_id++
-       )   {
-      SpatialCell* cell = mpiGrid[*cell_id];
+            cell_id = cells.begin();
+         cell_id != cells.end();
+         cell_id++
+         )   {
+       SpatialCell* cell = mpiGrid[*cell_id];
       if (cell == NULL) {
          cerr << __FILE__ << ":" << __LINE__
               << " No data for spatial cell " << *cell_id
@@ -300,7 +300,7 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
       name += ".vtk";
       cell->save_vtk(name.c_str());
       }   
-*/
+      */
       
 }
 
@@ -778,6 +778,7 @@ int main(int argn,char* args[]) {
    reducer.addOperator(new DRO::VariableRho);
    reducer.addOperator(new DRO::VariableRhoV);
    reducer.addOperator(new DRO::MPIrank);
+   reducer.addOperator(new DRO::Blocks);
    reducer.addOperator(new DRO::VariableVolE);
    reducer.addOperator(new DRO::VariableVolB);
    reducer.addOperator(new DRO::VariablePressure);
@@ -911,8 +912,8 @@ int main(int argn,char* args[]) {
       }
 
       profile::start("re-adjust");
-      //      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA );
-      //      mpiGrid.update_remote_neighbour_data();
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA );
+      mpiGrid.update_remote_neighbour_data();
       adjust_all_velocity_blocks(mpiGrid);
       //  velocity blocks adjusted, lets prepare again for new lists
       prepare_to_receive_velocity_block_data(mpiGrid);

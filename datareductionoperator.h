@@ -66,6 +66,21 @@ namespace DRO {
       int mpiRank;
    };
 
+   class Blocks: public DataReductionOperator {
+    public:
+      Blocks();
+      ~Blocks();
+      
+      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      std::string getName() const;
+      bool reduceData(const SpatialCell* cell,char* buffer);
+      bool setSpatialCell(const SpatialCell* cell);
+      
+    protected:
+      int nBlocks;;
+   };
+
+   
    class VariableB: public DataReductionOperator {
     public:
       VariableB();

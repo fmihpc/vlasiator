@@ -238,6 +238,34 @@ namespace DRO {
       return true;
    }
 
+
+
+
+   Blocks::Blocks(): DataReductionOperator() { }
+   Blocks::~Blocks() { }
+   
+   bool Blocks::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "int";
+      dataSize = 4;
+      vectorSize = 1;
+      return true;
+   }
+   
+   std::string Blocks::getName() const {return "Blocks";}
+   
+   bool Blocks::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(&nBlocks);
+      for (uint i=0; i<sizeof(int); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool Blocks::setSpatialCell(const SpatialCell* cell) {
+      nBlocks = cell->number_of_blocks;
+      return true;
+   }
+
+
+
    VariableRhoV::VariableRhoV(): DataReductionOperator() { }
    VariableRhoV::~VariableRhoV() { }
    
