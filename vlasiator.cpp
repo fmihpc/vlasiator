@@ -887,6 +887,7 @@ int main(int argn,char* args[]) {
 	 calculateFaceAveragedFields(mpiGrid);
       }
       profile::stop("Propagate",computedSpatialCells,"SpatialCells");
+
       ++P::tstep;
       P::t += P::dt;
       
@@ -908,6 +909,15 @@ int main(int argn,char* args[]) {
 	 }
          profile::stop("IO");
       }
+
+      profile::start("re-adjust");
+      //      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA );
+      //      mpiGrid.update_remote_neighbour_data();
+      adjust_all_velocity_blocks(mpiGrid);
+      //  velocity blocks adjusted, lets prepare again for new lists
+      prepare_to_receive_velocity_block_data(mpiGrid);
+      profile::stop("re-adjust");
+
       MPI_Barrier(MPI_COMM_WORLD);
    }
    double after = MPI_Wtime();
@@ -928,8 +938,6 @@ int main(int argn,char* args[]) {
    profile::stop("Finalization");   
    profile::stop("main");
    profile::print(MPI_COMM_WORLD);
-   profile::print(MPI_COMM_WORLD,0.01);
-   profile::print(MPI_COMM_WORLD,0.05);
    
 
    if (myrank == MASTER_RANK) mpilogger << "(MAIN): Exiting." << endl << write;

@@ -1517,10 +1517,6 @@ namespace velocity_neighbor {
             return;
          }
 
-         // set neighbour pointers to this block to NULL
-         unsigned int neighbour_block;
-
-
          //remove block from neighbors neighbor lists
          unsigned int neighbor_block;
          for(int offset_vx=-1;offset_vx<=1;offset_vx++)
@@ -1530,14 +1526,14 @@ namespace velocity_neighbor {
             if(offset_vx==0 && offset_vy==0 && offset_vz==0) continue;
 
             neighbor_block = get_velocity_block_from_offsets(block, offset_vx,offset_vy,offset_vz);
-            if (neighbour_block != error_velocity_block
-                && this->velocity_blocks.count(neighbour_block) > 0) {
+            if (neighbor_block != error_velocity_block
+                && this->velocity_blocks.count(neighbor_block) > 0) {
                // TODO use cached addresses of neighbors
-               Velocity_Block* neighbour_data = &(this->velocity_blocks.at(neighbour_block));
+               Velocity_Block* neighbor_data = &(this->velocity_blocks.at(neighbor_block));
                // update the neighbor list of neighboring block
                // index of current block in neighbors neighbor table
                int neighbor_neighbor_index=(1-offset_vx)+(1-offset_vy)*3+(1-offset_vz)*9;
-               neighbour_data->neighbors[neighbor_neighbor_index] = &(this->null_block);
+               neighbor_data->neighbors[neighbor_neighbor_index] = &(this->null_block);
             }
          }
 
