@@ -25,12 +25,12 @@ CXXFLAGS += -DNDEBUG
 
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
-PROJ = harm1D
+#PROJ = harm1D
 #PROJ = Alfven
 #PROJ = Diffusion
 #PROJ = Harris
 #PROJ=test_fp
-#PROJ=test_acc
+PROJ=test_trans
 #PROJ=msphere
 #PROJ=velrot2+3
 #PROJ=velocity_rotation_1+3d
@@ -181,11 +181,15 @@ muxml.o: ${DEPS_MUXML}
 parameters.o: $(DEPS_PARAMETERS)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c parameters.cpp ${INC_BOOST}
 
-project.o: $(DEPS_PROJECT)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c project.cpp ${INC_BOOST} ${INC_ZOLTAN} ${INC_DCCRG} ${INC_MPI}
-
 projinstall:
 	make project -C projects "INSTALL=${INSTALL}" "PROJ=${PROJ}"
+
+project.cpp: projinstall
+
+project.h: projinstall
+
+project.o: $(DEPS_PROJECT)
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c project.cpp ${INC_BOOST} ${INC_ZOLTAN} ${INC_DCCRG} ${INC_MPI}
 
 profile.o: ${DEPS_PROFILE}
 	${CMP} $(CXXFLAGS) $(FLAGS) -DMPILOGGER -c profile.cpp 
