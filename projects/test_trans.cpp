@@ -18,58 +18,59 @@ bool cellParametersChanged(creal& t) {return false;}
 Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
 			   creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {
 
+   //Please use even number of cells in velocity and real space
    Real xyz[3];
    Real vxyz[3];
-   Real dxyz[3];
-   Real dvxyz[3];
-
-   dxyz[0]=dx;
-   dxyz[1]=dy;
-   dxyz[2]=dz;
-   dvxyz[0]=dvx;
-   dvxyz[1]=dvy;
-   dvxyz[2]=dvz;
-   xyz[0]=x;
-   xyz[1]=y;
-   xyz[2]=z;
-   vxyz[0]=vx;
-   vxyz[1]=vy;
-   vxyz[2]=vz;
-
-   //in coordinate units of dx,dy,dz
-   const Real box_real[8][3] = { { 2,2,2},
-                                 {-2,2,2},
-                                 {2,-2,2},
-                                 {2,2,-2},
-                                 {-2,-2,2},
-                                 {-2,2,-2},
-                                 {2,-2,-2},
-                                 {-2,-2,-2}};
    
-   //in coordinate units of dvx,dvy,dvz
-   const Real box_vel[8][3] = { { 1,1,1},
-                                {-1,1,1},
-                                {1,-1,1},
-                                {1,1,-1},
-                                {-1,-1,1},
-                                {-1,1,-1},
-                                {1,-1,-1},
-                                {-1,-1,-1}};
+//location of this cell
+   vxyz[0]=(vx+0.5*dvx)/dvx;
+   vxyz[1]=(vy+0.5*dvy)/dvy;
+   vxyz[2]=(vz+0.5*dvz)/dvz;
+
+      
+   xyz[0]=(x+0.5*dx)/dx;
+   xyz[1]=(y+0.5*dy)/dy;
+   xyz[2]=(z+0.5*dz)/dz;
+
+
+   //real space coordinates of boxes
+   //Assume an even number of spatial cells per grid dimension
+   const Real box_real[8][3] = { { 1.5,1.5,1.5},
+                                 {-1.5,1.5,1.5},
+                                 {1.5,-1.5,1.5},
+                                 {1.5,1.5,-1.5},
+                                 {-1.5,-1.5,1.5},
+                                 {-1.5,1.5,-1.5},
+                                 {1.5,-1.5,-1.5},
+                                 {-1.5,-1.5,-1.5}};
+   
+   //velocity space coordinates of boxes in reduced units
+   //there is always an even amount of velocity cells per dimension (assuming WID is even) 
+   const Real box_vel[8][3] = { { 1.5,1.5,1.5},
+                                {-1.5,1.5,1.5},
+                                {1.5,-1.5,1.5},
+                                {1.5,1.5,-1.5},
+                                {-1.5,-1.5,1.5},
+                                {-1.5,1.5,-1.5},
+                                {1.5,-1.5,-1.5},
+                                {-1.5,-1.5,-1.5}};
    
    
    for(int box=0;box<8;box++){
       bool outsideBox=false;
       for(int i=0;i<3;i++){
-         if(xyz[i]<(box_real[box][i]-0.5)*dxyz[i] ||
-            xyz[i]>(box_real[box][i]+0.5)*dxyz[i] ||
-            vxyz[i]<(box_vel[box][i]-0.5)*dvxyz[i] ||
-            vxyz[i]>(box_vel[box][i]+0.5)*dvxyz[i]){
+         if(xyz[i]<(box_real[box][i]-0.1) ||
+            xyz[i]>(box_real[box][i]+0.1) ||
+            vxyz[i]<(box_vel[box][i]-0.1) ||
+            vxyz[i]>(box_vel[box][i]+0.1)){
             outsideBox=true;
             break;
          }
       }
       
-      if(!outsideBox) return 1.0;
+      if(!outsideBox) {
+         return 1.0;
+      }
    }
    return 0.0;
 }
