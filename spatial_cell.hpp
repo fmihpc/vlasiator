@@ -155,6 +155,10 @@ namespace velocity_neighbor {
 */
    typedef boost::array<unsigned int, 3> velocity_cell_indices_t;
 
+
+   /* FIXME FIXME   No copy constructor, even if we need one. At the moment it is called at initialization of spatial cells, which also calls its copy constructors. As it is empty of blocks, no problems arise because of our missing velocity block copy constructor. The problem is the neigbors member, which has direct pointers to neighboring blocks in velocity space. In a copy these would be invalid....
+   */
+   
    class Velocity_Block {
    public:
 
@@ -644,7 +648,6 @@ namespace velocity_neighbor {
             this->velocity_block_list.push_back(error_velocity_block);
             this->block_address_cache.push_back(&(this->null_block));
          }
-
          this->null_block.clear();
          // zero neighbor lists of null block
          for (unsigned int i = 0; i < N_NEIGHBOR_VELOCITY_BLOCKS; i++) {
@@ -661,8 +664,38 @@ namespace velocity_neighbor {
             this->derivatives[i]=0;
          }
       }
-   
+      
+      SpatialCell(const SpatialCell& other):
+         number_of_blocks(other.number_of_blocks),
+         velocity_block_list(other.velocity_block_list),
+         velocity_blocks(other.velocity_blocks),
+         initialized(other.initialized),
+         isGhostCell(other.isGhostCell),
+         boundaryFlag(other.boundaryFlag),
+         neighbors(other.neighbors){
 
+         for(unsigned int i=0;i< CellParams::N_SPATIAL_CELL_PARAMS;i++){
+            parameters[i]=other.parameters[i];
+         }
+         for(unsigned int i=0;i< fieldsolver::N_SPATIAL_CELL_DERIVATIVES;i++){
+            derivatives[i]=other.derivatives[i];
+         }
+         
+         for (unsigned int block = 0; block < SpatialCell::max_velocity_blocks; block++) {
+            if( other.block_address_cache[block] == &(other.null_block))
+               this->block_address_cache.push_back(&(this->null_block));
+            else
+               this->block_address_cache.push_back(&(this->velocity_blocks.at(block)));
+         }
+         this->null_block.clear();
+         // zer o         neighbor lists of null block
+         for (unsigned int i = 0; i < N_NEIGHBOR_VELOCITY_BLOCKS; i++) {
+            this->null_block.neighbors[i] = NULL;
+         }         
+         
+         
+      }
+      
        
       /*!
         Returns a pointer to the given velocity block or to
@@ -1672,21 +1705,21 @@ namespace velocity_neighbor {
 
    private:
 
+      SpatialCell & operator= (const SpatialCell&);
+      
+      
       /*
       Per-instance parameters
       */
 
       bool initialized;
-      unsigned int current_velocity_blocks;
-
-
-
       /*!
         Used as a neighbour instead of blocks that don't
         exist but would be inside of the velocity grid.
         Neighbors that would be outside of the grid are always NULL.
       */
       Velocity_Block null_block;
+
 
       // data of velocity blocks that exist in this cell
       boost::unordered_map<unsigned int, Velocity_Block> velocity_blocks;
@@ -1695,7 +1728,7 @@ namespace velocity_neighbor {
         Speed up search of velocity block addresses in the hash table above.
         Addresses of non-existing blocks point to the null block.
       */
-      //FIXME, static array?      
+
       std::vector<Velocity_Block*> block_address_cache;
 
 
