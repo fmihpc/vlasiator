@@ -156,8 +156,6 @@ namespace velocity_neighbor {
    typedef boost::array<unsigned int, 3> velocity_cell_indices_t;
 
 
-   /* FIXME FIXME   No copy constructor, even if we need one. At the moment it is called at initialization of spatial cells, which also calls its copy constructors. As it is empty of blocks, no problems arise because of our missing velocity block copy constructor. The problem is the neigbors member, which has direct pointers to neighboring blocks in velocity space. In a copy these would be invalid....
-   */
    
    class Velocity_Block {
    public:
@@ -674,13 +672,15 @@ namespace velocity_neighbor {
          boundaryFlag(other.boundaryFlag),
          neighbors(other.neighbors){
 
+         //copy parameters
          for(unsigned int i=0;i< CellParams::N_SPATIAL_CELL_PARAMS;i++){
             parameters[i]=other.parameters[i];
          }
+         //copy derivatives
          for(unsigned int i=0;i< fieldsolver::N_SPATIAL_CELL_DERIVATIVES;i++){
             derivatives[i]=other.derivatives[i];
          }
-         
+         //add pointers to block_address_cache
          for (unsigned int block = 0; block < SpatialCell::max_velocity_blocks; block++) {
             if( other.block_address_cache[block] == &(other.null_block))
                this->block_address_cache.push_back(&(this->null_block));
@@ -688,15 +688,44 @@ namespace velocity_neighbor {
                this->block_address_cache.push_back(&(this->velocity_blocks.at(block)));
          }
          this->null_block.clear();
-         // zer o         neighbor lists of null block
+         
+         // zero neighbor lists of null block
          for (unsigned int i = 0; i < N_NEIGHBOR_VELOCITY_BLOCKS; i++) {
             this->null_block.neighbors[i] = NULL;
          }         
-         
-         
+
+
+         //fix neighbor lists of all normal blocks
+         for(unsigned int block_i=0;block_i<number_of_blocks;block_i++){
+            unsigned int block=velocity_block_list[block_i];
+            Velocity_Block* block_ptr = this->block_address_cache[block];
+            //loop through neighbors
+            for(int offset_vx=-1;offset_vx<=1;offset_vx++)
+               for(int offset_vy=-1;offset_vy<=1;offset_vy++)
+                  for(int offset_vz=-1;offset_vz<=1;offset_vz++){
+                     // location of neighbor pointer in this block's neighbor list
+                     int neighbor_index=(1+offset_vx)+(1+offset_vy)*3+(1+offset_vz)*9;
+                     if(offset_vx==0 && offset_vy==0 && offset_vz==0)
+                        continue;
+
+                     unsigned int neighbor_block = get_velocity_block_from_offsets(block, offset_vx,offset_vy,offset_vz);
+                     //error, make neighbor null
+                     if (neighbor_block == error_velocity_block) {
+                        block_ptr->neighbors[neighbor_index] = NULL;
+                     }
+                     //neighbor not in cell, add null_block as neighbour
+                     else if (this->velocity_blocks.count(neighbor_block) == 0) {
+                        block_ptr->neighbors[neighbor_index] = &(this->null_block);
+                     }
+                     //add neighbor pointer
+                     else {
+                        block_ptr->neighbors[neighbor_index] = &(this->velocity_blocks.at(neighbor_block));
+                     }
+                  }
+         }
       }
       
-       
+      
       /*!
         Returns a pointer to the given velocity block or to
         the null block if given velocity block doesn't exist.
