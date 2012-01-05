@@ -211,8 +211,6 @@ bool finalizeMover() {
 
 void calculateSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,Real& dt) { }
 void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,ID::type cell) { }
-
-
 void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid) { 
    typedef Parameters P;
    
@@ -476,9 +474,8 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
    
 // Post receives for remote updates:
    
-   // FIXME: Support variable number of velocity blocks
+
    cells=mpiGrid.get_cells();
-   const size_t SIZE_DFDT = cells.size() > 0 ? mpiGrid[cells[0]]->size()*SIZE_VELBLOCK*sizeof(Real) : 0;
    
    MPIsendRequests.clear(); 
    MPIrecvRequests.clear();
@@ -515,7 +512,7 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
 
       //receive as bytestream (convert to sparse format later on)       
       MPIrecvRequests.push_back(MPI_Request());
-      MPI_Irecv(buffer,SIZE_DFDT,MPI_BYTE,host,tag,MPI_COMM_WORLD,&(MPIrecvRequests.back()));
+      MPI_Irecv(buffer, mpiGrid[localID]->size()*SIZE_VELBLOCK*sizeof(Real),MPI_BYTE,host,tag,MPI_COMM_WORLD,&(MPIrecvRequests.back()));
 
    }
    profile::stop("Start receives");
@@ -580,7 +577,7 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
       
    // Sum remote neighbour updates to the first receive buffer of each 
    // local cell (if necessary):
-   //CONTINUE HERE, NEED TO SUM THE DENSE TEMPORARY ARRAY FLUXES INTO THE SPARSE ONE. ORDER AS IN THE CREATION OF THE DATATYPE (....)
+   //FIXME, is this old comment taken care of?:  NEED TO SUM THE DENSE TEMPORARY ARRAY FLUXES INTO THE SPARSE ONE. ORDER AS IN THE CREATION OF THE DATATYPE (....)
    profile::start("Sum remote updates");
    for (map<CellID,vector<vector<Real> > >::iterator it=remoteUpdates.begin(); it!=remoteUpdates.end(); ++it) {
       const CellID cellID = it->first;
@@ -590,7 +587,6 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
          Real* sumBuffer = &((*buffer)[0]);
          ++buffer;
          while (buffer != it->second.end()) {
-#pragma omp parallel  for        
             for (uint i=0; i< (*buffer).size();i++)
                sumBuffer[i] += (*buffer)[i];
             ++buffer;
@@ -601,7 +597,7 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
    profile::start("Spatial translation (boundary)");
    // Propagate boundary cells:
 //cpu_propagetSpatWithMoments only write to data in cell cellID, parallel for safe
-#pragma omp parallel for     
+
    for (int i=0;i<boundaryCellIds.size();i++){
       const CellID cellID = boundaryCellIds[i];
       creal* const nbr_dfdt    = &(remoteUpdates[cellID][0][0]);
@@ -625,6 +621,7 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
 	 }
       }
    }
+   
    profile::stop("Spatial translation (boundary)");
 
    // Wait for neighbour update sends:

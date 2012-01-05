@@ -153,7 +153,7 @@ bool adjust_all_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
                    << endl;
          abort();
       }
-      
+      profile::start("gather_neighbours");
       // gather spatial neighbor list
       const vector<uint64_t>* neighbors = mpiGrid.get_neighbours(*cell_id);
       vector<SpatialCell*> neighbor_ptrs;
@@ -180,8 +180,10 @@ bool adjust_all_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 
          neighbor_ptrs.push_back(neighbor);         
       }
-
+      profile::stop("gather_neighbours");
+      profile::start("Cell:adjust_velocity_blocks");
       cell->adjust_velocity_blocks(neighbor_ptrs);
+      profile::stop("Cell:adjust_velocity_blocks");
    }
    
    // set cells' weights based on adjusted number of velocity blocks
@@ -739,9 +741,10 @@ int main(int argn,char* args[]) {
       P::periodic_x, P::periodic_y, P::periodic_z
    );
 
+
+   
    
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", "1.05");
-   
    profile::start("Initial load-balancing");
    if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting initial load balance." << endl << write;
    initialLoadBalance(mpiGrid);
@@ -834,6 +837,7 @@ int main(int argn,char* args[]) {
    double before = MPI_Wtime();
    unsigned int totalComputedSpatialCells=0;
    unsigned int computedSpatialCells=0;
+
    profile::start("Simulation");
    for (luint tstep=P::tstep_min; tstep < P::tsteps; ++tstep) {
        
@@ -849,11 +853,13 @@ int main(int argn,char* args[]) {
       // Propagate the state of simulation forward in time by dt:      
       if (P::propagateVlasov == true) {
           profile::start("Propagate Vlasov");
+
           profile::start("First propagation");
           calculateSpatialDerivatives(mpiGrid);
           calculateSpatialFluxes(mpiGrid);
           calculateSpatialPropagation(mpiGrid,false,false);
           profile::stop("First propagation",computedSpatialCells,"SpatialCells");
+
           bool transferAvgs = false;
 	  if (P::tstep % P::saveRestartInterval == 0
 	  || P::tstep % P::diagnInterval == 0
@@ -861,11 +867,11 @@ int main(int argn,char* args[]) {
 	  ) {
 	     transferAvgs = true;
 	  }
-          
-	  profile::start("Acceleration");
+
+          profile::start("Acceleration");
           calculateAcceleration(mpiGrid);
 	  profile::stop("Acceleration",computedSpatialCells,"SpatialCells");
-	 
+
           profile::start("Second propagation");
           calculateSpatialDerivatives(mpiGrid);
           calculateSpatialFluxes(mpiGrid);
@@ -910,13 +916,19 @@ int main(int argn,char* args[]) {
 	 }
          profile::stop("IO");
       }
+      MPI_Barrier(MPI_COMM_WORLD);
 
       profile::start("re-adjust");
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA );
-      mpiGrid.update_remote_neighbour_data();
+
+
       adjust_all_velocity_blocks(mpiGrid);
-      //  velocity blocks adjusted, lets prepare again for new lists
+      
       prepare_to_receive_velocity_block_data(mpiGrid);
+      // profile::start("Fetch Neighbour data");
+       // update complete spatial cell data 
+      // SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
+      //mpiGrid.update_remote_neighbour_data();       
+      // profile::stop("Fetch Neighbour data");   
       profile::stop("re-adjust");
 
       MPI_Barrier(MPI_COMM_WORLD);
