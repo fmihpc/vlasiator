@@ -753,6 +753,10 @@ namespace velocity_neighbor {
             }
          }
 
+      bool is_null_block(Velocity_Block* block_ptr) const
+         {
+            return (block_ptr== &(this->null_block));
+         }
 
       /*!
         Returns the number of given velocity blocks that exist.

@@ -872,14 +872,21 @@ int main(int argn,char* args[]) {
           calculateAcceleration(mpiGrid);
 	  profile::stop("Acceleration",computedSpatialCells,"SpatialCells");
 
+          profile::start("re-adjust");
+          adjust_all_velocity_blocks(mpiGrid);
+          prepare_to_receive_velocity_block_data(mpiGrid);
+          profile::stop("re-adjust");
+          
           profile::start("Second propagation");
           calculateSpatialDerivatives(mpiGrid);
           calculateSpatialFluxes(mpiGrid);
           calculateSpatialPropagation(mpiGrid,true,transferAvgs);
           profile::stop("Second propagation",computedSpatialCells,"SpatialCells");
           profile::stop("Propagate Vlasov",computedSpatialCells,"SpatialCells");
-      }
 
+
+      }
+ 
       // Propagate fields forward in time by dt. If field is not 
       // propagated self-consistently (test-Vlasov simulation), then 
       // re-calculate face-averaged E,B fields. This requires that 
@@ -919,8 +926,6 @@ int main(int argn,char* args[]) {
       MPI_Barrier(MPI_COMM_WORLD);
 
       profile::start("re-adjust");
-
-
       adjust_all_velocity_blocks(mpiGrid);
       
       prepare_to_receive_velocity_block_data(mpiGrid);

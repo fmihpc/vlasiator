@@ -829,9 +829,14 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(dccrg::Dccrg<spatial
    for (uint nbr=0; nbr<27; ++nbr) {
       // If the neighbour does not exist, do not copy data:     
       if (((boundaryFlags >> nbr) & 1) == 0) continue;
+
       
       spatial_cell::Velocity_Block* nbrblock = mpiGrid[cell->neighbors[nbr]]->at(blockId);
-      //the flux array is not zeroed, rather a marker has been put to mark if it is non-initialized
+
+//if neighbour is null_block, do not copy fluxes to it
+      if(mpiGrid[cell->neighbors[nbr]]->is_null_block(nbrblock)) continue;
+      
+//the flux array is not zeroed, rather a marker has been put to mark if it is non-initialized
       //check for that, and initialize by using = instead of += if that is the case
       if( nbrblock->fx[0] == std::numeric_limits<REAL>::max())
          for (uint i=0; i<SIZE_VELBLOCK; ++i) nbrblock->fx[i] = dfdt[nbr*WID3 + i];
