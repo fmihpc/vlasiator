@@ -1117,17 +1117,18 @@ namespace velocity_neighbor {
                profile::stop(pcheckvel);
                profile::start(pcheckreal);
                // real space neighbors
-               for (std::vector<SpatialCell*>::const_iterator
-                  neighbor = spatial_neighbors.begin();
-                  neighbor != spatial_neighbors.end();
-                  neighbor++
-               ) {
-                  if ((*neighbor)->velocity_block_has_contents(*original)) {
-                     neighbors_have_content = true;
-                     break;
+               if(!neighbors_have_content){
+                  for (std::vector<SpatialCell*>::const_iterator
+                          neighbor = spatial_neighbors.begin();
+                       neighbor != spatial_neighbors.end();
+                       neighbor++
+                       ) {
+                     if ((*neighbor)->velocity_block_has_contents(*original)) {
+                        neighbors_have_content = true;
+                        break;
+                     }
                   }
                }
-               
                profile::stop(pcheckreal);
                profile::start(premove);
                

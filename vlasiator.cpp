@@ -210,10 +210,12 @@ copies of remote neighbors for receiving velocity block data.
 void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
 {
    // update velocity block lists  
+   profile::initializeTimer("Velocity block list size update","MPI");
    profile::start("Velocity block list size update");
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_SIZE);
    mpiGrid.update_remote_neighbour_data();
    profile::stop("Velocity block list size update");
+   profile::initializeTimer("Velocity block list update","MPI");
    profile::start("Velocity block list update");
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST);
    mpiGrid.update_remote_neighbour_data();
@@ -222,6 +224,7 @@ void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
    /*      
    Prepare spatial cells for receiving velocity block data
    */
+   
    profile::start("Preparing receives");
    const boost::unordered_set<uint64_t>* incoming_cells = mpiGrid.get_remote_cells_with_local_neighbours();
    for (boost::unordered_set<uint64_t>::const_iterator cell_id = incoming_cells->begin();
@@ -278,6 +281,7 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
     //velocity blocks adjusted, lets prepare again for new lists
     prepare_to_receive_velocity_block_data(mpiGrid);
 
+    profile::initializeTimer("Fetch Neighbour data","MPI");
     profile::start("Fetch Neighbour data");
     // update complete spatial cell data 
     SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
@@ -510,7 +514,10 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
 
    // If restart data is not written, exit here:
    if (writeRestart == false) {
+      profile::initializeTimer("Barrier","MPI","Barrier");
+      profile::start("Barrier");
       MPI_Barrier(MPI_COMM_WORLD);
+      profile::stop("Barrier");
       vlsvWriter.close();
       profile::stop("writeGrid-reduced");
       return success;
@@ -761,7 +768,6 @@ int main(int argn,char* args[]) {
 	 std::cerr << "An error has occurred, aborting. See logfile for details." << std::endl;
       }
       MPI_Barrier(MPI_COMM_WORLD);
-      mpilogger.close();
       return 1;
    }
    
@@ -872,6 +878,7 @@ int main(int argn,char* args[]) {
           calculateSpatialDerivatives(mpiGrid);
           calculateSpatialFluxes(mpiGrid);
           calculateSpatialPropagation(mpiGrid,false,false);
+          profile::initializeTimer("Barrier","MPI","Barrier");
           profile::start("Barrier");
           MPI_Barrier(MPI_COMM_WORLD);
           profile::stop("Barrier");
@@ -899,6 +906,7 @@ int main(int argn,char* args[]) {
           calculateSpatialDerivatives(mpiGrid);
           calculateSpatialFluxes(mpiGrid);
           calculateSpatialPropagation(mpiGrid,true,transferAvgs);
+          profile::initializeTimer("Barrier","MPI","Barrier");
           profile::start("Barrier");
           MPI_Barrier(MPI_COMM_WORLD);
           profile::stop("Barrier");
