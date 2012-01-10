@@ -872,6 +872,9 @@ int main(int argn,char* args[]) {
           calculateSpatialDerivatives(mpiGrid);
           calculateSpatialFluxes(mpiGrid);
           calculateSpatialPropagation(mpiGrid,false,false);
+          profile::start("Barrier");
+          MPI_Barrier(MPI_COMM_WORLD);
+          profile::stop("Barrier");
           profile::initializeTimer("re-adjust blocks","Block adjustment");
           profile::start("re-adjust blocks");
           adjust_all_velocity_blocks(mpiGrid);
@@ -896,6 +899,9 @@ int main(int argn,char* args[]) {
           calculateSpatialDerivatives(mpiGrid);
           calculateSpatialFluxes(mpiGrid);
           calculateSpatialPropagation(mpiGrid,true,transferAvgs);
+          profile::start("Barrier");
+          MPI_Barrier(MPI_COMM_WORLD);
+          profile::stop("Barrier");
           profile::initializeTimer("re-adjust blocks","Block adjustment");
           profile::start("re-adjust blocks");
           adjust_all_velocity_blocks(mpiGrid);

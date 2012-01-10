@@ -641,14 +641,15 @@ namespace velocity_neighbor {
          /*
            Block list and cache always have room for all blocks
          */
-         this->velocity_block_list.reserve(SpatialCell::max_velocity_blocks);
+         this->velocity_block_list.resize(SpatialCell::max_velocity_blocks);
          this->number_of_blocks=0;
          
          this->block_address_cache.reserve(SpatialCell::max_velocity_blocks);
          for (unsigned int block = 0; block < SpatialCell::max_velocity_blocks; block++) {
-            this->velocity_block_list.push_back(error_velocity_block);
             this->block_address_cache.push_back(&(this->null_block));
          }
+
+
          this->null_block.clear();
          // zero neighbor lists of null block
          for (unsigned int i = 0; i < N_NEIGHBOR_VELOCITY_BLOCKS; i++) {
@@ -1037,108 +1038,6 @@ namespace velocity_neighbor {
 
 
       /*!
-        Checks velocity blocks in the velocity block list.
-      */
-      void check_velocity_block_list(void) const
-         {
-            for (unsigned int i = 0; i < SpatialCell::max_velocity_blocks; i++) {
-               if (this->velocity_block_list[i] == error_velocity_block) {
-                  for (unsigned int j = i; j < SpatialCell::max_velocity_blocks; j++) {
-                     if (this->velocity_block_list[i] != error_velocity_block) {
-                        std::cerr << __FILE__ << ":" << __LINE__
-                                  << "Velocity block list has holes"
-                                  << std::endl;
-                        abort();
-                     }
-                  }
-                  break;
-               }
-
-               if (this->velocity_blocks.count(this->velocity_block_list[i]) == 0) {
-                  std::cerr << __FILE__ << ":" << __LINE__
-                            << " Velocity block " << this->velocity_block_list[i]
-                            << " doesn't exist"
-                            << std::endl;
-                  abort();
-               }
-            }
-         }
-      
-      inline void check_number_of_blocks(const std::string file,const int line) const {
-         unsigned int numBlocks = 0;
-         while (numBlocks < SpatialCell::max_velocity_blocks
-                && this->velocity_block_list[numBlocks] != error_velocity_block) {
-            numBlocks++;
-         }
-         if(numBlocks!=this->number_of_blocks){
-            std::cerr <<  file << ":" << line << "Number of blocks " << this->number_of_blocks << " should be "<< numBlocks<<std::endl;
-            abort();
-         }
-      }
-      
-      /*!
-        Prints velocity blocks in the velocity block list.
-      */
-      void print_velocity_block_list(void) const
-         {
-            std::cout << this->velocity_blocks.size() << " blocks: ";
-            for (unsigned int i = 0; i < SpatialCell::max_velocity_blocks; i++) {
-
-               if (this->velocity_block_list[i] == error_velocity_block) {
-                  // debug
-                  for (unsigned int j = i; j < SpatialCell::max_velocity_blocks; j++) {
-                     if (this->velocity_block_list[i] != error_velocity_block) {
-                        std::cerr << "Velocity block list has holes" << std::endl;
-                        abort();
-                     }
-                  }
-                  break;
-               }
-               std::cout << this->velocity_block_list[i] << " ";
-            }
-            std::cout << std::endl;
-         }
-
-      /*!
-        Prints given velocity block's velocity neighbor list.
-      */
-      void print_velocity_neighbor_list(const unsigned int block) const
-      {
-         if (this->velocity_blocks.count(block) == 0) {
-            return;
-         }
-
-         const Velocity_Block* block_ptr = &(this->velocity_blocks.at(block));
-
-         std::cout << block << " neighbors: ";
-         for (unsigned int neighbor = 0; neighbor < N_NEIGHBOR_VELOCITY_BLOCKS; neighbor++) {
-            if (block_ptr->neighbors[neighbor] == NULL) {
-               std::cout << "NULL ";
-            } else if (block_ptr->neighbors[neighbor] == &(this->null_block)) {
-               std::cout << "null ";
-            } else {
-               std::cout << block_ptr->neighbors[neighbor] << " ";
-            }
-         }
-         std::cout << std::endl;
-      }
-
-      /*!
-        Prints all velocity blocks' velocity neighbor list.
-      */
-      void print_velocity_neighbor_lists(void) const
-         {
-            for (unsigned int i = 0; i < SpatialCell::max_velocity_blocks; i++) {
-
-               if (this->velocity_block_list[i] == error_velocity_block) {
-                  break;
-               }
-
-               this->print_velocity_neighbor_list(this->velocity_block_list[i]);
-            }
-         }
-
-      /*!
         Adds "important" and removes "unimportant" velocity blocks to/from this cell.
 
         Removes all velocity blocks from this spatial cell which don't have content
@@ -1160,10 +1059,7 @@ namespace velocity_neighbor {
          profile::stop(pempty);
          int paddreal=profile::initializeTimer("add_for_realspace");
          
-         #ifdef DEBUG
-         this->check_velocity_block_list();
-         #endif
-         this->check_number_of_blocks(__FILE__,__LINE__);
+
          // don't iterate over blocks created / removed by this function
          std::vector<unsigned int> original_block_list;
          original_block_list.reserve(SpatialCell::max_velocity_blocks);
@@ -1266,232 +1162,6 @@ namespace velocity_neighbor {
          
       }
       
-      /*!
-        Saves this spatial cell in vtk ascii format into the given filename.
-      */
-      void save_vtk(const char* filename) const {
-
-         // do nothing if one cell or block dimension is 0
-         if (block_vx_length == 0
-             || block_vy_length == 0
-             || block_vz_length == 0
-             || SpatialCell::vx_length == 0
-             || SpatialCell::vy_length == 0
-             || SpatialCell::vz_length == 0) {
-            return;
-         }
-
-         std::ofstream outfile(filename);
-         if (!outfile.is_open()) {
-            std::cerr << "Couldn't open file " << filename << std::endl;
-            // TODO: throw an exception instead
-            abort();
-         }
-
-         outfile << "# vtk DataFile Version 2.0" << std::endl;
-         outfile << "Vlasiator spatial cell" << std::endl;
-         outfile << "ASCII" << std::endl;
-         outfile << "DATASET UNSTRUCTURED_GRID" << std::endl;
-
-         // write separate points for every velocity cells' corners
-         outfile << "POINTS " << (this->velocity_blocks.size() * VELOCITY_BLOCK_LENGTH + 2) * 8 << " double" << std::endl;
-         for (std::vector<unsigned int>::const_iterator
-            block = this->velocity_block_list.begin();
-            block != this->velocity_block_list.end();
-            block++
-         ) {
-
-            if (*block == error_velocity_block) {
-               // assume no blocks after first error block
-               break;
-            }
-
-            for (unsigned int z_index = 0; z_index < block_vz_length; z_index++)
-               for (unsigned int y_index = 0; y_index < block_vy_length; y_index++)
-                  for (unsigned int x_index = 0; x_index < block_vx_length; x_index++) {
-
-                     const velocity_cell_indices_t indices = {x_index, y_index, z_index};
-                     const unsigned int velocity_cell = get_velocity_cell(indices);
-
-                     outfile << get_velocity_cell_vx_min(*block, velocity_cell) << " "
-                             << get_velocity_cell_vy_min(*block, velocity_cell) << " "
-                             << get_velocity_cell_vz_min(*block, velocity_cell) << "\n";
-
-                     outfile << get_velocity_cell_vx_max(*block, velocity_cell) << " "
-                             << get_velocity_cell_vy_min(*block, velocity_cell) << " "
-                             << get_velocity_cell_vz_min(*block, velocity_cell) << "\n";
-
-                     outfile << get_velocity_cell_vx_min(*block, velocity_cell) << " "
-                             << get_velocity_cell_vy_max(*block, velocity_cell) << " "
-                             << get_velocity_cell_vz_min(*block, velocity_cell) << "\n";
-
-                     outfile << get_velocity_cell_vx_max(*block, velocity_cell) << " "
-                             << get_velocity_cell_vy_max(*block, velocity_cell) << " "
-                             << get_velocity_cell_vz_min(*block, velocity_cell) << "\n";
-
-                     outfile << get_velocity_cell_vx_min(*block, velocity_cell) << " "
-                             << get_velocity_cell_vy_min(*block, velocity_cell) << " "
-                             << get_velocity_cell_vz_max(*block, velocity_cell) << "\n";
-
-                     outfile << get_velocity_cell_vx_max(*block, velocity_cell) << " "
-                             << get_velocity_cell_vy_min(*block, velocity_cell) << " "
-                             << get_velocity_cell_vz_max(*block, velocity_cell) << "\n";
- 
-                     outfile << get_velocity_cell_vx_min(*block, velocity_cell) << " "
-                             << get_velocity_cell_vy_max(*block, velocity_cell) << " "
-                             << get_velocity_cell_vz_max(*block, velocity_cell) << "\n";
-
-                     outfile << get_velocity_cell_vx_max(*block, velocity_cell) << " "
-                             << get_velocity_cell_vy_max(*block, velocity_cell) << " "
-                             << get_velocity_cell_vz_max(*block, velocity_cell) << "\n";
-                  }
-         }
-         /*
-           Add small velocity cells to the negative and positive corners of the grid
-           so VisIt knows the maximum size of the velocity grid regardless of existing cells
-         */
-         outfile << SpatialCell::vx_min - 0.1 * SpatialCell::cell_dvx << " "
-                 << SpatialCell::vy_min - 0.1 * SpatialCell::cell_dvy << " "
-                 << SpatialCell::vz_min - 0.1 * SpatialCell::cell_dvz << "\n";
-         outfile << SpatialCell::vx_min << " "
-                 << SpatialCell::vy_min - 0.1 * SpatialCell::cell_dvy << " "
-                 << SpatialCell::vz_min - 0.1 * SpatialCell::cell_dvz << "\n";
-         outfile << SpatialCell::vx_min - 0.1 * SpatialCell::cell_dvx << " "
-                 << SpatialCell::vy_min << " "
-                 << SpatialCell::vz_min - 0.1 * SpatialCell::cell_dvz << "\n";
-         outfile << SpatialCell::vx_min << " "
-                 << SpatialCell::vy_min << " "
-                 << SpatialCell::vz_min - 0.1 * SpatialCell::cell_dvz << "\n";
-         outfile << SpatialCell::vx_min - 0.1 * SpatialCell::cell_dvx << " "
-                 << SpatialCell::vy_min - 0.1 * SpatialCell::cell_dvy << " "
-                 << SpatialCell::vz_min << "\n";
-         outfile << SpatialCell::vx_min << " "
-                 << SpatialCell::vy_min - 0.1 * SpatialCell::cell_dvy << " "
-                 << SpatialCell::vz_min << "\n";
-         outfile << SpatialCell::vx_min - 0.1 * SpatialCell::cell_dvx << " "
-                 << SpatialCell::vy_min << " "
-                 << SpatialCell::vz_min << "\n";
-         outfile << SpatialCell::vx_min << " "
-                 << SpatialCell::vy_min << " "
-                 << SpatialCell::vz_min << "\n";
-
-         outfile << SpatialCell::vx_max << " "
-                 << SpatialCell::vy_max << " "
-                 << SpatialCell::vz_max << "\n";
-         outfile << SpatialCell::vx_max + 0.1 * SpatialCell::cell_dvx << " "
-                 << SpatialCell::vy_max << " "
-                 << SpatialCell::vz_max << "\n";
-         outfile << SpatialCell::vx_max << " "
-                 << SpatialCell::vy_max + 0.1 * SpatialCell::cell_dvy << " "
-                 << SpatialCell::vz_max << "\n";
-         outfile << SpatialCell::vx_max + 0.1 * SpatialCell::cell_dvx << " "
-                 << SpatialCell::vy_max + 0.1 * SpatialCell::cell_dvy << " "
-                 << SpatialCell::vz_max << "\n";
-         outfile << SpatialCell::vx_max << " "
-                 << SpatialCell::vy_max << " "
-                 << SpatialCell::vz_max + 0.1 * SpatialCell::cell_dvz << "\n";
-         outfile << SpatialCell::vx_max + 0.1 * SpatialCell::cell_dvx << " "
-                 << SpatialCell::vy_max << " "
-                 << SpatialCell::vz_max + 0.1 * SpatialCell::cell_dvz << "\n";
-         outfile << SpatialCell::vx_max << " "
-                 << SpatialCell::vy_max + 0.1 * SpatialCell::cell_dvy << " "
-                 << SpatialCell::vz_max + 0.1 * SpatialCell::cell_dvz << "\n";
-         outfile << SpatialCell::vx_max + 0.1 * SpatialCell::cell_dvx << " "
-                 << SpatialCell::vy_max + 0.1 * SpatialCell::cell_dvy << " "
-                 << SpatialCell::vz_max + 0.1 * SpatialCell::cell_dvz << "\n";
-
-         // map cells to written points
-         outfile << "CELLS "
-                 << this->velocity_blocks.size() * VELOCITY_BLOCK_LENGTH + 2 << " "
-                 << (this->velocity_blocks.size() * VELOCITY_BLOCK_LENGTH + 2)* 9 << std::endl;
-
-         unsigned int j = 0;
-         for (std::vector<unsigned int>::const_iterator
-              block = this->velocity_block_list.begin();
-              block != this->velocity_block_list.end();
-              block++
-         ) {
-
-            if (*block == error_velocity_block) {
-               // assume no blocks after first error block
-               break;
-            }
-
-            for (unsigned int z_index = 0; z_index < block_vz_length; z_index++)
-               for (unsigned int y_index = 0; y_index < block_vy_length; y_index++)
-                  for (unsigned int x_index = 0; x_index < block_vx_length; x_index++) {
-
-                     outfile << "8 ";
-                     for (int i = 0; i < 8; i++) {
-                        outfile << j * 8 + i << " ";
-                     }
-                     outfile << "\n";
-
-                     j++;
-                  }
-         }
-         outfile << "8 ";
-         for (unsigned int i = 0; i < 8; i++) {
-            outfile << j * 8 + i << " ";
-         }
-         j++;
-         outfile << "\n 8 ";
-         for (unsigned int i = 0; i < 8; i++) {
-            outfile << j * 8 + i << " ";
-         }
-         outfile << "\n";
-
-         // cell types
-         outfile << "CELL_TYPES " << this->velocity_blocks.size() * VELOCITY_BLOCK_LENGTH + 2 << std::endl;
-         for (unsigned int i = 0; i < this->velocity_blocks.size() * VELOCITY_BLOCK_LENGTH + 2; i++) {
-            outfile << "11\n";
-         }
-
-         // Put minimum value from existing blocks into two additional cells
-         Real min_value = std::numeric_limits<Real>::max();
-
-         // distribution function
-         outfile << "CELL_DATA " << this->velocity_blocks.size() * VELOCITY_BLOCK_LENGTH + 2 << std::endl;
-         outfile << "SCALARS rho double 1" << std::endl;
-         outfile << "LOOKUP_TABLE default" << std::endl;
-         for (std::vector<unsigned int>::const_iterator
-              block = this->velocity_block_list.begin();
-              block != this->velocity_block_list.end();
-              block++
-         ) {
-
-            if (*block == error_velocity_block) {
-               // assume no blocks after first error block
-               if (min_value == std::numeric_limits<Real>::max()) {
-                  min_value = 0;
-               }
-               break;
-            }
-
-            const Velocity_Block block_data = this->velocity_blocks.at(*block);
-
-            for (unsigned int z_index = 0; z_index < block_vz_length; z_index++)
-               for (unsigned int y_index = 0; y_index < block_vy_length; y_index++)
-                  for (unsigned int x_index = 0; x_index < block_vx_length; x_index++) {
-
-                     const velocity_cell_indices_t indices = {x_index, y_index, z_index};
-                     const unsigned int velocity_cell = get_velocity_cell(indices);
-                     const Real value = block_data.data[velocity_cell];
-                     outfile << value << " ";
-                     min_value = std::min(min_value, value);
-                  }
-            outfile << "\n";
-         }
-         outfile << min_value << " " << min_value << std::endl;
-
-         if (!outfile.good()) {
-            std::cerr << "Writing of vtk file probably failed" << std::endl;
-            // TODO: throw an exception instead
-            abort();
-         }
-
-         outfile.close();
-       }
 
       /*!
         Adds an empty velocity block into this spatial cell.
@@ -1571,9 +1241,6 @@ namespace velocity_neighbor {
          }
 
          this->velocity_block_list[this->number_of_blocks] = block;
-         //add stopper value  (deprecated, use number_of_blocks)
-         if(this->number_of_blocks<SpatialCell::max_velocity_blocks)
-            this->velocity_block_list[this->number_of_blocks+1] = error_velocity_block;
          this->number_of_blocks++;
 
 
@@ -1647,20 +1314,8 @@ namespace velocity_neighbor {
                 && this->velocity_block_list[block_index] != block) {
             block_index++;
          }
-         //debug
-         if (block_index == SpatialCell::max_velocity_blocks) {
-            std::cerr << "Velocity block " << block << " not found in list" << std::endl;
-            abort();
-         }
-
-
          
-         if (block_index == this->number_of_blocks - 1) {
-            this->velocity_block_list[block_index] = error_velocity_block;
-         } else {
-            this->velocity_block_list[block_index] = this->velocity_block_list[this->number_of_blocks - 1];
-            this->velocity_block_list[this->number_of_blocks - 1] = error_velocity_block;
-         }
+         this->velocity_block_list[block_index] = this->velocity_block_list[this->number_of_blocks - 1];
          this->number_of_blocks--;
 
       }
@@ -1672,16 +1327,14 @@ namespace velocity_neighbor {
       void clear(void)
          {
             this->velocity_blocks.clear();
-            //FIXME, it shold not be necessary to fill all list values with error_velocity_block, only first.
             for (unsigned int i = 0; i < SpatialCell::max_velocity_blocks; i++) {
                this->block_address_cache[i] = &(this->null_block);
-               this->velocity_block_list[i] = error_velocity_block;
             }
             this->number_of_blocks=0;
          }
 
 
-      /*!
+      /*!       
         Prepares this spatial cell to receive the velocity grid over MPI.
 
         At this stage we have received a new blocklist over MPI, but
@@ -1693,11 +1346,13 @@ namespace velocity_neighbor {
          {
             unsigned int oldNumBlocks = this->number_of_blocks;
             // clear + add_velocity_block overwrites the block list so:
-            std::vector<unsigned int> old_block_list(oldNumBlocks, error_velocity_block);
+            std::vector<unsigned int> old_block_list;
+            old_block_list.resize(oldNumBlocks);
+               
             for (unsigned int block_index = 0; block_index < oldNumBlocks; block_index++) {
                old_block_list[block_index] = this->velocity_block_list[block_index];
             }
-
+            
             this->clear();
 
             // add velocity blocks that are about to be received with MPI
