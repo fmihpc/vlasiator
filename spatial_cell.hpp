@@ -78,14 +78,16 @@ namespace spatial_cell {
       const unsigned int NONE                     = 0;
       const unsigned int CELL_PARAMETERS          = (1<<0);
       const unsigned int CELL_DERIVATIVES         = (1<<1);
-      const unsigned int VEL_BLOCK_LIST           = (1<<2);
-      const unsigned int VEL_BLOCK_DATA           = (1<<3);
-      const unsigned int VEL_BLOCK_FLUXES         = (1<<4);
-      const unsigned int VEL_BLOCK_KT_DERIVATIVES = (1<<5);
-      const unsigned int VEL_BLOCK_PARAMETERS     = (1<<6);
-      const unsigned int CELL_B_RHO_RHOV          = (1<<7);
-      const unsigned int CELL_E                   = (1<<8);
-      const unsigned int CELL_GHOSTFLAG           = (1<<9);
+      const unsigned int VEL_BLOCK_LIST_SIZE      = (1<<2);
+//to update BLOCK_LIST, BLOCK_LIST_SIZE has to be updated in a separate stage
+      const unsigned int VEL_BLOCK_LIST           = (1<<3);
+      const unsigned int VEL_BLOCK_DATA           = (1<<4);
+      const unsigned int VEL_BLOCK_FLUXES         = (1<<5);
+      const unsigned int VEL_BLOCK_KT_DERIVATIVES = (1<<6);
+      const unsigned int VEL_BLOCK_PARAMETERS     = (1<<7);
+      const unsigned int CELL_B_RHO_RHOV          = (1<<8);
+      const unsigned int CELL_E                   = (1<<9);
+      const unsigned int CELL_GHOSTFLAG           = (1<<10);
 //does not update block-lists, need to be updated in separate stage
       const unsigned int ALL_DATA =
       CELL_PARAMETERS
@@ -815,13 +817,16 @@ namespace velocity_neighbor {
             unsigned int block_index = 0;
 
             //add data to send/recv to displacement and block length lists
+            if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_SIZE)!=0){
+               // send velocity block list size 
+               displacements.push_back((uint8_t*) &(this->number_of_blocks) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(unsigned int));
+            }
             
             if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST)!=0){
                // send velocity block list  
                displacements.push_back((uint8_t*) &(this->velocity_block_list[0]) - (uint8_t*) this);
-               displacements.push_back((uint8_t*) &(this->number_of_blocks) - (uint8_t*) this);
-               block_lengths.push_back(sizeof(unsigned int) * SpatialCell::max_velocity_blocks);
-               block_lengths.push_back(sizeof(unsigned int));
+               block_lengths.push_back(sizeof(unsigned int) * this->number_of_blocks);
             }
 
             if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA)!=0){

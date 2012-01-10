@@ -210,6 +210,10 @@ copies of remote neighbors for receiving velocity block data.
 void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
 {
    // update velocity block lists  
+   profile::start("Velocity block list size update");
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_SIZE);
+   mpiGrid.update_remote_neighbour_data();
+   profile::stop("Velocity block list size update");
    profile::start("Velocity block list update");
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST);
    mpiGrid.update_remote_neighbour_data();
