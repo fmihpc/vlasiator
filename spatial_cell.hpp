@@ -32,6 +32,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "stdint.h"
 #include "vector"
 
+#include "profile.h"
 #include "common.h"
 #include "parameters.h"
 #include "definitions.h"
@@ -1147,6 +1148,18 @@ namespace velocity_neighbor {
       */
       void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors)
       {
+         //initialize tree of timers to make sure every process has timers, even for processes with no velocity cells.
+         //Also reduces overhead in tight loops compared to simple interface
+         
+         int pcontent = profile::initializeTimer("add_in_velocityspace");
+         int pempty = profile::initializeTimer("try_to_remove");
+         profile::start(pempty);
+         int pcheckvel=profile::initializeTimer("check vel space ngbrs");
+         int pcheckreal=profile::initializeTimer("check real space ngbrs");
+         int premove=profile::initializeTimer("remove");
+         profile::stop(pempty);
+         int paddreal=profile::initializeTimer("add_for_realspace");
+         
          #ifdef DEBUG
          this->check_velocity_block_list();
          #endif
@@ -1162,13 +1175,14 @@ namespace velocity_neighbor {
          // remove all blocks in this cell without content + without neighbors with content
          // add neighboring blocks in velocity space for blocks with content
          for (std::vector<unsigned int>::const_iterator
-              original = original_block_list.begin();
+                 original = original_block_list.begin();
               original != original_block_list.end();
               original++
-         ) {
+              ) {
             const bool original_has_content = this->velocity_block_has_contents(*original);
             
             if (original_has_content) {             
+               profile::start(pcontent);
                // add missing neighbors in velocity space
                for(int offset_vx=-1;offset_vx<=1;offset_vx++)
                for(int offset_vy=-1;offset_vy<=1;offset_vy++)
@@ -1177,7 +1191,7 @@ namespace velocity_neighbor {
                   if (neighbor_block == error_velocity_block) {
                      continue;
                   }
-
+                  
                   if (!this->add_velocity_block(neighbor_block)) {
                      std::cerr << __FILE__ << ":" << __LINE__
                                << " Failed to add neighbor block " << neighbor_block
@@ -1186,12 +1200,14 @@ namespace velocity_neighbor {
                      abort();
                   }
                }
+               profile::stop(pcontent);
 
             } else {
-
+               profile::start(pempty);
                // remove local block if also no neighbor has content
                bool neighbors_have_content = false;
-               
+
+               profile::start(pcheckvel);
                // velocity space neighbors
                for(int offset_vx=-1;offset_vx<=1;offset_vx++)
                for(int offset_vy=-1;offset_vy<=1;offset_vy++)
@@ -1202,7 +1218,8 @@ namespace velocity_neighbor {
                      break;
                   }
                }
-               
+               profile::stop(pcheckvel);
+               profile::start(pcheckreal);
                // real space neighbors
                for (std::vector<SpatialCell*>::const_iterator
                   neighbor = spatial_neighbors.begin();
@@ -1215,15 +1232,21 @@ namespace velocity_neighbor {
                   }
                }
                
+               profile::stop(pcheckreal);
+               profile::start(premove);
+               
                if (!neighbors_have_content) {
                   this->remove_velocity_block(*original);
                }
+               profile::stop(premove);
+               profile::stop(pempty);
                
             }
             
          }
 
          // add local blocks for neighbors in real space with content
+         profile::start(paddreal);
          for (std::vector<SpatialCell*>::const_iterator
             neighbor = spatial_neighbors.begin();
             neighbor != spatial_neighbors.end();
@@ -1236,6 +1259,7 @@ namespace velocity_neighbor {
                }
             }
          }
+         profile::stop(paddreal);
          
       }
       

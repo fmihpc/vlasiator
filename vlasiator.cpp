@@ -841,17 +841,27 @@ int main(int argn,char* args[]) {
    double before = MPI_Wtime();
    unsigned int totalComputedSpatialCells=0;
    unsigned int computedSpatialCells=0;
+   unsigned int totalComputedVelocityCells=0;
+   unsigned int computedVelocityCells=0;
 
    profile::start("Simulation");
    for (luint tstep=P::tstep_min; tstep < P::tsteps; ++tstep) {
        
        //compute how many spatial cells we solve for this step
-       computedSpatialCells=mpiGrid.get_cells().size();
-       totalComputedSpatialCells+=computedSpatialCells;
-        profile::start("Propagate");
-       // Recalculate (maybe) spatial cell parameters
-       calculateSimParameters(mpiGrid, P::t, P::dt);
-
+      vector<uint64_t> cells = mpiGrid.get_cells();
+      computedSpatialCells=cells.size();
+      computedVelocityCells=0;
+      for(uint i=0;i<cells.size();i++)
+         computedVelocityCells+=mpiGrid[cells[i]]->number_of_blocks;
+      
+         
+      totalComputedSpatialCells+=computedSpatialCells;
+      totalComputedVelocityCells+=computedVelocityCells;
+      
+      profile::start("Propagate");
+      // Recalculate (maybe) spatial cell parameters
+      calculateSimParameters(mpiGrid, P::t, P::dt);
+      
       // use globally minimum timestep
       P::dt = all_reduce(comm, P::dt, boost::mpi::minimum<Real>());
       // Propagate the state of simulation forward in time by dt:      
@@ -862,7 +872,12 @@ int main(int argn,char* args[]) {
           calculateSpatialDerivatives(mpiGrid);
           calculateSpatialFluxes(mpiGrid);
           calculateSpatialPropagation(mpiGrid,false,false);
-          profile::stop("First propagation",computedSpatialCells,"SpatialCells");
+          profile::initializeTimer("re-adjust blocks","Block adjustment");
+          profile::start("re-adjust blocks");
+          adjust_all_velocity_blocks(mpiGrid);
+          prepare_to_receive_velocity_block_data(mpiGrid);
+          profile::stop("re-adjust blocks");
+          profile::stop("First propagation",computedVelocityCells,"VelocityCells");
 
           bool transferAvgs = false;
 	  if (P::tstep % P::saveRestartInterval == 0
@@ -874,20 +889,21 @@ int main(int argn,char* args[]) {
 
           profile::start("Acceleration");
           calculateAcceleration(mpiGrid);
-	  profile::stop("Acceleration",computedSpatialCells,"SpatialCells");
+	  profile::stop("Acceleration",computedVelocityCells,"VelocityCells");
 
-          profile::start("re-adjust");
-          adjust_all_velocity_blocks(mpiGrid);
-          prepare_to_receive_velocity_block_data(mpiGrid);
-          profile::stop("re-adjust");
           
           profile::start("Second propagation");
           calculateSpatialDerivatives(mpiGrid);
           calculateSpatialFluxes(mpiGrid);
           calculateSpatialPropagation(mpiGrid,true,transferAvgs);
-          profile::stop("Second propagation",computedSpatialCells,"SpatialCells");
-          profile::stop("Propagate Vlasov",computedSpatialCells,"SpatialCells");
-
+          profile::initializeTimer("re-adjust blocks","Block adjustment");
+          profile::start("re-adjust blocks");
+          adjust_all_velocity_blocks(mpiGrid);
+          prepare_to_receive_velocity_block_data(mpiGrid);
+          profile::stop("re-adjust blocks");
+          profile::stop("Second propagation",computedVelocityCells,"VelocityCells");
+          profile::stop("Propagate Vlasov",computedVelocityCells,"VelocityCells");
+          
 
       }
  
@@ -900,11 +916,11 @@ int main(int argn,char* args[]) {
       if (P::propagateField == true) {
           profile::start("Propagate Fields");
           propagateFields(mpiGrid,P::dt);
-          profile::stop("Propagate Fields",computedSpatialCells,"SpatialCells");
+          profile::stop("Propagate Fields",computedVelocityCells,"VelocityCells");
       } else {
 	 calculateFaceAveragedFields(mpiGrid);
       }
-      profile::stop("Propagate",computedSpatialCells,"SpatialCells");
+      profile::stop("Propagate",computedVelocityCells,"VelocityCells");
 
       ++P::tstep;
       P::t += P::dt;
@@ -927,24 +943,10 @@ int main(int argn,char* args[]) {
 	 }
          profile::stop("IO");
       }
-      MPI_Barrier(MPI_COMM_WORLD);
-
-      profile::start("re-adjust");
-      adjust_all_velocity_blocks(mpiGrid);
-      
-      prepare_to_receive_velocity_block_data(mpiGrid);
-      // profile::start("Fetch Neighbour data");
-       // update complete spatial cell data 
-      // SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
-      //mpiGrid.update_remote_neighbour_data();       
-      // profile::stop("Fetch Neighbour data");   
-      profile::stop("re-adjust");
-
-      MPI_Barrier(MPI_COMM_WORLD);
    }
    double after = MPI_Wtime();
 
-   profile::stop("Simulation",totalComputedSpatialCells,"SpatialCells");
+   profile::stop("Simulation",totalComputedVelocityCells,"VelocityCells");
    profile::start("Finalization");   
    finalizeMover();
    finalizeFieldPropagator(mpiGrid);
