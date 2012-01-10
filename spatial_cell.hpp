@@ -1254,6 +1254,9 @@ namespace velocity_neighbor {
               ) {
             for(unsigned int block_index=0;block_index<(*neighbor)->number_of_blocks;block_index++){
                unsigned int block = (*neighbor)->velocity_block_list[block_index];
+               if ( this->block_address_cache[block] != &(this->null_block))
+                  continue; //block already exists, no need to check if we should add it
+               
                if ((*neighbor)->velocity_block_has_contents(block)) {
                   this->add_velocity_block(block);
                }

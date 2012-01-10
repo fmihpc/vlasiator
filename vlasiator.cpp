@@ -239,7 +239,7 @@ void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
       cell->prepare_to_receive_blocks();
    }
    
-   profile::stop("Preparing receives", incoming_cells->size(), "Spatial cells");
+   profile::stop("Preparing receives", incoming_cells->size(), "SpatialCells");
 }
 
 
@@ -841,8 +841,8 @@ int main(int argn,char* args[]) {
    double before = MPI_Wtime();
    unsigned int totalComputedSpatialCells=0;
    unsigned int computedSpatialCells=0;
-   unsigned int totalComputedVelocityCells=0;
-   unsigned int computedVelocityCells=0;
+   unsigned int totalComputedBlocks=0;
+   unsigned int computedBlocks=0;
 
    profile::start("Simulation");
    for (luint tstep=P::tstep_min; tstep < P::tsteps; ++tstep) {
@@ -850,13 +850,13 @@ int main(int argn,char* args[]) {
        //compute how many spatial cells we solve for this step
       vector<uint64_t> cells = mpiGrid.get_cells();
       computedSpatialCells=cells.size();
-      computedVelocityCells=0;
+      computedBlocks=0;
       for(uint i=0;i<cells.size();i++)
-         computedVelocityCells+=mpiGrid[cells[i]]->number_of_blocks;
+         computedBlocks+=mpiGrid[cells[i]]->number_of_blocks;
       
          
       totalComputedSpatialCells+=computedSpatialCells;
-      totalComputedVelocityCells+=computedVelocityCells;
+      totalComputedBlocks+=computedBlocks;
       
       profile::start("Propagate");
       // Recalculate (maybe) spatial cell parameters
@@ -877,7 +877,7 @@ int main(int argn,char* args[]) {
           adjust_all_velocity_blocks(mpiGrid);
           prepare_to_receive_velocity_block_data(mpiGrid);
           profile::stop("re-adjust blocks");
-          profile::stop("First propagation",computedVelocityCells,"VelocityCells");
+          profile::stop("First propagation",computedBlocks,"Blocks");
 
           bool transferAvgs = false;
 	  if (P::tstep % P::saveRestartInterval == 0
@@ -889,7 +889,7 @@ int main(int argn,char* args[]) {
 
           profile::start("Acceleration");
           calculateAcceleration(mpiGrid);
-	  profile::stop("Acceleration",computedVelocityCells,"VelocityCells");
+	  profile::stop("Acceleration",computedBlocks,"Blocks");
 
           
           profile::start("Second propagation");
@@ -901,8 +901,8 @@ int main(int argn,char* args[]) {
           adjust_all_velocity_blocks(mpiGrid);
           prepare_to_receive_velocity_block_data(mpiGrid);
           profile::stop("re-adjust blocks");
-          profile::stop("Second propagation",computedVelocityCells,"VelocityCells");
-          profile::stop("Propagate Vlasov",computedVelocityCells,"VelocityCells");
+          profile::stop("Second propagation",computedBlocks,"Blocks");
+          profile::stop("Propagate Vlasov",computedBlocks,"Blocks");
           
 
       }
@@ -916,11 +916,11 @@ int main(int argn,char* args[]) {
       if (P::propagateField == true) {
           profile::start("Propagate Fields");
           propagateFields(mpiGrid,P::dt);
-          profile::stop("Propagate Fields",computedVelocityCells,"VelocityCells");
+          profile::stop("Propagate Fields",computedBlocks,"Blocks");
       } else {
 	 calculateFaceAveragedFields(mpiGrid);
       }
-      profile::stop("Propagate",computedVelocityCells,"VelocityCells");
+      profile::stop("Propagate",computedBlocks,"Blocks");
 
       ++P::tstep;
       P::t += P::dt;
@@ -946,7 +946,7 @@ int main(int argn,char* args[]) {
    }
    double after = MPI_Wtime();
 
-   profile::stop("Simulation",totalComputedVelocityCells,"VelocityCells");
+   profile::stop("Simulation",totalComputedBlocks,"Blocks");
    profile::start("Finalization");   
    finalizeMover();
    finalizeFieldPropagator(mpiGrid);
