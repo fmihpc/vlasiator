@@ -759,7 +759,7 @@ namespace velocity_neighbor {
 
       bool is_null_block(Velocity_Block* block_ptr) const
          {
-            return (block_ptr== &(this->null_block));
+            return (block_ptr== &(this->null_block)|| block_ptr==NULL);
          }
 
       /*!
