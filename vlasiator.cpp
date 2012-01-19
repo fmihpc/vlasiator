@@ -884,6 +884,8 @@ int main(int argn,char* args[]) {
           profile::stop("Barrier");
           profile::initializeTimer("re-adjust blocks","Block adjustment");
           profile::start("re-adjust blocks");
+          SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA );
+          mpiGrid.update_remote_neighbour_data();
           adjust_all_velocity_blocks(mpiGrid);
           prepare_to_receive_velocity_block_data(mpiGrid);
           profile::stop("re-adjust blocks");
@@ -912,6 +914,8 @@ int main(int argn,char* args[]) {
           profile::stop("Barrier");
           profile::initializeTimer("re-adjust blocks","Block adjustment");
           profile::start("re-adjust blocks");
+          SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA );
+          mpiGrid.update_remote_neighbour_data();
           adjust_all_velocity_blocks(mpiGrid);
           prepare_to_receive_velocity_block_data(mpiGrid);
           profile::stop("re-adjust blocks");
