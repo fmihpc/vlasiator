@@ -434,10 +434,9 @@ int main(int argn,char* args[]) {
    // Compare directory contents against each mask:
    const string directory = ".";
    const string suffix = ".vlsv";
-   int filesFound = 0, entryCounter = 0, filesConverted = 0;
+   int filesFound = 0, filesConverted = 0;
    for (size_t mask=0; mask<masks.size(); ++mask) {
       if(rank == 0) {cout << "Comparing mask '" << masks[mask] << "'" << endl;}
-//      unsigned int filesConverted = 0, entryCounter = 0;
       DIR* dir = opendir(directory.c_str());
       if (dir == NULL) continue;
       
@@ -458,7 +457,7 @@ int main(int argn,char* args[]) {
    }
    
    for(size_t entryName = 0; entryName < fileList.size(); entryName++) {
-      if(entryCounter++%ntasks == rank) {
+      if(entryName%ntasks == rank) {
          cout << "\tProc " << rank << " converting '" << fileList[entryName] << "'" << endl;
          convertSILO(fileList[entryName]);
 	 filesConverted++;
