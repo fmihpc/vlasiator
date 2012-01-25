@@ -25,9 +25,10 @@ CXXFLAGS += -DNDEBUG
 
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
-PROJ = harm1D
+#PROJ = harm1D
 #PROJ = Alfven
 #PROJ = Diffusion
+PROJ = Dispersion
 #PROJ = Harris
 #PROJ=test_fp
 #PROJ=test_acc
@@ -44,7 +45,7 @@ include projects/Makefile.${PROJ}
 # The rest of this file users shouldn't need to change
 
 
-default: vlasiator vlsv2silo vlsvextract vlsv2vtk
+default: vlasiator vlsv2silo vlsvextract vlsv2vtk vlsv2bzt
 
 # Compile directory:
 INSTALL = $(CURDIR)
@@ -81,6 +82,7 @@ DEPS_VLSVEXTRACT = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp v
 DEPS_VLSVREADER2 = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
 DEPS_VLSVWRITER2 = mpiconversion.h muxml.h muxml.cpp vlscommon.h vlsvwriter2.h vlsvwriter2.cpp
 DEPS_VLSV2SILO = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp vlsv2silo.cpp
+DEPS_VLSV2BZT = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp vlsv2silo.cpp
 
 DEPS_ARRAYALLOCATOR += ${DEPS_COMMON}
 DEPS_CELL_SPATIAL += $(DEPS_COMMON)
@@ -126,6 +128,7 @@ OBJS = arrayallocator.o cell_spatial.o		\
 
 OBJS_VLSVEXTRACT = muxml.o vlscommon.o vlsvreader2.o
 OBJS_VLSV2SILO = muxml.o vlscommon.o vlsvreader2.o
+OBJS_VLSV2BZT = muxml.o vlscommon.o vlsvreader2.o
 
 HDRS +=
 SRC +=
@@ -151,7 +154,7 @@ clean:
 	make clean -C cuda
 	make clean -C fieldsolver
 	rm -rf libvlasovmover.a libfieldsolver.a
-	rm -rf .goutputstream* .logfile* *.o *.ptx *.tar* *.txt *.silo *.vtk *.vlsv project.h project.cu project.cpp  *~ visitlog.py ${EXE} vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION} vlsv2vtk_${FP_PRECISION}
+	rm -rf .goutputstream* .logfile* *.o *.ptx *.tar* *.txt *.silo *.vtk *.vlsv project.h project.cu project.cpp  *~ visitlog.py
 
 # Rules for making each object file needed by the executable
 arrayallocator.o: ${DEPS_ARRAYALLOCATOR}
@@ -216,8 +219,8 @@ vlsvextract: ${DEPS_VLSVEXTRACT} ${OBJS_VLSVEXTRACT}
 	${LNK} -o vlsvextract_${FP_PRECISION} vlsvextract.o ${OBJS_VLSVEXTRACT} ${LIB_SILO}
 
 vlsv2vtk: ${DEPS_VLSVEXTRACT} ${OBJS_VLSVEXTRACT}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2vtk.cpp
-	${LNK} -o vlsv2vtk_${FP_PRECISION} vlsv2vtk.o ${OBJS_VLSVEXTRACT}
+        ${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2vtk.cpp
+        ${LNK} -o vlsv2vtk_${FP_PRECISION} vlsv2vtk.o ${OBJS_VLSVEXTRACT}
 
 vlsvreader2.o: ${DEPS_VLSVREADER2}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvreader2.cpp
@@ -231,6 +234,10 @@ vlsv2silo: ${DEPS_VLSV2SILO} ${OBJS_VLSV2SILO}
 
 writevars.o: ${DEPS_WRITEVARS}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c writevars.cpp ${INC_SILO} ${INC} ${INC_BOOST}
+
+vlsv2bzt: ${DEPS_VLSV2BZT} ${OBJS_VLSV2BZT}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2bzt.cpp 
+	${LNK} -o vlsv2bzt_${FP_PRECISION} vlsv2bzt.o ${OBJS_VLSV2BZT}
 
 # Make a tar file containing the source code
 dist:
