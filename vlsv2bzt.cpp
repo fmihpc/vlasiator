@@ -34,7 +34,10 @@ using namespace std;
 
 bool convertMesh(VLSVReader& vlsvReader,
 		 const string& meshName,
-		 const unsigned long int entryName) {
+		 const unsigned long int entryName,
+		 const char * varToExtract,
+		 const int compToExtract
+ 	       ) {
    bool coordSuccess = true;
    bool variableSuccess = true;
    
@@ -48,33 +51,33 @@ bool convertMesh(VLSVReader& vlsvReader,
    uint64_t variableArraySize, variableVectorSize, variableDataSize;
    
    if (vlsvReader.getArrayInfo("COORDS", meshName, coordArraySize, coordVectorSize, coordDataType, coordDataSize) == false) return false;
-   if (vlsvReader.getArrayInfo("VARIABLE", "B", meshName, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) return false;
+   if (vlsvReader.getArrayInfo("VARIABLE", varToExtract, meshName, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) return false;
    if (coordArraySize != variableArraySize) {
       cerr << "ERROR array size mismatch" << endl;
    }
    
    // Read the coordinate array one node (of a spatial cell) at a time 
-   // and create a map which contains each cell's x and Bz
+   // and create a map which contains each cell's x and variable to be extracted
    char* coordBuffer = new char[coordVectorSize*coordDataSize];
    Real* coordPtr = reinterpret_cast<Real*>(coordBuffer);
    char* variableBuffer = new char[variableVectorSize*variableDataSize];
    Real* variablePtr = reinterpret_cast<Real*>(variableBuffer);
    for (uint64_t i=0; i<coordArraySize; ++i) {
       if (vlsvReader.readArray("COORDS",meshName,i,1,coordBuffer) == false) {coordSuccess = false; break;}
-      if (vlsvReader.readArray("VARIABLE", "B", i, 1, variableBuffer) == false) {variableSuccess = false; break;}
+      if (vlsvReader.readArray("VARIABLE", varToExtract, i, 1, variableBuffer) == false) {variableSuccess = false; break;}
       
       // Get the x coordinate
       creal x  = coordPtr[0];
-      // Get the Bz value
-      creal Bz = variablePtr[2];
+      // Get the variable value
+      creal extract = variablePtr[compToExtract];
       // Put those into the map
-      orderedData.insert(pair<Real, Real>(x, Bz));
+      orderedData.insert(pair<Real, Real>(x, extract));
    }
    if (coordSuccess == false) {
       cerr << "ERROR reading array COORDS" << endl;
    }
    if (variableSuccess == false) {
-      cerr << "ERROR reading array VARIABLE (B)" << endl;
+      cerr << "ERROR reading array VARIABLE " << varToExtract << endl;
    }
    unsigned long int numberOfValuesToSend = orderedData.size();
    Real valuesToSend[numberOfValuesToSend];
@@ -99,7 +102,11 @@ bool convertMesh(VLSVReader& vlsvReader,
    return coordSuccess && variableSuccess;
 }
 
-bool convertSILO(const string& fname, const unsigned long int entryName) {
+bool convertSILO(const string& fname,
+		 const unsigned long int entryName,
+		 const char * varToExtract,
+		 const int compToExtract
+ 	       ) {
    bool success = true;
    
    // Open VLSV file for reading:
@@ -115,7 +122,7 @@ bool convertSILO(const string& fname, const unsigned long int entryName) {
       return false;
    }
    for (list<string>::const_iterator it=meshNames.begin(); it!=meshNames.end(); ++it) {
-      if (convertMesh(vlsvReader, *it, entryName) == false) {
+      if (convertMesh(vlsvReader, *it, entryName, varToExtract, compToExtract) == false) {
 	 return false;
       }
    }
@@ -130,19 +137,26 @@ int main(int argn,char* args[]) {
    MPI_Comm_size(MPI_COMM_WORLD, &ntasks);
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    
-   if (argn < 3) {
+   if (argn < 5) {
       cout << endl;
-      cout << "USAGE: ./vlsv2bzt <Output file name> <input file mask(s)>" << endl;
+      cout << "USAGE: ./vlsv2bzt <Variable name> <component> <Output file name> <input file mask(s)>" << endl;
       cout << "Each VLSV in the current directory is compared against the given file mask(s)," << endl;
-      cout << "and if match is found, Bz is extracted and ordered before being output to an ascii file *with the name of the 1st argument*." << endl;
+      cout << "and if match is found, the variable's component is extracted and ordered before being output to an ascii file *with the name of the 3rd argument*." << endl;
+      cout << "Note that due to the parallelisation algorithm, there should be at least 2 processes used." << endl;
       cout << endl;
       return 1;
    }
+   // 1st arg is variable name
+   char * varToExtract = args[1];
+   // 2nd arg is its component, 0 for scalars, 2 for z component etc
+   int compToExtract = atoi(args[2]);
+   // 3rd arg is file name
+   char * fileName = args[3];
    
    // Convert file masks into strings:
    vector<string> masks;
    set<string> fileList;
-   for (int i=2; i<argn; ++i) masks.push_back(args[i]);
+   for (int i=4; i<argn; ++i) masks.push_back(args[i]);
 
    // Compare directory contents against each mask:
    const string directory = ".";
@@ -176,7 +190,7 @@ int main(int argn,char* args[]) {
       {
 	 if(entryName%(ntasks - 1) + 1 == rank) {
 	    cout << "\tProc " << rank << " converting '" << *it << "'" << endl;
-	    convertSILO(*it, entryName);
+	    convertSILO(*it, entryName, varToExtract, compToExtract);
 	    filesConverted++;
 	 }
       }
@@ -184,7 +198,7 @@ int main(int argn,char* args[]) {
    } else {
       // YK Create/open ascii file to append to
       FILE * outputFile;
-      outputFile = fopen(args[1], "w");
+      outputFile = fopen(fileName, "w");
       
       int lineLength;
       MPI_Recv(&lineLength, 1, MPI_INT, 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
