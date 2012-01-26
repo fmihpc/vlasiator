@@ -49,3 +49,7 @@ LIB_SILO = -L$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION
 INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg-new
 
 INC_TOPO = -I$(LIBRARY_PREFIX)/topologyOptim
+
+INC_PROFILE = -I/stornext/field/users/alfthan/libraries/profiler/include
+LIB_PROFILE = -L/stornext/field/users/alfthan/libraries/profiler/lib
+

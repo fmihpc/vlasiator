@@ -25,10 +25,10 @@ CXXFLAGS += -DNDEBUG
 
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
-#PROJ = harm1D
+PROJ = harm1D
 #PROJ = Alfven
 #PROJ = Diffusion
-PROJ = Dispersion
+#PROJ = Dispersion
 #PROJ = Harris
 #PROJ=test_fp
 #PROJ=test_acc
@@ -45,7 +45,7 @@ include projects/Makefile.${PROJ}
 # The rest of this file users shouldn't need to change
 
 
-default: vlasiator vlsv2silo vlsvextract vlsv2vtk vlsv2bzt
+default: vlasiator vlsv2silo vlsvextract vlsv2bzt vlsv2vtk vlsv2bzt
 
 # Compile directory:
 INSTALL = $(CURDIR)
@@ -59,6 +59,8 @@ LIBS = ${LIB_BOOST}
 LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_MPI}
 LIBS += ${LIB_CUDA}
+# if no profile, use -lnoprofile
+LIBS += ${LIB_PROFILE} -lprofile
 
 # Define dependencies of each object file
 DEPS_ARRAYALLOCATOR = arrayallocator.h arrayallocator.cpp
@@ -76,7 +78,6 @@ DEPS_MPILOGGER = mpifile.h mpilogger.h mpilogger.cpp
 DEPS_MUXML = muxml.h muxml.cpp
 DEPS_PARAMETERS = parameters.h parameters.cpp
 DEPS_PROJECT = project.h project.cpp
-DEPS_PROFILE = profile.h profile.cpp
 DEPS_VLSCOMMON = vlscommon.h vlscommon.cpp
 DEPS_VLSVEXTRACT = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp vlsvextract.cpp
 DEPS_VLSVREADER2 = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
@@ -104,14 +105,14 @@ HDRS = arrayallocator.h cpu_acc.h cpu_acc_ppm.h cpu_common.h cpu_trans.h cell_sp
 	mpiconversion.h mpifile.h mpilogger.h\
 	parameters.h\
 	 vlscommon.h\
-	vlsvwriter2.h vlsvreader2.h muxml.h profile.h
+	vlsvwriter2.h vlsvreader2.h muxml.h profile.hpp
 
 CUDA_HDRS = cudafuncs.h cudalaunch.h devicegrid.h
 
 SRC = 	arrayallocator.cpp datareducer.cpp datareductionoperator.cpp\
 	grid.cpp gridbuilder.cpp\
 	vlasiator.cpp mpifile.cpp mpilogger.cpp\
-	parameters.cpp profile.cpp\
+	parameters.cpp\
 	vlscommon.cpp vls2vtk.cpp\
 	vlsvreader2.cpp vlsvwriter2.cpp muxml.cpp vlsv2silo.cpp
 
@@ -124,7 +125,7 @@ OBJS = arrayallocator.o cell_spatial.o		\
 	datareducer.o datareductionoperator.o grid.o		\
 	gridbuilder.o vlasiator.o mpifile.o mpilogger.o muxml.o	\
 	parameters.o project.o					\
-	profile.o vlscommon.o vlsvreader2.o vlsvwriter2.o
+	vlscommon.o vlsvreader2.o vlsvwriter2.o
 
 OBJS_VLSVEXTRACT = muxml.o vlscommon.o vlsvreader2.o
 OBJS_VLSV2SILO = muxml.o vlscommon.o vlsvreader2.o
@@ -144,7 +145,7 @@ help:
 
 
 builderinstall:
-	make ${BUILDER} -C gridbuilders "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_DCCRG}" "FLAGS=${FLAGS}"
+	make ${BUILDER} -C gridbuilders "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE}" "FLAGS=${FLAGS}"
 
 c: clean
 clean:
@@ -170,7 +171,7 @@ datareductionoperator.o: ${DEPS_DATAREDUCTIONOPERATOR}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareductionoperator.cpp ${INC_MPI} ${INC_BOOST}
 
 fieldsolverinstall:
-	make libfieldsolver.a -C fieldsolver "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_DCCRG}" "FLAG_OPENMP=${FLAG_OPENMP}" "AR=${AR}" "FLAGS=${FLAGS}"
+	make libfieldsolver.a -C fieldsolver "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE}" "FLAG_OPENMP=${FLAG_OPENMP}" "AR=${AR}" "FLAGS=${FLAGS}"
 	ln -s -f fieldsolver/libfieldsolver.a .
 
 gpudevicegrid.o: $(DEPS_GPU_DEVICE_GRID)
@@ -181,13 +182,13 @@ grid.o: $(DEPS_GRID)
 
 # -O1 switch is here to make the code run correctly with intel
 gridbuilder.o: $(DEPS_GRIDBUILDER)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -O1 -c gridbuilder.cpp ${INC} ${INC_BOOST} ${INC_ZOLTAN} ${INC_MPI} ${INC_DCCRG}
+	$(CMP) $(CXXFLAGS) $(FLAGS) -O1 -c gridbuilder.cpp ${INC} ${INC_BOOST} ${INC_ZOLTAN} ${INC_MPI} ${INC_DCCRG} ${INC_PROFILE}
 
 vlasiator.o: $(DEPS_MAIN) ${BUILDER}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE}
 
 moverinstall:
-	make libvlasovmover.a -C ${MOVER} "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS}" "INC_ZOLTAN=${INC_ZOLTAN}" "INC_MPI=${INC_MPI}" "INC_BOOST=${INC_BOOST}" "INC_DCCRG=${INC_DCCRG}" "INC_TOPO=${INC_TOPO}" "FLAG_OPENMP=${FLAG_OPENMP}" "AR=${AR}" "MATHFLAGS=${MATHFLAGS}" "SOLVER=${SOLVER}"
+	make libvlasovmover.a -C ${MOVER} "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS}" "INC_ZOLTAN=${INC_ZOLTAN}" "INC_MPI=${INC_MPI}" "INC_BOOST=${INC_BOOST}" "INC_DCCRG=${INC_DCCRG}" "INC_PROFILE=${INC_PROFILE}" "INC_TOPO=${INC_TOPO}" "FLAG_OPENMP=${FLAG_OPENMP}" "AR=${AR}" "MATHFLAGS=${MATHFLAGS}" "SOLVER=${SOLVER}"
 	ln -s -f ${MOVER}/libvlasovmover.a .
 
 mpifile.o: ${DEPS_MPIFILE}
@@ -203,13 +204,10 @@ parameters.o: $(DEPS_PARAMETERS)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c parameters.cpp ${INC_BOOST}
 
 project.o: $(DEPS_PROJECT)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c project.cpp ${INC_BOOST} ${INC_ZOLTAN} ${INC_DCCRG} ${INC_MPI}
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c project.cpp ${INC_BOOST} ${INC_ZOLTAN} ${INC_DCCRG} ${INC_MPI} ${INC_PROFILE}
 
 projinstall:
 	make project -C projects "INSTALL=${INSTALL}" "PROJ=${PROJ}"
-
-profile.o: ${DEPS_PROFILE}
-	${CMP} $(CXXFLAGS) $(FLAGS) -DMPILOGGER -c profile.cpp 
 
 vlscommon.o: ${DEPS_VLSCOMMON}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlscommon.cpp
@@ -262,7 +260,7 @@ VLASIATOR_HEADERS = \
 	mpiconversion.h mpifile.h mpilogger.h \
 	parameters.h \
 	 vlscommon.h \
-	vlsvwriter2.h vlsvreader2.h muxml.h profile.h
+	vlsvwriter2.h vlsvreader2.h muxml.h profile.hpp
 
 VLASIATOR_SOURCES = \
 	arrayallocator.cpp \
@@ -281,7 +279,6 @@ VLASIATOR_SOURCES = \
 	mpilogger.cpp \
 	parameters.cpp \
 	project.cpp \
-	profile.cpp \
 	vlscommon.cpp \
 	vlsvreader2.cpp \
 	vlsvwriter2.cpp \

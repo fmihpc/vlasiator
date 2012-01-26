@@ -28,7 +28,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <zoltan.h>
 
 #include "../vlasovmover.h"
-#include "../profile.h"
+#include "profile.hpp"
 #include "../memalloc.h"
 #include "cpu_acc_leveque.h"
 #include "cpu_trans_leveque.h"

@@ -44,7 +44,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "pat_api.h"
 #endif
 
-#include "profile.h"
+#include "profile.hpp"
 
 Grid grid;
 MPILogger mpilogger;
@@ -562,8 +562,6 @@ int main(int argn,char* args[]) {
        exit(1);
    }
    profile::stop("Init field propagator");
-   
-
    
    
    // ***********************************

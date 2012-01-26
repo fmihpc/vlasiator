@@ -29,16 +29,16 @@ DEPS_VLASOVMOVER_KT=vlasovmover_kt.cpp
 DEPS_KT=memalloc.o cpu_acc_kt.o cpu_trans_kt.o vlasovmover_kt.o
 
 cpu_acc_kt.o: ${DEPS_CPU_ACC_KT}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c cpu_acc_kt.cpp ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c cpu_acc_kt.cpp ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE}
 	${AR} r libvlasovmover.a cpu_acc_kt.o
 
 cpu_trans_kt.o: ${DEPS_CPU_TRANS_KT}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c cpu_trans_kt.cpp ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c cpu_trans_kt.cpp ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE}
 	${AR} r libvlasovmover.a cpu_trans_kt.o
 
 
 vlasovmover_kt.o: ${DEPS_VLASOVMOVER_KT}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -DMOVER_VLASOV_ORDER=2 -I${INSTALL} -c vlasovmover_kt.cpp ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -DMOVER_VLASOV_ORDER=2 -I${INSTALL} -c vlasovmover_kt.cpp ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE}
 	${AR} r libvlasovmover.a vlasovmover_kt.o
 
 KT: ${DEPS_KT}
@@ -50,7 +50,7 @@ DEPS_LEVEQUE=memalloc.o vlasovmover_leveque.o
 DEPS_VLASOVMOVER_LEVEQUE=../cell_spatial.h ../project.h ../transferstencil.h  cpu_acc_leveque.h cpu_trans_leveque.h cpu_common.h leveque_common.h vlasovmover_leveque.cpp 
 
 vlasovmover_leveque.o: ${DEPS_VLASOVMOVER_LEVEQUE}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -DMOVER_VLASOV_ORDER=2 -I${INSTALL} -c vlasovmover_leveque.cpp ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG} ${INC_TOPO}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -DMOVER_VLASOV_ORDER=2 -I${INSTALL} -c vlasovmover_leveque.cpp ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG} ${INC_TOPO} ${INC_PROFILE}
 	${AR} r libvlasovmover.a vlasovmover_leveque.o
 
 LEVEQUE: ${DEPS_LEVEQUE}

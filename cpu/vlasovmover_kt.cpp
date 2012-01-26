@@ -34,7 +34,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <cell_spatial.h>
 #include <project.h>
 #include "vlasovmover.h"
-#include <profile.h>
+#include <profile.hpp>
 
 extern MPILogger mpilogger;
 
