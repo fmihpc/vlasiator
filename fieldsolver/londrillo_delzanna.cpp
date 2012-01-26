@@ -51,7 +51,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "../priorityqueue.h"
 #include "limiters.h"
 #include "../project.h"
-#include "../profile.h"
+#include "profile.hpp"
 
 using namespace std;
 using namespace fieldsolver;

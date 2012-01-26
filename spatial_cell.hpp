@@ -32,7 +32,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "stdint.h"
 #include "vector"
 
-#include "profile.h"
+#include "profile.hpp"
 #include "common.h"
 #include "parameters.h"
 #include "definitions.h"

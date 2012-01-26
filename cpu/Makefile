@@ -50,7 +50,7 @@ DEPS_LEVEQUE=memalloc.o vlasovmover_leveque.o
 DEPS_VLASOVMOVER_LEVEQUE=../spatial_cell.hpp ../project.h ../transferstencil.h  cpu_acc_leveque.h cpu_trans_leveque.h cpu_common.h leveque_common.h vlasovmover_leveque.cpp 
 
 vlasovmover_leveque.o: ${DEPS_VLASOVMOVER_LEVEQUE}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -DMOVER_VLASOV_ORDER=2 -I${INSTALL} -c vlasovmover_leveque.cpp ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG} ${INC_TOPO}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -DMOVER_VLASOV_ORDER=2 -I${INSTALL} -c vlasovmover_leveque.cpp ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG} ${INC_TOPO} ${INC_PROFILE}
 	${AR} r libvlasovmover.a vlasovmover_leveque.o
 
 LEVEQUE: ${DEPS_LEVEQUE}
