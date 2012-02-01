@@ -44,6 +44,18 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "pat_api.h"
 #endif
 
+#ifdef CATCH_FPE
+#include <fenv.h>
+#include <signal.h>
+void fpehandler(int sig_num)
+{
+   signal(SIGFPE, fpehandler);
+   printf("SIGFPE: floating point exception occured, exiting.\n");
+   abort();
+}
+#endif
+
+
 #include "profile.hpp"
 
 Grid grid;
@@ -287,6 +299,7 @@ void log_send_receive_info(const dccrg::Dccrg<SpatialCell>& mpiGrid) {
    mpilogger << write;
 }
 
+
 int main(int argn,char* args[]) {
    bool success = true;
    const int MASTER_RANK = 0;
@@ -310,7 +323,13 @@ int main(int argn,char* args[]) {
    boost::mpi::communicator comm;
    
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
-
+   
+#ifdef CATCH_FPE
+   // WARNING FE_INEXACT is too sensitive to be used. See man fenv.
+   feenableexcept(FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW);
+   signal(SIGFPE, fpehandler);
+#endif
+   
    profile::start("main");
    profile::start("Initialization");
 

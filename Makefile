@@ -23,6 +23,9 @@ CXXFLAGS += -DPROFILE
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
 CXXFLAGS += -DNDEBUG
 
+#Add -DCATCH_FPE to catch floating point exceptions and stop execution
+CXXFLAGS += -DCATCH_FPE
+
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
 PROJ = harm1D
@@ -45,7 +48,7 @@ include projects/Makefile.${PROJ}
 # The rest of this file users shouldn't need to change
 
 
-default: vlasiator vlsv2silo vlsvextract vlsv2bzt vlsv2vtk vlsv2bzt
+default: vlasiator vlsv2silo vlsvextract vlsv2bzt vlsv2vtk
 
 # Compile directory:
 INSTALL = $(CURDIR)
