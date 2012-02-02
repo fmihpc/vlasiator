@@ -528,7 +528,7 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
       MPI_Type_commit(&(MPIsendTypes.back()));
       MPIsendRequests.push_back(MPI_Request());
       
-      if (MPI_Isend(mpiGrid[nbrID],1,MPIsendTypes.back(),host,tag,MPI_COMM_WORLD,&(MPIrecvRequests.back())) != MPI_SUCCESS) {
+      if (MPI_Isend(mpiGrid[nbrID],1,MPIsendTypes.back(),host,tag,MPI_COMM_WORLD,&(MPIsendRequests.back())) != MPI_SUCCESS) {
           std::cerr << "calculateSpatialPropagation failed to send data!" << std::endl;
       }
       
