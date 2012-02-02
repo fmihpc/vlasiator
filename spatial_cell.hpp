@@ -82,13 +82,14 @@ namespace spatial_cell {
       const unsigned int VEL_BLOCK_LIST_SIZE      = (1<<2);
 //to update BLOCK_LIST, BLOCK_LIST_SIZE has to be updated in a separate stage
       const unsigned int VEL_BLOCK_LIST           = (1<<3);
-      const unsigned int VEL_BLOCK_DATA           = (1<<4);
-      const unsigned int VEL_BLOCK_FLUXES         = (1<<5);
-      const unsigned int VEL_BLOCK_KT_DERIVATIVES = (1<<6);
-      const unsigned int VEL_BLOCK_PARAMETERS     = (1<<7);
-      const unsigned int CELL_B_RHO_RHOV          = (1<<8);
-      const unsigned int CELL_E                   = (1<<9);
-      const unsigned int CELL_GHOSTFLAG           = (1<<10);
+      const unsigned int VEL_BLOCK_SIZE_AND_LIST  = (1<<4);
+      const unsigned int VEL_BLOCK_DATA           = (1<<5);
+      const unsigned int VEL_BLOCK_FLUXES         = (1<<6);
+      const unsigned int VEL_BLOCK_KT_DERIVATIVES = (1<<7);
+      const unsigned int VEL_BLOCK_PARAMETERS     = (1<<8);
+      const unsigned int CELL_B_RHO_RHOV          = (1<<9);
+      const unsigned int CELL_E                   = (1<<10);
+      const unsigned int CELL_GHOSTFLAG           = (1<<11);
 //does not update block-lists, need to be updated in separate stage
       const unsigned int ALL_DATA =
       CELL_PARAMETERS
@@ -887,8 +888,8 @@ namespace velocity_neighbor {
          velocity_blocks(other.velocity_blocks),
          initialized(other.initialized),
          isGhostCell(other.isGhostCell),
-         boundaryFlag(other.boundaryFlag),
-         neighbors(other.neighbors){
+         neighbors(other.neighbors),
+         boundaryFlag(other.boundaryFlag){
 
          //copy parameters
          for(unsigned int i=0;i< CellParams::N_SPATIAL_CELL_PARAMS;i++){
@@ -1043,6 +1044,14 @@ namespace velocity_neighbor {
                // send velocity block list  
                displacements.push_back((uint8_t*) &(this->velocity_block_list[0]) - (uint8_t*) this);
                block_lengths.push_back(sizeof(unsigned int) * this->number_of_blocks);
+            }
+
+            if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_SIZE_AND_LIST)!=0){
+               displacements.push_back((uint8_t*) &(this->number_of_blocks) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(unsigned int));
+               // send velocity block list, all elements as we do not know number of blocks when sending at once
+               displacements.push_back((uint8_t*) &(this->velocity_block_list[0]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(unsigned int) * SpatialCell::max_velocity_blocks);
             }
 
             if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA)!=0){
@@ -1687,8 +1696,11 @@ namespace velocity_neighbor {
       */
       Real derivatives[fieldsolver::N_SPATIAL_CELL_DERIVATIVES];
       
+
       //neighbor id's. Kept up to date in solvers, not by the spatial_cell class
       std::vector<uint64_t> neighbors;
+      
+      //data for solvers
       unsigned int boundaryFlag;
       bool isGhostCell;
       

@@ -197,8 +197,9 @@ bool adjust_all_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
          std::cerr << __FILE__ << ":" << __LINE__ << " No data for spatial cell " << *cell_id << endl;
          abort();
       }
+
       
-      mpiGrid.set_cell_weight(*cell_id, cell->size());
+      mpiGrid.set_cell_weight(*cell_id, cell->number_of_blocks);
    }
    profile::stop("Adjusting blocks");
 }
@@ -246,6 +247,60 @@ void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
 }
 
 
+void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
+   // tell other processes which velocity bloc  ks exist in remote spatial cells
+
+   profile::start("Balancing load");
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_SIZE_AND_LIST);
+   mpiGrid.prepare_to_balance_load();
+   
+   // reserve space for velocity block data in arriving remote cells
+   profile::start("Preparing receives");
+
+   const boost::unordered_set<uint64_t>* incoming_cells = mpiGrid.get_balance_added_cells();
+   for (boost::unordered_set<uint64_t>::const_iterator cell_id = incoming_cells->begin();
+        cell_id != incoming_cells->end();
+        cell_id++
+	) {
+
+      SpatialCell* cell = mpiGrid[*cell_id];
+      if (cell == NULL) {
+         cerr << "No data for spatial cell " << *cell_id << endl;
+         abort();
+      }
+      cell->prepare_to_receive_blocks();
+   }
+   profile::stop("Preparing receives", incoming_cells->size(), "Spatial cells");
+
+
+   profile::start("balance load");
+   SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
+   mpiGrid.balance_load(true);
+   profile::stop("balance load");
+
+   profile::start("update block lists");
+   //new partition, re/initialize blocklists of remote cells.
+   prepare_to_receive_velocity_block_data(mpiGrid);
+   profile::stop("update block lists");
+
+   profile::start("Init solvers");
+   //need to re-initialize stencils and neighbors in leveque solver
+   if (initializeMover(mpiGrid) == false) {
+      mpilogger << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << write;
+      exit(1);
+   }
+
+      // Initialize field propagator:
+   if (initializeFieldPropagator(mpiGrid,P::propagateField) == false) {
+       mpilogger << "(MAIN): Field propagator did not initialize correctly!" << endl << write;
+       exit(1);
+   }
+   profile::stop("Init solvers");
+   
+   profile::stop("Balancing load");
+}
+
+
 //using namespace CellParams;
 void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm) {
     typedef Parameters P;
@@ -287,32 +342,8 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
     SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
     mpiGrid.update_remote_neighbour_data();       
     profile::stop("Fetch Neighbour data");   
-
-
-      //write out vtk files of velocity space using internal function in spatialcell, useful for debugging
-      /*
-    for (vector<uint64_t>::const_iterator
-            cell_id = cells.begin();
-         cell_id != cells.end();
-         cell_id++
-         )   {
-       SpatialCell* cell = mpiGrid[*cell_id];
-      if (cell == NULL) {
-         cerr << __FILE__ << ":" << __LINE__
-              << " No data for spatial cell " << *cell_id
-              << endl;
-         abort();
-      }
-
-      string name;
-      name = "velocity_";
-      name += boost::lexical_cast<string>(*cell_id);
-      name += ".vtk";
-      cell->save_vtk(name.c_str());
-      }   
-      */
-      
 }
+
 
 bool readConfigFile(){
    profile::start("Read parameters");
@@ -741,7 +772,7 @@ int main(int argn,char* args[]) {
    //FIXME: HYPERGRAPH and IMBLANACE_TOL should be read in from parameter file 
    mpiGrid.initialize(
       comm,
-      "HYPERGRAPH",
+      "RCB",
       // neighborhood size
       #ifdef SOLVER_KT
       1, // kt needs 0 but field volume average calculation needs 1
@@ -758,7 +789,7 @@ int main(int argn,char* args[]) {
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", "1.05");
    profile::start("Initial load-balancing");
    if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting initial load balance." << endl << write;
-   initialLoadBalance(mpiGrid);
+   mpiGrid.balance_load();
    profile::stop("Initial load-balancing");
    profile::stop("Initialize Grid");
 
@@ -780,6 +811,7 @@ int main(int argn,char* args[]) {
    initSpatialCells(mpiGrid,comm);
    profile::stop("Set initial state");
 
+   balanceLoad(mpiGrid);
 
    log_send_receive_info(mpiGrid);
    
@@ -802,7 +834,7 @@ int main(int argn,char* args[]) {
    if (initializeMover(mpiGrid) == false) {
       mpilogger << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << write;
       exit(1);
-   }
+   }   
    calculateVelocityMoments(mpiGrid);
    profile::stop("Init vlasov propagator");
    
@@ -852,8 +884,9 @@ int main(int argn,char* args[]) {
 
    profile::start("Simulation");
    for (luint tstep=P::tstep_min; tstep < P::tsteps; ++tstep) {
-       
-       //compute how many spatial cells we solve for this step
+
+      if (myrank == MASTER_RANK)  cout << "On step " << tstep << endl;
+      //compute how many spatial cells we solve for this step
       vector<uint64_t> cells = mpiGrid.get_cells();
       computedSpatialCells=cells.size();
       computedBlocks=0;
@@ -882,13 +915,6 @@ int main(int argn,char* args[]) {
           profile::start("Barrier");
           MPI_Barrier(MPI_COMM_WORLD);
           profile::stop("Barrier");
-          profile::initializeTimer("re-adjust blocks","Block adjustment");
-          profile::start("re-adjust blocks");
-          SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA );
-          mpiGrid.update_remote_neighbour_data();
-          adjust_all_velocity_blocks(mpiGrid);
-          prepare_to_receive_velocity_block_data(mpiGrid);
-          profile::stop("re-adjust blocks");
           profile::stop("First propagation",computedBlocks,"Blocks");
 
           bool transferAvgs = false;
@@ -912,6 +938,9 @@ int main(int argn,char* args[]) {
           profile::start("Barrier");
           MPI_Barrier(MPI_COMM_WORLD);
           profile::stop("Barrier");
+          profile::stop("Second propagation",computedBlocks,"Blocks");
+          
+
           profile::initializeTimer("re-adjust blocks","Block adjustment");
           profile::start("re-adjust blocks");
           SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA );
@@ -919,7 +948,13 @@ int main(int argn,char* args[]) {
           adjust_all_velocity_blocks(mpiGrid);
           prepare_to_receive_velocity_block_data(mpiGrid);
           profile::stop("re-adjust blocks");
-          profile::stop("Second propagation",computedBlocks,"Blocks");
+
+
+//FIXME, hardcoded rebalance interval
+          if(P::tstep%10 == 0 &&  P::tstep> P::tstep_min )
+             balanceLoad(mpiGrid);
+          
+
           profile::stop("Propagate Vlasov",computedBlocks,"Blocks");
           
 
