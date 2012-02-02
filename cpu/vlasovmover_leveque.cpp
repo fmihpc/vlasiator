@@ -339,7 +339,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       MPI_Type_commit(&(MPIsendTypes.back()));
 
       MPIsendRequests.push_back(MPI_Request());      
-      if (MPI_Isend(mpiGrid[cellID],1,MPIsendTypes.back(),host,tag,MPI_COMM_WORLD,&(MPIrecvRequests.back())) != MPI_SUCCESS) {
+      if (MPI_Isend(mpiGrid[cellID],1,MPIsendTypes.back(),host,tag,MPI_COMM_WORLD,&(MPIsendRequests.back())) != MPI_SUCCESS) {
          std::cerr << "calculateSpatialFlux failed to send data!" << std::endl;
       }
    }
