@@ -91,6 +91,12 @@ bool P::periodic_x = false;
 bool P::periodic_y = false;
 bool P::periodic_z = false;
 
+Real P::sparseMinValue = NAN;
+Real P::sparseMinAvgValue = NAN;
+
+string P::loadBalanceAlgorithm = string("");
+string P::loadBalanceTolerance = string("");
+
 // Handles parameter processing from the user
 namespace PO = boost::program_options;
 

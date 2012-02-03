@@ -401,7 +401,15 @@ bool readConfigFile(){
    RP::add("gridbuilder.timestep","Timestep when grid is loaded. Defaults to value zero.",0);
    RP::add("gridbuilder.max_timesteps","Max. value for timesteps. Defaults to value zero.",0);
    
-
+   // Grid sparsity parameters
+   RP::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 1e-5);
+   RP::add("sparse.minAvgValue", "Minimum value of the average of distribution function within a velocity block for the block to be considered to have contents", 0.5e-5);
+   
+   // Load balancing parameters
+   RP::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("HYPERGRAPH"));
+   RP::add("loadBalance.tolerance", "Load imbalance tolerance", std::string("1.05"));
+   
+   
    RP::parse();
 
    RP::get("solar_wind_file",P::solar_wind_file);
@@ -416,7 +424,7 @@ bool readConfigFile(){
    RP::get("propagate_vlasov",P::propagateVlasov);
 
      
-   /*get numerical values, let Readparamers handle the conversions*/
+   /*get numerical values, let Readparameters handle the conversions*/
    RP::get("gridbuilder.x_min",P::xmin);
    RP::get("gridbuilder.x_max",xmax);
    RP::get("gridbuilder.y_min",P::ymin);
@@ -466,7 +474,14 @@ bool readConfigFile(){
    P::q_per_m = P::q/P::m;
    P::t = t_min + P::tstep*P::dt;
    P::tstep_min = P::tstep;
-
+   
+   // Get sparsity parameters
+   RP::get("sparse.minValue", P::sparseMinValue);
+   RP::get("sparse.minAvgValue", P::sparseMinAvgValue);
+   
+   // Get load balance parameters
+   RP::get("loadBalance.algorithm", P::loadBalanceAlgorithm);
+   RP::get("loadBalance.tolerance", P::loadBalanceTolerance);
    
    profile::stop("Read parameters");
    
@@ -746,8 +761,8 @@ int main(int argn,char* args[]) {
    spatial_cell::SpatialCell::cell_dvx = spatial_cell::SpatialCell::block_dvx / block_vx_length;
    spatial_cell::SpatialCell::cell_dvy = spatial_cell::SpatialCell::block_dvy / block_vy_length;
    spatial_cell::SpatialCell::cell_dvz = spatial_cell::SpatialCell::block_dvz / block_vz_length;
-   spatial_cell::SpatialCell::velocity_block_min_value = 1e-5;           //FIXME read in from cfg file. 
-   spatial_cell::SpatialCell::velocity_block_min_avg_value = 0.5e-5;     //FIXME read in from cfg file. 
+   spatial_cell::SpatialCell::velocity_block_min_value = P::sparseMinValue;
+   spatial_cell::SpatialCell::velocity_block_min_avg_value = P::sparseMinAvgValue;
  
    
    profile::start("Initialize Grid");
@@ -769,10 +784,9 @@ int main(int argn,char* args[]) {
       P::dx_ini, P::dy_ini, P::dz_ini
    );
 
-   //FIXME: HYPERGRAPH and IMBLANACE_TOL should be read in from parameter file 
    mpiGrid.initialize(
       comm,
-      "RCB",
+      &P::loadBalanceAlgorithm[0],
       // neighborhood size
       #ifdef SOLVER_KT
       1, // kt needs 0 but field volume average calculation needs 1
@@ -786,7 +800,7 @@ int main(int argn,char* args[]) {
 
    
    
-   mpiGrid.set_partitioning_option("IMBALANCE_TOL", "1.05");
+   mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
    profile::start("Initial load-balancing");
    if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting initial load balance." << endl << write;
    mpiGrid.balance_load();

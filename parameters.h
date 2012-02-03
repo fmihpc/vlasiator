@@ -91,7 +91,10 @@ struct Parameters {
    static bool propagateField;      /**< If true, magnetic field is propagated during the simulation.*/
    static bool propagateVlasov;     /**< If true, distribution function is propagated during the simulation.*/
    static bool periodic_x, periodic_y, periodic_z; /**< Whether spatial vlasov grid is periodic */
-
+   static Real sparseMinValue; /**< Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents */
+   static Real sparseMinAvgValue; /**< Minimum value of the average of distribution function within a velocity block for the block to be considered to have contents */
+   static std::string loadBalanceAlgorithm; /**< Algorithm to be used for load balance.*/
+   static std::string loadBalanceTolerance; /**< Load imbalance tolerance. */
 };
 
 struct Readparameters {
