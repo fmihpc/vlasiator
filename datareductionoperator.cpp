@@ -314,36 +314,40 @@ namespace DRO {
       Real nvx2_sum = 0.0;
       Real nvy2_sum = 0.0;
       Real nvz2_sum = 0.0;
-      //FIXME not converted yet.
-      /*
-      for (uint n=0; n<N_blocks; ++n)
+
+      for(uint n=0; n<cell->number_of_blocks;n++) {
+	 unsigned int blockId = cell->velocity_block_list[n];
+	 const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
 	 for (uint k=0; k<WID; ++k)
 	    for (uint j=0; j<WID; ++j)
 	       for (uint i=0; i<WID; ++i) {
-		  const Real VX = blockParams[n*SIZE_BLOCKPARAMS + BlockParams::VXCRD] + (i+HALF) * blockParams[n*SIZE_BLOCKPARAMS + BlockParams::DVX];
-		  const Real VY = blockParams[n*SIZE_BLOCKPARAMS + BlockParams::VYCRD] + (j+HALF) * blockParams[n*SIZE_BLOCKPARAMS + BlockParams::DVY];
-		  const Real VZ = blockParams[n*SIZE_BLOCKPARAMS + BlockParams::VZCRD] + (k+HALF) * blockParams[n*SIZE_BLOCKPARAMS + BlockParams::DVZ];
-	 
-		  nvx2_sum += avgs[n*SIZE_VELBLOCK + cellIndex(i,j,k)]*(VX - averageVX)*(VX - averageVX);
-		  nvy2_sum += avgs[n*SIZE_VELBLOCK + cellIndex(i,j,k)]*(VY - averageVY)*(VY - averageVY);
-		  nvz2_sum += avgs[n*SIZE_VELBLOCK + cellIndex(i,j,k)]*(VZ - averageVZ)*(VZ - averageVZ);
+		  const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
+		  const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
+		  const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+		  
+		  const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
+		  
+		  nvx2_sum += block-> data[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
+		  nvy2_sum += block-> data[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
+		  nvz2_sum += block-> data[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
+	       }
      }
       
      // Accumulate contributions coming from this velocity block to the 
      // spatial cell velocity moments. If multithreading / OpenMP is used, 
      // these updates need to be atomic:
-     const Real DV3 = blockParams[BlockParams::DVX] * blockParams[BlockParams::DVY] * blockParams[BlockParams::DVZ];
-     Pressure += physicalconstants::MASS_PROTON * THIRD * (nvx2_sum + nvy2_sum + nvz2_sum) * DV3;
-      */
+     
+     Pressure += physicalconstants::MASS_PROTON * THIRD * (nvx2_sum + nvy2_sum + nvz2_sum);
+     //cout << Pressure << endl;
      const char* ptr = reinterpret_cast<const char*>(&Pressure);
      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
      return true;
    }
    
    bool VariablePressure::setSpatialCell(const SpatialCell* cell) {
-      averageVX = cell->parameters[CellParams::RHOVX] / cell->parameters[CellParams::RHO];
-      averageVY = cell->parameters[CellParams::RHOVY] / cell->parameters[CellParams::RHO];
-      averageVZ = cell->parameters[CellParams::RHOVZ] / cell->parameters[CellParams::RHO];
+      averageVX = cell-> parameters[CellParams::RHOVX] / cell-> parameters[CellParams::RHO];
+      averageVY = cell-> parameters[CellParams::RHOVY] / cell-> parameters[CellParams::RHO];
+      averageVZ = cell-> parameters[CellParams::RHOVZ] / cell-> parameters[CellParams::RHO];
       Pressure = 0.0;
       return true;
    }
