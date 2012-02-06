@@ -528,7 +528,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    if (vlsvWriter.writeArray("COORDS","SpatialGrid",attribs,cells.size(),6,buffer) == false) {
       cerr << "Proc #" << myrank << " failed to write cell coords!" << endl;
    }
-   delete buffer;
+   delete[] buffer;
 
    // Write variables calculated by DataReductionOperators (DRO). We do not know how many 
    // numbers each DRO calculates, so a buffer has to be re-allocated for each DRO:
@@ -554,7 +554,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
       // Write reduced data to file:
       if (vlsvWriter.writeArray("VARIABLE",variableName,attribs,cells.size(),vectorSize,dataType,dataSize,varBuffer) == false) success = false;
       if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to write datareductionoperator data to file!" << endl << write;
-      delete varBuffer;
+      delete[] varBuffer;
       varBuffer = NULL;
    }
 
@@ -574,16 +574,17 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    
    // Write spatial cell parameters:
    Real* paramsBuffer = new Real[cells.size()*CellParams::N_SPATIAL_CELL_PARAMS];
+
    for (size_t i = 0; i < cells.size(); ++i)
-   for (uint j = 0; j < CellParams::N_SPATIAL_CELL_PARAMS; ++j) {
+      for (uint j = 0; j < CellParams::N_SPATIAL_CELL_PARAMS; ++j) {
       paramsBuffer[i*CellParams::N_SPATIAL_CELL_PARAMS+j] = mpiGrid[cells[i]]->parameters[j];
    }
-
+   
    if (vlsvWriter.writeArray("CELLPARAMS","SpatialGrid",attribs,cells.size(),CellParams::N_SPATIAL_CELL_PARAMS,paramsBuffer) == false) {
       mpilogger << "(MAIN) writeGrid: ERROR failed to write spatial cell parameters!" << endl << write;
       success = false;
    }
-   delete paramsBuffer;
+   delete[] paramsBuffer;
    
    // Write the number of spatial neighbours each cell has:
    //FIXME, this does nothing sensible
@@ -594,7 +595,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
       neighbourSum += N_neighbours[i];
    }
    if (vlsvWriter.writeArray("NBRSUM","SpatialGrid",attribs,cells.size(),1,N_neighbours) == false) success = false;
-   delete N_neighbours;
+   delete[] N_neighbours;
    
    // Write velocity blocks and related data. Which cells write velocity grids 
    // should be requested from a function, but for now we just write velocity grids for all cells.
@@ -611,11 +612,12 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    }
    if (vlsvWriter.writeArray("NBLOCKS","SpatialGrid",attribs,cells.size(),1,N_blocks) == false) success = false;
    if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to write NBLOCKS to file!" << endl << write;
-
+   delete[] N_blocks;
+   
    double start = MPI_Wtime();
 
-   // Write velocity block coordinates.
-   // TODO: add support for MPI_Datatype in startMultiwrite... or use normal writeArray as all data is collected already in one place
+   // Write velocity block coordinates.// TODO: add support for MPI_Datatype in startMultiwrite... or use normal writeArray as all data is collected already in one place
+
    std::vector<Real> velocityBlockParameters;
    velocityBlockParameters.reserve(totalBlocks*BlockParams::N_VELOCITY_BLOCK_PARAMS);
 
@@ -636,6 +638,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    if (vlsvWriter.writeArray("BLOCKCOORDINATES","SpatialGrid",attribs,totalBlocks,BlockParams::N_VELOCITY_BLOCK_PARAMS,&(velocityBlockParameters[0])) == false) success = false;
    if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to write BLOCKCOORDINATES to file!" << endl << write;
    velocityBlockParameters.clear();
+
    
    // Write values of distribution function:
    std::vector<Real> velocityBlockData;
@@ -659,7 +662,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    velocityBlockData.clear();
    
    double end = MPI_Wtime();
-   delete N_blocks;
+
 
    vlsvWriter.close();
 
