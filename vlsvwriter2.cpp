@@ -67,8 +67,8 @@ bool VLSVWriter::close() {
     
     if (myrank == masterRank) {
         //delete some arrays
-        delete offsets ;
-        delete bytesPerProcess;
+        delete[] offsets ;
+        delete[] bytesPerProcess;
     }
     MPI_Barrier(comm);
     fileOpen = false;
@@ -183,9 +183,9 @@ bool VLSVWriter::endMultiwrite(const std::string& tagName,const std::string& arr
 	 success = false;
        //free type
        MPI_Type_free(&outputType);
-       delete displacements;
-       delete types;
-       delete blockLengths;
+       delete[] displacements;
+       delete[] types;
+       delete[] blockLengths;
     }
     else{
         //we have no data to write, write out zero data to participate in collective call
@@ -224,7 +224,7 @@ bool VLSVWriter::writeArray(const std::string& tagName,const std::string& arrayN
                             const std::string& dataType,const uint64_t& dataSize,void* array) {
     bool success = true;
     // All processes except the master receive the offset from process with rank = myrank-1:
-   // Calculate the amount of data written by this process in bytes, and 
+    // Calculate the amo unt of data written by this process in bytes, and 
    // send the next process its offset:
     myBytes = arraySize * vectorSize * dataSize;
     MPI_Gather(&myBytes,sizeof(uint64_t),MPI_BYTE,
