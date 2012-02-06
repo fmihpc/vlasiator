@@ -68,11 +68,7 @@ bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
 		      creal& zmin,creal& dx,creal& dy,creal& dz,
 		     const bool& isRemote) {
    typedef Parameters P;
-
-   //FIXME, read in from parameters P
-
-
-// Set up cell parameters:
+   // Set up cell parameters:
    cell.parameters[CellParams::XCRD] = xmin;
    cell.parameters[CellParams::YCRD] = ymin;
    cell.parameters[CellParams::ZCRD] = zmin;
@@ -248,8 +244,8 @@ void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
 
 
 void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
-   // tell other processes which velocity bloc  ks exist in remote spatial cells
-
+   // tell other processes which velocity blocks exist in remote spatial cells
+   profile::initializeTimer("Balancing load", "Load balance");
    profile::start("Balancing load");
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_SIZE_AND_LIST);
    mpiGrid.prepare_to_balance_load();
@@ -404,10 +400,12 @@ bool readConfigFile(){
    // Grid sparsity parameters
    RP::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 1e-5);
    RP::add("sparse.minAvgValue", "Minimum value of the average of distribution function within a velocity block for the block to be considered to have contents", 0.5e-5);
+   RP::add("sparse.blockAdjustmentInterval", "Block adjustment interval (steps)", 1);
    
    // Load balancing parameters
    RP::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("HYPERGRAPH"));
    RP::add("loadBalance.tolerance", "Load imbalance tolerance", std::string("1.05"));
+   RP::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
    
    
    RP::parse();
@@ -478,10 +476,12 @@ bool readConfigFile(){
    // Get sparsity parameters
    RP::get("sparse.minValue", P::sparseMinValue);
    RP::get("sparse.minAvgValue", P::sparseMinAvgValue);
+   RP::get("sparse.blockAdjustmentInterval", P::blockAdjustmentInterval);
    
    // Get load balance parameters
    RP::get("loadBalance.algorithm", P::loadBalanceAlgorithm);
    RP::get("loadBalance.tolerance", P::loadBalanceTolerance);
+   RP::get("loadBalance.rebalanceInterval", P::rebalanceInterval);
    
    profile::stop("Read parameters");
    
@@ -954,24 +954,22 @@ int main(int argn,char* args[]) {
           profile::stop("Barrier");
           profile::stop("Second propagation",computedBlocks,"Blocks");
           
-
-          profile::initializeTimer("re-adjust blocks","Block adjustment");
-          profile::start("re-adjust blocks");
-          SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA );
-          mpiGrid.update_remote_neighbour_data();
-          adjust_all_velocity_blocks(mpiGrid);
-          prepare_to_receive_velocity_block_data(mpiGrid);
-          profile::stop("re-adjust blocks");
-
-
-//FIXME, hardcoded rebalance interval
-          if(P::tstep%10 == 0 &&  P::tstep> P::tstep_min )
+	  if(P::tstep%P::blockAdjustmentInterval == 0)
+	  {
+	      profile::initializeTimer("re-adjust blocks","Block adjustment");
+	      profile::start("re-adjust blocks");
+	      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA );
+	      mpiGrid.update_remote_neighbour_data();
+	      adjust_all_velocity_blocks(mpiGrid);
+	      prepare_to_receive_velocity_block_data(mpiGrid);
+	      profile::stop("re-adjust blocks");
+	  }
+	  
+	  
+          if(P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min)
              balanceLoad(mpiGrid);
           
-
           profile::stop("Propagate Vlasov",computedBlocks,"Blocks");
-          
-
       }
  
       // Propagate fields forward in time by dt. If field is not 

@@ -93,9 +93,11 @@ bool P::periodic_z = false;
 
 Real P::sparseMinValue = NAN;
 Real P::sparseMinAvgValue = NAN;
+uint P::blockAdjustmentInterval = numeric_limits<uint>::max();
 
 string P::loadBalanceAlgorithm = string("");
 string P::loadBalanceTolerance = string("");
+uint P::rebalanceInterval = numeric_limits<uint>::max();
 
 // Handles parameter processing from the user
 namespace PO = boost::program_options;
