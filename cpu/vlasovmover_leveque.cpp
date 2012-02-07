@@ -214,7 +214,10 @@ bool finalizeMover() {
 
 void calculateSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,Real& dt) { }
 void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,ID::type cell) { }
-void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid) { 
+
+
+
+void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid) {   
    typedef Parameters P;
    
    const vector<CellID> cells = mpiGrid.get_cells();
@@ -223,39 +226,50 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    // Iterate through all local cells and propagate distribution functions 
    // in velocity space. Ghost cells (spatial cells at the boundary of the simulation 
    // volume) do not need to be propagated:
-  
+
    for (size_t c=0; c<cells.size(); ++c) {
-       const CellID cellID = cells[c];
-       if (ghostCells.find(cellID) != ghostCells.end()) continue;
-       nonGhostCells.push_back(cellID);
+      const CellID cellID = cells[c];
+      if (ghostCells.find(cellID) != ghostCells.end()) continue;
+      nonGhostCells.push_back(cellID);
    }
+
    //Operations for each cell is local, thus a threaded loop should be safe
 #pragma omp parallel for
    for (size_t c=0; c<nonGhostCells.size(); ++c) {
       const CellID cellID = nonGhostCells[c];
-      SpatialCell* SC = mpiGrid[cellID];
-      
-      // Clear df/dt contributions:
-      for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
-         unsigned int block = SC->velocity_block_list[block_i];         
-         cpu_clearVelFluxes(SC,block);
-      }
-               
-      
-      // Calculatedf/dt contributions of all blocks in the cell:
-      for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
-         unsigned int block = SC->velocity_block_list[block_i];         
-         cpu_calcVelFluxes(SC,block,P::dt,NULL);
-      }
-      
-      // Propagate distribution functions in velocity space:
-      for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
-         unsigned int block = SC->velocity_block_list[block_i];         
-         cpu_propagateVel(SC,block,P::dt);
-      }
+      calculateCellAcceleration(mpiGrid,cellID);
    }
-   
+}
 
+void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID) {
+   profile::start("Acceleration");
+   SpatialCell* SC = mpiGrid[cellID];
+   if (ghostCells.find(cellID) != ghostCells.end()) return;
+   
+   profile::start("clearVelFluxes");
+   // Clear df/dt contributions:
+   for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+      unsigned int block = SC->velocity_block_list[block_i];         
+      cpu_clearVelFluxes(SC,block);
+   }
+   profile::stop("clearVelFluxes");
+
+   profile::start("calcVelFluxes");
+   // Calculatedf/dt contributions of all blocks in the cell:
+   for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+      unsigned int block = SC->velocity_block_list[block_i];         
+      cpu_calcVelFluxes(SC,block,P::dt,NULL);
+   }
+   profile::stop("calcVelFluxes");
+
+   profile::start("propagateVel");
+      // Propagate distribution functions in velocity space:
+   for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+      unsigned int block = SC->velocity_block_list[block_i];         
+      cpu_propagateVel(SC,block,P::dt);
+   }
+   profile::stop("propagateVel");
+   profile::stop("Acceleration",SC->number_of_blocks,"Blocks");
 }
 
 void calculateSpatialDerivatives(dccrg::Dccrg<SpatialCell>& mpiGrid) { }
@@ -565,6 +579,8 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
 	    cpu_calcVelocityMoments(SC,block);
 	 }
       }
+      if(!secondStep)
+         calculateCellAcceleration(mpiGrid,cellID);
    }
    profile::stop("Spatial translation (inner)");
    
@@ -623,6 +639,8 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
 	    cpu_calcVelocityMoments(SC,block);
 	 }
       }
+      if(!secondStep)
+         calculateCellAcceleration(mpiGrid,cellID);
    }
    
    profile::stop("Spatial translation (boundary)");

@@ -928,10 +928,6 @@ int main(int argn,char* args[]) {
           calculateSpatialDerivatives(mpiGrid);
           calculateSpatialFluxes(mpiGrid);
           calculateSpatialPropagation(mpiGrid,false,false);
-          profile::initializeTimer("Barrier","MPI","Barrier");
-          profile::start("Barrier");
-          MPI_Barrier(MPI_COMM_WORLD);
-          profile::stop("Barrier");
           profile::stop("First propagation",computedBlocks,"Blocks");
 
           bool transferAvgs = false;
@@ -942,19 +938,17 @@ int main(int argn,char* args[]) {
 	     transferAvgs = true;
 	  }
 
-          profile::start("Acceleration");
-          calculateAcceleration(mpiGrid);
-	  profile::stop("Acceleration",computedBlocks,"Blocks");
+//integrated into calculateSpatialPRopagation for first step          
+//          profile::start("Acceleration");
+//          calculateAcceleration(mpiGrid);
+//	  profile::stop("Acceleration",computedBlocks,"Blocks");
 
           
           profile::start("Second propagation");
           calculateSpatialDerivatives(mpiGrid);
           calculateSpatialFluxes(mpiGrid);
           calculateSpatialPropagation(mpiGrid,true,transferAvgs);
-          profile::initializeTimer("Barrier","MPI","Barrier");
-          profile::start("Barrier");
-          MPI_Barrier(MPI_COMM_WORLD);
-          profile::stop("Barrier");
+
           profile::stop("Second propagation",computedBlocks,"Blocks");
           
 	  if(P::tstep%P::blockAdjustmentInterval == 0)
@@ -1030,6 +1024,9 @@ int main(int argn,char* args[]) {
    profile::stop("Finalization");   
    profile::stop("main");
    profile::print(MPI_COMM_WORLD);
+   profile::print(MPI_COMM_WORLD,0.01);
+
+   
    
 
    if (myrank == MASTER_RANK) mpilogger << "(MAIN): Exiting." << endl << write;
