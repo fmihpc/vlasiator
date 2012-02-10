@@ -345,9 +345,15 @@ namespace DRO {
    }
    
    bool VariablePressure::setSpatialCell(const SpatialCell* cell) {
-      averageVX = cell-> parameters[CellParams::RHOVX] / cell-> parameters[CellParams::RHO];
-      averageVY = cell-> parameters[CellParams::RHOVY] / cell-> parameters[CellParams::RHO];
-      averageVZ = cell-> parameters[CellParams::RHOVZ] / cell-> parameters[CellParams::RHO];
+      if(cell-> parameters[CellParams::RHO] != 0.0) {
+	 averageVX = cell-> parameters[CellParams::RHOVX] / cell-> parameters[CellParams::RHO];
+	 averageVY = cell-> parameters[CellParams::RHOVY] / cell-> parameters[CellParams::RHO];
+	 averageVZ = cell-> parameters[CellParams::RHOVZ] / cell-> parameters[CellParams::RHO];
+      } else {
+	 averageVX = 0.0;
+	 averageVY = 0.0;
+	 averageVZ = 0.0;
+      }
       Pressure = 0.0;
       return true;
    }
