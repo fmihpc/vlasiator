@@ -890,6 +890,7 @@ namespace velocity_neighbor {
          isGhostCell(other.isGhostCell),
          neighbors(other.neighbors),
          boundaryFlag(other.boundaryFlag){
+	 profile::initialize("SpatialCell copy", "SpatialCell copy");
 	 profile::start("SpatialCell copy");
 
          //copy parameters
