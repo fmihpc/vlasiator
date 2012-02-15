@@ -47,26 +47,14 @@ namespace projects {
 
 template<typename CELLID,class CONT> bool classifyLevequeGhostCell(const SpatialCell& cell,const CELLID& cellID,const CONT& nbrs);
 
-#ifdef PARGRID
-#include "../pargrid.h"
-template<typename CELLID> CELLID getNeighbour(const ParGrid<SpatialCell>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k);
-#else
+
 #include <dccrg.hpp>
 template<typename CELLID> CELLID getNeighbour(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k);
-#endif
+
 
 // ********************************
 // ***** TEMPLATE DEFINITIONS *****
 // ********************************
-
-#ifdef PARGRID
-template<typename CELLID> CELLID getNeighbour(const ParGrid<SpatialCell>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k) {
-   const int ii = i+2;
-   const int jj = j+2;
-   const int kk = k+2;
-   return mpiGrid.getNeighbour(cellID,kk*25+jj*5+ii);
-}
-#else
 
 template<typename CELLID> CELLID getNeighbour(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k){
     std::vector<uint64_t> neighbors = mpiGrid.get_neighbors_of(cellID, i, j, k);
@@ -79,5 +67,5 @@ template<typename CELLID> CELLID getNeighbour(const dccrg::Dccrg<SpatialCell>& m
     }
 }
 
-#endif
+
 #endif

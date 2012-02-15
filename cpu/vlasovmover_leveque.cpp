@@ -244,8 +244,10 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID) {
    profile::start("Acceleration");
    SpatialCell* SC = mpiGrid[cellID];
-   if (ghostCells.find(cellID) != ghostCells.end()) return;
-   
+   if (ghostCells.find(cellID) != ghostCells.end()){
+      profile::stop("Acceleration",0,"Blocks");
+      return;
+   }
    profile::start("clearVelFluxes");
    // Clear df/dt contributions:
    for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){

@@ -955,6 +955,7 @@ int main(int argn,char* args[]) {
 	  {
 	      profile::initializeTimer("re-adjust blocks","Block adjustment");
 	      profile::start("re-adjust blocks");
+              profile::initializeTimer("Transfer block data","MPI");
               profile::start("Transfer block data");
 	      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA );
 	      mpiGrid.update_remote_neighbour_data();
