@@ -125,6 +125,13 @@ bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
    cell.parameters[CellParams::RHOVX] /= spatialVolume;
    cell.parameters[CellParams::RHOVY] /= spatialVolume;
    cell.parameters[CellParams::RHOVZ] /= spatialVolume;
+
+   //lets get rid of blocks not fulfilling the criteria here to save
+   //memory.  neighbor_ptrs is empty as we do not have any consistent
+   //data in enighbours yet, asjustments done only based on velocity
+   //space.
+   vector<SpatialCell*> neighbor_ptrs;
+   cell.adjust_velocity_blocks(neighbor_ptrs);
    return true;
 }
 
