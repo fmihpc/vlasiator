@@ -116,7 +116,7 @@ bool convertSILO(const string& fname,
       return false;
    }
    
-   // Get the names of all meshes in vlsv file, and write into silo file:
+   // Get the names of all meshes in vlsv file
    list<string> meshNames;
    if (vlsvReader.getMeshNames(meshNames) == false) {
       return false;

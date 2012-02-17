@@ -28,10 +28,11 @@ CXXFLAGS += -DCATCH_FPE
 
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
-PROJ = harm1D
+#PROJ = harm1D
 #PROJ = Alfven
 #PROJ = Diffusion
 #PROJ = Dispersion
+PROJ = Fluctuations
 #PROJ = Harris
 #PROJ=test_fp
 #PROJ=test_acc
@@ -48,7 +49,7 @@ include projects/Makefile.${PROJ}
 # The rest of this file users shouldn't need to change
 
 
-default: vlasiator vlsv2silo vlsvextract vlsv2bzt vlsv2vtk
+default: vlasiator vlsv2silo vlsvextract vlsv2bzt vlsvdiff #vlsv2vtk
 
 # Compile directory:
 INSTALL = $(CURDIR)
@@ -63,7 +64,7 @@ LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_MPI}
 LIBS += ${LIB_CUDA}
 # if no profile, use -lnoprofile
-LIBS += ${LIB_PROFILE} -lprofile
+LIBS += ${LIB_PROFILE}
 
 # Define dependencies of each object file
 DEPS_ARRAYALLOCATOR = arrayallocator.h arrayallocator.cpp
@@ -86,7 +87,8 @@ DEPS_VLSVEXTRACT = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp v
 DEPS_VLSVREADER2 = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
 DEPS_VLSVWRITER2 = mpiconversion.h muxml.h muxml.cpp vlscommon.h vlsvwriter2.h vlsvwriter2.cpp
 DEPS_VLSV2SILO = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp vlsv2silo.cpp
-DEPS_VLSV2BZT = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp vlsv2silo.cpp
+DEPS_VLSV2BZT = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
+DEPS_VLSVDIFF = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
 
 DEPS_ARRAYALLOCATOR += ${DEPS_COMMON}
 DEPS_CELL_SPATIAL += $(DEPS_COMMON)
@@ -133,6 +135,7 @@ OBJS = arrayallocator.o cell_spatial.o		\
 OBJS_VLSVEXTRACT = muxml.o vlscommon.o vlsvreader2.o
 OBJS_VLSV2SILO = muxml.o vlscommon.o vlsvreader2.o
 OBJS_VLSV2BZT = muxml.o vlscommon.o vlsvreader2.o
+OBJS_VLSVDIFF = muxml.o vlscommon.o vlsvreader2.o
 
 HDRS +=
 SRC +=
@@ -239,6 +242,10 @@ writevars.o: ${DEPS_WRITEVARS}
 vlsv2bzt: ${DEPS_VLSV2BZT} ${OBJS_VLSV2BZT}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2bzt.cpp 
 	${LNK} -o vlsv2bzt_${FP_PRECISION} vlsv2bzt.o ${OBJS_VLSV2BZT}
+
+vlsvdiff: ${DEPS_VLSVDIFF} ${OBJS_VLSVDIFF}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvdiff.cpp 
+	${LNK} -o vlsvdiff_${FP_PRECISION} vlsvdiff.o ${OBJS_VLSVDIFF}
 
 # Make a tar file containing the source code
 dist:
