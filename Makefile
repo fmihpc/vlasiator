@@ -20,14 +20,19 @@ CXXFLAGS += -DSOLVER_${SOLVER}
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
 CXXFLAGS += -DNDEBUG
 
+#Add -DCATCH_FPE to catch floating point exceptions and stop execution
+CXXFLAGS += -DCATCH_FPE
+
 #will need profiler in most places..
 CXXFLAGS += ${INC_PROFILE} 
 
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
-PROJ = harm1D
 #PROJ = Alfven
+#PROJ = harm1D
+#PROJ = Dispersion
 #PROJ = Diffusion
+PROJ = Fluctuations
 #PROJ = Harris
 #PROJ=test_fp
 #PROJ=test_trans
@@ -43,7 +48,7 @@ PROJ = harm1D
 # The rest of this file users shouldn't need to change
 
 
-default: vlasiator vlsv2silo vlsvextract vlsv2vtk
+default: vlasiator vlsv2silo vlsvextract #vlsv2vtk
 
 # Compile directory:
 INSTALL = $(CURDIR)
