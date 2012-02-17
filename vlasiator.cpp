@@ -131,6 +131,7 @@ bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
    //data in enighbours yet, asjustments done only based on velocity
    //space.
    vector<SpatialCell*> neighbor_ptrs;
+   cell.update_all_block_has_content();
    cell.adjust_velocity_blocks(neighbor_ptrs);
    return true;
 }
@@ -329,9 +330,12 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
     prepare_to_receive_velocity_block_data(mpiGrid);
     // update distribution function
     // FIXME, only CELL_BLOCK_DATA needed?
-    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA );
+    
+    //in principle not needed as that was done in initSpatialCell, but lets be safe and do it anyway as it does not  cost much
+    for (uint i=0; i<cells.size(); ++i) 
+      mpiGrid[cells[i]]->update_all_block_has_content();     
+    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_HAS_CONTENT );
     mpiGrid.update_remote_neighbour_data();
-
     
     adjust_all_velocity_blocks(mpiGrid);
 
@@ -962,9 +966,13 @@ int main(int argn,char* args[]) {
 	  {
 	      profile::initializeTimer("re-adjust blocks","Block adjustment");
 	      profile::start("re-adjust blocks");
-              profile::initializeTimer("Transfer block data","MPI");
+	      profile::start("Check for content");
+	      for (uint i=0; i<cells.size(); ++i) 
+		mpiGrid[cells[i]]->update_all_block_has_content();     
+	      profile::stop("Check for content");
+	      profile::initializeTimer("Transfer block data","MPI");
               profile::start("Transfer block data");
-	      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA );
+	      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_HAS_CONTENT );
 	      mpiGrid.update_remote_neighbour_data();
               profile::stop("Transfer block data");
 	      adjust_all_velocity_blocks(mpiGrid);
