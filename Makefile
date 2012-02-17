@@ -64,7 +64,7 @@ LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_MPI}
 LIBS += ${LIB_CUDA}
 # if no profile, use -lnoprofile
-LIBS += ${LIB_PROFILE}
+LIBS += ${LIB_PROFILE} -lprofile
 
 # Define dependencies of each object file
 DEPS_ARRAYALLOCATOR = arrayallocator.h arrayallocator.cpp
