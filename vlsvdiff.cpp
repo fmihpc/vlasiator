@@ -20,12 +20,13 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <iostream>
 #include <stdint.h>
 #include <cmath>
+#include <limits> // YK
 #include <list>
 #include <set>
 #include <sstream>
 #include <dirent.h>
 
-# include <cmath>
+
 
 #include "vlsvreader2.h"
 #include "definitions.h"
@@ -279,6 +280,43 @@ bool pDistanceAvgSubtracted(map<uint, Real> * orderedData1,
        return 0;
 }
 
+bool singleStatistics(map<uint, Real> * orderedData,
+                      Real * size,
+		      Real * mini,
+		      Real * maxi,
+		      Real * avg,
+		      Real * stdev
+)
+{
+   /*
+    * Returns basic statistics on the map passed to it.
+    * 
+    * 
+    */
+   map<uint, Real>::const_iterator it;
+   
+   *size = orderedData->size();
+   *mini = numeric_limits<Real>::max();
+   *maxi = numeric_limits<Real>::min();
+   *avg = 0.0;
+   *stdev = 0.0;
+   
+   for(it=orderedData->begin(); it != orderedData->end() ; it++)
+   {
+      *mini = min(*mini, orderedData->at(it->first));
+      *maxi = max(*maxi, orderedData->at(it->first));
+      *avg += orderedData->at(it->first);
+   }
+   *avg /= *size;
+   for(it=orderedData->begin(); it != orderedData->end() ; it++)
+   {
+      *stdev += pow(orderedData->at(it->first) - *avg, 2.0);
+   }
+   *stdev = sqrt(*stdev);
+   *stdev /= (*size - 1);
+   return 0;
+}
+
 int main(int argn,char* args[])
 {
    if (argn < 5)
@@ -301,14 +339,13 @@ int main(int argn,char* args[])
    
    map<uint, Real> orderedData1;
    map<uint, Real> orderedData2;
-   Real absolute, relative;
+   Real absolute, relative, mini, maxi, size, avg, stdev;
    
    if(convertSILO(fileName1, varToExtract, compToExtract, &orderedData1) != true)
    {
       cerr << "Data import error with " << fileName1 << endl;
       return 1;
    }
-   
    if(convertSILO(fileName2, varToExtract, compToExtract, &orderedData2) != true)
    {
       cerr << "Data import error with " << fileName2 << endl;
@@ -321,6 +358,22 @@ int main(int argn,char* args[])
       cerr << "Datasets have differing size" << endl;
       return 1;
    }
+   
+   singleStatistics(&orderedData1, &size, &mini, &maxi, &avg, &stdev);
+   cout << "Statistics on first file: size " << size
+        << " min = " << mini
+        << " max = " << maxi
+        << " average = " << avg
+        << " standard deviation " << stdev
+        << endl;
+   
+	singleStatistics(&orderedData2, &size, &mini, &maxi, &avg, &stdev);
+	cout << "Statistics on second file: size " << size
+	<< " min = " << mini
+	<< " max = " << maxi
+	<< " average = " << avg
+	<< " standard deviation " << stdev
+	<< endl;
    
    pDistance(&orderedData1, &orderedData2, 1, &absolute, &relative);
    cout << "The absolute 1-distance between both datasets is " << absolute << "." << endl;
