@@ -49,10 +49,6 @@ template<typename CELLID,typename UINT>
    const UINT mask = ((1 << 4) | (1 << 10) | (1 << 12) | (1 << 14) | (1 << 16) | (1 << 22));
 
    SpatialCell* spatialCell=mpiGrid[cellID];
-//   std::cout << "cellID " << cellID << " existingcells " << existingCells <<" "<<nonExistingCells <<std::endl;
-//   std::cout << "cellID " << cellID << " " << mask << " " << missingPosX << " " << missingPosY << " " << missingPosZ <<
-//      missingNegX << " " << missingNegY << " " << missingNegZ << std::endl;
-
    switch ((nonExistingCells & mask)) {
        case missingNegZ:
           // If +z neighbour exists, copy values from there:

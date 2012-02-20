@@ -122,13 +122,37 @@ bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid) {
          }
          else {
             SC->neighbors.push_back(getNeighbourID(mpiGrid, cellID, 2+i, 2+j, 2+k));
+            if (SC->neighbors.back() == INVALID_CELLID) {
+               //we only use a stencil of one to set if a cell is a ghost cell.
+               SC->isGhostCell = true;
+            }
          }
-      }
-      
-      SC->neighbors.push_back(getNeighbourID(mpiGrid, cellID, 0, 2, 2));
-      SC->neighbors.push_back(getNeighbourID(mpiGrid, cellID, 2, 0, 2));
-      SC->neighbors.push_back(getNeighbourID(mpiGrid, cellID, 2, 2, 0));
+      }      
 
+      if (getNeighbourID(mpiGrid, cellID, 0, 2, 2) != INVALID_CELLID) {
+         SC->neighbors.push_back(getNeighbourID(mpiGrid, cellID, 0, 2, 2));
+      }
+      else{
+         //outside boundary, attempt to use one closer 
+         SC->neighbors.push_back(getNeighbourID(mpiGrid, cellID, 1, 2, 2));
+      }
+
+      if (getNeighbourID(mpiGrid, cellID, 2, 0, 2) != INVALID_CELLID) {
+         SC->neighbors.push_back(getNeighbourID(mpiGrid, cellID, 2, 0, 2));
+      }
+      else{
+         //outside boundary, attempt to use one closer 
+         SC->neighbors.push_back(getNeighbourID(mpiGrid, cellID, 2, 1, 2));
+      }
+
+      if (getNeighbourID(mpiGrid, cellID, 2, 2, 0) != INVALID_CELLID) {
+         SC->neighbors.push_back(getNeighbourID(mpiGrid, cellID, 2, 2, 0));
+      }
+      else{
+         //outside boundary, attempt to use one closer 
+         SC->neighbors.push_back(getNeighbourID(mpiGrid, cellID, 2, 2, 1));
+      }
+                  
       
       for(int i=0;i<SC->neighbors.size();i++){
          if (SC->neighbors[i] == INVALID_CELLID) {
@@ -137,7 +161,6 @@ bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       // boundary of the simulation domain (="ghost cells") can be propagated.
       // This allows boundary values (set by user) to propagate into simulation 
       // domain.
-            SC->isGhostCell = true;
             SC->neighbors[i]=cellID;
          }
          else
