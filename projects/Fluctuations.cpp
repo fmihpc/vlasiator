@@ -90,7 +90,9 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
    creal mu0 = 1.25663706144e-6; // mu_0
    creal q = 1.60217653e-19; // q_i
    
-   static int spaceIndexOld[3] = {0};
+   static int spaceIndexOld[3] = {std::numeric_limits<int>::min(),
+                                  std::numeric_limits<int>::min(),
+                                  std::numeric_limits<int>::min()};
    static int spaceIndex[3] = {0};
    static int rndRho = 0;
    static int rndVel[3] = {0};
@@ -104,12 +106,12 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
    if(spaceIndex[0] != spaceIndexOld[0] ||
       spaceIndex[1] != spaceIndexOld[1] ||
       spaceIndex[2] != spaceIndexOld[2]) {
-      if(++cptRhoSector%rndRhoSector == 0)
+      if(cptRhoSector++%rndRhoSector == 0)
       {
 	 rndRho = rand();
 	 rndRhoSector = rand()%DispP::sectorSize+1;
       }
-      if(++cptVelSector%rndVelSector == 0)
+      if(cptVelSector++%rndVelSector == 0)
       {
 	 rndVel = {rand(), rand(), rand()};
 	 rndVelSector = rand()%DispP::sectorSize+1;
