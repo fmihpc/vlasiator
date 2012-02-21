@@ -14,7 +14,7 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 4.5.2
-CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x #-W -Wall -pedantic
+CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -pedantic -Wno-unused
 #CXXFLAGS += -DCRAY_TOPOLOGY_OPTIMIZATION
 MATHFLAGS = -ffast-math
 LDFLAGS =
