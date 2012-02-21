@@ -1,26 +1,8 @@
-/*
-This file is part of Vlasiator.
-
-Copyright 2011 Finnish Meteorological Institute
-
-Vlasiator is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 3
-as published by the Free Software Foundation.
-
-Vlasiator is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
-*/
-
-#ifndef DISPERSION_H
-#define DISPERSION_H
+#ifndef HARM1D_H
+#define HARM1D_H
 
 #include "definitions.h"
-#include "cell_spatial.h"
+#include "spatial_cell.hpp"
 #include "projects/projects_common.h"
 #include "projects/projects_fieldboundary.h"
 #include "projects/projects_vlasov_acceleration.h"
@@ -40,12 +22,10 @@ struct dispersionParameters {
    static Real BZ0;
    static Real DENSITY;
    static Real TEMPERATURE;
-//   static Real sigma1;
-//   static Real X1;
-//   static Real sigma2;
-//   static Real X2;
-//   static Real magPertAmp;
+   static Real magPertAmp;
    static Real densityPertAmp;
+   static Real velocityPertAmp;
+   static uint sectorSize;
    static uint nSpaceSamples;
    static uint nVelocitySamples;
 } ;
@@ -218,8 +198,6 @@ REAL fieldSolverBoundaryCondBy(const CELLID& cellID,const UINT& existingCells,co
 
 template<typename CELLID,typename UINT,typename REAL>
 REAL fieldSolverBoundaryCondBz(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const dccrg::Dccrg<SpatialCell> & mpiGrid) {
-  REAL x = mpiGrid[cellID]->cpu_cellParams[CellParams::XCRD];
-  REAL dx = mpiGrid[cellID]->cpu_cellParams[CellParams::DX];
   return 0.0;
 }
 
