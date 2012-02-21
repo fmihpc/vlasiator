@@ -1050,11 +1050,13 @@ int main(int argn,char* args[]) {
    finalizeFieldPropagator(mpiGrid);
    
    if (myrank == MASTER_RANK) {
-       mpilogger << "(MAIN): All timesteps calculated." << endl;
-       mpilogger << "\t (TIME) total run time " << after - before << " s, total simulated time " << P::t << " s" << endl;
-       mpilogger << "\t (TIME) seconds per timestep " << double(after - before) / P::tsteps <<
-           ", seconds per simulated second " << double(after - before) / P::t << endl;
-       mpilogger << write;
+      mpilogger << "(MAIN): All timesteps calculated." << endl;
+      mpilogger << "\t (TIME) total run time " << after - before << " s, total simulated time " << P::t << " s" << endl;
+      if(P::t != 0.0) {
+	 mpilogger << "\t (TIME) seconds per timestep " << double(after - before) / P::tsteps <<
+	 ", seconds per simulated second " << double(after - before) / P::t << endl;
+      }
+      mpilogger << write;
    }
    
    profile::stop("Finalization");   
