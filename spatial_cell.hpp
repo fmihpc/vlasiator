@@ -31,6 +31,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "limits"
 #include "stdint.h"
 #include "vector"
+#include "set"
 
 #include "profile.hpp"
 #include "common.h"
@@ -99,7 +100,7 @@ namespace spatial_cell {
       | VEL_BLOCK_FLUXES
       | CELL_GHOSTFLAG
       | VEL_BLOCK_KT_DERIVATIVES;
-   };
+   }
    
 /** A namespace for storing indices into an array containing neighbour information 
  * of velocity grid blocks. 
@@ -268,8 +269,7 @@ namespace velocity_neighbor {
             for (unsigned int z_index = 0; z_index < block_vz_length; z_index++)
                for (unsigned int y_index = 0; y_index < block_vy_length; y_index++)
                   for (unsigned int x_index = 0; x_index < block_vx_length; x_index++) {
-
-                     const velocity_cell_indices_t indices = {x_index, y_index, z_index};
+                     const velocity_cell_indices_t indices = {{x_index, y_index, z_index}};
                      const unsigned int velocity_cell = get_velocity_cell(indices);
 
                      outfile << get_velocity_cell_vx_min(block, velocity_cell) << " "
@@ -423,7 +423,7 @@ namespace velocity_neighbor {
                for (unsigned int y_index = 0; y_index < block_vy_length; y_index++)
                   for (unsigned int x_index = 0; x_index < block_vx_length; x_index++) {
 
-                     const velocity_cell_indices_t indices = {x_index, y_index, z_index};
+                     const velocity_cell_indices_t indices = {{x_index, y_index, z_index}};
                      const unsigned int velocity_cell = get_velocity_cell(indices);
                      const Real value = block_data.data[velocity_cell];
                      outfile << value << " ";
@@ -496,11 +496,11 @@ namespace velocity_neighbor {
             return error_velocity_block;
          }
 
-         const velocity_block_indices_t indices = {
+         const velocity_block_indices_t indices = {{
             (unsigned int) floor((vx - SpatialCell::vx_min) / SpatialCell::block_dvx),
             (unsigned int) floor((vy - SpatialCell::vy_min) / SpatialCell::block_dvy),
             (unsigned int) floor((vz - SpatialCell::vz_min) / SpatialCell::block_dvz)
-         };
+         }};
 
          return SpatialCell::get_velocity_block(indices);
       }
@@ -708,11 +708,11 @@ namespace velocity_neighbor {
             return error_velocity_cell;
          }
 
-         const velocity_block_indices_t indices = {
+         const velocity_block_indices_t indices = {{
             (unsigned int) floor((vx - block_vx_min) / ((block_vx_max - block_vx_min) / block_vx_length)),
             (unsigned int) floor((vy - block_vy_min) / ((block_vy_max - block_vy_min) / block_vy_length)),
             (unsigned int) floor((vz - block_vz_min) / ((block_vz_max - block_vz_min) / block_vz_length))
-         };
+         }};
 
          return SpatialCell::get_velocity_cell(indices);
       }
@@ -859,6 +859,8 @@ namespace velocity_neighbor {
          */
          this->velocity_block_list.resize(SpatialCell::max_velocity_blocks);
          this->number_of_blocks=0;
+         this->mpi_velocity_block_list.resize(SpatialCell::max_velocity_blocks);
+         this->mpi_number_of_blocks=0;
 
 	 this->block_has_content.reserve(SpatialCell::max_velocity_blocks); 
          this->block_address_cache.reserve(SpatialCell::max_velocity_blocks);
@@ -886,14 +888,18 @@ namespace velocity_neighbor {
       }
       
       SpatialCell(const SpatialCell& other):
+         initialized(other.initialized),
+         velocity_blocks(other.velocity_blocks),
          number_of_blocks(other.number_of_blocks),
          velocity_block_list(other.velocity_block_list),
+         mpi_number_of_blocks(other.mpi_number_of_blocks),
+         mpi_velocity_block_list(other.mpi_velocity_block_list),
          block_has_content(other.block_has_content),
-         velocity_blocks(other.velocity_blocks),
-         initialized(other.initialized),
-         isGhostCell(other.isGhostCell),
          neighbors(other.neighbors),
-         boundaryFlag(other.boundaryFlag){
+         boundaryFlag(other.boundaryFlag),
+         isGhostCell(other.isGhostCell)
+         {
+
 //	 profile::initializeTimer("SpatialCell copy", "SpatialCell copy");
 //	 profile::start("SpatialCell copy");
 
@@ -1042,22 +1048,32 @@ namespace velocity_neighbor {
                         
             //add data to send/recv to displacement and block length lists
             if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_SIZE)!=0){
-               // send velocity block list size 
-               displacements.push_back((uint8_t*) &(this->number_of_blocks) - (uint8_t*) this);
+               //first copy values in case this is the send operation
+               this->mpi_number_of_blocks=this->number_of_blocks;
+               // send velocity block list size
+               displacements.push_back((uint8_t*) &(this->mpi_number_of_blocks) - (uint8_t*) this);
                block_lengths.push_back(sizeof(unsigned int));
             }
             
             if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST)!=0){
-               // send velocity block list  
-               displacements.push_back((uint8_t*) &(this->velocity_block_list[0]) - (uint8_t*) this);
-               block_lengths.push_back(sizeof(unsigned int) * this->number_of_blocks);
+               //first copy values in case this is the send operation    
+               for(unsigned int i=0;i< this->number_of_blocks;i++)
+                  this->mpi_velocity_block_list[i]=this->velocity_block_list[i];               
+               // send velocity block list
+               displacements.push_back((uint8_t*) &(this->mpi_velocity_block_list[0]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(unsigned int) * this->mpi_number_of_blocks);
             }
 
             if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_SIZE_AND_LIST)!=0){
-               displacements.push_back((uint8_t*) &(this->number_of_blocks) - (uint8_t*) this);
+               //first copy values in case this is the send operation
+               this->mpi_number_of_blocks=this->number_of_blocks;
+               for(unsigned int i=0;i< this->number_of_blocks;i++)
+                  this->mpi_velocity_block_list[i]=this->velocity_block_list[i];               
+               // send velocity block list size
+               displacements.push_back((uint8_t*) &(this->mpi_number_of_blocks) - (uint8_t*) this);
                block_lengths.push_back(sizeof(unsigned int));
                // send velocity block list, all elements as we do not know number of blocks when sending at once
-               displacements.push_back((uint8_t*) &(this->velocity_block_list[0]) - (uint8_t*) this);
+               displacements.push_back((uint8_t*) &(this->mpi_velocity_block_list[0]) - (uint8_t*) this);
                block_lengths.push_back(sizeof(unsigned int) * SpatialCell::max_velocity_blocks);
             }
 
@@ -1288,11 +1304,11 @@ namespace velocity_neighbor {
             return error_velocity_block;
          }
 
-         const velocity_block_indices_t neighbor_indices = {
+         const velocity_block_indices_t neighbor_indices = {{
             indices[0] + x_offset,
             indices[1] + y_offset,
             indices[2] + z_offset
-         };
+         }};
 
          if (neighbor_indices[0] == error_velocity_block_index) {
             return error_velocity_block;
@@ -1607,31 +1623,34 @@ namespace velocity_neighbor {
         Prepares this spatial cell to receive the velocity grid over MPI.
 
         At this stage we have received a new blocklist over MPI, but
-        the rest of the cell structres have ntbee adapted to this new
+        the rest of the cell structures have not been adapted to this new
         list. Here we re-initialize the cell wit empty blocks based on
         the new list
       */
-      void prepare_to_receive_blocks(void)
-         {
-            unsigned int oldNumBlocks = this->number_of_blocks;
-            // clear + add_velocity_block overwrites the block list so:
-            std::vector<unsigned int> old_block_list;
-            old_block_list.resize(oldNumBlocks);
-               
-            for (unsigned int block_index = 0; block_index < oldNumBlocks; block_index++) {
-               old_block_list[block_index] = this->velocity_block_list[block_index];
+      void prepare_to_receive_blocks(void) {
+         // take copy of existing block  list so that we can safely loop over it while removing blocks
+         std::vector<unsigned int> old_block_list(&(this->velocity_block_list[0]),
+                                                  &(this->velocity_block_list[this->number_of_blocks]));
+         
+         //make set of  mpi block list to make element finding faster, use pointers as iterators
+         std::set<unsigned int> mpi_velocity_block_set(&(this->mpi_velocity_block_list[0]),
+                                                  &(this->mpi_velocity_block_list[this->mpi_number_of_blocks]));
+         
+         //remove blocks that are not in the new list        
+         for (unsigned int block_index = 0; block_index < old_block_list.size(); block_index++) {
+            if(mpi_velocity_block_set.count(old_block_list[block_index])==0){
+               this->remove_velocity_block(old_block_list[block_index]);
             }
-            
-            this->clear();
-
-            // add velocity blocks that are about to be received with MPI
-            for (unsigned int block_index = 0; block_index < oldNumBlocks; block_index++) {
-               this->add_velocity_block(old_block_list[block_index]);
-            }
-
-
          }
-
+         
+         // add velocity blocks that are about to be received with MPI, if it exists then
+         //add_velocity_blocks safely returns
+         for (unsigned int block_index = 0; block_index < this->mpi_number_of_blocks; block_index++) {
+            this->add_velocity_block(this->mpi_velocity_block_list[block_index]);
+         }
+         
+      }
+      
 
       /*!
         Sets the type of data to transfer by mpi_datatype.
@@ -1722,20 +1741,24 @@ namespace velocity_neighbor {
      
 
    public:
-      /*
-        List of velocity blocks in this cell, used for
-        transferring spatial cells between processes using MPI.
-      */
-      
-     std::vector<unsigned int> velocity_block_list;
+      //number of blocks in cell
+      unsigned int number_of_blocks;
+      // List of velocity blocks in this cell,
+      std::vector<unsigned int> velocity_block_list;
+
+      //number of blocks in mpi_velocity_block_list
+      unsigned int mpi_number_of_blocks;
+      //this list is used for communicating a velocity block list over MPI
+      std::vector<unsigned int>  mpi_velocity_block_list;
      
      /*bool list telling if a block has content or not, uses actual blocks as indexes and not the order in velocity_block_list
        This is only guaranteed to be up to date after update_all_block_has_content() has been called.
       */
-     std::vector<char> block_has_content;
+
+      std::vector<char> block_has_content;
 
 
-      unsigned int number_of_blocks;
+
 
       /*
         Bulk variables in this spatial cell.
