@@ -14,12 +14,11 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 4.5.2
-CXXFLAGS += -O3  -funroll-loops -std=c++0x -W -Wall -pedantic -Wno-unused
-#CXXFLAGS += -DCRAY_TOPOLOGY_OPTIMIZATION
+CXXFLAGS += -O3  -funroll-loops -std=c++0x -fopenmp -W -Wall -pedantic -Wno-unused
 MATHFLAGS = -ffast-math
 LDFLAGS =
-#LIB_MPI = -lgomp -lrca  
-LIB_MPI = 
+LIB_MPI = -lgomp 
+#LIB_MPI = 
 #Add for threaded multiple mode: -lmpich_threadm
 
 #INTEL flags:
