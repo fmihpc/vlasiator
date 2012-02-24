@@ -1182,15 +1182,14 @@ namespace velocity_neighbor {
 
       /*!
         Returns true if given velocity block has enough of a distribution function.
-        Returns Falso othwerwise, also returns false if given block doesn't exist or is an error block.   
+        Returns Fals othwerwise, also returns false if given block doesn't exist or is an error block.   
         Reads data from the precomputed array  that is computed using update_all_block_has_content.
       */
       bool get_block_has_content(
          const unsigned int block
          ) const
          {
-            if (block == error_velocity_block
-                || this->velocity_blocks.count(block) == 0) {
+            if (block == error_velocity_block) {
                return false;
             }
             return (this->block_has_content[block]!=0);
@@ -1318,25 +1317,32 @@ namespace velocity_neighbor {
       }
 
 
-      /*!
-        Adds "important" and removes "unimportant" velocity blocks to/from this cell.
+      /*!  Adds "important" and removes "unimportant" velocity blocks
+        to/from this cell.
 	
 	block_has_content list needs to be up to date in local cells
 	and its neighbours, update_all_block_has_content() should have
 	been called with the current distribution function values.
 	
-        Removes all velocity blocks from this spatial cell which don't have content
-        and don't have spatial or velocity neighbors with content.
-        Adds neighbors for all velocity blocks which do have content (including spatial neighbors).
-        All cells in spatial_neighbors are assumed to be neighbors of this cell.
+        Removes all velocity blocks from this spatial cell which don't
+        have content and don't have spatial or velocity neighbors with
+        content.  Adds neighbors for all velocity blocks which do have
+        content (including spatial neighbors).  All cells in
+        spatial_neighbors are assumed to be neighbors of this cell.
 	
 
+        This function is thread-safe when called for different cells
+        per thread. We need the block_has_content vector from
+        neighbouring cells, but these are not written to here. We only
+        modify local cell.
+
+        
       */
       void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors)
       {
          //initialize tree of timers to make sure every process has timers, even for processes with no velocity cells.
          //Also reduces overhead in tight loops compared to simple interface
-         
+/*         
          int pcontent = profile::initializeTimer("add_in_velocityspace");
          int pempty = profile::initializeTimer("try_to_remove");
          profile::start(pempty);
@@ -1345,7 +1351,7 @@ namespace velocity_neighbor {
          int premove=profile::initializeTimer("remove");
          profile::stop(pempty);
          int paddreal=profile::initializeTimer("add_for_realspace");
-         
+*/       
 
          // don't iterate over blocks created / removed by this function
          std::vector<unsigned int> original_block_list;
@@ -1362,7 +1368,7 @@ namespace velocity_neighbor {
 	   const bool original_has_content = this->get_block_has_content(block);
             
             if (original_has_content) {             
-               profile::start(pcontent);
+               //             profile::start(pcontent);
                // add missing neighbors in velocity space
                for(int offset_vx=-1;offset_vx<=1;offset_vx++)
                for(int offset_vy=-1;offset_vy<=1;offset_vy++)
@@ -1380,14 +1386,14 @@ namespace velocity_neighbor {
                      abort();
                   }
                }
-               profile::stop(pcontent);
+               //  profile::stop(pcontent);
 
             } else {
-               profile::start(pempty);
+               // profile::start(pempty);
                // remove local block if also no neighbor has content
                bool neighbors_have_content = false;
 
-               profile::start(pcheckvel);
+//                     profile::start(pcheckvel);
                // velocity space neighbors
                for(int offset_vx=-1;offset_vx<=1;offset_vx++)
                for(int offset_vy=-1;offset_vy<=1;offset_vy++)
@@ -1398,8 +1404,8 @@ namespace velocity_neighbor {
                      break;
                   }
                }
-               profile::stop(pcheckvel);
-               profile::start(pcheckreal);
+               //  profile::stop(pcheckvel);
+               // profile::start(pcheckreal);
                // real space neighbors
                if(!neighbors_have_content){
                   for (std::vector<SpatialCell*>::const_iterator
@@ -1413,21 +1419,21 @@ namespace velocity_neighbor {
                      }
                   }
                }
-               profile::stop(pcheckreal);
-               profile::start(premove);
+               //   profile::stop(pcheckreal);
+               // profile::start(premove);
                
                if (!neighbors_have_content) {
                   this->remove_velocity_block(block);
                }
-               profile::stop(premove);
-               profile::stop(pempty);
+               // profile::stop(premove);
+               // profile::stop(pempty);
                
             }
             
          }
 
          // add local blocks for neighbors in real space with content
-         profile::start(paddreal);
+         //     profile::start(paddreal);
          for (std::vector<SpatialCell*>::const_iterator
             neighbor = spatial_neighbors.begin();
             neighbor != spatial_neighbors.end();
@@ -1443,7 +1449,7 @@ namespace velocity_neighbor {
                }
             }
          }
-         profile::stop(paddreal);
+         //  profile::stop(paddreal);
          
       }
       

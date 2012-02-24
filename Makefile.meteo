@@ -35,6 +35,7 @@ ZOLTAN_VERSION = 3.5
 SILO_VERSION = 4.8
 
 LIBRARY_PREFIX = /stornext/field/users/honkonen/libraries
+LIBRARY_PREFIX_B = /stornext/field/users/alfthan/libraries
 
 INC_BOOST = -I$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/$(BOOST_VERSION)/include
 LIB_BOOST = -L$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/$(BOOST_VERSION)/lib -lboost_mpi -lboost_serialization -lboost_program_options
@@ -47,7 +48,7 @@ LIB_SILO = -L$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION
 
 INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg-new
 
-LIBRARY_PREFIX_B = /stornext/field/users/alfthan/libraries
+
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX_B)/profiler/lib -lprofile
 INC_PROFILE = -I$(LIBRARY_PREFIX_B)/profiler/include

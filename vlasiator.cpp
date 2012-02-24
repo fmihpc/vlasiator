@@ -156,21 +156,19 @@ bool adjust_all_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    profile::start("Adjusting blocks");
 
    const vector<uint64_t> cells = mpiGrid.get_cells();
-   for (std::vector<uint64_t>::const_iterator
-      cell_id = cells.begin();
-      cell_id != cells.end();
-      ++cell_id
-   ) {
-      SpatialCell* cell = mpiGrid[*cell_id];
+
+#pragma omp parallel for
+   for(unsigned int i=0;i<cells.size();i++){
+      uint64_t cell_id=cells[i];
+      SpatialCell* cell = mpiGrid[cell_id];
       if (cell == NULL) {
          std::cerr << __FILE__ << ":" << __LINE__
-                   << " No data for spatial cell " << *cell_id
+                   << " No data for spatial cell " << cell_id
                    << endl;
          abort();
       }
-      profile::start("gather_neighbours");
       // gather spatial neighbor list
-      const vector<uint64_t>* neighbors = mpiGrid.get_neighbours(*cell_id);
+      const vector<uint64_t>* neighbors = mpiGrid.get_neighbours(cell_id);
       vector<SpatialCell*> neighbor_ptrs;
 
       neighbor_ptrs.reserve(neighbors->size());
@@ -180,7 +178,7 @@ bool adjust_all_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
            neighbor_id != neighbors->end();
            ++neighbor_id
       ) {
-         if (*neighbor_id == 0 || *neighbor_id == *cell_id) {
+         if (*neighbor_id == 0 || *neighbor_id == cell_id) {
             continue;
          }
          
@@ -188,19 +186,18 @@ bool adjust_all_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
          if (neighbor == NULL) {
             std::cerr << __FILE__ << ":" << __LINE__
                       << " No data for neighbor " << *neighbor_id
-                      << " of cell " << *cell_id
+                      << " of cell " << cell_id
                       << endl;
             abort();
          }
 
          neighbor_ptrs.push_back(neighbor);         
       }
-      profile::stop("gather_neighbours");
-      profile::start("Cell:adjust_velocity_blocks");
+      //is threadsafe
       cell->adjust_velocity_blocks(neighbor_ptrs);
-      profile::stop("Cell:adjust_velocity_blocks");
    }
-   
+   profile::stop("Adjusting blocks");
+   profile::start("Set cell weight");
    // set cells' weights based on adjusted number of velocity blocks
    for (std::vector<uint64_t>::const_iterator
         cell_id = cells.begin();
@@ -216,7 +213,7 @@ bool adjust_all_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       
       mpiGrid.set_cell_weight(*cell_id, cell->number_of_blocks);
    }
-   profile::stop("Adjusting blocks");
+   profile::stop("Set cell weight");
 }
 
 /*
@@ -238,15 +235,14 @@ void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
    */
    
    profile::start("Preparing receives");
-   const boost::unordered_set<uint64_t>* incoming_cells = mpiGrid.get_remote_cells_with_local_neighbours();
-   for (boost::unordered_set<uint64_t>::const_iterator cell_id = incoming_cells->begin();
-        cell_id != incoming_cells->end();
-        ++cell_id
-	) {
-      SpatialCell* cell = mpiGrid[*cell_id];
+   std::vector<uint64_t> incoming_cells = mpiGrid.get_list_of_remote_cells_with_local_neighbours();
+#pragma omp parallel for
+   for(unsigned int i=0;i<incoming_cells.size();i++){
+      uint64_t cell_id=incoming_cells[i];
+      SpatialCell* cell = mpiGrid[cell_id];
       if (cell == NULL) {
          cerr << __FILE__ << ":" << __LINE__
-              << " No data for spatial cell " << *cell_id
+              << " No data for spatial cell " << cell_id
               << endl;
          abort();
       }
@@ -254,7 +250,7 @@ void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
       cell->prepare_to_receive_blocks();
    }
    
-   profile::stop("Preparing receives", incoming_cells->size(), "SpatialCells");
+   profile::stop("Preparing receives", incoming_cells.size(), "SpatialCells");
 }
 
 
@@ -981,6 +977,7 @@ int main(int argn,char* args[]) {
 	      profile::initializeTimer("re-adjust blocks","Block adjustment");
 	      profile::start("re-adjust blocks");
 	      profile::start("Check for content");
+#pragma omp parallel for  
 	      for (uint i=0; i<cells.size(); ++i) 
 		mpiGrid[cells[i]]->update_all_block_has_content();     
 	      profile::stop("Check for content");

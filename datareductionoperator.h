@@ -77,7 +77,7 @@ namespace DRO {
       bool setSpatialCell(const SpatialCell* cell);
       
     protected:
-      int nBlocks;;
+      int nBlocks;
    };
 
    

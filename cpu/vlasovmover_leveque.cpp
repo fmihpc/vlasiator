@@ -608,7 +608,7 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
    }
    profile::stop("Start sends",ops,"sends");
 
-   if(secondStep)   
+   if(!secondStep)   
       profile::start("Spatial translation+acceleration (inner)");
    else
       profile::start("Spatial translation (inner)");
@@ -643,7 +643,7 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
          calculateCellAcceleration(mpiGrid,cellID);
    }
 
-   if(secondStep)   
+   if(!secondStep)   
       profile::stop("Spatial translation+acceleration (inner)");
    else
       profile::stop("Spatial translation (inner)");
@@ -677,7 +677,7 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
       }
    }
    profile::stop("Sum remote updates");
-   if(secondStep)   
+   if(!secondStep)   
       profile::start("Spatial translation+acceleration (boundary)");
    else
       profile::start("Spatial translation (boundary)");
@@ -710,7 +710,7 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
       if(!secondStep)
          calculateCellAcceleration(mpiGrid,cellID);
    }
-   if(secondStep)   
+   if(!secondStep)   
       profile::stop("Spatial translation+acceleration (boundary)");
    else
       profile::stop("Spatial translation (boundary)");
