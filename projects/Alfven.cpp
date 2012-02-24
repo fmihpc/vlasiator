@@ -104,7 +104,6 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
    creal d_vy = dvy / (AP::nVelocitySamples-1);
    creal d_vz = dvz / (AP::nVelocitySamples-1);
    Real avg = 0.0;
-#pragma omp parallel for collapse(6) reduction(+:avg)
    for (uint i=0; i<AP::nSpaceSamples; ++i)
       for (uint j=0; j<AP::nSpaceSamples; ++j)
 	 for (uint k=0; k<AP::nSpaceSamples; ++k)
@@ -132,7 +131,6 @@ void calcCellParameters(Real* cellParams,creal& t) {
    Real d_x = dx / (AP::nSpaceSamples - 1);
    Real d_y = dy / (AP::nSpaceSamples - 1);
 
-#pragma omp parallel for collapse(3) reduction(+:dBxavg,dByavg,dBzavg)        
    for (uint i=0; i<AP::nSpaceSamples; ++i)
       for (uint j=0; j<AP::nSpaceSamples; ++j)
 	 for (uint k=0; k<AP::nSpaceSamples; ++k) {

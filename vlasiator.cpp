@@ -263,21 +263,20 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    
    // reserve space for velocity block data in arriving remote cells
    profile::start("Preparing receives");
-
    const boost::unordered_set<uint64_t>* incoming_cells = mpiGrid.get_balance_added_cells();
-   for (boost::unordered_set<uint64_t>::const_iterator cell_id = incoming_cells->begin();
-        cell_id != incoming_cells->end();
-        cell_id++
-	) {
-
-      SpatialCell* cell = mpiGrid[*cell_id];
+   std::vector<uint64_t> incoming_cells_list (incoming_cells->begin(),incoming_cells->end()); 
+   
+#pragma omp parallel for
+   for(unsigned int i=0;i<incoming_cells_list.size();i++){
+      uint64_t cell_id=incoming_cells_list[i];
+      SpatialCell* cell = mpiGrid[cell_id];
       if (cell == NULL) {
-         cerr << "No data for spatial cell " << *cell_id << endl;
+         cerr << "No data for spatial cell " << cell_id << endl;
          abort();
       }
       cell->prepare_to_receive_blocks();
    }
-   profile::stop("Preparing receives", incoming_cells->size(), "Spatial cells");
+   profile::stop("Preparing receives", incoming_cells_list.size(), "Spatial cells");
 
 
    profile::start("balance load");
@@ -311,6 +310,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
 //using namespace CellParams;
 void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicator& comm) {
     typedef Parameters P;
+    profile::start("init cell values");
     vector<uint64_t> cells = mpiGrid.get_cells();
 
 
@@ -318,9 +318,8 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
     // cpu memory, physical parameters and volume averages for each phase space 
     // point in the velocity grid. Velocity block neighbour list is also 
     // constructed here:
-    Real xmin,ymin,zmin,dx,dy,dz;
-    
     for (uint i=0; i<cells.size(); ++i) {
+       Real xmin,ymin,zmin,dx,dy,dz;
        dx = mpiGrid.get_cell_x_size(cells[i]);
        dy = mpiGrid.get_cell_y_size(cells[i]);
        dz = mpiGrid.get_cell_z_size(cells[i]);
@@ -329,10 +328,8 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
        zmin = mpiGrid.get_cell_z_min(cells[i]);
        initSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
     }
-
+    profile::stop("init cell values");
     prepare_to_receive_velocity_block_data(mpiGrid);
-    // update distribution function
-    // FIXME, only CELL_BLOCK_DATA needed?
     
     //in principle not needed as that was done in initSpatialCell, but lets be safe and do it anyway as it does not  cost much
     for (uint i=0; i<cells.size(); ++i) 
@@ -1007,7 +1004,7 @@ int main(int argn,char* args[]) {
       if (P::propagateField == true) {
           profile::start("Propagate Fields");
           propagateFields(mpiGrid,P::dt);
-          profile::stop("Propagate Fields",computedBlocks,"Blocks");
+          profile::stop("Propagate Fields",computedSpatialCells,"SpatialCells");
       } else {
 	 calculateFaceAveragedFields(mpiGrid);
       }

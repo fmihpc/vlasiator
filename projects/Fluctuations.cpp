@@ -126,6 +126,8 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
    creal d_vz = dvz / (DispP::nVelocitySamples-1);
    Real avg = 0.0;
 
+   
+
    for (uint vi=0; vi<DispP::nVelocitySamples; ++vi)
       for (uint vj=0; vj<DispP::nVelocitySamples; ++vj)
 	 for (uint vk=0; vk<DispP::nVelocitySamples; ++vk)

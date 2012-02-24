@@ -385,8 +385,8 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 
       MPIsendRequests.push_back(MPI_Request());      
       if (MPI_Isend(mpiGrid[cellID],1,MPIsendTypes.back(),host,tag,MPI_COMM_WORLD,&(MPIsendRequests.back())) != MPI_SUCCESS) {
-      std::cerr << "calculateSpatialFlux failed to send data!" << std::endl;
-       }
+         std::cerr << "calculateSpatialFlux failed to send data!" << std::endl;
+      }
       ops++;
    }
    profile::stop("Start sends",ops,"sends");
@@ -565,8 +565,6 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
 
    int ops=0;
 
-   std::cout << stencilUpdates.sends.size() <<" "<<stencilUpdates.recvs.size() <<std::endl;
-
    for (map<pair<int,int>,CellID>::const_iterator it=stencilUpdates.recvs.begin(); it!=stencilUpdates.recvs.end(); ++it) {
       const CellID localID  = it->second;
       cint host             = it->first.first;
@@ -593,25 +591,19 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
       mpiGrid[nbrID]->set_mpi_transfer_type(Transfer::VEL_BLOCK_FLUXES);
       MPIsendTypes.push_back(mpiGrid[nbrID]->mpi_datatype());
       MPI_Type_commit(&(MPIsendTypes.back()));
-
-      if(secondStep){
-         //very little to overlap, lets use pure MPI_Sends and block here. 
-         MPI_Send(mpiGrid[nbrID],1,MPIsendTypes.back(),host,tag,MPI_COMM_WORLD);
-      }
-      else{
-         MPIsendRequests.push_back(MPI_Request());
-         if (MPI_Isend(mpiGrid[nbrID],1,MPIsendTypes.back(),host,tag,MPI_COMM_WORLD,&(MPIsendRequests.back())) != MPI_SUCCESS) {   
+      
+      MPIsendRequests.push_back(MPI_Request());
+      if (MPI_Isend(mpiGrid[nbrID],1,MPIsendTypes.back(),host,tag,MPI_COMM_WORLD,&(MPIsendRequests.back())) != MPI_SUCCESS) {   
          std::cerr << "calculateSpatialPropagation failed to send data!" << std::endl;
-         }
       }
       ops++;
    }
    profile::stop("Start sends",ops,"sends");
 
    if(!secondStep)   
-      profile::start("Spatial translation+acceleration (inner)");
+      profile::start("Spatial trans+acc (inner)");
    else
-      profile::start("Spatial translation (inner)");
+      profile::start("Spatial trans (inner)");
 //cpu_propagetSpatWithMoments only write to data        in cell cellID, parallel for safe
 
 #pragma omp parallel for        
@@ -644,9 +636,9 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
    }
 
    if(!secondStep)   
-      profile::stop("Spatial translation+acceleration (inner)");
+      profile::stop("Spatial trans+acc (inner)");
    else
-      profile::stop("Spatial translation (inner)");
+      profile::stop("Spatial trans (inner)");
 
    
    // Wait for remote neighbour updates to arrive:
@@ -678,9 +670,9 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
    }
    profile::stop("Sum remote updates");
    if(!secondStep)   
-      profile::start("Spatial translation+acceleration (boundary)");
+      profile::start("Spatial trans+acc (boundary)");
    else
-      profile::start("Spatial translation (boundary)");
+      profile::start("Spatial trans (boundary)");
    
    // Propagate boundary cells:
 //cpu_propagetSpatWithMoments only write to data in cell cellID, parallel for safe
@@ -711,9 +703,9 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
          calculateCellAcceleration(mpiGrid,cellID);
    }
    if(!secondStep)   
-      profile::stop("Spatial translation+acceleration (boundary)");
+      profile::stop("Spatial trans+acc (boundary)");
    else
-      profile::stop("Spatial translation (boundary)");
+      profile::stop("Spatial trans (boundary)");
 
    // Wait for neighbour update sends:
    profile::initializeTimer("Wait sends","MPI","Wait");
