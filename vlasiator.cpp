@@ -225,15 +225,11 @@ copies of remote neighbors for receiving velocity block data.
 */
 void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
 {
-   // update velocity block lists  
-   profile::initializeTimer("Velocity block list size update","MPI");
-   profile::start("Velocity block list size update");
-   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_SIZE);
-   mpiGrid.update_remote_neighbour_data();
-   profile::stop("Velocity block list size update");
+   // update velocity block lists
+   // Faster to do it in one operation, and not by first sending size, then list.
    profile::initializeTimer("Velocity block list update","MPI");
    profile::start("Velocity block list update");
-   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST);
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_SIZE_AND_LIST);
    mpiGrid.update_remote_neighbour_data();
    profile::stop("Velocity block list update");
 
@@ -713,7 +709,6 @@ void log_send_receive_info(const dccrg::Dccrg<SpatialCell>& mpiGrid) {
    mpilogger << write;
 }
 
-
 int main(int argn,char* args[]) {
    bool success = true;
    const int MASTER_RANK = 0;
@@ -892,6 +887,8 @@ int main(int argn,char* args[]) {
        exit(1);
    }
    profile::stop("Init field propagator");
+   
+
    
    
    // ***********************************

@@ -257,7 +257,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    }
 
    //Operations for each cell is local, thus a threaded loop should be safe
-#pragma omp parallel for
+//#pragma omp parallel for
    for (size_t c=0; c<nonGhostCells.size(); ++c) {
       const CellID cellID = nonGhostCells[c];
       calculateCellAcceleration(mpiGrid,cellID);
@@ -342,7 +342,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    // Apply boundary conditions on local ghost cells, these need to be up-to-date for 
    // local cell propagation below:
    //For the openmp parallelization to be safe, only the local cellID should be updated by boundarycondition, and only non-ghost cells should be read.
-#pragma omp parallel for  
+//#pragma omp parallel for  
    for(unsigned int i=0;i<ghostInnerCellIds.size();i++){
       const CellID cellID = ghostInnerCellIds[i];
 //      cuint* const nbrsSpa   = mpiGrid[cellID]->neighbors;
@@ -356,6 +356,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    // Post receives for avgs:
    profile::initializeTimer("Start receives","MPI");
    profile::start("Start receives");
+   int ops=0;
    for (map<pair<int,int>,CellID>::iterator it=stencilAverages.recvs.begin(); it!=stencilAverages.recvs.end(); ++it) {
       cint host           = it->first.first;
       cint tag            = it->first.second;
@@ -366,11 +367,13 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       MPI_Type_commit(&(MPIrecvTypes.back()));
       MPIrecvRequests.push_back(MPI_Request());
       MPI_Irecv(mpiGrid[cellID],1,MPIrecvTypes.back(),host,tag,MPI_COMM_WORLD,&(MPIrecvRequests.back()));      
+      ops++;
    }
-   profile::stop("Start receives");
+   profile::stop("Start receives",ops,"receives");
 
    // Post sends for avgs:
    profile::initializeTimer("Start sends","MPI");
+   ops=0;
    profile::start("Start sends");
    for (multimap<CellID,pair<int,int> >::iterator it=stencilAverages.sends.begin(); it!=stencilAverages.sends.end(); ++it) {
       const CellID cellID = it->first;
@@ -382,10 +385,11 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 
       MPIsendRequests.push_back(MPI_Request());      
       if (MPI_Isend(mpiGrid[cellID],1,MPIsendTypes.back(),host,tag,MPI_COMM_WORLD,&(MPIsendRequests.back())) != MPI_SUCCESS) {
-         std::cerr << "calculateSpatialFlux failed to send data!" << std::endl;
-      }
+      std::cerr << "calculateSpatialFlux failed to send data!" << std::endl;
+       }
+      ops++;
    }
-   profile::stop("Start sends");
+   profile::stop("Start sends",ops,"sends");
    
    // Clear spatial fluxes to zero value. Remote neighbour df/dt arrays 
    // need to be cleared as well:       
@@ -394,7 +398,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    cells.insert( cells.end(), remoteCells.begin(), remoteCells.end() );
    
    profile::start("Mark unitialized flux");
-#pragma omp  parallel for
+//#pragma omp  parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
 
@@ -415,7 +419,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    // calculated as well:
    profile::start("df/dt in real space (inner)");  
 
-#pragma omp parallel
+//#pragma omp parallel
    
    for (set<CellID>::iterator cell=stencilAverages.innerCells.begin(); cell!=stencilAverages.innerCells.end(); ++cell) {
       SpatialCell* SC = mpiGrid[*cell];
@@ -450,7 +454,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    profile::start("Boundary conditions (boundary)");
    //For the openmp parallelization to be safe, only the local cellID should be updated by boundarycondition, and only non-ghost cells should be read.
    //Fixme/check for the copy boundary conditions these are not fulfilled as it does not check for ghost status
-#pragma omp parallel for 
+//#pragma omp parallel for 
    for(unsigned int i=0;i<ghostBoundaryCellIds.size();i++){
        const CellID cellID = ghostBoundaryCellIds[i];
        if (ghostCells.find(cellID) == ghostCells.end()) continue;
@@ -466,7 +470,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    // Iterate through the rest of local cells:
    profile::start("df/dt in real space (boundary)");
 
-#pragma omp parallel 
+//#pragma omp parallel 
    for (set<CellID>::iterator cell=stencilAverages.boundaryCells.begin(); cell!=stencilAverages.boundaryCells.end(); ++cell) {
       const CellID cellID      = *cell;
       SpatialCell* SC = mpiGrid[cellID];
@@ -474,7 +478,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       // contributions to df/dt:
       //fixme/check, for ghost cells the nbrsSpa can point to the cell itself for non-existing neighbours (see initialization in beginning of this file)
       //this means that for ghost cells fluxes to cell itself may have race condition (does it matter, is its flux even used?)
-#pragma omp for
+//#pragma omp for
       for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
          unsigned int block = SC->velocity_block_list[block_i];         
 	 cpu_calcSpatDfdt(mpiGrid,SC,block,HALF*P::dt);
@@ -485,7 +489,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    profile::stop("df/dt in real space (boundary)");
 
    profile::start("zero fluxes");
-#pragma omp  parallel for
+//#pragma omp  parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       SpatialCell* SC=mpiGrid[cellID];
@@ -560,12 +564,14 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
       updateBuffers.insert(make_pair(make_pair(localID,host), &(remoteUpdates[localID].back()[0]) ));      
    }
 
-   
+   int ops=0;
+
+   std::cout << stencilUpdates.sends.size() <<" "<<stencilUpdates.recvs.size() <<std::endl;
+
    for (map<pair<int,int>,CellID>::const_iterator it=stencilUpdates.recvs.begin(); it!=stencilUpdates.recvs.end(); ++it) {
       const CellID localID  = it->second;
       cint host             = it->first.first;
       cint tag              = it->first.second;
-
       
       map<pair<CellID,int>,Real*>::iterator it2 = updateBuffers.find(make_pair(localID,host));
       if (it2 == updateBuffers.end()) {cerr << "FATAL ERROR: Could not find update buffer!" << endl; exit(1);}
@@ -574,12 +580,13 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
       //receive as bytestream (convert to sparse format later on)       
       MPIrecvRequests.push_back(MPI_Request());
       MPI_Irecv(buffer, mpiGrid[localID]->size()*SIZE_VELBLOCK*sizeof(Real),MPI_BYTE,host,tag,MPI_COMM_WORLD,&(MPIrecvRequests.back()));
-
+      ops++;
    }
-   profile::stop("Start receives");
+   profile::stop("Start receives",ops,"receives");
    profile::initializeTimer("Start sends","MPI");
    profile::start("Start sends");
-   // Post sends for remote updates:
+   ops=0;
+// Post sends for remote updates:
    for (multimap<CellID,pair<int,int> >::const_iterator it=stencilUpdates.sends.begin(); it!=stencilUpdates.sends.end(); ++it) {
       const CellID nbrID    = it->first;
       cint host             = it->second.first;
@@ -587,18 +594,24 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
       mpiGrid[nbrID]->set_mpi_transfer_type(Transfer::VEL_BLOCK_FLUXES);
       MPIsendTypes.push_back(mpiGrid[nbrID]->mpi_datatype());
       MPI_Type_commit(&(MPIsendTypes.back()));
-      MPIsendRequests.push_back(MPI_Request());
-      
-      if (MPI_Isend(mpiGrid[nbrID],1,MPIsendTypes.back(),host,tag,MPI_COMM_WORLD,&(MPIsendRequests.back())) != MPI_SUCCESS) {
-          std::cerr << "calculateSpatialPropagation failed to send data!" << std::endl;
+
+      if(secondStep){
+         //very little to overlap, lets use pure MPI_Sends and block here. 
+         MPI_Send(mpiGrid[nbrID],1,MPIsendTypes.back(),host,tag,MPI_COMM_WORLD);
       }
-      
+      else{
+         MPIsendRequests.push_back(MPI_Request());
+         if (MPI_Isend(mpiGrid[nbrID],1,MPIsendTypes.back(),host,tag,MPI_COMM_WORLD,&(MPIsendRequests.back())) != MPI_SUCCESS) {   
+         std::cerr << "calculateSpatialPropagation failed to send data!" << std::endl;
+         }
+      }
+      ops++;
    }
-   profile::stop("Start sends");
+   profile::stop("Start sends",ops,"sends");
    
    profile::start("Spatial translation (inner)");
 //cpu_propagetSpatWithMoments only write to data        in cell cellID, parallel for safe
-#pragma omp parallel for        
+//#pragma omp parallel for        
    for (unsigned int i=0;i<innerCellIds.size();i++){
       const CellID cellID = innerCellIds[i];
 
@@ -717,7 +730,7 @@ void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    cells=mpiGrid.get_cells();
    
    // Iterate through all local cells (incl. ghosts):
-#pragma omp parallel for        
+//#pragma omp parallel for        
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
