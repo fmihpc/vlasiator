@@ -48,7 +48,7 @@ PROJ = Fluctuations
 # The rest of this file users shouldn't need to change
 
 
-default: vlasiator vlsv2silo vlsvextract #vlsv2vtk
+default: vlasiator vlsv2silo vlsvextract vlsvdiff
 
 # Compile directory:
 INSTALL = $(CURDIR)
