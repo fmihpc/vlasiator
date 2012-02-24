@@ -21,7 +21,7 @@
 #include <iomanip>
 #include <cmath>
 
-#include "cell_spatial.h"
+#include "spatial_cell.hpp"
 #include "common.h"
 #include "project.h"
 #include "parameters.h"
@@ -91,8 +91,8 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
    creal q = 1.60217653e-19; // q_i
    
    static int spaceIndexOld[3] = {std::numeric_limits<int>::min(),
-				  std::numeric_limits<int>::min(),
-				  std::numeric_limits<int>::min()};
+                                  std::numeric_limits<int>::min(),
+                                  std::numeric_limits<int>::min()};
    static int spaceIndex[3] = {0};
    static int rndRho = 0;
    static int rndVel[3] = {0};
@@ -161,9 +161,9 @@ void calcCellParameters(Real* cellParams,creal& t) {
 
 // TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
 void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
-   std::vector<uint64_t> cells = mpiGrid.get_cells();
+   const std::vector<uint64_t> cells = mpiGrid.get_cells();
    for (uint i = 0; i < cells.size(); ++i) {
-      calcCellParameters(mpiGrid[cells[i]]->cpu_cellParams, t);
+      calcCellParameters(mpiGrid[cells[i]]->parameters, t);
    }
 }
 

@@ -1,8 +1,26 @@
+/*
+This file is part of Vlasiator.
+
+Copyright 2011 Finnish Meteorological Institute
+
+Vlasiator is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License version 3
+as published by the Free Software Foundation.
+
+Vlasiator is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
 
-#include "cell_spatial.h"
+#include "spatial_cell.hpp"
 #include "common.h"
 #include "project.h"
 #include "parameters.h"
@@ -58,17 +76,14 @@ void calcCellParameters(Real* cellParams,creal& t) {
    cellParams[CellParams::BZVOL] = 0.0;
 }
 
-// TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
-#ifndef PARGRID
+
+
 void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
    std::vector<uint64_t> cells = mpiGrid.get_cells();
-#else
-void calcSimParameters(ParGrid<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
-   std::vector<ID::type> cells;
-   mpiGrid.getCells(cells);
-#endif
    for (uint i = 0; i < cells.size(); ++i) {
-      calcCellParameters(mpiGrid[cells[i]]->cpu_cellParams, t);
+      calcCellParameters(mpiGrid[cells[i]]->parameters, t);
    }
 }
+
+
 

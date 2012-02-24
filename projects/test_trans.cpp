@@ -1,8 +1,26 @@
+/*
+This file is part of Vlasiator.
+
+Copyright 2011 Finnish Meteorological Institute
+
+Vlasiator is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License version 3
+as published by the Free Software Foundation.
+
+Vlasiator is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
 
-#include "cell_spatial.h"
+#include "spatial_cell.hpp"
 #include "common.h"
 #include "project.h"
 #include "parameters.h"
@@ -17,81 +35,65 @@ bool cellParametersChanged(creal& t) {return false;}
 
 Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
 			   creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {
-   if (z >= 0.2 && z <= 0.2+dz) {//|| (z >= -0.38 && z <= -0.2)) {
-      if (x >= -0.38 && x <= -0.2) {
-	 // Lower left corner
-	 if (y >= -0.38 && y <= -0.2) {
-	    if (vx >= -0.5-dvx && vx < -0.5)
-	      if (vy >= -0.5-dvy && vy < -0.5)
-		if (vz >= 0.5 && vz < 0.5+dvz)
-		  return 1.0;
-	 }
-	 // Upper left corner
-	 if (y >= 0.2 && y <= 0.2+dy) {
-	    if (vx >= -0.5-dvx && vx < -0.5)
-	      if (vy >= 0.5 && vy < 0.5+dvy)
-		if (vz >= 0.5 && vz < 0.5+dvz)
-		  return 1.0;
-	 }
+
+   //Please use even number of cells in velocity and real space
+   Real xyz[3];
+   Real vxyz[3];
+   
+//location of this cell
+   vxyz[0]=(vx+0.5*dvx)/dvx;
+   vxyz[1]=(vy+0.5*dvy)/dvy;
+   vxyz[2]=(vz+0.5*dvz)/dvz;
+
+      
+   xyz[0]=(x+0.5*dx)/dx;
+   xyz[1]=(y+0.5*dy)/dy;
+   xyz[2]=(z+0.5*dz)/dz;
+
+
+   //real space coordinates of boxes
+   //Assume an even number of spatial cells per grid dimension
+   const Real box_real[8][3] = { { 1.5,1.5,1.5},
+                                 {-1.5,1.5,1.5},
+                                 {1.5,-1.5,1.5},
+                                 {1.5,1.5,-1.5},
+                                 {-1.5,-1.5,1.5},
+                                 {-1.5,1.5,-1.5},
+                                 {1.5,-1.5,-1.5},
+                                 {-1.5,-1.5,-1.5}};
+   
+   //velocity space coordinates of boxes in reduced units
+   //there is always an even amount of velocity cells per dimension (assuming WID is even) 
+   const Real box_vel[8][3] = { { 1.5,1.5,1.5},
+                                {-1.5,1.5,1.5},
+                                {1.5,-1.5,1.5},
+                                {1.5,1.5,-1.5},
+                                {-1.5,-1.5,1.5},
+                                {-1.5,1.5,-1.5},
+                                {1.5,-1.5,-1.5},
+                                {-1.5,-1.5,-1.5}};
+   
+   
+   for(int box=0;box<8;box++){
+      bool outsideBox=false;
+      for(int i=0;i<3;i++){
+         if(xyz[i]<(box_real[box][i]-0.1) ||
+            xyz[i]>(box_real[box][i]+0.1) ||
+            vxyz[i]<(box_vel[box][i]-0.1) ||
+            vxyz[i]>(box_vel[box][i]+0.1)){
+            outsideBox=true;
+            break;
+         }
       }
       
-      if (x >= 0.2 && x <= 0.2+dx) {
-	 // Lower right corner
-	 if (y >= -0.38 && y <= -0.2) {
-	    if (vx >= 0.5 && vx < 0.5+dvx)
-	      if (vy >= -0.5-dvx && vy < -0.5)
-		if (vz >= 0.5 && vz < 0.5+dvz)
-		  return 1.0;
-	 }      
-	 // Upper right corner
-	 if (y >= 0.2 && y <= 0.2+dy) {
-	    if (vx >= 0.5 && vx < 0.5+dvx) 
-	      if (vy >= 0.5 && vy < 0.5+dvy)
-		if (vz >= 0.5 && vz < 0.5+dvz)
-		  return 1.0;
-	 }
+      if(!outsideBox) {
+         return 1.0;
       }
    }
-   
-   if (z >= -0.38 && z <= -0.2) {
-      if (x >= -0.38 && x <= -0.2) {
-	 // Lower left corner
-	 if (y >= -0.38 && y <= -0.2) {
-	    if (vx >= -0.5-dvx && vx < -0.5)
-	      if (vy >= -0.5-dvy && vy < -0.5)
-		if (vz >=-0.5-dvz && vz < -0.5)
-		  return 1.0;
-	 }
-	 // Upper left corner
-	 if (y >= 0.2 && y <= 0.2+dy) {
-	    if (vx >= -0.5-dvx && vx < -0.5)
-	      if (vy >= 0.5 && vy < 0.5+dvy)
-		if (vz >=-0.5-dvz && vz < -0.5)
-		  return 1.0;
-	 }
-      }
-      
-      if (x >= 0.2 && x <= 0.2+dx) {
-	 // Lower right corner
-	 if (y >= -0.38 && y <= -0.2) {
-	    if (vx >= 0.5 && vx < 0.5+dvx)
-	      if (vy >= -0.5-dvx && vy < -0.5)
-		if (vz >=-0.5-dvz && vz < -0.5)
-		  return 1.0;
-	 }
-	 // Upper right corner
-	 if (y >= 0.2 && y <= 0.2+dy) {
-	    if (vx >= 0.5 && vx < 0.5+dvx)
-	      if (vy >= 0.5 && vy < 0.5+dvy)
-		if (vz >=-0.5-dvz && vz < -0.5)
-		  return 1.0;
-	 }
-      }
-   }
-   
    return 0.0;
 }
 
+   
 void calcBlockParameters(Real* blockParams) { }
 
 void calcCellParameters(Real* cellParams,creal& t) {
@@ -110,17 +112,12 @@ void calcCellParameters(Real* cellParams,creal& t) {
    cellParams[CellParams::BZVOL] = 0.0;
 }
 
-// TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
-#ifndef PARGRID
+
 void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
    std::vector<uint64_t> cells = mpiGrid.get_cells();
-#else
-void calcSimParameters(ParGrid<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
-   std::vector<ID::type> cells;
-   mpiGrid.getCells(cells);
-#endif
    for (uint i = 0; i < cells.size(); ++i) {
-      calcCellParameters(mpiGrid[cells[i]]->cpu_cellParams, t);
+      calcCellParameters(mpiGrid[cells[i]]->parameters, t);
    }
 }
 
+ 

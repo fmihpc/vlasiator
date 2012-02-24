@@ -266,8 +266,13 @@ bool VLSVReader::open(const std::string& fname) {
    return success;
 }
 
-bool VLSVReader::readArray(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
-			   const uint64_t& begin,const uint64_t& amount,char* buffer) {
+bool VLSVReader::readArray(
+   const std::string& tagName,
+   const std::list<std::pair<std::string,std::string> >& attribs,
+   const uint64_t& begin,
+   const uint64_t& amount,
+   char* buffer
+) {
    if (fileOpen == false) {
       cerr << "VLSVReader ERROR: readArray called but a file is not open!" << endl;
       return false;
@@ -331,17 +336,29 @@ bool VLSVReader::readArray(const std::string& tagName,const std::list<std::pair<
    return true;
 }
    
-bool VLSVReader::readArray(const std::string& tagName,const std::string& arrayName,const std::list<std::pair<std::string,std::string> >& attribs,
-			   const uint64_t& begin,const uint64_t& amount,char* buffer) {
-   if (fileOpen == false) return false;
-   
+bool VLSVReader::readArray(
+   const std::string& tagName,
+   const std::string& arrayName,
+   const std::list<std::pair<std::string,std::string> >& attribs,
+   const uint64_t& begin,
+   const uint64_t& amount,
+   char* buffer
+) {
+   if (fileOpen == false) {
+      std::cerr << __FILE__ << ":" << __LINE__ << " File not open" << std::endl;
+      return false;
+   }
+
    // If array info has not been loaded, find it from XML tree:
    if (arrayOpen.tagName != tagName || arrayOpen.arrayName != arrayName) {
       // Find tag corresponding to given array:
       list<pair<string,string> > attribs2 = attribs;
       attribs2.push_back(make_pair("name",arrayName));
       XMLNode* node = xmlReader.find(tagName,attribs2);
-      if (node == NULL) return false;
+      if (node == NULL) {
+         std::cerr << __FILE__ << ":" << __LINE__ << " node == NULL" << std::endl;
+         return false;
+      }
       
       // Copy array information from tag:
       arrayOpen.offset = atoi(node->value.c_str());
@@ -357,27 +374,48 @@ bool VLSVReader::readArray(const std::string& tagName,const std::string& arrayNa
 	 cerr << "VLSVReader ERROR: Unknown datatype in tag!" << endl;
 	 return false;
       }
-      if (arrayOpen.arraySize == 0) return false;
-      if (arrayOpen.vectorSize == 0) return false;
-      if (arrayOpen.dataSize == 0) return false;
+      if (arrayOpen.arraySize == 0) {
+         std::cerr << __FILE__ << ":" << __LINE__ << " Array size == 0" << std::endl;
+         return false;
+      }
+      if (arrayOpen.vectorSize == 0) {
+         std::cerr << __FILE__ << ":" << __LINE__ << " Vector size == 0" << std::endl;
+         return false;
+      }
+      if (arrayOpen.dataSize == 0) {
+         std::cerr << __FILE__ << ":" << __LINE__ << " Data size == 0" << std::endl;
+         return false;
+      }
    }
    
    // Sanity check on values:
-   if (begin + amount > arrayOpen.arraySize) return false;
+   if (begin + amount > arrayOpen.arraySize) {
+      std::cerr << __FILE__ << ":" << __LINE__ << " Too much data requested" << std::endl;
+      return false;
+   }
    
    streamoff start = arrayOpen.offset + begin*arrayOpen.vectorSize*arrayOpen.dataSize;
    streamsize readBytes = amount*arrayOpen.vectorSize*arrayOpen.dataSize;
    filein.clear();
    filein.seekg(start);
    filein.read(buffer,readBytes);
-   if (filein.gcount() != readBytes) return false;
+   if (filein.gcount() != readBytes) {
+      std::cerr << __FILE__ << ":" << __LINE__ << " Reading of file failed" << std::endl;
+      return false;
+   }
    
    // Swap endianness, if necessary:
    
    return true;
 }
    
-bool VLSVReader::readArray(const std::string& tagName,const std::string& arrayName,const uint64_t& begin,const uint64_t& amount,char* buffer) {
+bool VLSVReader::readArray(
+   const std::string& tagName,
+   const std::string& arrayName,
+   const uint64_t& begin,
+   const uint64_t& amount,
+   char* buffer
+) {
    if (fileOpen == false) return false;
 
    // If array info has not been loaded, find it from XML tree:
@@ -604,8 +642,13 @@ bool VLSVParReader::readArrayMaster(const std::string& tagName,const std::list<s
    return VLSVReader::readArray(tagName,attribs,begin,amount,buffer);
 }
 
-bool VLSVParReader::readArray(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
-			      const uint64_t& begin,const uint64_t& amount,char* buffer) {
+bool VLSVParReader::readArray(
+   const std::string& tagName,
+   const std::list<std::pair<std::string,std::string> >& attribs,
+   const uint64_t& begin,
+   const uint64_t& amount,
+   char* buffer
+) {
    if (fileOpen == false) return false;
    bool success = true;
 

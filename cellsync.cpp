@@ -21,7 +21,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <cuda_runtime_api.h>
 
 #include "common.h"
-#include "cell_spatial.h"
+#include "spatial_cell.hpp"
 #include "logger.h"
 
 using namespace std;

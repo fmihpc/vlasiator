@@ -29,33 +29,20 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "definitions.h"
 
-const uint MAX_SPAT_CELLS = 8100;
-//const uint MAX_VEL_BLOCKS = 250000;
-const uint MAX_VEL_BLOCKS = 2500000;
-
 const uint CUDA_WIDTH = 65536; // Width of CUDA array (for 2D textures)
 const uint CUDA_HEIGHT = 3000; // Height of CUDA array
                           // Make sure width*height / 64 >= MAX_VEL_BLOCKS
 const uint64_t INVALID_CELLID = 0;
 
 
-namespace Transmit {
-   const uint CELL_PARAMS  = 1;
-   const uint BLOCK_PARAMS = CELL_PARAMS << 1;
-   const uint AVGS         = CELL_PARAMS << 2;
-   const uint FLUXES       = CELL_PARAMS << 3;
-   const uint DERIV1       = CELL_PARAMS << 4;
-   const uint DERIV2       = CELL_PARAMS << 5;
-   const uint NBRSVEL      = CELL_PARAMS << 6;
-}
 
 struct Parameters {
    static Real xmin;  /**< X-coordinate of the lower left corner of the spatial grid. */
-   //static Real xmax;  /**< Y-coordinate of the lower left corner of the spatial grid. */
+//   static Real xmax;  /**< Y-coordinate of the lower left corner of the spatial grid. */
    static Real ymin;  /**< Z-coordinate of the lower left corner of the spatial grid. */
-   //static Real ymax;  /**< X-coordinate of the upper right corner of the spatial grid. */
+   //  static Real ymax;  /**< X-coordinate of the upper right corner of the spatial grid. */
    static Real zmin;  /**< Y-coordinate of the upper right corner of the spatial grid. */
-   //static Real zmax;  /**< Z-coordinate of the upper right corner of the spatial grid. */
+   //  static Real zmax;  /**< Z-coordinate of the upper right corner of the spatial grid. */
    static Real dx_ini; /**< Initial size of spatial cell in x-direction. */
    static Real dy_ini; /**< Initial size of spatial cell in y-direction. */
    static Real dz_ini; /**< Initial size of spatial cell in z-direction. */
@@ -104,7 +91,12 @@ struct Parameters {
    static bool propagateField;      /**< If true, magnetic field is propagated during the simulation.*/
    static bool propagateVlasov;     /**< If true, distribution function is propagated during the simulation.*/
    static bool periodic_x, periodic_y, periodic_z; /**< Whether spatial vlasov grid is periodic */
-
+   static Real sparseMinValue; /**< Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents */
+   static Real sparseMinAvgValue; /**< Minimum value of the average of distribution function within a velocity block for the block to be considered to have contents */
+   static uint blockAdjustmentInterval; /**< Block adjustment interval (steps). */
+   static std::string loadBalanceAlgorithm; /**< Algorithm to be used for load balance.*/
+   static std::string loadBalanceTolerance; /**< Load imbalance tolerance. */
+   static uint rebalanceInterval; /**< Load rebalance interval (steps). */
 };
 
 struct Readparameters {

@@ -1,3 +1,21 @@
+/*
+This file is part of Vlasiator.
+
+Copyright 2011 Finnish Meteorological Institute
+
+Vlasiator is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License version 3
+as published by the Free Software Foundation.
+
+Vlasiator is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #ifndef FIELDBOUNDARY_H
 #define FIELDBOUNDARY_H
 
@@ -29,7 +47,7 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBx(
                << std::endl;
             abort();
          }
-	 return mpiGrid[neighbor]->cpu_cellParams[CellParams::BX];
+	 return mpiGrid[neighbor]->parameters[CellParams::BX];
       }
       break;
     case p::MISSING_YNEG:
@@ -43,7 +61,7 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBx(
                << std::endl;
             abort();
          }
-	 return mpiGrid[neighbor]->cpu_cellParams[CellParams::BX];
+	 return mpiGrid[neighbor]->parameters[CellParams::BX];
       }
       break;
     case p::MISSING_YPOS:
@@ -57,7 +75,7 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBx(
                << std::endl;
             abort();
          }
-	 return mpiGrid[neighbor]->cpu_cellParams[CellParams::BX];
+	 return mpiGrid[neighbor]->parameters[CellParams::BX];
       }
       break;
     case p::MISSING_ZPOS:
@@ -71,7 +89,7 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBx(
                << std::endl;
             abort();
          }
-	 return mpiGrid[neighbor]->cpu_cellParams[CellParams::BX];
+	 return mpiGrid[neighbor]->parameters[CellParams::BX];
       }
       break;
     default:
@@ -105,7 +123,7 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBy(
             abort();
          }
 
-         if (mpiGrid[neighbor]->cpu_cellParams == NULL) {
+         if (mpiGrid[neighbor]->parameters == NULL) {
             std::cerr << __FILE__ << ":" << __LINE__
                << " No cell parameters for cell " << neighbor
                << " while solving cell " << cellID
@@ -113,7 +131,7 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBy(
             abort();
          }
 
-	 return mpiGrid[neighbor]->cpu_cellParams[CellParams::BY];
+	 return mpiGrid[neighbor]->parameters[CellParams::BY];
       }
       break;
     case p::MISSING_XNEG:
@@ -128,7 +146,7 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBy(
             abort();
          }
 
-         if (mpiGrid[neighbor]->cpu_cellParams == NULL) {
+         if (mpiGrid[neighbor]->parameters == NULL) {
             std::cerr << __FILE__ << ":" << __LINE__
                << " No cell parameters for cell " << neighbor
                << " while solving cell " << cellID
@@ -136,7 +154,7 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBy(
             abort();
          }
 
-	 return mpiGrid[neighbor]->cpu_cellParams[CellParams::BY];
+	 return mpiGrid[neighbor]->parameters[CellParams::BY];
       }
       break;
     case p::MISSING_XPOS:
@@ -151,7 +169,7 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBy(
             abort();
          }
 
-         if (mpiGrid[neighbor]->cpu_cellParams == NULL) {
+         if (mpiGrid[neighbor]->parameters == NULL) {
             std::cerr << __FILE__ << ":" << __LINE__
                << " No cell parameters for cell " << neighbor
                << " while solving cell " << cellID
@@ -159,7 +177,7 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBy(
             abort();
          }
 
-	 return mpiGrid[neighbor]->cpu_cellParams[CellParams::BY];
+	 return mpiGrid[neighbor]->parameters[CellParams::BY];
       }
       break;
     case p::MISSING_ZPOS:
@@ -174,7 +192,7 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBy(
             abort();
          }
 
-         if (mpiGrid[neighbor]->cpu_cellParams == NULL) {
+         if (mpiGrid[neighbor]->parameters == NULL) {
             std::cerr << __FILE__ << ":" << __LINE__
                << " No cell parameters for cell " << neighbor
                << " while solving cell " << cellID
@@ -182,7 +200,7 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBy(
             abort();
          }
 
-	 return mpiGrid[neighbor]->cpu_cellParams[CellParams::BY];
+	 return mpiGrid[neighbor]->parameters[CellParams::BY];
       }
       break;
     default:
@@ -203,25 +221,25 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBz(const CELLID& cellID,const UINT& exi
     case p::MISSING_YNEG:
       // If +y neighbour exists, copy value from there:
       if (((existingCells >> p::ZCC_YP1_XCC) & 1) == 1) {
-	 return mpiGrid[getNeighbour(mpiGrid,cellID,0,+1,0)]->cpu_cellParams[CellParams::BY];
+	 return mpiGrid[getNeighbour(mpiGrid,cellID,0,+1,0)]->parameters[CellParams::BY];
       }
       break;
     case p::MISSING_XNEG:
       // If +x neighbour exists, copy value from there:
       if (((existingCells >> p::ZCC_YCC_XP1) & 1) == 1) {
-	 return mpiGrid[getNeighbour(mpiGrid,cellID,+1,0,0)]->cpu_cellParams[CellParams::BY];
+	 return mpiGrid[getNeighbour(mpiGrid,cellID,+1,0,0)]->parameters[CellParams::BY];
       }
       break;
     case p::MISSING_XPOS:
       // If -x neighbour exists, copy value from there:
       if (((existingCells >> p::ZCC_YCC_XM1) & 1) == 1) {
-	 return mpiGrid[getNeighbour(mpiGrid,cellID,-1,0,0)]->cpu_cellParams[CellParams::BY];
+	 return mpiGrid[getNeighbour(mpiGrid,cellID,-1,0,0)]->parameters[CellParams::BY];
       }
       break;
     case p::MISSING_YPOS:
       // If -y neighbour exists, copy value from there:
       if (((existingCells >> p::ZCC_YM1_XCC) & 1) == 1) {
-	 return mpiGrid[getNeighbour(mpiGrid,cellID,0,-1,0)]->cpu_cellParams[CellParams::BY];
+	 return mpiGrid[getNeighbour(mpiGrid,cellID,0,-1,0)]->parameters[CellParams::BY];
       }
       break;
     default:

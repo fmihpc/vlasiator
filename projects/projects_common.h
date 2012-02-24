@@ -1,6 +1,24 @@
+/*
+This file is part of Vlasiator.
+
+Copyright 2011 Finnish Meteorological Institute
+
+Vlasiator is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License version 3
+as published by the Free Software Foundation.
+
+Vlasiator is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #ifndef PROJECTS_COMMON_H
 #define PROJECTS_COMMON_H
-
+using namespace spatial_cell;
 namespace projects {
    enum Neighbours {
       ZM1_YM1_XM1,
@@ -47,26 +65,14 @@ namespace projects {
 
 template<typename CELLID,class CONT> bool classifyLevequeGhostCell(const SpatialCell& cell,const CELLID& cellID,const CONT& nbrs);
 
-#ifdef PARGRID
-#include "../pargrid.h"
-template<typename CELLID> CELLID getNeighbour(const ParGrid<SpatialCell>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k);
-#else
+
 #include <dccrg.hpp>
 template<typename CELLID> CELLID getNeighbour(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k);
-#endif
+
 
 // ********************************
 // ***** TEMPLATE DEFINITIONS *****
 // ********************************
-
-#ifdef PARGRID
-template<typename CELLID> CELLID getNeighbour(const ParGrid<SpatialCell>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k) {
-   const int ii = i+2;
-   const int jj = j+2;
-   const int kk = k+2;
-   return mpiGrid.getNeighbour(cellID,kk*25+jj*5+ii);
-}
-#else
 
 template<typename CELLID> CELLID getNeighbour(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k){
     std::vector<uint64_t> neighbors = mpiGrid.get_neighbors_of(cellID, i, j, k);
@@ -79,5 +85,5 @@ template<typename CELLID> CELLID getNeighbour(const dccrg::Dccrg<SpatialCell>& m
     }
 }
 
-#endif
+
 #endif

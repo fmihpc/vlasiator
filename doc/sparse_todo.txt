@@ -1,0 +1,17 @@
+-Add copy operators to spatial cell class. Now the copy boundary conditions are
+disabled
+
+-The sparse velocity dist does not change during simulation, should be adapted
+
+-Load balancing during simualtion will require ne dccrg features and some work
+(prepare to load balance)
+
+-pressure datareducer not done
+
+-Change project initialization logic so that project can directly put
+ distribution values in the required locations. 
+
+
+
+- Not that project cannot modify block parameters anymore (nothing sensible
+  for them to do there) in calcBlockPaameter

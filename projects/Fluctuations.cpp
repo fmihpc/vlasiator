@@ -1,27 +1,27 @@
 /*
- This file is part of Vlasiator.
- 
- Copyright 2011 Finnish Meteorological Institute
- 
- Vlasiator is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License version 3
- as published by the Free Software Foundation.
- 
- Vlasiator is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
+This file is part of Vlasiator.
+
+Copyright 2011 Finnish Meteorological Institute
+
+Vlasiator is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License version 3
+as published by the Free Software Foundation.
+
+Vlasiator is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include <cstdlib>
 #include <iostream>
 #include <iomanip>
 #include <cmath>
 
-#include "cell_spatial.h"
+#include "spatial_cell.hpp"
 #include "common.h"
 #include "project.h"
 #include "parameters.h"
@@ -91,8 +91,8 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
    creal q = 1.60217653e-19; // q_i
    
    static int spaceIndexOld[3] = {std::numeric_limits<int>::min(),
-				  std::numeric_limits<int>::min(),
-				  std::numeric_limits<int>::min()};
+                                  std::numeric_limits<int>::min(),
+                                  std::numeric_limits<int>::min()};
    static int spaceIndex[3] = {0};
    static int rndRho = 0;
    static int rndVel[3] = {0};
@@ -110,14 +110,12 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
       {
 	 rndRho = rand();
 	 rndRhoSector = rand()%DispP::sectorSize+1;
-	 
       }
       if(cptVelSector++%rndVelSector == 0)
       {
 	 rndVel = {rand(), rand(), rand()};
 	 rndVelSector = rand()%DispP::sectorSize+1;
       }
-      
    }
    spaceIndexOld[0] = spaceIndex[0];
    spaceIndexOld[1] = spaceIndex[1];
@@ -163,9 +161,9 @@ void calcCellParameters(Real* cellParams,creal& t) {
 
 // TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
 void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
-   std::vector<uint64_t> cells = mpiGrid.get_cells();
+   const std::vector<uint64_t> cells = mpiGrid.get_cells();
    for (uint i = 0; i < cells.size(); ++i) {
-      calcCellParameters(mpiGrid[cells[i]]->cpu_cellParams, t);
+      calcCellParameters(mpiGrid[cells[i]]->parameters, t);
    }
 }
 

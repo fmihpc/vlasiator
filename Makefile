@@ -17,25 +17,25 @@ SOLVER ?= LEVEQUE
 #Add -DKT or -DLEVEQUE to compiler options (mandatory)
 CXXFLAGS += -DSOLVER_${SOLVER}
 
-#Add -DPROFILE to get performance profiling information in the logfile
-CXXFLAGS += -DPROFILE
-
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
 CXXFLAGS += -DNDEBUG
 
 #Add -DCATCH_FPE to catch floating point exceptions and stop execution
 CXXFLAGS += -DCATCH_FPE
 
+#will need profiler in most places..
+CXXFLAGS += ${INC_PROFILE} 
+
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
-#PROJ = harm1D
 #PROJ = Alfven
-#PROJ = Diffusion
+#PROJ = harm1D
 #PROJ = Dispersion
+#PROJ = Diffusion
 PROJ = Fluctuations
 #PROJ = Harris
 #PROJ=test_fp
-#PROJ=test_acc
+#PROJ=test_trans
 #PROJ=msphere
 #PROJ=velrot2+3
 #PROJ=velocity_rotation_1+3d
@@ -43,13 +43,12 @@ PROJ = Fluctuations
 #PROJ=Bx_const
 #PROJ=By_const
 #PROJ=Bz_const
-#include gridbuilder parameters for this project
-include projects/Makefile.${PROJ}
+
 
 # The rest of this file users shouldn't need to change
 
 
-default: vlasiator vlsv2silo vlsvextract vlsv2bzt vlsvdiff #vlsv2vtk
+default: vlasiator vlsv2silo vlsvextract #vlsv2vtk
 
 # Compile directory:
 INSTALL = $(CURDIR)
@@ -63,20 +62,16 @@ LIBS = ${LIB_BOOST}
 LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_MPI}
 LIBS += ${LIB_CUDA}
-# if no profile, use -lnoprofile
-LIBS += ${LIB_PROFILE} -lprofile
+LIBS += ${LIB_PROFILE}
 
 # Define dependencies of each object file
 DEPS_ARRAYALLOCATOR = arrayallocator.h arrayallocator.cpp
 DEPS_COMMON = common.h definitions.h mpiconversion.h mpilogger.h
-DEPS_CELL_SPATIAL = cell_spatial.h grid.h parameters.h cell_spatial.cpp
-DEPS_CELLSYNC = cell_spatial.h cellsync.cpp
-DEPS_DATAREDUCER = cell_spatial.h datareducer.h datareductionoperator.h datareducer.cpp
-DEPS_DATAREDUCTIONOPERATOR = cell_spatial.h datareductionoperator.h datareductionoperator.cpp
-DEPS_GPU_DEVICE_GRID = cell_spatial.h parameters.h devicegrid.h gpudevicegrid.cpp
-DEPS_GRID = grid.h parameters.h grid.cpp
-DEPS_GRIDBUILDER = cell_spatial.h parameters.h  project.h gridbuilder.h gridbuilder.cpp
-DEPS_MAIN = gridbuilder.h parameters.h  project.h grid.h cell_spatial.h vlasiator.cpp
+DEPS_CELLSYNC = spatial_cell.hpp cellsync.cpp
+DEPS_DATAREDUCER = spatial_cell.hpp datareducer.h datareductionoperator.h datareducer.cpp
+DEPS_DATAREDUCTIONOPERATOR = spatial_cell.hpp datareductionoperator.h datareductionoperator.cpp
+DEPS_GPU_DEVICE_GRID = spatial_cell.hpp parameters.h devicegrid.h gpudevicegrid.cpp
+DEPS_MAIN =  parameters.h  project.h  spatial_cell.hpp vlasiator.cpp vlsvwriter2.h
 DEPS_MPIFILE = mpifile.h mpifile.cpp
 DEPS_MPILOGGER = mpifile.h mpilogger.h mpilogger.cpp
 DEPS_MUXML = muxml.h muxml.cpp
@@ -91,33 +86,29 @@ DEPS_VLSV2BZT = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
 DEPS_VLSVDIFF = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
 
 DEPS_ARRAYALLOCATOR += ${DEPS_COMMON}
-DEPS_CELL_SPATIAL += $(DEPS_COMMON)
 DEPS_CELLSYNC += $(DEPS_COMMON)
 DEPS_DATAREDUCER += ${DEPS_COMMON}
 DEPS_DATAREDUCTIONOPERATOR += ${DEPS_COMMON}
 DEPS_GPU_DEVICE_GRID += $(DEPS_COMMON)
-DEPS_GRID += $(DEPS_COMMON)
-DEPS_GRIDBUILDER += $(DEPS_COMMON)
 DEPS_MAIN += $(DEPS_COMMON)
 DEPS_MPIFILE += ${DEPS_COMMON}
 DEPS_PARAMETERS += $(DEPS_COMMON)
 DEPS_PROJECT += $(DEPS_COMMON)
 DEPS_VLSCOMMON += ${DEPS_COMMON}
 
-HDRS = arrayallocator.h cpu_acc.h cpu_acc_ppm.h cpu_common.h cpu_trans.h cell_spatial.h\
+HDRS = arrayallocator.h cpu_acc.h cpu_acc_ppm.h cpu_common.h cpu_trans.h spatial_cell.hpp\
 	common.h datareducer.h datareductionoperator.h\
-	definitions.h grid.h gridbuilder.h\
+	definitions.h \
 	mpiconversion.h mpifile.h mpilogger.h\
 	parameters.h\
 	 vlscommon.h\
-	vlsvwriter2.h vlsvreader2.h muxml.h profile.hpp
+	vlsvwriter2.h vlsvreader2.h muxml.h 
 
 CUDA_HDRS = cudafuncs.h cudalaunch.h devicegrid.h
 
 SRC = 	arrayallocator.cpp datareducer.cpp datareductionoperator.cpp\
-	grid.cpp gridbuilder.cpp\
 	vlasiator.cpp mpifile.cpp mpilogger.cpp\
-	parameters.cpp\
+	parameters.cpp \
 	vlscommon.cpp vls2vtk.cpp\
 	vlsvreader2.cpp vlsvwriter2.cpp muxml.cpp vlsv2silo.cpp
 
@@ -126,10 +117,10 @@ CUDA_SRC = cellsync.cpp cuda_acc.cu cuda_common.cu cuda_trans.cu\
 
 CUDA_OBJS = cellsync.o cuda_acc.o cuda_trans.o cudafuncs.o gpudevicegrid.o
 
-OBJS = arrayallocator.o cell_spatial.o		\
-	datareducer.o datareductionoperator.o grid.o		\
-	gridbuilder.o vlasiator.o mpifile.o mpilogger.o muxml.o	\
-	parameters.o project.o					\
+OBJS = arrayallocator.o 		\
+	datareducer.o datareductionoperator.o 		\
+	vlasiator.o mpifile.o mpilogger.o muxml.o	\
+	parameters.o project.o	spatial_cell.o		\
 	vlscommon.o vlsvreader2.o vlsvwriter2.o
 
 OBJS_VLSVEXTRACT = muxml.o vlscommon.o vlsvreader2.o
@@ -150,25 +141,19 @@ help:
 	@echo '                           PROJ:  Set project'
 
 
-builderinstall:
-	make ${BUILDER} -C gridbuilders "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE}" "FLAGS=${FLAGS}"
 
 c: clean
 clean:
-	make clean -C gridbuilders
 	make clean -C projects
 	make clean -C cpu
 	make clean -C cuda
 	make clean -C fieldsolver
 	rm -rf libvlasovmover.a libfieldsolver.a
-	rm -rf .goutputstream* .logfile* *.o *.ptx *.tar* *.txt *.silo *.vtk *.vlsv project.h project.cu project.cpp  *~ visitlog.py
+	rm -rf .goutputstream* .logfile* *.o *.ptx *.tar* *.txt *.silo *.vtk *.vlsv project.h project.cu project.cpp  *~ visitlog.py ${EXE} vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION} vlsv2vtk_${FP_PRECISION}
 
 # Rules for making each object file needed by the executable
 arrayallocator.o: ${DEPS_ARRAYALLOCATOR}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c arrayallocator.cpp 
-
-cell_spatial.o: $(DEPS_CELL_SPATIAL)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c cell_spatial.cpp ${INC_MPI} ${INC_BOOST}
 
 datareducer.o: ${DEPS_DATAREDUCER}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareducer.cpp ${INC_MPI} ${INC_BOOST}
@@ -177,24 +162,20 @@ datareductionoperator.o: ${DEPS_DATAREDUCTIONOPERATOR}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareductionoperator.cpp ${INC_MPI} ${INC_BOOST}
 
 fieldsolverinstall:
-	make libfieldsolver.a -C fieldsolver "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE}" "FLAG_OPENMP=${FLAG_OPENMP}" "AR=${AR}" "FLAGS=${FLAGS}"
+	make libfieldsolver.a -C fieldsolver "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS} ${INC_PROFILE} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_DCCRG}" "FLAG_OPENMP=${FLAG_OPENMP}" "AR=${AR}" "FLAGS=${FLAGS}"
 	ln -s -f fieldsolver/libfieldsolver.a .
 
 gpudevicegrid.o: $(DEPS_GPU_DEVICE_GRID)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c gpudevicegrid.cpp $(INC_CUDA)
 
-grid.o: $(DEPS_GRID)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c grid.cpp ${INC} ${INC_BOOST}
+spatial_cell.o: spatial_cell.cpp spatial_cell.hpp
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c spatial_cell.cpp $(INC_BOOST)
 
-# -O1 switch is here to make the code run correctly with intel
-gridbuilder.o: $(DEPS_GRIDBUILDER)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -O1 -c gridbuilder.cpp ${INC} ${INC_BOOST} ${INC_ZOLTAN} ${INC_MPI} ${INC_DCCRG} ${INC_PROFILE}
-
-vlasiator.o: $(DEPS_MAIN) ${BUILDER}
+vlasiator.o: $(DEPS_MAIN) 
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE}
 
 moverinstall:
-	make libvlasovmover.a -C ${MOVER} "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS}" "INC_ZOLTAN=${INC_ZOLTAN}" "INC_MPI=${INC_MPI}" "INC_BOOST=${INC_BOOST}" "INC_DCCRG=${INC_DCCRG}" "INC_PROFILE=${INC_PROFILE}" "INC_TOPO=${INC_TOPO}" "FLAG_OPENMP=${FLAG_OPENMP}" "AR=${AR}" "MATHFLAGS=${MATHFLAGS}" "SOLVER=${SOLVER}"
+	make libvlasovmover.a -C ${MOVER} "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS}" "INC_ZOLTAN=${INC_ZOLTAN}" "INC_MPI=${INC_MPI}" "INC_BOOST=${INC_BOOST}" "INC_DCCRG=${INC_DCCRG}" "INC_TOPO=${INC_TOPO}" "INC_PROFILE=${INC_PROFILE}"  "FLAG_OPENMP=${FLAG_OPENMP}" "AR=${AR}" "MATHFLAGS=${MATHFLAGS}" "SOLVER=${SOLVER}"
 	ln -s -f ${MOVER}/libvlasovmover.a .
 
 mpifile.o: ${DEPS_MPIFILE}
@@ -209,11 +190,15 @@ muxml.o: ${DEPS_MUXML}
 parameters.o: $(DEPS_PARAMETERS)
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c parameters.cpp ${INC_BOOST}
 
-project.o: $(DEPS_PROJECT)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c project.cpp ${INC_BOOST} ${INC_ZOLTAN} ${INC_DCCRG} ${INC_MPI} ${INC_PROFILE}
-
 projinstall:
 	make project -C projects "INSTALL=${INSTALL}" "PROJ=${PROJ}"
+
+project.cpp: projinstall
+
+project.h: projinstall
+
+project.o: $(DEPS_PROJECT)
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c project.cpp ${INC_BOOST} ${INC_ZOLTAN} ${INC_DCCRG} ${INC_MPI}
 
 vlscommon.o: ${DEPS_VLSCOMMON}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlscommon.cpp
@@ -223,8 +208,8 @@ vlsvextract: ${DEPS_VLSVEXTRACT} ${OBJS_VLSVEXTRACT}
 	${LNK} -o vlsvextract_${FP_PRECISION} vlsvextract.o ${OBJS_VLSVEXTRACT} ${LIB_SILO}
 
 vlsv2vtk: ${DEPS_VLSVEXTRACT} ${OBJS_VLSVEXTRACT}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2vtk.cpp
-	${LNK} -o vlsv2vtk_${FP_PRECISION} vlsv2vtk.o ${OBJS_VLSVEXTRACT}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2vtk.cpp ${INC_BOOST} 
+	${LNK} -o vlsv2vtk_${FP_PRECISION} vlsv2vtk.o ${OBJS_VLSVEXTRACT} ${INC_BOOST} 
 
 vlsvreader2.o: ${DEPS_VLSVREADER2}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvreader2.cpp
@@ -252,38 +237,41 @@ dist:
 	mkdir vlasiator
 	cp ${HDRS} ${SRC} INSTALL vlasiator/
 	cp Doxyfile Makefile Makefile.gnu Makefile.intel Makefile.pgi vlasiator/
-	cp -R gridbuilders vlasiator/
 	cp -R projects vlasiator/
 	tar -cf vlasiator.tar vlasiator
 	gzip -9 vlasiator.tar
 	rm -rf vlasiator
 
 # Make executable
-vlasiator: projinstall fieldsolverinstall builderinstall moverinstall $(OBJS)
-	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) -L${INSTALL} -L${INSTALL}/cpu -lvlasovmover -lfieldsolver $(LIBS) ${BUILDER}
+vlasiator: projinstall fieldsolverinstall  moverinstall $(OBJS)
+	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) -L${INSTALL} -L${INSTALL}/cpu -lvlasovmover -lfieldsolver $(LIBS) 
 
 VLASIATOR_HEADERS = \
-	arrayallocator.h cpu/cpu_acc_kt.h cpu/cpu_acc_leveque.h cpu/cpu_acc_ppm.h \
-	cpu/cpu_common.h cpu/cpu_trans_kt.h cpu/cpu_trans_leveque.h cell_spatial.h \
-	common.h datareducer.h datareductionoperator.h \
-	definitions.h grid.h gridbuilder.h \
-	mpiconversion.h mpifile.h mpilogger.h \
+	arrayallocator.h \
+	cpu/cpu_acc_leveque.h \
+	cpu/cpu_common.h \
+	cpu/cpu_trans_leveque.h \
+	common.h \
+	datareducer.h \
+	datareductionoperator.h \
+	definitions.h   \
+	mpiconversion.h \
+	mpifile.h \
+	mpilogger.h \
 	parameters.h \
-	 vlscommon.h \
-	vlsvwriter2.h vlsvreader2.h muxml.h profile.hpp
+	spatial_cell.hpp \
+	vlscommon.h \
+	vlsvwriter2.h \
+	vlsvreader2.h \
+	muxml.h 
+
 
 VLASIATOR_SOURCES = \
 	arrayallocator.cpp \
-	cell_spatial.cpp \
 	datareducer.cpp \
 	datareductionoperator.cpp \
-	grid.cpp gridbuilder.cpp \
 	fieldsolver/londrillo_delzanna.cpp \
 	vlasiator.cpp \
-	cpu/cpu_acc_kt.cpp \
-	cpu/cpu_trans_kt.cpp \
-	cpu/dccrg/main_dccrg.cpp \
-	#cpu/dccrg/vlasovmover_leveque.cpp \
 	cpu/memalloc.cpp \
 	mpifile.cpp \
 	mpilogger.cpp \

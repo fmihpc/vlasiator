@@ -14,15 +14,15 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 4.5.2
-CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -pedantic -Wno-unused
+CXXFLAGS += -O3  -funroll-loops -std=c++0x -W -Wall -pedantic -Wno-unused
 #CXXFLAGS += -DCRAY_TOPOLOGY_OPTIMIZATION
 MATHFLAGS = -ffast-math
 LDFLAGS =
-LIB_MPI = -lgomp -lrca  
-
+#LIB_MPI = -lgomp -lrca  
+LIB_MPI = 
 #Add for threaded multiple mode: -lmpich_threadm
 
- #INTEL flags:
+#INTEL flags:
 #CC_BRAND = intel
 #CC_BRAND_VERSION = 11.1.046
 #CXXFLAGS += -O3 -fast -openmp 
@@ -48,8 +48,10 @@ LIB_SILO = -L$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION
 
 INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg-new
 
+LIBRARY_PREFIX_B = /stornext/field/users/alfthan/libraries
+
+LIB_PROFILE = -L$(LIBRARY_PREFIX_B)/profiler/lib -lprofile
+INC_PROFILE = -I$(LIBRARY_PREFIX_B)/profiler/include
 INC_TOPO = -I$(LIBRARY_PREFIX)/topologyOptim
 
-INC_PROFILE = -I/stornext/field/users/alfthan/libraries/profiler/include
-LIB_PROFILE = -L/stornext/field/users/alfthan/libraries/profiler/lib
 

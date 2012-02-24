@@ -2,7 +2,7 @@
 #define HARM1D_H
 
 #include "definitions.h"
-#include "cell_spatial.h"
+#include "spatial_cell.hpp"
 #include "projects/projects_common.h"
 #include "projects/projects_fieldboundary.h"
 #include "projects/projects_vlasov_acceleration.h"
@@ -22,12 +22,10 @@ struct dispersionParameters {
    static Real BZ0;
    static Real DENSITY;
    static Real TEMPERATURE;
-//   static Real sigma1;
-//   static Real X1;
-//   static Real sigma2;
-//   static Real X2;
-//   static Real magPertAmp;
+   static Real magPertAmp;
    static Real densityPertAmp;
+   static Real velocityPertAmp;
+   static uint sectorSize;
    static uint nSpaceSamples;
    static uint nVelocitySamples;
 } ;
@@ -200,8 +198,6 @@ REAL fieldSolverBoundaryCondBy(const CELLID& cellID,const UINT& existingCells,co
 
 template<typename CELLID,typename UINT,typename REAL>
 REAL fieldSolverBoundaryCondBz(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const dccrg::Dccrg<SpatialCell> & mpiGrid) {
-  REAL x = mpiGrid[cellID]->cpu_cellParams[CellParams::XCRD];
-  REAL dx = mpiGrid[cellID]->cpu_cellParams[CellParams::DX];
   return 0.0;
 }
 

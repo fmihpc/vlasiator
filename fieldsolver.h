@@ -21,8 +21,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "definitions.h"
 #include "common.h"
-#include "cell_spatial.h"
-
+#include "spatial_cell.hpp"         
+using namespace spatial_cell;
 
 #define DCCRG_SEND_SINGLE_CELLS
 #define DCCRG_CELL_DATA_SIZE_FROM_USER
@@ -39,6 +39,7 @@ namespace fieldsolver {
    
 } // namespace fieldsolver
 */
+
 void calculateFaceAveragedFields(dccrg::Dccrg<SpatialCell>& mpiGrid);
 void calculateVolumeAveragedFields(dccrg::Dccrg<SpatialCell>& mpiGrid);
 bool finalizeFieldPropagator(dccrg::Dccrg<SpatialCell>& mpiGrid);

@@ -269,7 +269,7 @@ bool velocity_grid_to_vtk(
 
 		char* buffer = new char[N_blocks*vectorSize*dataSize];
 		if (!vlsvReader.readArray("BLOCKVARIABLE",*variable,attribs,blockOffset,N_blocks,buffer)) {
-			cerr << "ERROR could not read block variable" << endl;
+			cerr << "Could not read block variable: " << *variable << endl;
 			delete buffer;
 			return false;
 		}
@@ -305,11 +305,11 @@ int main(int argc, char* argv[]) {
 
 	if (argc != 3) {
 		cout << endl;
-		cout << "USAGE: ./vlsvextract file_name cell_ID" << endl;
+		cout << "USAGE: ./vlsv2vtk file_name cell_ID" << endl;
 		cout << endl;
 		cout << "Each VLSV file in the currect directory is compared against the mask," << endl;
 		cout << "and if the file name matches the mask, the given velocity grid is " << endl;
-		cout << "written to a SILO file." << endl;
+		cout << "written to a vtk file." << endl;
 		cout << endl;
 		cout << "Cell ID is the ID of the spatial cell whose velocity grid is to be extracted." << endl;
 		cout << endl;

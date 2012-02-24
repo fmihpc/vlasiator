@@ -1,9 +1,27 @@
+/*
+This file is part of Vlasiator.
+
+Copyright 2011 Finnish Meteorological Institute
+
+Vlasiator is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License version 3
+as published by the Free Software Foundation.
+
+Vlasiator is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
 #include <limits>
 
-#include "cell_spatial.h"
+#include "spatial_cell.hpp"
 #include "common.h"
 #include "project.h"
 #include "parameters.h"
@@ -37,11 +55,12 @@ Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal&
    creal DVZ = 0.1;
    creal VSIGMA = 0.2;
    creal INVVSIG2 = 1.0/(VSIGMA*VSIGMA);
-   
+
    if (fabs(x + 0.6) > dx) return 1e-10;
    if (fabs(vx) > 0.051) return 1e-10;
+   if (fabs(vy) > 0.8) return 1e-10;
+   if (fabs(vz) > 0.8) return 1e-10;
    //if (fabs(x) > X0 || fabs(y) > Y0) return 0.0;
-   //if (fabs(vx-VX0) > DVX) return 0.0;
    //if (fabs(vy-VY0) > DVY) return 0.0;
    //if (fabs(vz-VZ0) > DVZ) return 0.0;
    //return 5.0*exp(-INVVSIG2*(vx-VX0)*(vx-VX0))*exp(-INVVSIG2*(vy-VY0)*(vy-VY0))*exp(-INVVSIG2*(vz-VZ0)*(vz-VZ0));
@@ -79,7 +98,7 @@ void calcCellParameters(Real* cellParams,creal& t) {
 void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
    std::vector<uint64_t> cells = mpiGrid.get_cells();
    for (uint i = 0; i < cells.size(); ++i) {
-      calcCellParameters(mpiGrid[cells[i]]->cpu_cellParams, t);
+      calcCellParameters(mpiGrid[cells[i]]->parameters, t);
    }
 }
 
