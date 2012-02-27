@@ -216,6 +216,8 @@ bool adjust_all_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       mpiGrid.set_cell_weight(*cell_id, cell->number_of_blocks);
    }
    profile::stop("Adjusting blocks");
+
+   return true;
 }
 
 /*

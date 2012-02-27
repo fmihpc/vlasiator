@@ -457,7 +457,7 @@ int main(int argn,char* args[]) {
    }
    
    for(size_t entryName = 0; entryName < fileList.size(); entryName++) {
-      if(entryName%ntasks == rank) {
+      if(entryName%ntasks == (uint)rank) {
          cout << "\tProc " << rank << " converting '" << fileList[entryName] << "'" << endl;
          convertSILO(fileList[entryName]);
 	 filesConverted++;
