@@ -101,7 +101,7 @@ VlsHeader::Real convReal4(const unsigned char* const ptr,const bool& swapEndian)
       Real4 tmp = 0.0;
       unsigned char* const ptrtmp = reinterpret_cast<unsigned char*>(&tmp);
       for (uint i=0; i<sizeof(tmp); ++i) ptrtmp[i] = 0;
-      for (uint i=sizeof(Real4)-1; i>=0; --i) {
+      for (int i = sizeof(Real4) - 1; i >= 0; --i) {
 	 ptrtmp[index] = ptr[i];
 	 ++index;
       }
@@ -117,7 +117,7 @@ VlsHeader::Real convReal8(const unsigned char* const ptr,const bool& swapEndian)
       Real8 tmp = 0.0;
       unsigned char* const ptrtmp = reinterpret_cast<unsigned char*>(&tmp);
       for (uint i=0; i<sizeof(tmp); ++i) ptrtmp[i] = 0;
-      for (uint i=sizeof(Real8)-1; i>=0; --i) {
+      for (int i = sizeof(Real8)-1; i >= 0; --i) {
 	 ptrtmp[index] = ptr[i];
 	 ++index;
       }
@@ -133,7 +133,7 @@ VlsHeader::Real convReal16(const unsigned char* const ptr,const bool& swapEndian
       Real16 tmp = 0.0;
       unsigned char* const ptrtmp = reinterpret_cast<unsigned char*>(&tmp);
       for (uint i=0; i<sizeof(tmp); ++i) ptrtmp[i] = 0;
-      for (uint i=sizeof(Real16)-1; i>=0; --i) {
+      for (int i = sizeof(Real16)-1; i >= 0; --i) {
 	 ptrtmp[index] = ptr[i];
 	 ++index;
       }
