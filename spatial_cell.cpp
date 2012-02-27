@@ -1,7 +1,7 @@
 /*!
 Space for static variables of spatial cell class for Vlasiator.
 
-Copyright 2011 Finnish Meteorological Institute
+Copyright 2011, 2012 Finnish Meteorological Institute
 
 Vlasiator is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 3
