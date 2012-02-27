@@ -170,7 +170,7 @@ bool adjust_all_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       }
       profile::start("gather_neighbours");
       // gather spatial neighbor list
-      const vector<uint64_t>* neighbors = mpiGrid.get_neighbours(*cell_id);
+      const vector<uint64_t>* neighbors = mpiGrid.get_neighbors(*cell_id);
       vector<SpatialCell*> neighbor_ptrs;
 
       neighbor_ptrs.reserve(neighbors->size());
@@ -229,12 +229,12 @@ void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
    profile::initializeTimer("Velocity block list size update","MPI");
    profile::start("Velocity block list size update");
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_SIZE);
-   mpiGrid.update_remote_neighbour_data();
+   mpiGrid.update_remote_neighbor_data();
    profile::stop("Velocity block list size update");
    profile::initializeTimer("Velocity block list update","MPI");
    profile::start("Velocity block list update");
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST);
-   mpiGrid.update_remote_neighbour_data();
+   mpiGrid.update_remote_neighbor_data();
    profile::stop("Velocity block list update");
 
    /*      
@@ -242,7 +242,7 @@ void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
    */
    
    profile::start("Preparing receives");
-   const boost::unordered_set<uint64_t>* incoming_cells = mpiGrid.get_remote_cells_with_local_neighbours();
+   const boost::unordered_set<uint64_t>* incoming_cells = mpiGrid.get_remote_cells_with_local_neighbors();
    for (boost::unordered_set<uint64_t>::const_iterator cell_id = incoming_cells->begin();
         cell_id != incoming_cells->end();
         ++cell_id
@@ -346,7 +346,7 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
     for (uint i=0; i<cells.size(); ++i) 
       mpiGrid[cells[i]]->update_all_block_has_content();     
     SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_HAS_CONTENT );
-    mpiGrid.update_remote_neighbour_data();
+    mpiGrid.update_remote_neighbor_data();
     
     adjust_all_velocity_blocks(mpiGrid);
 
@@ -358,7 +358,7 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
     profile::start("Fetch Neighbour data");
     // update complete spatial cell data 
     SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
-    mpiGrid.update_remote_neighbour_data();       
+    mpiGrid.update_remote_neighbor_data();       
     profile::stop("Fetch Neighbour data");   
 }
 
@@ -990,7 +990,7 @@ int main(int argn,char* args[]) {
 	      profile::initializeTimer("Transfer block data","MPI");
               profile::start("Transfer block data");
 	      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_HAS_CONTENT );
-	      mpiGrid.update_remote_neighbour_data();
+	      mpiGrid.update_remote_neighbor_data();
               profile::stop("Transfer block data");
 	      adjust_all_velocity_blocks(mpiGrid);
 	      prepare_to_receive_velocity_block_data(mpiGrid);

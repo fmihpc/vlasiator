@@ -214,13 +214,12 @@ bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    // so that boundary condition functions are correctly called 
    // for remote ghost cells:
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_GHOSTFLAG);
-   mpiGrid.start_remote_neighbour_data_update();
-   mpiGrid.wait_neighbour_data_update_receives();
+   mpiGrid.update_remote_neighbor_data();
    
    // Now iterate through all cells (local + remote), and insert the cells 
    // with isGhostCell flag turned on into ghostCells list. Boundary condition 
    // functions are called for every cell in ghostCells:
-   remoteCells=mpiGrid.get_list_of_remote_cells_with_local_neighbours();
+   remoteCells=mpiGrid.get_list_of_remote_cells_with_local_neighbors();
    cells.insert( cells.end(), remoteCells.begin(), remoteCells.end() );
    for (uint c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
@@ -390,7 +389,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    // Clear spatial fluxes to zero value. Remote neighbour df/dt arrays 
    // need to be cleared as well:       
    vector<CellID> cells=mpiGrid.get_cells();
-   vector<CellID> remoteCells=mpiGrid.get_list_of_remote_cells_with_local_neighbours();
+   vector<CellID> remoteCells=mpiGrid.get_list_of_remote_cells_with_local_neighbors();
    cells.insert( cells.end(), remoteCells.begin(), remoteCells.end() );
    
    profile::start("Mark unitialized flux");

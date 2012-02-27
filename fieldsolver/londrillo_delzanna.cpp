@@ -1200,13 +1200,13 @@ void calculateDerivativesSimple(
    
    timer=profile::initializeTimer("Start comm of B  and RHOV","MPI");
    profile::start(timer);
-   mpiGrid.start_remote_neighbour_data_update();
+   mpiGrid.start_remote_neighbor_data_update();
    profile::stop(timer);
    
    timer=profile::initializeTimer("Compute inner cells");
    profile::start(timer);
    // Calculate derivatives on inner cells
-   const vector<uint64_t> local_cells = mpiGrid.get_cells_with_local_neighbours();
+   const vector<uint64_t> local_cells = mpiGrid.get_cells_with_local_neighbors();
    for (vector<uint64_t>::const_iterator cell = local_cells.begin(); cell != local_cells.end(); cell++) {
       calculateDerivatives(*cell,mpiGrid);
    }
@@ -1214,13 +1214,13 @@ void calculateDerivativesSimple(
 
    timer=profile::initializeTimer("Wait for sends","MPI","Wait");
    profile::start(timer);
-   mpiGrid.wait_neighbour_data_update_receives();
+   mpiGrid.wait_neighbor_data_update_receives();
    profile::stop(timer);
 
    // Calculate derivatives on boundary cells
    timer=profile::initializeTimer("Compute boundary cells");
    profile::start(timer);
-   const vector<uint64_t> boundary_cells = mpiGrid.get_cells_with_remote_neighbour();
+   const vector<uint64_t> boundary_cells = mpiGrid.get_cells_with_remote_neighbor();
    for (vector<uint64_t>::const_iterator cell = boundary_cells.begin(); cell != boundary_cells.end(); cell++) {
        calculateDerivatives(*cell,mpiGrid);
    }
@@ -1228,7 +1228,7 @@ void calculateDerivativesSimple(
 
    timer=profile::initializeTimer("Wait for sends","MPI","Wait");
    profile::start(timer);
-   mpiGrid.wait_neighbour_data_update_sends();
+   mpiGrid.wait_neighbor_data_update_sends();
    profile::stop(timer);
    
    profile::stop("Calculate derivatives");
@@ -1245,13 +1245,13 @@ void calculateUpwindedElectricFieldSimple(
    
    timer=profile::initializeTimer("Start communication of derivatives","MPI");
    profile::start(timer);
-   mpiGrid.start_remote_neighbour_data_update();
+   mpiGrid.start_remote_neighbor_data_update();
    profile::stop(timer);
    
    timer=profile::initializeTimer("Compute inner cells");
    profile::start(timer);
    // Calculate upwinded electric field on inner cells
-   const vector<uint64_t> local_cells = mpiGrid.get_cells_with_local_neighbours();
+   const vector<uint64_t> local_cells = mpiGrid.get_cells_with_local_neighbors();
    for (vector<uint64_t>::const_iterator cell = local_cells.begin(); cell != local_cells.end(); cell++) {
       cuint boundaryFlag = boundaryFlags[*cell];
       if ((boundaryFlag & CALCULATE_EX) == CALCULATE_EX) calculateEdgeElectricFieldX(*cell,mpiGrid);
@@ -1261,12 +1261,12 @@ void calculateUpwindedElectricFieldSimple(
    profile::stop(timer);
    timer=profile::initializeTimer("Wait for receives","MPI","Wait");
    profile::start(timer);
-   mpiGrid.wait_neighbour_data_update_receives();
+   mpiGrid.wait_neighbor_data_update_receives();
    profile::stop(timer);
    timer=profile::initializeTimer("Compute boundary cells");
    profile::start(timer);
    // Calculate upwinded electric field on boundary cells:
-   const vector<uint64_t> boundary_cells = mpiGrid.get_cells_with_remote_neighbour();
+   const vector<uint64_t> boundary_cells = mpiGrid.get_cells_with_remote_neighbor();
    for (vector<uint64_t>::const_iterator cell = boundary_cells.begin(); cell != boundary_cells.end(); cell++) {
       cuint boundaryFlag = boundaryFlags[*cell];
       if ((boundaryFlag & CALCULATE_EX) == CALCULATE_EX) calculateEdgeElectricFieldX(*cell,mpiGrid);
@@ -1276,14 +1276,14 @@ void calculateUpwindedElectricFieldSimple(
    profile::stop(timer);
    timer=profile::initializeTimer("Wait for sends","MPI","Wait");
    profile::start(timer);
-   mpiGrid.wait_neighbour_data_update_sends();
+   mpiGrid.wait_neighbor_data_update_sends();
    profile::stop(timer);
    
    // Exchange electric field with neighbouring processes
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_E);
    timer=profile::initializeTimer("Communicate electric fields","MPI","Wait");
    profile::start(timer);
-   mpiGrid.update_remote_neighbour_data();
+   mpiGrid.update_remote_neighbor_data();
    profile::stop(timer);
 
    profile::stop("Calculate upwinded electric field");
