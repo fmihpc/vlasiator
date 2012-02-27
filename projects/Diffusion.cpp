@@ -81,7 +81,6 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
    creal d_vy = dvy / (DiffP::nVelocitySamples-1);
    creal d_vz = dvz / (DiffP::nVelocitySamples-1);
    Real avg = 0.0;
-   #pragma omp parallel for collapse(6) reduction(+:avg)
    for (uint i=0; i<DiffP::nSpaceSamples; ++i)
       for (uint j=0; j<DiffP::nSpaceSamples; ++j)
 	 for (uint k=0; k<DiffP::nSpaceSamples; ++k)
