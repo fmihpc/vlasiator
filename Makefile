@@ -14,6 +14,11 @@ MOVER ?= cpu
 #set a default vlasov solver, can also be set in Makefile.arch
 #Valid values are KT and LEVEQUE
 SOLVER ?= LEVEQUE
+
+# If defined accelerates velocity space using cpu_acc_semilag.hpp.
+# Otherwise the same solver is used in real and velocity spaces.
+#CXXFLAGS += -DSEMILAG
+
 #Add -DKT or -DLEVEQUE to compiler options (mandatory)
 CXXFLAGS += -DSOLVER_${SOLVER}
 

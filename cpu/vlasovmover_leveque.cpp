@@ -40,6 +40,10 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "crayxttorus.h"
 #endif
 
+#ifdef SEMILAG
+#include "cpu_acc_semilag.hpp"
+#endif
+
 #include <stdint.h>
 #define DCCRG_SEND_SINGLE_CELLS
 #define DCCRG_CELL_DATA_SIZE_FROM_USER
@@ -264,6 +268,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 }
 
 void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID) {
+   typedef Parameters P;
 //   profile::start("Acceleration");
    SpatialCell* SC = mpiGrid[cellID];
    if (ghostCells.find(cellID) != ghostCells.end()){
@@ -278,6 +283,7 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID)
    }
 //   profile::stop("clearVelFluxes");
 
+   #ifndef SEMILAG
 //   profile::start("calcVelFluxes");
    // Calculatedf/dt contributions of all blocks in the cell:
    for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
@@ -285,6 +291,9 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID)
       cpu_calcVelFluxes(SC,block,P::dt,NULL);
    }
 //   profile::stop("calcVelFluxes");
+   #else
+   cpu_accelerate_cell(*SC, P::dt, 1000, P::q, P::m);
+   #endif
 
 //   profile::start("propagateVel");
       // Propagate distribution functions in velocity space:

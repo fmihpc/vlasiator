@@ -36,6 +36,10 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "vlasovmover.h"
 #include <profile.hpp>
 
+#ifdef SEMILAG
+#include "cpu_acc_semilag.hpp"
+#endif
+
 extern MPILogger mpilogger;
 
 
@@ -206,7 +210,13 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    Main::cells = mpiGrid.get_cells();
    for (size_t i=0; i<Main::cells.size(); ++i) {
       Main::cellPtr = mpiGrid[Main::cells[i]];
-      if (Main::cellPtr != NULL) cpu_acceleration(*Main::cellPtr);
+      if (Main::cellPtr != NULL) {
+         #ifndef SEMILAG
+         cpu_acceleration(*Main::cellPtr);
+         #else
+         cpu_accelerate_cell(*SC, P::dt, 1000, P::q, P::m);
+         #endif
+      }
    }
    
    profile::stop("calcAcceleration",Main::cells.size(),"SpatialCells");
