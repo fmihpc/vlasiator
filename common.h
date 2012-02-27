@@ -126,6 +126,21 @@ namespace CellParams {
       EXVOL,   /**< Ex averaged over spatial cell.*/
       EYVOL,   /**< Ey averaged over spatial cell.*/
       EZVOL,   /**< Ez averaged over spatial cell.*/
+
+      // Constant background versions of variables above
+      BXFACEX0,
+      BYFACEX0,
+      BZFACEX0,
+      BXFACEY0,
+      BYFACEY0,
+      BZFACEY0,
+      BXFACEZ0,
+      BYFACEZ0,
+      BZFACEZ0,
+      BXVOL0,
+      BYVOL0,
+      BZVOL0,
+
       N_SPATIAL_CELL_PARAMS
    };
 }
