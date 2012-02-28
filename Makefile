@@ -255,6 +255,7 @@ VLASIATOR_HEADERS = \
 	arrayallocator.h \
 	common.h \
 	cpu/cpu_acc_leveque.h \
+	cpu/cpu_acc_semilag.hpp \
 	cpu/cpu_common.h \
 	cpu/cpu_trans_leveque.h \
 	fieldsolver/limiters.h \

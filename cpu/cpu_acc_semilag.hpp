@@ -23,12 +23,14 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "boost/array.hpp"
 #include "boost/assign/list_of.hpp"
 #include "boost/foreach.hpp"
+#include "cmath"
 #include "utility"
 
 #include "common.h"
 #include "spatial_cell.hpp"
 
 using namespace std;
+using namespace spatial_cell;
 
 typedef boost::array<double, 3> coordinate_t;
 
@@ -62,6 +64,16 @@ void cpu_accelerate_cell(
 	const double charge,
 	const double mass
 ) {
+	if (dt <= 0) {
+		std::cerr << __FILE__ << ":" << __LINE__ << " dt must be > 0: " << dt << std::endl;
+		abort();
+	}
+
+	if (mass <= 0) {
+		std::cerr << __FILE__ << ":" << __LINE__ << " mass must be > 0: " << dt << std::endl;
+		abort();
+	}
+
 	const double Bx = spatial_cell.parameters[CellParams::BXVOL],
 		By = spatial_cell.parameters[CellParams::BYVOL],
 		Bz = spatial_cell.parameters[CellParams::BZVOL],
@@ -71,20 +83,19 @@ void cpu_accelerate_cell(
 
 	// don't iterate over blocks added by this function
 	std::vector<unsigned int> blocks;
-	for (
-		unsigned int block = spatial_cell.velocity_block_list[0], block_i = 0;
-		block_i < max_velocity_blocks
-			&& spatial_cell.velocity_block_list[block_i] != error_velocity_block;
-		block = spatial_cell.velocity_block_list[++block_i]
-	) {
-		blocks.push_back(block);
+	for (unsigned int block_i = 0; block_i < spatial_cell.number_of_blocks; block_i++) {
+		blocks.push_back(spatial_cell.velocity_block_list[block_i]);
 	}
 
 	// calculate how many steps to take when tracing particle trajectory
-	const double orbit_time = 2 * M_PI * mass / (charge * sqrt(Bx * Bx + By * By + Bz * Bz));
-	unsigned int substeps = dt / orbit_time * steps_per_orbit;
-	if (substeps < 1) {
+	unsigned int substeps = 0;
+	double orbit_time = 0;
+	const double B_abs = sqrt(Bx * Bx + By * By + Bz * Bz);
+	if (B_abs == 0) {
 		substeps = 1;
+	} else {
+		orbit_time = 2 * M_PI * mass / (fabs(charge) * B_abs);
+		substeps = (unsigned int) ceil(dt / (orbit_time * steps_per_orbit));
 	}
 
 	// break every velocity cell into this many subcells when accelerating
@@ -93,17 +104,17 @@ void cpu_accelerate_cell(
 		z_subcells = 1,
 		subcells = x_subcells * y_subcells * z_subcells;
 
-	const double sub_dvx = cell_dvx / x_subcells,
-		sub_dvy = cell_dvy / y_subcells,
-		sub_dvz = cell_dvz / z_subcells;
+	const double sub_dvx = SpatialCell::cell_dvx / x_subcells,
+		sub_dvy = SpatialCell::cell_dvy / y_subcells,
+		sub_dvz = SpatialCell::cell_dvz / z_subcells;
 
 	BOOST_FOREACH(unsigned int block, blocks) {
 
-		for (unsigned int cell = 0; cell < velocity_block_len; cell++) {
+		for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
 
-			const double cell_vx_min = get_velocity_cell_vx_min(block, cell),
-				cell_vy_min = get_velocity_cell_vy_min(block, cell),
-				cell_vz_min = get_velocity_cell_vz_min(block, cell);
+			const double cell_vx_min = SpatialCell::get_velocity_cell_vx_min(block, cell),
+				cell_vy_min = SpatialCell::get_velocity_cell_vy_min(block, cell),
+				cell_vz_min = SpatialCell::get_velocity_cell_vz_min(block, cell);
 
 			// TODO: higher order reconstruction of distribution function in subcells
 			const double distribution_function = spatial_cell.at(block)->data[cell] / subcells;
@@ -147,7 +158,7 @@ void cpu_accelerate_cell(
 					(boost::assign::list_of(current_v[0] + dvx)(current_v[1] + dvy)(current_v[2] + dvz));
 
 				BOOST_FOREACH(coordinate_t coordinate, target_coordinates) {
-					const unsigned int target_block = get_velocity_block(
+					const unsigned int target_block = SpatialCell::get_velocity_block(
 						coordinate[0],
 						coordinate[1],
 						coordinate[2]
@@ -164,7 +175,7 @@ void cpu_accelerate_cell(
 						abort();
 					}
 
-					const unsigned int target_cell = get_velocity_cell(
+					const unsigned int target_cell = SpatialCell::get_velocity_cell(
 						target_block,
 						coordinate[0],
 						coordinate[1],
@@ -187,21 +198,21 @@ void cpu_accelerate_cell(
 					const unsigned int target_block = item->first,
 						target_cell = item->second;
 
-					const boost::array<double, 3> target_v = {
-						(get_velocity_cell_vx_min(target_block, target_cell)
-							+ get_velocity_cell_vx_max(target_block, target_cell)) / 2,
-						(get_velocity_cell_vy_min(target_block, target_cell)
-							+ get_velocity_cell_vy_max(target_block, target_cell)) / 2,
-						(get_velocity_cell_vz_min(target_block, target_cell)
-							+ get_velocity_cell_vz_max(target_block, target_cell)) / 2
-					};
+					const boost::array<double, 3> target_v = {{
+						(SpatialCell::get_velocity_cell_vx_min(target_block, target_cell)
+							+ SpatialCell::get_velocity_cell_vx_max(target_block, target_cell)) / 2,
+						(SpatialCell::get_velocity_cell_vy_min(target_block, target_cell)
+							+ SpatialCell::get_velocity_cell_vy_max(target_block, target_cell)) / 2,
+						(SpatialCell::get_velocity_cell_vz_min(target_block, target_cell)
+							+ SpatialCell::get_velocity_cell_vz_max(target_block, target_cell)) / 2
+					}};
 
 					// assign value based on shared volume between target and source cells
 					const double shared_V = get_relative_shared_volume(
 						current_v,
 						sub_dvx,
 						target_v,
-						cell_dvx
+						SpatialCell::cell_dvx
 					);
 
 					Velocity_Block* block_ptr = spatial_cell.at(target_block);
@@ -217,20 +228,14 @@ Applies fluxes of the distribution function in given spatial cell.
 
 Overwrites current cell data with fluxes and zeroes fluxes.
 */
-void apply_fluxes(Spatial_Cell& spatial_cell)
+void apply_fluxes(SpatialCell& spatial_cell)
 {
-	for (
-		unsigned int block = spatial_cell.velocity_block_list[0], block_i = 0;
-		block_i < max_velocity_blocks
-			&& spatial_cell.velocity_block_list[block_i] != error_velocity_block;
-		block = spatial_cell.velocity_block_list[++block_i]
-	) {
+	for (unsigned int block_i = 0; block_i < spatial_cell.number_of_blocks; block_i++) {
+		const unsigned int block = spatial_cell.velocity_block_list[block_i];
+
 		Velocity_Block* block_ptr = spatial_cell.at(block);
 
-		for (unsigned int cell = 0; cell < velocity_block_len; cell++) {
-			if (block_ptr->fx[cell] > 1e6) {
-				cout << block_ptr->fx[cell] << " in block " << block << " cell " << cell << endl;
-			}
+		for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
 			block_ptr->data[cell] = block_ptr->fx[cell];
 			block_ptr->fx[cell] = 0;
 		}
