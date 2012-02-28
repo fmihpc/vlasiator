@@ -253,40 +253,58 @@ vlasiator: projinstall fieldsolverinstall  moverinstall $(OBJS)
 
 VLASIATOR_HEADERS = \
 	arrayallocator.h \
+	common.h \
 	cpu/cpu_acc_leveque.h \
 	cpu/cpu_common.h \
 	cpu/cpu_trans_leveque.h \
-	common.h \
+	fieldsolver/limiters.h \
 	datareducer.h \
 	datareductionoperator.h \
-	definitions.h   \
+	definitions.h \
 	mpiconversion.h \
 	mpifile.h \
 	mpilogger.h \
+	muxml.h \
 	parameters.h \
+	project.h \
 	spatial_cell.hpp \
 	vlscommon.h \
-	vlsvwriter2.h \
 	vlsvreader2.h \
-	muxml.h 
-
+	vlsvwriter2.h
 
 VLASIATOR_SOURCES = \
 	arrayallocator.cpp \
+	cpu/memalloc.cpp \
+	cpu/vlasovmover_leveque.cpp \
 	datareducer.cpp \
 	datareductionoperator.cpp \
 	fieldsolver/londrillo_delzanna.cpp \
-	vlasiator.cpp \
-	cpu/memalloc.cpp \
 	mpifile.cpp \
 	mpilogger.cpp \
+	muxml.cpp \
 	parameters.cpp \
 	project.cpp \
+	spatial_cell.cpp \
+	vlasiator.cpp \
 	vlscommon.cpp \
 	vlsvreader2.cpp \
-	vlsvwriter2.cpp \
-	muxml.cpp
+	vlsvwriter2.cpp
 
-vlasiator2: projinstall $(VLASIATOR_SOURCES) $(VLASIATOR_HEADERS) Makefile Makefile.${ARCH}
-	$(CMP) $(VLASIATOR_HEADERS) $(VLASIATOR_SOURCES) vlasiator.cpp -o ${EXE} $(LIBS) -I. -I./cpu
+vlasiator2: $(VLASIATOR_SOURCES) $(VLASIATOR_HEADERS) Makefile Makefile.$(ARCH)
+	$(CMP) -I. $(CXXFLAGS) $(FLAGS) $(VLASIATOR_SOURCES) -o $(EXE) $(LDFLAGS) $(LIBS)
+
+c2: clean2
+clean2:
+	rm -fv \
+		$(EXE) \
+		vlsv2silo_$(FP_PRECISION) \
+		vlsvextract_$(FP_PRECISION) \
+		vlsv2vtk_$(FP_PRECISION) \
+		vlsvdiff_$(FP_PRECISION) \
+		project.h \
+		project.cpp \
+		project.cu \
+		*.silo \
+		*.vtk \
+		*.vlsv
 
