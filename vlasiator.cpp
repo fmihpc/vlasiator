@@ -250,6 +250,8 @@ void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
       
       cell->prepare_to_receive_blocks();
    }
+   //re-init vlasovmover
+   initMoverAfterBlockChange(mpiGrid);
    
    profile::stop("Preparing receives", incoming_cells.size(), "SpatialCells");
 }

@@ -623,7 +623,6 @@ namespace velocity_neighbor {
          //reserve space for 100 blocks to begin with
          this->block_data.resize(100*VELOCITY_BLOCK_LENGTH);
          this->block_fx.resize(100*SIZE_FLUXS);
-
          
 	 this->block_has_content.reserve(SpatialCell::max_velocity_blocks); 
          this->block_address_cache.reserve(SpatialCell::max_velocity_blocks);
