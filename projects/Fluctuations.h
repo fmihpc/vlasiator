@@ -34,7 +34,7 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #define DCCRG_USER_MPI_DATA_TYPE
 #include "dccrg.hpp"
 
-struct dispersionParameters {
+struct fluctuationsParameters {
    static Real BX0;
    static Real BY0;
    static Real BZ0;
@@ -43,7 +43,8 @@ struct dispersionParameters {
    static Real magPertAmp;
    static Real densityPertAmp;
    static Real velocityPertAmp;
-   static uint sectorSize;
+   static Real maxwCutoff;
+//   static uint sectorSize;
    static uint nSpaceSamples;
    static uint nVelocitySamples;
 } ;
