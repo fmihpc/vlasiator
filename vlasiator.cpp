@@ -729,7 +729,8 @@ int main(int argn,char* args[]) {
    
    #ifdef CATCH_FPE
    // WARNING FE_INEXACT is too sensitive to be used. See man fenv.
-   feenableexcept(FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW);
+   //feenableexcept(FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW);
+   feenableexcept(FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW);
    //feenableexcept(FE_DIVBYZERO|FE_INVALID);
    signal(SIGFPE, fpehandler);
    #endif
