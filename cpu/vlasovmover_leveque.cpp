@@ -228,9 +228,28 @@ bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    for (uint c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       if (mpiGrid[cellID]->isGhostCell == true) ghostCells.insert(cellID);
-   }   
+   }
+   initMoverAfterBlockChange(mpiGrid);
    return true;
 }
+
+bool initMoverAfterBlockChange(dccrg::Dccrg<SpatialCell>& mpiGrid){
+   // Allocate receive buffers for all local cells that 
+   // have at least one remote neighbour. For GPUs the first 
+   // buffer must be allocated using page-locked memory:
+
+   remoteUpdates.clear();
+   updateBuffers.clear();
+   for (map<pair<int,int>,CellID>::const_iterator it=stencilUpdates.recvs.begin(); it!=stencilUpdates.recvs.end(); ++it) {
+      cint host            = it->first.first;
+      const CellID localID = it->second;
+      const size_t elements = mpiGrid[localID]->size()*SIZE_VELBLOCK;
+      remoteUpdates[localID].push_back(vector<Real>(elements));
+      updateBuffers.insert(make_pair(make_pair(localID,host), &(remoteUpdates[localID].back()[0]) ));      
+   }
+   return true;
+}
+
 
 bool finalizeMover() {
 
@@ -557,19 +576,6 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
 
 
    
-   // Allocate receive buffers for all local cells that 
-   // have at least one remote neighbour. For GPUs the first 
-   // buffer must be allocated using page-locked memory:
-   //FIXME, avoid excessiv deallocation/allocation
-   remoteUpdates.clear();
-   updateBuffers.clear();
-   for (map<pair<int,int>,CellID>::const_iterator it=stencilUpdates.recvs.begin(); it!=stencilUpdates.recvs.end(); ++it) {
-      cint host            = it->first.first;
-      const CellID localID = it->second;
-      const size_t elements = mpiGrid[localID]->size()*SIZE_VELBLOCK;
-      remoteUpdates[localID].push_back(vector<Real>(elements));
-      updateBuffers.insert(make_pair(make_pair(localID,host), &(remoteUpdates[localID].back()[0]) ));      
-   }
 
    int ops=0;
 

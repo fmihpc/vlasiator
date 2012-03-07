@@ -44,7 +44,7 @@ struct fluctuationsParameters {
    static Real densityPertAmp;
    static Real velocityPertAmp;
    static Real maxwCutoff;
-   //   static uint sectorSize;
+//   static uint sectorSize;
    static uint nSpaceSamples;
    static uint nVelocitySamples;
 } ;
