@@ -114,20 +114,18 @@ bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
 	 creal vy_cell = vy_block + jc*dvy_blockCell;
 	 creal vz_cell = vz_block + kc*dvz_blockCell;
          Real average=calcPhaseSpaceDensity(xmin,ymin,zmin,dx,dy,dz,vx_cell,vy_cell,vz_cell,dvx_blockCell,dvy_blockCell,dvz_blockCell);
+         
+         creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
+         creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
+         creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
+         cell.set_value(vx_cell_center,vy_cell_center,vz_cell_center,average);
+         // Add contributions to spatial cell velocity moments:
+         creal dV = dvx_blockCell*dvy_blockCell*dvz_blockCell;  // Volume of one cell in a block      
+         cell.parameters[CellParams::RHO  ] += average*dV;
+         cell.parameters[CellParams::RHOVX] += average*vx_cell_center*dV;
+         cell.parameters[CellParams::RHOVY] += average*vy_cell_center*dV;
+         cell.parameters[CellParams::RHOVZ] += average*vz_cell_center*dV;
 
-         //FIXME, should the spatialcell even add the average if it is under the treshold? This simple check should be enough anyway.
-         if(average>0){
-            creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
-            creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
-            creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
-            cell.set_value(vx_cell_center,vy_cell_center,vz_cell_center,average);
-            // Add contributions to spatial cell velocity moments:
-            creal dV = dvx_blockCell*dvy_blockCell*dvz_blockCell;  // Volume of one cell in a block      
-            cell.parameters[CellParams::RHO  ] += average*dV;
-            cell.parameters[CellParams::RHOVX] += average*vx_cell_center*dV;
-            cell.parameters[CellParams::RHOVY] += average*vy_cell_center*dV;
-            cell.parameters[CellParams::RHOVZ] += average*vz_cell_center*dV;
-         }
       }
    }
    creal spatialVolume = cell.parameters[CellParams::DX]*cell.parameters[CellParams::DY]*cell.parameters[CellParams::DZ];
@@ -138,7 +136,7 @@ bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
 
    //lets get rid of blocks not fulfilling the criteria here to save
    //memory.  neighbor_ptrs is empty as we do not have any consistent
-   //data in enighbours yet, asjustments done only based on velocity
+   //data in neighbours yet, adjustments done only based on velocity
    //space.
    vector<SpatialCell*> neighbor_ptrs;
    cell.update_all_block_has_content();
