@@ -1203,7 +1203,7 @@ namespace velocity_neighbor {
          
       }
 
-
+// set block data pointers. velocity_block_list needs to be up-to-date
       void set_block_data_pointers(int block_index){
          Velocity_Block* tmp_block_ptr = this->block_address_cache[this->velocity_block_list[block_index]];
          tmp_block_ptr->data=&(this->block_data[block_index*VELOCITY_BLOCK_LENGTH]);
@@ -1211,14 +1211,26 @@ namespace velocity_neighbor {
 
       }
       
-      //This function will resize block data if needed. 
+      //This function will resize block data if needed, resize happen
+      //in steps of block_allocation_chunk. It will always preserve
+      //space for one extra block, resize can happen after adding the
+      //block. We need up-to-date velocity_block_list as
+      //set_block_data_pointers needs it.
+      //If there is only free space left for 1 additional block (extra
+      //block should not be needed, but there for safety), resize it
+      //so that we have free space for block_allocation_chunk blocks.
+      //If there is free space for more than 2*block_allocation_chunk
+      //blocks, resize it so that we have free space for an additional
+      //block_allocation_chunks blocks.
+
       void resize_block_data(){
-         if(this->number_of_blocks*VELOCITY_BLOCK_LENGTH>this->block_data.size() ||
-            (this->number_of_blocks+200)*VELOCITY_BLOCK_LENGTH<this->block_data.size()){
+         const int block_allocation_chunk=100;
+         
+         if((this->number_of_blocks+1)*VELOCITY_BLOCK_LENGTH>=this->block_data.size() ||
+            (this->number_of_blocks+2*block_allocation_chunk)*VELOCITY_BLOCK_LENGTH<this->block_data.size()){
             
-            //add more space for up to 100 additional blocks or
-            //remove space for 100 blocks (currently we have extra space for 200 blocks)        
-            int new_size=this->number_of_blocks+100;
+            //resize so that free space is block_allocation_chunk blocks
+            int new_size=this->number_of_blocks+block_allocation_chunk;
             this->block_data.resize(new_size*VELOCITY_BLOCK_LENGTH);
             this->block_fx.resize(new_size*SIZE_FLUXS);
             
@@ -1256,17 +1268,13 @@ namespace velocity_neighbor {
          this->velocity_blocks[block];
          //update number of blocks
          this->number_of_blocks++;
+                  
          //set ptr into block address cache
          this->block_address_cache[block] = &(this->velocity_blocks.at(block));
          //get pointer to block
          Velocity_Block* block_ptr = this->block_address_cache[block];
          //add block to list of existing blocks
          this->velocity_block_list[this->number_of_blocks-1] = block;
-
-         
-         resize_block_data();
-         
-         //set array pointers to correct memory segment
 
          //fix block data pointers   
          set_block_data_pointers(this->number_of_blocks-1);
@@ -1316,9 +1324,10 @@ namespace velocity_neighbor {
                neighbor_ptr->neighbors[neighbor_neighbor_index] = block_ptr;
             }
          }
+         
 
-
-
+         //add more space if needed for future adds
+         resize_block_data();
          return true;
       }
       
@@ -1376,10 +1385,6 @@ namespace velocity_neighbor {
                neighbor_data->neighbors[neighbor_neighbor_index] = &(this->null_block);
             }
          }
-
-         this->velocity_blocks.erase(block);
-         this->block_address_cache[block] = &(this->null_block);
-
          
          //Find where in the block list the removed block was (index to block list). We need to fill this hole.    
          unsigned int block_index = 0;
@@ -1406,9 +1411,14 @@ namespace velocity_neighbor {
          //reduce number of blocks
          this->number_of_blocks--;
 
-         //check if we need to decrease memory consumption
-         resize_block_data();
-         
+         //also remove velocity block structure
+         this->velocity_blocks.erase(block);
+         //set pointer to block to null
+         this->block_address_cache[block] = &(this->null_block);
+
+
+         //check if we can decrease memory consumption
+         resize_block_data();         
       }
 
       
