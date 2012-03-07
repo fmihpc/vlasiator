@@ -1654,7 +1654,12 @@ namespace velocity_neighbor {
          for (unsigned int block_index = 0; block_index < this->mpi_number_of_blocks; block_index++) {
             this->add_velocity_block(this->mpi_velocity_block_list[block_index]);
          }
-         
+
+
+         for (unsigned int block_index = 0; block_index < this->mpi_number_of_blocks; block_index++) {
+            //re-order velocity_block list to be the same that we received
+            this->velocity_block_list[block_index]=this->mpi_velocity_block_list[block_index];        
+         }
       }
       
 
