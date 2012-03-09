@@ -953,7 +953,7 @@ int main(int argn,char* args[]) {
                  profile::start("Acceleration");
                  calculateAcceleration(mpiGrid,0.5*P::dt);
                  profile::stop("Acceleration",computedBlocks,"Blocks");
-                 profile::stop("Trans + acc",computedBlocks,"Blocks");
+                 profile::start("Trans + acc");
                  calculateSpatialFluxes(mpiGrid,P::dt);
                  calculateSpatialPropagation(mpiGrid,true,0.5*P::dt);
                  profile::stop("Trans + acc",computedBlocks,"Blocks");
