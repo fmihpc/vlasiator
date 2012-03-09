@@ -40,11 +40,10 @@ bool initMoverAfterBlockChange(dccrg::Dccrg<SpatialCell>& mpiGrid);
 void calculateSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,Real& dt);
 void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,uint64_t& cell);
 
-void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid);
-void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,uint64_t cellID); //calculate acceleration in one single cell
-void calculateSpatialDerivatives(dccrg::Dccrg<SpatialCell>& mpiGrid);
-void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid);
-void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& secondStep,const bool& transferAvgs);
+void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt);
+void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,uint64_t cellID,Real dt); //calculate acceleration in one single cell
+void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt);
+void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& acceleration,Real acceleration_dt);
 void initialLoadBalance(dccrg::Dccrg<SpatialCell>& mpiGrid);
 void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid);
 

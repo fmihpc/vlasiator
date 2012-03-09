@@ -75,17 +75,12 @@ luint P::diagnInterval = numeric_limits<uint>::max();
 bool P::save_spatial_grid;
 bool P::save_velocity_grid;
 
-std::string P::solar_wind_file;
-
-std::vector<Real> P::save_spatial_cells_x;
-std::vector<Real> P::save_spatial_cells_y;
-std::vector<Real> P::save_spatial_cells_z;
-
 uint P::transmit = 0;
 
 bool P::recalculateStencils = true;
 bool P::propagateVlasov = true;
 bool P::propagateField = true;
+uint P::splitMethod=1;
 
 bool P::periodic_x = false;
 bool P::periodic_y = false;

@@ -1235,7 +1235,7 @@ namespace velocity_neighbor {
             this->block_fx.resize(new_size*SIZE_FLUXS);
             
             //fix block pointers if a reallocation occured
-            for(int block_index=0;block_index<this->number_of_blocks;block_index++){
+            for(unsigned int block_index=0;block_index<this->number_of_blocks;block_index++){
                set_block_data_pointers(block_index);
             }
          }

@@ -355,26 +355,20 @@ bool readConfigFile(){
    typedef Parameters P;
    typedef Readparameters RP;
    Real xmax,ymax,zmax;
-   // Read in some parameters
-   // Parameters related to solar wind simulations:
-   // DEPRECATED: These will be moved to somewhere else in the future
-
-   RP::add("solar_wind_file","Read solar wind data from the file arg","");        
-   
    
    // Parameters related to saving data:
    // WARNING: Some of these parameters may become deprecated in the future.
 
    //FIXME: Better hierarchy for variables
+   
    RP::add("save_interval", "Save the simulation every arg time steps",1);
    RP::add("restart_interval","Save the complete simulation every arg time steps",numeric_limits<uint>::max());
    RP::add("save_spatial_grid", "Save spatial cell averages for the whole simulation",true);
    RP::add("save_velocity_grid","Save velocity grid from every spatial cell in the simulation",false);
-   RP::addComposing("save_spatial_cells_at_x,X","Save the velocity grid in spatial cells at these coordinates (x components, also give as many y and z components, values from command line, configuration files and environment variables are added together [short version only works on command line])");
-   RP::addComposing("save_spatial_cells_at_y,Y","Save the velocity grid in spatial cells at these (y components, also give as many x and z components, values from command line, configuration files and environment variables are added together [short version only works on command line])");   
-   RP::addComposing("save_spatial_cells_at_z,Z","Save the velocity grid in spatial cells at these coordinates (z components, also give as many x and y components, values from command line, configuration files and environment variables are added together [short version only works on command line])");
+   
    RP::add("propagate_field","Propagate magnetic field during the simulation",true);
    RP::add("propagate_vlasov","Propagate distribution functions during the simulation",true);
+   RP::add("split_method","Split method for splitting spatial/velocity space solvers. 0: first order, 1: strang splitting with half-steps for spatial space, 2: strang splitting with half-steps for velocity space",1);
    
 
    RP::add("gridbuilder.x_min","Minimum value of the x-coordinate.","");
@@ -419,16 +413,13 @@ bool readConfigFile(){
    
    RP::parse();
 
-   RP::get("solar_wind_file",P::solar_wind_file);
    RP::get("save_interval", P::diagnInterval);
    RP::get("restart_interval", P::saveRestartInterval);
    RP::get("save_spatial_grid", P::save_spatial_grid);
    RP::get("save_velocity_grid", P::save_velocity_grid);
-   RP::get("save_spatial_cells_at_x,X", P::save_spatial_cells_x);
-   RP::get("save_spatial_cells_at_y,Y", P::save_spatial_cells_y);
-   RP::get("save_spatial_cells_at_z,Z", P::save_spatial_cells_z);
    RP::get("propagate_field",P::propagateField);
    RP::get("propagate_vlasov",P::propagateVlasov);
+   RP::get("split_method",P::splitMethod);
 
      
    /*get numerical values, let Readparameters handle the conversions*/
@@ -939,36 +930,38 @@ int main(int argn,char* args[]) {
       P::dt = all_reduce(comm, P::dt, boost::mpi::minimum<Real>());
       // Propagate the state of simulation forward in time by dt:      
       if (P::propagateVlasov == true) {
-          profile::start("Propagate Vlasov");
+         profile::start("Propagate Vlasov");
+         switch (P::splitMethod){
+              case 0:
+                 profile::start("propagation");
+                 calculateSpatialFluxes(mpiGrid,P::dt);
+                 calculateSpatialPropagation(mpiGrid,true,P::dt);
+                 profile::stop("propagation",computedBlocks,"Blocks");
+                 break;
+              case 1:
+                 profile::start("First propagation");
+                 calculateSpatialFluxes(mpiGrid,0.5*P::dt);
+                 calculateSpatialPropagation(mpiGrid,true,P::dt);
+                 profile::stop("First propagation",computedBlocks,"Blocks");
 
-          profile::start("First propagation");
-          calculateSpatialDerivatives(mpiGrid);
-          calculateSpatialFluxes(mpiGrid);
-          calculateSpatialPropagation(mpiGrid,false,false);
-          profile::stop("First propagation",computedBlocks,"Blocks");
+                 profile::start("Second propagation");
+                 calculateSpatialFluxes(mpiGrid,0.5*P::dt);
+                 calculateSpatialPropagation(mpiGrid,false,0);
+                 profile::stop("Second propagation",computedBlocks,"Blocks");
+                 break;
+              case 2:
+                 profile::start("Acceleration");
+                 calculateAcceleration(mpiGrid,0.5*P::dt);
+                 profile::stop("Acceleration",computedBlocks,"Blocks");
+                 profile::stop("Trans + acc",computedBlocks,"Blocks");
+                 calculateSpatialFluxes(mpiGrid,P::dt);
+                 calculateSpatialPropagation(mpiGrid,true,0.5*P::dt);
+                 profile::stop("Trans + acc",computedBlocks,"Blocks");
+                 break;
 
-          bool transferAvgs = false;
-	  if (P::tstep % P::saveRestartInterval == 0
-	  || P::tstep % P::diagnInterval == 0
-	  || P::tstep == P::tsteps-1
-	  ) {
-	     transferAvgs = true;
-	  }
-
-//integrated into calculateSpatialPRopagation for first step          
-//          profile::start("Acceleration");
-//          calculateAcceleration(mpiGrid);
-//	  profile::stop("Acceleration",computedBlocks,"Blocks");
-
-          
-          profile::start("Second propagation");
-          calculateSpatialDerivatives(mpiGrid);
-          calculateSpatialFluxes(mpiGrid);
-          calculateSpatialPropagation(mpiGrid,true,transferAvgs);
-
-          profile::stop("Second propagation",computedBlocks,"Blocks");
-          
-	  if(P::tstep%P::blockAdjustmentInterval == 0)
+         }
+                 
+         if(P::tstep%P::blockAdjustmentInterval == 0)
 	  {
 	      profile::initializeTimer("re-adjust blocks","Block adjustment");
 	      profile::start("re-adjust blocks");

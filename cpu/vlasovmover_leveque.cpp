@@ -262,7 +262,7 @@ void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,ID::typ
 
 
 
-void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid) {   
+void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid, Real dt) {   
    typedef Parameters P;
    
    const vector<CellID> cells = mpiGrid.get_cells();
@@ -282,11 +282,11 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 //#pragma omp parallel for
    for (size_t c=0; c<nonGhostCells.size(); ++c) {
       const CellID cellID = nonGhostCells[c];
-      calculateCellAcceleration(mpiGrid,cellID);
+      calculateCellAcceleration(mpiGrid,cellID,dt);
    }
 }
 
-void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID) {
+void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,Real dt) {
    typedef Parameters P;
 //   profile::start("Acceleration");
    SpatialCell* SC = mpiGrid[cellID];
@@ -307,26 +307,25 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID)
    // Calculatedf/dt contributions of all blocks in the cell:
    for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
       unsigned int block = SC->velocity_block_list[block_i];         
-      cpu_calcVelFluxes(SC,block,P::dt,NULL);
+      cpu_calcVelFluxes(SC,block,dt,NULL);
    }
 //   profile::stop("calcVelFluxes");
    #else
-   cpu_accelerate_cell(*SC, P::dt, 1000, P::q, P::m);
+   cpu_accelerate_cell(*SC, dt, 1000, P::q, P::m);
    #endif
 
 //   profile::start("propagateVel");
       // Propagate distribution functions in velocity space:
    for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
       unsigned int block = SC->velocity_block_list[block_i];         
-      cpu_propagateVel(SC,block,P::dt);
+      cpu_propagateVel(SC,block,dt);
    }
 //   profile::stop("propagateVel");
 //   profile::stop("Acceleration",SC->number_of_blocks,"Blocks");
 }
 
-void calculateSpatialDerivatives(dccrg::Dccrg<SpatialCell>& mpiGrid) { }
 
-void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
    typedef Parameters P;
    int counter;
    std::vector<MPI_Request> MPIrecvRequests;               /**< Container for active MPI_Requests due to receives.*/
@@ -456,7 +455,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 #pragma omp for
       for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
          unsigned int block = SC->velocity_block_list[block_i];         
-	 cpu_calcSpatDfdt(mpiGrid,SC,block,HALF*P::dt);
+	 cpu_calcSpatDfdt(mpiGrid,SC,block,dt);
       }
    }
    profile::stop("df/dt in real space (inner)");
@@ -507,7 +506,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 #pragma omp for
       for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
          unsigned int block = SC->velocity_block_list[block_i];         
-	 cpu_calcSpatDfdt(mpiGrid,SC,block,HALF*P::dt);
+	 cpu_calcSpatDfdt(mpiGrid,SC,block,dt);
       }
 
 
@@ -546,7 +545,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    profile::stop("calculateSpatialFluxes");
 }
 
-void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& secondStep,const bool& transferAvgs) { 
+void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& accelerate,const Real accelerate_dt) { 
    std::vector<MPI_Request> MPIrecvRequests;               /**< Container for active MPI_Requests due to receives.*/
    std::vector<MPI_Request> MPIsendRequests;               /**< Container for active MPI_Requests due to sends.*/
    std::vector<MPI_Datatype> MPIsendTypes;               /**< Container for active datatypes due to sends.*/
@@ -614,7 +613,7 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
    }
    profile::stop("Start sends",ops,"sends");
 
-   if(!secondStep)   
+   if(accelerate)   
       profile::start("Spatial trans+acc (inner)");
    else
       profile::start("Spatial trans (inner)");
@@ -645,11 +644,11 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
 	    cpu_calcVelocityMoments(SC,block);
 	 }
       }
-      if(!secondStep)
-         calculateCellAcceleration(mpiGrid,cellID);
+      if(accelerate)
+         calculateCellAcceleration(mpiGrid,cellID,accelerate_dt);
    }
 
-   if(!secondStep)   
+   if(accelerate)   
       profile::stop("Spatial trans+acc (inner)");
    else
       profile::stop("Spatial trans (inner)");
@@ -686,7 +685,7 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
       }
    }
    profile::stop("Sum remote updates");
-   if(!secondStep)   
+   if(accelerate)   
       profile::start("Spatial trans+acc (boundary)");
    else
       profile::start("Spatial trans (boundary)");
@@ -716,10 +715,10 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
 	    cpu_calcVelocityMoments(SC,block);
 	 }
       }
-      if(!secondStep)
-         calculateCellAcceleration(mpiGrid,cellID);
+      if(accelerate)
+         calculateCellAcceleration(mpiGrid,cellID,accelerate_dt);
    }
-   if(!secondStep)   
+   if(accelerate)   
       profile::stop("Spatial trans+acc (boundary)");
    else
       profile::stop("Spatial trans (boundary)");
