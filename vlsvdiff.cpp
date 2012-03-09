@@ -57,20 +57,38 @@ bool convertMesh(VLSVReader& vlsvReader,
       abort();
    }
    
+   cout << variableVectorSize << endl;
+   cout << variableDataType << endl;
+   cout << variableDataSize << endl;
    
    // Read the mesh array one node (of a spatial cell) at a time 
    // and create a map which contains each cell's CellID and variable to be extracted
    char* meshBuffer = new char[meshVectorSize*meshDataSize];
    uint* meshPtr = reinterpret_cast<uint*>(meshBuffer);
    char* variableBuffer = new char[variableVectorSize*variableDataSize];
-   Real* variablePtr = reinterpret_cast<Real*>(variableBuffer);
+   Real* variablePtrReal = reinterpret_cast<Real*>(variableBuffer);
+   uint* variablePtrUint = reinterpret_cast<uint*>(variableBuffer);
+   int* variablePtrInt = reinterpret_cast<int*>(variableBuffer);
+   
    for (uint64_t i=0; i<meshArraySize; ++i) {
       if (vlsvReader.readArray("MESH", meshName, i, 1, meshBuffer) == false) {meshSuccess = false; break;}
       if (vlsvReader.readArray("VARIABLE", varToExtract, i, 1, variableBuffer) == false) {variableSuccess = false; break;}
       // Get the CellID
       uint CellID  = meshPtr[0];
       // Get the variable value
-      Real extract = variablePtr[compToExtract];
+      Real extract = NAN;
+      switch (variableDataType)
+      {
+	 case VLSV::FLOAT:
+	    extract = variablePtrReal[compToExtract];
+	    break;
+	 case VLSV::UINT:
+	    extract = (Real)(variablePtrUint[compToExtract]);
+	    break;
+	 case VLSV::INT:
+	    extract = (Real)(variablePtrInt[compToExtract]);
+	    break;
+      }
       // Put those into the map
       orderedData->insert(pair<uint, Real>(CellID, extract));
    }
