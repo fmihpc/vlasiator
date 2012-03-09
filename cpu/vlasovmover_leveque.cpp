@@ -279,7 +279,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid, Real dt) {
    }
 
    //Operations for each cell is local, thus a threaded loop should be safe
-//#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
    for (size_t c=0; c<nonGhostCells.size(); ++c) {
       const CellID cellID = nonGhostCells[c];
       calculateCellAcceleration(mpiGrid,cellID,dt);
