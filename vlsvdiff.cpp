@@ -36,7 +36,7 @@ using namespace std;
 bool convertMesh(VLSVReader& vlsvReader,
 		 const string& meshName,
 		 const char * varToExtract,
-		 const int compToExtract,
+		 const uint compToExtract,
 		 map<uint, Real> * orderedData)
 {
    bool meshSuccess = true;
@@ -52,6 +52,11 @@ bool convertMesh(VLSVReader& vlsvReader,
    if (meshArraySize != variableArraySize) {
       cerr << "ERROR array size mismatch" << endl;
    }
+   if (compToExtract + 1 > variableVectorSize) {
+      cerr << "ERROR invalid component, this variable has size " << variableVectorSize << endl;
+      abort();
+   }
+   
    
    // Read the mesh array one node (of a spatial cell) at a time 
    // and create a map which contains each cell's CellID and variable to be extracted
@@ -81,7 +86,7 @@ bool convertMesh(VLSVReader& vlsvReader,
 
 bool convertSILO(const string fileName,
 		 const char * varToExtract,
-		 const int compToExtract,
+		 const uint compToExtract,
 		 map<uint, Real> * orderedData)
 {
    bool success = true;
@@ -335,7 +340,7 @@ int main(int argn,char* args[])
    // 3rd arg is variable name
    char * varToExtract = args[3];
    // 4th arg is its component, 0 for scalars, 2 for z component etc
-   int compToExtract = atoi(args[4]);
+   uint compToExtract = atoi(args[4]);
    
    map<uint, Real> orderedData1;
    map<uint, Real> orderedData2;
