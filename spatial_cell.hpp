@@ -884,7 +884,7 @@ namespace velocity_neighbor {
                block_lengths.push_back(sizeof(Real) * 7);
             }
 
-            // send  BX, BY, BZ, RHO, RHOVx, RHOVY, RHOVZ (order in enum should never change(!)
+            // send  EX, EY Ez
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_E)!=0){
                displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX]) - (uint8_t*) this);
                block_lengths.push_back(sizeof(Real) * 3);

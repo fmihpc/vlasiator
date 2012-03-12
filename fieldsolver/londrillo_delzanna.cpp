@@ -173,6 +173,7 @@ static void calculateBoundaryFlags(
 	dccrg::Dccrg<SpatialCell>& mpiGrid,
 	const vector<CellID>& localCells
 ) {
+   boundaryFlags.clear();
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];
       
@@ -1105,6 +1106,24 @@ static void propagateMagneticField(
    }
 }
 
+bool initializeFieldPropagatorAfterRebalance(
+	dccrg::Dccrg<SpatialCell>& mpiGrid,
+        bool propagateFields
+) {
+   
+   vector<uint64_t> localCells = mpiGrid.get_cells();
+
+   calculateBoundaryFlags(mpiGrid,localCells);
+
+   //need this when computing magentic field later on
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_E);
+   int timer=profile::initializeTimer("Communicate electric fields","MPI","Wait");
+   profile::start(timer);
+   mpiGrid.update_remote_neighbor_data();
+   profile::stop(timer);
+   
+   return true;
+}
 
 bool initializeFieldPropagator(
 	dccrg::Dccrg<SpatialCell>& mpiGrid,

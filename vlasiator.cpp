@@ -295,7 +295,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    }
 
       // Initialize field propagator:
-   if (initializeFieldPropagator(mpiGrid,P::propagateField) == false) {
+   if (initializeFieldPropagatorAfterRebalance(mpiGrid,P::propagateField) == false) {
        mpilogger << "(MAIN): Field propagator did not initialize correctly!" << endl << write;
        exit(1);
    }

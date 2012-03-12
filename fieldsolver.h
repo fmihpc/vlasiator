@@ -44,5 +44,6 @@ void calculateFaceAveragedFields(dccrg::Dccrg<SpatialCell>& mpiGrid);
 void calculateVolumeAveragedFields(dccrg::Dccrg<SpatialCell>& mpiGrid);
 bool finalizeFieldPropagator(dccrg::Dccrg<SpatialCell>& mpiGrid);
 bool initializeFieldPropagator(dccrg::Dccrg<SpatialCell>& mpiGrid,bool propagateFields);
+bool initializeFieldPropagatorAfterRebalance(dccrg::Dccrg<SpatialCell>& mpiGrid,bool propagateFields);
 bool propagateFields(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& dt);
 #endif
