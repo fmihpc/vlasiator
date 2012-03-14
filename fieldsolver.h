@@ -24,9 +24,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "spatial_cell.hpp"         
 using namespace spatial_cell;
 
-#define DCCRG_SEND_SINGLE_CELLS
-#define DCCRG_CELL_DATA_SIZE_FROM_USER
-#define DCCRG_USER_MPI_DATA_TYPE
 #include <dccrg.hpp>
 
 /*

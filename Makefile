@@ -28,6 +28,9 @@ CXXFLAGS += -DNDEBUG
 #Add -DCATCH_FPE to catch floating point exceptions and stop execution
 CXXFLAGS += -DCATCH_FPE
 
+#DCCRG defines, it should use the user provided mpi datatype mode
+CXXFLAGS += -DDCCRG_CELL_DATA_SIZE_FROM_USER  -DDCCRG_USER_MPI_DATA_TYPE
+
 #will need profiler in most places..
 CXXFLAGS += ${INC_PROFILE} 
 

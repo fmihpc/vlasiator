@@ -27,15 +27,7 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "projects/projects_vlasov_boundary.h"
 #include "fieldsolver.h"
 #include "arrayallocator.h"
-
-#ifndef PARGRID
-	#define DCCRG_SEND_SINGLE_CELLS
-	#define DCCRG_CELL_DATA_SIZE_FROM_USER
-	#define DCCRG_USER_MPI_DATA_TYPE
-	#include "dccrg.hpp"
-#else
-	#include "pargrid.h"
-#endif
+#include "dccrg.hpp"
 
 
 struct diffusionParameters {
