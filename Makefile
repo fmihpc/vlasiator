@@ -166,6 +166,7 @@ arrayallocator.o: ${DEPS_ARRAYALLOCATOR}
 datareducer.o: ${DEPS_DATAREDUCER}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareducer.cpp ${INC_MPI} ${INC_BOOST}
 
+
 datareductionoperator.o: ${DEPS_DATAREDUCTIONOPERATOR}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareductionoperator.cpp ${INC_MPI} ${INC_BOOST}
 
@@ -295,7 +296,7 @@ VLASIATOR_SOURCES = \
 	vlsvwriter2.cpp
 
 vlasiator2: $(VLASIATOR_SOURCES) $(VLASIATOR_HEADERS) Makefile Makefile.$(ARCH)
-	$(CMP) -I. $(CXXFLAGS) $(FLAGS) $(VLASIATOR_SOURCES) -o $(EXE) $(LDFLAGS) $(LIBS)
+	$(CMP) -I. $(CXXFLAGS) $(FLAGS) $(VLASIATOR_SOURCES) -o $(EXE) $(LDFLAGS) $(LIBS) ${INC_MPI} ${INC_BOOST} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILER}
 
 c2: clean2
 clean2:
