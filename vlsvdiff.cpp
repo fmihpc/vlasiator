@@ -57,10 +57,6 @@ bool convertMesh(VLSVReader& vlsvReader,
       abort();
    }
    
-   cout << variableVectorSize << endl;
-   cout << variableDataType << endl;
-   cout << variableDataSize << endl;
-   
    // Read the mesh array one node (of a spatial cell) at a time 
    // and create a map which contains each cell's CellID and variable to be extracted
    char* meshBuffer = new char[meshVectorSize*meshDataSize];
@@ -149,31 +145,27 @@ bool infinityDistance(map<uint, Real> * orderedData1,
     *    ||X_1 - X_2||_\infinity = max_i(|X_1(i) - X_2(i)|)
     * 
     *    relative infinity-distance defined as:
-    *    ||X_1 - X_2||_\infinity = max_i(|(X_1(i) - X_2(i)) / X_1(i)|)
+    *    ||X_1 - X_2||_\infinity = max_i(|X_1(i) - X_2(i)|) / ||X_1||_\infinity
     */
    
    *absolute = 0.0;
+   Real length = 0.0;
    *relative = 0.0;
    map<uint, Real>::const_iterator it;
    
    for(it=orderedData1->begin(); it != orderedData1->end() ; it++)
    {
       *absolute = max(*absolute, abs(orderedData1->at(it->first) - orderedData2->at(it->first)));
-      if(orderedData1->at(it->first) != 0.0)
-      {
-	 *relative = *absolute / abs(orderedData1->at(it->first));
-      }
-      else if (orderedData2->at(it->first) != 0.0)
-      {
-	 cout << "WARNING (infinityDistance) : 1st cell has 0.0, dividing by 2nd." << endl;
-	 *relative = *absolute / abs(orderedData2->at(it->first));
-      }
-      else
-      {
-	 cout << "WARNING (infinityDistance) : both cells have 0.0, cell skipped." << endl;
-      }
+      length = max(length, abs(orderedData1->at(it->first)));
    }
-   
+   if(length != 0.0)
+   {
+      *relative = *absolute / length;
+   }
+   else
+   {
+      cout << "WARNING (infinityDistance) : length of reference is 0.0, cannot divide to give relative distance." << endl;
+   }
    //cout << "The absolute infinity-distance between both datasets is " << absolute << "." << endl;
    //cout << "The relative infinity-distance between both datasets is " << relative << "." << endl;
    return 0;
@@ -231,32 +223,29 @@ bool pDistance(map<uint, Real> * orderedData1,
     *   absolute p-distance defined as:
     *   ||X_1 - X_2||_p = [\sum_i |X_1(i) - X_2(i)|^p]^{1/p}
     *   relative p-distance defined as:
-    *   ||X_1 - X_2||_p = [\sum_i |(X_1(i) - X_2(i)) / X_1(i)|^p]^{1/p}
+    *   ||X_1 - X_2||_p = [\sum_i |X_1(i) - X_2(i)|^p]^{1/p} / ||X_1||_p
     */
    
    *absolute = 0.0;
+   Real length = 0.0;
    *relative = 0.0;
    map<uint, Real>::const_iterator it;
    
    for(it=orderedData1->begin(); it != orderedData1->end() ; it++)
    {
       *absolute += pow(abs(orderedData1->at(it->first) - orderedData2->at(it->first)), p);
-      if(orderedData1->at(it->first) != 0.0)
-      {
-	 *relative = *absolute / pow(abs(orderedData1->at(it->first)), p);
-      }
-      else if (orderedData2->at(it->first) != 0.0)
-      {
-	 cout << "WARNING (pDistance) : 1st cell has 0.0, dividing by 2nd." << endl;
-	 *relative = *absolute / pow(abs(orderedData2->at(it->first)), p);
-      }
-      else
-      {
-	 cout << "WARNING (infinityDistance) : both cells have 0.0, cell skipped." << endl;
-      }
+      length += pow(abs(orderedData1->at(it->first)), p);
    }
    *absolute = pow(*absolute, 1.0 / p);
-   *relative = pow(*relative, 1.0 / p);
+   length = pow(length, 1.0 / p);
+   if(length != 0.0)
+   {
+      *relative = *absolute / length;
+   }
+   else
+   {
+      cout << "WARNING (pDistance) : length of reference is 0.0, cannot divide to give relative distance." << endl;
+   }
    //cout << "The absolute " << p << "-distance between both datasets is " << absolute << "." << endl;
    //cout << "The relative " << p << "-distance between both datasets is " << relative << "." << endl;
    return 0;
