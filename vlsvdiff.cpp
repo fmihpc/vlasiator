@@ -26,8 +26,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <sstream>
 #include <dirent.h>
 
-
-
 #include "vlsvreader2.h"
 #include "definitions.h"
 
@@ -133,111 +131,87 @@ bool convertSILO(const string fileName,
    return success;
 }
 
-bool infinityDistance(map<uint, Real> * orderedData1,
-		      map<uint, Real> * orderedData2,
-		      Real * absolute,
-		      Real * relative
-		     )
+bool shiftAverage(const map<uint, Real> * const orderedData1,
+		  const map<uint, Real> * const orderedData2,
+		  map<uint, Real> * shiftedData2
+		 )
 {
-   /*
-    * Computes the relative and absolute infinity-distance between two datasets X(x) provided in the maps
-    *    absolute infinity-distance defined as:
-    *    ||X_1 - X_2||_\infinity = max_i(|X_1(i) - X_2(i)|)
-    * 
-    *    relative infinity-distance defined as:
-    *    ||X_1 - X_2||_\infinity = max_i(|X_1(i) - X_2(i)|) / ||X_1||_\infinity
-    */
-   
-   *absolute = 0.0;
-   Real length = 0.0;
-   *relative = 0.0;
-   map<uint, Real>::const_iterator it;
-   
-   for(it=orderedData1->begin(); it != orderedData1->end() ; it++)
-   {
-      *absolute = max(*absolute, abs(orderedData1->at(it->first) - orderedData2->at(it->first)));
-      length = max(length, abs(orderedData1->at(it->first)));
-   }
-   if(length != 0.0)
-   {
-      *relative = *absolute / length;
-   }
-   else
-   {
-      cout << "WARNING (infinityDistance) : length of reference is 0.0, cannot divide to give relative distance." << endl;
-   }
-   //cout << "The absolute infinity-distance between both datasets is " << absolute << "." << endl;
-   //cout << "The relative infinity-distance between both datasets is " << relative << "." << endl;
-   return 0;
-}
-
-bool infinityDistanceAvgSubtracted(map<uint, Real> * orderedData1,
-				   map<uint, Real> * orderedData2,
-				   Real * absolute,
-				   Real * relative
-)
-{
-   /*
-    * Subtracts the average of the dataset from itself in order to compute
-    * the relative and absolute infinity-distance between the two datasets X(x) provided in the maps
-    * using infinityDistance().
-    */
-   
    map<uint, Real>::const_iterator it1, it2;
-   map <uint, Real> subtractedData1, subtractedData2;
    Real avg1 = 0.0;
    Real avg2 = 0.0;
-   
-   for(it1=orderedData1->begin(); it1 != orderedData1->end() ; it1++)
-   {
-      avg1 += orderedData1->at(it1->first);
-      avg2 += orderedData1->at(it1->first);
-   }
-   avg1 /= orderedData1->size();
-   avg2 /= orderedData1->size();
    
    for(it1=orderedData1->begin(), it2=orderedData2->begin();
        it1 != orderedData1->end(), it2 != orderedData2->end();
        it1++, it2++)
    {
-      subtractedData1.insert(pair<uint, Real>(it1->first, it1->second - avg1));
-      subtractedData2.insert(pair<uint, Real>(it2->first, it2->second - avg2));
+      avg1 += orderedData1->at(it1->first);
+      avg2 += orderedData2->at(it2->first);
+   }
+   avg1 /= orderedData1->size();
+   avg2 /= orderedData1->size();
+   
+   for(it2=orderedData2->begin(); it2 != orderedData2->end(); it2++)
+   {
+      shiftedData2->insert(pair<uint, Real>(it2->first, it2->second - avg2 + avg1));
    }
    
-   infinityDistance(&subtractedData1, &subtractedData2, absolute, relative);
-   
-   //cout << "The average-subtracted absolute infinity-distance between both datasets is " << absolute << "." << endl;
-   //cout << "The average-subtracted relative infinity-distance between both datasets is " << relative << "." << endl;
    return 0;
 }
 
-bool pDistance(map<uint, Real> * orderedData1,
-	       map<uint, Real> * orderedData2,
+bool pDistance(map<uint, Real> * const orderedData1,
+	       map<uint, Real> * const orderedData2,
 	       creal p,
 	       Real * absolute,
-	       Real * relative
+	       Real * relative,
+	       bool doShiftAverage
 	      )
 {
    // Computes the relative and absolute p-distance between two datasets X(x) provided in the maps
-   /*
+   /*   
+    *   for p != 0.0
     *   absolute p-distance defined as:
     *   ||X_1 - X_2||_p = [\sum_i |X_1(i) - X_2(i)|^p]^{1/p}
     *   relative p-distance defined as:
     *   ||X_1 - X_2||_p = [\sum_i |X_1(i) - X_2(i)|^p]^{1/p} / ||X_1||_p
+    * 
+    *   for p == 0.0 it is the infinity distance
+    *   absolute infinity-distance defined as:
+    *    ||X_1 - X_2||_\infinity = max_i(|X_1(i) - X_2(i)|)
+    *    relative infinity-distance defined as:
+    *    ||X_1 - X_2||_\infinity = max_i(|X_1(i) - X_2(i)|) / ||X_1||_\infinity
     */
+   map<uint, Real> shiftedData2;
+   map<uint, Real> * data2 = orderedData2;
+   
+   if(doShiftAverage == true)
+   {
+      shiftAverage(orderedData1, orderedData2, &shiftedData2);
+      data2 = &shiftedData2;
+   }
    
    *absolute = 0.0;
    Real length = 0.0;
    *relative = 0.0;
    map<uint, Real>::const_iterator it;
-   
-   for(it=orderedData1->begin(); it != orderedData1->end() ; it++)
+   if(p != 0.0)
    {
-      *absolute += pow(abs(orderedData1->at(it->first) - orderedData2->at(it->first)), p);
-      length += pow(abs(orderedData1->at(it->first)), p);
+      for(it=orderedData1->begin(); it != orderedData1->end() ; it++)
+      {
+	 *absolute += pow(abs(orderedData1->at(it->first) - data2->at(it->first)), p);
+	 length += pow(abs(orderedData1->at(it->first)), p);
+      }
+      *absolute = pow(*absolute, 1.0 / p);
+      length = pow(length, 1.0 / p);
    }
-   *absolute = pow(*absolute, 1.0 / p);
-   length = pow(length, 1.0 / p);
+   else
+   {
+      for(it=orderedData1->begin(); it != orderedData1->end() ; it++)
+      {
+	 *absolute = max(*absolute, abs(orderedData1->at(it->first) - data2->at(it->first)));
+	 length = max(length, abs(orderedData1->at(it->first)));
+      }
+   }
+   
    if(length != 0.0)
    {
       *relative = *absolute / length;
@@ -245,51 +219,9 @@ bool pDistance(map<uint, Real> * orderedData1,
    else
    {
       cout << "WARNING (pDistance) : length of reference is 0.0, cannot divide to give relative distance." << endl;
+      *relative = -1;
    }
-   //cout << "The absolute " << p << "-distance between both datasets is " << absolute << "." << endl;
-   //cout << "The relative " << p << "-distance between both datasets is " << relative << "." << endl;
    return 0;
-}
-
-bool pDistanceAvgSubtracted(map<uint, Real> * orderedData1,
-			    map<uint, Real> * orderedData2,
-			    creal p,
-			    Real * absolute,
-			    Real * relative
-)
-{
-   /*
-    * Subtracts the average of the dataset from itself in order to compute
-    * the relative and absolute p-distance between the two datasets X(x) provided in the maps
-    * using pDistance().
-    */
-   
-   map<uint, Real>::const_iterator it1, it2;
-   map <uint, Real> subtractedData1, subtractedData2;
-   Real avg1 = 0.0;
-   Real avg2 = 0.0;
-   
-   for(it1=orderedData1->begin(); it1 != orderedData1->end() ; it1++)
-   {
-      avg1 += orderedData1->at(it1->first);
-      avg2 += orderedData1->at(it1->first);
-   }
-   avg1 /= orderedData1->size();
-   avg2 /= orderedData1->size();
-   
-   for(it1=orderedData1->begin(), it2=orderedData2->begin();
-       it1 != orderedData1->end(), it2 != orderedData2->end();
-   it1++, it2++)
-       {
-	  subtractedData1.insert(pair<uint, Real>(it1->first, it1->second - avg1));
-	  subtractedData2.insert(pair<uint, Real>(it2->first, it2->second - avg2));
-       }
-       
-       pDistance(&subtractedData1, &subtractedData2, p, absolute, relative);
-       
-       //cout << "The average-subtracted absolute p-distance between both datasets is " << absolute << "." << endl;
-       //cout << "The average-subtracted relative p-distance between both datasets is " << relative << "." << endl;
-       return 0;
 }
 
 bool singleStatistics(map<uint, Real> * orderedData,
@@ -379,37 +311,36 @@ int main(int argn,char* args[])
         << " standard deviation " << stdev
         << endl;
    
-	singleStatistics(&orderedData2, &size, &mini, &maxi, &avg, &stdev);
-	cout << "Statistics on second file: size " << size
+   singleStatistics(&orderedData2, &size, &mini, &maxi, &avg, &stdev);
+   cout << "Statistics on second file: size " << size
 	<< " min = " << mini
 	<< " max = " << maxi
 	<< " average = " << avg
 	<< " standard deviation " << stdev
 	<< endl;
    
-   pDistance(&orderedData1, &orderedData2, 1, &absolute, &relative);
+   pDistance(&orderedData1, &orderedData2, 1, &absolute, &relative, false);
    cout << "The absolute 1-distance between both datasets is " << absolute << "." << endl;
    cout << "The relative 1-distance between both datasets is " << relative << "." << endl;
    
-   pDistanceAvgSubtracted(&orderedData1, &orderedData2, 1, &absolute, &relative);
-   cout << "The average-subtracted absolute 1-distance between both datasets is " << absolute << "." << endl;
-   cout << "The average-subtracted relative 1-distance between both datasets is " << relative << "." << endl;
+   pDistance(&orderedData1, &orderedData2, 1, &absolute, &relative, true);
+   cout << "The average-shifted absolute 1-distance between both datasets is " << absolute << "." << endl;
+   cout << "The average-shifted relative 1-distance between both datasets is " << relative << "." << endl;
    
-   pDistance(&orderedData1, &orderedData2, 2, &absolute, &relative);
+   pDistance(&orderedData1, &orderedData2, 2, &absolute, &relative, false);
    cout << "The absolute 2-distance between both datasets is " << absolute << "." << endl;
    cout << "The relative 2-distance between both datasets is " << relative << "." << endl;
-   pDistanceAvgSubtracted(&orderedData1, &orderedData2, 2, &absolute, &relative);
-   cout << "The average-subtracted absolute 2-distance between both datasets is " << absolute << "." << endl;
+   pDistance(&orderedData1, &orderedData2, 2, &absolute, &relative, true);
+   cout << "The average-shifted absolute 2-distance between both datasets is " << absolute << "." << endl;
+   cout << "The average-shifted relative 2-distance between both datasets is " << relative << "." << endl;
    
-   cout << "The average-subtracted relative 2-distance between both datasets is " << relative << "." << endl;
-   infinityDistance(&orderedData1, &orderedData2, &absolute, &relative);
+   pDistance(&orderedData1, &orderedData2, 0, &absolute, &relative, false);
    cout << "The absolute infinity-distance between both datasets is " << absolute << "." << endl;
    cout << "The relative infinity-distance between both datasets is " << relative << "." << endl;
    
-   infinityDistanceAvgSubtracted(&orderedData1, &orderedData2, &absolute, &relative);
-   cout << "The average-subtracted absolute infinity-distance between both datasets is " << absolute << "." << endl;
-   cout << "The average-subtracted relative infinity-distance between both datasets is " << relative << "." << endl;
-   
+   pDistance(&orderedData1, &orderedData2, 0, &absolute, &relative, true);
+   cout << "The average-shifted absolute infinity-distance between both datasets is " << absolute << "." << endl;
+   cout << "The average-shifted relative infinity-distance between both datasets is " << relative << "." << endl;
    
    return 0;
 }
