@@ -29,10 +29,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "../vlasovmover.h"
 #include "profile.hpp"
-#include "../memalloc.h"
 #include "cpu_acc_leveque.h"
 #include "cpu_trans_leveque.h"
-#include "../priorityqueue.h"
 #include "../mpilogger.h"
 #ifdef CRAY_TOPOLOGY_OPTIMIZATION
 #include "graph.h"

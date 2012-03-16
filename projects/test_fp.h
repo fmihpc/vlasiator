@@ -21,7 +21,7 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 
 #include "definitions.h"
 #include "spatial_cell.hpp"
-#include "arrayallocator.h"
+
 #include "fieldsolver.h"
 #include "projects/projects_common.h"
 #include "projects/projects_vlasov_acceleration.h"

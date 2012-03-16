@@ -48,7 +48,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "../common.h"
 #include "../parameters.h"
 #include "../fieldsolver.h"
-#include "../priorityqueue.h"
 #include "limiters.h"
 #include "../project.h"
 #include "profile.hpp"
@@ -62,7 +61,6 @@ typedef uint64_t CellID;
 static creal EPS = 1.0e-30;
 
 static set<CellID> ghostCells;
-static PriorityQueue<CellID> readyCells;      // Priority queue containing cell IDs that are ready to be computed
 
 static map<CellID,uint> boundaryFlags;        // Boundary status flags for all cells on this process. Here "boundary cell" 
                                               // means that the cell is at the physical boundary of the simulation volume, 

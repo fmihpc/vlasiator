@@ -19,7 +19,6 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #ifndef FIELDBOUNDARY_H
 #define FIELDBOUNDARY_H
 
-#include "../arrayallocator.h"
 #include "../fieldsolver.h"
 #include "projects_common.h"
 

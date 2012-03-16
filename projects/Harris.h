@@ -26,7 +26,7 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "projects/projects_vlasov_acceleration.h"
 #include "projects/projects_vlasov_boundary.h"
 #include "fieldsolver.h"
-#include "arrayallocator.h"
+
 #include "dccrg.hpp"
 
 
