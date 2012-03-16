@@ -29,7 +29,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "../vlasovmover.h"
 #include "profile.hpp"
-#include "cpu_acc_leveque.h"
 #include "cpu_trans_leveque.h"
 #include "../mpilogger.h"
 #ifdef CRAY_TOPOLOGY_OPTIMIZATION
@@ -41,6 +40,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #ifdef SEMILAG
 #include "cpu_acc_semilag.hpp"
 #endif
+#include "cpu_acc_leveque.hpp"
+
 
 #include <stdint.h>
 #include <dccrg.hpp>

@@ -9,18 +9,17 @@ CXXFLAGS += -D${FP_PRECISION}
 
 #set a default archive utility, can also be set in Makefile.arch
 AR ?= ar
-#set a default mover, can/should be set in Makefile.arch
-MOVER ?= cpu
-#set a default vlasov solver, can also be set in Makefile.arch
-#Valid values are KT and LEVEQUE
-SOLVER ?= LEVEQUE
 
-# If defined accelerates velocity space using cpu_acc_semilag.hpp.
-# Otherwise the same solver is used in real and velocity spaces.
-#CXXFLAGS += -DSEMILAG
 
-#Add -DKT or -DLEVEQUE to compiler options (mandatory)
-CXXFLAGS += -DSOLVER_${SOLVER}
+#leveque (no other options)
+TRANSSOLVER ?= leveque
+
+#leveque or semilag
+ACCSOLVER ?= leveque
+
+#londrillo_delzanna (no other options)
+FIELDSOLVER ?= londrillo_delzanna
+
 
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
 CXXFLAGS += -DNDEBUG
@@ -42,6 +41,19 @@ PROJ = Fluctuations
 #//////////////////////////////////////////////////////
 # The rest of this file users shouldn't need to change
 #//////////////////////////////////////////////////////
+
+
+ifeq ($(strip $(ACCSOLVER)),semilag)
+# If defined accelerates velocity space using cpu_acc_semilag.hpp.
+# Otherwise the same solver is used in real and velocity spaces.
+CXXFLAGS += -DSEMILAG
+endif
+
+ifeq ($(strip $(TRANSSOLVER)),leveque)
+CXXFLAGS += -DSOLVER_LEVEQUE
+endif
+
+
 
 
 default: vlasiator
@@ -71,7 +83,7 @@ DEPS_COMMON = common.h definitions.h mpiconversion.h mpilogger.h
 OBJS = 	datareducer.o datareductionoperator.o 		\
 	vlasiator.o mpifile.o mpilogger.o muxml.o	\
 	parameters.o project.o	spatial_cell.o		\
-	vlscommon.o vlsvreader2.o vlsvwriter2.o vlasovmover_leveque.o londrillo_delzanna.o
+	vlscommon.o vlsvreader2.o vlsvwriter2.o vlasovmover_$(TRANSSOLVER).o $(FIELDSOLVER).o
 
 
 help:
@@ -100,7 +112,7 @@ datareductionoperator.o:  ${DEPS_COMMON} spatial_cell.hpp datareductionoperator.
 spatial_cell.o: spatial_cell.cpp spatial_cell.hpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c spatial_cell.cpp $(INC_BOOST)
 
-vlasovmover_leveque.o: spatial_cell.hpp project.h transferstencil.h  cpu/cpu_acc_leveque.h cpu/cpu_trans_leveque.h cpu/cpu_common.h cpu/leveque_common.h cpu/vlasovmover_leveque.cpp		
+vlasovmover_leveque.o: spatial_cell.hpp project.h transferstencil.h  cpu/cpu_acc_$(ACCSOLVER).hpp cpu/cpu_trans_leveque.h cpu/cpu_common.h cpu/leveque_common.h cpu/vlasovmover_leveque.cpp		
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -DMOVER_VLASOV_ORDER=2  -c cpu/vlasovmover_leveque.cpp -I$(CURDIR) ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG}  ${INC_PROFILE} 
 
 londrillo_delzanna.o: spatial_cell.hpp transferstencil.h   parameters.h common.h fieldsolver/londrillo_delzanna.cpp
@@ -108,7 +120,6 @@ londrillo_delzanna.o: spatial_cell.hpp transferstencil.h   parameters.h common.h
 
 vlasiator.o:  ${DEPS_COMMON} parameters.h  project.h  spatial_cell.hpp vlasiator.cpp vlsvwriter2.h 
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE}
-
 
 
 mpifile.o: ${DEPS_COMMON} mpifile.h mpifile.cpp  
