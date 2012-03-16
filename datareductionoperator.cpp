@@ -23,7 +23,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "datareductionoperator.h"
 #include "vlscommon.h"
-#include "cpu/cpu_common.h"
+#include "vlasovsolver/cpu_common.h"
 
 
 using namespace std;

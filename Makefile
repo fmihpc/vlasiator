@@ -5,11 +5,9 @@ include Makefile.${ARCH}
 
 #set FP precision to SP (single) or DP (double)
 FP_PRECISION = DP
-CXXFLAGS += -D${FP_PRECISION} 
 
 #set a default archive utility, can also be set in Makefile.arch
 AR ?= ar
-
 
 #leveque (no other options)
 TRANSSOLVER ?= leveque
@@ -30,9 +28,6 @@ CXXFLAGS += -DCATCH_FPE
 #DCCRG defines, it should use the user provided mpi datatype mode
 CXXFLAGS += -DDCCRG_SEND_SINGLE_CELLS -DDCCRG_CELL_DATA_SIZE_FROM_USER  -DDCCRG_USER_MPI_DATA_TYPE
 
-#will need profiler in most places..
-CXXFLAGS += ${INC_PROFILE} 
-
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
 PROJ = Fluctuations
@@ -52,6 +47,12 @@ endif
 ifeq ($(strip $(TRANSSOLVER)),leveque)
 CXXFLAGS += -DSOLVER_LEVEQUE
 endif
+
+#will need profiler in most places..
+CXXFLAGS += ${INC_PROFILE} 
+
+#define precision
+CXXFLAGS += -D${FP_PRECISION} 
 
 
 
@@ -112,8 +113,8 @@ datareductionoperator.o:  ${DEPS_COMMON} spatial_cell.hpp datareductionoperator.
 spatial_cell.o: spatial_cell.cpp spatial_cell.hpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c spatial_cell.cpp $(INC_BOOST)
 
-vlasovmover_leveque.o: spatial_cell.hpp project.h transferstencil.h  cpu/cpu_acc_$(ACCSOLVER).hpp cpu/cpu_trans_leveque.h cpu/cpu_common.h cpu/leveque_common.h cpu/vlasovmover_leveque.cpp		
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -DMOVER_VLASOV_ORDER=2  -c cpu/vlasovmover_leveque.cpp -I$(CURDIR) ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG}  ${INC_PROFILE} 
+vlasovmover_leveque.o: spatial_cell.hpp project.h transferstencil.h  vlasovsolver/cpu_acc_$(ACCSOLVER).hpp vlasovsolver/cpu_trans_leveque.h vlasovsolver/cpu_common.h vlasovsolver/leveque_common.h vlasovsolver/vlasovmover_leveque.cpp		
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -DMOVER_VLASOV_ORDER=2  -c vlasovsolver/vlasovmover_leveque.cpp -I$(CURDIR) ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG}  ${INC_PROFILE} 
 
 londrillo_delzanna.o: spatial_cell.hpp transferstencil.h   parameters.h common.h fieldsolver/londrillo_delzanna.cpp
 	 ${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/londrillo_delzanna.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_DCCRG}  ${INC_PROFILE}  ${INC_ZOLTAN}
