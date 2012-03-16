@@ -1,7 +1,7 @@
 
 #set default architecture, can be overridden from the compile line
 ARCH = meteo
-include Makefile.${ARCH}
+include MAKE/Makefile.${ARCH}
 
 #set FP precision to SP (single) or DP (double)
 FP_PRECISION = DP
