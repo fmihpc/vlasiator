@@ -1,4 +1,3 @@
-
 CMP = CC
 LNK = CC
 
@@ -13,8 +12,9 @@ FLAGS =
 
 #GNU flags:
 CC_BRAND = gcc
-CC_BRAND_VERSION = 4.5.2
-CXXFLAGS += -O3  -funroll-loops -std=c++0x -fopenmp -W -Wall -pedantic -Wno-unused
+CC_BRAND_VERSION = 4.5.3
+CXXFLAGS += -O3  -funroll-loops -std=c++0x -fopenmp #-W -Wall -pedantic -Wno-unused
+#CXXFLAGS += -g -std=c++0x -fopenmp -W -Wall -pedantic -Wno-unused   
 MATHFLAGS = -ffast-math
 LDFLAGS =
 LIB_MPI = -lgomp 
@@ -29,9 +29,9 @@ LIB_MPI = -lgomp
 #LDFLAGS = -static -openmp
 #LIB_MPI =
 
-BOOST_VERSION = 1.46.1
-MPT_VERSION = 5.2.0
-ZOLTAN_VERSION = 3.5
+BOOST_VERSION = 1.48.0
+MPT_VERSION = 5.3.4
+ZOLTAN_VERSION = 3.6
 SILO_VERSION = 4.8
 
 LIBRARY_PREFIX = /stornext/field/users/honkonen/libraries
@@ -52,6 +52,6 @@ INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg-new
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX_B)/profiler/lib -lprofile
 INC_PROFILE = -I$(LIBRARY_PREFIX_B)/profiler/include
-INC_TOPO = -I$(LIBRARY_PREFIX)/topologyOptim
+
 
 

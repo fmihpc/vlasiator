@@ -36,27 +36,19 @@ CXXFLAGS += ${INC_PROFILE}
 
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
-#PROJ = Alfven
-#PROJ = harm1D
-#PROJ = Dispersion
-#PROJ = Diffusion
 PROJ = Fluctuations
-#PROJ = Harris
-#PROJ=test_fp
-#PROJ=test_trans
-#PROJ=msphere
-#PROJ=velrot2+3
-#PROJ=velocity_rotation_1+3d
-#PROJ=solar_wind_test
-#PROJ=Bx_const
-#PROJ=By_const
-#PROJ=Bz_const
 
 
+#//////////////////////////////////////////////////////
 # The rest of this file users shouldn't need to change
+#//////////////////////////////////////////////////////
 
 
-default: vlasiator vlsv2silo vlsvextract vlsvdiff
+default: vlasiator
+
+tools: vlsvdiff vlsv2vtk vlsv2silo vlsv2bzt vlsvextract
+
+all: vlasiator tools
 
 # Compile directory:
 INSTALL = $(CURDIR)
@@ -72,73 +64,15 @@ LIBS += ${LIB_MPI}
 LIBS += ${LIB_CUDA}
 LIBS += ${LIB_PROFILE}
 
-# Define dependencies of each object file
-DEPS_ARRAYALLOCATOR = arrayallocator.h arrayallocator.cpp
+# Define common dependencies
 DEPS_COMMON = common.h definitions.h mpiconversion.h mpilogger.h
-DEPS_CELLSYNC = spatial_cell.hpp cellsync.cpp
-DEPS_DATAREDUCER = spatial_cell.hpp datareducer.h datareductionoperator.h datareducer.cpp
-DEPS_DATAREDUCTIONOPERATOR = spatial_cell.hpp datareductionoperator.h datareductionoperator.cpp
-DEPS_GPU_DEVICE_GRID = spatial_cell.hpp parameters.h devicegrid.h gpudevicegrid.cpp
-DEPS_MAIN =  parameters.h  project.h  spatial_cell.hpp vlasiator.cpp vlsvwriter2.h
-DEPS_MPIFILE = mpifile.h mpifile.cpp
-DEPS_MPILOGGER = mpifile.h mpilogger.h mpilogger.cpp
-DEPS_MUXML = muxml.h muxml.cpp
-DEPS_PARAMETERS = parameters.h parameters.cpp
-DEPS_PROJECT = project.h project.cpp
-DEPS_VLSCOMMON = vlscommon.h vlscommon.cpp
-DEPS_VLSVEXTRACT = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp vlsvextract.cpp
-DEPS_VLSVREADER2 = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
-DEPS_VLSVWRITER2 = mpiconversion.h muxml.h muxml.cpp vlscommon.h vlsvwriter2.h vlsvwriter2.cpp
-DEPS_VLSV2SILO = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp vlsv2silo.cpp
-DEPS_VLSV2BZT = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
-DEPS_VLSVDIFF = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
 
-DEPS_ARRAYALLOCATOR += ${DEPS_COMMON}
-DEPS_CELLSYNC += $(DEPS_COMMON)
-DEPS_DATAREDUCER += ${DEPS_COMMON}
-DEPS_DATAREDUCTIONOPERATOR += ${DEPS_COMMON}
-DEPS_GPU_DEVICE_GRID += $(DEPS_COMMON)
-DEPS_MAIN += $(DEPS_COMMON)
-DEPS_MPIFILE += ${DEPS_COMMON}
-DEPS_PARAMETERS += $(DEPS_COMMON)
-DEPS_PROJECT += $(DEPS_COMMON)
-DEPS_VLSCOMMON += ${DEPS_COMMON}
-
-HDRS = arrayallocator.h cpu_acc.h cpu_acc_ppm.h cpu_common.h cpu_trans.h spatial_cell.hpp\
-	common.h datareducer.h datareductionoperator.h\
-	definitions.h \
-	mpiconversion.h mpifile.h mpilogger.h\
-	parameters.h\
-	 vlscommon.h\
-	vlsvwriter2.h vlsvreader2.h muxml.h 
-
-CUDA_HDRS = cudafuncs.h cudalaunch.h devicegrid.h
-
-SRC = 	arrayallocator.cpp datareducer.cpp datareductionoperator.cpp\
-	vlasiator.cpp mpifile.cpp mpilogger.cpp\
-	parameters.cpp \
-	vlscommon.cpp vls2vtk.cpp\
-	vlsvreader2.cpp vlsvwriter2.cpp muxml.cpp vlsv2silo.cpp
-
-CUDA_SRC = cellsync.cpp cuda_acc.cu cuda_common.cu cuda_trans.cu\
-	cudafuncs.cpp gpudevicegrid.cpp
-
-CUDA_OBJS = cellsync.o cuda_acc.o cuda_trans.o cudafuncs.o gpudevicegrid.o
-
-OBJS = arrayallocator.o 		\
-	datareducer.o datareductionoperator.o 		\
+#all objects for vlasiator
+OBJS = 	datareducer.o datareductionoperator.o 		\
 	vlasiator.o mpifile.o mpilogger.o muxml.o	\
 	parameters.o project.o	spatial_cell.o		\
-	vlscommon.o vlsvreader2.o vlsvwriter2.o
+	vlscommon.o vlsvreader2.o vlsvwriter2.o vlasovmover_leveque.o londrillo_delzanna.o
 
-OBJS_VLSVEXTRACT = muxml.o vlscommon.o vlsvreader2.o
-OBJS_VLSV2SILO = muxml.o vlscommon.o vlsvreader2.o
-OBJS_VLSV2BZT = muxml.o vlscommon.o vlsvreader2.o
-OBJS_VLSVDIFF = muxml.o vlscommon.o vlsvreader2.o
-
-HDRS +=
-SRC +=
-OBJS +=
 
 help:
 	@echo ''
@@ -149,167 +83,103 @@ help:
 	@echo '                           PROJ:  Set project'
 
 
-
 c: clean
 clean:
-	make clean -C projects
-	make clean -C cpu
-	make clean -C cuda
-	make clean -C fieldsolver
-	rm -rf libvlasovmover.a libfieldsolver.a
-	rm -rf .goutputstream* .logfile* *.o *.ptx *.tar* *.txt *.silo *.vtk *.vlsv project.h project.cu project.cpp  *~ visitlog.py ${EXE} vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION} vlsv2vtk_${FP_PRECISION} vlsvdiff_${FP_PRECISION}
+	rm -rf *.o  project.h project.cpp  *~ ${EXE} vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION} vlsv2vtk_${FP_PRECISION} vlsvdiff_${FP_PRECISION}
+
 
 # Rules for making each object file needed by the executable
-arrayallocator.o: ${DEPS_ARRAYALLOCATOR}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c arrayallocator.cpp 
 
-datareducer.o: ${DEPS_DATAREDUCER}
+datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareducer.h datareductionoperator.h datareducer.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareducer.cpp ${INC_MPI} ${INC_BOOST}
 
 
-datareductionoperator.o: ${DEPS_DATAREDUCTIONOPERATOR}
+datareductionoperator.o:  ${DEPS_COMMON} spatial_cell.hpp datareductionoperator.h datareductionoperator.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareductionoperator.cpp ${INC_MPI} ${INC_BOOST}
-
-fieldsolverinstall:
-	make libfieldsolver.a -C fieldsolver "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS} ${INC_PROFILE} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_DCCRG}" "FLAG_OPENMP=${FLAG_OPENMP}" "AR=${AR}" "FLAGS=${FLAGS}"
-	ln -s -f fieldsolver/libfieldsolver.a .
-
-gpudevicegrid.o: $(DEPS_GPU_DEVICE_GRID)
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c gpudevicegrid.cpp $(INC_CUDA)
 
 spatial_cell.o: spatial_cell.cpp spatial_cell.hpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c spatial_cell.cpp $(INC_BOOST)
 
-vlasiator.o: $(DEPS_MAIN) 
+vlasovmover_leveque.o: spatial_cell.hpp project.h transferstencil.h  cpu/cpu_acc_leveque.h cpu/cpu_trans_leveque.h cpu/cpu_common.h cpu/leveque_common.h cpu/vlasovmover_leveque.cpp		
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -DMOVER_VLASOV_ORDER=2  -c cpu/vlasovmover_leveque.cpp -I$(CURDIR) ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG}  ${INC_PROFILE} 
+
+londrillo_delzanna.o: spatial_cell.hpp transferstencil.h   parameters.h common.h fieldsolver/londrillo_delzanna.cpp
+	 ${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/londrillo_delzanna.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_DCCRG}  ${INC_PROFILE}  ${INC_ZOLTAN}
+
+vlasiator.o:  ${DEPS_COMMON} parameters.h  project.h  spatial_cell.hpp vlasiator.cpp vlsvwriter2.h 
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE}
 
-moverinstall:
-	make libvlasovmover.a -C ${MOVER} "INSTALL=${INSTALL}" "CMP=${CMP}" "CXXFLAGS=${CXXFLAGS}" "FLAGS=${FLAGS}" "INC_ZOLTAN=${INC_ZOLTAN}" "INC_MPI=${INC_MPI}" "INC_BOOST=${INC_BOOST}" "INC_DCCRG=${INC_DCCRG}" "INC_TOPO=${INC_TOPO}" "INC_PROFILE=${INC_PROFILE}"  "FLAG_OPENMP=${FLAG_OPENMP}" "AR=${AR}" "MATHFLAGS=${MATHFLAGS}" "SOLVER=${SOLVER}"
-	ln -s -f ${MOVER}/libvlasovmover.a .
 
-mpifile.o: ${DEPS_MPIFILE}
+
+mpifile.o: ${DEPS_COMMON} mpifile.h mpifile.cpp  
 	${CMP} ${CXXFLAGS} ${FLAGS} -c mpifile.cpp ${INC_MPI}
 
-mpilogger.o: ${DEPS_MPILOGGER}
+mpilogger.o: mpifile.h mpilogger.h mpilogger.cpp   
 	${CMP} ${CXXFLAGS} ${FLAGS} -c mpilogger.cpp ${INC_MPI}
 
-muxml.o: ${DEPS_MUXML}
+muxml.o: muxml.h muxml.cpp     
 	${CMP} ${CXXFLAGS} ${FLAGS} -c muxml.cpp
 
-parameters.o: $(DEPS_PARAMETERS)
+parameters.o: parameters.h parameters.cpp    
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c parameters.cpp ${INC_BOOST}
 
-projinstall:
-	make project -C projects "INSTALL=${INSTALL}" "PROJ=${PROJ}"
+project.cpp: projects/$(PROJ).cpp 
+	ln -f -s projects/$(PROJ).cpp project.cpp 
 
-project.cpp: projinstall
-
-project.h: projinstall
-
-project.o: $(DEPS_PROJECT)
+project.h: projects/$(PROJ).h 
+	ln -f -s projects/$(PROJ).h project.h 
+project.o: $(DEPS_COMMON) project.h project.cpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c project.cpp ${INC_BOOST} ${INC_ZOLTAN} ${INC_DCCRG} ${INC_MPI}
 
-vlscommon.o: ${DEPS_VLSCOMMON}
+vlscommon.o:  $(DEPS_COMMON)  vlscommon.h vlscommon.cpp   
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlscommon.cpp
 
-vlsvextract: ${DEPS_VLSVEXTRACT} ${OBJS_VLSVEXTRACT}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvextract.cpp ${INC_SILO}
-	${LNK} -o vlsvextract_${FP_PRECISION} vlsvextract.o ${OBJS_VLSVEXTRACT} ${LIB_SILO}
 
-vlsv2vtk: ${DEPS_VLSVEXTRACT} ${OBJS_VLSVEXTRACT}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2vtk.cpp ${INC_BOOST} 
-	${LNK} -o vlsv2vtk_${FP_PRECISION} vlsv2vtk.o ${OBJS_VLSVEXTRACT} ${INC_BOOST} 
-
-vlsvreader2.o: ${DEPS_VLSVREADER2}
+vlsvreader2.o:  muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvreader2.cpp
 
-vlsvwriter2.o: ${DEPS_VLSVWRITER2}
+vlsvwriter2.o: mpiconversion.h muxml.h muxml.cpp vlscommon.h vlsvwriter2.h vlsvwriter2.cpp 
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvwriter2.cpp ${INC_MPI}
 
-vlsv2silo: ${DEPS_VLSV2SILO} ${OBJS_VLSV2SILO}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2silo.cpp ${INC_SILO}
-	${LNK} -o vlsv2silo_${FP_PRECISION} vlsv2silo.o ${OBJS_VLSV2SILO} ${LIB_SILO}
 
-writevars.o: ${DEPS_WRITEVARS}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c writevars.cpp ${INC_SILO} ${INC} ${INC_BOOST}
-
-vlsv2bzt: ${DEPS_VLSV2BZT} ${OBJS_VLSV2BZT}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2bzt.cpp 
-	${LNK} -o vlsv2bzt_${FP_PRECISION} vlsv2bzt.o ${OBJS_VLSV2BZT}
-
-vlsvdiff: ${DEPS_VLSVDIFF} ${OBJS_VLSVDIFF}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvdiff.cpp 
-	${LNK} -o vlsvdiff_${FP_PRECISION} vlsvdiff.o ${OBJS_VLSVDIFF}
-
-# Make a tar file containing the source code
-dist:
-	mkdir vlasiator
-	cp ${HDRS} ${SRC} INSTALL vlasiator/
-	cp Doxyfile Makefile Makefile.gnu Makefile.intel Makefile.pgi vlasiator/
-	cp -R projects vlasiator/
-	tar -cf vlasiator.tar vlasiator
-	gzip -9 vlasiator.tar
-	rm -rf vlasiator
 
 # Make executable
-vlasiator: projinstall fieldsolverinstall  moverinstall $(OBJS)
-	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) -L${INSTALL} -L${INSTALL}/cpu -lvlasovmover -lfieldsolver $(LIBS) 
+vlasiator: $(OBJS)
+	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) 
 
-VLASIATOR_HEADERS = \
-	arrayallocator.h \
-	common.h \
-	cpu/cpu_acc_leveque.h \
-	cpu/cpu_acc_semilag.hpp \
-	cpu/cpu_common.h \
-	cpu/cpu_trans_leveque.h \
-	fieldsolver/limiters.h \
-	datareducer.h \
-	datareductionoperator.h \
-	definitions.h \
-	mpiconversion.h \
-	mpifile.h \
-	mpilogger.h \
-	muxml.h \
-	parameters.h \
-	project.h \
-	spatial_cell.hpp \
-	vlscommon.h \
-	vlsvreader2.h \
-	vlsvwriter2.h
 
-VLASIATOR_SOURCES = \
-	arrayallocator.cpp \
-	cpu/memalloc.cpp \
-	cpu/vlasovmover_leveque.cpp \
-	datareducer.cpp \
-	datareductionoperator.cpp \
-	fieldsolver/londrillo_delzanna.cpp \
-	mpifile.cpp \
-	mpilogger.cpp \
-	muxml.cpp \
-	parameters.cpp \
-	project.cpp \
-	spatial_cell.cpp \
-	vlasiator.cpp \
-	vlscommon.cpp \
-	vlsvreader2.cpp \
-	vlsvwriter2.cpp
 
-vlasiator2: $(VLASIATOR_SOURCES) $(VLASIATOR_HEADERS) Makefile Makefile.$(ARCH)
-	$(CMP) -I. $(CXXFLAGS) $(FLAGS) $(VLASIATOR_SOURCES) -o $(EXE) $(LDFLAGS) $(LIBS) ${INC_MPI} ${INC_BOOST} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILER}
 
-c2: clean2
-clean2:
-	rm -fv \
-		$(EXE) \
-		vlsv2silo_$(FP_PRECISION) \
-		vlsvextract_$(FP_PRECISION) \
-		vlsv2vtk_$(FP_PRECISION) \
-		vlsvdiff_$(FP_PRECISION) \
-		project.h \
-		project.cpp \
-		project.cu \
-		*.silo \
-		*.vtk \
-		*.vlsv
+#/// TOOLS section/////
 
+#common reader filder
+DEPS_VLSVREADER = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp 
+
+#common reader objects for tools
+OBJS_VLSVREADER = muxml.o vlscommon.o vlsvreader2.o
+
+
+vlsvextract: ${DEPS_VLSVREADER} vlsvextract.cpp ${OBJS_VLSVREADER}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvextract.cpp ${INC_SILO}
+	${LNK} -o vlsvextract_${FP_PRECISION} vlsvextract.o ${OBJS_VLSVREADER} ${LIB_SILO}
+
+
+vlsv2vtk: ${DEPS_VLSVREADER} ${OBJS_VLSVREADER} vlsv2vtk.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2vtk.cpp ${INC_BOOST} 
+	${LNK} -o vlsv2vtk_${FP_PRECISION} vlsv2vtk.o ${OBJS_VLSVREADER} ${INC_BOOST} 
+
+
+vlsv2silo: ${DEPS_VLSVREADER} ${OBJS_VLSREADER} vlsv2silo.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2silo.cpp ${INC_SILO}
+	${LNK} -o vlsv2silo_${FP_PRECISION} vlsv2silo.o ${OBJS_VLSVREADER} ${LIB_SILO}
+
+vlsv2bzt: ${DEPS_VLSVREADER} ${OBJS_VLSREADER} vlsv2bzt.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2bzt.cpp 
+	${LNK} -o vlsv2bzt_${FP_PRECISION} vlsv2bzt.o ${OBJS_VLSVREADER}
+
+vlsvdiff: ${DEPS_VLSVREADER} ${OBJS_VLSREADER} vlsvdiff.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvdiff.cpp 
+	${LNK} -o vlsvdiff_${FP_PRECISION} vlsvdiff.o ${OBJS_VLSVREADER}
+
+
+# DO NOT DELETE

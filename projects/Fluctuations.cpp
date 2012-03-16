@@ -130,7 +130,10 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
 //       }
 //    }
    rndRho = rand();
-   rndVel = {rand(), rand(), rand()};
+   rndVel[0] =rand();
+   rndVel[1] =rand();
+   rndVel[2] =rand();
+   
 //    spaceIndexOld[0] = spaceIndex[0];
 //    spaceIndexOld[1] = spaceIndex[1];
 //    spaceIndexOld[2] = spaceIndex[2];
