@@ -98,7 +98,7 @@ help:
 
 c: clean
 clean:
-	rm -rf *.o  project.h project.cpp  *~ ${EXE} vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION} vlsv2vtk_${FP_PRECISION} vlsvdiff_${FP_PRECISION}
+	rm -rf *.o  project.h project.cpp  *~ ${EXE} vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION} vlsv2vtk_${FP_PRECISION} vlsvdiff_${FP_PRECISION} vlsv2bzt_${FP_PRECISION}
 
 
 # Rules for making each object file needed by the executable
@@ -171,26 +171,26 @@ DEPS_VLSVREADER = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
 OBJS_VLSVREADER = muxml.o vlscommon.o vlsvreader2.o
 
 
-vlsvextract: ${DEPS_VLSVREADER} vlsvextract.cpp ${OBJS_VLSVREADER}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvextract.cpp ${INC_SILO}
+vlsvextract: ${DEPS_VLSVREADER} tools/vlsvextract.cpp ${OBJS_VLSVREADER}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvextract.cpp ${INC_SILO} -I$(CURDIR) 
 	${LNK} -o vlsvextract_${FP_PRECISION} vlsvextract.o ${OBJS_VLSVREADER} ${LIB_SILO}
 
 
-vlsv2vtk: ${DEPS_VLSVREADER} ${OBJS_VLSVREADER} vlsv2vtk.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2vtk.cpp ${INC_BOOST} 
+vlsv2vtk: ${DEPS_VLSVREADER} ${OBJS_VLSVREADER} tools/vlsv2vtk.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsv2vtk.cpp ${INC_BOOST} -I$(CURDIR) 
 	${LNK} -o vlsv2vtk_${FP_PRECISION} vlsv2vtk.o ${OBJS_VLSVREADER} ${INC_BOOST} 
 
 
-vlsv2silo: ${DEPS_VLSVREADER} ${OBJS_VLSREADER} vlsv2silo.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2silo.cpp ${INC_SILO}
+vlsv2silo: ${DEPS_VLSVREADER} ${OBJS_VLSREADER} tools/vlsv2silo.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsv2silo.cpp ${INC_SILO} -I$(CURDIR) 
 	${LNK} -o vlsv2silo_${FP_PRECISION} vlsv2silo.o ${OBJS_VLSVREADER} ${LIB_SILO}
 
-vlsv2bzt: ${DEPS_VLSVREADER} ${OBJS_VLSREADER} vlsv2bzt.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsv2bzt.cpp 
+vlsv2bzt: ${DEPS_VLSVREADER} ${OBJS_VLSREADER} tools/vlsv2bzt.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsv2bzt.cpp -I$(CURDIR) 
 	${LNK} -o vlsv2bzt_${FP_PRECISION} vlsv2bzt.o ${OBJS_VLSVREADER}
 
-vlsvdiff: ${DEPS_VLSVREADER} ${OBJS_VLSREADER} vlsvdiff.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvdiff.cpp 
+vlsvdiff: ${DEPS_VLSVREADER} ${OBJS_VLSREADER} tools/vlsvdiff.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvdiff.cpp -I$(CURDIR) 
 	${LNK} -o vlsvdiff_${FP_PRECISION} vlsvdiff.o ${OBJS_VLSVREADER}
 
 
