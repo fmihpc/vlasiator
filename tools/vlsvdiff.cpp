@@ -494,6 +494,9 @@ int main(int argn,char* args[])
       cout << "Gives single-file statistics and distances between the two files given, for the variable and component given" << endl;
       cout << "USAGE 2: ./vlsvdiff <folder1> <folder2> <Variable> <component>" << endl;
       cout << "Gives single-file statistics and distances between pairs of files grid*.vlsv taken in alphanumeric order in the two folders given, for the variable and component given" << endl;
+      cout << "USAGE 3: ./vlsvdiff <file1> <folder2> <Variable> <component>" << endl;
+      cout << "         ./vlsvdiff <folder1> <file2> <Variable> <component>" << endl;
+      cout << "Gives single-file statistics and distances between a file, and files grid*.vlsv taken in alphanumeric order in the given folder, for the variable and component given" << endl;
       cout << endl;
       return 1;
    }
@@ -522,7 +525,28 @@ int main(int argn,char* args[])
    else if (dir1 == NULL || dir2 == NULL)
    {
       // Mixed file and directory
-      cerr << "ERROR in reading directory contents!" << endl;
+      cout << "#INFO Reading in one file and one directory." << endl;
+      set<string> fileList;
+      set<string>::iterator it;
+
+      if(dir1 == NULL){
+         //file in 1, directory in 2
+         processDirectory(dir2, &fileList);
+         for(it = fileList.begin(); it != fileList.end();++it){
+            // Process two files with non-verbose output (last argument false), give full path to the file processor
+            process2Files(fileName1,fileName2 + "/" + *it, varToExtract, compToExtract, false);
+         }
+      }
+
+      if(dir2 == NULL){
+         //directory in 1, file in 2
+         processDirectory(dir1, &fileList);
+         for(it = fileList.begin(); it != fileList.end();++it){
+            // Process two files with non-verbose output (last argument false), give full path to the file processor
+            process2Files(fileName1+"/"+*it,fileName2, varToExtract, compToExtract, false);
+         }
+      }
+
       closedir(dir1);
       closedir(dir2);
       return 1;
