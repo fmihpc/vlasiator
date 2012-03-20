@@ -135,11 +135,11 @@ muxml.o: muxml.h muxml.cpp
 parameters.o: parameters.h parameters.cpp    
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c parameters.cpp ${INC_BOOST}
 
-project.cpp: projects/$(PROJ).cpp 
-	ln -f -s projects/$(PROJ).cpp project.cpp 
+project.cpp: projects/$(PROJ)/$(PROJ).cpp 
+	ln -f -s projects/$(PROJ)/$(PROJ).cpp project.cpp 
 
-project.h: projects/$(PROJ).h 
-	ln -f -s projects/$(PROJ).h project.h 
+project.h: projects/$(PROJ)/$(PROJ).h 
+	ln -f -s projects/$(PROJ)/$(PROJ).h project.h 
 project.o: $(DEPS_COMMON) project.h project.cpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c project.cpp ${INC_BOOST} ${INC_ZOLTAN} ${INC_DCCRG} ${INC_MPI}
 
