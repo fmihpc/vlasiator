@@ -131,6 +131,7 @@ bool convertSILO(const string fileName,
    return success;
 }
 
+// Shift the second file of the average of the first
 bool shiftAverage(const map<uint, Real> * const orderedData1,
 		  const map<uint, Real> * const orderedData2,
 		  map<uint, Real> * shiftedData2
@@ -158,12 +159,13 @@ bool shiftAverage(const map<uint, Real> * const orderedData1,
    return 0;
 }
 
+// Compute the absolute and relative p-distance between both files, with or without shifting the second file to the average of the first
 bool pDistance(map<uint, Real> * const orderedData1,
 	       map<uint, Real> * const orderedData2,
 	       creal p,
 	       Real * absolute,
 	       Real * relative,
-	       bool doShiftAverage
+	       const bool doShiftAverage
 	      )
 {
    // Computes the relative and absolute p-distance between two datasets X(x) provided in the maps
@@ -224,6 +226,52 @@ bool pDistance(map<uint, Real> * const orderedData1,
    return 0;
 }
 
+// In verbose mode print the data, in non-verbose store them for later output when lastCall is true
+bool outputDistance(const Real p,
+		    const Real * absolute,
+		    const Real * relative,
+		    const bool shiftedAverage,
+		    const bool verboseOutput,
+		    const bool lastCall
+)
+{
+   if(verboseOutput == true)
+   {
+      if(shiftedAverage == false)
+      {
+	 cout << "The absolute " << p << "-distance between both datasets is " << *absolute << "." << endl;
+	 cout << "The relative " << p << "-distance between both datasets is " << *relative << "." << endl;
+      }
+      else
+      {
+	 cout << "The average-shifted absolute " << p << "-distance between both datasets is " << *absolute << "." << endl;
+	 cout << "The average-shifted relative " << p << "-distance between both datasets is " << *relative << "." << endl;
+      }
+   }
+   else
+   {
+      static vector<Real> fileOutputData;
+      static uint fileNumber = 0;
+      
+      if(lastCall == true)
+      {
+	 vector<Real>::const_iterator it;
+	 for(it = fileOutputData.begin(); it != fileOutputData.end(); it++)
+	 {
+	    cout << *it << "\t";
+	 }
+	 fileOutputData.clear();
+	 return 0;
+      }
+      
+      fileOutputData.push_back(*absolute);
+      fileOutputData.push_back(*relative);
+      
+   }
+   return 0;
+}
+
+// Compute the statistics on a single file
 bool singleStatistics(map<uint, Real> * orderedData,
                       Real * size,
 		      Real * mini,
@@ -234,8 +282,6 @@ bool singleStatistics(map<uint, Real> * orderedData,
 {
    /*
     * Returns basic statistics on the map passed to it.
-    * 
-    * 
     */
    map<uint, Real>::const_iterator it;
    
@@ -261,6 +307,184 @@ bool singleStatistics(map<uint, Real> * orderedData,
    return 0;
 }
 
+// In verbose mode print the data, in non-verbose store them for later output when lastCall is true
+bool outputStats(const Real * size,
+		 const Real * mini,
+		 const Real * maxi,
+		 const Real * avg,
+		 const Real * stdev,
+		 const bool verboseOutput,
+		 const bool lastCall
+		)
+{
+   if(verboseOutput == true)
+   {
+      cout << "Statistics on file: size " << *size
+      << " min = " << *mini
+      << " max = " << *maxi
+      << " average = " << *avg
+      << " standard deviation " << *stdev
+      << endl;
+   }
+   else
+   {
+      static uint fileNumber = 0;
+      static vector<Real> pairStats;
+      
+      if(lastCall == true)
+      {
+	 vector<Real>::const_iterator it;
+	 for(it = pairStats.begin(); it != pairStats.end(); it++)
+	 {
+	    cout << *it << "\t";
+	 }
+	 pairStats.clear();
+	 return 0;
+      }
+      
+      if(fileNumber%2 == 0)
+      {
+	 pairStats.push_back(fileNumber / 2 + 1);
+      }
+      pairStats.push_back(*size);
+      pairStats.push_back(*mini);
+      pairStats.push_back(*maxi);
+      pairStats.push_back(*avg);
+      pairStats.push_back(*stdev);
+      fileNumber++;
+   }
+   return 0;
+}
+
+// In folder processing, non-verbose mode the data are stored during the processing and output at the end to have the data sorted properly
+bool printNonVerboseData()
+{
+   static bool header = true;
+   if(header == true)
+   {
+      // Key to contents
+      cout << "#1   File number in folder\n" <<
+              "#2   File 1 size\n" <<
+              "#3   File 1 min\n" <<
+              "#4   File 1 max\n" <<
+              "#5   File 1 average\n" <<
+              "#6   File 1 standard deviation\n" <<
+              "#7   File 2 size\n" <<
+              "#8   File 2 min\n" <<
+              "#9   File 2 max\n" <<
+              "#10  File 2 average\n" <<
+              "#11  File 2 standard deviation\n" <<
+              "#12  absolute infinity-distance\n" <<
+              "#13  relative infinity-distance\n" <<
+              "#14  absolute average-shifted infinity-distance\n" <<
+              "#15  relative average-shifted infinity-distance\n" <<
+              "#16  absolute 1-distance\n" <<
+              "#17  relative 1-distance\n" <<
+              "#18  absolute average-shifted 1-distance\n" <<
+              "#19  relative average-shifted 1-distance\n" <<
+              "#20  absolute 2-distance\n" <<
+              "#21  relative 2-distance\n" <<
+              "#22  absolute average-shifted 2-distance\n" <<
+              "#23  relative average-shifted 2-distance\n" <<
+              endl;
+      header = false;
+   }
+   
+   // Data
+   // last argument (lastCall) is true to get the output of the whole stored dataset
+   outputStats(NULL, NULL, NULL, NULL, NULL, false, true);
+   outputDistance(0, NULL, NULL, false, false, true);
+   
+   return 0;
+}
+
+// Read in the contents of the variable component in both files and compute statistics and distances as wished
+bool process2Files(const string fileName1,
+		   const string fileName2,
+		   const char * varToExtract,
+		   const uint compToExtract,
+		   const bool verboseOutput
+		  )
+{
+   map<uint, Real> orderedData1;
+   map<uint, Real> orderedData2;
+   Real absolute, relative, mini, maxi, size, avg, stdev;
+   
+   if(convertSILO(fileName1, varToExtract, compToExtract, &orderedData1) != true)
+   {
+      cerr << "ERROR Data import error with " << fileName1 << endl;
+      return 1;
+   }
+   if(convertSILO(fileName2, varToExtract, compToExtract, &orderedData2) != true)
+   {
+      cerr << "ERROR Data import error with " << fileName2 << endl;
+      return 1;
+   }
+   
+   // Basic consistency check
+   if(orderedData1.size() != orderedData2.size())
+   {
+      cerr << "ERROR Datasets have different size." << endl;
+      return 1;
+   }
+   
+   singleStatistics(&orderedData1, &size, &mini, &maxi, &avg, &stdev);
+   outputStats(&size, &mini, &maxi, &avg, &stdev, verboseOutput, false);
+   
+   singleStatistics(&orderedData2, &size, &mini, &maxi, &avg, &stdev);
+   outputStats(&size, &mini, &maxi, &avg, &stdev, verboseOutput, false);
+   
+   pDistance(&orderedData1, &orderedData2, 0, &absolute, &relative, false);
+   outputDistance(0, &absolute, &relative, false, verboseOutput, false);
+   pDistance(&orderedData1, &orderedData2, 0, &absolute, &relative, true);
+   outputDistance(0, &absolute, &relative, true, verboseOutput, false);
+   
+   pDistance(&orderedData1, &orderedData2, 1, &absolute, &relative, false);
+   outputDistance(1, &absolute, &relative, false, verboseOutput, false);
+   pDistance(&orderedData1, &orderedData2, 1, &absolute, &relative, true);
+   outputDistance(1, &absolute, &relative, true, verboseOutput, false);
+   
+   pDistance(&orderedData1, &orderedData2, 2, &absolute, &relative, false);
+   outputDistance(2, &absolute, &relative, false, verboseOutput, false);
+   pDistance(&orderedData1, &orderedData2, 2, &absolute, &relative, true);
+   outputDistance(2, &absolute, &relative, true, verboseOutput, false);
+   
+   if(verboseOutput == false)
+   {
+      printNonVerboseData();
+      cout << endl;
+   }
+   
+   return 0;
+}
+
+// Creates the list of grid*.vlsv files present in the folder passed
+bool processDirectory(DIR* dir,
+		      set<string> * fileList
+)
+{
+   VLSVReader vlsvReader;
+   int filesFound = 0, entryCounter = 0;
+   
+   const string mask = "grid";
+   const string suffix = ".vlsv";
+   
+   struct dirent* entry = readdir(dir);
+   while (entry != NULL) {
+      const string entryName = entry->d_name;
+      if (entryName.find(mask) == string::npos || entryName.find(suffix) == string::npos) {
+	 entry = readdir(dir);
+	 continue;
+      }
+      fileList->insert(entryName);
+      filesFound++;
+      entry = readdir(dir);
+   }
+   if (filesFound == 0) cout << "INFO no matches found" << endl;
+   
+   return 0;
+}
+
 int main(int argn,char* args[])
 {
    if (argn < 5)
@@ -281,66 +505,56 @@ int main(int argn,char* args[])
    // 4th arg is its component, 0 for scalars, 2 for z component etc
    uint compToExtract = atoi(args[4]);
    
-   map<uint, Real> orderedData1;
-   map<uint, Real> orderedData2;
-   Real absolute, relative, mini, maxi, size, avg, stdev;
+   DIR* dir1 = opendir(fileName1.c_str());
+   DIR* dir2 = opendir(fileName2.c_str());
    
-   if(convertSILO(fileName1, varToExtract, compToExtract, &orderedData1) != true)
+   if (dir1 == NULL && dir2 == NULL) {
+      cout << "INFO Reading in two files." << endl;
+      
+      // Process two files with verbose output (last argument true)
+      process2Files(fileName1, fileName2, varToExtract, compToExtract, true);
+      
+      closedir(dir1);
+      closedir(dir2);
+   }
+   else if (dir1 == NULL || dir2 == NULL)
    {
-      cerr << "Data import error with " << fileName1 << endl;
+      // Mixed file and directory
+      cerr << "ERROR in reading directory contents!" << endl;
+      closedir(dir1);
+      closedir(dir2);
       return 1;
    }
-   if(convertSILO(fileName2, varToExtract, compToExtract, &orderedData2) != true)
+   else if (dir1 != NULL && dir2 != NULL)
    {
-      cerr << "Data import error with " << fileName2 << endl;
-      return 1;
+      // Process two folders, files of the same rank compared, first folder is reference in relative distances
+      cout << "#INFO Reading in two directories." << endl;
+      set<string> fileList1, fileList2;
+      
+      // Produce a sorted file list
+      processDirectory(dir1, &fileList1);
+      processDirectory(dir2, &fileList2);
+      
+      // Basic consistency check
+      if(fileList1.size() != fileList2.size())
+      {
+	 cerr << "ERROR Folders have different number of files." << endl;
+	 return 1;
+      }
+      
+      set<string>::iterator it1, it2;
+      for(it1 = fileList1.begin(), it2 = fileList2.begin();
+	  it1 != fileList2.end(), it2 != fileList2.end();
+          it1++, it2++)
+      {
+	 // Process two files with non-verbose output (last argument false), give full path to the file processor
+	 process2Files(fileName1 + "/" + *it1,
+		       fileName2 + "/" + *it2, varToExtract, compToExtract, false);
+      }
+      
+      closedir(dir1);
+      closedir(dir2);
    }
-   
-   // Basic consistency check
-   if(orderedData1.size() != orderedData2.size())
-   {
-      cerr << "Datasets have differing size" << endl;
-      return 1;
-   }
-   
-   singleStatistics(&orderedData1, &size, &mini, &maxi, &avg, &stdev);
-   cout << "Statistics on first file: size " << size
-        << " min = " << mini
-        << " max = " << maxi
-        << " average = " << avg
-        << " standard deviation " << stdev
-        << endl;
-   
-   singleStatistics(&orderedData2, &size, &mini, &maxi, &avg, &stdev);
-   cout << "Statistics on second file: size " << size
-	<< " min = " << mini
-	<< " max = " << maxi
-	<< " average = " << avg
-	<< " standard deviation " << stdev
-	<< endl;
-   
-   pDistance(&orderedData1, &orderedData2, 1, &absolute, &relative, false);
-   cout << "The absolute 1-distance between both datasets is " << absolute << "." << endl;
-   cout << "The relative 1-distance between both datasets is " << relative << "." << endl;
-   
-   pDistance(&orderedData1, &orderedData2, 1, &absolute, &relative, true);
-   cout << "The average-shifted absolute 1-distance between both datasets is " << absolute << "." << endl;
-   cout << "The average-shifted relative 1-distance between both datasets is " << relative << "." << endl;
-   
-   pDistance(&orderedData1, &orderedData2, 2, &absolute, &relative, false);
-   cout << "The absolute 2-distance between both datasets is " << absolute << "." << endl;
-   cout << "The relative 2-distance between both datasets is " << relative << "." << endl;
-   pDistance(&orderedData1, &orderedData2, 2, &absolute, &relative, true);
-   cout << "The average-shifted absolute 2-distance between both datasets is " << absolute << "." << endl;
-   cout << "The average-shifted relative 2-distance between both datasets is " << relative << "." << endl;
-   
-   pDistance(&orderedData1, &orderedData2, 0, &absolute, &relative, false);
-   cout << "The absolute infinity-distance between both datasets is " << absolute << "." << endl;
-   cout << "The relative infinity-distance between both datasets is " << relative << "." << endl;
-   
-   pDistance(&orderedData1, &orderedData2, 0, &absolute, &relative, true);
-   cout << "The average-shifted absolute infinity-distance between both datasets is " << absolute << "." << endl;
-   cout << "The average-shifted relative infinity-distance between both datasets is " << relative << "." << endl;
    
    return 0;
 }
