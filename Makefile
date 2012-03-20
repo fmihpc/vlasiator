@@ -30,7 +30,7 @@ CXXFLAGS += -DDCCRG_SEND_SINGLE_CELLS -DDCCRG_CELL_DATA_SIZE_FROM_USER  -DDCCRG_
 
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
-PROJ = Fluctuations
+PROJ = harm1D
 
 
 #//////////////////////////////////////////////////////
@@ -181,15 +181,15 @@ vlsv2vtk: ${DEPS_VLSVREADER} ${OBJS_VLSVREADER} tools/vlsv2vtk.cpp
 	${LNK} -o vlsv2vtk_${FP_PRECISION} vlsv2vtk.o ${OBJS_VLSVREADER} ${INC_BOOST} 
 
 
-vlsv2silo: ${DEPS_VLSVREADER} ${OBJS_VLSREADER} tools/vlsv2silo.cpp
+vlsv2silo: ${DEPS_VLSVREADER} ${OBJS_VLSVREADER} tools/vlsv2silo.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsv2silo.cpp ${INC_SILO} -I$(CURDIR) 
 	${LNK} -o vlsv2silo_${FP_PRECISION} vlsv2silo.o ${OBJS_VLSVREADER} ${LIB_SILO}
 
-vlsv2bzt: ${DEPS_VLSVREADER} ${OBJS_VLSREADER} tools/vlsv2bzt.cpp
+vlsv2bzt: ${DEPS_VLSVREADER} ${OBJS_VLSVREADER} tools/vlsv2bzt.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsv2bzt.cpp -I$(CURDIR) 
 	${LNK} -o vlsv2bzt_${FP_PRECISION} vlsv2bzt.o ${OBJS_VLSVREADER}
 
-vlsvdiff: ${DEPS_VLSVREADER} ${OBJS_VLSREADER} tools/vlsvdiff.cpp
+vlsvdiff: ${DEPS_VLSVREADER} ${OBJS_VLSVREADER} tools/vlsvdiff.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvdiff.cpp -I$(CURDIR) 
 	${LNK} -o vlsvdiff_${FP_PRECISION} vlsvdiff.o ${OBJS_VLSVREADER}
 
