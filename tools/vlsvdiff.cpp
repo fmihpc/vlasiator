@@ -490,8 +490,10 @@ int main(int argn,char* args[])
    if (argn < 5)
    {
       cout << endl;
-      cout << "USAGE: ./vlsvdiff <file1> <file2> <Variable> <component>" << endl;
-      cout << "Performs various comparison operations between the two files given, for the variable and component given" << endl;
+      cout << "USAGE 1: ./vlsvdiff <file1> <file2> <Variable> <component>" << endl;
+      cout << "Gives single-file statistics and distances between the two files given, for the variable and component given" << endl;
+      cout << "USAGE 2: ./vlsvdiff <folder1> <folder2> <Variable> <component>" << endl;
+      cout << "Gives single-file statistics and distances between pairs of files grid*.vlsv taken in alphanumeric order in the two folders given, for the variable and component given" << endl;
       cout << endl;
       return 1;
    }
