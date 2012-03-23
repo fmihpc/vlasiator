@@ -101,23 +101,23 @@ void calcCellParameters(Real* cellParams,creal& t) {
    creal y = cellParams[CellParams::YCRD] + 0.5 * cellParams[CellParams::DY];
    creal z = cellParams[CellParams::ZCRD] + 0.5 * cellParams[CellParams::DZ];
 
-   creal B0 = 1.0e-9;
+   creal B1 = 1.0e-9;
    
    switch (CASE) {
     case BXCASE:
       if (y >= -0.2 && y <= 0.2)
 	if (z >= -0.2 && z <= 0.2)
-	  cellParams[CellParams::BX] = B0;
+	  cellParams[CellParams::BX] = B1;
       break;
     case BYCASE:
       if (x >= -0.2 && x <= 0.2)
 	if (z >= -0.2 && z <= 0.2)
-	  cellParams[CellParams::BY] = B0;
+	  cellParams[CellParams::BY] = B1;
       break;
     case BZCASE:
       if (x >= -0.2 && x <= 0.2)
 	if (y >= -0.2 && y <= 0.2)
-	  cellParams[CellParams::BZ] = B0;
+	  cellParams[CellParams::BZ] = B1;
       break;
    }
 }
