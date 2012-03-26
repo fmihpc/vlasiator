@@ -33,7 +33,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "datareductionoperator.h"
 #include "transferstencil.h"
 
-#include "vlsvwriter2.h" // TEST
+#include "vlsvwriter2.h" 
 #include "fieldsolver.h"
 #include "project.h"
 
@@ -586,16 +586,8 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    }
    delete[] paramsBuffer;
    
-   // Write the number of spatial neighbours each cell has:
-   //FIXME, this does nothing sensible
-   uchar* N_neighbours = new uchar[cells.size()];
-   uint64_t neighbourSum = 0;
-   for (size_t i=0; i<cells.size(); ++i) {
-      N_neighbours[i] = 0;
-      neighbourSum += N_neighbours[i];
-   }
-   if (vlsvWriter.writeArray("NBRSUM","SpatialGrid",attribs,cells.size(),1,N_neighbours) == false) success = false;
-   delete[] N_neighbours;
+   //REMOVED-did not write out real data Write the number of spatial neighbours each cell has 
+
    
    // Write velocity blocks and related data. Which cells write velocity grids 
    // should be requested from a function, but for now we just write velocity grids for all cells.

@@ -1,7 +1,7 @@
 CMP = CC
 LNK = CC
 
-CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK
+CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK -DNO_WRITE_AT_ALL
 FLAGS =
 
 # NOTES on compiler flags:
@@ -13,11 +13,11 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 4.5.3
-CXXFLAGS += -O3  -funroll-loops -std=c++0x -fopenmp #-W -Wall -pedantic -Wno-unused
+CXXFLAGS += -O3  -funroll-loops -std=c++0x  #-W -Wall -pedantic -Wno-unused
 #CXXFLAGS += -g -std=c++0x -fopenmp -W -Wall -pedantic -Wno-unused   
 MATHFLAGS = -ffast-math
 LDFLAGS =
-LIB_MPI = -lgomp 
+LIB_MPI = 
 #LIB_MPI = 
 #Add for threaded multiple mode: -lmpich_threadm
 

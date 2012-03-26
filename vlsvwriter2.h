@@ -117,9 +117,9 @@ inline bool VLSVWriter::writeArray(const std::string& tagName,const std::string&
     myBytes = arraySize * vectorSize *sizeof(T);
     MPI_Gather(&myBytes,sizeof(uint64_t),MPI_BYTE,
                bytesPerProcess,sizeof(uint64_t),MPI_BYTE,
-               0,comm);
+               masterRank,comm);
     
-    if (myrank == 0) {
+    if (myrank == masterRank) {
         offsets[0]=offset; //rank 0 handles the starting point of this block of data
         for(int i=1;i<N_processes;i++)
             offsets[i]=offsets[i-1]+bytesPerProcess[i-1];
@@ -128,13 +128,20 @@ inline bool VLSVWriter::writeArray(const std::string& tagName,const std::string&
     //scatter offsets so that everybody has the correct offset
     //scatter offsets so that everybody has the correct offset
     MPI_Scatter(offsets,sizeof(MPI_Offset),MPI_BYTE,&offset,sizeof(MPI_Offset),MPI_BYTE,
-                0,comm);    
+                masterRank,comm);    
      
     // Write this process's data:
+#ifdef NO_WRITE_AT_ALL
+    //avoid crayXt memory leak, do not use collective routine        
+    if (MPI_File_write_at(fileptr,offset,array,arraySize*vectorSize,
+                              MPI_Type<T>(),MPI_STATUS_IGNORE)!= MPI_SUCCESS)
+        success = false;
+#else
     if (MPI_File_write_at_all(fileptr,offset,array,arraySize*vectorSize,
                               MPI_Type<T>(),MPI_STATUS_IGNORE)!= MPI_SUCCESS)
         success = false;
-
+#endif
+    
    // Master writes footer tag:
    if (myrank == masterRank) {
       uint64_t totalBytes = 0;
