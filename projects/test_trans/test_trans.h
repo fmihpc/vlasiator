@@ -16,8 +16,8 @@ You should have received a copy of the GNU General Public License
 along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef HARM1D_H
-#define HARM1D_H
+#ifndef TEST_TRANS_H
+#define TEST_TRANS_H
 
 #include "definitions.h"
 #include "spatial_cell.hpp"
