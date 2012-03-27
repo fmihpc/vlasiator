@@ -18,6 +18,7 @@ ACCSOLVER ?= leveque
 #londrillo_delzanna (no other options)
 FIELDSOLVER ?= londrillo_delzanna
 
+CXXFLAGS += -DPROFILE
 
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
 CXXFLAGS += -DNDEBUG
