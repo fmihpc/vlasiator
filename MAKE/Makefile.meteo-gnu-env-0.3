@@ -27,7 +27,7 @@ LDFLAGS =
 LIB_MPI = -lgomp
 
 BOOST_VERSION = 1.49.0
-MPT_VERSION = 5.3.5
+MPT_VERSION = 5.3.4
 ZOLTAN_VERSION = 3.6
 SILO_VERSION = 4.8
 
@@ -44,10 +44,10 @@ INC_SILO = -I$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION
 LIB_SILO = -L$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/lib -lsilo
 
 #Official dccrg installation
-#INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg-new
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg-new
 
 #DCCRG version with reduced neighbourhood. Might not be up-to-date
-INC_DCCRG = -I$(LIBRARY_PREFIX_B)/dccrg-new
+#INC_DCCRG = -I$(LIBRARY_PREFIX_B)/dccrg-new
 
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX_B)/profiler/lib -lprofile
