@@ -27,11 +27,7 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBx(
 	const CELLID& cellID,
 	const UINT& existingCells,
 	const UINT& nonExistingCells,
-	#ifdef PARGRID
-	const ParGrid<SpatialCell>& mpiGrid
-	#else
 	const dccrg::Dccrg<SpatialCell>& mpiGrid
-	#endif
 ) { 
    namespace p = projects;
    switch ((nonExistingCells & p::FACE_NBR_BITMASK)) {
@@ -106,11 +102,7 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBy(
 	const CELLID& cellID,
 	const UINT& existingCells,
 	const UINT& nonExistingCells,
-	#ifdef PARGRID
-	const ParGrid<SpatialCell>& mpiGrid
-	#else
 	const dccrg::Dccrg<SpatialCell>& mpiGrid
-	#endif
 ) {
    namespace p = projects;
    switch ((nonExistingCells & p::FACE_NBR_BITMASK)) {
@@ -217,11 +209,7 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBy(
 }
 
 template<typename CELLID,typename UINT,typename REAL>
-#ifdef PARGRID
-REAL fieldBoundaryCopyFromExistingFaceNbrBz(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const ParGrid<SpatialCell>& mpiGrid) {
-#else
 REAL fieldBoundaryCopyFromExistingFaceNbrBz(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const dccrg::Dccrg<SpatialCell>& mpiGrid) {
-#endif
 
     namespace p = projects;
    switch ((nonExistingCells & p::FACE_NBR_BITMASK)) {
@@ -260,13 +248,8 @@ REAL fieldBoundaryCopyFromExistingFaceNbrBz(const CELLID& cellID,const UINT& exi
 }
 
 template<typename CELLID,typename UINT,typename REAL>
-#ifdef PARGRID
-void fieldSolverBoundarySetValueDerivX(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
-				       creal* derivatives,const ParGrid<SpatialCell>& mpiGrid,const REAL& value) {
-#else
 void fieldSolverBoundarySetValueDerivX(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
                                            creal* derivatives,const dccrg::Dccrg<SpatialCell>& mpiGrid,const REAL& value) {
-#endif
     namespace fs = fieldsolver;
    array[fs::drhodx] = value;
    array[fs::dBydx]  = value;
@@ -277,13 +260,8 @@ void fieldSolverBoundarySetValueDerivX(const CELLID& cellID,REAL* const array,co
 }
 
 template<typename CELLID,typename UINT,typename REAL>
-#ifdef PARGRID
-void fieldSolverBoundarySetValueDerivY(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
-				       creal* derivatives,const ParGrid<SpatialCell>& mpiGrid,const REAL& value) {
-#else    
 void fieldSolverBoundarySetValueDerivY(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
 				       creal* derivatives,const dccrg::Dccrg<SpatialCell>& mpiGrid,const REAL& value) {
-#endif
    namespace fs = fieldsolver;
    array[fs::drhody] = value;
    array[fs::dBxdy]  = value;
@@ -294,13 +272,8 @@ void fieldSolverBoundarySetValueDerivY(const CELLID& cellID,REAL* const array,co
 }
 
 template<typename CELLID,typename UINT,typename REAL>
-#ifdef PARGRID
-void fieldSolverBoundarySetValueDerivZ(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
-				       creal* derivatives,const ParGrid<SpatialCell>& mpiGrid,const REAL& value) {
-#else
 void fieldSolverBoundarySetValueDerivZ(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
 				       creal* derivatives,const dccrg::Dccrg<SpatialCell>& mpiGrid,const REAL& value) {
-#endif
     namespace fs = fieldsolver;
    array[fs::drhodz] = value;
    array[fs::dBxdz]  = value;
