@@ -1,3 +1,6 @@
+# Which project is compiled:
+# Here a default value can be set, can be overridden from the compile line
+PROJ = Fluctuations
 
 #set default architecture, can be overridden from the compile line
 ARCH = meteo
@@ -28,10 +31,6 @@ CXXFLAGS += -DCATCH_FPE
 
 #DCCRG defines, it should use the user provided mpi datatype mode
 CXXFLAGS += -DDCCRG_SEND_SINGLE_CELLS -DDCCRG_CELL_DATA_SIZE_FROM_USER  -DDCCRG_USER_MPI_DATA_TYPE
-
-# Which project is compiled:
-# Here a default value can be set, can be overridden from the compile line
-PROJ = harm1D
 
 
 #//////////////////////////////////////////////////////
@@ -84,7 +83,7 @@ DEPS_COMMON = common.h definitions.h mpiconversion.h mpilogger.h
 #all objects for vlasiator
 OBJS = 	datareducer.o datareductionoperator.o 		\
 	vlasiator.o mpifile.o mpilogger.o muxml.o	\
-	parameters.o project.o	spatial_cell.o		\
+	parameters.o readparameters.o project.o	spatial_cell.o		\
 	vlscommon.o vlsvreader2.o vlsvwriter2.o vlasovmover_$(TRANSSOLVER).o $(FIELDSOLVER).o
 
 
@@ -120,7 +119,7 @@ vlasovmover_leveque.o: spatial_cell.hpp project.h transferstencil.h  vlasovsolve
 londrillo_delzanna.o: spatial_cell.hpp transferstencil.h   parameters.h common.h fieldsolver/londrillo_delzanna.cpp
 	 ${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/londrillo_delzanna.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_DCCRG}  ${INC_PROFILE}  ${INC_ZOLTAN}
 
-vlasiator.o:  ${DEPS_COMMON} parameters.h  project.h  spatial_cell.hpp vlasiator.cpp vlsvwriter2.h 
+vlasiator.o:  ${DEPS_COMMON} readparameters.h parameters.h  project.h  spatial_cell.hpp vlasiator.cpp vlsvwriter2.h 
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE}
 
 
@@ -133,15 +132,19 @@ mpilogger.o: mpifile.h mpilogger.h mpilogger.cpp
 muxml.o: muxml.h muxml.cpp     
 	${CMP} ${CXXFLAGS} ${FLAGS} -c muxml.cpp
 
-parameters.o: parameters.h parameters.cpp    
+parameters.o: parameters.h parameters.cpp readparameters.h   
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c parameters.cpp ${INC_BOOST}
+
+readparameters.o: readparameters.h readparameters.cpp 
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c readparameters.cpp ${INC_BOOST}
 
 project.cpp: projects/$(PROJ)/$(PROJ).cpp 
 	ln -f -s projects/$(PROJ)/$(PROJ).cpp project.cpp 
 
 project.h: projects/$(PROJ)/$(PROJ).h 
 	ln -f -s projects/$(PROJ)/$(PROJ).h project.h 
-project.o: $(DEPS_COMMON) project.h project.cpp
+
+project.o: $(DEPS_COMMON) parameters.h readparameters.h project.h project.cpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c project.cpp ${INC_BOOST} ${INC_ZOLTAN} ${INC_DCCRG} ${INC_MPI}
 
 vlscommon.o:  $(DEPS_COMMON)  vlscommon.h vlscommon.cpp   

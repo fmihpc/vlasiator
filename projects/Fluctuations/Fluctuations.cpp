@@ -25,6 +25,7 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "common.h"
 #include "project.h"
 #include "parameters.h"
+#include "readparameters.h"
 
 typedef fluctuationsParameters FlucP;
 Real FlucP::BX0 = NAN;
@@ -40,8 +41,9 @@ Real FlucP::maxwCutoff = NAN;
 uint FlucP::nSpaceSamples = 0;
 uint FlucP::nVelocitySamples = 0;
 
-bool initializeProject(void) {
-//   uint seed;
+bool initializeProject(void) {return true;}
+
+bool addProjectParameters(){
    typedef Readparameters RP;
    RP::add("Fluctuations.BX0", "Background field value (T)", 1.0e-9);
    RP::add("Fluctuations.BY0", "Background field value (T)", 2.0e-9);
@@ -56,7 +58,11 @@ bool initializeProject(void) {
    RP::add("Fluctuations.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
    RP::add("Fluctuations.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
    RP::add("Fluctuations.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
-   RP::parse();
+   return true;
+}
+
+bool getProjectParameters(){
+   typedef Readparameters RP;
    RP::get("Fluctuations.BX0", FlucP::BX0);
    RP::get("Fluctuations.BY0", FlucP::BY0);
    RP::get("Fluctuations.BZ0", FlucP::BZ0);
@@ -70,7 +76,6 @@ bool initializeProject(void) {
    RP::get("Fluctuations.nSpaceSamples", FlucP::nSpaceSamples);
    RP::get("Fluctuations.nVelocitySamples", FlucP::nVelocitySamples);
    RP::get("Fluctuations.maxwCutoff", FlucP::maxwCutoff);
-   
 //   int rank;
 //   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 //   srand(seed*rank);

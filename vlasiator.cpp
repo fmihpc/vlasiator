@@ -28,6 +28,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "mpiconversion.h"
 #include "mpilogger.h"
 #include "parameters.h"
+#include "readparameters.h"
 #include "spatial_cell.hpp"
 #include "datareducer.h"
 #include "datareductionoperator.h"
@@ -350,143 +351,6 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,boost::mpi::communicato
 }
 
 
-bool readConfigFile(){
-   profile::start("Read parameters");
-   typedef Parameters P;
-   typedef Readparameters RP;
-   Real xmax,ymax,zmax;
-   
-   // Parameters related to saving data:
-   // WARNING: Some of these parameters may become deprecated in the future.
-
-   //FIXME: Better hierarchy for variables
-   
-   RP::add("save_interval", "Save the simulation every arg time steps",1);
-   RP::add("restart_interval","Save the complete simulation every arg time steps",numeric_limits<uint>::max());
-   RP::add("save_spatial_grid", "Save spatial cell averages for the whole simulation",true);
-   RP::add("save_velocity_grid","Save velocity grid from every spatial cell in the simulation",false);
-   
-   RP::add("propagate_field","Propagate magnetic field during the simulation",true);
-   RP::add("propagate_vlasov","Propagate distribution functions during the simulation",true);
-   RP::add("split_method","Split method for splitting spatial/velocity space solvers. 0: first order, 1: strang splitting with half-steps for spatial space, 2: strang splitting with half-steps for velocity space",1);
-   
-
-   RP::add("gridbuilder.x_min","Minimum value of the x-coordinate.","");
-   RP::add("gridbuilder.x_max","Minimum value of the x-coordinate.","");
-   RP::add("gridbuilder.y_min","Minimum value of the y-coordinate.","");
-   RP::add("gridbuilder.y_max","Minimum value of the y-coordinate.","");
-   RP::add("gridbuilder.z_min","Minimum value of the z-coordinate.","");
-   RP::add("gridbuilder.z_max","Minimum value of the z-coordinate.","");
-   RP::add("gridbuilder.x_length","Number of cells in x-direction in initial grid.","");
-   RP::add("gridbuilder.y_length","Number of cells in y-direction in initial grid.","");
-   RP::add("gridbuilder.z_length","Number of cells in z-direction in initial grid.","");
-   RP::add("gridbuilder.vx_min","Minimum value for velocity block vx-coordinates.","");
-   RP::add("gridbuilder.vx_max","Maximum value for velocity block vx-coordinates.","");
-   RP::add("gridbuilder.vy_min","Minimum value for velocity block vy-coordinates.","");
-   RP::add("gridbuilder.vy_max","Maximum value for velocity block vy-coordinates.","");
-   RP::add("gridbuilder.vz_min","Minimum value for velocity block vz-coordinates.","");
-   RP::add("gridbuilder.vz_max","Maximum value for velocity block vz-coordinates.","");
-   RP::add("gridbuilder.vx_length","Initial number of velocity blocks in vx-direction.","");
-   RP::add("gridbuilder.vy_length","Initial number of velocity blocks in vy-direction.","");
-   RP::add("gridbuilder.vz_length","Initial number of velocity blocks in vz-direction.","");
-   RP::add("gridbuilder.periodic_x","If 'yes' the grid is periodic in x-direction. Defaults to 'no'.","no");
-   RP::add("gridbuilder.periodic_y","If 'yes' the grid is periodic in y-direction. Defaults to 'no'.","no");
-   RP::add("gridbuilder.periodic_z","If 'yes' the grid is periodic in z-direction. Defaults to 'no'.","no");
-   
-   RP::add("gridbuilder.q","Charge of simulated particle species, in Coulombs.",numeric_limits<Real>::max());
-   RP::add("gridbuilder.m","Mass of simulated particle species, in kilograms.",numeric_limits<Real>::max());
-   RP::add("gridbuilder.dt","Timestep in seconds.",numeric_limits<Real>::max());
-   RP::add("gridbuilder.t_min","Simulation time at timestep 0, in seconds.",numeric_limits<Real>::max());
-   RP::add("gridbuilder.timestep","Timestep when grid is loaded. Defaults to value zero.",0);
-   RP::add("gridbuilder.max_timesteps","Max. value for timesteps. Defaults to value zero.",0);
-   
-   // Grid sparsity parameters
-   RP::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 1e-5);
-   RP::add("sparse.minAvgValue", "Minimum value of the average of distribution function within a velocity block for the block to be considered to have contents", 0.5e-5);
-   RP::add("sparse.blockAdjustmentInterval", "Block adjustment interval (steps)", 1);
-   
-   // Load balancing parameters
-   RP::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("HYPERGRAPH"));
-   RP::add("loadBalance.tolerance", "Load imbalance tolerance", std::string("1.05"));
-   RP::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
-   
-   
-   RP::parse();
-
-   RP::get("save_interval", P::diagnInterval);
-   RP::get("restart_interval", P::saveRestartInterval);
-   RP::get("save_spatial_grid", P::save_spatial_grid);
-   RP::get("save_velocity_grid", P::save_velocity_grid);
-   RP::get("propagate_field",P::propagateField);
-   RP::get("propagate_vlasov",P::propagateVlasov);
-   RP::get("split_method",P::splitMethod);
-
-     
-   /*get numerical values, let Readparameters handle the conversions*/
-   RP::get("gridbuilder.x_min",P::xmin);
-   RP::get("gridbuilder.x_max",xmax);
-   RP::get("gridbuilder.y_min",P::ymin);
-   RP::get("gridbuilder.y_max",ymax);
-   RP::get("gridbuilder.z_min",P::zmin);
-   RP::get("gridbuilder.z_max",zmax);
-   RP::get("gridbuilder.x_length",P::xcells_ini);
-   RP::get("gridbuilder.y_length",P::ycells_ini);
-   RP::get("gridbuilder.z_length",P::zcells_ini);
-   RP::get("gridbuilder.vx_min",P::vxmin);
-   RP::get("gridbuilder.vx_max",P::vxmax);
-   RP::get("gridbuilder.vy_min",P::vymin);
-   RP::get("gridbuilder.vy_max",P::vymax);
-   RP::get("gridbuilder.vz_min",P::vzmin);
-   RP::get("gridbuilder.vz_max",P::vzmax);
-   RP::get("gridbuilder.vx_length",P::vxblocks_ini);
-   RP::get("gridbuilder.vy_length",P::vyblocks_ini);
-   RP::get("gridbuilder.vz_length",P::vzblocks_ini);
-
-   if (xmax < P::xmin || (ymax < P::ymin || zmax < P::zmin)) return false;
-   if (P::vxmax < P::vxmin || (P::vymax < P::vymin || P::vzmax < P::vzmin)) return false;
-   
-   std::string periodic_x,periodic_y,periodic_z;
-   RP::get("gridbuilder.periodic_x",periodic_x);
-   RP::get("gridbuilder.periodic_y",periodic_y);
-   RP::get("gridbuilder.periodic_z",periodic_z);
-   P::periodic_x = false;
-   P::periodic_y = false;
-   P::periodic_z = false;
-   if (periodic_x == "yes") P::periodic_x = true;
-   if (periodic_y == "yes") P::periodic_y = true;
-   if (periodic_z == "yes") P::periodic_z = true;
-   
-   // Set some parameter values. 
-   P::dx_ini = (xmax-P::xmin)/P::xcells_ini;
-   P::dy_ini = (ymax-P::ymin)/P::ycells_ini;
-   P::dz_ini = (zmax-P::zmin)/P::zcells_ini;
-
-   Real t_min;
-   RP::get("gridbuilder.q",P::q);
-   RP::get("gridbuilder.m",P::m);
-   RP::get("gridbuilder.dt",P::dt);
-   RP::get("gridbuilder.t_min",t_min);
-   RP::get("gridbuilder.timestep",P::tstep);
-   RP::get("gridbuilder.max_timesteps",P::tsteps);
-   
-   P::q_per_m = P::q/P::m;
-   P::t = t_min + P::tstep*P::dt;
-   P::tstep_min = P::tstep;
-   
-   // Get sparsity parameters
-   RP::get("sparse.minValue", P::sparseMinValue);
-   RP::get("sparse.minAvgValue", P::sparseMinAvgValue);
-   RP::get("sparse.blockAdjustmentInterval", P::blockAdjustmentInterval);
-   
-   // Get load balance parameters
-   RP::get("loadBalance.algorithm", P::loadBalanceAlgorithm);
-   RP::get("loadBalance.tolerance", P::loadBalanceTolerance);
-   RP::get("loadBalance.rebalanceInterval", P::rebalanceInterval);
-   
-   profile::stop("Read parameters");
-   
-   return true;
-}
 
 bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const bool& writeRestart) {
     double allStart = MPI_Wtime();
@@ -717,17 +581,17 @@ int main(int argn,char* args[]) {
    
    profile::start("main");
    profile::start("Initialization");
-
+   profile::start("Read parameters");
    //init parameter file reader
    Readparameters readparameters(argn,args,MPI_COMM_WORLD);
-//FIXME check, is this parse needed?
+   P::addParameters();
+   addProjectParameters();
    readparameters.parse();
+   P::getParameters();
+   getProjectParameters();
+   profile::stop("Read parameters");
 
-   // Read parameter file 
-   if (readConfigFile()  == false) {
-      cerr << "Failed to read parameter file" << endl;
-      exit(1);
-   }
+
 // Init parallel logger:
    profile::start("open mpilogger");
    if (mpilogger.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt") == false) {
