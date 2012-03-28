@@ -47,9 +47,19 @@ struct riemannParameters {
    static uint nVelocitySamples;
 };
 
+typedef riemannParameters RiP;
+
+/**
+ * Initialize project. Can be used, e.g., to read in parameters from the input file
+ */
 bool initializeProject(void);
 
-typedef riemannParameters RiP;
+/** Register parameters that should be read in
+ */
+bool addProjectParameters(void);
+/** Get the value that was read in
+ */
+bool getProjectParameters(void);
 
 /** Query if spatial cell parameters (of any cell) have changed and need to be 
  * recalculated. If you have a completely static case, then you can always return 

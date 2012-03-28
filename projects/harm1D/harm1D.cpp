@@ -25,12 +25,13 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "common.h"
 #include "project.h"
 #include "parameters.h"
+#include "readparameters.h"
 
 using namespace std;
 
-bool initializeProject(void) {
-   return true;
-} 
+bool initializeProject(void) {return true;}
+bool addProjectParameters(){return true;}
+bool getProjectParameters(){return true;}
 
 bool cellParametersChanged(creal& t) {return false;}
 

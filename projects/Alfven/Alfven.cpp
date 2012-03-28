@@ -25,11 +25,15 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "common.h"
 #include "project.h"
 #include "parameters.h"
+#include "readparameters.h"
 
 using namespace std;
 
 typedef alfvenParameters AP;
 Real AP::B0 = NAN;
+Real AP::Bx_guiding = NAN;
+Real AP::By_guiding = NAN;
+Real AP::Bz_guiding = NAN;
 Real AP::DENSITY = NAN;
 Real AP::ALPHA = NAN;
 Real AP::WAVELENGTH = NAN;
@@ -40,7 +44,16 @@ uint AP::nSpaceSamples = 0;
 uint AP::nVelocitySamples = 0;
 
 bool initializeProject(void) {
-   Real Bx_guiding, By_guiding, Bz_guiding;
+   Real norm = sqrt(AP::Bx_guiding*AP::Bx_guiding + AP::By_guiding*AP::By_guiding + AP::Bz_guiding*AP::Bz_guiding);
+   AP::Bx_guiding /= norm;
+   AP::By_guiding /= norm;
+   AP::By_guiding /= norm;
+   AP::ALPHA = atan(AP::By_guiding/AP::Bx_guiding);
+   
+   return true;
+} 
+
+bool addProjectParameters(){
    typedef Readparameters RP;
    RP::add("Alfven.B0", "Guiding field value (T)", 1.0e-10);
    RP::add("Alfven.Bx_guiding", "Guiding field x component", 1);
@@ -53,11 +66,16 @@ bool initializeProject(void) {
    RP::add("Alfven.A_vel", "Amplitude of the velocity perturbation", 0.1);
    RP::add("Alfven.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
    RP::add("Alfven.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
-   RP::parse();
+   
+   return true;
+}
+
+bool getProjectParameters(){
+   typedef Readparameters RP;
    RP::get("Alfven.B0", AP::B0);
-   RP::get("Alfven.Bx_guiding", Bx_guiding);
-   RP::get("Alfven.By_guiding", By_guiding);
-   RP::get("Alfven.Bz_guiding", Bz_guiding);
+   RP::get("Alfven.Bx_guiding", AP::Bx_guiding);
+   RP::get("Alfven.By_guiding", AP::By_guiding);
+   RP::get("Alfven.Bz_guiding", AP::Bz_guiding);
    RP::get("Alfven.rho", AP::DENSITY);
    RP::get("Alfven.Wavelength", AP::WAVELENGTH);
    RP::get("Alfven.Temperature", AP::TEMPERATURE);
@@ -66,14 +84,8 @@ bool initializeProject(void) {
    RP::get("Alfven.nSpaceSamples", AP::nSpaceSamples);
    RP::get("Alfven.nVelocitySamples", AP::nVelocitySamples);
    
-   Real norm = sqrt(Bx_guiding*Bx_guiding + By_guiding*By_guiding + Bz_guiding*Bz_guiding);
-   Bx_guiding /= norm;
-   By_guiding /= norm;
-   By_guiding /= norm;
-   AP::ALPHA = atan(By_guiding/Bx_guiding);
-   
    return true;
-} 
+}
 
 bool cellParametersChanged(creal& t) {return false;}
 
@@ -150,16 +162,10 @@ void calcCellParameters(Real* cellParams,creal& t) {
 }
 
 // TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
-#ifndef PARGRID
 void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
    std::vector<uint64_t> cells = mpiGrid.get_cells();
-#else
-void calcSimParameters(ParGrid<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
-   std::vector<ID::type> cells;
-   mpiGrid.getCells(cells);
-#endif
    for (uint i = 0; i < cells.size(); ++i) {
-      calcCellParameters(mpiGrid[cells[i]]->cpu_cellParams, t);
+      calcCellParameters(mpiGrid[cells[i]]->parameters, t);
    }
 }
 

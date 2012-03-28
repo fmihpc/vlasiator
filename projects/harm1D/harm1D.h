@@ -27,13 +27,19 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "projects/projects_vlasov_boundary.h"
 #include "fieldsolver.h"
 
-
 #include "dccrg.hpp"
 
 /**
  * Initialize project. Can be used, e.g., to read in parameters from the input file
  */
 bool initializeProject(void);
+
+/** Register parameters that should be read in
+ */
+bool addProjectParameters(void);
+/** Get the value that was read in
+ */
+bool getProjectParameters(void);
 
 /** Query if spatial cell parameters (of any cell) have changed and need to be 
  * recalculated. If you have a completely static case, then you can always return 
@@ -169,9 +175,6 @@ template<typename T> T velocityFluxZ(const T& i,const T& j,const T& avg_neg,cons
    return convert<T>(0.5)*AZ*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AZ)*(avg_pos-avg_neg);
 }
 
-
-
-
 template<typename CELLID,typename UINT,typename REAL>
 void fieldSolverBoundaryCondDerivX(
 	const CELLID& cellID,
@@ -249,18 +252,15 @@ void vlasovBoundaryCondition(
    vlasovBoundaryCopyFromExistingFaceNbr(cellID,existingCells,nonExistingCells,mpiGrid);
 }
 
-template<typename UINT,typename REAL> void calcAccFaceX(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
-							const REAL* const cellParams,const REAL* const blockParams) {
+template<typename UINT,typename REAL> void calcAccFaceX(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,const REAL* const cellParams,const REAL* const blockParams) {
    lorentzForceFaceX(ax,ay,az,I,J,K,cellParams,blockParams);
 }
    
-template<typename UINT,typename REAL> void calcAccFaceY(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
-							const REAL* const cellParams,const REAL* const blockParams) {
+template<typename UINT,typename REAL> void calcAccFaceY(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,const REAL* const cellParams,const REAL* const blockParams) {
    lorentzForceFaceY(ax,ay,az,I,J,K,cellParams,blockParams);
 }
 
-template<typename UINT,typename REAL> void calcAccFaceZ(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
-							const REAL* const cellParams,const REAL* const blockParams) {
+template<typename UINT,typename REAL> void calcAccFaceZ(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,const REAL* const cellParams,const REAL* const blockParams) {
    lorentzForceFaceZ(ax,ay,az,I,J,K,cellParams,blockParams);
 }
 

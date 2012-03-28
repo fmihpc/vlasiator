@@ -29,22 +29,26 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 
 #include "dccrg.hpp"
 
+struct harrisParameters {
+   static Real SCA_LAMBDA;
+   static Real B0;
+   static Real TEMPERATURE;
+   static Real DENSITY;
+} ;
 
-# define d_i 1000.0
-# define SCA_LAMBDA (150.0 * d_i)
-//# define SCA_PSI_0 0.1
-//# define SCA_LX (1500.0 * d_i)
-//# define SCA_LZ (3000.0 * d_i)
-// Magnetic field at "infinity", T
-# define B0 8.33061003094e-8
-# define TEMPERATURE 2.0e6
-// At "infinity", m^-3
-# define DENSITY 1.0e7
+typedef harrisParameters HP;
 
 /**
  * Initialize project. Can be used, e.g., to read in parameters from the input file
  */
 bool initializeProject(void);
+
+/** Register parameters that should be read in
+ */
+bool addProjectParameters(void);
+/** Get the value that was read in
+ */
+bool getProjectParameters(void);
 
 /** Query if spatial cell parameters (of any cell) have changed and need to be 
  * recalculated. If you have a completely static case, then you can always return 
@@ -74,11 +78,7 @@ void calcBlockParameters(Real* blockParams);
  */
 void calcCellParameters(Real* cellParams,creal& t);
 
-#ifndef PARGRID
 void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt);
-#else
-void calcSimParameters(ParGrid<SpatialCell>& mpiGrid, creal& t, Real& dt);
-#endif
 
 /** Integrate the distribution function over the given six-dimensional phase-space cell.
  * @param x Starting value of the x-coordinate of the cell.
@@ -96,8 +96,7 @@ void calcSimParameters(ParGrid<SpatialCell>& mpiGrid, creal& t, Real& dt);
  * @return The volume average of the distribution function in the given phase space cell.
  * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
  */
-Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
-			   creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz);
+Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz);
 
 /** Calculate the boundary value of volume average of distribution function. This function 
  * should calculate the value of distribution function on the other side of given phase space 
@@ -183,141 +182,54 @@ template<typename T> T velocityFluxZ(const T& i,const T& j,const T& avg_neg,cons
    return convert<T>(0.5)*AZ*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AZ)*(avg_pos-avg_neg);
 }
 
-
-
-
 template<typename CELLID,typename UINT,typename REAL>
-void fieldSolverBoundaryCondDerivX(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
-				   creal* const derivatives,const 
-				   #ifdef PARGRID
-				   ParGrid<SpatialCell>
-				   #else
-				   dccrg::Dccrg<SpatialCell>
-				   #endif
-				   & mpiGrid) {
+void fieldSolverBoundaryCondDerivX(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,creal* const derivatives,const dccrg::Dccrg<SpatialCell>& mpiGrid) {
    fieldSolverBoundarySetValueDerivX(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
 }
 
 template<typename CELLID,typename UINT,typename REAL>
-void fieldSolverBoundaryCondDerivY(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
-				   creal* const derivatives,const
-				   #ifdef PARGRID
-				   ParGrid<SpatialCell>
-				   #else
-				   dccrg::Dccrg<SpatialCell>
-				   #endif
-				   & mpiGrid) {
+void fieldSolverBoundaryCondDerivY(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,creal* const derivatives,const dccrg::Dccrg<SpatialCell>& mpiGrid) {
    fieldSolverBoundarySetValueDerivY(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
 }
 
 template<typename CELLID,typename UINT,typename REAL>
-void fieldSolverBoundaryCondDerivZ(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
-				   creal* const derivatives,const
-				   #ifdef PARGRID
-				   ParGrid<SpatialCell>
-				   #else
-				   dccrg::Dccrg<SpatialCell>
-				   #endif
-				   & mpiGrid) {
+void fieldSolverBoundaryCondDerivZ(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,creal* const derivatives,const dccrg::Dccrg<SpatialCell>& mpiGrid) {
    fieldSolverBoundarySetValueDerivZ(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
 }
-/*
-template<typename CELLID,typename UINT,typename REAL>
-REAL fieldSolverBoundaryCondBy(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const
-#ifdef PARGRID
-ParGrid<SpatialCell>
-#else
-dccrg::Dccrg<SpatialCell>
-#endif
-& mpiGrid) {
-   return 0.0;
-   //mpiGrid[cellID]->cpu_cellParams[CellParams::XCRD];
-}
 
 template<typename CELLID,typename UINT,typename REAL>
-REAL fieldSolverBoundaryCondBz(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const
-#ifdef PARGRID
-ParGrid<SpatialCell>
-#else
-dccrg::Dccrg<SpatialCell>
-#endif
-& mpiGrid) {
-   return 0.0;
-}
-
-template<typename CELLID,typename UINT,typename REAL>
-REAL fieldSolverBoundaryCondBx(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const
-#ifdef PARGRID
-ParGrid<SpatialCell>
-#else
-dccrg::Dccrg<SpatialCell>
-#endif
-& mpiGrid) {
-   REAL y = mpiGrid[cellID]->cpu_cellParams[CellParams::YCRD];
-   REAL dy = mpiGrid[cellID]->cpu_cellParams[CellParams::DY];
-   return B0 * tanh((y + 0.5 * dy) / (SCA_LAMBDA));
-}
-*/
-template<typename CELLID,typename UINT,typename REAL>
-REAL fieldSolverBoundaryCondBx(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const
-#ifdef PARGRID
-ParGrid<SpatialCell>
-#else
-dccrg::Dccrg<SpatialCell>
-#endif
-& mpiGrid) {
+REAL fieldSolverBoundaryCondBx(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const dccrg::Dccrg<SpatialCell>& mpiGrid) {
   return 0.0;
   //mpiGrid[cellID]->cpu_cellParams[CellParams::XCRD];
 }
 
 template<typename CELLID,typename UINT,typename REAL>
-REAL fieldSolverBoundaryCondBy(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const
-#ifdef PARGRID
-ParGrid<SpatialCell>
-#else
-dccrg::Dccrg<SpatialCell>
-#endif
-& mpiGrid) {
+REAL fieldSolverBoundaryCondBy(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const dccrg::Dccrg<SpatialCell>& mpiGrid) {
   return 0.0;
 }
 
 template<typename CELLID,typename UINT,typename REAL>
-REAL fieldSolverBoundaryCondBz(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const
-#ifdef PARGRID
-ParGrid<SpatialCell>
-#else
-dccrg::Dccrg<SpatialCell>
-#endif
-& mpiGrid) {
-  REAL x = mpiGrid[cellID]->cpu_cellParams[CellParams::XCRD];
-  REAL dx = mpiGrid[cellID]->cpu_cellParams[CellParams::DX];
-  return B0 * tanh((x + 0.5 * dx) / (SCA_LAMBDA));
+REAL fieldSolverBoundaryCondBz(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const dccrg::Dccrg<SpatialCell>& mpiGrid) {
+  REAL x = mpiGrid[cellID]->parameters[CellParams::XCRD];
+  REAL dx = mpiGrid[cellID]->parameters[CellParams::DX];
+  return HP::B0 * tanh((x + 0.5 * dx) / (HP::SCA_LAMBDA));
 }
 
 template<typename CELLID,typename UINT> 
-void vlasovBoundaryCondition(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const
-#ifdef PARGRID
-ParGrid<SpatialCell>
-#else
-dccrg::Dccrg<SpatialCell>
-#endif
-& mpiGrid) {
+void vlasovBoundaryCondition(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const dccrg::Dccrg<SpatialCell>& mpiGrid) {
   //vlasovBoundaryCopyFromExistingFaceNbr(cellID,existingCells,nonExistingCells,mpiGrid);
   return;
 }
 
-template<typename UINT,typename REAL> void calcAccFaceX(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
-							const REAL* const cellParams,const REAL* const blockParams) {
+template<typename UINT,typename REAL> void calcAccFaceX(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,const REAL* const cellParams,const REAL* const blockParams) {
    lorentzForceFaceX(ax,ay,az,I,J,K,cellParams,blockParams);
 }
    
-template<typename UINT,typename REAL> void calcAccFaceY(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
-							const REAL* const cellParams,const REAL* const blockParams) {
+template<typename UINT,typename REAL> void calcAccFaceY(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,const REAL* const cellParams,const REAL* const blockParams) {
    lorentzForceFaceY(ax,ay,az,I,J,K,cellParams,blockParams);
 }
 
-template<typename UINT,typename REAL> void calcAccFaceZ(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
-							const REAL* const cellParams,const REAL* const blockParams) {
+template<typename UINT,typename REAL> void calcAccFaceZ(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,const REAL* const cellParams,const REAL* const blockParams) {
    lorentzForceFaceZ(ax,ay,az,I,J,K,cellParams,blockParams);
 }
 

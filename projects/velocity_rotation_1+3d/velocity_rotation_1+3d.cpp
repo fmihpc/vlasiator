@@ -23,12 +23,14 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "spatial_cell.hpp"
 #include "common.h"
 #include "project.h"
+#include "parameters.h"
+#include "readparameters.h"
 
 using namespace std;
 
-bool initializeProject(void) {
-   return true;
-}
+bool initializeProject(void) {return true;}
+bool addProjectParameters(){return true;}
+bool getProjectParameters(){return true;}
 
 bool cellParametersChanged(creal& t) {return false;}
 
@@ -73,16 +75,10 @@ void calcCellParameters(Real* cellParams, creal& /*t*/) {
 }
 
 // TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
-#ifndef PARGRID
 void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
    std::vector<uint64_t> cells = mpiGrid.get_cells();
-#else
-void calcSimParameters(ParGrid<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
-   std::vector<ID::type> cells;
-   mpiGrid.getCells(cells);
-#endif
    for (uint i = 0; i < cells.size(); ++i) {
-      calcCellParameters(mpiGrid[cells[i]]->cpu_cellParams, t);
+      calcCellParameters(mpiGrid[cells[i]]->parameters, t);
    }
 }
 

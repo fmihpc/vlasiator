@@ -24,6 +24,7 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "common.h"
 #include "project.h"
 #include "parameters.h"
+#include "readparameters.h"
 
 using namespace std;
 
@@ -39,7 +40,9 @@ Real RiP::Bz[2] = {NAN};
 uint RiP::nSpaceSamples = 0;
 uint RiP::nVelocitySamples = 0;
 
-bool initializeProject(void) {
+bool initializeProject(void) {return true;}
+
+bool addProjectParameters(){
    typedef Readparameters RP;
    RP::add("Riemann.rhoL", "Number density, left state (m^-3)", 0.0);
    RP::add("Riemann.rhoR", "Number density, right state (m^-3)", 0.0);
@@ -59,7 +62,11 @@ bool initializeProject(void) {
    RP::add("Riemann.BzR", "Magnetic field z component, right state (T)", 0.0);
    RP::add("Riemann.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
    RP::add("Riemann.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
-   RP::parse();
+   return true;
+}
+
+bool getProjectParameters(){
+   typedef Readparameters RP;
    RP::get("Riemann.rhoL", RiP::rho[RiP::LEFT]);
    RP::get("Riemann.rhoR", RiP::rho[RiP::RIGHT]);
    RP::get("Riemann.TL", RiP::T[RiP::LEFT]);
@@ -78,7 +85,6 @@ bool initializeProject(void) {
    RP::get("Riemann.BzR", RiP::Bz[RiP::RIGHT]);
    RP::get("Riemann.nSpaceSamples", RiP::nSpaceSamples);
    RP::get("Riemann.nVelocitySamples", RiP::nVelocitySamples);
-   
    return true;
 }
 

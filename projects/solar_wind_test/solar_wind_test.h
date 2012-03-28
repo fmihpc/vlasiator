@@ -42,6 +42,13 @@ using namespace std;
  */
 bool initializeProject(void);
 
+/** Register parameters that should be read in
+ */
+bool addProjectParameters(void);
+/** Get the value that was read in
+ */
+bool getProjectParameters(void);
+
 /** Query if spatial cell parameters (of any cell) have changed and need to be 
  * recalculated. If you have a completely static case, then you can always return 
  * false here. Otherwise you need to return true so that function calcCellParameters

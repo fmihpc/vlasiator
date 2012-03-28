@@ -25,6 +25,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "common.h"
 #include "project.h"
 #include "parameters.h"
+#include "readparameters.h"
 
 typedef dispersionParameters DispP;
 Real DispP::BX0 = NAN;
@@ -35,12 +36,19 @@ Real DispP::TEMPERATURE = NAN;
 Real DispP::magPertAmp = NAN;
 Real DispP::densityPertAmp = NAN;
 Real DispP::velocityPertAmp = NAN;
+uint DispP::seed = 0;
 uint DispP::sectorSize = 0;
 uint DispP::nSpaceSamples = 0;
 uint DispP::nVelocitySamples = 0;
 
 bool initializeProject(void) {
-   uint seed;
+   int rank;
+   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+   srand(DispP::seed*rank);
+   return true;
+}
+
+bool addProjectParameters(){
    typedef Readparameters RP;
    RP::add("Dispersion.BX0", "Background field value (T)", 1.0e-9);
    RP::add("Dispersion.BY0", "Background field value (T)", 2.0e-9);
@@ -50,11 +58,15 @@ bool initializeProject(void) {
    RP::add("Dispersion.magPertAmp", "Amplitude of the magnetic perturbation", 1.0e-9);
    RP::add("Dispersion.densityPertAmp", "Amplitude factor of the density perturbation", 0.1);
    RP::add("Dispersion.velocityPertAmp", "Amplitude of the velocity perturbation", 1.0e6);
-   RP::add("Dispersion.seed","Seed integer for the srand() function", 42);
+   RP::add("Dispersion.seed","Seed integer for the srand() function multiplied by rank", 42);
    RP::add("Dispersion.sectorSize", "Maximal size of the sectors for randomising", 10);
    RP::add("Dispersion.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
    RP::add("Dispersion.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
-   RP::parse();
+   return true;
+}
+
+bool getProjectParameters(){
+   typedef Readparameters RP;
    RP::get("Dispersion.BX0", DispP::BX0);
    RP::get("Dispersion.BY0", DispP::BY0);
    RP::get("Dispersion.BZ0", DispP::BZ0);
@@ -63,20 +75,14 @@ bool initializeProject(void) {
    RP::get("Dispersion.magPertAmp", DispP::magPertAmp);
    RP::get("Dispersion.densityPertAmp", DispP::densityPertAmp);
    RP::get("Dispersion.velocityPertAmp", DispP::velocityPertAmp);
-   RP::get("Dispersion.seed", seed);
+   RP::get("Dispersion.seed", DispP::seed);
    RP::get("Dispersion.sectorSize", DispP::sectorSize);
    RP::get("Dispersion.nSpaceSamples", DispP::nSpaceSamples);
    RP::get("Dispersion.nVelocitySamples", DispP::nVelocitySamples);
-   
-   int rank;
-   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-   srand(seed*rank);
-   
    return true;
 }
 
 bool cellParametersChanged(creal& t) {return false;}
-
 
 Real getDistribValue(creal& vx,creal& vy, creal& vz) {
    creal k = 1.3806505e-23; // Boltzmann

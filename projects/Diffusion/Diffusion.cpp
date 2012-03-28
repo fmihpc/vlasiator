@@ -25,6 +25,7 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "common.h"
 #include "project.h"
 #include "parameters.h"
+#include "readparameters.h"
 
 typedef diffusionParameters DiffP;
 Real DiffP::B0 = NAN;
@@ -35,7 +36,9 @@ Real DiffP::TEMPERATURE = NAN;
 uint DiffP::nSpaceSamples = 0;
 uint DiffP::nVelocitySamples = 0;
 
-bool initializeProject(void) {
+bool initializeProject(void) {return true;}
+
+bool addProjectParameters(){
    typedef Readparameters RP;
    RP::add("Diffusion.B0", "Background field value (T)", 1.0e-9);
    RP::add("Diffusion.rho", "Number density (m^-3)", 1.0e7);
@@ -44,7 +47,12 @@ bool initializeProject(void) {
    RP::add("Diffusion.Scale_y", "Scale length in y (m)", 100000.0);
    RP::add("Diffusion.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
    RP::add("Diffusion.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
-   RP::parse();
+   
+   return true;
+}
+
+bool getProjectParameters(){
+   typedef Readparameters RP;
    RP::get("Diffusion.B0", DiffP::B0);
    RP::get("Diffusion.rho", DiffP::DENSITY);
    RP::get("Diffusion.Temperature", DiffP::TEMPERATURE);
@@ -52,8 +60,10 @@ bool initializeProject(void) {
    RP::get("Diffusion.Scale_y", DiffP::SCA_Y);
    RP::get("Diffusion.nSpaceSamples", DiffP::nSpaceSamples);
    RP::get("Diffusion.nVelocitySamples", DiffP::nVelocitySamples);
+   
    return true;
 }
+
 
 bool cellParametersChanged(creal& t) {return false;}
 
@@ -114,7 +124,7 @@ void calcCellParameters(Real* cellParams,creal& t) {
 void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
    std::vector<uint64_t> cells = mpiGrid.get_cells();
    for (uint i = 0; i < cells.size(); ++i) {
-      calcCellParameters(mpiGrid[cells[i]]->cpu_cellParams, t);
+      calcCellParameters(mpiGrid[cells[i]]->parameters, t);
    }
 }
 

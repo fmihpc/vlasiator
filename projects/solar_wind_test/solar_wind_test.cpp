@@ -31,6 +31,7 @@ along with Vlasiator.  If not, see <http://www.gnu.org/licenses/>.
 #include "parameters.h"
 #include "project.h"
 #include "solar_wind.hpp"
+#include "readparameters.h"
 
 using namespace std;
 using namespace boost::posix_time;
@@ -39,9 +40,9 @@ extern MPILogger mpilogger;
 
 solar_wind::Solar_wind sw;
 
-bool initializeProject(void) {
-   return true;
-}
+bool initializeProject(void) {return true;}
+bool addProjectParameters(){return true;}
+bool getProjectParameters(){return true;}
 
 // tell to main.cpp that cell parameters should always be recalculated, figure out in calcSimParameters whether to actually
 bool cellParametersChanged(creal& t) {return true;}
