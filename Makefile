@@ -82,7 +82,7 @@ DEPS_COMMON = common.h definitions.h mpiconversion.h mpilogger.h
 
 #all objects for vlasiator
 OBJS = 	datareducer.o datareductionoperator.o 		\
-	vlasiator.o mpifile.o mpilogger.o muxml.o	\
+	grid.o vlasiator.o mpifile.o mpilogger.o muxml.o	\
 	parameters.o readparameters.o project.o	spatial_cell.o		\
 	vlscommon.o vlsvreader2.o vlsvwriter2.o vlasovmover_$(TRANSSOLVER).o $(FIELDSOLVER).o
 
@@ -119,8 +119,11 @@ vlasovmover_leveque.o: spatial_cell.hpp project.h transferstencil.h  vlasovsolve
 londrillo_delzanna.o: spatial_cell.hpp transferstencil.h   parameters.h common.h fieldsolver/londrillo_delzanna.cpp
 	 ${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/londrillo_delzanna.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_DCCRG}  ${INC_PROFILE}  ${INC_ZOLTAN}
 
-vlasiator.o:  ${DEPS_COMMON} readparameters.h parameters.h  project.h  spatial_cell.hpp vlasiator.cpp vlsvwriter2.h 
+vlasiator.o:  ${DEPS_COMMON} readparameters.h parameters.h  project.h  grid.h spatial_cell.hpp vlasiator.cpp
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE}
+
+grid.o:  ${DEPS_COMMON} parameters.h  project.h  spatial_cell.hpp grid.cpp grid.h vlsvwriter2.h 
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c grid.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE}
 
 
 mpifile.o: ${DEPS_COMMON} mpifile.h mpifile.cpp  
