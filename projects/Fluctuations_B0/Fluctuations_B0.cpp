@@ -37,11 +37,10 @@ Real FlucP::magPertAmp = NAN;
 Real FlucP::densityPertAmp = NAN;
 Real FlucP::velocityPertAmp = NAN;
 Real FlucP::maxwCutoff = NAN;
-//uint FlucP::sectorSize = 0;
 uint FlucP::nSpaceSamples = 0;
 uint FlucP::nVelocitySamples = 0;
 
-bool initializeProject(void) {return true;}
+bool initializeProject(void) { return true; }
 
 bool addProjectParameters() {
    typedef Readparameters RP;
@@ -75,6 +74,7 @@ bool getProjectParameters() {
    return true;
 }
 
+
 bool cellParametersChanged(creal& t) {return false;}
 
 
@@ -98,42 +98,16 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
    creal k = 1.3806505e-23; // Boltzmann
    creal mu0 = 1.25663706144e-6; // mu_0
    
-//   static int spaceIndexOld[3] = {std::numeric_limits<int>::min(),
-//                                  std::numeric_limits<int>::min(),
-//                                  std::numeric_limits<int>::min()};
-//   static int spaceIndex[3] = {0};
    static int rndRho = 0;
    static int rndVel[3] = {0};
-//   static int rndRhoSector = rand()%FlucP::sectorSize+1;
-//   static int rndVelSector = rand()%FlucP::sectorSize+1;
-//   static int cptRhoSector = 0;
-//   static int cptVelSector = 0;
    int cellID = (int) (x / dx) +
                 (int) (y / dy) * Parameters::xcells_ini +
                 (int) (z / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
    srand(cellID);
-//    if(spaceIndex[0] != spaceIndexOld[0] ||
-//       spaceIndex[1] != spaceIndexOld[1] ||
-//       spaceIndex[2] != spaceIndexOld[2]) {
-//       if(cptRhoSector++%rndRhoSector == 0)
-//       {
-// 	 rndRho = rand();
-// 	 rndRhoSector = rand()%FlucP::sectorSize+1;
-//       }
-//       if(cptVelSector++%rndVelSector == 0)
-//       {
-// 	 rndVel = {rand(), rand(), rand()};
-// 	 rndVelSector = rand()%FlucP::sectorSize+1;
-//       }
-//    }
    rndRho = rand();
    rndVel[0] =rand();
    rndVel[1] =rand();
    rndVel[2] =rand();
-   
-//    spaceIndexOld[0] = spaceIndex[0];
-//    spaceIndexOld[1] = spaceIndex[1];
-//    spaceIndexOld[2] = spaceIndex[2];
    
    creal d_vx = dvx / (FlucP::nVelocitySamples-1);
    creal d_vy = dvy / (FlucP::nVelocitySamples-1);
@@ -162,9 +136,7 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
    }
 }
       
-void calcBlockParameters(Real* blockParams) {
-   //blockParams[BlockParams::Q_PER_M] = 1.0;
-}
+void calcBlockParameters(Real* blockParams) {}
 
 void calcCellParameters(Real* cellParams,creal& t) {
    creal x = cellParams[CellParams::XCRD];
@@ -178,11 +150,28 @@ void calcCellParameters(Real* cellParams,creal& t) {
    (int) (y / dy) * Parameters::xcells_ini +
    (int) (z / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
    srand(cellID);
-   
+
+   // default initial values
    cellParams[CellParams::EX   ] = 0.0;
    cellParams[CellParams::EY   ] = 0.0;
    cellParams[CellParams::EZ   ] = 0.0;
-   cellParams[CellParams::BX   ] = FlucP::BX0;
+   cellParams[CellParams::BX   ] = 0.0;
+   cellParams[CellParams::BY   ] = 0.0;
+   cellParams[CellParams::BZ   ] = 0.0;
+   cellParams[CellParams::BXFACEX0] = 0;
+   cellParams[CellParams::BYFACEX0] = 0;
+   cellParams[CellParams::BZFACEX0] = 0;
+   cellParams[CellParams::BXFACEY0] = 0;
+   cellParams[CellParams::BYFACEY0] = 0;
+   cellParams[CellParams::BZFACEY0] = 0;
+   cellParams[CellParams::BXFACEZ0] = 0;
+   cellParams[CellParams::BYFACEZ0] = 0;
+   cellParams[CellParams::BZFACEZ0] = 0;
+
+   // user supplied initial values
+   cellParams[CellParams::BXFACEX0] = FlucP::BX0;
+   cellParams[CellParams::BYFACEY0] = FlucP::BY0;
+   cellParams[CellParams::BZFACEZ0] = FlucP::BZ0;
    cellParams[CellParams::BY   ] = FlucP::magPertAmp * (0.5 - (double)rand() / (double)RAND_MAX);
    cellParams[CellParams::BZ   ] = FlucP::magPertAmp * (0.5 - (double)rand() / (double)RAND_MAX);
 }
