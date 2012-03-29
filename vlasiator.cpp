@@ -226,6 +226,9 @@ int main(int argn,char* args[]) {
               case 0:
                  profile::start("propagation");
                  calculateSpatialFluxes(mpiGrid,P::dt);
+#ifdef SEMILAG
+                 adjust_velocity_blocks(mpiGrid);
+#endif
                  calculateSpatialPropagation(mpiGrid,true,P::dt);
                  profile::stop("propagation",computedBlocks,"Blocks");
                  break;
@@ -234,7 +237,9 @@ int main(int argn,char* args[]) {
                  calculateSpatialFluxes(mpiGrid,0.5*P::dt);
                  calculateSpatialPropagation(mpiGrid,true,P::dt);
                  profile::stop("First propagation",computedBlocks,"Blocks");
-
+#ifdef SEMILAG
+                 adjust_velocity_blocks(mpiGrid);
+#endif
                  profile::start("Second propagation");
                  calculateSpatialFluxes(mpiGrid,0.5*P::dt);
                  calculateSpatialPropagation(mpiGrid,false,0);
@@ -244,40 +249,29 @@ int main(int argn,char* args[]) {
                  profile::start("Acceleration");
                  calculateAcceleration(mpiGrid,0.5*P::dt);
                  profile::stop("Acceleration",computedBlocks,"Blocks");
+#ifdef SEMILAG
+                 adjust_velocity_blocks(mpiGrid);
+#endif
                  profile::start("Trans + acc");
                  calculateSpatialFluxes(mpiGrid,P::dt);
                  calculateSpatialPropagation(mpiGrid,true,0.5*P::dt);
                  profile::stop("Trans + acc",computedBlocks,"Blocks");
+#ifdef SEMILAG
+                 //if we are careful this might not be needed, if the
+                 //next timestep acceleration is the next step, then
+                 //it does not matter what other cells have done
+                 adjust_velocity_blocks(mpiGrid);
+#endif
                  break;
 
          }
-                 
-         if(P::tstep%P::blockAdjustmentInterval == 0)
-	  {
-	      profile::initializeTimer("re-adjust blocks","Block adjustment");
-	      profile::start("re-adjust blocks");
-	      profile::start("Check for content");
-#pragma omp parallel for  
-	      for (uint i=0; i<cells.size(); ++i) 
-		mpiGrid[cells[i]]->update_all_block_has_content();     
-	      profile::stop("Check for content");
-	      profile::initializeTimer("Transfer block data","MPI");
-              profile::start("Transfer block data");
-	      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_HAS_CONTENT );
-	      mpiGrid.update_remote_neighbor_data();
-              profile::stop("Transfer block data");
 
-	      adjust_all_velocity_blocks(mpiGrid);
-
-	      prepare_to_receive_velocity_block_data(mpiGrid);
-              //re-init vlasovmover
-              profile::start("InitMoverAfterBlockChange");
-              initMoverAfterBlockChange(mpiGrid);
-              profile::stop("InitMoverAfterBlockChange");
-   
-	      profile::stop("re-adjust blocks");
-	  }
-	  
+#ifndef SEMILAG
+         //if no semi-lagrangean then we do the adjustment here.
+         if(P::tstep%P::blockAdjustmentInterval == 0){
+            adjust_velocity_blocks(mpiGrid);
+         }
+#endif        
 	  
           if(P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min)
              balanceLoad(mpiGrid);

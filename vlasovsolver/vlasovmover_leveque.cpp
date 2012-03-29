@@ -298,17 +298,13 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,
    }
 //   profile::stop("clearVelFluxes");
 
-   #ifndef SEMILAG
+#ifndef SEMILAG
 //   profile::start("calcVelFluxes");
    // Calculatedf/dt contributions of all blocks in the cell:
    for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
       unsigned int block = SC->velocity_block_list[block_i];         
       cpu_calcVelFluxes(SC,block,dt,NULL);
    }
-//   profile::stop("calcVelFluxes");
-   #else
-   cpu_accelerate_cell(*SC, dt, 1000, P::q, P::m);
-   #endif
 
 //   profile::start("propagateVel");
       // Propagate distribution functions in velocity space:
@@ -318,6 +314,12 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,
    }
 //   profile::stop("propagateVel");
 //   profile::stop("Acceleration",SC->number_of_blocks,"Blocks");
+   
+//   profile::stop("calcVelFluxes");
+#else
+   cpu_accelerate_cell(*SC, dt, 1000, P::q, P::m);
+#endif
+
 }
 
 

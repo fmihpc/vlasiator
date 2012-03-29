@@ -53,6 +53,17 @@ bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,creal& zmin,creal
 void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
 
+
+//subroutine to adjust blocks of local cells; remove/add based on user-defined limits
+bool adjust_local_velocity_blocks(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
+
+/*
+Updates velocity block lists between remote neighbors and prepares local
+copies of remote neighbors to receive velocity block data.
+*/
+void prepare_to_receive_velocity_block_data(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
+
+
 bool initializeGrid(int argn, char **argc,dccrg::Dccrg<SpatialCell>& mpiGrid){
    int myrank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
@@ -162,7 +173,7 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid){
     SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_HAS_CONTENT );
     mpiGrid.update_remote_neighbor_data();
     
-    adjust_all_velocity_blocks(mpiGrid);
+    adjust_local_velocity_blocks(mpiGrid);
     //velocity blocks adjusted, lets prepare again for new lists
     prepare_to_receive_velocity_block_data(mpiGrid);
 
@@ -502,6 +513,37 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
 }
 
 
+//Compute which blocks have content, adjust local velocity blocks, and
+//make sure remote cells are up-to-date and ready to receive
+//data. Solvers are also updated so that their internal structures are
+//ready for the new number of blocks.
+
+bool adjust_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   profile::initializeTimer("re-adjust blocks","Block adjustment");
+   profile::start("re-adjust blocks");
+   vector<uint64_t> cells = mpiGrid.get_cells();
+   profile::start("Check for content");
+#pragma omp parallel for  
+   for (uint i=0; i<cells.size(); ++i) 
+      mpiGrid[cells[i]]->update_all_block_has_content();     
+   profile::stop("Check for content");
+   profile::initializeTimer("Transfer block data","MPI");
+   profile::start("Transfer block data");
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_HAS_CONTENT );
+   mpiGrid.update_remote_neighbor_data();
+   profile::stop("Transfer block data");
+   
+   adjust_local_velocity_blocks(mpiGrid);
+
+   prepare_to_receive_velocity_block_data(mpiGrid);
+   //re-init vlasovmover
+   profile::start("InitMoverAfterBlockChange");
+   initMoverAfterBlockChange(mpiGrid);
+   profile::stop("InitMoverAfterBlockChange");
+   
+   profile::stop("re-adjust blocks");
+   return true;
+}
 
 
 /*!
@@ -509,7 +551,7 @@ Adjusts velocity blocks in local spatial cells.
 
 Doesn't adjust velocity blocks of copies of remote neighbors.
 */
-bool adjust_all_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+bool adjust_local_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    profile::start("Adjusting blocks");
 
    const vector<uint64_t> cells = mpiGrid.get_cells();

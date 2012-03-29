@@ -16,7 +16,7 @@ AR ?= ar
 TRANSSOLVER ?= leveque
 
 #leveque or semilag
-ACCSOLVER ?= leveque
+ACCSOLVER ?= semilag
 
 #londrillo_delzanna (no other options)
 FIELDSOLVER ?= londrillo_delzanna
