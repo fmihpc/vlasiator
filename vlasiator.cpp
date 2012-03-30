@@ -227,7 +227,7 @@ int main(int argn,char* args[]) {
                  profile::start("propagation");
                  calculateSpatialFluxes(mpiGrid,P::dt);
 #ifdef SEMILAG
-                 adjust_velocity_blocks(mpiGrid);
+                 adjustVelocityBlocks(mpiGrid);
 #endif
                  calculateSpatialPropagation(mpiGrid,true,P::dt);
                  profile::stop("propagation",computedBlocks,"Blocks");
@@ -238,7 +238,7 @@ int main(int argn,char* args[]) {
                  calculateSpatialPropagation(mpiGrid,true,P::dt);
                  profile::stop("First propagation",computedBlocks,"Blocks");
 #ifdef SEMILAG
-                 adjust_velocity_blocks(mpiGrid);
+                 adjustVelocityBlocks(mpiGrid);
 #endif
                  profile::start("Second propagation");
                  calculateSpatialFluxes(mpiGrid,0.5*P::dt);
@@ -250,7 +250,7 @@ int main(int argn,char* args[]) {
                  calculateAcceleration(mpiGrid,0.5*P::dt);
                  profile::stop("Acceleration",computedBlocks,"Blocks");
 #ifdef SEMILAG
-                 adjust_velocity_blocks(mpiGrid);
+                 adjustVelocityBlocks(mpiGrid);
 #endif
                  profile::start("Trans + acc");
                  calculateSpatialFluxes(mpiGrid,P::dt);
@@ -260,7 +260,7 @@ int main(int argn,char* args[]) {
                  //if we are careful this might not be needed, if the
                  //next timestep acceleration is the next step, then
                  //it does not matter what other cells have done
-                 adjust_velocity_blocks(mpiGrid);
+                 adjustVelocityBlocks(mpiGrid);
 #endif
                  break;
 
@@ -269,7 +269,7 @@ int main(int argn,char* args[]) {
 #ifndef SEMILAG
          //if no semi-lagrangean then we do the adjustment here.
          if(P::tstep%P::blockAdjustmentInterval == 0){
-            adjust_velocity_blocks(mpiGrid);
+            adjustVelocityBlocks(mpiGrid);
          }
 #endif        
 	  

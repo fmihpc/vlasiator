@@ -518,7 +518,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
 //data. Solvers are also updated so that their internal structures are
 //ready for the new number of blocks.
 
-bool adjust_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    profile::initializeTimer("re-adjust blocks","Block adjustment");
    profile::start("re-adjust blocks");
    vector<uint64_t> cells = mpiGrid.get_cells();
