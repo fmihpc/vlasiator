@@ -42,7 +42,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 using namespace std;
 using namespace profile;
 
-extern Logger logfile;
+extern Logger logfile, diagnostic;
 
 /** Subroutine for setting up a single spatial cell.
  */
@@ -186,7 +186,6 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid){
 }
 
 
-
 /** Set up a spatial cell.
  * @param cell The spatial cell which is to be initialized.
  * @param xmin x-coordinate of the lower left corner of the cell.
@@ -271,8 +270,6 @@ bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
 }
 
 
-
-
 void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    // tell other processes which velocity blocks exist in remote spatial cells
    profile::initializeTimer("Balancing load", "Load balance");
@@ -324,9 +321,6 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    
    profile::stop("Balancing load");
 }
-
-
-
 
 
 bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const bool& writeRestart) {
@@ -513,6 +507,75 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
 }
 
 
+bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid, DataReducer& dataReducer)
+{
+   int myrank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+   
+   string dataType;
+   uint dataSize, vectorSize;
+   vector<uint64_t> cells = mpiGrid.get_cells();
+   cuint nCells = cells.size();
+   cuint nOps = dataReducer.size();
+   Real localMin[nOps], localMax[nOps], localSum[nOps+1], localAvg[nOps],
+   globalMin[nOps],globalMax[nOps],globalSum[nOps+1],globalAvg[nOps];
+   localSum[0] = 1.0 * nCells;
+   Real buffer;
+   bool success = true;
+   static bool printDiagnosticHeader = true;
+   
+   if (printDiagnosticHeader == true && myrank == 0) {
+      diagnostic << "# Column 1 Step" << endl;
+      for (uint i=0; i<nOps; ++i) {
+	 diagnostic << "# Columns " << 2 + i*4 << " to " << 5 + i*4 << ": " << dataReducer.getName(i) << " min max sum average" << endl;
+      }
+      printDiagnosticHeader = false;
+      
+      diagnostic << "0\t";
+   }
+   
+   for (uint i=0; i<nOps; ++i) {
+      
+      if (dataReducer.getDataVectorInfo(i,dataType,dataSize,vectorSize) == false) {
+	 cerr << "ERROR when requesting info from diagnostic DRO " << dataReducer.getName(i) << endl;
+      }
+      localMin[i] = std::numeric_limits<Real>::max();
+      localMax[i] = std::numeric_limits<Real>::min();
+      localSum[i+1] = 0.0;
+      buffer = 0.0;
+      
+      // Request DataReductionOperator to calculate the reduced data for all local cells:
+      for (uint64_t cell=0; cell<nCells; ++cell) {
+	 success = true;
+	 if (dataReducer.reduceData(mpiGrid[cells[cell]], i, &buffer) == false) success = false;
+	 localMin[i] = min(buffer, localMin[i]);
+	 localMax[i] = max(buffer, localMax[i]);
+	 localSum[i+1] += buffer;
+      }
+      localAvg[i] = localSum[i+1];
+      
+      if (success == false) logfile << "(MAIN) computeDiagnostic: ERROR datareductionoperator '" << dataReducer.getName(i) << "' returned false!" << endl << write;
+   }
+   
+   MPI_Reduce(&localMin, &globalMin, nOps, MPI_Type<Real>(), MPI_MIN, 0, MPI_COMM_WORLD);
+   MPI_Reduce(&localMax, &globalMax, nOps, MPI_Type<Real>(), MPI_MAX, 0, MPI_COMM_WORLD);
+   MPI_Reduce(&localSum, &globalSum, nOps + 1, MPI_Type<Real>(), MPI_SUM, 0, MPI_COMM_WORLD);
+   
+   for (uint i=0; i<nOps; ++i) {
+      if (globalSum[0] != 0.0) globalAvg[i] = globalSum[i+1] / globalSum[0];
+      else globalAvg[i] = globalSum[i+1];
+      if (myrank == 0) {
+	 diagnostic << globalMin[i] << "\t" <<
+	 globalMax[i] << "\t" <<
+	 globalSum[i+1] << "\t" <<
+	 globalAvg[i] << "\t";
+      }
+   }
+   if (myrank == 0) diagnostic << endl << writeNVerb;
+   return true;
+}
+
+
 //Compute which blocks have content, adjust local velocity blocks, and
 //make sure remote cells are up-to-date and ready to receive
 //data. Solvers are also updated so that their internal structures are
@@ -652,4 +715,3 @@ void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
    }
    profile::stop("Preparing receives", incoming_cells.size(), "SpatialCells");
 }
-

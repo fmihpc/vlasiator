@@ -63,7 +63,8 @@ struct Parameters {
    static luint tstep;               /**< The number of the current timestep. 0=initial state. */
    static luint tsteps;              /**< Total number of timesteps to calculate. */
    static luint saveRestartInterval;
-   static luint diagnInterval;
+   static luint diagnosticInterval;
+   static luint saveInterval;
 
    static bool save_spatial_grid;	/**< Save spatial cell averages for the whole simulation. */
    static bool save_velocity_grid;	/**< Save the velocity grid of every spatial cell in the simulation. */
@@ -87,6 +88,7 @@ struct Parameters {
    static uint rebalanceInterval; /**< Load rebalance interval (steps). */
    
    static std::vector<std::string> outputVariableList; /**< List of data reduction operators (DROs) to add to the grid file output.*/
+   static std::vector<std::string> diagnosticVariableList; /**< List of data reduction operators (DROs) to add to the diagnostic runtime output.*/
    
    static bool addParameters();
    static bool getParameters();

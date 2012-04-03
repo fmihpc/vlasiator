@@ -45,6 +45,7 @@ namespace DRO {
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
       virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell,Real * result);
       virtual bool setSpatialCell(const SpatialCell* cell);
       
     protected:
@@ -74,6 +75,7 @@ namespace DRO {
       bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       std::string getName() const;
       bool reduceData(const SpatialCell* cell,char* buffer);
+      bool reduceData(const SpatialCell* cell,Real* buffer);
       bool setSpatialCell(const SpatialCell* cell);
       
     protected:
@@ -189,6 +191,20 @@ namespace DRO {
         Real averageVX, averageVY, averageVZ;
 	Real Pressure;
 	const SpatialCell * currentCell;
+   };
+   
+   class DiagnosticFluxB: public DataReductionOperator {
+   public:
+      DiagnosticFluxB();
+      ~DiagnosticFluxB();
+      
+      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      std::string getName() const;
+      bool reduceData(const SpatialCell* cell,Real* result);
+      bool setSpatialCell(const SpatialCell* cell);
+      
+   protected:
+      
    };
 } // namespace DRO
 

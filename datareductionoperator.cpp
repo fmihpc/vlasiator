@@ -75,6 +75,18 @@ namespace DRO {
       return false;
    }
    
+   /** Reduce the data and write the data vector to the given variable.
+    * @param N_blocks Number of velocity blocks in array avgs.
+    * @param avgs Array containing distribution function values for each velocity block.
+    * @param blockParams Array containing the parameters of each velocity block.
+    * @param result Real variable in which the reduced data is written.
+    * @return If true, DataReductionOperator reduced data successfully.
+    */
+   bool DataReductionOperator::reduceData(const SpatialCell* cell,Real* result) {
+      cerr << "ERROR: DataReductionOperator::reduceData called instead of derived class function!" << endl;
+      return false;
+   }
+   
    /** Set the SpatialCell whose data is going to be reduced by subsequent calls to 
     * DRO::DataReductionOperator::reduceData. This function is provided so that 
     * variables stored per SpatialCell can be accessed.
@@ -259,6 +271,11 @@ namespace DRO {
       return true;
    }
    
+   bool Blocks::reduceData(const SpatialCell* cell,Real* buffer) {
+      *buffer = 1.0 * nBlocks;
+      return true;
+   }
+   
    bool Blocks::setSpatialCell(const SpatialCell* cell) {
       nBlocks = cell->number_of_blocks;
       return true;
@@ -338,7 +355,7 @@ namespace DRO {
      // these updates need to be atomic:
      
      Pressure += physicalconstants::MASS_PROTON * THIRD * (nvx2_sum + nvy2_sum + nvz2_sum);
-     //cout << Pressure << endl;
+     
      const char* ptr = reinterpret_cast<const char*>(&Pressure);
      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
      return true;
@@ -357,4 +374,54 @@ namespace DRO {
       Pressure = 0.0;
       return true;
    }
+   
+   // YK Integrated divergence of magnetic field
+   // Integral of div B over the simulation volume =
+   // Integral of flux of B on simulation volume surface
+   DiagnosticFluxB::DiagnosticFluxB(): DataReductionOperator() { }
+   DiagnosticFluxB::~DiagnosticFluxB() { }
+   
+   std::string DiagnosticFluxB::getName() const {return "FluxB";}
+   
+   bool DiagnosticFluxB::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 1;
+      return true;
+   }
+   
+   bool DiagnosticFluxB::reduceData(const SpatialCell* cell,Real * result) {
+      creal x = cell->parameters[CellParams::XCRD];
+      creal dx = cell->parameters[CellParams::DX];
+      creal y = cell->parameters[CellParams::YCRD];
+      creal dy = cell->parameters[CellParams::DY];
+      creal z = cell->parameters[CellParams::ZCRD];
+      creal dz = cell->parameters[CellParams::DZ];
+      creal cx = x + 0.5 * dx;
+      creal cy = y + 0.5 * dy;
+      creal cz = z + 0.5 * dz;
+      
+      Real value = 0.0;
+      if(cx > Parameters::xmax - 2.0 * dx && cx < Parameters::xmax - dx) {
+	 value += cell->parameters[CellParams::BX];
+      } else if (cx < Parameters::xmin + 2.0 * dx && cx > Parameters::xmin + dx) {
+	 value += -1.0*cell->parameters[CellParams::BX];
+      }
+      if(cy > Parameters::ymax - 2.0 * dy && cy < Parameters::ymax - dy) {
+	 value += cell->parameters[CellParams::BY];
+      } else if (cy < Parameters::ymin + 2.0 * dy && cy > Parameters::ymin + dy) {
+	 value += -1.0*cell->parameters[CellParams::BY];
+      }
+      if(cz > Parameters::zmax - 2.0 * dz && cz < Parameters::zmax - dz) {
+	 value += cell->parameters[CellParams::BZ];
+      } else if (cz < Parameters::zmin + 2.0 * dz && cz > Parameters::zmin + dz) {
+	 value += -1.0*cell->parameters[CellParams::BZ];
+      }
+      *result = value;
+      
+      return true;
+   }
+   
+   bool DiagnosticFluxB::setSpatialCell(const SpatialCell* cell) {return true;}
+   
 } // namespace DRO

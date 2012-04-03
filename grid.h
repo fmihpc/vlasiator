@@ -16,5 +16,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid);
 //write out system
 bool writeGrid(const dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,DataReducer& dataReducer,const bool& writeRestart);
 
+// Write out diagnostic
+bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid, DataReducer& dataReducer);
 
 #endif

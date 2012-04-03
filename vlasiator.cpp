@@ -54,13 +54,10 @@ void fpehandler(int sig_num)
 #include "profile.hpp"
 
 
-Logger logfile;
+Logger logfile, diagnostic;
 
 using namespace std;
 using namespace profile;
-
-   
-
 
 
 int main(int argn,char* args[]) {
@@ -70,7 +67,7 @@ int main(int argn,char* args[]) {
    typedef Parameters P;
    // Init MPI: 
 #ifdef _OPENMP
-   //init threaded MPI when comppiled using openmp
+   //init threaded MPI when compiled using openmp
    int required=MPI_THREAD_FUNNELED;
    int provided;
    MPI_Init_thread(&argn,&args,required,&provided);
@@ -109,12 +106,18 @@ int main(int argn,char* args[]) {
 
 
 // Init parallel logger:
-   profile::start("open logfile");
+   profile::start("open logfile & diagnostic");
    if (logfile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt") == false) {
       cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
       exit(1);
    }
-   profile::stop("open logfile");
+   if (P::diagnosticInterval != 0) {
+      if (diagnostic.open(MPI_COMM_WORLD,MASTER_RANK,"diagnostic.txt") == false) {
+         cerr << "(MAIN) ERROR: Logger failed to open diagnostic file!" << endl;
+         exit(1);
+      }
+   }
+   profile::stop("open logfile & diagnostic");
    
    profile::start("Init grid");
    dccrg::Dccrg<SpatialCell> mpiGrid;
@@ -126,8 +129,8 @@ int main(int argn,char* args[]) {
 
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
    // user-defined operators:
-   DataReducer outputReducer;
-   initializeDataReducers(&outputReducer);
+   DataReducer outputReducer, diagnosticReducer;
+   initializeDataReducers(&outputReducer, &diagnosticReducer);
    
    //VlsWriter vlsWriter;
    profile::start("Init vlasov propagator");
@@ -172,11 +175,21 @@ int main(int argn,char* args[]) {
 	 logfile << "(MAIN): Saving initial state of variables to disk." << endl << write;
       }
 
-if (writeGrid(mpiGrid,outputReducer,true) == false) {
+   if (writeGrid(mpiGrid,outputReducer,true) == false) {
 	 logfile << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
       }
    }
    profile::stop("Save initial state");
+   
+   if (P::diagnosticInterval != 0)
+   {
+      profile::start("Diagnostic");
+      if (computeDiagnostic(mpiGrid, diagnosticReducer) == false) {
+	 cerr << "ERROR with diagnostic computation" << endl;
+      }
+      profile::stop("Diagnostic");
+   }
+   
    profile::stop("Initialization");
    MPI_Barrier(MPI_COMM_WORLD);
 
@@ -193,7 +206,7 @@ if (writeGrid(mpiGrid,outputReducer,true) == false) {
    profile::start("Simulation");
    for (luint tstep=P::tstep_min; tstep < P::tsteps; ++tstep) {
 
-      if (myrank == MASTER_RANK)  cout << "On step " << tstep << endl;
+      if (myrank == MASTER_RANK) diagnostic << tstep + 1 << "\t";
       //compute how many spatial cells we solve for this step
       vector<uint64_t> cells = mpiGrid.get_cells();
       computedSpatialCells=cells.size();
@@ -290,7 +303,7 @@ if (writeGrid(mpiGrid,outputReducer,true) == false) {
       P::t += P::dt;
       
       // Check if data needs to be written to disk:
-      if (P::tstep % P::saveRestartInterval == 0 || P::tstep % P::diagnInterval == 0) {
+      if (P::tstep % P::saveRestartInterval == 0 || P::tstep % P::saveInterval == 0) {
          profile::start("IO");
 	 bool writeRestartData = false;
 	 if (P::tstep % P::saveRestartInterval == 0) {
@@ -306,6 +319,15 @@ if (writeGrid(mpiGrid,outputReducer,true) == false) {
 	      logfile << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
 	 }
          profile::stop("IO");
+      }
+      
+      // Check whether diagnostic output has to be produced
+      if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
+	 profile::start("Diagnostic");
+	 if (computeDiagnostic(mpiGrid, diagnosticReducer) == false) {
+	    cerr << "ERROR with diagnostic computation" << endl;
+	 }
+	 profile::stop("Diagnostic");
       }
    }
    double after = MPI_Wtime();
@@ -335,6 +357,7 @@ if (writeGrid(mpiGrid,outputReducer,true) == false) {
 
    if (myrank == MASTER_RANK) logfile << "(MAIN): Exiting." << endl << write;
    logfile.close();
+   if (P::diagnosticInterval != 0) diagnostic.close();
    return 0;
 }
 

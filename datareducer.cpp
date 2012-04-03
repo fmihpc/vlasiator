@@ -24,7 +24,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 using namespace std;
 
-void initializeDataReducers(DataReducer * outputReducer)
+void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer)
 {
    typedef Readparameters RP;
    typedef Parameters P;
@@ -51,6 +51,15 @@ void initializeDataReducers(DataReducer * outputReducer)
 	 outputReducer->addOperator(new DRO::VariableVolB);
       if(*it == "Pressure")
 	 outputReducer->addOperator(new DRO::VariablePressure);
+   }
+   
+   for (it = P::diagnosticVariableList.begin();
+	it != P::diagnosticVariableList.end();
+   it++) {
+      if(*it == "FluxB")
+	 diagnosticReducer->addOperator(new DRO::DiagnosticFluxB);
+      if(*it == "Blocks")
+	 diagnosticReducer->addOperator(new DRO::Blocks);
    }
 }
 
@@ -126,6 +135,21 @@ bool DataReducer::reduceData(const SpatialCell* cell,const unsigned int& operato
    if (operators[operatorID]->setSpatialCell(cell) == false) return false;
 
    if (operators[operatorID]->reduceData(cell,buffer) == false) return false;
+   return true;
+}
+
+/** Request a DataReductionOperator to calculate its output data and to write it to the given variable.
+ * @param cell Pointer to spatial cell whose data is to be reduced.
+ * @param operatorID ID number of the applied DataReductionOperator.
+ * @param result Real variable in which DataReductionOperator should write its result.
+ * @return If true, DataReductionOperator calculated and wrote data successfully.
+ */
+bool DataReducer::reduceData(const SpatialCell* cell,const unsigned int& operatorID,Real * result) {
+   // Tell the chosen operator which spatial cell we are counting:
+   if (operatorID >= operators.size()) return false;
+   if (operators[operatorID]->setSpatialCell(cell) == false) return false;
+   
+   if (operators[operatorID]->reduceData(cell,result) == false) return false;
    return true;
 }
 

@@ -40,6 +40,7 @@ class DataReducer {
    bool getDataVectorInfo(const unsigned int& operatorID,std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
    std::string getName(const unsigned int& operatorID) const;
    bool reduceData(const SpatialCell* cell,const unsigned int& operatorID,char* buffer);
+   bool reduceData(const SpatialCell* cell,const unsigned int& operatorID,Real * result);
    unsigned int size() const;
    
  private:
@@ -52,6 +53,6 @@ class DataReducer {
 							stored in DataReducer.*/
 };
 
-void initializeDataReducers(DataReducer * outputReducer);
+void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer);
 
 #endif

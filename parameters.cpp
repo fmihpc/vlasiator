@@ -63,7 +63,8 @@ luint P::tstep = 0;
 luint P::tstep_min = 0;
 luint P::tsteps = 0;
 luint P::saveRestartInterval = numeric_limits<uint>::max();
-luint P::diagnInterval = numeric_limits<uint>::max();
+luint P::diagnosticInterval = numeric_limits<uint>::max();
+luint P::saveInterval = numeric_limits<uint>::max();
 
 bool P::save_spatial_grid;
 bool P::save_velocity_grid;
@@ -88,11 +89,13 @@ string P::loadBalanceTolerance = string("");
 uint P::rebalanceInterval = numeric_limits<uint>::max();
 
 vector<string> P::outputVariableList;
+vector<string> P::diagnosticVariableList;
 
 bool Parameters::addParameters(){
         //the other default parameters we read through the add/get interface
         Readparameters::add("save_interval", "Save the simulation every arg time steps",1);
-        Readparameters::add("restart_interval","Save the complete simulation every arg time steps",numeric_limits<uint>::max());
+	Readparameters::add("diagnostic_interval", "Write diagnostic output every arg time steps", 1);
+	Readparameters::add("restart_interval","Save the complete simulation every arg time steps",numeric_limits<uint>::max());
         Readparameters::add("save_spatial_grid", "Save spatial cell averages for the whole simulation",true);
         Readparameters::add("save_velocity_grid","Save velocity grid from every spatial cell in the simulation",false);
         
@@ -142,14 +145,15 @@ bool Parameters::addParameters(){
 	
 	// Output variable parameters
 	Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available (20120403) are B E Rho RhoV MPIrank Blocks VolE VolB Pressure.");
+	Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Available (20120403) are Blocks FluxB.");
         return true;
 }
 
 bool Parameters::getParameters(){
    //get numerical values of the parameters
    
-   Readparameters::get("save_interval", P::diagnInterval);
-   Readparameters::get("save_interval", P::diagnInterval);
+   Readparameters::get("save_interval", P::saveInterval);
+   Readparameters::get("diagnostic_interval", P::diagnosticInterval);
    Readparameters::get("restart_interval", P::saveRestartInterval);
    Readparameters::get("save_spatial_grid", P::save_spatial_grid);
    Readparameters::get("save_velocity_grid", P::save_velocity_grid);
@@ -221,6 +225,7 @@ bool Parameters::getParameters(){
    
    // Get output variable parameters
    Readparameters::get("variables.output", P::outputVariableList);
+   Readparameters::get("variables.diagnostic", P::diagnosticVariableList);
    
    return true;
 }
