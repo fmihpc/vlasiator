@@ -81,7 +81,6 @@ bool Logger::flush(bool verbose) {
       // Form a new output buffer containing the process number, date 
       // and the user-given message. Attempt to write it to file.
       
-      tmp << "PROC #" << mpiRank << ' ';
       tmp << strTime << ' ' << endl;
       strTime = outStream.str();
       tmp << strTime << endl;
@@ -156,7 +155,7 @@ Logger& Logger::operator<<(std::ostream& (*pf)(std::ostream& )) {
  * @param logger Reference to Logger.
  * @return Reference to Logger.
  */
-Logger& write(Logger& logger) {
+Logger& writeVerbose(Logger& logger) {
    if (logger.flush(true) == false) {
       cerr << "Logger failed to write!" << endl;
    }
@@ -172,7 +171,7 @@ Logger& write(Logger& logger) {
  * @param logger Reference to Logger.
  * @return Reference to Logger.
  */
-Logger& writeNVerb(Logger& logger) {
+Logger& write(Logger& logger) {
    if (logger.flush(false) == false) {
       cerr << "Logger failed to write!" << endl;
    }

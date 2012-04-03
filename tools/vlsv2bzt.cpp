@@ -80,7 +80,7 @@ bool convertMesh(VLSVReader& vlsvReader,
       cerr << "ERROR reading array VARIABLE " << varToExtract << endl;
    }
    unsigned long int numberOfValuesToSend = orderedData.size();
-   Real valuesToSend[numberOfValuesToSend];
+   vector<Real> valuesToSend(numberOfValuesToSend);
    unsigned long int j;
    map<Real, Real>::const_iterator it;
    for(it = orderedData.begin(), j = 0;
@@ -98,7 +98,7 @@ bool convertMesh(VLSVReader& vlsvReader,
 	 MPI_Send(&numberOfValuesToSend, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
       }
    }
-   MPI_Ssend(&valuesToSend, numberOfValuesToSend, MPI_DOUBLE, 0, entryName + 1, MPI_COMM_WORLD);
+   MPI_Ssend(&valuesToSend[0], numberOfValuesToSend, MPI_DOUBLE, 0, entryName + 1, MPI_COMM_WORLD);
    return coordSuccess && variableSuccess;
 }
 
@@ -202,10 +202,10 @@ int main(int argn,char* args[]) {
       
       int lineLength;
       MPI_Recv(&lineLength, 1, MPI_INT, 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      Real recvBuffer[lineLength];
+      vector<Real> recvBuffer(lineLength);
       for(unsigned long int entryName = 0; entryName < fileList.size(); entryName++)
       {
-	 MPI_Recv(&recvBuffer, lineLength, MPI_DOUBLE, entryName%(ntasks - 1) + 1, entryName + 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	 MPI_Recv(&recvBuffer[0], lineLength, MPI_DOUBLE, entryName%(ntasks - 1) + 1, entryName + 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	 for(int i = 0; i < lineLength; i++)
 	 {
 	    fprintf(outputFile, "%e ", recvBuffer[i]);

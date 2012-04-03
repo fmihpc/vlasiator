@@ -122,7 +122,7 @@ int main(int argn,char* args[]) {
    profile::start("Init grid");
    dccrg::Dccrg<SpatialCell> mpiGrid;
    if (initializeGrid(argn,args,mpiGrid) == false) {
-      logfile << "(MAIN): Grid did not initialize correctly!" << endl << write;
+      logfile << "(MAIN): Grid did not initialize correctly!" << endl << writeVerbose;
       exit(1);
    }  
    profile::stop("Init grid");
@@ -136,7 +136,7 @@ int main(int argn,char* args[]) {
    profile::start("Init vlasov propagator");
    // Initialize Vlasov propagator:
    if (initializeMover(mpiGrid) == false) {
-      logfile << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << write;
+      logfile << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << writeVerbose;
       exit(1);
    }   
    calculateVelocityMoments(mpiGrid);
@@ -145,7 +145,7 @@ int main(int argn,char* args[]) {
    profile::start("Init field propagator");
    // Initialize field propagator:
    if (initializeFieldPropagator(mpiGrid,P::propagateField) == false) {
-       logfile << "(MAIN): Field propagator did not initialize correctly!" << endl << write;
+       logfile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
        exit(1);
    }
    profile::stop("Init field propagator");
@@ -154,7 +154,7 @@ int main(int argn,char* args[]) {
 
    profile::start("Init project");
    if (initializeProject() == false) {
-      logfile << "(MAIN): Project did not initialize correctly!" << endl << write;
+      logfile << "(MAIN): Project did not initialize correctly!" << endl << writeVerbose;
       exit(1);
    }
    profile::stop("Init project");
@@ -172,11 +172,11 @@ int main(int argn,char* args[]) {
    // Write initial state:
    if (P::save_spatial_grid) {
       if (myrank == MASTER_RANK) {
-	 logfile << "(MAIN): Saving initial state of variables to disk." << endl << write;
+	 logfile << "(MAIN): Saving initial state of variables to disk." << endl << writeVerbose;
       }
 
    if (writeGrid(mpiGrid,outputReducer,true) == false) {
-	 logfile << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
+	 logfile << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << writeVerbose;
       }
    }
    profile::stop("Save initial state");
@@ -195,7 +195,7 @@ int main(int argn,char* args[]) {
 
 
    // Main simulation loop:
-   if (myrank == MASTER_RANK) logfile << "(MAIN): Starting main simulation loop." << endl << write;
+   if (myrank == MASTER_RANK) logfile << "(MAIN): Starting main simulation loop." << endl << writeVerbose;
 
    double before = MPI_Wtime();
    unsigned int totalComputedSpatialCells=0;
@@ -309,14 +309,14 @@ int main(int argn,char* args[]) {
 	 if (P::tstep % P::saveRestartInterval == 0) {
 	   writeRestartData = true;
 	   if (myrank == MASTER_RANK)
-	   logfile << "(MAIN): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << write;
+	   logfile << "(MAIN): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
 	 } else
 	   if (myrank == MASTER_RANK)
-	     logfile << "(MAIN): Writing spatial cell data to disk, tstep = " << P::tstep << " t = " << P::t << endl << write;
+	     logfile << "(MAIN): Writing spatial cell data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
 	 
 	   if (writeGrid(mpiGrid,outputReducer,writeRestartData) == false) {
 	    if (myrank == MASTER_RANK)
-	      logfile << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
+	      logfile << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << writeVerbose;
 	 }
          profile::stop("IO");
       }
@@ -344,7 +344,7 @@ int main(int argn,char* args[]) {
 	 logfile << "\t (TIME) seconds per timestep " << double(after - before) / P::tsteps <<
 	 ", seconds per simulated second " << double(after - before) / P::t << endl;
       }
-      logfile << write;
+      logfile << writeVerbose;
    }
    
    profile::stop("Finalization");   
@@ -355,7 +355,7 @@ int main(int argn,char* args[]) {
    
    
 
-   if (myrank == MASTER_RANK) logfile << "(MAIN): Exiting." << endl << write;
+   if (myrank == MASTER_RANK) logfile << "(MAIN): Exiting." << endl << writeVerbose;
    logfile.close();
    if (P::diagnosticInterval != 0) diagnostic.close();
    return 0;

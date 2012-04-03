@@ -82,7 +82,7 @@ Logger& Logger::operator<<(const T& value) {
    return *this;
 }
 
+Logger& writeVerbose(Logger& logger);
 Logger& write(Logger& logger);
-Logger& writeNVerb(Logger& logger);
 
 #endif
