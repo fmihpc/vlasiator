@@ -85,7 +85,9 @@ struct Parameters {
    static std::string loadBalanceAlgorithm; /**< Algorithm to be used for load balance.*/
    static std::string loadBalanceTolerance; /**< Load imbalance tolerance. */
    static uint rebalanceInterval; /**< Load rebalance interval (steps). */
-
+   
+   static std::vector<std::string> outputVariableList; /**< List of data reduction operators (DROs) to add to the grid file output.*/
+   
    static bool addParameters();
    static bool getParameters();
    

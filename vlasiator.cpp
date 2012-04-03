@@ -126,17 +126,9 @@ int main(int argn,char* args[]) {
 
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
    // user-defined operators:
-   DataReducer reducer;
-   reducer.addOperator(new DRO::VariableB);
-   reducer.addOperator(new DRO::VariableE);
-   reducer.addOperator(new DRO::VariableRho);
-   reducer.addOperator(new DRO::VariableRhoV);
-   reducer.addOperator(new DRO::MPIrank);
-   reducer.addOperator(new DRO::Blocks);
-   reducer.addOperator(new DRO::VariableVolE);
-   reducer.addOperator(new DRO::VariableVolB);
-   reducer.addOperator(new DRO::VariablePressure);
-      
+   DataReducer outputReducer;
+   initializeDataReducers(&outputReducer);
+   
    //VlsWriter vlsWriter;
    profile::start("Init vlasov propagator");
    // Initialize Vlasov propagator:
@@ -180,7 +172,7 @@ int main(int argn,char* args[]) {
 	 logfile << "(MAIN): Saving initial state of variables to disk." << endl << write;
       }
 
-      if (writeGrid(mpiGrid,reducer,true) == false) {
+if (writeGrid(mpiGrid,outputReducer,true) == false) {
 	 logfile << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
       }
    }
@@ -309,7 +301,7 @@ int main(int argn,char* args[]) {
 	   if (myrank == MASTER_RANK)
 	     logfile << "(MAIN): Writing spatial cell data to disk, tstep = " << P::tstep << " t = " << P::t << endl << write;
 	 
-	 if (writeGrid(mpiGrid,reducer,writeRestartData) == false) {
+	   if (writeGrid(mpiGrid,outputReducer,writeRestartData) == false) {
 	    if (myrank == MASTER_RANK)
 	      logfile << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
 	 }

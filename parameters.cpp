@@ -87,6 +87,7 @@ string P::loadBalanceAlgorithm = string("");
 string P::loadBalanceTolerance = string("");
 uint P::rebalanceInterval = numeric_limits<uint>::max();
 
+vector<string> P::outputVariableList;
 
 bool Parameters::addParameters(){
         //the other default parameters we read through the add/get interface
@@ -138,6 +139,9 @@ bool Parameters::addParameters(){
         Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("HYPERGRAPH"));
         Readparameters::add("loadBalance.tolerance", "Load imbalance tolerance", std::string("1.05"));
         Readparameters::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
+	
+	// Output variable parameters
+	Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available (20120403) are B E Rho RhoV MPIrank Blocks VolE VolB Pressure.");
         return true;
 }
 
@@ -214,6 +218,9 @@ bool Parameters::getParameters(){
    Readparameters::get("loadBalance.algorithm", P::loadBalanceAlgorithm);
    Readparameters::get("loadBalance.tolerance", P::loadBalanceTolerance);
    Readparameters::get("loadBalance.rebalanceInterval", P::rebalanceInterval);
+   
+   // Get output variable parameters
+   Readparameters::get("variables.output", P::outputVariableList);
    
    return true;
 }

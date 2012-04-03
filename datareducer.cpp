@@ -20,8 +20,43 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <iostream>
 
 #include "datareducer.h"
+#include "readparameters.h"
 
 using namespace std;
+
+void initializeDataReducers(DataReducer * outputReducer)
+{
+   typedef Readparameters RP;
+   typedef Parameters P;
+   
+   vector<string>::const_iterator it;
+   for (it = P::outputVariableList.begin();
+	it != P::outputVariableList.end();
+   it++) {
+      if(*it == "B")
+	 outputReducer->addOperator(new DRO::VariableB);
+      if(*it == "E")
+	 outputReducer->addOperator(new DRO::VariableE);
+      if(*it == "Rho")
+	 outputReducer->addOperator(new DRO::VariableRho);
+      if(*it == "RhoV")
+	 outputReducer->addOperator(new DRO::VariableRhoV);
+      if(*it == "MPIrank")
+	 outputReducer->addOperator(new DRO::MPIrank);
+      if(*it == "Blocks")
+	 outputReducer->addOperator(new DRO::Blocks);
+      if(*it == "VolE")
+	 outputReducer->addOperator(new DRO::VariableVolE);
+      if(*it == "VolB")
+	 outputReducer->addOperator(new DRO::VariableVolB);
+      if(*it == "Pressure")
+	 outputReducer->addOperator(new DRO::VariablePressure);
+   }
+}
+
+// ************************************************************
+// ***** DEFINITIONS FOR DATAREDUCER CLASS *****
+// ************************************************************
 
 static unsigned int dataReducers = 0;
 

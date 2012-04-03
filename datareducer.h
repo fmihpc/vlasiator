@@ -52,4 +52,6 @@ class DataReducer {
 							stored in DataReducer.*/
 };
 
+void initializeDataReducers(DataReducer * outputReducer);
+
 #endif
