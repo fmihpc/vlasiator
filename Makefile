@@ -78,11 +78,11 @@ LIBS += ${LIB_CUDA}
 LIBS += ${LIB_PROFILE}
 
 # Define common dependencies
-DEPS_COMMON = common.h definitions.h mpiconversion.h mpilogger.h
+DEPS_COMMON = common.h definitions.h mpiconversion.h logger.h
 
 #all objects for vlasiator
 OBJS = 	datareducer.o datareductionoperator.o 		\
-	grid.o vlasiator.o mpifile.o mpilogger.o muxml.o	\
+	grid.o vlasiator.o logger.o muxml.o	\
 	parameters.o readparameters.o project.o	spatial_cell.o		\
 	vlscommon.o vlsvreader2.o vlsvwriter2.o vlasovmover_$(TRANSSOLVER).o $(FIELDSOLVER).o
 
@@ -126,11 +126,8 @@ grid.o:  ${DEPS_COMMON} parameters.h  project.h  spatial_cell.hpp grid.cpp grid.
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c grid.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE}
 
 
-mpifile.o: ${DEPS_COMMON} mpifile.h mpifile.cpp  
-	${CMP} ${CXXFLAGS} ${FLAGS} -c mpifile.cpp ${INC_MPI}
-
-mpilogger.o: mpifile.h mpilogger.h mpilogger.cpp   
-	${CMP} ${CXXFLAGS} ${FLAGS} -c mpilogger.cpp ${INC_MPI}
+logger.o: logger.h logger.cpp   
+	${CMP} ${CXXFLAGS} ${FLAGS} -c logger.cpp ${INC_MPI}
 
 muxml.o: muxml.h muxml.cpp     
 	${CMP} ${CXXFLAGS} ${FLAGS} -c muxml.cpp

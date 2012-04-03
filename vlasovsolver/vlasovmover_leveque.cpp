@@ -30,7 +30,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "../vlasovmover.h"
 #include "profile.hpp"
 #include "cpu_trans_leveque.h"
-#include "../mpilogger.h"
 #ifdef CRAY_TOPOLOGY_OPTIMIZATION
 #include "graph.h"
 #include "mapping.h"
@@ -74,8 +73,6 @@ static map<CellID,vector< vector<Real> > > remoteUpdates;     /**< For each loca
 namespace ID {
    typedef unsigned int type;
 }
-
-extern MPILogger mpilogger;
 
 CellID getNeighbourID(
 	const dccrg::Dccrg<SpatialCell>& mpiGrid,

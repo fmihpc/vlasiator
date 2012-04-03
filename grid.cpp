@@ -29,7 +29,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "vlasovmover.h"
 #include "definitions.h"
 #include "mpiconversion.h"
-#include "mpilogger.h"
+#include "logger.h"
 #include "parameters.h"
 
 #include "datareducer.h"
@@ -42,7 +42,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 using namespace std;
 using namespace profile;
 
-extern MPILogger mpilogger;
+extern Logger logfile;
 
 /** Subroutine for setting up a single spatial cell.
  */
@@ -97,9 +97,9 @@ bool initializeGrid(int argn, char **argc,dccrg::Dccrg<SpatialCell>& mpiGrid){
 // Init Zoltan:
    float zoltanVersion;
    if (Zoltan_Initialize(argn,argc,&zoltanVersion) != ZOLTAN_OK) {
-      mpilogger << "\t ERROR: Zoltan initialization failed, aborting." << std::endl << write;
+      logfile << "\t ERROR: Zoltan initialization failed, aborting." << std::endl << write;
    } else {
-      mpilogger << "\t Zoltan " << zoltanVersion << " initialized successfully" << std::endl << write;
+      logfile << "\t Zoltan " << zoltanVersion << " initialized successfully" << std::endl << write;
    }
    
    mpiGrid.set_geometry(
@@ -126,12 +126,12 @@ bool initializeGrid(int argn, char **argc,dccrg::Dccrg<SpatialCell>& mpiGrid){
    
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
    profile::start("Initial load-balancing");
-   if (myrank == 0) mpilogger << "(INIT): Starting initial load balance." << endl << write;
+   if (myrank == 0) logfile << "(INIT): Starting initial load balance." << endl << write;
    mpiGrid.balance_load();
    profile::stop("Initial load-balancing");
 
 
-   if (myrank == 0) mpilogger << "(INIT): Set initial state." << endl << write;
+   if (myrank == 0) logfile << "(INIT): Set initial state." << endl << write;
    
    // Go through every spatial cell on this CPU, and create the initial state:
 
@@ -311,13 +311,13 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    profile::start("Init solvers");
    //need to re-initialize stencils and neighbors in leveque solver
    if (initializeMover(mpiGrid) == false) {
-      mpilogger << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << write;
+      logfile << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << write;
       exit(1);
    }
 
       // Initialize field propagator:
    if (initializeFieldPropagatorAfterRebalance(mpiGrid,P::propagateField) == false) {
-       mpilogger << "(MAIN): Field propagator did not initialize correctly!" << endl << write;
+       logfile << "(MAIN): Field propagator did not initialize correctly!" << endl << write;
        exit(1);
    }
    profile::stop("Init solvers");
@@ -390,11 +390,11 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
       for (uint64_t cell=0; cell<cells.size(); ++cell) {
 	 if (dataReducer.reduceData(mpiGrid[cells[cell]],i,varBuffer + cell*vectorSize*dataSize) == false) success = false;
       }
-      if (success == false) mpilogger << "(MAIN) writeGrid: ERROR datareductionoperator '" << dataReducer.getName(i) << "' returned false!" << endl << write;
+      if (success == false) logfile << "(MAIN) writeGrid: ERROR datareductionoperator '" << dataReducer.getName(i) << "' returned false!" << endl << write;
       
       // Write reduced data to file:
       if (vlsvWriter.writeArray("VARIABLE",variableName,attribs,cells.size(),vectorSize,dataType,dataSize,varBuffer) == false) success = false;
-      if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to write datareductionoperator data to file!" << endl << write;
+      if (success == false) logfile << "(MAIN) writeGrid: ERROR failed to write datareductionoperator data to file!" << endl << write;
       delete[] varBuffer;
       varBuffer = NULL;
    }
@@ -422,7 +422,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    }
    
    if (vlsvWriter.writeArray("CELLPARAMS","SpatialGrid",attribs,cells.size(),CellParams::N_SPATIAL_CELL_PARAMS,paramsBuffer) == false) {
-      mpilogger << "(MAIN) writeGrid: ERROR failed to write spatial cell parameters!" << endl << write;
+      logfile << "(MAIN) writeGrid: ERROR failed to write spatial cell parameters!" << endl << write;
       success = false;
    }
    delete[] paramsBuffer;
@@ -434,7 +434,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    // should be requested from a function, but for now we just write velocity grids for all cells.
    // First write global IDs of those cells which write velocity blocks (here: all cells):
    if (vlsvWriter.writeArray("CELLSWITHBLOCKS","SpatialGrid",attribs,cells.size(),1,&(cells[0])) == false) success = false;
-   if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to write CELLSWITHBLOCKS to file!" << endl << write;
+   if (success == false) logfile << "(MAIN) writeGrid: ERROR failed to write CELLSWITHBLOCKS to file!" << endl << write;
    
    // Write the number of velocity blocks in each spatial cell. Again a temporary buffer is used:
    uint* N_blocks = new uint[cells.size()];
@@ -444,7 +444,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
       totalBlocks += mpiGrid[cells[cell]]->size();
    }
    if (vlsvWriter.writeArray("NBLOCKS","SpatialGrid",attribs,cells.size(),1,N_blocks) == false) success = false;
-   if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to write NBLOCKS to file!" << endl << write;
+   if (success == false) logfile << "(MAIN) writeGrid: ERROR failed to write NBLOCKS to file!" << endl << write;
    delete[] N_blocks;
    
    double start = MPI_Wtime();
@@ -469,7 +469,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    }
 
    if (vlsvWriter.writeArray("BLOCKCOORDINATES","SpatialGrid",attribs,totalBlocks,BlockParams::N_VELOCITY_BLOCK_PARAMS,&(velocityBlockParameters[0])) == false) success = false;
-   if (success == false) mpilogger << "(MAIN) writeGrid: ERROR failed to write BLOCKCOORDINATES to file!" << endl << write;
+   if (success == false) logfile << "(MAIN) writeGrid: ERROR failed to write BLOCKCOORDINATES to file!" << endl << write;
    velocityBlockParameters.clear();
 
    
@@ -491,7 +491,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
 
    attribs["mesh"] = "SpatialGrid";
    if (vlsvWriter.writeArray("BLOCKVARIABLE","avgs",attribs,totalBlocks,SIZE_VELBLOCK,&(velocityBlockData[0])) == false) success=false;
-   if (success ==false)      mpilogger << "(MAIN) writeGrid: ERROR occurred when writing BLOCKVARIABLE avgs" << endl << write;
+   if (success ==false)      logfile << "(MAIN) writeGrid: ERROR occurred when writing BLOCKVARIABLE avgs" << endl << write;
    velocityBlockData.clear();
    
    double end = MPI_Wtime();
@@ -504,7 +504,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    //double bytesWritten = totalBlocks*((SIZE_VELBLOCK+SIZE_BLOCKPARAMS)*sizeof(Real)+(SIZE_NBRS_VEL)*sizeof(uint));
    double secs = end-start;
    //FIXME, should be global info
-   //mpilogger << "Wrote " << bytesWritten/1.0e6 << " MB of data in " << secs << " seconds, datarate is " << bytesWritten/secs/1.0e9 << " GB/s" << endl << write;
+   //logfile << "Wrote " << bytesWritten/1.0e6 << " MB of data in " << secs << " seconds, datarate is " << bytesWritten/secs/1.0e9 << " GB/s" << endl << write;
    
    double allSecs = allEnd-allStart;
 

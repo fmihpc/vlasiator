@@ -27,7 +27,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "vlasovmover.h"
 #include "definitions.h"
 #include "mpiconversion.h"
-#include "mpilogger.h"
+#include "logger.h"
 #include "parameters.h"
 #include "readparameters.h"
 #include "spatial_cell.hpp"
@@ -54,7 +54,7 @@ void fpehandler(int sig_num)
 #include "profile.hpp"
 
 
-MPILogger mpilogger;
+Logger logfile;
 
 using namespace std;
 using namespace profile;
@@ -109,17 +109,17 @@ int main(int argn,char* args[]) {
 
 
 // Init parallel logger:
-   profile::start("open mpilogger");
-   if (mpilogger.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt") == false) {
-      cerr << "(MAIN) ERROR: MPILogger failed to open output file!" << endl;
+   profile::start("open logfile");
+   if (logfile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt") == false) {
+      cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
       exit(1);
    }
-   profile::stop("open mpilogger");
+   profile::stop("open logfile");
    
    profile::start("Init grid");
    dccrg::Dccrg<SpatialCell> mpiGrid;
    if (initializeGrid(argn,args,mpiGrid) == false) {
-      mpilogger << "(MAIN): Grid did not initialize correctly!" << endl << write;
+      logfile << "(MAIN): Grid did not initialize correctly!" << endl << write;
       exit(1);
    }  
    profile::stop("Init grid");
@@ -141,7 +141,7 @@ int main(int argn,char* args[]) {
    profile::start("Init vlasov propagator");
    // Initialize Vlasov propagator:
    if (initializeMover(mpiGrid) == false) {
-      mpilogger << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << write;
+      logfile << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << write;
       exit(1);
    }   
    calculateVelocityMoments(mpiGrid);
@@ -150,7 +150,7 @@ int main(int argn,char* args[]) {
    profile::start("Init field propagator");
    // Initialize field propagator:
    if (initializeFieldPropagator(mpiGrid,P::propagateField) == false) {
-       mpilogger << "(MAIN): Field propagator did not initialize correctly!" << endl << write;
+       logfile << "(MAIN): Field propagator did not initialize correctly!" << endl << write;
        exit(1);
    }
    profile::stop("Init field propagator");
@@ -159,7 +159,7 @@ int main(int argn,char* args[]) {
 
    profile::start("Init project");
    if (initializeProject() == false) {
-      mpilogger << "(MAIN): Project did not initialize correctly!" << endl << write;
+      logfile << "(MAIN): Project did not initialize correctly!" << endl << write;
       exit(1);
    }
    profile::stop("Init project");
@@ -177,11 +177,11 @@ int main(int argn,char* args[]) {
    // Write initial state:
    if (P::save_spatial_grid) {
       if (myrank == MASTER_RANK) {
-	 mpilogger << "(MAIN): Saving initial state of variables to disk." << endl << write;
+	 logfile << "(MAIN): Saving initial state of variables to disk." << endl << write;
       }
 
       if (writeGrid(mpiGrid,reducer,true) == false) {
-	 mpilogger << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
+	 logfile << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
       }
    }
    profile::stop("Save initial state");
@@ -190,7 +190,7 @@ int main(int argn,char* args[]) {
 
 
    // Main simulation loop:
-   if (myrank == MASTER_RANK) mpilogger << "(MAIN): Starting main simulation loop." << endl << write;
+   if (myrank == MASTER_RANK) logfile << "(MAIN): Starting main simulation loop." << endl << write;
 
    double before = MPI_Wtime();
    unsigned int totalComputedSpatialCells=0;
@@ -304,14 +304,14 @@ int main(int argn,char* args[]) {
 	 if (P::tstep % P::saveRestartInterval == 0) {
 	   writeRestartData = true;
 	   if (myrank == MASTER_RANK)
-	   mpilogger << "(MAIN): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << write;
+	   logfile << "(MAIN): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << write;
 	 } else
 	   if (myrank == MASTER_RANK)
-	     mpilogger << "(MAIN): Writing spatial cell data to disk, tstep = " << P::tstep << " t = " << P::t << endl << write;
+	     logfile << "(MAIN): Writing spatial cell data to disk, tstep = " << P::tstep << " t = " << P::t << endl << write;
 	 
 	 if (writeGrid(mpiGrid,reducer,writeRestartData) == false) {
 	    if (myrank == MASTER_RANK)
-	      mpilogger << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
+	      logfile << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << write;
 	 }
          profile::stop("IO");
       }
@@ -324,13 +324,13 @@ int main(int argn,char* args[]) {
    finalizeFieldPropagator(mpiGrid);
    
    if (myrank == MASTER_RANK) {
-      mpilogger << "(MAIN): All timesteps calculated." << endl;
-      mpilogger << "\t (TIME) total run time " << after - before << " s, total simulated time " << P::t << " s" << endl;
+      logfile << "(MAIN): All timesteps calculated." << endl;
+      logfile << "\t (TIME) total run time " << after - before << " s, total simulated time " << P::t << " s" << endl;
       if(P::t != 0.0) {
-	 mpilogger << "\t (TIME) seconds per timestep " << double(after - before) / P::tsteps <<
+	 logfile << "\t (TIME) seconds per timestep " << double(after - before) / P::tsteps <<
 	 ", seconds per simulated second " << double(after - before) / P::t << endl;
       }
-      mpilogger << write;
+      logfile << write;
    }
    
    profile::stop("Finalization");   
@@ -341,8 +341,8 @@ int main(int argn,char* args[]) {
    
    
 
-   if (myrank == MASTER_RANK) mpilogger << "(MAIN): Exiting." << endl << write;
-   mpilogger.close();
+   if (myrank == MASTER_RANK) logfile << "(MAIN): Exiting." << endl << write;
+   logfile.close();
    return 0;
 }
 
