@@ -31,11 +31,11 @@ typedef Parameters P;
 
 // Define static members:
 Real P::xmin = NAN;
-//Real P::xmax = NAN;
+Real P::xmax = NAN;
 Real P::ymin = NAN;
-//Real P::ymax = NAN;
+Real P::ymax = NAN;
 Real P::zmin = NAN;
-//Real P::zmax = NAN;
+Real P::zmax = NAN;
 Real P::dx_ini = NAN;
 Real P::dy_ini = NAN;
 Real P::dz_ini = NAN;
@@ -142,9 +142,7 @@ bool Parameters::addParameters(){
 }
 
 bool Parameters::getParameters(){
-   Real xmax,ymax,zmax;
-   
-    //get numerical values of the parameters
+   //get numerical values of the parameters
    
    Readparameters::get("save_interval", P::diagnInterval);
    Readparameters::get("save_interval", P::diagnInterval);
@@ -158,11 +156,11 @@ bool Parameters::getParameters(){
    
    /*get numerical values, let Readparameters handle the conversions*/
    Readparameters::get("gridbuilder.x_min",P::xmin);
-    Readparameters::get("gridbuilder.x_max",xmax);
+    Readparameters::get("gridbuilder.x_max",P::xmax);
     Readparameters::get("gridbuilder.y_min",P::ymin);
-    Readparameters::get("gridbuilder.y_max",ymax);
+    Readparameters::get("gridbuilder.y_max",P::ymax);
     Readparameters::get("gridbuilder.z_min",P::zmin);
-    Readparameters::get("gridbuilder.z_max",zmax);
+    Readparameters::get("gridbuilder.z_max",P::zmax);
     Readparameters::get("gridbuilder.x_length",P::xcells_ini);
     Readparameters::get("gridbuilder.y_length",P::ycells_ini);
     Readparameters::get("gridbuilder.z_length",P::zcells_ini);
@@ -176,7 +174,7 @@ bool Parameters::getParameters(){
     Readparameters::get("gridbuilder.vy_length",P::vyblocks_ini);
     Readparameters::get("gridbuilder.vz_length",P::vzblocks_ini);
     
-    if (xmax < P::xmin || (ymax < P::ymin || zmax < P::zmin)) return false;
+    if (P::xmax < P::xmin || (P::ymax < P::ymin || P::zmax < P::zmin)) return false;
     if (P::vxmax < P::vxmin || (P::vymax < P::vymin || P::vzmax < P::vzmin)) return false;
     
     std::string periodic_x,periodic_y,periodic_z;
@@ -191,9 +189,9 @@ bool Parameters::getParameters(){
     if (periodic_z == "yes") P::periodic_z = true;
     
     // Set some parameter values. 
-    P::dx_ini = (xmax-P::xmin)/P::xcells_ini;
-    P::dy_ini = (ymax-P::ymin)/P::ycells_ini;
-    P::dz_ini = (zmax-P::zmin)/P::zcells_ini;
+    P::dx_ini = (P::xmax-P::xmin)/P::xcells_ini;
+    P::dy_ini = (P::ymax-P::ymin)/P::ycells_ini;
+    P::dz_ini = (P::zmax-P::zmin)/P::zcells_ini;
     
    Real t_min;
    Readparameters::get("gridbuilder.q",P::q);
