@@ -328,6 +328,8 @@ int main(int argn,char* args[]) {
 	    cerr << "ERROR with diagnostic computation" << endl;
 	 }
 	 profile::stop("Diagnostic");
+         //also print out profile log
+         profile::printLogProfile(MPI_COMM_WORLD,P::tstep,"profile_log"," ");
       }
    }
    double after = MPI_Wtime();
@@ -349,8 +351,10 @@ int main(int argn,char* args[]) {
    
    profile::stop("Finalization");   
    profile::stop("main");
-   profile::print(MPI_COMM_WORLD);
-   profile::print(MPI_COMM_WORLD,0.01);
+   
+   profile::print(MPI_COMM_WORLD,"profile_full");
+   profile::print(MPI_COMM_WORLD,"profile_reduced",0.01);
+
 
    
    
