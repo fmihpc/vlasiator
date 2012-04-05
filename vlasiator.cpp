@@ -329,7 +329,7 @@ int main(int argn,char* args[]) {
 	 }
 	 profile::stop("Diagnostic");
          //also print out profile log
-         profile::printLogProfile(MPI_COMM_WORLD,P::tstep,"profile_log"," ");
+         profile::printLogProfile(MPI_COMM_WORLD,P::tstep,"profile_log"," ",7);
       }
    }
    double after = MPI_Wtime();
