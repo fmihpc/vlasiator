@@ -1,20 +1,21 @@
-%Vlasiator=load('Parallel_rhovelPert_Byt_lower_k.dat');
+%Vlasiator=load('Parallel_rhovelPert_rhot_lower_k.dat');
 clf
 Real=Vlasiator(:,:);
 
 Matsize=size(Real);
 lines=Matsize(1);
 cols=Matsize(2);
+window = hamming(lines)';
 
 for i=1:cols
-    Real(:,i) = Real(:, i) .* hamming(lines)';
+    Real(:,i) = Real(:, i) .* window;
 end
 
 
 % Partial plotting
 k_start = 2;
 k_end = 1000;
-w_start = 2;
+w_start = 1;
 w_end = 100;
 
 % Parameters 
