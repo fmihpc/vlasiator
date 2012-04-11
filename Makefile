@@ -138,11 +138,8 @@ parameters.o: parameters.h parameters.cpp readparameters.h
 readparameters.o: readparameters.h readparameters.cpp 
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c readparameters.cpp ${INC_BOOST}
 
-project.cpp: projects/$(PROJ)/$(PROJ).cpp 
-	ln -f -s projects/$(PROJ)/$(PROJ).cpp project.cpp 
-
-project.h: projects/$(PROJ)/$(PROJ).h 
-	ln -f -s projects/$(PROJ)/$(PROJ).h project.h 
+create_project_symlinks:
+	@./create_project_symlinks.sh $(PROJ)
 
 project.o: $(DEPS_COMMON) parameters.h readparameters.h project.h project.cpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c project.cpp ${INC_BOOST} ${INC_ZOLTAN} ${INC_DCCRG} ${INC_MPI}
@@ -160,7 +157,7 @@ vlsvwriter2.o: mpiconversion.h muxml.h muxml.cpp vlscommon.h vlsvwriter2.h vlsvw
 
 
 # Make executable
-vlasiator: $(OBJS)
+vlasiator: create_project_symlinks $(OBJS)
 	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) 
 
 
