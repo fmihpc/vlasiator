@@ -60,7 +60,8 @@ bool convertMesh(VLSVReader& vlsvReader,
    char* meshBuffer = new char[meshVectorSize*meshDataSize];
    uint* meshPtr = reinterpret_cast<uint*>(meshBuffer);
    char* variableBuffer = new char[variableVectorSize*variableDataSize];
-   Real* variablePtrReal = reinterpret_cast<Real*>(variableBuffer);
+   float* variablePtrFloat = reinterpret_cast<float*>(variableBuffer);
+   double* variablePtrDouble = reinterpret_cast<double*>(variableBuffer);
    uint* variablePtrUint = reinterpret_cast<uint*>(variableBuffer);
    int* variablePtrInt = reinterpret_cast<int*>(variableBuffer);
    
@@ -74,7 +75,8 @@ bool convertMesh(VLSVReader& vlsvReader,
       switch (variableDataType)
       {
 	 case VLSV::FLOAT:
-	    extract = variablePtrReal[compToExtract];
+	    if(variableDataSize == sizeof(float)) extract = (Real)(variablePtrFloat[compToExtract]);
+	    if(variableDataSize == sizeof(double)) extract = (Real)(variablePtrDouble[compToExtract]);
 	    break;
 	 case VLSV::UINT:
 	    extract = (Real)(variablePtrUint[compToExtract]);
