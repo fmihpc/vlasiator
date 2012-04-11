@@ -31,6 +31,9 @@ typedef larmorParameters LarmP;
 Real LarmP::BX0 = NAN;
 Real LarmP::BY0 = NAN;
 Real LarmP::BZ0 = NAN;
+Real LarmP::VX0 = NAN;
+Real LarmP::VY0 = NAN;
+Real LarmP::VZ0 = NAN;
 Real LarmP::DENSITY = NAN;
 Real LarmP::TEMPERATURE = NAN;
 Real LarmP::magPertAmp = NAN;
@@ -50,6 +53,9 @@ bool addProjectParameters() {
    RP::add("Larmor.BX0", "Background field value (T)", 1.0e-9);
    RP::add("Larmor.BY0", "Background field value (T)", 2.0e-9);
    RP::add("Larmor.BZ0", "Background field value (T)", 3.0e-9);
+   RP::add("Larmor.VX0", "Bulk velocity in x", 0.0);
+   RP::add("Larmor.VY0", "Bulk velocity in y", 0.0);
+   RP::add("Larmor.VZ0", "Bulk velocuty in z", 0.0);
    RP::add("Larmor.rho", "Number density (m^-3)", 1.0e7);
    RP::add("Larmor.Temperature", "Temperature (K)", 2.0e6);
    RP::add("Larmor.magPertAmp", "Amplitude of the magnetic perturbation", 1.0e-9);
@@ -68,6 +74,9 @@ bool getProjectParameters() {
    RP::get("Larmor.BX0", LarmP::BX0);
    RP::get("Larmor.BY0", LarmP::BY0);
    RP::get("Larmor.BZ0", LarmP::BZ0);
+   RP::get("Larmor.VX0", LarmP::VX0);
+   RP::get("Larmor.VY0", LarmP::VY0);
+   RP::get("Larmor.VZ0", LarmP::VZ0);
    RP::get("Larmor.rho", LarmP::DENSITY);
    RP::get("Larmor.Temperature", LarmP::TEMPERATURE);
    RP::get("Larmor.magPertAmp", LarmP::magPertAmp);
@@ -87,8 +96,9 @@ bool cellParametersChanged(creal& t) {return false;}
 Real getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz) {
    creal k = 1.3806505e-23; // Boltzmann
    creal mass = 1.67262171e-27; // m_p in kg
-	return exp(- mass * (vx*vx + vy*vy + vz*vz) / (2.0 * k * LarmP::TEMPERATURE))*
-     exp(-pow(x-Parameters::xmax/2.5, 2.0)/pow(LarmP::SCA_X, 2.0))*exp(-pow(y-Parameters::ymax/2.0, 2.0)/pow(LarmP::SCA_Y, 2.0));
+   
+   return exp(- mass * ((vx-LarmP::VX0)*(vx-LarmP::VX0) + (vy-LarmP::VY0)*(vy-LarmP::VY0)+ (vz-LarmP::VZ0)*(vz-LarmP::VZ0)) / (2.0 * k * LarmP::TEMPERATURE))*
+      exp(-pow(x-Parameters::xmax/2.5, 2.0)/pow(LarmP::SCA_X, 2.0))*exp(-pow(y-Parameters::ymax/2.0, 2.0)/pow(LarmP::SCA_Y, 2.0));
 }
 
 Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
@@ -121,20 +131,19 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
    Real avg = 0.0;
    
    for (uint i=0; i<LarmP::nSpaceSamples; ++i)
-    for (uint j=0; j<LarmP::nSpaceSamples; ++j)
-	 for (uint k=0; k<LarmP::nSpaceSamples; ++k)      
-     for (uint vi=0; vi<LarmP::nVelocitySamples; ++vi)
-      for (uint vj=0; vj<LarmP::nVelocitySamples; ++vj)
-	  for (uint vk=0; vk<LarmP::nVelocitySamples; ++vk)
-         {
-	     avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz);
-  	     }
+      for (uint j=0; j<LarmP::nSpaceSamples; ++j)
+         for (uint k=0; k<LarmP::nSpaceSamples; ++k)
+            for (uint vi=0; vi<LarmP::nVelocitySamples; ++vi)
+               for (uint vj=0; vj<LarmP::nVelocitySamples; ++vj)
+                  for (uint vk=0; vk<LarmP::nVelocitySamples; ++vk)
+                  {
+                     avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz);
+                  }
    
    creal result = avg *LarmP::DENSITY * pow(mass / (2.0 * M_PI * k * LarmP::TEMPERATURE), 1.5) /
-                    (LarmP::nSpaceSamples*LarmP::nSpaceSamples*LarmP::nSpaceSamples) / 
-//   	            (Parameters::vzmax - Parameters::vzmin) / 
-                  (LarmP::nVelocitySamples*LarmP::nVelocitySamples*LarmP::nVelocitySamples);
-				  
+      (LarmP::nSpaceSamples*LarmP::nSpaceSamples*LarmP::nSpaceSamples) / 
+      (LarmP::nVelocitySamples*LarmP::nVelocitySamples*LarmP::nVelocitySamples);
+   
 				  
    if(result < LarmP::maxwCutoff) {
       return 0.0;

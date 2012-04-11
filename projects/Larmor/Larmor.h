@@ -35,6 +35,9 @@ struct larmorParameters {
    static Real BX0;
    static Real BY0;
    static Real BZ0;
+   static Real VX0;
+   static Real VY0;
+   static Real VZ0;
    static Real DENSITY;
    static Real TEMPERATURE;
    static Real magPertAmp;
