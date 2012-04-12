@@ -38,13 +38,11 @@ struct larmorParameters {
    static Real VX0;
    static Real VY0;
    static Real VZ0;
+   static Real X0;
+   static Real Y0;
+   static Real Z0;
    static Real DENSITY;
-   static Real TEMPERATURE;
-   static Real maxwCutoff;
-   static uint nSpaceSamples;
-   static uint nVelocitySamples;
-   static Real SCA_X;
-   static Real SCA_Y;
+
 } ;
 
 /**

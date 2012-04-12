@@ -34,32 +34,26 @@ Real LarmP::BZ0 = NAN;
 Real LarmP::VX0 = NAN;
 Real LarmP::VY0 = NAN;
 Real LarmP::VZ0 = NAN;
+Real LarmP::X0 = NAN;
+Real LarmP::Y0 = NAN;
+Real LarmP::Z0 = NAN;
 Real LarmP::DENSITY = NAN;
-Real LarmP::TEMPERATURE = NAN;
-Real LarmP::maxwCutoff = NAN;
-//uint LarmP::sectorSize = 0;
-uint LarmP::nSpaceSamples = 0;
-uint LarmP::nVelocitySamples = 0;
-Real LarmP::SCA_X = NAN;
-Real LarmP::SCA_Y = NAN;
+
 
 bool initializeProject(void) {return true;}
 
 bool addProjectParameters() {
    typedef Readparameters RP;
-   RP::add("Larmor.BX0", "Background field value (T)", 1.0e-9);
-   RP::add("Larmor.BY0", "Background field value (T)", 2.0e-9);
-   RP::add("Larmor.BZ0", "Background field value (T)", 3.0e-9);
+   RP::add("Larmor.BX0", "Background field value (T)", 0.0);
+   RP::add("Larmor.BY0", "Background field value (T)", 0.0);
+   RP::add("Larmor.BZ0", "Background field value (T)", 0.0);
    RP::add("Larmor.VX0", "Bulk velocity in x", 0.0);
    RP::add("Larmor.VY0", "Bulk velocity in y", 0.0);
-   RP::add("Larmor.VZ0", "Bulk velocuty in z", 0.0);
+   RP::add("Larmor.VZ0", "Bulk velocity in z", 0.0);
+   RP::add("Larmor.X0", "Initial Position", 0.0);
+   RP::add("Larmor.Y0", "Initial Position", 0.0);
+   RP::add("Larmor.Z0", "Initial Position", 0.0);
    RP::add("Larmor.rho", "Number density (m^-3)", 1.0e7);
-   RP::add("Larmor.Temperature", "Temperature (K)", 2.0e6);
-   RP::add("Larmor.nSpaceSamples", "Number of sampling points per spatial dimension", 1);
-   RP::add("Larmor.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
-   RP::add("Larmor.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
-   RP::add("Larmor.Scale_x", "Scale length in x (m)", 2.0e6);
-   RP::add("Larmor.Scale_y", "Scale length in y (m)", 2.0e6);
    return true;
 }
 
@@ -71,28 +65,22 @@ bool getProjectParameters() {
    RP::get("Larmor.VX0", LarmP::VX0);
    RP::get("Larmor.VY0", LarmP::VY0);
    RP::get("Larmor.VZ0", LarmP::VZ0);
+   RP::get("Larmor.X0", LarmP::X0);
+   RP::get("Larmor.Y0", LarmP::Y0);
+   RP::get("Larmor.Z0", LarmP::Z0);
    RP::get("Larmor.rho", LarmP::DENSITY);
-   RP::get("Larmor.Temperature", LarmP::TEMPERATURE);
-   RP::get("Larmor.nSpaceSamples", LarmP::nSpaceSamples);
-   RP::get("Larmor.nVelocitySamples", LarmP::nVelocitySamples);
-   RP::get("Larmor.maxwCutoff", LarmP::maxwCutoff);
-   RP::get("Larmor.Scale_x", LarmP::SCA_X);
-   RP::get("Larmor.Scale_y", LarmP::SCA_Y);
    return true;
 }
 
 bool cellParametersChanged(creal& t) {return false;}
 
 
-Real getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz) {
-   creal k = 1.3806505e-23; // Boltzmann
-   creal mass = 1.67262171e-27; // m_p in kg
-   
-   return exp(- mass * ((vx-LarmP::VX0)*(vx-LarmP::VX0) + (vy-LarmP::VY0)*(vy-LarmP::VY0)+ (vz-LarmP::VZ0)*(vz-LarmP::VZ0)) / (2.0 * k * LarmP::TEMPERATURE))*
-      exp(-pow(x-Parameters::xmax/2.5, 2.0)/pow(LarmP::SCA_X, 2.0))*exp(-pow(y-Parameters::ymax/2.0, 2.0)/pow(LarmP::SCA_Y, 2.0));
-}
+
 
 Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+
+   static bool isSet=false;
+
    if(vx < Parameters::vxmin + 0.5 * dvx ||
       vy < Parameters::vymin + 0.5 * dvy ||
       vz < Parameters::vzmin + 0.5 * dvz ||
@@ -100,47 +88,28 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
       vy > Parameters::vymax - 1.5 * dvy ||
       vz > Parameters::vzmax - 1.5 * dvz
    ) return 0.0;
+
+   if(isSet)
+      return 0.0; //exactly one value to be set
+
    
    creal mass = Parameters::m;
    creal q = Parameters::q;
    creal k = 1.3806505e-23; // Boltzmann
    creal mu0 = 1.25663706144e-6; // mu_0
 
-   static int rndRho = 0;
-   static int rndVel[3] = {0};
-   int cellID = (int) (x / dx) +
-                (int) (y / dy) * Parameters::xcells_ini +
-                (int) (z / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-   srand(cellID);
-   
-   creal d_x = dx / (LarmP::nSpaceSamples-1);
-   creal d_y = dy / (LarmP::nSpaceSamples-1);
-   creal d_z = dz / (LarmP::nSpaceSamples-1);
-   creal d_vx = dvx / (LarmP::nVelocitySamples-1);
-   creal d_vy = dvy / (LarmP::nVelocitySamples-1);
-   creal d_vz = dvz / (LarmP::nVelocitySamples-1);
-   Real avg = 0.0;
-   
-   for (uint i=0; i<LarmP::nSpaceSamples; ++i)
-      for (uint j=0; j<LarmP::nSpaceSamples; ++j)
-         for (uint k=0; k<LarmP::nSpaceSamples; ++k)
-            for (uint vi=0; vi<LarmP::nVelocitySamples; ++vi)
-               for (uint vj=0; vj<LarmP::nVelocitySamples; ++vj)
-                  for (uint vk=0; vk<LarmP::nVelocitySamples; ++vk)
-                  {
-                     avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz);
-                  }
-   
-   creal result = avg *LarmP::DENSITY * pow(mass / (2.0 * M_PI * k * LarmP::TEMPERATURE), 1.5) /
-      (LarmP::nSpaceSamples*LarmP::nSpaceSamples*LarmP::nSpaceSamples) / 
-      (LarmP::nVelocitySamples*LarmP::nVelocitySamples*LarmP::nVelocitySamples);
-   
-				  
-   if(result < LarmP::maxwCutoff) {
-      return 0.0;
-   } else {
-      return result;
+   if( fabs(vx-LarmP::VX0)<dvx &&
+       fabs(vy-LarmP::VY0)<dvy &&
+       fabs(vz-LarmP::VZ0)<dvz &&
+       fabs(x-LarmP::X0)<dx &&
+       fabs(y-LarmP::Y0)<dy &&
+       fabs(z-LarmP::Z0)<dz){
+      isSet=true;
+      return LarmP::DENSITY/(dvx*dvy*dvz);
    }
+
+   return 0.0;
+   
 }
       
 void calcBlockParameters(Real* blockParams) {
@@ -158,16 +127,17 @@ void calcCellParameters(Real* cellParams,creal& t) {
    int cellID = (int) (x / dx) +
    (int) (y / dy) * Parameters::xcells_ini +
    (int) (z / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-   srand(cellID);
    
    cellParams[CellParams::EX   ] = 0.0;
    cellParams[CellParams::EY   ] = 0.0;
    cellParams[CellParams::EZ   ] = 0.0;
-   cellParams[CellParams::BX   ] = 0.0;
-   cellParams[CellParams::BY   ] = 0.0;
+   
+   cellParams[CellParams::BX   ] = LarmP::BX0;
+   cellParams[CellParams::BY   ] = LarmP::BY0;
    cellParams[CellParams::BZ   ] = LarmP::BZ0;
-   cellParams[CellParams::BXVOL   ] = 0.0;
-   cellParams[CellParams::BYVOL   ] = 0.0;
+   
+   cellParams[CellParams::BXVOL   ] = LarmP::BX0;
+   cellParams[CellParams::BYVOL   ] = LarmP::BY0;
    cellParams[CellParams::BZVOL   ] = LarmP::BZ0;
 }
 
