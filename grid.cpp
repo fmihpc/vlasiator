@@ -239,18 +239,19 @@ bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
 	 creal vy_cell = vy_block + jc*dvy_blockCell;
 	 creal vz_cell = vz_block + kc*dvz_blockCell;
          Real average=calcPhaseSpaceDensity(xmin,ymin,zmin,dx,dy,dz,vx_cell,vy_cell,vz_cell,dvx_blockCell,dvy_blockCell,dvz_blockCell);
-         
-         creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
-         creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
-         creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
-         cell.set_value(vx_cell_center,vy_cell_center,vz_cell_center,average);
-         // Add contributions to spatial cell velocity moments:
-         creal dV = dvx_blockCell*dvy_blockCell*dvz_blockCell;  // Volume of one cell in a block      
-         cell.parameters[CellParams::RHO  ] += average*dV;
-         cell.parameters[CellParams::RHOVX] += average*vx_cell_center*dV;
-         cell.parameters[CellParams::RHOVY] += average*vy_cell_center*dV;
-         cell.parameters[CellParams::RHOVZ] += average*vz_cell_center*dV;
 
+         if(average!=0.0){
+            creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
+            creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
+            creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
+            cell.set_value(vx_cell_center,vy_cell_center,vz_cell_center,average);
+            // Add contr   ibutions to spatial cell velocity moments:
+            creal dV = dvx_blockCell*dvy_blockCell*dvz_blockCell;  // Volume of one cell in a block      
+            cell.parameters[CellParams::RHO  ] += average*dV;
+            cell.parameters[CellParams::RHOVX] += average*vx_cell_center*dV;
+            cell.parameters[CellParams::RHOVY] += average*vy_cell_center*dV;
+            cell.parameters[CellParams::RHOVZ] += average*vz_cell_center*dV;
+         }
       }
    }
    creal spatialVolume = cell.parameters[CellParams::DX]*cell.parameters[CellParams::DY]*cell.parameters[CellParams::DZ];
