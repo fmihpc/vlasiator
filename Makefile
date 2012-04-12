@@ -163,7 +163,7 @@ vlsvwriter2.o: mpiconversion.h muxml.h muxml.cpp vlscommon.h vlsvwriter2.h vlsvw
 # Make executable
 vlasiator:  $(OBJS)
 	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) 
-
+	rm project.h project.cpp #always delete, to be on the safe side
 
 
 
