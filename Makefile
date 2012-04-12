@@ -138,6 +138,10 @@ parameters.o: parameters.h parameters.cpp readparameters.h
 readparameters.o: readparameters.h readparameters.cpp 
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c readparameters.cpp ${INC_BOOST}
 
+project.h: create_project_symlinks
+
+project.cpp: create_project_symlinks
+
 create_project_symlinks:
 	@./create_project_symlinks.sh $(PROJ)
 
@@ -157,7 +161,7 @@ vlsvwriter2.o: mpiconversion.h muxml.h muxml.cpp vlscommon.h vlsvwriter2.h vlsvw
 
 
 # Make executable
-vlasiator: create_project_symlinks $(OBJS)
+vlasiator:  $(OBJS)
 	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) 
 
 
