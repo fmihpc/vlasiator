@@ -508,7 +508,9 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
 }
 
 
-bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid, DataReducer& dataReducer)
+bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
+		       DataReducer& dataReducer,
+		       luint tstep)
 {
    int myrank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
@@ -531,8 +533,6 @@ bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid, DataReducer& da
 	 diagnostic << "# Columns " << 2 + i*4 << " to " << 5 + i*4 << ": " << dataReducer.getName(i) << " min max sum average" << endl;
       }
       printDiagnosticHeader = false;
-      
-      diagnostic << "0\t";
    }
    
    for (uint i=0; i<nOps; ++i) {
@@ -561,6 +561,8 @@ bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid, DataReducer& da
    MPI_Reduce(&localMin[0], &globalMin[0], nOps, MPI_Type<Real>(), MPI_MIN, 0, MPI_COMM_WORLD);
    MPI_Reduce(&localMax[0], &globalMax[0], nOps, MPI_Type<Real>(), MPI_MAX, 0, MPI_COMM_WORLD);
    MPI_Reduce(&localSum[0], &globalSum[0], nOps + 1, MPI_Type<Real>(), MPI_SUM, 0, MPI_COMM_WORLD);
+   
+   diagnostic << tstep << "\t";
    
    for (uint i=0; i<nOps; ++i) {
       if (globalSum[0] != 0.0) globalAvg[i] = globalSum[i+1] / globalSum[0];

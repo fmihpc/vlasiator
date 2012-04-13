@@ -184,7 +184,7 @@ int main(int argn,char* args[]) {
    if (P::diagnosticInterval != 0)
    {
       profile::start("Diagnostic");
-      if (computeDiagnostic(mpiGrid, diagnosticReducer) == false) {
+      if (computeDiagnostic(mpiGrid, diagnosticReducer, P::tstep_min) == false) {
 	 cerr << "ERROR with diagnostic computation" << endl;
       }
       profile::stop("Diagnostic");
@@ -205,8 +205,6 @@ int main(int argn,char* args[]) {
 
    profile::start("Simulation");
    for (luint tstep=P::tstep_min; tstep < P::tsteps; ++tstep) {
-
-      if (myrank == MASTER_RANK) diagnostic << tstep + 1 << "\t";
       //compute how many spatial cells we solve for this step
       vector<uint64_t> cells = mpiGrid.get_cells();
       computedSpatialCells=cells.size();
@@ -324,7 +322,7 @@ int main(int argn,char* args[]) {
       // Check whether diagnostic output has to be produced
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
 	 profile::start("Diagnostic");
-	 if (computeDiagnostic(mpiGrid, diagnosticReducer) == false) {
+	 if (computeDiagnostic(mpiGrid, diagnosticReducer, tstep+1) == false) {
 	    cerr << "ERROR with diagnostic computation" << endl;
 	 }
 	 profile::stop("Diagnostic");
@@ -354,11 +352,7 @@ int main(int argn,char* args[]) {
    
    profile::print(MPI_COMM_WORLD,"profile_full");
    profile::print(MPI_COMM_WORLD,"profile_reduced",0.01);
-
-
    
-   
-
    if (myrank == MASTER_RANK) logfile << "(MAIN): Exiting." << endl << writeVerbose;
    logfile.close();
    if (P::diagnosticInterval != 0) diagnostic.close();
