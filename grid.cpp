@@ -154,6 +154,8 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid){
     // cpu memory, physical parameters and volume averages for each phase space 
     // point in the velocity grid. Velocity block neighbour list is also 
     // constructed here:
+    // Each initialization has to be independent to avoid threadingproblems 
+#pragma omp parallel for schedule(dynamic)
     for (uint i=0; i<cells.size(); ++i) {
        Real xmin,ymin,zmin,dx,dy,dz;
        dx = mpiGrid.get_cell_x_size(cells[i]);
