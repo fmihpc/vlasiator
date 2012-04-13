@@ -217,6 +217,11 @@ namespace DRO {
       for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
+
+   bool VariableRho::reduceData(const SpatialCell* cell,Real* buffer){
+      *buffer=rho;
+      return true;
+   }
    
    bool VariableRho::setSpatialCell(const SpatialCell* cell) {
       rho = cell->parameters[CellParams::RHO];
@@ -374,7 +379,68 @@ namespace DRO {
       Pressure = 0.0;
       return true;
    }
+
+
+
+
+
+
+//maximum absolute velocity in x,y, or z direction
+   MaxVi::MaxVi(): DataReductionOperator() { }
+   MaxVi::~MaxVi() { }
    
+   std::string MaxVi::getName() const {return "MaximumVelocityComponent";}
+   
+   bool MaxVi::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+     dataType = "float";
+     dataSize =  sizeof(Real);
+     vectorSize = 1;
+     return true;
+   }
+   
+
+   bool MaxVi::reduceData(const SpatialCell* cell,Real* buffer) {
+      const Real HALF = 0.5;
+      const Real THIRD = 1.0/3.0;
+     
+      Real maxV=0;
+
+      for(uint n=0; n<cell->number_of_blocks;n++) {
+	 unsigned int blockId = cell->velocity_block_list[n];
+	 const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
+	 for (uint k=0; k<WID; ++k)
+	    for (uint j=0; j<WID; ++j)
+	       for (uint i=0; i<WID; ++i) {
+                  const int celli=k*WID*WID+j*WID+i;
+                  
+		  const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
+		  const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
+		  const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+		  
+		  const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
+		  
+                  if(block->data[celli]!=0.0){
+                     if(fabs(VX)>maxV) maxV=fabs(VX);
+                     if(fabs(VY)>maxV) maxV=fabs(VY);
+                     if(fabs(VZ)>maxV) maxV=fabs(VZ);
+                  }
+	       }
+      }
+      *buffer=maxV;
+      return true;
+   }
+   bool MaxVi::reduceData(const SpatialCell* cell,char* buffer) {
+      Real maxV;
+      reduceData(cell,&maxV);
+      const char* ptr = reinterpret_cast<const char*>(&maxV);
+      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool MaxVi::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+
    // YK Integrated divergence of magnetic field
    // Integral of div B over the simulation volume =
    // Integral of flux of B on simulation volume surface

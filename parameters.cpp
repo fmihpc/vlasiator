@@ -145,7 +145,7 @@ bool Parameters::addParameters(){
 	
 	// Output variable parameters
 	Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available (20120403) are B E Rho RhoV MPIrank Blocks VolE VolB Pressure.");
-	Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Available (20120403) are Blocks FluxB.");
+	Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Available (20120413) are Blocks FluxB Rho MaxVi.");
         return true;
 }
 

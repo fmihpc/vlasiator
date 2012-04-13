@@ -60,6 +60,10 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 diagnosticReducer->addOperator(new DRO::DiagnosticFluxB);
       if(*it == "Blocks")
 	 diagnosticReducer->addOperator(new DRO::Blocks);
+      if(*it == "Rho")
+	 diagnosticReducer->addOperator(new DRO::VariableRho);
+      if(*it == "MaxVi")
+	 diagnosticReducer->addOperator(new DRO::MaxVi);
    }
 }
 

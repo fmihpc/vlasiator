@@ -153,6 +153,7 @@ namespace DRO {
       bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       std::string getName() const;
       bool reduceData(const SpatialCell* cell,char* buffer);
+      bool reduceData(const SpatialCell* cell,Real* buffer);
       bool setSpatialCell(const SpatialCell* cell);
       
     protected:
@@ -174,6 +175,21 @@ namespace DRO {
       Real rhovy;
       Real rhovz;
       const Real* rhov;
+   };
+
+   class MaxVi: public DataReductionOperator {
+   public:
+      MaxVi();
+      ~MaxVi();
+      
+      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      std::string getName() const;
+      bool reduceData(const SpatialCell* cell,char* buffer);
+      bool reduceData(const SpatialCell* cell,Real *buffer);
+      bool setSpatialCell(const SpatialCell* cell);
+      
+    protected:
+
    };
    
   // Added by YK
