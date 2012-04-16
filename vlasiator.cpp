@@ -104,6 +104,14 @@ int main(int argn,char* args[]) {
    getProjectParameters();
    profile::stop("Read parameters");
 
+   
+   profile::start("Init project");
+   if (initializeProject() == false) {
+      logfile << "(MAIN): Project did not initialize correctly!" << endl << writeVerbose;
+      exit(1);
+   }
+   profile::stop("Init project");
+   
 
 // Init parallel logger:
    profile::start("open logfile & diagnostic");
@@ -152,12 +160,6 @@ int main(int argn,char* args[]) {
    
 
 
-   profile::start("Init project");
-   if (initializeProject() == false) {
-      logfile << "(MAIN): Project did not initialize correctly!" << endl << writeVerbose;
-      exit(1);
-   }
-   profile::stop("Init project");
 
 
    
