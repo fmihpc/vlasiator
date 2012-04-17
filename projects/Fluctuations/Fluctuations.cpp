@@ -98,42 +98,34 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
    creal k = 1.3806505e-23; // Boltzmann
    creal mu0 = 1.25663706144e-6; // mu_0
    
-//   static int spaceIndexOld[3] = {std::numeric_limits<int>::min(),
-//                                  std::numeric_limits<int>::min(),
-//                                  std::numeric_limits<int>::min()};
-//   static int spaceIndex[3] = {0};
+
    static int rndRho = 0;
    static int rndVel[3] = {0};
-//   static int rndRhoSector = rand()%FlucP::sectorSize+1;
-//   static int rndVelSector = rand()%FlucP::sectorSize+1;
-//   static int cptRhoSector = 0;
-//   static int cptVelSector = 0;
-   int cellID = (int) (x / dx) +
-                (int) (y / dy) * Parameters::xcells_ini +
-                (int) (z / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-   srand(cellID);
-//    if(spaceIndex[0] != spaceIndexOld[0] ||
-//       spaceIndex[1] != spaceIndexOld[1] ||
-//       spaceIndex[2] != spaceIndexOld[2]) {
-//       if(cptRhoSector++%rndRhoSector == 0)
-//       {
-// 	 rndRho = rand();
-// 	 rndRhoSector = rand()%FlucP::sectorSize+1;
-//       }
-//       if(cptVelSector++%rndVelSector == 0)
-//       {
-// 	 rndVel = {rand(), rand(), rand()};
-// 	 rndVelSector = rand()%FlucP::sectorSize+1;
-//       }
-//    }
-   rndRho = rand();
-   rndVel[0] =rand();
-   rndVel[1] =rand();
-   rndVel[2] =rand();
+   static int oldCellId=-1;
    
-//    spaceIndexOld[0] = spaceIndex[0];
-//    spaceIndexOld[1] = spaceIndex[1];
-//    spaceIndexOld[2] = spaceIndex[2];
+   int cellID = (int) (x / dx) +
+      (int) (y / dy) * Parameters::xcells_ini +
+      (int) (z / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
+
+
+   //static variables should be threadprivate
+#pragma omp threadprivate(oldCellId,rndRho,rndVel)
+   
+   if(oldCellId!=cellID){
+#pragma omp critical
+      {
+         //critical region since srand not thread-safe. A nicer fix would be to use a thread-safe rng
+         //e.g., http://linux.die.net/man/3/random_r (FIXME)
+         oldCellId=cellID;
+         srand(cellID);
+         
+         rndRho = rand();
+         rndVel[0] =rand();
+         rndVel[1] =rand();
+         rndVel[2] =rand();   
+      
+      }
+   }
    
    creal d_vx = dvx / (FlucP::nVelocitySamples-1);
    creal d_vy = dvy / (FlucP::nVelocitySamples-1);
