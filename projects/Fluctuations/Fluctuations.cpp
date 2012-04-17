@@ -27,6 +27,14 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "parameters.h"
 #include "readparameters.h"
 
+int rndRho = 0;
+int rndVel[3] = {0};
+int oldCellId=-1;
+//static variables should be threadprivate
+#pragma omp threadprivate(oldCellId,rndRho,rndVel)
+
+
+
 typedef fluctuationsParameters FlucP;
 Real FlucP::BX0 = NAN;
 Real FlucP::BY0 = NAN;
@@ -84,6 +92,7 @@ Real getDistribValue(creal& vx,creal& vy, creal& vz) {
    return exp(- mass * (vx*vx + vy*vy + vz*vz) / (2.0 * k * FlucP::TEMPERATURE));
 }
 
+/* calcPhaseSpaceDensity needs to be thread-safe */
 Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
    if(vx < Parameters::vxmin + 0.5 * dvx ||
       vy < Parameters::vymin + 0.5 * dvy ||
@@ -99,17 +108,11 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
    creal mu0 = 1.25663706144e-6; // mu_0
    
 
-   static int rndRho = 0;
-   static int rndVel[3] = {0};
-   static int oldCellId=-1;
-   
    int cellID = (int) (x / dx) +
       (int) (y / dy) * Parameters::xcells_ini +
       (int) (z / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
 
 
-   //static variables should be threadprivate
-#pragma omp threadprivate(oldCellId,rndRho,rndVel)
    
    if(oldCellId!=cellID){
 #pragma omp critical
@@ -169,14 +172,18 @@ void calcCellParameters(Real* cellParams,creal& t) {
    int cellID = (int) (x / dx) +
    (int) (y / dy) * Parameters::xcells_ini +
    (int) (z / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-   srand(cellID);
+
    
    cellParams[CellParams::EX   ] = 0.0;
    cellParams[CellParams::EY   ] = 0.0;
    cellParams[CellParams::EZ   ] = 0.0;
    cellParams[CellParams::BX   ] = FlucP::BX0;
-   cellParams[CellParams::BY   ] = FlucP::magPertAmp * (0.5 - (double)rand() / (double)RAND_MAX);
-   cellParams[CellParams::BZ   ] = FlucP::magPertAmp * (0.5 - (double)rand() / (double)RAND_MAX);
+#pragma omp critical
+   {
+      srand(cellID);
+      cellParams[CellParams::BY   ] = FlucP::magPertAmp * (0.5 - (double)rand() / (double)RAND_MAX);
+      cellParams[CellParams::BZ   ] = FlucP::magPertAmp * (0.5 - (double)rand() / (double)RAND_MAX);
+   }
 }
 
 // TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
