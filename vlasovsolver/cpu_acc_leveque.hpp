@@ -1500,52 +1500,6 @@ void cpu_propagateVel(SpatialCell *cell,const unsigned int& BLOCK,const Real& DT
    for (unsigned int i=0; i<WID3; ++i)  block->data[i] += block->fx[i];
 
 
-   //Make sure cells on the boundary of velocity space is set to zero
-   //to avoid outflow problems on boundaries (last face in + direction
-   //is not computed as the other cell does not exist = no outflow).
-   //x-1 face
-   if(cell->is_null_block(block->neighbors[velocity_neighbor::XM1_YCC_ZCC])){
-      unsigned int i=0;
-      for(unsigned int k=0;k<WID;k++)
-         for(unsigned int j=0;j<WID;j++)
-            block->data[i+WID*j+WID2*k]=0.0;
-   }
-   //x+1 face   
-   if(cell->is_null_block(block->neighbors[velocity_neighbor::XP1_YCC_ZCC])){
-      unsigned int i=WID-1;
-      for(unsigned int k=0;k<WID;k++)
-         for(unsigned int j=0;j<WID;j++)
-            block->data[i+WID*j+WID2*k]=0.0;
-   }
-   
-   //y-1 face
-   if(cell->is_null_block(block->neighbors[velocity_neighbor::XCC_YM1_ZCC])){
-      unsigned int j=0;
-      for(unsigned int k=0;k<WID;k++)
-         for(unsigned int i=0;i<WID;i++)
-            block->data[i+WID*j+WID2*k]=0.0;
-   }
-   //y+1 face
-   if(cell->is_null_block(block->neighbors[velocity_neighbor::XCC_YP1_ZCC])){
-      unsigned int j=WID-1;
-      for(unsigned int k=0;k<WID;k++)
-         for(unsigned int i=0;i<WID;i++)
-            block->data[i+WID*j+WID2*k]=0.0;
-   }
-   //z-1 face
-   if(cell->is_null_block(block->neighbors[velocity_neighbor::XCC_YCC_ZM1])){
-      unsigned int k=0;
-      for(unsigned int j=0;j<WID;j++)
-         for(unsigned int i=0;i<WID;i++)
-            block->data[i+WID*j+WID2*k]=0.0;
-   }
-   //z+1 face        
-   if(cell->is_null_block(block->neighbors[velocity_neighbor::XCC_YCC_ZP1])){
-      unsigned int k=WID-1;
-      for(unsigned int j=0;j<WID;j++)
-         for(unsigned int i=0;i<WID;i++)
-            block->data[i+WID*j+WID2*k]=0.0;
-   }
 
    
 }

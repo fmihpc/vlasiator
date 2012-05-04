@@ -41,6 +41,10 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 outputReducer->addOperator(new DRO::VariableRho);
       if(*it == "RhoV")
 	 outputReducer->addOperator(new DRO::VariableRhoV);
+      if(*it == "RhoLossAdjust")
+	 diagnosticReducer->addOperator(new DRO::VariableRhoLossAdjust);
+      if(*it == "RhoLossVelBoundary")
+	 diagnosticReducer->addOperator(new DRO::VariableRhoLossVelBoundary);
       if(*it == "MPIrank")
 	 outputReducer->addOperator(new DRO::MPIrank);
       if(*it == "Blocks")
@@ -62,6 +66,10 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 diagnosticReducer->addOperator(new DRO::Blocks);
       if(*it == "Rho")
 	 diagnosticReducer->addOperator(new DRO::VariableRho);
+      if(*it == "RhoLossAdjust")
+	 diagnosticReducer->addOperator(new DRO::VariableRhoLossAdjust);
+      if(*it == "RhoLossVelBoundary")
+	 diagnosticReducer->addOperator(new DRO::VariableRhoLossVelBoundary);
       if(*it == "MaxVi")
 	 diagnosticReducer->addOperator(new DRO::MaxVi);
    }

@@ -141,6 +141,9 @@ namespace CellParams {
       BYVOL0,
       BZVOL0,
 
+      RHOLOSSADJUST,
+      RHOLOSSVELBOUNDARY,
+      
       N_SPATIAL_CELL_PARAMS
    };
 }

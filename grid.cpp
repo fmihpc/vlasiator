@@ -217,6 +217,8 @@ bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
    cell.parameters[CellParams::RHOVX] = 0.0;
    cell.parameters[CellParams::RHOVY] = 0.0;
    cell.parameters[CellParams::RHOVZ] = 0.0;
+   cell.parameters[CellParams::RHOLOSSADJUST] = 0.0;
+   cell.parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
 
    // Go through each velocity block in the velocity phase space grid.
    // Set the initial state and block parameters:

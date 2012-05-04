@@ -227,7 +227,72 @@ namespace DRO {
       rho = cell->parameters[CellParams::RHO];
       return true;
    }
+
+
+//RHOLOSSADJUST
+
+   VariableRhoLossAdjust::VariableRhoLossAdjust(): DataReductionOperator() { }
+   VariableRhoLossAdjust::~VariableRhoLossAdjust() { }
+
+   std::string VariableRhoLossAdjust::getName() const {return "rho_loss_adjust";}
+
+   bool VariableRhoLossAdjust::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 1;
+      return true;
+   }
    
+   bool VariableRhoLossAdjust::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(&rhoLoss);
+      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariableRhoLossAdjust::reduceData(const SpatialCell* cell,Real* buffer){
+      *buffer=rhoLoss;
+      return true;
+   }
+   
+   bool VariableRhoLossAdjust::setSpatialCell(const SpatialCell* cell) {
+      rhoLoss = cell->parameters[CellParams::RHOLOSSADJUST];
+      return true;
+   }
+
+
+   //RHOLOSSVELBOUNDARY
+
+   VariableRhoLossVelBoundary::VariableRhoLossVelBoundary(): DataReductionOperator() { }
+   VariableRhoLossVelBoundary::~VariableRhoLossVelBoundary() { }
+
+   std::string VariableRhoLossVelBoundary::getName() const {return "rho_loss_velocity_boundary";}
+
+   bool VariableRhoLossVelBoundary::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 1;
+      return true;
+   }
+   
+   bool VariableRhoLossVelBoundary::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(&rhoLoss);
+      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariableRhoLossVelBoundary::reduceData(const SpatialCell* cell,Real* buffer){
+      *buffer=rhoLoss;
+      return true;
+   }
+   
+   bool VariableRhoLossVelBoundary::setSpatialCell(const SpatialCell* cell) {
+      rhoLoss = cell->parameters[CellParams::RHOLOSSVELBOUNDARY];
+      return true;
+   }
+
+
+//MPI rank
+      
    
    MPIrank::MPIrank(): DataReductionOperator() { }
    MPIrank::~MPIrank() { }

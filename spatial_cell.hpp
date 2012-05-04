@@ -99,7 +99,7 @@ namespace spatial_cell {
       | VEL_BLOCK_FLUXES
       | CELL_GHOSTFLAG;
    }
-   
+
 /** A namespace for storing indices into an array containing neighbour information 
  * of velocity grid blocks. 
  */
@@ -171,7 +171,7 @@ namespace velocity_neighbor {
       
       Real parameters[BlockParams::N_VELOCITY_BLOCK_PARAMS];
       Velocity_Block* neighbors[N_NEIGHBOR_VELOCITY_BLOCKS];
-      
+
       /*!
         Sets data, derivatives and fluxes of this block to zero.
       */
@@ -184,6 +184,7 @@ namespace velocity_neighbor {
                this->fx[i] = 0;
             }
          }
+   
    };
 
 /*!
@@ -198,9 +199,6 @@ namespace velocity_neighbor {
 
    class SpatialCell {
    public:
-
-
-
 
 /****************************
        * Velocity block functions *
@@ -1173,6 +1171,17 @@ namespace velocity_neighbor {
                // profile::start(premove);
                
                if (!neighbors_have_content) {
+                  //increment rho loss counter
+                  Velocity_Block* block_ptr = this->block_address_cache[block];
+                  const Real DV3 = block_ptr->parameters[BlockParams::DVX]*
+                     block_ptr->parameters[BlockParams::DVY]*
+                     block_ptr->parameters[BlockParams::DVZ];
+                  Real sum=0;
+                  for(unsigned int i=0;i<WID3;i++)
+                     sum+=block_ptr->data[i];
+                  this->parameters[CellParams::RHOLOSSADJUST]+=DV3*sum;
+                  
+                  
                   this->remove_velocity_block(block);
                }
                // profile::stop(premove);
@@ -1483,6 +1492,73 @@ namespace velocity_neighbor {
 
       }
 
+
+      void applyVelocityBoundaryCondition(){
+            //is not     computed as the other cell does not exist = no outflow).
+            //x-1 face
+         for(unsigned int i=0;i<number_of_blocks;i++){
+            Velocity_Block* block_ptr=this->at(velocity_block_list[i]);
+            const Real DV3 = block_ptr->parameters[BlockParams::DVX]*
+               block_ptr->parameters[BlockParams::DVY]*
+               block_ptr->parameters[BlockParams::DVZ];
+            
+            if(is_null_block(block_ptr->neighbors[velocity_neighbor::XM1_YCC_ZCC])){
+               unsigned int i=0;
+               for(unsigned int k=0;k<WID;k++)
+                  for(unsigned int j=0;j<WID;j++){
+                     this->parameters[CellParams::RHOLOSSVELBOUNDARY]+=DV3*block_ptr->data[i+WID*j+WID2*k];;
+                     block_ptr->data[i+WID*j+WID2*k]=0.0;
+                  }
+            }
+            //x+1 face           
+            if(is_null_block(block_ptr->neighbors[velocity_neighbor::XP1_YCC_ZCC])){
+               unsigned int i=WID-1;
+               for(unsigned int k=0;k<WID;k++)
+                  for(unsigned int j=0;j<WID;j++){
+                     this->parameters[CellParams::RHOLOSSVELBOUNDARY]+=DV3*block_ptr->data[i+WID*j+WID2*k];;
+                     block_ptr->data[i+WID*j+WID2*k]=0.0;
+                  }
+            }
+            
+            //y-1  face
+            if(is_null_block(block_ptr->neighbors[velocity_neighbor::XCC_YM1_ZCC])){
+               unsigned int j=0;
+               for(unsigned int k=0;k<WID;k++)
+                  for(unsigned int i=0;i<WID;i++){
+                     this->parameters[CellParams::RHOLOSSVELBOUNDARY]+=DV3*block_ptr->data[i+WID*j+WID2*k];;
+                     block_ptr->data[i+WID*j+WID2*k]=0.0;
+                  }
+            }
+            //y+1 face   
+            if(is_null_block(block_ptr->neighbors[velocity_neighbor::XCC_YP1_ZCC])){
+               unsigned int j=WID-1;
+               for(unsigned int k=0;k<WID;k++)
+                  for(unsigned int i=0;i<WID;i++){
+                     this->parameters[CellParams::RHOLOSSVELBOUNDARY]+=DV3*block_ptr->data[i+WID*j+WID2*k];;
+                     block_ptr->data[i+WID*j+WID2*k]=0.0;
+                  }
+            }
+            //z-1 face          
+            if(is_null_block(block_ptr->neighbors[velocity_neighbor::XCC_YCC_ZM1])){
+               unsigned int k=0;
+               for(unsigned int j=0;j<WID;j++)
+                  for(unsigned int i=0;i<WID;i++){
+                     this->parameters[CellParams::RHOLOSSVELBOUNDARY]+=DV3*block_ptr->data[i+WID*j+WID2*k];;
+                     block_ptr->data[i+WID*j+WID2*k]=0.0;
+                  }
+            }
+            //z+1 face           
+            if(is_null_block(block_ptr->neighbors[velocity_neighbor::XCC_YCC_ZP1])){
+               unsigned int k=WID-1;
+               for(unsigned int j=0;j<WID;j++)
+                  for(unsigned int i=0;i<WID;i++){
+                     this->parameters[CellParams::RHOLOSSVELBOUNDARY]+=DV3*block_ptr->data[i+WID*j+WID2*k];;
+                     block_ptr->data[i+WID*j+WID2*k]=0.0;
+                  }
+            }
+         }
+      }
+      
       /*!
         Sets the type of data to transfer by mpi_datatype.
       */
@@ -1571,6 +1647,7 @@ namespace velocity_neighbor {
      std::vector<Velocity_Block*> block_address_cache;
      
 
+      
    public:
       //number of blocks in cell
       unsigned int number_of_blocks;
@@ -1598,9 +1675,6 @@ namespace velocity_neighbor {
       std::vector<Real> null_block_data;
       std::vector<Real> null_block_fx;
       
-      
-
-
       /*
         Bulk variables in this spatial cell.
       */

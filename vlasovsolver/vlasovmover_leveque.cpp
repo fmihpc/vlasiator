@@ -317,6 +317,10 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,
    cpu_accelerate_cell(*SC, dt, 1000, P::q, P::m);
 #endif
 
+   //apply boundary outflow condition in velocity space
+   SC->applyVelocityBoundaryCondition();
+   
+
 }
 
 
