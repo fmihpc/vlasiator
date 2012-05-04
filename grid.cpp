@@ -19,6 +19,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "boost/mpi.hpp"
 #include <cstdlib>
 #include <iostream>
+#include <iomanip> // for setprecision()
 #include <cmath>
 #include <vector>
 #include <sstream>
@@ -38,6 +39,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "vlsvwriter2.h" 
 #include "fieldsolver.h"
 #include "project.h"
+
+
 
 using namespace std;
 using namespace profile;
@@ -565,7 +568,8 @@ bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    MPI_Reduce(&localMin[0], &globalMin[0], nOps, MPI_Type<Real>(), MPI_MIN, 0, MPI_COMM_WORLD);
    MPI_Reduce(&localMax[0], &globalMax[0], nOps, MPI_Type<Real>(), MPI_MAX, 0, MPI_COMM_WORLD);
    MPI_Reduce(&localSum[0], &globalSum[0], nOps + 1, MPI_Type<Real>(), MPI_SUM, 0, MPI_COMM_WORLD);
-   
+
+   diagnostic << setprecision(12); 
    diagnostic << tstep << "\t";
    
    for (uint i=0; i<nOps; ++i) {
