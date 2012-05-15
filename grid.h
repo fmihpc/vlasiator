@@ -19,4 +19,9 @@ bool writeGrid(const dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,DataReduce
 // Write out diagnostic
 bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid, DataReducer& dataReducer, luint tstep);
 
+/** Subroutine for setting up a single spatial cell.
+ */
+bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,creal& zmin,creal& dx,creal& dy,creal& dz,
+		     const bool& isRemote);
+
 #endif
