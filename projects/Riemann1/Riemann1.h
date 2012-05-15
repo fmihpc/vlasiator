@@ -27,6 +27,8 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "projects/projects_vlasov_boundary.h"
 #include "fieldsolver.h"
 
+# include "grid.h"
+
 #include "dccrg.hpp"
 
 
@@ -232,8 +234,20 @@ REAL fieldSolverBoundaryCondBz(const CELLID& cellID,const UINT& existingCells,co
 
 template<typename CELLID,typename UINT> 
 void vlasovBoundaryCondition(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const dccrg::Dccrg<SpatialCell>& mpiGrid) {
-  vlasovBoundaryCopyFromExistingFaceNbr(cellID,existingCells,nonExistingCells,mpiGrid);
-  return;
+   creal x = mpiGrid[cellID]->parameters[CellParams::XCRD];
+   creal dx = mpiGrid[cellID]->parameters[CellParams::DX];
+   creal y = mpiGrid[cellID]->parameters[CellParams::YCRD];
+   creal dy = mpiGrid[cellID]->parameters[CellParams::DY];
+   creal z = mpiGrid[cellID]->parameters[CellParams::ZCRD];
+   creal dz = mpiGrid[cellID]->parameters[CellParams::DZ];
+   
+   if(x < Parameters::xmin + 0.5 * dx ||
+      x > Parameters::xmax - 1.5 * dx)
+   {
+      initSpatialCell(*(mpiGrid[cellID]),x,y,z,dx,dy,dz,false);
+   }
+   
+   return;
 }
 
 template<typename UINT,typename REAL> void calcAccFaceX(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,const REAL* const cellParams,const REAL* const blockParams) {
