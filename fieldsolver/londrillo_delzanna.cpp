@@ -50,7 +50,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "../fieldsolver.h"
 #include "limiters.h"
 #include "../project.h"
-#include "profile.hpp"
+#include "phiprof.hpp"
 
 using namespace std;
 using namespace fieldsolver;
@@ -1091,10 +1091,10 @@ bool initializeFieldPropagatorAfterRebalance(
 
    //need this when computing magentic field later on
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_E);
-   int timer=profile::initializeTimer("Communicate electric fields","MPI","Wait");
-   profile::start(timer);
+   int timer=phiprof::initializeTimer("Communicate electric fields","MPI","Wait");
+   phiprof::start(timer);
    mpiGrid.update_remote_neighbor_data();
-   profile::stop(timer);
+   phiprof::stop(timer);
    
    return true;
 }
@@ -1210,45 +1210,45 @@ void calculateDerivativesSimple(
 ) {
    int timer;
    namespace fs = fieldsolver;
-   profile::start("Calculate derivatives");
+   phiprof::start("Calculate derivatives");
 
    // Exchange BX,BY,BZ,RHO,RHOVX,RHOVY,RHOVZ with neighbours
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_B_RHO_RHOV);
    
-   timer=profile::initializeTimer("Start comm of B  and RHOV","MPI");
-   profile::start(timer);
+   timer=phiprof::initializeTimer("Start comm of B  and RHOV","MPI");
+   phiprof::start(timer);
    mpiGrid.start_remote_neighbor_data_update();
-   profile::stop(timer);
+   phiprof::stop(timer);
    
-   timer=profile::initializeTimer("Compute inner cells");
-   profile::start(timer);
+   timer=phiprof::initializeTimer("Compute inner cells");
+   phiprof::start(timer);
    // Calculate derivatives on inner cells
    const vector<uint64_t> local_cells = mpiGrid.get_cells_with_local_neighbors();
    for (vector<uint64_t>::const_iterator cell = local_cells.begin(); cell != local_cells.end(); cell++) {
       calculateDerivatives(*cell,mpiGrid);
    }
-   profile::stop(timer);
+   phiprof::stop(timer);
 
-   timer=profile::initializeTimer("Wait for sends","MPI","Wait");
-   profile::start(timer);
+   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+   phiprof::start(timer);
    mpiGrid.wait_neighbor_data_update_receives();
-   profile::stop(timer);
+   phiprof::stop(timer);
 
    // Calculate derivatives on boundary cells
-   timer=profile::initializeTimer("Compute boundary cells");
-   profile::start(timer);
+   timer=phiprof::initializeTimer("Compute boundary cells");
+   phiprof::start(timer);
    const vector<uint64_t> boundary_cells = mpiGrid.get_cells_with_remote_neighbor();
    for (vector<uint64_t>::const_iterator cell = boundary_cells.begin(); cell != boundary_cells.end(); cell++) {
        calculateDerivatives(*cell,mpiGrid);
    }
-   profile::stop(timer);
+   phiprof::stop(timer);
 
-   timer=profile::initializeTimer("Wait for sends","MPI","Wait");
-   profile::start(timer);
+   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+   phiprof::start(timer);
    mpiGrid.wait_neighbor_data_update_sends();
-   profile::stop(timer);
+   phiprof::stop(timer);
    
-   profile::stop("Calculate derivatives");
+   phiprof::stop("Calculate derivatives");
 }
 
 void calculateUpwindedElectricFieldSimple(
@@ -1257,16 +1257,16 @@ void calculateUpwindedElectricFieldSimple(
 ) {
    namespace fs = fieldsolver;
    int timer;
-   profile::start("Calculate upwinded electric field");
+   phiprof::start("Calculate upwinded electric field");
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DERIVATIVES);
    
-   timer=profile::initializeTimer("Start communication of derivatives","MPI");
-   profile::start(timer);
+   timer=phiprof::initializeTimer("Start communication of derivatives","MPI");
+   phiprof::start(timer);
    mpiGrid.start_remote_neighbor_data_update();
-   profile::stop(timer);
+   phiprof::stop(timer);
    
-   timer=profile::initializeTimer("Compute inner cells");
-   profile::start(timer);
+   timer=phiprof::initializeTimer("Compute inner cells");
+   phiprof::start(timer);
    // Calculate upwinded electric field on inner cells
    const vector<uint64_t> local_cells = mpiGrid.get_cells_with_local_neighbors();
    for (vector<uint64_t>::const_iterator cell = local_cells.begin(); cell != local_cells.end(); cell++) {
@@ -1275,13 +1275,13 @@ void calculateUpwindedElectricFieldSimple(
       if ((boundaryFlag & CALCULATE_EY) == CALCULATE_EY) calculateEdgeElectricFieldY(*cell,mpiGrid);
       if ((boundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) calculateEdgeElectricFieldZ(*cell,mpiGrid);
    }
-   profile::stop(timer);
-   timer=profile::initializeTimer("Wait for receives","MPI","Wait");
-   profile::start(timer);
+   phiprof::stop(timer);
+   timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
+   phiprof::start(timer);
    mpiGrid.wait_neighbor_data_update_receives();
-   profile::stop(timer);
-   timer=profile::initializeTimer("Compute boundary cells");
-   profile::start(timer);
+   phiprof::stop(timer);
+   timer=phiprof::initializeTimer("Compute boundary cells");
+   phiprof::start(timer);
    // Calculate upwinded electric field on boundary cells:
    const vector<uint64_t> boundary_cells = mpiGrid.get_cells_with_remote_neighbor();
    for (vector<uint64_t>::const_iterator cell = boundary_cells.begin(); cell != boundary_cells.end(); cell++) {
@@ -1290,20 +1290,20 @@ void calculateUpwindedElectricFieldSimple(
       if ((boundaryFlag & CALCULATE_EY) == CALCULATE_EY) calculateEdgeElectricFieldY(*cell,mpiGrid);
       if ((boundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) calculateEdgeElectricFieldZ(*cell,mpiGrid);
    }
-   profile::stop(timer);
-   timer=profile::initializeTimer("Wait for sends","MPI","Wait");
-   profile::start(timer);
+   phiprof::stop(timer);
+   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+   phiprof::start(timer);
    mpiGrid.wait_neighbor_data_update_sends();
-   profile::stop(timer);
+   phiprof::stop(timer);
    
    // Exchange electric field with neighbouring processes
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_E);
-   timer=profile::initializeTimer("Communicate electric fields","MPI","Wait");
-   profile::start(timer);
+   timer=phiprof::initializeTimer("Communicate electric fields","MPI","Wait");
+   phiprof::start(timer);
    mpiGrid.update_remote_neighbor_data();
-   profile::stop(timer);
+   phiprof::stop(timer);
 
-   profile::stop("Calculate upwinded electric field");
+   phiprof::stop("Calculate upwinded electric field");
 }
 
 static void propagateMagneticFieldSimple(
@@ -1312,7 +1312,7 @@ static void propagateMagneticFieldSimple(
 	const vector<CellID>& localCells
 ) {
 
-   profile::start("Propagate magnetic field");
+   phiprof::start("Propagate magnetic field");
    // Propagate B on all local cells:
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];
@@ -1346,7 +1346,7 @@ static void propagateMagneticFieldSimple(
       }
    }
 
-   profile::stop("Propagate magnetic field");
+   phiprof::stop("Propagate magnetic field");
 }
 
 bool propagateFields(
@@ -1903,7 +1903,7 @@ void calculateVolumeAveragedFields(
    // user's responsibility to set correct values to volume-averaged E,B-fields:
    
    if (fieldsArePropagated == false) return;
-   profile::start("Calculate volume averaged fields");
+   phiprof::start("Calculate volume averaged fields");
    
    namespace fs = fieldsolver;
    namespace cp = CellParams;
@@ -1997,6 +1997,6 @@ void calculateVolumeAveragedFields(
 	 cellParams[cp::EZVOL] = 0.0;
       }
    }
-   profile::stop("Calculate volume averaged fields");
+   phiprof::stop("Calculate volume averaged fields");
 }
 

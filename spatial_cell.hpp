@@ -33,7 +33,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "vector"
 #include "set"
 
-#include "profile.hpp"
+#include "phiprof.hpp"
 #include "common.h"
 #include "parameters.h"
 #include "definitions.h"
@@ -669,8 +669,8 @@ namespace velocity_neighbor {
          isGhostCell(other.isGhostCell)
          {
 
-//	 profile::initializeTimer("SpatialCell copy", "SpatialCell copy");
-//	 profile::start("SpatialCell copy");
+//	 phiprof::initializeTimer("SpatialCell copy", "SpatialCell copy");
+//	 phiprof::start("SpatialCell copy");
 
          //copy parameters
          for(unsigned int i=0;i< CellParams::N_SPATIAL_CELL_PARAMS;i++){
@@ -729,7 +729,7 @@ namespace velocity_neighbor {
                      }
                   }
          }
-//         profile::stop("SpatialCell copy");
+//         phiprof::stop("SpatialCell copy");
       }
       
       
@@ -1091,14 +1091,14 @@ namespace velocity_neighbor {
          //initialize tree of timers to make sure every process has timers, even for processes with no velocity cells.
          //Also reduces overhead in tight loops compared to simple interface
 /*         
-         int pcontent = profile::initializeTimer("add_in_velocityspace");
-         int pempty = profile::initializeTimer("try_to_remove");
-         profile::start(pempty);
-         int pcheckvel=profile::initializeTimer("check vel space ngbrs");
-         int pcheckreal=profile::initializeTimer("check real space ngbrs");
-         int premove=profile::initializeTimer("remove");
-         profile::stop(pempty);
-         int paddreal=profile::initializeTimer("add_for_realspace");
+         int pcontent = phiprof::initializeTimer("add_in_velocityspace");
+         int pempty = phiprof::initializeTimer("try_to_remove");
+         phiprof::start(pempty);
+         int pcheckvel=phiprof::initializeTimer("check vel space ngbrs");
+         int pcheckreal=phiprof::initializeTimer("check real space ngbrs");
+         int premove=phiprof::initializeTimer("remove");
+         phiprof::stop(pempty);
+         int paddreal=phiprof::initializeTimer("add_for_realspace");
 */       
 
          // don't iterate over blocks created / removed by this function
@@ -1116,7 +1116,7 @@ namespace velocity_neighbor {
 	   const bool original_has_content = this->get_block_has_content(block);
             
             if (original_has_content) {             
-               //             profile::start(pcontent);
+               //             phiprof::start(pcontent);
                // add missing neighbors in velocity space
                for(int offset_vx=-1;offset_vx<=1;offset_vx++)
                for(int offset_vy=-1;offset_vy<=1;offset_vy++)
@@ -1134,14 +1134,14 @@ namespace velocity_neighbor {
                      abort();
                   }
                }
-               //  profile::stop(pcontent);
+               //  phiprof::stop(pcontent);
 
             } else {
-               // profile::start(pempty);
+               // phiprof::start(pempty);
                // remove local block if also no neighbor has content
                bool neighbors_have_content = false;
 
-//                     profile::start(pcheckvel);
+//                     phiprof::start(pcheckvel);
                // velocity space neighbors
                for(int offset_vx=-1;offset_vx<=1;offset_vx++)
                for(int offset_vy=-1;offset_vy<=1;offset_vy++)
@@ -1152,8 +1152,8 @@ namespace velocity_neighbor {
                      break;
                   }
                }
-               //  profile::stop(pcheckvel);
-               // profile::start(pcheckreal);
+               //  phiprof::stop(pcheckvel);
+               // phiprof::start(pcheckreal);
                // real space neighbors
                if(!neighbors_have_content){
                   for (std::vector<SpatialCell*>::const_iterator
@@ -1167,8 +1167,8 @@ namespace velocity_neighbor {
                      }
                   }
                }
-               //   profile::stop(pcheckreal);
-               // profile::start(premove);
+               //   phiprof::stop(pcheckreal);
+               // phiprof::start(premove);
                
                if (!neighbors_have_content) {
                   //increment rho loss counter
@@ -1184,15 +1184,15 @@ namespace velocity_neighbor {
                   
                   this->remove_velocity_block(block);
                }
-               // profile::stop(premove);
-               // profile::stop(pempty);
+               // phiprof::stop(premove);
+               // phiprof::stop(pempty);
                
             }
             
          }
 
          // add local blocks for neighbors in real space with content
-         //     profile::start(paddreal);
+         //     phiprof::start(paddreal);
          for (std::vector<SpatialCell*>::const_iterator
             neighbor = spatial_neighbors.begin();
             neighbor != spatial_neighbors.end();
@@ -1208,7 +1208,7 @@ namespace velocity_neighbor {
                }
             }
          }
-         //  profile::stop(paddreal);
+         //  phiprof::stop(paddreal);
          
       }
 

@@ -43,7 +43,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
 using namespace std;
-using namespace profile;
+using namespace phiprof;
 
 extern Logger logfile, diagnostic;
 
@@ -128,19 +128,19 @@ bool initializeGrid(int argn, char **argc,dccrg::Dccrg<SpatialCell>& mpiGrid){
    
    
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
-   profile::start("Initial load-balancing");
+   phiprof::start("Initial load-balancing");
    if (myrank == 0) logfile << "(INIT): Starting initial load balance." << endl << writeVerbose;
    mpiGrid.balance_load();
-   profile::stop("Initial load-balancing");
+   phiprof::stop("Initial load-balancing");
 
 
    if (myrank == 0) logfile << "(INIT): Set initial state." << endl << writeVerbose;
    
    // Go through every spatial cell on this CPU, and create the initial state:
 
-   profile::start("Set initial state");
+   phiprof::start("Set initial state");
    initSpatialCells(mpiGrid);
-   profile::stop("Set initial state");
+   phiprof::stop("Set initial state");
 
    balanceLoad(mpiGrid);
    return true;
@@ -149,7 +149,7 @@ bool initializeGrid(int argn, char **argc,dccrg::Dccrg<SpatialCell>& mpiGrid){
 
 void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid){
     typedef Parameters P;
-    profile::start("init cell values");
+    phiprof::start("init cell values");
     vector<uint64_t> cells = mpiGrid.get_cells();
 
 
@@ -169,7 +169,7 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid){
        zmin = mpiGrid.get_cell_z_min(cells[i]);
        initSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
     }
-    profile::stop("init cell values");
+    phiprof::stop("init cell values");
     prepare_to_receive_velocity_block_data(mpiGrid);
     
     //in principle not needed as that was done in initSpatialCell, but lets be safe and do it anyway as it does not  cost much
@@ -182,12 +182,12 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid){
     //velocity blocks adjusted, lets prepare again for new lists
     prepare_to_receive_velocity_block_data(mpiGrid);
 
-    profile::initializeTimer("Fetch Neighbour data","MPI");
-    profile::start("Fetch Neighbour data");
+    phiprof::initializeTimer("Fetch Neighbour data","MPI");
+    phiprof::start("Fetch Neighbour data");
     // update complete spatial cell data 
     SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
     mpiGrid.update_remote_neighbor_data();       
-    profile::stop("Fetch Neighbour data");   
+    phiprof::stop("Fetch Neighbour data");   
 }
 
 
@@ -280,13 +280,13 @@ bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
 
 void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    // tell other processes which velocity blocks exist in remote spatial cells
-   profile::initializeTimer("Balancing load", "Load balance");
-   profile::start("Balancing load");
+   phiprof::initializeTimer("Balancing load", "Load balance");
+   phiprof::start("Balancing load");
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_SIZE_AND_LIST);
    mpiGrid.prepare_to_balance_load();
    
    // reserve space for velocity block data in arriving remote cells
-   profile::start("Preparing receives");
+   phiprof::start("Preparing receives");
    const boost::unordered_set<uint64_t>* incoming_cells = mpiGrid.get_balance_added_cells();
    std::vector<uint64_t> incoming_cells_list (incoming_cells->begin(),incoming_cells->end()); 
    
@@ -300,20 +300,20 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
       }
       cell->prepare_to_receive_blocks();
    }
-   profile::stop("Preparing receives", incoming_cells_list.size(), "Spatial cells");
+   phiprof::stop("Preparing receives", incoming_cells_list.size(), "Spatial cells");
 
 
-   profile::start("balance load");
+   phiprof::start("balance load");
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
    mpiGrid.balance_load(true);
-   profile::stop("balance load");
+   phiprof::stop("balance load");
 
-   profile::start("update block lists");
+   phiprof::start("update block lists");
    //new partition, re/initialize blocklists of remote cells.
    prepare_to_receive_velocity_block_data(mpiGrid);
-   profile::stop("update block lists");
+   phiprof::stop("update block lists");
 
-   profile::start("Init solvers");
+   phiprof::start("Init solvers");
    //need to re-initialize stencils and neighbors in leveque solver
    if (initializeMover(mpiGrid) == false) {
       logfile << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << writeVerbose;
@@ -325,9 +325,9 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
        logfile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
        exit(1);
    }
-   profile::stop("Init solvers");
+   phiprof::stop("Init solvers");
    
-   profile::stop("Balancing load");
+   phiprof::stop("Balancing load");
 }
 
 
@@ -337,9 +337,9 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
     int myrank;
     MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
     if(writeRestart)
-        profile::start("writeGrid-restart");
+        phiprof::start("writeGrid-restart");
     else
-        profile::start("writeGrid-reduced");
+        phiprof::start("writeGrid-reduced");
     
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
@@ -403,12 +403,12 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
 
    // If restart data is not written, exit here:
    if (writeRestart == false) {
-      profile::initializeTimer("Barrier","MPI","Barrier");
-      profile::start("Barrier");
+      phiprof::initializeTimer("Barrier","MPI","Barrier");
+      phiprof::start("Barrier");
       MPI_Barrier(MPI_COMM_WORLD);
-      profile::stop("Barrier");
+      phiprof::stop("Barrier");
       vlsvWriter.close();
-      profile::stop("writeGrid-reduced");
+      phiprof::stop("writeGrid-reduced");
       return success;
    }
 
@@ -510,7 +510,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
    
    double allSecs = allEnd-allStart;
 
-   profile::stop("writeGrid-restart");//,1.0e-6*bytesWritten,"MB");
+   phiprof::stop("writeGrid-restart");//,1.0e-6*bytesWritten,"MB");
    return success;
 }
 
@@ -593,29 +593,29 @@ bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
 //ready for the new number of blocks.
 
 bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
-   profile::initializeTimer("re-adjust blocks","Block adjustment");
-   profile::start("re-adjust blocks");
+   phiprof::initializeTimer("re-adjust blocks","Block adjustment");
+   phiprof::start("re-adjust blocks");
    vector<uint64_t> cells = mpiGrid.get_cells();
-   profile::start("Check for content");
+   phiprof::start("Check for content");
 #pragma omp parallel for  
    for (uint i=0; i<cells.size(); ++i) 
       mpiGrid[cells[i]]->update_all_block_has_content();     
-   profile::stop("Check for content");
-   profile::initializeTimer("Transfer block data","MPI");
-   profile::start("Transfer block data");
+   phiprof::stop("Check for content");
+   phiprof::initializeTimer("Transfer block data","MPI");
+   phiprof::start("Transfer block data");
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_HAS_CONTENT );
    mpiGrid.update_remote_neighbor_data();
-   profile::stop("Transfer block data");
+   phiprof::stop("Transfer block data");
    
    adjust_local_velocity_blocks(mpiGrid);
 
    prepare_to_receive_velocity_block_data(mpiGrid);
    //re-init vlasovmover
-   profile::start("InitMoverAfterBlockChange");
+   phiprof::start("InitMoverAfterBlockChange");
    initMoverAfterBlockChange(mpiGrid);
-   profile::stop("InitMoverAfterBlockChange");
+   phiprof::stop("InitMoverAfterBlockChange");
    
-   profile::stop("re-adjust blocks");
+   phiprof::stop("re-adjust blocks");
    return true;
 }
 
@@ -626,7 +626,7 @@ Adjusts velocity blocks in local spatial cells.
 Doesn't adjust velocity blocks of copies of remote neighbors.
 */
 bool adjust_local_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
-   profile::start("Adjusting blocks");
+   phiprof::start("Adjusting blocks");
 
    const vector<uint64_t> cells = mpiGrid.get_cells();
 
@@ -669,8 +669,8 @@ bool adjust_local_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       //is threadsafe
       cell->adjust_velocity_blocks(neighbor_ptrs);
    }
-   profile::stop("Adjusting blocks");
-   profile::start("Set cell weight");
+   phiprof::stop("Adjusting blocks");
+   phiprof::start("Set cell weight");
    // set cells' weights based on adjusted number of velocity blocks
    for (std::vector<uint64_t>::const_iterator
         cell_id = cells.begin();
@@ -686,7 +686,7 @@ bool adjust_local_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       
       mpiGrid.set_cell_weight(*cell_id, cell->number_of_blocks);
    }
-   profile::stop("Set cell weight");
+   phiprof::stop("Set cell weight");
 
    return true;
 }
@@ -699,17 +699,17 @@ void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
 {
    // update velocity block lists
    // Faster to do it in one operation, and not by first sending size, then list.
-   profile::initializeTimer("Velocity block list update","MPI");
-   profile::start("Velocity block list update");
+   phiprof::initializeTimer("Velocity block list update","MPI");
+   phiprof::start("Velocity block list update");
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_SIZE_AND_LIST);
    mpiGrid.update_remote_neighbor_data();
-   profile::stop("Velocity block list update");
+   phiprof::stop("Velocity block list update");
 
    /*      
    Prepare spatial cells for receiving velocity block data
    */
    
-   profile::start("Preparing receives");
+   phiprof::start("Preparing receives");
    std::vector<uint64_t> incoming_cells = mpiGrid.get_list_of_remote_cells_with_local_neighbors();
 #pragma omp parallel for
    for(unsigned int i=0;i<incoming_cells.size();i++){
@@ -724,5 +724,5 @@ void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
       
       cell->prepare_to_receive_blocks();
    }
-   profile::stop("Preparing receives", incoming_cells.size(), "SpatialCells");
+   phiprof::stop("Preparing receives", incoming_cells.size(), "SpatialCells");
 }

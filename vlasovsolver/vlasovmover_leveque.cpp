@@ -28,7 +28,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <zoltan.h>
 
 #include "../vlasovmover.h"
-#include "profile.hpp"
+#include "phiprof.hpp"
 #include "cpu_trans_leveque.h"
 #ifdef CRAY_TOPOLOGY_OPTIMIZATION
 #include "graph.h"
@@ -281,38 +281,38 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid, Real dt) {
 
 void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,Real dt) {
    typedef Parameters P;
-//   profile::start("Acceleration");
+//   phiprof::start("Acceleration");
    SpatialCell* SC = mpiGrid[cellID];
    if (ghostCells.find(cellID) != ghostCells.end()){
-//      profile::stop("Acceleration",0,"Blocks");
+//      phiprof::stop("Acceleration",0,"Blocks");
       return;
    }
-//   profile::start("clearVelFluxes");
+//   phiprof::start("clearVelFluxes");
    // Clear df/dt contributions:
    for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
       unsigned int block = SC->velocity_block_list[block_i];         
       cpu_clearVelFluxes(SC,block);
    }
-//   profile::stop("clearVelFluxes");
+//   phiprof::stop("clearVelFluxes");
 
 #ifndef SEMILAG
-//   profile::start("calcVelFluxes");
+//   phiprof::start("calcVelFluxes");
    // Calculatedf/dt contributions of all blocks in the cell:
    for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
       unsigned int block = SC->velocity_block_list[block_i];         
       cpu_calcVelFluxes(SC,block,dt,NULL);
    }
 
-//   profile::start("propagateVel");
+//   phiprof::start("propagateVel");
       // Propagate distribution functions in velocity space:
    for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
       unsigned int block = SC->velocity_block_list[block_i];         
       cpu_propagateVel(SC,block,dt);
    }
-//   profile::stop("propagateVel");
-//   profile::stop("Acceleration",SC->number_of_blocks,"Blocks");
+//   phiprof::stop("propagateVel");
+//   phiprof::stop("Acceleration",SC->number_of_blocks,"Blocks");
    
-//   profile::stop("calcVelFluxes");
+//   phiprof::stop("calcVelFluxes");
 #else
    cpu_accelerate_cell(*SC, dt, 1000, P::q, P::m);
 #endif
@@ -338,7 +338,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
    cuint avgsByteSize = mpiGrid[cells[0]]->N_blocks * SIZE_VELBLOCK * sizeof(Real);
    // END TEMPORARY SOLUTION
     */
-   profile::start("calculateSpatialFluxes");
+   phiprof::start("calculateSpatialFluxes");
    MPIsendRequests.clear(); // Note: unnecessary
    MPIrecvRequests.clear(); // Note: unnecessary
 
@@ -363,7 +363,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
 
    
    
-   profile::start("Boundary conditions (inner)");
+   phiprof::start("Boundary conditions (inner)");
    // Apply boundary conditions on local ghost cells, these need to be up-to-date for 
    // local cell propagation below:
    //For the openmp parallelization to be safe, only the local cellID should be updated by boundarycondition, and only non-ghost cells should be read.
@@ -376,11 +376,11 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
       vlasovBoundaryCondition(cellID,existingCells,nonExistingCells,mpiGrid);
       counter++;
    }
-   profile::stop("Boundary conditions (inner)",ghostInnerCellIds.size(),"Cells");
+   phiprof::stop("Boundary conditions (inner)",ghostInnerCellIds.size(),"Cells");
    
    // Post receives for avgs:
-   profile::initializeTimer("Start receives","MPI");
-   profile::start("Start receives");
+   phiprof::initializeTimer("Start receives","MPI");
+   phiprof::start("Start receives");
    int ops=0;
    for (map<pair<int,int>,CellID>::iterator it=stencilAverages.recvs.begin(); it!=stencilAverages.recvs.end(); ++it) {
       cint host           = it->first.first;
@@ -394,12 +394,12 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
       MPI_Irecv(mpiGrid[cellID],1,MPIrecvTypes.back(),host,tag,MPI_COMM_WORLD,&(MPIrecvRequests.back()));      
       ops++;
    }
-   profile::stop("Start receives",ops,"receives");
+   phiprof::stop("Start receives",ops,"receives");
 
    // Post sends for avgs:
-   profile::initializeTimer("Start sends","MPI");
+   phiprof::initializeTimer("Start sends","MPI");
    ops=0;
-   profile::start("Start sends");
+   phiprof::start("Start sends");
    for (multimap<CellID,pair<int,int> >::iterator it=stencilAverages.sends.begin(); it!=stencilAverages.sends.end(); ++it) {
       const CellID cellID = it->first;
       cint host           = it->second.first;
@@ -414,7 +414,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
       }
       ops++;
    }
-   profile::stop("Start sends",ops,"sends");
+   phiprof::stop("Start sends",ops,"sends");
    
    // Clear spatial fluxes to zero value. Remote neighbour df/dt arrays 
    // need to be cleared as well:       
@@ -422,7 +422,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
    vector<CellID> remoteCells=mpiGrid.get_list_of_remote_cells_with_local_neighbors();
    cells.insert( cells.end(), remoteCells.begin(), remoteCells.end() );
    
-   profile::start("Mark unitialized flux");
+   phiprof::start("Mark unitialized flux");
 #pragma omp  parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
@@ -435,14 +435,14 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
          block_ptr->fx[0] = numeric_limits<Real>::max();
       }
    }
-   profile::stop("Mark unitialized flux");
+   phiprof::stop("Mark unitialized flux");
 
    
    // Iterate through all local cells and calculate their contributions to 
    // time derivatives of distribution functions df/dt in spatial space. Ghost cell 
    // (spatial cells at the boundary of the simulation volume) contributions need to be
    // calculated as well:
-   profile::start("df/dt in real space (inner)");  
+   phiprof::start("df/dt in real space (inner)");  
 
 #pragma omp parallel   
    for (set<CellID>::iterator cell=stencilAverages.innerCells.begin(); cell!=stencilAverages.innerCells.end(); ++cell) {
@@ -457,11 +457,11 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
 	 cpu_calcSpatDfdt(mpiGrid,SC,block,dt);
       }
    }
-   profile::stop("df/dt in real space (inner)");
+   phiprof::stop("df/dt in real space (inner)");
 
    // Wait for remote avgs:
-   profile::initializeTimer("Wait receives","MPI","Wait");
-   profile::start("Wait receives");
+   phiprof::initializeTimer("Wait receives","MPI","Wait");
+   phiprof::start("Wait receives");
    // Wait for all receives to complete:
    MPI_Waitall(MPIrecvRequests.size(),&(MPIrecvRequests[0]),MPI_STATUSES_IGNORE);
    // Free memory:
@@ -470,12 +470,12 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
       MPI_Type_free(&(MPIrecvTypes[i]));
    }
    MPIrecvTypes.clear();
-   profile::stop("Wait receives");
+   phiprof::stop("Wait receives");
    
    // Apply boundary conditions on local ghost cells, these need to be up-to-date for 
    // boundary cell propagation below:
 
-   profile::start("Boundary conditions (boundary)");
+   phiprof::start("Boundary conditions (boundary)");
    //For the openmp parallelization to be safe, only the local cellID should be updated by boundarycondition, and only non-ghost cells should be read.
    //Fixme/check for the copy boundary conditions these are not fulfilled as it does not check for ghost status
 //#pragma omp parallel for 
@@ -489,10 +489,10 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
       //   cuint nonExistingCells = (existingCells ^ numeric_limits<uint>::max());
        vlasovBoundaryCondition(cellID,existingCells,nonExistingCells,mpiGrid);
    }
-   profile::stop("Boundary conditions (boundary)",ghostBoundaryCellIds.size(),"Cells");
+   phiprof::stop("Boundary conditions (boundary)",ghostBoundaryCellIds.size(),"Cells");
    
    // Iterate through the rest of local cells:
-   profile::start("df/dt in real space (boundary)");
+   phiprof::start("df/dt in real space (boundary)");
 
 #pragma omp parallel 
    for (set<CellID>::iterator cell=stencilAverages.boundaryCells.begin(); cell!=stencilAverages.boundaryCells.end(); ++cell) {
@@ -510,9 +510,9 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
 
 
    }
-   profile::stop("df/dt in real space (boundary)");
+   phiprof::stop("df/dt in real space (boundary)");
 
-   profile::start("zero fluxes");
+   phiprof::start("zero fluxes");
 #pragma omp  parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
@@ -526,12 +526,12 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
          }
       } 
    } 
-   profile::stop("zero fluxes");
+   phiprof::stop("zero fluxes");
 
    
    // Wait for sends to complete:
-   profile::initializeTimer("Wait sends","MPI","Wait");
-   profile::start("Wait sends");
+   phiprof::initializeTimer("Wait sends","MPI","Wait");
+   phiprof::start("Wait sends");
 
    MPI_Waitall(MPIsendRequests.size(),&(MPIsendRequests[0]),MPI_STATUSES_IGNORE);
 
@@ -540,8 +540,8 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
       MPI_Type_free(&(MPIsendTypes[i]));
    }
    MPIsendTypes.clear();
-   profile::stop("Wait sends");
-   profile::stop("calculateSpatialFluxes");
+   phiprof::stop("Wait sends");
+   phiprof::stop("calculateSpatialFluxes");
 }
 
 void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& accelerate,const Real accelerate_dt) { 
@@ -549,7 +549,7 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
    std::vector<MPI_Request> MPIsendRequests;               /**< Container for active MPI_Requests due to sends.*/
    std::vector<MPI_Datatype> MPIsendTypes;               /**< Container for active datatypes due to sends.*/
    
-   profile::start("calculateSpatialPropagation");
+   phiprof::start("calculateSpatialPropagation");
    vector<CellID> cells;
    vector<CellID> innerCellIds;
    for (set<CellID>::iterator c=stencilUpdates.innerCells.begin(); c!=stencilUpdates.innerCells.end(); ++c) {
@@ -569,8 +569,8 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
    MPIsendRequests.clear(); 
    MPIrecvRequests.clear();
    MPIsendTypes.clear();
-   profile::initializeTimer("Start receives","MPI");
-   profile::start("Start receives");
+   phiprof::initializeTimer("Start receives","MPI");
+   phiprof::start("Start receives");
 
 
    
@@ -591,9 +591,9 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
       MPI_Irecv(buffer, mpiGrid[localID]->size()*SIZE_VELBLOCK*sizeof(Real),MPI_BYTE,host,tag,MPI_COMM_WORLD,&(MPIrecvRequests.back()));
       ops++;
    }
-   profile::stop("Start receives",ops,"receives");
-   profile::initializeTimer("Start sends","MPI");
-   profile::start("Start sends");
+   phiprof::stop("Start receives",ops,"receives");
+   phiprof::initializeTimer("Start sends","MPI");
+   phiprof::start("Start sends");
    ops=0;
 // Post sends for remote updates:
    for (multimap<CellID,pair<int,int> >::const_iterator it=stencilUpdates.sends.begin(); it!=stencilUpdates.sends.end(); ++it) {
@@ -610,12 +610,12 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
       }
       ops++;
    }
-   profile::stop("Start sends",ops,"sends");
+   phiprof::stop("Start sends",ops,"sends");
 
    if(accelerate)   
-      profile::start("Spatial trans+acc (inner)");
+      phiprof::start("Spatial trans+acc (inner)");
    else
-      profile::start("Spatial trans (inner)");
+      phiprof::start("Spatial trans (inner)");
 //cpu_propagetSpatWithMoments only write to data        in cell cellID, parallel for safe
 
 #pragma omp parallel for schedule(guided)       
@@ -648,25 +648,25 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
    }
 
    if(accelerate)   
-      profile::stop("Spatial trans+acc (inner)");
+      phiprof::stop("Spatial trans+acc (inner)");
    else
-      profile::stop("Spatial trans (inner)");
+      phiprof::stop("Spatial trans (inner)");
 
    
    // Wait for remote neighbour updates to arrive:
-   profile::initializeTimer("Wait receives","MPI","Wait");
-   profile::start("Wait receives");
+   phiprof::initializeTimer("Wait receives","MPI","Wait");
+   phiprof::start("Wait receives");
    // Wait for all receives to complete:
    MPI_Waitall(MPIrecvRequests.size(),&(MPIrecvRequests[0]),MPI_STATUSES_IGNORE);
    // Free memory:
    MPIrecvRequests.clear();
-   profile::stop("Wait receives");
+   phiprof::stop("Wait receives");
 
       
    // Sum remote neighbour updates to the first receive buffer of each 
    // local cell (if necessary):
 
-   profile::start("Sum remote updates");
+   phiprof::start("Sum remote updates");
 #pragma omp parallel
    for (map<CellID,vector<vector<Real> > >::iterator it=remoteUpdates.begin(); it!=remoteUpdates.end(); ++it) {
       const CellID cellID = it->first;
@@ -683,11 +683,11 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
          }
       }
    }
-   profile::stop("Sum remote updates");
+   phiprof::stop("Sum remote updates");
    if(accelerate)   
-      profile::start("Spatial trans+acc (boundary)");
+      phiprof::start("Spatial trans+acc (boundary)");
    else
-      profile::start("Spatial trans (boundary)");
+      phiprof::start("Spatial trans (boundary)");
    
    // Propagate boundary cells:
 //cpu_propagetSpatWithMoments only write to data in cell cellID, parallel for safe
@@ -718,13 +718,13 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
          calculateCellAcceleration(mpiGrid,cellID,accelerate_dt);
    }
    if(accelerate)   
-      profile::stop("Spatial trans+acc (boundary)");
+      phiprof::stop("Spatial trans+acc (boundary)");
    else
-      profile::stop("Spatial trans (boundary)");
+      phiprof::stop("Spatial trans (boundary)");
 
    // Wait for neighbour update sends:
-   profile::initializeTimer("Wait sends","MPI","Wait");
-   profile::start("Wait sends");
+   phiprof::initializeTimer("Wait sends","MPI","Wait");
+   phiprof::start("Wait sends");
 
    MPI_Waitall(MPIsendRequests.size(),&(MPIsendRequests[0]),MPI_STATUSES_IGNORE);
 
@@ -735,8 +735,8 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
    }
    MPIsendTypes.clear();
    
-   profile::stop("Wait sends");
-   profile::stop("calculateSpatialPropagation");
+   phiprof::stop("Wait sends");
+   phiprof::stop("calculateSpatialPropagation");
 }
 
 

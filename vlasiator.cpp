@@ -51,13 +51,13 @@ void fpehandler(int sig_num)
 }
 #endif
 
-#include "profile.hpp"
+#include "phiprof.hpp"
 
 
 Logger logfile, diagnostic;
 
 using namespace std;
-using namespace profile;
+using namespace phiprof;
 
 
 int main(int argn,char* args[]) {
@@ -92,9 +92,9 @@ int main(int argn,char* args[]) {
    signal(SIGFPE, fpehandler);
    #endif
    
-   profile::start("main");
-   profile::start("Initialization");
-   profile::start("Read parameters");
+   phiprof::start("main");
+   phiprof::start("Initialization");
+   phiprof::start("Read parameters");
    //init parameter file reader
    Readparameters readparameters(argn,args,MPI_COMM_WORLD);
    P::addParameters();
@@ -102,19 +102,19 @@ int main(int argn,char* args[]) {
    readparameters.parse();
    P::getParameters();
    getProjectParameters();
-   profile::stop("Read parameters");
+   phiprof::stop("Read parameters");
 
    
-   profile::start("Init project");
+   phiprof::start("Init project");
    if (initializeProject() == false) {
       logfile << "(MAIN): Project did not initialize correctly!" << endl << writeVerbose;
       exit(1);
    }
-   profile::stop("Init project");
+   phiprof::stop("Init project");
    
 
 // Init parallel logger:
-   profile::start("open logfile & diagnostic");
+   phiprof::start("open logfile & diagnostic");
    if (logfile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt") == false) {
       cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
       exit(1);
@@ -125,15 +125,15 @@ int main(int argn,char* args[]) {
          exit(1);
       }
    }
-   profile::stop("open logfile & diagnostic");
+   phiprof::stop("open logfile & diagnostic");
    
-   profile::start("Init grid");
+   phiprof::start("Init grid");
    dccrg::Dccrg<SpatialCell> mpiGrid;
    if (initializeGrid(argn,args,mpiGrid) == false) {
       logfile << "(MAIN): Grid did not initialize correctly!" << endl << writeVerbose;
       exit(1);
    }  
-   profile::stop("Init grid");
+   phiprof::stop("Init grid");
 
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
    // user-defined operators:
@@ -141,22 +141,22 @@ int main(int argn,char* args[]) {
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    
    //VlsWriter vlsWriter;
-   profile::start("Init vlasov propagator");
+   phiprof::start("Init vlasov propagator");
    // Initialize Vlasov propagator:
    if (initializeMover(mpiGrid) == false) {
       logfile << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << writeVerbose;
       exit(1);
    }   
    calculateVelocityMoments(mpiGrid);
-   profile::stop("Init vlasov propagator");
+   phiprof::stop("Init vlasov propagator");
    
-   profile::start("Init field propagator");
+   phiprof::start("Init field propagator");
    // Initialize field propagator:
    if (initializeFieldPropagator(mpiGrid,P::propagateField) == false) {
        logfile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
        exit(1);
    }
-   profile::stop("Init field propagator");
+   phiprof::stop("Init field propagator");
    
 
 
@@ -170,7 +170,7 @@ int main(int argn,char* args[]) {
    // Free up memory:
    readparameters.finalize();
 
-   profile::start("Save initial state");
+   phiprof::start("Save initial state");
    // Write initial state:
    if (P::save_spatial_grid) {
       if (myrank == MASTER_RANK) {
@@ -181,18 +181,18 @@ int main(int argn,char* args[]) {
 	 logfile << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << writeVerbose;
       }
    }
-   profile::stop("Save initial state");
+   phiprof::stop("Save initial state");
    
    if (P::diagnosticInterval != 0)
    {
-      profile::start("Diagnostic");
+      phiprof::start("Diagnostic");
       if (computeDiagnostic(mpiGrid, diagnosticReducer, P::tstep_min) == false) {
 	 cerr << "ERROR with diagnostic computation" << endl;
       }
-      profile::stop("Diagnostic");
+      phiprof::stop("Diagnostic");
    }
    
-   profile::stop("Initialization");
+   phiprof::stop("Initialization");
    MPI_Barrier(MPI_COMM_WORLD);
 
 
@@ -205,7 +205,7 @@ int main(int argn,char* args[]) {
    unsigned int totalComputedBlocks=0;
    unsigned int computedBlocks=0;
 
-   profile::start("Simulation");
+   phiprof::start("Simulation");
    for (luint tstep=P::tstep_min; tstep < P::tsteps; ++tstep) {
       //compute how many spatial cells we solve for this step
       vector<uint64_t> cells = mpiGrid.get_cells();
@@ -218,7 +218,7 @@ int main(int argn,char* args[]) {
       totalComputedSpatialCells+=computedSpatialCells;
       totalComputedBlocks+=computedBlocks;
       
-      profile::start("Propagate");
+      phiprof::start("Propagate");
       // Recalculate (maybe) spatial cell parameters
       calculateSimParameters(mpiGrid, P::t, P::dt);
       
@@ -226,41 +226,41 @@ int main(int argn,char* args[]) {
       P::dt = all_reduce(comm, P::dt, boost::mpi::minimum<Real>());
       // Propagate the state of simulation forward in time by dt:      
       if (P::propagateVlasov == true) {
-         profile::start("Propagate Vlasov");
+         phiprof::start("Propagate Vlasov");
          switch (P::splitMethod){
               case 0:
-                 profile::start("propagation");
+                 phiprof::start("propagation");
                  calculateSpatialFluxes(mpiGrid,P::dt);
 #ifdef SEMILAG
                  adjustVelocityBlocks(mpiGrid);
 #endif
                  calculateSpatialPropagation(mpiGrid,true,P::dt);
-                 profile::stop("propagation",computedBlocks,"Blocks");
+                 phiprof::stop("propagation",computedBlocks,"Blocks");
                  break;
               case 1:
-                 profile::start("First propagation");
+                 phiprof::start("First propagation");
                  calculateSpatialFluxes(mpiGrid,0.5*P::dt);
                  calculateSpatialPropagation(mpiGrid,true,P::dt);
-                 profile::stop("First propagation",computedBlocks,"Blocks");
+                 phiprof::stop("First propagation",computedBlocks,"Blocks");
 #ifdef SEMILAG
                  adjustVelocityBlocks(mpiGrid);
 #endif
-                 profile::start("Second propagation");
+                 phiprof::start("Second propagation");
                  calculateSpatialFluxes(mpiGrid,0.5*P::dt);
                  calculateSpatialPropagation(mpiGrid,false,0);
-                 profile::stop("Second propagation",computedBlocks,"Blocks");
+                 phiprof::stop("Second propagation",computedBlocks,"Blocks");
                  break;
               case 2:
-                 profile::start("Acceleration");
+                 phiprof::start("Acceleration");
                  calculateAcceleration(mpiGrid,0.5*P::dt);
-                 profile::stop("Acceleration",computedBlocks,"Blocks");
+                 phiprof::stop("Acceleration",computedBlocks,"Blocks");
 #ifdef SEMILAG
                  adjustVelocityBlocks(mpiGrid);
 #endif
-                 profile::start("Trans + acc");
+                 phiprof::start("Trans + acc");
                  calculateSpatialFluxes(mpiGrid,P::dt);
                  calculateSpatialPropagation(mpiGrid,true,0.5*P::dt);
-                 profile::stop("Trans + acc",computedBlocks,"Blocks");
+                 phiprof::stop("Trans + acc",computedBlocks,"Blocks");
 #ifdef SEMILAG
                  //if we are careful this might not be needed, if the
                  //next timestep acceleration is the next step, then
@@ -281,7 +281,7 @@ int main(int argn,char* args[]) {
           if(P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min)
              balanceLoad(mpiGrid);
           
-          profile::stop("Propagate Vlasov",computedBlocks,"Blocks");
+          phiprof::stop("Propagate Vlasov",computedBlocks,"Blocks");
       }
  
       // Propagate fields forward in time by dt. If field is not 
@@ -291,20 +291,20 @@ int main(int argn,char* args[]) {
       // (not done by calculateFaceAveragedFields).
 
       if (P::propagateField == true) {
-          profile::start("Propagate Fields");
+          phiprof::start("Propagate Fields");
           propagateFields(mpiGrid,P::dt);
-          profile::stop("Propagate Fields",computedSpatialCells,"SpatialCells");
+          phiprof::stop("Propagate Fields",computedSpatialCells,"SpatialCells");
       } else {
 	 calculateFaceAveragedFields(mpiGrid);
       }
-      profile::stop("Propagate",computedBlocks,"Blocks");
+      phiprof::stop("Propagate",computedBlocks,"Blocks");
 
       ++P::tstep;
       P::t += P::dt;
       
       // Check if data needs to be written to disk:
       if (P::tstep % P::saveRestartInterval == 0 || P::tstep % P::saveInterval == 0) {
-         profile::start("IO");
+         phiprof::start("IO");
 	 bool writeRestartData = false;
 	 if (P::tstep % P::saveRestartInterval == 0) {
 	   writeRestartData = true;
@@ -318,24 +318,24 @@ int main(int argn,char* args[]) {
 	    if (myrank == MASTER_RANK)
 	      logfile << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << writeVerbose;
 	 }
-         profile::stop("IO");
+         phiprof::stop("IO");
       }
       
       // Check whether diagnostic output has to be produced
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
-	 profile::start("Diagnostic");
+	 phiprof::start("Diagnostic");
 	 if (computeDiagnostic(mpiGrid, diagnosticReducer, tstep+1) == false) {
 	    cerr << "ERROR with diagnostic computation" << endl;
 	 }
-	 profile::stop("Diagnostic");
-         //also print out profile log
-         profile::printLogProfile(MPI_COMM_WORLD,P::tstep,"profile_log"," ",7);
+	 phiprof::stop("Diagnostic");
+         //also print out phiprof log
+         phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
       }
    }
    double after = MPI_Wtime();
 
-   profile::stop("Simulation",totalComputedBlocks,"Blocks");
-   profile::start("Finalization");   
+   phiprof::stop("Simulation",totalComputedBlocks,"Blocks");
+   phiprof::start("Finalization");   
    finalizeMover();
    finalizeFieldPropagator(mpiGrid);
    
@@ -349,11 +349,11 @@ int main(int argn,char* args[]) {
       logfile << writeVerbose;
    }
    
-   profile::stop("Finalization");   
-   profile::stop("main");
+   phiprof::stop("Finalization");   
+   phiprof::stop("main");
    
-   profile::print(MPI_COMM_WORLD,"profile_full");
-   profile::print(MPI_COMM_WORLD,"profile_reduced",0.01);
+   phiprof::print(MPI_COMM_WORLD,"phiprof_full");
+   phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
    
    if (myrank == MASTER_RANK) logfile << "(MAIN): Exiting." << endl << writeVerbose;
    logfile.close();

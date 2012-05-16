@@ -50,8 +50,8 @@ LIB_SILO = -L$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION
 INC_DCCRG = -I$(LIBRARY_PREFIX_B)/dccrg-new
 
 
-LIB_PROFILE = -L$(LIBRARY_PREFIX_B)/profiler/lib -lprofile
-INC_PROFILE = -I$(LIBRARY_PREFIX_B)/profiler/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX_B)/phiprof/lib -lphiprof
+INC_PROFILE = -I$(LIBRARY_PREFIX_B)/phiprof/include
 
 
 
