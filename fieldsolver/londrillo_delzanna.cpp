@@ -607,12 +607,12 @@ static void calculateEdgeElectricFieldX(
    #endif
 
       //compute maximum timestep for fieldsolve in this cell (CFL=1)      
-      Real max_a=0;
+      Real max_a=ZERO;
       max_a=max(az_neg,max_a);
       max_a=max(az_pos,max_a);
       max_a=max(ay_neg,max_a);
       max_a=max(ay_pos,max_a);
-      Real min_dx=1e10;
+      Real min_dx=std::numeric_limits<Real>::max();
       min_dx=min(min_dx,cp_SW[CellParams::DY]);
       min_dx=min(min_dx,cp_SW[CellParams::DZ]);
       cp_SW[CellParams::MAXFDT]=max(cp_SW[CellParams::MAXFDT],min_dx/max_a);
@@ -781,12 +781,12 @@ static void calculateEdgeElectricFieldY(
 
 
 //compute maximum timestep for fieldsolve in this cell (CFL=1)      
-      Real max_a=0;
+      Real max_a=ZERO;
       max_a=max(az_neg,max_a);
       max_a=max(az_pos,max_a);
       max_a=max(ax_neg,max_a);
       max_a=max(ax_pos,max_a);
-      Real min_dx=1e10;
+      Real min_dx=std::numeric_limits<Real>::max();;
       min_dx=min(min_dx,cp_SW[CellParams::DX]);
       min_dx=min(min_dx,cp_SW[CellParams::DZ]);
       cp_SW[CellParams::MAXFDT]=max(cp_SW[CellParams::MAXFDT],min_dx/max_a);
@@ -963,12 +963,12 @@ static void calculateEdgeElectricFieldZ(
 #endif
 
   //compute maximum timestep for fieldsolve in this cell (CFL=1)      
-      Real max_a=0;
+      Real max_a=ZERO;
       max_a=max(ay_neg,max_a);
       max_a=max(ay_pos,max_a);
       max_a=max(ax_neg,max_a);
       max_a=max(ax_pos,max_a);
-      Real min_dx=1e10;
+      Real min_dx=std::numeric_limits<Real>::max();;
       min_dx=min(min_dx,cp_SW[CellParams::DX]);
       min_dx=min(min_dx,cp_SW[CellParams::DY]);
       cp_SW[CellParams::MAXFDT]=max(cp_SW[CellParams::MAXFDT],min_dx/max_a);
@@ -1404,7 +1404,7 @@ bool propagateFields(
 
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];   
-      mpiGrid[cellID]->parameters[CellParams::MAXFDT]=1e10;
+      mpiGrid[cellID]->parameters[CellParams::MAXFDT]=std::numeric_limits<Real>::max();;
    }
    
    propagateMagneticFieldSimple(mpiGrid,dt,localCells);
