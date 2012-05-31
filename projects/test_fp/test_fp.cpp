@@ -45,7 +45,7 @@ bool initializeProject(void) {
 
 bool addProjectParameters(void){
    typedef Readparameters RP;
-   RP::add("test_fp.B0", "Background field value (T)", 1.0e-9);
+   RP::add("test_fp.B0", "Magnetic field value in the non-zero patch (T)", 1.0e-9);
    RP::add("test_fp.rho", "Number density (m^-3)", 1.0e7);
    RP::add("test_fp.Temperature", "Temperature (K)", 1.0e-6);
    RP::add("test_fp.angle", "Orientation of the propagation expressed in pi/4", 0.0);
