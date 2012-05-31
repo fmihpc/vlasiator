@@ -29,6 +29,12 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 
 #include "dccrg.hpp"
 
+struct test_accParameters {
+   static Real SPEED;
+   static Real v_min;
+   static Real v_max;
+} ;
+
 /**
  * Initialize project. Can be used, e.g., to read in parameters from the input file
  */
@@ -216,14 +222,14 @@ template<typename UINT,typename REAL> void calcAccFaceX(
    ay = blockParams[BlockParams::VYCRD] + (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
    az = blockParams[BlockParams::VZCRD] + (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
    
-   const REAL SPEED = convert<REAL>(0.5) + convert<REAL>(0.5)*(convert<REAL>(1.0) / convert<REAL>(6.0));
+//    const REAL SPEED = convert<REAL>(0.5) + convert<REAL>(0.5)*(convert<REAL>(1.0) / convert<REAL>(6.0));
    
-   if (ax > convert<REAL>(0.0)) ax = SPEED;
-   else ax = -SPEED;
-   if (ay > convert<REAL>(0.0)) ay = SPEED;
-   else ay = -SPEED;
-   if (az > convert<REAL>(0.0)) az = SPEED;
-   else az = -SPEED;
+   if (ax > convert<REAL>(0.0)) ax = test_accParameters::SPEED;
+   else ax = -test_accParameters::SPEED;
+   if (ay > convert<REAL>(0.0)) ay = test_accParameters::SPEED;
+   else ay = -test_accParameters::SPEED;
+   if (az > convert<REAL>(0.0)) az = test_accParameters::SPEED;
+   else az = -test_accParameters::SPEED;
 }
 
 template<typename UINT,typename REAL> void calcAccFaceY(
@@ -236,14 +242,14 @@ template<typename UINT,typename REAL> void calcAccFaceY(
    ay = blockParams[BlockParams::VYCRD] + (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
    az = blockParams[BlockParams::VZCRD] + (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
    
-   const REAL SPEED = convert<REAL>(0.5) + convert<REAL>(0.5)*(convert<REAL>(1.0) / convert<REAL>(6.0));
+//    const REAL SPEED = convert<REAL>(0.5) + convert<REAL>(0.5)*(convert<REAL>(1.0) / convert<REAL>(6.0));
    
-   if (ax > convert<REAL>(0.0)) ax = SPEED;
-   else ax = -SPEED;
-   if (ay > convert<REAL>(0.0)) ay = SPEED;
-   else ay = -SPEED;
-   if (az > convert<REAL>(0.0)) az = SPEED;
-   else az = -SPEED;
+   if (ax > convert<REAL>(0.0)) ax = test_accParameters::SPEED;
+   else ax = -test_accParameters::SPEED;
+   if (ay > convert<REAL>(0.0)) ay = test_accParameters::SPEED;
+   else ay = -test_accParameters::SPEED;
+   if (az > convert<REAL>(0.0)) az = test_accParameters::SPEED;
+   else az = -test_accParameters::SPEED;
 }
 
 template<typename UINT,typename REAL> void calcAccFaceZ(
@@ -256,14 +262,14 @@ template<typename UINT,typename REAL> void calcAccFaceZ(
    ay = blockParams[BlockParams::VYCRD] + (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
    az = blockParams[BlockParams::VZCRD] + (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
    
-   const REAL SPEED = convert<REAL>(0.5) + convert<REAL>(0.5)*(convert<REAL>(1.0) / convert<REAL>(6.0));
+//    const REAL SPEED = convert<REAL>(0.5) + convert<REAL>(0.5)*(convert<REAL>(1.0) / convert<REAL>(6.0));
    
-   if (ax > convert<REAL>(0.0)) ax = SPEED;
-   else ax = -SPEED;
-   if (ay > convert<REAL>(0.0)) ay = SPEED;
-   else ay = -SPEED;
-   if (az > convert<REAL>(0.0)) az = SPEED;
-   else az = -SPEED;
+   if (ax > convert<REAL>(0.0)) ax = test_accParameters::SPEED;
+   else ax = -test_accParameters::SPEED;
+   if (ay > convert<REAL>(0.0)) ay = test_accParameters::SPEED;
+   else ay = -test_accParameters::SPEED;
+   if (az > convert<REAL>(0.0)) az = test_accParameters::SPEED;
+   else az = -test_accParameters::SPEED;
 }
 
 #endif

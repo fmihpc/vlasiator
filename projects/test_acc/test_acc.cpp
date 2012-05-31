@@ -28,32 +28,53 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 
 using namespace std;
 
+typedef test_accParameters taP;
+Real taP::SPEED = NAN;
+Real taP::v_min = NAN;
+Real taP::v_max = NAN;
+
 bool initializeProject(void) {return true;}
-bool addProjectParameters(){return true;}
-bool getProjectParameters(){return true;}
+
+bool addProjectParameters(){
+   typedef Readparameters RP;
+   RP::add("test_acc.SPEED", "Acceleration value", 0.5);
+   RP::add("test_acc.v_min", "Inner corner of initial blobs", 0.2);
+   RP::add("test_acc.v_max", "Outer corner of initial blobs", 0.3);
+   return true;
+}
+bool getProjectParameters(){
+   typedef Readparameters RP;
+   RP::get("test_acc.SPEED", taP::SPEED);
+   RP::get("test_acc.v_min", taP::v_min);
+   RP::get("test_acc.v_max", taP::v_max);
+   return true;
+}
 
 bool cellParametersChanged(creal& t) {return false;}
 
 Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
 			   creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {
-   if (vz >= 0.2 && vz < 0.2+dvz) {
-      if (vx >= 0.2 && vx < 0.2+dvx) {
-	 if (vy >= -0.2-dvy*1.001 && vy < -0.2) return 1.0;
-	 if (vy >= 0.2 && vy < 0.2+dvy) return 1.0;
+   Real Vx = vx + 0.5 * dvx;
+   Real Vy = vy + 0.5 * dvy;
+   Real Vz = vz + 0.5 * dvz;
+   if (Vz >= taP::v_min && Vz < taP::v_max) {
+      if (Vx >= taP::v_min && Vx < taP::v_max) {
+	 if (Vy >= -taP::v_max && Vy < -taP::v_min) return 1.0;
+	 if (Vy >= taP::v_min && Vy < taP::v_max) return 1.0;
       }
-      if (vx >= -0.2-dvx*1.001 && vx < -0.2) {
-	 if (vy >= -0.2-dvy*1.001 && vy < -0.2) return 1.0;
-	 if (vy >= 0.2 && vy < 0.2+dvy) return 1.0;
+      if (Vx >= -taP::v_max && Vx < -taP::v_min) {
+	 if (Vy >= -taP::v_max && Vy < -taP::v_min) return 1.0;
+	 if (Vy >= taP::v_min && Vy < taP::v_max) return 1.0;
       }
    }
-   if (vz >= -0.2-dvz*1.001 && vz < -0.2) {
-      if (vx >= 0.2 && vx < 0.2+dvx) {
-	 if (vy >= -0.2-dvy*1.001 && vy < -0.2) return 1.0;
-	 if (vy >= 0.2 && vy < 0.2+dvy) return 1.0;
+   if (Vz >= -taP::v_max && Vz < -taP::v_min) {
+      if (Vx >= taP::v_min && Vx < taP::v_max) {
+	 if (Vy >= -taP::v_max && Vy < -taP::v_min) return 1.0;
+	 if (Vy >= taP::v_min && Vy < taP::v_max) return 1.0;
       }
-      if (vx >= -0.2-dvx*1.001 && vx < -0.2) {
-	 if (vy >= -0.2-dvy*1.001 && vy < -0.2) return 1.0;
-	 if (vy >= 0.2 && vy < 0.2+dvy) return 1.0;
+      if (Vx >= -taP::v_max && Vx < -taP::v_min) {
+	 if (Vy >= -taP::v_max && Vy < -taP::v_min) return 1.0;
+	 if (Vy >= taP::v_min && Vy < taP::v_max) return 1.0;
       }
    }
    return 0.0;
