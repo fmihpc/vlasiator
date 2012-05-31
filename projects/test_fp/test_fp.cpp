@@ -28,15 +28,42 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 
 enum cases {BXCASE,BYCASE,BZCASE};
 
-// SET THIS TO BXCASE,BYCASE,OR BZCASE TO SELECT ONE OF THE THREE CASES
-
-static int CASE = BZCASE;
-
 using namespace std;
 
-bool initializeProject(void) {return true;}
-bool addProjectParameters(){return true;}
-bool getProjectParameters(){return true;}
+typedef test_fpParameters tfP;
+Real tfP::B0 = NAN;
+Real tfP::DENSITY = NAN;
+Real tfP::TEMPERATURE = NAN;
+Real tfP::ALPHA = NAN;
+int  tfP::CASE = 5;
+bool tfP::shear = false;
+
+bool initializeProject(void) {
+   tfP::ALPHA *= M_PI / 4.0;
+   return true;
+}
+
+bool addProjectParameters(void){
+   typedef Readparameters RP;
+   RP::add("test_fp.B0", "Background field value (T)", 1.0e-9);
+   RP::add("test_fp.rho", "Number density (m^-3)", 1.0e7);
+   RP::add("test_fp.Temperature", "Temperature (K)", 1.0e-6);
+   RP::add("test_fp.angle", "Orientation of the propagation expressed in pi/4", 0.0);
+   RP::add("test_fp.Bdirection", "Direction of the magnetic field (0:x, 1:y, 2:z)", 0);
+   RP::add("test_fp.shear", "Add a shear (if false, V=0.5 everywhere).", true);
+   return true;
+}
+
+bool getProjectParameters(void){
+   typedef Readparameters RP;
+   RP::get("test_fp.B0", tfP::B0);
+   RP::get("test_fp.rho", tfP::DENSITY);
+   RP::get("test_fp.Temperature", tfP::TEMPERATURE);
+   RP::get("test_fp.angle", tfP::ALPHA);
+   RP::get("test_fp.Bdirection", tfP::CASE);
+   RP::get("test_fp.shear", tfP::shear);
+   return true;
+}
 
 bool cellParametersChanged(creal& t) {return false;}
 
@@ -47,42 +74,60 @@ Real sign(creal value)
 }
 
 Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {
-   const Real T  = 1e-6;
-   const Real n  = 1.0e7;
-   creal ALPHA = 7.0 * M_PI / 4.0;
-
-   Real VX,VY,VZ,ksi,eta;
-   switch (CASE) {
-      case BXCASE:
-      ksi = ((y + 0.5 * dy)  * cos(ALPHA) + (z + 0.5 * dz) * sin(ALPHA)) / (2.0 * sqrt(2.0));
-      eta = (-(y + 0.5 * dy)  * sin(ALPHA) + (z + 0.5 * dz) * cos(ALPHA)) / (2.0 * sqrt(2.0));
-      VX = 0.0;
-      VY = sign(cos(ALPHA)) * 0.5 + 0.1*cos(ALPHA) * sin(2.0 * M_PI * eta);
-      VZ = sign(sin(ALPHA)) * 0.5 + 0.1*sin(ALPHA) * sin(2.0 * M_PI * eta); 
-      break;
-    case BYCASE:
-      ksi = ((z + 0.5 * dz)  * cos(ALPHA) + (x + 0.5 * dx) * sin(ALPHA)) / (2.0 * sqrt(2.0));
-      eta = (-(z + 0.5 * dz)  * sin(ALPHA) + (x + 0.5 * dx) * cos(ALPHA)) / (2.0 * sqrt(2.0));
-      VX = sign(sin(ALPHA)) * 0.5 + 0.1*sin(ALPHA) * sin(2.0 * M_PI * eta);
-      VY = 0.0;
-      VZ = sign(cos(ALPHA)) * 0.5 + 0.1*cos(ALPHA) * sin(2.0 * M_PI * eta);
-      break;
-    case BZCASE:
-      ksi = ((x + 0.5 * dx)  * cos(ALPHA) + (y + 0.5 * dy) * sin(ALPHA)) / (2.0 * sqrt(2.0));
-      eta = (-(x + 0.5 * dx)  * sin(ALPHA) + (y + 0.5 * dy) * cos(ALPHA)) / (2.0 * sqrt(2.0));
-      VX = sign(cos(ALPHA)) * 0.5 + 0.1*cos(ALPHA) * sin(2.0 * M_PI * eta);
-      VY = sign(sin(ALPHA)) * 0.5 + 0.1*sin(ALPHA) * sin(2.0 * M_PI * eta);
-      VZ = 0.0;
-      break;
+   Real VX,VY,VZ;
+   if (tfP::shear == true)
+   {
+      Real ksi,eta;
+      switch (tfP::CASE) {
+	 case BXCASE:
+	 ksi = ((y + 0.5 * dy)  * cos(tfP::ALPHA) + (z + 0.5 * dz) * sin(tfP::ALPHA)) / (2.0 * sqrt(2.0));
+	 eta = (-(y + 0.5 * dy)  * sin(tfP::ALPHA) + (z + 0.5 * dz) * cos(tfP::ALPHA)) / (2.0 * sqrt(2.0));
+	 VX = 0.0;
+	 VY = sign(cos(tfP::ALPHA)) * 0.5 + 0.1*cos(tfP::ALPHA) * sin(2.0 * M_PI * eta);
+	 VZ = sign(sin(tfP::ALPHA)) * 0.5 + 0.1*sin(tfP::ALPHA) * sin(2.0 * M_PI * eta); 
+	 break;
+      case BYCASE:
+	 ksi = ((z + 0.5 * dz)  * cos(tfP::ALPHA) + (x + 0.5 * dx) * sin(tfP::ALPHA)) / (2.0 * sqrt(2.0));
+	 eta = (-(z + 0.5 * dz)  * sin(tfP::ALPHA) + (x + 0.5 * dx) * cos(tfP::ALPHA)) / (2.0 * sqrt(2.0));
+	 VX = sign(sin(tfP::ALPHA)) * 0.5 + 0.1*sin(tfP::ALPHA) * sin(2.0 * M_PI * eta);
+	 VY = 0.0;
+	 VZ = sign(cos(tfP::ALPHA)) * 0.5 + 0.1*cos(tfP::ALPHA) * sin(2.0 * M_PI * eta);
+	 break;
+      case BZCASE:
+	 ksi = ((x + 0.5 * dx)  * cos(tfP::ALPHA) + (y + 0.5 * dy) * sin(tfP::ALPHA)) / (2.0 * sqrt(2.0));
+	 eta = (-(x + 0.5 * dx)  * sin(tfP::ALPHA) + (y + 0.5 * dy) * cos(tfP::ALPHA)) / (2.0 * sqrt(2.0));
+	 VX = sign(cos(tfP::ALPHA)) * 0.5 + 0.1*cos(tfP::ALPHA) * sin(2.0 * M_PI * eta);
+	 VY = sign(sin(tfP::ALPHA)) * 0.5 + 0.1*sin(tfP::ALPHA) * sin(2.0 * M_PI * eta);
+	 VZ = 0.0;
+	 break;
+      }
+   } else {
+      switch (tfP::CASE) {
+	 case BXCASE:
+	    VX = 0.0;
+	    VY = cos(tfP::ALPHA) * 0.5;
+	    VZ = sin(tfP::ALPHA) * 0.5; 
+	    break;
+	 case BYCASE:
+	    VX = sin(tfP::ALPHA) * 0.5;
+	    VY = 0.0;
+	    VZ = cos(tfP::ALPHA) * 0.5;
+	    break;
+	 case BZCASE:
+	    VX = cos(tfP::ALPHA) * 0.5;
+	    VY = sin(tfP::ALPHA) * 0.5;
+	    VZ = 0.0;
+	    break;
+      }
    }
    
    creal VX2 = (vx+0.5*dvx-VX)*(vx+0.5*dvx-VX);
    creal VY2 = (vy+0.5*dvy-VY)*(vy+0.5*dvy-VY);
    creal VZ2 = (vz+0.5*dvz-VZ)*(vz+0.5*dvz-VZ);
    
-   creal CONST = physicalconstants::MASS_PROTON / 2.0 / physicalconstants::K_B / T;
-   Real NORM = (physicalconstants::MASS_PROTON / 2.0 / M_PI / physicalconstants::K_B / T);
-   NORM = n * pow(NORM,1.5);
+   creal CONST = physicalconstants::MASS_PROTON / 2.0 / physicalconstants::K_B / tfP::TEMPERATURE;
+   Real NORM = (physicalconstants::MASS_PROTON / 2.0 / M_PI / physicalconstants::K_B / tfP::TEMPERATURE);
+   NORM = tfP::DENSITY * pow(NORM,1.5);
    
    return NORM*exp(-CONST*(VX2+VY2+VZ2));
 }
@@ -101,24 +146,22 @@ void calcCellParameters(Real* cellParams,creal& t) {
    creal x = cellParams[CellParams::XCRD] + 0.5 * cellParams[CellParams::DX];
    creal y = cellParams[CellParams::YCRD] + 0.5 * cellParams[CellParams::DY];
    creal z = cellParams[CellParams::ZCRD] + 0.5 * cellParams[CellParams::DZ];
-
-   creal B1 = 1.0e-9;
    
-   switch (CASE) {
+   switch (tfP::CASE) {
     case BXCASE:
       if (y >= -0.2 && y <= 0.2)
 	if (z >= -0.2 && z <= 0.2)
-	  cellParams[CellParams::BX] = B1;
+	   cellParams[CellParams::BX] = tfP::B0;
       break;
     case BYCASE:
       if (x >= -0.2 && x <= 0.2)
 	if (z >= -0.2 && z <= 0.2)
-	  cellParams[CellParams::BY] = B1;
+	   cellParams[CellParams::BY] = tfP::B0;
       break;
     case BZCASE:
       if (x >= -0.2 && x <= 0.2)
 	if (y >= -0.2 && y <= 0.2)
-	  cellParams[CellParams::BZ] = B1;
+	   cellParams[CellParams::BZ] = tfP::B0;
       break;
    }
 }
