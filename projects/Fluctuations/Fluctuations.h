@@ -37,7 +37,9 @@ struct fluctuationsParameters {
    static Real BZ0;
    static Real DENSITY;
    static Real TEMPERATURE;
-   static Real magPertAmp;
+   static Real magXPertAmp;
+   static Real magYPertAmp;
+   static Real magZPertAmp;
    static Real densityPertAmp;
    static Real velocityPertAmp;
    static Real maxwCutoff;

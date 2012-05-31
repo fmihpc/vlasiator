@@ -41,7 +41,9 @@ Real FlucP::BY0 = NAN;
 Real FlucP::BZ0 = NAN;
 Real FlucP::DENSITY = NAN;
 Real FlucP::TEMPERATURE = NAN;
-Real FlucP::magPertAmp = NAN;
+Real FlucP::magXPertAmp = NAN;
+Real FlucP::magYPertAmp = NAN;
+Real FlucP::magZPertAmp = NAN;
 Real FlucP::densityPertAmp = NAN;
 Real FlucP::velocityPertAmp = NAN;
 Real FlucP::maxwCutoff = NAN;
@@ -58,7 +60,9 @@ bool addProjectParameters() {
    RP::add("Fluctuations.BZ0", "Background field value (T)", 3.0e-9);
    RP::add("Fluctuations.rho", "Number density (m^-3)", 1.0e7);
    RP::add("Fluctuations.Temperature", "Temperature (K)", 2.0e6);
-   RP::add("Fluctuations.magPertAmp", "Amplitude of the magnetic perturbation", 1.0e-9);
+   RP::add("Fluctuations.magXPertAmp", "Amplitude of the magnetic perturbation along x", 1.0e-9);
+   RP::add("Fluctuations.magYPertAmp", "Amplitude of the magnetic perturbation along y", 1.0e-9);
+   RP::add("Fluctuations.magZPertAmp", "Amplitude of the magnetic perturbation along z", 1.0e-9);
    RP::add("Fluctuations.densityPertAmp", "Amplitude factor of the density perturbation", 0.1);
    RP::add("Fluctuations.velocityPertAmp", "Amplitude of the velocity perturbation", 1.0e6);
    RP::add("Fluctuations.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
@@ -74,7 +78,9 @@ bool getProjectParameters() {
    RP::get("Fluctuations.BZ0", FlucP::BZ0);
    RP::get("Fluctuations.rho", FlucP::DENSITY);
    RP::get("Fluctuations.Temperature", FlucP::TEMPERATURE);
-   RP::get("Fluctuations.magPertAmp", FlucP::magPertAmp);
+   RP::get("Fluctuations.magXPertAmp", FlucP::magXPertAmp);
+   RP::get("Fluctuations.magYPertAmp", FlucP::magYPertAmp);
+   RP::get("Fluctuations.magZPertAmp", FlucP::magZPertAmp);
    RP::get("Fluctuations.densityPertAmp", FlucP::densityPertAmp);
    RP::get("Fluctuations.velocityPertAmp", FlucP::velocityPertAmp);
    RP::get("Fluctuations.nSpaceSamples", FlucP::nSpaceSamples);
@@ -177,12 +183,13 @@ void calcCellParameters(Real* cellParams,creal& t) {
    cellParams[CellParams::EX   ] = 0.0;
    cellParams[CellParams::EY   ] = 0.0;
    cellParams[CellParams::EZ   ] = 0.0;
-   cellParams[CellParams::BX   ] = FlucP::BX0;
+   
 #pragma omp critical
    {
       srand(cellID);
-      cellParams[CellParams::BY   ] = FlucP::magPertAmp * (0.5 - (double)rand() / (double)RAND_MAX);
-      cellParams[CellParams::BZ   ] = FlucP::magPertAmp * (0.5 - (double)rand() / (double)RAND_MAX);
+      cellParams[CellParams::BX] = FlucP::BX0 + FlucP::magXPertAmp * (0.5 - (double)rand() / (double)RAND_MAX);
+      cellParams[CellParams::BY] = FlucP::BY0 + FlucP::magYPertAmp * (0.5 - (double)rand() / (double)RAND_MAX);
+      cellParams[CellParams::BZ] = FlucP::BZ0 + FlucP::magZPertAmp * (0.5 - (double)rand() / (double)RAND_MAX);
    }
 }
 
