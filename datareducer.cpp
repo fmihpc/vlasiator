@@ -55,6 +55,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 outputReducer->addOperator(new DRO::VariableVolB);
       if(*it == "Pressure")
 	 outputReducer->addOperator(new DRO::VariablePressure);
+      if(*it == "dBxdz")
+	 outputReducer->addOperator(new DRO::VariabledBxdz);
    }
    
    for (it = P::diagnosticVariableList.begin();

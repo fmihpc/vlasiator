@@ -254,6 +254,21 @@ namespace DRO {
    protected:
       
    };
+   
+   class VariabledBxdz: public DataReductionOperator {
+   public:
+      VariabledBxdz();
+      ~VariabledBxdz();
+      
+      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      std::string getName() const;
+      bool reduceData(const SpatialCell* cell,char* buffer);
+      bool setSpatialCell(const SpatialCell* cell);
+      
+   protected:
+      Real value;
+   };
+   
 } // namespace DRO
 
 #endif
