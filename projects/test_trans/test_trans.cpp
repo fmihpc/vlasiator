@@ -35,7 +35,7 @@ bool initializeProject(void) {return true;}
 
 bool addProjectParameters(){
    typedef Readparameters RP;
-   RP::add("test_trans.cellPosition", "Position of the centre of the cells initiaited (same used in velocity and space).", 1.5);
+   RP::add("test_trans.cellPosition", "Position of the centre of the cells initiated (same used in velocity and space).", 1.5);
    return true;
 }
 
