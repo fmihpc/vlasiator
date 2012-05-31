@@ -47,11 +47,6 @@ using namespace phiprof;
 
 extern Logger logfile, diagnostic;
 
-/** Subroutine for setting up a single spatial cell.
- */
-bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,creal& zmin,creal& dx,creal& dy,creal& dz,
-		     const bool& isRemote);
-
 //Subroutine for initializing all local spatial cells
 void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
