@@ -141,9 +141,11 @@ namespace CellParams {
       BYVOL0,
       BZVOL0,
 
-      RHOLOSSADJUST,
-      RHOLOSSVELBOUNDARY,
-      
+      RHOLOSSADJUST, /**< Counter for massloss from the destroying blocks in blockadjustment*/
+      RHOLOSSVELBOUNDARY, /**< Counter for massloss through outflow boundaries in velocity space*/
+      MAXVDT,   /**< maximum timestep allowed in velocity space for this cell**/
+      MAXXDT,  /**< maximum timestep allowed in ordinary space for this cell **/
+      MAXFDT, /**< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
       N_SPATIAL_CELL_PARAMS
    };
 }

@@ -59,6 +59,8 @@ Real P::m = NAN;
 Real P::q_per_m = NAN;
 Real P::t = 0;
 Real P::dt = NAN;
+Real P::CFLlimit = NAN;
+
 luint P::tstep = 0;
 luint P::tstep_min = 0;
 luint P::tsteps = 0;
@@ -75,6 +77,10 @@ bool P::recalculateStencils = true;
 bool P::propagateVlasov = true;
 bool P::propagateField = true;
 uint P::splitMethod=1;
+
+bool P::substepAcceleration = false;
+bool P::useCFLlimit = false;
+
 
 bool P::periodic_x = false;
 bool P::periodic_y = false;
@@ -101,6 +107,9 @@ bool Parameters::addParameters(){
         
         Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
         Readparameters::add("propagate_vlasov","Propagate distribution functions during the simulation",true);
+        Readparameters::add("substep_acceleration","If true, acceleration steps are substepped if the timestep exceeds maximum CFL limit",false);
+        Readparameters::add("use_CFL_limit","If true,  timestep is set based on  CFL limit",false);
+        
         Readparameters::add("split_method","Split method for splitting spatial/velocity space solvers. 0: first order, 1: strang splitting with half-steps for spatial space, 2: strang splitting with half-steps for velocity space",1);
         
 
@@ -129,6 +138,7 @@ bool Parameters::addParameters(){
         Readparameters::add("gridbuilder.q","Charge of simulated particle species, in Coulombs.",numeric_limits<Real>::max());
         Readparameters::add("gridbuilder.m","Mass of simulated particle species, in kilograms.",numeric_limits<Real>::max());
         Readparameters::add("gridbuilder.dt","Timestep in seconds.",numeric_limits<Real>::max());
+        Readparameters::add("gridbuilder.CFL","The maximum CFL limit for propagation. Used to set timestep if use_CFL_limit is true. Also used to set number of acceleration steps if substep_acceleration is true",0.5);
         Readparameters::add("gridbuilder.t_min","Simulation time at timestep 0, in seconds.",numeric_limits<Real>::max());
         Readparameters::add("gridbuilder.timestep","Timestep when grid is loaded. Defaults to value zero.",0);
         Readparameters::add("gridbuilder.max_timesteps","Max. value for timesteps. Defaults to value zero.",0);
@@ -144,8 +154,8 @@ bool Parameters::addParameters(){
         Readparameters::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
 	
 	// Output variable parameters
-	Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available (20120531) are B E Rho RhoV RhoLossAdjust RhoLossVelBoundary MPIrank Blocks VolE VolB Pressure dBxdz.");
-	Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Available (20120531) are Blocks FluxB Rho RhoLossAdjust RhoLossVelBoundary MaxVi.");
+	Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available (20120403) are B E Rho RhoV MPIrank Blocks VolE VolB Pressure.");
+	Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Available (20120413) are Blocks FluxB Rho MaxVi.");
         return true;
 }
 

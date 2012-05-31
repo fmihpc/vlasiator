@@ -24,6 +24,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "spatial_cell.hpp"
 #include "project.h"
 #include "leveque_common.h"
+#include <algorithm>
 
 using namespace spatial_cell;
 // Constant for switch statement in solver to decide which of the eight 
@@ -305,15 +306,17 @@ void cpu_clearVelFluxes(SpatialCell *cell,const unsigned int& BLOCK) {
    for (unsigned int i=0; i<SIZE_FLUXS; ++i)  block->fx[i]= 0.0;
 }
 
-void cpu_calcVelFluxes(SpatialCell *cell,const unsigned int& BLOCK,const Real& DT,creal* const accmat) {
+void cpu_calcVelFluxes(SpatialCell *cell,const unsigned int& BLOCK,const Real& DT,Real &maxAx, Real &maxAy, Real &maxAz) {
    // Creation of temporary calculation block dfdt and avgs + 
    // value fetching and initializations seem to take about
-   // ~4% of time used by calcVelFluxes
-   
+   // ~4% of time used by calcVelFluxes   
    // Allocate temporary array in which local dF changes are calculated:
    // F is the distribution function, dFdt is its change over timestep DT
    Real dfdt[216];
    for (unsigned int i=0; i<216; ++i) dfdt[i] = 0.0;
+   maxAx=0;
+   maxAy=0;
+   maxAz=0;
    
    Velocity_Block* block=cell->at(BLOCK);
    Real avgs[8*WID3];
@@ -337,7 +340,10 @@ void cpu_calcVelFluxes(SpatialCell *cell,const unsigned int& BLOCK,const Real& D
       const Real xm1 = avgs[fullInd(i+1,j+2,k+2)];
       const Real xm2 = avgs[fullInd(i  ,j+2,k+2)];
       calcAccFaceX(Ax,Ay,Az,i,j,k,cell->parameters,block->parameters);
-
+      maxAx=std::max(maxAx,fabs(Ax));
+      maxAy=std::max(maxAy,fabs(Ay));
+      maxAz=std::max(maxAz,fabs(Az));
+      
       solverFlags = 0;
       if (Az < ZERO) solverFlags = (solverFlags | (1 << 0));
       if (Ay < ZERO) solverFlags = (solverFlags | (1 << 1));
@@ -1492,7 +1498,6 @@ void cpu_calcVelFluxes(SpatialCell *cell,const unsigned int& BLOCK,const Real& D
    // 
    // accumulateChanges seems to take ~3% of time used by calcVelFluxes
    accumulateChanges(block,dfdt);
-
 }
 
 void cpu_propagateVel(SpatialCell *cell,const unsigned int& BLOCK,const Real& DT) {

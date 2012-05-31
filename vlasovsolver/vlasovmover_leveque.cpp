@@ -256,8 +256,7 @@ void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,ID::typ
 
 
 void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid, Real dt) {   
-   typedef Parameters P;
-   
+   typedef Parameters P;   
    const vector<CellID> cells = mpiGrid.get_cells();
    vector<CellID> nonGhostCells;
 
@@ -272,7 +271,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid, Real dt) {
    }
 
    //Operations for each cell is local, thus a threaded loop should be safe
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic) 
    for (size_t c=0; c<nonGhostCells.size(); ++c) {
       const CellID cellID = nonGhostCells[c];
       calculateCellAcceleration(mpiGrid,cellID,dt);
@@ -288,23 +287,36 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,
       return;
    }
 //   phiprof::start("clearVelFluxes");
-   // Clear df/dt contributions:
+//   Clear df/dt contributions:
    for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
       unsigned int block = SC->velocity_block_list[block_i];         
       cpu_clearVelFluxes(SC,block);
    }
+   
 //   phiprof::stop("clearVelFluxes");
 
 #ifndef SEMILAG
 //   phiprof::start("calcVelFluxes");
-   // Calculatedf/dt contributions of all blocks in the cell:
+//   Calculatedf/dt contributions of all blocks in the cell:
+
+   Real maxCelldt=1e10;
    for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
       unsigned int block = SC->velocity_block_list[block_i];         
-      cpu_calcVelFluxes(SC,block,dt,NULL);
+      Velocity_Block* block_ptr=SC->at(block);
+      Real maxAx,maxAy,maxAz,dt;
+      cpu_calcVelFluxes(SC,block,dt,maxAx,maxAy,maxAz);
+      dt=block_ptr->parameters[BlockParams::DVX]/maxAx;
+      dt=max(dt,block_ptr->parameters[BlockParams::DVY]/maxAy);
+      dt=max(dt,block_ptr->parameters[BlockParams::DVZ]/maxAz);
+      maxCelldt=max(dt,maxCelldt);
    }
-
+   
+   //update max timestep for acceleration in this cell
+   SC->parameters[CellParams::MAXVDT] = maxCelldt;
+   
 //   phiprof::start("propagateVel");
       // Propagate distribution functions in velocity space:
+
    for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
       unsigned int block = SC->velocity_block_list[block_i];         
       cpu_propagateVel(SC,block,dt);
@@ -319,8 +331,6 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,
 
    //apply boundary outflow condition in velocity space
    SC->applyVelocityBoundaryCondition();
-   
-
 }
 
 
