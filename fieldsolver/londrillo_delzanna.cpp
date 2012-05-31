@@ -615,7 +615,8 @@ static void calculateEdgeElectricFieldX(
       Real min_dx=std::numeric_limits<Real>::max();
       min_dx=min(min_dx,cp_SW[CellParams::DY]);
       min_dx=min(min_dx,cp_SW[CellParams::DZ]);
-      cp_SW[CellParams::MAXFDT]=max(cp_SW[CellParams::MAXFDT],min_dx/max_a);
+   //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
+      cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
 
 
 }
@@ -789,7 +790,8 @@ static void calculateEdgeElectricFieldY(
       Real min_dx=std::numeric_limits<Real>::max();;
       min_dx=min(min_dx,cp_SW[CellParams::DX]);
       min_dx=min(min_dx,cp_SW[CellParams::DZ]);
-      cp_SW[CellParams::MAXFDT]=max(cp_SW[CellParams::MAXFDT],min_dx/max_a);
+   //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps 
+      cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
       
       
       
@@ -971,7 +973,8 @@ static void calculateEdgeElectricFieldZ(
       Real min_dx=std::numeric_limits<Real>::max();;
       min_dx=min(min_dx,cp_SW[CellParams::DX]);
       min_dx=min(min_dx,cp_SW[CellParams::DY]);
-      cp_SW[CellParams::MAXFDT]=max(cp_SW[CellParams::MAXFDT],min_dx/max_a);
+   //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
+      cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
 
       
 }
