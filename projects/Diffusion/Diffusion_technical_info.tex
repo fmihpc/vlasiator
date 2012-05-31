@@ -1,0 +1,47 @@
+\documentclass[a4paper,10pt]{scrartcl}
+\usepackage[utf8x]{inputenc}
+\usepackage[left=1.5cm, right=1.5cm, top=1.5cm, bottom=2.5cm]{geometry}
+\usepackage[autolanguage,np]{numprint}
+\usepackage{tabularx}
+
+\usepackage{hyperref}
+\hyperbaseurl{.}
+
+%opening
+\title{
+\Huge{Vlasiator test cases technical information} \\
+\LARGE{Diffusion}
+}
+\author{Yann Kempf}
+\date{Updated on \today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+   This document gives technical information on the Diffusion test case.
+\end{abstract}
+
+\section{Purpose}
+Look at the spatial diffusion of a Gaussian blob of density of amplitude 5 in a constant density background of amplitude 1.
+
+\section{Implementation}
+The test case is two-dimensional, the scale width of the density blob in $x$ and $y$ is customisable. A magnetic field along $z$ is possible.
+
+\section{Options}
+The options available in the \verb=cfg= file are:
+
+\begin{tabularx}{\textwidth}{lX}
+   \verb=B0= & $z$ magnetic field (T) \\
+   \verb=rho= & Number density (m\textsuperscript{-3}) \\
+   \verb=Temperature= & Temperature (K) \\
+   \verb=Scale_[xy]= & Scale width of the Gaussian blob of density (amplitude 5 times \verb=rho=) in $x$/$y$ \\
+   \verb=nSpaceSamples= & Number of sampling points along spatial dimensions within a spatial cell, includes the corners (minimum 2) \\
+   \verb=nVelocitySamples= & Number of sampling points along velocity dimensions within a velocity cell, includes the corners (minimum 2)
+\end{tabularx}
+
+
+
+
+\end{document}

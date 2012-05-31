@@ -1,0 +1,51 @@
+\documentclass[a4paper,10pt]{scrartcl}
+\usepackage[utf8x]{inputenc}
+\usepackage[left=1.5cm, right=1.5cm, top=1.5cm, bottom=2.5cm]{geometry}
+\usepackage[autolanguage,np]{numprint}
+\usepackage{tabularx}
+
+\usepackage{hyperref}
+\hyperbaseurl{.}
+
+%opening
+\title{
+\Huge{Vlasiator test cases technical information} \\
+\LARGE{Alfven}
+}
+\author{Yann Kempf}
+\date{Updated on \today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+   This document gives technical information on the Alfven test case.
+\end{abstract}
+
+\section{Purpose}
+This test's aim is to propagate a single Alfvén wave mode in a one- or two-dimensional box. It failed so far but this is most likely due to incorrect physical parameters.
+
+
+\section{Implementation}
+The code gets the propagation direction intended through the given magnetic field components which get normalised by the code. It then initialises the corresponding perturbations in velocity and magnetic field from MHD with amplitudes set by the user. Note that the $z$ components are not coded, only propagation in the $xy$ plane can be done.
+
+\section{Options}
+The options available in the \verb=cfg= file are:
+
+\begin{tabularx}{\textwidth}{lX}
+   \verb=B0= & Guiding magnetic field strength (T) \\
+   \verb=B[xyz]_guiding= & Guiding field components (get normalised) \\
+   \verb=rho= & Number density (m\textsuperscript{-3}) \\
+   \verb=Wavelength= & Alfvén wave wavelength (m) \\
+   \verb=Temperature= & Temperature (K) \\
+   \verb=A_mag= & Relative amplitude of the magnetic perturbation with respect to the guiding field strength \\
+   \verb=A_vel= & Relative amplitude of the velocity perturbation with respect to the Alfvén velocity \\
+   \verb=nSpaceSamples= & Number of sampling points along spatial dimensions within a spatial cell, includes the corners (minimum 2) \\
+   \verb=nVelocitySamples= & Number of sampling points along velocity dimensions within a velocity cell, includes the corners (minimum 2)
+\end{tabularx}
+
+
+
+
+\end{document}

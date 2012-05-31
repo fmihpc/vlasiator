@@ -1,0 +1,52 @@
+\documentclass[a4paper,10pt]{scrartcl}
+\usepackage[utf8x]{inputenc}
+\usepackage[left=1.5cm, right=1.5cm, top=1.5cm, bottom=2.5cm]{geometry}
+\usepackage[autolanguage,np]{numprint}
+\usepackage{tabularx}
+
+\usepackage{hyperref}
+\hyperbaseurl{.}
+
+%opening
+\title{
+\Huge{Vlasiator test cases technical information} \\
+\LARGE{Riemann1}
+}
+\author{Yann Kempf}
+\date{Updated on \today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+   This document gives technical information on the Riemann1 test case.
+\end{abstract}
+
+\section{Purpose}
+This test's initial aim was to reproduce the standard MHD shock tube tests. As stated in my MSc thesis this could not succeed as kinetic effects affect the result, which is to be expected. Without having researched these aspects in depth yet it can be said that the features observed correspond to kinetic effects.
+
+The shock tube tests roughly consist in setting up a one-dimensional system with a left and a right state with discontinuities in some variables between left and right. Rankine-Hugoniot jump conditions can be derived analytically at least for MHD.
+
+
+\section{Implementation}
+The code gets a set of left and right states for all relevant variables. These are initialised depending on the sign of $x$. The \verb=struct riemannParameters= defines an \verb=enum= with \verb=LEFT= and \verb=RIGHT= which make reading the code a bit easier for these left/right states.
+
+Boundary conditions are periodic in $y$ and $z$. At $x$ boundaries the magnetic field is kept constant and the distribution function is reset every time step to the initial condition (calling \verb=initSpatialCell=).
+
+\section{Options}
+The options available in the \verb=cfg= file are:
+
+\begin{tabularx}{\textwidth}{lX}
+   \verb=rho[12]= & Number density (m\textsuperscript{-3}) \\
+   \verb=T[12]= & Temperature (K) \\
+   \verb=V[xyz][12]= & Velocity (m/s) \\
+   \verb=B[xyz][12]= & Magnetic field (T), note that Bx should be constant usually \\
+   \verb=nSpaceSamples= & Number of sampling points along spatial dimensions within a spatial cell, includes the corners (minimum 2) \\
+   \verb=nVelocitySamples= & Number of sampling points along velocity dimensions within a velocity cell, includes the corners (minimum 2)
+\end{tabularx}
+
+
+
+
+\end{document}

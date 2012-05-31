@@ -1,0 +1,46 @@
+\documentclass[a4paper,10pt]{scrartcl}
+\usepackage[utf8x]{inputenc}
+\usepackage[left=1.5cm, right=1.5cm, top=1.5cm, bottom=2.5cm]{geometry}
+\usepackage[autolanguage,np]{numprint}
+\usepackage{tabularx}
+
+\usepackage{hyperref}
+\hyperbaseurl{.}
+
+%opening
+\title{
+\Huge{Vlasiator test cases technical information} \\
+\LARGE{Harris}
+}
+\author{Yann Kempf}
+\date{Updated on \today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+   This document gives technical information on the Harris test case.
+\end{abstract}
+
+\section{Purpose}
+Produce an MHD Harris equilibrium. Does not stay in equilibrium most likely due to the lack of the Hall and electron pressure terms in Ohm's law.
+
+
+\section{Implementation}
+Adds a Harris sheet-type profile along $x$ (non-periodic) of amplitude 5 on top of a constant background of amplitude 1. The magnetic field is along $z$, the width of the sheet can be set.
+
+\section{Options}
+The options available in the \verb=cfg= file are:
+
+\begin{tabularx}{\textwidth}{lX}
+   \verb=Scale_size= & Scale width of the Harris sheet (m) \\
+   \verb=B0= & Magnetic field at infinity (T) \\
+   \verb=Temperature= & Temperature (K) \\
+   \verb=rho= & Number density (m\textsuperscript{-3})
+\end{tabularx}
+
+
+
+
+\end{document}

@@ -1,0 +1,75 @@
+\documentclass[a4paper,10pt]{scrartcl}
+\usepackage[utf8x]{inputenc}
+\usepackage[left=1.5cm, right=1.5cm, top=1.5cm, bottom=2.5cm]{geometry}
+\usepackage[autolanguage,np]{numprint}
+
+\usepackage{hyperref}
+\hyperbaseurl{.}
+
+%opening
+\title{
+\Huge{Vlasiator test cases status information} \\
+\LARGE{Shock tubes}
+}
+\author{Yann Kempf}
+\date{Updated on \today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This document describes (the advances on) the shock tube tests performed with Vlasiator and their comparisons with Ilja's modified GUMICS code.
+
+Literature on such tests is abundant as this is one of the most basic benchmark tests at least for MHD codes. All papers introducing new plasma physical codes present their variant of the shock tube problem to display clean shock capture and propagation for instance. More on the theory can be found in some BSc, MSc or PhD theses online or in course books. Some examples:
+\begin{itemize}
+ \item Londrillo, P. and L. Del Zanna, On the divergence-free condition in Godunov-type schemes for ideal magnetohydrodynamics: the upwind constrained transport method, J. Comp. Phys., 195, 17--48, 2004
+ \item Tóth, G., The $\nabla \cdot B = 0$ condition in shock-capturing magnetohydrodynamics codes, J. Comp. Phys., 161, 605--652, 2000
+ \item Torrilhon, M., Uniqueness conditions for Riemann problems of ideal magnetohydrodynamics, J. Plasma Phys., 69, 3, 253--276, 2003
+ \item \url{https://web.mathcces.rwth-aachen.de/mhdsolver/}
+ \item LeVeque, R. J., D. Mihalas, E. A. Dorfi, E. Müller, Computational Methods for Astrophysical Fluid Flow, Saas-Fee Advanced Course 27, Lecture Notes 1997, Swiss Society for Astrophysics and Astronomy, Springer, 1998.
+\end{itemize}
+
+Two of the key papers on MHD shock tube tests and which are being cited and compared against all the time:
+\begin{itemize}
+ \item Dai, W. and Paul R. Woodward, A Simple Finite Difference Scheme for Multidimensional Magnetohydrodynamical Equations, J. Comp. Phys., 142, 331--369, 1998
+ \item Ryu, D. and T. W. Jones, Numerical magnetohydrodynamics in astrophysics: algorithms and tests for one-dimensional flow, Astrophys. J., 442, 228--258, 1995.
+\end{itemize}
+
+The paper saying that their hybrid-Vlasov code is not suitable for nonstationary perpendicular shocks:
+\begin{itemize}
+ \item Hellinger, P., P. Trávníček, and H. Matsumoto, Reformation of perpendicular shocks: Hybrid simulations, Geophys. Res. Lett., 29, 24, 2234, 2002.
+\end{itemize}
+
+
+\end{abstract}
+
+
+\section{Description of the test}
+The shock tube or Riemann problem is derived from hydro- or gas dynamical experiments. A tube is set up with two sections separated by a membrane in different states (in pressure, density, temperature, entropy, species, if it is plasma also in electromagnetic fields, ionisation, etc.). At instant $t=0$ the membrane is removed or pierced and owing to the different states on either side, shock waves, rarefaction waves and contact discontinuities can propagate.
+
+In hydrodynamics there are only three modes: shock wave at sound speed, rarefaction wave and contact discontinuity (i.e. jump in density but not in pressure). In magnetohydrodynamics there are seven possible modes, slow and fast shock and rarefaction, shock and rarefaction connected to the Alfvén waves and the contact discontinuity. Not all of them are visible in all configurations and they do not all appear in the plot of a single variable.
+
+In hydrodynamics the analytic solution is fairly easy to calculate. In MHD it is more involved and not always feasible analytically. Sometimes the analytical or semi-analytical solution is not shown at all but only the profiles themselves. Obviously they should be cleanly-defined and wiggle-free. However attention has to be paid to shock propagation velocities, erroneous values can stem from numerical issues (non-conservation for instance).
+
+
+\section{Implementation}
+As many papers and websites present shock tubes, the easiest is probably just to reproduce some of them. An important problem is that there is barely ever a word on the units used. However as the critical thing is to have jump conditions in the key variables, the actual values are not critical at least qualitatively.
+
+\textbf{NOTE:} In plasma shock tubes, the magnetic field along the tube axis has to be constant across the jump in other variables!
+
+The case currently being run (as of \today) is leaning on a case in the paper by Torrilhon, with left and right state $\left(n, P, V_{xyz}, B_x, B_y, B_z\right)$ respectively (in SI units)
+$$
+\left(\np{3e7}, \np{3e-12}, 0, \np{1.5e-9}, \np{1e-9}, \np{0}\right)
+$$
+
+$$
+\left(\np{1e7}, \np{1e-12}, 0, \np{1.5e-9}, \np{1e-9}\cdot\cos \alpha, \np{1e-9}\cdot\sin \alpha\right), \alpha = \np{1.5}
+$$.
+
+
+\section{Why this test was wrong in the first place}
+As I wrote in my MSc thesis, I was wrong in my initial assumptions. Kinetic effects are bound to make Vlasiator's solution look different from what the MHD solution is. Furthermore having zero velocity on both sides does not make for an MHD shock anyway. Before having shock reformation it could well be that the features observed (undershoot, ramp, overshoot, oscillations) are nominal kinetic effects. Shocks in our hybrid-Vlasov description will have to be investigated in much more detail.
+
+
+\end{document}

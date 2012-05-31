@@ -1,0 +1,52 @@
+\documentclass[a4paper,10pt]{scrartcl}
+\usepackage[utf8x]{inputenc}
+\usepackage[left=1.5cm, right=1.5cm, top=1.5cm, bottom=2.5cm]{geometry}
+\usepackage[autolanguage,np]{numprint}
+\usepackage{tabularx}
+
+\usepackage{hyperref}
+\hyperbaseurl{.}
+
+%opening
+\title{
+\Huge{Vlasiator test cases technical information} \\
+\LARGE{Dispersion}
+}
+\author{Yann Kempf}
+\date{Updated on \today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+   This document gives technical information on the Dispersion test case.
+\end{abstract}
+
+\section{Purpose}
+Produce dispersion plots. Runs based on Fluctuations in one dimension, with fully periodic boundary conditions. The tool \verb=vlsv2bzt_[SD]P= extracts the ($x$-$t$)-dataset of any variable, which can then be processed using Scilab or MATLAB to obtain the ($k$-$\omega$) plot. The \verb=Dispersion.m= script does this, using \verb=Hamming.m= for windowing in time if wanted.
+
+
+\section{Implementation}
+This test uses a gas factory-type system to initialise a consecutive block of cells of random length with the same values. The rationale was to lower the chances of nasty shocks by reducing the number of cell-interface discontinuities. It has actually not been of great help and was conflicting with seeding problems so that actually Fluctuations was used in the production runs for my MSc thesis.
+
+\section{Options}
+The options available in the \verb=cfg= file are:
+
+\begin{tabularx}{\textwidth}{lX}
+   \verb=B[XYZ]0= & Background magnetic field (T) \\
+   \verb=rho= & Number density (m\textsuperscript{-3}) \\
+   \verb=Temperature= & Temperature (K) \\
+   \verb=magPertAmp= & Absolute amplitude of the magnetic field perturbations (T) \\
+   \verb=densityPertAmp= & Relative amplitude of the density perturbations \\
+   \verb=velocityPertAmp= & Absolute amplitude of the velocity perturbations (m/s) \\
+   \verb=seed= & Multiplied by the MPI rank to seed the \verb=rand()= RNG \\
+   \verb=sectorSize= & Maximal length of a consecutive sector of constant valued cells \\
+   \verb=nSpaceSamples= & Number of sampling points along spatial dimensions within a spatial cell, includes the corners (minimum 2) \\
+   \verb=nVelocitySamples= & Number of sampling points along velocity dimensions within a velocity cell, includes the corners (minimum 2)
+\end{tabularx}
+
+
+
+
+\end{document}

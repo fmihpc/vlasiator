@@ -1,0 +1,107 @@
+\documentclass[a4paper,10pt]{scrartcl}
+\usepackage[utf8x]{inputenc}
+\usepackage[left=1.5cm, right=1.5cm, top=1.5cm, bottom=2.5cm]{geometry}
+\usepackage{gensymb}
+
+\usepackage{hyperref}
+\hyperbaseurl{.}
+
+%opening
+\title{
+\Huge{Vlasiator test cases status information} \\
+\LARGE{The circularly polarised Alfvén wave}
+}
+\author{Yann Kempf}
+\date{Updated on \today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This document describes the advances on the test of the propagation of a circularly polarised Alfvén wave. Sources on the original MHD test case include
+\begin{itemize}
+ \item Londrillo, P. and L. Del Zanna, On the divergence-free condition in Godunov-type schemes for ideal magnetohydrodynamics: the upwind constrained transport method, J. Comp. Phys, 195, 17--48, 2004
+ \item Tóth, G., The $\nabla \cdot B = 0$ condition in shock-capturing magnetohydrodynamics codes, J. Comp. Phys., 161, 605--652, 2000
+ \item \url{http://www.astro.princeton.edu/~jstone/Athena/tests/cp-alfven-wave/cp-alfven.html}.
+\end{itemize}
+
+Sources on the kinetic and non-linear effects, which lead me to discard the Alfvén wave test as a handy `basic' test of Vlasiator, are (by order of importance):
+\begin{itemize}
+ \item Spangler, S.R., Kinetic effects of Alfvén wave nonlinearity. I. Ponderomotive density fluctuations, Phys. Fluids B -- Plasma, 1, 8, 1738--1746, 1989
+ \item Spangler, S.R., Kinetic effects of Alfvén wave nonlinearity. II. The modified nonlinear wave equation, Phys. Fluids B -- Plasma, 2, 2, 407--418, 1990
+ \item Spangler, S.R., A numerical study of nonlinear Alfvén waves and solitons, Phys. Fluids, 28, 1, 104--109, 1985
+ \item Spangler, S.R., Nonlinear astrophysical Alfvén waves: onset and outcome of the modulational instability, Astrophys. J., 299, 122--137, 1985.
+\end{itemize}
+
+\end{abstract}
+
+
+\section{Description of the test}
+The test consists in the propagation of a circularly polarised Alfvén wave across periodic boundary conditions. The wave is a non-linear analytic solution of the MHD equations, thus it allows for good estimations of the numerical behaviour of a MHD code. A standard test is to propagate the wave obliquely in a 2+1/2-dimensional box for a few periods and compute the L$_1$-norm of the difference in the magnetic field between the initial and final state, for increasing spatial resolutions.
+
+This is a standard Alfvén wave, i.\ e.\ it is a transversal perturbation of the magnetic field $\mathbf{B}_0$ with propagation velocity
+\begin{equation}
+ v_A = \frac{\mathbf{B}_0}{\sqrt{\mu_0\rho}},
+\end{equation}
+where $\mu_0$ is the permeability of vacuum and $\rho$ the mass density. Note that the unit system used in the papers mentioned above (Londrillo \& Del Zanna, Tóth) sets $\mu_0=1$.
+
+
+\section{Implementation}
+\subsection{Theory}
+As written in G.\ Tóth's paper:
+
+The circularly polarized Alfvén wave propagates at an angle $\alpha = 30\degree$ relative to the x axis, and it has a unit wave length in that direction. The computational box is periodic with $0 < x < 1/cos \alpha$ and $0 < y < 1/sin \alpha$. The initial conditions are $\rho = 1$, $v = 0$,
+$p = 0.1$, $B = 1$, $v_{\perp} = 0.1 \sin[2\pi(x \cos \alpha + y \sin \alpha)] = B_{\perp}$ , and $v_z = 0.1 \cos[2\pi(x \cos \alpha + y \sin \alpha)] = B_z$ with $\gamma = 5/3$ and $\eta = 0$. The $\pi/2$ phase shift between $B_z$ and $B_\perp = B_y \cos \alpha - B_x \sin \alpha$ ensures that the magnetic pressure is constant. The Alfvén speed is $|v_A| = B_\parallel / \sqrt{\rho} = 1$; thus by time $t = 1$ the flow is expected to return to its initial state. The wave is moving towards $x = y = 0$.
+
+In this description, the units are set such that $\mu_0 = \mathbf{B}_0 = v_A = \rho = 1$, from which also $\lambda = 1$ (the wavelength is the length unit), which calls for some unit conversion when implementing the test.
+
+\subsection{In Vlasiator}
+The test I developed for Vlasiator takes $\mathbf{B}_0$ (amplitude and three-component direction), $\rho$, the wavelength $\lambda$, the temperature, the amplitude of the perpendicular components of $B$ and $v$ (as a fraction of $\mathbf{B}_0$ and $v_A$ respectively) and $v_A$. Note that as of SVN version 432, only cases without z component are coded.
+
+The calculations for the determination of all needed parameters including resolution and Courant conditions, with their interdependences, are done via a spreadsheet.
+
+\subsubsection*{Temperature}
+The initial velocities are given as shifts to a Maxwellian distribution. Its temperature is derived from the equation of state given in the referenced papers:
+\begin{equation}
+ p = \rho \left(\gamma - 1\right) \epsilon,
+\end{equation}
+where $\epsilon$ is the specific thermal energy. Assuming $\epsilon = kT$ and using the given $p/\rho = 0.1$, as well as converting back to SI units one gets
+\begin{equation}
+ T = \frac{0.1 m_p v_A^2}{k \left(\gamma - 1\right)}.
+ \label{eq:T}
+\end{equation}
+
+
+\section{Observations when running the tests}
+I have run this test for quite a while, investigating a number of physical and numerical parameters. A brief and non-exhaustive list includes (see JIRA issues 34 and 35 for data and comments):
+\begin{itemize}
+ \item Angular dependence;
+ \item Solver used;
+ \item Limiter use;
+ \item Time, space and velocity space resolution;
+ \item Initial averaging;
+ \item CFL number;
+ \item Resolution of gyroperiod and gyroradius;
+ \item \textbf{Amplitude of initial perturbation}.
+\end{itemize}
+Implemented features to help in investigations include:
+\begin{itemize}
+ \item Thermal pressure calculation;
+ \item Velocity distribution averaging along propagation direction in view of investigating Landau damping (coded into Vlasiator but not yet tested, pending addition of a component to export the data to VisIt).
+\end{itemize}
+
+The most striking feature of the test runs is that the wave does not propagate at constant speed but behaves in a jerky way. An accidental observation led to the investigation of the amplitude of the initial perturbation, which should not influence the results in MHD. Surprisingly, when reducing the initial perturbation amplitude from 0.1 to 0.01, the wave did not only brake but then even started to move backwards. Reducing the amplitude further to 0.001 and 0.0001 showed further behaviour patters, not totally consistent with the first two (however possibly also linked to a worsening of resolution in velocity space when reducing the velocity perturbation amplitude).
+
+
+\section{Conclusions from supplementary literature search}
+I chanced upon the first of Spangler's papers in the list above. Starting from the Vlasov equations for ions and electrons, the Maxwell equations and imposing an Alfvén wave field they develop a theory for the propagation of Alfvén waves including kinetic and nonlinear effects. It is `\textit{not} a self-consistent solution of the Vlasov-Maxwell equations'. They order the solution to 0\textsuperscript{th} order (background field), 1\textsuperscript{st} order (fluid theory Alfvén wave) and 2\textsuperscript{nd} order terms. The latter lead to new conclusions.
+
+In essence, the kinetic effects included cause the existence of density perturbations (in MHD the density remains constant) and flows along the propagation direction. The expressions are given but depend on a large number of more (an integral functional expression) or less (endless plugging of expressions) involved terms built from the plasma and wave parameters and the assumed initial distribution function. All of this is listed. The kinetic effects also affect the evolution of amplitude-modulated wave packets (a topic the author has researched quite a bit, in relation to observations e.g. in front of the Earth's bow shock), depending on the handedness of polarisation, plasma $\beta$, electron/ion temperature ratio... This is also the topic of the two last papers listed above. Part of that research (the numerical tests) solves their so-called `derivative Schrödinger equation' numerically. This equation does not include the functional term from the first two papers, in which they warn about potential new effects arising from that term.
+
+I do observe guide-field-aligned flows and density perturbations in my tests but these are not included in the initial conditions I set. Following the reading of the first two of Spangler's papers in the list above, I conclude that Alfvén waves are by far not as nice in Vlasiator as they are in MHD. It is an interesting topic of investigation for sure but does probably not suit as a `basic' test of the program.
+
+\section{\textit{Addendum} after taking Advanced space physics and making dispersion plots for my thesis}
+A further reason for the instabilities observed could be that I was just off the correct range of physical parameters. The dispersion test is anyway probing more modes at the same time, that's why this test was dropped. It could be taken up again with a much more careful determination of the physical parameters.
+
+\end{document}

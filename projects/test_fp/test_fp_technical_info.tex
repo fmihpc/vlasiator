@@ -1,0 +1,47 @@
+\documentclass[a4paper,10pt]{scrartcl}
+\usepackage[utf8x]{inputenc}
+\usepackage[left=1.5cm, right=1.5cm, top=1.5cm, bottom=2.5cm]{geometry}
+\usepackage[autolanguage,np]{numprint}
+\usepackage{tabularx}
+
+\usepackage{hyperref}
+\hyperbaseurl{.}
+
+%opening
+\title{
+\Huge{Vlasiator test cases technical information} \\
+\LARGE{test\_fp}
+}
+\author{Yann Kempf}
+\date{Updated on \today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+   This document gives technical information on the test\_fp test case.
+\end{abstract}
+
+\section{Purpose}
+Test the isotropy of the field solver. Can be used for isotropy and order of accuracy.
+
+\section{Implementation}
+In periodic boundary conditions without Vlasov solver, propagates a blob of magnetic field using a set velocity field. After an integer number of periods the blob should have the same shape in the same place. Corresponding directions with respect to thew grid should give the same results. A constant and a shearing velocity field are available, the orientation of the magnetic field as well as the direction of propagation can be chosen. The \verb=enum cases {BXCASE,BYCASE,BZCASE}= determines the magnetic field orientation, the angle of propagation with respect to the $x$-axis is given in units of $\pi/4$ rad.
+
+\section{Options}
+The options available in the \verb=cfg= file are:
+
+\begin{tabularx}{\textwidth}{lX}
+   \verb=B0= & Magnetic field value in the blob (T) \\
+   \verb=rho= & Number density (m\textsuperscript{-3}) \\
+   \verb=Temperature= & Temperature (K) \\
+   \verb=angle= & Orientation of the magnetic field ($\pi/4$ rad) \\
+   \verb=Bdirection= & Direction of the magnetic field (0:x, 1:y, 2:z) \\
+   \verb=shear= & Include shear velocity field (true/false), if false, V=0.5 m/s everywhere
+\end{tabularx}
+
+
+
+
+\end{document}
