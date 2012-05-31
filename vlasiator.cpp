@@ -320,6 +320,31 @@ int main(int argn,char* args[]) {
 	 }
          phiprof::stop("IO");
       }
+
+      //compute maximum time-step
+      phiprof::start("compute-timestep");
+      Real tmax[3];
+      Real tmax_global[3];
+      tmax[0]=std::numeric_limits<Real>::max();
+      tmax[1]=std::numeric_limits<Real>::max();
+      tmax[2]=std::numeric_limits<Real>::max();
+      for (std::vector<uint64_t>::const_iterator
+              cell_id = cells.begin();
+           cell_id != cells.end();
+           ++cell_id
+           ) {
+         SpatialCell* cell = mpiGrid[*cell_id];
+         tmax[0]=min(tmax[0],cell->parameters[CellParams::MAXRDT]);
+         tmax[1]=min(tmax[1],cell->parameters[CellParams::MAXVDT]);
+         tmax[2]=min(tmax[2],cell->parameters[CellParams::MAXFDT]);
+      }
+      MPI_Allreduce(&(tmax[0]),&(tmax_global[0]),3,MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
+      if (myrank == MASTER_RANK)
+         logfile << "(MAIN) tstep = " << P::tstep << " dt = " << P::dt  <<
+            " max timestep in (r,v,BE) is "<< tmax_global[0] <<" " <<tmax_global[1] <<" " << tmax_global[2] << endl << writeVerbose;
+
+      phiprof::stop("compute-timestep");
+         
       
       // Check whether diagnostic output has to be produced
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
