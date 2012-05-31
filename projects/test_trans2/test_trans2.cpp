@@ -13,15 +13,13 @@ using namespace std;
 typedef testTrans2Parameters TTP;
 Real TTP::radLimitInf = NAN;
 Real TTP::radLimitSup = NAN;
-Real TTP::vRad = 0;
 
 bool initializeProject(void) {return true;}
 
 bool addProjectParameters(){
    typedef Readparameters RP;
-   RP::add("test_trans2.radLimitInf", "radial inner radius", 0.2);
+   RP::add("test_trans2.radLimitInf", "radial inner radius in space", 0.2);
    RP::add("test_trans2.radLimitSup", "radial outer radius", 0.5);
-   RP::add("test_trans2.vRad", "radial velocity", 0.5);
    return true;
 }
 
@@ -29,7 +27,6 @@ bool getProjectParameters(){
    typedef Readparameters RP;
    RP::get("test_trans2.radLimitInf", TTP::radLimitInf);
    RP::get("test_trans2.radLimitSup", TTP::radLimitSup);
-   RP::get("test_trans2.vRad", TTP::vRad);
    return true;
 }
 

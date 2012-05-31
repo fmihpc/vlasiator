@@ -13,7 +13,6 @@
 struct testTrans2Parameters {
    static Real radLimitInf;
    static Real radLimitSup;
-   static Real vRad;
 } ;
 
 /**
