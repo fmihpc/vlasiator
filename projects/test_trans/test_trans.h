@@ -30,6 +30,10 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 
 #include "dccrg.hpp"
 
+struct test_transParameters {
+   static Real cellPosition;
+} ;
+
 /**
  * Initialize project. Can be used, e.g., to read in parameters from the input file
  */

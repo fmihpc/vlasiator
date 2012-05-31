@@ -28,9 +28,22 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 
 using namespace std;
 
+typedef test_transParameters ttP;
+Real ttP::cellPosition = 0;
+
 bool initializeProject(void) {return true;}
-bool addProjectParameters(){return true;}
-bool getProjectParameters(){return true;}
+
+bool addProjectParameters(){
+   typedef Readparameters RP;
+   RP::add("test_trans.cellPosition", "Position of the centre of the cells initiaited (same used in velocity and space).", 1.5);
+   return true;
+}
+
+bool getProjectParameters(){
+   typedef Readparameters RP;
+   RP::get("test_trans.cellPosition", ttP::cellPosition);
+   return true;
+}
 
 bool cellParametersChanged(creal& t) {return false;}
 
@@ -51,28 +64,28 @@ Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal&
    xyz[1]=(y+0.5*dy)/dy;
    xyz[2]=(z+0.5*dz)/dz;
 
-
+   creal pos = ttP::cellPosition;
    //real space coordinates of boxes
    //Assume an even number of spatial cells per grid dimension
-   const Real box_real[8][3] = { { 1.5,1.5,1.5},
-                                 {-1.5,1.5,1.5},
-                                 {1.5,-1.5,1.5},
-                                 {1.5,1.5,-1.5},
-                                 {-1.5,-1.5,1.5},
-                                 {-1.5,1.5,-1.5},
-                                 {1.5,-1.5,-1.5},
-                                 {-1.5,-1.5,-1.5}};
+   const Real box_real[8][3] = { { pos, pos, pos},
+                                 {-pos, pos, pos},
+                                 { pos,-pos, pos},
+                                 { pos, pos,-pos},
+                                 {-pos,-pos, pos},
+                                 {-pos, pos,-pos},
+                                 { pos,-pos,-pos},
+                                 {-pos,-pos,-pos}};
    
    //velocity space coordinates of boxes in reduced units
    //there is always an even amount of velocity cells per dimension (assuming WID is even) 
-   const Real box_vel[8][3] = { { 1.5,1.5,1.5},
-                                {-1.5,1.5,1.5},
-                                {1.5,-1.5,1.5},
-                                {1.5,1.5,-1.5},
-                                {-1.5,-1.5,1.5},
-                                {-1.5,1.5,-1.5},
-                                {1.5,-1.5,-1.5},
-                                {-1.5,-1.5,-1.5}};
+   const Real box_vel[8][3] = { { pos, pos, pos},
+                                {-pos, pos, pos},
+                                { pos,-pos, pos},
+                                { pos, pos,-pos},
+                                {-pos,-pos, pos},
+                                {-pos, pos,-pos},
+                                { pos,-pos,-pos},
+                                {-pos,-pos,-pos}};
    
    
    for(int box=0;box<8;box++){
