@@ -256,8 +256,7 @@ void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,ID::typ
 
 
 void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid, Real dt) {   
-   typedef Parameters P;
-   
+   typedef Parameters P;   
    const vector<CellID> cells = mpiGrid.get_cells();
    vector<CellID> nonGhostCells;
 
@@ -272,7 +271,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid, Real dt) {
    }
 
    //Operations for each cell is local, thus a threaded loop should be safe
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic) 
    for (size_t c=0; c<nonGhostCells.size(); ++c) {
       const CellID cellID = nonGhostCells[c];
       calculateCellAcceleration(mpiGrid,cellID,dt);
@@ -288,23 +287,35 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,
       return;
    }
 //   phiprof::start("clearVelFluxes");
-   // Clear df/dt contributions:
+//   Clear df/dt contributions:
    for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
       unsigned int block = SC->velocity_block_list[block_i];         
       cpu_clearVelFluxes(SC,block);
    }
+   
 //   phiprof::stop("clearVelFluxes");
 
 #ifndef SEMILAG
 //   phiprof::start("calcVelFluxes");
-   // Calculatedf/dt contributions of all blocks in the cell:
+//   Calculatedf/dt contributions of all blocks in the cell:
+
+   Real maxCelldt=numeric_limits<Real>::max();
    for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
       unsigned int block = SC->velocity_block_list[block_i];         
-      cpu_calcVelFluxes(SC,block,dt,NULL);
+      Velocity_Block* block_ptr=SC->at(block);
+      Real maxAx,maxAy,maxAz;
+      cpu_calcVelFluxes(SC,block,dt,maxAx,maxAy,maxAz);
+      if(maxAx!=ZERO) maxCelldt=min(maxCelldt,block_ptr->parameters[BlockParams::DVX]/maxAx);
+      if(maxAy!=ZERO) maxCelldt=min(maxCelldt,block_ptr->parameters[BlockParams::DVY]/maxAy);
+      if(maxAz!=ZERO) maxCelldt=min(maxCelldt,block_ptr->parameters[BlockParams::DVZ]/maxAz);
    }
-
+   
+   //update max allowed timestep for acceleration in this cell, which is the minimum of CFL=1 timesteps for all blocks in cell
+   SC->parameters[CellParams::MAXVDT] = maxCelldt;
+   
 //   phiprof::start("propagateVel");
       // Propagate distribution functions in velocity space:
+
    for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
       unsigned int block = SC->velocity_block_list[block_i];         
       cpu_propagateVel(SC,block,dt);
@@ -319,8 +330,6 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,
 
    //apply boundary outflow condition in velocity space
    SC->applyVelocityBoundaryCondition();
-   
-
 }
 
 
@@ -426,17 +435,40 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
 #pragma omp  parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
-
       SpatialCell* SC=mpiGrid[cellID];
+      const Real dx=SC->parameters[CellParams::DX];
+      const Real dy=SC->parameters[CellParams::DY];
+      const Real dz=SC->parameters[CellParams::DZ];
+
       for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
          unsigned int block = SC->velocity_block_list[block_i];         
          Velocity_Block* block_ptr = SC->at(block);
+         const Real* const blockParams = block_ptr->parameters;
+         
          //mark that this block is uninitialized
          block_ptr->fx[0] = numeric_limits<Real>::max();
+         //compute maximum dt. In separate loop here, as the propagation
+         //loops are parallelized over blocks, which would force us to
+         //add critical regions.
+         //loop over max/min velocity cells in block
+         SC->parameters[CellParams::MAXRDT]=numeric_limits<Real>::max();
+         for (unsigned int i=0; i<WID;i+=WID-1) {
+            const Real Vx = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
+            const Real Vy = blockParams[BlockParams::VYCRD] + (i+HALF)*blockParams[BlockParams::DVY];
+            const Real Vz = blockParams[BlockParams::VZCRD] + (i+HALF)*blockParams[BlockParams::DVZ];
+            
+            if(fabs(Vx)!=ZERO) SC->parameters[CellParams::MAXRDT]=min(dx/fabs(Vx),SC->parameters[CellParams::MAXRDT]);
+            if(fabs(Vy)!=ZERO) SC->parameters[CellParams::MAXRDT]=min(dy/fabs(Vy),SC->parameters[CellParams::MAXRDT]);
+            if(fabs(Vz)!=ZERO) SC->parameters[CellParams::MAXRDT]=min(dz/fabs(Vz),SC->parameters[CellParams::MAXRDT]);
+         }
+         
       }
    }
    phiprof::stop("Mark unitialized flux");
 
+
+   
+   
    
    // Iterate through all local cells and calculate their contributions to 
    // time derivatives of distribution functions df/dt in spatial space. Ghost cell 

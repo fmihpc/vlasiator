@@ -278,12 +278,9 @@ int main(int argn,char* args[]) {
          }
 #endif        
 	  
-          if(P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min)
-             balanceLoad(mpiGrid);
-          
-          phiprof::stop("Propagate Vlasov",computedBlocks,"Blocks");
+         phiprof::stop("Propagate Vlasov",computedBlocks,"Blocks");
       }
- 
+      
       // Propagate fields forward in time by dt. If field is not 
       // propagated self-consistently (test-Vlasov simulation), then 
       // re-calculate face-averaged E,B fields. This requires that 
@@ -298,7 +295,7 @@ int main(int argn,char* args[]) {
 	 calculateFaceAveragedFields(mpiGrid);
       }
       phiprof::stop("Propagate",computedBlocks,"Blocks");
-
+      
       ++P::tstep;
       P::t += P::dt;
       
@@ -331,6 +328,61 @@ int main(int argn,char* args[]) {
          //also print out phiprof log
          phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
       }
+
+      
+      //compute maximum time-step
+      phiprof::start("compute-timestep");
+      Real dtmax_local[3];
+      Real dtmax_global[3];
+      dtmax_local[0]=std::numeric_limits<Real>::max();
+      dtmax_local[1]=std::numeric_limits<Real>::max();
+      dtmax_local[2]=std::numeric_limits<Real>::max();
+      for (std::vector<uint64_t>::const_iterator
+              cell_id = cells.begin();
+           cell_id != cells.end();
+           ++cell_id
+           ) {
+         SpatialCell* cell = mpiGrid[*cell_id];
+         dtmax_local[0]=min(dtmax_local[0],cell->parameters[CellParams::MAXRDT]);
+         dtmax_local[1]=min(dtmax_local[1],cell->parameters[CellParams::MAXVDT]);
+         dtmax_local[2]=min(dtmax_local[2],cell->parameters[CellParams::MAXFDT]);
+      }
+      MPI_Allreduce(&(dtmax_local[0]),&(dtmax_global[0]),3,MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
+      if (myrank == MASTER_RANK)
+         logfile << "(MAIN) tstep = " << P::tstep << " dt = " << P::dt  <<
+            " max timestep in (r,v,BE) is "<< dtmax_global[0] <<" " <<dtmax_global[1] <<" " << dtmax_global[2]  << endl << writeVerbose;
+      
+      if(P::dynamicTimestep){
+         Real dtmax=std::numeric_limits<Real>::max();
+         switch (P::splitMethod){
+             case 0:
+                dtmax=min(dtmax,dtmax_global[0]);
+                dtmax=min(dtmax,dtmax_global[1]);
+                dtmax=min(dtmax,dtmax_global[2]);
+                P::dt=P::CFL*dtmax;
+                break;
+             case 1:
+                dtmax=min(dtmax,2*dtmax_global[0]); //half-steps in ordinary space
+                dtmax=min(dtmax,dtmax_global[1]);
+                dtmax=min(dtmax,dtmax_global[2]);
+                P::dt=P::CFL*dtmax;
+                break;
+             case 2:
+                dtmax=min(dtmax,dtmax_global[0]);
+                dtmax=min(dtmax,2*dtmax_global[1]);  //half-steps in velocity space
+                dtmax=min(dtmax,dtmax_global[2]);
+                P::dt=P::CFL*dtmax;
+                break;
+         }
+      }
+      
+      phiprof::stop("compute-timestep");
+      
+      //Last-but-not-least, re-loadbalance 
+      if(P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min)
+         balanceLoad(mpiGrid);
+         
+
    }
    double after = MPI_Wtime();
 

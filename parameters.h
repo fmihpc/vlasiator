@@ -58,7 +58,9 @@ struct Parameters {
    static Real q_per_m;              /**< Charge-to-mass ratio of simulated particle species,
 				      * calculated from Parameters::q and Parameters::m.*/
    static Real t;                    /**< Current simulation time. */
-   static Real dt;                   /**< The value of the timestep to use in propagation. */
+   static Real dt;                   /**< The value of the timestep to use in propagation. If CflLimit defined then it is dynamically updated during simulation*/
+   static Real CFL;                  /**< The maximum CFL limit for propagation. Used to set timestep if useCFLlimit is true. Also used to set number of acceleration steps if substepAcceleration is true */
+   
    static luint tstep_min;           /**< Timestep when simulation starts, needed for restarts.*/
    static luint tstep;               /**< The number of the current timestep. 0=initial state. */
    static luint tsteps;              /**< Total number of timesteps to calculate. */
@@ -89,6 +91,12 @@ struct Parameters {
    
    static std::vector<std::string> outputVariableList; /**< List of data reduction operators (DROs) to add to the grid file output.*/
    static std::vector<std::string> diagnosticVariableList; /**< List of data reduction operators (DROs) to add to the diagnostic runtime output.*/
+   
+
+
+   static bool substepAcceleration; /**< If true, acceleration steps are substepped if the timestep exceeds maximum CFL limit */
+   static bool dynamicTimestep; /**< If true, timestep is set based on  CFL limit */
+                                       
    
    static bool addParameters();
    static bool getParameters();

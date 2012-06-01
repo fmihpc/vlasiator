@@ -454,8 +454,8 @@ static void calculateEdgeElectricFieldX(
    
    // An edge has four neighbouring spatial cells. Calculate
    // electric field in each of the four cells per edge.   
-   Real ay_pos,ay_neg;              // Max. characteristic velocities to x-direction
-   Real az_pos,az_neg;              // Max. characteristic velocities to y-direction
+   Real ay_pos,ay_neg;              // Max. characteristic velocities to y-direction
+   Real az_pos,az_neg;              // Max. characteristic velocities to z-direction
    Real Vy0,Vz0;                    // Reconstructed V
    Real c_y, c_z;                   // Wave speeds to yz-directions
 
@@ -605,6 +605,20 @@ static void calculateEdgeElectricFieldX(
       cp_SW[CellParams::EX] -= az_pos*az_neg/(az_pos+az_neg+EPS)*((By_S-HALF*dBydz_S) - (By_N+HALF*dBydz_N));
       cp_SW[CellParams::EX] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bz_W-HALF*dBzdy_W) - (Bz_E+HALF*dBzdy_E));
    #endif
+
+      //compute maximum timestep for fieldsolve in this cell (CFL=1)      
+      Real max_a=ZERO;
+      max_a=max(fabs(az_neg),max_a); 
+      max_a=max(fabs(az_pos),max_a);
+      max_a=max(fabs(ay_neg),max_a);
+      max_a=max(fabs(ay_pos),max_a);
+      Real min_dx=std::numeric_limits<Real>::max();
+      min_dx=min(min_dx,cp_SW[CellParams::DY]);
+      min_dx=min(min_dx,cp_SW[CellParams::DZ]);
+   //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
+      if(max_a!=ZERO) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
+
+
 }
 
 static void calculateEdgeElectricFieldY(
@@ -616,7 +630,7 @@ static void calculateEdgeElectricFieldY(
    namespace fs = fieldsolver;
    
    Real ax_pos,ax_neg;              // Max. characteristic velocities to x-direction
-   Real az_pos,az_neg;              // Max. characteristic velocities to y-direction
+   Real az_pos,az_neg;              // Max. characteristic velocities to z-direction
    Real Vx0,Vz0;                    // Reconstructed V
    Real c_x,c_z;                    // Wave speeds to xz-directions
    
@@ -765,6 +779,22 @@ static void calculateEdgeElectricFieldY(
       cp_SW[CellParams::EY] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((Bz_S-HALF*dBzdx_S) - (Bz_N+HALF*dBzdx_N));
       cp_SW[CellParams::EY] += az_pos*az_neg/(az_pos+az_neg+EPS)*((Bx_W-HALF*dBxdz_W) - (Bx_E+HALF*dBxdz_E));
    #endif
+
+
+//compute maximum timestep for fieldsolve in this cell (CFL=1)      
+      Real max_a=ZERO;
+      max_a=max(fabs(az_neg),max_a);
+      max_a=max(fabs(az_pos),max_a);
+      max_a=max(fabs(ax_neg),max_a);
+      max_a=max(fabs(ax_pos),max_a);
+      Real min_dx=std::numeric_limits<Real>::max();;
+      min_dx=min(min_dx,cp_SW[CellParams::DX]);
+      min_dx=min(min_dx,cp_SW[CellParams::DZ]);
+   //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps 
+      if(max_a!=ZERO) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
+      
+      
+      
 }
 
 static void calculateEdgeElectricFieldZ(
@@ -932,7 +962,21 @@ static void calculateEdgeElectricFieldZ(
       CHECK_FLOAT(cp_SW[CellParams::EZ])
       cp_SW[CellParams::EZ] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((By_W-HALF*dBydx_W) - (By_E+HALF*dBydx_E));
       CHECK_FLOAT(cp_SW[CellParams::EZ])
-   #endif
+#endif
+
+  //compute maximum timestep for fieldsolve in this cell (CFL=1)      
+      Real max_a=ZERO;
+      max_a=max(fabs(ay_neg),max_a);
+      max_a=max(fabs(ay_pos),max_a);
+      max_a=max(fabs(ax_neg),max_a);
+      max_a=max(fabs(ax_pos),max_a);
+      Real min_dx=std::numeric_limits<Real>::max();;
+      min_dx=min(min_dx,cp_SW[CellParams::DX]);
+      min_dx=min(min_dx,cp_SW[CellParams::DY]);
+   //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
+      if(max_a!=ZERO) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
+
+      
 }
 
 static void propagateMagneticField(
@@ -1361,6 +1405,11 @@ bool propagateFields(
    // Reserve memory for derivatives for all cells on this process:
    vector<CellID> localCells = mpiGrid.get_cells();
 
+   for (size_t cell=0; cell<localCells.size(); ++cell) {
+      const CellID cellID = localCells[cell];   
+      mpiGrid[cellID]->parameters[CellParams::MAXFDT]=std::numeric_limits<Real>::max();;
+   }
+   
    propagateMagneticFieldSimple(mpiGrid,dt,localCells);
    calculateDerivativesSimple(mpiGrid,localCells);
    calculateUpwindedElectricFieldSimple(mpiGrid,localCells);
