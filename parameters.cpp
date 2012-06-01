@@ -79,7 +79,7 @@ bool P::propagateField = true;
 uint P::splitMethod=1;
 
 bool P::substepAcceleration = false;
-bool P::useCFLlimit = false;
+bool P::dynamicTimestep = false;
 
 
 bool P::periodic_x = false;
@@ -108,7 +108,7 @@ bool Parameters::addParameters(){
         Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
         Readparameters::add("propagate_vlasov","Propagate distribution functions during the simulation",true);
         Readparameters::add("substep_acceleration","If true, acceleration steps are substepped if the timestep exceeds maximum CFL limit",false);
-        Readparameters::add("use_CFL_limit","If true,  timestep is set based on  CFL limit",false);
+        Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limit",false);
         
         Readparameters::add("split_method","Split method for splitting spatial/velocity space solvers. 0: first order, 1: strang splitting with half-steps for spatial space, 2: strang splitting with half-steps for velocity space",1);
         
@@ -171,7 +171,7 @@ bool Parameters::getParameters(){
    Readparameters::get("propagate_vlasov",P::propagateVlasov);
    Readparameters::get("split_method",P::splitMethod);
    Readparameters::get("substep_acceleration",P::substepAcceleration);
-   Readparameters::get("use_CFL_limit",P::useCFLlimit);
+   Readparameters::get("dynamic_timestep",P::dynamicTimestep);
    
    /*get numerical values, let Readparameters handle the conversions*/
    Readparameters::get("gridbuilder.x_min",P::xmin);
