@@ -306,7 +306,7 @@ void cpu_clearVelFluxes(SpatialCell *cell,const unsigned int& BLOCK) {
    for (unsigned int i=0; i<SIZE_FLUXS; ++i)  block->fx[i]= 0.0;
 }
 
-void cpu_calcVelFluxes(SpatialCell *cell,const unsigned int& BLOCK,const Real& DT,Real &maxAx, Real &maxAy, Real &maxAz) {
+void cpu_calcVelFluxes(SpatialCell *cell,const unsigned int& BLOCK,const Real& DT,Real& maxAx, Real& maxAy, Real& maxAz) {
    // Creation of temporary calculation block dfdt and avgs + 
    // value fetching and initializations seem to take about
    // ~4% of time used by calcVelFluxes   

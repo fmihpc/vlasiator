@@ -303,12 +303,11 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,
    for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
       unsigned int block = SC->velocity_block_list[block_i];         
       Velocity_Block* block_ptr=SC->at(block);
-      Real maxAx,maxAy,maxAz,dt;
+      Real maxAx,maxAy,maxAz;
       cpu_calcVelFluxes(SC,block,dt,maxAx,maxAy,maxAz);
-      dt=block_ptr->parameters[BlockParams::DVX]/maxAx;
-      dt=max(dt,block_ptr->parameters[BlockParams::DVY]/maxAy);
-      dt=max(dt,block_ptr->parameters[BlockParams::DVZ]/maxAz);
-      maxCelldt=min(dt,maxCelldt);
+      if(maxAx!=ZERO) maxCelldt=min(maxCelldt,block_ptr->parameters[BlockParams::DVX]/maxAx);
+      if(maxAy!=ZERO) maxCelldt=min(maxCelldt,block_ptr->parameters[BlockParams::DVY]/maxAy);
+      if(maxAz!=ZERO) maxCelldt=min(maxCelldt,block_ptr->parameters[BlockParams::DVZ]/maxAz);
    }
    
    //update max allowed timestep for acceleration in this cell, which is the minimum of CFL=1 timesteps for all blocks in cell
@@ -458,9 +457,9 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
             const Real Vy = blockParams[BlockParams::VYCRD] + (i+HALF)*blockParams[BlockParams::DVY];
             const Real Vz = blockParams[BlockParams::VZCRD] + (i+HALF)*blockParams[BlockParams::DVZ];
             
-            SC->parameters[CellParams::MAXRDT]=min(dx/fabs(Vx),SC->parameters[CellParams::MAXRDT]);
-            SC->parameters[CellParams::MAXRDT]=min(dy/fabs(Vy),SC->parameters[CellParams::MAXRDT]);
-            SC->parameters[CellParams::MAXRDT]=min(dz/fabs(Vz),SC->parameters[CellParams::MAXRDT]);
+            if(fabs(Vx)>0) SC->parameters[CellParams::MAXRDT]=min(dx/fabs(Vx),SC->parameters[CellParams::MAXRDT]);
+            if(fabs(Vy)>0) SC->parameters[CellParams::MAXRDT]=min(dy/fabs(Vy),SC->parameters[CellParams::MAXRDT]);
+            if(fabs(Vz)>0) SC->parameters[CellParams::MAXRDT]=min(dz/fabs(Vz),SC->parameters[CellParams::MAXRDT]);
          }
          
       }

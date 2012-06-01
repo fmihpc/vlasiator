@@ -59,7 +59,7 @@ Real P::m = NAN;
 Real P::q_per_m = NAN;
 Real P::t = 0;
 Real P::dt = NAN;
-Real P::CFLlimit = NAN;
+Real P::CFL = NAN;
 
 luint P::tstep = 0;
 luint P::tstep_min = 0;
@@ -170,7 +170,8 @@ bool Parameters::getParameters(){
    Readparameters::get("propagate_field",P::propagateField);
    Readparameters::get("propagate_vlasov",P::propagateVlasov);
    Readparameters::get("split_method",P::splitMethod);
-    
+   Readparameters::get("substep_acceleration",P::substepAcceleration);
+   Readparameters::get("use_CFL_limit",P::useCFLlimit);
    
    /*get numerical values, let Readparameters handle the conversions*/
    Readparameters::get("gridbuilder.x_min",P::xmin);
@@ -215,6 +216,7 @@ bool Parameters::getParameters(){
    Readparameters::get("gridbuilder.q",P::q);
    Readparameters::get("gridbuilder.m",P::m);
    Readparameters::get("gridbuilder.dt",P::dt);
+   Readparameters::get("gridbuilder.CFL",P::CFL);
    Readparameters::get("gridbuilder.t_min",t_min);
    Readparameters::get("gridbuilder.timestep",P::tstep);
    Readparameters::get("gridbuilder.max_timesteps",P::tsteps);

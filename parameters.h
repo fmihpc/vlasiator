@@ -59,7 +59,7 @@ struct Parameters {
 				      * calculated from Parameters::q and Parameters::m.*/
    static Real t;                    /**< Current simulation time. */
    static Real dt;                   /**< The value of the timestep to use in propagation. If CflLimit defined then it is dynamically updated during simulation*/
-   static Real CFLlimit;             /**< The maximum CFL limit for propagation. Used to set timestep if useCFLlimit is true. Also used to set number of acceleration steps if substepAcceleration is true */
+   static Real CFL;                  /**< The maximum CFL limit for propagation. Used to set timestep if useCFLlimit is true. Also used to set number of acceleration steps if substepAcceleration is true */
    
    static luint tstep_min;           /**< Timestep when simulation starts, needed for restarts.*/
    static luint tstep;               /**< The number of the current timestep. 0=initial state. */
