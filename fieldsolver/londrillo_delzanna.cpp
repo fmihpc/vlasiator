@@ -608,15 +608,15 @@ static void calculateEdgeElectricFieldX(
 
       //compute maximum timestep for fieldsolve in this cell (CFL=1)      
       Real max_a=ZERO;
-      max_a=max(az_neg,max_a); 
-      max_a=max(az_pos,max_a);
-      max_a=max(ay_neg,max_a);
-      max_a=max(ay_pos,max_a);
+      max_a=max(fabs(az_neg),max_a); 
+      max_a=max(fabs(az_pos),max_a);
+      max_a=max(fabs(ay_neg),max_a);
+      max_a=max(fabs(ay_pos),max_a);
       Real min_dx=std::numeric_limits<Real>::max();
       min_dx=min(min_dx,cp_SW[CellParams::DY]);
       min_dx=min(min_dx,cp_SW[CellParams::DZ]);
    //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
-      if(max_a>0) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
+      if(max_a!=ZERO) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
 
 
 }
@@ -783,15 +783,15 @@ static void calculateEdgeElectricFieldY(
 
 //compute maximum timestep for fieldsolve in this cell (CFL=1)      
       Real max_a=ZERO;
-      max_a=max(az_neg,max_a);
-      max_a=max(az_pos,max_a);
-      max_a=max(ax_neg,max_a);
-      max_a=max(ax_pos,max_a);
+      max_a=max(fabs(az_neg),max_a);
+      max_a=max(fabs(az_pos),max_a);
+      max_a=max(fabs(ax_neg),max_a);
+      max_a=max(fabs(ax_pos),max_a);
       Real min_dx=std::numeric_limits<Real>::max();;
       min_dx=min(min_dx,cp_SW[CellParams::DX]);
       min_dx=min(min_dx,cp_SW[CellParams::DZ]);
    //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps 
-      if(max_a>0) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
+      if(max_a!=ZERO) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
       
       
       
@@ -966,15 +966,15 @@ static void calculateEdgeElectricFieldZ(
 
   //compute maximum timestep for fieldsolve in this cell (CFL=1)      
       Real max_a=ZERO;
-      max_a=max(ay_neg,max_a);
-      max_a=max(ay_pos,max_a);
-      max_a=max(ax_neg,max_a);
-      max_a=max(ax_pos,max_a);
+      max_a=max(fabs(ay_neg),max_a);
+      max_a=max(fabs(ay_pos),max_a);
+      max_a=max(fabs(ax_neg),max_a);
+      max_a=max(fabs(ax_pos),max_a);
       Real min_dx=std::numeric_limits<Real>::max();;
       min_dx=min(min_dx,cp_SW[CellParams::DX]);
       min_dx=min(min_dx,cp_SW[CellParams::DY]);
    //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
-      if(max_a>0) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
+      if(max_a!=ZERO) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
 
       
 }

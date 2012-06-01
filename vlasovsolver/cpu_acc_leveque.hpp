@@ -730,6 +730,10 @@ void cpu_calcVelFluxes(SpatialCell *cell,const unsigned int& BLOCK,const Real& D
       const Real ym1 = avgs[fullInd(i+2,j+1,k+2)];
       const Real ym2 = avgs[fullInd(i+2,j  ,k+2)];
       calcAccFaceY(Ax,Ay,Az,i,j,k,cell->parameters,block->parameters);
+      maxAx=std::max(maxAx,fabs(Ax));
+      maxAy=std::max(maxAy,fabs(Ay));
+      maxAz=std::max(maxAz,fabs(Az));
+
       
       solverFlags = 0;
       if (Az < ZERO) solverFlags = (solverFlags | (1 << 0));
@@ -1114,6 +1118,9 @@ void cpu_calcVelFluxes(SpatialCell *cell,const unsigned int& BLOCK,const Real& D
       const Real zm1 = avgs[fullInd(i+2,j+2,k+1)];
       const Real zm2 = avgs[fullInd(i+2,j+2,k  )];
       calcAccFaceZ(Ax,Ay,Az,i,j,k,cell->parameters,block->parameters);
+      maxAx=std::max(maxAx,fabs(Ax));
+      maxAy=std::max(maxAy,fabs(Ay));
+      maxAz=std::max(maxAz,fabs(Az));
       
       solverFlags = 0;
       if (Az < ZERO) solverFlags = (solverFlags | (1 << 0));
