@@ -156,6 +156,7 @@ int main(int argn,char* args[]) {
        logfile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
        exit(1);
    }
+   calculateFaceAveragedFields(mpiGrid);
    phiprof::stop("Init field propagator");
    
 
@@ -290,6 +291,7 @@ int main(int argn,char* args[]) {
       if (P::propagateField == true) {
           phiprof::start("Propagate Fields");
           propagateFields(mpiGrid,P::dt);
+          calculateFaceAveragedFields(mpiGrid);
           phiprof::stop("Propagate Fields",computedSpatialCells,"SpatialCells");
       } else {
 	 calculateFaceAveragedFields(mpiGrid);
