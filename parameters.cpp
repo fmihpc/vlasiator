@@ -99,7 +99,7 @@ vector<string> P::diagnosticVariableList;
 
 bool Parameters::addParameters(){
         //the other default parameters we read through the add/get interface
-        Readparameters::add("save_interval", "Save the simulation every arg time steps",1);
+        Readparameters::add("save_interval", "Save the simulation every arg time steps",10);
 	Readparameters::add("diagnostic_interval", "Write diagnostic output every arg time steps", 1);
 	Readparameters::add("restart_interval","Save the complete simulation every arg time steps",numeric_limits<uint>::max());
         Readparameters::add("save_spatial_grid", "Save spatial cell averages for the whole simulation",true);
@@ -135,21 +135,21 @@ bool Parameters::addParameters(){
         Readparameters::add("gridbuilder.periodic_y","If 'yes' the grid is periodic in y-direction. Defaults to 'no'.","no");
         Readparameters::add("gridbuilder.periodic_z","If 'yes' the grid is periodic in z-direction. Defaults to 'no'.","no");
    
-        Readparameters::add("gridbuilder.q","Charge of simulated particle species, in Coulombs.",numeric_limits<Real>::max());
-        Readparameters::add("gridbuilder.m","Mass of simulated particle species, in kilograms.",numeric_limits<Real>::max());
-        Readparameters::add("gridbuilder.dt","Timestep in seconds.",numeric_limits<Real>::max());
+        Readparameters::add("gridbuilder.q","Charge of simulated particle species, in Coulombs.",1.60217653e-19);
+        Readparameters::add("gridbuilder.m","Mass of simulated particle species, in kilograms.",1.67262171e-27);
+        Readparameters::add("gridbuilder.dt","Timestep in seconds.",0.0);
         Readparameters::add("gridbuilder.CFL","The maximum CFL limit for propagation. Used to set timestep if use_CFL_limit is true. Also used to set number of acceleration steps if substep_acceleration is true",0.5);
-        Readparameters::add("gridbuilder.t_min","Simulation time at timestep 0, in seconds.",numeric_limits<Real>::max());
+        Readparameters::add("gridbuilder.t_min","Simulation time at timestep 0, in seconds.",0.0);
         Readparameters::add("gridbuilder.timestep","Timestep when grid is loaded. Defaults to value zero.",0);
         Readparameters::add("gridbuilder.max_timesteps","Max. value for timesteps. Defaults to value zero.",0);
    
    // Grid sparsity parameters
-        Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 1e-5);
-        Readparameters::add("sparse.minAvgValue", "Minimum value of the average of distribution function within a velocity block for the block to be considered to have contents", 0.5e-5);
+        Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
+        Readparameters::add("sparse.minAvgValue", "Minimum value of the average of distribution function within a velocity block for the block to be considered to have contents", 0);
         Readparameters::add("sparse.blockAdjustmentInterval", "Block adjustment interval (steps)", 1);
    
         // Load balancing parameters
-        Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("HYPERGRAPH"));
+        Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("RCB"));
         Readparameters::add("loadBalance.tolerance", "Load imbalance tolerance", std::string("1.05"));
         Readparameters::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
 	
