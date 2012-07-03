@@ -124,13 +124,6 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
    creal k = 1.3806505e-23; // Boltzmann
    creal mu0 = 1.25663706144e-6; // mu_0
 
-   static int rndRho = 0;
-   static int rndVel[3] = {0};
-   int cellID = (int) (x / dx) +
-                (int) (y / dy) * Parameters::xcells_ini +
-                (int) (z / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-   srand(cellID);
-   
    creal d_x = dx / (GradBP::nSpaceSamples-1);
    creal d_y = dy / (GradBP::nSpaceSamples-1);
    creal d_z = dz / (GradBP::nSpaceSamples-1);
@@ -173,11 +166,6 @@ void calcCellParameters(Real* cellParams,creal& t) {
    creal dy = cellParams[CellParams::DY];
    creal z = cellParams[CellParams::ZCRD];
    creal dz = cellParams[CellParams::DZ];
-   
-   int cellID = (int) (x / dx) +
-   (int) (y / dy) * Parameters::xcells_ini +
-   (int) (z / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-   srand(cellID);
    
    cellParams[CellParams::EX   ] = 0.0;
    cellParams[CellParams::EY   ] = 0.0;

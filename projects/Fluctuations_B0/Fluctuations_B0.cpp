@@ -100,14 +100,20 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
    
    static int rndRho = 0;
    static int rndVel[3] = {0};
+   #pragma omp threadprivate(rndRho,rndVel)
    int cellID = (int) (x / dx) +
                 (int) (y / dy) * Parameters::xcells_ini +
                 (int) (z / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-   srand(cellID);
-   rndRho = rand();
-   rndVel[0] =rand();
-   rndVel[1] =rand();
-   rndVel[2] =rand();
+#pragma omp critical
+   {
+      //critical region since srand not thread-safe. A nicer fix would be to use a thread-safe rng
+      //e.g., http://linux.die.net/man/3/random_r (FIXME)
+      srand(cellID);
+      rndRho = rand();
+      rndVel[0] =rand();
+      rndVel[1] =rand();
+      rndVel[2] =rand();
+   } // end of omp critical region
    
    creal d_vx = dvx / (FlucP::nVelocitySamples-1);
    creal d_vy = dvy / (FlucP::nVelocitySamples-1);
@@ -172,8 +178,13 @@ void calcCellParameters(Real* cellParams,creal& t) {
    cellParams[CellParams::BXFACEX0] = FlucP::BX0;
    cellParams[CellParams::BYFACEY0] = FlucP::BY0;
    cellParams[CellParams::BZFACEZ0] = FlucP::BZ0;
-   cellParams[CellParams::BY   ] = FlucP::magPertAmp * (0.5 - (double)rand() / (double)RAND_MAX);
-   cellParams[CellParams::BZ   ] = FlucP::magPertAmp * (0.5 - (double)rand() / (double)RAND_MAX);
+#pragma omp critical
+   {
+      //critical region since srand not thread-safe. A nicer fix would be to use a thread-safe rng
+      //e.g., http://linux.die.net/man/3/random_r (FIXME)
+      cellParams[CellParams::BY   ] = FlucP::magPertAmp * (0.5 - (double)rand() / (double)RAND_MAX);
+      cellParams[CellParams::BZ   ] = FlucP::magPertAmp * (0.5 - (double)rand() / (double)RAND_MAX);
+   } // end of omp critical region
 }
 
 // TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...

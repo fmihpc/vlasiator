@@ -80,6 +80,8 @@ bool cellParametersChanged(creal& t) {return false;}
 Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
 
    static bool isSet=false;
+   //static variables should be threadprivate
+#pragma omp threadprivate(isSet)
 
    if(vx < Parameters::vxmin + 0.5 * dvx ||
       vy < Parameters::vymin + 0.5 * dvy ||
@@ -123,10 +125,6 @@ void calcCellParameters(Real* cellParams,creal& t) {
    creal dy = cellParams[CellParams::DY];
    creal z = cellParams[CellParams::ZCRD];
    creal dz = cellParams[CellParams::DZ];
-   
-   int cellID = (int) (x / dx) +
-   (int) (y / dy) * Parameters::xcells_ini +
-   (int) (z / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
    
    cellParams[CellParams::EX   ] = 0.0;
    cellParams[CellParams::EY   ] = 0.0;

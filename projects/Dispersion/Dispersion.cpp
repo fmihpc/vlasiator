@@ -102,27 +102,36 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
    static int spaceIndex[3] = {0};
    static int rndRho = 0;
    static int rndVel[3] = {0};
-   static int rndRhoSector = rand()%DispP::sectorSize+1;
-   static int rndVelSector = rand()%DispP::sectorSize+1;
-   static int cptRhoSector = 0;
-   static int cptVelSector = 0;
-   spaceIndex[0] = (int) (x / dx);
-   spaceIndex[1] = (int) (y / dy);
-   spaceIndex[2] = (int) (z / dz);
-   if(spaceIndex[0] != spaceIndexOld[0] ||
-      spaceIndex[1] != spaceIndexOld[1] ||
-      spaceIndex[2] != spaceIndexOld[2]) {
-      if(cptRhoSector++%rndRhoSector == 0)
-      {
-	 rndRho = rand();
-	 rndRhoSector = rand()%DispP::sectorSize+1;
+#pragma omp critical
+   {
+      //critical region since srand not thread-safe. A nicer fix would be to use a thread-safe rng
+      //e.g., http://linux.die.net/man/3/random_r (FIXME)
+      static int rndRhoSector = rand()%DispP::sectorSize+1;
+      static int rndVelSector = rand()%DispP::sectorSize+1;
+      static int cptRhoSector = 0;
+      static int cptVelSector = 0;
+      
+      //static variables should be threadprivate
+#pragma omp threadprivate(spaceIndexOld,spaceIndex,rndRho,rndVel,rndRhoSector,rndVelSector,cptRhoSector,cptVelSector)
+   
+      spaceIndex[0] = (int) (x / dx);
+      spaceIndex[1] = (int) (y / dy);
+      spaceIndex[2] = (int) (z / dz);
+      if(spaceIndex[0] != spaceIndexOld[0] ||
+	 spaceIndex[1] != spaceIndexOld[1] ||
+	 spaceIndex[2] != spaceIndexOld[2]) {
+	 if(cptRhoSector++%rndRhoSector == 0)
+	 {
+	    rndRho = rand();
+	    rndRhoSector = rand()%DispP::sectorSize+1;
+	 }
+	 if(cptVelSector++%rndVelSector == 0)
+	 {
+	    rndVel = {rand(), rand(), rand()};
+	    rndVelSector = rand()%DispP::sectorSize+1;
+	 }
       }
-      if(cptVelSector++%rndVelSector == 0)
-      {
-	 rndVel = {rand(), rand(), rand()};
-	 rndVelSector = rand()%DispP::sectorSize+1;
-      }
-   }
+   } // end of omp critical region
    spaceIndexOld[0] = spaceIndex[0];
    spaceIndexOld[1] = spaceIndex[1];
    spaceIndexOld[2] = spaceIndex[2];
@@ -160,8 +169,13 @@ void calcCellParameters(Real* cellParams,creal& t) {
    cellParams[CellParams::EY   ] = 0.0;
    cellParams[CellParams::EZ   ] = 0.0;
    cellParams[CellParams::BX   ] = DispP::BX0;
-   cellParams[CellParams::BY   ] = DispP::magPertAmp * (0.5 - (double)rand() / (double)RAND_MAX);
-   cellParams[CellParams::BZ   ] = DispP::magPertAmp * (0.5 - (double)rand() / (double)RAND_MAX);
+#pragma omp critical
+   {
+      //critical region since srand not thread-safe. A nicer fix would be to use a thread-safe rng
+      //e.g., http://linux.die.net/man/3/random_r (FIXME)
+      cellParams[CellParams::BY   ] = DispP::magPertAmp * (0.5 - (double)rand() / (double)RAND_MAX);
+      cellParams[CellParams::BZ   ] = DispP::magPertAmp * (0.5 - (double)rand() / (double)RAND_MAX);
+   } // end of omp critical region
 }
 
 // TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
