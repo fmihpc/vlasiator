@@ -156,7 +156,16 @@ int main(int argn,char* args[]) {
        logfile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
        exit(1);
    }
+   
+   // Exchange E and B with neighbours
+   phiprof::start("Exchange EB");
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_EB);
+   mpiGrid.update_remote_neighbor_data();
+   phiprof::stop("Exchange EB");
+   phiprof::start("calculateFaceAveragedFields");
    calculateFaceAveragedFields(mpiGrid);
+   phiprof::stop("calculateFaceAveragedFields");
+
    phiprof::stop("Init field propagator");
    
 
@@ -294,7 +303,14 @@ int main(int argn,char* args[]) {
           calculateFaceAveragedFields(mpiGrid);
           phiprof::stop("Propagate Fields",computedSpatialCells,"SpatialCells");
       } else {
+	 // Exchange E and B with neighbours
+	 phiprof::start("Exchange EB");
+	 SpatialCell::set_mpi_transfer_type(Transfer::CELL_EB);
+	 mpiGrid.update_remote_neighbor_data();
+	 phiprof::stop("Exchange EB");
+	 phiprof::start("calculateFaceAveragedFields");
 	 calculateFaceAveragedFields(mpiGrid);
+	 phiprof::stop("calculateFaceAveragedFields");
       }
       phiprof::stop("Propagate",computedBlocks,"Blocks");
       
