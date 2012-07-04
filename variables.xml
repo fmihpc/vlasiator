@@ -264,4 +264,16 @@
         <Field name="dbName" type="string">__none__</Field>
         <Field name="autoExpression" type="bool">false</Field>
     </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">PTensor</Field>
+        <Field name="definition" type="string">"{{PTensorDiagonal[0], PTensorOffDiagonal[2], PTensorOffDiagonal[1]},{PTensorOffDiagonal[2], PTensorDiagonal[1], PTensorOffDiagonal[0]},{PTensorOffDiagonal[1], PTensorOffDiagonal[0], PTensorDiagonal[2]}}"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">TensorMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
 </Object>
