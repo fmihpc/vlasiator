@@ -451,7 +451,7 @@ namespace DRO {
       return true;
    }
    
-   // Added by YK
+   // Scalar pressure added by YK
    VariablePressure::VariablePressure(): DataReductionOperator() { }
    VariablePressure::~VariablePressure() { }
    
@@ -474,7 +474,7 @@ namespace DRO {
       Real nvy2_sum = 0.0;
       Real nvz2_sum = 0.0;
 
-      for(uint n=0; n<cell->number_of_blocks;n++) {
+      for(uint n=0; n<cell->number_of_blocks; n++) {
 	 unsigned int blockId = cell->velocity_block_list[n];
 	 const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
 	 for (uint k=0; k<WID; ++k)
@@ -516,13 +516,147 @@ namespace DRO {
       Pressure = 0.0;
       return true;
    }
+   
+   
+   // YK Adding pressure calculations to Vlasiator.
+   // p_ij = m/3 * integral((v - <V>)_i(v - <V>)_j * f(r,v) dV)
+   
+   // Pressure tensor 6 components (11, 22, 33, 23, 13, 12) added by YK
+   // Split into VariablePTensorDiagonal (11, 22, 33)
+   // and VariablePTensorOffDiagonal (23, 13, 12)
+   VariablePTensorDiagonal::VariablePTensorDiagonal(): DataReductionOperator() { }
+   VariablePTensorDiagonal::~VariablePTensorDiagonal() { }
+
+   std::string VariablePTensorDiagonal::getName() const {return "PTensorDiagonal";}
+
+   bool VariablePTensorDiagonal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 3;
+      return true;
+   }
+   
+   bool VariablePTensorDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
+      const Real HALF = 0.5;
+      const Real THIRD = 1.0/3.0;
+      
+      Real nvxvx_sum = 0.0;
+      Real nvyvy_sum = 0.0;
+      Real nvzvz_sum = 0.0;
+      
+      for(uint n=0; n<cell->number_of_blocks; n++) {
+	 unsigned int blockId = cell->velocity_block_list[n];
+	 const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
+	 for (uint k=0; k<WID; ++k)
+	    for (uint j=0; j<WID; ++j)
+	       for (uint i=0; i<WID; ++i) {
+		  const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
+		  const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
+		  const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+		  
+		  const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
+		  
+		  nvxvx_sum += block-> data[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
+		  nvyvy_sum += block-> data[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
+		  nvzvz_sum += block-> data[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
+	       }
+      }
+      
+      // Accumulate contributions coming from this velocity block to the 
+      // spatial cell velocity moments. If multithreading / OpenMP is used, 
+      // these updates need to be atomic:
+      
+      PTensor[0] += physicalconstants::MASS_PROTON * THIRD * nvxvx_sum;
+      PTensor[1] += physicalconstants::MASS_PROTON * THIRD * nvyvy_sum;
+      PTensor[2] += physicalconstants::MASS_PROTON * THIRD * nvzvz_sum;
+      
+      const char* ptr = reinterpret_cast<const char*>(&PTensor);
+      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+
+   bool VariablePTensorDiagonal::setSpatialCell(const SpatialCell* cell) {
+      if(cell-> parameters[CellParams::RHO] != 0.0) {
+	 averageVX = cell-> parameters[CellParams::RHOVX] / cell-> parameters[CellParams::RHO];
+	 averageVY = cell-> parameters[CellParams::RHOVY] / cell-> parameters[CellParams::RHO];
+	 averageVZ = cell-> parameters[CellParams::RHOVZ] / cell-> parameters[CellParams::RHO];
+      } else {
+	 averageVX = 0.0;
+	 averageVY = 0.0;
+	 averageVZ = 0.0;
+      }
+      for(int i = 0; i < 3; i++) PTensor[i] = 0.0;
+      return true;
+   }
+   
+   VariablePTensorOffDiagonal::VariablePTensorOffDiagonal(): DataReductionOperator() { }
+   VariablePTensorOffDiagonal::~VariablePTensorOffDiagonal() { }
+   
+   std::string VariablePTensorOffDiagonal::getName() const {return "PTensorOffDiagonal";}
+   
+   bool VariablePTensorOffDiagonal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 3;
+      return true;
+   }
+   
+   bool VariablePTensorOffDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
+      const Real HALF = 0.5;
+      const Real THIRD = 1.0/3.0;
+      
+      Real nvxvy_sum = 0.0;
+      Real nvzvx_sum = 0.0;
+      Real nvyvz_sum = 0.0;
+      
+      for(uint n=0; n<cell->number_of_blocks; n++) {
+	 unsigned int blockId = cell->velocity_block_list[n];
+	 const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
+	 for (uint k=0; k<WID; ++k)
+	    for (uint j=0; j<WID; ++j)
+	       for (uint i=0; i<WID; ++i) {
+		  const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
+		  const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
+		  const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+		  
+		  const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
+		  
+		  nvxvy_sum += block-> data[cellIndex(i,j,k)] * (VX - averageVX) * (VY - averageVY) * DV3;
+		  nvzvx_sum += block-> data[cellIndex(i,j,k)] * (VZ - averageVZ) * (VX - averageVX) * DV3;
+		  nvyvz_sum += block-> data[cellIndex(i,j,k)] * (VY - averageVY) * (VZ - averageVZ) * DV3;
+	       }
+      }
+      
+      // Accumulate contributions coming from this velocity block to the 
+      // spatial cell velocity moments. If multithreading / OpenMP is used, 
+      // these updates need to be atomic:
+      
+      PTensor[0] += physicalconstants::MASS_PROTON * THIRD * nvyvz_sum;
+      PTensor[1] += physicalconstants::MASS_PROTON * THIRD * nvzvx_sum;
+      PTensor[2] += physicalconstants::MASS_PROTON * THIRD * nvxvy_sum;
+      
+      const char* ptr = reinterpret_cast<const char*>(&PTensor);
+      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariablePTensorOffDiagonal::setSpatialCell(const SpatialCell* cell) {
+      if(cell-> parameters[CellParams::RHO] != 0.0) {
+	 averageVX = cell-> parameters[CellParams::RHOVX] / cell-> parameters[CellParams::RHO];
+	 averageVY = cell-> parameters[CellParams::RHOVY] / cell-> parameters[CellParams::RHO];
+	 averageVZ = cell-> parameters[CellParams::RHOVZ] / cell-> parameters[CellParams::RHO];
+      } else {
+	 averageVX = 0.0;
+	 averageVY = 0.0;
+	 averageVZ = 0.0;
+      }
+      for(int i = 0; i < 3; i++) PTensor[i] = 0.0;
+      return true;
+   }
 
 
 
-
-
-
-//maximum absolute velocity in x,y, or z direction
+   //maximum absolute velocity in x,y, or z direction
    MaxVi::MaxVi(): DataReductionOperator() { }
    MaxVi::~MaxVi() { }
    

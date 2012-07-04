@@ -280,7 +280,36 @@ namespace DRO {
      protected:
         Real averageVX, averageVY, averageVZ;
 	Real Pressure;
-	const SpatialCell * currentCell;
+   };
+   
+   class VariablePTensorDiagonal: public DataReductionOperator {
+   public:
+      VariablePTensorDiagonal();
+      ~VariablePTensorDiagonal();
+      
+      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      std::string getName() const;
+      bool reduceData(const SpatialCell* cell,char* buffer);
+      bool setSpatialCell(const SpatialCell* cell);
+      
+   protected:
+      Real averageVX, averageVY, averageVZ;
+      Real PTensor[3];
+   };
+   
+   class VariablePTensorOffDiagonal: public DataReductionOperator {
+   public:
+      VariablePTensorOffDiagonal();
+      ~VariablePTensorOffDiagonal();
+      
+      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      std::string getName() const;
+      bool reduceData(const SpatialCell* cell,char* buffer);
+      bool setSpatialCell(const SpatialCell* cell);
+      
+   protected:
+      Real averageVX, averageVY, averageVZ;
+      Real PTensor[3];
    };
    
    class DiagnosticFluxB: public DataReductionOperator {
