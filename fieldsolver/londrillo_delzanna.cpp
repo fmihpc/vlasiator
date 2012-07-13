@@ -1241,13 +1241,6 @@ bool finalizeFieldPropagator(
    return true;
 }
 
-static void propagateMagneticField(
-	const CellID& cellID,
-	dccrg::Dccrg<SpatialCell>& mpiGrid,
-	creal& dt
-);
-
-
 void calculateDerivativesSimple(
 	dccrg::Dccrg<SpatialCell>& mpiGrid,
 	const vector<CellID>& localCells
@@ -1940,7 +1933,7 @@ void calculateFaceAveragedFields(
       
       // Store the average value (maybe should store upwinded value?): 
       for (uint i=0; i<9; ++i) {
-	cellParams[CellParams::BXFACEX+i] = HALF*(cellParams[CellParams::BXFACEX+i] + faceMagnField[i]);
+	 cellParams[CellParams::BXFACEX+i] = HALF*(cellParams[CellParams::BXFACEX+i] + faceMagnField[i]);
       }
    }
 }
