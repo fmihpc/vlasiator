@@ -326,7 +326,11 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
 }
 
 
-bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer,const bool& writeRestart) {
+bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
+               DataReducer& dataReducer,
+               const string& name,
+               const uint& index,
+               const bool& writeRestart) {
     double allStart = MPI_Wtime();
     bool success = true;
     int myrank;
@@ -338,10 +342,10 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,DataReducer& dataReducer
     
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
-   fname << "grid.";
+   fname << name <<".";
    fname.width(7);
    fname.fill('0');
-   fname << Parameters::tstep << ".vlsv";
+   fname << index << ".vlsv";
    
    VLSVWriter vlsvWriter;
    vlsvWriter.open(fname.str(),MPI_COMM_WORLD,0);

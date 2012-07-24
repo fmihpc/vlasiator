@@ -35,7 +35,6 @@ bool finalizeMover();
 
 bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid);
 bool initMoverAfterBlockChange(dccrg::Dccrg<SpatialCell>& mpiGrid);
-void calculateSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,Real& dt);
 void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,uint64_t& cell);
 
 void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt);

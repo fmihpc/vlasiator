@@ -4,6 +4,7 @@
 #include "spatial_cell.hpp"
 #include <dccrg.hpp>
 #include "datareducer.h"
+#include <string>
 
 //Init parallel grid
 bool initializeGrid(int argn, char **argc,dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
@@ -14,7 +15,11 @@ void balanceLoad(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
 bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
 //write out system
-bool writeGrid(const dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,DataReducer& dataReducer,const bool& writeRestart);
+bool writeGrid(const dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
+               DataReducer& dataReducer,
+               const std::string& name,
+               const uint& index,
+               const bool& writeRestart);
 
 // Write out diagnostic
 bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid, DataReducer& dataReducer, luint tstep);

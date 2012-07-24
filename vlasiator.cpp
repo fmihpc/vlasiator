@@ -64,6 +64,7 @@ int main(int argn,char* args[]) {
    bool success = true;
    const int MASTER_RANK = 0;
    int myrank;
+   creal DT_EPSILON=1e-12;
    typedef Parameters P;
    // Init MPI: 
 #ifdef _OPENMP
@@ -180,28 +181,6 @@ int main(int argn,char* args[]) {
    // Free up memory:
    readparameters.finalize();
 
-   phiprof::start("Save initial state");
-   // Write initial state:
-   if (P::save_spatial_grid) {
-      if (myrank == MASTER_RANK) {
-	 logfile << "(MAIN): Saving initial state of variables to disk." << endl << writeVerbose;
-      }
-
-   if (writeGrid(mpiGrid,outputReducer,true) == false) {
-	 logfile << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << writeVerbose;
-      }
-   }
-   phiprof::stop("Save initial state");
-   
-   if (P::diagnosticInterval != 0)
-   {
-      phiprof::start("Diagnostic");
-      if (computeDiagnostic(mpiGrid, diagnosticReducer, P::tstep_min) == false) {
-	 cerr << "ERROR with diagnostic computation" << endl;
-      }
-      phiprof::stop("Diagnostic");
-   }
-   
    phiprof::stop("Initialization");
    MPI_Barrier(MPI_COMM_WORLD);
 
@@ -214,11 +193,130 @@ int main(int argn,char* args[]) {
    unsigned int computedSpatialCells=0;
    unsigned int totalComputedBlocks=0;
    unsigned int computedBlocks=0;
-
+   unsigned int restartWrites=(int)(P::t_min/P::saveRestartTimeInterval);
+   unsigned int systemWrites=(int)(P::t_min/P::saveSystemTimeInterval);
+   if (myrank == MASTER_RANK) logfile << "writes" << restartWrites <<" "<<systemWrites << endl << writeVerbose;
    phiprof::start("Simulation");
-   for (luint tstep=P::tstep_min; tstep < P::tsteps; ++tstep) {
-      //compute how many spatial cells we solve for this step
+   for (luint tstep=P::tstep_min; tstep < P::tsteps+1; ++tstep) {
+      if (myrank == MASTER_RANK)
+         logfile << "(MAIN): ------------------ tstep = " << P::tstep << " t = " << P::t <<" ------------------" << endl << writeVerbose;
+      //Re-loadbalance if needed, not done on first step
+      if(P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min)
+         balanceLoad(mpiGrid);
+      //get local cells       
       vector<uint64_t> cells = mpiGrid.get_cells();
+
+      phiprof::start("IO");
+      // Check whether diagnostic output has to be produced
+      if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
+	 phiprof::start("Diagnostic");
+	 if (computeDiagnostic(mpiGrid, diagnosticReducer, tstep) == false) {
+	    cerr << "ERROR with diagnostic computation" << endl;
+	 }
+	 phiprof::stop("Diagnostic");
+         //also print out phiprof log
+         phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
+      }
+
+      
+      // Check if data needs to be written to disk:
+      if (P::t >= systemWrites*P::saveSystemTimeInterval-DT_EPSILON &&
+          P::saveSystemTimeInterval < numeric_limits<Real>::max()) {
+         phiprof::start("write-system");
+         if (myrank == MASTER_RANK)
+            logfile << "(MAIN): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
+         writeGrid(mpiGrid,outputReducer,"grid",systemWrites,false);
+         systemWrites++;
+         phiprof::stop("write-system");
+      }
+
+      if (P::t >= restartWrites*P::saveRestartTimeInterval-DT_EPSILON &&
+          P::saveRestartTimeInterval <numeric_limits<Real>::max()) {
+         phiprof::start("write-restart");
+         if (myrank == MASTER_RANK)
+            logfile << "(MAIN): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
+         writeGrid(mpiGrid,outputReducer,"restart",restartWrites,true);
+         restartWrites++;
+         phiprof::stop("write-restart");
+      }
+      
+      phiprof::stop("IO");
+
+
+      if(P::dynamicTimestep){
+         phiprof::start("compute-timestep");      
+         //compute maximum time-step, this cannot be done at the first
+         //step as the solvers compute the limits for each cell
+         if(tstep>P::tstep_min){
+
+            Real dtmax_local[3];
+            Real dtmax_global[3];
+            dtmax_local[0]=std::numeric_limits<Real>::max();
+            dtmax_local[1]=std::numeric_limits<Real>::max();
+            dtmax_local[2]=std::numeric_limits<Real>::max();
+            for (std::vector<uint64_t>::const_iterator
+                    cell_id = cells.begin();
+                 cell_id != cells.end();
+                 ++cell_id
+                 ) {
+               SpatialCell* cell = mpiGrid[*cell_id];
+               if (cell->isGhostCell) continue;
+               dtmax_local[0]=min(dtmax_local[0],cell->parameters[CellParams::MAXRDT]);
+               dtmax_local[1]=min(dtmax_local[1],cell->parameters[CellParams::MAXVDT]);
+               dtmax_local[2]=min(dtmax_local[2],cell->parameters[CellParams::MAXFDT]);
+            }
+            MPI_Allreduce(&(dtmax_local[0]),&(dtmax_global[0]),3,MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
+            
+            //modify  timestep based on CFL limits
+            Real dtmax=std::numeric_limits<Real>::max();
+            switch (P::splitMethod){
+                case 0:
+                   dtmax=min(dtmax,dtmax_global[0]);
+                   dtmax=min(dtmax,dtmax_global[1]);
+                   dtmax=min(dtmax,dtmax_global[2]);
+                   P::dt=P::CFL*dtmax;
+                   break;
+                case 1:
+                   dtmax=min(dtmax,2*dtmax_global[0]); //half-steps in ordinary space
+                   dtmax=min(dtmax,dtmax_global[1]);
+                   dtmax=min(dtmax,dtmax_global[2]);
+                   P::dt=P::CFL*dtmax;
+                   break;
+                case 2:
+                   dtmax=min(dtmax,dtmax_global[0]);
+                   dtmax=min(dtmax,2*dtmax_global[1]);  //half-steps in velocity space
+                   dtmax=min(dtmax,dtmax_global[2]);
+                   P::dt=P::CFL*dtmax;
+                   break;
+            }
+            if (myrank == MASTER_RANK)
+               logfile << "(MAIN) for tstep = " << P::tstep <<  " dt was set to  "<<P::dt <<" based on CFL"<<endl;
+            
+            //Possibly reduce timestep to make sure we hit exactly the
+            //correct write time,allow marginal overshoot of CFL to avoid
+            //floating point comparison problems
+            if (P::saveRestartTimeInterval < numeric_limits<Real>::max() &&
+                P::t + P::dt + DT_EPSILON >= restartWrites*P::saveRestartTimeInterval){
+               P::dt=restartWrites*P::saveRestartTimeInterval-P::t;
+               if (myrank == MASTER_RANK)
+                  logfile << "(MAIN) for tstep = " << P::tstep <<  " dt was set to  "<<P::dt <<" to hit restart write interval"<<endl;
+            }
+            if (P::saveSystemTimeInterval < numeric_limits<Real>::max() &&
+                P::t + P::dt + DT_EPSILON >= systemWrites*P::saveSystemTimeInterval){
+               P::dt=systemWrites*P::saveSystemTimeInterval-P::t;
+               if (myrank == MASTER_RANK)
+                  logfile << "(MAIN) for tstep = " << P::tstep <<  " dt was set to  "<<P::dt <<" to hit system write interval"<<endl;
+            }
+         }
+         if (myrank == MASTER_RANK)
+            logfile << writeVerbose;
+         phiprof::stop("compute-timestep");
+      }
+      
+
+         
+      
+      //compute how many spatial cells we solve for this step
       computedSpatialCells=cells.size();
       computedBlocks=0;
       for(uint i=0;i<cells.size();i++)
@@ -229,12 +327,7 @@ int main(int argn,char* args[]) {
       totalComputedBlocks+=computedBlocks;
       
       phiprof::start("Propagate");
-      // Recalculate (maybe) spatial cell parameters
-      calculateSimParameters(mpiGrid, P::t, P::dt);
-      
-      // use globally minimum timestep
-      P::dt = all_reduce(comm, P::dt, boost::mpi::minimum<Real>());
-      // Propagate the state of simulation forward in time by dt:      
+      //Propagate the state of simulation forward in time by dt:      
       if (P::propagateVlasov == true) {
          phiprof::start("Propagate Vlasov");
          switch (P::splitMethod){
@@ -313,95 +406,11 @@ int main(int argn,char* args[]) {
 	 phiprof::stop("calculateFaceAveragedFields");
       }
       phiprof::stop("Propagate",computedBlocks,"Blocks");
+
       
+//Move forward in time      
       ++P::tstep;
       P::t += P::dt;
-      
-      // Check if data needs to be written to disk:
-      if (P::tstep % P::saveRestartInterval == 0 || P::tstep % P::saveInterval == 0) {
-         phiprof::start("IO");
-	 bool writeRestartData = false;
-	 if (P::tstep % P::saveRestartInterval == 0) {
-	   writeRestartData = true;
-	   if (myrank == MASTER_RANK)
-	   logfile << "(MAIN): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-	 } else
-	   if (myrank == MASTER_RANK)
-	     logfile << "(MAIN): Writing spatial cell data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-	 
-	   if (writeGrid(mpiGrid,outputReducer,writeRestartData) == false) {
-	    if (myrank == MASTER_RANK)
-	      logfile << "(MAIN): ERROR occurred while writing spatial cell and restart data!" << endl << writeVerbose;
-	 }
-         phiprof::stop("IO");
-      }
-      
-      // Check whether diagnostic output has to be produced
-      if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
-	 phiprof::start("Diagnostic");
-	 if (computeDiagnostic(mpiGrid, diagnosticReducer, tstep+1) == false) {
-	    cerr << "ERROR with diagnostic computation" << endl;
-	 }
-	 phiprof::stop("Diagnostic");
-         //also print out phiprof log
-         phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
-      }
-
-      
-      //compute maximum time-step
-      phiprof::start("compute-timestep");
-      Real dtmax_local[3];
-      Real dtmax_global[3];
-      dtmax_local[0]=std::numeric_limits<Real>::max();
-      dtmax_local[1]=std::numeric_limits<Real>::max();
-      dtmax_local[2]=std::numeric_limits<Real>::max();
-      for (std::vector<uint64_t>::const_iterator
-              cell_id = cells.begin();
-           cell_id != cells.end();
-           ++cell_id
-           ) {
-         SpatialCell* cell = mpiGrid[*cell_id];
-         if (cell->isGhostCell) continue;
-         dtmax_local[0]=min(dtmax_local[0],cell->parameters[CellParams::MAXRDT]);
-         dtmax_local[1]=min(dtmax_local[1],cell->parameters[CellParams::MAXVDT]);
-         dtmax_local[2]=min(dtmax_local[2],cell->parameters[CellParams::MAXFDT]);
-      }
-      MPI_Allreduce(&(dtmax_local[0]),&(dtmax_global[0]),3,MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
-      if (myrank == MASTER_RANK)
-         logfile << "(MAIN) tstep = " << P::tstep << " dt = " << P::dt  <<
-            " max timestep in (r,v,BE) is "<< dtmax_global[0] <<" " <<dtmax_global[1] <<" " << dtmax_global[2]  << endl << writeVerbose;
-      
-      if(P::dynamicTimestep){
-         Real dtmax=std::numeric_limits<Real>::max();
-         switch (P::splitMethod){
-             case 0:
-                dtmax=min(dtmax,dtmax_global[0]);
-                dtmax=min(dtmax,dtmax_global[1]);
-                dtmax=min(dtmax,dtmax_global[2]);
-                P::dt=P::CFL*dtmax;
-                break;
-             case 1:
-                dtmax=min(dtmax,2*dtmax_global[0]); //half-steps in ordinary space
-                dtmax=min(dtmax,dtmax_global[1]);
-                dtmax=min(dtmax,dtmax_global[2]);
-                P::dt=P::CFL*dtmax;
-                break;
-             case 2:
-                dtmax=min(dtmax,dtmax_global[0]);
-                dtmax=min(dtmax,2*dtmax_global[1]);  //half-steps in velocity space
-                dtmax=min(dtmax,dtmax_global[2]);
-                P::dt=P::CFL*dtmax;
-                break;
-         }
-      }
-      
-      phiprof::stop("compute-timestep");
-      
-      //Last-but-not-least, re-loadbalance 
-      if(P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min)
-         balanceLoad(mpiGrid);
-         
-
    }
    double after = MPI_Wtime();
 

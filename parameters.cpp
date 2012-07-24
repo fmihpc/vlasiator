@@ -58,18 +58,18 @@ Real P::q = NAN;
 Real P::m = NAN;
 Real P::q_per_m = NAN;
 Real P::t = 0;
+Real P::t_min = 0;
 Real P::dt = NAN;
 Real P::CFL = NAN;
 
 luint P::tstep = 0;
 luint P::tstep_min = 0;
 luint P::tsteps = 0;
-luint P::saveRestartInterval = numeric_limits<uint>::max();
 luint P::diagnosticInterval = numeric_limits<uint>::max();
-luint P::saveInterval = numeric_limits<uint>::max();
+Real P::saveRestartTimeInterval = numeric_limits<Real>::max();
+Real P::saveSystemTimeInterval = numeric_limits<Real>::max();
 
-bool P::save_spatial_grid;
-bool P::save_velocity_grid;
+
 
 uint P::transmit = 0;
 
@@ -79,7 +79,7 @@ bool P::propagateField = true;
 uint P::splitMethod=1;
 
 bool P::substepAcceleration = false;
-bool P::dynamicTimestep = false;
+bool P::dynamicTimestep = true;
 
 
 bool P::periodic_x = false;
@@ -99,16 +99,15 @@ vector<string> P::diagnosticVariableList;
 
 bool Parameters::addParameters(){
         //the other default parameters we read through the add/get interface
-        Readparameters::add("save_interval", "Save the simulation every arg time steps",10);
-	Readparameters::add("diagnostic_interval", "Write diagnostic output every arg time steps", 1);
-	Readparameters::add("restart_interval","Save the complete simulation every arg time steps",numeric_limits<uint>::max());
-        Readparameters::add("save_spatial_grid", "Save spatial cell averages for the whole simulation",true);
-        Readparameters::add("save_velocity_grid","Save velocity grid from every spatial cell in the simulation",false);
+	Readparameters::add("diagnostic_write_interval", "Write diagnostic output every arg time steps",numeric_limits<uint>::max());
+        Readparameters::add("system_write_t_interval", "Save the simulation every arg simulated seconds",numeric_limits<Real>::max());
+	Readparameters::add("restart_write_t_interval","Save the complete simulation every arg simulated seconds",numeric_limits<Real>::max());
+        //TODO Readparameters::add("output.restart_walltime_interval","Save the complete simulation every arg wall-time seconds",numeric_limits<uint>::max());
         
         Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
         Readparameters::add("propagate_vlasov","Propagate distribution functions during the simulation",true);
         Readparameters::add("substep_acceleration","If true, acceleration steps are substepped if the timestep exceeds maximum CFL limit",false);
-        Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limit",false);
+        Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limit (default)",true);
         
         Readparameters::add("split_method","Split method for splitting spatial/velocity space solvers. 0: first order, 1: strang splitting with half-steps for spatial space, 2: strang splitting with half-steps for velocity space",1);
         
@@ -137,7 +136,7 @@ bool Parameters::addParameters(){
    
         Readparameters::add("gridbuilder.q","Charge of simulated particle species, in Coulombs.",1.60217653e-19);
         Readparameters::add("gridbuilder.m","Mass of simulated particle species, in kilograms.",1.67262171e-27);
-        Readparameters::add("gridbuilder.dt","Timestep in seconds.",0.0);
+        Readparameters::add("gridbuilder.dt","Initial timestep in seconds.",0.0);
         Readparameters::add("gridbuilder.CFL","The maximum CFL limit for propagation. Used to set timestep if use_CFL_limit is true. Also used to set number of acceleration steps if substep_acceleration is true",0.5);
         Readparameters::add("gridbuilder.t_min","Simulation time at timestep 0, in seconds.",0.0);
         Readparameters::add("gridbuilder.timestep","Timestep when grid is loaded. Defaults to value zero.",0);
@@ -161,23 +160,22 @@ bool Parameters::addParameters(){
 
 bool Parameters::getParameters(){
    //get numerical values of the parameters
+
+   Readparameters::get("diagnostic_write_interval", P::diagnosticInterval);
+   Readparameters::get("system_write_t_interval", P::saveSystemTimeInterval);
+   Readparameters::get("restart_write_t_interval", P::saveRestartTimeInterval);
    
-   Readparameters::get("save_interval", P::saveInterval);
-   Readparameters::get("diagnostic_interval", P::diagnosticInterval);
-   Readparameters::get("restart_interval", P::saveRestartInterval);
-   Readparameters::get("save_spatial_grid", P::save_spatial_grid);
-   Readparameters::get("save_velocity_grid", P::save_velocity_grid);
    Readparameters::get("propagate_field",P::propagateField);
    Readparameters::get("propagate_vlasov",P::propagateVlasov);
    Readparameters::get("split_method",P::splitMethod);
    Readparameters::get("substep_acceleration",P::substepAcceleration);
    Readparameters::get("dynamic_timestep",P::dynamicTimestep);
-   
+
    /*get numerical values, let Readparameters handle the conversions*/
    Readparameters::get("gridbuilder.x_min",P::xmin);
-    Readparameters::get("gridbuilder.x_max",P::xmax);
-    Readparameters::get("gridbuilder.y_min",P::ymin);
-    Readparameters::get("gridbuilder.y_max",P::ymax);
+   Readparameters::get("gridbuilder.x_max",P::xmax);
+   Readparameters::get("gridbuilder.y_min",P::ymin);
+   Readparameters::get("gridbuilder.y_max",P::ymax);
     Readparameters::get("gridbuilder.z_min",P::zmin);
     Readparameters::get("gridbuilder.z_max",P::zmax);
     Readparameters::get("gridbuilder.x_length",P::xcells_ini);
@@ -212,17 +210,16 @@ bool Parameters::getParameters(){
     P::dy_ini = (P::ymax-P::ymin)/P::ycells_ini;
     P::dz_ini = (P::zmax-P::zmin)/P::zcells_ini;
     
-   Real t_min;
    Readparameters::get("gridbuilder.q",P::q);
    Readparameters::get("gridbuilder.m",P::m);
    Readparameters::get("gridbuilder.dt",P::dt);
    Readparameters::get("gridbuilder.CFL",P::CFL);
-   Readparameters::get("gridbuilder.t_min",t_min);
+   Readparameters::get("gridbuilder.t_min",P::t_min);
    Readparameters::get("gridbuilder.timestep",P::tstep);
    Readparameters::get("gridbuilder.max_timesteps",P::tsteps);
    
    P::q_per_m = P::q/P::m;
-   P::t = t_min + P::tstep*P::dt;
+   P::t = P::t_min;
    P::tstep_min = P::tstep;
    
    // Get sparsity parameters
@@ -238,6 +235,9 @@ bool Parameters::getParameters(){
    // Get output variable parameters
    Readparameters::get("variables.output", P::outputVariableList);
    Readparameters::get("variables.diagnostic", P::diagnosticVariableList);
+
+
+   
    
    return true;
 }

@@ -250,7 +250,6 @@ bool finalizeMover() {
    return true;
 }
 
-void calculateSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,Real& dt) { }
 void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,ID::type cell) { }
 
 

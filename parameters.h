@@ -58,18 +58,17 @@ struct Parameters {
    static Real q_per_m;              /**< Charge-to-mass ratio of simulated particle species,
 				      * calculated from Parameters::q and Parameters::m.*/
    static Real t;                    /**< Current simulation time. */
+   static Real t_min;                    /**< Initial simulation time. */
    static Real dt;                   /**< The value of the timestep to use in propagation. If CflLimit defined then it is dynamically updated during simulation*/
    static Real CFL;                  /**< The maximum CFL limit for propagation. Used to set timestep if useCFLlimit is true. Also used to set number of acceleration steps if substepAcceleration is true */
    
    static luint tstep_min;           /**< Timestep when simulation starts, needed for restarts.*/
    static luint tstep;               /**< The number of the current timestep. 0=initial state. */
    static luint tsteps;              /**< Total number of timesteps to calculate. */
-   static luint saveRestartInterval;
    static luint diagnosticInterval;
-   static luint saveInterval;
-
-   static bool save_spatial_grid;	/**< Save spatial cell averages for the whole simulation. */
-   static bool save_velocity_grid;	/**< Save the velocity grid of every spatial cell in the simulation. */
+   static Real saveRestartTimeInterval;
+   static Real saveSystemTimeInterval;
+   
    
    static uint transmit; /**< Indicates the data that needs to be transmitted to remote nodes.
 			  * This is created with bitwise or from the values defined in 
