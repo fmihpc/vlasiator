@@ -146,7 +146,7 @@ bool Parameters::addParameters(){
         Readparameters::add("gridbuilder.t_min","Simulation time at initial timestep, in seconds.",0.0);
         Readparameters::add("gridbuilder.t_max","Maximum simulation time, in seconds. If timestep_max limit is hit first this time will never be reached",LARGE_REAL);
         Readparameters::add("gridbuilder.timestep_min","Timestep when grid is loaded. Defaults to value zero.",0);
-        Readparameters::add("gridbuilder.timestep_max","Max. value for timesteps. If t_max limit is hit first, this time will never be reached",numeric_limits<uint>::max());
+        Readparameters::add("gridbuilder.timestep_max","Max. value for timesteps. If t_max limit is hit first, this step will never be reached",numeric_limits<uint>::max());
    
    // Grid sparsity parameters
         Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
