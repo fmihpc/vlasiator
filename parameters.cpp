@@ -25,10 +25,14 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #define NAN 0
 #endif
 
+
 using namespace std;
 
 typedef Parameters P;
 
+//Using numeric_limits<Real>::max() leads to FP exceptions inside boost programoptions, use a slightly smaller value to avoid...
+
+const Real LARGE_REAL=1e20;
 // Define static members:
 Real P::xmin = NAN;
 Real P::xmax = NAN;
@@ -59,15 +63,16 @@ Real P::m = NAN;
 Real P::q_per_m = NAN;
 Real P::t = 0;
 Real P::t_min = 0;
+Real P::t_max = LARGE_REAL;
 Real P::dt = NAN;
 Real P::CFL = NAN;
 
 luint P::tstep = 0;
 luint P::tstep_min = 0;
-luint P::tsteps = 0;
+luint P::tstep_max = 0;
 luint P::diagnosticInterval = numeric_limits<uint>::max();
-Real P::saveRestartTimeInterval = numeric_limits<Real>::max();
-Real P::saveSystemTimeInterval = numeric_limits<Real>::max();
+Real P::saveRestartTimeInterval = -1.0;
+Real P::saveSystemTimeInterval = -1.0;
 
 
 
@@ -100,8 +105,8 @@ vector<string> P::diagnosticVariableList;
 bool Parameters::addParameters(){
         //the other default parameters we read through the add/get interface
 	Readparameters::add("diagnostic_write_interval", "Write diagnostic output every arg time steps",numeric_limits<uint>::max());
-        Readparameters::add("system_write_t_interval", "Save the simulation every arg simulated seconds",numeric_limits<Real>::max());
-	Readparameters::add("restart_write_t_interval","Save the complete simulation every arg simulated seconds",numeric_limits<Real>::max());
+        Readparameters::add("system_write_t_interval", "Save the simulation every arg simulated seconds. Negative values disable writes.",-1.0);
+	Readparameters::add("restart_write_t_interval","Save the complete simulation every arg simulated seconds. Negative values disable writes.",-1.0);
         //TODO Readparameters::add("output.restart_walltime_interval","Save the complete simulation every arg wall-time seconds",numeric_limits<uint>::max());
         
         Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
@@ -138,9 +143,10 @@ bool Parameters::addParameters(){
         Readparameters::add("gridbuilder.m","Mass of simulated particle species, in kilograms.",1.67262171e-27);
         Readparameters::add("gridbuilder.dt","Initial timestep in seconds.",0.0);
         Readparameters::add("gridbuilder.CFL","The maximum CFL limit for propagation. Used to set timestep if use_CFL_limit is true. Also used to set number of acceleration steps if substep_acceleration is true",0.5);
-        Readparameters::add("gridbuilder.t_min","Simulation time at timestep 0, in seconds.",0.0);
-        Readparameters::add("gridbuilder.timestep","Timestep when grid is loaded. Defaults to value zero.",0);
-        Readparameters::add("gridbuilder.max_timesteps","Max. value for timesteps. Defaults to value zero.",0);
+        Readparameters::add("gridbuilder.t_min","Simulation time at initial timestep, in seconds.",0.0);
+        Readparameters::add("gridbuilder.t_max","Maximum simulation time, in seconds. If timestep_max limit is hit first this time will never be reached",LARGE_REAL);
+        Readparameters::add("gridbuilder.timestep_min","Timestep when grid is loaded. Defaults to value zero.",0);
+        Readparameters::add("gridbuilder.timestep_max","Max. value for timesteps. If t_max limit is hit first, this time will never be reached",numeric_limits<uint>::max());
    
    // Grid sparsity parameters
         Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
@@ -215,12 +221,13 @@ bool Parameters::getParameters(){
    Readparameters::get("gridbuilder.dt",P::dt);
    Readparameters::get("gridbuilder.CFL",P::CFL);
    Readparameters::get("gridbuilder.t_min",P::t_min);
-   Readparameters::get("gridbuilder.timestep",P::tstep);
-   Readparameters::get("gridbuilder.max_timesteps",P::tsteps);
+   Readparameters::get("gridbuilder.t_max",P::t_max);
+   Readparameters::get("gridbuilder.timestep_min",P::tstep_min);
+   Readparameters::get("gridbuilder.timestep_max",P::tstep_max);
    
    P::q_per_m = P::q/P::m;
    P::t = P::t_min;
-   P::tstep_min = P::tstep;
+   P::tstep = P::tstep_min;
    
    // Get sparsity parameters
    Readparameters::get("sparse.minValue", P::sparseMinValue);

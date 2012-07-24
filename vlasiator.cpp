@@ -195,12 +195,28 @@ int main(int argn,char* args[]) {
    unsigned int computedBlocks=0;
    unsigned int restartWrites=(int)(P::t_min/P::saveRestartTimeInterval);
    unsigned int systemWrites=(int)(P::t_min/P::saveSystemTimeInterval);
-   if (myrank == MASTER_RANK) logfile << "writes" << restartWrites <<" "<<systemWrites << endl << writeVerbose;
+
    phiprof::start("Simulation");
-   for (luint tstep=P::tstep_min; tstep < P::tsteps+1; ++tstep) {
-      if (myrank == MASTER_RANK)
-         logfile << "(MAIN): ------------------ tstep = " << P::tstep << " t = " << P::t <<" ------------------" << endl << writeVerbose;
-      //Re-loadbalance if needed, not done on first step
+
+   while(P::tstep <=P::tstep_max  &&
+         P::t-P::dt <= P::t_max+DT_EPSILON) {
+      if (myrank == MASTER_RANK){
+         double currentTime=MPI_Wtime();
+         logfile << "------------------ tstep = " << P::tstep << " t = " << P::t <<" ------------------" << endl;
+         if(P::tstep>P::tstep_min){
+            double timePerStep=double(currentTime  - before) / (P::tstep-P::tstep_min);
+            double timePerSecond=double(currentTime  - before) / (P::t-P::t_min);
+            double remainingTime=min(timePerStep*(P::tstep_max-P::tstep),timePerSecond*(P::t_max-P::t));
+            time_t finalWallTime=time(NULL)+(time_t)remainingTime; //assume time_t is in seconds, as it is almost always
+            struct tm *finalWallTimeInfo=localtime(&finalWallTime);
+            logfile << " walltime/step " << timePerStep<< " s" <<endl;
+            logfile << " walltime/simusecond (s)" << timePerSecond<<" s" <<endl;
+            logfile << " Estimated completion time is " <<asctime(finalWallTimeInfo)<<endl;
+         }
+         logfile << writeVerbose;
+      }
+
+//Re-loadbalance if needed, not done on first step
       if(P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min)
          balanceLoad(mpiGrid);
       //get local cells       
@@ -210,7 +226,7 @@ int main(int argn,char* args[]) {
       // Check whether diagnostic output has to be produced
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
 	 phiprof::start("Diagnostic");
-	 if (computeDiagnostic(mpiGrid, diagnosticReducer, tstep) == false) {
+	 if (computeDiagnostic(mpiGrid, diagnosticReducer, P::tstep) == false) {
 	    cerr << "ERROR with diagnostic computation" << endl;
 	 }
 	 phiprof::stop("Diagnostic");
@@ -220,8 +236,9 @@ int main(int argn,char* args[]) {
 
       
       // Check if data needs to be written to disk:
-      if (P::t >= systemWrites*P::saveSystemTimeInterval-DT_EPSILON &&
-          P::saveSystemTimeInterval < numeric_limits<Real>::max()) {
+      if ( P::saveSystemTimeInterval >=0.0 && 
+           P::t >= systemWrites*P::saveSystemTimeInterval-DT_EPSILON ){
+         
          phiprof::start("write-system");
          if (myrank == MASTER_RANK)
             logfile << "(MAIN): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
@@ -230,8 +247,8 @@ int main(int argn,char* args[]) {
          phiprof::stop("write-system");
       }
 
-      if (P::t >= restartWrites*P::saveRestartTimeInterval-DT_EPSILON &&
-          P::saveRestartTimeInterval <numeric_limits<Real>::max()) {
+      if (P::saveRestartTimeInterval >=0.0 &&
+          P::t >= restartWrites*P::saveRestartTimeInterval-DT_EPSILON){
          phiprof::start("write-restart");
          if (myrank == MASTER_RANK)
             logfile << "(MAIN): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
@@ -240,14 +257,23 @@ int main(int argn,char* args[]) {
          phiprof::stop("write-restart");
       }
       
+
       phiprof::stop("IO");
 
+      
+      //no need to propagate if we are on the final step, we just
+      //wanted to make sure all IO is done even for final step
+      if(P::tstep ==P::tstep_max ||
+         P::t >= P::t_max) {
+         break;
+      }
 
+      
       if(P::dynamicTimestep){
          phiprof::start("compute-timestep");      
          //compute maximum time-step, this cannot be done at the first
          //step as the solvers compute the limits for each cell
-         if(tstep>P::tstep_min){
+         if(P::tstep>P::tstep_min){
 
             Real dtmax_local[3];
             Real dtmax_global[3];
@@ -295,18 +321,19 @@ int main(int argn,char* args[]) {
             //Possibly reduce timestep to make sure we hit exactly the
             //correct write time,allow marginal overshoot of CFL to avoid
             //floating point comparison problems
-            if (P::saveRestartTimeInterval < numeric_limits<Real>::max() &&
+            if (P::saveRestartTimeInterval >= 0.0 &&
                 P::t + P::dt + DT_EPSILON >= restartWrites*P::saveRestartTimeInterval){
                P::dt=restartWrites*P::saveRestartTimeInterval-P::t;
                if (myrank == MASTER_RANK)
                   logfile << "(MAIN) for tstep = " << P::tstep <<  " dt was set to  "<<P::dt <<" to hit restart write interval"<<endl;
             }
-            if (P::saveSystemTimeInterval < numeric_limits<Real>::max() &&
+            if (P::saveSystemTimeInterval >= 0.0 &&
                 P::t + P::dt + DT_EPSILON >= systemWrites*P::saveSystemTimeInterval){
                P::dt=systemWrites*P::saveSystemTimeInterval-P::t;
                if (myrank == MASTER_RANK)
                   logfile << "(MAIN) for tstep = " << P::tstep <<  " dt was set to  "<<P::dt <<" to hit system write interval"<<endl;
             }
+            
          }
          if (myrank == MASTER_RANK)
             logfile << writeVerbose;
@@ -420,11 +447,13 @@ int main(int argn,char* args[]) {
    finalizeFieldPropagator(mpiGrid);
    
    if (myrank == MASTER_RANK) {
+      double timePerStep=double(after  - before) / (P::tstep-P::tstep_min);
+      double timePerSecond=double(after  - before) / (P::t-P::t_min);
       logfile << "(MAIN): All timesteps calculated." << endl;
-      logfile << "\t (TIME) total run time " << after - before << " s, total simulated time " << P::t << " s" << endl;
+      logfile << "\t (TIME) total run time " << after - before << " s, total simulated time " << P::t -P::t_min<< " s" << endl;
       if(P::t != 0.0) {
-	 logfile << "\t (TIME) seconds per timestep " << double(after - before) / P::tsteps <<
-	 ", seconds per simulated second " << double(after - before) / P::t << endl;
+	 logfile << "\t (TIME) seconds per timestep " << timePerStep  <<
+	 ", seconds per simulated second " <<  timePerSecond << endl;
       }
       logfile << writeVerbose;
    }
