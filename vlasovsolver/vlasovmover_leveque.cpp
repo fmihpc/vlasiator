@@ -277,7 +277,8 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid, Real dt) {
    }
 }
 
-void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,Real dt) {
+//compute one acceleration substep for a cell, function used by calculateCellAcceleration
+void calculateCellAccelerationSubstep(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,Real dt) {
    typedef Parameters P;
 //   phiprof::start("Acceleration");
    SpatialCell* SC = mpiGrid[cellID];
@@ -285,6 +286,8 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,
 //      phiprof::stop("Acceleration",0,"Blocks");
       return;
    }
+   
+
 //   phiprof::start("clearVelFluxes");
 //   Clear df/dt contributions:
    for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
@@ -329,6 +332,51 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,
 
    //apply boundary outflow condition in velocity space
    SC->applyVelocityBoundaryCondition();
+}
+
+
+
+//compute one acceleration step for a cell, may include multiple substep calls to calculateCellAccelerationSubstep  
+void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,Real dt) {
+   typedef Parameters P;
+#ifndef SEMILAG
+   if(P::maxAccelerationSubsteps>1){
+      //substep acceleration until total dt is reached. dt should
+      //be set such that the maximum number of substeps is not
+      //exceeded. As the max dt is set separately for each substep,
+      //we may compute slightly more steps anyway
+      
+      uint subSteps=0; // subSteps is the number of substeps
+      //subt is the current time in the substep (should be iterated up to dt)
+      Real subt=0.0;
+      //subdt is the max timestep we can take for this cell at this moment
+      Real subdt;
+      //boolean to exit time integration
+      bool doIntegration=true;
+      
+      while(doIntegration){
+         //update maximum timestep 
+         subdt=P::CFL * mpiGrid[cellID]->parameters[CellParams::MAXVDT];
+         if(subdt+subt>=dt){
+            doIntegration=false; //will not enter while loop on the next round
+            subdt=dt-subt; //set length of final step so that we
+            //hit the exact time
+            if(subdt<=0.0) break; //should not happen
+         }
+         
+         calculateCellAccelerationSubstep(mpiGrid,cellID,subdt);
+         subSteps++;
+         subt+=subdt;
+      }
+   }
+   else{
+      //just one normal acceleration step
+      calculateCellAccelerationSubstep(mpiGrid,cellID,dt);
+   }
+#else
+   //with SEMILAG no substepping is needed....
+   calculateCellAccelerationSubstep(mpiGrid,cellID,dt);
+#endif       
 }
 
 

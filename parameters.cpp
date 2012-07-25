@@ -83,7 +83,7 @@ bool P::propagateVlasov = true;
 bool P::propagateField = true;
 uint P::splitMethod=1;
 
-bool P::substepAcceleration = false;
+uint P::maxAccelerationSubsteps=1;
 bool P::dynamicTimestep = true;
 
 
@@ -111,7 +111,7 @@ bool Parameters::addParameters(){
         
         Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
         Readparameters::add("propagate_vlasov","Propagate distribution functions during the simulation",true);
-        Readparameters::add("substep_acceleration","If true, acceleration steps are substepped if the timestep exceeds maximum CFL limit",false);
+        Readparameters::add("max_acceleration_substeps","Maximum number of  acceleration substeps that can be taken if the normal timestep exceeds maximum CFL limit. The default number of 1 disables substepping",1);
         Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limit (default)",true);
         
         Readparameters::add("split_method","Split method for splitting spatial/velocity space solvers. 0: first order, 1: strang splitting with half-steps for spatial space, 2: strang splitting with half-steps for velocity space",1);
@@ -142,7 +142,7 @@ bool Parameters::addParameters(){
         Readparameters::add("gridbuilder.q","Charge of simulated particle species, in Coulombs.",1.60217653e-19);
         Readparameters::add("gridbuilder.m","Mass of simulated particle species, in kilograms.",1.67262171e-27);
         Readparameters::add("gridbuilder.dt","Initial timestep in seconds.",0.0);
-        Readparameters::add("gridbuilder.CFL","The maximum CFL limit for propagation. Used to set timestep if use_CFL_limit is true. Also used to set number of acceleration steps if substep_acceleration is true",0.5);
+        Readparameters::add("gridbuilder.CFL","The maximum CFL limit for propagation. Used to set timestep if use_CFL_limit is true. Also used to compute substeps in acceleration",0.5);
         Readparameters::add("gridbuilder.t_min","Simulation time at initial timestep, in seconds.",0.0);
         Readparameters::add("gridbuilder.t_max","Maximum simulation time, in seconds. If timestep_max limit is hit first this time will never be reached",LARGE_REAL);
         Readparameters::add("gridbuilder.timestep_min","Timestep when grid is loaded. Defaults to value zero.",0);
@@ -174,7 +174,7 @@ bool Parameters::getParameters(){
    Readparameters::get("propagate_field",P::propagateField);
    Readparameters::get("propagate_vlasov",P::propagateVlasov);
    Readparameters::get("split_method",P::splitMethod);
-   Readparameters::get("substep_acceleration",P::substepAcceleration);
+   Readparameters::get("max_acceleration_substeps",P::maxAccelerationSubsteps);
    Readparameters::get("dynamic_timestep",P::dynamicTimestep);
 
    /*get numerical values, let Readparameters handle the conversions*/

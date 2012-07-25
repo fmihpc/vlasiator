@@ -209,9 +209,9 @@ int main(int argn,char* args[]) {
             double remainingTime=min(timePerStep*(P::tstep_max-P::tstep),timePerSecond*(P::t_max-P::t));
             time_t finalWallTime=time(NULL)+(time_t)remainingTime; //assume time_t is in seconds, as it is almost always
             struct tm *finalWallTimeInfo=localtime(&finalWallTime);
-            logfile << " walltime/step " << timePerStep<< " s" <<endl;
-            logfile << " walltime/simusecond (s)" << timePerSecond<<" s" <<endl;
-            logfile << " Estimated completion time is " <<asctime(finalWallTimeInfo)<<endl;
+            logfile << "(TIME) walltime/step " << timePerStep<< " s" <<endl;
+            logfile << "(TIME) walltime/simusecond (s)" << timePerSecond<<" s" <<endl;
+            logfile << "(TIME) Estimated completion time is " <<asctime(finalWallTimeInfo)<<endl;
          }
          logfile << writeVerbose;
       }
@@ -241,7 +241,7 @@ int main(int argn,char* args[]) {
          
          phiprof::start("write-system");
          if (myrank == MASTER_RANK)
-            logfile << "(MAIN): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
+            logfile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          writeGrid(mpiGrid,outputReducer,"grid",systemWrites,false);
          systemWrites++;
          phiprof::stop("write-system");
@@ -251,7 +251,7 @@ int main(int argn,char* args[]) {
           P::t >= restartWrites*P::saveRestartTimeInterval-DT_EPSILON){
          phiprof::start("write-restart");
          if (myrank == MASTER_RANK)
-            logfile << "(MAIN): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
+            logfile << "(IO): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          writeGrid(mpiGrid,outputReducer,"restart",restartWrites,true);
          restartWrites++;
          phiprof::stop("write-restart");
@@ -293,30 +293,38 @@ int main(int argn,char* args[]) {
             }
             MPI_Allreduce(&(dtmax_local[0]),&(dtmax_global[0]),3,MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
             
-            //modify  timestep based on CFL limits
-            Real dtmax=std::numeric_limits<Real>::max();
+            //modify dtmax_global[] timestep to include CFL condition
+            dtmax_global[0]*=P::CFL;
+            dtmax_global[1]*=P::CFL;
+            dtmax_global[2]*=P::CFL;
+            //Take into account splittinsg
             switch (P::splitMethod){
                 case 0:
-                   dtmax=min(dtmax,dtmax_global[0]);
-                   dtmax=min(dtmax,dtmax_global[1]);
-                   dtmax=min(dtmax,dtmax_global[2]);
-                   P::dt=P::CFL*dtmax;
                    break;
                 case 1:
-                   dtmax=min(dtmax,2*dtmax_global[0]); //half-steps in ordinary space
-                   dtmax=min(dtmax,dtmax_global[1]);
-                   dtmax=min(dtmax,dtmax_global[2]);
-                   P::dt=P::CFL*dtmax;
+                   dtmax_global[0]*=2; //half-steps in ordinary space
                    break;
                 case 2:
-                   dtmax=min(dtmax,dtmax_global[0]);
-                   dtmax=min(dtmax,2*dtmax_global[1]);  //half-steps in velocity space
-                   dtmax=min(dtmax,dtmax_global[2]);
-                   P::dt=P::CFL*dtmax;
+                   dtmax_global[1]*=2; //half-steps in velocity space
                    break;
             }
+            //Increase timestep limit in velocity space based on
+            //maximum number of substeps we are allowed to take. As
+            //the length of each substep is unknown beforehand the
+            //limit is not hard, it may be exceeded in some cases.
+            dtmax_global[1]*=P::maxAccelerationSubsteps;
+
+            
+            Real dtmax=std::numeric_limits<Real>::max();
+            dtmax=min(dtmax,dtmax_global[0]);
+            dtmax=min(dtmax,dtmax_global[1]); 
+            dtmax=min(dtmax,dtmax_global[2]);
+            P::dt=dtmax;
+            
             if (myrank == MASTER_RANK)
-               logfile << "(MAIN) for tstep = " << P::tstep <<  " dt was set to  "<<P::dt <<" based on CFL"<<endl;
+               logfile <<"(TIMESTEP) dt was set to "<<P::dt
+                       <<" based on CFL. Max dt in r,v,BE was " << dtmax_global[0] <<","<< dtmax_global[1] <<","<< dtmax_global[2]
+                       <<endl;
             
             //Possibly reduce timestep to make sure we hit exactly the
             //correct write time,allow marginal overshoot of CFL to avoid
@@ -325,13 +333,13 @@ int main(int argn,char* args[]) {
                 P::t + P::dt + DT_EPSILON >= restartWrites*P::saveRestartTimeInterval){
                P::dt=restartWrites*P::saveRestartTimeInterval-P::t;
                if (myrank == MASTER_RANK)
-                  logfile << "(MAIN) for tstep = " << P::tstep <<  " dt was set to  "<<P::dt <<" to hit restart write interval"<<endl;
+                  logfile << "(TIMESTEP) for tstep = " << P::tstep <<  " dt was set to  "<<P::dt <<" to hit restart write interval"<<endl;
             }
             if (P::saveSystemTimeInterval >= 0.0 &&
                 P::t + P::dt + DT_EPSILON >= systemWrites*P::saveSystemTimeInterval){
                P::dt=systemWrites*P::saveSystemTimeInterval-P::t;
                if (myrank == MASTER_RANK)
-                  logfile << "(MAIN) for tstep = " << P::tstep <<  " dt was set to  "<<P::dt <<" to hit system write interval"<<endl;
+                  logfile << "(TIMESTEP) for tstep = " << P::tstep <<  " dt was set to  "<<P::dt <<" to hit system write interval"<<endl;
             }
             
          }
