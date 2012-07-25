@@ -21,7 +21,7 @@ LIB_SILO = -lsilo
 
 INC_DCCRG =
 
-LIB_PROFILE = -lprofile
+LIB_PROFILE = -lphiprof
 INC_PROFILE =
 INC_TOPO =
 
