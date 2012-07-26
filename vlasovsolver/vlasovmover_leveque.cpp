@@ -356,12 +356,13 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,
       
       while(doIntegration){
          //update maximum timestep 
+         //Note that parameters[CellParams::MAXVDT] is initialized to 0 in spatial cell
          subdt=P::CFL * mpiGrid[cellID]->parameters[CellParams::MAXVDT];
          if(subdt+subt>=dt){
             doIntegration=false; //will not enter while loop on the next round
             subdt=dt-subt; //set length of final step so that we
             //hit the exact time
-            if(subdt<=0.0) break; //should not happen
+            if(subdt<0.0) subdt=0.0; //should not happen...
          }
          
          calculateCellAccelerationSubstep(mpiGrid,cellID,subdt);
