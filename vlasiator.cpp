@@ -205,7 +205,7 @@ int main(int argn,char* args[]) {
          logfile << "------------------ tstep = " << P::tstep << " t = " << P::t <<" ------------------" << endl;
          if(P::tstep>P::tstep_min){
             double timePerStep=double(currentTime  - before) / (P::tstep-P::tstep_min);
-            double timePerSecond=double(currentTime  - before) / (P::t-P::t_min);
+            double timePerSecond=double(currentTime  - before) / (P::t-P::t_min + DT_EPSILON);
             double remainingTime=min(timePerStep*(P::tstep_max-P::tstep),timePerSecond*(P::t_max-P::t));
             time_t finalWallTime=time(NULL)+(time_t)remainingTime; //assume time_t is in seconds, as it is almost always
             struct tm *finalWallTimeInfo=localtime(&finalWallTime);
@@ -360,6 +360,13 @@ int main(int argn,char* args[]) {
          
       totalComputedSpatialCells+=computedSpatialCells;
       totalComputedBlocks+=computedBlocks;
+
+      bool updateVelocityBlocksAfterAcceleration=false;
+#ifdef SEMILAG
+      updateVelocityBlocksAfterAcceleration=true;
+#endif
+      if(P::maxAccelerationSubsteps>1)
+         updateVelocityBlocksAfterAcceleration=true;
       
       phiprof::start("Propagate");
       //Propagate the state of simulation forward in time by dt:      
@@ -369,10 +376,13 @@ int main(int argn,char* args[]) {
               case 0:
                  phiprof::start("propagation");
                  calculateSpatialFluxes(mpiGrid,P::dt);
-#ifdef SEMILAG
-                 adjustVelocityBlocks(mpiGrid);
-#endif
+
                  calculateSpatialPropagation(mpiGrid,true,P::dt);
+                 if(updateVelocityBlocksAfterAcceleration){
+                    //need to do a update of block lists as all cells have made local changes
+                    updateRemoteVelocityBlockLists(mpiGrid);
+                    adjustVelocityBlocks(mpiGrid);
+                 }
                  phiprof::stop("propagation",computedBlocks,"Blocks");
                  break;
               case 1:
@@ -380,9 +390,11 @@ int main(int argn,char* args[]) {
                  calculateSpatialFluxes(mpiGrid,0.5*P::dt);
                  calculateSpatialPropagation(mpiGrid,true,P::dt);
                  phiprof::stop("First propagation",computedBlocks,"Blocks");
-#ifdef SEMILAG
-                 adjustVelocityBlocks(mpiGrid);
-#endif
+                 if(updateVelocityBlocksAfterAcceleration){
+                    //need to do a update of block lists as all cells have made local changes
+                    updateRemoteVelocityBlockLists(mpiGrid);
+                    adjustVelocityBlocks(mpiGrid);
+                 }
                  phiprof::start("Second propagation");
                  calculateSpatialFluxes(mpiGrid,0.5*P::dt);
                  calculateSpatialPropagation(mpiGrid,false,0);
@@ -392,29 +404,36 @@ int main(int argn,char* args[]) {
                  phiprof::start("Acceleration");
                  calculateAcceleration(mpiGrid,0.5*P::dt);
                  phiprof::stop("Acceleration",computedBlocks,"Blocks");
-#ifdef SEMILAG
-                 adjustVelocityBlocks(mpiGrid);
-#endif
+                 if(updateVelocityBlocksAfterAcceleration){
+                    //need to do a update of block lists as all cells have made local changes
+                    updateRemoteVelocityBlockLists(mpiGrid);
+                    adjustVelocityBlocks(mpiGrid);
+                 }
+
                  phiprof::start("Trans + acc");
                  calculateSpatialFluxes(mpiGrid,P::dt);
                  calculateSpatialPropagation(mpiGrid,true,0.5*P::dt);
                  phiprof::stop("Trans + acc",computedBlocks,"Blocks");
-#ifdef SEMILAG
+                 if(updateVelocityBlocksAfterAcceleration){
                  //if we are careful this might not be needed, if the
                  //next timestep acceleration is the next step, then
-                 //it does not matter what other cells have done
-                 adjustVelocityBlocks(mpiGrid);
-#endif
+                 //it does not matter what other cells have done. We
+                 //need to do a update of block lists as all cells
+                 //have made local changes
+                    updateRemoteVelocityBlockLists(mpiGrid);
+                    adjustVelocityBlocks(mpiGrid);
+                 }
                  break;
 
          }
 
-#ifndef SEMILAG
-         //if no semi-lagrangean then we do the adjustment here.
-         if(P::tstep%P::blockAdjustmentInterval == 0){
-            adjustVelocityBlocks(mpiGrid);
+         if(!updateVelocityBlocksAfterAcceleration){
+            //if no semi-lagrangean or substepping in leveque
+            //accelerion then we do the adjustment here. 
+            if(P::tstep%P::blockAdjustmentInterval == 0){
+               adjustVelocityBlocks(mpiGrid);
+            }
          }
-#endif        
 	  
          phiprof::stop("Propagate Vlasov",computedBlocks,"Blocks");
       }
@@ -456,7 +475,7 @@ int main(int argn,char* args[]) {
    
    if (myrank == MASTER_RANK) {
       double timePerStep=double(after  - before) / (P::tstep-P::tstep_min);
-      double timePerSecond=double(after  - before) / (P::t-P::t_min);
+      double timePerSecond=double(after  - before) / (P::t-P::t_min+DT_EPSILON);
       logfile << "(MAIN): All timesteps calculated." << endl;
       logfile << "\t (TIME) total run time " << after - before << " s, total simulated time " << P::t -P::t_min<< " s" << endl;
       if(P::t != 0.0) {

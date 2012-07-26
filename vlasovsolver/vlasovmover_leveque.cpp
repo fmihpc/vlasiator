@@ -367,6 +367,18 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,
          calculateCellAccelerationSubstep(mpiGrid,cellID,subdt);
          subSteps++;
          subt+=subdt;
+         //Update block info, no need to do on last step. This will
+         //modify velocity block lists, need to make sure
+         //updateRemoteVelocityBlockLists(mpiGrid) is called before
+         //any further communication involving velocity space takes
+         //place 
+         if(doIntegration){
+            //empty neighbor list, only local neighbors in velocity
+            //space taken into account. 
+            vector<SpatialCell*> empty_neighbor_ptrs;
+            mpiGrid[cellID]->update_all_block_has_content();     
+            mpiGrid[cellID]->adjust_velocity_blocks(empty_neighbor_ptrs);
+         }
       }
    }
    else{
