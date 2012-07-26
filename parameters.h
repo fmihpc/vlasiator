@@ -95,7 +95,8 @@ struct Parameters {
    
 
 
-   static bool substepAcceleration; /**< If true, acceleration steps are substepped if the timestep exceeds maximum CFL limit */
+
+   static uint maxAccelerationSubsteps; /**< Maximum number of substeps that is allowed */
    static bool dynamicTimestep; /**< If true, timestep is set based on  CFL limit */
                                        
    

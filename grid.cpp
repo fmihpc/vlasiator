@@ -55,11 +55,6 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid);
 //subroutine to adjust blocks of local cells; remove/add based on user-defined limits
 bool adjust_local_velocity_blocks(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
 
-/*
-Updates velocity block lists between remote neighbors and prepares local
-copies of remote neighbors to receive velocity block data.
-*/
-void prepare_to_receive_velocity_block_data(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
 
 
 bool initializeGrid(int argn, char **argc,dccrg::Dccrg<SpatialCell>& mpiGrid){
@@ -165,7 +160,7 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid){
        initSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
     }
     phiprof::stop("init cell values");
-    prepare_to_receive_velocity_block_data(mpiGrid);
+    updateRemoteVelocityBlockLists(mpiGrid);
     
     //in principle not needed as that was done in initSpatialCell, but lets be safe and do it anyway as it does not  cost much
     for (uint i=0; i<cells.size(); ++i) 
@@ -175,7 +170,7 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid){
     
     adjust_local_velocity_blocks(mpiGrid);
     //velocity blocks adjusted, lets prepare again for new lists
-    prepare_to_receive_velocity_block_data(mpiGrid);
+    updateRemoteVelocityBlockLists(mpiGrid);
 
     phiprof::initializeTimer("Fetch Neighbour data","MPI");
     phiprof::start("Fetch Neighbour data");
@@ -187,17 +182,6 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid){
 
 
 /** Set up a spatial cell.
- * @param cell The spatial cell which is to be initialized.
- * @param xmin x-coordinate of the lower left corner of the cell.
- * @param ymin y-coordinate of the lower left corner of the cell.
- * @param zmin z-coordinate of the lower left corner of the cell.
- * @param dx Size of the cell in x-direction.
- * @param dy Size of the cell in y-direction.
- * @param dz Size of the cell in z-direction.
- * @param isRemote If true, the given cell is a remote cell (resides on another process) 
- * and its initial state need not be calculated.
- * @return If true, the cell was initialized successfully. Otherwise an error has 
- * occurred and the simulation should be aborted.
  */
 bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
 		      creal& zmin,creal& dx,creal& dy,creal& dz,
@@ -305,7 +289,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
 
    phiprof::start("update block lists");
    //new partition, re/initialize blocklists of remote cells.
-   prepare_to_receive_velocity_block_data(mpiGrid);
+   updateRemoteVelocityBlockLists(mpiGrid);
    phiprof::stop("update block lists");
 
    phiprof::start("Init solvers");
@@ -608,7 +592,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    
    adjust_local_velocity_blocks(mpiGrid);
 
-   prepare_to_receive_velocity_block_data(mpiGrid);
+   updateRemoteVelocityBlockLists(mpiGrid);
    //re-init vlasovmover
    phiprof::start("InitMoverAfterBlockChange");
    initMoverAfterBlockChange(mpiGrid);
@@ -694,7 +678,7 @@ bool adjust_local_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 Updates velocity block lists between remote neighbors and prepares local
 copies of remote neighbors for receiving velocity block data.
 */
-void prepare_to_receive_velocity_block_data(dccrg::Dccrg<SpatialCell>& mpiGrid)
+void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell>& mpiGrid)
 {
    // update velocity block lists
    // Faster to do it in one operation, and not by first sending size, then list.

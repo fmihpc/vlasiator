@@ -205,13 +205,13 @@ int main(int argn,char* args[]) {
          logfile << "------------------ tstep = " << P::tstep << " t = " << P::t <<" ------------------" << endl;
          if(P::tstep>P::tstep_min){
             double timePerStep=double(currentTime  - before) / (P::tstep-P::tstep_min);
-            double timePerSecond=double(currentTime  - before) / (P::t-P::t_min);
+            double timePerSecond=double(currentTime  - before) / (P::t-P::t_min + DT_EPSILON);
             double remainingTime=min(timePerStep*(P::tstep_max-P::tstep),timePerSecond*(P::t_max-P::t));
             time_t finalWallTime=time(NULL)+(time_t)remainingTime; //assume time_t is in seconds, as it is almost always
             struct tm *finalWallTimeInfo=localtime(&finalWallTime);
-            logfile << " walltime/step " << timePerStep<< " s" <<endl;
-            logfile << " walltime/simusecond (s)" << timePerSecond<<" s" <<endl;
-            logfile << " Estimated completion time is " <<asctime(finalWallTimeInfo)<<endl;
+            logfile << "(TIME) walltime/step " << timePerStep<< " s" <<endl;
+            logfile << "(TIME) walltime/simusecond (s)" << timePerSecond<<" s" <<endl;
+            logfile << "(TIME) Estimated completion time is " <<asctime(finalWallTimeInfo)<<endl;
          }
          logfile << writeVerbose;
       }
@@ -241,7 +241,7 @@ int main(int argn,char* args[]) {
          
          phiprof::start("write-system");
          if (myrank == MASTER_RANK)
-            logfile << "(MAIN): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
+            logfile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          writeGrid(mpiGrid,outputReducer,"grid",systemWrites,false);
          systemWrites++;
          phiprof::stop("write-system");
@@ -251,7 +251,7 @@ int main(int argn,char* args[]) {
           P::t >= restartWrites*P::saveRestartTimeInterval-DT_EPSILON){
          phiprof::start("write-restart");
          if (myrank == MASTER_RANK)
-            logfile << "(MAIN): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
+            logfile << "(IO): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          writeGrid(mpiGrid,outputReducer,"restart",restartWrites,true);
          restartWrites++;
          phiprof::stop("write-restart");
@@ -293,30 +293,38 @@ int main(int argn,char* args[]) {
             }
             MPI_Allreduce(&(dtmax_local[0]),&(dtmax_global[0]),3,MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
             
-            //modify  timestep based on CFL limits
-            Real dtmax=std::numeric_limits<Real>::max();
+            //modify dtmax_global[] timestep to include CFL condition
+            dtmax_global[0]*=P::CFL;
+            dtmax_global[1]*=P::CFL;
+            dtmax_global[2]*=P::CFL;
+            //Take into account splittinsg
             switch (P::splitMethod){
                 case 0:
-                   dtmax=min(dtmax,dtmax_global[0]);
-                   dtmax=min(dtmax,dtmax_global[1]);
-                   dtmax=min(dtmax,dtmax_global[2]);
-                   P::dt=P::CFL*dtmax;
                    break;
                 case 1:
-                   dtmax=min(dtmax,2*dtmax_global[0]); //half-steps in ordinary space
-                   dtmax=min(dtmax,dtmax_global[1]);
-                   dtmax=min(dtmax,dtmax_global[2]);
-                   P::dt=P::CFL*dtmax;
+                   dtmax_global[0]*=2; //half-steps in ordinary space
                    break;
                 case 2:
-                   dtmax=min(dtmax,dtmax_global[0]);
-                   dtmax=min(dtmax,2*dtmax_global[1]);  //half-steps in velocity space
-                   dtmax=min(dtmax,dtmax_global[2]);
-                   P::dt=P::CFL*dtmax;
+                   dtmax_global[1]*=2; //half-steps in velocity space
                    break;
             }
+            //Increase timestep limit in velocity space based on
+            //maximum number of substeps we are allowed to take. As
+            //the length of each substep is unknown beforehand the
+            //limit is not hard, it may be exceeded in some cases.
+            dtmax_global[1]*=P::maxAccelerationSubsteps;
+
+            
+            Real dtmax=std::numeric_limits<Real>::max();
+            dtmax=min(dtmax,dtmax_global[0]);
+            dtmax=min(dtmax,dtmax_global[1]); 
+            dtmax=min(dtmax,dtmax_global[2]);
+            P::dt=dtmax;
+            
             if (myrank == MASTER_RANK)
-               logfile << "(MAIN) for tstep = " << P::tstep <<  " dt was set to  "<<P::dt <<" based on CFL"<<endl;
+               logfile <<"(TIMESTEP) dt was set to "<<P::dt
+                       <<" based on CFL. Max dt in r,v,BE was " << dtmax_global[0] <<","<< dtmax_global[1] <<","<< dtmax_global[2]
+                       <<endl;
             
             //Possibly reduce timestep to make sure we hit exactly the
             //correct write time,allow marginal overshoot of CFL to avoid
@@ -325,13 +333,13 @@ int main(int argn,char* args[]) {
                 P::t + P::dt + DT_EPSILON >= restartWrites*P::saveRestartTimeInterval){
                P::dt=restartWrites*P::saveRestartTimeInterval-P::t;
                if (myrank == MASTER_RANK)
-                  logfile << "(MAIN) for tstep = " << P::tstep <<  " dt was set to  "<<P::dt <<" to hit restart write interval"<<endl;
+                  logfile << "(TIMESTEP) for tstep = " << P::tstep <<  " dt was set to  "<<P::dt <<" to hit restart write interval"<<endl;
             }
             if (P::saveSystemTimeInterval >= 0.0 &&
                 P::t + P::dt + DT_EPSILON >= systemWrites*P::saveSystemTimeInterval){
                P::dt=systemWrites*P::saveSystemTimeInterval-P::t;
                if (myrank == MASTER_RANK)
-                  logfile << "(MAIN) for tstep = " << P::tstep <<  " dt was set to  "<<P::dt <<" to hit system write interval"<<endl;
+                  logfile << "(TIMESTEP) for tstep = " << P::tstep <<  " dt was set to  "<<P::dt <<" to hit system write interval"<<endl;
             }
             
          }
@@ -352,6 +360,13 @@ int main(int argn,char* args[]) {
          
       totalComputedSpatialCells+=computedSpatialCells;
       totalComputedBlocks+=computedBlocks;
+
+      bool updateVelocityBlocksAfterAcceleration=false;
+#ifdef SEMILAG
+      updateVelocityBlocksAfterAcceleration=true;
+#endif
+      if(P::maxAccelerationSubsteps>1)
+         updateVelocityBlocksAfterAcceleration=true;
       
       phiprof::start("Propagate");
       //Propagate the state of simulation forward in time by dt:      
@@ -361,10 +376,13 @@ int main(int argn,char* args[]) {
               case 0:
                  phiprof::start("propagation");
                  calculateSpatialFluxes(mpiGrid,P::dt);
-#ifdef SEMILAG
-                 adjustVelocityBlocks(mpiGrid);
-#endif
+
                  calculateSpatialPropagation(mpiGrid,true,P::dt);
+                 if(updateVelocityBlocksAfterAcceleration){
+                    //need to do a update of block lists as all cells have made local changes
+                    updateRemoteVelocityBlockLists(mpiGrid);
+                    adjustVelocityBlocks(mpiGrid);
+                 }
                  phiprof::stop("propagation",computedBlocks,"Blocks");
                  break;
               case 1:
@@ -372,9 +390,11 @@ int main(int argn,char* args[]) {
                  calculateSpatialFluxes(mpiGrid,0.5*P::dt);
                  calculateSpatialPropagation(mpiGrid,true,P::dt);
                  phiprof::stop("First propagation",computedBlocks,"Blocks");
-#ifdef SEMILAG
-                 adjustVelocityBlocks(mpiGrid);
-#endif
+                 if(updateVelocityBlocksAfterAcceleration){
+                    //need to do a update of block lists as all cells have made local changes
+                    updateRemoteVelocityBlockLists(mpiGrid);
+                    adjustVelocityBlocks(mpiGrid);
+                 }
                  phiprof::start("Second propagation");
                  calculateSpatialFluxes(mpiGrid,0.5*P::dt);
                  calculateSpatialPropagation(mpiGrid,false,0);
@@ -384,29 +404,36 @@ int main(int argn,char* args[]) {
                  phiprof::start("Acceleration");
                  calculateAcceleration(mpiGrid,0.5*P::dt);
                  phiprof::stop("Acceleration",computedBlocks,"Blocks");
-#ifdef SEMILAG
-                 adjustVelocityBlocks(mpiGrid);
-#endif
+                 if(updateVelocityBlocksAfterAcceleration){
+                    //need to do a update of block lists as all cells have made local changes
+                    updateRemoteVelocityBlockLists(mpiGrid);
+                    adjustVelocityBlocks(mpiGrid);
+                 }
+
                  phiprof::start("Trans + acc");
                  calculateSpatialFluxes(mpiGrid,P::dt);
                  calculateSpatialPropagation(mpiGrid,true,0.5*P::dt);
                  phiprof::stop("Trans + acc",computedBlocks,"Blocks");
-#ifdef SEMILAG
+                 if(updateVelocityBlocksAfterAcceleration){
                  //if we are careful this might not be needed, if the
                  //next timestep acceleration is the next step, then
-                 //it does not matter what other cells have done
-                 adjustVelocityBlocks(mpiGrid);
-#endif
+                 //it does not matter what other cells have done. We
+                 //need to do a update of block lists as all cells
+                 //have made local changes
+                    updateRemoteVelocityBlockLists(mpiGrid);
+                    adjustVelocityBlocks(mpiGrid);
+                 }
                  break;
 
          }
 
-#ifndef SEMILAG
-         //if no semi-lagrangean then we do the adjustment here.
-         if(P::tstep%P::blockAdjustmentInterval == 0){
-            adjustVelocityBlocks(mpiGrid);
+         if(!updateVelocityBlocksAfterAcceleration){
+            //if no semi-lagrangean or substepping in leveque
+            //accelerion then we do the adjustment here. 
+            if(P::tstep%P::blockAdjustmentInterval == 0){
+               adjustVelocityBlocks(mpiGrid);
+            }
          }
-#endif        
 	  
          phiprof::stop("Propagate Vlasov",computedBlocks,"Blocks");
       }
@@ -448,7 +475,7 @@ int main(int argn,char* args[]) {
    
    if (myrank == MASTER_RANK) {
       double timePerStep=double(after  - before) / (P::tstep-P::tstep_min);
-      double timePerSecond=double(after  - before) / (P::t-P::t_min);
+      double timePerSecond=double(after  - before) / (P::t-P::t_min+DT_EPSILON);
       logfile << "(MAIN): All timesteps calculated." << endl;
       logfile << "\t (TIME) total run time " << after - before << " s, total simulated time " << P::t -P::t_min<< " s" << endl;
       if(P::t != 0.0) {
