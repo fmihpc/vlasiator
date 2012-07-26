@@ -52,23 +52,10 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
 
 
-/*!
-  \brief Adjust local cell blocks
-
-  This function can be used to update locally for a cell the existence
-  or non-existence of blocks. This function does no communication,
-  block_has_content data assumed to be up to date in local and remote
-  cells.
+//subroutine to adjust blocks of local cells; remove/add based on user-defined limits
+bool adjust_local_velocity_blocks(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
 
 
-  \param mpiGrid   The DCCRG grid with spatial cells
-  \param cell_id   id of spatial cell
-
-*/
-bool adjustLocalCellVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid,uint64_t cell_id);
-
-
-   
 
 bool initializeGrid(int argn, char **argc,dccrg::Dccrg<SpatialCell>& mpiGrid){
    int myrank;
@@ -173,23 +160,17 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid){
        initSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
     }
     phiprof::stop("init cell values");
-   updateRemoteVelocityBlockLists(mpiGrid);
+    updateRemoteVelocityBlockLists(mpiGrid);
     
     //in principle not needed as that was done in initSpatialCell, but lets be safe and do it anyway as it does not  cost much
     for (uint i=0; i<cells.size(); ++i) 
       mpiGrid[cells[i]]->update_all_block_has_content();     
     SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_HAS_CONTENT );
     mpiGrid.update_remote_neighbor_data();
-
-    phiprof::start("Adjusting blocks");
-#pragma  omp parallel for
-    for(unsigned int i=0;i<cells.size();i++){
-       adjustLocalCellVelocityBlocks(mpiGrid,cells[i]);
-    }
-   phiprof::stop("Adjusting blocks");
-   
+    
+    adjust_local_velocity_blocks(mpiGrid);
     //velocity blocks adjusted, lets prepare again for new lists
-   updateRemoteVelocityBlockLists(mpiGrid);
+    updateRemoteVelocityBlockLists(mpiGrid);
 
     phiprof::initializeTimer("Fetch Neighbour data","MPI");
     phiprof::start("Fetch Neighbour data");
@@ -201,6 +182,17 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid){
 
 
 /** Set up a spatial cell.
+ * @param cell The spatial cell which is to be initialized.
+ * @param xmin x-coordinate of the lower left corner of the cell.
+ * @param ymin y-coordinate of the lower left corner of the cell.
+ * @param zmin z-coordinate of the lower left corner of the cell.
+ * @param dx Size of the cell in x-direction.
+ * @param dy Size of the cell in y-direction.
+ * @param dz Size of the cell in z-direction.
+ * @param isRemote If true, the given cell is a remote cell (resides on another process) 
+ * and its initial state need not be calculated.
+ * @return If true, the cell was initialized successfully. Otherwise an error has 
+ * occurred and the simulation should be aborted.
  */
 bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
 		      creal& zmin,creal& dx,creal& dy,creal& dz,
@@ -308,7 +300,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
 
    phiprof::start("update block lists");
    //new partition, re/initialize blocklists of remote cells.
-  updateRemoteVelocityBlockLists(mpiGrid);
+   updateRemoteVelocityBlockLists(mpiGrid);
    phiprof::stop("update block lists");
 
    phiprof::start("Init solvers");
@@ -608,13 +600,8 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_HAS_CONTENT );
    mpiGrid.update_remote_neighbor_data();
    phiprof::stop("Transfer block data");
-
-   phiprof::start("Adjusting blocks");
-#pragma omp parallel for
-   for(unsigned int i=0;i<cells.size();i++){
-      adjustLocalCellVelocityBlocks(mpiGrid,cells[i]);
-   }
-   phiprof::stop("Adjusting blocks");
+   
+   adjust_local_velocity_blocks(mpiGrid);
 
    updateRemoteVelocityBlockLists(mpiGrid);
    //re-init vlasovmover
@@ -627,49 +614,76 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 }
 
 
-//Adjust local cell blocks, detailed documentation in function declaration 
-bool adjustLocalCellVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid,uint64_t cell_id){
-   SpatialCell* cell = mpiGrid[cell_id];
-   if (cell == NULL) {
-      std::cerr << __FILE__ << ":" << __LINE__
-                << " No data for spatial cell " << cell_id
-                << endl;
-      abort();
-   }
-   // gather spatial neighbor list
-   const vector<uint64_t>* neighbors = mpiGrid.get_neighbors(cell_id);
-   vector<SpatialCell*> neighbor_ptrs;
-   
-   neighbor_ptrs.reserve(neighbors->size());
-   
-   for (vector<uint64_t>::const_iterator
-           neighbor_id = neighbors->begin();
-        neighbor_id != neighbors->end();
-        ++neighbor_id
-      ) {
-      if (*neighbor_id == 0 || *neighbor_id == cell_id) {
-            continue;
-      }
-      
-      SpatialCell* neighbor = mpiGrid[*neighbor_id];
-      if (neighbor == NULL) {
+/*!
+Adjusts velocity blocks in local spatial cells.
+
+Doesn't adjust velocity blocks of copies of remote neighbors.
+*/
+bool adjust_local_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   phiprof::start("Adjusting blocks");
+
+   const vector<uint64_t> cells = mpiGrid.get_cells();
+
+#pragma omp parallel for
+   for(unsigned int i=0;i<cells.size();i++){
+      uint64_t cell_id=cells[i];
+      SpatialCell* cell = mpiGrid[cell_id];
+      if (cell == NULL) {
          std::cerr << __FILE__ << ":" << __LINE__
-                   << " No data for neighbor " << *neighbor_id
-                   << " of cell " << cell_id
+                   << " No data for spatial cell " << cell_id
                    << endl;
          abort();
       }
+      // gather spatial neighbor list
+      const vector<uint64_t>* neighbors = mpiGrid.get_neighbors(cell_id);
+      vector<SpatialCell*> neighbor_ptrs;
+
+      neighbor_ptrs.reserve(neighbors->size());
       
-      neighbor_ptrs.push_back(neighbor);         
+      for (vector<uint64_t>::const_iterator
+           neighbor_id = neighbors->begin();
+           neighbor_id != neighbors->end();
+           ++neighbor_id
+      ) {
+         if (*neighbor_id == 0 || *neighbor_id == cell_id) {
+            continue;
+         }
+         
+         SpatialCell* neighbor = mpiGrid[*neighbor_id];
+         if (neighbor == NULL) {
+            std::cerr << __FILE__ << ":" << __LINE__
+                      << " No data for neighbor " << *neighbor_id
+                      << " of cell " << cell_id
+                      << endl;
+            abort();
+         }
+
+         neighbor_ptrs.push_back(neighbor);         
+      }
+      //is threadsafe
+      cell->adjust_velocity_blocks(neighbor_ptrs);
    }
-   cell->adjust_velocity_blocks(neighbor_ptrs);
+   phiprof::stop("Adjusting blocks");
+   phiprof::start("Set cell weight");
    // set cells' weights based on adjusted number of velocity blocks
-   //TODO: to be replaced by a better metric and done elsewhere
-   mpiGrid.set_cell_weight(cell_id, cell->number_of_blocks);
+   for (std::vector<uint64_t>::const_iterator
+        cell_id = cells.begin();
+        cell_id != cells.end();
+        ++cell_id
+   ) {
+      SpatialCell* cell = mpiGrid[*cell_id];
+      if (cell == NULL) {
+         std::cerr << __FILE__ << ":" << __LINE__ << " No data for spatial cell " << *cell_id << endl;
+         abort();
+      }
 
+      
+      mpiGrid.set_cell_weight(*cell_id, cell->number_of_blocks);
+   }
+   phiprof::stop("Set cell weight");
+
+   return true;
 }
-
-
 
 /*
 Updates velocity block lists between remote neighbors and prepares local
