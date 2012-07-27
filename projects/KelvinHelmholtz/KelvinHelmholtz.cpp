@@ -40,6 +40,7 @@ Real KHP::Bz[2] = {NAN};
 Real KHP::lambda = 0;
 Real KHP::amp = NAN;
 Real KHP::offset = 0;
+Real KHP::transitionWidth = 0;
 uint KHP::nSpaceSamples = 0;
 uint KHP::nVelocitySamples = 0;
 
@@ -47,25 +48,26 @@ bool initializeProject(void) {return true;}
 
 bool addProjectParameters(){
    typedef Readparameters RP;
-   RP::add("KelvinHelmholtz.rho1", "Number density, TOP state (m^-3)", 0.0);
-   RP::add("KelvinHelmholtz.rho2", "Number density, BOTTOM state (m^-3)", 0.0);
-   RP::add("KelvinHelmholtz.T1", "Temperature, TOP state (K)", 0.0);
-   RP::add("KelvinHelmholtz.T2", "Temperature, BOTTOM state (K)", 0.0);
-   RP::add("KelvinHelmholtz.Vx1", "Bulk velocity x component, TOP state (m/s)", 0.0);
-   RP::add("KelvinHelmholtz.Vx2", "Bulk velocity x component, BOTTOM state (m/s)", 0.0);
-   RP::add("KelvinHelmholtz.Vy1", "Bulk velocity y component, TOP state (m/s)", 0.0);
-   RP::add("KelvinHelmholtz.Vy2", "Bulk velocity y component, BOTTOM state (m/s)", 0.0);
-   RP::add("KelvinHelmholtz.Vz1", "Bulk velocity z component, TOP state (m/s)", 0.0);
-   RP::add("KelvinHelmholtz.Vz2", "Bulk velocity z component, BOTTOM state (m/s)", 0.0);
-   RP::add("KelvinHelmholtz.Bx1", "Magnetic field x component, TOP state (T)", 0.0);
-   RP::add("KelvinHelmholtz.Bx2", "Magnetic field x component, BOTTOM state (T)", 0.0);
-   RP::add("KelvinHelmholtz.By1", "Magnetic field y component, TOP state (T)", 0.0);
-   RP::add("KelvinHelmholtz.By2", "Magnetic field y component, BOTTOM state (T)", 0.0);
-   RP::add("KelvinHelmholtz.Bz1", "Magnetic field z component, TOP state (T)", 0.0);
-   RP::add("KelvinHelmholtz.Bz2", "Magnetic field z component, BOTTOM state (T)", 0.0);
+   RP::add("KelvinHelmholtz.rho1", "Number density, KHP::TOP state (m^-3)", 0.0);
+   RP::add("KelvinHelmholtz.rho2", "Number density, KHP::BOTTOM state (m^-3)", 0.0);
+   RP::add("KelvinHelmholtz.T1", "Temperature, KHP::TOP state (K)", 0.0);
+   RP::add("KelvinHelmholtz.T2", "Temperature, KHP::BOTTOM state (K)", 0.0);
+   RP::add("KelvinHelmholtz.Vx1", "Bulk velocity x component, KHP::TOP state (m/s)", 0.0);
+   RP::add("KelvinHelmholtz.Vx2", "Bulk velocity x component, KHP::BOTTOM state (m/s)", 0.0);
+   RP::add("KelvinHelmholtz.Vy1", "Bulk velocity y component, KHP::TOP state (m/s)", 0.0);
+   RP::add("KelvinHelmholtz.Vy2", "Bulk velocity y component, KHP::BOTTOM state (m/s)", 0.0);
+   RP::add("KelvinHelmholtz.Vz1", "Bulk velocity z component, KHP::TOP state (m/s)", 0.0);
+   RP::add("KelvinHelmholtz.Vz2", "Bulk velocity z component, KHP::BOTTOM state (m/s)", 0.0);
+   RP::add("KelvinHelmholtz.Bx1", "Magnetic field x component, KHP::TOP state (T)", 0.0);
+   RP::add("KelvinHelmholtz.Bx2", "Magnetic field x component, KHP::BOTTOM state (T)", 0.0);
+   RP::add("KelvinHelmholtz.By1", "Magnetic field y component, KHP::TOP state (T)", 0.0);
+   RP::add("KelvinHelmholtz.By2", "Magnetic field y component, KHP::BOTTOM state (T)", 0.0);
+   RP::add("KelvinHelmholtz.Bz1", "Magnetic field z component, KHP::TOP state (T)", 0.0);
+   RP::add("KelvinHelmholtz.Bz2", "Magnetic field z component, KHP::BOTTOM state (T)", 0.0);
    RP::add("KelvinHelmholtz.lambda", "Initial perturbation wavelength (m)", 0.0);
    RP::add("KelvinHelmholtz.amp", "Initial perturbation amplitude (m)", 0.0);
    RP::add("KelvinHelmholtz.offset", "Boundaries offset from 0 (m)", 0.0);
+   RP::add("KelvinHelmholtz.transitionWidth", "Width of tanh transition for all changing values", 0.0);
    RP::add("KelvinHelmholtz.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
    RP::add("KelvinHelmholtz.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
    return true;
@@ -92,29 +94,43 @@ bool getProjectParameters(){
    RP::get("KelvinHelmholtz.lambda", KHP::lambda);
    RP::get("KelvinHelmholtz.amp", KHP::amp);
    RP::get("KelvinHelmholtz.offset", KHP::offset);
+   RP::get("KelvinHelmholtz.transitionWidth", KHP::transitionWidth);
    RP::get("KelvinHelmholtz.nSpaceSamples", KHP::nSpaceSamples);
    RP::get("KelvinHelmholtz.nVelocitySamples", KHP::nVelocitySamples);
    return true;
 }
 
-Real getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+Real profile(creal top, creal bottom, creal x, creal z) {
+   if(top == bottom) {
+      return top;
+   }
+   if(KHP::offset != 0.0) {
+      return 0.5 * ((top-bottom) * (
+	 tanh((z + KHP::offset + KHP::amp * cos(2.0*M_PI*x/KHP::lambda))/KHP::transitionWidth) -
+	 tanh((z-(KHP::offset + KHP::amp * cos(2.0*M_PI*x/KHP::lambda)))/KHP::transitionWidth) -1) + top+bottom);
+   } else {
+      return 0.5 * ((top-bottom) * tanh(z/KHP::transitionWidth) + top+bottom);
+   }
+}
+
+Real getDistribValue(creal& x, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
    creal mass = 1.67262171e-27; // m_p in kg
    creal k = 1.3806505e-23; // Boltzmann
    //  creal mu0 = 1.25663706144e-6; // mu_0
    //  creal q = 1.60217653e-19; // q_i
    //  creal gamma = 5./3.;
+   Real rho = profile(KHP::rho[KHP::TOP], KHP::rho[KHP::TOP], x, z);
+   Real T = profile(KHP::T[KHP::BOTTOM], KHP::T[KHP::TOP], x, z);
+   Real Vx = profile(KHP::Vx[KHP::BOTTOM], KHP::Vx[KHP::TOP], x, z);
+   Real Vy = profile(KHP::Vy[KHP::BOTTOM], KHP::Vy[KHP::TOP], x, z);
+   Real Vz = profile(KHP::Vz[KHP::BOTTOM], KHP::Vz[KHP::TOP], x, z);
    
-   cint side = (z < KHP::offset + KHP::amp * cos(2.0 * M_PI * x / KHP::lambda)) &&
-               (z > -1.0 * KHP::offset + KHP::amp * cos(2.0 * M_PI * x / KHP::lambda)) ?
-               KHP::TOP : KHP::BOTTOM;
-   
-   return KHP::rho[side] * pow(mass / (2.0 * M_PI * k * KHP::T[side]), 1.5) *
-   exp(- mass * (pow(vx - KHP::Vx[side], 2.0) + pow(vy - KHP::Vy[side], 2.0) + pow(vz - KHP::Vz[side], 2.0)) / (2.0 * k * KHP::T[side]));
+   return rho * pow(mass / (2.0 * M_PI * k * T), 1.5) *
+   exp(- mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * k * T));
 }
 
 Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   
    creal d_x = dx / (KHP::nSpaceSamples-1);
-   creal d_y = dy / (KHP::nSpaceSamples-1);
    creal d_z = dz / (KHP::nSpaceSamples-1);
    creal d_vx = dvx / (KHP::nVelocitySamples-1);
    creal d_vy = dvy / (KHP::nVelocitySamples-1);
@@ -122,15 +138,14 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
    Real avg = 0.0;
 //#pragma omp parallel for collapse(6) reduction(+:avg)
    for (uint i=0; i<KHP::nSpaceSamples; ++i)
-      for (uint j=0; j<KHP::nSpaceSamples; ++j)
-	 for (uint k=0; k<KHP::nSpaceSamples; ++k)
-	    for (uint vi=0; vi<KHP::nVelocitySamples; ++vi)
-	       for (uint vj=0; vj<KHP::nVelocitySamples; ++vj)
-		  for (uint vk=0; vk<KHP::nVelocitySamples; ++vk)
-		     {
-			avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
-		     }
-   return avg / pow(KHP::nSpaceSamples, 3.0) / pow(KHP::nVelocitySamples, 3.0);
+      for (uint k=0; k<KHP::nSpaceSamples; ++k)
+	 for (uint vi=0; vi<KHP::nVelocitySamples; ++vi)
+	    for (uint vj=0; vj<KHP::nVelocitySamples; ++vj)
+	       for (uint vk=0; vk<KHP::nVelocitySamples; ++vk)
+		  {
+		     avg += getDistribValue(x+i*d_x, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+		  }
+   return avg / pow(KHP::nSpaceSamples, 2.0) / pow(KHP::nVelocitySamples, 3.0);
 }
 
 bool cellParametersChanged(creal& t) {return false;}
@@ -149,21 +164,13 @@ void calcCellParameters(Real* cellParams,creal& t) {
    Bxavg = Byavg = Bzavg = 0.0;
    Real d_x = dx / (KHP::nSpaceSamples - 1);
    Real d_z = dz / (KHP::nSpaceSamples - 1);
-//#pragma omp parallel for collapse(3) reduction(+:Bxavg,Byavg,Bzavg)
    for (uint i=0; i<KHP::nSpaceSamples; ++i)
-      for (uint j=0; j<KHP::nSpaceSamples; ++j)
-	 for (uint k=0; k<KHP::nSpaceSamples; ++k) {
-	    Bxavg += ((z + i * d_z) < KHP::offset + KHP::amp * cos(2.0 * M_PI * x / KHP::lambda)) &&
-	             ((z + i * d_z) > -1.0 * KHP::offset + KHP::amp * cos(2.0 * M_PI * x / KHP::lambda)) ?
-	             KHP::Bx[KHP::TOP] : KHP::Bx[KHP::BOTTOM];
-	    Byavg += ((z + i * d_z) < KHP::offset + KHP::amp * cos(2.0 * M_PI * x / KHP::lambda)) &&
-		     ((z + i * d_z) > -1.0 * KHP::offset + KHP::amp * cos(2.0 * M_PI * x / KHP::lambda)) ?
-		     KHP::By[KHP::TOP] : KHP::By[KHP::BOTTOM];
-	    Bzavg += ((z + i * d_z) < KHP::offset + KHP::amp * cos(2.0 * M_PI * x / KHP::lambda)) &&
-		     ((z + i * d_z) > -1.0 * KHP::offset + KHP::amp * cos(2.0 * M_PI * x / KHP::lambda)) ?
-		     KHP::Bz[KHP::TOP] : KHP::Bz[KHP::BOTTOM];
-	 }
-   cuint nPts = pow(KHP::nSpaceSamples, 3.0);
+      for (uint k=0; k<KHP::nSpaceSamples; ++k) {
+	 Bxavg += profile(KHP::Bx[KHP::BOTTOM], KHP::Bx[KHP::TOP], x+i*d_x, z+k*d_z);
+	 Byavg += profile(KHP::By[KHP::BOTTOM], KHP::By[KHP::TOP], x+i*d_x, z+k*d_z);
+	 Bzavg += profile(KHP::Bz[KHP::BOTTOM], KHP::Bz[KHP::TOP], x+i*d_x, z+k*d_z);
+      }
+   cuint nPts = pow(KHP::nSpaceSamples, 2.0);
    
    cellParams[CellParams::EX   ] = 0.0;
    cellParams[CellParams::EY   ] = 0.0;

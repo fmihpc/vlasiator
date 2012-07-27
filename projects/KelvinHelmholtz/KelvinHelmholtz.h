@@ -48,9 +48,12 @@ struct kelvinHelmholtzParameters {
    static Real lambda;
    static Real amp;
    static Real offset;
+   static Real transitionWidth;
    static uint nSpaceSamples;
    static uint nVelocitySamples;
 };
+
+typedef kelvinHelmholtzParameters KHP;
 
 /**
  * Initialize project. Can be used, e.g., to read in parameters from the input file
@@ -214,17 +217,53 @@ void fieldSolverBoundaryCondDerivZ(const CELLID& cellID,REAL* const array,const 
 
 template<typename CELLID,typename UINT,typename REAL>
 REAL fieldSolverBoundaryCondBx(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const dccrg::Dccrg<SpatialCell>& mpiGrid) {
-   return 0.0;
+   Real Bx;
+   creal x = mpiGrid[cellID]->parameters[CellParams::XCRD];
+   creal z = mpiGrid[cellID]->parameters[CellParams::ZCRD];
+   creal d_z = mpiGrid[cellID]->parameters[CellParams::DZ];
+   if(KHP::offset != 0.0) {
+      Bx = ((z + 0.5 * d_z) < KHP::offset + KHP::amp * cos(2.0 * M_PI * x / KHP::lambda)) &&
+      ((z + 0.5 * d_z) > -1.0 * KHP::offset + KHP::amp * cos(2.0 * M_PI * x / KHP::lambda)) ?
+      KHP::Bx[KHP::TOP] : KHP::Bx[KHP::BOTTOM];
+      
+   } else {
+      Bx = ((z + 0.5 * d_z) > 0.0) ? KHP::Bx[KHP::TOP] : KHP::Bx[KHP::BOTTOM];
+   }
+   return Bx;
 }
 
 template<typename CELLID,typename UINT,typename REAL>
 REAL fieldSolverBoundaryCondBy(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const dccrg::Dccrg<SpatialCell>& mpiGrid) {
-   return 0.0;
+   Real By;
+   creal x = mpiGrid[cellID]->parameters[CellParams::XCRD];
+   creal z = mpiGrid[cellID]->parameters[CellParams::ZCRD];
+   creal d_z = mpiGrid[cellID]->parameters[CellParams::DZ];
+   if(KHP::offset != 0.0) {
+      By = ((z + 0.5 * d_z) < KHP::offset + KHP::amp * cos(2.0 * M_PI * x / KHP::lambda)) &&
+      ((z + 0.5 * d_z) > -1.0 * KHP::offset + KHP::amp * cos(2.0 * M_PI * x / KHP::lambda)) ?
+      KHP::By[KHP::TOP] : KHP::By[KHP::BOTTOM];
+      
+   } else {
+      By = ((z + 0.5 * d_z) > 0.0) ? KHP::By[KHP::TOP] : KHP::By[KHP::BOTTOM];
+   }
+   return By;
 }
 
 template<typename CELLID,typename UINT,typename REAL>
 REAL fieldSolverBoundaryCondBz(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const dccrg::Dccrg<SpatialCell>& mpiGrid) {
-   return 0.0;
+   Real Bz;
+   creal x = mpiGrid[cellID]->parameters[CellParams::XCRD];
+   creal z = mpiGrid[cellID]->parameters[CellParams::ZCRD];
+   creal d_z = mpiGrid[cellID]->parameters[CellParams::DZ];
+   if(KHP::offset != 0.0) {
+      Bz = ((z + 0.5 * d_z) < KHP::offset + KHP::amp * cos(2.0 * M_PI * x / KHP::lambda)) &&
+      ((z + 0.5 * d_z) > -1.0 * KHP::offset + KHP::amp * cos(2.0 * M_PI * x / KHP::lambda)) ?
+      KHP::Bz[KHP::TOP] : KHP::Bz[KHP::BOTTOM];
+      
+   } else {
+      Bz = ((z + 0.5 * d_z) > 0.0) ? KHP::Bz[KHP::TOP] : KHP::Bz[KHP::BOTTOM];
+   }
+   return Bz;
 }
 
 template<typename CELLID,typename UINT> 
