@@ -151,51 +151,6 @@ T calcBoundVolAvg(cuint& iv,cuint& jv,cuint& kv,const T* const cellParams,
    return avg;
 }
 
-template<typename T> T spatialFluxX(cuint& i,const T& avg_neg,const T& avg_pos,const T* const blockParams) {
-   creal VX = blockParams[BlockParams::VXCRD] + i*blockParams[BlockParams::DVX];
-   return convert<T>(0.5)*VX*(avg_neg+avg_pos) - convert<T>(0.5)*fabs(VX)*(avg_pos-avg_neg);
-}
-
-template<typename T> T spatialFluxY(cuint& j,const T& avg_neg,const T& avg_pos,const T* const blockParams) {
-   creal VY = blockParams[BlockParams::VYCRD] + j*blockParams[BlockParams::DVY];
-   return convert<T>(0.5)*VY*(avg_neg+avg_pos) - convert<T>(0.5)*fabs(VY)*(avg_pos-avg_neg);
-}
-
-template<typename T> T spatialFluxZ(cuint& k,const T& avg_neg,const T& avg_pos,const T* const blockParams) {
-   creal VZ = blockParams[BlockParams::VZCRD] + k*blockParams[BlockParams::DVZ];
-   return convert<T>(0.5)*VZ*(avg_neg+avg_pos) - convert<T>(0.5)*fabs(VZ)*(avg_pos-avg_neg);
-}
-
-template<typename T> T velocityFluxX(const T& j,const T& k,const T& avg_neg,const T& avg_pos,const T* const cellParams,const T* const blockParams) {
-   const T VY = blockParams[BlockParams::VYCRD] + (j+convert<T>(0.5))*blockParams[BlockParams::DVY];
-   const T VZ = blockParams[BlockParams::VZCRD] + (k+convert<T>(0.5))*blockParams[BlockParams::DVZ];
-   const T EX = cellParams[CellParams::EX];
-   const T BY = cellParams[CellParams::BY];
-   const T BZ = cellParams[CellParams::BZ];
-   const T AX = Parameters::q_per_m*(EX + VY*BZ - VZ*BY);
-   return convert<T>(0.5)*AX*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AX)*(avg_pos-avg_neg);
-}
-                                                                        
-template<typename T> T velocityFluxY(const T& i,const T& k,const T& avg_neg,const T& avg_pos,const T* const cellParams,const T* const blockParams) {
-   const T VX = blockParams[BlockParams::VXCRD] + (i+convert<T>(0.5))*blockParams[BlockParams::DVX];
-   const T VZ = blockParams[BlockParams::VZCRD] + (k+convert<T>(0.5))*blockParams[BlockParams::DVZ];
-   const T EY = cellParams[CellParams::EY];
-   const T BX = cellParams[CellParams::BX];
-   const T BZ = cellParams[CellParams::BZ];
-   const T AY = Parameters::q_per_m*(EY + VZ*BX - VX*BZ);
-   return convert<T>(0.5)*AY*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AY)*(avg_pos-avg_neg);
-}
-
-template<typename T> T velocityFluxZ(const T& i,const T& j,const T& avg_neg,const T& avg_pos,const T* const cellParams,const T* const blockParams) {
-   const T VX = blockParams[BlockParams::VXCRD] + (i+convert<T>(0.5))*blockParams[BlockParams::DVX];
-   const T VY = blockParams[BlockParams::VYCRD] + (j+convert<T>(0.5))*blockParams[BlockParams::DVY];
-   const T EZ = cellParams[CellParams::EZ];
-   const T BX = cellParams[CellParams::BX];
-   const T BY = cellParams[CellParams::BY];
-   const T AZ = Parameters::q_per_m*(EZ + VX*BY - VY*BX);
-   return convert<T>(0.5)*AZ*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AZ)*(avg_pos-avg_neg);
-}
-
 template<typename CELLID,typename UINT,typename REAL>
 void fieldSolverBoundaryCondDerivX(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,creal* const derivatives,const dccrg::Dccrg<SpatialCell>& mpiGrid) {
    fieldSolverBoundarySetValueDerivX(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
