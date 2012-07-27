@@ -234,6 +234,12 @@ int main(int argn,char* args[]) {
          phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
       }
 
+      //write out phiprof profiles with a lower interval than normal
+      //diagnostic (TODO, improve inteval or remove these temporary debug prints)
+      if (P::diagnosticInterval != 0 && P::tstep % (P::diagnosticInterval*10) == 0) {
+         phiprof::print(MPI_COMM_WORLD,"phiprof_full");
+         phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
+      }
       
       // Check if data needs to be written to disk:
       if ( P::saveSystemTimeInterval >=0.0 && 
