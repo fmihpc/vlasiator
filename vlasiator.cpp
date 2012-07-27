@@ -494,6 +494,8 @@ int main(int argn,char* args[]) {
    if (myrank == MASTER_RANK) logfile << "(MAIN): Exiting." << endl << writeVerbose;
    logfile.close();
    if (P::diagnosticInterval != 0) diagnostic.close();
+
+   MPI_Finalize();
    return 0;
 }
 
