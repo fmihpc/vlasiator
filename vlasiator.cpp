@@ -200,6 +200,18 @@ int main(int argn,char* args[]) {
 
    while(P::tstep <=P::tstep_max  &&
          P::t-P::dt <= P::t_max+DT_EPSILON) {
+
+      if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
+         //print out phiprof log every diagnosticInteval steps
+         phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
+      }
+      //write out phiprof profiles with a lower interval than normal
+      //diagnostic (TODO, improve inteval or remove these temporary debug prints)
+      if (P::diagnosticInterval != 0 && P::tstep % (P::diagnosticInterval*10) == 0) {
+         phiprof::print(MPI_COMM_WORLD,"phiprof_full");
+         phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
+      }
+
       if (myrank == MASTER_RANK){
          double currentTime=MPI_Wtime();
          logfile << "------------------ tstep = " << P::tstep << " t = " << P::t <<" ------------------" << endl;
@@ -215,6 +227,16 @@ int main(int argn,char* args[]) {
          }
          logfile << writeVerbose;
       }
+      
+
+      // Check whether diagnostic output has to be produced
+      if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
+	 phiprof::start("Diagnostic");
+	 if (computeDiagnostic(mpiGrid, diagnosticReducer, P::tstep) == false) {
+	    cerr << "ERROR with diagnostic computation" << endl;
+	 }
+	 phiprof::stop("Diagnostic");
+      }
 
 //Re-loadbalance if needed, not done on first step
       if(P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min)
@@ -223,23 +245,7 @@ int main(int argn,char* args[]) {
       vector<uint64_t> cells = mpiGrid.get_cells();
 
       phiprof::start("IO");
-      // Check whether diagnostic output has to be produced
-      if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
-	 phiprof::start("Diagnostic");
-	 if (computeDiagnostic(mpiGrid, diagnosticReducer, P::tstep) == false) {
-	    cerr << "ERROR with diagnostic computation" << endl;
-	 }
-	 phiprof::stop("Diagnostic");
-         //also print out phiprof log
-         phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
-      }
 
-      //write out phiprof profiles with a lower interval than normal
-      //diagnostic (TODO, improve inteval or remove these temporary debug prints)
-      if (P::diagnosticInterval != 0 && P::tstep % (P::diagnosticInterval*10) == 0) {
-         phiprof::print(MPI_COMM_WORLD,"phiprof_full");
-         phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
-      }
       
       // Check if data needs to be written to disk:
       if ( P::saveSystemTimeInterval >=0.0 && 
@@ -398,8 +404,16 @@ int main(int argn,char* args[]) {
                  phiprof::stop("First propagation",computedBlocks,"Blocks");
                  if(updateVelocityBlocksAfterAcceleration){
                     //need to do a update of block lists as all cells have made local changes
+                    phiprof::start("adjust");
+                    phiprof::start("barrier1");
+                    MPI_Barrier(MPI_COMM_WORLD);
+                    phiprof::stop("barrier1");
                     updateRemoteVelocityBlockLists(mpiGrid);
+                    phiprof::start("barrier2");
+                    MPI_Barrier(MPI_COMM_WORLD);
+                    phiprof::stop("barrier2");
                     adjustVelocityBlocks(mpiGrid);
+                    phiprof::stop("adjust");
                  }
                  phiprof::start("Second propagation");
                  calculateSpatialFluxes(mpiGrid,0.5*P::dt);

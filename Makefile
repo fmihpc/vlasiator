@@ -1,6 +1,6 @@
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
-PROJ = Fluctuations
+PROJ = KelvinHelmholtz
 
 #set default architecture, can be overridden from the compile line
 ARCH = meteo
@@ -27,10 +27,10 @@ CXXFLAGS += -DPROFILE
 CXXFLAGS += -DNDEBUG
 
 #Add -DCATCH_FPE to catch floating point exceptions and stop execution
-CXXFLAGS += -DCATCH_FPE
+#CXXFLAGS += -DCATCH_FPE
 
 #DCCRG defines, it should use the user provided mpi datatype mode
-CXXFLAGS += -DDCCRG_SEND_SINGLE_CELLS -DDCCRG_CELL_DATA_SIZE_FROM_USER  -DDCCRG_USER_MPI_DATA_TYPE
+CXXFLAGS += -DDCCRG_SEND_SINGLE_CELLS  -DDCCRG_CELL_DATA_SIZE_FROM_USER  -DDCCRG_USER_MPI_DATA_TYPE
 
 
 #//////////////////////////////////////////////////////

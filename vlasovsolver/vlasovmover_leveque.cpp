@@ -339,6 +339,7 @@ void calculateCellAccelerationSubstep(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID 
 //compute one acceleration step for a cell, may include multiple substep calls to calculateCellAccelerationSubstep  
 void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,Real dt) {
    typedef Parameters P;
+   double t_init=MPI_Wtime();
 #ifndef SEMILAG
    if(P::maxAccelerationSubsteps>1){
       //substep acceleration until total dt is reached. dt should
@@ -389,7 +390,8 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,
 #else
    //with SEMILAG no substepping is needed....
    calculateCellAccelerationSubstep(mpiGrid,cellID,dt);
-#endif       
+#endif
+   mpiGrid[cellID]->parameters[CellParams::LBWEIGHTCOUNTER]+=MPI_Wtime()-t_init;
 }
 
 
