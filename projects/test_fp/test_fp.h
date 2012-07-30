@@ -142,35 +142,32 @@ T calcBoundVolAvg(cuint& iv,cuint& jv,cuint& kv,const T* const cellParams,
 template<typename CELLID,typename UINT,typename REAL>
 void fieldSolverBoundaryCondDerivX(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,
 Real* const derivatives,const dccrg::Dccrg<SpatialCell>& mpiGrid) {
-   namespace fs = fieldsolver;
-   array[fs::drhodx] = 0.0;
-   array[fs::dBydx]  = 0.0;
-   array[fs::dBzdx]  = 0.0;
-   array[fs::dVxdx]  = 0.0;
-   array[fs::dVydx]  = 0.0;
-   array[fs::dVzdx]  = 0.0;
+   array[fieldsolver::drhodx] = 0.0;
+   array[fieldsolver::dBydx]  = 0.0;
+   array[fieldsolver::dBzdx]  = 0.0;
+   array[fieldsolver::dVxdx]  = 0.0;
+   array[fieldsolver::dVydx]  = 0.0;
+   array[fieldsolver::dVzdx]  = 0.0;
 }
 
 template<typename CELLID,typename UINT,typename REAL>
 void fieldSolverBoundaryCondDerivY(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,Real* const derivatives,const dccrg::Dccrg<SpatialCell>& mpiGrid) {
-   namespace fs = fieldsolver;
-   array[fs::drhody] = 0.0;
-   array[fs::dBxdy]  = 0.0;
-   array[fs::dBzdy]  = 0.0;
-   array[fs::dVxdy]  = 0.0;
-   array[fs::dVydy]  = 0.0;
-   array[fs::dVzdy]  = 0.0;
+   array[fieldsolver::drhody] = 0.0;
+   array[fieldsolver::dBxdy]  = 0.0;
+   array[fieldsolver::dBzdy]  = 0.0;
+   array[fieldsolver::dVxdy]  = 0.0;
+   array[fieldsolver::dVydy]  = 0.0;
+   array[fieldsolver::dVzdy]  = 0.0;
 }
 
 template<typename CELLID,typename UINT,typename REAL>
 void fieldSolverBoundaryCondDerivZ(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,Real* const derivatives,const dccrg::Dccrg<SpatialCell>& mpiGrid) {
-   namespace fs = fieldsolver;
-   array[fs::drhodz] = 0.0;
-   array[fs::dBxdz]  = 0.0;
-   array[fs::dBydz]  = 0.0;
-   array[fs::dVxdz]  = 0.0;
-   array[fs::dVydz]  = 0.0;
-   array[fs::dVzdz]  = 0.0;
+   array[fieldsolver::drhodz] = 0.0;
+   array[fieldsolver::dBxdz]  = 0.0;
+   array[fieldsolver::dBydz]  = 0.0;
+   array[fieldsolver::dVxdz]  = 0.0;
+   array[fieldsolver::dVydz]  = 0.0;
+   array[fieldsolver::dVzdz]  = 0.0;
 }
 
 template<typename CELLID,typename UINT,typename REAL>

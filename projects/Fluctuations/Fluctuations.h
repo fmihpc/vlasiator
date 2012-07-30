@@ -150,17 +150,17 @@ T calcBoundVolAvg(cuint& iv,cuint& jv,cuint& kv,const T* const cellParams,
 
 template<typename CELLID,typename UINT,typename REAL>
 void fieldSolverBoundaryCondDerivX(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,creal* const derivatives,const dccrg::Dccrg<SpatialCell> & mpiGrid) {
-   fieldSolverBoundarySetValueDerivX(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
+   return;
 }
 
 template<typename CELLID,typename UINT,typename REAL>
 void fieldSolverBoundaryCondDerivY(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,creal* const derivatives,const dccrg::Dccrg<SpatialCell> & mpiGrid) {
-   fieldSolverBoundarySetValueDerivY(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
+   return;
 }
 
 template<typename CELLID,typename UINT,typename REAL>
 void fieldSolverBoundaryCondDerivZ(const CELLID& cellID,REAL* const array,const UINT& existingCells,const UINT& nonExistingCells,creal* const derivatives,const dccrg::Dccrg<SpatialCell> & mpiGrid) {
-   fieldSolverBoundarySetValueDerivZ(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
+   return;
 }
 
 template<typename CELLID,typename UINT,typename REAL>

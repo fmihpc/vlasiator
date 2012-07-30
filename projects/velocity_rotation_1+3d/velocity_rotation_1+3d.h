@@ -104,7 +104,12 @@ void fieldSolverBoundaryCondDerivX(
 	creal* const derivatives,
 	const dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
-   fieldSolverBoundarySetValueDerivX(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
+   array[fieldsolver::drhodx] = 0.0;
+   array[fieldsolver::dBydx]  = 0.0;
+   array[fieldsolver::dBzdx]  = 0.0;
+   array[fieldsolver::dVxdx]  = 0.0;
+   array[fieldsolver::dVydx]  = 0.0;
+   array[fieldsolver::dVzdx]  = 0.0;
 }
 
 template<typename CELLID,typename UINT,typename REAL>
@@ -116,7 +121,12 @@ void fieldSolverBoundaryCondDerivY(
 	creal* const derivatives,
 	const dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
-   fieldSolverBoundarySetValueDerivY(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
+   array[fieldsolver::drhody] = 0.0;
+   array[fieldsolver::dBxdy]  = 0.0;
+   array[fieldsolver::dBzdy]  = 0.0;
+   array[fieldsolver::dVxdy]  = 0.0;
+   array[fieldsolver::dVydy]  = 0.0;
+   array[fieldsolver::dVzdy]  = 0.0;
 }
 
 template<typename CELLID,typename UINT,typename REAL>
@@ -128,7 +138,12 @@ void fieldSolverBoundaryCondDerivZ(
 	creal* const derivatives,
 	const dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
-   fieldSolverBoundarySetValueDerivZ(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid,convert<REAL>(0.0));
+   array[fieldsolver::drhodz] = 0.0;
+   array[fieldsolver::dBxdz]  = 0.0;
+   array[fieldsolver::dBydz]  = 0.0;
+   array[fieldsolver::dVxdz]  = 0.0;
+   array[fieldsolver::dVydz]  = 0.0;
+   array[fieldsolver::dVzdz]  = 0.0;
 }
 
 template<typename CELLID,typename UINT,typename REAL>
