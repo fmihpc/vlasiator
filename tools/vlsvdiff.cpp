@@ -167,7 +167,10 @@ bool shiftAverage(const map<uint, Real> * const orderedData1,
 
 /*! Compute the absolute and relative p-distance between two datasets X(x) provided in the maps orderedData1 and orderedData2.
  * 
- * For \f$ p \neq 0 \f$
+ * For \f$ p \neq 0 \f$:
+ * absolute p-distance defined as:
+ * 
+ * \f$ \|X_1 - X_2\|_p = \left[\sum_i |X_1(i) - X_2(i)|^p\right]^{1/p}\f$
  * 
  * \param orderedData1 Pointer to the first file's data map
  * \param orderedData2 Pointer to the second file's data map
