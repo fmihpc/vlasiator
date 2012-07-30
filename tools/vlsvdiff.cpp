@@ -133,7 +133,11 @@ bool convertSILO(const string fileName,
    return success;
 }
 
-// Shift the second file of the average of the first
+/*! Shift the second file to the average of the first
+ * \param orderedData1 Pointer to the reference file's data
+ * \param orderedData2 Pointer to the data to be shifted
+ * \param shiftedData2 Pointer to where the shifted data of the second file will be put
+ */
 bool shiftAverage(const map<uint, Real> * const orderedData1,
 		  const map<uint, Real> * const orderedData2,
 		  map<uint, Real> * shiftedData2
@@ -161,7 +165,26 @@ bool shiftAverage(const map<uint, Real> * const orderedData1,
    return 0;
 }
 
-// Compute the absolute and relative p-distance between both files, with or without shifting the second file to the average of the first
+/*! Compute the absolute and relative p-distance between two datasets X(x) provided in the maps orderedData1 and orderedData2
+ * For \f$p \neq 0\f$
+ * absolute p-distance defined as:
+ * \f$\|X_1 - X_2\|_p = \left[\sum_i |X_1(i) - X_2(i)|^p\right]^{1/p}\f$
+ * relative p-distance defined as:
+ * \f$\|X_1 - X_2\|_p = \left[\sum_i |X_1(i) - X_2(i)|^p\right]^{1/p} / \|X_1\|_p
+ * 
+ * for \f$p = 0\f$ it is the \f$\infty\f$-distance
+ * absolute \f$\infty\f$-distance defined as:
+ * \f$\|X_1 - X_2\|_\infty = \max_i\left(|X_1(i) - X_2(i)|\right)\f$
+ * relative \f$\infty\f$-distance defined as:
+ * \f$\|X_1 - X_2\|_\infty = \max_i\left(|X_1(i) - X_2(i)|\right) / \|X_1\|_\infty\f$
+ * 
+ * \param orderedData1 Pointer to the first file's data map
+ * \param orderedData2 Pointer to the second file's data map
+ * \param p Parameter of the distance formula
+ * \param absolute Return argument, absolute value
+ * \param relative Return argument, relative value
+ * \param doShiftAverage Boolean argument to determine whether to shift the second file's data
+ */
 bool pDistance(map<uint, Real> * const orderedData1,
 	       map<uint, Real> * const orderedData2,
 	       creal p,
@@ -170,19 +193,10 @@ bool pDistance(map<uint, Real> * const orderedData1,
 	       const bool doShiftAverage
 	      )
 {
-   // Computes the relative and absolute p-distance between two datasets X(x) provided in the maps
-   /*   
-    *   for p != 0.0
-    *   absolute p-distance defined as:
-    *   ||X_1 - X_2||_p = [\sum_i |X_1(i) - X_2(i)|^p]^{1/p}
-    *   relative p-distance defined as:
-    *   ||X_1 - X_2||_p = [\sum_i |X_1(i) - X_2(i)|^p]^{1/p} / ||X_1||_p
-    * 
-    *   for p == 0.0 it is the infinity distance
-    *   absolute infinity-distance defined as:
-    *    ||X_1 - X_2||_\infinity = max_i(|X_1(i) - X_2(i)|)
-    *    relative infinity-distance defined as:
-    *    ||X_1 - X_2||_\infinity = max_i(|X_1(i) - X_2(i)|) / ||X_1||_\infinity
+   /**! Computes the relative and absolute p-distance between two datasets X(x) provided in the maps
+    *   
+    *   for $p != 0.0
+    *   
     */
    map<uint, Real> shiftedData2;
    map<uint, Real> * data2 = orderedData2;
