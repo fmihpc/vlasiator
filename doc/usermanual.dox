@@ -10,13 +10,15 @@
 
 Intro
 
-\section sec-install
+\section sec-install Installation
 
 Please read dccrg manual for hints on installing libraries: http://gitorious.org/dccrg/pages/Install
 
 
-\section Program options
+\section  sec-options Program options
 
+
+\section sec-project Writing a project
 
 
 
