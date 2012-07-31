@@ -31,6 +31,13 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 using namespace std;
 
+/*! Extracts the dataset from the VLSV file opened by convertSILO
+ * \param vlsvReader VLSVReader class object used to access the VLSV file
+ * \param meshName Address of the string containing the name of the mesh to be extracted
+ * \param varToExtract Pointer to the char array containing the name of the variable to extract
+ * \param compToExtract Unsigned int designating the component to extract (0 for scalars)
+ * \param orderedData Pointer to the return argument map which will get the extracted dataset
+ */
 bool convertMesh(VLSVReader& vlsvReader,
 		 const string& meshName,
 		 const char * varToExtract,
@@ -98,6 +105,13 @@ bool convertMesh(VLSVReader& vlsvReader,
    return meshSuccess && variableSuccess;
 }
 
+/*! Opens the VLSV file and extracts the mesh names. Sends for processing to convertMesh.
+ * \param fileName String containing the name of the file to be processed
+ * \param varToExtract Pointer to the char array containing the name of the variable to extract
+ * \param compToExtract Unsigned int designating the component to extract (0 for scalars)
+ * \param orderedData Pointer to the return argument map which will get the extracted dataset
+ * \sa convertMesh
+ */
 bool convertSILO(const string fileName,
 		 const char * varToExtract,
 		 const uint compToExtract,
@@ -165,32 +179,35 @@ bool shiftAverage(const map<uint, Real> * const orderedData1,
    return 0;
 }
 
-/*! Compute the absolute and relative p-distance between two datasets X(x) provided in the maps orderedData1 and orderedData2.
+/*! Compute the absolute and relative \f$ p \f$-distance between two datasets X(x) provided in the maps orderedData1 and orderedData2. Note that the dataset passed in orderedData1 will be taken as the reference dataset both when shifting averages and when computing relative distances.
  * 
  * For \f$ p \neq 0 \f$:
- * absolute p-distance defined as:
  * 
- * \f$ \|X_1 - X_2\|_p = \left[\sum_i |X_1(i) - X_2(i)|^p\right]^{1/p}\f$
+ * absolute \f$ p \f$-distance defined as:
+ * 
+ * \f$ \|X_1 - X_2\|_p = \left[\sum_i |X_1(i) - X_2(i)|^p\right]^{1/p}\f$,
+ * 
+ * relative \f$ p \f$-distance defined as:
+ * 
+ * \f$ \|X_1 - X_2\|_p = \left[\sum_i |X_1(i) - X_2(i)|^p\right]^{1/p} / \|X_1\|_p \f$.
+ * 
+ * For \f$ p = 0 \f$ it is the \f$ \infty \f$-distance:
+ * 
+ * absolute \f$ \infty \f$-distance defined as:
+ * 
+ * \f$ \|X_1 - X_2\|_\infty = \max_i\left(|X_1(i) - X_2(i)|\right)\f$
+ * 
+ * relative \f$ \infty \f$-distance defined as:
+ * 
+ * \f$ \|X_1 - X_2\|_\infty = \max_i\left(|X_1(i) - X_2(i)|\right) / \|X_1\|_\infty \f$
  * 
  * \param orderedData1 Pointer to the first file's data map
  * \param orderedData2 Pointer to the second file's data map
  * \param p Parameter of the distance formula
- * \param absolute Return argument, absolute value
- * \param relative Return argument, relative value
+ * \param absolute Return argument pointer, absolute value
+ * \param relative Return argument pointer, relative value
  * \param doShiftAverage Boolean argument to determine whether to shift the second file's data
- */
-/*
- * For \f$p \neq 0\f$
- * absolute p-distance defined as:
- * \f$\|X_1 - X_2\|_p = \left[\sum_i |X_1(i) - X_2(i)|^p\right]^{1/p}\f$
- * relative p-distance defined as:
- * \f$\|X_1 - X_2\|_p = \left[\sum_i |X_1(i) - X_2(i)|^p\right]^{1/p} / \|X_1\|_p
- * 
- * for \f$p = 0\f$ it is the \f$\infty\f$-distance
- * absolute \f$\infty\f$-distance defined as:
- * \f$\|X_1 - X_2\|_\infty = \max_i\left(|X_1(i) - X_2(i)|\right)\f$
- * relative \f$\infty\f$-distance defined as:
- * \f$\|X_1 - X_2\|_\infty = \max_i\left(|X_1(i) - X_2(i)|\right) / \|X_1\|_\infty\f$
+ * \sa shiftAverage
  */
 bool pDistance(map<uint, Real> * const orderedData1,
 	       map<uint, Real> * const orderedData2,
@@ -244,7 +261,15 @@ bool pDistance(map<uint, Real> * const orderedData1,
    return 0;
 }
 
-// In verbose mode print the data, in non-verbose store them for later output when lastCall is true
+/*! In verbose mode print the distance, in non-verbose store them for later output when lastCall is true
+ * \param p Parameter of the distance
+ * \param absolute Absolute value pointer
+ * \param relative Relative value pointer
+ * \param shiftedAverage Boolean parameter telling whether the dataset is average-shifted
+ * \param verboseOutput Boolean parameter telling whether the output is verbose or compact
+ * \param lastCall Boolean parameter telling whether this is the last call to the function
+ * \sa shiftAverage pDistance
+ */
 bool outputDistance(const Real p,
 		    const Real * absolute,
 		    const Real * relative,
@@ -253,29 +278,21 @@ bool outputDistance(const Real p,
 		    const bool lastCall
 )
 {
-   if(verboseOutput == true)
-   {
-      if(shiftedAverage == false)
-      {
+   if(verboseOutput == true) {
+      if(shiftedAverage == false) {
 	 cout << "The absolute " << p << "-distance between both datasets is " << *absolute << "." << endl;
 	 cout << "The relative " << p << "-distance between both datasets is " << *relative << "." << endl;
-      }
-      else
-      {
+      } else {
 	 cout << "The average-shifted absolute " << p << "-distance between both datasets is " << *absolute << "." << endl;
 	 cout << "The average-shifted relative " << p << "-distance between both datasets is " << *relative << "." << endl;
       }
-   }
-   else
-   {
+   } else {
       static vector<Real> fileOutputData;
       static uint fileNumber = 0;
       
-      if(lastCall == true)
-      {
+      if(lastCall == true) {
 	 vector<Real>::const_iterator it;
-	 for(it = fileOutputData.begin(); it != fileOutputData.end(); it++)
-	 {
+	 for(it = fileOutputData.begin(); it != fileOutputData.end(); it++) {
 	    cout << *it << "\t";
 	 }
 	 fileOutputData.clear();
@@ -284,12 +301,17 @@ bool outputDistance(const Real p,
       
       fileOutputData.push_back(*absolute);
       fileOutputData.push_back(*relative);
-      
    }
    return 0;
 }
 
-// Compute the statistics on a single file
+/*! Compute statistics on a single file
+ * \param size Return argument pointer, dataset size
+ * \param mini Return argument pointer, dataset minimum
+ * \param maxi Return argument pointer, dataset maximum
+ * \param avg Return argument pointer, dataset average
+ * \param stdev Return argument pointer, dataset standard deviation
+ */
 bool singleStatistics(map<uint, Real> * orderedData,
                       Real * size,
 		      Real * mini,
@@ -325,7 +347,16 @@ bool singleStatistics(map<uint, Real> * orderedData,
    return 0;
 }
 
-// In verbose mode print the data, in non-verbose store them for later output when lastCall is true
+/*! In verbose mode print the statistics, in non-verbose store them for later output when lastCall is true
+ * \param size Pointer to dataset size
+ * \param mini Pointer to dataset minimum
+ * \param maxi Pointer to dataset maximum
+ * \param avg Pointer to dataset average
+ * \param stdev Pointer to dataset standard deviation
+ * \param verboseOutput Boolean parameter telling whether the output is verbose or compact
+ * \param lastCall Boolean parameter telling whether this is the last call to the function
+ * \sa singleStatistics
+ */
 bool outputStats(const Real * size,
 		 const Real * mini,
 		 const Real * maxi,
@@ -374,7 +405,9 @@ bool outputStats(const Real * size,
    return 0;
 }
 
-// In folder processing, non-verbose mode the data are stored during the processing and output at the end to have the data sorted properly
+/*! In folder-processing, non-verbose mode the data are stored during the processing and output at the end to have the data sorted properly
+ * \sa outputStats outputDistance
+ */
 bool printNonVerboseData()
 {
    static bool header = true;
@@ -416,7 +449,14 @@ bool printNonVerboseData()
    return 0;
 }
 
-// Read in the contents of the variable component in both files and compute statistics and distances as wished
+/*! Read in the contents of the variable component in both files passed in strings fileName1 and fileName2, and compute statistics and distances as wished
+ * \param fileName1 String argument giving the location of the first file to process
+ * \param fileName2 String argument giving the location of the second file to process
+ * \param varToExtract Pointer to the char array containing the name of the variable to extract
+ * \param compToExtract Unsigned int designating the component to extract (0 for scalars)
+ * \param verboseOutput Boolean parameter telling whether the output will be verbose or compact
+ * \sa convertSILO singleStatistics outputStats pDistance outputDistance printNonVerboseData
+ */
 bool process2Files(const string fileName1,
 		   const string fileName2,
 		   const char * varToExtract,
@@ -428,20 +468,17 @@ bool process2Files(const string fileName1,
    map<uint, Real> orderedData2;
    Real absolute, relative, mini, maxi, size, avg, stdev;
    
-   if(convertSILO(fileName1, varToExtract, compToExtract, &orderedData1) != true)
-   {
+   if(convertSILO(fileName1, varToExtract, compToExtract, &orderedData1) != true) {
       cerr << "ERROR Data import error with " << fileName1 << endl;
       return 1;
    }
-   if(convertSILO(fileName2, varToExtract, compToExtract, &orderedData2) != true)
-   {
+   if(convertSILO(fileName2, varToExtract, compToExtract, &orderedData2) != true) {
       cerr << "ERROR Data import error with " << fileName2 << endl;
       return 1;
    }
    
    // Basic consistency check
-   if(orderedData1.size() != orderedData2.size())
-   {
+   if(orderedData1.size() != orderedData2.size()) {
       cerr << "ERROR Datasets have different size." << endl;
       return 1;
    }
@@ -476,7 +513,10 @@ bool process2Files(const string fileName1,
    return 0;
 }
 
-// Creates the list of grid*.vlsv files present in the folder passed
+/*! Creates the list of grid*.vlsv files present in the folder passed
+ * \param dir DIR type pointer to the directory entry to process
+ * \param fileList Pointer to a set of strings, return argument for the produced file list
+ */
 bool processDirectory(DIR* dir,
 		      set<string> * fileList
 )
@@ -503,6 +543,18 @@ bool processDirectory(DIR* dir,
    return 0;
 }
 
+/*! Tool to compare two VLSV files, two folders with the same number of VLSV files or a folder to a reference file. The tool assumes the files have a name syntax 'grid\.[0-9]+\.vlsv'. It takes four arguments.
+ * 
+ * Calling patterns are:
+ * 
+ * "$ vlsvdiff <file1> <file2> <Variable> <component>": Gives single-file statistics and distances between the two files given, for the variable and component given
+ * 
+ * "$ vlsvdiff <folder1> <folder2> <Variable> <component>": Gives single-file statistics and distances between pairs of files grid*.vlsv taken in alphanumeric order in the two folders given, for the variable and component given
+ * 
+ * "$ vlsvdiff <file1> <folder2> <Variable> <component>" or "$ vlsvdiff <folder1> <file2> <Variable> <component>": Gives single-file statistics and distances between a file, and files grid*.vlsv taken in alphanumeric order in the given folder, for the variable and component given
+ * 
+ * \sa process2Files processDirectory
+ */
 int main(int argn,char* args[])
 {
    if (argn < 5)
