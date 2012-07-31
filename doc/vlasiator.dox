@@ -1,0 +1,10 @@
+\\This files contains Doxygen documentation for Vlasiator
+
+
+/*!
+\mainpage Vlasiator
+
+Vlasiator is a hybrid-Vlasov simulation software in development at FMI.
+
+
+*/
