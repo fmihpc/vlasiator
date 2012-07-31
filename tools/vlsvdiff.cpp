@@ -16,6 +16,17 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
+/*! \file Tool to compare two VLSV files, two folders with the same number of VLSV files or a folder to a reference file. The tool assumes the files have a name syntax 'grid\.[0-9]+\.vlsv'. It takes four arguments.
+ * 
+ * Calling patterns are:
+ * 
+ * "$ vlsvdiff <file1> <file2> <Variable> <component>": Gives single-file statistics and distances between the two files given, for the variable and component given
+ * 
+ * "$ vlsvdiff <folder1> <folder2> <Variable> <component>": Gives single-file statistics and distances between pairs of files grid*.vlsv taken in alphanumeric order in the two folders given, for the variable and component given
+ * 
+ * "$ vlsvdiff <file1> <folder2> <Variable> <component>" or "$ vlsvdiff <folder1> <file2> <Variable> <component>": Gives single-file statistics and distances between a file, and files grid*.vlsv taken in alphanumeric order in the given folder, for the variable and component given
+ */
+
 #include <cstdlib>
 #include <iostream>
 #include <stdint.h>
@@ -543,15 +554,7 @@ bool processDirectory(DIR* dir,
    return 0;
 }
 
-/*! Tool to compare two VLSV files, two folders with the same number of VLSV files or a folder to a reference file. The tool assumes the files have a name syntax 'grid\.[0-9]+\.vlsv'. It takes four arguments.
- * 
- * Calling patterns are:
- * 
- * "$ vlsvdiff <file1> <file2> <Variable> <component>": Gives single-file statistics and distances between the two files given, for the variable and component given
- * 
- * "$ vlsvdiff <folder1> <folder2> <Variable> <component>": Gives single-file statistics and distances between pairs of files grid*.vlsv taken in alphanumeric order in the two folders given, for the variable and component given
- * 
- * "$ vlsvdiff <file1> <folder2> <Variable> <component>" or "$ vlsvdiff <folder1> <file2> <Variable> <component>": Gives single-file statistics and distances between a file, and files grid*.vlsv taken in alphanumeric order in the given folder, for the variable and component given
+/*! Main function, detects which calling pattern is used and sends to the corresponding processing functions.
  * 
  * \sa process2Files processDirectory
  */
