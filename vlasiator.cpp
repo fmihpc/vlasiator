@@ -43,6 +43,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #ifdef CATCH_FPE
 #include <fenv.h>
 #include <signal.h>
+/*! Function used to abort the program upon detecting a floating point exception. Which exceptions are caught is defined using the function feenableexcept.
+ */
 void fpehandler(int sig_num)
 {
    signal(SIGFPE, fpehandler);
