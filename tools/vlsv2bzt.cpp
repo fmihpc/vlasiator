@@ -16,6 +16,15 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
+/*! \file vlsv2bzt.cpp
+ *  \brief Extraction utility to get an (x-t) dataset for further analysis (e.g. Fourier transform).
+ * 
+ * This tool is used to extract the spatial profile of a given variable from a 1D dataset at each time step and save this into an ascii or binary file to be imported into MATLAB/Octave/Python... for further analysis, e.g. 2D Fourier transformation to produce dispersion plots.
+ * 
+ * The calling pattern is:
+ * "$ ./vlsv2bzt <Variable name> <component> <Output file name> <Output file format> <input file mask(s)>"
+ */
+
 #include <cstdlib>
 #include <iostream>
 #include <stdint.h>
@@ -24,6 +33,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <set>
 #include <sstream>
 #include <dirent.h>
+#include <fcntl.h>
 
 #include <mpi.h>
 
@@ -32,6 +42,13 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 using namespace std;
 
+/*! Extracts the dataset from the VLSV file opened by convertSILO and sends it to the master rank for writing.
+ * \param vlsvReader VLSVReader class object used to access the VLSV file
+ * \param entryName Identification number of the file, used in MPI communication
+ * \param meshName Address of the string containing the name of the mesh to be extracted
+ * \param varToExtract Pointer to the char array containing the name of the variable to extract
+ * \param compToExtract Unsigned int designating the component to extract (0 for scalars)
+ */
 bool convertMesh(VLSVReader& vlsvReader,
 		 const string& meshName,
 		 const unsigned long int entryName,
@@ -67,7 +84,7 @@ bool convertMesh(VLSVReader& vlsvReader,
       if (vlsvReader.readArray("VARIABLE", varToExtract, i, 1, variableBuffer) == false) {variableSuccess = false; break;}
       
       // Get the x coordinate
-      creal x  = coordPtr[0];
+      creal x  = coordPtr[1]; /*!< Changing this allows to extract datasets along x (0), y (1) or z (2). */
       // Get the variable value
       creal extract = variablePtr[compToExtract];
       // Put those into the map
@@ -102,7 +119,14 @@ bool convertMesh(VLSVReader& vlsvReader,
    return coordSuccess && variableSuccess;
 }
 
-bool convertSILO(const string& fname,
+/*! Opens the VLSV file and extracts the mesh names. Sends for processing to convertMesh.
+ * \param fileName String containing the name of the file to be processed
+ * \param entryName Identification number of the file, used in MPI communication
+ * \param varToExtract Pointer to the char array containing the name of the variable to extract
+ * \param compToExtract Unsigned int designating the component to extract (0 for scalars)
+ * \sa convertMesh
+ */
+bool convertSILO(const string& fileName,
 		 const unsigned long int entryName,
 		 const char * varToExtract,
 		 const int compToExtract
@@ -111,8 +135,8 @@ bool convertSILO(const string& fname,
    
    // Open VLSV file for reading:
    VLSVReader vlsvReader;
-   if (vlsvReader.open(fname) == false) {
-      cerr << "Failed to open '" << fname << "'" << endl;
+   if (vlsvReader.open(fileName) == false) {
+      cerr << "Failed to open '" << fileName << "'" << endl;
       return false;
    }
    
@@ -131,17 +155,23 @@ bool convertSILO(const string& fname,
    return success;
 }
 
+/*! Main function, reads the arguments, processes the file masks to get the file list and distributes the work.
+ * 
+ * The parallelisation follows the master-slave pattern, process 0 distributes tasks and receives the result, which it writes to file.
+ * 
+ * Using binary is ~3 times faster and produces ~0.6 times the volume of data in ascii.
+ */
 int main(int argn,char* args[]) {
    int ntasks, rank;
    MPI_Init(&argn, &args);
    MPI_Comm_size(MPI_COMM_WORLD, &ntasks);
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    
-   if (argn < 5) {
+   if (argn < 6) {
       cout << endl;
-      cout << "USAGE: ./vlsv2bzt <Variable name> <component> <Output file name> <input file mask(s)>" << endl;
+      cout << "USAGE: ./vlsv2bzt <Variable name> <component> <Output file name> <Output file format> <input file mask(s)>" << endl;
       cout << "Each VLSV in the current directory is compared against the given file mask(s)," << endl;
-      cout << "and if match is found, the variable's component is extracted and ordered before being output to an ascii file *with the name of the 3rd argument*." << endl;
+      cout << "and if match is found, the variable's component is extracted and ordered before being output to a file *with the name of the 3rd argument* and the *format given by the 4th argument* (a: ascii, b: binary)." << endl;
       cout << "Note that due to the parallelisation algorithm, there should be at least 2 processes used." << endl;
       cout << endl;
       return 1;
@@ -152,11 +182,13 @@ int main(int argn,char* args[]) {
    int compToExtract = atoi(args[2]);
    // 3rd arg is file name
    char * fileName = args[3];
+   // 4th arg is format
+   char * fileFormat = args[4];
    
    // Convert file masks into strings:
    vector<string> masks;
    set<string> fileList;
-   for (int i=4; i<argn; ++i) masks.push_back(args[i]);
+   for (int i=5; i<argn; ++i) masks.push_back(args[i]);
 
    // Compare directory contents against each mask:
    const string directory = ".";
@@ -196,21 +228,27 @@ int main(int argn,char* args[]) {
       }
       if (filesConverted == 0) cout << "\t no files converted" << endl;
    } else {
-      // YK Create/open ascii file to append to
+      // YK Create/open file to append to
       FILE * outputFile;
-      outputFile = fopen(fileName, "w");
+      char endOfLine = '\n';
+      if(*fileFormat == 'a') outputFile = fopen(fileName, "w");
+      if(*fileFormat == 'b') outputFile = fopen(fileName, "wb");
       
       int lineLength;
       MPI_Recv(&lineLength, 1, MPI_INT, 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       vector<Real> recvBuffer(lineLength);
-      for(unsigned long int entryName = 0; entryName < fileList.size(); entryName++)
-      {
-	 MPI_Recv(&recvBuffer[0], lineLength, MPI_DOUBLE, entryName%(ntasks - 1) + 1, entryName + 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	 for(int i = 0; i < lineLength; i++)
-	 {
-	    fprintf(outputFile, "%e ", recvBuffer[i]);
-	 }
-	 fprintf(outputFile, "\n");
+      for(unsigned long int entryName = 0; entryName < fileList.size(); entryName++) {
+         MPI_Recv(&recvBuffer[0], lineLength, MPI_DOUBLE, entryName%(ntasks - 1) + 1, entryName + 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+         if(*fileFormat == 'a') {
+            for(int i = 0; i < lineLength; i++) {
+               fprintf(outputFile, "%e ", recvBuffer[i]);
+            }
+            fprintf(outputFile, "\n");
+         }
+         if(*fileFormat == 'b') {
+            fwrite(&recvBuffer[0], sizeof(recvBuffer[0]), lineLength, outputFile);
+//            fwrite(&endOfLine, sizeof(endOfLine), 1, outputFile);
+         }
       }
       fclose(outputFile);
    }
