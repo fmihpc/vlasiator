@@ -46,7 +46,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 using namespace std;
 
-/*! Extracts the dataset from the VLSV file opened by convertSILO
+/*! Extracts the dataset from the VLSV file opened by convertSILO.
  * \param vlsvReader VLSVReader class object used to access the VLSV file
  * \param meshName Address of the string containing the name of the mesh to be extracted
  * \param varToExtract Pointer to the char array containing the name of the variable to extract
