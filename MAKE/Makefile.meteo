@@ -1,7 +1,6 @@
 CMP = CC
 LNK = CC
 
-
 #-DNO_WRITE_AT_ALL:  Define to disable write at all to 
 #                    avoid memleak (much slower IO)
 #-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition 
@@ -10,7 +9,7 @@ LNK = CC
 
 CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK
 
-FLAGS =
+FLAGS = -DNO_WRITE_AT_ALL
 
 # NOTES on compiler flags:
 # CXXFLAGS is for mandatory compiler flags, they are always used
@@ -21,7 +20,8 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 4.5.3
-CXXFLAGS +=  -g -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -pedantic -Wno-unused
+CXXFLAGS +=  -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -pedantic -Wno-unused
+#CXXFLAGS += -g -std=c++0x -W -Wall -pedantic -Wno-unused
 #CXXFLAGS +=  -g  -fopenmp -std=c++0x -W -Wall -pedantic -Wno-unused
 MATHFLAGS = -ffast-math
 LDFLAGS =
@@ -48,11 +48,13 @@ LIB_SILO = -L$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION
 #INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg-new
 
 #DCCRG version with reduced neighbourhood. Might not be up-to-date
-INC_DCCRG = -I$(LIBRARY_PREFIX_B)/dccrg-new
+#INC_DCCRG = -I$(LIBRARY_PREFIX_B)/dccrg-new
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg-2012-05-15/
 
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX_B)/phiprof/lib -lphiprof
 INC_PROFILE = -I$(LIBRARY_PREFIX_B)/phiprof/include
+
 
 
 
