@@ -34,8 +34,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
  * schemes for magnetohydrodynamics, D. S. Balsara, J. Comp. Phys.,
  * 228, 5040-5056, 2009.
  * http://dx.doi.org/10.1016/j.jcp.2009.03.038
- * *****                                                     *****
- * *****  NOTATION USED FOR VARIABLES FOLLOWS THE ONES USED  *****
+ * 
+ * *****  NOTATION USED FOR VARIABLES FOLLOWS THE ONES USED  *****\n
  * *****      IN THE ABOVEMENTIONED PUBLICATION(S)           *****
  */
 
@@ -115,9 +115,9 @@ const Real TWO     = 2.0;
 const Real ZERO    = 0.0;
 
 /*! Steps in the Runge-Kutta methods */
-enum {RK_ORDER1,     	/*! First order method, one step (and initialisation) */
-      RK_ORDER2_STEP1,	/*! Two-step second order method, first step */
-      RK_ORDER2_STEP2	/*! Two-step second order method, second step */
+enum {RK_ORDER1,     	/*!< First order method, one step (and initialisation) */
+      RK_ORDER2_STEP1,	/*!< Two-step second order method, first step */
+      RK_ORDER2_STEP2	/*!< Two-step second order method, second step */
 };
 
 void calculateDerivativesSimple(dccrg::Dccrg<SpatialCell>& mpiGrid,const vector<CellID>& localCells, cint& RKCase);
@@ -1324,10 +1324,8 @@ bool initializeFieldPropagatorAfterRebalance(
  */
 bool initializeFieldPropagator(
 	dccrg::Dccrg<SpatialCell>& mpiGrid,
-        bool propagateFields
+        bool doPropagateFields
 ) {
-   fieldsArePropagated = propagateFields;
-   
    vector<uint64_t> localCells = mpiGrid.get_cells();
 
    calculateBoundaryFlags(mpiGrid,localCells);
@@ -1341,7 +1339,7 @@ bool initializeFieldPropagator(
    // parallel grid, i.e. using if-statements is likely to be much 
    // slower.
 
-   if (fieldsArePropagated == true) {
+   if (doPropagateFields == true) {
       // x-derivatives are calculated if x-face neighbours exist:
       CALCULATE_DX = 0;
       CALCULATE_DX = CALCULATE_DX | (1 << calcNbrNumber(0,1,1));
