@@ -83,6 +83,9 @@ struct Parameters {
    static bool propagateVlasov;     /**< If true, distribution function is propagated during the simulation.*/
    static uint splitMethod;          /**< Split method for splitting spatial/velocity space solvers. 0: first order, 1: strang splitting with half-steps for spatial space, 2: strang splitting with half-steps for velocity space **/
    static bool periodic_x, periodic_y, periodic_z; /**< Whether spatial vlasov grid is periodic */
+   
+   static Real RK_alpha; /**< Parameter of the second-order Runge-Kutta method employed in the field solver. **/
+   
    static Real sparseMinValue; /**< Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents */
    static Real sparseMinAvgValue; /**< Minimum value of the average of distribution function within a velocity block for the block to be considered to have contents */
    static uint blockAdjustmentInterval; /**< Block adjustment interval (steps). */

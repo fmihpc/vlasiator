@@ -16,6 +16,11 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
+/*! \file limiters.h
+ * Definitions of the limiter functions used in the field solver.
+ * The three-point limiter functions are minmod, MC, superbee and vanLeer. Their helper functions are the two-point minmod and the sign function.
+ */
+
 #ifndef LIMITERS_H
 #define LIMITERS_H
 

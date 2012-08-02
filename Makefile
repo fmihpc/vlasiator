@@ -29,8 +29,12 @@ CXXFLAGS += -DNDEBUG
 #Add -DCATCH_FPE to catch floating point exceptions and stop execution
 CXXFLAGS += -DCATCH_FPE
 
+#Add -DFS_1ST_ORDER_SPACE or -DFS_1ST_ORDER_TIME to make the field solver first-order in space or time
+# CXXFLAGS += -DFS_1ST_ORDER_SPACE
+# CXXFLAGS += -DFS_1ST_ORDER_TIME
+
 #DCCRG defines, it should use the user provided mpi datatype mode
-CXXFLAGS += -DDCCRG_SEND_SINGLE_CELLS -DDCCRG_CELL_DATA_SIZE_FROM_USER  -DDCCRG_USER_MPI_DATA_TYPE
+CXXFLAGS += -DDCCRG_CELL_DATA_SIZE_FROM_USER  -DDCCRG_USER_MPI_DATA_TYPE -DDCCRG_SEND_SINGLE_CELLS
 
 
 #//////////////////////////////////////////////////////

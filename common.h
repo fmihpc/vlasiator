@@ -102,6 +102,16 @@ namespace CellParams {
       RHOVX,   /**< x-component of number density times Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOVY,   /**< y-component of number density times Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOVZ,   /**< z-component of number density times Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      EX1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
+      EY1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
+      EZ1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
+      BX1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
+      BY1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
+      BZ1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
+      RHO1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
+      RHOVX1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
+      RHOVY1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
+      RHOVZ1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
       BXFACEX, /**< Bx averaged over x-face. Used to propagate distribution function.*/
       BYFACEX, /**< By averaged over x-face. Used to propagate distribution function.*/
       BZFACEX, /**< Bz averaged over x-face. Used to propagate distribution function.*/

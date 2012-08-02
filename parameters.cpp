@@ -91,6 +91,8 @@ bool P::periodic_x = false;
 bool P::periodic_y = false;
 bool P::periodic_z = false;
 
+Real P::RK_alpha = NAN;
+
 Real P::sparseMinValue = NAN;
 Real P::sparseMinAvgValue = NAN;
 uint P::blockAdjustmentInterval = numeric_limits<uint>::max();
@@ -148,7 +150,10 @@ bool Parameters::addParameters(){
         Readparameters::add("gridbuilder.timestep_min","Timestep when grid is loaded. Defaults to value zero.",0);
         Readparameters::add("gridbuilder.timestep_max","Max. value for timesteps. If t_max limit is hit first, this step will never be reached",numeric_limits<uint>::max());
    
-   // Grid sparsity parameters
+	// Field solver parameters
+	Readparameters::add("LondrilloDelZanna.RK_alpha","Parameter of the second-order Runge-Kutta method used for the field solver (default: 1/2 => midpoint).", 0.5);
+	
+	// Grid sparsity parameters
         Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
         Readparameters::add("sparse.minAvgValue", "Minimum value of the average of distribution function within a velocity block for the block to be considered to have contents", 0);
         Readparameters::add("sparse.blockAdjustmentInterval", "Block adjustment interval (steps)", 1);
@@ -228,6 +233,9 @@ bool Parameters::getParameters(){
    P::q_per_m = P::q/P::m;
    P::t = P::t_min;
    P::tstep = P::tstep_min;
+   
+   // Get field solver parameters
+   Readparameters::get("LondrilloDelZanna.RK_alpha", P::RK_alpha);
    
    // Get sparsity parameters
    Readparameters::get("sparse.minValue", P::sparseMinValue);
