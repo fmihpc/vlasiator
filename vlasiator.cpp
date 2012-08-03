@@ -404,16 +404,8 @@ int main(int argn,char* args[]) {
                  phiprof::stop("First propagation",computedBlocks,"Blocks");
                  if(updateVelocityBlocksAfterAcceleration){
                     //need to do a update of block lists as all cells have made local changes
-                    phiprof::start("adjust");
-                    phiprof::start("barrier1");
-                    MPI_Barrier(MPI_COMM_WORLD);
-                    phiprof::stop("barrier1");
                     updateRemoteVelocityBlockLists(mpiGrid);
-                    phiprof::start("barrier2");
-                    MPI_Barrier(MPI_COMM_WORLD);
-                    phiprof::stop("barrier2");
                     adjustVelocityBlocks(mpiGrid);
-                    phiprof::stop("adjust");
                  }
                  phiprof::start("Second propagation");
                  calculateSpatialFluxes(mpiGrid,0.5*P::dt);
@@ -454,7 +446,7 @@ int main(int argn,char* args[]) {
                adjustVelocityBlocks(mpiGrid);
             }
          }
-	  
+         
          phiprof::stop("Propagate Vlasov",computedBlocks,"Blocks");
       }
       
