@@ -1327,7 +1327,9 @@ bool initializeFieldPropagator(
         bool doPropagateFields
 ) {
    vector<uint64_t> localCells = mpiGrid.get_cells();
-
+   
+   fieldsArePropagated = doPropagateFields; //set global variable
+   
    calculateBoundaryFlags(mpiGrid,localCells);
    
    // Calculate bit masks used for if-statements by field propagator. 
@@ -1339,7 +1341,7 @@ bool initializeFieldPropagator(
    // parallel grid, i.e. using if-statements is likely to be much 
    // slower.
 
-   if (doPropagateFields == true) {
+   if (fieldsArePropagated == true) {
       // x-derivatives are calculated if x-face neighbours exist:
       CALCULATE_DX = 0;
       CALCULATE_DX = CALCULATE_DX | (1 << calcNbrNumber(0,1,1));
