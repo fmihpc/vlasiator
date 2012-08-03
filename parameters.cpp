@@ -113,7 +113,7 @@ bool Parameters::addParameters(){
         
         Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
         Readparameters::add("propagate_vlasov","Propagate distribution functions during the simulation",true);
-        Readparameters::add("max_acceleration_substeps","Maximum number of  acceleration substeps that can be taken if the normal timestep exceeds maximum CFL limit. The default number of 1 disables substepping",1);
+        Readparameters::add("max_acceleration_substeps","Maximum number of  acceleration substeps that are allowed to be taken in acceleration. The default number of 1 disables substepping and the acceleration is always done in one step. A value of 0 has a special meaning, it activates unlimited substepping",1);
         Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limit (default)",true);
         
         Readparameters::add("split_method","Split method for splitting spatial/velocity space solvers. 0: first order, 1: strang splitting with half-steps for spatial space, 2: strang splitting with half-steps for velocity space",1);
