@@ -341,7 +341,7 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,
    typedef Parameters P;
    double t_init=MPI_Wtime();
 #ifndef SEMILAG
-   if(P::maxAccelerationSubsteps>1){
+   if(P::maxAccelerationSubsteps!=1){
       //substep acceleration until total dt is reached. dt should
       //be set such that the maximum number of substeps is not
       //exceeded. As the max dt is set separately for each substep,

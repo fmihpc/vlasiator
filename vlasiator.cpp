@@ -383,7 +383,7 @@ int main(int argn,char* args[]) {
 #ifdef SEMILAG
       updateVelocityBlocksAfterAcceleration=true;
 #endif
-      if(P::maxAccelerationSubsteps>1)
+      if(P::maxAccelerationSubsteps!=1)
          updateVelocityBlocksAfterAcceleration=true;
       
       phiprof::start("Propagate");
