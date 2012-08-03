@@ -27,7 +27,8 @@ CXXFLAGS += -DPROFILE
 CXXFLAGS += -DNDEBUG
 
 #Add -DCATCH_FPE to catch floating point exceptions and stop execution
-CXXFLAGS += -DCATCH_FPE
+#May cause problems
+#CXXFLAGS += -DCATCH_FPE
 
 #Add -DFS_1ST_ORDER_SPACE or -DFS_1ST_ORDER_TIME to make the field solver first-order in space or time
 # CXXFLAGS += -DFS_1ST_ORDER_SPACE
