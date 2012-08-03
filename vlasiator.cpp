@@ -326,7 +326,11 @@ int main(int argn,char* args[]) {
             //maximum number of substeps we are allowed to take. As
             //the length of each substep is unknown beforehand the
             //limit is not hard, it may be exceeded in some cases.
-            dtmax_global[1]*=P::maxAccelerationSubsteps;
+            // A value of 0 means that there is no limit on substepping
+            if(P::maxAccelerationSubsteps==0)
+               dtmax_global[1]=std::numeric_limits<Real>::max();
+            else
+               dtmax_global[1]*=P::maxAccelerationSubsteps;
 
             
             Real dtmax=std::numeric_limits<Real>::max();
