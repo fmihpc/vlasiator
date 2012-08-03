@@ -258,7 +258,23 @@ bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
 
 
 void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
-   // tell other processes which velocity blocks exist in remote spatial cells
+
+   //set weights based on each cells LB weight counter
+   vector<uint64_t> cells = mpiGrid.get_cells();
+   for (uint i=0; i<cells.size(); ++i){
+      if(P::maxAccelerationSubsteps>1) {
+         //use time-metric from solvers
+         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
+      }
+      else{
+         //No substepping in acceleration step, use number of blocks instead as metric as that provides slightly better results
+         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->number_of_blocks);
+      }
+      
+      mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]=0.0; //zero counter
+   }
+   
+// tell other processes which velocity blocks exist in remote spatial cells
    phiprof::initializeTimer("Balancing load", "Load balance");
    phiprof::start("Balancing load");
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_SIZE_AND_LIST);
@@ -667,7 +683,7 @@ bool adjust_local_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       }
 
       
-      mpiGrid.set_cell_weight(*cell_id, cell->number_of_blocks);
+
    }
    phiprof::stop("Set cell weight");
 

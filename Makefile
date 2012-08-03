@@ -30,6 +30,7 @@ CXXFLAGS += -DNDEBUG
 #May cause problems
 #CXXFLAGS += -DCATCH_FPE
 
+
 #Add -DFS_1ST_ORDER_SPACE or -DFS_1ST_ORDER_TIME to make the field solver first-order in space or time
 # CXXFLAGS += -DFS_1ST_ORDER_SPACE
 # CXXFLAGS += -DFS_1ST_ORDER_TIME
