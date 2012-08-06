@@ -114,48 +114,6 @@ namespace DRO {
       const Real* B;
    };
    
-   class VariableB_FACEX: public DataReductionOperator {
-   public:
-      VariableB_FACEX();
-      ~VariableB_FACEX();
-      
-      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      std::string getName() const;
-      bool reduceData(const SpatialCell* cell,char* buffer);
-      bool setSpatialCell(const SpatialCell* cell);
-      
-   protected:
-      const Real* B;
-   };
-   
-   class VariableB_FACEY: public DataReductionOperator {
-   public:
-      VariableB_FACEY();
-      ~VariableB_FACEY();
-      
-      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      std::string getName() const;
-      bool reduceData(const SpatialCell* cell,char* buffer);
-      bool setSpatialCell(const SpatialCell* cell);
-      
-   protected:
-      const Real* B;
-   };
-   
-   class VariableB_FACEZ: public DataReductionOperator {
-   public:
-      VariableB_FACEZ();
-      ~VariableB_FACEZ();
-      
-      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      std::string getName() const;
-      bool reduceData(const SpatialCell* cell,char* buffer);
-      bool setSpatialCell(const SpatialCell* cell);
-      
-   protected:
-      const Real* B;
-   };
-   
    class VariableE: public DataReductionOperator {
     public:
       VariableE();

@@ -231,7 +231,7 @@ bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
             creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
             creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
             cell.set_value(vx_cell_center,vy_cell_center,vz_cell_center,average);
-            // Add contr   ibutions to spatial cell velocity moments:
+            // Add contributions to spatial cell velocity moments:
             creal dV = dvx_blockCell*dvy_blockCell*dvz_blockCell;  // Volume of one cell in a block      
             cell.parameters[CellParams::RHO  ] += average*dV;
             cell.parameters[CellParams::RHOVX] += average*vx_cell_center*dV;
@@ -316,7 +316,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    }
 
       // Initialize field propagator:
-   if (initializeFieldPropagatorAfterRebalance(mpiGrid,P::propagateField) == false) {
+   if (initializeFieldPropagatorAfterRebalance(mpiGrid) == false) {
        logfile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
        exit(1);
    }

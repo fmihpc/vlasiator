@@ -53,12 +53,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 outputReducer->addOperator(new DRO::VariableVolE);
       if(*it == "VolB")
 	 outputReducer->addOperator(new DRO::VariableVolB);
-      if(*it == "B_FACEX")
-	 outputReducer->addOperator(new DRO::VariableB_FACEX);
-      if(*it == "B_FACEY")
-	 outputReducer->addOperator(new DRO::VariableB_FACEY);
-      if(*it == "B_FACEZ")
-	 outputReducer->addOperator(new DRO::VariableB_FACEZ);
       if(*it == "Pressure")
 	 outputReducer->addOperator(new DRO::VariablePressure);
       if(*it == "PTensor") {

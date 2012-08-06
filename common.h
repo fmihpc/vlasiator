@@ -112,24 +112,6 @@ namespace CellParams {
       RHOVX1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
       RHOVY1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
       RHOVZ1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
-      BXFACEX, /**< Bx averaged over x-face. Used to propagate distribution function.*/
-      BYFACEX, /**< By averaged over x-face. Used to propagate distribution function.*/
-      BZFACEX, /**< Bz averaged over x-face. Used to propagate distribution function.*/
-      BXFACEY, /**< Bx averaged over y-face. Used to propagate distribution function.*/
-      BYFACEY, /**< By averaged over y-face. Used to propagate distribution function.*/
-      BZFACEY, /**< Bz averaged over y-face. Used to propagate distribution function.*/
-      BXFACEZ, /**< Bx averaged over z-face. Used to propagate distribution function.*/
-      BYFACEZ, /**< By averaged over z-face. Used to propagate distribution function.*/
-      BZFACEZ, /**< Bz averaged over z-face. Used to propagate distribution function.*/
-      EXFACEX, /**< Ex averaged over x-face. Used to propagate distribution function.*/
-      EYFACEX, /**< Ey averaged over x-face. Used to propagate distribution function.*/
-      EZFACEX, /**< Ez averaged over x-face. Used to propagate distribution function.*/
-      EXFACEY, /**< Ex averaged over y-face. Used to propagate distribution function.*/
-      EYFACEY, /**< Ey averaged over y-face. Used to propagate distribution function.*/
-      EZFACEY, /**< Ez averaged over y-face. Used to propagate distribution function.*/
-      EXFACEZ, /**< Ex averaged over z-face. Used to propagate distribution function.*/
-      EYFACEZ, /**< Ey averaged over z-face. Used to propagate distribution function.*/
-      EZFACEZ, /**< Ez averaged over z-face. Used to propagate distribution function.*/
       BXVOL,   /**< Bx averaged over spatial cell.*/
       BYVOL,   /**< By averaged over spatial cell.*/
       BZVOL,   /**< Bz averaged over spatial cell.*/
@@ -138,15 +120,9 @@ namespace CellParams {
       EZVOL,   /**< Ez averaged over spatial cell.*/
 
       // Constant background versions of variables above
-      BXFACEX0,
-      BYFACEX0,
-      BZFACEX0,
-      BXFACEY0,
-      BYFACEY0,
-      BZFACEY0,
-      BXFACEZ0,
-      BYFACEZ0,
-      BZFACEZ0,
+      BX0,
+      BY0,
+      BZ0,
       BXVOL0,
       BYVOL0,
       BZVOL0,

@@ -158,26 +158,17 @@ void calcCellParameters(Real* cellParams,creal& t) {
    srand(cellID);
 
    // default initial values
-   cellParams[CellParams::EX   ] = 0.0;
-   cellParams[CellParams::EY   ] = 0.0;
-   cellParams[CellParams::EZ   ] = 0.0;
-   cellParams[CellParams::BX   ] = 0.0;
-   cellParams[CellParams::BY   ] = 0.0;
-   cellParams[CellParams::BZ   ] = 0.0;
-   cellParams[CellParams::BXFACEX0] = 0;
-   cellParams[CellParams::BYFACEX0] = 0;
-   cellParams[CellParams::BZFACEX0] = 0;
-   cellParams[CellParams::BXFACEY0] = 0;
-   cellParams[CellParams::BYFACEY0] = 0;
-   cellParams[CellParams::BZFACEY0] = 0;
-   cellParams[CellParams::BXFACEZ0] = 0;
-   cellParams[CellParams::BYFACEZ0] = 0;
-   cellParams[CellParams::BZFACEZ0] = 0;
-
+   cellParams[CellParams::EX] = 0.0;
+   cellParams[CellParams::EY] = 0.0;
+   cellParams[CellParams::EZ] = 0.0;
+   cellParams[CellParams::BX] = 0.0;
+   cellParams[CellParams::BY] = 0.0;
+   cellParams[CellParams::BZ] = 0.0;
+   
    // user supplied initial values
-   cellParams[CellParams::BXFACEX0] = FlucP::BX0;
-   cellParams[CellParams::BYFACEY0] = FlucP::BY0;
-   cellParams[CellParams::BZFACEZ0] = FlucP::BZ0;
+   cellParams[CellParams::BX0] = FlucP::BX0;
+   cellParams[CellParams::BY0] = FlucP::BY0;
+   cellParams[CellParams::BZ0] = FlucP::BZ0;
 #pragma omp critical
    {
       //critical region since srand not thread-safe. A nicer fix would be to use a thread-safe rng

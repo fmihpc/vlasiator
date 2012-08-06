@@ -96,15 +96,9 @@ void calcCellParameters(Real* cellParams,creal& t) {
    cellParams[CellParams::BX   ] = 0.0;
    cellParams[CellParams::BY   ] = 0.0;
    cellParams[CellParams::BZ   ] = 0.0;
-   cellParams[CellParams::BXFACEX0] = 0;
-   cellParams[CellParams::BYFACEX0] = 0;
-   cellParams[CellParams::BZFACEX0] = 0;
-   cellParams[CellParams::BXFACEY0] = 0;
-   cellParams[CellParams::BYFACEY0] = 0;
-   cellParams[CellParams::BZFACEY0] = 0;
-   cellParams[CellParams::BXFACEZ0] = 0;
-   cellParams[CellParams::BYFACEZ0] = 0;
-   cellParams[CellParams::BZFACEZ0] = 0;
+   cellParams[CellParams::BX0] = 0;
+   cellParams[CellParams::BY0] = 0;
+   cellParams[CellParams::BZ0] = 0;
    
    typedef Parameters P;
    creal x = cellParams[CellParams::XCRD] + 0.5 * cellParams[CellParams::DX];
@@ -119,19 +113,19 @@ void calcCellParameters(Real* cellParams,creal& t) {
       if (y >= -0.2 && y <= 0.2)
 	if (z >= -0.2 && z <= 0.2)
 	  cellParams[CellParams::BX] = B1;
-	  cellParams[CellParams::BXFACEX0] = B0;
+	  cellParams[CellParams::BX0] = B0;
       break;
     case BYCASE:
       if (x >= -0.2 && x <= 0.2)
 	if (z >= -0.2 && z <= 0.2)
 	  cellParams[CellParams::BY] = B1;
-	  cellParams[CellParams::BYFACEY0] = B0;
+	  cellParams[CellParams::BY0] = B0;
       break;
     case BZCASE:
       if (x >= -0.2 && x <= 0.2)
 	if (y >= -0.2 && y <= 0.2)
 	  cellParams[CellParams::BZ] = B1;
-	  cellParams[CellParams::BZFACEZ0] = B0;
+	  cellParams[CellParams::BZ0] = B0;
       break;
    }
 }

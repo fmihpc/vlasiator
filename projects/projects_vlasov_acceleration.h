@@ -47,22 +47,6 @@ template<typename UINT,typename REAL> void lorentzForceFaceZ(REAL& ax,REAL& ay,R
  * @param cellParams Array containing spatial cell parameters.
  * @param blockParams Array containing velocity block parameters.
  */
-/* YK
-template<typename UINT,typename REAL> void lorentzForceFaceX(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
-							const REAL* const cellParams,const REAL* const blockParams) {
-   const REAL VX = blockParams[BlockParams::VXCRD] + I*blockParams[BlockParams::DVX];
-   const REAL VY = blockParams[BlockParams::VYCRD] + (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
-   const REAL VZ = blockParams[BlockParams::VZCRD] + (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
-   const REAL EX = cellParams[CellParams::EXFACEX];
-   const REAL EY = cellParams[CellParams::EYFACEX];
-   const REAL EZ = cellParams[CellParams::EZFACEX];
-   const REAL BX = cellParams[CellParams::BXFACEX];
-   const REAL BY = cellParams[CellParams::BYFACEX];
-   const REAL BZ = cellParams[CellParams::BZFACEX];
-   ax = Parameters::q_per_m*(EX + VY*BZ - VZ*BY);
-   ay = Parameters::q_per_m*(EY + VZ*BX - VX*BZ);
-   az = Parameters::q_per_m*(EZ + VX*BY - VY*BX);
-}*/
 template<typename UINT,typename REAL> void lorentzForceFaceX(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
 							     const REAL* const cellParams,const REAL* const blockParams) {
   const REAL VX = blockParams[BlockParams::VXCRD] + I*blockParams[BlockParams::DVX];
@@ -90,22 +74,6 @@ template<typename UINT,typename REAL> void lorentzForceFaceX(REAL& ax,REAL& ay,R
  * @param cellParams Array containing spatial cell parameters.
  * @param blockParams Array containing velocity block parameters.
  */
-/* YK
-template<typename UINT,typename REAL> void lorentzForceFaceY(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
-							const REAL* const cellParams,const REAL* const blockParams) {
-   const REAL VX = blockParams[BlockParams::VXCRD] + (I+convert<REAL>(0.5))*blockParams[BlockParams::DVX];
-   const REAL VY = blockParams[BlockParams::VYCRD] + J*blockParams[BlockParams::DVY];
-   const REAL VZ = blockParams[BlockParams::VZCRD] + (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
-   const REAL EX = cellParams[CellParams::EXFACEY];
-   const REAL EY = cellParams[CellParams::EYFACEY];
-   const REAL EZ = cellParams[CellParams::EZFACEY];
-   const REAL BX = cellParams[CellParams::BXFACEY];
-   const REAL BY = cellParams[CellParams::BYFACEY];
-   const REAL BZ = cellParams[CellParams::BZFACEY];
-   ax = Parameters::q_per_m*(EX + VY*BZ - VZ*BY);
-   ay = Parameters::q_per_m*(EY + VZ*BX - VX*BZ);
-   az = Parameters::q_per_m*(EZ + VX*BY - VY*BX);
-}*/
 template<typename UINT,typename REAL> void lorentzForceFaceY(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
 							     const REAL* const cellParams,const REAL* const blockParams) {
   const REAL VX = blockParams[BlockParams::VXCRD] + (I+convert<REAL>(0.5))*blockParams[BlockParams::DVX];
@@ -133,22 +101,6 @@ template<typename UINT,typename REAL> void lorentzForceFaceY(REAL& ax,REAL& ay,R
  * @param cellParams Array containing spatial cell parameters.
  * @param blockParams Array containing velocity block parameters.
  */
-/* YK
-template<typename UINT,typename REAL> void lorentzForceFaceZ(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
-							const REAL* const cellParams,const REAL* const blockParams) {
-   const REAL VX = blockParams[BlockParams::VXCRD] + (I+convert<REAL>(0.5))*blockParams[BlockParams::DVX];
-   const REAL VY = blockParams[BlockParams::VYCRD] + (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
-   const REAL VZ = blockParams[BlockParams::VZCRD] + K*blockParams[BlockParams::DVZ];
-   const REAL EX = cellParams[CellParams::EXFACEZ];
-   const REAL EY = cellParams[CellParams::EYFACEZ];
-   const REAL EZ = cellParams[CellParams::EZFACEZ];
-   const REAL BX = cellParams[CellParams::BXFACEZ];
-   const REAL BY = cellParams[CellParams::BYFACEZ];
-   const REAL BZ = cellParams[CellParams::BZFACEZ];
-   ax = Parameters::q_per_m*(EX + VY*BZ - VZ*BY);
-   ay = Parameters::q_per_m*(EY + VZ*BX - VX*BZ);
-   az = Parameters::q_per_m*(EZ + VX*BY - VY*BX);
-}*/
 template<typename UINT,typename REAL> void lorentzForceFaceZ(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
 							     const REAL* const cellParams,const REAL* const blockParams) {
   const REAL VX = blockParams[BlockParams::VXCRD] + (I+convert<REAL>(0.5))*blockParams[BlockParams::DVX];

@@ -64,26 +64,28 @@ static creal EPS = 1.0e-30;
 
 static set<CellID> ghostCells;
 
-static map<CellID,uint> boundaryFlags;        // Boundary status flags for all cells on this process. Here "boundary cell" 
-                                              // means that the cell is at the physical boundary of the simulation volume, 
-					      // in some cases this condition means that this cell is a "ghost cell". However, 
-					      // this is algorithm-dependent, so one must be careful with ghost cell definition.
-					      // 
-					      // Consider a cell and its immediate neighbours (26 in total), i.e. a 3x3 cube 
-					      // of cells at base grid level. Considered cell is at the center of the cube. 
-					      // Number the cells with the usual C array numbering, k*9+j*3+i, where i,j,k 
-					      // are the cell indices in x,y,z directions. Each existing cell within the 
-					      // 3x3 cube has its bit (calculated with C array indexing) flipped to value 1.
-					      // The bit 13 is always set to unit value (considered cell always exists).
-					      // 
-					      // These boundary flags can be used to determine whether a numerical algorithm 
-					      // should be applied to a cell, for example, to calculate an edge electric field.
-					      // The boundary status can be checked with a single bitwise operation instead of 
-					      // N if-statements.
-					      // 
-					      // Note that this definition works with mesh refinement. The boundary flag 
-					      // should only change for a cell if some of its neighbours are deleted or 
-					      // created during the simulation.
+static map<CellID,uint> boundaryFlags;
+/*!< Boundary status flags for all cells on this process. Here "boundary cell" 
+ * means that the cell is at the physical boundary of the simulation volume, 
+ * in some cases this condition means that this cell is a "ghost cell". However, 
+ * this is algorithm-dependent, so one must be careful with ghost cell definition.
+ * 
+ * Consider a cell and its immediate neighbours (26 in total), i.e. a 3x3 cube 
+ * of cells at base grid level. Considered cell is at the center of the cube. 
+ * Number the cells with the usual C array numbering, k*9+j*3+i, where i,j,k 
+ * are the cell indices in x,y,z directions. Each existing cell within the 
+ * 3x3 cube has its bit (calculated with C array indexing) flipped to value 1.
+ * The bit 13 is always set to unit value (considered cell always exists).
+ * 
+ * These boundary flags can be used to determine whether a numerical algorithm 
+ * should be applied to a cell, for example, to calculate an edge electric field.
+ * The boundary status can be checked with a single bitwise operation instead of 
+ * N if-statements.
+ * 
+ * Note that this definition works with mesh refinement. The boundary flag 
+ * should only change for a cell if some of its neighbours are deleted or 
+ * created during the simulation.
+ */
 
 
 static uint CALCULATE_DX = 0; /**< Bit mask determining if x-derivatives can be calculated on a cell.*/
@@ -95,10 +97,6 @@ static uint CALCULATE_EZ = 0; /**< Bit mask determining if edge Ez can be calcul
 static uint PROPAGATE_BX = 0; /**< Bit mask determining if face Bx is propagated on a cell.*/
 static uint PROPAGATE_BY = 0; /**< Bit mask determining if face By is propagated on a cell.*/
 static uint PROPAGATE_BZ = 0; /**< Bit mask determining if face Bz is propagated on a cell.*/
-
-static bool fieldsArePropagated = false; /**< If true, E and B fields are propagated by the field solver. 
-					  * If false, user has set correct volume-averaged E,B field values to cellParams arrays.
-					  * In the latter case field solver should not do anything.*/
 
 // Constants: not needed as such, but if field solver is implemented on GPUs 
 // these force CPU to use float accuracy, which in turn helps to compare 
@@ -253,7 +251,7 @@ static void calculateDerivatives(
       rght = mpiGrid[rghtNbrID]->parameters;
       #ifdef DEBUG_SOLVERS
       if (rght[cp::RHO] <= 0) {
-	 std::cerr << __FILE__ << ":" << __LINE__
+         std::cerr << __FILE__ << ":" << __LINE__
             << (rght[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << rghtNbrID
             << std::endl;
          abort();
@@ -261,20 +259,20 @@ static void calculateDerivatives(
       #endif
 
       if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-	 array[fs::drhodx] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
-	 array[fs::dVxdx]  = limiter(left[cp::RHOVX]/left[cp::RHO],cent[cp::RHOVX]/cent[cp::RHO],rght[cp::RHOVX]/rght[cp::RHO]);
-	 array[fs::dVydx]  = limiter(left[cp::RHOVY]/left[cp::RHO],cent[cp::RHOVY]/cent[cp::RHO],rght[cp::RHOVY]/rght[cp::RHO]);
-	 array[fs::dVzdx]  = limiter(left[cp::RHOVZ]/left[cp::RHO],cent[cp::RHOVZ]/cent[cp::RHO],rght[cp::RHOVZ]/rght[cp::RHO]);
-	 array[fs::dBydx]  = limiter(left[cp::BY], cent[cp::BY], rght[cp::BY]);
-	 array[fs::dBzdx]  = limiter(left[cp::BZ], cent[cp::BZ], rght[cp::BZ]);
+         array[fs::drhodx] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
+         array[fs::dVxdx]  = limiter(left[cp::RHOVX]/left[cp::RHO],cent[cp::RHOVX]/cent[cp::RHO],rght[cp::RHOVX]/rght[cp::RHO]);
+         array[fs::dVydx]  = limiter(left[cp::RHOVY]/left[cp::RHO],cent[cp::RHOVY]/cent[cp::RHO],rght[cp::RHOVY]/rght[cp::RHO]);
+         array[fs::dVzdx]  = limiter(left[cp::RHOVZ]/left[cp::RHO],cent[cp::RHOVZ]/cent[cp::RHO],rght[cp::RHOVZ]/rght[cp::RHO]);
+         array[fs::dBydx]  = limiter(left[cp::BY], cent[cp::BY], rght[cp::BY]);
+         array[fs::dBzdx]  = limiter(left[cp::BZ], cent[cp::BZ], rght[cp::BZ]);
       }
       if (RKCase == RK_ORDER2_STEP1) {
-	 array[fs::drhodx] = limiter(left[cp::RHO1],cent[cp::RHO1],rght[cp::RHO1]);
-	 array[fs::dVxdx]  = limiter(left[cp::RHOVX1]/left[cp::RHO1],cent[cp::RHOVX1]/cent[cp::RHO1],rght[cp::RHOVX1]/rght[cp::RHO1]);
-	 array[fs::dVydx]  = limiter(left[cp::RHOVY1]/left[cp::RHO1],cent[cp::RHOVY1]/cent[cp::RHO1],rght[cp::RHOVY1]/rght[cp::RHO1]);
-	 array[fs::dVzdx]  = limiter(left[cp::RHOVZ1]/left[cp::RHO1],cent[cp::RHOVZ1]/cent[cp::RHO1],rght[cp::RHOVZ1]/rght[cp::RHO1]);
-	 array[fs::dBydx]  = limiter(left[cp::BY1], cent[cp::BY1], rght[cp::BY1]);
-	 array[fs::dBzdx]  = limiter(left[cp::BZ1], cent[cp::BZ1], rght[cp::BZ1]);
+         array[fs::drhodx] = limiter(left[cp::RHO1],cent[cp::RHO1],rght[cp::RHO1]);
+         array[fs::dVxdx]  = limiter(left[cp::RHOVX1]/left[cp::RHO1],cent[cp::RHOVX1]/cent[cp::RHO1],rght[cp::RHOVX1]/rght[cp::RHO1]);
+         array[fs::dVydx]  = limiter(left[cp::RHOVY1]/left[cp::RHO1],cent[cp::RHOVY1]/cent[cp::RHO1],rght[cp::RHOVY1]/rght[cp::RHO1]);
+         array[fs::dVzdx]  = limiter(left[cp::RHOVZ1]/left[cp::RHO1],cent[cp::RHOVZ1]/cent[cp::RHO1],rght[cp::RHOVZ1]/rght[cp::RHO1]);
+         array[fs::dBydx]  = limiter(left[cp::BY1], cent[cp::BY1], rght[cp::BY1]);
+         array[fs::dBzdx]  = limiter(left[cp::BZ1], cent[cp::BZ1], rght[cp::BZ1]);
       }
    } else {
       fieldSolverBoundaryCondDerivX(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid);
@@ -307,20 +305,20 @@ static void calculateDerivatives(
       #endif
 
       if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-	 array[fs::drhody] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
-	 array[fs::dVxdy]  = limiter(left[cp::RHOVX]/left[cp::RHO],cent[cp::RHOVX]/cent[cp::RHO],rght[cp::RHOVX]/rght[cp::RHO]);
-	 array[fs::dVydy]  = limiter(left[cp::RHOVY]/left[cp::RHO],cent[cp::RHOVY]/cent[cp::RHO],rght[cp::RHOVY]/rght[cp::RHO]);
-	 array[fs::dVzdy]  = limiter(left[cp::RHOVZ]/left[cp::RHO],cent[cp::RHOVZ]/cent[cp::RHO],rght[cp::RHOVZ]/rght[cp::RHO]);
-	 array[fs::dBxdy]  = limiter(left[cp::BX], cent[cp::BX], rght[cp::BX]);
-	 array[fs::dBzdy]  = limiter(left[cp::BZ], cent[cp::BZ], rght[cp::BZ]);
+         array[fs::drhody] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
+         array[fs::dVxdy]  = limiter(left[cp::RHOVX]/left[cp::RHO],cent[cp::RHOVX]/cent[cp::RHO],rght[cp::RHOVX]/rght[cp::RHO]);
+         array[fs::dVydy]  = limiter(left[cp::RHOVY]/left[cp::RHO],cent[cp::RHOVY]/cent[cp::RHO],rght[cp::RHOVY]/rght[cp::RHO]);
+         array[fs::dVzdy]  = limiter(left[cp::RHOVZ]/left[cp::RHO],cent[cp::RHOVZ]/cent[cp::RHO],rght[cp::RHOVZ]/rght[cp::RHO]);
+         array[fs::dBxdy]  = limiter(left[cp::BX], cent[cp::BX], rght[cp::BX]);
+         array[fs::dBzdy]  = limiter(left[cp::BZ], cent[cp::BZ], rght[cp::BZ]);
       }
       if (RKCase == RK_ORDER2_STEP1) {
-	 array[fs::drhody] = limiter(left[cp::RHO1],cent[cp::RHO1],rght[cp::RHO1]);
-	 array[fs::dVxdy]  = limiter(left[cp::RHOVX1]/left[cp::RHO1],cent[cp::RHOVX1]/cent[cp::RHO1],rght[cp::RHOVX1]/rght[cp::RHO1]);
-	 array[fs::dVydy]  = limiter(left[cp::RHOVY1]/left[cp::RHO1],cent[cp::RHOVY1]/cent[cp::RHO1],rght[cp::RHOVY1]/rght[cp::RHO1]);
-	 array[fs::dVzdy]  = limiter(left[cp::RHOVZ1]/left[cp::RHO1],cent[cp::RHOVZ1]/cent[cp::RHO1],rght[cp::RHOVZ1]/rght[cp::RHO1]);
-	 array[fs::dBxdy]  = limiter(left[cp::BX1], cent[cp::BX1], rght[cp::BX1]);
-	 array[fs::dBzdy]  = limiter(left[cp::BZ1], cent[cp::BZ1], rght[cp::BZ1]);
+         array[fs::drhody] = limiter(left[cp::RHO1],cent[cp::RHO1],rght[cp::RHO1]);
+         array[fs::dVxdy]  = limiter(left[cp::RHOVX1]/left[cp::RHO1],cent[cp::RHOVX1]/cent[cp::RHO1],rght[cp::RHOVX1]/rght[cp::RHO1]);
+         array[fs::dVydy]  = limiter(left[cp::RHOVY1]/left[cp::RHO1],cent[cp::RHOVY1]/cent[cp::RHO1],rght[cp::RHOVY1]/rght[cp::RHO1]);
+         array[fs::dVzdy]  = limiter(left[cp::RHOVZ1]/left[cp::RHO1],cent[cp::RHOVZ1]/cent[cp::RHO1],rght[cp::RHOVZ1]/rght[cp::RHO1]);
+         array[fs::dBxdy]  = limiter(left[cp::BX1], cent[cp::BX1], rght[cp::BX1]);
+         array[fs::dBzdy]  = limiter(left[cp::BZ1], cent[cp::BZ1], rght[cp::BZ1]);
       }
    } else {
       fieldSolverBoundaryCondDerivY(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid);
@@ -350,20 +348,20 @@ static void calculateDerivatives(
       #endif
 
       if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-	 array[fs::drhodz] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
-	 array[fs::dVxdz]  = limiter(left[cp::RHOVX]/left[cp::RHO],cent[cp::RHOVX]/cent[cp::RHO],rght[cp::RHOVX]/rght[cp::RHO]);
-	 array[fs::dVydz]  = limiter(left[cp::RHOVY]/left[cp::RHO],cent[cp::RHOVY]/cent[cp::RHO],rght[cp::RHOVY]/rght[cp::RHO]);
-	 array[fs::dVzdz]  = limiter(left[cp::RHOVZ]/left[cp::RHO],cent[cp::RHOVZ]/cent[cp::RHO],rght[cp::RHOVZ]/rght[cp::RHO]);
-	 array[fs::dBxdz]  = limiter(left[cp::BX], cent[cp::BX], rght[cp::BX]);
-	 array[fs::dBydz]  = limiter(left[cp::BY], cent[cp::BY], rght[cp::BY]);
+         array[fs::drhodz] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
+         array[fs::dVxdz]  = limiter(left[cp::RHOVX]/left[cp::RHO],cent[cp::RHOVX]/cent[cp::RHO],rght[cp::RHOVX]/rght[cp::RHO]);
+         array[fs::dVydz]  = limiter(left[cp::RHOVY]/left[cp::RHO],cent[cp::RHOVY]/cent[cp::RHO],rght[cp::RHOVY]/rght[cp::RHO]);
+         array[fs::dVzdz]  = limiter(left[cp::RHOVZ]/left[cp::RHO],cent[cp::RHOVZ]/cent[cp::RHO],rght[cp::RHOVZ]/rght[cp::RHO]);
+         array[fs::dBxdz]  = limiter(left[cp::BX], cent[cp::BX], rght[cp::BX]);
+         array[fs::dBydz]  = limiter(left[cp::BY], cent[cp::BY], rght[cp::BY]);
       }
       if (RKCase == RK_ORDER2_STEP1) {
-	 array[fs::drhodz] = limiter(left[cp::RHO1],cent[cp::RHO1],rght[cp::RHO1]);
-	 array[fs::dVxdz]  = limiter(left[cp::RHOVX1]/left[cp::RHO1],cent[cp::RHOVX1]/cent[cp::RHO1],rght[cp::RHOVX1]/rght[cp::RHO1]);
-	 array[fs::dVydz]  = limiter(left[cp::RHOVY1]/left[cp::RHO1],cent[cp::RHOVY1]/cent[cp::RHO1],rght[cp::RHOVY1]/rght[cp::RHO1]);
-	 array[fs::dVzdz]  = limiter(left[cp::RHOVZ1]/left[cp::RHO1],cent[cp::RHOVZ1]/cent[cp::RHO1],rght[cp::RHOVZ1]/rght[cp::RHO1]);
-	 array[fs::dBxdz]  = limiter(left[cp::BX1], cent[cp::BX1], rght[cp::BX1]);
-	 array[fs::dBydz]  = limiter(left[cp::BY1], cent[cp::BY1], rght[cp::BY1]);
+         array[fs::drhodz] = limiter(left[cp::RHO1],cent[cp::RHO1],rght[cp::RHO1]);
+         array[fs::dVxdz]  = limiter(left[cp::RHOVX1]/left[cp::RHO1],cent[cp::RHOVX1]/cent[cp::RHO1],rght[cp::RHOVX1]/rght[cp::RHO1]);
+         array[fs::dVydz]  = limiter(left[cp::RHOVY1]/left[cp::RHO1],cent[cp::RHOVY1]/cent[cp::RHO1],rght[cp::RHOVY1]/rght[cp::RHO1]);
+         array[fs::dVzdz]  = limiter(left[cp::RHOVZ1]/left[cp::RHO1],cent[cp::RHOVZ1]/cent[cp::RHO1],rght[cp::RHOVZ1]/rght[cp::RHO1]);
+         array[fs::dBxdz]  = limiter(left[cp::BX1], cent[cp::BX1], rght[cp::BX1]);
+         array[fs::dBydz]  = limiter(left[cp::BY1], cent[cp::BY1], rght[cp::BY1]);
       }
    } else {
       fieldSolverBoundaryCondDerivZ(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid);
@@ -382,12 +380,12 @@ template<typename REAL> REAL calculateFastMSspeedYZ(const REAL* cp, const REAL* 
    namespace pc = physicalconstants;
    REAL A_0, A_X, rho;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      A_0  = HALF*(nbr_cp[CellParams::BX] + nbr_cp[CellParams::BXFACEX0] + cp[CellParams::BX] + cp[CellParams::BXFACEX0]);
-      A_X  = (nbr_cp[CellParams::BX] + nbr_cp[CellParams::BXFACEX0]) - (cp[CellParams::BX] + cp[CellParams::BXFACEX0]);
+      A_0  = HALF*(nbr_cp[CellParams::BX] + nbr_cp[CellParams::BX0] + cp[CellParams::BX] + cp[CellParams::BX0]);
+      A_X  = (nbr_cp[CellParams::BX] + nbr_cp[CellParams::BX0]) - (cp[CellParams::BX] + cp[CellParams::BX0]);
       rho = Parameters::m*(cp[CellParams::RHO] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz]);
    } else { // RKCase == RK_ORDER2_STEP1
-      A_0  = HALF*(nbr_cp[CellParams::BX1] + nbr_cp[CellParams::BXFACEX0] + cp[CellParams::BX1] + cp[CellParams::BXFACEX0]);
-      A_X  = (nbr_cp[CellParams::BX1] + nbr_cp[CellParams::BXFACEX0]) - (cp[CellParams::BX1] + cp[CellParams::BXFACEX0]);
+      A_0  = HALF*(nbr_cp[CellParams::BX1] + nbr_cp[CellParams::BX0] + cp[CellParams::BX1] + cp[CellParams::BX0]);
+      A_X  = (nbr_cp[CellParams::BX1] + nbr_cp[CellParams::BX0]) - (cp[CellParams::BX1] + cp[CellParams::BX0]);
       rho = Parameters::m*(cp[CellParams::RHO1] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz]);
    }
    const REAL A_Y  = nbr_derivs[fs::dBxdy]  + derivs[fs::dBxdy];
@@ -415,12 +413,12 @@ template<typename REAL> REAL calculateFastMSspeedXZ(const REAL* cp, const REAL* 
    namespace pc = physicalconstants;
    REAL B_0, B_Y, rho;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      B_0  = HALF*(nbr_cp[CellParams::BY] + nbr_cp[CellParams::BYFACEY0] + cp[CellParams::BY] + cp[CellParams::BYFACEY0]);
-      B_Y  = (nbr_cp[CellParams::BY] + nbr_cp[CellParams::BYFACEY0]) - (cp[CellParams::BY] + cp[CellParams::BYFACEY0]);
+      B_0  = HALF*(nbr_cp[CellParams::BY] + nbr_cp[CellParams::BY0] + cp[CellParams::BY] + cp[CellParams::BY0]);
+      B_Y  = (nbr_cp[CellParams::BY] + nbr_cp[CellParams::BY0]) - (cp[CellParams::BY] + cp[CellParams::BY0]);
       rho = Parameters::m*(cp[CellParams::RHO] + xdir*HALF*derivs[fs::drhodx] + zdir*HALF*derivs[fs::drhodz]);
    } else { // RKCase == RK_ORDER2_STEP1
-      B_0  = HALF*(nbr_cp[CellParams::BY1] + nbr_cp[CellParams::BYFACEY0] + cp[CellParams::BY1] + cp[CellParams::BYFACEY0]);
-      B_Y  = (nbr_cp[CellParams::BY1] + nbr_cp[CellParams::BYFACEY0]) - (cp[CellParams::BY1] + cp[CellParams::BYFACEY0]);
+      B_0  = HALF*(nbr_cp[CellParams::BY1] + nbr_cp[CellParams::BY0] + cp[CellParams::BY1] + cp[CellParams::BY0]);
+      B_Y  = (nbr_cp[CellParams::BY1] + nbr_cp[CellParams::BY0]) - (cp[CellParams::BY1] + cp[CellParams::BY0]);
       rho = Parameters::m*(cp[CellParams::RHO1] + xdir*HALF*derivs[fs::drhodx] + zdir*HALF*derivs[fs::drhodz]);
    }
    const REAL B_X  = nbr_derivs[fs::dBydx]  + derivs[fs::dBydx];
@@ -448,12 +446,12 @@ template<typename REAL> REAL calculateFastMSspeedXY(const REAL* cp, const REAL* 
    namespace pc = physicalconstants;
    REAL C_0, C_Z, rho;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      C_0  = HALF*(nbr_cp[CellParams::BZ] + nbr_cp[CellParams::BZFACEZ0] + cp[CellParams::BZ] + cp[CellParams::BZFACEZ0]);
-      C_Z  = (nbr_cp[CellParams::BZ] + nbr_cp[CellParams::BZFACEZ0]) - (cp[CellParams::BZ] + cp[CellParams::BZFACEZ0]);
+      C_0  = HALF*(nbr_cp[CellParams::BZ] + nbr_cp[CellParams::BZ0] + cp[CellParams::BZ] + cp[CellParams::BZ0]);
+      C_Z  = (nbr_cp[CellParams::BZ] + nbr_cp[CellParams::BZ0]) - (cp[CellParams::BZ] + cp[CellParams::BZ0]);
       rho = Parameters::m*(cp[CellParams::RHO] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody]);
    } else { // RKCase == RK_ORDER2_STEP1
-      C_0  = HALF*(nbr_cp[CellParams::BZ1] + nbr_cp[CellParams::BZFACEZ0] + cp[CellParams::BZ1] + cp[CellParams::BZFACEZ0]);
-      C_Z  = (nbr_cp[CellParams::BZ1] + nbr_cp[CellParams::BZFACEZ0]) - (cp[CellParams::BZ1] + cp[CellParams::BZFACEZ0]);
+      C_0  = HALF*(nbr_cp[CellParams::BZ1] + nbr_cp[CellParams::BZ0] + cp[CellParams::BZ1] + cp[CellParams::BZ0]);
+      C_Z  = (nbr_cp[CellParams::BZ1] + nbr_cp[CellParams::BZ0]) - (cp[CellParams::BZ1] + cp[CellParams::BZ0]);
       rho = Parameters::m*(cp[CellParams::RHO1] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody]);
    }
    const REAL C_X  = nbr_derivs[fs::dBzdx]  + derivs[fs::dBzdx];
@@ -624,8 +622,8 @@ static void calculateEdgeElectricFieldX(
       Vy0 = cp_NE[CellParams::RHOVY]/cp_NE[CellParams::RHO];
       Vz0 = cp_NE[CellParams::RHOVZ]/cp_NE[CellParams::RHO];
    } else { // RKCase == RK_ORDER2_STEP1
-	 Vy0 = cp_NE[CellParams::RHOVY1]/cp_NE[CellParams::RHO1];
-	 Vz0 = cp_NE[CellParams::RHOVZ1]/cp_NE[CellParams::RHO1];
+      Vy0 = cp_NE[CellParams::RHOVY1]/cp_NE[CellParams::RHO1];
+      Vz0 = cp_NE[CellParams::RHOVZ1]/cp_NE[CellParams::RHO1];
    }
    
    // 1st order terms:
@@ -654,25 +652,25 @@ static void calculateEdgeElectricFieldX(
       cp_SW[CellParams::EX]  = ay_pos*az_pos*Ex_NE + ay_pos*az_neg*Ex_SE + ay_neg*az_pos*Ex_NW + ay_neg*az_neg*Ex_SW;
       cp_SW[CellParams::EX] /= ((ay_pos+ay_neg)*(az_pos+az_neg)+EPS);
       #ifdef FS_1ST_ORDER_SPACE
-	 // 1st order diffusive terms:
-	 cp_SW[CellParams::EX] -= az_pos*az_neg/(az_pos+az_neg+EPS)*(By_S-By_N);
-	 cp_SW[CellParams::EX] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bz_W-Bz_E);
+      // 1st order diffusive terms:
+      cp_SW[CellParams::EX] -= az_pos*az_neg/(az_pos+az_neg+EPS)*(By_S-By_N);
+      cp_SW[CellParams::EX] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bz_W-Bz_E);
       #else
-	 // 2nd order diffusive terms
-	 cp_SW[CellParams::EX] -= az_pos*az_neg/(az_pos+az_neg+EPS)*((By_S-HALF*dBydz_S) - (By_N+HALF*dBydz_N));
-	 cp_SW[CellParams::EX] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bz_W-HALF*dBzdy_W) - (Bz_E+HALF*dBzdy_E));
+      // 2nd order diffusive terms
+      cp_SW[CellParams::EX] -= az_pos*az_neg/(az_pos+az_neg+EPS)*((By_S-HALF*dBydz_S) - (By_N+HALF*dBydz_N));
+      cp_SW[CellParams::EX] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bz_W-HALF*dBzdy_W) - (Bz_E+HALF*dBzdy_E));
       #endif
    } else { // RKCase == RK_ORDER2_STEP1
       cp_SW[CellParams::EX1]  = ay_pos*az_pos*Ex_NE + ay_pos*az_neg*Ex_SE + ay_neg*az_pos*Ex_NW + ay_neg*az_neg*Ex_SW;
       cp_SW[CellParams::EX1] /= ((ay_pos+ay_neg)*(az_pos+az_neg)+EPS);
       #ifdef FS_1ST_ORDER_SPACE
-	 // 1st order diffusive terms:
-	 cp_SW[CellParams::EX1] -= az_pos*az_neg/(az_pos+az_neg+EPS)*(By_S-By_N);
-	 cp_SW[CellParams::EX1] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bz_W-Bz_E);
+      // 1st order diffusive terms:
+      cp_SW[CellParams::EX1] -= az_pos*az_neg/(az_pos+az_neg+EPS)*(By_S-By_N);
+      cp_SW[CellParams::EX1] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bz_W-Bz_E);
       #else
-	 // 2nd order diffusive terms
-	 cp_SW[CellParams::EX1] -= az_pos*az_neg/(az_pos+az_neg+EPS)*((By_S-HALF*dBydz_S) - (By_N+HALF*dBydz_N));
-	 cp_SW[CellParams::EX1] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bz_W-HALF*dBzdy_W) - (Bz_E+HALF*dBzdy_E));
+      // 2nd order diffusive terms
+      cp_SW[CellParams::EX1] -= az_pos*az_neg/(az_pos+az_neg+EPS)*((By_S-HALF*dBydz_S) - (By_N+HALF*dBydz_N));
+      cp_SW[CellParams::EX1] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bz_W-HALF*dBzdy_W) - (Bz_E+HALF*dBzdy_E));
       #endif
    }
    
@@ -875,21 +873,21 @@ static void calculateEdgeElectricFieldY(
       cp_SW[CellParams::EY]  = az_pos*ax_pos*Ey_NE + az_pos*ax_neg*Ey_SE + az_neg*ax_pos*Ey_NW + az_neg*ax_neg*Ey_SW;
       cp_SW[CellParams::EY] /= ((az_pos+az_neg)*(ax_pos+ax_neg)+EPS);
       #ifdef FS_1ST_ORDER_SPACE
-	 cp_SW[CellParams::EY] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(Bz_S-Bz_N);
-	 cp_SW[CellParams::EY] += az_pos*az_neg/(az_pos+az_neg+EPS)*(Bx_W-Bx_E);
+      cp_SW[CellParams::EY] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(Bz_S-Bz_N);
+      cp_SW[CellParams::EY] += az_pos*az_neg/(az_pos+az_neg+EPS)*(Bx_W-Bx_E);
       #else
-	 cp_SW[CellParams::EY] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((Bz_S-HALF*dBzdx_S) - (Bz_N+HALF*dBzdx_N));
-	 cp_SW[CellParams::EY] += az_pos*az_neg/(az_pos+az_neg+EPS)*((Bx_W-HALF*dBxdz_W) - (Bx_E+HALF*dBxdz_E));
+      cp_SW[CellParams::EY] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((Bz_S-HALF*dBzdx_S) - (Bz_N+HALF*dBzdx_N));
+      cp_SW[CellParams::EY] += az_pos*az_neg/(az_pos+az_neg+EPS)*((Bx_W-HALF*dBxdz_W) - (Bx_E+HALF*dBxdz_E));
       #endif
    } else { // RKCase == RK_ORDER2_STEP1
       cp_SW[CellParams::EY1]  = az_pos*ax_pos*Ey_NE + az_pos*ax_neg*Ey_SE + az_neg*ax_pos*Ey_NW + az_neg*ax_neg*Ey_SW;
       cp_SW[CellParams::EY1] /= ((az_pos+az_neg)*(ax_pos+ax_neg)+EPS);
       #ifdef FS_1ST_ORDER_SPACE
-	 cp_SW[CellParams::EY1] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(Bz_S-Bz_N);
-	 cp_SW[CellParams::EY1] += az_pos*az_neg/(az_pos+az_neg+EPS)*(Bx_W-Bx_E);
+      cp_SW[CellParams::EY1] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(Bz_S-Bz_N);
+      cp_SW[CellParams::EY1] += az_pos*az_neg/(az_pos+az_neg+EPS)*(Bx_W-Bx_E);
       #else
-	 cp_SW[CellParams::EY1] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((Bz_S-HALF*dBzdx_S) - (Bz_N+HALF*dBzdx_N));
-	 cp_SW[CellParams::EY1] += az_pos*az_neg/(az_pos+az_neg+EPS)*((Bx_W-HALF*dBxdz_W) - (Bx_E+HALF*dBxdz_E));
+      cp_SW[CellParams::EY1] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((Bz_S-HALF*dBzdx_S) - (Bz_N+HALF*dBzdx_N));
+      cp_SW[CellParams::EY1] += az_pos*az_neg/(az_pos+az_neg+EPS)*((Bx_W-HALF*dBxdz_W) - (Bx_E+HALF*dBxdz_E));
       #endif
    }
    
@@ -1097,25 +1095,25 @@ static void calculateEdgeElectricFieldZ(
       cp_SW[CellParams::EZ] /= ((ax_pos+ax_neg)*(ay_pos+ay_neg)+EPS);
       CHECK_FLOAT(cp_SW[CellParams::EZ])
       #ifdef FS_1ST_ORDER_SPACE
-	 cp_SW[CellParams::EZ] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bx_S-Bx_N);
-	 CHECK_FLOAT(cp_SW[CellParams::EZ])
-	 cp_SW[CellParams::EZ] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(By_W-By_E);
-	 CHECK_FLOAT(cp_SW[CellParams::EZ])
+      cp_SW[CellParams::EZ] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bx_S-Bx_N);
+      CHECK_FLOAT(cp_SW[CellParams::EZ])
+      cp_SW[CellParams::EZ] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(By_W-By_E);
+      CHECK_FLOAT(cp_SW[CellParams::EZ])
       #else
-	 cp_SW[CellParams::EZ] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bx_S-HALF*dBxdy_S) - (Bx_N+HALF*dBxdy_N));
-	 CHECK_FLOAT(cp_SW[CellParams::EZ])
-	 cp_SW[CellParams::EZ] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((By_W-HALF*dBydx_W) - (By_E+HALF*dBydx_E));
-	 CHECK_FLOAT(cp_SW[CellParams::EZ])
+      cp_SW[CellParams::EZ] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bx_S-HALF*dBxdy_S) - (Bx_N+HALF*dBxdy_N));
+      CHECK_FLOAT(cp_SW[CellParams::EZ])
+      cp_SW[CellParams::EZ] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((By_W-HALF*dBydx_W) - (By_E+HALF*dBydx_E));
+      CHECK_FLOAT(cp_SW[CellParams::EZ])
       #endif
    } else { // RKCase == RK_ORDER2_STEP1
       cp_SW[CellParams::EZ1] = ax_pos*ay_pos*Ez_NE + ax_pos*ay_neg*Ez_SE + ax_neg*ay_pos*Ez_NW + ax_neg*ay_neg*Ez_SW;
       cp_SW[CellParams::EZ1] /= ((ax_pos+ax_neg)*(ay_pos+ay_neg)+EPS);
       #ifdef FS_1ST_ORDER_SPACE
-	 cp_SW[CellParams::EZ1] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bx_S-Bx_N);
-	 cp_SW[CellParams::EZ1] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(By_W-By_E);
+      cp_SW[CellParams::EZ1] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bx_S-Bx_N);
+      cp_SW[CellParams::EZ1] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(By_W-By_E);
       #else
-	 cp_SW[CellParams::EZ1] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bx_S-HALF*dBxdy_S) - (Bx_N+HALF*dBxdy_N));
-	 cp_SW[CellParams::EZ1] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((By_W-HALF*dBydx_W) - (By_E+HALF*dBydx_E));
+      cp_SW[CellParams::EZ1] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bx_S-HALF*dBxdy_S) - (Bx_N+HALF*dBxdy_N));
+      cp_SW[CellParams::EZ1] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((By_W-HALF*dBydx_W) - (By_E+HALF*dBydx_E));
       #endif
    }
    
@@ -1141,10 +1139,10 @@ static void calculateEdgeElectricFieldZ(
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 static void propagateMagneticField(
-	const CellID& cellID,
-	dccrg::Dccrg<SpatialCell>& mpiGrid,
-	creal& dt,
-	cint& RKCase
+   const CellID& cellID,
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   creal& dt,
+   cint& RKCase
 ) {
    CellID nbrID;
    Real* const cp0 = mpiGrid[cellID]->parameters;
@@ -1201,11 +1199,11 @@ static void propagateMagneticField(
       cp0[CellParams::BX] += dt/dz*(cp2[CellParams::EY] - cp0[CellParams::EY]) + dt/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ]);
       # else
       if(RKCase == RK_ORDER2_STEP1) {
-	 cp0[CellParams::BX1] = cp0[CellParams::BX] +
-	 Parameters::RK_alpha*dt*(1.0/dz*(cp2[CellParams::EY] - cp0[CellParams::EY]) + 1.0/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ]));
+         cp0[CellParams::BX1] = cp0[CellParams::BX] +
+         Parameters::RK_alpha*dt*(1.0/dz*(cp2[CellParams::EY] - cp0[CellParams::EY]) + 1.0/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ]));
       } else {
-	 cp0[CellParams::BX] += dt * ((1.0 - 0.5/Parameters::RK_alpha) * (1.0/dz*(cp2[CellParams::EY] - cp0[CellParams::EY]) + 1.0/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ])) +
-	 0.5/Parameters::RK_alpha * (1.0/dz*(cp2[CellParams::EY1] - cp0[CellParams::EY1]) + 1.0/dy*(cp0[CellParams::EZ1] - cp1[CellParams::EZ1])));
+         cp0[CellParams::BX] += dt * ((1.0 - 0.5/Parameters::RK_alpha) * (1.0/dz*(cp2[CellParams::EY] - cp0[CellParams::EY]) + 1.0/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ])) +
+         0.5/Parameters::RK_alpha * (1.0/dz*(cp2[CellParams::EY1] - cp0[CellParams::EY1]) + 1.0/dy*(cp0[CellParams::EZ1] - cp1[CellParams::EZ1])));
       }
       # endif
    }
@@ -1246,11 +1244,11 @@ static void propagateMagneticField(
       cp0[CellParams::BY] += dt/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) + dt/dz*(cp0[CellParams::EX] - cp1[CellParams::EX]);
       # else
       if(RKCase == RK_ORDER2_STEP1) {
-	 cp0[CellParams::BY1] = cp0[CellParams::BY] +
-	 Parameters::RK_alpha*dt*(1.0/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) + 1.0/dz*(cp0[CellParams::EX] - cp1[CellParams::EX]));
+         cp0[CellParams::BY1] = cp0[CellParams::BY] +
+         Parameters::RK_alpha*dt*(1.0/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) + 1.0/dz*(cp0[CellParams::EX] - cp1[CellParams::EX]));
       } else {
-	 cp0[CellParams::BY] += dt * ((1.0 - 0.5/Parameters::RK_alpha) * (1.0/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) + 1.0/dz*(cp0[CellParams::EX] - cp1[CellParams::EX])) + 
-	 0.5/Parameters::RK_alpha * (1.0/dx*(cp2[CellParams::EZ1] - cp0[CellParams::EZ1]) + 1.0/dz*(cp0[CellParams::EX1] - cp1[CellParams::EX1])));
+         cp0[CellParams::BY] += dt * ((1.0 - 0.5/Parameters::RK_alpha) * (1.0/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) + 1.0/dz*(cp0[CellParams::EX] - cp1[CellParams::EX])) + 
+         0.5/Parameters::RK_alpha * (1.0/dx*(cp2[CellParams::EZ1] - cp0[CellParams::EZ1]) + 1.0/dz*(cp0[CellParams::EX1] - cp1[CellParams::EX1])));
       }
       # endif
    }
@@ -1291,19 +1289,18 @@ static void propagateMagneticField(
       cp0[CellParams::BZ] += dt/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) + dt/dx*(cp0[CellParams::EY] - cp1[CellParams::EY]);
       # else
       if(RKCase == RK_ORDER2_STEP1) {
-	 cp0[CellParams::BZ1] = cp0[CellParams::BZ] +
-	 Parameters::RK_alpha*dt*(1.0/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) + 1.0/dx*(cp0[CellParams::EY] - cp1[CellParams::EY]));
+         cp0[CellParams::BZ1] = cp0[CellParams::BZ] +
+         Parameters::RK_alpha*dt*(1.0/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) + 1.0/dx*(cp0[CellParams::EY] - cp1[CellParams::EY]));
       } else {
-	 cp0[CellParams::BZ] += dt * ((1.0 - 0.5/Parameters::RK_alpha) * (1.0/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) + 1.0/dx*(cp0[CellParams::EY] - cp1[CellParams::EY])) +
-	 0.5/Parameters::RK_alpha * (1.0/dy*(cp2[CellParams::EX1] - cp0[CellParams::EX1]) + 1.0/dx*(cp0[CellParams::EY1] - cp1[CellParams::EY1])));
+         cp0[CellParams::BZ] += dt * ((1.0 - 0.5/Parameters::RK_alpha) * (1.0/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) + 1.0/dx*(cp0[CellParams::EY] - cp1[CellParams::EY])) +
+         0.5/Parameters::RK_alpha * (1.0/dy*(cp2[CellParams::EX1] - cp0[CellParams::EX1]) + 1.0/dx*(cp0[CellParams::EY1] - cp1[CellParams::EY1])));
       }
       # endif
    }
 }
 
 bool initializeFieldPropagatorAfterRebalance(
-	dccrg::Dccrg<SpatialCell>& mpiGrid,
-        bool propagateFields
+        dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
    
    vector<uint64_t> localCells = mpiGrid.get_cells();
@@ -1323,12 +1320,9 @@ bool initializeFieldPropagatorAfterRebalance(
 /*! Calculates bit masks used in the field solver and computes the initial edge electric fields from the initial magnetic fields. Then computes the initial volume averages.
  */
 bool initializeFieldPropagator(
-	dccrg::Dccrg<SpatialCell>& mpiGrid,
-        bool doPropagateFields
+        dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
    vector<uint64_t> localCells = mpiGrid.get_cells();
-   
-   fieldsArePropagated = doPropagateFields; //set global variable
    
    calculateBoundaryFlags(mpiGrid,localCells);
    
@@ -1341,81 +1335,78 @@ bool initializeFieldPropagator(
    // parallel grid, i.e. using if-statements is likely to be much 
    // slower.
 
-   if (fieldsArePropagated == true) {
-      // x-derivatives are calculated if x-face neighbours exist:
-      CALCULATE_DX = 0;
-      CALCULATE_DX = CALCULATE_DX | (1 << calcNbrNumber(0,1,1));
-      CALCULATE_DX = CALCULATE_DX | (1 << calcNbrNumber(2,1,1));
+   // x-derivatives are calculated if x-face neighbours exist:
+   CALCULATE_DX = 0;
+   CALCULATE_DX = CALCULATE_DX | (1 << calcNbrNumber(0,1,1));
+   CALCULATE_DX = CALCULATE_DX | (1 << calcNbrNumber(2,1,1));
+   
+   // y-derivatives are calculated if y-face neighbours exist:
+   CALCULATE_DY = 0;
+   CALCULATE_DY = CALCULATE_DY | (1 << calcNbrNumber(1,0,1));
+   CALCULATE_DY = CALCULATE_DY | (1 << calcNbrNumber(1,2,1));
+   
+   // z-derivatives are calculated if z-face neighbours exist:
+   CALCULATE_DZ = 0;
+   CALCULATE_DZ = CALCULATE_DZ | (1 << calcNbrNumber(1,1,0));
+   CALCULATE_DZ = CALCULATE_DZ | (1 << calcNbrNumber(1,1,2));
+   
+   // Edge Ex is calculated i   f -y,-z,+/-x neighbours exist:
+   CALCULATE_EX = 0;
+   CALCULATE_EX = CALCULATE_EX | (1 << calcNbrNumber(1,0,1)); // -y nbr
+   CALCULATE_EX = CALCULATE_EX | (1 << calcNbrNumber(1,1,0)); // -z nbr
+   CALCULATE_EX = CALCULATE_EX | (1 << calcNbrNumber(0,1,1)); // -x nbr
+   CALCULATE_EX = CALCULATE_EX | (1 << calcNbrNumber(2,1,1)); // +x nbr
       
-      // y-derivatives are calculated if y-face neighbours exist:
-      CALCULATE_DY = 0;
-      CALCULATE_DY = CALCULATE_DY | (1 << calcNbrNumber(1,0,1));
-      CALCULATE_DY = CALCULATE_DY | (1 << calcNbrNumber(1,2,1));
+   // Edge Ey is calculated if -x,-z,+/-y neighbours exist:
+   CALCULATE_EY = 0;
+   CALCULATE_EY = CALCULATE_EY | (1 << calcNbrNumber(0,1,1)); // -x nbr
+   CALCULATE_EY = CALCULATE_EY | (1 << calcNbrNumber(1,1,0)); // -z nbr
+   CALCULATE_EY = CALCULATE_EY | (1 << calcNbrNumber(1,0,1)); // -y nbr
+   CALCULATE_EY = CALCULATE_EY | (1 << calcNbrNumber(1,2,1)); // +y nbr
       
-      // z-derivatives are calculated if z-face neighbours exist:
-      CALCULATE_DZ = 0;
-      CALCULATE_DZ = CALCULATE_DZ | (1 << calcNbrNumber(1,1,0));
-      CALCULATE_DZ = CALCULATE_DZ | (1 << calcNbrNumber(1,1,2));
-      
-      // Edge Ex is calculated i   f -y,-z,+/-x neighbours exist:
-      CALCULATE_EX = 0;
-      CALCULATE_EX = CALCULATE_EX | (1 << calcNbrNumber(1,0,1)); // -y nbr
-      CALCULATE_EX = CALCULATE_EX | (1 << calcNbrNumber(1,1,0)); // -z nbr
-      CALCULATE_EX = CALCULATE_EX | (1 << calcNbrNumber(0,1,1)); // -x nbr
-      CALCULATE_EX = CALCULATE_EX | (1 << calcNbrNumber(2,1,1)); // +x nbr
-       
-      // Edge Ey is calculated if -x,-z,+/-y neighbours exist:
-      CALCULATE_EY = 0;
-      CALCULATE_EY = CALCULATE_EY | (1 << calcNbrNumber(0,1,1)); // -x nbr
-      CALCULATE_EY = CALCULATE_EY | (1 << calcNbrNumber(1,1,0)); // -z nbr
-      CALCULATE_EY = CALCULATE_EY | (1 << calcNbrNumber(1,0,1)); // -y nbr
-      CALCULATE_EY = CALCULATE_EY | (1 << calcNbrNumber(1,2,1)); // +y nbr
-       
-      // Edge Ez is calculated      if -x,-y,+/-z neighbours exist:
-      CALCULATE_EZ = 0;
-      CALCULATE_EZ = CALCULATE_EZ | (1 << calcNbrNumber(0,1,1)); // -x nbr
-      CALCULATE_EZ = CALCULATE_EZ | (1 << calcNbrNumber(1,0,1)); // -y nbr
-      CALCULATE_EZ = CALCULATE_EZ | (1 << calcNbrNumber(1,1,0)); // -z nbr
-      CALCULATE_EZ = CALCULATE_EZ | (1 << calcNbrNumber(1,1,2)); // +z nbr
+   // Edge Ez is calculated      if -x,-y,+/-z neighbours exist:
+   CALCULATE_EZ = 0;
+   CALCULATE_EZ = CALCULATE_EZ | (1 << calcNbrNumber(0,1,1)); // -x nbr
+   CALCULATE_EZ = CALCULATE_EZ | (1 << calcNbrNumber(1,0,1)); // -y nbr
+   CALCULATE_EZ = CALCULATE_EZ | (1 << calcNbrNumber(1,1,0)); // -z nbr
+   CALCULATE_EZ = CALCULATE_EZ | (1 << calcNbrNumber(1,1,2)); // +z nbr
 
-      // Bx is propagated if -x,+/-y,+/-z neighbours exist:
-      PROPAGATE_BX = 0;
-      PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(0,1,1)); // -x nbr
-      PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(1,0,1)); // -y nbr
-      PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(1,2,1)); // +y nbr
-      PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(1,1,0)); // -z nbr
-      PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(1,1,2)); // +z nbr
-       
-      // By is propagated if -y,+/-x,+/-z neighbours exist:
-      PROPAGATE_BY = 0;
-      PROPAGATE_BY = PROPAGATE_BY | (1 << calcNbrNumber(1,0,1)); // -y nbr
-      PROPAGATE_BY = PROPAGATE_BY | (1 << calcNbrNumber(0,1,1)); // -x nbr
-      PROPAGATE_BY = PROPAGATE_BY | (1 << calcNbrNumber(2,1,1)); // +x nbr
-      PROPAGATE_BY = PROPAGATE_BY | (1 << calcNbrNumber(1,1,0)); // -z nbr
-      PROPAGATE_BY = PROPAGATE_BY | (1 << calcNbrNumber(1,1,2)); // +z nbr
+   // Bx is propagated if -x,+/-y,+/-z neighbours exist:
+   PROPAGATE_BX = 0;
+   PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(0,1,1)); // -x nbr
+   PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(1,0,1)); // -y nbr
+   PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(1,2,1)); // +y nbr
+   PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(1,1,0)); // -z nbr
+   PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(1,1,2)); // +z nbr
       
-      // Bz is propagated if -z,+/-x,+/-y neighbours exist:
-      PROPAGATE_BZ = 0;
-      PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,1,0)); // -z nbr
-      PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(0,1,1)); // -x nbr
-      PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(2,1,1)); // +x nbr
-      PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,0,1)); // -y nbr
-      PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,2,1)); // +y nbr
+   // By is propagated if -y,+/-x,+/-z neighbours exist:
+   PROPAGATE_BY = 0;
+   PROPAGATE_BY = PROPAGATE_BY | (1 << calcNbrNumber(1,0,1)); // -y nbr
+   PROPAGATE_BY = PROPAGATE_BY | (1 << calcNbrNumber(0,1,1)); // -x nbr
+   PROPAGATE_BY = PROPAGATE_BY | (1 << calcNbrNumber(2,1,1)); // +x nbr
+   PROPAGATE_BY = PROPAGATE_BY | (1 << calcNbrNumber(1,1,0)); // -z nbr
+   PROPAGATE_BY = PROPAGATE_BY | (1 << calcNbrNumber(1,1,2)); // +z nbr
+   
+   // Bz is propagated if -z,+/-x,+/-y neighbours exist:
+   PROPAGATE_BZ = 0;
+   PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,1,0)); // -z nbr
+   PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(0,1,1)); // -x nbr
+   PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(2,1,1)); // +x nbr
+   PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,0,1)); // -y nbr
+   PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,2,1)); // +y nbr
 
-      // Calculate derivatives and upwinded edge-E. Exchange derivatives 
-      // and edge-E:s between neighbouring processes and calculate 
-      // face-averaged E,B fields. Note that calculateUpwindedElectricField 
-      // does not exchange edge-E:
-      calculateDerivativesSimple(mpiGrid,localCells, RK_ORDER1);
-      calculateUpwindedElectricFieldSimple(mpiGrid,localCells, RK_ORDER1);
-      calculateVolumeAveragedFields(mpiGrid);
-   }
-
+   // Calculate derivatives and upwinded edge-E. Exchange derivatives 
+   // and edge-E:s between neighbouring processes and calculate 
+   // face-averaged E,B fields.
+   calculateDerivativesSimple(mpiGrid,localCells, RK_ORDER1);
+   calculateUpwindedElectricFieldSimple(mpiGrid,localCells, RK_ORDER1);
+   calculateVolumeAveragedFields(mpiGrid);
+   
    return true;
 }
 
 bool finalizeFieldPropagator(
-	dccrg::Dccrg<SpatialCell>& mpiGrid
+   dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
    return true;
 }
@@ -1447,10 +1438,10 @@ void calculateDerivativesSimple(
    # ifndef FS_1ST_ORDER_TIME
    if(RKCase == RK_ORDER1) { // Means initialising the solver
       for (vector<uint64_t>::const_iterator cell = localCells.begin(); cell != localCells.end(); cell++) {
-	 mpiGrid[*cell]->parameters[CellParams::RHO1] = mpiGrid[*cell]->parameters[CellParams::RHO];
-	 mpiGrid[*cell]->parameters[CellParams::RHOVX1] = mpiGrid[*cell]->parameters[CellParams::RHOVX];
-	 mpiGrid[*cell]->parameters[CellParams::RHOVY1] = mpiGrid[*cell]->parameters[CellParams::RHOVY];
-	 mpiGrid[*cell]->parameters[CellParams::RHOVZ1] = mpiGrid[*cell]->parameters[CellParams::RHOVZ];
+         mpiGrid[*cell]->parameters[CellParams::RHO1] = mpiGrid[*cell]->parameters[CellParams::RHO];
+         mpiGrid[*cell]->parameters[CellParams::RHOVX1] = mpiGrid[*cell]->parameters[CellParams::RHOVX];
+         mpiGrid[*cell]->parameters[CellParams::RHOVY1] = mpiGrid[*cell]->parameters[CellParams::RHOVY];
+         mpiGrid[*cell]->parameters[CellParams::RHOVZ1] = mpiGrid[*cell]->parameters[CellParams::RHOVZ];
       }
    }
    # endif
@@ -1459,14 +1450,14 @@ void calculateDerivativesSimple(
       // The RHO(V?)1 fields contain previous value, the RHO(V?) the current one.
       // After this the RHO(V?)1 contain the interpolated value.
       for (vector<uint64_t>::const_iterator cell = localCells.begin(); cell != localCells.end(); cell++) {
-	 mpiGrid[*cell]->parameters[CellParams::RHO1] = mpiGrid[*cell]->parameters[CellParams::RHO1] +
-	 Parameters::RK_alpha * (mpiGrid[*cell]->parameters[CellParams::RHO] - mpiGrid[*cell]->parameters[CellParams::RHO1]);
-	 mpiGrid[*cell]->parameters[CellParams::RHOVX1] = mpiGrid[*cell]->parameters[CellParams::RHOVX1] +
-	 Parameters::RK_alpha * (mpiGrid[*cell]->parameters[CellParams::RHOVX] - mpiGrid[*cell]->parameters[CellParams::RHOVX1]);
-	 mpiGrid[*cell]->parameters[CellParams::RHOVY1] = mpiGrid[*cell]->parameters[CellParams::RHOVY1] +
-	 Parameters::RK_alpha * (mpiGrid[*cell]->parameters[CellParams::RHOVY] - mpiGrid[*cell]->parameters[CellParams::RHOVY1]);
-	 mpiGrid[*cell]->parameters[CellParams::RHOVZ1] = mpiGrid[*cell]->parameters[CellParams::RHOVZ1] +
-	 Parameters::RK_alpha * (mpiGrid[*cell]->parameters[CellParams::RHOVZ] - mpiGrid[*cell]->parameters[CellParams::RHOVZ1]);
+         mpiGrid[*cell]->parameters[CellParams::RHO1] = mpiGrid[*cell]->parameters[CellParams::RHO1] +
+         Parameters::RK_alpha * (mpiGrid[*cell]->parameters[CellParams::RHO] - mpiGrid[*cell]->parameters[CellParams::RHO1]);
+         mpiGrid[*cell]->parameters[CellParams::RHOVX1] = mpiGrid[*cell]->parameters[CellParams::RHOVX1] +
+         Parameters::RK_alpha * (mpiGrid[*cell]->parameters[CellParams::RHOVX] - mpiGrid[*cell]->parameters[CellParams::RHOVX1]);
+         mpiGrid[*cell]->parameters[CellParams::RHOVY1] = mpiGrid[*cell]->parameters[CellParams::RHOVY1] +
+         Parameters::RK_alpha * (mpiGrid[*cell]->parameters[CellParams::RHOVY] - mpiGrid[*cell]->parameters[CellParams::RHOVY1]);
+         mpiGrid[*cell]->parameters[CellParams::RHOVZ1] = mpiGrid[*cell]->parameters[CellParams::RHOVZ1] +
+         Parameters::RK_alpha * (mpiGrid[*cell]->parameters[CellParams::RHOVZ] - mpiGrid[*cell]->parameters[CellParams::RHOVZ1]);
       }
    }
    
@@ -1512,10 +1503,10 @@ void calculateDerivativesSimple(
    
    if(RKCase == RK_ORDER2_STEP2) { // Shift down the moments, now the RHO(V?)1 fields contain the current ie future previous values.
       for (vector<uint64_t>::const_iterator cell = localCells.begin(); cell != localCells.end(); cell++) {
-	 mpiGrid[*cell]->parameters[CellParams::RHO1] = mpiGrid[*cell]->parameters[CellParams::RHO];
-	 mpiGrid[*cell]->parameters[CellParams::RHOVX1] = mpiGrid[*cell]->parameters[CellParams::RHOVX];
-	 mpiGrid[*cell]->parameters[CellParams::RHOVY1] = mpiGrid[*cell]->parameters[CellParams::RHOVY];
-	 mpiGrid[*cell]->parameters[CellParams::RHOVZ1] = mpiGrid[*cell]->parameters[CellParams::RHOVZ];
+         mpiGrid[*cell]->parameters[CellParams::RHO1] = mpiGrid[*cell]->parameters[CellParams::RHO];
+         mpiGrid[*cell]->parameters[CellParams::RHOVX1] = mpiGrid[*cell]->parameters[CellParams::RHOVX];
+         mpiGrid[*cell]->parameters[CellParams::RHOVY1] = mpiGrid[*cell]->parameters[CellParams::RHOVY];
+         mpiGrid[*cell]->parameters[CellParams::RHOVZ1] = mpiGrid[*cell]->parameters[CellParams::RHOVZ];
       }
    }
    
@@ -1533,9 +1524,9 @@ void calculateDerivativesSimple(
  * \sa calculateEdgeElectricFieldX calculateEdgeElectricFieldY calculateEdgeElectricFieldZ
  */
 void calculateUpwindedElectricFieldSimple(
-	dccrg::Dccrg<SpatialCell>& mpiGrid,
-	const vector<CellID>& localCells,
-	cint& RKCase
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   const vector<CellID>& localCells,
+   cint& RKCase
 ) {
    namespace fs = fieldsolver;
    int timer;
@@ -1604,10 +1595,10 @@ void calculateUpwindedElectricFieldSimple(
  * \sa propagateMagneticField
  */
 static void propagateMagneticFieldSimple(
-	dccrg::Dccrg<SpatialCell>& mpiGrid,
-	creal& dt,
-	const vector<CellID>& localCells,
-	cint& RKCase
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   creal& dt,
+   const vector<CellID>& localCells,
+   cint& RKCase
 ) {
    phiprof::start("Propagate magnetic field");
    // Propagate B on all local cells:
@@ -1635,22 +1626,22 @@ static void propagateMagneticFieldSimple(
       }
 
       if ((existingCells & PROPAGATE_BX) != PROPAGATE_BX) {
-	 mpiGrid[cellID]->parameters[CellParams::BX] = fieldSolverBoundaryCondBx<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
-	 if(RKCase == RK_ORDER2_STEP1) { // WARNING not correct for time-varying boundary conditions
-	    mpiGrid[cellID]->parameters[CellParams::BX1] = mpiGrid[cellID]->parameters[CellParams::BX];
-	 }
+         mpiGrid[cellID]->parameters[CellParams::BX] = fieldSolverBoundaryCondBx<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
+         if(RKCase == RK_ORDER2_STEP1) { // WARNING not correct for time-varying boundary conditions
+            mpiGrid[cellID]->parameters[CellParams::BX1] = mpiGrid[cellID]->parameters[CellParams::BX];
+         }
       }
       if ((existingCells & PROPAGATE_BY) != PROPAGATE_BY) {
-	 mpiGrid[cellID]->parameters[CellParams::BY] = fieldSolverBoundaryCondBy<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
-	 if(RKCase == RK_ORDER2_STEP1) { // WARNING not correct for time-varying boundary conditions
-	    mpiGrid[cellID]->parameters[CellParams::BY1] = mpiGrid[cellID]->parameters[CellParams::BY];
-	 }
+         mpiGrid[cellID]->parameters[CellParams::BY] = fieldSolverBoundaryCondBy<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
+         if(RKCase == RK_ORDER2_STEP1) { // WARNING not correct for time-varying boundary conditions
+            mpiGrid[cellID]->parameters[CellParams::BY1] = mpiGrid[cellID]->parameters[CellParams::BY];
+         }
       }
       if ((existingCells & PROPAGATE_BZ) != PROPAGATE_BZ) {
-	 mpiGrid[cellID]->parameters[CellParams::BZ] = fieldSolverBoundaryCondBz<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
-	 if(RKCase == RK_ORDER2_STEP1) { // WARNING not correct for time-varying boundary conditions
-	    mpiGrid[cellID]->parameters[CellParams::BZ1] = mpiGrid[cellID]->parameters[CellParams::BZ];
-	 }
+         mpiGrid[cellID]->parameters[CellParams::BZ] = fieldSolverBoundaryCondBz<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
+         if(RKCase == RK_ORDER2_STEP1) { // WARNING not correct for time-varying boundary conditions
+            mpiGrid[cellID]->parameters[CellParams::BZ1] = mpiGrid[cellID]->parameters[CellParams::BZ];
+         }
       }
    }
    phiprof::stop("Propagate magnetic field");
@@ -1670,10 +1661,6 @@ bool propagateFields(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
    creal& dt
 ) {
-   // If fields are not propagated, exit immediately. It is user's 
-   // responsibility to set correct values for volume-averaged E,B-fields:
-   if (fieldsArePropagated == false) return true;
-   
    // Reserve memory for derivatives for all cells on this process:
    vector<CellID> localCells = mpiGrid.get_cells();
    
@@ -1702,8 +1689,8 @@ bool propagateFields(
 namespace Rec {
    /*! Enum defining the list of reconstruction coefficients used in field component reconstructions.*/
    enum Rec {a_0,a_x,a_y,a_z,a_xx,a_xy,a_xz,
-	b_0,b_x,b_y,b_z,b_yx,b_yy,b_yz,
-	c_0,c_x,c_y,c_z,c_zx,c_zy,c_zz
+   b_0,b_x,b_y,b_z,b_yx,b_yy,b_yz,
+   c_0,c_x,c_y,c_z,c_zx,c_zy,c_zz
    };
 }
 
@@ -1712,12 +1699,12 @@ namespace Rec {
  * Computes the reconstruction coefficients used for field component reconstruction.
  */
 void reconstructionCoefficients(
-	const CellID& cellID,
-	const CellID& nbr_i2j1k1,
-	const CellID& nbr_i1j2k1,
-	const CellID& nbr_i1j1k2,
-	dccrg::Dccrg<SpatialCell>& mpiGrid,
-	Real* result
+   const CellID& cellID,
+   const CellID& nbr_i2j1k1,
+   const CellID& nbr_i1j2k1,
+   const CellID& nbr_i1j1k2,
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   Real* result
 ) {
    // Do not calculate values for non-existing cells:
    if (cellID == INVALID_CELLID) {
@@ -1768,7 +1755,7 @@ void reconstructionCoefficients(
       CHECK_FLOAT(result[Rec::a_xy])
       result[Rec::a_xz] = der_i2j1k1[fs::dBxdz] - der_i1j1k1[fs::dBxdz];
       CHECK_FLOAT(result[Rec::a_xz])
-      result[Rec::a_x ] = (cep_i2j1k1[cp::BX] + cep_i2j1k1[cp::BXFACEX0]) - (cep_i1j1k1[cp::BX] + cep_i1j1k1[cp::BXFACEX0]);
+      result[Rec::a_x ] = (cep_i2j1k1[cp::BX] + cep_i2j1k1[cp::BX0]) - (cep_i1j1k1[cp::BX] + cep_i1j1k1[cp::BX0]);
       CHECK_FLOAT(result[Rec::a_x ])
       result[Rec::a_y ] = HALF*(der_i2j1k1[fs::dBxdy] + der_i1j1k1[fs::dBxdy]);
       CHECK_FLOAT(result[Rec::a_y ])
@@ -1781,7 +1768,7 @@ void reconstructionCoefficients(
       CHECK_FLOAT(result[Rec::b_yz])
       result[Rec::b_x ] = HALF*(der_i1j2k1[fs::dBydx] + der_i1j1k1[fs::dBydx]);
       CHECK_FLOAT(result[Rec::b_x ])
-      result[Rec::b_y ] = (cep_i1j2k1[cp::BY] + cep_i1j2k1[cp::BYFACEY0]) - (cep_i1j1k1[cp::BY] + cep_i1j1k1[cp::BYFACEY0]);
+      result[Rec::b_y ] = (cep_i1j2k1[cp::BY] + cep_i1j2k1[cp::BY0]) - (cep_i1j1k1[cp::BY] + cep_i1j1k1[cp::BY0]);
       CHECK_FLOAT(result[Rec::b_y ])
       result[Rec::b_z ] = HALF*(der_i1j2k1[fs::dBydz] + der_i1j1k1[fs::dBydz]);
       CHECK_FLOAT(result[Rec::b_z ])
@@ -1794,7 +1781,7 @@ void reconstructionCoefficients(
       CHECK_FLOAT(result[Rec::c_x ])
       result[Rec::c_y ] = HALF*(der_i1j1k2[fs::dBzdy] + der_i1j1k1[fs::dBzdy]);
       CHECK_FLOAT(result[Rec::c_y ])
-      result[Rec::c_z ] = (cep_i1j1k2[cp::BZ] + cep_i1j1k2[cp::BZFACEZ0]) - (cep_i1j1k1[cp::BZ] + cep_i1j1k1[cp::BZFACEZ0]);
+      result[Rec::c_z ] = (cep_i1j1k2[cp::BZ] + cep_i1j1k2[cp::BZ0]) - (cep_i1j1k1[cp::BZ] + cep_i1j1k1[cp::BZ0]);
       CHECK_FLOAT(result[Rec::c_z ])
    
       result[Rec::a_xx] = -HALF*(result[Rec::b_yx] + result[Rec::c_zx]);
@@ -1808,449 +1795,12 @@ void reconstructionCoefficients(
    #endif
    
    // Calculate 1st order reconstruction coefficients:
-   result[Rec::a_0 ] = HALF*(cep_i2j1k1[cp::BX] + cep_i2j1k1[cp::BXFACEX0] + cep_i1j1k1[cp::BX] + cep_i1j1k1[cp::BXFACEX0]) - SIXTH*result[Rec::a_xx];
+   result[Rec::a_0 ] = HALF*(cep_i2j1k1[cp::BX] + cep_i2j1k1[cp::BX0] + cep_i1j1k1[cp::BX] + cep_i1j1k1[cp::BX0]) - SIXTH*result[Rec::a_xx];
    CHECK_FLOAT(result[Rec::a_0 ])
-   result[Rec::b_0 ] = HALF*(cep_i1j2k1[cp::BY] + cep_i1j2k1[cp::BYFACEY0] + cep_i1j1k1[cp::BY] + cep_i1j1k1[cp::BYFACEY0]) - SIXTH*result[Rec::b_yy];
+   result[Rec::b_0 ] = HALF*(cep_i1j2k1[cp::BY] + cep_i1j2k1[cp::BY0] + cep_i1j1k1[cp::BY] + cep_i1j1k1[cp::BY0]) - SIXTH*result[Rec::b_yy];
    CHECK_FLOAT(result[Rec::b_0 ])
-   result[Rec::c_0 ] = HALF*(cep_i1j1k2[cp::BZ] + cep_i1j1k2[cp::BZFACEZ0] + cep_i1j1k1[cp::BZ] + cep_i1j1k1[cp::BZFACEZ0]) - SIXTH*result[Rec::c_zz];
+   result[Rec::c_0 ] = HALF*(cep_i1j1k2[cp::BZ] + cep_i1j1k2[cp::BZ0] + cep_i1j1k1[cp::BZ] + cep_i1j1k1[cp::BZ0]) - SIXTH*result[Rec::c_zz];
    CHECK_FLOAT(result[Rec::c_0 ])
-}
-
-/*! \brief Low-level electric field averaging function.
- * 
- * Averages the electric field on the X face into result.
- */
-void averageFaceXElectricField(
-	const CellID& cellID,
-	const CellID& nbr_i1j2k1,
-	const CellID& nbr_i1j1k2,
-	const CellID& nbr_i1j2k2,
-	const CellID& nbr_i0j1k1,
-	const CellID& nbr_i0j2k1,
-	const CellID& nbr_i0j1k2,
-	const CellID& nbr_i0j2k2,
-	cuint& existingCells,
-	dccrg::Dccrg<SpatialCell>& mpiGrid,
-	Real* result
-) {
-   namespace fs = fieldsolver;
-   namespace cp = CellParams;
-   
-   if (cellID == INVALID_CELLID) {
-      result[0] = 0.0;
-      result[1] = 0.0;
-      result[2] = 0.0;
-      return;
-   }
-
-   if (mpiGrid[cellID] == NULL) {
-      std::cerr << __FILE__ << ":" << __LINE__
-         << " No data for cell " << cellID << std::endl;
-      abort();
-   }
-   
-   cuint REQUIRED_CELLS = (1 << calcNbrNumber(1,1,1)) | (1 << calcNbrNumber(1,2,1)) | (1 << calcNbrNumber(1,1,2)) | (1 << calcNbrNumber(1,2,2))
-     | (1 << calcNbrNumber(0,1,1)) | (1 << calcNbrNumber(0,2,1)) | (1 << calcNbrNumber(0,1,2)) | (1 << calcNbrNumber(0,2,2));
-
-   // If all required neighbour data exists, calculate E vector on 
-   // x-face. NEEDS IMPROVEMENT!
-   if ((existingCells & REQUIRED_CELLS) == REQUIRED_CELLS) {
-      creal* const cep_i1j1k1 = mpiGrid[cellID]->parameters;
-      creal* const cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->parameters;
-      creal* const cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->parameters;
-      creal* const cep_i1j2k2 = mpiGrid[nbr_i1j2k2]->parameters;
-      creal* const cep_i0j1k1 = mpiGrid[nbr_i0j1k1]->parameters;
-      creal* const cep_i0j2k1 = mpiGrid[nbr_i0j2k1]->parameters;
-      creal* const cep_i0j1k2 = mpiGrid[nbr_i0j1k2]->parameters;
-      creal* const cep_i0j2k2 = mpiGrid[nbr_i0j2k2]->parameters;
-   
-      CHECK_FLOAT(cep_i1j1k1[cp::EX])
-      CHECK_FLOAT(cep_i1j2k1[cp::EX])
-      CHECK_FLOAT(cep_i1j1k2[cp::EX])
-      CHECK_FLOAT(cep_i1j2k2[cp::EX])
-      CHECK_FLOAT(cep_i0j1k1[cp::EX])
-      CHECK_FLOAT(cep_i0j2k1[cp::EX])
-      CHECK_FLOAT(cep_i0j1k2[cp::EX])
-      CHECK_FLOAT(cep_i0j2k2[cp::EX])
-      result[0] = EIGTH*(cep_i1j1k1[cp::EX] + cep_i1j2k1[cp::EX] + cep_i1j1k2[cp::EX] + cep_i1j2k2[cp::EX]
-			 + cep_i0j1k1[cp::EX] + cep_i0j2k1[cp::EX] + cep_i0j1k2[cp::EX] + cep_i0j2k2[cp::EX]);
-
-      CHECK_FLOAT(cep_i1j1k1[cp::EY])
-      CHECK_FLOAT(cep_i1j1k2[cp::EY])
-      result[1] = HALF*(cep_i1j1k1[cp::EY] + cep_i1j1k2[cp::EY]);
-
-      CHECK_FLOAT(cep_i1j1k1[cp::EZ])
-      CHECK_FLOAT(cep_i1j2k1[cp::EZ])
-      result[2] = HALF*(cep_i1j1k1[cp::EZ] + cep_i1j2k1[cp::EZ]);
-      CHECK_FLOAT(result[2])
-   } else {
-      result[0] = 0.0;
-      result[1] = 0.0;
-      result[2] = 0.0;
-   }
-}
-
-/*! \brief Low-level electric field averaging function.
- * 
- * Averages the electric field on the Y face into result.
- */
-void averageFaceYElectricField(
-	const CellID& cellID,
-	const CellID& nbr_i2j1k1,
-	const CellID& nbr_i1j1k2,
-	const CellID& nbr_i2j1k2,
-	const CellID& nbr_i1j0k1,
-	const CellID& nbr_i2j0k1,
-	const CellID& nbr_i1j0k2,
-	const CellID& nbr_i2j0k2,
-	cuint& existingCells,
-	dccrg::Dccrg<SpatialCell>& mpiGrid,
-	Real* result
-) {
-   namespace fs = fieldsolver;
-   namespace cp = CellParams;
-   
-   if (cellID == INVALID_CELLID) {
-      result[0] = 0.0;
-      result[1] = 0.0;
-      result[2] = 0.0;
-      return;
-   }
-
-   cuint REQUIRED_CELLS = (1 << calcNbrNumber(1,1,1)) | (1 << calcNbrNumber(2,1,1)) | (1 << calcNbrNumber(1,1,2)) | (1 << calcNbrNumber(2,1,2))
-                        | (1 << calcNbrNumber(1,0,1)) | (1 << calcNbrNumber(2,0,1)) | (1 << calcNbrNumber(1,0,2)) | (1 << calcNbrNumber(2,0,2));
-   
-   // If all required neighbour data exists, calculate E vector on
-   // y-face. NEEDS IMPROVEMENT!
-   if ((existingCells & REQUIRED_CELLS) == REQUIRED_CELLS) {
-      creal* const cep_i1j1k1 = mpiGrid[cellID]->parameters;
-      creal* const cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->parameters;
-      creal* const cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->parameters;
-      creal* const cep_i2j1k2 = mpiGrid[nbr_i2j1k2]->parameters;
-      creal* const cep_i1j0k1 = mpiGrid[nbr_i1j0k1]->parameters;
-      creal* const cep_i2j0k1 = mpiGrid[nbr_i2j0k1]->parameters;
-      creal* const cep_i1j0k2 = mpiGrid[nbr_i1j0k2]->parameters;
-      creal* const cep_i2j0k2 = mpiGrid[nbr_i2j0k2]->parameters;
-      
-      CHECK_FLOAT(cep_i1j1k1[cp::EX])
-      CHECK_FLOAT(cep_i1j1k2[cp::EX])
-      result[0] = HALF*(cep_i1j1k1[cp::EX] + cep_i1j1k2[cp::EX]);
-
-      CHECK_FLOAT(cep_i1j1k1[cp::EY])
-      CHECK_FLOAT(cep_i2j1k1[cp::EY])
-      CHECK_FLOAT(cep_i1j1k2[cp::EY])
-      CHECK_FLOAT(cep_i2j1k2[cp::EY])
-      CHECK_FLOAT(cep_i1j0k1[cp::EY])
-      CHECK_FLOAT(cep_i2j0k1[cp::EY])
-      CHECK_FLOAT(cep_i1j0k2[cp::EY])
-      CHECK_FLOAT(cep_i2j0k2[cp::EY])
-      result[1] = EIGTH*(cep_i1j1k1[cp::EY] + cep_i2j1k1[cp::EY] + cep_i1j1k2[cp::EY] + cep_i2j1k2[cp::EY]
-		       + cep_i1j0k1[cp::EY] + cep_i2j0k1[cp::EY] + cep_i1j0k2[cp::EY] + cep_i2j0k2[cp::EY]);
-
-      CHECK_FLOAT(cep_i1j1k1[cp::EZ])
-      CHECK_FLOAT(cep_i2j1k1[cp::EZ])
-      result[2] = HALF*(cep_i1j1k1[cp::EZ] + cep_i2j1k1[cp::EZ]);
-   } else {
-      result[0] = 0.0;
-      result[1] = 0.0;
-      result[2] = 0.0;
-   }
-}
-
-/*! \brief Low-level electric field averaging function.
- * 
- * Averages the electric field on the Z face into result.
- */
-void averageFaceZElectricField(
-	const CellID& cellID,
-	const CellID& nbr_i2j1k1,
-	const CellID& nbr_i1j2k1,
-	const CellID& nbr_i2j2k1,
-	const CellID& nbr_i1j1k0,
-	const CellID& nbr_i2j1k0,
-	const CellID& nbr_i1j2k0,
-	const CellID& nbr_i2j2k0,
-	cuint& existingCells,
-	dccrg::Dccrg<SpatialCell>& mpiGrid,
-	Real* result
-) {
-   namespace fs = fieldsolver;
-   namespace cp = CellParams;
-   
-   if (cellID == INVALID_CELLID) {
-      result[0] = 0.0;
-      result[1] = 0.0;
-      result[2] = 0.0;
-      return;
-   }
-
-   if (mpiGrid[cellID] == NULL) {
-      std::cerr << __FILE__ << ":" << __LINE__
-         << " No data for cell " << cellID << std::endl;
-      abort();
-   }
-
-   cuint REQUIRED_CELLS = (1 << calcNbrNumber(1,1,1))
-      | (1 << calcNbrNumber(2,1,1)) 
-      | (1 << calcNbrNumber(1,2,1)) 
-      | (1 << calcNbrNumber(2,2,1))
-      | (1 << calcNbrNumber(1,1,0))
-      | (1 << calcNbrNumber(2,1,0))
-      | (1 << calcNbrNumber(1,2,0))
-      | (1 << calcNbrNumber(2,2,0));
-   
-   // If all required neighbour data exists, calculate E vector on
-   // z-face. NEEDS IMPROVEMENT!
-   if ((existingCells & REQUIRED_CELLS) == REQUIRED_CELLS) {
-      creal* const cep_i1j1k1 = mpiGrid[cellID]->parameters;
-      creal* const cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->parameters;
-      creal* const cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->parameters;
-      creal* const cep_i2j2k1 = mpiGrid[nbr_i2j2k1]->parameters;
-      creal* const cep_i1j1k0 = mpiGrid[nbr_i1j1k0]->parameters;
-      creal* const cep_i2j1k0 = mpiGrid[nbr_i2j1k0]->parameters;
-      creal* const cep_i1j2k0 = mpiGrid[nbr_i1j2k0]->parameters;
-      creal* const cep_i2j2k0 = mpiGrid[nbr_i2j2k0]->parameters;
-      
-      result[0] = HALF*(cep_i1j1k1[cp::EX] + cep_i1j2k1[cp::EX]);
-      result[1] = HALF*(cep_i1j1k1[cp::EY] + cep_i2j1k1[cp::EY]);
-
-      CHECK_FLOAT(cep_i1j1k1[cp::EZ])
-      CHECK_FLOAT(cep_i2j1k1[cp::EZ])
-      CHECK_FLOAT(cep_i1j2k1[cp::EZ])
-      CHECK_FLOAT(cep_i2j2k1[cp::EZ])
-      CHECK_FLOAT(cep_i1j1k0[cp::EZ])
-      CHECK_FLOAT(cep_i2j1k0[cp::EZ])
-      CHECK_FLOAT(cep_i1j2k0[cp::EZ])
-      CHECK_FLOAT(cep_i2j2k0[cp::EZ])
-      result[2] = EIGTH*(cep_i1j1k1[cp::EZ] + cep_i2j1k1[cp::EZ] + cep_i1j2k1[cp::EZ] + cep_i2j2k1[cp::EZ]
-		       + cep_i1j1k0[cp::EZ] + cep_i2j1k0[cp::EZ] + cep_i1j2k0[cp::EZ] + cep_i2j2k0[cp::EZ]);
-      CHECK_FLOAT(result[2])
-   } else {
-      result[0] = 0.0;
-      result[1] = 0.0;
-      result[2] = 0.0;
-   }
-}
-
-/*! \brief Low-level magnetic field averaging function.
- * 
- * Averages total magnetic field x component into result.
- */
-void averageFaceXMagnField(
-	const CellID& cellID,
-	const CellID& /*nbr_i2j1k1*/,
-	const CellID& /*nbr_i1j2k1*/,
-	const CellID& /*nbr_i1j1k2*/,
-	creal* const coefficients,
-	dccrg::Dccrg<SpatialCell>& mpiGrid,
-	const int& I,
-	Real* result
-) {
-   if (cellID == INVALID_CELLID) {
-      result[0] = 0.0;
-      result[1] = 0.0;
-      result[2] = 0.0;
-      return;
-   }
-
-   Real*  const cep_i1j1k1 = mpiGrid[cellID]->parameters;
-
-   // Store calculated face-averaged B on x-faces:
-   CHECK_FLOAT(cep_i1j1k1[CellParams::BX])
-   result[0] = cep_i1j1k1[CellParams::BX];
-
-   CHECK_FLOAT(coefficients[Rec::b_0])
-   CHECK_FLOAT(coefficients[Rec::b_x])
-   result[1] = coefficients[Rec::b_0] + I*HALF*coefficients[Rec::b_x];
-
-   CHECK_FLOAT(coefficients[Rec::c_0])
-   CHECK_FLOAT(coefficients[Rec::c_x])
-   result[2] = coefficients[Rec::c_0] + I*HALF*coefficients[Rec::c_x];
-}
-
-/*! \brief Low-level magnetic field averaging function.
- * 
- * Averages total magnetic field y component into result.
- */
-void averageFaceYMagnField(
-	const CellID& cellID,
-	const CellID& /*nbr_i2j1k1*/,
-	const CellID& /*nbr_i1j2k1*/,
-	const CellID& /*nbr_i1j1k2*/,
-	creal* const coefficients,
-	dccrg::Dccrg<SpatialCell>& mpiGrid,
-	const int& J,
-	Real* result
-) {
-   if (cellID == INVALID_CELLID) {
-      result[0] = 0.0;
-      result[1] = 0.0;
-      result[2] = 0.0;
-      return;
-   }
-
-   Real*  const cep_i1j1k1 = mpiGrid[cellID]->parameters;
-
-   // Store calculated face-averaged B on y-faces:
-   result[0] = coefficients[Rec::a_0] + J*HALF*coefficients[Rec::a_y];
-   result[1] = cep_i1j1k1[CellParams::BY];
-   result[2] = coefficients[Rec::c_0] + J*HALF*coefficients[Rec::c_y];
-}
-
-/*! \brief Low-level magnetic field averaging function.
- * 
- * Averages total magnetic field z component into result. 
- */
-void averageFaceZMagnField(
-	const CellID& cellID,
-	const CellID& /*nbr_i2j1k1*/,
-	const CellID& /*nbr_i1j2k1*/,
-	const CellID& /*nbr_i1j1k2*/,
-	creal* const coefficients,
-	dccrg::Dccrg<SpatialCell>& mpiGrid,
-	const int& K,
-	Real* result
-) {
-   if (cellID == INVALID_CELLID) {
-      result[0] = 0.0;
-      result[1] = 0.0;
-      result[2] = 0.0;
-      return;
-   }
-
-   Real*  const cep_i1j1k1 = mpiGrid[cellID]->parameters;
-
-   // Store calculated face-averaged B on z-faces:
-   result[0] = coefficients[Rec::a_0] + K*HALF*coefficients[Rec::a_z];
-   result[1] = coefficients[Rec::b_0] + K*HALF*coefficients[Rec::b_z];
-   result[2] = cep_i1j1k1[CellParams::BZ];
-}
-
-/*! \brief Top-level field averaging function.
- * 
- * Averages the electric and magnetic fields over the cell faces.
- * 
- * \sa averageFaceXMagnField averageFaceYMagnField averageFaceZMagnField averageFaceXElectricField averageFaceYElectricField averageFaceZElectricField reconstructionCoefficients
- */
-void calculateFaceAveragedFields(
-	dccrg::Dccrg<SpatialCell>& mpiGrid
-) {
-   namespace fs = fieldsolver;
-   
-   vector<uint64_t> localCells = mpiGrid.get_cells();
-
-   Real faceMagnField[9];
-   Real coefficients[Rec::c_zz+1];
-   Real coefficients2[Rec::c_zz+1];
-
-   uint existingCells = 0;
-   for (size_t cell=0; cell<localCells.size(); ++cell) {
-      const CellID cellID = localCells[cell];
-
-      if (mpiGrid[cellID] == NULL) {
-         std::cerr << __FILE__ << ":" << __LINE__
-            << " No data for cell " << cellID << std::endl;
-         abort();
-      }
-      
-      // Get neighbour flags for the cell:
-      map<CellID,uint>::const_iterator it = boundaryFlags.find(cellID);
-      if (it == boundaryFlags.end()) existingCells = 0;
-      else existingCells = it->second;
-
-      // Get pointer to cellParams array for cell cellID:
-      Real* const cellParams = mpiGrid[cellID]->parameters;
-
-      // Calculate reconstruction coefficients for this cell:
-      const CellID nbr_i2j1k1 = getNeighbourID(mpiGrid, cellID, 2+1, 2  , 2  );
-      const CellID nbr_i1j2k1 = getNeighbourID(mpiGrid, cellID, 2  , 2+1, 2  );
-      const CellID nbr_i1j1k2 = getNeighbourID(mpiGrid, cellID, 2  , 2  , 2+1);
-      const CellID nbr_i1j2k2 = getNeighbourID(mpiGrid, cellID, 2  , 2+1, 2+1);
-      reconstructionCoefficients(cellID,nbr_i2j1k1,nbr_i1j2k1,nbr_i1j1k2,mpiGrid,coefficients);
-      
-      // Calculate reconstruction coefficients for i-1 neighbour:
-      const CellID nbr_i0j1k1 = getNeighbourID(mpiGrid, cellID, 2-1, 2  , 2  );
-      const CellID nbr_i0j2k1 = getNeighbourID(mpiGrid, cellID, 2-1, 2+1, 2  );
-      const CellID nbr_i0j1k2 = getNeighbourID(mpiGrid, cellID, 2-1, 2  , 2+1);
-      const CellID nbr_i0j2k2 = getNeighbourID(mpiGrid, cellID, 2-1, 2+1, 2+1);
-      reconstructionCoefficients(nbr_i0j1k1,cellID,nbr_i0j2k1,nbr_i0j1k2,mpiGrid,coefficients2);
-      
-      // Calculate B vector on both sides of x-face:
-      averageFaceXMagnField(cellID,nbr_i2j1k1,nbr_i1j2k1,nbr_i1j1k2,coefficients ,mpiGrid,-1,cellParams+CellParams::BXFACEX);
-      averageFaceXMagnField(nbr_i0j1k1,cellID,nbr_i0j2k1,nbr_i0j1k2,coefficients2,mpiGrid,+1,faceMagnField+0);
-      
-      // Calculate E vector on x-face (NEEDS IMPROVEMENT):
-      averageFaceXElectricField(
-        cellID,
-        nbr_i1j2k1,
-        nbr_i1j1k2,
-        nbr_i1j2k2,
-        nbr_i0j1k1,
-        nbr_i0j2k1,
-        nbr_i0j1k2,
-        nbr_i0j2k2,
-        existingCells,
-        mpiGrid,
-        cellParams+CellParams::EXFACEX
-      );
-      
-      // Calculate B vector on both sides of y-face:
-      const CellID nbr_i2j1k2 = getNeighbourID(mpiGrid, cellID, 2+1, 2  , 2+1);
-      const CellID nbr_i2j0k1 = getNeighbourID(mpiGrid, cellID, 2+1, 2-1, 2  );
-      const CellID nbr_i1j0k1 = getNeighbourID(mpiGrid, cellID, 2  , 2-1, 2  );
-      const CellID nbr_i1j0k2 = getNeighbourID(mpiGrid, cellID, 2  , 2-1, 2+1);
-      const CellID nbr_i2j0k2 = getNeighbourID(mpiGrid, cellID, 2+1, 2-1, 2+1);
-      reconstructionCoefficients(nbr_i1j0k1,nbr_i2j0k1,cellID,nbr_i1j0k2,mpiGrid,coefficients2);
-      
-      averageFaceYMagnField(cellID,nbr_i2j1k1,nbr_i1j2k1,nbr_i1j1k2,coefficients ,mpiGrid,-1,cellParams+CellParams::BXFACEY);
-      averageFaceYMagnField(nbr_i1j0k1,nbr_i2j0k1,cellID,nbr_i1j0k2,coefficients2,mpiGrid,+1,faceMagnField+3);
-
-      // Calculate E vector on y-face (NEEDS IMPROVEMENT):
-      averageFaceYElectricField(
-        cellID,
-        nbr_i2j1k1,
-        nbr_i1j1k2,
-        nbr_i2j1k2,
-        nbr_i1j0k1,
-        nbr_i2j0k1,
-        nbr_i1j0k2,
-        nbr_i2j0k2,
-        existingCells,
-        mpiGrid,
-        cellParams+CellParams::EXFACEY
-      );
-      
-      // Calculate B vector on both sides of z-face:
-      const CellID nbr_i2j2k1 = getNeighbourID(mpiGrid, cellID, 2+1, 2+1, 2  );
-      const CellID nbr_i2j1k0 = getNeighbourID(mpiGrid, cellID, 2+1, 2  , 2-1);
-      const CellID nbr_i1j2k0 = getNeighbourID(mpiGrid, cellID, 2  , 2+1, 2-1);
-      const CellID nbr_i1j1k0 = getNeighbourID(mpiGrid, cellID, 2  , 2  , 2-1);
-      const CellID nbr_i2j2k0 = getNeighbourID(mpiGrid, cellID, 2+1, 2+1, 2-1);
-      reconstructionCoefficients(nbr_i1j1k0,nbr_i2j1k0,nbr_i1j2k0,cellID,mpiGrid,coefficients2);
-      
-      averageFaceZMagnField(cellID,nbr_i2j1k1,nbr_i1j2k1,nbr_i1j1k2,coefficients ,mpiGrid,-1,cellParams+CellParams::BXFACEZ);
-      averageFaceZMagnField(nbr_i1j1k0,nbr_i2j1k0,nbr_i1j2k0,cellID,coefficients2,mpiGrid,+1,faceMagnField+6);
-
-      // Calculate E vector on z-face (NEEDS IMPROVEMENT):
-      averageFaceZElectricField(
-        cellID,
-        nbr_i2j1k1,
-        nbr_i1j2k1,
-        nbr_i2j2k1,
-        nbr_i1j1k0,
-        nbr_i2j1k0,
-        nbr_i1j2k0,
-        nbr_i2j2k0,
-        existingCells,
-        mpiGrid,
-        cellParams+CellParams::EXFACEZ
-      );
-      
-      // Store the average value (maybe should store upwinded value?): 
-      for (uint i=0; i<9; ++i) {
-	 cellParams[CellParams::BXFACEX+i] = HALF*(cellParams[CellParams::BXFACEX+i] + faceMagnField[i]);
-      }
-   }
 }
 
 /*! \brief Top-level field averaging function.
@@ -2260,12 +1810,8 @@ void calculateFaceAveragedFields(
  * \sa reconstructionCoefficients
  */
 void calculateVolumeAveragedFields(
-	dccrg::Dccrg<SpatialCell>& mpiGrid
+   dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
-   // If fields are not propagated exit immediately. It is 
-   // user's responsibility to set correct values to volume-averaged E,B-fields:
-   
-   if (fieldsArePropagated == false) return;
    phiprof::start("Calculate volume averaged fields");
    
    namespace fs = fieldsolver;
@@ -2276,17 +1822,17 @@ void calculateVolumeAveragedFields(
    Real coefficients[Rec::c_zz+1];
       
    cuint EX_CELLS = (1 << calcNbrNumber(1,1,1))
-   	| (1 << calcNbrNumber(1,2,1))
-   	| (1 << calcNbrNumber(1,1,2))
-   	| (1 << calcNbrNumber(1,2,2));
+      | (1 << calcNbrNumber(1,2,1))
+      | (1 << calcNbrNumber(1,1,2))
+      | (1 << calcNbrNumber(1,2,2));
    cuint EY_CELLS = (1 << calcNbrNumber(1,1,1))
-   	| (1 << calcNbrNumber(2,1,1))
-   	| (1 << calcNbrNumber(1,1,2))
-   	| (1 << calcNbrNumber(2,1,2));
+      | (1 << calcNbrNumber(2,1,1))
+      | (1 << calcNbrNumber(1,1,2))
+      | (1 << calcNbrNumber(2,1,2));
    cuint EZ_CELLS = (1 << calcNbrNumber(1,1,1))
-   	| (1 << calcNbrNumber(2,1,1))
-   	| (1 << calcNbrNumber(1,2,1))
-   	| (1 << calcNbrNumber(2,2,1));
+      | (1 << calcNbrNumber(2,1,1))
+      | (1 << calcNbrNumber(1,2,1))
+      | (1 << calcNbrNumber(2,2,1));
    
    uint existingCells = 0;
    for (size_t cell=0; cell<localCells.size(); ++cell) {
@@ -2316,50 +1862,49 @@ void calculateVolumeAveragedFields(
       creal* const cep_i1j1k1 = cellParams;
       
       if ((existingCells & EX_CELLS) == EX_CELLS) {
-	 creal* const cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->parameters;
-	 creal* const cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->parameters;
-	 creal* const cep_i1j2k2 = mpiGrid[nbr_i1j2k2]->parameters;
+         creal* const cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->parameters;
+         creal* const cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->parameters;
+         creal* const cep_i1j2k2 = mpiGrid[nbr_i1j2k2]->parameters;
 
          CHECK_FLOAT(cep_i1j1k1[cp::EX])
          CHECK_FLOAT(cep_i1j2k1[cp::EX])
          CHECK_FLOAT(cep_i1j1k2[cp::EX])
          CHECK_FLOAT(cep_i1j2k2[cp::EX])
-	 cellParams[cp::EXVOL] = FOURTH*(cep_i1j1k1[cp::EX] + cep_i1j2k1[cp::EX] + cep_i1j1k2[cp::EX] + cep_i1j2k2[cp::EX]);
-	 CHECK_FLOAT(cellParams[cp::EXVOL])
+         cellParams[cp::EXVOL] = FOURTH*(cep_i1j1k1[cp::EX] + cep_i1j2k1[cp::EX] + cep_i1j1k2[cp::EX] + cep_i1j2k2[cp::EX]);
+         CHECK_FLOAT(cellParams[cp::EXVOL])
       } else {
-	 cellParams[cp::EXVOL] = 0.0;
+         cellParams[cp::EXVOL] = 0.0;
       }
       
       if ((existingCells & EY_CELLS) == EY_CELLS) {
-	 creal* const cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->parameters;
-	 creal* const cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->parameters;
-	 creal* const cep_i2j1k2 = mpiGrid[nbr_i2j1k2]->parameters;
+         creal* const cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->parameters;
+         creal* const cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->parameters;
+         creal* const cep_i2j1k2 = mpiGrid[nbr_i2j1k2]->parameters;
 
          CHECK_FLOAT(cep_i1j1k1[cp::EY])
          CHECK_FLOAT(cep_i2j1k1[cp::EY])
          CHECK_FLOAT(cep_i1j1k2[cp::EY])
          CHECK_FLOAT(cep_i2j1k2[cp::EY])
-	 cellParams[cp::EYVOL] = FOURTH*(cep_i1j1k1[cp::EY] + cep_i2j1k1[cp::EY] + cep_i1j1k2[cp::EY] + cep_i2j1k2[cp::EY]);
-	 CHECK_FLOAT(cellParams[cp::EYVOL])
+         cellParams[cp::EYVOL] = FOURTH*(cep_i1j1k1[cp::EY] + cep_i2j1k1[cp::EY] + cep_i1j1k2[cp::EY] + cep_i2j1k2[cp::EY]);
+         CHECK_FLOAT(cellParams[cp::EYVOL])
       } else {
-	 cellParams[cp::EYVOL] = 0.0;
+         cellParams[cp::EYVOL] = 0.0;
       }
       
       if ((existingCells & EZ_CELLS) == EZ_CELLS) {
-	 creal* const cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->parameters;
-	 creal* const cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->parameters;
-	 creal* const cep_i2j2k1 = mpiGrid[nbr_i2j2k1]->parameters;
+         creal* const cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->parameters;
+         creal* const cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->parameters;
+         creal* const cep_i2j2k1 = mpiGrid[nbr_i2j2k1]->parameters;
 
-	 CHECK_FLOAT(cep_i1j1k1[cp::EZ])
-	 CHECK_FLOAT(cep_i2j1k1[cp::EZ])
-	 CHECK_FLOAT(cep_i1j2k1[cp::EZ])
-	 CHECK_FLOAT(cep_i2j2k1[cp::EZ])
-	 cellParams[cp::EZVOL] = FOURTH*(cep_i1j1k1[cp::EZ] + cep_i2j1k1[cp::EZ] + cep_i1j2k1[cp::EZ] + cep_i2j2k1[cp::EZ]);
-	 CHECK_FLOAT(cellParams[cp::EZVOL])
+         CHECK_FLOAT(cep_i1j1k1[cp::EZ])
+         CHECK_FLOAT(cep_i2j1k1[cp::EZ])
+         CHECK_FLOAT(cep_i1j2k1[cp::EZ])
+         CHECK_FLOAT(cep_i2j2k1[cp::EZ])
+         cellParams[cp::EZVOL] = FOURTH*(cep_i1j1k1[cp::EZ] + cep_i2j1k1[cp::EZ] + cep_i1j2k1[cp::EZ] + cep_i2j2k1[cp::EZ]);
+         CHECK_FLOAT(cellParams[cp::EZVOL])
       } else {
-	 cellParams[cp::EZVOL] = 0.0;
+         cellParams[cp::EZVOL] = 0.0;
       }
    }
    phiprof::stop("Calculate volume averaged fields");
 }
-
