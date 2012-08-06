@@ -373,7 +373,7 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,
          //modify velocity block lists, need to make sure
          //updateRemoteVelocityBlockLists(mpiGrid) is called before
          //any further communication involving velocity space takes
-         //place 
+         //place
          if(doIntegration){
             //empty neighbor list, only local neighbors in velocity
             //space taken into account. 
@@ -731,14 +731,16 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
             unsigned int block = SC->velocity_block_list[block_i];         
             cpu_propagateSpatWithMoments(nbr_dfdt,SC,block,block_i);
          }  
+         //Accelerate cell if requested. This is only done for non-ghost cells
+         if(accelerate)
+            calculateCellAcceleration(mpiGrid,cellID,accelerate_dt);
+
       } else {
          for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
             unsigned int block = SC->velocity_block_list[block_i];         
 	    cpu_calcVelocityMoments(SC,block);
 	 }
       }
-      if(accelerate)
-         calculateCellAcceleration(mpiGrid,cellID,accelerate_dt);
    }
 
    if(accelerate)   
