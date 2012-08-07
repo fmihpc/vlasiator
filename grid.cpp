@@ -33,7 +33,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "logger.h"
 #include "parameters.h"
 
-#include "datareducer.h"
+#include "datareduction/datareducer.h"
 #include "transferstencil.h"
 
 #include "vlsvwriter2.h" 

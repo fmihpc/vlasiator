@@ -31,8 +31,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "parameters.h"
 #include "readparameters.h"
 #include "spatial_cell.hpp"
-#include "datareducer.h"
-#include "datareductionoperator.h"
+#include "datareduction/datareducer.h"
+#include "boundary/boundary.h"
 #include "transferstencil.h"
 
 #include "vlsvwriter2.h" 
@@ -138,10 +138,23 @@ int main(int argn,char* args[]) {
    }  
    phiprof::stop("Init grid");
    
+   phiprof::start("Init DROs");
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
    // user-defined operators:
    DataReducer outputReducer, diagnosticReducer;
    initializeDataReducers(&outputReducer, &diagnosticReducer);
+   phiprof::stop("Init DROs");
+   
+   
+   // Initialise boundary conditions
+   phiprof::start("Init BCs");
+   Boundary boundaries;
+   bool isBoundaryCondDynamic = initializeBoundaries(&boundaries);
+   if(assignBoundaryType(mpiGrid) == false) {
+      cerr << "(MAIN) ERROR: Boundary conditions were not set correctly." << endl;
+      exit(1);
+   }
+   phiprof::stop("Init BCs");
    
    //VlsWriter vlsWriter;
    phiprof::start("Init vlasov propagator");

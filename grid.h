@@ -3,7 +3,7 @@
 
 #include "spatial_cell.hpp"
 #include <dccrg.hpp>
-#include "datareducer.h"
+#include "datareduction/datareducer.h"
 #include <string>
 
 //Init parallel grid

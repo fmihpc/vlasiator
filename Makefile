@@ -1,6 +1,6 @@
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
-PROJ = Fluctuations
+PROJ = Magnetosphere
 
 #set default architecture, can be overridden from the compile line
 ARCH = meteo
@@ -87,7 +87,9 @@ LIBS += ${LIB_PROFILE}
 DEPS_COMMON = common.h definitions.h mpiconversion.h logger.h
 
 #all objects for vlasiator
-OBJS = 	datareducer.o datareductionoperator.o 		\
+OBJS = 	datareducer.o datareductionoperator.o \
+	ionosphere.o outflow.o solarwind.o \
+	boundary.o boundarycondition.o \
 	grid.o vlasiator.o logger.o muxml.o	\
 	parameters.o readparameters.o project.o	spatial_cell.o		\
 	vlscommon.o vlsvreader2.o vlsvwriter2.o vlasovmover_$(TRANSSOLVER).o $(FIELDSOLVER).o
@@ -113,12 +115,26 @@ clean: data
 
 # Rules for making each object file needed by the executable
 
-datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareducer.h datareductionoperator.h datareducer.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c datareducer.cpp ${INC_MPI} ${INC_BOOST}
+datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/datareducer.h datareduction/datareductionoperator.h datareduction/datareducer.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c datareduction/datareducer.cpp ${INC_MPI} ${INC_BOOST}
 
+datareductionoperator.o:  ${DEPS_COMMON} spatial_cell.hpp datareduction/datareductionoperator.h datareduction/datareductionoperator.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c datareduction/datareductionoperator.cpp ${INC_MPI} ${INC_BOOST}
 
-datareductionoperator.o:  ${DEPS_COMMON} spatial_cell.hpp datareductionoperator.h datareductionoperator.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c datareductionoperator.cpp ${INC_MPI} ${INC_BOOST}
+ionosphere.o: ${DEPS_COMMON} boundary/ionosphere.h boundary/ionosphere.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c boundary/ionosphere.cpp ${INC_BOOST}
+
+outflow.o: ${DEPS_COMMON} boundary/outflow.h boundary/outflow.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c boundary/outflow.cpp ${INC_BOOST}
+
+solarwind.o: ${DEPS_COMMON} boundary/solarwind.h boundary/solarwind.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c boundary/solarwind.cpp ${INC_BOOST}
+
+boundary.o: ${DEPS_COMMON} boundary/boundary.h boundary/boundary.cpp boundary/boundarycondition.h boundary/boundarycondition.cpp boundary/ionosphere.h boundary/ionosphere.cpp boundary/outflow.h boundary/outflow.cpp boundary/solarwind.h boundary/solarwind.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c boundary/boundary.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
+
+boundarycondition.o: ${DEPS_COMMON} boundary/boundarycondition.h boundary/boundarycondition.cpp  boundary/ionosphere.h boundary/ionosphere.cpp boundary/outflow.h boundary/outflow.cpp boundary/solarwind.h boundary/solarwind.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c boundary/boundarycondition.cpp ${INC_BOOST}
 
 spatial_cell.o: spatial_cell.cpp spatial_cell.hpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c spatial_cell.cpp $(INC_BOOST)

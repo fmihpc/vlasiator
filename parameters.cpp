@@ -104,69 +104,95 @@ uint P::rebalanceInterval = numeric_limits<uint>::max();
 vector<string> P::outputVariableList;
 vector<string> P::diagnosticVariableList;
 
-bool Parameters::addParameters(){
-        //the other default parameters we read through the add/get interface
-	Readparameters::add("diagnostic_write_interval", "Write diagnostic output every arg time steps",numeric_limits<uint>::max());
-        Readparameters::add("system_write_t_interval", "Save the simulation every arg simulated seconds. Negative values disable writes.",-1.0);
-	Readparameters::add("restart_write_t_interval","Save the complete simulation every arg simulated seconds. Negative values disable writes.",-1.0);
-        //TODO Readparameters::add("output.restart_walltime_interval","Save the complete simulation every arg wall-time seconds",numeric_limits<uint>::max());
-        
-        Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
-        Readparameters::add("propagate_vlasov","Propagate distribution functions during the simulation",true);
-        Readparameters::add("max_acceleration_substeps","Maximum number of  acceleration substeps that are allowed to be taken in acceleration. The default number of 1 disables substepping and the acceleration is always done in one step. A value of 0 has a special meaning, it activates unlimited substepping",1);
-        Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limit (default)",true);
-        
-        Readparameters::add("split_method","Split method for splitting spatial/velocity space solvers. 0: first order, 1: strang splitting with half-steps for spatial space, 2: strang splitting with half-steps for velocity space",1);
-        
+vector<string> P::boundaryCondList;
+vector<string> P::outflowFaceList;
+vector<string> P::solarWindFaceList;
+string P::solarWindFiles[6];
+bool P::isSolarWindDynamic = false;
+Real P::ionoCenter[3] = {NAN};
+Real P::ionoRadius = NAN;
 
-        Readparameters::add("gridbuilder.x_min","Minimum value of the x-coordinate.","");
-        Readparameters::add("gridbuilder.x_max","Minimum value of the x-coordinate.","");
-        Readparameters::add("gridbuilder.y_min","Minimum value of the y-coordinate.","");
-        Readparameters::add("gridbuilder.y_max","Minimum value of the y-coordinate.","");
-        Readparameters::add("gridbuilder.z_min","Minimum value of the z-coordinate.","");
-        Readparameters::add("gridbuilder.z_max","Minimum value of the z-coordinate.","");
-        Readparameters::add("gridbuilder.x_length","Number of cells in x-direction in initial grid.","");
-        Readparameters::add("gridbuilder.y_length","Number of cells in y-direction in initial grid.","");
-        Readparameters::add("gridbuilder.z_length","Number of cells in z-direction in initial grid.","");
-        Readparameters::add("gridbuilder.vx_min","Minimum value for velocity block vx-coordinates.","");
-        Readparameters::add("gridbuilder.vx_max","Maximum value for velocity block vx-coordinates.","");
-        Readparameters::add("gridbuilder.vy_min","Minimum value for velocity block vy-coordinates.","");
-        Readparameters::add("gridbuilder.vy_max","Maximum value for velocity block vy-coordinates.","");
-        Readparameters::add("gridbuilder.vz_min","Minimum value for velocity block vz-coordinates.","");
-        Readparameters::add("gridbuilder.vz_max","Maximum value for velocity block vz-coordinates.","");
-        Readparameters::add("gridbuilder.vx_length","Initial number of velocity blocks in vx-direction.","");
-        Readparameters::add("gridbuilder.vy_length","Initial number of velocity blocks in vy-direction.","");
-        Readparameters::add("gridbuilder.vz_length","Initial number of velocity blocks in vz-direction.","");
-        Readparameters::add("gridbuilder.periodic_x","If 'yes' the grid is periodic in x-direction. Defaults to 'no'.","no");
-        Readparameters::add("gridbuilder.periodic_y","If 'yes' the grid is periodic in y-direction. Defaults to 'no'.","no");
-        Readparameters::add("gridbuilder.periodic_z","If 'yes' the grid is periodic in z-direction. Defaults to 'no'.","no");
+bool Parameters::addParameters(){
+   //the other default parameters we read through the add/get interface
+   Readparameters::add("diagnostic_write_interval", "Write diagnostic output every arg time steps",numeric_limits<uint>::max());
+   Readparameters::add("system_write_t_interval", "Save the simulation every arg simulated seconds. Negative values disable writes.",-1.0);
+   Readparameters::add("restart_write_t_interval","Save the complete simulation every arg simulated seconds. Negative values disable writes.",-1.0);
+   //TODO Readparameters::add("output.restart_walltime_interval","Save the complete simulation every arg wall-time seconds",numeric_limits<uint>::max());
+
+   Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
+   Readparameters::add("propagate_vlasov","Propagate distribution functions during the simulation",true);
+   Readparameters::add("max_acceleration_substeps","Maximum number of  acceleration substeps that are allowed to be taken in acceleration. The default number of 1 disables substepping and the acceleration is always done in one step. A value of 0 has a special meaning, it activates unlimited substepping",1);
+   Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limit (default)",true);
+
+   Readparameters::add("split_method","Split method for splitting spatial/velocity space solvers. 0: first order, 1: strang splitting with half-steps for spatial space, 2: strang splitting with half-steps for velocity space",1);
    
-        Readparameters::add("gridbuilder.q","Charge of simulated particle species, in Coulombs.",1.60217653e-19);
-        Readparameters::add("gridbuilder.m","Mass of simulated particle species, in kilograms.",1.67262171e-27);
-        Readparameters::add("gridbuilder.dt","Initial timestep in seconds.",0.0);
-        Readparameters::add("gridbuilder.CFL","The maximum CFL limit for propagation. Used to set timestep if use_CFL_limit is true. Also used to compute substeps in acceleration",0.5);
-        Readparameters::add("gridbuilder.t_min","Simulation time at initial timestep, in seconds.",0.0);
-        Readparameters::add("gridbuilder.t_max","Maximum simulation time, in seconds. If timestep_max limit is hit first this time will never be reached",LARGE_REAL);
-        Readparameters::add("gridbuilder.timestep_min","Timestep when grid is loaded. Defaults to value zero.",0);
-        Readparameters::add("gridbuilder.timestep_max","Max. value for timesteps. If t_max limit is hit first, this step will never be reached",numeric_limits<uint>::max());
    
-	// Field solver parameters
-	Readparameters::add("LondrilloDelZanna.RK_alpha","Parameter of the second-order Runge-Kutta method used for the field solver (default: 1/2 => midpoint).", 0.5);
-	
-	// Grid sparsity parameters
-        Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
-        Readparameters::add("sparse.minAvgValue", "Minimum value of the average of distribution function within a velocity block for the block to be considered to have contents", 0);
-        Readparameters::add("sparse.blockAdjustmentInterval", "Block adjustment interval (steps)", 1);
+   Readparameters::add("gridbuilder.x_min","Minimum value of the x-coordinate.","");
+   Readparameters::add("gridbuilder.x_max","Minimum value of the x-coordinate.","");
+   Readparameters::add("gridbuilder.y_min","Minimum value of the y-coordinate.","");
+   Readparameters::add("gridbuilder.y_max","Minimum value of the y-coordinate.","");
+   Readparameters::add("gridbuilder.z_min","Minimum value of the z-coordinate.","");
+   Readparameters::add("gridbuilder.z_max","Minimum value of the z-coordinate.","");
+   Readparameters::add("gridbuilder.x_length","Number of cells in x-direction in initial grid.","");
+   Readparameters::add("gridbuilder.y_length","Number of cells in y-direction in initial grid.","");
+   Readparameters::add("gridbuilder.z_length","Number of cells in z-direction in initial grid.","");
+   Readparameters::add("gridbuilder.vx_min","Minimum value for velocity block vx-coordinates.","");
+   Readparameters::add("gridbuilder.vx_max","Maximum value for velocity block vx-coordinates.","");
+   Readparameters::add("gridbuilder.vy_min","Minimum value for velocity block vy-coordinates.","");
+   Readparameters::add("gridbuilder.vy_max","Maximum value for velocity block vy-coordinates.","");
+   Readparameters::add("gridbuilder.vz_min","Minimum value for velocity block vz-coordinates.","");
+   Readparameters::add("gridbuilder.vz_max","Maximum value for velocity block vz-coordinates.","");
+   Readparameters::add("gridbuilder.vx_length","Initial number of velocity blocks in vx-direction.","");
+   Readparameters::add("gridbuilder.vy_length","Initial number of velocity blocks in vy-direction.","");
+   Readparameters::add("gridbuilder.vz_length","Initial number of velocity blocks in vz-direction.","");
+   Readparameters::add("gridbuilder.periodic_x","If 'yes' the grid is periodic in x-direction. Defaults to 'no'.","no");
+   Readparameters::add("gridbuilder.periodic_y","If 'yes' the grid is periodic in y-direction. Defaults to 'no'.","no");
+   Readparameters::add("gridbuilder.periodic_z","If 'yes' the grid is periodic in z-direction. Defaults to 'no'.","no");
    
-        // Load balancing parameters
-        Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("RCB"));
-        Readparameters::add("loadBalance.tolerance", "Load imbalance tolerance", std::string("1.05"));
-        Readparameters::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
-	
-	// Output variable parameters
-	Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available (20120806) are B E Rho RhoV RhoLossAdjust RhoLossVelBoundary MPIrank Blocks VolE VolB Pressure PTensor dBxdz.");
-	Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Available (20120703) are Blocks FluxB Rho RhoLossAdjust RhoLossVelBoundary MaxVi.");
-        return true;
+   Readparameters::add("gridbuilder.q","Charge of simulated particle species, in Coulombs.",1.60217653e-19);
+   Readparameters::add("gridbuilder.m","Mass of simulated particle species, in kilograms.",1.67262171e-27);
+   Readparameters::add("gridbuilder.dt","Initial timestep in seconds.",0.0);
+   Readparameters::add("gridbuilder.CFL","The maximum CFL limit for propagation. Used to set timestep if use_CFL_limit is true. Also used to compute substeps in acceleration",0.5);
+   Readparameters::add("gridbuilder.t_min","Simulation time at initial timestep, in seconds.",0.0);
+   Readparameters::add("gridbuilder.t_max","Maximum simulation time, in seconds. If timestep_max limit is hit first this time will never be reached",LARGE_REAL);
+   Readparameters::add("gridbuilder.timestep_min","Timestep when grid is loaded. Defaults to value zero.",0);
+   Readparameters::add("gridbuilder.timestep_max","Max. value for timesteps. If t_max limit is hit first, this step will never be reached",numeric_limits<uint>::max());
+   
+   // Field solver parameters
+   Readparameters::add("LondrilloDelZanna.RK_alpha","Parameter of the second-order Runge-Kutta method used for the field solver (default: 1/2 => midpoint).", 0.5);
+   
+   // Grid sparsity parameters
+   Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
+   Readparameters::add("sparse.minAvgValue", "Minimum value of the average of distribution function within a velocity block for the block to be considered to have contents", 0);
+   Readparameters::add("sparse.blockAdjustmentInterval", "Block adjustment interval (steps)", 1);
+   
+   // Load balancing parameters
+   Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("RCB"));
+   Readparameters::add("loadBalance.tolerance", "Load imbalance tolerance", std::string("1.05"));
+   Readparameters::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
+   
+   // Output variable parameters
+   Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available (20120806) are B E Rho RhoV RhoLossAdjust RhoLossVelBoundary MPIrank Blocks VolE VolB Pressure PTensor dBxdz.");
+   Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Available (20120703) are Blocks FluxB Rho RhoLossAdjust RhoLossVelBoundary MaxVi.");
+   
+   // Boundary conditions parameters
+   Readparameters::addComposing("boundaries.boundary", "List of boundary condition (BC) types to be used. Each boundary condition to be used has to be on a new line boundary = YYY. Available (20120807) are outflow ionosphere solarwind.");
+   Readparameters::addComposing("boundaries.outflowFace", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
+   Readparameters::addComposing("boundaries.solarWindFace", "List of faces on which solar wind boundary conditions are to be applied ([xyz][+-]).");
+   Readparameters::add("boundaries.solarWindFile_x+", "Input files for the solar wind inflow parameters on face x+.", "");
+   Readparameters::add("boundaries.solarWindFile_x-", "Input files for the solar wind inflow parameters on face x-.", "");
+   Readparameters::add("boundaries.solarWindFile_y+", "Input files for the solar wind inflow parameters on face y+.", "");
+   Readparameters::add("boundaries.solarWindFile_y-", "Input files for the solar wind inflow parameters on face y-.", "");
+   Readparameters::add("boundaries.solarWindFile_z+", "Input files for the solar wind inflow parameters on face z+.", "");
+   Readparameters::add("boundaries.solarWindFile_z-", "Input files for the solar wind inflow parameters on face z-.", "");
+   
+   Readparameters::add("boundaries.dynamicSolarWind", "Boolean value, is the solar wind inflow dynamic in time or not.", 0);
+   Readparameters::add("boundaries.ionoCenterX", "X coordinate of ionosphere center (m)", 0.0);
+   Readparameters::add("boundaries.ionoCenterY", "Y coordinate of ionosphere center (m)", 0.0);
+   Readparameters::add("boundaries.ionoCenterZ", "Z coordinate of ionosphere center (m)", 0.0);
+   Readparameters::add("boundaries.ionoRadius", "Radius of ionosphere (m).", 1.0e7);
+   
+   return true;
 }
 
 bool Parameters::getParameters(){
@@ -181,46 +207,46 @@ bool Parameters::getParameters(){
    Readparameters::get("split_method",P::splitMethod);
    Readparameters::get("max_acceleration_substeps",P::maxAccelerationSubsteps);
    Readparameters::get("dynamic_timestep",P::dynamicTimestep);
-
+   
    /*get numerical values, let Readparameters handle the conversions*/
    Readparameters::get("gridbuilder.x_min",P::xmin);
    Readparameters::get("gridbuilder.x_max",P::xmax);
    Readparameters::get("gridbuilder.y_min",P::ymin);
    Readparameters::get("gridbuilder.y_max",P::ymax);
-    Readparameters::get("gridbuilder.z_min",P::zmin);
-    Readparameters::get("gridbuilder.z_max",P::zmax);
-    Readparameters::get("gridbuilder.x_length",P::xcells_ini);
-    Readparameters::get("gridbuilder.y_length",P::ycells_ini);
-    Readparameters::get("gridbuilder.z_length",P::zcells_ini);
-    Readparameters::get("gridbuilder.vx_min",P::vxmin);
-    Readparameters::get("gridbuilder.vx_max",P::vxmax);
-    Readparameters::get("gridbuilder.vy_min",P::vymin);
-    Readparameters::get("gridbuilder.vy_max",P::vymax);
-    Readparameters::get("gridbuilder.vz_min",P::vzmin);
-    Readparameters::get("gridbuilder.vz_max",P::vzmax);
-    Readparameters::get("gridbuilder.vx_length",P::vxblocks_ini);
-    Readparameters::get("gridbuilder.vy_length",P::vyblocks_ini);
-    Readparameters::get("gridbuilder.vz_length",P::vzblocks_ini);
-    
-    if (P::xmax < P::xmin || (P::ymax < P::ymin || P::zmax < P::zmin)) return false;
-    if (P::vxmax < P::vxmin || (P::vymax < P::vymin || P::vzmax < P::vzmin)) return false;
-    
-    std::string periodic_x,periodic_y,periodic_z;
-    Readparameters::get("gridbuilder.periodic_x",periodic_x);
-    Readparameters::get("gridbuilder.periodic_y",periodic_y);
-    Readparameters::get("gridbuilder.periodic_z",periodic_z);
-    P::periodic_x = false;
-    P::periodic_y = false;
-    P::periodic_z = false;
-    if (periodic_x == "yes") P::periodic_x = true;
-    if (periodic_y == "yes") P::periodic_y = true;
-    if (periodic_z == "yes") P::periodic_z = true;
-    
-    // Set some parameter values. 
-    P::dx_ini = (P::xmax-P::xmin)/P::xcells_ini;
-    P::dy_ini = (P::ymax-P::ymin)/P::ycells_ini;
-    P::dz_ini = (P::zmax-P::zmin)/P::zcells_ini;
-    
+   Readparameters::get("gridbuilder.z_min",P::zmin);
+   Readparameters::get("gridbuilder.z_max",P::zmax);
+   Readparameters::get("gridbuilder.x_length",P::xcells_ini);
+   Readparameters::get("gridbuilder.y_length",P::ycells_ini);
+   Readparameters::get("gridbuilder.z_length",P::zcells_ini);
+   Readparameters::get("gridbuilder.vx_min",P::vxmin);
+   Readparameters::get("gridbuilder.vx_max",P::vxmax);
+   Readparameters::get("gridbuilder.vy_min",P::vymin);
+   Readparameters::get("gridbuilder.vy_max",P::vymax);
+   Readparameters::get("gridbuilder.vz_min",P::vzmin);
+   Readparameters::get("gridbuilder.vz_max",P::vzmax);
+   Readparameters::get("gridbuilder.vx_length",P::vxblocks_ini);
+   Readparameters::get("gridbuilder.vy_length",P::vyblocks_ini);
+   Readparameters::get("gridbuilder.vz_length",P::vzblocks_ini);
+   
+   if (P::xmax < P::xmin || (P::ymax < P::ymin || P::zmax < P::zmin)) return false;
+   if (P::vxmax < P::vxmin || (P::vymax < P::vymin || P::vzmax < P::vzmin)) return false;
+   
+   std::string periodic_x,periodic_y,periodic_z;
+   Readparameters::get("gridbuilder.periodic_x",periodic_x);
+   Readparameters::get("gridbuilder.periodic_y",periodic_y);
+   Readparameters::get("gridbuilder.periodic_z",periodic_z);
+   P::periodic_x = false;
+   P::periodic_y = false;
+   P::periodic_z = false;
+   if (periodic_x == "yes") P::periodic_x = true;
+   if (periodic_y == "yes") P::periodic_y = true;
+   if (periodic_z == "yes") P::periodic_z = true;
+   
+   // Set some parameter values. 
+   P::dx_ini = (P::xmax-P::xmin)/P::xcells_ini;
+   P::dy_ini = (P::ymax-P::ymin)/P::ycells_ini;
+   P::dz_ini = (P::zmax-P::zmin)/P::zcells_ini;
+   
    Readparameters::get("gridbuilder.q",P::q);
    Readparameters::get("gridbuilder.m",P::m);
    Readparameters::get("gridbuilder.dt",P::dt);
@@ -250,11 +276,22 @@ bool Parameters::getParameters(){
    // Get output variable parameters
    Readparameters::get("variables.output", P::outputVariableList);
    Readparameters::get("variables.diagnostic", P::diagnosticVariableList);
-
-
    
+   // Get boundary conditions parameters
+   Readparameters::get("boundaries.boundary", P::boundaryCondList);
+   Readparameters::get("boundaries.outflowFace", P::outflowFaceList);
+   Readparameters::get("boundaries.solarWindFace", P::solarWindFaceList);
+   Readparameters::get("boundaries.dynamicSolarWind", P::isSolarWindDynamic);
+   Readparameters::get("boundaries.solarWindFile_x+", P::solarWindFiles[0]);
+   Readparameters::get("boundaries.solarWindFile_x-", P::solarWindFiles[1]);
+   Readparameters::get("boundaries.solarWindFile_y+", P::solarWindFiles[2]);
+   Readparameters::get("boundaries.solarWindFile_y-", P::solarWindFiles[3]);
+   Readparameters::get("boundaries.solarWindFile_z+", P::solarWindFiles[4]);
+   Readparameters::get("boundaries.solarWindFile_z-", P::solarWindFiles[5]);
+   Readparameters::get("boundaries.ionoCenterX", P::ionoCenter[0]);
+   Readparameters::get("boundaries.ionoCenterY", P::ionoCenter[1]);
+   Readparameters::get("boundaries.ionoCenterZ", P::ionoCenter[2]);
+   Readparameters::get("boundaries.ionoRadius", P::ionoRadius);
    
    return true;
 }
-
-
