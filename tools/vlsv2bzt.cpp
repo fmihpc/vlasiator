@@ -250,6 +250,10 @@ int main(int argn,char* args[]) {
 //            fwrite(&endOfLine, sizeof(endOfLine), 1, outputFile);
          }
       }
+      if(*fileFormat == 'b') {
+         creal format[2] = {fileList.size()*1.0, lineLength*1.0};
+         fwrite(&format[0], sizeof(format[0]), 2, outputFile);
+      }
       fclose(outputFile);
    }
    MPI_Finalize();
