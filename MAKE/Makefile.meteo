@@ -9,11 +9,10 @@ LNK = CC
 
 CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK
 
-FLAGS = -DNO_WRITE_AT_ALL
+FLAGS = 
 
 # NOTES on compiler flags:
-# CXXFLAGS is for mandatory compiler flags, they are always used
-# FLAGS is for user-defined flags, this must be left empty on all Makefiles
+# CXXFLAGS is for compiler flags, they are always used
 # MATHFLAGS are for special math etc. flags, these are only applied on solver functions
 # LDFLAGS flags for linker
 
