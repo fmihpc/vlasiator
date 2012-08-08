@@ -20,7 +20,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #define LEVEQUE_COMMON_H
 
 #include "definitions.h"
-#include "cpu_common.h"
+#include "limiters.h"
 
 creal ZERO    = 0.0;
 creal HALF    = 0.5;

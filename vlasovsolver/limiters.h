@@ -24,12 +24,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "../definitions.h"
 #include "../common.h"
 
-// ******************* DECLARATIONS *******************
-
-template<typename UINT> inline UINT cellIndex(const UINT& i,const UINT& j,const UINT& k) {
-   return k*WID2 + j*WID + i;
-}
-
 // ****************************************************
 // ***** SLOPE LIMITERS FOR 2ND ORDER FVM SOLVERS *****
 // ****************************************************
@@ -43,23 +37,7 @@ template<typename T> inline T superbee(const T& xl1,const T& xcc,const T& xr1);
 template<typename T> inline T vanLeer(const T& theta);
 template<typename T> inline T vanLeer(const T& xl1,const T& xcc,const T& xr1);
 
-// ***************************************************
-// ***** FUNCTIONS WHICH RECONSTRUCT FACE VALUES *****
-// *****  FROM GIVEN VOL. AVERAGE & DERIVATIVES  *****
-// *****         2ND ORDER FVM SOLVERS           *****
-// ***************************************************
 
-template<typename T> inline T reconstruct_neg(const T& avg,const T& d1,const T& d2);
-template<typename T> inline T reconstruct_pos(const T& avg,const T& d1,const T& d2);
-
-// **********************************************
-// ***** LIMITERS AND RECONSTRUCT FUNCTIONS *****
-// *****         SPECIFIC TO PPM            *****
-// **********************************************
-
-template<typename T> inline T limiter_ppm(const T& xl1,const T& xcc,const T& xr1);
-template<typename T> inline T reconstruct_neg_ppm(const T& avg,const T& d1,const T& d2);
-template<typename T> inline T reconstruct_pos_ppm(const T& avg,const T& d1,const T& d2);
 
 // ******************* DEFINITIONS *******************
 
@@ -92,11 +70,6 @@ template<typename T> inline T MClimiter(const T& xl1,const T& xcc,const T& xr1) 
 template<typename T> inline T modbee(const T& theta) {
    const T lim = convert<T>(0.5)*(convert<T>(1.0)-std::tanh(convert<T>(0.8)*(theta-convert<T>(6.0))));
    return std::max(convert<T>(0.0),std::max(std::min(convert<T>(2.0)*theta,convert<T>(1.0)),std::min(theta,convert<T>(2.0))*lim));
-   //static const T CNST = 0.8;
-   //static const T THETA0 = 6.0;
-   //lim = 0.5*(1.0-tanh(CNST*(theta-THETA0)));
-   //rvalue = std::max(std::min(2*theta,T1),std::min(theta,T2)*lim);
-   //return std::max(T0,rvalue);
 }
 
 template<typename T> inline T modbee2(const T& theta) {
@@ -138,37 +111,6 @@ template<typename T> inline T vanLeer(const T& xl1,const T& xcc,const T& xr1) {
    return std::max((xr1-xcc)*(xcc-xl1),convert<T>(0.0))/(EPS+xr1-xl1);
 }
 
-template<typename T> inline T limiter_ppm(const T& xl1,const T& xcc,const T& xr1) {
-   const T forw = xr1 - xcc;
-   const T back = xcc - xl1;
-   if (forw*back < 0.0) return 0.0;
-   
-   const T dx = nolimiter(xl1,xcc,xr1);
-   T rvalue = std::min(dx,static_cast<T>(2.0*fabs(back)));
-   rvalue = std::min(rvalue,static_cast<T>(2.0*fabs(forw)));
-   return rvalue;
-}
 
-template<typename T> inline T reconstruct_neg(const T& avg,const T& d1,const T& d2) {
-   const T INV08 = 1.0/8.0;
-   const T INV24 = 1.0/24.0;
-   return avg - d2*INV24 + convert<T>(0.5)*d1 + d2*INV08;
-   //return avg - d2/convert<T>(24.0) + convert<T>(0.5)*d1 + d2/convert<T>(8.0);
-}
-
-template<typename T> inline T reconstruct_pos(const T& avg,const T& d1,const T& d2) {
-   const T INV08 = 1.0/8.0;
-   const T INV24 = 1.0/24.0;
-   return avg - d2*INV24 - convert<T>(0.5)*d1 + d2*INV08;
-   //return avg - d2/convert<T>(24.0) - convert<T>(0.5)*d1 + d2/convert<T>(8.0);
-}
-
-template<typename T> inline T reconstruct_neg_ppm(const T& avg,const T& d1,const T& d2) {
-   return d2;
-}
-
-template<typename T> inline T reconstruct_pos_ppm(const T& avg,const T& d1,const T& d2) {
-   return d1;
-}
 
 #endif

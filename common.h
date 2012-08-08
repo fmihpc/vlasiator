@@ -176,6 +176,14 @@ const uint WID = 4;         /**< Number of cells per coordinate in a velocity bl
 const uint WID2 = WID*WID;
 const uint WID3 = WID2*WID; 
 
+/*!
+Get the cellindex in the velocity space mesh
+*/
+template<typename UINT> inline UINT cellIndex(const UINT& i,const UINT& j,const UINT& k) {
+   return k*WID2 + j*WID + i;
+}
+
+
 //const uint SIZE_NBRS_VEL    = 8;    /**< The size of velocity grid neighbour list per velocity block. */
 //const uint SIZE_NBRS_VEL    = 28;    /**< The size of velocity grid neighbour list per velocity block. */
 const uint SIZE_NBRS_SPA    = 31;   /**< The size of spatial grid neighbour list per spatial cell. */

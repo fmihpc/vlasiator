@@ -26,6 +26,10 @@ CXXFLAGS += -DPROFILE
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
 CXXFLAGS += -DNDEBUG
 
+#define USE_AGNER_VECTORCLASS to use an external vector class that is used in some of the solvers
+#If not defined a slower but portable implementation is used, as the external one only supports 
+#Linux & x86 processors  
+CXXFLAGS += -DUSE_AGNER_VECTORCLASS
 #Add -DCATCH_FPE to catch floating point exceptions and stop execution
 #May cause problems
 #CXXFLAGS += -DCATCH_FPE
@@ -123,8 +127,8 @@ datareductionoperator.o:  ${DEPS_COMMON} spatial_cell.hpp datareductionoperator.
 spatial_cell.o: spatial_cell.cpp spatial_cell.hpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c spatial_cell.cpp $(INC_BOOST)
 
-vlasovmover_leveque.o: spatial_cell.hpp project.h transferstencil.h  vlasovsolver/cpu_acc_$(ACCSOLVER).hpp vlasovsolver/cpu_trans_leveque.h vlasovsolver/cpu_common.h vlasovsolver/leveque_common.h vlasovsolver/vlasovmover_leveque.cpp		
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -DMOVER_VLASOV_ORDER=2  -c vlasovsolver/vlasovmover_leveque.cpp -I$(CURDIR) ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG}  ${INC_PROFILE} 
+vlasovmover_leveque.o: spatial_cell.hpp project.h transferstencil.h  vlasovsolver/cpu_acc_$(ACCSOLVER).hpp vlasovsolver/cpu_trans_leveque.h vlasovsolver/limiters.h  vlasovsolver/limiters_vec4.h vlasovsolver/leveque_common.h vlasovsolver/vlasovmover_leveque.cpp		
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -DMOVER_VLASOV_ORDER=2  -c vlasovsolver/vlasovmover_leveque.cpp -I$(CURDIR) ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG}  ${INC_PROFILE}  ${INC_VECTORCLASS}
 
 londrillo_delzanna.o: spatial_cell.hpp transferstencil.h   parameters.h common.h fieldsolver/londrillo_delzanna.cpp
 	 ${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/londrillo_delzanna.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_DCCRG}  ${INC_PROFILE}  ${INC_ZOLTAN}

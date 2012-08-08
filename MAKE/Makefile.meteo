@@ -43,16 +43,18 @@ LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSI
 INC_SILO = -I$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/include
 LIB_SILO = -L$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/lib -lsilo
 
-#Official dccrg installation
-#INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg-new
 
 #DCCRG version with reduced neighbourhood. Might not be up-to-date
 #INC_DCCRG = -I$(LIBRARY_PREFIX_B)/dccrg-new
+
+#Official dccrg installation
 INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg-2012-05-15/
 
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX_B)/phiprof/lib -lphiprof
 INC_PROFILE = -I$(LIBRARY_PREFIX_B)/phiprof/include
+
+INC_VECTORCLASS = -I$(LIBRARY_PREFIX_B)/vectorclass
 
 
 
