@@ -171,13 +171,17 @@ namespace fieldsolver {
 
 /*! The namespace boundarytype contains the identification index of the boundary condition types applied to a cell,
  * it is stored in CellParams::BOUNDARY_TYPE and used by the BoundaryCondition class' functions to determine what type of BC to apply to a cell.
+ * 
+ * The position in this enum sets the order of precedence. DO_NOT_COMPUTE is checked for specifically but NOT_BOUNDARY should be the lowest and then the boundary condition type indexes should be put in order of precedence of the boundary types.
+ * 
+ * 
  */
 namespace boundarytype {
    enum {
       DO_NOT_COMPUTE, /*!< E.g. cells within the ionospheric outer radius should not be computed at all. */
       NOT_BOUNDARY, /*!< Cells within the simulation domain are not boundary cells. */
-      OUTFLOW, /*!< No fixed conditions on the fields and distribution function. */
       IONOSPHERE, /*!< Initially a perfectly conducting sphere. */
+      OUTFLOW, /*!< No fixed conditions on the fields and distribution function. */
       SW, /*!< Solar wind boundary condition, i.e. set fields and distribution function. */
       N_BOUNDARY_CONDITIONS
    };

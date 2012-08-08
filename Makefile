@@ -121,13 +121,13 @@ datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/datareducer.h datar
 datareductionoperator.o:  ${DEPS_COMMON} spatial_cell.hpp datareduction/datareductionoperator.h datareduction/datareductionoperator.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareduction/datareductionoperator.cpp ${INC_MPI} ${INC_BOOST}
 
-ionosphere.o: ${DEPS_COMMON} boundary/ionosphere.h boundary/ionosphere.cpp
+ionosphere.o: ${DEPS_COMMON} boundary/ionosphere.h boundary/ionosphere.cpp boundary/boundarycondition.h boundary/boundarycondition.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c boundary/ionosphere.cpp ${INC_BOOST}
 
-outflow.o: ${DEPS_COMMON} boundary/outflow.h boundary/outflow.cpp
+outflow.o: ${DEPS_COMMON} boundary/outflow.h boundary/outflow.cpp boundary/boundarycondition.h boundary/boundarycondition.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c boundary/outflow.cpp ${INC_BOOST}
 
-solarwind.o: ${DEPS_COMMON} boundary/solarwind.h boundary/solarwind.cpp
+solarwind.o: ${DEPS_COMMON} boundary/solarwind.h boundary/solarwind.cpp boundary/boundarycondition.h boundary/boundarycondition.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c boundary/solarwind.cpp ${INC_BOOST}
 
 boundary.o: ${DEPS_COMMON} boundary/boundary.h boundary/boundary.cpp boundary/boundarycondition.h boundary/boundarycondition.cpp boundary/ionosphere.h boundary/ionosphere.cpp boundary/outflow.h boundary/outflow.cpp boundary/solarwind.h boundary/solarwind.cpp

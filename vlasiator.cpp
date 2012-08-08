@@ -150,7 +150,7 @@ int main(int argn,char* args[]) {
    phiprof::start("Init BCs");
    Boundary boundaries;
    bool isBoundaryCondDynamic = initializeBoundaries(&boundaries);
-   if(assignBoundaryType(mpiGrid) == false) {
+   if(assignBoundaryType(&boundaries, mpiGrid) == false) {
       cerr << "(MAIN) ERROR: Boundary conditions were not set correctly." << endl;
       exit(1);
    }
