@@ -89,7 +89,7 @@ namespace spatial_cell {
       const unsigned int VEL_BLOCK_PARAMETERS     = (1<<8);
       const unsigned int CELL_B_RHO_RHOV          = (1<<9);
       const unsigned int CELL_E                   = (1<<10);
-      const unsigned int CELL_GHOSTFLAG           = (1<<11);
+      const unsigned int CELL_SYSBOUNDARYFLAG     = (1<<11);
       const unsigned int VEL_BLOCK_HAS_CONTENT    = (1<<12); 
       const unsigned int CELL_EB                  = (1<<13);
       const unsigned int CELL_E1                  = (1<<14);
@@ -100,7 +100,7 @@ namespace spatial_cell {
       | CELL_DERIVATIVES
       | VEL_BLOCK_DATA
       | VEL_BLOCK_FLUXES
-      | CELL_GHOSTFLAG;
+      | CELL_SYSBOUNDARYFLAG;
    }
 
 /** A namespace for storing indices into an array containing neighbour information 
@@ -668,8 +668,8 @@ namespace velocity_neighbor {
          null_block_data(other.null_block_data),
          null_block_fx(other.null_block_fx),
          neighbors(other.neighbors),
-         boundaryFlag(other.boundaryFlag),
-         isGhostCell(other.isGhostCell)
+         procBoundaryFlag(other.procBoundaryFlag),
+         isSysBoundaryCell(other.isSysBoundaryCell)
          {
 
 //	 phiprof::initializeTimer("SpatialCell copy", "SpatialCell copy");
@@ -915,9 +915,9 @@ namespace velocity_neighbor {
                 block_lengths.push_back(sizeof(Real) * fieldsolver::N_SPATIAL_CELL_DERIVATIVES);
             }
 
-            // send  isGhostCell        
-            if((SpatialCell::mpi_transfer_type & Transfer::CELL_GHOSTFLAG)!=0){
-                displacements.push_back((uint8_t*) &(this->isGhostCell) - (uint8_t*) this);
+            // send  isSysBoundaryCell        
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_SYSBOUNDARYFLAG)!=0){
+                displacements.push_back((uint8_t*) &(this->isSysBoundaryCell) - (uint8_t*) this);
                 block_lengths.push_back(sizeof(bool)); //Size of bool is 1, or larger (implementation dependent)
             }
             
@@ -1711,8 +1711,8 @@ namespace velocity_neighbor {
       std::vector<uint64_t> neighbors;
      
       //data for solvers
-      unsigned int boundaryFlag;
-      bool isGhostCell;
+      unsigned int procBoundaryFlag;
+      bool isSysBoundaryCell;
    }; // class SpatialCell
    
 

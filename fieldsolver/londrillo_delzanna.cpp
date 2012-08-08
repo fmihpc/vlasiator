@@ -62,9 +62,10 @@ typedef uint64_t CellID;
 
 static creal EPS = 1.0e-30;
 
-static set<CellID> ghostCells;
+// TODO why this?
+// static set<CellID> ghostCells;
 
-static map<CellID,uint> boundaryFlags;
+static map<CellID,uint> sysBoundaryFlags;
 /*!< Boundary status flags for all cells on this process. Here "boundary cell" 
  * means that the cell is at the physical boundary of the simulation volume, 
  * in some cases this condition means that this cell is a "ghost cell". However, 
@@ -157,11 +158,11 @@ Real limiter(creal& left,creal& cent,creal& rght) {
 }
 
 CellID getNeighbourID(
-	dccrg::Dccrg<SpatialCell>& mpiGrid,
-	const CellID& cellID,
-	const uchar& i,
-	const uchar& j,
-	const uchar& k
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   const CellID& cellID,
+   const uchar& i,
+   const uchar& j,
+   const uchar& k
 ) {
    const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of(cellID, int(i) - 2, int(j) - 2, int(k) - 2);
    if (neighbors.size() == 0) {
@@ -175,25 +176,28 @@ CellID getNeighbourID(
    return neighbors[0];
 }
 
-static void calculateBoundaryFlags(
-	dccrg::Dccrg<SpatialCell>& mpiGrid,
-	const vector<CellID>& localCells
+static void calculateSysBoundaryFlags(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   const vector<CellID>& localCells
 ) {
-   boundaryFlags.clear();
+   sysBoundaryFlags.clear();
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];
       
+      if(mpiGrid[cellID]
+         ->parameters[CellParams::BOUNDARY_TYPE] == boundarytype::DO_NOT_COMPUTE) continue;
+      
       // Raise the bit for each existing cell within a 3x3 cube of 
       // spatial cells. This cell sits at the center of the cube.
-      uint boundaryFlag = (1 << calcNbrNumber(1,1,1)); // The cell itself exists (bit 13 set to 1)
+      uint sysBoundaryFlag = (1 << calcNbrNumber(1,1,1)); // The cell itself exists (bit 13 set to 1)
       
       for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
-	 if (i == 0 && (j == 0 && k == 0)) continue;
+         if (i == 0 && (j == 0 && k == 0)) continue;
          const CellID nbr = getNeighbourID(mpiGrid, cellID, 2 + i, 2 + j, 2 + k);
-	 if (nbr == INVALID_CELLID) continue;
-	 boundaryFlag = boundaryFlag | (1 << calcNbrNumber(1+i,1+j,1+k));
+         if (nbr == INVALID_CELLID) continue;
+         sysBoundaryFlag = sysBoundaryFlag | (1 << calcNbrNumber(1+i,1+j,1+k));
       }
-      boundaryFlags[cellID] = boundaryFlag;
+      sysBoundaryFlags[cellID] = sysBoundaryFlag;
    }
 }
 
@@ -205,9 +209,9 @@ static void calculateBoundaryFlags(
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 static void calculateDerivatives(
-	const CellID& cellID,
-	dccrg::Dccrg<SpatialCell>& mpiGrid,
-	cint& RKCase
+   const CellID& cellID,
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   cint& RKCase
 ) {
    namespace cp = CellParams;
    namespace fs = fieldsolver;
@@ -215,11 +219,11 @@ static void calculateDerivatives(
    Real* const derivatives = array;
    // Get boundary flag for the cell:
    #ifndef NDEBUG
-      map<CellID,uint>::const_iterator it = boundaryFlags.find(cellID);
-      if (it == boundaryFlags.end()) {cerr << "ERROR Could not find boundary flag for cell #" << cellID << endl; exit(1);}
+      map<CellID,uint>::const_iterator it = sysBoundaryFlags.find(cellID);
+      if (it == sysBoundaryFlags.end()) {cerr << "ERROR Could not find boundary flag for cell #" << cellID << endl; exit(1);}
       cuint existingCells = it->second;
    #else
-      cuint existingCells = boundaryFlags[cellID];
+      cuint existingCells = sysBoundaryFlags[cellID];
    #endif
    cuint nonExistingCells = (existingCells ^ numeric_limits<uint>::max());
    
@@ -1156,15 +1160,15 @@ static void propagateMagneticField(
    CHECK_FLOAT(dz)
    
    #ifndef NDEBUG
-      map<CellID,uint>::const_iterator it = boundaryFlags.find(cellID);
-      if (it == boundaryFlags.end()) {cerr << "Could not find boundary flags for cell #" << cellID << endl; exit(1);}
-      cuint boundaryFlag = it->second;
+      map<CellID,uint>::const_iterator it = sysBoundaryFlags.find(cellID);
+      if (it == sysBoundaryFlags.end()) {cerr << "Could not find boundary flags for cell #" << cellID << endl; exit(1);}
+      cuint sysBoundaryFlag = it->second;
    #else
-      cuint boundaryFlag = boundaryFlags[cellID];
+      cuint sysBoundaryFlag = sysBoundaryFlags[cellID];
    #endif
    
    // Propagate face-averaged Bx:
-   if ((boundaryFlag & PROPAGATE_BX) == PROPAGATE_BX) {
+   if ((sysBoundaryFlag & PROPAGATE_BX) == PROPAGATE_BX) {
       nbrID = getNeighbourID(mpiGrid, cellID, 2  , 2+1, 2  );
       #ifndef NDEBUG
          if (nbrID == INVALID_CELLID) {cerr << "Failed to get nbr pointer!" << endl; exit(1);}
@@ -1209,7 +1213,7 @@ static void propagateMagneticField(
    }
    
    // Propagate face-averaged By:
-   if ((boundaryFlag & PROPAGATE_BY) == PROPAGATE_BY) {
+   if ((sysBoundaryFlag & PROPAGATE_BY) == PROPAGATE_BY) {
       nbrID = getNeighbourID(mpiGrid, cellID, 2  , 2  , 2+1);
       #ifndef NDEBUG
          if (nbrID == INVALID_CELLID) {cerr << "Failed to get nbr pointer!" << endl; exit(1);}
@@ -1254,7 +1258,7 @@ static void propagateMagneticField(
    }
       
    // Propagate face-averaged Bz:
-   if ((boundaryFlag & PROPAGATE_BZ) == PROPAGATE_BZ) {
+   if ((sysBoundaryFlag & PROPAGATE_BZ) == PROPAGATE_BZ) {
       nbrID = getNeighbourID(mpiGrid, cellID, 2+1, 2  , 2  );
       #ifndef NDEBUG
          if (nbrID == INVALID_CELLID) {cerr << "Failed to get nbr pointer!" << endl; exit(1);}
@@ -1305,7 +1309,7 @@ bool initializeFieldPropagatorAfterRebalance(
    
    vector<uint64_t> localCells = mpiGrid.get_cells();
 
-   calculateBoundaryFlags(mpiGrid,localCells);
+   calculateSysBoundaryFlags(mpiGrid,localCells);
 
    //need this when computing magnetic field later on
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_E);
@@ -1324,7 +1328,7 @@ bool initializeFieldPropagator(
 ) {
    vector<uint64_t> localCells = mpiGrid.get_cells();
    
-   calculateBoundaryFlags(mpiGrid,localCells);
+   calculateSysBoundaryFlags(mpiGrid,localCells);
    
    // Calculate bit masks used for if-statements by field propagator. 
    // These are used to test whether or not certain combination of 
@@ -1438,6 +1442,8 @@ void calculateDerivativesSimple(
    # ifndef FS_1ST_ORDER_TIME
    if(RKCase == RK_ORDER1) { // Means initialising the solver
       for (vector<uint64_t>::const_iterator cell = localCells.begin(); cell != localCells.end(); cell++) {
+         if(mpiGrid[*cell]
+            ->parameters[CellParams::BOUNDARY_TYPE] == boundarytype::DO_NOT_COMPUTE) continue;
          mpiGrid[*cell]->parameters[CellParams::RHO1] = mpiGrid[*cell]->parameters[CellParams::RHO];
          mpiGrid[*cell]->parameters[CellParams::RHOVX1] = mpiGrid[*cell]->parameters[CellParams::RHOVX];
          mpiGrid[*cell]->parameters[CellParams::RHOVY1] = mpiGrid[*cell]->parameters[CellParams::RHOVY];
@@ -1450,6 +1456,8 @@ void calculateDerivativesSimple(
       // The RHO(V?)1 fields contain previous value, the RHO(V?) the current one.
       // After this the RHO(V?)1 contain the interpolated value.
       for (vector<uint64_t>::const_iterator cell = localCells.begin(); cell != localCells.end(); cell++) {
+         if(mpiGrid[*cell]
+            ->parameters[CellParams::BOUNDARY_TYPE] == boundarytype::DO_NOT_COMPUTE) continue;
          mpiGrid[*cell]->parameters[CellParams::RHO1] = mpiGrid[*cell]->parameters[CellParams::RHO1] +
          Parameters::RK_alpha * (mpiGrid[*cell]->parameters[CellParams::RHO] - mpiGrid[*cell]->parameters[CellParams::RHO1]);
          mpiGrid[*cell]->parameters[CellParams::RHOVX1] = mpiGrid[*cell]->parameters[CellParams::RHOVX1] +
@@ -1478,6 +1486,8 @@ void calculateDerivativesSimple(
    // Calculate derivatives on inner cells
    const vector<uint64_t> local_cells = mpiGrid.get_cells_with_local_neighbors();
    for (vector<uint64_t>::const_iterator cell = local_cells.begin(); cell != local_cells.end(); cell++) {
+      if(mpiGrid[*cell]
+         ->parameters[CellParams::BOUNDARY_TYPE] == boundarytype::DO_NOT_COMPUTE) continue;
       calculateDerivatives(*cell,mpiGrid, RKCase);
    }
    phiprof::stop(timer);
@@ -1492,6 +1502,8 @@ void calculateDerivativesSimple(
    phiprof::start(timer);
    const vector<uint64_t> boundary_cells = mpiGrid.get_cells_with_remote_neighbor();
    for (vector<uint64_t>::const_iterator cell = boundary_cells.begin(); cell != boundary_cells.end(); cell++) {
+      if(mpiGrid[*cell]
+         ->parameters[CellParams::BOUNDARY_TYPE] == boundarytype::DO_NOT_COMPUTE) continue;
       calculateDerivatives(*cell,mpiGrid, RKCase);
    }
    phiprof::stop(timer);
@@ -1503,6 +1515,8 @@ void calculateDerivativesSimple(
    
    if(RKCase == RK_ORDER2_STEP2) { // Shift down the moments, now the RHO(V?)1 fields contain the current ie future previous values.
       for (vector<uint64_t>::const_iterator cell = localCells.begin(); cell != localCells.end(); cell++) {
+         if(mpiGrid[*cell]
+            ->parameters[CellParams::BOUNDARY_TYPE] == boundarytype::DO_NOT_COMPUTE) continue;
          mpiGrid[*cell]->parameters[CellParams::RHO1] = mpiGrid[*cell]->parameters[CellParams::RHO];
          mpiGrid[*cell]->parameters[CellParams::RHOVX1] = mpiGrid[*cell]->parameters[CellParams::RHOVX];
          mpiGrid[*cell]->parameters[CellParams::RHOVY1] = mpiGrid[*cell]->parameters[CellParams::RHOVY];
@@ -1543,10 +1557,12 @@ void calculateUpwindedElectricFieldSimple(
    // Calculate upwinded electric field on inner cells
    const vector<uint64_t> local_cells = mpiGrid.get_cells_with_local_neighbors();
    for (vector<uint64_t>::const_iterator cell = local_cells.begin(); cell != local_cells.end(); cell++) {
-      cuint boundaryFlag = boundaryFlags[*cell];
-      if ((boundaryFlag & CALCULATE_EX) == CALCULATE_EX) calculateEdgeElectricFieldX(*cell,mpiGrid, RKCase);
-      if ((boundaryFlag & CALCULATE_EY) == CALCULATE_EY) calculateEdgeElectricFieldY(*cell,mpiGrid, RKCase);
-      if ((boundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) calculateEdgeElectricFieldZ(*cell,mpiGrid, RKCase);
+      if(mpiGrid[*cell]
+         ->parameters[CellParams::BOUNDARY_TYPE] == boundarytype::DO_NOT_COMPUTE) continue;
+      cuint sysBoundaryFlag = sysBoundaryFlags[*cell];
+      if ((sysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) calculateEdgeElectricFieldX(*cell,mpiGrid, RKCase);
+      if ((sysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) calculateEdgeElectricFieldY(*cell,mpiGrid, RKCase);
+      if ((sysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) calculateEdgeElectricFieldZ(*cell,mpiGrid, RKCase);
    }
    phiprof::stop(timer);
    timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
@@ -1558,10 +1574,12 @@ void calculateUpwindedElectricFieldSimple(
    // Calculate upwinded electric field on boundary cells:
    const vector<uint64_t> boundary_cells = mpiGrid.get_cells_with_remote_neighbor();
    for (vector<uint64_t>::const_iterator cell = boundary_cells.begin(); cell != boundary_cells.end(); cell++) {
-      cuint boundaryFlag = boundaryFlags[*cell];
-      if ((boundaryFlag & CALCULATE_EX) == CALCULATE_EX) calculateEdgeElectricFieldX(*cell,mpiGrid, RKCase);
-      if ((boundaryFlag & CALCULATE_EY) == CALCULATE_EY) calculateEdgeElectricFieldY(*cell,mpiGrid, RKCase);
-      if ((boundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) calculateEdgeElectricFieldZ(*cell,mpiGrid, RKCase);
+      if(mpiGrid[*cell]
+         ->parameters[CellParams::BOUNDARY_TYPE] == boundarytype::DO_NOT_COMPUTE) continue;
+      cuint sysBoundaryFlag = sysBoundaryFlags[*cell];
+      if ((sysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) calculateEdgeElectricFieldX(*cell,mpiGrid, RKCase);
+      if ((sysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) calculateEdgeElectricFieldY(*cell,mpiGrid, RKCase);
+      if ((sysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) calculateEdgeElectricFieldZ(*cell,mpiGrid, RKCase);
    }
    phiprof::stop(timer);
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
@@ -1611,11 +1629,11 @@ static void propagateMagneticFieldSimple(
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];
       #ifndef NDEBUG
-         const map<CellID,uint>::const_iterator it = boundaryFlags.find(cellID);
-         if (it == boundaryFlags.end()) {cerr << "ERROR Could not find boundary flag for cell #" << cellID << endl; exit(1);}
+         const map<CellID,uint>::const_iterator it = sysBoundaryFlags.find(cellID);
+         if (it == sysBoundaryFlags.end()) {cerr << "ERROR Could not find boundary flag for cell #" << cellID << endl; exit(1);}
          cuint existingCells = it->second;
       #else
-         cuint existingCells = boundaryFlags[cellID];
+         cuint existingCells = sysBoundaryFlags[cellID];
       #endif
       cuint nonExistingCells = (existingCells ^ numeric_limits<uint>::max());
       if (mpiGrid[cellID] == NULL) {
@@ -1838,9 +1856,12 @@ void calculateVolumeAveragedFields(
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];
       
+      if(mpiGrid[cellID]
+         ->parameters[CellParams::BOUNDARY_TYPE] == boundarytype::DO_NOT_COMPUTE) continue;
+      
       // Get neighbour flags for the cell:
-      map<CellID,uint>::const_iterator it = boundaryFlags.find(cellID);
-      if (it == boundaryFlags.end()) existingCells = 0;
+      map<CellID,uint>::const_iterator it = sysBoundaryFlags.find(cellID);
+      if (it == sysBoundaryFlags.end()) existingCells = 0;
       else existingCells = it->second;
       
       // Calculate reconstruction coefficients for this cell:

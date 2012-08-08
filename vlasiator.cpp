@@ -145,7 +145,6 @@ int main(int argn,char* args[]) {
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    phiprof::stop("Init DROs");
    
-   
    // Initialise boundary conditions
    phiprof::start("Init BCs");
    Boundary boundaries;
@@ -302,7 +301,7 @@ int main(int argn,char* args[]) {
                  ++cell_id
                  ) {
                SpatialCell* cell = mpiGrid[*cell_id];
-               if (cell->isGhostCell) continue;
+               if (cell->isSysBoundaryCell) continue;
                dtmax_local[0]=min(dtmax_local[0],cell->parameters[CellParams::MAXRDT]);
                dtmax_local[1]=min(dtmax_local[1],cell->parameters[CellParams::MAXVDT]);
                dtmax_local[2]=min(dtmax_local[2],cell->parameters[CellParams::MAXFDT]);
