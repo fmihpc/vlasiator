@@ -197,8 +197,13 @@ int main(int argn,char* args[]) {
          phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
       }
       //write out phiprof profiles with a lower interval than normal
-      //diagnostic (TODO, improve inteval or remove these temporary debug prints)
-      if (P::diagnosticInterval != 0 && P::tstep % (P::diagnosticInterval*10) == 0) {
+      //diagnostic (every 10 diagnostic intervals). Also, do not print
+      //first step or until we have rebalanced.
+      //TODO: improve interval or remove these temporary debug prints
+      if (P::diagnosticInterval != 0 &&
+          P::tstep % (P::diagnosticInterval*10) == 0 &&
+          P::tstep-P::tstep_min >0  &&
+          P::tstep-P::tstep_min > P::rebalanceInterval) {
          phiprof::print(MPI_COMM_WORLD,"phiprof_full");
          phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
       }
