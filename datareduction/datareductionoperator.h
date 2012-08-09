@@ -20,8 +20,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #define DATAREDUCTIONOPERATOR_H
 
 #include <vector>
-#include "definitions.h"
-#include "spatial_cell.hpp"
+#include "../definitions.h"
+#include "../spatial_cell.hpp"
 using namespace spatial_cell;
 
 namespace DRO {
@@ -65,6 +65,20 @@ namespace DRO {
     protected:
       Real rank;
       int mpiRank;
+   };
+   
+   class BoundaryType: public DataReductionOperator {
+   public:
+      BoundaryType();
+      ~BoundaryType();
+      
+      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      std::string getName() const;
+      bool reduceData(const SpatialCell* cell,char* buffer);
+      bool setSpatialCell(const SpatialCell* cell);
+      
+   protected:
+      int boundaryType;
    };
 
    class Blocks: public DataReductionOperator {

@@ -20,64 +20,64 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <iostream>
 
 #include "datareducer.h"
-#include "readparameters.h"
 
 using namespace std;
 
 void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer)
 {
-   typedef Readparameters RP;
    typedef Parameters P;
    
    vector<string>::const_iterator it;
    for (it = P::outputVariableList.begin();
-	it != P::outputVariableList.end();
+      it != P::outputVariableList.end();
    it++) {
       if(*it == "B")
-	 outputReducer->addOperator(new DRO::VariableB);
+         outputReducer->addOperator(new DRO::VariableB);
       if(*it == "E")
-	 outputReducer->addOperator(new DRO::VariableE);
+         outputReducer->addOperator(new DRO::VariableE);
       if(*it == "Rho")
-	 outputReducer->addOperator(new DRO::VariableRho);
+         outputReducer->addOperator(new DRO::VariableRho);
       if(*it == "RhoV")
-	 outputReducer->addOperator(new DRO::VariableRhoV);
+         outputReducer->addOperator(new DRO::VariableRhoV);
       if(*it == "RhoLossAdjust")
-	 diagnosticReducer->addOperator(new DRO::VariableRhoLossAdjust);
+         diagnosticReducer->addOperator(new DRO::VariableRhoLossAdjust);
       if(*it == "RhoLossVelBoundary")
-	 diagnosticReducer->addOperator(new DRO::VariableRhoLossVelBoundary);
+         diagnosticReducer->addOperator(new DRO::VariableRhoLossVelBoundary);
       if(*it == "MPIrank")
-	 outputReducer->addOperator(new DRO::MPIrank);
+         outputReducer->addOperator(new DRO::MPIrank);
+      if(*it == "BoundaryType")
+         outputReducer->addOperator(new DRO::BoundaryType);
       if(*it == "Blocks")
-	 outputReducer->addOperator(new DRO::Blocks);
+         outputReducer->addOperator(new DRO::Blocks);
       if(*it == "VolE")
-	 outputReducer->addOperator(new DRO::VariableVolE);
+         outputReducer->addOperator(new DRO::VariableVolE);
       if(*it == "VolB")
-	 outputReducer->addOperator(new DRO::VariableVolB);
+         outputReducer->addOperator(new DRO::VariableVolB);
       if(*it == "Pressure")
-	 outputReducer->addOperator(new DRO::VariablePressure);
+         outputReducer->addOperator(new DRO::VariablePressure);
       if(*it == "PTensor") {
-	 outputReducer->addOperator(new DRO::VariablePTensorDiagonal);
-	 outputReducer->addOperator(new DRO::VariablePTensorOffDiagonal);
+         outputReducer->addOperator(new DRO::VariablePTensorDiagonal);
+         outputReducer->addOperator(new DRO::VariablePTensorOffDiagonal);
       }      
       if(*it == "dBxdz")
-	 outputReducer->addOperator(new DRO::VariabledBxdz);
+         outputReducer->addOperator(new DRO::VariabledBxdz);
    }
    
    for (it = P::diagnosticVariableList.begin();
-	it != P::diagnosticVariableList.end();
+      it != P::diagnosticVariableList.end();
    it++) {
       if(*it == "FluxB")
-	 diagnosticReducer->addOperator(new DRO::DiagnosticFluxB);
+         diagnosticReducer->addOperator(new DRO::DiagnosticFluxB);
       if(*it == "Blocks")
-	 diagnosticReducer->addOperator(new DRO::Blocks);
+         diagnosticReducer->addOperator(new DRO::Blocks);
       if(*it == "Rho")
-	 diagnosticReducer->addOperator(new DRO::VariableRho);
+         diagnosticReducer->addOperator(new DRO::VariableRho);
       if(*it == "RhoLossAdjust")
-	 diagnosticReducer->addOperator(new DRO::VariableRhoLossAdjust);
+         diagnosticReducer->addOperator(new DRO::VariableRhoLossAdjust);
       if(*it == "RhoLossVelBoundary")
-	 diagnosticReducer->addOperator(new DRO::VariableRhoLossVelBoundary);
+         diagnosticReducer->addOperator(new DRO::VariableRhoLossVelBoundary);
       if(*it == "MaxVi")
-	 diagnosticReducer->addOperator(new DRO::MaxVi);
+         diagnosticReducer->addOperator(new DRO::MaxVi);
    }
 }
 

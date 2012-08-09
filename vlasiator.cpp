@@ -32,7 +32,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "readparameters.h"
 #include "spatial_cell.hpp"
 #include "datareduction/datareducer.h"
-#include "boundary/boundary.h"
+#include "sysboundary/sysboundary.h"
 #include "transferstencil.h"
 
 #include "vlsvwriter2.h" 
@@ -145,15 +145,15 @@ int main(int argn,char* args[]) {
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    phiprof::stop("Init DROs");
    
-   // Initialise boundary conditions
-   phiprof::start("Init BCs");
-   Boundary boundaries;
-   bool isBoundaryCondDynamic = initializeBoundaries(&boundaries);
-   if(assignBoundaryType(&boundaries, mpiGrid) == false) {
-      cerr << "(MAIN) ERROR: Boundary conditions were not set correctly." << endl;
+   // Initialise system boundary conditions
+   phiprof::start("Init SBCs");
+   SysBoundary sysBoundaries;
+   bool isSysBoundaryCondDynamic = initializeSysBoundaries(&sysBoundaries);
+   if(assignSysBoundaryType(&sysBoundaries, mpiGrid) == false) {
+      cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
       exit(1);
    }
-   phiprof::stop("Init BCs");
+   phiprof::stop("Init SBCs");
    
    //VlsWriter vlsWriter;
    phiprof::start("Init vlasov propagator");
@@ -301,7 +301,7 @@ int main(int argn,char* args[]) {
                  ++cell_id
                  ) {
                SpatialCell* cell = mpiGrid[*cell_id];
-               if (cell->isSysBoundaryCell) continue;
+               if (cell->sysBoundaryFlag > sysboundarytype::NOT_SYSBOUNDARY) continue;
                dtmax_local[0]=min(dtmax_local[0],cell->parameters[CellParams::MAXRDT]);
                dtmax_local[1]=min(dtmax_local[1],cell->parameters[CellParams::MAXVDT]);
                dtmax_local[2]=min(dtmax_local[2],cell->parameters[CellParams::MAXFDT]);

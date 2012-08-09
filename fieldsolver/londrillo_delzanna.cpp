@@ -184,8 +184,7 @@ static void calculateSysBoundaryFlags(
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];
       
-      if(mpiGrid[cellID]
-         ->parameters[CellParams::BOUNDARY_TYPE] == boundarytype::DO_NOT_COMPUTE) continue;
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
       
       // Raise the bit for each existing cell within a 3x3 cube of 
       // spatial cells. This cell sits at the center of the cube.
@@ -1442,8 +1441,7 @@ void calculateDerivativesSimple(
    # ifndef FS_1ST_ORDER_TIME
    if(RKCase == RK_ORDER1) { // Means initialising the solver
       for (vector<uint64_t>::const_iterator cell = localCells.begin(); cell != localCells.end(); cell++) {
-         if(mpiGrid[*cell]
-            ->parameters[CellParams::BOUNDARY_TYPE] == boundarytype::DO_NOT_COMPUTE) continue;
+         if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
          mpiGrid[*cell]->parameters[CellParams::RHO1] = mpiGrid[*cell]->parameters[CellParams::RHO];
          mpiGrid[*cell]->parameters[CellParams::RHOVX1] = mpiGrid[*cell]->parameters[CellParams::RHOVX];
          mpiGrid[*cell]->parameters[CellParams::RHOVY1] = mpiGrid[*cell]->parameters[CellParams::RHOVY];
@@ -1456,8 +1454,7 @@ void calculateDerivativesSimple(
       // The RHO(V?)1 fields contain previous value, the RHO(V?) the current one.
       // After this the RHO(V?)1 contain the interpolated value.
       for (vector<uint64_t>::const_iterator cell = localCells.begin(); cell != localCells.end(); cell++) {
-         if(mpiGrid[*cell]
-            ->parameters[CellParams::BOUNDARY_TYPE] == boundarytype::DO_NOT_COMPUTE) continue;
+         if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
          mpiGrid[*cell]->parameters[CellParams::RHO1] = mpiGrid[*cell]->parameters[CellParams::RHO1] +
          Parameters::RK_alpha * (mpiGrid[*cell]->parameters[CellParams::RHO] - mpiGrid[*cell]->parameters[CellParams::RHO1]);
          mpiGrid[*cell]->parameters[CellParams::RHOVX1] = mpiGrid[*cell]->parameters[CellParams::RHOVX1] +
@@ -1486,8 +1483,7 @@ void calculateDerivativesSimple(
    // Calculate derivatives on inner cells
    const vector<uint64_t> local_cells = mpiGrid.get_cells_with_local_neighbors();
    for (vector<uint64_t>::const_iterator cell = local_cells.begin(); cell != local_cells.end(); cell++) {
-      if(mpiGrid[*cell]
-         ->parameters[CellParams::BOUNDARY_TYPE] == boundarytype::DO_NOT_COMPUTE) continue;
+      if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
       calculateDerivatives(*cell,mpiGrid, RKCase);
    }
    phiprof::stop(timer);
@@ -1502,8 +1498,7 @@ void calculateDerivativesSimple(
    phiprof::start(timer);
    const vector<uint64_t> boundary_cells = mpiGrid.get_cells_with_remote_neighbor();
    for (vector<uint64_t>::const_iterator cell = boundary_cells.begin(); cell != boundary_cells.end(); cell++) {
-      if(mpiGrid[*cell]
-         ->parameters[CellParams::BOUNDARY_TYPE] == boundarytype::DO_NOT_COMPUTE) continue;
+      if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
       calculateDerivatives(*cell,mpiGrid, RKCase);
    }
    phiprof::stop(timer);
@@ -1515,8 +1510,7 @@ void calculateDerivativesSimple(
    
    if(RKCase == RK_ORDER2_STEP2) { // Shift down the moments, now the RHO(V?)1 fields contain the current ie future previous values.
       for (vector<uint64_t>::const_iterator cell = localCells.begin(); cell != localCells.end(); cell++) {
-         if(mpiGrid[*cell]
-            ->parameters[CellParams::BOUNDARY_TYPE] == boundarytype::DO_NOT_COMPUTE) continue;
+         if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
          mpiGrid[*cell]->parameters[CellParams::RHO1] = mpiGrid[*cell]->parameters[CellParams::RHO];
          mpiGrid[*cell]->parameters[CellParams::RHOVX1] = mpiGrid[*cell]->parameters[CellParams::RHOVX];
          mpiGrid[*cell]->parameters[CellParams::RHOVY1] = mpiGrid[*cell]->parameters[CellParams::RHOVY];
@@ -1557,8 +1551,7 @@ void calculateUpwindedElectricFieldSimple(
    // Calculate upwinded electric field on inner cells
    const vector<uint64_t> local_cells = mpiGrid.get_cells_with_local_neighbors();
    for (vector<uint64_t>::const_iterator cell = local_cells.begin(); cell != local_cells.end(); cell++) {
-      if(mpiGrid[*cell]
-         ->parameters[CellParams::BOUNDARY_TYPE] == boundarytype::DO_NOT_COMPUTE) continue;
+      if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
       cuint sysBoundaryFlag = sysBoundaryFlags[*cell];
       if ((sysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) calculateEdgeElectricFieldX(*cell,mpiGrid, RKCase);
       if ((sysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) calculateEdgeElectricFieldY(*cell,mpiGrid, RKCase);
@@ -1574,8 +1567,7 @@ void calculateUpwindedElectricFieldSimple(
    // Calculate upwinded electric field on boundary cells:
    const vector<uint64_t> boundary_cells = mpiGrid.get_cells_with_remote_neighbor();
    for (vector<uint64_t>::const_iterator cell = boundary_cells.begin(); cell != boundary_cells.end(); cell++) {
-      if(mpiGrid[*cell]
-         ->parameters[CellParams::BOUNDARY_TYPE] == boundarytype::DO_NOT_COMPUTE) continue;
+      if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
       cuint sysBoundaryFlag = sysBoundaryFlags[*cell];
       if ((sysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) calculateEdgeElectricFieldX(*cell,mpiGrid, RKCase);
       if ((sysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) calculateEdgeElectricFieldY(*cell,mpiGrid, RKCase);
@@ -1856,8 +1848,7 @@ void calculateVolumeAveragedFields(
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];
       
-      if(mpiGrid[cellID]
-         ->parameters[CellParams::BOUNDARY_TYPE] == boundarytype::DO_NOT_COMPUTE) continue;
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
       
       // Get neighbour flags for the cell:
       map<CellID,uint>::const_iterator it = sysBoundaryFlags.find(cellID);

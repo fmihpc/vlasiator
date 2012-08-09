@@ -109,7 +109,7 @@ bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       SpatialCell *SC = mpiGrid[cellID];
 
       SC->neighbors.clear();
-      SC->isSysBoundaryCell = false;
+//      SC->isSysBoundaryCell = false;
       SC->procBoundaryFlag=0;
       // Get spatial neighbour IDs and store them into a vector:
       for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
@@ -119,10 +119,10 @@ bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid) {
          }
          else {
             SC->neighbors.push_back(getNeighbourID(mpiGrid, cellID, 2+i, 2+j, 2+k));
-            if (SC->neighbors.back() == INVALID_CELLID) {
-               //we only use a stencil of one to set if a cell is a system boundary cell.
-               SC->isSysBoundaryCell = true;
-            }
+//             if (SC->neighbors.back() == INVALID_CELLID) {
+//                //we only use a stencil of one to set if a cell is a system boundary cell.
+//                SC->isSysBoundaryCell = true;
+//             }
          }
       }      
 
@@ -214,13 +214,13 @@ bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    mpiGrid.update_remote_neighbor_data();
    
    // Now iterate through all cells (local + remote), and insert the cells 
-   // with isSysBoundaryCell flag turned on into sysBoundaryCells list. Boundary condition 
-   // functions are called for every cell in sysBoundaryCells:
+   // with sysBoundaryFlag higher than NOT_SYSBOUNDARY into sysBoundaryCells list. 
+   // Boundary condition functions are called for every cell in sysBoundaryCells:
    remoteCells=mpiGrid.get_list_of_remote_cells_with_local_neighbors();
    cells.insert( cells.end(), remoteCells.begin(), remoteCells.end() );
    for (uint c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
-      if (mpiGrid[cellID]->isSysBoundaryCell == true) sysBoundaryCells.insert(cellID);
+      if (mpiGrid[cellID]->sysBoundaryFlag > sysboundarytype::NOT_SYSBOUNDARY) sysBoundaryCells.insert(cellID);
    }
    initMoverAfterBlockChange(mpiGrid);
    return true;
@@ -852,7 +852,7 @@ void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
       
-      if(SC->parameters[CellParams::BOUNDARY_TYPE] == boundarytype::DO_NOT_COMPUTE) continue;
+      if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
       
       // Clear velocity moments:
       SC->parameters[CellParams::RHO  ] = 0.0;

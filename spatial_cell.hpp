@@ -669,7 +669,7 @@ namespace velocity_neighbor {
          null_block_fx(other.null_block_fx),
          neighbors(other.neighbors),
          procBoundaryFlag(other.procBoundaryFlag),
-         isSysBoundaryCell(other.isSysBoundaryCell)
+         sysBoundaryFlag(other.sysBoundaryFlag)
          {
 
 //	 phiprof::initializeTimer("SpatialCell copy", "SpatialCell copy");
@@ -915,10 +915,10 @@ namespace velocity_neighbor {
                 block_lengths.push_back(sizeof(Real) * fieldsolver::N_SPATIAL_CELL_DERIVATIVES);
             }
 
-            // send  isSysBoundaryCell        
+            // send  sysBoundaryFlag        
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_SYSBOUNDARYFLAG)!=0){
-                displacements.push_back((uint8_t*) &(this->isSysBoundaryCell) - (uint8_t*) this);
-                block_lengths.push_back(sizeof(bool)); //Size of bool is 1, or larger (implementation dependent)
+                displacements.push_back((uint8_t*) &(this->sysBoundaryFlag) - (uint8_t*) this);
+                block_lengths.push_back(sizeof(uint));
             }
             
             
@@ -1712,7 +1712,7 @@ namespace velocity_neighbor {
      
       //data for solvers
       unsigned int procBoundaryFlag;
-      bool isSysBoundaryCell;
+      uint sysBoundaryFlag; /*!< What type of system boundary does the cell belong to. Enumerated in the sysboundarytype namespace's enum */
    }; // class SpatialCell
    
 

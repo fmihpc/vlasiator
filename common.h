@@ -133,7 +133,6 @@ namespace CellParams {
       MAXRDT,  /*!< maximum timestep allowed in ordinary space for this cell **/
       MAXFDT, /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
       LBWEIGHTCOUNTER, /*!< Counter for storing compute time weights needed by the load balancing**/
-      BOUNDARY_TYPE, /*!< What type of boundary does the cell belong to. Enumerated in the boundarytype namespace's enum */
       N_SPATIAL_CELL_PARAMS
    };
 }
@@ -169,21 +168,19 @@ namespace fieldsolver {
    };
 }
 
-/*! The namespace boundarytype contains the identification index of the boundary condition types applied to a cell,
- * it is stored in CellParams::BOUNDARY_TYPE and used by the BoundaryCondition class' functions to determine what type of BC to apply to a cell.
+/*! The namespace sysboundarytype contains the identification index of the boundary condition types applied to a cell,
+ * it is stored in SpatialCell::sysBoundaryFlag and used by the BoundaryCondition class' functions to determine what type of BC to apply to a cell.
  * 
- * The position in this enum sets the order of precedence. DO_NOT_COMPUTE is checked for specifically but NOT_BOUNDARY should be the lowest and then the boundary condition type indexes should be put in order of precedence of the boundary types.
- * 
- * 
+ * The position in this enum sets the order of precedence. DO_NOT_COMPUTE is checked for specifically in many places but DO_NOT_COMPUTE and NOT_BOUNDARY should be the lowest and then the boundary condition type indexes should be put in order of precedence of the boundary types. TODO import precedence from cfg/user
  */
-namespace boundarytype {
+namespace sysboundarytype {
    enum {
       DO_NOT_COMPUTE, /*!< E.g. cells within the ionospheric outer radius should not be computed at all. */
-      NOT_BOUNDARY, /*!< Cells within the simulation domain are not boundary cells. */
+      NOT_SYSBOUNDARY, /*!< Cells within the simulation domain are not boundary cells. */
       IONOSPHERE, /*!< Initially a perfectly conducting sphere. */
       OUTFLOW, /*!< No fixed conditions on the fields and distribution function. */
       SW, /*!< Solar wind boundary condition, i.e. set fields and distribution function. */
-      N_BOUNDARY_CONDITIONS
+      N_SYSBOUNDARY_CONDITIONS
    };
 }
 

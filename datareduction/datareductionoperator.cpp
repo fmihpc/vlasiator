@@ -22,8 +22,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <limits>
 
 #include "datareductionoperator.h"
-#include "vlscommon.h"
-#include "vlasovsolver/cpu_common.h"
+#include "../vlscommon.h"
+#include "../vlasovsolver/cpu_common.h"
 
 
 using namespace std;
@@ -102,6 +102,7 @@ namespace DRO {
       return false;
    }
    
+   // E
    VariableE::VariableE(): DataReductionOperator() { }
    VariableE::~VariableE() { }
    
@@ -127,7 +128,8 @@ namespace DRO {
       Ez = cell->parameters[CellParams::EZ];
       return true;
    }
-
+   
+   // E_vol
    VariableVolE::VariableVolE(): DataReductionOperator() { }
    VariableVolE::~VariableVolE() { }
    
@@ -151,6 +153,7 @@ namespace DRO {
       return true;
    }
    
+   // B
    VariableB::VariableB(): DataReductionOperator() { }
    VariableB::~VariableB() { }
 
@@ -176,7 +179,8 @@ namespace DRO {
       Bz = cell->parameters[CellParams::BZ];
       return true;
    }
-
+   
+   // B_vol
    VariableVolB::VariableVolB(): DataReductionOperator() { }
    VariableVolB::~VariableVolB() { }
    
@@ -200,7 +204,7 @@ namespace DRO {
       return true;
    }
    
-   
+   // rho
    VariableRho::VariableRho(): DataReductionOperator() { }
    VariableRho::~VariableRho() { }
    
@@ -229,14 +233,12 @@ namespace DRO {
       return true;
    }
 
-
-//RHOLOSSADJUST
-
+   //RHOLOSSADJUST
    VariableRhoLossAdjust::VariableRhoLossAdjust(): DataReductionOperator() { }
    VariableRhoLossAdjust::~VariableRhoLossAdjust() { }
-
+   
    std::string VariableRhoLossAdjust::getName() const {return "rho_loss_adjust";}
-
+   
    bool VariableRhoLossAdjust::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
@@ -259,10 +261,8 @@ namespace DRO {
       rhoLoss = cell->parameters[CellParams::RHOLOSSADJUST];
       return true;
    }
-
-
+   
    //RHOLOSSVELBOUNDARY
-
    VariableRhoLossVelBoundary::VariableRhoLossVelBoundary(): DataReductionOperator() { }
    VariableRhoLossVelBoundary::~VariableRhoLossVelBoundary() { }
 
@@ -290,11 +290,8 @@ namespace DRO {
       rhoLoss = cell->parameters[CellParams::RHOLOSSVELBOUNDARY];
       return true;
    }
-
-
-//MPI rank
-      
    
+   //MPI rank
    MPIrank::MPIrank(): DataReductionOperator() { }
    MPIrank::~MPIrank() { }
    
@@ -320,10 +317,32 @@ namespace DRO {
       mpiRank = intRank;
       return true;
    }
-
-
-
-
+   
+   // BoundaryType
+   BoundaryType::BoundaryType(): DataReductionOperator() { }
+   BoundaryType::~BoundaryType() { }
+   
+   bool BoundaryType::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "int";
+      dataSize = sizeof(int);
+      vectorSize = 1;
+      return true;
+   }
+   
+   std::string BoundaryType::getName() const {return "Boundary_type";}
+   
+   bool BoundaryType::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(&boundaryType);
+      for (uint i=0; i<sizeof(int); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool BoundaryType::setSpatialCell(const SpatialCell* cell) {
+      boundaryType = (int)cell->sysBoundaryFlag;
+      return true;
+   }
+   
+   // Blocks
    Blocks::Blocks(): DataReductionOperator() { }
    Blocks::~Blocks() { }
    
@@ -351,9 +370,8 @@ namespace DRO {
       nBlocks = cell->number_of_blocks;
       return true;
    }
-
-
-
+   
+   // rho_v
    VariableRhoV::VariableRhoV(): DataReductionOperator() { }
    VariableRhoV::~VariableRhoV() { }
    
@@ -690,6 +708,7 @@ namespace DRO {
    
    bool DiagnosticFluxB::setSpatialCell(const SpatialCell* cell) {return true;}
    
+   // dBxdz
    VariabledBxdz::VariabledBxdz(): DataReductionOperator() { }
    VariabledBxdz::~VariabledBxdz() { }
    

@@ -96,7 +96,7 @@ struct Parameters {
    static std::vector<std::string> outputVariableList; /*!< List of data reduction operators (DROs) to add to the grid file output.*/
    static std::vector<std::string> diagnosticVariableList; /*!< List of data reduction operators (DROs) to add to the diagnostic runtime output.*/
    
-   static std::vector<std::string> boundaryCondList; /*!< List of boundary conditions (BC) to be used. */
+   static std::vector<std::string> sysBoundaryCondList; /*!< List of system boundary conditions (SBC) to be used. */
    static std::vector<std::string> outflowFaceList; /*!< List of faces on which outflow boundary conditions are to be applied ([+-][xyz]). */
    static std::vector<std::string> solarWindFaceList; /*!< List of faces on which solar wind boundary conditions are to be applied ([+-][xyz]). */
    static std::string solarWindFiles[6]; /*!< Input files for the solar wind boundary conditions. */

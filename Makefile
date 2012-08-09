@@ -89,7 +89,7 @@ DEPS_COMMON = common.h definitions.h mpiconversion.h logger.h
 #all objects for vlasiator
 OBJS = 	datareducer.o datareductionoperator.o \
 	ionosphere.o outflow.o solarwind.o \
-	boundary.o boundarycondition.o \
+	sysboundary.o sysboundarycondition.o \
 	grid.o vlasiator.o logger.o muxml.o	\
 	parameters.o readparameters.o project.o	spatial_cell.o		\
 	vlscommon.o vlsvreader2.o vlsvwriter2.o vlasovmover_$(TRANSSOLVER).o $(FIELDSOLVER).o
@@ -121,20 +121,20 @@ datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/datareducer.h datar
 datareductionoperator.o:  ${DEPS_COMMON} spatial_cell.hpp datareduction/datareductionoperator.h datareduction/datareductionoperator.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareduction/datareductionoperator.cpp ${INC_MPI} ${INC_BOOST}
 
-ionosphere.o: ${DEPS_COMMON} boundary/ionosphere.h boundary/ionosphere.cpp boundary/boundarycondition.h boundary/boundarycondition.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c boundary/ionosphere.cpp ${INC_BOOST}
+ionosphere.o: ${DEPS_COMMON} sysboundary/ionosphere.h sysboundary/ionosphere.cpp sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/ionosphere.cpp ${INC_BOOST}
 
-outflow.o: ${DEPS_COMMON} boundary/outflow.h boundary/outflow.cpp boundary/boundarycondition.h boundary/boundarycondition.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c boundary/outflow.cpp ${INC_BOOST}
+outflow.o: ${DEPS_COMMON} sysboundary/outflow.h sysboundary/outflow.cpp sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/outflow.cpp ${INC_BOOST}
 
-solarwind.o: ${DEPS_COMMON} boundary/solarwind.h boundary/solarwind.cpp boundary/boundarycondition.h boundary/boundarycondition.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c boundary/solarwind.cpp ${INC_BOOST}
+solarwind.o: ${DEPS_COMMON} sysboundary/solarwind.h sysboundary/solarwind.cpp sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/solarwind.cpp ${INC_BOOST}
 
-boundary.o: ${DEPS_COMMON} boundary/boundary.h boundary/boundary.cpp boundary/boundarycondition.h boundary/boundarycondition.cpp boundary/ionosphere.h boundary/ionosphere.cpp boundary/outflow.h boundary/outflow.cpp boundary/solarwind.h boundary/solarwind.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c boundary/boundary.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
+sysboundary.o: ${DEPS_COMMON} sysboundary/sysboundary.h sysboundary/sysboundary.cpp sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp sysboundary/ionosphere.h sysboundary/ionosphere.cpp sysboundary/outflow.h sysboundary/outflow.cpp sysboundary/solarwind.h sysboundary/solarwind.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/sysboundary.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
 
-boundarycondition.o: ${DEPS_COMMON} boundary/boundarycondition.h boundary/boundarycondition.cpp  boundary/ionosphere.h boundary/ionosphere.cpp boundary/outflow.h boundary/outflow.cpp boundary/solarwind.h boundary/solarwind.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c boundary/boundarycondition.cpp ${INC_BOOST}
+sysboundarycondition.o: ${DEPS_COMMON} sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp  sysboundary/ionosphere.h sysboundary/ionosphere.cpp sysboundary/outflow.h sysboundary/outflow.cpp sysboundary/solarwind.h sysboundary/solarwind.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/sysboundarycondition.cpp ${INC_BOOST}
 
 spatial_cell.o: spatial_cell.cpp spatial_cell.hpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c spatial_cell.cpp $(INC_BOOST)

@@ -104,7 +104,7 @@ uint P::rebalanceInterval = numeric_limits<uint>::max();
 vector<string> P::outputVariableList;
 vector<string> P::diagnosticVariableList;
 
-vector<string> P::boundaryCondList;
+vector<string> P::sysBoundaryCondList;
 vector<string> P::outflowFaceList;
 vector<string> P::solarWindFaceList;
 string P::solarWindFiles[6];
@@ -175,7 +175,7 @@ bool Parameters::addParameters(){
    Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available (20120806) are B E Rho RhoV RhoLossAdjust RhoLossVelBoundary MPIrank Blocks VolE VolB Pressure PTensor dBxdz.");
    Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Available (20120703) are Blocks FluxB Rho RhoLossAdjust RhoLossVelBoundary MaxVi.");
    
-   // Boundary conditions parameters
+   // System boundary conditions parameters
    Readparameters::addComposing("boundaries.boundary", "List of boundary condition (BC) types to be used. Each boundary condition to be used has to be on a new line boundary = YYY. Available (20120807) are outflow ionosphere solarwind.");
    Readparameters::addComposing("boundaries.outflowFace", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
    Readparameters::addComposing("boundaries.solarWindFace", "List of faces on which solar wind boundary conditions are to be applied ([xyz][+-]).");
@@ -278,7 +278,7 @@ bool Parameters::getParameters(){
    Readparameters::get("variables.diagnostic", P::diagnosticVariableList);
    
    // Get boundary conditions parameters
-   Readparameters::get("boundaries.boundary", P::boundaryCondList);
+   Readparameters::get("boundaries.boundary", P::sysBoundaryCondList);
    Readparameters::get("boundaries.outflowFace", P::outflowFaceList);
    Readparameters::get("boundaries.solarWindFace", P::solarWindFaceList);
    Readparameters::get("boundaries.dynamicSolarWind", P::isSolarWindDynamic);
