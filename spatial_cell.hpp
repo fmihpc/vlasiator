@@ -33,6 +33,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "vector"
 #include "set"
 
+#include "memoryallocation.h"
+
 #include "phiprof.hpp"
 #include "common.h"
 #include "parameters.h"
@@ -887,15 +889,15 @@ namespace velocity_neighbor {
             
             // send  BX1, BY1, BZ1, RHO1, RHOVX1, RHOVY1, RHOVZ1 (order in enum should never change(!)
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_B1_RHO1_RHOV1)!=0){
-               displacements.push_back((uint8_t*) &(this->parameters[CellParams::BX1]) - (uint8_t*) this);
-	            block_lengths.push_back(sizeof(Real) * 7);
-            }
+	       displacements.push_back((uint8_t*) &(this->parameters[CellParams::BX1]) - (uint8_t*) this);
+	       block_lengths.push_back(sizeof(Real) * 7);
+	    }
             
             // send  EX, EY, EZ, BX, BY, BZ (order in enum should never change(!)
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_EB)!=0){
-               displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX]) - (uint8_t*) this);
-               block_lengths.push_back(sizeof(Real) * 6);
-            }
+	       displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX]) - (uint8_t*) this);
+	       block_lengths.push_back(sizeof(Real) * 6);
+	    }
 
             // send  EX, EY EZ
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_E)!=0){
@@ -1689,12 +1691,12 @@ namespace velocity_neighbor {
 
 
       //vectors for storing block data
-      std::vector<Real> block_data;
-      std::vector<Real> block_fx;
+      std::vector<Real,aligned_allocator<Real,64>> block_data;
+      std::vector<Real,aligned_allocator<Real,64>> block_fx;
 
       //vectors for storing null block data
-      std::vector<Real> null_block_data;
-      std::vector<Real> null_block_fx;
+      std::vector<Real,aligned_allocator<Real,64>> null_block_data;
+      std::vector<Real,aligned_allocator<Real,64>> null_block_fx;
       
       /*
         Bulk variables in this spatial cell.
@@ -1713,8 +1715,11 @@ namespace velocity_neighbor {
       //data for solvers
       unsigned int boundaryFlag;
       bool isGhostCell;
+      
+      
    }; // class SpatialCell
    
 
 } // namespaces
 #endif
+
