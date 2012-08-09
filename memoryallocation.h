@@ -1,8 +1,9 @@
 #ifndef MEMORYALLOCATION_H
 #define MEMORYALLOCATION_H
 
-
-
+#include <cstdlib>
+#include <cstddef>
+#include <stdexcept> 
 
 inline void * aligned_malloc(size_t size,std::size_t align) {
 
@@ -42,13 +43,6 @@ inline void aligned_free(void *p) {
    return;
 }
 
-
-#ifdef _WIN32
-#include <malloc.h>
-#endif
-#include <cstdint>
-#include <vector>
-#include <iostream>
 
 
 

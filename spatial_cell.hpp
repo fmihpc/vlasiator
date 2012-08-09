@@ -1691,12 +1691,12 @@ namespace velocity_neighbor {
 
 
       //vectors for storing block data
-      std::vector<Real,aligned_allocator<Real,64>> block_data;
-      std::vector<Real,aligned_allocator<Real,64>> block_fx;
+      std::vector<Real,aligned_allocator<Real,64> > block_data;
+      std::vector<Real,aligned_allocator<Real,64> > block_fx;
 
       //vectors for storing null block data
-      std::vector<Real,aligned_allocator<Real,64>> null_block_data;
-      std::vector<Real,aligned_allocator<Real,64>> null_block_fx;
+      std::vector<Real,aligned_allocator<Real,64> > null_block_data;
+      std::vector<Real,aligned_allocator<Real,64> > null_block_fx;
       
       /*
         Bulk variables in this spatial cell.
