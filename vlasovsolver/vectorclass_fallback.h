@@ -1,11 +1,32 @@
 #ifndef VECTORCLASS_PORTABLE_H
 #define VECTORCLASS_PORTABLE_H
 
+/*
+  This file is part of Vlasiator.
+
+  Copyright 2010, 2011, 2012 Finnish Meteorological Institute
+
+  Vlasiator is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License version 3
+  as published by the Free Software Foundation.
+
+  Vlasiator is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*! \file vectorclass_fallback.h
+  \brief Simple class for implementing a vector with 4 real values
+
+*/
 
 
 
 
-// SSE vector.
 template <class T>
 class Vec4Real {
 public:
