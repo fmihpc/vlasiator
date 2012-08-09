@@ -56,6 +56,20 @@ namespace SBC {
       return false;
    }
    
+   /*! Function to compute the phase space density for a system boundary cell. */
+   Real SysBoundaryCondition::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
+                              creal& dx,creal& dy,creal& dz,
+                              creal& vx,creal& vy,creal& vz,
+                              creal& dvx,creal& dvy,creal& dvz) {
+      cerr << "ERROR: SysBoundaryCondition::calcPhaseSpaceDensity called instead of derived class function!" << endl;
+      return 0.0;
+   }
+   
+   /*! Function to compute the cell parameters for a system boundary cell. */
+   void SysBoundaryCondition::calcCellParameters(Real* cellParams, creal& t) {
+      cerr << "ERROR: SysBoundaryCondition::calcCellParameters called instead of derived class function!" << endl;
+   }
+   
    /*! Get the name of the system boundary condition.
     * @return The name of the data. The base class function returns an empty string.
     */
@@ -65,11 +79,19 @@ namespace SBC {
    }
    
    /*! Get the enum index of the system boundary condition.
-    * @return The index of the system boundary condition as enumerated in namespace sysboundarytype. The base class function returns an empty string.
+    * @return The index of the system boundary condition as enumerated in namespace sysboundarytype. The base class function returns 0.
     */
-   int SysBoundaryCondition::getIndex() const {
+   uint SysBoundaryCondition::getIndex() const {
       cerr << "ERROR: SysBoundaryCondition::getIndex called instead of derived class function!" << endl;
-      return -1;
+      return 0;
+   }
+   
+   /*! Get the precedence value of the system boundary condition.
+    * @return The precedence value of the system boundary condition as set by parameter. The base class function returns 0.
+    */
+   uint SysBoundaryCondition::getPrecedence() const {
+      cerr << "ERROR: SysBoundaryCondition::getPrecedence called instead of derived class function!" << endl;
+      return 0;
    }
    
 } // namespace SBC

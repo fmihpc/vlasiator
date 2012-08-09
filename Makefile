@@ -121,13 +121,13 @@ datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/datareducer.h datar
 datareductionoperator.o:  ${DEPS_COMMON} spatial_cell.hpp datareduction/datareductionoperator.h datareduction/datareductionoperator.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareduction/datareductionoperator.cpp ${INC_MPI} ${INC_BOOST}
 
-ionosphere.o: ${DEPS_COMMON} sysboundary/ionosphere.h sysboundary/ionosphere.cpp sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp
+ionosphere.o: ${DEPS_COMMON} sysboundary/ionosphere.h sysboundary/ionosphere.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/ionosphere.cpp ${INC_BOOST}
 
-outflow.o: ${DEPS_COMMON} sysboundary/outflow.h sysboundary/outflow.cpp sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp
+outflow.o: ${DEPS_COMMON} sysboundary/outflow.h sysboundary/outflow.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/outflow.cpp ${INC_BOOST}
 
-solarwind.o: ${DEPS_COMMON} sysboundary/solarwind.h sysboundary/solarwind.cpp sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp
+solarwind.o: ${DEPS_COMMON} sysboundary/solarwind.h sysboundary/solarwind.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/solarwind.cpp ${INC_BOOST}
 
 sysboundary.o: ${DEPS_COMMON} sysboundary/sysboundary.h sysboundary/sysboundary.cpp sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp sysboundary/ionosphere.h sysboundary/ionosphere.cpp sysboundary/outflow.h sysboundary/outflow.cpp sysboundary/solarwind.h sysboundary/solarwind.cpp

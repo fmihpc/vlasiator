@@ -132,7 +132,9 @@ int main(int argn,char* args[]) {
    
    phiprof::start("Init grid");
    dccrg::Dccrg<SpatialCell> mpiGrid;
-   if (initializeGrid(argn,args,mpiGrid) == false) {
+   SysBoundary sysBoundaries;
+   bool isSysBoundaryCondDynamic = initializeSysBoundaries(&sysBoundaries);
+   if (initializeGrid(argn,args,mpiGrid,&sysBoundaries) == false) {
       logfile << "(MAIN): Grid did not initialize correctly!" << endl << writeVerbose;
       exit(1);
    }  
@@ -144,16 +146,6 @@ int main(int argn,char* args[]) {
    DataReducer outputReducer, diagnosticReducer;
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    phiprof::stop("Init DROs");
-   
-   // Initialise system boundary conditions
-   phiprof::start("Init SBCs");
-   SysBoundary sysBoundaries;
-   bool isSysBoundaryCondDynamic = initializeSysBoundaries(&sysBoundaries);
-   if(assignSysBoundaryType(&sysBoundaries, mpiGrid) == false) {
-      cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
-      exit(1);
-   }
-   phiprof::stop("Init SBCs");
    
    //VlsWriter vlsWriter;
    phiprof::start("Init vlasov propagator");

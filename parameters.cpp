@@ -111,6 +111,9 @@ string P::solarWindFiles[6];
 bool P::isSolarWindDynamic = false;
 Real P::ionoCenter[3] = {NAN};
 Real P::ionoRadius = NAN;
+uint P::outflowPrecedence = 0;
+uint P::solarWindPrecedence = 0;
+uint P::ionospherePrecedence = 0;
 
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
@@ -191,6 +194,9 @@ bool Parameters::addParameters(){
    Readparameters::add("boundaries.ionoCenterY", "Y coordinate of ionosphere center (m)", 0.0);
    Readparameters::add("boundaries.ionoCenterZ", "Z coordinate of ionosphere center (m)", 0.0);
    Readparameters::add("boundaries.ionoRadius", "Radius of ionosphere (m).", 1.0e7);
+   Readparameters::add("boundaries.outflowPrecedence", "Precedence value of the outflow system boundary condition (integer), the higher the stronger.", 3);
+   Readparameters::add("boundaries.solarWindPrecedence", "Precedence value of the solar wind system boundary condition (integer), the higher the stronger.", 2);
+   Readparameters::add("boundaries.ionospherePrecedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 1);
    
    return true;
 }
@@ -292,6 +298,9 @@ bool Parameters::getParameters(){
    Readparameters::get("boundaries.ionoCenterY", P::ionoCenter[1]);
    Readparameters::get("boundaries.ionoCenterZ", P::ionoCenter[2]);
    Readparameters::get("boundaries.ionoRadius", P::ionoRadius);
+   Readparameters::get("boundaries.outflowPrecedence", P::outflowPrecedence);
+   Readparameters::get("boundaries.solarWindPrecedence", P::solarWindPrecedence);
+   Readparameters::get("boundaries.ionospherePrecedence", P::ionospherePrecedence);
    
    return true;
 }

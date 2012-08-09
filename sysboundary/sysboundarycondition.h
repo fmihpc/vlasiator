@@ -38,8 +38,14 @@ namespace SBC {
          
          virtual bool initSysBoundary();
          virtual int assignSysBoundary(creal* cellParams);
+         virtual Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
+                                            creal& dx,creal& dy,creal& dz,
+                                            creal& vx,creal& vy,creal& vz,
+                                            creal& dvx,creal& dvy,creal& dvz);
+         virtual void calcCellParameters(Real* cellParams, creal& t);
          virtual std::string getName() const;
-         virtual int getIndex() const;
+         virtual uint getIndex() const;
+         virtual uint getPrecedence() const;
          
       protected:
          

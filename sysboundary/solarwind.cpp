@@ -75,6 +75,14 @@ namespace SBC {
       return typeToAssign;
    }
    
+   Real SolarWind::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
+                              creal& dx,creal& dy,creal& dz,
+                              creal& vx,creal& vy,creal& vz,
+                              creal& dvx,creal& dvy,creal& dvz
+   ) {return 0.0;}
+   
+   void SolarWind::calcCellParameters(Real* cellParams, creal& t) { }
+   
    bool SolarWind::setInputFiles() {
       for(uint i = 0; i<6; i++) {
          if((faces&(1<<(5-i))) == true) inputFiles[i] = Parameters::solarWindFiles[i];
@@ -84,7 +92,6 @@ namespace SBC {
    
    std::string SolarWind::getName() const {return "SolarWind";}
    
-   int SolarWind::getIndex() const {
-      return sysboundarytype::SW;
-   }
+   uint SolarWind::getIndex() const {return sysboundarytype::SW;}
+   uint SolarWind::getPrecedence() const {return Parameters::solarWindPrecedence;}
 }

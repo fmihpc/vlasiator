@@ -34,6 +34,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "parameters.h"
 
 #include "datareduction/datareducer.h"
+#include "sysboundary/sysboundary.h"
 #include "transferstencil.h"
 
 #include "vlsvwriter2.h" 
@@ -48,7 +49,7 @@ using namespace phiprof;
 extern Logger logfile, diagnostic;
 
 //Subroutine for initializing all local spatial cells
-void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid);
+void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,SysBoundary* sysBoundaries);
 
 
 
@@ -57,10 +58,13 @@ bool adjust_local_velocity_blocks(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGr
 
 
 
-bool initializeGrid(int argn, char **argc,dccrg::Dccrg<SpatialCell>& mpiGrid){
+bool initializeGrid(int argn,
+                    char **argc,
+                    dccrg::Dccrg<SpatialCell>& mpiGrid,
+                    SysBoundary* sysBoundaries){
    int myrank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
-
+   
    // initialize velocity grid of spatial cells before creating cells in dccrg.initialize
    spatial_cell::SpatialCell::vx_length = P::vxblocks_ini;
    spatial_cell::SpatialCell::vy_length = P::vyblocks_ini;
@@ -84,10 +88,8 @@ bool initializeGrid(int argn, char **argc,dccrg::Dccrg<SpatialCell>& mpiGrid){
    spatial_cell::SpatialCell::cell_dvz = spatial_cell::SpatialCell::block_dvz / block_vz_length;
    spatial_cell::SpatialCell::velocity_block_min_value = P::sparseMinValue;
    spatial_cell::SpatialCell::velocity_block_min_avg_value = P::sparseMinAvgValue;
- 
    
-   
-// Init Zoltan:
+   // Init Zoltan:
    float zoltanVersion;
    if (Zoltan_Initialize(argn,argc,&zoltanVersion) != ZOLTAN_OK) {
       logfile << "\t ERROR: Zoltan initialization failed, aborting." << std::endl << writeVerbose;
@@ -114,22 +116,16 @@ bool initializeGrid(int argn, char **argc,dccrg::Dccrg<SpatialCell>& mpiGrid){
       P::periodic_x, P::periodic_y, P::periodic_z
       );
    
-   
-   
-   
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
    phiprof::start("Initial load-balancing");
    if (myrank == 0) logfile << "(INIT): Starting initial load balance." << endl << writeVerbose;
    mpiGrid.balance_load();
    phiprof::stop("Initial load-balancing");
-
-
-   if (myrank == 0) logfile << "(INIT): Set initial state." << endl << writeVerbose;
    
+   if (myrank == 0) logfile << "(INIT): Set initial state." << endl << writeVerbose;
    // Go through every spatial cell on this CPU, and create the initial state:
-
    phiprof::start("Set initial state");
-   initSpatialCells(mpiGrid);
+   initSpatialCells(mpiGrid, sysBoundaries);
    phiprof::stop("Set initial state");
 
    balanceLoad(mpiGrid);
@@ -137,56 +133,61 @@ bool initializeGrid(int argn, char **argc,dccrg::Dccrg<SpatialCell>& mpiGrid){
 }
 
 
-void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid){
-    typedef Parameters P;
-    phiprof::start("init cell values");
-    vector<uint64_t> cells = mpiGrid.get_cells();
-
-
-    //  Go through every cell on this node and initialize the pointers to 
-    // cpu memory, physical parameters and volume averages for each phase space 
-    // point in the velocity grid. Velocity block neighbour list is also 
-    // constructed here:
-    // Each initialization has to be independent to avoid threadingproblems 
+void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,
+                      SysBoundary* sysBoundaries
+){
+   typedef Parameters P;
+   phiprof::start("init cell values");
+   vector<uint64_t> cells = mpiGrid.get_cells();
+   
+   
+   //  Go through every cell on this node and initialize the pointers to 
+   // cpu memory, physical parameters and volume averages for each phase space 
+   // point in the velocity grid. Velocity block neighbour list is also 
+   // constructed here:
+   // Each initialization has to be independent to avoid threading problems 
 #pragma omp parallel for schedule(dynamic)
-    for (uint i=0; i<cells.size(); ++i) {
-       Real xmin,ymin,zmin,dx,dy,dz;
-       dx = mpiGrid.get_cell_x_size(cells[i]);
-       dy = mpiGrid.get_cell_y_size(cells[i]);
-       dz = mpiGrid.get_cell_z_size(cells[i]);
-       xmin = mpiGrid.get_cell_x_min(cells[i]);
-       ymin = mpiGrid.get_cell_y_min(cells[i]);
-       zmin = mpiGrid.get_cell_z_min(cells[i]);
-       initSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
-    }
-    phiprof::stop("init cell values");
-    updateRemoteVelocityBlockLists(mpiGrid);
-    
-    //in principle not needed as that was done in initSpatialCell, but lets be safe and do it anyway as it does not  cost much
-    for (uint i=0; i<cells.size(); ++i) 
-      mpiGrid[cells[i]]->update_all_block_has_content();     
-    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_HAS_CONTENT );
-    mpiGrid.update_remote_neighbor_data();
-    
-    adjust_local_velocity_blocks(mpiGrid);
-    //velocity blocks adjusted, lets prepare again for new lists
-    updateRemoteVelocityBlockLists(mpiGrid);
-
-    phiprof::initializeTimer("Fetch Neighbour data","MPI");
-    phiprof::start("Fetch Neighbour data");
-    // update complete spatial cell data 
-    SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
-    mpiGrid.update_remote_neighbor_data();       
-    phiprof::stop("Fetch Neighbour data");   
+   for (uint i=0; i<cells.size(); ++i) {
+      Real xmin,ymin,zmin,dx,dy,dz;
+      dx = mpiGrid.get_cell_x_size(cells[i]);
+      dy = mpiGrid.get_cell_y_size(cells[i]);
+      dz = mpiGrid.get_cell_z_size(cells[i]);
+      xmin = mpiGrid.get_cell_x_min(cells[i]);
+      ymin = mpiGrid.get_cell_y_min(cells[i]);
+      zmin = mpiGrid.get_cell_z_min(cells[i]);
+      initSpatialCell(*(mpiGrid[cells[i]]),sysBoundaries,xmin,ymin,zmin,dx,dy,dz,false);
+   }
+   phiprof::stop("init cell values");
+   updateRemoteVelocityBlockLists(mpiGrid);
+   
+   //in principle not needed as that was done in initSpatialCell, but lets be safe and do it anyway as it does not  cost much
+   for (uint i=0; i<cells.size(); ++i)
+   mpiGrid[cells[i]]->update_all_block_has_content();
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_HAS_CONTENT);
+   mpiGrid.update_remote_neighbor_data();
+   
+   adjust_local_velocity_blocks(mpiGrid);
+   //velocity blocks adjusted, lets prepare again for new lists
+   updateRemoteVelocityBlockLists(mpiGrid);
+   
+   phiprof::initializeTimer("Fetch Neighbour data","MPI");
+   phiprof::start("Fetch Neighbour data");
+   // update complete spatial cell data 
+   SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
+   mpiGrid.update_remote_neighbor_data();
+   phiprof::stop("Fetch Neighbour data");
 }
 
 
-/** Set up a spatial cell.
- */
-bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
-		      creal& zmin,creal& dx,creal& dy,creal& dz,
-		     const bool& isRemote) {
+/*! Set up a spatial cell.*/
+bool initSpatialCell(SpatialCell& cell,
+                     SysBoundary* sysBoundaries,
+                     creal& xmin,creal& ymin,creal& zmin,
+                     creal& dx,creal& dy,creal& dz,
+                     const bool& isRemote
+) {
    typedef Parameters P;
+   using namespace sysboundarytype;
    // Set up cell parameters:
    cell.parameters[CellParams::XCRD] = xmin;
    cell.parameters[CellParams::YCRD] = ymin;
@@ -194,7 +195,28 @@ bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
    cell.parameters[CellParams::DX  ] = dx;
    cell.parameters[CellParams::DY  ] = dy;
    cell.parameters[CellParams::DZ  ] = dz;
-   calcCellParameters(&(cell.parameters[0]),0.0);
+   
+   // Initialise system boundary conditions (they need the initialised positions!!)
+   if(assignSysBoundaryType(sysBoundaries, cell) == false) {
+      cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
+      exit(1);
+   }
+   
+   switch(cell.sysBoundaryFlag) {
+      case DO_NOT_COMPUTE:
+         cell.parameters[CellParams::BX] = 0.0;
+         cell.parameters[CellParams::BY] = 0.0;
+         cell.parameters[CellParams::BZ] = 0.0;
+         cell.parameters[CellParams::EX] = 0.0;
+         cell.parameters[CellParams::EY] = 0.0;
+         cell.parameters[CellParams::EZ] = 0.0;
+         break;
+      case SW:
+         calcSysBoundaryCellParameters(sysBoundaries, cell.sysBoundaryFlag, &(cell.parameters[0]), 0.0);
+         break;
+      default:
+         calcCellParameters(&(cell.parameters[0]), 0.0);
+   }
    cell.parameters[CellParams::RHO  ] = 0.0;
    cell.parameters[CellParams::RHOVX] = 0.0;
    cell.parameters[CellParams::RHOVY] = 0.0;
@@ -221,10 +243,30 @@ bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
       if (isRemote == true) continue;
       // Calculate volume average of distrib. function for each cell in the block.
       for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-	 creal vx_cell = vx_block + ic*dvx_blockCell;
-	 creal vy_cell = vy_block + jc*dvy_blockCell;
-	 creal vz_cell = vz_block + kc*dvz_blockCell;
-         Real average=calcPhaseSpaceDensity(xmin,ymin,zmin,dx,dy,dz,vx_cell,vy_cell,vz_cell,dvx_blockCell,dvy_blockCell,dvz_blockCell);
+         creal vx_cell = vx_block + ic*dvx_blockCell;
+         creal vy_cell = vy_block + jc*dvy_blockCell;
+         creal vz_cell = vz_block + kc*dvz_blockCell;
+         Real average;
+         switch(cell.sysBoundaryFlag) {
+            case DO_NOT_COMPUTE:
+               average = 0.0;
+               break;
+            case SW:
+               average = 
+               calcSysBoundaryPhaseSpaceDensity(sysBoundaries,
+                                                cell.sysBoundaryFlag,
+                                                xmin,ymin,zmin,
+                                                dx,dy,dz,
+                                                vx_cell,vy_cell,vz_cell,
+                                                dvx_blockCell,dvy_blockCell,dvz_blockCell);
+               break;
+            // NOT_SYSBOUNDARY, OUTFLOW, IONOSPHERE should be initialised in the same way:
+            default:
+               average = calcPhaseSpaceDensity(xmin,ymin,zmin,
+                                               dx,dy,dz,
+                                               vx_cell,vy_cell,vz_cell,
+                                               dvx_blockCell,dvy_blockCell,dvz_blockCell);
+         }
 
          if(average!=0.0){
             creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
@@ -262,13 +304,18 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    //set weights based on each cells LB weight counter
    vector<uint64_t> cells = mpiGrid.get_cells();
    for (uint i=0; i<cells.size(); ++i){
-      if(P::maxAccelerationSubsteps!=1) {
-         //use time-metric from solvers
-         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
-      }
-      else{
-         //No substepping in acceleration step, use number of blocks instead as metric as that provides slightly better results
-         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->number_of_blocks);
+      if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+         // No load in that case
+         mpiGrid.set_cell_weight(cells[i], 0.0);
+      } else {
+         if(P::maxAccelerationSubsteps!=1) {
+            //use time-metric from solvers
+            mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
+         }
+         else{
+            //No substepping in acceleration step, use number of blocks instead as metric as that provides slightly better results
+            mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->number_of_blocks);
+         }
       }
       
       mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]=0.0; //zero counter

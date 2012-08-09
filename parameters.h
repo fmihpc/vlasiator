@@ -72,12 +72,12 @@ struct Parameters {
    static Real saveSystemTimeInterval;
    
    
-   static uint transmit; /*!< Indicates the data that needs to be transmitted to remote nodes.
-			  * This is created with bitwise or from the values defined in 
-			  * namespace Transmit.*/
+   static uint transmit;
+   /*!< Indicates the data that needs to be transmitted to remote nodes.
+    * This is created with bitwise or from the values defined in 
+    * namespace Transmit.*/
 
-   static bool recalculateStencils; /*!< If true, MPI stencils should be recalculated because of 
-				     * load balancing.*/
+   static bool recalculateStencils; /*!< If true, MPI stencils should be recalculated because of load balancing.*/
    
    static bool propagateField;      /*!< If true, magnetic field is propagated during the simulation.*/
    static bool propagateVlasov;     /*!< If true, distribution function is propagated during the simulation.*/
@@ -103,6 +103,9 @@ struct Parameters {
    static bool isSolarWindDynamic; /*!< Is the solar wind inflow dynamic in time or not. */
    static Real ionoCenter[3]; /*!< Coordinates of the centre of the ionosphere. */
    static Real ionoRadius; /*!< Radius of the ionosphere. */
+   static uint outflowPrecedence; /*! Precedence value of the outflow system boundary condition. */
+   static uint solarWindPrecedence; /*! Precedence value of the solar wind system boundary condition. */
+   static uint ionospherePrecedence; /*! Precedence value of the ionosphere system boundary condition. */
    
    static uint maxAccelerationSubsteps; /*!< Maximum number of substeps that is allowed */
    static bool dynamicTimestep; /*!< If true, timestep is set based on  CFL limit */

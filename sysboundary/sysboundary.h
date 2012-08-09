@@ -48,16 +48,31 @@ class SysBoundary {
 //    bool (const unsigned int& sysBoundaryID) const;
       unsigned int size() const;
       std::vector<SBC::SysBoundaryCondition*> getSysBoundariesList() const;
+      std::map<uint, uint> getPrecedenceMap() const;
+      SBC::SysBoundaryCondition* getSysBoundary(uint sysBoundaryType) const;
    
- private:
-   /*! Private copy-constructor to prevent copying the class. */
-   SysBoundary(const SysBoundary& bc);
-   
-   std::vector<SBC::SysBoundaryCondition*> sysBoundaries;
-   /*!< A container for all SBC::SysBoundaryConditions stored in SysBoundary.*/
+   private:
+      /*! Private copy-constructor to prevent copying the class. */
+      SysBoundary(const SysBoundary& bc);
+      /*! A container for all SBC::SysBoundaryConditions stored in SysBoundary.*/
+      std::vector<SBC::SysBoundaryCondition*> sysBoundaries;
+      /*! A map from the system boundary types to the corresponding class member. */
+      std::map<uint, SBC::SysBoundaryCondition*> indexToSysBoundary;
+      /*! A map from the system boundary types to the precedence value. */
+      std::map<uint, uint> indexToPrecedence;
 };
 
-bool initializeSysBoundaries(SysBoundary * sbc);
-bool assignSysBoundaryType(SysBoundary* sbc, dccrg::Dccrg<SpatialCell>& mpiGrid);
+bool initializeSysBoundaries(SysBoundary* sbc);
+bool assignSysBoundaryType(SysBoundary* sbc, SpatialCell& cell);
+Real calcSysBoundaryPhaseSpaceDensity(SysBoundary* sysBoundaries,
+                                      uint sysBoundaryFlag,
+                                      creal& x, creal& y, creal& z,
+                                      creal& dx, creal& dy, creal& dz,
+                                      creal& vx, creal& vy, creal& vz,
+                                      creal& dvx, creal& dvy, creal& dvz);
+void calcSysBoundaryCellParameters(SysBoundary* sysBoundaries,
+                                   uint sysBoundaryFlag,
+                                   Real* cellParams,
+                                   creal& t);
 
 #endif

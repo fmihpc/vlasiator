@@ -68,6 +68,14 @@ namespace SBC {
       return typeToAssign;
    }
    
+   Real Ionosphere::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
+                              creal& dx,creal& dy,creal& dz,
+                              creal& vx,creal& vy,creal& vz,
+                              creal& dvx,creal& dvy,creal& dvz
+   ) {return 0.0;}
+   
+   void Ionosphere::calcCellParameters(Real* cellParams, creal& t) { }
+   
    bool Ionosphere::setCenter() {
       for(uint i=0; i<3; i++) center[i] = Parameters::ionoCenter[1];
       return true;
@@ -80,7 +88,6 @@ namespace SBC {
    
    std::string Ionosphere::getName() const {return "Ionosphere";}
    
-   int Ionosphere::getIndex() const {
-      return sysboundarytype::IONOSPHERE;
-   }
+   uint Ionosphere::getIndex() const {return sysboundarytype::IONOSPHERE;}
+   uint Ionosphere::getPrecedence() const {return Parameters::ionospherePrecedence;}
 }

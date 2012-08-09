@@ -34,8 +34,12 @@ bool initializeSysBoundaries(SysBoundary * bc)
    for (it = Parameters::sysBoundaryCondList.begin();
         it != Parameters::sysBoundaryCondList.end();
         it++) {
-      if(*it == "Outflow") bc->addSysBoundary(new SBC::Outflow);
-      if(*it == "Ionosphere") bc->addSysBoundary(new SBC::Ionosphere);
+      if(*it == "Outflow") {
+         bc->addSysBoundary(new SBC::Outflow);
+      }
+      if(*it == "Ionosphere") {
+         bc->addSysBoundary(new SBC::Ionosphere);
+      }
       if(*it == "SolarWind") {
          bc->addSysBoundary(new SBC::SolarWind);
          isSysBoundaryCondDynamic = Parameters::isSolarWindDynamic;
@@ -44,29 +48,96 @@ bool initializeSysBoundaries(SysBoundary * bc)
    return isSysBoundaryCondDynamic;
 }
 
-bool assignSysBoundaryType(SysBoundary * bc, dccrg::Dccrg<SpatialCell>& mpiGrid)
+bool assignSysBoundaryType(SysBoundary * bc, SpatialCell& cell)
 {
    using namespace sysboundarytype;
-   vector<uint64_t> cells = mpiGrid.get_cells();
-   int indexToAssign, tmpType;
+   
+   uint indexToAssign, tmpType;
    vector<SBC::SysBoundaryCondition*> sysBoundariesList = bc->getSysBoundariesList();
-#pragma omp parallel for schedule(dynamic) private(indexToAssign,tmpType)
-   for (uint i=0; i<cells.size(); ++i) {
-      indexToAssign = NOT_SYSBOUNDARY;
-      for (uint j = 0;
-           j < sysBoundariesList.size();
-           j++) {
-         if((tmpType=sysBoundariesList[j]->assignSysBoundary(&(mpiGrid[cells[i]]->parameters[0]))) == DO_NOT_COMPUTE) {
-            indexToAssign = tmpType;
-            break;
-         } else if (tmpType > indexToAssign) {
-            indexToAssign = tmpType;
-         }
+   map<uint, uint> precedenceMap = bc->getPrecedenceMap();
+   
+   indexToAssign = NOT_SYSBOUNDARY;
+   for (uint j = 0;
+         j < sysBoundariesList.size();
+         j++) {
+      if((tmpType=sysBoundariesList[j]->assignSysBoundary(&(cell.parameters[0]))) == DO_NOT_COMPUTE) {
+         indexToAssign = tmpType;
+         break;
+      } else if (precedenceMap.find(tmpType)->second > precedenceMap.find(indexToAssign)->second) {
+         indexToAssign = tmpType;
       }
-      mpiGrid[cells[i]]->sysBoundaryFlag = 1.0*indexToAssign;
    }
+   cell.sysBoundaryFlag = 1.0*indexToAssign;
    
    return true;
+}
+
+Real calcSysBoundaryPhaseSpaceDensity(SysBoundary* sysBoundaries,
+                                      uint sysBoundaryFlag,
+                                      creal& x,creal& y,creal& z,
+                                      creal& dx,creal& dy,creal& dz,
+                                      creal& vx,creal& vy,creal& vz,
+                                      creal& dvx,creal& dvy,creal& dvz
+) {
+   Real average;
+   
+   using namespace sysboundarytype;
+   
+   switch(sysBoundaryFlag) {
+      case DO_NOT_COMPUTE:
+      case NOT_SYSBOUNDARY:
+         cerr << "ERROR: called SysBoundary::calcPhaseSpaceDensity for a cell flagged DO_NOT_COMPUTE or NOT_SYSBOUNDARY!!" << endl;
+         exit(1);
+         break;
+      case OUTFLOW:
+         average = sysBoundaries->getSysBoundary(OUTFLOW)->calcPhaseSpaceDensity(x,y,z,
+                                                                                 dx,dy,dz,
+                                                                                 vx,vy,vz,
+                                                                                 dvx,dvy,dvz);
+         break;
+      case IONOSPHERE:
+         average = sysBoundaries->getSysBoundary(IONOSPHERE)->calcPhaseSpaceDensity(x,y,z,
+                                                                                    dx,dy,dz,
+                                                                                    vx,vy,vz,
+                                                                                    dvx,dvy,dvz);
+         break;
+      case SW:
+         average = sysBoundaries->getSysBoundary(SW)->calcPhaseSpaceDensity(x,y,z,
+                                                                            dx,dy,dz,
+                                                                            vx,vy,vz,
+                                                                            dvx,dvy,dvz);
+         break;
+      default:
+         average = 0.0;
+   }
+   
+   return average;
+}
+
+void calcSysBoundaryCellParameters(SysBoundary* sysBoundaries,
+                                   uint sysBoundaryFlag,
+                                   Real* cellParams,
+                                   creal& t) {
+   using namespace sysboundarytype;
+   
+   switch(sysBoundaryFlag) {
+      case DO_NOT_COMPUTE:
+      case NOT_SYSBOUNDARY:
+         cerr << "ERROR: called SysBoundary::calcCellParameters for a cell flagged DO_NOT_COMPUTE or NOT_SYSBOUNDARY!!" << endl;
+         exit(1);
+         break;
+      case OUTFLOW:
+         sysBoundaries->getSysBoundary(OUTFLOW)->calcCellParameters(cellParams, t);
+         break;
+      case IONOSPHERE:
+         sysBoundaries->getSysBoundary(IONOSPHERE)->calcCellParameters(cellParams, t);
+         break;
+      case SW:
+         sysBoundaries->getSysBoundary(SW)->calcCellParameters(cellParams, t);
+         break;
+      default:
+         break;
+   }
 }
 
 // ************************************************************
@@ -102,11 +173,17 @@ SysBoundary::~SysBoundary() {
  */
 bool SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc) {
    sysBoundaries.push_back(bc);
+   
    bool success = true;
    if(bc->initSysBoundary() == false) {
       cerr << "Error in setting system boundary condition " << bc->getName() << endl;
       success = false;
    }
+   
+   indexToSysBoundary[bc->getIndex()] = bc;
+   
+   indexToPrecedence[bc->getIndex()] = bc->getPrecedence();
+   
    return success;
 }
 
@@ -122,17 +199,19 @@ string SysBoundary::getName(const unsigned int& sysBoundaryID) const {
 /*! Get the list of system boundary conditions contained in SysBoundary.
  * @return List of the system boundary conditions.
  */
-vector<SBC::SysBoundaryCondition*> SysBoundary::getSysBoundariesList() const {
-   return sysBoundaries;
-}
+vector<SBC::SysBoundaryCondition*> SysBoundary::getSysBoundariesList() const {return sysBoundaries;}
 
-// /*!  
-//  * @param sysBoundaryID ID number of the applied SysBoundaryCondition.
-//  */
-// bool SysBoundary::(const unsigned int& sysBoundaryID) const {
-//    if (sysBoundaryID >= sysBoundaries.size()) return false;
-//    return sysBoundaries[sysBoundaryID]->();
-// }
+/*! Get the map of system boundary condition precedences contained in SysBoundary.
+ * @return Map of the system boundary condition precedences.
+ */
+std::map<uint, uint> SysBoundary::getPrecedenceMap() const {return indexToPrecedence;}
+
+/*! Get a pointer to the SysBoundaryCondition of given index.
+ * @return Pointer to the instance of the SysBoundaryCondition.
+ */
+SBC::SysBoundaryCondition* SysBoundary::getSysBoundary(uint sysBoundaryType) const {
+   return indexToSysBoundary.find(sysBoundaryType)->second;
+}
 
 /*! Get the number of SysBoundaryConditions stored in SysBoundary.
  * @return Number of SysBoundaryConditions stored in SysBoundary.

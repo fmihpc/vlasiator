@@ -74,9 +74,16 @@ namespace SBC {
       return typeToAssign;
    }
    
+   Real Outflow::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
+                              creal& dx,creal& dy,creal& dz,
+                              creal& vx,creal& vy,creal& vz,
+                              creal& dvx,creal& dvy,creal& dvz
+   ) {return 0.0;}
+   
+   void Outflow::calcCellParameters(Real* cellParams, creal& t) { }
+   
    std::string Outflow::getName() const {return "Outflow";}
    
-   int Outflow::getIndex() const {
-      return sysboundarytype::OUTFLOW;
-   }
+   uint Outflow::getIndex() const {return sysboundarytype::OUTFLOW;}
+   uint Outflow::getPrecedence() const {return Parameters::outflowPrecedence;}
 }
