@@ -45,7 +45,7 @@ class SysBoundary {
       
       bool addSysBoundary(SBC::SysBoundaryCondition* sbc, creal& t);
       std::string getName(const unsigned int& sysBoundaryID) const;
-//    bool (const unsigned int& sysBoundaryID) const;
+//   bool (const unsigned int& sysBoundaryID) const;
       unsigned int size() const;
       std::vector<SBC::SysBoundaryCondition*> getSysBoundariesList() const;
       std::map<uint, uint> getPrecedenceMap() const;
@@ -54,12 +54,23 @@ class SysBoundary {
    private:
       /*! Private copy-constructor to prevent copying the class. */
       SysBoundary(const SysBoundary& bc);
-      /*! A container for all SBC::SysBoundaryConditions stored in SysBoundary.*/
+   
+/*! A container for all SBC::SysBoundaryConditions stored in SysBoundary.*/
       std::vector<SBC::SysBoundaryCondition*> sysBoundaries;
       /*! A map from the system boundary types to the corresponding class member. */
       std::map<uint, SBC::SysBoundaryCondition*> indexToSysBoundary;
       /*! A map from the system boundary types to the precedence value. */
       std::map<uint, uint> indexToPrecedence;
+
+
+   //Add getParameters, readParameters to read in parameters from cfg,
+   //this is called from main() where we also add project
+   //parameters. getParameters and readParameters again calls get and
+   //read functions in each boundary conditions.
+
+   //Add functions below into class
+
+
 };
 
 bool initializeSysBoundaries(SysBoundary* sbc, creal& t);

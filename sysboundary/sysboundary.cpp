@@ -45,6 +45,7 @@ bool initializeSysBoundaries(SysBoundary * bc, creal& t)
          isSysBoundaryCondDynamic = Parameters::isSolarWindDynamic;
       }
    }
+   
    return isSysBoundaryCondDynamic;
 }
 
@@ -60,17 +61,28 @@ bool assignSysBoundaryType(SysBoundary * bc, SpatialCell& cell)
    for (uint j = 0;
          j < sysBoundariesList.size();
          j++) {
-      if((tmpType=sysBoundariesList[j]->assignSysBoundary(&(cell.parameters[0]))) == DO_NOT_COMPUTE) {
+      tmpType=sysBoundariesList[j]->assignSysBoundary(&(cell.parameters[0]));
+      
+      if(tmpType == DO_NOT_COMPUTE) {
          indexToAssign = tmpType;
          break;
       } else if (precedenceMap.find(tmpType)->second > precedenceMap.find(indexToAssign)->second) {
          indexToAssign = tmpType;
       }
    }
-   cell.sysBoundaryFlag = 1.0*indexToAssign;
+   cell.sysBoundaryFlag = indexToAssign;
    
    return true;
 }
+
+
+/*
+//Instead of calcSysBoundaryPhaseSpaceDensity below, have higher-level function
+void setState(mpiGrid){
+   loop over bcond
+      boundarycond.setstate(mpigrid);
+}
+*/
 
 Real calcSysBoundaryPhaseSpaceDensity(SysBoundary* sysBoundaries,
                                       uint sysBoundaryFlag,

@@ -126,6 +126,18 @@ bool initializeGrid(int argn,
    // Go through every spatial cell on this CPU, and create the initial state:
    phiprof::start("Set initial state");
    initSpatialCells(mpiGrid, sysBoundaries);
+
+   /*
+   //The new structure for the initializing cells instead of calling initSpatialCells above
+
+   initSpatialCellCoordinates();  //just initialize coordinates 
+   sysBoundaries.classifyCells(mpigrid); // Classify all local cells in mpigrid (potentially a collective MPI operation)
+   applyInitialState(mpigrid); // Apply initial state, will on;y set it for non-sysboundary cells
+   sysboundaries.setState(mpigrid); // set sysboundary states for all local sysboundary cells 
+   updateSparseVelocityStuff(mpiGrid) // The blockupdates done now in end of initSpatialCells
+
+   */    
+
    phiprof::stop("Set initial state");
 
    balanceLoad(mpiGrid);
