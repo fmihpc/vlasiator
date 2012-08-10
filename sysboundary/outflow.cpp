@@ -31,7 +31,7 @@ namespace SBC {
    Outflow::Outflow(): SysBoundaryCondition() { }
    Outflow::~Outflow() { }
    
-   bool Outflow::initSysBoundary() {
+   bool Outflow::initSysBoundary(creal& t) {
       /* The bit field encodes which of the +x, -x, +y, -y, +z, -z faces are to have outflow system boundary conditions.
        * The bit field has length 6, a bit raised to 1 indicates the corresponding face will have outflow.
        * The 6 bits left-to-right correspond to +x, -x, +y, -y, +z, -z respectively.

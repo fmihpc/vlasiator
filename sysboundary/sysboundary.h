@@ -43,7 +43,7 @@ class SysBoundary {
       SysBoundary();
       ~SysBoundary();
       
-      bool addSysBoundary(SBC::SysBoundaryCondition* sbc);
+      bool addSysBoundary(SBC::SysBoundaryCondition* sbc, creal& t);
       std::string getName(const unsigned int& sysBoundaryID) const;
 //    bool (const unsigned int& sysBoundaryID) const;
       unsigned int size() const;
@@ -62,7 +62,7 @@ class SysBoundary {
       std::map<uint, uint> indexToPrecedence;
 };
 
-bool initializeSysBoundaries(SysBoundary* sbc);
+bool initializeSysBoundaries(SysBoundary* sbc, creal& t);
 bool assignSysBoundaryType(SysBoundary* sbc, SpatialCell& cell);
 Real calcSysBoundaryPhaseSpaceDensity(SysBoundary* sysBoundaries,
                                       uint sysBoundaryFlag,

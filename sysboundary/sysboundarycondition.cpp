@@ -42,7 +42,7 @@ namespace SBC {
 
    /*! Function called at initialisation to set the system boundary condition's parameters.
     */
-   bool SysBoundaryCondition::initSysBoundary() {
+   bool SysBoundaryCondition::initSysBoundary(creal& t) {
       cerr << "ERROR: SysBoundaryCondition::initSysBoundary called instead of derived class function!" << endl;
       return false;
    }

@@ -29,22 +29,30 @@ namespace SBC {
       SolarWind();
       ~SolarWind();
       
-      bool initSysBoundary();
+      bool initSysBoundary(creal& t);
       int assignSysBoundary(creal* cellParams);
       Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
                                  creal& dx,creal& dy,creal& dz,
                                  creal& vx,creal& vy,creal& vz,
                                  creal& dvx,creal& dvy,creal& dvz);
       void calcCellParameters(Real* cellParams, creal& t);
-      bool setInputFiles();
+      bool loadInputData();
+      std::vector<Real*> loadFile(const char* file);
+      bool generateTemplateCells(creal& t);
+      void generateTemplateCell(spatial_cell::SpatialCell& templateCell, int inputDataIndex, creal& t);
+      void interpolate(const int inputDataIndex, creal t, Real* rho, Real* T, Real* vx, Real* vy, Real* vz, Real* Bx, Real* By, Real* Bz);
+      void determineFace(creal x, creal y, creal z, creal dx, creal dy, creal dz);
       std::string getName() const;
       virtual uint getIndex() const;
       virtual uint getPrecedence() const;
       
    protected:
+      uint numberOfFaces;
       uint faces : 6;
       uint isThisCellOnAFace : 6;
-      std::string inputFiles[6];
+      std::vector<std::vector<Real*>> inputData;
+      std::map<uint, int> faceToInputData;
+      spatial_cell::SpatialCell templateCells[6];
    };
 }
 

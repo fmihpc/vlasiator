@@ -36,7 +36,7 @@ namespace SBC {
          SysBoundaryCondition();
          virtual ~SysBoundaryCondition();
          
-         virtual bool initSysBoundary();
+         virtual bool initSysBoundary(creal& t);
          virtual int assignSysBoundary(creal* cellParams);
          virtual Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
                                             creal& dx,creal& dy,creal& dz,

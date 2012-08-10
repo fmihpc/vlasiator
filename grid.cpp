@@ -223,17 +223,17 @@ bool initSpatialCell(SpatialCell& cell,
    cell.parameters[CellParams::RHOVZ] = 0.0;
    cell.parameters[CellParams::RHOLOSSADJUST] = 0.0;
    cell.parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
-
+   
    // Go through each velocity block in the velocity phase space grid.
    // Set the initial state and block parameters:
    
    creal dvx_block = SpatialCell::block_dvx; // Size of a block in vx-direction
    creal dvy_block = SpatialCell::block_dvy; //                    vy
    creal dvz_block = SpatialCell::block_dvz; //                    vz
-   creal dvx_blockCell = SpatialCell::cell_dvx;                 // Size of one cell in a block in vx-direction
-   creal dvy_blockCell = SpatialCell::cell_dvy;                 //                                vy
-   creal dvz_blockCell = SpatialCell::cell_dvz;                 //                                vz
-
+   creal dvx_blockCell = SpatialCell::cell_dvx; // Size of one cell in a block in vx-direction
+   creal dvy_blockCell = SpatialCell::cell_dvy; //                                vy
+   creal dvz_blockCell = SpatialCell::cell_dvz; //                                vz
+   
    
    for (uint kv=0; kv<P::vzblocks_ini; ++kv) for (uint jv=0; jv<P::vyblocks_ini; ++jv) for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
       creal vx_block = P::vxmin + iv*dvx_block; // vx-coordinate of the lower left corner

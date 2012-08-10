@@ -203,7 +203,7 @@ namespace velocity_neighbor {
    class SpatialCell {
    public:
 
-/****************************
+      /****************************
        * Velocity block functions *
        ****************************/
 
@@ -625,7 +625,7 @@ namespace velocity_neighbor {
          this->block_data.resize(100*VELOCITY_BLOCK_LENGTH);
          this->block_fx.resize(100*SIZE_FLUXS);
          
-	 this->block_has_content.reserve(SpatialCell::max_velocity_blocks); 
+         this->block_has_content.reserve(SpatialCell::max_velocity_blocks); 
          this->block_address_cache.reserve(SpatialCell::max_velocity_blocks);
          for (unsigned int block = 0; block < SpatialCell::max_velocity_blocks; block++) {
             this->block_has_content.push_back(0);
@@ -672,8 +672,8 @@ namespace velocity_neighbor {
          sysBoundaryFlag(other.sysBoundaryFlag)
          {
 
-//	 phiprof::initializeTimer("SpatialCell copy", "SpatialCell copy");
-//	 phiprof::start("SpatialCell copy");
+//       phiprof::initializeTimer("SpatialCell copy", "SpatialCell copy");
+//       phiprof::start("SpatialCell copy");
 
          //copy parameters
          for(unsigned int i=0;i< CellParams::N_SPATIAL_CELL_PARAMS;i++){
@@ -791,8 +791,7 @@ namespace velocity_neighbor {
 
         Creates the velocity block at given coordinates if it doesn't exist.
       */
-      void set_value(const Real vx, const Real vy, const Real vz, const Real value)
-         {
+      void set_value(const Real vx, const Real vy, const Real vz, const Real value) {
             const unsigned int block = get_velocity_block(vx, vy, vz);
             if (this->velocity_blocks.count(block) == 0) {
                if (!this->add_velocity_block(block)) {
@@ -809,15 +808,32 @@ namespace velocity_neighbor {
 
             const unsigned int cell = get_velocity_cell(block, vx, vy, vz);
             block_ptr->data[cell] = value;
+      }
+      
+      /*!
+       * Gets the value of a velocity cell at given coordinates.
+       * 
+       * Returns 0 if it doesn't exist.
+       */
+      Real get_value(const Real vx, const Real vy, const Real vz)
+      {
+         const unsigned int block = get_velocity_block(vx, vy, vz);
+         if (this->velocity_blocks.count(block) == 0) {
+            return 0.0;
          }
-
-
-      void* at(void)
-         {
-            return this;
+         Velocity_Block* block_ptr = &(this->velocity_blocks.at(block));
+         if (block_ptr == NULL) {
+            std::cerr << __FILE__ << ":" << __LINE__
+            << " block_ptr == NULL" << std::endl; 
+            abort();
          }
-
-
+         
+         const unsigned int cell = get_velocity_cell(block, vx, vy, vz);
+         return block_ptr->data[cell];
+      }
+      
+      void* at(void) {return this;}
+      
       MPI_Datatype mpi_datatype(void){
             MPI_Datatype type;
             std::vector<MPI_Aint> displacements;
@@ -1088,24 +1104,22 @@ namespace velocity_neighbor {
 
       /*!  Adds "important" and removes "unimportant" velocity blocks
         to/from this cell.
-	
-	block_has_content list needs to be up to date in local cells
-	and its neighbours, update_all_block_has_content() should have
-	been called with the current distribution function values.
-	
+      
+        block_has_content list needs to be up to date in local cells
+        and its neighbours, update_all_block_has_content() should have
+        been called with the current distribution function values.
+        
         Removes all velocity blocks from this spatial cell which don't
         have content and don't have spatial or velocity neighbors with
         content.  Adds neighbors for all velocity blocks which do have
         content (including spatial neighbors).  All cells in
         spatial_neighbors are assumed to be neighbors of this cell.
-	
-
+        
+        
         This function is thread-safe when called for different cells
         per thread. We need the block_has_content vector from
         neighbouring cells, but these are not written to here. We only
         modify local cell.
-
-        
       */
       void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors)
       {
@@ -1272,15 +1286,12 @@ namespace velocity_neighbor {
       }
       
       
-      /*        !
+      /*!
         Adds an empty velocity block into this spatial cell.
-
         Returns true if given block was added or already exists.
         Returns false if given block is invalid or would be outside
         of the velocity grid.
       */
-
-      
       bool add_velocity_block(const unsigned int block) {
          if (block == error_velocity_block) {
             return false;

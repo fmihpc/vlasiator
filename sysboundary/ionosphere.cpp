@@ -31,7 +31,7 @@ namespace SBC {
    Ionosphere::Ionosphere(): SysBoundaryCondition() { }
    Ionosphere::~Ionosphere() { }
    
-   bool Ionosphere::initSysBoundary() {
+   bool Ionosphere::initSysBoundary(creal& t) {
       bool result = setCenter();
       result = result & setRadius();      
       return result;

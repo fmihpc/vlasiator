@@ -27,7 +27,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 using namespace std;
 
-bool initializeSysBoundaries(SysBoundary * bc)
+bool initializeSysBoundaries(SysBoundary * bc, creal& t)
 {
    bool isSysBoundaryCondDynamic = false;
    vector<string>::const_iterator it;
@@ -35,13 +35,13 @@ bool initializeSysBoundaries(SysBoundary * bc)
         it != Parameters::sysBoundaryCondList.end();
         it++) {
       if(*it == "Outflow") {
-         bc->addSysBoundary(new SBC::Outflow);
+         bc->addSysBoundary(new SBC::Outflow, t);
       }
       if(*it == "Ionosphere") {
-         bc->addSysBoundary(new SBC::Ionosphere);
+         bc->addSysBoundary(new SBC::Ionosphere, t);
       }
       if(*it == "SolarWind") {
-         bc->addSysBoundary(new SBC::SolarWind);
+         bc->addSysBoundary(new SBC::SolarWind, t);
          isSysBoundaryCondDynamic = Parameters::isSolarWindDynamic;
       }
    }
@@ -171,11 +171,11 @@ SysBoundary::~SysBoundary() {
  * SysBoundary will take care of deleting it.
  * @return If true, the given SBC::SysBoundaryCondition was added successfully.
  */
-bool SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc) {
+bool SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, creal& t) {
    sysBoundaries.push_back(bc);
    
    bool success = true;
-   if(bc->initSysBoundary() == false) {
+   if(bc->initSysBoundary(t) == false) {
       cerr << "Error in setting system boundary condition " << bc->getName() << endl;
       success = false;
    }

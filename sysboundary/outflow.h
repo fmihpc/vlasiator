@@ -29,7 +29,7 @@ namespace SBC {
       Outflow();
       ~Outflow();
       
-      bool initSysBoundary();
+      bool initSysBoundary(creal& t);
       int assignSysBoundary(creal* cellParams);
       Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
                                  creal& dx,creal& dy,creal& dz,

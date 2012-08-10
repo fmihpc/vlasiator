@@ -133,7 +133,7 @@ int main(int argn,char* args[]) {
    phiprof::start("Init grid");
    dccrg::Dccrg<SpatialCell> mpiGrid;
    SysBoundary sysBoundaries;
-   bool isSysBoundaryCondDynamic = initializeSysBoundaries(&sysBoundaries);
+   bool isSysBoundaryCondDynamic = initializeSysBoundaries(&sysBoundaries, P::t_min);
    if (initializeGrid(argn,args,mpiGrid,&sysBoundaries) == false) {
       logfile << "(MAIN): Grid did not initialize correctly!" << endl << writeVerbose;
       exit(1);
