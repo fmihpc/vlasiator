@@ -79,65 +79,63 @@ namespace BlockParams {
    };
 }
 
-/** A namespace for storing indices into an array which contains the 
+/*! A namespace for storing indices into an array which contains the 
  * physical parameters of each spatial cell. Do not change the order 
  * of variables unless you know what you are doing - MPI transfers in 
  * field solver are optimised for this particular ordering.
  */
 namespace CellParams {
    enum {
-      XCRD,    /**< x-coordinate of the bottom left corner.*/
-      YCRD,    /**< y-coordinate of the bottom left corner.*/
-      ZCRD,    /**< z-coordinate of the bottom left corner.*/
-      DX,      /**< Grid separation in x-coordinate.*/
-      DY,      /**< Grid separation in y-coordinate.*/
-      DZ,      /**< Grid separation in z-coordinate.*/
-      EX,      /**< Electric field x-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
-      EY,      /**< Electric field y-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
-      EZ,      /**< Electric field z-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
-      BX,      /**< Magnetic field x-component, averaged over cell x-face. Propagated by field solver.*/
-      BY,      /**< Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
-      BZ,      /**< Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
-      RHO,     /**< Number density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOVX,   /**< x-component of number density times Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOVY,   /**< y-component of number density times Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOVZ,   /**< z-component of number density times Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      EX1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
-      EY1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
-      EZ1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
-      BX1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
-      BY1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
-      BZ1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
-      RHO1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
-      RHOVX1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
-      RHOVY1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
-      RHOVZ1,	/**< Intermediate step value for RK2 time stepping in field solver.*/
-      BXVOL,   /**< Bx averaged over spatial cell.*/
-      BYVOL,   /**< By averaged over spatial cell.*/
-      BZVOL,   /**< Bz averaged over spatial cell.*/
-      EXVOL,   /**< Ex averaged over spatial cell.*/
-      EYVOL,   /**< Ey averaged over spatial cell.*/
-      EZVOL,   /**< Ez averaged over spatial cell.*/
+      XCRD,   /**< x-coordinate of the bottom left corner.*/
+      YCRD,   /**< y-coordinate of the bottom left corner.*/
+      ZCRD,   /**< z-coordinate of the bottom left corner.*/
+      DX,     /**< Grid separation in x-coordinate.*/
+      DY,     /**< Grid separation in y-coordinate.*/
+      DZ,     /**< Grid separation in z-coordinate.*/
+      EX,     /**< Electric field x-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
+      EY,     /**< Electric field y-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
+      EZ,     /**< Electric field z-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
+      BX,     /**< Magnetic field x-component, averaged over cell x-face. Propagated by field solver.*/
+      BY,     /**< Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
+      BZ,     /**< Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
+      RHO,    /**< Number density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      RHOVX,  /**< x-component of number density times Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      RHOVY,  /**< y-component of number density times Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      RHOVZ,  /**< z-component of number density times Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      EX1,    /**< Intermediate step value for RK2 time stepping in field solver.*/
+      EY1,    /**< Intermediate step value for RK2 time stepping in field solver.*/
+      EZ1,    /**< Intermediate step value for RK2 time stepping in field solver.*/
+      BX1,    /**< Intermediate step value for RK2 time stepping in field solver.*/
+      BY1,    /**< Intermediate step value for RK2 time stepping in field solver.*/
+      BZ1,    /**< Intermediate step value for RK2 time stepping in field solver.*/
+      RHO1,   /**< Intermediate step value for RK2 time stepping in field solver.*/
+      RHOVX1, /**< Intermediate step value for RK2 time stepping in field solver.*/
+      RHOVY1, /**< Intermediate step value for RK2 time stepping in field solver.*/
+      RHOVZ1, /**< Intermediate step value for RK2 time stepping in field solver.*/
+      BXVOL,  /**< Bx averaged over spatial cell.*/
+      BYVOL,  /**< By averaged over spatial cell.*/
+      BZVOL,  /**< Bz averaged over spatial cell.*/
+      EXVOL,  /**< Ex averaged over spatial cell.*/
+      EYVOL,  /**< Ey averaged over spatial cell.*/
+      EZVOL,  /**< Ez averaged over spatial cell.*/
+      BX0,    /**< Background magnetic field x-component, averaged over cell x-face.*/
+      BY0,    /**< Background magnetic field x-component, averaged over cell x-face.*/
+      BZ0,    /**< Background magnetic field x-component, averaged over cell x-face.*/
+      BXVOL0, /**< Bx0 (background field) averaged over spatial cell.*/
+      BYVOL0, /**< By0 (background field) averaged over spatial cell.*/
+      BZVOL0, /**< Bz0 (background field) averaged over spatial cell.*/
 
-      // Constant background versions of variables above
-      BX0,
-      BY0,
-      BZ0,
-      BXVOL0,
-      BYVOL0,
-      BZVOL0,
-
-      RHOLOSSADJUST, /**< Counter for massloss from the destroying blocks in blockadjustment*/
+      RHOLOSSADJUST,      /**< Counter for massloss from the destroying blocks in blockadjustment*/
       RHOLOSSVELBOUNDARY, /**< Counter for massloss through outflow boundaries in velocity space*/
-      MAXVDT,   /**< maximum timestep allowed in velocity space for this cell**/
-      MAXRDT,  /**< maximum timestep allowed in ordinary space for this cell **/
-      MAXFDT, /**< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
-      LBWEIGHTCOUNTER, /**< Counter for storing compute time weights needed by the load balancing**/
+      MAXVDT,             /**< maximum timestep allowed in velocity space for this cell**/
+      MAXRDT,             /**< maximum timestep allowed in ordinary space for this cell **/
+      MAXFDT,             /**< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
+      LBWEIGHTCOUNTER,    /**< Counter for storing compute time weights needed by the load balancing**/
       N_SPATIAL_CELL_PARAMS
    };
 }
 
-/** Namespace fieldsolver contains indices into arrays which store 
+/*! Namespace fieldsolver contains indices into arrays which store 
  * variables required by the field solver. These quantities are derivatives 
  * of variables described in namespace CellParams.
  * Do not change the order of variables unless you know what you are doing: 
@@ -171,10 +169,10 @@ namespace fieldsolver {
 
 
 
-// TODO: change into a template parameter
-const uint WID = 4;         /**< Number of cells per coordinate in a velocity block. */
-const uint WID2 = WID*WID;
-const uint WID3 = WID2*WID; 
+
+const uint WID = 4;         /**< Number of cells per coordinate in a velocity block. Only a value of 4 supported by vectorized Leveque solver */
+const uint WID2 = WID*WID;  /**< Number of cells per 2D slab in a velocity block. */
+const uint WID3 = WID2*WID; /**< Number of cells in a velocity block. */
 
 /*!
 Get the cellindex in the velocity space mesh
@@ -184,9 +182,8 @@ template<typename UINT> inline UINT cellIndex(const UINT& i,const UINT& j,const 
 }
 
 
-//const uint SIZE_NBRS_VEL    = 8;    /**< The size of velocity grid neighbour list per velocity block. */
-//const uint SIZE_NBRS_VEL    = 28;    /**< The size of velocity grid neighbour list per velocity block. */
-const uint SIZE_NBRS_SPA    = 31;   /**< The size of spatial grid neighbour list per spatial cell. */
+
+
 const uint SIZE_VELBLOCK    = WID3; /**< Number of cells in a velocity block. */
 const uint SIZE_BLOCKPARAMS = 6;    /**< Number of parameters per velocity block. */
 

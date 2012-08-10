@@ -56,7 +56,7 @@ void fpehandler(int sig_num)
 #include "phiprof.hpp"
 
 
-Logger logfile, diagnostic;
+Logger logFile, diagnostic;
 
 using namespace std;
 using namespace phiprof;
@@ -65,8 +65,8 @@ using namespace phiprof;
 int main(int argn,char* args[]) {
    bool success = true;
    const int MASTER_RANK = 0;
-   int myrank;
-   creal DT_EPSILON=1e-12;
+   int myRank;
+   const creal DT_EPSILON=1e-12;
    typedef Parameters P;
    // Init MPI: 
 #ifdef _OPENMP
@@ -75,8 +75,8 @@ int main(int argn,char* args[]) {
    int provided;
    MPI_Init_thread(&argn,&args,required,&provided);
    if ( required >provided){
-      MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
-      if(myrank==MASTER_RANK)
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      if(myRank==MASTER_RANK)
          cerr << "(MAIN): MPI_Init_thread failed!" << endl;
       exit(1);
    }    
@@ -85,7 +85,7 @@ int main(int argn,char* args[]) {
    boost::mpi::environment env(argn,args);
    boost::mpi::communicator comm;
    
-   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
    #ifdef CATCH_FPE
    // WARNING FE_INEXACT is too sensitive to be used. See man fenv.
@@ -110,16 +110,16 @@ int main(int argn,char* args[]) {
    
    phiprof::start("Init project");
    if (initializeProject() == false) {
-      logfile << "(MAIN): Project did not initialize correctly!" << endl << writeVerbose;
+      logFile << "(MAIN): Project did not initialize correctly!" << endl << writeVerbose;
       exit(1);
    }
    phiprof::stop("Init project");
    
 
    // Init parallel logger:
-   phiprof::start("open logfile & diagnostic");
-   if (logfile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt") == false) {
-      cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
+   phiprof::start("open logFile & diagnostic");
+   if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logFile.txt") == false) {
+      cerr << "(MAIN) ERROR: Logger failed to open logFile!" << endl;
       exit(1);
    }
    if (P::diagnosticInterval != 0) {
@@ -128,12 +128,12 @@ int main(int argn,char* args[]) {
          exit(1);
       }
    }
-   phiprof::stop("open logfile & diagnostic");
+   phiprof::stop("open logFile & diagnostic");
    
    phiprof::start("Init grid");
    dccrg::Dccrg<SpatialCell> mpiGrid;
    if (initializeGrid(argn,args,mpiGrid) == false) {
-      logfile << "(MAIN): Grid did not initialize correctly!" << endl << writeVerbose;
+      logFile << "(MAIN): Grid did not initialize correctly!" << endl << writeVerbose;
       exit(1);
    }  
    phiprof::stop("Init grid");
@@ -147,7 +147,7 @@ int main(int argn,char* args[]) {
    phiprof::start("Init vlasov propagator");
    // Initialize Vlasov propagator:
    if (initializeMover(mpiGrid) == false) {
-      logfile << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << writeVerbose;
+      logFile << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << writeVerbose;
       exit(1);
    }   
    calculateVelocityMoments(mpiGrid);
@@ -156,7 +156,7 @@ int main(int argn,char* args[]) {
    phiprof::start("Init field propagator");
    // Initialize field propagator:
    if (initializeFieldPropagator(mpiGrid) == false) {
-       logfile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
+       logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
        exit(1);
    }
    phiprof::stop("Init field propagator");
@@ -177,7 +177,7 @@ int main(int argn,char* args[]) {
    
    
    // Main simulation loop:
-   if (myrank == MASTER_RANK) logfile << "(MAIN): Starting main simulation loop." << endl << writeVerbose;
+   if (myRank == MASTER_RANK) logFile << "(MAIN): Starting main simulation loop." << endl << writeVerbose;
    
    double before = MPI_Wtime();
    unsigned int totalComputedSpatialCells=0;
@@ -208,20 +208,20 @@ int main(int argn,char* args[]) {
          phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
       }
       
-      if (myrank == MASTER_RANK){
+      if (myRank == MASTER_RANK){
          double currentTime=MPI_Wtime();
-         logfile << "------------------ tstep = " << P::tstep << " t = " << P::t <<" ------------------" << endl;
+         logFile << "------------------ tstep = " << P::tstep << " t = " << P::t <<" ------------------" << endl;
          if(P::tstep>P::tstep_min){
             double timePerStep=double(currentTime  - before) / (P::tstep-P::tstep_min);
             double timePerSecond=double(currentTime  - before) / (P::t-P::t_min + DT_EPSILON);
             double remainingTime=min(timePerStep*(P::tstep_max-P::tstep),timePerSecond*(P::t_max-P::t));
             time_t finalWallTime=time(NULL)+(time_t)remainingTime; //assume time_t is in seconds, as it is almost always
             struct tm *finalWallTimeInfo=localtime(&finalWallTime);
-            logfile << "(TIME) walltime/step " << timePerStep<< " s" <<endl;
-            logfile << "(TIME) walltime/simusecond (s)" << timePerSecond<<" s" <<endl;
-            logfile << "(TIME) Estimated completion time is " <<asctime(finalWallTimeInfo)<<endl;
+            logFile << "(TIME) walltime/step " << timePerStep<< " s" <<endl;
+            logFile << "(TIME) walltime/simusecond (s)" << timePerSecond<<" s" <<endl;
+            logFile << "(TIME) Estimated completion time is " <<asctime(finalWallTimeInfo)<<endl;
          }
-         logfile << writeVerbose;
+         logFile << writeVerbose;
       }
       
       
@@ -248,8 +248,8 @@ int main(int argn,char* args[]) {
            P::t >= systemWrites*P::saveSystemTimeInterval-DT_EPSILON ){
          
          phiprof::start("write-system");
-         if (myrank == MASTER_RANK)
-            logfile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
+         if (myRank == MASTER_RANK)
+            logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          writeGrid(mpiGrid,outputReducer,"grid",systemWrites,false);
          systemWrites++;
          phiprof::stop("write-system");
@@ -258,8 +258,8 @@ int main(int argn,char* args[]) {
       if (P::saveRestartTimeInterval >=0.0 &&
           P::t >= restartWrites*P::saveRestartTimeInterval-DT_EPSILON){
          phiprof::start("write-restart");
-         if (myrank == MASTER_RANK)
-            logfile << "(IO): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
+         if (myRank == MASTER_RANK)
+            logFile << "(IO): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          writeGrid(mpiGrid,outputReducer,"restart",restartWrites,true);
          restartWrites++;
          phiprof::stop("write-restart");
@@ -283,60 +283,61 @@ int main(int argn,char* args[]) {
          //step as the solvers compute the limits for each cell
          if(P::tstep>P::tstep_min){
             
-            Real dtmax_local[3];
-            Real dtmax_global[3];
-            dtmax_local[0]=std::numeric_limits<Real>::max();
-            dtmax_local[1]=std::numeric_limits<Real>::max();
-            dtmax_local[2]=std::numeric_limits<Real>::max();
-            for (std::vector<uint64_t>::const_iterator
-                    cell_id = cells.begin();
-                 cell_id != cells.end();
-                 ++cell_id
-                 ) {
+            Real dtMaxLocal[3];
+            Real dtMaxGlobal[3];
+            dtMaxLocal[0]=std::numeric_limits<Real>::max();
+            dtMaxLocal[1]=std::numeric_limits<Real>::max();
+            dtMaxLocal[2]=std::numeric_limits<Real>::max();
+            for (std::vector<uint64_t>::const_iterator cell_id = cells.begin(); cell_id != cells.end(); ++cell_id) {
                SpatialCell* cell = mpiGrid[*cell_id];
                if (cell->isGhostCell) continue;
-               dtmax_local[0]=min(dtmax_local[0],cell->parameters[CellParams::MAXRDT]);
-               dtmax_local[1]=min(dtmax_local[1],cell->parameters[CellParams::MAXVDT]);
-               dtmax_local[2]=min(dtmax_local[2],cell->parameters[CellParams::MAXFDT]);
+               dtMaxLocal[0]=min(dtMaxLocal[0], cell->parameters[CellParams::MAXRDT]);
+               dtMaxLocal[1]=min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
+               dtMaxLocal[2]=min(dtMaxLocal[2], cell->parameters[CellParams::MAXFDT]);
             }
-            MPI_Allreduce(&(dtmax_local[0]),&(dtmax_global[0]),3,MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
+            MPI_Allreduce(&(dtMaxLocal[0]), &(dtMaxGlobal[0]), 3, MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
             
-            //modify dtmax_global[] timestep to include CFL condition
-            dtmax_global[0]*=P::CFL;
-            dtmax_global[1]*=P::CFL;
-            dtmax_global[2]*=P::CFL;
+            //modify dtMaxGlobal[] timestep to include CFL condition
+            dtMaxGlobal[0]*=P::CFL;
+            dtMaxGlobal[1]*=P::CFL;
+            dtMaxGlobal[2]*=P::CFL;
             //Take into account splittinsg
             switch (P::splitMethod){
                 case 0:
                    break;
                 case 1:
-                   dtmax_global[0]*=2; //half-steps in ordinary space
+                   dtMaxGlobal[0]*=2; //half-steps in ordinary space
                    break;
                 case 2:
-                   dtmax_global[1]*=2; //half-steps in velocity space
+                   dtMaxGlobal[1]*=2; //half-steps in velocity space
                    break;
             }
+            Real maxVDtNoSubstepping=dtMaxGlobal[1];
+
             //Increase timestep limit in velocity space based on
             //maximum number of substeps we are allowed to take. As
             //the length of each substep is unknown beforehand the
             //limit is not hard, it may be exceeded in some cases.
             // A value of 0 means that there is no limit on substepping
             if(P::maxAccelerationSubsteps==0)
-               dtmax_global[1]=std::numeric_limits<Real>::max();
+               dtMaxGlobal[1]=std::numeric_limits<Real>::max();
             else
-               dtmax_global[1]*=P::maxAccelerationSubsteps;
+               dtMaxGlobal[1]*=P::maxAccelerationSubsteps;
             
             
-            Real dtmax=std::numeric_limits<Real>::max();
-            dtmax=min(dtmax,dtmax_global[0]);
-            dtmax=min(dtmax,dtmax_global[1]); 
-            dtmax=min(dtmax,dtmax_global[2]);
-            P::dt=dtmax;
+            Real dtMax=std::numeric_limits<Real>::max();
+            dtMax=min(dtMax, dtMaxGlobal[0]);
+            dtMax=min(dtMax, dtMaxGlobal[1]); 
+            dtMax=min(dtMax, dtMaxGlobal[2]);
+            P::dt=dtMax;
             
-            if (myrank == MASTER_RANK)
-               logfile <<"(TIMESTEP) dt was set to "<<P::dt
-                       <<" based on CFL. Max dt in r,v,BE was " << dtmax_global[0] <<","<< dtmax_global[1] <<","<< dtmax_global[2]
-                       <<endl;
+            if (myRank == MASTER_RANK)
+               logFile <<"(TIMESTEP) dt was set to "<<P::dt <<
+                  " based on CFL. Max dt in r,v with substeps,v,BE was " <<
+                  dtMaxGlobal[0] << " " <<
+                  dtMaxGlobal[1] << " " <<
+                  maxVDtNoSubstepping << " " <<
+                  dtMaxGlobal[2] << endl;
             
             //Possibly reduce timestep to make sure we hit exactly the
             //correct write time,allow marginal overshoot of CFL to avoid
@@ -344,19 +345,19 @@ int main(int argn,char* args[]) {
             if (P::saveRestartTimeInterval >= 0.0 &&
                 P::t + P::dt + DT_EPSILON >= restartWrites*P::saveRestartTimeInterval){
                P::dt=restartWrites*P::saveRestartTimeInterval-P::t;
-               if (myrank == MASTER_RANK)
-                  logfile << "(TIMESTEP) for tstep = " << P::tstep <<  " dt was set to  "<<P::dt <<" to hit restart write interval"<<endl;
+               if (myRank == MASTER_RANK)
+                  logFile << "(TIMESTEP) for tstep = " << P::tstep <<  " dt was set to  "<<P::dt <<" to hit restart write interval"<<endl;
             }
             if (P::saveSystemTimeInterval >= 0.0 &&
                 P::t + P::dt + DT_EPSILON >= systemWrites*P::saveSystemTimeInterval){
                P::dt=systemWrites*P::saveSystemTimeInterval-P::t;
-               if (myrank == MASTER_RANK)
-                  logfile << "(TIMESTEP) for tstep = " << P::tstep <<  " dt was set to  "<<P::dt <<" to hit system write interval"<<endl;
+               if (myRank == MASTER_RANK)
+                  logFile << "(TIMESTEP) for tstep = " << P::tstep <<  " dt was set to  "<<P::dt <<" to hit system write interval"<<endl;
             }
             
          }
-         if (myrank == MASTER_RANK)
-            logfile << writeVerbose;
+         if (myRank == MASTER_RANK)
+            logFile << writeVerbose;
          phiprof::stop("compute-timestep");
       }
       
@@ -472,16 +473,16 @@ int main(int argn,char* args[]) {
    finalizeMover();
    finalizeFieldPropagator(mpiGrid);
    
-   if (myrank == MASTER_RANK) {
+   if (myRank == MASTER_RANK) {
       double timePerStep=double(after  - before) / (P::tstep-P::tstep_min);
       double timePerSecond=double(after  - before) / (P::t-P::t_min+DT_EPSILON);
-      logfile << "(MAIN): All timesteps calculated." << endl;
-      logfile << "\t (TIME) total run time " << after - before << " s, total simulated time " << P::t -P::t_min<< " s" << endl;
+      logFile << "(MAIN): All timesteps calculated." << endl;
+      logFile << "\t (TIME) total run time " << after - before << " s, total simulated time " << P::t -P::t_min<< " s" << endl;
       if(P::t != 0.0) {
-         logfile << "\t (TIME) seconds per timestep " << timePerStep  <<
+         logFile << "\t (TIME) seconds per timestep " << timePerStep  <<
          ", seconds per simulated second " <<  timePerSecond << endl;
       }
-      logfile << writeVerbose;
+      logFile << writeVerbose;
    }
    
    phiprof::stop("Finalization");   
@@ -490,8 +491,8 @@ int main(int argn,char* args[]) {
    phiprof::print(MPI_COMM_WORLD,"phiprof_full");
    phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
    
-   if (myrank == MASTER_RANK) logfile << "(MAIN): Exiting." << endl << writeVerbose;
-   logfile.close();
+   if (myRank == MASTER_RANK) logFile << "(MAIN): Exiting." << endl << writeVerbose;
+   logFile.close();
    if (P::diagnosticInterval != 0) diagnostic.close();
 
    MPI_Finalize();
