@@ -74,7 +74,7 @@ int main(int argn,char* args[]) {
    int required=MPI_THREAD_FUNNELED;
    int provided;
    MPI_Init_thread(&argn,&args,required,&provided);
-   if ( required >provided){
+   if (required > provided){
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       if(myRank==MASTER_RANK)
          cerr << "(MAIN): MPI_Init_thread failed!" << endl;
@@ -118,7 +118,7 @@ int main(int argn,char* args[]) {
 
    // Init parallel logger:
    phiprof::start("open logFile & diagnostic");
-   if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logFile.txt") == false) {
+   if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt") == false) {
       cerr << "(MAIN) ERROR: Logger failed to open logFile!" << endl;
       exit(1);
    }
