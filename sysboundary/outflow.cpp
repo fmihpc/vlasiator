@@ -21,9 +21,7 @@
 #include <iostream>
 #include <limits>
 
-#include "sysboundarycondition.h"
 #include "outflow.h"
-#include "../parameters.h"
 
 using namespace std;
 
@@ -31,15 +29,23 @@ namespace SBC {
    Outflow::Outflow(): SysBoundaryCondition() { }
    Outflow::~Outflow() { }
    
+   void Outflow::getParameters() {
+         Readparameters::get("outflow.face", faceList);
+         Readparameters::get("outflow.precedence", precedence);
+   }
+   
    bool Outflow::initSysBoundary(creal& t) {
       /* The bit field encodes which of the +x, -x, +y, -y, +z, -z faces are to have outflow system boundary conditions.
        * The bit field has length 6, a bit raised to 1 indicates the corresponding face will have outflow.
        * The 6 bits left-to-right correspond to +x, -x, +y, -y, +z, -z respectively.
        */
       faces = 0;
+      
+      getParameters();
+      
       vector<string>::const_iterator it;
-      for (it = Parameters::outflowFaceList.begin();
-           it != Parameters::outflowFaceList.end();
+      for (it = faceList.begin();
+           it != faceList.end();
       it++) {
          if(*it == "x+") faces = faces|(1<<5);
          if(*it == "x-") faces = faces|(1<<4);
@@ -85,5 +91,6 @@ namespace SBC {
    std::string Outflow::getName() const {return "Outflow";}
    
    uint Outflow::getIndex() const {return sysboundarytype::OUTFLOW;}
-   uint Outflow::getPrecedence() const {return Parameters::outflowPrecedence;}
+   uint Outflow::getPrecedence() const {return precedence;}
+   bool Outflow::isDynamic() const {return false;}
 }

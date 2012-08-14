@@ -27,55 +27,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 using namespace std;
 
-bool initializeSysBoundaries(SysBoundary& bc, creal& t)
-{
-   bool isSysBoundaryCondDynamic = false;
-   vector<string>::const_iterator it;
-   for (it = Parameters::sysBoundaryCondList.begin();
-        it != Parameters::sysBoundaryCondList.end();
-        it++) {
-      if(*it == "Outflow") {
-         bc.addSysBoundary(new SBC::Outflow, t);
-      }
-      if(*it == "Ionosphere") {
-         bc.addSysBoundary(new SBC::Ionosphere, t);
-      }
-      if(*it == "SolarWind") {
-         bc.addSysBoundary(new SBC::SolarWind, t);
-         isSysBoundaryCondDynamic = Parameters::isSolarWindDynamic;
-      }
-   }
-   
-   return isSysBoundaryCondDynamic;
-}
-
-bool assignSysBoundaryType(SysBoundary& bc, SpatialCell& cell)
-{
-   using namespace sysboundarytype;
-   
-   uint indexToAssign, tmpType;
-   vector<SBC::SysBoundaryCondition*> sysBoundariesList = bc.getSysBoundariesList();
-   map<uint, uint> precedenceMap = bc.getPrecedenceMap();
-   
-   indexToAssign = NOT_SYSBOUNDARY;
-   for (uint j = 0;
-         j < sysBoundariesList.size();
-         j++) {
-      tmpType=sysBoundariesList[j]->assignSysBoundary(&(cell.parameters[0]));
-      
-      if(tmpType == DO_NOT_COMPUTE) {
-         indexToAssign = tmpType;
-         break;
-      } else if (precedenceMap.find(tmpType)->second > precedenceMap.find(indexToAssign)->second) {
-         indexToAssign = tmpType;
-      }
-   }
-   cell.sysBoundaryFlag = indexToAssign;
-   
-   return true;
-}
-
-
 /*
 //Instead of calcSysBoundaryPhaseSpaceDensity below, have higher-level function
 void setState(mpiGrid){
@@ -156,20 +107,13 @@ void calcSysBoundaryCellParameters(SysBoundary& sysBoundaries,
 // ***** DEFINITIONS FOR BOUNDARY CLASS *****
 // ************************************************************
 
-static unsigned int nSysBoundaries = 0;
-
 /*! Constructor for class SysBoundary. Increases the value of SysBoundary::nSysBoundaries by one. */
-SysBoundary::SysBoundary() { 
-   ++nSysBoundaries;
-}
+SysBoundary::SysBoundary() { }
 
 /*! Destructor for class SysBoundary. Reduces the value of SysBoundary::nSysBoundaries by one,
  * and if after the destruction SysBoundary::nSysBoundaries equals zero all stored SysBoundaries are deleted.
  */
 SysBoundary::~SysBoundary() {
-   --nSysBoundaries;
-   if (nSysBoundaries != 0) return;
-   
    // Call delete for each SysBoundaryCondition:
    for (vector<SBC::SysBoundaryCondition*>::iterator it=sysBoundaries.begin();
         it!=sysBoundaries.end();
@@ -177,6 +121,48 @@ SysBoundary::~SysBoundary() {
       delete *it;
       *it = NULL;
    }
+}
+
+void SysBoundary::addParameters() {
+   Readparameters::addComposing("boundaries.boundary", "List of boundary condition (BC) types to be used. Each boundary condition to be used has to be on a new line boundary = YYY. Available (20120807) are outflow ionosphere solarwind.");
+   Readparameters::add("boundaries.periodic_x","If 'yes' the grid is periodic in x-direction. Defaults to 'no'.","no");
+   Readparameters::add("boundaries.periodic_y","If 'yes' the grid is periodic in y-direction. Defaults to 'no'.","no");
+   Readparameters::add("boundaries.periodic_z","If 'yes' the grid is periodic in z-direction. Defaults to 'no'.","no");
+   
+   
+   Readparameters::addComposing("outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
+   
+   Readparameters::addComposing("solarwind.face", "List of faces on which solar wind boundary conditions are to be applied ([xyz][+-]).");
+   Readparameters::add("solarwind.file_x+", "Input files for the solar wind inflow parameters on face x+.", "");
+   Readparameters::add("solarwind.file_x-", "Input files for the solar wind inflow parameters on face x-.", "");
+   Readparameters::add("solarwind.file_y+", "Input files for the solar wind inflow parameters on face y+.", "");
+   Readparameters::add("solarwind.file_y-", "Input files for the solar wind inflow parameters on face y-.", "");
+   Readparameters::add("solarwind.file_z+", "Input files for the solar wind inflow parameters on face z+.", "");
+   Readparameters::add("solarwind.file_z-", "Input files for the solar wind inflow parameters on face z-.", "");
+   Readparameters::add("solarwind.dynamic", "Boolean value, is the solar wind inflow dynamic in time or not.", 0);
+   
+   Readparameters::add("ionosphere.centerX", "X coordinate of ionosphere center (m)", 0.0);
+   Readparameters::add("ionosphere.centerY", "Y coordinate of ionosphere center (m)", 0.0);
+   Readparameters::add("ionosphere.centerZ", "Z coordinate of ionosphere center (m)", 0.0);
+   Readparameters::add("ionosphere.radius", "Radius of ionosphere (m).", 1.0e7);
+   
+   Readparameters::add("outflow.precedence", "Precedence value of the outflow system boundary condition (integer), the higher the stronger.", 3);
+   Readparameters::add("solarwind.precedence", "Precedence value of the solar wind system boundary condition (integer), the higher the stronger.", 2);
+   Readparameters::add("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 1);
+}
+
+void SysBoundary::getParameters() {
+   Readparameters::get("boundaries.boundary", sysBoundaryCondList);
+   std::string periodic_x,periodic_y,periodic_z;
+   Readparameters::get("gridbuilder.periodic_x",periodic_x);
+   Readparameters::get("gridbuilder.periodic_y",periodic_y);
+   Readparameters::get("gridbuilder.periodic_z",periodic_z);
+   isPeriodic[0] = false;
+   isPeriodic[1] = false;
+   isPeriodic[2] = false;
+   if (periodic_x == "yes") isPeriodic[0] = true;
+   if (periodic_y == "yes") isPeriodic[1] = true;
+   if (periodic_z == "yes") isPeriodic[2] = true;
 }
 
 /*! Add a new SBC::SysBoundaryCondition which has been created with new sysBoundary. 
@@ -199,6 +185,66 @@ bool SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, creal& t) {
    return success;
 }
 
+bool SysBoundary::initializeSysBoundaries(creal& t)
+{
+   bool success = true;
+   vector<string>::const_iterator it;
+   for (it = sysBoundaryCondList.begin();
+        it != sysBoundaryCondList.end();
+   it++) {
+      if(*it == "Outflow") {
+         if(this->addSysBoundary(new SBC::Outflow, t) == false) {
+            cerr << "Error in adding Outflow boundary." << endl;
+            success = false;
+         }
+         isThisDynamic = isThisDynamic|this->getSysBoundary(sysboundarytype::OUTFLOW)->isDynamic();
+      }
+      if(*it == "Ionosphere") {
+         if(this->addSysBoundary(new SBC::Ionosphere, t) == false) {
+            cerr << "Error in adding Ionosphere boundary." << endl;
+            success = false;
+         }
+         isThisDynamic = isThisDynamic|
+         this->getSysBoundary(sysboundarytype::IONOSPHERE)->isDynamic();
+      }
+      if(*it == "SolarWind") {
+         if(this->addSysBoundary(new SBC::SolarWind, t) == false) {
+            cerr << "Error in adding SolarWind boundary." << endl;
+            success = false;
+         }
+         isThisDynamic = isThisDynamic|
+         this->getSysBoundary(sysboundarytype::SW)->isDynamic();
+      }
+   }
+   
+   return success;
+}
+
+bool SysBoundary::assignSysBoundaryType(SpatialCell& cell)
+{
+   using namespace sysboundarytype;
+   
+   uint indexToAssign, tmpType;
+   
+   indexToAssign = NOT_SYSBOUNDARY;
+   for (uint j = 0;
+        j < sysBoundaries.size();
+        j++) {
+      tmpType=sysBoundaries[j]->assignSysBoundary(&(cell.parameters[0]));
+      
+      if(tmpType == DO_NOT_COMPUTE) {
+         indexToAssign = tmpType;
+         break;
+      } else if (indexToPrecedence.find(tmpType)->second >
+                 indexToPrecedence.find(indexToAssign)->second) {
+         indexToAssign = tmpType;
+      }
+   }
+   cell.sysBoundaryFlag = indexToAssign;
+   
+   return true;
+}
+
 /*! Get the name of a SysBoundaryCondition.
  * @param sysBoundaryID ID number of the system boundary whose name is requested.
  * @return Name of the system boundary.
@@ -208,15 +254,15 @@ string SysBoundary::getName(const unsigned int& sysBoundaryID) const {
    return sysBoundaries[sysBoundaryID]->getName();
 }
 
-/*! Get the list of system boundary conditions contained in SysBoundary.
- * @return List of the system boundary conditions.
- */
-vector<SBC::SysBoundaryCondition*> SysBoundary::getSysBoundariesList() const {return sysBoundaries;}
+// /*! Get the list of system boundary conditions contained in SysBoundary.
+//  * @return List of the system boundary conditions.
+//  */
+// vector<SBC::SysBoundaryCondition*> SysBoundary::getSysBoundariesList() const {return sysBoundaries;}
 
-/*! Get the map of system boundary condition precedences contained in SysBoundary.
- * @return Map of the system boundary condition precedences.
- */
-std::map<uint, uint> SysBoundary::getPrecedenceMap() const {return indexToPrecedence;}
+// /*! Get the map of system boundary condition precedences contained in SysBoundary.
+//  * @return Map of the system boundary condition precedences.
+//  */
+// std::map<uint, uint> SysBoundary::getPrecedenceMap() const {return indexToPrecedence;}
 
 /*! Get a pointer to the SysBoundaryCondition of given index.
  * @return Pointer to the instance of the SysBoundaryCondition.
@@ -229,4 +275,5 @@ SBC::SysBoundaryCondition* SysBoundary::getSysBoundary(uint sysBoundaryType) con
  * @return Number of SysBoundaryConditions stored in SysBoundary.
  */
 unsigned int SysBoundary::size() const {return sysBoundaries.size();}
-
+bool SysBoundary::isDynamic() const {return isThisDynamic;}
+bool SysBoundary::isBoundaryPeriodic(uint direction) const {return isPeriodic[direction];}

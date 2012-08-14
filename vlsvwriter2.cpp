@@ -75,10 +75,10 @@ bool VLSVWriter::close() {
     return true;
 }
 
-bool VLSVWriter::open(const std::string& fname,MPI_Comm comm,const int& MASTER_RANK) {
+bool VLSVWriter::open(const std::string& fname,MPI_Comm comm,const int& MASTERRANK) {
     //FIXME: should be MPI_COMM_DUP
     this->comm = comm;
-    masterRank = MASTER_RANK;
+    masterRank = MASTERRANK;
     
     MPI_Comm_rank(comm,&myrank);
     MPI_Comm_size(comm,&N_processes);

@@ -21,13 +21,17 @@
 
 #include <vector>
 #include "../definitions.h"
+#include "../readparameters.h"
 #include "../spatial_cell.hpp"
+#include "sysboundarycondition.h"
 
 namespace SBC {
    class Outflow: public SysBoundaryCondition {
    public:
       Outflow();
       ~Outflow();
+      
+      void getParameters();
       
       bool initSysBoundary(creal& t);
       int assignSysBoundary(creal* cellParams);
@@ -39,10 +43,13 @@ namespace SBC {
       std::string getName() const;
       virtual uint getIndex() const;
       virtual uint getPrecedence() const;
+      virtual bool isDynamic() const;
       
    protected:
       uint faces : 6;
       uint isThisCellOnAFace : 6;
+      std::vector<std::string> faceList; /*!< List of faces on which outflow boundary conditions are to be applied ([+-][xyz]). */
+      uint precedence; /*!< Precedence value of the outflow system boundary condition. */
    };
 }
 

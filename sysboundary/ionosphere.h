@@ -30,6 +30,8 @@ namespace SBC {
       Ionosphere();
       ~Ionosphere();
       
+      void getParameters();
+      
       bool initSysBoundary(creal& t);
       int assignSysBoundary(creal* cellParams);
       Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
@@ -37,15 +39,15 @@ namespace SBC {
                                  creal& vx,creal& vy,creal& vz,
                                  creal& dvx,creal& dvy,creal& dvz);
       void calcCellParameters(Real* cellParams, creal& t);
-      bool setCenter();
-      bool setRadius();
       std::string getName() const;
       virtual uint getIndex() const;
       virtual uint getPrecedence() const;
+      virtual bool isDynamic() const;
       
    protected:
-      Real center[3];
-      Real radius;
+      Real center[3]; /*!< Coordinates of the centre of the ionosphere. */
+      Real radius; /*!< Radius of the ionosphere. */
+      uint precedence; /*! Precedence value of the ionosphere system boundary condition. */
    };
 }
 

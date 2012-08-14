@@ -21,7 +21,9 @@
 
 #include <vector>
 #include "../definitions.h"
+#include "../readparameters.h"
 #include "../spatial_cell.hpp"
+#include "sysboundarycondition.h"
 
 # define DATA_LENGTH 9
 
@@ -30,6 +32,8 @@ namespace SBC {
    public:
       SolarWind();
       ~SolarWind();
+      
+      void getParameters();
       
       bool initSysBoundary(creal& t);
       int assignSysBoundary(creal* cellParams);
@@ -47,13 +51,17 @@ namespace SBC {
       std::string getName() const;
       virtual uint getIndex() const;
       virtual uint getPrecedence() const;
+      virtual bool isDynamic() const;
       
    protected:
       uint faces : 6;
       uint isThisCellOnAFace : 6;
       std::vector<std::vector<Real> > inputData[6];
-//      int faceToInputData[6];
       spatial_cell::SpatialCell templateCells[6];
+      std::vector<std::string> faceList; /*!< List of faces on which solar wind boundary conditions are to be applied ([+-][xyz]). */
+      std::string files[6]; /*!< Input files for the solar wind boundary conditions. */
+      bool isThisDynamic; /*!< Is the solar wind inflow dynamic in time or not. */
+      uint precedence; /*! Precedence value of the solar wind system boundary condition. */
    };
 }
 

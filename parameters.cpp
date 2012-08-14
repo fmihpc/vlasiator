@@ -74,8 +74,6 @@ luint P::diagnosticInterval = numeric_limits<uint>::max();
 Real P::saveRestartTimeInterval = -1.0;
 Real P::saveSystemTimeInterval = -1.0;
 
-
-
 uint P::transmit = 0;
 
 bool P::recalculateStencils = true;
@@ -85,11 +83,6 @@ uint P::splitMethod=1;
 
 uint P::maxAccelerationSubsteps=1;
 bool P::dynamicTimestep = true;
-
-
-bool P::periodic_x = false;
-bool P::periodic_y = false;
-bool P::periodic_z = false;
 
 Real P::RK_alpha = NAN;
 
@@ -104,16 +97,6 @@ uint P::rebalanceInterval = numeric_limits<uint>::max();
 vector<string> P::outputVariableList;
 vector<string> P::diagnosticVariableList;
 
-vector<string> P::sysBoundaryCondList;
-vector<string> P::outflowFaceList;
-vector<string> P::solarWindFaceList;
-string P::solarWindFiles[6];
-bool P::isSolarWindDynamic = false;
-Real P::ionoCenter[3] = {NAN};
-Real P::ionoRadius = NAN;
-uint P::outflowPrecedence = 0;
-uint P::solarWindPrecedence = 0;
-uint P::ionospherePrecedence = 0;
 
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
@@ -148,9 +131,6 @@ bool Parameters::addParameters(){
    Readparameters::add("gridbuilder.vx_length","Initial number of velocity blocks in vx-direction.","");
    Readparameters::add("gridbuilder.vy_length","Initial number of velocity blocks in vy-direction.","");
    Readparameters::add("gridbuilder.vz_length","Initial number of velocity blocks in vz-direction.","");
-   Readparameters::add("gridbuilder.periodic_x","If 'yes' the grid is periodic in x-direction. Defaults to 'no'.","no");
-   Readparameters::add("gridbuilder.periodic_y","If 'yes' the grid is periodic in y-direction. Defaults to 'no'.","no");
-   Readparameters::add("gridbuilder.periodic_z","If 'yes' the grid is periodic in z-direction. Defaults to 'no'.","no");
    
    Readparameters::add("gridbuilder.q","Charge of simulated particle species, in Coulombs.",1.60217653e-19);
    Readparameters::add("gridbuilder.m","Mass of simulated particle species, in kilograms.",1.67262171e-27);
@@ -177,26 +157,6 @@ bool Parameters::addParameters(){
    // Output variable parameters
    Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available (20120806) are B E Rho RhoV RhoLossAdjust RhoLossVelBoundary MPIrank Blocks VolE VolB Pressure PTensor dBxdz.");
    Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Available (20120703) are Blocks FluxB Rho RhoLossAdjust RhoLossVelBoundary MaxVi.");
-   
-   // System boundary conditions parameters
-   Readparameters::addComposing("boundaries.boundary", "List of boundary condition (BC) types to be used. Each boundary condition to be used has to be on a new line boundary = YYY. Available (20120807) are outflow ionosphere solarwind.");
-   Readparameters::addComposing("boundaries.outflowFace", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
-   Readparameters::addComposing("boundaries.solarWindFace", "List of faces on which solar wind boundary conditions are to be applied ([xyz][+-]).");
-   Readparameters::add("boundaries.solarWindFile_x+", "Input files for the solar wind inflow parameters on face x+.", "");
-   Readparameters::add("boundaries.solarWindFile_x-", "Input files for the solar wind inflow parameters on face x-.", "");
-   Readparameters::add("boundaries.solarWindFile_y+", "Input files for the solar wind inflow parameters on face y+.", "");
-   Readparameters::add("boundaries.solarWindFile_y-", "Input files for the solar wind inflow parameters on face y-.", "");
-   Readparameters::add("boundaries.solarWindFile_z+", "Input files for the solar wind inflow parameters on face z+.", "");
-   Readparameters::add("boundaries.solarWindFile_z-", "Input files for the solar wind inflow parameters on face z-.", "");
-   
-   Readparameters::add("boundaries.dynamicSolarWind", "Boolean value, is the solar wind inflow dynamic in time or not.", 0);
-   Readparameters::add("boundaries.ionoCenterX", "X coordinate of ionosphere center (m)", 0.0);
-   Readparameters::add("boundaries.ionoCenterY", "Y coordinate of ionosphere center (m)", 0.0);
-   Readparameters::add("boundaries.ionoCenterZ", "Z coordinate of ionosphere center (m)", 0.0);
-   Readparameters::add("boundaries.ionoRadius", "Radius of ionosphere (m).", 1.0e7);
-   Readparameters::add("boundaries.outflowPrecedence", "Precedence value of the outflow system boundary condition (integer), the higher the stronger.", 3);
-   Readparameters::add("boundaries.solarWindPrecedence", "Precedence value of the solar wind system boundary condition (integer), the higher the stronger.", 2);
-   Readparameters::add("boundaries.ionospherePrecedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 1);
    
    return true;
 }
@@ -237,17 +197,6 @@ bool Parameters::getParameters(){
    if (P::xmax < P::xmin || (P::ymax < P::ymin || P::zmax < P::zmin)) return false;
    if (P::vxmax < P::vxmin || (P::vymax < P::vymin || P::vzmax < P::vzmin)) return false;
    
-   std::string periodic_x,periodic_y,periodic_z;
-   Readparameters::get("gridbuilder.periodic_x",periodic_x);
-   Readparameters::get("gridbuilder.periodic_y",periodic_y);
-   Readparameters::get("gridbuilder.periodic_z",periodic_z);
-   P::periodic_x = false;
-   P::periodic_y = false;
-   P::periodic_z = false;
-   if (periodic_x == "yes") P::periodic_x = true;
-   if (periodic_y == "yes") P::periodic_y = true;
-   if (periodic_z == "yes") P::periodic_z = true;
-   
    // Set some parameter values. 
    P::dx_ini = (P::xmax-P::xmin)/P::xcells_ini;
    P::dy_ini = (P::ymax-P::ymin)/P::ycells_ini;
@@ -282,25 +231,6 @@ bool Parameters::getParameters(){
    // Get output variable parameters
    Readparameters::get("variables.output", P::outputVariableList);
    Readparameters::get("variables.diagnostic", P::diagnosticVariableList);
-   
-   // Get boundary conditions parameters
-   Readparameters::get("boundaries.boundary", P::sysBoundaryCondList);
-   Readparameters::get("boundaries.outflowFace", P::outflowFaceList);
-   Readparameters::get("boundaries.solarWindFace", P::solarWindFaceList);
-   Readparameters::get("boundaries.dynamicSolarWind", P::isSolarWindDynamic);
-   Readparameters::get("boundaries.solarWindFile_x+", P::solarWindFiles[0]);
-   Readparameters::get("boundaries.solarWindFile_x-", P::solarWindFiles[1]);
-   Readparameters::get("boundaries.solarWindFile_y+", P::solarWindFiles[2]);
-   Readparameters::get("boundaries.solarWindFile_y-", P::solarWindFiles[3]);
-   Readparameters::get("boundaries.solarWindFile_z+", P::solarWindFiles[4]);
-   Readparameters::get("boundaries.solarWindFile_z-", P::solarWindFiles[5]);
-   Readparameters::get("boundaries.ionoCenterX", P::ionoCenter[0]);
-   Readparameters::get("boundaries.ionoCenterY", P::ionoCenter[1]);
-   Readparameters::get("boundaries.ionoCenterZ", P::ionoCenter[2]);
-   Readparameters::get("boundaries.ionoRadius", P::ionoRadius);
-   Readparameters::get("boundaries.outflowPrecedence", P::outflowPrecedence);
-   Readparameters::get("boundaries.solarWindPrecedence", P::solarWindPrecedence);
-   Readparameters::get("boundaries.ionospherePrecedence", P::ionospherePrecedence);
    
    return true;
 }

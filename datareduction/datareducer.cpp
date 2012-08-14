@@ -85,22 +85,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 // ***** DEFINITIONS FOR DATAREDUCER CLASS *****
 // ************************************************************
 
-static unsigned int dataReducers = 0;
-
-/** Constructor for class DataReducer. Increases the value of DataReducer::dataReducers by one.
+/** Constructor for class DataReducer.
  */
-DataReducer::DataReducer() { 
-   ++dataReducers;
-}
+DataReducer::DataReducer() { }
 
-/** Destructor for class DataReducer. Reduces the value of DataReducer::dataReducers by one, 
- * and if after the reduction DataReducer::dataReducers equals zero all stored DataReductionOperators 
+/** Destructor for class DataReducer. All stored DataReductionOperators 
  * are deleted.
  */
 DataReducer::~DataReducer() {
-   --dataReducers;
-   if (dataReducers != 0) return;
-   
    // Call delete for each DataReductionOperator:
    for (vector<DRO::DataReductionOperator*>::iterator it=operators.begin(); it!=operators.end(); ++it) {
       delete *it;

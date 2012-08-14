@@ -99,13 +99,13 @@ bool Logger::flush(bool verbose) {
  * @param fname The name of the logfile.
  * @return If true, the file was opened successfully and Logger is ready for use.
  */
-bool Logger::open(MPI_Comm comm,const int& MASTER_RANK,const std::string& fname,const bool& deleteFile) {
+bool Logger::open(MPI_Comm comm,const int& MASTERRANK,const std::string& fname,const bool& deleteFile) {
    // Store the MPI rank of this process
    MPI_Comm_rank(comm,&mpiRank);
-   masterRank = MASTER_RANK;
+   masterRank = MASTERRANK;
    bool rvalue = true;
    
-   if (mpiRank != MASTER_RANK) return rvalue;
+   if (mpiRank != MASTERRANK) return rvalue;
    masterStream = new fstream;
    masterStream->open(fname.c_str(), fstream::out);
    if (masterStream->good() == false) rvalue = false;

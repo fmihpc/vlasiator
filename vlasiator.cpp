@@ -55,7 +55,6 @@ void fpehandler(int sig_num)
 
 #include "phiprof.hpp"
 
-
 Logger logfile, diagnostic;
 
 using namespace std;
@@ -64,7 +63,6 @@ using namespace phiprof;
 
 int main(int argn,char* args[]) {
    bool success = true;
-   const int MASTER_RANK = 0;
    int myrank;
    creal DT_EPSILON=1e-12;
    typedef Parameters P;
@@ -87,6 +85,10 @@ int main(int argn,char* args[]) {
    
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
    
+   dccrg::Dccrg<SpatialCell> mpiGrid;
+   SysBoundary sysBoundaries;
+   bool isSysBoundaryCondDynamic;
+   
    #ifdef CATCH_FPE
    // WARNING FE_INEXACT is too sensitive to be used. See man fenv.
    //feenableexcept(FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW);
@@ -102,15 +104,17 @@ int main(int argn,char* args[]) {
    Readparameters readparameters(argn,args,MPI_COMM_WORLD);
    P::addParameters();
    addProjectParameters();
+   sysBoundaries.addParameters();
    readparameters.parse();
    P::getParameters();
    getProjectParameters();
+   sysBoundaries.getParameters();
    phiprof::stop("Read parameters");
    
    
    phiprof::start("Init project");
    if (initializeProject() == false) {
-      logfile << "(MAIN): Project did not initialize correctly!" << endl << writeVerbose;
+      if(myrank == MASTER_RANK) cerr << "(MAIN): Project did not initialize correctly!" << endl;
       exit(1);
    }
    phiprof::stop("Init project");
@@ -119,25 +123,23 @@ int main(int argn,char* args[]) {
    // Init parallel logger:
    phiprof::start("open logfile & diagnostic");
    if (logfile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt") == false) {
-      cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
+      if(myrank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
       exit(1);
    }
    if (P::diagnosticInterval != 0) {
       if (diagnostic.open(MPI_COMM_WORLD,MASTER_RANK,"diagnostic.txt") == false) {
-         cerr << "(MAIN) ERROR: Logger failed to open diagnostic file!" << endl;
+         if(myrank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open diagnostic file!" << endl;
          exit(1);
       }
    }
    phiprof::stop("open logfile & diagnostic");
    
    phiprof::start("Init grid");
-   dccrg::Dccrg<SpatialCell> mpiGrid;
-   SysBoundary sysBoundaries;
-   bool isSysBoundaryCondDynamic;
-   if (initializeGrid(argn,args,mpiGrid,sysBoundaries,isSysBoundaryCondDynamic) == false) {
-      logfile << "(MAIN): Grid did not initialize correctly!" << endl << writeVerbose;
+   if (initializeGrid(argn,args,mpiGrid,sysBoundaries) == false) {
+      if(myrank == MASTER_RANK) cerr << "(MAIN) ERROR: Grid did not initialize correctly!" << endl;
       exit(1);
    }  
+   isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
    phiprof::stop("Init grid");
    
    phiprof::start("Init DROs");

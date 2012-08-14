@@ -56,7 +56,7 @@ struct Parameters {
    static Real q;                    /*!< Charge of simulated particle species.*/
    static Real m;                    /*!< Mass of simulated particle species.*/
    static Real q_per_m;              /*!< Charge-to-mass ratio of simulated particle species,
-				      * calculated from Parameters::q and Parameters::m.*/
+                                      *   calculated from Parameters::q and Parameters::m.*/
    static Real t;                    /*!< Current simulation time. */
    static Real t_min;                    /*!< Initial simulation time. */
    static Real t_max;                    /*!< Maximum simulation time. */
@@ -96,24 +96,11 @@ struct Parameters {
    static std::vector<std::string> outputVariableList; /*!< List of data reduction operators (DROs) to add to the grid file output.*/
    static std::vector<std::string> diagnosticVariableList; /*!< List of data reduction operators (DROs) to add to the diagnostic runtime output.*/
    
-   static std::vector<std::string> sysBoundaryCondList; /*!< List of system boundary conditions (SBC) to be used. */
-   static std::vector<std::string> outflowFaceList; /*!< List of faces on which outflow boundary conditions are to be applied ([+-][xyz]). */
-   static std::vector<std::string> solarWindFaceList; /*!< List of faces on which solar wind boundary conditions are to be applied ([+-][xyz]). */
-   static std::string solarWindFiles[6]; /*!< Input files for the solar wind boundary conditions. */
-   static bool isSolarWindDynamic; /*!< Is the solar wind inflow dynamic in time or not. */
-   static Real ionoCenter[3]; /*!< Coordinates of the centre of the ionosphere. */
-   static Real ionoRadius; /*!< Radius of the ionosphere. */
-   static uint outflowPrecedence; /*! Precedence value of the outflow system boundary condition. */
-   static uint solarWindPrecedence; /*! Precedence value of the solar wind system boundary condition. */
-   static uint ionospherePrecedence; /*! Precedence value of the ionosphere system boundary condition. */
-   
    static uint maxAccelerationSubsteps; /*!< Maximum number of substeps that is allowed */
    static bool dynamicTimestep; /*!< If true, timestep is set based on  CFL limit */
-                                       
    
    static bool addParameters();
    static bool getParameters();
-   
 };
 
 #endif

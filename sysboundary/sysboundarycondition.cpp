@@ -36,10 +36,14 @@ namespace SBC {
    
    /*! SysBoundaryCondition base class constructor. The constructor is empty.*/
    SysBoundaryCondition::SysBoundaryCondition() { }
-
+   
    /*! SysBoundaryCondition base class virtual destructor. The destructor is empty.*/
    SysBoundaryCondition::~SysBoundaryCondition() { }
-
+   
+   void getParameters() {
+      cerr << "ERROR: SysBoundaryCondition::getParameters called instead of derived class function!" << endl;
+   }
+   
    /*! Function called at initialisation to set the system boundary condition's parameters.
     */
    bool SysBoundaryCondition::initSysBoundary(creal& t) {
@@ -92,6 +96,14 @@ namespace SBC {
    uint SysBoundaryCondition::getPrecedence() const {
       cerr << "ERROR: SysBoundaryCondition::getPrecedence called instead of derived class function!" << endl;
       return 0;
+   }
+   
+   /*! Returns whether this boundary condition is dynamic in time.
+    * @return Boolean value.
+    */
+   bool SysBoundaryCondition::isDynamic() const {
+      cerr << "ERROR: SysBoundaryCondition::isDynamic called instead of derived class function!" << endl;
+      return false;
    }
    
 } // namespace SBC

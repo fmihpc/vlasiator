@@ -61,9 +61,9 @@ bool adjust_local_velocity_blocks(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGr
 bool initializeGrid(int argn,
                     char **argc,
                     dccrg::Dccrg<SpatialCell>& mpiGrid,
-                    SysBoundary& sysBoundaries,
-                    bool& isSysBoundaryDynamic
+                    SysBoundary& sysBoundaries
                    ){
+   bool success = true;
    int myrank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
    
@@ -94,7 +94,8 @@ bool initializeGrid(int argn,
    // Init Zoltan:
    float zoltanVersion;
    if (Zoltan_Initialize(argn,argc,&zoltanVersion) != ZOLTAN_OK) {
-      logfile << "\t ERROR: Zoltan initialization failed, aborting." << std::endl << writeVerbose;
+      logfile << "\t ERROR: Zoltan initialization failed." << std::endl << writeVerbose;
+      success = false;
    } else {
       logfile << "\t Zoltan " << zoltanVersion << " initialized successfully" << std::endl << writeVerbose;
    }
@@ -115,19 +116,24 @@ bool initializeGrid(int argn,
       2,
       #endif
       0, // maximum refinement level
-      P::periodic_x, P::periodic_y, P::periodic_z
+      sysBoundaries.isBoundaryPeriodic(0),
+      sysBoundaries.isBoundaryPeriodic(1),
+      sysBoundaries.isBoundaryPeriodic(2)
       );
    
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
    phiprof::start("Initial load-balancing");
-   if (myrank == 0) logfile << "(INIT): Starting initial load balance." << endl << writeVerbose;
+   if (myrank == MASTER_RANK) logfile << "(INIT): Starting initial load balance." << endl << writeVerbose;
    mpiGrid.balance_load();
    phiprof::stop("Initial load-balancing");
    
-   if (myrank == 0) logfile << "(INIT): Set initial state." << endl << writeVerbose;
+   if (myrank == MASTER_RANK) logfile << "(INIT): Set initial state." << endl << writeVerbose;
    // Go through every spatial cell on this CPU, and create the initial state:
    phiprof::start("Set initial state");
-   isSysBoundaryDynamic = initializeSysBoundaries(sysBoundaries, P::t_min);
+   if(sysBoundaries.initializeSysBoundaries(P::t_min) == false) {
+      if (myrank == MASTER_RANK) cerr << "Error in initialising the system boundaries." << endl;
+      success = false;
+   }
    
    initSpatialCells(mpiGrid, sysBoundaries);
 
@@ -136,7 +142,7 @@ bool initializeGrid(int argn,
 
    initSpatialCellCoordinates();  //just initialize coordinates 
    sysBoundaries.classifyCells(mpigrid); // Classify all local cells in mpigrid (potentially a collective MPI operation)
-   applyInitialState(mpigrid); // Apply initial state, will on;y set it for non-sysboundary cells
+   applyInitialState(mpigrid); // Apply initial state, will only set it for non-sysboundary cells
    sysboundaries.setState(mpigrid); // set sysboundary states for all local sysboundary cells 
    updateSparseVelocityStuff(mpiGrid) // The blockupdates done now in end of initSpatialCells
 
@@ -145,7 +151,7 @@ bool initializeGrid(int argn,
    phiprof::stop("Set initial state");
 
    balanceLoad(mpiGrid);
-   return true;
+   return success;
 }
 
 
@@ -213,7 +219,7 @@ bool initSpatialCell(SpatialCell& cell,
    cell.parameters[CellParams::DZ  ] = dz;
    
    // Initialise system boundary conditions (they need the initialised positions!!)
-   if(assignSysBoundaryType(sysBoundaries, cell) == false) {
+   if(sysBoundaries.assignSysBoundaryType(cell) == false) {
       cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
       exit(1);
    }

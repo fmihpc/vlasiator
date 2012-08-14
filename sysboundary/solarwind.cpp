@@ -21,15 +21,26 @@
 #include <iostream>
 #include <limits>
 
-#include "sysboundarycondition.h"
 #include "solarwind.h"
-#include "../parameters.h"
+
 
 using namespace std;
 
 namespace SBC {
    SolarWind::SolarWind(): SysBoundaryCondition() { }
    SolarWind::~SolarWind() { }
+   
+   void SolarWind::getParameters() {
+      Readparameters::get("solarwind.face", faceList);
+      Readparameters::get("solarwind.dynamic", isThisDynamic);
+      Readparameters::get("solarwind.file_x+", files[0]);
+      Readparameters::get("solarwind.file_x-", files[1]);
+      Readparameters::get("solarwind.file_y+", files[2]);
+      Readparameters::get("solarwind.file_y-", files[3]);
+      Readparameters::get("solarwind.file_z+", files[4]);
+      Readparameters::get("solarwind.file_z-", files[5]);
+      Readparameters::get("solarwind.precedence", precedence);
+   }
    
    bool SolarWind::initSysBoundary(creal& t) {
       /* The bit field encodes which of the +x, -x, +y, -y, +z, -z faces are to have solar wind system boundary conditions.
@@ -38,9 +49,12 @@ namespace SBC {
        */
       bool success = true;
       faces = 0;
+      
+      getParameters();
+      
       vector<string>::const_iterator it;
-      for (it = Parameters::solarWindFaceList.begin();
-           it != Parameters::solarWindFaceList.end();
+      for (it = faceList.begin();
+           it != faceList.end();
       it++) {
          if(*it == "x+") faces = faces|(1<<5);
          if(*it == "x-") faces = faces|(1<<4);
@@ -118,7 +132,7 @@ namespace SBC {
    bool SolarWind::loadInputData() {
       for(uint i=0; i<6; i++) {
          if((faces&(1<<(5-i))) == (1<<(5-i))) {
-            inputData[i] = loadFile(&(Parameters::solarWindFiles[i][0]));
+            inputData[i] = loadFile(&(files[i][0]));
          } else {
             vector<Real> tmp1;
             vector<vector<Real> > tmp2;
@@ -328,5 +342,6 @@ namespace SBC {
    }
    
    uint SolarWind::getIndex() const {return sysboundarytype::SW;}
-   uint SolarWind::getPrecedence() const {return Parameters::solarWindPrecedence;}
+   uint SolarWind::getPrecedence() const {return precedence;}
+   bool SolarWind::isDynamic() const {return isThisDynamic;}
 }

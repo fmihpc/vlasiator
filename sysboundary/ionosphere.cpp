@@ -21,20 +21,27 @@
 #include <iostream>
 #include <limits>
 
-#include "sysboundarycondition.h"
+#include "../readparameters.h"
 #include "ionosphere.h"
-#include "../parameters.h"
 
 using namespace std;
 
 namespace SBC {
    Ionosphere::Ionosphere(): SysBoundaryCondition() { }
+   
    Ionosphere::~Ionosphere() { }
    
+   void Ionosphere::getParameters() {
+      Readparameters::get("ionosphere.centerX", center[0]);
+      Readparameters::get("ionosphere.centerY", center[1]);
+      Readparameters::get("ionosphere.centerZ", center[2]);
+      Readparameters::get("ionosphere.radius", radius);
+      Readparameters::get("ionosphere.precedence", precedence);
+   }
+   
    bool Ionosphere::initSysBoundary(creal& t) {
-      bool result = setCenter();
-      result = result & setRadius();      
-      return result;
+      getParameters();
+      return true;
    }
    
    int Ionosphere::assignSysBoundary(creal* cellParams) {
@@ -69,25 +76,16 @@ namespace SBC {
    }
    
    Real Ionosphere::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
-                              creal& dx,creal& dy,creal& dz,
-                              creal& vx,creal& vy,creal& vz,
-                              creal& dvx,creal& dvy,creal& dvz
+                                          creal& dx,creal& dy,creal& dz,
+                                          creal& vx,creal& vy,creal& vz,
+                                          creal& dvx,creal& dvy,creal& dvz
    ) {return 0.0;}
    
    void Ionosphere::calcCellParameters(Real* cellParams, creal& t) { }
    
-   bool Ionosphere::setCenter() {
-      for(uint i=0; i<3; i++) center[i] = Parameters::ionoCenter[1];
-      return true;
-   }
-   
-   bool Ionosphere::setRadius() {
-      radius = Parameters::ionoRadius;
-      return true;
-   }
-   
    std::string Ionosphere::getName() const {return "Ionosphere";}
    
    uint Ionosphere::getIndex() const {return sysboundarytype::IONOSPHERE;}
-   uint Ionosphere::getPrecedence() const {return Parameters::ionospherePrecedence;}
+   uint Ionosphere::getPrecedence() const {return precedence;}
+   bool Ionosphere::isDynamic() const {return false;}
 }

@@ -11,8 +11,7 @@
 bool initializeGrid(int argn,
                     char **argc,
                     dccrg::Dccrg<SpatialCell>& mpiGrid,
-                    SysBoundary& sysBoundaries,
-                    bool& isSysBoundaryDynamic
+                    SysBoundary& sysBoundaries
                    );
 //Balance load
 void balanceLoad(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);

@@ -43,13 +43,20 @@ class SysBoundary {
       SysBoundary();
       ~SysBoundary();
       
+      void addParameters();
+      void getParameters();
+      
       bool addSysBoundary(SBC::SysBoundaryCondition* sbc, creal& t);
+      bool initializeSysBoundaries(creal& t);
+      bool assignSysBoundaryType(SpatialCell& cell);
       std::string getName(const unsigned int& sysBoundaryID) const;
 //   bool (const unsigned int& sysBoundaryID) const;
       unsigned int size() const;
-      std::vector<SBC::SysBoundaryCondition*> getSysBoundariesList() const;
-      std::map<uint, uint> getPrecedenceMap() const;
+//       std::vector<SBC::SysBoundaryCondition*> getSysBoundariesList() const;
+//       std::map<uint, uint> getPrecedenceMap() const;
       SBC::SysBoundaryCondition* getSysBoundary(uint sysBoundaryType) const;
+      bool isDynamic() const;
+      bool isBoundaryPeriodic(uint direction) const;
    
    private:
       /*! Private copy-constructor to prevent copying the class. */
@@ -61,8 +68,10 @@ class SysBoundary {
       std::map<uint, SBC::SysBoundaryCondition*> indexToSysBoundary;
       /*! A map from the system boundary types to the precedence value. */
       std::map<uint, uint> indexToPrecedence;
-
-
+      std::vector<std::string> sysBoundaryCondList; /*!< List of system boundary conditions (SBC) to be used. */
+      bool isThisDynamic;
+      bool isPeriodic[3];
+      
    //Add getParameters, readParameters to read in parameters from cfg,
    //this is called from main() where we also add project
    //parameters. getParameters and readParameters again calls get and
@@ -73,8 +82,7 @@ class SysBoundary {
 
 };
 
-bool initializeSysBoundaries(SysBoundary& sbc, creal& t);
-bool assignSysBoundaryType(SysBoundary& sbc, SpatialCell& cell);
+
 Real calcSysBoundaryPhaseSpaceDensity(SysBoundary& sysBoundaries,
                                       uint sysBoundaryFlag,
                                       creal& x, creal& y, creal& z,

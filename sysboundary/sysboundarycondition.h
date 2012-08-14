@@ -36,6 +36,8 @@ namespace SBC {
          SysBoundaryCondition();
          virtual ~SysBoundaryCondition();
          
+         void getParameters();
+         
          virtual bool initSysBoundary(creal& t);
          virtual int assignSysBoundary(creal* cellParams);
          virtual Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
@@ -46,8 +48,7 @@ namespace SBC {
          virtual std::string getName() const;
          virtual uint getIndex() const;
          virtual uint getPrecedence() const;
-
-          //SVA: Add getParameters, readParameters
+         virtual bool isDynamic() const;
       
       protected:
          

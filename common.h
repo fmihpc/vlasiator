@@ -32,6 +32,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #define CHECK_FLOAT(x) {}
 #endif
 
+#define MASTER_RANK 0
+
 /*! A namespace for storing indices into an array which contains 
  * neighbour list for each spatial cell. These indices refer to 
  * the CPU memory, i.e. the device does not use these.
