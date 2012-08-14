@@ -37,7 +37,6 @@ namespace SBC {
        * The 6 bits left-to-right correspond to +x, -x, +y, -y, +z, -z respectively.
        */
       bool success = true;
-      numberOfFaces = Parameters::solarWindFaceList.size();
       faces = 0;
       vector<string>::const_iterator it;
       for (it = Parameters::solarWindFaceList.begin();
@@ -78,11 +77,18 @@ namespace SBC {
                                          creal& vx,creal& vy,creal& vz,
                                          creal& dvx,creal& dvy,creal& dvz
    ) {
-      Real average = 0.0;
-      determineFace(x, y, z, dx, dy, dz);
+      Real average = 1.0;
+
+      determineFace(x + 0.5*dx,
+                    y + 0.5*dy,
+                    z + 0.5*dz,
+                    dx, 
+                    dy, 
+                    dz);
+      
       for(uint i=0; i<6; i++) {
-         if((isThisCellOnAFace&(1<<(5-i)))==(1<<(5-i))) {
-            average = templateCells[faceToInputData.find(i)->second].get_value(vx, vy, vz);
+         if((faces&(isThisCellOnAFace&(1<<(5-i))))==(1<<(5-i))) {
+            average = templateCells[i].get_value(vx, vy, vz);
             break;
          }
       }
@@ -100,7 +106,7 @@ namespace SBC {
       determineFace(x, y, z, dx, dy, dz);
       
       for(uint i=0; i<6; i++) {
-         if((isThisCellOnAFace&(1<<(5-i)))==(1<<(5-i))) {
+         if((faces&(isThisCellOnAFace&(1<<(5-i))))==(1<<(5-i))) {
             cellParams[CellParams::BX] = templateCells[i].parameters[CellParams::BX];
             cellParams[CellParams::BY] = templateCells[i].parameters[CellParams::BY];
             cellParams[CellParams::BZ] = templateCells[i].parameters[CellParams::BZ];
@@ -111,11 +117,16 @@ namespace SBC {
    
    bool SolarWind::loadInputData() {
       for(uint i=0; i<6; i++) {
-         if((faces&(1<<(5-i))) == true) {
-            inputData.push_back(loadFile(&(Parameters::solarWindFiles[i][0])));
-            faceToInputData[i] = inputData.size();
+         if((faces&(1<<(5-i))) == (1<<(5-i))) {
+            inputData[i] = loadFile(&(Parameters::solarWindFiles[i][0]));
          } else {
-            faceToInputData[i] = -1;
+            vector<Real> tmp1;
+            vector<vector<Real> > tmp2;
+            for(uint j=0; j<DATA_LENGTH; j++) {
+               tmp1.push_back(-1.0);
+            }
+            tmp2.push_back(tmp1);
+            inputData[i] = tmp2;
          }
       }
       return true;
@@ -127,9 +138,8 @@ namespace SBC {
     * 
     * Function adapted from GUMICS-5.
     */
-   vector<Real*> SolarWind::loadFile(const char *fn)
-   {
-      vector<Real*> dataset;
+   vector<vector<Real> > SolarWind::loadFile(const char *fn) {
+      vector<vector<Real> > dataset;
       
       int myrank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
@@ -138,7 +148,7 @@ namespace SBC {
       FILE *fp;
       fp = fopen(fn,"r");
       if (fp == NULL) {
-         std::cerr << "Couldn't open solar wind file " << fn << std::endl;
+         cerr << "Couldn't open solar wind file " << fn << endl;
          exit(1);
       }
       int nlines = 0;
@@ -152,23 +162,22 @@ namespace SBC {
       fclose(fp);
       
       if (nlines < 1) {
-         std::cerr << "Solar wind file must have at least one value (t, n, T...)" << std::endl;
+         cerr << "Solar wind file must have at least one value (t, n, T...)" << endl;
          exit(1);
       }
       
-      if (myrank == 0) std::cout << "Solar wind data file (" << fn << ") has " << nlines << " values"<< std::endl;
-      
-      Real tempData[9];
+      if (myrank == 0) cout << "Solar wind data file (" << fn << ") has " << nlines << " values"<< endl;
       
       fp = fopen(fn,"r");
       for (int line=0; line<nlines; line++) {
-         for (int i=0; i<9; i++) {
+         vector<Real> tempData;
+         for (int i=0; i<DATA_LENGTH; i++) {
             Real x;
             int ret = fscanf(fp,"%lf",&x);
             if (ret != 1) {
-               std::cerr << "Couldn't read a number from solar wind file " << *fn << " for solar wind value " << line << std::endl;
+               cerr << "Couldn't read a number from solar wind file " << *fn << " for solar wind value " << line << endl;
             }
-            tempData[i] = x;
+            tempData.push_back(x);
          }
          dataset.push_back(tempData);
       }
@@ -176,7 +185,7 @@ namespace SBC {
       // check that sw data is in ascending temporal order
       for (int line = 1; line < nlines; line++) {
          if (dataset[line][0] < dataset[line - 1][0]) {
-            std::cerr << "Solar wind data must be in ascending temporal order" << std::endl;
+            cerr << "Solar wind data must be in ascending temporal order" << endl;
             exit(1);
          }
       }
@@ -187,10 +196,10 @@ namespace SBC {
    }
    
    bool SolarWind::generateTemplateCells(creal& t) {
-      for(uint i=0; i<numberOfFaces; i++) {
+      for(uint i=0; i<6; i++) {
          int index;
-         if((index=faceToInputData.find(i)->second)!=-1) {
-            generateTemplateCell(templateCells[i], index, t);
+         if(inputData[i][0][0]!=-1.0) {
+            generateTemplateCell(templateCells[i], i, t);
          }
       }
       return true;
@@ -198,6 +207,7 @@ namespace SBC {
    
    void SolarWind::generateTemplateCell(spatial_cell::SpatialCell& templateCell, int inputDataIndex, creal& t) {
       Real rho, T, Vx, Vy, Vz, Bx, By, Bz;
+      
       interpolate(inputDataIndex, t, &rho, &T, &Vx, &Vy, &Vz, &Bx, &By, &Bz);
       templateCell.parameters[CellParams::XCRD] = 0.0;
       templateCell.parameters[CellParams::YCRD] = 0.0;
@@ -261,7 +271,6 @@ namespace SBC {
    
    void SolarWind::interpolate(const int inputDataIndex, creal t, Real* rho, Real* T, Real* vx, Real* vy, Real* vz, Real* Bx, Real* By, Real* Bz) {
       // Find first data[0] value which is >= t
-      uint i;
       int i1=0,i2=0;
       bool found = false;
       Real s;      // 0 <= s < 1
@@ -271,10 +280,10 @@ namespace SBC {
          i1 = i2 = 0;
          s = 0;
       } else {
-         for (i=0; i<inputData[inputDataIndex].size(); i++) {
+         for (uint i=0; i<inputData[inputDataIndex].size(); i++) {
             if (inputData[inputDataIndex][i][0] >= t) {
                found = true;
-               i2 = i;
+               i2 = (int)i;
                break;
             }
          }
@@ -293,7 +302,9 @@ namespace SBC {
             s = 0.0;
          }
       }
+      
       creal s1 = 1 - s;
+      
       *rho  = s1*inputData[inputDataIndex][i1][1] + s*inputData[inputDataIndex][i2][1];
       *T  = s1*inputData[inputDataIndex][i1][2] + s*inputData[inputDataIndex][i2][2];
       *vx = s1*inputData[inputDataIndex][i1][3] + s*inputData[inputDataIndex][i2][3];
@@ -304,7 +315,7 @@ namespace SBC {
       *Bz = s1*inputData[inputDataIndex][i1][8] + s*inputData[inputDataIndex][i2][8];
    }
    
-   std::string SolarWind::getName() const {return "SolarWind";}
+   string SolarWind::getName() const {return "SolarWind";}
    
    void SolarWind::determineFace(creal x, creal y, creal z, creal dx, creal dy, creal dz) {
       isThisCellOnAFace = 0;

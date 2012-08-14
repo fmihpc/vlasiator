@@ -23,6 +23,8 @@
 #include "../definitions.h"
 #include "../spatial_cell.hpp"
 
+# define DATA_LENGTH 9
+
 namespace SBC {
    class SolarWind: public SysBoundaryCondition {
    public:
@@ -37,7 +39,7 @@ namespace SBC {
                                  creal& dvx,creal& dvy,creal& dvz);
       void calcCellParameters(Real* cellParams, creal& t);
       bool loadInputData();
-      std::vector<Real*> loadFile(const char* file);
+      std::vector<std::vector<Real> > loadFile(const char* file);
       bool generateTemplateCells(creal& t);
       void generateTemplateCell(spatial_cell::SpatialCell& templateCell, int inputDataIndex, creal& t);
       void interpolate(const int inputDataIndex, creal t, Real* rho, Real* T, Real* vx, Real* vy, Real* vz, Real* Bx, Real* By, Real* Bz);
@@ -47,11 +49,10 @@ namespace SBC {
       virtual uint getPrecedence() const;
       
    protected:
-      uint numberOfFaces;
       uint faces : 6;
       uint isThisCellOnAFace : 6;
-      std::vector<std::vector<Real*>> inputData;
-      std::map<uint, int> faceToInputData;
+      std::vector<std::vector<Real> > inputData[6];
+//      int faceToInputData[6];
       spatial_cell::SpatialCell templateCells[6];
    };
 }

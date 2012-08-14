@@ -27,7 +27,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 using namespace std;
 
-bool initializeSysBoundaries(SysBoundary * bc, creal& t)
+bool initializeSysBoundaries(SysBoundary& bc, creal& t)
 {
    bool isSysBoundaryCondDynamic = false;
    vector<string>::const_iterator it;
@@ -35,13 +35,13 @@ bool initializeSysBoundaries(SysBoundary * bc, creal& t)
         it != Parameters::sysBoundaryCondList.end();
         it++) {
       if(*it == "Outflow") {
-         bc->addSysBoundary(new SBC::Outflow, t);
+         bc.addSysBoundary(new SBC::Outflow, t);
       }
       if(*it == "Ionosphere") {
-         bc->addSysBoundary(new SBC::Ionosphere, t);
+         bc.addSysBoundary(new SBC::Ionosphere, t);
       }
       if(*it == "SolarWind") {
-         bc->addSysBoundary(new SBC::SolarWind, t);
+         bc.addSysBoundary(new SBC::SolarWind, t);
          isSysBoundaryCondDynamic = Parameters::isSolarWindDynamic;
       }
    }
@@ -49,13 +49,13 @@ bool initializeSysBoundaries(SysBoundary * bc, creal& t)
    return isSysBoundaryCondDynamic;
 }
 
-bool assignSysBoundaryType(SysBoundary * bc, SpatialCell& cell)
+bool assignSysBoundaryType(SysBoundary& bc, SpatialCell& cell)
 {
    using namespace sysboundarytype;
    
    uint indexToAssign, tmpType;
-   vector<SBC::SysBoundaryCondition*> sysBoundariesList = bc->getSysBoundariesList();
-   map<uint, uint> precedenceMap = bc->getPrecedenceMap();
+   vector<SBC::SysBoundaryCondition*> sysBoundariesList = bc.getSysBoundariesList();
+   map<uint, uint> precedenceMap = bc.getPrecedenceMap();
    
    indexToAssign = NOT_SYSBOUNDARY;
    for (uint j = 0;
@@ -84,7 +84,7 @@ void setState(mpiGrid){
 }
 */
 
-Real calcSysBoundaryPhaseSpaceDensity(SysBoundary* sysBoundaries,
+Real calcSysBoundaryPhaseSpaceDensity(SysBoundary& sysBoundaries,
                                       uint sysBoundaryFlag,
                                       creal& x,creal& y,creal& z,
                                       creal& dx,creal& dy,creal& dz,
@@ -102,19 +102,19 @@ Real calcSysBoundaryPhaseSpaceDensity(SysBoundary* sysBoundaries,
          exit(1);
          break;
       case OUTFLOW:
-         average = sysBoundaries->getSysBoundary(OUTFLOW)->calcPhaseSpaceDensity(x,y,z,
+         average = sysBoundaries.getSysBoundary(OUTFLOW)->calcPhaseSpaceDensity(x,y,z,
                                                                                  dx,dy,dz,
                                                                                  vx,vy,vz,
                                                                                  dvx,dvy,dvz);
          break;
       case IONOSPHERE:
-         average = sysBoundaries->getSysBoundary(IONOSPHERE)->calcPhaseSpaceDensity(x,y,z,
+         average = sysBoundaries.getSysBoundary(IONOSPHERE)->calcPhaseSpaceDensity(x,y,z,
                                                                                     dx,dy,dz,
                                                                                     vx,vy,vz,
                                                                                     dvx,dvy,dvz);
          break;
       case SW:
-         average = sysBoundaries->getSysBoundary(SW)->calcPhaseSpaceDensity(x,y,z,
+         average = sysBoundaries.getSysBoundary(SW)->calcPhaseSpaceDensity(x,y,z,
                                                                             dx,dy,dz,
                                                                             vx,vy,vz,
                                                                             dvx,dvy,dvz);
@@ -126,7 +126,7 @@ Real calcSysBoundaryPhaseSpaceDensity(SysBoundary* sysBoundaries,
    return average;
 }
 
-void calcSysBoundaryCellParameters(SysBoundary* sysBoundaries,
+void calcSysBoundaryCellParameters(SysBoundary& sysBoundaries,
                                    uint sysBoundaryFlag,
                                    Real* cellParams,
                                    creal& t) {
@@ -139,13 +139,13 @@ void calcSysBoundaryCellParameters(SysBoundary* sysBoundaries,
          exit(1);
          break;
       case OUTFLOW:
-         sysBoundaries->getSysBoundary(OUTFLOW)->calcCellParameters(cellParams, t);
+         sysBoundaries.getSysBoundary(OUTFLOW)->calcCellParameters(cellParams, t);
          break;
       case IONOSPHERE:
-         sysBoundaries->getSysBoundary(IONOSPHERE)->calcCellParameters(cellParams, t);
+         sysBoundaries.getSysBoundary(IONOSPHERE)->calcCellParameters(cellParams, t);
          break;
       case SW:
-         sysBoundaries->getSysBoundary(SW)->calcCellParameters(cellParams, t);
+         sysBoundaries.getSysBoundary(SW)->calcCellParameters(cellParams, t);
          break;
       default:
          break;

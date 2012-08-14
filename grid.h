@@ -11,7 +11,9 @@
 bool initializeGrid(int argn,
                     char **argc,
                     dccrg::Dccrg<SpatialCell>& mpiGrid,
-                    SysBoundary* sysBoundaries);
+                    SysBoundary& sysBoundaries,
+                    bool& isSysBoundaryDynamic
+                   );
 //Balance load
 void balanceLoad(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
 
@@ -64,7 +66,7 @@ bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid, DataReducer& da
  * occurred and the simulation should be aborted.
  */
 bool initSpatialCell(SpatialCell& cell,
-                     SysBoundary* sysBoundaries,
+                     SysBoundary& sysBoundaries,
                      creal& xmin, creal& ymin, creal& zmin,
                      creal& dx, creal& dy, creal& dz,
                      const bool& isRemote);

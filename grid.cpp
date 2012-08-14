@@ -49,7 +49,7 @@ using namespace phiprof;
 extern Logger logfile, diagnostic;
 
 //Subroutine for initializing all local spatial cells
-void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,SysBoundary* sysBoundaries);
+void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,SysBoundary& sysBoundaries);
 
 
 
@@ -61,7 +61,9 @@ bool adjust_local_velocity_blocks(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGr
 bool initializeGrid(int argn,
                     char **argc,
                     dccrg::Dccrg<SpatialCell>& mpiGrid,
-                    SysBoundary* sysBoundaries){
+                    SysBoundary& sysBoundaries,
+                    bool& isSysBoundaryDynamic
+                   ){
    int myrank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
    
@@ -125,6 +127,8 @@ bool initializeGrid(int argn,
    if (myrank == 0) logfile << "(INIT): Set initial state." << endl << writeVerbose;
    // Go through every spatial cell on this CPU, and create the initial state:
    phiprof::start("Set initial state");
+   isSysBoundaryDynamic = initializeSysBoundaries(sysBoundaries, P::t_min);
+   
    initSpatialCells(mpiGrid, sysBoundaries);
 
    /*
@@ -146,7 +150,7 @@ bool initializeGrid(int argn,
 
 
 void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,
-                      SysBoundary* sysBoundaries
+                      SysBoundary& sysBoundaries
 ){
    typedef Parameters P;
    phiprof::start("init cell values");
@@ -158,7 +162,7 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,
    // point in the velocity grid. Velocity block neighbour list is also 
    // constructed here:
    // Each initialization has to be independent to avoid threading problems 
-#pragma omp parallel for schedule(dynamic)
+//#pragma omp parallel for schedule(dynamic)
    for (uint i=0; i<cells.size(); ++i) {
       Real xmin,ymin,zmin,dx,dy,dz;
       dx = mpiGrid.get_cell_x_size(cells[i]);
@@ -193,7 +197,7 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid,
 
 /*! Set up a spatial cell.*/
 bool initSpatialCell(SpatialCell& cell,
-                     SysBoundary* sysBoundaries,
+                     SysBoundary& sysBoundaries,
                      creal& xmin,creal& ymin,creal& zmin,
                      creal& dx,creal& dy,creal& dz,
                      const bool& isRemote

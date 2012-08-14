@@ -401,46 +401,46 @@ namespace velocity_neighbor {
          return error_velocity_cell;
       }
       
-      unsigned int w=velocity_neighbor::WIDTH;
-      xyzDirection[0]=direction%w-1;
-      xyzDirection[1]=(direction/w)%w-1;
-      xyzDirection[2]=(direction/(w*w))%w-1; 
-      
-      block_len[0]=block_vx_length;
-      block_len[1]=block_vy_length;
-      block_len[2]=block_vz_length;
+         unsigned int w=velocity_neighbor::WIDTH;
+         xyzDirection[0]=direction%w-1;
+         xyzDirection[1]=(direction/w)%w-1;
+         xyzDirection[2]=(direction/(w*w))%w-1; 
+         
+         block_len[0]=block_vx_length;
+         block_len[1]=block_vy_length;
+         block_len[2]=block_vz_length;
 
-      offset[0]=1;
-      offset[1]=block_vx_length;
-      offset[2]=block_vx_length * block_vy_length;
+         offset[0]=1;
+         offset[1]=block_vx_length;
+         offset[2]=block_vx_length * block_vy_length;
 
-      neighborCell=cell;
-      //loop over vx,vy,vz
-      for(int c=0;c<3;c++){
-         switch (xyzDirection[c]) {
-             case -1: //in negative direction
-                if (indices[c] == 0) {
-                   return error_velocity_cell;
-                } else {
-                   neighborCell+=-offset[c];
-                }
-                break;
-             case 0:
-                break;
-             case 1: //in positive direction
-                if (indices[c] >= block_len[c] - 1) {
-                   return error_velocity_cell;
-                } else {
-                   neighborCell += offset[c];
-                }
-                break;
-             default:
-                return error_velocity_cell;
-                break;
+         neighborCell=cell;
+         //loop over vx,vy,vz
+         for(int c=0;c<3;c++){
+            switch (xyzDirection[c]) {
+               case -1: //in negative direction
+                  if (indices[c] == 0) {
+                     return error_velocity_cell;
+                  } else {
+                     neighborCell+=-offset[c];
+                  }
+                  break;
+               case 0:
+                  break;
+               case 1: //in positive direction
+                  if (indices[c] >= block_len[c] - 1) {
+                     return error_velocity_cell;
+                  } else {
+                     neighborCell += offset[c];
+                  }
+                  break;
+               default:
+                  return error_velocity_cell;
+                  break;
+            }
          }
+         return neighborCell;
       }
-      return neighborCell;
-   }
 
    
       /*!     

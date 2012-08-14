@@ -55,7 +55,7 @@ class SysBoundary {
       /*! Private copy-constructor to prevent copying the class. */
       SysBoundary(const SysBoundary& bc);
    
-/*! A container for all SBC::SysBoundaryConditions stored in SysBoundary.*/
+      /*! A container for all SBC::SysBoundaryConditions stored in SysBoundary.*/
       std::vector<SBC::SysBoundaryCondition*> sysBoundaries;
       /*! A map from the system boundary types to the corresponding class member. */
       std::map<uint, SBC::SysBoundaryCondition*> indexToSysBoundary;
@@ -73,15 +73,15 @@ class SysBoundary {
 
 };
 
-bool initializeSysBoundaries(SysBoundary* sbc, creal& t);
-bool assignSysBoundaryType(SysBoundary* sbc, SpatialCell& cell);
-Real calcSysBoundaryPhaseSpaceDensity(SysBoundary* sysBoundaries,
+bool initializeSysBoundaries(SysBoundary& sbc, creal& t);
+bool assignSysBoundaryType(SysBoundary& sbc, SpatialCell& cell);
+Real calcSysBoundaryPhaseSpaceDensity(SysBoundary& sysBoundaries,
                                       uint sysBoundaryFlag,
                                       creal& x, creal& y, creal& z,
                                       creal& dx, creal& dy, creal& dz,
                                       creal& vx, creal& vy, creal& vz,
                                       creal& dvx, creal& dvy, creal& dvz);
-void calcSysBoundaryCellParameters(SysBoundary* sysBoundaries,
+void calcSysBoundaryCellParameters(SysBoundary& sysBoundaries,
                                    uint sysBoundaryFlag,
                                    Real* cellParams,
                                    creal& t);
