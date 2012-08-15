@@ -97,6 +97,8 @@ Real P::sparseMinValue = NAN;
 Real P::sparseMinAvgValue = NAN;
 uint P::blockAdjustmentInterval = numeric_limits<uint>::max();
 
+string P::restartFileName = string("");
+
 string P::loadBalanceAlgorithm = string("");
 string P::loadBalanceTolerance = string("");
 uint P::rebalanceInterval = numeric_limits<uint>::max();
@@ -117,8 +119,10 @@ bool Parameters::addParameters(){
         Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limit (default)",true);
         
         Readparameters::add("split_method","Split method for splitting spatial/velocity space solvers. 0: first order, 1: strang splitting with half-steps for spatial space, 2: strang splitting with half-steps for velocity space",1);
-        
 
+        
+        Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empyt file.","");
+        
         Readparameters::add("gridbuilder.x_min","Minimum value of the x-coordinate.","");
         Readparameters::add("gridbuilder.x_max","Minimum value of the x-coordinate.","");
         Readparameters::add("gridbuilder.y_min","Minimum value of the y-coordinate.","");
@@ -181,6 +185,9 @@ bool Parameters::getParameters(){
    Readparameters::get("split_method",P::splitMethod);
    Readparameters::get("max_acceleration_substeps",P::maxAccelerationSubsteps);
    Readparameters::get("dynamic_timestep",P::dynamicTimestep);
+
+
+   Readparameters::get("restart.filename",P::restartFileName);
 
    /*get numerical values, let Readparameters handle the conversions*/
    Readparameters::get("gridbuilder.x_min",P::xmin);

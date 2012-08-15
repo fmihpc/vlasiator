@@ -58,7 +58,7 @@ class VLSVReader {
    bool swapIntEndianness;         /**< If true, endianness should be swapped on read data (not implemented yet).*/
    MuXML xmlReader;                /**< XML reader used to parse VLSV footer.*/
    
-   /** Struct used to store information on the currently open array.*/
+   /*! Struct used to store information on the currently open array.*/
    struct ArrayOpen {
       std::streamoff offset;
       std::string tagName;

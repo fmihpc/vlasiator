@@ -39,6 +39,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "fieldsolver.h"
 #include "project.h"
 #include "grid.h"
+#include "fileio.h"
 
 #ifdef CATCH_FPE
 #include <fenv.h>
@@ -77,7 +78,7 @@ int main(int argn,char* args[]) {
    if (required > provided){
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       if(myRank==MASTER_RANK)
-         cerr << "(MAIN): MPI_Init_thread failed!" << endl;
+         cerr << "(MAIN): MPI_Init_thread failed! Got" << provided << ", need "<<required <<endl;
       exit(1);
    }    
 #endif
@@ -228,7 +229,7 @@ int main(int argn,char* args[]) {
       // Check whether diagnostic output has to be produced
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
          phiprof::start("Diagnostic");
-         if (computeDiagnostic(mpiGrid, diagnosticReducer, P::tstep) == false) {
+         if (writeDiagnostic(mpiGrid, diagnosticReducer, P::tstep) == false) {
             cerr << "ERROR with diagnostic computation" << endl;
          }
          phiprof::stop("Diagnostic");
