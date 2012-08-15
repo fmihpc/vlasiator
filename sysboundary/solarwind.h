@@ -37,11 +37,7 @@ namespace SBC {
       
       bool initSysBoundary(creal& t);
       int assignSysBoundary(creal* cellParams);
-      Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
-                                 creal& dx,creal& dy,creal& dz,
-                                 creal& vx,creal& vy,creal& vz,
-                                 creal& dvx,creal& dvy,creal& dvz);
-      void calcCellParameters(Real* cellParams, creal& t);
+      virtual bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid);
       bool loadInputData();
       std::vector<std::vector<Real> > loadFile(const char* file);
       bool generateTemplateCells(creal& t);

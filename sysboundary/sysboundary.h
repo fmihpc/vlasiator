@@ -22,13 +22,14 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <vector>
 
 #include <dccrg.hpp>
+#include "../parameters.h"
 #include "../spatial_cell.hpp"
-using namespace spatial_cell;
+
 #include "sysboundarycondition.h"
+#include "donotcompute.h"
 #include "ionosphere.h"
 #include "outflow.h"
 #include "solarwind.h"
-
 
 /*! The purpose of SysBoundary is to contain SBC::SysBoundaryConditions, and apply 
  * them to the simulation volume cells if the cells pertain to a specific boundary type.
@@ -47,8 +48,9 @@ class SysBoundary {
       void getParameters();
       
       bool addSysBoundary(SBC::SysBoundaryCondition* sbc, creal& t);
-      bool initializeSysBoundaries(creal& t);
-      bool assignSysBoundaryType(SpatialCell& cell);
+      bool initSysBoundaries(creal& t);
+      bool classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid);
+      bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid);
       unsigned int size() const;
       SBC::SysBoundaryCondition* getSysBoundary(uint sysBoundaryType) const;
       bool isDynamic() const;
@@ -66,27 +68,11 @@ class SysBoundary {
       bool isThisDynamic;
       bool isPeriodic[3];
       
-   //Add getParameters, readParameters to read in parameters from cfg,
-   //this is called from main() where we also add project
-   //parameters. getParameters and readParameters again calls get and
-   //read functions in each boundary conditions.
 
    //Add functions below into class
 
 
 };
-
-
-Real calcSysBoundaryPhaseSpaceDensity(SysBoundary& sysBoundaries,
-                                      uint sysBoundaryFlag,
-                                      creal& x, creal& y, creal& z,
-                                      creal& dx, creal& dy, creal& dz,
-                                      creal& vx, creal& vy, creal& vz,
-                                      creal& dvx, creal& dvy, creal& dvz);
-void calcSysBoundaryCellParameters(SysBoundary& sysBoundaries,
-                                   uint sysBoundaryFlag,
-                                   Real* cellParams,
-                                   creal& t);
 
 bool precedenceSort(const SBC::SysBoundaryCondition* first, 
                     const SBC::SysBoundaryCondition* second);

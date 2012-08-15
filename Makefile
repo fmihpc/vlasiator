@@ -88,10 +88,10 @@ DEPS_COMMON = common.h definitions.h mpiconversion.h logger.h
 
 #all objects for vlasiator
 OBJS = 	datareducer.o datareductionoperator.o \
-	ionosphere.o outflow.o solarwind.o \
+	donotcompute.o ionosphere.o outflow.o solarwind.o \
 	sysboundary.o sysboundarycondition.o \
-	grid.o vlasiator.o logger.o muxml.o	\
-	parameters.o readparameters.o project.o	spatial_cell.o		\
+	grid.o vlasiator.o logger.o muxml.o \
+	parameters.o readparameters.o project.o spatial_cell.o \
 	vlscommon.o vlsvreader2.o vlsvwriter2.o vlasovmover_$(TRANSSOLVER).o $(FIELDSOLVER).o
 
 
@@ -121,20 +121,23 @@ datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/datareducer.h datar
 datareductionoperator.o:  ${DEPS_COMMON} spatial_cell.hpp datareduction/datareductionoperator.h datareduction/datareductionoperator.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareduction/datareductionoperator.cpp ${INC_MPI} ${INC_BOOST}
 
-ionosphere.o: ${DEPS_COMMON} sysboundary/ionosphere.h sysboundary/ionosphere.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/ionosphere.cpp ${INC_BOOST}
+donotcompute.o: ${DEPS_COMMON} sysboundary/donotcompute.h sysboundary/donotcompute.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/donotcompute.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
 
-outflow.o: ${DEPS_COMMON} sysboundary/outflow.h sysboundary/outflow.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/outflow.cpp ${INC_BOOST}
+ionosphere.o: ${DEPS_COMMON} sysboundary/ionosphere.h sysboundary/ionosphere.cpp project.h
+	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/ionosphere.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
+
+outflow.o: ${DEPS_COMMON} sysboundary/outflow.h sysboundary/outflow.cpp project.h
+	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/outflow.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
 
 solarwind.o: ${DEPS_COMMON} sysboundary/solarwind.h sysboundary/solarwind.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/solarwind.cpp ${INC_BOOST}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/solarwind.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
 
-sysboundary.o: ${DEPS_COMMON} sysboundary/sysboundary.h sysboundary/sysboundary.cpp sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp sysboundary/ionosphere.h sysboundary/ionosphere.cpp sysboundary/outflow.h sysboundary/outflow.cpp sysboundary/solarwind.h sysboundary/solarwind.cpp
+sysboundary.o: ${DEPS_COMMON} sysboundary/sysboundary.h sysboundary/sysboundary.cpp sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp sysboundary/donotcompute.h sysboundary/donotcompute.cpp sysboundary/ionosphere.h sysboundary/ionosphere.cpp sysboundary/outflow.h sysboundary/outflow.cpp sysboundary/solarwind.h sysboundary/solarwind.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/sysboundary.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
 
-sysboundarycondition.o: ${DEPS_COMMON} sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp  sysboundary/ionosphere.h sysboundary/ionosphere.cpp sysboundary/outflow.h sysboundary/outflow.cpp sysboundary/solarwind.h sysboundary/solarwind.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/sysboundarycondition.cpp ${INC_BOOST}
+sysboundarycondition.o: ${DEPS_COMMON} sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp sysboundary/donotcompute.h sysboundary/donotcompute.cpp sysboundary/ionosphere.h sysboundary/ionosphere.cpp sysboundary/outflow.h sysboundary/outflow.cpp sysboundary/solarwind.h sysboundary/solarwind.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/sysboundarycondition.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
 
 spatial_cell.o: spatial_cell.cpp spatial_cell.hpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c spatial_cell.cpp $(INC_BOOST)
@@ -148,7 +151,7 @@ londrillo_delzanna.o: spatial_cell.hpp transferstencil.h   parameters.h common.h
 vlasiator.o:  ${DEPS_COMMON} readparameters.h parameters.h  project.h  grid.h spatial_cell.hpp vlasiator.cpp
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE}
 
-grid.o:  ${DEPS_COMMON} parameters.h  project.h  spatial_cell.hpp grid.cpp grid.h vlsvwriter2.h 
+grid.o:  ${DEPS_COMMON} parameters.h  project.h  spatial_cell.hpp grid.cpp grid.h vlsvwriter2.h sysboundary/sysboundary.h
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c grid.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE}
 
 

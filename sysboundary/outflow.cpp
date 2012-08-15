@@ -80,13 +80,19 @@ namespace SBC {
       return typeToAssign;
    }
    
-   Real Outflow::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
-                              creal& dx,creal& dy,creal& dz,
-                              creal& vx,creal& vy,creal& vz,
-                              creal& dvx,creal& dvy,creal& dvz
-   ) {return 0.0;}
+   bool Outflow::applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+      vector<uint64_t> cells = mpiGrid.get_cells();
+      for (uint i=0; i<cells.size(); ++i) {
+         SpatialCell* cell = mpiGrid[cells[i]];
+         if(cell->sysBoundaryFlag != this->getIndex()) continue;
+         
+         // Defined in grid.cpp, used here as the outflow cell has the same state as the initial state of non-system boundary cells.
+         setProjectCell(cell);
+      }
+      
+      return true;
+   }
    
-   void Outflow::calcCellParameters(Real* cellParams, creal& t) { }
    
    std::string Outflow::getName() const {return "Outflow";}
    

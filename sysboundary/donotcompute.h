@@ -16,36 +16,35 @@
  along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef IONOSPHERE_H
-#define IONOSPHERE_H
+#ifndef DONOTCOMPUTE_H
+#define DONOTCOMPUTE_H
 
 #include <vector>
 #include "../definitions.h"
-#include "../project.h"
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
 #include "sysboundarycondition.h"
 
 namespace SBC {
-   class Ionosphere: public SysBoundaryCondition {
+   class DoNotCompute: public SysBoundaryCondition {
    public:
-      Ionosphere();
-      ~Ionosphere();
+      DoNotCompute();
+      ~DoNotCompute();
       
       void getParameters();
       
       bool initSysBoundary(creal& t);
       int assignSysBoundary(creal* cellParams);
-      virtual bool applyInitialState(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
+      virtual bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid);
+      Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
+                                 creal& dx,creal& dy,creal& dz,
+                                 creal& vx,creal& vy,creal& vz,
+                                 creal& dvx,creal& dvy,creal& dvz);
+      void calcCellParameters(Real* cellParams, creal& t);
       std::string getName() const;
       virtual uint getIndex() const;
       virtual uint getPrecedence() const;
       virtual bool isDynamic() const;
-      
-   protected:
-      Real center[3]; /*!< Coordinates of the centre of the ionosphere. */
-      Real radius; /*!< Radius of the ionosphere. */
-      uint precedence; /*! Precedence value of the ionosphere system boundary condition. */
    };
 }
 

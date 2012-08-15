@@ -86,47 +86,91 @@ namespace SBC {
       return typeToAssign;
    }
    
-   Real SolarWind::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
-                                         creal& dx,creal& dy,creal& dz,
-                                         creal& vx,creal& vy,creal& vz,
-                                         creal& dvx,creal& dvy,creal& dvz
-   ) {
-      Real average = 1.0;
-
-      determineFace(x + 0.5*dx,
-                    y + 0.5*dy,
-                    z + 0.5*dz,
-                    dx, 
-                    dy, 
-                    dz);
-      
-      for(uint i=0; i<6; i++) {
-         if((faces&(isThisCellOnAFace&(1<<(5-i))))==(1<<(5-i))) {
-            average = templateCells[i].get_value(vx, vy, vz);
-            break;
+   bool SolarWind::applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+      vector<uint64_t> cells = mpiGrid.get_cells();
+      for (uint i=0; i<cells.size(); ++i) {
+         SpatialCell* cell = mpiGrid[cells[i]];
+         if(cell->sysBoundaryFlag != this->getIndex()) continue;
+         
+         creal dx = cell->parameters[CellParams::DX];
+         creal dy = cell->parameters[CellParams::DY];
+         creal dz = cell->parameters[CellParams::DZ];
+         creal x = cell->parameters[CellParams::XCRD] + 0.5*dx;
+         creal y = cell->parameters[CellParams::YCRD] + 0.5*dy;
+         creal z = cell->parameters[CellParams::ZCRD] + 0.5*dz;
+         
+         determineFace(x, y, z, dx, dy, dz);
+         
+         for(uint i=0; i<6; i++) {
+            if((faces&(isThisCellOnAFace&(1<<(5-i))))==(1<<(5-i))) {
+               cell->parameters[CellParams::BX] = templateCells[i].parameters[CellParams::BX];
+               cell->parameters[CellParams::BY] = templateCells[i].parameters[CellParams::BY];
+               cell->parameters[CellParams::BZ] = templateCells[i].parameters[CellParams::BZ];
+               cell->parameters[CellParams::RHO] = 0.0;
+               cell->parameters[CellParams::RHOVX] =0.0;
+               cell->parameters[CellParams::RHOVY] = 0.0;
+               cell->parameters[CellParams::RHOVZ] =0.0;
+               cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
+               cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
+               
+               // Go through each velocity block in the velocity phase space grid.
+               // Set the initial state and block parameters:
+               creal dvx_block = SpatialCell::block_dvx; // Size of a block in vx-direction
+               creal dvy_block = SpatialCell::block_dvy; //                    vy
+               creal dvz_block = SpatialCell::block_dvz; //                    vz
+               creal dvx_blockCell = SpatialCell::cell_dvx; // Size of one cell in a block in vx-direction
+               creal dvy_blockCell = SpatialCell::cell_dvy; //                                vy
+               creal dvz_blockCell = SpatialCell::cell_dvz; //                                vz
+               
+               for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
+                  for (uint jv=0; jv<P::vyblocks_ini; ++jv)
+                     for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
+                        creal vx_block = P::vxmin + iv*dvx_block; // vx-coordinate of the lower left corner
+                        creal vy_block = P::vymin + jv*dvy_block; // vy-
+                        creal vz_block = P::vzmin + kv*dvz_block; // vz-
+                        
+                        // Calculate volume average of distrib. function for each cell in the block.
+                        for (uint kc=0; kc<WID; ++kc) 
+                           for (uint jc=0; jc<WID; ++jc) 
+                              for (uint ic=0; ic<WID; ++ic) {
+                                 creal vx_cell = vx_block + ic*dvx_blockCell;
+                                 creal vy_cell = vy_block + jc*dvy_blockCell;
+                                 creal vz_cell = vz_block + kc*dvz_blockCell;
+                                 Real average = templateCells[i].get_value(vx_cell, vy_cell, vz_cell);
+                                 
+                                 if(average!=0.0){
+                                    creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
+                                    creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
+                                    creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
+                                    cell->set_value(vx_cell_center,vy_cell_center,vz_cell_center,average);
+                                    // Add contributions to spatial cell velocity moments:
+                                    creal dV = dvx_blockCell*dvy_blockCell*dvz_blockCell;  // Volume of one cell in a block      
+                                    cell->parameters[CellParams::RHO  ] += average*dV;
+                                    cell->parameters[CellParams::RHOVX] += average*vx_cell_center*dV;
+                                    cell->parameters[CellParams::RHOVY] += average*vy_cell_center*dV;
+                                    cell->parameters[CellParams::RHOVZ] += average*vz_cell_center*dV;
+                                 }
+                              }
+                     }
+                     creal spatialVolume = cell->parameters[CellParams::DX]*
+                                           cell->parameters[CellParams::DY]*
+                                           cell->parameters[CellParams::DZ];
+                     cell->parameters[CellParams::RHO  ] /= spatialVolume;
+                     cell->parameters[CellParams::RHOVX] /= spatialVolume;
+                     cell->parameters[CellParams::RHOVY] /= spatialVolume;
+                     cell->parameters[CellParams::RHOVZ] /= spatialVolume;
+                     
+                     //lets get rid of blocks not fulfilling the criteria here to save
+                     //memory. neighbor_ptrs is empty as we do not have any consistent
+                     //data in neighbours yet, adjustments done only based on velocity
+                     //space.
+                     vector<SpatialCell*> neighbor_ptrs;
+                     cell->update_all_block_has_content();
+                     cell->adjust_velocity_blocks(neighbor_ptrs);
+            }
          }
       }
-      return average;
-   }
-   
-   void SolarWind::calcCellParameters(Real* cellParams, creal& t) {
-      creal dx = cellParams[CellParams::DX];
-      creal dy = cellParams[CellParams::DY];
-      creal dz = cellParams[CellParams::DZ];
-      creal x = cellParams[CellParams::XCRD] + 0.5*dx;
-      creal y = cellParams[CellParams::YCRD] + 0.5*dy;
-      creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
-      
-      determineFace(x, y, z, dx, dy, dz);
-      
-      for(uint i=0; i<6; i++) {
-         if((faces&(isThisCellOnAFace&(1<<(5-i))))==(1<<(5-i))) {
-            cellParams[CellParams::BX] = templateCells[i].parameters[CellParams::BX];
-            cellParams[CellParams::BY] = templateCells[i].parameters[CellParams::BY];
-            cellParams[CellParams::BZ] = templateCells[i].parameters[CellParams::BZ];
-            break;
-         }
-      }
+      return true;
    }
    
    bool SolarWind::loadInputData() {
@@ -249,38 +293,49 @@ namespace SBC {
       creal dvy_blockCell = spatial_cell::SpatialCell::cell_dvy; //                                vy
       creal dvz_blockCell = spatial_cell::SpatialCell::cell_dvz; //                                vz
       
-      for (uint kv=0; kv<P::vzblocks_ini; ++kv) for (uint jv=0; jv<P::vyblocks_ini; ++jv) for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
-         creal vx_block = P::vxmin + iv*dvx_block; // vx-coordinate of the lower left corner
-         creal vy_block = P::vymin + jv*dvy_block; // vy-
-         creal vz_block = P::vzmin + kv*dvz_block; // vz-
-         
-         // Calculate volume average of distrib. function for each cell in the block.
-         for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic)
-         {
-            creal vx_cell = vx_block + ic*dvx_blockCell;
-            creal vy_cell = vy_block + jc*dvy_blockCell;
-            creal vz_cell = vz_block + kc*dvz_blockCell;
-            creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
-            creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
-            creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
-            creal average = rho * pow(physicalconstants::MASS_PROTON / 
-                            (2.0 * M_PI * physicalconstants::K_B * T), 1.5) *
-                            exp(-physicalconstants::MASS_PROTON *
-                            (pow(vx_cell_center - Vx, 2.0) + 
-                             pow(vy_cell_center - Vy, 2.0) + 
-                             pow(vz_cell_center - Vz, 2.0)) / 
-                             (2.0 * physicalconstants::K_B * T));
-            if(average!=0.0){
-               templateCell.set_value(vx_cell_center,vy_cell_center,vz_cell_center,average);
-               // Add contributions to spatial cell velocity moments:
-               creal dV = dvx_blockCell*dvy_blockCell*dvz_blockCell;  // Volume of one cell in a block      
-               templateCell.parameters[CellParams::RHO  ] += average*dV;
-               templateCell.parameters[CellParams::RHOVX] += average*vx_cell_center*dV;
-               templateCell.parameters[CellParams::RHOVY] += average*vy_cell_center*dV;
-               templateCell.parameters[CellParams::RHOVZ] += average*vz_cell_center*dV;
-            }
-         }
+      for (uint kv=0; kv<P::vzblocks_ini; ++kv)
+         for (uint jv=0; jv<P::vyblocks_ini; ++jv)
+            for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
+               creal vx_block = P::vxmin + iv*dvx_block; // vx-coordinate of the lower left corner
+               creal vy_block = P::vymin + jv*dvy_block; // vy-
+               creal vz_block = P::vzmin + kv*dvz_block; // vz-
+               
+               // Calculate volume average of distrib. function for each cell in the block.
+               for (uint kc=0; kc<WID; ++kc)
+                  for (uint jc=0; jc<WID; ++jc)
+                     for (uint ic=0; ic<WID; ++ic) {
+                        creal vx_cell = vx_block + ic*dvx_blockCell;
+                        creal vy_cell = vy_block + jc*dvy_blockCell;
+                        creal vz_cell = vz_block + kc*dvz_blockCell;
+                        creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
+                        creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
+                        creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
+                        creal average = rho * pow(physicalconstants::MASS_PROTON / 
+                                       (2.0 * M_PI * physicalconstants::K_B * T), 1.5) *
+                                       exp(-physicalconstants::MASS_PROTON *
+                                       (pow(vx_cell_center - Vx, 2.0) + 
+                                       pow(vy_cell_center - Vy, 2.0) + 
+                                       pow(vz_cell_center - Vz, 2.0)) / 
+                                       (2.0 * physicalconstants::K_B * T));
+                        if(average!=0.0){
+                           templateCell.set_value(vx_cell_center,vy_cell_center,vz_cell_center,average);
+                           // Add contributions to spatial cell velocity moments:
+                           creal dV = dvx_blockCell*dvy_blockCell*dvz_blockCell;  // Volume of one cell in a block      
+                           templateCell.parameters[CellParams::RHO  ] += average*dV;
+                           templateCell.parameters[CellParams::RHOVX] += average*vx_cell_center*dV;
+                           templateCell.parameters[CellParams::RHOVY] += average*vy_cell_center*dV;
+                           templateCell.parameters[CellParams::RHOVZ] += average*vz_cell_center*dV;
+                        }
+               }
       }
+      
+      //lets get rid of blocks not fulfilling the criteria here to save
+      //memory. neighbor_ptrs is empty as we do not have any consistent
+      //data in neighbours yet, adjustments done only based on velocity
+      //space.
+      vector<SpatialCell*> neighbor_ptrs;
+      templateCell.update_all_block_has_content();
+      templateCell.adjust_velocity_blocks(neighbor_ptrs);
    }
    
    void SolarWind::interpolate(const int inputDataIndex, creal t, Real* rho, Real* T, Real* vx, Real* vy, Real* vz, Real* Bx, Real* By, Real* Bz) {
@@ -329,8 +384,6 @@ namespace SBC {
       *Bz = s1*inputData[inputDataIndex][i1][8] + s*inputData[inputDataIndex][i2][8];
    }
    
-   string SolarWind::getName() const {return "SolarWind";}
-   
    void SolarWind::determineFace(creal x, creal y, creal z, creal dx, creal dy, creal dz) {
       isThisCellOnAFace = 0;
       if(x > Parameters::xmax - dx) isThisCellOnAFace = isThisCellOnAFace|(1<<5);
@@ -341,6 +394,7 @@ namespace SBC {
       if(z < Parameters::zmin + dz) isThisCellOnAFace = isThisCellOnAFace|1;
    }
    
+   string SolarWind::getName() const {return "SolarWind";}
    uint SolarWind::getIndex() const {return sysboundarytype::SW;}
    uint SolarWind::getPrecedence() const {return precedence;}
    bool SolarWind::isDynamic() const {return isThisDynamic;}

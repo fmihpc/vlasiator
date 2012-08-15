@@ -21,6 +21,7 @@
 
 #include <vector>
 #include "../definitions.h"
+#include "../project.h"
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
 #include "sysboundarycondition.h"
@@ -35,11 +36,7 @@ namespace SBC {
       
       bool initSysBoundary(creal& t);
       int assignSysBoundary(creal* cellParams);
-      Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
-                                 creal& dx,creal& dy,creal& dz,
-                                 creal& vx,creal& vy,creal& vz,
-                                 creal& dvx,creal& dvy,creal& dvz);
-      void calcCellParameters(Real* cellParams, creal& t);
+      virtual bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid);
       std::string getName() const;
       virtual uint getIndex() const;
       virtual uint getPrecedence() const;

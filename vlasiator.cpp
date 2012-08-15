@@ -135,10 +135,7 @@ int main(int argn,char* args[]) {
    phiprof::stop("open logfile & diagnostic");
    
    phiprof::start("Init grid");
-   if (initializeGrid(argn,args,mpiGrid,sysBoundaries) == false) {
-      if(myrank == MASTER_RANK) cerr << "(MAIN) ERROR: Grid did not initialize correctly!" << endl;
-      exit(1);
-   }  
+   initializeGrid(argn,args,mpiGrid,sysBoundaries);
    isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
    phiprof::stop("Init grid");
    

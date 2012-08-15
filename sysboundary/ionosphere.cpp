@@ -21,7 +21,6 @@
 #include <iostream>
 #include <limits>
 
-#include "../readparameters.h"
 #include "ionosphere.h"
 
 using namespace std;
@@ -75,13 +74,18 @@ namespace SBC {
       return typeToAssign;
    }
    
-   Real Ionosphere::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
-                                          creal& dx,creal& dy,creal& dz,
-                                          creal& vx,creal& vy,creal& vz,
-                                          creal& dvx,creal& dvy,creal& dvz
-   ) {return 0.0;}
-   
-   void Ionosphere::calcCellParameters(Real* cellParams, creal& t) { }
+   bool Ionosphere::applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+      vector<uint64_t> cells = mpiGrid.get_cells();
+      for (uint i=0; i<cells.size(); ++i) {
+         SpatialCell* cell = mpiGrid[cells[i]];
+         if(cell->sysBoundaryFlag != this->getIndex()) continue;
+         
+         // Defined in grid.cpp, used here as the ionospheric cell has the same state as the initial state of non-system boundary cells.
+         setProjectCell(cell);
+      }
+      
+      return true;
+   }
    
    std::string Ionosphere::getName() const {return "Ionosphere";}
    

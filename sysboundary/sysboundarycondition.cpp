@@ -40,7 +40,7 @@ namespace SBC {
    /*! SysBoundaryCondition base class virtual destructor. The destructor is empty.*/
    SysBoundaryCondition::~SysBoundaryCondition() { }
    
-   void getParameters() {
+   void SysBoundaryCondition::getParameters() {
       cerr << "ERROR: SysBoundaryCondition::getParameters called instead of derived class function!" << endl;
    }
    
@@ -60,20 +60,12 @@ namespace SBC {
       return false;
    }
    
-   /*! Function to compute the phase space density for a system boundary cell. */
-   Real SysBoundaryCondition::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
-                              creal& dx,creal& dy,creal& dz,
-                              creal& vx,creal& vy,creal& vz,
-                              creal& dvx,creal& dvy,creal& dvz) {
-      cerr << "ERROR: SysBoundaryCondition::calcPhaseSpaceDensity called instead of derived class function!" << endl;
-      return 0.0;
+   /*! Function used to apply the system boundary condition initial state to a cell. */
+   bool SysBoundaryCondition::applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+      cerr << "ERROR: SysBoundaryCondition::applyInitialState called instead of derived class function!" << endl;
+      return false;
    }
-   
-   /*! Function to compute the cell parameters for a system boundary cell. */
-   void SysBoundaryCondition::calcCellParameters(Real* cellParams, creal& t) {
-      cerr << "ERROR: SysBoundaryCondition::calcCellParameters called instead of derived class function!" << endl;
-   }
-   
+      
    /*! Get the name of the system boundary condition.
     * @return The name of the data. The base class function returns an empty string.
     */

@@ -19,89 +19,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <cstdlib>
 #include <iostream>
 
-#include "../parameters.h"
 #include "sysboundary.h"
-#include "ionosphere.h"
-#include "outflow.h"
-#include "solarwind.h"
 
 using namespace std;
-
-/*
-//Instead of calcSysBoundaryPhaseSpaceDensity below, have higher-level function
-void setState(mpiGrid){
-   loop over bcond
-      boundarycond.setstate(mpigrid);
-}
-*/
-
-Real calcSysBoundaryPhaseSpaceDensity(SysBoundary& sysBoundaries,
-                                      uint sysBoundaryFlag,
-                                      creal& x,creal& y,creal& z,
-                                      creal& dx,creal& dy,creal& dz,
-                                      creal& vx,creal& vy,creal& vz,
-                                      creal& dvx,creal& dvy,creal& dvz
-) {
-   Real average;
-   
-   using namespace sysboundarytype;
-   
-   switch(sysBoundaryFlag) {
-      case DO_NOT_COMPUTE:
-      case NOT_SYSBOUNDARY:
-         cerr << "ERROR: called SysBoundary::calcPhaseSpaceDensity for a cell flagged DO_NOT_COMPUTE or NOT_SYSBOUNDARY!!" << endl;
-         exit(1);
-         break;
-      case OUTFLOW:
-         average = sysBoundaries.getSysBoundary(OUTFLOW)->calcPhaseSpaceDensity(x,y,z,
-                                                                                 dx,dy,dz,
-                                                                                 vx,vy,vz,
-                                                                                 dvx,dvy,dvz);
-         break;
-      case IONOSPHERE:
-         average = sysBoundaries.getSysBoundary(IONOSPHERE)->calcPhaseSpaceDensity(x,y,z,
-                                                                                    dx,dy,dz,
-                                                                                    vx,vy,vz,
-                                                                                    dvx,dvy,dvz);
-         break;
-      case SW:
-         average = sysBoundaries.getSysBoundary(SW)->calcPhaseSpaceDensity(x,y,z,
-                                                                            dx,dy,dz,
-                                                                            vx,vy,vz,
-                                                                            dvx,dvy,dvz);
-         break;
-      default:
-         average = 0.0;
-   }
-   
-   return average;
-}
-
-void calcSysBoundaryCellParameters(SysBoundary& sysBoundaries,
-                                   uint sysBoundaryFlag,
-                                   Real* cellParams,
-                                   creal& t) {
-   using namespace sysboundarytype;
-   
-   switch(sysBoundaryFlag) {
-      case DO_NOT_COMPUTE:
-      case NOT_SYSBOUNDARY:
-         cerr << "ERROR: called SysBoundary::calcCellParameters for a cell flagged DO_NOT_COMPUTE or NOT_SYSBOUNDARY!!" << endl;
-         exit(1);
-         break;
-      case OUTFLOW:
-         sysBoundaries.getSysBoundary(OUTFLOW)->calcCellParameters(cellParams, t);
-         break;
-      case IONOSPHERE:
-         sysBoundaries.getSysBoundary(IONOSPHERE)->calcCellParameters(cellParams, t);
-         break;
-      case SW:
-         sysBoundaries.getSysBoundary(SW)->calcCellParameters(cellParams, t);
-         break;
-      default:
-         break;
-   }
-}
 
 bool precedenceSort(const SBC::SysBoundaryCondition* first,
                     const SBC::SysBoundaryCondition* second) {
@@ -183,17 +103,16 @@ bool SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, creal& t) {
    
    bool success = true;
    if(bc->initSysBoundary(t) == false) {
-      cerr << "Error in setting system boundary condition " << bc->getName() << endl;
       success = false;
    }
    
+   // This assumes that only one instance of each type is created.
    indexToSysBoundary[bc->getIndex()] = bc;
    
    return success;
 }
 
-bool SysBoundary::initializeSysBoundaries(creal& t)
-{
+bool SysBoundary::initSysBoundaries(creal& t) {
    bool success = true;
    vector<string>::const_iterator it;
    for (it = sysBoundaryCondList.begin();
@@ -209,6 +128,10 @@ bool SysBoundary::initializeSysBoundaries(creal& t)
       if(*it == "Ionosphere") {
          if(this->addSysBoundary(new SBC::Ionosphere, t) == false) {
             cerr << "Error in adding Ionosphere boundary." << endl;
+            success = false;
+         }
+         if(this->addSysBoundary(new SBC::DoNotCompute, t) == false) {
+            cerr << "Error in adding DoNotCompute boundary (for Ionosphere)." << endl;
             success = false;
          }
          isThisDynamic = isThisDynamic|
@@ -227,29 +150,47 @@ bool SysBoundary::initializeSysBoundaries(creal& t)
    return success;
 }
 
-bool SysBoundary::assignSysBoundaryType(SpatialCell& cell)
-{
+bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    using namespace sysboundarytype;
-   
    uint indexToAssign, tmpType;
    
-   indexToAssign = NOT_SYSBOUNDARY;
+   vector<uint64_t> cells = mpiGrid.get_cells();
+   for (uint i=0; i<cells.size(); ++i) {
+      indexToAssign = NOT_SYSBOUNDARY;
+      list<SBC::SysBoundaryCondition*>::iterator it;
+      for (it = sysBoundaries.begin();
+         it != sysBoundaries.end();
+         it++) {
+         tmpType=(*it)->assignSysBoundary(&(mpiGrid[cells[i]]->parameters[0]));
+         
+         if(tmpType == DO_NOT_COMPUTE) {
+            indexToAssign = tmpType;
+            break;
+         } else if (tmpType != NOT_SYSBOUNDARY) {
+            indexToAssign = tmpType;
+         }
+      }
+      mpiGrid[cells[i]]->sysBoundaryFlag = indexToAssign;
+   }
+   
+   return true;
+}
+
+bool SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   bool success = true;
+   using namespace sysboundarytype;
+   
    list<SBC::SysBoundaryCondition*>::iterator it;
    for (it = sysBoundaries.begin();
         it != sysBoundaries.end();
-        it++) {
-      tmpType=(*it)->assignSysBoundary(&(cell.parameters[0]));
-      
-      if(tmpType == DO_NOT_COMPUTE) {
-         indexToAssign = tmpType;
-         break;
-      } else if (tmpType != NOT_SYSBOUNDARY) {
-         indexToAssign = tmpType;
+   it++) {
+      if((*it)->applyInitialState(mpiGrid) == false) {
+         cerr << "ERROR: " << (*it)->getName() << " system boundary condition not applied correctly." << endl;
+         success = false;
       }
    }
-   cell.sysBoundaryFlag = indexToAssign;
    
-   return true;
+   return success;
 }
 
 /*! Get a pointer to the SysBoundaryCondition of given index.

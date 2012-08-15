@@ -19,9 +19,12 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #ifndef SYSBOUNDARYCONDITION_H
 #define SYSBOUNDARYCONDITION_H
 
+#include <dccrg.hpp>
 #include <vector>
 #include "../definitions.h"
 #include "../spatial_cell.hpp"
+
+using namespace spatial_cell;
 
 namespace SBC {
    /*! SBC::SysBoundaryCondition defines a base class for applying boundary conditions.
@@ -40,11 +43,7 @@ namespace SBC {
          
          virtual bool initSysBoundary(creal& t);
          virtual int assignSysBoundary(creal* cellParams);
-         virtual Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
-                                            creal& dx,creal& dy,creal& dz,
-                                            creal& vx,creal& vy,creal& vz,
-                                            creal& dvx,creal& dvy,creal& dvz);
-         virtual void calcCellParameters(Real* cellParams, creal& t);
+         virtual bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid);
          virtual std::string getName() const;
          virtual uint getIndex() const;
          virtual uint getPrecedence() const;
