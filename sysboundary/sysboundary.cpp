@@ -103,6 +103,12 @@ void calcSysBoundaryCellParameters(SysBoundary& sysBoundaries,
    }
 }
 
+bool precedenceSort(const SBC::SysBoundaryCondition* first,
+                    const SBC::SysBoundaryCondition* second) {
+   if(first->getPrecedence() < second->getPrecedence()) return true;
+   else return false;
+}
+
 // ************************************************************
 // ***** DEFINITIONS FOR BOUNDARY CLASS *****
 // ************************************************************
@@ -115,7 +121,7 @@ SysBoundary::SysBoundary() { }
  */
 SysBoundary::~SysBoundary() {
    // Call delete for each SysBoundaryCondition:
-   for (vector<SBC::SysBoundaryCondition*>::iterator it=sysBoundaries.begin();
+   for (list<SBC::SysBoundaryCondition*>::iterator it=sysBoundaries.begin();
         it!=sysBoundaries.end();
         ++it) {
       delete *it;
@@ -171,6 +177,9 @@ void SysBoundary::getParameters() {
  */
 bool SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, creal& t) {
    sysBoundaries.push_back(bc);
+   if(sysBoundaries.size() > 1) {
+      sysBoundaries.sort(precedenceSort);
+   }
    
    bool success = true;
    if(bc->initSysBoundary(t) == false) {
@@ -179,8 +188,6 @@ bool SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, creal& t) {
    }
    
    indexToSysBoundary[bc->getIndex()] = bc;
-   
-   indexToPrecedence[bc->getIndex()] = bc->getPrecedence();
    
    return success;
 }
@@ -227,16 +234,16 @@ bool SysBoundary::assignSysBoundaryType(SpatialCell& cell)
    uint indexToAssign, tmpType;
    
    indexToAssign = NOT_SYSBOUNDARY;
-   for (uint j = 0;
-        j < sysBoundaries.size();
-        j++) {
-      tmpType=sysBoundaries[j]->assignSysBoundary(&(cell.parameters[0]));
+   list<SBC::SysBoundaryCondition*>::iterator it;
+   for (it = sysBoundaries.begin();
+        it != sysBoundaries.end();
+        it++) {
+      tmpType=(*it)->assignSysBoundary(&(cell.parameters[0]));
       
       if(tmpType == DO_NOT_COMPUTE) {
          indexToAssign = tmpType;
          break;
-      } else if (indexToPrecedence.find(tmpType)->second >
-                 indexToPrecedence.find(indexToAssign)->second) {
+      } else if (tmpType != NOT_SYSBOUNDARY) {
          indexToAssign = tmpType;
       }
    }
@@ -244,25 +251,6 @@ bool SysBoundary::assignSysBoundaryType(SpatialCell& cell)
    
    return true;
 }
-
-/*! Get the name of a SysBoundaryCondition.
- * @param sysBoundaryID ID number of the system boundary whose name is requested.
- * @return Name of the system boundary.
- */
-string SysBoundary::getName(const unsigned int& sysBoundaryID) const {
-   if (sysBoundaryID >= sysBoundaries.size()) return "";
-   return sysBoundaries[sysBoundaryID]->getName();
-}
-
-// /*! Get the list of system boundary conditions contained in SysBoundary.
-//  * @return List of the system boundary conditions.
-//  */
-// vector<SBC::SysBoundaryCondition*> SysBoundary::getSysBoundariesList() const {return sysBoundaries;}
-
-// /*! Get the map of system boundary condition precedences contained in SysBoundary.
-//  * @return Map of the system boundary condition precedences.
-//  */
-// std::map<uint, uint> SysBoundary::getPrecedenceMap() const {return indexToPrecedence;}
 
 /*! Get a pointer to the SysBoundaryCondition of given index.
  * @return Pointer to the instance of the SysBoundaryCondition.

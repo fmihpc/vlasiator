@@ -49,11 +49,7 @@ class SysBoundary {
       bool addSysBoundary(SBC::SysBoundaryCondition* sbc, creal& t);
       bool initializeSysBoundaries(creal& t);
       bool assignSysBoundaryType(SpatialCell& cell);
-      std::string getName(const unsigned int& sysBoundaryID) const;
-//   bool (const unsigned int& sysBoundaryID) const;
       unsigned int size() const;
-//       std::vector<SBC::SysBoundaryCondition*> getSysBoundariesList() const;
-//       std::map<uint, uint> getPrecedenceMap() const;
       SBC::SysBoundaryCondition* getSysBoundary(uint sysBoundaryType) const;
       bool isDynamic() const;
       bool isBoundaryPeriodic(uint direction) const;
@@ -63,11 +59,9 @@ class SysBoundary {
       SysBoundary(const SysBoundary& bc);
    
       /*! A container for all SBC::SysBoundaryConditions stored in SysBoundary.*/
-      std::vector<SBC::SysBoundaryCondition*> sysBoundaries;
+      std::list<SBC::SysBoundaryCondition*> sysBoundaries;
       /*! A map from the system boundary types to the corresponding class member. */
       std::map<uint, SBC::SysBoundaryCondition*> indexToSysBoundary;
-      /*! A map from the system boundary types to the precedence value. */
-      std::map<uint, uint> indexToPrecedence;
       std::vector<std::string> sysBoundaryCondList; /*!< List of system boundary conditions (SBC) to be used. */
       bool isThisDynamic;
       bool isPeriodic[3];
@@ -93,5 +87,8 @@ void calcSysBoundaryCellParameters(SysBoundary& sysBoundaries,
                                    uint sysBoundaryFlag,
                                    Real* cellParams,
                                    creal& t);
+
+bool precedenceSort(const SBC::SysBoundaryCondition* first, 
+                    const SBC::SysBoundaryCondition* second);
 
 #endif
