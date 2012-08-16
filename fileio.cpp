@@ -172,12 +172,9 @@ bool readBlockData(VLSVParReader & file,
             creal vx_block = coordBuffer[blockIndex*coordVectorSize+BlockParams::VXCRD];
             creal vy_block = coordBuffer[blockIndex*coordVectorSize+BlockParams::VYCRD];
             creal vz_block = coordBuffer[blockIndex*coordVectorSize+BlockParams::VZCRD];
-            creal dvx_block = coordBuffer[blockIndex*coordVectorSize+BlockParams::DVX];
-            creal dvy_block = coordBuffer[blockIndex*coordVectorSize+BlockParams::DVY];
-            creal dvz_block = coordBuffer[blockIndex*coordVectorSize+BlockParams::DVZ];
-            creal dvx_blockCell = dvx_block/WID;
-            creal dvy_blockCell = dvy_block/WID;
-            creal dvz_blockCell = dvz_block/WID;
+            creal dvx_blockCell = coordBuffer[blockIndex*coordVectorSize+BlockParams::DVX];
+            creal dvy_blockCell = coordBuffer[blockIndex*coordVectorSize+BlockParams::DVY];
+            creal dvz_blockCell = coordBuffer[blockIndex*coordVectorSize+BlockParams::DVZ];
             // set volume average of distrib. function for each cell in the block.
             for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
                creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;

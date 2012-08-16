@@ -72,9 +72,9 @@ namespace BlockParams {
       VXCRD,   /**< vx-coordinate of the bottom left corner of the block.*/
       VYCRD,   /**< vy-coordinate of the bottom left corner of the block.*/
       VZCRD,   /**< vz-coordinate of the bottom left corner of the block.*/
-      DVX,     /**< Grid separation in vx-coordinate for the block.*/
-      DVY,     /**< Grid separation in vy-coordinate for the block.*/
-      DVZ,     /**< Grid separation in vz-coordinate for the block.*/
+      DVX,     /**< Grid separation in vx-coordinate for the cells in the block.*/
+      DVY,     /**< Grid separation in vy-coordinate for the cells in the block.*/
+      DVZ,     /**< Grid separation in vz-coordinate for the cells in the block.*/
       N_VELOCITY_BLOCK_PARAMS
    };
 }
