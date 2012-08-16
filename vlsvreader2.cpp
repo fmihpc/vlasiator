@@ -656,7 +656,6 @@ bool VLSVParReader::readArray(
    if (getArrayInfo(tagName,attribs) == false) return false;
    const MPI_Offset start = arrayOpen.offset + begin*arrayOpen.vectorSize*arrayOpen.dataSize;
    const int readBytes    = amount*arrayOpen.vectorSize*arrayOpen.dataSize;
-   
    // Read data on all processes in parallel:
    if (MPI_File_read_at_all(filePtr,start,buffer,readBytes,MPI_Type<char>(),MPI_STATUS_IGNORE) != MPI_SUCCESS) {
       cerr << "(VLSVPARREADER) MPI_File_read_at_all failed!" << endl;

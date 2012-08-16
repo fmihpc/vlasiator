@@ -1,5 +1,5 @@
 /*
-This file is part of Vlasiator.
+ This file is part of Vlasiator.
 
 Copyright 2010, 2011, 2012 Finnish Meteorological Institute
 
@@ -128,16 +128,43 @@ bool initializeGrid(int argn, char **argc,dccrg::Dccrg<SpatialCell>& mpiGrid){
 
 
    phiprof::start("Set initial state");
-
-   if (P::restartFileName==""){
+   cout <<"Restart name "<<P::restartFileName<<endl;
+   if (P::restartFileName==string("None")){
+      cout <<"Initializing from scratch"<<endl;
       initSpatialCells(mpiGrid);
    }
    else{
+      cout <<"Restarting"<<endl;
       readGrid(mpiGrid,P::restartFileName);
    }
 
+//now we make sure all remote cells are set up to receive block data and that all sparse velocity blocks are up-to-date
+   vector<uint64_t> cells = mpiGrid.get_cells();
+   updateRemoteVelocityBlockLists(mpiGrid);
+   
+   //in principle not needed as that was done in initSpatialCell, but lets be safe and do it anyway as it does not  cost much
+   for (uint i=0; i<cells.size(); ++i) 
+      mpiGrid[cells[i]]->update_all_block_has_content();     
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_HAS_CONTENT );
+    mpiGrid.update_remote_neighbor_data();
+    
+    adjust_local_velocity_blocks(mpiGrid);
+    //velocity blocks adjusted, lets prepare again for new lists
+    updateRemoteVelocityBlockLists(mpiGrid);
+
+    phiprof::initializeTimer("Fetch Neighbour data","MPI");
+    phiprof::start("Fetch Neighbour data");
+    // update complete spatial cell data 
+    SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
+    mpiGrid.update_remote_neighbor_data();       
+    phiprof::stop("Fetch Neighbour data");   
+
+
+   
    phiprof::stop("Set initial state");
 
+
+   
    balanceLoad(mpiGrid);
    return true;
 }
@@ -168,24 +195,6 @@ void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid){
        initSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
     }
     phiprof::stop("init cell values");
-    updateRemoteVelocityBlockLists(mpiGrid);
-    
-    //in principle not needed as that was done in initSpatialCell, but lets be safe and do it anyway as it does not  cost much
-    for (uint i=0; i<cells.size(); ++i) 
-      mpiGrid[cells[i]]->update_all_block_has_content();     
-    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_HAS_CONTENT );
-    mpiGrid.update_remote_neighbor_data();
-    
-    adjust_local_velocity_blocks(mpiGrid);
-    //velocity blocks adjusted, lets prepare again for new lists
-    updateRemoteVelocityBlockLists(mpiGrid);
-
-    phiprof::initializeTimer("Fetch Neighbour data","MPI");
-    phiprof::start("Fetch Neighbour data");
-    // update complete spatial cell data 
-    SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
-    mpiGrid.update_remote_neighbor_data();       
-    phiprof::stop("Fetch Neighbour data");   
 }
 
 

@@ -135,13 +135,18 @@ bool readBlockData(VLSVParReader & file,
    
    coordAttribs.push_back(make_pair("name","SpatialGrid"));
    avgAttribs.push_back(make_pair("name","avgs"));
+   avgAttribs.push_back(make_pair("mesh","SpatialGrid"));
    //Get array info for cell parameters 
-   if (file.getArrayInfo("BLOCKCOORDS",coordAttribs,arraySize,coordVectorSize,dataType,byteSize) == false ||
-       file.getArrayInfo("BLOCKAVGS",avgAttribs,arraySize,avgVectorSize,dataType,byteSize) == false ){
-      logFile << "(RESTARTBUILDER) ERROR: Failed to read " << endl << write;
+   if (file.getArrayInfo("BLOCKCOORDINATES",coordAttribs,arraySize,coordVectorSize,dataType,byteSize) == false ){
+      logFile << "(RESTARTBUILDER) ERROR: Failed to read BLOCKCOORDINATES array info " << endl << write;
       return false;
    }
-      
+
+   if(file.getArrayInfo("BLOCKVARIABLE",avgAttribs,arraySize,avgVectorSize,dataType,byteSize) == false ){
+      logFile << "(RESTARTBUILDER) ERROR: Failed to read BLOCKVARIABLE array info " << endl << write;
+      return false;
+   }
+   
    if(avgVectorSize!=WID3){
       logFile << "(RESTARTBUILDER) ERROR: Blocksize does not match in restart file " << endl << write;
       return false;
@@ -158,18 +163,18 @@ bool readBlockData(VLSVParReader & file,
    coordBuffer=new fileReal[coordVectorSize*maxNumberOfBlocks];
    avgBuffer=new fileReal[avgVectorSize*maxNumberOfBlocks];
    
-
+   
    for(uint i=0;i<maxCellCount;i++){
       if(i<cellIds.size()){
-         file.readArray("BLOCKCOORDS",coordAttribs,blockDataOffsets[i],numberOfBlocks[i],(char*)coordBuffer);
-         file.readArray("BLOCKAVGS",avgAttribs,blockDataOffsets[i],numberOfBlocks[i],(char*)avgBuffer);
+         file.readArray("BLOCKCOORDINATES",coordAttribs,blockDataOffsets[i],numberOfBlocks[i],(char*)coordBuffer);
+         file.readArray("BLOCKVARIABLE",avgAttribs,blockDataOffsets[i],numberOfBlocks[i],(char*)avgBuffer);
          for (uint blockIndex=0;blockIndex<numberOfBlocks[i];blockIndex++){
-            creal vx_block = coordBuffer[BlockParams::VXCRD];
-            creal vy_block = coordBuffer[BlockParams::VYCRD];
-            creal vz_block = coordBuffer[BlockParams::VZCRD];
-            creal dvx_block = coordBuffer[BlockParams::DVX];
-            creal dvy_block = coordBuffer[BlockParams::DVY];
-            creal dvz_block = coordBuffer[BlockParams::DVZ];
+            creal vx_block = coordBuffer[blockIndex*coordVectorSize+BlockParams::VXCRD];
+            creal vy_block = coordBuffer[blockIndex*coordVectorSize+BlockParams::VYCRD];
+            creal vz_block = coordBuffer[blockIndex*coordVectorSize+BlockParams::VZCRD];
+            creal dvx_block = coordBuffer[blockIndex*coordVectorSize+BlockParams::DVX];
+            creal dvy_block = coordBuffer[blockIndex*coordVectorSize+BlockParams::DVY];
+            creal dvz_block = coordBuffer[blockIndex*coordVectorSize+BlockParams::DVZ];
             creal dvx_blockCell = dvx_block/WID;
             creal dvy_blockCell = dvy_block/WID;
             creal dvz_blockCell = dvz_block/WID;
@@ -178,7 +183,7 @@ bool readBlockData(VLSVParReader & file,
                creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
                creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
                creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
-               mpiGrid[cellIds[i]]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgBuffer[cellIndex(ic,jc,kc)]);
+               mpiGrid[cellIds[i]]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgBuffer[blockIndex*avgVectorSize+cellIndex(ic,jc,kc)]);
             }
          }
       }
@@ -217,6 +222,7 @@ bool readCellParams(VLSVParReader & file,
       return false;
    }
    
+   
    if(byteSize != sizeof(fileReal)){
       success=false;
       logFile << "(RESTARTBUILDER) ERROR: Problem with datasizes " << endl << write;
@@ -225,31 +231,36 @@ bool readCellParams(VLSVParReader & file,
 
    
    buffer=new fileReal[vectorSize];
-   
-   
+   for(uint i=0;i<vectorSize;i++){
+      buffer[i]=-100;
+   }
    for(uint i=0;i<maxCellCount;i++){
       if(i<cellIds.size()){
          file.readArray("CELLPARAMS",attribs,cellDataOffsets[i],1,(char*)buffer);
-         //TODO, we might get FP comparison problems here, especially if the architecture/compile changes
-         if(mpiGrid[cellIds[i]]->parameters[CellParams::XCRD]!=buffer[CellParams::XCRD] ||
-            mpiGrid[cellIds[i]]->parameters[CellParams::YCRD]!=buffer[CellParams::YCRD] ||
-            mpiGrid[cellIds[i]]->parameters[CellParams::ZCRD]!=buffer[CellParams::ZCRD] ||
-            mpiGrid[cellIds[i]]->parameters[CellParams::DX]!=buffer[CellParams::DX] ||
-            mpiGrid[cellIds[i]]->parameters[CellParams::DY]!=buffer[CellParams::DY] ||
-            mpiGrid[cellIds[i]]->parameters[CellParams::DZ]!=buffer[CellParams::DZ] ){
-
-            success=false;
-            logFile << "(RESTARTBUILDER) ERROR: Cell coordinates are not compatitable in cfg and restart file" << endl << write;
+         /*
+         //TODO: add proper checking for cellsize
+         if( (mpiGrid[cellIds[i]]->parameters[CellParams::XCRD]-buffer[CellParams::XCRD] ||
+              mpiGrid[cellIds[i]]->parameters[CellParams::YCRD]!=buffer[CellParams::YCRD] ||
+              mpiGrid[cellIds[i]]->parameters[CellParams::ZCRD]!=buffer[CellParams::ZCRD] ||
+              mpiGrid[cellIds[i]]->parameters[CellParams::DX]!=buffer[CellParams::DX] ||
+              mpiGrid[cellIds[i]]->parameters[CellParams::DY]!=buffer[CellParams::DY] ||
+              mpiGrid[cellIds[i]]->parameters[CellParams::DZ]!=buffer[CellParams::DZ] ){
+              
+              success=false;
+              logFile << "(RESTARTBUILDER) ERROR: Cell coordinates are not compatitable in cfg and restart file" << endl << write;
             return success;
-         }
+            
+         */
          for(uint param=0;param<CellParams::N_SPATIAL_CELL_PARAMS;param++){
             mpiGrid[cellIds[i]]->parameters[param]=buffer[param];
          }
-      }
+         cout << i << " rho " <<  mpiGrid[cellIds[i]]->parameters[CellParams::RHO];
+      } 
       else{
          file.readArray("CELLPARAMS",attribs,0,0,(char*)buffer);
-
       }
+
+
    }
 
    delete(buffer);
@@ -312,11 +323,11 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    
    if(success)
       success=readCellParams<double>(file,localCellIds,localCellDataOffsets,maxCellCount,mpiGrid);
-
+   cout <<" ret of readCellParams " <<success<<endl;
    if(success) 
       success=readBlockData<double>(file,localCellIds,localNBlocks,localBlockDataOffsets,maxCellCount,mpiGrid);
 
-
+   cout <<" ret of readBlockData " <<success<<endl;
    file.close();
    
       
@@ -417,11 +428,13 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    // Write spatial cell parameters:
    Real* paramsBuffer = new Real[cells.size()*CellParams::N_SPATIAL_CELL_PARAMS];
 
-   for (size_t i = 0; i < cells.size(); ++i)
+
+   for (size_t i = 0; i < cells.size(); ++i){
+      SpatialCell* SC = mpiGrid[cells[i]];
       for (uint j = 0; j < CellParams::N_SPATIAL_CELL_PARAMS; ++j) {
-      paramsBuffer[i*CellParams::N_SPATIAL_CELL_PARAMS+j] = mpiGrid[cells[i]]->parameters[j];
+         paramsBuffer[i*CellParams::N_SPATIAL_CELL_PARAMS+j] = SC->parameters[j];
+      }
    }
-   
    if (vlsvWriter.writeArray("CELLPARAMS","SpatialGrid",attribs,cells.size(),CellParams::N_SPATIAL_CELL_PARAMS,paramsBuffer) == false) {
       logFile << "(MAIN) writeGrid: ERROR failed to write spatial cell parameters!" << endl << writeVerbose;
       success = false;

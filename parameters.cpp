@@ -98,7 +98,6 @@ Real P::sparseMinAvgValue = NAN;
 uint P::blockAdjustmentInterval = numeric_limits<uint>::max();
 
 string P::restartFileName = string("");
-
 string P::loadBalanceAlgorithm = string("");
 string P::loadBalanceTolerance = string("");
 uint P::rebalanceInterval = numeric_limits<uint>::max();
@@ -121,7 +120,7 @@ bool Parameters::addParameters(){
         Readparameters::add("split_method","Split method for splitting spatial/velocity space solvers. 0: first order, 1: strang splitting with half-steps for spatial space, 2: strang splitting with half-steps for velocity space",1);
 
         
-        Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empyt file.","");
+        Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string("None"));
         
         Readparameters::add("gridbuilder.x_min","Minimum value of the x-coordinate.","");
         Readparameters::add("gridbuilder.x_max","Minimum value of the x-coordinate.","");
