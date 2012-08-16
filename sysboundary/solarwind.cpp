@@ -102,6 +102,7 @@ namespace SBC {
          determineFace(x, y, z, dx, dy, dz);
          
          for(uint i=0; i<6; i++) {
+            //put a comment what this does... or use bool arrays
             if((faces&(isThisCellOnAFace&(1<<(5-i))))==(1<<(5-i))) {
                cell->parameters[CellParams::BX] = templateCells[i].parameters[CellParams::BX];
                cell->parameters[CellParams::BY] = templateCells[i].parameters[CellParams::BY];

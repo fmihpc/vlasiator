@@ -397,8 +397,10 @@ int main(int argn,char* args[]) {
                  break;
               case 1:
                  phiprof::start("First propagation");
+                 
                  calculateSpatialFluxes(mpiGrid,0.5*P::dt);
                  calculateSpatialPropagation(mpiGrid,true,P::dt);
+
                  phiprof::stop("First propagation",computedBlocks,"Blocks");
                  if(updateVelocityBlocksAfterAcceleration){
                     //need to do a update of block lists as all cells have made local changes
@@ -406,8 +408,11 @@ int main(int argn,char* args[]) {
                     adjustVelocityBlocks(mpiGrid);
                  }
                  phiprof::start("Second propagation");
+                 //re-compute boundary conditions
                  calculateSpatialFluxes(mpiGrid,0.5*P::dt);
                  calculateSpatialPropagation(mpiGrid,false,0);
+                 //re-compute boundary conditions
+
                  phiprof::stop("Second propagation",computedBlocks,"Blocks");
                  break;
               case 2:

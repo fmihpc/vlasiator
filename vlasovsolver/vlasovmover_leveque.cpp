@@ -841,7 +841,24 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
 
 
 
+void calculateCellVelocityMoments(SpatialCell *SC) {
+   if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+   
+   // Clear velocity moments:
+   SC->parameters[CellParams::RHO  ] = 0.0;
+   SC->parameters[CellParams::RHOVX] = 0.0;
+   SC->parameters[CellParams::RHOVY] = 0.0;
+   SC->parameters[CellParams::RHOVZ] = 0.0;
+   
+   for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+      unsigned int block = SC->velocity_block_list[block_i];         
+      
+      // Iterate through all velocity blocks in this spatial cell 
+      // and calculate velocity moments:        
+      cpu_calcVelocityMoments(SC,block);
+   }
 
+}
 void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid) { 
    vector<CellID> cells;
    cells=mpiGrid.get_cells();
@@ -851,22 +868,8 @@ void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
+      calculateCellVelocityMoments(SC);
       
-      if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-      
-      // Clear velocity moments:
-      SC->parameters[CellParams::RHO  ] = 0.0;
-      SC->parameters[CellParams::RHOVX] = 0.0;
-      SC->parameters[CellParams::RHOVY] = 0.0;
-      SC->parameters[CellParams::RHOVZ] = 0.0;
-      
-      for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
-         unsigned int block = SC->velocity_block_list[block_i];         
-      
-      // Iterate through all velocity blocks in this spatial cell 
-      // and calculate velocity moments:        
-         cpu_calcVelocityMoments(SC,block);
-      }
    }
 }
 

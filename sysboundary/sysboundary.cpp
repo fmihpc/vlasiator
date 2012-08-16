@@ -55,6 +55,7 @@ void SysBoundary::addParameters() {
    Readparameters::add("boundaries.periodic_y","If 'yes' the grid is periodic in y-direction. Defaults to 'no'.","no");
    Readparameters::add("boundaries.periodic_z","If 'yes' the grid is periodic in z-direction. Defaults to 'no'.","no");
    
+   //call static addParameter functions in all bc's
    
    Readparameters::addComposing("outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
    
@@ -89,6 +90,7 @@ void SysBoundary::getParameters() {
    if (periodic_x == "yes") isPeriodic[0] = true;
    if (periodic_y == "yes") isPeriodic[1] = true;
    if (periodic_z == "yes") isPeriodic[2] = true;
+   //getParameters for each system boundary condition is called initialization.
 }
 
 /*! Add a new SBC::SysBoundaryCondition which has been created with new sysBoundary. 
@@ -165,7 +167,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid) {
          
          if(tmpType == DO_NOT_COMPUTE) {
             indexToAssign = tmpType;
-            break;
+            break; 
          } else if (tmpType != NOT_SYSBOUNDARY) {
             indexToAssign = tmpType;
          }
@@ -194,14 +196,14 @@ bool SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 }
 
 /*! Get a pointer to the SysBoundaryCondition of given index.
- * @return Pointer to the instance of the SysBoundaryCondition.
+ * \retval Pointer to the instance of the SysBoundaryCondition.
  */
 SBC::SysBoundaryCondition* SysBoundary::getSysBoundary(uint sysBoundaryType) const {
    return indexToSysBoundary.find(sysBoundaryType)->second;
 }
 
 /*! Get the number of SysBoundaryConditions stored in SysBoundary.
- * @return Number of SysBoundaryConditions stored in SysBoundary.
+ * \retval Number of SysBoundaryConditions stored in SysBoundary.
  */
 unsigned int SysBoundary::size() const {return sysBoundaries.size();}
 bool SysBoundary::isDynamic() const {return isThisDynamic;}

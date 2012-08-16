@@ -115,6 +115,7 @@ Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal&
 			   creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz);
 
 /* Split out because it is used in system boundary conditions which are initialised using the same values. */
+//let's make it into a project function -> move it there
 template<class SC>
 void setProjectCell(SC* cell) {
    // Set up cell parameters:
@@ -123,6 +124,7 @@ void setProjectCell(SC* cell) {
    cell->parameters[CellParams::RHOVX] = 0.0;
    cell->parameters[CellParams::RHOVY] = 0.0;
    cell->parameters[CellParams::RHOVZ] = 0.0;
+
    cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
    cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
    
@@ -185,6 +187,7 @@ void setProjectCell(SC* cell) {
          //memory. neighbor_ptrs is empty as we do not have any consistent
          //data in neighbours yet, adjustments done only based on velocity
          //space.
+         //SVA: move the next three lines into a separate function in spatial cell class
          std::vector<SC*> neighbor_ptrs;
          cell->update_all_block_has_content();
          cell->adjust_velocity_blocks(neighbor_ptrs);

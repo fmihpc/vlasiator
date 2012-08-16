@@ -50,8 +50,9 @@ extern Logger logfile, diagnostic;
 
 //subroutine to adjust blocks of local cells; remove/add based on user-defined limits
 bool adjust_local_velocity_blocks(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
-void initSpatialCellVelGrid();
+void initVelocityGridGeometry();
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell>& mpiGrid);
+
 bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid);
 void updateSparseVelocityStuff(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
@@ -64,8 +65,8 @@ void initializeGrid(int argn,
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
    
    // initialize velocity grid of spatial cells before creating cells in dccrg.initialize
-   initSpatialCellVelGrid();
-   
+   initVelocityGridGeometry();
+
    // Init Zoltan:
    float zoltanVersion;
    if (Zoltan_Initialize(argn,argc,&zoltanVersion) != ZOLTAN_OK) {
@@ -79,7 +80,9 @@ void initializeGrid(int argn,
       P::xcells_ini, P::ycells_ini, P::zcells_ini,
       P::xmin, P::ymin, P::zmin,
       P::dx_ini, P::dy_ini, P::dz_ini
-   );
+      );
+
+   
    boost::mpi::communicator comm;//corresponds to MPI_COMM_WORLD
    mpiGrid.initialize(
       comm,
@@ -119,19 +122,22 @@ void initializeGrid(int argn,
       cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
       exit(1);
    }
-   
+
    // Go through every spatial cell on this CPU, and create the initial state:
    phiprof::start("Apply initial state");
    if(applyInitialState(mpiGrid) == false) {
       cerr << "(MAIN) ERROR: Initial state was not applied correctly." << endl;
       exit(1);
    }
+   
    phiprof::stop("Apply initial state");
    phiprof::start("Apply system boundary conditions state");
    if(sysBoundaries.applyInitialState(mpiGrid) == false) {
       cerr << "(MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
       exit(1);
    }
+
+   
    phiprof::stop("Apply system boundary conditions state");
    
    updateSparseVelocityStuff(mpiGrid);
@@ -142,12 +148,12 @@ void initializeGrid(int argn,
 }
 
 // initialize velocity grid of spatial cells before creating cells in dccrg.initialize
-void initSpatialCellVelGrid() {
+void initVelocityGridGeometry(){
    spatial_cell::SpatialCell::vx_length = P::vxblocks_ini;
    spatial_cell::SpatialCell::vy_length = P::vyblocks_ini;
    spatial_cell::SpatialCell::vz_length = P::vzblocks_ini;
    spatial_cell::SpatialCell::max_velocity_blocks = 
-   spatial_cell::SpatialCell::vx_length * spatial_cell::SpatialCell::vy_length * spatial_cell::SpatialCell::vz_length;
+      spatial_cell::SpatialCell::vx_length * spatial_cell::SpatialCell::vy_length * spatial_cell::SpatialCell::vz_length;
    spatial_cell::SpatialCell::vx_min = P::vxmin;
    spatial_cell::SpatialCell::vx_max = P::vxmax;
    spatial_cell::SpatialCell::vy_min = P::vymin;
@@ -166,6 +172,8 @@ void initSpatialCellVelGrid() {
    spatial_cell::SpatialCell::velocity_block_min_value = P::sparseMinValue;
    spatial_cell::SpatialCell::velocity_block_min_avg_value = P::sparseMinAvgValue;
 }
+
+
 
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    vector<uint64_t> cells = mpiGrid.get_cells();
@@ -200,13 +208,17 @@ bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 }
 
 void updateSparseVelocityStuff(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   
    updateRemoteVelocityBlockLists(mpiGrid);
+
    
    vector<uint64_t> cells = mpiGrid.get_cells();
    
    //Calling update_all_block_has_content for all cells in principle not needed as that was done earlier, but let's be safe and do it anyway as it does not  cost much
+
    for (uint i=0; i<cells.size(); ++i)
       mpiGrid[cells[i]]->update_all_block_has_content();
+
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_HAS_CONTENT);
    mpiGrid.update_remote_neighbor_data();
    

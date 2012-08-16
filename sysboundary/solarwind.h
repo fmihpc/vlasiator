@@ -44,6 +44,7 @@ namespace SBC {
       void generateTemplateCell(spatial_cell::SpatialCell& templateCell, int inputDataIndex, creal& t);
       void interpolate(const int inputDataIndex, creal t, Real* rho, Real* T, Real* vx, Real* vy, Real* vz, Real* Bx, Real* By, Real* Bz);
       void determineFace(creal x, creal y, creal z, creal dx, creal dy, creal dz);
+      
       std::string getName() const;
       virtual uint getIndex() const;
       virtual uint getPrecedence() const;

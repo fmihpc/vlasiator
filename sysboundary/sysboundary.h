@@ -20,7 +20,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #define SYSBOUNDARY_H
 
 #include <vector>
-
+#include "mpi.h"
 #include <dccrg.hpp>
 #include "../parameters.h"
 #include "../spatial_cell.hpp"
