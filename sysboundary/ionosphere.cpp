@@ -30,6 +30,14 @@ namespace SBC {
    
    Ionosphere::~Ionosphere() { }
    
+   void Ionosphere::addParameters() {
+      Readparameters::add("ionosphere.centerX", "X coordinate of ionosphere center (m)", 0.0);
+      Readparameters::add("ionosphere.centerY", "Y coordinate of ionosphere center (m)", 0.0);
+      Readparameters::add("ionosphere.centerZ", "Z coordinate of ionosphere center (m)", 0.0);
+      Readparameters::add("ionosphere.radius", "Radius of ionosphere (m).", 1.0e7);
+      Readparameters::add("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 2);
+   }
+   
    void Ionosphere::getParameters() {
       Readparameters::get("ionosphere.centerX", center[0]);
       Readparameters::get("ionosphere.centerY", center[1]);

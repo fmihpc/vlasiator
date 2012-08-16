@@ -30,14 +30,15 @@ namespace SBC {
    class Ionosphere: public SysBoundaryCondition {
    public:
       Ionosphere();
-      ~Ionosphere();
+      virtual ~Ionosphere();
       
-      void getParameters();
+      static void addParameters();
+      virtual void getParameters();
       
-      bool initSysBoundary(creal& t);
-      int assignSysBoundary(creal* cellParams);
+      virtual bool initSysBoundary(creal& t);
+      virtual int assignSysBoundary(creal* cellParams);
       virtual bool applyInitialState(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
-      std::string getName() const;
+      virtual std::string getName() const;
       virtual uint getIndex() const;
       virtual uint getPrecedence() const;
       virtual bool isDynamic() const;

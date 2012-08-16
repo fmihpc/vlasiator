@@ -39,7 +39,8 @@ namespace SBC {
          SysBoundaryCondition();
          virtual ~SysBoundaryCondition();
          
-         void getParameters();
+         static void addParameters();
+         virtual void getParameters();
          
          virtual bool initSysBoundary(creal& t);
          virtual int assignSysBoundary(creal* cellParams);

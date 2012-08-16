@@ -56,26 +56,10 @@ void SysBoundary::addParameters() {
    Readparameters::add("boundaries.periodic_z","If 'yes' the grid is periodic in z-direction. Defaults to 'no'.","no");
    
    //call static addParameter functions in all bc's
-   
-   Readparameters::addComposing("outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
-   
-   Readparameters::addComposing("solarwind.face", "List of faces on which solar wind boundary conditions are to be applied ([xyz][+-]).");
-   Readparameters::add("solarwind.file_x+", "Input files for the solar wind inflow parameters on face x+.", "");
-   Readparameters::add("solarwind.file_x-", "Input files for the solar wind inflow parameters on face x-.", "");
-   Readparameters::add("solarwind.file_y+", "Input files for the solar wind inflow parameters on face y+.", "");
-   Readparameters::add("solarwind.file_y-", "Input files for the solar wind inflow parameters on face y-.", "");
-   Readparameters::add("solarwind.file_z+", "Input files for the solar wind inflow parameters on face z+.", "");
-   Readparameters::add("solarwind.file_z-", "Input files for the solar wind inflow parameters on face z-.", "");
-   Readparameters::add("solarwind.dynamic", "Boolean value, is the solar wind inflow dynamic in time or not.", 0);
-   
-   Readparameters::add("ionosphere.centerX", "X coordinate of ionosphere center (m)", 0.0);
-   Readparameters::add("ionosphere.centerY", "Y coordinate of ionosphere center (m)", 0.0);
-   Readparameters::add("ionosphere.centerZ", "Z coordinate of ionosphere center (m)", 0.0);
-   Readparameters::add("ionosphere.radius", "Radius of ionosphere (m).", 1.0e7);
-   
-   Readparameters::add("outflow.precedence", "Precedence value of the outflow system boundary condition (integer), the higher the stronger.", 3);
-   Readparameters::add("solarwind.precedence", "Precedence value of the solar wind system boundary condition (integer), the higher the stronger.", 2);
-   Readparameters::add("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 1);
+   SBC::DoNotCompute::addParameters();
+   SBC::Ionosphere::addParameters();
+   SBC::Outflow::addParameters();
+   SBC::SolarWind::addParameters();
 }
 
 void SysBoundary::getParameters() {

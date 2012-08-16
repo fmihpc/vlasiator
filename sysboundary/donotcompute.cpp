@@ -29,6 +29,7 @@ namespace SBC {
    DoNotCompute::DoNotCompute(): SysBoundaryCondition() { }
    DoNotCompute::~DoNotCompute() { }
    
+   void DoNotCompute::addParameters() { }
    void DoNotCompute::getParameters() { }
    
    bool DoNotCompute::initSysBoundary(creal& t) {return true;}
@@ -56,13 +57,9 @@ namespace SBC {
          cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
          cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
          
-         //lets get rid of blocks not fulfilling the criteria here to save
-         //memory. neighbor_ptrs is empty as we do not have any consistent
-         //data in neighbours yet, adjustments done only based on velocity
-         //space.
-         vector<SpatialCell*> neighbor_ptrs;
-         cell->update_all_block_has_content();
-         cell->adjust_velocity_blocks(neighbor_ptrs);
+         //let's get rid of blocks not fulfilling the criteria here to save
+         //memory.
+         cell->adjustSingleCellVelocityBlocks();
       }
       
       return true;

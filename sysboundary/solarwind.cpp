@@ -30,6 +30,18 @@ namespace SBC {
    SolarWind::SolarWind(): SysBoundaryCondition() { }
    SolarWind::~SolarWind() { }
    
+   void SolarWind::addParameters() {
+      Readparameters::addComposing("solarwind.face", "List of faces on which solar wind boundary conditions are to be applied ([xyz][+-]).");
+      Readparameters::add("solarwind.file_x+", "Input files for the solar wind inflow parameters on face x+.", "");
+      Readparameters::add("solarwind.file_x-", "Input files for the solar wind inflow parameters on face x-.", "");
+      Readparameters::add("solarwind.file_y+", "Input files for the solar wind inflow parameters on face y+.", "");
+      Readparameters::add("solarwind.file_y-", "Input files for the solar wind inflow parameters on face y-.", "");
+      Readparameters::add("solarwind.file_z+", "Input files for the solar wind inflow parameters on face z+.", "");
+      Readparameters::add("solarwind.file_z-", "Input files for the solar wind inflow parameters on face z-.", "");
+      Readparameters::add("solarwind.dynamic", "Boolean value, is the solar wind inflow dynamic in time or not.", 0);
+      Readparameters::add("solarwind.precedence", "Precedence value of the solar wind system boundary condition (integer), the higher the stronger.", 3);
+   }
+   
    void SolarWind::getParameters() {
       Readparameters::get("solarwind.face", faceList);
       Readparameters::get("solarwind.dynamic", isThisDynamic);
@@ -161,13 +173,9 @@ namespace SBC {
                      cell->parameters[CellParams::RHOVY] /= spatialVolume;
                      cell->parameters[CellParams::RHOVZ] /= spatialVolume;
                      
-                     //lets get rid of blocks not fulfilling the criteria here to save
-                     //memory. neighbor_ptrs is empty as we do not have any consistent
-                     //data in neighbours yet, adjustments done only based on velocity
-                     //space.
-                     vector<SpatialCell*> neighbor_ptrs;
-                     cell->update_all_block_has_content();
-                     cell->adjust_velocity_blocks(neighbor_ptrs);
+                     //let's get rid of blocks not fulfilling the criteria here to save
+                     //memory.
+                     cell->adjustSingleCellVelocityBlocks();
             }
          }
       }
@@ -330,13 +338,9 @@ namespace SBC {
                }
       }
       
-      //lets get rid of blocks not fulfilling the criteria here to save
-      //memory. neighbor_ptrs is empty as we do not have any consistent
-      //data in neighbours yet, adjustments done only based on velocity
-      //space.
-      vector<SpatialCell*> neighbor_ptrs;
-      templateCell.update_all_block_has_content();
-      templateCell.adjust_velocity_blocks(neighbor_ptrs);
+      //let's get rid of blocks not fulfilling the criteria here to save
+      //memory.
+      templateCell.adjustSingleCellVelocityBlocks();
    }
    
    void SolarWind::interpolate(const int inputDataIndex, creal t, Real* rho, Real* T, Real* vx, Real* vy, Real* vz, Real* Bx, Real* By, Real* Bz) {

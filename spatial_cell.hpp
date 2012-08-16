@@ -1246,7 +1246,16 @@ namespace velocity_neighbor {
          //  phiprof::stop(paddreal);
          
       }
-
+      
+      void adjustSingleCellVelocityBlocks() {
+         //neighbor_ptrs is empty as we do not have any consistent
+         //data in neighbours yet, adjustments done only based on velocity
+         //space.
+         std::vector<SpatialCell*> neighbor_ptrs;
+         this->update_all_block_has_content();
+         this->adjust_velocity_blocks(neighbor_ptrs);
+      }
+      
 // set block data pointers. velocity_block_list needs to be up-to-date
       void set_block_data_pointers(int block_index){
          Velocity_Block* tmp_block_ptr = this->block_address_cache[this->velocity_block_list[block_index]];

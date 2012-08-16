@@ -40,6 +40,10 @@ namespace SBC {
    /*! SysBoundaryCondition base class virtual destructor. The destructor is empty.*/
    SysBoundaryCondition::~SysBoundaryCondition() { }
    
+   void SysBoundaryCondition::addParameters() {
+      cerr << "ERROR: SysBoundaryCondition::addParameters called instead of derived class function!" << endl;
+   }
+   
    void SysBoundaryCondition::getParameters() {
       cerr << "ERROR: SysBoundaryCondition::getParameters called instead of derived class function!" << endl;
    }

@@ -29,6 +29,11 @@ namespace SBC {
    Outflow::Outflow(): SysBoundaryCondition() { }
    Outflow::~Outflow() { }
    
+   void Outflow::addParameters() {
+      Readparameters::addComposing("outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
+      Readparameters::add("outflow.precedence", "Precedence value of the outflow system boundary condition (integer), the higher the stronger.", 4);
+   }
+   
    void Outflow::getParameters() {
          Readparameters::get("outflow.face", faceList);
          Readparameters::get("outflow.precedence", precedence);

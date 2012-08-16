@@ -244,15 +244,9 @@ bool initMoverAfterBlockChange(dccrg::Dccrg<SpatialCell>& mpiGrid){
 }
 
 
-bool finalizeMover() {
-
-   
-   return true;
-}
+bool finalizeMover() {return true;}
 
 void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,ID::type cell) { }
-
-
 
 void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid, Real dt) {   
    typedef Parameters P;   
@@ -842,8 +836,6 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
 
 
 void calculateCellVelocityMoments(SpatialCell *SC) {
-   if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-   
    // Clear velocity moments:
    SC->parameters[CellParams::RHO  ] = 0.0;
    SC->parameters[CellParams::RHOVX] = 0.0;
@@ -859,6 +851,7 @@ void calculateCellVelocityMoments(SpatialCell *SC) {
    }
 
 }
+
 void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid) { 
    vector<CellID> cells;
    cells=mpiGrid.get_cells();
@@ -868,6 +861,7 @@ void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
+      if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
       calculateCellVelocityMoments(SC);
       
    }
