@@ -1,6 +1,6 @@
 #ifndef FILEIO_H
 #define FILEIO_H
-
+#include "mpi.h"
 #include <dccrg.hpp>
 #include <string>
 
