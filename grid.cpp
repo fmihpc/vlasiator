@@ -128,13 +128,10 @@ bool initializeGrid(int argn, char **argc,dccrg::Dccrg<SpatialCell>& mpiGrid){
 
 
    phiprof::start("Set initial state");
-   cout <<"Restart name "<<P::restartFileName<<endl;
-   if (P::restartFileName==string("None")){
-      cout <<"Initializing from scratch"<<endl;
+   if (P::restartFileName==string("")){
       initSpatialCells(mpiGrid);
    }
    else{
-      cout <<"Restarting"<<endl;
       readGrid(mpiGrid,P::restartFileName);
    }
 

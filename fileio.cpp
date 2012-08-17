@@ -251,7 +251,6 @@ bool readCellParams(VLSVParReader & file,
          for(uint param=0;param<CellParams::N_SPATIAL_CELL_PARAMS;param++){
             mpiGrid[cellIds[i]]->parameters[param]=buffer[param];
          }
-         cout << i << " rho " <<  mpiGrid[cellIds[i]]->parameters[CellParams::RHO];
       } 
       else{
          file.readArray("CELLPARAMS",attribs,0,0,(char*)buffer);
@@ -277,8 +276,8 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    double allStart = MPI_Wtime();
    bool success=true;
    int myRank,processes;
-
-
+   
+   
    // Attempt to open VLSV file for reading:
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    MPI_Comm_size(MPI_COMM_WORLD,&processes);
@@ -317,14 +316,14 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    //global maximum of number of cells
    MPI_Allreduce(&cellCount,&maxCellCount,1,MPI_INT,MPI_MAX,MPI_COMM_WORLD);
 
-   
+   phiprof::start("readCellParameters");
    if(success)
       success=readCellParams<double>(file,localCellIds,localCellDataOffsets,maxCellCount,mpiGrid);
-   cout <<" ret of readCellParams " <<success<<endl;
+   phiprof::stop("readCellParameters");
+   phiprof::start("readBlockData");
    if(success) 
       success=readBlockData<double>(file,localCellIds,localNBlocks,localBlockDataOffsets,maxCellCount,mpiGrid);
-
-   cout <<" ret of readBlockData " <<success<<endl;
+   phiprof::stop("readBlockData");
    file.close();
    
       
