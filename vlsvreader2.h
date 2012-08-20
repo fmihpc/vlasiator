@@ -30,7 +30,13 @@ class VLSVReader {
  public:
    VLSVReader();
    virtual ~VLSVReader();
-   
+   /*!
+     \brief Close file
+
+     Detailed description in header file
+     
+     \return Returns true for success, and false for error
+   */    
    virtual bool close();
    virtual bool getArrayInfo(const std::string& tagName,const std::string& arrayName,uint64_t& arraySize,
 			     uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& byteSize) const;

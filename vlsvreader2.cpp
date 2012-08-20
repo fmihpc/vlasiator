@@ -37,6 +37,11 @@ VLSVReader::~VLSVReader() {
    filein.close();   
 }
 
+/*!
+
+Detailed description in source 
+
+*/
 bool VLSVReader::close() {
    filein.close();
    xmlReader.clear();
