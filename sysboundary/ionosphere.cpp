@@ -16,6 +16,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*!\file ionosphere.cpp
+ * \brief Implementation of the class SysBoundaryCondition::Ionosphere to handle cells classified as sysboundarytype::IONOSPHERE.
+ */
+
 #include <cstdlib>
 #include <mpi.h>
 #include <iostream>
@@ -48,6 +52,7 @@ namespace SBC {
    
    bool Ionosphere::initSysBoundary(creal& t) {
       getParameters();
+      isThisDynamic = false;
       return true;
    }
    
@@ -98,6 +103,4 @@ namespace SBC {
    std::string Ionosphere::getName() const {return "Ionosphere";}
    
    uint Ionosphere::getIndex() const {return sysboundarytype::IONOSPHERE;}
-   uint Ionosphere::getPrecedence() const {return precedence;}
-   bool Ionosphere::isDynamic() const {return false;}
 }

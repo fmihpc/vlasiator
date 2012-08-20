@@ -49,27 +49,6 @@ bool writeGrid(const dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
 // Write out diagnostic
 bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid, DataReducer& dataReducer, luint tstep);
 
-// /*!
-//   \brief Subroutine for setting up a single spatial cell.
-// 
-//  * @param cell The spatial cell which is to be initialized.
-//  * @param xmin x-coordinate of the lower left corner of the cell.
-//  * @param ymin y-coordinate of the lower left corner of the cell.
-//  * @param zmin z-coordinate of the lower left corner of the cell.
-//  * @param dx Size of the cell in x-direction.
-//  * @param dy Size of the cell in y-direction.
-//  * @param dz Size of the cell in z-direction.
-//  * @param isRemote If true, the given cell is a remote cell (resides on another process) 
-//  * and its initial state need not be calculated.
-//  * @return If true, the cell was initialized successfully. Otherwise an error has 
-//  * occurred and the simulation should be aborted.
-//  */
-// bool initSpatialCell(SpatialCell& cell,
-//                      SysBoundary& sysBoundaries,
-//                      creal& xmin, creal& ymin, creal& zmin,
-//                      creal& dx, creal& dy, creal& dz,
-//                      const bool& isRemote);
-
 void setNotSysBoundaryCell(SpatialCell* cell);
 
 #endif

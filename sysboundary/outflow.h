@@ -27,6 +27,11 @@
 #include "sysboundarycondition.h"
 
 namespace SBC {
+   /*!\brief Outflow is a class applying outflow boundary conditions.
+    * 
+    * Outflow is a class handling cells tagged as sysboundarytype::OUTFLOW by this system
+    * boundary condition. It applies outflow boundary conditions.
+    */
    class Outflow: public SysBoundaryCondition {
    public:
       Outflow();
@@ -40,14 +45,14 @@ namespace SBC {
       virtual bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid);
       virtual std::string getName() const;
       virtual uint getIndex() const;
-      virtual uint getPrecedence() const;
-      virtual bool isDynamic() const;
       
    protected:
-      uint faces : 6;
-      uint isThisCellOnAFace : 6;
-      std::vector<std::string> faceList; /*!< List of faces on which outflow boundary conditions are to be applied ([+-][xyz]). */
-      uint precedence; /*!< Precedence value of the outflow system boundary condition. */
+      /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
+      bool facesToProcess[6];
+      /*! Array of bool used to tell on which face(s) (if any) a given cell is. \sa determineFace */
+      bool isThisCellOnAFace[6];
+      /*! List of faces on which outflow boundary conditions are to be applied ([xyz][+-]). */
+      std::vector<std::string> faceList;
    };
 }
 

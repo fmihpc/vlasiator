@@ -16,6 +16,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*!\file donotcompute.cpp
+ * \brief Implementation of the class SysBoundaryCondition::DoNotCompute to handle cells classified as sysboundarytype::DO_NOT_COMPUTE.
+ */
+
 #include <cstdlib>
 #include <mpi.h>
 #include <iostream>
@@ -32,7 +36,11 @@ namespace SBC {
    void DoNotCompute::addParameters() { }
    void DoNotCompute::getParameters() { }
    
-   bool DoNotCompute::initSysBoundary(creal& t) {return true;}
+   bool DoNotCompute::initSysBoundary(creal& t) {
+      precedence = 0;
+      isThisDynamic = false;
+      return true;
+   }
    
    int DoNotCompute::assignSysBoundary(creal* cellParams) {
       return sysboundarytype::NOT_SYSBOUNDARY;
@@ -68,6 +76,4 @@ namespace SBC {
    std::string DoNotCompute::getName() const {return "DoNotCompute";}
    
    uint DoNotCompute::getIndex() const {return sysboundarytype::DO_NOT_COMPUTE;}
-   uint DoNotCompute::getPrecedence() const {return 0;}
-   bool DoNotCompute::isDynamic() const {return false;}
 }

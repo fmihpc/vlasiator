@@ -27,9 +27,18 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 using namespace spatial_cell;
 
 namespace SBC {
-   /*! SBC::SysBoundaryCondition defines a base class for applying boundary conditions.
+   /*!\brief SBC::SysBoundaryCondition is the base class for system boundary conditions.
     * 
-    * TODO detail what functions are included
+    * SBC::SysBoundaryCondition defines a base class for applying boundary conditions.
+    * Specific system boundary conditions inherit from this base class, that's why most
+    * functions defined here are not meant to be called and contain a corresponding error
+    * message. The functions to be called are the inherited class members.
+    * 
+    * The initSysBoundary function is used to initialise the internal workings needed by the
+    * system boundary condition to run (e.g. importing parameters, initialising class
+    * members). assignSysBoundary is used to determine whether a given cell is within the
+    * domain of system boundary condition. applyInitialState is called to initialise a system
+    * boundary cell's parameters and velocity space.
     * 
     * If needed, a user can write his or her own SBC::SysBoundaryConditions, which 
     * are loaded when the simulation initializes.
@@ -45,13 +54,19 @@ namespace SBC {
          virtual bool initSysBoundary(creal& t);
          virtual int assignSysBoundary(creal* cellParams);
          virtual bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid);
+         void determineFace(bool* isThisCellOnAFace,
+                            creal x, creal y, creal z,
+                            creal dx, creal dy, creal dz);
          virtual std::string getName() const;
          virtual uint getIndex() const;
-         virtual uint getPrecedence() const;
-         virtual bool isDynamic() const;
+         uint getPrecedence() const;
+         bool isDynamic() const;
       
       protected:
-         
+         /*! Precedence value of the system boundary condition. */
+         uint precedence;
+         /*! Is the boundary condition dynamic in time or not. */
+         bool isThisDynamic;
    };
 } // namespace SBC
 

@@ -23,18 +23,26 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "mpi.h"
 #include <dccrg.hpp>
 #include "../parameters.h"
+#include "../readparameters.h"
 #include "../spatial_cell.hpp"
 
 #include "sysboundarycondition.h"
 #include "donotcompute.h"
 #include "ionosphere.h"
 #include "outflow.h"
-#include "solarwind.h"
+#include "setmaxwellian.h"
 
-/*! The purpose of SysBoundary is to contain SBC::SysBoundaryConditions, and apply 
+/*! \brief SysBoundary contains the SysBoundaryConditions used in the simulation.
+ * 
+ * The purpose of SysBoundary is to contain SBC::SysBoundaryConditions, and apply 
  * them to the simulation volume cells if the cells pertain to a specific boundary type.
  * If the simulation domain is not fully periodic then the behaviour at the edges or boundaries of the volume has to be properly defined.
- * TODO detail the workings when coded
+ * 
+ * initSysBoundaries creates the instances of SBC::SysBoundaryConditions that are needed.
+ * They are then initialised, which means the internals are prepared for the system
+ * boundary condition to be applied (import and process parameters, generate template cells
+ * etc.). When the whole simulation domain is initialised, the boundary conditions are
+ * applied to the cells they have by calling applyInitialState.
  * 
  * If needed, a user can write his or her own SBC::SysBoundaryConditions, which 
  * are loaded when the simulation initializes.
@@ -64,8 +72,11 @@ class SysBoundary {
       std::list<SBC::SysBoundaryCondition*> sysBoundaries;
       /*! A map from the system boundary types to the corresponding class member. */
       std::map<uint, SBC::SysBoundaryCondition*> indexToSysBoundary;
-      std::vector<std::string> sysBoundaryCondList; /*!< List of system boundary conditions (SBC) to be used. */
+      /*! List of system boundary conditions (SBC) to be used. */
+      std::vector<std::string> sysBoundaryCondList;
+      /*! bool telling whether any system boundary condition is dynamic in time (and thus needs updating). */
       bool isThisDynamic;
+      /*! Array of bool telling whether the system is periodic in any direction. */
       bool isPeriodic[3];
       
 

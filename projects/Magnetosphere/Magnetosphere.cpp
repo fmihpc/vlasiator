@@ -25,6 +25,7 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "project.h"
 #include "parameters.h"
 #include "readparameters.h"
+#include "vlasovmover.h"
 
 using namespace std;
 
@@ -57,10 +58,6 @@ bool getProjectParameters(){
 void setProjectCell(SpatialCell* cell) {
    // Set up cell parameters:
    calcCellParameters(&((*cell).parameters[0]), 0.0);
-   cell->parameters[CellParams::RHO  ] = 0.0;
-   cell->parameters[CellParams::RHOVX] = 0.0;
-   cell->parameters[CellParams::RHOVY] = 0.0;
-   cell->parameters[CellParams::RHOVZ] = 0.0;
    
    cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
    cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
@@ -103,26 +100,13 @@ void setProjectCell(SpatialCell* cell) {
                         creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
                         creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
                         cell->set_value(vx_cell_center,vy_cell_center,vz_cell_center,average);
-                        // Add contributions to spatial cell velocity moments:
-                        creal dV = dvx_blockCell*dvy_blockCell*dvz_blockCell;  // Volume of one cell in a block      
-                        cell->parameters[CellParams::RHO  ] += average*dV;
-                        cell->parameters[CellParams::RHOVX] += average*vx_cell_center*dV;
-                        cell->parameters[CellParams::RHOVY] += average*vy_cell_center*dV;
-                        cell->parameters[CellParams::RHOVZ] += average*vz_cell_center*dV;
                      }
                   }
          }
-         creal spatialVolume = cell->parameters[CellParams::DX]*
-         cell->parameters[CellParams::DY]*
-         cell->parameters[CellParams::DZ];
-         cell->parameters[CellParams::RHO  ] /= spatialVolume;
-         cell->parameters[CellParams::RHOVX] /= spatialVolume;
-         cell->parameters[CellParams::RHOVY] /= spatialVolume;
-         cell->parameters[CellParams::RHOVZ] /= spatialVolume;
-         
-         //let's get rid of blocks not fulfilling the criteria here to save
-         //memory.
-         cell->adjustSingleCellVelocityBlocks();
+   calculateCellVelocityMoments(cell);
+   
+   //let's get rid of blocks not fulfilling the criteria here to save memory.
+   cell->adjustSingleCellVelocityBlocks();
 }
 
 void dipole(creal x, creal y, creal z, Real& Bx, Real &By, Real& Bz) {

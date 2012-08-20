@@ -16,39 +16,44 @@
  along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef IONOSPHERE_H
-#define IONOSPHERE_H
+#ifndef SETMAXWELLIAN_H
+#define SETMAXWELLIAN_H
 
 #include <vector>
 #include "../definitions.h"
-#include "../project.h"
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
 #include "sysboundarycondition.h"
+#include "setbyuser.h"
 
 namespace SBC {
-   /*!\brief Ionosphere is a class applying ionospheric boundary conditions.
+   /*!\brief SetMaxwellian is a class applying fixed Maxwellian conditions according to parameters read from an input file.
     * 
-    * Ionosphere is a class handling cells tagged as sysboundarytype::IONOSPHERE by this
-    * system boundary condition. It applies ionospheric boundary conditions.
+    * Maxwellian is a class handling cells tagged as sysboundarytype::MAXWELLIAN by this
+    * system boundary condition.
+    * 
+    * It applies fixed Maxwellian settings to the system boundary cells, the parameters of
+    * which are being read from an input file.
+    * 
+    * The class inherits most of its machinery from
+    * SysBoundaryCondition::SetByUser. The parameters are more general than for Maxwellian
+    * and could be put in SysBoundaryCondition::SetByUser but this way they can have a
+    * specific prefix which is needed if several inheriting classes are needed.
+    * 
     */
-   class Ionosphere: public SysBoundaryCondition {
+   class SetMaxwellian: public SetByUser {
    public:
-      Ionosphere();
-      virtual ~Ionosphere();
+      SetMaxwellian();
+      virtual ~SetMaxwellian();
       
       static void addParameters();
       virtual void getParameters();
       
-      virtual bool initSysBoundary(creal& t);
-      virtual int assignSysBoundary(creal* cellParams);
-      virtual bool applyInitialState(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
       virtual std::string getName() const;
       virtual uint getIndex() const;
       
    protected:
-      Real center[3]; /*!< Coordinates of the centre of the ionosphere. */
-      Real radius; /*!< Radius of the ionosphere. */
+      void generateTemplateCell(spatial_cell::SpatialCell& templateCell, int inputDataIndex, creal& t);
    };
 }
 

@@ -100,7 +100,10 @@ void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt);
 Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
 			   creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz);
 
-/* Split out because it is used in system boundary conditions which are initialised using the same values. */
+/*!\brief Set the fields and distribution of a cell according to the default simulation settings.
+ * This is used for the NOT_SYSBOUNDARY cells and some other system boundary conditions (e.g. Outflow).
+ * \param cell Pointer to the cell to set.
+ */
 void setProjectCell(SpatialCell* cell);
 
 

@@ -16,6 +16,13 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
+/*!\file sysboundarycondition.cpp
+ * \brief Implementation of the base class SysBoundaryCondition to handle system boundary cells.
+ * 
+ * \sa donotcompute.cpp ionosphere.cpp outflow.cpp setbyuser.cpp setmaxwellian.cpp
+ * 
+ */
+
 #include <cstdlib>
 #include <mpi.h>
 #include <iostream>
@@ -23,9 +30,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "../parameters.h"
 #include "sysboundarycondition.h"
-#include "ionosphere.h"
-#include "outflow.h"
-#include "solarwind.h"
 
 using namespace std;
 
@@ -33,6 +37,22 @@ namespace SBC {
    // ************************************************************
    // ***** DEFINITIONS FOR BOUNDARYCONDITION BASE CLASS *****
    // ************************************************************
+   
+   /*!\brief Function used to determine on which face(s) if any the cell at given coordinates is.
+    * 
+    * This function is used by some of the classes inheriting from this base class.
+    */
+   void SysBoundaryCondition::determineFace(bool* isThisCellOnAFace,
+                                            creal x, creal y, creal z,
+                                            creal dx, creal dy, creal dz) {
+      for(uint i=0; i<6; i++) isThisCellOnAFace[i] = false;
+      if(x > Parameters::xmax - dx) isThisCellOnAFace[0] = true;
+      if(x < Parameters::xmin + dx) isThisCellOnAFace[1] = true;
+      if(y > Parameters::ymax - dy) isThisCellOnAFace[2] = true;
+      if(y < Parameters::ymin + dy) isThisCellOnAFace[3] = true;
+      if(z > Parameters::zmax - dz) isThisCellOnAFace[4] = true;
+      if(z < Parameters::zmin + dz) isThisCellOnAFace[5] = true;
+   }
    
    /*! SysBoundaryCondition base class constructor. The constructor is empty.*/
    SysBoundaryCondition::SysBoundaryCondition() { }
@@ -56,7 +76,7 @@ namespace SBC {
    }
    
    /*! Function used to assign the system boundary condition type to a cell.
-    * \param 
+    * \param cellParams Pointer to the cell's parameters array.
     * \return The system boundary condition type's index
     */
    int SysBoundaryCondition::assignSysBoundary(creal* cellParams) {
@@ -87,19 +107,13 @@ namespace SBC {
    }
    
    /*! Get the precedence value of the system boundary condition.
-    * @return The precedence value of the system boundary condition as set by parameter. The base class function returns 0.
+    * @return The precedence value of the system boundary condition as set by parameter.
     */
-   uint SysBoundaryCondition::getPrecedence() const {
-      cerr << "ERROR: SysBoundaryCondition::getPrecedence called instead of derived class function!" << endl;
-      return 0;
-   }
+   uint SysBoundaryCondition::getPrecedence() const {return precedence;}
    
-   /*! Returns whether this boundary condition is dynamic in time.
+   /*! Returns whether the boundary condition is dynamic in time.
     * @return Boolean value.
     */
-   bool SysBoundaryCondition::isDynamic() const {
-      cerr << "ERROR: SysBoundaryCondition::isDynamic called instead of derived class function!" << endl;
-      return false;
-   }
+   bool SysBoundaryCondition::isDynamic() const {return isThisDynamic;}
    
 } // namespace SBC

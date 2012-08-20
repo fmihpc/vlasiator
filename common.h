@@ -172,8 +172,6 @@ namespace fieldsolver {
 
 /*! The namespace sysboundarytype contains the identification index of the boundary condition types applied to a cell,
  * it is stored in SpatialCell::sysBoundaryFlag and used by the BoundaryCondition class' functions to determine what type of BC to apply to a cell.
- * 
- * The position in this enum sets the order of precedence. DO_NOT_COMPUTE is checked for specifically in many places but DO_NOT_COMPUTE and NOT_BOUNDARY should be the lowest and then the boundary condition type indexes should be put in order of precedence of the boundary types. TODO import precedence from cfg/user
  */
 namespace sysboundarytype {
    enum {
@@ -181,7 +179,7 @@ namespace sysboundarytype {
       NOT_SYSBOUNDARY, /*!< Cells within the simulation domain are not boundary cells. */
       IONOSPHERE, /*!< Initially a perfectly conducting sphere. */
       OUTFLOW, /*!< No fixed conditions on the fields and distribution function. */
-      SW, /*!< Solar wind boundary condition, i.e. set fields and distribution function. */
+      SET_MAXWELLIAN, /*!< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
       N_SYSBOUNDARY_CONDITIONS
    };
 }

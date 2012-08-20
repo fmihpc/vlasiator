@@ -26,6 +26,11 @@
 #include "sysboundarycondition.h"
 
 namespace SBC {
+   /*!\brief DoNotCompute is a class handling cells not to be computed.
+    * 
+    * DoNotCompute is a class handling cells tagged as sysboundarytype::DO_NOT_COMPUTE by a
+    * system boundary condition (e.g. SysBoundaryCondition::Ionosphere).
+    */
    class DoNotCompute: public SysBoundaryCondition {
    public:
       DoNotCompute();
@@ -39,8 +44,6 @@ namespace SBC {
       virtual bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid);
       virtual std::string getName() const;
       virtual uint getIndex() const;
-      virtual uint getPrecedence() const;
-      virtual bool isDynamic() const;
    };
 }
 

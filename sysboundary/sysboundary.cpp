@@ -16,6 +16,10 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
+/*! \file sysboundary.cpp
+ * \brief Implementation of the class SysBoundary.
+ */
+
 #include <cstdlib>
 #include <iostream>
 
@@ -36,7 +40,9 @@ bool precedenceSort(const SBC::SysBoundaryCondition* first,
 /*! Constructor for class SysBoundary. Increases the value of SysBoundary::nSysBoundaries by one. */
 SysBoundary::SysBoundary() { }
 
-/*! Destructor for class SysBoundary. Reduces the value of SysBoundary::nSysBoundaries by one,
+/*!\brief Destructor for class SysBoundary.
+ * 
+ * Reduces the value of SysBoundary::nSysBoundaries by one,
  * and if after the destruction SysBoundary::nSysBoundaries equals zero all stored SysBoundaries are deleted.
  */
 SysBoundary::~SysBoundary() {
@@ -49,8 +55,15 @@ SysBoundary::~SysBoundary() {
    }
 }
 
+/*!\brief Add its own and all existing SysBoundaryConditions' parameters.
+ * 
+ * Adds the parameters specific to the SysBondary class handling the list of
+ * SysBoundaryConditions and then calls the static addParameters functions of all
+ * SysBoundaryConditions implemented in the code in order to have them appear also in the
+ * help.
+ */
 void SysBoundary::addParameters() {
-   Readparameters::addComposing("boundaries.boundary", "List of boundary condition (BC) types to be used. Each boundary condition to be used has to be on a new line boundary = YYY. Available (20120807) are outflow ionosphere solarwind.");
+   Readparameters::addComposing("boundaries.boundary", "List of boundary condition (BC) types to be used. Each boundary condition to be used has to be on a new line boundary = YYY. Available (20120820) are outflow ionosphere maxwellian.");
    Readparameters::add("boundaries.periodic_x","If 'yes' the grid is periodic in x-direction. Defaults to 'no'.","no");
    Readparameters::add("boundaries.periodic_y","If 'yes' the grid is periodic in y-direction. Defaults to 'no'.","no");
    Readparameters::add("boundaries.periodic_z","If 'yes' the grid is periodic in z-direction. Defaults to 'no'.","no");
@@ -59,8 +72,16 @@ void SysBoundary::addParameters() {
    SBC::DoNotCompute::addParameters();
    SBC::Ionosphere::addParameters();
    SBC::Outflow::addParameters();
-   SBC::SolarWind::addParameters();
+   SBC::SetMaxwellian::addParameters();
 }
+
+/*!\brief Get this class' parameters.
+ * 
+ * Get the parameters pertaining to this class.
+ * 
+ * getParameters for each actually used system boundary condition is called by each
+ * SysBoundaryCondition's initialization function.
+ */
 
 void SysBoundary::getParameters() {
    Readparameters::get("boundaries.boundary", sysBoundaryCondList);
@@ -74,12 +95,11 @@ void SysBoundary::getParameters() {
    if (periodic_x == "yes") isPeriodic[0] = true;
    if (periodic_y == "yes") isPeriodic[1] = true;
    if (periodic_z == "yes") isPeriodic[2] = true;
-   //getParameters for each system boundary condition is called initialization.
 }
 
 /*! Add a new SBC::SysBoundaryCondition which has been created with new sysBoundary. 
  * SysBoundary will take care of deleting it.
- * @return If true, the given SBC::SysBoundaryCondition was added successfully.
+ * \retval success If true, the given SBC::SysBoundaryCondition was added successfully.
  */
 bool SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, creal& t) {
    sysBoundaries.push_back(bc);
@@ -98,6 +118,16 @@ bool SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, creal& t) {
    return success;
 }
 
+/*!\brief Initialise all system boundary conditions actually used.
+ * 
+ * This function loops through the list of system boundary conditions listed as to be used
+ * in the configuration file/command line arguments. For each of these it adds the
+ * corresponding instance and updates the member isThisDynamic to determine whether any
+ * SysBoundaryCondition is dynamic in time.
+ * 
+ * \retval success If true, the initialisation of all system boundaries succeeded.
+ * \sa addSysBoundary
+ */
 bool SysBoundary::initSysBoundaries(creal& t) {
    bool success = true;
    vector<string>::const_iterator it;
@@ -123,19 +153,24 @@ bool SysBoundary::initSysBoundaries(creal& t) {
          isThisDynamic = isThisDynamic|
          this->getSysBoundary(sysboundarytype::IONOSPHERE)->isDynamic();
       }
-      if(*it == "SolarWind") {
-         if(this->addSysBoundary(new SBC::SolarWind, t) == false) {
-            cerr << "Error in adding SolarWind boundary." << endl;
+      if(*it == "Maxwellian") {
+         if(this->addSysBoundary(new SBC::SetMaxwellian, t) == false) {
+            cerr << "Error in adding Maxwellian boundary." << endl;
             success = false;
          }
          isThisDynamic = isThisDynamic|
-         this->getSysBoundary(sysboundarytype::SW)->isDynamic();
+         this->getSysBoundary(sysboundarytype::SET_MAXWELLIAN)->isDynamic();
       }
    }
    
    return success;
 }
 
+/*!\brief Classify all simulation cells with respect to the system boundary conditions.
+ * 
+ * Loops through all cells and and for each assigns the correct sysBoundaryFlag depending on
+ * the return value of each SysBoundaryCondition's assignSysBoundary.
+ */
 bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    using namespace sysboundarytype;
    uint indexToAssign, tmpType;
@@ -162,6 +197,12 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    return true;
 }
 
+/*!\brief Apply the initial state to all system boundary cells.
+ * 
+ * Loops through all SysBoundaryConditions and calls the corresponding applyInitialState
+ * function.
+ * \retval success If true, the application of all system boundary states succeeded.
+ */
 bool SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    bool success = true;
    using namespace sysboundarytype;
@@ -180,15 +221,22 @@ bool SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 }
 
 /*! Get a pointer to the SysBoundaryCondition of given index.
- * \retval Pointer to the instance of the SysBoundaryCondition.
+ * \retval ptr Pointer to the instance of the SysBoundaryCondition.
  */
 SBC::SysBoundaryCondition* SysBoundary::getSysBoundary(uint sysBoundaryType) const {
    return indexToSysBoundary.find(sysBoundaryType)->second;
 }
 
 /*! Get the number of SysBoundaryConditions stored in SysBoundary.
- * \retval Number of SysBoundaryConditions stored in SysBoundary.
+ * \retval size Number of SysBoundaryConditions stored in SysBoundary.
  */
 unsigned int SysBoundary::size() const {return sysBoundaries.size();}
+/*! Get a bool telling whether any system boundary condition is dynamic in time (and thus needs updating).
+ * \retval isThisDynamic Is any system boundary condition dynamic in time.
+ */
 bool SysBoundary::isDynamic() const {return isThisDynamic;}
+/*! Get a bool telling whether the system is periodic in the queried direction.
+ * \param direction 0: x, 1: y, 2: z.
+ * \retval isThisDynamic Is the system periodic in the queried direction.
+ */
 bool SysBoundary::isBoundaryPeriodic(uint direction) const {return isPeriodic[direction];}

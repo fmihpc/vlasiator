@@ -16,6 +16,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*!\file outflow.cpp
+ * \brief Implementation of the class SysBoundaryCondition::Outflow to handle cells classified as sysboundarytype::OUTFLOW.
+ */
+
 #include <cstdlib>
 #include <mpi.h>
 #include <iostream>
@@ -40,24 +44,26 @@ namespace SBC {
    }
    
    bool Outflow::initSysBoundary(creal& t) {
-      /* The bit field encodes which of the +x, -x, +y, -y, +z, -z faces are to have outflow system boundary conditions.
-       * The bit field has length 6, a bit raised to 1 indicates the corresponding face will have outflow.
-       * The 6 bits left-to-right correspond to +x, -x, +y, -y, +z, -z respectively.
+      /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are to have outflow system boundary conditions.
+       * A true indicates the corresponding face will have outflow.
+       * The 6 elements correspond to x+, x-, y+, y-, z+, z- respectively.
        */
-      faces = 0;
+      for(uint i=0; i<6; i++) facesToProcess[i] = false;
       
-      getParameters();
+      this->getParameters();
+      
+      isThisDynamic = false;
       
       vector<string>::const_iterator it;
       for (it = faceList.begin();
            it != faceList.end();
       it++) {
-         if(*it == "x+") faces = faces|(1<<5);
-         if(*it == "x-") faces = faces|(1<<4);
-         if(*it == "y+") faces = faces|(1<<3);
-         if(*it == "y-") faces = faces|(1<<2);
-         if(*it == "z+") faces = faces|(1<<1);
-         if(*it == "z-") faces = faces|1;
+         if(*it == "x+") facesToProcess[0] = true;
+         if(*it == "x-") facesToProcess[1] = true;
+         if(*it == "y+") facesToProcess[2] = true;
+         if(*it == "y-") facesToProcess[3] = true;
+         if(*it == "z+") facesToProcess[4] = true;
+         if(*it == "z-") facesToProcess[5] = true;
       }
       return true;
    }
@@ -71,17 +77,13 @@ namespace SBC {
       creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
       
       int typeToAssign = sysboundarytype::NOT_SYSBOUNDARY;
-      isThisCellOnAFace = 0;
       
-      if(x > Parameters::xmax - dx) isThisCellOnAFace = isThisCellOnAFace|(1<<5);
-      if(x < Parameters::xmin + dx) isThisCellOnAFace = isThisCellOnAFace|(1<<4);
-      if(y > Parameters::ymax - dy) isThisCellOnAFace = isThisCellOnAFace|(1<<3);
-      if(y < Parameters::ymin + dy) isThisCellOnAFace = isThisCellOnAFace|(1<<2);
-      if(z > Parameters::zmax - dz) isThisCellOnAFace = isThisCellOnAFace|(1<<1);
-      if(z < Parameters::zmin + dz) isThisCellOnAFace = isThisCellOnAFace|1;
+      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
       
-      // Bitwise comparison of the field defining which faces to use and the field telling on which faces this cell is
-      if((faces & isThisCellOnAFace) != 0) typeToAssign = getIndex();
+      // Comparison of the array defining which faces to use and the array telling on which faces this cell is
+      bool doAssign = false;
+      for(uint i=0; i<6; i++) doAssign = doAssign || (facesToProcess[i] && isThisCellOnAFace[i]);
+      if(doAssign) typeToAssign = this->getIndex();
       return typeToAssign;
    }
    
@@ -91,17 +93,13 @@ namespace SBC {
          SpatialCell* cell = mpiGrid[cells[i]];
          if(cell->sysBoundaryFlag != this->getIndex()) continue;
          
-         // Defined in grid.cpp, used here as the outflow cell has the same state as the initial state of non-system boundary cells.
+         // Defined in project.cpp, used here as the outflow cell has the same state as the initial state of non-system boundary cells.
          setProjectCell(cell);
       }
       
       return true;
    }
    
-   
    std::string Outflow::getName() const {return "Outflow";}
-   
    uint Outflow::getIndex() const {return sysboundarytype::OUTFLOW;}
-   uint Outflow::getPrecedence() const {return precedence;}
-   bool Outflow::isDynamic() const {return false;}
 }
