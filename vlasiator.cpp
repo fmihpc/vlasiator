@@ -292,7 +292,7 @@ int main(int argn,char* args[]) {
                  ++cell_id
                  ) {
                SpatialCell* cell = mpiGrid[*cell_id];
-               if (cell->sysBoundaryFlag > sysboundarytype::NOT_SYSBOUNDARY) continue;
+               if (cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
                dtmax_local[0]=min(dtmax_local[0],cell->parameters[CellParams::MAXRDT]);
                dtmax_local[1]=min(dtmax_local[1],cell->parameters[CellParams::MAXVDT]);
                dtmax_local[2]=min(dtmax_local[2],cell->parameters[CellParams::MAXFDT]);
