@@ -16,6 +16,12 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
+
+/*! \file vlsvreader2.h
+ * \brief Classes for reading in vlsv files
+ */
+
+
 #ifndef VLSVREADER2_H
 #define VLSVREADER2_H
 
@@ -26,34 +32,125 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "muxml.h"
 #include "vlscommon.h"
 
+
+/*!
+\brief A serial non-MPI class for reading in vlsv files.
+
+*/
 class VLSVReader {
  public:
    VLSVReader();
    virtual ~VLSVReader();
    /*!
      \brief Close file
-
-     Detailed description in header file
-     
      \return Returns true for success, and false for error
-   */    
+   */ 
    virtual bool close();
+   /*!
+     \brief Get information on array identified by its tag and name 
+     \param[in] tagName Name of tag
+     \param[in] arrayName Name of array (attribute name)
+     \param[out] arraySize Number of vector elements in the array
+     \param[out] vectorSize Number of scalar elements in each vector element 
+     \param[out] dataType Datatype of each scalar element in the vectors ("int","uint", or "float")
+     \param[out] byteSize The size of each scalar element in bytes.
+     \return Returns true for success, and false for error
+   */   
    virtual bool getArrayInfo(const std::string& tagName,const std::string& arrayName,uint64_t& arraySize,
 			     uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& byteSize) const;
+   /*!
+     \brief Get information on array ientified by its tag, name meshName
+     \param[in] tagName Name of tag
+     \param[in] arrayName Name of array (attribute "name")
+     \param[in] meshName Name of mesh on which the data is defind (attribute "mesh" )
+     \param[out] arraySize Number of vector elements in the array
+     \param[out] vectorSize Number of scalar elements in each vector element 
+     \param[out] dataType Datatype of each scalar element in the vectors ("int","uint", or "float")
+     \param[out] byteSize The size of each scalar element in bytes.
+     \return Returns true for success, and false for error
+   */
    virtual bool getArrayInfo(const std::string& tagName,const std::string& arrayName,const std::string& meshName,
 			     uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& byteSize) const;
-   virtual bool getBlockVariableNames(const std::string& meshName,std::list<std::string>& varNames) const;
-   virtual bool getMeshNames(std::list<std::string>& meshNames) const;
+
+   /*!
+     \brief Get information on array identified by attributes
+     \param[in] tagName Name of tag
+     \param[in] attribs List of attribute pairs. Key can be, e.g., "name" and "mesh.
+     \param[out] arraySize Number of vector elements in the array
+     \param[out] vectorSize Number of scalar elements in each vector element 
+     \param[out] dataType Datatype of each scalar element in the vectors ("int","uint", or "float")
+     \param[out] byteSize The size of each scalar element in bytes.
+     \return Returns true for success, and false for error
+   */
    virtual bool getArrayInfo(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
 			     uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& byteSize) const;
+
+
+   /*!
+     \brief Get the name of all arrays with a "MESH" tag
+     \param[out] meshNames List of values for "name" attributes for all "MESH" tags
+     \return Returns true for success, and false for error
+   */
+   virtual bool getMeshNames(std::list<std::string>& meshNames) const;
+   /*!
+     \brief Get the name of all arrays with a "VARIABLE" tag and a specified "mesh" attribute
+     \param[in] meshNames "mesh" atribute value
+     \param[out] varNames List of values for "name" attributes for all matching arrays
+     \return Returns true for success, and false for error
+   */
    virtual bool getVariableNames(const std::string& meshName,std::list<std::string>& varNames) const;
-   virtual bool loadArray(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs);
+   /*!
+     \brief Get the name of all arrays with a "BLOCKVARIABLE" tag and a specified "mesh" attribute
+     \param[in] meshNames "mesh" atribute value
+     \param[out] varNames List of values for "name" attributes for all matching arrays
+     \return Returns true for success, and false for error
+   */
+
+   virtual bool getBlockVariableNames(const std::string& meshName,std::list<std::string>& varNames) const;
+/*!     
+    \brief Open file      
+    \param[in] fname Name of file that is to be opened
+     \return Returns true for success, and false for error
+  */
    virtual bool open(const std::string& fname);
-   virtual bool readArray(const std::string& tagName,const std::string& arrayName,const uint64_t& begin,const uint64_t& amount,char* buffer);
+
+
+   /*!
+     \brief Read array
+     \param[in] tagName Name of tag
+     \param[in] arrayName Name of array (value of "name" attrib).
+     \param[in] begin Location in array where read is to begin, in units of array vectors.
+     \param[in] amount Number of vectors that is read
+     \param[out] Pointer to array where the read data is placed
+     \return Returns true for success, and false for error 
+   */
+   virtual bool readArray(const std::string& tagName,const std::string& arrayName,const uint64_t& begin,
+                          const uint64_t& amount,char* buffer);
+   /*!
+     \brief Read array
+     \param[in] tagName Name of tag
+     \param[in] attribs List of attribute pairs. Key can be, e.g., "mesh".
+     \param[in] begin Location in array where read is to begin, in units of array vectors.
+     \param[in] amount Number of vectors that is read
+     \param[out] Pointer to array where the read data is placed
+     \return Returns true for success, and false for error 
+   */
    virtual bool readArray(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
-			  const uint64_t& begin,const uint64_t& end,char* buffer);
-   virtual bool readArray(const std::string& tagName,const std::string& arrayName,const std::list<std::pair<std::string,std::string> >& attribs,
-			  const uint64_t& begin,const uint64_t& end,char* buffer);
+			  const uint64_t& begin,const uint64_t& amount,char* buffer);
+
+   /*!
+     \brief Read array
+     \param[in] tagName Name of tag
+     \param[in] arrayName Name of array (value of "name" attrib).
+     \param[in] attribs List of attribute pairs. Key can be, e.g., "mesh".
+     \param[in] begin Location in array where read is to begin, in units of array vectors.
+     \param[in] amount Number of vectors that is read
+     \param[out] Pointer to array where the read data is placed
+     \return Returns true for success, and false for error 
+   */
+   virtual bool readArray(const std::string& tagName,const std::string& arrayName,
+                          const std::list<std::pair<std::string,std::string> >& attribs,
+			  const uint64_t& begin,const uint64_t& amount,char* buffer);
    
  protected:
    unsigned char endiannessFile;   /**< Endianness in VLSV file.*/
@@ -63,8 +160,12 @@ class VLSVReader {
    bool fileOpen;                  /**< If true, a file is currently open.*/
    bool swapIntEndianness;         /**< If true, endianness should be swapped on read data (not implemented yet).*/
    MuXML xmlReader;                /**< XML reader used to parse VLSV footer.*/
+
+
    
-   /** Struct used to store information on the currently open array.*/
+   virtual bool loadArray(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs);
+   
+   /*! Struct used to store information on the currently open array.*/
    struct ArrayOpen {
       std::streamoff offset;
       std::string tagName;
@@ -76,6 +177,11 @@ class VLSVReader {
    } arrayOpen;
 };
 
+
+/*!
+\brief A parallel MPI class for reading in vlsv files.
+
+*/
 class VLSVParReader: public VLSVReader {
  public:
    VLSVParReader();
