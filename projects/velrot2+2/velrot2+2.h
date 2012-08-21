@@ -90,6 +90,12 @@ void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt);
 Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
 			   creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz);
 
+/*!\brief Set the fields and distribution of a cell according to the default simulation settings.
+ * This is used for the NOT_SYSBOUNDARY cells and some other system boundary conditions (e.g. Outflow).
+ * \param cell Pointer to the cell to set.
+ */
+void setProjectCell(SpatialCell* cell);
+
 /** Calculate the boundary value of volume average of distribution function. This function 
  * should calculate the value of distribution function on the other side of given phase space 
  * cell face. The coordinate direction is given with parameter crd, and positive or negative 

@@ -91,7 +91,7 @@ namespace spatial_cell {
       const unsigned int VEL_BLOCK_PARAMETERS     = (1<<8);
       const unsigned int CELL_B_RHO_RHOV          = (1<<9);
       const unsigned int CELL_E                   = (1<<10);
-      const unsigned int CELL_GHOSTFLAG           = (1<<11);
+      const unsigned int CELL_SYSBOUNDARYFLAG     = (1<<11);
       const unsigned int VEL_BLOCK_HAS_CONTENT    = (1<<12); 
       const unsigned int CELL_EB                  = (1<<13);
       const unsigned int CELL_E1                  = (1<<14);
@@ -102,7 +102,7 @@ namespace spatial_cell {
       | CELL_DERIVATIVES
       | VEL_BLOCK_DATA
       | VEL_BLOCK_FLUXES
-      | CELL_GHOSTFLAG;
+      | CELL_SYSBOUNDARYFLAG;
    }
 
 /** A namespace for storing indices into an array containing neighbour information 
@@ -205,7 +205,7 @@ namespace velocity_neighbor {
    class SpatialCell {
    public:
 
-/****************************
+      /****************************
        * Velocity block functions *
        ****************************/
 
@@ -403,46 +403,46 @@ namespace velocity_neighbor {
          return error_velocity_cell;
       }
       
-      unsigned int w=velocity_neighbor::WIDTH;
-      xyzDirection[0]=direction%w-1;
-      xyzDirection[1]=(direction/w)%w-1;
-      xyzDirection[2]=(direction/(w*w))%w-1; 
-      
-      block_len[0]=block_vx_length;
-      block_len[1]=block_vy_length;
-      block_len[2]=block_vz_length;
+         unsigned int w=velocity_neighbor::WIDTH;
+         xyzDirection[0]=direction%w-1;
+         xyzDirection[1]=(direction/w)%w-1;
+         xyzDirection[2]=(direction/(w*w))%w-1; 
+         
+         block_len[0]=block_vx_length;
+         block_len[1]=block_vy_length;
+         block_len[2]=block_vz_length;
 
-      offset[0]=1;
-      offset[1]=block_vx_length;
-      offset[2]=block_vx_length * block_vy_length;
+         offset[0]=1;
+         offset[1]=block_vx_length;
+         offset[2]=block_vx_length * block_vy_length;
 
-      neighborCell=cell;
-      //loop over vx,vy,vz
-      for(int c=0;c<3;c++){
-         switch (xyzDirection[c]) {
-             case -1: //in negative direction
-                if (indices[c] == 0) {
-                   return error_velocity_cell;
-                } else {
-                   neighborCell+=-offset[c];
-                }
-                break;
-             case 0:
-                break;
-             case 1: //in positive direction
-                if (indices[c] >= block_len[c] - 1) {
-                   return error_velocity_cell;
-                } else {
-                   neighborCell += offset[c];
-                }
-                break;
-             default:
-                return error_velocity_cell;
-                break;
+         neighborCell=cell;
+         //loop over vx,vy,vz
+         for(int c=0;c<3;c++){
+            switch (xyzDirection[c]) {
+               case -1: //in negative direction
+                  if (indices[c] == 0) {
+                     return error_velocity_cell;
+                  } else {
+                     neighborCell+=-offset[c];
+                  }
+                  break;
+               case 0:
+                  break;
+               case 1: //in positive direction
+                  if (indices[c] >= block_len[c] - 1) {
+                     return error_velocity_cell;
+                  } else {
+                     neighborCell += offset[c];
+                  }
+                  break;
+               default:
+                  return error_velocity_cell;
+                  break;
+            }
          }
+         return neighborCell;
       }
-      return neighborCell;
-   }
 
    
       /*!     
@@ -627,7 +627,7 @@ namespace velocity_neighbor {
          this->block_data.resize(100*VELOCITY_BLOCK_LENGTH);
          this->block_fx.resize(100*SIZE_FLUXS);
          
-	 this->block_has_content.reserve(SpatialCell::max_velocity_blocks); 
+         this->block_has_content.reserve(SpatialCell::max_velocity_blocks); 
          this->block_address_cache.reserve(SpatialCell::max_velocity_blocks);
          for (unsigned int block = 0; block < SpatialCell::max_velocity_blocks; block++) {
             this->block_has_content.push_back(0);
@@ -670,12 +670,12 @@ namespace velocity_neighbor {
          null_block_data(other.null_block_data),
          null_block_fx(other.null_block_fx),
          neighbors(other.neighbors),
-         boundaryFlag(other.boundaryFlag),
-         isGhostCell(other.isGhostCell)
+         procBoundaryFlag(other.procBoundaryFlag),
+         sysBoundaryFlag(other.sysBoundaryFlag)
          {
 
-//	 phiprof::initializeTimer("SpatialCell copy", "SpatialCell copy");
-//	 phiprof::start("SpatialCell copy");
+//       phiprof::initializeTimer("SpatialCell copy", "SpatialCell copy");
+//       phiprof::start("SpatialCell copy");
 
          //copy parameters
          for(unsigned int i=0;i< CellParams::N_SPATIAL_CELL_PARAMS;i++){
@@ -793,8 +793,7 @@ namespace velocity_neighbor {
 
         Creates the velocity block at given coordinates if it doesn't exist.
       */
-      void set_value(const Real vx, const Real vy, const Real vz, const Real value)
-         {
+      void set_value(const Real vx, const Real vy, const Real vz, const Real value) {
             const unsigned int block = get_velocity_block(vx, vy, vz);
             if (this->velocity_blocks.count(block) == 0) {
                if (!this->add_velocity_block(block)) {
@@ -811,15 +810,32 @@ namespace velocity_neighbor {
 
             const unsigned int cell = get_velocity_cell(block, vx, vy, vz);
             block_ptr->data[cell] = value;
+      }
+      
+      /*!
+       * Gets the value of a velocity cell at given coordinates.
+       * 
+       * Returns 0 if it doesn't exist.
+       */
+      Real get_value(const Real vx, const Real vy, const Real vz)
+      {
+         const unsigned int block = get_velocity_block(vx, vy, vz);
+         if (this->velocity_blocks.count(block) == 0) {
+            return 0.0;
          }
-
-
-      void* at(void)
-         {
-            return this;
+         Velocity_Block* block_ptr = &(this->velocity_blocks.at(block));
+         if (block_ptr == NULL) {
+            std::cerr << __FILE__ << ":" << __LINE__
+            << " block_ptr == NULL" << std::endl; 
+            abort();
          }
-
-
+         
+         const unsigned int cell = get_velocity_cell(block, vx, vy, vz);
+         return block_ptr->data[cell];
+      }
+      
+      void* at(void) {return this;}
+      
       MPI_Datatype mpi_datatype(void){
             MPI_Datatype type;
             std::vector<MPI_Aint> displacements;
@@ -917,10 +933,10 @@ namespace velocity_neighbor {
                 block_lengths.push_back(sizeof(Real) * fieldsolver::N_SPATIAL_CELL_DERIVATIVES);
             }
 
-            // send  isGhostCell        
-            if((SpatialCell::mpi_transfer_type & Transfer::CELL_GHOSTFLAG)!=0){
-                displacements.push_back((uint8_t*) &(this->isGhostCell) - (uint8_t*) this);
-                block_lengths.push_back(sizeof(bool)); //Size of bool is 1, or larger (implementation dependent)
+            // send  sysBoundaryFlag        
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_SYSBOUNDARYFLAG)!=0){
+                displacements.push_back((uint8_t*) &(this->sysBoundaryFlag) - (uint8_t*) this);
+                block_lengths.push_back(sizeof(uint));
             }
             
             
@@ -1090,24 +1106,22 @@ namespace velocity_neighbor {
 
       /*!  Adds "important" and removes "unimportant" velocity blocks
         to/from this cell.
-	
-	block_has_content list needs to be up to date in local cells
-	and its neighbours, update_all_block_has_content() should have
-	been called with the current distribution function values.
-	
+      
+        block_has_content list needs to be up to date in local cells
+        and its neighbours, update_all_block_has_content() should have
+        been called with the current distribution function values.
+        
         Removes all velocity blocks from this spatial cell which don't
         have content and don't have spatial or velocity neighbors with
         content.  Adds neighbors for all velocity blocks which do have
         content (including spatial neighbors).  All cells in
         spatial_neighbors are assumed to be neighbors of this cell.
-	
-
+        
+        
         This function is thread-safe when called for different cells
         per thread. We need the block_has_content vector from
         neighbouring cells, but these are not written to here. We only
         modify local cell.
-
-        
       */
       void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors)
       {
@@ -1234,7 +1248,16 @@ namespace velocity_neighbor {
          //  phiprof::stop(paddreal);
          
       }
-
+      
+      void adjustSingleCellVelocityBlocks() {
+         //neighbor_ptrs is empty as we do not have any consistent
+         //data in neighbours yet, adjustments done only based on velocity
+         //space.
+         std::vector<SpatialCell*> neighbor_ptrs;
+         this->update_all_block_has_content();
+         this->adjust_velocity_blocks(neighbor_ptrs);
+      }
+      
 // set block data pointers. velocity_block_list needs to be up-to-date
       void set_block_data_pointers(int block_index){
          Velocity_Block* tmp_block_ptr = this->block_address_cache[this->velocity_block_list[block_index]];
@@ -1274,21 +1297,20 @@ namespace velocity_neighbor {
       }
       
       
-      /*        !
+      /*!
         Adds an empty velocity block into this spatial cell.
-
         Returns true if given block was added or already exists.
         Returns false if given block is invalid or would be outside
         of the velocity grid.
       */
-
-      
       bool add_velocity_block(const unsigned int block) {
          if (block == error_velocity_block) {
+            std::cerr << "ERROR: trying to add a block with the key error_velocity_block!" << std::endl;
             return false;
          }
 
          if (block >= SpatialCell::max_velocity_blocks) {
+            std::cerr << "ERROR: trying to add a block with a key > max_velocity_blocks!" << std::endl;
             return false;
          }
 
@@ -1713,8 +1735,8 @@ namespace velocity_neighbor {
       std::vector<uint64_t> neighbors;
      
       //data for solvers
-      unsigned int boundaryFlag;
-      bool isGhostCell;
+      unsigned int procBoundaryFlag;
+      uint sysBoundaryFlag; /*!< What type of system boundary does the cell belong to. Enumerated in the sysboundarytype namespace's enum */
       
       
    }; // class SpatialCell

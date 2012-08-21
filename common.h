@@ -32,6 +32,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #define CHECK_FLOAT(x) {}
 #endif
 
+#define MASTER_RANK 0
+
 /** A namespace for storing indices into an array which contains 
  * neighbour list for each spatial cell. These indices refer to 
  * the CPU memory, i.e. the device does not use these.
@@ -166,7 +168,19 @@ namespace fieldsolver {
    };
 }
 
-
+/** The namespace sysboundarytype contains the identification index of the boundary condition types applied to a cell,
+ * it is stored in SpatialCell::sysBoundaryFlag and used by the BoundaryCondition class' functions to determine what type of BC to apply to a cell.
+ */
+namespace sysboundarytype {
+   enum {
+      DO_NOT_COMPUTE, /**< E.g. cells within the ionospheric outer radius should not be computed at all. */
+      NOT_SYSBOUNDARY, /**< Cells within the simulation domain are not boundary cells. */
+      IONOSPHERE, /**< Initially a perfectly conducting sphere. */
+      OUTFLOW, /**< No fixed conditions on the fields and distribution function. */
+      SET_MAXWELLIAN, /**< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
+      N_SYSBOUNDARY_CONDITIONS
+   };
+}
 
 
 

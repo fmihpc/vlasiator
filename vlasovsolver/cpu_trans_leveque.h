@@ -876,10 +876,10 @@ template<typename REAL,typename UINT> void cpu_calcSpatDfdt(dccrg::Dccrg<spatial
    //cell
 
    //FIXME, this extra copying is perhaps not needed, why not use block->fx's directly?  check
-   const UINT boundaryFlags = cell->boundaryFlag;
+   const UINT procBoundaryFlags = cell->procBoundaryFlag;
    for (uint nbr=0; nbr<27; ++nbr) {
       // If the neighbour does not exist, do not copy data:     
-      if (((boundaryFlags >> nbr) & 1) == 0) continue;
+      if (((procBoundaryFlags >> nbr) & 1) == 0) continue;
       spatial_cell::Velocity_Block* nbrblock = mpiGrid[cell->neighbors[nbr]]->at(blockId);
        //if neighbour is null_block, do not copy fluxes to it
       if(mpiGrid[cell->neighbors[nbr]]->is_null_block(nbrblock)) continue;

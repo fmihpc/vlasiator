@@ -33,7 +33,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "logger.h"
 #include "parameters.h"
 
-#include "datareducer.h"
+#include "datareduction/datareducer.h"
+#include "sysboundary/sysboundary.h"
 #include "transferstencil.h"
 
 #include "vlsvwriter2.h" 
@@ -47,26 +48,112 @@ using namespace phiprof;
 
 extern Logger logFile, diagnostic;
 
-//Subroutine for initializing all local spatial cells
-void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid);
-
-
-
 //subroutine to adjust blocks of local cells; remove/add based on user-defined limits
 bool adjust_local_velocity_blocks(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
+void initVelocityGridGeometry();
+void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell>& mpiGrid);
+
+bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid);
+void updateSparseVelocityStuff(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
 
-
-bool initializeGrid(int argn, char **argc,dccrg::Dccrg<SpatialCell>& mpiGrid){
+void initializeGrid(int argn,
+                    char **argc,
+                    dccrg::Dccrg<SpatialCell>& mpiGrid,
+                    SysBoundary& sysBoundaries) {
    int myrank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
-
+   
    // initialize velocity grid of spatial cells before creating cells in dccrg.initialize
+   initVelocityGridGeometry();
+
+   // Init Zoltan:
+   float zoltanVersion;
+   if (Zoltan_Initialize(argn,argc,&zoltanVersion) != ZOLTAN_OK) {
+      if(myrank == MASTER_RANK) cerr << "\t ERROR: Zoltan initialization failed." << endl;
+      exit(1);
+   } else {
+      logFile << "\t Zoltan " << zoltanVersion << " initialized successfully" << std::endl << writeVerbose;
+   }
+   
+   mpiGrid.set_geometry(
+      P::xcells_ini, P::ycells_ini, P::zcells_ini,
+      P::xmin, P::ymin, P::zmin,
+      P::dx_ini, P::dy_ini, P::dz_ini
+      );
+
+   
+   boost::mpi::communicator comm;//corresponds to MPI_COMM_WORLD
+   mpiGrid.initialize(
+      comm,
+      &P::loadBalanceAlgorithm[0],
+      // neighborhood size
+      #ifdef SOLVER_KT
+      1, // kt needs 0 but field volume average calculation needs 1
+      #elif defined SOLVER_LEVEQUE
+      2,
+      #endif
+      0, // maximum refinement level
+      sysBoundaries.isBoundaryPeriodic(0),
+      sysBoundaries.isBoundaryPeriodic(1),
+      sysBoundaries.isBoundaryPeriodic(2)
+   );
+   
+   mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
+   phiprof::start("Initial load-balancing");
+   if (myrank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
+   mpiGrid.balance_load();
+   phiprof::stop("Initial load-balancing");
+   
+   if (myrank == MASTER_RANK) logFile << "(INIT): Set initial state." << endl << writeVerbose;
+   phiprof::start("Set initial state");
+   
+   phiprof::start("Set spatial cell coordinates");
+   initSpatialCellCoordinates(mpiGrid);
+   phiprof::stop("Set spatial cell coordinates");
+   
+   if(sysBoundaries.initSysBoundaries(P::t_min) == false) {
+      if (myrank == MASTER_RANK) cerr << "Error in initialising the system boundaries." << endl;
+      exit(1);
+   }
+   
+   // Initialise system boundary conditions (they need the initialised positions!!)
+   if(sysBoundaries.classifyCells(mpiGrid) == false) {
+      cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
+      exit(1);
+   }
+
+   // Go through every spatial cell on this CPU, and create the initial state:
+   phiprof::start("Apply initial state");
+   if(applyInitialState(mpiGrid) == false) {
+      cerr << "(MAIN) ERROR: Initial state was not applied correctly." << endl;
+      exit(1);
+   }
+   
+   phiprof::stop("Apply initial state");
+   phiprof::start("Apply system boundary conditions state");
+   if(sysBoundaries.applyInitialState(mpiGrid) == false) {
+      cerr << "(MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
+      exit(1);
+   }
+
+   
+   phiprof::stop("Apply system boundary conditions state");
+   
+   updateSparseVelocityStuff(mpiGrid);
+   
+   phiprof::stop("Set initial state");
+   
+   balanceLoad(mpiGrid);
+}
+
+// initialize velocity grid of spatial cells before creating cells in dccrg.initialize
+void initVelocityGridGeometry(){
    spatial_cell::SpatialCell::vx_length = P::vxblocks_ini;
    spatial_cell::SpatialCell::vy_length = P::vyblocks_ini;
    spatial_cell::SpatialCell::vz_length = P::vzblocks_ini;
    spatial_cell::SpatialCell::max_velocity_blocks = 
-   spatial_cell::SpatialCell::vx_length * spatial_cell::SpatialCell::vy_length * spatial_cell::SpatialCell::vz_length;
+      spatial_cell::SpatialCell::vx_length * spatial_cell::SpatialCell::vy_length * spatial_cell::SpatialCell::vz_length;
    spatial_cell::SpatialCell::vx_min = P::vxmin;
    spatial_cell::SpatialCell::vx_max = P::vxmax;
    spatial_cell::SpatialCell::vy_min = P::vymin;
@@ -84,176 +171,67 @@ bool initializeGrid(int argn, char **argc,dccrg::Dccrg<SpatialCell>& mpiGrid){
    spatial_cell::SpatialCell::cell_dvz = spatial_cell::SpatialCell::block_dvz / block_vz_length;
    spatial_cell::SpatialCell::velocity_block_min_value = P::sparseMinValue;
    spatial_cell::SpatialCell::velocity_block_min_avg_value = P::sparseMinAvgValue;
- 
-   
-   
-// Init Zoltan:
-   float zoltanVersion;
-   if (Zoltan_Initialize(argn,argc,&zoltanVersion) != ZOLTAN_OK) {
-      logFile << "\t ERROR: Zoltan initialization failed, aborting." << std::endl << writeVerbose;
-   } else {
-      logFile << "\t Zoltan " << zoltanVersion << " initialized successfully" << std::endl << writeVerbose;
+}
+
+
+
+void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   vector<uint64_t> cells = mpiGrid.get_cells();
+   for (uint i=0; i<cells.size(); ++i) {
+      mpiGrid[cells[i]]->parameters[CellParams::XCRD] = mpiGrid.get_cell_x_min(cells[i]);
+      mpiGrid[cells[i]]->parameters[CellParams::YCRD] = mpiGrid.get_cell_y_min(cells[i]);
+      mpiGrid[cells[i]]->parameters[CellParams::ZCRD] = mpiGrid.get_cell_z_min(cells[i]);
+      mpiGrid[cells[i]]->parameters[CellParams::DX  ] = mpiGrid.get_cell_x_size(cells[i]);
+      mpiGrid[cells[i]]->parameters[CellParams::DY  ] = mpiGrid.get_cell_y_size(cells[i]);
+      mpiGrid[cells[i]]->parameters[CellParams::DZ  ] = mpiGrid.get_cell_z_size(cells[i]);
    }
-   
-   mpiGrid.set_geometry(
-      P::xcells_ini, P::ycells_ini, P::zcells_ini,
-      P::xmin, P::ymin, P::zmin,
-      P::dx_ini, P::dy_ini, P::dz_ini
-   );
-   boost::mpi::communicator comm;//corresponds to MPI_COMM_WORLD
-   mpiGrid.initialize(
-      comm,
-      &P::loadBalanceAlgorithm[0],
-      // neighborhood size
-      #ifdef SOLVER_KT
-      1, // kt needs 0 but field volume average calculation needs 1
-      #elif defined SOLVER_LEVEQUE
-      2,
-      #endif
-      0, // maximum refinement level
-      P::periodic_x, P::periodic_y, P::periodic_z
-      );
-   
-   
-   
-   
-   mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
-   phiprof::start("Initial load-balancing");
-   if (myrank == 0) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
-   mpiGrid.balance_load();
-   phiprof::stop("Initial load-balancing");
-
-
-   if (myrank == 0) logFile << "(INIT): Set initial state." << endl << writeVerbose;
-   
-   // Go through every spatial cell on this CPU, and create the initial state:
-
-   phiprof::start("Set initial state");
-   initSpatialCells(mpiGrid);
-   phiprof::stop("Set initial state");
-
-   balanceLoad(mpiGrid);
-   return true;
 }
 
-
-void initSpatialCells(dccrg::Dccrg<SpatialCell>& mpiGrid){
-    typedef Parameters P;
-    phiprof::start("init cell values");
-    vector<uint64_t> cells = mpiGrid.get_cells();
-
-
-    //  Go through every cell on this node and initialize the pointers to 
-    // cpu memory, physical parameters and volume averages for each phase space 
-    // point in the velocity grid. Velocity block neighbour list is also 
-    // constructed here:
-    // Each initialization has to be independent to avoid threadingproblems 
-#pragma omp parallel for schedule(dynamic)
-    for (uint i=0; i<cells.size(); ++i) {
-       Real xmin,ymin,zmin,dx,dy,dz;
-       dx = mpiGrid.get_cell_x_size(cells[i]);
-       dy = mpiGrid.get_cell_y_size(cells[i]);
-       dz = mpiGrid.get_cell_z_size(cells[i]);
-       xmin = mpiGrid.get_cell_x_min(cells[i]);
-       ymin = mpiGrid.get_cell_y_min(cells[i]);
-       zmin = mpiGrid.get_cell_z_min(cells[i]);
-       initSpatialCell(*(mpiGrid[cells[i]]),xmin,ymin,zmin,dx,dy,dz,false);
-    }
-    phiprof::stop("init cell values");
-    updateRemoteVelocityBlockLists(mpiGrid);
-    
-    //in principle not needed as that was done in initSpatialCell, but lets be safe and do it anyway as it does not  cost much
-    for (uint i=0; i<cells.size(); ++i) 
-      mpiGrid[cells[i]]->update_all_block_has_content();     
-    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_HAS_CONTENT );
-    mpiGrid.update_remote_neighbor_data();
-    
-    adjust_local_velocity_blocks(mpiGrid);
-    //velocity blocks adjusted, lets prepare again for new lists
-    updateRemoteVelocityBlockLists(mpiGrid);
-
-    phiprof::initializeTimer("Fetch Neighbour data","MPI");
-    phiprof::start("Fetch Neighbour data");
-    // update complete spatial cell data 
-    SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
-    mpiGrid.update_remote_neighbor_data();       
-    phiprof::stop("Fetch Neighbour data");   
-}
-
-
-/** Set up a spatial cell.
- */
-bool initSpatialCell(SpatialCell& cell,creal& xmin,creal& ymin,
-		      creal& zmin,creal& dx,creal& dy,creal& dz,
-		     const bool& isRemote) {
+bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    typedef Parameters P;
-   // Set up cell parameters:
-   cell.parameters[CellParams::XCRD] = xmin;
-   cell.parameters[CellParams::YCRD] = ymin;
-   cell.parameters[CellParams::ZCRD] = zmin;
-   cell.parameters[CellParams::DX  ] = dx;
-   cell.parameters[CellParams::DY  ] = dy;
-   cell.parameters[CellParams::DZ  ] = dz;
-   calcCellParameters(&(cell.parameters[0]),0.0);
-   cell.parameters[CellParams::RHO  ] = 0.0;
-   cell.parameters[CellParams::RHOVX] = 0.0;
-   cell.parameters[CellParams::RHOVY] = 0.0;
-   cell.parameters[CellParams::RHOVZ] = 0.0;
-   cell.parameters[CellParams::RHOLOSSADJUST] = 0.0;
-   cell.parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
-
-   // Go through each velocity block in the velocity phase space grid.
-   // Set the initial state and block parameters:
+   using namespace sysboundarytype;
    
-   creal dvx_block = SpatialCell::block_dvx; // Size of a block in vx-direction
-   creal dvy_block = SpatialCell::block_dvy; //                    vy
-   creal dvz_block = SpatialCell::block_dvz; //                    vz
-   creal dvx_blockCell = SpatialCell::cell_dvx;                 // Size of one cell in a block in vx-direction
-   creal dvy_blockCell = SpatialCell::cell_dvy;                 //                                vy
-   creal dvz_blockCell = SpatialCell::cell_dvz;                 //                                vz
-
+   vector<uint64_t> cells = mpiGrid.get_cells();
    
-   for (uint kv=0; kv<P::vzblocks_ini; ++kv) for (uint jv=0; jv<P::vyblocks_ini; ++jv) for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
-      creal vx_block = P::vxmin + iv*dvx_block; // vx-coordinate of the lower left corner
-      creal vy_block = P::vymin + jv*dvy_block; // vy-
-      creal vz_block = P::vzmin + kv*dvz_block; // vz-
-
-      if (isRemote == true) continue;
-      // Calculate volume average of distrib. function for each cell in the block.
-      for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-	 creal vx_cell = vx_block + ic*dvx_blockCell;
-	 creal vy_cell = vy_block + jc*dvy_blockCell;
-	 creal vz_cell = vz_block + kc*dvz_blockCell;
-         Real average=calcPhaseSpaceDensity(xmin,ymin,zmin,dx,dy,dz,vx_cell,vy_cell,vz_cell,dvx_blockCell,dvy_blockCell,dvz_blockCell);
-
-         if(average!=0.0){
-            creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
-            creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
-            creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
-            cell.set_value(vx_cell_center,vy_cell_center,vz_cell_center,average);
-            // Add contributions to spatial cell velocity moments:
-            creal dV = dvx_blockCell*dvy_blockCell*dvz_blockCell;  // Volume of one cell in a block      
-            cell.parameters[CellParams::RHO  ] += average*dV;
-            cell.parameters[CellParams::RHOVX] += average*vx_cell_center*dV;
-            cell.parameters[CellParams::RHOVY] += average*vy_cell_center*dV;
-            cell.parameters[CellParams::RHOVZ] += average*vz_cell_center*dV;
-         }
-      }
+   //  Go through every cell on this node and initialize the pointers to 
+   // cpu memory, physical parameters and volume averages for each phase space 
+   // point in the velocity grid. Velocity block neighbour list is also 
+   // constructed here:
+   // Each initialization has to be independent to avoid threading problems 
+//#pragma omp parallel for schedule(dynamic)
+   for (uint i=0; i<cells.size(); ++i) {
+      SpatialCell* cell = mpiGrid[cells[i]];
+      if(cell->sysBoundaryFlag != NOT_SYSBOUNDARY) continue;
+      setProjectCell(cell);
    }
-   creal spatialVolume = cell.parameters[CellParams::DX]*cell.parameters[CellParams::DY]*cell.parameters[CellParams::DZ];
-   cell.parameters[CellParams::RHO  ] /= spatialVolume;
-   cell.parameters[CellParams::RHOVX] /= spatialVolume;
-   cell.parameters[CellParams::RHOVY] /= spatialVolume;
-   cell.parameters[CellParams::RHOVZ] /= spatialVolume;
-
-   //lets get rid of blocks not fulfilling the criteria here to save
-   //memory.  neighbor_ptrs is empty as we do not have any consistent
-   //data in neighbours yet, adjustments done only based on velocity
-   //space.
-   vector<SpatialCell*> neighbor_ptrs;
-   cell.update_all_block_has_content();
-   cell.adjust_velocity_blocks(neighbor_ptrs);
    return true;
+}
+
+void updateSparseVelocityStuff(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   
+   updateRemoteVelocityBlockLists(mpiGrid);
+
+   
+   vector<uint64_t> cells = mpiGrid.get_cells();
+   
+   //Calling update_all_block_has_content for all cells in principle not needed as that was done earlier, but let's be safe and do it anyway as it does not  cost much
+
+   for (uint i=0; i<cells.size(); ++i)
+      mpiGrid[cells[i]]->update_all_block_has_content();
+
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_HAS_CONTENT);
+   mpiGrid.update_remote_neighbor_data();
+   
+   adjust_local_velocity_blocks(mpiGrid);
+   //velocity blocks adjusted, lets prepare again for new lists
+   updateRemoteVelocityBlockLists(mpiGrid);
+   
+   phiprof::initializeTimer("Fetch Neighbour data","MPI");
+   phiprof::start("Fetch Neighbour data");
+   // update complete spatial cell data 
+   SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
+   mpiGrid.update_remote_neighbor_data();
+   phiprof::stop("Fetch Neighbour data");
 }
 
 
@@ -262,13 +240,18 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    //set weights based on each cells LB weight counter
    vector<uint64_t> cells = mpiGrid.get_cells();
    for (uint i=0; i<cells.size(); ++i){
-      if(P::maxAccelerationSubsteps!=1) {
-         //use time-metric from solvers
-         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
-      }
-      else{
-         //No substepping in acceleration step, use number of blocks instead as metric as that provides slightly better results
-         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->number_of_blocks);
+      if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+         // No load in that case
+         mpiGrid.set_cell_weight(cells[i], 0.0);
+      } else {
+         if(P::maxAccelerationSubsteps!=1) {
+            //use time-metric from solvers
+            mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
+         }
+         else{
+            //No substepping in acceleration step, use number of blocks instead as metric as that provides slightly better results
+            mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->number_of_blocks);
+         }
       }
       
       mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]=0.0; //zero counter
@@ -364,7 +347,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    for (size_t i=0; i<cells.size(); ++i) {
       SpatialCell* SC = mpiGrid[cells[i]];
       for (int j=0; j<6; ++j) {
-	 buffer[6*i+j] = SC->parameters[j];
+         buffer[6*i+j] = SC->parameters[j];
       }
    }
    if (vlsvWriter.writeArray("COORDS","SpatialGrid",attribs,cells.size(),6,buffer) == false) {
@@ -382,14 +365,14 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
       uint dataSize,vectorSize;
       variableName = dataReducer.getName(i);
       if (dataReducer.getDataVectorInfo(i,dataType,dataSize,vectorSize) == false) {
-	 cerr << "ERROR when requesting info from DRO " << i << endl;
+         cerr << "ERROR when requesting info from DRO " << i << endl;
       }
       uint64_t arraySize = cells.size()*vectorSize*dataSize;
       
       // Request DataReductionOperator to calculate the reduced data for all local cells:
       varBuffer = new char[arraySize];
       for (uint64_t cell=0; cell<cells.size(); ++cell) {
-	 if (dataReducer.reduceData(mpiGrid[cells[cell]],i,varBuffer + cell*vectorSize*dataSize) == false) success = false;
+         if (dataReducer.reduceData(mpiGrid[cells[cell]],i,varBuffer + cell*vectorSize*dataSize) == false) success = false;
       }
       if (success == false) logFile << "(MAIN) writeGrid: ERROR datareductionoperator '" << dataReducer.getName(i) << "' returned false!" << endl << writeVerbose;
       
@@ -515,8 +498,8 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
 
 
 bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
-		       DataReducer& dataReducer,
-		       luint tstep)
+                       DataReducer& dataReducer,
+                       luint tstep)
 {
    int myrank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
@@ -536,7 +519,7 @@ bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    if (printDiagnosticHeader == true && myrank == 0) {
       diagnostic << "# Column 1 Step" << endl;
       for (uint i=0; i<nOps; ++i) {
-	 diagnostic << "# Columns " << 2 + i*4 << " to " << 5 + i*4 << ": " << dataReducer.getName(i) << " min max sum average" << endl;
+         diagnostic << "# Columns " << 2 + i*4 << " to " << 5 + i*4 << ": " << dataReducer.getName(i) << " min max sum average" << endl;
       }
       printDiagnosticHeader = false;
    }
@@ -544,7 +527,7 @@ bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    for (uint i=0; i<nOps; ++i) {
       
       if (dataReducer.getDataVectorInfo(i,dataType,dataSize,vectorSize) == false) {
-	 cerr << "ERROR when requesting info from diagnostic DRO " << dataReducer.getName(i) << endl;
+         cerr << "ERROR when requesting info from diagnostic DRO " << dataReducer.getName(i) << endl;
       }
       localMin[i] = std::numeric_limits<Real>::max();
       localMax[i] = std::numeric_limits<Real>::min();
@@ -553,11 +536,11 @@ bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
       
       // Request DataReductionOperator to calculate the reduced data for all local cells:
       for (uint64_t cell=0; cell<nCells; ++cell) {
-	 success = true;
-	 if (dataReducer.reduceData(mpiGrid[cells[cell]], i, &buffer) == false) success = false;
-	 localMin[i] = min(buffer, localMin[i]);
-	 localMax[i] = max(buffer, localMax[i]);
-	 localSum[i+1] += buffer;
+         success = true;
+         if (dataReducer.reduceData(mpiGrid[cells[cell]], i, &buffer) == false) success = false;
+         localMin[i] = min(buffer, localMin[i]);
+         localMax[i] = max(buffer, localMax[i]);
+         localSum[i+1] += buffer;
       }
       localAvg[i] = localSum[i+1];
       
@@ -575,10 +558,10 @@ bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
       if (globalSum[0] != 0.0) globalAvg[i] = globalSum[i+1] / globalSum[0];
       else globalAvg[i] = globalSum[i+1];
       if (myrank == 0) {
-	 diagnostic << globalMin[i] << "\t" <<
-	 globalMax[i] << "\t" <<
-	 globalSum[i+1] << "\t" <<
-	 globalAvg[i] << "\t";
+         diagnostic << globalMin[i] << "\t" <<
+         globalMax[i] << "\t" <<
+         globalSum[i+1] << "\t" <<
+         globalAvg[i] << "\t";
       }
    }
    if (myrank == 0) diagnostic << endl << write;

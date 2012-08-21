@@ -31,8 +31,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "parameters.h"
 #include "readparameters.h"
 #include "spatial_cell.hpp"
-#include "datareducer.h"
-#include "datareductionoperator.h"
+#include "datareduction/datareducer.h"
+#include "sysboundary/sysboundary.h"
 #include "transferstencil.h"
 
 #include "vlsvwriter2.h" 
@@ -55,7 +55,6 @@ void fpehandler(int sig_num)
 
 #include "phiprof.hpp"
 
-
 Logger logFile, diagnostic;
 
 using namespace std;
@@ -64,7 +63,6 @@ using namespace phiprof;
 
 int main(int argn,char* args[]) {
    bool success = true;
-   const int MASTER_RANK = 0;
    int myRank;
    const creal DT_EPSILON=1e-12;
    typedef Parameters P;
@@ -87,6 +85,10 @@ int main(int argn,char* args[]) {
    
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
+   dccrg::Dccrg<SpatialCell> mpiGrid;
+   SysBoundary sysBoundaries;
+   bool isSysBoundaryCondDynamic;
+   
    #ifdef CATCH_FPE
    // WARNING FE_INEXACT is too sensitive to be used. See man fenv.
    //feenableexcept(FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW);
@@ -102,15 +104,17 @@ int main(int argn,char* args[]) {
    Readparameters readparameters(argn,args,MPI_COMM_WORLD);
    P::addParameters();
    addProjectParameters();
+   sysBoundaries.addParameters();
    readparameters.parse();
    P::getParameters();
    getProjectParameters();
+   sysBoundaries.getParameters();
    phiprof::stop("Read parameters");
    
    
    phiprof::start("Init project");
    if (initializeProject() == false) {
-      logFile << "(MAIN): Project did not initialize correctly!" << endl << writeVerbose;
+      if(myRank == MASTER_RANK) cerr << "(MAIN): Project did not initialize correctly!" << endl;
       exit(1);
    }
    phiprof::stop("Init project");
@@ -119,29 +123,28 @@ int main(int argn,char* args[]) {
    // Init parallel logger:
    phiprof::start("open logFile & diagnostic");
    if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt") == false) {
-      cerr << "(MAIN) ERROR: Logger failed to open logFile!" << endl;
+      if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
       exit(1);
    }
    if (P::diagnosticInterval != 0) {
       if (diagnostic.open(MPI_COMM_WORLD,MASTER_RANK,"diagnostic.txt") == false) {
-         cerr << "(MAIN) ERROR: Logger failed to open diagnostic file!" << endl;
+         if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open diagnostic file!" << endl;
          exit(1);
       }
    }
    phiprof::stop("open logFile & diagnostic");
    
    phiprof::start("Init grid");
-   dccrg::Dccrg<SpatialCell> mpiGrid;
-   if (initializeGrid(argn,args,mpiGrid) == false) {
-      logFile << "(MAIN): Grid did not initialize correctly!" << endl << writeVerbose;
-      exit(1);
-   }  
+   initializeGrid(argn,args,mpiGrid,sysBoundaries);
+   isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
    phiprof::stop("Init grid");
    
+   phiprof::start("Init DROs");
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
    // user-defined operators:
    DataReducer outputReducer, diagnosticReducer;
    initializeDataReducers(&outputReducer, &diagnosticReducer);
+   phiprof::stop("Init DROs");
    
    //VlsWriter vlsWriter;
    phiprof::start("Init vlasov propagator");
@@ -290,7 +293,7 @@ int main(int argn,char* args[]) {
             dtMaxLocal[2]=std::numeric_limits<Real>::max();
             for (std::vector<uint64_t>::const_iterator cell_id = cells.begin(); cell_id != cells.end(); ++cell_id) {
                SpatialCell* cell = mpiGrid[*cell_id];
-               if (cell->isGhostCell) continue;
+               if (cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
                dtMaxLocal[0]=min(dtMaxLocal[0], cell->parameters[CellParams::MAXRDT]);
                dtMaxLocal[1]=min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
                dtMaxLocal[2]=min(dtMaxLocal[2], cell->parameters[CellParams::MAXFDT]);
@@ -400,8 +403,10 @@ int main(int argn,char* args[]) {
                  break;
               case 1:
                  phiprof::start("First propagation");
+                 
                  calculateSpatialFluxes(mpiGrid,0.5*P::dt);
                  calculateSpatialPropagation(mpiGrid,true,P::dt);
+
                  phiprof::stop("First propagation",computedBlocks,"Blocks");
                  if(updateVelocityBlocksAfterAcceleration){
                     //need to do a update of block lists as all cells have made local changes
@@ -409,8 +414,11 @@ int main(int argn,char* args[]) {
                     adjustVelocityBlocks(mpiGrid);
                  }
                  phiprof::start("Second propagation");
+                 //re-compute boundary conditions
                  calculateSpatialFluxes(mpiGrid,0.5*P::dt);
                  calculateSpatialPropagation(mpiGrid,false,0);
+                 //re-compute boundary conditions
+
                  phiprof::stop("Second propagation",computedBlocks,"Blocks");
                  break;
               case 2:

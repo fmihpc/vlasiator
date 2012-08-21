@@ -20,9 +20,9 @@ FLAGS =
 CC_BRAND = gcc
 CC_BRAND_VERSION = 4.5.3
 CXXFLAGS +=  -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -pedantic -Wno-unused
-#CXXFLAGS += -g -std=c++0x -W -Wall -pedantic -Wno-unused
-#CXXFLAGS +=  -g  -fopenmp -std=c++0x -W -Wall -pedantic -Wno-unused
-MATHFLAGS = -ffast-math
+# CXXFLAGS += -g -std=c++0x -W -Wall -pedantic -Wno-unused
+# DCXXFLAGS +=  -g  -fopenmp -std=c++0x -W -Wall -pedantic -Wno-unused
+# MATHFLAGS = -ffast-math
 LDFLAGS =
 LIB_MPI = -lgomp
 

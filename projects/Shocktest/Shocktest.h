@@ -27,8 +27,6 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "projects/projects_vlasov_boundary.h"
 #include "fieldsolver.h"
 
-# include "grid.h"
-
 #include "dccrg.hpp"
 
 
@@ -111,6 +109,12 @@ void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt);
  */
 Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
 			   creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz);
+
+/*!\brief Set the fields and distribution of a cell according to the default simulation settings.
+ * This is used for the NOT_SYSBOUNDARY cells and some other system boundary conditions (e.g. Outflow).
+ * \param cell Pointer to the cell to set.
+ */
+void setProjectCell(SpatialCell* cell);
 
 /** Calculate the boundary value of volume average of distribution function. This function 
  * should calculate the value of distribution function on the other side of given phase space 
@@ -203,22 +207,7 @@ REAL fieldSolverBoundaryCondBz(const CELLID& cellID,const UINT& existingCells,co
 }
 
 template<typename CELLID,typename UINT> 
-void vlasovBoundaryCondition(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const dccrg::Dccrg<SpatialCell>& mpiGrid) {
-   creal x = mpiGrid[cellID]->parameters[CellParams::XCRD];
-   creal dx = mpiGrid[cellID]->parameters[CellParams::DX];
-   creal y = mpiGrid[cellID]->parameters[CellParams::YCRD];
-   creal dy = mpiGrid[cellID]->parameters[CellParams::DY];
-   creal z = mpiGrid[cellID]->parameters[CellParams::ZCRD];
-   creal dz = mpiGrid[cellID]->parameters[CellParams::DZ];
-   
-   if(x < Parameters::xmin + 0.5 * dx ||
-      x > Parameters::xmax - 1.5 * dx)
-   {
-      initSpatialCell(*(mpiGrid[cellID]),x,y,z,dx,dy,dz,false);
-   }
-   
-   return;
-}
+void vlasovBoundaryCondition(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const dccrg::Dccrg<SpatialCell>& mpiGrid) { }
 
 template<typename UINT,typename REAL> void calcAccFaceX(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,const REAL* const cellParams,const REAL* const blockParams) {
    lorentzForceFaceX(ax,ay,az,I,J,K,cellParams,blockParams);

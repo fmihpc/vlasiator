@@ -55,7 +55,7 @@ using namespace spatial_cell;
 static TransferStencil<CellID> stencilAverages(INVALID_CELLID);
 static TransferStencil<CellID> stencilUpdates(INVALID_CELLID);
 
-static set<CellID> ghostCells;
+static set<CellID> sysBoundaryCells;
 
 
 static map<pair<CellID,int>,Real*> updateBuffers; /**< For each local cell receiving one or more remote df/dt updates,
@@ -109,8 +109,8 @@ bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       SpatialCell *SC = mpiGrid[cellID];
 
       SC->neighbors.clear();
-      SC->isGhostCell = false;
-      SC->boundaryFlag=0;
+//      SC->isSysBoundaryCell = false;
+      SC->procBoundaryFlag=0;
       // Get spatial neighbour IDs and store them into a vector:
       for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
           // in dccrg cells are neighbors of themselves only with periodic boundaries
@@ -119,10 +119,10 @@ bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid) {
          }
          else {
             SC->neighbors.push_back(getNeighbourID(mpiGrid, cellID, 2+i, 2+j, 2+k));
-            if (SC->neighbors.back() == INVALID_CELLID) {
-               //we only use a stencil of one to set if a cell is a ghost cell.
-               SC->isGhostCell = true;
-            }
+//             if (SC->neighbors.back() == INVALID_CELLID) {
+//                //we only use a stencil of one to set if a cell is a system boundary cell.
+//                SC->isSysBoundaryCell = true;
+//             }
          }
       }      
 
@@ -161,7 +161,7 @@ bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid) {
             SC->neighbors[i]=cellID;
          }
          else
-            SC->boundaryFlag = SC->boundaryFlag | (1 << i);
+            SC->procBoundaryFlag = SC->procBoundaryFlag | (1 << i);
       }
    }
    
@@ -207,20 +207,20 @@ bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    stencilUpdates.addRemoteUpdateSends(mpiGrid,nbrOffsets);
 
 
-   // Exchange ghostFlags between neighbouring processes, 
+   // Exchange sysBoundaryFlags between neighbouring processes, 
    // so that boundary condition functions are correctly called 
-   // for remote ghost cells:
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_GHOSTFLAG);
+   // for remote system boundary cells:
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_remote_neighbor_data();
    
    // Now iterate through all cells (local + remote), and insert the cells 
-   // with isGhostCell flag turned on into ghostCells list. Boundary condition 
-   // functions are called for every cell in ghostCells:
+   // with sysBoundaryFlag higher than NOT_SYSBOUNDARY into sysBoundaryCells list. 
+   // Boundary condition functions are called for every cell in sysBoundaryCells:
    remoteCells=mpiGrid.get_list_of_remote_cells_with_local_neighbors();
    cells.insert( cells.end(), remoteCells.begin(), remoteCells.end() );
    for (uint c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
-      if (mpiGrid[cellID]->isGhostCell == true) ghostCells.insert(cellID);
+      if (mpiGrid[cellID]->sysBoundaryFlag > sysboundarytype::NOT_SYSBOUNDARY) sysBoundaryCells.insert(cellID);
    }
    initMoverAfterBlockChange(mpiGrid);
    return true;
@@ -244,20 +244,14 @@ bool initMoverAfterBlockChange(dccrg::Dccrg<SpatialCell>& mpiGrid){
 }
 
 
-bool finalizeMover() {
-
-   
-   return true;
-}
+bool finalizeMover() {return true;}
 
 void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,ID::type cell) { }
-
-
 
 void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid, Real dt) {   
    typedef Parameters P;   
    const vector<CellID> cells = mpiGrid.get_cells();
-   vector<CellID> nonGhostCells;
+   vector<CellID> nonSysBoundaryCells;
 
    // Iterate through all local cells and propagate distribution functions 
    // in velocity space. Ghost cells (spatial cells at the boundary of the simulation 
@@ -265,14 +259,14 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid, Real dt) {
 
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
-      if (ghostCells.find(cellID) != ghostCells.end()) continue;
-      nonGhostCells.push_back(cellID);
+      if (sysBoundaryCells.find(cellID) != sysBoundaryCells.end()) continue;
+      nonSysBoundaryCells.push_back(cellID);
    }
 
    //Operations for each cell is local, thus a threaded loop should be safe
 #pragma omp parallel for schedule(dynamic) 
-   for (size_t c=0; c<nonGhostCells.size(); ++c) {
-      const CellID cellID = nonGhostCells[c];
+   for (size_t c=0; c<nonSysBoundaryCells.size(); ++c) {
+      const CellID cellID = nonSysBoundaryCells[c];
       calculateCellAcceleration(mpiGrid,cellID,dt);
    }
 }
@@ -282,7 +276,7 @@ void calculateCellAccelerationSubstep(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID 
    typedef Parameters P;
 //   phiprof::start("Acceleration");
    SpatialCell* SC = mpiGrid[cellID];
-   if (ghostCells.find(cellID) != ghostCells.end()){
+   if (sysBoundaryCells.find(cellID) != sysBoundaryCells.end()){
 //      phiprof::stop("Acceleration",0,"Blocks");
       return;
    }
@@ -413,41 +407,41 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
    MPIsendRequests.clear(); // Note: unnecessary
    MPIrecvRequests.clear(); // Note: unnecessary
 
-   // Prepare vectors with inner and outer cells, ghost cells which are inner and boundary cells, and compute maximum n blocks.
+   // Prepare vectors with inner and outer cells, system boundary cells which are inner and boundary cells, and compute maximum n blocks.
    // These are needed for efficient openMP parallelization, we cannot use iterators
    unsigned int maxNblocks=0;
-   vector<CellID> ghostInnerCellIds;
+   vector<CellID> sysBoundaryInnerCellIds;
    for (set<CellID>::iterator cell=stencilAverages.innerCells.begin(); cell!=stencilAverages.innerCells.end(); ++cell) {
       if(mpiGrid[*cell]->size()>maxNblocks)
          maxNblocks=mpiGrid[*cell]->size();
-      if (ghostCells.find(*cell) != ghostCells.end())
-         ghostInnerCellIds.push_back(*cell);
+      if (sysBoundaryCells.find(*cell) != sysBoundaryCells.end())
+         sysBoundaryInnerCellIds.push_back(*cell);
    }
 
-   vector<CellID> ghostBoundaryCellIds;
+   vector<CellID> sysBoundaryProcBoundaryCellIDs;
    for (set<CellID>::iterator cell=stencilAverages.boundaryCells.begin(); cell!=stencilAverages.boundaryCells.end(); ++cell) {
        if(mpiGrid[*cell]->size()>maxNblocks)
            maxNblocks=mpiGrid[*cell]->size();
-       if (ghostCells.find(*cell) != ghostCells.end()) 
-           ghostBoundaryCellIds.push_back(*cell);
+       if (sysBoundaryCells.find(*cell) != sysBoundaryCells.end()) 
+           sysBoundaryProcBoundaryCellIDs.push_back(*cell);
    }
 
    
    
    phiprof::start("Boundary conditions (inner)");
-   // Apply boundary conditions on local ghost cells, these need to be up-to-date for 
+   // Apply boundary conditions on local system boundary cells, these need to be up-to-date for 
    // local cell propagation below:
-   //For the openmp parallelization to be safe, only the local cellID should be updated by boundarycondition, and only non-ghost cells should be read.
+   //For the openmp parallelization to be safe, only the local cellID should be updated by boundarycondition, and only non-system boundary cells should be read.
 //#pragma omp parallel for  
-   for(unsigned int i=0;i<ghostInnerCellIds.size();i++){
-      const CellID cellID = ghostInnerCellIds[i];
+   for(unsigned int i=0;i<sysBoundaryInnerCellIds.size();i++){
+      const CellID cellID = sysBoundaryInnerCellIds[i];
 //      cuint* const nbrsSpa   = mpiGrid[cellID]->neighbors;
-      cuint existingCells    = mpiGrid[cellID]->boundaryFlag;
+      cuint existingCells    = mpiGrid[cellID]->procBoundaryFlag;
       cuint nonExistingCells = (existingCells ^ numeric_limits<uint>::max());
       vlasovBoundaryCondition(cellID,existingCells,nonExistingCells,mpiGrid);
       counter++;
    }
-   phiprof::stop("Boundary conditions (inner)",ghostInnerCellIds.size(),"Cells");
+   phiprof::stop("Boundary conditions (inner)",sysBoundaryInnerCellIds.size(),"Cells");
    
    // Post receives for avgs:
    phiprof::initializeTimer("Start receives","MPI");
@@ -543,8 +537,8 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
       SpatialCell* SC = mpiGrid[*cell];
       // Iterate through all velocity blocks in the spatial cell and calculate 
       // contributions to df/dt:
-      //fixme/check, for ghost cells the nbrsSpa can point to the cell itself for non-existing neighbours (see initialization in beginning of this file)
-      //this means that for ghost cells fluxes to cell itself may have race condition (does it matter, is its flux even used?)
+      //fixme/check, for system boundary cells the nbrsSpa can point to the cell itself for non-existing neighbours (see initialization in beginning of this file)
+      //this means that for system boundary cells fluxes to cell itself may have race condition (does it matter, is its flux even used?)
 #pragma omp for
       for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
          unsigned int block = SC->velocity_block_list[block_i];         
@@ -566,24 +560,24 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
    MPIrecvTypes.clear();
    phiprof::stop("Wait receives");
    
-   // Apply boundary conditions on local ghost cells, these need to be up-to-date for 
+   // Apply boundary conditions on local system boundary cells, these need to be up-to-date for 
    // boundary cell propagation below:
 
    phiprof::start("Boundary conditions (boundary)");
-   //For the openmp parallelization to be safe, only the local cellID should be updated by boundarycondition, and only non-ghost cells should be read.
-   //Fixme/check for the copy boundary conditions these are not fulfilled as it does not check for ghost status
+   //For the openmp parallelization to be safe, only the local cellID should be updated by boundarycondition, and only non-system boundary cells should be read.
+   //Fixme/check for the copy boundary conditions these are not fulfilled as it does not check for system boundary status
 //#pragma omp parallel for 
-   for(unsigned int i=0;i<ghostBoundaryCellIds.size();i++){
-       const CellID cellID = ghostBoundaryCellIds[i];
-       if (ghostCells.find(cellID) == ghostCells.end()) continue;
+   for(unsigned int i=0;i<sysBoundaryProcBoundaryCellIDs.size();i++){
+       const CellID cellID = sysBoundaryProcBoundaryCellIDs[i];
+       if (sysBoundaryCells.find(cellID) == sysBoundaryCells.end()) continue;
        //cuint* const nbrsSpa   = mpiGrid[cellID]->cpu_nbrsSpa;
-       cuint existingCells    = mpiGrid[cellID]->boundaryFlag;
+       cuint existingCells    = mpiGrid[cellID]->procBoundaryFlag;
       cuint nonExistingCells = (existingCells ^ numeric_limits<uint>::max());
 //       cuint existingCells    = nbrsSpa[30];
       //   cuint nonExistingCells = (existingCells ^ numeric_limits<uint>::max());
        vlasovBoundaryCondition(cellID,existingCells,nonExistingCells,mpiGrid);
    }
-   phiprof::stop("Boundary conditions (boundary)",ghostBoundaryCellIds.size(),"Cells");
+   phiprof::stop("Boundary conditions (boundary)",sysBoundaryProcBoundaryCellIDs.size(),"Cells");
    
    // Iterate through the rest of local cells:
    phiprof::start("df/dt in real space (boundary)");
@@ -594,8 +588,8 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
       SpatialCell* SC = mpiGrid[cellID];
       // Iterate through all velocity blocks in the spatial cell and calculate 
       // contributions to df/dt:
-      //fixme/check, for ghost cells the nbrsSpa can point to the cell itself for non-existing neighbours (see initialization in beginning of this file)
-      //this means that for ghost cells fluxes to cell itself may have race condition (does it matter, is its flux even used?)
+      //fixme/check, for system boundary cells the nbrsSpa can point to the cell itself for non-existing neighbours (see initialization in beginning of this file)
+      //this means that for system boundary cells fluxes to cell itself may have race condition (does it matter, is its flux even used?)
 #pragma omp for
       for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
          unsigned int block = SC->velocity_block_list[block_i];         
@@ -726,12 +720,12 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
 
       
       // Do not propagate boundary cells, only calculate their velocity moments:
-      if (ghostCells.find(cellID) == ghostCells.end()) {
+      if (sysBoundaryCells.find(cellID) == sysBoundaryCells.end()) {
          for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
             unsigned int block = SC->velocity_block_list[block_i];         
             cpu_propagateSpatWithMoments(nbr_dfdt,SC,block,block_i);
          }  
-         //Accelerate cell if requested. This is only done for non-ghost cells
+         //Accelerate cell if requested. This is only done for non-system boundary cells
          if(accelerate)
             calculateCellAcceleration(mpiGrid,cellID,accelerate_dt);
 
@@ -799,7 +793,7 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
 
       
       // Do not propagate boundary cells, only calculate their velocity moments:
-      if (ghostCells.find(cellID) == ghostCells.end()) {
+      if (sysBoundaryCells.find(cellID) == sysBoundaryCells.end()) {
          for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
             unsigned int block = SC->velocity_block_list[block_i];         
             cpu_propagateSpatWithMoments(nbr_dfdt,SC,block,block_i);
@@ -841,29 +835,35 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
 
 
 
+void calculateCellVelocityMoments(SpatialCell *SC) {
+   // Clear velocity moments:
+   SC->parameters[CellParams::RHO  ] = 0.0;
+   SC->parameters[CellParams::RHOVX] = 0.0;
+   SC->parameters[CellParams::RHOVY] = 0.0;
+   SC->parameters[CellParams::RHOVZ] = 0.0;
+   
+   for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+      unsigned int block = SC->velocity_block_list[block_i];         
+      
+      // Iterate through all velocity blocks in this spatial cell 
+      // and calculate velocity moments:        
+      cpu_calcVelocityMoments(SC,block);
+   }
+
+}
 
 void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid) { 
    vector<CellID> cells;
    cells=mpiGrid.get_cells();
    
-   // Iterate through all local cells (incl. ghosts):
+   // Iterate through all local cells (incl. system boundary cells):
 //#pragma omp parallel for        
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
-      // Clear velocity moments:
-      SC->parameters[CellParams::RHO  ] = 0.0;
-      SC->parameters[CellParams::RHOVX] = 0.0;
-      SC->parameters[CellParams::RHOVY] = 0.0;
-      SC->parameters[CellParams::RHOVZ] = 0.0;
+      if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+      calculateCellVelocityMoments(SC);
       
-      for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
-         unsigned int block = SC->velocity_block_list[block_i];         
-      
-      // Iterate through all velocity blocks in this spatial cell 
-      // and calculate velocity moments:        
-         cpu_calcVelocityMoments(SC,block);
-      }
    }
 }
 

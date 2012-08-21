@@ -21,7 +21,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <vector>
 
-#include "spatial_cell.hpp"
+#include "../spatial_cell.hpp"
 #include "datareductionoperator.h"
 
 /** The purpose of DataReducer is to contain DRO::DataReductionOperators, and apply 
@@ -48,9 +48,8 @@ class DataReducer {
     */
    DataReducer(const DataReducer& dr);
    
-   std::vector<DRO::DataReductionOperator*> operators; /**< A container for all 
-							DRO::DataReductionOperators 
-							stored in DataReducer.*/
+   std::vector<DRO::DataReductionOperator*> operators;
+   /**< A container for all DRO::DataReductionOperators stored in DataReducer.*/
 };
 
 void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer);

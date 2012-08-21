@@ -42,7 +42,16 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,uint64_t cellI
 void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt);
 void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& acceleration,Real acceleration_dt);
 void initialLoadBalance(dccrg::Dccrg<SpatialCell>& mpiGrid);
+/*!
+   \brief Compute 0th and 1st velocity moments (RHO,RHOVX,RHOVY,RHOVZ) for all cells in the grid.
+   \param mpiGrid Grid of spatial cells for which moments are computed 
+*/
 void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid);
+/*!
+   \brief Compute 0th and 1st velocity moments (RHO,RHOVX,RHOVY,RHOVZ) for a spatial cell
+   \param SC Spatial cell for which moments are computed
+*/
+void calculateCellVelocityMoments(SpatialCell *SC);
 
 #endif
 
