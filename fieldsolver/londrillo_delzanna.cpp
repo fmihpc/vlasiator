@@ -200,6 +200,19 @@ static void calculateSysBoundaryFlags(
    }
 }
 
+/*! \brief Low-level helper function.
+ * 
+ * Avoid crashes on zero density by returning V = rhoV = 0.0 if rho = 0.0.
+ * 
+ */
+Real divideIfNonZero(creal rhoV, creal rho) {
+   if(rho <= 0.0) {
+      return 0.0;
+   } else {
+      return rhoV / rho;
+   }
+}
+
 /*! \brief Low-level spatial derivatives calculation.
  * 
  * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in project.h. Uses RHO, RHOV[XYZ] and B[XYZ] in the first-order time accuracy method and in the second step of the second-order method, and RHO1, RHOV[XYZ]1 and B[XYZ]1 in the first step of the second-order method.
@@ -263,17 +276,29 @@ static void calculateDerivatives(
 
       if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
          array[fs::drhodx] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
-         array[fs::dVxdx]  = limiter(left[cp::RHOVX]/left[cp::RHO],cent[cp::RHOVX]/cent[cp::RHO],rght[cp::RHOVX]/rght[cp::RHO]);
-         array[fs::dVydx]  = limiter(left[cp::RHOVY]/left[cp::RHO],cent[cp::RHOVY]/cent[cp::RHO],rght[cp::RHOVY]/rght[cp::RHO]);
-         array[fs::dVzdx]  = limiter(left[cp::RHOVZ]/left[cp::RHO],cent[cp::RHOVZ]/cent[cp::RHO],rght[cp::RHOVZ]/rght[cp::RHO]);
+         array[fs::dVxdx]  = limiter(divideIfNonZero(left[cp::RHOVX], left[cp::RHO]),
+                                     divideIfNonZero(cent[cp::RHOVX], cent[cp::RHO]),
+                                     divideIfNonZero(rght[cp::RHOVX], rght[cp::RHO]));
+         array[fs::dVydx]  = limiter(divideIfNonZero(left[cp::RHOVY], left[cp::RHO]),
+                                     divideIfNonZero(cent[cp::RHOVY], cent[cp::RHO]),
+                                     divideIfNonZero(rght[cp::RHOVY], rght[cp::RHO]));
+         array[fs::dVzdx]  = limiter(divideIfNonZero(left[cp::RHOVZ], left[cp::RHO]),
+                                     divideIfNonZero(cent[cp::RHOVZ], cent[cp::RHO]),
+                                     divideIfNonZero(rght[cp::RHOVZ], rght[cp::RHO]));
          array[fs::dBydx]  = limiter(left[cp::BY], cent[cp::BY], rght[cp::BY]);
          array[fs::dBzdx]  = limiter(left[cp::BZ], cent[cp::BZ], rght[cp::BZ]);
       }
       if (RKCase == RK_ORDER2_STEP1) {
          array[fs::drhodx] = limiter(left[cp::RHO1],cent[cp::RHO1],rght[cp::RHO1]);
-         array[fs::dVxdx]  = limiter(left[cp::RHOVX1]/left[cp::RHO1],cent[cp::RHOVX1]/cent[cp::RHO1],rght[cp::RHOVX1]/rght[cp::RHO1]);
-         array[fs::dVydx]  = limiter(left[cp::RHOVY1]/left[cp::RHO1],cent[cp::RHOVY1]/cent[cp::RHO1],rght[cp::RHOVY1]/rght[cp::RHO1]);
-         array[fs::dVzdx]  = limiter(left[cp::RHOVZ1]/left[cp::RHO1],cent[cp::RHOVZ1]/cent[cp::RHO1],rght[cp::RHOVZ1]/rght[cp::RHO1]);
+         array[fs::dVxdx]  = limiter(divideIfNonZero(left[cp::RHOVX1], left[cp::RHO1]),
+                                     divideIfNonZero(cent[cp::RHOVX1], cent[cp::RHO1]),
+                                     divideIfNonZero(rght[cp::RHOVX1], rght[cp::RHO1]));
+         array[fs::dVydx]  = limiter(divideIfNonZero(left[cp::RHOVY1], left[cp::RHO1]),
+                                     divideIfNonZero(cent[cp::RHOVY1], cent[cp::RHO1]),
+                                     divideIfNonZero(rght[cp::RHOVY1], rght[cp::RHO1]));
+         array[fs::dVzdx]  = limiter(divideIfNonZero(left[cp::RHOVZ1], left[cp::RHO1]),
+                                     divideIfNonZero(cent[cp::RHOVZ1], cent[cp::RHO1]),
+                                     divideIfNonZero(rght[cp::RHOVZ1], rght[cp::RHO1]));
          array[fs::dBydx]  = limiter(left[cp::BY1], cent[cp::BY1], rght[cp::BY1]);
          array[fs::dBzdx]  = limiter(left[cp::BZ1], cent[cp::BZ1], rght[cp::BZ1]);
       }
@@ -309,17 +334,29 @@ static void calculateDerivatives(
 
       if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
          array[fs::drhody] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
-         array[fs::dVxdy]  = limiter(left[cp::RHOVX]/left[cp::RHO],cent[cp::RHOVX]/cent[cp::RHO],rght[cp::RHOVX]/rght[cp::RHO]);
-         array[fs::dVydy]  = limiter(left[cp::RHOVY]/left[cp::RHO],cent[cp::RHOVY]/cent[cp::RHO],rght[cp::RHOVY]/rght[cp::RHO]);
-         array[fs::dVzdy]  = limiter(left[cp::RHOVZ]/left[cp::RHO],cent[cp::RHOVZ]/cent[cp::RHO],rght[cp::RHOVZ]/rght[cp::RHO]);
+         array[fs::dVxdy]  = limiter(divideIfNonZero(left[cp::RHOVX], left[cp::RHO]),
+                                     divideIfNonZero(cent[cp::RHOVX], cent[cp::RHO]),
+                                     divideIfNonZero(rght[cp::RHOVX], rght[cp::RHO]));
+         array[fs::dVydy]  = limiter(divideIfNonZero(left[cp::RHOVY], left[cp::RHO]),
+                                     divideIfNonZero(cent[cp::RHOVY], cent[cp::RHO]),
+                                     divideIfNonZero(rght[cp::RHOVY], rght[cp::RHO]));
+         array[fs::dVzdy]  = limiter(divideIfNonZero(left[cp::RHOVZ], left[cp::RHO]),
+                                     divideIfNonZero(cent[cp::RHOVZ], cent[cp::RHO]),
+                                     divideIfNonZero(rght[cp::RHOVZ], rght[cp::RHO]));
          array[fs::dBxdy]  = limiter(left[cp::BX], cent[cp::BX], rght[cp::BX]);
          array[fs::dBzdy]  = limiter(left[cp::BZ], cent[cp::BZ], rght[cp::BZ]);
       }
       if (RKCase == RK_ORDER2_STEP1) {
          array[fs::drhody] = limiter(left[cp::RHO1],cent[cp::RHO1],rght[cp::RHO1]);
-         array[fs::dVxdy]  = limiter(left[cp::RHOVX1]/left[cp::RHO1],cent[cp::RHOVX1]/cent[cp::RHO1],rght[cp::RHOVX1]/rght[cp::RHO1]);
-         array[fs::dVydy]  = limiter(left[cp::RHOVY1]/left[cp::RHO1],cent[cp::RHOVY1]/cent[cp::RHO1],rght[cp::RHOVY1]/rght[cp::RHO1]);
-         array[fs::dVzdy]  = limiter(left[cp::RHOVZ1]/left[cp::RHO1],cent[cp::RHOVZ1]/cent[cp::RHO1],rght[cp::RHOVZ1]/rght[cp::RHO1]);
+         array[fs::dVxdy]  = limiter(divideIfNonZero(left[cp::RHOVX1], left[cp::RHO1]),
+                                     divideIfNonZero(cent[cp::RHOVX1], cent[cp::RHO1]),
+                                     divideIfNonZero(rght[cp::RHOVX1], rght[cp::RHO1]));
+         array[fs::dVydy]  = limiter(divideIfNonZero(left[cp::RHOVY1], left[cp::RHO1]),
+                                     divideIfNonZero(cent[cp::RHOVY1], cent[cp::RHO1]),
+                                     divideIfNonZero(rght[cp::RHOVY1], rght[cp::RHO1]));
+         array[fs::dVzdy]  = limiter(divideIfNonZero(left[cp::RHOVZ1], left[cp::RHO1]),
+                                     divideIfNonZero(cent[cp::RHOVZ1], cent[cp::RHO1]),
+                                     divideIfNonZero(rght[cp::RHOVZ1], rght[cp::RHO1]));
          array[fs::dBxdy]  = limiter(left[cp::BX1], cent[cp::BX1], rght[cp::BX1]);
          array[fs::dBzdy]  = limiter(left[cp::BZ1], cent[cp::BZ1], rght[cp::BZ1]);
       }
@@ -352,17 +389,29 @@ static void calculateDerivatives(
 
       if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
          array[fs::drhodz] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
-         array[fs::dVxdz]  = limiter(left[cp::RHOVX]/left[cp::RHO],cent[cp::RHOVX]/cent[cp::RHO],rght[cp::RHOVX]/rght[cp::RHO]);
-         array[fs::dVydz]  = limiter(left[cp::RHOVY]/left[cp::RHO],cent[cp::RHOVY]/cent[cp::RHO],rght[cp::RHOVY]/rght[cp::RHO]);
-         array[fs::dVzdz]  = limiter(left[cp::RHOVZ]/left[cp::RHO],cent[cp::RHOVZ]/cent[cp::RHO],rght[cp::RHOVZ]/rght[cp::RHO]);
+         array[fs::dVxdz]  = limiter(divideIfNonZero(left[cp::RHOVX], left[cp::RHO]),
+                                     divideIfNonZero(cent[cp::RHOVX], cent[cp::RHO]),
+                                     divideIfNonZero(rght[cp::RHOVX], rght[cp::RHO]));
+         array[fs::dVydz]  = limiter(divideIfNonZero(left[cp::RHOVY], left[cp::RHO]),
+                                     divideIfNonZero(cent[cp::RHOVY], cent[cp::RHO]),
+                                     divideIfNonZero(rght[cp::RHOVY], rght[cp::RHO]));
+         array[fs::dVzdz]  = limiter(divideIfNonZero(left[cp::RHOVZ], left[cp::RHO]),
+                                     divideIfNonZero(cent[cp::RHOVZ], cent[cp::RHO]),
+                                     divideIfNonZero(rght[cp::RHOVZ], rght[cp::RHO]));
          array[fs::dBxdz]  = limiter(left[cp::BX], cent[cp::BX], rght[cp::BX]);
          array[fs::dBydz]  = limiter(left[cp::BY], cent[cp::BY], rght[cp::BY]);
       }
       if (RKCase == RK_ORDER2_STEP1) {
          array[fs::drhodz] = limiter(left[cp::RHO1],cent[cp::RHO1],rght[cp::RHO1]);
-         array[fs::dVxdz]  = limiter(left[cp::RHOVX1]/left[cp::RHO1],cent[cp::RHOVX1]/cent[cp::RHO1],rght[cp::RHOVX1]/rght[cp::RHO1]);
-         array[fs::dVydz]  = limiter(left[cp::RHOVY1]/left[cp::RHO1],cent[cp::RHOVY1]/cent[cp::RHO1],rght[cp::RHOVY1]/rght[cp::RHO1]);
-         array[fs::dVzdz]  = limiter(left[cp::RHOVZ1]/left[cp::RHO1],cent[cp::RHOVZ1]/cent[cp::RHO1],rght[cp::RHOVZ1]/rght[cp::RHO1]);
+         array[fs::dVxdz]  = limiter(divideIfNonZero(left[cp::RHOVX1], left[cp::RHO1]),
+                                     divideIfNonZero(cent[cp::RHOVX1], cent[cp::RHO1]),
+                                     divideIfNonZero(rght[cp::RHOVX1], rght[cp::RHO1]));
+         array[fs::dVydz]  = limiter(divideIfNonZero(left[cp::RHOVY1], left[cp::RHO1]),
+                                     divideIfNonZero(cent[cp::RHOVY1], cent[cp::RHO1]),
+                                     divideIfNonZero(rght[cp::RHOVY1], rght[cp::RHO1]));
+         array[fs::dVzdz]  = limiter(divideIfNonZero(left[cp::RHOVZ1], left[cp::RHO1]),
+                                     divideIfNonZero(cent[cp::RHOVZ1], cent[cp::RHO1]),
+                                     divideIfNonZero(rght[cp::RHOVZ1], rght[cp::RHO1]));
          array[fs::dBxdz]  = limiter(left[cp::BX1], cent[cp::BX1], rght[cp::BX1]);
          array[fs::dBydz]  = limiter(left[cp::BY1], cent[cp::BY1], rght[cp::BY1]);
       }
@@ -374,7 +423,11 @@ static void calculateDerivatives(
 /*! \brief Low-level helper function.
  * 
  * Computes the magnetosonic speed in the YZ plane. Used in upwinding the electric field X component.
+ * 
  * Selects the RHO/RHO1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
+ * 
+ * If fields are not propagated, rewturns 0.0 as there is no information propagating.
+ * 
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 template<typename REAL> REAL calculateFastMSspeedYZ(const REAL* cp, const REAL* derivs, const REAL* nbr_cp, const REAL* nbr_derivs, const REAL& By, const REAL& Bz, const REAL& dBydx, const REAL& dBydz, const REAL& dBzdx, const REAL& dBzdy, const REAL& ydir, const REAL& zdir, cint& RKCase
@@ -401,13 +454,21 @@ template<typename REAL> REAL calculateFastMSspeedYZ(const REAL* cp, const REAL* 
    const REAL By2  = (By + zdir*HALF*dBydz)*(By + zdir*HALF*dBydz) + TWELWTH*dBydx*dBydx; // OK
    const REAL Bz2  = (Bz + ydir*HALF*dBzdy)*(Bz + ydir*HALF*dBzdy) + TWELWTH*dBzdx*dBzdx; // OK
    
-   return sqrt((Bx2+By2+Bz2) / (pc::MU_0 * rho));
+   if(!Parameters::propagateField) {
+      return 0.0;
+   } else {
+      return sqrt((Bx2+By2+Bz2) / (pc::MU_0 * rho));
+   }
 }
 
 /*! \brief Low-level helper function.
  * 
  * Computes the magnetosonic speed in the XZ plane. Used in upwinding the electric field Y component.
+ * 
  * Selects the RHO/RHO1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
+ * 
+ * If fields are not propagated, rewturns 0.0 as there is no information propagating.
+ * 
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 template<typename REAL> REAL calculateFastMSspeedXZ(const REAL* cp, const REAL* derivs, const REAL* nbr_cp, const REAL* nbr_derivs, const REAL& Bx, const REAL& Bz, const REAL& dBxdy, const REAL& dBxdz, const REAL& dBzdx, const REAL& dBzdy, const REAL& xdir,const REAL& zdir, cint& RKCase
@@ -434,13 +495,21 @@ template<typename REAL> REAL calculateFastMSspeedXZ(const REAL* cp, const REAL* 
    const REAL Bx2  = (Bx + zdir*HALF*dBxdz)*(Bx + zdir*HALF*dBxdz) + TWELWTH*dBxdy*dBxdy; // OK
    const REAL Bz2  = (Bz + xdir*HALF*dBzdx)*(Bz + xdir*HALF*dBzdx) + TWELWTH*dBzdy*dBzdy; // OK
    
-   return sqrt((Bx2+By2+Bz2) / (pc::MU_0 * rho));
+   if(!Parameters::propagateField) {
+      return 0.0;
+   } else {
+      return sqrt((Bx2+By2+Bz2) / (pc::MU_0 * rho));
+   }
 }
 
 /*! \brief Low-level helper function.
  * 
  * Computes the magnetosonic speed in the XY plane. Used in upwinding the electric field Z component.
+ * 
  * Selects the RHO/RHO1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
+ * 
+ * If fields are not propagated, rewturns 0.0 as there is no information propagating.
+ * 
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 template<typename REAL> REAL calculateFastMSspeedXY(const REAL* cp, const REAL* derivs, const REAL* nbr_cp, const REAL* nbr_derivs, const REAL& Bx, const REAL& By, const REAL& dBxdy, const REAL& dBxdz, const REAL& dBydx, const REAL& dBydz, const REAL& xdir,const REAL& ydir, cint& RKCase
@@ -467,7 +536,11 @@ template<typename REAL> REAL calculateFastMSspeedXY(const REAL* cp, const REAL* 
    const REAL Bx2  = (Bx + ydir*HALF*dBxdy)*(Bx + ydir*HALF*dBxdy) + TWELWTH*dBxdz*dBxdz;
    const REAL By2  = (By + xdir*HALF*dBydx)*(By + xdir*HALF*dBydx) + TWELWTH*dBydz*dBydz;
    
-   return sqrt((Bx2+By2+Bz2) / (pc::MU_0 * rho));
+   if(!Parameters::propagateField) {
+      return 0.0;
+   } else {
+      return sqrt((Bx2+By2+Bz2) / (pc::MU_0 * rho));
+   }
 }
 
 /*! \brief Low-level electric field propagation function.
@@ -518,15 +591,15 @@ static void calculateEdgeElectricFieldX(
       Bz_W = cp_SW[CellParams::BZ];
       Bz_E = cp_SE[CellParams::BZ];
       By_N = cp_NW[CellParams::BY];
-      Vy0  = cp_SW[CellParams::RHOVY]/cp_SW[CellParams::RHO];
-      Vz0  = cp_SW[CellParams::RHOVZ]/cp_SW[CellParams::RHO];
+      Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY], cp_SW[CellParams::RHO]);
+      Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ], cp_SW[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
       By_S = cp_SW[CellParams::BY1];
       Bz_W = cp_SW[CellParams::BZ1];
       Bz_E = cp_SE[CellParams::BZ1];
       By_N = cp_NW[CellParams::BY1];
-      Vy0  = cp_SW[CellParams::RHOVY1]/cp_SW[CellParams::RHO1];
-      Vz0  = cp_SW[CellParams::RHOVZ1]/cp_SW[CellParams::RHO1];
+      Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY1], cp_SW[CellParams::RHO1]);
+      Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ1], cp_SW[CellParams::RHO1]);
    }
    
    creal dBydx_S = derivs_SW[fs::dBydx];
@@ -562,11 +635,11 @@ static void calculateEdgeElectricFieldX(
    
    // Ex and characteristic speeds on j-1 neighbour:
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Vy0  = cp_SE[CellParams::RHOVY]/cp_SE[CellParams::RHO];
-      Vz0  = cp_SE[CellParams::RHOVZ]/cp_SE[CellParams::RHO];
+      Vy0  = divideIfNonZero(cp_SE[CellParams::RHOVY], cp_SE[CellParams::RHO]);
+      Vz0  = divideIfNonZero(cp_SE[CellParams::RHOVZ], cp_SE[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
-      Vy0  = cp_SE[CellParams::RHOVY1]/cp_SE[CellParams::RHO1];
-      Vz0  = cp_SE[CellParams::RHOVZ1]/cp_SE[CellParams::RHO1];
+      Vy0  = divideIfNonZero(cp_SE[CellParams::RHOVY1], cp_SE[CellParams::RHO1]);
+      Vz0  = divideIfNonZero(cp_SE[CellParams::RHOVZ1], cp_SE[CellParams::RHO1]);
    }
    
    // 1st order terms:
@@ -592,11 +665,11 @@ static void calculateEdgeElectricFieldX(
    
    // Ex and characteristic speeds on k-1 neighbour:
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Vy0  = cp_NW[CellParams::RHOVY]/cp_NW[CellParams::RHO];
-      Vz0  = cp_NW[CellParams::RHOVZ]/cp_NW[CellParams::RHO];
+      Vy0  = divideIfNonZero(cp_NW[CellParams::RHOVY], cp_NW[CellParams::RHO]);
+      Vz0  = divideIfNonZero(cp_NW[CellParams::RHOVZ], cp_NW[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
-      Vy0  = cp_NW[CellParams::RHOVY1]/cp_NW[CellParams::RHO1];
-      Vz0  = cp_NW[CellParams::RHOVZ1]/cp_NW[CellParams::RHO1];
+      Vy0  = divideIfNonZero(cp_NW[CellParams::RHOVY1], cp_NW[CellParams::RHO1]);
+      Vz0  = divideIfNonZero(cp_NW[CellParams::RHOVZ1], cp_NW[CellParams::RHO1]);
    }
    
    // 1st order terms:
@@ -622,11 +695,11 @@ static void calculateEdgeElectricFieldX(
    
    // Ex and characteristic speeds on j-1,k-1 neighbour:
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Vy0 = cp_NE[CellParams::RHOVY]/cp_NE[CellParams::RHO];
-      Vz0 = cp_NE[CellParams::RHOVZ]/cp_NE[CellParams::RHO];
+      Vy0 = divideIfNonZero(cp_NE[CellParams::RHOVY], cp_NE[CellParams::RHO]);
+      Vz0 = divideIfNonZero(cp_NE[CellParams::RHOVZ], cp_NE[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
-      Vy0 = cp_NE[CellParams::RHOVY1]/cp_NE[CellParams::RHO1];
-      Vz0 = cp_NE[CellParams::RHOVZ1]/cp_NE[CellParams::RHO1];
+      Vy0 = divideIfNonZero(cp_NE[CellParams::RHOVY1], cp_NE[CellParams::RHO1]);
+      Vz0 = divideIfNonZero(cp_NE[CellParams::RHOVZ1], cp_NE[CellParams::RHO1]);
    }
    
    // 1st order terms:
@@ -739,15 +812,15 @@ static void calculateEdgeElectricFieldY(
       Bx_W = cp_SW[CellParams::BX];
       Bx_E = cp_SE[CellParams::BX];
       Bz_N = cp_NW[CellParams::BZ];
-      Vx0  = cp_SW[CellParams::RHOVX]/cp_SW[CellParams::RHO];
-      Vz0  = cp_SW[CellParams::RHOVZ]/cp_SW[CellParams::RHO];
+      Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX], cp_SW[CellParams::RHO]);
+      Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ], cp_SW[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
       Bz_S = cp_SW[CellParams::BZ1];
       Bx_W = cp_SW[CellParams::BX1];
       Bx_E = cp_SE[CellParams::BX1];
       Bz_N = cp_NW[CellParams::BZ1];
-      Vx0  = cp_SW[CellParams::RHOVX1]/cp_SW[CellParams::RHO1];
-      Vz0  = cp_SW[CellParams::RHOVZ1]/cp_SW[CellParams::RHO1];
+      Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX1], cp_SW[CellParams::RHO1]);
+      Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ1], cp_SW[CellParams::RHO1]);
    }
    
    creal dBxdy_W = derivs_SW[fs::dBxdy];
@@ -783,11 +856,11 @@ static void calculateEdgeElectricFieldY(
    
    // Ey and characteristic speeds on k-1 neighbour:
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Vx0  = cp_SE[CellParams::RHOVX]/cp_SE[CellParams::RHO];
-      Vz0  = cp_SE[CellParams::RHOVZ]/cp_SE[CellParams::RHO];
+      Vx0  = divideIfNonZero(cp_SE[CellParams::RHOVX], cp_SE[CellParams::RHO]);
+      Vz0  = divideIfNonZero(cp_SE[CellParams::RHOVZ], cp_SE[CellParams::RHO]);
    } else { //RKCase == RK_ORDER2_STEP1
-      Vx0  = cp_SE[CellParams::RHOVX1]/cp_SE[CellParams::RHO1];
-      Vz0  = cp_SE[CellParams::RHOVZ1]/cp_SE[CellParams::RHO1];
+      Vx0  = divideIfNonZero(cp_SE[CellParams::RHOVX1], cp_SE[CellParams::RHO1]);
+      Vz0  = divideIfNonZero(cp_SE[CellParams::RHOVZ1], cp_SE[CellParams::RHO1]);
    }
    
    // 1st order terms:
@@ -813,11 +886,11 @@ static void calculateEdgeElectricFieldY(
    
    // Ey and characteristic speeds on i-1 neighbour:
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Vz0  = cp_NW[CellParams::RHOVZ]/cp_NW[CellParams::RHO];
-      Vx0  = cp_NW[CellParams::RHOVX]/cp_NW[CellParams::RHO];
+      Vz0  = divideIfNonZero(cp_NW[CellParams::RHOVZ], cp_NW[CellParams::RHO]);
+      Vx0  = divideIfNonZero(cp_NW[CellParams::RHOVX], cp_NW[CellParams::RHO]);
    } else { //RKCase == RK_ORDER2_STEP1
-      Vz0  = cp_NW[CellParams::RHOVZ1]/cp_NW[CellParams::RHO1];
-      Vx0  = cp_NW[CellParams::RHOVX1]/cp_NW[CellParams::RHO1];
+      Vz0  = divideIfNonZero(cp_NW[CellParams::RHOVZ1], cp_NW[CellParams::RHO1]);
+      Vx0  = divideIfNonZero(cp_NW[CellParams::RHOVX1], cp_NW[CellParams::RHO1]);
    }
    
    // 1st order terms:
@@ -843,11 +916,11 @@ static void calculateEdgeElectricFieldY(
    
    // Ey and characteristic speeds on i-1,k-1 neighbour:
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Vz0 = cp_NE[CellParams::RHOVZ]/cp_NE[CellParams::RHO];
-      Vx0 = cp_NE[CellParams::RHOVX]/cp_NE[CellParams::RHO];
+      Vz0 = divideIfNonZero(cp_NE[CellParams::RHOVZ], cp_NE[CellParams::RHO]);
+      Vx0 = divideIfNonZero(cp_NE[CellParams::RHOVX], cp_NE[CellParams::RHO]);
    } else { //RKCase == RK_ORDER2_STEP1
-      Vz0 = cp_NE[CellParams::RHOVZ1]/cp_NE[CellParams::RHO1];
-      Vx0 = cp_NE[CellParams::RHOVX1]/cp_NE[CellParams::RHO1];
+      Vz0 = divideIfNonZero(cp_NE[CellParams::RHOVZ1], cp_NE[CellParams::RHO1]);
+      Vx0 = divideIfNonZero(cp_NE[CellParams::RHOVX1], cp_NE[CellParams::RHO1]);
    }
    
    // 1st order terms:
@@ -957,15 +1030,15 @@ static void calculateEdgeElectricFieldZ(
       By_W    = cp_SW[CellParams::BY];
       By_E    = cp_SE[CellParams::BY];
       Bx_N    = cp_NW[CellParams::BX];
-      Vx0  = cp_SW[CellParams::RHOVX]/cp_SW[CellParams::RHO];
-      Vy0  = cp_SW[CellParams::RHOVY]/cp_SW[CellParams::RHO];
+      Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX], cp_SW[CellParams::RHO]);
+      Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY], cp_SW[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
       Bx_S    = cp_SW[CellParams::BX1];
       By_W    = cp_SW[CellParams::BY1];
       By_E    = cp_SE[CellParams::BY1];
       Bx_N    = cp_NW[CellParams::BX1];
-      Vx0  = cp_SW[CellParams::RHOVX1]/cp_SW[CellParams::RHO1];
-      Vy0  = cp_SW[CellParams::RHOVY1]/cp_SW[CellParams::RHO1];
+      Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX1], cp_SW[CellParams::RHO1]);
+      Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY1], cp_SW[CellParams::RHO1]);
    }
    
    creal dBxdy_S = derivs_SW[fs::dBxdy];
@@ -1003,11 +1076,11 @@ static void calculateEdgeElectricFieldZ(
    
    // Ez and characteristic speeds on SE (i-1) cell:
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Vx0  = cp_SE[CellParams::RHOVX]/cp_SE[CellParams::RHO];
-      Vy0  = cp_SE[CellParams::RHOVY]/cp_SE[CellParams::RHO];
+      Vx0  = divideIfNonZero(cp_SE[CellParams::RHOVX], cp_SE[CellParams::RHO]);
+      Vy0  = divideIfNonZero(cp_SE[CellParams::RHOVY], cp_SE[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
-      Vx0  = cp_SE[CellParams::RHOVX1]/cp_SE[CellParams::RHO1];
-      Vy0  = cp_SE[CellParams::RHOVY1]/cp_SE[CellParams::RHO1];
+      Vx0  = divideIfNonZero(cp_SE[CellParams::RHOVX1], cp_SE[CellParams::RHO1]);
+      Vy0  = divideIfNonZero(cp_SE[CellParams::RHOVY1], cp_SE[CellParams::RHO1]);
    }
    
    // 1st order terms:
@@ -1033,11 +1106,11 @@ static void calculateEdgeElectricFieldZ(
    
    // Ez and characteristic speeds on NW (j-1) cell:
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Vx0  = cp_NW[CellParams::RHOVX]/cp_NW[CellParams::RHO];
-      Vy0  = cp_NW[CellParams::RHOVY]/cp_NW[CellParams::RHO];
+      Vx0  = divideIfNonZero(cp_NW[CellParams::RHOVX], cp_NW[CellParams::RHO]);
+      Vy0  = divideIfNonZero(cp_NW[CellParams::RHOVY], cp_NW[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
-      Vx0  = cp_NW[CellParams::RHOVX1]/cp_NW[CellParams::RHO1];
-      Vy0  = cp_NW[CellParams::RHOVY1]/cp_NW[CellParams::RHO1];
+      Vx0  = divideIfNonZero(cp_NW[CellParams::RHOVX1], cp_NW[CellParams::RHO1]);
+      Vy0  = divideIfNonZero(cp_NW[CellParams::RHOVY1], cp_NW[CellParams::RHO1]);
    }
    
    // 1st order terms:
@@ -1063,11 +1136,11 @@ static void calculateEdgeElectricFieldZ(
    
    // Ez and characteristic speeds on NE (i-1,j-1) cell:
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Vx0  = cp_NE[CellParams::RHOVX]/cp_NE[CellParams::RHO];
-      Vy0  = cp_NE[CellParams::RHOVY]/cp_NE[CellParams::RHO];
+      Vx0  = divideIfNonZero(cp_NE[CellParams::RHOVX], cp_NE[CellParams::RHO]);
+      Vy0  = divideIfNonZero(cp_NE[CellParams::RHOVY], cp_NE[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
-      Vx0  = cp_NE[CellParams::RHOVX1]/cp_NE[CellParams::RHO1];
-      Vy0  = cp_NE[CellParams::RHOVY1]/cp_NE[CellParams::RHO1];
+      Vx0  = divideIfNonZero(cp_NE[CellParams::RHOVX1], cp_NE[CellParams::RHO1]);
+      Vy0  = divideIfNonZero(cp_NE[CellParams::RHOVY1], cp_NE[CellParams::RHO1]);
    }
    
    // 1st order terms:
@@ -1381,7 +1454,7 @@ bool initializeFieldPropagator(
    PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(1,2,1)); // +y nbr
    PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(1,1,0)); // -z nbr
    PROPAGATE_BX = PROPAGATE_BX | (1 << calcNbrNumber(1,1,2)); // +z nbr
-      
+   
    // By is propagated if -y,+/-x,+/-z neighbours exist:
    PROPAGATE_BY = 0;
    PROPAGATE_BY = PROPAGATE_BY | (1 << calcNbrNumber(1,0,1)); // -y nbr
@@ -1397,7 +1470,7 @@ bool initializeFieldPropagator(
    PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(2,1,1)); // +x nbr
    PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,0,1)); // -y nbr
    PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,2,1)); // +y nbr
-
+   
    // Calculate derivatives and upwinded edge-E. Exchange derivatives 
    // and edge-E:s between neighbouring processes and calculate 
    // face-averaged E,B fields.

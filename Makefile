@@ -1,6 +1,6 @@
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
-PROJ = Riemann1
+PROJ = Larmor
 
 #set default architecture, can be overridden from the compile line
 ARCH = meteo
@@ -32,7 +32,7 @@ CXXFLAGS += -DNDEBUG
 CXXFLAGS += -DUSE_AGNER_VECTORCLASS
 #Add -DCATCH_FPE to catch floating point exceptions and stop execution
 #May cause problems
-#CXXFLAGS += -DCATCH_FPE
+# CXXFLAGS += -DCATCH_FPE
 
 
 #Add -DFS_1ST_ORDER_SPACE or -DFS_1ST_ORDER_TIME to make the field solver first-order in space or time
