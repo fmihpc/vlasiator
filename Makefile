@@ -1,6 +1,6 @@
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
-PROJ = Larmor
+PROJ = Dispersion
 
 #set default architecture, can be overridden from the compile line
 ARCH = meteo

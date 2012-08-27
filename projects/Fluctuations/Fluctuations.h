@@ -37,13 +37,12 @@ struct fluctuationsParameters {
    static Real BZ0;
    static Real DENSITY;
    static Real TEMPERATURE;
-   static Real magXPertAmp;
-   static Real magYPertAmp;
-   static Real magZPertAmp;
-   static Real densityPertAmp;
-   static Real velocityPertAmp;
+   static Real magXPertAbsAmp;
+   static Real magYPertAbsAmp;
+   static Real magZPertAbsAmp;
+   static Real densityPertRelAmp;
+   static Real velocityPertAbsAmp;
    static Real maxwCutoff;
-//   static uint sectorSize;
    static uint nSpaceSamples;
    static uint nVelocitySamples;
 } ;
@@ -90,24 +89,30 @@ void calcCellParameters(Real* cellParams,creal& t);
 
 void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt);
 
-/** Integrate the distribution function over the given six-dimensional phase-space cell.
- * @param x Starting value of the x-coordinate of the cell.
- * @param y Starting value of the y-coordinate of the cell.
- * @param z Starting value of the z-coordinate of the cell.
- * @param dx The size of the cell in x-direction.
- * @param dy The size of the cell in y-direction.
- * @param dz The size of the cell in z-direction.
- * @param vx Starting value of the vx-coordinate of the cell.
- * @param vy Starting value of the vy-coordinate of the cell.
- * @param vz Starting value of the vz-coordinate of the cell.
- * @param dvx The size of the cell in vx-direction.
- * @param dvy The size of the cell in vy-direction.
- * @param dvz The size of the cell in vz-direction.
- * @return The volume average of the distribution function in the given phase space cell.
+// TODO when projects are classes, the rnd values and state variables etc can be class members.
+/*! Integrate the distribution function over the given six-dimensional phase-space cell.
+ * \param x Starting value of the x-coordinate of the cell.
+ * \param y Starting value of the y-coordinate of the cell.
+ * \param z Starting value of the z-coordinate of the cell.
+ * \param dx The size of the cell in x-direction.
+ * \param dy The size of the cell in y-direction.
+ * \param dz The size of the cell in z-direction.
+ * \param vx Starting value of the vx-coordinate of the cell.
+ * \param vy Starting value of the vy-coordinate of the cell.
+ * \param vz Starting value of the vz-coordinate of the cell.
+ * \param dvx The size of the cell in vx-direction.
+ * \param dvy The size of the cell in vy-direction.
+ * \param dvz The size of the cell in vz-direction.
+ * \param rndRho Random number for the density perturbation.
+ * \param rndVel Three random numbers for the velocity perturbation.
+ * \return The volume average of the distribution function in the given phase space cell.
  * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
  */
-Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
-			   creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz);
+Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
+                           creal& dx,creal& dy,creal& dz,
+                           creal& vx,creal& vy,creal& vz,
+                           creal& dvx,creal& dvy,creal& dvz,
+                           const int32_t& rndRho, const int32_t rndVel[3]);
 
 /*!\brief Set the fields and distribution of a cell according to the default simulation settings.
  * This is used for the NOT_SYSBOUNDARY cells and some other system boundary conditions (e.g. Outflow).

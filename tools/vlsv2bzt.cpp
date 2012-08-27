@@ -84,7 +84,7 @@ bool convertMesh(VLSVReader& vlsvReader,
       if (vlsvReader.readArray("VARIABLE", varToExtract, i, 1, variableBuffer) == false) {variableSuccess = false; break;}
       
       // Get the x coordinate
-      creal x  = coordPtr[1]; /*!< Changing this allows to extract datasets along x (0), y (1) or z (2). */
+      creal x  = coordPtr[0]; /*!< Changing this allows to extract datasets along x (0), y (1) or z (2). */
       // Get the variable value
       creal extract = variablePtr[compToExtract];
       // Put those into the map

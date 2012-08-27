@@ -1,20 +1,20 @@
 /*
-This file is part of Vlasiator.
-
-Copyright 2011, 2012 Finnish Meteorological Institute
-
-Vlasiator is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 3
-as published by the Free Software Foundation.
-
-Vlasiator is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <http://www.gnu.org/licenses/>.
-*/
+ * This file is part of Vlasiator.
+ * 
+ * Copyright 2011, 2012 Finnish Meteorological Institute
+ * 
+ * Vlasiator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3
+ * as published by the Free Software Foundation.
+ * 
+ * Vlasiator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include <cstdlib>
 #include <iostream>
@@ -29,59 +29,59 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "vlasovmover.h"
 
 typedef dispersionParameters DispP;
-Real DispP::BX0 = NAN;
-Real DispP::BY0 = NAN;
-Real DispP::BZ0 = NAN;
+Real DispP::B0 = NAN;
+Real DispP::angleXY = NAN;
+Real DispP::angleXZ = NAN;
 Real DispP::DENSITY = NAN;
 Real DispP::TEMPERATURE = NAN;
-Real DispP::magPertAmp = NAN;
-Real DispP::densityPertAmp = NAN;
-Real DispP::velocityPertAmp = NAN;
-uint DispP::seed = 0;
-uint DispP::sectorSize = 0;
+Real DispP::magXPertAbsAmp = NAN;
+Real DispP::magYPertAbsAmp = NAN;
+Real DispP::magZPertAbsAmp = NAN;
+Real DispP::densityPertRelAmp = NAN;
+Real DispP::velocityPertAbsAmp = NAN;
+Real DispP::maxwCutoff = NAN;
 uint DispP::nSpaceSamples = 0;
 uint DispP::nVelocitySamples = 0;
 
-bool initializeProject(void) {
-   int rank;
-   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-   srand(DispP::seed*rank);
-   return true;
-}
+bool initializeProject(void) {return true;}
 
-bool addProjectParameters(){
+bool addProjectParameters() {
    typedef Readparameters RP;
-   RP::add("Dispersion.BX0", "Background field value (T)", 1.0e-9);
-   RP::add("Dispersion.BY0", "Background field value (T)", 2.0e-9);
-   RP::add("Dispersion.BZ0", "Background field value (T)", 3.0e-9);
+   RP::add("Dispersion.B0", "Guide magnetic field strength (T)", 1.0e-9);
+   RP::add("Dispersion.angleXY", "Orientation of the guide magnetic field with respect to the x-axis in x-y plane (rad)", 0.001);
+   RP::add("Dispersion.angleXZ", "Orientation of the guide magnetic field with respect to the x-axis in x-z plane (rad)", 0.001);
    RP::add("Dispersion.rho", "Number density (m^-3)", 1.0e7);
    RP::add("Dispersion.Temperature", "Temperature (K)", 2.0e6);
-   RP::add("Dispersion.magPertAmp", "Amplitude of the magnetic perturbation", 1.0e-9);
-   RP::add("Dispersion.densityPertAmp", "Amplitude factor of the density perturbation", 0.1);
-   RP::add("Dispersion.velocityPertAmp", "Amplitude of the velocity perturbation", 1.0e6);
-   RP::add("Dispersion.seed","Seed integer for the srand() function multiplied by rank", 42);
-   RP::add("Dispersion.sectorSize", "Maximal size of the sectors for randomising", 10);
+   RP::add("Dispersion.magXPertAbsAmp", "Absolute amplitude of the magnetic perturbation along x (T)", 1.0e-9);
+   RP::add("Dispersion.magYPertAbsAmp", "Absolute amplitude of the magnetic perturbation along y (T)", 1.0e-9);
+   RP::add("Dispersion.magZPertAbsAmp", "Absolute amplitude of the magnetic perturbation along z (T)", 1.0e-9);
+   RP::add("Dispersion.densityPertRelAmp", "Relative amplitude of the density perturbation", 0.1);
+   RP::add("Dispersion.velocityPertAbsAmp", "Absolute amplitude of the velocity perturbation", 1.0e6);
    RP::add("Dispersion.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
    RP::add("Dispersion.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+   RP::add("Dispersion.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
    return true;
 }
 
-bool getProjectParameters(){
+bool getProjectParameters() {
    typedef Readparameters RP;
-   RP::get("Dispersion.BX0", DispP::BX0);
-   RP::get("Dispersion.BY0", DispP::BY0);
-   RP::get("Dispersion.BZ0", DispP::BZ0);
+   RP::get("Dispersion.B0", DispP::B0);
+   RP::get("Dispersion.angleXY", DispP::angleXY);
+   RP::get("Dispersion.angleXZ", DispP::angleXZ);
    RP::get("Dispersion.rho", DispP::DENSITY);
    RP::get("Dispersion.Temperature", DispP::TEMPERATURE);
-   RP::get("Dispersion.magPertAmp", DispP::magPertAmp);
-   RP::get("Dispersion.densityPertAmp", DispP::densityPertAmp);
-   RP::get("Dispersion.velocityPertAmp", DispP::velocityPertAmp);
-   RP::get("Dispersion.seed", DispP::seed);
-   RP::get("Dispersion.sectorSize", DispP::sectorSize);
+   RP::get("Dispersion.magXPertAbsAmp", DispP::magXPertAbsAmp);
+   RP::get("Dispersion.magYPertAbsAmp", DispP::magYPertAbsAmp);
+   RP::get("Dispersion.magZPertAbsAmp", DispP::magZPertAbsAmp);
+   RP::get("Dispersion.densityPertRelAmp", DispP::densityPertRelAmp);
+   RP::get("Dispersion.velocityPertAbsAmp", DispP::velocityPertAbsAmp);
    RP::get("Dispersion.nSpaceSamples", DispP::nSpaceSamples);
    RP::get("Dispersion.nVelocitySamples", DispP::nVelocitySamples);
+   RP::get("Dispersion.maxwCutoff", DispP::maxwCutoff);
    return true;
 }
+
+bool cellParametersChanged(creal& t) {return false;}
 
 void setProjectCell(SpatialCell* cell) {
    // Set up cell parameters:
@@ -89,6 +89,29 @@ void setProjectCell(SpatialCell* cell) {
    
    cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
    cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
+   
+   creal x = cell->parameters[CellParams::XCRD];
+   creal y = cell->parameters[CellParams::YCRD];
+   creal z = cell->parameters[CellParams::ZCRD];
+   creal dx = cell->parameters[CellParams::DX];
+   creal dy = cell->parameters[CellParams::DY];
+   creal dz = cell->parameters[CellParams::DZ];
+   
+   uint cellID = (int) ((x - Parameters::xmin) / dx) +
+   (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
+   (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
+   
+   // TODO when projects are classes, the rnd values and state variables etc can be class members.
+   char rngStateBuffer[256];
+   random_data rngDataBuffer;
+   memset(&rngDataBuffer, 0, sizeof(rngDataBuffer));
+   initstate_r(cellID, &rngStateBuffer[0], 256, &rngDataBuffer);
+   
+   int32_t rndRho, rndVel[3];
+   random_r(&rngDataBuffer, &rndRho);
+   random_r(&rngDataBuffer, &rndVel[0]);
+   random_r(&rngDataBuffer, &rndVel[1]);
+   random_r(&rngDataBuffer, &rndVel[2]);
    
    // Go through each velocity block in the velocity phase space grid.
    // Set the initial state and block parameters:
@@ -114,14 +137,11 @@ void setProjectCell(SpatialCell* cell) {
                      creal vy_cell = vy_block + jc*dvy_blockCell;
                      creal vz_cell = vz_block + kc*dvz_blockCell;
                      Real average = 
-                     calcPhaseSpaceDensity(cell->parameters[CellParams::XCRD],
-                                           cell->parameters[CellParams::YCRD],
-                                           cell->parameters[CellParams::ZCRD],
-                                           cell->parameters[CellParams::DX],
-                                           cell->parameters[CellParams::DY],
-                                           cell->parameters[CellParams::DZ],
-                                           vx_cell,vy_cell,vz_cell,
-                                           dvx_blockCell,dvy_blockCell,dvz_blockCell);
+                     calcPhaseSpaceDensity(x, y, z, dx, dy, dz,
+                                           vx_cell, vy_cell, vz_cell,
+                                           dvx_blockCell, dvy_blockCell, dvz_blockCell,
+                                           rndRho,
+                                           rndVel);
                      
                      if(average!=0.0){
                         creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
@@ -137,79 +157,52 @@ void setProjectCell(SpatialCell* cell) {
          cell->adjustSingleCellVelocityBlocks();
 }
 
-bool cellParametersChanged(creal& t) {return false;}
-
 Real getDistribValue(creal& vx,creal& vy, creal& vz) {
    creal k = 1.3806505e-23; // Boltzmann
    creal mass = 1.67262171e-27; // m_p in kg
    return exp(- mass * (vx*vx + vy*vy + vz*vz) / (2.0 * k * DispP::TEMPERATURE));
 }
 
-Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
-   creal mass = 1.67262171e-27; // m_p in kg
+/* calcPhaseSpaceDensity needs to be thread-safe */
+Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const int32_t& rndRho, const int32_t rndVel[3]) {
+   if(vx < Parameters::vxmin + 0.5 * dvx ||
+      vy < Parameters::vymin + 0.5 * dvy ||
+      vz < Parameters::vzmin + 0.5 * dvz ||
+      vx > Parameters::vxmax - 1.5 * dvx ||
+      vy > Parameters::vymax - 1.5 * dvy ||
+      vz > Parameters::vzmax - 1.5 * dvz
+   ) return 0.0;
+   
+   creal mass = Parameters::m;
+   creal q = Parameters::q;
    creal k = 1.3806505e-23; // Boltzmann
    creal mu0 = 1.25663706144e-6; // mu_0
-   creal q = 1.60217653e-19; // q_i
-   
-   static int spaceIndexOld[3] = {std::numeric_limits<int>::min(),
-                                  std::numeric_limits<int>::min(),
-                                  std::numeric_limits<int>::min()};
-   static int spaceIndex[3] = {0};
-   static int rndRho = 0;
-   static int rndVel[3] = {0};
-#pragma omp critical
-   {
-      //critical region since srand not thread-safe. A nicer fix would be to use a thread-safe rng
-      //e.g., http://linux.die.net/man/3/random_r (FIXME)
-      static int rndRhoSector = rand()%DispP::sectorSize+1;
-      static int rndVelSector = rand()%DispP::sectorSize+1;
-      static int cptRhoSector = 0;
-      static int cptVelSector = 0;
-      
-      //static variables should be threadprivate
-#pragma omp threadprivate(spaceIndexOld,spaceIndex,rndRho,rndVel,rndRhoSector,rndVelSector,cptRhoSector,cptVelSector)
-   
-      spaceIndex[0] = (int) (x / dx);
-      spaceIndex[1] = (int) (y / dy);
-      spaceIndex[2] = (int) (z / dz);
-      if(spaceIndex[0] != spaceIndexOld[0] ||
-	 spaceIndex[1] != spaceIndexOld[1] ||
-	 spaceIndex[2] != spaceIndexOld[2]) {
-	 if(cptRhoSector++%rndRhoSector == 0)
-	 {
-	    rndRho = rand();
-	    rndRhoSector = rand()%DispP::sectorSize+1;
-	 }
-	 if(cptVelSector++%rndVelSector == 0)
-	 {
-	    rndVel = {rand(), rand(), rand()};
-	    rndVelSector = rand()%DispP::sectorSize+1;
-	 }
-      }
-   } // end of omp critical region
-   spaceIndexOld[0] = spaceIndex[0];
-   spaceIndexOld[1] = spaceIndex[1];
-   spaceIndexOld[2] = spaceIndex[2];
    
    creal d_vx = dvx / (DispP::nVelocitySamples-1);
    creal d_vy = dvy / (DispP::nVelocitySamples-1);
    creal d_vz = dvz / (DispP::nVelocitySamples-1);
    Real avg = 0.0;
+   
    for (uint vi=0; vi<DispP::nVelocitySamples; ++vi)
       for (uint vj=0; vj<DispP::nVelocitySamples; ++vj)
-	 for (uint vk=0; vk<DispP::nVelocitySamples; ++vk)
+         for (uint vk=0; vk<DispP::nVelocitySamples; ++vk)
          {
-	    avg += getDistribValue(
-	       vx+vi*d_vx - DispP::velocityPertAmp * (0.5 - (double)rndVel[0] / (double)RAND_MAX),
-	       vy+vj*d_vy - DispP::velocityPertAmp * (0.5 - (double)rndVel[1] / (double)RAND_MAX),
-	       vz+vk*d_vz - DispP::velocityPertAmp * (0.5 - (double)rndVel[2] / (double)RAND_MAX));
+            avg += getDistribValue(
+               vx+vi*d_vx - DispP::velocityPertAbsAmp * (0.5 - (double)rndVel[0] / (double)RAND_MAX),
+                                   vy+vj*d_vy - DispP::velocityPertAbsAmp * (0.5 - (double)rndVel[1] / (double)RAND_MAX),
+                                   vz+vk*d_vz - DispP::velocityPertAbsAmp * (0.5 - (double)rndVel[2] / (double)RAND_MAX));
          }
-   
-   return avg *
-   DispP::DENSITY * (1.0 + DispP::densityPertAmp * (0.5 - (double)rndRho / (double)RAND_MAX)) *
-   pow(mass / (2.0 * M_PI * k * DispP::TEMPERATURE), 1.5) /
-//   (Parameters::vzmax - Parameters::vzmin) / 
-(DispP::nVelocitySamples*DispP::nVelocitySamples*DispP::nVelocitySamples);
+         
+         creal result = avg *
+         DispP::DENSITY * (1.0 + DispP::densityPertRelAmp * (0.5 - (double)rndRho / (double)RAND_MAX)) *
+         pow(mass / (2.0 * M_PI * k * DispP::TEMPERATURE), 1.5) /
+         //            (Parameters::vzmax - Parameters::vzmin) / 
+         (DispP::nVelocitySamples*DispP::nVelocitySamples*DispP::nVelocitySamples);
+         if(result < DispP::maxwCutoff) {
+            return 0.0;
+         } else {
+            return result;
+         }
 }
 
 void calcBlockParameters(Real* blockParams) {
@@ -217,20 +210,39 @@ void calcBlockParameters(Real* blockParams) {
 }
 
 void calcCellParameters(Real* cellParams,creal& t) {
-   //creal x = cellParams[CellParams::XCRD];
-   //creal dx = cellParams[CellParams::DX];
+   creal x = cellParams[CellParams::XCRD];
+   creal dx = cellParams[CellParams::DX];
+   creal y = cellParams[CellParams::YCRD];
+   creal dy = cellParams[CellParams::DY];
+   creal z = cellParams[CellParams::ZCRD];
+   creal dz = cellParams[CellParams::DZ];
+   
+   uint cellID = (int) ((x - Parameters::xmin) / dx) +
+   (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
+   (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
    
    cellParams[CellParams::EX   ] = 0.0;
    cellParams[CellParams::EY   ] = 0.0;
    cellParams[CellParams::EZ   ] = 0.0;
-   cellParams[CellParams::BX   ] = DispP::BX0;
-#pragma omp critical
-   {
-      //critical region since srand not thread-safe. A nicer fix would be to use a thread-safe rng
-      //e.g., http://linux.die.net/man/3/random_r (FIXME)
-      cellParams[CellParams::BY   ] = DispP::magPertAmp * (0.5 - (double)rand() / (double)RAND_MAX);
-      cellParams[CellParams::BZ   ] = DispP::magPertAmp * (0.5 - (double)rand() / (double)RAND_MAX);
-   } // end of omp critical region
+   
+   // TODO when projects are classes, the rnd values and state variables etc can be class members.
+   char rngStateBuffer[256];
+   random_data rngDataBuffer;
+   memset(&rngDataBuffer, 0, sizeof(rngDataBuffer));
+   initstate_r(cellID + 
+   (uint)(Parameters::xcells_ini*Parameters::ycells_ini*Parameters::zcells_ini), &rngStateBuffer[0], 256, &rngDataBuffer);
+   
+   int32_t rndBuffer[3];
+   random_r(&rngDataBuffer, &rndBuffer[0]);
+   random_r(&rngDataBuffer, &rndBuffer[1]);
+   random_r(&rngDataBuffer, &rndBuffer[2]);
+   
+   cellParams[CellParams::BX] = DispP::B0 * cos(DispP::angleXY) * cos(DispP::angleXZ) +
+      DispP::magXPertAbsAmp * (0.5 - (double)rndBuffer[0] / (double)RAND_MAX);
+   cellParams[CellParams::BY] = DispP::B0 * sin(DispP::angleXY) * cos(DispP::angleXZ) + 
+      DispP::magYPertAbsAmp * (0.5 - (double)rndBuffer[1] / (double)RAND_MAX);
+   cellParams[CellParams::BZ] = DispP::B0 * sin(DispP::angleXZ) +
+      DispP::magZPertAbsAmp * (0.5 - (double)rndBuffer[2] / (double)RAND_MAX);
 }
 
 // TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
