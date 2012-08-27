@@ -11,7 +11,7 @@ cfg=$2
 if [ $# -ne 2 ] 
 then
     cat    <<EOF
-Prints out differences between parameters in a cfg fileand the options that the vlasiator executable understands.
+Prints out differences between parameters in a cfg file and the options that the vlasiator executable understands.
 
 Usage: $0 vlasiator_executable cfg_file
 
@@ -48,4 +48,6 @@ echo "               Vlasiator options                              |           
 echo "------------------------------------------------------------------------------------------------------------" 
 
 diff --side-by-side --suppress-common-lines .vlasiator_variable_names .cfg_variable_names
-echo "------------------------------------------------------------------------------------------------------------" 
+echo "------------------------------------------------------------------------------------------------------------"
+
+rm .cfg_variables .cfg_variable_names .vlasiator_variables .vlasiator_variable_names
