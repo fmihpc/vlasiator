@@ -231,7 +231,7 @@ int main(int argn,char* args[]) {
       // Check whether diagnostic output has to be produced
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
          phiprof::start("Diagnostic");
-         if (computeDiagnostic(mpiGrid, diagnosticReducer, P::tstep) == false) {
+         if (computeDiagnostic(mpiGrid, diagnosticReducer) == false) {
             cerr << "ERROR with diagnostic computation" << endl;
          }
          phiprof::stop("Diagnostic");

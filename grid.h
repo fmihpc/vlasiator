@@ -47,7 +47,8 @@ bool writeGrid(const dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
                const bool& writeRestart);
 
 // Write out diagnostic
-bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid, DataReducer& dataReducer, luint tstep);
+bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
+                       DataReducer& dataReducer);
 
 void setNotSysBoundaryCell(SpatialCell* cell);
 
