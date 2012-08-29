@@ -129,6 +129,8 @@ bool SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, creal& t) {
  * \sa addSysBoundary
  */
 bool SysBoundary::initSysBoundaries(creal& t) {
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    bool success = true;
    vector<string>::const_iterator it;
    for (it = sysBoundaryCondList.begin();
@@ -136,18 +138,29 @@ bool SysBoundary::initSysBoundaries(creal& t) {
    it++) {
       if(*it == "Outflow") {
          if(this->addSysBoundary(new SBC::Outflow, t) == false) {
-            cerr << "Error in adding Outflow boundary." << endl;
+            if(myRank == MASTER_RANK) cerr << "Error in adding Outflow boundary." << endl;
             success = false;
          }
          isThisDynamic = isThisDynamic|this->getSysBoundary(sysboundarytype::OUTFLOW)->isDynamic();
+         bool faces[6];
+         this->getSysBoundary(sysboundarytype::OUTFLOW)->getFaces(&faces[0]);
+         if((faces[0] || faces[1]) && isPeriodic[0]) {
+            if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_x = yes and load Outflow system boundary conditions on the x+ or x- face, are you sure this is correct?" << endl;
+         }
+         if((faces[2] || faces[3]) && isPeriodic[1]) {
+            if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_y = yes and load Outflow system boundary conditions on the y+ or y- face, are you sure this is correct?" << endl;
+         }
+         if((faces[4] || faces[5]) && isPeriodic[2]) {
+            if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_z = yes and load Outflow system boundary conditions on the z+ or z- face, are you sure this is correct?" << endl;
+         }
       }
       if(*it == "Ionosphere") {
          if(this->addSysBoundary(new SBC::Ionosphere, t) == false) {
-            cerr << "Error in adding Ionosphere boundary." << endl;
+            if(myRank == MASTER_RANK) cerr << "Error in adding Ionosphere boundary." << endl;
             success = false;
          }
          if(this->addSysBoundary(new SBC::DoNotCompute, t) == false) {
-            cerr << "Error in adding DoNotCompute boundary (for Ionosphere)." << endl;
+            if(myRank == MASTER_RANK) cerr << "Error in adding DoNotCompute boundary (for Ionosphere)." << endl;
             success = false;
          }
          isThisDynamic = isThisDynamic|
@@ -155,11 +168,22 @@ bool SysBoundary::initSysBoundaries(creal& t) {
       }
       if(*it == "Maxwellian") {
          if(this->addSysBoundary(new SBC::SetMaxwellian, t) == false) {
-            cerr << "Error in adding Maxwellian boundary." << endl;
+            if(myRank == MASTER_RANK) cerr << "Error in adding Maxwellian boundary." << endl;
             success = false;
          }
          isThisDynamic = isThisDynamic|
          this->getSysBoundary(sysboundarytype::SET_MAXWELLIAN)->isDynamic();
+         bool faces[6];
+         this->getSysBoundary(sysboundarytype::SET_MAXWELLIAN)->getFaces(&faces[0]);
+         if((faces[0] || faces[1]) && isPeriodic[0]) {
+            if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_x = yes and load Maxwellian system boundary conditions on the x+ or x- face, are you sure this is correct?" << endl;
+         }
+         if((faces[2] || faces[3]) && isPeriodic[1]) {
+            if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_y = yes and load Maxwellian system boundary conditions on the y+ or y- face, are you sure this is correct?" << endl;
+         }
+         if((faces[4] || faces[5]) && isPeriodic[2]) {
+            if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_z = yes and load Maxwellian system boundary conditions on the z+ or z- face, are you sure this is correct?" << endl;
+         }
       }
    }
    

@@ -232,7 +232,7 @@ int main(int argn,char* args[]) {
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
          phiprof::start("Diagnostic");
          if (computeDiagnostic(mpiGrid, diagnosticReducer) == false) {
-            cerr << "ERROR with diagnostic computation" << endl;
+            if(myRank == MASTER_RANK) cerr << "ERROR with diagnostic computation" << endl;
          }
          phiprof::stop("Diagnostic");
       }

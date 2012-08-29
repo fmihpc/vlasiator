@@ -43,6 +43,8 @@ namespace SBC {
       virtual bool initSysBoundary(creal& t);
       virtual int assignSysBoundary(creal* cellParams);
       virtual bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid);
+      
+      virtual void getFaces(bool* faces);
       virtual std::string getName() const;
       virtual uint getIndex() const;
       

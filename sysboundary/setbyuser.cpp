@@ -155,6 +155,10 @@ namespace SBC {
       return true;
    }
    
+   void SetByUser::getFaces(bool* faces) {
+      for(uint i=0; i<6; i++) faces[i] = facesToProcess[i];
+   }
+   
    bool SetByUser::loadInputData() {
       for(uint i=0; i<6; i++) {
          if(facesToProcess[i]) {

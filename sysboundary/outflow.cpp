@@ -100,6 +100,10 @@ namespace SBC {
       return true;
    }
    
+   void Outflow::getFaces(bool* faces) {
+      for(uint i=0; i<6; i++) faces[i] = facesToProcess[i];
+   }
+   
    std::string Outflow::getName() const {return "Outflow";}
    uint Outflow::getIndex() const {return sysboundarytype::OUTFLOW;}
 }

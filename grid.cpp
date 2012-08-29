@@ -61,8 +61,8 @@ void initializeGrid(int argn,
                     char **argc,
                     dccrg::Dccrg<SpatialCell>& mpiGrid,
                     SysBoundary& sysBoundaries) {
-   int myrank;
-   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
    // initialize velocity grid of spatial cells before creating cells in dccrg.initialize
    initVelocityGridGeometry();
@@ -70,7 +70,7 @@ void initializeGrid(int argn,
    // Init Zoltan:
    float zoltanVersion;
    if (Zoltan_Initialize(argn,argc,&zoltanVersion) != ZOLTAN_OK) {
-      if(myrank == MASTER_RANK) cerr << "\t ERROR: Zoltan initialization failed." << endl;
+      if(myRank == MASTER_RANK) cerr << "\t ERROR: Zoltan initialization failed." << endl;
       exit(1);
    } else {
       logFile << "\t Zoltan " << zoltanVersion << " initialized successfully" << std::endl << writeVerbose;
@@ -101,11 +101,11 @@ void initializeGrid(int argn,
    
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
    phiprof::start("Initial load-balancing");
-   if (myrank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
+   if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
    mpiGrid.balance_load();
    phiprof::stop("Initial load-balancing");
    
-   if (myrank == MASTER_RANK) logFile << "(INIT): Set initial state." << endl << writeVerbose;
+   if (myRank == MASTER_RANK) logFile << "(INIT): Set initial state." << endl << writeVerbose;
    phiprof::start("Set initial state");
    
    phiprof::start("Set spatial cell coordinates");
@@ -113,7 +113,7 @@ void initializeGrid(int argn,
    phiprof::stop("Set spatial cell coordinates");
    
    if(sysBoundaries.initSysBoundaries(P::t_min) == false) {
-      if (myrank == MASTER_RANK) cerr << "Error in initialising the system boundaries." << endl;
+      if (myRank == MASTER_RANK) cerr << "Error in initialising the system boundaries." << endl;
       exit(1);
    }
    
@@ -316,8 +316,8 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
                const bool& writeRestart) {
     double allStart = MPI_Wtime();
     bool success = true;
-    int myrank;
-    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+    int myRank;
+    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
     if(writeRestart)
         phiprof::start("writeGrid-restart");
     else
@@ -338,7 +338,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    vector<uint64_t> cells = mpiGrid.get_cells();
 
    if (vlsvWriter.writeArray("MESH","SpatialGrid",attribs,cells.size(),1,&(cells[0])) == false) {
-      cerr << "Proc #" << myrank << " failed to write cell IDs!" << endl;
+      cerr << "Proc #" << myRank << " failed to write cell IDs!" << endl;
    }
 
    // Create a buffer for spatial cell coordinates. Copy all coordinates to 
@@ -351,7 +351,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
       }
    }
    if (vlsvWriter.writeArray("COORDS","SpatialGrid",attribs,cells.size(),6,buffer) == false) {
-      cerr << "Proc #" << myrank << " failed to write cell coords!" << endl;
+      cerr << "Proc #" << myRank << " failed to write cell coords!" << endl;
    }
    delete[] buffer;
 
@@ -500,8 +500,8 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
 bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
                        DataReducer& dataReducer)
 {
-   int myrank;
-   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
    string dataType;
    uint dataSize, vectorSize;
@@ -515,7 +515,7 @@ bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    bool success = true;
    static bool printDiagnosticHeader = true;
    
-   if (printDiagnosticHeader == true && myrank == MASTER_RANK) {
+   if (printDiagnosticHeader == true && myRank == MASTER_RANK) {
       diagnostic << "# Column 1 Step" << endl;
       diagnostic << "# Column 2 Simulation time" << endl;
       for (uint i=0; i<nOps; ++i) {
@@ -558,14 +558,14 @@ bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    for (uint i=0; i<nOps; ++i) {
       if (globalSum[0] != 0.0) globalAvg[i] = globalSum[i+1] / globalSum[0];
       else globalAvg[i] = globalSum[i+1];
-      if (myrank == MASTER_RANK) {
+      if (myRank == MASTER_RANK) {
          diagnostic << globalMin[i] << "\t" <<
          globalMax[i] << "\t" <<
          globalSum[i+1] << "\t" <<
          globalAvg[i] << "\t";
       }
    }
-   if (myrank == MASTER_RANK) diagnostic << endl << write;
+   if (myRank == MASTER_RANK) diagnostic << endl << write;
    return true;
 }
 

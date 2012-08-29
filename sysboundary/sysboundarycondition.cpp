@@ -89,7 +89,12 @@ namespace SBC {
       cerr << "ERROR: SysBoundaryCondition::applyInitialState called instead of derived class function!" << endl;
       return false;
    }
-      
+   
+   /*! Function used in some cases to know which faces the system boundary condition is being applied to.*/
+   void SysBoundaryCondition::getFaces(bool* faces) {
+      cerr << "ERROR: SysBoundaryCondition::getFaces called instead of derived class function!" << endl;
+   }
+   
    /*! Get the name of the system boundary condition.
     * @return The name of the data. The base class function returns an empty string.
     */

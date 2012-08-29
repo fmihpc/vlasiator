@@ -57,6 +57,8 @@ namespace SBC {
          void determineFace(bool* isThisCellOnAFace,
                             creal x, creal y, creal z,
                             creal dx, creal dy, creal dz);
+         
+         virtual void getFaces(bool* faces);
          virtual std::string getName() const;
          virtual uint getIndex() const;
          uint getPrecedence() const;
