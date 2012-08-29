@@ -114,7 +114,7 @@ data:
 
 c: clean
 clean: data
-	rm -rf *.o  project.h project.cpp  *~ */*~ */*/*~ ${EXE} vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION} vlsv2vtk_${FP_PRECISION} vlsvdiff_${FP_PRECISION} vlsv2bzt_${FP_PRECISION}
+	rm -rf *.o  project.h project.cpp  *~ */*~ */*/*~ ${EXE} vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION} vlsv2vtk_${FP_PRECISION} vlsvdiff_${FP_PRECISION} vlsv2bzt_${FP_PRECISION} check_projects_compil_logs/ check_projects_cfg_logs/
 
 
 # Rules for making each object file needed by the executable
