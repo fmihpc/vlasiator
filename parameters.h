@@ -99,7 +99,31 @@ struct Parameters {
    static uint maxAccelerationSubsteps; /*!< Maximum number of substeps that is allowed */
    static bool dynamicTimestep; /*!< If true, timestep is set based on  CFL limit */
    
+   /*! \brief Add the global parameters.
+    * 
+    * This function adds all the parameters that are loaded at a global level.
+    * More are being loaded e.g. in the projects and in the system boundary conditions.
+    * 
+    * Note that due to the large number of parameters added here, no code is added to check
+    * for consistency when they are read later. Please make sure when coding new parameters
+    * here that the options in getParameters match the ones added here.
+    * 
+    * \sa getParameters
+    */
    static bool addParameters();
+   
+   /*! \brief Get the global parameters.
+    * 
+    * This function gets all the parameters loaded at a global level.
+    * More are being loaded e.g. in the projects and in the system boundary conditions.
+    * 
+    * Note that due to the large number of parameters read here, no code is added to check
+    * for consistency with the loaded options, or the code here would become much less
+    * readable. Please make sure when coding new parameters here that the options in
+    * addParameters match the ones read here.
+    * 
+    * \sa addParameters
+    */
    static bool getParameters();
 };
 

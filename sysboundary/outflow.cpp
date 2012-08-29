@@ -39,8 +39,16 @@ namespace SBC {
    }
    
    void Outflow::getParameters() {
-         Readparameters::get("outflow.face", faceList);
-         Readparameters::get("outflow.precedence", precedence);
+      int myRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      if(!Readparameters::get("outflow.face", faceList)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("outflow.precedence", precedence)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
    }
    
    bool Outflow::initSysBoundary(creal& t) {

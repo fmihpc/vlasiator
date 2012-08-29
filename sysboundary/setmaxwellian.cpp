@@ -52,17 +52,52 @@ namespace SBC {
    }
    
    void SetMaxwellian::getParameters() {
-      Readparameters::get("maxwellian.face", faceList);
-      Readparameters::get("maxwellian.dynamic", isThisDynamic);
-      Readparameters::get("maxwellian.file_x+", files[0]);
-      Readparameters::get("maxwellian.file_x-", files[1]);
-      Readparameters::get("maxwellian.file_y+", files[2]);
-      Readparameters::get("maxwellian.file_y-", files[3]);
-      Readparameters::get("maxwellian.file_z+", files[4]);
-      Readparameters::get("maxwellian.file_z-", files[5]);
-      Readparameters::get("maxwellian.precedence", precedence);
-      Readparameters::get("maxwellian.nSpaceSamples", nSpaceSamples);
-      Readparameters::get("maxwellian.nVelocitySamples", nVelocitySamples);
+      int myRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      if(!Readparameters::get("maxwellian.face", faceList)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("maxwellian.dynamic", isThisDynamic)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("maxwellian.file_x+", files[0])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("maxwellian.file_x-", files[1])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("maxwellian.file_y+", files[2])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("maxwellian.file_y-", files[3])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("maxwellian.file_z+", files[4])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("maxwellian.file_z-", files[5])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("maxwellian.precedence", precedence)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("maxwellian.nSpaceSamples", nSpaceSamples)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("maxwellian.nVelocitySamples", nVelocitySamples)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
    }
    
    

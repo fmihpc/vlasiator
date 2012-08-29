@@ -65,7 +65,7 @@ Readparameters::Readparameters(int argc, char* argv[],MPI_Comm mpicomm) {
     MPI_Comm_dup(mpicomm,&(Readparameters::comm));
     MPI_Comm_rank(Readparameters::comm,&(Readparameters::rank));
 
-    if (Readparameters::rank==0){
+    if (Readparameters::rank==MASTER_RANK){
         if (initialized == false) {
             descriptions = new PO::options_description("Usage: main [options (options given on the command line override options given everywhere else)], where options are:");
             variables = new PO::variables_map;
@@ -96,7 +96,7 @@ Readparameters::Readparameters(int argc, char* argv[],MPI_Comm mpicomm) {
 bool Readparameters::add(const string& name,const string& desc,const std::string& defValue) {
     if (initialized == false) return false;
     
-    if(rank==0){
+    if(rank==MASTER_RANK){
         options[name]="";
         isOptionParsed[name]=false;
         descriptions->add_options()(name.c_str(), PO::value<string>(&(options[name]))->default_value(defValue), desc.c_str());
@@ -119,7 +119,7 @@ bool Readparameters::add(const string& name,const string& desc,const bool& defVa
     stringstream ss;
     ss<<defValue;
 
-    if(rank==0){
+    if(rank==MASTER_RANK){
         options[name]="";
         isOptionParsed[name]=false;
         descriptions->add_options()(name.c_str(), PO::value<string>(&(options[name]))->default_value(ss.str()), desc.c_str());
@@ -140,7 +140,7 @@ bool Readparameters::add(const string& name,const string& desc,const int& defVal
     stringstream ss;
     ss<<defValue;
 
-    if(rank==0){
+    if(rank==MASTER_RANK){
         options[name]="";
         isOptionParsed[name]=false;
         descriptions->add_options()(name.c_str(), PO::value<string>(&(options[name]))->default_value(ss.str()), desc.c_str());
@@ -162,7 +162,7 @@ bool Readparameters::add(const string& name,const string& desc,const unsigned in
     stringstream ss;
     ss<<defValue;
 
-    if(rank==0){
+    if(rank==MASTER_RANK){
         options[name]="";
         isOptionParsed[name]=false;
         descriptions->add_options()(name.c_str(), PO::value<string>(&(options[name]))->default_value(ss.str()), desc.c_str());
@@ -183,7 +183,7 @@ bool Readparameters::add(const string& name,const string& desc,const float& defV
     stringstream ss;
     //set full precision
     ss<<setprecision(numeric_limits<float>::digits10 + 1) <<defValue;
-    if(rank==0){
+    if(rank==MASTER_RANK){
         options[name]="";
         isOptionParsed[name]=false;
         descriptions->add_options()(name.c_str(), PO::value<string>(&(options[name]))->default_value(ss.str()), desc.c_str());
@@ -205,7 +205,7 @@ bool Readparameters::add(const string& name,const string& desc,const double& def
 
     //set full precision
     ss<<setprecision(numeric_limits<double>::digits10 + 1) <<defValue;
-    if(rank==0){
+    if(rank==MASTER_RANK){
         options[name]="";
         isOptionParsed[name]=false;
         descriptions->add_options()(name.c_str(), PO::value<string>(&(options[name]))->default_value(ss.str()), desc.c_str());
@@ -224,7 +224,7 @@ bool Readparameters::add(const string& name,const string& desc,const double& def
 bool Readparameters::addComposing(const string& name,const string& desc) {
     if (initialized == false) return false;
 
-    if(rank==0){
+    if(rank==MASTER_RANK){
         isVectorOptionParsed[name]=false;
         descriptions->add_options()(name.c_str(), PO::value<vector<string> >(&(vectorOptions[name]))->composing(), desc.c_str());
     }
@@ -234,7 +234,7 @@ bool Readparameters::addComposing(const string& name,const string& desc) {
 //add names of input files
 bool Readparameters::addDefaultParameters() {
     if (initialized == false) return false;
-    if(rank==0){
+    if(rank==MASTER_RANK){
         descriptions->add_options()
             ("help", "print this help message");
         
@@ -257,7 +257,7 @@ bool Readparameters::addDefaultParameters() {
  */
 bool Readparameters::finalize() {
     
-    if(rank==0){
+    if(rank==MASTER_RANK){
         delete descriptions;
         delete variables;
         descriptions = NULL;
@@ -483,7 +483,7 @@ bool Readparameters::get(const std::string& name,double& value) {
  * to standard output.
  */
 bool Readparameters::helpMessage() {
-    if(rank==0){
+    if(rank==MASTER_RANK){
         if (variables->count("help") > 0) {
             cout << *descriptions <<endl;
             return true;
@@ -509,7 +509,7 @@ bool Readparameters::parse() {
     if (initialized == false) return false;
     // Tell Boost to allow undescribed options (throws exception otherwise)
    
-    if(rank==0){
+    if(rank==MASTER_RANK){
         const bool ALLOW_UNKNOWN = true;
         // Read options from command line:
         PO::store(PO::parse_command_line(argc, argv, *descriptions), *variables);
@@ -570,7 +570,7 @@ bool Readparameters::parse() {
     bool hasRunConfigFile=(run_config_file_name.size() > 0);
     MPI_Bcast(&hasRunConfigFile,sizeof(bool),MPI_BYTE,0,MPI_COMM_WORLD);    
     if(!hasRunConfigFile){
-        if(Readparameters::rank==0){
+        if(Readparameters::rank==MASTER_RANK){
             cout << "Run config file required. Use --help to list all options" <<endl;
         }
         MPI_Finalize();
@@ -596,7 +596,7 @@ bool Readparameters::parse() {
     */
   
     //count number of options not parsed/broarcasted previously
-    if(rank==0){
+    if(rank==MASTER_RANK){
         nOptionsToBroadcast=0;
         for( map<string,bool>::iterator ip=isOptionParsed.begin(); ip!=isOptionParsed.end();++ip){
             if(! ip->second) nOptionsToBroadcast++;
@@ -604,7 +604,7 @@ bool Readparameters::parse() {
     }
 
     MPI_Bcast(&nOptionsToBroadcast,1,MPI_INT,0,MPI_COMM_WORLD);
-    if(rank==0){
+    if(rank==MASTER_RANK){
         //iterate through map and bcast cstrings of key/value pairs not parsed before
         for( map<string,string>::iterator p=options.begin(); p!=options.end();++p){
            
@@ -636,7 +636,7 @@ bool Readparameters::parse() {
     */
   
     //count number of vector options not parsed/broarcasted previously
-    if(rank==0){
+    if(rank==MASTER_RANK){
         nOptionsToBroadcast=0;
         for( map<string,bool>::iterator ip=isVectorOptionParsed.begin(); ip!=isVectorOptionParsed.end();++ip){
             if(! ip->second) nOptionsToBroadcast++;
@@ -645,7 +645,7 @@ bool Readparameters::parse() {
 
     //root broadcasts its new vector values
     MPI_Bcast(&nOptionsToBroadcast,1,MPI_INT,0,MPI_COMM_WORLD);
-    if(rank==0){
+    if(rank==MASTER_RANK){
         //iterate through map and bcast cstrings of key/value pairs not parsed before
         for( map< string,vector<string> >::iterator p=vectorOptions.begin(); p!=vectorOptions.end();++p){
             if(! isVectorOptionParsed[p->first]) {

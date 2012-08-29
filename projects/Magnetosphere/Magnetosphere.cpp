@@ -47,11 +47,25 @@ bool addProjectParameters(){
 }
 
 bool getProjectParameters(){
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    typedef Readparameters RP;
-   RP::get("Magnetosphere.rho", MP::rho);
-   RP::get("Magnetosphere.T", MP::T);
-   RP::get("Magnetosphere.nSpaceSamples", MP::nSpaceSamples);
-   RP::get("Magnetosphere.nVelocitySamples", MP::nVelocitySamples);
+   if(!RP::get("Magnetosphere.rho", MP::rho)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
+   if(!RP::get("Magnetosphere.T", MP::T)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
+   if(!RP::get("Magnetosphere.nSpaceSamples", MP::nSpaceSamples)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
+   if(!RP::get("Magnetosphere.nVelocitySamples", MP::nVelocitySamples)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
    return true;
 }
 

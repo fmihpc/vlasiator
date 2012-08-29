@@ -50,14 +50,14 @@ bool VLSVReader::close() {
 
 bool VLSVReader::getArrayInfo(const std::string& tagName,const std::string& arrayName,uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& byteSize) const {   
    if (fileOpen == false) {
-   	cerr << __FILE__ << ":" << __LINE__ << " File is not open" << endl;
-   	return false;
+      cerr << __FILE__ << ":" << __LINE__ << " File is not open" << endl;
+      return false;
    }
    list<pair<string,string> > attribs;
    XMLNode* node = xmlReader.find(tagName,attribs);
    if (node == NULL) {
-   	cerr << __FILE__ << ":" << __LINE__ << " node == NULL" << endl;
-   	return false;
+      cerr << __FILE__ << ":" << __LINE__ << " node == NULL" << endl;
+      return false;
    }
 
    arraySize = atoi(node->attributes["arraysize"].c_str());
@@ -75,16 +75,16 @@ bool VLSVReader::getArrayInfo(const std::string& tagName,const std::string& arra
 
 bool VLSVReader::getArrayInfo(const std::string& tagName,const std::string& arrayName,const std::string& meshName,uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& byteSize) const {
    if (fileOpen == false) {
-   	cerr << __FILE__ << ":" << __LINE__ << " File is not open" << endl;
-   	return false;
+      cerr << __FILE__ << ":" << __LINE__ << " File is not open" << endl;
+      return false;
    }
    list<pair<string,string> > attribs;
    attribs.push_back(make_pair("name",arrayName));
    attribs.push_back(make_pair("mesh",meshName));
    XMLNode* node = xmlReader.find(tagName,attribs);
    if (node == NULL) {
-   	cerr << __FILE__ << ":" << __LINE__ << " node == NULL" << endl;
-   	return false;
+      cerr << __FILE__ << ":" << __LINE__ << " node == NULL" << endl;
+      return false;
    }
 
    arraySize = atoi(node->attributes["arraysize"].c_str());
@@ -102,13 +102,13 @@ bool VLSVReader::getArrayInfo(const std::string& tagName,const std::string& arra
 
 bool VLSVReader::getArrayInfo(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& dataSize) const {
    if (fileOpen == false) {
-   	cerr << __FILE__ << ":" << __LINE__ << " File is not open" << endl;
-   	return false;
+      cerr << __FILE__ << ":" << __LINE__ << " File is not open" << endl;
+      return false;
    }
    XMLNode* node = xmlReader.find(tagName,attribs);
    if (node == NULL) {
-   	cerr << __FILE__ << ":" << __LINE__ << " node == NULL" << endl;
-   	return false;
+      cerr << __FILE__ << ":" << __LINE__ << " node == NULL" << endl;
+      return false;
    }
    
    arraySize = atoi(node->attributes["arraysize"].c_str());
@@ -127,16 +127,16 @@ bool VLSVReader::getArrayInfo(const std::string& tagName,const std::list<std::pa
 bool VLSVReader::getMeshNames(list<string>& meshNames) const {
    meshNames.clear();
    if (fileOpen == false) {
-   	cerr << __FILE__ << ":" << __LINE__ << " File is not open" << endl;
-   	return false;
+      cerr << __FILE__ << ":" << __LINE__ << " File is not open" << endl;
+      return false;
    }
    
    XMLNode* node = xmlReader.find("VLSV");
    for (multimap<string,XMLNode*>::const_iterator it=node->children.lower_bound("MESH"); it!=node->children.upper_bound("MESH"); ++it) {
       map<string,string>::const_iterator tmp = it->second->attributes.find("name");
       if (tmp == it->second->attributes.end()) {
-	 cerr << "VLSVReader ERROR: XML tag does not contain attribute name!" << endl;
-	 return false;
+         cerr << "VLSVReader ERROR: XML tag does not contain attribute name!" << endl;
+         return false;
       }
       meshNames.push_back(tmp->second);
    }   
@@ -153,17 +153,17 @@ bool VLSVReader::getBlockVariableNames(const std::string& meshName,std::list<std
    for (multimap<string,XMLNode*>::const_iterator it=node->children.lower_bound("BLOCKVARIABLE"); it!=node->children.upper_bound("BLOCKVARIABLE"); ++it) {
       map<string,string>::const_iterator tmp = it->second->attributes.find("mesh");
       if (tmp == it->second->attributes.end()) {
-	 cerr << "VLSVReader ERROR: XML tag does not contain attribute mesh!" << endl;
-	 return false;
+         cerr << "VLSVReader ERROR: XML tag does not contain attribute mesh!" << endl;
+         return false;
       }
       
       if (tmp->second == meshName) {
-	 tmp = it->second->attributes.find("name");
-	 if (tmp == it->second->attributes.end()) {
-	    cerr << "VLSVReader ERROR: XML tag does not contain attribute name!" << endl;
-	 } else {
-	    varNames.push_back(tmp->second);
-	 }
+         tmp = it->second->attributes.find("name");
+         if (tmp == it->second->attributes.end()) {
+            cerr << "VLSVReader ERROR: XML tag does not contain attribute name!" << endl;
+         } else {
+            varNames.push_back(tmp->second);
+         }
       }
    }
    return true;
@@ -180,17 +180,17 @@ bool VLSVReader::getVariableNames(const std::string& meshName,std::list<std::str
    for (multimap<string,XMLNode*>::const_iterator it=node->children.lower_bound("VARIABLE"); it!=node->children.upper_bound("VARIABLE"); ++it) {
       map<string,string>::const_iterator tmp = it->second->attributes.find("mesh");
       if (tmp == it->second->attributes.end()) {
-	 cerr << "VLSVReader ERROR: XML tag does not contain attribute mesh!" << endl;
-	 return false;
+         cerr << "VLSVReader ERROR: XML tag does not contain attribute mesh!" << endl;
+         return false;
       }
       
       if (tmp->second == meshName) {
-	 tmp = it->second->attributes.find("name");
-	 if (tmp == it->second->attributes.end()) {
-	    cerr << "VLSVReader ERROR: XML tag does not contain attribute name!" << endl;
-	 } else {
-	    varNames.push_back(tmp->second);
-	 }
+         tmp = it->second->attributes.find("name");
+         if (tmp == it->second->attributes.end()) {
+            cerr << "VLSVReader ERROR: XML tag does not contain attribute name!" << endl;
+         } else {
+            varNames.push_back(tmp->second);
+         }
       }
    }
    return true;
@@ -297,11 +297,11 @@ bool VLSVReader::readArray(
       // Find tag corresponding to given array:
       XMLNode* node = xmlReader.find(tagName,attribs);
       if (node == NULL) {
-	 cerr << "VLSVReader ERROR: Failed to find tag='" << tagName << "' attribs:" << endl;
-	 for (list<pair<string,string> >::const_iterator it=attribs.begin(); it!=attribs.end(); ++it) {
-	    cerr << '\t' << it->first << " = '" << it->second << "'" << endl;
-	 }
-	 return false;
+         cerr << "VLSVReader ERROR: Failed to find tag='" << tagName << "' attribs:" << endl;
+         for (list<pair<string,string> >::const_iterator it=attribs.begin(); it!=attribs.end(); ++it) {
+            cerr << '\t' << it->first << " = '" << it->second << "'" << endl;
+         }
+         return false;
       }
       
       // Copy array information from tag:
@@ -315,8 +315,8 @@ bool VLSVReader::readArray(
       else if (node->attributes["datatype"] == "uint") arrayOpen.dataType = VLSV::UINT;
       else if (node->attributes["datatype"] == "float") arrayOpen.dataType = VLSV::FLOAT;
       else {
-	 cerr << "VLSVReader ERROR: Unknown datatype in tag!" << endl;
-	 return false;
+         cerr << "VLSVReader ERROR: Unknown datatype in tag!" << endl;
+         return false;
       }
       
       if (arrayOpen.arraySize == 0) return false;
@@ -376,8 +376,8 @@ bool VLSVReader::readArray(
       else if (node->attributes["datatype"] == "uint") arrayOpen.dataType = VLSV::UINT;
       else if (node->attributes["datatype"] == "float") arrayOpen.dataType = VLSV::FLOAT;
       else {
-	 cerr << "VLSVReader ERROR: Unknown datatype in tag!" << endl;
-	 return false;
+         cerr << "VLSVReader ERROR: Unknown datatype in tag!" << endl;
+         return false;
       }
       if (arrayOpen.arraySize == 0) {
          std::cerr << __FILE__ << ":" << __LINE__ << " Array size == 0" << std::endl;
@@ -434,7 +434,7 @@ bool VLSVReader::readArray(
       // Copy array information from tag:
       arrayOpen.offset = atoi(node->value.c_str());
       arrayOpen.tagName = tagName;
-      arrayOpen.arrayName = arrayName;	
+      arrayOpen.arrayName = arrayName;
       arrayOpen.arraySize = atoi(node->attributes["arraysize"].c_str());
       arrayOpen.vectorSize = atoi(node->attributes["vectorsize"].c_str());
       arrayOpen.dataSize = atoi(node->attributes["datasize"].c_str());
@@ -442,8 +442,8 @@ bool VLSVReader::readArray(
       else if (node->attributes["datatype"] == "uint") arrayOpen.dataType = VLSV::UINT;
       else if (node->attributes["datatype"] == "float") arrayOpen.dataType = VLSV::FLOAT;
       else {
-	 cerr << "VLSVReader ERROR: Unknown datatype in tag!" << endl;
-	 return false;
+         cerr << "VLSVReader ERROR: Unknown datatype in tag!" << endl;
+         return false;
       }
       if (arrayOpen.arraySize == 0) return false;
       if (arrayOpen.vectorSize == 0) return false;
@@ -485,8 +485,12 @@ bool VLSVParReader::close() {
    return true;
 }
 
-bool VLSVParReader::getArrayInfoMaster(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
-				       uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& dataSize) {
+bool VLSVParReader::getArrayInfoMaster(const std::string& tagName,
+                                       const std::list<std::pair<std::string,std::string> >& attribs,
+                                       uint64_t& arraySize,
+                                       uint64_t& vectorSize,
+                                       VLSV::datatype& dataType,
+                                       uint64_t& dataSize) {
    if (myRank != masterRank) {
       cerr << "(VLSVPARREADER): getArrayInfoMaster called on process #" << myRank << endl;
       exit(1);
@@ -516,8 +520,12 @@ bool VLSVParReader::getArrayInfo(const std::string& tagName,const std::list<std:
    return success;
 }
 
-bool VLSVParReader::getArrayInfo(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
-				 uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& byteSize) {
+bool VLSVParReader::getArrayInfo(const std::string& tagName,
+                                 const std::list<std::pair<std::string,std::string> >& attribs,
+                                 uint64_t& arraySize,
+                                 uint64_t& vectorSize,
+                                 VLSV::datatype& dataType,
+                                 uint64_t& byteSize) {
    if (getArrayInfo(tagName,attribs) == false) return false;
 
    // Copy values to output variables:
@@ -567,7 +575,7 @@ bool VLSVParReader::multiReadEnd(const uint64_t& offset) {
       displacements[counter] = it->first - multiReadUnits.begin()->first;
       /*
       if (myRank == 0) {
-	 cerr << counter << '\t' << it->first << '\t' << displacements[counter] << '\t' << blockLengths[counter] << endl;
+         cerr << counter << '\t' << it->first << '\t' << displacements[counter] << '\t' << blockLengths[counter] << endl;
       }
       */
       ++it;
@@ -637,8 +645,11 @@ bool VLSVParReader::open(const std::string& fname,MPI_Comm comm,const int& maste
    return success;
 }
 
-bool VLSVParReader::readArrayMaster(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
-				    const uint64_t& begin,const uint64_t& amount,char* buffer) {
+bool VLSVParReader::readArrayMaster(const std::string& tagName,
+                                    const std::list<std::pair<std::string,std::string> >& attribs,
+                                    const uint64_t& begin,
+                                    const uint64_t& amount,
+                                    char* buffer) {
    if (myRank != masterRank) {
       cerr << "(VLSVPARREADER) readArrayMaster erroneously called on process #" << myRank << endl;
       exit(1);

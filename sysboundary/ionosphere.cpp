@@ -43,11 +43,28 @@ namespace SBC {
    }
    
    void Ionosphere::getParameters() {
-      Readparameters::get("ionosphere.centerX", center[0]);
-      Readparameters::get("ionosphere.centerY", center[1]);
-      Readparameters::get("ionosphere.centerZ", center[2]);
-      Readparameters::get("ionosphere.radius", radius);
-      Readparameters::get("ionosphere.precedence", precedence);
+      int myRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      if(!Readparameters::get("ionosphere.centerX", center[0])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.centerY", center[1])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.centerZ", center[2])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.radius", radius)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.precedence", precedence)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
    }
    
    bool Ionosphere::initSysBoundary(creal& t) {

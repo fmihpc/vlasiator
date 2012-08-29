@@ -84,11 +84,25 @@ void SysBoundary::addParameters() {
  */
 
 void SysBoundary::getParameters() {
-   Readparameters::get("boundaries.boundary", sysBoundaryCondList);
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   if(!Readparameters::get("boundaries.boundary", sysBoundaryCondList)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
    std::string periodic_x,periodic_y,periodic_z;
-   Readparameters::get("boundaries.periodic_x",periodic_x);
-   Readparameters::get("boundaries.periodic_y",periodic_y);
-   Readparameters::get("boundaries.periodic_z",periodic_z);
+   if(!Readparameters::get("boundaries.periodic_x",periodic_x)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
+   if(!Readparameters::get("boundaries.periodic_y",periodic_y)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   };
+   if(!Readparameters::get("boundaries.periodic_z",periodic_z)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   };
    isPeriodic[0] = false;
    isPeriodic[1] = false;
    isPeriodic[2] = false;
