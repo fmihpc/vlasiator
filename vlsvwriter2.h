@@ -26,7 +26,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "muxml.h"
 
 struct WriteUnit {
-    char *array;     //  pointer to data to be writte
+    char *array;     //  pointer to data to be written
     MPI_Datatype mpiType;     //  type of data that is written
     uint64_t begin;  // where to begin writing in file compared to current offset (bytes)
     uint64_t amount; // how much to write (elements)
@@ -51,7 +51,7 @@ class VLSVWriter {
 		   const uint64_t& arraySize,const uint64_t& vectorSize,const std::string& dataType,const uint64_t& dataSize,void* array);
  private:
    MPI_Comm comm;            /**< MPI communicator which is writing to the file.*/
-   int myrank;               /**< Rank of this process in communicator comm.*/
+   int myRank;               /**< Rank of this process in communicator comm.*/
    int N_processes;          /**< Number of processes in communicator comm.*/
    int masterRank;           /**< Rank of master process in communicator comm.*/
    
@@ -111,7 +111,7 @@ inline bool VLSVWriter::writeArray(const std::string& tagName,const std::string&
                                    const std::map<std::string,std::string>& attribs,
 				   const uint64_t& arraySize,const uint64_t& vectorSize,T* array) {
     bool success = true;
-    // All processes except the master receive the offset from process with rank = myrank-1:
+    // All processes except the master receive the offset from process with rank = myRank-1:
     // Calculate the amount of data written by this process in bytes, and 
     // send the next process its offset:
     myBytes = arraySize * vectorSize *sizeof(T);
@@ -119,7 +119,7 @@ inline bool VLSVWriter::writeArray(const std::string& tagName,const std::string&
                bytesPerProcess,sizeof(uint64_t),MPI_BYTE,
                masterRank,comm);
     
-    if (myrank == masterRank) {
+    if (myRank == masterRank) {
         offsets[0]=offset; //rank 0 handles the starting point of this block of data
         for(int i=1;i<N_processes;i++)
             offsets[i]=offsets[i-1]+bytesPerProcess[i-1];
@@ -143,7 +143,7 @@ inline bool VLSVWriter::writeArray(const std::string& tagName,const std::string&
 #endif
     
    // Master writes footer tag:
-   if (myrank == masterRank) {
+   if (myRank == masterRank) {
       uint64_t totalBytes = 0;
       for(int i=0;i<N_processes;i++)
           totalBytes+=bytesPerProcess[i];

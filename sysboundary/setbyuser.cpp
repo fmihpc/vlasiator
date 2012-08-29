@@ -190,8 +190,8 @@ namespace SBC {
    vector<vector<Real> > SetByUser::loadFile(const char *fn) {
       vector<vector<Real> > dataset;
       
-      int myrank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+      int myRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       
       // Count lines with data
       FILE *fp;
@@ -217,7 +217,7 @@ namespace SBC {
          exit(1);
       }
       
-      if (myrank == 0) cout << "Parameter data file (" << fn << ") has " << nlines << " values"<< endl;
+      if (myRank == 0) cout << "Parameter data file (" << fn << ") has " << nlines << " values"<< endl;
       
       fp = fopen(fn,"r");
       for (uint line=0; line<nlines; line++) {

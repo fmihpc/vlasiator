@@ -42,7 +42,7 @@ bool VLSVWriter::close() {
     MPI_File_close(&fileptr);
     
     // Master process appends footer to the end of binary file:
-    if (myrank == masterRank) {
+    if (myRank == masterRank) {
 
         fstream footer;
         footer.open(fileName.c_str(),fstream::out | fstream::app);
@@ -65,7 +65,7 @@ bool VLSVWriter::close() {
         footer.close();
     }
     
-    if (myrank == masterRank) {
+    if (myRank == masterRank) {
         //delete some arrays
         delete[] offsets ;
         delete[] bytesPerProcess;
@@ -80,7 +80,7 @@ bool VLSVWriter::open(const std::string& fname,MPI_Comm comm,const int& MASTERRA
     this->comm = comm;
     masterRank = MASTERRANK;
     
-    MPI_Comm_rank(comm,&myrank);
+    MPI_Comm_rank(comm,&myRank);
     MPI_Comm_size(comm,&N_processes);
     // All processes in communicator comm open the same file:
     int accessMode = (MPI_MODE_WRONLY | MPI_MODE_CREATE);
@@ -97,13 +97,13 @@ bool VLSVWriter::open(const std::string& fname,MPI_Comm comm,const int& MASTERRA
 
     
     //only master rank needs these arrays
-    if (myrank == masterRank) {
+    if (myRank == masterRank) {
         offsets=new MPI_Offset[N_processes];
         bytesPerProcess=new uint64_t[N_processes];    
     }
     
     // Master opens a separate file for writing the footer:
-    if (myrank == masterRank) {
+    if (myRank == masterRank) {
         xmlWriter = new MuXML();
         XMLNode* root = xmlWriter->getRoot();
         xmlWriter->addNode(root,"VLSV","");
@@ -111,7 +111,7 @@ bool VLSVWriter::open(const std::string& fname,MPI_Comm comm,const int& MASTERRA
     
     // Master writes 2 64bit integers to the start of file:
     bool success = true;
-    if (myrank == masterRank) {
+    if (myRank == masterRank) {
         // Write file endianness to the first byte:
         uint64_t endianness = 0;
         unsigned char* ptr = reinterpret_cast<unsigned char*>(&endianness);
@@ -133,13 +133,13 @@ bool VLSVWriter::startMultiwrite(const std::string& dataType,const uint64_t& arr
     bool success = true;
     
    // Calculate the amount of data written by this process in bytes, 
-   // and send offset to process myrank+1:
+   // and send offset to process myRank+1:
    myBytes = arraySize * vectorSize * dataSize;
    MPI_Gather(&myBytes,sizeof(uint64_t),MPI_BYTE,
 	      bytesPerProcess,sizeof(uint64_t),MPI_BYTE,
 	      masterRank,comm);
     
-   if (myrank == masterRank) {
+   if (myRank == masterRank) {
       offsets[0]=offset; //rank 0 handles the starting point of this block of data
       for(int i=1;i<N_processes;i++)
 	offsets[i]=offsets[i-1]+bytesPerProcess[i-1];
@@ -207,7 +207,7 @@ bool VLSVWriter::endMultiwrite(const std::string& tagName,const std::string& arr
     }
     
    // Master writes footer tag:
-   if (myrank == masterRank) {
+   if (myRank == masterRank) {
        uint64_t totalBytes = 0;
        for(int i=0;i<N_processes;i++)
            totalBytes+=bytesPerProcess[i];
@@ -235,7 +235,7 @@ bool VLSVWriter::writeArray(const std::string& tagName,const std::string& arrayN
                             const uint64_t& arraySize,const uint64_t& vectorSize,
                             const std::string& dataType,const uint64_t& dataSize,void* array) {
     bool success = true;
-    // All processes except the master receive the offset from process with rank = myrank-1:
+    // All processes except the master receive the offset from process with rank = myRank-1:
     // Calculate the amo unt of data written by this process in bytes, and 
    // send the next process its offset:
     myBytes = arraySize * vectorSize * dataSize;
@@ -243,7 +243,7 @@ bool VLSVWriter::writeArray(const std::string& tagName,const std::string& arrayN
                bytesPerProcess,sizeof(uint64_t),MPI_BYTE,
                masterRank,comm);
     
-    if (myrank == masterRank) {
+    if (myRank == masterRank) {
         offsets[0]=offset; //rank 0 handles the starting point of this block of data
         for(int i=1;i<N_processes;i++)
             offsets[i]=offsets[i-1]+bytesPerProcess[i-1];
@@ -265,7 +265,7 @@ bool VLSVWriter::writeArray(const std::string& tagName,const std::string& arrayN
 #endif       
       
    // Master writes footer tag:
-   if (myrank == masterRank) {
+   if (myRank == masterRank) {
        uint64_t totalBytes = 0;
        for(int i=0;i<N_processes;i++)
            totalBytes+=bytesPerProcess[i];

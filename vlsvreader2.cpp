@@ -551,10 +551,10 @@ bool VLSVParReader::multiReadEnd(const uint64_t& offset) {
    map<char*,uint64_t>::const_iterator it = multiReadUnits.begin();
    ++it;
    /*
-   int myrank;
-   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
-   if (myrank == 0) cerr << "read vector size = " << vectorExtent << endl;
-   if (myrank == 0) cerr << "0" << '\t' << multiReadUnits.begin()->first << '\t' << displacements[0] << '\t' << blockLengths[0] << endl;
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   if (myRank == 0) cerr << "read vector size = " << vectorExtent << endl;
+   if (myRank == 0) cerr << "0" << '\t' << multiReadUnits.begin()->first << '\t' << displacements[0] << '\t' << blockLengths[0] << endl;
    cerr << "offset: " << offset << " arrayOpen.offset: " << arrayOpen.offset << endl;
    */
    uint64_t counter = 1;
@@ -566,7 +566,7 @@ bool VLSVParReader::multiReadEnd(const uint64_t& offset) {
       blockLengths[counter]  = it->second;
       displacements[counter] = it->first - multiReadUnits.begin()->first;
       /*
-      if (myrank == 0) {
+      if (myRank == 0) {
 	 cerr << counter << '\t' << it->first << '\t' << displacements[counter] << '\t' << blockLengths[counter] << endl;
       }
       */
@@ -580,7 +580,7 @@ bool VLSVParReader::multiReadEnd(const uint64_t& offset) {
    // Commit datatype and read everything in parallel:
    MPI_Type_commit(&readType);
    const uint64_t byteOffset = arrayOpen.offset + offset*arrayOpen.vectorSize*arrayOpen.dataSize;
-   //cerr << "Proc #" << myrank << " reading from byte offset #" << byteOffset << endl;
+   //cerr << "Proc #" << myRank << " reading from byte offset #" << byteOffset << endl;
    if (MPI_File_read_at_all(filePtr,byteOffset,multiReadUnits.begin()->first,1,readType,MPI_STATUS_IGNORE) != MPI_SUCCESS) {
       //cerr << "ERROR in read!" << endl;
    }
