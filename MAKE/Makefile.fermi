@@ -27,12 +27,10 @@ LDFLAGS =
 LIB_MPI = -lgomp
 
 BOOST_VERSION = 1.50.0
-#MPT_VERSION = 5.3.5
 ZOLTAN_VERSION = 3.6
-#SILO_VERSION = 4.8
+SILO_VERSION = 4.8
 
 LIBRARY_PREFIX = /fermi/home/userexternal/ykempf00/libraries
-#LIBRARY_PREFIX_B = /stornext/field/users/alfthan/libraries
 
 INC_BOOST = -I$(LIBRARY_PREFIX)/boost/$(BOOST_VERSION)/include
 LIB_BOOST = -L$(LIBRARY_PREFIX)/boost/$(BOOST_VERSION)/lib -lboost_mpi -lboost_serialization -lboost_program_options
@@ -40,8 +38,8 @@ LIB_BOOST = -L$(LIBRARY_PREFIX)/boost/$(BOOST_VERSION)/lib -lboost_mpi -lboost_s
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan/$(ZOLTAN_VERSION)/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/$(ZOLTAN_VERSION)/lib -lzoltan
 
-#INC_SILO = -I$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/include
-#LIB_SILO = -L$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/lib -lsilo
+INC_SILO = -I$(LIBRARY_PREFIX)/silo/$(SILO_VERSION)/include
+LIB_SILO = -L$(LIBRARY_PREFIX)/silo/$(SILO_VERSION)/lib -lsilo
 
 
 #DCCRG version with reduced neighbourhood. Might not be up-to-date
