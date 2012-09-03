@@ -1,0 +1,60 @@
+CMP = mpixlcxx_r
+LNK = mpixlcxx_r
+
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
+#                    avoid memleak (much slower IO)
+#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition 
+#                         errors that come up when using 
+#                         mpi.h in c++ on Cray
+
+CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK -qarch=qp -qtune=qp
+
+FLAGS = 
+
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+
+#XLC flags:
+CC_BRAND = xlc
+#CC_BRAND_VERSION = 4.4.6
+# CXXFLAGS +=  -O2 -pedantic -qsmp -qthreaded -qipa -qhot -qsimd -qunroll -qmaxmem=46829 # -qstrict -qlanglvl=extended 
+CXXFLAGS +=  -O3 -pedantic -qsmp -qthreaded -qipa -qhot -qsimd -qunroll
+# CXXFLAGS += -g -std=c++0x -W -Wall -pedantic -Wno-unused
+# DCXXFLAGS +=  -g  -fopenmp -std=c++0x -W -Wall -pedantic -Wno-unused
+# MATHFLAGS = -ffast-math
+LDFLAGS = -qthreaded -qsmp -qipa
+LIB_MPI = -lgomp
+
+BOOST_VERSION = 1.50.0
+ZOLTAN_VERSION = 3.6
+SILO_VERSION = 4.8
+
+LIBRARY_PREFIX = /fermi/home/userexternal/ykempf00/libraries
+
+INC_BOOST = -I$(LIBRARY_PREFIX)/boost/xlc/$(BOOST_VERSION)/include
+LIB_BOOST = -L$(LIBRARY_PREFIX)/boost/xlc/$(BOOST_VERSION)/lib -lboost_mpi -lboost_serialization -lboost_program_options
+
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan/xlc/$(ZOLTAN_VERSION)/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/xlc/$(ZOLTAN_VERSION)/lib -lzoltan
+
+INC_SILO = -I$(LIBRARY_PREFIX)/silo/xlc/$(SILO_VERSION)/include
+LIB_SILO = -L$(LIBRARY_PREFIX)/silo/xlc/$(SILO_VERSION)/lib -lsilo
+
+
+#DCCRG version with reduced neighbourhood. Might not be up-to-date
+#INC_DCCRG = -I$(LIBRARY_PREFIX_B)/dccrg-new
+
+#Official dccrg installation
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
+
+
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/xlc/lib -lphiprof
+INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/xlc/include
+
+INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass
+
+
+
+

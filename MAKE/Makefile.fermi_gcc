@@ -32,14 +32,14 @@ SILO_VERSION = 4.8
 
 LIBRARY_PREFIX = /fermi/home/userexternal/ykempf00/libraries
 
-INC_BOOST = -I$(LIBRARY_PREFIX)/boost/$(BOOST_VERSION)/include
-LIB_BOOST = -L$(LIBRARY_PREFIX)/boost/$(BOOST_VERSION)/lib -lboost_mpi -lboost_serialization -lboost_program_options
+INC_BOOST = -I$(LIBRARY_PREFIX)/boost/gcc/$(BOOST_VERSION)/include
+LIB_BOOST = -L$(LIBRARY_PREFIX)/boost/gcc/$(BOOST_VERSION)/lib -lboost_mpi -lboost_serialization -lboost_program_options
 
-INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan/$(ZOLTAN_VERSION)/include
-LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/$(ZOLTAN_VERSION)/lib -lzoltan
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan/gcc/$(ZOLTAN_VERSION)/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/gcc/$(ZOLTAN_VERSION)/lib -lzoltan
 
-INC_SILO = -I$(LIBRARY_PREFIX)/silo/$(SILO_VERSION)/include
-LIB_SILO = -L$(LIBRARY_PREFIX)/silo/$(SILO_VERSION)/lib -lsilo
+INC_SILO = -I$(LIBRARY_PREFIX)/silo/gcc/$(SILO_VERSION)/include
+LIB_SILO = -L$(LIBRARY_PREFIX)/silo/gcc/$(SILO_VERSION)/lib -lsilo
 
 
 #DCCRG version with reduced neighbourhood. Might not be up-to-date
@@ -49,8 +49,8 @@ LIB_SILO = -L$(LIBRARY_PREFIX)/silo/$(SILO_VERSION)/lib -lsilo
 INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
 
 
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof
-INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/gcc/lib -lphiprof
+INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/gcc/include
 
 INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass
 
