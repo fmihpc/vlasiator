@@ -89,7 +89,7 @@ Readparameters::Readparameters(int argc, char* argv[],MPI_Comm mpicomm) {
  * in order for the input file(s) to be re-read. This functions only needs to be called by root process.
  * Other processes can call it but those calls have no effect.
  * @param name The name of the parameter, as given in the input file(s).
- * @param desc Descrin for the parameter.
+ * @param desc Description for the parameter.
  * @param defValue Default value for variable var.
  * @return If true, the new parameter was added successfully.
  */
@@ -110,7 +110,7 @@ bool Readparameters::add(const string& name,const string& desc,const std::string
  * in order for the input file(s) to be re-read. This functions only needs to be called by root process.
  * Other processes can call it but those calls have no effect.
  * @param name The name of the parameter, as given in the input file(s).
- * @param desc Descrin for the parameter.
+ * @param desc Description for the parameter.
  * @param defValue Default value for variable var.
  * @return If true, the new parameter was added successfully.
  */
@@ -131,7 +131,7 @@ bool Readparameters::add(const string& name,const string& desc,const bool& defVa
  * in order for the input file(s) to be re-read. This functions only needs to be called by root process.
  * Other processes can call it but those calls have no effect.
  * @param name The name of the parameter, as given in the input file(s).
- * @param desc Descrin for the parameter.
+ * @param desc Description for the parameter.
  * @param defValue Default value for variable var.
  * @return If true, the new parameter was added successfully.
  */
@@ -153,7 +153,7 @@ bool Readparameters::add(const string& name,const string& desc,const int& defVal
  * in order for the input file(s) to be re-read. This functions only needs to be called by root process.
  * Other processes can call it but those calls have no effect.
  * @param name The name of the parameter, as given in the input file(s).
- * @param desc Descrin for the parameter.
+ * @param desc Description for the parameter.
  * @param defValue Default value for variable var.
  * @return If true, the new parameter was added successfully.
  */
@@ -174,7 +174,7 @@ bool Readparameters::add(const string& name,const string& desc,const unsigned in
  * in order for the input file(s) to be re-read. This functions only needs to be called by root process.
  * Other processes can call it but those calls have no effect.
  * @param name The name of the parameter, as given in the input file(s).
- * @param desc Descrin for the parameter.
+ * @param desc Description for the parameter.
  * @param defValue Default value for variable var.
  * @return If true, the new parameter was added successfully.
  */
@@ -195,7 +195,7 @@ bool Readparameters::add(const string& name,const string& desc,const float& defV
  * in order for the input file(s) to be re-read. This functions only needs to be called by root process.
  * Other processes can call it but those calls have no effect.
  * @param name The name of the parameter, as given in the input file(s).
- * @param desc Descrin for the parameter.
+ * @param desc Description for the parameter.
  * @param defValue Default value for variable var.
  * @return If true, the new parameter was added successfully.
  */
@@ -218,7 +218,7 @@ bool Readparameters::add(const string& name,const string& desc,const double& def
  * in order for the input file(s) to be re-read. This functions only needs to be called by root process.
  * Other processes can call it but those calls have no effect.
  * @param name The name of the parameter, as given in the input file(s).
- * @param desc Descrin for the parameter.
+ * @param desc Description for the parameter.
  * @return If true, the new parameter was added successfully.
  */
 bool Readparameters::addComposing(const string& name,const string& desc) {
@@ -272,6 +272,8 @@ bool Readparameters::finalize() {
 
 /** Get the value of the given parameter added with addComposing(). This may be called after having called Parse, and it may be called
  * by any process, in any order.
+ * This one returns true in all cases to handle cases where no option is in the cfg files
+ * but could be (e.g. system boundary conditions).
  * @param name The name of the parameter.
  * @param value A variable where the value of the parameter is written.
  * @return If true, the given parameter was found and its value was written to value.
@@ -279,10 +281,9 @@ bool Readparameters::finalize() {
 bool Readparameters::get(const std::string& name,std::vector<std::string>& value) {
     if(vectorOptions.find(name) != vectorOptions.end() ){ //check if it exists
         value = vectorOptions[name];
-        return true;
     }
     
-    return false;
+    return true;
  }
 
 /** Get the value of the given parameter added with addComposing(). This may be called after having called Parse, and it may be called
