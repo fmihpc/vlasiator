@@ -407,6 +407,8 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
       varBuffer = NULL;
    }
 
+   
+
    // If restart data is not written, exit here:
    if (writeRestart == false) {
       phiprof::initializeTimer("Barrier","MPI","Barrier");
@@ -420,22 +422,9 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
 
    attribs.clear();
 //START TO WRITE RESTART
-   
-   // Write spatial cell parameters:
-   Real* paramsBuffer = new Real[cells.size()*CellParams::N_SPATIAL_CELL_PARAMS];
 
+   //TODO, make sure the DROs needed by restarts are written out
 
-   for (size_t i = 0; i < cells.size(); ++i){
-      SpatialCell* SC = mpiGrid[cells[i]];
-      for (uint j = 0; j < CellParams::N_SPATIAL_CELL_PARAMS; ++j) {
-         paramsBuffer[i*CellParams::N_SPATIAL_CELL_PARAMS+j] = SC->parameters[j];
-      }
-   }
-   if (vlsvWriter.writeArray("CELLPARAMS","SpatialGrid",attribs,cells.size(),CellParams::N_SPATIAL_CELL_PARAMS,paramsBuffer) == false) {
-      logFile << "(MAIN) writeGrid: ERROR failed to write spatial cell parameters!" << endl << writeVerbose;
-      success = false;
-   }
-   delete[] paramsBuffer;
    
    // Write velocity blocks and related data. Which cells write velocity grids 
    // should be requested from a function, but for now we just write velocity grids for all cells.
