@@ -518,8 +518,9 @@ bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    if (printDiagnosticHeader == true && myRank == MASTER_RANK) {
       diagnostic << "# Column 1 Step" << endl;
       diagnostic << "# Column 2 Simulation time" << endl;
+      diagnostic << "# Column 3 Time step dt" << endl;
       for (uint i=0; i<nOps; ++i) {
-         diagnostic << "# Columns " << 3 + i*4 << " to " << 6 + i*4 << ": " << dataReducer.getName(i) << " min max sum average" << endl;
+         diagnostic << "# Columns " << 4 + i*4 << " to " << 7 + i*4 << ": " << dataReducer.getName(i) << " min max sum average" << endl;
       }
       printDiagnosticHeader = false;
    }
@@ -554,6 +555,7 @@ bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    diagnostic << setprecision(12); 
    diagnostic << Parameters::tstep << "\t";
    diagnostic << Parameters::t << "\t";
+   diagnostic << Parameters::dt << "\t";
    
    for (uint i=0; i<nOps; ++i) {
       if (globalSum[0] != 0.0) globalAvg[i] = globalSum[i+1] / globalSum[0];
