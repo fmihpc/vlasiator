@@ -232,59 +232,59 @@ namespace DRO {
    }
 
    //RHOLOSSADJUST
-   VariableRhoLossAdjust::VariableRhoLossAdjust(): DataReductionOperator() { }
-   VariableRhoLossAdjust::~VariableRhoLossAdjust() { }
+   RhoLossAdjust::RhoLossAdjust(): DataReductionOperator() { }
+   RhoLossAdjust::~RhoLossAdjust() { }
    
-   std::string VariableRhoLossAdjust::getName() const {return "rho_loss_adjust";}
+   std::string RhoLossAdjust::getName() const {return "rho_loss_adjust";}
    
-   bool VariableRhoLossAdjust::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+   bool RhoLossAdjust::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = 1;
       return true;
    }
    
-   bool VariableRhoLossAdjust::reduceData(const SpatialCell* cell,char* buffer) {
+   bool RhoLossAdjust::reduceData(const SpatialCell* cell,char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(&rhoLoss);
       for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
    
-   bool VariableRhoLossAdjust::reduceData(const SpatialCell* cell,Real* buffer){
+   bool RhoLossAdjust::reduceData(const SpatialCell* cell,Real* buffer){
       *buffer=rhoLoss;
       return true;
    }
    
-   bool VariableRhoLossAdjust::setSpatialCell(const SpatialCell* cell) {
+   bool RhoLossAdjust::setSpatialCell(const SpatialCell* cell) {
       rhoLoss = cell->parameters[CellParams::RHOLOSSADJUST];
       return true;
    }
    
    //RHOLOSSVELBOUNDARY
-   VariableRhoLossVelBoundary::VariableRhoLossVelBoundary(): DataReductionOperator() { }
-   VariableRhoLossVelBoundary::~VariableRhoLossVelBoundary() { }
+   RhoLossVelBoundary::RhoLossVelBoundary(): DataReductionOperator() { }
+   RhoLossVelBoundary::~RhoLossVelBoundary() { }
 
-   std::string VariableRhoLossVelBoundary::getName() const {return "rho_loss_velocity_boundary";}
+   std::string RhoLossVelBoundary::getName() const {return "rho_loss_velocity_boundary";}
 
-   bool VariableRhoLossVelBoundary::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+   bool RhoLossVelBoundary::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = 1;
       return true;
    }
    
-   bool VariableRhoLossVelBoundary::reduceData(const SpatialCell* cell,char* buffer) {
+   bool RhoLossVelBoundary::reduceData(const SpatialCell* cell,char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(&rhoLoss);
       for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
    
-   bool VariableRhoLossVelBoundary::reduceData(const SpatialCell* cell,Real* buffer){
+   bool RhoLossVelBoundary::reduceData(const SpatialCell* cell,Real* buffer){
       *buffer=rhoLoss;
       return true;
    }
    
-   bool VariableRhoLossVelBoundary::setSpatialCell(const SpatialCell* cell) {
+   bool RhoLossVelBoundary::setSpatialCell(const SpatialCell* cell) {
       rhoLoss = cell->parameters[CellParams::RHOLOSSVELBOUNDARY];
       return true;
    }
@@ -598,9 +598,9 @@ namespace DRO {
       for(int i = 0; i < 3; i++) PTensor[i] = 0.0;
       return true;
    }
-
-
-
+   
+   
+   
    //maximum absolute velocity in x,y, or z direction
    MaxVi::MaxVi(): DataReductionOperator() { }
    MaxVi::~MaxVi() { }
@@ -617,34 +617,32 @@ namespace DRO {
 
    bool MaxVi::reduceData(const SpatialCell* cell,Real* buffer) {
       const Real HALF = 0.5;
-      const Real THIRD = 1.0/3.0;
-     
+      
       Real maxV=0;
-
+      
       for(uint n=0; n<cell->number_of_blocks;n++) {
-	 unsigned int blockId = cell->velocity_block_list[n];
-	 const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
-	 for (uint k=0; k<WID; ++k)
-	    for (uint j=0; j<WID; ++j)
-	       for (uint i=0; i<WID; ++i) {
+         unsigned int blockId = cell->velocity_block_list[n];
+         const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
+         for (uint k=0; k<WID; ++k)
+            for (uint j=0; j<WID; ++j)
+               for (uint i=0; i<WID; ++i) {
                   const int celli=k*WID*WID+j*WID+i;
                   
-		  const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
-		  const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
-		  const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
-		  
-		  const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
-		  
+                  const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
+                  const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
+                  const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+                  
                   if(block->data[celli]!=0.0){
                      if(fabs(VX)>maxV) maxV=fabs(VX);
                      if(fabs(VY)>maxV) maxV=fabs(VY);
                      if(fabs(VZ)>maxV) maxV=fabs(VZ);
                   }
-	       }
+               }
       }
       *buffer=maxV;
       return true;
    }
+   
    bool MaxVi::reduceData(const SpatialCell* cell,char* buffer) {
       Real maxV;
       reduceData(cell,&maxV);
@@ -656,7 +654,9 @@ namespace DRO {
    bool MaxVi::setSpatialCell(const SpatialCell* cell) {
       return true;
    }
-
+   
+   
+   
    // YK Integrated divergence of magnetic field
    // Integral of div B over the simulation volume =
    // Integral of flux of B on simulation volume surface
@@ -706,6 +706,59 @@ namespace DRO {
    
    bool DiagnosticFluxB::setSpatialCell(const SpatialCell* cell) {return true;}
    
+   
+   
+   // YK Integrated divergence of electric field
+   // Integral of div E over the simulation volume =
+   // Integral of flux of E on simulation volume surface
+   DiagnosticFluxE::DiagnosticFluxE(): DataReductionOperator() { }
+   DiagnosticFluxE::~DiagnosticFluxE() { }
+   
+   std::string DiagnosticFluxE::getName() const {return "FluxE";}
+   
+   bool DiagnosticFluxE::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 1;
+      return true;
+   }
+   
+   bool DiagnosticFluxE::reduceData(const SpatialCell* cell,Real * result) {
+      creal x = cell->parameters[CellParams::XCRD];
+      creal dx = cell->parameters[CellParams::DX];
+      creal y = cell->parameters[CellParams::YCRD];
+      creal dy = cell->parameters[CellParams::DY];
+      creal z = cell->parameters[CellParams::ZCRD];
+      creal dz = cell->parameters[CellParams::DZ];
+      creal cx = x + 0.5 * dx;
+      creal cy = y + 0.5 * dy;
+      creal cz = z + 0.5 * dz;
+      
+      Real value = 0.0;
+      if(cx > Parameters::xmax - 2.0 * dx && cx < Parameters::xmax - dx) {
+         value += cell->parameters[CellParams::EX];
+      } else if (cx < Parameters::xmin + 2.0 * dx && cx > Parameters::xmin + dx) {
+         value += -1.0*cell->parameters[CellParams::EX];
+      }
+      if(cy > Parameters::ymax - 2.0 * dy && cy < Parameters::ymax - dy) {
+         value += cell->parameters[CellParams::EY];
+      } else if (cy < Parameters::ymin + 2.0 * dy && cy > Parameters::ymin + dy) {
+         value += -1.0*cell->parameters[CellParams::EY];
+      }
+      if(cz > Parameters::zmax - 2.0 * dz && cz < Parameters::zmax - dz) {
+         value += cell->parameters[CellParams::EZ];
+      } else if (cz < Parameters::zmin + 2.0 * dz && cz > Parameters::zmin + dz) {
+         value += -1.0*cell->parameters[CellParams::EZ];
+      }
+      *result = value;
+      
+      return true;
+   }
+   
+   bool DiagnosticFluxE::setSpatialCell(const SpatialCell* cell) {return true;}
+   
+   
+   
    // dBxdz
    VariabledBxdz::VariabledBxdz(): DataReductionOperator() { }
    VariabledBxdz::~VariabledBxdz() { }
@@ -730,5 +783,60 @@ namespace DRO {
       return true;
    }
    
+   
+   
+   // YK maximum value of the distribution function
+   MaxDistributionFunction::MaxDistributionFunction(): DataReductionOperator() { }
+   MaxDistributionFunction::~MaxDistributionFunction() { }
+   
+   std::string MaxDistributionFunction::getName() const {return "MaximumDistributionFunctionValue";}
+   
+   bool MaxDistributionFunction::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 1;
+      return true;
+   }
+   
+   
+   bool MaxDistributionFunction::reduceData(const SpatialCell* cell,Real* buffer) {
+      const Real HALF = 0.5;
+      
+      maxF = 0.0;
+      
+      for(uint n=0; n<cell->number_of_blocks; n++) {
+         unsigned int blockId = cell->velocity_block_list[n];
+         const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
+         for (uint k=0; k<WID; ++k)
+            for (uint j=0; j<WID; ++j)
+               for (uint i=0; i<WID; ++i) {
+                  const int celli=k*WID*WID+j*WID+i;
+                  
+                  const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
+                  const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
+                  const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+                  
+                  const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
+                  
+                  if(block->data[celli]!=0.0){
+                     maxF = max(cell->get_value(VX, VY, VZ), maxF);
+                  }
+               }
+      }
+      *buffer = maxF;
+      return true;
+   }
+   
+   bool MaxDistributionFunction::reduceData(const SpatialCell* cell,char* buffer) {
+      Real dummy;
+      reduceData(cell,&dummy);
+      const char* ptr = reinterpret_cast<const char*>(&dummy);
+      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool MaxDistributionFunction::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
    
 } // namespace DRO

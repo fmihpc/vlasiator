@@ -40,9 +40,9 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "RhoV")
          outputReducer->addOperator(new DRO::VariableRhoV);
       if(*it == "RhoLossAdjust")
-         diagnosticReducer->addOperator(new DRO::VariableRhoLossAdjust);
+         outputReducer->addOperator(new DRO::RhoLossAdjust);
       if(*it == "RhoLossVelBoundary")
-         diagnosticReducer->addOperator(new DRO::VariableRhoLossVelBoundary);
+         outputReducer->addOperator(new DRO::RhoLossVelBoundary);
       if(*it == "MPIrank")
          outputReducer->addOperator(new DRO::MPIrank);
       if(*it == "BoundaryType")
@@ -68,16 +68,20 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
         it++) {
       if(*it == "FluxB")
          diagnosticReducer->addOperator(new DRO::DiagnosticFluxB);
+      if(*it == "FluxE")
+         diagnosticReducer->addOperator(new DRO::DiagnosticFluxE);
       if(*it == "Blocks")
          diagnosticReducer->addOperator(new DRO::Blocks);
       if(*it == "Rho")
          diagnosticReducer->addOperator(new DRO::VariableRho);
       if(*it == "RhoLossAdjust")
-         diagnosticReducer->addOperator(new DRO::VariableRhoLossAdjust);
+         diagnosticReducer->addOperator(new DRO::RhoLossAdjust);
       if(*it == "RhoLossVelBoundary")
-         diagnosticReducer->addOperator(new DRO::VariableRhoLossVelBoundary);
+         diagnosticReducer->addOperator(new DRO::RhoLossVelBoundary);
       if(*it == "MaxVi")
          diagnosticReducer->addOperator(new DRO::MaxVi);
+      if(*it == "MaxDistributionFunction")
+         diagnosticReducer->addOperator(new DRO::MaxDistributionFunction);
    }
 }
 

@@ -817,13 +817,13 @@ namespace velocity_neighbor {
        * 
        * Returns 0 if it doesn't exist.
        */
-      Real get_value(const Real vx, const Real vy, const Real vz)
+      Real get_value(const Real vx, const Real vy, const Real vz) const
       {
          const unsigned int block = get_velocity_block(vx, vy, vz);
          if (this->velocity_blocks.count(block) == 0) {
             return 0.0;
          }
-         Velocity_Block* block_ptr = &(this->velocity_blocks.at(block));
+         const Velocity_Block* const block_ptr = &(this->velocity_blocks.at(block));
          if (block_ptr == NULL) {
             std::cerr << __FILE__ << ":" << __LINE__
             << " block_ptr == NULL" << std::endl; 
@@ -1198,7 +1198,7 @@ namespace velocity_neighbor {
                        neighbor != spatial_neighbors.end();
                        neighbor++
                        ) {
-		    if ((*neighbor)->get_block_has_content(block)) {
+                     if ((*neighbor)->get_block_has_content(block)) {
                         neighbors_have_content = true;
                         break;
                      }

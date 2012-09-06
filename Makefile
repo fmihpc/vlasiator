@@ -1,9 +1,9 @@
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
-PROJ = Dispersion
+PROJ = Fluctuations
 
 #set default architecture, can be overridden from the compile line
-ARCH = fermi_xlc
+ARCH = meteo
 include MAKE/Makefile.${ARCH}
 
 #set FP precision to SP (single) or DP (double)
@@ -29,7 +29,7 @@ CXXFLAGS += -DNDEBUG
 #define USE_AGNER_VECTORCLASS to use an external vector class that is used in some of the solvers
 #If not defined a slower but portable implementation is used, as the external one only supports 
 #Linux & x86 processors  
-#CXXFLAGS += -DUSE_AGNER_VECTORCLASS
+CXXFLAGS += -DUSE_AGNER_VECTORCLASS
 #Add -DCATCH_FPE to catch floating point exceptions and stop execution
 #May cause problems
 # CXXFLAGS += -DCATCH_FPE

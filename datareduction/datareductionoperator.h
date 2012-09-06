@@ -174,10 +174,10 @@ namespace DRO {
       Real rho;
    };
 
-   class VariableRhoLossAdjust: public DataReductionOperator {
+   class RhoLossAdjust: public DataReductionOperator {
     public:
-      VariableRhoLossAdjust();
-      virtual ~VariableRhoLossAdjust();
+      RhoLossAdjust();
+      virtual ~RhoLossAdjust();
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
@@ -190,10 +190,10 @@ namespace DRO {
    };
 
 
-   class VariableRhoLossVelBoundary: public DataReductionOperator {
+   class RhoLossVelBoundary: public DataReductionOperator {
     public:
-      VariableRhoLossVelBoundary();
-      virtual ~VariableRhoLossVelBoundary();
+      RhoLossVelBoundary();
+      virtual ~RhoLossVelBoundary();
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
@@ -298,6 +298,20 @@ namespace DRO {
       
    };
    
+   class DiagnosticFluxE: public DataReductionOperator {
+   public:
+      DiagnosticFluxE();
+      virtual  ~DiagnosticFluxE();
+      
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,Real* result);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      
+   protected:
+      
+   };
+   
    class VariabledBxdz: public DataReductionOperator {
    public:
       VariabledBxdz();
@@ -310,6 +324,21 @@ namespace DRO {
       
    protected:
       Real value;
+   };
+   
+   class MaxDistributionFunction: public DataReductionOperator {
+   public:
+      MaxDistributionFunction();
+      virtual ~MaxDistributionFunction();
+      
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell,Real *buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      
+   protected:
+      Real maxF;
    };
    
 } // namespace DRO
