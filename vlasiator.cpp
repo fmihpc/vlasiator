@@ -16,7 +16,6 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "boost/mpi.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
@@ -67,8 +66,6 @@ int main(int argn,char* args[]) {
    const creal DT_EPSILON=1e-12;
    typedef Parameters P;
    // Init MPI: 
-#ifdef _OPENMP
-   //init threaded MPI when compiled using openmp
    int required=MPI_THREAD_FUNNELED;
    int provided;
    MPI_Init_thread(&argn,&args,required,&provided);
@@ -78,12 +75,8 @@ int main(int argn,char* args[]) {
          cerr << "(MAIN): MPI_Init_thread failed!" << endl;
       exit(1);
    }    
-#endif
-   //Init boost-mpi
-   boost::mpi::environment env(argn,args);
-   boost::mpi::communicator comm;
-   
-   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   MPI_Comm comm = MPI_COMM_WORLD;
+   MPI_Comm_rank(comm,&myRank);
    
    dccrg::Dccrg<SpatialCell> mpiGrid;
    SysBoundary sysBoundaries;

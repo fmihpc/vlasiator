@@ -16,7 +16,6 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "boost/mpi.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <iomanip> // for setprecision()
@@ -83,7 +82,7 @@ void initializeGrid(int argn,
       );
 
    
-   boost::mpi::communicator comm;//corresponds to MPI_COMM_WORLD
+   MPI_Comm comm = MPI_COMM_WORLD;
    mpiGrid.initialize(
       comm,
       &P::loadBalanceAlgorithm[0],
