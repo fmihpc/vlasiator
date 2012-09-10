@@ -221,10 +221,7 @@ namespace DRO {
    }
    
    bool VariableB0::setSpatialCell(const SpatialCell* cell) {
-      B0  = &(cell->parameters[CellParams::BX]);
-      Bx0 = cell->parameters[CellParams::BX];
-      By0 = cell->parameters[CellParams::BY];
-      Bz0 = cell->parameters[CellParams::BZ];
+      B0  = &(cell->parameters[CellParams::BX0]);
       return true;
    }
 

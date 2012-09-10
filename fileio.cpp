@@ -89,13 +89,15 @@ bool readNBlocks(VLSVParReader & file,
       logFile << "(RESTARTBUILDER) ERROR: Failed to read number of blocks" << endl << write;
       return false;
    }
-   
+
    
    nBlocks.resize(vectorSize*arraySize);
    if (file.readArray("VARIABLE",attribs,0,arraySize,(char*)&(nBlocks[0])) == false) {
       logFile << "(RESTARTBUILDER) ERROR: Failed to read number of blocks!" << endl << write;
       success = false;
    }
+
+   
    
    return success;
 }
@@ -161,20 +163,20 @@ bool readBlockData(VLSVParReader & file,
    for(uint i=0;i<localCells;i++){
      uint cell=cellIds[localCellStartOffset+i];
      for (uint blockIndex=0;blockIndex<nBlocks[localCellStartOffset+i];blockIndex++){
-       bufferBlock++; 
-       creal vx_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VXCRD];
-       creal vy_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VYCRD];
-       creal vz_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VZCRD];
-       creal dvx_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVX];
-       creal dvy_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVY];
-       creal dvz_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVZ];
-       // set volume average of distrib. function for each cell in the block.
-       for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-	     creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
-	     creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
-	     creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
-	     mpiGrid[cellIds[i]]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgBuffer[bufferBlock*avgVectorSize+cellIndex(ic,jc,kc)]);
-	   }
+        creal vx_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VXCRD];
+        creal vy_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VYCRD];
+        creal vz_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VZCRD];
+        creal dvx_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVX];
+        creal dvy_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVY];
+        creal dvz_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVZ];
+        // set    volume average of distrib. function for each cell in the block.
+        for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
+           creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
+           creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
+           creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
+           mpiGrid[cell]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgBuffer[bufferBlock*avgVectorSize+cellIndex(ic,jc,kc)]);
+        }
+        bufferBlock++; 
      }
    }
 
@@ -218,12 +220,15 @@ bool readCellParamsVariable(VLSVParReader & file,
    }
    
    buffer=new fileReal[vectorSize*localCells];
-   file.readArray("VARIALBE",attribs,localCellStartOffset,localCells,(char *)buffer);
-
+   if(file.readArray("VARIABLE",attribs,localCellStartOffset,localCells,(char *)buffer) == false ) {
+      logFile << "(RESTARTBUILDER)  ERROR: Failed to read " << variableName << endl << write;
+      return false;
+   }
+   
    for(uint i=0;i<localCells;i++){
      uint cell=cellIds[localCellStartOffset+i];
      for(uint j=0;j<vectorSize;j++){
-        mpiGrid[cell]->parameters[cellParamsIndex+j]=buffer[i*vectorSize];
+        mpiGrid[cell]->parameters[cellParamsIndex+j]=buffer[i*vectorSize+j];
      }
    }
    
@@ -245,14 +250,16 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    
    
    phiprof::start("readGrid");
+
    VLSVParReader file;
    MPI_Info mpiInfo = MPI_INFO_NULL;
 
+   
    if (file.open(name,MPI_COMM_WORLD,0,mpiInfo) == false) {
       logFile << "(RESTART) VLSVParReader failed to open restart file '" << name << "' for reading!" << endl << write;
       success=false;
    }
-
+   phiprof::start("readDatalayout");
    if(success) 
       success=readCellIds(file,cellIds);
    if(success) 
@@ -290,7 +297,8 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    for(uint i=localCellStartOffset;i<localCellStartOffset+localCells;i++){
      localBlocks+=nBlocks[i];
    }
-   
+
+   phiprof::stop("readDatalayout");
    //todo, check file datatype, and do not just use double
    phiprof::start("readCellParameters");
    if(success)
@@ -322,7 +330,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    bool success=true;
    
    uint dataSize,vectorSize;
-   attribs["mesh"] = "  SpatialGrid";
+   attribs["mesh"] = "SpatialGrid";
    variableName = dataReducer.getName(dataReducerIndex);
    if (dataReducer.getDataVectorInfo(dataReducerIndex,dataType,dataSize,vectorSize) == false) {
       cerr << "ERROR when requesting info from DRO " << dataReducerIndex << endl;

@@ -94,9 +94,6 @@ namespace DRO {
       bool setSpatialCell(const SpatialCell* cell);
       
     protected:
-      Real Bx0;
-      Real By0;
-      Real Bz0;
       const Real* B0;
    };
 
