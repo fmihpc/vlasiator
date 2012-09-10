@@ -20,7 +20,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <iostream>
 
 #include "definitions.h"
-#include "mpiconversion.h"
+# ifndef TOOL_NOT_PARALLEL
+   #include "mpiconversion.h"
+# endif
 #include "muxml.h"
 #include "vlscommon.h"
 #include "vlsvreader2.h"
@@ -250,7 +252,7 @@ bool VLSVReader::open(const std::string& fname) {
    char* ptr = reinterpret_cast<char*>(&endiannessFile);
    filein.read(ptr,1);
    if (endiannessFile != endiannessReader) swapIntEndianness = true;
-
+   
    // Read footer offset:
    uint64_t footerOffset;
    char buffer[16];
@@ -465,7 +467,7 @@ bool VLSVReader::readArray(
    return true;
 }
 
-
+#ifndef TOOL_NOT_PARALLEL
 // ********************************
 // ***** VLSV PARALLEL READER *****
 // ********************************
@@ -682,7 +684,7 @@ bool VLSVParReader::readArray(
 }
 
 
-
+#endif // #ifndef TOOL_NOT_PARALLEL
 
 
 

@@ -1,5 +1,8 @@
 CMP = mpicxx
 LNK = mpicxx
+# Use the two lines below to compile the not_parallel tools.
+# CMP = g++
+# LNK = g++
 
 #-DNO_WRITE_AT_ALL:  Define to disable write at all to 
 #                    avoid memleak (much slower IO)
@@ -19,12 +22,14 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 4.4.6
-CXXFLAGS +=  -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -pedantic -Wno-unused
+CXXFLAGS +=  -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -pedantic
+# CXXFLAGS += -O0 -W -Wall -pedantic
+# CXXFLAGS +=  -O3 -funroll-loops -std=c++0x -W -Wall -pedantic -Wno-unused
 # CXXFLAGS += -g -std=c++0x -W -Wall -pedantic -Wno-unused
 # DCXXFLAGS +=  -g  -fopenmp -std=c++0x -W -Wall -pedantic -Wno-unused
 # MATHFLAGS = -ffast-math
 LDFLAGS =
-LIB_MPI = -lgomp
+# LIB_MPI = -lgomp
 
 BOOST_VERSION = 1.50.0
 ZOLTAN_VERSION = 3.6

@@ -1,6 +1,6 @@
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
-PROJ = Fluctuations
+PROJ = Dispersion
 
 #set default architecture, can be overridden from the compile line
 ARCH = meteo
@@ -64,12 +64,20 @@ CXXFLAGS += ${INC_PROFILE}
 #define precision
 CXXFLAGS += -D${FP_PRECISION} 
 
-
+CXXEXTRAFLAGS = ${CXXFLAGS} -DTOOL_NOT_PARALLEL
 
 
 default: vlasiator
 
-tools: vlsvdiff vlsv2vtk vlsv2silo vlsv2bzt vlsvextract
+tools: parallel_tools not_parallel_tools
+
+parallel_tools: vlsv2vtk vlsv2silo vlsv2bzt vlsvextract
+
+# On FERMI one has to use the front-end compiler (e.g. g++) to compile this tool.
+# This target here defines a flag which removes the mpi headers from the code with 
+# #ifdef pragmas such that one can compile this tool to be used on the login nodes.
+# To ensure this works one also needs to change the compiler at the top of Makefile.fermi*.
+not_parallel_tools: vlsvdiff
 
 all: vlasiator tools
 
@@ -191,6 +199,9 @@ vlscommon.o:  $(DEPS_COMMON)  vlscommon.h vlscommon.cpp
 vlsvreader2.o:  muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvreader2.cpp
 
+vlsvreader2extra.o:  muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
+	${CMP} ${CXXEXTRAFLAGS} ${FLAGS} -c vlsvreader2.cpp
+
 vlsvwriter2.o: mpiconversion.h muxml.h muxml.cpp vlscommon.h vlsvwriter2.h vlsvwriter2.cpp 
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvwriter2.cpp ${INC_MPI}
 
@@ -210,6 +221,7 @@ DEPS_VLSVREADER = muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
 
 #common reader objects for tools
 OBJS_VLSVREADER = muxml.o vlscommon.o vlsvreader2.o
+OBJS_VLSVREADEREXTRA = muxml.o vlscommon.o vlsvreader2extra.o
 
 
 vlsvextract: ${DEPS_VLSVREADER} tools/vlsvextract.cpp ${OBJS_VLSVREADER}
@@ -230,8 +242,8 @@ vlsv2bzt: ${DEPS_VLSVREADER} ${OBJS_VLSVREADER} tools/vlsv2bzt.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsv2bzt.cpp -I$(CURDIR) 
 	${LNK} -o vlsv2bzt_${FP_PRECISION} vlsv2bzt.o ${OBJS_VLSVREADER} ${LDFLAGS}
 
-vlsvdiff: ${DEPS_VLSVREADER} ${OBJS_VLSVREADER} tools/vlsvdiff.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvdiff.cpp -I$(CURDIR) 
+vlsvdiff: ${DEPS_VLSVREADER} ${OBJS_VLSVREADEREXTRA} tools/vlsvdiff.cpp
+	${CMP} ${CXXEXTRAFLAGS} ${FLAGS} -c tools/vlsvdiff.cpp -I$(CURDIR)
 	${LNK} -o vlsvdiff_${FP_PRECISION} vlsvdiff.o ${OBJS_VLSVREADER} ${LDFLAGS}
 
 

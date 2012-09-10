@@ -18,7 +18,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef DEFINITIONS_H
 #define DEFINITIONS_H
-#include "mpi.h"
 
 //set floating point precision here. Default is single precision, use -DDP to set double precision
 #ifdef DP

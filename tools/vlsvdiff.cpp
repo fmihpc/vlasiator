@@ -54,10 +54,10 @@ using namespace std;
  * \param orderedData Pointer to the return argument map which will get the extracted dataset
  */
 bool convertMesh(VLSVReader& vlsvReader,
-		 const string& meshName,
-		 const char * varToExtract,
-		 const uint compToExtract,
-		 map<uint, Real> * orderedData)
+                 const string& meshName,
+                 const char * varToExtract,
+                 const uint compToExtract,
+                 map<uint, Real> * orderedData)
 {
    bool meshSuccess = true;
    bool variableSuccess = true;
@@ -80,7 +80,7 @@ bool convertMesh(VLSVReader& vlsvReader,
    // Read the mesh array one node (of a spatial cell) at a time 
    // and create a map which contains each cell's CellID and variable to be extracted
    char* meshBuffer = new char[meshVectorSize*meshDataSize];
-   uint* meshPtr = reinterpret_cast<uint*>(meshBuffer);
+   uint64_t* meshPtr = reinterpret_cast<uint64_t*>(meshBuffer);
    char* variableBuffer = new char[variableVectorSize*variableDataSize];
    float* variablePtrFloat = reinterpret_cast<float*>(variableBuffer);
    double* variablePtrDouble = reinterpret_cast<double*>(variableBuffer);
@@ -91,24 +91,25 @@ bool convertMesh(VLSVReader& vlsvReader,
       if (vlsvReader.readArray("MESH", meshName, i, 1, meshBuffer) == false) {meshSuccess = false; break;}
       if (vlsvReader.readArray("VARIABLE", varToExtract, i, 1, variableBuffer) == false) {variableSuccess = false; break;}
       // Get the CellID
-      uint CellID  = meshPtr[0];
+      uint64_t CellID  = meshPtr[0];
       // Get the variable value
       Real extract = NAN;
+      
       switch (variableDataType)
       {
-	 case VLSV::FLOAT:
-	    if(variableDataSize == sizeof(float)) extract = (Real)(variablePtrFloat[compToExtract]);
-	    if(variableDataSize == sizeof(double)) extract = (Real)(variablePtrDouble[compToExtract]);
-	    break;
-	 case VLSV::UINT:
-	    extract = (Real)(variablePtrUint[compToExtract]);
-	    break;
-	 case VLSV::INT:
-	    extract = (Real)(variablePtrInt[compToExtract]);
-	    break;
+         case VLSV::FLOAT:
+            if(variableDataSize == sizeof(float)) extract = (Real)(variablePtrFloat[compToExtract]);
+            if(variableDataSize == sizeof(double)) extract = (Real)(variablePtrDouble[compToExtract]);
+            break;
+         case VLSV::UINT:
+            extract = (Real)(variablePtrUint[compToExtract]);
+            break;
+         case VLSV::INT:
+            extract = (Real)(variablePtrInt[compToExtract]);
+            break;
       }
       // Put those into the map
-      orderedData->insert(pair<uint, Real>(CellID, extract));
+      orderedData->insert(pair<uint64_t, Real>(CellID, extract));
    }
    
    if (meshSuccess == false) {
@@ -128,9 +129,9 @@ bool convertMesh(VLSVReader& vlsvReader,
  * \sa convertMesh
  */
 bool convertSILO(const string fileName,
-		 const char * varToExtract,
-		 const uint compToExtract,
-		 map<uint, Real> * orderedData)
+                 const char * varToExtract,
+                 const uint compToExtract,
+                 map<uint, Real> * orderedData)
 {
    bool success = true;
    
@@ -154,7 +155,7 @@ bool convertSILO(const string fileName,
    {
       if (convertMesh(vlsvReader, *it, varToExtract, compToExtract, orderedData) == false)
       {
-	 return false;
+         return false;
       }
       
    }
@@ -168,10 +169,9 @@ bool convertSILO(const string fileName,
  * \param shiftedData2 Pointer to where the shifted data of the second file will be put
  */
 bool shiftAverage(const map<uint, Real> * const orderedData1,
-		  const map<uint, Real> * const orderedData2,
-		  map<uint, Real> * shiftedData2
-		 )
-{
+                  const map<uint, Real> * const orderedData2,
+                  map<uint, Real> * shiftedData2
+                  ) {
    map<uint, Real>::const_iterator it1, it2;
    Real avg1 = 0.0;
    Real avg2 = 0.0;
@@ -225,13 +225,12 @@ bool shiftAverage(const map<uint, Real> * const orderedData1,
  * \sa shiftAverage
  */
 bool pDistance(map<uint, Real> * const orderedData1,
-	       map<uint, Real> * const orderedData2,
-	       creal p,
-	       Real * absolute,
-	       Real * relative,
-	       const bool doShiftAverage
-	      )
-{
+               map<uint, Real> * const orderedData2,
+               creal p,
+               Real * absolute,
+               Real * relative,
+               const bool doShiftAverage
+               ) {
    map<uint, Real> shiftedData2;
    map<uint, Real> * data2 = orderedData2;
    
@@ -249,8 +248,8 @@ bool pDistance(map<uint, Real> * const orderedData1,
    {
       for(it=orderedData1->begin(); it != orderedData1->end() ; it++)
       {
-	 *absolute += pow(abs(orderedData1->at(it->first) - data2->at(it->first)), p);
-	 length += pow(abs(orderedData1->at(it->first)), p);
+         *absolute += pow(abs(orderedData1->at(it->first) - data2->at(it->first)), p);
+         length += pow(abs(orderedData1->at(it->first)), p);
       }
       *absolute = pow(*absolute, 1.0 / p);
       length = pow(length, 1.0 / p);
@@ -259,8 +258,8 @@ bool pDistance(map<uint, Real> * const orderedData1,
    {
       for(it=orderedData1->begin(); it != orderedData1->end() ; it++)
       {
-	 *absolute = max(*absolute, abs(orderedData1->at(it->first) - data2->at(it->first)));
-	 length = max(length, abs(orderedData1->at(it->first)));
+         *absolute = max(*absolute, abs(orderedData1->at(it->first) - data2->at(it->first)));
+         length = max(length, abs(orderedData1->at(it->first)));
       }
    }
    
@@ -286,32 +285,32 @@ bool pDistance(map<uint, Real> * const orderedData1,
  * \sa shiftAverage pDistance
  */
 bool outputDistance(const Real p,
-		    const Real * absolute,
-		    const Real * relative,
-		    const bool shiftedAverage,
-		    const bool verboseOutput,
-		    const bool lastCall
+                    const Real * absolute,
+                    const Real * relative,
+                    const bool shiftedAverage,
+                    const bool verboseOutput,
+                    const bool lastCall
 )
 {
    if(verboseOutput == true) {
       if(shiftedAverage == false) {
-	 cout << "The absolute " << p << "-distance between both datasets is " << *absolute << "." << endl;
-	 cout << "The relative " << p << "-distance between both datasets is " << *relative << "." << endl;
+         cout << "The absolute " << p << "-distance between both datasets is " << *absolute << "." << endl;
+         cout << "The relative " << p << "-distance between both datasets is " << *relative << "." << endl;
       } else {
-	 cout << "The average-shifted absolute " << p << "-distance between both datasets is " << *absolute << "." << endl;
-	 cout << "The average-shifted relative " << p << "-distance between both datasets is " << *relative << "." << endl;
+         cout << "The average-shifted absolute " << p << "-distance between both datasets is " << *absolute << "." << endl;
+         cout << "The average-shifted relative " << p << "-distance between both datasets is " << *relative << "." << endl;
       }
    } else {
       static vector<Real> fileOutputData;
       static uint fileNumber = 0;
       
       if(lastCall == true) {
-	 vector<Real>::const_iterator it;
-	 for(it = fileOutputData.begin(); it != fileOutputData.end(); it++) {
-	    cout << *it << "\t";
-	 }
-	 fileOutputData.clear();
-	 return 0;
+         vector<Real>::const_iterator it;
+         for(it = fileOutputData.begin(); it != fileOutputData.end(); it++) {
+            cout << *it << "\t";
+         }
+         fileOutputData.clear();
+         return 0;
       }
       
       fileOutputData.push_back(*absolute);
@@ -329,10 +328,10 @@ bool outputDistance(const Real p,
  */
 bool singleStatistics(map<uint, Real> * orderedData,
                       Real * size,
-		      Real * mini,
-		      Real * maxi,
-		      Real * avg,
-		      Real * stdev
+                      Real * mini,
+                      Real * maxi,
+                      Real * avg,
+                      Real * stdev
 )
 {
    /*
@@ -373,14 +372,13 @@ bool singleStatistics(map<uint, Real> * orderedData,
  * \sa singleStatistics
  */
 bool outputStats(const Real * size,
-		 const Real * mini,
-		 const Real * maxi,
-		 const Real * avg,
-		 const Real * stdev,
-		 const bool verboseOutput,
-		 const bool lastCall
-		)
-{
+                 const Real * mini,
+                 const Real * maxi,
+                 const Real * avg,
+                 const Real * stdev,
+                 const bool verboseOutput,
+                 const bool lastCall
+                 ) {
    if(verboseOutput == true)
    {
       cout << "Statistics on file: size " << *size
@@ -397,18 +395,18 @@ bool outputStats(const Real * size,
       
       if(lastCall == true)
       {
-	 vector<Real>::const_iterator it;
-	 for(it = pairStats.begin(); it != pairStats.end(); it++)
-	 {
-	    cout << *it << "\t";
-	 }
-	 pairStats.clear();
-	 return 0;
+         vector<Real>::const_iterator it;
+         for(it = pairStats.begin(); it != pairStats.end(); it++)
+         {
+            cout << *it << "\t";
+         }
+         pairStats.clear();
+         return 0;
       }
       
       if(fileNumber%2 == 0)
       {
-	 pairStats.push_back(fileNumber / 2 + 1);
+         pairStats.push_back(fileNumber / 2 + 1);
       }
       pairStats.push_back(*size);
       pairStats.push_back(*mini);
@@ -473,12 +471,11 @@ bool printNonVerboseData()
  * \sa convertSILO singleStatistics outputStats pDistance outputDistance printNonVerboseData
  */
 bool process2Files(const string fileName1,
-		   const string fileName2,
-		   const char * varToExtract,
-		   const uint compToExtract,
-		   const bool verboseOutput
-		  )
-{
+                   const string fileName2,
+                   const char * varToExtract,
+                   const uint compToExtract,
+                   const bool verboseOutput
+                  ) {
    map<uint, Real> orderedData1;
    map<uint, Real> orderedData2;
    Real absolute, relative, mini, maxi, size, avg, stdev;
@@ -532,10 +529,7 @@ bool process2Files(const string fileName1,
  * \param dir DIR type pointer to the directory entry to process
  * \param fileList Pointer to a set of strings, return argument for the produced file list
  */
-bool processDirectory(DIR* dir,
-		      set<string> * fileList
-)
-{
+bool processDirectory(DIR* dir, set<string> * fileList) {
    VLSVReader vlsvReader;
    int filesFound = 0, entryCounter = 0;
    
@@ -546,8 +540,8 @@ bool processDirectory(DIR* dir,
    while (entry != NULL) {
       const string entryName = entry->d_name;
       if (entryName.find(mask) == string::npos || entryName.find(suffix) == string::npos) {
-	 entry = readdir(dir);
-	 continue;
+         entry = readdir(dir);
+         continue;
       }
       fileList->insert(entryName);
       filesFound++;
@@ -641,18 +635,18 @@ int main(int argn,char* args[])
       // Basic consistency check
       if(fileList1.size() != fileList2.size())
       {
-	 cerr << "ERROR Folders have different number of files." << endl;
-	 return 1;
+         cerr << "ERROR Folders have different number of files." << endl;
+         return 1;
       }
       
       set<string>::iterator it1, it2;
       for(it1 = fileList1.begin(), it2 = fileList2.begin();
-	  it1 != fileList2.end(), it2 != fileList2.end();
+          it1 != fileList2.end(), it2 != fileList2.end();
           it1++, it2++)
       {
-	 // Process two files with non-verbose output (last argument false), give full path to the file processor
-	 process2Files(fileName1 + "/" + *it1,
-		       fileName2 + "/" + *it2, varToExtract, compToExtract, false);
+      // Process two files with non-verbose output (last argument false), give full path to the file processor
+      process2Files(fileName1 + "/" + *it1,
+                    fileName2 + "/" + *it2, varToExtract, compToExtract, false);
       }
       
       closedir(dir1);

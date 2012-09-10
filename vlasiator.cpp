@@ -77,7 +77,6 @@ int main(int argn,char* args[]) {
    }    
    MPI_Comm comm = MPI_COMM_WORLD;
    MPI_Comm_rank(comm,&myRank);
-   
    dccrg::Dccrg<SpatialCell> mpiGrid;
    SysBoundary sysBoundaries;
    bool isSysBoundaryCondDynamic;
@@ -104,14 +103,12 @@ int main(int argn,char* args[]) {
    sysBoundaries.getParameters();
    phiprof::stop("Read parameters");
    
-   
    phiprof::start("Init project");
    if (initializeProject() == false) {
       if(myRank == MASTER_RANK) cerr << "(MAIN): Project did not initialize correctly!" << endl;
       exit(1);
    }
    phiprof::stop("Init project");
-   
 
    // Init parallel logger:
    phiprof::start("open logFile & diagnostic");

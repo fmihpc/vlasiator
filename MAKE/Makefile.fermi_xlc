@@ -7,7 +7,7 @@ LNK = mpixlcxx_r
 #                         errors that come up when using 
 #                         mpi.h in c++ on Cray
 
-CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK -qarch=qp -qtune=qp
+CXXFLAGS = -qarch=qp -qtune=qp
 
 FLAGS = 
 
@@ -17,15 +17,13 @@ FLAGS =
 # LDFLAGS flags for linker
 
 #XLC flags:
-CC_BRAND = xlc
-#CC_BRAND_VERSION = 4.4.6
 # CXXFLAGS +=  -O2 -pedantic -qsmp -qthreaded -qipa -qhot -qsimd -qunroll -qmaxmem=46829 # -qstrict -qlanglvl=extended 
-CXXFLAGS +=  -O3 -pedantic -qsmp -qthreaded -qipa -qhot -qsimd -qunroll
-# CXXFLAGS += -g -std=c++0x -W -Wall -pedantic -Wno-unused
-# DCXXFLAGS +=  -g  -fopenmp -std=c++0x -W -Wall -pedantic -Wno-unused
-# MATHFLAGS = -ffast-math
-LDFLAGS = -qthreaded -qsmp -qipa
-LIB_MPI = -lgomp
+# CXXFLAGS +=  -O3 -pedantic -qsmp -qthreaded -qipa -qhot -qsimd -qunroll
+# CXXFLAGS +=  -O3 -pedantic -qipa -qhot -qsimd -qunroll
+CXXFLAGS += -O0 -qstaticlink -qlanglevel=extended0x
+LDFLAGS =
+#-qipa
+LIB_MPI =
 
 BOOST_VERSION = 1.50.0
 ZOLTAN_VERSION = 3.6

@@ -25,7 +25,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #ifndef VLSVREADER2_H
 #define VLSVREADER2_H
 
-#include <mpi.h>
+#ifndef TOOL_NOT_PARALLEL
+   #include <mpi.h>
+#endif
 #include <stdint.h>
 #include <list>
 #include <fstream>
@@ -177,7 +179,7 @@ class VLSVReader {
    } arrayOpen;
 };
 
-
+#ifndef TOOL_NOT_PARALLEL
 /*!
 \brief A parallel MPI class for reading in vlsv files.
 
@@ -214,5 +216,5 @@ class VLSVParReader: public VLSVReader {
    MPI_Datatype multiReadArrayType;
    std::map<char*,uint64_t> multiReadUnits; // buffer,begin,amount
 };
-
-#endif
+#endif // #ifndef TOOL_NOT_PARALLEL
+#endif // #ifndef VLSVREADER2_H
