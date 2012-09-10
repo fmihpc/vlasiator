@@ -10,6 +10,7 @@
 #include "logger.h"
 #include "vlsvwriter2.h"
 #include "vlsvreader2.h"
+#include "vlasovmover.h"
 
 using namespace std;
 using namespace phiprof;
@@ -264,7 +265,7 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
       success=readCellIds(file,cellIds);
    if(success) 
       success=readNBlocks(file,nBlocks);
-
+   
    //make sure all cells are empty, we will anyway overwrite everything and in that case moving cells is easier...
    vector<uint64_t> cells = mpiGrid.get_cells();
    for(uint i=0;i<cells.size();i++){
@@ -289,6 +290,16 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    uint localCellStartOffset=myRank*cellsPerProcess;
    uint localCells=mpiGrid.size();
 
+   //set cell coordinates based on cfg (mpigrid) information
+   cells = mpiGrid.get_cells();
+   for(uint i=0;i<cells.size();i++){
+      mpiGrid[cells[i]]->parameters[CellParams::XCRD] = mpiGrid.get_cell_x_min(cells[i]);
+      mpiGrid[cells[i]]->parameters[CellParams::YCRD] = mpiGrid.get_cell_y_min(cells[i]);
+      mpiGrid[cells[i]]->parameters[CellParams::ZCRD] = mpiGrid.get_cell_z_min(cells[i]);
+      mpiGrid[cells[i]]->parameters[CellParams::DX  ] = mpiGrid.get_cell_x_size(cells[i]);
+      mpiGrid[cells[i]]->parameters[CellParams::DY  ] = mpiGrid.get_cell_y_size(cells[i]);
+      mpiGrid[cells[i]]->parameters[CellParams::DZ  ] = mpiGrid.get_cell_z_size(cells[i]);
+   }
    //where local data start in the blocklists
    uint64_t localBlockStartOffset=0;
    for(uint i=0;i<localCellStartOffset;i++){
@@ -314,6 +325,10 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    phiprof::stop("readBlockData");
    file.close();
    phiprof::stop("readGrid");
+
+   calculateVelocityMoments(mpiGrid);
+
+   
    return success;
 }
 
