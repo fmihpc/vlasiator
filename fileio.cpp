@@ -281,6 +281,7 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
          mpiGrid.pin(cellIds[i],i/cellsPerProcess);
       }
    }
+   
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
    mpiGrid.migrate_cells();
 

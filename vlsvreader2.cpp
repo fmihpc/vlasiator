@@ -102,8 +102,12 @@ bool VLSVReader::getArrayInfo(const std::string& tagName,const std::list<std::pa
    }
    XMLNode* node = xmlReader.find(tagName,attribs);
    if (node == NULL) {
-   	cerr << __FILE__ << ":" << __LINE__ << " node == NULL" << endl;
-   	return false;
+      cerr << __FILE__ << ":" << __LINE__ << " node == NULL tag = " << tagName;
+      for (list<pair<string,string> >::const_iterator it=attribs.begin(); it!=attribs.end(); ++it) {
+         cerr << " " << it->first <<" = "<<it->second;
+      }
+      cerr <<endl;
+      return false;
    }
    
    arraySize = atoi(node->attributes["arraysize"].c_str());

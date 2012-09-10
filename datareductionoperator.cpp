@@ -380,7 +380,7 @@ namespace DRO {
    Blocks::~Blocks() { }
    
    bool Blocks::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "int";
+      dataType = "uint";
       dataSize = 4;
       vectorSize = 1;
       return true;
