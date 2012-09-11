@@ -24,9 +24,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <cstdlib>
-#include <mpi.h>
 #include <iostream>
-#include <limits>
 
 #include "../parameters.h"
 #include "sysboundarycondition.h"

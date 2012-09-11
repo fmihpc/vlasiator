@@ -21,9 +21,7 @@
  */
 
 #include <cstdlib>
-#include <mpi.h>
 #include <iostream>
-#include <limits>
 
 #include "setmaxwellian.h"
 #include "../vlasovmover.h"

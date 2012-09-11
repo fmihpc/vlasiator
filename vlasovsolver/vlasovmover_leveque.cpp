@@ -25,7 +25,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #ifdef _OPENMP
 #include "omp.h"
 #endif
-#include <boost/mpi.hpp>
 #include <zoltan.h>
 
 #include "../vlasovmover.h"
