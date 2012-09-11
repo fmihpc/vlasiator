@@ -22,29 +22,30 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 4.4.6
-CXXFLAGS +=  -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -pedantic
+CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -pedantic
 # CXXFLAGS += -O0 -W -Wall -pedantic
 # CXXFLAGS +=  -O3 -funroll-loops -std=c++0x -W -Wall -pedantic -Wno-unused
 # CXXFLAGS += -g -std=c++0x -W -Wall -pedantic -Wno-unused
 # DCXXFLAGS +=  -g  -fopenmp -std=c++0x -W -Wall -pedantic -Wno-unused
 # MATHFLAGS = -ffast-math
 LDFLAGS =
-# LIB_MPI = -lgomp
+LIB_MPI = -lgomp
 
 BOOST_VERSION = 1.50.0
 ZOLTAN_VERSION = 3.6
 SILO_VERSION = 4.8
+GCC_VERSION = 4.4.6
 
 LIBRARY_PREFIX = /fermi/home/userexternal/ykempf00/libraries
 
-INC_BOOST = -I$(LIBRARY_PREFIX)/boost/gcc/$(BOOST_VERSION)/include
-LIB_BOOST = -L$(LIBRARY_PREFIX)/boost/gcc/$(BOOST_VERSION)/lib -lboost_mpi -lboost_serialization -lboost_program_options
+INC_BOOST = -I$(LIBRARY_PREFIX)/boost/$(BOOST_VERSION)/gcc/$(GCC_VERSION)/include
+LIB_BOOST = -L$(LIBRARY_PREFIX)/boost/$(BOOST_VERSION)/gcc/$(GCC_VERSION)/lib -lboost_program_options
 
-INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan/gcc/$(ZOLTAN_VERSION)/include
-LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/gcc/$(ZOLTAN_VERSION)/lib -lzoltan
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan/$(ZOLTAN_VERSION)/gcc/$(GCC_VERSION)/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/$(ZOLTAN_VERSION)/gcc/$(GCC_VERSION)/lib -lzoltan
 
-INC_SILO = -I$(LIBRARY_PREFIX)/silo/gcc/$(SILO_VERSION)/include
-LIB_SILO = -L$(LIBRARY_PREFIX)/silo/gcc/$(SILO_VERSION)/lib -lsilo
+INC_SILO = -I$(LIBRARY_PREFIX)/silo/$(SILO_VERSION)/gcc/$(GCC_VERSION)/include
+LIB_SILO = -L$(LIBRARY_PREFIX)/silo/$(SILO_VERSION)/gcc/$(GCC_VERSION)/lib -lsilo
 
 
 #DCCRG version with reduced neighbourhood. Might not be up-to-date
@@ -54,8 +55,8 @@ LIB_SILO = -L$(LIBRARY_PREFIX)/silo/gcc/$(SILO_VERSION)/lib -lsilo
 INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
 
 
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/gcc/lib -lphiprof
-INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/gcc/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/gcc/$(GCC_VERSION)/lib -lphiprof
+INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/gcc/$(GCC_VERSION)/include
 
 INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass
 

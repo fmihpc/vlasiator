@@ -20,25 +20,26 @@ FLAGS =
 # CXXFLAGS +=  -O2 -pedantic -qsmp -qthreaded -qipa -qhot -qsimd -qunroll -qmaxmem=46829 # -qstrict -qlanglvl=extended 
 # CXXFLAGS +=  -O3 -pedantic -qsmp -qthreaded -qipa -qhot -qsimd -qunroll
 # CXXFLAGS +=  -O3 -pedantic -qipa -qhot -qsimd -qunroll
-CXXFLAGS += -O0 -qstaticlink -qlanglevel=extended0x
-LDFLAGS =
+CXXFLAGS += -g -O0 #-qlanglevel=extended0x
+LDFLAGS = -qstaticlink
 #-qipa
 LIB_MPI =
 
 BOOST_VERSION = 1.50.0
 ZOLTAN_VERSION = 3.6
 SILO_VERSION = 4.8
+XLC_VERSION = 1.0
 
 LIBRARY_PREFIX = /fermi/home/userexternal/ykempf00/libraries
 
-INC_BOOST = -I$(LIBRARY_PREFIX)/boost/xlc/$(BOOST_VERSION)/include
-LIB_BOOST = -L$(LIBRARY_PREFIX)/boost/xlc/$(BOOST_VERSION)/lib -lboost_mpi -lboost_serialization -lboost_program_options
+INC_BOOST = -I$(LIBRARY_PREFIX)/boost/$(BOOST_VERSION)/xlc/$(XLC_VERSION)/include
+LIB_BOOST = -L$(LIBRARY_PREFIX)/boost/$(BOOST_VERSION)/xlc/$(XLC_VERSION)/lib -lboost_program_options
 
-INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan/xlc/$(ZOLTAN_VERSION)/include
-LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/xlc/$(ZOLTAN_VERSION)/lib -lzoltan
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan/$(ZOLTAN_VERSION)/xlc/$(XLC_VERSION)/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/$(ZOLTAN_VERSION)/xlc/$(XLC_VERSION)/lib -lzoltan
 
-INC_SILO = -I$(LIBRARY_PREFIX)/silo/xlc/$(SILO_VERSION)/include
-LIB_SILO = -L$(LIBRARY_PREFIX)/silo/xlc/$(SILO_VERSION)/lib -lsilo
+INC_SILO = -I$(LIBRARY_PREFIX)/silo/$(SILO_VERSION)/xlc/$(XLC_VERSION)/include
+LIB_SILO = -L$(LIBRARY_PREFIX)/silo/$(SILO_VERSION)/xlc/$(XLC_VERSION)/lib -lsilo
 
 
 #DCCRG version with reduced neighbourhood. Might not be up-to-date
@@ -48,8 +49,8 @@ LIB_SILO = -L$(LIBRARY_PREFIX)/silo/xlc/$(SILO_VERSION)/lib -lsilo
 INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
 
 
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/xlc/lib -lphiprof
-INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/xlc/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/xlc/$(XLC_VERSION)/lib -lphiprof
+INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/xlc/$(XLC_VERSION)/include
 
 INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass
 
