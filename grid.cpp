@@ -132,6 +132,7 @@ bool initializeGrid(int argn, char **argc,dccrg::Dccrg<SpatialCell>& mpiGrid){
       initSpatialCells(mpiGrid);
    }
    else{
+      if (myrank == 0) logFile << "(INIT): Strating to read in restart file" << endl << writeVerbose;
       readGrid(mpiGrid,P::restartFileName);
    }
 

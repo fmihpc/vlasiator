@@ -257,9 +257,10 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
 
    
    if (file.open(name,MPI_COMM_WORLD,0,mpiInfo) == false) {
-      logFile << "(RESTART) VLSVParReader failed to open restart file '" << name << "' for reading!" << endl << write;
+      if(myRank == 0) logFile << "(RESTART) VLSVParReader failed to open restart file '" << name << "' for reading!" << endl << write;
       success=false;
    }
+   if(myRank == 0) logFile << "(RESTART) before test cellIds and blocks'" << endl << write;
    phiprof::start("readDatalayout");
    if(success) 
       success=readCellIds(file,cellIds);
@@ -274,24 +275,54 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    
 
    //prepare to migrate cells so that each process has its cells contiguously in the file
-   uint cellsPerProcess=cellIds.size()/processes;
+   //First processA processes get cellsPerProcessA cells, the next cellsPerProcessB cells
+   uint cellsPerProcessA=cellIds.size()/processes;
+   uint cellsPerProcessB=cellsPerProcessA+1;
+   uint processesB=cellIds.size()%processes;
+   uint processesA=processes-processesB;
    
+   if(myRank == 0) logFile << "(RESTART) before pinning + migrate'" << endl << write;
    //pin local cells to remote processes
    for(uint i=0;i<cellIds.size();i++){
       if(mpiGrid.is_local(cellIds[i])){
-         mpiGrid.pin(cellIds[i],i/cellsPerProcess);
+         uint newCellProcess;
+         if(i>cellsPerProcessA*processesA)
+            newCellProcess=processesA + (i-cellsPerProcessA*processesA)/cellsPerProcessB;
+         else
+            newCellProcess=i/cellsPerProcessA;
+         mpiGrid.pin(cellIds[i],newCellProcess);
       }
    }
    
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
    mpiGrid.migrate_cells();
-
+   if(myRank == 0) logFile << "(RESTART) has migrated'" << endl << write;
    //this is where local cells start in file-list after migration
-   uint localCellStartOffset=myRank*cellsPerProcess;
-   uint localCells=mpiGrid.size();
+   uint localCellStartOffset;
+   uint localCells;
+   if(myRank < processesA) {
+      localCells=cellsPerProcessA;
+      localCellStartOffset=cellsPerProcessA*myRank;
+   }
+   else {
+      localCells=cellsPerProcessB;
+      localCellStartOffset=cellsPerProcessA*processesA +
+         cellsPerProcessB*(myRank-processesA);
+   }
 
-   //set cell coordinates based on cfg (mpigrid) information
+   //check for errors: localCells=mpiGrid.size();
+
+   //get new list of local cells
    cells = mpiGrid.get_cells();
+   //error-check, make sure that we have the cells we are supposed to have
+   for(uint i=localCellStartOffset;i< localCellStartOffset+localCells;i++){
+      if(!mpiGrid.is_local(cellIds[i])) {
+         if(myRank == 0) logFile << "(RESTART) Cell migration failed!'" << endl << write;
+         success=false;
+      }
+   }
+   
+   //set cell coordinates based on cfg (mpigrid) information
    for(uint i=0;i<cells.size();i++){
       mpiGrid[cells[i]]->parameters[CellParams::XCRD] = mpiGrid.get_cell_x_min(cells[i]);
       mpiGrid[cells[i]]->parameters[CellParams::YCRD] = mpiGrid.get_cell_y_min(cells[i]);
@@ -313,15 +344,23 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    phiprof::stop("readDatalayout");
    //todo, check file datatype, and do not just use double
    phiprof::start("readCellParameters");
+   if(myRank == 0) logFile << "(RESTART) Start to read cellParams B" << endl << write;
+   cout << myRank << " localCells " << localCells << " cellOffset " << localCellStartOffset << endl;
+   
+   
+   exit(0);
    if(success)
      success=readCellParamsVariable<double>(file,cellIds,localCellStartOffset,localCells,"B",CellParams::BX,3,mpiGrid);
+   if(myRank == 0) logFile << "(RESTART) Start to read cellParams B0" << endl << write;
    if(success)
      success=readCellParamsVariable<double>(file,cellIds,localCellStartOffset,localCells,"B0",CellParams::BX0,3,mpiGrid);
 
    phiprof::stop("readCellParameters");
    phiprof::start("readBlockData");
+   if(myRank == 0) logFile << "(RESTART) Start toblockdata" << endl << write;
    if(success) 
      success=readBlockData<double>(file,cellIds,localCellStartOffset,localCells,nBlocks,localBlockStartOffset,localBlocks,mpiGrid);
+   if(myRank == 0) logFile << "(RESTART) Stop toblockdata" << endl << write;
    phiprof::stop("readBlockData");
    file.close();
    phiprof::stop("readGrid");
