@@ -257,10 +257,9 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
 
    
    if (file.open(name,MPI_COMM_WORLD,0,mpiInfo) == false) {
-      if(myRank == 0) logFile << "(RESTART) VLSVParReader failed to open restart file '" << name << "' for reading!" << endl << write;
+      if(myRank==0) cerr << "(RESTART) VLSVParReader failed to open restart file '" << name << "' for reading!" << endl << write;
       success=false;
    }
-   if(myRank == 0) logFile << "(RESTART) before test cellIds and blocks'" << endl << write;
    phiprof::start("readDatalayout");
    if(success) 
       success=readCellIds(file,cellIds);
@@ -281,7 +280,6 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    uint processesB=cellIds.size()%processes;
    uint processesA=processes-processesB;
    
-   if(myRank == 0) logFile << "(RESTART) before pinning + migrate'" << endl << write;
    //pin local cells to remote processes
    for(uint i=0;i<cellIds.size();i++){
       if(mpiGrid.is_local(cellIds[i])){
@@ -296,7 +294,6 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
    mpiGrid.migrate_cells();
-   if(myRank == 0) logFile << "(RESTART) has migrated'" << endl << write;
    //this is where local cells start in file-list after migration
    uint localCellStartOffset;
    uint localCells;
@@ -310,14 +307,17 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
          cellsPerProcessB*(myRank-processesA);
    }
 
-   //check for errors: localCells=mpiGrid.size();
-
+   //check for errors: 
+   if(localCells != mpiGrid.size() ){
+      cerr  << "(RESTART) Cell migration failed, wrong number of cells! on rank "<< myRank << endl;
+      success=false;
+   }
    //get new list of local cells
    cells = mpiGrid.get_cells();
    //error-check, make sure that we have the cells we are supposed to have
    for(uint i=localCellStartOffset;i< localCellStartOffset+localCells;i++){
       if(!mpiGrid.is_local(cellIds[i])) {
-         if(myRank == 0) logFile << "(RESTART) Cell migration failed!'" << endl << write;
+         cerr  << "(RESTART) Cell migration failed! on rank "<< myRank << endl;
          success=false;
       }
    }
@@ -344,23 +344,16 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    phiprof::stop("readDatalayout");
    //todo, check file datatype, and do not just use double
    phiprof::start("readCellParameters");
-   if(myRank == 0) logFile << "(RESTART) Start to read cellParams B" << endl << write;
-   cout << myRank << " localCells " << localCells << " cellOffset " << localCellStartOffset << endl;
-   
-   
-   exit(0);
+
    if(success)
      success=readCellParamsVariable<double>(file,cellIds,localCellStartOffset,localCells,"B",CellParams::BX,3,mpiGrid);
-   if(myRank == 0) logFile << "(RESTART) Start to read cellParams B0" << endl << write;
    if(success)
      success=readCellParamsVariable<double>(file,cellIds,localCellStartOffset,localCells,"B0",CellParams::BX0,3,mpiGrid);
 
    phiprof::stop("readCellParameters");
    phiprof::start("readBlockData");
-   if(myRank == 0) logFile << "(RESTART) Start toblockdata" << endl << write;
    if(success) 
      success=readBlockData<double>(file,cellIds,localCellStartOffset,localCells,nBlocks,localBlockStartOffset,localBlocks,mpiGrid);
-   if(myRank == 0) logFile << "(RESTART) Stop toblockdata" << endl << write;
    phiprof::stop("readBlockData");
    file.close();
    phiprof::stop("readGrid");
@@ -426,8 +419,8 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
                const bool& writeRestart) {
     double allStart = MPI_Wtime();
     bool success = true;
-    int myrank;
-    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+    int myRank;
+    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
     if(writeRestart)
         phiprof::start("writeGrid-restart");
     else
@@ -448,7 +441,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    vector<uint64_t> cells = mpiGrid.get_cells();
 
    if (vlsvWriter.writeArray("MESH","SpatialGrid",attribs,cells.size(),1,&(cells[0])) == false) {
-      cerr << "Proc #" << myrank << " failed to write cell Ids!" << endl;
+      cerr << "Proc #" << myRank << " failed to write cell Ids!" << endl;
    }
 
    // Create a buffer for spatial cell coordinates. Copy all coordinates to 
@@ -461,7 +454,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
       }
    }
    if (vlsvWriter.writeArray("COORDS","SpatialGrid",attribs,cells.size(),6,buffer) == false) {
-      cerr << "Proc #" << myrank << " failed to write cell coords!" << endl;
+      cerr << "Proc #" << myRank << " failed to write cell coords!" << endl;
    }
    delete[] buffer;   
 
@@ -566,8 +559,8 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
 bool writeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
                      DataReducer& dataReducer,
                      luint tstep){
-   int myrank;
-   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
    string dataType;
    uint dataSize, vectorSize;
@@ -581,7 +574,7 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    bool success = true;
    static bool printDiagnosticHeader = true;
    
-   if (printDiagnosticHeader == true && myrank == 0) {
+   if (printDiagnosticHeader == true && myRank == 0) {
       diagnostic << "# Column 1 Step" << endl;
       for (uint i=0; i<nOps; ++i) {
 	 diagnostic << "# Columns " << 2 + i*4 << " to " << 5 + i*4 << ": " << dataReducer.getName(i) << " min max sum average" << endl;
@@ -622,13 +615,13 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
 for (uint i=0; i<nOps; ++i) {
       if (globalSum[0] != 0.0) globalAvg[i] = globalSum[i+1] / globalSum[0];
       else globalAvg[i] = globalSum[i+1];
-      if (myrank == 0) {
+      if (myRank == 0) {
 	 diagnostic << globalMin[i] << "\t" <<
 	 globalMax[i] << "\t" <<
 	 globalSum[i+1] << "\t" <<
 	 globalAvg[i] << "\t";
       }
    }
-   if (myrank == 0) diagnostic << endl << write;
+   if (myRank == 0) diagnostic << endl << write;
    return true;
 }
