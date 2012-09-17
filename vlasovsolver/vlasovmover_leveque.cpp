@@ -68,12 +68,6 @@ static map<CellID,vector< vector<Real> > > remoteUpdates;     /**< For each loca
 						   * form to post MPI receives, remoteUpdates is convenient to iterate 
 						   * all cell's remote updates.*/
 
-
-//??
-namespace ID {
-   typedef unsigned int type;
-}
-
 CellID getNeighbourID(
 	const dccrg::Dccrg<SpatialCell>& mpiGrid,
 	const CellID& cellID,
@@ -246,7 +240,7 @@ bool initMoverAfterBlockChange(dccrg::Dccrg<SpatialCell>& mpiGrid){
 
 bool finalizeMover() {return true;}
 
-void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,ID::type cell) { }
+void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,CellID cell) { }
 
 void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid, Real dt) {   
    typedef Parameters P;   
