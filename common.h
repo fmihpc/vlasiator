@@ -190,7 +190,7 @@ const uint WID2 = WID*WID;  /*!< Number of cells per 2D slab in a velocity block
 const uint WID3 = WID2*WID; /*!< Number of cells in a velocity block. */
 
 /*!
-Get the cellindex in the velocity space mesh
+Get the cellindex in the velocity space block
 */
 template<typename UINT> inline UINT cellIndex(const UINT& i,const UINT& j,const UINT& k) {
    return k*WID2 + j*WID + i;

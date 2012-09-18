@@ -44,11 +44,17 @@ class VLSVWriter {
    bool startMultiwrite(const std::string& dataType,const uint64_t& arraySize,const uint64_t& vectorSize,const uint64_t& dataSize);
    
    template<typename T> bool multiwriteArray(const uint64_t& amount,T* array);
-  template<typename T> 
-     bool writeArray(const std::string& tagName,const std::string& arrayName,const std::map<std::string,std::string>& attribs,
-		     const uint64_t& arraySize,const uint64_t& vectorSize,T* array);
-    bool writeArray(const std::string& tagName,const std::string& arrayName,const std::map<std::string,std::string>& attribs,
-		   const uint64_t& arraySize,const uint64_t& vectorSize,const std::string& dataType,const uint64_t& dataSize,void* array);
+   template<typename T> 
+   bool writeArray(const std::string& tagName,const std::string& arrayName,const std::map<std::string,std::string>& attribs,
+                   const uint64_t& arraySize,const uint64_t& vectorSize,T* array);
+   bool writeArray(const std::string& tagName,const std::string& arrayName,
+                   const std::map<std::string,std::string>& attribs,
+                   const uint64_t& arraySize,const uint64_t& vectorSize,
+                   const std::string& dataType,const uint64_t& dataSize,void* array);
+   template<typename T> 
+   bool writeArrayMaster(const std::string& tagName,const std::string& arrayName,const std::map<std::string,std::string>& attribs,
+                         const uint64_t& arraySize,const uint64_t& vectorSize,T* array);
+   
  private:
    MPI_Comm comm;            /**< MPI communicator which is writing to the file.*/
    int myRank;               /**< Rank of this process in communicator comm.*/
@@ -106,14 +112,16 @@ template<typename T> inline bool VLSVWriter::multiwriteArray(const uint64_t& amo
 }
 
 
+
+//FIXME, the actual implementation should be in this, or in the other non-template writeArray. Not in both....
 template<typename T>
 inline bool VLSVWriter::writeArray(const std::string& tagName,const std::string& arrayName,
                                    const std::map<std::string,std::string>& attribs,
 				   const uint64_t& arraySize,const uint64_t& vectorSize,T* array) {
     bool success = true;
-    // All processes except the master receive the offset from process with rank = myRank-1:
-    // Calculate the amount of data written by this process in bytes, and 
-    // send the next process its offset:
+
+    //master gathers amount of data each process writes, computes offsets, and scatters them to others
+
     myBytes = arraySize * vectorSize *sizeof(T);
     MPI_Gather(&myBytes,sizeof(uint64_t),MPI_BYTE,
                bytesPerProcess,sizeof(uint64_t),MPI_BYTE,
@@ -125,7 +133,7 @@ inline bool VLSVWriter::writeArray(const std::string& tagName,const std::string&
             offsets[i]=offsets[i-1]+bytesPerProcess[i-1];
     }
 
-    //scatter offsets so that everybody has the correct offset
+
     //scatter offsets so that everybody has the correct offset
     MPI_Scatter(offsets,sizeof(MPI_Offset),MPI_BYTE,&offset,sizeof(MPI_Offset),MPI_BYTE,
                 masterRank,comm);    
@@ -164,6 +172,42 @@ inline bool VLSVWriter::writeArray(const std::string& tagName,const std::string&
        //move forward by the amount of written data
       offset += totalBytes ;
    }
+   return success;
+}
+
+
+
+template<typename T>
+inline bool VLSVWriter::writeArrayMaster(const std::string& tagName,const std::string& arrayName,
+                                         const std::map<std::string,std::string>& attribs,
+                                         const uint64_t& arraySize,const uint64_t& vectorSize,T* array) {
+   bool success = true;
+   if (myRank != masterRank) {
+      success=false;
+      return success;
+   }
+   myBytes = arraySize * vectorSize *sizeof(T);
+   
+   // Write this process's data:
+   if (MPI_File_write_at(fileptr,offset,array,arraySize*vectorSize,
+                         MPI_Type<T>(),MPI_STATUS_IGNORE)!= MPI_SUCCESS)
+      success = false;
+
+   uint64_t totalBytes = myBytes;
+
+   XMLNode* root = xmlWriter->getRoot();
+   XMLNode* xmlnode = xmlWriter->find("VLSV",root);
+   XMLNode* node = xmlWriter->addNode(xmlnode,tagName,offset);
+   for (std::map<std::string,std::string>::const_iterator it=attribs.begin(); it!=attribs.end(); ++it) 
+      xmlWriter->addAttribute(node,it->first,it->second);
+   xmlWriter->addAttribute(node,"name",arrayName);
+   xmlWriter->addAttribute(node,"vectorsize",vectorSize);
+   xmlWriter->addAttribute(node,"arraysize",totalBytes/sizeof(T)/vectorSize);
+   xmlWriter->addAttribute(node,"datatype",arrayDataType<T>());
+   xmlWriter->addAttribute(node,"datasize",sizeof(T));
+   
+   //move forward by the amount of written data
+   offset += totalBytes ;
    return success;
 }
 

@@ -199,38 +199,53 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader,const string& meshName,const 
    // "nb"  = "number of blocks"  Number of velocity blocks in each velocity grid
    // "bc"  = "block coordinates" Coordinates of each block of each velocity grid
    list<pair<string,string> > attribs;
-   attribs.push_back(make_pair("name",meshName));
+
    
    VLSV::datatype cwb_dataType,nb_dataType,bc_dataType;
    uint64_t cwb_arraySize,cwb_vectorSize,cwb_dataSize;
    uint64_t nb_arraySize,nb_vectorSize,nb_dataSize;
    uint64_t bc_arraySize,bc_vectorSize,bc_dataSize;
-   
-   if (vlsvReader.getArrayInfo("CELLSWITHBLOCKS",attribs,cwb_arraySize,cwb_vectorSize,cwb_dataType,cwb_dataSize) == false) {
-      //cerr << "Could not find array CELLSWITHBLOCKS" << endl;
-      return false;
-   }
-   if (vlsvReader.getArrayInfo("NBLOCKS",attribs,nb_arraySize,nb_vectorSize,nb_dataType,nb_dataSize) == false) {
+
+   //first read in number of blocks
+   attribs.clear();
+   attribs.push_back(make_pair("name","Blocks"));
+   attribs.push_back(make_pair("mesh",meshName));   
+   if (vlsvReader.getArrayInfo("VARIABLE",attribs,nb_arraySize,nb_vectorSize,nb_dataType,nb_dataSize) == false) {
       //cerr << "Could not find array NBLOCKS" << endl;
       return false;
    }
-   if (vlsvReader.getArrayInfo("BLOCKCOORDINATES",attribs,bc_arraySize,bc_vectorSize,bc_dataType,bc_dataSize) == false) {
-      //cerr << "Could not find array BLOCKCOORDINATES" << endl;
+
+   char* nb_buffer = new char[nb_arraySize*nb_vectorSize*nb_dataSize];
+   if (vlsvReader.readArray("VARIABLE",attribs,0,nb_arraySize,nb_buffer) == false) success = false;
+   if (success == false) {
+      cerr << "Failed to read number of block  for mesh '" << meshName << "'" << endl;
+      delete nb_buffer;
+   }
+
+   //read in other metadata
+   attribs.clear();
+   attribs.push_back(make_pair("name",meshName));   
+   if (vlsvReader.getArrayInfo("CELLSWITHBLOCKS",attribs,cwb_arraySize,cwb_vectorSize,cwb_dataType,cwb_dataSize) == false) {
+      //cerr << "Could not find array CELLSWITHBLOCKS" << endl;
       return false;
    }
 
    // Create buffers for cwb,nb and read data:
    char* cwb_buffer = new char[cwb_arraySize*cwb_vectorSize*cwb_dataSize];
-   char* nb_buffer = new char[nb_arraySize*nb_vectorSize*nb_dataSize];
    if (vlsvReader.readArray("CELLSWITHBLOCKS",meshName,0,cwb_arraySize,cwb_buffer) == false) success = false;
-   if (vlsvReader.readArray("NBLOCKS",meshName,0,nb_arraySize,nb_buffer) == false) success = false;
    if (success == false) {
       cerr << "Failed to read block metadata for mesh '" << meshName << "'" << endl;
       delete cwb_buffer;
-      delete nb_buffer;
       return success;
    }
+
    
+   if (vlsvReader.getArrayInfo("BLOCKCOORDINATES",attribs,bc_arraySize,bc_vectorSize,bc_dataType,bc_dataSize) == false) {
+      //cerr << "Could not find array BLOCKCOORDINATES" << endl;
+      return false;
+   }
+
+
    // Search for the given cellID:
    uint64_t blockOffset = 0;
    uint64_t cellIndex = numeric_limits<uint64_t>::max();

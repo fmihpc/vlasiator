@@ -201,6 +201,54 @@ namespace DRO {
       B  = &(cell->parameters[CellParams::BXVOL]);
       return true;
    }
+
+
+
+
+   VariableB0::VariableB0(): DataReductionOperator() { }
+   VariableB0::~VariableB0() { }
+
+   bool VariableB0::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 3;
+      return true;
+   }
+   std::string VariableB0::getName() const {return "B0";}
+   bool VariableB0::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(B0);
+      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariableB0::setSpatialCell(const SpatialCell* cell) {
+      B0  = &(cell->parameters[CellParams::BX0]);
+      return true;
+   }
+
+   VariableVolB0::VariableVolB0(): DataReductionOperator() { }
+   VariableVolB0::~VariableVolB0() { }
+   
+   bool VariableVolB0::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 3;
+      return true;
+   }
+   
+   std::string VariableVolB0::getName() const {return "B0_vol";}
+   
+   bool VariableVolB0::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(B0);
+      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariableVolB0::setSpatialCell(const SpatialCell* cell) {
+      B0  = &(cell->parameters[CellParams::BXVOL0]);
+      return true;
+   }
+
    
    // rho
    VariableRho::VariableRho(): DataReductionOperator() { }
@@ -345,7 +393,7 @@ namespace DRO {
    Blocks::~Blocks() { }
    
    bool Blocks::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "int";
+      dataType = "uint";
       dataSize = 4;
       vectorSize = 1;
       return true;

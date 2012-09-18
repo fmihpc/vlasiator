@@ -1,6 +1,7 @@
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
-PROJ = Dispersion
+PROJ = KelvinHelmholtz
+
 
 #set default architecture, can be overridden from the compile line
 ARCH = meteo
@@ -99,10 +100,11 @@ LIBS += ${LIB_PROFILE}
 DEPS_COMMON = common.h definitions.h mpiconversion.h logger.h
 
 #all objects for vlasiator
+
 OBJS = 	datareducer.o datareductionoperator.o \
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o \
 	sysboundary.o sysboundarycondition.o \
-	grid.o vlasiator.o logger.o muxml.o \
+	grid.o fileio.o vlasiator.o logger.o muxml.o \
 	parameters.o readparameters.o project.o spatial_cell.o \
 	vlscommon.o vlsvreader2.o vlsvwriter2.o vlasovmover_$(TRANSSOLVER).o $(FIELDSOLVER).o
 
@@ -166,9 +168,11 @@ londrillo_delzanna.o: spatial_cell.hpp transferstencil.h   parameters.h common.h
 vlasiator.o:  ${DEPS_COMMON} readparameters.h parameters.h  project.h  grid.h spatial_cell.hpp vlasiator.cpp
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE}
 
-grid.o:  ${DEPS_COMMON} parameters.h  project.h  spatial_cell.hpp grid.cpp grid.h vlsvwriter2.h sysboundary/sysboundary.h
+grid.o:  ${DEPS_COMMON} parameters.h  project.h  spatial_cell.hpp grid.cpp grid.h  sysboundary/sysboundary.h
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c grid.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE}
 
+fileio.o:  ${DEPS_COMMON} parameters.h  spatial_cell.hpp fileio.cpp fileio.h  vlsvwriter2.cpp  vlsvreader2.cpp
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c fileio.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE}
 
 logger.o: logger.h logger.cpp   
 	${CMP} ${CXXFLAGS} ${FLAGS} -c logger.cpp ${INC_MPI}

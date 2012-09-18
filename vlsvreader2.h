@@ -155,13 +155,15 @@ class VLSVReader {
 			  const uint64_t& begin,const uint64_t& amount,char* buffer);
    
  protected:
-   unsigned char endiannessFile;   /**< Endianness in VLSV file.*/
-   unsigned char endiannessReader; /**< Endianness of computer which reads the data.*/
-   std::fstream filein;            /**< Input file stream.*/
-   std::string fileName;           /**< Name of the input file.*/
-   bool fileOpen;                  /**< If true, a file is currently open.*/
-   bool swapIntEndianness;         /**< If true, endianness should be swapped on read data (not implemented yet).*/
-   MuXML xmlReader;                /**< XML reader used to parse VLSV footer.*/
+   unsigned char endiannessFile;   /*!< Endianness in VLSV file.*/
+   unsigned char endiannessReader; /*!< Endianness of computer which reads the data.*/
+   std::fstream filein;            /*!< Input file stream.*/
+   std::string fileName;           /*!< Name of the input file.*/
+   bool fileOpen;                  /*!< If true, a file is currently open.*/
+   bool swapIntEndianness;         /*!< If true, endianness should be swapped on read data (not implemented yet).*/
+   MuXML xmlReader;                /*!< XML reader used to parse VLSV footer.*/
+
+
 
 
    
@@ -179,11 +181,13 @@ class VLSVReader {
    } arrayOpen;
 };
 
+
 #ifndef TOOL_NOT_PARALLEL
 /*!
 \brief A parallel MPI class for reading in vlsv files.
 
 */
+
 class VLSVParReader: public VLSVReader {
  public:
    VLSVParReader();
@@ -204,11 +208,11 @@ class VLSVParReader: public VLSVReader {
 		  const uint64_t& begin,const uint64_t& amount,char* buffer);
    
  private:
-   MPI_Comm comm;                  /**< MPI communicator used to read the file.*/
-   MPI_File filePtr;               /**< MPI file pointer to input file.*/
-   int masterRank;                 /**< MPI rank of master process.*/
-   int myRank;                     /**< MPI rank of this process in communicator comm.*/
-   int processes;                  /**< Number of MPI processes in communicator comm.*/
+   MPI_Comm comm;                  /*!< MPI communicator used to read the file.*/
+   MPI_File filePtr;               /*!< MPI file pointer to input file.*/
+   int masterRank;                 /*!< MPI rank of master process.*/
+   int myRank;                     /*!< MPI rank of this process in communicator comm.*/
+   int processes;                  /*!< Number of MPI processes in communicator comm.*/
    
    bool getArrayInfo(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs);
    

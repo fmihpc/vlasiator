@@ -109,7 +109,11 @@ bool VLSVReader::getArrayInfo(const std::string& tagName,const std::list<std::pa
    }
    XMLNode* node = xmlReader.find(tagName,attribs);
    if (node == NULL) {
-      cerr << __FILE__ << ":" << __LINE__ << " node == NULL" << endl;
+      cerr << __FILE__ << ":" << __LINE__ << " node == NULL tag = " << tagName;
+      for (list<pair<string,string> >::const_iterator it=attribs.begin(); it!=attribs.end(); ++it) {
+         cerr << " " << it->first <<" = "<<it->second;
+      }
+      cerr <<endl;
       return false;
    }
    
@@ -674,7 +678,6 @@ bool VLSVParReader::readArray(
    if (getArrayInfo(tagName,attribs) == false) return false;
    const MPI_Offset start = arrayOpen.offset + begin*arrayOpen.vectorSize*arrayOpen.dataSize;
    const int readBytes    = amount*arrayOpen.vectorSize*arrayOpen.dataSize;
-   
    // Read data on all processes in parallel:
    if (MPI_File_read_at_all(filePtr,start,buffer,readBytes,MPI_Type<char>(),MPI_STATUS_IGNORE) != MPI_SUCCESS) {
       cerr << "(VLSVPARREADER) MPI_File_read_at_all failed!" << endl;
