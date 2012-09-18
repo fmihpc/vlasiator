@@ -388,7 +388,12 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
 
    if(readScalarParameter(file,"t",P::t,0,MPI_COMM_WORLD) ==false) success=false;
    P::t_min=P::t;
-   if(readScalarParameter(file,"dt",P::dt,0,MPI_COMM_WORLD) ==false) success=false;
+
+   //FIXME: If we use the dt we read in then the restarted simulation
+   //has much greater deviation from original trajectory-> do we have
+   //a latent bug, is there something we do not read in?
+   //         if(readScalarParameter(file,"dt",P::dt,0,MPI_COMM_WORLD) ==false) success=false;
+   
    if(readScalarParameter(file,"tstep",P::tstep,0,MPI_COMM_WORLD) ==false) success=false;
    P::tstep_min=P::tstep;
    checkScalarParameter(file,"xmin",P::xmin,0,MPI_COMM_WORLD);
