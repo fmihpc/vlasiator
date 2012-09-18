@@ -18,15 +18,25 @@ using namespace phiprof;
 extern Logger logFile, diagnostic;
 
 
+/*!
+  \brief Collective exit on error functions
+
+  If any process(es) have a false success values then the program will
+  abort and write out the message to the logfile
+*/
+
+  
 bool exitOnError(bool success,string message,MPI_Comm comm){
    int successInt;
+   int globalSuccessInt;
    if(success)
       successInt=1;
    else
       successInt=0;
    
-   MPI_Bcast(&successInt,1,MPI_INT,0,MPI_COMM_WORLD);
-   if(successInt==1) {
+   MPI_Allreduce(&successInt,&globalSuccessInt,1,MPI_INT,MPI_MIN,comm);
+   
+   if(globalSuccessInt==1) {
       return true;
    }
    else{
