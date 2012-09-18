@@ -265,8 +265,10 @@ bool readCellParamsVariable(VLSVParReader & file,
 }
 
 
+
 template <typename T>
 bool readScalarParameter(VLSVParReader & file, string name,T& value, int masterRank,MPI_Comm comm){
+   bool success=true;
    int myRank;
    uint64_t arraySize;
    uint64_t vectorSize;
@@ -277,21 +279,38 @@ bool readScalarParameter(VLSVParReader & file, string name,T& value, int masterR
       list<pair<string,string> > attribs;
       attribs.push_back(make_pair("name",name));
 
-      if (file.getArrayInfo("PARAMETERS",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
+      if (file.getArrayInfoMaster("PARAMETERS",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
          logFile << "(RESTART)  ERROR: Failed to read info for parameter"<< name << endl << write;
-         return false;
+         success=false;
       }
       
       if(vectorSize!=1 || arraySize!=1){
          logFile << "(RESTART) Parameter not scalar" << endl << write;
-         return false;
+         success=false;
       }
-
+      
       if(dataType == VLSV::INT && byteSize == 4) {
          int32_t buffer;         
          if(file.readArrayMaster("PARAMETERS",attribs,0,1,(char *)&buffer) == false ) {
             logFile << "(RESTART)  ERROR: Failed to read value for parameter"<< name << endl << write;
-            return false;
+            success=false;
+         }
+         value=buffer;
+      }
+
+      else if(dataType == VLSV::UINT && byteSize == 4) {
+         uint32_t buffer;         
+         if(file.readArrayMaster("PARAMETERS",attribs,0,1,(char *)&buffer) == false ) {
+            logFile << "(RESTART)  ERROR: Failed to read value for parameter"<< name << endl << write;
+            success=false;
+         }
+         value=buffer;
+      }
+      else if(dataType == VLSV::UINT && byteSize == 8) {
+         uint64_t buffer;         
+         if(file.readArrayMaster("PARAMETERS",attribs,0,1,(char *)&buffer) == false ) {
+            logFile << "(RESTART)  ERROR: Failed to read value for parameter"<< name << endl << write;
+            success=false;
          }
          value=buffer;
       }
@@ -299,7 +318,7 @@ bool readScalarParameter(VLSVParReader & file, string name,T& value, int masterR
          float buffer;         
          if(file.readArrayMaster("PARAMETERS",attribs,0,1,(char *)&buffer) == false ) {
             logFile << "(RESTART)  ERROR: Failed to read value for parameter"<< name << endl << write;
-            return false;
+            success=false;
          }
          value=buffer;
       }
@@ -307,20 +326,42 @@ bool readScalarParameter(VLSVParReader & file, string name,T& value, int masterR
          double buffer;         
          if(file.readArrayMaster("PARAMETERS",attribs,0,1,(char *)&buffer) == false ) {
             logFile << "(RESTART)  ERROR: Failed to read value for parameter"<< name << endl << write;
-            return false;
+            success=false;
          }
          value=buffer;
       }
       else {
          logFile << "(RESTART) Unsupported parameter type"<< name << endl << write;
-         return false;
+         success=false;
       }
    }
-   return true;
+   
+   
+   MPI_Bcast(&value,sizeof(T),MPI_BYTE,masterRank,comm);
+   return success;
+}
+
+template <typename T>
+bool checkScalarParameter(VLSVParReader & file, string name, T correctValue, int masterRank,MPI_Comm comm){
+   T value;
+   readScalarParameter(file,name,value,masterRank,comm);
+   if(value!=correctValue){
+      std::ostringstream s;
+      s << "(RESTART) Parameter " << name << " has missmatching value.";
+      s << " CFG value = " << correctValue;
+      s << " Restart file value = " << value;
+      exitOnError(false,s.str(),MPI_COMM_WORLD);      
+      return false;
+   }
+   else{
+      exitOnError(true,"",MPI_COMM_WORLD);      
+      return true;
+   }
 }
 
 
 //FIXME, readGrid has no support for checking or converting endianness
+   //FIXME, hard coded that files have double-precision data. Fix 
 bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
               const std::string& name){
    vector<uint64_t> fileCells; /*< CellIds for all cells in file*/
@@ -345,6 +386,31 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    }
    exitOnError(success,"(RESTART) Could not open file",MPI_COMM_WORLD);
 
+   if(readScalarParameter(file,"t",P::t,0,MPI_COMM_WORLD) ==false) success=false;
+   P::t_min=P::t;
+   if(readScalarParameter(file,"dt",P::dt,0,MPI_COMM_WORLD) ==false) success=false;
+   if(readScalarParameter(file,"tstep",P::tstep,0,MPI_COMM_WORLD) ==false) success=false;
+   P::tstep_min=P::tstep;
+   checkScalarParameter(file,"xmin",P::xmin,0,MPI_COMM_WORLD);
+   checkScalarParameter(file,"ymin",P::ymin,0,MPI_COMM_WORLD);
+   checkScalarParameter(file,"zmin",P::zmin,0,MPI_COMM_WORLD);
+   checkScalarParameter(file,"xmax",P::xmax,0,MPI_COMM_WORLD);
+   checkScalarParameter(file,"ymax",P::ymax,0,MPI_COMM_WORLD);
+   checkScalarParameter(file,"zmax",P::zmax,0,MPI_COMM_WORLD);
+   checkScalarParameter(file,"xcells_ini",P::xcells_ini,0,MPI_COMM_WORLD);
+   checkScalarParameter(file,"ycells_ini",P::ycells_ini,0,MPI_COMM_WORLD);
+   checkScalarParameter(file,"zcells_ini",P::zcells_ini,0,MPI_COMM_WORLD);
+   checkScalarParameter(file,"vxmin",P::vxmin,0,MPI_COMM_WORLD);
+   checkScalarParameter(file,"vymin",P::vymin,0,MPI_COMM_WORLD);
+   checkScalarParameter(file,"vzmin",P::vzmin,0,MPI_COMM_WORLD);
+   checkScalarParameter(file,"vxmax",P::vxmax,0,MPI_COMM_WORLD);
+   checkScalarParameter(file,"vymax",P::vymax,0,MPI_COMM_WORLD);
+   checkScalarParameter(file,"vzmax",P::vzmax,0,MPI_COMM_WORLD);
+   checkScalarParameter(file,"vxblocks_ini",P::vxblocks_ini,0,MPI_COMM_WORLD);
+   checkScalarParameter(file,"vyblocks_ini",P::vyblocks_ini,0,MPI_COMM_WORLD);
+   checkScalarParameter(file,"vzblocks_ini",P::vzblocks_ini,0,MPI_COMM_WORLD);
+
+   
 
    phiprof::start("readDatalayout");
    if(success) 
@@ -443,7 +509,7 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    //todo, check file datatype, and do not just use double
    phiprof::start("readCellParameters");
 
-   //FIXME, hard coded that files have double-precision data!
+
    if(success)
      success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"B",CellParams::BX,3,mpiGrid);
    if(success)

@@ -148,9 +148,9 @@ bool Parameters::addParameters(){
         Readparameters::add("gridbuilder.m","Mass of simulated particle species, in kilograms.",1.67262171e-27);
         Readparameters::add("gridbuilder.dt","Initial timestep in seconds.",0.0);
         Readparameters::add("gridbuilder.CFL","The maximum CFL limit for propagation. Used to set timestep if use_CFL_limit is true. Also used to compute substeps in acceleration",0.5);
-        Readparameters::add("gridbuilder.t_min","Simulation time at initial timestep, in seconds.",0.0);
+//        Readparameters::add("gridbuilder.t_min","Simulation time at initial timestep, in seconds.",0.0);
         Readparameters::add("gridbuilder.t_max","Maximum simulation time, in seconds. If timestep_max limit is hit first this time will never be reached",LARGE_REAL);
-        Readparameters::add("gridbuilder.timestep_min","Timestep when grid is loaded. Defaults to value zero.",0);
+//        Readparameters::add("gridbuilder.timestep_min","Timestep when grid is loaded. Defaults to value zero.",0);
         Readparameters::add("gridbuilder.timestep_max","Max. value for timesteps. If t_max limit is hit first, this step will never be reached",numeric_limits<uint>::max());
    
 	// Field solver parameters
@@ -231,13 +231,16 @@ bool Parameters::getParameters(){
    Readparameters::get("gridbuilder.m",P::m);
    Readparameters::get("gridbuilder.dt",P::dt);
    Readparameters::get("gridbuilder.CFL",P::CFL);
-   Readparameters::get("gridbuilder.t_min",P::t_min);
+//   Readparameters::get("gridbuilder.t_min",P::t_min);
    Readparameters::get("gridbuilder.t_max",P::t_max);
-   Readparameters::get("gridbuilder.timestep_min",P::tstep_min);
+//   Readparameters::get("gridbuilder.timestep_min",P::tstep_min);
    Readparameters::get("gridbuilder.timestep_max",P::tstep_max);
    
    P::q_per_m = P::q/P::m;
+   //if we are restarting, these will be overwritten later on
+   P::t_min=0;   
    P::t = P::t_min;
+   P::tstep_min=0;
    P::tstep = P::tstep_min;
    
    // Get field solver parameters
