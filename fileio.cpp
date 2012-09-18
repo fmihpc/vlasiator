@@ -7,6 +7,7 @@
 #include <ctime>
 #include "fileio.h"
 #include "phiprof.hpp"
+#include "parameters.h"
 #include "logger.h"
 #include "vlsvwriter2.h"
 #include "vlsvreader2.h"
@@ -17,6 +18,7 @@ using namespace phiprof;
 
 extern Logger logFile, diagnostic;
 
+typedef Parameters P;
 
 /*!
   \brief Collective exit on error functions
@@ -262,6 +264,63 @@ bool readCellParamsVariable(VLSVParReader & file,
    return success;
 }
 
+
+template <typename T>
+bool readScalarParameter(VLSVParReader & file, string name,T& value, int masterRank,MPI_Comm comm){
+   int myRank;
+   uint64_t arraySize;
+   uint64_t vectorSize;
+   VLSV::datatype dataType;
+   uint64_t byteSize;
+   MPI_Comm_rank(comm,&myRank);
+   if(myRank==masterRank){
+      list<pair<string,string> > attribs;
+      attribs.push_back(make_pair("name",name));
+
+      if (file.getArrayInfo("PARAMETERS",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
+         logFile << "(RESTART)  ERROR: Failed to read info for parameter"<< name << endl << write;
+         return false;
+      }
+      
+      if(vectorSize!=1 || arraySize!=1){
+         logFile << "(RESTART) Parameter not scalar" << endl << write;
+         return false;
+      }
+
+      if(dataType == VLSV::INT && byteSize == 4) {
+         int32_t buffer;         
+         if(file.readArrayMaster("PARAMETERS",attribs,0,1,(char *)&buffer) == false ) {
+            logFile << "(RESTART)  ERROR: Failed to read value for parameter"<< name << endl << write;
+            return false;
+         }
+         value=buffer;
+      }
+      else  if(dataType == VLSV::FLOAT && byteSize == 4) {
+         float buffer;         
+         if(file.readArrayMaster("PARAMETERS",attribs,0,1,(char *)&buffer) == false ) {
+            logFile << "(RESTART)  ERROR: Failed to read value for parameter"<< name << endl << write;
+            return false;
+         }
+         value=buffer;
+      }
+      else  if(dataType == VLSV::FLOAT && byteSize == 8) {
+         double buffer;         
+         if(file.readArrayMaster("PARAMETERS",attribs,0,1,(char *)&buffer) == false ) {
+            logFile << "(RESTART)  ERROR: Failed to read value for parameter"<< name << endl << write;
+            return false;
+         }
+         value=buffer;
+      }
+      else {
+         logFile << "(RESTART) Unsupported parameter type"<< name << endl << write;
+         return false;
+      }
+   }
+   return true;
+}
+
+
+//FIXME, readGrid has no support for checking or converting endianness
 bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
               const std::string& name){
    vector<uint64_t> fileCells; /*< CellIds for all cells in file*/
@@ -384,6 +443,7 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    //todo, check file datatype, and do not just use double
    phiprof::start("readCellParameters");
 
+   //FIXME, hard coded that files have double-precision data!
    if(success)
      success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"B",CellParams::BX,3,mpiGrid);
    if(success)
@@ -453,6 +513,20 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    return success;
 }
 
+template <typename T>
+bool writeScalarParameter(string name,T value,VLSVWriter& vlsvWriter,int masterRank,MPI_Comm comm){
+   int myRank;
+   MPI_Comm_rank(comm,&myRank);
+   if(myRank==masterRank){
+      map<string,string> attribs;
+      std::ostringstream s;
+      s << value;
+      attribs["value"]=s.str();
+      vlsvWriter.writeArrayMaster("PARAMETERS",name,attribs,1,1,&value);
+   }
+   return true;
+}
+
 bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
                DataReducer& dataReducer,
                const string& name,
@@ -461,6 +535,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
     double allStart = MPI_Wtime();
     bool success = true;
     int myRank;
+
     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
     if(writeRestart)
         phiprof::start("writeGrid-restart");
@@ -481,6 +556,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    map<string,string> attribs;
    vector<uint64_t> cells = mpiGrid.get_cells();
 
+   attribs.clear();
    if (vlsvWriter.writeArray("MESH","SpatialGrid",attribs,cells.size(),1,&(cells[0])) == false) {
       cerr << "Proc #" << myRank << " failed to write cell Ids!" << endl;
    }
@@ -494,14 +570,37 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
 	 buffer[6*i+j] = SC->parameters[j];
       }
    }
+   attribs.clear();
    if (vlsvWriter.writeArray("COORDS","SpatialGrid",attribs,cells.size(),6,buffer) == false) {
       cerr << "Proc #" << myRank << " failed to write cell coords!" << endl;
    }
    delete[] buffer;   
-
+   
+   
+   writeScalarParameter("t",P::t,vlsvWriter,0,MPI_COMM_WORLD);
+   writeScalarParameter("dt",P::dt,vlsvWriter,0,MPI_COMM_WORLD);
+   writeScalarParameter("tstep",P::tstep,vlsvWriter,0,MPI_COMM_WORLD);
+   writeScalarParameter("fileIndex",index,vlsvWriter,0,MPI_COMM_WORLD);
+   writeScalarParameter("xmin",P::xmin,vlsvWriter,0,MPI_COMM_WORLD);
+   writeScalarParameter("xmax",P::xmax,vlsvWriter,0,MPI_COMM_WORLD);
+   writeScalarParameter("ymin",P::ymin,vlsvWriter,0,MPI_COMM_WORLD);
+   writeScalarParameter("ymax",P::ymax,vlsvWriter,0,MPI_COMM_WORLD);
+   writeScalarParameter("zmin",P::zmin,vlsvWriter,0,MPI_COMM_WORLD);
+   writeScalarParameter("zmax",P::zmax,vlsvWriter,0,MPI_COMM_WORLD);
+   writeScalarParameter("xcells_ini",P::xcells_ini,vlsvWriter,0,MPI_COMM_WORLD);
+   writeScalarParameter("ycells_ini",P::ycells_ini,vlsvWriter,0,MPI_COMM_WORLD);
+   writeScalarParameter("zcells_ini",P::zcells_ini,vlsvWriter,0,MPI_COMM_WORLD);
+   writeScalarParameter("vxmin",P::vxmin,vlsvWriter,0,MPI_COMM_WORLD);
+   writeScalarParameter("vxmax",P::vxmax,vlsvWriter,0,MPI_COMM_WORLD);
+   writeScalarParameter("vymin",P::vymin,vlsvWriter,0,MPI_COMM_WORLD);
+   writeScalarParameter("vymax",P::vymax,vlsvWriter,0,MPI_COMM_WORLD);
+   writeScalarParameter("vzmin",P::vzmin,vlsvWriter,0,MPI_COMM_WORLD);
+   writeScalarParameter("vzmax",P::vzmax,vlsvWriter,0,MPI_COMM_WORLD);
+   writeScalarParameter("vxblocks_ini",P::vxblocks_ini,vlsvWriter,0,MPI_COMM_WORLD);
+   writeScalarParameter("vyblocks_ini",P::vyblocks_ini,vlsvWriter,0,MPI_COMM_WORLD);
+   writeScalarParameter("vzblocks_ini",P::vzblocks_ini,vlsvWriter,0,MPI_COMM_WORLD);
    
    if(writeRestart == false ) {
-   
       // Write variables calculate d by DataReductionOperators (DRO). We do not know how many 
       // numbers each DRO calculates, so a buffer has to be re-allocated for each DRO:
       for (uint i=0; i<dataReducer.size(); ++i) {
@@ -539,6 +638,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
       //Write velocity block coordinates.
       std::vector<Real> velocityBlockParameters;
       velocityBlockParameters.reserve(totalBlocks*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+
       
       //gather data for writing
       for (size_t cell=0; cell<cells.size(); ++cell) {
