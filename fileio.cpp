@@ -242,6 +242,7 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    vector<uint64_t> cellIds; /*< CellIds for all cells in file*/
    vector<uint> nBlocks;/*< Number of blocks for all cells in file*/
    bool success=true;
+   int successInt=1;
    int myRank,processes;
    
    
@@ -257,12 +258,33 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
 
    
    if (file.open(name,MPI_COMM_WORLD,0,mpiInfo) == false) {
-      if(myRank==0) cerr << "(RESTART) VLSVParReader failed to open restart file '" << name << "' for reading!" << endl << write;
+      if(myRank==0) cerr << "(RESTART) failed to open restart file '" << name << "' for reading!" << endl;
       success=false;
+      exit(1);
    }
    phiprof::start("readDatalayout");
    if(success) 
       success=readCellIds(file,cellIds);
+
+   //check that the cellID lists are identical in file and grid
+   successInt=1;
+   if(myRank==0){
+      vector<uint64_t> allGridCells=mpiGrid.get_all_cells();
+      if(cellIds.size() != allGridCells.size()){
+         successInt=0;
+      }
+   }
+   MPI_Bcast(&successInt,1,MPI_INT,0,MPI_COMM_WORLD);
+   if(successInt) {
+      success=true;
+   }
+   else{
+      if(myRank==0) cerr << "(RESTART) Wrong number of cells in restartfile'" << name << endl ;
+      success=false;
+      exit(1);
+   }
+      
+   
    if(success) 
       success=readNBlocks(file,nBlocks);
    
