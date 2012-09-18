@@ -18,16 +18,31 @@ using namespace phiprof;
 extern Logger logFile, diagnostic;
 
 
+bool exitOnError(bool success,string message,MPI_Comm comm){
+   int successInt;
+   if(success)
+      successInt=1;
+   else
+      successInt=0;
+   
+   MPI_Bcast(&successInt,1,MPI_INT,0,MPI_COMM_WORLD);
+   if(successInt==1) {
+      return true;
+   }
+   else{
+      logFile << message << endl<<write ;
+      exit(1);
+   }
+}
+
+
 /*!
  \brief Read cell ID's
-
-
  Read in cell ID's from file
-
 */
 
 bool readCellIds(VLSVParReader & file,
-                 vector<uint64_t>& cellIds){
+                 vector<uint64_t>& fileCells){
    // Get info on array containing cell Ids:
    uint64_t arraySize;
    uint64_t vectorSize;
@@ -51,14 +66,14 @@ bool readCellIds(VLSVParReader & file,
    }
    
    // Convert global Ids into our local DCCRG 64 bit uints
-   cellIds.resize(arraySize);
+   fileCells.resize(arraySize);
    int N_cells = arraySize;
    if (dataType == VLSV::UINT && byteSize == 4) {
       uint32_t* ptr = reinterpret_cast<uint32_t*>(IDbuffer);
-      for (uint64_t i=0; i<arraySize; ++i) cellIds[i] = ptr[i];
+      for (uint64_t i=0; i<arraySize; ++i) fileCells[i] = ptr[i];
    } else if (dataType == VLSV::UINT && byteSize == 8) {
       uint64_t* ptr = reinterpret_cast<uint64_t*>(IDbuffer);
-      for (uint64_t i=0; i<arraySize; ++i) cellIds[i] = ptr[i];
+      for (uint64_t i=0; i<arraySize; ++i) fileCells[i] = ptr[i];
    } else {
       logFile << "(RESTARTBUILDER) ERROR: VLSVParReader returned an unsupported datatype for cell Ids!" << endl << write;
       success = false;
@@ -112,7 +127,7 @@ bool readNBlocks(VLSVParReader & file,
 */
 template <typename fileReal>
 bool readBlockData(VLSVParReader & file,
-                   const vector<uint64_t>& cellIds,
+                   const vector<uint64_t>& fileCells,
 		   const uint localCellStartOffset,
 		   const uint localCells,
 		   const vector<uint>& nBlocks,
@@ -162,7 +177,7 @@ bool readBlockData(VLSVParReader & file,
    
    uint64_t bufferBlock=0;
    for(uint i=0;i<localCells;i++){
-     uint cell=cellIds[localCellStartOffset+i];
+     uint cell=fileCells[localCellStartOffset+i];
      for (uint blockIndex=0;blockIndex<nBlocks[localCellStartOffset+i];blockIndex++){
         creal vx_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VXCRD];
         creal vy_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VYCRD];
@@ -191,7 +206,7 @@ bool readBlockData(VLSVParReader & file,
 
 template <typename fileReal>
 bool readCellParamsVariable(VLSVParReader & file,
-			    const vector<uint64_t>& cellIds,
+			    const vector<uint64_t>& fileCells,
                             const uint localCellStartOffset,
 			    const uint localCells,
 			    const string& variableName,
@@ -227,7 +242,7 @@ bool readCellParamsVariable(VLSVParReader & file,
    }
    
    for(uint i=0;i<localCells;i++){
-     uint cell=cellIds[localCellStartOffset+i];
+     uint cell=fileCells[localCellStartOffset+i];
      for(uint j=0;j<vectorSize;j++){
         mpiGrid[cell]->parameters[cellParamsIndex+j]=buffer[i*vectorSize+j];
      }
@@ -239,10 +254,9 @@ bool readCellParamsVariable(VLSVParReader & file,
 
 bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
               const std::string& name){
-   vector<uint64_t> cellIds; /*< CellIds for all cells in file*/
+   vector<uint64_t> fileCells; /*< CellIds for all cells in file*/
    vector<uint> nBlocks;/*< Number of blocks for all cells in file*/
    bool success=true;
-   int successInt=1;
    int myRank,processes;
    
    
@@ -258,64 +272,59 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
 
    
    if (file.open(name,MPI_COMM_WORLD,0,mpiInfo) == false) {
-      if(myRank==0) cerr << "(RESTART) failed to open restart file '" << name << "' for reading!" << endl;
       success=false;
-      exit(1);
    }
+   exitOnError(success,"(RESTART) Could not open file",MPI_COMM_WORLD);
+
+
    phiprof::start("readDatalayout");
    if(success) 
-      success=readCellIds(file,cellIds);
+      success=readCellIds(file,fileCells);
 
    //check that the cellID lists are identical in file and grid
-   successInt=1;
    if(myRank==0){
       vector<uint64_t> allGridCells=mpiGrid.get_all_cells();
-      if(cellIds.size() != allGridCells.size()){
-         successInt=0;
+      if(fileCells.size() != allGridCells.size()){
+         success=false;
       }
    }
-   MPI_Bcast(&successInt,1,MPI_INT,0,MPI_COMM_WORLD);
-   if(successInt) {
-      success=true;
-   }
-   else{
-      if(myRank==0) cerr << "(RESTART) Wrong number of cells in restartfile'" << name << endl ;
-      success=false;
-      exit(1);
-   }
-      
+   
+   exitOnError(success,"(RESTART) Wrong number of cells in restartfile",MPI_COMM_WORLD);
    
    if(success) 
       success=readNBlocks(file,nBlocks);
    
    //make sure all cells are empty, we will anyway overwrite everything and in that case moving cells is easier...
-   vector<uint64_t> cells = mpiGrid.get_cells();
-   for(uint i=0;i<cells.size();i++){
-      mpiGrid[cells[i]]->clear();
+   vector<uint64_t> gridCells = mpiGrid.get_cells();
+   for(uint i=0;i<gridCells.size();i++){
+      mpiGrid[gridCells[i]]->clear();
    }
    
 
    //prepare to migrate cells so that each process has its cells contiguously in the file
    //First processA processes get cellsPerProcessA cells, the next cellsPerProcessB cells
-   uint cellsPerProcessA=cellIds.size()/processes;
+   uint cellsPerProcessA=fileCells.size()/processes;
    uint cellsPerProcessB=cellsPerProcessA+1;
-   uint processesB=cellIds.size()%processes;
+   uint processesB=fileCells.size()%processes;
    uint processesA=processes-processesB;
    
    //pin local cells to remote processes
-   for(uint i=0;i<cellIds.size();i++){
-      if(mpiGrid.is_local(cellIds[i])){
+   for(uint i=0;i<fileCells.size();i++){
+      if(mpiGrid.is_local(fileCells[i])){
          uint newCellProcess;
          if(i>cellsPerProcessA*processesA)
             newCellProcess=processesA + (i-cellsPerProcessA*processesA)/cellsPerProcessB;
          else
             newCellProcess=i/cellsPerProcessA;
-         mpiGrid.pin(cellIds[i],newCellProcess);
+         mpiGrid.pin(fileCells[i],newCellProcess);
       }
    }
    
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
    mpiGrid.migrate_cells();
+   //get new list of local gridcells
+   gridCells = mpiGrid.get_cells();
+   
    //this is where local cells start in file-list after migration
    uint localCellStartOffset;
    uint localCells;
@@ -328,30 +337,28 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
       localCellStartOffset=cellsPerProcessA*processesA +
          cellsPerProcessB*(myRank-processesA);
    }
-
-   //check for errors: 
-   if(localCells != mpiGrid.size() ){
-      cerr  << "(RESTART) Cell migration failed, wrong number of cells! on rank "<< myRank << endl;
+   //check for errors, has migration succeeded
+   if(localCells != gridCells.size() ){
       success=false;
    }
-   //get new list of local cells
-   cells = mpiGrid.get_cells();
-   //error-check, make sure that we have the cells we are supposed to have
-   for(uint i=localCellStartOffset;i< localCellStartOffset+localCells;i++){
-      if(!mpiGrid.is_local(cellIds[i])) {
-         cerr  << "(RESTART) Cell migration failed! on rank "<< myRank << endl;
-         success=false;
+   if(success) {
+      for(uint i=localCellStartOffset;i< localCellStartOffset+localCells;i++){
+         if(!mpiGrid.is_local(fileCells[i])) {
+            success=false;
+         }
       }
    }
-   
+
+   exitOnError(success,"(RESTART) Cell migration failed",MPI_COMM_WORLD);
+
    //set cell coordinates based on cfg (mpigrid) information
-   for(uint i=0;i<cells.size();i++){
-      mpiGrid[cells[i]]->parameters[CellParams::XCRD] = mpiGrid.get_cell_x_min(cells[i]);
-      mpiGrid[cells[i]]->parameters[CellParams::YCRD] = mpiGrid.get_cell_y_min(cells[i]);
-      mpiGrid[cells[i]]->parameters[CellParams::ZCRD] = mpiGrid.get_cell_z_min(cells[i]);
-      mpiGrid[cells[i]]->parameters[CellParams::DX  ] = mpiGrid.get_cell_x_size(cells[i]);
-      mpiGrid[cells[i]]->parameters[CellParams::DY  ] = mpiGrid.get_cell_y_size(cells[i]);
-      mpiGrid[cells[i]]->parameters[CellParams::DZ  ] = mpiGrid.get_cell_z_size(cells[i]);
+   for(uint i=0;i<gridCells.size();i++){
+      mpiGrid[gridCells[i]]->parameters[CellParams::XCRD] = mpiGrid.get_cell_x_min(gridCells[i]);
+      mpiGrid[gridCells[i]]->parameters[CellParams::YCRD] = mpiGrid.get_cell_y_min(gridCells[i]);
+      mpiGrid[gridCells[i]]->parameters[CellParams::ZCRD] = mpiGrid.get_cell_z_min(gridCells[i]);
+      mpiGrid[gridCells[i]]->parameters[CellParams::DX  ] = mpiGrid.get_cell_x_size(gridCells[i]);
+      mpiGrid[gridCells[i]]->parameters[CellParams::DY  ] = mpiGrid.get_cell_y_size(gridCells[i]);
+      mpiGrid[gridCells[i]]->parameters[CellParams::DZ  ] = mpiGrid.get_cell_z_size(gridCells[i]);
    }
    //where local data start in the blocklists
    uint64_t localBlockStartOffset=0;
@@ -368,21 +375,23 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    phiprof::start("readCellParameters");
 
    if(success)
-     success=readCellParamsVariable<double>(file,cellIds,localCellStartOffset,localCells,"B",CellParams::BX,3,mpiGrid);
+     success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"B",CellParams::BX,3,mpiGrid);
    if(success)
-     success=readCellParamsVariable<double>(file,cellIds,localCellStartOffset,localCells,"B0",CellParams::BX0,3,mpiGrid);
+     success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"B0",CellParams::BX0,3,mpiGrid);
 
    phiprof::stop("readCellParameters");
    phiprof::start("readBlockData");
    if(success) 
-     success=readBlockData<double>(file,cellIds,localCellStartOffset,localCells,nBlocks,localBlockStartOffset,localBlocks,mpiGrid);
+      success=readBlockData<double>(file,fileCells,localCellStartOffset,localCells,nBlocks,localBlockStartOffset,localBlocks,mpiGrid);
    phiprof::stop("readBlockData");
-   file.close();
+   if(success)
+      success=file.close();
    phiprof::stop("readGrid");
 
-   calculateVelocityMoments(mpiGrid);
+   if(success)
+      calculateVelocityMoments(mpiGrid);
 
-   
+   exitOnError(success,"(RESTART) Other failure",MPI_COMM_WORLD);
    return success;
 }
 
@@ -502,7 +511,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
       for(size_t cell=0;cell<cells.size();++cell){
          totalBlocks+=mpiGrid[cells[cell]]->size();
       }
-      //write out DROs we need
+      //write out DROs we need for restarts
       DataReducer restartReducer;
       restartReducer.addOperator(new DRO::VariableB);
       restartReducer.addOperator(new DRO::VariableB0);
@@ -511,8 +520,9 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
       for (uint i=0; i<restartReducer.size(); ++i) {
          writeDataReducer(mpiGrid,restartReducer,i,vlsvWriter);
       }
-      // Write velocity blocks and related data. Which cells write velocity grids 
-      //should be requested from a function, but for now we just write velocity grids for all cells.
+      
+      // Write velocity blocks and related data. 
+      // In restart we just write velocity grids for all cells.
       // First write global Ids of those cells which write velocity blocks (here: all cells):
       if (vlsvWriter.writeArray("CELLSWITHBLOCKS","SpatialGrid",attribs,cells.size(),1,&(cells[0])) == false) success = false;
       if (success == false) logFile << "(MAIN) writeGrid: ERROR failed to write CELLSWITHBLOCKS to file!" << endl << writeVerbose;
