@@ -95,11 +95,22 @@ bool Logger::flush(bool verbose) {
    return success;
 }
 
-/** Open a logfile
- * @param fname The name of the logfile.
- * @return If true, the file was opened successfully and Logger is ready for use.
+/*!
+   \brief Open a logfile
+
+   This class can be used to write out logfiles. Only master rank
+   writes out anythin, all other processes will not do anything when
+   they attempt to use the logger, but it is still perfectly legal for
+   them to call it.
+   
+      
+   \param[in] comm  MPI communicator for processes that are able to call this logger
+   \param[in] MASTERRANK The rank that does all communication.
+   \param[in] fname The name of the logfile.
+   \param[in] append Is the file appended (true), or overwritten (false)
+   \return If true, the file was opened successfully and Logger is ready for use.
  */
-bool Logger::open(MPI_Comm comm,const int& MASTERRANK,const std::string& fname,const bool& deleteFile) {
+bool Logger::open(MPI_Comm comm,const int& MASTERRANK,const std::string& fname,const bool& append) {
    // Store the MPI rank of this process
    MPI_Comm_rank(comm,&mpiRank);
    masterRank = MASTERRANK;
@@ -107,7 +118,11 @@ bool Logger::open(MPI_Comm comm,const int& MASTERRANK,const std::string& fname,c
    
    if (mpiRank != MASTERRANK) return rvalue;
    masterStream = new fstream;
-   masterStream->open(fname.c_str(), fstream::out);
+   if(append)
+      masterStream->open(fname.c_str(), fstream::out|fstream::app);
+   else
+      masterStream->open(fname.c_str(), fstream::out|fstream::app);
+   
    if (masterStream->good() == false) rvalue = false;
    fileOpen = true;
    return rvalue;

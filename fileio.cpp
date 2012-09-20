@@ -781,6 +781,9 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    static bool printDiagnosticHeader = true;
    
    if (printDiagnosticHeader == true && myRank == MASTER_RANK) {
+      if (P::isRestart){
+         diagnostic << "# ==== Restart from file "<< P::restartFileName << " ===="<<endl;
+      }
       diagnostic << "# Column 1 Step" << endl;
       diagnostic << "# Column 2 Simulation time" << endl;
       diagnostic << "# Column 3 Time step dt" << endl;

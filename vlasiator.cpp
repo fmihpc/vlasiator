@@ -113,12 +113,13 @@ int main(int argn,char* args[]) {
 
    // Init parallel logger:
    phiprof::start("open logFile & diagnostic");
-   if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt") == false) {
+   //if restarting we will append to logfiles
+   if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt",P::isRestart) == false) {
       if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
       exit(1);
    }
    if (P::diagnosticInterval != 0) {
-      if (diagnostic.open(MPI_COMM_WORLD,MASTER_RANK,"diagnostic.txt") == false) {
+      if (diagnostic.open(MPI_COMM_WORLD,MASTER_RANK,"diagnostic.txt",P::isRestart) == false) {
          if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open diagnostic file!" << endl;
          exit(1);
       }
@@ -291,7 +292,8 @@ int main(int argn,char* args[]) {
                dtMaxLocal[2]=min(dtMaxLocal[2], cell->parameters[CellParams::MAXFDT]);
             }
             MPI_Allreduce(&(dtMaxLocal[0]), &(dtMaxGlobal[0]), 3, MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
-            
+
+
             //modify dtMaxGlobal[] timestep to include CFL condition
             dtMaxGlobal[0]*=P::CFL;
             dtMaxGlobal[1]*=P::CFL;
@@ -318,7 +320,18 @@ int main(int argn,char* args[]) {
                dtMaxGlobal[1]=std::numeric_limits<Real>::max();
             else
                dtMaxGlobal[1]*=P::maxAccelerationSubsteps;
-            
+
+            //If fieldsolver is off there should be no limit on time-step from it
+            if (P::propagateField == false) {
+               dtMaxGlobal[2]=std::numeric_limits<Real>::max();
+            }
+
+            //If vlasovsolver is off there should be no limit on time-step from it
+            if (P::propagateVlasov == false) {
+               dtMaxGlobal[0]=std::numeric_limits<Real>::max();
+               dtMaxGlobal[1]=std::numeric_limits<Real>::max();
+               maxVDtNoSubstepping=std::numeric_limits<Real>::max();
+            }
             
             Real dtMax=std::numeric_limits<Real>::max();
             dtMax=min(dtMax, dtMaxGlobal[0]);

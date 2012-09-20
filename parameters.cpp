@@ -91,6 +91,7 @@ Real P::sparseMinAvgValue = NAN;
 uint P::blockAdjustmentInterval = numeric_limits<uint>::max();
 
 string P::restartFileName = string("");                
+bool P::isRestart=false;
 string P::loadBalanceAlgorithm = string("");
 string P::loadBalanceTolerance = string("");
 uint P::rebalanceInterval = numeric_limits<uint>::max();
@@ -173,7 +174,8 @@ bool Parameters::getParameters(){
    Readparameters::get("max_acceleration_substeps",P::maxAccelerationSubsteps);
    Readparameters::get("dynamic_timestep",P::dynamicTimestep);
    Readparameters::get("restart.filename",P::restartFileName);
-   
+   P::isRestart=(P::restartFileName!=string(""));
+
    /*get numerical values, let Readparameters handle the conversions*/
    Readparameters::get("gridbuilder.x_min",P::xmin);
    Readparameters::get("gridbuilder.x_max",P::xmax);

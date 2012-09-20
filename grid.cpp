@@ -121,7 +121,16 @@ void initializeGrid(int argn,
       cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
       exit(1);
    }
-   if (P::restartFileName==string("")){    
+   if (P::isRestart){
+      logFile << "Restart from "<< P::restartFileName << std::endl << writeVerbose;
+      phiprof::start("Read restart");
+      if ( readGrid(mpiGrid,P::restartFileName)== false ){
+         logFile << "(MAIN) ERROR: restarting failed"<<endl;
+         exit(1);
+      }
+      phiprof::stop("Read restart");
+   }
+   else {
       // Go through every spatial cell on this CPU, and create the initial state:
       phiprof::start("Apply initial state");
       if(applyInitialState(mpiGrid) == false) {
@@ -137,15 +146,8 @@ void initializeGrid(int argn,
       }
       phiprof::stop("Apply system boundary conditions state");
    }
-   else {
-      phiprof::start("Read restart");
-      if ( readGrid(mpiGrid,P::restartFileName)== false ){
-         logFile << "(MAIN) ERROR: restarting failed"<<endl;
-         exit(1);
-      }
-      phiprof::stop("Read restart");
-      
-   }
+
+
    
    updateSparseVelocityStuff(mpiGrid);
    
