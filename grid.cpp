@@ -205,7 +205,7 @@ bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    // point in the velocity grid. Velocity block neighbour list is also 
    // constructed here:
    // Each initialization has to be independent to avoid threading problems 
-//#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic)
    for (uint i=0; i<cells.size(); ++i) {
       SpatialCell* cell = mpiGrid[cells[i]];
       if(cell->sysBoundaryFlag != NOT_SYSBOUNDARY) continue;
