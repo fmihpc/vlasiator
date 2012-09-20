@@ -762,16 +762,9 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    
 
 
-
-        
-
-
-
-
-
 bool writeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
-                     DataReducer& dataReducer,
-                     luint tstep){
+                     DataReducer& dataReducer)
+{
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
@@ -787,10 +780,12 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    bool success = true;
    static bool printDiagnosticHeader = true;
    
-   if (printDiagnosticHeader == true && myRank == 0) {
+   if (printDiagnosticHeader == true && myRank == MASTER_RANK) {
       diagnostic << "# Column 1 Step" << endl;
+      diagnostic << "# Column 2 Simulation time" << endl;
+      diagnostic << "# Column 3 Time step dt" << endl;
       for (uint i=0; i<nOps; ++i) {
-	 diagnostic << "# Columns " << 2 + i*4 << " to " << 5 + i*4 << ": " << dataReducer.getName(i) << " min max sum average" << endl;
+         diagnostic << "# Columns " << 4 + i*4 << " to " << 7 + i*4 << ": " << dataReducer.getName(i) << " min max sum average" << endl;
       }
       printDiagnosticHeader = false;
    }
@@ -798,7 +793,7 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    for (uint i=0; i<nOps; ++i) {
       
       if (dataReducer.getDataVectorInfo(i,dataType,dataSize,vectorSize) == false) {
-	 cerr << "ERROR when requesting info from diagnostic DRO " << dataReducer.getName(i) << endl;
+         cerr << "ERROR when requesting info from diagnostic DRO " << dataReducer.getName(i) << endl;
       }
       localMin[i] = std::numeric_limits<Real>::max();
       localMax[i] = std::numeric_limits<Real>::min();
@@ -807,34 +802,40 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
       
       // Request DataReductionOperator to calculate the reduced data for all local cells:
       for (uint64_t cell=0; cell<nCells; ++cell) {
-	 success = true;
-	 if (dataReducer.reduceData(mpiGrid[cells[cell]], i, &buffer) == false) success = false;
-	 localMin[i] = min(buffer, localMin[i]);
-	 localMax[i] = max(buffer, localMax[i]);
-	 localSum[i+1] += buffer;
+         success = true;
+         if (dataReducer.reduceData(mpiGrid[cells[cell]], i, &buffer) == false) success = false;
+         localMin[i] = min(buffer, localMin[i]);
+         localMax[i] = max(buffer, localMax[i]);
+         localSum[i+1] += buffer;
       }
       localAvg[i] = localSum[i+1];
       
-      if (success == false) logFile << "(MAIN) computeDiagnostic: ERROR datareductionoperator '" << dataReducer.getName(i) << "' returned false!" << endl << writeVerbose;
+      if (success == false) logFile << "(MAIN) writeDiagnostic: ERROR datareductionoperator '" << dataReducer.getName(i) <<
+                               "' returned false!" << endl << writeVerbose;
    }
    
    MPI_Reduce(&localMin[0], &globalMin[0], nOps, MPI_Type<Real>(), MPI_MIN, 0, MPI_COMM_WORLD);
    MPI_Reduce(&localMax[0], &globalMax[0], nOps, MPI_Type<Real>(), MPI_MAX, 0, MPI_COMM_WORLD);
    MPI_Reduce(&localSum[0], &globalSum[0], nOps + 1, MPI_Type<Real>(), MPI_SUM, 0, MPI_COMM_WORLD);
-
-   diagnostic << setprecision(12); 
-   diagnostic << tstep << "\t";
    
-for (uint i=0; i<nOps; ++i) {
+   diagnostic << setprecision(12); 
+   diagnostic << Parameters::tstep << "\t";
+   diagnostic << Parameters::t << "\t";
+   diagnostic << Parameters::dt << "\t";
+   
+   for (uint i=0; i<nOps; ++i) {
       if (globalSum[0] != 0.0) globalAvg[i] = globalSum[i+1] / globalSum[0];
       else globalAvg[i] = globalSum[i+1];
-      if (myRank == 0) {
-	 diagnostic << globalMin[i] << "\t" <<
-	 globalMax[i] << "\t" <<
-	 globalSum[i+1] << "\t" <<
-	 globalAvg[i] << "\t";
+      if (myRank == MASTER_RANK) {
+         diagnostic << globalMin[i] << "\t" <<
+         globalMax[i] << "\t" <<
+         globalSum[i+1] << "\t" <<
+         globalAvg[i] << "\t";
       }
    }
-   if (myRank == 0) diagnostic << endl << write;
+   if (myRank == MASTER_RANK) diagnostic << endl << write;
    return true;
 }
+
+
+

@@ -69,18 +69,6 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
 
 
 
-/*!
-
-\brief Write out simulation diagnostics into diagnostic.txt
-
-\param mpiGrid   The DCCRG grid with spatial cells
-\param dataReducer Contains datareductionoperators that are used to compute diagnostic data
-\param tstep Current simulation step, first colmun in file
-*/
-
-bool computeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
-                       DataReducer& dataReducer);
-
 void setNotSysBoundaryCell(SpatialCell* cell);
 
 #endif

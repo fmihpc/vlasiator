@@ -26,13 +26,10 @@ bool writeGrid(const dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
                const uint& index,
                const bool& writeRestart);
 
-
 /*!
 
 \brief Read in state from a vlsv file in order to restart simulations
 */
-
-
 bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
               const std::string& name);
 
@@ -44,9 +41,8 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
 
 \param mpiGrid   The DCCRG grid with spatial cells
 \param dataReducer Contains datareductionoperators that are used to compute diagnostic data
-\param tstep Current simulation step, first colmun in file
 */
 
-bool writeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid, DataReducer& dataReducer, luint tstep);
+bool writeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid, DataReducer& dataReducer);
 
 #endif

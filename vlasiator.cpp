@@ -222,7 +222,7 @@ int main(int argn,char* args[]) {
       // Check whether diagnostic output has to be produced
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
          phiprof::start("Diagnostic");
-         if (writeDiagnostic(mpiGrid, diagnosticReducer, P::tstep) == false) {
+         if (writeDiagnostic(mpiGrid, diagnosticReducer) == false) {
             if(myRank == MASTER_RANK)  cerr << "ERROR with diagnostic computation" << endl;
 
          }
