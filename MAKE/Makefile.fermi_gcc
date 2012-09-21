@@ -22,21 +22,21 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 4.4.6
-CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -pedantic
+# CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -pedantic
 # CXXFLAGS += -O0 -W -Wall -pedantic
-# CXXFLAGS +=  -O3 -funroll-loops -std=c++0x -W -Wall -pedantic -Wno-unused
+CXXFLAGS +=  -O3 -funroll-loops -std=c++0x -W -Wall -pedantic -Wno-unused
 # CXXFLAGS += -g -std=c++0x -W -Wall -pedantic -Wno-unused
 # DCXXFLAGS +=  -g  -fopenmp -std=c++0x -W -Wall -pedantic -Wno-unused
 # MATHFLAGS = -ffast-math
 LDFLAGS =
-LIB_MPI = -lgomp
+# LIB_MPI = -lgomp
 
 BOOST_VERSION = 1.50.0
 ZOLTAN_VERSION = 3.6
 SILO_VERSION = 4.8
 GCC_VERSION = 4.4.6
 
-LIBRARY_PREFIX = /fermi/home/userexternal/ykempf00/libraries
+LIBRARY_PREFIX = /gpfs/scratch/userexternal/ykempf00/code/libs
 
 INC_BOOST = -I$(LIBRARY_PREFIX)/boost/$(BOOST_VERSION)/gcc/$(GCC_VERSION)/include
 LIB_BOOST = -L$(LIBRARY_PREFIX)/boost/$(BOOST_VERSION)/gcc/$(GCC_VERSION)/lib -lboost_program_options
