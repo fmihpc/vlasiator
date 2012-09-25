@@ -39,7 +39,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "vlsvwriter2.h" 
 #include "fieldsolver.h"
 #include "project.h"
-
+#include "fileio.h"
 
 
 using namespace std;
@@ -51,9 +51,7 @@ extern Logger logFile, diagnostic;
 bool adjust_local_velocity_blocks(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
 void initVelocityGridGeometry();
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell>& mpiGrid);
-
 bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid);
-void updateSparseVelocityStuff(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
 
 void initializeGrid(int argn,
@@ -148,8 +146,17 @@ void initializeGrid(int argn,
    }
 
 
+   updateRemoteVelocityBlockLists(mpiGrid);
+   adjustVelocityBlocks(mpiGrid,false); // do not initialize mover, mover has not yet been initialized here
+
    
-   updateSparseVelocityStuff(mpiGrid);
+   phiprof::initializeTimer("Fetch Neighbour data","MPI");
+   phiprof::start("Fetch Neighbour data");
+   // update complete spatial cell data 
+   SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
+   mpiGrid.update_remote_neighbor_data();
+   phiprof::stop("Fetch Neighbour data");
+   
    
    phiprof::stop("Set initial state");
    
@@ -216,32 +223,10 @@ bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    return true;
 }
 
-void updateSparseVelocityStuff(dccrg::Dccrg<SpatialCell>& mpiGrid) {
-   
-   updateRemoteVelocityBlockLists(mpiGrid);
 
    
-   vector<uint64_t> cells = mpiGrid.get_cells();
-   
-   //Calling update_all_block_has_content for all cells in principle not needed as that was done earlier, but let's be safe and do it anyway as it does not  cost much
 
-   for (uint i=0; i<cells.size(); ++i)
-      mpiGrid[cells[i]]->update_all_block_has_content();
 
-   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_HAS_CONTENT);
-   mpiGrid.update_remote_neighbor_data();
-   
-   adjust_local_velocity_blocks(mpiGrid);
-   //velocity blocks adjusted, lets prepare again for new lists
-   updateRemoteVelocityBlockLists(mpiGrid);
-   
-   phiprof::initializeTimer("Fetch Neighbour data","MPI");
-   phiprof::start("Fetch Neighbour data");
-   // update complete spatial cell data 
-   SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
-   mpiGrid.update_remote_neighbor_data();
-   phiprof::stop("Fetch Neighbour data");
-}
 
 
 void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
@@ -326,9 +311,10 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
 //data. Solvers are also updated so that their internal structures are
 //ready for the new number of blocks.
 
-bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid, bool reInitMover) {
    phiprof::initializeTimer("re-adjust blocks","Block adjustment");
    phiprof::start("re-adjust blocks");
+
    vector<uint64_t> cells = mpiGrid.get_cells();
    phiprof::start("Check for content");
 #pragma omp parallel for  
@@ -342,13 +328,14 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    phiprof::stop("Transfer block data");
    
    adjust_local_velocity_blocks(mpiGrid);
-
    updateRemoteVelocityBlockLists(mpiGrid);
+
    //re-init vlasovmover
-   phiprof::start("InitMoverAfterBlockChange");
-   initMoverAfterBlockChange(mpiGrid);
-   phiprof::stop("InitMoverAfterBlockChange");
-   
+   if(reInitMover) {
+      phiprof::start("InitMoverAfterBlockChange");
+      initMoverAfterBlockChange(mpiGrid);
+      phiprof::stop("InitMoverAfterBlockChange");
+   }
    phiprof::stop("re-adjust blocks");
    return true;
 }
@@ -357,7 +344,9 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 /*!
 Adjusts velocity blocks in local spatial cells.
 
-Doesn't adjust velocity blocks of copies of remote neighbors.
+Doesn't adjust velocity blocks in remote cells, this has to be fixed
+by calling pdateRemoteVelocityBlockLists()
+
 */
 bool adjust_local_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    phiprof::start("Adjusting blocks");

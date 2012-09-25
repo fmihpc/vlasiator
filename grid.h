@@ -7,26 +7,46 @@
 #include "sysboundary/sysboundary.h"
 #include <string>
 
-//Init parallel grid
+/*!
+  \brief Initialize parallel grid
+*/
 void initializeGrid(int argn,
                     char **argc,
                     dccrg::Dccrg<SpatialCell>& mpiGrid,
                     SysBoundary& sysBoundaries);
 
-//Balance load
-void balanceLoad(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
+/*!
+  \brief Balance load
+
+    \param[in,out] mpiGrid The DCCRG grid with spatial cells
+*/
+  void balanceLoad(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
 
 
 /*!
   \brief Adjust which blocks are existing based on the current state.
 
-  This function is complete, existence of blocks is adjusted based on
-  both spatial and velocity data, and all remote velocity blocks are
-  updated. Not thread-safe, uses OpenMP-parallelization.
+  Before calling this function it is assumed that remote cells have
+  the correct velocity block lists. If one has done local changes to
+  these lists, then they should be updated using
+  updateRemoteVelocityBlockLists() before calling this function.
 
-  \param mpiGrid   The DCCRG grid with spatial cells  
+  This function will update the global view of the block-structure so that it is consistent and up-to-date on all processes:  
+  - Computes which blocks have contents according to threshold
+  - Adds/keeps blocks if they have content, or if their neighbors in spatial or velocity space have contents
+  - Removes blocks which do not fulfill above mentioned criteria
+  - Updates velocity block lists of remote cells using updateRemoteVelocityBlockLists(). Note that data in blocks is not transferred!
+  - Updates movers so that their block-dependent internal datastructures are up-to-date, if reInitMover is true.
+
+  
+  \param[in,out] mpiGrid The DCCRG grid with spatial cells
+  \param[in] reInitMover Does it also re-initialize the solvers based on the new
+  block structure? The default is true, and that should always be used
+  unless it is called before solvers have been initialized.
+  
+  
 */
-bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid);
+bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid, bool reInitMover=true);
 
 
 /*!

@@ -455,7 +455,9 @@ int main(int argn,char* args[]) {
          
          if(!updateVelocityBlocksAfterAcceleration){
             //if no semi-lagrangean or substepping in leveque
-            //acceleration then we do the adjustment here. 
+            //acceleration then we do the adjustment here.  In that
+            //case no local block adjustments have been done, so
+            //remote velocty blocks do not need to be updated
             if(P::tstep%P::blockAdjustmentInterval == 0){
                adjustVelocityBlocks(mpiGrid);
             }
