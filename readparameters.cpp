@@ -511,7 +511,7 @@ bool Readparameters::parse() {
     // Tell Boost to allow undescribed options (throws exception otherwise)
    
     if(rank==MASTER_RANK){
-        const bool ALLOW_UNKNOWN = false;
+        const bool ALLOW_UNKNOWN = true;
         // Read options from command line:
         PO::store(PO::parse_command_line(argc, argv, *descriptions), *variables);
         PO::notify(*variables);

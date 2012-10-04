@@ -87,7 +87,6 @@ struct Parameters {
    static Real RK_alpha; /*!< Parameter of the second-order Runge-Kutta method employed in the field solver. **/
    
    static Real sparseMinValue; /*!< Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents */
-   static Real sparseMinAvgValue; /*!< Minimum value of the average of distribution function within a velocity block for the block to be considered to have contents */
    static uint blockAdjustmentInterval; /*!< Block adjustment interval (steps). */
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
    static std::string loadBalanceTolerance; /*!< Load imbalance tolerance. */

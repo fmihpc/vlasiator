@@ -38,7 +38,6 @@ namespace spatial_cell {
    Real SpatialCell::cell_dvy = 0;
    Real SpatialCell::cell_dvz = 0;
    Real SpatialCell::velocity_block_min_value = 0;    
-   Real SpatialCell::velocity_block_min_avg_value = 0;
    unsigned int SpatialCell::max_velocity_blocks = 0;
    unsigned int SpatialCell::mpi_transfer_type = 0;
 }

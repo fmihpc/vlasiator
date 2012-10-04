@@ -186,7 +186,6 @@ void initVelocityGridGeometry(){
    spatial_cell::SpatialCell::cell_dvy = spatial_cell::SpatialCell::block_dvy / block_vy_length;
    spatial_cell::SpatialCell::cell_dvz = spatial_cell::SpatialCell::block_dvz / block_vz_length;
    spatial_cell::SpatialCell::velocity_block_min_value = P::sparseMinValue;
-   spatial_cell::SpatialCell::velocity_block_min_avg_value = P::sparseMinAvgValue;
 }
 
 

@@ -87,7 +87,6 @@ bool P::dynamicTimestep = true;
 Real P::RK_alpha = NAN;
 
 Real P::sparseMinValue = NAN;
-Real P::sparseMinAvgValue = NAN;
 uint P::blockAdjustmentInterval = numeric_limits<uint>::max();
 
 string P::restartFileName = string("");                
@@ -146,7 +145,6 @@ bool Parameters::addParameters(){
    
    // Grid sparsity parameters
    Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
-   Readparameters::add("sparse.minAvgValue", "Minimum value of the average of distribution function within a velocity block for the block to be considered to have contents", 0);
    Readparameters::add("sparse.blockAdjustmentInterval", "Block adjustment interval (steps)", 1);
    
    // Load balancing parameters
@@ -225,7 +223,6 @@ bool Parameters::getParameters(){
    
    // Get sparsity parameters
    Readparameters::get("sparse.minValue", P::sparseMinValue);
-   Readparameters::get("sparse.minAvgValue", P::sparseMinAvgValue);
    Readparameters::get("sparse.blockAdjustmentInterval", P::blockAdjustmentInterval);
    
    // Get load balance parameters
