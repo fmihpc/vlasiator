@@ -95,7 +95,7 @@ namespace spatial_cell {
       const unsigned int VEL_BLOCK_HAS_CONTENT    = (1<<12); 
       const unsigned int CELL_EB                  = (1<<13);
       const unsigned int CELL_E1                  = (1<<14);
-      const unsigned int CELL_B1_RHO1_RHOV1       = (1<<15);
+      const unsigned int CELL_SCB1_RHO1_RHOV1       = (1<<15);
 
       const unsigned int ALL_DATA =
       CELL_PARAMETERS
@@ -897,15 +897,15 @@ namespace velocity_neighbor {
                 block_lengths.push_back(sizeof(Real) * CellParams::N_SPATIAL_CELL_PARAMS);
             }
 
-            // send  BX, BY, BZ, RHO, RHOVX, RHOVY, RHOVZ (order in enum should never change(!)
+            // send  scBX, scBY, scBZ, bgBX,bgBY,bgBZ,RHO, RHOVX, RHOVY, RHOVZ (order in enum should never change(!)
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_B_RHO_RHOV)!=0){
-               displacements.push_back((uint8_t*) &(this->parameters[CellParams::BX]) - (uint8_t*) this);
-               block_lengths.push_back(sizeof(Real) * 7);
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::scBX]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 10);
             }
             
             // send  BX1, BY1, BZ1, RHO1, RHOVX1, RHOVY1, RHOVZ1 (order in enum should never change(!)
-            if((SpatialCell::mpi_transfer_type & Transfer::CELL_B1_RHO1_RHOV1)!=0){
-	       displacements.push_back((uint8_t*) &(this->parameters[CellParams::BX1]) - (uint8_t*) this);
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_SCB1_RHO1_RHOV1)!=0){
+	       displacements.push_back((uint8_t*) &(this->parameters[CellParams::scBX1]) - (uint8_t*) this);
 	       block_lengths.push_back(sizeof(Real) * 7);
 	    }
             
