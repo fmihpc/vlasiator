@@ -73,7 +73,7 @@ int main(int argn,char* args[]) {
    if (required > provided){
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       if(myRank==MASTER_RANK)
-         cerr << "(MAIN): MPI_Init_thread failed! Got" << provided << ", need "<<required <<endl;
+         cerr << "(MAIN): MPI_Init_thread failed! Got " << provided << ", need "<<required <<endl;
       exit(1);
    }    
    MPI_Comm comm = MPI_COMM_WORLD;

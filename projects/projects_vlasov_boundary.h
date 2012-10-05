@@ -37,9 +37,9 @@ void vlasovBoundaryCopyFromExistingFaceNbr(const CELLID& cellID,const UINT& boun
 //if the spatialcells are neighbors
 inline void copyCellData(SpatialCell *from, SpatialCell *to){
    for(unsigned int block_i=0; block_i<to->number_of_blocks;block_i++){
-      unsigned int block = to->velocity_block_list[block_i];         
+      unsigned int block = to->velocity_block_list[block_i];
       Velocity_Block* to_block_ptr = to->at(block);
-      //if block does not exist in from cell, then the empty null_block will be returned        
+      //if block does not exist in from cell, then the empty null_block will be returned
       Velocity_Block* from_block_ptr = from->at(block); 
       for (uint i=0; i<SIZE_VELBLOCK; i++) to_block_ptr->data[i]=from_block_ptr->data[i];
    }
