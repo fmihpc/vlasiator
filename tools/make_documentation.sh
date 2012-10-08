@@ -4,13 +4,10 @@ HOME_DIR=/home/users/alfthan
 PUBLIC_HTML_DIR=${HOME_DIR}/public_html
 DOXYGEN=/home/users/alfthan/doxygen-1.8.1.2/bin/doxygen
 
-
 #lockfile, only one script at a time
 LOCKFILE=${HOME_DIR}/.make_doc_is_working    
 
-
 VLASIATOR_DIR=${HOME_DIR}/vlasiator/trunk
-VLASIATOR_COMMITLOG=${PUBLIC_HTML_DIR}/vlasiator/commitlog.html
 VLASIATOR_DOXYGENDOCS=${PUBLIC_HTML_DIR}/vlasiator/doc
 
 DCCRG_DIR=${HOME_DIR}/vlasiator/dccrg
@@ -36,11 +33,6 @@ touch $LOCKFILE
 
     if [ ${isUpToDate} -ne 1 ] 
     then
-#create svn log
-
-	svn log --xml --verbose > log.xml                
-	xsltproc -o $VLASIATOR_COMMITLOG  ../svn2cl-0.13/svn2html.xsl log.xml	
-	sed  -i 's@QUESPACE-[0-9]*@<a href="https://agile.fmi.fi/browse/&">&</a>@g' $VLASIATOR_COMMITLOG  
 
 #create additional svn log in doxygen docs
 	svnlogdoc=${VLASIATOR_DIR}/doc/svnlog.dox
