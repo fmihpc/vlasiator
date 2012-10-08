@@ -104,9 +104,9 @@ namespace SBC {
          
          for(uint i=0; i<6; i++) {
             if(facesToProcess[i] && isThisCellOnAFace[i]) {
-               cell->parameters[CellParams::BX] = templateCells[i].parameters[CellParams::BX];
-               cell->parameters[CellParams::BY] = templateCells[i].parameters[CellParams::BY];
-               cell->parameters[CellParams::BZ] = templateCells[i].parameters[CellParams::BZ];
+               cell->parameters[CellParams::scBX] = templateCells[i].parameters[CellParams::scBX];
+               cell->parameters[CellParams::scBY] = templateCells[i].parameters[CellParams::scBY];
+               cell->parameters[CellParams::scBZ] = templateCells[i].parameters[CellParams::scBZ];
                
                cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
                cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;

@@ -108,11 +108,37 @@ namespace DRO {
       virtual bool setSpatialCell(const SpatialCell* cell);
       
     protected:
-      Real Bx;
-      Real By;
-      Real Bz;
+      Real B[3];
+   };
+
+   class VariableScB: public DataReductionOperator {
+    public:
+      VariableScB();
+      ~VariableScB();
+      
+      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      std::string getName() const;
+      bool reduceData(const SpatialCell* cell,char* buffer);
+      bool setSpatialCell(const SpatialCell* cell);
+      
+    protected:
       const Real* B;
    };
+
+   class VariableBgB: public DataReductionOperator {
+    public:
+      VariableBgB();
+      ~VariableBgB();
+      
+      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      std::string getName() const;
+      bool reduceData(const SpatialCell* cell,char* buffer);
+      bool setSpatialCell(const SpatialCell* cell);
+      
+    protected:
+      const Real* B;
+   };
+
 
    class VariableVolB: public DataReductionOperator {
     public:
@@ -128,33 +154,6 @@ namespace DRO {
       const Real* B;
    };
 
-   class VariableB0: public DataReductionOperator {
-    public:
-      VariableB0();
-      ~VariableB0();
-      
-      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      std::string getName() const;
-      bool reduceData(const SpatialCell* cell,char* buffer);
-      bool setSpatialCell(const SpatialCell* cell);
-      
-    protected:
-      const Real* B0;
-   };
-
-   class VariableVolB0: public DataReductionOperator {
-    public:
-      VariableVolB0();
-      ~VariableVolB0();
-      
-      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      std::string getName() const;
-            bool reduceData(const SpatialCell* cell,char* buffer);
-      bool setSpatialCell(const SpatialCell* cell);
-      
-    protected:
-      const Real* B0;
-   };
 
    
    class VariableE: public DataReductionOperator {

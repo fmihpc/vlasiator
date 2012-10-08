@@ -285,8 +285,8 @@ static void calculateDerivatives(
          array[fs::dVzdx]  = limiter(divideIfNonZero(left[cp::RHOVZ], left[cp::RHO]),
                                      divideIfNonZero(cent[cp::RHOVZ], cent[cp::RHO]),
                                      divideIfNonZero(rght[cp::RHOVZ], rght[cp::RHO]));
-         array[fs::dBydx]  = limiter(left[cp::bgBY]+left[cp::scBY],cent[cp::bgBY]+cent[cp::scBY],right[cp::bgBY]+right[cp::scBY]);
-         array[fs::dBzdx]  = limiter(left[cp::bgBZ]+left[cp::scBZ],cent[cp::bgBZ]+cent[cp::scBZ],right[cp::bgBZ]+right[cp::scBZ]);
+         array[fs::dBydx]  = limiter(left[cp::bgBY]+left[cp::scBY],cent[cp::bgBY]+cent[cp::scBY],rght[cp::bgBY]+rght[cp::scBY]);
+         array[fs::dBzdx]  = limiter(left[cp::bgBZ]+left[cp::scBZ],cent[cp::bgBZ]+cent[cp::scBZ],rght[cp::bgBZ]+rght[cp::scBZ]);
       }
       if (RKCase == RK_ORDER2_STEP1) {
          array[fs::drhodx] = limiter(left[cp::RHO1],cent[cp::RHO1],rght[cp::RHO1]);
@@ -299,8 +299,8 @@ static void calculateDerivatives(
          array[fs::dVzdx]  = limiter(divideIfNonZero(left[cp::RHOVZ1], left[cp::RHO1]),
                                      divideIfNonZero(cent[cp::RHOVZ1], cent[cp::RHO1]),
                                      divideIfNonZero(rght[cp::RHOVZ1], rght[cp::RHO1]));
-         array[fs::dBydx]  = limiter(left[cp::bgBY]+left[cp::scBY1],cent[cp::bgBY]+cent[cp::scBY1],right[cp::bgBY]+right[cp::scBY1]);
-         array[fs::dBzdx]  = limiter(left[cp::bgBZ]+left[cp::scBZ1],cent[cp::bgBZ]+cent[cp::scBZ1],right[cp::bgBZ]+right[cp::scBZ1]);
+         array[fs::dBydx]  = limiter(left[cp::bgBY]+left[cp::scBY1],cent[cp::bgBY]+cent[cp::scBY1],rght[cp::bgBY]+rght[cp::scBY1]);
+         array[fs::dBzdx]  = limiter(left[cp::bgBZ]+left[cp::scBZ1],cent[cp::bgBZ]+cent[cp::scBZ1],rght[cp::bgBZ]+rght[cp::scBZ1]);
       }
    } else {
       fieldSolverBoundaryCondDerivX(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid);
@@ -343,8 +343,8 @@ static void calculateDerivatives(
          array[fs::dVzdy]  = limiter(divideIfNonZero(left[cp::RHOVZ], left[cp::RHO]),
                                      divideIfNonZero(cent[cp::RHOVZ], cent[cp::RHO]),
                                      divideIfNonZero(rght[cp::RHOVZ], rght[cp::RHO]));
-         array[fs::dBxdy]  = limiter(left[cp::bgBX]+left[cp::scBX],cent[cp::bgBX]+cent[cp::scBX],right[cp::bgBX]+right[cp::scBX]);
-         array[fs::dBzdy]  = limiter(left[cp::bgBZ]+left[cp::scBZ],cent[cp::bgBZ]+cent[cp::scBZ],right[cp::bgBZ]+right[cp::scBZ]);
+         array[fs::dBxdy]  = limiter(left[cp::bgBX]+left[cp::scBX],cent[cp::bgBX]+cent[cp::scBX],rght[cp::bgBX]+rght[cp::scBX]);
+         array[fs::dBzdy]  = limiter(left[cp::bgBZ]+left[cp::scBZ],cent[cp::bgBZ]+cent[cp::scBZ],rght[cp::bgBZ]+rght[cp::scBZ]);
       }
       if (RKCase == RK_ORDER2_STEP1) {
          array[fs::drhody] = limiter(left[cp::RHO1],cent[cp::RHO1],rght[cp::RHO1]);
@@ -357,8 +357,8 @@ static void calculateDerivatives(
          array[fs::dVzdy]  = limiter(divideIfNonZero(left[cp::RHOVZ1], left[cp::RHO1]),
                                      divideIfNonZero(cent[cp::RHOVZ1], cent[cp::RHO1]),
                                      divideIfNonZero(rght[cp::RHOVZ1], rght[cp::RHO1]));
-         array[fs::dBxdy]  = limiter(left[cp::bgBX]+left[cp::scBX1],cent[cp::bgBX]+cent[cp::scBX1],right[cp::bgBX]+right[cp::scBX1]);
-         array[fs::dBzdy]  = limiter(left[cp::bgBZ]+left[cp::scBZ1],cent[cp::bgBZ]+cent[cp::scBZ1],right[cp::bgBZ]+right[cp::scBZ1]);
+         array[fs::dBxdy]  = limiter(left[cp::bgBX]+left[cp::scBX1],cent[cp::bgBX]+cent[cp::scBX1],rght[cp::bgBX]+rght[cp::scBX1]);
+         array[fs::dBzdy]  = limiter(left[cp::bgBZ]+left[cp::scBZ1],cent[cp::bgBZ]+cent[cp::scBZ1],rght[cp::bgBZ]+rght[cp::scBZ1]);
       }
    } else {
       fieldSolverBoundaryCondDerivY(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid);
@@ -398,8 +398,8 @@ static void calculateDerivatives(
          array[fs::dVzdz]  = limiter(divideIfNonZero(left[cp::RHOVZ], left[cp::RHO]),
                                      divideIfNonZero(cent[cp::RHOVZ], cent[cp::RHO]),
                                      divideIfNonZero(rght[cp::RHOVZ], rght[cp::RHO]));
-         array[fs::dBxdz]  = limiter(left[cp::bgBX]+left[cp::scBX],cent[cp::bgBX]+cent[cp::scBX],right[cp::bgBX]+right[cp::scBX]);
-         array[fs::dBydz]  = limiter(left[cp::bgBY]+left[cp::scBY],cent[cp::bgBY]+cent[cp::scBY],right[cp::bgBY]+right[cp::scBY]);
+         array[fs::dBxdz]  = limiter(left[cp::bgBX]+left[cp::scBX],cent[cp::bgBX]+cent[cp::scBX],rght[cp::bgBX]+rght[cp::scBX]);
+         array[fs::dBydz]  = limiter(left[cp::bgBY]+left[cp::scBY],cent[cp::bgBY]+cent[cp::scBY],rght[cp::bgBY]+rght[cp::scBY]);
       }
       if (RKCase == RK_ORDER2_STEP1) {
          array[fs::drhodz] = limiter(left[cp::RHO1],cent[cp::RHO1],rght[cp::RHO1]);
@@ -412,8 +412,8 @@ static void calculateDerivatives(
          array[fs::dVzdz]  = limiter(divideIfNonZero(left[cp::RHOVZ1], left[cp::RHO1]),
                                      divideIfNonZero(cent[cp::RHOVZ1], cent[cp::RHO1]),
                                      divideIfNonZero(rght[cp::RHOVZ1], rght[cp::RHO1]));
-         array[fs::dBxdz]  = limiter(left[cp::bgBX]+left[cp::scBX1],cent[cp::bgBX]+cent[cp::scBX1],right[cp::bgBX]+right[cp::scBX1]);
-         array[fs::dBydz]  = limiter(left[cp::bgBY]+left[cp::scBY1],cent[cp::bgBY]+cent[cp::scBY1],right[cp::bgBY]+right[cp::scBY1]);
+         array[fs::dBxdz]  = limiter(left[cp::bgBX]+left[cp::scBX1],cent[cp::bgBX]+cent[cp::scBX1],rght[cp::bgBX]+rght[cp::scBX1]);
+         array[fs::dBydz]  = limiter(left[cp::bgBY]+left[cp::scBY1],cent[cp::bgBY]+cent[cp::scBY1],rght[cp::bgBY]+rght[cp::scBY1]);
       }
    } else {
       fieldSolverBoundaryCondDerivZ(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid);

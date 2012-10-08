@@ -50,9 +50,9 @@ namespace SBC {
          SpatialCell* cell = mpiGrid[cells[i]];
          if(cell->sysBoundaryFlag != this->getIndex()) continue;
          
-         cell->parameters[CellParams::BX] = 0.0;
-         cell->parameters[CellParams::BY] = 0.0;
-         cell->parameters[CellParams::BZ] = 0.0;
+         cell->parameters[CellParams::scBX] = 0.0;
+         cell->parameters[CellParams::scBY] = 0.0;
+         cell->parameters[CellParams::scBZ] = 0.0;
          cell->parameters[CellParams::EX] = 0.0;
          cell->parameters[CellParams::EY] = 0.0;
          cell->parameters[CellParams::EZ] = 0.0;

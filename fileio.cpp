@@ -516,9 +516,9 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
 
 
    if(success)
-     success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"B",CellParams::BX,3,mpiGrid);
+     success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"perturbed_B",CellParams::scBX,3,mpiGrid);
    if(success)
-     success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"B0",CellParams::BX0,3,mpiGrid);
+     success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"background_B",CellParams::bgBX,3,mpiGrid);
 
    phiprof::stop("readCellParameters");
    phiprof::start("readBlockData");
@@ -693,8 +693,8 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
       }
       //write out DROs we need for restarts
       DataReducer restartReducer;
-      restartReducer.addOperator(new DRO::VariableB);
-      restartReducer.addOperator(new DRO::VariableB0);
+      restartReducer.addOperator(new DRO::VariableBgB);
+      restartReducer.addOperator(new DRO::VariableScB);
       restartReducer.addOperator(new DRO::Blocks);
 
       for (uint i=0; i<restartReducer.size(); ++i) {

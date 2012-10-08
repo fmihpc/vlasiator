@@ -125,9 +125,9 @@ namespace SBC {
       templateCell.parameters[CellParams::DX] = 1;
       templateCell.parameters[CellParams::DY] = 1;
       templateCell.parameters[CellParams::DZ] = 1;
-      templateCell.parameters[CellParams::BX] = Bx;
-      templateCell.parameters[CellParams::BY] = By;
-      templateCell.parameters[CellParams::BZ] = Bz;
+      templateCell.parameters[CellParams::scBX] = Bx;
+      templateCell.parameters[CellParams::scBY] = By;
+      templateCell.parameters[CellParams::scBZ] = Bz;
       
       templateCell.parameters[CellParams::RHOLOSSADJUST] = 0.0;
       templateCell.parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
