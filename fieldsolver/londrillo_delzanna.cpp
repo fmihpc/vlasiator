@@ -440,7 +440,7 @@ template<typename REAL> REAL calculateFastMSspeedYZ(const REAL* cp, const REAL* 
       A_X  = (nbr_cp[CellParams::scBX] + nbr_cp[CellParams::bgBX]) - (cp[CellParams::scBX] + cp[CellParams::bgBX]);
       rho = Parameters::m*(cp[CellParams::RHO] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz]);
    } else { // RKCase == RK_ORDER2_STEP1
-      A_0  = HALF*(nbr_cp[CellParams::scBX1] + nbr_cp[CellParams::bgBX] + cp[CellParams::scBX] + cp[CellParams::bgBX]);
+      A_0  = HALF*(nbr_cp[CellParams::scBX1] + nbr_cp[CellParams::bgBX] + cp[CellParams::scBX1] + cp[CellParams::bgBX]);
       A_X  = (nbr_cp[CellParams::scBX1] + nbr_cp[CellParams::bgBX]) - (cp[CellParams::scBX1] + cp[CellParams::bgBX]);
       rho = Parameters::m*(cp[CellParams::RHO1] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz]);
    }
