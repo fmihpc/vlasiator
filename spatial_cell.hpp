@@ -88,15 +88,15 @@ namespace spatial_cell {
       const unsigned int VEL_BLOCK_SIZE_AND_LIST  = (1<<4);
       const unsigned int VEL_BLOCK_DATA           = (1<<5);
       const unsigned int VEL_BLOCK_FLUXES         = (1<<6);
-      const unsigned int VEL_BLOCK_PARAMETERS     = (1<<8);
-      const unsigned int CELL_B_RHO_RHOV          = (1<<9);
+      const unsigned int VEL_BLOCK_PARAMETERS     = (1<<7);
+      const unsigned int VEL_BLOCK_HAS_CONTENT    = (1<<8); 
+      const unsigned int CELL_SYSBOUNDARYFLAG     = (1<<9);
       const unsigned int CELL_E                   = (1<<10);
-      const unsigned int CELL_SYSBOUNDARYFLAG     = (1<<11);
-      const unsigned int VEL_BLOCK_HAS_CONTENT    = (1<<12); 
-      const unsigned int CELL_EB                  = (1<<13);
-      const unsigned int CELL_E1                  = (1<<14);
-      const unsigned int CELL_SCB1_RHO1_RHOV1       = (1<<15);
-
+      const unsigned int CELL_E1                  = (1<<11);
+      const unsigned int CELL_PERB_RHO_RHOV       = (1<<12);
+      const unsigned int CELL_PERB1_RHO1_RHOV1    = (1<<13);
+      const unsigned int CELL_BGB                 = (1<<14);
+      
       const unsigned int ALL_DATA =
       CELL_PARAMETERS
       | CELL_DERIVATIVES
@@ -898,28 +898,30 @@ namespace velocity_neighbor {
             }
 
             // send  scBX, scBY, scBZ, bgBX,bgBY,bgBZ,RHO, RHOVX, RHOVY, RHOVZ (order in enum should never change(!)
-            if((SpatialCell::mpi_transfer_type & Transfer::CELL_B_RHO_RHOV)!=0){
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_PERB_RHO_RHOV)!=0){
                displacements.push_back((uint8_t*) &(this->parameters[CellParams::scBX]) - (uint8_t*) this);
-               block_lengths.push_back(sizeof(Real) * 10);
+               block_lengths.push_back(sizeof(Real) * 7);
             }
             
             // send  BX1, BY1, BZ1, RHO1, RHOVX1, RHOVY1, RHOVZ1 (order in enum should never change(!)
-            if((SpatialCell::mpi_transfer_type & Transfer::CELL_SCB1_RHO1_RHOV1)!=0){
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_PERB1_RHO1_RHOV1)!=0){
 	       displacements.push_back((uint8_t*) &(this->parameters[CellParams::scBX1]) - (uint8_t*) this);
 	       block_lengths.push_back(sizeof(Real) * 7);
 	    }
-            
-            // send  EX, EY, EZ, BX, BY, BZ (order in enum should never change(!)
-            if((SpatialCell::mpi_transfer_type & Transfer::CELL_EB)!=0){
-	       displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX]) - (uint8_t*) this);
-	       block_lengths.push_back(sizeof(Real) * 6);
-	    }
 
+            // send  bgBX bgBY bgBZ
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_BGB)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::bgBX]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 3);
+            }
+            
             // send  EX, EY EZ
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_E)!=0){
                displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX]) - (uint8_t*) this);
                block_lengths.push_back(sizeof(Real) * 3);
             }
+
+            
             
             // send  EX1, EY1, EZ1
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_E1)!=0){

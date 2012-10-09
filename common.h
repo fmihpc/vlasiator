@@ -97,12 +97,12 @@ namespace CellParams {
       EX,     /*!< Total electric field x-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
       EY,     /*!< Total wlectric field y-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
       EZ,     /*!< Total electric field z-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
-      scBX,     /*!< Self-consistent Magnetic field x-component, averaged over cell x-face. Propagated by field solver.*/
-      scBY,     /*!< Self-consistent Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
-      scBZ,     /*!< Self-consistent Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
       bgBX,    /*!< Background magnetic field x-component, averaged over cell x-face.*/
       bgBY,    /*!< Background magnetic field x-component, averaged over cell x-face.*/
       bgBZ,    /*!< Background magnetic field x-component, averaged over cell x-face.*/
+      scBX,     /*!< Self-consistent Magnetic field x-component, averaged over cell x-face. Propagated by field solver.*/
+      scBY,     /*!< Self-consistent Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
+      scBZ,     /*!< Self-consistent Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
       RHO,    /*!< Number density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOVX,  /*!< x-component of number density times Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOVY,  /*!< y-component of number density times Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/

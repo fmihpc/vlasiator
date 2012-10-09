@@ -237,15 +237,15 @@ void calcCellParameters(Real* cellParams,creal& t) {
    random_r(&rngDataBuffer, &rndBuffer[1]);
    random_r(&rngDataBuffer, &rndBuffer[2]);
 
-   cellParams[CellParams::bgBX] = 0.0;
-   cellParams[CellParams::bgBY] = 0.0;
-   cellParams[CellParams::bgBZ] = 0.0;
+   cellParams[CellParams::scBX] = 0.0;
+   cellParams[CellParams::scBY] = 0.0;
+   cellParams[CellParams::scBZ] = 0.0;
    
-   cellParams[CellParams::scBX] = DispP::B0 * cos(DispP::angleXY) * cos(DispP::angleXZ) +
+   cellParams[CellParams::bgBX] = DispP::B0 * cos(DispP::angleXY) * cos(DispP::angleXZ) +
       DispP::magXPertAbsAmp * (0.5 - (double)rndBuffer[0] / (double)RAND_MAX);
-   cellParams[CellParams::scBY] = DispP::B0 * sin(DispP::angleXY) * cos(DispP::angleXZ) + 
+   cellParams[CellParams::bgBY] = DispP::B0 * sin(DispP::angleXY) * cos(DispP::angleXZ) + 
       DispP::magYPertAbsAmp * (0.5 - (double)rndBuffer[1] / (double)RAND_MAX);
-   cellParams[CellParams::scBZ] = DispP::B0 * sin(DispP::angleXZ) +
+   cellParams[CellParams::bgBZ] = DispP::B0 * sin(DispP::angleXZ) +
       DispP::magZPertAbsAmp * (0.5 - (double)rndBuffer[2] / (double)RAND_MAX);
 }
 

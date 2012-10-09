@@ -1395,9 +1395,10 @@ bool initializeFieldPropagatorAfterRebalance(
 
    calculateSysBoundaryFlags(mpiGrid,localCells);
 
-   //need this when computing magnetic field later on
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_E);
-   int timer=phiprof::initializeTimer("Communicate electric fields","MPI","Wait");
+   //need E when computing magnetic field later on
+   // ASSUME STATIC background field, we do not later on explicitly transfer it!
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_E | Transfer::CELL_BGB);
+   int timer=phiprof::initializeTimer("Communicate E and BGB","MPI","Wait");
    phiprof::start(timer);
    mpiGrid.update_remote_neighbor_data();
    phiprof::stop(timer);
@@ -1483,6 +1484,13 @@ bool initializeFieldPropagator(
    PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,0,1)); // -y nbr
    PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,2,1)); // +y nbr
    
+
+   // ASSUME STATIC background field, we do not later on explicitly transfer it
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_BGB);
+   int timer=phiprof::initializeTimer("Communicate BGB","MPI","Wait");
+   phiprof::start(timer);
+   mpiGrid.update_remote_neighbor_data();
+   phiprof::stop(timer);
    // Calculate derivatives and upwinded edge-E. Exchange derivatives 
    // and edge-E:s between neighbouring processes and calculate 
    // face-averaged E,B fields.
@@ -1553,13 +1561,12 @@ void calculateDerivativesSimple(
    
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       // Exchange scBX,scBY,scBZ,bgBX,bgBY,bgBZ,RHO,RHOVX,RHOVY,RHOVZ with neighbours
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_B_RHO_RHOV);
-   } else { // RKCase == RK_ORDER2_STEP1
+      SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB_RHO_RHOV);
+   } else { // RKCase == RK_ORDER2_STEP1        
       // Exchange BX1,BY1,BZ1,RHO1,RHOVX1,RHOVY1,RHOVZ1 with neighbours
-      //no need to transfer background field, it is up to date after previous transfer
-      //FIXME: background should only be needed to be transferred after loadBalance, or even just recomputed.
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_SCB1_RHO1_RHOV1);
+      SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB1_RHO1_RHOV1);
    }
+   
    timer=phiprof::initializeTimer("Start comm of scB, bgB  and RHOV","MPI");
    phiprof::start(timer);
    mpiGrid.start_remote_neighbor_data_update();
