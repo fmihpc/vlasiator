@@ -171,9 +171,9 @@ namespace DRO {
    }
    
    bool VariableB::setSpatialCell(const SpatialCell* cell) {
-      B[0] = cell->parameters[CellParams::scBX] +  cell->parameters[CellParams::bgBX];
-      B[1] = cell->parameters[CellParams::scBY] +  cell->parameters[CellParams::bgBY];
-      B[2] = cell->parameters[CellParams::scBZ] +  cell->parameters[CellParams::bgBZ];
+      B[0] = cell->parameters[CellParams::PERBX] +  cell->parameters[CellParams::BGBX];
+      B[1] = cell->parameters[CellParams::PERBY] +  cell->parameters[CellParams::BGBY];
+      B[2] = cell->parameters[CellParams::PERBZ] +  cell->parameters[CellParams::BGBZ];
       return true;
    }
    
@@ -197,7 +197,7 @@ namespace DRO {
    }
    
    bool VariableScB::setSpatialCell(const SpatialCell* cell) {
-      B  = &(cell->parameters[CellParams::scBX]);
+      B  = &(cell->parameters[CellParams::PERBX]);
       return true;
    }
 
@@ -219,7 +219,7 @@ namespace DRO {
    }
    
    bool VariableBgB::setSpatialCell(const SpatialCell* cell) {
-      B  = &(cell->parameters[CellParams::bgBX]);
+      B  = &(cell->parameters[CellParams::BGBX]);
       return true;
    }
 
@@ -733,19 +733,19 @@ namespace DRO {
       
       Real value = 0.0;
       if(cx > Parameters::xmax - 2.0 * dx && cx < Parameters::xmax - dx) {
-	 value += cell->parameters[CellParams::scBX];
+	 value += cell->parameters[CellParams::PERBX];
       } else if (cx < Parameters::xmin + 2.0 * dx && cx > Parameters::xmin + dx) {
-	 value += -1.0*cell->parameters[CellParams::scBX];
+	 value += -1.0*cell->parameters[CellParams::PERBX];
       }
       if(cy > Parameters::ymax - 2.0 * dy && cy < Parameters::ymax - dy) {
-	 value += cell->parameters[CellParams::scBY];
+	 value += cell->parameters[CellParams::PERBY];
       } else if (cy < Parameters::ymin + 2.0 * dy && cy > Parameters::ymin + dy) {
-	 value += -1.0*cell->parameters[CellParams::scBY];
+	 value += -1.0*cell->parameters[CellParams::PERBY];
       }
       if(cz > Parameters::zmax - 2.0 * dz && cz < Parameters::zmax - dz) {
-	 value += cell->parameters[CellParams::scBZ];
+	 value += cell->parameters[CellParams::PERBZ];
       } else if (cz < Parameters::zmin + 2.0 * dz && cz > Parameters::zmin + dz) {
-	 value += -1.0*cell->parameters[CellParams::scBZ];
+	 value += -1.0*cell->parameters[CellParams::PERBZ];
       }
       *result = value;
       

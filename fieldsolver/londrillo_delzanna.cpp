@@ -285,8 +285,8 @@ static void calculateDerivatives(
          array[fs::dVzdx]  = limiter(divideIfNonZero(left[cp::RHOVZ], left[cp::RHO]),
                                      divideIfNonZero(cent[cp::RHOVZ], cent[cp::RHO]),
                                      divideIfNonZero(rght[cp::RHOVZ], rght[cp::RHO]));
-         array[fs::dBydx]  = limiter(left[cp::bgBY]+left[cp::scBY],cent[cp::bgBY]+cent[cp::scBY],rght[cp::bgBY]+rght[cp::scBY]);
-         array[fs::dBzdx]  = limiter(left[cp::bgBZ]+left[cp::scBZ],cent[cp::bgBZ]+cent[cp::scBZ],rght[cp::bgBZ]+rght[cp::scBZ]);
+         array[fs::dBydx]  = limiter(left[cp::BGBY]+left[cp::PERBY],cent[cp::BGBY]+cent[cp::PERBY],rght[cp::BGBY]+rght[cp::PERBY]);
+         array[fs::dBzdx]  = limiter(left[cp::BGBZ]+left[cp::PERBZ],cent[cp::BGBZ]+cent[cp::PERBZ],rght[cp::BGBZ]+rght[cp::PERBZ]);
       }
       if (RKCase == RK_ORDER2_STEP1) {
          array[fs::drhodx] = limiter(left[cp::RHO1],cent[cp::RHO1],rght[cp::RHO1]);
@@ -299,8 +299,8 @@ static void calculateDerivatives(
          array[fs::dVzdx]  = limiter(divideIfNonZero(left[cp::RHOVZ1], left[cp::RHO1]),
                                      divideIfNonZero(cent[cp::RHOVZ1], cent[cp::RHO1]),
                                      divideIfNonZero(rght[cp::RHOVZ1], rght[cp::RHO1]));
-         array[fs::dBydx]  = limiter(left[cp::bgBY]+left[cp::scBY1],cent[cp::bgBY]+cent[cp::scBY1],rght[cp::bgBY]+rght[cp::scBY1]);
-         array[fs::dBzdx]  = limiter(left[cp::bgBZ]+left[cp::scBZ1],cent[cp::bgBZ]+cent[cp::scBZ1],rght[cp::bgBZ]+rght[cp::scBZ1]);
+         array[fs::dBydx]  = limiter(left[cp::BGBY]+left[cp::PERBY1],cent[cp::BGBY]+cent[cp::PERBY1],rght[cp::BGBY]+rght[cp::PERBY1]);
+         array[fs::dBzdx]  = limiter(left[cp::BGBZ]+left[cp::PERBZ1],cent[cp::BGBZ]+cent[cp::PERBZ1],rght[cp::BGBZ]+rght[cp::PERBZ1]);
       }
    } else {
       fieldSolverBoundaryCondDerivX(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid);
@@ -343,8 +343,8 @@ static void calculateDerivatives(
          array[fs::dVzdy]  = limiter(divideIfNonZero(left[cp::RHOVZ], left[cp::RHO]),
                                      divideIfNonZero(cent[cp::RHOVZ], cent[cp::RHO]),
                                      divideIfNonZero(rght[cp::RHOVZ], rght[cp::RHO]));
-         array[fs::dBxdy]  = limiter(left[cp::bgBX]+left[cp::scBX],cent[cp::bgBX]+cent[cp::scBX],rght[cp::bgBX]+rght[cp::scBX]);
-         array[fs::dBzdy]  = limiter(left[cp::bgBZ]+left[cp::scBZ],cent[cp::bgBZ]+cent[cp::scBZ],rght[cp::bgBZ]+rght[cp::scBZ]);
+         array[fs::dBxdy]  = limiter(left[cp::BGBX]+left[cp::PERBX],cent[cp::BGBX]+cent[cp::PERBX],rght[cp::BGBX]+rght[cp::PERBX]);
+         array[fs::dBzdy]  = limiter(left[cp::BGBZ]+left[cp::PERBZ],cent[cp::BGBZ]+cent[cp::PERBZ],rght[cp::BGBZ]+rght[cp::PERBZ]);
       }
       if (RKCase == RK_ORDER2_STEP1) {
          array[fs::drhody] = limiter(left[cp::RHO1],cent[cp::RHO1],rght[cp::RHO1]);
@@ -357,8 +357,8 @@ static void calculateDerivatives(
          array[fs::dVzdy]  = limiter(divideIfNonZero(left[cp::RHOVZ1], left[cp::RHO1]),
                                      divideIfNonZero(cent[cp::RHOVZ1], cent[cp::RHO1]),
                                      divideIfNonZero(rght[cp::RHOVZ1], rght[cp::RHO1]));
-         array[fs::dBxdy]  = limiter(left[cp::bgBX]+left[cp::scBX1],cent[cp::bgBX]+cent[cp::scBX1],rght[cp::bgBX]+rght[cp::scBX1]);
-         array[fs::dBzdy]  = limiter(left[cp::bgBZ]+left[cp::scBZ1],cent[cp::bgBZ]+cent[cp::scBZ1],rght[cp::bgBZ]+rght[cp::scBZ1]);
+         array[fs::dBxdy]  = limiter(left[cp::BGBX]+left[cp::PERBX1],cent[cp::BGBX]+cent[cp::PERBX1],rght[cp::BGBX]+rght[cp::PERBX1]);
+         array[fs::dBzdy]  = limiter(left[cp::BGBZ]+left[cp::PERBZ1],cent[cp::BGBZ]+cent[cp::PERBZ1],rght[cp::BGBZ]+rght[cp::PERBZ1]);
       }
    } else {
       fieldSolverBoundaryCondDerivY(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid);
@@ -398,8 +398,8 @@ static void calculateDerivatives(
          array[fs::dVzdz]  = limiter(divideIfNonZero(left[cp::RHOVZ], left[cp::RHO]),
                                      divideIfNonZero(cent[cp::RHOVZ], cent[cp::RHO]),
                                      divideIfNonZero(rght[cp::RHOVZ], rght[cp::RHO]));
-         array[fs::dBxdz]  = limiter(left[cp::bgBX]+left[cp::scBX],cent[cp::bgBX]+cent[cp::scBX],rght[cp::bgBX]+rght[cp::scBX]);
-         array[fs::dBydz]  = limiter(left[cp::bgBY]+left[cp::scBY],cent[cp::bgBY]+cent[cp::scBY],rght[cp::bgBY]+rght[cp::scBY]);
+         array[fs::dBxdz]  = limiter(left[cp::BGBX]+left[cp::PERBX],cent[cp::BGBX]+cent[cp::PERBX],rght[cp::BGBX]+rght[cp::PERBX]);
+         array[fs::dBydz]  = limiter(left[cp::BGBY]+left[cp::PERBY],cent[cp::BGBY]+cent[cp::PERBY],rght[cp::BGBY]+rght[cp::PERBY]);
       }
       if (RKCase == RK_ORDER2_STEP1) {
          array[fs::drhodz] = limiter(left[cp::RHO1],cent[cp::RHO1],rght[cp::RHO1]);
@@ -412,8 +412,8 @@ static void calculateDerivatives(
          array[fs::dVzdz]  = limiter(divideIfNonZero(left[cp::RHOVZ1], left[cp::RHO1]),
                                      divideIfNonZero(cent[cp::RHOVZ1], cent[cp::RHO1]),
                                      divideIfNonZero(rght[cp::RHOVZ1], rght[cp::RHO1]));
-         array[fs::dBxdz]  = limiter(left[cp::bgBX]+left[cp::scBX1],cent[cp::bgBX]+cent[cp::scBX1],rght[cp::bgBX]+rght[cp::scBX1]);
-         array[fs::dBydz]  = limiter(left[cp::bgBY]+left[cp::scBY1],cent[cp::bgBY]+cent[cp::scBY1],rght[cp::bgBY]+rght[cp::scBY1]);
+         array[fs::dBxdz]  = limiter(left[cp::BGBX]+left[cp::PERBX1],cent[cp::BGBX]+cent[cp::PERBX1],rght[cp::BGBX]+rght[cp::PERBX1]);
+         array[fs::dBydz]  = limiter(left[cp::BGBY]+left[cp::PERBY1],cent[cp::BGBY]+cent[cp::PERBY1],rght[cp::BGBY]+rght[cp::PERBY1]);
       }
    } else {
       fieldSolverBoundaryCondDerivZ(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid);
@@ -436,12 +436,12 @@ template<typename REAL> REAL calculateFastMSspeedYZ(const REAL* cp, const REAL* 
    namespace pc = physicalconstants;
    REAL A_0, A_X, rho;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      A_0  = HALF*(nbr_cp[CellParams::scBX] + nbr_cp[CellParams::bgBX] + cp[CellParams::scBX] + cp[CellParams::bgBX]);
-      A_X  = (nbr_cp[CellParams::scBX] + nbr_cp[CellParams::bgBX]) - (cp[CellParams::scBX] + cp[CellParams::bgBX]);
+      A_0  = HALF*(nbr_cp[CellParams::PERBX] + nbr_cp[CellParams::BGBX] + cp[CellParams::PERBX] + cp[CellParams::BGBX]);
+      A_X  = (nbr_cp[CellParams::PERBX] + nbr_cp[CellParams::BGBX]) - (cp[CellParams::PERBX] + cp[CellParams::BGBX]);
       rho = Parameters::m*(cp[CellParams::RHO] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz]);
    } else { // RKCase == RK_ORDER2_STEP1
-      A_0  = HALF*(nbr_cp[CellParams::scBX1] + nbr_cp[CellParams::bgBX] + cp[CellParams::scBX1] + cp[CellParams::bgBX]);
-      A_X  = (nbr_cp[CellParams::scBX1] + nbr_cp[CellParams::bgBX]) - (cp[CellParams::scBX1] + cp[CellParams::bgBX]);
+      A_0  = HALF*(nbr_cp[CellParams::PERBX1] + nbr_cp[CellParams::BGBX] + cp[CellParams::PERBX1] + cp[CellParams::BGBX]);
+      A_X  = (nbr_cp[CellParams::PERBX1] + nbr_cp[CellParams::BGBX]) - (cp[CellParams::PERBX1] + cp[CellParams::BGBX]);
       rho = Parameters::m*(cp[CellParams::RHO1] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz]);
    }
    const REAL A_Y  = nbr_derivs[fs::dBxdy]  + derivs[fs::dBxdy];
@@ -477,12 +477,12 @@ template<typename REAL> REAL calculateFastMSspeedXZ(const REAL* cp, const REAL* 
    namespace pc = physicalconstants;
    REAL B_0, B_Y, rho;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      B_0  = HALF*(nbr_cp[CellParams::scBY] + nbr_cp[CellParams::bgBY] + cp[CellParams::scBY] + cp[CellParams::bgBY]);
-      B_Y  = (nbr_cp[CellParams::scBY] + nbr_cp[CellParams::bgBY]) - (cp[CellParams::scBY] + cp[CellParams::bgBY]);
+      B_0  = HALF*(nbr_cp[CellParams::PERBY] + nbr_cp[CellParams::BGBY] + cp[CellParams::PERBY] + cp[CellParams::BGBY]);
+      B_Y  = (nbr_cp[CellParams::PERBY] + nbr_cp[CellParams::BGBY]) - (cp[CellParams::PERBY] + cp[CellParams::BGBY]);
       rho = Parameters::m*(cp[CellParams::RHO] + xdir*HALF*derivs[fs::drhodx] + zdir*HALF*derivs[fs::drhodz]);
    } else { // RKCase == RK_ORDER2_STEP1
-      B_0  = HALF*(nbr_cp[CellParams::scBY1] + nbr_cp[CellParams::bgBY] + cp[CellParams::scBY1] + cp[CellParams::bgBY]);
-      B_Y  = (nbr_cp[CellParams::scBY1] + nbr_cp[CellParams::bgBY]) - (cp[CellParams::scBY1] + cp[CellParams::bgBY]);
+      B_0  = HALF*(nbr_cp[CellParams::PERBY1] + nbr_cp[CellParams::BGBY] + cp[CellParams::PERBY1] + cp[CellParams::BGBY]);
+      B_Y  = (nbr_cp[CellParams::PERBY1] + nbr_cp[CellParams::BGBY]) - (cp[CellParams::PERBY1] + cp[CellParams::BGBY]);
       rho = Parameters::m*(cp[CellParams::RHO1] + xdir*HALF*derivs[fs::drhodx] + zdir*HALF*derivs[fs::drhodz]);
    }
    const REAL B_X  = nbr_derivs[fs::dBydx]  + derivs[fs::dBydx];
@@ -518,12 +518,12 @@ template<typename REAL> REAL calculateFastMSspeedXY(const REAL* cp, const REAL* 
    namespace pc = physicalconstants;
    REAL C_0, C_Z, rho;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      C_0  = HALF*(nbr_cp[CellParams::scBZ] + nbr_cp[CellParams::bgBZ] + cp[CellParams::scBZ] + cp[CellParams::bgBZ]);
-      C_Z  = (nbr_cp[CellParams::scBZ] + nbr_cp[CellParams::bgBZ]) - (cp[CellParams::scBZ] + cp[CellParams::bgBZ]);
+      C_0  = HALF*(nbr_cp[CellParams::PERBZ] + nbr_cp[CellParams::BGBZ] + cp[CellParams::PERBZ] + cp[CellParams::BGBZ]);
+      C_Z  = (nbr_cp[CellParams::PERBZ] + nbr_cp[CellParams::BGBZ]) - (cp[CellParams::PERBZ] + cp[CellParams::BGBZ]);
       rho = Parameters::m*(cp[CellParams::RHO] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody]);
    } else { // RKCase == RK_ORDER2_STEP1
-      C_0  = HALF*(nbr_cp[CellParams::scBZ1] + nbr_cp[CellParams::bgBZ] + cp[CellParams::scBZ1] + cp[CellParams::bgBZ]);
-      C_Z  = (nbr_cp[CellParams::scBZ1] + nbr_cp[CellParams::bgBZ]) - (cp[CellParams::scBZ1] + cp[CellParams::bgBZ]);
+      C_0  = HALF*(nbr_cp[CellParams::PERBZ1] + nbr_cp[CellParams::BGBZ] + cp[CellParams::PERBZ1] + cp[CellParams::BGBZ]);
+      C_Z  = (nbr_cp[CellParams::PERBZ1] + nbr_cp[CellParams::BGBZ]) - (cp[CellParams::PERBZ1] + cp[CellParams::BGBZ]);
       rho = Parameters::m*(cp[CellParams::RHO1] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody]);
    }
    const REAL C_X  = nbr_derivs[fs::dBzdx]  + derivs[fs::dBzdx];
@@ -587,17 +587,17 @@ static void calculateEdgeElectricFieldX(
    
    Real By_S, Bz_W, Bz_E, By_N;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      By_S = cp_SW[CellParams::scBY]+cp_SW[CellParams::bgBY];
-      Bz_W = cp_SW[CellParams::scBZ]+cp_SW[CellParams::bgBZ];
-      Bz_E = cp_SE[CellParams::scBZ]+cp_SE[CellParams::bgBZ];
-      By_N = cp_NW[CellParams::scBY]+cp_NW[CellParams::bgBY];
+      By_S = cp_SW[CellParams::PERBY]+cp_SW[CellParams::BGBY];
+      Bz_W = cp_SW[CellParams::PERBZ]+cp_SW[CellParams::BGBZ];
+      Bz_E = cp_SE[CellParams::PERBZ]+cp_SE[CellParams::BGBZ];
+      By_N = cp_NW[CellParams::PERBY]+cp_NW[CellParams::BGBY];
       Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY], cp_SW[CellParams::RHO]);
       Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ], cp_SW[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
-      By_S = cp_SW[CellParams::scBY1]+cp_SW[CellParams::bgBY];
-      Bz_W = cp_SW[CellParams::scBZ1]+cp_SW[CellParams::bgBZ];
-      Bz_E = cp_SE[CellParams::scBZ1]+cp_SE[CellParams::bgBZ];
-      By_N = cp_NW[CellParams::scBY1]+cp_NW[CellParams::bgBY];
+      By_S = cp_SW[CellParams::PERBY1]+cp_SW[CellParams::BGBY];
+      Bz_W = cp_SW[CellParams::PERBZ1]+cp_SW[CellParams::BGBZ];
+      Bz_E = cp_SE[CellParams::PERBZ1]+cp_SE[CellParams::BGBZ];
+      By_N = cp_NW[CellParams::PERBY1]+cp_NW[CellParams::BGBY];
       Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY1], cp_SW[CellParams::RHO1]);
       Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ1], cp_SW[CellParams::RHO1]);
    }
@@ -808,17 +808,17 @@ static void calculateEdgeElectricFieldY(
    // Fetch required plasma parameters:
    Real Bz_S, Bx_W, Bx_E, Bz_N;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Bz_S = cp_SW[CellParams::scBZ]+cp_SW[CellParams::bgBZ];
-      Bx_W = cp_SW[CellParams::scBX]+cp_SW[CellParams::bgBX];
-      Bx_E = cp_SE[CellParams::scBX]+cp_SE[CellParams::bgBX];
-      Bz_N = cp_NW[CellParams::scBZ]+cp_NW[CellParams::bgBZ];
+      Bz_S = cp_SW[CellParams::PERBZ]+cp_SW[CellParams::BGBZ];
+      Bx_W = cp_SW[CellParams::PERBX]+cp_SW[CellParams::BGBX];
+      Bx_E = cp_SE[CellParams::PERBX]+cp_SE[CellParams::BGBX];
+      Bz_N = cp_NW[CellParams::PERBZ]+cp_NW[CellParams::BGBZ];
       Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX], cp_SW[CellParams::RHO]);
       Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ], cp_SW[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
-      Bz_S = cp_SW[CellParams::scBZ1]+cp_SW[CellParams::bgBZ];
-      Bx_W = cp_SW[CellParams::scBX1]+cp_SW[CellParams::bgBX];
-      Bx_E = cp_SE[CellParams::scBX1]+cp_SE[CellParams::bgBX];
-      Bz_N = cp_NW[CellParams::scBZ1]+cp_NW[CellParams::bgBZ];
+      Bz_S = cp_SW[CellParams::PERBZ1]+cp_SW[CellParams::BGBZ];
+      Bx_W = cp_SW[CellParams::PERBX1]+cp_SW[CellParams::BGBX];
+      Bx_E = cp_SE[CellParams::PERBX1]+cp_SE[CellParams::BGBX];
+      Bz_N = cp_NW[CellParams::PERBZ1]+cp_NW[CellParams::BGBZ];
       Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX1], cp_SW[CellParams::RHO1]);
       Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ1], cp_SW[CellParams::RHO1]);
    }
@@ -1026,17 +1026,17 @@ static void calculateEdgeElectricFieldZ(
    // Fetch needed plasma parameters/derivatives from the four cells:
    Real Bx_S, By_W, By_E, Bx_N;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Bx_S    = cp_SW[CellParams::scBX] + cp_SW[CellParams::bgBX];
-      By_W    = cp_SW[CellParams::scBY] + cp_SW[CellParams::bgBY];
-      By_E    = cp_SE[CellParams::scBY] + cp_SE[CellParams::bgBY];
-      Bx_N    = cp_NW[CellParams::scBX] + cp_NW[CellParams::bgBX];
+      Bx_S    = cp_SW[CellParams::PERBX] + cp_SW[CellParams::BGBX];
+      By_W    = cp_SW[CellParams::PERBY] + cp_SW[CellParams::BGBY];
+      By_E    = cp_SE[CellParams::PERBY] + cp_SE[CellParams::BGBY];
+      Bx_N    = cp_NW[CellParams::PERBX] + cp_NW[CellParams::BGBX];
       Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX], cp_SW[CellParams::RHO]);
       Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY], cp_SW[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
-      Bx_S    = cp_SW[CellParams::scBX1] + cp_SW[CellParams::bgBX];
-      By_W    = cp_SW[CellParams::scBY1] + cp_SW[CellParams::bgBY];
-      By_E    = cp_SE[CellParams::scBY1] + cp_SE[CellParams::bgBY];
-      Bx_N    = cp_NW[CellParams::scBX1] + cp_NW[CellParams::bgBX];
+      Bx_S    = cp_SW[CellParams::PERBX1] + cp_SW[CellParams::BGBX];
+      By_W    = cp_SW[CellParams::PERBY1] + cp_SW[CellParams::BGBY];
+      By_E    = cp_SE[CellParams::PERBY1] + cp_SE[CellParams::BGBY];
+      Bx_N    = cp_NW[CellParams::PERBX1] + cp_NW[CellParams::BGBX];
       Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX1], cp_SW[CellParams::RHO1]);
       Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY1], cp_SW[CellParams::RHO1]);
    }
@@ -1276,13 +1276,13 @@ static void propagateMagneticField(
       cp2 = mpiGrid[nbrID]->parameters;
 
       # ifdef FS_1ST_ORDER_TIME
-      cp0[CellParams::scBX] += dt/dz*(cp2[CellParams::EY] - cp0[CellParams::EY]) + dt/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ]);
+      cp0[CellParams::PERBX] += dt/dz*(cp2[CellParams::EY] - cp0[CellParams::EY]) + dt/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ]);
       # else
       if(RKCase == RK_ORDER2_STEP1) {
-         cp0[CellParams::scBX1] = cp0[CellParams::scBX] +
+         cp0[CellParams::PERBX1] = cp0[CellParams::PERBX] +
          Parameters::RK_alpha*dt*(1.0/dz*(cp2[CellParams::EY] - cp0[CellParams::EY]) + 1.0/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ]));
       } else {
-         cp0[CellParams::scBX] += dt * ((1.0 - 0.5/Parameters::RK_alpha) * (1.0/dz*(cp2[CellParams::EY] -cp0[CellParams::EY]) +
+         cp0[CellParams::PERBX] += dt * ((1.0 - 0.5/Parameters::RK_alpha) * (1.0/dz*(cp2[CellParams::EY] -cp0[CellParams::EY]) +
                                                                             1.0/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ])) +
                                         0.5/Parameters::RK_alpha * (1.0/dz*(cp2[CellParams::EY1] - cp0[CellParams::EY1]) +
                                                                     1.0/dy*(cp0[CellParams::EZ1] - cp1[CellParams::EZ1]))
@@ -1324,13 +1324,13 @@ static void propagateMagneticField(
       cp2 = mpiGrid[nbrID]->parameters;
 
       # ifdef FS_1ST_ORDER_TIME
-      cp0[CellParams::scBY] += dt/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) + dt/dz*(cp0[CellParams::EX] - cp1[CellParams::EX]);
+      cp0[CellParams::PERBY] += dt/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) + dt/dz*(cp0[CellParams::EX] - cp1[CellParams::EX]);
       # else
       if(RKCase == RK_ORDER2_STEP1) {
-         cp0[CellParams::scBY1] = cp0[CellParams::scBY] +
+         cp0[CellParams::PERBY1] = cp0[CellParams::PERBY] +
          Parameters::RK_alpha*dt*(1.0/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) + 1.0/dz*(cp0[CellParams::EX] - cp1[CellParams::EX]));
       } else {
-         cp0[CellParams::scBY] += dt * ((1.0 - 0.5/Parameters::RK_alpha) * (1.0/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) +
+         cp0[CellParams::PERBY] += dt * ((1.0 - 0.5/Parameters::RK_alpha) * (1.0/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) +
                                                                             1.0/dz*(cp0[CellParams::EX] - cp1[CellParams::EX])) + 
                                         0.5/Parameters::RK_alpha * (1.0/dx*(cp2[CellParams::EZ1] - cp0[CellParams::EZ1]) +
                                                                     1.0/dz*(cp0[CellParams::EX1] - cp1[CellParams::EX1]))
@@ -1372,13 +1372,13 @@ static void propagateMagneticField(
       cp2 = mpiGrid[nbrID]->parameters;
       
       # ifdef FS_1ST_ORDER_TIME
-      cp0[CellParams::scBZ] += dt/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) + dt/dx*(cp0[CellParams::EY] - cp1[CellParams::EY]);
+      cp0[CellParams::PERBZ] += dt/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) + dt/dx*(cp0[CellParams::EY] - cp1[CellParams::EY]);
       # else
       if(RKCase == RK_ORDER2_STEP1) {
-         cp0[CellParams::scBZ1] = cp0[CellParams::scBZ] +
+         cp0[CellParams::PERBZ1] = cp0[CellParams::PERBZ] +
          Parameters::RK_alpha*dt*(1.0/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) + 1.0/dx*(cp0[CellParams::EY] - cp1[CellParams::EY]));
       } else {
-         cp0[CellParams::scBZ] += dt * ((1.0 - 0.5/Parameters::RK_alpha) * (1.0/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) +
+         cp0[CellParams::PERBZ] += dt * ((1.0 - 0.5/Parameters::RK_alpha) * (1.0/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) +
                                                                           1.0/dx*(cp0[CellParams::EY] - cp1[CellParams::EY])) +
          0.5/Parameters::RK_alpha * (1.0/dy*(cp2[CellParams::EX1] - cp0[CellParams::EX1]) +
                                      1.0/dx*(cp0[CellParams::EY1] - cp1[CellParams::EY1])));
@@ -1560,14 +1560,14 @@ void calculateDerivativesSimple(
    }
    
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      // Exchange scBX,scBY,scBZ,bgBX,bgBY,bgBZ,RHO,RHOVX,RHOVY,RHOVZ with neighbours
+      // Exchange PERBX,PERBY,PERBZ,BGBX,BGBY,BGBZ,RHO,RHOVX,RHOVY,RHOVZ with neighbours
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB_RHO_RHOV);
    } else { // RKCase == RK_ORDER2_STEP1        
       // Exchange BX1,BY1,BZ1,RHO1,RHOVX1,RHOVY1,RHOVZ1 with neighbours
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB1_RHO1_RHOV1);
    }
    
-   timer=phiprof::initializeTimer("Start comm of scB, bgB  and RHOV","MPI");
+   timer=phiprof::initializeTimer("Start comm of PERB, BGB  and RHOV","MPI");
    phiprof::start(timer);
    mpiGrid.start_remote_neighbor_data_update();
    phiprof::stop(timer);
@@ -1730,21 +1730,21 @@ static void propagateMagneticFieldSimple(
       }
 
       if ((existingCells & PROPAGATE_BX) != PROPAGATE_BX) {
-         mpiGrid[cellID]->parameters[CellParams::scBX] = fieldSolverBoundaryCondBx<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
+         mpiGrid[cellID]->parameters[CellParams::PERBX] = fieldSolverBoundaryCondBx<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
          if(RKCase == RK_ORDER2_STEP1) { // WARNING not correct for time-varying boundary conditions
-            mpiGrid[cellID]->parameters[CellParams::scBX1] = mpiGrid[cellID]->parameters[CellParams::scBX];
+            mpiGrid[cellID]->parameters[CellParams::PERBX1] = mpiGrid[cellID]->parameters[CellParams::PERBX];
          }
       }
       if ((existingCells & PROPAGATE_BY) != PROPAGATE_BY) {
-         mpiGrid[cellID]->parameters[CellParams::scBY] = fieldSolverBoundaryCondBy<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
+         mpiGrid[cellID]->parameters[CellParams::PERBY] = fieldSolverBoundaryCondBy<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
          if(RKCase == RK_ORDER2_STEP1) { // WARNING not correct for time-varying boundary conditions
-            mpiGrid[cellID]->parameters[CellParams::scBY1] = mpiGrid[cellID]->parameters[CellParams::scBY];
+            mpiGrid[cellID]->parameters[CellParams::PERBY1] = mpiGrid[cellID]->parameters[CellParams::PERBY];
          }
       }
       if ((existingCells & PROPAGATE_BZ) != PROPAGATE_BZ) {
-         mpiGrid[cellID]->parameters[CellParams::scBZ] = fieldSolverBoundaryCondBz<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
+         mpiGrid[cellID]->parameters[CellParams::PERBZ] = fieldSolverBoundaryCondBz<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
          if(RKCase == RK_ORDER2_STEP1) { // WARNING not correct for time-varying boundary conditions
-            mpiGrid[cellID]->parameters[CellParams::scBZ1] = mpiGrid[cellID]->parameters[CellParams::scBZ];
+            mpiGrid[cellID]->parameters[CellParams::PERBZ1] = mpiGrid[cellID]->parameters[CellParams::PERBZ];
          }
       }
    }
@@ -1859,7 +1859,7 @@ void reconstructionCoefficients(
       CHECK_FLOAT(result[Rec::a_xy])
       result[Rec::a_xz] = der_i2j1k1[fs::dBxdz] - der_i1j1k1[fs::dBxdz];
       CHECK_FLOAT(result[Rec::a_xz])
-      result[Rec::a_x ] = (cep_i2j1k1[cp::scBX] + cep_i2j1k1[cp::bgBX]) - (cep_i1j1k1[cp::scBX] + cep_i1j1k1[cp::bgBX]);
+      result[Rec::a_x ] = (cep_i2j1k1[cp::PERBX] + cep_i2j1k1[cp::BGBX]) - (cep_i1j1k1[cp::PERBX] + cep_i1j1k1[cp::BGBX]);
       CHECK_FLOAT(result[Rec::a_x ])
       result[Rec::a_y ] = HALF*(der_i2j1k1[fs::dBxdy] + der_i1j1k1[fs::dBxdy]);
       CHECK_FLOAT(result[Rec::a_y ])
@@ -1872,7 +1872,7 @@ void reconstructionCoefficients(
       CHECK_FLOAT(result[Rec::b_yz])
       result[Rec::b_x ] = HALF*(der_i1j2k1[fs::dBydx] + der_i1j1k1[fs::dBydx]);
       CHECK_FLOAT(result[Rec::b_x ])
-      result[Rec::b_y ] = (cep_i1j2k1[cp::scBY] + cep_i1j2k1[cp::bgBY]) - (cep_i1j1k1[cp::scBY] + cep_i1j1k1[cp::bgBY]);
+      result[Rec::b_y ] = (cep_i1j2k1[cp::PERBY] + cep_i1j2k1[cp::BGBY]) - (cep_i1j1k1[cp::PERBY] + cep_i1j1k1[cp::BGBY]);
       CHECK_FLOAT(result[Rec::b_y ])
       result[Rec::b_z ] = HALF*(der_i1j2k1[fs::dBydz] + der_i1j1k1[fs::dBydz]);
       CHECK_FLOAT(result[Rec::b_z ])
@@ -1885,7 +1885,7 @@ void reconstructionCoefficients(
       CHECK_FLOAT(result[Rec::c_x ])
       result[Rec::c_y ] = HALF*(der_i1j1k2[fs::dBzdy] + der_i1j1k1[fs::dBzdy]);
       CHECK_FLOAT(result[Rec::c_y ])
-      result[Rec::c_z ] = (cep_i1j1k2[cp::scBZ] + cep_i1j1k2[cp::bgBZ]) - (cep_i1j1k1[cp::scBZ] + cep_i1j1k1[cp::bgBZ]);
+      result[Rec::c_z ] = (cep_i1j1k2[cp::PERBZ] + cep_i1j1k2[cp::BGBZ]) - (cep_i1j1k1[cp::PERBZ] + cep_i1j1k1[cp::BGBZ]);
       CHECK_FLOAT(result[Rec::c_z ])
    
       result[Rec::a_xx] = -HALF*(result[Rec::b_yx] + result[Rec::c_zx]);
@@ -1899,11 +1899,11 @@ void reconstructionCoefficients(
    #endif
    
    // Calculate 1st order reconstruction coefficients:
-   result[Rec::a_0 ] = HALF*(cep_i2j1k1[cp::scBX] + cep_i2j1k1[cp::bgBX] + cep_i1j1k1[cp::scBX] + cep_i1j1k1[cp::bgBX]) - SIXTH*result[Rec::a_xx];
+   result[Rec::a_0 ] = HALF*(cep_i2j1k1[cp::PERBX] + cep_i2j1k1[cp::BGBX] + cep_i1j1k1[cp::PERBX] + cep_i1j1k1[cp::BGBX]) - SIXTH*result[Rec::a_xx];
    CHECK_FLOAT(result[Rec::a_0 ])
-   result[Rec::b_0 ] = HALF*(cep_i1j2k1[cp::scBY] + cep_i1j2k1[cp::bgBY] + cep_i1j1k1[cp::scBY] + cep_i1j1k1[cp::bgBY]) - SIXTH*result[Rec::b_yy];
+   result[Rec::b_0 ] = HALF*(cep_i1j2k1[cp::PERBY] + cep_i1j2k1[cp::BGBY] + cep_i1j1k1[cp::PERBY] + cep_i1j1k1[cp::BGBY]) - SIXTH*result[Rec::b_yy];
    CHECK_FLOAT(result[Rec::b_0 ])
-   result[Rec::c_0 ] = HALF*(cep_i1j1k2[cp::scBZ] + cep_i1j1k2[cp::bgBZ] + cep_i1j1k1[cp::scBZ] + cep_i1j1k1[cp::bgBZ]) - SIXTH*result[Rec::c_zz];
+   result[Rec::c_0 ] = HALF*(cep_i1j1k2[cp::PERBZ] + cep_i1j1k2[cp::BGBZ] + cep_i1j1k1[cp::PERBZ] + cep_i1j1k1[cp::BGBZ]) - SIXTH*result[Rec::c_zz];
    CHECK_FLOAT(result[Rec::c_0 ])
 }
 
