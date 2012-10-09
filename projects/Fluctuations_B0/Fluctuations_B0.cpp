@@ -237,13 +237,13 @@ void calcCellParameters(Real* cellParams,creal& t) {
    random_r(&rngDataBuffer, &rndBuffer[1]);
    random_r(&rngDataBuffer, &rndBuffer[2]);
    
-   cellParams[CellParams::BX0] = FlucP::BX0;
-   cellParams[CellParams::BY0] = FlucP::BY0;
-   cellParams[CellParams::BZ0] = FlucP::BZ0;
+   cellParams[CellParams::BGBX] = FlucP::BX0;
+   cellParams[CellParams::BGBY] = FlucP::BY0;
+   cellParams[CellParams::BGBZ] = FlucP::BZ0;
    
-   cellParams[CellParams::BX] = FlucP::magXPertAbsAmp * (0.5 - (double)rndBuffer[0] / (double)RAND_MAX);
-   cellParams[CellParams::BY] = FlucP::magYPertAbsAmp * (0.5 - (double)rndBuffer[1] / (double)RAND_MAX);
-   cellParams[CellParams::BZ] = FlucP::magZPertAbsAmp * (0.5 - (double)rndBuffer[2] / (double)RAND_MAX);
+   cellParams[CellParams::PERBX] = FlucP::magXPertAbsAmp * (0.5 - (double)rndBuffer[0] / (double)RAND_MAX);
+   cellParams[CellParams::PERBY] = FlucP::magYPertAbsAmp * (0.5 - (double)rndBuffer[1] / (double)RAND_MAX);
+   cellParams[CellParams::PERBZ] = FlucP::magZPertAbsAmp * (0.5 - (double)rndBuffer[2] / (double)RAND_MAX);
 }
 
 // TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...

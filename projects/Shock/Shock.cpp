@@ -224,21 +224,12 @@ void calcCellParameters(Real* cellParams,creal& t) {
    cellParams[CellParams::EX   ] = 0.0;
    cellParams[CellParams::EY   ] = 0.0;
    cellParams[CellParams::EZ   ] = 0.0;
-   cellParams[CellParams::BX   ] = 0.0;
-   cellParams[CellParams::BY   ] = 0.0;
-   cellParams[CellParams::BZ   ] = GradBP::BZ0*(3.0 + 2.0*tanh((y - Parameters::ymax/2.0)/(GradBP::Sharp_Y*Parameters::ymax)));
-   // cellParams[CellParams::BZ   ] = GradBP::BZ0*(1.0 + GradBP::DelB*y/Parameters::ymax);
-   
-   cellParams[CellParams::EXVOL   ] = GradBP::EX0;
-   //cellParams[CellParams::EXVOL   ] = -1.0e-5;
-   
-   
-   cellParams[CellParams::BXVOL   ] = 0.0;
-   cellParams[CellParams::BYVOL   ] = 0.0;
-   cellParams[CellParams::BZVOL   ] = GradBP::BZ0*(3.0 + 2.0*tanh((y - 3.0*Parameters::ymax/4.0)/(GradBP::Sharp_Y*Parameters::ymax)));
-   //cellParams[CellParams::BZVOL   ] = GradBP::BZ0*(3.0 + 2.0*tanh((y - (x-0.5*Parameters::xmax)/10.0 - 3.0*Parameters::ymax/4.0) / 
-   // (GradBP::Sharp_Y*Parameters::ymax)));
-   //cellParams[CellParams::BZVOL   ] = GradBP::BZ0*(1.0 + GradBP::DelB*y/Parameters::ymax);
+   cellParams[CellParams::PERBX   ] = 0.0;
+   cellParams[CellParams::PERBY   ] = 0.0;
+   cellParams[CellParams::PERBZ   ] = 0.0;
+   cellParams[CellParams::BGBX   ] = 0.0;
+   cellParams[CellParams::BGBY   ] = 0.0;
+   cellParams[CellParams::BGBZ   ] = GradBP::BZ0*(3.0 + 2.0*tanh((y - Parameters::ymax/2.0)/(GradBP::Sharp_Y*Parameters::ymax)));
 }
 
 // TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...

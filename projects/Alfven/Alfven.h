@@ -73,7 +73,9 @@ void calcBlockParameters(Real* blockParams);
 
 /** Calculate parameters for the given spatial cell at the given time.
  * Here you need to set values for the following array indices:
- * CellParams::EX, CellParams::EY, CellParams::EZ, CellParams::BX, CellParams::BY, and CellParams::BZ.
+ * CellParams::EX, CellParams::EY, CellParams::EZ,
+ * CellParams::PERBX, CellParams::PERBY, and CellParams::PERBZ.
+ * CellParams::BGBX, CellParams::BGBY, and CellParams::BGBZ.
  * 
  * The following array indices contain the coordinates of the "lower left corner" of the cell: 
  * CellParams::XCRD, CellParams::YCRD, and CellParams::ZCRD.

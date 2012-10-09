@@ -230,9 +230,12 @@ void calcCellParameters(Real* cellParams,creal& t) {
    cellParams[CellParams::EX   ] = 0.0;
    cellParams[CellParams::EY   ] = 0.0;
    cellParams[CellParams::EZ   ] = 0.0;
-   cellParams[CellParams::scBX   ] = Bxavg / nPts;
-   cellParams[CellParams::scBY   ] = Byavg / nPts;
-   cellParams[CellParams::scBZ   ] = Bzavg / nPts;
+   cellParams[CellParams::PERBX   ] = 0.0;
+   cellParams[CellParams::PERBY   ] = 0.0;
+   cellParams[CellParams::PERBZ   ] = 0.0;
+   cellParams[CellParams::BGBX   ] = Bxavg / nPts;
+   cellParams[CellParams::BGBY   ] = Byavg / nPts;
+   cellParams[CellParams::BGBZ   ] = Bzavg / nPts;
 }
 
 // TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...

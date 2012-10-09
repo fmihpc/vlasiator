@@ -169,9 +169,9 @@ void calcCellParameters(Real* cellParams,creal& t) {
    cellParams[CellParams::EX   ] = 0.0;
    cellParams[CellParams::EY   ] = 0.0;
    cellParams[CellParams::EZ   ] = 0.0;
-   cellParams[CellParams::BX   ] = 0.0;
-   cellParams[CellParams::BY   ] = 0.0;
-   cellParams[CellParams::BZ   ] = 0.0;
+   cellParams[CellParams::PERBX   ] = 0.0;
+   cellParams[CellParams::PERBY   ] = 0.0;
+   cellParams[CellParams::PERBZ   ] = 0.0;
    
    cellParams[CellParams::EXVOL] = 0.0;
    cellParams[CellParams::EYVOL] = 0.0;

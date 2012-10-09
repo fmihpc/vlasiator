@@ -136,9 +136,12 @@ void calcCellParameters(Real* cellParams,creal& t) {
    cellParams[CellParams::EX   ] = -1.0*(x+0.5*dx);
    cellParams[CellParams::EY   ] = 0.0;
    cellParams[CellParams::EZ   ] = 0.0;
-   cellParams[CellParams::BX   ] = 0.0;
-   cellParams[CellParams::BY   ] = 0.0;
-   cellParams[CellParams::BZ   ] = 0.0;
+   cellParams[CellParams::PERBX   ] = 0.0;
+   cellParams[CellParams::PERBY   ] = 0.0;
+   cellParams[CellParams::PERBZ   ] = 0.0;
+   cellParams[CellParams::BGBX   ] = 0.0;
+   cellParams[CellParams::BGBY   ] = 0.0;
+   cellParams[CellParams::BGBZ   ] = 0.0;
    
    // Volume-averaged fields need to be set:
    cellParams[CellParams::EXVOL] = -1.0*(x+0.5*dx);
