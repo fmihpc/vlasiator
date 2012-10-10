@@ -850,27 +850,26 @@ namespace DRO {
    bool MaxDistributionFunction::reduceData(const SpatialCell* cell,Real* buffer) {
       const Real HALF = 0.5;
       
-      maxF = 0.0;
-      
-      for(uint n=0; n<cell->number_of_blocks; n++) {
-         unsigned int blockId = cell->velocity_block_list[n];
-         const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
-         for (uint k=0; k<WID; ++k)
-            for (uint j=0; j<WID; ++j)
-               for (uint i=0; i<WID; ++i) {
-                  const int celli=k*WID*WID+j*WID+i;
-                  
-                  const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
-                  const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
-                  const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
-                  
-                  const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
-                  
-                  if(block->data[celli]!=0.0){
-                     maxF = max(cell->get_value(VX, VY, VZ), maxF);
+#pragma omp parallel 
+      {
+         Real threadMax = std::numeric_limits<Real>::min();
+#pragma omp for
+         for(uint n=0; n<cell->number_of_blocks; n++) {
+            unsigned int blockId = cell->velocity_block_list[n];
+            const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
+            for (uint k=0; k<WID; ++k)
+               for (uint j=0; j<WID; ++j)
+                  for (uint i=0; i<WID; ++i) {
+                     const int celli=k*WID*WID+j*WID+i;
+                     threadMax = max(block->data[celli], threadMax);
                   }
-               }
+         }
+#pragma omp critical
+         {
+            maxF = max(threadMax, maxF);
+         }
       }
+      
       *buffer = maxF;
       return true;
    }
@@ -905,27 +904,26 @@ namespace DRO {
    bool MinDistributionFunction::reduceData(const SpatialCell* cell,Real* buffer) {
       const Real HALF = 0.5;
       
-      minF = 0.0;
-      
-      for(uint n=0; n<cell->number_of_blocks; n++) {
-         unsigned int blockId = cell->velocity_block_list[n];
-         const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
-         for (uint k=0; k<WID; ++k)
-            for (uint j=0; j<WID; ++j)
-               for (uint i=0; i<WID; ++i) {
-                  const int celli=k*WID*WID+j*WID+i;
-                  
-                  const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
-                  const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
-                  const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
-                  
-                  const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
-                  
-                  if(block->data[celli]!=0.0){
-                     minF = min(cell->get_value(VX, VY, VZ), minF);
-                  }
-               }
+      #pragma omp parallel 
+      {
+         Real threadMin = std::numeric_limits<Real>::max();
+         #pragma omp for
+         for(uint n=0; n<cell->number_of_blocks; n++) {
+            unsigned int blockId = cell->velocity_block_list[n];
+            const Velocity_Block* block = cell->at(blockId); //returns a reference to block
+            for (uint k=0; k<WID; ++k)
+               for (uint j=0; j<WID; ++j)
+                  for (uint i=0; i<WID; ++i) {
+                     const int celli=k*WID*WID+j*WID+i;
+                     threadMin = min(block->data[celli], threadMin);
+                     }
+         }
+         #pragma omp critical
+         {
+            minF = min(threadMin, minF);
+         }
       }
+      
       *buffer = minF;
       return true;
    }
