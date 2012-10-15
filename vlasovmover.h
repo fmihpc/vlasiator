@@ -33,6 +33,8 @@ bool finalizeMover();
 
 #include <dccrg.hpp>
 
+#define VLASOV_SOLVER_NEIGHBORHOOD_ID 2
+
 bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid);
 bool initMoverAfterBlockChange(dccrg::Dccrg<SpatialCell>& mpiGrid);
 void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,uint64_t& cell);
