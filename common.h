@@ -97,12 +97,12 @@ namespace CellParams {
       EX,     /*!< Total electric field x-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
       EY,     /*!< Total wlectric field y-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
       EZ,     /*!< Total electric field z-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
-      BGBX,    /*!< Background magnetic field x-component, averaged over cell x-face.*/
-      BGBY,    /*!< Background magnetic field x-component, averaged over cell x-face.*/
-      BGBZ,    /*!< Background magnetic field x-component, averaged over cell x-face.*/
-      PERBX,     /*!< Perturbed Magnetic field x-component, averaged over cell x-face. Propagated by field solver.*/
-      PERBY,     /*!< Perturbed Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
-      PERBZ,     /*!< Perturbed Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
+      BGBX,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
+      BGBY,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
+      BGBZ,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
+      PERBX,  /*!< Perturbed Magnetic field x-component, averaged over cell x-face. Propagated by field solver.*/
+      PERBY,  /*!< Perturbed Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
+      PERBZ,  /*!< Perturbed Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
       RHO,    /*!< Number density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOVX,  /*!< x-component of number density times Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOVY,  /*!< y-component of number density times Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
@@ -110,13 +110,13 @@ namespace CellParams {
       EX_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
       EY_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
       EZ_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      PERBX_DT2,    /*!< Intermediate step value for PERBX for RK2 time stepping in field solver.*/
-      PERBY_DT2,    /*!< Intermediate step value for PERBY for RK2 time stepping in field solver.*/
-      PERBZ_DT2,    /*!< Intermediate step value for PERBZ for RK2 time stepping in field solver.*/
-      RHO_DT2,   /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      RHOVX_DT2, /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      RHOVY_DT2, /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      RHOVZ_DT2, /*!< Intermediate step value for RK2 time stepping in field solver.*/
+      PERBX_DT2, /*!< Intermediate step value for PERBX for RK2 time stepping in field solver.*/
+      PERBY_DT2, /*!< Intermediate step value for PERBY for RK2 time stepping in field solver.*/
+      PERBZ_DT2, /*!< Intermediate step value for PERBZ for RK2 time stepping in field solver.*/
+      RHO_DT2,   /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHO_R and RHO_V*/
+      RHOVX_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVX_R and RHOVX_V*/
+      RHOVY_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVY_R and RHOVY_V*/
+      RHOVZ_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVZ_R and RHOVZ_V*/
       BXVOL,  /*!< total magnetic field  PERBX+BGBX averaged over spatial cell.*/
       BYVOL,  /*!< total magnetic field  PERBY+BGBY averaged over spatial cell.*/
       BZVOL,  /*!< total magnetic field  PERBZ+BGBZ averaged over spatial cell.*/
@@ -124,6 +124,16 @@ namespace CellParams {
       EYVOL,  /*!< Ey averaged over spatial cell.*/
       EZVOL,  /*!< Ez averaged over spatial cell.*/
 
+      RHO_R,   /*!< RHO after propagation in ordinary space*/
+      RHOVX_R, /*!< RHOVX after propagation in ordinary space*/
+      RHOVY_R, /*!< RHOVX after propagation in ordinary space*/
+      RHOVZ_R, /*!< RHOVX after propagation in ordinary space*/
+      RHO_V,   /*!< RHO after propagation in ordinary spac e*/
+      RHOVX_V, /*!< RHOVX after propagation in ordinary space*/
+      RHOVY_V, /*!< RHOVX after propagation in ordinary space*/
+      RHOVZ_V, /*!< RHOVX after propagation in ordinary space*/
+
+      
 //      BGBXVOL, /*!< BGBx (background field) averaged over spatial cell.*/
 //      BGBYVOL, /*!< BGBy (background field) averaged over spatial cell.*/
 //      BGBZVOL, /*!< BGBz (background field) averaged over spatial cell.*/
