@@ -95,6 +95,30 @@ void initializeGrid(int argn,
       sysBoundaries.isBoundaryPeriodic(1),
       sysBoundaries.isBoundaryPeriodic(2)
    );
+
+   // set reduced neighborhoods
+   typedef dccrg::Types<3>::neighborhood_item_t neigh_t;
+
+   // set a reduced neighborhood for field solver
+   std::vector<neigh_t> fs_neighborhood;
+   for (int z = -1; z <= 1; z++)
+   for (int y = -1; y <= 1; y++)
+   for (int x = -1; x <= 1; x++) {
+      if (x == 0 && y == 0 && z == 0) {
+          continue;
+      }
+
+      neigh_t offsets = {{x, y, z}};
+      fs_neighborhood.push_back(offsets);
+   }
+
+   if (!mpiGrid.add_remote_update_neighborhood(FIELD_SOLVER_NEIGHBORHOOD_ID, fs_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+         << " Couldn't set field solver neighborhood"
+         << std::endl;
+      abort();
+   }
+
    
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
    phiprof::start("Initial load-balancing");

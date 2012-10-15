@@ -26,6 +26,8 @@ using namespace spatial_cell;
 
 #include <dccrg.hpp>
 
+#define FIELD_SOLVER_NEIGHBORHOOD_ID 1
+
 /*
 namespace fieldsolver {
    

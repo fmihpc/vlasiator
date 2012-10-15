@@ -164,6 +164,71 @@ CellID getNeighbourID(
    const uchar& j,
    const uchar& k
 ) {
+
+   //#ifdef DEBUG_SOLVERS
+   // check that requested neighbor is within one index
+   if (i < 1) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+   if (i > 3) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+
+   if (j < 1) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+   if (j > 3) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+
+   if (k < 1) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+   if (k > 3) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+
+   // FIXME: only face and edge neighbors should be required?
+   /*if (i == 1 && j == 1 && k == 1) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+   if (i == 1 && j == 1 && k == 3) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+   if (i == 1 && j == 3 && k == 1) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+   if (i == 1 && j == 3 && k == 3) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+   if (i == 3 && j == 1 && k == 1) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+   if (i == 3 && j == 1 && k == 3) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+   if (i == 3 && j == 3 && k == 1) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+   if (i == 3 && j == 3 && k == 3) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }*/
+   //#endif
+
    const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of(cellID, int(i) - 2, int(j) - 2, int(k) - 2);
    if (neighbors.size() == 0) {
       cerr << __FILE__ << ":" << __LINE__
@@ -1387,7 +1452,7 @@ bool initializeFieldPropagatorAfterRebalance(
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_E);
    int timer=phiprof::initializeTimer("Communicate electric fields","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.update_remote_neighbor_data();
+   mpiGrid.update_remote_neighbor_data(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    return true;
@@ -1548,7 +1613,7 @@ void calculateDerivativesSimple(
    }
    timer=phiprof::initializeTimer("Start comm of B  and RHOV","MPI");
    phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_data_update();
+   mpiGrid.start_remote_neighbor_data_update(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute inner cells");
@@ -1563,7 +1628,7 @@ void calculateDerivativesSimple(
    
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_receives();
+   mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    // Calculate derivatives on boundary cells
@@ -1616,7 +1681,7 @@ void calculateUpwindedElectricFieldSimple(
    
    timer=phiprof::initializeTimer("Start communication of derivatives","MPI");
    phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_data_update();
+   mpiGrid.start_remote_neighbor_data_update(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute inner cells");
@@ -1633,7 +1698,7 @@ void calculateUpwindedElectricFieldSimple(
    phiprof::stop(timer);
    timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_receives();
+   mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    timer=phiprof::initializeTimer("Compute boundary cells");
    phiprof::start(timer);
@@ -1660,7 +1725,7 @@ void calculateUpwindedElectricFieldSimple(
    }
    timer=phiprof::initializeTimer("Communicate electric fields","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.update_remote_neighbor_data();
+   mpiGrid.update_remote_neighbor_data(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
 
    phiprof::stop("Calculate upwinded electric field");
