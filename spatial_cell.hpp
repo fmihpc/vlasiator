@@ -92,9 +92,9 @@ namespace spatial_cell {
       const unsigned int VEL_BLOCK_HAS_CONTENT    = (1<<8); 
       const unsigned int CELL_SYSBOUNDARYFLAG     = (1<<9);
       const unsigned int CELL_E                   = (1<<10);
-      const unsigned int CELL_E1                  = (1<<11);
+      const unsigned int CELL_EDT2                  = (1<<11);
       const unsigned int CELL_PERB_RHO_RHOV       = (1<<12);
-      const unsigned int CELL_PERB1_RHO1_RHOV1    = (1<<13);
+      const unsigned int CELL_PERBDT2_RHODT2_RHOVDT2    = (1<<13);
       const unsigned int CELL_BGB                 = (1<<14);
       
       const unsigned int ALL_DATA =
@@ -903,9 +903,9 @@ namespace velocity_neighbor {
                block_lengths.push_back(sizeof(Real) * 7);
             }
             
-            // send  BX1, BY1, BZ1, RHO1, RHOVX1, RHOVY1, RHOVZ1 (order in enum should never change(!)
-            if((SpatialCell::mpi_transfer_type & Transfer::CELL_PERB1_RHO1_RHOV1)!=0){
-	       displacements.push_back((uint8_t*) &(this->parameters[CellParams::PERBX1]) - (uint8_t*) this);
+            // send  BX1, BY1, BZ1, RHO_DT2, RHOVX_DT2, RHOVY_DT2, RHOVZ_DT2 (order in enum should never change(!)
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_PERBDT2_RHODT2_RHOVDT2)!=0){
+	       displacements.push_back((uint8_t*) &(this->parameters[CellParams::PERBX_DT2]) - (uint8_t*) this);
 	       block_lengths.push_back(sizeof(Real) * 7);
 	    }
 
@@ -923,9 +923,9 @@ namespace velocity_neighbor {
 
             
             
-            // send  EX1, EY1, EZ1
-            if((SpatialCell::mpi_transfer_type & Transfer::CELL_E1)!=0){
-	       displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX1]) - (uint8_t*) this);
+            // send  EX_DT2, EY_DT2, EZ_DT2
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_EDT2)!=0){
+	       displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX_DT2]) - (uint8_t*) this);
 	       block_lengths.push_back(sizeof(Real) * 3);
 	    }
 

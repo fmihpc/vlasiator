@@ -107,16 +107,16 @@ namespace CellParams {
       RHOVX,  /*!< x-component of number density times Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOVY,  /*!< y-component of number density times Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOVZ,  /*!< z-component of number density times Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      EX1,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      EY1,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      EZ1,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      PERBX1,    /*!< Intermediate step value for PERBX for RK2 time stepping in field solver.*/
-      PERBY1,    /*!< Intermediate step value for PERBY for RK2 time stepping in field solver.*/
-      PERBZ1,    /*!< Intermediate step value for PERBZ for RK2 time stepping in field solver.*/
-      RHO1,   /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      RHOVX1, /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      RHOVY1, /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      RHOVZ1, /*!< Intermediate step value for RK2 time stepping in field solver.*/
+      EX_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
+      EY_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
+      EZ_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
+      PERBX_DT2,    /*!< Intermediate step value for PERBX for RK2 time stepping in field solver.*/
+      PERBY_DT2,    /*!< Intermediate step value for PERBY for RK2 time stepping in field solver.*/
+      PERBZ_DT2,    /*!< Intermediate step value for PERBZ for RK2 time stepping in field solver.*/
+      RHO_DT2,   /*!< Intermediate step value for RK2 time stepping in field solver.*/
+      RHOVX_DT2, /*!< Intermediate step value for RK2 time stepping in field solver.*/
+      RHOVY_DT2, /*!< Intermediate step value for RK2 time stepping in field solver.*/
+      RHOVZ_DT2, /*!< Intermediate step value for RK2 time stepping in field solver.*/
       BXVOL,  /*!< total magnetic field  PERBX+BGBX averaged over spatial cell.*/
       BYVOL,  /*!< total magnetic field  PERBY+BGBY averaged over spatial cell.*/
       BZVOL,  /*!< total magnetic field  PERBZ+BGBZ averaged over spatial cell.*/
