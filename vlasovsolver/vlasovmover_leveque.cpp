@@ -30,6 +30,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "../vlasovmover.h"
 #include "phiprof.hpp"
 #include "cpu_trans_leveque.h"
+#include "cpu_moments.h"
 #ifdef CRAY_TOPOLOGY_OPTIMIZATION
 #include "graph.h"
 #include "mapping.h"
@@ -320,6 +321,8 @@ void calculateCellAccelerationSubstep(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID 
 
    //apply boundary outflow condition in velocity space
    SC->applyVelocityBoundaryCondition();
+
+
 }
 
 
@@ -379,6 +382,17 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,
    //with SEMILAG no substepping is needed....
    calculateCellAccelerationSubstep(mpiGrid,cellID,dt);
 #endif
+
+   //compute moments after acceleration
+   SC->parameters[CellParams::RHO_V  ] = 0.0;
+   SC->parameters[CellParams::RHOVX_V] = 0.0;
+   SC->parameters[CellParams::RHOVY_V] = 0.0;
+   SC->parameters[CellParams::RHOVZ_V] = 0.0;
+   for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+      unsigned int block = SC->velocity_block_list[block_i];         
+      cpu_calcVelocityMoments(SC,block,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V);   //set moments after acceleration
+
+      
    mpiGrid[cellID]->parameters[CellParams::LBWEIGHTCOUNTER]+=MPI_Wtime()-t_init;
 }
 
@@ -705,10 +719,10 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
       creal* const nbr_dfdt    = NULL;
       SpatialCell* SC = mpiGrid[cellID];
       // Clear velocity moments that have been calculated during the previous time step:
-      SC->parameters[CellParams::RHO  ] = 0.0;
-      SC->parameters[CellParams::RHOVX] = 0.0;
-      SC->parameters[CellParams::RHOVY] = 0.0;
-      SC->parameters[CellParams::RHOVZ] = 0.0;
+      SC->parameters[CellParams::RHO_R  ] = 0.0;
+      SC->parameters[CellParams::RHOVX_R] = 0.0;
+      SC->parameters[CellParams::RHOVY_R] = 0.0;
+      SC->parameters[CellParams::RHOVZ_R] = 0.0;
 
       
       // Do not propagate boundary cells, only calculate their velocity moments:
@@ -720,11 +734,11 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
          //Accelerate cell if requested. This is only done for non-system boundary cells
          if(accelerate)
             calculateCellAcceleration(mpiGrid,cellID,accelerate_dt);
-
+         
       } else {
          for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
             unsigned int block = SC->velocity_block_list[block_i];         
-	    cpu_calcVelocityMoments(SC,block);
+            cpu_calcVelocityMoments(SC,block,CellParams::RHO_R,CellParams::RHOVX_R,CellParams::RHOVY_R,CellParams::RHOVZ_R);
 	 }
       }
    }
@@ -778,10 +792,10 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
       const CellID cellID = boundaryCellIds[i];
       creal* const nbr_dfdt    = &(remoteUpdates[cellID][0][0]);
       SpatialCell* SC = mpiGrid[cellID];
-      SC->parameters[CellParams::RHO  ] = 0.0;
-      SC->parameters[CellParams::RHOVX] = 0.0;
-      SC->parameters[CellParams::RHOVY] = 0.0;
-      SC->parameters[CellParams::RHOVZ] = 0.0;
+      SC->parameters[CellParams::RHO_R] = 0.0;
+      SC->parameters[CellParams::RHOVX_R] = 0.0;
+      SC->parameters[CellParams::RHOVY_R] = 0.0;
+      SC->parameters[CellParams::RHOVZ_R] = 0.0;
 
       
       // Do not propagate boundary cells, only calculate their velocity moments:
@@ -793,7 +807,7 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
       } else {
          for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
             unsigned int block = SC->velocity_block_list[block_i];         
-	    cpu_calcVelocityMoments(SC,block);
+	    cpu_calcVelocityMoments(SC,block,CellParams::RHO_R,CellParams::RHOVX_R,CellParams::RHOVY_R,CellParams::RHOVZ_R);
 	 }
       }
       if(accelerate)
@@ -822,28 +836,37 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
 }
 
 
+/*!
+  \brief Compute real-time 1st order accurate moments from the moments after propagation in velocity and spatial space
 
-
-
-
-
-void calculateCellVelocityMoments(SpatialCell *SC) {
-   // Clear velocity moments:
-   SC->parameters[CellParams::RHO  ] = 0.0;
-   SC->parameters[CellParams::RHOVX] = 0.0;
-   SC->parameters[CellParams::RHOVY] = 0.0;
-   SC->parameters[CellParams::RHOVZ] = 0.0;
+*/
+ 
+ void calculateInterpolatedVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid,
+                               const int cp_rho, const int cp_rhovx, const int cp_rhovy, const int cp_rhovz) {
+   vector<CellID> cells;
+   cells=mpiGrid.get_cells();
    
-   for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
-      unsigned int block = SC->velocity_block_list[block_i];         
-      
-      // Iterate through all velocity blocks in this spatial cell 
-      // and calculate velocity moments:        
-      cpu_calcVelocityMoments(SC,block);
-   }
+   //Iterate through all local cells (incl. system boundary cells):
+//#pragma omp parallel for        
+   for (size_t c=0; c<cells.size(); ++c) {
+      const CellID cellID = cells[c];
+      SpatialCell* SC = mpiGrid[cellID];
+      if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
 
+      SC->parameters[cp_rho  ] = 0.5* ( SC->parameters[CellParams::RHO_R] + SC->parameters[CellParams::RHO_V] );
+      SC->parameters[cp_rhovx] = 0.5* ( SC->parameters[CellParams::RHOVX_R] + SC->parameters[CellParams::RHOVX_V] );
+      SC->parameters[cp_rhovy] = 0.5* ( SC->parameters[CellParams::RHOVY_R] + SC->parameters[CellParams::RHOVY_V] );
+      SC->parameters[cp_rhovz] = 0.5* ( SC->parameters[CellParams::RHOVZ_R] + SC->parameters[CellParams::RHOVZ_V] );
+      
+   }
 }
 
+
+
+ /*!
+  \brief Compute real moments of distribution function. The simulation should be at a true time-step!
+
+*/
 void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid) { 
    vector<CellID> cells;
    cells=mpiGrid.get_cells();
@@ -854,12 +877,21 @@ void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
       if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-      calculateCellVelocityMoments(SC);
+      SC->parameters[CellParams::RHO  ] = 0.0;
+      SC->parameters[CellParams::RHOVX] = 0.0;
+      SC->parameters[CellParams::RHOVY] = 0.0;
+      SC->parameters[CellParams::RHOVZ] = 0.0;
       
+      for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+         unsigned int block = SC->velocity_block_list[block_i];         
+         
+         //Iterate through all velocity blocks in this spatial cell 
+         // and calculate velocity moments:        
+         cpu_calcVelocityMoments(SC,block);
+      }
    }
 }
-
-
+ 
       
 
 

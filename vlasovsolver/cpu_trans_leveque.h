@@ -912,8 +912,9 @@ template<typename REAL,typename UINT> void cpu_propagateSpatWithMoments(
       }
    }
    
-   // Calculate velocity moments:
-   cpu_blockVelocityMoments(block->data,block->parameters,cell->parameters);
+   // Calculate velocity moments, add to moments after spatial propagation
+   cpu_blockVelocityMoments(block->data,block->parameters,cell->parameters,
+                            CellParams::RHO_R,CellParams::RHOVX_R,CellParams::RHOVY_R,CellParams::RHOVZ_R);
 
 }
 

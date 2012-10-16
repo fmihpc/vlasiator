@@ -29,7 +29,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "spatial_cell.hpp"
 
 
-template<typename REAL> void cpu_blockVelocityMoments(const Real* const avgs,const REAL* const blockParams,REAL* const cellParams) {
+template<typename REAL> void cpu_blockVelocityMoments(const Real* const avgs,const REAL* const blockParams,REAL* const cellParams,
+                                                      const int cp_rho, const int cp_rhovx, const int cp_rhovy, const int cp_rhovz) {
    const REAL HALF = 0.5;
    
    REAL n_sum = 0.0;
@@ -51,20 +52,21 @@ template<typename REAL> void cpu_blockVelocityMoments(const Real* const avgs,con
    // spatial cell velocity moments. If multithreading / OpenMP is used, 
    // these updates need to be atomic:
    const REAL DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
-   cellParams[CellParams::RHO  ] += n_sum * DV3;
-   cellParams[CellParams::RHOVX] += nvx_sum * DV3;
-   cellParams[CellParams::RHOVY] += nvy_sum * DV3;
-   cellParams[CellParams::RHOVZ] += nvz_sum * DV3;
+   cellParams[cp_rho] += n_sum * DV3;
+   cellParams[cp_rhovx] += nvx_sum * DV3;
+   cellParams[cp_rhovy] += nvy_sum * DV3;
+   cellParams[cp_rhovz] += nvz_sum * DV3;
 }
 
 
 
 
 
-template<typename UINT> void cpu_calcVelocityMoments(spatial_cell::SpatialCell *cell,const UINT blockId){
+template<typename UINT> void cpu_calcVelocityMoments(spatial_cell::SpatialCell *cell,const UINT blockId,
+                                                     const int cp_rho, const int cp_rhovx, const int cp_rhovy, const int cp_rhovz) {
    spatial_cell::Velocity_Block* block=cell->at(blockId); //returns a reference to block            
    // Calculate velocity moments:
-   cpu_blockVelocityMoments(block->data,block->parameters,cell->parameters);
+   cpu_blockVelocityMoments(block->data,block->parameters,cell->parameters,cp_rho,cp_rhovx,cp_rhovy.cp_rhovz);
 
 }
 
