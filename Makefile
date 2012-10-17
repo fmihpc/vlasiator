@@ -1,6 +1,6 @@
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
-PROJ = Dispersion
+PROJ = verification-Larmor
 
 
 #set default architecture, can be overridden from the compile line
