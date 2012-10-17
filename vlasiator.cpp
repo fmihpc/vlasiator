@@ -67,6 +67,7 @@ bool changeTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &isChan
    //compute maximum time-step, this cannot be done at the first
    //step as the solvers compute the limits for each cell
 
+   isChanged=false;
 
    vector<uint64_t> cells = mpiGrid.get_cells();         
    Real dtMaxLocal[3];
@@ -117,7 +118,7 @@ bool changeTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &isChan
    
    
    if(P::dt < dtMax*P::CFL_min || P::dt > dtMax*P::CFL_max ) {
-      newDt = 0.5*(P::CFL_min+P::CFL_max)*dtMax;
+      newDt = 0.5*(P::CFL_min + P::CFL_max)*dtMax;
       isChanged=true;
       logFile <<"(TIMESTEP) New dt computed: "<< newDt <<
          " Max dt (not including CFL "<< P::CFL_min <<"-"<<P::CFL_max<<" ) in {r, v+subs, v, BE} was " <<
@@ -235,8 +236,6 @@ int main(int argn,char* args[]) {
    // Free up memory:
    readparameters.finalize();
    
-   phiprof::stop("Initialization");
-   MPI_Barrier(MPI_COMM_WORLD);   
    
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****
@@ -259,31 +258,41 @@ int main(int argn,char* args[]) {
    bool dtIsChanged;
          
    
-   phiprof::start("Simulation");
 
 
    //compute dt
+   
    if(P::dynamicTimestep) {
+      phiprof::start("compute-dt");
       //compute vlasovsolver once with zero dt, this is just to initialize per-cell dt limits
       calculateSpatialFluxes(mpiGrid,0.0);
       calculateSpatialPropagation(mpiGrid,true,0.0);
       propagateFields(mpiGrid,0.0);
       changeTimeStep(mpiGrid,newDt,dtIsChanged);
       P::dt=newDt;
+      phiprof::stop("compute-dt");
+      
    }
 
+
    //go forward by dt/2 in x, initializes leapfrog split
+   phiprof::start("propagate-spatial-space-dt/2");
    calculateSpatialFluxes(mpiGrid,0.5*P::dt);
    calculateSpatialPropagation(mpiGrid,false,0.0);
+   phiprof::stop("propagate-spatial-space-dt/2");
 
-   
+   phiprof::stop("Initialization");
+   MPI_Barrier(MPI_COMM_WORLD);   
+
+   phiprof::start("Simulation");
+
    while(P::tstep <=P::tstep_max  &&
          P::t-P::dt <= P::t_max+DT_EPSILON) {
       
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals). Also, do not print
       //first step or until we have rebalanced.
-      logFile << "------------------ tstep = " << P::tstep << " t = " << P::t <<" ------------------" << endl;
+      logFile << "------------------ tstep = " << P::tstep << " t = " << P::t <<" dt = " << P::dt << " ------------------" << endl;
       if (P::diagnosticInterval != 0 &&
           P::tstep % (P::diagnosticInterval*10) == 0 &&
           P::tstep-P::tstep_min >0  &&
@@ -371,9 +380,10 @@ int main(int argn,char* args[]) {
       if(P::dynamicTimestep) {
          changeTimeStep(mpiGrid,newDt,dtIsChanged);         
          if(dtIsChanged) {
+            phiprof::start("update-dt");
             //propagate velocity space to real-time, do not do it if dt is zero
             if(P::dt >0)
-            calculateAcceleration(mpiGrid,0.5*P::dt);
+               calculateAcceleration(mpiGrid,0.5*P::dt);
             //re-compute rho for real time for fieldsolver, and compute _DT2 values as an average of old and new values
             calculateVelocityMoments(mpiGrid,true);
             
@@ -393,8 +403,11 @@ int main(int argn,char* args[]) {
             //go forward by dt/2 again in x
             calculateSpatialFluxes(mpiGrid,0.5*P::dt);
             calculateSpatialPropagation(mpiGrid,false,0.0);
+            logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
+            phiprof::stop("update-dt");
             continue; //
          }
+
       }
       
       
@@ -410,8 +423,6 @@ int main(int argn,char* args[]) {
       if (P::propagateVlasov == true) {
          phiprof::start("Propagate Vlasov");
 
-         phiprof::start("propagation");
-         
          phiprof::start("Velocity-space");
          calculateAcceleration(mpiGrid,P::dt);
          phiprof::stop("Velocity-space",computedBlocks,"Blocks");
@@ -424,7 +435,7 @@ int main(int argn,char* args[]) {
 
          phiprof::start("Spatial-space");
          calculateSpatialFluxes(mpiGrid,P::dt);
-         calculateSpatialPropagation(mpiGrid,true,P::dt);
+         calculateSpatialPropagation(mpiGrid,false,0.0);
          phiprof::stop("Spatial-space",computedBlocks,"Blocks");
 
          calculateInterpolatedVelocityMoments(mpiGrid,CellParams::RHO,CellParams::RHOVX,CellParams::RHOVY,CellParams::RHOVZ);
