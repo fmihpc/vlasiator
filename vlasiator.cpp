@@ -119,8 +119,8 @@ bool changeTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &isChan
    if(P::dt < dtMax*P::CFL_min || P::dt > dtMax*P::CFL_max ) {
       newDt = 0.5*(P::CFL_min+P::CFL_max)*dtMax;
       isChanged=true;
-      logFile <<"(TIMESTEP) dt was set to "<<P::dt <<
-         " Max dt (not including CFL) in r,v with substeps,v,BE was " <<
+      logFile <<"(TIMESTEP) New dt computed: "<< newDt <<
+         " Max dt (not including CFL "<< P::CFL_min <<"-"<<P::CFL_max<<" ) in {r, v+subs, v, BE} was " <<
          dtMaxGlobal[0] << " " <<
          dtMaxGlobal[1] << " " <<
          maxVDtNoSubstepping << " " <<
@@ -216,7 +216,8 @@ int main(int argn,char* args[]) {
    if (initializeMover(mpiGrid) == false) {
       logFile << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << writeVerbose;
       exit(1);
-   }   
+   }
+   //compute moments, and set them in RHO* and RHO*_DT2
    calculateVelocityMoments(mpiGrid,false);
    phiprof::stop("Init vlasov propagator");
    
@@ -266,6 +267,7 @@ int main(int argn,char* args[]) {
       //compute vlasovsolver once with zero dt, this is just to initialize per-cell dt limits
       calculateSpatialFluxes(mpiGrid,0.0);
       calculateSpatialPropagation(mpiGrid,true,0.0);
+      propagateFields(mpiGrid,0.0);
       changeTimeStep(mpiGrid,newDt,dtIsChanged);
       P::dt=newDt;
    }

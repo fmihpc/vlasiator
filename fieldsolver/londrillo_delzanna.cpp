@@ -1535,19 +1535,6 @@ void calculateDerivativesSimple(
    
    phiprof::start("Calculate derivatives");
    
-# ifndef FS_1ST_ORDER_TIME      
-   if(RKCase == RK_ORDER1) { // Means initialising the solver
-      for (vector<uint64_t>::const_iterator cell = localCells.begin(); cell != localCells.end(); cell++) {
-         if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-         mpiGrid[*cell]->parameters[CellParams::RHO_DT2] = mpiGrid[*cell]->parameters[CellParams::RHO];
-         mpiGrid[*cell]->parameters[CellParams::RHOVX_DT2] = mpiGrid[*cell]->parameters[CellParams::RHOVX];
-         mpiGrid[*cell]->parameters[CellParams::RHOVY_DT2] = mpiGrid[*cell]->parameters[CellParams::RHOVY];
-         mpiGrid[*cell]->parameters[CellParams::RHOVZ_DT2] = mpiGrid[*cell]->parameters[CellParams::RHOVZ];
-      }
-   }
-# endif
-
-   
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       // Exchange PERBX,PERBY,PERBZ,BGBX,BGBY,BGBZ,RHO,RHOVX,RHOVY,RHOVZ with neighbours
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB_RHO_RHOV);
