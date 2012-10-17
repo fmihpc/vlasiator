@@ -288,6 +288,8 @@ int main(int argn,char* args[]) {
 
    while(P::tstep <=P::tstep_max  &&
          P::t-P::dt <= P::t_max+DT_EPSILON) {
+
+      phiprof::start("IO");
       
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals). Also, do not print
@@ -317,12 +319,11 @@ int main(int argn,char* args[]) {
          phiprof::start("Diagnostic");
          if (writeDiagnostic(mpiGrid, diagnosticReducer) == false) {
             if(myRank == MASTER_RANK)  cerr << "ERROR with diagnostic computation" << endl;
-
          }
          phiprof::stop("Diagnostic");
       }
       
-      phiprof::start("IO");
+
       
       
       // Save reduced data
