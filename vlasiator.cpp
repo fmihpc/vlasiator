@@ -265,9 +265,13 @@ int main(int argn,char* args[]) {
    if(P::dynamicTimestep) {
       phiprof::start("compute-dt");
       //compute vlasovsolver once with zero dt, this is just to initialize per-cell dt limits
-      calculateSpatialFluxes(mpiGrid,0.0);
-      calculateSpatialPropagation(mpiGrid,true,0.0);
-      propagateFields(mpiGrid,0.0);
+      if(P::propagateVlasov) {
+         calculateSpatialFluxes(mpiGrid,0.0);
+         calculateSpatialPropagation(mpiGrid,true,0.0);
+      }
+      if(P::propagateField) {
+         propagateFields(mpiGrid,0.0);
+      }
       changeTimeStep(mpiGrid,newDt,dtIsChanged);
       P::dt=newDt;
       phiprof::stop("compute-dt");
@@ -275,12 +279,14 @@ int main(int argn,char* args[]) {
    }
 
 
-   //go forward by dt/2 in x, initializes leapfrog split
-   phiprof::start("propagate-spatial-space-dt/2");
-   calculateSpatialFluxes(mpiGrid,0.5*P::dt);
-   calculateSpatialPropagation(mpiGrid,false,0.0);
-   phiprof::stop("propagate-spatial-space-dt/2");
-
+   if(P::propagateVlasov) {
+      //go forward by dt/2 in x, initializes leapfrog split
+      phiprof::start("propagate-spatial-space-dt/2");
+      calculateSpatialFluxes(mpiGrid,0.5*P::dt);
+      calculateSpatialPropagation(mpiGrid,false,0.0);
+      phiprof::stop("propagate-spatial-space-dt/2");
+   }
+   
    phiprof::stop("Initialization");
    MPI_Barrier(MPI_COMM_WORLD);   
 
