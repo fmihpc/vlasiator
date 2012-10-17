@@ -27,7 +27,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "../common.h"
 #include "leveque_common.h"
 #include "spatial_cell.hpp"
-
+using namespace spatial_cell;
 
 template<typename REAL> void cpu_blockVelocityMoments(const Real* const avgs,const REAL* const blockParams,REAL* const cellParams,
                                                       const int cp_rho, const int cp_rhovx, const int cp_rhovy, const int cp_rhovz) {
@@ -62,11 +62,11 @@ template<typename REAL> void cpu_blockVelocityMoments(const Real* const avgs,con
 
 
 
-template<typename UINT> void cpu_calcVelocityMoments(spatial_cell::SpatialCell *cell,const UINT blockId,
+template<typename UINT> void cpu_calcVelocityMoments(SpatialCell *cell,const UINT blockId,
                                                      const int cp_rho, const int cp_rhovx, const int cp_rhovy, const int cp_rhovz) {
-   spatial_cell::Velocity_Block* block=cell->at(blockId); //returns a reference to block            
+   Velocity_Block* block=cell->at(blockId); //returns a reference to block            
    // Calculate velocity moments:
-   cpu_blockVelocityMoments(block->data,block->parameters,cell->parameters,cp_rho,cp_rhovx,cp_rhovy.cp_rhovz);
+   cpu_blockVelocityMoments(block->data,block->parameters,cell->parameters,cp_rho,cp_rhovx,cp_rhovy,cp_rhovz);
 
 }
 

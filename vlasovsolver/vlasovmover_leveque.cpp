@@ -347,9 +347,9 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,
       bool doIntegration=true;
       
       while(doIntegration){
-         //update maximum timestep 
+         //update maximum timestep, note that we will use maximum cfl allowed here
          //Note that parameters[CellParams::MAXVDT] is initialized to 0 in spatial cell
-         subdt=P::CFL * mpiGrid[cellID]->parameters[CellParams::MAXVDT];
+         subdt=0.5*P::CFL_max * mpiGrid[cellID]->parameters[CellParams::MAXVDT];
          if(subdt+subt>=dt){
             doIntegration=false; //will not enter while loop on the next round
             subdt=dt-subt; //set length of final step so that we
@@ -384,15 +384,16 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,
 #endif
 
    //compute moments after acceleration
-   SC->parameters[CellParams::RHO_V  ] = 0.0;
-   SC->parameters[CellParams::RHOVX_V] = 0.0;
-   SC->parameters[CellParams::RHOVY_V] = 0.0;
-   SC->parameters[CellParams::RHOVZ_V] = 0.0;
-   for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
-      unsigned int block = SC->velocity_block_list[block_i];         
-      cpu_calcVelocityMoments(SC,block,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V);   //set moments after acceleration
+   mpiGrid[cellID]->parameters[CellParams::RHO_V  ] = 0.0;
+   mpiGrid[cellID]->parameters[CellParams::RHOVX_V] = 0.0;
+   mpiGrid[cellID]->parameters[CellParams::RHOVY_V] = 0.0;
+   mpiGrid[cellID]->parameters[CellParams::RHOVZ_V] = 0.0;
+   for(unsigned int block_i=0; block_i< mpiGrid[cellID]->number_of_blocks;block_i++){
+      unsigned int block = mpiGrid[cellID]->velocity_block_list[block_i];         
+      cpu_calcVelocityMoments(mpiGrid[cellID],block,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V);   //set moments after acceleration
+   }
 
-      
+   //lb weight based on time in acceleration, used for substepped simulations
    mpiGrid[cellID]->parameters[CellParams::LBWEIGHTCOUNTER]+=MPI_Wtime()-t_init;
 }
 
@@ -836,13 +837,9 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
 }
 
 
-/*!
-  \brief Compute real-time 1st order accurate moments from the moments after propagation in velocity and spatial space
 
-*/
- 
- void calculateInterpolatedVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid,
-                               const int cp_rho, const int cp_rhovx, const int cp_rhovy, const int cp_rhovz) {
+void calculateInterpolatedVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid,
+                                          const int cp_rho, const int cp_rhovx, const int cp_rhovy, const int cp_rhovz) {
    vector<CellID> cells;
    cells=mpiGrid.get_cells();
    
@@ -863,11 +860,49 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
 
 
 
- /*!
-  \brief Compute real moments of distribution function. The simulation should be at a true time-step!
 
-*/
-void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid) { 
+void calculateCellVelocityMoments(SpatialCell* SC, bool averageDt2Values){
+   if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) return;
+
+   if(averageDt2Values) {
+      SC->parameters[CellParams::RHO_DT2] = 0.5*SC->parameters[CellParams::RHO];
+      SC->parameters[CellParams::RHOVX_DT2] = 0.5*SC->parameters[CellParams::RHOVX];
+      SC->parameters[CellParams::RHOVY_DT2] = 0.5*SC->parameters[CellParams::RHOVY];
+      SC->parameters[CellParams::RHOVZ_DT2] = 0.5*SC->parameters[CellParams::RHOVZ];
+   }
+   
+         
+   SC->parameters[CellParams::RHO  ] = 0.0;
+   SC->parameters[CellParams::RHOVX] = 0.0;
+   SC->parameters[CellParams::RHOVY] = 0.0;
+   SC->parameters[CellParams::RHOVZ] = 0.0;
+   //Iterate through all velocity blocks in this spatial cell 
+   // and calculate velocity moments:         
+   for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+      unsigned int block = SC->velocity_block_list[block_i];         
+      cpu_calcVelocityMoments(SC,block,CellParams::RHO,CellParams::RHOVX,CellParams::RHOVY,CellParams::RHOVZ);
+   }
+
+   if(averageDt2Values) {
+      //_DT2 values are average of old and new value
+      SC->parameters[CellParams::RHO_DT2] += 0.5*SC->parameters[CellParams::RHO];
+      SC->parameters[CellParams::RHOVX_DT2] += 0.5*SC->parameters[CellParams::RHOVX];
+      SC->parameters[CellParams::RHOVY_DT2] += 0.5*SC->parameters[CellParams::RHOVY];
+      SC->parameters[CellParams::RHOVZ_DT2] += 0.5*SC->parameters[CellParams::RHOVZ];
+   }
+   else{
+      //_DT2 values are copies
+      SC->parameters[CellParams::RHO_DT2] = SC->parameters[CellParams::RHO];
+      SC->parameters[CellParams::RHOVX_DT2] = SC->parameters[CellParams::RHOVX];
+      SC->parameters[CellParams::RHOVY_DT2] = SC->parameters[CellParams::RHOVY];
+      SC->parameters[CellParams::RHOVZ_DT2] = SC->parameters[CellParams::RHOVZ];
+   }
+
+}
+ 
+      
+
+void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid, bool averageDt2Values){
    vector<CellID> cells;
    cells=mpiGrid.get_cells();
    
@@ -876,22 +911,11 @@ void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
-      if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-      SC->parameters[CellParams::RHO  ] = 0.0;
-      SC->parameters[CellParams::RHOVX] = 0.0;
-      SC->parameters[CellParams::RHOVY] = 0.0;
-      SC->parameters[CellParams::RHOVZ] = 0.0;
-      
-      for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
-         unsigned int block = SC->velocity_block_list[block_i];         
-         
-         //Iterate through all velocity blocks in this spatial cell 
-         // and calculate velocity moments:        
-         cpu_calcVelocityMoments(SC,block);
-      }
+      calculateCellVelocityMoments(SC,averageDt2Values);
    }
 }
  
       
+
 
 

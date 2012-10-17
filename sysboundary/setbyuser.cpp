@@ -143,7 +143,7 @@ namespace SBC {
                                  }
                               }
                      }
-               calculateCellVelocityMoments(cell);
+               calculateCellVelocityMoments(cell,false);
                
                //let's get rid of blocks not fulfilling the criteria here to save memory.
                cell->adjustSingleCellVelocityBlocks();

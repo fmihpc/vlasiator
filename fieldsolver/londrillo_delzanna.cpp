@@ -62,6 +62,10 @@ typedef uint64_t CellID;
 
 static creal EPS = 1.0e-30;
 
+//due to leapfrog this is hardcoded
+static Real ALPHA = 0.5;
+
+
 // TODO why this?
 // static set<CellID> ghostCells;
 
@@ -1280,11 +1284,11 @@ static void propagateMagneticField(
       # else
       if(RKCase == RK_ORDER2_STEP1) {
          cp0[CellParams::PERBX_DT2] = cp0[CellParams::PERBX] +
-         Parameters::RK_alpha*dt*(1.0/dz*(cp2[CellParams::EY] - cp0[CellParams::EY]) + 1.0/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ]));
+         ALPHA*dt*(1.0/dz*(cp2[CellParams::EY] - cp0[CellParams::EY]) + 1.0/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ]));
       } else {
-         cp0[CellParams::PERBX] += dt * ((1.0 - 0.5/Parameters::RK_alpha) * (1.0/dz*(cp2[CellParams::EY] -cp0[CellParams::EY]) +
+         cp0[CellParams::PERBX] += dt * ((1.0 - 0.5/ALPHA) * (1.0/dz*(cp2[CellParams::EY] -cp0[CellParams::EY]) +
                                                                             1.0/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ])) +
-                                        0.5/Parameters::RK_alpha * (1.0/dz*(cp2[CellParams::EY_DT2] - cp0[CellParams::EY_DT2]) +
+                                        0.5/ALPHA * (1.0/dz*(cp2[CellParams::EY_DT2] - cp0[CellParams::EY_DT2]) +
                                                                     1.0/dy*(cp0[CellParams::EZ_DT2] - cp1[CellParams::EZ_DT2]))
                                         );
       }
@@ -1328,11 +1332,11 @@ static void propagateMagneticField(
       # else
       if(RKCase == RK_ORDER2_STEP1) {
          cp0[CellParams::PERBY_DT2] = cp0[CellParams::PERBY] +
-         Parameters::RK_alpha*dt*(1.0/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) + 1.0/dz*(cp0[CellParams::EX] - cp1[CellParams::EX]));
+         ALPHA*dt*(1.0/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) + 1.0/dz*(cp0[CellParams::EX] - cp1[CellParams::EX]));
       } else {
-         cp0[CellParams::PERBY] += dt * ((1.0 - 0.5/Parameters::RK_alpha) * (1.0/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) +
+         cp0[CellParams::PERBY] += dt * ((1.0 - 0.5/ALPHA) * (1.0/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) +
                                                                             1.0/dz*(cp0[CellParams::EX] - cp1[CellParams::EX])) + 
-                                        0.5/Parameters::RK_alpha * (1.0/dx*(cp2[CellParams::EZ_DT2] - cp0[CellParams::EZ_DT2]) +
+                                        0.5/ALPHA * (1.0/dx*(cp2[CellParams::EZ_DT2] - cp0[CellParams::EZ_DT2]) +
                                                                     1.0/dz*(cp0[CellParams::EX_DT2] - cp1[CellParams::EX_DT2]))
                                         );
       }
@@ -1376,11 +1380,11 @@ static void propagateMagneticField(
       # else
       if(RKCase == RK_ORDER2_STEP1) {
          cp0[CellParams::PERBZ_DT2] = cp0[CellParams::PERBZ] +
-         Parameters::RK_alpha*dt*(1.0/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) + 1.0/dx*(cp0[CellParams::EY] - cp1[CellParams::EY]));
+         ALPHA*dt*(1.0/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) + 1.0/dx*(cp0[CellParams::EY] - cp1[CellParams::EY]));
       } else {
-         cp0[CellParams::PERBZ] += dt * ((1.0 - 0.5/Parameters::RK_alpha) * (1.0/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) +
+         cp0[CellParams::PERBZ] += dt * ((1.0 - 0.5/ALPHA) * (1.0/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) +
                                                                           1.0/dx*(cp0[CellParams::EY] - cp1[CellParams::EY])) +
-         0.5/Parameters::RK_alpha * (1.0/dy*(cp2[CellParams::EX_DT2] - cp0[CellParams::EX_DT2]) +
+         0.5/ALPHA * (1.0/dy*(cp2[CellParams::EX_DT2] - cp0[CellParams::EX_DT2]) +
                                      1.0/dx*(cp0[CellParams::EY_DT2] - cp1[CellParams::EY_DT2])));
       }
 # endif   
@@ -1531,7 +1535,7 @@ void calculateDerivativesSimple(
    
    phiprof::start("Calculate derivatives");
    
-   # ifndef FS_1ST_ORDER_TIME
+# ifndef FS_1ST_ORDER_TIME      
    if(RKCase == RK_ORDER1) { // Means initialising the solver
       for (vector<uint64_t>::const_iterator cell = localCells.begin(); cell != localCells.end(); cell++) {
          if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
@@ -1541,23 +1545,8 @@ void calculateDerivativesSimple(
          mpiGrid[*cell]->parameters[CellParams::RHOVZ_DT2] = mpiGrid[*cell]->parameters[CellParams::RHOVZ];
       }
    }
-   # endif
-   if(RKCase == RK_ORDER2_STEP1) {
-      // Interpolate linearly the moments.
-      // The RHO(V?)1 fields contain previous value, the RHO(V?) the current one.
-      // After this the RHO(V?)1 contain the interpolated value.
-      for (vector<uint64_t>::const_iterator cell = localCells.begin(); cell != localCells.end(); cell++) {
-         if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-         mpiGrid[*cell]->parameters[CellParams::RHO_DT2] = mpiGrid[*cell]->parameters[CellParams::RHO_DT2] +
-         Parameters::RK_alpha * (mpiGrid[*cell]->parameters[CellParams::RHO] - mpiGrid[*cell]->parameters[CellParams::RHO_DT2]);
-         mpiGrid[*cell]->parameters[CellParams::RHOVX_DT2] = mpiGrid[*cell]->parameters[CellParams::RHOVX_DT2] +
-         Parameters::RK_alpha * (mpiGrid[*cell]->parameters[CellParams::RHOVX] - mpiGrid[*cell]->parameters[CellParams::RHOVX_DT2]);
-         mpiGrid[*cell]->parameters[CellParams::RHOVY_DT2] = mpiGrid[*cell]->parameters[CellParams::RHOVY_DT2] +
-         Parameters::RK_alpha * (mpiGrid[*cell]->parameters[CellParams::RHOVY] - mpiGrid[*cell]->parameters[CellParams::RHOVY_DT2]);
-         mpiGrid[*cell]->parameters[CellParams::RHOVZ_DT2] = mpiGrid[*cell]->parameters[CellParams::RHOVZ_DT2] +
-         Parameters::RK_alpha * (mpiGrid[*cell]->parameters[CellParams::RHOVZ] - mpiGrid[*cell]->parameters[CellParams::RHOVZ_DT2]);
-      }
-   }
+# endif
+
    
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       // Exchange PERBX,PERBY,PERBZ,BGBX,BGBY,BGBZ,RHO,RHOVX,RHOVY,RHOVZ with neighbours
@@ -1601,16 +1590,6 @@ void calculateDerivativesSimple(
    phiprof::start(timer);
    mpiGrid.wait_neighbor_data_update_sends();
    phiprof::stop(timer);
-   
-   if(RKCase == RK_ORDER2_STEP2) { // Shift down the moments, now the RHO(V?)1 fields contain the current ie future previous values.
-      for (vector<uint64_t>::const_iterator cell = localCells.begin(); cell != localCells.end(); cell++) {
-         if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-         mpiGrid[*cell]->parameters[CellParams::RHO_DT2] = mpiGrid[*cell]->parameters[CellParams::RHO];
-         mpiGrid[*cell]->parameters[CellParams::RHOVX_DT2] = mpiGrid[*cell]->parameters[CellParams::RHOVX];
-         mpiGrid[*cell]->parameters[CellParams::RHOVY_DT2] = mpiGrid[*cell]->parameters[CellParams::RHOVY];
-         mpiGrid[*cell]->parameters[CellParams::RHOVZ_DT2] = mpiGrid[*cell]->parameters[CellParams::RHOVZ];
-      }
-   }
    
    phiprof::stop("Calculate derivatives");
 }
@@ -1772,11 +1751,11 @@ bool propagateFields(
       const CellID cellID = localCells[cell];   
       mpiGrid[cellID]->parameters[CellParams::MAXFDT]=std::numeric_limits<Real>::max();;
    }
-   # ifdef FS_1ST_ORDER_TIME
+# ifdef FS_1ST_ORDER_TIME
    propagateMagneticFieldSimple(mpiGrid, dt, localCells, RK_ORDER1);
    calculateDerivativesSimple(mpiGrid, localCells, RK_ORDER1);
    calculateUpwindedElectricFieldSimple(mpiGrid, localCells, RK_ORDER1);
-   # else
+# else
    propagateMagneticFieldSimple(mpiGrid, dt, localCells, RK_ORDER2_STEP1);
    calculateDerivativesSimple(mpiGrid, localCells, RK_ORDER2_STEP1);
    calculateUpwindedElectricFieldSimple(mpiGrid, localCells, RK_ORDER2_STEP1);
@@ -1784,7 +1763,7 @@ bool propagateFields(
    propagateMagneticFieldSimple(mpiGrid, dt, localCells, RK_ORDER2_STEP2);
    calculateDerivativesSimple(mpiGrid, localCells, RK_ORDER2_STEP2);
    calculateUpwindedElectricFieldSimple(mpiGrid, localCells, RK_ORDER2_STEP2);
-   # endif
+# endif
    calculateVolumeAveragedFields(mpiGrid);
    return true;
 }

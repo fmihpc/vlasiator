@@ -61,7 +61,8 @@ struct Parameters {
    static Real t_min;                    /*!< Initial simulation time. */
    static Real t_max;                    /*!< Maximum simulation time. */
    static Real dt;                   /*!< The value of the timestep to use in propagation. If CflLimit defined then it is dynamically updated during simulation*/
-   static Real CFL;                  /*!< The maximum CFL limit for propagation. Used to set timestep if useCFLlimit is true. Also used to set number of acceleration steps if substepAcceleration is true */
+   static Real CFL_max;                  /*!< The maximum CFL limit for propagation. Used to set timestep if useCFLlimit is true. Also used to set number of acceleration steps if substepAcceleration is true */
+   static Real CFL_min;                  /*!< The minimum CFL limit for propagation. Used to set timestep if useCFLlimit is true. Also used to set number of acceleration steps if substepAcceleration is true */
    
    static luint tstep_min;           /*!< Timestep when simulation starts, needed for restarts.*/
    static luint tstep_max;           /*!< Maximum timestep. */
@@ -84,7 +85,6 @@ struct Parameters {
    static uint splitMethod;          /*!< Split method for splitting spatial/velocity space solvers. 0: first order, 1: strang splitting with half-steps for spatial space, 2: strang splitting with half-steps for velocity space **/
    static bool periodic_x, periodic_y, periodic_z; /*!< Whether spatial vlasov grid is periodic */
    
-   static Real RK_alpha; /*!< Parameter of the second-order Runge-Kutta method employed in the field solver. **/
    
    static Real sparseMinValue; /*!< Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents */
    static Real sparseMinAvgValue; /*!< Minimum value of the average of distribution function within a velocity block for the block to be considered to have contents */

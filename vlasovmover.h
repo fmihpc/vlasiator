@@ -42,16 +42,37 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,uint64_t cellI
 void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt);
 void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& acceleration,Real acceleration_dt);
 void initialLoadBalance(dccrg::Dccrg<SpatialCell>& mpiGrid);
+
+
 /*!
-   \brief Compute 0th and 1st velocity moments (RHO,RHOVX,RHOVY,RHOVZ) for all cells in the grid.
-   \param mpiGrid Grid of spatial cells for which moments are computed 
+  \brief Compute real-time 1st order accurate moments from the moments after propagation in velocity and spatial space
+
 */
-void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid);
+ 
+void calculateInterpolatedVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid,
+                                           const int cp_rho, const int cp_rhovx, const int cp_rhovy, const int cp_rhovz);
+
+
+
 /*!
-   \brief Compute 0th and 1st velocity moments (RHO,RHOVX,RHOVY,RHOVZ) for a spatial cell
-   \param SC Spatial cell for which moments are computed
+  \brief Compute 0th and 1st velocity moments (RHO,RHOVX,RHOVY,RHOVZ) for a cell directly from distribution function.The simulation should be at a true time-step!
+  \param SC pointer to the spatial cell
+  \param setDt2Values If true, then the RHO_DT2, RHO_V*_DT2 values will be set to the average of the new and old RHO, RHO_V* values, otherwise they are the same. False is the default value
+  
 */
-void calculateCellVelocityMoments(SpatialCell *SC);
+
+void calculateCellVelocityMoments(SpatialCell* SC, bool averageDt2Values=false);
+
+
+/*!
+  \brief Compute 0th and 1st velocity moments (RHO,RHOVX,RHOVY,RHOVZ) for all cells in the grid directly from distribution function.The simulation should be at a true time-step!
+  \param mpiGrid Grid of spatial cells for which moments are computed 
+  \param setDt2Values If true, then the RHO_DT2, RHO_V*_DT2 values will be set to the average of the new and old RHO, RHO_V* values, otherwise they are the same. False is the default value
+  
+*/
+void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid, bool averageDt2Values=false);
+
+
 
 #endif
 
