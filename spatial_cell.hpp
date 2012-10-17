@@ -990,33 +990,23 @@ namespace velocity_neighbor {
         Also returns false if given block doesn't exist or is an error block.
       */
             
-      bool compute_block_has_content(
-         const unsigned int block
-      ) const
-      {
-            if (block == error_velocity_block
-                || this->velocity_blocks.count(block) == 0) {
-               return false;
-            }
-
-            bool has_content = false;
-
-            Real total = 0;
-            const Velocity_Block* block_ptr = &(this->velocity_blocks.at(block));
-
-            for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
-               total += block_ptr->data[i];
-               if (block_ptr->data[i] >= SpatialCell::velocity_block_min_value) {
-                  has_content = true;
-                  break;
-               }
-            }
-
-            if (total >= SpatialCell::velocity_block_min_avg_value * VELOCITY_BLOCK_LENGTH) {
+      bool compute_block_has_content(const unsigned int block) const {
+         if (block == error_velocity_block
+             || this->velocity_blocks.count(block) == 0) {
+            return false;
+         }
+         
+         bool has_content = false;
+         const Velocity_Block* block_ptr = &(this->velocity_blocks.at(block));
+         
+         for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
+            if (fabs(block_ptr->data[i]) >= SpatialCell::velocity_block_min_value) {
                has_content = true;
+               break;
             }
-
-            return has_content;
+         }
+         
+         return has_content;
       }
    
       void update_all_block_has_content(void){
@@ -1653,17 +1643,11 @@ namespace velocity_neighbor {
 
       /*  
         Minimum value of distribution function
-        in any cell of a velocity block for the
+        in any phase space cell of a velocity block for the
         block to be considered to have content
       */
       static Real velocity_block_min_value;
 
-      /*
-        Minimum value of the average of distribution
-        function within a velocity block for the
-        block to be considered to have content
-      */
-      static Real velocity_block_min_avg_value;
 
    private:
 

@@ -146,7 +146,7 @@ int main(int argn,char* args[]) {
    if (required > provided){
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       if(myRank==MASTER_RANK)
-         cerr << "(MAIN): MPI_Init_thread failed! Got" << provided << ", need "<<required <<endl;
+         cerr << "(MAIN): MPI_Init_thread failed! Got " << provided << ", need "<<required <<endl;
       exit(1);
    }    
    MPI_Comm comm = MPI_COMM_WORLD;
@@ -483,7 +483,12 @@ int main(int argn,char* args[]) {
    finalizeFieldPropagator(mpiGrid);
    
    if (myRank == MASTER_RANK) {
-      double timePerStep=double(after  - before) / (P::tstep-P::tstep_min);
+      double timePerStep;
+      if(P::tstep == P::tstep_min) {
+         timePerStep=0.0;
+      } else {
+         timePerStep=double(after  - before) / (P::tstep-P::tstep_min);	
+      }
       double timePerSecond=double(after  - before) / (P::t-P::t_min+DT_EPSILON);
       logFile << "(MAIN): All timesteps calculated." << endl;
       logFile << "\t (TIME) total run time " << after - before << " s, total simulated time " << P::t -P::t_min<< " s" << endl;

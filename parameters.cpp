@@ -86,7 +86,6 @@ bool P::dynamicTimestep = true;
 
 
 Real P::sparseMinValue = NAN;
-Real P::sparseMinAvgValue = NAN;
 uint P::blockAdjustmentInterval = numeric_limits<uint>::max();
 
 string P::restartFileName = string("");                
@@ -144,7 +143,6 @@ bool Parameters::addParameters(){
    
    // Grid sparsity parameters
    Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
-   Readparameters::add("sparse.minAvgValue", "Minimum value of the average of distribution function within a velocity block for the block to be considered to have contents", 0);
    Readparameters::add("sparse.blockAdjustmentInterval", "Block adjustment interval (steps)", 1);
    
    // Load balancing parameters
@@ -154,7 +152,7 @@ bool Parameters::addParameters(){
    
    // Output variable parameters
    Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available (20120906) are B E Rho RhoV RhoLossAdjust RhoLossVelBoundary MPIrank Blocks BoundaryType VolE VolB Pressure PTensor dBxdz.");
-   Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Available (20120906) are Blocks FluxB FluxE Rho RhoLossAdjust RhoLossVelBoundary MaxVi MaxDistributionFunction.");
+   Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Available (20121005) are Blocks FluxB FluxE Rho RhoLossAdjust RhoLossVelBoundary MaxVi MaxDistributionFunction MinDistributionFunction.");
    
    return true;
 }
@@ -222,7 +220,6 @@ bool Parameters::getParameters(){
    
    // Get sparsity parameters
    Readparameters::get("sparse.minValue", P::sparseMinValue);
-   Readparameters::get("sparse.minAvgValue", P::sparseMinAvgValue);
    Readparameters::get("sparse.blockAdjustmentInterval", P::blockAdjustmentInterval);
    
    // Get load balance parameters

@@ -161,8 +161,8 @@ Real profile(creal top, creal bottom, creal x, creal z) {
    }
    if(KHP::offset != 0.0) {
       return 0.5 * ((top-bottom) * (
-	 tanh((z + KHP::offset + KHP::amp * cos(2.0*M_PI*x/KHP::lambda))/KHP::transitionWidth) -
-	 tanh((z-(KHP::offset + KHP::amp * cos(2.0*M_PI*x/KHP::lambda)))/KHP::transitionWidth) -1) + top+bottom);
+      tanh((z + KHP::offset + KHP::amp * cos(2.0*M_PI*x/KHP::lambda))/KHP::transitionWidth) -
+      tanh((z-(KHP::offset + KHP::amp * cos(2.0*M_PI*x/KHP::lambda)))/KHP::transitionWidth) -1) + top+bottom);
    } else {
       return 0.5 * ((top-bottom) * tanh(z/KHP::transitionWidth) + top+bottom);
    }
@@ -174,7 +174,7 @@ Real getDistribValue(creal& x, creal& z, creal& vx, creal& vy, creal& vz, creal&
    //  creal mu0 = 1.25663706144e-6; // mu_0
    //  creal q = 1.60217653e-19; // q_i
    //  creal gamma = 5./3.;
-   Real rho = profile(KHP::rho[KHP::TOP], KHP::rho[KHP::TOP], x, z);
+   Real rho = profile(KHP::rho[KHP::BOTTOM], KHP::rho[KHP::TOP], x, z);
    Real T = profile(KHP::T[KHP::BOTTOM], KHP::T[KHP::TOP], x, z);
    Real Vx = profile(KHP::Vx[KHP::BOTTOM], KHP::Vx[KHP::TOP], x, z);
    Real Vy = profile(KHP::Vy[KHP::BOTTOM], KHP::Vy[KHP::TOP], x, z);
@@ -194,12 +194,12 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
 //#pragma omp parallel for collapse(6) reduction(+:avg)
    for (uint i=0; i<KHP::nSpaceSamples; ++i)
       for (uint k=0; k<KHP::nSpaceSamples; ++k)
-	 for (uint vi=0; vi<KHP::nVelocitySamples; ++vi)
-	    for (uint vj=0; vj<KHP::nVelocitySamples; ++vj)
-	       for (uint vk=0; vk<KHP::nVelocitySamples; ++vk)
-		  {
-		     avg += getDistribValue(x+i*d_x, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
-		  }
+         for (uint vi=0; vi<KHP::nVelocitySamples; ++vi)
+            for (uint vj=0; vj<KHP::nVelocitySamples; ++vj)
+               for (uint vk=0; vk<KHP::nVelocitySamples; ++vk)
+               {
+                  avg += getDistribValue(x+i*d_x, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+               }
    return avg / pow(KHP::nSpaceSamples, 2.0) / pow(KHP::nVelocitySamples, 3.0);
 }
 
@@ -221,9 +221,9 @@ void calcCellParameters(Real* cellParams,creal& t) {
    Real d_z = dz / (KHP::nSpaceSamples - 1);
    for (uint i=0; i<KHP::nSpaceSamples; ++i)
       for (uint k=0; k<KHP::nSpaceSamples; ++k) {
-	 Bxavg += profile(KHP::Bx[KHP::BOTTOM], KHP::Bx[KHP::TOP], x+i*d_x, z+k*d_z);
-	 Byavg += profile(KHP::By[KHP::BOTTOM], KHP::By[KHP::TOP], x+i*d_x, z+k*d_z);
-	 Bzavg += profile(KHP::Bz[KHP::BOTTOM], KHP::Bz[KHP::TOP], x+i*d_x, z+k*d_z);
+         Bxavg += profile(KHP::Bx[KHP::BOTTOM], KHP::Bx[KHP::TOP], x+i*d_x, z+k*d_z);
+         Byavg += profile(KHP::By[KHP::BOTTOM], KHP::By[KHP::TOP], x+i*d_x, z+k*d_z);
+         Bzavg += profile(KHP::Bz[KHP::BOTTOM], KHP::Bz[KHP::TOP], x+i*d_x, z+k*d_z);
       }
    cuint nPts = pow(KHP::nSpaceSamples, 2.0);
    

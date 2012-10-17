@@ -86,6 +86,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          diagnosticReducer->addOperator(new DRO::MaxVi);
       if(*it == "MaxDistributionFunction")
          diagnosticReducer->addOperator(new DRO::MaxDistributionFunction);
+      if(*it == "MinDistributionFunction")
+         diagnosticReducer->addOperator(new DRO::MinDistributionFunction);
    }
 }
 
