@@ -82,7 +82,6 @@ struct Parameters {
    
    static bool propagateField;      /*!< If true, magnetic field is propagated during the simulation.*/
    static bool propagateVlasov;     /*!< If true, distribution function is propagated during the simulation.*/
-   static uint splitMethod;          /*!< Split method for splitting spatial/velocity space solvers. 0: first order, 1: strang splitting with half-steps for spatial space, 2: strang splitting with half-steps for velocity space **/
    static bool periodic_x, periodic_y, periodic_z; /*!< Whether spatial vlasov grid is periodic */
    
    

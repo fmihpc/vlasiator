@@ -80,7 +80,6 @@ uint P::transmit = 0;
 bool P::recalculateStencils = true;
 bool P::propagateVlasov = true;
 bool P::propagateField = true;
-uint P::splitMethod=1;
 
 uint P::maxAccelerationSubsteps=1;
 bool P::dynamicTimestep = true;
@@ -112,7 +111,6 @@ bool Parameters::addParameters(){
    Readparameters::add("max_acceleration_substeps","Maximum number of  acceleration substeps that are allowed to be taken in acceleration. The default number of 1 disables substepping and the acceleration is always done in one step. A value of 0 has a special meaning, it activates unlimited substepping",1);
    Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limits (default)",true);
 
-   Readparameters::add("split_method","Split method for splitting spatial/velocity space solvers. 0: first order, 1: strang splitting with half-steps for spatial space, 2: strang splitting with half-steps for velocity space",1);
    Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string(""));     
    
    Readparameters::add("gridbuilder.x_min","Minimum value of the x-coordinate.","");
@@ -170,7 +168,6 @@ bool Parameters::getParameters(){
    
    Readparameters::get("propagate_field",P::propagateField);
    Readparameters::get("propagate_vlasov",P::propagateVlasov);
-   Readparameters::get("split_method",P::splitMethod);
    Readparameters::get("max_acceleration_substeps",P::maxAccelerationSubsteps);
    Readparameters::get("dynamic_timestep",P::dynamicTimestep);
    Readparameters::get("restart.filename",P::restartFileName);
