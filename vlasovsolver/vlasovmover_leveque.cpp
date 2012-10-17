@@ -503,6 +503,9 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
       const Real dy=SC->parameters[CellParams::DY];
       const Real dz=SC->parameters[CellParams::DZ];
 
+      //Reset limit from spatial space
+      SC->parameters[CellParams::MAXRDT]=numeric_limits<Real>::max();
+
       for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
          unsigned int block = SC->velocity_block_list[block_i];         
          Velocity_Block* block_ptr = SC->at(block);
@@ -510,11 +513,11 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt) {
          
          //mark that this block is uninitialized
          block_ptr->fx[0] = numeric_limits<Real>::max();
+
          //compute maximum dt. In separate loop here, as the propagation
          //loops are parallelized over blocks, which would force us to
          //add critical regions.
          //loop over max/min velocity cells in block
-         SC->parameters[CellParams::MAXRDT]=numeric_limits<Real>::max();
          for (unsigned int i=0; i<WID;i+=WID-1) {
             const Real Vx = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
             const Real Vy = blockParams[BlockParams::VYCRD] + (i+HALF)*blockParams[BlockParams::DVY];
