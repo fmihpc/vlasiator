@@ -104,26 +104,38 @@ namespace DRO {
 
 
 
-   DataReductionOperatorCellParams::DataReductionOperatorCellParams(): DataReductionOperator() { }
+   DataReductionOperatorCellParams::DataReductionOperatorCellParams(std::string& name,uint parameterIndex,uint vectorSize):
+      DataReductionOperator() {
+      _vectorSize=vectorSize;
+      _name=name;
+      _parameterIndex=parameterIndex;
+   }
    DataReductionOperatorCellParams::~DataReductionOperatorCellParams() { }
    
    bool DataReductionOperatorCellParams::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
-      vectorSize = nParams;
+      vectorSize = _vectorSize;
       return true;
    }
    
    std::string DataReductionOperatorCellParams::getName() const {return "rho_v";}
    
    bool DataReductionOperatorCellParams::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(data);
-      for (uint i=0; i<nParams*sizeof(Real); ++i) buffer[i] = ptr[i];
+      const char* ptr = reinterpret_cast<const char*>(_data);
+      for (uint i=0; i<_vectorSize*sizeof(Real); ++i){
+         buffer[i] = ptr[i];
+      }
       return true;
    }
-   
+
+   bool DataReductionOperatorCellParams::reduceData(const SpatialCell* cell,Real* buffer){
+      //If _vectorSize is >1 it still works, we just give the first value and no other ones..
+      *buffer=_data[0];
+      return true;
+   }
    bool DataReductionOperatorCellParams::setSpatialCell(const SpatialCell* cell) {
-      data  = &(cell->parameters[paramIndex]);
+      _data  = &(cell->parameters[_parameterIndex]);
       return true;
    }
 

@@ -54,7 +54,7 @@ namespace DRO {
 
    class DataReductionOperatorCellParams: public DataReductionOperator {
     public:
-      DataReductionOperatorCellParams();
+      DataReductionOperatorCellParams(std::string& name,uint parameterIndex,uint vectorSize);
       virtual ~DataReductionOperatorCellParams();
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
@@ -63,10 +63,11 @@ namespace DRO {
       virtual bool reduceData(const SpatialCell* cell,Real * result);
       virtual bool setSpatialCell(const SpatialCell* cell);
       
-    protected:
-      uint paramIndex;
-      uint nParams;
-      Real *data;
+   protected:
+      uint _parameterIndex;
+      uint _vectorSize;
+      std::string _name;
+      const Real *_data;
    };
 
    
