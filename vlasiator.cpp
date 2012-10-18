@@ -260,11 +260,10 @@ int main(int argn,char* args[]) {
    
 
 
-   //compute dt
-   
-   if(P::dynamicTimestep) {
+   if(P::dynamicTimestep && !P::isRestart) {
+      //compute vlasovsolver once with zero dt, this is  to initialize
+      //per-cell dt limits. In restarts, we read in dt from file
       phiprof::start("compute-dt");
-      //compute vlasovsolver once with zero dt, this is just to initialize per-cell dt limits
       if(P::propagateVlasov) {
          calculateSpatialFluxes(mpiGrid,0.0);
          calculateSpatialPropagation(mpiGrid,true,0.0);
@@ -272,15 +271,17 @@ int main(int argn,char* args[]) {
       if(P::propagateField) {
          propagateFields(mpiGrid,0.0);
       }
+      //compute new dt
       changeTimeStep(mpiGrid,newDt,dtIsChanged);
       P::dt=newDt;
       phiprof::stop("compute-dt");
       
    }
 
-
-   if(P::propagateVlasov) {
-      //go forward by dt/2 in x, initializes leapfrog split
+   
+   if(P::propagateVlasov && !P::isRestart) {
+      //go forward by dt/2 in x, initializes leapfrog split. In restarts the
+      //the distribution function is already propagated forward in time by dt/2
       phiprof::start("propagate-spatial-space-dt/2");
       calculateSpatialFluxes(mpiGrid,0.5*P::dt);
       calculateSpatialPropagation(mpiGrid,false,0.0);
@@ -384,7 +385,9 @@ int main(int argn,char* args[]) {
 
             
       //Check if dt needs to be changed, and propagate half-steps properly to change dt and set up new situation
-      if(P::dynamicTimestep) {
+      //do not compute new dt on first step (in restarts dt comes from file, otherwise it was initialized before we entered
+      //simulation loop
+      if(P::dynamicTimestep  && P::tstep> P::tstep_min) {
          changeTimeStep(mpiGrid,newDt,dtIsChanged);         
          if(dtIsChanged) {
             phiprof::start("update-dt");
@@ -414,7 +417,6 @@ int main(int argn,char* args[]) {
             phiprof::stop("update-dt");
             continue; //
          }
-
       }
       
       
