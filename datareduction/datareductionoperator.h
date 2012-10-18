@@ -51,6 +51,25 @@ namespace DRO {
     protected:
 	
    };
+
+   class DataReductionOperatorCellParams: public DataReductionOperator {
+    public:
+      DataReductionOperatorCellParams();
+      virtual ~DataReductionOperatorCellParams();
+      
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell,Real * result);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      
+    protected:
+      uint paramIndex;
+      uint nParams;
+      Real *data;
+   };
+
+   
    
    class MPIrank: public DataReductionOperator {
     public:
@@ -250,6 +269,8 @@ namespace DRO {
       Real rhovz;
       const Real* rhov;
    };
+
+
 
    class MaxVi: public DataReductionOperator {
    public:

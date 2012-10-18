@@ -99,6 +99,41 @@ namespace DRO {
       cerr << "ERROR: DataReductionOperator::setSpatialCell called instead of derived class function!" << endl;
       return false;
    }
+
+
+
+
+
+   DataReductionOperatorCellParams::DataReductionOperatorCellParams(): DataReductionOperator() { }
+   DataReductionOperatorCellParams::~DataReductionOperatorCellParams() { }
+   
+   bool DataReductionOperatorCellParams::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = nParams;
+      return true;
+   }
+   
+   std::string DataReductionOperatorCellParams::getName() const {return "rho_v";}
+   
+   bool DataReductionOperatorCellParams::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(data);
+      for (uint i=0; i<nParams*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool DataReductionOperatorCellParams::setSpatialCell(const SpatialCell* cell) {
+      data  = &(cell->parameters[paramIndex]);
+      return true;
+   }
+
+
+
+
+
+
+
+
    
    // E
    VariableE::VariableE(): DataReductionOperator() { }
@@ -416,6 +451,7 @@ namespace DRO {
       nBlocks = cell->number_of_blocks;
       return true;
    }
+
    
    // rho_v
    VariableRhoV::VariableRhoV(): DataReductionOperator() { }
@@ -443,6 +479,9 @@ namespace DRO {
       rhovz = cell->parameters[CellParams::RHOVZ];
       return true;
    }
+    
+
+
    
    // Scalar pressure added by YK
    VariablePressure::VariablePressure(): DataReductionOperator() { }

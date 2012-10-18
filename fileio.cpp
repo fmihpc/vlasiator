@@ -140,11 +140,11 @@ bool readNBlocks(VLSVParReader & file,
 template <typename fileReal>
 bool readBlockData(VLSVParReader & file,
                    const vector<uint64_t>& fileCells,
-		   const uint localCellStartOffset,
-		   const uint localCells,
+		   const uint64_t localCellStartOffset,
+		   const uint64_t localCells,
 		   const vector<uint>& nBlocks,
-		   const uint localBlockStartOffset,
-		   const uint localBlocks,
+		   const uint64_t localBlockStartOffset,
+		   const uint64_t localBlocks,
                    dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid){
   uint64_t arraySize;
   uint64_t avgVectorSize;
@@ -156,7 +156,6 @@ bool readBlockData(VLSVParReader & file,
   list<pair<string,string> > coordAttribs;
   fileReal *coordBuffer;
   fileReal *avgBuffer;
-  int maxNumberOfBlocks;
   bool success=true;
    
   coordAttribs.push_back(make_pair("name","SpatialGrid"));
@@ -396,6 +395,7 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    
    if(readScalarParameter(file,"tstep",P::tstep,0,MPI_COMM_WORLD) ==false) success=false;
    P::tstep_min=P::tstep;
+   if(readScalarParameter(file,"dt",P::dt,0,MPI_COMM_WORLD) ==false) success=false;
    checkScalarParameter(file,"xmin",P::xmin,0,MPI_COMM_WORLD);
    checkScalarParameter(file,"ymin",P::ymin,0,MPI_COMM_WORLD);
    checkScalarParameter(file,"zmin",P::zmin,0,MPI_COMM_WORLD);
@@ -466,8 +466,8 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    gridCells = mpiGrid.get_cells();
    
    //this is where local cells start in file-list after migration
-   uint localCellStartOffset;
-   uint localCells;
+   uint64_t localCellStartOffset;
+   uint64_t localCells;
    if(myRank < processesA) {
       localCells=cellsPerProcessA;
       localCellStartOffset=cellsPerProcessA*myRank;
@@ -696,6 +696,11 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
       restartReducer.addOperator(new DRO::VariableBgB);
       restartReducer.addOperator(new DRO::VariableScB);
       restartReducer.addOperator(new DRO::Blocks);
+// These should be written out, and read...
+//      restartReducer.addOperator(new DRO::Moments);
+//      restartReducer.addOperator(new DRO::MomentsDt2);
+//      restartReducer.addOperator(new DRO::MomentsR);
+//      restartReducer.addOperator(new DRO::MomentsV);     
 
       for (uint i=0; i<restartReducer.size(); ++i) {
          writeDataReducer(mpiGrid,restartReducer,i,vlsvWriter);
