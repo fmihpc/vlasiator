@@ -88,8 +88,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          diagnosticReducer->addOperator(new DRO::RhoLossAdjust);
       if(*it == "RhoLossVelBoundary")
          diagnosticReducer->addOperator(new DRO::RhoLossVelBoundary);
-      if(*it == "MaxVi")
-         diagnosticReducer->addOperator(new DRO::MaxVi);
       if(*it == "MaxDistributionFunction")
          diagnosticReducer->addOperator(new DRO::MaxDistributionFunction);
       if(*it == "MinDistributionFunction")

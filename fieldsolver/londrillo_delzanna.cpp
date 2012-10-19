@@ -1837,7 +1837,7 @@ static void propagateMagneticFieldSimple(
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB);
    } else { // RKCase == RK_ORDER2_STEP1
       // Exchange PERBX_DT2,PERBY_DT2,PERBZ_DT2 with neighbours
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB_DT2);
+      SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERBDT2);
    }
    timer=phiprof::initializeTimer("Start comm of B","MPI");
    phiprof::start(timer);
