@@ -129,8 +129,8 @@ namespace SBC {
    ) {
       if(dt == 0.0) {
          return fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component);
-      } else { // Return B[XYZ]1
-         cint offset = CellParams::BX1 - CellParams::BX;
+      } else { // Return PERB[XYZ]_DT2
+         cint offset = CellParams::PERBX_DT2 - CellParams::PERBX;
          return fieldBoundaryCopyFromExistingFaceNbrMagneticField(mpiGrid, cellID, component+offset);
       }
    }
@@ -179,134 +179,134 @@ namespace SBC {
       if(((*neighbors)[61] == dccrg::error_cell) &&
          ((*neighbors)[57] == dccrg::error_cell) &&
          ((*neighbors)[37] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,+1,+1)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,+1,+1)]->parameters[CellParams::PERBX+component];
       }
       // If -x/-y/+z neighbours are missing, copy from +x/+y/-z
       if(((*neighbors)[61] == dccrg::error_cell) &&
          ((*neighbors)[57] == dccrg::error_cell) &&
          ((*neighbors)[86] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,+1,-1)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,+1,-1)]->parameters[CellParams::PERBX+component];
       }
       // If -x/+y/-z neighbours are missing, copy from +x/-y/+z
       if(((*neighbors)[61] == dccrg::error_cell) &&
          ((*neighbors)[66] == dccrg::error_cell) &&
          ((*neighbors)[37] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,-1,+1)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,-1,+1)]->parameters[CellParams::PERBX+component];
       }
       // If +x/-y/-z neighbours are missing, copy from -x/+y/+z
       if(((*neighbors)[62] == dccrg::error_cell) &&
          ((*neighbors)[57] == dccrg::error_cell) &&
          ((*neighbors)[37] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,+1,+1)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,+1,+1)]->parameters[CellParams::PERBX+component];
       }
       // If -x/+y/+z neighbours are missing, copy from +x/-y/-z
       if(((*neighbors)[61] == dccrg::error_cell) &&
          ((*neighbors)[66] == dccrg::error_cell) &&
          ((*neighbors)[86] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,-1,-1)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,-1,-1)]->parameters[CellParams::PERBX+component];
       }
       // If +x/-y/+z neighbours are missing, copy from -x/+y/-z
       if(((*neighbors)[62] == dccrg::error_cell) &&
          ((*neighbors)[57] == dccrg::error_cell) &&
          ((*neighbors)[86] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,+1,-1)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,+1,-1)]->parameters[CellParams::PERBX+component];
       }
       // If +x/+y/-z neighbours are missing, copy from -x/-y/+z
       if(((*neighbors)[62] == dccrg::error_cell) &&
          ((*neighbors)[66] == dccrg::error_cell) &&
          ((*neighbors)[37] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,-1,+1)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,-1,+1)]->parameters[CellParams::PERBX+component];
       }
       // If +x/+y/+z neighbours are missing, copy from -x/-y/-z
       if(((*neighbors)[62] == dccrg::error_cell) &&
          ((*neighbors)[66] == dccrg::error_cell) &&
          ((*neighbors)[86] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,-1,-1)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,-1,-1)]->parameters[CellParams::PERBX+component];
       }
       
       // If -z/-y neighbours are missing, copy from +z/+y
       if(((*neighbors)[37] == dccrg::error_cell) &&
          ((*neighbors)[57] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,0,+1,+1)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,0,+1,+1)]->parameters[CellParams::PERBX+component];
       }
       // If -z/-x neighbours are missing, copy from +z/+x
       if(((*neighbors)[37] == dccrg::error_cell) &&
          ((*neighbors)[61] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,0,+1)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,0,+1)]->parameters[CellParams::PERBX+component];
       }
       // If -z/+y neighbours are missing, copy from +z/-y
       if(((*neighbors)[37] == dccrg::error_cell) &&
          ((*neighbors)[66] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,0,-1,+1)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,0,-1,+1)]->parameters[CellParams::PERBX+component];
       }
       // If -z/+x neighbours are missing, copy from +z/-x
       if(((*neighbors)[37] == dccrg::error_cell) &&
          ((*neighbors)[62] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,0,+1)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,0,+1)]->parameters[CellParams::PERBX+component];
       }
       // If +z/-y neighbours are missing, copy from -z/+y
       if(((*neighbors)[86] == dccrg::error_cell) &&
          ((*neighbors)[57] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,0,+1,-1)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,0,+1,-1)]->parameters[CellParams::PERBX+component];
       }
       // If +z/+x neighbours are missing, copy from -z/-x
       if(((*neighbors)[62] == dccrg::error_cell) &&
          ((*neighbors)[86] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,0,-1)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,0,-1)]->parameters[CellParams::PERBX+component];
       }
       // If +z/+y neighbours are missing, copy from -z/-y
       if(((*neighbors)[86] == dccrg::error_cell) &&
          ((*neighbors)[66] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,0,-1,-1)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,0,-1,-1)]->parameters[CellParams::PERBX+component];
       }
       // If +z/-x neighbours are missing, copy from -z/+x
       if(((*neighbors)[61] == dccrg::error_cell) &&
          ((*neighbors)[86] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,0,-1)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,0,-1)]->parameters[CellParams::PERBX+component];
       }
       // If -x/-y neighbours are missing, copy from +x/+y
       if(((*neighbors)[61] == dccrg::error_cell) &&
          ((*neighbors)[57] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,+1,0)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,+1,0)]->parameters[CellParams::PERBX+component];
       }
       // If -x/+y neighbours are missing, copy from +x/-y
       if(((*neighbors)[61] == dccrg::error_cell) &&
          ((*neighbors)[66] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,-1,0)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,-1,0)]->parameters[CellParams::PERBX+component];
       }
       // If +x/-y neighbours are missing, copy from -x/+y
       if(((*neighbors)[62] == dccrg::error_cell) &&
          ((*neighbors)[57] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,+1,0)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,+1,0)]->parameters[CellParams::PERBX+component];
       }
       // If +x/+y neighbours are missing, copy from -x/-y
       if(((*neighbors)[62] == dccrg::error_cell) &&
          ((*neighbors)[66] == dccrg::error_cell)) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,-1,0)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,-1,0)]->parameters[CellParams::PERBX+component];
       }
       // If -z neighbour is missing, copy from +z
       if((*neighbors)[37] == dccrg::error_cell) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,0,0,+1)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,0,0,+1)]->parameters[CellParams::PERBX+component];
       }
       // If -y neighbour is missing, copy from +y
       if((*neighbors)[57] == dccrg::error_cell) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,0,+1,0)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,0,+1,0)]->parameters[CellParams::PERBX+component];
       }
       // If -x neighbour is missing, copy from +x
       if((*neighbors)[61] == dccrg::error_cell) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,0,0)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,+1,0,0)]->parameters[CellParams::PERBX+component];
       }
       // If +z neighbour is missing, copy from -z
       if((*neighbors)[86] == dccrg::error_cell) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,0,0,-1)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,0,0,-1)]->parameters[CellParams::PERBX+component];
       }
       // If +y neighbour is missing, copy from -y
       if((*neighbors)[66] == dccrg::error_cell) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,0,-1,0)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,0,-1,0)]->parameters[CellParams::PERBX+component];
       }
       // If +x neighbour is missing, copy from -x
       if((*neighbors)[62] == dccrg::error_cell) {
-         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,0,0)]->parameters[CellParams::BX+component];
+         return mpiGrid[getNeighbour(mpiGrid,cellID,-1,0,0)]->parameters[CellParams::PERBX+component];
       }
       cerr << cellID << " " << __FILE__  << ":" << __LINE__
            << ": Got to the end of fieldBoundaryCopyFromExistingFaceNbrMagneticField(), this should not happen!"

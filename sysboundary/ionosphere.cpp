@@ -157,16 +157,8 @@ namespace SBC {
       creal& dt,
       cuint& component
    ) {
-      // WARNING Pure dipole
-      Real B[3];
-      
-      dipole(
-         mpiGrid[cellID]->parameters[CellParams::XCRD] + 0.5*mpiGrid[cellID]->parameters[CellParams::DX],
-         mpiGrid[cellID]->parameters[CellParams::YCRD] + 0.5*mpiGrid[cellID]->parameters[CellParams::DY],
-         mpiGrid[cellID]->parameters[CellParams::ZCRD] + 0.5*mpiGrid[cellID]->parameters[CellParams::DZ],
-         B[0], B[1], B[2]);
-      
-      return B[component];
+      // The perturbed magnetic field is reset to 0.0, the dipole field is in the background component.
+      return 0.0;
    }
    
    void Ionosphere::fieldSolverBoundaryCondElectricField(
@@ -178,7 +170,7 @@ namespace SBC {
       if((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
          mpiGrid[cellID]->parameters[CellParams::EX+component] = 0.0;
       } else {// RKCase == RK_ORDER2_STEP1
-         mpiGrid[cellID]->parameters[CellParams::EX1+component] = 0.0;
+         mpiGrid[cellID]->parameters[CellParams::EX_DT2+component] = 0.0;
       }
    }
    
@@ -220,9 +212,9 @@ namespace SBC {
          cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX],
          cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY],
          cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ],
-         cell->parameters[CellParams::BX],
-         cell->parameters[CellParams::BY],
-         cell->parameters[CellParams::BZ]
+         cell->parameters[CellParams::BGBX],
+         cell->parameters[CellParams::BGBY],
+         cell->parameters[CellParams::BGBZ]
       );
       
       copyCellData(&templateCell, cell);

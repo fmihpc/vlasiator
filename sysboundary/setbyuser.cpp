@@ -136,9 +136,9 @@ namespace SBC {
       for(uint i=0; i<6; i++) {
          if(isThisCellOnAFace[i]) {
             if(dt == 0.0) {
-               result = templateCells[i].parameters[CellParams::BX + component];
+               result = templateCells[i].parameters[CellParams::PERBX + component];
             } else {
-               result = templateCells[i].parameters[CellParams::BX1 + component];
+               result = templateCells[i].parameters[CellParams::PERBX_DT2 + component];
             }
             break; // This effectively sets the precedence of faces through the order of faces.
          }

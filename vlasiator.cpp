@@ -265,11 +265,11 @@ int main(int argn,char* args[]) {
       //per-cell dt limits. In restarts, we read in dt from file
       phiprof::start("compute-dt");
       if(P::propagateVlasov) {
-         calculateSpatialFluxes(mpiGrid,0.0);
+         calculateSpatialFluxes(mpiGrid, sysBoundaries, 0.0);
          calculateSpatialPropagation(mpiGrid,true,0.0);
       }
       if(P::propagateField) {
-         propagateFields(mpiGrid,0.0);
+         propagateFields(mpiGrid, sysBoundaries, 0.0);
       }
       //compute new dt
       changeTimeStep(mpiGrid,newDt,dtIsChanged);
@@ -283,7 +283,7 @@ int main(int argn,char* args[]) {
       //go forward by dt/2 in x, initializes leapfrog split. In restarts the
       //the distribution function is already propagated forward in time by dt/2
       phiprof::start("propagate-spatial-space-dt/2");
-      calculateSpatialFluxes(mpiGrid,0.5*P::dt);
+      calculateSpatialFluxes(mpiGrid, sysBoundaries, 0.5*P::dt);
       calculateSpatialPropagation(mpiGrid,false,0.0);
       phiprof::stop("propagate-spatial-space-dt/2");
    }
@@ -402,7 +402,7 @@ int main(int argn,char* args[]) {
             // Propagate fields forward in time by 0.5*dt
             if (P::propagateField == true) {
                phiprof::start("Propagate Fields");
-               propagateFields(mpiGrid,0.5*P::dt);
+               propagateFields(mpiGrid, sysBoundaries, 0.5*P::dt);
                phiprof::stop("Propagate Fields",computedSpatialCells,"SpatialCells");
             } else {
                // TODO Whatever field updating/volume
@@ -415,7 +415,7 @@ int main(int argn,char* args[]) {
             P::dt=newDt;
             
             //go forward by dt/2 again in x
-            calculateSpatialFluxes(mpiGrid,0.5*P::dt);
+            calculateSpatialFluxes(mpiGrid, sysBoundaries, 0.5*P::dt);
             calculateSpatialPropagation(mpiGrid,false,0.0);
             logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
             phiprof::stop("update-dt");
@@ -447,11 +447,11 @@ int main(int argn,char* args[]) {
                                               CellParams::RHOVX_DT2,CellParams::RHOVY_DT2,CellParams::RHOVZ_DT2);
 
          phiprof::start("Update system boundaries (Vlasov)");
-         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P:dt); 
+         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt); 
          phiprof::stop("Update system boundaries (Vlasov)");
 
          phiprof::start("Spatial-space");
-         calculateSpatialFluxes(mpiGrid,P::dt);
+         calculateSpatialFluxes(mpiGrid, sysBoundaries, P::dt);
          calculateSpatialPropagation(mpiGrid,false,0.0);
          phiprof::stop("Spatial-space",computedBlocks,"Blocks");
 

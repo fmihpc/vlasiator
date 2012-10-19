@@ -694,7 +694,7 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
       //write out DROs we need for restarts
       DataReducer restartReducer;
       restartReducer.addOperator(new DRO::VariableBgB);
-      restartReducer.addOperator(new DRO::VariableScB);
+      restartReducer.addOperator(new DRO::VariablePerturbedB);
       restartReducer.addOperator(new DRO::Blocks);
 // These should be written out, and read...
 //      restartReducer.addOperator(new DRO::Moments);
