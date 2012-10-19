@@ -445,8 +445,8 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    //First processA processes get cellsPerProcessA cells, the next cellsPerProcessB cells
    uint cellsPerProcessA=fileCells.size()/processes;
    uint cellsPerProcessB=cellsPerProcessA+1;
-   uint processesB=fileCells.size()%processes;
-   uint processesA=processes-processesB;
+   int processesB=fileCells.size()%processes;
+   int processesA=processes-processesB;
    
    //pin local cells to remote processes
    for(uint i=0;i<fileCells.size();i++){
