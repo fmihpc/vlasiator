@@ -81,7 +81,123 @@ bool getProjectParameters() {
    return true;
 }
 
-bool cellParametersChanged(creal& t) {return false;}
+Real getDistribValue(creal& vx,creal& vy, creal& vz) {
+   creal k = 1.3806505e-23; // Boltzmann
+   creal mass = 1.67262171e-27; // m_p in kg
+   return exp(- mass * (vx*vx + vy*vy + vz*vz) / (2.0 * k * DispP::TEMPERATURE));
+}
+
+/* calcPhaseSpaceDensity needs to be thread-safe */
+// TODO when projects are classes, the rnd values and state variables etc can be class members.
+/*! Integrate the distribution function over the given six-dimensional phase-space cell.
+ * \param x Starting value of the x-coordinate of the cell.
+ * \param y Starting value of the y-coordinate of the cell.
+ * \param z Starting value of the z-coordinate of the cell.
+ * \param dx The size of the cell in x-direction.
+ * \param dy The size of the cell in y-direction.
+ * \param dz The size of the cell in z-direction.
+ * \param vx Starting value of the vx-coordinate of the cell.
+ * \param vy Starting value of the vy-coordinate of the cell.
+ * \param vz Starting value of the vz-coordinate of the cell.
+ * \param dvx The size of the cell in vx-direction.
+ * \param dvy The size of the cell in vy-direction.
+ * \param dvz The size of the cell in vz-direction.
+ * \param rndRho Random number for the density perturbation.
+ * \param rndVel Three random numbers for the velocity perturbation.
+ * \return The volume average of the distribution function in the given phase space cell.
+ * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
+ */
+Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const int32_t& rndRho, const int32_t rndVel[3]) {
+   if(vx < Parameters::vxmin + 0.5 * dvx ||
+      vy < Parameters::vymin + 0.5 * dvy ||
+      vz < Parameters::vzmin + 0.5 * dvz ||
+      vx > Parameters::vxmax - 1.5 * dvx ||
+      vy > Parameters::vymax - 1.5 * dvy ||
+      vz > Parameters::vzmax - 1.5 * dvz
+   ) return 0.0;
+   
+   creal mass = Parameters::m;
+   creal q = Parameters::q;
+   creal k = 1.3806505e-23; // Boltzmann
+   creal mu0 = 1.25663706144e-6; // mu_0
+   
+   creal d_vx = dvx / (DispP::nVelocitySamples-1);
+   creal d_vy = dvy / (DispP::nVelocitySamples-1);
+   creal d_vz = dvz / (DispP::nVelocitySamples-1);
+   Real avg = 0.0;
+   
+   for (uint vi=0; vi<DispP::nVelocitySamples; ++vi)
+      for (uint vj=0; vj<DispP::nVelocitySamples; ++vj)
+         for (uint vk=0; vk<DispP::nVelocitySamples; ++vk)
+         {
+            avg += getDistribValue(
+               vx+vi*d_vx - DispP::velocityPertAbsAmp * (0.5 - (double)rndVel[0] / (double)RAND_MAX),
+                                   vy+vj*d_vy - DispP::velocityPertAbsAmp * (0.5 - (double)rndVel[1] / (double)RAND_MAX),
+                                   vz+vk*d_vz - DispP::velocityPertAbsAmp * (0.5 - (double)rndVel[2] / (double)RAND_MAX));
+         }
+         
+         creal result = avg *
+         DispP::DENSITY * (1.0 + DispP::densityPertRelAmp * (0.5 - (double)rndRho / (double)RAND_MAX)) *
+         pow(mass / (2.0 * M_PI * k * DispP::TEMPERATURE), 1.5) /
+         //            (Parameters::vzmax - Parameters::vzmin) / 
+         (DispP::nVelocitySamples*DispP::nVelocitySamples*DispP::nVelocitySamples);
+         if(result < DispP::maxwCutoff) {
+            return 0.0;
+         } else {
+            return result;
+         }
+}
+
+/** Calculate parameters for the given spatial cell at the given time.
+ * Here you need to set values for the following array indices:
+ * CellParams::EX, CellParams::EY, CellParams::EZ, CellParams::BX, CellParams::BY, and CellParams::BZ.
+ * 
+ * The following array indices contain the coordinates of the "lower left corner" of the cell: 
+ * CellParams::XCRD, CellParams::YCRD, and CellParams::ZCRD.
+ * The cell size is given in the following array indices: CellParams::DX, CellParams::DY, and CellParams::DZ.
+ * @param cellParams Array containing cell parameters.
+ * @param t The current value of time. This is passed as a convenience. If you need more detailed information 
+ * of the state of the simulation, you can read it from Parameters.
+ */
+void calcCellParameters(Real* cellParams,creal& t) {
+   creal x = cellParams[CellParams::XCRD];
+   creal dx = cellParams[CellParams::DX];
+   creal y = cellParams[CellParams::YCRD];
+   creal dy = cellParams[CellParams::DY];
+   creal z = cellParams[CellParams::ZCRD];
+   creal dz = cellParams[CellParams::DZ];
+   
+   uint cellID = (int) ((x - Parameters::xmin) / dx) +
+   (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
+   (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
+   
+   cellParams[CellParams::EX   ] = 0.0;
+   cellParams[CellParams::EY   ] = 0.0;
+   cellParams[CellParams::EZ   ] = 0.0;
+   
+   // TODO when projects are classes, the rnd values and state variables etc can be class members.
+   char rngStateBuffer[256];
+   random_data rngDataBuffer;
+   memset(&rngDataBuffer, 0, sizeof(rngDataBuffer));
+   initstate_r(cellID + 
+   (uint)(Parameters::xcells_ini*Parameters::ycells_ini*Parameters::zcells_ini), &rngStateBuffer[0], 256, &rngDataBuffer);
+   
+   int32_t rndBuffer[3];
+   random_r(&rngDataBuffer, &rndBuffer[0]);
+   random_r(&rngDataBuffer, &rndBuffer[1]);
+   random_r(&rngDataBuffer, &rndBuffer[2]);
+
+   cellParams[CellParams::PERBX] = 0.0;
+   cellParams[CellParams::PERBY] = 0.0;
+   cellParams[CellParams::PERBZ] = 0.0;
+   
+   cellParams[CellParams::BGBX] = DispP::B0 * cos(DispP::angleXY) * cos(DispP::angleXZ) +
+      DispP::magXPertAbsAmp * (0.5 - (double)rndBuffer[0] / (double)RAND_MAX);
+   cellParams[CellParams::BGBY] = DispP::B0 * sin(DispP::angleXY) * cos(DispP::angleXZ) + 
+      DispP::magYPertAbsAmp * (0.5 - (double)rndBuffer[1] / (double)RAND_MAX);
+   cellParams[CellParams::BGBZ] = DispP::B0 * sin(DispP::angleXZ) +
+      DispP::magZPertAbsAmp * (0.5 - (double)rndBuffer[2] / (double)RAND_MAX);
+}
 
 void setProjectCell(SpatialCell* cell) {
    // Set up cell parameters:
@@ -156,104 +272,3 @@ void setProjectCell(SpatialCell* cell) {
          //let's get rid of blocks not fulfilling the criteria here to save memory.
          cell->adjustSingleCellVelocityBlocks();
 }
-
-Real getDistribValue(creal& vx,creal& vy, creal& vz) {
-   creal k = 1.3806505e-23; // Boltzmann
-   creal mass = 1.67262171e-27; // m_p in kg
-   return exp(- mass * (vx*vx + vy*vy + vz*vz) / (2.0 * k * DispP::TEMPERATURE));
-}
-
-/* calcPhaseSpaceDensity needs to be thread-safe */
-Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const int32_t& rndRho, const int32_t rndVel[3]) {
-   if(vx < Parameters::vxmin + 0.5 * dvx ||
-      vy < Parameters::vymin + 0.5 * dvy ||
-      vz < Parameters::vzmin + 0.5 * dvz ||
-      vx > Parameters::vxmax - 1.5 * dvx ||
-      vy > Parameters::vymax - 1.5 * dvy ||
-      vz > Parameters::vzmax - 1.5 * dvz
-   ) return 0.0;
-   
-   creal mass = Parameters::m;
-   creal q = Parameters::q;
-   creal k = 1.3806505e-23; // Boltzmann
-   creal mu0 = 1.25663706144e-6; // mu_0
-   
-   creal d_vx = dvx / (DispP::nVelocitySamples-1);
-   creal d_vy = dvy / (DispP::nVelocitySamples-1);
-   creal d_vz = dvz / (DispP::nVelocitySamples-1);
-   Real avg = 0.0;
-   
-   for (uint vi=0; vi<DispP::nVelocitySamples; ++vi)
-      for (uint vj=0; vj<DispP::nVelocitySamples; ++vj)
-         for (uint vk=0; vk<DispP::nVelocitySamples; ++vk)
-         {
-            avg += getDistribValue(
-               vx+vi*d_vx - DispP::velocityPertAbsAmp * (0.5 - (double)rndVel[0] / (double)RAND_MAX),
-                                   vy+vj*d_vy - DispP::velocityPertAbsAmp * (0.5 - (double)rndVel[1] / (double)RAND_MAX),
-                                   vz+vk*d_vz - DispP::velocityPertAbsAmp * (0.5 - (double)rndVel[2] / (double)RAND_MAX));
-         }
-         
-         creal result = avg *
-         DispP::DENSITY * (1.0 + DispP::densityPertRelAmp * (0.5 - (double)rndRho / (double)RAND_MAX)) *
-         pow(mass / (2.0 * M_PI * k * DispP::TEMPERATURE), 1.5) /
-         //            (Parameters::vzmax - Parameters::vzmin) / 
-         (DispP::nVelocitySamples*DispP::nVelocitySamples*DispP::nVelocitySamples);
-         if(result < DispP::maxwCutoff) {
-            return 0.0;
-         } else {
-            return result;
-         }
-}
-
-void calcBlockParameters(Real* blockParams) {
-   //blockParams[BlockParams::Q_PER_M] = 1.0;
-}
-
-void calcCellParameters(Real* cellParams,creal& t) {
-   creal x = cellParams[CellParams::XCRD];
-   creal dx = cellParams[CellParams::DX];
-   creal y = cellParams[CellParams::YCRD];
-   creal dy = cellParams[CellParams::DY];
-   creal z = cellParams[CellParams::ZCRD];
-   creal dz = cellParams[CellParams::DZ];
-   
-   uint cellID = (int) ((x - Parameters::xmin) / dx) +
-   (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
-   (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-   
-   cellParams[CellParams::EX   ] = 0.0;
-   cellParams[CellParams::EY   ] = 0.0;
-   cellParams[CellParams::EZ   ] = 0.0;
-   
-   // TODO when projects are classes, the rnd values and state variables etc can be class members.
-   char rngStateBuffer[256];
-   random_data rngDataBuffer;
-   memset(&rngDataBuffer, 0, sizeof(rngDataBuffer));
-   initstate_r(cellID + 
-   (uint)(Parameters::xcells_ini*Parameters::ycells_ini*Parameters::zcells_ini), &rngStateBuffer[0], 256, &rngDataBuffer);
-   
-   int32_t rndBuffer[3];
-   random_r(&rngDataBuffer, &rndBuffer[0]);
-   random_r(&rngDataBuffer, &rndBuffer[1]);
-   random_r(&rngDataBuffer, &rndBuffer[2]);
-
-   cellParams[CellParams::PERBX] = 0.0;
-   cellParams[CellParams::PERBY] = 0.0;
-   cellParams[CellParams::PERBZ] = 0.0;
-   
-   cellParams[CellParams::BGBX] = DispP::B0 * cos(DispP::angleXY) * cos(DispP::angleXZ) +
-      DispP::magXPertAbsAmp * (0.5 - (double)rndBuffer[0] / (double)RAND_MAX);
-   cellParams[CellParams::BGBY] = DispP::B0 * sin(DispP::angleXY) * cos(DispP::angleXZ) + 
-      DispP::magYPertAbsAmp * (0.5 - (double)rndBuffer[1] / (double)RAND_MAX);
-   cellParams[CellParams::BGBZ] = DispP::B0 * sin(DispP::angleXZ) +
-      DispP::magZPertAbsAmp * (0.5 - (double)rndBuffer[2] / (double)RAND_MAX);
-}
-
-// TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
-void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
-   const std::vector<uint64_t> cells = mpiGrid.get_cells();
-   for (uint i = 0; i < cells.size(); ++i) {
-      calcCellParameters(mpiGrid[cells[i]]->parameters, t);
-   }
-}
-
