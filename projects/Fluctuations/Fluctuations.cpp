@@ -28,6 +28,47 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "readparameters.h"
 #include "vlasovmover.h"
 
+
+/** Calculate parameters for the given spatial cell at the given time.
+ * Here you need to set values for the following array indices:
+ * CellParams::EX, CellParams::EY, CellParams::EZ, CellParams::BX, CellParams::BY, and CellParams::BZ.
+ * 
+ * The following array indices contain the coordinates of the "lower left corner" of the cell: 
+ * CellParams::XCRD, CellParams::YCRD, and CellParams::ZCRD.
+ * The cell size is given in the following array indices: CellParams::DX, CellParams::DY, and CellParams::DZ.
+ * @param cellParams Array containing cell parameters.
+ * @param t The current value of time. This is passed as a convenience. If you need more detailed information 
+ * of the state of the simulation, you can read it from Parameters.
+ */
+void calcCellParameters(Real* cellParams,creal& t);
+
+
+// TODO when projects are classes, the rnd values and state variables etc can be class members.
+/*! Integrate the distribution function over the given six-dimensional phase-space cell.
+ * \param x Starting value of the x-coordinate of the cell.
+ * \param y Starting value of the y-coordinate of the cell.
+ * \param z Starting value of the z-coordinate of the cell.
+ * \param dx The size of the cell in x-direction.
+ * \param dy The size of the cell in y-direction.
+ * \param dz The size of the cell in z-direction.
+ * \param vx Starting value of the vx-coordinate of the cell.
+ * \param vy Starting value of the vy-coordinate of the cell.
+ * \param vz Starting value of the vz-coordinate of the cell.
+ * \param dvx The size of the cell in vx-direction.
+ * \param dvy The size of the cell in vy-direction.
+ * \param dvz The size of the cell in vz-direction.
+ * \param rndRho Random number for the density perturbation.
+ * \param rndVel Three random numbers for the velocity perturbation.
+ * \return The volume average of the distribution function in the given phase space cell.
+ * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
+ */
+Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
+                           creal& dx,creal& dy,creal& dz,
+                           creal& vx,creal& vy,creal& vz,
+                           creal& dvx,creal& dvy,creal& dvz,
+                           const int32_t& rndRho, const int32_t rndVel[3]);
+
+
 typedef fluctuationsParameters FlucP;
 Real FlucP::BX0 = NAN;
 Real FlucP::BY0 = NAN;
@@ -81,7 +122,6 @@ bool getProjectParameters() {
    return true;
 }
 
-bool cellParametersChanged(creal& t) {return false;}
 
 void setProjectCell(SpatialCell* cell) {
    // Set up cell parameters:
@@ -205,9 +245,7 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
    }
 }
       
-void calcBlockParameters(Real* blockParams) {
-   //blockParams[BlockParams::Q_PER_M] = 1.0;
-}
+
 
 void calcCellParameters(Real* cellParams,creal& t) {
    creal x = cellParams[CellParams::XCRD];
@@ -245,11 +283,5 @@ void calcCellParameters(Real* cellParams,creal& t) {
    cellParams[CellParams::PERBZ] = FlucP::magZPertAbsAmp * (0.5 - (double)rndBuffer[2] / (double)RAND_MAX);
 }
 
-// TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
-void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
-   const std::vector<uint64_t> cells = mpiGrid.get_cells();
-   for (uint i = 0; i < cells.size(); ++i) {
-      calcCellParameters(mpiGrid[cells[i]]->parameters, t);
-   }
-}
+
 
