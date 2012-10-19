@@ -159,21 +159,6 @@ void setProjectCell(SpatialCell* cell) {
    cell->adjustSingleCellVelocityBlocks();
 }
 
-void dipole(creal x, creal y, creal z, Real& Bx, Real &By, Real& Bz) {
-   creal k_0 = 8.0e15; // Wb m
-   Real r = sqrt(x*x + y*y + z*z); // radial
-   Real theta = atan2(sqrt(x*x + y*y), z); // polar
-   Real phi = atan2(y, x); // azimuthal
-   
-   Bx = sin(theta) * cos(theta) * cos(phi);
-   By = sin(theta) * cos(theta) * sin(phi);
-   Bz = cos(theta)*cos(theta) - 1.0 / 3.0;
-   
-   Bx *= 3.0 * k_0 / (r*r*r);
-   By *= 3.0 * k_0 / (r*r*r);
-   Bz *= 3.0 * k_0 / (r*r*r);
-}
-
 Real getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
    return MP::rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * MP::T), 1.5) *
    exp(- physicalconstants::MASS_PROTON * (vx*vx + vy*vy + vz*vz) / (2.0 * physicalconstants::K_B * MP::T));

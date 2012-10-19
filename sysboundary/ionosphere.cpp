@@ -25,6 +25,8 @@
 
 #include "ionosphere.h"
 #include "../project.h"
+#include "../projects/projects_common.h"
+#include "../backgroundfield/backgroundfield.h"
 #include "../vlasovmover.h"
 
 using namespace std;

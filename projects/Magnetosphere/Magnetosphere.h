@@ -55,8 +55,6 @@ bool getProjectParameters(void);
  */
 void setProjectCell(SpatialCell* cell);
 
-void dipole(creal x, creal y, creal z, Real& Bx, Real &By, Real& Bz);
-
 template<typename UINT,typename REAL> void calcAccFaceX(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,const REAL* const cellParams,const REAL* const blockParams) {
    lorentzForceFaceX(ax,ay,az,I,J,K,cellParams,blockParams);
 }

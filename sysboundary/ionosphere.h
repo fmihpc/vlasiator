@@ -21,7 +21,6 @@
 
 #include <vector>
 #include "../definitions.h"
-#include "../project.h"
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
 #include "sysboundarycondition.h"
