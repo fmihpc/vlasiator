@@ -36,7 +36,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "BackgroundB")
          outputReducer->addOperator(new DRO::VariableBgB);
       if(*it == "PerturbedB")
-         outputReducer->addOperator(new DRO::VariableScB);
+         outputReducer->addOperator(new DRO::VariablePerturbedB);
       if(*it == "E")
          outputReducer->addOperator(new DRO::VariableE);
       if(*it == "Rho")

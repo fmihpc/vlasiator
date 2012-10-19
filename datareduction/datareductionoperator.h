@@ -130,10 +130,10 @@ namespace DRO {
       Real B[3];
    };
 
-   class VariableScB: public DataReductionOperator {
+   class VariablePerturbedB: public DataReductionOperator {
     public:
-      VariableScB();
-      ~VariableScB();
+      VariablePerturbedB();
+      ~VariablePerturbedB();
       
       bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       std::string getName() const;

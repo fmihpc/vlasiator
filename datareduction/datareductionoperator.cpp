@@ -785,32 +785,6 @@ namespace DRO {
    
    bool DiagnosticFluxE::setSpatialCell(const SpatialCell* cell) {return true;}
    
-   // dBxdz
-   VariabledBxdz::VariabledBxdz(): DataReductionOperator() { }
-   VariabledBxdz::~VariabledBxdz() { }
-   
-   bool VariabledBxdz::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize = sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   std::string VariabledBxdz::getName() const {return "dBxdz";}
-   
-   bool VariabledBxdz::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&value);
-      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
-                                                return true;
-   }
-   
-   bool VariabledBxdz::setSpatialCell(const SpatialCell* cell) {
-      value = cell->derivatives[fieldsolver::dBxdz];
-      return true;
-   }
-   
-   
-   
    // YK maximum value of the distribution function
    MaxDistributionFunction::MaxDistributionFunction(): DataReductionOperator() { }
    MaxDistributionFunction::~MaxDistributionFunction() { }
