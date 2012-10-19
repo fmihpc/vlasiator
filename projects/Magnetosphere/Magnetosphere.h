@@ -48,7 +48,6 @@ bool addProjectParameters(void);
  */
 bool getProjectParameters(void);
 
-
 /*!\brief Set the fields and distribution of a cell according to the default simulation settings.
  * This is used for the NOT_SYSBOUNDARY cells and some other system boundary conditions (e.g. Outflow).
  * \param cell Pointer to the cell to set.

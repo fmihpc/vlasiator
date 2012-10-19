@@ -26,7 +26,6 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "parameters.h"
 #include "readparameters.h"
 #include "vlasovmover.h"
-#include "backgroundfield/backgroundfield.h"
 
 using namespace std;
 
