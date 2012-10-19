@@ -187,16 +187,13 @@ void calcCellParameters(Real* cellParams,creal& t) {
    random_r(&rngDataBuffer, &rndBuffer[1]);
    random_r(&rngDataBuffer, &rndBuffer[2]);
 
-   cellParams[CellParams::PERBX] = 0.0;
-   cellParams[CellParams::PERBY] = 0.0;
-   cellParams[CellParams::PERBZ] = 0.0;
+   cellParams[CellParams::PERBX] = DispP::magXPertAbsAmp * (0.5 - (double)rndBuffer[0] / (double)RAND_MAX);
+   cellParams[CellParams::PERBY] = DispP::magYPertAbsAmp * (0.5 - (double)rndBuffer[1] / (double)RAND_MAX);
+   cellParams[CellParams::PERBZ] = DispP::magZPertAbsAmp * (0.5 - (double)rndBuffer[2] / (double)RAND_MAX);
    
-   cellParams[CellParams::BGBX] = DispP::B0 * cos(DispP::angleXY) * cos(DispP::angleXZ) +
-      DispP::magXPertAbsAmp * (0.5 - (double)rndBuffer[0] / (double)RAND_MAX);
-   cellParams[CellParams::BGBY] = DispP::B0 * sin(DispP::angleXY) * cos(DispP::angleXZ) + 
-      DispP::magYPertAbsAmp * (0.5 - (double)rndBuffer[1] / (double)RAND_MAX);
-   cellParams[CellParams::BGBZ] = DispP::B0 * sin(DispP::angleXZ) +
-      DispP::magZPertAbsAmp * (0.5 - (double)rndBuffer[2] / (double)RAND_MAX);
+   cellParams[CellParams::BGBX] = DispP::B0 * cos(DispP::angleXY) * cos(DispP::angleXZ);
+   cellParams[CellParams::BGBY] = DispP::B0 * sin(DispP::angleXY) * cos(DispP::angleXZ);
+   cellParams[CellParams::BGBZ] = DispP::B0 * sin(DispP::angleXZ);
 }
 
 void setProjectCell(SpatialCell* cell) {
