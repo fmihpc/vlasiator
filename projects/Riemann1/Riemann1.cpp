@@ -89,6 +89,96 @@ bool getProjectParameters(){
    return true;
 }
 
+Real getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   cint side = (x < 0.0) ? RiP::LEFT : RiP::RIGHT;
+   
+   return RiP::rho[side] * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * RiP::T[side]), 1.5) *
+   exp(- physicalconstants::MASS_PROTON * (pow(vx - RiP::Vx[side], 2.0) + pow(vy - RiP::Vy[side], 2.0) + pow(vz - RiP::Vz[side], 2.0)) / (2.0 * physicalconstants::K_B * RiP::T[side]));
+}
+
+/** Integrate the distribution function over the given six-dimensional phase-space cell.
+ * @param x Starting value of the x-coordinate of the cell.
+ * @param y Starting value of the y-coordinate of the cell.
+ * @param z Starting value of the z-coordinate of the cell.
+ * @param dx The size of the cell in x-direction.
+ * @param dy The size of the cell in y-direction.
+ * @param dz The size of the cell in z-direction.
+ * @param vx Starting value of the vx-coordinate of the cell.
+ * @param vy Starting value of the vy-coordinate of the cell.
+ * @param vz Starting value of the vz-coordinate of the cell.
+ * @param dvx The size of the cell in vx-direction.
+ * @param dvy The size of the cell in vy-direction.
+ * @param dvz The size of the cell in vz-direction.
+ * @return The volume average of the distribution function in the given phase space cell.
+ * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
+ */
+Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   
+   creal d_x = dx / (RiP::nSpaceSamples-1);
+   creal d_y = dy / (RiP::nSpaceSamples-1);
+   creal d_z = dz / (RiP::nSpaceSamples-1);
+   creal d_vx = dvx / (RiP::nVelocitySamples-1);
+   creal d_vy = dvy / (RiP::nVelocitySamples-1);
+   creal d_vz = dvz / (RiP::nVelocitySamples-1);
+   Real avg = 0.0;
+   for (uint i=0; i<RiP::nSpaceSamples; ++i)
+      for (uint j=0; j<RiP::nSpaceSamples; ++j)
+         for (uint k=0; k<RiP::nSpaceSamples; ++k)
+            for (uint vi=0; vi<RiP::nVelocitySamples; ++vi)
+               for (uint vj=0; vj<RiP::nVelocitySamples; ++vj)
+                  for (uint vk=0; vk<RiP::nVelocitySamples; ++vk)
+                  {
+                     avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+                  }
+   return avg / pow(RiP::nSpaceSamples, 3.0) / pow(RiP::nVelocitySamples, 3.0);
+}
+
+/** Calculate parameters for the given spatial cell at the given time.
+ * Here you need to set values for the following array indices:
+ * CellParams::EX, CellParams::EY, CellParams::EZ, CellParams::BX, CellParams::BY, and CellParams::BZ.
+ * 
+ * The following array indices contain the coordinates of the "lower left corner" of the cell: 
+ * CellParams::XCRD, CellParams::YCRD, and CellParams::ZCRD.
+ * The cell size is given in the following array indices: CellParams::DX, CellParams::DY, and CellParams::DZ.
+ * @param cellParams Array containing cell parameters.
+ * @param t The current value of time. This is passed as a convenience. If you need more detailed information 
+ * of the state of the simulation, you can read it from Parameters.
+ */
+void calcCellParameters(Real* cellParams,creal& t) {
+   creal x = cellParams[CellParams::XCRD];
+   creal dx = cellParams[CellParams::DX];
+   
+   Real Bxavg, Byavg, Bzavg;
+   Bxavg = Byavg = Bzavg = 0.0;
+   Real d_x = dx / (RiP::nSpaceSamples - 1);
+   
+   for (uint i=0; i<RiP::nSpaceSamples; ++i)
+      for (uint j=0; j<RiP::nSpaceSamples; ++j)
+         for (uint k=0; k<RiP::nSpaceSamples; ++k) {
+            Bxavg += ((x + i * d_x) < 0.0) ? RiP::Bx[RiP::LEFT] : RiP::Bx[RiP::RIGHT];
+            Byavg += ((x + i * d_x) < 0.0) ? RiP::By[RiP::LEFT] : RiP::By[RiP::RIGHT];
+            Bzavg += ((x + i * d_x) < 0.0) ? RiP::Bz[RiP::LEFT] : RiP::Bz[RiP::RIGHT];
+   }
+   cuint nPts = pow(RiP::nSpaceSamples, 3.0);
+   
+   cellParams[CellParams::EX   ] = 0.0;
+   cellParams[CellParams::EY   ] = 0.0;
+   cellParams[CellParams::EZ   ] = 0.0;
+   cellParams[CellParams::PERBX   ] = 0.0;
+   cellParams[CellParams::PERBY   ] = 0.0;
+   cellParams[CellParams::PERBZ   ] = 0.0;
+   cellParams[CellParams::BGBX   ] = Bxavg / nPts;
+   cellParams[CellParams::BGBY   ] = Byavg / nPts;
+   cellParams[CellParams::BGBZ   ] = Bzavg / nPts;
+}
+
+// TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
+void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
+   std::vector<uint64_t> cells = mpiGrid.get_cells();
+   for (uint i = 0; i < cells.size(); ++i) {
+      calcCellParameters(mpiGrid[cells[i]]->parameters, t);
+   }
+}
+
 void setProjectCell(SpatialCell* cell) {
    // Set up cell parameters:
    calcCellParameters(&((*cell).parameters[0]), 0.0);
@@ -141,75 +231,5 @@ void setProjectCell(SpatialCell* cell) {
          
          //let's get rid of blocks not fulfilling the criteria here to save memory.
          cell->adjustSingleCellVelocityBlocks();
-}
-
-
-Real getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
-   cint side = (x < 0.0) ? RiP::LEFT : RiP::RIGHT;
-   
-   return RiP::rho[side] * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * RiP::T[side]), 1.5) *
-   exp(- physicalconstants::MASS_PROTON * (pow(vx - RiP::Vx[side], 2.0) + pow(vy - RiP::Vy[side], 2.0) + pow(vz - RiP::Vz[side], 2.0)) / (2.0 * physicalconstants::K_B * RiP::T[side]));
-}
-
-Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   
-   creal d_x = dx / (RiP::nSpaceSamples-1);
-   creal d_y = dy / (RiP::nSpaceSamples-1);
-   creal d_z = dz / (RiP::nSpaceSamples-1);
-   creal d_vx = dvx / (RiP::nVelocitySamples-1);
-   creal d_vy = dvy / (RiP::nVelocitySamples-1);
-   creal d_vz = dvz / (RiP::nVelocitySamples-1);
-   Real avg = 0.0;
-   for (uint i=0; i<RiP::nSpaceSamples; ++i)
-      for (uint j=0; j<RiP::nSpaceSamples; ++j)
-         for (uint k=0; k<RiP::nSpaceSamples; ++k)
-            for (uint vi=0; vi<RiP::nVelocitySamples; ++vi)
-               for (uint vj=0; vj<RiP::nVelocitySamples; ++vj)
-                  for (uint vk=0; vk<RiP::nVelocitySamples; ++vk)
-                  {
-                     avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
-                  }
-   return avg / pow(RiP::nSpaceSamples, 3.0) / pow(RiP::nVelocitySamples, 3.0);
-}
-
-bool cellParametersChanged(creal& t) {return false;}
-
-void calcBlockParameters(Real* blockParams) {
-   //blockParams[BlockParams::Q_PER_M] = 1.0;
-}
-
-void calcCellParameters(Real* cellParams,creal& t) {
-   creal x = cellParams[CellParams::XCRD];
-   creal dx = cellParams[CellParams::DX];
-   
-   Real Bxavg, Byavg, Bzavg;
-   Bxavg = Byavg = Bzavg = 0.0;
-   Real d_x = dx / (RiP::nSpaceSamples - 1);
-   
-   for (uint i=0; i<RiP::nSpaceSamples; ++i)
-      for (uint j=0; j<RiP::nSpaceSamples; ++j)
-	 for (uint k=0; k<RiP::nSpaceSamples; ++k) {
-	    Bxavg += ((x + i * d_x) < 0.0) ? RiP::Bx[RiP::LEFT] : RiP::Bx[RiP::RIGHT];
-	    Byavg += ((x + i * d_x) < 0.0) ? RiP::By[RiP::LEFT] : RiP::By[RiP::RIGHT];
-	    Bzavg += ((x + i * d_x) < 0.0) ? RiP::Bz[RiP::LEFT] : RiP::Bz[RiP::RIGHT];
-	 }
-   cuint nPts = pow(RiP::nSpaceSamples, 3.0);
-   
-   cellParams[CellParams::EX   ] = 0.0;
-   cellParams[CellParams::EY   ] = 0.0;
-   cellParams[CellParams::EZ   ] = 0.0;
-   cellParams[CellParams::PERBX   ] = 0.0;
-   cellParams[CellParams::PERBY   ] = 0.0;
-   cellParams[CellParams::PERBZ   ] = 0.0;
-   cellParams[CellParams::BGBX   ] = Bxavg / nPts;
-   cellParams[CellParams::BGBY   ] = Byavg / nPts;
-   cellParams[CellParams::BGBZ   ] = Bzavg / nPts;
-}
-
-// TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
-void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
-   std::vector<uint64_t> cells = mpiGrid.get_cells();
-   for (uint i = 0; i < cells.size(); ++i) {
-      calcCellParameters(mpiGrid[cells[i]]->parameters, t);
-   }
 }
 
