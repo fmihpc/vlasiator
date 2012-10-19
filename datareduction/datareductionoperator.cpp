@@ -119,7 +119,7 @@ namespace DRO {
       return true;
    }
    
-   std::string DataReductionOperatorCellParams::getName() const {return "rho_v";}
+   std::string DataReductionOperatorCellParams::getName() const {return _name;}
    
    bool DataReductionOperatorCellParams::reduceData(const SpatialCell* cell,char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(_data);
