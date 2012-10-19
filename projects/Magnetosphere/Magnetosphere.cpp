@@ -214,9 +214,6 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
 //    exp(- physicalconstants::MASS_PROTON * (vx*vx + vy*vy + vz*vz) / (2.0 * physicalconstants::K_B * MP::T));
 }
 
-bool cellParametersChanged(creal& t) {return false;}
-
-void calcBlockParameters(Real* blockParams) { }
 
 void calcCellParameters(Real* cellParams,creal& t) {
    creal x = cellParams[CellParams::XCRD];
@@ -256,11 +253,5 @@ void calcCellParameters(Real* cellParams,creal& t) {
    }
 }
 
-// TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
-void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
-   std::vector<uint64_t> cells = mpiGrid.get_cells();
-   for (uint i = 0; i < cells.size(); ++i) {
-      calcCellParameters(mpiGrid[cells[i]]->parameters, t);
-   }
-}
+
 
