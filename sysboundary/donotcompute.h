@@ -40,8 +40,9 @@ namespace SBC {
       virtual void getParameters();
       
       virtual bool initSysBoundary(creal& t);
-      virtual int assignSysBoundary(creal* cellParams);
-      virtual bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid);
+      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell>& mpiGrid);
+      virtual bool applyInitialState(const dccrg::Dccrg<SpatialCell>& mpiGrid);
+      //       virtual bool applySysBoundaryCondition(const dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t);
       virtual std::string getName() const;
       virtual uint getIndex() const;
    };

@@ -19,6 +19,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #ifndef DEFINITIONS_H
 #define DEFINITIONS_H
 
+# include <stdint.h>
+
 //set floating point precision here. Default is single precision, use -DDP to set double precision
 #ifdef DP
 typedef double Real;
@@ -39,6 +41,8 @@ typedef long long unsigned int lluint;
 typedef const long long unsigned int clluint;
 
 typedef cuint csize;
+
+typedef uint64_t CellID;
 
 template<typename T> T convert(const T& number) {return number;}
 

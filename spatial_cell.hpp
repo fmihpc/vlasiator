@@ -79,25 +79,27 @@ as an index that would be outside of the velocity grid in this cell
 namespace spatial_cell {
    //fixme namespaces in lower case
    namespace Transfer {
-      const unsigned int NONE                     = 0;
-      const unsigned int CELL_PARAMETERS          = (1<<0);
-      const unsigned int CELL_DERIVATIVES         = (1<<1);
-      const unsigned int VEL_BLOCK_LIST_SIZE      = (1<<2);
+      const uint64_t NONE                     = 0;
+      const uint64_t CELL_PARAMETERS          = (1<<0);
+      const uint64_t CELL_DERIVATIVES         = (1<<1);
+      const uint64_t VEL_BLOCK_LIST_SIZE      = (1<<2);
 //to update BLOCK_LIST, BLOCK_LIST_SIZE has to be updated in a separate stage
-      const unsigned int VEL_BLOCK_LIST           = (1<<3);
-      const unsigned int VEL_BLOCK_SIZE_AND_LIST  = (1<<4);
-      const unsigned int VEL_BLOCK_DATA           = (1<<5);
-      const unsigned int VEL_BLOCK_FLUXES         = (1<<6);
-      const unsigned int VEL_BLOCK_PARAMETERS     = (1<<7);
-      const unsigned int VEL_BLOCK_HAS_CONTENT    = (1<<8); 
-      const unsigned int CELL_SYSBOUNDARYFLAG     = (1<<9);
-      const unsigned int CELL_E                   = (1<<10);
-      const unsigned int CELL_EDT2                  = (1<<11);
-      const unsigned int CELL_PERB_RHO_RHOV       = (1<<12);
-      const unsigned int CELL_PERBDT2_RHODT2_RHOVDT2    = (1<<13);
-      const unsigned int CELL_BGB                 = (1<<14);
+      const uint64_t VEL_BLOCK_LIST           = (1<<3);
+      const uint64_t VEL_BLOCK_SIZE_AND_LIST  = (1<<4);
+      const uint64_t VEL_BLOCK_DATA           = (1<<5);
+      const uint64_t VEL_BLOCK_FLUXES         = (1<<6);
+      const uint64_t VEL_BLOCK_PARAMETERS     = (1<<7);
+      const uint64_t VEL_BLOCK_HAS_CONTENT    = (1<<8); 
+      const uint64_t CELL_SYSBOUNDARYFLAG     = (1<<9);
+      const uint64_t CELL_E                   = (1<<10);
+      const uint64_t CELL_EDT2                = (1<<11);
+      const uint64_t CELL_PERB                = (1<<12);
+      const uint64_t CELL_PERBDT2             = (1<<13);
+      const uint64_t CELL_BGB                 = (1<<14);
+      const uint64_t CELL_RHO_RHOV            = (1<<15);
+      const uint64_t CELL_RHODT2_RHOVDT2      = (1<<16);
       
-      const unsigned int ALL_DATA =
+      const uint64_t ALL_DATA =
       CELL_PARAMETERS
       | CELL_DERIVATIVES
       | VEL_BLOCK_DATA
@@ -852,9 +854,9 @@ namespace velocity_neighbor {
             }
             
             if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST)!=0){
-               //first copy values in case this is the send operation    
+               //first copy values in case this is the send operation
                for(unsigned int i=0;i< this->number_of_blocks;i++)
-                  this->mpi_velocity_block_list[i]=this->velocity_block_list[i];               
+                  this->mpi_velocity_block_list[i]=this->velocity_block_list[i];
                // send velocity block list
                displacements.push_back((uint8_t*) &(this->mpi_velocity_block_list[0]) - (uint8_t*) this);
                block_lengths.push_back(sizeof(unsigned int) * this->mpi_number_of_blocks);
@@ -864,7 +866,7 @@ namespace velocity_neighbor {
                //first copy values in case this is the send operation
                this->mpi_number_of_blocks=this->number_of_blocks;
                for(unsigned int i=0;i< this->number_of_blocks;i++)
-                  this->mpi_velocity_block_list[i]=this->velocity_block_list[i];               
+                  this->mpi_velocity_block_list[i]=this->velocity_block_list[i];
                // send velocity block list size
                displacements.push_back((uint8_t*) &(this->mpi_number_of_blocks) - (uint8_t*) this);
                block_lengths.push_back(sizeof(unsigned int));
@@ -882,33 +884,19 @@ namespace velocity_neighbor {
             if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA)!=0){
                displacements.push_back((uint8_t*) &(this->block_data[0]) - (uint8_t*) this);               
                block_lengths.push_back(sizeof(Real) * VELOCITY_BLOCK_LENGTH* this->number_of_blocks);
-
             }
-
+            
             if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_FLUXES)!=0){
                displacements.push_back((uint8_t*) &(this->block_fx[0]) - (uint8_t*) this);               
                block_lengths.push_back(sizeof(Real) * SIZE_FLUXS* this->number_of_blocks);
             }
-      
             
             // send  spatial cell parameters
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_PARAMETERS)!=0){
                 displacements.push_back((uint8_t*) &(this->parameters[0]) - (uint8_t*) this);
                 block_lengths.push_back(sizeof(Real) * CellParams::N_SPATIAL_CELL_PARAMS);
             }
-
-            // send  PERBX, PERBY, PERBZ, BGBX,BGBY,BGBZ,RHO, RHOVX, RHOVY, RHOVZ (order in enum should never change(!)
-            if((SpatialCell::mpi_transfer_type & Transfer::CELL_PERB_RHO_RHOV)!=0){
-               displacements.push_back((uint8_t*) &(this->parameters[CellParams::PERBX]) - (uint8_t*) this);
-               block_lengths.push_back(sizeof(Real) * 7);
-            }
             
-            // send  BX1, BY1, BZ1, RHO_DT2, RHOVX_DT2, RHOVY_DT2, RHOVZ_DT2 (order in enum should never change(!)
-            if((SpatialCell::mpi_transfer_type & Transfer::CELL_PERBDT2_RHODT2_RHOVDT2)!=0){
-	       displacements.push_back((uint8_t*) &(this->parameters[CellParams::PERBX_DT2]) - (uint8_t*) this);
-	       block_lengths.push_back(sizeof(Real) * 7);
-	    }
-
             // send  BGBX BGBY BGBZ
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_BGB)!=0){
                displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBX]) - (uint8_t*) this);
@@ -920,15 +908,37 @@ namespace velocity_neighbor {
                displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX]) - (uint8_t*) this);
                block_lengths.push_back(sizeof(Real) * 3);
             }
-
-            
             
             // send  EX_DT2, EY_DT2, EZ_DT2
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_EDT2)!=0){
-	       displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX_DT2]) - (uint8_t*) this);
-	       block_lengths.push_back(sizeof(Real) * 3);
-	    }
-
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX_DT2]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 3);
+            }
+            
+            // send  PERBX, PERBY, PERBZ
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_PERB)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::PERBX]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 3);
+            }
+            
+            // send  PERBX_DT2, PERBY_DT2, PERBZ_DT2
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_PERBDT2)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::PERBX_DT2]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 3);
+            }
+            
+            // send RHO, RHOVX, RHOVY, RHOVZ
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_RHO_RHOV)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHO]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 4);
+            }
+            
+            // send RHO_DT2, RHOVX_DT2, RHOVY_DT2, RHOVZ_DT2
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_RHODT2_RHOVDT2)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHO_DT2]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 4);
+            }
+            
             // send  spatial cell parameters
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_DERIVATIVES)!=0){
                 displacements.push_back((uint8_t*) &(this->derivatives[0]) - (uint8_t*) this);
@@ -989,7 +999,6 @@ namespace velocity_neighbor {
         sense in given block.
         Also returns false if given block doesn't exist or is an error block.
       */
-            
       bool compute_block_has_content(const unsigned int block) const {
          if (block == error_velocity_block
              || this->velocity_blocks.count(block) == 0) {
@@ -1011,12 +1020,12 @@ namespace velocity_neighbor {
    
       void update_all_block_has_content(void){
        for (unsigned int i = 0; i < SpatialCell::max_velocity_blocks; i++) {
-	 //clear list, not really needed if only existing blocks are read, but safest to add.
-	 this->block_has_content[i]=0;
+         //clear list, not really needed if only existing blocks are read, but safest to add.
+         this->block_has_content[i]=0;
        }
      
        for(unsigned int block_index=0;block_index<this->number_of_blocks;block_index++){
-	 unsigned int block = this->velocity_block_list[block_index];
+         unsigned int block = this->velocity_block_list[block_index];
          if(this->compute_block_has_content(block)){
             this->block_has_content[block]=1;
          }
@@ -1599,7 +1608,7 @@ namespace velocity_neighbor {
       /*!
         Sets the type of data to transfer by mpi_datatype.
       */
-      static void set_mpi_transfer_type(const unsigned int type)
+      static void set_mpi_transfer_type(const uint64_t type)
       {
          SpatialCell::mpi_transfer_type = type;
       }
@@ -1607,7 +1616,7 @@ namespace velocity_neighbor {
       /*!
         Gets the type of data that will be transferred by mpi_datatype.
       */
-      static unsigned int get_mpi_transfer_type(void)
+      static uint64_t get_mpi_transfer_type(void)
       {
          return SpatialCell::mpi_transfer_type;
       }
@@ -1639,7 +1648,7 @@ namespace velocity_neighbor {
       /*
         Which data is transferred by the mpi datatype given by spatial cells.
       */
-      static unsigned int mpi_transfer_type;
+      static uint64_t mpi_transfer_type;
 
       /*  
         Minimum value of distribution function

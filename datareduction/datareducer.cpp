@@ -62,9 +62,15 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "PTensor") {
          outputReducer->addOperator(new DRO::VariablePTensorDiagonal);
          outputReducer->addOperator(new DRO::VariablePTensorOffDiagonal);
-      }      
-      if(*it == "dBxdz")
+      }
+      if(*it == "Bderivs") {
+         outputReducer->addOperator(new DRO::VariabledBxdy);
          outputReducer->addOperator(new DRO::VariabledBxdz);
+         outputReducer->addOperator(new DRO::VariabledBydx);
+         outputReducer->addOperator(new DRO::VariabledBydz);
+         outputReducer->addOperator(new DRO::VariabledBzdx);
+         outputReducer->addOperator(new DRO::VariabledBzdy);
+      }
    }
    
    for (it = P::diagnosticVariableList.begin();

@@ -122,7 +122,7 @@ bool Logger::open(MPI_Comm comm,const int& MASTERRANK,const std::string& fname,c
       masterStream->open(fname.c_str(), fstream::out|fstream::app);
    else
       masterStream->open(fname.c_str(), fstream::out);
-   
+
    if (masterStream->good() == false) rvalue = false;
    fileOpen = true;
    return rvalue;

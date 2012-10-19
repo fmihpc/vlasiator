@@ -47,12 +47,10 @@ using namespace phiprof;
 
 extern Logger logFile, diagnostic;
 
-//subroutine to adjust blocks of local cells; remove/add based on user-defined limits
-bool adjust_local_velocity_blocks(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
 void initVelocityGridGeometry();
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell>& mpiGrid);
 bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid);
-
+bool adjust_local_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
 void initializeGrid(int argn,
                     char **argc,
@@ -109,16 +107,21 @@ void initializeGrid(int argn,
    initSpatialCellCoordinates(mpiGrid);
    phiprof::stop("Set spatial cell coordinates");
    
+   phiprof::start("Initialize system boundary conditions");
    if(sysBoundaries.initSysBoundaries(P::t_min) == false) {
       if (myRank == MASTER_RANK) cerr << "Error in initialising the system boundaries." << endl;
       exit(1);
    }
+   phiprof::stop("Initialize system boundary conditions");
    
    // Initialise system boundary conditions (they need the initialised positions!!)
+   phiprof::start("Classify cells (sys boundary conditions)");
    if(sysBoundaries.classifyCells(mpiGrid) == false) {
       cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
       exit(1);
    }
+   phiprof::stop("Classify cells (sys boundary conditions)");
+   
    if (P::isRestart){
       logFile << "Restart from "<< P::restartFileName << std::endl << writeVerbose;
       phiprof::start("Read restart");
@@ -127,8 +130,7 @@ void initializeGrid(int argn,
          exit(1);
       }
       phiprof::stop("Read restart");
-   }
-   else {
+   } else {
       // Go through every spatial cell on this CPU, and create the initial state:
       phiprof::start("Apply initial state");
       if(applyInitialState(mpiGrid) == false) {
@@ -145,10 +147,8 @@ void initializeGrid(int argn,
       phiprof::stop("Apply system boundary conditions state");
    }
 
-
    updateRemoteVelocityBlockLists(mpiGrid);
    adjustVelocityBlocks(mpiGrid,false); // do not initialize mover, mover has not yet been initialized here
-
    
    phiprof::initializeTimer("Fetch Neighbour data","MPI");
    phiprof::start("Fetch Neighbour data");
@@ -156,7 +156,6 @@ void initializeGrid(int argn,
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
    mpiGrid.update_remote_neighbor_data();
    phiprof::stop("Fetch Neighbour data");
-   
    
    phiprof::stop("Set initial state");
    
@@ -192,6 +191,7 @@ void initVelocityGridGeometry(){
 
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    vector<uint64_t> cells = mpiGrid.get_cells();
+#pragma omp parallel for
    for (uint i=0; i<cells.size(); ++i) {
       mpiGrid[cells[i]]->parameters[CellParams::XCRD] = mpiGrid.get_cell_x_min(cells[i]);
       mpiGrid[cells[i]]->parameters[CellParams::YCRD] = mpiGrid.get_cell_y_min(cells[i]);
@@ -214,6 +214,7 @@ bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    // constructed here:
    // Each initialization has to be independent to avoid threading problems 
 #pragma omp parallel for schedule(dynamic)
+   //WARNING no threading here if setProjectCell has threading
    for (uint i=0; i<cells.size(); ++i) {
       SpatialCell* cell = mpiGrid[cells[i]];
       if(cell->sysBoundaryFlag != NOT_SYSBOUNDARY) continue;
@@ -221,12 +222,6 @@ bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    }
    return true;
 }
-
-
-   
-
-
-
 
 void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
 
@@ -301,10 +296,6 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    phiprof::stop("Balancing load");
 }
 
-
-
-
-
 //Compute which blocks have content, adjust local velocity blocks, and
 //make sure remote cells are up-to-date and ready to receive
 //data. Solvers are also updated so that their internal structures are
@@ -338,7 +329,6 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid, bool reInitMover) 
    phiprof::stop("re-adjust blocks");
    return true;
 }
-
 
 /*!
 Adjusts velocity blocks in local spatial cells.

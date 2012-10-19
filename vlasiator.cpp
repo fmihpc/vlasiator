@@ -224,7 +224,7 @@ int main(int argn,char* args[]) {
    
    phiprof::start("Init field propagator");
    // Initialize field propagator:
-   if (initializeFieldPropagator(mpiGrid) == false) {
+   if (initializeFieldPropagator(mpiGrid, sysBoundaries) == false) {
        logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
        exit(1);
    }
@@ -326,6 +326,7 @@ int main(int argn,char* args[]) {
          phiprof::start("Diagnostic");
          if (writeDiagnostic(mpiGrid, diagnosticReducer) == false) {
             if(myRank == MASTER_RANK)  cerr << "ERROR with diagnostic computation" << endl;
+
          }
          phiprof::stop("Diagnostic");
       }
@@ -394,7 +395,8 @@ int main(int argn,char* args[]) {
             //propagate velocity space to real-time, do not do it if dt is zero
             if(P::dt >0)
                calculateAcceleration(mpiGrid,0.5*P::dt);
-            //re-compute rho for real time for fieldsolver, and compute _DT2 values as an average of old and new values
+            //re-compute rho for real time for fieldsolver, and
+            //compute _DT2 values as an average of old and new values
             calculateVelocityMoments(mpiGrid,true);
             
             // Propagate fields forward in time by 0.5*dt
@@ -403,8 +405,10 @@ int main(int argn,char* args[]) {
                propagateFields(mpiGrid,0.5*P::dt);
                phiprof::stop("Propagate Fields",computedSpatialCells,"SpatialCells");
             } else {
-               // TODO Whatever field updating/volume averaging/etc. needed in test particle and other test cases have to be put here.
-               // In doing this be sure the needed components have been updated.
+               // TODO Whatever field updating/volume
+               // averaging/etc. needed in test particle and other
+               // test cases have to be put here.  In doing this be
+               // sure the needed components have been updated.
             }
             ++P::tstep;
             P::t += P::dt*0.5;
@@ -428,10 +432,9 @@ int main(int argn,char* args[]) {
          updateVelocityBlocksAfterAcceleration=true;
       
       phiprof::start("Propagate");
-      //Propagate the state of simulation forward in time by dt:      
+      //Propagate the state of simulation forward in time by dt:
       if (P::propagateVlasov == true) {
          phiprof::start("Propagate Vlasov");
-
          phiprof::start("Velocity-space");
          calculateAcceleration(mpiGrid,P::dt);
          phiprof::stop("Velocity-space",computedBlocks,"Blocks");
@@ -440,7 +443,12 @@ int main(int argn,char* args[]) {
             updateRemoteVelocityBlockLists(mpiGrid);
             adjustVelocityBlocks(mpiGrid);
          }         
-         calculateInterpolatedVelocityMoments(mpiGrid,CellParams::RHO_DT2,CellParams::RHOVX_DT2,CellParams::RHOVY_DT2,CellParams::RHOVZ_DT2);
+         calculateInterpolatedVelocityMoments(mpiGrid,CellParams::RHO_DT2,
+                                              CellParams::RHOVX_DT2,CellParams::RHOVY_DT2,CellParams::RHOVZ_DT2);
+
+         phiprof::start("Update system boundaries (Vlasov)");
+         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P:dt); 
+         phiprof::stop("Update system boundaries (Vlasov)");
 
          phiprof::start("Spatial-space");
          calculateSpatialFluxes(mpiGrid,P::dt);
@@ -464,7 +472,7 @@ int main(int argn,char* args[]) {
       // Propagate fields forward in time by dt.
       if (P::propagateField == true) {
          phiprof::start("Propagate Fields");
-         propagateFields(mpiGrid,P::dt);
+         propagateFields(mpiGrid, sysBoundaries, P::dt);
          phiprof::stop("Propagate Fields",computedSpatialCells,"SpatialCells");
       } else {
          // TODO Whatever field updating/volume averaging/etc. needed in test particle and other test cases have to be put here.

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-HOME_DIR=/home/users/alfthan
+HOME_DIR=/home/users/kempf
 PUBLIC_HTML_DIR=${HOME_DIR}/public_html
 DOXYGEN=/home/users/alfthan/doxygen-1.8.1.2/bin/doxygen
 

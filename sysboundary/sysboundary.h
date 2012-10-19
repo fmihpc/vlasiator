@@ -59,8 +59,9 @@ class SysBoundary {
       bool initSysBoundaries(creal& t);
       bool classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid);
       bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid);
+      void applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t);
       unsigned int size() const;
-      SBC::SysBoundaryCondition* getSysBoundary(uint sysBoundaryType) const;
+      SBC::SysBoundaryCondition* getSysBoundary(cuint sysBoundaryType) const;
       bool isDynamic() const;
       bool isBoundaryPeriodic(uint direction) const;
    
@@ -78,11 +79,6 @@ class SysBoundary {
       bool isThisDynamic;
       /*! Array of bool telling whether the system is periodic in any direction. */
       bool isPeriodic[3];
-      
-
-   //Add functions below into class
-
-
 };
 
 bool precedenceSort(const SBC::SysBoundaryCondition* first, 

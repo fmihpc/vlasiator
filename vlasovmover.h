@@ -21,25 +21,25 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <vector>
 
-
 #include "definitions.h"
 #include "spatial_cell.hpp"
 using namespace spatial_cell;
 
-bool finalizeMover();
-
 #include <stdint.h>
-
-
 #include <dccrg.hpp>
+#include "sysboundary/sysboundary.h"
 
+bool finalizeMover();
 bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid);
 bool initMoverAfterBlockChange(dccrg::Dccrg<SpatialCell>& mpiGrid);
 void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,uint64_t& cell);
 
 void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt);
 void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,uint64_t cellID,Real dt); //calculate acceleration in one single cell
-void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt);
+void calculateSpatialFluxes(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   const SysBoundary& sysBoundaries,
+   creal dt);
 void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& acceleration,Real acceleration_dt);
 void initialLoadBalance(dccrg::Dccrg<SpatialCell>& mpiGrid);
 

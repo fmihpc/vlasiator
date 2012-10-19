@@ -24,6 +24,8 @@
 #include <iostream>
 
 #include "ionosphere.h"
+#include "../project.h"
+#include "../vlasovmover.h"
 
 using namespace std;
 
@@ -37,6 +39,7 @@ namespace SBC {
       Readparameters::add("ionosphere.centerY", "Y coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.centerZ", "Z coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.radius", "Radius of ionosphere (m).", 1.0e7);
+      Readparameters::add("ionosphere.depth", "Depth in cells of ionosphere layer.", 1);
       Readparameters::add("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 2);
    }
    
@@ -59,6 +62,10 @@ namespace SBC {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
+      if(!Readparameters::get("ionosphere.depth", depth)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
       if(!Readparameters::get("ionosphere.precedence", precedence)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
@@ -68,51 +75,157 @@ namespace SBC {
    bool Ionosphere::initSysBoundary(creal& t) {
       getParameters();
       isThisDynamic = false;
+      
+      generateTemplateCell();
+      
       return true;
    }
    
-   int Ionosphere::assignSysBoundary(creal* cellParams) {
-      creal dx = cellParams[CellParams::DX];
-      creal dy = cellParams[CellParams::DY];
-      creal dz = cellParams[CellParams::DZ];
-      creal x = cellParams[CellParams::XCRD] + 0.5*dx;
-      creal y = cellParams[CellParams::YCRD] + 0.5*dy;
-      creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
-      
-      creal r = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
-      Real rx, ry, rz;
-      
-      int typeToAssign = sysboundarytype::NOT_SYSBOUNDARY;
-      
-      if(r < radius) {
-         // Determine the sign of the quadrant in each direction and calculate the radius for a cell located one cell length further that direction.
-         // If at least one of these further cells is outside the ionospheric radius then the current one is an ionosphere cell.
-         // If not, then the cell is inside the ionosphere radius and should not need to be computed.
-         creal quadrant[3] = {x/abs(x), y/abs(y), z/abs(z)};
-         rx = sqrt((x+quadrant[0]*dx-center[0])*(x+quadrant[0]*dx-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
-         ry = sqrt((x-center[0])*(x-center[0]) + (y+quadrant[1]*dy-center[1])*(y+quadrant[1]*dy-center[1]) + (z-center[2])*(z-center[2]));
-         rz = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z+quadrant[2]*dz-center[2])*(z+quadrant[2]*dz-center[2]));
-         if(rx>radius || ry>radius || rz>radius) {
-            typeToAssign = getIndex();
-         } else {
-            typeToAssign = sysboundarytype::DO_NOT_COMPUTE;
+   bool Ionosphere::assignSysBoundary(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+      vector<CellID> cells = mpiGrid.get_cells();
+      for(uint i=0; i<cells.size(); i++) {
+         if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+            continue;
+         }
+         creal* const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
+         creal dx = cellParams[CellParams::DX];
+         creal dy = cellParams[CellParams::DY];
+         creal dz = cellParams[CellParams::DZ];
+         creal x = cellParams[CellParams::XCRD] + 0.5*dx;
+         creal y = cellParams[CellParams::YCRD] + 0.5*dy;
+         creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
+         creal r = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
+         
+         if(r < radius) {
+            mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
          }
       }
       
-      return typeToAssign;
-   }
-   
-   bool Ionosphere::applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
-      vector<uint64_t> cells = mpiGrid.get_cells();
-      for (uint i=0; i<cells.size(); ++i) {
-         SpatialCell* cell = mpiGrid[cells[i]];
-         if(cell->sysBoundaryFlag != this->getIndex()) continue;
+      SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
+      mpiGrid.update_remote_neighbor_data();
+      
+      vector<bool> iCanHasDoNotCompute(cells.size(), true);
+      for(uint i=0; i<cells.size(); i++) {
+         if(mpiGrid[cells[i]]->sysBoundaryFlag != this->getIndex()) {
+            continue;
+         }
          
-         // Defined in grid.cpp, used here as the ionospheric cell has the same state as the initial state of non-system boundary cells.
-         setProjectCell(cell);
+         for(int ci=-depth; ci<=depth; ci++)
+            for(int cj=-depth; cj<=depth; cj++)
+               for(int ck=-depth; ck<=depth; ck++) {
+                  if(ci == 0 && cj == 0 && ck == 0) continue;
+                  CellID tmpCellID = getNeighbour(mpiGrid, cells[i], ci, cj, ck);
+                  if((tmpCellID != INVALID_CELLID) &&
+                     (mpiGrid[tmpCellID]->sysBoundaryFlag != this->getIndex())) {
+                     iCanHasDoNotCompute[i] = false;
+                  }
+         }
+      }
+      for(uint i=0; i<cells.size(); i++) {
+         if(mpiGrid[cells[i]]->sysBoundaryFlag != this->getIndex()) {
+            continue;
+         }
+         if(iCanHasDoNotCompute[i]) {
+            mpiGrid[cells[i]]->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
+         }
       }
       
       return true;
+   }
+   
+   bool Ionosphere::applyInitialState(const dccrg::Dccrg<SpatialCell>& mpiGrid) {
+      vector<uint64_t> cells = mpiGrid.get_cells();
+#pragma omp parallel for
+      for (uint i=0; i<cells.size(); ++i) {
+         SpatialCell* cell = mpiGrid[cells[i]];
+         if(cell->sysBoundaryFlag != this->getIndex()) continue;
+         setCellFromTemplate(cell);
+      }
+      return true;
+   }
+   
+//    bool Ionosphere::applySysBoundaryCondition(
+//       const dccrg::Dccrg<SpatialCell>& mpiGrid,
+//       creal& t
+//    ) {
+//       return true;
+//    }
+   
+   Real Ionosphere::fieldSolverBoundaryCondMagneticField(
+      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const CellID& cellID,
+      creal& dt,
+      cuint& component
+   ) {
+      // WARNING Pure dipole
+      Real B[3];
+      
+      dipole(
+         mpiGrid[cellID]->parameters[CellParams::XCRD] + 0.5*mpiGrid[cellID]->parameters[CellParams::DX],
+         mpiGrid[cellID]->parameters[CellParams::YCRD] + 0.5*mpiGrid[cellID]->parameters[CellParams::DY],
+         mpiGrid[cellID]->parameters[CellParams::ZCRD] + 0.5*mpiGrid[cellID]->parameters[CellParams::DZ],
+         B[0], B[1], B[2]);
+      
+      return B[component];
+   }
+   
+   void Ionosphere::fieldSolverBoundaryCondElectricField(
+      dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const CellID& cellID,
+      cuint RKCase,
+      cuint component
+   ) {
+      if((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
+         mpiGrid[cellID]->parameters[CellParams::EX+component] = 0.0;
+      } else {// RKCase == RK_ORDER2_STEP1
+         mpiGrid[cellID]->parameters[CellParams::EX1+component] = 0.0;
+      }
+   }
+   
+   void Ionosphere::fieldSolverBoundaryCondDerivatives(
+      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const CellID& cellID,
+      cuint& component
+   ) {
+      // WARNING This is crap!!
+      this->setCellDerivativesToZero(mpiGrid, cellID, component);
+   }
+   
+   void Ionosphere::vlasovBoundaryCondition(
+      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const CellID& cellID
+   ) {
+      phiprof::start("vlasovBoundaryCondition (Ionosphere)");
+      copyCellData(&templateCell, mpiGrid[cellID]);
+      phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
+   }
+   
+   void Ionosphere::generateTemplateCell() {
+      // WARNING not 0.0 here or the diploe() function fails miserably.
+      templateCell.parameters[CellParams::XCRD] = 1.0;
+      templateCell.parameters[CellParams::YCRD] = 1.0;
+      templateCell.parameters[CellParams::ZCRD] = 1.0;
+      templateCell.parameters[CellParams::DX] = 1;
+      templateCell.parameters[CellParams::DY] = 1;
+      templateCell.parameters[CellParams::DZ] = 1;
+      setProjectCell(&templateCell);
+   }
+   
+   void Ionosphere::setCellFromTemplate(SpatialCell *cell) {
+      // The ionospheric cell has the same state as the initial state of non-system boundary cells so far.
+      cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
+      cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
+      
+      dipole(
+         cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX],
+         cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY],
+         cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ],
+         cell->parameters[CellParams::BX],
+         cell->parameters[CellParams::BY],
+         cell->parameters[CellParams::BZ]
+      );
+      
+      copyCellData(&templateCell, cell);
    }
    
    std::string Ionosphere::getName() const {return "Ionosphere";}

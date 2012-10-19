@@ -29,20 +29,26 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 
 using namespace std;
 
-typedef magnetosphereParameters MP;
-Real MP::T = {NAN};
-Real MP::rho = NAN;
-uint MP::nSpaceSamples = 0;
-uint MP::nVelocitySamples = 0;
+typedef flowthroughParameters FTP;
+Real FTP::T = NAN;
+Real FTP::rho = NAN;
+Real FTP::Bx = NAN;
+Real FTP::By = NAN;
+Real FTP::Bz = NAN;
+uint FTP::nSpaceSamples = 0;
+uint FTP::nVelocitySamples = 0;
 
 bool initializeProject(void) {return true;}
 
 bool addProjectParameters(){
    typedef Readparameters RP;
-   RP::add("Magnetosphere.rho", "Number density (m^-3)", 0.0);
-   RP::add("Magnetosphere.T", "Temperature (K)", 0.0);
-   RP::add("Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-   RP::add("Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+   RP::add("Flowthrough.rho", "Number density (m^-3)", 0.0);
+   RP::add("Flowthrough.T", "Temperature (K)", 0.0);
+   RP::add("Flowthrough.Bx", "Magnetic field x component (T)", 0.0);
+   RP::add("Flowthrough.By", "Magnetic field y component (T)", 0.0);
+   RP::add("Flowthrough.Bz", "Magnetic field z component (T)", 0.0);
+   RP::add("Flowthrough.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
+   RP::add("Flowthrough.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
    return true;
 }
 
@@ -50,19 +56,31 @@ bool getProjectParameters(){
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    typedef Readparameters RP;
-   if(!RP::get("Magnetosphere.rho", MP::rho)) {
+   if(!RP::get("Flowthrough.rho", FTP::rho)) {
       if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
       exit(1);
    }
-   if(!RP::get("Magnetosphere.T", MP::T)) {
+   if(!RP::get("Flowthrough.T", FTP::T)) {
       if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
       exit(1);
    }
-   if(!RP::get("Magnetosphere.nSpaceSamples", MP::nSpaceSamples)) {
+   if(!RP::get("Flowthrough.Bx", FTP::Bx)) {
       if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
       exit(1);
    }
-   if(!RP::get("Magnetosphere.nVelocitySamples", MP::nVelocitySamples)) {
+   if(!RP::get("Flowthrough.By", FTP::By)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
+   if(!RP::get("Flowthrough.Bz", FTP::Bz)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
+   if(!RP::get("Flowthrough.nSpaceSamples", FTP::nSpaceSamples)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
+   if(!RP::get("Flowthrough.nVelocitySamples", FTP::nVelocitySamples)) {
       if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
       exit(1);
    }
@@ -123,6 +141,61 @@ void setProjectCell(SpatialCell* cell) {
    cell->adjustSingleCellVelocityBlocks();
 }
 
+Real getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   return FTP::rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * FTP::T), 1.5) *
+   exp(- physicalconstants::MASS_PROTON * (vx*vx + vy*vy + vz*vz) / (2.0 * physicalconstants::K_B * FTP::T));
+}
+
+Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   
+   creal d_x = dx / (FTP::nSpaceSamples-1);
+   creal d_y = dy / (FTP::nSpaceSamples-1);
+   creal d_z = dz / (FTP::nSpaceSamples-1);
+   creal d_vx = dvx / (FTP::nVelocitySamples-1);
+   creal d_vy = dvy / (FTP::nVelocitySamples-1);
+   creal d_vz = dvz / (FTP::nVelocitySamples-1);
+   
+   Real avg = 0.0;
+// #pragma omp parallel for collapse(6) reduction(+:avg)
+   // WARNING No threading here if calling functions are already threaded
+   for (uint i=0; i<FTP::nSpaceSamples; ++i)
+      for (uint j=0; j<FTP::nSpaceSamples; ++j)
+         for (uint k=0; k<FTP::nSpaceSamples; ++k)
+            for (uint vi=0; vi<FTP::nVelocitySamples; ++vi)
+               for (uint vj=0; vj<FTP::nVelocitySamples; ++vj)
+                  for (uint vk=0; vk<FTP::nVelocitySamples; ++vk) {
+                     avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+                  }
+   return avg / pow(FTP::nSpaceSamples, 3.0) / pow(FTP::nVelocitySamples, 3.0);
+   
+//    CellID cellID = 1 + round((x - Parameters::xmin) / dx + 
+//    (y - Parameters::ymin) / dy * Parameters::xcells_ini +
+//    (z - Parameters::zmin) / dz * Parameters::ycells_ini * Parameters::xcells_ini);
+   
+//    return cellID * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * FTP::T), 1.5) *
+//    exp(- physicalconstants::MASS_PROTON * (vx*vx + vy*vy + vz*vz) / (2.0 * physicalconstants::K_B * FTP::T));
+}
+
+bool cellParametersChanged(creal& t) {return false;}
+
+void calcBlockParameters(Real* blockParams) { }
+
+void calcCellParameters(Real* cellParams,creal& t) {
+   cellParams[CellParams::EX   ] = 0.0;
+   cellParams[CellParams::EY   ] = 0.0;
+   cellParams[CellParams::EZ   ] = 0.0;
+   cellParams[CellParams::BX   ] = FTP::Bx;
+   cellParams[CellParams::BY   ] = FTP::By;
+   cellParams[CellParams::BZ   ] = FTP::Bz;
+}
+
+// TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
+void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
+   std::vector<uint64_t> cells = mpiGrid.get_cells();
+   for (uint i = 0; i < cells.size(); ++i) {
+      calcCellParameters(mpiGrid[cells[i]]->parameters, t);
+   }
+}
+
 void dipole(creal x, creal y, creal z, Real& Bx, Real &By, Real& Bz) {
    creal k_0 = 8.0e15; // Wb m
    Real r = sqrt(x*x + y*y + z*z); // radial
@@ -137,94 +210,3 @@ void dipole(creal x, creal y, creal z, Real& Bx, Real &By, Real& Bz) {
    By *= 3.0 * k_0 / (r*r*r);
    Bz *= 3.0 * k_0 / (r*r*r);
 }
-
-Real getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
-   return MP::rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * MP::T), 1.5) *
-   exp(- physicalconstants::MASS_PROTON * (vx*vx + vy*vy + vz*vz) / (2.0 * physicalconstants::K_B * MP::T));
-}
-
-Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   
-   if((MP::nSpaceSamples > 1) && (MP::nVelocitySamples > 1)) {
-      creal d_x = dx / (MP::nSpaceSamples-1);
-      creal d_y = dy / (MP::nSpaceSamples-1);
-      creal d_z = dz / (MP::nSpaceSamples-1);
-      creal d_vx = dvx / (MP::nVelocitySamples-1);
-      creal d_vy = dvy / (MP::nVelocitySamples-1);
-      creal d_vz = dvz / (MP::nVelocitySamples-1);
-      
-      Real avg = 0.0;
-   // #pragma omp parallel for collapse(6) reduction(+:avg)
-      // WARNING No threading here if calling functions are already threaded
-      for (uint i=0; i<MP::nSpaceSamples; ++i)
-         for (uint j=0; j<MP::nSpaceSamples; ++j)
-            for (uint k=0; k<MP::nSpaceSamples; ++k)
-               for (uint vi=0; vi<MP::nVelocitySamples; ++vi)
-                  for (uint vj=0; vj<MP::nVelocitySamples; ++vj)
-                     for (uint vk=0; vk<MP::nVelocitySamples; ++vk) {
-                        avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
-                     }
-                     return avg /
-                            (MP::nSpaceSamples*MP::nSpaceSamples*MP::nSpaceSamples) /
-                            (MP::nVelocitySamples*MP::nVelocitySamples*MP::nVelocitySamples);
-   } else {
-      return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz);
-   }
-   
-//    CellID cellID = 1 + round((x - Parameters::xmin) / dx + 
-//    (y - Parameters::ymin) / dy * Parameters::xcells_ini +
-//    (z - Parameters::zmin) / dz * Parameters::ycells_ini * Parameters::xcells_ini);
-   
-//    return cellID * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * MP::T), 1.5) *
-//    exp(- physicalconstants::MASS_PROTON * (vx*vx + vy*vy + vz*vz) / (2.0 * physicalconstants::K_B * MP::T));
-}
-
-bool cellParametersChanged(creal& t) {return false;}
-
-void calcBlockParameters(Real* blockParams) { }
-
-void calcCellParameters(Real* cellParams,creal& t) {
-   creal x = cellParams[CellParams::XCRD];
-   creal dx = cellParams[CellParams::DX];
-   creal y = cellParams[CellParams::YCRD];
-   creal dy = cellParams[CellParams::DY];
-   creal z = cellParams[CellParams::ZCRD];
-   creal dz = cellParams[CellParams::DZ];
-   
-   Real Bxavg, Byavg, Bzavg;
-   if((MP::nSpaceSamples > 1) && (MP::nVelocitySamples > 1)) {
-      Bxavg = Byavg = Bzavg = 0.0;
-      Real d_x = dx / (MP::nSpaceSamples - 1);
-      Real d_y = dy / (MP::nSpaceSamples - 1);
-      Real d_z = dz / (MP::nSpaceSamples - 1);
-   // #pragma omp parallel for collapse(3) reduction(+:Bxavg,Byavg,Bzavg)
-      // WARNING No threading here if calling functions are already threaded
-      for (uint i=0; i<MP::nSpaceSamples; ++i)
-         for (uint j=0; j<MP::nSpaceSamples; ++j)
-            for (uint k=0; k<MP::nSpaceSamples; ++k) {
-               Real field[3];
-               dipole(x+i*d_x, y+j*d_y, z+k*d_z, field[0], field[1], field[2]);
-               Bxavg += field[0];
-               Byavg += field[1];
-               Bzavg += field[2];
-            }
-      cuint nPts = MP::nSpaceSamples*MP::nSpaceSamples*MP::nSpaceSamples;
-      
-      cellParams[CellParams::BGBX   ] = Bxavg / nPts;
-      cellParams[CellParams::BGBY   ] = Byavg / nPts;
-      cellParams[CellParams::BGBZ   ] = Bzavg / nPts;
-   } else {
-      dipole(x+0.5*dx, y+0.5*dy, z+0.5*dz, Bxavg, Byavg, Bzavg);
-      cellParams[CellParams::BGBX   ] = Bxavg;
-      cellParams[CellParams::BGBY   ] = Byavg;
-      cellParams[CellParams::BGBZ   ] = Bzavg;
-   }
-}
-
-// TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
-void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
-   std::vector<uint64_t> cells = mpiGrid.get_cells();
-   for (uint i = 0; i < cells.size(); ++i) {
-      calcCellParameters(mpiGrid[cells[i]]->parameters, t);
-   }
-}
-

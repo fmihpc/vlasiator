@@ -111,6 +111,7 @@ bool Parameters::addParameters(){
    Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limits (default)",true);
 
    Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string(""));     
+   Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string(""));     
    
    Readparameters::add("gridbuilder.x_min","Minimum value of the x-coordinate.","");
    Readparameters::add("gridbuilder.x_max","Minimum value of the x-coordinate.","");
@@ -149,10 +150,11 @@ bool Parameters::addParameters(){
    Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("RCB"));
    Readparameters::add("loadBalance.tolerance", "Load imbalance tolerance", std::string("1.05"));
    Readparameters::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
-   
-   // Output variable parameters
-   Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available (20120906) are B E Rho RhoV RhoLossAdjust RhoLossVelBoundary MPIrank Blocks BoundaryType VolE VolB Pressure PTensor dBxdz.");
-   Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Available (20121005) are Blocks FluxB FluxE Rho RhoLossAdjust RhoLossVelBoundary MaxVi MaxDistributionFunction MinDistributionFunction.");
+
+// Output variable parameters
+   Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available (20120906) are B BackgroundB PerturbedB E Rho RhoV RhoLossAdjust RhoLossVelBoundary MPIrank Blocks BoundaryType VolE VolB Pressure PTensor Bderivs.");
+   Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Available (20121005) are Blocks FluxB FluxE Rho RhoLossAdjust RhoLossVelBoundary  MaxDistributionFunction MinDistributionFunction.");
+
    
    return true;
 }
@@ -204,6 +206,7 @@ bool Parameters::getParameters(){
    Readparameters::get("gridbuilder.dt",P::dt);
    Readparameters::get("gridbuilder.CFL_max",P::CFL_max);
    Readparameters::get("gridbuilder.CFL_min",P::CFL_min);
+
    Readparameters::get("gridbuilder.t_max",P::t_max);
    Readparameters::get("gridbuilder.timestep_max",P::tstep_max);
 

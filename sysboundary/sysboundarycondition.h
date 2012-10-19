@@ -52,11 +52,44 @@ namespace SBC {
          virtual void getParameters();
          
          virtual bool initSysBoundary(creal& t);
-         virtual int assignSysBoundary(creal* cellParams);
-         virtual bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid);
-         void determineFace(bool* isThisCellOnAFace,
-                            creal x, creal y, creal z,
-                            creal dx, creal dy, creal dz);
+         virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell>& mpiGrid);
+         virtual bool applyInitialState(const dccrg::Dccrg<SpatialCell>& mpiGrid);
+//          virtual bool applySysBoundaryCondition(
+//             const dccrg::Dccrg<SpatialCell>& mpiGrid,
+//             creal& t
+//          );
+         virtual Real fieldSolverBoundaryCondMagneticField(
+            const dccrg::Dccrg<SpatialCell>& mpiGrid,
+            const CellID& cellID,
+            creal& dt,
+            cuint& component
+         );
+         virtual void fieldSolverBoundaryCondElectricField(
+            dccrg::Dccrg<SpatialCell>& mpiGrid,
+            const CellID& cellID,
+            cuint RKCase,
+            cuint component
+         );
+         virtual void fieldSolverBoundaryCondDerivatives(
+            const dccrg::Dccrg<SpatialCell>& mpiGrid,
+            const CellID& cellID,
+            cuint& component
+         );
+         static void setCellDerivativesToZero(
+            const dccrg::Dccrg<SpatialCell>& mpiGrid,
+            const CellID& cellID,
+            cuint& component
+         );
+         virtual void vlasovBoundaryCondition(
+            const dccrg::Dccrg<SpatialCell>& mpiGrid,
+            const CellID& cellID
+         );
+         
+         void determineFace(
+            bool* isThisCellOnAFace,
+            creal x, creal y, creal z,
+            creal dx, creal dy, creal dz
+         );
          
          virtual void getFaces(bool* faces);
          virtual std::string getName() const;
@@ -65,6 +98,9 @@ namespace SBC {
          bool isDynamic() const;
       
       protected:
+         void copyCellData(SpatialCell *from, SpatialCell *to);
+//          void zeroCellData( SpatialCell *to);
+         
          /*! Precedence value of the system boundary condition. */
          uint precedence;
          /*! Is the boundary condition dynamic in time or not. */

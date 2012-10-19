@@ -40,11 +40,11 @@ namespace SBC {
       return true;
    }
    
-   int DoNotCompute::assignSysBoundary(creal* cellParams) {
-      return sysboundarytype::NOT_SYSBOUNDARY;
+   bool DoNotCompute::assignSysBoundary(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+      return true;
    }
    
-   bool DoNotCompute::applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   bool DoNotCompute::applyInitialState(const dccrg::Dccrg<SpatialCell>& mpiGrid) {
       vector<uint64_t> cells = mpiGrid.get_cells();
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
@@ -70,6 +70,10 @@ namespace SBC {
       
       return true;
    }
+   
+   //    bool DoNotCompute::applySysBoundaryCondition(const dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t) {
+//       return true;
+//    }
    
    std::string DoNotCompute::getName() const {return "DoNotCompute";}
    

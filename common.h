@@ -182,6 +182,7 @@ namespace fieldsolver {
 
 /*! The namespace sysboundarytype contains the identification index of the boundary condition types applied to a cell,
  * it is stored in SpatialCell::sysBoundaryFlag and used by the BoundaryCondition class' functions to determine what type of BC to apply to a cell.
+ * At least for the workings of vlasovmover_leveque.cpp the order of the first two entries should not be changed.
  */
 namespace sysboundarytype {
    enum {
@@ -194,6 +195,11 @@ namespace sysboundarytype {
    };
 }
 
+/*! Steps in Runge-Kutta methods */
+enum {RK_ORDER1,   /*!< First order method, one step (and initialisation) */
+RK_ORDER2_STEP1,   /*!< Two-step second order method, first step */
+RK_ORDER2_STEP2    /*!< Two-step second order method, second step */
+};
 
 
 const uint WID = 4;         /*!< Number of cells per coordinate in a velocity block. Only a value of 4 supported by vectorized Leveque solver */

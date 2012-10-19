@@ -100,7 +100,7 @@ namespace DRO {
    protected:
       int boundaryType;
    };
-
+   
    class Blocks: public DataReductionOperator {
     public:
       Blocks();
@@ -115,7 +115,6 @@ namespace DRO {
     protected:
       int nBlocks;
    };
-
    
    class VariableB: public DataReductionOperator {
     public:
@@ -144,7 +143,7 @@ namespace DRO {
     protected:
       const Real* B;
    };
-
+   
    class VariableBgB: public DataReductionOperator {
     public:
       VariableBgB();
@@ -176,6 +175,34 @@ namespace DRO {
 
 
    
+   class VariableB0: public DataReductionOperator {
+    public:
+      VariableB0();
+      ~VariableB0();
+      
+      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      std::string getName() const;
+      bool reduceData(const SpatialCell* cell,char* buffer);
+      bool setSpatialCell(const SpatialCell* cell);
+      
+    protected:
+      const Real* B0;
+   };
+   
+   class VariableVolB0: public DataReductionOperator {
+    public:
+      VariableVolB0();
+      ~VariableVolB0();
+      
+      bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      std::string getName() const;
+            bool reduceData(const SpatialCell* cell,char* buffer);
+      bool setSpatialCell(const SpatialCell* cell);
+      
+    protected:
+      const Real* B0;
+   };
+   
    class VariableE: public DataReductionOperator {
     public:
       VariableE();
@@ -192,7 +219,7 @@ namespace DRO {
       Real Ez;
       const Real* E;
    };
-
+   
    class VariableVolE: public DataReductionOperator {
     public:
       VariableVolE();
@@ -221,7 +248,7 @@ namespace DRO {
     protected:
       Real rho;
    };
-
+   
    class RhoLossAdjust: public DataReductionOperator {
     public:
       RhoLossAdjust();
@@ -236,8 +263,7 @@ namespace DRO {
     protected:
       Real rhoLoss;
    };
-
-
+   
    class RhoLossVelBoundary: public DataReductionOperator {
     public:
       RhoLossVelBoundary();
@@ -252,7 +278,6 @@ namespace DRO {
     protected:
       Real rhoLoss;
    };
-
    
    class VariableRhoV: public DataReductionOperator {
     public:
@@ -270,7 +295,7 @@ namespace DRO {
       Real rhovz;
       const Real* rhov;
    };
-
+   
 
 
    class MaxVi: public DataReductionOperator {
@@ -289,7 +314,7 @@ namespace DRO {
    };
    
   // Added by YK
-  class VariablePressure: public DataReductionOperator {
+   class VariablePressure: public DataReductionOperator {
      public:
         VariablePressure();
         virtual ~VariablePressure();
@@ -362,10 +387,80 @@ namespace DRO {
       
    };
    
+   class VariabledBxdy: public DataReductionOperator {
+   public:
+      VariabledBxdy();
+      virtual ~VariabledBxdy();
+      
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      
+   protected:
+      Real value;
+   };
+   
    class VariabledBxdz: public DataReductionOperator {
    public:
       VariabledBxdz();
       virtual ~VariabledBxdz();
+      
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      
+   protected:
+      Real value;
+   };
+   
+   class VariabledBydx: public DataReductionOperator {
+   public:
+      VariabledBydx();
+      virtual ~VariabledBydx();
+      
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      
+   protected:
+      Real value;
+   };
+   
+   class VariabledBydz: public DataReductionOperator {
+   public:
+      VariabledBydz();
+      virtual ~VariabledBydz();
+      
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      
+   protected:
+      Real value;
+   };
+   
+   class VariabledBzdx: public DataReductionOperator {
+   public:
+      VariabledBzdx();
+      virtual ~VariabledBzdx();
+      
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      
+   protected:
+      Real value;
+   };
+   
+   class VariabledBzdy: public DataReductionOperator {
+   public:
+      VariabledBzdy();
+      virtual ~VariabledBzdy();
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;

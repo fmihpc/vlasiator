@@ -41,8 +41,38 @@ namespace SBC {
       virtual void getParameters();
       
       virtual bool initSysBoundary(creal& t);
-      virtual int assignSysBoundary(creal* cellParams);
-      virtual bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid);
+      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell>& mpiGrid);
+      virtual bool applyInitialState(const dccrg::Dccrg<SpatialCell>& mpiGrid);
+//       virtual bool applySysBoundaryCondition(
+//          const dccrg::Dccrg<SpatialCell>& mpiGrid,
+//          creal& t
+//       );
+      virtual Real fieldSolverBoundaryCondMagneticField(
+         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const CellID& cellID,
+         creal& dt,
+         cuint& component
+      );
+      virtual void fieldSolverBoundaryCondElectricField(
+         dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const CellID& cellID,
+         cuint RKCase,
+         cuint component
+      );
+      virtual void fieldSolverBoundaryCondDerivatives(
+         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const CellID& cellID,
+         cuint& component
+      );
+      virtual void vlasovBoundaryCondition(
+         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const CellID& cellID
+      );
+      
+      void vlasovBoundaryCopyFromExistingFaceNbr(
+         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const CellID& cellID
+      );
       
       virtual void getFaces(bool* faces);
       virtual std::string getName() const;
@@ -51,11 +81,14 @@ namespace SBC {
    protected:
       /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
       bool facesToProcess[6];
-      /*! Array of bool used to tell on which face(s) (if any) a given cell is. \sa determineFace */
-      bool isThisCellOnAFace[6];
       /*! List of faces on which outflow boundary conditions are to be applied ([xyz][+-]). */
       std::vector<std::string> faceList;
-   };
-}
+      Real fieldBoundaryCopyFromExistingFaceNbrMagneticField(
+         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const CellID& cellID,
+         cuint& component
+      );
+   }; // class Outflow
+} // namespace SBC
 
 #endif
