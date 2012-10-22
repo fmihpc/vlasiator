@@ -299,13 +299,11 @@ int main(int argn,char* args[]) {
       phiprof::start("IO");
       
       //write out phiprof profiles and logs with a lower interval than normal
-      //diagnostic (every 10 diagnostic intervals). Also, do not print
-      //first step or until we have rebalanced.
+      //diagnostic (every 10 diagnostic intervals).
       logFile << "------------------ tstep = " << P::tstep << " t = " << P::t <<" dt = " << P::dt << " ------------------" << endl;
       if (P::diagnosticInterval != 0 &&
           P::tstep % (P::diagnosticInterval*10) == 0 &&
-          P::tstep-P::tstep_min >0  &&
-          P::tstep-P::tstep_min > P::rebalanceInterval) {
+          P::tstep-P::tstep_min >0) {
          phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
          phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
          
@@ -330,10 +328,6 @@ int main(int argn,char* args[]) {
          }
          phiprof::stop("Diagnostic");
       }
-      
-
-      
-      
       // Save reduced data
       if ( P::saveSystemTimeInterval >=0.0 && 
            P::t >= systemWrites*P::saveSystemTimeInterval-DT_EPSILON ){
@@ -356,7 +350,6 @@ int main(int argn,char* args[]) {
          restartWrites++;
          phiprof::stop("write-restart");
       }
-      
       
       phiprof::stop("IO");
       
