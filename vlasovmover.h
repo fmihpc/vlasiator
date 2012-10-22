@@ -57,20 +57,18 @@ void calculateInterpolatedVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid,
 /*!
   \brief Compute 0th and 1st velocity moments (RHO,RHOVX,RHOVY,RHOVZ) for a cell directly from distribution function.The simulation should be at a true time-step!
   \param SC pointer to the spatial cell
-  \param setDt2Values If true, then the RHO_DT2, RHO_V*_DT2 values will be set to the average of the new and old RHO, RHO_V* values, otherwise they are the same. False is the default value
   
 */
 
-void calculateCellVelocityMoments(SpatialCell* SC, bool averageDt2Values=false);
+void calculateCellVelocityMoments(SpatialCell* SC);
 
 
 /*!
   \brief Compute 0th and 1st velocity moments (RHO,RHOVX,RHOVY,RHOVZ) for all cells in the grid directly from distribution function.The simulation should be at a true time-step!
   \param mpiGrid Grid of spatial cells for which moments are computed 
-  \param setDt2Values If true, then the RHO_DT2, RHO_V*_DT2 values will be set to the average of the new and old RHO, RHO_V* values, otherwise they are the same. False is the default value
   
 */
-void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid, bool averageDt2Values=false);
+void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
 
 

@@ -61,7 +61,7 @@ using namespace std;
 using namespace phiprof;
 
 
-bool changeTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &isChanged) {
+bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &isChanged) {
 
    phiprof::start("compute-timestep");      
    //compute maximum time-step, this cannot be done at the first
@@ -218,8 +218,10 @@ int main(int argn,char* args[]) {
       logFile << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << writeVerbose;
       exit(1);
    }
-   //compute moments, and set them in RHO* and RHO*_DT2
-   calculateVelocityMoments(mpiGrid,false);
+   //compute moments, and set them  in RHO*
+   calculateVelocityMoments(mpiGrid);
+
+   
    phiprof::stop("Init vlasov propagator");
    
    phiprof::start("Init field propagator");
@@ -272,7 +274,7 @@ int main(int argn,char* args[]) {
          propagateFields(mpiGrid, sysBoundaries, 0.0);
       }
       //compute new dt
-      changeTimeStep(mpiGrid,newDt,dtIsChanged);
+      computeNewTimeStep(mpiGrid,newDt,dtIsChanged);
       P::dt=newDt;
       phiprof::stop("compute-dt");
       
@@ -382,15 +384,31 @@ int main(int argn,char* args[]) {
       //do not compute new dt on first step (in restarts dt comes from file, otherwise it was initialized before we entered
       //simulation loop
       if(P::dynamicTimestep  && P::tstep> P::tstep_min) {
-         changeTimeStep(mpiGrid,newDt,dtIsChanged);         
+         computeNewTimeStep(mpiGrid,newDt,dtIsChanged);         
          if(dtIsChanged) {
             phiprof::start("update-dt");
             //propagate velocity space to real-time, do not do it if dt is zero
             if(P::dt >0)
                calculateAcceleration(mpiGrid,0.5*P::dt);
-            //re-compute rho for real time for fieldsolver, and
-            //compute _DT2 values as an average of old and new values
-            calculateVelocityMoments(mpiGrid,true);
+            //re-compute moments for real time for fieldsolver, and
+            //shift compute rho_dt2 as average of old rho and new
+            //rho. In practice this value is at a 1/4 timestep, as we
+            //take 1/2 timestep forward in fieldsolver
+#pragma omp parallel for        
+            for (size_t c=0; c<cells.size(); ++c) {
+               const CellID cellID = cells[c];
+               SpatialCell* SC = mpiGrid[cellID];
+               SC->parameters[CellParams::RHO_DT2] = 0.5*SC->parameters[CellParams::RHO];
+               SC->parameters[CellParams::RHOVX_DT2] = 0.5*SC->parameters[CellParams::RHOVX];
+               SC->parameters[CellParams::RHOVY_DT2] = 0.5*SC->parameters[CellParams::RHOVY];
+               SC->parameters[CellParams::RHOVZ_DT2] = 0.5*SC->parameters[CellParams::RHOVZ];
+               calculateCellVelocityMoments(SC);
+               SC->parameters[CellParams::RHO_DT2] += 0.5*SC->parameters[CellParams::RHO];
+               SC->parameters[CellParams::RHOVX_DT2] += 0.5*SC->parameters[CellParams::RHOVX];
+               SC->parameters[CellParams::RHOVY_DT2] += 0.5*SC->parameters[CellParams::RHOVY];
+               SC->parameters[CellParams::RHOVZ_DT2] += 0.5*SC->parameters[CellParams::RHOVZ];
+            }
+            
             
             // Propagate fields forward in time by 0.5*dt
             if (P::propagateField == true) {

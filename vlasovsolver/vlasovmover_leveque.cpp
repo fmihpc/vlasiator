@@ -805,17 +805,8 @@ void calculateInterpolatedVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid,
 
 
 
-void calculateCellVelocityMoments(SpatialCell* SC, bool averageDt2Values){
+void calculateCellVelocityMoments(SpatialCell* SC){
    if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) return;
-
-   if(averageDt2Values) {
-      SC->parameters[CellParams::RHO_DT2] = 0.5*SC->parameters[CellParams::RHO];
-      SC->parameters[CellParams::RHOVX_DT2] = 0.5*SC->parameters[CellParams::RHOVX];
-      SC->parameters[CellParams::RHOVY_DT2] = 0.5*SC->parameters[CellParams::RHOVY];
-      SC->parameters[CellParams::RHOVZ_DT2] = 0.5*SC->parameters[CellParams::RHOVZ];
-   }
-   
-         
    SC->parameters[CellParams::RHO  ] = 0.0;
    SC->parameters[CellParams::RHOVX] = 0.0;
    SC->parameters[CellParams::RHOVY] = 0.0;
@@ -827,27 +818,10 @@ void calculateCellVelocityMoments(SpatialCell* SC, bool averageDt2Values){
       cpu_calcVelocityMoments(SC,block,CellParams::RHO,CellParams::RHOVX,CellParams::RHOVY,CellParams::RHOVZ);
 
    }
-
-   if(averageDt2Values) {
-      //_DT2 values are average of old and new value
-      SC->parameters[CellParams::RHO_DT2] += 0.5*SC->parameters[CellParams::RHO];
-      SC->parameters[CellParams::RHOVX_DT2] += 0.5*SC->parameters[CellParams::RHOVX];
-      SC->parameters[CellParams::RHOVY_DT2] += 0.5*SC->parameters[CellParams::RHOVY];
-      SC->parameters[CellParams::RHOVZ_DT2] += 0.5*SC->parameters[CellParams::RHOVZ];
-   }
-   else{
-      //_DT2 values are copies
-      SC->parameters[CellParams::RHO_DT2] = SC->parameters[CellParams::RHO];
-      SC->parameters[CellParams::RHOVX_DT2] = SC->parameters[CellParams::RHOVX];
-      SC->parameters[CellParams::RHOVY_DT2] = SC->parameters[CellParams::RHOVY];
-      SC->parameters[CellParams::RHOVZ_DT2] = SC->parameters[CellParams::RHOVZ];
-   }
-
 }
  
-      
 
-void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid, bool averageDt2Values){
+void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid){
    vector<CellID> cells;
    cells=mpiGrid.get_cells();
    
@@ -856,11 +830,8 @@ void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid, bool averageDt
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
-      calculateCellVelocityMoments(SC,averageDt2Values);
+      calculateCellVelocityMoments(SC);
    }
 }
  
-      
-
-
 

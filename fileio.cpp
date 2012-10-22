@@ -530,7 +530,7 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    phiprof::stop("readGrid");
 
    if(success)
-      calculateVelocityMoments(mpiGrid,false);
+      calculateVelocityMoments(mpiGrid);
 
    exitOnError(success,"(RESTART) Other failure",MPI_COMM_WORLD);
    return success;
