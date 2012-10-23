@@ -156,7 +156,7 @@ void initializeGrid(int argn,
 			(boost::assign::list_of( 1)( 1)( 1))
 			(boost::assign::list_of( 0)( 0)( 2));
 
-   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_NEIGHBORHOOD_ID, fs_neighborhood)) {
+   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_NEIGHBORHOOD_ID, vlasov_neighborhood)) {
       std::cerr << __FILE__ << ":" << __LINE__
          << " Couldn't set vlasov solver neighborhood"
          << std::endl;
