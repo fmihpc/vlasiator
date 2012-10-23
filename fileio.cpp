@@ -693,14 +693,13 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
       }
       //write out DROs we need for restarts
       DataReducer restartReducer;
-      restartReducer.addOperator(new DRO::VariableBgB);
-      restartReducer.addOperator(new DRO::VariablePerturbedB);
+      restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("background_B",CellParams::BGBX,3));
+      restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("perturbed_B",CellParams::PERBX,3));
+      restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments",CellParams::RHO,4));
+      restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_dt2",CellParams::RHO_DT2,4));
+      restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_r",CellParams::RHO_R,4));
+      restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_v",CellParams::RHO_V,4));
       restartReducer.addOperator(new DRO::Blocks);
-// These should be written out, and read...
-//      restartReducer.addOperator(new DRO::Moments);
-//      restartReducer.addOperator(new DRO::MomentsDt2);
-//      restartReducer.addOperator(new DRO::MomentsR);
-//      restartReducer.addOperator(new DRO::MomentsV);     
 
       for (uint i=0; i<restartReducer.size(); ++i) {
          writeDataReducer(mpiGrid,restartReducer,i,vlsvWriter);

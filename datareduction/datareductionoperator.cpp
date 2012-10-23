@@ -104,7 +104,7 @@ namespace DRO {
    
    
    
-   DataReductionOperatorCellParams::DataReductionOperatorCellParams(std::string& name,uint parameterIndex,uint vectorSize):
+   DataReductionOperatorCellParams::DataReductionOperatorCellParams(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize):
    DataReductionOperator() {
       _vectorSize=vectorSize;
       _name=name;
@@ -138,57 +138,24 @@ namespace DRO {
       _data  = &(cell->parameters[_parameterIndex]);
       return true;
    }
+
+
+
+
    
-   // E
-   VariableE::VariableE(): DataReductionOperator() { }
-   VariableE::~VariableE() { }
-   
-   bool VariableE::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize = sizeof(Real);
-      vectorSize = 3;
+   DataReductionOperatorDerivatives::DataReductionOperatorDerivatives(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize):
+   DataReductionOperatorCellParams(name,parameterIndex,vectorSize) {
+
+   }
+   //a version with derivatives, this is the only function that is different
+   bool DataReductionOperatorDerivatives::setSpatialCell(const SpatialCell* cell) {
+      _data  = &(cell->derivatives[_parameterIndex]);
       return true;
    }
+
+
    
-   std::string VariableE::getName() const {return "E";}
    
-   bool VariableE::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(E);
-      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariableE::setSpatialCell(const SpatialCell* cell) {
-      E = &(cell->parameters[CellParams::EX]);
-      Ex = cell->parameters[CellParams::EX];
-      Ey = cell->parameters[CellParams::EY];
-      Ez = cell->parameters[CellParams::EZ];
-      return true;
-   }
-   
-   // E_vol
-   VariableVolE::VariableVolE(): DataReductionOperator() { }
-   VariableVolE::~VariableVolE() { }
-   
-   bool VariableVolE::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 3;
-      return true;
-   }
-   
-   std::string VariableVolE::getName() const {return "E_vol";}
-   
-   bool VariableVolE::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(E);
-      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariableVolE::setSpatialCell(const SpatialCell* cell) {
-      E = &(cell->parameters[CellParams::EXVOL]);
-      return true;
-   }
    
    //------------------ total B --------------------------------------- 
    VariableB::VariableB(): DataReductionOperator() { }
@@ -216,162 +183,6 @@ namespace DRO {
       return true;
    }
    
-   //------------------ perturbed_B --------------------------------------- 
-   VariablePerturbedB::VariablePerturbedB(): DataReductionOperator() { }
-   VariablePerturbedB::~VariablePerturbedB() { }
-   
-   bool VariablePerturbedB::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 3;
-      return true;
-   }
-   
-   std::string VariablePerturbedB::getName() const {return "perturbed_B";}
-   
-   bool VariablePerturbedB::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(B);
-      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariablePerturbedB::setSpatialCell(const SpatialCell* cell) {
-      B  = &(cell->parameters[CellParams::PERBX]);
-      return true;
-   }
-   
-   //------------------ background_B ---------------------------------------
-   VariableBgB::VariableBgB(): DataReductionOperator() { }
-   VariableBgB::~VariableBgB() { }
-   
-   bool VariableBgB::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 3;
-      return true;
-   }
-   std::string VariableBgB::getName() const {return "background_B";}
-   bool VariableBgB::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(B);
-      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariableBgB::setSpatialCell(const SpatialCell* cell) {
-      B  = &(cell->parameters[CellParams::BGBX]);
-      return true;
-   }
-   
-   //------------------ B_vol ---------------------------------------
-   VariableVolB::VariableVolB(): DataReductionOperator() { }
-   VariableVolB::~VariableVolB() { }
-   
-   bool VariableVolB::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 3;
-      return true;
-   }
-   
-   std::string VariableVolB::getName() const {return "B_vol";}
-   
-   bool VariableVolB::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(B);
-      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariableVolB::setSpatialCell(const SpatialCell* cell) {
-      B  = &(cell->parameters[CellParams::BXVOL]);
-      return true;
-   }
-   
-   // rho
-   VariableRho::VariableRho(): DataReductionOperator() { }
-   VariableRho::~VariableRho() { }
-   
-   std::string VariableRho::getName() const {return "rho";}
-   
-   bool VariableRho::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   bool VariableRho::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&rho);
-      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariableRho::reduceData(const SpatialCell* cell,Real* buffer){
-      *buffer=rho;
-      return true;
-   }
-   
-   bool VariableRho::setSpatialCell(const SpatialCell* cell) {
-      rho = cell->parameters[CellParams::RHO];
-      return true;
-   }
-   
-   //RHOLOSSADJUST
-   RhoLossAdjust::RhoLossAdjust(): DataReductionOperator() { }
-   RhoLossAdjust::~RhoLossAdjust() { }
-   
-   std::string RhoLossAdjust::getName() const {return "rho_loss_adjust";}
-   
-   bool RhoLossAdjust::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   bool RhoLossAdjust::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&rhoLoss);
-      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool RhoLossAdjust::reduceData(const SpatialCell* cell,Real* buffer){
-      *buffer=rhoLoss;
-      return true;
-   }
-   
-   bool RhoLossAdjust::setSpatialCell(const SpatialCell* cell) {
-      rhoLoss = cell->parameters[CellParams::RHOLOSSADJUST];
-      return true;
-   }
-   
-   //RHOLOSSVELBOUNDARY
-   RhoLossVelBoundary::RhoLossVelBoundary(): DataReductionOperator() { }
-   RhoLossVelBoundary::~RhoLossVelBoundary() { }
-   
-   std::string RhoLossVelBoundary::getName() const {return "rho_loss_velocity_boundary";}
-   
-   bool RhoLossVelBoundary::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   bool RhoLossVelBoundary::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&rhoLoss);
-      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool RhoLossVelBoundary::reduceData(const SpatialCell* cell,Real* buffer){
-      *buffer=rhoLoss;
-      return true;
-   }
-   
-   bool RhoLossVelBoundary::setSpatialCell(const SpatialCell* cell) {
-      rhoLoss = cell->parameters[CellParams::RHOLOSSVELBOUNDARY];
-      return true;
-   }
    
    //MPI rank
    MPIrank::MPIrank(): DataReductionOperator() { }
@@ -453,34 +264,8 @@ namespace DRO {
       return true;
    }
    
-   // rho_v
-   VariableRhoV::VariableRhoV(): DataReductionOperator() { }
-   VariableRhoV::~VariableRhoV() { }
    
-   bool VariableRhoV::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 3;
-      return true;
-   }
-   
-   std::string VariableRhoV::getName() const {return "rho_v";}
-   
-   bool VariableRhoV::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(rhov);
-      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariableRhoV::setSpatialCell(const SpatialCell* cell) {
-      rhov  = &(cell->parameters[CellParams::RHOVX]);
-      rhovx = cell->parameters[CellParams::RHOVX];
-      rhovy = cell->parameters[CellParams::RHOVY];
-      rhovz = cell->parameters[CellParams::RHOVZ];
-      return true;
-   }
-   
-   // Scalar pressure added by YK
+   // Scalar pressure 
    VariablePressure::VariablePressure(): DataReductionOperator() { }
    VariablePressure::~VariablePressure() { }
    
@@ -493,7 +278,7 @@ namespace DRO {
       return true;
    }
    
-   // YK Adding pressure calculations to Vlasiator.
+   // Adding pressure calculations to Vlasiator.
    // p = m/3 * integral((v - <V>)^2 * f(r,v) dV), doing the sum of the x, y and z components.
    // TODO thread this DRO
    bool VariablePressure::reduceData(const SpatialCell* cell,char* buffer) {
@@ -685,7 +470,7 @@ namespace DRO {
       return true;
    }
    
-   // YK Integrated divergence of magnetic field
+   // Integrated divergence of magnetic field
    // Integral of div B over the simulation volume =
    // Integral of flux of B on simulation volume surface
    DiagnosticFluxB::DiagnosticFluxB(): DataReductionOperator() { }
@@ -890,150 +675,8 @@ namespace DRO {
    
    bool MinDistributionFunction::setSpatialCell(const SpatialCell* cell) {
       return true;
+
    }
-   
-   // dBxdy
-   VariabledBxdy::VariabledBxdy(): DataReductionOperator() { }
-   VariabledBxdy::~VariabledBxdy() { }
-   
-   bool VariabledBxdy::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize = sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   std::string VariabledBxdy::getName() const {return "dBxdy";}
-   
-   bool VariabledBxdy::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&value);
-      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariabledBxdy::setSpatialCell(const SpatialCell* cell) {
-      value = cell->derivatives[fieldsolver::dBxdy];
-      return true;
-   }
-   
-   // dBxdz
-   VariabledBxdz::VariabledBxdz(): DataReductionOperator() { }
-   VariabledBxdz::~VariabledBxdz() { }
-   
-   bool VariabledBxdz::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize = sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   std::string VariabledBxdz::getName() const {return "dBxdz";}
-   
-   bool VariabledBxdz::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&value);
-      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariabledBxdz::setSpatialCell(const SpatialCell* cell) {
-      value = cell->derivatives[fieldsolver::dBxdz];
-      return true;
-   }
-   
-   // dBydx
-   VariabledBydx::VariabledBydx(): DataReductionOperator() { }
-   VariabledBydx::~VariabledBydx() { }
-   
-   bool VariabledBydx::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize = sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   std::string VariabledBydx::getName() const {return "dBydx";}
-   
-   bool VariabledBydx::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&value);
-      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariabledBydx::setSpatialCell(const SpatialCell* cell) {
-      value = cell->derivatives[fieldsolver::dBydx];
-      return true;
-   }
-   
-   // dBydz
-   VariabledBydz::VariabledBydz(): DataReductionOperator() { }
-   VariabledBydz::~VariabledBydz() { }
-   
-   bool VariabledBydz::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize = sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   std::string VariabledBydz::getName() const {return "dBydz";}
-   
-   bool VariabledBydz::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&value);
-      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariabledBydz::setSpatialCell(const SpatialCell* cell) {
-      value = cell->derivatives[fieldsolver::dBydz];
-      return true;
-   }
-   
-   // dBzdx
-   VariabledBzdx::VariabledBzdx(): DataReductionOperator() { }
-   VariabledBzdx::~VariabledBzdx() { }
-   
-   bool VariabledBzdx::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize = sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   std::string VariabledBzdx::getName() const {return "dBzdx";}
-   
-   bool VariabledBzdx::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&value);
-      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariabledBzdx::setSpatialCell(const SpatialCell* cell) {
-      value = cell->derivatives[fieldsolver::dBzdx];
-      return true;
-   }
-   
-   // dBzdy
-   VariabledBzdy::VariabledBzdy(): DataReductionOperator() { }
-   VariabledBzdy::~VariabledBzdy() { }
-   
-   bool VariabledBzdy::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize = sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   std::string VariabledBzdy::getName() const {return "dBzdy";}
-   
-   bool VariabledBzdy::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&value);
-      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariabledBzdy::setSpatialCell(const SpatialCell* cell) {
-      value = cell->derivatives[fieldsolver::dBzdy];
-      return true;
-   }
+
    
 } // namespace DRO

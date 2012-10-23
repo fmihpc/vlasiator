@@ -20,7 +20,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <iostream>
 
 #include "datareducer.h"
-
+#include "../common.h"
 using namespace std;
 
 void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer)
@@ -34,19 +34,19 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "B")
          outputReducer->addOperator(new DRO::VariableB);
       if(*it == "BackgroundB")
-         outputReducer->addOperator(new DRO::VariableBgB);
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("background_B",CellParams::BGBX,3));
       if(*it == "PerturbedB")
-         outputReducer->addOperator(new DRO::VariablePerturbedB);
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("perturbed_B",CellParams::PERBX,3));
       if(*it == "E")
-         outputReducer->addOperator(new DRO::VariableE);
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("E",CellParams::EX,3));
       if(*it == "Rho")
-         outputReducer->addOperator(new DRO::VariableRho);
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho",CellParams::RHO,1));
       if(*it == "RhoV")
-         outputReducer->addOperator(new DRO::VariableRhoV);
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_v",CellParams::RHOVX,3));
       if(*it == "RhoLossAdjust")
-         outputReducer->addOperator(new DRO::RhoLossAdjust);
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_adjust",CellParams::RHOLOSSADJUST,1));
       if(*it == "RhoLossVelBoundary")
-         outputReducer->addOperator(new DRO::RhoLossVelBoundary);
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_velocity_boundary",CellParams::RHOLOSSVELBOUNDARY,1));
       if(*it == "MPIrank")
          outputReducer->addOperator(new DRO::MPIrank);
       if(*it == "BoundaryType")
@@ -54,9 +54,9 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "Blocks")
          outputReducer->addOperator(new DRO::Blocks);
       if(*it == "VolE")
-         outputReducer->addOperator(new DRO::VariableVolE);
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("E_vol",CellParams::EXVOL,3));
       if(*it == "VolB")
-         outputReducer->addOperator(new DRO::VariableVolB);
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("B_vol",CellParams::BXVOL,3));
       if(*it == "Pressure")
          outputReducer->addOperator(new DRO::VariablePressure);
       if(*it == "PTensor") {
@@ -64,12 +64,12 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::VariablePTensorOffDiagonal);
       }
       if(*it == "Bderivs") {
-         outputReducer->addOperator(new DRO::VariabledBxdy);
-         outputReducer->addOperator(new DRO::VariabledBxdz);
-         outputReducer->addOperator(new DRO::VariabledBydx);
-         outputReducer->addOperator(new DRO::VariabledBydz);
-         outputReducer->addOperator(new DRO::VariabledBzdx);
-         outputReducer->addOperator(new DRO::VariabledBzdy);
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBxdy",fieldsolver::dBxdy,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBxdz",fieldsolver::dBxdz,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBydx",fieldsolver::dBydx,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBydz",fieldsolver::dBydz,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBzdx",fieldsolver::dBzdx,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBzdy",fieldsolver::dBzdy,1));
       }
    }
    
@@ -83,11 +83,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(*it == "Blocks")
          diagnosticReducer->addOperator(new DRO::Blocks);
       if(*it == "Rho")
-         diagnosticReducer->addOperator(new DRO::VariableRho);
+         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho",CellParams::RHO,1));
       if(*it == "RhoLossAdjust")
-         diagnosticReducer->addOperator(new DRO::RhoLossAdjust);
+         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_adjust",CellParams::RHOLOSSADJUST,1));
       if(*it == "RhoLossVelBoundary")
-         diagnosticReducer->addOperator(new DRO::RhoLossVelBoundary);
+         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_velocity_boundary",CellParams::RHOLOSSVELBOUNDARY,1));
       if(*it == "MaxDistributionFunction")
          diagnosticReducer->addOperator(new DRO::MaxDistributionFunction);
       if(*it == "MinDistributionFunction")
