@@ -259,6 +259,9 @@ bool SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
  * function.
  */
 void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t) {
+   if(sysBoundaries.size()==0)
+      return; //no system boundaries
+
    SpatialCell::set_mpi_transfer_type(
       Transfer::CELL_PARAMETERS|
       Transfer::VEL_BLOCK_DATA|
