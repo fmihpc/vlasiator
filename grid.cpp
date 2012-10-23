@@ -16,6 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <boost/assign/list_of.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <iomanip> // for setprecision()
@@ -93,6 +94,128 @@ void initializeGrid(int argn,
       sysBoundaries.isBoundaryPeriodic(1),
       sysBoundaries.isBoundaryPeriodic(2)
    );
+
+   // set reduced neighborhoods
+   typedef dccrg::Types<3>::neighborhood_item_t neigh_t;
+   
+   // set a reduced neighborhood for field solver
+   std::vector<neigh_t> nearestneighbor_neighborhood;
+   for (int z = -1; z <= 1; z++) {
+      for (int y = -1; y <= 1; y++) {
+         for (int x = -1; x <= 1; x++) {
+            if (x == 0 && y == 0 && z == 0) {
+               continue;
+            }
+            
+            neigh_t offsets = {{x, y, z}};
+            nearestneighbor_neighborhood.push_back(offsets);
+         }
+      }
+   }
+   
+   if (!mpiGrid.add_remote_update_neighborhood(FIELD_SOLVER_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+         << " Couldn't set field solver neighborhood"
+         << std::endl;
+      abort();
+   }
+   
+   // set a reduced neighborhood for all possible communication in  vlasov solver
+   //FIXME, the +2 neighbors can be removed as we do not receive from +2, do check though...
+   const std::vector<neigh_t> vlasov_neighborhood
+      = boost::assign::list_of<neigh_t>
+      (boost::assign::list_of( 0)( 0)(-2))
+      (boost::assign::list_of(-1)(-1)(-1))
+      (boost::assign::list_of( 0)(-1)(-1))
+      (boost::assign::list_of( 1)(-1)(-1))
+      (boost::assign::list_of(-1)( 0)(-1))
+      (boost::assign::list_of( 0)( 0)(-1))
+      (boost::assign::list_of( 1)( 0)(-1))
+      (boost::assign::list_of(-1)( 1)(-1))
+      (boost::assign::list_of( 0)( 1)(-1))
+      (boost::assign::list_of( 1)( 1)(-1))
+      (boost::assign::list_of( 0)(-2)( 0))
+      (boost::assign::list_of(-1)(-1)( 0))
+      (boost::assign::list_of( 0)(-1)( 0))
+      (boost::assign::list_of( 1)(-1)( 0))
+      (boost::assign::list_of(-2)( 0)( 0))
+      (boost::assign::list_of(-1)( 0)( 0))
+      (boost::assign::list_of( 1)( 0)( 0))
+      (boost::assign::list_of( 2)( 0)( 0))
+      (boost::assign::list_of(-1)( 1)( 0))
+      (boost::assign::list_of( 0)( 1)( 0))
+      (boost::assign::list_of( 1)( 1)( 0))
+      (boost::assign::list_of( 0)( 2)( 0))
+      (boost::assign::list_of(-1)(-1)( 1))
+      (boost::assign::list_of( 0)(-1)( 1))
+      (boost::assign::list_of( 1)(-1)( 1))
+      (boost::assign::list_of(-1)( 0)( 1))
+      (boost::assign::list_of( 0)( 0)( 1))
+      (boost::assign::list_of( 1)( 0)( 1))
+      (boost::assign::list_of(-1)( 1)( 1))
+      (boost::assign::list_of( 0)( 1)( 1))
+      (boost::assign::list_of( 1)( 1)( 1))
+      (boost::assign::list_of( 0)( 0)( 2));
+   
+   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_NEIGHBORHOOD_ID, vlasov_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+                << " Couldn't set vlasov solver neighborhood"
+                << std::endl;
+      abort();
+   }
+
+   
+   // A reduced neighborhood for vlasov distribution function receives
+   const std::vector<neigh_t> vlasov_density_neighborhood
+      = boost::assign::list_of<neigh_t>
+      (boost::assign::list_of( 0)( 0)(-1))
+      (boost::assign::list_of( 0)( 0)( 1))
+      (boost::assign::list_of( 0)(-1)( 0))
+      (boost::assign::list_of( 0)( 1)( 0))
+      (boost::assign::list_of(-1)( 0)( 0))
+      (boost::assign::list_of( 1)( 0)( 0))
+      (boost::assign::list_of(-2)( 0)( 0))
+      (boost::assign::list_of( 0)(-2)( 0))
+      (boost::assign::list_of( 0)( 0)(-2));
+   
+   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_DENSITY_NEIGHBORHOOD_ID, vlasov_density_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+                << " Couldn't set field solver neighborhood"
+                << std::endl;
+      abort();
+   }
+
+
+   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_FLUXES_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+                << " Couldn't set field solver neighborhood"
+                << std::endl;
+      abort();
+   }
+
+   if (!mpiGrid.add_remote_update_neighborhood(SYSBOUNDARIES_CLASSIFY_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+                << " Couldn't set field solver neighborhood"
+                << std::endl;
+      abort();
+   }
+
+   // A reduced neighborhood for data transfers for boundary conditions, we assume they only read face neighbors(!)
+   const std::vector<neigh_t> faces_neighborhood
+      = boost::assign::list_of<neigh_t>
+      (boost::assign::list_of( 0)( 0)(-1))
+      (boost::assign::list_of( 0)( 0)( 1))
+      (boost::assign::list_of( 0)(-1)( 0))
+      (boost::assign::list_of( 0)( 1)( 0))
+      (boost::assign::list_of(-1)( 0)( 0))
+      (boost::assign::list_of( 1)( 0)( 0));
+   if (!mpiGrid.add_remote_update_neighborhood(SYSBOUNDARIES_DATA_NEIGHBORHOOD_ID, faces_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+                << " Couldn't set field solver neighborhood"
+                << std::endl;
+      abort();
+   }
+   
    
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
    phiprof::start("Initial load-balancing");
@@ -154,7 +277,7 @@ void initializeGrid(int argn,
    phiprof::start("Fetch Neighbour data");
    // update complete spatial cell data 
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
-   mpiGrid.update_remote_neighbor_data();
+   mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop("Fetch Neighbour data");
    
    phiprof::stop("Set initial state");
@@ -314,7 +437,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid, bool reInitMover) 
    phiprof::initializeTimer("Transfer block data","MPI");
    phiprof::start("Transfer block data");
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_HAS_CONTENT );
-   mpiGrid.update_remote_neighbor_data();
+   mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop("Transfer block data");
    
    adjust_local_velocity_blocks(mpiGrid);
@@ -334,7 +457,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid, bool reInitMover) 
 Adjusts velocity blocks in local spatial cells.
 
 Doesn't adjust velocity blocks in remote cells, this has to be fixed
-by calling pdateRemoteVelocityBlockLists()
+by calling updateRemoteVelocityBlockLists()
 
 */
 bool adjust_local_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
@@ -353,7 +476,8 @@ bool adjust_local_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
          abort();
       }
       // gather spatial neighbor list
-      const vector<uint64_t>* neighbors = mpiGrid.get_neighbors(cell_id);
+      const vector<uint64_t>* neighbors
+      	= mpiGrid.get_neighbors(cell_id, VLASOV_SOLVER_NEIGHBORHOOD_ID);
       vector<SpatialCell*> neighbor_ptrs;
 
       neighbor_ptrs.reserve(neighbors->size());
@@ -414,7 +538,7 @@ void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell>& mpiGrid)
    phiprof::initializeTimer("Velocity block list update","MPI");
    phiprof::start("Velocity block list update");
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_SIZE_AND_LIST);
-   mpiGrid.update_remote_neighbor_data();
+   mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop("Velocity block list update");
 
    /*      
@@ -422,7 +546,8 @@ void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell>& mpiGrid)
    */
    
    phiprof::start("Preparing receives");
-   std::vector<uint64_t> incoming_cells = mpiGrid.get_list_of_remote_cells_with_local_neighbors();
+   std::vector<uint64_t> incoming_cells
+      = mpiGrid.get_list_of_remote_cells_with_local_neighbors(VLASOV_SOLVER_NEIGHBORHOOD_ID);
 #pragma omp parallel for
    for(unsigned int i=0;i<incoming_cells.size();i++){
       uint64_t cell_id=incoming_cells[i];

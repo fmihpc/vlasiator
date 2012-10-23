@@ -29,6 +29,7 @@ using namespace spatial_cell;
 #include <dccrg.hpp>
 #include "sysboundary/sysboundary.h"
 
+
 bool finalizeMover();
 bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid);
 bool initMoverAfterBlockChange(dccrg::Dccrg<SpatialCell>& mpiGrid);

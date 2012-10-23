@@ -223,12 +223,9 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid) {
         it++) {
       success = success && (*it)->assignSysBoundary(mpiGrid);
    }
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
-   mpiGrid.update_remote_neighbor_data();
    
-//    for(uint i=0; i<cells.size(); i++) {
-//       cerr << cells[i] << " " << mpiGrid[cells[i]]->sysBoundaryFlag << endl;
-//    }
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
+   mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_CLASSIFY_NEIGHBORHOOD_ID);
    
    return success;
 }
@@ -269,13 +266,13 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    
    int timer=phiprof::initializeTimer("Start comm of cell and block data","MPI");
    phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_data_update();
+   mpiGrid.start_remote_neighbor_data_update(SYSBOUNDARIES_DATA_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute process inner cells");
    phiprof::start(timer);
    // Compute Vlasov boundary condition on system boundary/on process inner cells
-   const vector<uint64_t> localCells = mpiGrid.get_cells_with_local_neighbors();
+   const vector<uint64_t> localCells = mpiGrid.get_cells_with_local_neighbors(SYSBOUNDARIES_DATA_NEIGHBORHOOD_ID);
    for (vector<uint64_t>::const_iterator cell = localCells.begin(); cell != localCells.end(); cell++) {
       cuint sysBoundaryType = mpiGrid[*cell]->sysBoundaryFlag;
       if(sysBoundaryType == sysboundarytype::DO_NOT_COMPUTE ||
@@ -286,13 +283,13 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_receives();
+   mpiGrid.wait_neighbor_data_update_receives(SYSBOUNDARIES_DATA_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
-   // Propagate B on system boundary/process boundary cells
+   // Compute vlasov boundary on system boundary/process boundary cells
    timer=phiprof::initializeTimer("Compute process boundary cells");
    phiprof::start(timer);
-   const vector<uint64_t> boundaryCells = mpiGrid.get_cells_with_remote_neighbor();
+   const vector<uint64_t> boundaryCells = mpiGrid.get_cells_with_remote_neighbor(SYSBOUNDARIES_DATA_NEIGHBORHOOD_ID);
    for (vector<uint64_t>::const_iterator cell = boundaryCells.begin(); cell != boundaryCells.end(); cell++) {
       cuint sysBoundaryType = mpiGrid[*cell]->sysBoundaryFlag;
       if(sysBoundaryType == sysboundarytype::DO_NOT_COMPUTE ||
@@ -305,16 +302,21 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    phiprof::start(timer);
    mpiGrid.wait_neighbor_data_update_sends();
    phiprof::stop(timer);
-   
+
+   //FIXME, we should have a boolean that tells us if this is needed or not... 
    updateRemoteVelocityBlockLists(mpiGrid);
    adjustVelocityBlocks(mpiGrid);
+
+   /*
+  // NOTE, I do not think these are needed.  VEL_BLOCK_DATA is
+  // transferred in the leveque solver, and the moments are needed when
+  // computing fields -> should be handled there
    
    SpatialCell::set_mpi_transfer_type(
-      Transfer::CELL_RHO_RHOV|
-      Transfer::VEL_BLOCK_DATA
-   );
-   mpiGrid.update_remote_neighbor_data();
-}
+   Transfer::CELL_RHO_RHOV| Transfer::VEL_BLOCK_DATA );
+   mpiGrid.update_remote_neighbor_data(xxx);
+   */
+}   
 
 /*! Get a pointer to the SysBoundaryCondition of given index.
  * \retval ptr Pointer to the instance of the SysBoundaryCondition.

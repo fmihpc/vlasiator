@@ -59,6 +59,8 @@ using namespace spatial_cell;
 static TransferStencil<CellID> stencilAverages(INVALID_CELLID);
 static TransferStencil<CellID> stencilUpdates(INVALID_CELLID);
 
+//list of local cells that are system boundary cells
+//FIXME, it could probably be removed, and just read directly if a cell is  a boundary cell or not
 static set<CellID> sysBoundaryCells;
 
 
@@ -105,15 +107,13 @@ bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    // so that boundary condition functions are correctly called 
    // for remote system boundary cells:
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
-   mpiGrid.update_remote_neighbor_data();
-   
+   mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
    // Populate spatial neighbour list:
    vector<CellID> cells,remoteCells;
    std::vector<CellID> nbrs; //temporary vector for neighbors at certain offset
    
    cells=mpiGrid.get_cells();
-   //remoteCells=mpiGrid.get_list_of_remote_cells_with_local_neighbours();
-   //cells.insert( cells.end(), remoteCells.begin(), remoteCells.end() );
+
    
    for (size_t cell=0; cell<cells.size(); ++cell) {
       cuint cellID = cells[cell];
@@ -217,12 +217,9 @@ bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    stencilUpdates.addRemoteUpdateReceives(mpiGrid,nbrOffsets);
    stencilUpdates.addRemoteUpdateSends(mpiGrid,nbrOffsets);
    
-   // Now iterate through all cells (local + remote), and insert the cells 
+   // Now iterate through all local cells, and insert the cells 
    // with sysBoundaryFlag higher than NOT_SYSBOUNDARY into sysBoundaryCells list. 
-   // WARNING the following is not true when the sys BCs are done outside:
-   //    Boundary condition functions are called for every cell in sysBoundaryCells:
-   remoteCells=mpiGrid.get_list_of_remote_cells_with_local_neighbors();
-   cells.insert( cells.end(), remoteCells.begin(), remoteCells.end() );
+   //not that sysBounadryCells does not  (anymore) contain remote cells, only local!!!
    for (uint c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       if (mpiGrid[cellID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) sysBoundaryCells.insert(cellID);
@@ -468,7 +465,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,
    // Clear spatial fluxes to zero value. Remote neighbour df/dt arrays 
    // need to be cleared as well:
    vector<CellID> cells=mpiGrid.get_cells();
-   vector<CellID> remoteCells=mpiGrid.get_list_of_remote_cells_with_local_neighbors();
+   vector<CellID> remoteCells=mpiGrid.get_list_of_remote_cells_with_local_neighbors(VLASOV_SOLVER_FLUXES_NEIGHBORHOOD_ID);
    cells.insert( cells.end(), remoteCells.begin(), remoteCells.end() );
    
    phiprof::start("Mark unitialized flux");

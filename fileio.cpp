@@ -468,7 +468,7 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    //this is where local cells start in file-list after migration
    uint64_t localCellStartOffset;
    uint64_t localCells;
-   if(myRank < processesA) {
+   if(myRank < int(processesA)) {
       localCells=cellsPerProcessA;
       localCellStartOffset=cellsPerProcessA*myRank;
    }

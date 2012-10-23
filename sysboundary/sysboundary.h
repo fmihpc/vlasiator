@@ -77,6 +77,8 @@ class SysBoundary {
       std::vector<std::string> sysBoundaryCondList;
       /*! bool telling whether any system boundary condition is dynamic in time (and thus needs updating). */
       bool isThisDynamic;
+         
+   
       /*! Array of bool telling whether the system is periodic in any direction. */
       bool isPeriodic[3];
 };

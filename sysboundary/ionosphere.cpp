@@ -28,6 +28,7 @@
 #include "../projects/projects_common.h"
 #include "../backgroundfield/backgroundfield.h"
 #include "../vlasovmover.h"
+#include "../common.h"
 
 using namespace std;
 
@@ -104,7 +105,7 @@ namespace SBC {
       }
       
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
-      mpiGrid.update_remote_neighbor_data();
+      mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_CLASSIFY_NEIGHBORHOOD_ID);
       
       vector<bool> iCanHasDoNotCompute(cells.size(), true);
       for(uint i=0; i<cells.size(); i++) {

@@ -234,4 +234,25 @@ namespace physicalconstants {
    const Real MASS_PROTON = 1.67262158e-27; /*!< Proton rest mass.*/
 }
 
+
+
+//neighborhoods, these are initialized in initializeGrid
+
+#define FIELD_SOLVER_NEIGHBORHOOD_ID 1
+#define VLASOV_SOLVER_NEIGHBORHOOD_ID 2
+#define VLASOV_SOLVER_FLUXES_NEIGHBORHOOD_ID 3
+#define VLASOV_SOLVER_DENSITY_NEIGHBORHOOD_ID 4
+// When classifying sysboundaries, all nearest neighbors are included,
+// also need diagonals to make sure field and flux transfers are ok
+#define SYSBOUNDARIES_CLASSIFY_NEIGHBORHOOD_ID 5
+//only face neighbors, boundary conditions are assumed to only need face neighbor data
+#define SYSBOUNDARIES_DATA_NEIGHBORHOOD_ID 6     
+
+
+
+
+
+
 #endif
+
+

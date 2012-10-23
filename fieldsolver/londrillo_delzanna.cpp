@@ -165,6 +165,71 @@ CellID getNeighbourID(
    const uchar& j,
    const uchar& k
 ) {
+
+   //#ifdef DEBUG_SOLVERS
+   // check that requested neighbor is within one index
+   if (i < 1) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+   if (i > 3) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+
+   if (j < 1) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+   if (j > 3) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+
+   if (k < 1) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+   if (k > 3) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+
+   // FIXME: only face and edge neighbors should be required?
+   /*if (i == 1 && j == 1 && k == 1) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+   if (i == 1 && j == 1 && k == 3) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+   if (i == 1 && j == 3 && k == 1) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+   if (i == 1 && j == 3 && k == 3) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+   if (i == 3 && j == 1 && k == 1) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+   if (i == 3 && j == 1 && k == 3) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+   if (i == 3 && j == 3 && k == 1) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }
+   if (i == 3 && j == 3 && k == 3) {
+     cerr << __FILE__ << ":" << __LINE__ << endl;
+     abort();
+   }*/
+   //#endif
+
    const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of(cellID, int(i) - 2, int(j) - 2, int(k) - 2);
    if (neighbors.size() == 0) {
       cerr << __FILE__ << ":" << __LINE__
@@ -1483,7 +1548,7 @@ bool initializeFieldPropagatorAfterRebalance(
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_E | Transfer::CELL_BGB);
    int timer=phiprof::initializeTimer("Communicate E and BGB","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.update_remote_neighbor_data();
+   mpiGrid.update_remote_neighbor_data(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    return true;
@@ -1573,7 +1638,7 @@ bool initializeFieldPropagator(
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_BGB);
    int timer=phiprof::initializeTimer("Communicate BGB","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.update_remote_neighbor_data();
+   mpiGrid.update_remote_neighbor_data(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    // Calculate derivatives and upwinded edge-E. Exchange derivatives 
    // and edge-E:s between neighbouring processes and calculate 
@@ -1645,13 +1710,13 @@ void calculateDerivativesSimple(
    
    timer=phiprof::initializeTimer("Start comm","MPI");
    phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_data_update();
+   mpiGrid.start_remote_neighbor_data_update(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute process inner cells");
    phiprof::start(timer);
    // Calculate derivatives on process inner cells
-   const vector<uint64_t> cellsWithLocalNeighbours = mpiGrid.get_cells_with_local_neighbors();
+   const vector<uint64_t> cellsWithLocalNeighbours = mpiGrid.get_cells_with_local_neighbors(FIELD_SOLVER_NEIGHBORHOOD_ID);
    for (vector<uint64_t>::const_iterator cell = cellsWithLocalNeighbours.begin(); cell != cellsWithLocalNeighbours.end(); cell++) {
       if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
       calculateDerivatives(*cell, mpiGrid, sysBoundaries, RKCase);
@@ -1660,13 +1725,13 @@ void calculateDerivativesSimple(
    
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_receives();
+   mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    // Calculate derivatives on process boundary cells
    timer=phiprof::initializeTimer("Compute process boundary cells");
    phiprof::start(timer);
-   const vector<uint64_t> cellsWithRemoteNeighbours = mpiGrid.get_cells_with_remote_neighbor();
+   const vector<uint64_t> cellsWithRemoteNeighbours = mpiGrid.get_cells_with_remote_neighbor(FIELD_SOLVER_NEIGHBORHOOD_ID);
    for (vector<uint64_t>::const_iterator cell = cellsWithRemoteNeighbours.begin(); cell != cellsWithRemoteNeighbours.end(); cell++) {
       if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
       calculateDerivatives(*cell, mpiGrid, sysBoundaries, RKCase);
@@ -1704,13 +1769,13 @@ void calculateUpwindedElectricFieldSimple(
    
    timer=phiprof::initializeTimer("Start communication of derivatives","MPI");
    phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_data_update();
+   mpiGrid.start_remote_neighbor_data_update(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute inner cells");
    phiprof::start(timer);
    // Calculate upwinded electric field on inner cells
-   const vector<uint64_t> cellsWithLocalNeighbours = mpiGrid.get_cells_with_local_neighbors();
+   const vector<uint64_t> cellsWithLocalNeighbours = mpiGrid.get_cells_with_local_neighbors(FIELD_SOLVER_NEIGHBORHOOD_ID);
    for (vector<uint64_t>::const_iterator cell = cellsWithLocalNeighbours.begin(); cell != cellsWithLocalNeighbours.end(); cell++) {
       if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
       cuint fieldSolverSysBoundaryFlag = sysBoundaryFlags[*cell];
@@ -1743,12 +1808,12 @@ void calculateUpwindedElectricFieldSimple(
    phiprof::stop(timer);
    timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_receives();
+   mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    timer=phiprof::initializeTimer("Compute boundary cells");
    phiprof::start(timer);
    // Calculate upwinded electric field on boundary cells:
-   const vector<uint64_t> cellsWithRemoteNeighbours = mpiGrid.get_cells_with_remote_neighbor();
+   const vector<uint64_t> cellsWithRemoteNeighbours = mpiGrid.get_cells_with_remote_neighbor(FIELD_SOLVER_NEIGHBORHOOD_ID);
    for (vector<uint64_t>::const_iterator cell = cellsWithRemoteNeighbours.begin(); cell != cellsWithRemoteNeighbours.end(); cell++) {
       if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
       cuint fieldSolverSysBoundaryFlag = sysBoundaryFlags[*cell];
@@ -1792,7 +1857,7 @@ void calculateUpwindedElectricFieldSimple(
    }
    timer=phiprof::initializeTimer("Communicate electric fields","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.update_remote_neighbor_data();
+   mpiGrid.update_remote_neighbor_data(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
 
    phiprof::stop("Calculate upwinded electric field");
@@ -1832,6 +1897,7 @@ static void propagateMagneticFieldSimple(
    //These are needed for boundary conditions, in practice almost all
    //of the communication is going to be redone in calculateDerivativesSimple
    //TODO: do not transfer if there are no field boundaryconditions
+   //TODO: At least use SYSBOUNDARIES_DATA_NEIGHBORHOOD_ID?
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       // Exchange PERBX,PERBY,PERBZ with neighbours
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB);
@@ -1841,13 +1907,13 @@ static void propagateMagneticFieldSimple(
    }
    timer=phiprof::initializeTimer("Start comm of B","MPI");
    phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_data_update();
+   mpiGrid.start_remote_neighbor_data_update(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute system boundary/process inner cells");
    phiprof::start(timer);
    // Propagate B on system boundary/process inner cells
-   const vector<uint64_t> cellsWithLocalNeighbours = mpiGrid.get_cells_with_local_neighbors();
+   const vector<uint64_t> cellsWithLocalNeighbours = mpiGrid.get_cells_with_local_neighbors(FIELD_SOLVER_NEIGHBORHOOD_ID);
    for (vector<uint64_t>::const_iterator cell = cellsWithLocalNeighbours.begin(); cell != cellsWithLocalNeighbours.end(); cell++) {
       if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
          mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) continue;
@@ -1857,13 +1923,13 @@ static void propagateMagneticFieldSimple(
    
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_receives();
+   mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    // Propagate B on system boundary/process boundary cells
    timer=phiprof::initializeTimer("Compute system boundary/process boundary cells");
    phiprof::start(timer);
-   const vector<uint64_t> cellsWithRemoteNeighbours = mpiGrid.get_cells_with_remote_neighbor();
+   const vector<uint64_t> cellsWithRemoteNeighbours = mpiGrid.get_cells_with_remote_neighbor(FIELD_SOLVER_NEIGHBORHOOD_ID);
    for (vector<uint64_t>::const_iterator cell = cellsWithRemoteNeighbours.begin(); cell != cellsWithRemoteNeighbours.end(); cell++) {
       if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
          mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) continue;
