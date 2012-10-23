@@ -111,7 +111,6 @@ bool Parameters::addParameters(){
    Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limits (default)",true);
 
    Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string(""));     
-   Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string(""));     
    
    Readparameters::add("gridbuilder.x_min","Minimum value of the x-coordinate.","");
    Readparameters::add("gridbuilder.x_max","Minimum value of the x-coordinate.","");

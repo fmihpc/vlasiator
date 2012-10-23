@@ -218,8 +218,8 @@ bool readBlockData(VLSVParReader & file,
 template <typename fileReal>
 bool readCellParamsVariable(VLSVParReader & file,
 			    const vector<uint64_t>& fileCells,
-                            const uint localCellStartOffset,
-			    const uint localCells,
+                            const uint64_t localCellStartOffset,
+			    const uint64_t localCells,
 			    const string& variableName,
                             const size_t cellParamsIndex,
                             const size_t expectedVectorSize,
@@ -519,6 +519,14 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
      success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"perturbed_B",CellParams::PERBX,3,mpiGrid);
    if(success)
      success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"background_B",CellParams::BGBX,3,mpiGrid);
+   if(success)
+      success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"moments",CellParams::RHO,4,mpiGrid);
+   if(success)
+      success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"moments_dt2",CellParams::RHO_DT2,4,mpiGrid);
+   if(success)
+      success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"moments_r",CellParams::RHO_R,4,mpiGrid);
+   if(success)
+      success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"moments_v",CellParams::RHO_V,4,mpiGrid);
 
    phiprof::stop("readCellParameters");
    phiprof::start("readBlockData");
@@ -528,9 +536,6 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    if(success)
       success=file.close();
    phiprof::stop("readGrid");
-
-   if(success)
-      calculateVelocityMoments(mpiGrid);
 
    exitOnError(success,"(RESTART) Other failure",MPI_COMM_WORLD);
    return success;

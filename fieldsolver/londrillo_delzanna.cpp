@@ -1658,13 +1658,10 @@ bool finalizeFieldPropagator(
 
 /*! \brief High-level derivative calculation wrapper function.
  * 
- * In the first stage of the second-order Runge-Kutta time stepping scheme, this linearly interpolates the velocity moments and puts them into the RHO_DT2, RHOV[XYZ]1 variables.
- * 
+
  * B has to be updated because after the system boundary update in propagateMagneticFieldSimple there is no consistent state of B yet everywhere.
  * 
  * Then the derivatives are calculated.
- * 
- * Finally the current values of the moments RHO, RHOV[XYZ] are put into RHO_DT2, RHOV[XYZ]1 for future interpolation.
  * 
  * \param mpiGrid Grid
  * \param localCells Vector of local cells to process

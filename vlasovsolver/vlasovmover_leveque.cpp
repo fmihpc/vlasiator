@@ -821,7 +821,7 @@ void calculateCellVelocityMoments(SpatialCell* SC){
 void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid){
    vector<CellID> cells;
    cells=mpiGrid.get_cells();
-   
+   phiprof::start("Calculate moments"); 
    // Iterate through all local cells (incl. system boundary cells):
 #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
@@ -829,6 +829,7 @@ void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid){
       SpatialCell* SC = mpiGrid[cellID];
       calculateCellVelocityMoments(SC);
    }
+   phiprof::stop("Calculate moments"); 
 }
  
 

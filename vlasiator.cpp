@@ -218,10 +218,10 @@ int main(int argn,char* args[]) {
       logFile << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << writeVerbose;
       exit(1);
    }
-   //compute moments, and set them  in RHO*
-   calculateVelocityMoments(mpiGrid);
-
-   
+   //compute moments, and set them  in RHO*. If restart, they are already read in
+   if(!P::isRestart) {
+      calculateVelocityMoments(mpiGrid);
+   }
    phiprof::stop("Init vlasov propagator");
    
    phiprof::start("Init field propagator");
@@ -232,9 +232,6 @@ int main(int argn,char* args[]) {
    }
    phiprof::stop("Init field propagator");
    
-   
-
-   
    // Free up memory:
    readparameters.finalize();
    
@@ -242,9 +239,6 @@ int main(int argn,char* args[]) {
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****
    // ***********************************
-   
-
-   
    
    // Main simulation loop:
    if (myRank == MASTER_RANK) logFile << "(MAIN): Starting main simulation loop." << endl << writeVerbose;
@@ -259,8 +253,6 @@ int main(int argn,char* args[]) {
    Real newDt;
    bool dtIsChanged;
          
-   
-
 
    if(P::dynamicTimestep && !P::isRestart) {
       //compute vlasovsolver once with zero dt, this is  to initialize
