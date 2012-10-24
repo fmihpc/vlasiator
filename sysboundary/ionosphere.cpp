@@ -105,7 +105,7 @@ namespace SBC {
       }
       
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
-      mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_CLASSIFY_NEIGHBORHOOD_ID);
+      mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_NEIGHBORHOOD_ID);
       
       vector<bool> iCanHasDoNotCompute(cells.size(), true);
       for(uint i=0; i<cells.size(); i++) {

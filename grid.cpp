@@ -193,25 +193,9 @@ void initializeGrid(int argn,
       abort();
    }
 
-   if (!mpiGrid.add_remote_update_neighborhood(SYSBOUNDARIES_CLASSIFY_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
+   if (!mpiGrid.add_remote_update_neighborhood(SYSBOUNDARIES_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
       std::cerr << __FILE__ << ":" << __LINE__
-                << " Couldn't set field solver neighborhood"
-                << std::endl;
-      abort();
-   }
-
-   // A reduced neighborhood for data transfers for boundary conditions, we assume they only read face neighbors(!)
-   const std::vector<neigh_t> faces_neighborhood
-      = boost::assign::list_of<neigh_t>
-      (boost::assign::list_of( 0)( 0)(-1))
-      (boost::assign::list_of( 0)( 0)( 1))
-      (boost::assign::list_of( 0)(-1)( 0))
-      (boost::assign::list_of( 0)( 1)( 0))
-      (boost::assign::list_of(-1)( 0)( 0))
-      (boost::assign::list_of( 1)( 0)( 0));
-   if (!mpiGrid.add_remote_update_neighborhood(SYSBOUNDARIES_DATA_NEIGHBORHOOD_ID, faces_neighborhood)) {
-      std::cerr << __FILE__ << ":" << __LINE__
-                << " Couldn't set field solver neighborhood"
+                << " Couldn't set system boundaries neighborhood"
                 << std::endl;
       abort();
    }

@@ -1891,10 +1891,9 @@ static void propagateMagneticFieldSimple(
    phiprof::stop(timer);
 
 
-   //These are needed for boundary conditions, in practice almost all
+   //This communication is needed for boundary conditions, in practice almost all
    //of the communication is going to be redone in calculateDerivativesSimple
    //TODO: do not transfer if there are no field boundaryconditions
-   //TODO: At least use SYSBOUNDARIES_DATA_NEIGHBORHOOD_ID?
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       // Exchange PERBX,PERBY,PERBZ with neighbours
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB);
@@ -1904,13 +1903,13 @@ static void propagateMagneticFieldSimple(
    }
    timer=phiprof::initializeTimer("Start comm of B","MPI");
    phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_data_update(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   mpiGrid.start_remote_neighbor_data_update(SYSBOUNDARIES_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute system boundary/process inner cells");
    phiprof::start(timer);
    // Propagate B on system boundary/process inner cells
-   const vector<uint64_t> cellsWithLocalNeighbours = mpiGrid.get_cells_with_local_neighbors(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   const vector<uint64_t> cellsWithLocalNeighbours = mpiGrid.get_cells_with_local_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
    for (vector<uint64_t>::const_iterator cell = cellsWithLocalNeighbours.begin(); cell != cellsWithLocalNeighbours.end(); cell++) {
       if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
          mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) continue;
@@ -1920,13 +1919,13 @@ static void propagateMagneticFieldSimple(
    
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   mpiGrid.wait_neighbor_data_update_receives(SYSBOUNDARIES_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    // Propagate B on system boundary/process boundary cells
    timer=phiprof::initializeTimer("Compute system boundary/process boundary cells");
    phiprof::start(timer);
-   const vector<uint64_t> cellsWithRemoteNeighbours = mpiGrid.get_cells_with_remote_neighbor(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   const vector<uint64_t> cellsWithRemoteNeighbours = mpiGrid.get_cells_with_remote_neighbor(SYSBOUNDARIES_NEIGHBORHOOD_ID);
    for (vector<uint64_t>::const_iterator cell = cellsWithRemoteNeighbours.begin(); cell != cellsWithRemoteNeighbours.end(); cell++) {
       if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
          mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) continue;
