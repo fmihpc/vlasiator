@@ -211,15 +211,6 @@ namespace SBC {
       cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
       cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
       
-      dipole(
-         cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX],
-         cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY],
-         cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ],
-         cell->parameters[CellParams::BGBX],
-         cell->parameters[CellParams::BGBY],
-         cell->parameters[CellParams::BGBZ]
-      );
-      
       copyCellData(&templateCell, cell);
    }
    
