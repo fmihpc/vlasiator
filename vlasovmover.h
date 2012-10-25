@@ -41,7 +41,7 @@ void calculateSpatialFluxes(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
    const SysBoundary& sysBoundaries,
    creal dt);
-void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& acceleration,Real acceleration_dt);
+void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid);
 void initialLoadBalance(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
 

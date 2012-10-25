@@ -310,13 +310,14 @@ void calculateCellAccelerationSubstep(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID 
    //update max allowed timestep for acceleration in this cell, which is the minimum of CFL=1 timesteps for all blocks in cell
    SC->parameters[CellParams::MAXVDT] = maxCelldt;
    
-//   phiprof::start("propagateVel");
-      // Propagate distribution functions in velocity space:
-
-   for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
-      unsigned int block = SC->velocity_block_list[block_i];         
-      cpu_propagateVel(SC,block,dt);
-   }
+    // phiprof::start("propagateVel");
+   // Propagate distribution functions in velocity space if timestep is non-zero
+   if(dt!=0.0)
+      for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+         unsigned int block = SC->velocity_block_list[block_i];         
+         cpu_propagateVel(SC,block,dt);
+      }
+   
 //   phiprof::stop("propagateVel");
 //   phiprof::stop("Acceleration",SC->number_of_blocks,"Blocks");
    
@@ -592,7 +593,7 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,
    phiprof::stop("calculateSpatialFluxes");
 }
 
-void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& accelerate,const Real accelerate_dt) { 
+void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid) { 
    std::vector<MPI_Request> MPIrecvRequests;               /**< Container for active MPI_Requests due to receives.*/
    std::vector<MPI_Request> MPIsendRequests;               /**< Container for active MPI_Requests due to sends.*/
    std::vector<MPI_Datatype> MPIsendTypes;               /**< Container for active datatypes due to sends.*/
@@ -660,10 +661,7 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
    }
    phiprof::stop("Start sends",ops,"sends");
 
-   if(accelerate)   
-      phiprof::start("Spatial trans+acc (inner)");
-   else
-      phiprof::start("Spatial trans (inner)");
+   phiprof::start("Spatial trans (inner)");
 //cpu_propagetSpatWithMoments only write to data        in cell cellID, parallel for safe
 
 #pragma omp parallel for schedule(guided)
@@ -684,16 +682,10 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
             unsigned int block = SC->velocity_block_list[block_i];         
             cpu_propagateSpatWithMoments(nbr_dfdt,SC,block,block_i);
          }  
-         //Accelerate cell if requested. This is only done for non-system boundary cells
-         if(accelerate)
-            calculateCellAcceleration(mpiGrid,cellID,accelerate_dt);
       }
    }
 
-   if(accelerate)   
-      phiprof::stop("Spatial trans+acc (inner)");
-   else
-      phiprof::stop("Spatial trans (inner)");
+   phiprof::stop("Spatial trans (inner)");
 
    
    // Wait for remote neighbour updates to arrive:
@@ -727,10 +719,7 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
       }
    }
    phiprof::stop("Sum remote updates");
-   if(accelerate)   
-      phiprof::start("Spatial trans+acc (boundary)");
-   else
-      phiprof::start("Spatial trans (boundary)");
+   phiprof::start("Spatial trans (boundary)");
    
    // Propagate boundary cells:
 //cpu_propagetSpatWithMoments only write to data in cell cellID, parallel for safe
@@ -751,14 +740,9 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& 
             cpu_propagateSpatWithMoments(nbr_dfdt,SC,block,block_i);
          }
          
-         if(accelerate)
-            calculateCellAcceleration(mpiGrid,cellID,accelerate_dt);
       }
    }
-   if(accelerate)   
-      phiprof::stop("Spatial trans+acc (boundary)");
-   else
-      phiprof::stop("Spatial trans (boundary)");
+   phiprof::stop("Spatial trans (boundary)");
 
    // Wait for neighbour update sends:
    phiprof::initializeTimer("Wait sends","MPI","Wait");

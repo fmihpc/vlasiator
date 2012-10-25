@@ -259,8 +259,9 @@ int main(int argn,char* args[]) {
       //per-cell dt limits. In restarts, we read in dt from file
       phiprof::start("compute-dt");
       if(P::propagateVlasov) {
+         //Flux computation is sufficient, no need to propagate
          calculateSpatialFluxes(mpiGrid, sysBoundaries, 0.0);
-         calculateSpatialPropagation(mpiGrid,true,0.0);
+         calculateAcceleration(mpiGrid,0.0);
       }
       if(P::propagateField) {
          propagateFields(mpiGrid, sysBoundaries, 0.0);
@@ -278,7 +279,7 @@ int main(int argn,char* args[]) {
       //the distribution function is already propagated forward in time by dt/2
       phiprof::start("propagate-spatial-space-dt/2");
       calculateSpatialFluxes(mpiGrid, sysBoundaries, 0.5*P::dt);
-      calculateSpatialPropagation(mpiGrid,false,0.0);
+      calculateSpatialPropagation(mpiGrid);
       phiprof::stop("propagate-spatial-space-dt/2");
    }
    
@@ -419,7 +420,7 @@ int main(int argn,char* args[]) {
             
             //go forward by dt/2 again in x
             calculateSpatialFluxes(mpiGrid, sysBoundaries, 0.5*P::dt);
-            calculateSpatialPropagation(mpiGrid,false,0.0);
+            calculateSpatialPropagation(mpiGrid);
             logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
             phiprof::stop("update-dt");
             continue; //
@@ -455,7 +456,7 @@ int main(int argn,char* args[]) {
 
          phiprof::start("Spatial-space");
          calculateSpatialFluxes(mpiGrid, sysBoundaries, P::dt);
-         calculateSpatialPropagation(mpiGrid,false,0.0);
+         calculateSpatialPropagation(mpiGrid);
          phiprof::stop("Spatial-space",computedBlocks,"Blocks");
 
          calculateInterpolatedVelocityMoments(mpiGrid,CellParams::RHO,CellParams::RHOVX,CellParams::RHOVY,CellParams::RHOVZ);
