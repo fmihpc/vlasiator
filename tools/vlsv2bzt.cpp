@@ -50,11 +50,11 @@ using namespace std;
  * \param compToExtract Unsigned int designating the component to extract (0 for scalars)
  */
 bool convertMesh(VLSVReader& vlsvReader,
-		 const string& meshName,
-		 const unsigned long int entryName,
-		 const char * varToExtract,
-		 const int compToExtract
- 	       ) {
+   const string& meshName,
+   const unsigned long int entryName,
+   const char * varToExtract,
+   const int compToExtract
+) {
    bool coordSuccess = true;
    bool variableSuccess = true;
    
@@ -111,8 +111,8 @@ bool convertMesh(VLSVReader& vlsvReader,
       static bool sendSize = true;
       if(sendSize)
       {
-	 sendSize == false;
-	 MPI_Send(&numberOfValuesToSend, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+         sendSize == false;
+         MPI_Send(&numberOfValuesToSend, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
       }
    }
    MPI_Ssend(&valuesToSend[0], numberOfValuesToSend, MPI_DOUBLE, 0, entryName + 1, MPI_COMM_WORLD);
@@ -127,10 +127,10 @@ bool convertMesh(VLSVReader& vlsvReader,
  * \sa convertMesh
  */
 bool convertSILO(const string& fileName,
-		 const unsigned long int entryName,
-		 const char * varToExtract,
-		 const int compToExtract
- 	       ) {
+   const unsigned long int entryName,
+   const char * varToExtract,
+   const int compToExtract
+) {
    bool success = true;
    
    // Open VLSV file for reading:
@@ -147,7 +147,7 @@ bool convertSILO(const string& fileName,
    }
    for (list<string>::const_iterator it=meshNames.begin(); it!=meshNames.end(); ++it) {
       if (convertMesh(vlsvReader, *it, entryName, varToExtract, compToExtract) == false) {
-	 return false;
+         return false;
       }
    }
    
@@ -167,7 +167,7 @@ int main(int argn,char* args[]) {
    MPI_Comm_size(MPI_COMM_WORLD, &ntasks);
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    
-   if (argn < 6) {
+   if ((argn < 6) && (rank == 0)) {
       cout << endl;
       cout << "USAGE: ./vlsv2bzt <Variable name> <component> <Output file name> <Output file format> <input file mask(s)>" << endl;
       cout << "Each VLSV in the current directory is compared against the given file mask(s)," << endl;
@@ -201,15 +201,15 @@ int main(int argn,char* args[]) {
       
       struct dirent* entry = readdir(dir);
       while (entry != NULL) {
-	 const string entryName = entry->d_name;
-	 // Compare entry name against given mask and file suffix ".vlsv":
-	 if (entryName.find(masks[mask]) == string::npos || entryName.find(suffix) == string::npos) {
-	    entry = readdir(dir);
-	    continue;
-	 }
-	 fileList.insert(entryName);
-	 filesFound++;
-	 entry = readdir(dir);
+         const string entryName = entry->d_name;
+         // Compare entry name against given mask and file suffix ".vlsv":
+         if (entryName.find(masks[mask]) == string::npos || entryName.find(suffix) == string::npos) {
+            entry = readdir(dir);
+            continue;
+         }
+         fileList.insert(entryName);
+         filesFound++;
+         entry = readdir(dir);
       }
       closedir(dir);
       if (rank == 0 && filesFound == 0) cout << "\t no matches found" << endl;
@@ -220,11 +220,11 @@ int main(int argn,char* args[]) {
       set<string>::iterator it;
       for(entryName = 0, it=fileList.begin(); entryName < fileList.size(); entryName++, it++)
       {
-	 if(entryName%(ntasks - 1) + 1 == rank) {
-	    cout << "\tProc " << rank << " converting '" << *it << "'" << endl;
-	    convertSILO(*it, entryName, varToExtract, compToExtract);
-	    filesConverted++;
-	 }
+         if(entryName%(ntasks - 1) + 1 == rank) {
+            cout << "\tProc " << rank << " converting '" << *it << "'" << endl;
+            convertSILO(*it, entryName, varToExtract, compToExtract);
+            filesConverted++;
+         }
       }
       if (filesConverted == 0) cout << "\t no files converted" << endl;
    } else {
