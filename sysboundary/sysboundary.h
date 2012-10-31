@@ -19,6 +19,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #ifndef SYSBOUNDARY_H
 #define SYSBOUNDARY_H
 
+#include <map>
+#include <list>
 #include <vector>
 #include "mpi.h"
 #include <dccrg.hpp>
