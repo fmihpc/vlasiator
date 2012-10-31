@@ -26,7 +26,7 @@ XMLNode::XMLNode(XMLNode* parent): parent(parent) { }
 
 XMLNode::~XMLNode() {
    // Delete all children:
-   for (map<string,XMLNode*>::iterator it=children.begin(); it!=children.end(); ++it) {
+   for (multimap<string,XMLNode*>::iterator it=children.begin(); it!=children.end(); ++it) {
       delete it->second;
       it->second = NULL;
    }
@@ -109,7 +109,7 @@ void MuXML::print(std::ostream& out,const int& level,const XMLNode* node) const 
       node = root;
       //out << "XML TREE CONTENTS:" << endl;
    }
-   for (map<string,XMLNode*>::const_iterator it=node->children.begin(); it!=node->children.end(); ++it) {
+   for (multimap<string,XMLNode*>::const_iterator it=node->children.begin(); it!=node->children.end(); ++it) {
       // Indent
       for (int i=0; i<level; ++i) out << ' ';
       
