@@ -108,11 +108,17 @@ void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& dt);
  * \return The volume average of the distribution function in the given phase space cell.
  * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
  */
-Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,
-                           creal& dx,creal& dy,creal& dz,
-                           creal& vx,creal& vy,creal& vz,
-                           creal& dvx,creal& dvy,creal& dvz,
-                           const int32_t& rndRho, const int32_t rndVel[3]);
+Real calcPhaseSpaceDensity(
+   creal& x,creal& y,creal& z,
+   creal& dx,creal& dy,creal& dz,
+   creal& vx,creal& vy,creal& vz,
+   creal& dvx,creal& dvy,creal& dvz,
+   #ifndef _AIX
+   const int32_t& rndRho, const int32_t rndVel[3]
+   #else
+   const int64_t& rndRho, const int64_t rndVel[3]
+   #endif
+);
 
 /*!\brief Set the fields and distribution of a cell according to the default simulation settings.
  * This is used for the NOT_SYSBOUNDARY cells and some other system boundary conditions (e.g. Outflow).
