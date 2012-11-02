@@ -468,22 +468,22 @@ namespace DRO {
       Real nvz2_sum = 0.0;
 
       for(uint n=0; n<cell->number_of_blocks; n++) {
-	 unsigned int blockId = cell->velocity_block_list[n];
-	 const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
-	 for (uint k=0; k<WID; ++k)
-	    for (uint j=0; j<WID; ++j)
-	       for (uint i=0; i<WID; ++i) {
-		  const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
-		  const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
-		  const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
-		  
-		  const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
-		  
-		  nvx2_sum += block-> data[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
-		  nvy2_sum += block-> data[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
-		  nvz2_sum += block-> data[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
-	       }
-     }
+         unsigned int blockId = cell->velocity_block_list[n];
+         const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
+         for (uint k=0; k<WID; ++k)
+            for (uint j=0; j<WID; ++j)
+               for (uint i=0; i<WID; ++i) {
+            const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
+            const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
+            const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+            
+            const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
+            
+            nvx2_sum += block-> data[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
+            nvy2_sum += block-> data[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
+            nvz2_sum += block-> data[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
+         }
+      }
       
      // Accumulate contributions coming from this velocity block to the 
      // spatial cell velocity moments. If multithreading / OpenMP is used, 
@@ -498,13 +498,13 @@ namespace DRO {
    
    bool VariablePressure::setSpatialCell(const SpatialCell* cell) {
       if(cell-> parameters[CellParams::RHO] != 0.0) {
-	 averageVX = cell-> parameters[CellParams::RHOVX] / cell-> parameters[CellParams::RHO];
-	 averageVY = cell-> parameters[CellParams::RHOVY] / cell-> parameters[CellParams::RHO];
-	 averageVZ = cell-> parameters[CellParams::RHOVZ] / cell-> parameters[CellParams::RHO];
+         averageVX = cell-> parameters[CellParams::RHOVX] / cell-> parameters[CellParams::RHO];
+         averageVY = cell-> parameters[CellParams::RHOVY] / cell-> parameters[CellParams::RHO];
+         averageVZ = cell-> parameters[CellParams::RHOVZ] / cell-> parameters[CellParams::RHO];
       } else {
-	 averageVX = 0.0;
-	 averageVY = 0.0;
-	 averageVZ = 0.0;
+         averageVX = 0.0;
+         averageVY = 0.0;
+         averageVZ = 0.0;
       }
       Pressure = 0.0;
       return true;
@@ -538,21 +538,21 @@ namespace DRO {
       Real nvzvz_sum = 0.0;
       
       for(uint n=0; n<cell->number_of_blocks; n++) {
-	 unsigned int blockId = cell->velocity_block_list[n];
-	 const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
-	 for (uint k=0; k<WID; ++k)
-	    for (uint j=0; j<WID; ++j)
-	       for (uint i=0; i<WID; ++i) {
-		  const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
-		  const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
-		  const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
-		  
-		  const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
-		  
-		  nvxvx_sum += block-> data[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
-		  nvyvy_sum += block-> data[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
-		  nvzvz_sum += block-> data[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
-	       }
+         unsigned int blockId = cell->velocity_block_list[n];
+         const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
+         for (uint k=0; k<WID; ++k)
+            for (uint j=0; j<WID; ++j)
+               for (uint i=0; i<WID; ++i) {
+                  const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
+                  const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
+                  const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+                  
+                  const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
+                  
+                  nvxvx_sum += block-> data[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
+                  nvyvy_sum += block-> data[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
+                  nvzvz_sum += block-> data[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
+         }
       }
       
       // Accumulate contributions coming from this velocity block to the 
@@ -570,13 +570,13 @@ namespace DRO {
 
    bool VariablePTensorDiagonal::setSpatialCell(const SpatialCell* cell) {
       if(cell-> parameters[CellParams::RHO] != 0.0) {
-	 averageVX = cell-> parameters[CellParams::RHOVX] / cell-> parameters[CellParams::RHO];
-	 averageVY = cell-> parameters[CellParams::RHOVY] / cell-> parameters[CellParams::RHO];
-	 averageVZ = cell-> parameters[CellParams::RHOVZ] / cell-> parameters[CellParams::RHO];
+         averageVX = cell-> parameters[CellParams::RHOVX] / cell-> parameters[CellParams::RHO];
+         averageVY = cell-> parameters[CellParams::RHOVY] / cell-> parameters[CellParams::RHO];
+         averageVZ = cell-> parameters[CellParams::RHOVZ] / cell-> parameters[CellParams::RHO];
       } else {
-	 averageVX = 0.0;
-	 averageVY = 0.0;
-	 averageVZ = 0.0;
+         averageVX = 0.0;
+         averageVY = 0.0;
+         averageVZ = 0.0;
       }
       for(int i = 0; i < 3; i++) PTensor[i] = 0.0;
       return true;
@@ -603,21 +603,21 @@ namespace DRO {
       Real nvyvz_sum = 0.0;
       
       for(uint n=0; n<cell->number_of_blocks; n++) {
-	 unsigned int blockId = cell->velocity_block_list[n];
-	 const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
-	 for (uint k=0; k<WID; ++k)
-	    for (uint j=0; j<WID; ++j)
-	       for (uint i=0; i<WID; ++i) {
-		  const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
-		  const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
-		  const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
-		  
-		  const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
-		  
-		  nvxvy_sum += block-> data[cellIndex(i,j,k)] * (VX - averageVX) * (VY - averageVY) * DV3;
-		  nvzvx_sum += block-> data[cellIndex(i,j,k)] * (VZ - averageVZ) * (VX - averageVX) * DV3;
-		  nvyvz_sum += block-> data[cellIndex(i,j,k)] * (VY - averageVY) * (VZ - averageVZ) * DV3;
-	       }
+         unsigned int blockId = cell->velocity_block_list[n];
+         const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
+         for (uint k=0; k<WID; ++k)
+            for (uint j=0; j<WID; ++j)
+               for (uint i=0; i<WID; ++i) {
+                  const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
+                  const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
+                  const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+                  
+                  const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
+                  
+                  nvxvy_sum += block-> data[cellIndex(i,j,k)] * (VX - averageVX) * (VY - averageVY) * DV3;
+                  nvzvx_sum += block-> data[cellIndex(i,j,k)] * (VZ - averageVZ) * (VX - averageVX) * DV3;
+                  nvyvz_sum += block-> data[cellIndex(i,j,k)] * (VY - averageVY) * (VZ - averageVZ) * DV3;
+         }
       }
       
       // Accumulate contributions coming from this velocity block to the 
@@ -635,13 +635,13 @@ namespace DRO {
    
    bool VariablePTensorOffDiagonal::setSpatialCell(const SpatialCell* cell) {
       if(cell-> parameters[CellParams::RHO] != 0.0) {
-	 averageVX = cell-> parameters[CellParams::RHOVX] / cell-> parameters[CellParams::RHO];
-	 averageVY = cell-> parameters[CellParams::RHOVY] / cell-> parameters[CellParams::RHO];
-	 averageVZ = cell-> parameters[CellParams::RHOVZ] / cell-> parameters[CellParams::RHO];
+         averageVX = cell-> parameters[CellParams::RHOVX] / cell-> parameters[CellParams::RHO];
+         averageVY = cell-> parameters[CellParams::RHOVY] / cell-> parameters[CellParams::RHO];
+         averageVZ = cell-> parameters[CellParams::RHOVZ] / cell-> parameters[CellParams::RHO];
       } else {
-	 averageVX = 0.0;
-	 averageVY = 0.0;
-	 averageVZ = 0.0;
+         averageVX = 0.0;
+         averageVY = 0.0;
+         averageVZ = 0.0;
       }
       for(int i = 0; i < 3; i++) PTensor[i] = 0.0;
       return true;

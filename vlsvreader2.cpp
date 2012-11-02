@@ -262,7 +262,8 @@ bool VLSVReader::open(const std::string& fname) {
    char buffer[16];
    filein.seekg(8);
    filein.read(buffer,8);
-   footerOffset = convUInt64(buffer,swapIntEndianness);
+//   footerOffset = convUInt64(buffer,swapIntEndianness);
+   convertTypeReturn<uint64_t>(&footerOffset, &buffer[0], swapIntEndianness);
    
    // Read footer XML tree:
    filein.seekg(footerOffset);
@@ -344,9 +345,15 @@ bool VLSVReader::readArray(
       cerr << "VLSVReader ERROR: Failed to read requested amount of bytes!" << endl;
       return false;
    }
+   
+   // Swap endianness, if necessary:
+   for (uint64_t i = 0; i < amount*arrayOpen.vectorSize; i++) {
+      convertTypeInPlace(arrayOpen.dataSize, buffer + i * arrayOpen.dataSize, swapIntEndianness);
+   }
+   
    return true;
 }
-   
+
 bool VLSVReader::readArray(
    const std::string& tagName,
    const std::string& arrayName,
@@ -416,10 +423,13 @@ bool VLSVReader::readArray(
    }
    
    // Swap endianness, if necessary:
+   for (uint64_t i = 0; i < amount*arrayOpen.vectorSize; i++) {
+      convertTypeInPlace(arrayOpen.dataSize, buffer + i * arrayOpen.dataSize, swapIntEndianness);
+   }
    
    return true;
 }
-   
+
 bool VLSVReader::readArray(
    const std::string& tagName,
    const std::string& arrayName,
@@ -467,6 +477,9 @@ bool VLSVReader::readArray(
    if (filein.gcount() != readBytes) return false;
    
    // Swap endianness, if necessary:
+   for (uint64_t i = 0; i < amount*arrayOpen.vectorSize; i++) {
+      convertTypeInPlace(arrayOpen.dataSize, buffer + i * arrayOpen.dataSize, swapIntEndianness);
+   }
    
    return true;
 }
@@ -683,6 +696,12 @@ bool VLSVParReader::readArray(
       cerr << "(VLSVPARREADER) MPI_File_read_at_all failed!" << endl;
       success = false;
    }
+   
+   // Swap endianness, if necessary:
+   for (uint64_t i = 0; i < amount*arrayOpen.vectorSize; i++) {
+      convertTypeInPlace(arrayOpen.dataSize, buffer + i * arrayOpen.dataSize, swapIntEndianness);
+   }
+   
    return success;
 }
 
