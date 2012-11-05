@@ -1,7 +1,8 @@
 //User manual for vlasiator
 
 
-/*!  \page page1 Vlasiator User's Manual
+/*!  
+\page page1 Vlasiator User's Manual
 
 \tableofcontents
   Vlasiator: hybrid-Vlasov simulations
@@ -67,4 +68,4 @@ template<typename UINT,typename REAL> void calcAccFaceZ(REAL& ax,REAL& ay,REAL& 
 }
 \endverbatim
 
-
+*/
