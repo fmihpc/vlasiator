@@ -28,26 +28,26 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "readparameters.h"
 #include "vlasovmover.h"
 
-typedef gradbParameters GradBP;
-Real GradBP::BX0 = NAN;
-Real GradBP::BY0 = NAN;
-Real GradBP::BZ0 = NAN;
-Real GradBP::EX0 = NAN;
-Real GradBP::VX0 = NAN;
-Real GradBP::VY0 = NAN;
-Real GradBP::VZ0 = NAN;
-Real GradBP::DENSITY = NAN;
-Real GradBP::TEMPERATURE = NAN;
-Real GradBP::magPertAmp = NAN;
-Real GradBP::densityPertAmp = NAN;
-Real GradBP::velocityPertAmp = NAN;
-Real GradBP::maxwCutoff = NAN;
-//uint GradBP::sectorSize = 0;
-uint GradBP::nSpaceSamples = 0;
-uint GradBP::nVelocitySamples = 0;
-Real GradBP::SCA_X = NAN;
-Real GradBP::SCA_Y = NAN;
-Real GradBP::Sharp_Y = NAN;
+typedef shockParameters SP;
+Real SP::BX0 = NAN;
+Real SP::BY0 = NAN;
+Real SP::BZ0 = NAN;
+Real SP::EX0 = NAN;
+Real SP::VX0 = NAN;
+Real SP::VY0 = NAN;
+Real SP::VZ0 = NAN;
+Real SP::DENSITY = NAN;
+Real SP::TEMPERATURE = NAN;
+Real SP::magPertAmp = NAN;
+Real SP::densityPertAmp = NAN;
+Real SP::velocityPertAmp = NAN;
+Real SP::maxwCutoff = NAN;
+//uint SP::sectorSize = 0;
+uint SP::nSpaceSamples = 0;
+uint SP::nVelocitySamples = 0;
+Real SP::SCA_X = NAN;
+Real SP::SCA_Y = NAN;
+Real SP::Sharp_Y = NAN;
 
 bool initializeProject(void) {return true;}
 
@@ -76,28 +76,124 @@ bool addProjectParameters() {
 
 bool getProjectParameters() {
    typedef Readparameters RP;
-   RP::get("GradB.BX0", GradBP::BX0);
-   RP::get("GradB.BY0", GradBP::BY0);
-   RP::get("GradB.BZ0", GradBP::BZ0);
-   RP::get("GradB.EX0", GradBP::EX0);
-   RP::get("GradB.VX0", GradBP::VX0);
-   RP::get("GradB.VY0", GradBP::VY0);
-   RP::get("GradB.VZ0", GradBP::VZ0);
-   RP::get("GradB.rho", GradBP::DENSITY);
-   RP::get("GradB.Temperature", GradBP::TEMPERATURE);
-   RP::get("GradB.magPertAmp", GradBP::magPertAmp);
-   RP::get("GradB.densityPertAmp", GradBP::densityPertAmp);
-   RP::get("GradB.velocityPertAmp", GradBP::velocityPertAmp);
-   RP::get("GradB.nSpaceSamples", GradBP::nSpaceSamples);
-   RP::get("GradB.nVelocitySamples", GradBP::nVelocitySamples);
-   RP::get("GradB.maxwCutoff", GradBP::maxwCutoff);
-   RP::get("GradB.Scale_x", GradBP::SCA_X);
-   RP::get("GradB.Scale_y", GradBP::SCA_Y);
-   RP::get("GradB.Sharp_Y", GradBP::Sharp_Y);
+   RP::get("GradB.BX0", SP::BX0);
+   RP::get("GradB.BY0", SP::BY0);
+   RP::get("GradB.BZ0", SP::BZ0);
+   RP::get("GradB.EX0", SP::EX0);
+   RP::get("GradB.VX0", SP::VX0);
+   RP::get("GradB.VY0", SP::VY0);
+   RP::get("GradB.VZ0", SP::VZ0);
+   RP::get("GradB.rho", SP::DENSITY);
+   RP::get("GradB.Temperature", SP::TEMPERATURE);
+   RP::get("GradB.magPertAmp", SP::magPertAmp);
+   RP::get("GradB.densityPertAmp", SP::densityPertAmp);
+   RP::get("GradB.velocityPertAmp", SP::velocityPertAmp);
+   RP::get("GradB.nSpaceSamples", SP::nSpaceSamples);
+   RP::get("GradB.nVelocitySamples", SP::nVelocitySamples);
+   RP::get("GradB.maxwCutoff", SP::maxwCutoff);
+   RP::get("GradB.Scale_x", SP::SCA_X);
+   RP::get("GradB.Scale_y", SP::SCA_Y);
+   RP::get("GradB.Sharp_Y", SP::Sharp_Y);
    return true;
 }
 
-bool cellParametersChanged(creal& t) {return false;}
+Real getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz) {
+   creal k = 1.3806505e-23; // Boltzmann
+   creal mass = 1.67262171e-27; // m_p in kg
+	return exp(- mass * ((vx-SP::VX0)*(vx-SP::VX0) + (vy-SP::VY0)*(vy-SP::VY0)+ (vz-SP::VZ0)*(vz-SP::VZ0)) / (2.0 * k * SP::TEMPERATURE));
+	//*exp(-pow(x-Parameters::xmax/2.0, 2.0)/pow(SP::SCA_X, 2.0))*exp(-pow(y-Parameters::ymax/4.0, 2.0)/pow(SP::SCA_Y, 2.0));
+}
+
+/** Integrate the distribution function over the given six-dimensional phase-space cell.
+ * @param x Starting value of the x-coordinate of the cell.
+ * @param y Starting value of the y-coordinate of the cell.
+ * @param z Starting value of the z-coordinate of the cell.
+ * @param dx The size of the cell in x-direction.
+ * @param dy The size of the cell in y-direction.
+ * @param dz The size of the cell in z-direction.
+ * @param vx Starting value of the vx-coordinate of the cell.
+ * @param vy Starting value of the vy-coordinate of the cell.
+ * @param vz Starting value of the vz-coordinate of the cell.
+ * @param dvx The size of the cell in vx-direction.
+ * @param dvy The size of the cell in vy-direction.
+ * @param dvz The size of the cell in vz-direction.
+ * @return The volume average of the distribution function in the given phase space cell.
+ * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
+ */
+Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   if(vx < Parameters::vxmin + 0.5 * dvx ||
+      vy < Parameters::vymin + 0.5 * dvy ||
+      vz < Parameters::vzmin + 0.5 * dvz ||
+      vx > Parameters::vxmax - 1.5 * dvx ||
+      vy > Parameters::vymax - 1.5 * dvy ||
+      vz > Parameters::vzmax - 1.5 * dvz
+   ) return 0.0;
+   
+   creal mass = Parameters::m;
+   creal q = Parameters::q;
+   creal k = 1.3806505e-23; // Boltzmann
+   creal mu0 = 1.25663706144e-6; // mu_0
+
+   creal d_x = dx / (SP::nSpaceSamples-1);
+   creal d_y = dy / (SP::nSpaceSamples-1);
+   creal d_z = dz / (SP::nSpaceSamples-1);
+   creal d_vx = dvx / (SP::nVelocitySamples-1);
+   creal d_vy = dvy / (SP::nVelocitySamples-1);
+   creal d_vz = dvz / (SP::nVelocitySamples-1);
+   Real avg = 0.0;
+   
+   for (uint i=0; i<SP::nSpaceSamples; ++i)
+    for (uint j=0; j<SP::nSpaceSamples; ++j)
+	 for (uint k=0; k<SP::nSpaceSamples; ++k)      
+     for (uint vi=0; vi<SP::nVelocitySamples; ++vi)
+      for (uint vj=0; vj<SP::nVelocitySamples; ++vj)
+	  for (uint vk=0; vk<SP::nVelocitySamples; ++vk)
+         {
+	     avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz);
+  	     }
+   
+   creal result = avg *SP::DENSITY * pow(mass / (2.0 * M_PI * k * SP::TEMPERATURE), 1.5) /
+                    (SP::nSpaceSamples*SP::nSpaceSamples*SP::nSpaceSamples) / 
+//   	            (Parameters::vzmax - Parameters::vzmin) / 
+                  (SP::nVelocitySamples*SP::nVelocitySamples*SP::nVelocitySamples);
+				  
+				  
+   if(result < SP::maxwCutoff) {
+      return 0.0;
+   } else {
+      return result;
+   }
+}
+
+/** Calculate parameters for the given spatial cell at the given time.
+ * Here you need to set values for the following array indices:
+ * CellParams::EX, CellParams::EY, CellParams::EZ, CellParams::BX, CellParams::BY, and CellParams::BZ.
+ * 
+ * The following array indices contain the coordinates of the "lower left corner" of the cell: 
+ * CellParams::XCRD, CellParams::YCRD, and CellParams::ZCRD.
+ * The cell size is given in the following array indices: CellParams::DX, CellParams::DY, and CellParams::DZ.
+ * @param cellParams Array containing cell parameters.
+ * @param t The current value of time. This is passed as a convenience. If you need more detailed information 
+ * of the state of the simulation, you can read it from Parameters.
+ */
+void calcCellParameters(Real* cellParams,creal& t) {
+   creal x = cellParams[CellParams::XCRD];
+   creal dx = cellParams[CellParams::DX];
+   creal y = cellParams[CellParams::YCRD];
+   creal dy = cellParams[CellParams::DY];
+   creal z = cellParams[CellParams::ZCRD];
+   creal dz = cellParams[CellParams::DZ];
+   
+   cellParams[CellParams::EX   ] = 0.0;
+   cellParams[CellParams::EY   ] = 0.0;
+   cellParams[CellParams::EZ   ] = 0.0;
+   cellParams[CellParams::PERBX   ] = 0.0;
+   cellParams[CellParams::PERBY   ] = 0.0;
+   cellParams[CellParams::PERBZ   ] = 0.0;
+   cellParams[CellParams::BGBX   ] = 0.0;
+   cellParams[CellParams::BGBY   ] = 0.0;
+   cellParams[CellParams::BGBZ   ] = SP::BZ0*(3.0 + 2.0*tanh((y - Parameters::ymax/2.0)/(SP::Sharp_Y*Parameters::ymax)));
+}
 
 void setProjectCell(SpatialCell* cell) {
    // Set up cell parameters:
@@ -152,100 +248,3 @@ void setProjectCell(SpatialCell* cell) {
          //let's get rid of blocks not fulfilling the criteria here to save memory.
          cell->adjustSingleCellVelocityBlocks();
 }
-
-Real getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz) {
-   creal k = 1.3806505e-23; // Boltzmann
-   creal mass = 1.67262171e-27; // m_p in kg
-	return exp(- mass * ((vx-GradBP::VX0)*(vx-GradBP::VX0) + (vy-GradBP::VY0)*(vy-GradBP::VY0)+ (vz-GradBP::VZ0)*(vz-GradBP::VZ0)) / (2.0 * k * GradBP::TEMPERATURE));
-	//*exp(-pow(x-Parameters::xmax/2.0, 2.0)/pow(GradBP::SCA_X, 2.0))*exp(-pow(y-Parameters::ymax/4.0, 2.0)/pow(GradBP::SCA_Y, 2.0));
-}
-
-//Real getGradValue(creal& x, creal& y, creal& z) {
-//	return x/Parameters::xmax;
-//}
-
-Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
-   if(vx < Parameters::vxmin + 0.5 * dvx ||
-      vy < Parameters::vymin + 0.5 * dvy ||
-      vz < Parameters::vzmin + 0.5 * dvz ||
-      vx > Parameters::vxmax - 1.5 * dvx ||
-      vy > Parameters::vymax - 1.5 * dvy ||
-      vz > Parameters::vzmax - 1.5 * dvz
-   ) return 0.0;
-   
-   creal mass = Parameters::m;
-   creal q = Parameters::q;
-   creal k = 1.3806505e-23; // Boltzmann
-   creal mu0 = 1.25663706144e-6; // mu_0
-
-   creal d_x = dx / (GradBP::nSpaceSamples-1);
-   creal d_y = dy / (GradBP::nSpaceSamples-1);
-   creal d_z = dz / (GradBP::nSpaceSamples-1);
-   creal d_vx = dvx / (GradBP::nVelocitySamples-1);
-   creal d_vy = dvy / (GradBP::nVelocitySamples-1);
-   creal d_vz = dvz / (GradBP::nVelocitySamples-1);
-   Real avg = 0.0;
-   
-   for (uint i=0; i<GradBP::nSpaceSamples; ++i)
-    for (uint j=0; j<GradBP::nSpaceSamples; ++j)
-	 for (uint k=0; k<GradBP::nSpaceSamples; ++k)      
-     for (uint vi=0; vi<GradBP::nVelocitySamples; ++vi)
-      for (uint vj=0; vj<GradBP::nVelocitySamples; ++vj)
-	  for (uint vk=0; vk<GradBP::nVelocitySamples; ++vk)
-         {
-	     avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz);
-  	     }
-   
-   creal result = avg *GradBP::DENSITY * pow(mass / (2.0 * M_PI * k * GradBP::TEMPERATURE), 1.5) /
-                    (GradBP::nSpaceSamples*GradBP::nSpaceSamples*GradBP::nSpaceSamples) / 
-//   	            (Parameters::vzmax - Parameters::vzmin) / 
-                  (GradBP::nVelocitySamples*GradBP::nVelocitySamples*GradBP::nVelocitySamples);
-				  
-				  
-   if(result < GradBP::maxwCutoff) {
-      return 0.0;
-   } else {
-      return result;
-   }
-}
-      
-void calcBlockParameters(Real* blockParams) {
-   //blockParams[BlockParams::Q_PER_M] = 1.0;
-}
-
-void calcCellParameters(Real* cellParams,creal& t) {
-   creal x = cellParams[CellParams::XCRD];
-   creal dx = cellParams[CellParams::DX];
-   creal y = cellParams[CellParams::YCRD];
-   creal dy = cellParams[CellParams::DY];
-   creal z = cellParams[CellParams::ZCRD];
-   creal dz = cellParams[CellParams::DZ];
-   
-   cellParams[CellParams::EX   ] = 0.0;
-   cellParams[CellParams::EY   ] = 0.0;
-   cellParams[CellParams::EZ   ] = 0.0;
-   cellParams[CellParams::BX   ] = 0.0;
-   cellParams[CellParams::BY   ] = 0.0;
-   cellParams[CellParams::BZ   ] = GradBP::BZ0*(3.0 + 2.0*tanh((y - Parameters::ymax/2.0)/(GradBP::Sharp_Y*Parameters::ymax)));
-   // cellParams[CellParams::BZ   ] = GradBP::BZ0*(1.0 + GradBP::DelB*y/Parameters::ymax);
-   
-   cellParams[CellParams::EXVOL   ] = GradBP::EX0;
-   //cellParams[CellParams::EXVOL   ] = -1.0e-5;
-   
-   
-   cellParams[CellParams::BXVOL   ] = 0.0;
-   cellParams[CellParams::BYVOL   ] = 0.0;
-   cellParams[CellParams::BZVOL   ] = GradBP::BZ0*(3.0 + 2.0*tanh((y - 3.0*Parameters::ymax/4.0)/(GradBP::Sharp_Y*Parameters::ymax)));
-   //cellParams[CellParams::BZVOL   ] = GradBP::BZ0*(3.0 + 2.0*tanh((y - (x-0.5*Parameters::xmax)/10.0 - 3.0*Parameters::ymax/4.0) / 
-   // (GradBP::Sharp_Y*Parameters::ymax)));
-   //cellParams[CellParams::BZVOL   ] = GradBP::BZ0*(1.0 + GradBP::DelB*y/Parameters::ymax);
-}
-
-// TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
-void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
-   const std::vector<uint64_t> cells = mpiGrid.get_cells();
-   for (uint i = 0; i < cells.size(); ++i) {
-      calcCellParameters(mpiGrid[cells[i]]->parameters, t);
-   }
-}
-

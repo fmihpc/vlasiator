@@ -58,6 +58,64 @@ bool getProjectParameters(){
    return true;
 }
 
+/** Integrate the distribution function over the given six-dimensional phase-space cell.
+ * @param x Starting value of the x-coordinate of the cell.
+ * @param y Starting value of the y-coordinate of the cell.
+ * @param z Starting value of the z-coordinate of the cell.
+ * @param dx The size of the cell in x-direction.
+ * @param dy The size of the cell in y-direction.
+ * @param dz The size of the cell in z-direction.
+ * @param vx Starting value of the vx-coordinate of the cell.
+ * @param vy Starting value of the vy-coordinate of the cell.
+ * @param vz Starting value of the vz-coordinate of the cell.
+ * @param dvx The size of the cell in vx-direction.
+ * @param dvy The size of the cell in vy-direction.
+ * @param dvz The size of the cell in vz-direction.
+ * @return The volume average of the distribution function in the given phase space cell.
+ * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
+ */
+Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
+                           creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {
+  
+  creal mass = 1.67262171e-27; // m_p in kg
+  creal k = 1.3806505e-23; // Boltzmann
+  creal mu0 = 1.25663706144e-6; // mu_0
+  creal q = 1.60217653e-19; // q_i
+  
+  creal Vy0 = 0.0;
+  
+  return HP::DENSITY * pow(mass / (2.0 * M_PI * k * HP::TEMPERATURE), 1.5) * (
+     5.0 / pow(cosh((x + 0.5 * dx) / (HP::SCA_LAMBDA)), 2.0) * exp(- mass * (pow(vx + 0.5 * dvx, 2.0) + pow(vy + 0.5 * dvy - Vy0, 2.0) + pow(vz + 0.5 * dvz, 2.0)) / (2.0 * k * HP::TEMPERATURE))
+    +
+    exp(- mass * (pow(vx + 0.5 * dvx, 2.0) + pow(vy + 0.5 * dvy, 2.0) + pow(vz + 0.5 * dvz, 2.0)) / (2.0 * k * HP::TEMPERATURE)));
+}
+
+/** Calculate parameters for the given spatial cell at the given time.
+ * Here you need to set values for the following array indices:
+ * CellParams::EX, CellParams::EY, CellParams::EZ, CellParams::BX, CellParams::BY, and CellParams::BZ.
+ * 
+ * The following array indices contain the coordinates of the "lower left corner" of the cell: 
+ * CellParams::XCRD, CellParams::YCRD, and CellParams::ZCRD.
+ * The cell size is given in the following array indices: CellParams::DX, CellParams::DY, and CellParams::DZ.
+ * @param cellParams Array containing cell parameters.
+ * @param t The current value of time. This is passed as a convenience. If you need more detailed information 
+ * of the state of the simulation, you can read it from Parameters.
+ */
+void calcCellParameters(Real* cellParams,creal& t) {
+  creal x = cellParams[CellParams::XCRD];
+  creal dx = cellParams[CellParams::DX];
+  
+  cellParams[CellParams::EX   ] = 0.0;
+  cellParams[CellParams::EY   ] = 0.0;
+  cellParams[CellParams::EZ   ] = 0.0;
+  cellParams[CellParams::PERBX   ] = 0.0;
+  cellParams[CellParams::PERBY   ] = 0.0;
+  cellParams[CellParams::PERBZ   ] = 0.0;
+  cellParams[CellParams::BGBX   ] = 0.0;
+  cellParams[CellParams::BGBY   ] = 0.0;
+  cellParams[CellParams::BGBZ   ] = HP::B0 * tanh((x + 0.5 * dx) / HP::SCA_LAMBDA);
+}
+
 void setProjectCell(SpatialCell* cell) {
    // Set up cell parameters:
    calcCellParameters(&((*cell).parameters[0]), 0.0);
@@ -111,46 +169,3 @@ void setProjectCell(SpatialCell* cell) {
          //let's get rid of blocks not fulfilling the criteria here to save memory.
          cell->adjustSingleCellVelocityBlocks();
 }
-
-bool cellParametersChanged(creal& t) {return false;}
-
-Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
-			   creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {
-  
-  creal mass = 1.67262171e-27; // m_p in kg
-  creal k = 1.3806505e-23; // Boltzmann
-  creal mu0 = 1.25663706144e-6; // mu_0
-  creal q = 1.60217653e-19; // q_i
-  
-  creal Vy0 = 0.0;
-  
-  return HP::DENSITY * pow(mass / (2.0 * M_PI * k * HP::TEMPERATURE), 1.5) * (
-     5.0 / pow(cosh((x + 0.5 * dx) / (HP::SCA_LAMBDA)), 2.0) * exp(- mass * (pow(vx + 0.5 * dvx, 2.0) + pow(vy + 0.5 * dvy - Vy0, 2.0) + pow(vz + 0.5 * dvz, 2.0)) / (2.0 * k * HP::TEMPERATURE))
-    +
-    exp(- mass * (pow(vx + 0.5 * dvx, 2.0) + pow(vy + 0.5 * dvy, 2.0) + pow(vz + 0.5 * dvz, 2.0)) / (2.0 * k * HP::TEMPERATURE)));
-}
-
-void calcBlockParameters(Real* blockParams) {
-   //blockParams[BlockParams::Q_PER_M] = 1.0;
-}
-
-void calcCellParameters(Real* cellParams,creal& t) {
-  creal x = cellParams[CellParams::XCRD];
-  creal dx = cellParams[CellParams::DX];
-  
-  cellParams[CellParams::EX   ] = 0.0;
-  cellParams[CellParams::EY   ] = 0.0;
-  cellParams[CellParams::EZ   ] = 0.0;
-  cellParams[CellParams::BX   ] = 0.0;
-  cellParams[CellParams::BY   ] = 0.0;
-  cellParams[CellParams::BZ   ] = HP::B0 * tanh((x + 0.5 * dx) / HP::SCA_LAMBDA);
-}
-
-// TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
-void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
-   std::vector<uint64_t> cells = mpiGrid.get_cells();
-   for (uint i = 0; i < cells.size(); ++i) {
-      calcCellParameters(mpiGrid[cells[i]]->parameters, t);
-   }
-}
-

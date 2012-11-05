@@ -66,6 +66,130 @@ bool getProjectParameters(void){
    return true;
 }
 
+Real sign(creal value)
+{
+   if(abs(value) < 1e-5) return 0.0;
+   else return value / abs(value);
+}
+
+/** Integrate the distribution function over the given six-dimensional phase-space cell.
+ * @param x Starting value of the x-coordinate of the cell.
+ * @param y Starting value of the y-coordinate of the cell.
+ * @param z Starting value of the z-coordinate of the cell.
+ * @param dx The size of the cell in x-direction.
+ * @param dy The size of the cell in y-direction.
+ * @param dz The size of the cell in z-direction.
+ * @param vx Starting value of the vx-coordinate of the cell.
+ * @param vy Starting value of the vy-coordinate of the cell.
+ * @param vz Starting value of the vz-coordinate of the cell.
+ * @param dvx The size of the cell in vx-direction.
+ * @param dvy The size of the cell in vy-direction.
+ * @param dvz The size of the cell in vz-direction.
+ * @return The volume average of the distribution function in the given phase space cell.
+ * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
+ */
+Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {
+   Real VX,VY,VZ;
+   if (tfP::shear == true)
+   {
+      Real ksi,eta;
+      switch (tfP::CASE) {
+         case BXCASE:
+            ksi = ((y + 0.5 * dy)  * cos(tfP::ALPHA) + (z + 0.5 * dz) * sin(tfP::ALPHA)) / (2.0 * sqrt(2.0));
+            eta = (-(y + 0.5 * dy)  * sin(tfP::ALPHA) + (z + 0.5 * dz) * cos(tfP::ALPHA)) / (2.0 * sqrt(2.0));
+            VX = 0.0;
+            VY = sign(cos(tfP::ALPHA)) * 0.5 + 0.1*cos(tfP::ALPHA) * sin(2.0 * M_PI * eta);
+            VZ = sign(sin(tfP::ALPHA)) * 0.5 + 0.1*sin(tfP::ALPHA) * sin(2.0 * M_PI * eta);
+            break;
+         case BYCASE:
+            ksi = ((z + 0.5 * dz)  * cos(tfP::ALPHA) + (x + 0.5 * dx) * sin(tfP::ALPHA)) / (2.0 * sqrt(2.0));
+            eta = (-(z + 0.5 * dz)  * sin(tfP::ALPHA) + (x + 0.5 * dx) * cos(tfP::ALPHA)) / (2.0 * sqrt(2.0));
+            VX = sign(sin(tfP::ALPHA)) * 0.5 + 0.1*sin(tfP::ALPHA) * sin(2.0 * M_PI * eta);
+            VY = 0.0;
+            VZ = sign(cos(tfP::ALPHA)) * 0.5 + 0.1*cos(tfP::ALPHA) * sin(2.0 * M_PI * eta);
+            break;
+            case BZCASE:
+            ksi = ((x + 0.5 * dx)  * cos(tfP::ALPHA) + (y + 0.5 * dy) * sin(tfP::ALPHA)) / (2.0 * sqrt(2.0));
+            eta = (-(x + 0.5 * dx)  * sin(tfP::ALPHA) + (y + 0.5 * dy) * cos(tfP::ALPHA)) / (2.0 * sqrt(2.0));
+            VX = sign(cos(tfP::ALPHA)) * 0.5 + 0.1*cos(tfP::ALPHA) * sin(2.0 * M_PI * eta);
+            VY = sign(sin(tfP::ALPHA)) * 0.5 + 0.1*sin(tfP::ALPHA) * sin(2.0 * M_PI * eta);
+            VZ = 0.0;
+            break;
+      }
+   } else {
+      switch (tfP::CASE) {
+         case BXCASE:
+            VX = 0.0;
+            VY = cos(tfP::ALPHA) * 0.5;
+            VZ = sin(tfP::ALPHA) * 0.5; 
+            break;
+         case BYCASE:
+            VX = sin(tfP::ALPHA) * 0.5;
+            VY = 0.0;
+            VZ = cos(tfP::ALPHA) * 0.5;
+            break;
+         case BZCASE:
+            VX = cos(tfP::ALPHA) * 0.5;
+            VY = sin(tfP::ALPHA) * 0.5;
+            VZ = 0.0;
+            break;
+      }
+   }
+   
+   creal VX2 = (vx+0.5*dvx-VX)*(vx+0.5*dvx-VX);
+   creal VY2 = (vy+0.5*dvy-VY)*(vy+0.5*dvy-VY);
+   creal VZ2 = (vz+0.5*dvz-VZ)*(vz+0.5*dvz-VZ);
+   
+   creal CONST = physicalconstants::MASS_PROTON / 2.0 / physicalconstants::K_B / tfP::TEMPERATURE;
+   Real NORM = (physicalconstants::MASS_PROTON / 2.0 / M_PI / physicalconstants::K_B / tfP::TEMPERATURE);
+   NORM = tfP::DENSITY * pow(NORM,1.5);
+   
+   return NORM*exp(-CONST*(VX2+VY2+VZ2));
+}
+
+/** Calculate parameters for the given spatial cell at the given time.
+ * Here you need to set values for the following array indices:
+ * CellParams::EX, CellParams::EY, CellParams::EZ, CellParams::BX, CellParams::BY, and CellParams::BZ.
+ * 
+ * The following array indices contain the coordinates of the "lower left corner" of the cell: 
+ * CellParams::XCRD, CellParams::YCRD, and CellParams::ZCRD.
+ * The cell size is given in the following array indices: CellParams::DX, CellParams::DY, and CellParams::DZ.
+ * @param cellParams Array containing cell parameters.
+ * @param t The current value of time. This is passed as a convenience. If you need more detailed information 
+ * of the state of the simulation, you can read it from Parameters.
+ */
+void calcCellParameters(Real* cellParams,creal& t) {
+   cellParams[CellParams::EX   ] = 0.0;
+   cellParams[CellParams::EY   ] = 0.0;
+   cellParams[CellParams::EZ   ] = 0.0;
+   cellParams[CellParams::PERBX   ] = 0.0;
+   cellParams[CellParams::PERBY   ] = 0.0;
+   cellParams[CellParams::PERBZ   ] = 0.0;
+   
+   typedef Parameters P;
+   creal x = cellParams[CellParams::XCRD] + 0.5 * cellParams[CellParams::DX];
+   creal y = cellParams[CellParams::YCRD] + 0.5 * cellParams[CellParams::DY];
+   creal z = cellParams[CellParams::ZCRD] + 0.5 * cellParams[CellParams::DZ];
+   
+   switch (tfP::CASE) {
+    case BXCASE:
+      if (y >= -0.2 && y <= 0.2)
+	if (z >= -0.2 && z <= 0.2)
+	   cellParams[CellParams::PERBX] = tfP::B0;
+      break;
+    case BYCASE:
+      if (x >= -0.2 && x <= 0.2)
+	if (z >= -0.2 && z <= 0.2)
+	   cellParams[CellParams::PERBY] = tfP::B0;
+      break;
+    case BZCASE:
+      if (x >= -0.2 && x <= 0.2)
+	if (y >= -0.2 && y <= 0.2)
+	   cellParams[CellParams::PERBZ] = tfP::B0;
+      break;
+   }
+}
+
 void setProjectCell(SpatialCell* cell) {
    // Set up cell parameters:
    calcCellParameters(&((*cell).parameters[0]), 0.0);
@@ -119,116 +243,3 @@ void setProjectCell(SpatialCell* cell) {
          //let's get rid of blocks not fulfilling the criteria here to save memory.
          cell->adjustSingleCellVelocityBlocks();
 }
-
-bool cellParametersChanged(creal& t) {return false;}
-
-Real sign(creal value)
-{
-   if(abs(value) < 1e-5) return 0.0;
-   else return value / abs(value);
-}
-
-Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {
-   Real VX,VY,VZ;
-   if (tfP::shear == true)
-   {
-      Real ksi,eta;
-      switch (tfP::CASE) {
-	 case BXCASE:
-	 ksi = ((y + 0.5 * dy)  * cos(tfP::ALPHA) + (z + 0.5 * dz) * sin(tfP::ALPHA)) / (2.0 * sqrt(2.0));
-	 eta = (-(y + 0.5 * dy)  * sin(tfP::ALPHA) + (z + 0.5 * dz) * cos(tfP::ALPHA)) / (2.0 * sqrt(2.0));
-	 VX = 0.0;
-	 VY = sign(cos(tfP::ALPHA)) * 0.5 + 0.1*cos(tfP::ALPHA) * sin(2.0 * M_PI * eta);
-	 VZ = sign(sin(tfP::ALPHA)) * 0.5 + 0.1*sin(tfP::ALPHA) * sin(2.0 * M_PI * eta); 
-	 break;
-      case BYCASE:
-	 ksi = ((z + 0.5 * dz)  * cos(tfP::ALPHA) + (x + 0.5 * dx) * sin(tfP::ALPHA)) / (2.0 * sqrt(2.0));
-	 eta = (-(z + 0.5 * dz)  * sin(tfP::ALPHA) + (x + 0.5 * dx) * cos(tfP::ALPHA)) / (2.0 * sqrt(2.0));
-	 VX = sign(sin(tfP::ALPHA)) * 0.5 + 0.1*sin(tfP::ALPHA) * sin(2.0 * M_PI * eta);
-	 VY = 0.0;
-	 VZ = sign(cos(tfP::ALPHA)) * 0.5 + 0.1*cos(tfP::ALPHA) * sin(2.0 * M_PI * eta);
-	 break;
-      case BZCASE:
-	 ksi = ((x + 0.5 * dx)  * cos(tfP::ALPHA) + (y + 0.5 * dy) * sin(tfP::ALPHA)) / (2.0 * sqrt(2.0));
-	 eta = (-(x + 0.5 * dx)  * sin(tfP::ALPHA) + (y + 0.5 * dy) * cos(tfP::ALPHA)) / (2.0 * sqrt(2.0));
-	 VX = sign(cos(tfP::ALPHA)) * 0.5 + 0.1*cos(tfP::ALPHA) * sin(2.0 * M_PI * eta);
-	 VY = sign(sin(tfP::ALPHA)) * 0.5 + 0.1*sin(tfP::ALPHA) * sin(2.0 * M_PI * eta);
-	 VZ = 0.0;
-	 break;
-      }
-   } else {
-      switch (tfP::CASE) {
-	 case BXCASE:
-	    VX = 0.0;
-	    VY = cos(tfP::ALPHA) * 0.5;
-	    VZ = sin(tfP::ALPHA) * 0.5; 
-	    break;
-	 case BYCASE:
-	    VX = sin(tfP::ALPHA) * 0.5;
-	    VY = 0.0;
-	    VZ = cos(tfP::ALPHA) * 0.5;
-	    break;
-	 case BZCASE:
-	    VX = cos(tfP::ALPHA) * 0.5;
-	    VY = sin(tfP::ALPHA) * 0.5;
-	    VZ = 0.0;
-	    break;
-      }
-   }
-   
-   creal VX2 = (vx+0.5*dvx-VX)*(vx+0.5*dvx-VX);
-   creal VY2 = (vy+0.5*dvy-VY)*(vy+0.5*dvy-VY);
-   creal VZ2 = (vz+0.5*dvz-VZ)*(vz+0.5*dvz-VZ);
-   
-   creal CONST = physicalconstants::MASS_PROTON / 2.0 / physicalconstants::K_B / tfP::TEMPERATURE;
-   Real NORM = (physicalconstants::MASS_PROTON / 2.0 / M_PI / physicalconstants::K_B / tfP::TEMPERATURE);
-   NORM = tfP::DENSITY * pow(NORM,1.5);
-   
-   return NORM*exp(-CONST*(VX2+VY2+VZ2));
-}
-
-void calcBlockParameters(Real* blockParams) { }
-
-void calcCellParameters(Real* cellParams,creal& t) {
-   cellParams[CellParams::EX   ] = 0.0;
-   cellParams[CellParams::EY   ] = 0.0;
-   cellParams[CellParams::EZ   ] = 0.0;
-   cellParams[CellParams::BX   ] = 0.0;
-   cellParams[CellParams::BY   ] = 0.0;
-   cellParams[CellParams::BZ   ] = 0.0;
-   
-   typedef Parameters P;
-   creal x = cellParams[CellParams::XCRD] + 0.5 * cellParams[CellParams::DX];
-   creal y = cellParams[CellParams::YCRD] + 0.5 * cellParams[CellParams::DY];
-   creal z = cellParams[CellParams::ZCRD] + 0.5 * cellParams[CellParams::DZ];
-   
-   switch (tfP::CASE) {
-    case BXCASE:
-      if (y >= -0.2 && y <= 0.2)
-	if (z >= -0.2 && z <= 0.2)
-	   cellParams[CellParams::BX] = tfP::B0;
-      break;
-    case BYCASE:
-      if (x >= -0.2 && x <= 0.2)
-	if (z >= -0.2 && z <= 0.2)
-	   cellParams[CellParams::BY] = tfP::B0;
-      break;
-    case BZCASE:
-      if (x >= -0.2 && x <= 0.2)
-	if (y >= -0.2 && y <= 0.2)
-	   cellParams[CellParams::BZ] = tfP::B0;
-      break;
-   }
-}
-
-
-
-void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
-   std::vector<uint64_t> cells = mpiGrid.get_cells();
-   for (uint i = 0; i < cells.size(); ++i) {
-      calcCellParameters(mpiGrid[cells[i]]->parameters, t);
-   }
-}
-
-
-

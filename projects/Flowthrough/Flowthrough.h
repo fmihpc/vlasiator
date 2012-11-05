@@ -16,8 +16,8 @@ You should have received a copy of the GNU General Public License
 along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MAGNETOSPHERE_H
-#define MAGNETOSPHERE_H
+#ifndef FLOWTHROUGH_H
+#define FLOWTHROUGH_H
 
 #include "definitions.h"
 #include "spatial_cell.hpp"
@@ -27,14 +27,17 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "dccrg.hpp"
 
 
-struct magnetosphereParameters {
+struct flowthroughParameters {
    static Real rho;
    static Real T;
+   static Real Bx;
+   static Real By;
+   static Real Bz;
    static uint nSpaceSamples;
    static uint nVelocitySamples;
 };
 
-typedef magnetosphereParameters MP;
+typedef flowthroughParameters FTP;
 
 /**
  * Initialize project. Can be used, e.g., to read in parameters from the input file

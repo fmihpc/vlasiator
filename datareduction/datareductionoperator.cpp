@@ -1,20 +1,20 @@
 /*
-This file is part of Vlasiator.
-
-Copyright 2010, 2011, 2012 Finnish Meteorological Institute
-
-Vlasiator is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 3
-as published by the Free Software Foundation.
-
-Vlasiator is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <http://www.gnu.org/licenses/>.
-*/
+ * This file is part of Vlasiator.
+ * 
+ * Copyright 2010, 2011, 2012 Finnish Meteorological Institute
+ * 
+ * Vlasiator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3
+ * as published by the Free Software Foundation.
+ * 
+ * Vlasiator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include <cstdlib>
 #include <mpi.h>
@@ -27,17 +27,17 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 using namespace std;
 
 namespace DRO {
-
+   
    // ************************************************************
    // ***** DEFINITIONS FOR DATAREDUCTIONOPERATOR BASE CLASS *****
    // ************************************************************
    
    /** DataReductionOperator base class constructor. The constructor is empty.*/
    DataReductionOperator::DataReductionOperator() { }
-
+   
    /** DataReductionOperator base class virtual destructor. The destructor is empty.*/
    DataReductionOperator::~DataReductionOperator() { }
-
+   
    /** Get info on the data the DataReductionOperator writes on disk. A DataReductionOperator writes 
     * an array on disk. Each element of the array is a vector with n elements. Finally, each 
     * vector element has a byte size, as given by the sizeof function.
@@ -100,61 +100,67 @@ namespace DRO {
       return false;
    }
    
-   // E
-   VariableE::VariableE(): DataReductionOperator() { }
-   VariableE::~VariableE() { }
    
-   bool VariableE::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize = sizeof(Real);
-      vectorSize = 3;
-      return true;
+   
+   
+   
+   DataReductionOperatorCellParams::DataReductionOperatorCellParams(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize):
+   DataReductionOperator() {
+      _vectorSize=vectorSize;
+      _name=name;
+      _parameterIndex=parameterIndex;
    }
+   DataReductionOperatorCellParams::~DataReductionOperatorCellParams() { }
    
-   std::string VariableE::getName() const {return "E";}
-   
-   bool VariableE::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(E);
-      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariableE::setSpatialCell(const SpatialCell* cell) {
-      E = &(cell->parameters[CellParams::EX]);
-      Ex = cell->parameters[CellParams::EX];
-      Ey = cell->parameters[CellParams::EY];
-      Ez = cell->parameters[CellParams::EZ];
-      return true;
-   }
-   
-   // E_vol
-   VariableVolE::VariableVolE(): DataReductionOperator() { }
-   VariableVolE::~VariableVolE() { }
-   
-   bool VariableVolE::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+   bool DataReductionOperatorCellParams::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
-      vectorSize = 3;
-      return true;
-   }
-         
-   std::string VariableVolE::getName() const {return "E_vol";}
-      
-      bool VariableVolE::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(E);
-      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      vectorSize = _vectorSize;
       return true;
    }
    
-   bool VariableVolE::setSpatialCell(const SpatialCell* cell) {
-      E = &(cell->parameters[CellParams::EXVOL]);
+   std::string DataReductionOperatorCellParams::getName() const {return _name;}
+   
+   bool DataReductionOperatorCellParams::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(_data);
+      for (uint i=0; i<_vectorSize*sizeof(Real); ++i){
+         buffer[i] = ptr[i];
+      }
       return true;
    }
    
-   // B
+   bool DataReductionOperatorCellParams::reduceData(const SpatialCell* cell,Real* buffer){
+      //If _vectorSize is >1 it still works, we just give the first value and no other ones..
+      *buffer=_data[0];
+      return true;
+   }
+   bool DataReductionOperatorCellParams::setSpatialCell(const SpatialCell* cell) {
+      _data  = &(cell->parameters[_parameterIndex]);
+      return true;
+   }
+
+
+
+
+   
+   DataReductionOperatorDerivatives::DataReductionOperatorDerivatives(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize):
+   DataReductionOperatorCellParams(name,parameterIndex,vectorSize) {
+
+   }
+   //a version with derivatives, this is the only function that is different
+   bool DataReductionOperatorDerivatives::setSpatialCell(const SpatialCell* cell) {
+      _data  = &(cell->derivatives[_parameterIndex]);
+      return true;
+   }
+
+
+   
+   
+   
+   //------------------ total B --------------------------------------- 
    VariableB::VariableB(): DataReductionOperator() { }
    VariableB::~VariableB() { }
-
+   
    bool VariableB::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
@@ -171,171 +177,12 @@ namespace DRO {
    }
    
    bool VariableB::setSpatialCell(const SpatialCell* cell) {
-      B  = &(cell->parameters[CellParams::BX]);
-      Bx = cell->parameters[CellParams::BX];
-      By = cell->parameters[CellParams::BY];
-      Bz = cell->parameters[CellParams::BZ];
+      B[0] = cell->parameters[CellParams::PERBX] +  cell->parameters[CellParams::BGBX];
+      B[1] = cell->parameters[CellParams::PERBY] +  cell->parameters[CellParams::BGBY];
+      B[2] = cell->parameters[CellParams::PERBZ] +  cell->parameters[CellParams::BGBZ];
       return true;
    }
    
-   // B_vol
-   VariableVolB::VariableVolB(): DataReductionOperator() { }
-   VariableVolB::~VariableVolB() { }
-   
-   bool VariableVolB::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 3;
-      return true;
-   }
-   
-   std::string VariableVolB::getName() const {return "B_vol";}
-   
-   bool VariableVolB::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(B);
-      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariableVolB::setSpatialCell(const SpatialCell* cell) {
-      B  = &(cell->parameters[CellParams::BXVOL]);
-      return true;
-   }
-
-
-
-
-   VariableB0::VariableB0(): DataReductionOperator() { }
-   VariableB0::~VariableB0() { }
-
-   bool VariableB0::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 3;
-      return true;
-   }
-   std::string VariableB0::getName() const {return "B0";}
-   bool VariableB0::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(B0);
-      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariableB0::setSpatialCell(const SpatialCell* cell) {
-      B0  = &(cell->parameters[CellParams::BX0]);
-      return true;
-   }
-
-   VariableVolB0::VariableVolB0(): DataReductionOperator() { }
-   VariableVolB0::~VariableVolB0() { }
-   
-   bool VariableVolB0::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 3;
-      return true;
-   }
-   
-   std::string VariableVolB0::getName() const {return "B0_vol";}
-   
-   bool VariableVolB0::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(B0);
-      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariableVolB0::setSpatialCell(const SpatialCell* cell) {
-      B0  = &(cell->parameters[CellParams::BXVOL0]);
-      return true;
-   }
-
-   
-   // rho
-   VariableRho::VariableRho(): DataReductionOperator() { }
-   VariableRho::~VariableRho() { }
-   
-   std::string VariableRho::getName() const {return "rho";}
-   
-   bool VariableRho::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   bool VariableRho::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&rho);
-      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-
-   bool VariableRho::reduceData(const SpatialCell* cell,Real* buffer){
-      *buffer=rho;
-      return true;
-   }
-   
-   bool VariableRho::setSpatialCell(const SpatialCell* cell) {
-      rho = cell->parameters[CellParams::RHO];
-      return true;
-   }
-
-   //RHOLOSSADJUST
-   RhoLossAdjust::RhoLossAdjust(): DataReductionOperator() { }
-   RhoLossAdjust::~RhoLossAdjust() { }
-   
-   std::string RhoLossAdjust::getName() const {return "rho_loss_adjust";}
-   
-   bool RhoLossAdjust::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   bool RhoLossAdjust::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&rhoLoss);
-      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool RhoLossAdjust::reduceData(const SpatialCell* cell,Real* buffer){
-      *buffer=rhoLoss;
-      return true;
-   }
-   
-   bool RhoLossAdjust::setSpatialCell(const SpatialCell* cell) {
-      rhoLoss = cell->parameters[CellParams::RHOLOSSADJUST];
-      return true;
-   }
-   
-   //RHOLOSSVELBOUNDARY
-   RhoLossVelBoundary::RhoLossVelBoundary(): DataReductionOperator() { }
-   RhoLossVelBoundary::~RhoLossVelBoundary() { }
-
-   std::string RhoLossVelBoundary::getName() const {return "rho_loss_velocity_boundary";}
-
-   bool RhoLossVelBoundary::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   bool RhoLossVelBoundary::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&rhoLoss);
-      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool RhoLossVelBoundary::reduceData(const SpatialCell* cell,Real* buffer){
-      *buffer=rhoLoss;
-      return true;
-   }
-   
-   bool RhoLossVelBoundary::setSpatialCell(const SpatialCell* cell) {
-      rhoLoss = cell->parameters[CellParams::RHOLOSSVELBOUNDARY];
-      return true;
-   }
    
    //MPI rank
    MPIrank::MPIrank(): DataReductionOperator() { }
@@ -417,83 +264,58 @@ namespace DRO {
       return true;
    }
    
-   // rho_v
-   VariableRhoV::VariableRhoV(): DataReductionOperator() { }
-   VariableRhoV::~VariableRhoV() { }
    
-   bool VariableRhoV::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 3;
-      return true;
-   }
-   
-   std::string VariableRhoV::getName() const {return "rho_v";}
-   
-   bool VariableRhoV::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(rhov);
-      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariableRhoV::setSpatialCell(const SpatialCell* cell) {
-      rhov  = &(cell->parameters[CellParams::RHOVX]);
-      rhovx = cell->parameters[CellParams::RHOVX];
-      rhovy = cell->parameters[CellParams::RHOVY];
-      rhovz = cell->parameters[CellParams::RHOVZ];
-      return true;
-   }
-   
-   // Scalar pressure added by YK
+   // Scalar pressure 
    VariablePressure::VariablePressure(): DataReductionOperator() { }
    VariablePressure::~VariablePressure() { }
    
    std::string VariablePressure::getName() const {return "Pressure";}
    
    bool VariablePressure::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-     dataType = "float";
-     dataSize =  sizeof(Real);
-     vectorSize = 1;
-     return true;
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 1;
+      return true;
    }
    
-   // YK Adding pressure calculations to Vlasiator.
+   // Adding pressure calculations to Vlasiator.
    // p = m/3 * integral((v - <V>)^2 * f(r,v) dV), doing the sum of the x, y and z components.
+   // TODO thread this DRO
    bool VariablePressure::reduceData(const SpatialCell* cell,char* buffer) {
       const Real HALF = 0.5;
       const Real THIRD = 1.0/3.0;
-     
+      
       Real nvx2_sum = 0.0;
       Real nvy2_sum = 0.0;
       Real nvz2_sum = 0.0;
-
+      
       for(uint n=0; n<cell->number_of_blocks; n++) {
          unsigned int blockId = cell->velocity_block_list[n];
          const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
          for (uint k=0; k<WID; ++k)
             for (uint j=0; j<WID; ++j)
                for (uint i=0; i<WID; ++i) {
-            const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
-            const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
-            const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
-            
-            const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
-            
-            nvx2_sum += block-> data[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
-            nvy2_sum += block-> data[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
-            nvz2_sum += block-> data[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
-         }
+                  const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
+                  const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
+                  const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+                  
+                  const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
+                  
+                  nvx2_sum += block-> data[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
+                  nvy2_sum += block-> data[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
+                  nvz2_sum += block-> data[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
+               }
       }
       
-     // Accumulate contributions coming from this velocity block to the 
-     // spatial cell velocity moments. If multithreading / OpenMP is used, 
-     // these updates need to be atomic:
-     
-     Pressure += physicalconstants::MASS_PROTON * THIRD * (nvx2_sum + nvy2_sum + nvz2_sum);
-     
-     const char* ptr = reinterpret_cast<const char*>(&Pressure);
-     for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
-     return true;
+      // Accumulate contributions coming from this velocity block to the 
+      // spatial cell velocity moments. If multithreading / OpenMP is used, 
+      // these updates need to be atomic:
+      
+      Pressure += physicalconstants::MASS_PROTON * THIRD * (nvx2_sum + nvy2_sum + nvz2_sum);
+      
+      const char* ptr = reinterpret_cast<const char*>(&Pressure);
+      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
+                                                return true;
    }
    
    bool VariablePressure::setSpatialCell(const SpatialCell* cell) {
@@ -517,11 +339,12 @@ namespace DRO {
    // Pressure tensor 6 components (11, 22, 33, 23, 13, 12) added by YK
    // Split into VariablePTensorDiagonal (11, 22, 33)
    // and VariablePTensorOffDiagonal (23, 13, 12)
+   // TODO thread these two DROs
    VariablePTensorDiagonal::VariablePTensorDiagonal(): DataReductionOperator() { }
    VariablePTensorDiagonal::~VariablePTensorDiagonal() { }
-
+   
    std::string VariablePTensorDiagonal::getName() const {return "PTensorDiagonal";}
-
+   
    bool VariablePTensorDiagonal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
@@ -552,7 +375,7 @@ namespace DRO {
                   nvxvx_sum += block-> data[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
                   nvyvy_sum += block-> data[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
                   nvzvz_sum += block-> data[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
-         }
+               }
       }
       
       // Accumulate contributions coming from this velocity block to the 
@@ -565,9 +388,9 @@ namespace DRO {
       
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
       for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
+                                                return true;
    }
-
+   
    bool VariablePTensorDiagonal::setSpatialCell(const SpatialCell* cell) {
       if(cell-> parameters[CellParams::RHO] != 0.0) {
          averageVX = cell-> parameters[CellParams::RHOVX] / cell-> parameters[CellParams::RHO];
@@ -617,7 +440,7 @@ namespace DRO {
                   nvxvy_sum += block-> data[cellIndex(i,j,k)] * (VX - averageVX) * (VY - averageVY) * DV3;
                   nvzvx_sum += block-> data[cellIndex(i,j,k)] * (VZ - averageVZ) * (VX - averageVX) * DV3;
                   nvyvz_sum += block-> data[cellIndex(i,j,k)] * (VY - averageVY) * (VZ - averageVZ) * DV3;
-         }
+               }
       }
       
       // Accumulate contributions coming from this velocity block to the 
@@ -630,7 +453,7 @@ namespace DRO {
       
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
       for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
+                                                return true;
    }
    
    bool VariablePTensorOffDiagonal::setSpatialCell(const SpatialCell* cell) {
@@ -647,65 +470,7 @@ namespace DRO {
       return true;
    }
    
-   
-   
-   //maximum absolute velocity in x,y, or z direction
-   MaxVi::MaxVi(): DataReductionOperator() { }
-   MaxVi::~MaxVi() { }
-   
-   std::string MaxVi::getName() const {return "MaximumVelocityComponent";}
-   
-   bool MaxVi::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-     dataType = "float";
-     dataSize =  sizeof(Real);
-     vectorSize = 1;
-     return true;
-   }
-   
-
-   bool MaxVi::reduceData(const SpatialCell* cell,Real* buffer) {
-      const Real HALF = 0.5;
-      
-      Real maxV=0;
-      
-      for(uint n=0; n<cell->number_of_blocks;n++) {
-         unsigned int blockId = cell->velocity_block_list[n];
-         const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
-         for (uint k=0; k<WID; ++k)
-            for (uint j=0; j<WID; ++j)
-               for (uint i=0; i<WID; ++i) {
-                  const int celli=k*WID*WID+j*WID+i;
-                  
-                  const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
-                  const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
-                  const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
-                  
-                  if(block->data[celli]!=0.0){
-                     if(fabs(VX)>maxV) maxV=fabs(VX);
-                     if(fabs(VY)>maxV) maxV=fabs(VY);
-                     if(fabs(VZ)>maxV) maxV=fabs(VZ);
-                  }
-               }
-      }
-      *buffer=maxV;
-      return true;
-   }
-   
-   bool MaxVi::reduceData(const SpatialCell* cell,char* buffer) {
-      Real maxV;
-      reduceData(cell,&maxV);
-      const char* ptr = reinterpret_cast<const char*>(&maxV);
-      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool MaxVi::setSpatialCell(const SpatialCell* cell) {
-      return true;
-   }
-   
-   
-   
-   // YK Integrated divergence of magnetic field
+   // Integrated divergence of magnetic field
    // Integral of div B over the simulation volume =
    // Integral of flux of B on simulation volume surface
    DiagnosticFluxB::DiagnosticFluxB(): DataReductionOperator() { }
@@ -733,19 +498,19 @@ namespace DRO {
       
       Real value = 0.0;
       if(cx > Parameters::xmax - 2.0 * dx && cx < Parameters::xmax - dx) {
-	 value += cell->parameters[CellParams::BX];
+         value += cell->parameters[CellParams::PERBX];
       } else if (cx < Parameters::xmin + 2.0 * dx && cx > Parameters::xmin + dx) {
-	 value += -1.0*cell->parameters[CellParams::BX];
+         value += -1.0*cell->parameters[CellParams::PERBX];
       }
       if(cy > Parameters::ymax - 2.0 * dy && cy < Parameters::ymax - dy) {
-	 value += cell->parameters[CellParams::BY];
+         value += cell->parameters[CellParams::PERBY];
       } else if (cy < Parameters::ymin + 2.0 * dy && cy > Parameters::ymin + dy) {
-	 value += -1.0*cell->parameters[CellParams::BY];
+         value += -1.0*cell->parameters[CellParams::PERBY];
       }
       if(cz > Parameters::zmax - 2.0 * dz && cz < Parameters::zmax - dz) {
-	 value += cell->parameters[CellParams::BZ];
+         value += cell->parameters[CellParams::PERBZ];
       } else if (cz < Parameters::zmin + 2.0 * dz && cz > Parameters::zmin + dz) {
-	 value += -1.0*cell->parameters[CellParams::BZ];
+         value += -1.0*cell->parameters[CellParams::PERBZ];
       }
       *result = value;
       
@@ -805,34 +570,6 @@ namespace DRO {
    
    bool DiagnosticFluxE::setSpatialCell(const SpatialCell* cell) {return true;}
    
-   
-   
-   // dBxdz
-   VariabledBxdz::VariabledBxdz(): DataReductionOperator() { }
-   VariabledBxdz::~VariabledBxdz() { }
-   
-   bool VariabledBxdz::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize = sizeof(Real);
-      vectorSize = 1;
-      return true;
-   }
-   
-   std::string VariabledBxdz::getName() const {return "dBxdz";}
-   
-   bool VariabledBxdz::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&value);
-      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VariabledBxdz::setSpatialCell(const SpatialCell* cell) {
-      value = cell->derivatives[fieldsolver::dBxdz];
-      return true;
-   }
-   
-   
-   
    // YK maximum value of the distribution function
    MaxDistributionFunction::MaxDistributionFunction(): DataReductionOperator() { }
    MaxDistributionFunction::~MaxDistributionFunction() { }
@@ -850,10 +587,10 @@ namespace DRO {
    bool MaxDistributionFunction::reduceData(const SpatialCell* cell,Real* buffer) {
       const Real HALF = 0.5;
       
-#pragma omp parallel 
+      #pragma omp parallel 
       {
          Real threadMax = std::numeric_limits<Real>::min();
-#pragma omp for
+         #pragma omp for
          for(uint n=0; n<cell->number_of_blocks; n++) {
             unsigned int blockId = cell->velocity_block_list[n];
             const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
@@ -864,7 +601,7 @@ namespace DRO {
                      threadMax = max(block->data[celli], threadMax);
                   }
          }
-#pragma omp critical
+         #pragma omp critical
          {
             maxF = max(threadMax, maxF);
          }
@@ -879,7 +616,7 @@ namespace DRO {
       reduceData(cell,&dummy);
       const char* ptr = reinterpret_cast<const char*>(&dummy);
       for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
+                                                return true;
    }
    
    bool MaxDistributionFunction::setSpatialCell(const SpatialCell* cell) {
@@ -916,7 +653,7 @@ namespace DRO {
                   for (uint i=0; i<WID; ++i) {
                      const int celli=k*WID*WID+j*WID+i;
                      threadMin = min(block->data[celli], threadMin);
-                     }
+                  }
          }
          #pragma omp critical
          {
@@ -933,11 +670,13 @@ namespace DRO {
       reduceData(cell,&dummy);
       const char* ptr = reinterpret_cast<const char*>(&dummy);
       for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
-      return true;
+                                                return true;
    }
    
    bool MinDistributionFunction::setSpatialCell(const SpatialCell* cell) {
       return true;
+
    }
+
    
 } // namespace DRO

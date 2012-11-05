@@ -53,17 +53,18 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "limiters.h"
 #include "../project.h"
 #include "phiprof.hpp"
+#include "sysboundary/sysboundary.h"
+#include "sysboundary/sysboundarycondition.h"
 
 using namespace std;
 using namespace fieldsolver;
 
 #include <stdint.h>
-typedef uint64_t CellID;
 
 static creal EPS = 1.0e-30;
 
-// TODO why this?
-// static set<CellID> ghostCells;
+//due to leapfrog this is hardcoded
+static Real ALPHA = 0.5;
 
 static map<CellID,uint> sysBoundaryFlags;
 /*!< Boundary status flags for all cells on this process. Here "boundary cell" 
@@ -113,14 +114,17 @@ const Real TWELWTH = 1.0/12.0;
 const Real TWO     = 2.0;
 const Real ZERO    = 0.0;
 
-/*! Steps in the Runge-Kutta methods */
-enum {RK_ORDER1,     	/*!< First order method, one step (and initialisation) */
-      RK_ORDER2_STEP1,	/*!< Two-step second order method, first step */
-      RK_ORDER2_STEP2	/*!< Two-step second order method, second step */
-};
-
-void calculateDerivativesSimple(dccrg::Dccrg<SpatialCell>& mpiGrid,const vector<CellID>& localCells, cint& RKCase);
-void calculateUpwindedElectricFieldSimple(dccrg::Dccrg<SpatialCell>& mpiGrid,const vector<CellID>& localCells, cint& RKCase);
+void calculateDerivativesSimple(dccrg::Dccrg<SpatialCell>& mpiGrid,
+                                    SysBoundary& sysBoundaries,
+                                    const vector<CellID>& localCells,
+                                    cint& RKCase);
+void calculateBVOLDerivativesSimple(dccrg::Dccrg<SpatialCell>& mpiGrid,
+                                    SysBoundary& sysBoundaries,
+                                    const vector<CellID>& localCells);
+void calculateUpwindedElectricFieldSimple(dccrg::Dccrg<SpatialCell>& mpiGrid,
+                                          SysBoundary& sysBoundaries,
+                                          const vector<CellID>& localCells,
+                                          cint& RKCase);
 
 
 /*! \brief Calculate the neighbour number.
@@ -259,6 +263,7 @@ static void calculateSysBoundaryFlags(
          if (i == 0 && (j == 0 && k == 0)) continue;
          const CellID nbr = getNeighbourID(mpiGrid, cellID, 2 + i, 2 + j, 2 + k);
          if (nbr == INVALID_CELLID) continue;
+         if (mpiGrid[nbr]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
          sysBoundaryFlag = sysBoundaryFlag | (1 << calcNbrNumber(1+i,1+j,1+k));
       }
       sysBoundaryFlags[cellID] = sysBoundaryFlag;
@@ -280,7 +285,7 @@ Real divideIfNonZero(creal rhoV, creal rho) {
 
 /*! \brief Low-level spatial derivatives calculation.
  * 
- * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in project.h. Uses RHO, RHOV[XYZ] and B[XYZ] in the first-order time accuracy method and in the second step of the second-order method, and RHO1, RHOV[XYZ]1 and B[XYZ]1 in the first step of the second-order method.
+ * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in project.h. Uses RHO, RHOV[XYZ] and B[XYZ] in the first-order time accuracy method and in the second step of the second-order method, and RHO_DT2, RHOV[XYZ]1 and B[XYZ]1 in the first step of the second-order method.
  * \param cellID Index of the cell to process
  * \param mpiGrid Grid
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
@@ -288,6 +293,7 @@ Real divideIfNonZero(creal rhoV, creal rho) {
 static void calculateDerivatives(
    const CellID& cellID,
    dccrg::Dccrg<SpatialCell>& mpiGrid,
+   SysBoundary& sysBoundaries,
    cint& RKCase
 ) {
    namespace cp = CellParams;
@@ -306,7 +312,7 @@ static void calculateDerivatives(
    
    CellID leftNbrID,rghtNbrID;
    creal* left = NULL;
-   creal* cent = mpiGrid[cellID   ]->parameters;   
+   creal* cent = mpiGrid[cellID   ]->parameters;
    #ifdef DEBUG_SOLVERS
    if (cent[cp::RHO] <= 0) {
       std::cerr << __FILE__ << ":" << __LINE__
@@ -316,8 +322,10 @@ static void calculateDerivatives(
    }
    #endif
    creal* rght = NULL;
+   
    // Calculate x-derivatives (is not TVD for AMR mesh):
-   if ((existingCells & CALCULATE_DX) == CALCULATE_DX) {
+   if (((existingCells & CALCULATE_DX) == CALCULATE_DX) &&
+       (mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
       leftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2  ,2  );
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2  ,2  );
       left = mpiGrid[leftNbrID]->parameters;
@@ -338,7 +346,7 @@ static void calculateDerivatives(
          abort();
       }
       #endif
-
+      
       if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
          array[fs::drhodx] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
          array[fs::dVxdx]  = limiter(divideIfNonZero(left[cp::RHOVX], left[cp::RHO]),
@@ -350,29 +358,35 @@ static void calculateDerivatives(
          array[fs::dVzdx]  = limiter(divideIfNonZero(left[cp::RHOVZ], left[cp::RHO]),
                                      divideIfNonZero(cent[cp::RHOVZ], cent[cp::RHO]),
                                      divideIfNonZero(rght[cp::RHOVZ], rght[cp::RHO]));
-         array[fs::dBydx]  = limiter(left[cp::BY], cent[cp::BY], rght[cp::BY]);
-         array[fs::dBzdx]  = limiter(left[cp::BZ], cent[cp::BZ], rght[cp::BZ]);
+         array[fs::dBydx]  = limiter(left[cp::BGBY]+left[cp::PERBY],cent[cp::BGBY]+cent[cp::PERBY],rght[cp::BGBY]+rght[cp::PERBY]);
+         array[fs::dBzdx]  = limiter(left[cp::BGBZ]+left[cp::PERBZ],cent[cp::BGBZ]+cent[cp::PERBZ],rght[cp::BGBZ]+rght[cp::PERBZ]);
       }
       if (RKCase == RK_ORDER2_STEP1) {
-         array[fs::drhodx] = limiter(left[cp::RHO1],cent[cp::RHO1],rght[cp::RHO1]);
-         array[fs::dVxdx]  = limiter(divideIfNonZero(left[cp::RHOVX1], left[cp::RHO1]),
-                                     divideIfNonZero(cent[cp::RHOVX1], cent[cp::RHO1]),
-                                     divideIfNonZero(rght[cp::RHOVX1], rght[cp::RHO1]));
-         array[fs::dVydx]  = limiter(divideIfNonZero(left[cp::RHOVY1], left[cp::RHO1]),
-                                     divideIfNonZero(cent[cp::RHOVY1], cent[cp::RHO1]),
-                                     divideIfNonZero(rght[cp::RHOVY1], rght[cp::RHO1]));
-         array[fs::dVzdx]  = limiter(divideIfNonZero(left[cp::RHOVZ1], left[cp::RHO1]),
-                                     divideIfNonZero(cent[cp::RHOVZ1], cent[cp::RHO1]),
-                                     divideIfNonZero(rght[cp::RHOVZ1], rght[cp::RHO1]));
-         array[fs::dBydx]  = limiter(left[cp::BY1], cent[cp::BY1], rght[cp::BY1]);
-         array[fs::dBzdx]  = limiter(left[cp::BZ1], cent[cp::BZ1], rght[cp::BZ1]);
+         array[fs::drhodx] = limiter(left[cp::RHO_DT2],cent[cp::RHO_DT2],rght[cp::RHO_DT2]);
+         array[fs::dVxdx]  = limiter(divideIfNonZero(left[cp::RHOVX_DT2], left[cp::RHO_DT2]),
+                                     divideIfNonZero(cent[cp::RHOVX_DT2], cent[cp::RHO_DT2]),
+                                     divideIfNonZero(rght[cp::RHOVX_DT2], rght[cp::RHO_DT2]));
+         array[fs::dVydx]  = limiter(divideIfNonZero(left[cp::RHOVY_DT2], left[cp::RHO_DT2]),
+                                     divideIfNonZero(cent[cp::RHOVY_DT2], cent[cp::RHO_DT2]),
+                                     divideIfNonZero(rght[cp::RHOVY_DT2], rght[cp::RHO_DT2]));
+         array[fs::dVzdx]  = limiter(divideIfNonZero(left[cp::RHOVZ_DT2], left[cp::RHO_DT2]),
+                                     divideIfNonZero(cent[cp::RHOVZ_DT2], cent[cp::RHO_DT2]),
+                                     divideIfNonZero(rght[cp::RHOVZ_DT2], rght[cp::RHO_DT2]));
+         array[fs::dBydx]  = limiter(left[cp::BGBY]+left[cp::PERBY_DT2],cent[cp::BGBY]+cent[cp::PERBY_DT2],rght[cp::BGBY]+rght[cp::PERBY_DT2]);
+         array[fs::dBzdx]  = limiter(left[cp::BGBZ]+left[cp::PERBZ_DT2],cent[cp::BGBZ]+cent[cp::PERBZ_DT2],rght[cp::BGBZ]+rght[cp::PERBZ_DT2]);
       }
    } else {
-      fieldSolverBoundaryCondDerivX(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid);
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         SBC::SysBoundaryCondition::setCellDerivativesToZero(mpiGrid, cellID, 0);
+      } else {
+         sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)
+            ->fieldSolverBoundaryCondDerivatives(mpiGrid, cellID, 0);
+      }
    }
    
    // Calculate y-derivatives (is not TVD for AMR mesh):
-   if ((existingCells & CALCULATE_DY) == CALCULATE_DY) {
+   if (((existingCells & CALCULATE_DY) == CALCULATE_DY) &&
+      (mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
       leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2-1,2  );
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2+1,2  );
 
@@ -396,7 +410,7 @@ static void calculateDerivatives(
          abort();
       }
       #endif
-
+      
       if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
          array[fs::drhody] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
          array[fs::dVxdy]  = limiter(divideIfNonZero(left[cp::RHOVX], left[cp::RHO]),
@@ -408,32 +422,39 @@ static void calculateDerivatives(
          array[fs::dVzdy]  = limiter(divideIfNonZero(left[cp::RHOVZ], left[cp::RHO]),
                                      divideIfNonZero(cent[cp::RHOVZ], cent[cp::RHO]),
                                      divideIfNonZero(rght[cp::RHOVZ], rght[cp::RHO]));
-         array[fs::dBxdy]  = limiter(left[cp::BX], cent[cp::BX], rght[cp::BX]);
-         array[fs::dBzdy]  = limiter(left[cp::BZ], cent[cp::BZ], rght[cp::BZ]);
+         array[fs::dBxdy]  = limiter(left[cp::BGBX]+left[cp::PERBX],cent[cp::BGBX]+cent[cp::PERBX],rght[cp::BGBX]+rght[cp::PERBX]);
+         array[fs::dBzdy]  = limiter(left[cp::BGBZ]+left[cp::PERBZ],cent[cp::BGBZ]+cent[cp::PERBZ],rght[cp::BGBZ]+rght[cp::PERBZ]);
       }
       if (RKCase == RK_ORDER2_STEP1) {
-         array[fs::drhody] = limiter(left[cp::RHO1],cent[cp::RHO1],rght[cp::RHO1]);
-         array[fs::dVxdy]  = limiter(divideIfNonZero(left[cp::RHOVX1], left[cp::RHO1]),
-                                     divideIfNonZero(cent[cp::RHOVX1], cent[cp::RHO1]),
-                                     divideIfNonZero(rght[cp::RHOVX1], rght[cp::RHO1]));
-         array[fs::dVydy]  = limiter(divideIfNonZero(left[cp::RHOVY1], left[cp::RHO1]),
-                                     divideIfNonZero(cent[cp::RHOVY1], cent[cp::RHO1]),
-                                     divideIfNonZero(rght[cp::RHOVY1], rght[cp::RHO1]));
-         array[fs::dVzdy]  = limiter(divideIfNonZero(left[cp::RHOVZ1], left[cp::RHO1]),
-                                     divideIfNonZero(cent[cp::RHOVZ1], cent[cp::RHO1]),
-                                     divideIfNonZero(rght[cp::RHOVZ1], rght[cp::RHO1]));
-         array[fs::dBxdy]  = limiter(left[cp::BX1], cent[cp::BX1], rght[cp::BX1]);
-         array[fs::dBzdy]  = limiter(left[cp::BZ1], cent[cp::BZ1], rght[cp::BZ1]);
+         array[fs::drhody] = limiter(left[cp::RHO_DT2],cent[cp::RHO_DT2],rght[cp::RHO_DT2]);
+         array[fs::dVxdy]  = limiter(divideIfNonZero(left[cp::RHOVX_DT2], left[cp::RHO_DT2]),
+                                     divideIfNonZero(cent[cp::RHOVX_DT2], cent[cp::RHO_DT2]),
+                                     divideIfNonZero(rght[cp::RHOVX_DT2], rght[cp::RHO_DT2]));
+         array[fs::dVydy]  = limiter(divideIfNonZero(left[cp::RHOVY_DT2], left[cp::RHO_DT2]),
+                                     divideIfNonZero(cent[cp::RHOVY_DT2], cent[cp::RHO_DT2]),
+                                     divideIfNonZero(rght[cp::RHOVY_DT2], rght[cp::RHO_DT2]));
+         array[fs::dVzdy]  = limiter(divideIfNonZero(left[cp::RHOVZ_DT2], left[cp::RHO_DT2]),
+                                     divideIfNonZero(cent[cp::RHOVZ_DT2], cent[cp::RHO_DT2]),
+                                     divideIfNonZero(rght[cp::RHOVZ_DT2], rght[cp::RHO_DT2]));
+         array[fs::dBxdy]  = limiter(left[cp::BGBX]+left[cp::PERBX_DT2],cent[cp::BGBX]+cent[cp::PERBX_DT2],rght[cp::BGBX]+rght[cp::PERBX_DT2]);
+         array[fs::dBzdy]  = limiter(left[cp::BGBZ]+left[cp::PERBZ_DT2],cent[cp::BGBZ]+cent[cp::PERBZ_DT2],rght[cp::BGBZ]+rght[cp::PERBZ_DT2]);
       }
    } else {
-      fieldSolverBoundaryCondDerivY(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid);
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         SBC::SysBoundaryCondition::setCellDerivativesToZero(mpiGrid, cellID, 1);
+      } else {
+         sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)
+         ->fieldSolverBoundaryCondDerivatives(mpiGrid, cellID, 1);
+      }
    }
    
    // Calculate z-derivatives (is not TVD for AMR mesh):
-   if ((existingCells & CALCULATE_DZ) == CALCULATE_DZ) {
+   if (((existingCells & CALCULATE_DZ) == CALCULATE_DZ) &&
+      (mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
       leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2-1);
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2+1);
       left = mpiGrid[leftNbrID]->parameters;
+      
       #ifdef DEBUG_SOLVERS
       if (left[cp::RHO] <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
@@ -451,7 +472,7 @@ static void calculateDerivatives(
          abort();
       }
       #endif
-
+      
       if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
          array[fs::drhodz] = limiter(left[cp::RHO],cent[cp::RHO],rght[cp::RHO]);
          array[fs::dVxdz]  = limiter(divideIfNonZero(left[cp::RHOVX], left[cp::RHO]),
@@ -463,25 +484,30 @@ static void calculateDerivatives(
          array[fs::dVzdz]  = limiter(divideIfNonZero(left[cp::RHOVZ], left[cp::RHO]),
                                      divideIfNonZero(cent[cp::RHOVZ], cent[cp::RHO]),
                                      divideIfNonZero(rght[cp::RHOVZ], rght[cp::RHO]));
-         array[fs::dBxdz]  = limiter(left[cp::BX], cent[cp::BX], rght[cp::BX]);
-         array[fs::dBydz]  = limiter(left[cp::BY], cent[cp::BY], rght[cp::BY]);
+         array[fs::dBxdz]  = limiter(left[cp::BGBX]+left[cp::PERBX],cent[cp::BGBX]+cent[cp::PERBX],rght[cp::BGBX]+rght[cp::PERBX]);
+         array[fs::dBydz]  = limiter(left[cp::BGBY]+left[cp::PERBY],cent[cp::BGBY]+cent[cp::PERBY],rght[cp::BGBY]+rght[cp::PERBY]);
       }
       if (RKCase == RK_ORDER2_STEP1) {
-         array[fs::drhodz] = limiter(left[cp::RHO1],cent[cp::RHO1],rght[cp::RHO1]);
-         array[fs::dVxdz]  = limiter(divideIfNonZero(left[cp::RHOVX1], left[cp::RHO1]),
-                                     divideIfNonZero(cent[cp::RHOVX1], cent[cp::RHO1]),
-                                     divideIfNonZero(rght[cp::RHOVX1], rght[cp::RHO1]));
-         array[fs::dVydz]  = limiter(divideIfNonZero(left[cp::RHOVY1], left[cp::RHO1]),
-                                     divideIfNonZero(cent[cp::RHOVY1], cent[cp::RHO1]),
-                                     divideIfNonZero(rght[cp::RHOVY1], rght[cp::RHO1]));
-         array[fs::dVzdz]  = limiter(divideIfNonZero(left[cp::RHOVZ1], left[cp::RHO1]),
-                                     divideIfNonZero(cent[cp::RHOVZ1], cent[cp::RHO1]),
-                                     divideIfNonZero(rght[cp::RHOVZ1], rght[cp::RHO1]));
-         array[fs::dBxdz]  = limiter(left[cp::BX1], cent[cp::BX1], rght[cp::BX1]);
-         array[fs::dBydz]  = limiter(left[cp::BY1], cent[cp::BY1], rght[cp::BY1]);
+         array[fs::drhodz] = limiter(left[cp::RHO_DT2],cent[cp::RHO_DT2],rght[cp::RHO_DT2]);
+         array[fs::dVxdz]  = limiter(divideIfNonZero(left[cp::RHOVX_DT2], left[cp::RHO_DT2]),
+                                     divideIfNonZero(cent[cp::RHOVX_DT2], cent[cp::RHO_DT2]),
+                                     divideIfNonZero(rght[cp::RHOVX_DT2], rght[cp::RHO_DT2]));
+         array[fs::dVydz]  = limiter(divideIfNonZero(left[cp::RHOVY_DT2], left[cp::RHO_DT2]),
+                                     divideIfNonZero(cent[cp::RHOVY_DT2], cent[cp::RHO_DT2]),
+                                     divideIfNonZero(rght[cp::RHOVY_DT2], rght[cp::RHO_DT2]));
+         array[fs::dVzdz]  = limiter(divideIfNonZero(left[cp::RHOVZ_DT2], left[cp::RHO_DT2]),
+                                     divideIfNonZero(cent[cp::RHOVZ_DT2], cent[cp::RHO_DT2]),
+                                     divideIfNonZero(rght[cp::RHOVZ_DT2], rght[cp::RHO_DT2]));
+         array[fs::dBxdz]  = limiter(left[cp::BGBX]+left[cp::PERBX_DT2],cent[cp::BGBX]+cent[cp::PERBX_DT2],rght[cp::BGBX]+rght[cp::PERBX_DT2]);
+         array[fs::dBydz]  = limiter(left[cp::BGBY]+left[cp::PERBY_DT2],cent[cp::BGBY]+cent[cp::PERBY_DT2],rght[cp::BGBY]+rght[cp::PERBY_DT2]);
       }
    } else {
-      fieldSolverBoundaryCondDerivZ(cellID,array,existingCells,nonExistingCells,derivatives,mpiGrid);
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         SBC::SysBoundaryCondition::setCellDerivativesToZero(mpiGrid, cellID, 2);
+      } else {
+         sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)
+         ->fieldSolverBoundaryCondDerivatives(mpiGrid, cellID, 2);
+      }
    }
 }
 
@@ -489,7 +515,7 @@ static void calculateDerivatives(
  * 
  * Computes the magnetosonic speed in the YZ plane. Used in upwinding the electric field X component.
  * 
- * Selects the RHO/RHO1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
+ * Selects the RHO/RHO_DT2 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
  * 
  * If fields are not propagated, rewturns 0.0 as there is no information propagating.
  * 
@@ -501,13 +527,13 @@ template<typename REAL> REAL calculateFastMSspeedYZ(const REAL* cp, const REAL* 
    namespace pc = physicalconstants;
    REAL A_0, A_X, rho;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      A_0  = HALF*(nbr_cp[CellParams::BX] + nbr_cp[CellParams::BX0] + cp[CellParams::BX] + cp[CellParams::BX0]);
-      A_X  = (nbr_cp[CellParams::BX] + nbr_cp[CellParams::BX0]) - (cp[CellParams::BX] + cp[CellParams::BX0]);
+      A_0  = HALF*(nbr_cp[CellParams::PERBX] + nbr_cp[CellParams::BGBX] + cp[CellParams::PERBX] + cp[CellParams::BGBX]);
+      A_X  = (nbr_cp[CellParams::PERBX] + nbr_cp[CellParams::BGBX]) - (cp[CellParams::PERBX] + cp[CellParams::BGBX]);
       rho = Parameters::m*(cp[CellParams::RHO] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz]);
    } else { // RKCase == RK_ORDER2_STEP1
-      A_0  = HALF*(nbr_cp[CellParams::BX1] + nbr_cp[CellParams::BX0] + cp[CellParams::BX1] + cp[CellParams::BX0]);
-      A_X  = (nbr_cp[CellParams::BX1] + nbr_cp[CellParams::BX0]) - (cp[CellParams::BX1] + cp[CellParams::BX0]);
-      rho = Parameters::m*(cp[CellParams::RHO1] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz]);
+      A_0  = HALF*(nbr_cp[CellParams::PERBX_DT2] + nbr_cp[CellParams::BGBX] + cp[CellParams::PERBX_DT2] + cp[CellParams::BGBX]);
+      A_X  = (nbr_cp[CellParams::PERBX_DT2] + nbr_cp[CellParams::BGBX]) - (cp[CellParams::PERBX_DT2] + cp[CellParams::BGBX]);
+      rho = Parameters::m*(cp[CellParams::RHO_DT2] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz]);
    }
    const REAL A_Y  = nbr_derivs[fs::dBxdy]  + derivs[fs::dBxdy];
    const REAL A_XY = nbr_derivs[fs::dBxdy]  - derivs[fs::dBxdy];
@@ -522,7 +548,7 @@ template<typename REAL> REAL calculateFastMSspeedYZ(const REAL* cp, const REAL* 
    if(!Parameters::propagateField) {
       return 0.0;
    } else {
-      return sqrt((Bx2+By2+Bz2) / (pc::MU_0 * rho));
+      return sqrt(divideIfNonZero(Bx2+By2+Bz2, pc::MU_0*rho));
    }
 }
 
@@ -530,7 +556,7 @@ template<typename REAL> REAL calculateFastMSspeedYZ(const REAL* cp, const REAL* 
  * 
  * Computes the magnetosonic speed in the XZ plane. Used in upwinding the electric field Y component.
  * 
- * Selects the RHO/RHO1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
+ * Selects the RHO/RHO_DT2 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
  * 
  * If fields are not propagated, rewturns 0.0 as there is no information propagating.
  * 
@@ -542,13 +568,13 @@ template<typename REAL> REAL calculateFastMSspeedXZ(const REAL* cp, const REAL* 
    namespace pc = physicalconstants;
    REAL B_0, B_Y, rho;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      B_0  = HALF*(nbr_cp[CellParams::BY] + nbr_cp[CellParams::BY0] + cp[CellParams::BY] + cp[CellParams::BY0]);
-      B_Y  = (nbr_cp[CellParams::BY] + nbr_cp[CellParams::BY0]) - (cp[CellParams::BY] + cp[CellParams::BY0]);
+      B_0  = HALF*(nbr_cp[CellParams::PERBY] + nbr_cp[CellParams::BGBY] + cp[CellParams::PERBY] + cp[CellParams::BGBY]);
+      B_Y  = (nbr_cp[CellParams::PERBY] + nbr_cp[CellParams::BGBY]) - (cp[CellParams::PERBY] + cp[CellParams::BGBY]);
       rho = Parameters::m*(cp[CellParams::RHO] + xdir*HALF*derivs[fs::drhodx] + zdir*HALF*derivs[fs::drhodz]);
    } else { // RKCase == RK_ORDER2_STEP1
-      B_0  = HALF*(nbr_cp[CellParams::BY1] + nbr_cp[CellParams::BY0] + cp[CellParams::BY1] + cp[CellParams::BY0]);
-      B_Y  = (nbr_cp[CellParams::BY1] + nbr_cp[CellParams::BY0]) - (cp[CellParams::BY1] + cp[CellParams::BY0]);
-      rho = Parameters::m*(cp[CellParams::RHO1] + xdir*HALF*derivs[fs::drhodx] + zdir*HALF*derivs[fs::drhodz]);
+      B_0  = HALF*(nbr_cp[CellParams::PERBY_DT2] + nbr_cp[CellParams::BGBY] + cp[CellParams::PERBY_DT2] + cp[CellParams::BGBY]);
+      B_Y  = (nbr_cp[CellParams::PERBY_DT2] + nbr_cp[CellParams::BGBY]) - (cp[CellParams::PERBY_DT2] + cp[CellParams::BGBY]);
+      rho = Parameters::m*(cp[CellParams::RHO_DT2] + xdir*HALF*derivs[fs::drhodx] + zdir*HALF*derivs[fs::drhodz]);
    }
    const REAL B_X  = nbr_derivs[fs::dBydx]  + derivs[fs::dBydx];
    const REAL B_XY = nbr_derivs[fs::dBydx]  - derivs[fs::dBydx];
@@ -563,7 +589,7 @@ template<typename REAL> REAL calculateFastMSspeedXZ(const REAL* cp, const REAL* 
    if(!Parameters::propagateField) {
       return 0.0;
    } else {
-      return sqrt((Bx2+By2+Bz2) / (pc::MU_0 * rho));
+      return sqrt(divideIfNonZero(Bx2+By2+Bz2, pc::MU_0*rho));
    }
 }
 
@@ -571,7 +597,7 @@ template<typename REAL> REAL calculateFastMSspeedXZ(const REAL* cp, const REAL* 
  * 
  * Computes the magnetosonic speed in the XY plane. Used in upwinding the electric field Z component.
  * 
- * Selects the RHO/RHO1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
+ * Selects the RHO/RHO_DT2 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
  * 
  * If fields are not propagated, rewturns 0.0 as there is no information propagating.
  * 
@@ -583,13 +609,13 @@ template<typename REAL> REAL calculateFastMSspeedXY(const REAL* cp, const REAL* 
    namespace pc = physicalconstants;
    REAL C_0, C_Z, rho;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      C_0  = HALF*(nbr_cp[CellParams::BZ] + nbr_cp[CellParams::BZ0] + cp[CellParams::BZ] + cp[CellParams::BZ0]);
-      C_Z  = (nbr_cp[CellParams::BZ] + nbr_cp[CellParams::BZ0]) - (cp[CellParams::BZ] + cp[CellParams::BZ0]);
+      C_0  = HALF*(nbr_cp[CellParams::PERBZ] + nbr_cp[CellParams::BGBZ] + cp[CellParams::PERBZ] + cp[CellParams::BGBZ]);
+      C_Z  = (nbr_cp[CellParams::PERBZ] + nbr_cp[CellParams::BGBZ]) - (cp[CellParams::PERBZ] + cp[CellParams::BGBZ]);
       rho = Parameters::m*(cp[CellParams::RHO] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody]);
    } else { // RKCase == RK_ORDER2_STEP1
-      C_0  = HALF*(nbr_cp[CellParams::BZ1] + nbr_cp[CellParams::BZ0] + cp[CellParams::BZ1] + cp[CellParams::BZ0]);
-      C_Z  = (nbr_cp[CellParams::BZ1] + nbr_cp[CellParams::BZ0]) - (cp[CellParams::BZ1] + cp[CellParams::BZ0]);
-      rho = Parameters::m*(cp[CellParams::RHO1] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody]);
+      C_0  = HALF*(nbr_cp[CellParams::PERBZ_DT2] + nbr_cp[CellParams::BGBZ] + cp[CellParams::PERBZ_DT2] + cp[CellParams::BGBZ]);
+      C_Z  = (nbr_cp[CellParams::PERBZ_DT2] + nbr_cp[CellParams::BGBZ]) - (cp[CellParams::PERBZ_DT2] + cp[CellParams::BGBZ]);
+      rho = Parameters::m*(cp[CellParams::RHO_DT2] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody]);
    }
    const REAL C_X  = nbr_derivs[fs::dBzdx]  + derivs[fs::dBzdx];
    const REAL C_XZ = nbr_derivs[fs::dBzdx]  - derivs[fs::dBzdx];
@@ -604,21 +630,21 @@ template<typename REAL> REAL calculateFastMSspeedXY(const REAL* cp, const REAL* 
    if(!Parameters::propagateField) {
       return 0.0;
    } else {
-      return sqrt((Bx2+By2+Bz2) / (pc::MU_0 * rho));
+      return sqrt(divideIfNonZero(Bx2+By2+Bz2, pc::MU_0*rho));
    }
 }
 
 /*! \brief Low-level electric field propagation function.
  * 
  * Computes the upwinded electric field X component along the cell's corresponding edge as the cross product of B and V in the YZ plane. Also includes the calculation of the maximally allowed time step.
- * Selects the RHO/RHO1 RHOV[XYZ]/RHOV[XYZ]1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
+ * Selects the RHO/RHO_DT2 RHOV[XYZ]/RHOV[XYZ]1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
  * \param cellID Index of the cell to process
  * \param mpiGrid Grid
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-static void calculateEdgeElectricFieldX(
-      const CellID& cellID,
+void calculateEdgeElectricFieldX(
       dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const CellID& cellID,
       cint& RKCase
 ) {
    namespace fs = fieldsolver;
@@ -652,19 +678,19 @@ static void calculateEdgeElectricFieldX(
    
    Real By_S, Bz_W, Bz_E, By_N;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      By_S = cp_SW[CellParams::BY];
-      Bz_W = cp_SW[CellParams::BZ];
-      Bz_E = cp_SE[CellParams::BZ];
-      By_N = cp_NW[CellParams::BY];
+      By_S = cp_SW[CellParams::PERBY]+cp_SW[CellParams::BGBY];
+      Bz_W = cp_SW[CellParams::PERBZ]+cp_SW[CellParams::BGBZ];
+      Bz_E = cp_SE[CellParams::PERBZ]+cp_SE[CellParams::BGBZ];
+      By_N = cp_NW[CellParams::PERBY]+cp_NW[CellParams::BGBY];
       Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY], cp_SW[CellParams::RHO]);
       Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ], cp_SW[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
-      By_S = cp_SW[CellParams::BY1];
-      Bz_W = cp_SW[CellParams::BZ1];
-      Bz_E = cp_SE[CellParams::BZ1];
-      By_N = cp_NW[CellParams::BY1];
-      Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY1], cp_SW[CellParams::RHO1]);
-      Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ1], cp_SW[CellParams::RHO1]);
+      By_S = cp_SW[CellParams::PERBY_DT2]+cp_SW[CellParams::BGBY];
+      Bz_W = cp_SW[CellParams::PERBZ_DT2]+cp_SW[CellParams::BGBZ];
+      Bz_E = cp_SE[CellParams::PERBZ_DT2]+cp_SE[CellParams::BGBZ];
+      By_N = cp_NW[CellParams::PERBY_DT2]+cp_NW[CellParams::BGBY];
+      Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY_DT2], cp_SW[CellParams::RHO_DT2]);
+      Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ_DT2], cp_SW[CellParams::RHO_DT2]);
    }
    
    creal dBydx_S = derivs_SW[fs::dBydx];
@@ -691,7 +717,7 @@ static void calculateEdgeElectricFieldX(
    #endif
    creal* const nbr_cp_SW     = mpiGrid[nbrID_SW]->parameters;
    creal* const nbr_derivs_SW = mpiGrid[nbrID_SW]->derivatives;
-   c_y = calculateFastMSspeedYZ(cp_SW,derivs_SW,nbr_cp_SW,nbr_derivs_SW,By_S,Bz_W,dBydx_S,dBydz_S,dBzdx_W,dBzdy_W,MINUS,MINUS, RKCase);
+   c_y = calculateFastMSspeedYZ(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, By_S, Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, RKCase);
    c_z = c_y;
    ay_neg   = max(ZERO,-Vy0 + c_y);
    ay_pos   = max(ZERO,+Vy0 + c_y);
@@ -703,8 +729,8 @@ static void calculateEdgeElectricFieldX(
       Vy0  = divideIfNonZero(cp_SE[CellParams::RHOVY], cp_SE[CellParams::RHO]);
       Vz0  = divideIfNonZero(cp_SE[CellParams::RHOVZ], cp_SE[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
-      Vy0  = divideIfNonZero(cp_SE[CellParams::RHOVY1], cp_SE[CellParams::RHO1]);
-      Vz0  = divideIfNonZero(cp_SE[CellParams::RHOVZ1], cp_SE[CellParams::RHO1]);
+      Vy0  = divideIfNonZero(cp_SE[CellParams::RHOVY_DT2], cp_SE[CellParams::RHO_DT2]);
+      Vz0  = divideIfNonZero(cp_SE[CellParams::RHOVZ_DT2], cp_SE[CellParams::RHO_DT2]);
    }
    
    // 1st order terms:
@@ -721,7 +747,7 @@ static void calculateEdgeElectricFieldX(
    #endif
    creal* const nbr_cp_SE     = mpiGrid[nbrID_SE]->parameters;
    creal* const nbr_derivs_SE = mpiGrid[nbrID_SE]->derivatives;
-   c_y = calculateFastMSspeedYZ(cp_SE,derivs_SE,nbr_cp_SE,nbr_derivs_SE,By_S,Bz_E,dBydx_S,dBydz_S,dBzdx_E,dBzdy_E,PLUS,MINUS, RKCase);
+   c_y = calculateFastMSspeedYZ(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, RKCase);
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
    ay_pos   = max(ay_pos,+Vy0 + c_y);
@@ -733,8 +759,8 @@ static void calculateEdgeElectricFieldX(
       Vy0  = divideIfNonZero(cp_NW[CellParams::RHOVY], cp_NW[CellParams::RHO]);
       Vz0  = divideIfNonZero(cp_NW[CellParams::RHOVZ], cp_NW[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
-      Vy0  = divideIfNonZero(cp_NW[CellParams::RHOVY1], cp_NW[CellParams::RHO1]);
-      Vz0  = divideIfNonZero(cp_NW[CellParams::RHOVZ1], cp_NW[CellParams::RHO1]);
+      Vy0  = divideIfNonZero(cp_NW[CellParams::RHOVY_DT2], cp_NW[CellParams::RHO_DT2]);
+      Vz0  = divideIfNonZero(cp_NW[CellParams::RHOVZ_DT2], cp_NW[CellParams::RHO_DT2]);
    }
    
    // 1st order terms:
@@ -751,7 +777,7 @@ static void calculateEdgeElectricFieldX(
    #endif
    creal* const nbr_cp_NW     = mpiGrid[nbrID_NW]->parameters;
    creal* const nbr_derivs_NW = mpiGrid[nbrID_NW]->derivatives;
-   c_y = calculateFastMSspeedYZ(cp_NW,derivs_NW,nbr_cp_NW,nbr_derivs_NW,By_N,Bz_W,dBydx_N,dBydz_N,dBzdx_W,dBzdy_W,MINUS,PLUS, RKCase);
+   c_y = calculateFastMSspeedYZ(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, RKCase);
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
    ay_pos   = max(ay_pos,+Vy0 + c_y);
@@ -763,8 +789,8 @@ static void calculateEdgeElectricFieldX(
       Vy0 = divideIfNonZero(cp_NE[CellParams::RHOVY], cp_NE[CellParams::RHO]);
       Vz0 = divideIfNonZero(cp_NE[CellParams::RHOVZ], cp_NE[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
-      Vy0 = divideIfNonZero(cp_NE[CellParams::RHOVY1], cp_NE[CellParams::RHO1]);
-      Vz0 = divideIfNonZero(cp_NE[CellParams::RHOVZ1], cp_NE[CellParams::RHO1]);
+      Vy0 = divideIfNonZero(cp_NE[CellParams::RHOVY_DT2], cp_NE[CellParams::RHO_DT2]);
+      Vz0 = divideIfNonZero(cp_NE[CellParams::RHOVZ_DT2], cp_NE[CellParams::RHO_DT2]);
    }
    
    // 1st order terms:
@@ -781,7 +807,7 @@ static void calculateEdgeElectricFieldX(
    #endif
    creal* const nbr_cp_NE     = mpiGrid[nbrID_NE]->parameters;
    creal* const nbr_derivs_NE = mpiGrid[nbrID_NE]->derivatives;
-   c_y = calculateFastMSspeedYZ(cp_NE,derivs_NE,nbr_cp_NE,nbr_derivs_NE,By_N,Bz_E,dBydx_N,dBydz_N,dBzdx_E,dBzdy_E,PLUS,PLUS, RKCase);
+   c_y = calculateFastMSspeedYZ(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, RKCase);
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
    ay_pos   = max(ay_pos,+Vy0 + c_y);
@@ -802,43 +828,45 @@ static void calculateEdgeElectricFieldX(
       cp_SW[CellParams::EX] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bz_W-HALF*dBzdy_W) - (Bz_E+HALF*dBzdy_E));
       #endif
    } else { // RKCase == RK_ORDER2_STEP1
-      cp_SW[CellParams::EX1]  = ay_pos*az_pos*Ex_NE + ay_pos*az_neg*Ex_SE + ay_neg*az_pos*Ex_NW + ay_neg*az_neg*Ex_SW;
-      cp_SW[CellParams::EX1] /= ((ay_pos+ay_neg)*(az_pos+az_neg)+EPS);
+      cp_SW[CellParams::EX_DT2]  = ay_pos*az_pos*Ex_NE + ay_pos*az_neg*Ex_SE + ay_neg*az_pos*Ex_NW + ay_neg*az_neg*Ex_SW;
+      cp_SW[CellParams::EX_DT2] /= ((ay_pos+ay_neg)*(az_pos+az_neg)+EPS);
       #ifdef FS_1ST_ORDER_SPACE
       // 1st order diffusive terms:
-      cp_SW[CellParams::EX1] -= az_pos*az_neg/(az_pos+az_neg+EPS)*(By_S-By_N);
-      cp_SW[CellParams::EX1] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bz_W-Bz_E);
+      cp_SW[CellParams::EX_DT2] -= az_pos*az_neg/(az_pos+az_neg+EPS)*(By_S-By_N);
+      cp_SW[CellParams::EX_DT2] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bz_W-Bz_E);
       #else
       // 2nd order diffusive terms
-      cp_SW[CellParams::EX1] -= az_pos*az_neg/(az_pos+az_neg+EPS)*((By_S-HALF*dBydz_S) - (By_N+HALF*dBydz_N));
-      cp_SW[CellParams::EX1] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bz_W-HALF*dBzdy_W) - (Bz_E+HALF*dBzdy_E));
+      cp_SW[CellParams::EX_DT2] -= az_pos*az_neg/(az_pos+az_neg+EPS)*((By_S-HALF*dBydz_S) - (By_N+HALF*dBydz_N));
+      cp_SW[CellParams::EX_DT2] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bz_W-HALF*dBzdy_W) - (Bz_E+HALF*dBzdy_E));
       #endif
    }
    
-   //compute maximum timestep for fieldsolver in this cell (CFL=1)      
-   Real max_a=ZERO;
-   max_a=max(fabs(az_neg),max_a); 
-   max_a=max(fabs(az_pos),max_a);
-   max_a=max(fabs(ay_neg),max_a);
-   max_a=max(fabs(ay_pos),max_a);
-   Real min_dx=std::numeric_limits<Real>::max();
-   min_dx=min(min_dx,cp_SW[CellParams::DY]);
-   min_dx=min(min_dx,cp_SW[CellParams::DZ]);
-   //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
-   if(max_a!=ZERO) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
+   if((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
+      //compute maximum timestep for fieldsolver in this cell (CFL=1)      
+      Real max_a=ZERO;
+      max_a=max(fabs(az_neg),max_a); 
+      max_a=max(fabs(az_pos),max_a);
+      max_a=max(fabs(ay_neg),max_a);
+      max_a=max(fabs(ay_pos),max_a);
+      Real min_dx=std::numeric_limits<Real>::max();
+      min_dx=min(min_dx,cp_SW[CellParams::DY]);
+      min_dx=min(min_dx,cp_SW[CellParams::DZ]);
+      //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
+      if(max_a!=ZERO) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
+   }
 }
 
 /*! \brief Low-level electric field propagation function.
  * 
  * Computes the upwinded electric field Y component along the cell's corresponding edge as the cross product of B and V in the XZ plane. Also includes the calculation of the maximally allowed time step.
- * Selects the RHO/RHO1 RHOV[XYZ]/RHOV[XYZ]1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
+ * Selects the RHO/RHO_DT2 RHOV[XYZ]/RHOV[XYZ]1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
  * \param cellID Index of the cell to process
  * \param mpiGrid Grid
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-static void calculateEdgeElectricFieldY(
-   const CellID& cellID,
+void calculateEdgeElectricFieldY(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
+   const CellID& cellID,
    cint& RKCase
 ) {
    // An edge has four neighbouring spatial cells. Calculate
@@ -873,19 +901,19 @@ static void calculateEdgeElectricFieldY(
    // Fetch required plasma parameters:
    Real Bz_S, Bx_W, Bx_E, Bz_N;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Bz_S = cp_SW[CellParams::BZ];
-      Bx_W = cp_SW[CellParams::BX];
-      Bx_E = cp_SE[CellParams::BX];
-      Bz_N = cp_NW[CellParams::BZ];
+      Bz_S = cp_SW[CellParams::PERBZ]+cp_SW[CellParams::BGBZ];
+      Bx_W = cp_SW[CellParams::PERBX]+cp_SW[CellParams::BGBX];
+      Bx_E = cp_SE[CellParams::PERBX]+cp_SE[CellParams::BGBX];
+      Bz_N = cp_NW[CellParams::PERBZ]+cp_NW[CellParams::BGBZ];
       Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX], cp_SW[CellParams::RHO]);
       Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ], cp_SW[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
-      Bz_S = cp_SW[CellParams::BZ1];
-      Bx_W = cp_SW[CellParams::BX1];
-      Bx_E = cp_SE[CellParams::BX1];
-      Bz_N = cp_NW[CellParams::BZ1];
-      Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX1], cp_SW[CellParams::RHO1]);
-      Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ1], cp_SW[CellParams::RHO1]);
+      Bz_S = cp_SW[CellParams::PERBZ_DT2]+cp_SW[CellParams::BGBZ];
+      Bx_W = cp_SW[CellParams::PERBX_DT2]+cp_SW[CellParams::BGBX];
+      Bx_E = cp_SE[CellParams::PERBX_DT2]+cp_SE[CellParams::BGBX];
+      Bz_N = cp_NW[CellParams::PERBZ_DT2]+cp_NW[CellParams::BGBZ];
+      Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX_DT2], cp_SW[CellParams::RHO_DT2]);
+      Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ_DT2], cp_SW[CellParams::RHO_DT2]);
    }
    
    creal dBxdy_W = derivs_SW[fs::dBxdy];
@@ -912,7 +940,7 @@ static void calculateEdgeElectricFieldY(
    #endif
    creal* const nbr_cp_SW     = mpiGrid[nbrID_SW]->parameters;
    creal* const nbr_derivs_SW = mpiGrid[nbrID_SW]->derivatives;
-   c_z = calculateFastMSspeedXZ(cp_SW,derivs_SW,nbr_cp_SW,nbr_derivs_SW,Bx_W,Bz_S,dBxdy_W,dBxdz_W,dBzdx_S,dBzdy_S,MINUS,MINUS, RKCase);
+   c_z = calculateFastMSspeedXZ(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, Bx_W, Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, RKCase);
    c_x = c_z;
    az_neg   = max(ZERO,-Vz0 + c_z);
    az_pos   = max(ZERO,+Vz0 + c_z);
@@ -924,8 +952,8 @@ static void calculateEdgeElectricFieldY(
       Vx0  = divideIfNonZero(cp_SE[CellParams::RHOVX], cp_SE[CellParams::RHO]);
       Vz0  = divideIfNonZero(cp_SE[CellParams::RHOVZ], cp_SE[CellParams::RHO]);
    } else { //RKCase == RK_ORDER2_STEP1
-      Vx0  = divideIfNonZero(cp_SE[CellParams::RHOVX1], cp_SE[CellParams::RHO1]);
-      Vz0  = divideIfNonZero(cp_SE[CellParams::RHOVZ1], cp_SE[CellParams::RHO1]);
+      Vx0  = divideIfNonZero(cp_SE[CellParams::RHOVX_DT2], cp_SE[CellParams::RHO_DT2]);
+      Vz0  = divideIfNonZero(cp_SE[CellParams::RHOVZ_DT2], cp_SE[CellParams::RHO_DT2]);
    }
    
    // 1st order terms:
@@ -942,7 +970,7 @@ static void calculateEdgeElectricFieldY(
    #endif
    creal* const nbr_cp_SE     = mpiGrid[nbrID_SE]->parameters;
    creal* const nbr_derivs_SE = mpiGrid[nbrID_SE]->derivatives;
-   c_z = calculateFastMSspeedXZ(cp_SE,derivs_SE,nbr_cp_SE,nbr_derivs_SE,Bx_E,Bz_S,dBxdy_E,dBxdz_E,dBzdx_S,dBzdy_S,MINUS,PLUS, RKCase);
+   c_z = calculateFastMSspeedXZ(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, Bx_E, Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, RKCase);
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 - c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
@@ -954,8 +982,8 @@ static void calculateEdgeElectricFieldY(
       Vz0  = divideIfNonZero(cp_NW[CellParams::RHOVZ], cp_NW[CellParams::RHO]);
       Vx0  = divideIfNonZero(cp_NW[CellParams::RHOVX], cp_NW[CellParams::RHO]);
    } else { //RKCase == RK_ORDER2_STEP1
-      Vz0  = divideIfNonZero(cp_NW[CellParams::RHOVZ1], cp_NW[CellParams::RHO1]);
-      Vx0  = divideIfNonZero(cp_NW[CellParams::RHOVX1], cp_NW[CellParams::RHO1]);
+      Vz0  = divideIfNonZero(cp_NW[CellParams::RHOVZ_DT2], cp_NW[CellParams::RHO_DT2]);
+      Vx0  = divideIfNonZero(cp_NW[CellParams::RHOVX_DT2], cp_NW[CellParams::RHO_DT2]);
    }
    
    // 1st order terms:
@@ -972,7 +1000,7 @@ static void calculateEdgeElectricFieldY(
    #endif
    creal* const nbr_cp_NW     = mpiGrid[nbrID_NW]->parameters;
    creal* const nbr_derivs_NW = mpiGrid[nbrID_NW]->derivatives;
-   c_z = calculateFastMSspeedXZ(cp_NW,derivs_NW,nbr_cp_NW,nbr_derivs_NW,Bx_W,Bz_N,dBxdy_W,dBxdz_W,dBzdx_N,dBzdy_N,PLUS,MINUS, RKCase);
+   c_z = calculateFastMSspeedXZ(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, Bx_W, Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, RKCase);
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
@@ -984,8 +1012,8 @@ static void calculateEdgeElectricFieldY(
       Vz0 = divideIfNonZero(cp_NE[CellParams::RHOVZ], cp_NE[CellParams::RHO]);
       Vx0 = divideIfNonZero(cp_NE[CellParams::RHOVX], cp_NE[CellParams::RHO]);
    } else { //RKCase == RK_ORDER2_STEP1
-      Vz0 = divideIfNonZero(cp_NE[CellParams::RHOVZ1], cp_NE[CellParams::RHO1]);
-      Vx0 = divideIfNonZero(cp_NE[CellParams::RHOVX1], cp_NE[CellParams::RHO1]);
+      Vz0 = divideIfNonZero(cp_NE[CellParams::RHOVZ_DT2], cp_NE[CellParams::RHO_DT2]);
+      Vx0 = divideIfNonZero(cp_NE[CellParams::RHOVX_DT2], cp_NE[CellParams::RHO_DT2]);
    }
    
    // 1st order terms:
@@ -1002,7 +1030,7 @@ static void calculateEdgeElectricFieldY(
    #endif
    creal* const nbr_cp_NE     = mpiGrid[nbrID_NE]->parameters;
    creal* const nbr_derivs_NE = mpiGrid[nbrID_NE]->derivatives;
-   c_z = calculateFastMSspeedXZ(cp_NE,derivs_NE,nbr_cp_NE,nbr_derivs_NE,Bx_E,Bz_N,dBxdy_E,dBxdz_E,dBzdx_N,dBzdy_N,PLUS,PLUS, RKCase);
+   c_z = calculateFastMSspeedXZ(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, Bx_E, Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS, RKCase);
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
@@ -1021,41 +1049,43 @@ static void calculateEdgeElectricFieldY(
       cp_SW[CellParams::EY] += az_pos*az_neg/(az_pos+az_neg+EPS)*((Bx_W-HALF*dBxdz_W) - (Bx_E+HALF*dBxdz_E));
       #endif
    } else { // RKCase == RK_ORDER2_STEP1
-      cp_SW[CellParams::EY1]  = az_pos*ax_pos*Ey_NE + az_pos*ax_neg*Ey_SE + az_neg*ax_pos*Ey_NW + az_neg*ax_neg*Ey_SW;
-      cp_SW[CellParams::EY1] /= ((az_pos+az_neg)*(ax_pos+ax_neg)+EPS);
+      cp_SW[CellParams::EY_DT2]  = az_pos*ax_pos*Ey_NE + az_pos*ax_neg*Ey_SE + az_neg*ax_pos*Ey_NW + az_neg*ax_neg*Ey_SW;
+      cp_SW[CellParams::EY_DT2] /= ((az_pos+az_neg)*(ax_pos+ax_neg)+EPS);
       #ifdef FS_1ST_ORDER_SPACE
-      cp_SW[CellParams::EY1] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(Bz_S-Bz_N);
-      cp_SW[CellParams::EY1] += az_pos*az_neg/(az_pos+az_neg+EPS)*(Bx_W-Bx_E);
+      cp_SW[CellParams::EY_DT2] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(Bz_S-Bz_N);
+      cp_SW[CellParams::EY_DT2] += az_pos*az_neg/(az_pos+az_neg+EPS)*(Bx_W-Bx_E);
       #else
-      cp_SW[CellParams::EY1] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((Bz_S-HALF*dBzdx_S) - (Bz_N+HALF*dBzdx_N));
-      cp_SW[CellParams::EY1] += az_pos*az_neg/(az_pos+az_neg+EPS)*((Bx_W-HALF*dBxdz_W) - (Bx_E+HALF*dBxdz_E));
+      cp_SW[CellParams::EY_DT2] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((Bz_S-HALF*dBzdx_S) - (Bz_N+HALF*dBzdx_N));
+      cp_SW[CellParams::EY_DT2] += az_pos*az_neg/(az_pos+az_neg+EPS)*((Bx_W-HALF*dBxdz_W) - (Bx_E+HALF*dBxdz_E));
       #endif
    }
    
-   //compute maximum timestep for fieldsolver in this cell (CFL=1)      
-   Real max_a=ZERO;
-   max_a=max(fabs(az_neg),max_a);
-   max_a=max(fabs(az_pos),max_a);
-   max_a=max(fabs(ax_neg),max_a);
-   max_a=max(fabs(ax_pos),max_a);
-   Real min_dx=std::numeric_limits<Real>::max();;
-   min_dx=min(min_dx,cp_SW[CellParams::DX]);
-   min_dx=min(min_dx,cp_SW[CellParams::DZ]);
-   //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps 
-   if(max_a!=ZERO) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
+   if((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
+      //compute maximum timestep for fieldsolver in this cell (CFL=1)      
+      Real max_a=ZERO;
+      max_a=max(fabs(az_neg),max_a);
+      max_a=max(fabs(az_pos),max_a);
+      max_a=max(fabs(ax_neg),max_a);
+      max_a=max(fabs(ax_pos),max_a);
+      Real min_dx=std::numeric_limits<Real>::max();;
+      min_dx=min(min_dx,cp_SW[CellParams::DX]);
+      min_dx=min(min_dx,cp_SW[CellParams::DZ]);
+      //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
+      if(max_a!=ZERO) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
+   }
 }
 
 /*! \brief Low-level electric field propagation function.
  *
  * Computes the upwinded electric field Z component along the cell's corresponding edge as the cross product of B and V in the XY plane. Also includes the calculation of the maximally allowed time step.
- * Selects the RHO/RHO1 RHOV[XYZ]/RHOV[XYZ]1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
+ * Selects the RHO/RHO_DT2 RHOV[XYZ]/RHOV[XYZ]1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
  * \param cellID Index of the cell to process
  * \param mpiGrid Grid
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-static void calculateEdgeElectricFieldZ(
-   const CellID& cellID,
+void calculateEdgeElectricFieldZ(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
+   const CellID& cellID,
    cint& RKCase
 ) {
    namespace fs = fieldsolver;
@@ -1091,19 +1121,19 @@ static void calculateEdgeElectricFieldZ(
    // Fetch needed plasma parameters/derivatives from the four cells:
    Real Bx_S, By_W, By_E, Bx_N;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      Bx_S    = cp_SW[CellParams::BX];
-      By_W    = cp_SW[CellParams::BY];
-      By_E    = cp_SE[CellParams::BY];
-      Bx_N    = cp_NW[CellParams::BX];
+      Bx_S    = cp_SW[CellParams::PERBX] + cp_SW[CellParams::BGBX];
+      By_W    = cp_SW[CellParams::PERBY] + cp_SW[CellParams::BGBY];
+      By_E    = cp_SE[CellParams::PERBY] + cp_SE[CellParams::BGBY];
+      Bx_N    = cp_NW[CellParams::PERBX] + cp_NW[CellParams::BGBX];
       Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX], cp_SW[CellParams::RHO]);
       Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY], cp_SW[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
-      Bx_S    = cp_SW[CellParams::BX1];
-      By_W    = cp_SW[CellParams::BY1];
-      By_E    = cp_SE[CellParams::BY1];
-      Bx_N    = cp_NW[CellParams::BX1];
-      Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX1], cp_SW[CellParams::RHO1]);
-      Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY1], cp_SW[CellParams::RHO1]);
+      Bx_S    = cp_SW[CellParams::PERBX_DT2] + cp_SW[CellParams::BGBX];
+      By_W    = cp_SW[CellParams::PERBY_DT2] + cp_SW[CellParams::BGBY];
+      By_E    = cp_SE[CellParams::PERBY_DT2] + cp_SE[CellParams::BGBY];
+      Bx_N    = cp_NW[CellParams::PERBX_DT2] + cp_NW[CellParams::BGBX];
+      Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX_DT2], cp_SW[CellParams::RHO_DT2]);
+      Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY_DT2], cp_SW[CellParams::RHO_DT2]);
    }
    
    creal dBxdy_S = derivs_SW[fs::dBxdy];
@@ -1132,7 +1162,7 @@ static void calculateEdgeElectricFieldZ(
    #endif
    creal* const nbr_cp_SW     = mpiGrid[nbrID_SW]->parameters;
    creal* const nbr_derivs_SW = mpiGrid[nbrID_SW]->derivatives;
-   c_x = calculateFastMSspeedXY(cp_SW,derivs_SW,nbr_cp_SW,nbr_derivs_SW,Bx_S,By_W,dBxdy_S,dBxdz_S,dBydx_W,dBydz_W,MINUS,MINUS, RKCase);
+   c_x = calculateFastMSspeedXY(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, Bx_S, By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, RKCase);
    c_y = c_x;
    ax_neg   = max(ZERO,-Vx0 + c_x);
    ax_pos   = max(ZERO,+Vx0 + c_x);
@@ -1144,8 +1174,8 @@ static void calculateEdgeElectricFieldZ(
       Vx0  = divideIfNonZero(cp_SE[CellParams::RHOVX], cp_SE[CellParams::RHO]);
       Vy0  = divideIfNonZero(cp_SE[CellParams::RHOVY], cp_SE[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
-      Vx0  = divideIfNonZero(cp_SE[CellParams::RHOVX1], cp_SE[CellParams::RHO1]);
-      Vy0  = divideIfNonZero(cp_SE[CellParams::RHOVY1], cp_SE[CellParams::RHO1]);
+      Vx0  = divideIfNonZero(cp_SE[CellParams::RHOVX_DT2], cp_SE[CellParams::RHO_DT2]);
+      Vy0  = divideIfNonZero(cp_SE[CellParams::RHOVY_DT2], cp_SE[CellParams::RHO_DT2]);
    }
    
    // 1st order terms:
@@ -1162,8 +1192,8 @@ static void calculateEdgeElectricFieldZ(
    #endif
    creal* const nbr_cp_SE     = mpiGrid[nbrID_SE]->parameters;
    creal* const nbr_derivs_SE = mpiGrid[nbrID_SE]->derivatives;
-   c_x = calculateFastMSspeedXY(cp_SE,derivs_SE,nbr_cp_SE,nbr_derivs_SE,Bx_S,By_E,dBxdy_S,dBxdz_S,dBydx_E,dBydz_E,PLUS,MINUS, RKCase);
-   c_y = c_x;   
+   c_x = calculateFastMSspeedXY(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, Bx_S, By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, RKCase);
+   c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x);
    ax_pos = max(ax_pos,+Vx0 + c_x);
    ay_neg = max(ay_neg,-Vy0 + c_y);
@@ -1174,8 +1204,8 @@ static void calculateEdgeElectricFieldZ(
       Vx0  = divideIfNonZero(cp_NW[CellParams::RHOVX], cp_NW[CellParams::RHO]);
       Vy0  = divideIfNonZero(cp_NW[CellParams::RHOVY], cp_NW[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
-      Vx0  = divideIfNonZero(cp_NW[CellParams::RHOVX1], cp_NW[CellParams::RHO1]);
-      Vy0  = divideIfNonZero(cp_NW[CellParams::RHOVY1], cp_NW[CellParams::RHO1]);
+      Vx0  = divideIfNonZero(cp_NW[CellParams::RHOVX_DT2], cp_NW[CellParams::RHO_DT2]);
+      Vy0  = divideIfNonZero(cp_NW[CellParams::RHOVY_DT2], cp_NW[CellParams::RHO_DT2]);
    }
    
    // 1st order terms:
@@ -1192,7 +1222,7 @@ static void calculateEdgeElectricFieldZ(
    #endif
    creal* const nbr_cp_NW     = mpiGrid[nbrID_NW]->parameters;
    creal* const nbr_derivs_NW = mpiGrid[nbrID_NW]->derivatives;
-   c_x = calculateFastMSspeedXY(cp_NW,derivs_NW,nbr_cp_NW,nbr_derivs_NW,Bx_N,By_W,dBxdy_N,dBxdz_N,dBydx_W,dBydz_W,MINUS,PLUS, RKCase);
+   c_x = calculateFastMSspeedXY(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, Bx_N, By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, RKCase);
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x); 
    ax_pos = max(ax_pos,+Vx0 + c_x);
@@ -1204,8 +1234,8 @@ static void calculateEdgeElectricFieldZ(
       Vx0  = divideIfNonZero(cp_NE[CellParams::RHOVX], cp_NE[CellParams::RHO]);
       Vy0  = divideIfNonZero(cp_NE[CellParams::RHOVY], cp_NE[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
-      Vx0  = divideIfNonZero(cp_NE[CellParams::RHOVX1], cp_NE[CellParams::RHO1]);
-      Vy0  = divideIfNonZero(cp_NE[CellParams::RHOVY1], cp_NE[CellParams::RHO1]);
+      Vx0  = divideIfNonZero(cp_NE[CellParams::RHOVX_DT2], cp_NE[CellParams::RHO_DT2]);
+      Vy0  = divideIfNonZero(cp_NE[CellParams::RHOVY_DT2], cp_NE[CellParams::RHO_DT2]);
    }
    
    // 1st order terms:
@@ -1222,7 +1252,7 @@ static void calculateEdgeElectricFieldZ(
    #endif
    creal* const nbr_cp_NE     = mpiGrid[nbrID_NE]->parameters;
    creal* const nbr_derivs_NE = mpiGrid[nbrID_NE]->derivatives;
-   c_x = calculateFastMSspeedXY(cp_NE,derivs_NE,nbr_cp_NE,nbr_derivs_NE,Bx_N,By_E,dBxdy_N,dBxdz_N,dBydx_E,dBydz_E,PLUS,PLUS, RKCase);
+   c_x = calculateFastMSspeedXY(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, Bx_N, By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS, RKCase);
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x);
    ax_pos = max(ax_pos,+Vx0 + c_x);
@@ -1247,34 +1277,39 @@ static void calculateEdgeElectricFieldZ(
       CHECK_FLOAT(cp_SW[CellParams::EZ])
       #endif
    } else { // RKCase == RK_ORDER2_STEP1
-      cp_SW[CellParams::EZ1] = ax_pos*ay_pos*Ez_NE + ax_pos*ay_neg*Ez_SE + ax_neg*ay_pos*Ez_NW + ax_neg*ay_neg*Ez_SW;
-      cp_SW[CellParams::EZ1] /= ((ax_pos+ax_neg)*(ay_pos+ay_neg)+EPS);
+      cp_SW[CellParams::EZ_DT2] = ax_pos*ay_pos*Ez_NE + ax_pos*ay_neg*Ez_SE + ax_neg*ay_pos*Ez_NW + ax_neg*ay_neg*Ez_SW;
+      cp_SW[CellParams::EZ_DT2] /= ((ax_pos+ax_neg)*(ay_pos+ay_neg)+EPS);
       #ifdef FS_1ST_ORDER_SPACE
-      cp_SW[CellParams::EZ1] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bx_S-Bx_N);
-      cp_SW[CellParams::EZ1] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(By_W-By_E);
+      cp_SW[CellParams::EZ_DT2] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bx_S-Bx_N);
+      cp_SW[CellParams::EZ_DT2] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(By_W-By_E);
       #else
-      cp_SW[CellParams::EZ1] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bx_S-HALF*dBxdy_S) - (Bx_N+HALF*dBxdy_N));
-      cp_SW[CellParams::EZ1] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((By_W-HALF*dBydx_W) - (By_E+HALF*dBydx_E));
+      cp_SW[CellParams::EZ_DT2] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bx_S-HALF*dBxdy_S) - (Bx_N+HALF*dBxdy_N));
+      cp_SW[CellParams::EZ_DT2] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((By_W-HALF*dBydx_W) - (By_E+HALF*dBydx_E));
       #endif
    }
    
-   
-   //compute maximum timestep for fieldsolver in this cell (CFL=1)      
-   Real max_a=ZERO;
-   max_a=max(fabs(ay_neg),max_a);
-   max_a=max(fabs(ay_pos),max_a);
-   max_a=max(fabs(ax_neg),max_a);
-   max_a=max(fabs(ax_pos),max_a);
-   Real min_dx=std::numeric_limits<Real>::max();;
-   min_dx=min(min_dx,cp_SW[CellParams::DX]);
-   min_dx=min(min_dx,cp_SW[CellParams::DY]);
-   //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
-   if(max_a!=ZERO) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
+   if((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
+      //compute maximum timestep for fieldsolver in this cell (CFL=1)      
+      Real max_a=ZERO;
+      max_a=max(fabs(ay_neg),max_a);
+      max_a=max(fabs(ay_pos),max_a);
+      max_a=max(fabs(ax_neg),max_a);
+      max_a=max(fabs(ax_pos),max_a);
+      Real min_dx=std::numeric_limits<Real>::max();;
+      min_dx=min(min_dx,cp_SW[CellParams::DX]);
+      min_dx=min(min_dx,cp_SW[CellParams::DY]);
+      //update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
+      if(max_a!=ZERO) cp_SW[CellParams::MAXFDT]=min(cp_SW[CellParams::MAXFDT],min_dx/max_a);
+   }
 }
 
 /*! \brief Low-level magnetic field propagation function.
  * 
- * Propagates the cell's face-averaged magnetic field components by using Faraday's law on the face edges. Depending on the time order of accuracy it is done in one stage or in two stages using the intermediate E1 components for the first stage of the second-order Runge-Kutta method and E for the other cases. 
+ * Propagates the cell's face-averaged magnetic field components by
+ * using Faraday's law on the face edges. Depending on the time order
+ * of accuracy it is done in one stage or in two stages using the
+ * intermediate E1 components for the first stage of the second-order
+ * Runge-Kutta method and E for the other cases.
  * \param cellID Index of the cell to process
  * \param mpiGrid Grid
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
@@ -1337,14 +1372,17 @@ static void propagateMagneticField(
       cp2 = mpiGrid[nbrID]->parameters;
 
       # ifdef FS_1ST_ORDER_TIME
-      cp0[CellParams::BX] += dt/dz*(cp2[CellParams::EY] - cp0[CellParams::EY]) + dt/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ]);
+      cp0[CellParams::PERBX] += dt/dz*(cp2[CellParams::EY] - cp0[CellParams::EY]) + dt/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ]);
       # else
       if(RKCase == RK_ORDER2_STEP1) {
-         cp0[CellParams::BX1] = cp0[CellParams::BX] +
-         Parameters::RK_alpha*dt*(1.0/dz*(cp2[CellParams::EY] - cp0[CellParams::EY]) + 1.0/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ]));
+         cp0[CellParams::PERBX_DT2] = cp0[CellParams::PERBX] +
+         ALPHA*dt*(1.0/dz*(cp2[CellParams::EY] - cp0[CellParams::EY]) + 1.0/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ]));
       } else {
-         cp0[CellParams::BX] += dt * ((1.0 - 0.5/Parameters::RK_alpha) * (1.0/dz*(cp2[CellParams::EY] - cp0[CellParams::EY]) + 1.0/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ])) +
-         0.5/Parameters::RK_alpha * (1.0/dz*(cp2[CellParams::EY1] - cp0[CellParams::EY1]) + 1.0/dy*(cp0[CellParams::EZ1] - cp1[CellParams::EZ1])));
+         cp0[CellParams::PERBX] += dt * ((1.0 - 0.5/ALPHA) * (1.0/dz*(cp2[CellParams::EY] -cp0[CellParams::EY]) +
+                                                                            1.0/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ])) +
+                                        0.5/ALPHA * (1.0/dz*(cp2[CellParams::EY_DT2] - cp0[CellParams::EY_DT2]) +
+                                                                    1.0/dy*(cp0[CellParams::EZ_DT2] - cp1[CellParams::EZ_DT2]))
+                                        );
       }
       # endif
    }
@@ -1382,14 +1420,17 @@ static void propagateMagneticField(
       cp2 = mpiGrid[nbrID]->parameters;
 
       # ifdef FS_1ST_ORDER_TIME
-      cp0[CellParams::BY] += dt/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) + dt/dz*(cp0[CellParams::EX] - cp1[CellParams::EX]);
+      cp0[CellParams::PERBY] += dt/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) + dt/dz*(cp0[CellParams::EX] - cp1[CellParams::EX]);
       # else
       if(RKCase == RK_ORDER2_STEP1) {
-         cp0[CellParams::BY1] = cp0[CellParams::BY] +
-         Parameters::RK_alpha*dt*(1.0/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) + 1.0/dz*(cp0[CellParams::EX] - cp1[CellParams::EX]));
+         cp0[CellParams::PERBY_DT2] = cp0[CellParams::PERBY] +
+         ALPHA*dt*(1.0/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) + 1.0/dz*(cp0[CellParams::EX] - cp1[CellParams::EX]));
       } else {
-         cp0[CellParams::BY] += dt * ((1.0 - 0.5/Parameters::RK_alpha) * (1.0/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) + 1.0/dz*(cp0[CellParams::EX] - cp1[CellParams::EX])) + 
-         0.5/Parameters::RK_alpha * (1.0/dx*(cp2[CellParams::EZ1] - cp0[CellParams::EZ1]) + 1.0/dz*(cp0[CellParams::EX1] - cp1[CellParams::EX1])));
+         cp0[CellParams::PERBY] += dt * ((1.0 - 0.5/ALPHA) * (1.0/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) +
+                                                                            1.0/dz*(cp0[CellParams::EX] - cp1[CellParams::EX])) + 
+                                        0.5/ALPHA * (1.0/dx*(cp2[CellParams::EZ_DT2] - cp0[CellParams::EZ_DT2]) +
+                                                                    1.0/dz*(cp0[CellParams::EX_DT2] - cp1[CellParams::EX_DT2]))
+                                        );
       }
       # endif
    }
@@ -1427,30 +1468,88 @@ static void propagateMagneticField(
       cp2 = mpiGrid[nbrID]->parameters;
       
       # ifdef FS_1ST_ORDER_TIME
-      cp0[CellParams::BZ] += dt/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) + dt/dx*(cp0[CellParams::EY] - cp1[CellParams::EY]);
+      cp0[CellParams::PERBZ] += dt/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) + dt/dx*(cp0[CellParams::EY] - cp1[CellParams::EY]);
       # else
       if(RKCase == RK_ORDER2_STEP1) {
-         cp0[CellParams::BZ1] = cp0[CellParams::BZ] +
-         Parameters::RK_alpha*dt*(1.0/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) + 1.0/dx*(cp0[CellParams::EY] - cp1[CellParams::EY]));
+         cp0[CellParams::PERBZ_DT2] = cp0[CellParams::PERBZ] +
+         ALPHA*dt*(1.0/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) + 1.0/dx*(cp0[CellParams::EY] - cp1[CellParams::EY]));
       } else {
-         cp0[CellParams::BZ] += dt * ((1.0 - 0.5/Parameters::RK_alpha) * (1.0/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) + 1.0/dx*(cp0[CellParams::EY] - cp1[CellParams::EY])) +
-         0.5/Parameters::RK_alpha * (1.0/dy*(cp2[CellParams::EX1] - cp0[CellParams::EX1]) + 1.0/dx*(cp0[CellParams::EY1] - cp1[CellParams::EY1])));
+         cp0[CellParams::PERBZ] += dt * ((1.0 - 0.5/ALPHA) * (1.0/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) +
+                                                                          1.0/dx*(cp0[CellParams::EY] - cp1[CellParams::EY])) +
+         0.5/ALPHA * (1.0/dy*(cp2[CellParams::EX_DT2] - cp0[CellParams::EX_DT2]) +
+                                     1.0/dx*(cp0[CellParams::EY_DT2] - cp1[CellParams::EY_DT2])));
       }
-      # endif
+# endif
+   }
+}
+
+void propagateSysBoundaryMagneticField(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   const CellID& cellID,
+   SysBoundary& sysBoundaries,
+   creal& dt,
+   cint& RKCase
+) {
+   #ifndef NDEBUG
+   const map<CellID,uint>::const_iterator it = sysBoundaryFlags.find(cellID);
+   if (it == sysBoundaryFlags.end()) {cerr << "ERROR Could not find boundary flag for cell #" << cellID << endl; exit(1);}
+   cuint existingCells = it->second;
+   #else
+   cuint existingCells = sysBoundaryFlags[cellID];
+   #endif
+   if (mpiGrid[cellID] == NULL) {
+      std::cerr << __FILE__ << ":" << __LINE__
+      << " No data for cell " << cellID
+      << std::endl;
+      abort();
+   }
+   
+   if ((existingCells & PROPAGATE_BX) != PROPAGATE_BX) {
+      if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+         mpiGrid[cellID]->parameters[CellParams::PERBX] =
+         sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)->
+         fieldSolverBoundaryCondMagneticField(mpiGrid, cellID, 0.0, 0);
+      } else { // RKCase == RK_ORDER2_STEP1
+               mpiGrid[cellID]->parameters[CellParams::PERBX_DT2] =
+               sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)->
+               fieldSolverBoundaryCondMagneticField(mpiGrid, cellID, dt, 0);
+      }
+   }
+   if ((existingCells & PROPAGATE_BY) != PROPAGATE_BY) {
+      if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+         mpiGrid[cellID]->parameters[CellParams::PERBY] =
+         sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)->
+         fieldSolverBoundaryCondMagneticField(mpiGrid, cellID, 0.0, 1);
+      } else { // RKCase == RK_ORDER2_STEP1
+               mpiGrid[cellID]->parameters[CellParams::PERBY_DT2] =
+               sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)->
+               fieldSolverBoundaryCondMagneticField(mpiGrid, cellID, dt, 1);
+      }
+   }
+   if ((existingCells & PROPAGATE_BZ) != PROPAGATE_BZ) {
+      if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+         mpiGrid[cellID]->parameters[CellParams::PERBZ] =
+         sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)->
+         fieldSolverBoundaryCondMagneticField(mpiGrid, cellID, 0.0, 2);
+      } else { // RKCase == RK_ORDER2_STEP1
+               mpiGrid[cellID]->parameters[CellParams::PERBZ_DT2] =
+               sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)->
+               fieldSolverBoundaryCondMagneticField(mpiGrid, cellID, dt, 2);
+      }
    }
 }
 
 bool initializeFieldPropagatorAfterRebalance(
         dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
-   
    vector<uint64_t> localCells = mpiGrid.get_cells();
 
    calculateSysBoundaryFlags(mpiGrid,localCells);
 
-   //need this when computing magnetic field later on
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_E);
-   int timer=phiprof::initializeTimer("Communicate electric fields","MPI","Wait");
+   // need E when computing magnetic field later on
+   // ASSUME STATIC background field, we do not later on explicitly transfer it!
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_E | Transfer::CELL_BGB);
+   int timer=phiprof::initializeTimer("Communicate E and BGB","MPI","Wait");
    phiprof::start(timer);
    mpiGrid.update_remote_neighbor_data(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
@@ -1461,7 +1560,8 @@ bool initializeFieldPropagatorAfterRebalance(
 /*! Calculates bit masks used in the field solver and computes the initial edge electric fields from the initial magnetic fields. Then computes the initial volume averages.
  */
 bool initializeFieldPropagator(
-        dccrg::Dccrg<SpatialCell>& mpiGrid
+        dccrg::Dccrg<SpatialCell>& mpiGrid,
+        SysBoundary& sysBoundaries
 ) {
    vector<uint64_t> localCells = mpiGrid.get_cells();
    
@@ -1536,12 +1636,20 @@ bool initializeFieldPropagator(
    PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,0,1)); // -y nbr
    PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,2,1)); // +y nbr
    
+
+   // ASSUME STATIC background field, we do not later on explicitly transfer it
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_BGB);
+   int timer=phiprof::initializeTimer("Communicate BGB","MPI","Wait");
+   phiprof::start(timer);
+   mpiGrid.update_remote_neighbor_data(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   phiprof::stop(timer);
    // Calculate derivatives and upwinded edge-E. Exchange derivatives 
    // and edge-E:s between neighbouring processes and calculate 
    // face-averaged E,B fields.
-   calculateDerivativesSimple(mpiGrid,localCells, RK_ORDER1);
-   calculateUpwindedElectricFieldSimple(mpiGrid,localCells, RK_ORDER1);
+   calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+   calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
    calculateVolumeAveragedFields(mpiGrid);
+   calculateBVOLDerivativesSimple(mpiGrid, sysBoundaries, localCells);
    
    return true;
 }
@@ -1554,11 +1662,10 @@ bool finalizeFieldPropagator(
 
 /*! \brief High-level derivative calculation wrapper function.
  * 
- * In the first stage of the second-order Runge-Kutta time stepping scheme, this linearly interpolates the velocity moments and puts them into the RHO1, RHOV[XYZ]1 variables.
+
+ * B has to be updated because after the system boundary update in propagateMagneticFieldSimple there is no consistent state of B yet everywhere.
  * 
  * Then the derivatives are calculated.
- * 
- * Finally the current values of the moments RHO, RHOV[XYZ] are put into RHO1, RHOV[XYZ]1 for future interpolation.
  * 
  * \param mpiGrid Grid
  * \param localCells Vector of local cells to process
@@ -1568,61 +1675,52 @@ bool finalizeFieldPropagator(
  */
 void calculateDerivativesSimple(
        dccrg::Dccrg<SpatialCell>& mpiGrid,
+       SysBoundary& sysBoundaries,
        const vector<CellID>& localCells,
        cint& RKCase
 ) {
    int timer;
    namespace fs = fieldsolver;
    
-   phiprof::start("Calculate derivatives");
+   phiprof::start("Calculate face derivatives");
    
-   # ifndef FS_1ST_ORDER_TIME
-   if(RKCase == RK_ORDER1) { // Means initialising the solver
-      for (vector<uint64_t>::const_iterator cell = localCells.begin(); cell != localCells.end(); cell++) {
-         if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-         mpiGrid[*cell]->parameters[CellParams::RHO1] = mpiGrid[*cell]->parameters[CellParams::RHO];
-         mpiGrid[*cell]->parameters[CellParams::RHOVX1] = mpiGrid[*cell]->parameters[CellParams::RHOVX];
-         mpiGrid[*cell]->parameters[CellParams::RHOVY1] = mpiGrid[*cell]->parameters[CellParams::RHOVY];
-         mpiGrid[*cell]->parameters[CellParams::RHOVZ1] = mpiGrid[*cell]->parameters[CellParams::RHOVZ];
-      }
-   }
-   # endif
-   if(RKCase == RK_ORDER2_STEP1) {
-      // Interpolate linearly the moments.
-      // The RHO(V?)1 fields contain previous value, the RHO(V?) the current one.
-      // After this the RHO(V?)1 contain the interpolated value.
-      for (vector<uint64_t>::const_iterator cell = localCells.begin(); cell != localCells.end(); cell++) {
-         if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-         mpiGrid[*cell]->parameters[CellParams::RHO1] = mpiGrid[*cell]->parameters[CellParams::RHO1] +
-         Parameters::RK_alpha * (mpiGrid[*cell]->parameters[CellParams::RHO] - mpiGrid[*cell]->parameters[CellParams::RHO1]);
-         mpiGrid[*cell]->parameters[CellParams::RHOVX1] = mpiGrid[*cell]->parameters[CellParams::RHOVX1] +
-         Parameters::RK_alpha * (mpiGrid[*cell]->parameters[CellParams::RHOVX] - mpiGrid[*cell]->parameters[CellParams::RHOVX1]);
-         mpiGrid[*cell]->parameters[CellParams::RHOVY1] = mpiGrid[*cell]->parameters[CellParams::RHOVY1] +
-         Parameters::RK_alpha * (mpiGrid[*cell]->parameters[CellParams::RHOVY] - mpiGrid[*cell]->parameters[CellParams::RHOVY1]);
-         mpiGrid[*cell]->parameters[CellParams::RHOVZ1] = mpiGrid[*cell]->parameters[CellParams::RHOVZ1] +
-         Parameters::RK_alpha * (mpiGrid[*cell]->parameters[CellParams::RHOVZ] - mpiGrid[*cell]->parameters[CellParams::RHOVZ1]);
-      }
+   switch(RKCase) {
+      case RK_ORDER1:
+         // Means initialising the solver as well as RK_ORDER1
+         // standard case Exchange PERB* with neighbours
+         // The update of PERB[XYZ] is needed after the system
+         // boundary update of propagateMagneticFieldSimple.
+         SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB | Transfer::CELL_RHO_RHOV);
+         break;
+      case RK_ORDER2_STEP1:
+         // Exchange PERB*_DT2,RHO_DT2,RHOV*_DT2 with neighbours The
+         // update of PERB[XYZ]_DT2 is needed after the system
+         // boundary update of propagateMagneticFieldSimple.
+         SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERBDT2 | Transfer::CELL_RHODT2_RHOVDT2);
+         break;
+      case RK_ORDER2_STEP2:
+         // Exchange PERB*,RHO,RHOV* with neighbours The update of B
+         // is needed after the system boundary update of
+         // propagateMagneticFieldSimple.
+         SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB | Transfer::CELL_RHO_RHOV);
+         break;
+      default:
+         cerr << __FILE__ << ":" << __LINE__ << " Went through switch, this should not happen." << endl;
+         abort();
    }
    
-   if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      // Exchange BX,BY,BZ,RHO,RHOVX,RHOVY,RHOVZ with neighbours
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_B_RHO_RHOV);
-   } else { // RKCase == RK_ORDER2_STEP1
-      // Exchange BX1,BY1,BZ1,RHO1,RHOVX1,RHOVY1,RHOVZ1 with neighbours
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_B1_RHO1_RHOV1);
-   }
-   timer=phiprof::initializeTimer("Start comm of B  and RHOV","MPI");
+   timer=phiprof::initializeTimer("Start comm","MPI");
    phiprof::start(timer);
    mpiGrid.start_remote_neighbor_data_update(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
-   timer=phiprof::initializeTimer("Compute inner cells");
+   timer=phiprof::initializeTimer("Compute process inner cells");
    phiprof::start(timer);
-   // Calculate derivatives on inner cells
-   const vector<uint64_t> local_cells = mpiGrid.get_cells_with_local_neighbors();
-   for (vector<uint64_t>::const_iterator cell = local_cells.begin(); cell != local_cells.end(); cell++) {
+   // Calculate derivatives on process inner cells
+   const vector<uint64_t> cellsWithLocalNeighbours = mpiGrid.get_cells_with_local_neighbors(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   for (vector<uint64_t>::const_iterator cell = cellsWithLocalNeighbours.begin(); cell != cellsWithLocalNeighbours.end(); cell++) {
       if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-      calculateDerivatives(*cell,mpiGrid, RKCase);
+      calculateDerivatives(*cell, mpiGrid, sysBoundaries, RKCase);
    }
    phiprof::stop(timer);
    
@@ -1631,13 +1729,13 @@ void calculateDerivativesSimple(
    mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
-   // Calculate derivatives on boundary cells
-   timer=phiprof::initializeTimer("Compute boundary cells");
+   // Calculate derivatives on process boundary cells
+   timer=phiprof::initializeTimer("Compute process boundary cells");
    phiprof::start(timer);
-   const vector<uint64_t> boundary_cells = mpiGrid.get_cells_with_remote_neighbor();
-   for (vector<uint64_t>::const_iterator cell = boundary_cells.begin(); cell != boundary_cells.end(); cell++) {
+   const vector<uint64_t> cellsWithRemoteNeighbours = mpiGrid.get_cells_with_remote_neighbor(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   for (vector<uint64_t>::const_iterator cell = cellsWithRemoteNeighbours.begin(); cell != cellsWithRemoteNeighbours.end(); cell++) {
       if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-      calculateDerivatives(*cell,mpiGrid, RKCase);
+      calculateDerivatives(*cell, mpiGrid, sysBoundaries, RKCase);
    }
    phiprof::stop(timer);
    
@@ -1646,17 +1744,7 @@ void calculateDerivativesSimple(
    mpiGrid.wait_neighbor_data_update_sends();
    phiprof::stop(timer);
    
-   if(RKCase == RK_ORDER2_STEP2) { // Shift down the moments, now the RHO(V?)1 fields contain the current ie future previous values.
-      for (vector<uint64_t>::const_iterator cell = localCells.begin(); cell != localCells.end(); cell++) {
-         if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-         mpiGrid[*cell]->parameters[CellParams::RHO1] = mpiGrid[*cell]->parameters[CellParams::RHO];
-         mpiGrid[*cell]->parameters[CellParams::RHOVX1] = mpiGrid[*cell]->parameters[CellParams::RHOVX];
-         mpiGrid[*cell]->parameters[CellParams::RHOVY1] = mpiGrid[*cell]->parameters[CellParams::RHOVY];
-         mpiGrid[*cell]->parameters[CellParams::RHOVZ1] = mpiGrid[*cell]->parameters[CellParams::RHOVZ];
-      }
-   }
-   
-   phiprof::stop("Calculate derivatives");
+   phiprof::stop("Calculate face derivatives");
 }
 
 /*! \brief High-level electric field computation function.
@@ -1671,6 +1759,7 @@ void calculateDerivativesSimple(
  */
 void calculateUpwindedElectricFieldSimple(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
+   SysBoundary& sysBoundaries,
    const vector<CellID>& localCells,
    cint& RKCase
 ) {
@@ -1687,13 +1776,35 @@ void calculateUpwindedElectricFieldSimple(
    timer=phiprof::initializeTimer("Compute inner cells");
    phiprof::start(timer);
    // Calculate upwinded electric field on inner cells
-   const vector<uint64_t> local_cells = mpiGrid.get_cells_with_local_neighbors();
-   for (vector<uint64_t>::const_iterator cell = local_cells.begin(); cell != local_cells.end(); cell++) {
+   const vector<uint64_t> cellsWithLocalNeighbours = mpiGrid.get_cells_with_local_neighbors(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   for (vector<uint64_t>::const_iterator cell = cellsWithLocalNeighbours.begin(); cell != cellsWithLocalNeighbours.end(); cell++) {
       if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-      cuint sysBoundaryFlag = sysBoundaryFlags[*cell];
-      if ((sysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) calculateEdgeElectricFieldX(*cell,mpiGrid, RKCase);
-      if ((sysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) calculateEdgeElectricFieldY(*cell,mpiGrid, RKCase);
-      if ((sysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) calculateEdgeElectricFieldZ(*cell,mpiGrid, RKCase);
+      cuint fieldSolverSysBoundaryFlag = sysBoundaryFlags[*cell];
+      cuint cellSysBoundaryFlag = mpiGrid[*cell]->sysBoundaryFlag;
+      if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
+         if(cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
+               fieldSolverBoundaryCondElectricField(mpiGrid, *cell, RKCase, 0);
+         } else {
+            calculateEdgeElectricFieldX(mpiGrid, *cell, RKCase);
+         }
+      }
+      if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
+         if(cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
+            fieldSolverBoundaryCondElectricField(mpiGrid, *cell, RKCase, 1);
+         } else {
+            calculateEdgeElectricFieldY(mpiGrid, *cell, RKCase);
+         }
+      }
+      if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
+         if(cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
+            fieldSolverBoundaryCondElectricField(mpiGrid, *cell, RKCase, 2);
+         } else {
+            calculateEdgeElectricFieldZ(mpiGrid, *cell, RKCase);
+         }
+      }
    }
    phiprof::stop(timer);
    timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
@@ -1703,13 +1814,35 @@ void calculateUpwindedElectricFieldSimple(
    timer=phiprof::initializeTimer("Compute boundary cells");
    phiprof::start(timer);
    // Calculate upwinded electric field on boundary cells:
-   const vector<uint64_t> boundary_cells = mpiGrid.get_cells_with_remote_neighbor();
-   for (vector<uint64_t>::const_iterator cell = boundary_cells.begin(); cell != boundary_cells.end(); cell++) {
+   const vector<uint64_t> cellsWithRemoteNeighbours = mpiGrid.get_cells_with_remote_neighbor(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   for (vector<uint64_t>::const_iterator cell = cellsWithRemoteNeighbours.begin(); cell != cellsWithRemoteNeighbours.end(); cell++) {
       if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-      cuint sysBoundaryFlag = sysBoundaryFlags[*cell];
-      if ((sysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) calculateEdgeElectricFieldX(*cell,mpiGrid, RKCase);
-      if ((sysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) calculateEdgeElectricFieldY(*cell,mpiGrid, RKCase);
-      if ((sysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) calculateEdgeElectricFieldZ(*cell,mpiGrid, RKCase);
+      cuint fieldSolverSysBoundaryFlag = sysBoundaryFlags[*cell];
+      cuint cellSysBoundaryFlag = mpiGrid[*cell]->sysBoundaryFlag;
+      if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
+         if(cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
+            fieldSolverBoundaryCondElectricField(mpiGrid, *cell, RKCase, 0);
+         } else {
+            calculateEdgeElectricFieldX(mpiGrid, *cell, RKCase);
+         }
+      }
+      if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
+         if(cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
+            fieldSolverBoundaryCondElectricField(mpiGrid, *cell, RKCase, 1);
+         } else {
+            calculateEdgeElectricFieldY(mpiGrid, *cell, RKCase);
+         }
+      }
+      if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
+         if(cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+            sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
+            fieldSolverBoundaryCondElectricField(mpiGrid, *cell, RKCase, 2);
+         } else {
+            calculateEdgeElectricFieldZ(mpiGrid, *cell, RKCase);
+         }
+      }
    }
    phiprof::stop(timer);
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
@@ -1721,7 +1854,7 @@ void calculateUpwindedElectricFieldSimple(
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_E);
    } else { // RKCase == RK_ORDER2_STEP1
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_E1);
+      SpatialCell::set_mpi_transfer_type(Transfer::CELL_EDT2);
    }
    timer=phiprof::initializeTimer("Communicate electric fields","MPI","Wait");
    phiprof::start(timer);
@@ -1744,54 +1877,71 @@ void calculateUpwindedElectricFieldSimple(
  */
 static void propagateMagneticFieldSimple(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
+   SysBoundary& sysBoundaries,
    creal& dt,
    const vector<CellID>& localCells,
    cint& RKCase
 ) {
    phiprof::start("Propagate magnetic field");
+   int timer=phiprof::initializeTimer("Compute system inner cells");
+   phiprof::start(timer);
    // Propagate B on all local cells:
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];
-      propagateMagneticField(cellID,mpiGrid,dt,RKCase);
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+       mpiGrid[cellID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
+      propagateMagneticField(cellID, mpiGrid, dt, RKCase);
    }
-   
-   // Calculate new B on faces outside the simulation domain using boundary conditions.
-   for (size_t cell=0; cell<localCells.size(); ++cell) {
-      const CellID cellID = localCells[cell];
-      #ifndef NDEBUG
-         const map<CellID,uint>::const_iterator it = sysBoundaryFlags.find(cellID);
-         if (it == sysBoundaryFlags.end()) {cerr << "ERROR Could not find boundary flag for cell #" << cellID << endl; exit(1);}
-         cuint existingCells = it->second;
-      #else
-         cuint existingCells = sysBoundaryFlags[cellID];
-      #endif
-      cuint nonExistingCells = (existingCells ^ numeric_limits<uint>::max());
-      if (mpiGrid[cellID] == NULL) {
-         std::cerr << __FILE__ << ":" << __LINE__
-            << " No data for cell " << cellID
-            << std::endl;
-         abort();
-      }
+   phiprof::stop(timer);
 
-      if ((existingCells & PROPAGATE_BX) != PROPAGATE_BX) {
-         mpiGrid[cellID]->parameters[CellParams::BX] = fieldSolverBoundaryCondBx<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
-         if(RKCase == RK_ORDER2_STEP1) { // WARNING not correct for time-varying boundary conditions
-            mpiGrid[cellID]->parameters[CellParams::BX1] = mpiGrid[cellID]->parameters[CellParams::BX];
-         }
-      }
-      if ((existingCells & PROPAGATE_BY) != PROPAGATE_BY) {
-         mpiGrid[cellID]->parameters[CellParams::BY] = fieldSolverBoundaryCondBy<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
-         if(RKCase == RK_ORDER2_STEP1) { // WARNING not correct for time-varying boundary conditions
-            mpiGrid[cellID]->parameters[CellParams::BY1] = mpiGrid[cellID]->parameters[CellParams::BY];
-         }
-      }
-      if ((existingCells & PROPAGATE_BZ) != PROPAGATE_BZ) {
-         mpiGrid[cellID]->parameters[CellParams::BZ] = fieldSolverBoundaryCondBz<CellID,uint,Real>(cellID,existingCells,nonExistingCells,mpiGrid);
-         if(RKCase == RK_ORDER2_STEP1) { // WARNING not correct for time-varying boundary conditions
-            mpiGrid[cellID]->parameters[CellParams::BZ1] = mpiGrid[cellID]->parameters[CellParams::BZ];
-         }
-      }
+
+   //This communication is needed for boundary conditions, in practice almost all
+   //of the communication is going to be redone in calculateDerivativesSimple
+   //TODO: do not transfer if there are no field boundaryconditions
+   if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+      // Exchange PERBX,PERBY,PERBZ with neighbours
+      SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB);
+   } else { // RKCase == RK_ORDER2_STEP1
+      // Exchange PERBX_DT2,PERBY_DT2,PERBZ_DT2 with neighbours
+      SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERBDT2);
    }
+   timer=phiprof::initializeTimer("Start comm of B","MPI");
+   phiprof::start(timer);
+   mpiGrid.start_remote_neighbor_data_update(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+   phiprof::stop(timer);
+   
+   timer=phiprof::initializeTimer("Compute system boundary/process inner cells");
+   phiprof::start(timer);
+   // Propagate B on system boundary/process inner cells
+   const vector<uint64_t> cellsWithLocalNeighbours = mpiGrid.get_cells_with_local_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+   for (vector<uint64_t>::const_iterator cell = cellsWithLocalNeighbours.begin(); cell != cellsWithLocalNeighbours.end(); cell++) {
+      if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+         mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) continue;
+      propagateSysBoundaryMagneticField(mpiGrid, *cell, sysBoundaries, dt, RKCase);
+   }
+   phiprof::stop(timer);
+   
+   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+   phiprof::start(timer);
+   mpiGrid.wait_neighbor_data_update_receives(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+   phiprof::stop(timer);
+   
+   // Propagate B on system boundary/process boundary cells
+   timer=phiprof::initializeTimer("Compute system boundary/process boundary cells");
+   phiprof::start(timer);
+   const vector<uint64_t> cellsWithRemoteNeighbours = mpiGrid.get_cells_with_remote_neighbor(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+   for (vector<uint64_t>::const_iterator cell = cellsWithRemoteNeighbours.begin(); cell != cellsWithRemoteNeighbours.end(); cell++) {
+      if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+         mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) continue;
+      propagateSysBoundaryMagneticField(mpiGrid, *cell, sysBoundaries, dt, RKCase);
+   }
+   phiprof::stop(timer);
+   
+   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+   phiprof::start(timer);
+   mpiGrid.wait_neighbor_data_update_sends();
+   phiprof::stop(timer);
+   
    phiprof::stop("Propagate magnetic field");
 }
 
@@ -1802,34 +1952,36 @@ static void propagateMagneticFieldSimple(
  * \param mpiGrid Grid
  * \param dt Length of the time step
  * 
- * \sa propagateMagneticFieldSimple calculateDerivativesSimple calculateUpwindedElectricFieldSimple calculateVolumeAveragedFields
+ * \sa propagateMagneticFieldSimple calculateDerivativesSimple calculateUpwindedElectricFieldSimple calculateVolumeAveragedFields calculateBVOLDerivativesSimple
  * 
  */
 bool propagateFields(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
+   SysBoundary& sysBoundaries,
    creal& dt
 ) {
    // Reserve memory for derivatives for all cells on this process:
    vector<CellID> localCells = mpiGrid.get_cells();
    
    for (size_t cell=0; cell<localCells.size(); ++cell) {
-      const CellID cellID = localCells[cell];   
-      mpiGrid[cellID]->parameters[CellParams::MAXFDT]=std::numeric_limits<Real>::max();;
+      const CellID cellID = localCells[cell];
+      mpiGrid[cellID]->parameters[CellParams::MAXFDT]=std::numeric_limits<Real>::max();
    }
-   # ifdef FS_1ST_ORDER_TIME
-   propagateMagneticFieldSimple(mpiGrid, dt, localCells, RK_ORDER1);
-   calculateDerivativesSimple(mpiGrid, localCells, RK_ORDER1);
-   calculateUpwindedElectricFieldSimple(mpiGrid, localCells, RK_ORDER1);
-   # else
-   propagateMagneticFieldSimple(mpiGrid, dt, localCells, RK_ORDER2_STEP1);
-   calculateDerivativesSimple(mpiGrid, localCells, RK_ORDER2_STEP1);
-   calculateUpwindedElectricFieldSimple(mpiGrid, localCells, RK_ORDER2_STEP1);
+# ifdef FS_1ST_ORDER_TIME
+   propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER1);
+   calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+   calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+# else
+   propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER2_STEP1);
+   calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
+   calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
    
-   propagateMagneticFieldSimple(mpiGrid, dt, localCells, RK_ORDER2_STEP2);
-   calculateDerivativesSimple(mpiGrid, localCells, RK_ORDER2_STEP2);
-   calculateUpwindedElectricFieldSimple(mpiGrid, localCells, RK_ORDER2_STEP2);
-   # endif
+   propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER2_STEP2);
+   calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
+   calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
+# endif
    calculateVolumeAveragedFields(mpiGrid);
+   calculateBVOLDerivativesSimple(mpiGrid, sysBoundaries, localCells);
    return true;
 }
 
@@ -1903,7 +2055,7 @@ void reconstructionCoefficients(
       CHECK_FLOAT(result[Rec::a_xy])
       result[Rec::a_xz] = der_i2j1k1[fs::dBxdz] - der_i1j1k1[fs::dBxdz];
       CHECK_FLOAT(result[Rec::a_xz])
-      result[Rec::a_x ] = (cep_i2j1k1[cp::BX] + cep_i2j1k1[cp::BX0]) - (cep_i1j1k1[cp::BX] + cep_i1j1k1[cp::BX0]);
+      result[Rec::a_x ] = (cep_i2j1k1[cp::PERBX] + cep_i2j1k1[cp::BGBX]) - (cep_i1j1k1[cp::PERBX] + cep_i1j1k1[cp::BGBX]);
       CHECK_FLOAT(result[Rec::a_x ])
       result[Rec::a_y ] = HALF*(der_i2j1k1[fs::dBxdy] + der_i1j1k1[fs::dBxdy]);
       CHECK_FLOAT(result[Rec::a_y ])
@@ -1916,7 +2068,7 @@ void reconstructionCoefficients(
       CHECK_FLOAT(result[Rec::b_yz])
       result[Rec::b_x ] = HALF*(der_i1j2k1[fs::dBydx] + der_i1j1k1[fs::dBydx]);
       CHECK_FLOAT(result[Rec::b_x ])
-      result[Rec::b_y ] = (cep_i1j2k1[cp::BY] + cep_i1j2k1[cp::BY0]) - (cep_i1j1k1[cp::BY] + cep_i1j1k1[cp::BY0]);
+      result[Rec::b_y ] = (cep_i1j2k1[cp::PERBY] + cep_i1j2k1[cp::BGBY]) - (cep_i1j1k1[cp::PERBY] + cep_i1j1k1[cp::BGBY]);
       CHECK_FLOAT(result[Rec::b_y ])
       result[Rec::b_z ] = HALF*(der_i1j2k1[fs::dBydz] + der_i1j1k1[fs::dBydz]);
       CHECK_FLOAT(result[Rec::b_z ])
@@ -1929,7 +2081,7 @@ void reconstructionCoefficients(
       CHECK_FLOAT(result[Rec::c_x ])
       result[Rec::c_y ] = HALF*(der_i1j1k2[fs::dBzdy] + der_i1j1k1[fs::dBzdy]);
       CHECK_FLOAT(result[Rec::c_y ])
-      result[Rec::c_z ] = (cep_i1j1k2[cp::BZ] + cep_i1j1k2[cp::BZ0]) - (cep_i1j1k1[cp::BZ] + cep_i1j1k1[cp::BZ0]);
+      result[Rec::c_z ] = (cep_i1j1k2[cp::PERBZ] + cep_i1j1k2[cp::BGBZ]) - (cep_i1j1k1[cp::PERBZ] + cep_i1j1k1[cp::BGBZ]);
       CHECK_FLOAT(result[Rec::c_z ])
    
       result[Rec::a_xx] = -HALF*(result[Rec::b_yx] + result[Rec::c_zx]);
@@ -1943,11 +2095,11 @@ void reconstructionCoefficients(
    #endif
    
    // Calculate 1st order reconstruction coefficients:
-   result[Rec::a_0 ] = HALF*(cep_i2j1k1[cp::BX] + cep_i2j1k1[cp::BX0] + cep_i1j1k1[cp::BX] + cep_i1j1k1[cp::BX0]) - SIXTH*result[Rec::a_xx];
+   result[Rec::a_0 ] = HALF*(cep_i2j1k1[cp::PERBX] + cep_i2j1k1[cp::BGBX] + cep_i1j1k1[cp::PERBX] + cep_i1j1k1[cp::BGBX]) - SIXTH*result[Rec::a_xx];
    CHECK_FLOAT(result[Rec::a_0 ])
-   result[Rec::b_0 ] = HALF*(cep_i1j2k1[cp::BY] + cep_i1j2k1[cp::BY0] + cep_i1j1k1[cp::BY] + cep_i1j1k1[cp::BY0]) - SIXTH*result[Rec::b_yy];
+   result[Rec::b_0 ] = HALF*(cep_i1j2k1[cp::PERBY] + cep_i1j2k1[cp::BGBY] + cep_i1j1k1[cp::PERBY] + cep_i1j1k1[cp::BGBY]) - SIXTH*result[Rec::b_yy];
    CHECK_FLOAT(result[Rec::b_0 ])
-   result[Rec::c_0 ] = HALF*(cep_i1j1k2[cp::BZ] + cep_i1j1k2[cp::BZ0] + cep_i1j1k1[cp::BZ] + cep_i1j1k1[cp::BZ0]) - SIXTH*result[Rec::c_zz];
+   result[Rec::c_0 ] = HALF*(cep_i1j1k2[cp::PERBZ] + cep_i1j1k2[cp::BGBZ] + cep_i1j1k1[cp::PERBZ] + cep_i1j1k1[cp::BGBZ]) - SIXTH*result[Rec::c_zz];
    CHECK_FLOAT(result[Rec::c_0 ])
 }
 
@@ -2001,9 +2153,9 @@ void calculateVolumeAveragedFields(
       
       // Calculate volume average of B:
       Real* const cellParams = mpiGrid[cellID]->parameters;
-      cellParams[cp::BXVOL] = coefficients[Rec::a_0] + cellParams[cp::BXVOL0];
-      cellParams[cp::BYVOL] = coefficients[Rec::b_0] + cellParams[cp::BYVOL0];
-      cellParams[cp::BZVOL] = coefficients[Rec::c_0] + cellParams[cp::BZVOL0];
+      cellParams[cp::BXVOL] = coefficients[Rec::a_0]; //these include both background and 
+      cellParams[cp::BYVOL] = coefficients[Rec::b_0];
+      cellParams[cp::BZVOL] = coefficients[Rec::c_0];
       
       // Calculate volume average of E (NEEDS IMPROVEMENT):
       const CellID nbr_i1j2k2 = getNeighbourID(mpiGrid, cellID, 2  , 2+1, 2+1);
@@ -2057,4 +2209,153 @@ void calculateVolumeAveragedFields(
       }
    }
    phiprof::stop("Calculate volume averaged fields");
+}
+
+/*! \brief Low-level spatial derivatives calculation.
+ * 
+ * For the cell with ID cellID calculate the spatial derivatives of BVOL or apply the derivative boundary conditions defined in project.h.
+ * \param cellID Index of the cell to process
+ * \param mpiGrid Grid
+ */
+static void calculateBVOLDerivatives(
+   const CellID& cellID,
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   SysBoundary& sysBoundaries
+) {
+   namespace cp = CellParams;
+   namespace der = bvolderivatives;
+   Real* const array       = mpiGrid[cellID]->derivatives;
+   Real* const derivatives = array;
+   // Get boundary flag for the cell:
+   #ifndef NDEBUG
+   map<CellID,uint>::const_iterator it = sysBoundaryFlags.find(cellID);
+   if (it == sysBoundaryFlags.end()) {cerr << "ERROR Could not find boundary flag for cell #" << cellID << endl; exit(1);}
+   cuint existingCells = it->second;
+   #else
+   cuint existingCells = sysBoundaryFlags[cellID];
+   #endif
+   cuint nonExistingCells = (existingCells ^ numeric_limits<uint>::max());
+   
+   CellID leftNbrID,rghtNbrID;
+   creal* left = NULL;
+   creal* cent = mpiGrid[cellID]->parameters;
+   creal* rght = NULL;
+   
+   // Calculate x-derivatives (is not TVD for AMR mesh):
+   if (((existingCells & CALCULATE_DX) == CALCULATE_DX) &&
+      (mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
+      leftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2  ,2  );
+      rghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2  ,2  );
+      left = mpiGrid[leftNbrID]->parameters;
+      rght = mpiGrid[rghtNbrID]->parameters;
+      
+      array[der::dBYVOLdx] = limiter(left[cp::BYVOL],cent[cp::BYVOL],rght[cp::BYVOL]);
+      array[der::dBZVOLdx] = limiter(left[cp::BZVOL],cent[cp::BZVOL],rght[cp::BZVOL]);
+   } else {
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(mpiGrid, cellID, 0);
+      } else {
+         sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)
+         ->fieldSolverBoundaryCondBVOLDerivatives(mpiGrid, cellID, 0);
+      }
+   }
+   
+   // Calculate y-derivatives (is not TVD for AMR mesh):
+   if (((existingCells & CALCULATE_DY) == CALCULATE_DY) &&
+      (mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
+      leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2-1,2  );
+      rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2+1,2  );
+      left = mpiGrid[leftNbrID]->parameters;
+      rght = mpiGrid[rghtNbrID]->parameters;
+      
+      array[der::dBXVOLdy] = limiter(left[cp::BXVOL],cent[cp::BXVOL],rght[cp::BXVOL]);
+      array[der::dBZVOLdy] = limiter(left[cp::BZVOL],cent[cp::BZVOL],rght[cp::BZVOL]);
+   } else {
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(mpiGrid, cellID, 1);
+      } else {
+         sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)
+         ->fieldSolverBoundaryCondBVOLDerivatives(mpiGrid, cellID, 1);
+      }
+   }
+   
+   // Calculate z-derivatives (is not TVD for AMR mesh):
+   if (((existingCells & CALCULATE_DZ) == CALCULATE_DZ) &&
+      (mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
+      leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2-1);
+      rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2+1);
+      left = mpiGrid[leftNbrID]->parameters;
+      rght = mpiGrid[rghtNbrID]->parameters;
+      
+      array[der::dBXVOLdz] = limiter(left[cp::BXVOL],cent[cp::BXVOL],rght[cp::BXVOL]);
+      array[der::dBYVOLdz] = limiter(left[cp::BYVOL],cent[cp::BYVOL],rght[cp::BYVOL]);
+   } else {
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(mpiGrid, cellID, 2);
+      } else {
+         sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)
+         ->fieldSolverBoundaryCondBVOLDerivatives(mpiGrid, cellID, 2);
+      }
+   }
+}
+
+/*! \brief High-level derivative calculation wrapper function.
+ * 
+ * BVOL has been calculated locally by calculateVolumeAveragedFields but not communicated.
+ * For the acceleration step one needs the cross-derivatives of BVOL
+ * 
+ * \param mpiGrid Grid
+ * \param sysBoundaries System boundary conditions existing
+ * \param localCells Vector of local cells to process
+ * 
+ * \sa calculateDerivatives
+ */
+void calculateBVOLDerivativesSimple(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   SysBoundary& sysBoundaries,
+   const vector<CellID>& localCells
+) {
+   int timer;
+   namespace fs = fieldsolver;
+   
+   phiprof::start("Calculate volume derivatives");
+   
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_BVOL);
+   
+   timer=phiprof::initializeTimer("Start comm","MPI");
+   phiprof::start(timer);
+   mpiGrid.start_remote_neighbor_data_update(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   phiprof::stop(timer);
+   
+   timer=phiprof::initializeTimer("Compute process inner cells");
+   phiprof::start(timer);
+   // Calculate derivatives on process inner cells
+   const vector<uint64_t> cellsWithLocalNeighbours = mpiGrid.get_cells_with_local_neighbors(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   for (vector<uint64_t>::const_iterator cell = cellsWithLocalNeighbours.begin(); cell != cellsWithLocalNeighbours.end(); cell++) {
+      if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+      calculateBVOLDerivatives(*cell, mpiGrid, sysBoundaries);
+   }
+   phiprof::stop(timer);
+   
+   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+   phiprof::start(timer);
+   mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   phiprof::stop(timer);
+   
+   // Calculate derivatives on process boundary cells
+   timer=phiprof::initializeTimer("Compute process boundary cells");
+   phiprof::start(timer);
+   const vector<uint64_t> cellsWithRemoteNeighbours = mpiGrid.get_cells_with_remote_neighbor(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   for (vector<uint64_t>::const_iterator cell = cellsWithRemoteNeighbours.begin(); cell != cellsWithRemoteNeighbours.end(); cell++) {
+      if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+      calculateBVOLDerivatives(*cell, mpiGrid, sysBoundaries);
+   }
+   phiprof::stop(timer);
+   
+   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+   phiprof::start(timer);
+   mpiGrid.wait_neighbor_data_update_sends();
+   phiprof::stop(timer);
+   
+   phiprof::stop("Calculate volume derivatives");
 }

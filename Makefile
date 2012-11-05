@@ -1,7 +1,6 @@
 # Which project is compiled:
 # Here a default value can be set, can be overridden from the compile line
-PROJ = KelvinHelmholtz
-
+PROJ = Fluctuations
 
 #set default architecture, can be overridden from the compile line
 ARCH = meteo
@@ -101,7 +100,8 @@ DEPS_COMMON = common.h definitions.h mpiconversion.h logger.h
 
 #all objects for vlasiator
 
-OBJS = 	datareducer.o datareductionoperator.o \
+OBJS = 	backgroundfield.o \
+	datareducer.o datareductionoperator.o \
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o \
 	sysboundary.o sysboundarycondition.o \
 	grid.o fileio.o vlasiator.o logger.o muxml.o \
@@ -129,6 +129,9 @@ clean: data
 
 # Rules for making each object file needed by the executable
 
+backgroundfield.o: ${DEPS_COMMON} backgroundfield/backgroundfield.cpp backgroundfield/backgroundfield.h
+	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/backgroundfield.cpp
+
 datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/datareducer.h datareduction/datareductionoperator.h datareduction/datareducer.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareduction/datareducer.cpp ${INC_MPI} ${INC_BOOST}
 
@@ -138,7 +141,7 @@ datareductionoperator.o:  ${DEPS_COMMON} spatial_cell.hpp datareduction/dataredu
 donotcompute.o: ${DEPS_COMMON} sysboundary/donotcompute.h sysboundary/donotcompute.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/donotcompute.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
 
-ionosphere.o: ${DEPS_COMMON} sysboundary/ionosphere.h sysboundary/ionosphere.cpp project.h
+ionosphere.o: ${DEPS_COMMON} sysboundary/ionosphere.h sysboundary/ionosphere.cpp backgroundfield/backgroundfield.cpp backgroundfield/backgroundfield.h project.h
 	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/ionosphere.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
 
 outflow.o: ${DEPS_COMMON} sysboundary/outflow.h sysboundary/outflow.cpp project.h
@@ -193,7 +196,7 @@ project.cpp: create_project_symlinks
 create_project_symlinks:
 	@./create_project_symlinks.sh $(PROJ)
 
-project.o: $(DEPS_COMMON) parameters.h readparameters.h project.h project.cpp
+project.o: $(DEPS_COMMON) parameters.h readparameters.h project.h project.cpp backgroundfield/backgroundfield.cpp backgroundfield/backgroundfield.h
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c project.cpp ${INC_BOOST} ${INC_ZOLTAN} ${INC_DCCRG} ${INC_MPI}
 
 vlscommon.o:  $(DEPS_COMMON)  vlscommon.h vlscommon.cpp   

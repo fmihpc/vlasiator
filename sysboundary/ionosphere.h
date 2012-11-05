@@ -21,7 +21,6 @@
 
 #include <vector>
 #include "../definitions.h"
-#include "../project.h"
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
 #include "sysboundarycondition.h"
@@ -41,14 +40,50 @@ namespace SBC {
       virtual void getParameters();
       
       virtual bool initSysBoundary(creal& t);
-      virtual int assignSysBoundary(creal* cellParams);
-      virtual bool applyInitialState(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
+      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell>& mpiGrid);
+      virtual bool applyInitialState(const dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
+//       virtual bool applySysBoundaryCondition(
+//          const dccrg::Dccrg<SpatialCell>& mpiGrid,
+//          creal& t
+//       );
+      virtual Real fieldSolverBoundaryCondMagneticField(
+         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const CellID& cellID,
+         creal& dt,
+         cuint& component
+      );
+      virtual void fieldSolverBoundaryCondElectricField(
+         dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const CellID& cellID,
+         cuint RKCase,
+         cuint component
+      );
+      virtual void fieldSolverBoundaryCondDerivatives(
+         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const CellID& cellID,
+         cuint& component
+      );
+      virtual void fieldSolverBoundaryCondBVOLDerivatives(
+         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const CellID& cellID,
+         cuint& component
+      );
+      virtual void vlasovBoundaryCondition(
+         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const CellID& cellID
+      );
+      
       virtual std::string getName() const;
       virtual uint getIndex() const;
       
    protected:
+      void generateTemplateCell();
+      void setCellFromTemplate(SpatialCell *cell);
+      
       Real center[3]; /*!< Coordinates of the centre of the ionosphere. */
       Real radius; /*!< Radius of the ionosphere. */
+      int depth; /*!< Depth in cells of ionosphere layer. */
+      spatial_cell::SpatialCell templateCell;
    };
 }
 

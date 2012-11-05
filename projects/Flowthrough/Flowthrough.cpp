@@ -26,80 +26,71 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "parameters.h"
 #include "readparameters.h"
 #include "vlasovmover.h"
+#include "backgroundfield/backgroundfield.h"
 
 using namespace std;
 
-typedef shocktestParameters stP;
-Real stP::rho[2] = {NAN};
-Real stP::T[2] = {NAN};
-Real stP::Vx[2] = {NAN};
-Real stP::Vy[2] = {NAN};
-Real stP::Vz[2] = {NAN};
-Real stP::Bx[2] = {NAN};
-Real stP::By[2] = {NAN};
-Real stP::Bz[2] = {NAN};
-uint stP::nSpaceSamples = 0;
-uint stP::nVelocitySamples = 0;
+typedef flowthroughParameters FTP;
+Real FTP::T = NAN;
+Real FTP::rho = NAN;
+Real FTP::Bx = NAN;
+Real FTP::By = NAN;
+Real FTP::Bz = NAN;
+uint FTP::nSpaceSamples = 0;
+uint FTP::nVelocitySamples = 0;
 
 bool initializeProject(void) {return true;}
 
 bool addProjectParameters(){
    typedef Readparameters RP;
-   RP::add("Riemann.rho1", "Number density, left state (m^-3)", 0.0);
-   RP::add("Riemann.rho2", "Number density, right state (m^-3)", 0.0);
-   RP::add("Riemann.T1", "Temperature, left state (K)", 0.0);
-   RP::add("Riemann.T2", "Temperature, right state (K)", 0.0);
-   RP::add("Riemann.Vx1", "Bulk velocity x component, left state (m/s)", 0.0);
-   RP::add("Riemann.Vx2", "Bulk velocity x component, right state (m/s)", 0.0);
-   RP::add("Riemann.Vy1", "Bulk velocity y component, left state (m/s)", 0.0);
-   RP::add("Riemann.Vy2", "Bulk velocity y component, right state (m/s)", 0.0);
-   RP::add("Riemann.Vz1", "Bulk velocity z component, left state (m/s)", 0.0);
-   RP::add("Riemann.Vz2", "Bulk velocity z component, right state (m/s)", 0.0);
-   RP::add("Riemann.Bx1", "Magnetic field x component, left state (T)", 0.0);
-   RP::add("Riemann.Bx2", "Magnetic field x component, right state (T)", 0.0);
-   RP::add("Riemann.By1", "Magnetic field y component, left state (T)", 0.0);
-   RP::add("Riemann.By2", "Magnetic field y component, right state (T)", 0.0);
-   RP::add("Riemann.Bz1", "Magnetic field z component, left state (T)", 0.0);
-   RP::add("Riemann.Bz2", "Magnetic field z component, right state (T)", 0.0);
-   RP::add("Riemann.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-   RP::add("Riemann.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+   RP::add("Flowthrough.rho", "Number density (m^-3)", 0.0);
+   RP::add("Flowthrough.T", "Temperature (K)", 0.0);
+   RP::add("Flowthrough.Bx", "Magnetic field x component (T)", 0.0);
+   RP::add("Flowthrough.By", "Magnetic field y component (T)", 0.0);
+   RP::add("Flowthrough.Bz", "Magnetic field z component (T)", 0.0);
+   RP::add("Flowthrough.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
+   RP::add("Flowthrough.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
    return true;
 }
 
 bool getProjectParameters(){
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    typedef Readparameters RP;
-   RP::get("Riemann.rho1", stP::rho[stP::LEFT]);
-   RP::get("Riemann.rho2", stP::rho[stP::RIGHT]);
-   RP::get("Riemann.T1", stP::T[stP::LEFT]);
-   RP::get("Riemann.T2", stP::T[stP::RIGHT]);
-   RP::get("Riemann.Vx1", stP::Vx[stP::LEFT]);
-   RP::get("Riemann.Vx2", stP::Vx[stP::RIGHT]);
-   RP::get("Riemann.Vy1", stP::Vy[stP::LEFT]);
-   RP::get("Riemann.Vy2", stP::Vy[stP::RIGHT]);
-   RP::get("Riemann.Vz1", stP::Vz[stP::LEFT]);
-   RP::get("Riemann.Vz2", stP::Vz[stP::RIGHT]);
-   RP::get("Riemann.Bx1", stP::Bx[stP::LEFT]);
-   RP::get("Riemann.Bx2", stP::Bx[stP::RIGHT]);
-   RP::get("Riemann.By1", stP::By[stP::LEFT]);
-   RP::get("Riemann.By2", stP::By[stP::RIGHT]);
-   RP::get("Riemann.Bz1", stP::Bz[stP::LEFT]);
-   RP::get("Riemann.Bz2", stP::Bz[stP::RIGHT]);
-   RP::get("Riemann.nSpaceSamples", stP::nSpaceSamples);
-   RP::get("Riemann.nVelocitySamples", stP::nVelocitySamples);
+   if(!RP::get("Flowthrough.rho", FTP::rho)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
+   if(!RP::get("Flowthrough.T", FTP::T)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
+   if(!RP::get("Flowthrough.Bx", FTP::Bx)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
+   if(!RP::get("Flowthrough.By", FTP::By)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
+   if(!RP::get("Flowthrough.Bz", FTP::Bz)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
+   if(!RP::get("Flowthrough.nSpaceSamples", FTP::nSpaceSamples)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
+   if(!RP::get("Flowthrough.nVelocitySamples", FTP::nVelocitySamples)) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
    return true;
 }
 
-Real getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
-   creal mass = 1.67262171e-27; // m_p in kg
-   creal k = 1.3806505e-23; // Boltzmann
-   //  creal mu0 = 1.25663706144e-6; // mu_0
-   //  creal q = 1.60217653e-19; // q_i
-   //  creal gamma = 5./3.;
-   
-   cint side = (x < 0.0) ? stP::LEFT : stP::RIGHT;
-   
-   return stP::rho[side] * pow(mass / (2.0 * M_PI * k * stP::T[side]), 1.5) *
-   exp(- mass * (pow(vx - stP::Vx[side], 2.0) + pow(vy - stP::Vy[side], 2.0) + pow(vz - stP::Vz[side], 2.0)) / (2.0 * k * stP::T[side]));
+Real getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   return FTP::rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * FTP::T), 1.5) *
+   exp(- physicalconstants::MASS_PROTON * (vx*vx + vy*vy + vz*vz) / (2.0 * physicalconstants::K_B * FTP::T));
 }
 
 /** Integrate the distribution function over the given six-dimensional phase-space cell.
@@ -119,23 +110,32 @@ Real getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& 
  * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
  */
 Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   
-   creal d_x = dx / (stP::nSpaceSamples-1);
-   creal d_y = dy / (stP::nSpaceSamples-1);
-   creal d_z = dz / (stP::nSpaceSamples-1);
-   creal d_vx = dvx / (stP::nVelocitySamples-1);
-   creal d_vy = dvy / (stP::nVelocitySamples-1);
-   creal d_vz = dvz / (stP::nVelocitySamples-1);
+   creal d_x = dx / (FTP::nSpaceSamples-1);
+   creal d_y = dy / (FTP::nSpaceSamples-1);
+   creal d_z = dz / (FTP::nSpaceSamples-1);
+   creal d_vx = dvx / (FTP::nVelocitySamples-1);
+   creal d_vy = dvy / (FTP::nVelocitySamples-1);
+   creal d_vz = dvz / (FTP::nVelocitySamples-1);
+   
    Real avg = 0.0;
-   for (uint i=0; i<stP::nSpaceSamples; ++i)
-      for (uint j=0; j<stP::nSpaceSamples; ++j)
-	 for (uint k=0; k<stP::nSpaceSamples; ++k)
-	    for (uint vi=0; vi<stP::nVelocitySamples; ++vi)
-	       for (uint vj=0; vj<stP::nVelocitySamples; ++vj)
-		  for (uint vk=0; vk<stP::nVelocitySamples; ++vk)
-		     {
-			avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
-		     }
-   return avg / pow(stP::nSpaceSamples, 3.0) / pow(stP::nVelocitySamples, 3.0);
+// #pragma omp parallel for collapse(6) reduction(+:avg)
+   // WARNING No threading here if calling functions are already threaded
+   for (uint i=0; i<FTP::nSpaceSamples; ++i)
+      for (uint j=0; j<FTP::nSpaceSamples; ++j)
+         for (uint k=0; k<FTP::nSpaceSamples; ++k)
+            for (uint vi=0; vi<FTP::nVelocitySamples; ++vi)
+               for (uint vj=0; vj<FTP::nVelocitySamples; ++vj)
+                  for (uint vk=0; vk<FTP::nVelocitySamples; ++vk) {
+                     avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+                  }
+   return avg / pow(FTP::nSpaceSamples, 3.0) / pow(FTP::nVelocitySamples, 3.0);
+   
+//    CellID cellID = 1 + round((x - Parameters::xmin) / dx + 
+//    (y - Parameters::ymin) / dy * Parameters::xcells_ini +
+//    (z - Parameters::zmin) / dz * Parameters::ycells_ini * Parameters::xcells_ini);
+   
+//    return cellID * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * FTP::T), 1.5) *
+//    exp(- physicalconstants::MASS_PROTON * (vx*vx + vy*vy + vz*vz) / (2.0 * physicalconstants::K_B * FTP::T));
 }
 
 /** Calculate parameters for the given spatial cell at the given time.
@@ -150,31 +150,12 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
  * of the state of the simulation, you can read it from Parameters.
  */
 void calcCellParameters(Real* cellParams,creal& t) {
-   creal x = cellParams[CellParams::XCRD];
-   creal dx = cellParams[CellParams::DX];
-   
-   Real Bxavg, Byavg, Bzavg;
-   Bxavg = Byavg = Bzavg = 0.0;
-   Real d_x = dx / (stP::nSpaceSamples - 1);
-   
-   for (uint i=0; i<stP::nSpaceSamples; ++i)
-      for (uint j=0; j<stP::nSpaceSamples; ++j)
-	 for (uint k=0; k<stP::nSpaceSamples; ++k) {
-	    Bxavg += ((x + i * d_x) < 0.0) ? stP::Bx[stP::LEFT] : stP::Bx[stP::RIGHT];
-	    Byavg += ((x + i * d_x) < 0.0) ? stP::By[stP::LEFT] : stP::By[stP::RIGHT];
-	    Bzavg += ((x + i * d_x) < 0.0) ? stP::Bz[stP::LEFT] : stP::Bz[stP::RIGHT];
-	 }
-   cuint nPts = pow(stP::nSpaceSamples, 3.0);
-   
-   cellParams[CellParams::EX   ] = 0.0;
-   cellParams[CellParams::EY   ] = 0.0;
-   cellParams[CellParams::EZ   ] = 0.0;
-   cellParams[CellParams::PERBX   ] = 0.0;
-   cellParams[CellParams::PERBY   ] = 0.0;
-   cellParams[CellParams::PERBZ   ] = 0.0;
-   cellParams[CellParams::BGBX   ] = Bxavg / nPts;
-   cellParams[CellParams::BGBY   ] = Byavg / nPts;
-   cellParams[CellParams::BGBZ   ] = Bzavg / nPts;
+   cellParams[CellParams::EX  ] = 0.0;
+   cellParams[CellParams::EY  ] = 0.0;
+   cellParams[CellParams::EZ  ] = 0.0;
+   cellParams[CellParams::BGBX] = FTP::Bx;
+   cellParams[CellParams::BGBY] = FTP::By;
+   cellParams[CellParams::BGBZ] = FTP::Bz;
 }
 
 void setProjectCell(SpatialCell* cell) {

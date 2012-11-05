@@ -25,7 +25,7 @@
 
 #include "setbyuser.h"
 #include "../vlasovmover.h"
-
+#include "../fieldsolver.h"
 
 using namespace std;
 
@@ -69,27 +69,150 @@ namespace SBC {
       return success;
    }
    
-   int SetByUser::assignSysBoundary(creal* cellParams) {
-      creal dx = cellParams[CellParams::DX];
-      creal dy = cellParams[CellParams::DY];
-      creal dz = cellParams[CellParams::DZ];
-      creal x = cellParams[CellParams::XCRD] + 0.5*dx;
-      creal y = cellParams[CellParams::YCRD] + 0.5*dy;
-      creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
-      
-      int typeToAssign = sysboundarytype::NOT_SYSBOUNDARY;
-      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
-      // Comparison of the array defining which faces to use and the array telling on which faces this cell is
-      bool doAssign = false;
-      for(uint i=0; i<6; i++) doAssign = doAssign || (facesToProcess[i] && isThisCellOnAFace[i]);
-      if(doAssign) typeToAssign = this->getIndex();
-      
-      return typeToAssign;
+   bool SetByUser::assignSysBoundary(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+      vector<CellID> cells = mpiGrid.get_cells();
+      for(uint i = 0; i < cells.size(); i++) {
+         if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+         creal* const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
+         creal dx = cellParams[CellParams::DX];
+         creal dy = cellParams[CellParams::DY];
+         creal dz = cellParams[CellParams::DZ];
+         creal x = cellParams[CellParams::XCRD] + 0.5*dx;
+         creal y = cellParams[CellParams::YCRD] + 0.5*dy;
+         creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
+         
+         bool isThisCellOnAFace[6];
+         determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
+         // Comparison of the array defining which faces to use and the array telling on which faces this cell is
+         bool doAssign = false;
+         for(uint j=0; j<6; j++) doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
+         if(doAssign) {
+            mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
+         }
+      }
+      return true;
    }
    
-   bool SetByUser::applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   bool SetByUser::applyInitialState(const dccrg::Dccrg<SpatialCell>& mpiGrid) {
+      bool success;
+      
+      success = setCellsFromTemplate(mpiGrid);
+      
+      return true;
+   }
+   
+//    bool SetByUser::applySysBoundaryCondition(
+//       const dccrg::Dccrg<SpatialCell>& mpiGrid,
+//       creal& t
+//    ) {
+//       bool success = true;
+//       if(!this->isThisDynamic) return success;
+//       
+//       this->generateTemplateCells(t);
+//       
+//       success = success & setCellsFromTemplate(mpiGrid);
+//       
+//       return success;
+//    }
+   
+   Real SetByUser::fieldSolverBoundaryCondMagneticField(
+      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const CellID& cellID,
+      creal& dt,
+      cuint& component
+   ) {
+      Real result = 0.0;
+      const SpatialCell* cell = mpiGrid[cellID];
+      creal dx = cell->parameters[CellParams::DX];
+      creal dy = cell->parameters[CellParams::DY];
+      creal dz = cell->parameters[CellParams::DZ];
+      creal x = cell->parameters[CellParams::XCRD] + 0.5*dx;
+      creal y = cell->parameters[CellParams::YCRD] + 0.5*dy;
+      creal z = cell->parameters[CellParams::ZCRD] + 0.5*dz;
+      
+      bool isThisCellOnAFace[6];
+      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
+      
+      for(uint i=0; i<6; i++) {
+         if(isThisCellOnAFace[i]) {
+            if(dt == 0.0) {
+               result = templateCells[i].parameters[CellParams::PERBX + component];
+            } else {
+               result = templateCells[i].parameters[CellParams::PERBX_DT2 + component];
+            }
+            break; // This effectively sets the precedence of faces through the order of faces.
+         }
+      }
+      return result;
+   }
+   
+   void SetByUser::fieldSolverBoundaryCondElectricField(
+      dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const CellID& cellID,
+      cuint RKCase,
+      cuint component
+   ) {
+      switch(component) {
+         case 0:
+            calculateEdgeElectricFieldX(mpiGrid, cellID, RKCase);
+            break;
+         case 1:
+            calculateEdgeElectricFieldY(mpiGrid, cellID, RKCase);
+            break;
+         case 2:
+            calculateEdgeElectricFieldZ(mpiGrid, cellID, RKCase);
+            break;
+         default:
+            cerr << "ERROR: Reached end of switch in SetByUser::fieldSolverBoundaryCondElectricField." << endl;
+            abort();
+      }
+   }
+   
+   void SetByUser::fieldSolverBoundaryCondDerivatives(
+      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const CellID& cellID,
+      cuint& component
+   ) {
+      this->setCellDerivativesToZero(mpiGrid, cellID, component);
+   }
+   
+   void SetByUser::fieldSolverBoundaryCondBVOLDerivatives(
+      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const CellID& cellID,
+      cuint& component
+   ) {
+      this->setCellBVOLDerivativesToZero(mpiGrid, cellID, component);
+   }
+   
+   void SetByUser::vlasovBoundaryCondition(
+      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const CellID& cellID
+   ) {
+      phiprof::start("vlasovBoundaryCondition (SetByUser)");
+      SpatialCell* cell = mpiGrid[cellID];
+      creal dx = cell->parameters[CellParams::DX];
+      creal dy = cell->parameters[CellParams::DY];
+      creal dz = cell->parameters[CellParams::DZ];
+      creal x = cell->parameters[CellParams::XCRD] + 0.5*dx;
+      creal y = cell->parameters[CellParams::YCRD] + 0.5*dy;
+      creal z = cell->parameters[CellParams::ZCRD] + 0.5*dz;
+      
+      bool isThisCellOnAFace[6];
+      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
+      
+      for(uint i=0; i<6; i++) {
+         if(isThisCellOnAFace[i]) {
+            copyCellData(&templateCells[i], cell);
+            break; // This effectively sets the precedence of faces through the order of faces.
+         }
+      }
+      phiprof::stop("vlasovBoundaryCondition (SetByUser)");
+   }
+   
+   bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell>& mpiGrid) {
       vector<uint64_t> cells = mpiGrid.get_cells();
-      for (uint i=0; i<cells.size(); ++i) {
+#pragma omp parallel for
+      for (uint i=0; i<cells.size(); i++) {
          SpatialCell* cell = mpiGrid[cells[i]];
          if(cell->sysBoundaryFlag != this->getIndex()) continue;
          
@@ -100,53 +223,20 @@ namespace SBC {
          creal y = cell->parameters[CellParams::YCRD] + 0.5*dy;
          creal z = cell->parameters[CellParams::ZCRD] + 0.5*dz;
          
+         bool isThisCellOnAFace[6];
          determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
          
          for(uint i=0; i<6; i++) {
             if(facesToProcess[i] && isThisCellOnAFace[i]) {
-               cell->parameters[CellParams::BX] = templateCells[i].parameters[CellParams::BX];
-               cell->parameters[CellParams::BY] = templateCells[i].parameters[CellParams::BY];
-               cell->parameters[CellParams::BZ] = templateCells[i].parameters[CellParams::BZ];
+               cell->parameters[CellParams::PERBX] = templateCells[i].parameters[CellParams::PERBX];
+               cell->parameters[CellParams::PERBY] = templateCells[i].parameters[CellParams::PERBY];
+               cell->parameters[CellParams::PERBZ] = templateCells[i].parameters[CellParams::PERBZ];
                
                cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
                cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
                
-               // Go through each velocity block in the velocity phase space grid.
-               // Set the initial state and block parameters:
-               creal dvx_block = SpatialCell::block_dvx; // Size of a block in vx-direction
-               creal dvy_block = SpatialCell::block_dvy; //                    vy
-               creal dvz_block = SpatialCell::block_dvz; //                    vz
-               creal dvx_blockCell = SpatialCell::cell_dvx; // Size of one cell in a block in vx-direction
-               creal dvy_blockCell = SpatialCell::cell_dvy; //                                vy
-               creal dvz_blockCell = SpatialCell::cell_dvz; //                                vz
-               
-               for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
-                  for (uint jv=0; jv<P::vyblocks_ini; ++jv)
-                     for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
-                        creal vx_block = P::vxmin + iv*dvx_block; // vx-coordinate of the lower left corner
-                        creal vy_block = P::vymin + jv*dvy_block; // vy-
-                        creal vz_block = P::vzmin + kv*dvz_block; // vz-
-                        
-                        // Calculate volume average of distrib. function for each cell in the block.
-                        for (uint kc=0; kc<WID; ++kc) 
-                           for (uint jc=0; jc<WID; ++jc) 
-                              for (uint ic=0; ic<WID; ++ic) {
-                                 creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
-                                 creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
-                                 creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
-                                 Real average = templateCells[i].get_value(vx_cell_center,
-                                                                           vy_cell_center,
-                                                                           vz_cell_center);
-                                 
-                                 if(average!=0.0){
-                                    cell->set_value(vx_cell_center,vy_cell_center,vz_cell_center,average);
-                                 }
-                              }
-                     }
-               calculateCellVelocityMoments(cell);
-               
-               //let's get rid of blocks not fulfilling the criteria here to save memory.
-               cell->adjustSingleCellVelocityBlocks();
+               copyCellData(&templateCells[i], cell);
+               break; // This effectively sets the precedence of faces through the order of faces.
             }
          }
       }

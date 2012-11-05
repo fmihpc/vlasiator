@@ -82,6 +82,104 @@ bool getProjectParameters() {
    return true;
 }
 
+Real getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz) {
+   creal k = 1.3806505e-23; // Boltzmann
+   creal mass = 1.67262171e-27; // m_p in kg
+   
+   return exp(- mass * ((vx-LarmP::VX0)*(vx-LarmP::VX0) + (vy-LarmP::VY0)*(vy-LarmP::VY0)+ (vz-LarmP::VZ0)*(vz-LarmP::VZ0)) / (2.0 * k * LarmP::TEMPERATURE))*
+      exp(-pow(x-Parameters::xmax/2.5, 2.0)/pow(LarmP::SCA_X, 2.0))*exp(-pow(y-Parameters::ymax/2.0, 2.0)/pow(LarmP::SCA_Y, 2.0));
+}
+
+/** Integrate the distribution function over the given six-dimensional phase-space cell.
+ * @param x Starting value of the x-coordinate of the cell.
+ * @param y Starting value of the y-coordinate of the cell.
+ * @param z Starting value of the z-coordinate of the cell.
+ * @param dx The size of the cell in x-direction.
+ * @param dy The size of the cell in y-direction.
+ * @param dz The size of the cell in z-direction.
+ * @param vx Starting value of the vx-coordinate of the cell.
+ * @param vy Starting value of the vy-coordinate of the cell.
+ * @param vz Starting value of the vz-coordinate of the cell.
+ * @param dvx The size of the cell in vx-direction.
+ * @param dvy The size of the cell in vy-direction.
+ * @param dvz The size of the cell in vz-direction.
+ * @return The volume average of the distribution function in the given phase space cell.
+ * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
+ */
+Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+   if(vx < Parameters::vxmin + 0.5 * dvx ||
+      vy < Parameters::vymin + 0.5 * dvy ||
+      vz < Parameters::vzmin + 0.5 * dvz ||
+      vx > Parameters::vxmax - 1.5 * dvx ||
+      vy > Parameters::vymax - 1.5 * dvy ||
+      vz > Parameters::vzmax - 1.5 * dvz
+   ) return 0.0;
+   
+   creal mass = Parameters::m;
+   creal q = Parameters::q;
+   creal k = 1.3806505e-23; // Boltzmann
+   creal mu0 = 1.25663706144e-6; // mu_0
+
+   creal d_x = dx / (LarmP::nSpaceSamples-1);
+   creal d_y = dy / (LarmP::nSpaceSamples-1);
+   creal d_z = dz / (LarmP::nSpaceSamples-1);
+   creal d_vx = dvx / (LarmP::nVelocitySamples-1);
+   creal d_vy = dvy / (LarmP::nVelocitySamples-1);
+   creal d_vz = dvz / (LarmP::nVelocitySamples-1);
+   Real avg = 0.0;
+   
+   for (uint i=0; i<LarmP::nSpaceSamples; ++i)
+      for (uint j=0; j<LarmP::nSpaceSamples; ++j)
+         for (uint k=0; k<LarmP::nSpaceSamples; ++k)
+            for (uint vi=0; vi<LarmP::nVelocitySamples; ++vi)
+               for (uint vj=0; vj<LarmP::nVelocitySamples; ++vj)
+                  for (uint vk=0; vk<LarmP::nVelocitySamples; ++vk)
+                  {
+                     avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz);
+                  }
+   
+   creal result = avg *LarmP::DENSITY * pow(mass / (2.0 * M_PI * k * LarmP::TEMPERATURE), 1.5) /
+      (LarmP::nSpaceSamples*LarmP::nSpaceSamples*LarmP::nSpaceSamples) / 
+      (LarmP::nVelocitySamples*LarmP::nVelocitySamples*LarmP::nVelocitySamples);
+   
+				  
+   if(result < LarmP::maxwCutoff) {
+      return 0.0;
+   } else {
+      return result;
+   }
+}
+
+/** Calculate parameters for the given spatial cell at the given time.
+ * Here you need to set values for the following array indices:
+ * CellParams::EX, CellParams::EY, CellParams::EZ, CellParams::BX, CellParams::BY, and CellParams::BZ.
+ * 
+ * The following array indices contain the coordinates of the "lower left corner" of the cell: 
+ * CellParams::XCRD, CellParams::YCRD, and CellParams::ZCRD.
+ * The cell size is given in the following array indices: CellParams::DX, CellParams::DY, and CellParams::DZ.
+ * @param cellParams Array containing cell parameters.
+ * @param t The current value of time. This is passed as a convenience. If you need more detailed information 
+ * of the state of the simulation, you can read it from Parameters.
+ */
+void calcCellParameters(Real* cellParams,creal& t) {
+   creal x = cellParams[CellParams::XCRD];
+   creal dx = cellParams[CellParams::DX];
+   creal y = cellParams[CellParams::YCRD];
+   creal dy = cellParams[CellParams::DY];
+   creal z = cellParams[CellParams::ZCRD];
+   creal dz = cellParams[CellParams::DZ];
+   
+   cellParams[CellParams::EX   ] = 0.0;
+   cellParams[CellParams::EY   ] = 0.0;
+   cellParams[CellParams::EZ   ] = 0.0;
+   cellParams[CellParams::BGBX   ] = 0.0;
+   cellParams[CellParams::BGBY   ] = 0.0;
+   cellParams[CellParams::BGBZ   ] = LarmP::BZ0;
+   cellParams[CellParams::PERBX   ] = 0.0;
+   cellParams[CellParams::PERBY   ] = 0.0;
+   cellParams[CellParams::PERBZ   ] = 0.0;
+}
+
 void setProjectCell(SpatialCell* cell) {
    // Set up cell parameters:
    calcCellParameters(&((*cell).parameters[0]), 0.0);
@@ -135,90 +233,3 @@ void setProjectCell(SpatialCell* cell) {
          //let's get rid of blocks not fulfilling the criteria here to save memory.
          cell->adjustSingleCellVelocityBlocks();
 }
-
-bool cellParametersChanged(creal& t) {return false;}
-
-
-Real getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz) {
-   creal k = 1.3806505e-23; // Boltzmann
-   creal mass = 1.67262171e-27; // m_p in kg
-   
-   return exp(- mass * ((vx-LarmP::VX0)*(vx-LarmP::VX0) + (vy-LarmP::VY0)*(vy-LarmP::VY0)+ (vz-LarmP::VZ0)*(vz-LarmP::VZ0)) / (2.0 * k * LarmP::TEMPERATURE))*
-      exp(-pow(x-Parameters::xmax/2.5, 2.0)/pow(LarmP::SCA_X, 2.0))*exp(-pow(y-Parameters::ymax/2.0, 2.0)/pow(LarmP::SCA_Y, 2.0));
-}
-
-Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
-   if(vx < Parameters::vxmin + 0.5 * dvx ||
-      vy < Parameters::vymin + 0.5 * dvy ||
-      vz < Parameters::vzmin + 0.5 * dvz ||
-      vx > Parameters::vxmax - 1.5 * dvx ||
-      vy > Parameters::vymax - 1.5 * dvy ||
-      vz > Parameters::vzmax - 1.5 * dvz
-   ) return 0.0;
-   
-   creal mass = Parameters::m;
-   creal q = Parameters::q;
-   creal k = 1.3806505e-23; // Boltzmann
-   creal mu0 = 1.25663706144e-6; // mu_0
-
-   creal d_x = dx / (LarmP::nSpaceSamples-1);
-   creal d_y = dy / (LarmP::nSpaceSamples-1);
-   creal d_z = dz / (LarmP::nSpaceSamples-1);
-   creal d_vx = dvx / (LarmP::nVelocitySamples-1);
-   creal d_vy = dvy / (LarmP::nVelocitySamples-1);
-   creal d_vz = dvz / (LarmP::nVelocitySamples-1);
-   Real avg = 0.0;
-   
-   for (uint i=0; i<LarmP::nSpaceSamples; ++i)
-      for (uint j=0; j<LarmP::nSpaceSamples; ++j)
-         for (uint k=0; k<LarmP::nSpaceSamples; ++k)
-            for (uint vi=0; vi<LarmP::nVelocitySamples; ++vi)
-               for (uint vj=0; vj<LarmP::nVelocitySamples; ++vj)
-                  for (uint vk=0; vk<LarmP::nVelocitySamples; ++vk)
-                  {
-                     avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz);
-                  }
-   
-   creal result = avg *LarmP::DENSITY * pow(mass / (2.0 * M_PI * k * LarmP::TEMPERATURE), 1.5) /
-      (LarmP::nSpaceSamples*LarmP::nSpaceSamples*LarmP::nSpaceSamples) / 
-      (LarmP::nVelocitySamples*LarmP::nVelocitySamples*LarmP::nVelocitySamples);
-   
-				  
-   if(result < LarmP::maxwCutoff) {
-      return 0.0;
-   } else {
-      return result;
-   }
-}
-      
-void calcBlockParameters(Real* blockParams) {
-   //blockParams[BlockParams::Q_PER_M] = 1.0;
-}
-
-void calcCellParameters(Real* cellParams,creal& t) {
-   creal x = cellParams[CellParams::XCRD];
-   creal dx = cellParams[CellParams::DX];
-   creal y = cellParams[CellParams::YCRD];
-   creal dy = cellParams[CellParams::DY];
-   creal z = cellParams[CellParams::ZCRD];
-   creal dz = cellParams[CellParams::DZ];
-   
-   cellParams[CellParams::EX   ] = 0.0;
-   cellParams[CellParams::EY   ] = 0.0;
-   cellParams[CellParams::EZ   ] = 0.0;
-   cellParams[CellParams::BX   ] = 0.0;
-   cellParams[CellParams::BY   ] = 0.0;
-   cellParams[CellParams::BZ   ] = LarmP::BZ0;
-   cellParams[CellParams::BXVOL   ] = 0.0;
-   cellParams[CellParams::BYVOL   ] = 0.0;
-   cellParams[CellParams::BZVOL   ] = LarmP::BZ0;
-}
-
-// TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
-void calcSimParameters(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t, Real& /*dt*/) {
-   const std::vector<uint64_t> cells = mpiGrid.get_cells();
-   for (uint i = 0; i < cells.size(); ++i) {
-      calcCellParameters(mpiGrid[cells[i]]->parameters, t);
-   }
-}
-

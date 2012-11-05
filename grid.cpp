@@ -48,12 +48,10 @@ using namespace phiprof;
 
 extern Logger logFile, diagnostic;
 
-//subroutine to adjust blocks of local cells; remove/add based on user-defined limits
-bool adjust_local_velocity_blocks(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
 void initVelocityGridGeometry();
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell>& mpiGrid);
 bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid);
-
+bool adjust_local_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
 void initializeGrid(int argn,
                     char **argc,
@@ -99,71 +97,110 @@ void initializeGrid(int argn,
 
    // set reduced neighborhoods
    typedef dccrg::Types<3>::neighborhood_item_t neigh_t;
-
+   
    // set a reduced neighborhood for field solver
-   std::vector<neigh_t> fs_neighborhood;
-   for (int z = -1; z <= 1; z++)
-   for (int y = -1; y <= 1; y++)
-   for (int x = -1; x <= 1; x++) {
-      if (x == 0 && y == 0 && z == 0) {
-          continue;
+   std::vector<neigh_t> nearestneighbor_neighborhood;
+   for (int z = -1; z <= 1; z++) {
+      for (int y = -1; y <= 1; y++) {
+         for (int x = -1; x <= 1; x++) {
+            if (x == 0 && y == 0 && z == 0) {
+               continue;
+            }
+            
+            neigh_t offsets = {{x, y, z}};
+            nearestneighbor_neighborhood.push_back(offsets);
+         }
       }
-
-      neigh_t offsets = {{x, y, z}};
-      fs_neighborhood.push_back(offsets);
    }
-
-   if (!mpiGrid.add_remote_update_neighborhood(FIELD_SOLVER_NEIGHBORHOOD_ID, fs_neighborhood)) {
+   
+   if (!mpiGrid.add_remote_update_neighborhood(FIELD_SOLVER_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
       std::cerr << __FILE__ << ":" << __LINE__
          << " Couldn't set field solver neighborhood"
          << std::endl;
       abort();
    }
-
-   // set a reduced neighborhood for vlasov solver
-	const std::vector<neigh_t> vlasov_neighborhood
-		= boost::assign::list_of<neigh_t>
-			(boost::assign::list_of( 0)( 0)(-2))
-			(boost::assign::list_of(-1)(-1)(-1))
-			(boost::assign::list_of( 0)(-1)(-1))
-			(boost::assign::list_of( 1)(-1)(-1))
-			(boost::assign::list_of(-1)( 0)(-1))
-			(boost::assign::list_of( 0)( 0)(-1))
-			(boost::assign::list_of( 1)( 0)(-1))
-			(boost::assign::list_of(-1)( 1)(-1))
-			(boost::assign::list_of( 0)( 1)(-1))
-			(boost::assign::list_of( 1)( 1)(-1))
-			(boost::assign::list_of( 0)(-2)( 0))
-			(boost::assign::list_of(-1)(-1)( 0))
-			(boost::assign::list_of( 0)(-1)( 0))
-			(boost::assign::list_of( 1)(-1)( 0))
-			(boost::assign::list_of(-2)( 0)( 0))
-			(boost::assign::list_of(-1)( 0)( 0))
-			(boost::assign::list_of( 1)( 0)( 0))
-			(boost::assign::list_of( 2)( 0)( 0))
-			(boost::assign::list_of(-1)( 1)( 0))
-			(boost::assign::list_of( 0)( 1)( 0))
-			(boost::assign::list_of( 1)( 1)( 0))
-			(boost::assign::list_of( 0)( 2)( 0))
-			(boost::assign::list_of(-1)(-1)( 1))
-			(boost::assign::list_of( 0)(-1)( 1))
-			(boost::assign::list_of( 1)(-1)( 1))
-			(boost::assign::list_of(-1)( 0)( 1))
-			(boost::assign::list_of( 0)( 0)( 1))
-			(boost::assign::list_of( 1)( 0)( 1))
-			(boost::assign::list_of(-1)( 1)( 1))
-			(boost::assign::list_of( 0)( 1)( 1))
-			(boost::assign::list_of( 1)( 1)( 1))
-			(boost::assign::list_of( 0)( 0)( 2));
-
+   
+   // set a reduced neighborhood for all possible communication in  vlasov solver
+   //FIXME, the +2 neighbors can be removed as we do not receive from +2, do check though...
+   const std::vector<neigh_t> vlasov_neighborhood
+      = boost::assign::list_of<neigh_t>
+      (boost::assign::list_of( 0)( 0)(-2))
+      (boost::assign::list_of(-1)(-1)(-1))
+      (boost::assign::list_of( 0)(-1)(-1))
+      (boost::assign::list_of( 1)(-1)(-1))
+      (boost::assign::list_of(-1)( 0)(-1))
+      (boost::assign::list_of( 0)( 0)(-1))
+      (boost::assign::list_of( 1)( 0)(-1))
+      (boost::assign::list_of(-1)( 1)(-1))
+      (boost::assign::list_of( 0)( 1)(-1))
+      (boost::assign::list_of( 1)( 1)(-1))
+      (boost::assign::list_of( 0)(-2)( 0))
+      (boost::assign::list_of(-1)(-1)( 0))
+      (boost::assign::list_of( 0)(-1)( 0))
+      (boost::assign::list_of( 1)(-1)( 0))
+      (boost::assign::list_of(-2)( 0)( 0))
+      (boost::assign::list_of(-1)( 0)( 0))
+      (boost::assign::list_of( 1)( 0)( 0))
+      (boost::assign::list_of( 2)( 0)( 0))
+      (boost::assign::list_of(-1)( 1)( 0))
+      (boost::assign::list_of( 0)( 1)( 0))
+      (boost::assign::list_of( 1)( 1)( 0))
+      (boost::assign::list_of( 0)( 2)( 0))
+      (boost::assign::list_of(-1)(-1)( 1))
+      (boost::assign::list_of( 0)(-1)( 1))
+      (boost::assign::list_of( 1)(-1)( 1))
+      (boost::assign::list_of(-1)( 0)( 1))
+      (boost::assign::list_of( 0)( 0)( 1))
+      (boost::assign::list_of( 1)( 0)( 1))
+      (boost::assign::list_of(-1)( 1)( 1))
+      (boost::assign::list_of( 0)( 1)( 1))
+      (boost::assign::list_of( 1)( 1)( 1))
+      (boost::assign::list_of( 0)( 0)( 2));
+   
    if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_NEIGHBORHOOD_ID, vlasov_neighborhood)) {
       std::cerr << __FILE__ << ":" << __LINE__
-         << " Couldn't set vlasov solver neighborhood"
-         << std::endl;
+                << " Couldn't set vlasov solver neighborhood"
+                << std::endl;
+      abort();
+   }
+
+   
+   // A reduced neighborhood for vlasov distribution function receives
+   const std::vector<neigh_t> vlasov_density_neighborhood
+      = boost::assign::list_of<neigh_t>
+      (boost::assign::list_of( 0)( 0)(-1))
+      (boost::assign::list_of( 0)( 0)( 1))
+      (boost::assign::list_of( 0)(-1)( 0))
+      (boost::assign::list_of( 0)( 1)( 0))
+      (boost::assign::list_of(-1)( 0)( 0))
+      (boost::assign::list_of( 1)( 0)( 0))
+      (boost::assign::list_of(-2)( 0)( 0))
+      (boost::assign::list_of( 0)(-2)( 0))
+      (boost::assign::list_of( 0)( 0)(-2));
+   
+   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_DENSITY_NEIGHBORHOOD_ID, vlasov_density_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+                << " Couldn't set field solver neighborhood"
+                << std::endl;
       abort();
    }
 
 
+   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_FLUXES_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+                << " Couldn't set field solver neighborhood"
+                << std::endl;
+      abort();
+   }
+
+   if (!mpiGrid.add_remote_update_neighborhood(SYSBOUNDARIES_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+                << " Couldn't set system boundaries neighborhood"
+                << std::endl;
+      abort();
+   }
+   
+   
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
    phiprof::start("Initial load-balancing");
    if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
@@ -177,16 +214,21 @@ void initializeGrid(int argn,
    initSpatialCellCoordinates(mpiGrid);
    phiprof::stop("Set spatial cell coordinates");
    
+   phiprof::start("Initialize system boundary conditions");
    if(sysBoundaries.initSysBoundaries(P::t_min) == false) {
       if (myRank == MASTER_RANK) cerr << "Error in initialising the system boundaries." << endl;
       exit(1);
    }
+   phiprof::stop("Initialize system boundary conditions");
    
    // Initialise system boundary conditions (they need the initialised positions!!)
+   phiprof::start("Classify cells (sys boundary conditions)");
    if(sysBoundaries.classifyCells(mpiGrid) == false) {
       cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
       exit(1);
    }
+   phiprof::stop("Classify cells (sys boundary conditions)");
+   
    if (P::isRestart){
       logFile << "Restart from "<< P::restartFileName << std::endl << writeVerbose;
       phiprof::start("Read restart");
@@ -195,8 +237,7 @@ void initializeGrid(int argn,
          exit(1);
       }
       phiprof::stop("Read restart");
-   }
-   else {
+   } else {
       // Go through every spatial cell on this CPU, and create the initial state:
       phiprof::start("Apply initial state");
       if(applyInitialState(mpiGrid) == false) {
@@ -213,10 +254,8 @@ void initializeGrid(int argn,
       phiprof::stop("Apply system boundary conditions state");
    }
 
-
    updateRemoteVelocityBlockLists(mpiGrid);
    adjustVelocityBlocks(mpiGrid,false); // do not initialize mover, mover has not yet been initialized here
-
    
    phiprof::initializeTimer("Fetch Neighbour data","MPI");
    phiprof::start("Fetch Neighbour data");
@@ -224,7 +263,6 @@ void initializeGrid(int argn,
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
    mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop("Fetch Neighbour data");
-   
    
    phiprof::stop("Set initial state");
    
@@ -260,6 +298,7 @@ void initVelocityGridGeometry(){
 
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    vector<uint64_t> cells = mpiGrid.get_cells();
+#pragma omp parallel for
    for (uint i=0; i<cells.size(); ++i) {
       mpiGrid[cells[i]]->parameters[CellParams::XCRD] = mpiGrid.get_cell_x_min(cells[i]);
       mpiGrid[cells[i]]->parameters[CellParams::YCRD] = mpiGrid.get_cell_y_min(cells[i]);
@@ -282,6 +321,7 @@ bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    // constructed here:
    // Each initialization has to be independent to avoid threading problems 
 #pragma omp parallel for schedule(dynamic)
+   //WARNING no threading here if setProjectCell has threading
    for (uint i=0; i<cells.size(); ++i) {
       SpatialCell* cell = mpiGrid[cells[i]];
       if(cell->sysBoundaryFlag != NOT_SYSBOUNDARY) continue;
@@ -289,12 +329,6 @@ bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    }
    return true;
 }
-
-
-   
-
-
-
 
 void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
 
@@ -369,10 +403,6 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    phiprof::stop("Balancing load");
 }
 
-
-
-
-
 //Compute which blocks have content, adjust local velocity blocks, and
 //make sure remote cells are up-to-date and ready to receive
 //data. Solvers are also updated so that their internal structures are
@@ -406,7 +436,6 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid, bool reInitMover) 
    phiprof::stop("re-adjust blocks");
    return true;
 }
-
 
 /*!
 Adjusts velocity blocks in local spatial cells.

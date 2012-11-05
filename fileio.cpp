@@ -140,11 +140,11 @@ bool readNBlocks(VLSVParReader & file,
 template <typename fileReal>
 bool readBlockData(VLSVParReader & file,
                    const vector<uint64_t>& fileCells,
-		   const uint localCellStartOffset,
-		   const uint localCells,
+		   const uint64_t localCellStartOffset,
+		   const uint64_t localCells,
 		   const vector<uint>& nBlocks,
-		   const uint localBlockStartOffset,
-		   const uint localBlocks,
+		   const uint64_t localBlockStartOffset,
+		   const uint64_t localBlocks,
                    dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid){
   uint64_t arraySize;
   uint64_t avgVectorSize;
@@ -156,7 +156,6 @@ bool readBlockData(VLSVParReader & file,
   list<pair<string,string> > coordAttribs;
   fileReal *coordBuffer;
   fileReal *avgBuffer;
-  int maxNumberOfBlocks;
   bool success=true;
    
   coordAttribs.push_back(make_pair("name","SpatialGrid"));
@@ -219,8 +218,8 @@ bool readBlockData(VLSVParReader & file,
 template <typename fileReal>
 bool readCellParamsVariable(VLSVParReader & file,
 			    const vector<uint64_t>& fileCells,
-                            const uint localCellStartOffset,
-			    const uint localCells,
+                            const uint64_t localCellStartOffset,
+			    const uint64_t localCells,
 			    const string& variableName,
                             const size_t cellParamsIndex,
                             const size_t expectedVectorSize,
@@ -396,6 +395,7 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    
    if(readScalarParameter(file,"tstep",P::tstep,0,MPI_COMM_WORLD) ==false) success=false;
    P::tstep_min=P::tstep;
+   if(readScalarParameter(file,"dt",P::dt,0,MPI_COMM_WORLD) ==false) success=false;
    checkScalarParameter(file,"xmin",P::xmin,0,MPI_COMM_WORLD);
    checkScalarParameter(file,"ymin",P::ymin,0,MPI_COMM_WORLD);
    checkScalarParameter(file,"zmin",P::zmin,0,MPI_COMM_WORLD);
@@ -445,8 +445,8 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    //First processA processes get cellsPerProcessA cells, the next cellsPerProcessB cells
    uint cellsPerProcessA=fileCells.size()/processes;
    uint cellsPerProcessB=cellsPerProcessA+1;
-   uint processesB=fileCells.size()%processes;
-   uint processesA=processes-processesB;
+   int processesB=fileCells.size()%processes;
+   int processesA=processes-processesB;
    
    //pin local cells to remote processes
    for(uint i=0;i<fileCells.size();i++){
@@ -466,8 +466,8 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    gridCells = mpiGrid.get_cells();
    
    //this is where local cells start in file-list after migration
-   uint localCellStartOffset;
-   uint localCells;
+   uint64_t localCellStartOffset;
+   uint64_t localCells;
    if(myRank < int(processesA)) {
       localCells=cellsPerProcessA;
       localCellStartOffset=cellsPerProcessA*myRank;
@@ -516,9 +516,17 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
 
 
    if(success)
-     success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"B",CellParams::BX,3,mpiGrid);
+     success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"perturbed_B",CellParams::PERBX,3,mpiGrid);
    if(success)
-     success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"B0",CellParams::BX0,3,mpiGrid);
+     success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"background_B",CellParams::BGBX,3,mpiGrid);
+   if(success)
+      success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"moments",CellParams::RHO,4,mpiGrid);
+   if(success)
+      success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"moments_dt2",CellParams::RHO_DT2,4,mpiGrid);
+   if(success)
+      success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"moments_r",CellParams::RHO_R,4,mpiGrid);
+   if(success)
+      success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"moments_v",CellParams::RHO_V,4,mpiGrid);
 
    phiprof::stop("readCellParameters");
    phiprof::start("readBlockData");
@@ -528,9 +536,6 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    if(success)
       success=file.close();
    phiprof::stop("readGrid");
-
-   if(success)
-      calculateVelocityMoments(mpiGrid);
 
    exitOnError(success,"(RESTART) Other failure",MPI_COMM_WORLD);
    return success;
@@ -693,8 +698,12 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
       }
       //write out DROs we need for restarts
       DataReducer restartReducer;
-      restartReducer.addOperator(new DRO::VariableB);
-      restartReducer.addOperator(new DRO::VariableB0);
+      restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("background_B",CellParams::BGBX,3));
+      restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("perturbed_B",CellParams::PERBX,3));
+      restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments",CellParams::RHO,4));
+      restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_dt2",CellParams::RHO_DT2,4));
+      restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_r",CellParams::RHO_R,4));
+      restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_v",CellParams::RHO_V,4));
       restartReducer.addOperator(new DRO::Blocks);
 
       for (uint i=0; i<restartReducer.size(); ++i) {

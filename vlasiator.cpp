@@ -61,6 +61,79 @@ using namespace std;
 using namespace phiprof;
 
 
+bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &isChanged) {
+
+   phiprof::start("compute-timestep");      
+   //compute maximum time-step, this cannot be done at the first
+   //step as the solvers compute the limits for each cell
+
+   isChanged=false;
+
+   vector<uint64_t> cells = mpiGrid.get_cells();         
+   Real dtMaxLocal[3];
+   Real dtMaxGlobal[3];
+   dtMaxLocal[0]=std::numeric_limits<Real>::max();
+   dtMaxLocal[1]=std::numeric_limits<Real>::max();
+   dtMaxLocal[2]=std::numeric_limits<Real>::max();
+   for (std::vector<uint64_t>::const_iterator cell_id = cells.begin(); cell_id != cells.end(); ++cell_id) {
+      SpatialCell* cell = mpiGrid[*cell_id];
+      if (cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
+      dtMaxLocal[0]=min(dtMaxLocal[0], cell->parameters[CellParams::MAXRDT]);
+      dtMaxLocal[1]=min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
+      dtMaxLocal[2]=min(dtMaxLocal[2], cell->parameters[CellParams::MAXFDT]);
+   }
+   MPI_Allreduce(&(dtMaxLocal[0]), &(dtMaxGlobal[0]), 3, MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
+   
+
+
+      
+   Real maxVDtNoSubstepping=dtMaxGlobal[1];
+   
+   //Increase timestep limit in velocity space based on
+   //maximum number of substeps we are allowed to take. As
+   //the length of each substep is unknown beforehand the
+   //limit is not hard, it may be exceeded in some cases.
+   // A value of 0 means that there is no limit on substepping
+   if(P::maxAccelerationSubsteps==0)
+      dtMaxGlobal[1]=std::numeric_limits<Real>::max();
+   else
+      dtMaxGlobal[1]*=P::maxAccelerationSubsteps;
+   
+   //If fieldsolver is off there should be no limit on time-step from it
+   if (P::propagateField == false) {
+      dtMaxGlobal[2]=std::numeric_limits<Real>::max();
+   }
+   
+   //If vlasovsolver is off there should be no limit on time-step from it
+   if (P::propagateVlasov == false) {
+      dtMaxGlobal[0]=std::numeric_limits<Real>::max();
+      dtMaxGlobal[1]=std::numeric_limits<Real>::max();
+      maxVDtNoSubstepping=std::numeric_limits<Real>::max();
+   }
+   
+   Real dtMax=std::numeric_limits<Real>::max();
+   dtMax=min(dtMax, dtMaxGlobal[0]);
+   dtMax=min(dtMax, dtMaxGlobal[1]); 
+   dtMax=min(dtMax, dtMaxGlobal[2]);
+   
+   
+   if(P::dt < dtMax*P::CFL_min || P::dt > dtMax*P::CFL_max ) {
+      newDt = 0.5*(P::CFL_min + P::CFL_max)*dtMax;
+      isChanged=true;
+      logFile <<"(TIMESTEP) New dt computed: "<< newDt <<
+         " Max dt (not including CFL "<< P::CFL_min <<"-"<<P::CFL_max<<" ) in {r, v+subs, v, BE} was " <<
+         dtMaxGlobal[0] << " " <<
+         dtMaxGlobal[1] << " " <<
+         maxVDtNoSubstepping << " " <<
+         dtMaxGlobal[2] << endl << writeVerbose;
+   }
+
+   phiprof::stop("compute-timestep");
+
+   return true;
+}
+
+
 int main(int argn,char* args[]) {
    bool success = true;
    int myRank;
@@ -144,32 +217,28 @@ int main(int argn,char* args[]) {
    if (initializeMover(mpiGrid) == false) {
       logFile << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << writeVerbose;
       exit(1);
-   }   
-   calculateVelocityMoments(mpiGrid);
+   }
+   //compute moments, and set them  in RHO*. If restart, they are already read in
+   if(!P::isRestart) {
+      calculateVelocityMoments(mpiGrid);
+   }
    phiprof::stop("Init vlasov propagator");
    
    phiprof::start("Init field propagator");
    // Initialize field propagator:
-   if (initializeFieldPropagator(mpiGrid) == false) {
+   if (initializeFieldPropagator(mpiGrid, sysBoundaries) == false) {
        logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
        exit(1);
    }
    phiprof::stop("Init field propagator");
    
-   
-   
+   // Free up memory:
+   readparameters.finalize();
    
    
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****
    // ***********************************
-   
-   // Free up memory:
-   readparameters.finalize();
-   
-   phiprof::stop("Initialization");
-   MPI_Barrier(MPI_COMM_WORLD);
-   
    
    // Main simulation loop:
    if (myRank == MASTER_RANK) logFile << "(MAIN): Starting main simulation loop." << endl << writeVerbose;
@@ -181,45 +250,70 @@ int main(int argn,char* args[]) {
    unsigned int computedBlocks=0;
    unsigned int restartWrites=(int)(P::t_min/P::saveRestartTimeInterval);
    unsigned int systemWrites=(int)(P::t_min/P::saveSystemTimeInterval);
+   Real newDt;
+   bool dtIsChanged;
+         
+
+   if(P::dynamicTimestep && !P::isRestart) {
+      //compute vlasovsolver once with zero dt, this is  to initialize
+      //per-cell dt limits. In restarts, we read in dt from file
+      phiprof::start("compute-dt");
+      if(P::propagateVlasov) {
+         //Flux computation is sufficient, no need to propagate
+         calculateSpatialFluxes(mpiGrid, sysBoundaries, 0.0);
+         calculateAcceleration(mpiGrid,0.0);
+      }
+      if(P::propagateField) {
+         propagateFields(mpiGrid, sysBoundaries, 0.0);
+      }
+      //compute new dt
+      computeNewTimeStep(mpiGrid,newDt,dtIsChanged);
+      P::dt=newDt;
+      phiprof::stop("compute-dt");
+      
+   }
+
    
+   if(P::propagateVlasov && !P::isRestart) {
+      //go forward by dt/2 in x, initializes leapfrog split. In restarts the
+      //the distribution function is already propagated forward in time by dt/2
+      phiprof::start("propagate-spatial-space-dt/2");
+      calculateSpatialFluxes(mpiGrid, sysBoundaries, 0.5*P::dt);
+      calculateSpatialPropagation(mpiGrid);
+      phiprof::stop("propagate-spatial-space-dt/2");
+   }
+   
+   phiprof::stop("Initialization");
+   MPI_Barrier(MPI_COMM_WORLD);   
+
    phiprof::start("Simulation");
-   
+
    while(P::tstep <=P::tstep_max  &&
          P::t-P::dt <= P::t_max+DT_EPSILON) {
+
+      phiprof::start("IO");
       
-      if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
-         //print out phiprof log every diagnosticInteval steps
-         phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
-      }
-      //write out phiprof profiles with a lower interval than normal
-      //diagnostic (every 10 diagnostic intervals). Also, do not print
-      //first step or until we have rebalanced.
-      //TODO: improve interval or remove these temporary debug prints
+      //write out phiprof profiles and logs with a lower interval than normal
+      //diagnostic (every 10 diagnostic intervals).
+      logFile << "------------------ tstep = " << P::tstep << " t = " << P::t <<" dt = " << P::dt << " ------------------" << endl;
       if (P::diagnosticInterval != 0 &&
           P::tstep % (P::diagnosticInterval*10) == 0 &&
-          P::tstep-P::tstep_min >0  &&
-          P::tstep-P::tstep_min > P::rebalanceInterval) {
-         phiprof::print(MPI_COMM_WORLD,"phiprof_full");
+          P::tstep-P::tstep_min >0) {
          phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
-      }
-      
-      if (myRank == MASTER_RANK){
+         phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
+         
          double currentTime=MPI_Wtime();
-         logFile << "------------------ tstep = " << P::tstep << " t = " << P::t <<" ------------------" << endl;
-         if(P::tstep>P::tstep_min){
-            double timePerStep=double(currentTime  - before) / (P::tstep-P::tstep_min);
-            double timePerSecond=double(currentTime  - before) / (P::t-P::t_min + DT_EPSILON);
-            double remainingTime=min(timePerStep*(P::tstep_max-P::tstep),timePerSecond*(P::t_max-P::t));
-            time_t finalWallTime=time(NULL)+(time_t)remainingTime; //assume time_t is in seconds, as it is almost always
-            struct tm *finalWallTimeInfo=localtime(&finalWallTime);
-            logFile << "(TIME) walltime/step " << timePerStep<< " s" <<endl;
-            logFile << "(TIME) walltime/simusecond (s)" << timePerSecond<<" s" <<endl;
-            logFile << "(TIME) Estimated completion time is " <<asctime(finalWallTimeInfo)<<endl;
-         }
-         logFile << writeVerbose;
-      }
-      
-      
+         double timePerStep=double(currentTime  - before) / (P::tstep-P::tstep_min);
+         double timePerSecond=double(currentTime  - before) / (P::t-P::t_min + DT_EPSILON);
+         double remainingTime=min(timePerStep*(P::tstep_max-P::tstep),timePerSecond*(P::t_max-P::t));
+         time_t finalWallTime=time(NULL)+(time_t)remainingTime; //assume time_t is in seconds, as it is almost always
+         struct tm *finalWallTimeInfo=localtime(&finalWallTime);
+         logFile << "(TIME) walltime/step " << timePerStep<< " s" <<endl;
+         logFile << "(TIME) walltime/simusecond (s)" << timePerSecond<<" s" <<endl;
+         logFile << "(TIME) Estimated completion time is " <<asctime(finalWallTimeInfo)<<endl;
+      }               
+      logFile << writeVerbose;
+
       // Check whether diagnostic output has to be produced
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
          phiprof::start("Diagnostic");
@@ -229,17 +323,7 @@ int main(int argn,char* args[]) {
          }
          phiprof::stop("Diagnostic");
       }
-      
-      //Re-loadbalance if needed, not done on first step
-      if(P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min)
-         balanceLoad(mpiGrid);
-      //get local cells       
-      vector<uint64_t> cells = mpiGrid.get_cells();
-      
-      phiprof::start("IO");
-      
-      
-      // Check if data needs to be written to disk:
+      // Save reduced data
       if ( P::saveSystemTimeInterval >=0.0 && 
            P::t >= systemWrites*P::saveSystemTimeInterval-DT_EPSILON ){
          
@@ -250,7 +334,8 @@ int main(int argn,char* args[]) {
          systemWrites++;
          phiprof::stop("write-system");
       }
-      
+
+      // Save restart data        
       if (P::saveRestartTimeInterval >=0.0 &&
           P::t >= restartWrites*P::saveRestartTimeInterval-DT_EPSILON){
          phiprof::start("write-restart");
@@ -261,7 +346,6 @@ int main(int argn,char* args[]) {
          phiprof::stop("write-restart");
       }
       
-      
       phiprof::stop("IO");
       
       
@@ -271,116 +355,78 @@ int main(int argn,char* args[]) {
          P::t >= P::t_max) {
          break;
       }
-      
-      
-      if(P::dynamicTimestep){
-         phiprof::start("compute-timestep");      
-         //compute maximum time-step, this cannot be done at the first
-         //step as the solvers compute the limits for each cell
-         if(P::tstep>P::tstep_min){
-            
-            Real dtMaxLocal[3];
-            Real dtMaxGlobal[3];
-            dtMaxLocal[0]=std::numeric_limits<Real>::max();
-            dtMaxLocal[1]=std::numeric_limits<Real>::max();
-            dtMaxLocal[2]=std::numeric_limits<Real>::max();
-            for (std::vector<uint64_t>::const_iterator cell_id = cells.begin(); cell_id != cells.end(); ++cell_id) {
-               SpatialCell* cell = mpiGrid[*cell_id];
-               if (cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
-               dtMaxLocal[0]=min(dtMaxLocal[0], cell->parameters[CellParams::MAXRDT]);
-               dtMaxLocal[1]=min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
-               dtMaxLocal[2]=min(dtMaxLocal[2], cell->parameters[CellParams::MAXFDT]);
-            }
-            MPI_Allreduce(&(dtMaxLocal[0]), &(dtMaxGlobal[0]), 3, MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
 
-
-            //modify dtMaxGlobal[] timestep to include CFL condition
-            dtMaxGlobal[0]*=P::CFL;
-            dtMaxGlobal[1]*=P::CFL;
-            dtMaxGlobal[2]*=P::CFL;
-            //Take into account splittinsg
-            switch (P::splitMethod){
-                case 0:
-                   break;
-                case 1:
-                   dtMaxGlobal[0]*=2; //half-steps in ordinary space
-                   break;
-                case 2:
-                   dtMaxGlobal[1]*=2; //half-steps in velocity space
-                   break;
-            }
-            Real maxVDtNoSubstepping=dtMaxGlobal[1];
-
-            //Increase timestep limit in velocity space based on
-            //maximum number of substeps we are allowed to take. As
-            //the length of each substep is unknown beforehand the
-            //limit is not hard, it may be exceeded in some cases.
-            // A value of 0 means that there is no limit on substepping
-            if(P::maxAccelerationSubsteps==0)
-               dtMaxGlobal[1]=std::numeric_limits<Real>::max();
-            else
-               dtMaxGlobal[1]*=P::maxAccelerationSubsteps;
-
-            //If fieldsolver is off there should be no limit on time-step from it
-            if (P::propagateField == false) {
-               dtMaxGlobal[2]=std::numeric_limits<Real>::max();
-            }
-
-            //If vlasovsolver is off there should be no limit on time-step from it
-            if (P::propagateVlasov == false) {
-               dtMaxGlobal[0]=std::numeric_limits<Real>::max();
-               dtMaxGlobal[1]=std::numeric_limits<Real>::max();
-               maxVDtNoSubstepping=std::numeric_limits<Real>::max();
-            }
             
-            Real dtMax=std::numeric_limits<Real>::max();
-            dtMax=min(dtMax, dtMaxGlobal[0]);
-            dtMax=min(dtMax, dtMaxGlobal[1]); 
-            dtMax=min(dtMax, dtMaxGlobal[2]);
-            P::dt=dtMax;
-            
-            if (myRank == MASTER_RANK)
-               logFile <<"(TIMESTEP) dt was set to "<<P::dt <<
-                  " based on CFL. Max dt in r,v with substeps,v,BE was " <<
-                  dtMaxGlobal[0] << " " <<
-                  dtMaxGlobal[1] << " " <<
-                  maxVDtNoSubstepping << " " <<
-                  dtMaxGlobal[2] << endl;
-            
-            //Possibly reduce timestep to make sure we hit exactly the
-            //correct write time,allow marginal overshoot of CFL to avoid
-            //floating point comparison problems
-            if (P::saveRestartTimeInterval >= 0.0 &&
-                P::t + P::dt + DT_EPSILON >= restartWrites*P::saveRestartTimeInterval){
-               P::dt=restartWrites*P::saveRestartTimeInterval-P::t;
-               if (myRank == MASTER_RANK)
-                  logFile << "(TIMESTEP) for tstep = " << P::tstep <<  " dt was set to  "<<P::dt <<" to hit restart write interval"<<endl;
-            }
-            if (P::saveSystemTimeInterval >= 0.0 &&
-                P::t + P::dt + DT_EPSILON >= systemWrites*P::saveSystemTimeInterval){
-               P::dt=systemWrites*P::saveSystemTimeInterval-P::t;
-               if (myRank == MASTER_RANK)
-                  logFile << "(TIMESTEP) for tstep = " << P::tstep <<  " dt was set to  "<<P::dt <<" to hit system write interval"<<endl;
-            }
-            
-         }
-         if (myRank == MASTER_RANK)
-            logFile << writeVerbose;
-         phiprof::stop("compute-timestep");
-      }
+      //Re-loadbalance if needed, not done on first step
+      if(P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min)
+         balanceLoad(mpiGrid);
       
-      
-      
-      
+      //get local cells       
+      vector<uint64_t> cells = mpiGrid.get_cells();      
       //compute how many spatial cells we solve for this step
       computedSpatialCells=cells.size();
       computedBlocks=0;
-      for(uint i=0;i<cells.size();i++)
-         computedBlocks+=mpiGrid[cells[i]]->number_of_blocks;
-      
-         
+      for(uint i=0;i<cells.size();i++)  computedBlocks+=mpiGrid[cells[i]]->number_of_blocks;
       totalComputedSpatialCells+=computedSpatialCells;
       totalComputedBlocks+=computedBlocks;
+      
+
+
+            
+      //Check if dt needs to be changed, and propagate half-steps properly to change dt and set up new situation
+      //do not compute new dt on first step (in restarts dt comes from file, otherwise it was initialized before we entered
+      //simulation loop
+      if(P::dynamicTimestep  && P::tstep> P::tstep_min) {
+         computeNewTimeStep(mpiGrid,newDt,dtIsChanged);         
+         if(dtIsChanged) {
+            phiprof::start("update-dt");
+            //propagate velocity space to real-time, do not do it if dt is zero
+            if(P::dt >0)
+               calculateAcceleration(mpiGrid,0.5*P::dt);
+            //re-compute moments for real time for fieldsolver, and
+            //shift compute rho_dt2 as average of old rho and new
+            //rho. In practice this value is at a 1/4 timestep, as we
+            //take 1/2 timestep forward in fieldsolver
+#pragma omp parallel for        
+            for (size_t c=0; c<cells.size(); ++c) {
+               const CellID cellID = cells[c];
+               SpatialCell* SC = mpiGrid[cellID];
+               SC->parameters[CellParams::RHO_DT2] = 0.5*SC->parameters[CellParams::RHO];
+               SC->parameters[CellParams::RHOVX_DT2] = 0.5*SC->parameters[CellParams::RHOVX];
+               SC->parameters[CellParams::RHOVY_DT2] = 0.5*SC->parameters[CellParams::RHOVY];
+               SC->parameters[CellParams::RHOVZ_DT2] = 0.5*SC->parameters[CellParams::RHOVZ];
+               calculateCellVelocityMoments(SC);
+               SC->parameters[CellParams::RHO_DT2] += 0.5*SC->parameters[CellParams::RHO];
+               SC->parameters[CellParams::RHOVX_DT2] += 0.5*SC->parameters[CellParams::RHOVX];
+               SC->parameters[CellParams::RHOVY_DT2] += 0.5*SC->parameters[CellParams::RHOVY];
+               SC->parameters[CellParams::RHOVZ_DT2] += 0.5*SC->parameters[CellParams::RHOVZ];
+            }
+            
+            
+            // Propagate fields forward in time by 0.5*dt
+            if (P::propagateField == true) {
+               phiprof::start("Propagate Fields");
+               propagateFields(mpiGrid, sysBoundaries, 0.5*P::dt);
+               phiprof::stop("Propagate Fields",computedSpatialCells,"SpatialCells");
+            } else {
+               // TODO Whatever field updating/volume
+               // averaging/etc. needed in test particle and other
+               // test cases have to be put here.  In doing this be
+               // sure the needed components have been updated.
+            }
+            ++P::tstep;
+            P::t += P::dt*0.5;
+            P::dt=newDt;
+            
+            //go forward by dt/2 again in x
+            calculateSpatialFluxes(mpiGrid, sysBoundaries, 0.5*P::dt);
+            calculateSpatialPropagation(mpiGrid);
+            logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
+            phiprof::stop("update-dt");
+            continue; //
+         }
+      }
+      
       
       bool updateVelocityBlocksAfterAcceleration=false;
 #ifdef SEMILAG
@@ -390,86 +436,57 @@ int main(int argn,char* args[]) {
          updateVelocityBlocksAfterAcceleration=true;
       
       phiprof::start("Propagate");
-      //Propagate the state of simulation forward in time by dt:      
+      //Propagate the state of simulation forward in time by dt:
       if (P::propagateVlasov == true) {
          phiprof::start("Propagate Vlasov");
-         switch (P::splitMethod){
-              case 0:
-                 phiprof::start("propagation");
-                 calculateSpatialFluxes(mpiGrid,P::dt);
-                 
-                 calculateSpatialPropagation(mpiGrid,true,P::dt);
-                 if(updateVelocityBlocksAfterAcceleration){
-                    //need to do a update of block lists as all cells have made local changes
-                    updateRemoteVelocityBlockLists(mpiGrid);
-                    adjustVelocityBlocks(mpiGrid);
-                 }
-                 phiprof::stop("propagation",computedBlocks,"Blocks");
-                 break;
-              case 1:
-                 phiprof::start("First propagation");
-                 
-                 calculateSpatialFluxes(mpiGrid,0.5*P::dt);
-                 calculateSpatialPropagation(mpiGrid,true,P::dt);
-
-                 phiprof::stop("First propagation",computedBlocks,"Blocks");
-                 if(updateVelocityBlocksAfterAcceleration){
-                    //need to do a update of block lists as all cells have made local changes
-                    updateRemoteVelocityBlockLists(mpiGrid);
-                    adjustVelocityBlocks(mpiGrid);
-                 }
-                 phiprof::start("Second propagation");
-                 //re-compute boundary conditions
-                 calculateSpatialFluxes(mpiGrid,0.5*P::dt);
-                 calculateSpatialPropagation(mpiGrid,false,0);
-                 //re-compute boundary conditions
-
-                 phiprof::stop("Second propagation",computedBlocks,"Blocks");
-                 break;
-              case 2:
-                 phiprof::start("Acceleration");
-                 calculateAcceleration(mpiGrid,0.5*P::dt);
-                 phiprof::stop("Acceleration",computedBlocks,"Blocks");
-                 if(updateVelocityBlocksAfterAcceleration){
-                    //need to do a update of block lists as all cells have made local changes
-                    updateRemoteVelocityBlockLists(mpiGrid);
-                    adjustVelocityBlocks(mpiGrid);
-                 }
-                 
-                 phiprof::start("Trans + acc");
-                 calculateSpatialFluxes(mpiGrid,P::dt);
-                 calculateSpatialPropagation(mpiGrid,true,0.5*P::dt);
-                 phiprof::stop("Trans + acc",computedBlocks,"Blocks");
-                 if(updateVelocityBlocksAfterAcceleration){
-                 //if we are careful this might not be needed, if the
-                 //next timestep acceleration is the next step, then
-                 //it does not matter what other cells have done. We
-                 //need to do a update of block lists as all cells
-                 //have made local changes
-                    updateRemoteVelocityBlockLists(mpiGrid);
-                    adjustVelocityBlocks(mpiGrid);
-                 }
-                 break;
-                 
+         phiprof::start("Velocity-space");
+         calculateAcceleration(mpiGrid,P::dt);
+         phiprof::stop("Velocity-space",computedBlocks,"Blocks");
+         if(updateVelocityBlocksAfterAcceleration){
+            //need to do a update of block lists as all cells have made local changes
+            updateRemoteVelocityBlockLists(mpiGrid);
+            adjustVelocityBlocks(mpiGrid);
          }
          
+         calculateInterpolatedVelocityMoments(
+            mpiGrid,
+            CellParams::RHO_DT2,
+            CellParams::RHOVX_DT2,
+            CellParams::RHOVY_DT2,
+            CellParams::RHOVZ_DT2);
+
+         phiprof::start("Update system boundaries (Vlasov)");
+         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt); 
+         phiprof::stop("Update system boundaries (Vlasov)");
+
+         phiprof::start("Spatial-space");
+         calculateSpatialFluxes(mpiGrid, sysBoundaries, P::dt);
+         calculateSpatialPropagation(mpiGrid);
+         phiprof::stop("Spatial-space",computedBlocks,"Blocks");
+
+         calculateInterpolatedVelocityMoments(
+            mpiGrid,
+            CellParams::RHO,
+            CellParams::RHOVX,
+            CellParams::RHOVY,
+            CellParams::RHOVZ);
+         
          if(!updateVelocityBlocksAfterAcceleration){
-            //if no semi-lagrangean or substepping in leveque
-            //acceleration then we do the adjustment here.  In that
+            //if no semi-lagrangean or substepping in leveque   
+            //acceleration then we do the adjustment here. In that
             //case no local block adjustments have been done, so
             //remote velocty blocks do not need to be updated
             if(P::tstep%P::blockAdjustmentInterval == 0){
                adjustVelocityBlocks(mpiGrid);
             }
          }
-         
          phiprof::stop("Propagate Vlasov",computedBlocks,"Blocks");
       }
       
       // Propagate fields forward in time by dt.
       if (P::propagateField == true) {
          phiprof::start("Propagate Fields");
-         propagateFields(mpiGrid,P::dt);
+         propagateFields(mpiGrid, sysBoundaries, P::dt);
          phiprof::stop("Propagate Fields",computedSpatialCells,"SpatialCells");
       } else {
          // TODO Whatever field updating/volume averaging/etc. needed in test particle and other test cases have to be put here.
@@ -481,6 +498,7 @@ int main(int argn,char* args[]) {
       ++P::tstep;
       P::t += P::dt;
    }
+
    double after = MPI_Wtime();
    
    phiprof::stop("Simulation",totalComputedBlocks,"Blocks");

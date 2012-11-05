@@ -46,9 +46,40 @@ namespace SBC {
       static void addParameters();
       virtual void getParameters();
       
-      bool initSysBoundary(creal& t);
-      int assignSysBoundary(creal* cellParams);
-      bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid);
+      virtual bool initSysBoundary(creal& t);
+      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell>& mpiGrid);
+      virtual bool applyInitialState(const dccrg::Dccrg<SpatialCell>& mpiGrid);
+//       virtual bool applySysBoundaryCondition(
+//          const dccrg::Dccrg<SpatialCell>& mpiGrid,
+//          creal& t
+//       );
+      virtual Real fieldSolverBoundaryCondMagneticField(
+         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const CellID& cellID,
+         creal& dt,
+         cuint& component
+      );
+      virtual void fieldSolverBoundaryCondElectricField(
+         dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const CellID& cellID,
+         cuint RKCase,
+         cuint component
+      );
+      virtual void fieldSolverBoundaryCondDerivatives(
+         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const CellID& cellID,
+         cuint& component
+      );
+      virtual void fieldSolverBoundaryCondBVOLDerivatives(
+         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const CellID& cellID,
+         cuint& component
+      );
+      virtual void vlasovBoundaryCondition(
+         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const CellID& cellID
+      );
+      
       virtual void getFaces(bool* faces);
       
       virtual std::string getName() const;
@@ -61,11 +92,10 @@ namespace SBC {
       
       bool generateTemplateCells(creal& t);
       virtual void generateTemplateCell(spatial_cell::SpatialCell& templateCell, int inputDataIndex, creal& t);
+      bool setCellsFromTemplate(const dccrg::Dccrg<SpatialCell>& mpiGrid);
       
       /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
       bool facesToProcess[6];
-      /*! Array of bool used to tell on which face(s) (if any) a given cell is. \sa determineFace */
-      bool isThisCellOnAFace[6];
       /*! Vector containing a vector for each face which has the current boundary condition. Each of these vectors has one line per input data line (time point). The length of the lines is nParams.*/
       std::vector<std::vector<Real> > inputData[6];
       /*! Array of template spatial cells replicated over the corresponding simulation volume face. Only the template for an active face is actually being touched at all by the code. */

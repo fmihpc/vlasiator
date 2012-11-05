@@ -94,38 +94,49 @@ namespace CellParams {
       DX,     /*!< Grid separation in x-coordinate.*/
       DY,     /*!< Grid separation in y-coordinate.*/
       DZ,     /*!< Grid separation in z-coordinate.*/
-      EX,     /*!< Electric field x-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
-      EY,     /*!< Electric field y-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
-      EZ,     /*!< Electric field z-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
-      BX,     /*!< Magnetic field x-component, averaged over cell x-face. Propagated by field solver.*/
-      BY,     /*!< Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
-      BZ,     /*!< Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
+      EX,     /*!< Total electric field x-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
+      EY,     /*!< Total wlectric field y-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
+      EZ,     /*!< Total electric field z-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
+      BGBX,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
+      BGBY,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
+      BGBZ,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
+      PERBX,  /*!< Perturbed Magnetic field x-component, averaged over cell x-face. Propagated by field solver.*/
+      PERBY,  /*!< Perturbed Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
+      PERBZ,  /*!< Perturbed Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
       RHO,    /*!< Number density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOVX,  /*!< x-component of number density times Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOVY,  /*!< y-component of number density times Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOVZ,  /*!< z-component of number density times Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      EX1,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      EY1,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      EZ1,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      BX1,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      BY1,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      BZ1,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      RHO1,   /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      RHOVX1, /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      RHOVY1, /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      RHOVZ1, /*!< Intermediate step value for RK2 time stepping in field solver.*/
-      BXVOL,  /*!< Bx averaged over spatial cell.*/
-      BYVOL,  /*!< By averaged over spatial cell.*/
-      BZVOL,  /*!< Bz averaged over spatial cell.*/
+      EX_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
+      EY_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
+      EZ_DT2,    /*!< Intermediate step value for RK2 time stepping in field solver.*/
+      PERBX_DT2, /*!< Intermediate step value for PERBX for RK2 time stepping in field solver.*/
+      PERBY_DT2, /*!< Intermediate step value for PERBY for RK2 time stepping in field solver.*/
+      PERBZ_DT2, /*!< Intermediate step value for PERBZ for RK2 time stepping in field solver.*/
+      RHO_DT2,   /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHO_R and RHO_V*/
+      RHOVX_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVX_R and RHOVX_V*/
+      RHOVY_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVY_R and RHOVY_V*/
+      RHOVZ_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVZ_R and RHOVZ_V*/
+      BXVOL,  /*!< total magnetic field  PERBX+BGBX averaged over spatial cell.*/
+      BYVOL,  /*!< total magnetic field  PERBY+BGBY averaged over spatial cell.*/
+      BZVOL,  /*!< total magnetic field  PERBZ+BGBZ averaged over spatial cell.*/
       EXVOL,  /*!< Ex averaged over spatial cell.*/
       EYVOL,  /*!< Ey averaged over spatial cell.*/
       EZVOL,  /*!< Ez averaged over spatial cell.*/
-      BX0,    /*!< Background magnetic field x-component, averaged over cell x-face.*/
-      BY0,    /*!< Background magnetic field x-component, averaged over cell x-face.*/
-      BZ0,    /*!< Background magnetic field x-component, averaged over cell x-face.*/
-      BXVOL0, /*!< Bx0 (background field) averaged over spatial cell.*/
-      BYVOL0, /*!< By0 (background field) averaged over spatial cell.*/
-      BZVOL0, /*!< Bz0 (background field) averaged over spatial cell.*/
+
+      RHO_R,   /*!< RHO after propagation in ordinary space*/
+      RHOVX_R, /*!< RHOVX after propagation in ordinary space*/
+      RHOVY_R, /*!< RHOVX after propagation in ordinary space*/
+      RHOVZ_R, /*!< RHOVX after propagation in ordinary space*/
+      RHO_V,   /*!< RHO after propagation in ordinary spac e*/
+      RHOVX_V, /*!< RHOVX after propagation in ordinary space*/
+      RHOVY_V, /*!< RHOVX after propagation in ordinary space*/
+      RHOVZ_V, /*!< RHOVX after propagation in ordinary space*/
+
+      
+//      BGBXVOL, /*!< BGBx (background field) averaged over spatial cell.*/
+//      BGBYVOL, /*!< BGBy (background field) averaged over spatial cell.*/
+//      BGBZVOL, /*!< BGBz (background field) averaged over spatial cell.*/
 
       RHOLOSSADJUST,      /*!< Counter for massloss from the destroying blocks in blockadjustment*/
       RHOLOSSVELBOUNDARY, /*!< Counter for massloss through outflow boundaries in velocity space*/
@@ -168,9 +179,24 @@ namespace fieldsolver {
    };
 }
 
+/*! The namespace bvolderivatives contains the indices to an array which stores the spatial
+ * derivatives of the volume-averaged magnetic field, needed in the acceleration stage. 
+ */
+namespace bvolderivatives {
+   enum {
+      dBXVOLdy,
+      dBXVOLdz,
+      dBYVOLdx,
+      dBYVOLdz,
+      dBZVOLdx,
+      dBZVOLdy,
+      N_BVOL_DERIVATIVES
+   };
+}
 
 /*! The namespace sysboundarytype contains the identification index of the boundary condition types applied to a cell,
  * it is stored in SpatialCell::sysBoundaryFlag and used by the BoundaryCondition class' functions to determine what type of BC to apply to a cell.
+ * At least for the workings of vlasovmover_leveque.cpp the order of the first two entries should not be changed.
  */
 namespace sysboundarytype {
    enum {
@@ -183,6 +209,11 @@ namespace sysboundarytype {
    };
 }
 
+/*! Steps in Runge-Kutta methods */
+enum {RK_ORDER1,   /*!< First order method, one step (and initialisation) */
+RK_ORDER2_STEP1,   /*!< Two-step second order method, first step */
+RK_ORDER2_STEP2    /*!< Two-step second order method, second step */
+};
 
 
 const uint WID = 4;         /*!< Number of cells per coordinate in a velocity block. Only a value of 4 supported by vectorized Leveque solver */
@@ -217,4 +248,23 @@ namespace physicalconstants {
    const Real MASS_PROTON = 1.67262158e-27; /*!< Proton rest mass.*/
 }
 
+
+
+//neighborhoods, these are initialized in initializeGrid
+
+#define FIELD_SOLVER_NEIGHBORHOOD_ID 1
+#define VLASOV_SOLVER_NEIGHBORHOOD_ID 2
+#define VLASOV_SOLVER_FLUXES_NEIGHBORHOOD_ID 3
+#define VLASOV_SOLVER_DENSITY_NEIGHBORHOOD_ID 4
+// When classifying sysboundaries, all 26 nearest neighbors are included,
+#define SYSBOUNDARIES_NEIGHBORHOOD_ID 5
+
+
+
+
+
+
+
 #endif
+
+

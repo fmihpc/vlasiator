@@ -21,39 +21,57 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <vector>
 
-
 #include "definitions.h"
 #include "spatial_cell.hpp"
 using namespace spatial_cell;
 
-bool finalizeMover();
-
 #include <stdint.h>
-
-
 #include <dccrg.hpp>
+#include "sysboundary/sysboundary.h"
 
-#define VLASOV_SOLVER_NEIGHBORHOOD_ID 2
 
+bool finalizeMover();
 bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid);
 bool initMoverAfterBlockChange(dccrg::Dccrg<SpatialCell>& mpiGrid);
 void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,uint64_t& cell);
 
 void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt);
 void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,uint64_t cellID,Real dt); //calculate acceleration in one single cell
-void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,Real dt);
-void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid,const bool& acceleration,Real acceleration_dt);
+void calculateSpatialFluxes(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   const SysBoundary& sysBoundaries,
+   creal dt);
+void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid);
 void initialLoadBalance(dccrg::Dccrg<SpatialCell>& mpiGrid);
+
+
 /*!
-   \brief Compute 0th and 1st velocity moments (RHO,RHOVX,RHOVY,RHOVZ) for all cells in the grid.
-   \param mpiGrid Grid of spatial cells for which moments are computed 
+  \brief Compute real-time 1st order accurate moments from the moments after propagation in velocity and spatial space
+
+*/
+ 
+void calculateInterpolatedVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid,
+                                           const int cp_rho, const int cp_rhovx, const int cp_rhovy, const int cp_rhovz);
+
+
+
+/*!
+  \brief Compute 0th and 1st velocity moments (RHO,RHOVX,RHOVY,RHOVZ) for a cell directly from distribution function.The simulation should be at a true time-step!
+  \param SC pointer to the spatial cell
+  
+*/
+
+void calculateCellVelocityMoments(SpatialCell* SC);
+
+
+/*!
+  \brief Compute 0th and 1st velocity moments (RHO,RHOVX,RHOVY,RHOVZ) for all cells in the grid directly from distribution function.The simulation should be at a true time-step!
+  \param mpiGrid Grid of spatial cells for which moments are computed 
+  
 */
 void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid);
-/*!
-   \brief Compute 0th and 1st velocity moments (RHO,RHOVX,RHOVY,RHOVZ) for a spatial cell
-   \param SC Spatial cell for which moments are computed
-*/
-void calculateCellVelocityMoments(SpatialCell *SC);
+
+
 
 #endif
 

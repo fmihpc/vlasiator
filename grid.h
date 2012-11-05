@@ -65,4 +65,8 @@ void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
 void setNotSysBoundaryCell(SpatialCell* cell);
 
+void updateSparseVelocityStuff(dccrg::Dccrg<SpatialCell>& mpiGrid);
+//subroutine to adjust blocks of local cells; remove/add based on user-defined limits
+bool adjust_local_velocity_blocks(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
+
 #endif

@@ -23,14 +23,29 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 // ***** TEMPLATE DECLARATIONS *****
 // *********************************
 
-template<typename UINT,typename REAL> void lorentzForceFaceX(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
-							     const REAL* const cellParams,const REAL* const blockParams);
+template<typename UINT,typename REAL> void lorentzForceFaceX(
+   REAL& ax, REAL& ay, REAL& az,
+   const UINT& I, const UINT& J, const UINT& K,
+   const REAL* const cellParams,
+   const REAL* const blockParams,
+   const REAL* const cellBVOLDerivatives
+);
 
-template<typename UINT,typename REAL> void lorentzForceFaceY(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
-							     const REAL* const cellParams,const REAL* const blockParams);
+template<typename UINT,typename REAL> void lorentzForceFaceY(
+   REAL& ax, REAL& ay, REAL& az,
+   const UINT& I, const UINT& J, const UINT& K,
+   const REAL* const cellParams,
+   const REAL* const blockParams,
+   const REAL* const cellBVOLDerivatives
+);
 
-template<typename UINT,typename REAL> void lorentzForceFaceZ(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
-							     const REAL* const cellParams,const REAL* const blockParams);
+template<typename UINT,typename REAL> void lorentzForceFaceZ(
+   REAL& ax, REAL& ay, REAL& az,
+   const UINT& I, const UINT& J, const UINT& K,
+   const REAL* const cellParams,
+   const REAL* const blockParams,
+   const REAL* const cellBVOLDerivatives
+);
 
 // ********************************
 // ***** TEMPLATE DEFINITIONS *****
@@ -46,21 +61,34 @@ template<typename UINT,typename REAL> void lorentzForceFaceZ(REAL& ax,REAL& ay,R
  * @param K The k-index of the cell, within a velocity block, in which the computed face is stored.
  * @param cellParams Array containing spatial cell parameters.
  * @param blockParams Array containing velocity block parameters.
+ * @param cellBVOLDerivatives Array containing the BVOL derivatives.
  */
-template<typename UINT,typename REAL> void lorentzForceFaceX(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
-							     const REAL* const cellParams,const REAL* const blockParams) {
-  const REAL VX = blockParams[BlockParams::VXCRD] + I*blockParams[BlockParams::DVX];
-  const REAL VY = blockParams[BlockParams::VYCRD] + (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
-  const REAL VZ = blockParams[BlockParams::VZCRD] + (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
-  const REAL EX = cellParams[CellParams::EXVOL];
-  const REAL EY = cellParams[CellParams::EYVOL];
-  const REAL EZ = cellParams[CellParams::EZVOL];
-  const REAL BX = cellParams[CellParams::BXVOL];
-  const REAL BY = cellParams[CellParams::BYVOL];
-  const REAL BZ = cellParams[CellParams::BZVOL];
-  ax = Parameters::q_per_m*(EX + VY*BZ - VZ*BY);
-  ay = Parameters::q_per_m*(EY + VZ*BX - VX*BZ);
-  az = Parameters::q_per_m*(EZ + VX*BY - VY*BX);
+template<typename UINT,typename REAL> void lorentzForceFaceX(
+   REAL& ax, REAL& ay, REAL& az,
+   const UINT& I, const UINT& J, const UINT& K,
+   const REAL* const cellParams,
+   const REAL* const blockParams,
+   const REAL* const cellBVOLDerivatives
+) {
+   const REAL VX = blockParams[BlockParams::VXCRD] + I*blockParams[BlockParams::DVX];
+   const REAL VY = blockParams[BlockParams::VYCRD] + (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
+   const REAL VZ = blockParams[BlockParams::VZCRD] + (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
+   const REAL UX = cellParams[CellParams::RHO] == 0 ? 0.0 : cellParams[CellParams::RHOVX]/cellParams[CellParams::RHO];
+   const REAL UY = cellParams[CellParams::RHO] == 0 ? 0.0 : cellParams[CellParams::RHOVY]/cellParams[CellParams::RHO];
+   const REAL UZ = cellParams[CellParams::RHO] == 0 ? 0.0 : cellParams[CellParams::RHOVZ]/cellParams[CellParams::RHO];
+   const REAL BX = cellParams[CellParams::BXVOL];
+   const REAL BY = cellParams[CellParams::BYVOL];
+   const REAL BZ = cellParams[CellParams::BZVOL];
+   const REAL dBXdy = cellBVOLDerivatives[bvolderivatives::dBXVOLdy];
+   const REAL dBXdz = cellBVOLDerivatives[bvolderivatives::dBXVOLdz];
+   const REAL dBYdx = cellBVOLDerivatives[bvolderivatives::dBYVOLdx];
+   const REAL dBYdz = cellBVOLDerivatives[bvolderivatives::dBYVOLdz];
+   const REAL dBZdx = cellBVOLDerivatives[bvolderivatives::dBZVOLdx];
+   const REAL dBZdy = cellBVOLDerivatives[bvolderivatives::dBZVOLdy];
+   const REAL prefactor = cellParams[CellParams::RHO] == 0 ? 0.0 : 1.0 / (physicalconstants::MU_0 * cellParams[CellParams::RHO]);
+   ax = Parameters::q_per_m*(prefactor * (BZ*dBXdz - BZ*dBZdx - BY*dBYdx + BY*dBXdy) + BY*(VZ-UZ) - BZ*(VY-UY));
+   ay = Parameters::q_per_m*(prefactor * (BX*dBYdx - BX*dBXdy - BZ*dBZdy + BZ*dBYdz) + BZ*(VX-UX) - BX*(VZ-UZ));
+   az = Parameters::q_per_m*(prefactor * (BY*dBZdy - BY*dBYdz - BX*dBXdz + BX*dBZdx) + BX*(VY-UY) - BY*(VX-UX));
 }
 
 /** Calculate acceleration due to three-dimensional Lorentz force
@@ -73,21 +101,34 @@ template<typename UINT,typename REAL> void lorentzForceFaceX(REAL& ax,REAL& ay,R
  * @param K The k-index of the cell, within a velocity block, in which the computed face is stored.
  * @param cellParams Array containing spatial cell parameters.
  * @param blockParams Array containing velocity block parameters.
+ * @param cellBVOLDerivatives Array containing the BVOL derivatives.
  */
-template<typename UINT,typename REAL> void lorentzForceFaceY(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
-							     const REAL* const cellParams,const REAL* const blockParams) {
-  const REAL VX = blockParams[BlockParams::VXCRD] + (I+convert<REAL>(0.5))*blockParams[BlockParams::DVX];
-  const REAL VY = blockParams[BlockParams::VYCRD] + J*blockParams[BlockParams::DVY];
-  const REAL VZ = blockParams[BlockParams::VZCRD] + (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
-  const REAL EX = cellParams[CellParams::EXVOL];
-  const REAL EY = cellParams[CellParams::EYVOL];
-  const REAL EZ = cellParams[CellParams::EZVOL];
-  const REAL BX = cellParams[CellParams::BXVOL];
-  const REAL BY = cellParams[CellParams::BYVOL];
-  const REAL BZ = cellParams[CellParams::BZVOL];
-  ax = Parameters::q_per_m*(EX + VY*BZ - VZ*BY);
-  ay = Parameters::q_per_m*(EY + VZ*BX - VX*BZ);
-  az = Parameters::q_per_m*(EZ + VX*BY - VY*BX);
+template<typename UINT,typename REAL> void lorentzForceFaceY(
+   REAL& ax, REAL& ay, REAL& az,
+   const UINT& I, const UINT& J, const UINT& K,
+   const REAL* const cellParams,
+   const REAL* const blockParams,
+   const REAL* const cellBVOLDerivatives
+) {
+   const REAL VX = blockParams[BlockParams::VXCRD] + (I+convert<REAL>(0.5))*blockParams[BlockParams::DVX];
+   const REAL VY = blockParams[BlockParams::VYCRD] + J*blockParams[BlockParams::DVY];
+   const REAL VZ = blockParams[BlockParams::VZCRD] + (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
+   const REAL UX = cellParams[CellParams::RHO] == 0 ? 0.0 : cellParams[CellParams::RHOVX]/cellParams[CellParams::RHO];
+   const REAL UY = cellParams[CellParams::RHO] == 0 ? 0.0 : cellParams[CellParams::RHOVY]/cellParams[CellParams::RHO];
+   const REAL UZ = cellParams[CellParams::RHO] == 0 ? 0.0 : cellParams[CellParams::RHOVZ]/cellParams[CellParams::RHO];
+   const REAL BX = cellParams[CellParams::BXVOL];
+   const REAL BY = cellParams[CellParams::BYVOL];
+   const REAL BZ = cellParams[CellParams::BZVOL];
+   const REAL dBXdy = cellBVOLDerivatives[bvolderivatives::dBXVOLdy];
+   const REAL dBXdz = cellBVOLDerivatives[bvolderivatives::dBXVOLdz];
+   const REAL dBYdx = cellBVOLDerivatives[bvolderivatives::dBYVOLdx];
+   const REAL dBYdz = cellBVOLDerivatives[bvolderivatives::dBYVOLdz];
+   const REAL dBZdx = cellBVOLDerivatives[bvolderivatives::dBZVOLdx];
+   const REAL dBZdy = cellBVOLDerivatives[bvolderivatives::dBZVOLdy];
+   const REAL prefactor = cellParams[CellParams::RHO] == 0 ? 0.0 : 1.0 / (physicalconstants::MU_0 * cellParams[CellParams::RHO]);
+   ax = Parameters::q_per_m*(prefactor * (BZ*dBXdz - BZ*dBZdx - BY*dBYdx + BY*dBXdy) + BY*(VZ-UZ) - BZ*(VY-UY));
+   ay = Parameters::q_per_m*(prefactor * (BX*dBYdx - BX*dBXdy - BZ*dBZdy + BZ*dBYdz) + BZ*(VX-UX) - BX*(VZ-UZ));
+   az = Parameters::q_per_m*(prefactor * (BY*dBZdy - BY*dBYdz - BX*dBXdz + BX*dBZdx) + BX*(VY-UY) - BY*(VX-UX));
 }
 
 /** Calculate acceleration due to three-dimensional Lorentz force
@@ -100,20 +141,33 @@ template<typename UINT,typename REAL> void lorentzForceFaceY(REAL& ax,REAL& ay,R
  * @param K The k-index of the cell, within a velocity block, in which the computed face is stored.
  * @param cellParams Array containing spatial cell parameters.
  * @param blockParams Array containing velocity block parameters.
+ * @param cellBVOLDerivatives Array containing the BVOL derivatives.
  */
-template<typename UINT,typename REAL> void lorentzForceFaceZ(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,
-							     const REAL* const cellParams,const REAL* const blockParams) {
-  const REAL VX = blockParams[BlockParams::VXCRD] + (I+convert<REAL>(0.5))*blockParams[BlockParams::DVX];
-  const REAL VY = blockParams[BlockParams::VYCRD] + (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
-  const REAL VZ = blockParams[BlockParams::VZCRD] + K*blockParams[BlockParams::DVZ];
-  const REAL EX = cellParams[CellParams::EXVOL];
-  const REAL EY = cellParams[CellParams::EYVOL];
-  const REAL EZ = cellParams[CellParams::EZVOL];
-  const REAL BX = cellParams[CellParams::BXVOL];
-  const REAL BY = cellParams[CellParams::BYVOL];
-  const REAL BZ = cellParams[CellParams::BZVOL];
-  ax = Parameters::q_per_m*(EX + VY*BZ - VZ*BY);
-  ay = Parameters::q_per_m*(EY + VZ*BX - VX*BZ);
-  az = Parameters::q_per_m*(EZ + VX*BY - VY*BX);
+template<typename UINT,typename REAL> void lorentzForceFaceZ(
+   REAL& ax, REAL& ay, REAL& az,
+   const UINT& I, const UINT& J, const UINT& K,
+   const REAL* const cellParams,
+   const REAL* const blockParams,
+   const REAL* const cellBVOLDerivatives
+) {
+   const REAL VX = blockParams[BlockParams::VXCRD] + (I+convert<REAL>(0.5))*blockParams[BlockParams::DVX];
+   const REAL VY = blockParams[BlockParams::VYCRD] + (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
+   const REAL VZ = blockParams[BlockParams::VZCRD] + K*blockParams[BlockParams::DVZ];
+   const REAL UX = cellParams[CellParams::RHO] == 0 ? 0.0 : cellParams[CellParams::RHOVX]/cellParams[CellParams::RHO];
+   const REAL UY = cellParams[CellParams::RHO] == 0 ? 0.0 : cellParams[CellParams::RHOVY]/cellParams[CellParams::RHO];
+   const REAL UZ = cellParams[CellParams::RHO] == 0 ? 0.0 : cellParams[CellParams::RHOVZ]/cellParams[CellParams::RHO];
+   const REAL BX = cellParams[CellParams::BXVOL];
+   const REAL BY = cellParams[CellParams::BYVOL];
+   const REAL BZ = cellParams[CellParams::BZVOL];
+   const REAL dBXdy = cellBVOLDerivatives[bvolderivatives::dBXVOLdy];
+   const REAL dBXdz = cellBVOLDerivatives[bvolderivatives::dBXVOLdz];
+   const REAL dBYdx = cellBVOLDerivatives[bvolderivatives::dBYVOLdx];
+   const REAL dBYdz = cellBVOLDerivatives[bvolderivatives::dBYVOLdz];
+   const REAL dBZdx = cellBVOLDerivatives[bvolderivatives::dBZVOLdx];
+   const REAL dBZdy = cellBVOLDerivatives[bvolderivatives::dBZVOLdy];
+   const REAL prefactor = cellParams[CellParams::RHO] == 0 ? 0.0 : 1.0 / (physicalconstants::MU_0 * cellParams[CellParams::RHO]);
+   ax = Parameters::q_per_m*(prefactor * (BZ*dBXdz - BZ*dBZdx - BY*dBYdx + BY*dBXdy) + BY*(VZ-UZ) - BZ*(VY-UY));
+   ay = Parameters::q_per_m*(prefactor * (BX*dBYdx - BX*dBXdy - BZ*dBZdy + BZ*dBYdz) + BZ*(VX-UX) - BX*(VZ-UZ));
+   az = Parameters::q_per_m*(prefactor * (BY*dBZdy - BY*dBYdz - BX*dBXdz + BX*dBZdx) + BX*(VY-UY) - BY*(VX-UX));
 }
 #endif

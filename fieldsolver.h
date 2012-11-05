@@ -21,12 +21,12 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "definitions.h"
 #include "common.h"
-#include "spatial_cell.hpp"         
+#include "spatial_cell.hpp"
+#include "sysboundary/sysboundary.h"
 using namespace spatial_cell;
 
 #include <dccrg.hpp>
 
-#define FIELD_SOLVER_NEIGHBORHOOD_ID 1
 
 /*
 namespace fieldsolver {
@@ -41,7 +41,22 @@ namespace fieldsolver {
 
 void calculateVolumeAveragedFields(dccrg::Dccrg<SpatialCell>& mpiGrid);
 bool finalizeFieldPropagator(dccrg::Dccrg<SpatialCell>& mpiGrid);
-bool initializeFieldPropagator(dccrg::Dccrg<SpatialCell>& mpiGrid);
+bool initializeFieldPropagator(dccrg::Dccrg<SpatialCell>& mpiGrid,
+                               SysBoundary& sysBoundaries);
 bool initializeFieldPropagatorAfterRebalance(dccrg::Dccrg<SpatialCell>& mpiGrid);
-bool propagateFields(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& dt);
+bool propagateFields(dccrg::Dccrg<SpatialCell>& mpiGrid,
+                     SysBoundary& sysBoundaries,
+                     creal& dt);
+void calculateEdgeElectricFieldX(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   const CellID& cellID,
+   cint& RKCase);
+void calculateEdgeElectricFieldY(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   const CellID& cellID,
+   cint& RKCase);
+void calculateEdgeElectricFieldZ(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   const CellID& cellID,
+   cint& RKCase);
 #endif
