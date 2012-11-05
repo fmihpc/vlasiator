@@ -32,37 +32,60 @@ namespace VlsHeader {
    typedef float Real4;
    typedef double Real8;
    typedef long double Real16;
-
 }
-
-
 
 namespace VLSV {
    const unsigned char LITTLE_END = 0;
-   const unsigned char BIG_END    = 1;   
+   const unsigned char BIG_END    = 1;
    enum datatype {INT,UINT,FLOAT};
 }
 
 unsigned char detectEndianness();
 
-VlsHeader::UInt convUInt1(const unsigned char* const ptr,const bool& swapEndian=false);
-VlsHeader::UInt convUInt2(const unsigned char* const ptr,const bool& swapEndian=false);
-VlsHeader::UInt convUInt4(const unsigned char* const ptr,const bool& swapEndian=false);
-VlsHeader::UInt convUInt8(const unsigned char* const ptr,const bool& swapEndian=false);
-VlsHeader::Real convReal4(const unsigned char* const ptr,const bool& swapEndian=false);
-VlsHeader::Real convReal8(const unsigned char* const ptr,const bool& swapEndian=false);
-VlsHeader::Real convReal16(const unsigned char* const ptr,const bool& swapEndian=false);
+template<typename TYPE> void convertTypeReturn(
+   TYPE* retVal,
+   const char* buffer,
+   const bool swapEndian
+) {
+   TYPE tmp = 0;
+   if (swapEndian == false) {
+      tmp = *(reinterpret_cast<const TYPE*>(buffer));
+   } else {
+      // Swap byte order:
+      int index = 0;
+      unsigned char* const ptrtmp = reinterpret_cast<unsigned char*>(&tmp);
+      for (int i=sizeof(TYPE)-1; i>=0; --i) {
+         ptrtmp[index] = buffer[i];
+         ++index;
+      }
+   }
+   *retVal = tmp;
+}
 
-VlsHeader::Int convInt8(const char* const ptr,const bool& swapEndian=false);
-VlsHeader::Int convInt16(const char* const ptr,const bool& swapEndian=false);
-VlsHeader::Int convInt32(const char* const ptr,const bool& swapEndian=false);
-VlsHeader::Int convInt64(const char* const ptr,const bool& swapEndian=false);
-VlsHeader::UInt convUInt8(const char* const ptr,const bool& swapEndian=false);
-VlsHeader::UInt convUInt16(const char* const ptr,const bool& swapEndian=false);
-VlsHeader::UInt convUInt32(const char* const ptr,const bool& swapEndian=false);
-VlsHeader::UInt convUInt64(const char* const ptr,const bool& swapEndian=false);
+void convertTypeInPlace(
+   size_t size,
+   char* buffer,
+   const bool swapEndian
+);
 
-float convReal4(const char* const ptr,const bool& swapEndian=false);
-double convReal8(const char* const ptr,const bool& swapEndian=false);
+// VlsHeader::UInt convUInt1(const unsigned char* const ptr,const bool& swapEndian=false);
+// VlsHeader::UInt convUInt2(const unsigned char* const ptr,const bool& swapEndian=false);
+// VlsHeader::UInt convUInt4(const unsigned char* const ptr,const bool& swapEndian=false);
+// VlsHeader::UInt convUInt8(const unsigned char* const ptr,const bool& swapEndian=false);
+// VlsHeader::Real convReal4(const unsigned char* const ptr,const bool& swapEndian=false);
+// VlsHeader::Real convReal8(const unsigned char* const ptr,const bool& swapEndian=false);
+// VlsHeader::Real convReal16(const unsigned char* const ptr,const bool& swapEndian=false);
+// 
+// VlsHeader::Int convInt8(const char* const ptr,const bool& swapEndian=false);
+// VlsHeader::Int convInt16(const char* const ptr,const bool& swapEndian=false);
+// VlsHeader::Int convInt32(const char* const ptr,const bool& swapEndian=false);
+// VlsHeader::Int convInt64(const char* const ptr,const bool& swapEndian=false);
+// VlsHeader::UInt convUInt8(const char* const ptr,const bool& swapEndian=false);
+// VlsHeader::UInt convUInt16(const char* const ptr,const bool& swapEndian=false);
+// VlsHeader::UInt convUInt32(const char* const ptr,const bool& swapEndian=false);
+// VlsHeader::UInt convUInt64(const char* const ptr,const bool& swapEndian=false);
+// 
+// float convReal4(const char* const ptr,const bool& swapEndian=false);
+// double convReal8(const char* const ptr,const bool& swapEndian=false);
 
 #endif

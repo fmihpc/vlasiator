@@ -145,13 +145,22 @@ void setProjectCell(SpatialCell* cell) {
    char rngStateBuffer[256];
    random_data rngDataBuffer;
    memset(&rngDataBuffer, 0, sizeof(rngDataBuffer));
-   initstate_r(cellID, &rngStateBuffer[0], 256, &rngDataBuffer);
 
+   #ifndef _AIX
+   initstate_r(cellID, &rngStateBuffer[0], 256, &rngDataBuffer);
    int32_t rndRho, rndVel[3];
    random_r(&rngDataBuffer, &rndRho);
    random_r(&rngDataBuffer, &rndVel[0]);
    random_r(&rngDataBuffer, &rndVel[1]);
    random_r(&rngDataBuffer, &rndVel[2]);
+   #else
+   initstate_r(cellID, &rngStateBuffer[0], 256, NULL, &rngDataBuffer);
+   int64_t rndRho, rndVel[3];
+   random_r(&rndRho, &rngDataBuffer);
+   random_r(&rndVel[0], &rngDataBuffer);
+   random_r(&rndVel[1], &rngDataBuffer);
+   random_r(&rndVel[2], &rngDataBuffer);
+   #endif
    
    // Go through each velocity block in the velocity phase space grid.
    // Set the initial state and block parameters:
@@ -204,7 +213,19 @@ Real getDistribValue(creal& vx,creal& vy, creal& vz) {
 }
 
 /* calcPhaseSpaceDensity needs to be thread-safe */
-Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const int32_t& rndRho, const int32_t rndVel[3]) {
+Real calcPhaseSpaceDensity(
+   creal& x, creal& y, creal& z,
+   creal& dx, creal& dy, creal& dz,
+   creal& vx, creal& vy, creal& vz,
+   creal& dvx, creal& dvy, creal& dvz,
+   #ifndef _AIX
+   const int32_t& rndRho,
+   const int32_t rndVel[3]
+   #else
+   const int64_t& rndRho,
+   const int64_t rndVel[3]
+   #endif
+) {
    if(vx < Parameters::vxmin + 0.5 * dvx ||
       vy < Parameters::vymin + 0.5 * dvy ||
       vz < Parameters::vzmin + 0.5 * dvz ||
@@ -267,13 +288,31 @@ void calcCellParameters(Real* cellParams,creal& t) {
    char rngStateBuffer[256];
    random_data rngDataBuffer;
    memset(&rngDataBuffer, 0, sizeof(rngDataBuffer));
-   initstate_r(cellID + 
-   (uint)(Parameters::xcells_ini*Parameters::ycells_ini*Parameters::zcells_ini), &rngStateBuffer[0], 256, &rngDataBuffer);
-   
+
+   #ifndef _AIX
+   initstate_r(
+      cellID + (uint)(Parameters::xcells_ini*Parameters::ycells_ini*Parameters::zcells_ini),
+      &rngStateBuffer[0],
+      256,
+      &rngDataBuffer
+   );
    int32_t rndBuffer[3];
    random_r(&rngDataBuffer, &rndBuffer[0]);
    random_r(&rngDataBuffer, &rndBuffer[1]);
    random_r(&rngDataBuffer, &rndBuffer[2]);
+   #else
+   initstate_r(
+      cellID + (uint)(Parameters::xcells_ini*Parameters::ycells_ini*Parameters::zcells_ini),
+      &rngStateBuffer[0],
+      256,
+      NULL,
+      &rngDataBuffer
+   );
+   int64_t rndBuffer[3];
+   random_r(&rndBuffer[0], &rngDataBuffer);
+   random_r(&rndBuffer[1], &rngDataBuffer);
+   random_r(&rndBuffer[2], &rngDataBuffer);
+   #endif
    
    cellParams[CellParams::BGBX]  = FlucP::BX0 ;
    cellParams[CellParams::PERBX] = FlucP::magXPertAbsAmp * (0.5 - (double)rndBuffer[0] / (double)RAND_MAX);
