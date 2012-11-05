@@ -55,16 +55,34 @@ bool getProjectParameters(void);
  */
 void setProjectCell(SpatialCell* cell);
 
-template<typename UINT,typename REAL> void calcAccFaceX(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,const REAL* const cellParams,const REAL* const blockParams) {
-   lorentzForceFaceX(ax,ay,az,I,J,K,cellParams,blockParams);
-}
-   
-template<typename UINT,typename REAL> void calcAccFaceY(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,const REAL* const cellParams,const REAL* const blockParams) {
-   lorentzForceFaceY(ax,ay,az,I,J,K,cellParams,blockParams);
+template<typename UINT,typename REAL> void calcAccFaceX(
+   REAL& ax, REAL& ay, REAL& az,
+   const UINT& I, const UINT& J, const UINT& K,
+   const REAL* const cellParams,
+   const REAL* const blockParams,
+   const REAL* const cellBVOLDerivatives
+) {
+   lorentzForceFaceX(ax,ay,az,I,J,K,cellParams,blockParams,cellBVOLDerivatives);
 }
 
-template<typename UINT,typename REAL> void calcAccFaceZ(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,const REAL* const cellParams,const REAL* const blockParams) {
-   lorentzForceFaceZ(ax,ay,az,I,J,K,cellParams,blockParams);
+template<typename UINT,typename REAL> void calcAccFaceY(
+   REAL& ax, REAL& ay, REAL& az,
+   const UINT& I, const UINT& J, const UINT& K,
+   const REAL* const cellParams,
+   const REAL* const blockParams,
+   const REAL* const cellBVOLDerivatives
+) {
+   lorentzForceFaceY(ax,ay,az,I,J,K,cellParams,blockParams,cellBVOLDerivatives);
+}
+
+template<typename UINT,typename REAL> void calcAccFaceZ(
+   REAL& ax, REAL& ay, REAL& az,
+   const UINT& I, const UINT& J, const UINT& K,
+   const REAL* const cellParams,
+   const REAL* const blockParams,
+   const REAL* const cellBVOLDerivatives
+) {
+   lorentzForceFaceZ(ax,ay,az,I,J,K,cellParams,blockParams,cellBVOLDerivatives);
 }
 
 #endif

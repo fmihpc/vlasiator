@@ -111,6 +111,19 @@ namespace SBC {
          
          // Defined in project.cpp, used here as the outflow cell has the same state as the initial state of non-system boundary cells.
          setProjectCell(cell);
+         // WARNING Time-independence assumed here.
+         cell->parameters[CellParams::RHO_DT2] = cell->parameters[CellParams::RHO];
+         cell->parameters[CellParams::RHOVX_DT2] = cell->parameters[CellParams::RHOVX];
+         cell->parameters[CellParams::RHOVY_DT2] = cell->parameters[CellParams::RHOVY];
+         cell->parameters[CellParams::RHOVZ_DT2] = cell->parameters[CellParams::RHOVZ];
+         cell->parameters[CellParams::RHO_R] = cell->parameters[CellParams::RHO];
+         cell->parameters[CellParams::RHOVX_R] = cell->parameters[CellParams::RHOVX];
+         cell->parameters[CellParams::RHOVY_R] = cell->parameters[CellParams::RHOVY];
+         cell->parameters[CellParams::RHOVZ_R] = cell->parameters[CellParams::RHOVZ];
+         cell->parameters[CellParams::RHO_V] = cell->parameters[CellParams::RHO];
+         cell->parameters[CellParams::RHOVX_V] = cell->parameters[CellParams::RHOVX];
+         cell->parameters[CellParams::RHOVY_V] = cell->parameters[CellParams::RHOVY];
+         cell->parameters[CellParams::RHOVZ_V] = cell->parameters[CellParams::RHOVZ];
       }
       
       return true;
@@ -322,6 +335,14 @@ namespace SBC {
       cuint& component
    ) {
       this->setCellDerivativesToZero(mpiGrid, cellID, component);
+   }
+   
+   void Outflow::fieldSolverBoundaryCondBVOLDerivatives(
+      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const CellID& cellID,
+      cuint& component
+   ) {
+      this->setCellBVOLDerivativesToZero(mpiGrid, cellID, component);
    }
    
    void Outflow::vlasovBoundaryCondition(

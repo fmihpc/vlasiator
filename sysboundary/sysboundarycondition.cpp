@@ -129,6 +129,15 @@ namespace SBC {
       exit(1);
    }
    
+   void SysBoundaryCondition::fieldSolverBoundaryCondBVOLDerivatives(
+      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const CellID& cellID,
+      cuint& component
+   ) {
+      cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondBVOLDerivatives called instead of derived class function!" << endl;
+      exit(1);
+   }
+   
    void SysBoundaryCondition::setCellDerivativesToZero(
       const dccrg::Dccrg<SpatialCell>& mpiGrid,
       const CellID& cellID,
@@ -159,6 +168,30 @@ namespace SBC {
             derivs[fieldsolver::dVxdz]  = 0.0;
             derivs[fieldsolver::dVydz]  = 0.0;
             derivs[fieldsolver::dVzdz]  = 0.0;
+            break;
+         default:
+            cerr << "Invalid component" << endl;
+      }
+   }
+   
+   void SysBoundaryCondition::setCellBVOLDerivativesToZero(
+      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const CellID& cellID,
+      cuint& component
+   ) {
+      Real* const derivs = &(mpiGrid[cellID]->derivativesBVOL[0]);
+      switch(component) {
+         case 0:
+            derivs[bvolderivatives::dBYVOLdx] = 0.0;
+            derivs[bvolderivatives::dBZVOLdx] = 0.0;
+            break;
+         case 1:
+            derivs[bvolderivatives::dBXVOLdy] = 0.0;
+            derivs[bvolderivatives::dBZVOLdy] = 0.0;
+            break;
+         case 2:
+            derivs[bvolderivatives::dBXVOLdz] = 0.0;
+            derivs[bvolderivatives::dBYVOLdz] = 0.0;
             break;
          default:
             cerr << "Invalid component" << endl;
@@ -206,6 +239,20 @@ namespace SBC {
       }
       
       calculateCellVelocityMoments(to);
+      
+      // WARNING Time-independence assumed here.
+      to->parameters[CellParams::RHO_DT2] = from->parameters[CellParams::RHO_DT2];
+      to->parameters[CellParams::RHOVX_DT2] = from->parameters[CellParams::RHOVX_DT2];
+      to->parameters[CellParams::RHOVY_DT2] = from->parameters[CellParams::RHOVY_DT2];
+      to->parameters[CellParams::RHOVZ_DT2] = from->parameters[CellParams::RHOVZ_DT2];
+      to->parameters[CellParams::RHO_R] = to->parameters[CellParams::RHO];
+      to->parameters[CellParams::RHOVX_R] = to->parameters[CellParams::RHOVX];
+      to->parameters[CellParams::RHOVY_R] = to->parameters[CellParams::RHOVY];
+      to->parameters[CellParams::RHOVZ_R] = to->parameters[CellParams::RHOVZ];
+      to->parameters[CellParams::RHO_V] = to->parameters[CellParams::RHO];
+      to->parameters[CellParams::RHOVX_V] = to->parameters[CellParams::RHOVX];
+      to->parameters[CellParams::RHOVY_V] = to->parameters[CellParams::RHOVY];
+      to->parameters[CellParams::RHOVZ_V] = to->parameters[CellParams::RHOVZ];
       
       //let's get rid of blocks not fulfilling the criteria here to save memory.
       to->adjustSingleCellVelocityBlocks();

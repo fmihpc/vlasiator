@@ -70,6 +70,11 @@ namespace SBC {
          const CellID& cellID,
          cuint& component
       );
+      virtual void fieldSolverBoundaryCondBVOLDerivatives(
+         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const CellID& cellID,
+         cuint& component
+      );
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell>& mpiGrid,
          const CellID& cellID

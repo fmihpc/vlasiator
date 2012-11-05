@@ -49,8 +49,15 @@ bool getProjectParameters(void);
  */
 void setProjectCell(SpatialCell* cell);
 
-template<typename UINT,typename REAL> 
-void calcAccFaceX(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,const REAL* const cellParams,const REAL* const blockParams) {
+// WARNING Lorentz force not fixed in this project (cf. JXB term in the acceleration)!!!
+template<typename UINT,typename REAL>
+void calcAccFaceX(
+   REAL& ax, REAL& ay, REAL& az,
+   const UINT& I, const UINT& J, const UINT& K,
+   const REAL* const cellParams,
+   const REAL* const blockParams,
+   const REAL* const cellBVOLDerivatives
+) {
    const REAL HALF = 0.5;
    const REAL VX = blockParams[BlockParams::VXCRD] + I*blockParams[BlockParams::DVX];
    const REAL VY = blockParams[BlockParams::VYCRD] + (J+HALF)*blockParams[BlockParams::DVY];
@@ -65,9 +72,15 @@ void calcAccFaceX(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const U
       VX*(cellParams[CellParams::PERBY]+cellParams[CellParams::BGBY]) -
       VY*(cellParams[CellParams::PERBX]+cellParams[CellParams::BGBX]));
 }
-
-template<typename UINT,typename REAL> 
-void calcAccFaceY(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,const REAL* const cellParams,const REAL* const blockParams) {
+// WARNING Lorentz force not fixed in this project (cf. JXB term in the acceleration)!!!
+template<typename UINT,typename REAL>
+void calcAccFaceY(
+   REAL& ax, REAL& ay, REAL& az,
+   const UINT& I, const UINT& J, const UINT& K,
+   const REAL* const cellParams,
+   const REAL* const blockParams,
+   const REAL* const cellBVOLDerivatives
+) {
    const REAL HALF = 0.5;
    const REAL VX = blockParams[BlockParams::VXCRD] + (I+HALF)*blockParams[BlockParams::DVX];
    const REAL VY = blockParams[BlockParams::VYCRD] + J*blockParams[BlockParams::DVY];
@@ -82,9 +95,15 @@ void calcAccFaceY(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const U
       VX*(cellParams[CellParams::PERBY]+cellParams[CellParams::BGBY]) -
       VY*(cellParams[CellParams::PERBX]+cellParams[CellParams::BGBX]));
 }
-
-template<typename UINT,typename REAL> 
-void calcAccFaceZ(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,const REAL* const cellParams,const REAL* const blockParams) {
+// WARNING Lorentz force not fixed in this project (cf. JXB term in the acceleration)!!!
+template<typename UINT,typename REAL>
+void calcAccFaceZ(
+   REAL& ax, REAL& ay, REAL& az,
+   const UINT& I, const UINT& J, const UINT& K,
+   const REAL* const cellParams,
+   const REAL* const blockParams,
+   const REAL* const cellBVOLDerivatives
+) {
    const REAL HALF = 0.5;
    const REAL VX = blockParams[BlockParams::VXCRD] + (I+HALF)*blockParams[BlockParams::DVX];
    const REAL VY = blockParams[BlockParams::VYCRD] + (J+HALF)*blockParams[BlockParams::DVY];

@@ -98,6 +98,7 @@ namespace spatial_cell {
       const uint64_t CELL_BGB                 = (1<<14);
       const uint64_t CELL_RHO_RHOV            = (1<<15);
       const uint64_t CELL_RHODT2_RHOVDT2      = (1<<16);
+      const uint64_t CELL_BVOL                = (1<<17);
       
       const uint64_t ALL_DATA =
       CELL_PARAMETERS
@@ -657,6 +658,11 @@ namespace velocity_neighbor {
          for (unsigned int i = 0; i < fieldsolver::N_SPATIAL_CELL_DERIVATIVES; i++) {
             this->derivatives[i]=0;
          }
+         
+         // reset BVOL derivatives
+         for (unsigned int i = 0; i < bvolderivatives::N_BVOL_DERIVATIVES; i++) {
+            this->derivativesBVOL[i]=0;
+         }
       }
       
       SpatialCell(const SpatialCell& other):
@@ -686,6 +692,10 @@ namespace velocity_neighbor {
          //copy derivatives
          for(unsigned int i=0;i< fieldsolver::N_SPATIAL_CELL_DERIVATIVES;i++){
             derivatives[i]=other.derivatives[i];
+         }
+         //copy BVOL derivatives
+         for(unsigned int i=0;i< bvolderivatives::N_BVOL_DERIVATIVES;i++){
+            derivativesBVOL[i]=other.derivativesBVOL[i];
          }
          //add pointers to block_address_cache
          for (unsigned int block = 0; block < SpatialCell::max_velocity_blocks; block++) {
@@ -903,6 +913,12 @@ namespace velocity_neighbor {
                block_lengths.push_back(sizeof(Real) * 3);
             }
             
+            // send  BXVOL BYVOl BZVOL
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::BXVOL]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 3);
+            }
+            
             // send  EX, EY EZ
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_E)!=0){
                displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX]) - (uint8_t*) this);
@@ -939,7 +955,7 @@ namespace velocity_neighbor {
                block_lengths.push_back(sizeof(Real) * 4);
             }
             
-            // send  spatial cell parameters
+            // send  spatial cell derivatives
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_DERIVATIVES)!=0){
                 displacements.push_back((uint8_t*) &(this->derivatives[0]) - (uint8_t*) this);
                 block_lengths.push_back(sizeof(Real) * fieldsolver::N_SPATIAL_CELL_DERIVATIVES);
@@ -1725,7 +1741,9 @@ namespace velocity_neighbor {
       */
       Real derivatives[fieldsolver::N_SPATIAL_CELL_DERIVATIVES];
       
-
+      // Derivatives of BVOL needed by the acceleration. Separate array because it does not need to be communicated.
+      Real derivativesBVOL[bvolderivatives::N_BVOL_DERIVATIVES];
+      
       //neighbor id's. Kept up to date in solvers, not by the spatial_cell class
       std::vector<uint64_t> neighbors;
      

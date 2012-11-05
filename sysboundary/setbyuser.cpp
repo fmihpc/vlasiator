@@ -176,6 +176,14 @@ namespace SBC {
       this->setCellDerivativesToZero(mpiGrid, cellID, component);
    }
    
+   void SetByUser::fieldSolverBoundaryCondBVOLDerivatives(
+      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const CellID& cellID,
+      cuint& component
+   ) {
+      this->setCellBVOLDerivativesToZero(mpiGrid, cellID, component);
+   }
+   
    void SetByUser::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell>& mpiGrid,
       const CellID& cellID

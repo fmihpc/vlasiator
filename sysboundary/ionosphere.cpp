@@ -185,6 +185,15 @@ namespace SBC {
       this->setCellDerivativesToZero(mpiGrid, cellID, component);
    }
    
+   void Ionosphere::fieldSolverBoundaryCondBVOLDerivatives(
+      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const CellID& cellID,
+      cuint& component
+   ) {
+      // WARNING This is crap!!
+      this->setCellBVOLDerivativesToZero(mpiGrid, cellID, component);
+   }
+   
    void Ionosphere::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell>& mpiGrid,
       const CellID& cellID
@@ -195,7 +204,7 @@ namespace SBC {
    }
    
    void Ionosphere::generateTemplateCell() {
-      // WARNING not 0.0 here or the diploe() function fails miserably.
+      // WARNING not 0.0 here or the dipole() function fails miserably.
       templateCell.parameters[CellParams::XCRD] = 1.0;
       templateCell.parameters[CellParams::YCRD] = 1.0;
       templateCell.parameters[CellParams::ZCRD] = 1.0;
@@ -203,6 +212,19 @@ namespace SBC {
       templateCell.parameters[CellParams::DY] = 1;
       templateCell.parameters[CellParams::DZ] = 1;
       setProjectCell(&templateCell);
+      // WARNING Time-independence assumed here.
+      templateCell.parameters[CellParams::RHO_DT2] = templateCell.parameters[CellParams::RHO];
+      templateCell.parameters[CellParams::RHOVX_DT2] = templateCell.parameters[CellParams::RHOVX];
+      templateCell.parameters[CellParams::RHOVY_DT2] = templateCell.parameters[CellParams::RHOVY];
+      templateCell.parameters[CellParams::RHOVZ_DT2] = templateCell.parameters[CellParams::RHOVZ];
+      templateCell.parameters[CellParams::RHO_R] = templateCell.parameters[CellParams::RHO];
+      templateCell.parameters[CellParams::RHOVX_R] = templateCell.parameters[CellParams::RHOVX];
+      templateCell.parameters[CellParams::RHOVY_R] = templateCell.parameters[CellParams::RHOVY];
+      templateCell.parameters[CellParams::RHOVZ_R] = templateCell.parameters[CellParams::RHOVZ];
+      templateCell.parameters[CellParams::RHO_V] = templateCell.parameters[CellParams::RHO];
+      templateCell.parameters[CellParams::RHOVX_V] = templateCell.parameters[CellParams::RHOVX];
+      templateCell.parameters[CellParams::RHOVY_V] = templateCell.parameters[CellParams::RHOVY];
+      templateCell.parameters[CellParams::RHOVZ_V] = templateCell.parameters[CellParams::RHOVZ];
    }
    
    void Ionosphere::setCellFromTemplate(SpatialCell *cell) {

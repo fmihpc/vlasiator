@@ -179,6 +179,20 @@ namespace fieldsolver {
    };
 }
 
+/*! The namespace bvolderivatives contains the indices to an array which stores the spatial
+ * derivatives of the volume-averaged magnetic field, needed in the acceleration stage. 
+ */
+namespace bvolderivatives {
+   enum {
+      dBXVOLdy,
+      dBXVOLdz,
+      dBYVOLdx,
+      dBYVOLdz,
+      dBZVOLdx,
+      dBZVOLdy,
+      N_BVOL_DERIVATIVES
+   };
+}
 
 /*! The namespace sysboundarytype contains the identification index of the boundary condition types applied to a cell,
  * it is stored in SpatialCell::sysBoundaryFlag and used by the BoundaryCondition class' functions to determine what type of BC to apply to a cell.

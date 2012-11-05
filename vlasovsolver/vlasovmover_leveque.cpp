@@ -671,17 +671,19 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       creal* const nbr_dfdt    = NULL;
       SpatialCell* SC = mpiGrid[cellID];
       // Clear velocity moments that have been calculated during the previous time step:
-      SC->parameters[CellParams::RHO_R  ] = 0.0;
-      SC->parameters[CellParams::RHOVX_R] = 0.0;
-      SC->parameters[CellParams::RHOVY_R] = 0.0;
-      SC->parameters[CellParams::RHOVZ_R] = 0.0;
+      if(SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         SC->parameters[CellParams::RHO_R] = 0.0;
+         SC->parameters[CellParams::RHOVX_R] = 0.0;
+         SC->parameters[CellParams::RHOVY_R] = 0.0;
+         SC->parameters[CellParams::RHOVZ_R] = 0.0;
+      }
       
       // Propagate and compute moments for non-sysboundary cells
       if (sysBoundaryCells.find(cellID) == sysBoundaryCells.end()) {
          for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
             unsigned int block = SC->velocity_block_list[block_i];         
             cpu_propagateSpatWithMoments(nbr_dfdt,SC,block,block_i);
-         }  
+         }
       }
    }
 
@@ -728,10 +730,12 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       const CellID cellID = boundaryCellIds[i];
       creal* const nbr_dfdt    = &(remoteUpdates[cellID][0][0]);
       SpatialCell* SC = mpiGrid[cellID];
-      SC->parameters[CellParams::RHO_R] = 0.0;
-      SC->parameters[CellParams::RHOVX_R] = 0.0;
-      SC->parameters[CellParams::RHOVY_R] = 0.0;
-      SC->parameters[CellParams::RHOVZ_R] = 0.0;
+      if(SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         SC->parameters[CellParams::RHO_R] = 0.0;
+         SC->parameters[CellParams::RHOVX_R] = 0.0;
+         SC->parameters[CellParams::RHOVY_R] = 0.0;
+         SC->parameters[CellParams::RHOVZ_R] = 0.0;
+      }
       
       // Do not propagate or compute moments for sysboundary cells
       if (sysBoundaryCells.find(cellID) == sysBoundaryCells.end()) {
@@ -769,7 +773,7 @@ void calculateInterpolatedVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid,
    cells=mpiGrid.get_cells();
    
    //Iterate through all local cells (incl. system boundary cells):
-//#pragma omp parallel for        
+//#pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];

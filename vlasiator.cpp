@@ -447,8 +447,12 @@ int main(int argn,char* args[]) {
             updateRemoteVelocityBlockLists(mpiGrid);
             adjustVelocityBlocks(mpiGrid);
          }         
-         calculateInterpolatedVelocityMoments(mpiGrid,CellParams::RHO_DT2,
-                                              CellParams::RHOVX_DT2,CellParams::RHOVY_DT2,CellParams::RHOVZ_DT2);
+         calculateInterpolatedVelocityMoments(
+            mpiGrid,
+            CellParams::RHO_DT2,
+            CellParams::RHOVX_DT2,
+            CellParams::RHOVY_DT2,
+            CellParams::RHOVZ_DT2);
 
          phiprof::start("Update system boundaries (Vlasov)");
          sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt); 
@@ -459,7 +463,12 @@ int main(int argn,char* args[]) {
          calculateSpatialPropagation(mpiGrid);
          phiprof::stop("Spatial-space",computedBlocks,"Blocks");
 
-         calculateInterpolatedVelocityMoments(mpiGrid,CellParams::RHO,CellParams::RHOVX,CellParams::RHOVY,CellParams::RHOVZ);
+         calculateInterpolatedVelocityMoments(
+            mpiGrid,
+            CellParams::RHO,
+            CellParams::RHOVX,
+            CellParams::RHOVY,
+            CellParams::RHOVZ);
          
          if(!updateVelocityBlocksAfterAcceleration){
             //if no semi-lagrangean or substepping in leveque   

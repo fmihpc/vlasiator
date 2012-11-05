@@ -115,9 +115,12 @@ const Real TWO     = 2.0;
 const Real ZERO    = 0.0;
 
 void calculateDerivativesSimple(dccrg::Dccrg<SpatialCell>& mpiGrid,
-                                SysBoundary& sysBoundaries,
-                                const vector<CellID>& localCells,
-                                cint& RKCase);
+                                    SysBoundary& sysBoundaries,
+                                    const vector<CellID>& localCells,
+                                    cint& RKCase);
+void calculateBVOLDerivativesSimple(dccrg::Dccrg<SpatialCell>& mpiGrid,
+                                    SysBoundary& sysBoundaries,
+                                    const vector<CellID>& localCells);
 void calculateUpwindedElectricFieldSimple(dccrg::Dccrg<SpatialCell>& mpiGrid,
                                           SysBoundary& sysBoundaries,
                                           const vector<CellID>& localCells,
@@ -1646,6 +1649,7 @@ bool initializeFieldPropagator(
    calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
    calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
    calculateVolumeAveragedFields(mpiGrid);
+   calculateBVOLDerivativesSimple(mpiGrid, sysBoundaries, localCells);
    
    return true;
 }
@@ -1678,7 +1682,7 @@ void calculateDerivativesSimple(
    int timer;
    namespace fs = fieldsolver;
    
-   phiprof::start("Calculate derivatives");
+   phiprof::start("Calculate face derivatives");
    
    switch(RKCase) {
       case RK_ORDER1:
@@ -1740,7 +1744,7 @@ void calculateDerivativesSimple(
    mpiGrid.wait_neighbor_data_update_sends();
    phiprof::stop(timer);
    
-   phiprof::stop("Calculate derivatives");
+   phiprof::stop("Calculate face derivatives");
 }
 
 /*! \brief High-level electric field computation function.
@@ -1948,7 +1952,7 @@ static void propagateMagneticFieldSimple(
  * \param mpiGrid Grid
  * \param dt Length of the time step
  * 
- * \sa propagateMagneticFieldSimple calculateDerivativesSimple calculateUpwindedElectricFieldSimple calculateVolumeAveragedFields
+ * \sa propagateMagneticFieldSimple calculateDerivativesSimple calculateUpwindedElectricFieldSimple calculateVolumeAveragedFields calculateBVOLDerivativesSimple
  * 
  */
 bool propagateFields(
@@ -1977,6 +1981,7 @@ bool propagateFields(
    calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
 # endif
    calculateVolumeAveragedFields(mpiGrid);
+   calculateBVOLDerivativesSimple(mpiGrid, sysBoundaries, localCells);
    return true;
 }
 
@@ -2204,4 +2209,153 @@ void calculateVolumeAveragedFields(
       }
    }
    phiprof::stop("Calculate volume averaged fields");
+}
+
+/*! \brief Low-level spatial derivatives calculation.
+ * 
+ * For the cell with ID cellID calculate the spatial derivatives of BVOL or apply the derivative boundary conditions defined in project.h.
+ * \param cellID Index of the cell to process
+ * \param mpiGrid Grid
+ */
+static void calculateBVOLDerivatives(
+   const CellID& cellID,
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   SysBoundary& sysBoundaries
+) {
+   namespace cp = CellParams;
+   namespace der = bvolderivatives;
+   Real* const array       = mpiGrid[cellID]->derivatives;
+   Real* const derivatives = array;
+   // Get boundary flag for the cell:
+   #ifndef NDEBUG
+   map<CellID,uint>::const_iterator it = sysBoundaryFlags.find(cellID);
+   if (it == sysBoundaryFlags.end()) {cerr << "ERROR Could not find boundary flag for cell #" << cellID << endl; exit(1);}
+   cuint existingCells = it->second;
+   #else
+   cuint existingCells = sysBoundaryFlags[cellID];
+   #endif
+   cuint nonExistingCells = (existingCells ^ numeric_limits<uint>::max());
+   
+   CellID leftNbrID,rghtNbrID;
+   creal* left = NULL;
+   creal* cent = mpiGrid[cellID]->parameters;
+   creal* rght = NULL;
+   
+   // Calculate x-derivatives (is not TVD for AMR mesh):
+   if (((existingCells & CALCULATE_DX) == CALCULATE_DX) &&
+      (mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
+      leftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2  ,2  );
+      rghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2  ,2  );
+      left = mpiGrid[leftNbrID]->parameters;
+      rght = mpiGrid[rghtNbrID]->parameters;
+      
+      array[der::dBYVOLdx] = limiter(left[cp::BYVOL],cent[cp::BYVOL],rght[cp::BYVOL]);
+      array[der::dBZVOLdx] = limiter(left[cp::BZVOL],cent[cp::BZVOL],rght[cp::BZVOL]);
+   } else {
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(mpiGrid, cellID, 0);
+      } else {
+         sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)
+         ->fieldSolverBoundaryCondBVOLDerivatives(mpiGrid, cellID, 0);
+      }
+   }
+   
+   // Calculate y-derivatives (is not TVD for AMR mesh):
+   if (((existingCells & CALCULATE_DY) == CALCULATE_DY) &&
+      (mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
+      leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2-1,2  );
+      rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2+1,2  );
+      left = mpiGrid[leftNbrID]->parameters;
+      rght = mpiGrid[rghtNbrID]->parameters;
+      
+      array[der::dBXVOLdy] = limiter(left[cp::BXVOL],cent[cp::BXVOL],rght[cp::BXVOL]);
+      array[der::dBZVOLdy] = limiter(left[cp::BZVOL],cent[cp::BZVOL],rght[cp::BZVOL]);
+   } else {
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(mpiGrid, cellID, 1);
+      } else {
+         sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)
+         ->fieldSolverBoundaryCondBVOLDerivatives(mpiGrid, cellID, 1);
+      }
+   }
+   
+   // Calculate z-derivatives (is not TVD for AMR mesh):
+   if (((existingCells & CALCULATE_DZ) == CALCULATE_DZ) &&
+      (mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
+      leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2-1);
+      rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2+1);
+      left = mpiGrid[leftNbrID]->parameters;
+      rght = mpiGrid[rghtNbrID]->parameters;
+      
+      array[der::dBXVOLdz] = limiter(left[cp::BXVOL],cent[cp::BXVOL],rght[cp::BXVOL]);
+      array[der::dBYVOLdz] = limiter(left[cp::BYVOL],cent[cp::BYVOL],rght[cp::BYVOL]);
+   } else {
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(mpiGrid, cellID, 2);
+      } else {
+         sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)
+         ->fieldSolverBoundaryCondBVOLDerivatives(mpiGrid, cellID, 2);
+      }
+   }
+}
+
+/*! \brief High-level derivative calculation wrapper function.
+ * 
+ * BVOL has been calculated locally by calculateVolumeAveragedFields but not communicated.
+ * For the acceleration step one needs the cross-derivatives of BVOL
+ * 
+ * \param mpiGrid Grid
+ * \param sysBoundaries System boundary conditions existing
+ * \param localCells Vector of local cells to process
+ * 
+ * \sa calculateDerivatives
+ */
+void calculateBVOLDerivativesSimple(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   SysBoundary& sysBoundaries,
+   const vector<CellID>& localCells
+) {
+   int timer;
+   namespace fs = fieldsolver;
+   
+   phiprof::start("Calculate volume derivatives");
+   
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_BVOL);
+   
+   timer=phiprof::initializeTimer("Start comm","MPI");
+   phiprof::start(timer);
+   mpiGrid.start_remote_neighbor_data_update(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   phiprof::stop(timer);
+   
+   timer=phiprof::initializeTimer("Compute process inner cells");
+   phiprof::start(timer);
+   // Calculate derivatives on process inner cells
+   const vector<uint64_t> cellsWithLocalNeighbours = mpiGrid.get_cells_with_local_neighbors(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   for (vector<uint64_t>::const_iterator cell = cellsWithLocalNeighbours.begin(); cell != cellsWithLocalNeighbours.end(); cell++) {
+      if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+      calculateBVOLDerivatives(*cell, mpiGrid, sysBoundaries);
+   }
+   phiprof::stop(timer);
+   
+   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+   phiprof::start(timer);
+   mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   phiprof::stop(timer);
+   
+   // Calculate derivatives on process boundary cells
+   timer=phiprof::initializeTimer("Compute process boundary cells");
+   phiprof::start(timer);
+   const vector<uint64_t> cellsWithRemoteNeighbours = mpiGrid.get_cells_with_remote_neighbor(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   for (vector<uint64_t>::const_iterator cell = cellsWithRemoteNeighbours.begin(); cell != cellsWithRemoteNeighbours.end(); cell++) {
+      if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+      calculateBVOLDerivatives(*cell, mpiGrid, sysBoundaries);
+   }
+   phiprof::stop(timer);
+   
+   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+   phiprof::start(timer);
+   mpiGrid.wait_neighbor_data_update_sends();
+   phiprof::stop(timer);
+   
+   phiprof::stop("Calculate volume derivatives");
 }

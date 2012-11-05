@@ -99,7 +99,7 @@ namespace SBC {
    }
    
    
-   /*!\brief Generate the template cell for the face corresponding ot the index passed.
+   /*!\brief Generate the template cell for the face corresponding to the index passed.
     * This function generates a spatial cell which is to be used as a template for the
     * system boundary condition.
     * \param templateCell Addressof the template cell to be generated.
@@ -183,6 +183,20 @@ namespace SBC {
                }
       }
       calculateCellVelocityMoments(&templateCell);
+      
+      // WARNING Time-independence assumed here.
+      templateCell.parameters[CellParams::RHO_DT2] = templateCell.parameters[CellParams::RHO];
+      templateCell.parameters[CellParams::RHOVX_DT2] = templateCell.parameters[CellParams::RHOVX];
+      templateCell.parameters[CellParams::RHOVY_DT2] = templateCell.parameters[CellParams::RHOVY];
+      templateCell.parameters[CellParams::RHOVZ_DT2] = templateCell.parameters[CellParams::RHOVZ];
+      templateCell.parameters[CellParams::RHO_R] = templateCell.parameters[CellParams::RHO];
+      templateCell.parameters[CellParams::RHOVX_R] = templateCell.parameters[CellParams::RHOVX];
+      templateCell.parameters[CellParams::RHOVY_R] = templateCell.parameters[CellParams::RHOVY];
+      templateCell.parameters[CellParams::RHOVZ_R] = templateCell.parameters[CellParams::RHOVZ];
+      templateCell.parameters[CellParams::RHO_V] = templateCell.parameters[CellParams::RHO];
+      templateCell.parameters[CellParams::RHOVX_V] = templateCell.parameters[CellParams::RHOVX];
+      templateCell.parameters[CellParams::RHOVY_V] = templateCell.parameters[CellParams::RHOVY];
+      templateCell.parameters[CellParams::RHOVZ_V] = templateCell.parameters[CellParams::RHOVZ];
       
       //let's get rid of blocks not fulfilling the criteria here to save
       //memory.
