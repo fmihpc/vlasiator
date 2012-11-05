@@ -238,22 +238,18 @@ namespace SBC {
                }
       }
       
-      calculateCellVelocityMoments(to);
-      
-      // WARNING Time-independence assumed here.
+      // WARNING Time-independence assumed here. _R and _V not copied, as boundary conditions cells should not set/use them
       to->parameters[CellParams::RHO_DT2] = from->parameters[CellParams::RHO_DT2];
       to->parameters[CellParams::RHOVX_DT2] = from->parameters[CellParams::RHOVX_DT2];
       to->parameters[CellParams::RHOVY_DT2] = from->parameters[CellParams::RHOVY_DT2];
       to->parameters[CellParams::RHOVZ_DT2] = from->parameters[CellParams::RHOVZ_DT2];
-      to->parameters[CellParams::RHO_R] = to->parameters[CellParams::RHO];
-      to->parameters[CellParams::RHOVX_R] = to->parameters[CellParams::RHOVX];
-      to->parameters[CellParams::RHOVY_R] = to->parameters[CellParams::RHOVY];
-      to->parameters[CellParams::RHOVZ_R] = to->parameters[CellParams::RHOVZ];
-      to->parameters[CellParams::RHO_V] = to->parameters[CellParams::RHO];
-      to->parameters[CellParams::RHOVX_V] = to->parameters[CellParams::RHOVX];
-      to->parameters[CellParams::RHOVY_V] = to->parameters[CellParams::RHOVY];
-      to->parameters[CellParams::RHOVZ_V] = to->parameters[CellParams::RHOVZ];
+      to->parameters[CellParams::RHO] = from->parameters[CellParams::RHO];
+      to->parameters[CellParams::RHOVX] = from->parameters[CellParams::RHOVX];
+      to->parameters[CellParams::RHOVY] = from->parameters[CellParams::RHOVY];
+      to->parameters[CellParams::RHOVZ] = from->parameters[CellParams::RHOVZ];
+
       
+
       //let's get rid of blocks not fulfilling the criteria here to save memory.
       to->adjustSingleCellVelocityBlocks();
    }

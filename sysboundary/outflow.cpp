@@ -116,14 +116,6 @@ namespace SBC {
          cell->parameters[CellParams::RHOVX_DT2] = cell->parameters[CellParams::RHOVX];
          cell->parameters[CellParams::RHOVY_DT2] = cell->parameters[CellParams::RHOVY];
          cell->parameters[CellParams::RHOVZ_DT2] = cell->parameters[CellParams::RHOVZ];
-         cell->parameters[CellParams::RHO_R] = cell->parameters[CellParams::RHO];
-         cell->parameters[CellParams::RHOVX_R] = cell->parameters[CellParams::RHOVX];
-         cell->parameters[CellParams::RHOVY_R] = cell->parameters[CellParams::RHOVY];
-         cell->parameters[CellParams::RHOVZ_R] = cell->parameters[CellParams::RHOVZ];
-         cell->parameters[CellParams::RHO_V] = cell->parameters[CellParams::RHO];
-         cell->parameters[CellParams::RHOVX_V] = cell->parameters[CellParams::RHOVX];
-         cell->parameters[CellParams::RHOVY_V] = cell->parameters[CellParams::RHOVY];
-         cell->parameters[CellParams::RHOVZ_V] = cell->parameters[CellParams::RHOVZ];
       }
       
       return true;

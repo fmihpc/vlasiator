@@ -189,14 +189,7 @@ namespace SBC {
       templateCell.parameters[CellParams::RHOVX_DT2] = templateCell.parameters[CellParams::RHOVX];
       templateCell.parameters[CellParams::RHOVY_DT2] = templateCell.parameters[CellParams::RHOVY];
       templateCell.parameters[CellParams::RHOVZ_DT2] = templateCell.parameters[CellParams::RHOVZ];
-      templateCell.parameters[CellParams::RHO_R] = templateCell.parameters[CellParams::RHO];
-      templateCell.parameters[CellParams::RHOVX_R] = templateCell.parameters[CellParams::RHOVX];
-      templateCell.parameters[CellParams::RHOVY_R] = templateCell.parameters[CellParams::RHOVY];
-      templateCell.parameters[CellParams::RHOVZ_R] = templateCell.parameters[CellParams::RHOVZ];
-      templateCell.parameters[CellParams::RHO_V] = templateCell.parameters[CellParams::RHO];
-      templateCell.parameters[CellParams::RHOVX_V] = templateCell.parameters[CellParams::RHOVX];
-      templateCell.parameters[CellParams::RHOVY_V] = templateCell.parameters[CellParams::RHOVY];
-      templateCell.parameters[CellParams::RHOVZ_V] = templateCell.parameters[CellParams::RHOVZ];
+
       
       //let's get rid of blocks not fulfilling the criteria here to save
       //memory.

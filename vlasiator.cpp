@@ -446,7 +446,8 @@ int main(int argn,char* args[]) {
             //need to do a update of block lists as all cells have made local changes
             updateRemoteVelocityBlockLists(mpiGrid);
             adjustVelocityBlocks(mpiGrid);
-         }         
+         }
+         
          calculateInterpolatedVelocityMoments(
             mpiGrid,
             CellParams::RHO_DT2,
