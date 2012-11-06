@@ -22,12 +22,7 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "definitions.h"
 #include "spatial_cell.hpp"
 #include "projects/projects_common.h"
-#include "projects/projects_fieldboundary.h"
 #include "projects/projects_vlasov_acceleration.h"
-#include "projects/projects_vlasov_boundary.h"
-#include "fieldsolver.h"
-
-
 
 #include "dccrg.hpp"
 
