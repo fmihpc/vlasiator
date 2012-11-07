@@ -33,11 +33,10 @@ struct flowthroughParameters {
    static Real Bx;
    static Real By;
    static Real Bz;
+   static Real V0[3];
    static uint nSpaceSamples;
    static uint nVelocitySamples;
 };
-
-typedef flowthroughParameters FTP;
 
 /**
  * Initialize project. Can be used, e.g., to read in parameters from the input file

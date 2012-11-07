@@ -33,6 +33,7 @@ using namespace std;
 typedef magnetosphereParameters MP;
 Real MP::T = {NAN};
 Real MP::rho = NAN;
+Real MP::V0[3] = {NAN};
 uint MP::nSpaceSamples = 0;
 uint MP::nVelocitySamples = 0;
 
@@ -42,6 +43,9 @@ bool addProjectParameters(){
    typedef Readparameters RP;
    RP::add("Magnetosphere.rho", "Number density (m^-3)", 0.0);
    RP::add("Magnetosphere.T", "Temperature (K)", 0.0);
+   RP::add("Magnetosphere.VX0", "Initial bulk velocity in x-direction", 0.0);
+   RP::add("Magnetosphere.VY0", "Initial bulk velocity in y-direction", 0.0);
+   RP::add("Magnetosphere.VZ0", "Initial bulk velocity in z-direction", 0.0);
    RP::add("Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
    RP::add("Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
    return true;
@@ -59,6 +63,18 @@ bool getProjectParameters(){
       if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
       exit(1);
    }
+   if(!RP::get("Magnetosphere.VX0", MP::V0[0])) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
+   if(!RP::get("Magnetosphere.VY0", MP::V0[1])) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
+   if(!RP::get("Magnetosphere.VZ0", MP::V0[2])) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
    if(!RP::get("Magnetosphere.nSpaceSamples", MP::nSpaceSamples)) {
       if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
       exit(1);
@@ -72,7 +88,7 @@ bool getProjectParameters(){
 
 Real getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
    return MP::rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * MP::T), 1.5) *
-   exp(- physicalconstants::MASS_PROTON * (vx*vx + vy*vy + vz*vz) / (2.0 * physicalconstants::K_B * MP::T));
+   exp(- physicalconstants::MASS_PROTON * ((vx-MP::V0[0])*(vx-MP::V0[0]) + (vy-MP::V0[1])*(vy-MP::V0[1]) + (vz-MP::V0[2])*(vz-MP::V0[2])) / (2.0 * physicalconstants::K_B * MP::T));
 }
 
 /** Integrate the distribution function over the given six-dimensional phase-space cell.

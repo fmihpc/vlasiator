@@ -36,6 +36,7 @@ Real FTP::rho = NAN;
 Real FTP::Bx = NAN;
 Real FTP::By = NAN;
 Real FTP::Bz = NAN;
+Real FTP::V0[3] = {NAN};
 uint FTP::nSpaceSamples = 0;
 uint FTP::nVelocitySamples = 0;
 
@@ -48,6 +49,9 @@ bool addProjectParameters(){
    RP::add("Flowthrough.Bx", "Magnetic field x component (T)", 0.0);
    RP::add("Flowthrough.By", "Magnetic field y component (T)", 0.0);
    RP::add("Flowthrough.Bz", "Magnetic field z component (T)", 0.0);
+   RP::add("Flowthrough.VX0", "Initial bulk velocity in x-direction", 0.0);
+   RP::add("Flowthrough.VY0", "Initial bulk velocity in y-direction", 0.0);
+   RP::add("Flowthrough.VZ0", "Initial bulk velocity in z-direction", 0.0);
    RP::add("Flowthrough.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
    RP::add("Flowthrough.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
    return true;
@@ -77,6 +81,18 @@ bool getProjectParameters(){
       if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
       exit(1);
    }
+   if(!RP::get("Flowthrough.VX0", FTP::V0[0])) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
+   if(!RP::get("Flowthrough.VY0", FTP::V0[1])) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
+   if(!RP::get("Flowthrough.VZ0", FTP::V0[2])) {
+      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+      exit(1);
+   }
    if(!RP::get("Flowthrough.nSpaceSamples", FTP::nSpaceSamples)) {
       if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
       exit(1);
@@ -90,7 +106,7 @@ bool getProjectParameters(){
 
 Real getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
    return FTP::rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * FTP::T), 1.5) *
-   exp(- physicalconstants::MASS_PROTON * (vx*vx + vy*vy + vz*vz) / (2.0 * physicalconstants::K_B * FTP::T));
+   exp(- physicalconstants::MASS_PROTON * ((vx-FTP::V0[0])*(vx-FTP::V0[0]) + (vy-FTP::V0[1])*(vy-FTP::V0[1]) + (vz-FTP::V0[2])*(vz-FTP::V0[2])) / (2.0 * physicalconstants::K_B * FTP::T));
 }
 
 /** Integrate the distribution function over the given six-dimensional phase-space cell.

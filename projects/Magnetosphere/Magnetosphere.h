@@ -30,11 +30,10 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 struct magnetosphereParameters {
    static Real rho;
    static Real T;
+   static Real V0[3];
    static uint nSpaceSamples;
    static uint nVelocitySamples;
 };
-
-typedef magnetosphereParameters MP;
 
 /**
  * Initialize project. Can be used, e.g., to read in parameters from the input file
