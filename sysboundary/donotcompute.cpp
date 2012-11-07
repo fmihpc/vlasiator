@@ -46,6 +46,7 @@ namespace SBC {
    
    bool DoNotCompute::applyInitialState(const dccrg::Dccrg<SpatialCell>& mpiGrid) {
       vector<uint64_t> cells = mpiGrid.get_cells();
+#pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
          if(cell->sysBoundaryFlag != this->getIndex()) continue;

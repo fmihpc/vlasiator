@@ -119,6 +119,8 @@ namespace SBC {
       By = buffer[6];
       Bz = buffer[7];
       
+      templateCell.sysBoundaryFlag = this->getIndex();
+      
       templateCell.parameters[CellParams::XCRD] = 0.0;
       templateCell.parameters[CellParams::YCRD] = 0.0;
       templateCell.parameters[CellParams::ZCRD] = 0.0;
@@ -189,7 +191,6 @@ namespace SBC {
       templateCell.parameters[CellParams::RHOVX_DT2] = templateCell.parameters[CellParams::RHOVX];
       templateCell.parameters[CellParams::RHOVY_DT2] = templateCell.parameters[CellParams::RHOVY];
       templateCell.parameters[CellParams::RHOVZ_DT2] = templateCell.parameters[CellParams::RHOVZ];
-
       
       //let's get rid of blocks not fulfilling the criteria here to save
       //memory.

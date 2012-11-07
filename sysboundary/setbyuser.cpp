@@ -341,6 +341,7 @@ namespace SBC {
     * \sa generateTemplateCell
     */
    bool SetByUser::generateTemplateCells(creal& t) {
+# pragma omp parallel for
       for(uint i=0; i<6; i++) {
          int index;
          if(facesToProcess[i]) {

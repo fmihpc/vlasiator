@@ -259,9 +259,10 @@ bool SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
  * function.
  */
 void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t) {
-   if(sysBoundaries.size()==0)
+   if(sysBoundaries.size()==0) {
       return; //no system boundaries
-
+   }
+   
    SpatialCell::set_mpi_transfer_type(
       Transfer::CELL_PARAMETERS|
       Transfer::VEL_BLOCK_DATA|
@@ -276,6 +277,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    phiprof::start(timer);
    // Compute Vlasov boundary condition on system boundary/on process inner cells
    const vector<uint64_t> localCells = mpiGrid.get_cells_with_local_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+# pragma omp parallel for
    for (vector<uint64_t>::const_iterator cell = localCells.begin(); cell != localCells.end(); cell++) {
       cuint sysBoundaryType = mpiGrid[*cell]->sysBoundaryFlag;
       if(sysBoundaryType == sysboundarytype::DO_NOT_COMPUTE ||
@@ -293,6 +295,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    timer=phiprof::initializeTimer("Compute process boundary cells");
    phiprof::start(timer);
    const vector<uint64_t> boundaryCells = mpiGrid.get_cells_with_remote_neighbor(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+# pragma omp parallel for
    for (vector<uint64_t>::const_iterator cell = boundaryCells.begin(); cell != boundaryCells.end(); cell++) {
       cuint sysBoundaryType = mpiGrid[*cell]->sysBoundaryFlag;
       if(sysBoundaryType == sysboundarytype::DO_NOT_COMPUTE ||

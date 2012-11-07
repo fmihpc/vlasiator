@@ -225,17 +225,11 @@ namespace SBC {
          
          to->add_velocity_block(blockID);
          
-         const Velocity_Block* block = to->at(blockID);
-         
-         for (uint kc=0; kc<WID; ++kc)
-            for (uint jc=0; jc<WID; ++jc)
-               for (uint ic=0; ic<WID; ++ic) {
-                  creal vx_cell_center = block->parameters[BlockParams::VXCRD] + (ic+0.5)*block->parameters[BlockParams::DVX];
-                  creal vy_cell_center = block->parameters[BlockParams::VYCRD] + (jc+0.5)*block->parameters[BlockParams::DVY];
-                  creal vz_cell_center = block->parameters[BlockParams::VZCRD] + (kc+0.5)*block->parameters[BlockParams::DVZ];
-                  creal value = from->get_value(vx_cell_center, vy_cell_center, vz_cell_center);
-                  to->set_value(vx_cell_center, vy_cell_center, vz_cell_center, value);
-               }
+         const Velocity_Block* toBlock = to->at(blockID);
+         const Velocity_Block* fromBlock = from->at(blockID);
+         for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
+            toBlock->data[i] = fromBlock->data[i];
+         }
       }
       
       // WARNING Time-independence assumed here. _R and _V not copied, as boundary conditions cells should not set/use them
@@ -247,9 +241,7 @@ namespace SBC {
       to->parameters[CellParams::RHOVX] = from->parameters[CellParams::RHOVX];
       to->parameters[CellParams::RHOVY] = from->parameters[CellParams::RHOVY];
       to->parameters[CellParams::RHOVZ] = from->parameters[CellParams::RHOVZ];
-
       
-
       //let's get rid of blocks not fulfilling the criteria here to save memory.
       to->adjustSingleCellVelocityBlocks();
    }
