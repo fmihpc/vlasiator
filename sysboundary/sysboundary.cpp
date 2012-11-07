@@ -276,13 +276,13 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    timer=phiprof::initializeTimer("Compute process inner cells");
    phiprof::start(timer);
    // Compute Vlasov boundary condition on system boundary/on process inner cells
-   const vector<uint64_t> localCells = mpiGrid.get_cells_with_local_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+   const vector<CellID> localCells = mpiGrid.get_cells_with_local_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 # pragma omp parallel for
-   for (vector<uint64_t>::const_iterator cell = localCells.begin(); cell != localCells.end(); cell++) {
-      cuint sysBoundaryType = mpiGrid[*cell]->sysBoundaryFlag;
+   for (uint i=0; i<localCells.size(); i++) {
+      cuint sysBoundaryType = mpiGrid[localCells[i]]->sysBoundaryFlag;
       if(sysBoundaryType == sysboundarytype::DO_NOT_COMPUTE ||
          sysBoundaryType == sysboundarytype::NOT_SYSBOUNDARY) continue;
-      this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, *cell);
+      this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, localCells[i]);
    }
    phiprof::stop(timer);
    
@@ -294,13 +294,13 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    // Compute vlasov boundary on system boundary/process boundary cells
    timer=phiprof::initializeTimer("Compute process boundary cells");
    phiprof::start(timer);
-   const vector<uint64_t> boundaryCells = mpiGrid.get_cells_with_remote_neighbor(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+   const vector<CellID> boundaryCells = mpiGrid.get_cells_with_remote_neighbor(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 # pragma omp parallel for
-   for (vector<uint64_t>::const_iterator cell = boundaryCells.begin(); cell != boundaryCells.end(); cell++) {
-      cuint sysBoundaryType = mpiGrid[*cell]->sysBoundaryFlag;
+   for (uint i=0; i<boundaryCells.size(); i++) {
+      cuint sysBoundaryType = mpiGrid[boundaryCells[i]]->sysBoundaryFlag;
       if(sysBoundaryType == sysboundarytype::DO_NOT_COMPUTE ||
          sysBoundaryType == sysboundarytype::NOT_SYSBOUNDARY) continue;
-      this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, *cell);
+      this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i]);
    }
    phiprof::stop(timer);
    
