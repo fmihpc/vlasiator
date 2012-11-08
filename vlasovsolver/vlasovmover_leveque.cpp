@@ -275,25 +275,23 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid, Real dt) {
 //compute one acceleration substep for a cell, function used by calculateCellAcceleration
 void calculateCellAccelerationSubstep(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,Real dt) {
    typedef Parameters P;
-//   phiprof::start("Acceleration");
    SpatialCell* SC = mpiGrid[cellID];
    if (sysBoundaryCells.find(cellID) != sysBoundaryCells.end()){
-//      phiprof::stop("Acceleration",0,"Blocks");
       return;
    }
    
+#ifndef SEMILAG
    
-//   phiprof::start("clearVelFluxes");
+   phiprof::start("clearVelFluxes");
 //   Clear df/dt contributions:
    for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
       unsigned int block = SC->velocity_block_list[block_i];         
       cpu_clearVelFluxes(SC,block);
    }
    
-//   phiprof::stop("clearVelFluxes");
+   phiprof::stop("clearVelFluxes");
    
-#ifndef SEMILAG
-//   phiprof::start("calcVelFluxes");
+   phiprof::start("calcVelFluxes");
 //   Calculatedf/dt contributions of all blocks in the cell:
    
    Real maxCelldt=numeric_limits<Real>::max();
@@ -306,11 +304,11 @@ void calculateCellAccelerationSubstep(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID 
       if(maxAy!=ZERO) maxCelldt=min(maxCelldt,block_ptr->parameters[BlockParams::DVY]/maxAy);
       if(maxAz!=ZERO) maxCelldt=min(maxCelldt,block_ptr->parameters[BlockParams::DVZ]/maxAz);
    }
-   
+   phiprof::stop("calcVelFluxes");
    //update max allowed timestep for acceleration in this cell, which is the minimum of CFL=1 timesteps for all blocks in cell
    SC->parameters[CellParams::MAXVDT] = maxCelldt;
    
-    // phiprof::start("propagateVel");
+   phiprof::start("propagateVel");
    // Propagate distribution functions in velocity space if timestep is non-zero
    if(dt!=0.0)
       for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
@@ -318,17 +316,18 @@ void calculateCellAccelerationSubstep(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID 
          cpu_propagateVel(SC,block,dt);
       }
    
-//   phiprof::stop("propagateVel");
-//   phiprof::stop("Acceleration",SC->number_of_blocks,"Blocks");
-   
-//   phiprof::stop("calcVelFluxes");
+   phiprof::stop("propagateVel");
+
 #else
+   phiprof::start("semilag-acc");
    cpu_accelerate_cell(*SC, dt, 1000, P::q, P::m);
+   phiprof::stop("semilag-acc");
 #endif
 
+   phiprof::start("vBoundaryCondition");
    //apply boundary outflow condition in velocity space
    SC->applyVelocityBoundaryCondition();
-
+   phiprof::stop("vBoundaryCondition");
 
 }
 
