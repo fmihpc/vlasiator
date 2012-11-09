@@ -26,7 +26,7 @@ using namespace std;
 void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer)
 {
    typedef Parameters P;
-   
+         
    vector<string>::const_iterator it;
    for (it = P::outputVariableList.begin();
         it != P::outputVariableList.end();
@@ -47,6 +47,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_adjust",CellParams::RHOLOSSADJUST,1));
       if(*it == "RhoLossVelBoundary")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_velocity_boundary",CellParams::RHOLOSSVELBOUNDARY,1));
+      if(*it == "LBweight")
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("LB_weight",CellParams::LBWEIGHTCOUNTER,1));
+      if(*it == "MaxVdt")
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("max_v_dt",CellParams::MAXVDT,1));
+      if(*it == "MaxRdt")
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("max_r_dt",CellParams::MAXRDT,1));
+      if(*it == "MaxFieldsdt")
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt",CellParams::MAXFDT,1));
       if(*it == "MPIrank")
          outputReducer->addOperator(new DRO::MPIrank);
       if(*it == "BoundaryType")
@@ -88,6 +96,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_adjust",CellParams::RHOLOSSADJUST,1));
       if(*it == "RhoLossVelBoundary")
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_velocity_boundary",CellParams::RHOLOSSVELBOUNDARY,1));
+      if(*it == "LBweight")
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("LB_weight",CellParams::LBWEIGHTCOUNTER,1));
+      if(*it == "MaxVdt")
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("max_v_dt",CellParams::MAXVDT,1));
+      if(*it == "MaxRdt")
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("max_r_dt",CellParams::MAXRDT,1));
+      if(*it == "MaxFieldsdt")
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt",CellParams::MAXFDT,1));
       if(*it == "MaxDistributionFunction")
          diagnosticReducer->addOperator(new DRO::MaxDistributionFunction);
       if(*it == "MinDistributionFunction")
