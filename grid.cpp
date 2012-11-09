@@ -517,12 +517,22 @@ copies of remote neighbors for receiving velocity block data.
 */
 void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell>& mpiGrid)
 {
-   // update velocity block lists
-   // Faster to do it in one operation, and not by first sending size, then list.
+   // update velocity block lists For small velocity spaces it is
+   // faster to do it in one operation, and not by first sending size,
+   // then list. For large we do it in two steps
+   
    phiprof::initializeTimer("Velocity block list update","MPI");
    phiprof::start("Velocity block list update");
-   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_SIZE_AND_LIST);
-   mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+   if( P::vxblocks_ini * P::vyblocks_ini * P::vzblocks_ini > 20*20*20 ) {
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_SIZE);
+      mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST);
+      mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+   }
+   else{
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_SIZE_AND_LIST);
+      mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+   }
    phiprof::stop("Velocity block list update");
 
    /*      
