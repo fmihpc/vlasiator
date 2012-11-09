@@ -22,7 +22,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "definitions.h"
 #include "common.h"
 #include "spatial_cell.hpp"
-#include "project.h"
+#include "projects/project.h"
 #include "leveque_common.h"
 #include <algorithm>
 
@@ -306,7 +306,13 @@ void cpu_clearVelFluxes(SpatialCell *cell,const unsigned int& BLOCK) {
    for (unsigned int i=0; i<SIZE_FLUXS; ++i)  block->fx[i]= 0.0;
 }
 
-void cpu_calcVelFluxes(SpatialCell *cell,const unsigned int& BLOCK,const Real& DT,Real& maxAx, Real& maxAy, Real& maxAz) {
+void cpu_calcVelFluxes(
+   SpatialCell *cell,
+   Project& project,
+   const unsigned int& BLOCK,
+   const Real& DT,
+   Real& maxAx, Real& maxAy, Real& maxAz
+) {
    // Creation of temporary calculation block dfdt and avgs + 
    // value fetching and initializations seem to take about
    // ~4% of time used by calcVelFluxes   
@@ -339,7 +345,7 @@ void cpu_calcVelFluxes(SpatialCell *cell,const unsigned int& BLOCK,const Real& D
       const Real xp1 = avgs[fullInd(i+3,j+2,k+2)];
       const Real xm1 = avgs[fullInd(i+1,j+2,k+2)];
       const Real xm2 = avgs[fullInd(i  ,j+2,k+2)];
-      calcAccFaceX(
+      project.calcAccFaceX(
          Ax, Ay, Az,
          i, j, k,
          cell->parameters,
@@ -734,7 +740,7 @@ void cpu_calcVelFluxes(SpatialCell *cell,const unsigned int& BLOCK,const Real& D
       const Real yp1 = avgs[fullInd(i+2,j+3,k+2)];
       const Real ym1 = avgs[fullInd(i+2,j+1,k+2)];
       const Real ym2 = avgs[fullInd(i+2,j  ,k+2)];
-      calcAccFaceY(
+      project.calcAccFaceY(
          Ax, Ay, Az,
          i, j, k,
          cell->parameters,
@@ -1127,7 +1133,7 @@ void cpu_calcVelFluxes(SpatialCell *cell,const unsigned int& BLOCK,const Real& D
       const Real zp1 = avgs[fullInd(i+2,j+2,k+3)];
       const Real zm1 = avgs[fullInd(i+2,j+2,k+1)];
       const Real zm2 = avgs[fullInd(i+2,j+2,k  )];
-      calcAccFaceZ(
+      project.calcAccFaceZ(
          Ax, Ay, Az,
          i, j, k,
          cell->parameters,

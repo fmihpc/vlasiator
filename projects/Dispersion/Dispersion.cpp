@@ -21,251 +21,144 @@
 #include <iomanip>
 #include <cmath>
 
-#include "spatial_cell.hpp"
-#include "common.h"
-#include "project.h"
-#include "parameters.h"
-#include "readparameters.h"
-#include "vlasovmover.h"
+#include "../../common.h"
+#include "../../readparameters.h"
+#include "../../backgroundfield/backgroundfield.h"
 
-typedef dispersionParameters DispP;
-Real DispP::B0 = NAN;
-Real DispP::angleXY = NAN;
-Real DispP::angleXZ = NAN;
-Real DispP::DENSITY = NAN;
-Real DispP::TEMPERATURE = NAN;
-Real DispP::magXPertAbsAmp = NAN;
-Real DispP::magYPertAbsAmp = NAN;
-Real DispP::magZPertAbsAmp = NAN;
-Real DispP::densityPertRelAmp = NAN;
-Real DispP::velocityPertAbsAmp = NAN;
-Real DispP::maxwCutoff = NAN;
-uint DispP::nSpaceSamples = 0;
-uint DispP::nVelocitySamples = 0;
+#include "Dispersion.h"
 
-bool initializeProject(void) {return true;}
+int32_t projects::Dispersion::rndRho, projects::Dispersion::rndVel[3];
 
-bool addProjectParameters() {
-   typedef Readparameters RP;
-   RP::add("Dispersion.B0", "Guide magnetic field strength (T)", 1.0e-9);
-   RP::add("Dispersion.angleXY", "Orientation of the guide magnetic field with respect to the x-axis in x-y plane (rad)", 0.001);
-   RP::add("Dispersion.angleXZ", "Orientation of the guide magnetic field with respect to the x-axis in x-z plane (rad)", 0.001);
-   RP::add("Dispersion.rho", "Number density (m^-3)", 1.0e7);
-   RP::add("Dispersion.Temperature", "Temperature (K)", 2.0e6);
-   RP::add("Dispersion.magXPertAbsAmp", "Absolute amplitude of the magnetic perturbation along x (T)", 1.0e-9);
-   RP::add("Dispersion.magYPertAbsAmp", "Absolute amplitude of the magnetic perturbation along y (T)", 1.0e-9);
-   RP::add("Dispersion.magZPertAbsAmp", "Absolute amplitude of the magnetic perturbation along z (T)", 1.0e-9);
-   RP::add("Dispersion.densityPertRelAmp", "Relative amplitude of the density perturbation", 0.1);
-   RP::add("Dispersion.velocityPertAbsAmp", "Absolute amplitude of the velocity perturbation", 1.0e6);
-   RP::add("Dispersion.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-   RP::add("Dispersion.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
-   RP::add("Dispersion.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
-   return true;
-}
-
-bool getProjectParameters() {
-   typedef Readparameters RP;
-   RP::get("Dispersion.B0", DispP::B0);
-   RP::get("Dispersion.angleXY", DispP::angleXY);
-   RP::get("Dispersion.angleXZ", DispP::angleXZ);
-   RP::get("Dispersion.rho", DispP::DENSITY);
-   RP::get("Dispersion.Temperature", DispP::TEMPERATURE);
-   RP::get("Dispersion.magXPertAbsAmp", DispP::magXPertAbsAmp);
-   RP::get("Dispersion.magYPertAbsAmp", DispP::magYPertAbsAmp);
-   RP::get("Dispersion.magZPertAbsAmp", DispP::magZPertAbsAmp);
-   RP::get("Dispersion.densityPertRelAmp", DispP::densityPertRelAmp);
-   RP::get("Dispersion.velocityPertAbsAmp", DispP::velocityPertAbsAmp);
-   RP::get("Dispersion.nSpaceSamples", DispP::nSpaceSamples);
-   RP::get("Dispersion.nVelocitySamples", DispP::nVelocitySamples);
-   RP::get("Dispersion.maxwCutoff", DispP::maxwCutoff);
-   return true;
-}
-
-Real getDistribValue(creal& vx,creal& vy, creal& vz) {
-   creal k = 1.3806505e-23; // Boltzmann
-   creal mass = 1.67262171e-27; // m_p in kg
-   return exp(- mass * (vx*vx + vy*vy + vz*vz) / (2.0 * k * DispP::TEMPERATURE));
-}
-
-/* calcPhaseSpaceDensity needs to be thread-safe */
-// TODO when projects are classes, the rnd values and state variables etc can be class members.
-/*! Integrate the distribution function over the given six-dimensional phase-space cell.
- * \param x Starting value of the x-coordinate of the cell.
- * \param y Starting value of the y-coordinate of the cell.
- * \param z Starting value of the z-coordinate of the cell.
- * \param dx The size of the cell in x-direction.
- * \param dy The size of the cell in y-direction.
- * \param dz The size of the cell in z-direction.
- * \param vx Starting value of the vx-coordinate of the cell.
- * \param vy Starting value of the vy-coordinate of the cell.
- * \param vz Starting value of the vz-coordinate of the cell.
- * \param dvx The size of the cell in vx-direction.
- * \param dvy The size of the cell in vy-direction.
- * \param dvz The size of the cell in vz-direction.
- * \param rndRho Random number for the density perturbation.
- * \param rndVel Three random numbers for the velocity perturbation.
- * \return The volume average of the distribution function in the given phase space cell.
- * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
- */
-Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const int32_t& rndRho, const int32_t rndVel[3]) {
-   if(vx < Parameters::vxmin + 0.5 * dvx ||
-      vy < Parameters::vymin + 0.5 * dvy ||
-      vz < Parameters::vzmin + 0.5 * dvz ||
-      vx > Parameters::vxmax - 1.5 * dvx ||
-      vy > Parameters::vymax - 1.5 * dvy ||
-      vz > Parameters::vzmax - 1.5 * dvz
-   ) return 0.0;
+namespace projects {
+   Dispersion::Dispersion(): Project() { }
+   Dispersion::~Dispersion() { }
    
-   creal mass = Parameters::m;
-   creal q = Parameters::q;
-   creal k = 1.3806505e-23; // Boltzmann
-   creal mu0 = 1.25663706144e-6; // mu_0
-   
-   creal d_vx = dvx / (DispP::nVelocitySamples-1);
-   creal d_vy = dvy / (DispP::nVelocitySamples-1);
-   creal d_vz = dvz / (DispP::nVelocitySamples-1);
-   Real avg = 0.0;
-   
-   for (uint vi=0; vi<DispP::nVelocitySamples; ++vi)
-      for (uint vj=0; vj<DispP::nVelocitySamples; ++vj)
-         for (uint vk=0; vk<DispP::nVelocitySamples; ++vk)
-         {
-            avg += getDistribValue(
-               vx+vi*d_vx - DispP::velocityPertAbsAmp * (0.5 - (double)rndVel[0] / (double)RAND_MAX),
-                                   vy+vj*d_vy - DispP::velocityPertAbsAmp * (0.5 - (double)rndVel[1] / (double)RAND_MAX),
-                                   vz+vk*d_vz - DispP::velocityPertAbsAmp * (0.5 - (double)rndVel[2] / (double)RAND_MAX));
-         }
-         
-         creal result = avg *
-         DispP::DENSITY * (1.0 + DispP::densityPertRelAmp * (0.5 - (double)rndRho / (double)RAND_MAX)) *
-         pow(mass / (2.0 * M_PI * k * DispP::TEMPERATURE), 1.5) /
-         //            (Parameters::vzmax - Parameters::vzmin) / 
-         (DispP::nVelocitySamples*DispP::nVelocitySamples*DispP::nVelocitySamples);
-         if(result < DispP::maxwCutoff) {
-            return 0.0;
-         } else {
-            return result;
-         }
-}
+   bool Dispersion::initialize(void) {
+      int myRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      memset(&(this->rngDataBuffer), 0, sizeof(this->rngDataBuffer));
+      initstate_r(this->seed*myRank, &(this->rngStateBuffer[0]), 256, &(this->rngDataBuffer));
+      return true;
+   }
 
-/** Calculate parameters for the given spatial cell at the given time.
- * Here you need to set values for the following array indices:
- * CellParams::EX, CellParams::EY, CellParams::EZ, CellParams::BX, CellParams::BY, and CellParams::BZ.
- * 
- * The following array indices contain the coordinates of the "lower left corner" of the cell: 
- * CellParams::XCRD, CellParams::YCRD, and CellParams::ZCRD.
- * The cell size is given in the following array indices: CellParams::DX, CellParams::DY, and CellParams::DZ.
- * @param cellParams Array containing cell parameters.
- * @param t The current value of time. This is passed as a convenience. If you need more detailed information 
- * of the state of the simulation, you can read it from Parameters.
- */
-void calcCellParameters(Real* cellParams,creal& t) {
-   creal x = cellParams[CellParams::XCRD];
-   creal dx = cellParams[CellParams::DX];
-   creal y = cellParams[CellParams::YCRD];
-   creal dy = cellParams[CellParams::DY];
-   creal z = cellParams[CellParams::ZCRD];
-   creal dz = cellParams[CellParams::DZ];
-   
-   uint cellID = (int) ((x - Parameters::xmin) / dx) +
-   (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
-   (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-   
-   cellParams[CellParams::EX   ] = 0.0;
-   cellParams[CellParams::EY   ] = 0.0;
-   cellParams[CellParams::EZ   ] = 0.0;
-   
+   void Dispersion::addParameters() {
+      typedef Readparameters RP;
+      RP::add("Dispersion.B0", "Guide magnetic field strength (T)", 1.0e-9);
+      RP::add("Dispersion.angleXY", "Orientation of the guide magnetic field with respect to the x-axis in x-y plane (rad)", 0.001);
+      RP::add("Dispersion.angleXZ", "Orientation of the guide magnetic field with respect to the x-axis in x-z plane (rad)", 0.001);
+      RP::add("Dispersion.rho", "Number density (m^-3)", 1.0e7);
+      RP::add("Dispersion.Temperature", "Temperature (K)", 2.0e6);
+      RP::add("Dispersion.magXPertAbsAmp", "Absolute amplitude of the magnetic perturbation along x (T)", 1.0e-9);
+      RP::add("Dispersion.magYPertAbsAmp", "Absolute amplitude of the magnetic perturbation along y (T)", 1.0e-9);
+      RP::add("Dispersion.magZPertAbsAmp", "Absolute amplitude of the magnetic perturbation along z (T)", 1.0e-9);
+      RP::add("Dispersion.densityPertRelAmp", "Relative amplitude of the density perturbation", 0.1);
+      RP::add("Dispersion.velocityPertAbsAmp", "Absolute amplitude of the velocity perturbation", 1.0e6);
+      RP::add("Dispersion.seed", "Seed for the RNG", 42);
+      RP::add("Dispersion.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
+      RP::add("Dispersion.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+      RP::add("Dispersion.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
+   }
+
+   void Dispersion::getParameters() {
+      typedef Readparameters RP;
+      RP::get("Dispersion.B0", this->B0);
+      RP::get("Dispersion.angleXY", this->angleXY);
+      RP::get("Dispersion.angleXZ", this->angleXZ);
+      RP::get("Dispersion.rho", this->DENSITY);
+      RP::get("Dispersion.Temperature", this->TEMPERATURE);
+      RP::get("Dispersion.magXPertAbsAmp", this->magXPertAbsAmp);
+      RP::get("Dispersion.magYPertAbsAmp", this->magYPertAbsAmp);
+      RP::get("Dispersion.magZPertAbsAmp", this->magZPertAbsAmp);
+      RP::get("Dispersion.densityPertRelAmp", this->densityPertRelAmp);
+      RP::get("Dispersion.velocityPertAbsAmp", this->velocityPertAbsAmp);
+      RP::get("Dispersion.seed", this->seed);
+      RP::get("Dispersion.nSpaceSamples", this->nSpaceSamples);
+      RP::get("Dispersion.nVelocitySamples", this->nVelocitySamples);
+      RP::get("Dispersion.maxwCutoff", this->maxwCutoff);
+   }
+
+   Real Dispersion::getDistribValue(creal& vx,creal& vy, creal& vz) {
+      creal k = 1.3806505e-23; // Boltzmann
+      creal mass = 1.67262171e-27; // m_p in kg
+      return exp(- mass * (vx*vx + vy*vy + vz*vz) / (2.0 * k * this->TEMPERATURE));
+   }
+
    // TODO when projects are classes, the rnd values and state variables etc can be class members.
-   char rngStateBuffer[256];
-   random_data rngDataBuffer;
-   memset(&rngDataBuffer, 0, sizeof(rngDataBuffer));
-   initstate_r(cellID + 
-   (uint)(Parameters::xcells_ini*Parameters::ycells_ini*Parameters::zcells_ini), &rngStateBuffer[0], 256, &rngDataBuffer);
-   
-   int32_t rndBuffer[3];
-   random_r(&rngDataBuffer, &rndBuffer[0]);
-   random_r(&rngDataBuffer, &rndBuffer[1]);
-   random_r(&rngDataBuffer, &rndBuffer[2]);
-
-   cellParams[CellParams::PERBX] = DispP::magXPertAbsAmp * (0.5 - (double)rndBuffer[0] / (double)RAND_MAX);
-   cellParams[CellParams::PERBY] = DispP::magYPertAbsAmp * (0.5 - (double)rndBuffer[1] / (double)RAND_MAX);
-   cellParams[CellParams::PERBZ] = DispP::magZPertAbsAmp * (0.5 - (double)rndBuffer[2] / (double)RAND_MAX);
-   
-   cellParams[CellParams::BGBX] = DispP::B0 * cos(DispP::angleXY) * cos(DispP::angleXZ);
-   cellParams[CellParams::BGBY] = DispP::B0 * sin(DispP::angleXY) * cos(DispP::angleXZ);
-   cellParams[CellParams::BGBZ] = DispP::B0 * sin(DispP::angleXZ);
-}
-
-void setProjectCell(SpatialCell* cell) {
-   // Set up cell parameters:
-   calcCellParameters(&((*cell).parameters[0]), 0.0);
-   
-   cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
-   cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
-   
-   creal x = cell->parameters[CellParams::XCRD];
-   creal y = cell->parameters[CellParams::YCRD];
-   creal z = cell->parameters[CellParams::ZCRD];
-   creal dx = cell->parameters[CellParams::DX];
-   creal dy = cell->parameters[CellParams::DY];
-   creal dz = cell->parameters[CellParams::DZ];
-   
-   uint cellID = (int) ((x - Parameters::xmin) / dx) +
-   (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
-   (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-   
-   // TODO when projects are classes, the rnd values and state variables etc can be class members.
-   char rngStateBuffer[256];
-   random_data rngDataBuffer;
-   memset(&rngDataBuffer, 0, sizeof(rngDataBuffer));
-   initstate_r(cellID, &rngStateBuffer[0], 256, &rngDataBuffer);
-   
-   int32_t rndRho, rndVel[3];
-   random_r(&rngDataBuffer, &rndRho);
-   random_r(&rngDataBuffer, &rndVel[0]);
-   random_r(&rngDataBuffer, &rndVel[1]);
-   random_r(&rngDataBuffer, &rndVel[2]);
-   
-   // Go through each velocity block in the velocity phase space grid.
-   // Set the initial state and block parameters:
-   creal dvx_block = SpatialCell::block_dvx; // Size of a block in vx-direction
-   creal dvy_block = SpatialCell::block_dvy; //                    vy
-   creal dvz_block = SpatialCell::block_dvz; //                    vz
-   creal dvx_blockCell = SpatialCell::cell_dvx; // Size of one cell in a block in vx-direction
-   creal dvy_blockCell = SpatialCell::cell_dvy; //                                vy
-   creal dvz_blockCell = SpatialCell::cell_dvz; //                                vz
-   
-   for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
-      for (uint jv=0; jv<P::vyblocks_ini; ++jv)
-         for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
-            creal vx_block = P::vxmin + iv*dvx_block; // vx-coordinate of the lower left corner
-            creal vy_block = P::vymin + jv*dvy_block; // vy-
-            creal vz_block = P::vzmin + kv*dvz_block; // vz-
+   Real Dispersion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+      if(vx < Parameters::vxmin + 0.5 * dvx ||
+         vy < Parameters::vymin + 0.5 * dvy ||
+         vz < Parameters::vzmin + 0.5 * dvz ||
+         vx > Parameters::vxmax - 1.5 * dvx ||
+         vy > Parameters::vymax - 1.5 * dvy ||
+         vz > Parameters::vzmax - 1.5 * dvz
+      ) return 0.0;
+      
+      creal mass = Parameters::m;
+      creal q = Parameters::q;
+      creal k = 1.3806505e-23; // Boltzmann
+      creal mu0 = 1.25663706144e-6; // mu_0
+      
+      creal d_vx = dvx / (this->nVelocitySamples-1);
+      creal d_vy = dvy / (this->nVelocitySamples-1);
+      creal d_vz = dvz / (this->nVelocitySamples-1);
+      Real avg = 0.0;
+      
+      for (uint vi=0; vi<this->nVelocitySamples; ++vi)
+         for (uint vj=0; vj<this->nVelocitySamples; ++vj)
+            for (uint vk=0; vk<this->nVelocitySamples; ++vk)
+            {
+               avg += getDistribValue(
+                  vx+vi*d_vx - this->velocityPertAbsAmp * (0.5 - (double)(this->rndVel[0]) / (double)RAND_MAX),
+                  vy+vj*d_vy - this->velocityPertAbsAmp * (0.5 - (double)(this->rndVel[1]) / (double)RAND_MAX),
+                  vz+vk*d_vz - this->velocityPertAbsAmp * (0.5 - (double)(this->rndVel[2]) / (double)RAND_MAX)
+               );
+            }
             
-            // Calculate volume average of distrib. function for each cell in the block.
-            for (uint kc=0; kc<WID; ++kc) 
-               for (uint jc=0; jc<WID; ++jc) 
-                  for (uint ic=0; ic<WID; ++ic) {
-                     creal vx_cell = vx_block + ic*dvx_blockCell;
-                     creal vy_cell = vy_block + jc*dvy_blockCell;
-                     creal vz_cell = vz_block + kc*dvz_blockCell;
-                     Real average = 
-                     calcPhaseSpaceDensity(x, y, z, dx, dy, dz,
-                                           vx_cell, vy_cell, vz_cell,
-                                           dvx_blockCell, dvy_blockCell, dvz_blockCell,
-                                           rndRho,
-                                           rndVel);
-                     
-                     if(average!=0.0){
-                        creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
-                        creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
-                        creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
-                        cell->set_value(vx_cell_center,vy_cell_center,vz_cell_center,average);
-                     }
-                  }
-         }
-         calculateCellVelocityMoments(cell);
-         
-         //let's get rid of blocks not fulfilling the criteria here to save memory.
-         cell->adjustSingleCellVelocityBlocks();
+            creal result = avg *
+            this->DENSITY * (1.0 + this->densityPertRelAmp * (0.5 - (double)(Dispersion::rndRho) / (double)RAND_MAX)) *
+            pow(mass / (2.0 * M_PI * k * this->TEMPERATURE), 1.5) /
+            //            (Parameters::vzmax - Parameters::vzmin) / 
+            (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
+            if(result < this->maxwCutoff) {
+               return 0.0;
+            } else {
+               return result;
+            }
+   }
+
+   void Dispersion::calcCellParameters(Real* cellParams,creal& t) {
+      creal x = cellParams[CellParams::XCRD];
+      creal dx = cellParams[CellParams::DX];
+      creal y = cellParams[CellParams::YCRD];
+      creal dy = cellParams[CellParams::DY];
+      creal z = cellParams[CellParams::ZCRD];
+      creal dz = cellParams[CellParams::DZ];
+      
+      uint cellID = (int) ((x - Parameters::xmin) / dx) +
+      (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
+      (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
+      
+      cellParams[CellParams::EX   ] = 0.0;
+      cellParams[CellParams::EY   ] = 0.0;
+      cellParams[CellParams::EZ   ] = 0.0;
+      
+      
+      
+      int32_t rndBuffer[3];
+      random_r(&rngDataBuffer, &rndBuffer[0]);
+      random_r(&rngDataBuffer, &rndBuffer[1]);
+      random_r(&rngDataBuffer, &rndBuffer[2]);
+      random_r(&rngDataBuffer, &(this->rndRho));
+      random_r(&rngDataBuffer, &(this->rndVel[0]));
+      random_r(&rngDataBuffer, &(this->rndVel[1]));
+      random_r(&rngDataBuffer, &(this->rndVel[2]));
+
+      cellParams[CellParams::PERBX] = this->magXPertAbsAmp * (0.5 - (double)rndBuffer[0] / (double)RAND_MAX);
+      cellParams[CellParams::PERBY] = this->magYPertAbsAmp * (0.5 - (double)rndBuffer[1] / (double)RAND_MAX);
+      cellParams[CellParams::PERBZ] = this->magZPertAbsAmp * (0.5 - (double)rndBuffer[2] / (double)RAND_MAX);
+      
+      cellParams[CellParams::BGBX] = this->B0 * cos(this->angleXY) * cos(this->angleXZ);
+      cellParams[CellParams::BGBY] = this->B0 * sin(this->angleXY) * cos(this->angleXZ);
+      cellParams[CellParams::BGBZ] = this->B0 * sin(this->angleXZ);
+   }
 }

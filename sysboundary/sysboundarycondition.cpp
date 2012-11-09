@@ -71,7 +71,10 @@ namespace SBC {
    
    /*! Function called at initialisation to set the system boundary condition's parameters.
     */
-   bool SysBoundaryCondition::initSysBoundary(creal& t) {
+   bool SysBoundaryCondition::initSysBoundary(
+      creal& t,
+      Project &project
+   ) {
       cerr << "ERROR: SysBoundaryCondition::initSysBoundary called instead of derived class function!" << endl;
       return false;
    }
@@ -86,7 +89,10 @@ namespace SBC {
    }
    
    /*! Function used to apply the system boundary condition initial state to a cell. */
-   bool SysBoundaryCondition::applyInitialState(const dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   bool SysBoundaryCondition::applyInitialState(
+      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      Project &project
+   ) {
       cerr << "ERROR: SysBoundaryCondition::applyInitialState called instead of derived class function!" << endl;
       return false;
    }

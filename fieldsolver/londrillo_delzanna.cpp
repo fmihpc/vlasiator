@@ -51,7 +51,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "../parameters.h"
 #include "../fieldsolver.h"
 #include "limiters.h"
-#include "../project.h"
+#include "../projects/project.h"
 #include "phiprof.hpp"
 #include "sysboundary/sysboundary.h"
 #include "sysboundary/sysboundarycondition.h"

@@ -53,6 +53,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "spatial_cell.hpp"
 #include "../grid.h"
 
+#include "../projects/project.h"
+
 using namespace std;
 using namespace spatial_cell;
 
@@ -249,8 +251,12 @@ bool finalizeMover() {return true;}
 
 void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,CellID cell) { }
 
-void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid, Real dt) {   
-   typedef Parameters P;   
+void calculateAcceleration(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   Project& project,
+   Real dt
+) {
+   typedef Parameters P;
    const vector<CellID> cells = mpiGrid.get_cells();
    vector<CellID> nonSysBoundaryCells;
 
@@ -268,12 +274,16 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid, Real dt) {
 #pragma omp parallel for schedule(dynamic) 
    for (size_t c=0; c<nonSysBoundaryCells.size(); ++c) {
       const CellID cellID = nonSysBoundaryCells[c];
-      calculateCellAcceleration(mpiGrid,cellID,dt);
+      calculateCellAcceleration(mpiGrid,cellID,project,dt);
    }
 }
 
 //compute one acceleration substep for a cell, function used by calculateCellAcceleration
-void calculateCellAccelerationSubstep(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,Real dt) {
+void calculateCellAccelerationSubstep(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   CellID cellID,
+   Project& project,
+   Real dt) {
    typedef Parameters P;
 //   phiprof::start("Acceleration");
    SpatialCell* SC = mpiGrid[cellID];
@@ -301,7 +311,7 @@ void calculateCellAccelerationSubstep(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID 
       unsigned int block = SC->velocity_block_list[block_i];         
       Velocity_Block* block_ptr=SC->at(block);
       Real maxAx,maxAy,maxAz;
-      cpu_calcVelFluxes(SC,block,dt,maxAx,maxAy,maxAz);
+      cpu_calcVelFluxes(SC,project,block,dt,maxAx,maxAy,maxAz);
       if(maxAx!=ZERO) maxCelldt=min(maxCelldt,block_ptr->parameters[BlockParams::DVX]/maxAx);
       if(maxAy!=ZERO) maxCelldt=min(maxCelldt,block_ptr->parameters[BlockParams::DVY]/maxAy);
       if(maxAz!=ZERO) maxCelldt=min(maxCelldt,block_ptr->parameters[BlockParams::DVZ]/maxAz);
@@ -335,7 +345,12 @@ void calculateCellAccelerationSubstep(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID 
 
 
 //compute one acceleration step for a cell, may include multiple substep calls to calculateCellAccelerationSubstep  
-void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,Real dt) {
+void calculateCellAcceleration(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   CellID cellID,
+   Project& project,
+   Real dt
+) {
    typedef Parameters P;
    double t_init=MPI_Wtime();
 #ifndef SEMILAG
@@ -364,7 +379,7 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,
             if(subdt<0.0) subdt=0.0; //should not happen...
          }
          
-         calculateCellAccelerationSubstep(mpiGrid,cellID,subdt);
+         calculateCellAccelerationSubstep(mpiGrid,cellID,project,subdt);
          subSteps++;
          subt+=subdt;
          //Update block info, no need to do on last step. This will
@@ -383,11 +398,11 @@ void calculateCellAcceleration(dccrg::Dccrg<SpatialCell>& mpiGrid,CellID cellID,
    }
    else{
       //just one normal acceleration step
-      calculateCellAccelerationSubstep(mpiGrid,cellID,dt);
+      calculateCellAccelerationSubstep(mpiGrid,cellID,project,dt);
    }
 #else
    //with SEMILAG no substepping is needed....
-   calculateCellAccelerationSubstep(mpiGrid,cellID,dt);
+   calculateCellAccelerationSubstep(mpiGrid,cellID,project,dt);
 #endif
 
    //compute moments after acceleration

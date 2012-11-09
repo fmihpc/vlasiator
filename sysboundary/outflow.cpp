@@ -25,7 +25,6 @@
 
 #include "outflow.h"
 #include "../projects/projects_common.h"
-#include "../project.h"
 #include "../fieldsolver.h"
 
 using namespace std;
@@ -52,7 +51,10 @@ namespace SBC {
       }
    }
    
-   bool Outflow::initSysBoundary(creal& t) {
+   bool Outflow::initSysBoundary(
+      creal& t,
+      Project &project
+   ) {
       /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are to have outflow system boundary conditions.
        * A true indicates the corresponding face will have outflow.
        * The 6 elements correspond to x+, x-, y+, y-, z+, z- respectively.
@@ -102,7 +104,10 @@ namespace SBC {
       return true;
    }
    
-   bool Outflow::applyInitialState(const dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   bool Outflow::applyInitialState(
+      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      Project &project
+   ) {
       vector<uint64_t> cells = mpiGrid.get_cells();
 #pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {
@@ -110,7 +115,7 @@ namespace SBC {
          if(cell->sysBoundaryFlag != this->getIndex()) continue;
          
          // Defined in project.cpp, used here as the outflow cell has the same state as the initial state of non-system boundary cells.
-         setProjectCell(cell);
+         project.setCell(cell);
          // WARNING Time-independence assumed here.
          cell->parameters[CellParams::RHO_DT2] = cell->parameters[CellParams::RHO];
          cell->parameters[CellParams::RHOVX_DT2] = cell->parameters[CellParams::RHOVX];

@@ -97,6 +97,8 @@ uint P::rebalanceInterval = numeric_limits<uint>::max();
 vector<string> P::outputVariableList;
 vector<string> P::diagnosticVariableList;
 
+string P::projectName = string("");
+
 
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
@@ -109,6 +111,7 @@ bool Parameters::addParameters(){
    Readparameters::add("propagate_vlasov","Propagate distribution functions during the simulation",true);
    Readparameters::add("max_acceleration_substeps","Maximum number of  acceleration substeps that are allowed to be taken in acceleration. The default number of 1 disables substepping and the acceleration is always done in one step. A value of 0 has a special meaning, it activates unlimited substepping",1);
    Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limits (default)",true);
+   Readparameters::add("project", "Specify the name of the project to use.", "Fluctuations");
 
    Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string(""));     
    
@@ -171,7 +174,9 @@ bool Parameters::getParameters(){
    Readparameters::get("dynamic_timestep",P::dynamicTimestep);
    Readparameters::get("restart.filename",P::restartFileName);
    P::isRestart=(P::restartFileName!=string(""));
-
+   
+   Readparameters::get("project", projectName);
+   
    /*get numerical values, let Readparameters handle the conversions*/
    Readparameters::get("gridbuilder.x_min",P::xmin);
    Readparameters::get("gridbuilder.x_max",P::xmax);

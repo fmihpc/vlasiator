@@ -41,7 +41,10 @@ namespace SBC {
       cerr << "Base class SetByUser::getParameters() called instead of derived class function!" << endl;
    }
    
-   bool SetByUser::initSysBoundary(creal& t) {
+   bool SetByUser::initSysBoundary(
+      creal& t,
+      Project &project
+   ) {
       /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are to have user-set system boundary conditions.
        * A true indicates the corresponding face will have user-set system boundary conditions.
        * The 6 elements correspond to x+, x-, y+, y-, z+, z- respectively.
@@ -93,7 +96,10 @@ namespace SBC {
       return true;
    }
    
-   bool SetByUser::applyInitialState(const dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   bool SetByUser::applyInitialState(
+      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      Project &project
+   ) {
       bool success;
       
       success = setCellsFromTemplate(mpiGrid);

@@ -18,6 +18,9 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef PROJECTS_COMMON_H
 #define PROJECTS_COMMON_H
+
+# include "../spatial_cell.hpp"
+
 using namespace spatial_cell;
 namespace projects {
    enum Neighbours {
