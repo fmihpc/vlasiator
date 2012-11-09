@@ -139,12 +139,17 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &is
 }
 
 
+
 int main(int argn,char* args[]) {
    bool success = true;
    int myRank;
    const creal DT_EPSILON=1e-12;
    typedef Parameters P;
-   // Init MPI: 
+   Real newDt;
+   bool dtIsChanged;
+
+
+// Init MPI: 
    int required=MPI_THREAD_FUNNELED;
    int provided;
    MPI_Init_thread(&argn,&args,required,&provided);
@@ -239,8 +244,59 @@ int main(int argn,char* args[]) {
    
    // Free up memory:
    readparameters.finalize();
+
+         
+   bool updateVelocityBlocksAfterAcceleration=false;
+#ifdef SEMILAG
+   updateVelocityBlocksAfterAcceleration=true;
+#endif
+   if(P::maxAccelerationSubsteps!=1)
+      updateVelocityBlocksAfterAcceleration=true;
+
+   
+         
+
+   if(P::dynamicTimestep && !P::isRestart) {
+      //compute vlasovsolver once with zero dt, this is  to initialize
+      //per-cell dt limits. In restarts, we read in dt from file
+      phiprof::start("compute-dt");
+      if(P::propagateVlasov) {
+         //Flux computation is sufficient, no need to propagate
+         calculateSpatialFluxes(mpiGrid, sysBoundaries, 0.0);
+         calculateAcceleration(mpiGrid,0.0);
+      }
+      if(updateVelocityBlocksAfterAcceleration){
+         //this is probably not ever needed, as a zero length step
+         //should not require changes
+         updateRemoteVelocityBlockLists(mpiGrid);
+         adjustVelocityBlocks(mpiGrid);
+      }
+      if(P::propagateField) {
+         propagateFields(mpiGrid, sysBoundaries, 0.0);
+      }
+      //compute new dt
+      computeNewTimeStep(mpiGrid,newDt,dtIsChanged);
+      if(dtIsChanged)
+         P::dt=newDt;
+      phiprof::stop("compute-dt");
+      
+   }
+
+   
+   if(P::propagateVlasov && !P::isRestart) {
+      //go forward by dt/2 in x, initializes leapfrog split. In restarts the
+      //the distribution function is already propagated forward in time by dt/2
+      phiprof::start("propagate-spatial-space-dt/2");
+      calculateSpatialFluxes(mpiGrid, sysBoundaries, 0.5*P::dt);
+      calculateSpatialPropagation(mpiGrid);
+      phiprof::stop("propagate-spatial-space-dt/2");
+   }
+
    
    
+   phiprof::stop("Initialization");
+   MPI_Barrier(MPI_COMM_WORLD);   
+
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****
    // ***********************************
@@ -255,41 +311,6 @@ int main(int argn,char* args[]) {
    unsigned int computedBlocks=0;
    unsigned int restartWrites=(int)(P::t_min/P::saveRestartTimeInterval);
    unsigned int systemWrites=(int)(P::t_min/P::saveSystemTimeInterval);
-   Real newDt;
-   bool dtIsChanged;
-         
-
-   if(P::dynamicTimestep && !P::isRestart) {
-      //compute vlasovsolver once with zero dt, this is  to initialize
-      //per-cell dt limits. In restarts, we read in dt from file
-      phiprof::start("compute-dt");
-      if(P::propagateVlasov) {
-         //Flux computation is sufficient, no need to propagate
-         calculateSpatialFluxes(mpiGrid, sysBoundaries, 0.0);
-         calculateAcceleration(mpiGrid,0.0);
-      }
-      if(P::propagateField) {
-         propagateFields(mpiGrid, sysBoundaries, 0.0);
-      }
-      //compute new dt
-      computeNewTimeStep(mpiGrid,newDt,dtIsChanged);
-      P::dt=newDt;
-      phiprof::stop("compute-dt");
-      
-   }
-
-   
-   if(P::propagateVlasov && !P::isRestart) {
-      //go forward by dt/2 in x, initializes leapfrog split. In restarts the
-      //the distribution function is already propagated forward in time by dt/2
-      phiprof::start("propagate-spatial-space-dt/2");
-      calculateSpatialFluxes(mpiGrid, sysBoundaries, 0.5*P::dt);
-      calculateSpatialPropagation(mpiGrid);
-      phiprof::stop("propagate-spatial-space-dt/2");
-   }
-   
-   phiprof::stop("Initialization");
-   MPI_Barrier(MPI_COMM_WORLD);   
 
    phiprof::start("Simulation");
 
@@ -385,13 +406,18 @@ int main(int argn,char* args[]) {
          computeNewTimeStep(mpiGrid,newDt,dtIsChanged);         
          if(dtIsChanged) {
             phiprof::start("update-dt");
-            //propagate velocity space to real-time, do not do it if dt is zero
-            if(P::dt >0)
-               calculateAcceleration(mpiGrid,0.5*P::dt);
+            //propagate velocity space to real-time
+            calculateAcceleration(mpiGrid,0.5*P::dt);
             //re-compute moments for real time for fieldsolver, and
             //shift compute rho_dt2 as average of old rho and new
             //rho. In practice this value is at a 1/4 timestep, as we
             //take 1/2 timestep forward in fieldsolver
+            if(updateVelocityBlocksAfterAcceleration){
+               //need to do a update of block lists as all cells have made local changes
+               updateRemoteVelocityBlockLists(mpiGrid);
+               adjustVelocityBlocks(mpiGrid);
+            }
+
 #pragma omp parallel for        
             for (size_t c=0; c<cells.size(); ++c) {
                const CellID cellID = cells[c];
@@ -432,13 +458,6 @@ int main(int argn,char* args[]) {
          }
       }
       
-      
-      bool updateVelocityBlocksAfterAcceleration=false;
-#ifdef SEMILAG
-      updateVelocityBlocksAfterAcceleration=true;
-#endif
-      if(P::maxAccelerationSubsteps!=1)
-         updateVelocityBlocksAfterAcceleration=true;
       
       phiprof::start("Propagate");
       //Propagate the state of simulation forward in time by dt:
