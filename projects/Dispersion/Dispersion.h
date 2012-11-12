@@ -33,14 +33,16 @@ namespace projects {
          virtual bool initialize(void);
          static void addParameters(void);
          virtual void getParameters(void);
+         
+      protected:
+         Real getDistribValue(creal& vx, creal& vy, creal& vz);
          virtual void calcCellParameters(Real* cellParams,creal& t);
          virtual Real calcPhaseSpaceDensity(
             creal& x, creal& y, creal& z,
             creal& dx, creal& dy, creal& dz,
             creal& vx, creal& vy, creal& vz,
-            creal& dvx, creal& dvy, creal& dvz);
-      protected:
-         Real getDistribValue(creal& vx, creal& vy, creal& vz);
+            creal& dvx, creal& dvy, creal& dvz
+         );
          
          Real B0;
          Real angleXY;

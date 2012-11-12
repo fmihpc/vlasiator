@@ -7,6 +7,7 @@
 #include "Firehose/Firehose.h"
 #include "Flowthrough/Flowthrough.h"
 #include "Fluctuations/Fluctuations.h"
+#include "harm1D/harm1D.h"
 #include "KelvinHelmholtz/KelvinHelmholtz.h"
 #include "Magnetosphere/Magnetosphere.h"
 
@@ -25,6 +26,7 @@ namespace projects {
       projects::Firehose::addParameters();
       projects::Flowthrough::addParameters();
       projects::Fluctuations::addParameters();
+      projects::harm1D::addParameters();
       projects::KelvinHelmholtz::addParameters();
       projects::Magnetosphere::addParameters();
    }
@@ -128,6 +130,9 @@ Project* createProject() {
    }
    if(Parameters::projectName == "Fluctuations") {
          return new projects::Fluctuations;
+   }
+   if(Parameters::projectName == "harm1D") {
+      return new projects::harm1D;
    }
    if(Parameters::projectName == "KelvinHelmholtz") {
       return new projects::KelvinHelmholtz;

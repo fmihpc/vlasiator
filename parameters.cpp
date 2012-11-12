@@ -111,7 +111,7 @@ bool Parameters::addParameters(){
    Readparameters::add("propagate_vlasov","Propagate distribution functions during the simulation",true);
    Readparameters::add("max_acceleration_substeps","Maximum number of  acceleration substeps that are allowed to be taken in acceleration. The default number of 1 disables substepping and the acceleration is always done in one step. A value of 0 has a special meaning, it activates unlimited substepping",1);
    Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limits (default)",true);
-   Readparameters::add("project", "Specify the name of the project to use.", "Fluctuations");
+   Readparameters::add("project", "Specify the name of the project to use. Supported to date (20121112): Alfven Diffusion Dispersion Firehose Flowthrough Fluctuations harm1D KelvinHelmholtz Magnetosphere", "Fluctuations");
 
    Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string(""));     
    

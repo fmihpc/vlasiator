@@ -31,27 +31,33 @@ namespace projects {
          virtual bool initialize(void);
          static void addParameters(void);
          virtual void getParameters(void);
+         
+      protected:
+         Real getDistribValue(
+            creal& x,creal& y, creal& z,
+            creal& vx, creal& vy, creal& vz,
+            creal& dvx, creal& dvy, creal& dvz
+         );
          virtual void calcCellParameters(Real* cellParams,creal& t);
          virtual Real calcPhaseSpaceDensity(
             creal& x, creal& y, creal& z,
             creal& dx, creal& dy, creal& dz,
             creal& vx, creal& vy, creal& vz,
-            creal& dvx, creal& dvy, creal& dvz);
-   protected:
-      Real getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz);
-      
-      Real B0;
-      Real Bx_guiding;
-      Real By_guiding;
-      Real Bz_guiding;
-      Real DENSITY;
-      Real ALPHA;
-      Real WAVELENGTH;
-      Real TEMPERATURE;
-      Real A_VEL;
-      Real A_MAG;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
+            creal& dvx, creal& dvy, creal& dvz
+         );
+         
+         Real B0;
+         Real Bx_guiding;
+         Real By_guiding;
+         Real Bz_guiding;
+         Real DENSITY;
+         Real ALPHA;
+         Real WAVELENGTH;
+         Real TEMPERATURE;
+         Real A_VEL;
+         Real A_MAG;
+         uint nSpaceSamples;
+         uint nVelocitySamples;
    } ; // class Alfven
 } // namespace projects
 

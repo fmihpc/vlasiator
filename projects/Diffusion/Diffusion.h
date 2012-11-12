@@ -31,25 +31,27 @@ namespace projects {
          virtual bool initialize(void);
          static void addParameters(void);
          virtual void getParameters(void);
+         
+      protected:
+         Real getDistribValue(
+            creal& x,creal& y, creal& z,
+            creal& vx, creal& vy, creal& vz
+         );
          virtual void calcCellParameters(Real* cellParams,creal& t);
          virtual Real calcPhaseSpaceDensity(
             creal& x, creal& y, creal& z,
             creal& dx, creal& dy, creal& dz,
             creal& vx, creal& vy, creal& vz,
-            creal& dvx, creal& dvy, creal& dvz);
-   protected:
-      Real getDistribValue(
-         creal& x,creal& y, creal& z,
-         creal& vx, creal& vy, creal& vz
-      );
-      
-      Real B0;
-      Real DENSITY;
-      Real TEMPERATURE;
-      Real SCA_X;
-      Real SCA_Y;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
+            creal& dvx, creal& dvy, creal& dvz
+         );
+         
+         Real B0;
+         Real DENSITY;
+         Real TEMPERATURE;
+         Real SCA_X;
+         Real SCA_Y;
+         uint nSpaceSamples;
+         uint nVelocitySamples;
    } ; // class Diffusion
 } // namespace projects
 

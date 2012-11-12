@@ -24,43 +24,6 @@ namespace projects {
          */
          void setCell(SpatialCell* cell);
          
-         void loopThroughFullVelocitySpace(SpatialCell* cell);
-         
-         /** Calculate parameters for the given spatial cell at the given time.
-         * Here you need to set values for the following array indices:
-         * CellParams::EX, CellParams::EY, CellParams::EZ, CellParams::BX, CellParams::BY, and CellParams::BZ.
-         * 
-         * The following array indices contain the coordinates of the "lower left corner" of the cell: 
-         * CellParams::XCRD, CellParams::YCRD, and CellParams::ZCRD.
-         * The cell size is given in the following array indices: CellParams::DX, CellParams::DY, and CellParams::DZ.
-         * @param cellParams Array containing cell parameters.
-         * @param t The current value of time. This is passed as a convenience. If you need more detailed information 
-         * of the state of the simulation, you can read it from Parameters.
-         */
-         virtual void calcCellParameters(Real* cellParams,creal& t);
-         
-         /** Integrate the distribution function over the given six-dimensional phase-space cell.
-         * @param x Starting value of the x-coordinate of the cell.
-         * @param y Starting value of the y-coordinate of the cell.
-         * @param z Starting value of the z-coordinate of the cell.
-         * @param dx The size of the cell in x-direction.
-         * @param dy The size of the cell in y-direction.
-         * @param dz The size of the cell in z-direction.
-         * @param vx Starting value of the vx-coordinate of the cell.
-         * @param vy Starting value of the vy-coordinate of the cell.
-         * @param vz Starting value of the vz-coordinate of the cell.
-         * @param dvx The size of the cell in vx-direction.
-         * @param dvy The size of the cell in vy-direction.
-         * @param dvz The size of the cell in vz-direction.
-         * @return The volume average of the distribution function in the given phase space cell.
-         * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
-         */
-         virtual Real calcPhaseSpaceDensity(
-            creal& x, creal& y, creal& z,
-            creal& dx, creal& dy, creal& dz,
-            creal& vx, creal& vy, creal& vz,
-            creal& dvx, creal& dvy, creal& dvz);
-         
          template<typename UINT,typename REAL>
          void calcAccFaceX(
             REAL& ax, REAL& ay, REAL& az,
@@ -93,10 +56,47 @@ namespace projects {
          ) {
             lorentzForceFaceZ(ax,ay,az,I,J,K,cellParams,blockParams,cellBVOLDerivatives);
          }
+         
+      protected:
+         void loopThroughFullVelocitySpace(SpatialCell* cell);
+         
+         /** Calculate parameters for the given spatial cell at the given time.
+          * Here you need to set values for the following array indices:
+          * CellParams::EX, CellParams::EY, CellParams::EZ, CellParams::BX, CellParams::BY, and CellParams::BZ.
+          * 
+          * The following array indices contain the coordinates of the "lower left corner" of the cell: 
+          * CellParams::XCRD, CellParams::YCRD, and CellParams::ZCRD.
+          * The cell size is given in the following array indices: CellParams::DX, CellParams::DY, and CellParams::DZ.
+          * @param cellParams Array containing cell parameters.
+          * @param t The current value of time. This is passed as a convenience. If you need more detailed information 
+          * of the state of the simulation, you can read it from Parameters.
+          */
+         virtual void calcCellParameters(Real* cellParams,creal& t);
+         
+         /** Integrate the distribution function over the given six-dimensional phase-space cell.
+          * @param x Starting value of the x-coordinate of the cell.
+          * @param y Starting value of the y-coordinate of the cell.
+          * @param z Starting value of the z-coordinate of the cell.
+          * @param dx The size of the cell in x-direction.
+          * @param dy The size of the cell in y-direction.
+          * @param dz The size of the cell in z-direction.
+          * @param vx Starting value of the vx-coordinate of the cell.
+          * @param vy Starting value of the vy-coordinate of the cell.
+          * @param vz Starting value of the vz-coordinate of the cell.
+          * @param dvx The size of the cell in vx-direction.
+          * @param dvy The size of the cell in vy-direction.
+          * @param dvz The size of the cell in vz-direction.
+          * @return The volume average of the distribution function in the given phase space cell.
+          * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
+          */
+         virtual Real calcPhaseSpaceDensity(
+            creal& x, creal& y, creal& z,
+            creal& dx, creal& dy, creal& dz,
+            creal& vx, creal& vy, creal& vz,
+            creal& dvx, creal& dvy, creal& dvz);
    };
    
    Project* createProject();
-   
 } // namespace projects
 
 

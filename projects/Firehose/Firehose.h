@@ -31,6 +31,14 @@ namespace projects {
          virtual bool initialize(void);
          static void addParameters(void);
          virtual void getParameters(void);
+            
+      protected:
+         Real getDistribValue(
+            creal& x,creal& y,
+            creal& vx, creal& vy, creal& vz,
+            creal& dvx, creal& dvy, creal& dvz
+         );
+         Real profile(creal top, creal bottom, creal x);
          virtual void calcCellParameters(Real* cellParams,creal& t);
          virtual Real calcPhaseSpaceDensity(
             creal& x, creal& y, creal& z,
@@ -38,15 +46,7 @@ namespace projects {
             creal& vx, creal& vy, creal& vz,
             creal& dvx, creal& dvy, creal& dvz
          );
-   protected:
-      Real getDistribValue(
-         creal& x,creal& y,
-         creal& vx, creal& vy, creal& vz,
-         creal& dvx, creal& dvy, creal& dvz
-      );
-      Real profile(creal top, creal bottom, creal x);
-      
-      protected:
+         
          Real rho[2];
          Real Tx[2];
          Real Ty[2];
