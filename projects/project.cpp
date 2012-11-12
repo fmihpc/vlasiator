@@ -4,6 +4,10 @@
 #include "Alfven/Alfven.h"
 #include "Diffusion/Diffusion.h"
 #include "Dispersion/Dispersion.h"
+#include "Firehose/Firehose.h"
+#include "Flowthrough/Flowthrough.h"
+#include "Fluctuations/Fluctuations.h"
+#include "KelvinHelmholtz/KelvinHelmholtz.h"
 #include "Magnetosphere/Magnetosphere.h"
 
 using namespace std;
@@ -18,6 +22,10 @@ namespace projects {
       projects::Alfven::addParameters();
       projects::Diffusion::addParameters();
       projects::Dispersion::addParameters();
+      projects::Firehose::addParameters();
+      projects::Flowthrough::addParameters();
+      projects::Fluctuations::addParameters();
+      projects::KelvinHelmholtz::addParameters();
       projects::Magnetosphere::addParameters();
    }
    
@@ -102,21 +110,33 @@ namespace projects {
       return -1.0;
    }
    
- Project* createProject() {
-    if(Parameters::projectName == "Alfven") {
-       return new projects::Alfven;
-    }
-    if(Parameters::projectName == "Diffusion") {
-       return new projects::Diffusion;
-    }
-    if(Parameters::projectName == "Dispersion") {
-       return new projects::Dispersion;
-    }
-    if(Parameters::projectName == "Magnetosphere") {
-       return new projects::Magnetosphere;
-    }
-    cerr << "Unknown project name!" << endl;
-    abort();
- }
-   
+Project* createProject() {
+   if(Parameters::projectName == "Alfven") {
+      return new projects::Alfven;
+   }
+   if(Parameters::projectName == "Diffusion") {
+      return new projects::Diffusion;
+   }
+   if(Parameters::projectName == "Dispersion") {
+      return new projects::Dispersion;
+   }
+   if(Parameters::projectName == "Firehose") {
+      return new projects::Firehose;
+   }
+   if(Parameters::projectName == "Flowthrough") {
+      return new projects::Flowthrough;
+   }
+   if(Parameters::projectName == "Fluctuations") {
+         return new projects::Fluctuations;
+   }
+   if(Parameters::projectName == "KelvinHelmholtz") {
+      return new projects::KelvinHelmholtz;
+   }
+   if(Parameters::projectName == "Magnetosphere") {
+      return new projects::Magnetosphere;
+   }
+   cerr << "Unknown project name!" << endl;
+   abort();
+}
+
 } // namespace projects
