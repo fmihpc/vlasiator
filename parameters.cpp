@@ -74,6 +74,7 @@ luint P::tstep_max = 0;
 luint P::diagnosticInterval = numeric_limits<uint>::max();
 Real P::saveRestartTimeInterval = -1.0;
 Real P::saveSystemTimeInterval = -1.0;
+bool P::writeInitialState = true;
 
 uint P::transmit = 0;
 
@@ -105,6 +106,8 @@ bool Parameters::addParameters(){
    Readparameters::add("diagnostic_write_interval", "Write diagnostic output every arg time steps",numeric_limits<uint>::max());
    Readparameters::add("system_write_t_interval", "Save the simulation every arg simulated seconds. Negative values disable writes.",-1.0);
    Readparameters::add("restart_write_t_interval","Save the complete simulation every arg simulated seconds. Negative values disable writes.",-1.0);
+   Readparameters::add("write_initial_state","Write initial state, not even the 0.5 dt propagation is done. Do not use for restarting. ",false);
+
    //TODO Readparameters::add("output.restart_walltime_interval","Save the complete simulation every arg wall-time seconds",numeric_limits<uint>::max());
 
    Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
@@ -167,6 +170,7 @@ bool Parameters::getParameters(){
    Readparameters::get("diagnostic_write_interval", P::diagnosticInterval);
    Readparameters::get("system_write_t_interval", P::saveSystemTimeInterval);
    Readparameters::get("restart_write_t_interval", P::saveRestartTimeInterval);
+   Readparameters::get("write_initial_state", P::writeInitialState);
    
    Readparameters::get("propagate_field",P::propagateField);
    Readparameters::get("propagate_vlasov",P::propagateVlasov);
