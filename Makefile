@@ -103,6 +103,7 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/Flowthrough/Flowthrough.h projects/Flowthrough/Flowthrough.cpp \
 		projects/Fluctuations/Fluctuations.h projects/Fluctuations/Fluctuations.cpp \
 		projects/harm1D/harm1D.h projects/harm1D/harm1D.cpp \
+		projects/Harris/Harris.h projects/Harris/Harris.cpp \
 		projects/KelvinHelmholtz/KelvinHelmholtz.h projects/KelvinHelmholtz/KelvinHelmholtz.cpp \
 		projects/Magnetosphere/Magnetosphere.h projects/Magnetosphere/Magnetosphere.cpp
 
@@ -113,7 +114,7 @@ OBJS = 	backgroundfield.o \
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o \
 	sysboundary.o sysboundarycondition.o \
 	project.o \
-	Alfven.o Diffusion.o Dispersion.o Firehose.o Flowthrough.o Fluctuations.o harm1D.o KelvinHelmholtz.o Magnetosphere.o \
+	Alfven.o Diffusion.o Dispersion.o Firehose.o Flowthrough.o Fluctuations.o harm1D.o Harris.o KelvinHelmholtz.o Magnetosphere.o \
 	grid.o fileio.o vlasiator.o logger.o muxml.o \
 	parameters.o readparameters.o spatial_cell.o \
 	vlscommon.o vlsvreader2.o vlsvwriter2.o vlasovmover_$(TRANSSOLVER).o $(FIELDSOLVER).o
@@ -188,6 +189,9 @@ Fluctuations.o: ${DEPS_COMMON} projects/Fluctuations/Fluctuations.h projects/Flu
 
 harm1D.o: ${DEPS_COMMON} projects/harm1D/harm1D.h projects/harm1D/harm1D.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/harm1D/harm1D.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
+
+Harris.o: ${DEPS_COMMON} projects/Harris/Harris.h projects/Harris/Harris.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Harris/Harris.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
 
 KelvinHelmholtz.o: ${DEPS_COMMON} projects/KelvinHelmholtz/KelvinHelmholtz.h projects/KelvinHelmholtz/KelvinHelmholtz.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/KelvinHelmholtz/KelvinHelmholtz.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}

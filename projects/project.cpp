@@ -8,6 +8,7 @@
 #include "Flowthrough/Flowthrough.h"
 #include "Fluctuations/Fluctuations.h"
 #include "harm1D/harm1D.h"
+#include "Harris/Harris.h"
 #include "KelvinHelmholtz/KelvinHelmholtz.h"
 #include "Magnetosphere/Magnetosphere.h"
 
@@ -27,6 +28,7 @@ namespace projects {
       projects::Flowthrough::addParameters();
       projects::Fluctuations::addParameters();
       projects::harm1D::addParameters();
+      projects::Harris::addParameters();
       projects::KelvinHelmholtz::addParameters();
       projects::Magnetosphere::addParameters();
    }
@@ -133,6 +135,9 @@ Project* createProject() {
    }
    if(Parameters::projectName == "harm1D") {
       return new projects::harm1D;
+   }
+   if(Parameters::projectName == "Harris") {
+      return new projects::Harris;
    }
    if(Parameters::projectName == "KelvinHelmholtz") {
       return new projects::KelvinHelmholtz;
