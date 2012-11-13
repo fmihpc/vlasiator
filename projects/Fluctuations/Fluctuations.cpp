@@ -65,6 +65,7 @@ namespace projects {
       RP::add("Fluctuations.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
       RP::add("Fluctuations.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
       RP::add("Fluctuations.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
+      RP::add("Fluctuations.seed", "Seed for the RNG", 42);
    }
 
    void Fluctuations::getParameters() {
