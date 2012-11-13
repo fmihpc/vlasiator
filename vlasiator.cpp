@@ -268,8 +268,8 @@ int main(int argn,char* args[]) {
      phiprof::start("write-initial-state");
      if (myRank == MASTER_RANK)
        logFile << "(IO): Writing initial state to disk, tstep = "  << endl << writeVerbose;
-     writeGrid(mpiGrid,outputReducer,"initial-velspace",0,true);
-     writeGrid(mpiGrid,outputReducer,"initial-grid",0,true);
+     writeGrid(mpiGrid,outputReducer,"initial-velocity-space",0,true);
+     writeGrid(mpiGrid,outputReducer,"initial-grid",0,false);
      phiprof::stop("write-initial-state");
    }
    
