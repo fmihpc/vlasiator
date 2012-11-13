@@ -23,8 +23,10 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <vector>
 #include "../definitions.h"
 #include "../spatial_cell.hpp"
+#include "../projects/project.h"
 
 using namespace spatial_cell;
+using namespace projects;
 
 namespace SBC {
    /*!\brief SBC::SysBoundaryCondition is the base class for system boundary conditions.
@@ -51,9 +53,15 @@ namespace SBC {
          static void addParameters();
          virtual void getParameters();
          
-         virtual bool initSysBoundary(creal& t);
+         virtual bool initSysBoundary(
+            creal& t,
+            Project &project
+         );
          virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell>& mpiGrid);
-         virtual bool applyInitialState(const dccrg::Dccrg<SpatialCell>& mpiGrid);
+         virtual bool applyInitialState(
+            const dccrg::Dccrg<SpatialCell>& mpiGrid,
+            Project &project
+         );
 //          virtual bool applySysBoundaryCondition(
 //             const dccrg::Dccrg<SpatialCell>& mpiGrid,
 //             creal& t

@@ -34,7 +34,10 @@ namespace SBC {
    void DoNotCompute::addParameters() { }
    void DoNotCompute::getParameters() { }
    
-   bool DoNotCompute::initSysBoundary(creal& t) {
+   bool DoNotCompute::initSysBoundary(
+      creal& t,
+      Project &project
+   ) {
       precedence = 0;
       isThisDynamic = false;
       return true;
@@ -44,7 +47,10 @@ namespace SBC {
       return true;
    }
    
-   bool DoNotCompute::applyInitialState(const dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   bool DoNotCompute::applyInitialState(
+      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      Project &project
+   ) {
       vector<uint64_t> cells = mpiGrid.get_cells();
 #pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {

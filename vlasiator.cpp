@@ -36,7 +36,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "vlsvwriter2.h" 
 #include "fieldsolver.h"
-#include "project.h"
+#include "projects/project.h"
 #include "grid.h"
 #include "fileio.h"
 
@@ -179,16 +179,19 @@ int main(int argn,char* args[]) {
    //init parameter file reader
    Readparameters readparameters(argn,args,MPI_COMM_WORLD);
    P::addParameters();
-   addProjectParameters();
+   projects::Project::addParameters();
    sysBoundaries.addParameters();
    readparameters.parse();
    P::getParameters();
-   getProjectParameters();
+   
+   Project* project = projects::createProject();
+   
+   project->getParameters();
    sysBoundaries.getParameters();
    phiprof::stop("Read parameters");
    
    phiprof::start("Init project");
-   if (initializeProject() == false) {
+   if (project->initialize() == false) {
       if(myRank == MASTER_RANK) cerr << "(MAIN): Project did not initialize correctly!" << endl;
       exit(1);
    }
@@ -210,7 +213,13 @@ int main(int argn,char* args[]) {
    phiprof::stop("open logFile & diagnostic");
    
    phiprof::start("Init grid");
-   initializeGrid(argn,args,mpiGrid,sysBoundaries);
+   initializeGrid(
+      argn,
+      args,
+      mpiGrid,
+      sysBoundaries,
+      *project
+   );
    isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
    phiprof::stop("Init grid");
    
@@ -263,7 +272,7 @@ int main(int argn,char* args[]) {
       if(P::propagateVlasov) {
          //Flux computation is sufficient, no need to propagate
          calculateSpatialFluxes(mpiGrid, sysBoundaries, 0.0);
-         calculateAcceleration(mpiGrid,0.0);
+         calculateAcceleration(mpiGrid,*project,0.0);
       }
       if(updateVelocityBlocksAfterAcceleration){
          //this is probably not ever needed, as a zero length step
@@ -403,11 +412,11 @@ int main(int argn,char* args[]) {
       //do not compute new dt on first step (in restarts dt comes from file, otherwise it was initialized before we entered
       //simulation loop
       if(P::dynamicTimestep  && P::tstep> P::tstep_min) {
-         computeNewTimeStep(mpiGrid,newDt,dtIsChanged);         
+         computeNewTimeStep(mpiGrid,newDt,dtIsChanged);
          if(dtIsChanged) {
             phiprof::start("update-dt");
             //propagate velocity space to real-time
-            calculateAcceleration(mpiGrid,0.5*P::dt);
+            calculateAcceleration(mpiGrid,*project,0.5*P::dt);
             //re-compute moments for real time for fieldsolver, and
             //shift compute rho_dt2 as average of old rho and new
             //rho. In practice this value is at a 1/4 timestep, as we
@@ -464,7 +473,7 @@ int main(int argn,char* args[]) {
       if (P::propagateVlasov == true) {
          phiprof::start("Propagate Vlasov");
          phiprof::start("Velocity-space");
-         calculateAcceleration(mpiGrid,P::dt);
+         calculateAcceleration(mpiGrid,*project,P::dt);
          phiprof::stop("Velocity-space",computedBlocks,"Blocks");
          if(updateVelocityBlocksAfterAcceleration){
             //need to do a update of block lists as all cells have made local changes

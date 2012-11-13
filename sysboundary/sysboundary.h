@@ -57,10 +57,20 @@ class SysBoundary {
       void addParameters();
       void getParameters();
       
-      bool addSysBoundary(SBC::SysBoundaryCondition* sbc, creal& t);
-      bool initSysBoundaries(creal& t);
+      bool addSysBoundary(
+         SBC::SysBoundaryCondition* sbc,
+         Project& project,
+         creal& t
+      );
+      bool initSysBoundaries(
+         Project& project,
+         creal& t
+      );
       bool classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid);
-      bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid);
+      bool applyInitialState(
+         dccrg::Dccrg<SpatialCell>& mpiGrid,
+         Project& project
+      );
       void applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t);
       unsigned int size() const;
       SBC::SysBoundaryCondition* getSysBoundary(cuint sysBoundaryType) const;

@@ -5,15 +5,19 @@
 #include <dccrg.hpp>
 #include "datareduction/datareducer.h"
 #include "sysboundary/sysboundary.h"
+#include "projects/project.h"
 #include <string>
 
 /*!
   \brief Initialize parallel grid
 */
-void initializeGrid(int argn,
-                    char **argc,
-                    dccrg::Dccrg<SpatialCell>& mpiGrid,
-                    SysBoundary& sysBoundaries);
+void initializeGrid(
+   int argn,
+   char **argc,
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   SysBoundary& sysBoundaries,
+   Project& project
+);
 
 /*!
   \brief Balance load

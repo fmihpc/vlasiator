@@ -38,7 +38,7 @@ bool precedenceSort(const SBC::SysBoundaryCondition* first,
 // ***** DEFINITIONS FOR BOUNDARY CLASS *****
 // ************************************************************
 
-/*! Constructor for class SysBoundary. Increases the value of SysBoundary::nSysBoundaries by one. */
+/*! Constructor for class SysBoundary.*/
 SysBoundary::SysBoundary() { }
 
 /*!\brief Destructor for class SysBoundary.
@@ -115,14 +115,18 @@ void SysBoundary::getParameters() {
  * SysBoundary will take care of deleting it.
  * \retval success If true, the given SBC::SysBoundaryCondition was added successfully.
  */
-bool SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, creal& t) {
+bool SysBoundary::addSysBoundary(
+   SBC::SysBoundaryCondition* bc,
+   Project &project,
+   creal& t
+) {
    sysBoundaries.push_back(bc);
    if(sysBoundaries.size() > 1) {
       sysBoundaries.sort(precedenceSort);
    }
    
    bool success = true;
-   if(bc->initSysBoundary(t) == false) {
+   if(bc->initSysBoundary(t, project) == false) {
       success = false;
    }
    
@@ -142,7 +146,10 @@ bool SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, creal& t) {
  * \retval success If true, the initialisation of all system boundaries succeeded.
  * \sa addSysBoundary
  */
-bool SysBoundary::initSysBoundaries(creal& t) {
+bool SysBoundary::initSysBoundaries(
+   Project& project,
+   creal& t
+) {
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    bool success = true;
@@ -151,7 +158,7 @@ bool SysBoundary::initSysBoundaries(creal& t) {
         it != sysBoundaryCondList.end();
         it++) {
       if(*it == "Outflow") {
-         if(this->addSysBoundary(new SBC::Outflow, t) == false) {
+         if(this->addSysBoundary(new SBC::Outflow, project, t) == false) {
             if(myRank == MASTER_RANK) cerr << "Error in adding Outflow boundary." << endl;
             success = false;
          }
@@ -169,11 +176,11 @@ bool SysBoundary::initSysBoundaries(creal& t) {
          }
       }
       if(*it == "Ionosphere") {
-         if(this->addSysBoundary(new SBC::Ionosphere, t) == false) {
+         if(this->addSysBoundary(new SBC::Ionosphere, project, t) == false) {
             if(myRank == MASTER_RANK) cerr << "Error in adding Ionosphere boundary." << endl;
             success = false;
          }
-         if(this->addSysBoundary(new SBC::DoNotCompute, t) == false) {
+         if(this->addSysBoundary(new SBC::DoNotCompute, project, t) == false) {
             if(myRank == MASTER_RANK) cerr << "Error in adding DoNotCompute boundary (for Ionosphere)." << endl;
             success = false;
          }
@@ -181,7 +188,7 @@ bool SysBoundary::initSysBoundaries(creal& t) {
          this->getSysBoundary(sysboundarytype::IONOSPHERE)->isDynamic();
       }
       if(*it == "Maxwellian") {
-         if(this->addSysBoundary(new SBC::SetMaxwellian, t) == false) {
+         if(this->addSysBoundary(new SBC::SetMaxwellian, project, t) == false) {
             if(myRank == MASTER_RANK) cerr << "Error in adding Maxwellian boundary." << endl;
             success = false;
          }
@@ -236,7 +243,10 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid) {
  * function.
  * \retval success If true, the application of all system boundary states succeeded.
  */
-bool SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+bool SysBoundary::applyInitialState(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   Project& project
+) {
    bool success = true;
    using namespace sysboundarytype;
    
@@ -244,7 +254,7 @@ bool SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    for (it = sysBoundaries.begin();
         it != sysBoundaries.end();
         it++) {
-      if((*it)->applyInitialState(mpiGrid) == false) {
+      if((*it)->applyInitialState(mpiGrid, project) == false) {
          cerr << "ERROR: " << (*it)->getName() << " system boundary condition initial state not applied correctly." << endl;
          success = false;
       }

@@ -39,7 +39,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "vlsvwriter2.h" 
 #include "fieldsolver.h"
-#include "project.h"
+#include "projects/project.h"
 #include "fileio.h"
 
 
@@ -50,13 +50,19 @@ extern Logger logFile, diagnostic;
 
 void initVelocityGridGeometry();
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell>& mpiGrid);
-bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid);
+bool applyInitialState(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   Project& project
+);
 bool adjust_local_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
-void initializeGrid(int argn,
-                    char **argc,
-                    dccrg::Dccrg<SpatialCell>& mpiGrid,
-                    SysBoundary& sysBoundaries) {
+void initializeGrid(
+   int argn,
+   char **argc,
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   SysBoundary& sysBoundaries,
+   Project& project
+) {
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
@@ -215,7 +221,7 @@ void initializeGrid(int argn,
    phiprof::stop("Set spatial cell coordinates");
    
    phiprof::start("Initialize system boundary conditions");
-   if(sysBoundaries.initSysBoundaries(P::t_min) == false) {
+   if(sysBoundaries.initSysBoundaries(project, P::t_min) == false) {
       if (myRank == MASTER_RANK) cerr << "Error in initialising the system boundaries." << endl;
       exit(1);
    }
@@ -240,14 +246,14 @@ void initializeGrid(int argn,
    } else {
       // Go through every spatial cell on this CPU, and create the initial state:
       phiprof::start("Apply initial state");
-      if(applyInitialState(mpiGrid) == false) {
+      if(applyInitialState(mpiGrid, project) == false) {
          cerr << "(MAIN) ERROR: Initial state was not applied correctly." << endl;
          exit(1);
       }
       
       phiprof::stop("Apply initial state");
       phiprof::start("Apply system boundary conditions state");
-      if(sysBoundaries.applyInitialState(mpiGrid) == false) {
+      if(sysBoundaries.applyInitialState(mpiGrid, project) == false) {
          cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
          exit(1);
       }
@@ -309,7 +315,10 @@ void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    }
 }
 
-bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+bool applyInitialState(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   Project& project
+) {
    typedef Parameters P;
    using namespace sysboundarytype;
    
@@ -325,7 +334,7 @@ bool applyInitialState(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    for (uint i=0; i<cells.size(); ++i) {
       SpatialCell* cell = mpiGrid[cells[i]];
       if(cell->sysBoundaryFlag != NOT_SYSBOUNDARY) continue;
-      setProjectCell(cell);
+      project.setCell(cell);
    }
    return true;
 }

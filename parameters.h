@@ -99,6 +99,8 @@ struct Parameters {
    static uint maxAccelerationSubsteps; /*!< Maximum number of substeps that is allowed */
    static bool dynamicTimestep; /*!< If true, timestep is set based on  CFL limit */
    
+   static std::string projectName; /*!< Project to be used in this run. */
+   
    /*! \brief Add the global parameters.
     * 
     * This function adds all the parameters that are loaded at a global level.

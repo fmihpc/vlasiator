@@ -50,9 +50,11 @@ LIB_SILO = -L$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION
 
 #Official dccrg installation
 INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg-2012-10-15
+# INC_DCCRG = -Idccrg
 
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX_B)/phiprof/lib -lphiprof
+
 INC_PROFILE = -I$(LIBRARY_PREFIX_B)/phiprof/include
 
 INC_VECTORCLASS = -I$(LIBRARY_PREFIX_B)/vectorclass

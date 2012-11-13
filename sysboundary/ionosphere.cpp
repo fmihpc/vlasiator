@@ -24,7 +24,7 @@
 #include <iostream>
 
 #include "ionosphere.h"
-#include "../project.h"
+#include "../projects/project.h"
 #include "../projects/projects_common.h"
 #include "../vlasovmover.h"
 #include "../common.h"
@@ -74,11 +74,14 @@ namespace SBC {
       }
    }
    
-   bool Ionosphere::initSysBoundary(creal& t) {
+   bool Ionosphere::initSysBoundary(
+      creal& t,
+      Project &project
+   ) {
       getParameters();
       isThisDynamic = false;
       
-      generateTemplateCell();
+      generateTemplateCell(project);
       
       return true;
    }
@@ -135,7 +138,10 @@ namespace SBC {
       return true;
    }
    
-   bool Ionosphere::applyInitialState(const dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   bool Ionosphere::applyInitialState(
+      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      Project &project
+   ) {
       vector<uint64_t> cells = mpiGrid.get_cells();
 #pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {
@@ -203,7 +209,7 @@ namespace SBC {
       phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
    }
    
-   void Ionosphere::generateTemplateCell() {
+   void Ionosphere::generateTemplateCell(Project &project) {
       // WARNING not 0.0 here or the dipole() function fails miserably.
       templateCell.sysBoundaryFlag = this->getIndex();
       templateCell.parameters[CellParams::XCRD] = 1.0;
@@ -212,7 +218,7 @@ namespace SBC {
       templateCell.parameters[CellParams::DX] = 1;
       templateCell.parameters[CellParams::DY] = 1;
       templateCell.parameters[CellParams::DZ] = 1;
-      setProjectCell(&templateCell);
+      project.setCell(&templateCell);
       
       // WARNING Time-independence assumed here. Normal momentes computed in setProjectCell
       templateCell.parameters[CellParams::RHO_DT2] = templateCell.parameters[CellParams::RHO];
