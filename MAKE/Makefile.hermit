@@ -19,7 +19,7 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gnu
 CC_BRAND_VERSION = 4.7.2
-CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -pedantic -Wno-unused  -fabi-version=6 
+CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -pedantic -Wno-unused  -fabi-version=6 -mfma4
 # CXXFLAGS +=  -O3 -funroll-loops -std=c++0x -W -Wall -pedantic -Wno-unused
 # CXXFLAGS += -g -std=c++0x -W -Wall -pedantic -Wno-unused
 # DCXXFLAGS +=  -g  -fopenmp -std=c++0x -W -Wall -pedantic -Wno-unused
