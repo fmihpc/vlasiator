@@ -1,5 +1,5 @@
 #set default architecture, can be overridden from the compile line
-ARCH = meteo
+ARCH = hermit
 include MAKE/Makefile.${ARCH}
 
 #set FP precision to SP (single) or DP (double)
@@ -81,7 +81,7 @@ all: vlasiator tools
 INSTALL = $(CURDIR)
 
 # Executable:
-EXE = vlasiator_${ARCH}_${FP_PRECISION}
+EXE = vlasiator
 
 
 # Collect libraries into single variable:
