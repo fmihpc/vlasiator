@@ -26,9 +26,6 @@
 #include "setmaxwellian.h"
 #include "../vlasovmover.h"
 
-
-using namespace std;
-
 namespace SBC {
    SetMaxwellian::SetMaxwellian(): SetByUser() {
       nParams = 9;
@@ -98,6 +95,59 @@ namespace SBC {
       }
    }
    
+   Real SetMaxwellian::maxwellianDistribution(
+      creal& rho,
+      creal& T, 
+      creal& vx, creal& vy, creal& vz
+   ) {
+      return rho * pow(physicalconstants::MASS_PROTON /
+      (2.0 * M_PI * physicalconstants::K_B * T), 1.5) *
+      exp(-physicalconstants::MASS_PROTON * (vx*vx + vy*vy + vz*vz) /
+      (2.0 * physicalconstants::K_B * T));
+   }
+   
+   vector<uint> SetMaxwellian::findBlocksToInitialize(
+      SpatialCell& cell,
+      creal& rho,
+      creal& T,
+      creal& VX0,
+      creal& VY0,
+      creal& VZ0
+   ) {
+      vector<uint> blocksToInitialize;
+      bool search = true;
+      int counter = 0;
+      
+      while(search) {
+         if(0.1 * P::sparseMinValue >
+            maxwellianDistribution(
+               rho,
+               T,
+               VX0 + counter*SpatialCell::block_dvx, VY0, VZ0
+            )
+         ) {
+            search = false;
+         }
+         counter++;
+      }
+      
+      Real vRadiusSquared = (Real)counter*(Real)counter*SpatialCell::block_dvx*SpatialCell::block_dvx;
+      
+      for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
+         for (uint jv=0; jv<P::vyblocks_ini; ++jv)
+            for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
+               creal vx = P::vxmin + (iv+0.5) * SpatialCell::block_dvx; // vx-coordinate of the centre
+               creal vy = P::vymin + (jv+0.5) * SpatialCell::block_dvy; // vy-
+               creal vz = P::vzmin + (kv+0.5) * SpatialCell::block_dvz; // vz-
+               
+               if((vx-VX0)*(vx-VX0) + (vy-VY0)*(vy-VY0) + (vz-VZ0)*(vz-VZ0) < vRadiusSquared) {
+                  cell.add_velocity_block(cell.get_velocity_block(vx, vy, vz));
+                  blocksToInitialize.push_back(cell.get_velocity_block(vx, vy, vz));
+               }
+      }
+      
+      return blocksToInitialize;
+   }
    
    /*!\brief Generate the template cell for the face corresponding to the index passed.
     * This function generates a spatial cell which is to be used as a template for the
@@ -134,56 +184,68 @@ namespace SBC {
       templateCell.parameters[CellParams::RHOLOSSADJUST] = 0.0;
       templateCell.parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
       
-      // Go through each velocity block in the velocity phase space grid.
-      // Set the initial state and block parameters:
-      creal dvx_block = spatial_cell::SpatialCell::block_dvx; // Size of a block in vx-direction
-      creal dvy_block = spatial_cell::SpatialCell::block_dvy; //                    vy
-      creal dvz_block = spatial_cell::SpatialCell::block_dvz; //                    vz
-      creal dvx_blockCell = spatial_cell::SpatialCell::cell_dvx; // Size of one cell in a block in vx-direction
-      creal dvy_blockCell = spatial_cell::SpatialCell::cell_dvy; //                                vy
-      creal dvz_blockCell = spatial_cell::SpatialCell::cell_dvz; //                                vz
+      vector<uint> blocksToInitialize = this->findBlocksToInitialize(templateCell, rho, T, Vx, Vy, Vz);
       
-      for (uint kv=0; kv<P::vzblocks_ini; ++kv)
-         for (uint jv=0; jv<P::vyblocks_ini; ++jv)
-            for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
-               creal vx_block = P::vxmin + iv*dvx_block; // vx-coordinate of the lower left corner
-               creal vy_block = P::vymin + jv*dvy_block; // vy-
-               creal vz_block = P::vzmin + kv*dvz_block; // vz-
-               
-               // Calculate volume average of distrib. function for each cell in the block.
-               for (uint kc=0; kc<WID; ++kc)
-                  for (uint jc=0; jc<WID; ++jc)
-                     for (uint ic=0; ic<WID; ++ic) {
-                        creal vx_cell = vx_block + ic*dvx_blockCell;
-                        creal vy_cell = vy_block + jc*dvy_blockCell;
-                        creal vz_cell = vz_block + kc*dvz_blockCell;
-                        
-                        creal d_vx = dvx_blockCell / (nVelocitySamples-1);
-                        creal d_vy = dvy_blockCell / (nVelocitySamples-1);
-                        creal d_vz = dvz_blockCell / (nVelocitySamples-1);
-                        
-                        Real average = 0.0;
-                        for (uint vi=0; vi<nVelocitySamples; ++vi)
-                           for (uint vj=0; vj<nVelocitySamples; ++vj)
-                              for (uint vk=0; vk<nVelocitySamples; ++vk) {
-                                 average += rho * pow(physicalconstants::MASS_PROTON / 
-                                       (2.0 * M_PI * physicalconstants::K_B * T), 1.5) *
-                                       exp(-physicalconstants::MASS_PROTON *
-                                       (pow(vx_cell + vi*d_vx - Vx, 2.0) + 
-                                       pow(vy_cell + vj*d_vy - Vy, 2.0) + 
-                                       pow(vz_cell + vk*d_vz - Vz, 2.0)) / 
-                                       (2.0 * physicalconstants::K_B * T));
-                              }
-                        average /= nVelocitySamples * nVelocitySamples * nVelocitySamples;
-                        
-                        if(average!=0.0){
-                           creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
-                           creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
-                           creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
-                           templateCell.set_value(vx_cell_center,vy_cell_center,vz_cell_center,average);
-                        }
-               }
+      cout << blocksToInitialize.size() << endl;
+      
+      for(uint i = 0; i < blocksToInitialize.size(); i++) {
+         Velocity_Block* blockPtr = templateCell.at(blocksToInitialize.at(i));
+         creal vxBlock = blockPtr->parameters[BlockParams::VXCRD];
+         creal vyBlock = blockPtr->parameters[BlockParams::VYCRD];
+         creal vzBlock = blockPtr->parameters[BlockParams::VZCRD];
+         creal dvxCell = SpatialCell::cell_dvx; // Size of one cell in a block in vx-direction
+         creal dvyCell = SpatialCell::cell_dvy; //                                vy
+         creal dvzCell = SpatialCell::cell_dvz; //                                vz
+         
+         creal x = templateCell.parameters[CellParams::XCRD];
+         creal y = templateCell.parameters[CellParams::YCRD];
+         creal z = templateCell.parameters[CellParams::ZCRD];
+         creal dx = templateCell.parameters[CellParams::DX];
+         creal dy = templateCell.parameters[CellParams::DY];
+         creal dz = templateCell.parameters[CellParams::DZ];
+         
+         // Calculate volume average of distrib. function for each cell in the block.
+         for (uint kc=0; kc<WID; ++kc) 
+            for (uint jc=0; jc<WID; ++jc) 
+               for (uint ic=0; ic<WID; ++ic) {
+                  creal vxCell = vxBlock + ic*dvxCell;
+                  creal vyCell = vyBlock + jc*dvyCell;
+                  creal vzCell = vzBlock + kc*dvzCell;
+                  Real average = 0.0;
+                  if(this->nVelocitySamples > 1) {
+                     creal d_vx = dvxCell / (nVelocitySamples-1);
+                     creal d_vy = dvyCell / (nVelocitySamples-1);
+                     creal d_vz = dvzCell / (nVelocitySamples-1);
+                     for (uint vi=0; vi<nVelocitySamples; ++vi)
+                        for (uint vj=0; vj<nVelocitySamples; ++vj)
+                           for (uint vk=0; vk<nVelocitySamples; ++vk) {
+                              average += maxwellianDistribution(
+                                 rho,
+                                 T,
+                                 vxCell + vi*d_vx - Vx,
+                                 vyCell + vj*d_vy - Vy,
+                                 vzCell + vk*d_vz - Vz);
+                     }
+                     average /= this->nVelocitySamples * this->nVelocitySamples * this->nVelocitySamples;
+                  } else {
+                     average = maxwellianDistribution(
+                        rho,
+                        T,
+                        vxCell + 0.5*dvxCell,
+                        vyCell + 0.5*dvyCell,
+                        vzCell + 0.5*dvzCell
+                     );
+                  }
+                  
+                  if(average!=0.0){
+                     creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
+                     creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
+                     creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
+                     templateCell.set_value(vxCellCenter,vyCellCenter,vzCellCenter,average);
+                  }
+         }
       }
+      
       calculateCellVelocityMoments(&templateCell);
       
       // WARNING Time-independence assumed here.

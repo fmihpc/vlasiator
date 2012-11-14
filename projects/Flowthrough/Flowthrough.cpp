@@ -118,7 +118,7 @@ namespace projects {
                      for (uint vk=0; vk<this->nVelocitySamples; ++vk) {
                         avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
                      }
-      return avg / pow(this->nSpaceSamples, 3.0) / pow(this->nVelocitySamples, 3.0);
+                     return avg / (this->nSpaceSamples*this->nSpaceSamples*this->nSpaceSamples*this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
       
    //    CellID cellID = 1 + round((x - Parameters::xmin) / dx + 
    //    (y - Parameters::ymin) / dy * Parameters::xcells_ini +

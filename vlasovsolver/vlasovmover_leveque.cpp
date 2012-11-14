@@ -249,8 +249,6 @@ bool initMoverAfterBlockChange(dccrg::Dccrg<SpatialCell>& mpiGrid){
 
 bool finalizeMover() {return true;}
 
-void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,CellID cell) { }
-
 void calculateAcceleration(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
    Project& project,

@@ -16,6 +16,7 @@
 #include "Riemann1/Riemann1.h"
 #include "Shock/Shock.h"
 
+
 using namespace std;
 
 namespace projects {
@@ -52,12 +53,12 @@ namespace projects {
    
    void Project::setCell(SpatialCell* cell) {
       // Set up cell parameters:
-      calcCellParameters(&((*cell).parameters[0]), 0.0);
+      this->calcCellParameters(&((*cell).parameters[0]), 0.0);
       
       cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
       cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
       
-      loopThroughFullVelocitySpace(cell);
+      this->setVelocitySpace(cell);
       
       calculateCellVelocityMoments(cell);
       
@@ -65,47 +66,62 @@ namespace projects {
       cell->adjustSingleCellVelocityBlocks();
    }
    
-   void Project::loopThroughFullVelocitySpace(SpatialCell* cell) {
-      // Go through each velocity block in the velocity phase space grid.
-      // Set the initial state and block parameters:
-      creal dvx_block = SpatialCell::block_dvx; // Size of a block in vx-direction
-      creal dvy_block = SpatialCell::block_dvy; //                    vy
-      creal dvz_block = SpatialCell::block_dvz; //                    vz
-      creal dvx_blockCell = SpatialCell::cell_dvx; // Size of one cell in a block in vx-direction
-      creal dvy_blockCell = SpatialCell::cell_dvy; //                                vy
-      creal dvz_blockCell = SpatialCell::cell_dvz; //                                vz
+   vector<uint> Project::findBlocksToInitialize(SpatialCell* cell) {
+      vector<uint> blocksToInitialize;
       
       for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
          for (uint jv=0; jv<P::vyblocks_ini; ++jv)
             for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
-               creal vx_block = P::vxmin + iv*dvx_block; // vx-coordinate of the lower left corner
-               creal vy_block = P::vymin + jv*dvy_block; // vy-
-               creal vz_block = P::vzmin + kv*dvz_block; // vz-
+               creal vx = P::vxmin + (iv+0.5) * SpatialCell::block_dvx; // vx-coordinate of the centre
+               creal vy = P::vymin + (jv+0.5) * SpatialCell::block_dvy; // vy-
+               creal vz = P::vzmin + (kv+0.5) * SpatialCell::block_dvz; // vz-
                
-               // Calculate volume average of distrib. function for each cell in the block.
-               for (uint kc=0; kc<WID; ++kc) 
-                  for (uint jc=0; jc<WID; ++jc) 
-                     for (uint ic=0; ic<WID; ++ic) {
-                        creal vx_cell = vx_block + ic*dvx_blockCell;
-                        creal vy_cell = vy_block + jc*dvy_blockCell;
-                        creal vz_cell = vz_block + kc*dvz_blockCell;
-                        Real average = 
-                        calcPhaseSpaceDensity(cell->parameters[CellParams::XCRD],
-                                              cell->parameters[CellParams::YCRD],
-                                              cell->parameters[CellParams::ZCRD],
-                                              cell->parameters[CellParams::DX],
-                                              cell->parameters[CellParams::DY],
-                                              cell->parameters[CellParams::DZ],
-                                              vx_cell,vy_cell,vz_cell,
-                                              dvx_blockCell,dvy_blockCell,dvz_blockCell);
-                        
-                        if(average!=0.0){
-                           creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
-                           creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
-                           creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
-                           cell->set_value(vx_cell_center,vy_cell_center,vz_cell_center,average);
-                        }
-               }
+               cell->add_velocity_block(cell->get_velocity_block(vx, vy, vz));
+               blocksToInitialize.push_back(cell->get_velocity_block(vx, vy, vz));
+      }
+      
+      return blocksToInitialize;
+   }
+   
+   void Project::setVelocitySpace(SpatialCell* cell) {
+      vector<uint> blocksToInitialize = this->findBlocksToInitialize(cell);
+      
+      for(uint i = 0; i < blocksToInitialize.size(); i++) {
+         Velocity_Block* blockPtr = cell->at(blocksToInitialize.at(i));
+         creal vxBlock = blockPtr->parameters[BlockParams::VXCRD];
+         creal vyBlock = blockPtr->parameters[BlockParams::VYCRD];
+         creal vzBlock = blockPtr->parameters[BlockParams::VZCRD];
+         creal dvxCell = SpatialCell::cell_dvx; // Size of one cell in a block in vx-direction
+         creal dvyCell = SpatialCell::cell_dvy; //                                vy
+         creal dvzCell = SpatialCell::cell_dvz; //                                vz
+         
+         creal x = cell->parameters[CellParams::XCRD];
+         creal y = cell->parameters[CellParams::YCRD];
+         creal z = cell->parameters[CellParams::ZCRD];
+         creal dx = cell->parameters[CellParams::DX];
+         creal dy = cell->parameters[CellParams::DY];
+         creal dz = cell->parameters[CellParams::DZ];
+         
+         // Calculate volume average of distrib. function for each cell in the block.
+         for (uint kc=0; kc<WID; ++kc) 
+            for (uint jc=0; jc<WID; ++jc) 
+               for (uint ic=0; ic<WID; ++ic) {
+                  creal vxCell = vxBlock + ic*dvxCell;
+                  creal vyCell = vyBlock + jc*dvyCell;
+                  creal vzCell = vzBlock + kc*dvzCell;
+                  creal average =
+                  this->calcPhaseSpaceDensity(
+                     x, y, z, dx, dy, dz,
+                     vxCell,vyCell,vzCell,
+                     dvxCell,dvyCell,dvzCell);
+                  
+                  if(average!=0.0){
+                     creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
+                     creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
+                     creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
+                     cell->set_value(vxCellCenter,vyCellCenter,vzCellCenter,average);
+                  }
+         }
       }
    }
    

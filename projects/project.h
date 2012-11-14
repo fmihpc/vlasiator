@@ -58,7 +58,21 @@ namespace projects {
          }
          
       protected:
-         void loopThroughFullVelocitySpace(SpatialCell* cell);
+         /*! \brief Returns a list of blocks to loop through when initialising.
+          * 
+          * The base class version just returns all blocks, which amounts to looping through the whole velocity space.
+          * This is very expensive and becomes prohibitive in cases where a large velocity space is needed with only
+          * small portions actually containing something. Use with care.
+          */
+         virtual std::vector<uint> findBlocksToInitialize(SpatialCell* cell);
+         
+         /*! \brief Sets the distribution function in a cell.
+          * 
+          * Uses the function findBlocksToInitialize and loops through the list returned by it to initialize the cells' velocity space.
+          * 
+          * \sa findBlocksToInitialize
+          */
+         void setVelocitySpace(SpatialCell* cell);
          
          /** Calculate parameters for the given spatial cell at the given time.
           * Here you need to set values for the following array indices:

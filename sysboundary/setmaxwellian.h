@@ -26,6 +26,8 @@
 #include "sysboundarycondition.h"
 #include "setbyuser.h"
 
+using namespace std;
+
 namespace SBC {
    /*!\brief SetMaxwellian is a class applying fixed Maxwellian conditions according to parameters read from an input file.
     * 
@@ -49,11 +51,24 @@ namespace SBC {
       static void addParameters();
       virtual void getParameters();
       
-      virtual std::string getName() const;
+      virtual string getName() const;
       virtual uint getIndex() const;
       
    protected:
       void generateTemplateCell(spatial_cell::SpatialCell& templateCell, int inputDataIndex, creal& t);
+      
+      Real maxwellianDistribution(
+         creal& rho, creal& T, creal& vx, creal& vy, creal& vz
+      );
+      
+      vector<uint> findBlocksToInitialize(
+         SpatialCell& cell,
+         creal& rho,
+         creal& T,
+         creal& VX,
+         creal& VY,
+         creal& VZ
+      );
       
       uint nSpaceSamples;
       uint nVelocitySamples;

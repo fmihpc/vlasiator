@@ -1709,7 +1709,7 @@ namespace velocity_neighbor {
       unsigned int number_of_blocks;
       // List of velocity blocks in this cell,
       std::vector<unsigned int> velocity_block_list;
-
+      
       
       //number of blocks in mpi_velocity_block_list
       unsigned int mpi_number_of_blocks;

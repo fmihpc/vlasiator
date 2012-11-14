@@ -96,6 +96,7 @@ DEPS_COMMON = common.h definitions.h mpiconversion.h logger.h
 
 # Define dependencies on all project files
 DEPS_PROJECTS =	projects/project.h projects/project.cpp \
+		projects/projectIsotropicMaxwellian.h projects/projectIsotropicMaxwellian.cpp \
 		projects/Alfven/Alfven.h projects/Alfven/Alfven.cpp \
 		projects/Diffusion/Diffusion.h projects/Diffusion/Diffusion.cpp \
 		projects/Dispersion/Dispersion.h projects/Dispersion/Dispersion.cpp \
@@ -116,7 +117,7 @@ OBJS = 	backgroundfield.o \
 	datareducer.o datareductionoperator.o \
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o \
 	sysboundary.o sysboundarycondition.o \
-	project.o \
+	project.o projectIsotropicMaxwellian.o \
 	Alfven.o Diffusion.o Dispersion.o Firehose.o Flowthrough.o Fluctuations.o harm1D.o Harris.o KelvinHelmholtz.o Larmor.o Magnetosphere.o MultiPeak.o Riemann1.o Shock.o\
 	grid.o fileio.o vlasiator.o logger.o muxml.o \
 	parameters.o readparameters.o spatial_cell.o \
@@ -217,6 +218,8 @@ Shock.o: ${DEPS_COMMON} projects/Shock/Shock.h projects/Shock/Shock.cpp
 project.o: ${DEPS_COMMON} $(DEPS_PROJECTS)
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/project.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
 
+projectIsotropicMaxwellian.o: ${DEPS_COMMON} $(DEPS_PROJECTS)
+	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/projectIsotropicMaxwellian.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
 
 spatial_cell.o: spatial_cell.cpp spatial_cell.hpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c spatial_cell.cpp $(INC_BOOST)

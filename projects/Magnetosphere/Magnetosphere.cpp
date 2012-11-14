@@ -29,7 +29,7 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 using namespace std;
 
 namespace projects {
-   Magnetosphere::Magnetosphere(): Project() { }
+   Magnetosphere::Magnetosphere(): IsotropicMaxwellian() { }
    Magnetosphere::~Magnetosphere() { }
    
    void Magnetosphere::addParameters() {

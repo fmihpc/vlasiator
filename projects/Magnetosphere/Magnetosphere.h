@@ -20,10 +20,10 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #define MAGNETOSPHERE_H
 
 #include "../../definitions.h"
-#include "../project.h"
+#include "../projectIsotropicMaxwellian.h"
 
 namespace projects {
-   class Magnetosphere: public Project {
+   class Magnetosphere: public IsotropicMaxwellian {
       public:
          Magnetosphere();
          virtual ~Magnetosphere();
@@ -46,9 +46,8 @@ namespace projects {
             creal& dvx, creal& dvy, creal& dvz
          );
          
-         Real rho;
          Real T;
-         Real V0[3];
+         Real rho;
          uint nSpaceSamples;
          uint nVelocitySamples;
    }; // class Magnetosphere
