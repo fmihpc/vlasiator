@@ -12,6 +12,9 @@
 #include "KelvinHelmholtz/KelvinHelmholtz.h"
 #include "Larmor/Larmor.h"
 #include "Magnetosphere/Magnetosphere.h"
+#include "MultiPeak/MultiPeak.h"
+#include "Riemann1/Riemann1.h"
+#include "Shock/Shock.h"
 
 using namespace std;
 
@@ -33,6 +36,9 @@ namespace projects {
       projects::KelvinHelmholtz::addParameters();
       projects::Larmor::addParameters();
       projects::Magnetosphere::addParameters();
+      projects::MultiPeak::addParameters();
+      projects::Riemann1::addParameters();
+      projects::Shock::addParameters();
    }
    
    void Project::getParameters() {
@@ -149,6 +155,15 @@ Project* createProject() {
    }
    if(Parameters::projectName == "Magnetosphere") {
       return new projects::Magnetosphere;
+   }
+   if(Parameters::projectName == "MultiPeak") {
+      return new projects::MultiPeak;
+   } 
+   if(Parameters::projectName == "Riemann1") {
+      return new projects::Riemann1;
+   }
+   if(Parameters::projectName == "Shock") {
+      return new projects::Shock;
    }
    cerr << "Unknown project name!" << endl;
    abort();

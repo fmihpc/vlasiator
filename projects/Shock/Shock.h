@@ -19,80 +19,51 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #ifndef SHOCK_H
 #define SHOCK_H
 
-#include "definitions.h"
-#include "spatial_cell.hpp"
-#include "projects/projects_common.h"
-#include "projects/projects_vlasov_acceleration.h"
+#include "../../definitions.h"
+#include "../project.h"
 
-#include "dccrg.hpp"
+namespace projects {
+   class Shock: public Project {
+      public:
+         Shock();
+         virtual ~Shock();
+      
+         virtual bool initialize(void);
+         static void addParameters(void);
+         virtual void getParameters(void);
+      
+      protected:
+         Real getDistribValue(
+            creal& x,creal& y, creal& z,
+            creal& vx, creal& vy, creal& vz
+         ); 
+         virtual void calcCellParameters(Real* cellParams,creal& t);
+         virtual Real calcPhaseSpaceDensity(
+            creal& x, creal& y, creal& z,
+            creal& dx, creal& dy, creal& dz,
+            creal& vx, creal& vy, creal& vz,
+            creal& dvx, creal& dvy, creal& dvz
+         );
 
-struct shockParameters {
-   static Real BX0;
-   static Real BY0;
-   static Real BZ0;
-   static Real EX0;
-   static Real VX0;
-   static Real VY0;
-   static Real VZ0;
-   static Real DENSITY;
-   static Real TEMPERATURE;
-   static Real magPertAmp;
-   static Real densityPertAmp;
-   static Real velocityPertAmp;
-   static Real maxwCutoff;
-   static uint nSpaceSamples;
-   static uint nVelocitySamples;
-   static Real SCA_X;
-   static Real SCA_Y;
-   static Real Sharp_Y;
-} ;
 
-/**
- * Initialize project.
- */
-bool initializeProject(void);
-
-/** Register parameters that should be read in
- */
-bool addProjectParameters(void);
-/** Get the value that was read in
- */
-bool getProjectParameters(void);
-
-/*!\brief Set the fields and distribution of a cell according to the default simulation settings.
- * This is used for the NOT_SYSBOUNDARY cells and some other system boundary conditions (e.g. Outflow).
- * \param cell Pointer to the cell to set.
- */
-void setProjectCell(SpatialCell* cell);
-
-template<typename UINT,typename REAL> void calcAccFaceX(
-   REAL& ax, REAL& ay, REAL& az,
-   const UINT& I, const UINT& J, const UINT& K,
-   const REAL* const cellParams,
-   const REAL* const blockParams,
-   const REAL* const cellBVOLDerivatives
-) {
-   lorentzForceFaceX(ax,ay,az,I,J,K,cellParams,blockParams,cellBVOLDerivatives);
-}
-
-template<typename UINT,typename REAL> void calcAccFaceY(
-   REAL& ax, REAL& ay, REAL& az,
-   const UINT& I, const UINT& J, const UINT& K,
-   const REAL* const cellParams,
-   const REAL* const blockParams,
-   const REAL* const cellBVOLDerivatives
-) {
-   lorentzForceFaceY(ax,ay,az,I,J,K,cellParams,blockParams,cellBVOLDerivatives);
-}
-
-template<typename UINT,typename REAL> void calcAccFaceZ(
-   REAL& ax, REAL& ay, REAL& az,
-   const UINT& I, const UINT& J, const UINT& K,
-   const REAL* const cellParams,
-   const REAL* const blockParams,
-   const REAL* const cellBVOLDerivatives
-) {
-   lorentzForceFaceZ(ax,ay,az,I,J,K,cellParams,blockParams,cellBVOLDerivatives);
-}
-
+         Real BX0;
+         Real BY0;
+         Real BZ0;
+         Real EX0;
+         Real VX0;
+         Real VY0;
+         Real VZ0;
+         Real DENSITY;
+         Real TEMPERATURE;
+         Real magPertAmp;
+         Real densityPertAmp;
+         Real velocityPertAmp;
+         Real maxwCutoff;
+         uint nSpaceSamples;
+         uint nVelocitySamples;
+         Real SCA_X;
+         Real SCA_Y;
+         Real Sharp_Y;
+   } ; //class Shock
+} // namespace projects
 #endif

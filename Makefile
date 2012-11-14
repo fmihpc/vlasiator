@@ -1,5 +1,5 @@
 #set default architecture, can be overridden from the compile line
-ARCH = meteo 
+ARCH = meteo
 include MAKE/Makefile.${ARCH}
 
 #set FP precision to SP (single) or DP (double)
@@ -106,8 +106,10 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/Harris/Harris.h projects/Harris/Harris.cpp \
 		projects/KelvinHelmholtz/KelvinHelmholtz.h projects/KelvinHelmholtz/KelvinHelmholtz.cpp \
 		projects/Larmor/Larmor.h projects/Larmor/Larmor.cpp \
-		projects/Magnetosphere/Magnetosphere.h projects/Magnetosphere/Magnetosphere.cpp
-
+		projects/Magnetosphere/Magnetosphere.h projects/Magnetosphere/Magnetosphere.cpp\
+		projects/MultiPeak/MultiPeak.h projects/MultiPeak/MultiPeak.cpp \
+		projects/Riemann1/Riemann1.h projects/Riemann1/Riemann1.cpp \
+		projects/Shock/Shock.h projects/Shock/Shock.cpp
 #all objects for vlasiator
 
 OBJS = 	backgroundfield.o \
@@ -115,7 +117,7 @@ OBJS = 	backgroundfield.o \
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o \
 	sysboundary.o sysboundarycondition.o \
 	project.o \
-	Alfven.o Diffusion.o Dispersion.o Firehose.o Flowthrough.o Fluctuations.o harm1D.o Harris.o KelvinHelmholtz.o Larmor.o Magnetosphere.o \
+	Alfven.o Diffusion.o Dispersion.o Firehose.o Flowthrough.o Fluctuations.o harm1D.o Harris.o KelvinHelmholtz.o Larmor.o Magnetosphere.o MultiPeak.o Riemann1.o Shock.o\
 	grid.o fileio.o vlasiator.o logger.o muxml.o \
 	parameters.o readparameters.o spatial_cell.o \
 	vlscommon.o vlsvreader2.o vlsvwriter2.o vlasovmover_$(TRANSSOLVER).o $(FIELDSOLVER).o
@@ -202,6 +204,15 @@ Larmor.o: ${DEPS_COMMON} projects/Larmor/Larmor.h projects/Larmor/Larmor.cpp
 
 Magnetosphere.o: ${DEPS_COMMON} projects/Magnetosphere/Magnetosphere.h projects/Magnetosphere/Magnetosphere.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Magnetosphere/Magnetosphere.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
+
+MultiPeak.o: ${DEPS_COMMON} projects/MultiPeak/MultiPeak.h projects/MultiPeak/MultiPeak.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/MultiPeak/MultiPeak.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
+
+Riemann1.o: ${DEPS_COMMON} projects/Riemann1/Riemann1.h projects/Riemann1/Riemann1.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Riemann1/Riemann1.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
+	
+Shock.o: ${DEPS_COMMON} projects/Shock/Shock.h projects/Shock/Shock.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Shock/Shock.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
 
 project.o: ${DEPS_COMMON} $(DEPS_PROJECTS)
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/project.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
