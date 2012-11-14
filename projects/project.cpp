@@ -10,6 +10,7 @@
 #include "harm1D/harm1D.h"
 #include "Harris/Harris.h"
 #include "KelvinHelmholtz/KelvinHelmholtz.h"
+#include "Larmor/Larmor.h"
 #include "Magnetosphere/Magnetosphere.h"
 
 using namespace std;
@@ -30,6 +31,7 @@ namespace projects {
       projects::harm1D::addParameters();
       projects::Harris::addParameters();
       projects::KelvinHelmholtz::addParameters();
+      projects::Larmor::addParameters();
       projects::Magnetosphere::addParameters();
    }
    
@@ -141,6 +143,9 @@ Project* createProject() {
    }
    if(Parameters::projectName == "KelvinHelmholtz") {
       return new projects::KelvinHelmholtz;
+   }
+   if(Parameters::projectName == "Larmor") {
+      return new projects::Larmor;
    }
    if(Parameters::projectName == "Magnetosphere") {
       return new projects::Magnetosphere;

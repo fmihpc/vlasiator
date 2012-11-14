@@ -1,5 +1,5 @@
 #set default architecture, can be overridden from the compile line
-ARCH = hermit
+ARCH = meteo 
 include MAKE/Makefile.${ARCH}
 
 #set FP precision to SP (single) or DP (double)
@@ -105,6 +105,7 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/harm1D/harm1D.h projects/harm1D/harm1D.cpp \
 		projects/Harris/Harris.h projects/Harris/Harris.cpp \
 		projects/KelvinHelmholtz/KelvinHelmholtz.h projects/KelvinHelmholtz/KelvinHelmholtz.cpp \
+		projects/Larmor/Larmor.h projects/Larmor/Larmor.cpp \
 		projects/Magnetosphere/Magnetosphere.h projects/Magnetosphere/Magnetosphere.cpp
 
 #all objects for vlasiator
@@ -114,7 +115,7 @@ OBJS = 	backgroundfield.o \
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o \
 	sysboundary.o sysboundarycondition.o \
 	project.o \
-	Alfven.o Diffusion.o Dispersion.o Firehose.o Flowthrough.o Fluctuations.o harm1D.o Harris.o KelvinHelmholtz.o Magnetosphere.o \
+	Alfven.o Diffusion.o Dispersion.o Firehose.o Flowthrough.o Fluctuations.o harm1D.o Harris.o KelvinHelmholtz.o Larmor.o Magnetosphere.o \
 	grid.o fileio.o vlasiator.o logger.o muxml.o \
 	parameters.o readparameters.o spatial_cell.o \
 	vlscommon.o vlsvreader2.o vlsvwriter2.o vlasovmover_$(TRANSSOLVER).o $(FIELDSOLVER).o
@@ -195,6 +196,9 @@ Harris.o: ${DEPS_COMMON} projects/Harris/Harris.h projects/Harris/Harris.cpp
 
 KelvinHelmholtz.o: ${DEPS_COMMON} projects/KelvinHelmholtz/KelvinHelmholtz.h projects/KelvinHelmholtz/KelvinHelmholtz.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/KelvinHelmholtz/KelvinHelmholtz.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
+
+Larmor.o: ${DEPS_COMMON} projects/Larmor/Larmor.h projects/Larmor/Larmor.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Larmor/Larmor.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
 
 Magnetosphere.o: ${DEPS_COMMON} projects/Magnetosphere/Magnetosphere.h projects/Magnetosphere/Magnetosphere.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Magnetosphere/Magnetosphere.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
