@@ -41,18 +41,21 @@ namespace SBC {
     * 
     * This function is used by some of the classes inheriting from this base class.
     */
-   void SysBoundaryCondition::determineFace(bool* isThisCellOnAFace,
-                                            creal x, creal y, creal z,
-                                            creal dx, creal dy, creal dz) {
+   void SysBoundaryCondition::determineFace(
+      bool* isThisCellOnAFace,
+      creal x, creal y, creal z,
+      creal dx, creal dy, creal dz,
+      uint depth
+   ) {
       for(uint i=0; i<6; i++) {
          isThisCellOnAFace[i] = false;
       }
-      if(x > Parameters::xmax - dx) isThisCellOnAFace[0] = true;
-      if(x < Parameters::xmin + dx) isThisCellOnAFace[1] = true;
-      if(y > Parameters::ymax - dy) isThisCellOnAFace[2] = true;
-      if(y < Parameters::ymin + dy) isThisCellOnAFace[3] = true;
-      if(z > Parameters::zmax - dz) isThisCellOnAFace[4] = true;
-      if(z < Parameters::zmin + dz) isThisCellOnAFace[5] = true;
+      if(x > Parameters::xmax - (Real)depth*dx) isThisCellOnAFace[0] = true;
+      if(x < Parameters::xmin + (Real)depth*dx) isThisCellOnAFace[1] = true;
+      if(y > Parameters::ymax - (Real)depth*dy) isThisCellOnAFace[2] = true;
+      if(y < Parameters::ymin + (Real)depth*dy) isThisCellOnAFace[3] = true;
+      if(z > Parameters::zmax - (Real)depth*dz) isThisCellOnAFace[4] = true;
+      if(z < Parameters::zmin + (Real)depth*dz) isThisCellOnAFace[5] = true;
    }
    
    /*! SysBoundaryCondition base class constructor. The constructor is empty.*/

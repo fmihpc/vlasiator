@@ -103,12 +103,6 @@ namespace SBC {
             const CellID& cellID
          );
          
-         void determineFace(
-            bool* isThisCellOnAFace,
-            creal x, creal y, creal z,
-            creal dx, creal dy, creal dz
-         );
-         
          virtual void getFaces(bool* faces);
          virtual std::string getName() const;
          virtual uint getIndex() const;
@@ -116,6 +110,12 @@ namespace SBC {
          bool isDynamic() const;
       
       protected:
+         void determineFace(
+            bool* isThisCellOnAFace,
+            creal x, creal y, creal z,
+            creal dx, creal dy, creal dz,
+            uint depth
+         );
          void copyCellData(SpatialCell *from, SpatialCell *to);
 //          void zeroCellData( SpatialCell *to);
          

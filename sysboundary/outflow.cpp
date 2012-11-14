@@ -92,7 +92,7 @@ namespace SBC {
          creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
          
          bool isThisCellOnAFace[6];
-         determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
+         determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, 1);
          
          // Comparison of the array defining which faces to use and the array telling on which faces this cell is
          bool doAssign = false;
