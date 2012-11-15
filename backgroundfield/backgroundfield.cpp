@@ -53,26 +53,90 @@ void set_background_B_neg_x(
    creal end_x, creal end_y, creal end_z,
    Real& Bx, Real &By, Real& Bz
 ) {
-	const double start[3] = {
-		start_x,
-		start_y,
-		start_z
-	};
+   const double start[3] = {
+      start_x,
+      start_y,
+      start_z
+   };
 
-	const double end[3] = {
-		end_x,
-		end_y,
-		end_z
-	};
+   const double end[3] = {
+      end_x,
+      end_y,
+      end_z
+   };
 
-	background_B.BackgroundSurfaceAverage(
-		start,
-		0,
-		end[1] - start[1],
-		end[2] - start[2],
-		Bx,
-		By,
-		Bz
-	);
+   background_B.BackgroundSurfaceAverage(
+      start,
+      0,
+      end[1] - start[1],
+      end[2] - start[2],
+      Bx,
+      By,
+      Bz
+   );
+}
+
+/*!
+Y version of set_background_B_neg_x(...).
+*/
+void set_background_B_neg_y(
+   TB0& background_B,
+   creal start_x, creal start_y, creal start_z,
+   creal end_x, creal end_y, creal end_z,
+   Real& Bx, Real &By, Real& Bz
+) {
+   const double start[3] = {
+      start_x,
+      start_y,
+      start_z
+   };
+
+   const double end[3] = {
+      end_x,
+      end_y,
+      end_z
+   };
+
+   background_B.BackgroundSurfaceAverage(
+      start,
+      1,
+      end[0] - start[0],
+      end[2] - start[2],
+      Bx,
+      By,
+      Bz
+   );
+}
+
+/*!
+Z version of set_background_B_neg_x(...).
+*/
+void set_background_B_neg_z(
+   TB0& background_B,
+   creal start_x, creal start_y, creal start_z,
+   creal end_x, creal end_y, creal end_z,
+   Real& Bx, Real &By, Real& Bz
+) {
+   const double start[3] = {
+      start_x,
+      start_y,
+      start_z
+   };
+
+   const double end[3] = {
+      end_x,
+      end_y,
+      end_z
+   };
+
+   background_B.BackgroundSurfaceAverage(
+      start,
+      2,
+      end[0] - start[0],
+      end[1] - start[1],
+      Bx,
+      By,
+      Bz
+   );
 }
 

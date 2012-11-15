@@ -33,5 +33,19 @@ void set_background_B_neg_x(
    Real& Bx, Real &By, Real& Bz
 );
 
+void set_background_B_neg_y(
+   TB0& background_B,
+   creal start_x, creal start_y, creal start_z,
+   creal end_x, creal end_y, creal end_z,
+   Real& Bx, Real &By, Real& Bz
+);
+
+void set_background_B_neg_z(
+   TB0& background_B,
+   creal start_x, creal start_y, creal start_z,
+   creal end_x, creal end_y, creal end_z,
+   Real& Bx, Real &By, Real& Bz
+);
+
 #endif
 

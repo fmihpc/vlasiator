@@ -79,6 +79,11 @@ public:
 	*/
 	void initialize(int maxorder1=1);
 
+	TB0()
+	{
+		this->initialized = false;
+	}
+
 	TB0(boost::program_options::options_description* options)
 	{
 		this->initialized = false;
@@ -95,6 +100,26 @@ public:
 			("dipmom",
 				boost::program_options::value<double>(&(this->dipmom))->default_value(8e15),
 				"Magnitude of Earth's dipole moment (Tm^3, positive number)");
+	}
+
+	void set_dipole_moment(const double given_moment)
+	{
+		this->dipmom = given_moment;
+	}
+
+	void set_constant_Bx(const double given_Bx0)
+	{
+		this->const_Bx0 = given_Bx0;
+	}
+
+	void set_constant_By(const double given_By0)
+	{
+		this->const_By0 = given_By0;
+	}
+
+	void set_constant_Bz(const double given_Bz0)
+	{
+		this->const_Bz0 = given_Bz0;
 	}
 
 	void set_maxorder(int maxorder1) {dealloc(); this->initialize(maxorder1);}

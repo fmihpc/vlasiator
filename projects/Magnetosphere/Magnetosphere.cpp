@@ -80,7 +80,7 @@ namespace projects {
    bool Magnetosphere::initialize() {
       return true;
    }
-   
+
    Real Magnetosphere::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
       if((this->nSpaceSamples > 1) && (this->nVelocitySamples > 1)) {
          creal d_x = dx / (this->nSpaceSamples-1);
@@ -117,46 +117,54 @@ namespace projects {
    }
    
    void Magnetosphere::calcCellParameters(Real* cellParams,creal& t) {
-      creal x = cellParams[CellParams::XCRD];
-      creal dx = cellParams[CellParams::DX];
-      creal y = cellParams[CellParams::YCRD];
-      creal dy = cellParams[CellParams::DY];
-      creal z = cellParams[CellParams::ZCRD];
-      creal dz = cellParams[CellParams::DZ];
+
+      // TODO: don't create a new instance for each spatial cell
+      TB0 background_B;
+      background_B.set_dipole_moment(8e15);
+      background_B.initialize();
+
+      creal
+         start_x = cellParams[CellParams::XCRD],
+         start_y = cellParams[CellParams::YCRD],
+         start_z = cellParams[CellParams::ZCRD],
+         end_x = start_x + cellParams[CellParams::DX],
+         end_y = start_y + cellParams[CellParams::DY],
+         end_z = start_z + cellParams[CellParams::DZ];
       
-      Real Bxavg, Byavg, Bzavg;
-      if((this->nSpaceSamples > 1) && (this->nVelocitySamples > 1)) {
-         Bxavg = Byavg = Bzavg = 0.0;
-         Real d_x = dx / (this->nSpaceSamples - 1);
-         Real d_y = dy / (this->nSpaceSamples - 1);
-         Real d_z = dz / (this->nSpaceSamples - 1);
-         // #pragma omp parallel for collapse(3) reduction(+:Bxavg,Byavg,Bzavg)
-         // WARNING No threading here if calling functions are already threaded
-         for (uint i=0; i<this->nSpaceSamples; ++i)
-            for (uint j=0; j<this->nSpaceSamples; ++j)
-               for (uint k=0; k<this->nSpaceSamples; ++k) {
-                  Real field[3];
-                  dipole(x+i*d_x, y+j*d_y, z+k*d_z, field[0], field[1], field[2]);
-                  Bxavg += field[0];
-                  Byavg += field[1];
-                  Bzavg += field[2];
-               }
-               cuint nPts = this->nSpaceSamples*this->nSpaceSamples*this->nSpaceSamples;
-            
-            cellParams[CellParams::BGBX   ] = Bxavg / nPts;
-            cellParams[CellParams::BGBY   ] = Byavg / nPts;
-            cellParams[CellParams::BGBZ   ] = Bzavg / nPts;
-      } else {
-         dipole(x+0.5*dx, y+0.5*dy, z+0.5*dz, Bxavg, Byavg, Bzavg);
-         cellParams[CellParams::BGBX   ] = Bxavg;
-         cellParams[CellParams::BGBY   ] = Byavg;
-         cellParams[CellParams::BGBZ   ] = Bzavg;
-      }
+      Real Bx, By, Bz;
+
+      // set Bx at negative x face
+      set_background_B_neg_x(
+      	background_B,
+      	start_x, start_y, start_z,
+      	end_x, end_y, end_z,
+      	Bx, By, Bz
+      );
+      cellParams[CellParams::BGBX] = Bx;
+
+      // By at -y face
+      set_background_B_neg_y(
+      	background_B,
+      	start_x, start_y, start_z,
+      	end_x, end_y, end_z,
+      	Bx, By, Bz
+      );
+      cellParams[CellParams::BGBY] = By;
+
+      // Bz at -z
+      set_background_B_neg_z(
+      	background_B,
+      	start_x, start_y, start_z,
+      	end_x, end_y, end_z,
+      	Bx, By, Bz
+      );
+      cellParams[CellParams::BGBZ] = Bz;
    }
-   
+
    Real Magnetosphere::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
       return this->rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5) *
       exp(- physicalconstants::MASS_PROTON * ((vx-this->V0[0])*(vx-this->V0[0]) + (vy-this->V0[1])*(vy-this->V0[1]) + (vz-this->V0[2])*(vz-this->V0[2])) / (2.0 * physicalconstants::K_B * this->T));
    }
    
 } // namespace projects
+
