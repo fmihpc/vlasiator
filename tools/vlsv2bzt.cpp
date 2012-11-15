@@ -229,7 +229,7 @@ int main(int argn,char* args[]) {
       if (filesConverted == 0) cout << "\t no files converted" << endl;
    } else {
       // YK Create/open file to append to
-      FILE * outputFile;
+      FILE* outputFile = NULL;
       char endOfLine = '\n';
       if(*fileFormat == 'a') outputFile = fopen(fileName, "w");
       if(*fileFormat == 'b') outputFile = fopen(fileName, "wb");
