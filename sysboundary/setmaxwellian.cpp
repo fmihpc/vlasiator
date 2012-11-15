@@ -130,7 +130,7 @@ namespace SBC {
          }
          counter++;
       }
-      
+      counter+=2;
       Real vRadiusSquared = (Real)counter*(Real)counter*SpatialCell::block_dvx*SpatialCell::block_dvx;
       
       for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
@@ -245,6 +245,9 @@ namespace SBC {
                   }
          }
       }
+      //let's get rid of blocks not fulfilling the criteria here to save
+      //memory.
+      templateCell.adjustSingleCellVelocityBlocks();
       
       calculateCellVelocityMoments(&templateCell);
       
@@ -253,10 +256,6 @@ namespace SBC {
       templateCell.parameters[CellParams::RHOVX_DT2] = templateCell.parameters[CellParams::RHOVX];
       templateCell.parameters[CellParams::RHOVY_DT2] = templateCell.parameters[CellParams::RHOVY];
       templateCell.parameters[CellParams::RHOVZ_DT2] = templateCell.parameters[CellParams::RHOVZ];
-      
-      //let's get rid of blocks not fulfilling the criteria here to save
-      //memory.
-      templateCell.adjustSingleCellVelocityBlocks();
    }
    
    string SetMaxwellian::getName() const {return "SetMaxwellian";}

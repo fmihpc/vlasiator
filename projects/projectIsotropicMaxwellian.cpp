@@ -30,7 +30,7 @@ namespace projects {
          }
          counter++;
       }
-      
+      counter+=2;
       Real vRadiusSquared = (Real)counter*(Real)counter*SpatialCell::block_dvx*SpatialCell::block_dvx;
       
       for (uint kv=0; kv<P::vzblocks_ini; ++kv) 

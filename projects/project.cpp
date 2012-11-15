@@ -64,10 +64,10 @@ namespace projects {
       
       this->setVelocitySpace(cell);
       
-      calculateCellVelocityMoments(cell);
-      
       //let's get rid of blocks not fulfilling the criteria here to save memory.
       cell->adjustSingleCellVelocityBlocks();
+      
+      calculateCellVelocityMoments(cell);
    }
    
    vector<uint> Project::findBlocksToInitialize(SpatialCell* cell) {
