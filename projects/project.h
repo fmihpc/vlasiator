@@ -4,7 +4,7 @@
 # include "projects_common.h"
 # include "projects_vlasov_acceleration.h"
 #include <cstdlib>
-#include <cmath>
+
 
 namespace projects {
    class Project {

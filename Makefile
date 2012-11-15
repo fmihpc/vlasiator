@@ -1,5 +1,5 @@
 #set default architecture, can be overridden from the compile line
-ARCH = meteo
+ARCH = hermit_gcc
 include MAKE/Makefile.${ARCH}
 
 #set FP precision to SP (single) or DP (double)

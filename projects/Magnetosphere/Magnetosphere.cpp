@@ -117,7 +117,7 @@ namespace projects {
    }
    
    void Magnetosphere::calcCellParameters(Real* cellParams,creal& t) {
-      set_dipole(cellParams);
+      setDipole(cellParams);
    }
 
    Real Magnetosphere::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {

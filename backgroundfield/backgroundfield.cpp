@@ -22,7 +22,30 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "backgroundfield.h"
 #include "B0.hpp"
 
-void set_dipole(Real* cellParams)
+
+void setBackgroundBNegX(
+   TB0& background_B,
+   creal start_x, creal start_y, creal start_z,
+   creal end_x, creal end_y, creal end_z,
+   Real& Bx, Real &By, Real& Bz
+);
+
+void setBackgroundBNegY(
+   TB0& background_B,
+   creal start_x, creal start_y, creal start_z,
+   creal end_x, creal end_y, creal end_z,
+   Real& Bx, Real &By, Real& Bz
+);
+
+void setBackgroundBNegZ(
+   TB0& background_B,
+   creal start_x, creal start_y, creal start_z,
+   creal end_x, creal end_y, creal end_z,
+   Real& Bx, Real &By, Real& Bz
+);
+
+
+void setDipole(Real* cellParams)
 {
    using namespace CellParams;
 
@@ -41,7 +64,7 @@ void set_dipole(Real* cellParams)
    Real Bx, By, Bz;
 
    // set Bx at negative x face
-   set_background_B_neg_x(
+   setBackgroundBNegX(
       background_B,
       start_x, start_y, start_z,
       end_x, end_y, end_z,
@@ -50,7 +73,7 @@ void set_dipole(Real* cellParams)
    cellParams[CellParams::BGBX] = Bx;
 
    // By at -y face
-   set_background_B_neg_y(
+   setBackgroundBNegY(
       background_B,
       start_x, start_y, start_z,
       end_x, end_y, end_z,
@@ -59,7 +82,7 @@ void set_dipole(Real* cellParams)
    cellParams[CellParams::BGBY] = By;
 
    // Bz at -z
-   set_background_B_neg_z(
+   setBackgroundBNegZ(
       background_B,
       start_x, start_y, start_z,
       end_x, end_y, end_z,
@@ -74,7 +97,7 @@ Assigns background B face average in -x direction.
 Start_? and end_? correspond to the cell's vertices
 at minimum and maximum coordinates respectively.
 */
-void set_background_B_neg_x(
+void setBackgroundBNegX(
    TB0& background_B,
    creal start_x, creal start_y, creal start_z,
    creal end_x, creal end_y, creal end_z,
@@ -104,9 +127,9 @@ void set_background_B_neg_x(
 }
 
 /*!
-Y version of set_background_B_neg_x(...).
+Y version of setBackgroundBNegx(...).
 */
-void set_background_B_neg_y(
+void setBackgroundBNegY(
    TB0& background_B,
    creal start_x, creal start_y, creal start_z,
    creal end_x, creal end_y, creal end_z,
@@ -136,9 +159,9 @@ void set_background_B_neg_y(
 }
 
 /*!
-Z version of set_background_B_neg_x(...).
+Z version of setBackgroundBNegx(...).
 */
-void set_background_B_neg_z(
+void setBackgroundBNegZ(
    TB0& background_B,
    creal start_x, creal start_y, creal start_z,
    creal end_x, creal end_y, creal end_z,

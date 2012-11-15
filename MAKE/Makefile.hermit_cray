@@ -17,13 +17,12 @@ FLAGS =
 # LDFLAGS flags for linker
 
 #GNU flags:
-CC_BRAND = gcc
-CC_BRAND_VERSION = 4.7.2
-CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -pedantic -Wno-unused  -fabi-version=6 -mfma4
-#CXXFLAGS += -g -fopenmp -std=c++0x   -fabi-version=6 
-MATHFLAGS = -ffast-math
+CC_BRAND = cray
+CC_BRAND_VERSION = 8.1.1
+CXXFLAGS += -O3
+MATHFLAGS = 
 LDFLAGS =
-LIB_MPI = -lgomp
+LIB_MPI = 
 
 BOOST_VERSION = 1.52.0
 MPT_VERSION = 5.5.5
