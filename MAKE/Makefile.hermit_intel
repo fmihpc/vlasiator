@@ -19,7 +19,7 @@ FLAGS =
 #GNU flags:
 CC_BRAND = intel
 CC_BRAND_VERSION = 13.0.0
-CXXFLAGS += -O3 -fast -openmp 
+CXXFLAGS += -O3  -openmp 
 MATHFLAGS = 
 LDFLAGS = -openmp
 LIB_MPI = 
