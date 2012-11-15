@@ -20,6 +20,9 @@
 
 using namespace std;
 
+char projects::Project::rngStateBuffer[256];
+random_data projects::Project::rngDataBuffer;
+
 namespace projects {
    Project::Project() { }
    

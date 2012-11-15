@@ -115,8 +115,9 @@ namespace projects {
       
       private:
          uint seed;
-         char rngStateBuffer[256];
-         random_data rngDataBuffer;
+         static char rngStateBuffer[256];
+         static random_data rngDataBuffer;
+#pragma omp threadprivate(rngStateBuffer,rngDataBuffer) 
    };
    
    Project* createProject();

@@ -58,15 +58,9 @@ namespace projects {
       uint seed;
       uint nSpaceSamples;
       uint nVelocitySamples;
-      
-      char rngStateBuffer[256];
-      random_data rngDataBuffer;
-      #ifndef _AIX
-      static int32_t rndRho, rndVel[3];
-      #else
-      static int64_t rndRho, rndVel[3];
-      #endif
+
+      static Real rndRho, rndVel[3];
       #pragma omp threadprivate(rndRho,rndVel)
-   } ; // class Dispersion
+   } ; // class Fluctuations
 } // namespace projects
 #endif

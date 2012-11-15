@@ -27,28 +27,14 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 
 #include "Fluctuations.h"
 
-#ifndef _AIX
-int32_t projects::Fluctuations::rndRho, projects::Fluctuations::rndVel[3];
-#else
-int64_t projects::Fluctuations::rndRho, projects::Fluctuations::rndVel[3];
-#endif
+
+Real projects::Fluctuations::rndRho, projects::Fluctuations::rndVel[3];
+
 
 namespace projects {
    Fluctuations::Fluctuations(): Project() { }
    Fluctuations::~Fluctuations() { }
-   
-   bool Fluctuations::initialize(void) {
-      int myRank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      
-      memset(&(this->rngDataBuffer), 0, sizeof(this->rngDataBuffer));
-      #ifndef _AIX
-      initstate_r(this->seed*myRank, &(this->rngStateBuffer[0]), 256, &(this->rngDataBuffer));
-      #else
-      initstate_r(this->seed*myRank, &(this->rngStateBuffer[0]), 256, NULL, &(this->rngDataBuffer));
-      #endif
-      return true;
-   }
+   bool Fluctuations::initialize(void) {return true;}
    
    void Fluctuations::addParameters() {
       typedef Readparameters RP;
@@ -65,11 +51,11 @@ namespace projects {
       RP::add("Fluctuations.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
       RP::add("Fluctuations.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
       RP::add("Fluctuations.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
-      RP::add("Fluctuations.seed", "Seed for the RNG", 42);
    }
 
    void Fluctuations::getParameters() {
       typedef Readparameters RP;
+      Project::getParameters();
       RP::get("Fluctuations.BX0", this->BX0);
       RP::get("Fluctuations.BY0", this->BY0);
       RP::get("Fluctuations.BZ0", this->BZ0);
@@ -83,7 +69,6 @@ namespace projects {
       RP::get("Fluctuations.nSpaceSamples", this->nSpaceSamples);
       RP::get("Fluctuations.nVelocitySamples", this->nVelocitySamples);
       RP::get("Fluctuations.maxwCutoff", this->maxwCutoff);
-      RP::get("Fluctuations.seed", this->seed);
    }
    
    Real Fluctuations::getDistribValue(creal& vx,creal& vy, creal& vz) {
@@ -121,16 +106,16 @@ namespace projects {
             for (uint vk=0; vk<this->nVelocitySamples; ++vk)
             {
                avg += getDistribValue(
-                  vx+vi*d_vx - this->velocityPertAbsAmp * (0.5 - (double)rndVel[0] / (double)RAND_MAX),
-                  vy+vj*d_vy - this->velocityPertAbsAmp * (0.5 - (double)rndVel[1] / (double)RAND_MAX),
-                  vz+vk*d_vz - this->velocityPertAbsAmp * (0.5 - (double)rndVel[2] / (double)RAND_MAX));
+                  vx+vi*d_vx - this->velocityPertAbsAmp * (0.5 - rndVel[0] ),
+                  vy+vj*d_vy - this->velocityPertAbsAmp * (0.5 - rndVel[1] ),
+                  vz+vk*d_vz - this->velocityPertAbsAmp * (0.5 - rndVel[2] ));
             }
       
       creal result = avg *
-               this->DENSITY * (1.0 + this->densityPertRelAmp * (0.5 - (double)rndRho / (double)RAND_MAX)) *
-               pow(mass / (2.0 * M_PI * k * this->TEMPERATURE), 1.5) /
-   //            (Parameters::vzmax - Parameters::vzmin) / 
-            (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
+         this->DENSITY * (1.0 + this->densityPertRelAmp * (0.5 - rndRho)) *
+         pow(mass / (2.0 * M_PI * k * this->TEMPERATURE), 1.5) /
+         (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
+      
       if(result < this->maxwCutoff) {
          return 0.0;
       } else {
@@ -146,39 +131,33 @@ namespace projects {
       creal z = cellParams[CellParams::ZCRD];
       creal dz = cellParams[CellParams::DZ];
       
-      uint cellID = (int) ((x - Parameters::xmin) / dx) +
-      (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
-      (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
+      CellID cellID = (int) ((x - Parameters::xmin) / dx) +
+         (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
+         (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
+
+      setRandomSeed(cellID);
       
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
+
+
       
-      #ifndef _AIX
-      int32_t rndBuffer[3];
-      random_r(&rngDataBuffer, &rndBuffer[0]);
-      random_r(&rngDataBuffer, &rndBuffer[1]);
-      random_r(&rngDataBuffer, &rndBuffer[2]);
-      random_r(&rngDataBuffer, &(this->rndRho));
-      random_r(&rngDataBuffer, &(this->rndVel[0]));
-      random_r(&rngDataBuffer, &(this->rndVel[1]));
-      random_r(&rngDataBuffer, &(this->rndVel[2]));
-      #else
-      int64_t rndBuffer[3];
-      random_r(&rndBuffer[0], &rngDataBuffer);
-      random_r(&rndBuffer[1], &rngDataBuffer);
-      random_r(&rndBuffer[2], &rngDataBuffer);
-      random_r(&(this->rndRho), &rngDataBuffer);
-      random_r(&(this->rndVel[0]), &rngDataBuffer);
-      random_r(&(this->rndVel[1]), &rngDataBuffer);
-      random_r(&(this->rndVel[2]), &rngDataBuffer);
-      #endif
+      this->rndRho=getRandomNumber();
+      this->rndVel[0]=getRandomNumber();
+      this->rndVel[1]=getRandomNumber();
+      this->rndVel[2]=getRandomNumber();
+      
+      Real rndBuffer[3];
+      rndBuffer[0]=getRandomNumber();
+      rndBuffer[1]=getRandomNumber();
+      rndBuffer[2]=getRandomNumber();
       
       cellParams[CellParams::BGBX]  = this->BX0 ;
-      cellParams[CellParams::PERBX] = this->magXPertAbsAmp * (0.5 - (double)rndBuffer[0] / (double)RAND_MAX);
+      cellParams[CellParams::PERBX] = this->magXPertAbsAmp * (0.5 - rndBuffer[0]);
       cellParams[CellParams::BGBY]   = this->BY0; 
-      cellParams[CellParams::PERBY] = this->magYPertAbsAmp * (0.5 - (double)rndBuffer[1] / (double)RAND_MAX);
+      cellParams[CellParams::PERBY] = this->magYPertAbsAmp * (0.5 - rndBuffer[1]);
       cellParams[CellParams::BGBZ] = this->BZ0;
-      cellParams[CellParams::PERBZ] = this->magZPertAbsAmp * (0.5 - (double)rndBuffer[2] / (double)RAND_MAX);
+      cellParams[CellParams::PERBZ] = this->magZPertAbsAmp * (0.5 - rndBuffer[2]);
    }
 } // namespace projects
