@@ -117,48 +117,7 @@ namespace projects {
    }
    
    void Magnetosphere::calcCellParameters(Real* cellParams,creal& t) {
-
-      // TODO: don't create a new instance for each spatial cell
-      TB0 background_B;
-      background_B.set_dipole_moment(8e15);
-      background_B.initialize();
-
-      creal
-         start_x = cellParams[CellParams::XCRD],
-         start_y = cellParams[CellParams::YCRD],
-         start_z = cellParams[CellParams::ZCRD],
-         end_x = start_x + cellParams[CellParams::DX],
-         end_y = start_y + cellParams[CellParams::DY],
-         end_z = start_z + cellParams[CellParams::DZ];
-      
-      Real Bx, By, Bz;
-
-      // set Bx at negative x face
-      set_background_B_neg_x(
-      	background_B,
-      	start_x, start_y, start_z,
-      	end_x, end_y, end_z,
-      	Bx, By, Bz
-      );
-      cellParams[CellParams::BGBX] = Bx;
-
-      // By at -y face
-      set_background_B_neg_y(
-      	background_B,
-      	start_x, start_y, start_z,
-      	end_x, end_y, end_z,
-      	Bx, By, Bz
-      );
-      cellParams[CellParams::BGBY] = By;
-
-      // Bz at -z
-      set_background_B_neg_z(
-      	background_B,
-      	start_x, start_y, start_z,
-      	end_x, end_y, end_z,
-      	Bx, By, Bz
-      );
-      cellParams[CellParams::BGBZ] = Bz;
+      set_dipole(cellParams);
    }
 
    Real Magnetosphere::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {

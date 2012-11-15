@@ -21,10 +21,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "B0.hpp"
 
-void dipole(
-   creal x, creal y, creal z,
-   Real& Bx, Real &By, Real& Bz
-);
+void set_dipole(Real* cellParams);
 
 void set_background_B_neg_x(
    TB0& background_B,

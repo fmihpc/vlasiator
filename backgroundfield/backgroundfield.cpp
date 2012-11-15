@@ -16,30 +16,57 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "../common.h"
 #include "../definitions.h"
 #include "cmath"
 #include "backgroundfield.h"
 #include "B0.hpp"
 
-void dipole(
-   creal x, creal y, creal z,
-   Real& Bx, Real &By, Real& Bz
-) {
-   creal k_0 = 8.0e15; // Wb m
-   Real r = sqrt(x*x + y*y + z*z); // radial
-   Real theta = atan2(sqrt(x*x + y*y), z); // polar
-   Real phi = atan2(y, x); // azimuthal
-   
-   Bx = sin(theta) * cos(theta) * cos(phi);
-   By = sin(theta) * cos(theta) * sin(phi);
-   Bz = cos(theta)*cos(theta) - 1.0 / 3.0;
-   
-   Bx *= 3.0 * k_0 / (r*r*r);
-   By *= 3.0 * k_0 / (r*r*r);
-   Bz *= 3.0 * k_0 / (r*r*r);
+void set_dipole(Real* cellParams)
+{
+   using namespace CellParams;
+
+   TB0 background_B;
+   background_B.set_dipole_moment(8e15);
+   background_B.initialize();
+
+   creal
+      start_x = cellParams[CellParams::XCRD],
+      start_y = cellParams[CellParams::YCRD],
+      start_z = cellParams[CellParams::ZCRD],
+      end_x = start_x + cellParams[CellParams::DX],
+      end_y = start_y + cellParams[CellParams::DY],
+      end_z = start_z + cellParams[CellParams::DZ];
+      
+   Real Bx, By, Bz;
+
+   // set Bx at negative x face
+   set_background_B_neg_x(
+      background_B,
+      start_x, start_y, start_z,
+      end_x, end_y, end_z,
+      Bx, By, Bz
+   );
+   cellParams[CellParams::BGBX] = Bx;
+
+   // By at -y face
+   set_background_B_neg_y(
+      background_B,
+      start_x, start_y, start_z,
+      end_x, end_y, end_z,
+      Bx, By, Bz
+   );
+   cellParams[CellParams::BGBY] = By;
+
+   // Bz at -z
+   set_background_B_neg_z(
+      background_B,
+      start_x, start_y, start_z,
+      end_x, end_y, end_z,
+      Bx, By, Bz
+   );
+   cellParams[CellParams::BGBZ] = Bz;
 }
-
-
 
 /*!
 Assigns background B face average in -x direction.
