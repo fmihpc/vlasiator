@@ -56,16 +56,16 @@ namespace projects {
 
    void MultiPeak::getParameters(){
       typedef Readparameters RP;
-      RP::get("MultiPeak.rho1", this->rho[1]);
-      RP::get("MultiPeak.rho2", this->rho[2]);
-      RP::get("MultiPeak.T1", this->T[1]);
-      RP::get("MultiPeak.T2", this->T[2]);
-      RP::get("MultiPeak.Vx1", this->Vx[1]);
-      RP::get("MultiPeak.Vx2", this->Vx[2]);
-      RP::get("MultiPeak.Vy1", this->Vy[1]);
-      RP::get("MultiPeak.Vy2", this->Vy[2]);
-      RP::get("MultiPeak.Vz1", this->Vz[1]);
-      RP::get("MultiPeak.Vz2", this->Vz[2]);
+      RP::get("MultiPeak.rho1", this->rho[0]);
+      RP::get("MultiPeak.rho2", this->rho[1]);
+      RP::get("MultiPeak.T1", this->T[0]);
+      RP::get("MultiPeak.T2", this->T[1]);
+      RP::get("MultiPeak.Vx1", this->Vx[0]);
+      RP::get("MultiPeak.Vx2", this->Vx[1]);
+      RP::get("MultiPeak.Vy1", this->Vy[0]);
+      RP::get("MultiPeak.Vy2", this->Vy[1]);
+      RP::get("MultiPeak.Vz1", this->Vz[0]);
+      RP::get("MultiPeak.Vz2", this->Vz[1]);
       RP::get("MultiPeak.Bx", this->Bx);
       RP::get("MultiPeak.By", this->By);
       RP::get("MultiPeak.Bz", this->Bz);
@@ -80,10 +80,10 @@ namespace projects {
       //  creal gamma = 5./3.;
       
       return
+      this->rho[0] * pow(mass / (2.0 * M_PI * k * this->T[0]), 1.5) *
+      exp(- mass * (pow(vx - this->Vx[0], 2.0) + pow(vy - this->Vy[0], 2.0) + pow(vz - this->Vz[0], 2.0)) / (2.0 * k * this->T[0])) +
       this->rho[1] * pow(mass / (2.0 * M_PI * k * this->T[1]), 1.5) *
-      exp(- mass * (pow(vx - this->Vx[1], 2.0) + pow(vy - this->Vy[1], 2.0) + pow(vz - this->Vz[1], 2.0)) / (2.0 * k * this->T[1])) +
-      this->rho[2] * pow(mass / (2.0 * M_PI * k * this->T[2]), 1.5) *
-      exp(- mass * (pow(vx - this->Vx[2], 2.0) + pow(vy - this->Vy[2], 2.0) + pow(vz - this->Vz[2], 2.0)) / (2.0 * k * this->T[2]));
+      exp(- mass * (pow(vx - this->Vx[1], 2.0) + pow(vy - this->Vy[1], 2.0) + pow(vz - this->Vz[1], 2.0)) / (2.0 * k * this->T[1]));
    }
 
 
@@ -98,7 +98,7 @@ namespace projects {
       for (uint vj=0; vj<this->nVelocitySamples; ++vj)
          for (uint vk=0; vk<this->nVelocitySamples; ++vk)
             {
-         avg += getDistribValue(vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+               avg += getDistribValue(vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
             }
          return avg / pow(this->nVelocitySamples, 3.0);
    }
