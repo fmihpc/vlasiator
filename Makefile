@@ -113,7 +113,7 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/Shock/Shock.h projects/Shock/Shock.cpp
 #all objects for vlasiator
 
-OBJS = 	backgroundfield.o \
+OBJS = 	backgroundfield.o ode.o quadr.o B0.o \
 	datareducer.o datareductionoperator.o \
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o \
 	sysboundary.o sysboundarycondition.o \
@@ -142,6 +142,15 @@ clean: data
 
 
 # Rules for making each object file needed by the executable
+
+B0.o: backgroundfield/B0.cpp backgroundfield/B0.hpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/B0.cpp
+
+ode.o: backgroundfield/ode.cpp backgroundfield/ode.hpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/ode.cpp
+
+quadr.o: backgroundfield/quadr.cpp backgroundfield/quadr.hpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/quadr.cpp
 
 backgroundfield.o: ${DEPS_COMMON} backgroundfield/backgroundfield.cpp backgroundfield/backgroundfield.h
 	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/backgroundfield.cpp
@@ -267,7 +276,7 @@ vlsvwriter2.o: mpiconversion.h muxml.h muxml.cpp vlscommon.h vlsvwriter2.h vlsvw
 
 
 # Make executable
-vlasiator:  $(OBJS)
+vlasiator: $(OBJS)
 	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS)
 
 

@@ -32,6 +32,10 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #define CHECK_FLOAT(x) {}
 #endif
 
+#define sqr(x) ((x)*(x))
+#define pow2(x) sqr(x)
+#define pow3(x) ((x)*(x)*(x))
+
 #define MASTER_RANK 0
 
 /*! A namespace for storing indices into an array which contains 
@@ -246,6 +250,7 @@ namespace physicalconstants {
    
    const Real MASS_ELECTRON = 1.60238188e-31; /*!< Electron rest mass.*/
    const Real MASS_PROTON = 1.67262158e-27; /*!< Proton rest mass.*/
+   const Real R_E = 6.3712e6; /*!< radius of the Earth. */
 }
 
 
