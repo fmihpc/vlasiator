@@ -186,8 +186,6 @@ namespace SBC {
       
       vector<uint> blocksToInitialize = this->findBlocksToInitialize(templateCell, rho, T, Vx, Vy, Vz);
       
-      cout << blocksToInitialize.size() << endl;
-      
       for(uint i = 0; i < blocksToInitialize.size(); i++) {
          Velocity_Block* blockPtr = templateCell.at(blocksToInitialize.at(i));
          creal vxBlock = blockPtr->parameters[BlockParams::VXCRD];
