@@ -57,6 +57,17 @@ namespace projects {
       cerr << "ERROR: Project::initialize called instead of derived class function!" << endl;
       return false;
    }
+
+   /*! Base class sets zero background field */
+   void Project::setBackgroundField(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+      std::vector<CellID> cells = mpiGrid.get_cells();
+      for (size_t cell=0; cell<cells.size(); ++cell) {
+         SpatialCell *SC = mpiGrid[cells[cell]];
+         SC->parameters[CellParams::BGBX]  = 0.0;
+         SC->parameters[CellParams::BGBY]  = 0.0;
+         SC->parameters[CellParams::BGBZ]  = 0.0;
+      }
+   }
    
    void Project::setCell(SpatialCell* cell) {
       // Set up cell parameters:
@@ -131,12 +142,9 @@ namespace projects {
          }
       }
    }
-   
-   void Project::calcCellParameters(Real* cellParams,creal& t) {
-      cerr << "ERROR: Project::calcCellParameters called instead of derived class function!" << endl;
-   }
 
-   
+   /*default one does not compute any parameters*/
+   void Project::calcCellParameters(Real* cellParams,creal& t) {}
    
    Real Project::calcPhaseSpaceDensity(
       creal& x, creal& y, creal& z,

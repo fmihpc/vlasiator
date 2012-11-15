@@ -50,11 +50,13 @@ extern Logger logFile, diagnostic;
 
 void initVelocityGridGeometry();
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell>& mpiGrid);
+void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid);
 bool applyInitialState(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
    Project& project
 );
 bool adjust_local_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid);
+
 
 void initializeGrid(
    int argn,
@@ -101,111 +103,7 @@ void initializeGrid(
       sysBoundaries.isBoundaryPeriodic(2)
    );
 
-   // set reduced neighborhoods
-   typedef dccrg::Types<3>::neighborhood_item_t neigh_t;
-   
-   // set a reduced neighborhood for field solver
-   std::vector<neigh_t> nearestneighbor_neighborhood;
-   for (int z = -1; z <= 1; z++) {
-      for (int y = -1; y <= 1; y++) {
-         for (int x = -1; x <= 1; x++) {
-            if (x == 0 && y == 0 && z == 0) {
-               continue;
-            }
-            
-            neigh_t offsets = {{x, y, z}};
-            nearestneighbor_neighborhood.push_back(offsets);
-         }
-      }
-   }
-   
-   if (!mpiGrid.add_remote_update_neighborhood(FIELD_SOLVER_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
-      std::cerr << __FILE__ << ":" << __LINE__
-         << " Couldn't set field solver neighborhood"
-         << std::endl;
-      abort();
-   }
-   
-   // set a reduced neighborhood for all possible communication in  vlasov solver
-   //FIXME, the +2 neighbors can be removed as we do not receive from +2, do check though...
-   const std::vector<neigh_t> vlasov_neighborhood
-      = boost::assign::list_of<neigh_t>
-      (boost::assign::list_of( 0)( 0)(-2))
-      (boost::assign::list_of(-1)(-1)(-1))
-      (boost::assign::list_of( 0)(-1)(-1))
-      (boost::assign::list_of( 1)(-1)(-1))
-      (boost::assign::list_of(-1)( 0)(-1))
-      (boost::assign::list_of( 0)( 0)(-1))
-      (boost::assign::list_of( 1)( 0)(-1))
-      (boost::assign::list_of(-1)( 1)(-1))
-      (boost::assign::list_of( 0)( 1)(-1))
-      (boost::assign::list_of( 1)( 1)(-1))
-      (boost::assign::list_of( 0)(-2)( 0))
-      (boost::assign::list_of(-1)(-1)( 0))
-      (boost::assign::list_of( 0)(-1)( 0))
-      (boost::assign::list_of( 1)(-1)( 0))
-      (boost::assign::list_of(-2)( 0)( 0))
-      (boost::assign::list_of(-1)( 0)( 0))
-      (boost::assign::list_of( 1)( 0)( 0))
-      (boost::assign::list_of( 2)( 0)( 0))
-      (boost::assign::list_of(-1)( 1)( 0))
-      (boost::assign::list_of( 0)( 1)( 0))
-      (boost::assign::list_of( 1)( 1)( 0))
-      (boost::assign::list_of( 0)( 2)( 0))
-      (boost::assign::list_of(-1)(-1)( 1))
-      (boost::assign::list_of( 0)(-1)( 1))
-      (boost::assign::list_of( 1)(-1)( 1))
-      (boost::assign::list_of(-1)( 0)( 1))
-      (boost::assign::list_of( 0)( 0)( 1))
-      (boost::assign::list_of( 1)( 0)( 1))
-      (boost::assign::list_of(-1)( 1)( 1))
-      (boost::assign::list_of( 0)( 1)( 1))
-      (boost::assign::list_of( 1)( 1)( 1))
-      (boost::assign::list_of( 0)( 0)( 2));
-   
-   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_NEIGHBORHOOD_ID, vlasov_neighborhood)) {
-      std::cerr << __FILE__ << ":" << __LINE__
-                << " Couldn't set vlasov solver neighborhood"
-                << std::endl;
-      abort();
-   }
-
-   
-   // A reduced neighborhood for vlasov distribution function receives
-   const std::vector<neigh_t> vlasov_density_neighborhood
-      = boost::assign::list_of<neigh_t>
-      (boost::assign::list_of( 0)( 0)(-1))
-      (boost::assign::list_of( 0)( 0)( 1))
-      (boost::assign::list_of( 0)(-1)( 0))
-      (boost::assign::list_of( 0)( 1)( 0))
-      (boost::assign::list_of(-1)( 0)( 0))
-      (boost::assign::list_of( 1)( 0)( 0))
-      (boost::assign::list_of(-2)( 0)( 0))
-      (boost::assign::list_of( 0)(-2)( 0))
-      (boost::assign::list_of( 0)( 0)(-2));
-   
-   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_DENSITY_NEIGHBORHOOD_ID, vlasov_density_neighborhood)) {
-      std::cerr << __FILE__ << ":" << __LINE__
-                << " Couldn't set field solver neighborhood"
-                << std::endl;
-      abort();
-   }
-
-
-   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_FLUXES_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
-      std::cerr << __FILE__ << ":" << __LINE__
-                << " Couldn't set field solver neighborhood"
-                << std::endl;
-      abort();
-   }
-
-   if (!mpiGrid.add_remote_update_neighborhood(SYSBOUNDARIES_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
-      std::cerr << __FILE__ << ":" << __LINE__
-                << " Couldn't set system boundaries neighborhood"
-                << std::endl;
-      abort();
-   }
-   
+   initializeStencils(mpiGrid);
    
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
    phiprof::start("Initial load-balancing");
@@ -245,18 +143,25 @@ void initializeGrid(
       phiprof::stop("Read restart");
    } else {
       // Go through every spatial cell on this CPU, and create the initial state:
+      //initial background field
+      project.setBackgroundField(mpiGrid);
+
+     //Initial state for non-sys-boundary cells
       phiprof::start("Apply initial state");
       if(applyInitialState(mpiGrid, project) == false) {
          cerr << "(MAIN) ERROR: Initial state was not applied correctly." << endl;
          exit(1);
       }
-      
+
+      //initial state for sys-boundary cells
       phiprof::stop("Apply initial state");
       phiprof::start("Apply system boundary conditions state");
       if(sysBoundaries.applyInitialState(mpiGrid, project) == false) {
          cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
          exit(1);
       }
+
+      
       phiprof::stop("Apply system boundary conditions state");
    }
 
@@ -565,4 +470,115 @@ void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell>& mpiGrid)
       cell->prepare_to_receive_blocks();
    }
    phiprof::stop("Preparing receives", incoming_cells.size(), "SpatialCells");
+}
+
+
+void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
+
+   // set reduced neighborhoods
+   typedef dccrg::Types<3>::neighborhood_item_t neigh_t;
+   
+   // set a reduced neighborhood for field solver
+   std::vector<neigh_t> nearestneighbor_neighborhood;
+   for (int z = -1; z <= 1; z++) {
+      for (int y = -1; y <= 1; y++) {
+         for (int x = -1; x <= 1; x++) {
+            if (x == 0 && y == 0 && z == 0) {
+               continue;
+            }
+            
+            neigh_t offsets = {{x, y, z}};
+            nearestneighbor_neighborhood.push_back(offsets);
+         }
+      }
+   }
+   
+   if (!mpiGrid.add_remote_update_neighborhood(FIELD_SOLVER_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+         << " Couldn't set field solver neighborhood"
+         << std::endl;
+      abort();
+   }
+   
+   // set a reduced neighborhood for all possible communication in  vlasov solver
+   //FIXME, the +2 neighbors can be removed as we do not receive from +2, do check though...
+   const std::vector<neigh_t> vlasov_neighborhood
+      = boost::assign::list_of<neigh_t>
+      (boost::assign::list_of( 0)( 0)(-2))
+      (boost::assign::list_of(-1)(-1)(-1))
+      (boost::assign::list_of( 0)(-1)(-1))
+      (boost::assign::list_of( 1)(-1)(-1))
+      (boost::assign::list_of(-1)( 0)(-1))
+      (boost::assign::list_of( 0)( 0)(-1))
+      (boost::assign::list_of( 1)( 0)(-1))
+      (boost::assign::list_of(-1)( 1)(-1))
+      (boost::assign::list_of( 0)( 1)(-1))
+      (boost::assign::list_of( 1)( 1)(-1))
+      (boost::assign::list_of( 0)(-2)( 0))
+      (boost::assign::list_of(-1)(-1)( 0))
+      (boost::assign::list_of( 0)(-1)( 0))
+      (boost::assign::list_of( 1)(-1)( 0))
+      (boost::assign::list_of(-2)( 0)( 0))
+      (boost::assign::list_of(-1)( 0)( 0))
+      (boost::assign::list_of( 1)( 0)( 0))
+      (boost::assign::list_of( 2)( 0)( 0))
+      (boost::assign::list_of(-1)( 1)( 0))
+      (boost::assign::list_of( 0)( 1)( 0))
+      (boost::assign::list_of( 1)( 1)( 0))
+      (boost::assign::list_of( 0)( 2)( 0))
+      (boost::assign::list_of(-1)(-1)( 1))
+      (boost::assign::list_of( 0)(-1)( 1))
+      (boost::assign::list_of( 1)(-1)( 1))
+      (boost::assign::list_of(-1)( 0)( 1))
+      (boost::assign::list_of( 0)( 0)( 1))
+      (boost::assign::list_of( 1)( 0)( 1))
+      (boost::assign::list_of(-1)( 1)( 1))
+      (boost::assign::list_of( 0)( 1)( 1))
+      (boost::assign::list_of( 1)( 1)( 1))
+      (boost::assign::list_of( 0)( 0)( 2));
+   
+   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_NEIGHBORHOOD_ID, vlasov_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+                << " Couldn't set vlasov solver neighborhood"
+                << std::endl;
+      abort();
+   }
+
+   
+   // A reduced neighborhood for vlasov distribution function receives
+   const std::vector<neigh_t> vlasov_density_neighborhood
+      = boost::assign::list_of<neigh_t>
+      (boost::assign::list_of( 0)( 0)(-1))
+      (boost::assign::list_of( 0)( 0)( 1))
+      (boost::assign::list_of( 0)(-1)( 0))
+      (boost::assign::list_of( 0)( 1)( 0))
+      (boost::assign::list_of(-1)( 0)( 0))
+      (boost::assign::list_of( 1)( 0)( 0))
+      (boost::assign::list_of(-2)( 0)( 0))
+      (boost::assign::list_of( 0)(-2)( 0))
+      (boost::assign::list_of( 0)( 0)(-2));
+   
+   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_DENSITY_NEIGHBORHOOD_ID, vlasov_density_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+                << " Couldn't set field solver neighborhood"
+                << std::endl;
+      abort();
+   }
+
+
+   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_FLUXES_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+                << " Couldn't set field solver neighborhood"
+                << std::endl;
+      abort();
+   }
+
+   if (!mpiGrid.add_remote_update_neighborhood(SYSBOUNDARIES_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+                << " Couldn't set system boundaries neighborhood"
+                << std::endl;
+      abort();
+   }
+
+
 }

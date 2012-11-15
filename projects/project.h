@@ -19,8 +19,11 @@ namespace projects {
          
           /*! Initialize project. Can be used, e.g., to read in parameters from the input file. */
          virtual bool initialize();
+
+         /*! set background field, should set it for all cells */
+         virtual void setBackgroundField(dccrg::Dccrg<SpatialCell>& mpiGrid);
       
-         /*!\brief Set the fields and distribution of a cell according to the default simulation settings.
+         /*!\brief Set the perturbed fields and distribution of a cell according to the default simulation settings.
          * This is used for the NOT_SYSBOUNDARY cells and some other system boundary conditions (e.g. Outflow).
          * \param cell Pointer to the cell to set.
          */

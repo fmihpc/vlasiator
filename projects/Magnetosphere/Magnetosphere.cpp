@@ -115,10 +115,16 @@ namespace projects {
       //    return cellID * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5) *
       //    exp(- physicalconstants::MASS_PROTON * (vx*vx + vy*vy + vz*vz) / (2.0 * physicalconstants::K_B * this->T));
    }
-   
-   void Magnetosphere::calcCellParameters(Real* cellParams,creal& t) {
-      setDipole(cellParams);
+
+   /*set 0-centered dipole */
+   void Magnetosphere::setBackgroundField(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+      std::vector<CellID> cells = mpiGrid.get_cells();
+      for (size_t cell=0; cell<cells.size(); ++cell) {
+         SpatialCell *SC = mpiGrid[cells[cell]];
+         setDipole(SC->parameters);
+      }
    }
+
 
    Real Magnetosphere::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
       return this->rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5) *
