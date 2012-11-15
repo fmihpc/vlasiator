@@ -144,7 +144,7 @@ clean: data
 # Rules for making each object file needed by the executable
 
 B0.o: backgroundfield/B0.cpp backgroundfield/B0.hpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/B0.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/B0.cpp ${INC_BOOST}
 
 ode.o: backgroundfield/ode.cpp backgroundfield/ode.hpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/ode.cpp
@@ -153,7 +153,7 @@ quadr.o: backgroundfield/quadr.cpp backgroundfield/quadr.hpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/quadr.cpp
 
 backgroundfield.o: ${DEPS_COMMON} backgroundfield/backgroundfield.cpp backgroundfield/backgroundfield.h
-	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/backgroundfield.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/backgroundfield.cpp ${INC_BOOST}
 
 datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/datareducer.h datareduction/datareductionoperator.h datareduction/datareducer.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareduction/datareducer.cpp ${INC_MPI} ${INC_BOOST}
@@ -248,19 +248,19 @@ grid.o:  ${DEPS_COMMON} parameters.h ${DEPS_PROJECTS} spatial_cell.hpp grid.cpp 
 fileio.o:  ${DEPS_COMMON} parameters.h  spatial_cell.hpp fileio.cpp fileio.h  vlsvwriter2.cpp  vlsvreader2.cpp
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c fileio.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE}
 
-logger.o: logger.h logger.cpp   
+logger.o: logger.h logger.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c logger.cpp ${INC_MPI}
 
-muxml.o: muxml.h muxml.cpp     
+muxml.o: muxml.h muxml.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c muxml.cpp
 
-parameters.o: parameters.h parameters.cpp readparameters.h   
+parameters.o: parameters.h parameters.cpp readparameters.h
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c parameters.cpp ${INC_BOOST}
 
-readparameters.o: readparameters.h readparameters.cpp 
+readparameters.o: readparameters.h readparameters.cpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c readparameters.cpp ${INC_BOOST}
 
-vlscommon.o:  $(DEPS_COMMON)  vlscommon.h vlscommon.cpp   
+vlscommon.o:  $(DEPS_COMMON)  vlscommon.h vlscommon.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlscommon.cpp
 
 
