@@ -23,21 +23,21 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "B0.hpp"
 
 
-void setBackgroundBNegX(
+void setDipoleBackgroundBNegX(
    TB0& background_B,
    creal start_x, creal start_y, creal start_z,
    creal end_x, creal end_y, creal end_z,
    Real& Bx, Real &By, Real& Bz
 );
 
-void setBackgroundBNegY(
+void setDipoleBackgroundBNegY(
    TB0& background_B,
    creal start_x, creal start_y, creal start_z,
    creal end_x, creal end_y, creal end_z,
    Real& Bx, Real &By, Real& Bz
 );
 
-void setBackgroundBNegZ(
+void setDipoleBackgroundBNegZ(
    TB0& background_B,
    creal start_x, creal start_y, creal start_z,
    creal end_x, creal end_y, creal end_z,
@@ -64,7 +64,7 @@ void setDipole(Real* cellParams)
    Real Bx, By, Bz;
 
    // set Bx at negative x face
-   setBackgroundBNegX(
+   setDipoleBackgroundBNegX(
       background_B,
       start_x, start_y, start_z,
       end_x, end_y, end_z,
@@ -73,7 +73,7 @@ void setDipole(Real* cellParams)
    cellParams[CellParams::BGBX] = Bx;
 
    // By at -y face
-   setBackgroundBNegY(
+   setDipoleBackgroundBNegY(
       background_B,
       start_x, start_y, start_z,
       end_x, end_y, end_z,
@@ -82,7 +82,7 @@ void setDipole(Real* cellParams)
    cellParams[CellParams::BGBY] = By;
 
    // Bz at -z
-   setBackgroundBNegZ(
+   setDipoleBackgroundBNegZ(
       background_B,
       start_x, start_y, start_z,
       end_x, end_y, end_z,
@@ -97,7 +97,7 @@ Assigns background B face average in -x direction.
 Start_? and end_? correspond to the cell's vertices
 at minimum and maximum coordinates respectively.
 */
-void setBackgroundBNegX(
+void setDipoleBackgroundBNegX(
    TB0& background_B,
    creal start_x, creal start_y, creal start_z,
    creal end_x, creal end_y, creal end_z,
@@ -127,9 +127,9 @@ void setBackgroundBNegX(
 }
 
 /*!
-Y version of setBackgroundBNegx(...).
+Y version of setDipoleBackgroundBNegx(...).
 */
-void setBackgroundBNegY(
+void setDipoleBackgroundBNegY(
    TB0& background_B,
    creal start_x, creal start_y, creal start_z,
    creal end_x, creal end_y, creal end_z,
@@ -159,9 +159,9 @@ void setBackgroundBNegY(
 }
 
 /*!
-Z version of setBackgroundBNegx(...).
+Z version of setDipoleBackgroundBNegx(...).
 */
-void setBackgroundBNegZ(
+void setDipoleBackgroundBNegZ(
    TB0& background_B,
    creal start_x, creal start_y, creal start_z,
    creal end_x, creal end_y, creal end_z,
