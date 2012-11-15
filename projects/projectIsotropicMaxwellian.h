@@ -1,3 +1,6 @@
+#ifndef ISOTROPICMAXWELLIAN_H
+#define ISOTROPICMAXWELLIAN_H
+
 #include "project.h"
 
 using namespace std;
@@ -19,3 +22,6 @@ namespace projects {
          Real V0[3];
    }; // class IsotropicMaxwellian
 } // namespace
+
+
+#endif

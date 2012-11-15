@@ -20,11 +20,11 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #define FLOWTHROUGH_H
 
 #include "../../definitions.h"
-#include "../project.h"
+#include "../projectIsotropicMaxwellian.h"
 
 
 namespace projects {
-   class Flowthrough: public Project {
+   class Flowthrough: public IsotropicMaxwellian {
       public:
          Flowthrough();
          virtual ~Flowthrough();
@@ -53,7 +53,6 @@ namespace projects {
          Real Bx;
          Real By;
          Real Bz;
-         Real V0[3];
          uint nSpaceSamples;
          uint nVelocitySamples;
    }; // class Flowthrough

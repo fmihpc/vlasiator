@@ -29,7 +29,7 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 using namespace std;
 
 namespace projects {
-   Flowthrough::Flowthrough(): Project() { }
+   Flowthrough::Flowthrough(): IsotropicMaxwellian() { }
    Flowthrough::~Flowthrough() { }
    
    bool Flowthrough::initialize(void) {return true;}
