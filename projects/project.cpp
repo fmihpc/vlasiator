@@ -1,4 +1,5 @@
 #include "project.h"
+#include <cstdlib>
 #include "../vlasovmover.h"
 
 #include "Alfven/Alfven.h"
@@ -25,6 +26,7 @@ namespace projects {
    Project::~Project() { }
    
    void Project::addParameters() {
+      typedef Readparameters RP;
       // TODO add all projects' static addParameters() functions here.
       projects::Alfven::addParameters();
       projects::Diffusion::addParameters();
@@ -40,10 +42,12 @@ namespace projects {
       projects::MultiPeak::addParameters();
       projects::Riemann1::addParameters();
       projects::Shock::addParameters();
+      RP::add("Project_common.seed", "Seed for the RNG", 42);
    }
    
    void Project::getParameters() {
-      cerr << "ERROR: Project::getParameters called instead of derived class function!" << endl;
+      typedef Readparameters RP;
+      RP::get("Fluctuations.seed", this->seed);
    }
    
    bool Project::initialize() {
@@ -128,6 +132,8 @@ namespace projects {
    void Project::calcCellParameters(Real* cellParams,creal& t) {
       cerr << "ERROR: Project::calcCellParameters called instead of derived class function!" << endl;
    }
+
+   
    
    Real Project::calcPhaseSpaceDensity(
       creal& x, creal& y, creal& z,
@@ -136,6 +142,27 @@ namespace projects {
       creal& dvx, creal& dvy, creal& dvz) {
       cerr << "ERROR: Project::calcPhaseSpaceDensity called instead of derived class function!" << endl;
       return -1.0;
+   }
+   
+   Real Project::getRandomNumber() {
+#ifdef _AIX
+      int64_t rndInt;
+#else
+      int32_t rndInt;
+#endif
+      Real rnd;
+      random_r(&rngDataBuffer,&rndInt);
+      rnd=(Real)rndInt / RAND_MAX;
+      return rnd;
+   }
+   
+   void Project::setRandomSeed(uint64_t seedModifier) {
+      memset(&(this->rngDataBuffer), 0, sizeof(this->rngDataBuffer));
+#ifdef _AIX
+      initstate_r(this->seed+seedModifier, &(this->rngStateBuffer[0]), 256, NULL, &(this->rngDataBuffer));
+#else
+      initstate_r(this->seed+seedModifier, &(this->rngStateBuffer[0]), 256, &(this->rngDataBuffer));   
+#endif
    }
    
 Project* createProject() {

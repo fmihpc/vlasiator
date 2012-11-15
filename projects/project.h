@@ -3,6 +3,8 @@
 
 # include "projects_common.h"
 # include "projects_vlasov_acceleration.h"
+#include <cstdlib>
+#include <cmath>
 
 namespace projects {
    class Project {
@@ -15,9 +17,9 @@ namespace projects {
          /*! Get the value that was read in. */
          virtual void getParameters();
          
-         /*! Initialize project. Can be used, e.g., to read in parameters from the input file. */
+          /*! Initialize project. Can be used, e.g., to read in parameters from the input file. */
          virtual bool initialize();
-         
+      
          /*!\brief Set the fields and distribution of a cell according to the default simulation settings.
          * This is used for the NOT_SYSBOUNDARY cells and some other system boundary conditions (e.g. Outflow).
          * \param cell Pointer to the cell to set.
@@ -108,6 +110,13 @@ namespace projects {
             creal& dx, creal& dy, creal& dz,
             creal& vx, creal& vy, creal& vz,
             creal& dvx, creal& dvy, creal& dvz);
+         Real getRandomNumber();
+         void setRandomSeed(uint64_t seedModifier);
+      
+      private:
+         uint seed;
+         char rngStateBuffer[256];
+         random_data rngDataBuffer;
    };
    
    Project* createProject();
