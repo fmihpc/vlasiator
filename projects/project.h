@@ -21,7 +21,7 @@ namespace projects {
          virtual bool initialize();
 
          /*! set background field, should set it for all cells */
-         virtual void setBackgroundField(dccrg::Dccrg<SpatialCell>& mpiGrid);
+         virtual void setCellBackgroundField(SpatialCell* cell);
       
          /*!\brief Set the perturbed fields and distribution of a cell according to the default simulation settings.
          * This is used for the NOT_SYSBOUNDARY cells and some other system boundary conditions (e.g. Outflow).

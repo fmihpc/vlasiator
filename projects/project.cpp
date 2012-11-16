@@ -59,14 +59,11 @@ namespace projects {
    }
 
    /*! Base class sets zero background field */
-   void Project::setBackgroundField(dccrg::Dccrg<SpatialCell>& mpiGrid) {
-      std::vector<CellID> cells = mpiGrid.get_cells();
-      for (size_t cell=0; cell<cells.size(); ++cell) {
-         SpatialCell *SC = mpiGrid[cells[cell]];
-         SC->parameters[CellParams::BGBX]  = 0.0;
-         SC->parameters[CellParams::BGBY]  = 0.0;
-         SC->parameters[CellParams::BGBZ]  = 0.0;
-      }
+   void Project::setCellBackgroundField(SpatialCell* cell) {
+     cell->parameters[CellParams::BGBX]  = 0.0;
+     cell->parameters[CellParams::BGBY]  = 0.0;
+     cell->parameters[CellParams::BGBZ]  = 0.0;
+     
    }
    
    void Project::setCell(SpatialCell* cell) {

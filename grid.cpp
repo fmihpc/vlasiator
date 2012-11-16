@@ -142,11 +142,8 @@ void initializeGrid(
       }
       phiprof::stop("Read restart");
    } else {
-      // Go through every spatial cell on this CPU, and create the initial state:
-      //initial background field
-      project.setBackgroundField(mpiGrid);
-
-     //Initial state for non-sys-boundary cells
+     //Initial state based on project, background field in all cells
+     //and other initial values in non-sysboundary cells
       phiprof::start("Apply initial state");
       if(applyInitialState(mpiGrid, project) == false) {
          cerr << "(MAIN) ERROR: Initial state was not applied correctly." << endl;
@@ -229,17 +226,18 @@ bool applyInitialState(
    
    vector<uint64_t> cells = mpiGrid.get_cells();
    
-   //  Go through every cell on this node and initialize the pointers to 
-   // cpu memory, physical parameters and volume averages for each phase space 
-   // point in the velocity grid. Velocity block neighbour list is also 
-   // constructed here:
+   // Go through every cell on this node and initialize the 
+   //  -Background field on all cells
+   //  -Perturbed fields and ion distribution function in non-sysboundary cells
    // Each initialization has to be independent to avoid threading problems 
 #pragma omp parallel for schedule(dynamic)
    //WARNING no threading here if setProjectCell has threading
    for (uint i=0; i<cells.size(); ++i) {
       SpatialCell* cell = mpiGrid[cells[i]];
-      if(cell->sysBoundaryFlag != NOT_SYSBOUNDARY) continue;
-      project.setCell(cell);
+      if(cell->sysBoundaryFlag != DO_NO_COMPUTE)
+	project.setCellBackgroundField(cell);
+      if(cell->sysBoundaryFlag == NOT_SYSBOUNDARY)
+	project.setCell(cell);
    }
    return true;
 }

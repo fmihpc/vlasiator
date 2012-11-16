@@ -117,12 +117,8 @@ namespace projects {
    }
 
    /*set 0-centered dipole */
-   void Magnetosphere::setBackgroundField(dccrg::Dccrg<SpatialCell>& mpiGrid) {
-      std::vector<CellID> cells = mpiGrid.get_cells();
-      for (size_t cell=0; cell<cells.size(); ++cell) {
-         SpatialCell *SC = mpiGrid[cells[cell]];
-         setDipole(SC->parameters);
-      }
+  void Magnetosphere::setCellBackgroundField(SpatialCell *cell){
+    setDipole(cell->parameters);
    }
 
 

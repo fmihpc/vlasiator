@@ -31,7 +31,7 @@ namespace projects {
          virtual bool initialize(void);
          static void addParameters(void);
          virtual void getParameters(void);
-         virtual void setBackgroundField(dccrg::Dccrg<SpatialCell>& mpiGrid);
+	 virtual void setCellBackgroundField(SpatialCell* cell);
          virtual Real calcPhaseSpaceDensity(
             creal& x, creal& y, creal& z,
             creal& dx, creal& dy, creal& dz,
