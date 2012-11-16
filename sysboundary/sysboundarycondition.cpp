@@ -218,22 +218,35 @@ namespace SBC {
    //if the spatialcells are neighbors
    void SysBoundaryCondition::copyCellData(SpatialCell *from, SpatialCell *to)
    {
+
+      /*prepare list of blocks to remove. It is not safe to loop over
+       * velocity_block_list while adding/removing blocks*/
+      std::vector<uint> blocksToRemove;
       for(uint block_i=0;
           block_i<to->number_of_blocks;
           block_i++) {
          cuint blockID=to->velocity_block_list[block_i];
-         if(from->get_block_has_content(blockID) == false) {
-            to->remove_velocity_block(blockID);
+         if(from->is_null_block(from->at(blockID))) {
+            //this block does not exist in from -> mark for removal.
+            blocksToRemove.push_back(blockID);
          }
       }
-      
+
+      /*remove blocks*/
+      for(uint block_i=0;
+          block_i<blocksToRemove.size();
+          block_i++) {
+         cuint blockID=blocksToRemove[block_i];
+         to->remove_velocity_block(blockID);
+      }
+
+      /*add blocks*/
       for(uint block_i=0;
           block_i<from->number_of_blocks;
           block_i++) {
          cuint blockID = from->velocity_block_list[block_i];
-         
-         to->add_velocity_block(blockID);
-         
+
+         to->add_velocity_block(blockID);          
          const Velocity_Block* toBlock = to->at(blockID);
          const Velocity_Block* fromBlock = from->at(blockID);
          for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
@@ -250,9 +263,7 @@ namespace SBC {
       to->parameters[CellParams::RHOVX] = from->parameters[CellParams::RHOVX];
       to->parameters[CellParams::RHOVY] = from->parameters[CellParams::RHOVY];
       to->parameters[CellParams::RHOVZ] = from->parameters[CellParams::RHOVZ];
-      
-      //let's get rid of blocks not fulfilling the criteria here to save memory.
-      to->adjustSingleCellVelocityBlocks();
+
    }
    
 //    void SysBoundaryCondition::zeroCellData(SpatialCell *to)
