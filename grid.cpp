@@ -234,7 +234,7 @@ bool applyInitialState(
    //WARNING no threading here if setProjectCell has threading
    for (uint i=0; i<cells.size(); ++i) {
       SpatialCell* cell = mpiGrid[cells[i]];
-      if(cell->sysBoundaryFlag != DO_NO_COMPUTE)
+      if(cell->sysBoundaryFlag != DO_NOT_COMPUTE)
 	project.setCellBackgroundField(cell);
       if(cell->sysBoundaryFlag == NOT_SYSBOUNDARY)
 	project.setCell(cell);
