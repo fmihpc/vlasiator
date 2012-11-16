@@ -231,7 +231,6 @@ bool applyInitialState(
    //  -Perturbed fields and ion distribution function in non-sysboundary cells
    // Each initialization has to be independent to avoid threading problems 
 #pragma omp parallel for schedule(dynamic)
-   //WARNING no threading here if setProjectCell has threading
    for (uint i=0; i<cells.size(); ++i) {
       SpatialCell* cell = mpiGrid[cells[i]];
       if(cell->sysBoundaryFlag != DO_NOT_COMPUTE)

@@ -108,20 +108,21 @@ namespace projects {
          return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz);
       }
       
-      //    CellID cellID = 1 + round((x - Parameters::xmin) / dx + 
-      //    (y - Parameters::ymin) / dy * Parameters::xcells_ini +
-      //    (z - Parameters::zmin) / dz * Parameters::ycells_ini * Parameters::xcells_ini);
-      
-      //    return cellID * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5) *
-      //    exp(- physicalconstants::MASS_PROTON * (vx*vx + vy*vy + vz*vz) / (2.0 * physicalconstants::K_B * this->T));
    }
 
-   /*set 0-centered dipole */
+   /* set 0-centered dipole */
   void Magnetosphere::setCellBackgroundField(SpatialCell *cell){
-    setDipole(cell->parameters);
-   }
-
-
+     setDipole(cell->parameters);
+     if (  (cell->parameters[CellParams::BGBX]) !=(cell->parameters[CellParams::BGBX]) ||
+           (cell->parameters[CellParams::BGBY]) !=(cell->parameters[CellParams::BGBY]) ||
+           (cell->parameters[CellParams::BGBZ]) !=(cell->parameters[CellParams::BGBZ]))
+     {
+        std::cerr << __FILE__ << ":" << __LINE__ << " Dipole returned NAN's ???"  << std::endl; \
+        abort();                                                        \
+     }
+  }
+   
+   
    Real Magnetosphere::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
       return this->rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5) *
       exp(- physicalconstants::MASS_PROTON * ((vx-this->V0[0])*(vx-this->V0[0]) + (vy-this->V0[1])*(vy-this->V0[1]) + (vz-this->V0[2])*(vz-this->V0[2])) / (2.0 * physicalconstants::K_B * this->T));
