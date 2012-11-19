@@ -26,6 +26,7 @@
 #include "sysboundarycondition.h"
 
 using namespace projects;
+using namespace std;
 
 namespace SBC {
    /*!\brief Ionosphere is a class applying ionospheric boundary conditions.
@@ -88,8 +89,23 @@ namespace SBC {
       void generateTemplateCell(Project &project);
       void setCellFromTemplate(SpatialCell *cell);
       
+      Real maxwellianDistribution(
+         creal& vx, creal& vy, creal& vz
+      );
+      
+      vector<uint> findBlocksToInitialize(
+         SpatialCell& cell
+      );
+      
       Real center[3]; /*!< Coordinates of the centre of the ionosphere. */
       Real radius; /*!< Radius of the ionosphere. */
+      
+      Real T;
+      Real rho;
+      
+      uint nSpaceSamples;
+      uint nVelocitySamples;
+      
       int depth; /*!< Depth in cells of ionosphere layer. */
       spatial_cell::SpatialCell templateCell;
    };

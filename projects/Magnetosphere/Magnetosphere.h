@@ -47,7 +47,11 @@ namespace projects {
          );
          
          Real T;
-         Real rho;
+         Real tailRho;
+         Real higherRhoZone;
+         Real ionosphereRho;
+         Real ionosphereRadius;
+         Real ionosphereTaperRadius;
          uint nSpaceSamples;
          uint nVelocitySamples;
    }; // class Magnetosphere

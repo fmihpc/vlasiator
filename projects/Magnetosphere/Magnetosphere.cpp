@@ -34,11 +34,12 @@ namespace projects {
    
    void Magnetosphere::addParameters() {
       typedef Readparameters RP;
-      RP::add("Magnetosphere.rho", "Number density (m^-3)", 0.0);
+      RP::add("Magnetosphere.rho", "Tail region number density (m^-3)", 0.0);
       RP::add("Magnetosphere.T", "Temperature (K)", 0.0);
       RP::add("Magnetosphere.VX0", "Initial bulk velocity in x-direction", 0.0);
       RP::add("Magnetosphere.VY0", "Initial bulk velocity in y-direction", 0.0);
       RP::add("Magnetosphere.VZ0", "Initial bulk velocity in z-direction", 0.0);
+      RP::add("Magnetosphere.higherRhoZone", "Abscissa in GSE above which the background magnetospheric density is multiplied by 10 (m)", 0.0);
       RP::add("Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
       RP::add("Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
    }
@@ -47,7 +48,11 @@ namespace projects {
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       typedef Readparameters RP;
-      if(!RP::get("Magnetosphere.rho", this->rho)) {
+      if(!RP::get("Magnetosphere.rho", this->tailRho)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!RP::get("Magnetosphere.higherRhoZone", this->higherRhoZone)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -72,6 +77,18 @@ namespace projects {
          exit(1);
       }
       if(!RP::get("Magnetosphere.nVelocitySamples", this->nVelocitySamples)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!RP::get("ionosphere.rho", this->ionosphereRho)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!RP::get("ionosphere.radius", this->ionosphereRadius)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!RP::get("ionosphere.taperRadius", this->ionosphereTaperRadius)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -124,7 +141,15 @@ namespace projects {
    
    
    Real Magnetosphere::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
-      return this->rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5) *
+      Real initRho = this->tailRho;
+      creal radius = sqrt(x*x + y*y + z*z);
+      if(radius < this->ionosphereTaperRadius && radius > this->ionosphereRadius) {
+         initRho = this->ionosphereRho - (ionosphereRho-tailRho) * (radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
+      }
+      if(x > this->higherRhoZone) {
+         initRho*=10;
+      }
+      return initRho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5) *
       exp(- physicalconstants::MASS_PROTON * ((vx-this->V0[0])*(vx-this->V0[0]) + (vy-this->V0[1])*(vy-this->V0[1]) + (vz-this->V0[2])*(vz-this->V0[2])) / (2.0 * physicalconstants::K_B * this->T));
    }
    

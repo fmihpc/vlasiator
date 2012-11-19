@@ -222,7 +222,8 @@ namespace SBC {
                                  T,
                                  vxCell + vi*d_vx - Vx,
                                  vyCell + vj*d_vy - Vy,
-                                 vzCell + vk*d_vz - Vz);
+                                 vzCell + vk*d_vz - Vz
+                              );
                      }
                      average /= this->nVelocitySamples * this->nVelocitySamples * this->nVelocitySamples;
                   } else {

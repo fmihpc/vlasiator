@@ -29,8 +29,6 @@
 #include "../vlasovmover.h"
 #include "../common.h"
 
-using namespace std;
-
 namespace SBC {
    Ionosphere::Ionosphere(): SysBoundaryCondition() { }
    
@@ -41,34 +39,52 @@ namespace SBC {
       Readparameters::add("ionosphere.centerY", "Y coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.centerZ", "Z coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.radius", "Radius of ionosphere (m).", 1.0e7);
+      Readparameters::add("ionosphere.rho", "Number density of the ionosphere (m^-3)", 1.0e6);
       Readparameters::add("ionosphere.depth", "Depth in cells of ionosphere layer.", 1);
+      Readparameters::add("ionosphere.taperRadius", "Width of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
       Readparameters::add("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 2);
    }
    
    void Ionosphere::getParameters() {
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      if(!Readparameters::get("ionosphere.centerX", center[0])) {
+      if(!Readparameters::get("ionosphere.centerX", this->center[0])) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      if(!Readparameters::get("ionosphere.centerY", center[1])) {
+      if(!Readparameters::get("ionosphere.centerY", this->center[1])) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      if(!Readparameters::get("ionosphere.centerZ", center[2])) {
+      if(!Readparameters::get("ionosphere.centerZ", this->center[2])) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      if(!Readparameters::get("ionosphere.radius", radius)) {
+      if(!Readparameters::get("ionosphere.radius", this->radius)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      if(!Readparameters::get("ionosphere.depth", depth)) {
+      if(!Readparameters::get("ionosphere.rho", this->rho)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      if(!Readparameters::get("ionosphere.precedence", precedence)) {
+      if(!Readparameters::get("Magnetosphere.T", this->T)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.depth", this->depth)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.precedence", this->precedence)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.nSpaceSamples", this->nSpaceSamples)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("Magnetosphere.nVelocitySamples", this->nVelocitySamples)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -218,13 +234,117 @@ namespace SBC {
       templateCell.parameters[CellParams::DX] = 1;
       templateCell.parameters[CellParams::DY] = 1;
       templateCell.parameters[CellParams::DZ] = 1;
-      project.setCell(&templateCell);
+      
+      vector<uint> blocksToInitialize = this->findBlocksToInitialize(templateCell);
+      
+      for(uint i = 0; i < blocksToInitialize.size(); i++) {
+         Velocity_Block* blockPtr = templateCell.at(blocksToInitialize.at(i));
+         creal vxBlock = blockPtr->parameters[BlockParams::VXCRD];
+         creal vyBlock = blockPtr->parameters[BlockParams::VYCRD];
+         creal vzBlock = blockPtr->parameters[BlockParams::VZCRD];
+         creal dvxCell = SpatialCell::cell_dvx; // Size of one cell in a block in vx-direction
+         creal dvyCell = SpatialCell::cell_dvy; //                                vy
+         creal dvzCell = SpatialCell::cell_dvz; //                                vz
+         
+         creal x = templateCell.parameters[CellParams::XCRD];
+         creal y = templateCell.parameters[CellParams::YCRD];
+         creal z = templateCell.parameters[CellParams::ZCRD];
+         creal dx = templateCell.parameters[CellParams::DX];
+         creal dy = templateCell.parameters[CellParams::DY];
+         creal dz = templateCell.parameters[CellParams::DZ];
+         
+         // Calculate volume average of distrib. function for each cell in the block.
+         for (uint kc=0; kc<WID; ++kc) 
+            for (uint jc=0; jc<WID; ++jc) 
+               for (uint ic=0; ic<WID; ++ic) {
+                  creal vxCell = vxBlock + ic*dvxCell;
+                  creal vyCell = vyBlock + jc*dvyCell;
+                  creal vzCell = vzBlock + kc*dvzCell;
+                  Real average = 0.0;
+                  if(this->nVelocitySamples > 1) {
+                     creal d_vx = dvxCell / (nVelocitySamples-1);
+                     creal d_vy = dvyCell / (nVelocitySamples-1);
+                     creal d_vz = dvzCell / (nVelocitySamples-1);
+                     for (uint vi=0; vi<nVelocitySamples; ++vi)
+                        for (uint vj=0; vj<nVelocitySamples; ++vj)
+                           for (uint vk=0; vk<nVelocitySamples; ++vk) {
+                              average += maxwellianDistribution(
+                                 vxCell + vi*d_vx,
+                                 vyCell + vj*d_vy,
+                                 vzCell + vk*d_vz
+                              );
+                           }
+                           average /= this->nVelocitySamples * this->nVelocitySamples * this->nVelocitySamples;
+                  } else {
+                     average = maxwellianDistribution(
+                        vxCell + 0.5*dvxCell,
+                        vyCell + 0.5*dvyCell,
+                        vzCell + 0.5*dvzCell
+                     );
+                  }
+                  
+                  if(average!=0.0){
+                     creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
+                     creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
+                     creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
+                     templateCell.set_value(vxCellCenter,vyCellCenter,vzCellCenter,average);
+                  }
+         }
+      }
+      //let's get rid of blocks not fulfilling the criteria here to save
+      //memory.
+      templateCell.adjustSingleCellVelocityBlocks();
+      
+      calculateCellVelocityMoments(&templateCell);
       
       // WARNING Time-independence assumed here. Normal momentes computed in setProjectCell
       templateCell.parameters[CellParams::RHO_DT2] = templateCell.parameters[CellParams::RHO];
       templateCell.parameters[CellParams::RHOVX_DT2] = templateCell.parameters[CellParams::RHOVX];
       templateCell.parameters[CellParams::RHOVY_DT2] = templateCell.parameters[CellParams::RHOVY];
       templateCell.parameters[CellParams::RHOVZ_DT2] = templateCell.parameters[CellParams::RHOVZ];
+   }
+   
+   Real Ionosphere::maxwellianDistribution(
+      creal& vx, creal& vy, creal& vz
+   ) {
+      return this->rho * pow(physicalconstants::MASS_PROTON /
+      (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5) *
+      exp(-physicalconstants::MASS_PROTON * (vx*vx + vy*vy + vz*vz) /
+      (2.0 * physicalconstants::K_B * this->T));
+   }
+   
+   vector<uint> Ionosphere::findBlocksToInitialize(
+      SpatialCell& cell
+   ) {
+      vector<uint> blocksToInitialize;
+      bool search = true;
+      int counter = 0;
+      
+      while(search) {
+         if(0.1 * P::sparseMinValue >
+            maxwellianDistribution(counter*SpatialCell::block_dvx, 0.0, 0.0)
+         ) {
+            search = false;
+         }
+         counter++;
+      }
+      counter+=2;
+      Real vRadiusSquared = (Real)counter*(Real)counter*SpatialCell::block_dvx*SpatialCell::block_dvx;
+      
+      for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
+         for (uint jv=0; jv<P::vyblocks_ini; ++jv)
+            for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
+               creal vx = P::vxmin + (iv+0.5) * SpatialCell::block_dvx; // vx-coordinate of the centre
+               creal vy = P::vymin + (jv+0.5) * SpatialCell::block_dvy; // vy-
+               creal vz = P::vzmin + (kv+0.5) * SpatialCell::block_dvz; // vz-
+               
+               if(vx*vx + vy*vy + vz*vz < vRadiusSquared) {
+                  cell.add_velocity_block(cell.get_velocity_block(vx, vy, vz));
+                  blocksToInitialize.push_back(cell.get_velocity_block(vx, vy, vz));
+               }
+            }
+            
+            return blocksToInitialize;
    }
    
    void Ionosphere::setCellFromTemplate(SpatialCell *cell) {
