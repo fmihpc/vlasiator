@@ -233,10 +233,9 @@ bool applyInitialState(
 #pragma omp parallel for schedule(dynamic)
    for (uint i=0; i<cells.size(); ++i) {
       SpatialCell* cell = mpiGrid[cells[i]];
-      if(cell->sysBoundaryFlag != DO_NOT_COMPUTE)
-	project.setCellBackgroundField(cell);
+      project.setCellBackgroundField(cell);
       if(cell->sysBoundaryFlag == NOT_SYSBOUNDARY)
-	project.setCell(cell);
+         project.setCell(cell);
    }
    return true;
 }
