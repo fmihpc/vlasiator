@@ -642,7 +642,8 @@ namespace velocity_neighbor {
          this->null_block_fx.resize(SIZE_FLUXS);
          this->null_block.data=&(this->null_block_data[0]);
          this->null_block.fx=&(this->null_block_fx[0]);
-
+         this->sysBoundaryLayer=0; /*!< Default value, layer not yet initialized*/
+            
          this->null_block.clear();
          // zero neighbor lists of null block
          for (unsigned int i = 0; i < N_NEIGHBOR_VELOCITY_BLOCKS; i++) {
@@ -679,7 +680,8 @@ namespace velocity_neighbor {
          null_block_fx(other.null_block_fx),
          neighbors(other.neighbors),
          procBoundaryFlag(other.procBoundaryFlag),
-         sysBoundaryFlag(other.sysBoundaryFlag)
+         sysBoundaryFlag(other.sysBoundaryFlag),
+         sysBoundaryLayer(other.sysBoundaryLayer)
          {
 
 //       phiprof::initializeTimer("SpatialCell copy", "SpatialCell copy");
@@ -964,6 +966,8 @@ namespace velocity_neighbor {
             // send  sysBoundaryFlag        
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_SYSBOUNDARYFLAG)!=0){
                 displacements.push_back((uint8_t*) &(this->sysBoundaryFlag) - (uint8_t*) this);
+                block_lengths.push_back(sizeof(uint));
+                displacements.push_back((uint8_t*) &(this->sysBoundaryLayer) - (uint8_t*) this);
                 block_lengths.push_back(sizeof(uint));
             }
             
@@ -1747,10 +1751,10 @@ namespace velocity_neighbor {
       //neighbor id's. Kept up to date in solvers, not by the spatial_cell class
       std::vector<uint64_t> neighbors;
      
-      //data for solvers
-      unsigned int procBoundaryFlag;
-      uint sysBoundaryFlag; /*!< What type of system boundary does the cell belong to. Enumerated in the sysboundarytype namespace's enum */
       
+      unsigned int procBoundaryFlag; /*!< bitfield usied in leveque vlasov solver to see if a neighbor exists, or if it is outside the system. TODO: bad/missleading name */
+      uint sysBoundaryFlag; /*!< What type of system boundary does the cell belong to. Enumerated in the sysboundarytype namespace's enum */
+      uint sysBoundaryLayer; /*!< Layers counted from closest systemBoundary. If 0 then it has not been computed. First sysboundary layer is layer 1 */
       
    }; // class SpatialCell
    

@@ -157,7 +157,7 @@ bool Parameters::addParameters(){
    Readparameters::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
 
 // Output variable parameters
-   Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available are B BackgroundB PerturbedB E Rho RhoV RhoLossAdjust RhoLossVelBoundary MPIrank Blocks BoundaryType VolE VolB Pressure PTensor Bderivs MaxVdt MaxRdt MaxFieldsdt LBweight.");
+   Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available are B BackgroundB PerturbedB E Rho RhoV RhoLossAdjust RhoLossVelBoundary MPIrank Blocks BoundaryType BoundaryLayer VolE VolB Pressure PTensor Bderivs MaxVdt MaxRdt MaxFieldsdt LBweight.");
    Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Available (20121005) are Blocks FluxB FluxE Rho RhoLossAdjust RhoLossVelBoundary  MaxDistributionFunction MinDistributionFunction MaxVdt MaxRdt MaxFieldsdt LBweight.");
 
    

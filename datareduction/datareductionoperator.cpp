@@ -234,6 +234,32 @@ namespace DRO {
       boundaryType = (int)cell->sysBoundaryFlag;
       return true;
    }
+
+
+      // BoundaryLayer
+   BoundaryLayer::BoundaryLayer(): DataReductionOperator() { }
+   BoundaryLayer::~BoundaryLayer() { }
+   
+   bool BoundaryLayer::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "int";
+      dataSize = sizeof(int);
+      vectorSize = 1;
+      return true;
+   }
+   
+   std::string BoundaryLayer::getName() const {return "Boundary_layer";}
+   
+   bool BoundaryLayer::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(&boundaryLayer);
+      for (uint i=0; i<sizeof(int); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool BoundaryLayer::setSpatialCell(const SpatialCell* cell) {
+      boundaryLayer = (int)cell->sysBoundaryLayer;
+      return true;
+   }
+
    
    // Blocks
    Blocks::Blocks(): DataReductionOperator() { }

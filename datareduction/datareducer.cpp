@@ -59,6 +59,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::MPIrank);
       if(*it == "BoundaryType")
          outputReducer->addOperator(new DRO::BoundaryType);
+      if(*it == "BoundaryLayer")
+         outputReducer->addOperator(new DRO::BoundaryLayer);
       if(*it == "Blocks")
          outputReducer->addOperator(new DRO::Blocks);
       if(*it == "VolE")

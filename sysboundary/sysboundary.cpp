@@ -218,8 +218,9 @@ bool SysBoundary::initSysBoundaries(
  */
 bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    bool success = true;
-   
+
    vector<CellID> cells = mpiGrid.get_cells();
+   
    for(uint i=0; i<cells.size(); i++) {
       mpiGrid[cells[i]]->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
    }
@@ -231,9 +232,52 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       success = success && (*it)->assignSysBoundary(mpiGrid);
    }
    
+
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_NEIGHBORHOOD_ID);
-   
+   int rank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+
+   /*set distance 1 cells to boundary cells, that have neighbors which are normal cells */
+   for(uint i=0; i<cells.size(); i++) {
+      mpiGrid[cells[i]]->sysBoundaryLayer=0; /*Initial value*/
+      if(mpiGrid[cells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) {
+         const std::vector<CellID>* nbrs = mpiGrid.get_neighbors(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
+         for(uint j=0; j<(*nbrs).size(); j++) {
+            if((*nbrs)[j]!=0 ) {
+               if(mpiGrid[(*nbrs)[j]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ) {
+                  mpiGrid[cells[i]]->sysBoundaryLayer=1;
+               }
+            }
+         }
+      }
+   }
+
+
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
+   mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+
+
+   /*Compute distances*/
+   /*Construct vector with all cells, both local and remote*/
+   for(uint layer=1;layer<100;layer++){
+      for(uint i=0; i<cells.size(); i++) {
+         if(mpiGrid[cells[i]]->sysBoundaryLayer==0){
+            const std::vector<CellID>* nbrs = mpiGrid.get_neighbors(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
+            for(uint j=0; j<(*nbrs).size(); j++) {
+               if((*nbrs)[j]!=0 && (*nbrs)[j]!=cells[i] ) {
+                  if(mpiGrid[(*nbrs)[j]]->sysBoundaryLayer==layer) { 
+                     mpiGrid[cells[i]]->sysBoundaryLayer=layer+1;
+                     break;
+                  }
+               }
+            }
+         }
+      }
+      SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
+      mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+   }
+                  
    return success;
 }
 
@@ -318,7 +362,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    phiprof::start(timer);
    mpiGrid.wait_neighbor_data_update_sends();
    phiprof::stop(timer);
-
+   
    //FIXME, we should have a boolean that tells us if this is needed or not... 
    updateRemoteVelocityBlockLists(mpiGrid);
    adjustVelocityBlocks(mpiGrid);
