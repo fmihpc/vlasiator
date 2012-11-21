@@ -75,7 +75,12 @@ namespace DRO {
       DataReductionOperatorDerivatives(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize);
       virtual bool setSpatialCell(const SpatialCell* cell);
    };
-
+   
+   class DataReductionOperatorBVOLDerivatives: public DataReductionOperatorCellParams {
+   public:
+      DataReductionOperatorBVOLDerivatives(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+   };
    
    class MPIrank: public DataReductionOperator {
     public:

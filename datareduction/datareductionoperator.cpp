@@ -154,6 +154,15 @@ namespace DRO {
    }
 
 
+   DataReductionOperatorBVOLDerivatives::DataReductionOperatorBVOLDerivatives(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize):
+   DataReductionOperatorCellParams(name,parameterIndex,vectorSize) {
+      
+   }
+   //a version with derivatives, this is the only function that is different
+   bool DataReductionOperatorBVOLDerivatives::setSpatialCell(const SpatialCell* cell) {
+      _data  = &(cell->derivativesBVOL[_parameterIndex]);
+      return true;
+   }
    
    
    

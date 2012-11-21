@@ -73,13 +73,33 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::VariablePTensorDiagonal);
          outputReducer->addOperator(new DRO::VariablePTensorOffDiagonal);
       }
-      if(*it == "Bderivs") {
+      if(*it == "derivs") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhodx",fieldsolver::drhodx,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhody",fieldsolver::drhody,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhodz",fieldsolver::drhodz,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBxdy",fieldsolver::dBxdy,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBxdz",fieldsolver::dBxdz,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBydx",fieldsolver::dBydx,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBydz",fieldsolver::dBydz,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBzdx",fieldsolver::dBzdx,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBzdy",fieldsolver::dBzdy,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dVxdx",fieldsolver::dVxdx,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dVxdy",fieldsolver::dVxdy,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dVxdz",fieldsolver::dVxdz,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dVydx",fieldsolver::dVydx,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dVydy",fieldsolver::dVydy,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dVydz",fieldsolver::dVydz,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dVzdx",fieldsolver::dVzdx,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dVzdy",fieldsolver::dVzdy,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dVzdz",fieldsolver::dVzdz,1));
+      }
+      if(*it == "BVOLderivs") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBXVOLdy",bvolderivatives::dBXVOLdy,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBXVOLdz",bvolderivatives::dBXVOLdz,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBYVOLdx",bvolderivatives::dBYVOLdx,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBYVOLdz",bvolderivatives::dBYVOLdz,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBZVOLdx",bvolderivatives::dBZVOLdx,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBZVOLdy",bvolderivatives::dBZVOLdy,1));
       }
    }
    
