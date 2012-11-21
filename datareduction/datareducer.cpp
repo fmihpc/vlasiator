@@ -130,8 +130,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          diagnosticReducer->addOperator(new DRO::MaxDistributionFunction);
       if(*it == "MinDistributionFunction")
          diagnosticReducer->addOperator(new DRO::MinDistributionFunction);
-      if(*it == "LBweight")
-         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("LB_weight",CellParams::LBWEIGHTCOUNTER,1));
       if(*it == "BoundaryType")
          diagnosticReducer->addOperator(new DRO::BoundaryType);
       if(*it == "BoundaryLayer")
