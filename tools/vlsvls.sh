@@ -16,8 +16,8 @@ fi
 
 if [ -e $1 ]
 then
-echo "Tag          Name           Value      Vectorsize" 
-echo "------------------------------------------------"
+echo "Tag           Name            Value          Vectorsize" 
+echo "-------------------------------------------------------"
 tail -1000  $1 |
 grep arraysize |
 sed 's/[<\"=>]/ /g' |
