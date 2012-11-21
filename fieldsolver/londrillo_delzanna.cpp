@@ -299,7 +299,6 @@ static void calculateDerivatives(
    namespace cp = CellParams;
    namespace fs = fieldsolver;
    Real* const array       = mpiGrid[cellID]->derivatives;
-   Real* const derivatives = array;
    // Get boundary flag for the cell:
    #ifndef NDEBUG
       map<CellID,uint>::const_iterator it = sysBoundaryFlags.find(cellID);
@@ -2224,8 +2223,7 @@ static void calculateBVOLDerivatives(
 ) {
    namespace cp = CellParams;
    namespace der = bvolderivatives;
-   Real* const array       = mpiGrid[cellID]->derivatives;
-   Real* const derivatives = array;
+   Real* const array = mpiGrid[cellID]->derivativesBVOL;
    // Get boundary flag for the cell:
    #ifndef NDEBUG
    map<CellID,uint>::const_iterator it = sysBoundaryFlags.find(cellID);
