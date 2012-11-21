@@ -218,7 +218,6 @@ bool SysBoundary::initSysBoundaries(
  */
 bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    bool success = true;
-
    vector<CellID> cells = mpiGrid.get_cells();
    
    for(uint i=0; i<cells.size(); i++) {
@@ -260,7 +259,8 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 
    /*Compute distances*/
    /*Construct vector with all cells, both local and remote*/
-   for(uint layer=1;layer<100;layer++){
+   uint maxLayers=10;
+   for(uint layer=1;layer<maxLayers;layer++){
       for(uint i=0; i<cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryLayer==0){
             const std::vector<CellID>* nbrs = mpiGrid.get_neighbors(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
