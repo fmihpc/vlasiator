@@ -316,11 +316,12 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    if(sysBoundaries.size()==0) {
       return; //no system boundaries
    }
-   
+
+   /*Transfer along boundaries*/
    SpatialCell::set_mpi_transfer_type(
       Transfer::CELL_PARAMETERS|
       Transfer::VEL_BLOCK_DATA|
-      Transfer::CELL_SYSBOUNDARYFLAG);
+      Transfer::CELL_SYSBOUNDARYFLAG,true);
    
    int timer=phiprof::initializeTimer("Start comm of cell and block data","MPI");
    phiprof::start(timer);
@@ -340,7 +341,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    }
    phiprof::stop(timer);
    
-   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+   timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
    phiprof::start(timer);
    mpiGrid.wait_neighbor_data_update_receives(SYSBOUNDARIES_NEIGHBORHOOD_ID);
    phiprof::stop(timer);

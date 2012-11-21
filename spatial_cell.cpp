@@ -40,5 +40,6 @@ namespace spatial_cell {
    Real SpatialCell::velocity_block_min_value = 0;    
    unsigned int SpatialCell::max_velocity_blocks = 0;
    uint64_t SpatialCell::mpi_transfer_type = 0;
+   bool SpatialCell::mpiTransferAtSysBoundaries = false;
 }
 
