@@ -58,6 +58,14 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 using namespace std;
 using namespace spatial_cell;
 
+//compute one acceleration substep 
+void calculateAccelerationSubstep(
+   vector< vector<Velocity_Block*> > &blockPointers,
+   vector< vector<uint> > &cellIndex,
+   vector< Real > &subDt,
+   vector< bool> &doCellIntegration,
+   Project& project);
+
 static TransferStencil<CellID> stencilAverages(INVALID_CELLID);
 static TransferStencil<CellID> stencilUpdates(INVALID_CELLID);
 
@@ -254,68 +262,187 @@ void calculateAcceleration(
    Project& project,
    Real dt
 ) {
+
    typedef Parameters P;
    const vector<CellID> cells = mpiGrid.get_cells();
-   vector<CellID> nonSysBoundaryCells;
 
    // Iterate through all local cells and propagate distribution functions 
    // in velocity space. Ghost cells (spatial cells at the boundary of the simulation 
    // volume) do not need to be propagated:
 
+   
+   vector< vector<Velocity_Block*> > blockPointers (8, vector<Velocity_Block*>(0,0) );
+   vector< vector<uint> > cellIndex(8, vector<uint>(0,0) );
+   vector< uint > subSteps(cells.size(),0);  // subSteps is the number of substeps for each cell
+         
+   
+//construct lists of blocks that are accelerated
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
-      if (sysBoundaryCells.find(cellID) != sysBoundaryCells.end()) continue;
-      nonSysBoundaryCells.push_back(cellID);
+      SpatialCell* SC = mpiGrid[cellID];
+
+      //disregard boundary cells
+      if(SC->boundaryType! =NOT_SYSBOUNDARY)
+         continue;
+         
+      for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+         unsigned int block = SC->velocity_block_list[block_i];         
+         velocity_block_indices_t indices =get_velocity_block_indices(block);
+         uint quadrant= (indices[0]%2)+2*( (indices[1]%2) + 2*(indices[2]%2) );
+         blockPointers[quadrant].push_back(SC->at(block));
+         cellIndex[quadrant].push_back(c);
+      }
+                   
    }
 
-   //Operations for each cell is local, thus a threaded loop should be safe
-#pragma omp parallel for schedule(dynamic) 
-   for (size_t c=0; c<nonSysBoundaryCells.size(); ++c) {
-      const CellID cellID = nonSysBoundaryCells[c];
-      calculateCellAcceleration(mpiGrid,cellID,project,dt);
+
+   
+   if(P::maxAccelerationSubsteps!=1){
+      //substep acceleration until total dt is reached. dt should
+      //be set such that the maximum number of substeps is not
+      //exceeded. As the max dt is set separately for each substep,
+      //we may compute slightly more steps anyway
+
+      vector< Real> subDt(cells.size(),0.0);       //subdt is the current time step for each cell 
+      vector< Real> subt(cells.size(),0.0);       //subt is the current time in the substep for each cell (should be iterated up to dt)  
+      vector<bool> doCellIntegration(cells.size(),true);
+      vector<bool> lastCellIntegration(cells.size(),false);
+
+      //boolean to exit time integration
+      bool doIntegration=true;
+      
+      while(doIntegration){
+         //update maximum timestep, note that we will use maximum cfl allowed here
+         //Note that parameters[CellParams::MAXVDT] is initialized to 0 in spatial cell
+         for (size_t c=0; c<cells.size(); ++c) {
+            const CellID cellID = cells[c];
+            if(doCellIntegration[c]) {
+               subSteps[c]++;
+               subDt[c]=0.5*(P::CFL_min+P::CFL_max) * mpiGrid[cellID]->parameters[CellParams::MAXVDT];            
+               if(subDt[c]+subt[c]>=dt){
+                  lastIntegration[c]=true; //will not enter    while loop on the next round
+                  subdt[c]=dt-subt[c]; //set length of final step so that wehit the exact time
+               }
+            }
+         }
+
+         //calculate acceleration, this is internally threaded over blocks
+         calculateAccelerationSubstep(blockPointers,cellIndex,subDt,doCellIntegration,project);
+         
+         
+         doIntegration=false; //set to false, turned to true in following loop if this was not last substep
+
+#pragma omp parallel for
+         for (size_t c=0; c<cells.size(); ++c) {
+            if(doCellIntegration[c]) {
+               //set doCellIntegration if this was last step
+               if(lastCellIntegration[c])
+                  doCellIntegration[c]=false;
+               //check if this was last substep ever
+               if(doCellIntegration[c]){
+                  doIntegration=true;
+                  break;
+               }
+               subt[c]+=subDt[c];
+               subSteps[c]++;
+            }
+
+            if(doCellIntegration[c]) {
+               //Update block info, no need to do on last step. This will
+               //modify velocity block lists, need to make sure
+               //updateRemoteVelocityBlockLists(mpiGrid) is called before
+               //any further communication involving velocity space takes
+               //place
+               //empty neighbor list, only local neighbors in velocity
+               //space taken into account. 
+               vector<SpatialCell*> empty_neighbor_ptrs;
+               mpiGrid[cellID]->update_all_block_has_content();     
+               mpiGrid[cellID]->adjust_velocity_blocks(empty_neighbor_ptrs);
+            }
+         }
+      
+      }   
+   }
+   else{
+      vector< Real> subDt(cells.size(),dt);       //subdt is now the total timestep
+      vector<bool> doCellIntegration(cells.size(),true);
+      //just one normal acceleration step
+      calculateAccelerationSubstep(blockPointers,cellIndex,subDt,doCellIntegration,project);
+      for (size_t c=0; c<cells.size(); ++c)
+         subSteps[c]=1;
+   }
+
+
+
+   //compute moments after acceleration
+   mpiGrid[cellID]->parameters[CellParams::RHO_V  ] = 0.0;
+   mpiGrid[cellID]->parameters[CellParams::RHOVX_V] = 0.0;
+   mpiGrid[cellID]->parameters[CellParams::RHOVY_V] = 0.0;
+   mpiGrid[cellID]->parameters[CellParams::RHOVZ_V] = 0.0;
+
+#pragma omp parallel for
+   for (size_t c=0; c<cells.size(); ++c) {
+      const CellID cellID = cells[c];
+      for(unsigned int block_i=0; block_i< mpiGrid[cellID]->number_of_blocks;block_i++){
+         unsigned int block = mpiGrid[cellID]->velocity_block_list[block_i];         
+         cpu_calcVelocityMoments(mpiGrid[cellID],block,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V);   //set moments after acceleration
+      }
+      
+      //set weight based on substeps and number of blocks
+      mpiGrid[cellID]->parameters[CellParams::LB_WEIGHT] = mpiGrid[cellID]->number_of_blocks * subSteps[c];
    }
 }
 
-//compute one acceleration substep for a cell, function used by calculateCellAcceleration
-void calculateCellAccelerationSubstep(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
-   CellID cellID,
-   Project& project,
-   Real dt) {
-   typedef Parameters P;
-   SpatialCell* SC = mpiGrid[cellID];
-   if (sysBoundaryCells.find(cellID) != sysBoundaryCells.end()){
-      return;
-   }
+//compute one acceleration substep 
+void calculateAccelerationSubstep(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,   
+   vector< vector<Velocity_Block*> > &blockPointers,
+   vector< vector<uint> > &cellIndex,
+   vector< Real > &subDt,
+   vector< bool> &doCellIntegration,
+   Project& project){
+
    
-#ifndef SEMILAG
+   typedef Parameters P;
+   const vector<CellID> cells = mpiGrid.get_cells();
+
+   for(c=0;c<cells.size();c++)
+      if(doCellIntegration[c])
+         cells[c]->parameters[CellParams::MAXVDT] = numeric_limits<Real>::max();
+
    
    phiprof::start("clearVelFluxes");
-//   Clear df/dt contributions:
-   for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
-      unsigned int block = SC->velocity_block_list[block_i];         
-      cpu_clearVelFluxes(SC,block);
+   for (uint q=0;q<8;q++) {
+#omp parallel for
+      for(unsigned int i=0; i< blockPointers[q].size();i++){
+         Velocity_Block* block_ptr=blockPointers[q][i];
+         uint c=cellIndex[q][i];
+         cpu_clearVelFluxes(cells[c],block_ptr);
+      }
    }
-   
    phiprof::stop("clearVelFluxes");
-   
+
+         
    phiprof::start("calcVelFluxes");
 //   Calculatedf/dt contributions of all blocks in the cell:
-   
-   Real maxCelldt=numeric_limits<Real>::max();
-   
-   for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
-      unsigned int block = SC->velocity_block_list[block_i];         
-      Velocity_Block* block_ptr=SC->at(block);
-      Real maxAx,maxAy,maxAz;
-      cpu_calcVelFluxes(SC,project,block,dt,maxAx,maxAy,maxAz);
-      if(maxAx!=ZERO) maxCelldt=min(maxCelldt,block_ptr->parameters[BlockParams::DVX]/maxAx);
-      if(maxAy!=ZERO) maxCelldt=min(maxCelldt,block_ptr->parameters[BlockParams::DVY]/maxAy);
-      if(maxAz!=ZERO) maxCelldt=min(maxCelldt,block_ptr->parameters[BlockParams::DVZ]/maxAz);
-   }
+
+   for (uint q=0;q<8;q++) {
+      
+
+#omp parallel for
+      for(unsigned int i=0; i< blockPointers[q].size();i++){
+         Velocity_Block* block_ptr=blockPointers[q][i];
+         Real maxAx,maxAy,maxAz;
+         uint c=cellIndex[q][i];
+         cpu_calcVelFluxes(cells[c],project,block_ptr,subDt[c],maxAx,maxAy,maxAz);
+         
+         if(maxAx!=ZERO) cells[c]->parameters[CellParams::MAXVDT] =min(cells[c]->parameters[CellParams::MAXVDT] ,block_ptr->parameters[BlockParams::DVX]/maxAx);
+         if(maxAy!=ZERO) cells[c]->parameters[CellParams::MAXVDT] =min(cells[c]->parameters[CellParams::MAXVDT] ,block_ptr->parameters[BlockParams::DVY]/maxAy);
+         if(maxAz!=ZERO) cells[c]->parameters[CellParams::MAXVDT] =min(cells[c]->parameters[CellParams::MAXVDT] ,block_ptr->parameters[BlockParams::DVZ]/maxAz);
+      }
    phiprof::stop("calcVelFluxes");
    //update max allowed timestep for acceleration in this cell, which is the minimum of CFL=1 timesteps for all blocks in cell
-   SC->parameters[CellParams::MAXVDT] = maxCelldt;
+   
    
    phiprof::start("propagateVel");
    // Propagate distribution functions in velocity space if timestep is non-zero
@@ -325,7 +452,7 @@ void calculateCellAccelerationSubstep(
          cpu_propagateVel(SC,block,dt);
       }
    
-   phiprof::stop("propagateVel");
+ OA  phiprof::stop("propagateVel");
 
 #else
    phiprof::start("semilag-acc");
@@ -342,80 +469,6 @@ void calculateCellAccelerationSubstep(
 
 
 
-//compute one acceleration step for a cell, may include multiple substep calls to calculateCellAccelerationSubstep  
-void calculateCellAcceleration(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
-   CellID cellID,
-   Project& project,
-   Real dt
-) {
-   typedef Parameters P;
-   double t_init=MPI_Wtime();
-#ifndef SEMILAG
-   if(P::maxAccelerationSubsteps!=1){
-      //substep acceleration until total dt is reached. dt should
-      //be set such that the maximum number of substeps is not
-      //exceeded. As the max dt is set separately for each substep,
-      //we may compute slightly more steps anyway
-      
-      uint subSteps=0; // subSteps is the number of substeps
-      //subt is the current time in the substep (should be iterated up to dt)
-      Real subt=0.0;
-      //subdt is the max timestep we can take for this cell at this moment
-      Real subdt;
-      //boolean to exit time integration
-      bool doIntegration=true;
-      
-      while(doIntegration){
-         //update maximum timestep, note that we will use maximum cfl allowed here
-         //Note that parameters[CellParams::MAXVDT] is initialized to 0 in spatial cell
-         subdt=0.5*P::CFL_max * mpiGrid[cellID]->parameters[CellParams::MAXVDT];
-         if(subdt+subt>=dt){
-            doIntegration=false; //will not enter while loop on the next round
-            subdt=dt-subt; //set length of final step so that we
-            //hit the exact time
-            if(subdt<0.0) subdt=0.0; //should not happen...
-         }
-         
-         calculateCellAccelerationSubstep(mpiGrid,cellID,project,subdt);
-         subSteps++;
-         subt+=subdt;
-         //Update block info, no need to do on last step. This will
-         //modify velocity block lists, need to make sure
-         //updateRemoteVelocityBlockLists(mpiGrid) is called before
-         //any further communication involving velocity space takes
-         //place
-         if(doIntegration){
-            //empty neighbor list, only local neighbors in velocity
-            //space taken into account. 
-            vector<SpatialCell*> empty_neighbor_ptrs;
-            mpiGrid[cellID]->update_all_block_has_content();     
-            mpiGrid[cellID]->adjust_velocity_blocks(empty_neighbor_ptrs);
-         }
-      }
-   }
-   else{
-      //just one normal acceleration step
-      calculateCellAccelerationSubstep(mpiGrid,cellID,project,dt);
-   }
-#else
-   //with SEMILAG no substepping is needed....
-   calculateCellAccelerationSubstep(mpiGrid,cellID,project,dt);
-#endif
-
-   //compute moments after acceleration
-   mpiGrid[cellID]->parameters[CellParams::RHO_V  ] = 0.0;
-   mpiGrid[cellID]->parameters[CellParams::RHOVX_V] = 0.0;
-   mpiGrid[cellID]->parameters[CellParams::RHOVY_V] = 0.0;
-   mpiGrid[cellID]->parameters[CellParams::RHOVZ_V] = 0.0;
-   for(unsigned int block_i=0; block_i< mpiGrid[cellID]->number_of_blocks;block_i++){
-      unsigned int block = mpiGrid[cellID]->velocity_block_list[block_i];         
-      cpu_calcVelocityMoments(mpiGrid[cellID],block,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V);   //set moments after acceleration
-   }
-
-   //lb weight based on time in acceleration, used for substepped simulations
-   mpiGrid[cellID]->parameters[CellParams::LBWEIGHTCOUNTER]+=MPI_Wtime()-t_init;
-}
 
 
 void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,
