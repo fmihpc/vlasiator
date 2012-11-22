@@ -271,8 +271,8 @@ void calculateAcceleration(
    // volume) do not need to be propagated:
 
    
-   vector< vector<Velocity_Block*> > blockPointers (8, vector<Velocity_Block*>(0,0) );
-   vector< vector<uint> > cellIndex(8, vector<uint>(0,0) );
+   vector< vector<uint64_t> > blockId(8, vector<uint64_t>(0,0) );
+   vector< vector<uint> > cellIndex(8, vector<uint>(0,0) ); 
    vector< uint > subSteps(cells.size(),0);  // subSteps is the number of substeps for each cell
          
    
@@ -289,7 +289,7 @@ void calculateAcceleration(
          unsigned int block = SC->velocity_block_list[block_i];         
          velocity_block_indices_t indices =get_velocity_block_indices(block);
          uint quadrant= (indices[0]%2)+2*( (indices[1]%2) + 2*(indices[2]%2) );
-         blockPointers[quadrant].push_back(SC->at(block));
+         blockId[quadrant].push_back(block);
          cellIndex[quadrant].push_back(c);
       }
                    
@@ -327,12 +327,18 @@ void calculateAcceleration(
          }
 
          //calculate acceleration, this is internally threaded over blocks
-         calculateAccelerationSubstep(blockPointers,cellIndex,subDt,doCellIntegration,project);
-         
+         calculateAccelerationSubstep(mpiGrid,blockId,cellIndex,subDt,doCellIntegration,project);
+
+         phiprof::start("vBoundaryCondition");
+      //apply boundary outflow condition in velocity space
+#pragma omp parallel for
+         for (size_t c=0; c<cells.size(); ++c) {
+            if(doCellIntegration[c])
+               cells[c]->applyVelocityBoundaryCondition();
+         }
+         phiprof::stop("vBoundaryCondition");
          
          doIntegration=false; //set to false, turned to true in following loop if this was not last substep
-
-#pragma omp parallel for
          for (size_t c=0; c<cells.size(); ++c) {
             if(doCellIntegration[c]) {
                //set doCellIntegration if this was last step
@@ -346,7 +352,10 @@ void calculateAcceleration(
                subt[c]+=subDt[c];
                subSteps[c]++;
             }
-
+         }
+         
+#pragma omp parallel for
+         for (size_t c=0; c<cells.size(); ++c) {
             if(doCellIntegration[c]) {
                //Update block info, no need to do on last step. This will
                //modify velocity block lists, need to make sure
@@ -360,16 +369,25 @@ void calculateAcceleration(
                mpiGrid[cellID]->adjust_velocity_blocks(empty_neighbor_ptrs);
             }
          }
-      
       }   
    }
    else{
       vector< Real> subDt(cells.size(),dt);       //subdt is now the total timestep
       vector<bool> doCellIntegration(cells.size(),true);
       //just one normal acceleration step
-      calculateAccelerationSubstep(blockPointers,cellIndex,subDt,doCellIntegration,project);
+      calculateAccelerationSubstep(mpiGrid,blockId,cellIndex,subDt,doCellIntegration,project);
       for (size_t c=0; c<cells.size(); ++c)
          subSteps[c]=1;
+      
+      phiprof::start("vBoundaryCondition");
+      //apply boundary outflow condition in velocity space
+#pragma omp parallel for
+         for (size_t c=0; c<cells.size(); ++c) {
+            cells[c]->applyVelocityBoundaryCondition();
+         }
+      phiprof::stop("vBoundaryCondition");
+
+
    }
 
 
@@ -391,12 +409,13 @@ void calculateAcceleration(
       //set weight based on substeps and number of blocks
       mpiGrid[cellID]->parameters[CellParams::LB_WEIGHT] = mpiGrid[cellID]->number_of_blocks * subSteps[c];
    }
+
 }
 
 //compute one acceleration substep 
 void calculateAccelerationSubstep(
    dccrg::Dccrg<SpatialCell>& mpiGrid,   
-   vector< vector<Velocity_Block*> > &blockPointers,
+   vector< vector<uint64_t> > &blockId,
    vector< vector<uint> > &cellIndex,
    vector< Real > &subDt,
    vector< bool> &doCellIntegration,
@@ -412,12 +431,12 @@ void calculateAccelerationSubstep(
 
    
    phiprof::start("clearVelFluxes");
+#omp parallel for collapse
    for (uint q=0;q<8;q++) {
-#omp parallel for
-      for(unsigned int i=0; i< blockPointers[q].size();i++){
-         Velocity_Block* block_ptr=blockPointers[q][i];
+
+      for(unsigned int i=0; i< blockId[q].size();i++){
          uint c=cellIndex[q][i];
-         cpu_clearVelFluxes(cells[c],block_ptr);
+         cpu_clearVelFluxes(cells[c],blockId[q][i]);
       }
    }
    phiprof::stop("clearVelFluxes");
@@ -427,44 +446,35 @@ void calculateAccelerationSubstep(
 //   Calculatedf/dt contributions of all blocks in the cell:
 
    for (uint q=0;q<8;q++) {
-      
-
 #omp parallel for
-      for(unsigned int i=0; i< blockPointers[q].size();i++){
-         Velocity_Block* block_ptr=blockPointers[q][i];
+      for(unsigned int i=0; i< blockId[q].size();i++){
          Real maxAx,maxAy,maxAz;
          uint c=cellIndex[q][i];
-         cpu_calcVelFluxes(cells[c],project,block_ptr,subDt[c],maxAx,maxAy,maxAz);
-         
+         Velocity_Block* block_ptr=cells[c]->at(blockId[q][i]);
+         cpu_calcVelFluxes(cells[c],project,blockId[q][i],subDt[c],maxAx,maxAy,maxAz);
+
+         //fixme, this is not thread safe! better use temporary per thread arrays?
          if(maxAx!=ZERO) cells[c]->parameters[CellParams::MAXVDT] =min(cells[c]->parameters[CellParams::MAXVDT] ,block_ptr->parameters[BlockParams::DVX]/maxAx);
          if(maxAy!=ZERO) cells[c]->parameters[CellParams::MAXVDT] =min(cells[c]->parameters[CellParams::MAXVDT] ,block_ptr->parameters[BlockParams::DVY]/maxAy);
          if(maxAz!=ZERO) cells[c]->parameters[CellParams::MAXVDT] =min(cells[c]->parameters[CellParams::MAXVDT] ,block_ptr->parameters[BlockParams::DVZ]/maxAz);
       }
+   }
    phiprof::stop("calcVelFluxes");
    //update max allowed timestep for acceleration in this cell, which is the minimum of CFL=1 timesteps for all blocks in cell
    
    
    phiprof::start("propagateVel");
    // Propagate distribution functions in velocity space if timestep is non-zero
-   if(dt!=0.0)
-      for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
-         unsigned int block = SC->velocity_block_list[block_i];         
-         cpu_propagateVel(SC,block,dt);
+
+   //fixme, add a collapse or something here (each block independent)
+#omp parallel for collapse
+   for (uint q=0;q<8;q++) {
+      for(unsigned int i=0; i< blockId[q].size();i++){
+         uint c=cellIndex[q][i];
+         cpu_propagateVel(SC,blockId[q][i],subDt[c]);
       }
-   
- OA  phiprof::stop("propagateVel");
-
-#else
-   phiprof::start("semilag-acc");
-   cpu_accelerate_cell(*SC, dt, 1000, P::q, P::m);
-   phiprof::stop("semilag-acc");
-#endif
-
-   phiprof::start("vBoundaryCondition");
-   //apply boundary outflow condition in velocity space
-   SC->applyVelocityBoundaryCondition();
-   phiprof::stop("vBoundaryCondition");
-
+   }
+   phiprof::stop("propagateVel");
 }
 
 

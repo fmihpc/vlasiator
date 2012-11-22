@@ -301,14 +301,15 @@ void fetchAllAverages(Velocity_Block* block,Real* const avgs) {
 }
 
 //zero fluxes
-void cpu_clearVelFluxes(SpatialCell *cell,Velocity_Block* block){
+void cpu_clearVelFluxes(SpatialCell *cell,const unsigned int& BLOCK) {
+   Velocity_Block* block=cell->at(BLOCK);
    for (unsigned int i=0; i<SIZE_FLUXS; ++i)  block->fx[i]= 0.0;
 }
 
 void cpu_calcVelFluxes(
    SpatialCell *cell,
    Project& project,
-   Velocity_Block* block,
+   const unsigned int& BLOCK,
    const Real& DT,
    Real& maxAx, Real& maxAy, Real& maxAz
 ) {
@@ -323,6 +324,7 @@ void cpu_calcVelFluxes(
    maxAy=0;
    maxAz=0;
    
+   Velocity_Block* block=cell->at(BLOCK);
    Real avgs[8*WID3];
    fetchAllAverages(block,avgs);
 
