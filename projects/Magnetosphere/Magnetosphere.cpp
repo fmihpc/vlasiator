@@ -39,7 +39,8 @@ namespace projects {
       RP::add("Magnetosphere.VX0", "Initial bulk velocity in x-direction", 0.0);
       RP::add("Magnetosphere.VY0", "Initial bulk velocity in y-direction", 0.0);
       RP::add("Magnetosphere.VZ0", "Initial bulk velocity in z-direction", 0.0);
-      RP::add("Magnetosphere.higherRhoZone", "Abscissa in GSE above which the background magnetospheric density is multiplied by 10 (m)", 0.0);
+      RP::add("Magnetosphere.rhoTransitionCenter", "Abscissa in GSE around which the background magnetospheric density transitions to a 10 times higher value (m)", 0.0);
+      RP::add("Magnetosphere.rhoTransitionWidth", "Width of the magnetospheric background density (m)", 0.0);
       RP::add("Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
       RP::add("Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
    }
@@ -52,7 +53,11 @@ namespace projects {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      if(!RP::get("Magnetosphere.higherRhoZone", this->higherRhoZone)) {
+      if(!RP::get("Magnetosphere.rhoTransitionCenter", this->rhoTransitionCenter)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!RP::get("Magnetosphere.rhoTransitionWidth", this->rhoTransitionWidth)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -142,15 +147,25 @@ namespace projects {
    
    Real Magnetosphere::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
       Real initRho = this->tailRho;
+      Real initV0[3];
+      for (uint i=0; i<3;i++) {
+         initV0[i] = this->V0[i];
+      }
+      
       creal radius = sqrt(x*x + y*y + z*z);
+      
       if(radius < this->ionosphereTaperRadius && radius > this->ionosphereRadius) {
-         initRho = this->ionosphereRho - (ionosphereRho-tailRho) * (radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
+         initRho = this->ionosphereRho - (ionosphereRho-tailRho)*(radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
+         for (uint i=0; i<3;i++) {
+            initV0[i] *= (radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
+         }
       }
-      if(x > this->higherRhoZone) {
-         initRho*=10;
-      }
+      initRho *= 1.0 + 9.0 * 0.5 * (1.0 + tanh((x-this->rhoTransitionCenter) / this->rhoTransitionWidth));
+      
+      
+      
       return initRho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5) *
-      exp(- physicalconstants::MASS_PROTON * ((vx-this->V0[0])*(vx-this->V0[0]) + (vy-this->V0[1])*(vy-this->V0[1]) + (vz-this->V0[2])*(vz-this->V0[2])) / (2.0 * physicalconstants::K_B * this->T));
+      exp(- physicalconstants::MASS_PROTON * ((vx-initV0[0])*(vx-initV0[0]) + (vy-initV0[1])*(vy-initV0[1]) + (vz-initV0[2])*(vz-initV0[2])) / (2.0 * physicalconstants::K_B * this->T));
    }
    
 } // namespace projects

@@ -48,7 +48,8 @@ namespace projects {
          
          Real T;
          Real tailRho;
-         Real higherRhoZone;
+         Real rhoTransitionCenter;
+         Real rhoTransitionWidth;
          Real ionosphereRho;
          Real ionosphereRadius;
          Real ionosphereTaperRadius;
