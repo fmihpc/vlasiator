@@ -19,7 +19,6 @@ Please read dccrg manual for hints on installing libraries: http://gitorious.org
 \section  sec-options Program options
 
 \verbatim
-
 Usage: main [options (options given on the command line override options given everywhere else)], where options are::
   --help                                print this help message
   --global_config arg                   read options from the global 
@@ -91,7 +90,65 @@ Usage: main [options (options given on the command line override options given e
   --gridbuilder.x_max arg (=1)          Minimum value of the x-coordinate.
   --gridbuilder.y_min arg (=1)          Minimum value of the y-coordinate.
   --gridbuilder.y_max arg (=1)          Minimum value of the y-coordinate.
-  --gridbuilder.z_min arg (=                            line output = XXX. Available are B 
+  --gridbuilder.z_min arg (=1)          Minimum value of the z-coordinate.
+  --gridbuilder.z_max arg (=1)          Minimum value of the z-coordinate.
+  --gridbuilder.x_length arg (=1)       Number of cells in x-direction in 
+                                        initial grid.
+  --gridbuilder.y_length arg (=1)       Number of cells in y-direction in 
+                                        initial grid.
+  --gridbuilder.z_length arg (=1)       Number of cells in z-direction in 
+                                        initial grid.
+  --gridbuilder.vx_min arg (=1)         Minimum value for velocity block 
+                                        vx-coordinates.
+  --gridbuilder.vx_max arg (=1)         Maximum value for velocity block 
+                                        vx-coordinates.
+  --gridbuilder.vy_min arg (=1)         Minimum value for velocity block 
+                                        vy-coordinates.
+  --gridbuilder.vy_max arg (=1)         Maximum value for velocity block 
+                                        vy-coordinates.
+  --gridbuilder.vz_min arg (=1)         Minimum value for velocity block 
+                                        vz-coordinates.
+  --gridbuilder.vz_max arg (=1)         Maximum value for velocity block 
+                                        vz-coordinates.
+  --gridbuilder.vx_length arg (=1)      Initial number of velocity blocks in 
+                                        vx-direction.
+  --gridbuilder.vy_length arg (=1)      Initial number of velocity blocks in 
+                                        vy-direction.
+  --gridbuilder.vz_length arg (=1)      Initial number of velocity blocks in 
+                                        vz-direction.
+  --gridbuilder.q arg (=1.60217653e-19) Charge of simulated particle species, 
+                                        in Coulombs.
+  --gridbuilder.m arg (=1.67262171e-27) Mass of simulated particle species, in 
+                                        kilograms.
+  --gridbuilder.dt arg (=0)             Initial timestep in seconds.
+  --gridbuilder.CFL_max arg (=0.9)      The maximum CFL limit for propagation. 
+                                        Used to set timestep if 
+                                        dynamic_timestep is true. Also used to 
+                                        compute substeps in acceleration
+  --gridbuilder.CFL_min arg (=0.7)      The minimum CFL limit for propagation. 
+                                        Used to set timestep if 
+                                        dynamic_timestep is true. Also used to 
+                                        compute substeps in acceleration
+  --gridbuilder.t_max arg (=1e+20)      Maximum simulation time, in seconds. If
+                                        timestep_max limit is hit first this 
+                                        time will never be reached
+  --gridbuilder.timestep_max arg (=4294967295)
+                                        Max. value for timesteps. If t_max 
+                                        limit is hit first, this step will 
+                                        never be reached
+  --sparse.minValue arg (=0)            Minimum value of distribution function 
+                                        in any cell of a velocity block for the
+                                        block to be considered to have contents
+  --sparse.blockAdjustmentInterval arg (=1)
+                                        Block adjustment interval (steps)
+  --loadBalance.algorithm arg (=RCB)    Load balancing algorithm to be used
+  --loadBalance.tolerance arg (=1.05)   Load imbalance tolerance
+  --loadBalance.rebalanceInterval arg (=10)
+                                        Load rebalance interval (steps)
+  --variables.output arg                List of data reduction operators (DROs)
+                                        to add to the grid file output. Each 
+                                        variable to be added has to be on a new
+                                        line output = XXX. Available are B 
                                         BackgroundB PerturbedB E Rho RhoV 
                                         RhoLossAdjust RhoLossVelBoundary 
                                         MPIrank Blocks BoundaryType 
@@ -99,7 +156,78 @@ Usage: main [options (options given on the command line override options given e
                                         PTensor derivs BVOLderivs MaxVdt MaxRdt
                                         MaxFieldsdt LBweight.
   --variables.diagnostic arg            List of data reduction operators (DROs)
-                                       mperature z, first peak (K)
+                                        to add to the diagnostic runtime 
+                                        output. Each variable to be added has 
+                                        to be on a new line diagnostic = XXX. 
+                                        Available (20121005) are Blocks FluxB 
+                                        FluxE Rho RhoLossAdjust 
+                                        RhoLossVelBoundary  MaxDistributionFunc
+                                        tion MinDistributionFunction  
+                                        BoundaryType BoundaryLayer  MaxVdt 
+                                        MaxRdt MaxFieldsdt LBweight  .
+  --Alfven.B0 arg (=1e-10)              Guiding field value (T)
+  --Alfven.Bx_guiding arg (=1)          Guiding field x component
+  --Alfven.By_guiding arg (=0)          Guiding field y component
+  --Alfven.Bz_guiding arg (=0)          Guiding field z component
+  --Alfven.rho arg (=100000000)         Number density (m^-3)
+  --Alfven.Wavelength arg (=100000)     Wavelength (m)
+  --Alfven.Temperature arg (=0.86456498092)
+                                        Temperature (K)
+  --Alfven.A_mag arg (=0.1)             Amplitude of the magnetic perturbation
+  --Alfven.A_vel arg (=0.1)             Amplitude of the velocity perturbation
+  --Alfven.nSpaceSamples arg (=2)       Number of sampling points per spatial 
+                                        dimension
+  --Alfven.nVelocitySamples arg (=5)    Number of sampling points per velocity 
+                                        dimension
+  --Diffusion.B0 arg (=1e-09)           Background field value (T)
+  --Diffusion.rho arg (=10000000)       Number density (m^-3)
+  --Diffusion.Temperature arg (=2000000)
+                                        Temperature (K)
+  --Diffusion.Scale_x arg (=100000)     Scale length in x (m)
+  --Diffusion.Scale_y arg (=100000)     Scale length in y (m)
+  --Diffusion.nSpaceSamples arg (=2)    Number of sampling points per spatial 
+                                        dimension
+  --Diffusion.nVelocitySamples arg (=5) Number of sampling points per velocity 
+                                        dimension
+  --Dispersion.B0 arg (=1e-09)          Guide magnetic field strength (T)
+  --Dispersion.angleXY arg (=0.001)     Orientation of the guide magnetic field
+                                        with respect to the x-axis in x-y plane
+                                        (rad)
+  --Dispersion.angleXZ arg (=0.001)     Orientation of the guide magnetic field
+                                        with respect to the x-axis in x-z plane
+                                        (rad)
+  --Dispersion.rho arg (=10000000)      Number density (m^-3)
+  --Dispersion.Temperature arg (=2000000)
+                                        Temperature (K)
+  --Dispersion.magXPertAbsAmp arg (=1e-09)
+                                        Absolute amplitude of the magnetic 
+                                        perturbation along x (T)
+  --Dispersion.magYPertAbsAmp arg (=1e-09)
+                                        Absolute amplitude of the magnetic 
+                                        perturbation along y (T)
+  --Dispersion.magZPertAbsAmp arg (=1e-09)
+                                        Absolute amplitude of the magnetic 
+                                        perturbation along z (T)
+  --Dispersion.densityPertRelAmp arg (=0.1)
+                                        Relative amplitude of the density 
+                                        perturbation
+  --Dispersion.velocityPertAbsAmp arg (=1000000)
+                                        Absolute amplitude of the velocity 
+                                        perturbation
+  --Dispersion.seed arg (=42)           Seed for the RNG
+  --Dispersion.nSpaceSamples arg (=2)   Number of sampling points per spatial 
+                                        dimension
+  --Dispersion.nVelocitySamples arg (=5)
+                                        Number of sampling points per velocity 
+                                        dimension
+  --Dispersion.maxwCutoff arg (=1e-12)  Cutoff for the maxwellian distribution
+  --Firehose.rho1 arg (=0)              Number density, first peak (m^-3)
+  --Firehose.rho2 arg (=0)              Number density, second peak (m^-3)
+  --Firehose.Tx1 arg (=0)               Temperature x, first peak (K)
+  --Firehose.Tx2 arg (=0)               Temperature x, second peak (K)
+  --Firehose.Ty1 arg (=0)               Temperature y, first peak (K)
+  --Firehose.Ty2 arg (=0)               Temperature y, second peak (K)
+  --Firehose.Tz1 arg (=0)               Temperature z, first peak (K)
   --Firehose.Tz2 arg (=0)               Temperature z, second peak (K)
   --Firehose.Vx1 arg (=0)               Bulk velocity x component, first peak 
                                         (m/s)
@@ -108,14 +236,125 @@ Usage: main [options (options given on the command line override options given e
   --Firehose.Vy1 arg (=0)               Bulk velocity y component, first peak 
                                         (m/s)
   --Firehose.Vy2 arg (=0)               Bulk velocity y component, second peak 
-                                 emperature arg (=2000000)   Temperature (K)
+                                        (m/s)
+  --Firehose.Vz1 arg (=0)               Bulk velocity z component, first peak 
+                                        (m/s)
+  --Firehose.Vz2 arg (=0)               Bulk velocity z component, second peak 
+                                        (m/s)
+  --Firehose.Bx arg (=0)                Magnetic field x component (T)
+  --Firehose.By arg (=0)                Magnetic field y component (T)
+  --Firehose.Bz arg (=0)                Magnetic field z component (T)
+  --Firehose.lambda arg (=0)            Initial perturbation wavelength (m)
+  --Firehose.amp arg (=0)               Initial perturbation amplitude (m)
+  --Firehose.nSpaceSamples arg (=2)     Number of sampling points per spatial 
+                                        dimension
+  --Firehose.nVelocitySamples arg (=5)  Number of sampling points per velocity 
+                                        dimension
+  --Flowthrough.rho arg (=0)            Number density (m^-3)
+  --Flowthrough.T arg (=0)              Temperature (K)
+  --Flowthrough.Bx arg (=0)             Magnetic field x component (T)
+  --Flowthrough.By arg (=0)             Magnetic field y component (T)
+  --Flowthrough.Bz arg (=0)             Magnetic field z component (T)
+  --Flowthrough.VX0 arg (=0)            Initial bulk velocity in x-direction
+  --Flowthrough.VY0 arg (=0)            Initial bulk velocity in y-direction
+  --Flowthrough.VZ0 arg (=0)            Initial bulk velocity in z-direction
+  --Flowthrough.nSpaceSamples arg (=2)  Number of sampling points per spatial 
+                                        dimension
+  --Flowthrough.nVelocitySamples arg (=5)
+                                        Number of sampling points per velocity 
+                                        dimension
+  --Fluctuations.BX0 arg (=1e-09)       Background field value (T)
+  --Fluctuations.BY0 arg (=2e-09)       Background field value (T)
+  --Fluctuations.BZ0 arg (=3e-09)       Background field value (T)
+  --Fluctuations.rho arg (=10000000)    Number density (m^-3)
+  --Fluctuations.Temperature arg (=2000000)
+                                        Temperature (K)
+  --Fluctuations.magXPertAbsAmp arg (=1e-09)
+                                        Amplitude of the magnetic perturbation 
+                                        along x
+  --Fluctuations.magYPertAbsAmp arg (=1e-09)
+                                        Amplitude of the magnetic perturbation 
+                                        along y
+  --Fluctuations.magZPertAbsAmp arg (=1e-09)
+                                        Amplitude of the magnetic perturbation 
+                                        along z
+  --Fluctuations.densityPertRelAmp arg (=0.1)
+                                        Amplitude factor of the density 
+                                        perturbation
+  --Fluctuations.velocityPertAbsAmp arg (=1000000)
+                                        Amplitude of the velocity perturbation
+  --Fluctuations.nSpaceSamples arg (=2) Number of sampling points per spatial 
+                                        dimension
+  --Fluctuations.nVelocitySamples arg (=5)
+                                        Number of sampling points per velocity 
+                                        dimension
+  --Fluctuations.maxwCutoff arg (=1e-12)
+                                        Cutoff for the maxwellian distribution
+  --Harris.Scale_size arg (=150000)     Harris sheet scale size (m)
+  --Harris.B0 arg (=8.33061003094e-08)  Magnetic field at infinity (T)
+  --Harris.Temperature arg (=2000000)   Temperature (K)
   --Harris.rho arg (=10000000)          Number density at infinity (m^-3)
   --KelvinHelmholtz.rho1 arg (=0)       Number density, this->TOP state (m^-3)
   --KelvinHelmholtz.rho2 arg (=0)       Number density, this->BOTTOM state 
                                         (m^-3)
   --KelvinHelmholtz.T1 arg (=0)         Temperature, this->TOP state (K)
   --KelvinHelmholtz.T2 arg (=0)         Temperature, this->BOTTOM state (K)
-  --KelvinHelmholttion
+  --KelvinHelmholtz.Vx1 arg (=0)        Bulk velocity x component, this->TOP 
+                                        state (m/s)
+  --KelvinHelmholtz.Vx2 arg (=0)        Bulk velocity x component, this->BOTTOM
+                                        state (m/s)
+  --KelvinHelmholtz.Vy1 arg (=0)        Bulk velocity y component, this->TOP 
+                                        state (m/s)
+  --KelvinHelmholtz.Vy2 arg (=0)        Bulk velocity y component, this->BOTTOM
+                                        state (m/s)
+  --KelvinHelmholtz.Vz1 arg (=0)        Bulk velocity z component, this->TOP 
+                                        state (m/s)
+  --KelvinHelmholtz.Vz2 arg (=0)        Bulk velocity z component, this->BOTTOM
+                                        state (m/s)
+  --KelvinHelmholtz.Bx1 arg (=0)        Magnetic field x component, this->TOP 
+                                        state (T)
+  --KelvinHelmholtz.Bx2 arg (=0)        Magnetic field x component, 
+                                        this->BOTTOM state (T)
+  --KelvinHelmholtz.By1 arg (=0)        Magnetic field y component, this->TOP 
+                                        state (T)
+  --KelvinHelmholtz.By2 arg (=0)        Magnetic field y component, 
+                                        this->BOTTOM state (T)
+  --KelvinHelmholtz.Bz1 arg (=0)        Magnetic field z component, this->TOP 
+                                        state (T)
+  --KelvinHelmholtz.Bz2 arg (=0)        Magnetic field z component, 
+                                        this->BOTTOM state (T)
+  --KelvinHelmholtz.lambda arg (=0)     Initial perturbation wavelength (m)
+  --KelvinHelmholtz.amp arg (=0)        Initial perturbation amplitude (m)
+  --KelvinHelmholtz.offset arg (=0)     Boundaries offset from 0 (m)
+  --KelvinHelmholtz.transitionWidth arg (=0)
+                                        Width of tanh transition for all 
+                                        changing values
+  --KelvinHelmholtz.nSpaceSamples arg (=2)
+                                        Number of sampling points per spatial 
+                                        dimension
+  --KelvinHelmholtz.nVelocitySamples arg (=5)
+                                        Number of sampling points per velocity 
+                                        dimension
+  --Larmor.BX0 arg (=1e-09)             Background field value (T)
+  --Larmor.BY0 arg (=2e-09)             Background field value (T)
+  --Larmor.BZ0 arg (=3e-09)             Background field value (T)
+  --Larmor.VX0 arg (=0)                 Bulk velocity in x
+  --Larmor.VY0 arg (=0)                 Bulk velocity in y
+  --Larmor.VZ0 arg (=0)                 Bulk velocuty in z
+  --Larmor.rho arg (=10000000)          Number density (m^-3)
+  --Larmor.Temperature arg (=2000000)   Temperature (K)
+  --Larmor.nSpaceSamples arg (=1)       Number of sampling points per spatial 
+                                        dimension
+  --Larmor.nVelocitySamples arg (=1)    Number of sampling points per velocity 
+                                        dimension
+  --Larmor.maxwCutoff arg (=1e-12)      Cutoff for the maxwellian distribution
+  --Larmor.Scale_x arg (=2000000)       Scale length in x (m)
+  --Larmor.Scale_y arg (=2000000)       Scale length in y (m)
+  --Magnetosphere.rho arg (=0)          Tail region number density (m^-3)
+  --Magnetosphere.T arg (=0)            Temperature (K)
+  --Magnetosphere.VX0 arg (=0)          Initial bulk velocity in x-direction
+  --Magnetosphere.VY0 arg (=0)          Initial bulk velocity in y-direction
+  --Magnetosphere.VZ0 arg (=0)          Initial bulk velocity in z-direction
   --Magnetosphere.rhoTransitionCenter arg (=0)
                                         Abscissa in GSE around which the 
                                         background magnetospheric density 
@@ -123,7 +362,64 @@ Usage: main [options (options given on the command line override options given e
                                         (m)
   --Magnetosphere.rhoTransitionWidth arg (=0)
                                         Width of the magnetospheric background 
-                                              dimension
+                                        density (m)
+  --Magnetosphere.nSpaceSamples arg (=2)
+                                        Number of sampling points per spatial 
+                                        dimension
+  --Magnetosphere.nVelocitySamples arg (=5)
+                                        Number of sampling points per velocity 
+                                        dimension
+  --MultiPeak.rho1 arg (=0)             Number density, first peak (m^-3)
+  --MultiPeak.rho2 arg (=0)             Number density, second peak (m^-3)
+  --MultiPeak.T1 arg (=0)               Temperature, first peak (K)
+  --MultiPeak.T2 arg (=0)               Temperature, second peak (K)
+  --MultiPeak.Vx1 arg (=0)              Bulk velocity x component, first peak 
+                                        (m/s)
+  --MultiPeak.Vx2 arg (=0)              Bulk velocity x component, second peak 
+                                        (m/s)
+  --MultiPeak.Vy1 arg (=0)              Bulk velocity y component, first peak 
+                                        (m/s)
+  --MultiPeak.Vy2 arg (=0)              Bulk velocity y component, second peak 
+                                        (m/s)
+  --MultiPeak.Vz1 arg (=0)              Bulk velocity z component, first peak 
+                                        (m/s)
+  --MultiPeak.Vz2 arg (=0)              Bulk velocity z component, second peak 
+                                        (m/s)
+  --MultiPeak.Bx arg (=0)               Magnetic field x component (T)
+  --MultiPeak.By arg (=0)               Magnetic field y component (T)
+  --MultiPeak.Bz arg (=0)               Magnetic field z component (T)
+  --MultiPeak.nVelocitySamples arg (=5) Number of sampling points per velocity 
+                                        dimension
+  --Riemann.rho1 arg (=0)               Number density, left state (m^-3)
+  --Riemann.rho2 arg (=0)               Number density, right state (m^-3)
+  --Riemann.T1 arg (=0)                 Temperature, left state (K)
+  --Riemann.T2 arg (=0)                 Temperature, right state (K)
+  --Riemann.Vx1 arg (=0)                Bulk velocity x component, left state 
+                                        (m/s)
+  --Riemann.Vx2 arg (=0)                Bulk velocity x component, right state 
+                                        (m/s)
+  --Riemann.Vy1 arg (=0)                Bulk velocity y component, left state 
+                                        (m/s)
+  --Riemann.Vy2 arg (=0)                Bulk velocity y component, right state 
+                                        (m/s)
+  --Riemann.Vz1 arg (=0)                Bulk velocity z component, left state 
+                                        (m/s)
+  --Riemann.Vz2 arg (=0)                Bulk velocity z component, right state 
+                                        (m/s)
+  --Riemann.Bx1 arg (=0)                Magnetic field x component, left state 
+                                        (T)
+  --Riemann.Bx2 arg (=0)                Magnetic field x component, right state
+                                        (T)
+  --Riemann.By1 arg (=0)                Magnetic field y component, left state 
+                                        (T)
+  --Riemann.By2 arg (=0)                Magnetic field y component, right state
+                                        (T)
+  --Riemann.Bz1 arg (=0)                Magnetic field z component, left state 
+                                        (T)
+  --Riemann.Bz2 arg (=0)                Magnetic field z component, right state
+                                        (T)
+  --Riemann.nSpaceSamples arg (=2)      Number of sampling points per spatial 
+                                        dimension
   --Riemann.nVelocitySamples arg (=5)   Number of sampling points per velocity 
                                         dimension
   --GradB.BX0 arg (=1e-09)              Background field value (T)
@@ -134,8 +430,95 @@ Usage: main [options (options given on the command line override options given e
   --GradB.VY0 arg (=0)                  Bulk velocity in y
   --GradB.VZ0 arg (=0)                  Bulk velocuty in z
   --GradB.rho arg (=10000000)           Number density (m^-3)
+  --GradB.Temperature arg (=2000000)    Temperature (K)
+  --GradB.magPertAmp arg (=1e-09)       Amplitude of the magnetic perturbation
+  --GradB.densityPertAmp arg (=0.1)     Amplitude factor of the density 
+                                        perturbation
+  --GradB.velocityPertAmp arg (=1000000)
+                                        Amplitude of the velocity perturbation
+  --GradB.nSpaceSamples arg (=2)        Number of sampling points per spatial 
+                                        dimension
+  --GradB.nVelocitySamples arg (=5)     Number of sampling points per velocity 
+                                        dimension
+  --GradB.maxwCutoff arg (=1e-12)       Cutoff for the maxwellian distribution
+  --GradB.Scale_x arg (=2000000)        Scale length in x (m)
+  --GradB.Scale_y arg (=2000000)        Scale length in y (m)
+  --GradB.Sharp_Y arg (=0.1)            Sharpness of tannh
+  --Project_common.seed arg (=42)       Seed for the RNG
+  --boundaries.boundary arg             List of boundary condition (BC) types 
+                                        to be used. Each boundary condition to 
+                                        be used has to be on a new line 
+                                        boundary = YYY. Available (20120820) 
+                                        are outflow ionosphere maxwellian.
+  --boundaries.periodic_x arg (=1)      If 'yes' the grid is periodic in 
+                                        x-direction. Defaults to 'no'.
+  --boundaries.periodic_y arg (=1)      If 'yes' the grid is periodic in 
+                                        y-direction. Defaults to 'no'.
+  --boundaries.periodic_z arg (=1)      If 'yes' the grid is periodic in 
+                                        z-direction. Defaults to 'no'.
+  --ionosphere.centerX arg (=0)         X coordinate of ionosphere center (m)
+  --ionosphere.centerY arg (=0)         Y coordinate of ionosphere center (m)
+  --ionosphere.centerZ arg (=0)         Z coordinate of ionosphere center (m)
+  --ionosphere.radius arg (=10000000)   Radius of ionosphere (m).
+  --ionosphere.rho arg (=1000000)       Number density of the ionosphere (m^-3)
+  --ionosphere.depth arg (=1)           Depth in cells of ionosphere layer.
+  --ionosphere.taperRadius arg (=0)     Width of the zone with a density 
+                                        tapering from the ionospheric value to 
+                                        the background (m)
+  --ionosphere.precedence arg (=2)      Precedence value of the ionosphere 
+                                        system boundary condition (integer), 
+                                        the higher the stronger.
+  --outflow.face arg                    List of faces on which outflow boundary
+                                        conditions are to be applied 
+                                        ([xyz][+-]).
+  --outflow.precedence arg (=4)         Precedence value of the outflow system 
+                                        boundary condition (integer), the 
+                                        higher the stronger.
+  --maxwellian.face arg                 List of faces on which set Maxwellian 
+                                        boundary conditions are to be applied 
+                                        ([xyz][+-]).
+  --maxwellian.file_x+ arg (=1)         Input files for the set Maxwellian 
+                                        inflow parameters on face x+. Data 
+                                        format per line: time (s) density 
+                                        (p/m^3) Temperature (K) Vx Vy Vz (m/s) 
+                                        Bx By Bz (T).
+  --maxwellian.file_x- arg (=1)         Input files for the set Maxwellian 
+                                        inflow parameters on face x-. Data 
+                                        format per line: time (s) density 
+                                        (p/m^3) Temperature (K) Vx Vy Vz (m/s) 
+                                        Bx By Bz (T).
+  --maxwellian.file_y+ arg (=1)         Input files for the set Maxwellian 
+                                        inflow parameters on face y+. Data 
+                                        format per line: time (s) density 
+                                        (p/m^3) Temperature (K) Vx Vy Vz (m/s) 
+                                        Bx By Bz (T).
+  --maxwellian.file_y- arg (=1)         Input files for the set Maxwellian 
+                                        inflow parameters on face y-. Data 
+                                        format per line: time (s) density 
+                                        (p/m^3) Temperature (K) Vx Vy Vz (m/s) 
+                                        Bx By Bz (T).
+  --maxwellian.file_z+ arg (=1)         Input files for the set Maxwellian 
+                                        inflow parameters on face z+. Data 
+                                        format per line: time (s) density 
+                                        (p/m^3) Temperature (K) Vx Vy Vz (m/s) 
+                                        Bx By Bz (T).
+  --maxwellian.file_z- arg (=1)         Input files for the set Maxwellian 
+                                        inflow parameters on face z-. Data 
+                                        format per line: time (s) density 
+                                        (p/m^3) Temperature (K) Vx Vy Vz (m/s) 
+                                        Bx By Bz (T).
+  --maxwellian.dynamic arg (=0)         Boolean value, is the set Maxwellian 
+                                        inflow dynamic in time or not.
+  --maxwellian.precedence arg (=3)      Precedence value of the set Maxwellian 
+                                        system boundary condition (integer), 
+                                        the higher the stronger.
+  --maxwellian.nSpaceSamples arg (=2)   Number of sampling points per spatial 
+                                        dimension (template cells)
+  --maxwellian.nVelocitySamples arg (=5)
+                                        Number of sampling points per velocity 
+                                        dimension (template cells)
 
-\verbatim
+\endverbatim
 
 \section sec-project Writing a project
 
