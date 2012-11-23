@@ -303,6 +303,11 @@ void calculateAcceleration(
          }
       }
    }
+
+/*TODO notes
+  - This implementation is over all cells at once, one could make it more general so that 1-all would be done per time. Could be better from caches/memory point of view with less cells ata a time
+  - errors 10-11, further check if there are any discrepancies.
+*/
    
    if(P::maxAccelerationSubsteps!=1){
       int step=0;
@@ -345,10 +350,10 @@ void calculateAcceleration(
 
          
 
-         if(step%4==0 && 0) {
+         if(1) {  //step%4==0 && 0) {
             /*adjust blocks from time to time*/
             phiprof::start("adjust-blocks");
-#pragma omp  parallel for       
+//#pragma omp  parallel for       
             for (size_t c=0; c<cells.size(); ++c) {
                //adjust blocks
                if(doCellIntegration[c]) {
@@ -365,6 +370,12 @@ void calculateAcceleration(
             
             phiprof::stop("adjust-blocks");
             //re-construct lists of blocks that are accelerated after block adjustment
+            //clear lists
+            for(uint q=0;q<8;q++){
+               blockId[q].resize(0);
+               cellIndex[q].resize(0);
+            }
+            //construct lists
             for (size_t c=0; c<cells.size(); ++c) {
                if(doCellIntegration[c]){
                   for(unsigned int block_i=0; block_i< mpiGrid[cells[c]]->number_of_blocks;block_i++){
