@@ -50,7 +50,7 @@ namespace projects {
    
    void Project::getParameters() {
       typedef Readparameters RP;
-      RP::get("Fluctuations.seed", this->seed);
+      RP::get("Project_common.seed", this->seed);
    }
    
    bool Project::initialize() {
