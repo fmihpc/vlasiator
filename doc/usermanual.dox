@@ -18,6 +18,124 @@ Please read dccrg manual for hints on installing libraries: http://gitorious.org
 
 \section  sec-options Program options
 
+\verbatim
+
+Usage: main [options (options given on the command line override options given everywhere else)], where options are::
+  --help                                print this help message
+  --global_config arg                   read options from the global 
+                                        configuration file arg (relative to the
+                                        current working directory). Options 
+                                        given in this file are overridden by 
+                                        options given in the user's and run's 
+                                        configuration files and by options 
+                                        given in environment variables 
+                                        (prefixed with MAIN_) and the command 
+                                        line
+  --user_config arg                     read options from the user's 
+                                        configuration file arg (relative to the
+                                        current working directory). Options 
+                                        given in this file override options 
+                                        given in the global configuration file.
+                                        Options given in this file are 
+                                        overridden by options given in the 
+                                        run's configuration file and by options
+                                        given in environment variables 
+                                        (prefixed with MAIN_) and the command 
+                                        line
+  --run_config arg                      read options from the run's 
+                                        configuration file arg (relative to the
+                                        current working directory). Options 
+                                        given in this file override options 
+                                        given in the user's and global 
+                                        configuration files. Options given in 
+                                        this override options given in the 
+                                        user's and global configuration files. 
+                                        Options given in this file are 
+                                        overridden by options given in 
+                                        environment variables (prefixed with 
+                                        MAIN_) and the command line
+  --diagnostic_write_interval arg (=4294967295)
+                                        Write diagnostic output every arg time 
+                                        steps
+  --system_write_t_interval arg (=-1)   Save the simulation every arg simulated
+                                        seconds. Negative values disable 
+                                        writes.
+  --restart_write_t_interval arg (=-1)  Save the complete simulation every arg 
+                                        simulated seconds. Negative values 
+                                        disable writes.
+  --write_initial_state arg (=0)        Write initial state, not even the 0.5 
+                                        dt propagation is done. Do not use for 
+                                        restarting. 
+  --propagate_field arg (=1)            Propagate magnetic field during the 
+                                        simulation
+  --propagate_vlasov arg (=1)           Propagate distribution functions during
+                                        the simulation
+  --max_acceleration_substeps arg (=1)  Maximum number of  acceleration 
+                                        substeps that are allowed to be taken 
+                                        in acceleration. The default number of 
+                                        1 disables substepping and the 
+                                        acceleration is always done in one 
+                                        step. A value of 0 has a special 
+                                        meaning, it activates unlimited 
+                                        substepping
+  --dynamic_timestep arg (=1)           If true,  timestep is set based on  CFL
+                                        limits (default)
+  --project arg (=1)                    Specify the name of the project to use.
+                                        Supported to date (20121112): Alfven 
+                                        Diffusion Dispersion Firehose 
+                                        Flowthrough Fluctuations harm1D 
+                                        KelvinHelmholtz Magnetosphere
+  --restart.filename arg                Restart from this vlsv file. No restart
+                                        if empty file.
+  --gridbuilder.x_min arg (=1)          Minimum value of the x-coordinate.
+  --gridbuilder.x_max arg (=1)          Minimum value of the x-coordinate.
+  --gridbuilder.y_min arg (=1)          Minimum value of the y-coordinate.
+  --gridbuilder.y_max arg (=1)          Minimum value of the y-coordinate.
+  --gridbuilder.z_min arg (=                            line output = XXX. Available are B 
+                                        BackgroundB PerturbedB E Rho RhoV 
+                                        RhoLossAdjust RhoLossVelBoundary 
+                                        MPIrank Blocks BoundaryType 
+                                        BoundaryLayer VolE VolB Pressure 
+                                        PTensor derivs BVOLderivs MaxVdt MaxRdt
+                                        MaxFieldsdt LBweight.
+  --variables.diagnostic arg            List of data reduction operators (DROs)
+                                       mperature z, first peak (K)
+  --Firehose.Tz2 arg (=0)               Temperature z, second peak (K)
+  --Firehose.Vx1 arg (=0)               Bulk velocity x component, first peak 
+                                        (m/s)
+  --Firehose.Vx2 arg (=0)               Bulk velocity x component, second peak 
+                                        (m/s)
+  --Firehose.Vy1 arg (=0)               Bulk velocity y component, first peak 
+                                        (m/s)
+  --Firehose.Vy2 arg (=0)               Bulk velocity y component, second peak 
+                                 emperature arg (=2000000)   Temperature (K)
+  --Harris.rho arg (=10000000)          Number density at infinity (m^-3)
+  --KelvinHelmholtz.rho1 arg (=0)       Number density, this->TOP state (m^-3)
+  --KelvinHelmholtz.rho2 arg (=0)       Number density, this->BOTTOM state 
+                                        (m^-3)
+  --KelvinHelmholtz.T1 arg (=0)         Temperature, this->TOP state (K)
+  --KelvinHelmholtz.T2 arg (=0)         Temperature, this->BOTTOM state (K)
+  --KelvinHelmholttion
+  --Magnetosphere.rhoTransitionCenter arg (=0)
+                                        Abscissa in GSE around which the 
+                                        background magnetospheric density 
+                                        transitions to a 10 times higher value 
+                                        (m)
+  --Magnetosphere.rhoTransitionWidth arg (=0)
+                                        Width of the magnetospheric background 
+                                              dimension
+  --Riemann.nVelocitySamples arg (=5)   Number of sampling points per velocity 
+                                        dimension
+  --GradB.BX0 arg (=1e-09)              Background field value (T)
+  --GradB.BY0 arg (=2e-09)              Background field value (T)
+  --GradB.BZ0 arg (=3e-09)              Background field value (T)
+  --GradB.EX0 arg (=0)                  Background electric field
+  --GradB.VX0 arg (=0)                  Bulk velocity in x
+  --GradB.VY0 arg (=0)                  Bulk velocity in y
+  --GradB.VZ0 arg (=0)                  Bulk velocuty in z
+  --GradB.rho arg (=10000000)           Number density (m^-3)
+
+\verbatim
 
 \section sec-project Writing a project
 
