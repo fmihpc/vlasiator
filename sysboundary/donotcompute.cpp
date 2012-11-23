@@ -60,13 +60,20 @@ namespace SBC {
          cell->parameters[CellParams::PERBX] = 0.0;
          cell->parameters[CellParams::PERBY] = 0.0;
          cell->parameters[CellParams::PERBZ] = 0.0;
+         cell->parameters[CellParams::PERBX_DT2] = 0.0;
+         cell->parameters[CellParams::PERBY_DT2] = 0.0;
+         cell->parameters[CellParams::PERBZ_DT2] = 0.0;
          cell->parameters[CellParams::EX] = 0.0;
          cell->parameters[CellParams::EY] = 0.0;
          cell->parameters[CellParams::EZ] = 0.0;
          cell->parameters[CellParams::RHO] = 0.0;
-         cell->parameters[CellParams::RHOVX] =0.0;
+         cell->parameters[CellParams::RHOVX] = 0.0;
          cell->parameters[CellParams::RHOVY] = 0.0;
-         cell->parameters[CellParams::RHOVZ] =0.0;
+         cell->parameters[CellParams::RHOVZ] = 0.0;
+         cell->parameters[CellParams::RHO_DT2] = 0.0;
+         cell->parameters[CellParams::RHOVX_DT2] = 0.0;
+         cell->parameters[CellParams::RHOVY_DT2] = 0.0;
+         cell->parameters[CellParams::RHOVZ_DT2] = 0.0;
          cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
          cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
          

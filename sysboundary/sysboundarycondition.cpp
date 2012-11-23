@@ -40,22 +40,23 @@ namespace SBC {
    /*!\brief Function used to determine on which face(s) if any the cell at given coordinates is.
     * 
     * This function is used by some of the classes inheriting from this base class.
+    * 
+    * Depth is hard-coded to be 2 as other parts of the code (field solver especially) rely on that.
     */
    void SysBoundaryCondition::determineFace(
       bool* isThisCellOnAFace,
       creal x, creal y, creal z,
-      creal dx, creal dy, creal dz,
-      uint depth
+      creal dx, creal dy, creal dz
    ) {
       for(uint i=0; i<6; i++) {
          isThisCellOnAFace[i] = false;
       }
-      if(x > Parameters::xmax - (Real)depth*dx) isThisCellOnAFace[0] = true;
-      if(x < Parameters::xmin + (Real)depth*dx) isThisCellOnAFace[1] = true;
-      if(y > Parameters::ymax - (Real)depth*dy) isThisCellOnAFace[2] = true;
-      if(y < Parameters::ymin + (Real)depth*dy) isThisCellOnAFace[3] = true;
-      if(z > Parameters::zmax - (Real)depth*dz) isThisCellOnAFace[4] = true;
-      if(z < Parameters::zmin + (Real)depth*dz) isThisCellOnAFace[5] = true;
+      if(x > Parameters::xmax - 2.0*dx) isThisCellOnAFace[0] = true;
+      if(x < Parameters::xmin + 2.0*dx) isThisCellOnAFace[1] = true;
+      if(y > Parameters::ymax - 2.0*dy) isThisCellOnAFace[2] = true;
+      if(y < Parameters::ymin + 2.0*dy) isThisCellOnAFace[3] = true;
+      if(z > Parameters::zmax - 2.0*dz) isThisCellOnAFace[4] = true;
+      if(z < Parameters::zmin + 2.0*dz) isThisCellOnAFace[5] = true;
    }
    
    /*! SysBoundaryCondition base class constructor. The constructor is empty.*/
@@ -130,8 +131,9 @@ namespace SBC {
    }
    
    void SysBoundaryCondition::fieldSolverBoundaryCondDerivatives(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      dccrg::Dccrg<SpatialCell>& mpiGrid,
       const CellID& cellID,
+      cuint& RKCase,
       cuint& component
    ) {
       cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondDerivatives called instead of derived class function!" << endl;
@@ -218,39 +220,40 @@ namespace SBC {
    //if the spatialcells are neighbors
    void SysBoundaryCondition::copyCellData(SpatialCell *from, SpatialCell *to)
    {
-
-      /*prepare list of blocks to remove. It is not safe to loop over
-       * velocity_block_list while adding/removing blocks*/
-      std::vector<uint> blocksToRemove;
-      for(uint block_i=0;
-          block_i<to->number_of_blocks;
-          block_i++) {
-         cuint blockID=to->velocity_block_list[block_i];
-         if(from->is_null_block(from->at(blockID))) {
-            //this block does not exist in from -> mark for removal.
-            blocksToRemove.push_back(blockID);
+      if(to->sysBoundaryLayer == 1) { // Do this only for the first layer, the inner layer does not need this.
+         /*prepare list of blocks to remove. It is not safe to loop over
+         * velocity_block_list while adding/removing blocks*/
+         std::vector<uint> blocksToRemove;
+         for(uint block_i=0;
+            block_i<to->number_of_blocks;
+            block_i++) {
+            cuint blockID=to->velocity_block_list[block_i];
+            if(from->is_null_block(from->at(blockID))) {
+               //this block does not exist in from -> mark for removal.
+               blocksToRemove.push_back(blockID);
+            }
          }
-      }
+         
+         /*remove blocks*/
+         for(uint block_i=0;
+            block_i<blocksToRemove.size();
+            block_i++) {
+            cuint blockID=blocksToRemove[block_i];
+            to->remove_velocity_block(blockID);
+         }
+         
+         /*add blocks*/
+         for(uint block_i=0;
+            block_i<from->number_of_blocks;
+            block_i++) {
+            cuint blockID = from->velocity_block_list[block_i];
 
-      /*remove blocks*/
-      for(uint block_i=0;
-          block_i<blocksToRemove.size();
-          block_i++) {
-         cuint blockID=blocksToRemove[block_i];
-         to->remove_velocity_block(blockID);
-      }
-
-      /*add blocks*/
-      for(uint block_i=0;
-          block_i<from->number_of_blocks;
-          block_i++) {
-         cuint blockID = from->velocity_block_list[block_i];
-
-         to->add_velocity_block(blockID);          
-         const Velocity_Block* toBlock = to->at(blockID);
-         const Velocity_Block* fromBlock = from->at(blockID);
-         for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
-            toBlock->data[i] = fromBlock->data[i];
+            to->add_velocity_block(blockID);          
+            const Velocity_Block* toBlock = to->at(blockID);
+            const Velocity_Block* fromBlock = from->at(blockID);
+            for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
+               toBlock->data[i] = fromBlock->data[i];
+            }
          }
       }
       

@@ -72,8 +72,9 @@ namespace SBC {
          cuint component
       );
       virtual void fieldSolverBoundaryCondDerivatives(
-         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         dccrg::Dccrg<SpatialCell>& mpiGrid,
          const CellID& cellID,
+         cuint& RKCase,
          cuint& component
       );
       virtual void fieldSolverBoundaryCondBVOLDerivatives(

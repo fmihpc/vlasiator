@@ -231,7 +231,6 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       success = success && (*it)->assignSysBoundary(mpiGrid);
    }
    
-
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_NEIGHBORHOOD_ID);
    int rank;
@@ -251,12 +250,10 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid) {
          }
       }
    }
-
-
+   
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_NEIGHBORHOOD_ID);
-
-
+   
    /*Compute distances*/
    /*Construct vector with all cells, both local and remote*/
    uint maxLayers=10;
@@ -277,7 +274,16 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
       mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_NEIGHBORHOOD_ID);
    }
-                  
+   
+   for(uint i=0; i<cells.size(); i++) {
+      if(mpiGrid[cells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+         mpiGrid[cells[i]]->sysBoundaryLayer != 1 &&
+         mpiGrid[cells[i]]->sysBoundaryLayer != 2
+      ) {
+         mpiGrid[cells[i]]->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
+      }
+   }
+   
    return success;
 }
 
@@ -318,10 +324,13 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    }
 
    /*Transfer along boundaries*/
+   // First the small stuff without overlapping in an extended neighbourhood:
    SpatialCell::set_mpi_transfer_type(
       Transfer::CELL_PARAMETERS|
-      Transfer::VEL_BLOCK_DATA|
       Transfer::CELL_SYSBOUNDARYFLAG,true);
+   mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+   // Then the block data in the reduced neighbourhood:
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,true);
    
    int timer=phiprof::initializeTimer("Start comm of cell and block data","MPI");
    phiprof::start(timer);

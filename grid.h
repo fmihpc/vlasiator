@@ -50,7 +50,10 @@ void initializeGrid(
   
   
 */
-bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid, bool reInitMover=true);
+bool adjustVelocityBlocks(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   bool reInitMover=true
+);
 
 
 /*!
@@ -59,9 +62,11 @@ Updates velocity block lists between remote neighbors and
 prepares local copies of remote neighbors to receive velocity block
 data. This is needed if one has locally adjusted velocity blocks
 
-\param mpiGrid   The DCCRG grid with spatial cells    
+\param mpiGrid   The DCCRG grid with spatial cells
 */
-void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell>& mpiGrid);
+void updateRemoteVelocityBlockLists(
+   dccrg::Dccrg<SpatialCell>& mpiGrid
+);
 
 
 

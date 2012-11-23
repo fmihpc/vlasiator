@@ -65,8 +65,9 @@ namespace SBC {
          cuint component
       );
       virtual void fieldSolverBoundaryCondDerivatives(
-         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         dccrg::Dccrg<SpatialCell>& mpiGrid,
          const CellID& cellID,
+         cuint& RKCase,
          cuint& component
       );
       virtual void fieldSolverBoundaryCondBVOLDerivatives(
@@ -75,11 +76,6 @@ namespace SBC {
          cuint& component
       );
       virtual void vlasovBoundaryCondition(
-         const dccrg::Dccrg<SpatialCell>& mpiGrid,
-         const CellID& cellID
-      );
-      
-      void vlasovBoundaryCopyFromExistingFaceNbr(
          const dccrg::Dccrg<SpatialCell>& mpiGrid,
          const CellID& cellID
       );
@@ -97,6 +93,14 @@ namespace SBC {
          const dccrg::Dccrg<SpatialCell>& mpiGrid,
          const CellID& cellID,
          cuint& component
+      );
+      void vlasovBoundaryCopyFromExistingFaceNbr(
+         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const CellID& cellID
+      );
+      CellID getClosestNonsysboundaryCell(
+         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const CellID& cellID
       );
    }; // class Outflow
 } // namespace SBC

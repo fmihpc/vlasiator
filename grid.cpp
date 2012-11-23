@@ -102,7 +102,7 @@ void initializeGrid(
       sysBoundaries.isBoundaryPeriodic(1),
       sysBoundaries.isBoundaryPeriodic(2)
    );
-
+   
    initializeStencils(mpiGrid);
    
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
@@ -496,6 +496,35 @@ void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
       abort();
    }
    
+   std::vector<neigh_t> twonearestneighbor_neighborhood;
+   for (int z = -2; z <= 2; z++) {
+      for (int y = -2; y <= 2; y++) {
+         for (int x = -2; x <= 2; x++) {
+            if (x == 0 && y == 0 && z == 0) {
+               continue;
+            }
+            
+            neigh_t offsets = {{x, y, z}};
+            twonearestneighbor_neighborhood.push_back(offsets);
+         }
+      }
+   }
+   
+   if (!mpiGrid.add_remote_update_neighborhood(SYSBOUNDARIES_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+      << " Couldn't set system boundaries neighborhood"
+      << std::endl;
+      abort();
+   }
+   
+   if (!mpiGrid.add_remote_update_neighborhood(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID, twonearestneighbor_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+      << " Couldn't set system boundaries extended neighborhood"
+      << std::endl;
+      abort();
+   }
+   
+   
    // set a reduced neighborhood for all possible communication in  vlasov solver
    //FIXME, the +2 neighbors can be removed as we do not receive from +2, do check though...
    const std::vector<neigh_t> vlasov_neighborhood
@@ -539,7 +568,6 @@ void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
                 << std::endl;
       abort();
    }
-
    
    // A reduced neighborhood for vlasov distribution function receives
    const std::vector<neigh_t> vlasov_density_neighborhood
@@ -560,21 +588,11 @@ void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
                 << std::endl;
       abort();
    }
-
-
+   
    if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_FLUXES_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
       std::cerr << __FILE__ << ":" << __LINE__
                 << " Couldn't set field solver neighborhood"
                 << std::endl;
       abort();
    }
-
-   if (!mpiGrid.add_remote_update_neighborhood(SYSBOUNDARIES_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
-      std::cerr << __FILE__ << ":" << __LINE__
-                << " Couldn't set system boundaries neighborhood"
-                << std::endl;
-      abort();
-   }
-
-
 }

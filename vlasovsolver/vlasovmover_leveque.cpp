@@ -95,8 +95,11 @@ CellID getNeighbourID(
        abort();
    }
    // TODO support spatial refinement
-   if((neighbors[0] != INVALID_CELLID) &&
-      (mpiGrid[neighbors[0]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)) {
+   if( neighbors[0] == INVALID_CELLID  ||
+       mpiGrid[neighbors[0]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+       (mpiGrid[neighbors[0]]->sysBoundaryLayer != 1  &&
+        mpiGrid[neighbors[0]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )
+      ) {
       return INVALID_CELLID;
    } else {
       return neighbors[0];
@@ -487,7 +490,10 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       SpatialCell* SC=mpiGrid[cellID];
-      if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+      if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+         (SC->sysBoundaryLayer != 1  &&
+             SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)
+      ) continue;
       const Real dx=SC->parameters[CellParams::DX];
       const Real dy=SC->parameters[CellParams::DY];
       const Real dz=SC->parameters[CellParams::DZ];
@@ -531,7 +537,9 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,
 #pragma omp parallel
    for (set<CellID>::iterator cell=stencilAverages.innerCells.begin(); cell!=stencilAverages.innerCells.end(); ++cell) {
       SpatialCell* SC = mpiGrid[*cell];
-      if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+      if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+         (SC->sysBoundaryLayer != 1  &&
+             SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )) continue;
       // Iterate through all velocity blocks in the spatial cell and calculate 
       // contributions to df/dt:
 #pragma omp for
@@ -562,7 +570,10 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,
 #pragma omp parallel 
    for (set<CellID>::iterator cell=stencilAverages.boundaryCells.begin(); cell!=stencilAverages.boundaryCells.end(); ++cell) {
       SpatialCell* SC = mpiGrid[*cell];
-      if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+      if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+         (SC->sysBoundaryLayer != 1  &&
+             SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )
+      ) continue;
       // Iterate through all velocity blocks in the spatial cell and calculate 
       // contributions to df/dt:
 #pragma omp for
@@ -578,7 +589,10 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       SpatialCell* SC=mpiGrid[cellID];
-      if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+      if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+         (SC->sysBoundaryLayer != 1  &&
+             SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )
+      ) continue;
       for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
          unsigned int block = SC->velocity_block_list[block_i];
          Velocity_Block* block_ptr = SC->at(block);
@@ -801,7 +815,10 @@ void calculateInterpolatedVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid,
 
 
 void calculateCellVelocityMoments(SpatialCell* SC){
-   if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) return;
+   if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+      (SC->sysBoundaryLayer != 1  &&
+          SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )
+   ) return;
    SC->parameters[CellParams::RHO  ] = 0.0;
    SC->parameters[CellParams::RHOVX] = 0.0;
    SC->parameters[CellParams::RHOVY] = 0.0;

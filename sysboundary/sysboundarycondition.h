@@ -79,8 +79,9 @@ namespace SBC {
             cuint component
          );
          virtual void fieldSolverBoundaryCondDerivatives(
-            const dccrg::Dccrg<SpatialCell>& mpiGrid,
+            dccrg::Dccrg<SpatialCell>& mpiGrid,
             const CellID& cellID,
+            cuint& RKCase,
             cuint& component
          );
          virtual void fieldSolverBoundaryCondBVOLDerivatives(
@@ -113,8 +114,7 @@ namespace SBC {
          void determineFace(
             bool* isThisCellOnAFace,
             creal x, creal y, creal z,
-            creal dx, creal dy, creal dz,
-            uint depth
+            creal dx, creal dy, creal dz
          );
          void copyCellData(SpatialCell *from, SpatialCell *to);
 //          void zeroCellData( SpatialCell *to);
