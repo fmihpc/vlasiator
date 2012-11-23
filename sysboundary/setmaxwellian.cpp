@@ -170,6 +170,7 @@ namespace SBC {
       Bz = buffer[7];
       
       templateCell.sysBoundaryFlag = this->getIndex();
+      templateCell.sysBoundaryLayer = 1;
       
       templateCell.parameters[CellParams::XCRD] = 0.0;
       templateCell.parameters[CellParams::YCRD] = 0.0;

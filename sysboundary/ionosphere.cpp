@@ -343,6 +343,7 @@ namespace SBC {
    void Ionosphere::generateTemplateCell(Project &project) {
       // WARNING not 0.0 here or the dipole() function fails miserably.
       templateCell.sysBoundaryFlag = this->getIndex();
+      templateCell.sysBoundaryLayer = 1;
       templateCell.parameters[CellParams::XCRD] = 1.0;
       templateCell.parameters[CellParams::YCRD] = 1.0;
       templateCell.parameters[CellParams::ZCRD] = 1.0;

@@ -63,13 +63,13 @@ using namespace phiprof;
 
 bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &isChanged) {
 
-   phiprof::start("compute-timestep");      
+   phiprof::start("compute-timestep");
    //compute maximum time-step, this cannot be done at the first
    //step as the solvers compute the limits for each cell
 
    isChanged=false;
 
-   vector<uint64_t> cells = mpiGrid.get_cells();         
+   vector<uint64_t> cells = mpiGrid.get_cells();
    Real dtMaxLocal[3];
    Real dtMaxGlobal[3];
    dtMaxLocal[0]=std::numeric_limits<Real>::max();
@@ -77,19 +77,17 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &is
    dtMaxLocal[2]=std::numeric_limits<Real>::max();
    for (std::vector<uint64_t>::const_iterator cell_id = cells.begin(); cell_id != cells.end(); ++cell_id) {
       SpatialCell* cell = mpiGrid[*cell_id];
-      if (cell->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
+      if (cell->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE &&
+          (cell->sysBoundaryLayer == 1 &&
+            cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )) {
          //spatial fluxes computed also for boundary cells 
          dtMaxLocal[0]=min(dtMaxLocal[0], cell->parameters[CellParams::MAXRDT]);
-      }
-      // WARNING this is only OK for the ionosphere, fix the other SBCs too before enabling.
-      if ((cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-          (cell->sysBoundaryLayer == 1)) {
+         // WARNING this is only OK for the ionosphere, fix the other SBCs too before enabling.
          dtMaxLocal[2]=min(dtMaxLocal[2], cell->parameters[CellParams::MAXFDT]);
       }
       if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          //Fieldsolver and acceleration only done on non sysboundary cells
          dtMaxLocal[1]=min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
-         dtMaxLocal[2]=min(dtMaxLocal[2], cell->parameters[CellParams::MAXFDT]);
       }
    }
    MPI_Allreduce(&(dtMaxLocal[0]), &(dtMaxGlobal[0]), 3, MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
