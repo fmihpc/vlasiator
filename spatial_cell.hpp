@@ -1761,8 +1761,9 @@ namespace velocity_neighbor {
      
       
       unsigned int procBoundaryFlag; /*!< bitfield usied in leveque vlasov solver to see if a neighbor exists, or if it is outside the system. TODO: bad/missleading name */
-      uint sysBoundaryFlag; /*!< What type of system boundary does the cell belong to. Enumerated in the sysboundarytype namespace's enum */
-      uint sysBoundaryLayer; /*!< Layers counted from closest systemBoundary. If 0 then it has not been computed. First sysboundary layer is layer 1 */
+      uint sysBoundaryFlag;          /*!< What type of system boundary does the cell belong to. Enumerated in the sysboundarytype namespace's enum */
+      uint sysBoundaryLayer;         /*!< Layers counted from closest systemBoundary. If 0 then it has not been computed. First sysboundary layer is layer 1 */
+      uint subStepsAcceleration;
       
    }; // class SpatialCell
    

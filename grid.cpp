@@ -245,21 +245,17 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    //set weights based on each cells LB weight counter
    vector<uint64_t> cells = mpiGrid.get_cells();
    for (uint i=0; i<cells.size(); ++i){
-      if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-         // No load in that case
+      //weight set according to substeps * blocks. If no substepping allowed, substeps will be 1.
+      mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]=
+         mpiGrid[cells[i]]->number_of_blocks*mpiGrid[cells[i]]->subStepsAcceleration;
+      
+      if(mpiGrid[cells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+         // No acceleration in this case, should anyway be 
          mpiGrid.set_cell_weight(cells[i], 0.0);
       } else {
-         if(P::maxAccelerationSubsteps!=1) {
-            //use time-metric from solvers
-            mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
-         }
-         else{
-            //No substepping in acceleration step, use number of blocks instead as metric as that provides slightly better results
-            mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->number_of_blocks);
-         }
+         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
       }
       
-      mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]=0.0; //zero counter
    }
    
 // tell other processes which velocity blocks exist in remote spatial cells
