@@ -325,10 +325,8 @@ int main(int argn,char* args[]) {
    if (myRank == MASTER_RANK) logFile << "(MAIN): Starting main simulation loop." << endl << writeVerbose;
    
    double before = MPI_Wtime();
-   unsigned int totalComputedSpatialCells=0;
-   unsigned int computedSpatialCells=0;
-   unsigned int totalComputedBlocks=0;
-   unsigned int computedBlocks=0;
+   unsigned int computedCellsWithSubsteps=0;
+   unsigned int computedCells=0;
    unsigned int restartWrites=(int)(P::t_min/P::saveRestartTimeInterval);
    unsigned int systemWrites=(int)(P::t_min/P::saveSystemTimeInterval);
 
@@ -410,14 +408,8 @@ int main(int argn,char* args[]) {
       //get local cells       
       vector<uint64_t> cells = mpiGrid.get_cells();      
       //compute how many spatial cells we solve for this step
-      computedSpatialCells=cells.size();
-      computedBlocks=0;
-      for(uint i=0;i<cells.size();i++)  computedBlocks+=mpiGrid[cells[i]]->number_of_blocks;
-      totalComputedSpatialCells+=computedSpatialCells;
-      totalComputedBlocks+=computedBlocks;
-      
-
-
+      computedCells=0;
+      for(uint i=0;i<cells.size();i++)  computedCells+=mpiGrid[cells[i]]->number_of_blocks*WID3;
             
       //Check if dt needs to be changed, and propagate half-steps properly to change dt and set up new situation
       //do not compute new dt on first step (in restarts dt comes from file, otherwise it was initialized before we entered
@@ -458,7 +450,7 @@ int main(int argn,char* args[]) {
             if (P::propagateField == true) {
                phiprof::start("Propagate Fields");
                propagateFields(mpiGrid, sysBoundaries, 0.5*P::dt);
-               phiprof::stop("Propagate Fields",computedSpatialCells,"SpatialCells");
+               phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
             } else {
                // TODO Whatever field updating/volume
                // averaging/etc. needed in test particle and other
@@ -485,7 +477,11 @@ int main(int argn,char* args[]) {
          phiprof::start("Propagate Vlasov");
          phiprof::start("Velocity-space");
          calculateAcceleration(mpiGrid,*project,P::dt);
-         phiprof::stop("Velocity-space",computedBlocks,"Blocks");
+         computedCellsWithSubsteps=0;
+         for(uint i=0;i<cells.size();i++)
+            computedCellsWithSubsteps+=mpiGrid[cells[i]]->number_of_blocks*WID3*mpiGrid[cells[i]]->subStepsAcceleration;
+         
+         phiprof::stop("Velocity-space",computedCellsWithSubsteps,"Cells");
          if(updateVelocityBlocksAfterAcceleration){
             //need to do a update of block lists as all cells have made local changes
             updateRemoteVelocityBlockLists(mpiGrid);
@@ -506,7 +502,7 @@ int main(int argn,char* args[]) {
          phiprof::start("Spatial-space");
          calculateSpatialFluxes(mpiGrid, sysBoundaries, P::dt);
          calculateSpatialPropagation(mpiGrid);
-         phiprof::stop("Spatial-space",computedBlocks,"Blocks");
+         phiprof::stop("Spatial-space",computedCells,"Cells");
 
          calculateInterpolatedVelocityMoments(
             mpiGrid,
@@ -524,19 +520,19 @@ int main(int argn,char* args[]) {
                adjustVelocityBlocks(mpiGrid);
             }
          }
-         phiprof::stop("Propagate Vlasov",computedBlocks,"Blocks");
+         phiprof::stop("Propagate Vlasov",computedCells,"Cells");
       }
       
       // Propagate fields forward in time by dt.
       if (P::propagateField == true) {
          phiprof::start("Propagate Fields");
          propagateFields(mpiGrid, sysBoundaries, P::dt);
-         phiprof::stop("Propagate Fields",computedSpatialCells,"SpatialCells");
+         phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
       } else {
          // TODO Whatever field updating/volume averaging/etc. needed in test particle and other test cases have to be put here.
          // In doing this be sure the needed components have been updated.
       }
-      phiprof::stop("Propagate",computedBlocks,"Blocks");
+      phiprof::stop("Propagate",computedCells,"Cells");
       
       //Move forward in time      
       ++P::tstep;
@@ -545,7 +541,7 @@ int main(int argn,char* args[]) {
 
    double after = MPI_Wtime();
    
-   phiprof::stop("Simulation",totalComputedBlocks,"Blocks");
+   phiprof::stop("Simulation");
    phiprof::start("Finalization");   
    finalizeMover();
    finalizeFieldPropagator(mpiGrid);
