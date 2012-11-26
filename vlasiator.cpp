@@ -400,9 +400,10 @@ int main(int argn,char* args[]) {
          break;
       }
 
-            
-      //Re-loadbalance if needed, not done on first step
-      if(P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min)
+      
+      //Re-loadbalance if needed, not done on first step, but is done on second
+      if(( P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min) ||
+         P::tstep==P::tstep_min+1 )
          balanceLoad(mpiGrid);
       
       //get local cells       
