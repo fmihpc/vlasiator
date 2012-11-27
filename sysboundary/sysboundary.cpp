@@ -327,7 +327,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    // First the small stuff without overlapping in an extended neighbourhood:
    SpatialCell::set_mpi_transfer_type(
       Transfer::CELL_PARAMETERS|
-      Transfer::CELL_SYSBOUNDARYFLAG,true);
+      Transfer::CELL_SYSBOUNDARYFLAG,false);
    mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
    // Then the block data in the reduced neighbourhood:
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,true);

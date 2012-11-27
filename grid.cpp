@@ -241,7 +241,6 @@ bool applyInitialState(
 }
 
 void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
-
    //set weights based on each cells LB weight counter
    vector<uint64_t> cells = mpiGrid.get_cells();
    for (uint i=0; i<cells.size(); ++i){
