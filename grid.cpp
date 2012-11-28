@@ -307,6 +307,13 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
        logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
        exit(1);
    }
+   
+   // The following is done so that everyone knows their neighbour's layer flags.
+   // This is needed for the correct use of the system boundary local communication patterns.
+   // Done initially in sysboundarycondition.cpp:classifyCells().
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
+   mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+   
    phiprof::stop("Init solvers");
    
    phiprof::stop("Balancing load");

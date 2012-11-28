@@ -275,6 +275,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_NEIGHBORHOOD_ID);
    }
    
+   
    for(uint i=0; i<cells.size(); i++) {
       if(mpiGrid[cells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
          mpiGrid[cells[i]]->sysBoundaryLayer != 1 &&
@@ -283,6 +284,11 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid) {
          mpiGrid[cells[i]]->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
       }
    }
+   
+   // The following is done so that everyone knows their neighbour's layer flags.
+   // This is needed for the correct use of the system boundary local communication patterns.
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
+   mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
    
    return success;
 }
@@ -327,7 +333,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    // First the small stuff without overlapping in an extended neighbourhood:
    SpatialCell::set_mpi_transfer_type(
       Transfer::CELL_PARAMETERS|
-      Transfer::CELL_SYSBOUNDARYFLAG,false);
+      Transfer::CELL_SYSBOUNDARYFLAG,true);
    mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
    // Then the block data in the reduced neighbourhood:
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,true);
