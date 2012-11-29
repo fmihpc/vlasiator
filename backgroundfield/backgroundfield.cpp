@@ -48,47 +48,50 @@ void setDipoleBackgroundBNegZ(
 void setDipole(Real* cellParams)
 {
    using namespace CellParams;
+// the dipole from gumics is not threadsafe
+#pragma omp critical
+   {
+      TB0 background_B;
+      background_B.set_dipole_moment(8e15);
+      background_B.initialize();
 
-   TB0 background_B;
-   background_B.set_dipole_moment(8e15);
-   background_B.initialize();
-
-   creal
-      start_x = cellParams[CellParams::XCRD],
-      start_y = cellParams[CellParams::YCRD],
-      start_z = cellParams[CellParams::ZCRD],
-      end_x = start_x + cellParams[CellParams::DX],
-      end_y = start_y + cellParams[CellParams::DY],
-      end_z = start_z + cellParams[CellParams::DZ];
+      creal
+         start_x = cellParams[CellParams::XCRD],
+         start_y = cellParams[CellParams::YCRD],
+         start_z = cellParams[CellParams::ZCRD],
+         end_x = start_x + cellParams[CellParams::DX],
+         end_y = start_y + cellParams[CellParams::DY],
+         end_z = start_z + cellParams[CellParams::DZ];
       
-   Real Bx, By, Bz;
+      Real Bx, By, Bz;
 
-   // set Bx at negative x face
-   setDipoleBackgroundBNegX(
-      background_B,
-      start_x, start_y, start_z,
-      end_x, end_y, end_z,
-      Bx, By, Bz
-   );
-   cellParams[CellParams::BGBX] = Bx;
+      // set Bx at negative x face
+      setDipoleBackgroundBNegX(
+         background_B,
+         start_x, start_y, start_z,
+         end_x, end_y, end_z,
+         Bx, By, Bz
+                               );
+      cellParams[CellParams::BGBX] = Bx;
 
-   // By at -y face
-   setDipoleBackgroundBNegY(
-      background_B,
-      start_x, start_y, start_z,
-      end_x, end_y, end_z,
-      Bx, By, Bz
-   );
-   cellParams[CellParams::BGBY] = By;
+      // By at -y face
+      setDipoleBackgroundBNegY(
+         background_B,
+         start_x, start_y, start_z,
+         end_x, end_y, end_z,
+         Bx, By, Bz
+                               );
+      cellParams[CellParams::BGBY] = By;
 
-   // Bz at -z
-   setDipoleBackgroundBNegZ(
-      background_B,
-      start_x, start_y, start_z,
-      end_x, end_y, end_z,
-      Bx, By, Bz
-   );
-   cellParams[CellParams::BGBZ] = Bz;
+      // Bz at -z
+      setDipoleBackgroundBNegZ(
+         background_B,
+         start_x, start_y, start_z,
+         end_x, end_y, end_z,
+         Bx, By, Bz
+                               );
+      cellParams[CellParams::BGBZ] = Bz;
+   }
 }
 
 /*!
