@@ -139,8 +139,12 @@ namespace projects {
            (cell->parameters[CellParams::BGBY]) !=(cell->parameters[CellParams::BGBY]) ||
            (cell->parameters[CellParams::BGBZ]) !=(cell->parameters[CellParams::BGBZ]))
      {
-        std::cerr << __FILE__ << ":" << __LINE__ << " Dipole returned NAN's ???"  << std::endl; \
-        abort();                                                        \
+        std::cerr << __FILE__ << ":" << __LINE__ << " Dipole returned NAN's?: "
+           << cell->parameters[CellParams::BGBX] << " "
+           << cell->parameters[CellParams::BGBY] << " "
+           << cell->parameters[CellParams::BGBZ]
+           << std::endl;
+        abort();
      }
   }
    
