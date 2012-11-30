@@ -139,8 +139,8 @@ namespace projects {
            (cell->parameters[CellParams::BGBY]) !=(cell->parameters[CellParams::BGBY]) ||
            (cell->parameters[CellParams::BGBZ]) !=(cell->parameters[CellParams::BGBZ]))
      {
-        std::cerr << __FILE__ << ":" << __LINE__ << " Dipole returned NAN's ???"  << std::endl; \
-        abort();                                                        \
+        std::cerr << __FILE__ << ":" << __LINE__ << " Dipole returned NAN's ???"  << std::endl;
+        abort();
      }
   }
    
@@ -160,6 +160,8 @@ namespace projects {
             initV0[i] *= (radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
          }
       }
+      
+      
       initRho *= 1.0 + 9.0 * 0.5 * (1.0 + tanh((x-this->rhoTransitionCenter) / this->rhoTransitionWidth));
       
       
