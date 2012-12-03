@@ -298,9 +298,28 @@ int main(int argn,char* args[]) {
       if(dtIsChanged)
          P::dt=newDt;
       phiprof::stop("compute-dt");
-      
-   }
 
+      if(P::maxAccelerationSubsteps!=1){
+         //Now we make a small "hack" and compute an artifical number
+         //of substeps, this is here to improve the initial load
+         //balance, otherwise the first step may have a really bad load imbalance
+         //get local cells         
+         vector<uint64_t> cells = mpiGrid.get_cells();      
+         
+         for(uint i=0;i<cells.size();i++){
+            Real velocityDt=mpiGrid[cells[i]]->parameters[CellParams::MAXVDT]*0.5*(P::CFL_min+P::CFL_max);
+
+            if(velocityDt>0)
+               mpiGrid[cells[i]]->subStepsAcceleration=(int)(P::dt/velocityDt)+1;
+            else
+               mpiGrid[cells[i]]->subStepsAcceleration=0;
+               
+         }
+         //and balance load
+         balanceLoad(mpiGrid);
+      }
+   }
+   
 
    
    if(P::propagateVlasov && !P::isRestart) {
@@ -377,6 +396,9 @@ int main(int argn,char* args[]) {
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          writeGrid(mpiGrid,outputReducer,"grid",systemWrites,false);
          systemWrites++;
+         if (myRank == MASTER_RANK)
+            logFile << "(IO): .... done!"<< endl << writeVerbose;
+
          phiprof::stop("write-system");
       }
 
@@ -388,6 +410,9 @@ int main(int argn,char* args[]) {
             logFile << "(IO): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          writeGrid(mpiGrid,outputReducer,"restart",restartWrites,true);
          restartWrites++;
+         if (myRank == MASTER_RANK)
+            logFile << "(IO): .... done!"<< endl << writeVerbose;
+
          phiprof::stop("write-restart");
       }
       
@@ -402,9 +427,8 @@ int main(int argn,char* args[]) {
       }
 
       
-      //Re-loadbalance if needed, not done on first step, but is done on second
-      if(( P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min) ||
-         P::tstep==P::tstep_min+1 )
+      //Re-loadbalance if needed
+      if( P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min)
          balanceLoad(mpiGrid);
       
       //get local cells       
