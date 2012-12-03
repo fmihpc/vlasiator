@@ -18,8 +18,8 @@ if [ -e $1 ]
 then
 echo "Tag           Name            Value          Vectorsize" 
 echo "-------------------------------------------------------"
-tail -1000  $1 |
-grep arraysize |
+tail -300  $1 |
+grep --text arraysize |
 sed 's/[<\"=>]/ /g' |
 gawk  '{ 
 printf("%-14s",$1); 
