@@ -194,7 +194,7 @@ namespace SBC {
       const dccrg::Dccrg<SpatialCell>& mpiGrid,
       const CellID& cellID
    ) {
-      phiprof::start("vlasovBoundaryCondition (SetByUser)");
+//      phiprof::start("vlasovBoundaryCondition (SetByUser)");
       SpatialCell* cell = mpiGrid[cellID];
       creal dx = cell->parameters[CellParams::DX];
       creal dy = cell->parameters[CellParams::DY];
@@ -212,7 +212,7 @@ namespace SBC {
             break; // This effectively sets the precedence of faces through the order of faces.
          }
       }
-      phiprof::stop("vlasovBoundaryCondition (SetByUser)");
+//      phiprof::stop("vlasovBoundaryCondition (SetByUser)");
    }
    
    bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell>& mpiGrid) {

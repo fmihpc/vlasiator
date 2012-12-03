@@ -124,7 +124,23 @@ namespace DRO {
    protected:
       int boundaryLayer;
    };
+
+
+   class VelocitySubSteps: public DataReductionOperator {
+   public:
+      VelocitySubSteps();
+      virtual ~VelocitySubSteps();
+      
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      
+   protected:
+      int substeps;
+   };
    
+
    class Blocks: public DataReductionOperator {
     public:
       Blocks();

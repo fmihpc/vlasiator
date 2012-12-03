@@ -346,9 +346,9 @@ namespace SBC {
       const dccrg::Dccrg<SpatialCell>& mpiGrid,
       const CellID& cellID
    ) {
-      phiprof::start("vlasovBoundaryCondition (Outflow)");
+//      phiprof::start("vlasovBoundaryCondition (Outflow)");
       vlasovBoundaryCopyFromExistingFaceNbr(mpiGrid, cellID);
-      phiprof::stop("vlasovBoundaryCondition (Outflow)");
+//      phiprof::stop("vlasovBoundaryCondition (Outflow)");
    }
    
    void Outflow::vlasovBoundaryCopyFromExistingFaceNbr(
