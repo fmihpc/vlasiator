@@ -37,15 +37,9 @@ void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,uint64_
 
 void calculateAcceleration(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
-   Project& project,
    Real dt
 );
-void calculateCellAcceleration(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
-   CellID cellID,
-   Project& project,
-   Real dt
-); //calculate acceleration in one single cell
+
 void calculateSpatialFluxes(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
    const SysBoundary& sysBoundaries,

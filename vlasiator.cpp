@@ -282,7 +282,7 @@ int main(int argn,char* args[]) {
       if(P::propagateVlasov) {
          //Flux computation is sufficient, no need to propagate
          calculateSpatialFluxes(mpiGrid, sysBoundaries, 0.0);
-         calculateAcceleration(mpiGrid,*project,0.0);
+         calculateAcceleration(mpiGrid,0.0);
       }
       if(updateVelocityBlocksAfterAcceleration){
          //this is probably not ever needed, as a zero length step
@@ -327,6 +327,7 @@ int main(int argn,char* args[]) {
    double before = MPI_Wtime();
    unsigned int computedCellsWithSubsteps=0;
    unsigned int computedCells=0;
+   unsigned int computedTotalCells=0;
    unsigned int restartWrites=(int)(P::t_min/P::saveRestartTimeInterval);
    unsigned int systemWrites=(int)(P::t_min/P::saveSystemTimeInterval);
 
@@ -411,7 +412,8 @@ int main(int argn,char* args[]) {
       //compute how many spatial cells we solve for this step
       computedCells=0;
       for(uint i=0;i<cells.size();i++)  computedCells+=mpiGrid[cells[i]]->number_of_blocks*WID3;
-            
+      computedTotalCells+=computedCells;
+      
       //Check if dt needs to be changed, and propagate half-steps properly to change dt and set up new situation
       //do not compute new dt on first step (in restarts dt comes from file, otherwise it was initialized before we entered
       //simulation loop
@@ -420,7 +422,7 @@ int main(int argn,char* args[]) {
          if(dtIsChanged) {
             phiprof::start("update-dt");
             //propagate velocity space to real-time
-            calculateAcceleration(mpiGrid,*project,0.5*P::dt);
+            calculateAcceleration(mpiGrid,0.5*P::dt);
             //re-compute moments for real time for fieldsolver, and
             //shift compute rho_dt2 as average of old rho and new
             //rho. In practice this value is at a 1/4 timestep, as we
@@ -477,7 +479,7 @@ int main(int argn,char* args[]) {
       if (P::propagateVlasov == true) {
          phiprof::start("Propagate Vlasov");
          phiprof::start("Velocity-space");
-         calculateAcceleration(mpiGrid,*project,P::dt);
+         calculateAcceleration(mpiGrid,P::dt);
          computedCellsWithSubsteps=0;
          for(uint i=0;i<cells.size();i++)
             computedCellsWithSubsteps+=mpiGrid[cells[i]]->number_of_blocks*WID3*mpiGrid[cells[i]]->subStepsAcceleration;

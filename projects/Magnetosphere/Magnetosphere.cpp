@@ -135,24 +135,7 @@ namespace projects {
    /* set 0-centered dipole */
   void Magnetosphere::setCellBackgroundField(SpatialCell *cell){
      setDipole(cell->parameters);
-     if (  (cell->parameters[CellParams::BGBX]) !=(cell->parameters[CellParams::BGBX]) ||
-           (cell->parameters[CellParams::BGBY]) !=(cell->parameters[CellParams::BGBY]) ||
-           (cell->parameters[CellParams::BGBZ]) !=(cell->parameters[CellParams::BGBZ]))
-     {
-        std::cerr << __FILE__ << ":" << __LINE__ << " Dipole returned NAN's?: "
-           << cell->parameters[CellParams::BGBX] << " "
-           << cell->parameters[CellParams::BGBY] << " "
-           << cell->parameters[CellParams::BGBZ] << "\n"
-           << "for cellcoordinates (x,y,z_min; x,y,z_max): "
-           << cell->parameters[CellParams::XCRD] << " "
-           << cell->parameters[CellParams::YCRD] << " "
-           << cell->parameters[CellParams::ZCRD] << "; "
-           << cell->parameters[CellParams::XCRD] + cellParams[CellParams::DX] << " "
-           << cell->parameters[CellParams::YCRD] + cellParams[CellParams::DY] << " "
-           << cell->parameters[CellParams::ZCRD] + cellParams[CellParams::DZ]
-           << std::endl;
-        abort();
-     }
+
   }
    
    

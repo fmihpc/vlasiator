@@ -45,6 +45,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #endif
 #include "cpu_acc_leveque.hpp"
 
+#include "cpu_lorentz.hpp"
 
 #include <stdint.h>
 #include <dccrg.hpp>
@@ -53,8 +54,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "spatial_cell.hpp"
 #include "../grid.h"
 
-#include "../projects/project.h"
-
 using namespace std;
 using namespace spatial_cell;
 
@@ -62,8 +61,7 @@ using namespace spatial_cell;
 void calculateAccelerationSubstep(
    const dccrg::Dccrg<SpatialCell>& mpiGrid,   
    const vector< CellID > &propagatedCells,
-   const vector< Real > &subDt,
-   Project& project);
+   const vector< Real > &subDt);
 
 
 static TransferStencil<CellID> stencilAverages(INVALID_CELLID);
@@ -283,7 +281,6 @@ void updateBlockQuadrantLists(
 
 void calculateAcceleration(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
-   Project& project,
    Real dt
 ) {
 
@@ -309,8 +306,8 @@ void calculateAcceleration(
    }
    
 
-/*TODO notes
-  - This implementation is over all cells at once, one could make it more general so that 1-all would be done per time. Could be better from caches/memory point of view with less cells ata a time
+/*
+  TODO notes
   - Adjust blocks takes a lot of time, probably does not need to be done at every timestep
 */
    
@@ -337,7 +334,7 @@ void calculateAcceleration(
             }
          }
          //calculate acceleration, this is internally threaded over blocks
-         calculateAccelerationSubstep(mpiGrid,propagatedCells,subDt,project);
+         calculateAccelerationSubstep(mpiGrid,propagatedCells,subDt);
 
          
          //update time and steps
@@ -390,8 +387,9 @@ void calculateAcceleration(
    else{
       //no substepping
       vector< Real> subDt(propagatedCells.size(),dt);       //subdt is now the total timestep for all steps, no substepping
-      //just one normal acceleration step
-      calculateAccelerationSubstep(mpiGrid,propagatedCells,subDt,project);
+      
+//just one normal acceleration step
+      calculateAccelerationSubstep(mpiGrid,propagatedCells,subDt);
       
    }
    
@@ -420,8 +418,8 @@ void calculateAcceleration(
 void calculateAccelerationSubstep(
    const dccrg::Dccrg<SpatialCell>& mpiGrid,
    const vector< CellID > &propagatedCells,
-   const vector< Real > &subDt,
-   Project& project){
+   const vector< Real > &subDt){
+   
 
    typedef Parameters P;
 
@@ -429,9 +427,15 @@ void calculateAccelerationSubstep(
 
    vector< vector<uint64_t> > blockId(8, vector<uint64_t>(0,0) ); //blockIds. This array is first over 8 different positions in a octant, and then over all blocks in this octant in all local cells
    vector< vector<uint> > cellIndex(8, vector<uint>(0,0) ); // spatial-cell index (not id!) to which a particular block belongs.  
-
    //re-construct lists of blocks that are accelerated       
    updateBlockQuadrantLists(mpiGrid,propagatedCells,blockId,cellIndex);
+
+   //compute bulk forces
+   vector< vector<Real> > bulkForce(propagatedCells.size(), vector<Real>(3,0.0) ); 
+   for (size_t c=0; c<propagatedCells.size(); ++c) {
+      const CellID cellID = propagatedCells[c];
+      lorentzForceFaceBulk(&(bulkForce[c][0]),  mpiGrid[cellID]->parameters, mpiGrid[cellID]->derivativesBVOL);
+   }
    
 #pragma omp parallel
    {
@@ -457,7 +461,7 @@ void calculateAccelerationSubstep(
             uint c=cellIndex[q][i];
             SpatialCell* cell=mpiGrid[propagatedCells[c]];
             Velocity_Block* block_ptr=cell->at(blockId[q][i]);
-            cpu_calcVelFluxes(cell,project,blockId[q][i],subDt[c],maxAx,maxAy,maxAz);
+            cpu_calcVelFluxes(cell,blockId[q][i],subDt[c],&(bulkForce[c][0]),maxAx,maxAy,maxAz);
             
             if(maxAx!=ZERO) maxDt[c] =min(maxDt[c] ,block_ptr->parameters[BlockParams::DVX]/maxAx);
             if(maxAy!=ZERO) maxDt[c] =min(maxDt[c] ,block_ptr->parameters[BlockParams::DVY]/maxAy);

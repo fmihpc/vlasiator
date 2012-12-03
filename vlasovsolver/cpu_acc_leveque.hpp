@@ -22,9 +22,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "definitions.h"
 #include "common.h"
 #include "spatial_cell.hpp"
-#include "projects/project.h"
 #include "leveque_common.h"
 #include <algorithm>
+#include "cpu_lorentz.hpp"
 
 using namespace spatial_cell;
 // Constant for switch statement in solver to decide which of the eight 
@@ -308,9 +308,9 @@ void cpu_clearVelFluxes(SpatialCell *cell,const unsigned int& BLOCK) {
 
 void cpu_calcVelFluxes(
    SpatialCell *cell,
-   Project& project,
    const unsigned int& BLOCK,
    const Real& DT,
+   const Real* bulkForce,
    Real& maxAx, Real& maxAy, Real& maxAz
 ) {
    // Creation of temporary calculation block dfdt and avgs + 
@@ -333,6 +333,7 @@ void cpu_calcVelFluxes(
    const Real dt_per_dvz = DT / block->parameters[BlockParams::DVZ];
    
    Real Ax,Ay,Az;
+   Real velSpaceForce[9];
    for (unsigned int k=0; k<WID; ++k) for (unsigned int j=0; j<WID; ++j) for (unsigned int i=0; i<WID; ++i) {
       Real R,incrWave,transIncrWave,doubleTransIncrWave;
       Real corrWave,transCorrWave,doubleTransCorrWave;
@@ -345,12 +346,18 @@ void cpu_calcVelFluxes(
       const Real xp1 = avgs[fullInd(i+3,j+2,k+2)];
       const Real xm1 = avgs[fullInd(i+1,j+2,k+2)];
       const Real xm2 = avgs[fullInd(i  ,j+2,k+2)];
-      project.calcAccFaceX(
-         Ax, Ay, Az,
+
+
+      lorentzForceFaceVelspace(
+         velSpaceForce,
          i, j, k,
          cell->parameters,
-         block->parameters,
-         cell->derivativesBVOL);
+         block->parameters);
+
+      Ax=bulkForce[0]+velSpaceForce[0];
+      Ay=bulkForce[1]+velSpaceForce[1];
+      Az=bulkForce[2]+velSpaceForce[2];
+      
       maxAx=std::max(maxAx,fabs(Ax));
       maxAy=std::max(maxAy,fabs(Ay));
       maxAz=std::max(maxAz,fabs(Az));
@@ -740,12 +747,10 @@ void cpu_calcVelFluxes(
       const Real yp1 = avgs[fullInd(i+2,j+3,k+2)];
       const Real ym1 = avgs[fullInd(i+2,j+1,k+2)];
       const Real ym2 = avgs[fullInd(i+2,j  ,k+2)];
-      project.calcAccFaceY(
-         Ax, Ay, Az,
-         i, j, k,
-         cell->parameters,
-         block->parameters,
-         cell->derivativesBVOL);
+
+      Ax=bulkForce[0]+velSpaceForce[3];
+      Ay=bulkForce[1]+velSpaceForce[4];
+      Az=bulkForce[2]+velSpaceForce[5];
       maxAx=std::max(maxAx,fabs(Ax));
       maxAy=std::max(maxAy,fabs(Ay));
       maxAz=std::max(maxAz,fabs(Az));
@@ -1133,12 +1138,13 @@ void cpu_calcVelFluxes(
       const Real zp1 = avgs[fullInd(i+2,j+2,k+3)];
       const Real zm1 = avgs[fullInd(i+2,j+2,k+1)];
       const Real zm2 = avgs[fullInd(i+2,j+2,k  )];
-      project.calcAccFaceZ(
-         Ax, Ay, Az,
-         i, j, k,
-         cell->parameters,
-         block->parameters,
-         cell->derivativesBVOL);
+
+
+
+      Ax=bulkForce[0]+velSpaceForce[6];
+      Ay=bulkForce[1]+velSpaceForce[7];
+      Az=bulkForce[2]+velSpaceForce[8];
+      
       maxAx=std::max(maxAx,fabs(Ax));
       maxAy=std::max(maxAy,fabs(Ay));
       maxAz=std::max(maxAz,fabs(Az));
