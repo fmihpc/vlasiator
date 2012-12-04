@@ -53,7 +53,10 @@ void setDipole(Real* cellParams)
    {
       TB0 background_B;
       background_B.set_dipole_moment(8e15);
-      background_B.initialize();
+      background_B.set_constant_Bx(0.0);
+      background_B.set_constant_By(0.0);
+      background_B.set_constant_Bz(0.0);
+      background_B.initialize(1);
       
       creal
       start_x = cellParams[CellParams::XCRD],

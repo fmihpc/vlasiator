@@ -135,6 +135,7 @@ namespace projects {
    /* set 0-centered dipole */
   void Magnetosphere::setCellBackgroundField(SpatialCell *cell){
      setDipole(cell->parameters);
+     
      if (  (cell->parameters[CellParams::BGBX]) !=(cell->parameters[CellParams::BGBX]) ||
            (cell->parameters[CellParams::BGBY]) !=(cell->parameters[CellParams::BGBY]) ||
            (cell->parameters[CellParams::BGBZ]) !=(cell->parameters[CellParams::BGBZ]))
