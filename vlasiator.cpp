@@ -60,6 +60,13 @@ Logger logFile, diagnostic;
 using namespace std;
 using namespace phiprof;
 
+void addTimedBarrier(string name){
+   int bt=phiprof::initializeTimer(name,"Barriers","MPI");
+   phiprof::start(bt);
+   MPI_Barrier(MPI_COMM_WORLD);
+   phiprof::stop(bt);
+}
+
 
 bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &isChanged) {
 
@@ -334,7 +341,7 @@ int main(int argn,char* args[]) {
    
    
    phiprof::stop("Initialization");
-   MPI_Barrier(MPI_COMM_WORLD);   
+
 
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****
@@ -350,13 +357,16 @@ int main(int argn,char* args[]) {
    unsigned int restartWrites=(int)(P::t_min/P::saveRestartTimeInterval);
    unsigned int systemWrites=(int)(P::t_min/P::saveSystemTimeInterval);
 
+   addTimedBarrier("barrier-end-initialization");
+   
    phiprof::start("Simulation");
 
    while(P::tstep <=P::tstep_max  &&
          P::t-P::dt <= P::t_max+DT_EPSILON) {
 
-      phiprof::start("IO");
+      addTimedBarrier("barrier-loop-start");
       
+      phiprof::start("IO");
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals).
       logFile << "------------------ tstep = " << P::tstep << " t = " << P::t <<" dt = " << P::dt << " ------------------" << endl;
@@ -383,7 +393,7 @@ int main(int argn,char* args[]) {
          phiprof::start("Diagnostic");
          if (writeDiagnostic(mpiGrid, diagnosticReducer) == false) {
             if(myRank == MASTER_RANK)  cerr << "ERROR with diagnostic computation" << endl;
-
+            
          }
          phiprof::stop("Diagnostic");
       }
@@ -415,9 +425,9 @@ int main(int argn,char* args[]) {
 
          phiprof::stop("write-restart");
       }
-      
       phiprof::stop("IO");
-      
+      addTimedBarrier("barrier-end-io");      
+
       
       //no need to propagate if we are on the final step, we just
       //wanted to make sure all IO is done even for final step
@@ -427,9 +437,12 @@ int main(int argn,char* args[]) {
       }
 
       
+      
       //Re-loadbalance if needed
-      if( P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min)
+      if( P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min) {
          balanceLoad(mpiGrid);
+         addTimedBarrier("barrier-end-load-balance");
+      }
       
       //get local cells       
       vector<uint64_t> cells = mpiGrid.get_cells();      
@@ -443,6 +456,7 @@ int main(int argn,char* args[]) {
       //simulation loop
       if(P::dynamicTimestep  && P::tstep> P::tstep_min) {
          computeNewTimeStep(mpiGrid,newDt,dtIsChanged);
+         addTimedBarrier("barrier-check-dt");
          if(dtIsChanged) {
             phiprof::start("update-dt");
             //propagate velocity space to real-time
@@ -494,7 +508,9 @@ int main(int argn,char* args[]) {
             logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
             phiprof::stop("update-dt");
             continue; //
+            addTimedBarrier("barrier-new-dt-set");
          }
+
       }
       
       
@@ -507,12 +523,14 @@ int main(int argn,char* args[]) {
          computedCellsWithSubsteps=0;
          for(uint i=0;i<cells.size();i++)
             computedCellsWithSubsteps+=mpiGrid[cells[i]]->number_of_blocks*WID3*mpiGrid[cells[i]]->subStepsAcceleration;
-         
          phiprof::stop("Velocity-space",computedCellsWithSubsteps,"Cells");
+         addTimedBarrier("barrier-after-acceleration");
+
          if(updateVelocityBlocksAfterAcceleration){
             //need to do a update of block lists as all cells have made local changes
             updateRemoteVelocityBlockLists(mpiGrid);
             adjustVelocityBlocks(mpiGrid);
+            addTimedBarrier("barrier-after-adjust-blocks");
          }
          
          calculateInterpolatedVelocityMoments(
@@ -525,10 +543,13 @@ int main(int argn,char* args[]) {
          phiprof::start("Update system boundaries (Vlasov)");
          sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt); 
          phiprof::stop("Update system boundaries (Vlasov)");
-
+         addTimedBarrier("barrier-boundary-conditions");
+                  
          phiprof::start("Spatial-space");
          calculateSpatialFluxes(mpiGrid, sysBoundaries, P::dt);
+         addTimedBarrier("barrier-spatial-Fluxes");
          calculateSpatialPropagation(mpiGrid);
+         addTimedBarrier("barrier-spatial-propagation");
          phiprof::stop("Spatial-space",computedCells,"Cells");
 
          calculateInterpolatedVelocityMoments(
@@ -555,6 +576,7 @@ int main(int argn,char* args[]) {
          phiprof::start("Propagate Fields");
          propagateFields(mpiGrid, sysBoundaries, P::dt);
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
+         addTimedBarrier("barrier-after-field-solver");
       } else {
          // TODO Whatever field updating/volume averaging/etc. needed in test particle and other test cases have to be put here.
          // In doing this be sure the needed components have been updated.
