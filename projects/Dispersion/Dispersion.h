@@ -61,8 +61,12 @@ namespace projects {
          
          char rngStateBuffer[256];
          random_data rngDataBuffer;
-         
+
+         #ifdef _AIX
+         static int64_t rndRho, rndVel[3];
+         #else
          static int32_t rndRho, rndVel[3];
+         #endif
          #pragma omp threadprivate(rndRho,rndVel)
    } ; // class Dispersion
 } // namespace projects

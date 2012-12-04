@@ -155,12 +155,12 @@ namespace projects {
    Real Project::getRandomNumber() {
 #ifdef _AIX
       int64_t rndInt;
+      random_r(&rndInt, &rngDataBuffer);
 #else
       int32_t rndInt;
+      random_r(&rngDataBuffer, &rndInt);
 #endif
-      Real rnd;
-      random_r(&rngDataBuffer,&rndInt);
-      rnd=(Real)rndInt / RAND_MAX;
+      Real rnd = (Real) rndInt / RAND_MAX;
       return rnd;
    }
    
