@@ -156,9 +156,18 @@ namespace projects {
       creal radius = sqrt(x*x + y*y + z*z);
       
       if(radius < this->ionosphereTaperRadius && radius > this->ionosphereRadius) {
+         // linear tapering
          initRho = this->ionosphereRho - (ionosphereRho-tailRho)*(radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
+         
+         // sine tapering
+         //initRho = this->ionosphereRho - (this->ionosphereRho-this->tailRho)*sin(M_PI*(radius-this->ionosphereRadius)/this->ionosphereTaperRadius);
+         
          for (uint i=0; i<3;i++) {
+            // linear tapering
             initV0[i] *= (radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
+            
+            // sine tapering
+            //initV0[i] *= sin(M_PI*(radius-this->ionosphereRadius)/this->ionosphereTaperRadius);
          }
       }
       
