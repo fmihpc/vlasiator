@@ -85,7 +85,7 @@ namespace SBC {
          creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
          
          bool isThisCellOnAFace[6];
-         determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, 1);
+         determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
          // Comparison of the array defining which faces to use and the array telling on which faces this cell is
          bool doAssign = false;
          for(uint j=0; j<6; j++) doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
@@ -137,7 +137,7 @@ namespace SBC {
       creal z = cell->parameters[CellParams::ZCRD] + 0.5*dz;
       
       bool isThisCellOnAFace[6];
-      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, 1);
+      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
       
       for(uint i=0; i<6; i++) {
          if(isThisCellOnAFace[i]) {
@@ -175,8 +175,9 @@ namespace SBC {
    }
    
    void SetByUser::fieldSolverBoundaryCondDerivatives(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      dccrg::Dccrg<SpatialCell>& mpiGrid,
       const CellID& cellID,
+      cuint& RKCase,
       cuint& component
    ) {
       this->setCellDerivativesToZero(mpiGrid, cellID, component);
@@ -204,7 +205,7 @@ namespace SBC {
       creal z = cell->parameters[CellParams::ZCRD] + 0.5*dz;
       
       bool isThisCellOnAFace[6];
-      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, 1);
+      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
       
       for(uint i=0; i<6; i++) {
          if(isThisCellOnAFace[i]) {
@@ -230,7 +231,7 @@ namespace SBC {
          creal z = cell->parameters[CellParams::ZCRD] + 0.5*dz;
          
          bool isThisCellOnAFace[6];
-         determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, 1);
+         determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
          
          for(uint i=0; i<6; i++) {
             if(facesToProcess[i] && isThisCellOnAFace[i]) {

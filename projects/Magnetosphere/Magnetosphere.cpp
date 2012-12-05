@@ -133,10 +133,17 @@ namespace projects {
    }
 
    /* set 0-centered dipole */
-  void Magnetosphere::setCellBackgroundField(SpatialCell *cell){
-     setDipole(cell->parameters);
-
-  }
+   void Magnetosphere::setCellBackgroundField(SpatialCell *cell){
+      setDipole(cell->parameters);
+      
+      if (  (cell->parameters[CellParams::BGBX]) !=(cell->parameters[CellParams::BGBX]) ||
+            (cell->parameters[CellParams::BGBY]) !=(cell->parameters[CellParams::BGBY]) ||
+            (cell->parameters[CellParams::BGBZ]) !=(cell->parameters[CellParams::BGBZ]))
+      {
+         std::cerr << __FILE__ << ":" << __LINE__ << " Dipole returned NAN's ???"  << std::endl;
+         abort();
+      }
+   }
    
    
    Real Magnetosphere::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
@@ -149,11 +156,22 @@ namespace projects {
       creal radius = sqrt(x*x + y*y + z*z);
       
       if(radius < this->ionosphereTaperRadius && radius > this->ionosphereRadius) {
-         initRho = this->ionosphereRho - (ionosphereRho-tailRho)*(radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
+         // linear tapering
+         //initRho = this->ionosphereRho - (ionosphereRho-tailRho)*(radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
+         
+         // sine tapering
+         initRho = this->ionosphereRho - (this->ionosphereRho-this->tailRho)*sin(M_PI*(radius-this->ionosphereRadius)/this->ionosphereTaperRadius);
+         
          for (uint i=0; i<3;i++) {
-            initV0[i] *= (radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
+            // linear tapering
+           //initV0[i] *= (radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
+            
+            // sine tapering
+            initV0[i] *= sin(M_PI*(radius-this->ionosphereRadius)/this->ionosphereTaperRadius);
          }
       }
+      
+      
       initRho *= 1.0 + 9.0 * 0.5 * (1.0 + tanh((x-this->rhoTransitionCenter) / this->rhoTransitionWidth));
       
       

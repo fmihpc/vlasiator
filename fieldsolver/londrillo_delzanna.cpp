@@ -324,7 +324,9 @@ static void calculateDerivatives(
    
    // Calculate x-derivatives (is not TVD for AMR mesh):
    if (((existingCells & CALCULATE_DX) == CALCULATE_DX) &&
-       (mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
+       ((mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
+        (mpiGrid[cellID]->sysBoundaryLayer == 1))
+      ) {
       leftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2  ,2  );
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2  ,2  );
       left = mpiGrid[leftNbrID]->parameters;
@@ -379,16 +381,17 @@ static void calculateDerivatives(
          SBC::SysBoundaryCondition::setCellDerivativesToZero(mpiGrid, cellID, 0);
       } else {
          sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)
-            ->fieldSolverBoundaryCondDerivatives(mpiGrid, cellID, 0);
+            ->fieldSolverBoundaryCondDerivatives(mpiGrid, cellID, RKCase, 0);
       }
    }
    
    // Calculate y-derivatives (is not TVD for AMR mesh):
    if (((existingCells & CALCULATE_DY) == CALCULATE_DY) &&
-      (mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
+       ((mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
+        (mpiGrid[cellID]->sysBoundaryLayer == 1))) {
       leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2-1,2  );
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2+1,2  );
-
+      
       left = mpiGrid[leftNbrID]->parameters;
       #ifdef DEBUG_SOLVERS
       if (left[cp::RHO] <= 0) {
@@ -443,13 +446,14 @@ static void calculateDerivatives(
          SBC::SysBoundaryCondition::setCellDerivativesToZero(mpiGrid, cellID, 1);
       } else {
          sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)
-         ->fieldSolverBoundaryCondDerivatives(mpiGrid, cellID, 1);
+         ->fieldSolverBoundaryCondDerivatives(mpiGrid, cellID, RKCase, 1);
       }
    }
    
    // Calculate z-derivatives (is not TVD for AMR mesh):
    if (((existingCells & CALCULATE_DZ) == CALCULATE_DZ) &&
-      (mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
+       ((mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
+        (mpiGrid[cellID]->sysBoundaryLayer == 1))) {
       leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2-1);
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2+1);
       left = mpiGrid[leftNbrID]->parameters;
@@ -505,7 +509,7 @@ static void calculateDerivatives(
          SBC::SysBoundaryCondition::setCellDerivativesToZero(mpiGrid, cellID, 2);
       } else {
          sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)
-         ->fieldSolverBoundaryCondDerivatives(mpiGrid, cellID, 2);
+         ->fieldSolverBoundaryCondDerivatives(mpiGrid, cellID, RKCase, 2);
       }
    }
 }
@@ -841,7 +845,7 @@ void calculateEdgeElectricFieldX(
    }
    
    if((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
-      //compute maximum timestep for fieldsolver in this cell (CFL=1)      
+      //compute maximum timestep for fieldsolver in this cell (CFL=1)
       Real max_a=ZERO;
       max_a=max(fabs(az_neg),max_a); 
       max_a=max(fabs(az_pos),max_a);
@@ -1649,7 +1653,6 @@ bool initializeFieldPropagator(
    calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
    calculateVolumeAveragedFields(mpiGrid);
    calculateBVOLDerivativesSimple(mpiGrid, sysBoundaries, localCells);
-   
    return true;
 }
 
@@ -1780,8 +1783,10 @@ void calculateUpwindedElectricFieldSimple(
       if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
       cuint fieldSolverSysBoundaryFlag = sysBoundaryFlags[*cell];
       cuint cellSysBoundaryFlag = mpiGrid[*cell]->sysBoundaryFlag;
+      cuint cellSysBoundaryLayer = mpiGrid[*cell]->sysBoundaryLayer;
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
-         if(cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+         if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
+            (cellSysBoundaryLayer != 1)) {
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
                fieldSolverBoundaryCondElectricField(mpiGrid, *cell, RKCase, 0);
          } else {
@@ -1789,7 +1794,8 @@ void calculateUpwindedElectricFieldSimple(
          }
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
-         if(cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+         if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
+            (cellSysBoundaryLayer != 1)) {
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
             fieldSolverBoundaryCondElectricField(mpiGrid, *cell, RKCase, 1);
          } else {
@@ -1797,7 +1803,8 @@ void calculateUpwindedElectricFieldSimple(
          }
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
-         if(cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+         if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
+            (cellSysBoundaryLayer != 1)) {
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
             fieldSolverBoundaryCondElectricField(mpiGrid, *cell, RKCase, 2);
          } else {
@@ -1818,8 +1825,10 @@ void calculateUpwindedElectricFieldSimple(
       if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
       cuint fieldSolverSysBoundaryFlag = sysBoundaryFlags[*cell];
       cuint cellSysBoundaryFlag = mpiGrid[*cell]->sysBoundaryFlag;
+      cuint cellSysBoundaryLayer = mpiGrid[*cell]->sysBoundaryLayer;
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
-         if(cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+         if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
+            (cellSysBoundaryLayer != 1)) {
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
             fieldSolverBoundaryCondElectricField(mpiGrid, *cell, RKCase, 0);
          } else {
@@ -1827,7 +1836,8 @@ void calculateUpwindedElectricFieldSimple(
          }
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
-         if(cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+         if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
+            (cellSysBoundaryLayer != 1)) {
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
             fieldSolverBoundaryCondElectricField(mpiGrid, *cell, RKCase, 1);
          } else {
@@ -1835,7 +1845,8 @@ void calculateUpwindedElectricFieldSimple(
          }
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
-         if(cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+         if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
+            (cellSysBoundaryLayer != 1)) {
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
             fieldSolverBoundaryCondElectricField(mpiGrid, *cell, RKCase, 2);
          } else {
@@ -1899,20 +1910,20 @@ static void propagateMagneticFieldSimple(
    //TODO: do not transfer if there are no field boundaryconditions
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       // Exchange PERBX,PERBY,PERBZ with neighbours
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB);
+      SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB,true);
    } else { // RKCase == RK_ORDER2_STEP1
       // Exchange PERBX_DT2,PERBY_DT2,PERBZ_DT2 with neighbours
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERBDT2);
+      SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERBDT2,true);
    }
    timer=phiprof::initializeTimer("Start comm of B","MPI");
    phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_data_update(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+   mpiGrid.start_remote_neighbor_data_update(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute system boundary/process inner cells");
    phiprof::start(timer);
    // Propagate B on system boundary/process inner cells
-   const vector<uint64_t> cellsWithLocalNeighbours = mpiGrid.get_cells_with_local_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+   const vector<uint64_t> cellsWithLocalNeighbours = mpiGrid.get_cells_with_local_neighbors(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
    for (vector<uint64_t>::const_iterator cell = cellsWithLocalNeighbours.begin(); cell != cellsWithLocalNeighbours.end(); cell++) {
       if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
          mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) continue;
@@ -1922,13 +1933,13 @@ static void propagateMagneticFieldSimple(
    
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_receives(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+   mpiGrid.wait_neighbor_data_update_receives(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    // Propagate B on system boundary/process boundary cells
    timer=phiprof::initializeTimer("Compute system boundary/process boundary cells");
    phiprof::start(timer);
-   const vector<uint64_t> cellsWithRemoteNeighbours = mpiGrid.get_cells_with_remote_neighbor(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+   const vector<uint64_t> cellsWithRemoteNeighbours = mpiGrid.get_cells_with_remote_neighbor(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
    for (vector<uint64_t>::const_iterator cell = cellsWithRemoteNeighbours.begin(); cell != cellsWithRemoteNeighbours.end(); cell++) {
       if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
          mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) continue;
@@ -1979,6 +1990,7 @@ bool propagateFields(
    calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
    calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
 # endif
+   
    calculateVolumeAveragedFields(mpiGrid);
    calculateBVOLDerivativesSimple(mpiGrid, sysBoundaries, localCells);
    return true;

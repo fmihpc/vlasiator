@@ -59,4 +59,14 @@ void calculateEdgeElectricFieldZ(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
    const CellID& cellID,
    cint& RKCase);
+
+CellID getNeighbourID(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   const CellID& cellID,
+   const uchar& i,
+   const uchar& j,
+   const uchar& k
+);
+Real limiter(creal& left,creal& cent,creal& rght);
+Real divideIfNonZero(creal rhoV, creal rho);
 #endif

@@ -92,7 +92,7 @@ namespace SBC {
          creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
          
          bool isThisCellOnAFace[6];
-         determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, 1);
+         determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
          
          // Comparison of the array defining which faces to use and the array telling on which faces this cell is
          bool doAssign = false;
@@ -174,10 +174,21 @@ namespace SBC {
       const CellID& cellID,
       cuint& component
    ) {
-      // get_neighbors
-      // if all neighbors are of the same size then they are in z order, e.g. with a neighborhood size of 2 the first neighbor is at offset (-2, -2, -2) from the given cell, the second one is at (-1, -2, -2), etc, in size units of the given cell.
+      const CellID closestCell = getClosestNonsysboundaryCell(mpiGrid, cellID);
       
-      const vector<CellID>* neighbors = mpiGrid.get_neighbors(cellID);
+      if(closestCell == INVALID_CELLID) {
+         cerr << cellID << " " << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
+         abort();
+      }
+      
+      return mpiGrid[closestCell]->parameters[CellParams::PERBX+component];
+      
+/*
+ // get_neighbors                                                *
+ // if all neighbors are of the same size then they are in z order, e.g. with a neighborhood size of 2 the first neighbor is at offset (-2, -2, -2) from the given cell, the second one is at (-1, -2, -2), etc, in size units of the given cell.
+ 
+ const vector<CellID>* neighbors = mpiGrid.get_neighbors(cellID);
+
       // CORRECT
       // -1  0  0 62
       //  0 -1  0 58
@@ -323,12 +334,13 @@ namespace SBC {
       cerr << cellID << " " << __FILE__  << ":" << __LINE__
            << ": Got to the end of fieldBoundaryCopyFromExistingFaceNbrMagneticField(), this should not happen!"
            << endl;
-      return 0;
+      return 0;*/
    }
    
    void Outflow::fieldSolverBoundaryCondDerivatives(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      dccrg::Dccrg<SpatialCell>& mpiGrid,
       const CellID& cellID,
+      cuint& RKCase,
       cuint& component
    ) {
       this->setCellDerivativesToZero(mpiGrid, cellID, component);
@@ -355,7 +367,16 @@ namespace SBC {
       const dccrg::Dccrg<SpatialCell>& mpiGrid,
       const CellID& cellID
    ) {
-      // get_neighbors
+      const CellID closestCell = getClosestNonsysboundaryCell(mpiGrid, cellID);
+      
+      if(closestCell == INVALID_CELLID) {
+         cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
+         abort();
+      }
+      
+      copyCellData(mpiGrid[closestCell], mpiGrid[cellID]);
+      
+/*      // get_neighbors
       // if all neighbors are of the same size then they are in z order, e.g. with a neighborhood size of 2 the first neighbor is at offset (-2, -2, -2) from the given cell, the second one is at (-1, -2, -2), etc, in size units of the given cell.
       
       const vector<CellID>* neighbors = mpiGrid.get_neighbors(cellID);
@@ -557,6 +578,31 @@ namespace SBC {
       cerr << cellID << " " << __FILE__  << ":" << __LINE__
            << ": Got to the end of vlasovBoundaryCopyFromExistingFaceNbr(), this should not happen!"
            << endl;
+*/
+   }
+   
+   CellID Outflow::getClosestNonsysboundaryCell(
+      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const CellID& cellID
+   ) {
+      CellID closestCell = INVALID_CELLID;
+      uint dist = numeric_limits<uint>::max();
+      
+      for(int i=-2; i<3; i++)
+         for(int j=-2; j<3; j++)
+            for(int k=-2; k<3; k++) {
+               const CellID cell = getNeighbour(mpiGrid,cellID,i,j,k);
+               if(cell != INVALID_CELLID) {
+                  if(mpiGrid[cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                     cuint d2 =  i*i+j*j+k*k;
+                     if(d2 < dist) {
+                        dist = min(dist, d2);
+                        closestCell = cell;
+                     }
+                  }
+               }
+      }
+      return closestCell;
    }
    
    void Outflow::getFaces(bool* faces) {

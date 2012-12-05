@@ -27,6 +27,8 @@
 #include "../projects/project.h"
 #include "../projects/projects_common.h"
 #include "../vlasovmover.h"
+#include "../fieldsolver.h"
+#include "../fieldsolver/limiters.h"
 #include "../common.h"
 
 namespace SBC {
@@ -40,7 +42,6 @@ namespace SBC {
       Readparameters::add("ionosphere.centerZ", "Z coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.radius", "Radius of ionosphere (m).", 1.0e7);
       Readparameters::add("ionosphere.rho", "Number density of the ionosphere (m^-3)", 1.0e6);
-      Readparameters::add("ionosphere.depth", "Depth in cells of ionosphere layer.", 1);
       Readparameters::add("ionosphere.taperRadius", "Width of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
       Readparameters::add("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 2);
    }
@@ -69,10 +70,6 @@ namespace SBC {
          exit(1);
       }
       if(!Readparameters::get("Magnetosphere.T", this->T)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("ionosphere.depth", this->depth)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -121,36 +118,6 @@ namespace SBC {
             mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
          }
       }
-      
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
-      mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_NEIGHBORHOOD_ID);
-      
-      vector<bool> iCanHasDoNotCompute(cells.size(), true);
-      for(uint i=0; i<cells.size(); i++) {
-         if(mpiGrid[cells[i]]->sysBoundaryFlag != this->getIndex()) {
-            continue;
-         }
-         
-         for(int ci=-depth; ci<=depth; ci++)
-            for(int cj=-depth; cj<=depth; cj++)
-               for(int ck=-depth; ck<=depth; ck++) {
-                  if(ci == 0 && cj == 0 && ck == 0) continue;
-                  CellID tmpCellID = getNeighbour(mpiGrid, cells[i], ci, cj, ck);
-                  if((tmpCellID != INVALID_CELLID) &&
-                     (mpiGrid[tmpCellID]->sysBoundaryFlag != this->getIndex())) {
-                     iCanHasDoNotCompute[i] = false;
-                  }
-         }
-      }
-      for(uint i=0; i<cells.size(); i++) {
-         if(mpiGrid[cells[i]]->sysBoundaryFlag != this->getIndex()) {
-            continue;
-         }
-         if(iCanHasDoNotCompute[i]) {
-            mpiGrid[cells[i]]->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
-         }
-      }
-      
       return true;
    }
    
@@ -196,15 +163,163 @@ namespace SBC {
       } else {// RKCase == RK_ORDER2_STEP1
          mpiGrid[cellID]->parameters[CellParams::EX_DT2+component] = 0.0;
       }
+      return;
    }
    
    void Ionosphere::fieldSolverBoundaryCondDerivatives(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      dccrg::Dccrg<SpatialCell>& mpiGrid,
       const CellID& cellID,
+      cuint& RKCase,
       cuint& component
    ) {
-      // WARNING This is crap!!
-      this->setCellDerivativesToZero(mpiGrid, cellID, component);
+      // For B: use background B + perturbed B in normal cells, only background B in the ionosphere and DO_NOT_COMPUTE cells
+      // For RHO and V: use self. One could also use the DO_NOT_COMPUTE cells and give them the ionospheric values too but that means more code changes than just here.
+      // this->setCellDerivativesToZero(mpiGrid, cellID, component);
+      Real* const array       = mpiGrid[cellID]->derivatives;
+      CellID leftNbrID,rghtNbrID;
+      creal* rhovLeft = NULL;
+      creal* left = NULL;
+      creal* cent = mpiGrid[cellID]->parameters;
+      creal* rhovRght = NULL;
+      creal* rght = NULL;
+      switch(component) {
+         namespace cp = CellParams;
+         namespace fs = fieldsolver;
+         case 0:
+            leftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2  ,2  );
+            rghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2  ,2  );
+            left = mpiGrid[leftNbrID]->parameters;
+            rght = mpiGrid[rghtNbrID]->parameters;
+            if(mpiGrid[leftNbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+               rhovLeft = mpiGrid[cellID]->parameters;
+            } else{
+               rhovLeft = mpiGrid[leftNbrID]->parameters;
+            }
+            if(mpiGrid[rghtNbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+               rhovRght = mpiGrid[cellID]->parameters;
+            } else{
+               rhovRght = mpiGrid[rghtNbrID]->parameters;
+            }
+            if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+               array[fs::drhodx] = limiter(rhovLeft[cp::RHO],cent[cp::RHO],rhovRght[cp::RHO]);
+               array[fs::dVxdx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX], rhovLeft[cp::RHO]),
+                                           divideIfNonZero(    cent[cp::RHOVX],     cent[cp::RHO]),
+                                           divideIfNonZero(rhovRght[cp::RHOVX], rhovRght[cp::RHO]));
+               array[fs::dVydx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVY], rhovLeft[cp::RHO]),
+                                           divideIfNonZero(    cent[cp::RHOVY],     cent[cp::RHO]),
+                                           divideIfNonZero(rhovRght[cp::RHOVY], rhovRght[cp::RHO]));
+               array[fs::dVzdx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ], rhovLeft[cp::RHO]),
+                                           divideIfNonZero(    cent[cp::RHOVZ],     cent[cp::RHO]),
+                                           divideIfNonZero(rhovRght[cp::RHOVZ], rhovRght[cp::RHO]));
+               array[fs::dBydx]  = limiter(left[cp::BGBY]+left[cp::PERBY],cent[cp::BGBY]+cent[cp::PERBY],rght[cp::BGBY]+rght[cp::PERBY]);
+               array[fs::dBzdx]  = limiter(left[cp::BGBZ]+left[cp::PERBZ],cent[cp::BGBZ]+cent[cp::PERBZ],rght[cp::BGBZ]+rght[cp::PERBZ]);
+            }
+            if (RKCase == RK_ORDER2_STEP1) {
+               array[fs::drhodx] = limiter(rhovLeft[cp::RHO_DT2],cent[cp::RHO_DT2],rhovRght[cp::RHO_DT2]);
+               array[fs::dVxdx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX_DT2], rhovLeft[cp::RHO_DT2]),
+                                           divideIfNonZero(    cent[cp::RHOVX_DT2],     cent[cp::RHO_DT2]),
+                                           divideIfNonZero(rhovRght[cp::RHOVX_DT2], rhovRght[cp::RHO_DT2]));
+               array[fs::dVydx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVY_DT2], rhovLeft[cp::RHO_DT2]),
+                                           divideIfNonZero(    cent[cp::RHOVY_DT2],     cent[cp::RHO_DT2]),
+                                           divideIfNonZero(rhovRght[cp::RHOVY_DT2], rhovRght[cp::RHO_DT2]));
+               array[fs::dVzdx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ_DT2], rhovLeft[cp::RHO_DT2]),
+                                           divideIfNonZero(    cent[cp::RHOVZ_DT2],     cent[cp::RHO_DT2]),
+                                           divideIfNonZero(rhovRght[cp::RHOVZ_DT2], rhovRght[cp::RHO_DT2]));
+               array[fs::dBydx]  = limiter(left[cp::BGBY]+left[cp::PERBY_DT2],cent[cp::BGBY]+cent[cp::PERBY_DT2],rght[cp::BGBY]+rght[cp::PERBY_DT2]);
+               array[fs::dBzdx]  = limiter(left[cp::BGBZ]+left[cp::PERBZ_DT2],cent[cp::BGBZ]+cent[cp::PERBZ_DT2],rght[cp::BGBZ]+rght[cp::PERBZ_DT2]);
+            }
+            break;
+         case 1:
+            leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2-1,2  );
+            rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2+1,2  );
+            left = mpiGrid[leftNbrID]->parameters;
+            rght = mpiGrid[rghtNbrID]->parameters;
+            if(mpiGrid[leftNbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+               rhovLeft = mpiGrid[cellID]->parameters;
+            } else{
+               rhovLeft = mpiGrid[leftNbrID]->parameters;
+            }
+            if(mpiGrid[rghtNbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+               rhovRght = mpiGrid[cellID]->parameters;
+            } else{
+               rhovRght = mpiGrid[rghtNbrID]->parameters;
+            }
+            if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+               array[fs::drhody] = limiter(rhovLeft[cp::RHO],cent[cp::RHO],rhovRght[cp::RHO]);
+               array[fs::dVxdy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX], rhovLeft[cp::RHO]),
+                                           divideIfNonZero(    cent[cp::RHOVX],     cent[cp::RHO]),
+                                           divideIfNonZero(rhovRght[cp::RHOVX], rhovRght[cp::RHO]));
+               array[fs::dVydy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVY], rhovLeft[cp::RHO]),
+                                           divideIfNonZero(    cent[cp::RHOVY],     cent[cp::RHO]),
+                                           divideIfNonZero(rhovRght[cp::RHOVY], rhovRght[cp::RHO]));
+               array[fs::dVzdy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ], rhovLeft[cp::RHO]),
+                                           divideIfNonZero(    cent[cp::RHOVZ],     cent[cp::RHO]),
+                                           divideIfNonZero(rhovRght[cp::RHOVZ], rhovRght[cp::RHO]));
+               array[fs::dBxdy]  = limiter(left[cp::BGBX]+left[cp::PERBX],cent[cp::BGBX]+cent[cp::PERBX],rght[cp::BGBX]+rght[cp::PERBX]);
+               array[fs::dBzdy]  = limiter(left[cp::BGBZ]+left[cp::PERBZ],cent[cp::BGBZ]+cent[cp::PERBZ],rght[cp::BGBZ]+rght[cp::PERBZ]);
+            }
+            if (RKCase == RK_ORDER2_STEP1) {
+               array[fs::drhody] = limiter(rhovLeft[cp::RHO_DT2],cent[cp::RHO_DT2],rhovRght[cp::RHO_DT2]);
+               array[fs::dVxdy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX_DT2], rhovLeft[cp::RHO_DT2]),
+                                           divideIfNonZero(    cent[cp::RHOVX_DT2],     cent[cp::RHO_DT2]),
+                                           divideIfNonZero(rhovRght[cp::RHOVX_DT2], rhovRght[cp::RHO_DT2]));
+               array[fs::dVydy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVY_DT2], rhovLeft[cp::RHO_DT2]),
+                                           divideIfNonZero(    cent[cp::RHOVY_DT2],     cent[cp::RHO_DT2]),
+                                           divideIfNonZero(rhovRght[cp::RHOVY_DT2], rhovRght[cp::RHO_DT2]));
+               array[fs::dVzdy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ_DT2], rhovLeft[cp::RHO_DT2]),
+                                           divideIfNonZero(    cent[cp::RHOVZ_DT2],     cent[cp::RHO_DT2]),
+                                           divideIfNonZero(rhovRght[cp::RHOVZ_DT2], rhovRght[cp::RHO_DT2]));
+               array[fs::dBxdy]  = limiter(left[cp::BGBX]+left[cp::PERBX_DT2],cent[cp::BGBX]+cent[cp::PERBX_DT2],rght[cp::BGBX]+rght[cp::PERBX_DT2]);
+               array[fs::dBzdy]  = limiter(left[cp::BGBZ]+left[cp::PERBZ_DT2],cent[cp::BGBZ]+cent[cp::PERBZ_DT2],rght[cp::BGBZ]+rght[cp::PERBZ_DT2]);
+            }
+            break;
+         case 2:
+            leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2-1);
+            rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2+1);
+            left = mpiGrid[leftNbrID]->parameters;
+            rght = mpiGrid[rghtNbrID]->parameters;
+            if(mpiGrid[leftNbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+               rhovLeft = mpiGrid[cellID]->parameters;
+            } else{
+               rhovLeft = mpiGrid[leftNbrID]->parameters;
+            }
+            if(mpiGrid[rghtNbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+               rhovRght = mpiGrid[cellID]->parameters;
+            } else{
+               rhovRght = mpiGrid[rghtNbrID]->parameters;
+            }
+            if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+               array[fs::drhodz] = limiter(rhovLeft[cp::RHO],cent[cp::RHO],rhovRght[cp::RHO]);
+               array[fs::dVxdz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX], rhovLeft[cp::RHO]),
+                                           divideIfNonZero(    cent[cp::RHOVX],     cent[cp::RHO]),
+                                           divideIfNonZero(rhovRght[cp::RHOVX], rhovRght[cp::RHO]));
+               array[fs::dVydz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVY], rhovLeft[cp::RHO]),
+                                           divideIfNonZero(    cent[cp::RHOVY],     cent[cp::RHO]),
+                                           divideIfNonZero(rhovRght[cp::RHOVY], rhovRght[cp::RHO]));
+               array[fs::dVzdz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ], rhovLeft[cp::RHO]),
+                                           divideIfNonZero(    cent[cp::RHOVZ],     cent[cp::RHO]),
+                                           divideIfNonZero(rhovRght[cp::RHOVZ], rhovRght[cp::RHO]));
+               array[fs::dBxdz]  = limiter(left[cp::BGBX]+left[cp::PERBX],cent[cp::BGBX]+cent[cp::PERBX],rght[cp::BGBX]+rght[cp::PERBX]);
+               array[fs::dBydz]  = limiter(left[cp::BGBY]+left[cp::PERBY],cent[cp::BGBY]+cent[cp::PERBY],rght[cp::BGBY]+rght[cp::PERBY]);
+            }
+            if (RKCase == RK_ORDER2_STEP1) {
+               array[fs::drhodz] = limiter(rhovLeft[cp::RHO_DT2],cent[cp::RHO_DT2],rhovRght[cp::RHO_DT2]);
+               array[fs::dVxdz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX_DT2], rhovLeft[cp::RHO_DT2]),
+                                           divideIfNonZero(    cent[cp::RHOVX_DT2],     cent[cp::RHO_DT2]),
+                                           divideIfNonZero(rhovRght[cp::RHOVX_DT2], rhovRght[cp::RHO_DT2]));
+               array[fs::dVydz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVY_DT2], rhovLeft[cp::RHO_DT2]),
+                                           divideIfNonZero(    cent[cp::RHOVY_DT2],     cent[cp::RHO_DT2]),
+                                           divideIfNonZero(rhovRght[cp::RHOVY_DT2], rhovRght[cp::RHO_DT2]));
+               array[fs::dVzdz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ_DT2], rhovLeft[cp::RHO_DT2]),
+                                           divideIfNonZero(    cent[cp::RHOVZ_DT2],     cent[cp::RHO_DT2]),
+                                           divideIfNonZero(rhovRght[cp::RHOVZ_DT2], rhovRght[cp::RHO_DT2]));
+               array[fs::dBxdz]  = limiter(left[cp::BGBX]+left[cp::PERBX_DT2],cent[cp::BGBX]+cent[cp::PERBX_DT2],rght[cp::BGBX]+rght[cp::PERBX_DT2]);
+               array[fs::dBydz]  = limiter(left[cp::BGBY]+left[cp::PERBY_DT2],cent[cp::BGBY]+cent[cp::PERBY_DT2],rght[cp::BGBY]+rght[cp::PERBY_DT2]);
+            }
+            break;
+         default:
+            cerr << "Invalid component" << endl;
+      }
    }
    
    void Ionosphere::fieldSolverBoundaryCondBVOLDerivatives(
@@ -212,7 +327,7 @@ namespace SBC {
       const CellID& cellID,
       cuint& component
    ) {
-      // WARNING This is crap!!
+      // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the ionosphere cells.
       this->setCellBVOLDerivativesToZero(mpiGrid, cellID, component);
    }
    
@@ -228,6 +343,7 @@ namespace SBC {
    void Ionosphere::generateTemplateCell(Project &project) {
       // WARNING not 0.0 here or the dipole() function fails miserably.
       templateCell.sysBoundaryFlag = this->getIndex();
+      templateCell.sysBoundaryLayer = 1;
       templateCell.parameters[CellParams::XCRD] = 1.0;
       templateCell.parameters[CellParams::YCRD] = 1.0;
       templateCell.parameters[CellParams::ZCRD] = 1.0;

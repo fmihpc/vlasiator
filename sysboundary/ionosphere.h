@@ -68,8 +68,9 @@ namespace SBC {
          cuint component
       );
       virtual void fieldSolverBoundaryCondDerivatives(
-         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         dccrg::Dccrg<SpatialCell>& mpiGrid,
          const CellID& cellID,
+         cuint& RKCase,
          cuint& component
       );
       virtual void fieldSolverBoundaryCondBVOLDerivatives(
@@ -106,7 +107,6 @@ namespace SBC {
       uint nSpaceSamples;
       uint nVelocitySamples;
       
-      int depth; /*!< Depth in cells of ionosphere layer. */
       spatial_cell::SpatialCell templateCell;
    };
 }
