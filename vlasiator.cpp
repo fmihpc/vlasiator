@@ -374,6 +374,7 @@ int main(int argn,char* args[]) {
           P::tstep % (P::diagnosticInterval*10) == 0 &&
           P::tstep-P::tstep_min >0) {
          phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
+         phiprof::print(MPI_COMM_WORLD,"phiprof_full");
          phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
          
          double currentTime=MPI_Wtime();

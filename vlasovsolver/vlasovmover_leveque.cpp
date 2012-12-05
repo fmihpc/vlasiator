@@ -330,7 +330,7 @@ void calculateAcceleration(
          //compute  dt for substep
          for (size_t c=0; c<propagatedCells.size(); ++c) {
             const CellID cellID = propagatedCells[c];
-            subDt[c]=0.5*(P::CFL_min+P::CFL_max) * mpiGrid[cellID]->parameters[CellParams::MAXVDT];            
+            subDt[c]=0.5*(P::CFL_min+P::CFL_max) * mpiGrid[cellID]->parameters[CellParams::MAXVDT];
             if(subDt[c]+subt[c]>=dt){
                lastCellIntegration[c]=true; //will not be propagated next step, this is the last one
                subDt[c]=dt-subt[c]; //set length of final step so that we hit the exact time
