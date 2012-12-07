@@ -84,15 +84,15 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &is
    dtMaxLocal[2]=std::numeric_limits<Real>::max();
    for (std::vector<uint64_t>::const_iterator cell_id = cells.begin(); cell_id != cells.end(); ++cell_id) {
       SpatialCell* cell = mpiGrid[*cell_id];
-      if (cell->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE &&
-          (cell->sysBoundaryLayer == 1 &&
-            cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )) {
-         //spatial fluxes computed also for boundary cells
+      if ( cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+           (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )) {
+         //spatial fluxes computed also for boundary cells              
          dtMaxLocal[0]=min(dtMaxLocal[0], cell->parameters[CellParams::MAXRDT]);
          dtMaxLocal[2]=min(dtMaxLocal[2], cell->parameters[CellParams::MAXFDT]);
       }
+      
       if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-         //Fieldsolver and acceleration only done on non sysboundary cells
+         //Acceleration only done on non sysboundary cells
          dtMaxLocal[1]=min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
       }
    }
