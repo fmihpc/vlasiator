@@ -34,6 +34,7 @@ namespace projects {
          static void addParameters(void);
          virtual void getParameters(void);
          virtual void calcCellParameters(Real* cellParams,creal& t);
+         virtual void setCellBackgroundField(SpatialCell* cell);
          virtual Real calcPhaseSpaceDensity(
             creal& x, creal& y, creal& z,
             creal& dx, creal& dy, creal& dz,
@@ -43,9 +44,7 @@ namespace projects {
       protected:
          Real getDistribValue(
             creal& x, creal& z,
-            creal& vx, creal& vy, creal& vz,
-            creal& dvx, creal& dvy, creal& dvz
-         );
+            creal& vx, creal& vy, creal& vz);
          Real profile(creal top, creal bottom, creal x, creal z);
          
          enum {

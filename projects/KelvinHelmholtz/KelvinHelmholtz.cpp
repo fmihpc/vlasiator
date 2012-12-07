@@ -99,14 +99,11 @@ namespace projects {
       }
    }
    
-   Real KelvinHelmholtz::getDistribValue(
-      creal& x, creal& z,
-      creal& vx, creal& vy, creal& vz,
-      creal& dvx, creal& dvy, creal& dvz) {
+   Real KelvinHelmholtz::getDistribValue(creal& x, creal& z, creal& vx, creal& vy, creal& vz){
       creal mass = 1.67262171e-27; // m_p in kg
-      creal k = 1.3806505e-23; // Boltzmann
-      //  creal mu0 = 1.25663706144e-6; // mu_0
-      //  creal q = 1.60217653e-19; // q_i
+      creal k = 1.3806505e-23; // Boltzmann     
+      //  creal mu0 = 1.25663706144e-6; // mu_0 
+      //  creal q = 1.60217653e-19; // q_i      
       //  creal gamma = 5./3.;
       Real rho = profile(this->rho[this->BOTTOM], this->rho[this->TOP], x, z);
       Real T = profile(this->T[this->BOTTOM], this->T[this->TOP], x, z);
@@ -125,24 +122,40 @@ namespace projects {
       creal d_vy = dvy / (this->nVelocitySamples-1);
       creal d_vz = dvz / (this->nVelocitySamples-1);
       Real avg = 0.0;
+      uint samples=0;
+
+      Real middleValue=getDistribValue(x+0.5*dx, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz);
+      if(middleValue<0.000001*Parameters::sparseMinValue){
+         return middleValue; //abort, this will not be accepted anyway
+      }
+      
    //#pragma omp parallel for collapse(6) reduction(+:avg)
       for (uint i=0; i<this->nSpaceSamples; ++i)
          for (uint k=0; k<this->nSpaceSamples; ++k)
             for (uint vi=0; vi<this->nVelocitySamples; ++vi)
                for (uint vj=0; vj<this->nVelocitySamples; ++vj)
-                  for (uint vk=0; vk<this->nVelocitySamples; ++vk)
-                  {
-                     avg += getDistribValue(x+i*d_x, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+                  for (uint vk=0; vk<this->nVelocitySamples; ++vk){
+                     avg +=getDistribValue(x+i*d_x, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz);
+                     samples++;
                   }
-      return avg / pow(this->nSpaceSamples, 2.0) / pow(this->nVelocitySamples, 3.0);
+      return avg / samples;
    }
-
+   
 
    void KelvinHelmholtz::calcCellParameters(Real* cellParams,creal& t) {
-      creal x = cellParams[CellParams::XCRD];
-      creal dx = cellParams[CellParams::DX];
-      creal z = cellParams[CellParams::ZCRD];
-      creal dz = cellParams[CellParams::DZ];
+      cellParams[CellParams::EX   ] = 0.0;
+      cellParams[CellParams::EY   ] = 0.0;
+      cellParams[CellParams::EZ   ] = 0.0;
+      cellParams[CellParams::PERBX   ] = 0.0;
+      cellParams[CellParams::PERBY   ] = 0.0;
+      cellParams[CellParams::PERBZ   ] = 0.0;
+   }
+   
+   void KelvinHelmholtz::setCellBackgroundField(SpatialCell* cell) {
+      creal x = cell->parameters[CellParams::XCRD];
+      creal dx = cell->parameters[CellParams::DX];
+      creal z = cell->parameters[CellParams::ZCRD];
+      creal dz = cell->parameters[CellParams::DZ];
       
       Real Bxavg, Byavg, Bzavg;
       Bxavg = Byavg = Bzavg = 0.0;
@@ -156,14 +169,8 @@ namespace projects {
          }
       cuint nPts = pow(this->nSpaceSamples, 2.0);
       
-      cellParams[CellParams::EX   ] = 0.0;
-      cellParams[CellParams::EY   ] = 0.0;
-      cellParams[CellParams::EZ   ] = 0.0;
-      cellParams[CellParams::PERBX   ] = 0.0;
-      cellParams[CellParams::PERBY   ] = 0.0;
-      cellParams[CellParams::PERBZ   ] = 0.0;
-      cellParams[CellParams::BGBX   ] = Bxavg / nPts;
-      cellParams[CellParams::BGBY   ] = Byavg / nPts;
-      cellParams[CellParams::BGBZ   ] = Bzavg / nPts;
+      cell->parameters[CellParams::BGBX   ] = Bxavg / nPts;
+      cell->parameters[CellParams::BGBY   ] = Byavg / nPts;
+      cell->parameters[CellParams::BGBZ   ] = Bzavg / nPts;
    }
 } // namespace projects
