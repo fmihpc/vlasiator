@@ -143,9 +143,18 @@ namespace projects {
          std::cerr << __FILE__ << ":" << __LINE__ << " Dipole returned NAN's ???"  << std::endl;
          abort();
       }
+
+      //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
+      if(P::xcells_ini==1)
+         cell->parameters[CellParams::BGBX]=0;
+
+      if(P::ycells_ini==1)
+         cell->parameters[CellParams::BGBY]=0;
+
+
    }
-   
-   
+      
+      
    Real Magnetosphere::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
       Real initRho = this->tailRho;
       Real initV0[3];
