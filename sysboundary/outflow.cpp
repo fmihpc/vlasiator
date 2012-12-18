@@ -126,13 +126,6 @@ namespace SBC {
       return true;
    }
    
-//    bool Outflow::applySysBoundaryCondition(
-//       const dccrg::Dccrg<SpatialCell>& mpiGrid,
-//       creal& t
-//    ) {
-//       return true;
-//    }
-   
    Real Outflow::fieldSolverBoundaryCondMagneticField(
       const dccrg::Dccrg<SpatialCell>& mpiGrid,
       const CellID& cellID,
