@@ -85,6 +85,7 @@ bool P::propagateField = true;
 uint P::maxAccelerationSubsteps=1;
 bool P::dynamicTimestep = true;
 
+Real P::maxAlfvenVelocity = 0.0;
 
 Real P::sparseMinValue = NAN;
 uint P::blockAdjustmentInterval = numeric_limits<uint>::max();
@@ -146,6 +147,7 @@ bool Parameters::addParameters(){
    Readparameters::add("gridbuilder.timestep_max","Max. value for timesteps. If t_max limit is hit first, this step will never be reached",numeric_limits<uint>::max());
    
    // Field solver parameters
+   Readparameters::add("fieldsolver.maxAlfvenVelocity", "Maximum Alfven velocity allowed in the fast MS velocity determination in m/s, default unlimited", numeric_limits<Real>::max());
    
    // Grid sparsity parameters
    Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
@@ -228,6 +230,7 @@ bool Parameters::getParameters(){
    P::tstep = P::tstep_min;
    
    // Get field solver parameters
+   Readparameters::get("fieldsolver.maxAlfvenVelocity", P::maxAlfvenVelocity);
    
    // Get sparsity parameters
    Readparameters::get("sparse.minValue", P::sparseMinValue);

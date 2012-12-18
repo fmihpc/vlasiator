@@ -144,8 +144,8 @@ inline uchar calcNbrTypeID(const uchar& i,const uchar& j,const uchar& k) {return
 /*! Select the limiter to be used in the field solver. Limiters defined in limiters.h */
 Real limiter(creal& left,creal& cent,creal& rght) {
    //const Real limited = minmod(left,cent,rght);
-   const Real limited = MClimiter(left,cent,rght);
-   //const Real limited = vanLeer(left,cent,rght);
+   //const Real limited = MClimiter(left,cent,rght);
+   const Real limited = vanLeer(left,cent,rght);
 
    #ifdef DEBUG_SOLVERS
    if (limited != limited
@@ -551,7 +551,10 @@ template<typename REAL> REAL calculateFastMSspeedYZ(const REAL* cp, const REAL* 
    if(!Parameters::propagateField) {
       return 0.0;
    } else {
-      return sqrt(divideIfNonZero(Bx2+By2+Bz2, pc::MU_0*rho));
+      return min(
+         Parameters::maxAlfvenVelocity,
+         sqrt(divideIfNonZero(Bx2+By2+Bz2, pc::MU_0*rho))
+      );
    }
 }
 
@@ -592,7 +595,10 @@ template<typename REAL> REAL calculateFastMSspeedXZ(const REAL* cp, const REAL* 
    if(!Parameters::propagateField) {
       return 0.0;
    } else {
-      return sqrt(divideIfNonZero(Bx2+By2+Bz2, pc::MU_0*rho));
+      return min(
+         Parameters::maxAlfvenVelocity,
+         sqrt(divideIfNonZero(Bx2+By2+Bz2, pc::MU_0*rho))
+      );
    }
 }
 
@@ -633,7 +639,10 @@ template<typename REAL> REAL calculateFastMSspeedXY(const REAL* cp, const REAL* 
    if(!Parameters::propagateField) {
       return 0.0;
    } else {
-      return sqrt(divideIfNonZero(Bx2+By2+Bz2, pc::MU_0*rho));
+      return min(
+         Parameters::maxAlfvenVelocity,
+         sqrt(divideIfNonZero(Bx2+By2+Bz2, pc::MU_0*rho))
+      );
    }
 }
 
