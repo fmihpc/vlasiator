@@ -1507,37 +1507,15 @@ void propagateSysBoundaryMagneticField(
       abort();
    }
    
-   if ((existingCells & PROPAGATE_BX) != PROPAGATE_BX) {
+   for(uint component = 0; component < 3; component++) {
       if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
          mpiGrid[cellID]->parameters[CellParams::PERBX] =
-         sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)->
-         fieldSolverBoundaryCondMagneticField(mpiGrid, cellID, 0.0, 0);
+            sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)->
+               fieldSolverBoundaryCondMagneticField(mpiGrid, cellID, 0.0, component);
       } else { // RKCase == RK_ORDER2_STEP1
-               mpiGrid[cellID]->parameters[CellParams::PERBX_DT2] =
-               sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)->
-               fieldSolverBoundaryCondMagneticField(mpiGrid, cellID, dt, 0);
-      }
-   }
-   if ((existingCells & PROPAGATE_BY) != PROPAGATE_BY) {
-      if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         mpiGrid[cellID]->parameters[CellParams::PERBY] =
-         sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)->
-         fieldSolverBoundaryCondMagneticField(mpiGrid, cellID, 0.0, 1);
-      } else { // RKCase == RK_ORDER2_STEP1
-               mpiGrid[cellID]->parameters[CellParams::PERBY_DT2] =
-               sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)->
-               fieldSolverBoundaryCondMagneticField(mpiGrid, cellID, dt, 1);
-      }
-   }
-   if ((existingCells & PROPAGATE_BZ) != PROPAGATE_BZ) {
-      if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         mpiGrid[cellID]->parameters[CellParams::PERBZ] =
-         sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)->
-         fieldSolverBoundaryCondMagneticField(mpiGrid, cellID, 0.0, 2);
-      } else { // RKCase == RK_ORDER2_STEP1
-               mpiGrid[cellID]->parameters[CellParams::PERBZ_DT2] =
-               sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)->
-               fieldSolverBoundaryCondMagneticField(mpiGrid, cellID, dt, 2);
+         mpiGrid[cellID]->parameters[CellParams::PERBX_DT2] =
+            sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)->
+               fieldSolverBoundaryCondMagneticField(mpiGrid, cellID, dt, component);
       }
    }
 }
