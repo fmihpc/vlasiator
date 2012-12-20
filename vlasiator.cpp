@@ -350,7 +350,6 @@ int main(int argn,char* args[]) {
    // Main simulation loop:
    if (myRank == MASTER_RANK) logFile << "(MAIN): Starting main simulation loop." << endl << writeVerbose;
    
-   double before = MPI_Wtime();
    unsigned int computedCellsWithSubsteps=0;
    unsigned int computedCells=0;
    unsigned int computedTotalCells=0;
@@ -360,12 +359,16 @@ int main(int argn,char* args[]) {
    addTimedBarrier("barrier-end-initialization");
    
    phiprof::start("Simulation");
-
+   double startTime=  MPI_Wtime();
+   double beforeTime = MPI_Wtime();
+   double beforeSimulationTime=P::t_min;
+   double beforeStep=P::tstep_min;
+   
    while(P::tstep <=P::tstep_max  &&
          P::t-P::dt <= P::t_max+DT_EPSILON) {
 
       addTimedBarrier("barrier-loop-start");
-      
+         
       phiprof::start("IO");
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals).
@@ -378,16 +381,21 @@ int main(int argn,char* args[]) {
          phiprof::printLogProfile(MPI_COMM_WORLD,P::tstep,"phiprof_log"," ",7);
          
          double currentTime=MPI_Wtime();
-         double timePerStep=double(currentTime  - before) / (P::tstep-P::tstep_min);
-         double timePerSecond=double(currentTime  - before) / (P::t-P::t_min + DT_EPSILON);
+         double timePerStep=double(currentTime  - beforeTime) / (P::tstep-beforeStep);
+         double timePerSecond=double(currentTime  - beforeTime) / (P::t-beforeSimulationTime + DT_EPSILON);
          double remainingTime=min(timePerStep*(P::tstep_max-P::tstep),timePerSecond*(P::t_max-P::t));
          time_t finalWallTime=time(NULL)+(time_t)remainingTime; //assume time_t is in seconds, as it is almost always
          struct tm *finalWallTimeInfo=localtime(&finalWallTime);
-         logFile << "(TIME) walltime/step " << timePerStep<< " s" <<endl;
-         logFile << "(TIME) walltime/simusecond (s)" << timePerSecond<<" s" <<endl;
+         logFile << "(TIME) current walltime/step " << timePerStep<< " s" <<endl;
+         logFile << "(TIME) current walltime/simusecond " << timePerSecond<<" s" <<endl;
          logFile << "(TIME) Estimated completion time is " <<asctime(finalWallTimeInfo)<<endl;
+         //reset before values, we want to report speed since last report of speed.
+         beforeTime = MPI_Wtime();
+         beforeSimulationTime=P::t;
+         beforeStep=P::tstep;
       }               
       logFile << writeVerbose;
+   
 
       // Check whether diagnostic output has to be produced
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
@@ -601,11 +609,11 @@ int main(int argn,char* args[]) {
       if(P::tstep == P::tstep_min) {
          timePerStep=0.0;
       } else {
-         timePerStep=double(after  - before) / (P::tstep-P::tstep_min);	
+         timePerStep=double(after  - startTime) / (P::tstep-P::tstep_min);	
       }
-      double timePerSecond=double(after  - before) / (P::t-P::t_min+DT_EPSILON);
+      double timePerSecond=double(after  - startTime) / (P::t-P::t_min+DT_EPSILON);
       logFile << "(MAIN): All timesteps calculated." << endl;
-      logFile << "\t (TIME) total run time " << after - before << " s, total simulated time " << P::t -P::t_min<< " s" << endl;
+      logFile << "\t (TIME) total run time " << after - startTime << " s, total simulated time " << P::t -P::t_min<< " s" << endl;
       if(P::t != 0.0) {
          logFile << "\t (TIME) seconds per timestep " << timePerStep  <<
          ", seconds per simulated second " <<  timePerSecond << endl;
