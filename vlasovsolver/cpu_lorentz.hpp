@@ -55,10 +55,16 @@ template<typename REAL> void lorentzForceFaceBulk(
     const REAL prefactor = cellParams[CellParams::RHO] == 0 ? 0.0 : 1.0 / (physicalconstants::MU_0 * cellParams[CellParams::RHO]); 
    
    // ax=a_bulk[0], ay=a_bulk[2], az=a_bulk[3]
-   a_bulk[0] = Parameters::q_per_m*(prefactor * (BZ*dBXdz - BZ*dBZdx - BY*dBYdx + BY*dBXdy) - BY*UZ + BZ*UY);
-   a_bulk[1] = Parameters::q_per_m*(prefactor * (BX*dBYdx - BX*dBXdy - BZ*dBZdy + BZ*dBYdz) - BZ*UX + BX*UZ);
-   a_bulk[2] = Parameters::q_per_m*(prefactor * (BY*dBZdy - BY*dBYdz - BX*dBXdz + BX*dBZdx) - BX*UY + BY*UX);
-   
+    a_bulk[0] = 0.0;
+    a_bulk[1] = 0.0;
+    a_bulk[2] = 0.0;
+
+    /*
+      Terms for QUESPACE-281. WARNING!!! Carefully check these before activating, the signs are probably not all correct.
+    a_bulk[0] = Parameters::q_per_m*(prefactor * (BZ*dBXdz - BZ*dBZdx - BY*dBYdx + BY*dBXdy) + BY*UZ - BZ*UY);
+    a_bulk[1] = Parameters::q_per_m*(prefactor * (BX*dBYdx - BX*dBXdy - BZ*dBZdy + BZ*dBYdz) + BZ*UX - BX*UZ);
+    a_bulk[2] = Parameters::q_per_m*(prefactor * (BY*dBZdy - BY*dBYdz - BX*dBXdz + BX*dBZdx) + BX*UY - BY*UX);
+    */
 }
 
 
@@ -77,7 +83,10 @@ template<typename UINT,typename REAL> void lorentzForceFaceVelspace(
 
    const REAL BX = cellParams[CellParams::BXVOL]; 
    const REAL BY = cellParams[CellParams::BYVOL]; 
-   const REAL BZ = cellParams[CellParams::BZVOL];    
+   const REAL BZ = cellParams[CellParams::BZVOL];
+   const REAL EX = cellParams[CellParams::EXVOL]; 
+   const REAL EY = cellParams[CellParams::EYVOL]; 
+   const REAL EZ = cellParams[CellParams::EZVOL];    
    
    // I The i-index of the cell, within a velocity block, in which the computed face is stored.
    // J The j-index of the cell, within a velocity block, in which the computed face is stored.
@@ -89,9 +98,9 @@ template<typename UINT,typename REAL> void lorentzForceFaceVelspace(
    REAL VZ = blockParams[BlockParams::VZCRD] + (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
    
    // ax=a_phasespacecell[0], ay=a_phasespacecell[1], az=a_phasespacecell[2]
-   a_phasespacecell[0] = Parameters::q_per_m*( BY*(VZ) - BZ*(VY));
-   a_phasespacecell[1] = Parameters::q_per_m*( BZ*(VX) - BX*(VZ));
-   a_phasespacecell[2] = Parameters::q_per_m*( BX*(VY) - BY*(VX));
+   a_phasespacecell[0] = Parameters::q_per_m*(EX - BY*(VZ) + BZ*(VY));
+   a_phasespacecell[1] = Parameters::q_per_m*(EY - BZ*(VX) + BX*(VZ));
+   a_phasespacecell[2] = Parameters::q_per_m*(EZ - BX*(VY) + BY*(VX));
       
    // Calculate block components of acceleration due to three-dimensional Lorentz force at face with normal to vy-direction.
    
@@ -100,9 +109,9 @@ template<typename UINT,typename REAL> void lorentzForceFaceVelspace(
    VZ = blockParams[BlockParams::VZCRD] + (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
       
    // ax=a_phasespacecell[3], ay=a_phasespacecell[4], az=a_phasespacecell[5]
-   a_phasespacecell[3] = Parameters::q_per_m*( BY*(VZ) - BZ*(VY));
-   a_phasespacecell[4] = Parameters::q_per_m*( BZ*(VX) - BX*(VZ));
-   a_phasespacecell[5] = Parameters::q_per_m*( BX*(VY) - BY*(VX));
+   a_phasespacecell[3] = Parameters::q_per_m*(EX- BY*(VZ) + BZ*(VY));
+   a_phasespacecell[4] = Parameters::q_per_m*(EY- BZ*(VX) + BX*(VZ));
+   a_phasespacecell[5] = Parameters::q_per_m*(EZ- BX*(VY) + BY*(VX));
       
    //Calculate block components of acceleration due to three-dimensional Lorentz force at face with normal to vz-direction.
    VX = blockParams[BlockParams::VXCRD] + (I+convert<REAL>(0.5))*blockParams[BlockParams::DVX];
@@ -110,9 +119,9 @@ template<typename UINT,typename REAL> void lorentzForceFaceVelspace(
    VZ = blockParams[BlockParams::VZCRD] + K*blockParams[BlockParams::DVZ];
    
    // ax=a_phasespacecell[6], ay=a_phasespacecell[7], az=a_phasespacecell[8]
-   a_phasespacecell[6] = Parameters::q_per_m*( BY*(VZ) - BZ*(VY));
-   a_phasespacecell[7] = Parameters::q_per_m*( BZ*(VX) - BX*(VZ));
-   a_phasespacecell[8] = Parameters::q_per_m*( BX*(VY) - BY*(VX));
+   a_phasespacecell[6] = Parameters::q_per_m*(EX - BY*(VZ) + BZ*(VY));
+   a_phasespacecell[7] = Parameters::q_per_m*(EY - BZ*(VX) + BX*(VZ));
+   a_phasespacecell[8] = Parameters::q_per_m*(EZ - BX*(VY) + BY*(VX));
    
 }
 
