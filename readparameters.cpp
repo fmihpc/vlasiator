@@ -299,7 +299,13 @@ bool Readparameters::get(const std::string& name,std::vector<int>& value) {
     ret=Readparameters::get(name,stringValue);
     if (ret) {
         for (vector<string>::iterator i = stringValue.begin(); i!=stringValue.end(); ++i) {
-            value.push_back(lexical_cast<int>(*i));
+           try {              
+              value.push_back(lexical_cast<int>(*i));
+           }
+           catch (...){
+              if(Readparameters::rank==0) cerr << "Problems casting value to int " << name <<" = " << *i <<endl;
+              return false;
+           }
         }
     }
     return ret;
@@ -320,7 +326,14 @@ bool Readparameters::get(const std::string& name,std::vector<float>& value) {
     ret=Readparameters::get(name,stringValue);
     if (ret) {
         for (vector<string>::iterator i = stringValue.begin(); i!=stringValue.end(); ++i) {
-            value.push_back(lexical_cast<float>(*i));
+           try {              
+              value.push_back(lexical_cast<float>(*i));
+           }
+           catch (...){
+              if(Readparameters::rank==0) cerr << "Problems casting value to float " << name <<" = " << *i <<endl;
+              return false;
+           }
+           
         }
     }
     return ret;
@@ -340,7 +353,14 @@ bool Readparameters::get(const std::string& name,std::vector<double>& value) {
     ret=Readparameters::get(name,stringValue);
     if (ret) {
         for (vector<string>::iterator i = stringValue.begin(); i!=stringValue.end(); ++i) {
-            value.push_back(lexical_cast<double>(*i));
+           try {              
+              value.push_back(lexical_cast<double>(*i));
+           }
+           catch (...){
+              if(Readparameters::rank==0) cerr << "Problems casting value to double " << name <<" = " << *i <<endl;
+              return false;
+           }
+              
         }
     }
     return ret;
@@ -379,7 +399,14 @@ bool Readparameters::get(const std::string& name,bool& value) {
     using boost::lexical_cast;
     ret=Readparameters::get(name,sval);
     if (ret) {
-        value = lexical_cast<bool>(sval);
+       try {
+          value = lexical_cast<bool>(sval);
+       }
+       catch (...){
+          if(Readparameters::rank==0) cerr << "Problems casting value to bool " << name <<" = " << sval <<endl;
+          return false;
+       }       
+       
     }
     return ret;
 }
@@ -396,7 +423,14 @@ bool Readparameters::get(const std::string& name,int& value) {
     using boost::lexical_cast;
     ret=Readparameters::get(name,sval);
     if (ret) {
-        value = lexical_cast<int>(sval);
+       try {
+          value = lexical_cast<int>(sval);
+       }
+       catch (...){
+          if(Readparameters::rank==0) cerr << "Problems casting value to int " << name <<" = " << sval <<endl;
+          return false;
+       }       
+
     }
     return ret;
 }
@@ -413,7 +447,15 @@ bool Readparameters::get(const std::string& name,unsigned int& value) {
     using boost::lexical_cast;
     ret=Readparameters::get(name,sval);
     if (ret) {
-        value = lexical_cast<unsigned int>(sval);
+       try {
+          value = lexical_cast<unsigned int>(sval);
+       }
+       catch (...){
+          if(Readparameters::rank==0) cerr << "Problems casting value to unsigned int " << name <<" = " << sval <<endl;
+          return false;
+       }       
+
+
     }
     return ret;
 }
@@ -430,7 +472,14 @@ bool Readparameters::get(const std::string& name,unsigned long& value) {
     using boost::lexical_cast;
     ret=Readparameters::get(name,sval);
     if (ret) {
-        value = lexical_cast<unsigned long>(sval);
+       try {
+          value = lexical_cast<unsigned long>(sval);
+       }
+       catch (...){
+          if(Readparameters::rank==0) cerr << "Problems casting value to unsigned long " << name <<" = " << sval <<endl;
+          return false;
+       }
+       
     }
     return ret;
 }
@@ -451,7 +500,14 @@ bool Readparameters::get(const std::string& name,float& value) {
     using boost::lexical_cast;
     ret=Readparameters::get(name,sval);
     if (ret) {
-        value = lexical_cast<float>(sval);
+       try {
+          value = lexical_cast<float>(sval);
+       }
+       catch (...){
+          if(Readparameters::rank==0) cerr << "Problems casting value to float " << name <<" = " << sval <<endl;
+          return false;
+       }
+        
     }
     return ret;
 }
@@ -469,7 +525,14 @@ bool Readparameters::get(const std::string& name,double& value) {
     using boost::lexical_cast;
     ret=Readparameters::get(name,sval);
     if (ret) {
-        value = lexical_cast<double>(sval);
+       try {
+          value = lexical_cast<double>(sval);
+       }
+       catch (...){
+          if(Readparameters::rank==0) cerr << "Problems casting value to double " << name <<" = " << sval <<endl;
+          return false;
+       }
+
     }
     return ret;
 }
@@ -526,7 +589,7 @@ bool Readparameters::parse() {
                 PO::notify(*variables);
                 run_config_file.close();
             } else {
-                cerr << "Couldn't open or read run config file " << run_config_file_name << endl;
+                if(Readparameters::rank==0) cerr << "Couldn't open or read run config file " << run_config_file_name << endl;
                 abort();
             }
         }
@@ -538,7 +601,7 @@ bool Readparameters::parse() {
                 PO::notify(*variables);
                 user_config_file.close();
             } else {
-                cerr << "Couldn't open or read user config file " << user_config_file_name << endl;
+                if(Readparameters::rank==0) cerr << "Couldn't open or read user config file " << user_config_file_name << endl;
                 abort();
             }
         }
@@ -550,7 +613,7 @@ bool Readparameters::parse() {
                 PO::notify(*variables);
                 global_config_file.close();
             } else {
-                cerr << "Couldn't open or read global config file " << global_config_file_name << endl;
+                if(Readparameters::rank==0) cerr << "Couldn't open or read global config file " << global_config_file_name << endl;
                 abort();
             }
         }
