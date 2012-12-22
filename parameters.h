@@ -85,7 +85,7 @@ struct Parameters {
    static bool periodic_x, periodic_y, periodic_z; /*!< Whether spatial vlasov grid is periodic */
    
    static Real maxAlfvenVelocity; /*!< Maximum Alfven velocity allowed in fastMS computation in LDZ. */
-   
+  static bool lorentzHallTerm;  /*!< Add JxB hall term to Lorentz force. Assumes there is not hall term in the fieldsolver*/
    static Real sparseMinValue; /*!< Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents */
    static uint blockAdjustmentInterval; /*!< Block adjustment interval (steps). */
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/

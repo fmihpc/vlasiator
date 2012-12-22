@@ -96,11 +96,13 @@ string P::loadBalanceAlgorithm = string("");
 string P::loadBalanceTolerance = string("");
 uint P::rebalanceInterval = numeric_limits<uint>::max();
 
+
 vector<string> P::outputVariableList;
 vector<string> P::diagnosticVariableList;
 
 string P::projectName = string("");
 
+bool P::lorentzHallTerm=false;
 
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
@@ -149,6 +151,8 @@ bool Parameters::addParameters(){
    // Field solver parameters
    Readparameters::add("fieldsolver.maxAlfvenVelocity", "Maximum Alfven velocity allowed in the fast MS velocity determination in m/s, default unlimited", LARGE_REAL);
    
+   Readparameters::add("vlasovsolver.lorentzHallTerm", "Add JxB term to Lorentz force",false); 
+
    // Grid sparsity parameters
    Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
    Readparameters::add("sparse.blockAdjustmentInterval", "Block adjustment interval (steps)", 1);
@@ -231,7 +235,8 @@ bool Parameters::getParameters(){
    
    // Get field solver parameters
    Readparameters::get("fieldsolver.maxAlfvenVelocity", P::maxAlfvenVelocity);
-   
+
+   Readparameters::get("vlasovsolver.lorentzHallTerm", P::lorentzHallTerm);
    // Get sparsity parameters
    Readparameters::get("sparse.minValue", P::sparseMinValue);
    Readparameters::get("sparse.blockAdjustmentInterval", P::blockAdjustmentInterval);
