@@ -92,10 +92,10 @@ namespace projects {
       }
       if(this->offset != 0.0) {
          return 0.5 * ((top-bottom) * (
-         tanh((z + this->offset + this->amp * cos(2.0*M_PI*x/this->lambda))/this->transitionWidth) -
-         tanh((z-(this->offset + this->amp * cos(2.0*M_PI*x/this->lambda)))/this->transitionWidth) -1) + top+bottom);
+         tanh((x + this->offset + this->amp * cos(2.0*M_PI*z/this->lambda))/this->transitionWidth) -
+         tanh((x-(this->offset + this->amp * cos(2.0*M_PI*z/this->lambda)))/this->transitionWidth) -1) + top+bottom);
       } else {
-         return 0.5 * ((top-bottom) * tanh(z/this->transitionWidth) + top+bottom);
+         return 0.5 * ((top-bottom) * tanh(x/this->transitionWidth) + top+bottom);
       }
    }
    
@@ -146,9 +146,9 @@ namespace projects {
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
-      cellParams[CellParams::PERBX   ] = 0.0;
-      cellParams[CellParams::PERBY   ] = 0.0;
-      cellParams[CellParams::PERBZ   ] = 0.0;
+      cellParams[CellParams::BGBX   ] = 0.0;
+      cellParams[CellParams::BGBY   ] = 0.0;
+      cellParams[CellParams::BGBZ   ] = 0.0;
    }
    
    void KHB::setCellBackgroundField(SpatialCell* cell) {
@@ -169,8 +169,8 @@ namespace projects {
          }
       cuint nPts = pow(this->nSpaceSamples, 2.0);
       
-      cell->parameters[CellParams::BGBX   ] = Bxavg / nPts;
-      cell->parameters[CellParams::BGBY   ] = Byavg / nPts;
-      cell->parameters[CellParams::BGBZ   ] = Bzavg / nPts;
+      cell->parameters[CellParams::PERBX   ] = Bxavg / nPts;
+      cell->parameters[CellParams::PERBY   ] = Byavg / nPts;
+      cell->parameters[CellParams::PERBZ   ] = Bzavg / nPts;
    }
 } // namespace projects
