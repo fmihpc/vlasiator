@@ -119,10 +119,10 @@ Note that in r1323 there was a sign error in the last two terms which has been c
 
 The last term can be replaced by the $\textrm{EVOL}$ terms computed in the field solver as these are corrected, unlike the crude term given here.
 
-A further step discussed is to add a resistivity coefficient to the current term so that one gets:
+A further step discussed is to add a resistive term so that one gets:
 \begin{align}
-   \frac{\dif\vv{v}_i}{\dif t} &= \pp{\eta\frac{\vv{J}}{n} - \vv{u}_i + \vv{v}_i}\times\vv{B} \\
-   &= \frac{\eta}{\mu_0 \textrm{RHO}}
+   \frac{\dif\vv{v}_i}{\dif t} &= \pp{\frac{\vv{J}}{n} - \vv{u}_i + \vv{v}_i}\times\vv{B} + \eta\vv{J} \\
+   &= \frac{1}{\mu_0 \textrm{RHO}}
    \begin{pmatrix}
       \textrm{BZVOL}\partial_z\textrm{BXVOL} - \textrm{BZVOL}\partial_x\textrm{BZVOL} - \textrm{BYVOL}\partial_x\textrm{BYVOL} + \textrm{BYVOL}\partial_y\textrm{BXVOL} \\
       \textrm{BXVOL}\partial_x\textrm{BYVOL} - \textrm{BXVOL}\partial_y\textrm{BXVOL} - \textrm{BZVOL}\partial_y\textrm{BZVOL} + \textrm{BZVOL}\partial_z\textrm{BYVOL} \\
@@ -134,7 +134,13 @@ A further step discussed is to add a resistivity coefficient to the current term
       \textrm{VX}\cdot\textrm{BZ} - \textrm{BX}\cdot\textrm{VZ} \\
       \textrm{VY}\cdot\textrm{BY} - \textrm{BY}\cdot\textrm{VX} \\
    \end{pmatrix} \\
-   &+ \vv{E}_{VOL}
+   &+ \vv{E}_{VOL} \\
+   &+\frac{\eta}{\mu_0}
+   \begin{pmatrix}
+      \partial_y\textrm{BZVOL} - \partial_z\textrm{BYVOL} \\
+      \partial_z\textrm{BXVOL} - \partial_x\textrm{BZVOL} \\
+      \partial_x\textrm{BYVOL} - \partial_y\textrm{BXVOL}
+   \end{pmatrix}
 \end{align}
 
 
