@@ -1,0 +1,142 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[utf8]{inputenc}
+
+\usepackage[left=1cm,right=1cm,top=1cm,bottom=1cm]{geometry}
+
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{hyperref}
+
+%opening
+\title{The Lorentz force terms implemented in Vlasiator}
+\date{\today}
+\author{Y. Kempf}
+
+% Custom commands
+\newcommand{\vv}[1]{\mathbf{#1}}
+\newcommand{\dif}{\mathrm{d}}
+\newcommand{\pp}[1]{\left(#1\right)}
+
+\begin{document}
+\lstset{language=C++}
+\maketitle
+
+\begin{abstract}
+Following discussions in \url{https://agile.fmi.fi/browse/QUESPACE-281} based on
+\begin{itemize}
+   \item On magnetic reconnection regimes and associated three-dimensional asymmetries: Hybrid, Hall-less hybrid, and Hall-MHD simulations, Karimabadi et al. JGR 109, A09205, 2004;
+   \item The hall effect in magnetic reconnection: Hybrid versus Hall-less hybrid simulations, Malakit et al. GRL 36, L07107, 2009,
+\end{itemize}
+the Lorentz force expression used in Vlasiator was changed. This document reviews the change and documents the new implemented terms for reference and verification.
+
+Particularly the sign error spotted by Sebastian in December 2012 was found.
+\end{abstract}
+
+\section{Previous expression}
+Prior to the changes in SVN r1323 the expression used was:
+\begin{equation}
+   \mathbf{a} = \frac{q}{m}\left(\mathbf{E}_\mathrm{VOL} + \mathbf{V}\times\mathbf{B}_\mathrm{VOL}\right),
+\end{equation}
+and the code (\verb=lorentzForceFaceX()=):
+\begin{lstlisting}
+  const REAL VX = blockParams[BlockParams::VXCRD] +
+     I*blockParams[BlockParams::DVX];
+  const REAL VY = blockParams[BlockParams::VYCRD] +
+     (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
+  const REAL VZ = blockParams[BlockParams::VZCRD] +
+     (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
+  const REAL EX = cellParams[CellParams::EXVOL];
+  const REAL EY = cellParams[CellParams::EYVOL];
+  const REAL EZ = cellParams[CellParams::EZVOL];
+  const REAL BX = cellParams[CellParams::BXVOL];
+  const REAL BY = cellParams[CellParams::BYVOL];
+  const REAL BZ = cellParams[CellParams::BZVOL];
+  ax = Parameters::q_per_m*(EX + VY*BZ - VZ*BY);
+  ay = Parameters::q_per_m*(EY + VZ*BX - VX*BZ);
+  az = Parameters::q_per_m*(EZ + VX*BY - VY*BX);
+\end{lstlisting}
+. Arguments in the references above show that using this does not provide a Hall-less hybrid as no bulk forces are present in the description.
+
+\section{$\mathbf{J}\times\mathbf{B}$ in the Lorentz force}
+In this section I derive the term as was implemented in revision r1323 (and has been moved around since, sorry for the delay in writing this up), following Malakit et al. GRL 36, 2009.
+
+Their Eq. (2) is
+\begin{equation}
+   \frac{\dif\vv{v}_i}{\dif t} = \vv{E}_{ION} + \vv{v}_i\times\vv{B},
+\end{equation}
+where (Eq. (3) in Malakit)
+\begin{equation}
+   \vv{E}_{ION} = -\pp{\vv{u}_i-\frac{\vv{J}}{n}}\times\vv{B},
+\end{equation}
+so that
+\begin{equation}
+   \frac{\dif\vv{v}_i}{\dif t} = -\pp{\vv{u}_i - \frac{\vv{J}}{n}}\times\vv{B} + \vv{v}_i\times\vv{B},
+\end{equation}
+where $\vv{u}_i$ is the bulk velocity, thus (moving gradually to CellParams notation)
+\begin{align}
+   \frac{\dif\vv{v}_i}{\dif t} &= \pp{\frac{\vv{J}}{n} - \vv{u}_i + \vv{v}_i}\times\vv{B} \\
+   &= \pp{\frac{\nabla\times\vv{B}}{\mu_0 n} - \vv{u}_i + \vv{v}_i}\times\vv{B} \\
+   &= \frac{\nabla\times\vv{B}}{\mu_0 n}\times\vv{B} + \pp{\vv{v}_i - \frac{\textrm{RHOV}}{\textrm{RHO}}}\times\vv{B} \\
+   &= \frac{1}{\mu_0 \textrm{RHO}}
+   \left[\begin{pmatrix}\partial_x \\ \partial_y \\ \partial_z\end{pmatrix}
+   \times
+   \begin{pmatrix}\textrm{BXVOL} \\ \textrm{BYVOL} \\ \textrm{BZVOL}\end{pmatrix}\right]
+   \times
+   \begin{pmatrix}\textrm{BXVOL} \\ \textrm{BYVOL} \\ \textrm{BZVOL}\end{pmatrix}
+   + \pp{\vv{v}_i - \frac{\textrm{RHOV}}{\textrm{RHO}}}\times\vv{B} \\
+   &= \frac{1}{\mu_0 \textrm{RHO}}
+   \begin{pmatrix}
+      \partial_y\textrm{BZVOL} - \partial_z\textrm{BYVOL} \\
+      \partial_z\textrm{BXVOL} - \partial_x\textrm{BZVOL} \\
+      \partial_x\textrm{BYVOL} - \partial_y\textrm{BXVOL}
+   \end{pmatrix}
+   \times
+   \begin{pmatrix}
+      \textrm{BXVOL} \\ \textrm{BYVOL} \\ \textrm{BZVOL}
+   \end{pmatrix}
+   + \pp{\vv{v}_i - \frac{\textrm{RHOV}}{\textrm{RHO}}}\times\vv{B} \\
+   &= \frac{1}{\mu_0 \textrm{RHO}}
+   \begin{pmatrix}
+      \textrm{BZVOL}\partial_z\textrm{BXVOL} - \textrm{BZVOL}\partial_x\textrm{BZVOL} - \textrm{BYVOL}\partial_x\textrm{BYVOL} + \textrm{BYVOL}\partial_y\textrm{BXVOL} \\
+      \textrm{BXVOL}\partial_x\textrm{BYVOL} - \textrm{BXVOL}\partial_y\textrm{BXVOL} - \textrm{BZVOL}\partial_y\textrm{BZVOL} + \textrm{BZVOL}\partial_z\textrm{BYVOL} \\
+      \textrm{BYVOL}\partial_y\textrm{BZVOL} - \textrm{BYVOL}\partial_z\textrm{BYVOL} - \textrm{BXVOL}\partial_z\textrm{BXVOL} + \textrm{BXVOL}\partial_x\textrm{BZVOL}
+   \end{pmatrix}
+   - \\
+   &- \begin{pmatrix}
+      \textrm{VZ}\cdot\textrm{BY} - \textrm{BZ}\cdot\textrm{VY} \\
+      \textrm{VX}\cdot\textrm{BZ} - \textrm{BX}\cdot\textrm{VZ} \\
+      \textrm{VY}\cdot\textrm{BY} - \textrm{BY}\cdot\textrm{VX} \\
+   \end{pmatrix}
+   + \frac{1}{\textrm{RHO}}
+   \begin{pmatrix}
+      \textrm{BY}\cdot\textrm{RHOVZ} - \textrm{BZ}\cdot\textrm{RHOVY} \\
+      \textrm{BZ}\cdot\textrm{RHOVX} - \textrm{BX}\cdot\textrm{RHOVZ} \\
+      \textrm{BX}\cdot\textrm{RHOVY} - \textrm{BY}\cdot\textrm{RHOVX}.
+   \end{pmatrix}
+\end{align}
+
+Note that in r1323 there was a sign error in the last two terms which has been corrected later on in r1497/r1500.
+
+The last term can be replaced by the $\textrm{EVOL}$ terms computed in the field solver as these are corrected, unlike the crude term given here.
+
+A further step discussed is to add a resistivity coefficient to the current term so that one gets:
+\begin{align}
+   \frac{\dif\vv{v}_i}{\dif t} &= \pp{\eta\frac{\vv{J}}{n} - \vv{u}_i + \vv{v}_i}\times\vv{B} \\
+   &= \frac{\eta}{\mu_0 \textrm{RHO}}
+   \begin{pmatrix}
+      \textrm{BZVOL}\partial_z\textrm{BXVOL} - \textrm{BZVOL}\partial_x\textrm{BZVOL} - \textrm{BYVOL}\partial_x\textrm{BYVOL} + \textrm{BYVOL}\partial_y\textrm{BXVOL} \\
+      \textrm{BXVOL}\partial_x\textrm{BYVOL} - \textrm{BXVOL}\partial_y\textrm{BXVOL} - \textrm{BZVOL}\partial_y\textrm{BZVOL} + \textrm{BZVOL}\partial_z\textrm{BYVOL} \\
+      \textrm{BYVOL}\partial_y\textrm{BZVOL} - \textrm{BYVOL}\partial_z\textrm{BYVOL} - \textrm{BXVOL}\partial_z\textrm{BXVOL} + \textrm{BXVOL}\partial_x\textrm{BZVOL}
+   \end{pmatrix} \\
+   &-
+   \begin{pmatrix}
+      \textrm{VZ}\cdot\textrm{BY} - \textrm{BZ}\cdot\textrm{VY} \\
+      \textrm{VX}\cdot\textrm{BZ} - \textrm{BX}\cdot\textrm{VZ} \\
+      \textrm{VY}\cdot\textrm{BY} - \textrm{BY}\cdot\textrm{VX} \\
+   \end{pmatrix} \\
+   &+ \vv{E}_{VOL}
+\end{align}
+
+
+
+\end{document}
