@@ -43,6 +43,7 @@ namespace projects {
       RP::add("Magnetosphere.rhoTransitionWidth", "Width of the magnetospheric background density (m)", 0.0);
       RP::add("Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
       RP::add("Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+      RP::add("Magnetosphere.dipoleScalingFactor","Scales the field strength of the magnetic dipole compared to Earths.", 1.0);
    }
    
    void Magnetosphere::getParameters(){
@@ -85,6 +86,11 @@ namespace projects {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
+
+      if(!RP::get("Magnetosphere.dipoleScalingFactor", this->dipoleScalingFactor)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
       if(!RP::get("ionosphere.rho", this->ionosphereRho)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
@@ -97,6 +103,7 @@ namespace projects {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
+
    }
    
    bool Magnetosphere::initialize() {
@@ -135,6 +142,9 @@ namespace projects {
    /* set 0-centered dipole */
    void Magnetosphere::setCellBackgroundField(SpatialCell *cell){
       setDipole(cell->parameters);
+      cell->parameters[CellParams::BGBX]*=this->dipoleScalingFactor;
+      cell->parameters[CellParams::BGBY]*=this->dipoleScalingFactor;
+      cell->parameters[CellParams::BGBZ]*=this->dipoleScalingFactor;
       
       if (  (cell->parameters[CellParams::BGBX]) !=(cell->parameters[CellParams::BGBX]) ||
             (cell->parameters[CellParams::BGBY]) !=(cell->parameters[CellParams::BGBY]) ||
