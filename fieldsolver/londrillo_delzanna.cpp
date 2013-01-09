@@ -717,6 +717,8 @@ void calculateEdgeElectricFieldX(
    // Ex and characteristic speeds on this cell:
    // 1st order terms:
    Real Ex_SW = By_S*Vz0 - Bz_W*Vy0;
+   // Resistive term
+   Ex_SW += Parameters::resistivity / physicalconstants::MU_0 * (derivs_SW[fs::dBzdy] - derivs_SW[fs::dBydz]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_SW += +HALF*((By_S - HALF*dBydz_S)*(-derivs_SW[fs::dVzdy] - derivs_SW[fs::dVzdz]) - dBydz_S*Vz0 + SIXTH*dBydx_S*derivs_SW[fs::dVzdx]);
@@ -747,6 +749,8 @@ void calculateEdgeElectricFieldX(
    
    // 1st order terms:
    Real Ex_SE = By_S*Vz0 - Bz_E*Vy0;
+   // Resistive term
+   Ex_SE += Parameters::resistivity / physicalconstants::MU_0 * (derivs_SE[fs::dBzdy] - derivs_SE[fs::dBydz]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_SE += +HALF*((By_S - HALF*dBydz_S)*(+derivs_SE[fs::dVzdy] - derivs_SE[fs::dVzdz]) - dBydz_S*Vz0 + SIXTH*dBydx_S*derivs_SE[fs::dVzdx]);
@@ -777,6 +781,8 @@ void calculateEdgeElectricFieldX(
    
    // 1st order terms:
    Real Ex_NW    = By_N*Vz0 - Bz_W*Vy0;
+   // Resistive term
+   Ex_NW += Parameters::resistivity / physicalconstants::MU_0 * (derivs_NW[fs::dBzdy] - derivs_NW[fs::dBydz]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_NW += +HALF*((By_N + HALF*dBydz_N)*(-derivs_NW[fs::dVzdy] + derivs_NW[fs::dVzdz]) + dBydz_N*Vz0 + SIXTH*dBydx_N*derivs_NW[fs::dVzdx]);
@@ -807,6 +813,8 @@ void calculateEdgeElectricFieldX(
    
    // 1st order terms:
    Real Ex_NE    = By_N*Vz0 - Bz_E*Vy0;
+   // Resistive term
+   Ex_NE += Parameters::resistivity / physicalconstants::MU_0 * (derivs_NE[fs::dBzdy] - derivs_NE[fs::dBydz]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_NE += +HALF*((By_N + HALF*dBydz_N)*(+derivs_NE[fs::dVzdy] + derivs_NE[fs::dVzdz]) + dBydz_N*Vz0 + SIXTH*dBydx_N*derivs_NE[fs::dVzdx]);
@@ -940,6 +948,8 @@ void calculateEdgeElectricFieldY(
    // Ey and characteristic speeds on this cell:
    // 1st order terms:
    Real Ey_SW  = Bz_S*Vx0 - Bx_W*Vz0;
+   // Resistive term
+   Ey_SW += Parameters::resistivity / physicalconstants::MU_0 * (derivs_SW[fs::dBxdz] - derivs_SW[fs::dBzdx]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms
       Ey_SW += +HALF*((Bz_S - HALF*dBzdx_S)*(-derivs_SW[fs::dVxdx] - derivs_SW[fs::dVxdz]) - dBzdx_S*Vx0 + SIXTH*dBzdy_S*derivs_SW[fs::dVxdy]);
@@ -970,6 +980,8 @@ void calculateEdgeElectricFieldY(
    
    // 1st order terms:
    Real Ey_SE    = Bz_S*Vx0 - Bx_E*Vz0;
+   // Resistive term
+   Ey_SE += Parameters::resistivity / physicalconstants::MU_0 * (derivs_SE[fs::dBxdz] - derivs_SE[fs::dBzdx]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ey_SE += +HALF*((Bz_S - HALF*dBzdx_S)*(-derivs_SE[fs::dVxdx] + derivs_SE[fs::dVxdz]) - dBzdx_S*Vx0 + SIXTH*dBzdy_S*derivs_SE[fs::dVxdy]);
@@ -1000,6 +1012,8 @@ void calculateEdgeElectricFieldY(
    
    // 1st order terms:
    Real Ey_NW    = Bz_N*Vx0 - Bx_W*Vz0;
+   // Resistive term
+   Ey_NW += Parameters::resistivity / physicalconstants::MU_0 * (derivs_NW[fs::dBxdz] - derivs_NW[fs::dBzdx]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ey_NW += +HALF*((Bz_N + HALF*dBzdx_N)*(+derivs_NW[fs::dVxdx] - derivs_NW[fs::dVxdz]) + dBzdx_N*Vx0 + SIXTH*dBzdy_N*derivs_NW[fs::dVxdy]);
@@ -1030,6 +1044,8 @@ void calculateEdgeElectricFieldY(
    
    // 1st order terms:
    Real Ey_NE    = Bz_N*Vx0 - Bx_E*Vz0;
+   // Resistive term
+   Ey_NE += Parameters::resistivity / physicalconstants::MU_0 * (derivs_NE[fs::dBxdz] - derivs_NE[fs::dBzdx]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ey_NE += +HALF*((Bz_N + HALF*dBzdx_N)*(+derivs_NE[fs::dVxdx] + derivs_NE[fs::dVxdz]) + dBzdx_N*Vx0 + SIXTH*dBzdy_N*derivs_NE[fs::dVxdy]);
@@ -1160,6 +1176,8 @@ void calculateEdgeElectricFieldZ(
    // Ez and characteristic speeds on SW cell:
    // 1st order terms:
    Real Ez_SW = Bx_S*Vy0 - By_W*Vx0;
+   // Resistive term
+   Ez_SW += Parameters::resistivity / physicalconstants::MU_0 * (derivs_SW[fs::dBydx] - derivs_SW[fs::dBxdy]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_SW  += +HALF*((Bx_S - HALF*dBxdy_S)*(-derivs_SW[fs::dVydx] - derivs_SW[fs::dVydy]) - dBxdy_S*Vy0 + SIXTH*dBxdz_S*derivs_SW[fs::dVydz]);
@@ -1192,6 +1210,8 @@ void calculateEdgeElectricFieldZ(
    
    // 1st order terms:
    Real Ez_SE = Bx_S*Vy0 - By_E*Vx0;
+   // Resistive term
+   Ez_SE += Parameters::resistivity / physicalconstants::MU_0 * (derivs_SE[fs::dBydx] - derivs_SE[fs::dBxdy]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_SE  += +HALF*((Bx_S - HALF*dBxdy_S)*(+derivs_SE[fs::dVydx] - derivs_SE[fs::dVydy]) - dBxdy_S*Vy0 + SIXTH*dBxdz_S*derivs_SE[fs::dVydz]);
@@ -1222,6 +1242,8 @@ void calculateEdgeElectricFieldZ(
    
    // 1st order terms:
    Real Ez_NW = Bx_N*Vy0 - By_W*Vx0;
+   // Resistive term
+   Ez_NW += Parameters::resistivity / physicalconstants::MU_0 * (derivs_NW[fs::dBydx] - derivs_NW[fs::dBxdy]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_NW  += +HALF*((Bx_N + HALF*dBxdy_N)*(-derivs_NW[fs::dVydx] + derivs_NW[fs::dVydy]) + dBxdy_N*Vy0 + SIXTH*dBxdz_N*derivs_NW[fs::dVydz]);
@@ -1252,6 +1274,8 @@ void calculateEdgeElectricFieldZ(
    
    // 1st order terms:
    Real Ez_NE = Bx_N*Vy0 - By_E*Vx0;
+   // Resistive term
+   Ez_NE += Parameters::resistivity / physicalconstants::MU_0 * (derivs_NE[fs::dBydx] - derivs_NE[fs::dBxdy]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_NE  += +HALF*((Bx_N + HALF*dBxdy_N)*(+derivs_NE[fs::dVydx] + derivs_NE[fs::dVydy]) + dBxdy_N*Vy0 + SIXTH*dBxdz_N*derivs_NE[fs::dVydz]);
@@ -1518,11 +1542,11 @@ void propagateSysBoundaryMagneticField(
    
    for(uint component = 0; component < 3; component++) {
       if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         mpiGrid[cellID]->parameters[CellParams::PERBX] =
+         mpiGrid[cellID]->parameters[CellParams::PERBX + component] =
             sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)->
                fieldSolverBoundaryCondMagneticField(mpiGrid, cellID, 0.0, component);
       } else { // RKCase == RK_ORDER2_STEP1
-         mpiGrid[cellID]->parameters[CellParams::PERBX_DT2] =
+         mpiGrid[cellID]->parameters[CellParams::PERBX_DT2 + component] =
             sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)->
                fieldSolverBoundaryCondMagneticField(mpiGrid, cellID, dt, component);
       }

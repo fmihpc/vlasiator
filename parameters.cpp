@@ -86,6 +86,7 @@ uint P::maxAccelerationSubsteps=1;
 bool P::dynamicTimestep = true;
 
 Real P::maxAlfvenVelocity = 0.0;
+Real P::resistivity = NAN;
 
 Real P::sparseMinValue = NAN;
 uint P::blockAdjustmentInterval = numeric_limits<uint>::max();
@@ -150,8 +151,11 @@ bool Parameters::addParameters(){
    
    // Field solver parameters
    Readparameters::add("fieldsolver.maxAlfvenVelocity", "Maximum Alfven velocity allowed in the fast MS velocity determination in m/s, default unlimited", LARGE_REAL);
+   Readparameters::add("fieldsolver.resistivity", "Resistivity for the eta*J term in Ohm's law.", 0.0);
    
-   Readparameters::add("vlasovsolver.lorentzHallTerm", "Add JxB term to Lorentz force",false); 
+   // Vlasov solver parameters
+   Readparameters::add("vlasovsolver.lorentzHallTerm", "Add JxB term to Lorentz force",false);
+
 
    // Grid sparsity parameters
    Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
@@ -235,8 +239,11 @@ bool Parameters::getParameters(){
    
    // Get field solver parameters
    Readparameters::get("fieldsolver.maxAlfvenVelocity", P::maxAlfvenVelocity);
-
+   Readparameters::get("fieldsolver.resistivity", P::resistivity);
+   
+   // Get Vlasov solver parameters
    Readparameters::get("vlasovsolver.lorentzHallTerm", P::lorentzHallTerm);
+   
    // Get sparsity parameters
    Readparameters::get("sparse.minValue", P::sparseMinValue);
    Readparameters::get("sparse.blockAdjustmentInterval", P::blockAdjustmentInterval);
