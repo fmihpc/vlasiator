@@ -119,6 +119,11 @@ namespace SBC {
          void copyCellData(SpatialCell *from, SpatialCell *to);
 //          void zeroCellData( SpatialCell *to);
          
+         CellID getClosestNonsysboundaryCell(
+            const dccrg::Dccrg<SpatialCell>& mpiGrid,
+            const CellID& cellID
+         );
+         
          /*! Precedence value of the system boundary condition. */
          uint precedence;
          /*! Is the boundary condition dynamic in time or not. */

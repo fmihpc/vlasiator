@@ -98,10 +98,6 @@ namespace SBC {
          const dccrg::Dccrg<SpatialCell>& mpiGrid,
          const CellID& cellID
       );
-      CellID getClosestNonsysboundaryCell(
-         const dccrg::Dccrg<SpatialCell>& mpiGrid,
-         const CellID& cellID
-      );
    }; // class Outflow
 } // namespace SBC
 

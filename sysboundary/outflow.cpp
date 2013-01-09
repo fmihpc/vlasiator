@@ -574,30 +574,6 @@ namespace SBC {
 */
    }
    
-   CellID Outflow::getClosestNonsysboundaryCell(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
-      const CellID& cellID
-   ) {
-      CellID closestCell = INVALID_CELLID;
-      uint dist = numeric_limits<uint>::max();
-      
-      for(int i=-2; i<3; i++)
-         for(int j=-2; j<3; j++)
-            for(int k=-2; k<3; k++) {
-               const CellID cell = getNeighbour(mpiGrid,cellID,i,j,k);
-               if(cell != INVALID_CELLID) {
-                  if(mpiGrid[cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                     cuint d2 =  i*i+j*j+k*k;
-                     if(d2 < dist) {
-                        dist = min(dist, d2);
-                        closestCell = cell;
-                     }
-                  }
-               }
-      }
-      return closestCell;
-   }
-   
    void Outflow::getFaces(bool* faces) {
       for(uint i=0; i<6; i++) faces[i] = facesToProcess[i];
    }

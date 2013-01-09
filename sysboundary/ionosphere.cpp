@@ -335,9 +335,11 @@ namespace SBC {
       const dccrg::Dccrg<SpatialCell>& mpiGrid,
       const CellID& cellID
    ) {
-//      phiprof::start("vlasovBoundaryCondition (Ionosphere)");
+      //phiprof::start("vlasovBoundaryCondition (Ionosphere)");
+      
       copyCellData(&templateCell, mpiGrid[cellID]);
-      //    phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
+      
+      //phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
    }
    
    void Ionosphere::generateTemplateCell(Project &project) {
