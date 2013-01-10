@@ -838,27 +838,32 @@ void calculateEdgeElectricFieldX(
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       cp_SW[CellParams::EX]  = ay_pos*az_pos*Ex_NE + ay_pos*az_neg*Ex_SE + ay_neg*az_pos*Ex_NW + ay_neg*az_neg*Ex_SW;
       cp_SW[CellParams::EX] /= ((ay_pos+ay_neg)*(az_pos+az_neg)+EPS);
-      #ifdef FS_1ST_ORDER_SPACE
-      // 1st order diffusive terms:
-      cp_SW[CellParams::EX] -= az_pos*az_neg/(az_pos+az_neg+EPS)*(By_S-By_N);
-      cp_SW[CellParams::EX] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bz_W-Bz_E);
-      #else
-      // 2nd order diffusive terms
-      cp_SW[CellParams::EX] -= az_pos*az_neg/(az_pos+az_neg+EPS)*((By_S-HALF*dBydz_S) - (By_N+HALF*dBydz_N));
-      cp_SW[CellParams::EX] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bz_W-HALF*dBzdy_W) - (Bz_E+HALF*dBzdy_E));
-      #endif
-   } else { // RKCase == RK_ORDER2_STEP1
+      if(Parameters::fieldSolverDiffusiveEterms) {
+#ifdef FS_1ST_ORDER_SPACE
+         // 1st order diffusive terms:
+         cp_SW[CellParams::EX] -= az_pos*az_neg/(az_pos+az_neg+EPS)*(By_S-By_N);
+         cp_SW[CellParams::EX] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bz_W-Bz_E);
+#else
+         // 2nd     order diffusive terms
+         cp_SW[CellParams::EX] -= az_pos*az_neg/(az_pos+az_neg+EPS)*((By_S-HALF*dBydz_S) - (By_N+HALF*dBydz_N));
+         cp_SW[CellParams::EX] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bz_W-HALF*dBzdy_W) - (Bz_E+HALF*dBzdy_E));
+#endif
+      }
+   }
+   else { // RKCase == RK_ORDER2_STEP1
       cp_SW[CellParams::EX_DT2]  = ay_pos*az_pos*Ex_NE + ay_pos*az_neg*Ex_SE + ay_neg*az_pos*Ex_NW + ay_neg*az_neg*Ex_SW;
       cp_SW[CellParams::EX_DT2] /= ((ay_pos+ay_neg)*(az_pos+az_neg)+EPS);
-      #ifdef FS_1ST_ORDER_SPACE
-      // 1st order diffusive terms:
-      cp_SW[CellParams::EX_DT2] -= az_pos*az_neg/(az_pos+az_neg+EPS)*(By_S-By_N);
-      cp_SW[CellParams::EX_DT2] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bz_W-Bz_E);
-      #else
-      // 2nd order diffusive terms
-      cp_SW[CellParams::EX_DT2] -= az_pos*az_neg/(az_pos+az_neg+EPS)*((By_S-HALF*dBydz_S) - (By_N+HALF*dBydz_N));
-      cp_SW[CellParams::EX_DT2] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bz_W-HALF*dBzdy_W) - (Bz_E+HALF*dBzdy_E));
-      #endif
+      if(Parameters::fieldSolverDiffusiveEterms) {
+#ifdef FS_1ST_ORDER_SPACE
+         // 1st order diffusive terms:
+         cp_SW[CellParams::EX_DT2] -= az_pos*az_neg/(az_pos+az_neg+EPS)*(By_S-By_N);
+         cp_SW[CellParams::EX_DT2] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bz_W-Bz_E);
+#else
+         // 2nd order diffusive terms
+         cp_SW[CellParams::EX_DT2] -= az_pos*az_neg/(az_pos+az_neg+EPS)*((By_S-HALF*dBydz_S) - (By_N+HALF*dBydz_N));
+         cp_SW[CellParams::EX_DT2] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bz_W-HALF*dBzdy_W) - (Bz_E+HALF*dBzdy_E));
+#endif
+      }
    }
    
    if((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
@@ -1069,23 +1074,29 @@ void calculateEdgeElectricFieldY(
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       cp_SW[CellParams::EY]  = az_pos*ax_pos*Ey_NE + az_pos*ax_neg*Ey_SE + az_neg*ax_pos*Ey_NW + az_neg*ax_neg*Ey_SW;
       cp_SW[CellParams::EY] /= ((az_pos+az_neg)*(ax_pos+ax_neg)+EPS);
-      #ifdef FS_1ST_ORDER_SPACE
-      cp_SW[CellParams::EY] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(Bz_S-Bz_N);
-      cp_SW[CellParams::EY] += az_pos*az_neg/(az_pos+az_neg+EPS)*(Bx_W-Bx_E);
-      #else
-      cp_SW[CellParams::EY] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((Bz_S-HALF*dBzdx_S) - (Bz_N+HALF*dBzdx_N));
-      cp_SW[CellParams::EY] += az_pos*az_neg/(az_pos+az_neg+EPS)*((Bx_W-HALF*dBxdz_W) - (Bx_E+HALF*dBxdz_E));
-      #endif
-   } else { // RKCase == RK_ORDER2_STEP1
+
+      if(Parameters::fieldSolverDiffusiveEterms) {
+#ifdef FS_1ST_ORDER_SPACE
+         cp_SW[CellParams::EY] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(Bz_S-Bz_N);
+         cp_SW[CellParams::EY] += az_pos*az_neg/(az_pos+az_neg+EPS)*(Bx_W-Bx_E);
+#else
+         cp_SW[CellParams::EY] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((Bz_S-HALF*dBzdx_S) - (Bz_N+HALF*dBzdx_N));
+         cp_SW[CellParams::EY] += az_pos*az_neg/(az_pos+az_neg+EPS)*((Bx_W-HALF*dBxdz_W) - (Bx_E+HALF*dBxdz_E));
+#endif
+      }
+   }
+   else { // RKCase == RK_ORDER2_STEP1
       cp_SW[CellParams::EY_DT2]  = az_pos*ax_pos*Ey_NE + az_pos*ax_neg*Ey_SE + az_neg*ax_pos*Ey_NW + az_neg*ax_neg*Ey_SW;
       cp_SW[CellParams::EY_DT2] /= ((az_pos+az_neg)*(ax_pos+ax_neg)+EPS);
-      #ifdef FS_1ST_ORDER_SPACE
-      cp_SW[CellParams::EY_DT2] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(Bz_S-Bz_N);
-      cp_SW[CellParams::EY_DT2] += az_pos*az_neg/(az_pos+az_neg+EPS)*(Bx_W-Bx_E);
-      #else
-      cp_SW[CellParams::EY_DT2] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((Bz_S-HALF*dBzdx_S) - (Bz_N+HALF*dBzdx_N));
-      cp_SW[CellParams::EY_DT2] += az_pos*az_neg/(az_pos+az_neg+EPS)*((Bx_W-HALF*dBxdz_W) - (Bx_E+HALF*dBxdz_E));
-      #endif
+      if(Parameters::fieldSolverDiffusiveEterms) {
+#ifdef FS_1ST_ORDER_SPACE
+         cp_SW[CellParams::EY_DT2] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(Bz_S-Bz_N);
+         cp_SW[CellParams::EY_DT2] += az_pos*az_neg/(az_pos+az_neg+EPS)*(Bx_W-Bx_E);
+#else
+         cp_SW[CellParams::EY_DT2] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((Bz_S-HALF*dBzdx_S) - (Bz_N+HALF*dBzdx_N));
+         cp_SW[CellParams::EY_DT2] += az_pos*az_neg/(az_pos+az_neg+EPS)*((Bx_W-HALF*dBxdz_W) - (Bx_E+HALF*dBxdz_E));
+#endif
+      }
    }
    
    if((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
@@ -1298,30 +1309,31 @@ void calculateEdgeElectricFieldZ(
    // Calculate properly upwinded edge-averaged Ez:
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       cp_SW[CellParams::EZ] = ax_pos*ay_pos*Ez_NE + ax_pos*ay_neg*Ez_SE + ax_neg*ay_pos*Ez_NW + ax_neg*ay_neg*Ez_SW;
-      CHECK_FLOAT(cp_SW[CellParams::EZ])
       cp_SW[CellParams::EZ] /= ((ax_pos+ax_neg)*(ay_pos+ay_neg)+EPS);
-      CHECK_FLOAT(cp_SW[CellParams::EZ])
-      #ifdef FS_1ST_ORDER_SPACE
-      cp_SW[CellParams::EZ] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bx_S-Bx_N);
-      CHECK_FLOAT(cp_SW[CellParams::EZ])
-      cp_SW[CellParams::EZ] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(By_W-By_E);
-      CHECK_FLOAT(cp_SW[CellParams::EZ])
-      #else
-      cp_SW[CellParams::EZ] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bx_S-HALF*dBxdy_S) - (Bx_N+HALF*dBxdy_N));
-      CHECK_FLOAT(cp_SW[CellParams::EZ])
-      cp_SW[CellParams::EZ] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((By_W-HALF*dBydx_W) - (By_E+HALF*dBydx_E));
-      CHECK_FLOAT(cp_SW[CellParams::EZ])
-      #endif
-   } else { // RKCase == RK_ORDER2_STEP1
+
+      if(Parameters::fieldSolverDiffusiveEterms) {
+#ifdef FS_1ST_ORDER_SPACE
+         cp_SW[CellParams::EZ] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bx_S-Bx_N);
+         cp_SW[CellParams::EZ] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(By_W-By_E);
+#else
+         cp_SW[CellParams::EZ] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bx_S-HALF*dBxdy_S) - (Bx_N+HALF*dBxdy_N));
+         cp_SW[CellParams::EZ] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((By_W-HALF*dBydx_W) - (By_E+HALF*dBydx_E));
+#endif
+      }
+   }
+   else { // RKCase == RK_ORDER2_STEP1
       cp_SW[CellParams::EZ_DT2] = ax_pos*ay_pos*Ez_NE + ax_pos*ay_neg*Ez_SE + ax_neg*ay_pos*Ez_NW + ax_neg*ay_neg*Ez_SW;
       cp_SW[CellParams::EZ_DT2] /= ((ax_pos+ax_neg)*(ay_pos+ay_neg)+EPS);
-      #ifdef FS_1ST_ORDER_SPACE
-      cp_SW[CellParams::EZ_DT2] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bx_S-Bx_N);
-      cp_SW[CellParams::EZ_DT2] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(By_W-By_E);
-      #else
-      cp_SW[CellParams::EZ_DT2] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bx_S-HALF*dBxdy_S) - (Bx_N+HALF*dBxdy_N));
-      cp_SW[CellParams::EZ_DT2] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((By_W-HALF*dBydx_W) - (By_E+HALF*dBydx_E));
-      #endif
+
+      if(Parameters::fieldSolverDiffusiveEterms) {
+#ifdef FS_1ST_ORDER_SPACE
+         cp_SW[CellParams::EZ_DT2] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bx_S-Bx_N);
+         cp_SW[CellParams::EZ_DT2] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(By_W-By_E);
+#else
+         cp_SW[CellParams::EZ_DT2] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bx_S-HALF*dBxdy_S) - (Bx_N+HALF*dBxdy_N));
+         cp_SW[CellParams::EZ_DT2] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((By_W-HALF*dBydx_W) - (By_E+HALF*dBydx_E));
+#endif
+      }
    }
    
    if((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
