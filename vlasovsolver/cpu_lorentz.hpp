@@ -39,31 +39,42 @@ template<typename REAL> void lorentzForceFaceBulk(
     const REAL* const cellParams, 
     const REAL* const cellBVOLDerivatives
  ) {
-  /*
-    const REAL UX = cellParams[CellParams::RHO] == 0 ? 0.0 : cellParams[CellParams::RHOVX]/cellParams[CellParams::RHO];
-    const REAL UY = cellParams[CellParams::RHO] == 0 ? 0.0 : cellParams[CellParams::RHOVY]/cellParams[CellParams::RHO];
-    const REAL UZ = cellParams[CellParams::RHO] == 0 ? 0.0 : cellParams[CellParams::RHOVZ]/cellParams[CellParams::RHO];
-  */
-    const REAL BX = cellParams[CellParams::BXVOL]; 
-    const REAL BY = cellParams[CellParams::BYVOL]; 
-    const REAL BZ = cellParams[CellParams::BZVOL]; 
-    const REAL EX = cellParams[CellParams::EXVOL]; 
-    const REAL EY = cellParams[CellParams::EYVOL]; 
-    const REAL EZ = cellParams[CellParams::EZVOL];    
+/*   
+   const REAL UX = ((cellParams[CellParams::RHO] == 0) ? 0.0 : cellParams[CellParams::RHOVX]/cellParams[CellParams::RHO]);
+   const REAL UY = ((cellParams[CellParams::RHO] == 0) ? 0.0 : cellParams[CellParams::RHOVY]/cellParams[CellParams::RHO]);
+   const REAL UZ = ((cellParams[CellParams::RHO] == 0) ? 0.0 : cellParams[CellParams::RHOVZ]/cellParams[CellParams::RHO]);
+*/
+   
+   const REAL UX = cellParams[CellParams::RHOVX]/cellParams[CellParams::RHO];
+   const REAL UY = cellParams[CellParams::RHOVY]/cellParams[CellParams::RHO];
+   const REAL UZ = cellParams[CellParams::RHOVZ]/cellParams[CellParams::RHO];
+   const REAL BX = cellParams[CellParams::BXVOL]; 
+   const REAL BY = cellParams[CellParams::BYVOL]; 
+   const REAL BZ = cellParams[CellParams::BZVOL]; 
+   const REAL EX = cellParams[CellParams::EXVOL]; 
+   const REAL EY = cellParams[CellParams::EYVOL]; 
+   const REAL EZ = cellParams[CellParams::EZVOL];    
     
-    const REAL dBXdy = cellBVOLDerivatives[bvolderivatives::dBXVOLdy]; 
-    const REAL dBXdz = cellBVOLDerivatives[bvolderivatives::dBXVOLdz]; 
-    const REAL dBYdx = cellBVOLDerivatives[bvolderivatives::dBYVOLdx]; 
-    const REAL dBYdz = cellBVOLDerivatives[bvolderivatives::dBYVOLdz]; 
-    const REAL dBZdx = cellBVOLDerivatives[bvolderivatives::dBZVOLdx]; 
-    const REAL dBZdy = cellBVOLDerivatives[bvolderivatives::dBZVOLdy];
-    const REAL prefactor = cellParams[CellParams::RHO] == 0 ? 0.0 : 1.0 / (physicalconstants::MU_0 * cellParams[CellParams::RHO]); 
+   const REAL dBXdy = cellBVOLDerivatives[bvolderivatives::dBXVOLdy]; 
+   const REAL dBXdz = cellBVOLDerivatives[bvolderivatives::dBXVOLdz]; 
+   const REAL dBYdx = cellBVOLDerivatives[bvolderivatives::dBYVOLdx]; 
+   const REAL dBYdz = cellBVOLDerivatives[bvolderivatives::dBYVOLdz]; 
+   const REAL dBZdx = cellBVOLDerivatives[bvolderivatives::dBZVOLdx]; 
+   const REAL dBZdy = cellBVOLDerivatives[bvolderivatives::dBZVOLdy];
+   const REAL prefactor = cellParams[CellParams::RHO] == 0 ? 0.0 : 1.0 / (physicalconstants::MU_0 * cellParams[CellParams::RHO]); 
    
    // ax=a_bulk[0], ay=a_bulk[2], az=a_bulk[3]
-    a_bulk[0] = Parameters::q_per_m*EX;
-    a_bulk[1] = Parameters::q_per_m*EY;
-    a_bulk[2] = Parameters::q_per_m*EZ;
-
+    if(Parameters::lorentzUseFieldSolverE) {
+       a_bulk[0] = Parameters::q_per_m*EX;
+       a_bulk[1] = Parameters::q_per_m*EY;
+       a_bulk[2] = Parameters::q_per_m*EZ;
+    }
+    else {
+       a_bulk[0] = Parameters::q_per_m*( BY*UZ - BZ*UY);
+       a_bulk[1] = Parameters::q_per_m*( BZ*UX - BX*UZ);
+       a_bulk[2] = Parameters::q_per_m*( BX*UY - BY*UX);
+    }
+          
     /*
       Terms for QUESPACE-281.  (JxB = curl(B) x B)
     */

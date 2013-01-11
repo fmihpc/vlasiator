@@ -246,7 +246,8 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    for (uint i=0; i<cells.size(); ++i){
       //weight set according to substeps * blocks. If no substepping allowed, substeps will be 1.
       mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]=
-         mpiGrid[cells[i]]->number_of_blocks*mpiGrid[cells[i]]->subStepsAcceleration;
+         mpiGrid[cells[i]]->number_of_blocks*(Parameters::loadBalanceAlpha +
+                                              Parameters::loadBalanceBeta*mpiGrid[cells[i]]->subStepsAcceleration);
       
       if(mpiGrid[cells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
          // No acceleration in this case, should anyway be 

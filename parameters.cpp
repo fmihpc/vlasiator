@@ -97,6 +97,8 @@ bool P::isRestart=false;
 string P::loadBalanceAlgorithm = string("");
 string P::loadBalanceTolerance = string("");
 uint P::rebalanceInterval = numeric_limits<uint>::max();
+Real P::loadBalanceAlpha = 1.0;
+Real P::loadBalanceBeta = 0.0;
 
 
 vector<string> P::outputVariableList;
@@ -105,6 +107,7 @@ vector<string> P::diagnosticVariableList;
 string P::projectName = string("");
 
 bool P::lorentzHallTerm=false;
+bool P::lorentzUseFieldSolverE=false;
 
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
@@ -157,6 +160,7 @@ bool Parameters::addParameters(){
    
    // Vlasov solver parameters
    Readparameters::add("vlasovsolver.lorentzHallTerm", "Add JxB term to Lorentz force",false);
+   Readparameters::add("vlasovsolver.lorentzUseFieldSolverE", "If true, the E from fieldolver is used. Otherwise -V x B_vol is used (default)",false);
 
 
    // Grid sparsity parameters
@@ -167,6 +171,8 @@ bool Parameters::addParameters(){
    Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("RCB"));
    Readparameters::add("loadBalance.tolerance", "Load imbalance tolerance", std::string("1.05"));
    Readparameters::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
+   Readparameters::add("loadBalance.alpha", "alpha in LB weight = blocks * (alpha + beta*substeps)",1.0);
+   Readparameters::add("loadBalance.beta", "alpha in LB weight = blocks * (alpha + beta*substeps)",0.2);
 
 // Output variable parameters
    Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available are B BackgroundB PerturbedB E Rho RhoV RhoLossAdjust RhoLossVelBoundary MPIrank Blocks BoundaryType BoundaryLayer VolE VolB Pressure PTensor derivs BVOLderivs MaxVdt MaxRdt MaxFieldsdt LBweight VelocitySubSteps.");
@@ -245,7 +251,7 @@ bool Parameters::getParameters(){
    Readparameters::get("fieldsolver.diffusiveEterms", P::fieldSolverDiffusiveEterms); 
    // Get Vlasov solver parameters
    Readparameters::get("vlasovsolver.lorentzHallTerm", P::lorentzHallTerm);
-   
+   Readparameters::get("vlasovsolver.lorentzUseFieldSolverE",P::lorentzUseFieldSolverE);
    // Get sparsity parameters
    Readparameters::get("sparse.minValue", P::sparseMinValue);
    Readparameters::get("sparse.blockAdjustmentInterval", P::blockAdjustmentInterval);
@@ -254,7 +260,9 @@ bool Parameters::getParameters(){
    Readparameters::get("loadBalance.algorithm", P::loadBalanceAlgorithm);
    Readparameters::get("loadBalance.tolerance", P::loadBalanceTolerance);
    Readparameters::get("loadBalance.rebalanceInterval", P::rebalanceInterval);
-   
+   Readparameters::get("loadBalance.alpha", P::loadBalanceAlpha);
+   Readparameters::get("loadBalance.beta", P::loadBalanceBeta);
+
    // Get output variable parameters
    Readparameters::get("variables.output", P::outputVariableList);
    Readparameters::get("variables.diagnostic", P::diagnosticVariableList);

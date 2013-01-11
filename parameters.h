@@ -89,11 +89,14 @@ struct Parameters {
    static bool fieldSolverDiffusiveEterms; /*!< Enable resitive terms in the computation of E*/
    
    static bool lorentzHallTerm;  /*!< Add JxB hall term to Lorentz force. Assumes there is not hall term in the fieldsolver*/
+   static bool lorentzUseFieldSolverE;  /*!< If true, the E from fieldolver is used. Otherwise -V x B_vol is used*/
    static Real sparseMinValue; /*!< Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents */
    static uint blockAdjustmentInterval; /*!< Block adjustment interval (steps). */
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
-   static std::string loadBalanceTolerance; /*!< Load imbalance tolerance. */
+   static std::string loadBalanceTolerance; /*!< Load imbalance tolerance. */ 
    static uint rebalanceInterval; /*!< Load rebalance interval (steps). */
+   static Real loadBalanceAlpha; /*!< alpha in cell load balance weight = blocks * (alpha + beta*substeps) */
+   static Real loadBalanceBeta; /*!< alpha in cell load balance weight = blocks * (alpha + beta*substeps) */
    
    static std::vector<std::string> outputVariableList; /*!< List of data reduction operators (DROs) to add to the grid file output.*/
    static std::vector<std::string> diagnosticVariableList; /*!< List of data reduction operators (DROs) to add to the diagnostic runtime output.*/
