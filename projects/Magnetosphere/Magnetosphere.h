@@ -31,7 +31,7 @@ namespace projects {
          virtual bool initialize(void);
          static void addParameters(void);
          virtual void getParameters(void);
-	 virtual void setCellBackgroundField(SpatialCell* cell);
+         virtual void setCellBackgroundField(SpatialCell* cell);
          virtual Real calcPhaseSpaceDensity(
             creal& x, creal& y, creal& z,
             creal& dx, creal& dy, creal& dz,
@@ -46,8 +46,16 @@ namespace projects {
             creal& dvx, creal& dvy, creal& dvz
          );
          
+         virtual Real getV0(
+            creal x,
+            creal y,
+            creal z,
+            cuint component
+         );
+         
          Real T;
          Real tailRho;
+         Real V0[3];
          Real rhoTransitionCenter;
          Real rhoTransitionWidth;
          Real ionosphereRho;

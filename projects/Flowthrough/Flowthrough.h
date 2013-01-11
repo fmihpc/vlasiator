@@ -47,9 +47,16 @@ namespace projects {
             creal& vx, creal& vy, creal& vz,
             creal& dvx, creal& dvy, creal& dvz
          );
+         virtual Real getV0(
+            creal x,
+            creal y,
+            creal z,
+            cuint component
+         );
          
          Real rho;
          Real T;
+         Real V0[3];
          Real Bx;
          Real By;
          Real Bz;

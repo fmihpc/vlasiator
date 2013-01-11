@@ -9,19 +9,32 @@ namespace projects {
       bool search = true;
       int counter = 0;
       
+      creal x = cell->parameters[CellParams::XCRD];
+      creal y = cell->parameters[CellParams::YCRD];
+      creal z = cell->parameters[CellParams::ZCRD];
+      creal dx = cell->parameters[CellParams::DX];
+      creal dy = cell->parameters[CellParams::DY];
+      creal dz = cell->parameters[CellParams::DZ];
+      
       creal dvxCell = SpatialCell::cell_dvx; // Size of one cell in a block in vx-direction
       creal dvyCell = SpatialCell::cell_dvy; //                                vy
       creal dvzCell = SpatialCell::cell_dvz; //                                vz
       
+      creal V0[3] = {
+         this->getV0(x+0.5*dx, y+0.5*dy, z+0.5*dz, 0),
+         this->getV0(x+0.5*dx, y+0.5*dy, z+0.5*dz, 1),
+         this->getV0(x+0.5*dx, y+0.5*dy, z+0.5*dz, 2) 
+      };
+      
       while(search) {
          if(0.1 * P::sparseMinValue >
             calcPhaseSpaceDensity(
-               cell->parameters[CellParams::XCRD],
-               cell->parameters[CellParams::YCRD],
-               cell->parameters[CellParams::ZCRD],
-               cell->parameters[CellParams::DX],
-               cell->parameters[CellParams::DY],
-               cell->parameters[CellParams::DZ],
+               x,
+               y,
+               z,
+               dx,
+               dy,
+               dz,
                V0[0] + counter*SpatialCell::block_dvx, V0[1], V0[2],
                dvxCell, dvyCell, dvzCell
             )
@@ -47,6 +60,17 @@ namespace projects {
       }
       
       return blocksToInitialize;
+   }
+   
+   Real IsotropicMaxwellian::getV0(
+      creal x,
+      creal y,
+      creal z,
+      cuint component
+   ) {
+      cerr << "ERROR: projectIsotropicMaxwellian::getV0 called instead of derived class function!" << endl;
+      abort();
+      return 0.0;
    }
    
 } // namespace projects

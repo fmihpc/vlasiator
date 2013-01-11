@@ -18,8 +18,12 @@ namespace projects {
           * This radius is used to determine all blocks within that radius of V0, create them and return their list for initialisation.
           */
          virtual vector<uint> findBlocksToInitialize(SpatialCell* cell);
-         
-         Real V0[3];
+         virtual Real getV0(
+            creal x,
+            creal y,
+            creal z,
+            cuint component
+         );
    }; // class IsotropicMaxwellian
 } // namespace
 

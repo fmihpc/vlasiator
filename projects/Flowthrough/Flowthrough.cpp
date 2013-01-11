@@ -133,4 +133,14 @@ namespace projects {
       cellParams[CellParams::BGBY] = this->By;
       cellParams[CellParams::BGBZ] = this->Bz;
    }
+   
+   Real Flowthrough::getV0(
+      creal x,
+      creal y,
+      creal z,
+      cuint component
+   ) {
+      return this->V0[component];
+   }
+   
 } //namespace projects

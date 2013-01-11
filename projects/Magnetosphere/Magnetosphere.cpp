@@ -168,35 +168,44 @@ namespace projects {
    Real Magnetosphere::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
       Real initRho = this->tailRho;
       Real initV0[3];
-      for (uint i=0; i<3;i++) {
-         initV0[i] = this->V0[i];
+      
+      for(uint i=0; i<3; i++) {
+         initV0[i] = this->getV0(x, y, z, i);
       }
       
       creal radius = sqrt(x*x + y*y + z*z);
-      
       if(radius < this->ionosphereTaperRadius && radius > this->ionosphereRadius) {
          // linear tapering
          //initRho = this->ionosphereRho - (ionosphereRho-tailRho)*(radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
          
          // sine tapering
-         initRho = this->ionosphereRho - (this->ionosphereRho-this->tailRho)*sin(M_PI*(radius-this->ionosphereRadius)/this->ionosphereTaperRadius);
-         
-         for (uint i=0; i<3;i++) {
-            // linear tapering
-           //initV0[i] *= (radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
-            
-            // sine tapering
-            initV0[i] *= sin(M_PI*(radius-this->ionosphereRadius)/this->ionosphereTaperRadius);
-         }
+         initRho = this->tailRho - (this->tailRho-this->ionosphereRho)*0.5*(1.0+sin(M_PI*(radius-this->ionosphereRadius)/(this->ionosphereTaperRadius-this->ionosphereRadius)+0.5*M_PI));
       }
-      
       
       initRho *= 1.0 + 9.0 * 0.5 * (1.0 + tanh((x-this->rhoTransitionCenter) / this->rhoTransitionWidth));
       
-      
-      
       return initRho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5) *
       exp(- physicalconstants::MASS_PROTON * ((vx-initV0[0])*(vx-initV0[0]) + (vy-initV0[1])*(vy-initV0[1]) + (vz-initV0[2])*(vz-initV0[2])) / (2.0 * physicalconstants::K_B * this->T));
+   }
+   
+   Real Magnetosphere::getV0(
+      creal x,
+      creal y,
+      creal z,
+      cuint component
+   ) {
+      Real V0 = this->V0[component];
+      
+      creal radius = sqrt(x*x + y*y + z*z);
+      if(radius < this->ionosphereTaperRadius && radius > this->ionosphereRadius) {
+         // linear tapering
+         //initV0[i] *= (radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
+         
+         // sine tapering
+         V0 *= 0.5*(1.0-sin(M_PI*(radius-this->ionosphereRadius)/(this->ionosphereTaperRadius-this->ionosphereRadius)+0.5*M_PI));
+      }
+      
+      return V0;
    }
    
 } // namespace projects
