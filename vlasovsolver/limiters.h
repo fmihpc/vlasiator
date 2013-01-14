@@ -108,7 +108,8 @@ template<typename T> inline T vanLeer(const T& theta) {
 
 template<typename T> inline T vanLeer(const T& xl1,const T& xcc,const T& xr1) {
    const T EPS = convert<T>(1.0e-20);
-   return std::max((xr1-xcc)*(xcc-xl1),convert<T>(0.0))/(EPS+xr1-xl1);
+   const T TWO = convert<T>(2.0);
+   return TWO*std::max((xr1-xcc)*(xcc-xl1),convert<T>(0.0))/(EPS+xr1-xl1);
 }
 
 
