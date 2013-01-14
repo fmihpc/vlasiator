@@ -39,15 +39,11 @@ template<typename REAL> void lorentzForceFaceBulk(
     const REAL* const cellParams, 
     const REAL* const cellBVOLDerivatives
  ) {
-/*   
-   const REAL UX = ((cellParams[CellParams::RHO] == 0) ? 0.0 : cellParams[CellParams::RHOVX]/cellParams[CellParams::RHO]);
-   const REAL UY = ((cellParams[CellParams::RHO] == 0) ? 0.0 : cellParams[CellParams::RHOVY]/cellParams[CellParams::RHO]);
-   const REAL UZ = ((cellParams[CellParams::RHO] == 0) ? 0.0 : cellParams[CellParams::RHOVZ]/cellParams[CellParams::RHO]);
-*/
-   
-   const REAL UX = cellParams[CellParams::RHOVX]/cellParams[CellParams::RHO];
-   const REAL UY = cellParams[CellParams::RHOVY]/cellParams[CellParams::RHO];
-   const REAL UZ = cellParams[CellParams::RHOVZ]/cellParams[CellParams::RHO];
+
+   const REAL UX = ((cellParams[CellParams::RHO] <= 0) ? 0.0 : cellParams[CellParams::RHOVX]/cellParams[CellParams::RHO]);
+   const REAL UY = ((cellParams[CellParams::RHO] <= 0) ? 0.0 : cellParams[CellParams::RHOVY]/cellParams[CellParams::RHO]);
+   const REAL UZ = ((cellParams[CellParams::RHO] <= 0) ? 0.0 : cellParams[CellParams::RHOVZ]/cellParams[CellParams::RHO]);
+
    const REAL BX = cellParams[CellParams::BXVOL]; 
    const REAL BY = cellParams[CellParams::BYVOL]; 
    const REAL BZ = cellParams[CellParams::BZVOL]; 
@@ -55,12 +51,12 @@ template<typename REAL> void lorentzForceFaceBulk(
    const REAL EY = cellParams[CellParams::EYVOL]; 
    const REAL EZ = cellParams[CellParams::EZVOL];    
     
-   const REAL dBXdy = cellBVOLDerivatives[bvolderivatives::dBXVOLdy]/Parameters::dy_ini; 
-   const REAL dBXdz = cellBVOLDerivatives[bvolderivatives::dBXVOLdz]/Parameters::dz_ini; 
-   const REAL dBYdx = cellBVOLDerivatives[bvolderivatives::dBYVOLdx]/Parameters::dx_ini; 
-   const REAL dBYdz = cellBVOLDerivatives[bvolderivatives::dBYVOLdz]/Parameters::dz_ini; 
-   const REAL dBZdx = cellBVOLDerivatives[bvolderivatives::dBZVOLdx]/Parameters::dx_ini;  
-   const REAL dBZdy = cellBVOLDerivatives[bvolderivatives::dBZVOLdy]/Parameters::dy_ini; 
+   const REAL dBXdy = cellBVOLDerivatives[bvolderivatives::dBXVOLdy]/cellParams[CellParams::DY];
+   const REAL dBXdz = cellBVOLDerivatives[bvolderivatives::dBXVOLdz]/cellParams[CellParams::DZ];
+   const REAL dBYdx = cellBVOLDerivatives[bvolderivatives::dBYVOLdx]/cellParams[CellParams::DX];
+   const REAL dBYdz = cellBVOLDerivatives[bvolderivatives::dBYVOLdz]/cellParams[CellParams::DZ];
+   const REAL dBZdx = cellBVOLDerivatives[bvolderivatives::dBZVOLdx]/cellParams[CellParams::DX];
+   const REAL dBZdy = cellBVOLDerivatives[bvolderivatives::dBZVOLdy]/cellParams[CellParams::DY];
 
    
    // ax=a_bulk[0], ay=a_bulk[2], az=a_bulk[3]
@@ -73,6 +69,8 @@ template<typename REAL> void lorentzForceFaceBulk(
        a_bulk[0] = Parameters::q_per_m*( BY*UZ - BZ*UY);
        a_bulk[1] = Parameters::q_per_m*( BZ*UX - BX*UZ);
        a_bulk[2] = Parameters::q_per_m*( BX*UY - BY*UX);
+
+       //FIXME: add resistive terms!!!
     }
           
     /*
