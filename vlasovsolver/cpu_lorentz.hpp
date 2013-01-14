@@ -55,12 +55,12 @@ template<typename REAL> void lorentzForceFaceBulk(
    const REAL EY = cellParams[CellParams::EYVOL]; 
    const REAL EZ = cellParams[CellParams::EZVOL];    
     
-   const REAL dBXdy = cellBVOLDerivatives[bvolderivatives::dBXVOLdy]; 
-   const REAL dBXdz = cellBVOLDerivatives[bvolderivatives::dBXVOLdz]; 
-   const REAL dBYdx = cellBVOLDerivatives[bvolderivatives::dBYVOLdx]; 
-   const REAL dBYdz = cellBVOLDerivatives[bvolderivatives::dBYVOLdz]; 
-   const REAL dBZdx = cellBVOLDerivatives[bvolderivatives::dBZVOLdx]; 
-   const REAL dBZdy = cellBVOLDerivatives[bvolderivatives::dBZVOLdy];
+   const REAL dBXdy = cellBVOLDerivatives[bvolderivatives::dBXVOLdy]/Parameters::dy_ini; 
+   const REAL dBXdz = cellBVOLDerivatives[bvolderivatives::dBXVOLdz]/Parameters::dz_ini; 
+   const REAL dBYdx = cellBVOLDerivatives[bvolderivatives::dBYVOLdx]/Parameters::dx_ini; 
+   const REAL dBYdz = cellBVOLDerivatives[bvolderivatives::dBYVOLdz]/Parameters::dz_ini; 
+   const REAL dBZdx = cellBVOLDerivatives[bvolderivatives::dBZVOLdx]/Parameters::dx_ini;  
+   const REAL dBZdy = cellBVOLDerivatives[bvolderivatives::dBZVOLdy]/Parameters::dy_ini; 
 
    
    // ax=a_bulk[0], ay=a_bulk[2], az=a_bulk[3]
@@ -81,16 +81,15 @@ template<typename REAL> void lorentzForceFaceBulk(
     
     if(Parameters::lorentzHallTerm) {
        const REAL prefactor =  ((cellParams[CellParams::RHO] == 0) ? 0.0 : 1.0 / (physicalconstants::MU_0 * cellParams[CellParams::RHO] * Parameters::q )); 
-       a_bulk[0] += Parameters::q_per_m*prefactor * (BZ*dBXdz - BZ*dBZdx - BY*dBYdx + BY*dBXdy);
-       a_bulk[1] += Parameters::q_per_m*prefactor * (BX*dBYdx - BX*dBXdy - BZ*dBZdy + BZ*dBYdz);
-       a_bulk[2] += Parameters::q_per_m*prefactor * (BY*dBZdy - BY*dBYdz - BX*dBXdz + BX*dBZdx);
-    }
-
-    /*
-    if(Parameters::lorentzResisitivityTerm) {
-      //TODO, can use same J as above 
-    }
-    */
+       //     cout << a_bulk[0] << " " << a_bulk[0] << " " << a_bulk[0] << " += ";
+       a_bulk[0] += Parameters::q_per_m * prefactor * (BZ*dBXdz - BZ*dBZdx - BY*dBYdx + BY*dBXdy);
+       a_bulk[1] += Parameters::q_per_m * prefactor * (BX*dBYdx - BX*dBXdy - BZ*dBZdy + BZ*dBYdz);
+       a_bulk[2] += Parameters::q_per_m * prefactor * (BY*dBZdy - BY*dBYdz - BX*dBXdz + BX*dBZdx);
+/*       cout << Parameters::q_per_m*prefactor * (BZ*dBXdz - BZ*dBZdx - BY*dBYdx + BY*dBXdy) << " ";
+       cout << Parameters::q_per_m*prefactor * (BX*dBYdx - BX*dBXdy - BZ*dBZdy + BZ*dBYdz) << " ";
+       cout << Parameters::q_per_m*prefactor * (BY*dBZdy - BY*dBYdz - BX*dBXdz + BX*dBZdx) <<endl;
+*/
+    }                                                                                                                                   
 
 
 }

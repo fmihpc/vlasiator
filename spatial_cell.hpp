@@ -99,10 +99,11 @@ namespace spatial_cell {
       const uint64_t CELL_RHO_RHOV            = (1<<15);
       const uint64_t CELL_RHODT2_RHOVDT2      = (1<<16);
       const uint64_t CELL_BVOL                = (1<<17);
+      const uint64_t CELL_BVOL_DERIVATIVES    = (1<<18);
       
       const uint64_t ALL_DATA =
       CELL_PARAMETERS
-      | CELL_DERIVATIVES
+      | CELL_DERIVATIVES | CELL_BVOL_DERIVATIVES
       | VEL_BLOCK_DATA
       | VEL_BLOCK_FLUXES
       | CELL_SYSBOUNDARYFLAG;
@@ -965,6 +966,13 @@ namespace velocity_neighbor {
                if((SpatialCell::mpi_transfer_type & Transfer::CELL_DERIVATIVES)!=0){
                   displacements.push_back((uint8_t*) &(this->derivatives[0]) - (uint8_t*) this);
                   block_lengths.push_back(sizeof(Real) * fieldsolver::N_SPATIAL_CELL_DERIVATIVES);
+                  
+               }
+
+               // send  spatial cell BVOL derivatives
+               if((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL_DERIVATIVES)!=0){
+                  displacements.push_back((uint8_t*) &(this->derivativesBVOL[0]) - (uint8_t*) this);
+                  block_lengths.push_back(sizeof(Real) * bvolderivatives::N_BVOL_DERIVATIVES);
                }
 
                // send  sysBoundaryFlag        
