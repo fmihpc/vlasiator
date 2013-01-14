@@ -61,7 +61,7 @@ template<typename REAL> void lorentzForceFaceBulk(
    const REAL dBYdz = cellBVOLDerivatives[bvolderivatives::dBYVOLdz]; 
    const REAL dBZdx = cellBVOLDerivatives[bvolderivatives::dBZVOLdx]; 
    const REAL dBZdy = cellBVOLDerivatives[bvolderivatives::dBZVOLdy];
-   const REAL prefactor = cellParams[CellParams::RHO] == 0 ? 0.0 : 1.0 / (physicalconstants::MU_0 * cellParams[CellParams::RHO]); 
+
    
    // ax=a_bulk[0], ay=a_bulk[2], az=a_bulk[3]
     if(Parameters::lorentzUseFieldSolverE) {
@@ -80,9 +80,10 @@ template<typename REAL> void lorentzForceFaceBulk(
     */
     
     if(Parameters::lorentzHallTerm) {
-      a_bulk[0] += Parameters::q_per_m*prefactor * (BZ*dBXdz - BZ*dBZdx - BY*dBYdx + BY*dBXdy);
-      a_bulk[1] += Parameters::q_per_m*prefactor * (BX*dBYdx - BX*dBXdy - BZ*dBZdy + BZ*dBYdz);
-      a_bulk[2] += Parameters::q_per_m*prefactor * (BY*dBZdy - BY*dBYdz - BX*dBXdz + BX*dBZdx);
+       const REAL prefactor =  ((cellParams[CellParams::RHO] == 0) ? 0.0 : 1.0 / (physicalconstants::MU_0 * cellParams[CellParams::RHO] * Parameters::q )); 
+       a_bulk[0] += Parameters::q_per_m*prefactor * (BZ*dBXdz - BZ*dBZdx - BY*dBYdx + BY*dBXdy);
+       a_bulk[1] += Parameters::q_per_m*prefactor * (BX*dBYdx - BX*dBXdy - BZ*dBZdy + BZ*dBYdz);
+       a_bulk[2] += Parameters::q_per_m*prefactor * (BY*dBZdy - BY*dBYdz - BX*dBXdz + BX*dBZdx);
     }
 
     /*
