@@ -6,17 +6,13 @@ Copyright 1997, 1998, 1999, 2000, 2001, 2010, 2011 Finnish Meteorological Instit
 
 #ifndef DIPOLE_HPP
 #define DIPOLE_HPP
+#include "fieldfunction.hpp"
 
-class Dipole: public T3DFunction {
+class Dipole: public FieldFunction {
 private:
    bool initialized;
-   double q[3];
-   double DipoleBxTerms(const double x[3], double r, double invr, double invr2) const;
-   double DipoleByTerms(const double x[3], double r, double invr, double invr2) const;
-   double DipoleBzTerms(const double x[3], double r, double invr, double invr2) const;
-
-   double dipmom;
-   double center_x, center_y, center_z;	// coordinates where the dipole (quadrupole...) sits; default (0,0,0)
+   double q_x,q_y,q_z;                  // Dipole moment; set to (0,0,moment)
+   double center_x, center_y, center_z;	// Coordinates where the dipole sits; set to (0,0,0)
 
 public:
    
@@ -24,7 +20,6 @@ public:
       this->initialized = false;
    }
    void initialize(const double moment);
-   
  
    virtual double value(unsigned int fComponent,double x, double y, double z) const;
    virtual double derivative(unsigned int fComponent,unsigned int dComponent,double x, double y, double z) const;

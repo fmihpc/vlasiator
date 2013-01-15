@@ -8,7 +8,7 @@ class FieldFunction {
 public:
    virtual double value(unsigned int fComponent,double x,double y,double z) const =0;
    virtual double derivative(unsigned int fComponent,unsigned int dComponent,double x,double y,double z) const =0;
-   virtual ~T3DFunction() {}
+   virtual ~FieldFunction() {}
 };
 
 #endif
