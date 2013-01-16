@@ -28,45 +28,55 @@ void setBackgroundField(FieldFunction& bgFunction,Real* cellParams)
 {
    using namespace CellParams;
    // the dipole from gumics is not threadsafe
-   
-   double accuracy = 1e-17;     
-   double start[3];
-   double dx[3];
+   Real accuracy = 1e-17;     
+   Real start[3];
+   Real end[3];
+   Real dx[3];
+
+   Real volB[3];
+   Real dvolBdr[3][3];
+
    start[0] = cellParams[CellParams::XCRD];
    start[1] = cellParams[CellParams::YCRD];
    start[2] = cellParams[CellParams::ZCRD];
+
    dx[0] = cellParams[CellParams::DX];
    dx[1] = cellParams[CellParams::DY];
    dx[2] = cellParams[CellParams::DZ];
 
+   end[0]=start[0]+dx[0];
+   end[1]=start[1]+dx[1];
+   end[2]=start[2]+dx[2];
+   
+   
    //we are not computing derivatives
    bgFunction.setDerivative(0);
       
    // set Bx at negative x face
    bgFunction.setComponent(X);
-   cellParams[CellParams::BGBX] =surfaceAverage(bgFunction,
-						  X,
-						  accuracy,
-						  start,
-						  dx[1],
-						  dx[2]);
-   // set By at negative y face
+   cellParams[CellParams::BGBX] =surfaceAverage(bgFunction,X,accuracy,start,dx[1],dx[2]);
+
+// set By at negative y face 
    bgFunction.setComponent(Y);
-   cellParams[CellParams::BGBY] =surfaceAverage(bgFunction,
-						  Y,
-						  accuracy,
-						  start,
-						  dx[0],
-						  dx[2]);
-   // set Bz at negative z face
+   cellParams[CellParams::BGBY] =surfaceAverage(bgFunction,Y,accuracy,start,dx[0],dx[2]);
+
+// set Bz at negative z face 
    bgFunction.setComponent(Z);
-   cellParams[CellParams::BGBZ] =surfaceAverage(bgFunction,
-                                                Z,
-                                                accuracy,
-                                                start,
-                                                dx[0],
-                                                dx[1]);
+   cellParams[CellParams::BGBZ] =surfaceAverage(bgFunction,Z,accuracy,start,dx[0],dx[1]);
    
+
+   //Volume averages
+   for(unsigned int fComponent=0;fComponent<3;fComponent++){
+      bgFunction.setDerivative(0);
+      bgFunction.setComponent((coordinate)fComponent);      
+      volB[fComponent] =volumeAverage(bgFunction,accuracy,start,end);
+      
+      bgFunction.setDerivative(1);
+      for(unsigned int dComponent=0;dComponent<3;dComponent++){
+         bgFunction.setDerivComponent((coordinate)dComponent);      
+         dvolBdr[fComponent][dComponent]=volumeAverage(bgFunction,accuracy,start,end);
+      }
+   }
 }
 
 

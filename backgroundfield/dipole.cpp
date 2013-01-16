@@ -42,18 +42,17 @@ double Dipole::call( double x, double y, double z) const
    const double r5 = (r2*r2*sqrt(r2));
    const double rdotq=q[0]*r[0] + q[1]*r[1] +q[2]*r[2];
    
+   const double B=( 3*r[_fComponent]*rdotq-q[_fComponent]*r2)/r5;
    
    if(_derivative == 0) {
       //Value of B
-      return ( 3*r[_fComponent]*rdotq-q[_fComponent]*r2)/r5;
+      return B;
    }
    else if(_derivative == 1) {
-      //first derivatives
-
-
+      //first derivatives       
+      return -5*r[_dComponent]/r2*B+(3*q[_dComponent]*r[_fComponent]-2*q[_fComponent]*r[_dComponent] +rdotq*(_dComponent==_fComponent))/r5;
    }
    return 0;	// dummy, but prevents gcc from yelling
-   
 }
 
 
