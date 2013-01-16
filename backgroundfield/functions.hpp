@@ -12,10 +12,6 @@ class T1DFunction {public: virtual double call(double) const =0; virtual ~T1DFun
 class T2DFunction {public: virtual double call(double,double) const =0; virtual ~T2DFunction() {}};
 class T3DFunction {public: virtual double call(double,double,double) const =0; virtual ~T3DFunction() {}};
 
-
-
-
-
 // T2D_fix1, T2D_fix2: Fixing 1st or 2nd arg of a 2D function, thus making a 1D function
 
 class T2D_fix1 : public T1DFunction {

@@ -18,11 +18,11 @@ private:
   coordinate _fComponent;
 public:
   
-  Dipole(const double moment){
+  Dipole(){
     this->initialized = false;
   }
   void initialize(const double moment);
-  inline void setFComponent(coordinate fComponent){ _fComponent=fComponent; } 
+  inline void setComponent(coordinate fComponent){ _fComponent=fComponent; } 
   
   virtual double call(double x, double y, double z) const;
   
