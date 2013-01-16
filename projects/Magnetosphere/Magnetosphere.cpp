@@ -23,6 +23,7 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
+#include "../../backgroundfield/dipole.hpp"
 
 #include "Magnetosphere.h"
 
@@ -141,27 +142,23 @@ namespace projects {
 
    /* set 0-centered dipole */
    void Magnetosphere::setCellBackgroundField(SpatialCell *cell){
-      setDipole(cell->parameters);
-      cell->parameters[CellParams::BGBX]*=this->dipoleScalingFactor;
-      cell->parameters[CellParams::BGBY]*=this->dipoleScalingFactor;
-      cell->parameters[CellParams::BGBZ]*=this->dipoleScalingFactor;
-      
-      if (  (cell->parameters[CellParams::BGBX]) !=(cell->parameters[CellParams::BGBX]) ||
-            (cell->parameters[CellParams::BGBY]) !=(cell->parameters[CellParams::BGBY]) ||
-            (cell->parameters[CellParams::BGBZ]) !=(cell->parameters[CellParams::BGBZ]))
-      {
-         std::cerr << __FILE__ << ":" << __LINE__ << " Dipole returned NAN's ???"  << std::endl;
-         abort();
-      }
+     
+     Dipole bgField;
+     bgField.initialize(8e15 *this->dipoleScalingFactor); //set dipole moment
+     setBackgroundField(bgField,cell->parameters);
+     
 
-      //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
-      if(P::xcells_ini==1)
-         cell->parameters[CellParams::BGBX]=0;
+     //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
+     if(P::xcells_ini==1)
+       cell->parameters[CellParams::BGBX]=0;
+     
+     if(P::ycells_ini==1)
+       cell->parameters[CellParams::BGBY]=0;
 
-      if(P::ycells_ini==1)
-         cell->parameters[CellParams::BGBY]=0;
-
-
+     if(P::zcells_ini==1) {                                                                         
+       cell->parameters[CellParams::BGBX]=0;   
+       cell->parameters[CellParams::BGBY]=0;
+     }
    }
       
       

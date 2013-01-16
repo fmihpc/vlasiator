@@ -113,7 +113,7 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/Shock/Shock.h projects/Shock/Shock.cpp
 #all objects for vlasiator
 
-OBJS = 	backgroundfield.o ode.o quadr.o B0.o \
+OBJS = 	backgroundfield.o ode.o quadr.o dipole.o integratefunction.o \
 	datareducer.o datareductionoperator.o \
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o \
 	sysboundary.o sysboundarycondition.o \
@@ -143,8 +143,8 @@ clean: data
 
 # Rules for making each object file needed by the executable
 
-B0.o: backgroundfield/B0.cpp backgroundfield/B0.hpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/B0.cpp ${INC_BOOST}
+dipole.o: backgroundfield/dipole.cpp backgroundfield/dipole.hpp backgroundfield/fieldfunction.hpp backgroundfield/functions.hpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/dipole.cpp 
 
 ode.o: backgroundfield/ode.cpp backgroundfield/ode.hpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/ode.cpp
@@ -152,8 +152,11 @@ ode.o: backgroundfield/ode.cpp backgroundfield/ode.hpp
 quadr.o: backgroundfield/quadr.cpp backgroundfield/quadr.hpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/quadr.cpp
 
-backgroundfield.o: ${DEPS_COMMON} backgroundfield/backgroundfield.cpp backgroundfield/backgroundfield.h
-	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/backgroundfield.cpp ${INC_BOOST}
+backgroundfield.o: ${DEPS_COMMON} backgroundfield/backgroundfield.cpp backgroundfield/backgroundfield.h backgroundfield/fieldfunction.hpp backgroundfield/functions.hpp backgroundfield/integratefunction.hpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/backgroundfield.cpp 
+
+integratefunction.o: ${DEPS_COMMON} backgroundfield/integratefunction.cpp backgroundfield/integratefunction.hpp backgroundfield/functions.hpp  backgroundfield/quadr.cpp backgroundfield/quadr.hpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/integratefunction.cpp 
 
 datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/datareducer.h datareduction/datareductionoperator.h datareduction/datareducer.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareduction/datareducer.cpp ${INC_MPI} ${INC_BOOST}
@@ -220,7 +223,7 @@ MultiPeak.o: ${DEPS_COMMON} projects/MultiPeak/MultiPeak.h projects/MultiPeak/Mu
 
 Riemann1.o: ${DEPS_COMMON} projects/Riemann1/Riemann1.h projects/Riemann1/Riemann1.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Riemann1/Riemann1.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
-	
+
 Shock.o: ${DEPS_COMMON} projects/Shock/Shock.h projects/Shock/Shock.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Shock/Shock.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
 
