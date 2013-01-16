@@ -20,22 +20,19 @@
 #include "../definitions.h"
 #include "cmath"
 #include "backgroundfield.h"
-#include "functions.hpp"
+#include "fieldfunction.hpp"
 #include "integratefunction.hpp"
 
-
-void setBackgroundField(const T3DFunction bgFunction,Real* cellParams)
+//FieldFunction should be initialized
+void setBackgroundField(FieldFunction& bgFunction,Real* cellParams)
 {
    using namespace CellParams;
    // the dipole from gumics is not threadsafe
 #pragma omp critical
    {
-     Dipole bgFunction;
-     creal accuracy = 1e-16;
-     bgFunction.initialize(8e15);
-     
-     creal start[3];
-     creal dx[3];
+     double accuracy = 1e-16;     
+     double start[3];
+     double dx[3];
      start[0] = cellParams[CellParams::XCRD];
      start[1] = cellParams[CellParams::YCRD];
      start[2] = cellParams[CellParams::ZCRD];
@@ -46,6 +43,7 @@ void setBackgroundField(const T3DFunction bgFunction,Real* cellParams)
      // set Bx at negative x face
      bgFunction.setComponent(X);
      cellParams[CellParams::BGBX] =surfaceAverage(bgFunction,
+						  X,
 						  accuracy,
 						  start,
 						  dx[1],
@@ -53,13 +51,15 @@ void setBackgroundField(const T3DFunction bgFunction,Real* cellParams)
      // set By at negative y face
      bgFunction.setComponent(Y);
      cellParams[CellParams::BGBY] =surfaceAverage(bgFunction,
+						  Y,
 						  accuracy,
 						  start,
 						  dx[0],
 						  dx[2]);
-     // set Bx at negative x face
-     bgFunction.setComponent(X);
+     // set Bz at negative z face
+     bgFunction.setComponent(Z);
      cellParams[CellParams::BGBZ] =surfaceAverage(bgFunction,
+						  Z,
 						  accuracy,
 						  start,
 						  dx[0],

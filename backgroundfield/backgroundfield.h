@@ -19,10 +19,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #ifndef BACKGROUNDFIELD_H
 #define BACKGROUNDFIELD_H
 
-#include "B0.hpp"
+#include "fieldfunction.hpp"
 
-void setDipole(Real* cellParams);
-
+void setBackgroundField(const FieldFunction& bgFunction,Real* cellParams);
 
 #endif
 
