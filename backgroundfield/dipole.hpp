@@ -13,14 +13,8 @@ Copyright 1997, 1998, 1999, 2000, 2001, 2010, 2011 Finnish Meteorological Instit
 class Dipole: public FieldFunction {
 private:
    bool initialized;
-   double q_x,q_y,q_z;                  // Dipole moment; set to (0,0,moment)
-   double center_x, center_y, center_z;	// Coordinates where the dipole sits; set to (0,0,0)
-
-   double bx(double x,double y,double z, double r2, double invr5) const;
-   double by(double x,double y,double z, double r2, double invr5) const;
-   double bz(double x,double y,double z, double r2, double invr5) const;
-
-      
+   double q[3];                  // Dipole moment; set to (0,0,moment)
+   double center[3];	// Coordinates where the dipole sits; set to (0,0,0)
 public:
   
   Dipole(){
