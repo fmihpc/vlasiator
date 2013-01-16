@@ -7,15 +7,15 @@ Copyright 1997, 1998, 1999, 2000, 2001, 2010, 2011, 2012 Finnish Meteorological 
 #include <stdlib.h>
 #include <math.h>
 #include "dipole.hpp"
+#include "../common.h"
 
-#define R_E 6371000.0
 
 void Dipole::initialize(const double moment)
 {
    this->initialized = true;
    q_x=0.0;
    q_y=0.0;
-   q_z=moment;
+   q_z=-moment;
    this->center_x = 0;
    this->center_y = 0;
    this->center_z = 0;
@@ -24,8 +24,7 @@ void Dipole::initialize(const double moment)
 
 double Dipole::call( double x, double y, double z) const
 {
-   const double minimumR=R_E; //The dipole field is defined to be outside of Earth, and units are in meters     
-
+   const double minimumR=1e-3*physicalconstants::R_E; //The dipole field is defined to be outside of Earth, and units are in meters     
    if(this->initialized==false)
       return 0.0;
    x-= center_x;
