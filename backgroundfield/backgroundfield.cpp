@@ -38,7 +38,10 @@ void setBackgroundField(FieldFunction& bgFunction,Real* cellParams)
    dx[0] = cellParams[CellParams::DX];
    dx[1] = cellParams[CellParams::DY];
    dx[2] = cellParams[CellParams::DZ];
-   
+
+   //we are not computing derivatives
+   bgFunction.setDerivative(0);
+      
    // set Bx at negative x face
    bgFunction.setComponent(X);
    cellParams[CellParams::BGBX] =surfaceAverage(bgFunction,
