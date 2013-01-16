@@ -6,24 +6,26 @@ Copyright 1997, 1998, 1999, 2000, 2001, 2010, 2011 Finnish Meteorological Instit
 
 #ifndef DIPOLE_HPP
 #define DIPOLE_HPP
-#include "fieldfunction.hpp"
+#include "functions.hpp"
 
-class Dipole: public FieldFunction {
+
+
+class Dipole: public T3DFunction {
 private:
   bool initialized;
   double q_x,q_y,q_z;                  // Dipole moment; set to (0,0,moment)
   double center_x, center_y, center_z;	// Coordinates where the dipole sits; set to (0,0,0)
-
+  coordinate _fComponent;
 public:
-   
-   Dipole(const double moment){
-      this->initialized = false;
-   }
-   void initialize(const double moment);
- 
-   virtual double value(double x, double y, double z) const;
-   virtual double derivative(double x, double y, double z) const;
-
+  
+  Dipole(const double moment){
+    this->initialized = false;
+  }
+  void initialize(const double moment);
+  inline void setFComponent(coordinate fComponent){ _fComponent=fComponent; } 
+  
+  virtual double call(double x, double y, double z) const;
+  
    virtual ~Dipole() {}
 };
 

@@ -19,12 +19,10 @@ void Dipole::initialize(const double moment)
    this->center_x = 0;
    this->center_y = 0;
    this->center_z = 0;
-   
-   
 }
 
 
-double Dipole::value( double x, double y, double z) const
+double Dipole::call( double x, double y, double z) const
 {
    const double minimumR=R_E; //The dipole field is defined to be outside of Earth, and units are in meters     
 
@@ -59,15 +57,6 @@ double Dipole::value( double x, double y, double z) const
    }
    return 0;	// dummy, but prevents gcc from yelling
 }
-
-
-
-double Dipole::derivative(unsigned int fComponent, unsigned int dComponent,  double x, double y, double z) const
-{
-   //TODO!!!!!!!!!!!!!
-   return 0;	// dummy, but prevents gcc from yelling
-}
-
 
 
 

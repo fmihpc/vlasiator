@@ -91,7 +91,7 @@ static void ratint(const double xa[], const double ya[], int n, double x, double
    return y and error estimate dy. The value returned is that of the diagonal rational
    function, evaluated at x, which passed through the n points (xa[i],ya[i]), i=0..n-1. */
 {
-	int i,m,ns=0;
+  int i,ns=0;
 	double w,t,hh,h,dd;
 	const int nmax = 20;
 	const double tiny = 1e-30;		// a small number, smaller than anything...
@@ -114,7 +114,6 @@ static void ratint(const double xa[], const double ya[], int n, double x, double
 	y = ya[ns--];
 	int m1;
 	for (m1=1; m1<n; m1++) {
-		m = m1-1;
 		for (i=0; i<n-m1; i++) {
 			w = C[i+1] - D[i];
 			h = xa[i+m1] - x;
@@ -196,14 +195,7 @@ double Romberg(const T1DFunction& func, double a, double b, double absacc)
 	return result;
 }
 
-void T2D_fix1::print(ostream& o) const {o << "<1D limitation of 2D function with x=" << x << ">";}
-void T2D_fix2::print(ostream& o) const {o << "<1D limitation of 2D function with y=" << y << ">";}
-void T3D_fix1::print(ostream& o) const {o << "<2D limitation of 3D function with x=" << x << ">";}
-void T3D_fix2::print(ostream& o) const {o << "<2D limitation of 3D function with y=" << y << ">";}
-void T3D_fix3::print(ostream& o) const {o << "<2D limitation of 3D function with z=" << z << ">";}
-void T3D_fix12::print(ostream& o) const {o << "<1D limitation of 3D function with x=" << x << ", y=" << y << ">";}
-void T3D_fix13::print(ostream& o) const {o << "<1D limitation of 3D function with x=" << x << ", z=" << z << ">";}
-void T3D_fix23::print(ostream& o) const {o << "<1D limitation of 3D function with y=" << y << ", z=" << z << ">";}
+
 
 class Tinty_f2D: public T1DFunction {
 private:
