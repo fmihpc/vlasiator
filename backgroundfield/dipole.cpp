@@ -19,10 +19,12 @@ void Dipole::initialize(const double moment)
    this->center_x = 0;
    this->center_y = 0;
    this->center_z = 0;
+   
+   
 }
 
 
-double Dipole::value(unsigned int fComponent, double x, double y, double z) const
+double Dipole::value( double x, double y, double z) const
 {
    const double minimumR=R_E; //The dipole field is defined to be outside of Earth, and units are in meters     
 
@@ -38,18 +40,18 @@ double Dipole::value(unsigned int fComponent, double x, double y, double z) cons
    const double invr5 = 1.0/(r2*r2*r);
 
    
-   switch (fComponent) {
-       case 0:
+   switch (_fComponent) {
+       case X:
           //Dipole Bx terms
           return (-(r2*q_x) + 3*q_x*x*x + 3*q_y*x*y
                   + 3*q_z*x*z)*invr5;
           break;
-       case 1:
+       case Y:
           //Dipole By terms   
           return (-(r2*q_y) + 3*q_y*y*y + 3*q_z*y*z
                   + 3*q_x*y*x)*invr5;
           break;
-       case 2:
+       case Z:
           //Dipole Bz terms   
           return (-(r2*q_z) + 3*q_z*z*z + 3*q_x*z*x
                   + 3*q_y*z*y)*invr5;          
