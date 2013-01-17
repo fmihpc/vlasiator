@@ -84,7 +84,7 @@ void initializeGrid(
       P::xcells_ini, P::ycells_ini, P::zcells_ini,
       P::xmin, P::ymin, P::zmin,
       P::dx_ini, P::dy_ini, P::dz_ini
-      );
+   );
 
    
    MPI_Comm comm = MPI_COMM_WORLD;

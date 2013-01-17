@@ -101,15 +101,6 @@ namespace SBC {
       return false;
    }
    
-//    /*! Function used to apply the system boundary condition state to a cell at given time t. */
-//    bool SysBoundaryCondition::applySysBoundaryCondition(
-//       const dccrg::Dccrg<SpatialCell>& mpiGrid,
-//       creal& t
-//    ) {
-//       cerr << "ERROR: SysBoundaryCondition::applySysBoundaryCondition called instead of derived class function!" << endl;
-//       return false;
-//    }
-   
    Real SysBoundaryCondition::fieldSolverBoundaryCondMagneticField(
       const dccrg::Dccrg<SpatialCell>& mpiGrid,
       const CellID& cellID,
@@ -266,7 +257,6 @@ namespace SBC {
       to->parameters[CellParams::RHOVX] = from->parameters[CellParams::RHOVX];
       to->parameters[CellParams::RHOVY] = from->parameters[CellParams::RHOVY];
       to->parameters[CellParams::RHOVZ] = from->parameters[CellParams::RHOVZ];
-
    }
    
    CellID SysBoundaryCondition::getClosestNonsysboundaryCell(
@@ -292,17 +282,6 @@ namespace SBC {
             }
             return closestCell;
    }
-   
-//    void SysBoundaryCondition::zeroCellData(SpatialCell *to)
-//    {
-// //       cout << "WARNING zeroing out a cell in zeroCellData !" << endl;
-//       for(unsigned int block_i=0; block_i<to->number_of_blocks;block_i++){
-//          unsigned int block = to->velocity_block_list[block_i];         
-//          Velocity_Block* to_block_ptr = to->at(block);
-//          //if block does not exist in from cell, then the empty null_block will be returned        
-//          for (uint i=0; i<SIZE_VELBLOCK; i++) to_block_ptr->data[i]=0.0;
-//       }
-//    }
    
    /*! Function used in some cases to know which faces the system boundary condition is being applied to.*/
    void SysBoundaryCondition::getFaces(bool* faces) {
