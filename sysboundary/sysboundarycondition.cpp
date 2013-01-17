@@ -158,8 +158,6 @@ namespace SBC {
       switch(component) {
          case 0:
             derivs[fieldsolver::drhodx] = 0.0;
-            derivs[fieldsolver::dBGBydx]  = 0.0;
-            derivs[fieldsolver::dBGBzdx]  = 0.0;
             derivs[fieldsolver::dPERBydx]  = 0.0;
             derivs[fieldsolver::dPERBzdx]  = 0.0;
             derivs[fieldsolver::dVxdx]  = 0.0;
@@ -168,8 +166,6 @@ namespace SBC {
             break;
          case 1:
             derivs[fieldsolver::drhody] = 0.0;
-            derivs[fieldsolver::dBGBxdy]  = 0.0;
-            derivs[fieldsolver::dBGBzdy]  = 0.0;
             derivs[fieldsolver::dPERBxdy]  = 0.0;
             derivs[fieldsolver::dPERBzdy]  = 0.0;
             derivs[fieldsolver::dVxdy]  = 0.0;
@@ -180,8 +176,6 @@ namespace SBC {
             derivs[fieldsolver::drhodz] = 0.0;
             derivs[fieldsolver::dPERBxdz]  = 0.0;
             derivs[fieldsolver::dPERBydz]  = 0.0;
-            derivs[fieldsolver::dBGBxdz]  = 0.0;
-            derivs[fieldsolver::dBGBydz]  = 0.0;
             derivs[fieldsolver::dVxdz]  = 0.0;
             derivs[fieldsolver::dVydz]  = 0.0;
             derivs[fieldsolver::dVzdz]  = 0.0;
@@ -201,20 +195,14 @@ namespace SBC {
          case 0:
             derivs[bvolderivatives::dPERBYVOLdx] = 0.0;
             derivs[bvolderivatives::dPERBZVOLdx] = 0.0;
-            derivs[bvolderivatives::dBGBYVOLdx] = 0.0;
-            derivs[bvolderivatives::dBGBZVOLdx] = 0.0;
             break;
          case 1:
             derivs[bvolderivatives::dPERBXVOLdy] = 0.0;
             derivs[bvolderivatives::dPERBZVOLdy] = 0.0;
-            derivs[bvolderivatives::dBGBXVOLdy] = 0.0;
-            derivs[bvolderivatives::dBGBZVOLdy] = 0.0;
             break;
          case 2:
             derivs[bvolderivatives::dPERBXVOLdz] = 0.0;
             derivs[bvolderivatives::dPERBYVOLdz] = 0.0;
-            derivs[bvolderivatives::dBGBXVOLdz] = 0.0;
-            derivs[bvolderivatives::dBGBYVOLdz] = 0.0;
             break;
          default:
             cerr << "Invalid component" << endl;

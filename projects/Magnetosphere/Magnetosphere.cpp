@@ -160,7 +160,7 @@ namespace projects {
         cell->derivatives[fieldsolver::dBGBydx]=0.0;
         cell->derivatives[fieldsolver::dBGBydz]=0.0;
         cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
-        cell->derivativesBVOL[bvolderivatives::dBGBXVOLdz]=0.0;
+        cell->derivativesBVOL[bvolderivatives::dBGBZVOLdy]=0.0;
         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdz]=0.0;
      }
