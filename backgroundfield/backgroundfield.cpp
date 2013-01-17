@@ -27,14 +27,16 @@
 void setBackgroundField(FieldFunction& bgFunction,Real* cellParams)
 {
    using namespace CellParams;
-   // the dipole from gumics is not threadsafe
-   Real accuracy = 1e-17;     
-   Real start[3];
-   Real end[3];
-   Real dx[3];
+   //these are doubles, as the averaging functions copied from Gumics
+   //use internally doubles. In any case, it should provide more
+   //accurate results also for float simulations
+   double accuracy = 1e-17;     
+   double start[3];
+   double end[3];
+   double dx[3];
 
-   Real volB[3];
-   Real dvolBdr[3][3];
+   double volB[3];
+   double dvolBdr[3][3];
 
    start[0] = cellParams[CellParams::XCRD];
    start[1] = cellParams[CellParams::YCRD];

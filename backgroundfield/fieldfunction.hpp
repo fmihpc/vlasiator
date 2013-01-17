@@ -8,7 +8,7 @@ Copyright 1997, 1998, 1999, 2000, 2001, 2010, 2011 Finnish Meteorological Instit
 #define FIELDFUNCTION_HPP
 #include "functions.hpp"
 #include <iostream>
-
+#include <cstdlib>
 
 class FieldFunction: public T3DFunction {
 private:
