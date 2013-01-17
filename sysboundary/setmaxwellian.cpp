@@ -251,11 +251,19 @@ namespace SBC {
       
       calculateCellVelocityMoments(&templateCell);
       
-      // WARNING Time-independence assumed here.
-      templateCell.parameters[CellParams::RHO_DT2] = templateCell.parameters[CellParams::RHO];
-      templateCell.parameters[CellParams::RHOVX_DT2] = templateCell.parameters[CellParams::RHOVX];
-      templateCell.parameters[CellParams::RHOVY_DT2] = templateCell.parameters[CellParams::RHOVY];
-      templateCell.parameters[CellParams::RHOVZ_DT2] = templateCell.parameters[CellParams::RHOVZ];
+      if(!this->isThisDynamic) {
+         // WARNING Time-independence assumed here.
+         templateCell.parameters[CellParams::RHO_DT2] = templateCell.parameters[CellParams::RHO];
+         templateCell.parameters[CellParams::RHOVX_DT2] = templateCell.parameters[CellParams::RHOVX];
+         templateCell.parameters[CellParams::RHOVY_DT2] = templateCell.parameters[CellParams::RHOVY];
+         templateCell.parameters[CellParams::RHOVZ_DT2] = templateCell.parameters[CellParams::RHOVZ];
+         templateCell.parameters[CellParams::PERBX_DT2] = templateCell.parameters[CellParams::PERBX];
+         templateCell.parameters[CellParams::PERBY_DT2] = templateCell.parameters[CellParams::PERBY];
+         templateCell.parameters[CellParams::PERBZ_DT2] = templateCell.parameters[CellParams::PERBZ];
+      } else {
+         cerr << "ERROR: this is not dynamic in time, please code it!" << endl;
+         abort();
+      }
    }
    
    string SetMaxwellian::getName() const {return "SetMaxwellian";}
