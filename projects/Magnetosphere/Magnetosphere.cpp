@@ -142,10 +142,9 @@ namespace projects {
 
    /* set 0-centered dipole */
    void Magnetosphere::setCellBackgroundField(SpatialCell *cell){
-     
      Dipole bgField;
      bgField.initialize(8e15 *this->dipoleScalingFactor); //set dipole moment
-     setBackgroundField(bgField,cell->parameters);
+     setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
      
 
      //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.

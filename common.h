@@ -121,9 +121,9 @@ namespace CellParams {
       RHOVX_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVX_R and RHOVX_V*/
       RHOVY_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVY_R and RHOVY_V*/
       RHOVZ_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVZ_R and RHOVZ_V*/
-      BGBXVOL,  /*!< total magnetic field  PERBX+BGBX averaged over spatial cell.*/
-      BGBYVOL,  /*!< total magnetic field  PERBY+BGBY averaged over spatial cell.*/
-      BGBZVOL,  /*!< total magnetic field  PERBZ+BGBZ averaged over spatial cell.*/
+      BGBXVOL,   /*!< total magnetic field  PERBX+BGBX averaged over spatial cell.*/
+      BGBYVOL,   /*!< total magnetic field  PERBY+BGBY averaged over spatial cell.*/
+      BGBZVOL,   /*!< total magnetic field  PERBZ+BGBZ averaged over spatial cell.*/
       PERBXVOL,  /*!< total magnetic field  PERBX+BGBX averaged over spatial cell.*/
       PERBYVOL,  /*!< total magnetic field  PERBY+BGBY averaged over spatial cell.*/
       PERBZVOL,  /*!< total magnetic field  PERBZ+BGBZ averaged over spatial cell.*/
@@ -193,7 +193,8 @@ namespace fieldsolver {
 }
 
 /*! The namespace bvolderivatives contains the indices to an array which stores the spatial
- * derivatives of the volume-averaged magnetic field, needed in the acceleration stage. 
+ * derivatives of the volume-averaged magnetic field, needed for Lorentz force. 
+ * TODO: Vol values may be removed if background field is curlfree
  */
 namespace bvolderivatives {
    enum {

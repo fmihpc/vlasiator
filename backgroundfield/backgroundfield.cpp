@@ -24,9 +24,12 @@
 #include "integratefunction.hpp"
 
 //FieldFunction should be initialized
-void setBackgroundField(FieldFunction& bgFunction,Real* cellParams)
+void setBackgroundField(FieldFunction& bgFunction,Real* cellParams, Real* faceDerivatives, Real* volumeDerivatives)
 {
    using namespace CellParams;
+   using namespace fieldsolver;
+   using namespace bvolderivatives;
+   
    //these are doubles, as the averaging functions copied from Gumics
    //use internally doubles. In any case, it should provide more
    //accurate results also for float simulations
@@ -34,9 +37,9 @@ void setBackgroundField(FieldFunction& bgFunction,Real* cellParams)
    double start[3];
    double end[3];
    double dx[3];
+   unsigned int faceCoord1[3];
+   unsigned int faceCoord2[3];
 
-   double volB[3];
-   double dvolBdr[3][3];
 
    start[0] = cellParams[CellParams::XCRD];
    start[1] = cellParams[CellParams::YCRD];
@@ -50,35 +53,45 @@ void setBackgroundField(FieldFunction& bgFunction,Real* cellParams)
    end[1]=start[1]+dx[1];
    end[2]=start[2]+dx[2];
    
+   //the coordiantes of the edges face with a normal in the third coordinate direction, stored here to enable looping
+   faceCoord1[0]=1;
+   faceCoord2[0]=2;
+   faceCoord1[1]=0;
+   faceCoord2[1]=2;
+   faceCoord1[2]=0;
+   faceCoord2[2]=1;
    
-   //we are not computing derivatives
-   bgFunction.setDerivative(0);
-      
-   // set Bx at negative x face
-   bgFunction.setComponent(X);
-   cellParams[CellParams::BGBX] =surfaceAverage(bgFunction,X,accuracy,start,dx[1],dx[2]);
-
-// set By at negative y face 
-   bgFunction.setComponent(Y);
-   cellParams[CellParams::BGBY] =surfaceAverage(bgFunction,Y,accuracy,start,dx[0],dx[2]);
-
-// set Bz at negative z face 
-   bgFunction.setComponent(Z);
-   cellParams[CellParams::BGBZ] =surfaceAverage(bgFunction,Z,accuracy,start,dx[0],dx[1]);
-   
-
-   //Volume averages
+   //Face averages
    for(unsigned int fComponent=0;fComponent<3;fComponent++){
       bgFunction.setDerivative(0);
       bgFunction.setComponent((coordinate)fComponent);      
-      volB[fComponent] =volumeAverage(bgFunction,accuracy,start,end);
+      cellParams[CellParams::BGBX+fComponent] =surfaceAverage(bgFunction,(coordinate)fComponent,accuracy,
+                                                              start,dx[faceCoord1[fComponent]],dx[faceCoord2[fComponent]]);
       
       bgFunction.setDerivative(1);
-      for(unsigned int dComponent=0;dComponent<3;dComponent++){
-         bgFunction.setDerivComponent((coordinate)dComponent);      
-         dvolBdr[fComponent][dComponent]=volumeAverage(bgFunction,accuracy,start,end);
-      }
+      bgFunction.setDerivComponent((coordinate)faceCoord1[fComponent]);      
+      faceDerivatives[fieldsolver::dBGBxdy+2*fComponent] =surfaceAverage(bgFunction,(coordinate)fComponent,accuracy,
+                                                                         start,dx[faceCoord1[fComponent]],dx[faceCoord2[fComponent]]);
+      bgFunction.setDerivComponent((coordinate)faceCoord2[fComponent]);      
+      faceDerivatives[fieldsolver::dBGBxdy+1+2*fComponent] =surfaceAverage(bgFunction,(coordinate)fComponent,accuracy,
+                                                                         start,dx[faceCoord1[fComponent]],dx[faceCoord2[fComponent]]);
    }
+
+   //Volume averages      
+   for(unsigned int fComponent=0;fComponent<3;fComponent++){
+      bgFunction.setDerivative(0);
+      bgFunction.setComponent((coordinate)fComponent);      
+      cellParams[CellParams::BGBXVOL+fComponent] = volumeAverage(bgFunction,accuracy,start,end);
+      
+      bgFunction.setDerivative(1);
+      bgFunction.setDerivComponent((coordinate)faceCoord1[fComponent]);      
+      volumeDerivatives[bvolderivatives::dBGBXVOLdy+2*fComponent] =volumeAverage(bgFunction,accuracy,start,end);
+      bgFunction.setDerivComponent((coordinate)faceCoord2[fComponent]);
+      volumeDerivatives[bvolderivatives::dBGBXVOLdy+1+2*fComponent] =volumeAverage(bgFunction,accuracy,start,end);
+   }
+
+   //TODO
+   //COmpute divergence and curl of volume averaged field and check that both are zero. 
 }
 
 

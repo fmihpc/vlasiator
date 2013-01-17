@@ -113,7 +113,7 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/Shock/Shock.h projects/Shock/Shock.cpp
 #all objects for vlasiator
 
-OBJS = 	backgroundfield.o ode.o quadr.o dipole.o integratefunction.o \
+OBJS = 	backgroundfield.o ode.o quadr.o dipole.o constantfield.o integratefunction.o \
 	datareducer.o datareductionoperator.o \
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o \
 	sysboundary.o sysboundarycondition.o \
@@ -145,6 +145,9 @@ clean: data
 
 dipole.o: backgroundfield/dipole.cpp backgroundfield/dipole.hpp backgroundfield/fieldfunction.hpp backgroundfield/functions.hpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/dipole.cpp 
+
+constantfield.o: backgroundfield/constantfield.cpp backgroundfield/constantfield.hpp backgroundfield/fieldfunction.hpp backgroundfield/functions.hpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/constantfield.cpp 
 
 ode.o: backgroundfield/ode.cpp backgroundfield/ode.hpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/ode.cpp
