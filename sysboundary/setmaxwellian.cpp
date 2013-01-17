@@ -249,7 +249,7 @@ namespace SBC {
       //memory.
       templateCell.adjustSingleCellVelocityBlocks();
       
-      calculateCellVelocityMoments(&templateCell);
+      calculateCellVelocityMoments(&templateCell, true);
       
       // WARNING Time-independence assumed here.
       templateCell.parameters[CellParams::RHO_DT2] = templateCell.parameters[CellParams::RHO];

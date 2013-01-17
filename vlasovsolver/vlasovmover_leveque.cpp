@@ -909,17 +909,21 @@ void calculateInterpolatedVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid,
 
 
 
-void calculateCellVelocityMoments(SpatialCell* SC){
-   if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-      (SC->sysBoundaryLayer != 1  &&
-          SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )
+void calculateCellVelocityMoments(
+   SpatialCell* SC,
+   bool doNotSkip
+){
+   if(!doNotSkip &&
+         (SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+            (SC->sysBoundaryLayer != 1  &&
+             SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))
    ) return;
    SC->parameters[CellParams::RHO  ] = 0.0;
    SC->parameters[CellParams::RHOVX] = 0.0;
    SC->parameters[CellParams::RHOVY] = 0.0;
    SC->parameters[CellParams::RHOVZ] = 0.0;
    //Iterate through all velocity blocks in this spatial cell 
-   // and calculate velocity moments:         
+   // and calculate velocity moments:
    for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
       unsigned int block = SC->velocity_block_list[block_i];
       cpu_calcVelocityMoments(SC,block,CellParams::RHO,CellParams::RHOVX,CellParams::RHOVY,CellParams::RHOVZ);
