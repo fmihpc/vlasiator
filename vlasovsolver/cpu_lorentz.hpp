@@ -30,66 +30,63 @@ using namespace spatial_cell;
 
 
 
-//  Calculate bulk conponents of acceleration due to three-dimensional Lorentz force
+//  Calculate bulk components of acceleration due to three-dimensional Lorentz force
 //  cellParams Array containing spatial cell parameters.
 //  cellBVOLDerivatives Array containing the BVOL derivatives.
 
 template<typename REAL> void lorentzForceFaceBulk(
-    REAL a_bulk[3], 
-    const REAL* const cellParams, 
-    const REAL* const cellBVOLDerivatives
- ) {
-
+   REAL a_bulk[3],
+   const REAL* const cellParams,
+   const REAL* const cellBVOLDerivatives
+) {
    const REAL UX = ((cellParams[CellParams::RHO] <= 0) ? 0.0 : cellParams[CellParams::RHOVX]/cellParams[CellParams::RHO]);
    const REAL UY = ((cellParams[CellParams::RHO] <= 0) ? 0.0 : cellParams[CellParams::RHOVY]/cellParams[CellParams::RHO]);
    const REAL UZ = ((cellParams[CellParams::RHO] <= 0) ? 0.0 : cellParams[CellParams::RHOVZ]/cellParams[CellParams::RHO]);
-
-   const REAL BX = cellParams[CellParams::BXVOL]; 
-   const REAL BY = cellParams[CellParams::BYVOL]; 
-   const REAL BZ = cellParams[CellParams::BZVOL]; 
-   const REAL EX = cellParams[CellParams::EXVOL]; 
-   const REAL EY = cellParams[CellParams::EYVOL]; 
-   const REAL EZ = cellParams[CellParams::EZVOL];    
-    
-   const REAL dBXdy = cellBVOLDerivatives[bvolderivatives::dBXVOLdy]/cellParams[CellParams::DY];
-   const REAL dBXdz = cellBVOLDerivatives[bvolderivatives::dBXVOLdz]/cellParams[CellParams::DZ];
-   const REAL dBYdx = cellBVOLDerivatives[bvolderivatives::dBYVOLdx]/cellParams[CellParams::DX];
-   const REAL dBYdz = cellBVOLDerivatives[bvolderivatives::dBYVOLdz]/cellParams[CellParams::DZ];
-   const REAL dBZdx = cellBVOLDerivatives[bvolderivatives::dBZVOLdx]/cellParams[CellParams::DX];
-   const REAL dBZdy = cellBVOLDerivatives[bvolderivatives::dBZVOLdy]/cellParams[CellParams::DY];
-
+   
+   const REAL BX = cellParams[CellParams::PERBXVOL] + cellParams[CellParams::BGBXVOL];
+   const REAL BY = cellParams[CellParams::PERBYVOL] + cellParams[CellParams::BGBYVOL];
+   const REAL BZ = cellParams[CellParams::PERBZVOL] + cellParams[CellParams::BGBZVOL];
+   const REAL EX = cellParams[CellParams::EXVOL];
+   const REAL EY = cellParams[CellParams::EYVOL];
+   const REAL EZ = cellParams[CellParams::EZVOL];
+   
+   const REAL dBXdy = cellBVOLDerivatives[bvolderivatives::dPERBXVOLdy]/cellParams[CellParams::DY];
+   const REAL dBXdz = cellBVOLDerivatives[bvolderivatives::dPERBXVOLdz]/cellParams[CellParams::DZ];
+   const REAL dBYdx = cellBVOLDerivatives[bvolderivatives::dPERBYVOLdx]/cellParams[CellParams::DX];
+   const REAL dBYdz = cellBVOLDerivatives[bvolderivatives::dPERBYVOLdz]/cellParams[CellParams::DZ];
+   const REAL dBZdx = cellBVOLDerivatives[bvolderivatives::dPERBZVOLdx]/cellParams[CellParams::DX];
+   const REAL dBZdy = cellBVOLDerivatives[bvolderivatives::dPERBZVOLdy]/cellParams[CellParams::DY];
+   
    
    // ax=a_bulk[0], ay=a_bulk[2], az=a_bulk[3]
-    if(Parameters::lorentzUseFieldSolverE) {
-       a_bulk[0] = Parameters::q_per_m*EX;
-       a_bulk[1] = Parameters::q_per_m*EY;
-       a_bulk[2] = Parameters::q_per_m*EZ;
-    }
-    else {
-       a_bulk[0] = Parameters::q_per_m*( BY*UZ - BZ*UY);
-       a_bulk[1] = Parameters::q_per_m*( BZ*UX - BX*UZ);
-       a_bulk[2] = Parameters::q_per_m*( BX*UY - BY*UX);
-
-       //FIXME: add resistive terms!!!
-    }
-          
-    /*
-      Terms for QUESPACE-281.  (JxB = curl(B) x B)
-    */
-    
-    if(Parameters::lorentzHallTerm) {
-       const REAL prefactor =  ((cellParams[CellParams::RHO] == 0) ? 0.0 : 1.0 / (physicalconstants::MU_0 * cellParams[CellParams::RHO] * Parameters::q )); 
-       //     cout << a_bulk[0] << " " << a_bulk[0] << " " << a_bulk[0] << " += ";
-       a_bulk[0] += Parameters::q_per_m * prefactor * (BZ*dBXdz - BZ*dBZdx - BY*dBYdx + BY*dBXdy);
-       a_bulk[1] += Parameters::q_per_m * prefactor * (BX*dBYdx - BX*dBXdy - BZ*dBZdy + BZ*dBYdz);
-       a_bulk[2] += Parameters::q_per_m * prefactor * (BY*dBZdy - BY*dBYdz - BX*dBXdz + BX*dBZdx);
+   if(Parameters::lorentzUseFieldSolverE) {
+      a_bulk[0] = Parameters::q_per_m*EX;
+      a_bulk[1] = Parameters::q_per_m*EY;
+      a_bulk[2] = Parameters::q_per_m*EZ;
+   }
+   else {
+      a_bulk[0] = Parameters::q_per_m*( BY*UZ - BZ*UY);
+      a_bulk[1] = Parameters::q_per_m*( BZ*UX - BX*UZ);
+      a_bulk[2] = Parameters::q_per_m*( BX*UY - BY*UX);
+      
+      //FIXME: add resistive terms!!!
+   }
+   
+   /*
+     Terms for QUESPACE-281.  (JxB = curl(B) x B)
+   */
+   
+   if(Parameters::lorentzHallTerm) {
+      const REAL prefactor =  ((cellParams[CellParams::RHO] == 0) ? 0.0 : 1.0 / (physicalconstants::MU_0 * cellParams[CellParams::RHO] * Parameters::q )); 
+      //     cout << a_bulk[0] << " " << a_bulk[0] << " " << a_bulk[0] << " += ";
+      a_bulk[0] += Parameters::q_per_m * prefactor * (BZ*dBXdz - BZ*dBZdx - BY*dBYdx + BY*dBXdy);
+      a_bulk[1] += Parameters::q_per_m * prefactor * (BX*dBYdx - BX*dBXdy - BZ*dBZdy + BZ*dBYdz);
+      a_bulk[2] += Parameters::q_per_m * prefactor * (BY*dBZdy - BY*dBYdz - BX*dBXdz + BX*dBZdx);
 /*       cout << Parameters::q_per_m*prefactor * (BZ*dBXdz - BZ*dBZdx - BY*dBYdx + BY*dBXdy) << " ";
        cout << Parameters::q_per_m*prefactor * (BX*dBYdx - BX*dBXdy - BZ*dBZdy + BZ*dBYdz) << " ";
        cout << Parameters::q_per_m*prefactor * (BY*dBZdy - BY*dBYdz - BX*dBXdz + BX*dBZdx) <<endl;
 */
-    }                                                                                                                                   
-
-
+   }
 }
 
 
@@ -105,15 +102,16 @@ template<typename UINT,typename REAL> void lorentzForceFaceVelspace(
    const UINT& I, const UINT& J, const UINT& K, 
    const REAL* const cellParams, 
    const REAL* const blockParams) {
-
-   const REAL BX = cellParams[CellParams::BXVOL]; 
-   const REAL BY = cellParams[CellParams::BYVOL]; 
-   const REAL BZ = cellParams[CellParams::BZVOL];
-
+   
+   const REAL BX = cellParams[CellParams::PERBXVOL] + cellParams[CellParams::BGBXVOL];
+   const REAL BY = cellParams[CellParams::PERBYVOL] + cellParams[CellParams::BGBYVOL];
+   const REAL BZ = cellParams[CellParams::PERBZVOL] + cellParams[CellParams::BGBZVOL];
+   
+   
    // I The i-index of the cell, within a velocity block, in which the computed face is stored.
    // J The j-index of the cell, within a velocity block, in which the computed face is stored.
    // K The k-index of the cell, within a velocity block, in which the computed face is stored.
-      
+   
    // Calculate block components of acceleration due to three-dimensional Lorentz force at face with normal to vx-direction.  
    REAL VX = blockParams[BlockParams::VXCRD] + I*blockParams[BlockParams::DVX];
    REAL VY = blockParams[BlockParams::VYCRD] + (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
@@ -121,9 +119,9 @@ template<typename UINT,typename REAL> void lorentzForceFaceVelspace(
    
    // ax=a_phasespacecell[0], ay=a_phasespacecell[1], az=a_phasespacecell[2]
    a_phasespacecell[0] = Parameters::q_per_m*(VY*BZ - VZ*BY);
-   a_phasespacecell[1] = Parameters::q_per_m*(VZ*BX - VX*BZ); 
-   a_phasespacecell[2] = Parameters::q_per_m*(VX*BY - VY*BX); 
-      
+   a_phasespacecell[1] = Parameters::q_per_m*(VZ*BX - VX*BZ);
+   a_phasespacecell[2] = Parameters::q_per_m*(VX*BY - VY*BX);
+   
    // Calculate block components of acceleration due to three-dimensional Lorentz force at face with normal to vy-direction.
    
    VX = blockParams[BlockParams::VXCRD] + (I+convert<REAL>(0.5))*blockParams[BlockParams::DVX];
@@ -132,9 +130,9 @@ template<typename UINT,typename REAL> void lorentzForceFaceVelspace(
       
    // ax=a_phasespacecell[3], ay=a_phasespacecell[4], az=a_phasespacecell[5]
    a_phasespacecell[3] = Parameters::q_per_m*(VY*BZ - VZ*BY);
-   a_phasespacecell[4] = Parameters::q_per_m*(VZ*BX - VX*BZ); 
-   a_phasespacecell[5] = Parameters::q_per_m*(VX*BY - VY*BX);       
-
+   a_phasespacecell[4] = Parameters::q_per_m*(VZ*BX - VX*BZ);
+   a_phasespacecell[5] = Parameters::q_per_m*(VX*BY - VY*BX);
+   
    //Calculate block components of acceleration due to three-dimensional Lorentz force at face with normal to vz-direction.
    VX = blockParams[BlockParams::VXCRD] + (I+convert<REAL>(0.5))*blockParams[BlockParams::DVX];
    VY = blockParams[BlockParams::VYCRD] + (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
@@ -142,9 +140,8 @@ template<typename UINT,typename REAL> void lorentzForceFaceVelspace(
    
    // ax=a_phasespacecell[6], ay=a_phasespacecell[7], az=a_phasespacecell[8]
    a_phasespacecell[6] = Parameters::q_per_m*(VY*BZ - VZ*BY);
-   a_phasespacecell[7] = Parameters::q_per_m*(VZ*BX - VX*BZ); 
-   a_phasespacecell[8] = Parameters::q_per_m*(VX*BY - VY*BX);       
-   
+   a_phasespacecell[7] = Parameters::q_per_m*(VZ*BX - VX*BZ);
+   a_phasespacecell[8] = Parameters::q_per_m*(VX*BY - VY*BX);
 }
 
 

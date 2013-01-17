@@ -158,24 +158,30 @@ namespace SBC {
       switch(component) {
          case 0:
             derivs[fieldsolver::drhodx] = 0.0;
-            derivs[fieldsolver::dBydx]  = 0.0;
-            derivs[fieldsolver::dBzdx]  = 0.0;
+            derivs[fieldsolver::dBGBydx]  = 0.0;
+            derivs[fieldsolver::dBGBzdx]  = 0.0;
+            derivs[fieldsolver::dPERBydx]  = 0.0;
+            derivs[fieldsolver::dPERBzdx]  = 0.0;
             derivs[fieldsolver::dVxdx]  = 0.0;
             derivs[fieldsolver::dVydx]  = 0.0;
             derivs[fieldsolver::dVzdx]  = 0.0;
             break;
          case 1:
             derivs[fieldsolver::drhody] = 0.0;
-            derivs[fieldsolver::dBxdy]  = 0.0;
-            derivs[fieldsolver::dBzdy]  = 0.0;
+            derivs[fieldsolver::dBGBxdy]  = 0.0;
+            derivs[fieldsolver::dBGBzdy]  = 0.0;
+            derivs[fieldsolver::dPERBxdy]  = 0.0;
+            derivs[fieldsolver::dPERBzdy]  = 0.0;
             derivs[fieldsolver::dVxdy]  = 0.0;
             derivs[fieldsolver::dVydy]  = 0.0;
             derivs[fieldsolver::dVzdy]  = 0.0;
             break;
          case 2:
             derivs[fieldsolver::drhodz] = 0.0;
-            derivs[fieldsolver::dBxdz]  = 0.0;
-            derivs[fieldsolver::dBydz]  = 0.0;
+            derivs[fieldsolver::dPERBxdz]  = 0.0;
+            derivs[fieldsolver::dPERBydz]  = 0.0;
+            derivs[fieldsolver::dBGBxdz]  = 0.0;
+            derivs[fieldsolver::dBGBydz]  = 0.0;
             derivs[fieldsolver::dVxdz]  = 0.0;
             derivs[fieldsolver::dVydz]  = 0.0;
             derivs[fieldsolver::dVzdz]  = 0.0;
@@ -193,16 +199,22 @@ namespace SBC {
       Real* const derivs = &(mpiGrid[cellID]->derivativesBVOL[0]);
       switch(component) {
          case 0:
-            derivs[bvolderivatives::dBYVOLdx] = 0.0;
-            derivs[bvolderivatives::dBZVOLdx] = 0.0;
+            derivs[bvolderivatives::dPERBYVOLdx] = 0.0;
+            derivs[bvolderivatives::dPERBZVOLdx] = 0.0;
+            derivs[bvolderivatives::dBGBYVOLdx] = 0.0;
+            derivs[bvolderivatives::dBGBZVOLdx] = 0.0;
             break;
          case 1:
-            derivs[bvolderivatives::dBXVOLdy] = 0.0;
-            derivs[bvolderivatives::dBZVOLdy] = 0.0;
+            derivs[bvolderivatives::dPERBXVOLdy] = 0.0;
+            derivs[bvolderivatives::dPERBZVOLdy] = 0.0;
+            derivs[bvolderivatives::dBGBXVOLdy] = 0.0;
+            derivs[bvolderivatives::dBGBZVOLdy] = 0.0;
             break;
          case 2:
-            derivs[bvolderivatives::dBXVOLdz] = 0.0;
-            derivs[bvolderivatives::dBYVOLdz] = 0.0;
+            derivs[bvolderivatives::dPERBXVOLdz] = 0.0;
+            derivs[bvolderivatives::dPERBYVOLdz] = 0.0;
+            derivs[bvolderivatives::dBGBXVOLdz] = 0.0;
+            derivs[bvolderivatives::dBGBYVOLdz] = 0.0;
             break;
          default:
             cerr << "Invalid component" << endl;

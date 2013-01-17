@@ -100,6 +100,7 @@ namespace spatial_cell {
       const uint64_t CELL_RHODT2_RHOVDT2      = (1<<16);
       const uint64_t CELL_BVOL                = (1<<17);
       const uint64_t CELL_BVOL_DERIVATIVES    = (1<<18);
+      const uint64_t CELL_DIMENSIONS          = (1<<19);
       
       const uint64_t ALL_DATA =
       CELL_PARAMETERS
@@ -913,17 +914,23 @@ namespace velocity_neighbor {
                   displacements.push_back((uint8_t*) &(this->parameters[0]) - (uint8_t*) this);
                   block_lengths.push_back(sizeof(Real) * CellParams::N_SPATIAL_CELL_PARAMS);
                }
-            
+               
+               // send  spatial cell dimensions
+               if((SpatialCell::mpi_transfer_type & Transfer::CELL_DIMENSIONS)!=0){
+                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::DX]) - (uint8_t*) this);
+                  block_lengths.push_back(sizeof(Real) * 3);
+               }
+               
                // send  BGBX BGBY BGBZ
                if((SpatialCell::mpi_transfer_type & Transfer::CELL_BGB)!=0){
                   displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBX]) - (uint8_t*) this);
                   block_lengths.push_back(sizeof(Real) * 3);
                }
             
-               // send  BXVOL BYVOl BZVOL
+               // send  BXVOL BYVOL BZVOL
                if((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::BXVOL]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * 3);
+                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBXVOL]) - (uint8_t*) this);
+                  block_lengths.push_back(sizeof(Real) * 6);
                }
             
                // send  EX, EY EZ
