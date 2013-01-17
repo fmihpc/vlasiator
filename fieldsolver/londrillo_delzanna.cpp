@@ -360,9 +360,7 @@ static void calculateDerivatives(
                                      divideIfNonZero(cent[cp::RHOVZ], cent[cp::RHO]),
                                      divideIfNonZero(rght[cp::RHOVZ], rght[cp::RHO]));
          array[fs::dPERBydx]  = limiter(left[cp::PERBY],cent[cp::PERBY],rght[cp::PERBY]);
-         array[fs::dBGBydx]  = limiter(left[cp::BGBY],cent[cp::BGBY],rght[cp::BGBY]);
          array[fs::dPERBzdx]  = limiter(left[cp::PERBZ],cent[cp::PERBZ],rght[cp::PERBZ]);
-         array[fs::dBGBzdx]  = limiter(left[cp::BGBZ],cent[cp::BGBZ],rght[cp::BGBZ]);
       }
       if (RKCase == RK_ORDER2_STEP1) {
          array[fs::drhodx] = limiter(left[cp::RHO_DT2],cent[cp::RHO_DT2],rght[cp::RHO_DT2]);
@@ -376,9 +374,7 @@ static void calculateDerivatives(
                                      divideIfNonZero(cent[cp::RHOVZ_DT2], cent[cp::RHO_DT2]),
                                      divideIfNonZero(rght[cp::RHOVZ_DT2], rght[cp::RHO_DT2]));
          array[fs::dPERBydx]  = limiter(left[cp::PERBY_DT2],cent[cp::PERBY_DT2],rght[cp::PERBY_DT2]);
-         array[fs::dBGBydx]  = limiter(left[cp::BGBY],cent[cp::BGBY],rght[cp::BGBY]);
          array[fs::dPERBzdx]  = limiter(left[cp::PERBZ_DT2],cent[cp::PERBZ_DT2],rght[cp::PERBZ_DT2]);
-         array[fs::dBGBzdx]  = limiter(left[cp::BGBZ],cent[cp::BGBZ],rght[cp::BGBZ]);
       }
    } else {
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -429,9 +425,7 @@ static void calculateDerivatives(
                                      divideIfNonZero(cent[cp::RHOVZ], cent[cp::RHO]),
                                      divideIfNonZero(rght[cp::RHOVZ], rght[cp::RHO]));
          array[fs::dPERBxdy]  = limiter(left[cp::PERBX],cent[cp::PERBX],rght[cp::PERBX]);
-         array[fs::dBGBxdy]  = limiter(left[cp::BGBX],cent[cp::BGBX],rght[cp::BGBX]);
          array[fs::dPERBzdy]  = limiter(left[cp::PERBZ],cent[cp::PERBZ],rght[cp::PERBZ]);
-         array[fs::dBGBzdy]  = limiter(left[cp::BGBZ],cent[cp::BGBZ],rght[cp::BGBZ]);
       }
       if (RKCase == RK_ORDER2_STEP1) {
          array[fs::drhody] = limiter(left[cp::RHO_DT2],cent[cp::RHO_DT2],rght[cp::RHO_DT2]);
@@ -445,9 +439,7 @@ static void calculateDerivatives(
                                      divideIfNonZero(cent[cp::RHOVZ_DT2], cent[cp::RHO_DT2]),
                                      divideIfNonZero(rght[cp::RHOVZ_DT2], rght[cp::RHO_DT2]));
          array[fs::dPERBxdy]  = limiter(left[cp::PERBX_DT2],cent[cp::PERBX_DT2],rght[cp::PERBX_DT2]);
-         array[fs::dBGBxdy]  = limiter(left[cp::BGBX],cent[cp::BGBX],rght[cp::BGBX]);
          array[fs::dPERBzdy]  = limiter(left[cp::PERBZ_DT2],cent[cp::PERBZ_DT2],rght[cp::PERBZ_DT2]);
-         array[fs::dBGBzdy]  = limiter(left[cp::BGBZ],cent[cp::BGBZ],rght[cp::BGBZ]);
       }
    } else {
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -496,9 +488,7 @@ static void calculateDerivatives(
                                      divideIfNonZero(cent[cp::RHOVZ], cent[cp::RHO]),
                                      divideIfNonZero(rght[cp::RHOVZ], rght[cp::RHO]));
          array[fs::dPERBxdz]  = limiter(left[cp::PERBX],cent[cp::PERBX],rght[cp::PERBX]);
-         array[fs::dBGBxdz]  = limiter(left[cp::BGBX],cent[cp::BGBX],rght[cp::BGBX]);
          array[fs::dPERBydz]  = limiter(left[cp::PERBY],cent[cp::PERBY],rght[cp::PERBY]);
-         array[fs::dBGBydz]  = limiter(left[cp::BGBY],cent[cp::BGBY],rght[cp::BGBY]);
       }
       if (RKCase == RK_ORDER2_STEP1) {
          array[fs::drhodz] = limiter(left[cp::RHO_DT2],cent[cp::RHO_DT2],rght[cp::RHO_DT2]);
@@ -512,9 +502,7 @@ static void calculateDerivatives(
                                      divideIfNonZero(cent[cp::RHOVZ_DT2], cent[cp::RHO_DT2]),
                                      divideIfNonZero(rght[cp::RHOVZ_DT2], rght[cp::RHO_DT2]));
          array[fs::dPERBxdz]  = limiter(left[cp::PERBX_DT2],cent[cp::PERBX_DT2],rght[cp::PERBX_DT2]);
-         array[fs::dBGBxdz]  = limiter(left[cp::BGBX],cent[cp::BGBX],rght[cp::BGBX]);
          array[fs::dPERBydz]  = limiter(left[cp::PERBY_DT2],cent[cp::PERBY_DT2],rght[cp::PERBY_DT2]);
-         array[fs::dBGBydz]  = limiter(left[cp::BGBY],cent[cp::BGBY],rght[cp::BGBY]);
       }
    } else {
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -2176,14 +2164,12 @@ void reconstructionCoefficients(
    const CellID& nbr_i1j2k1,
    const CellID& nbr_i1j1k2,
    dccrg::Dccrg<SpatialCell>& mpiGrid,
-   Real* perturbedResult,
-   Real* backgroundResult
+   Real* perturbedResult
 ) {
    // Do not calculate values for non-existing cells:
    if (cellID == INVALID_CELLID) {
       for (int i=0; i<Rec::c_zz+1; ++i) {
          perturbedResult[i] = 0.0;
-         backgroundResult[i] = 0.0;
       }
       return;
    }
@@ -2228,100 +2214,57 @@ void reconstructionCoefficients(
 
       // Calculate 2nd order reconstruction coefficients:
       perturbedResult[Rec::a_xy] = der_i2j1k1[fs::dPERBxdy] - der_i1j1k1[fs::dPERBxdy];
-      backgroundResult[Rec::a_xy] = der_i2j1k1[fs::dBGBxdy] - der_i1j1k1[fs::dBGBxdy];
       CHECK_FLOAT(perturbedResult[Rec::a_xy])
-      CHECK_FLOAT(backgroundResult[Rec::a_xy])
       perturbedResult[Rec::a_xz] = der_i2j1k1[fs::dPERBxdz] - der_i1j1k1[fs::dPERBxdz];
-      backgroundResult[Rec::a_xz] = der_i2j1k1[fs::dBGBxdz] - der_i1j1k1[fs::dBGBxdz];
       CHECK_FLOAT(perturbedResult[Rec::a_xz])
-      CHECK_FLOAT(backgroundResult[Rec::a_xz])
       perturbedResult[Rec::a_x ] = cep_i2j1k1[cp::PERBX] - cep_i1j1k1[cp::PERBX];
-      backgroundResult[Rec::a_x ] = cep_i2j1k1[cp::BGBX] - cep_i1j1k1[cp::BGBX];
       CHECK_FLOAT(perturbedResult[Rec::a_x ])
-      CHECK_FLOAT(backgroundResult[Rec::a_x ])
       perturbedResult[Rec::a_y ] = HALF*(der_i2j1k1[fs::dPERBxdy] + der_i1j1k1[fs::dPERBxdy]);
-      backgroundResult[Rec::a_y ] = HALF*(der_i2j1k1[fs::dBGBxdy] + der_i1j1k1[fs::dBGBxdy]);
       CHECK_FLOAT(perturbedResult[Rec::a_y ])
-      CHECK_FLOAT(backgroundResult[Rec::a_y ])
       perturbedResult[Rec::a_z ] = HALF*(der_i2j1k1[fs::dPERBxdz] + der_i1j1k1[fs::dPERBxdz]);
-      backgroundResult[Rec::a_z ] = HALF*(der_i2j1k1[fs::dBGBxdz] + der_i1j1k1[fs::dBGBxdz]);
       CHECK_FLOAT(perturbedResult[Rec::a_z ])
-      CHECK_FLOAT(backgroundResult[Rec::a_z ])
    
       perturbedResult[Rec::b_yx] = der_i1j2k1[fs::dPERBydx] - der_i1j1k1[fs::dPERBydx];
-      backgroundResult[Rec::b_yx] = der_i1j2k1[fs::dBGBydx] - der_i1j1k1[fs::dBGBydx];
       CHECK_FLOAT(perturbedResult[Rec::b_yx])
-      CHECK_FLOAT(backgroundResult[Rec::b_yx])
       perturbedResult[Rec::b_yz] = der_i1j2k1[fs::dPERBydz] - der_i1j1k1[fs::dPERBydz];
-      backgroundResult[Rec::b_yz] = der_i1j2k1[fs::dBGBydz] - der_i1j1k1[fs::dBGBydz];
       CHECK_FLOAT(perturbedResult[Rec::b_yz])
-      CHECK_FLOAT(backgroundResult[Rec::b_yz])
       perturbedResult[Rec::b_x ] = HALF*(der_i1j2k1[fs::dPERBydx] + der_i1j1k1[fs::dPERBydx]);
-      backgroundResult[Rec::b_x ] = HALF*(der_i1j2k1[fs::dBGBydx] + der_i1j1k1[fs::dBGBydx]);
       CHECK_FLOAT(perturbedResult[Rec::b_x ])
-      CHECK_FLOAT(backgroundResult[Rec::b_x ])
       perturbedResult[Rec::b_y ] = cep_i1j2k1[cp::PERBY] - cep_i1j1k1[cp::PERBY];
-      backgroundResult[Rec::b_y ] = cep_i1j2k1[cp::BGBY] - cep_i1j1k1[cp::BGBY];
       CHECK_FLOAT(perturbedResult[Rec::b_y ])
-      CHECK_FLOAT(backgroundResult[Rec::b_y ])
       perturbedResult[Rec::b_z ] = HALF*(der_i1j2k1[fs::dPERBydz] + der_i1j1k1[fs::dPERBydz]);
-      backgroundResult[Rec::b_z ] = HALF*(der_i1j2k1[fs::dBGBydz] + der_i1j1k1[fs::dBGBydz]);
       CHECK_FLOAT(perturbedResult[Rec::b_z ])
-      CHECK_FLOAT(backgroundResult[Rec::b_z ])
    
       perturbedResult[Rec::c_zx] = der_i1j1k2[fs::dPERBzdx] - der_i1j1k1[fs::dPERBzdx];
-      backgroundResult[Rec::c_zx] = der_i1j1k2[fs::dBGBzdx] - der_i1j1k1[fs::dBGBzdx];
       CHECK_FLOAT(perturbedResult[Rec::c_zx])
-      CHECK_FLOAT(backgroundResult[Rec::c_zx])
       perturbedResult[Rec::c_zy] = der_i1j1k2[fs::dPERBzdy] - der_i1j1k1[fs::dPERBzdy];
-      backgroundResult[Rec::c_zy] = der_i1j1k2[fs::dBGBzdy] - der_i1j1k1[fs::dBGBzdy];
       CHECK_FLOAT(perturbedResult[Rec::c_zy])
-      CHECK_FLOAT(backgroundResult[Rec::c_zy])
       perturbedResult[Rec::c_x ] = HALF*(der_i1j1k2[fs::dPERBzdx] + der_i1j1k1[fs::dPERBzdx]);
-      backgroundResult[Rec::c_x ] = HALF*(der_i1j1k2[fs::dBGBzdx] + der_i1j1k1[fs::dBGBzdx]);
       CHECK_FLOAT(perturbedResult[Rec::c_x ])
-      CHECK_FLOAT(backgroundResult[Rec::c_x ])
       perturbedResult[Rec::c_y ] = HALF*(der_i1j1k2[fs::dPERBzdy] + der_i1j1k1[fs::dPERBzdy]);
-      backgroundResult[Rec::c_y ] = HALF*(der_i1j1k2[fs::dBGBzdy] + der_i1j1k1[fs::dBGBzdy]);
       CHECK_FLOAT(perturbedResult[Rec::c_y ])
-      CHECK_FLOAT(backgroundResult[Rec::c_y ])
       perturbedResult[Rec::c_z ] = cep_i1j1k2[cp::PERBZ] - cep_i1j1k1[cp::PERBZ];
-      backgroundResult[Rec::c_z ] = cep_i1j1k2[cp::BGBZ] - cep_i1j1k1[cp::BGBZ];
       CHECK_FLOAT(perturbedResult[Rec::c_z ])
-      CHECK_FLOAT(backgroundResult[Rec::c_z ])
    
       perturbedResult[Rec::a_xx] = -HALF*(perturbedResult[Rec::b_yx] + perturbedResult[Rec::c_zx]);
-      backgroundResult[Rec::a_xx] = -HALF*(backgroundResult[Rec::b_yx] + backgroundResult[Rec::c_zx]);
       CHECK_FLOAT(perturbedResult[Rec::a_xx])
-      CHECK_FLOAT(backgroundResult[Rec::a_xx])
       perturbedResult[Rec::b_yy] = -HALF*(perturbedResult[Rec::a_xy] + perturbedResult[Rec::c_zy]);
-      backgroundResult[Rec::b_yy] = -HALF*(backgroundResult[Rec::a_xy] + backgroundResult[Rec::c_zy]);
       CHECK_FLOAT(perturbedResult[Rec::b_yy])
-      CHECK_FLOAT(backgroundResult[Rec::b_yy])
       perturbedResult[Rec::c_zz] = -HALF*(perturbedResult[Rec::a_xz] + perturbedResult[Rec::b_yz]);
-      backgroundResult[Rec::c_zz] = -HALF*(backgroundResult[Rec::a_xz] + backgroundResult[Rec::b_yz]);
       CHECK_FLOAT(perturbedResult[Rec::c_zz])
-      CHECK_FLOAT(backgroundResult[Rec::c_zz])
    #else
       for (int i=0; i<Rec::c_zz+1; ++i) {
          perturbedResult[i] = 0.0;
-         backgroundResult[i] = 0.0;
       }
    #endif
    
    // Calculate 1st order reconstruction coefficients:
    perturbedResult[Rec::a_0 ] = HALF*(cep_i2j1k1[cp::PERBX] + cep_i1j1k1[cp::PERBX]) - SIXTH*perturbedResult[Rec::a_xx];
-   backgroundResult[Rec::a_0 ] = HALF*(cep_i2j1k1[cp::BGBX] + cep_i1j1k1[cp::BGBX]) - SIXTH*backgroundResult[Rec::a_xx];
    CHECK_FLOAT(perturbedResult[Rec::a_0 ])
-   CHECK_FLOAT(backgroundResult[Rec::a_0 ])
    perturbedResult[Rec::b_0 ] = HALF*(cep_i1j2k1[cp::PERBY] + cep_i1j1k1[cp::PERBY]) - SIXTH*perturbedResult[Rec::b_yy];
-   backgroundResult[Rec::b_0 ] = HALF*(cep_i1j2k1[cp::BGBY] + cep_i1j1k1[cp::BGBY]) - SIXTH*backgroundResult[Rec::b_yy];
    CHECK_FLOAT(perturbedResult[Rec::b_0 ])
-   CHECK_FLOAT(backgroundResult[Rec::b_0 ])
    perturbedResult[Rec::c_0 ] = HALF*(cep_i1j1k2[cp::PERBZ] + cep_i1j1k1[cp::PERBZ]) - SIXTH*perturbedResult[Rec::c_zz];
-   backgroundResult[Rec::c_0 ] = HALF*(cep_i1j1k2[cp::BGBZ] + cep_i1j1k1[cp::BGBZ]) - SIXTH*backgroundResult[Rec::c_zz];
    CHECK_FLOAT(perturbedResult[Rec::c_0 ])
-   CHECK_FLOAT(backgroundResult[Rec::c_0 ])
 }
 
 /*! \brief Top-level field averaging function.
@@ -2340,7 +2283,7 @@ void calculateVolumeAveragedFields(
    
    vector<uint64_t> localCells = mpiGrid.get_cells();
    
-   Real perturbedCoefficients[Rec::c_zz+1], backgroundCoefficients[Rec::c_zz+1];
+   Real perturbedCoefficients[Rec::c_zz+1];
    
    cuint EX_CELLS = (1 << calcNbrNumber(1,1,1))
       | (1 << calcNbrNumber(1,2,1))
@@ -2376,18 +2319,14 @@ void calculateVolumeAveragedFields(
          nbr_i1j2k1,
          nbr_i1j1k2,
          mpiGrid,
-         perturbedCoefficients,
-         backgroundCoefficients
-      );
+         perturbedCoefficients
+       );
       
       // Calculate volume average of B:
       Real* const cellParams = mpiGrid[cellID]->parameters;
       cellParams[cp::PERBXVOL] = perturbedCoefficients[Rec::a_0];
       cellParams[cp::PERBYVOL] = perturbedCoefficients[Rec::b_0];
       cellParams[cp::PERBZVOL] = perturbedCoefficients[Rec::c_0];
-      cellParams[cp::BGBXVOL] = backgroundCoefficients[Rec::a_0];
-      cellParams[cp::BGBYVOL] = backgroundCoefficients[Rec::b_0];
-      cellParams[cp::BGBZVOL] = backgroundCoefficients[Rec::c_0];
       
       // Calculate volume average of E (NEEDS IMPROVEMENT):
       const CellID nbr_i1j2k2 = getNeighbourID(mpiGrid, cellID, 2  , 2+1, 2+1);
@@ -2483,9 +2422,6 @@ static void calculateBVOLDerivatives(
       array[der::dPERBYVOLdx] = limiter(left[cp::PERBYVOL],cent[cp::PERBYVOL],rght[cp::PERBYVOL]);
       array[der::dPERBZVOLdx] = limiter(left[cp::PERBZVOL],cent[cp::PERBZVOL],rght[cp::PERBZVOL]);
       
-      array[der::dBGBYVOLdx] = limiter(left[cp::BGBYVOL],cent[cp::BGBYVOL],rght[cp::BGBYVOL]);
-      array[der::dBGBZVOLdx] = limiter(left[cp::BGBZVOL],cent[cp::BGBZVOL],rght[cp::BGBZVOL]);
-      
    } else {
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(mpiGrid, cellID, 0);
@@ -2506,9 +2442,6 @@ static void calculateBVOLDerivatives(
       array[der::dPERBXVOLdy] = limiter(left[cp::PERBXVOL],cent[cp::PERBXVOL],rght[cp::PERBXVOL]);
       array[der::dPERBZVOLdy] = limiter(left[cp::PERBZVOL],cent[cp::PERBZVOL],rght[cp::PERBZVOL]);
    
-      array[der::dBGBXVOLdy] = limiter(left[cp::BGBXVOL],cent[cp::BGBXVOL],rght[cp::BGBXVOL]);
-      array[der::dBGBZVOLdy] = limiter(left[cp::BGBZVOL],cent[cp::BGBZVOL],rght[cp::BGBZVOL]);
-   
    } else {
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(mpiGrid, cellID, 1);
@@ -2525,9 +2458,6 @@ static void calculateBVOLDerivatives(
       rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2+1);
       left = mpiGrid[leftNbrID]->parameters;
       rght = mpiGrid[rghtNbrID]->parameters;
-      
-      array[der::dBGBXVOLdz] = limiter(left[cp::BGBXVOL],cent[cp::BGBXVOL],rght[cp::BGBXVOL]);
-      array[der::dBGBYVOLdz] = limiter(left[cp::BGBYVOL],cent[cp::BGBYVOL],rght[cp::BGBYVOL]);
       
       array[der::dPERBXVOLdz] = limiter(left[cp::PERBXVOL],cent[cp::PERBXVOL],rght[cp::PERBXVOL]);
       array[der::dPERBYVOLdz] = limiter(left[cp::PERBYVOL],cent[cp::PERBYVOL],rght[cp::PERBYVOL]);
