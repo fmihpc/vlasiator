@@ -50,7 +50,16 @@ double Dipole::call( double x, double y, double z) const
    }
    else if(_derivative == 1) {
       //first derivatives       
-      return -5*r[_dComponent]/r2*B+(3*q[_dComponent]*r[_fComponent]-2*q[_fComponent]*r[_dComponent] +rdotq*(_dComponent==_fComponent))/r5;
+      unsigned int sameComponent;
+      if(_dComponent==_fComponent)
+         sameComponent=1;
+      else
+         sameComponent=0;
+      
+      return -5*B*r[_dComponent]/r2+
+         (3*q[_dComponent]*r[_fComponent] -
+          2*q[_fComponent]*r[_dComponent] +
+          3*rdotq*sameComponent)/r5;
    }
    return 0;	// dummy, but prevents gcc from yelling
 }
