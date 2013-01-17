@@ -121,9 +121,12 @@ namespace CellParams {
       RHOVX_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVX_R and RHOVX_V*/
       RHOVY_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVY_R and RHOVY_V*/
       RHOVZ_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVZ_R and RHOVZ_V*/
-      BXVOL,  /*!< total magnetic field  PERBX+BGBX averaged over spatial cell.*/
-      BYVOL,  /*!< total magnetic field  PERBY+BGBY averaged over spatial cell.*/
-      BZVOL,  /*!< total magnetic field  PERBZ+BGBZ averaged over spatial cell.*/
+      BGBXVOL,  /*!< total magnetic field  PERBX+BGBX averaged over spatial cell.*/
+      BGBYVOL,  /*!< total magnetic field  PERBY+BGBY averaged over spatial cell.*/
+      BGBZVOL,  /*!< total magnetic field  PERBZ+BGBZ averaged over spatial cell.*/
+      PERBXVOL,  /*!< total magnetic field  PERBX+BGBX averaged over spatial cell.*/
+      PERBYVOL,  /*!< total magnetic field  PERBY+BGBY averaged over spatial cell.*/
+      PERBZVOL,  /*!< total magnetic field  PERBZ+BGBZ averaged over spatial cell.*/
       EXVOL,  /*!< Ex averaged over spatial cell.*/
       EYVOL,  /*!< Ey averaged over spatial cell.*/
       EZVOL,  /*!< Ez averaged over spatial cell.*/
@@ -164,12 +167,18 @@ namespace fieldsolver {
       drhodx,    /*!< Derivative of volume-averaged number density to x-direction. */
       drhody,    /*!< Derivative of volume-averaged number density to y-direction. */
       drhodz,    /*!< Derivative of volume-averaged number density to z-direction. */
-      dBxdy,     /*!< Derivative of face-averaged Bx to y-direction. */
-      dBxdz,     /*!< Derivative of face-averaged Bx to z-direction. */
-      dBydx,     /*!< Derivative of face-averaged By to x-direction. */
-      dBydz,     /*!< Derivative of face-averaged By to z-direction. */
-      dBzdx,     /*!< Derivative of face-averaged Bz to x-direction. */
-      dBzdy,     /*!< Derivative of face-averaged Bz to y-direction. */
+      dBGBxdy,     /*!< Derivative of face-averaged Bx to y-direction. */
+      dBGBxdz,     /*!< Derivative of face-averaged Bx to z-direction. */
+      dBGBydx,     /*!< Derivative of face-averaged By to x-direction. */
+      dBGBydz,     /*!< Derivative of face-averaged By to z-direction. */
+      dBGBzdx,     /*!< Derivative of face-averaged Bz to x-direction. */
+      dBGBzdy,     /*!< Derivative of face-averaged Bz to y-direction. */
+      dPERBxdy,     /*!< Derivative of face-averaged Bx to y-direction. */
+      dPERBxdz,     /*!< Derivative of face-averaged Bx to z-direction. */
+      dPERBydx,     /*!< Derivative of face-averaged By to x-direction. */
+      dPERBydz,     /*!< Derivative of face-averaged By to z-direction. */
+      dPERBzdx,     /*!< Derivative of face-averaged Bz to x-direction. */
+      dPERBzdy,     /*!< Derivative of face-averaged Bz to y-direction. */
       dVxdx,     /*!< Derivative of volume-averaged Vx to x-direction. */
       dVxdy,     /*!< Derivative of volume-averaged Vx to y-direction. */
       dVxdz,     /*!< Derivative of volume-averaged Vx to z-direction. */
@@ -188,12 +197,18 @@ namespace fieldsolver {
  */
 namespace bvolderivatives {
    enum {
-      dBXVOLdy,
-      dBXVOLdz,
-      dBYVOLdx,
-      dBYVOLdz,
-      dBZVOLdx,
-      dBZVOLdy,
+      dBGBXVOLdy,
+      dBGBXVOLdz,
+      dBGBYVOLdx,
+      dBGBYVOLdz,
+      dBGBZVOLdx,
+      dBGBZVOLdy,
+      dPERBXVOLdy,
+      dPERBXVOLdz,
+      dPERBYVOLdx,
+      dPERBYVOLdz,
+      dPERBZVOLdx,
+      dPERBZVOLdy,
       N_BVOL_DERIVATIVES
    };
 }

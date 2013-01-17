@@ -59,12 +59,14 @@ void calculateInterpolatedVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid,
 
 
 /*!
-  \brief Compute 0th and 1st velocity moments (RHO,RHOVX,RHOVY,RHOVZ) for a cell directly from distribution function.The simulation should be at a true time-step!
-  \param SC pointer to the spatial cell
-  
+   \brief Compute 0th and 1st velocity moments (RHO,RHOVX,RHOVY,RHOVZ) for a cell directly from distribution function. The simulation should be at a true time-step!
+   \param SC pointer to the spatial cell
+   \param doNotSkip Used to override the checks about system boundaries which in some cases cause the moments not to be calculated as they have been e.g. copied. Default value: false, in order to preserve all the calls using the checks.
 */
-
-void calculateCellVelocityMoments(SpatialCell* SC);
+void calculateCellVelocityMoments(
+   SpatialCell* SC,
+   bool doNotSkip=false
+);
 
 
 /*!
