@@ -148,8 +148,18 @@ namespace projects {
      
 
      //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
-     if(P::xcells_ini==1)
-       cell->parameters[CellParams::BGBX]=0;
+     if(P::xcells_ini==1) {
+        cell->parameters[CellParams::BGBX]=0;
+        cell->parameters[CellParams::BGBXVOL]=0.0;
+        cell->derivatives[fieldsolver::dBGBydx]=0.0;
+        cell->derivatives[fieldsolver::dBGBzdx]=0.0;
+        cell->derivatives[fieldsolver::dBGBxdy]=0.0;
+        cell->derivatives[fieldsolver::dBGBxdz]=0.0;
+        cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
+        cell->derivativesBVOL[bvolderivatives::dBGBZVOLdx]=0.0;
+        cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
+        cell->derivativesBVOL[bvolderivatives::dBGBXVOLdz]=0.0;
+     }
      
      if(P::ycells_ini==1) {
         /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
@@ -165,8 +175,18 @@ namespace projects {
         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdz]=0.0;
      }
      if(P::zcells_ini==1) {                                                                         
-       cell->parameters[CellParams::BGBX]=0;   
-       cell->parameters[CellParams::BGBY]=0;
+        cell->parameters[CellParams::BGBX]=0;   
+        cell->parameters[CellParams::BGBY]=0;
+        cell->parameters[CellParams::BGBYVOL]=0.0;
+        cell->parameters[CellParams::BGBXVOL]=0.0;
+        cell->derivatives[fieldsolver::dBGBxdy]=0.0;
+        cell->derivatives[fieldsolver::dBGBxdz]=0.0;
+        cell->derivatives[fieldsolver::dBGBydx]=0.0;
+        cell->derivatives[fieldsolver::dBGBydz]=0.0;
+        cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
+        cell->derivativesBVOL[bvolderivatives::dBGBXVOLdz]=0.0;
+        cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
+        cell->derivativesBVOL[bvolderivatives::dBGBYVOLdz]=0.0;
      }
    }
       
