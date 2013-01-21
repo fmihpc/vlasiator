@@ -42,6 +42,9 @@ namespace SBC {
       Readparameters::add("ionosphere.centerZ", "Z coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.radius", "Radius of ionosphere (m).", 1.0e7);
       Readparameters::add("ionosphere.rho", "Number density of the ionosphere (m^-3)", 1.0e6);
+      Readparameters::add("ionosphere.VX0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
+      Readparameters::add("ionosphere.VY0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
+      Readparameters::add("ionosphere.VZ0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
       Readparameters::add("ionosphere.taperRadius", "Width of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
       Readparameters::add("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 2);
    }
@@ -66,6 +69,18 @@ namespace SBC {
          exit(1);
       }
       if(!Readparameters::get("ionosphere.rho", this->rho)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.VX0", this->VX0)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.VY0", this->VY0)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.VZ0", this->VZ0)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -398,7 +413,7 @@ namespace SBC {
                      for (uint vi=0; vi<nVelocitySamples; ++vi)
                         for (uint vj=0; vj<nVelocitySamples; ++vj)
                            for (uint vk=0; vk<nVelocitySamples; ++vk) {
-                              average += maxwellianDistribution(
+                              average += shiftedMaxwellianDistribution(
                                  vxCell + vi*d_vx,
                                  vyCell + vj*d_vy,
                                  vzCell + vk*d_vz
@@ -406,7 +421,7 @@ namespace SBC {
                            }
                            average /= this->nVelocitySamples * this->nVelocitySamples * this->nVelocitySamples;
                   } else {
-                     average = maxwellianDistribution(
+                     average = shiftedMaxwellianDistribution(
                         vxCell + 0.5*dvxCell,
                         vyCell + 0.5*dvyCell,
                         vzCell + 0.5*dvzCell
@@ -434,12 +449,12 @@ namespace SBC {
       templateCell.parameters[CellParams::RHOVZ_DT2] = templateCell.parameters[CellParams::RHOVZ];
    }
    
-   Real Ionosphere::maxwellianDistribution(
+   Real Ionosphere::shiftedMaxwellianDistribution(
       creal& vx, creal& vy, creal& vz
    ) {
       return this->rho * pow(physicalconstants::MASS_PROTON /
       (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5) *
-      exp(-physicalconstants::MASS_PROTON * (vx*vx + vy*vy + vz*vz) /
+      exp(-physicalconstants::MASS_PROTON * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0) + (vz-this->VZ0)*(vz-this->VZ0)) /
       (2.0 * physicalconstants::K_B * this->T));
    }
    
@@ -452,7 +467,7 @@ namespace SBC {
       
       while(search) {
          if(0.1 * P::sparseMinValue >
-            maxwellianDistribution(counter*SpatialCell::block_dvx, 0.0, 0.0)
+            shiftedMaxwellianDistribution(counter*SpatialCell::block_dvx, 0.0, 0.0)
          ) {
             search = false;
          }
