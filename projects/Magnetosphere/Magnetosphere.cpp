@@ -104,6 +104,18 @@ namespace projects {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
+      if(!RP::get("ionosphere.VX0", this->ionosphereV0[0])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!RP::get("ionosphere.VY0", this->ionosphereV0[1])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!RP::get("ionosphere.VZ0", this->ionosphereV0[2])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
 
    }
    
@@ -221,6 +233,7 @@ namespace projects {
       cuint component
    ) {
       Real V0 = this->V0[component];
+      Real ionosphereV0 = this->ionosphereV0[component];
       
       creal radius = sqrt(x*x + y*y + z*z);
       if(radius < this->ionosphereTaperRadius && radius > this->ionosphereRadius) {
@@ -228,7 +241,8 @@ namespace projects {
          //initV0[i] *= (radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
          
          // sine tapering
-         V0 *= 0.5*(1.0-sin(M_PI*(radius-this->ionosphereRadius)/(this->ionosphereTaperRadius-this->ionosphereRadius)+0.5*M_PI));
+         Real q=0.5*(1.0-sin(M_PI*(radius-this->ionosphereRadius)/(this->ionosphereTaperRadius-this->ionosphereRadius)+0.5*M_PI));
+         V0=q*(V0-ionosphereV0)+ionosphereV0;
       }
       
       return V0;
