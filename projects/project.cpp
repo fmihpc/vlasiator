@@ -16,7 +16,9 @@
 #include "MultiPeak/MultiPeak.h"
 #include "Riemann1/Riemann1.h"
 #include "Shock/Shock.h"
-
+#include "test_fp/test_fp.h"
+#include "test_trans/test_trans.h"
+#include "verificationLarmor/verificationLarmor.h"
 
 using namespace std;
 
@@ -45,6 +47,9 @@ namespace projects {
       projects::MultiPeak::addParameters();
       projects::Riemann1::addParameters();
       projects::Shock::addParameters();
+      projects::test_fp::addParameters();
+      projects::test_trans::addParameters();
+      projects::verificationLarmor::addParameters();
       RP::add("Project_common.seed", "Seed for the RNG", 42);
    }
    
@@ -216,6 +221,15 @@ Project* createProject() {
    }
    if(Parameters::projectName == "Shock") {
       return new projects::Shock;
+   }
+   if(Parameters::projectName == "test_fp") {
+      return new projects::test_fp;
+   }
+   if(Parameters::projectName == "test_trans") {
+      return new projects::test_trans;
+   }
+   if(Parameters::projectName == "verificationLarmor") {
+      return new projects::verificationLarmor;
    }
    cerr << "Unknown project name!" << endl;
    abort();

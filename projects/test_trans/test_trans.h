@@ -19,36 +19,50 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #ifndef TEST_TRANS_H
 #define TEST_TRANS_H
 
-#include "definitions.h"
-#include "spatial_cell.hpp"
-#include "parameters.h"
-#include "projects/projects_common.h"
-#include "projects/projects_vlasov_acceleration.h"
+#include <stdlib.h>
 
-#include "dccrg.hpp"
+#include "../../definitions.h"
+#include "../project.h"
 
+namespace projects {
+   class test_trans: public Project {
+   public:
+      test_trans();
+      virtual ~test_trans();
+
+            virtual bool initialize(void);
+      static void addParameters(void);
+      virtual void getParameters(void);
+      
+   protected:
+      Real getDistribValue(creal& vx, creal& vy, creal& vz);
+      virtual void calcCellParameters(Real* cellParams,creal& t);
+      virtual Real calcPhaseSpaceDensity(
+         creal& x, creal& y, creal& z,
+         creal& dx, creal& dy, creal& dz,
+         creal& vx, creal& vy, creal& vz,
+         creal& dvx, creal& dvy, creal& dvz
+      );
+      Real cellPosition;
+   }; // class test_trans
+} // namespace projects
+
+#endif
+
+/*      
 struct test_transParameters {
    static Real cellPosition;
 } ;
+*/
 
-/**
- * Initialize project. Can be used, e.g., to read in parameters from the input file
- */
-bool initializeProject(void);
 
-/** Register parameters that should be read in
- */
-bool addProjectParameters(void);
-/** Get the value that was read in
- */
-bool getProjectParameters(void);
-
-/*!\brief Set the fields and distribution of a cell according to the default simulation settings.
+/* !\brief Set the fields and distribution of a cell according to the default simulation settings.
  * This is used for the NOT_SYSBOUNDARY cells and some other system boundary conditions (e.g. Outflow).
  * \param cell Pointer to the cell to set.
  */
-void setProjectCell(SpatialCell* cell);
+//void setProjectCell(SpatialCell* cell);
 
+/*
 // WARNING Lorentz force not fixed in this project (cf. JXB term in the acceleration)!!!
 template<typename UINT,typename REAL>
 void calcAccFaceX(
@@ -118,5 +132,5 @@ void calcAccFaceZ(
       VX*(cellParams[CellParams::PERBY]+cellParams[CellParams::BGBY]) -
       VY*(cellParams[CellParams::PERBX]+cellParams[CellParams::BGBX]));
 }
+*/
 
-#endif
