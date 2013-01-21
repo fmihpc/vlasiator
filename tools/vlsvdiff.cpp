@@ -294,11 +294,11 @@ bool outputDistance(const Real p,
 {
    if(verboseOutput == true) {
       if(shiftedAverage == false) {
-         cout << "The absolute " << p << "-distance between both datasets is " << *absolute << "." << endl;
-         cout << "The relative " << p << "-distance between both datasets is " << *relative << "." << endl;
+         cout << "The absolute " << p << "-distance between both datasets is " << *absolute  << endl;
+         cout << "The relative " << p << "-distance between both datasets is " << *relative  << endl;
       } else {
-         cout << "The average-shifted absolute " << p << "-distance between both datasets is " << *absolute << "." << endl;
-         cout << "The average-shifted relative " << p << "-distance between both datasets is " << *relative << "." << endl;
+         cout << "The average-shifted absolute " << p << "-distance between both datasets is " << *absolute  << endl;
+         cout << "The average-shifted relative " << p << "-distance between both datasets is " << *relative  << endl;
       }
    } else {
       static vector<Real> fileOutputData;
