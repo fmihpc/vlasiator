@@ -1047,7 +1047,9 @@ namespace velocity_neighbor {
          const Velocity_Block* block_ptr = &(this->velocity_blocks.at(block));
          
          for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
-            if (fabs(block_ptr->data[i]) >= SpatialCell::velocity_block_min_value) {
+            if (block_ptr->data[i] >= SpatialCell::velocity_block_min_value) {
+// FIXME, temporary disabling of fabs -> cfg parameter
+//            if (fabs(block_ptr->data[i]) >= SpatialCell::velocity_block_min_value) {
                has_content = true;
                break;
             }
