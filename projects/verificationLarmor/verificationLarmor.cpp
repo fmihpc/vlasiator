@@ -34,30 +34,30 @@ namespace projects {
 
    void verificationLarmor::addParameters() {
       typedef Readparameters RP;
-      RP::add("Larmor.BX0", "Background field value (T)", 0.0);
-      RP::add("Larmor.BY0", "Background field value (T)", 0.0);
-      RP::add("Larmor.BZ0", "Background field value (T)", 0.0);
-      RP::add("Larmor.VX0", "Bulk velocity in x", 0.0);
-      RP::add("Larmor.VY0", "Bulk velocity in y", 0.0);
-      RP::add("Larmor.VZ0", "Bulk velocity in z", 0.0);
-      RP::add("Larmor.X0", "Initial Position", 0.0);
-      RP::add("Larmor.Y0", "Initial Position", 0.0);
-      RP::add("Larmor.Z0", "Initial Position", 0.0);
-      RP::add("Larmor.rho", "Number density (m^-3)", 1.0e7);
+      RP::add("VerificationLarmor.BX0", "Background field value (T)", 0.0);
+      RP::add("VerificationLarmor.BY0", "Background field value (T)", 0.0);
+      RP::add("VerificationLarmor.BZ0", "Background field value (T)", 0.0);
+      RP::add("VerificationLarmor.VX0", "Bulk velocity in x", 0.0);
+      RP::add("VerificationLarmor.VY0", "Bulk velocity in y", 0.0);
+      RP::add("VerificationLarmor.VZ0", "Bulk velocity in z", 0.0);
+      RP::add("VerificationLarmor.X0", "Initial Position", 0.0);
+      RP::add("VerificationLarmor.Y0", "Initial Position", 0.0);
+      RP::add("VerificationLarmor.Z0", "Initial Position", 0.0);
+      RP::add("VerificationLarmor.rho", "Number density (m^-3)", 1.0e7);
    }
 
    void verificationLarmor::getParameters() {
       typedef Readparameters RP;
-      RP::get("Larmor.BX0", this->BX0);
-      RP::get("Larmor.BY0", this->BY0);
-      RP::get("Larmor.BZ0", this->BZ0);
-      RP::get("Larmor.VX0", this->VX0);
-      RP::get("Larmor.VY0", this->VY0);
-      RP::get("Larmor.VZ0", this->VZ0);
-      RP::get("Larmor.X0", this->X0);
-      RP::get("Larmor.Y0", this->Y0);
-      RP::get("Larmor.Z0", this->Z0);
-      RP::get("Larmor.rho", this->DENSITY);
+      RP::get("VerificationLarmor.BX0", this->BX0);
+      RP::get("VerificationLarmor.BY0", this->BY0);
+      RP::get("VerificationLarmor.BZ0", this->BZ0);
+      RP::get("VerificationLarmor.VX0", this->VX0);
+      RP::get("VerificationLarmor.VY0", this->VY0);
+      RP::get("VerificationLarmor.VZ0", this->VZ0);
+      RP::get("VerificationLarmor.X0", this->X0);
+      RP::get("VerificationLarmor.Y0", this->Y0);
+      RP::get("VerificationLarmor.Z0", this->Z0);
+      RP::get("VerificationLarmor.rho", this->DENSITY);
    }
 
    Real verificationLarmor::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
