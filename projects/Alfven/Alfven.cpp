@@ -135,11 +135,9 @@ namespace projects {
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
-      cellParams[CellParams::PERBX   ] = 0.0;
-      cellParams[CellParams::PERBY   ] = 0.0;
-      cellParams[CellParams::PERBZ   ] = 0.0;
-      cellParams[CellParams::BGBX   ] = this->B0 * cos(this->ALPHA) - this->A_MAG * this->B0 * sin(this->ALPHA) * dBxavg / nPts;
-      cellParams[CellParams::BGBY   ] = this->B0 * sin(this->ALPHA) + this->A_MAG * this->B0 * cos(this->ALPHA) * dByavg / nPts;
-      cellParams[CellParams::BGBZ   ] = this->B0 * this->A_MAG * dBzavg / nPts;
+      //Field below could laso be set as background field
+      cellParams[CellParams::PERBX   ] = this->B0 * cos(this->ALPHA) - this->A_MAG * this->B0 * sin(this->ALPHA) * dBxavg / nPts;
+      cellParams[CellParams::PERBY   ] = this->B0 * sin(this->ALPHA) + this->A_MAG * this->B0 * cos(this->ALPHA) * dByavg / nPts;
+      cellParams[CellParams::PERBZ   ] = this->B0 * this->A_MAG * dBzavg / nPts;
    }
 } // namespace projects

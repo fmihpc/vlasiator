@@ -146,16 +146,10 @@ namespace projects {
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
-      cellParams[CellParams::BGBX   ] = 0.0;
-      cellParams[CellParams::BGBY   ] = 0.0;
-      cellParams[CellParams::BGBZ   ] = 0.0;
-   }
-   
-   void KHB::setCellBackgroundField(SpatialCell* cell) {
-      creal x = cell->parameters[CellParams::XCRD];
-      creal dx = cell->parameters[CellParams::DX];
-      creal z = cell->parameters[CellParams::ZCRD];
-      creal dz = cell->parameters[CellParams::DZ];
+      creal x = cellParams[CellParams::XCRD];
+      creal dx = cellParams[CellParams::DX];
+      creal z = cellParams[CellParams::ZCRD];
+      creal dz = cellParams[CellParams::DZ];
       
       Real Bxavg, Byavg, Bzavg;
       Bxavg = Byavg = Bzavg = 0.0;
@@ -169,8 +163,9 @@ namespace projects {
          }
       cuint nPts = pow(this->nSpaceSamples, 2.0);
       
-      cell->parameters[CellParams::PERBX   ] = Bxavg / nPts;
-      cell->parameters[CellParams::PERBY   ] = Byavg / nPts;
-      cell->parameters[CellParams::PERBZ   ] = Bzavg / nPts;
+      cellParams[CellParams::PERBX   ] = Bxavg / nPts;
+      cellParams[CellParams::PERBY   ] = Byavg / nPts;
+      cellParams[CellParams::PERBZ   ] = Bzavg / nPts;
    }
+
 } // namespace projects

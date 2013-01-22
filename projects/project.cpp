@@ -10,13 +10,14 @@
 #include "Fluctuations/Fluctuations.h"
 #include "harm1D/harm1D.h"
 #include "Harris/Harris.h"
-#include "KelvinHelmholtz/KelvinHelmholtz.h"
+#include "KHB/KHB.h"
 #include "Larmor/Larmor.h"
 #include "Magnetosphere/Magnetosphere.h"
 #include "MultiPeak/MultiPeak.h"
 #include "Riemann1/Riemann1.h"
 #include "Shock/Shock.h"
-
+#include "../backgroundfield/backgroundfield.h"
+#include "../backgroundfield/constantfield.hpp"
 
 using namespace std;
 
@@ -39,7 +40,7 @@ namespace projects {
       projects::Fluctuations::addParameters();
       projects::harm1D::addParameters();
       projects::Harris::addParameters();
-      projects::KelvinHelmholtz::addParameters();
+      projects::KHB::addParameters();
       projects::Larmor::addParameters();
       projects::Magnetosphere::addParameters();
       projects::MultiPeak::addParameters();
@@ -60,10 +61,9 @@ namespace projects {
 
    /*! Base class sets zero background field */
    void Project::setCellBackgroundField(SpatialCell* cell) {
-     cell->parameters[CellParams::BGBX]  = 0.0;
-     cell->parameters[CellParams::BGBY]  = 0.0;
-     cell->parameters[CellParams::BGBZ]  = 0.0;
-     
+      ConstantField bgField;
+      bgField.initialize(0,0,0); //bg bx, by,bz
+      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
    }
    
    void Project::setCell(SpatialCell* cell) {
@@ -90,7 +90,7 @@ namespace projects {
                creal vx = P::vxmin + (iv+0.5) * SpatialCell::block_dvx; // vx-coordinate of the centre
                creal vy = P::vymin + (jv+0.5) * SpatialCell::block_dvy; // vy-
                creal vz = P::vzmin + (kv+0.5) * SpatialCell::block_dvz; // vz-
-               
+               //FIXME, add_velocity_blocks should  not be needed as set_value handles it!!
                cell->add_velocity_block(cell->get_velocity_block(vx, vy, vz));
                blocksToInitialize.push_back(cell->get_velocity_block(vx, vy, vz));
       }
@@ -198,8 +198,8 @@ Project* createProject() {
    if(Parameters::projectName == "Harris") {
       return new projects::Harris;
    }
-   if(Parameters::projectName == "KelvinHelmholtz") {
-      return new projects::KelvinHelmholtz;
+   if(Parameters::projectName == "KHB") {
+      return new projects::KHB;
    }
    if(Parameters::projectName == "Larmor") {
       return new projects::Larmor;

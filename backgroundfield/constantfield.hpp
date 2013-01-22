@@ -22,7 +22,7 @@ public:
    virtual ~ConstantField() {};
 
    
-   inline void initialize(const double Bx,const double By, const double Bz);
+   void initialize(const double Bx,const double By, const double Bz);
    virtual double call(double x, double y, double z) const;
 };
 

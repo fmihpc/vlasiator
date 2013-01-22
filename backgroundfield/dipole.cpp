@@ -37,8 +37,9 @@ double Dipole::call( double x, double y, double z) const
    double r2 = r[0]*r[0]+r[1]*r[1]+r[2]*r[2];
    
    if(r2<minimumR*minimumR)
-      r2=minimumR*minimumR;
-
+      //  r2=minimumR*minimumR;
+      return 0.0; //set zero field inside dipole
+   
    const double r5 = (r2*r2*sqrt(r2));
    const double rdotq=q[0]*r[0] + q[1]*r[1] +q[2]*r[2];
    
