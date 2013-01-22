@@ -17,7 +17,7 @@ run_dir="run"
 
 # choose tests to run
 #run_tests=(1 2
-run_tests=(1 )
+run_tests=( 1 2 3 )
 
 # test 1
 test_name[1]="Fluctuations_A"
@@ -27,14 +27,19 @@ comparison_vlsv[1]="grid.0000010.vlsv"
 # test 2
 test_name[2]="test_fp_A"
 test_cfg[2]="data/test_fp_A.cfg"
-comparison_vlsv[2]="grid.0000001.vlsv"
+comparison_vlsv[2]="grid.0000003.vlsv"
+
+test_name[3]="verificationLarmor_A"
+test_cfg[3]="data/verificationLarmor_A.cfg"
+comparison_vlsv[3]="grid.0000005.vlsv"
 
 
 
-#If 1, the reference vlsv files are generated, if 0 then we do the comparison
+#If 1, the reference vlsv files are generated
+# if 0 then we check the validity against the reference
 create_verification_files=0
 #folder for reference data
-reference_dir="/stornext/field/users/alfthan/vlasiator_reference_data"
+reference_dir="/stornext/field/users/alfthan/vlasiator_reference_data/r1569"
 # give here t%he variables you want to be tested
 variables_name=( "rho" "rho_v" "rho_v" "rho_v" "B" "B" "B" "E" "E" "E" )
 # and the corresponding components to variables, 
@@ -93,7 +98,7 @@ for run in ${run_tests[*]}
 # directory for test results
   vlsv_dir=${run_dir}/${test_name[$run]}
   
-# Check if files for new vlsv files exists, if not create them
+# Check if folder for new run exists, if not create them, otherwise delete old results
   if [ ! -d ${vlsv_dir} ]; then
       mkdir ${vlsv_dir}
   else
