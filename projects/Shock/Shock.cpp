@@ -145,10 +145,7 @@ namespace projects {
       cellParams[CellParams::EZ   ] = 0.0;
       cellParams[CellParams::PERBX   ] = 0.0;
       cellParams[CellParams::PERBY   ] = 0.0;
-      cellParams[CellParams::PERBZ   ] = 0.0;
-      cellParams[CellParams::BGBX   ] = 0.0;
-      cellParams[CellParams::BGBY   ] = 0.0;
-      cellParams[CellParams::BGBZ   ] = this->BZ0*(3.0 + 2.0*tanh((y - Parameters::ymax/2.0)/(this->Sharp_Y*Parameters::ymax)));
+      cellParams[CellParams::PERBZ   ] = this->BZ0*(3.0 + 2.0*tanh((y - Parameters::ymax/2.0)/(this->Sharp_Y*Parameters::ymax)));
    }
 
 }//namespace projects
