@@ -127,15 +127,13 @@ for run in ${run_tests[*]}
       for i in ${!variables_name[*]}
         do
 
-        value=$( vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables_name[$i]} ${variables_components[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
+        relativeValue=$( vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables_name[$i]} ${variables_components[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
+        absoluteValue=$( vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables_name[$i]} ${variables_components[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
+        
+        #if mean is zero, then relative value has no meaning, use abs instead
+        value=$(awk -vrelVal="$relativeValue" -vabsVal="$absoluteValue" 'BEGIN{print (absVal==0 && relVal==-1)?absVal:relVal}')
+        status=$(awk -vval="$value" 'BEGIN{print  (val<=10^(-14) && val>=-10^(-14))?"OK":"!!! ERROR !!!" }')
 
-        b=$(awk -vn="$value" 'BEGIN{print ( n<=10^(-14) && n>=-10^(-14) )?1:0 }')
-
-        if [ "$b" == "1" ]; then
-            status="ok"
-        else
-            status="!!!!  ERROR  !!!!"
-        fi
 #print the results      
         echo "      ${test_name[$run]}          ${variables_name[$i]} ${variables_components[$i]}            $value                $status              "
       done # loop over variables
