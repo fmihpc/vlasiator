@@ -176,8 +176,7 @@ namespace projects {
       cellParams[CellParams::PERBZ] = this->magZPertAbsAmp * (0.5 - (double)rndBuffer[2] / (double)RAND_MAX);
 
    }
-
-   /*! Base class sets zero background field */
+   
    void Dispersion::setCellBackgroundField(SpatialCell* cell) {
       ConstantField bgField;
       bgField.initialize(this->B0 * cos(this->angleXY) * cos(this->angleXZ),
