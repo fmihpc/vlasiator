@@ -34,7 +34,7 @@ namespace projects {
          virtual bool initialize(void);
          static void addParameters(void);
          virtual void getParameters(void);
-         
+         virtual void setCellBackgroundField(SpatialCell* cell);
       protected:
          Real getDistribValue(
          creal& x,creal& y, creal& z,
