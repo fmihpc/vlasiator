@@ -8,7 +8,6 @@
 #include "Firehose/Firehose.h"
 #include "Flowthrough/Flowthrough.h"
 #include "Fluctuations/Fluctuations.h"
-#include "harm1D/harm1D.h"
 #include "Harris/Harris.h"
 #include "KHB/KHB.h"
 #include "Larmor/Larmor.h"
@@ -38,7 +37,6 @@ namespace projects {
       projects::Firehose::addParameters();
       projects::Flowthrough::addParameters();
       projects::Fluctuations::addParameters();
-      projects::harm1D::addParameters();
       projects::Harris::addParameters();
       projects::KHB::addParameters();
       projects::Larmor::addParameters();
@@ -192,9 +190,7 @@ Project* createProject() {
    if(Parameters::projectName == "Fluctuations") {
          return new projects::Fluctuations;
    }
-   if(Parameters::projectName == "harm1D") {
-      return new projects::harm1D;
-   }
+
    if(Parameters::projectName == "Harris") {
       return new projects::Harris;
    }
