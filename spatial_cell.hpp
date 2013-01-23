@@ -654,7 +654,7 @@ namespace velocity_neighbor {
 
          // reset spatial cell parameters
          for (unsigned int i = 0; i < CellParams::N_SPATIAL_CELL_PARAMS; i++) {
-            this->parameters[i]=0;
+            this->parameters[i]=0.0;
          }
 
          // reset spatial cell derivatives
@@ -666,6 +666,9 @@ namespace velocity_neighbor {
          for (unsigned int i = 0; i < bvolderivatives::N_BVOL_DERIVATIVES; i++) {
             this->derivativesBVOL[i]=0;
          }
+
+         //reset number of substeps
+         this->subStepsAcceleration=1; 
       }
       
       SpatialCell(const SpatialCell& other):
@@ -683,7 +686,8 @@ namespace velocity_neighbor {
          neighbors(other.neighbors),
          procBoundaryFlag(other.procBoundaryFlag),
          sysBoundaryFlag(other.sysBoundaryFlag),
-         sysBoundaryLayer(other.sysBoundaryLayer)
+         sysBoundaryLayer(other.sysBoundaryLayer),
+         subStepsAcceleration(other.subStepsAcceleration)
          {
 
 //       phiprof::initializeTimer("SpatialCell copy", "SpatialCell copy");
