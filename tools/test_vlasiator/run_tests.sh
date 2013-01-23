@@ -17,7 +17,7 @@ run_dir="run"
 
 # choose tests to run
 #run_tests=(1 2
-run_tests=( 1 2 3 )
+run_tests=( 1 2 )
 
 # test 1
 test_name[1]="Fluctuations_A"
@@ -28,12 +28,6 @@ comparison_vlsv[1]="grid.0000010.vlsv"
 test_name[2]="test_fp_A"
 test_cfg[2]="data/test_fp_A.cfg"
 comparison_vlsv[2]="grid.0000003.vlsv"
-
-test_name[3]="verificationLarmor_A"
-test_cfg[3]="data/verificationLarmor_A.cfg"
-comparison_vlsv[3]="grid.0000005.vlsv"
-
-
 
 #If 1, the reference vlsv files are generated
 # if 0 then we check the validity against the reference
