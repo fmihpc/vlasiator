@@ -24,6 +24,7 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
+#include "../../backgroundfield/constantfield.hpp"
 
 #include "Fluctuations.h"
 
@@ -153,11 +154,17 @@ namespace projects {
       rndBuffer[1]=getRandomNumber();
       rndBuffer[2]=getRandomNumber();
       
-      cellParams[CellParams::BGBX]  = this->BX0 ;
       cellParams[CellParams::PERBX] = this->magXPertAbsAmp * (0.5 - rndBuffer[0]);
-      cellParams[CellParams::BGBY]   = this->BY0; 
       cellParams[CellParams::PERBY] = this->magYPertAbsAmp * (0.5 - rndBuffer[1]);
-      cellParams[CellParams::BGBZ] = this->BZ0;
       cellParams[CellParams::PERBZ] = this->magZPertAbsAmp * (0.5 - rndBuffer[2]);
+   }
+
+   void Fluctuations::setCellBackgroundField(SpatialCell* cell) {
+      ConstantField bgField;
+      bgField.initialize(this->BX0,
+                         this->BY0,
+                         this->BZ0);
+      
+      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
    }
 } // namespace projects

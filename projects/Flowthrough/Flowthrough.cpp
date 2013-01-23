@@ -129,9 +129,9 @@ namespace projects {
    }
 
    void Flowthrough::calcCellParameters(Real* cellParams,creal& t) {
-      cellParams[CellParams::BGBX] = this->Bx;
-      cellParams[CellParams::BGBY] = this->By;
-      cellParams[CellParams::BGBZ] = this->Bz;
+      cellParams[CellParams::PERBX] = this->Bx;
+      cellParams[CellParams::PERBY] = this->By;
+      cellParams[CellParams::PERBZ] = this->Bz;
    }
    
    Real Flowthrough::getV0(

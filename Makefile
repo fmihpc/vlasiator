@@ -103,9 +103,7 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/Firehose/Firehose.h projects/Firehose/Firehose.cpp \
 		projects/Flowthrough/Flowthrough.h projects/Flowthrough/Flowthrough.cpp \
 		projects/Fluctuations/Fluctuations.h projects/Fluctuations/Fluctuations.cpp \
-		projects/harm1D/harm1D.h projects/harm1D/harm1D.cpp \
-		projects/Harris/Harris.h projects/Harris/Harris.cpp \
-		projects/KelvinHelmholtz/KelvinHelmholtz.h projects/KelvinHelmholtz/KelvinHelmholtz.cpp \
+		projects/KHB/KHB.h projects/KHB/KHB.cpp \
 		projects/Larmor/Larmor.h projects/Larmor/Larmor.cpp \
 		projects/Magnetosphere/Magnetosphere.h projects/Magnetosphere/Magnetosphere.cpp\
 		projects/MultiPeak/MultiPeak.h projects/MultiPeak/MultiPeak.cpp \
@@ -116,12 +114,12 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/verificationLarmor/verificationLarmor.h projects/verificationLarmor/verificationLarmor.cpp
 #all objects for vlasiator
 
-OBJS = 	backgroundfield.o ode.o quadr.o B0.o \
+OBJS = 	backgroundfield.o ode.o quadr.o dipole.o constantfield.o integratefunction.o \
 	datareducer.o datareductionoperator.o \
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o \
 	sysboundary.o sysboundarycondition.o \
 	project.o projectIsotropicMaxwellian.o \
-	Alfven.o Diffusion.o Dispersion.o Firehose.o Flowthrough.o Fluctuations.o harm1D.o Harris.o KelvinHelmholtz.o Larmor.o Magnetosphere.o MultiPeak.o Riemann1.o Shock.o test_fp.o test_trans.o verificationLarmor.o\
+	Alfven.o Diffusion.o Dispersion.o Firehose.o Flowthrough.o Fluctuations.o  KHB.o Larmor.o Magnetosphere.o MultiPeak.o Riemann1.o Shock.o test_fp.o test_trans.o verificationLarmor.o\
 	grid.o fileio.o vlasiator.o logger.o muxml.o \
 	parameters.o readparameters.o spatial_cell.o \
 	vlscommon.o vlsvreader2.o vlsvwriter2.o vlasovmover_$(TRANSSOLVER).o $(FIELDSOLVER).o
@@ -146,8 +144,11 @@ clean: data
 
 # Rules for making each object file needed by the executable
 
-B0.o: backgroundfield/B0.cpp backgroundfield/B0.hpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/B0.cpp ${INC_BOOST}
+dipole.o: backgroundfield/dipole.cpp backgroundfield/dipole.hpp backgroundfield/fieldfunction.hpp backgroundfield/functions.hpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/dipole.cpp 
+
+constantfield.o: backgroundfield/constantfield.cpp backgroundfield/constantfield.hpp backgroundfield/fieldfunction.hpp backgroundfield/functions.hpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/constantfield.cpp 
 
 ode.o: backgroundfield/ode.cpp backgroundfield/ode.hpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/ode.cpp
@@ -155,8 +156,11 @@ ode.o: backgroundfield/ode.cpp backgroundfield/ode.hpp
 quadr.o: backgroundfield/quadr.cpp backgroundfield/quadr.hpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/quadr.cpp
 
-backgroundfield.o: ${DEPS_COMMON} backgroundfield/backgroundfield.cpp backgroundfield/backgroundfield.h
-	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/backgroundfield.cpp ${INC_BOOST}
+backgroundfield.o: ${DEPS_COMMON} backgroundfield/backgroundfield.cpp backgroundfield/backgroundfield.h backgroundfield/fieldfunction.hpp backgroundfield/functions.hpp backgroundfield/integratefunction.hpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/backgroundfield.cpp 
+
+integratefunction.o: ${DEPS_COMMON} backgroundfield/integratefunction.cpp backgroundfield/integratefunction.hpp backgroundfield/functions.hpp  backgroundfield/quadr.cpp backgroundfield/quadr.hpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/integratefunction.cpp 
 
 datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/datareducer.h datareduction/datareductionoperator.h datareduction/datareducer.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareduction/datareducer.cpp ${INC_MPI} ${INC_BOOST}
@@ -203,14 +207,8 @@ Flowthrough.o: ${DEPS_COMMON} projects/Flowthrough/Flowthrough.h projects/Flowth
 Fluctuations.o: ${DEPS_COMMON} projects/Fluctuations/Fluctuations.h projects/Fluctuations/Fluctuations.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Fluctuations/Fluctuations.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
 
-harm1D.o: ${DEPS_COMMON} projects/harm1D/harm1D.h projects/harm1D/harm1D.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/harm1D/harm1D.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
-
-Harris.o: ${DEPS_COMMON} projects/Harris/Harris.h projects/Harris/Harris.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Harris/Harris.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
-
-KelvinHelmholtz.o: ${DEPS_COMMON} projects/KelvinHelmholtz/KelvinHelmholtz.h projects/KelvinHelmholtz/KelvinHelmholtz.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/KelvinHelmholtz/KelvinHelmholtz.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
+KHB.o: ${DEPS_COMMON} projects/KHB/KHB.h projects/KHB/KHB.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/KHB/KHB.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}
 
 Larmor.o: ${DEPS_COMMON} projects/Larmor/Larmor.h projects/Larmor/Larmor.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Larmor/Larmor.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST}

@@ -128,11 +128,9 @@ namespace projects {
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
-      cellParams[CellParams::PERBX   ] = 0.0;
-      cellParams[CellParams::PERBY   ] = 0.0;
-      cellParams[CellParams::PERBZ   ] = 0.0;
-      cellParams[CellParams::BGBX   ] = Bxavg / nPts;
-      cellParams[CellParams::BGBY   ] = Byavg / nPts;
-      cellParams[CellParams::BGBZ   ] = Bzavg / nPts;
+      //FIXME, this field could also be in background field, but a simple bgfield class would then need to be defined, also, first derivatives are not so well defined for a step...
+      cellParams[CellParams::PERBX   ] = Bxavg / nPts;
+      cellParams[CellParams::PERBY   ] = Byavg / nPts;
+      cellParams[CellParams::PERBZ   ] = Bzavg / nPts;
    }
 }

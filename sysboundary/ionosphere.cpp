@@ -42,6 +42,9 @@ namespace SBC {
       Readparameters::add("ionosphere.centerZ", "Z coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.radius", "Radius of ionosphere (m).", 1.0e7);
       Readparameters::add("ionosphere.rho", "Number density of the ionosphere (m^-3)", 1.0e6);
+      Readparameters::add("ionosphere.VX0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
+      Readparameters::add("ionosphere.VY0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
+      Readparameters::add("ionosphere.VZ0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
       Readparameters::add("ionosphere.taperRadius", "Width of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
       Readparameters::add("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 2);
    }
@@ -66,6 +69,18 @@ namespace SBC {
          exit(1);
       }
       if(!Readparameters::get("ionosphere.rho", this->rho)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.VX0", this->VX0)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.VY0", this->VY0)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.VZ0", this->VZ0)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -211,8 +226,10 @@ namespace SBC {
                array[fs::dVzdx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ], rhovLeft[cp::RHO]),
                                            divideIfNonZero(    cent[cp::RHOVZ],     cent[cp::RHO]),
                                            divideIfNonZero(rhovRght[cp::RHOVZ], rhovRght[cp::RHO]));
-               array[fs::dBydx]  = limiter(left[cp::BGBY]+left[cp::PERBY],cent[cp::BGBY]+cent[cp::PERBY],rght[cp::BGBY]+rght[cp::PERBY]);
-               array[fs::dBzdx]  = limiter(left[cp::BGBZ]+left[cp::PERBZ],cent[cp::BGBZ]+cent[cp::PERBZ],rght[cp::BGBZ]+rght[cp::PERBZ]);
+               array[fs::dPERBydx]  = limiter(left[cp::PERBY],cent[cp::PERBY],rght[cp::PERBY]);
+               array[fs::dBGBydx]  = limiter(left[cp::BGBY],cent[cp::BGBY],rght[cp::BGBY]);
+               array[fs::dPERBzdx]  = limiter(left[cp::PERBZ],cent[cp::PERBZ],rght[cp::PERBZ]);
+               array[fs::dBGBzdx]  = limiter(left[cp::BGBZ],cent[cp::BGBZ],rght[cp::BGBZ]);
             }
             if (RKCase == RK_ORDER2_STEP1) {
                array[fs::drhodx] = limiter(rhovLeft[cp::RHO_DT2],cent[cp::RHO_DT2],rhovRght[cp::RHO_DT2]);
@@ -225,8 +242,10 @@ namespace SBC {
                array[fs::dVzdx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ_DT2], rhovLeft[cp::RHO_DT2]),
                                            divideIfNonZero(    cent[cp::RHOVZ_DT2],     cent[cp::RHO_DT2]),
                                            divideIfNonZero(rhovRght[cp::RHOVZ_DT2], rhovRght[cp::RHO_DT2]));
-               array[fs::dBydx]  = limiter(left[cp::BGBY]+left[cp::PERBY_DT2],cent[cp::BGBY]+cent[cp::PERBY_DT2],rght[cp::BGBY]+rght[cp::PERBY_DT2]);
-               array[fs::dBzdx]  = limiter(left[cp::BGBZ]+left[cp::PERBZ_DT2],cent[cp::BGBZ]+cent[cp::PERBZ_DT2],rght[cp::BGBZ]+rght[cp::PERBZ_DT2]);
+               array[fs::dPERBydx]  = limiter(left[cp::PERBY_DT2],cent[cp::PERBY_DT2],rght[cp::PERBY_DT2]);
+               array[fs::dBGBydx]  = limiter(left[cp::BGBY],cent[cp::BGBY],rght[cp::BGBY]);
+               array[fs::dPERBzdx]  = limiter(left[cp::PERBZ_DT2],cent[cp::PERBZ_DT2],rght[cp::PERBZ_DT2]);
+               array[fs::dBGBzdx]  = limiter(left[cp::BGBZ],cent[cp::BGBZ],rght[cp::BGBZ]);
             }
             break;
          case 1:
@@ -255,8 +274,10 @@ namespace SBC {
                array[fs::dVzdy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ], rhovLeft[cp::RHO]),
                                            divideIfNonZero(    cent[cp::RHOVZ],     cent[cp::RHO]),
                                            divideIfNonZero(rhovRght[cp::RHOVZ], rhovRght[cp::RHO]));
-               array[fs::dBxdy]  = limiter(left[cp::BGBX]+left[cp::PERBX],cent[cp::BGBX]+cent[cp::PERBX],rght[cp::BGBX]+rght[cp::PERBX]);
-               array[fs::dBzdy]  = limiter(left[cp::BGBZ]+left[cp::PERBZ],cent[cp::BGBZ]+cent[cp::PERBZ],rght[cp::BGBZ]+rght[cp::PERBZ]);
+               array[fs::dPERBxdy]  = limiter(left[cp::PERBX],cent[cp::PERBX],rght[cp::PERBX]);
+               array[fs::dBGBxdy]  = limiter(left[cp::BGBX],cent[cp::BGBX],rght[cp::BGBX]);
+               array[fs::dPERBzdy]  = limiter(left[cp::PERBZ],cent[cp::PERBZ],rght[cp::PERBZ]);
+               array[fs::dBGBzdy]  = limiter(left[cp::BGBZ],cent[cp::BGBZ],rght[cp::BGBZ]);
             }
             if (RKCase == RK_ORDER2_STEP1) {
                array[fs::drhody] = limiter(rhovLeft[cp::RHO_DT2],cent[cp::RHO_DT2],rhovRght[cp::RHO_DT2]);
@@ -269,8 +290,10 @@ namespace SBC {
                array[fs::dVzdy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ_DT2], rhovLeft[cp::RHO_DT2]),
                                            divideIfNonZero(    cent[cp::RHOVZ_DT2],     cent[cp::RHO_DT2]),
                                            divideIfNonZero(rhovRght[cp::RHOVZ_DT2], rhovRght[cp::RHO_DT2]));
-               array[fs::dBxdy]  = limiter(left[cp::BGBX]+left[cp::PERBX_DT2],cent[cp::BGBX]+cent[cp::PERBX_DT2],rght[cp::BGBX]+rght[cp::PERBX_DT2]);
-               array[fs::dBzdy]  = limiter(left[cp::BGBZ]+left[cp::PERBZ_DT2],cent[cp::BGBZ]+cent[cp::PERBZ_DT2],rght[cp::BGBZ]+rght[cp::PERBZ_DT2]);
+               array[fs::dPERBxdy]  = limiter(left[cp::PERBX_DT2],cent[cp::PERBX_DT2],rght[cp::PERBX_DT2]);
+               array[fs::dBGBxdy]  = limiter(left[cp::BGBX],cent[cp::BGBX],rght[cp::BGBX]);
+               array[fs::dPERBzdy]  = limiter(left[cp::PERBZ_DT2],cent[cp::PERBZ_DT2],rght[cp::PERBZ_DT2]);
+               array[fs::dBGBzdy]  = limiter(left[cp::BGBZ],cent[cp::BGBZ],rght[cp::BGBZ]);
             }
             break;
          case 2:
@@ -299,8 +322,10 @@ namespace SBC {
                array[fs::dVzdz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ], rhovLeft[cp::RHO]),
                                            divideIfNonZero(    cent[cp::RHOVZ],     cent[cp::RHO]),
                                            divideIfNonZero(rhovRght[cp::RHOVZ], rhovRght[cp::RHO]));
-               array[fs::dBxdz]  = limiter(left[cp::BGBX]+left[cp::PERBX],cent[cp::BGBX]+cent[cp::PERBX],rght[cp::BGBX]+rght[cp::PERBX]);
-               array[fs::dBydz]  = limiter(left[cp::BGBY]+left[cp::PERBY],cent[cp::BGBY]+cent[cp::PERBY],rght[cp::BGBY]+rght[cp::PERBY]);
+               array[fs::dPERBxdz]  = limiter(left[cp::PERBX],cent[cp::PERBX],rght[cp::PERBX]);
+               array[fs::dBGBxdz]  = limiter(left[cp::BGBX],cent[cp::BGBX],rght[cp::BGBX]);
+               array[fs::dPERBydz]  = limiter(left[cp::PERBY],cent[cp::PERBY],rght[cp::PERBY]);
+               array[fs::dBGBydz]  = limiter(left[cp::BGBY],cent[cp::BGBY],rght[cp::BGBY]);
             }
             if (RKCase == RK_ORDER2_STEP1) {
                array[fs::drhodz] = limiter(rhovLeft[cp::RHO_DT2],cent[cp::RHO_DT2],rhovRght[cp::RHO_DT2]);
@@ -313,8 +338,10 @@ namespace SBC {
                array[fs::dVzdz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ_DT2], rhovLeft[cp::RHO_DT2]),
                                            divideIfNonZero(    cent[cp::RHOVZ_DT2],     cent[cp::RHO_DT2]),
                                            divideIfNonZero(rhovRght[cp::RHOVZ_DT2], rhovRght[cp::RHO_DT2]));
-               array[fs::dBxdz]  = limiter(left[cp::BGBX]+left[cp::PERBX_DT2],cent[cp::BGBX]+cent[cp::PERBX_DT2],rght[cp::BGBX]+rght[cp::PERBX_DT2]);
-               array[fs::dBydz]  = limiter(left[cp::BGBY]+left[cp::PERBY_DT2],cent[cp::BGBY]+cent[cp::PERBY_DT2],rght[cp::BGBY]+rght[cp::PERBY_DT2]);
+               array[fs::dPERBxdz]  = limiter(left[cp::PERBX_DT2],cent[cp::PERBX_DT2],rght[cp::PERBX_DT2]);
+               array[fs::dBGBxdz]  = limiter(left[cp::BGBX],cent[cp::BGBX],rght[cp::BGBX]);
+               array[fs::dPERBydz]  = limiter(left[cp::PERBY_DT2],cent[cp::PERBY_DT2],rght[cp::PERBY_DT2]);
+               array[fs::dBGBydz]  = limiter(left[cp::BGBY],cent[cp::BGBY],rght[cp::BGBY]);
             }
             break;
          default:
@@ -386,7 +413,7 @@ namespace SBC {
                      for (uint vi=0; vi<nVelocitySamples; ++vi)
                         for (uint vj=0; vj<nVelocitySamples; ++vj)
                            for (uint vk=0; vk<nVelocitySamples; ++vk) {
-                              average += maxwellianDistribution(
+                              average += shiftedMaxwellianDistribution(
                                  vxCell + vi*d_vx,
                                  vyCell + vj*d_vy,
                                  vzCell + vk*d_vz
@@ -394,7 +421,7 @@ namespace SBC {
                            }
                            average /= this->nVelocitySamples * this->nVelocitySamples * this->nVelocitySamples;
                   } else {
-                     average = maxwellianDistribution(
+                     average = shiftedMaxwellianDistribution(
                         vxCell + 0.5*dvxCell,
                         vyCell + 0.5*dvyCell,
                         vzCell + 0.5*dvzCell
@@ -422,12 +449,12 @@ namespace SBC {
       templateCell.parameters[CellParams::RHOVZ_DT2] = templateCell.parameters[CellParams::RHOVZ];
    }
    
-   Real Ionosphere::maxwellianDistribution(
+   Real Ionosphere::shiftedMaxwellianDistribution(
       creal& vx, creal& vy, creal& vz
    ) {
       return this->rho * pow(physicalconstants::MASS_PROTON /
       (2.0 * M_PI * physicalconstants::K_B * this->T), 1.5) *
-      exp(-physicalconstants::MASS_PROTON * (vx*vx + vy*vy + vz*vz) /
+      exp(-physicalconstants::MASS_PROTON * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0) + (vz-this->VZ0)*(vz-this->VZ0)) /
       (2.0 * physicalconstants::K_B * this->T));
    }
    
@@ -440,7 +467,7 @@ namespace SBC {
       
       while(search) {
          if(0.1 * P::sparseMinValue >
-            maxwellianDistribution(counter*SpatialCell::block_dvx, 0.0, 0.0)
+            shiftedMaxwellianDistribution(counter*SpatialCell::block_dvx, 0.0, 0.0)
          ) {
             search = false;
          }

@@ -23,6 +23,7 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
+#include "../../backgroundfield/dipole.hpp"
 
 #include "Magnetosphere.h"
 
@@ -103,6 +104,18 @@ namespace projects {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
+      if(!RP::get("ionosphere.VX0", this->ionosphereV0[0])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!RP::get("ionosphere.VY0", this->ionosphereV0[1])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!RP::get("ionosphere.VZ0", this->ionosphereV0[2])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
 
    }
    
@@ -141,27 +154,52 @@ namespace projects {
 
    /* set 0-centered dipole */
    void Magnetosphere::setCellBackgroundField(SpatialCell *cell){
-      setDipole(cell->parameters);
-      cell->parameters[CellParams::BGBX]*=this->dipoleScalingFactor;
-      cell->parameters[CellParams::BGBY]*=this->dipoleScalingFactor;
-      cell->parameters[CellParams::BGBZ]*=this->dipoleScalingFactor;
-      
-      if (  (cell->parameters[CellParams::BGBX]) !=(cell->parameters[CellParams::BGBX]) ||
-            (cell->parameters[CellParams::BGBY]) !=(cell->parameters[CellParams::BGBY]) ||
-            (cell->parameters[CellParams::BGBZ]) !=(cell->parameters[CellParams::BGBZ]))
-      {
-         std::cerr << __FILE__ << ":" << __LINE__ << " Dipole returned NAN's ???"  << std::endl;
-         abort();
-      }
+     Dipole bgField;
+     bgField.initialize(8e15 *this->dipoleScalingFactor); //set dipole moment
+     setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+     
 
-      //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
-      if(P::xcells_ini==1)
-         cell->parameters[CellParams::BGBX]=0;
-
-      if(P::ycells_ini==1)
-         cell->parameters[CellParams::BGBY]=0;
-
-
+     //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
+     if(P::xcells_ini==1) {
+        cell->parameters[CellParams::BGBX]=0;
+        cell->parameters[CellParams::BGBXVOL]=0.0;
+        cell->derivatives[fieldsolver::dBGBydx]=0.0;
+        cell->derivatives[fieldsolver::dBGBzdx]=0.0;
+        cell->derivatives[fieldsolver::dBGBxdy]=0.0;
+        cell->derivatives[fieldsolver::dBGBxdz]=0.0;
+        cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
+        cell->derivativesBVOL[bvolderivatives::dBGBZVOLdx]=0.0;
+        cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
+        cell->derivativesBVOL[bvolderivatives::dBGBXVOLdz]=0.0;
+     }
+     
+     if(P::ycells_ini==1) {
+        /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
+        cell->parameters[CellParams::BGBY]=0.0;
+        cell->parameters[CellParams::BGBYVOL]=0.0;
+        cell->derivatives[fieldsolver::dBGBxdy]=0.0;
+        cell->derivatives[fieldsolver::dBGBzdy]=0.0;
+        cell->derivatives[fieldsolver::dBGBydx]=0.0;
+        cell->derivatives[fieldsolver::dBGBydz]=0.0;
+        cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
+        cell->derivativesBVOL[bvolderivatives::dBGBZVOLdy]=0.0;
+        cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
+        cell->derivativesBVOL[bvolderivatives::dBGBYVOLdz]=0.0;
+     }
+     if(P::zcells_ini==1) {                                                                         
+        cell->parameters[CellParams::BGBX]=0;   
+        cell->parameters[CellParams::BGBY]=0;
+        cell->parameters[CellParams::BGBYVOL]=0.0;
+        cell->parameters[CellParams::BGBXVOL]=0.0;
+        cell->derivatives[fieldsolver::dBGBxdy]=0.0;
+        cell->derivatives[fieldsolver::dBGBxdz]=0.0;
+        cell->derivatives[fieldsolver::dBGBydx]=0.0;
+        cell->derivatives[fieldsolver::dBGBydz]=0.0;
+        cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
+        cell->derivativesBVOL[bvolderivatives::dBGBXVOLdz]=0.0;
+        cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
+        cell->derivativesBVOL[bvolderivatives::dBGBYVOLdz]=0.0;
+     }
    }
       
       
@@ -195,6 +233,7 @@ namespace projects {
       cuint component
    ) {
       Real V0 = this->V0[component];
+      Real ionosphereV0 = this->ionosphereV0[component];
       
       creal radius = sqrt(x*x + y*y + z*z);
       if(radius < this->ionosphereTaperRadius && radius > this->ionosphereRadius) {
@@ -202,7 +241,8 @@ namespace projects {
          //initV0[i] *= (radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
          
          // sine tapering
-         V0 *= 0.5*(1.0-sin(M_PI*(radius-this->ionosphereRadius)/(this->ionosphereTaperRadius-this->ionosphereRadius)+0.5*M_PI));
+         Real q=0.5*(1.0-sin(M_PI*(radius-this->ionosphereRadius)/(this->ionosphereTaperRadius-this->ionosphereRadius)+0.5*M_PI));
+         V0=q*(V0-ionosphereV0)+ionosphereV0;
       }
       
       return V0;

@@ -124,13 +124,6 @@ namespace projects {
       cellParams[CellParams::PERBX   ] = 0.0;
       cellParams[CellParams::PERBY   ] = 0.0;
       cellParams[CellParams::PERBZ   ] = 0.0;
-      
-      cellParams[CellParams::EXVOL] = 0.0;
-      cellParams[CellParams::EYVOL] = 0.0;
-      cellParams[CellParams::EZVOL] = 0.0;
-      cellParams[CellParams::BXVOL] = 0.0;
-      cellParams[CellParams::BYVOL] = 0.0;
-      cellParams[CellParams::BZVOL] = 0.0;
    }
 
 }// namespace projects

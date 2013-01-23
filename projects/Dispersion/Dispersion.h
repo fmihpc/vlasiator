@@ -1,3 +1,4 @@
+
 /*
 This file is part of Vlasiator.
 
@@ -33,7 +34,7 @@ namespace projects {
          virtual bool initialize(void);
          static void addParameters(void);
          virtual void getParameters(void);
-         
+         virtual void setCellBackgroundField(SpatialCell* cell);         
       protected:
          Real getDistribValue(creal& vx, creal& vy, creal& vz);
          virtual void calcCellParameters(Real* cellParams,creal& t);

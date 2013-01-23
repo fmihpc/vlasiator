@@ -24,7 +24,7 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
-
+#include "../../backgroundfield/constantfield.hpp"
 #include "verificationLarmor.h"
 
 namespace projects {
@@ -112,10 +112,15 @@ namespace projects {
       cellParams[CellParams::PERBX   ] = 0.0;
       cellParams[CellParams::PERBY   ] = 0.0;
       cellParams[CellParams::PERBZ   ] = 0.0;
-      cellParams[CellParams::BGBX   ] = this->BX0;
-      cellParams[CellParams::BGBY   ] = this->BY0;
-      cellParams[CellParams::BGBZ   ] = this->BZ0;
+   }
 
+   void verificationLarmor::setCellBackgroundField(SpatialCell* cell) {
+      ConstantField bgField;
+      bgField.initialize(this->BX0,
+                         this->BY0,
+                         this->BZ0);
+      
+      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
    }
 
 } //namespace projects

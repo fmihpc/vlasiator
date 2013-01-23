@@ -24,6 +24,7 @@
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
+#include "../../backgroundfield/constantfield.hpp"
 
 #include "Dispersion.h"
 
@@ -173,9 +174,15 @@ namespace projects {
       cellParams[CellParams::PERBX] = this->magXPertAbsAmp * (0.5 - (double)rndBuffer[0] / (double)RAND_MAX);
       cellParams[CellParams::PERBY] = this->magYPertAbsAmp * (0.5 - (double)rndBuffer[1] / (double)RAND_MAX);
       cellParams[CellParams::PERBZ] = this->magZPertAbsAmp * (0.5 - (double)rndBuffer[2] / (double)RAND_MAX);
-      
-      cellParams[CellParams::BGBX] = this->B0 * cos(this->angleXY) * cos(this->angleXZ);
-      cellParams[CellParams::BGBY] = this->B0 * sin(this->angleXY) * cos(this->angleXZ);
-      cellParams[CellParams::BGBZ] = this->B0 * sin(this->angleXZ);
+
+   }
+   
+   void Dispersion::setCellBackgroundField(SpatialCell* cell) {
+      ConstantField bgField;
+      bgField.initialize(this->B0 * cos(this->angleXY) * cos(this->angleXZ),
+                         this->B0 * sin(this->angleXY) * cos(this->angleXZ),
+                         this->B0 * sin(this->angleXZ));
+                         
+      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
    }
 } // namespace projects

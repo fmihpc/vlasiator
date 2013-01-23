@@ -24,7 +24,7 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
-
+#include "../../backgroundfield/constantfield.hpp"
 #include "Diffusion.h"
 
 namespace projects {
@@ -101,8 +101,12 @@ namespace projects {
       cellParams[CellParams::PERBX   ] = 0.0;
       cellParams[CellParams::PERBY   ] = 0.0;
       cellParams[CellParams::PERBZ   ] = 0.0;
-      cellParams[CellParams::BGBX   ] = 0.0;
-      cellParams[CellParams::BGBY   ] = 0.0;
-      cellParams[CellParams::BGBZ   ] = this->B0;
+
+   }
+
+   void Diffusion::setCellBackgroundField(SpatialCell* cell) {
+      ConstantField bgField;
+      bgField.initialize(0,0,this->B0); //bg bx, by,bz
+      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
    }
 } // namespace projects

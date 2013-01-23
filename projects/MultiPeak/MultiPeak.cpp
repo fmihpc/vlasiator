@@ -24,6 +24,7 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
+#include "../../backgroundfield/constantfield.hpp"
 
 #include "MultiPeak.h"
 
@@ -112,9 +113,15 @@ namespace projects {
       cellParams[CellParams::PERBX   ] = 0.0;
       cellParams[CellParams::PERBY   ] = 0.0;
       cellParams[CellParams::PERBZ   ] = 0.0;
-      cellParams[CellParams::BGBX   ] = this->Bx;
-      cellParams[CellParams::BGBY   ] = this->By;
-      cellParams[CellParams::BGBZ   ] = this->Bz;
    }
 
+   void MultiPeak::setCellBackgroundField(SpatialCell* cell) {
+      ConstantField bgField;
+      bgField.initialize(this->Bx,
+                         this->By,
+                         this->Bz);
+      
+      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+   }
+   
 }// namespace projects

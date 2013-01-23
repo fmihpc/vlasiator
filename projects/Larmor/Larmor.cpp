@@ -24,6 +24,7 @@ along with Vlasiator. If not, see <http://www.gnu.org/licenses/>.
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
+#include "../../backgroundfield/constantfield.hpp"
 
 #include "Larmor.h"
 
@@ -36,8 +37,8 @@ namespace projects {
 
     void Larmor::addParameters() {
       typedef Readparameters RP;
-      RP::add("Larmor.BX0", "Background field value (T)", 1.0e-9);
-      RP::add("Larmor.BY0", "Background field value (T)", 2.0e-9);
+      RP::add("Larmor.BX0", "Background field value (T)", 0.0);
+      RP::add("Larmor.BY0", "Background field value (T)", 0.0);
       RP::add("Larmor.BZ0", "Background field value (T)", 3.0e-9);
       RP::add("Larmor.VX0", "Bulk velocity in x", 0.0);
       RP::add("Larmor.VY0", "Bulk velocity in y", 0.0);
@@ -133,12 +134,18 @@ namespace projects {
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
-      cellParams[CellParams::BGBX   ] = 0.0;
-      cellParams[CellParams::BGBY   ] = 0.0;
-      cellParams[CellParams::BGBZ   ] = this->BZ0;
       cellParams[CellParams::PERBX   ] = 0.0;
       cellParams[CellParams::PERBY   ] = 0.0;
       cellParams[CellParams::PERBZ   ] = 0.0;
     }
+
+   void Larmor::setCellBackgroundField(SpatialCell* cell) {
+      ConstantField bgField;
+      bgField.initialize(this->BX0,
+                         this->BY0,
+                         this->BZ0);
+      
+      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+   }
 } //namespace projects 
   

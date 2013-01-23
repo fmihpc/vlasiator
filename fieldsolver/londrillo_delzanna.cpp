@@ -359,8 +359,8 @@ static void calculateDerivatives(
          array[fs::dVzdx]  = limiter(divideIfNonZero(left[cp::RHOVZ], left[cp::RHO]),
                                      divideIfNonZero(cent[cp::RHOVZ], cent[cp::RHO]),
                                      divideIfNonZero(rght[cp::RHOVZ], rght[cp::RHO]));
-         array[fs::dBydx]  = limiter(left[cp::BGBY]+left[cp::PERBY],cent[cp::BGBY]+cent[cp::PERBY],rght[cp::BGBY]+rght[cp::PERBY]);
-         array[fs::dBzdx]  = limiter(left[cp::BGBZ]+left[cp::PERBZ],cent[cp::BGBZ]+cent[cp::PERBZ],rght[cp::BGBZ]+rght[cp::PERBZ]);
+         array[fs::dPERBydx]  = limiter(left[cp::PERBY],cent[cp::PERBY],rght[cp::PERBY]);
+         array[fs::dPERBzdx]  = limiter(left[cp::PERBZ],cent[cp::PERBZ],rght[cp::PERBZ]);
       }
       if (RKCase == RK_ORDER2_STEP1) {
          array[fs::drhodx] = limiter(left[cp::RHO_DT2],cent[cp::RHO_DT2],rght[cp::RHO_DT2]);
@@ -373,8 +373,8 @@ static void calculateDerivatives(
          array[fs::dVzdx]  = limiter(divideIfNonZero(left[cp::RHOVZ_DT2], left[cp::RHO_DT2]),
                                      divideIfNonZero(cent[cp::RHOVZ_DT2], cent[cp::RHO_DT2]),
                                      divideIfNonZero(rght[cp::RHOVZ_DT2], rght[cp::RHO_DT2]));
-         array[fs::dBydx]  = limiter(left[cp::BGBY]+left[cp::PERBY_DT2],cent[cp::BGBY]+cent[cp::PERBY_DT2],rght[cp::BGBY]+rght[cp::PERBY_DT2]);
-         array[fs::dBzdx]  = limiter(left[cp::BGBZ]+left[cp::PERBZ_DT2],cent[cp::BGBZ]+cent[cp::PERBZ_DT2],rght[cp::BGBZ]+rght[cp::PERBZ_DT2]);
+         array[fs::dPERBydx]  = limiter(left[cp::PERBY_DT2],cent[cp::PERBY_DT2],rght[cp::PERBY_DT2]);
+         array[fs::dPERBzdx]  = limiter(left[cp::PERBZ_DT2],cent[cp::PERBZ_DT2],rght[cp::PERBZ_DT2]);
       }
    } else {
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -424,8 +424,8 @@ static void calculateDerivatives(
          array[fs::dVzdy]  = limiter(divideIfNonZero(left[cp::RHOVZ], left[cp::RHO]),
                                      divideIfNonZero(cent[cp::RHOVZ], cent[cp::RHO]),
                                      divideIfNonZero(rght[cp::RHOVZ], rght[cp::RHO]));
-         array[fs::dBxdy]  = limiter(left[cp::BGBX]+left[cp::PERBX],cent[cp::BGBX]+cent[cp::PERBX],rght[cp::BGBX]+rght[cp::PERBX]);
-         array[fs::dBzdy]  = limiter(left[cp::BGBZ]+left[cp::PERBZ],cent[cp::BGBZ]+cent[cp::PERBZ],rght[cp::BGBZ]+rght[cp::PERBZ]);
+         array[fs::dPERBxdy]  = limiter(left[cp::PERBX],cent[cp::PERBX],rght[cp::PERBX]);
+         array[fs::dPERBzdy]  = limiter(left[cp::PERBZ],cent[cp::PERBZ],rght[cp::PERBZ]);
       }
       if (RKCase == RK_ORDER2_STEP1) {
          array[fs::drhody] = limiter(left[cp::RHO_DT2],cent[cp::RHO_DT2],rght[cp::RHO_DT2]);
@@ -438,8 +438,8 @@ static void calculateDerivatives(
          array[fs::dVzdy]  = limiter(divideIfNonZero(left[cp::RHOVZ_DT2], left[cp::RHO_DT2]),
                                      divideIfNonZero(cent[cp::RHOVZ_DT2], cent[cp::RHO_DT2]),
                                      divideIfNonZero(rght[cp::RHOVZ_DT2], rght[cp::RHO_DT2]));
-         array[fs::dBxdy]  = limiter(left[cp::BGBX]+left[cp::PERBX_DT2],cent[cp::BGBX]+cent[cp::PERBX_DT2],rght[cp::BGBX]+rght[cp::PERBX_DT2]);
-         array[fs::dBzdy]  = limiter(left[cp::BGBZ]+left[cp::PERBZ_DT2],cent[cp::BGBZ]+cent[cp::PERBZ_DT2],rght[cp::BGBZ]+rght[cp::PERBZ_DT2]);
+         array[fs::dPERBxdy]  = limiter(left[cp::PERBX_DT2],cent[cp::PERBX_DT2],rght[cp::PERBX_DT2]);
+         array[fs::dPERBzdy]  = limiter(left[cp::PERBZ_DT2],cent[cp::PERBZ_DT2],rght[cp::PERBZ_DT2]);
       }
    } else {
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -487,8 +487,8 @@ static void calculateDerivatives(
          array[fs::dVzdz]  = limiter(divideIfNonZero(left[cp::RHOVZ], left[cp::RHO]),
                                      divideIfNonZero(cent[cp::RHOVZ], cent[cp::RHO]),
                                      divideIfNonZero(rght[cp::RHOVZ], rght[cp::RHO]));
-         array[fs::dBxdz]  = limiter(left[cp::BGBX]+left[cp::PERBX],cent[cp::BGBX]+cent[cp::PERBX],rght[cp::BGBX]+rght[cp::PERBX]);
-         array[fs::dBydz]  = limiter(left[cp::BGBY]+left[cp::PERBY],cent[cp::BGBY]+cent[cp::PERBY],rght[cp::BGBY]+rght[cp::PERBY]);
+         array[fs::dPERBxdz]  = limiter(left[cp::PERBX],cent[cp::PERBX],rght[cp::PERBX]);
+         array[fs::dPERBydz]  = limiter(left[cp::PERBY],cent[cp::PERBY],rght[cp::PERBY]);
       }
       if (RKCase == RK_ORDER2_STEP1) {
          array[fs::drhodz] = limiter(left[cp::RHO_DT2],cent[cp::RHO_DT2],rght[cp::RHO_DT2]);
@@ -501,8 +501,8 @@ static void calculateDerivatives(
          array[fs::dVzdz]  = limiter(divideIfNonZero(left[cp::RHOVZ_DT2], left[cp::RHO_DT2]),
                                      divideIfNonZero(cent[cp::RHOVZ_DT2], cent[cp::RHO_DT2]),
                                      divideIfNonZero(rght[cp::RHOVZ_DT2], rght[cp::RHO_DT2]));
-         array[fs::dBxdz]  = limiter(left[cp::BGBX]+left[cp::PERBX_DT2],cent[cp::BGBX]+cent[cp::PERBX_DT2],rght[cp::BGBX]+rght[cp::PERBX_DT2]);
-         array[fs::dBydz]  = limiter(left[cp::BGBY]+left[cp::PERBY_DT2],cent[cp::BGBY]+cent[cp::PERBY_DT2],rght[cp::BGBY]+rght[cp::PERBY_DT2]);
+         array[fs::dPERBxdz]  = limiter(left[cp::PERBX_DT2],cent[cp::PERBX_DT2],rght[cp::PERBX_DT2]);
+         array[fs::dPERBydz]  = limiter(left[cp::PERBY_DT2],cent[cp::PERBY_DT2],rght[cp::PERBY_DT2]);
       }
    } else {
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -538,10 +538,10 @@ template<typename REAL> REAL calculateFastMSspeedYZ(const REAL* cp, const REAL* 
       A_X  = (nbr_cp[CellParams::PERBX_DT2] + nbr_cp[CellParams::BGBX]) - (cp[CellParams::PERBX_DT2] + cp[CellParams::BGBX]);
       rho = Parameters::m*(cp[CellParams::RHO_DT2] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz]);
    }
-   const REAL A_Y  = nbr_derivs[fs::dBxdy]  + derivs[fs::dBxdy];
-   const REAL A_XY = nbr_derivs[fs::dBxdy]  - derivs[fs::dBxdy];
-   const REAL A_Z  = nbr_derivs[fs::dBxdz]  + derivs[fs::dBxdz];
-   const REAL A_XZ = nbr_derivs[fs::dBxdz]  - derivs[fs::dBxdz];
+   const REAL A_Y  = nbr_derivs[fs::dPERBxdy] + nbr_derivs[fs::dBGBxdy] + derivs[fs::dPERBxdy] + derivs[fs::dBGBxdy];
+   const REAL A_XY = nbr_derivs[fs::dPERBxdy] + nbr_derivs[fs::dBGBxdy] - (derivs[fs::dPERBxdy] + derivs[fs::dBGBxdy]);
+   const REAL A_Z  = nbr_derivs[fs::dPERBxdz] + nbr_derivs[fs::dBGBxdz] + derivs[fs::dPERBxdz] + derivs[fs::dBGBxdz];
+   const REAL A_XZ = nbr_derivs[fs::dPERBxdz] + nbr_derivs[fs::dBGBxdz] - (derivs[fs::dPERBxdz] + derivs[fs::dBGBxdz]);
    
    const REAL Bx2  = (A_0 + ydir*HALF*A_Y + zdir*HALF*A_Z)*(A_0 + ydir*HALF*A_Y + zdir*HALF*A_Z)
      + TWELWTH*(A_X + ydir*HALF*A_XY + zdir*HALF*A_XZ)*(A_X + ydir*HALF*A_XY + zdir*HALF*A_XZ); // OK
@@ -582,10 +582,10 @@ template<typename REAL> REAL calculateFastMSspeedXZ(const REAL* cp, const REAL* 
       B_Y  = (nbr_cp[CellParams::PERBY_DT2] + nbr_cp[CellParams::BGBY]) - (cp[CellParams::PERBY_DT2] + cp[CellParams::BGBY]);
       rho = Parameters::m*(cp[CellParams::RHO_DT2] + xdir*HALF*derivs[fs::drhodx] + zdir*HALF*derivs[fs::drhodz]);
    }
-   const REAL B_X  = nbr_derivs[fs::dBydx]  + derivs[fs::dBydx];
-   const REAL B_XY = nbr_derivs[fs::dBydx]  - derivs[fs::dBydx];
-   const REAL B_Z  = nbr_derivs[fs::dBydz]  + derivs[fs::dBydz];
-   const REAL B_YZ = nbr_derivs[fs::dBydz]  - derivs[fs::dBydz];
+   const REAL B_X  = nbr_derivs[fs::dPERBydx] + nbr_derivs[fs::dBGBydx] + derivs[fs::dPERBydx] + derivs[fs::dBGBydx];
+   const REAL B_XY = nbr_derivs[fs::dPERBydx] + nbr_derivs[fs::dBGBydx] - (derivs[fs::dPERBydx] + derivs[fs::dBGBydx]);
+   const REAL B_Z  = nbr_derivs[fs::dPERBydz] + nbr_derivs[fs::dBGBydz] + derivs[fs::dPERBydz] + derivs[fs::dBGBydz];
+   const REAL B_YZ = nbr_derivs[fs::dPERBydz] + nbr_derivs[fs::dBGBydz] - (derivs[fs::dPERBydz] + derivs[fs::dBGBydz]);
    
    const REAL By2  = (B_0 + xdir*HALF*B_X + zdir*HALF*B_Z)*(B_0 + xdir*HALF*B_X + zdir*HALF*B_Z)
      + TWELWTH*(B_Y + xdir*HALF*B_XY + zdir*HALF*B_YZ)*(B_Y + xdir*HALF*B_XY + zdir*HALF*B_YZ); // OK
@@ -626,10 +626,10 @@ template<typename REAL> REAL calculateFastMSspeedXY(const REAL* cp, const REAL* 
       C_Z  = (nbr_cp[CellParams::PERBZ_DT2] + nbr_cp[CellParams::BGBZ]) - (cp[CellParams::PERBZ_DT2] + cp[CellParams::BGBZ]);
       rho = Parameters::m*(cp[CellParams::RHO_DT2] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody]);
    }
-   const REAL C_X  = nbr_derivs[fs::dBzdx]  + derivs[fs::dBzdx];
-   const REAL C_XZ = nbr_derivs[fs::dBzdx]  - derivs[fs::dBzdx];
-   const REAL C_Y  = nbr_derivs[fs::dBzdy]  + derivs[fs::dBzdy];
-   const REAL C_YZ = nbr_derivs[fs::dBzdy]  - derivs[fs::dBzdy];
+   const REAL C_X  = nbr_derivs[fs::dPERBzdx] + nbr_derivs[fs::dBGBzdx] + derivs[fs::dPERBzdx] + derivs[fs::dBGBzdx];
+   const REAL C_XZ = nbr_derivs[fs::dPERBzdx] + nbr_derivs[fs::dBGBzdx] - (derivs[fs::dPERBzdx] + derivs[fs::dBGBzdx]);
+   const REAL C_Y  = nbr_derivs[fs::dPERBzdy] + nbr_derivs[fs::dBGBzdy] + derivs[fs::dPERBzdy] + derivs[fs::dBGBzdy];
+   const REAL C_YZ = nbr_derivs[fs::dPERBzdy] + nbr_derivs[fs::dBGBzdy] - (derivs[fs::dPERBzdy] + derivs[fs::dBGBzdy]);
    
    const REAL Bz2  = (C_0 + xdir*HALF*C_X + ydir*HALF*C_Y)*(C_0 + xdir*HALF*C_X + ydir*HALF*C_Y)
      + TWELWTH*(C_Z + xdir*HALF*C_XZ + ydir*HALF*C_YZ)*(C_Z + xdir*HALF*C_XZ + ydir*HALF*C_YZ);
@@ -705,20 +705,30 @@ void calculateEdgeElectricFieldX(
       Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ_DT2], cp_SW[CellParams::RHO_DT2]);
    }
    
-   creal dBydx_S = derivs_SW[fs::dBydx];
-   creal dBydz_S = derivs_SW[fs::dBydz];
-   creal dBzdx_W = derivs_SW[fs::dBzdx];
-   creal dBzdy_W = derivs_SW[fs::dBzdy];
-   creal dBzdx_E = derivs_SE[fs::dBzdx];
-   creal dBzdy_E = derivs_SE[fs::dBzdy];
-   creal dBydx_N = derivs_NW[fs::dBydx];
-   creal dBydz_N = derivs_NW[fs::dBydz];
+   creal dBydx_S = derivs_SW[fs::dPERBydx] + derivs_SW[fs::dBGBydx];
+   creal dBydz_S = derivs_SW[fs::dPERBydz] + derivs_SW[fs::dBGBydz];
+   creal dBzdx_W = derivs_SW[fs::dPERBzdx] + derivs_SW[fs::dBGBzdx];
+   creal dBzdy_W = derivs_SW[fs::dPERBzdy] + derivs_SW[fs::dBGBzdy];
+   creal dBzdx_E = derivs_SE[fs::dPERBzdx] + derivs_SE[fs::dBGBzdx];
+   creal dBzdy_E = derivs_SE[fs::dPERBzdy] + derivs_SE[fs::dBGBzdy];
+   creal dBydx_N = derivs_NW[fs::dPERBydx] + derivs_NW[fs::dBGBydx];
+   creal dBydz_N = derivs_NW[fs::dPERBydz] + derivs_NW[fs::dBGBydz];
    
    // Ex and characteristic speeds on this cell:
    // 1st order terms:
    Real Ex_SW = By_S*Vz0 - Bz_W*Vy0;
    // Resistive term
-   Ex_SW += Parameters::resistivity / physicalconstants::MU_0 * (derivs_SW[fs::dBzdy] - derivs_SW[fs::dBydz]);
+   Ex_SW += Parameters::resistivity *
+            sqrt((cp_SW[CellParams::BGBX]+cp_SW[CellParams::PERBX])*
+                 (cp_SW[CellParams::BGBX]+cp_SW[CellParams::PERBX]) +
+                 (cp_SW[CellParams::BGBY]+cp_SW[CellParams::PERBY])*
+                 (cp_SW[CellParams::BGBY]+cp_SW[CellParams::PERBY]) +
+                 (cp_SW[CellParams::BGBZ]+cp_SW[CellParams::PERBZ])*
+                 (cp_SW[CellParams::BGBZ]+cp_SW[CellParams::PERBZ])
+                ) /
+               (cp_SW[CellParams::RHO]*Parameters::q) /
+            physicalconstants::MU_0 *
+            (derivs_SW[fs::dPERBzdy]/cp_SW[CellParams::DY] - derivs_SW[fs::dPERBydz]/cp_SW[CellParams::DZ]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_SW += +HALF*((By_S - HALF*dBydz_S)*(-derivs_SW[fs::dVzdy] - derivs_SW[fs::dVzdz]) - dBydz_S*Vz0 + SIXTH*dBydx_S*derivs_SW[fs::dVzdx]);
@@ -750,7 +760,17 @@ void calculateEdgeElectricFieldX(
    // 1st order terms:
    Real Ex_SE = By_S*Vz0 - Bz_E*Vy0;
    // Resistive term
-   Ex_SE += Parameters::resistivity / physicalconstants::MU_0 * (derivs_SE[fs::dBzdy] - derivs_SE[fs::dBydz]);
+   Ex_SE += Parameters::resistivity *
+            sqrt((cp_SE[CellParams::BGBX]+cp_SE[CellParams::PERBX])*
+                 (cp_SE[CellParams::BGBX]+cp_SE[CellParams::PERBX]) +
+                 (cp_SE[CellParams::BGBY]+cp_SE[CellParams::PERBY])*
+                 (cp_SE[CellParams::BGBY]+cp_SE[CellParams::PERBY]) +
+                 (cp_SE[CellParams::BGBZ]+cp_SE[CellParams::PERBZ])*
+                 (cp_SE[CellParams::BGBZ]+cp_SE[CellParams::PERBZ])
+                ) /
+               (cp_SE[CellParams::RHO]*Parameters::q) /
+            physicalconstants::MU_0 *
+            (derivs_SE[fs::dPERBzdy]/cp_SE[CellParams::DY] - derivs_SE[fs::dPERBydz]/cp_SE[CellParams::DZ]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_SE += +HALF*((By_S - HALF*dBydz_S)*(+derivs_SE[fs::dVzdy] - derivs_SE[fs::dVzdz]) - dBydz_S*Vz0 + SIXTH*dBydx_S*derivs_SE[fs::dVzdx]);
@@ -782,7 +802,17 @@ void calculateEdgeElectricFieldX(
    // 1st order terms:
    Real Ex_NW    = By_N*Vz0 - Bz_W*Vy0;
    // Resistive term
-   Ex_NW += Parameters::resistivity / physicalconstants::MU_0 * (derivs_NW[fs::dBzdy] - derivs_NW[fs::dBydz]);
+   Ex_NW += Parameters::resistivity *
+            sqrt((cp_NW[CellParams::BGBX]+cp_NW[CellParams::PERBX])*
+                 (cp_NW[CellParams::BGBX]+cp_NW[CellParams::PERBX]) +
+                 (cp_NW[CellParams::BGBY]+cp_NW[CellParams::PERBY])*
+                 (cp_NW[CellParams::BGBY]+cp_NW[CellParams::PERBY]) +
+                 (cp_NW[CellParams::BGBZ]+cp_NW[CellParams::PERBZ])*
+                 (cp_NW[CellParams::BGBZ]+cp_NW[CellParams::PERBZ])
+                ) /
+               (cp_NW[CellParams::RHO]*Parameters::q) /
+            physicalconstants::MU_0 *
+            (derivs_NW[fs::dPERBzdy]/cp_NW[CellParams::DY] - derivs_NW[fs::dPERBydz]/cp_NW[CellParams::DZ]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_NW += +HALF*((By_N + HALF*dBydz_N)*(-derivs_NW[fs::dVzdy] + derivs_NW[fs::dVzdz]) + dBydz_N*Vz0 + SIXTH*dBydx_N*derivs_NW[fs::dVzdx]);
@@ -814,7 +844,17 @@ void calculateEdgeElectricFieldX(
    // 1st order terms:
    Real Ex_NE    = By_N*Vz0 - Bz_E*Vy0;
    // Resistive term
-   Ex_NE += Parameters::resistivity / physicalconstants::MU_0 * (derivs_NE[fs::dBzdy] - derivs_NE[fs::dBydz]);
+   Ex_NE += Parameters::resistivity *
+            sqrt((cp_NE[CellParams::BGBX]+cp_NE[CellParams::PERBX])*
+                 (cp_NE[CellParams::BGBX]+cp_NE[CellParams::PERBX]) +
+                 (cp_NE[CellParams::BGBY]+cp_NE[CellParams::PERBY])*
+                 (cp_NE[CellParams::BGBY]+cp_NE[CellParams::PERBY]) +
+                 (cp_NE[CellParams::BGBZ]+cp_NE[CellParams::PERBZ])*
+                 (cp_NE[CellParams::BGBZ]+cp_NE[CellParams::PERBZ])
+                ) /
+               (cp_NE[CellParams::RHO]*Parameters::q) /
+            physicalconstants::MU_0 *
+            (derivs_NE[fs::dPERBzdy]/cp_NE[CellParams::DY] - derivs_NE[fs::dPERBydz]/cp_NE[CellParams::DZ]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_NE += +HALF*((By_N + HALF*dBydz_N)*(+derivs_NE[fs::dVzdy] + derivs_NE[fs::dVzdz]) + dBydz_N*Vz0 + SIXTH*dBydx_N*derivs_NE[fs::dVzdx]);
@@ -941,20 +981,30 @@ void calculateEdgeElectricFieldY(
       Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ_DT2], cp_SW[CellParams::RHO_DT2]);
    }
    
-   creal dBxdy_W = derivs_SW[fs::dBxdy];
-   creal dBxdz_W = derivs_SW[fs::dBxdz];
-   creal dBzdx_S = derivs_SW[fs::dBzdx];
-   creal dBzdy_S = derivs_SW[fs::dBzdy];
-   creal dBxdy_E = derivs_SE[fs::dBxdy];
-   creal dBxdz_E = derivs_SE[fs::dBxdz];
-   creal dBzdx_N = derivs_NW[fs::dBzdx];
-   creal dBzdy_N = derivs_NW[fs::dBzdy];
+   creal dBxdy_W = derivs_SW[fs::dPERBxdy] + derivs_SW[fs::dBGBxdy];
+   creal dBxdz_W = derivs_SW[fs::dPERBxdz] + derivs_SW[fs::dBGBxdz];
+   creal dBzdx_S = derivs_SW[fs::dPERBzdx] + derivs_SW[fs::dBGBzdx];
+   creal dBzdy_S = derivs_SW[fs::dPERBzdy] + derivs_SW[fs::dBGBzdy];
+   creal dBxdy_E = derivs_SE[fs::dPERBxdy] + derivs_SE[fs::dBGBxdy];
+   creal dBxdz_E = derivs_SE[fs::dPERBxdz] + derivs_SE[fs::dBGBxdz];
+   creal dBzdx_N = derivs_NW[fs::dPERBzdx] + derivs_NW[fs::dBGBzdx];
+   creal dBzdy_N = derivs_NW[fs::dPERBzdy] + derivs_NW[fs::dBGBzdy];
    
    // Ey and characteristic speeds on this cell:
    // 1st order terms:
    Real Ey_SW  = Bz_S*Vx0 - Bx_W*Vz0;
    // Resistive term
-   Ey_SW += Parameters::resistivity / physicalconstants::MU_0 * (derivs_SW[fs::dBxdz] - derivs_SW[fs::dBzdx]);
+   Ey_SW += Parameters::resistivity *
+            sqrt((cp_SW[CellParams::BGBX]+cp_SW[CellParams::PERBX])*
+                 (cp_SW[CellParams::BGBX]+cp_SW[CellParams::PERBX]) +
+                 (cp_SW[CellParams::BGBY]+cp_SW[CellParams::PERBY])*
+                 (cp_SW[CellParams::BGBY]+cp_SW[CellParams::PERBY]) +
+                 (cp_SW[CellParams::BGBZ]+cp_SW[CellParams::PERBZ])*
+                 (cp_SW[CellParams::BGBZ]+cp_SW[CellParams::PERBZ])
+                ) /
+               (cp_SW[CellParams::RHO]*Parameters::q) /
+            physicalconstants::MU_0 *
+            (derivs_SW[fs::dPERBxdz]/cp_SW[CellParams::DZ] - derivs_SW[fs::dPERBzdx]/cp_SW[CellParams::DX]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms
       Ey_SW += +HALF*((Bz_S - HALF*dBzdx_S)*(-derivs_SW[fs::dVxdx] - derivs_SW[fs::dVxdz]) - dBzdx_S*Vx0 + SIXTH*dBzdy_S*derivs_SW[fs::dVxdy]);
@@ -986,7 +1036,17 @@ void calculateEdgeElectricFieldY(
    // 1st order terms:
    Real Ey_SE    = Bz_S*Vx0 - Bx_E*Vz0;
    // Resistive term
-   Ey_SE += Parameters::resistivity / physicalconstants::MU_0 * (derivs_SE[fs::dBxdz] - derivs_SE[fs::dBzdx]);
+   Ey_SE += Parameters::resistivity *
+            sqrt((cp_SE[CellParams::BGBX]+cp_SE[CellParams::PERBX])*
+                 (cp_SE[CellParams::BGBX]+cp_SE[CellParams::PERBX]) +
+                 (cp_SE[CellParams::BGBY]+cp_SE[CellParams::PERBY])*
+                 (cp_SE[CellParams::BGBY]+cp_SE[CellParams::PERBY]) +
+                 (cp_SE[CellParams::BGBZ]+cp_SE[CellParams::PERBZ])*
+                 (cp_SE[CellParams::BGBZ]+cp_SE[CellParams::PERBZ])
+                ) /
+               (cp_SE[CellParams::RHO]*Parameters::q) /
+            physicalconstants::MU_0 *
+            (derivs_SE[fs::dPERBxdz]/cp_SE[CellParams::DZ] - derivs_SE[fs::dPERBzdx]/cp_SE[CellParams::DX]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ey_SE += +HALF*((Bz_S - HALF*dBzdx_S)*(-derivs_SE[fs::dVxdx] + derivs_SE[fs::dVxdz]) - dBzdx_S*Vx0 + SIXTH*dBzdy_S*derivs_SE[fs::dVxdy]);
@@ -1018,7 +1078,17 @@ void calculateEdgeElectricFieldY(
    // 1st order terms:
    Real Ey_NW    = Bz_N*Vx0 - Bx_W*Vz0;
    // Resistive term
-   Ey_NW += Parameters::resistivity / physicalconstants::MU_0 * (derivs_NW[fs::dBxdz] - derivs_NW[fs::dBzdx]);
+   Ey_NW += Parameters::resistivity *
+            sqrt((cp_NW[CellParams::BGBX]+cp_NW[CellParams::PERBX])*
+                 (cp_NW[CellParams::BGBX]+cp_NW[CellParams::PERBX]) +
+                 (cp_NW[CellParams::BGBY]+cp_NW[CellParams::PERBY])*
+                 (cp_NW[CellParams::BGBY]+cp_NW[CellParams::PERBY]) +
+                 (cp_NW[CellParams::BGBZ]+cp_NW[CellParams::PERBZ])*
+                 (cp_NW[CellParams::BGBZ]+cp_NW[CellParams::PERBZ])
+                ) /
+               (cp_NW[CellParams::RHO]*Parameters::q) /
+            physicalconstants::MU_0 *
+            (derivs_NW[fs::dPERBxdz]/cp_NW[CellParams::DZ] - derivs_NW[fs::dPERBzdx]/cp_NW[CellParams::DX]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ey_NW += +HALF*((Bz_N + HALF*dBzdx_N)*(+derivs_NW[fs::dVxdx] - derivs_NW[fs::dVxdz]) + dBzdx_N*Vx0 + SIXTH*dBzdy_N*derivs_NW[fs::dVxdy]);
@@ -1050,7 +1120,17 @@ void calculateEdgeElectricFieldY(
    // 1st order terms:
    Real Ey_NE    = Bz_N*Vx0 - Bx_E*Vz0;
    // Resistive term
-   Ey_NE += Parameters::resistivity / physicalconstants::MU_0 * (derivs_NE[fs::dBxdz] - derivs_NE[fs::dBzdx]);
+   Ey_NE += Parameters::resistivity *
+            sqrt((cp_NE[CellParams::BGBX]+cp_NE[CellParams::PERBX])*
+                 (cp_NE[CellParams::BGBX]+cp_NE[CellParams::PERBX]) +
+                 (cp_NE[CellParams::BGBY]+cp_NE[CellParams::PERBY])*
+                 (cp_NE[CellParams::BGBY]+cp_NE[CellParams::PERBY]) +
+                 (cp_NE[CellParams::BGBZ]+cp_NE[CellParams::PERBZ])*
+                 (cp_NE[CellParams::BGBZ]+cp_NE[CellParams::PERBZ])
+                ) /
+               (cp_NE[CellParams::RHO]*Parameters::q) /
+            physicalconstants::MU_0 *
+            (derivs_NE[fs::dPERBxdz]/cp_NE[CellParams::DZ] - derivs_NE[fs::dPERBzdx]/cp_NE[CellParams::DX]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ey_NE += +HALF*((Bz_N + HALF*dBzdx_N)*(+derivs_NE[fs::dVxdx] + derivs_NE[fs::dVxdz]) + dBzdx_N*Vx0 + SIXTH*dBzdy_N*derivs_NE[fs::dVxdy]);
@@ -1175,20 +1255,30 @@ void calculateEdgeElectricFieldZ(
       Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY_DT2], cp_SW[CellParams::RHO_DT2]);
    }
    
-   creal dBxdy_S = derivs_SW[fs::dBxdy];
-   creal dBxdz_S = derivs_SW[fs::dBxdz];
-   creal dBydx_W = derivs_SW[fs::dBydx];
-   creal dBydz_W = derivs_SW[fs::dBydz];
-   creal dBydx_E = derivs_SE[fs::dBydx];
-   creal dBydz_E = derivs_SE[fs::dBydz];
-   creal dBxdy_N = derivs_NW[fs::dBxdy];
-   creal dBxdz_N = derivs_NW[fs::dBxdz];
+   creal dBxdy_S = derivs_SW[fs::dPERBxdy] + derivs_SW[fs::dBGBxdy];
+   creal dBxdz_S = derivs_SW[fs::dPERBxdz] + derivs_SW[fs::dBGBxdz];
+   creal dBydx_W = derivs_SW[fs::dPERBydx] + derivs_SW[fs::dBGBydx];
+   creal dBydz_W = derivs_SW[fs::dPERBydz] + derivs_SW[fs::dBGBydz];
+   creal dBydx_E = derivs_SE[fs::dPERBydx] + derivs_SE[fs::dBGBydx];
+   creal dBydz_E = derivs_SE[fs::dPERBydz] + derivs_SE[fs::dBGBydz];
+   creal dBxdy_N = derivs_NW[fs::dPERBxdy] + derivs_NW[fs::dBGBxdy];
+   creal dBxdz_N = derivs_NW[fs::dPERBxdz] + derivs_NW[fs::dBGBxdz];
    
    // Ez and characteristic speeds on SW cell:
    // 1st order terms:
    Real Ez_SW = Bx_S*Vy0 - By_W*Vx0;
    // Resistive term
-   Ez_SW += Parameters::resistivity / physicalconstants::MU_0 * (derivs_SW[fs::dBydx] - derivs_SW[fs::dBxdy]);
+   Ez_SW += Parameters::resistivity *
+            sqrt((cp_SW[CellParams::BGBX]+cp_SW[CellParams::PERBX])*
+                 (cp_SW[CellParams::BGBX]+cp_SW[CellParams::PERBX]) +
+                 (cp_SW[CellParams::BGBY]+cp_SW[CellParams::PERBY])*
+                 (cp_SW[CellParams::BGBY]+cp_SW[CellParams::PERBY]) +
+                 (cp_SW[CellParams::BGBZ]+cp_SW[CellParams::PERBZ])*
+                 (cp_SW[CellParams::BGBZ]+cp_SW[CellParams::PERBZ])
+                ) /
+               (cp_SW[CellParams::RHO]*Parameters::q) /
+            physicalconstants::MU_0 *
+            (derivs_SW[fs::dPERBydx]/cp_SW[CellParams::DX] - derivs_SW[fs::dPERBxdy]/cp_SW[CellParams::DY]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_SW  += +HALF*((Bx_S - HALF*dBxdy_S)*(-derivs_SW[fs::dVydx] - derivs_SW[fs::dVydy]) - dBxdy_S*Vy0 + SIXTH*dBxdz_S*derivs_SW[fs::dVydz]);
@@ -1222,7 +1312,17 @@ void calculateEdgeElectricFieldZ(
    // 1st order terms:
    Real Ez_SE = Bx_S*Vy0 - By_E*Vx0;
    // Resistive term
-   Ez_SE += Parameters::resistivity / physicalconstants::MU_0 * (derivs_SE[fs::dBydx] - derivs_SE[fs::dBxdy]);
+   Ez_SE += Parameters::resistivity *
+            sqrt((cp_SE[CellParams::BGBX]+cp_SE[CellParams::PERBX])*
+                 (cp_SE[CellParams::BGBX]+cp_SE[CellParams::PERBX]) +
+                 (cp_SE[CellParams::BGBY]+cp_SE[CellParams::PERBY])*
+                 (cp_SE[CellParams::BGBY]+cp_SE[CellParams::PERBY]) +
+                 (cp_SE[CellParams::BGBZ]+cp_SE[CellParams::PERBZ])*
+                 (cp_SE[CellParams::BGBZ]+cp_SE[CellParams::PERBZ])
+                ) /
+               (cp_SE[CellParams::RHO]*Parameters::q) /
+            physicalconstants::MU_0 *
+            (derivs_SE[fs::dPERBydx]/cp_SE[CellParams::DX] - derivs_SE[fs::dPERBxdy]/cp_SE[CellParams::DY]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_SE  += +HALF*((Bx_S - HALF*dBxdy_S)*(+derivs_SE[fs::dVydx] - derivs_SE[fs::dVydy]) - dBxdy_S*Vy0 + SIXTH*dBxdz_S*derivs_SE[fs::dVydz]);
@@ -1254,7 +1354,17 @@ void calculateEdgeElectricFieldZ(
    // 1st order terms:
    Real Ez_NW = Bx_N*Vy0 - By_W*Vx0;
    // Resistive term
-   Ez_NW += Parameters::resistivity / physicalconstants::MU_0 * (derivs_NW[fs::dBydx] - derivs_NW[fs::dBxdy]);
+   Ez_NW += Parameters::resistivity *
+            sqrt((cp_NW[CellParams::BGBX]+cp_NW[CellParams::PERBX])*
+                 (cp_NW[CellParams::BGBX]+cp_NW[CellParams::PERBX]) +
+                 (cp_NW[CellParams::BGBY]+cp_NW[CellParams::PERBY])*
+                 (cp_NW[CellParams::BGBY]+cp_NW[CellParams::PERBY]) +
+                 (cp_NW[CellParams::BGBZ]+cp_NW[CellParams::PERBZ])*
+                 (cp_NW[CellParams::BGBZ]+cp_NW[CellParams::PERBZ])
+                ) /
+               (cp_NW[CellParams::RHO]*Parameters::q) /
+            physicalconstants::MU_0 *
+            (derivs_NW[fs::dPERBydx]/cp_NW[CellParams::DX] - derivs_NW[fs::dPERBxdy]/cp_NW[CellParams::DY]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_NW  += +HALF*((Bx_N + HALF*dBxdy_N)*(-derivs_NW[fs::dVydx] + derivs_NW[fs::dVydy]) + dBxdy_N*Vy0 + SIXTH*dBxdz_N*derivs_NW[fs::dVydz]);
@@ -1286,7 +1396,17 @@ void calculateEdgeElectricFieldZ(
    // 1st order terms:
    Real Ez_NE = Bx_N*Vy0 - By_E*Vx0;
    // Resistive term
-   Ez_NE += Parameters::resistivity / physicalconstants::MU_0 * (derivs_NE[fs::dBydx] - derivs_NE[fs::dBxdy]);
+   Ez_NE += Parameters::resistivity *
+            sqrt((cp_NE[CellParams::BGBX]+cp_NE[CellParams::PERBX])*
+                 (cp_NE[CellParams::BGBX]+cp_NE[CellParams::PERBX]) +
+                 (cp_NE[CellParams::BGBY]+cp_NE[CellParams::PERBY])*
+                 (cp_NE[CellParams::BGBY]+cp_NE[CellParams::PERBY]) +
+                 (cp_NE[CellParams::BGBZ]+cp_NE[CellParams::PERBZ])*
+                 (cp_NE[CellParams::BGBZ]+cp_NE[CellParams::PERBZ])
+                ) /
+               (cp_NE[CellParams::RHO]*Parameters::q) /
+            physicalconstants::MU_0 *
+            (derivs_NE[fs::dPERBydx]/cp_NE[CellParams::DX] - derivs_NE[fs::dPERBxdy]/cp_NE[CellParams::DY]);
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_NE  += +HALF*((Bx_N + HALF*dBxdy_N)*(+derivs_NE[fs::dVydx] + derivs_NE[fs::dVydy]) + dBxdy_N*Vy0 + SIXTH*dBxdz_N*derivs_NE[fs::dVydz]);
@@ -1574,10 +1694,16 @@ bool initializeFieldPropagatorAfterRebalance(
 
    // need E when computing magnetic field later on
    // ASSUME STATIC background field, we do not later on explicitly transfer it!
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_E | Transfer::CELL_BGB);
+   SpatialCell::set_mpi_transfer_type(
+      Transfer::CELL_E |
+      Transfer::CELL_BGB |
+      Transfer::CELL_RHO_RHOV |
+      Transfer::CELL_DIMENSIONS
+   );
    int timer=phiprof::initializeTimer("Communicate E and BGB","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.update_remote_neighbor_data(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   // CELL_DIMENSIONS is needed in the extended neighborhood, thus taking the larger.
+   mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    return true;
@@ -2038,11 +2164,13 @@ void reconstructionCoefficients(
    const CellID& nbr_i1j2k1,
    const CellID& nbr_i1j1k2,
    dccrg::Dccrg<SpatialCell>& mpiGrid,
-   Real* result
+   Real* perturbedResult
 ) {
    // Do not calculate values for non-existing cells:
    if (cellID == INVALID_CELLID) {
-      for (int i=0; i<Rec::c_zz+1; ++i) result[i] = 0.0;
+      for (int i=0; i<Rec::c_zz+1; ++i) {
+         perturbedResult[i] = 0.0;
+      }
       return;
    }
    
@@ -2085,56 +2213,58 @@ void reconstructionCoefficients(
       else der_i1j1k2 = mpiGrid[nbr_i1j1k2]->derivatives;
 
       // Calculate 2nd order reconstruction coefficients:
-      result[Rec::a_xy] = der_i2j1k1[fs::dBxdy] - der_i1j1k1[fs::dBxdy];
-      CHECK_FLOAT(result[Rec::a_xy])
-      result[Rec::a_xz] = der_i2j1k1[fs::dBxdz] - der_i1j1k1[fs::dBxdz];
-      CHECK_FLOAT(result[Rec::a_xz])
-      result[Rec::a_x ] = (cep_i2j1k1[cp::PERBX] + cep_i2j1k1[cp::BGBX]) - (cep_i1j1k1[cp::PERBX] + cep_i1j1k1[cp::BGBX]);
-      CHECK_FLOAT(result[Rec::a_x ])
-      result[Rec::a_y ] = HALF*(der_i2j1k1[fs::dBxdy] + der_i1j1k1[fs::dBxdy]);
-      CHECK_FLOAT(result[Rec::a_y ])
-      result[Rec::a_z ] = HALF*(der_i2j1k1[fs::dBxdz] + der_i1j1k1[fs::dBxdz]);
-      CHECK_FLOAT(result[Rec::a_z ])
+      perturbedResult[Rec::a_xy] = der_i2j1k1[fs::dPERBxdy] - der_i1j1k1[fs::dPERBxdy];
+      CHECK_FLOAT(perturbedResult[Rec::a_xy])
+      perturbedResult[Rec::a_xz] = der_i2j1k1[fs::dPERBxdz] - der_i1j1k1[fs::dPERBxdz];
+      CHECK_FLOAT(perturbedResult[Rec::a_xz])
+      perturbedResult[Rec::a_x ] = cep_i2j1k1[cp::PERBX] - cep_i1j1k1[cp::PERBX];
+      CHECK_FLOAT(perturbedResult[Rec::a_x ])
+      perturbedResult[Rec::a_y ] = HALF*(der_i2j1k1[fs::dPERBxdy] + der_i1j1k1[fs::dPERBxdy]);
+      CHECK_FLOAT(perturbedResult[Rec::a_y ])
+      perturbedResult[Rec::a_z ] = HALF*(der_i2j1k1[fs::dPERBxdz] + der_i1j1k1[fs::dPERBxdz]);
+      CHECK_FLOAT(perturbedResult[Rec::a_z ])
    
-      result[Rec::b_yx] = der_i1j2k1[fs::dBydx] - der_i1j1k1[fs::dBydx];
-      CHECK_FLOAT(result[Rec::b_yx])
-      result[Rec::b_yz] = der_i1j2k1[fs::dBydz] - der_i1j1k1[fs::dBydz];
-      CHECK_FLOAT(result[Rec::b_yz])
-      result[Rec::b_x ] = HALF*(der_i1j2k1[fs::dBydx] + der_i1j1k1[fs::dBydx]);
-      CHECK_FLOAT(result[Rec::b_x ])
-      result[Rec::b_y ] = (cep_i1j2k1[cp::PERBY] + cep_i1j2k1[cp::BGBY]) - (cep_i1j1k1[cp::PERBY] + cep_i1j1k1[cp::BGBY]);
-      CHECK_FLOAT(result[Rec::b_y ])
-      result[Rec::b_z ] = HALF*(der_i1j2k1[fs::dBydz] + der_i1j1k1[fs::dBydz]);
-      CHECK_FLOAT(result[Rec::b_z ])
+      perturbedResult[Rec::b_yx] = der_i1j2k1[fs::dPERBydx] - der_i1j1k1[fs::dPERBydx];
+      CHECK_FLOAT(perturbedResult[Rec::b_yx])
+      perturbedResult[Rec::b_yz] = der_i1j2k1[fs::dPERBydz] - der_i1j1k1[fs::dPERBydz];
+      CHECK_FLOAT(perturbedResult[Rec::b_yz])
+      perturbedResult[Rec::b_x ] = HALF*(der_i1j2k1[fs::dPERBydx] + der_i1j1k1[fs::dPERBydx]);
+      CHECK_FLOAT(perturbedResult[Rec::b_x ])
+      perturbedResult[Rec::b_y ] = cep_i1j2k1[cp::PERBY] - cep_i1j1k1[cp::PERBY];
+      CHECK_FLOAT(perturbedResult[Rec::b_y ])
+      perturbedResult[Rec::b_z ] = HALF*(der_i1j2k1[fs::dPERBydz] + der_i1j1k1[fs::dPERBydz]);
+      CHECK_FLOAT(perturbedResult[Rec::b_z ])
    
-      result[Rec::c_zx] = der_i1j1k2[fs::dBzdx] - der_i1j1k1[fs::dBzdx];
-      CHECK_FLOAT(result[Rec::c_zx])
-      result[Rec::c_zy] = der_i1j1k2[fs::dBzdy] - der_i1j1k1[fs::dBzdy];
-      CHECK_FLOAT(result[Rec::c_zy])
-      result[Rec::c_x ] = HALF*(der_i1j1k2[fs::dBzdx] + der_i1j1k1[fs::dBzdx]);
-      CHECK_FLOAT(result[Rec::c_x ])
-      result[Rec::c_y ] = HALF*(der_i1j1k2[fs::dBzdy] + der_i1j1k1[fs::dBzdy]);
-      CHECK_FLOAT(result[Rec::c_y ])
-      result[Rec::c_z ] = (cep_i1j1k2[cp::PERBZ] + cep_i1j1k2[cp::BGBZ]) - (cep_i1j1k1[cp::PERBZ] + cep_i1j1k1[cp::BGBZ]);
-      CHECK_FLOAT(result[Rec::c_z ])
+      perturbedResult[Rec::c_zx] = der_i1j1k2[fs::dPERBzdx] - der_i1j1k1[fs::dPERBzdx];
+      CHECK_FLOAT(perturbedResult[Rec::c_zx])
+      perturbedResult[Rec::c_zy] = der_i1j1k2[fs::dPERBzdy] - der_i1j1k1[fs::dPERBzdy];
+      CHECK_FLOAT(perturbedResult[Rec::c_zy])
+      perturbedResult[Rec::c_x ] = HALF*(der_i1j1k2[fs::dPERBzdx] + der_i1j1k1[fs::dPERBzdx]);
+      CHECK_FLOAT(perturbedResult[Rec::c_x ])
+      perturbedResult[Rec::c_y ] = HALF*(der_i1j1k2[fs::dPERBzdy] + der_i1j1k1[fs::dPERBzdy]);
+      CHECK_FLOAT(perturbedResult[Rec::c_y ])
+      perturbedResult[Rec::c_z ] = cep_i1j1k2[cp::PERBZ] - cep_i1j1k1[cp::PERBZ];
+      CHECK_FLOAT(perturbedResult[Rec::c_z ])
    
-      result[Rec::a_xx] = -HALF*(result[Rec::b_yx] + result[Rec::c_zx]);
-      CHECK_FLOAT(result[Rec::a_xx])
-      result[Rec::b_yy] = -HALF*(result[Rec::a_xy] + result[Rec::c_zy]);
-      CHECK_FLOAT(result[Rec::b_yy])
-      result[Rec::c_zz] = -HALF*(result[Rec::a_xz] + result[Rec::b_yz]);
-      CHECK_FLOAT(result[Rec::c_zz])
+      perturbedResult[Rec::a_xx] = -HALF*(perturbedResult[Rec::b_yx] + perturbedResult[Rec::c_zx]);
+      CHECK_FLOAT(perturbedResult[Rec::a_xx])
+      perturbedResult[Rec::b_yy] = -HALF*(perturbedResult[Rec::a_xy] + perturbedResult[Rec::c_zy]);
+      CHECK_FLOAT(perturbedResult[Rec::b_yy])
+      perturbedResult[Rec::c_zz] = -HALF*(perturbedResult[Rec::a_xz] + perturbedResult[Rec::b_yz]);
+      CHECK_FLOAT(perturbedResult[Rec::c_zz])
    #else
-      for (int i=0; i<Rec::c_zz+1; ++i) result[i] = 0.0;
+      for (int i=0; i<Rec::c_zz+1; ++i) {
+         perturbedResult[i] = 0.0;
+      }
    #endif
    
    // Calculate 1st order reconstruction coefficients:
-   result[Rec::a_0 ] = HALF*(cep_i2j1k1[cp::PERBX] + cep_i2j1k1[cp::BGBX] + cep_i1j1k1[cp::PERBX] + cep_i1j1k1[cp::BGBX]) - SIXTH*result[Rec::a_xx];
-   CHECK_FLOAT(result[Rec::a_0 ])
-   result[Rec::b_0 ] = HALF*(cep_i1j2k1[cp::PERBY] + cep_i1j2k1[cp::BGBY] + cep_i1j1k1[cp::PERBY] + cep_i1j1k1[cp::BGBY]) - SIXTH*result[Rec::b_yy];
-   CHECK_FLOAT(result[Rec::b_0 ])
-   result[Rec::c_0 ] = HALF*(cep_i1j1k2[cp::PERBZ] + cep_i1j1k2[cp::BGBZ] + cep_i1j1k1[cp::PERBZ] + cep_i1j1k1[cp::BGBZ]) - SIXTH*result[Rec::c_zz];
-   CHECK_FLOAT(result[Rec::c_0 ])
+   perturbedResult[Rec::a_0 ] = HALF*(cep_i2j1k1[cp::PERBX] + cep_i1j1k1[cp::PERBX]) - SIXTH*perturbedResult[Rec::a_xx];
+   CHECK_FLOAT(perturbedResult[Rec::a_0 ])
+   perturbedResult[Rec::b_0 ] = HALF*(cep_i1j2k1[cp::PERBY] + cep_i1j1k1[cp::PERBY]) - SIXTH*perturbedResult[Rec::b_yy];
+   CHECK_FLOAT(perturbedResult[Rec::b_0 ])
+   perturbedResult[Rec::c_0 ] = HALF*(cep_i1j1k2[cp::PERBZ] + cep_i1j1k1[cp::PERBZ]) - SIXTH*perturbedResult[Rec::c_zz];
+   CHECK_FLOAT(perturbedResult[Rec::c_0 ])
 }
 
 /*! \brief Top-level field averaging function.
@@ -2150,11 +2280,11 @@ void calculateVolumeAveragedFields(
    
    namespace fs = fieldsolver;
    namespace cp = CellParams;
-                                   
+   
    vector<uint64_t> localCells = mpiGrid.get_cells();
    
-   Real coefficients[Rec::c_zz+1];
-      
+   Real perturbedCoefficients[Rec::c_zz+1];
+   
    cuint EX_CELLS = (1 << calcNbrNumber(1,1,1))
       | (1 << calcNbrNumber(1,2,1))
       | (1 << calcNbrNumber(1,1,2))
@@ -2183,13 +2313,20 @@ void calculateVolumeAveragedFields(
       const CellID nbr_i2j1k1 = getNeighbourID(mpiGrid, cellID, 2+1, 2  , 2  );
       const CellID nbr_i1j2k1 = getNeighbourID(mpiGrid, cellID, 2  , 2+1, 2  );
       const CellID nbr_i1j1k2 = getNeighbourID(mpiGrid, cellID, 2  , 2  , 2+1);
-      reconstructionCoefficients(cellID,nbr_i2j1k1,nbr_i1j2k1,nbr_i1j1k2,mpiGrid,coefficients);
+      reconstructionCoefficients(
+         cellID,
+         nbr_i2j1k1,
+         nbr_i1j2k1,
+         nbr_i1j1k2,
+         mpiGrid,
+         perturbedCoefficients
+       );
       
       // Calculate volume average of B:
       Real* const cellParams = mpiGrid[cellID]->parameters;
-      cellParams[cp::BXVOL] = coefficients[Rec::a_0]; //these include both background and 
-      cellParams[cp::BYVOL] = coefficients[Rec::b_0];
-      cellParams[cp::BZVOL] = coefficients[Rec::c_0];
+      cellParams[cp::PERBXVOL] = perturbedCoefficients[Rec::a_0];
+      cellParams[cp::PERBYVOL] = perturbedCoefficients[Rec::b_0];
+      cellParams[cp::PERBZVOL] = perturbedCoefficients[Rec::c_0];
       
       // Calculate volume average of E (NEEDS IMPROVEMENT):
       const CellID nbr_i1j2k2 = getNeighbourID(mpiGrid, cellID, 2  , 2+1, 2+1);
@@ -2282,8 +2419,9 @@ static void calculateBVOLDerivatives(
       left = mpiGrid[leftNbrID]->parameters;
       rght = mpiGrid[rghtNbrID]->parameters;
       
-      array[der::dBYVOLdx] = limiter(left[cp::BYVOL],cent[cp::BYVOL],rght[cp::BYVOL]);
-      array[der::dBZVOLdx] = limiter(left[cp::BZVOL],cent[cp::BZVOL],rght[cp::BZVOL]);
+      array[der::dPERBYVOLdx] = limiter(left[cp::PERBYVOL],cent[cp::PERBYVOL],rght[cp::PERBYVOL]);
+      array[der::dPERBZVOLdx] = limiter(left[cp::PERBZVOL],cent[cp::PERBZVOL],rght[cp::PERBZVOL]);
+      
    } else {
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(mpiGrid, cellID, 0);
@@ -2301,8 +2439,9 @@ static void calculateBVOLDerivatives(
       left = mpiGrid[leftNbrID]->parameters;
       rght = mpiGrid[rghtNbrID]->parameters;
       
-      array[der::dBXVOLdy] = limiter(left[cp::BXVOL],cent[cp::BXVOL],rght[cp::BXVOL]);
-      array[der::dBZVOLdy] = limiter(left[cp::BZVOL],cent[cp::BZVOL],rght[cp::BZVOL]);
+      array[der::dPERBXVOLdy] = limiter(left[cp::PERBXVOL],cent[cp::PERBXVOL],rght[cp::PERBXVOL]);
+      array[der::dPERBZVOLdy] = limiter(left[cp::PERBZVOL],cent[cp::PERBZVOL],rght[cp::PERBZVOL]);
+   
    } else {
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(mpiGrid, cellID, 1);
@@ -2320,8 +2459,9 @@ static void calculateBVOLDerivatives(
       left = mpiGrid[leftNbrID]->parameters;
       rght = mpiGrid[rghtNbrID]->parameters;
       
-      array[der::dBXVOLdz] = limiter(left[cp::BXVOL],cent[cp::BXVOL],rght[cp::BXVOL]);
-      array[der::dBYVOLdz] = limiter(left[cp::BYVOL],cent[cp::BYVOL],rght[cp::BYVOL]);
+      array[der::dPERBXVOLdz] = limiter(left[cp::PERBXVOL],cent[cp::PERBXVOL],rght[cp::PERBXVOL]);
+      array[der::dPERBYVOLdz] = limiter(left[cp::PERBYVOL],cent[cp::PERBYVOL],rght[cp::PERBYVOL]);
+   
    } else {
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(mpiGrid, cellID, 2);

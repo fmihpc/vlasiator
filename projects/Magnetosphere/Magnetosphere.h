@@ -56,6 +56,7 @@ namespace projects {
          Real T;
          Real tailRho;
          Real V0[3];
+         Real ionosphereV0[3];
          Real rhoTransitionCenter;
          Real rhoTransitionWidth;
          Real ionosphereRho;

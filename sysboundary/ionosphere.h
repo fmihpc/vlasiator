@@ -90,7 +90,7 @@ namespace SBC {
       void generateTemplateCell(Project &project);
       void setCellFromTemplate(SpatialCell *cell);
       
-      Real maxwellianDistribution(
+      Real shiftedMaxwellianDistribution(
          creal& vx, creal& vy, creal& vz
       );
       
@@ -103,6 +103,9 @@ namespace SBC {
       
       Real T;
       Real rho;
+      Real VX0;
+      Real VY0;
+      Real VZ0;
       
       uint nSpaceSamples;
       uint nVelocitySamples;
