@@ -51,10 +51,7 @@ extern Logger logFile, diagnostic;
 void initVelocityGridGeometry();
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell>& mpiGrid);
 void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid);
-bool applyInitialState(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
-   Project& project
-);
+
 bool adjust_local_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
 
@@ -141,15 +138,30 @@ void initializeGrid(
          exit(1);
       }
       phiprof::stop("Read restart");
+      vector<uint64_t> cells = mpiGrid.get_cells();
+      //set background field, FIXME should be read in from restart
+#pragma omp parallel for schedule(dynamic)
+      for (uint i=0; i<cells.size(); ++i) {
+         SpatialCell* cell = mpiGrid[cells[i]];
+         project.setCellBackgroundField(cell);
+      }
+      
    } else {
      //Initial state based on project, background field in all cells
      //and other initial values in non-sysboundary cells
       phiprof::start("Apply initial state");
-      if(applyInitialState(mpiGrid, project) == false) {
-         cerr << "(MAIN) ERROR: Initial state was not applied correctly." << endl;
-         exit(1);
+      // Go through every cell on this node and initialize the 
+      //    -Background field on all cells
+      //  -Perturbed fields and ion distribution function in non-sysboundary cells
+      //    Each initialization has to be independent to avoid threading problems 
+      vector<uint64_t> cells = mpiGrid.get_cells();
+#pragma omp parallel for schedule(dynamic)
+      for (uint i=0; i<cells.size(); ++i) {
+         SpatialCell* cell = mpiGrid[cells[i]];
+         project.setCellBackgroundField(cell);
+         if(cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
+            project.setCell(cell);
       }
-
       //initial state for sys-boundary cells
       phiprof::stop("Apply initial state");
       phiprof::start("Apply system boundary conditions state");
@@ -217,28 +229,9 @@ void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    }
 }
 
-bool applyInitialState(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
-   Project& project
-) {
-   typedef Parameters P;
-   using namespace sysboundarytype;
+
    
-   vector<uint64_t> cells = mpiGrid.get_cells();
-   
-   // Go through every cell on this node and initialize the 
-   //  -Background field on all cells
-   //  -Perturbed fields and ion distribution function in non-sysboundary cells
-   // Each initialization has to be independent to avoid threading problems 
-#pragma omp parallel for schedule(dynamic)
-   for (uint i=0; i<cells.size(); ++i) {
-      SpatialCell* cell = mpiGrid[cells[i]];
-      project.setCellBackgroundField(cell);
-      if(cell->sysBoundaryFlag == NOT_SYSBOUNDARY)
-         project.setCell(cell);
-   }
-   return true;
-}
+
 
 void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    //set weights based on each cells LB weight counter

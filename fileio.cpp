@@ -464,7 +464,10 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    mpiGrid.migrate_cells();
    //get new list of local gridcells
    gridCells = mpiGrid.get_cells();
-   
+   //unpin cells, otherwise we will never change this initial bad balance
+   for(uint i=0;i<gridCells.size();i++){
+      mpiGrid.unpin(gridCells[i]);
+   }
    //this is where local cells start in file-list after migration
    uint64_t localCellStartOffset;
    uint64_t localCells;
@@ -705,6 +708,10 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
       restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_r",CellParams::RHO_R,4));
       restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_v",CellParams::RHO_V,4));
       restartReducer.addOperator(new DRO::Blocks);
+      restartReducer.addOperator(new DRO::MPIrank);
+      restartReducer.addOperator(new DRO::BoundaryType);
+      restartReducer.addOperator(new DRO::BoundaryLayer);
+      restartReducer.addOperator(new DRO::VelocitySubSteps);
 
       for (uint i=0; i<restartReducer.size(); ++i) {
          writeDataReducer(mpiGrid,restartReducer,i,vlsvWriter);
