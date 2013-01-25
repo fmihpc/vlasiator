@@ -9,6 +9,11 @@
 ## variables ##
 #vlasiator binary
 bin=vlasiator
+if [ ! -f $bin ]
+then
+   echo Executable $bin does not exist
+   exit
+fi
 #processes and threads
 p=2
 t=12
