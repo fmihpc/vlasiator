@@ -41,9 +41,9 @@ template<typename REAL> void lorentzForceFaceBulk(
 ) {
 
    
-   const REAL UX = ((cellParams[CellParams::RHO] <= 0) ? 0.0 : cellParams[CellParams::RHOVX]/cellParams[CellParams::RHO]);
-   const REAL UY = ((cellParams[CellParams::RHO] <= 0) ? 0.0 : cellParams[CellParams::RHOVY]/cellParams[CellParams::RHO]);
-   const REAL UZ = ((cellParams[CellParams::RHO] <= 0) ? 0.0 : cellParams[CellParams::RHOVZ]/cellParams[CellParams::RHO]);
+   const REAL UX = ((cellParams[CellParams::RHO_V] <= 0) ? 0.0 : cellParams[CellParams::RHOVX_V]/cellParams[CellParams::RHO_V]);
+   const REAL UY = ((cellParams[CellParams::RHO_V] <= 0) ? 0.0 : cellParams[CellParams::RHOVY_V]/cellParams[CellParams::RHO_V]);
+   const REAL UZ = ((cellParams[CellParams::RHO_V] <= 0) ? 0.0 : cellParams[CellParams::RHOVZ_V]/cellParams[CellParams::RHO_V]);
    
    const REAL BX = cellParams[CellParams::PERBXVOL] + cellParams[CellParams::BGBXVOL];
    const REAL BY = cellParams[CellParams::PERBYVOL] + cellParams[CellParams::BGBYVOL];
@@ -61,7 +61,7 @@ template<typename REAL> void lorentzForceFaceBulk(
    const REAL dBZdx = cellBVOLDerivatives[bvolderivatives::dPERBZVOLdx]/cellParams[CellParams::DX];
    const REAL dBZdy = cellBVOLDerivatives[bvolderivatives::dPERBZVOLdy]/cellParams[CellParams::DY];
    
-   const REAL prefactor =  ((cellParams[CellParams::RHO] <= 0) ? 0.0 : 1.0 / (physicalconstants::MU_0 * cellParams[CellParams::RHO] * Parameters::q )); 
+   const REAL prefactor =  ((cellParams[CellParams::RHO_V] <= 0) ? 0.0 : 1.0 / (physicalconstants::MU_0 * cellParams[CellParams::RHO_V] * Parameters::q )); 
 
    
    if(Parameters::lorentzUseFieldSolverE) {

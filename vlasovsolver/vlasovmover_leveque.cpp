@@ -455,7 +455,24 @@ void calculateAccelerationSubstep(
       phiprof::stop("clearVelFluxes");
 
 
-      //   Calculate df/dt contributions of all blocks 
+      phiprof::start("Compute moments");
+#pragma omp for
+      for (size_t c=0; c<propagatedCells.size(); ++c) {
+         const CellID cellID = propagatedCells[c];
+         //compute moments after acceleration
+         mpiGrid[cellID]->parameters[CellParams::RHO_V  ] = 0.0;
+         mpiGrid[cellID]->parameters[CellParams::RHOVX_V] = 0.0;
+         mpiGrid[cellID]->parameters[CellParams::RHOVY_V] = 0.0;
+         mpiGrid[cellID]->parameters[CellParams::RHOVZ_V] = 0.0;
+         
+         for(unsigned int block_i=0; block_i< mpiGrid[cellID]->number_of_blocks;block_i++){
+            unsigned int block = mpiGrid[cellID]->velocity_block_list[block_i];         
+            cpu_calcVelocityMoments(mpiGrid[cellID],block,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V);   //set moments before acc, these are used by Lorentz force
+         }
+      }
+      phiprof::stop("Compute moments");
+
+      //   Calculate df/dt contributions of all blocks
       phiprof::start("calcVelFluxes");
       for (uint q=0;q<8;q++) {
 #pragma omp  for
@@ -494,6 +511,7 @@ void calculateAccelerationSubstep(
       }
       phiprof::stop("vBoundaryCondition");
 
+      
       //reset maxvdt and update number of substeps. There is an implicit barrier at the end, so the threads are synchronized after this
 #pragma omp for
       for (size_t c=0; c<propagatedCells.size(); ++c) {
