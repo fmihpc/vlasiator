@@ -166,6 +166,35 @@ namespace DRO {
    
    
    
+   //------------------ total BVOL --------------------------------------- 
+   VariableBVol::VariableBVol(): DataReductionOperator() { }
+   VariableBVol::~VariableBVol() { }
+   
+   bool VariableBVol::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 3;
+      return true;
+   }
+   
+   std::string VariableBVol::getName() const {return "B_vol";}
+   
+   bool VariableBVol::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(B);
+      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariableBVol::setSpatialCell(const SpatialCell* cell) {
+      B[0] = cell->parameters[CellParams::PERBXVOL] +  cell->parameters[CellParams::BGBXVOL];
+      B[1] = cell->parameters[CellParams::PERBYVOL] +  cell->parameters[CellParams::BGBYVOL];
+      B[2] = cell->parameters[CellParams::PERBZVOL] +  cell->parameters[CellParams::BGBZVOL];
+      return true;
+   }
+
+
+
+
    //------------------ total B --------------------------------------- 
    VariableB::VariableB(): DataReductionOperator() { }
    VariableB::~VariableB() { }

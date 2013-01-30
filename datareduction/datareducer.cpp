@@ -67,6 +67,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::Blocks);
       if(*it == "VolE")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("E_vol",CellParams::EXVOL,3));
+      if(*it == "VolB")
+         outputReducer->addOperator(new DRO::VariableBVol);
       if(*it == "BackgroundVolB")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGB_vol",CellParams::BGBXVOL,3));
       if(*it == "PerturbedVolB")
