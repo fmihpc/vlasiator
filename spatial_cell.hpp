@@ -1729,7 +1729,7 @@ namespace velocity_neighbor {
       boost::unordered_map<unsigned int, Velocity_Block> velocity_blocks;
 
       /*
-        Speed up search of velocity block addresses in the hash table above.
+        Speed up access to velocity block addresses in the hash table above.
         Addresses of non-existing blocks point to the null block.
       */
 
