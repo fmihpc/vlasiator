@@ -1200,22 +1200,23 @@ namespace velocity_neighbor {
             if (original_has_content) {             
                //             phiprof::start(pcontent);
                // add missing neighbors in velocity space
-               for(int offset_vx=-1;offset_vx<=1;offset_vx++)
-               for(int offset_vy=-1;offset_vy<=1;offset_vy++)
-               for(int offset_vz=-1;offset_vz<=1;offset_vz++){                  
-                  const unsigned int neighbor_block = get_velocity_block_from_offsets(block, offset_vx,offset_vy,offset_vz);
-                  if (neighbor_block == error_velocity_block) {
-                     continue;
-                  }
-                  
-                  if (!this->add_velocity_block(neighbor_block)) {
-                     std::cerr << __FILE__ << ":" << __LINE__
-                               << " Failed to add neighbor block " << neighbor_block
-                               << " for block " << block
-                               << std::endl;
-                     abort();
-                  }
-               }
+	      
+	      for(int offset_vx=-P::sparseBlockAddWidthV;offset_vx<=P::sparseBlockAddWidthV;offset_vx++)
+		for(int offset_vy=-P::sparseBlockAddWidthV;offset_vy<=P::sparseBlockAddWidthV;offset_vy++)
+		  for(int offset_vz=-P::sparseBlockAddWidthV;offset_vz<=P::sparseBlockAddWidthV;offset_vz++){                  
+		    const unsigned int neighbor_block = get_velocity_block_from_offsets(block, offset_vx,offset_vy,offset_vz);
+		    if (neighbor_block == error_velocity_block) {
+		      continue;
+		    }
+		    
+		    if (!this->add_velocity_block(neighbor_block)) {
+		      std::cerr << __FILE__ << ":" << __LINE__
+				<< " Failed to add neighbor block " << neighbor_block
+				<< " for block " << block
+				<< std::endl;
+		      abort();
+		    }
+		  }
                //  phiprof::stop(pcontent);
 
             } else {
@@ -1225,9 +1226,9 @@ namespace velocity_neighbor {
 
 //                     phiprof::start(pcheckvel);
                // velocity space neighbors
-               for(int offset_vx=-1;offset_vx<=1;offset_vx++)
-               for(int offset_vy=-1;offset_vy<=1;offset_vy++)
-               for(int offset_vz=-1;offset_vz<=1;offset_vz++) {
+               for(int offset_vx=-P::sparseBlockAddWidthV;offset_vx<=P::sparseBlockAddWidthV;offset_vx++)
+               for(int offset_vy=-P::sparseBlockAddWidthV;offset_vy<=P::sparseBlockAddWidthV;offset_vy++)
+               for(int offset_vz=-P::sparseBlockAddWidthV;offset_vz<=P::sparseBlockAddWidthV;offset_vz++) {
                   const unsigned int neighbor_block = get_velocity_block_from_offsets(block, offset_vx,offset_vy,offset_vz);
                   if (this->get_block_has_content(neighbor_block)) { 
                      neighbors_have_content = true;

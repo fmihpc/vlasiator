@@ -91,6 +91,7 @@ bool P::fieldSolverDiffusiveEterms = true;
 
 Real P::sparseMinValue = NAN;
 uint P::blockAdjustmentInterval = numeric_limits<uint>::max();
+int P::sparseBlockAddWidthV = 1;
 
 string P::restartFileName = string("");                
 bool P::isRestart=false;
@@ -166,7 +167,7 @@ bool Parameters::addParameters(){
    // Grid sparsity parameters
    Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
    Readparameters::add("sparse.blockAdjustmentInterval", "Block adjustment interval (steps)", 1);
-   
+   Readparameters::add("sparse.blockAddWidthV", "Number of layers of blocks that are kept in velocity space around the blocks with content",1);
    // Load balancing parameters
    Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("RCB"));
    Readparameters::add("loadBalance.tolerance", "Load imbalance tolerance", std::string("1.05"));
@@ -255,7 +256,7 @@ bool Parameters::getParameters(){
    // Get sparsity parameters
    Readparameters::get("sparse.minValue", P::sparseMinValue);
    Readparameters::get("sparse.blockAdjustmentInterval", P::blockAdjustmentInterval);
-   
+   Readparameters::get("sparse.blockAddWidthV", P::sparseBlockAddWidthV); 
    // Get load balance parameters
    Readparameters::get("loadBalance.algorithm", P::loadBalanceAlgorithm);
    Readparameters::get("loadBalance.tolerance", P::loadBalanceTolerance);

@@ -91,6 +91,7 @@ struct Parameters {
    static bool lorentzHallTerm;  /*!< Add JxB hall term to Lorentz force. Assumes there is not hall term in the fieldsolver*/
    static bool lorentzUseFieldSolverE;  /*!< If true, the E from fieldolver is used. Otherwise -V x B_vol is used*/
    static Real sparseMinValue; /*!< Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents */
+   static int sparseBlockAddWidthV; /*!< Number of layers of blocks that are kept in velocity space around the blocks with content */
    static uint blockAdjustmentInterval; /*!< Block adjustment interval (steps). */
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
    static std::string loadBalanceTolerance; /*!< Load imbalance tolerance. */ 
