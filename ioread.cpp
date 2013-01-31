@@ -54,7 +54,7 @@ bool exitOnError(bool success,string message,MPI_Comm comm){
 */
 
 bool readCellIds(VLSVParReader & file,
-                 vector<uint64_t>& fileCells){
+                 vector<uint64_t>& fileCells, int masterRank,MPI_Comm comm){
    // Get info on array containing cell Ids:
    uint64_t arraySize;
    uint64_t vectorSize;
@@ -62,34 +62,42 @@ bool readCellIds(VLSVParReader & file,
    uint64_t byteSize;
    list<pair<string,string> > attribs;
    bool success=true;
-   
-   //Get array info for 
-   attribs.push_back(make_pair("name","SpatialGrid"));
-   if (file.getArrayInfo("MESH",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-      logFile << "(RESTARTBUILDER) ERROR: Failed to read cell ID array info!" << endl << write;
-      return false;
-   }
-   
-   // Read cell Ids:
-   char* IDbuffer = new char[arraySize*vectorSize*byteSize];
-   if (file.readArray("MESH",attribs,0,arraySize,IDbuffer) == false) {
-      logFile << "(RESTARTBUILDER) ERROR: Failed to read cell Ids!" << endl << write;
-      success = false;
-   }
+   int rank;
+   MPI_Comm_rank(comm,&rank);
+   if(rank==masterRank){
+      //let's let master read cellId's, we anyway have at max ~1e6 cells
+      attribs.push_back(make_pair("name","SpatialGrid"));
+      if (file.getArrayInfoMaster("MESH",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
+         logFile << "(RESTARTBUILDER) ERROR: Failed to read cell ID array info!" << endl << write;
+         return false;
+      }
+      
+      //   Read cell Ids:
+      char* IDbuffer = new char[arraySize*vectorSize*byteSize];
+      if (file.readArrayMaster("MESH",attribs,0,arraySize,IDbuffer) == false) {
+         logFile << "(RESTARTBUILDER) ERROR: Failed to read cell Ids!" << endl << write;
+         success = false;
+      }
    
    // Convert global Ids into our local DCCRG 64 bit uints
-   fileCells.resize(arraySize);
-   int N_cells = arraySize;
-   if (dataType == VLSV::UINT && byteSize == 4) {
-      uint32_t* ptr = reinterpret_cast<uint32_t*>(IDbuffer);
-      for (uint64_t i=0; i<arraySize; ++i) fileCells[i] = ptr[i];
-   } else if (dataType == VLSV::UINT && byteSize == 8) {
-      uint64_t* ptr = reinterpret_cast<uint64_t*>(IDbuffer);
-      for (uint64_t i=0; i<arraySize; ++i) fileCells[i] = ptr[i];
-   } else {
-      logFile << "(RESTARTBUILDER) ERROR: VLSVParReader returned an unsupported datatype for cell Ids!" << endl << write;
-      success = false;
+      fileCells.resize(arraySize);
+      int N_cells = arraySize;
+      if (dataType == VLSV::UINT && byteSize == 4) {
+         uint32_t* ptr = reinterpret_cast<uint32_t*>(IDbuffer);
+         for (uint64_t i=0; i<arraySize; ++i) fileCells[i] = ptr[i];
+      } else if (dataType == VLSV::UINT && byteSize == 8) {
+         uint64_t* ptr = reinterpret_cast<uint64_t*>(IDbuffer);
+         for (uint64_t i=0; i<arraySize; ++i) fileCells[i] = ptr[i];
+      } else {
+         logFile << "(RESTARTBUILDER) ERROR: VLSVParReader returned an unsupported datatype for cell Ids!" << endl << write;
+         success = false;
+      }
    }
+   //broadcast cellId's to everybody
+   MPI_Bcast(&arraySize,1,MPI_UINT64_T,masterRank,comm);   
+   fileCells.resize(arraySize);
+   MPI_Bcast(&(fileCells[0]),arraySize,MPI_UINT64_T,masterRank,comm);
+   
    return success;
 }
 
@@ -101,7 +109,7 @@ bool readCellIds(VLSVParReader & file,
 
 
 bool readNBlocks(VLSVParReader & file,
-                 vector<unsigned int>& nBlocks){
+                 vector<unsigned int>& nBlocks, int masterRank,MPI_Comm comm){
    // Get info on array containing cell Ids:
    uint64_t arraySize;
    uint64_t vectorSize;
@@ -109,24 +117,30 @@ bool readNBlocks(VLSVParReader & file,
    uint64_t byteSize;
    list<pair<string,string> > attribs;
    bool success=true;
-   
-   //Get array info for 
-   attribs.push_back(make_pair("name","Blocks"));
-   attribs.push_back(make_pair("mesh","SpatialGrid"));
-   if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-      logFile << "(RESTARTBUILDER) ERROR: Failed to read number of blocks" << endl << write;
-      return false;
-   }
+   int rank;
+   MPI_Comm_rank(comm,&rank);
+   if(rank==masterRank){
+      //master reads this piece of data
+      attribs.push_back(make_pair("name","Blocks"));
+      attribs.push_back(make_pair("mesh","SpatialGrid"));
+      if (file.getArrayInfoMaster("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
+         logFile << "(RESTARTBUILDER) ERROR: Failed to read number of blocks" << endl << write;
+         success= false;
+      }
 
    
+      nBlocks.resize(vectorSize*arraySize);
+      if (file.readArrayMaster("VARIABLE",attribs,0,arraySize,(char*)&(nBlocks[0])) == false) {
+         logFile << "(RESTARTBUILDER) ERROR: Failed to read number of blocks!" << endl << write;
+         success = false;
+      }
+   }
+
+   //now broadcast the data to everybody
+   MPI_Bcast(&arraySize,1,MPI_UINT64_T,masterRank,comm);
+   MPI_Bcast(&vectorSize,1,MPI_UINT64_T,masterRank,comm);
    nBlocks.resize(vectorSize*arraySize);
-   if (file.readArray("VARIABLE",attribs,0,arraySize,(char*)&(nBlocks[0])) == false) {
-      logFile << "(RESTARTBUILDER) ERROR: Failed to read number of blocks!" << endl << write;
-      success = false;
-   }
-
-   
-   
+   MPI_Bcast(&(nBlocks[0]),vectorSize*arraySize,MPI_UNSIGNED,masterRank,comm);
    return success;
 }
 
@@ -419,7 +433,7 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
 
    phiprof::start("readDatalayout");
    if(success) 
-      success=readCellIds(file,fileCells);
+      success=readCellIds(file,fileCells,0,MPI_COMM_WORLD);
 
    //check that the cellID lists are identical in file and grid
    if(myRank==0){
@@ -432,31 +446,42 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    exitOnError(success,"(RESTART) Wrong number of cells in restartfile",MPI_COMM_WORLD);
    
    if(success) 
-      success=readNBlocks(file,nBlocks);
+      success=readNBlocks(file,nBlocks,0,MPI_COMM_WORLD);
    
    //make sure all cells are empty, we will anyway overwrite everything and in that case moving cells is easier...
    vector<uint64_t> gridCells = mpiGrid.get_cells();
    for(uint i=0;i<gridCells.size();i++){
       mpiGrid[gridCells[i]]->clear();
+      
    }
-   
 
-   //prepare to migrate cells so that each process has its cells contiguously in the file
-   //First processA processes get cellsPerProcessA cells, the next cellsPerProcessB cells
-   uint cellsPerProcessA=fileCells.size()/processes;
-   uint cellsPerProcessB=cellsPerProcessA+1;
-   int processesB=fileCells.size()%processes;
-   int processesA=processes-processesB;
+
+   uint64_t totalNumberOfBlocks=0;
+   unsigned int numberOfBlocksPerProcess;
+
+   for(uint i=0;i<nBlocks.size();i++){
+      totalNumberOfBlocks+=nBlocks[i];
+   }   
+   numberOfBlocksPerProcess=1+totalNumberOfBlocks/processes;
+
+
+
+   uint64_t localCellStartOffset=0; /*<!this is where local cells start in file-list after migration*/
+   uint64_t localCells=0;
    
-   //pin local cells to remote processes
+   uint64_t numberOfBlocksCount=0;
+   //pin local cells to remote processes, we try to balance number of blocks so that each process has the same amount of blocks, more or less
+
    for(uint i=0;i<fileCells.size();i++){
+      numberOfBlocksCount+=nBlocks[i];
+      uint newCellProcess=numberOfBlocksCount/numberOfBlocksPerProcess;
+      if(newCellProcess==myRank){
+         if(localCells==0)
+            localCellStartOffset=i; //here local cells start
+         localCells++;
+      }
       if(mpiGrid.is_local(fileCells[i])){
-         uint newCellProcess;
-         if(i>cellsPerProcessA*processesA)
-            newCellProcess=processesA + (i-cellsPerProcessA*processesA)/cellsPerProcessB;
-         else
-            newCellProcess=i/cellsPerProcessA;
-         mpiGrid.pin(fileCells[i],newCellProcess);
+          mpiGrid.pin(fileCells[i],newCellProcess);
       }
    }
    
@@ -468,18 +493,7 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    for(uint i=0;i<gridCells.size();i++){
       mpiGrid.unpin(gridCells[i]);
    }
-   //this is where local cells start in file-list after migration
-   uint64_t localCellStartOffset;
-   uint64_t localCells;
-   if(myRank < int(processesA)) {
-      localCells=cellsPerProcessA;
-      localCellStartOffset=cellsPerProcessA*myRank;
-   }
-   else {
-      localCells=cellsPerProcessB;
-      localCellStartOffset=cellsPerProcessA*processesA +
-         cellsPerProcessB*(myRank-processesA);
-   }
+
    //check for errors, has migration succeeded
    if(localCells != gridCells.size() ){
       success=false;
