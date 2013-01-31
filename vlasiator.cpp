@@ -38,7 +38,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "fieldsolver.h"
 #include "projects/project.h"
 #include "grid.h"
-#include "fileio.h"
+#include "iowrite.h"
+#include "ioread.h"
 
 #ifdef CATCH_FPE
 #include <fenv.h>

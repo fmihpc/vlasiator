@@ -40,7 +40,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "vlsvwriter2.h" 
 #include "fieldsolver.h"
 #include "projects/project.h"
-#include "fileio.h"
+#include "iowrite.h"
+#include "ioread.h"
 
 
 using namespace std;

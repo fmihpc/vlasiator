@@ -1,5 +1,5 @@
-#ifndef FILEIO_H
-#define FILEIO_H
+#ifndef IOWRITE_H
+#define IOWRITE_H
 #include "mpi.h"
 #include <dccrg.hpp>
 #include <string>
@@ -26,12 +26,6 @@ bool writeGrid(const dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
                const uint& index,
                const bool& writeRestart);
 
-/*!
-
-\brief Read in state from a vlsv file in order to restart simulations
-*/
-bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
-              const std::string& name);
 
 
 

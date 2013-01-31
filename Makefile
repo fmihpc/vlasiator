@@ -120,7 +120,7 @@ OBJS = 	backgroundfield.o ode.o quadr.o dipole.o constantfield.o integratefuncti
 	sysboundary.o sysboundarycondition.o \
 	project.o projectIsotropicMaxwellian.o \
 	Alfven.o Diffusion.o Dispersion.o Firehose.o Flowthrough.o Fluctuations.o  KHB.o Larmor.o Magnetosphere.o MultiPeak.o Riemann1.o Shock.o test_fp.o test_trans.o verificationLarmor.o\
-	grid.o fileio.o vlasiator.o logger.o muxml.o \
+	grid.o ioread.o iowrite.o vlasiator.o logger.o muxml.o \
 	parameters.o readparameters.o spatial_cell.o \
 	vlscommon.o vlsvreader2.o vlsvwriter2.o vlasovmover_$(TRANSSOLVER).o $(FIELDSOLVER).o
 
@@ -255,8 +255,12 @@ vlasiator.o:  ${DEPS_COMMON} readparameters.h parameters.h ${DEPS_PROJECTS} grid
 grid.o:  ${DEPS_COMMON} parameters.h ${DEPS_PROJECTS} spatial_cell.hpp grid.cpp grid.h  sysboundary/sysboundary.h
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c grid.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE}
 
-fileio.o:  ${DEPS_COMMON} parameters.h  spatial_cell.hpp fileio.cpp fileio.h  vlsvwriter2.cpp  vlsvreader2.cpp
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c fileio.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE}
+ioread.o:  ${DEPS_COMMON} parameters.h  spatial_cell.hpp ioread.cpp ioread.h  vlsvreader2.cpp
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c ioread.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE}
+
+
+iowrite.o:  ${DEPS_COMMON} parameters.h  spatial_cell.hpp iowrite.cpp iowrite.h  vlsvwriter2.cpp
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c iowrite.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE}
 
 logger.o: logger.h logger.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c logger.cpp ${INC_MPI}
