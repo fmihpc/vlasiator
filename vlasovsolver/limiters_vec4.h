@@ -14,6 +14,17 @@ inline Vec4 superbee_vec4(const Vec4& theta) {
    return max(value1,value2);
 }
 
+inline Vec4 MClimiter(const Vec4& theta) {
+   Vec4 val1;
+   const Vec4 two(2.0);
+   const Vec4 one(1.0);
+   const Vec4 half(0.5);
+   const Vec4 zero(0.0);
+   val1 = min(half*(one+theta),two);
+   val1 = min(val1,two*theta);
+   return max(zero,val1);
+}
+
 
 inline Vec4 limiter_vec4(const Vec4& THETA_UP,const Vec4& THETA_LO,const Vec4& XCC) {
    //return MClimiter(THETA_UP/THETA_LO);
