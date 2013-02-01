@@ -31,8 +31,8 @@ creal TWO     = 2.0;
 creal EPSILON = 1.0e-25;
 
 template<typename T> inline T limiter(const T& THETA_UP,const T& THETA_LO,const T& XCC) {
-   //return MClimiter(THETA_UP/THETA_LO);
-   return superbee(THETA_UP/THETA_LO);
+   return MClimiter(THETA_UP/THETA_LO);
+   //return superbee(THETA_UP/THETA_LO);
    //return vanLeer(THETA_UP/THETA_LO);
 }
 

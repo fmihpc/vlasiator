@@ -27,8 +27,8 @@ inline Vec4 MClimiter(const Vec4& theta) {
 
 
 inline Vec4 limiter_vec4(const Vec4& THETA_UP,const Vec4& THETA_LO,const Vec4& XCC) {
-   //return MClimiter(THETA_UP/THETA_LO);
-   return superbee_vec4(THETA_UP/THETA_LO);
+   return MClimiter(THETA_UP/THETA_LO);
+   //return superbee_vec4(THETA_UP/THETA_LO);
    //return vanLeer(THETA_UP/THETA_LO);
 }
 
