@@ -474,7 +474,7 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
 
    for(uint i=0;i<fileCells.size();i++){
       numberOfBlocksCount+=nBlocks[i];
-      uint newCellProcess=numberOfBlocksCount/numberOfBlocksPerProcess;
+      int newCellProcess=numberOfBlocksCount/numberOfBlocksPerProcess;
       if(newCellProcess==myRank){
          if(localCells==0)
             localCellStartOffset=i; //here local cells start
