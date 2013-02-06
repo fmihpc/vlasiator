@@ -172,22 +172,23 @@ void initializeGrid(
       }
       
       phiprof::stop("Apply system boundary conditions state");
-   }
-   
-   updateRemoteVelocityBlockLists(mpiGrid);
-   adjustVelocityBlocks(mpiGrid,false); // do not initialize mover, mover has not yet been initialized here
 
+   
+      updateRemoteVelocityBlockLists(mpiGrid);
+      adjustVelocityBlocks(mpiGrid,false); // do not initialize mover, mover has not yet been initialized here
+   }
+
+   
    //Balance load before we transfer all data below
    balanceLoad(mpiGrid);
    
    phiprof::initializeTimer("Fetch Neighbour data","MPI");
    phiprof::start("Fetch Neighbour data");
    // update complete spatial cell data
-   //FIXME: here we transfer all data so taht all remote cells have up-to-date data. Should not be needed...?
+   //FIXME: here we transfer all data so that all remote cells have up-to-date data. Should not be needed...?
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
    mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop("Fetch Neighbour data");
-   
    phiprof::stop("Set initial state");
    
 
