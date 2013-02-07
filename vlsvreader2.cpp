@@ -62,9 +62,9 @@ bool VLSVReader::getArrayInfo(const std::string& tagName,const std::string& arra
       return false;
    }
 
-   arraySize = atoi(node->attributes["arraysize"].c_str());
-   vectorSize = atoi(node->attributes["vectorsize"].c_str());
-   byteSize = atoi(node->attributes["datasize"].c_str());
+   arraySize = stoull(node->attributes["arraysize"]);
+   vectorSize = stoull(node->attributes["vectorsize"]);
+   byteSize = stoull(node->attributes["datasize"]);
    if (node->attributes["datatype"] == "int") dataType = VLSV::INT;
    else if (node->attributes["datatype"] == "uint") dataType = VLSV::UINT;
    else if (node->attributes["datatype"] == "float") dataType = VLSV::FLOAT;
@@ -89,9 +89,9 @@ bool VLSVReader::getArrayInfo(const std::string& tagName,const std::string& arra
       return false;
    }
 
-   arraySize = atoi(node->attributes["arraysize"].c_str());
-   vectorSize = atoi(node->attributes["vectorsize"].c_str());
-   byteSize = atoi(node->attributes["datasize"].c_str());
+   arraySize = stoull(node->attributes["arraysize"]);
+   vectorSize = stoull(node->attributes["vectorsize"]);
+   byteSize = stoull(node->attributes["datasize"]);
    if (node->attributes["datatype"] == "int") dataType = VLSV::INT;
    else if (node->attributes["datatype"] == "uint") dataType = VLSV::UINT;
    else if (node->attributes["datatype"] == "float") dataType = VLSV::FLOAT;
@@ -117,9 +117,9 @@ bool VLSVReader::getArrayInfo(const std::string& tagName,const std::list<std::pa
       return false;
    }
    
-   arraySize = atoi(node->attributes["arraysize"].c_str());
-   vectorSize = atoi(node->attributes["vectorsize"].c_str());
-   dataSize = atoi(node->attributes["datasize"].c_str());
+   arraySize = stoull(node->attributes["arraysize"]);
+   vectorSize = stoull(node->attributes["vectorsize"]);
+   dataSize = stoull(node->attributes["datasize"]);
    if (node->attributes["datatype"] == "int") dataType = VLSV::INT;
    else if (node->attributes["datatype"] == "uint") dataType = VLSV::UINT;
    else if (node->attributes["datatype"] == "float") dataType = VLSV::FLOAT;
@@ -220,12 +220,12 @@ bool VLSVReader::loadArray(const std::string& tagName,const std::list<std::pair<
    }
    
    // Copy array information from tag:
-   arrayOpen.offset = atoi(node->value.c_str());
+   arrayOpen.offset = stoull(node->value);
    arrayOpen.tagName = tagName;
    arrayOpen.arrayName = arrayName->second;
-   arrayOpen.arraySize = atoi(node->attributes["arraysize"].c_str());
-   arrayOpen.vectorSize = atoi(node->attributes["vectorsize"].c_str());
-   arrayOpen.dataSize = atoi(node->attributes["datasize"].c_str());
+   arrayOpen.arraySize = stoull(node->attributes["arraysize"]);
+   arrayOpen.vectorSize = stoull(node->attributes["vectorsize"]);
+   arrayOpen.dataSize = stoull(node->attributes["datasize"]);
    if (node->attributes["datatype"] == "int") arrayOpen.dataType = VLSV::INT;
    else if (node->attributes["datatype"] == "uint") arrayOpen.dataType = VLSV::UINT;
    else if (node->attributes["datatype"] == "float") arrayOpen.dataType = VLSV::FLOAT;
@@ -312,12 +312,12 @@ bool VLSVReader::readArray(
       }
       
       // Copy array information from tag:
-      arrayOpen.offset = atoi(node->value.c_str());
+      arrayOpen.offset = stoull(node->value);
       arrayOpen.tagName = tagName;
       arrayOpen.arrayName = arrayName->second;
-      arrayOpen.arraySize = atoi(node->attributes["arraysize"].c_str());
-      arrayOpen.vectorSize = atoi(node->attributes["vectorsize"].c_str());
-      arrayOpen.dataSize = atoi(node->attributes["datasize"].c_str());
+      arrayOpen.arraySize = stoull(node->attributes["arraysize"]);
+      arrayOpen.vectorSize = stoull(node->attributes["vectorsize"]);
+      arrayOpen.dataSize = stoull(node->attributes["datasize"]);
       if (node->attributes["datatype"] == "int") arrayOpen.dataType = VLSV::INT;
       else if (node->attributes["datatype"] == "uint") arrayOpen.dataType = VLSV::UINT;
       else if (node->attributes["datatype"] == "float") arrayOpen.dataType = VLSV::FLOAT;
@@ -379,12 +379,12 @@ bool VLSVReader::readArray(
       }
       
       // Copy array information from tag:
-      arrayOpen.offset = atoi(node->value.c_str());
+      arrayOpen.offset = stoull(node->value);
       arrayOpen.tagName = tagName;
       arrayOpen.arrayName = arrayName;
-      arrayOpen.arraySize = atoi(node->attributes["arraysize"].c_str());
-      arrayOpen.vectorSize = atoi(node->attributes["vectorsize"].c_str());
-      arrayOpen.dataSize = atoi(node->attributes["datasize"].c_str());
+      arrayOpen.arraySize = stoull(node->attributes["arraysize"]);
+      arrayOpen.vectorSize = stoull(node->attributes["vectorsize"]);
+      arrayOpen.dataSize = stoull(node->attributes["datasize"]);
       if (node->attributes["datatype"] == "int") arrayOpen.dataType = VLSV::INT;
       else if (node->attributes["datatype"] == "uint") arrayOpen.dataType = VLSV::UINT;
       else if (node->attributes["datatype"] == "float") arrayOpen.dataType = VLSV::FLOAT;
@@ -448,12 +448,12 @@ bool VLSVReader::readArray(
       if (node == NULL) return false;
 
       // Copy array information from tag:
-      arrayOpen.offset = atoi(node->value.c_str());
+      arrayOpen.offset = stoull(node->value);
       arrayOpen.tagName = tagName;
       arrayOpen.arrayName = arrayName;
-      arrayOpen.arraySize = atoi(node->attributes["arraysize"].c_str());
-      arrayOpen.vectorSize = atoi(node->attributes["vectorsize"].c_str());
-      arrayOpen.dataSize = atoi(node->attributes["datasize"].c_str());
+      arrayOpen.arraySize = stoull(node->attributes["arraysize"]);
+      arrayOpen.vectorSize = stoull(node->attributes["vectorsize"]);
+      arrayOpen.dataSize = stoull(node->attributes["datasize"]);
       if (node->attributes["datatype"] == "int") arrayOpen.dataType = VLSV::INT;
       else if (node->attributes["datatype"] == "uint") arrayOpen.dataType = VLSV::UINT;
       else if (node->attributes["datatype"] == "float") arrayOpen.dataType = VLSV::FLOAT;
