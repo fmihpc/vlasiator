@@ -33,7 +33,7 @@ void setBackgroundField(FieldFunction& bgFunction,Real* cellParams, Real* faceDe
    //these are doubles, as the averaging functions copied from Gumics
    //use internally doubles. In any case, it should provide more
    //accurate results also for float simulations
-   double accuracy = 1e-17;     
+   double accuracy = 1e-17;
    double start[3];
    double end[3];
    double dx[3];
@@ -53,7 +53,7 @@ void setBackgroundField(FieldFunction& bgFunction,Real* cellParams, Real* faceDe
    end[1]=start[1]+dx[1];
    end[2]=start[2]+dx[2];
    
-   //the coordiantes of the edges face with a normal in the third coordinate direction, stored here to enable looping
+   //the coordinates of the edges face with a normal in the third coordinate direction, stored here to enable looping
    faceCoord1[0]=1;
    faceCoord2[0]=2;
    faceCoord1[1]=0;
@@ -64,11 +64,11 @@ void setBackgroundField(FieldFunction& bgFunction,Real* cellParams, Real* faceDe
    //Face averages
    for(unsigned int fComponent=0;fComponent<3;fComponent++){
       bgFunction.setDerivative(0);
-      bgFunction.setComponent((coordinate)fComponent);      
+      bgFunction.setComponent((coordinate)fComponent);
       cellParams[CellParams::BGBX+fComponent] =surfaceAverage(bgFunction,(coordinate)fComponent,accuracy,
                                                               start,dx[faceCoord1[fComponent]],dx[faceCoord2[fComponent]]);
       
-      //Compute derivativces. Note that we scale by dx[] as the arrays are assumed to contain differences, not true derivatives!
+      //Compute derivatives. Note that we scale by dx[] as the arrays are assumed to contain differences, not true derivatives!
       bgFunction.setDerivative(1);
       bgFunction.setDerivComponent((coordinate)faceCoord1[fComponent]);      
       faceDerivatives[fieldsolver::dBGBxdy+2*fComponent] =
