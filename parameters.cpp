@@ -88,6 +88,7 @@ bool P::dynamicTimestep = true;
 Real P::maxAlfvenVelocity = 0.0;
 Real P::resistivity = NAN;
 bool P::fieldSolverDiffusiveEterms = true;
+bool P::ohmHallTerm = false;
 
 Real P::sparseMinValue = NAN;
 uint P::blockAdjustmentInterval = numeric_limits<uint>::max();
@@ -158,10 +159,11 @@ bool Parameters::addParameters(){
    Readparameters::add("fieldsolver.maxAlfvenVelocity", "Maximum Alfven velocity allowed in the fast MS velocity determination in m/s, default unlimited", LARGE_REAL);
    Readparameters::add("fieldsolver.resistivity", "Resistivity for the eta*J term in Ohm's law.", 0.0);
    Readparameters::add("fieldsolver.diffusiveEterms", "Enable diffusive terms in the computation of E",true);
+   Readparameters::add("fieldsolver.ohmHallTerm", "Enable the Hall term in Ohm's law", false);
    
    // Vlasov solver parameters
    Readparameters::add("vlasovsolver.lorentzHallTerm", "Add JxB term to Lorentz force",false);
-   Readparameters::add("vlasovsolver.lorentzUseFieldSolverE", "If true, the E from fieldolver is used. Otherwise -V x B_vol is used (default)",false);
+   Readparameters::add("vlasovsolver.lorentzUseFieldSolverE", "If true, the E from fieldsolver is used. Otherwise -V x B_vol is used (default)",false);
 
 
    // Grid sparsity parameters
@@ -249,7 +251,8 @@ bool Parameters::getParameters(){
    // Get field solver parameters
    Readparameters::get("fieldsolver.maxAlfvenVelocity", P::maxAlfvenVelocity);
    Readparameters::get("fieldsolver.resistivity", P::resistivity);
-   Readparameters::get("fieldsolver.diffusiveEterms", P::fieldSolverDiffusiveEterms); 
+   Readparameters::get("fieldsolver.diffusiveEterms", P::fieldSolverDiffusiveEterms);
+   Readparameters::get("fieldsolver.ohmHallTerm", P::ohmHallTerm);
    // Get Vlasov solver parameters
    Readparameters::get("vlasovsolver.lorentzHallTerm", P::lorentzHallTerm);
    Readparameters::get("vlasovsolver.lorentzUseFieldSolverE",P::lorentzUseFieldSolverE);

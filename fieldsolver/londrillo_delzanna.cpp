@@ -729,6 +729,14 @@ void calculateEdgeElectricFieldX(
                (cp_SW[CellParams::RHO]*Parameters::q) /
             physicalconstants::MU_0 *
             (derivs_SW[fs::dPERBzdy]/cp_SW[CellParams::DY] - derivs_SW[fs::dPERBydz]/cp_SW[CellParams::DZ]);
+   // Hall term
+   if(Parameters::ohmHallTerm) {
+      Ex_SW += (Bz_W*((derivs_SW[fs::dBGBxdz]+derivs_SW[fs::dPERBxdz])/cp_SW[CellParams::DZ] -
+                      (derivs_SW[fs::dBGBzdx]+derivs_SW[fs::dPERBzdx])/cp_SW[CellParams::DX]) -
+                By_S*((derivs_SW[fs::dBGBydx]+derivs_SW[fs::dPERBydx])/cp_SW[CellParams::DX]-
+                     ((derivs_SW[fs::dBGBxdy]+derivs_SW[fs::dPERBxdy])/cp_SW[CellParams::DY])))
+               / (physicalconstants::MU_0*cp_SW[CellParams::RHO]*Parameters::q);
+   }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_SW += +HALF*((By_S - HALF*dBydz_S)*(-derivs_SW[fs::dVzdy] - derivs_SW[fs::dVzdz]) - dBydz_S*Vz0 + SIXTH*dBydx_S*derivs_SW[fs::dVzdx]);
@@ -771,6 +779,14 @@ void calculateEdgeElectricFieldX(
                (cp_SE[CellParams::RHO]*Parameters::q) /
             physicalconstants::MU_0 *
             (derivs_SE[fs::dPERBzdy]/cp_SE[CellParams::DY] - derivs_SE[fs::dPERBydz]/cp_SE[CellParams::DZ]);
+   // Hall term
+   if(Parameters::ohmHallTerm) {
+      Ex_SE += (Bz_E*((derivs_SE[fs::dBGBxdz]+derivs_SE[fs::dPERBxdz])/cp_SE[CellParams::DZ] -
+                      (derivs_SE[fs::dBGBzdx]+derivs_SE[fs::dPERBzdx])/cp_SE[CellParams::DX]) -
+                By_S*((derivs_SE[fs::dBGBydx]+derivs_SE[fs::dPERBydx])/cp_SE[CellParams::DX] -
+                     ((derivs_SE[fs::dBGBxdy]+derivs_SE[fs::dPERBxdy])/cp_SE[CellParams::DY])))
+               / (physicalconstants::MU_0*cp_SE[CellParams::RHO]*Parameters::q);
+   }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_SE += +HALF*((By_S - HALF*dBydz_S)*(+derivs_SE[fs::dVzdy] - derivs_SE[fs::dVzdz]) - dBydz_S*Vz0 + SIXTH*dBydx_S*derivs_SE[fs::dVzdx]);
@@ -813,6 +829,14 @@ void calculateEdgeElectricFieldX(
                (cp_NW[CellParams::RHO]*Parameters::q) /
             physicalconstants::MU_0 *
             (derivs_NW[fs::dPERBzdy]/cp_NW[CellParams::DY] - derivs_NW[fs::dPERBydz]/cp_NW[CellParams::DZ]);
+   // Hall term
+   if(Parameters::ohmHallTerm) {
+      Ex_NW += (Bz_W*((derivs_NW[fs::dBGBxdz]+derivs_NW[fs::dPERBxdz])/cp_NW[CellParams::DZ] -
+                      (derivs_NW[fs::dBGBzdx]+derivs_NW[fs::dPERBzdx])/cp_NW[CellParams::DX]) -
+                By_N*((derivs_NW[fs::dBGBydx]+derivs_NW[fs::dPERBydx])/cp_NW[CellParams::DX]-
+                     ((derivs_NW[fs::dBGBxdy]+derivs_NW[fs::dPERBxdy])/cp_NW[CellParams::DY])))
+               / (physicalconstants::MU_0*cp_NW[CellParams::RHO]*Parameters::q);
+   }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_NW += +HALF*((By_N + HALF*dBydz_N)*(-derivs_NW[fs::dVzdy] + derivs_NW[fs::dVzdz]) + dBydz_N*Vz0 + SIXTH*dBydx_N*derivs_NW[fs::dVzdx]);
@@ -855,6 +879,14 @@ void calculateEdgeElectricFieldX(
                (cp_NE[CellParams::RHO]*Parameters::q) /
             physicalconstants::MU_0 *
             (derivs_NE[fs::dPERBzdy]/cp_NE[CellParams::DY] - derivs_NE[fs::dPERBydz]/cp_NE[CellParams::DZ]);
+   // Hall term
+   if(Parameters::ohmHallTerm) {
+      Ex_NE += (Bz_E*((derivs_NE[fs::dBGBxdz]+derivs_NE[fs::dPERBxdz])/cp_NE[CellParams::DZ] -
+                      (derivs_NE[fs::dBGBzdx]+derivs_NE[fs::dPERBzdx])/cp_NE[CellParams::DX]) -
+                By_N*((derivs_NE[fs::dBGBydx]+derivs_NE[fs::dPERBydx])/cp_NE[CellParams::DX] -
+                     ((derivs_NE[fs::dBGBxdy]+derivs_NE[fs::dPERBxdy])/cp_NE[CellParams::DY])))
+               / (physicalconstants::MU_0*cp_NE[CellParams::RHO]*Parameters::q);
+   }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_NE += +HALF*((By_N + HALF*dBydz_N)*(+derivs_NE[fs::dVzdy] + derivs_NE[fs::dVzdz]) + dBydz_N*Vz0 + SIXTH*dBydx_N*derivs_NE[fs::dVzdx]);
@@ -1005,6 +1037,14 @@ void calculateEdgeElectricFieldY(
                (cp_SW[CellParams::RHO]*Parameters::q) /
             physicalconstants::MU_0 *
             (derivs_SW[fs::dPERBxdz]/cp_SW[CellParams::DZ] - derivs_SW[fs::dPERBzdx]/cp_SW[CellParams::DX]);
+   // Hall term
+   if(Parameters::ohmHallTerm) {
+      Ey_SW += (Bx_W*((derivs_SW[fs::dBGBydx]+derivs_SW[fs::dPERBydx])/cp_SW[CellParams::DX] -
+                      (derivs_SW[fs::dBGBxdy]+derivs_SW[fs::dPERBxdy])/cp_SW[CellParams::DY]) -
+                Bz_S*((derivs_SW[fs::dBGBzdy]+derivs_SW[fs::dPERBzdy])/cp_SW[CellParams::DY] -
+                     ((derivs_SW[fs::dBGBydz]+derivs_SW[fs::dPERBydz])/cp_SW[CellParams::DZ] )))
+               / (physicalconstants::MU_0*cp_SW[CellParams::RHO]*Parameters::q);
+   }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms
       Ey_SW += +HALF*((Bz_S - HALF*dBzdx_S)*(-derivs_SW[fs::dVxdx] - derivs_SW[fs::dVxdz]) - dBzdx_S*Vx0 + SIXTH*dBzdy_S*derivs_SW[fs::dVxdy]);
@@ -1047,6 +1087,14 @@ void calculateEdgeElectricFieldY(
                (cp_SE[CellParams::RHO]*Parameters::q) /
             physicalconstants::MU_0 *
             (derivs_SE[fs::dPERBxdz]/cp_SE[CellParams::DZ] - derivs_SE[fs::dPERBzdx]/cp_SE[CellParams::DX]);
+   // Hall term
+   if(Parameters::ohmHallTerm) {
+      Ey_SE += (Bx_E*((derivs_SE[fs::dBGBydx]+derivs_SE[fs::dPERBydx])/cp_SE[CellParams::DX] -
+                      (derivs_SE[fs::dBGBxdy]+derivs_SE[fs::dPERBxdy])/cp_SE[CellParams::DY]) -
+                Bz_S*((derivs_SE[fs::dBGBzdy]+derivs_SE[fs::dPERBzdy])/cp_SE[CellParams::DY] -
+                     ((derivs_SE[fs::dBGBydz]+derivs_SE[fs::dPERBydz])/cp_SE[CellParams::DZ])))
+               / (physicalconstants::MU_0*cp_SE[CellParams::RHO]*Parameters::q);
+   }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ey_SE += +HALF*((Bz_S - HALF*dBzdx_S)*(-derivs_SE[fs::dVxdx] + derivs_SE[fs::dVxdz]) - dBzdx_S*Vx0 + SIXTH*dBzdy_S*derivs_SE[fs::dVxdy]);
@@ -1089,6 +1137,14 @@ void calculateEdgeElectricFieldY(
                (cp_NW[CellParams::RHO]*Parameters::q) /
             physicalconstants::MU_0 *
             (derivs_NW[fs::dPERBxdz]/cp_NW[CellParams::DZ] - derivs_NW[fs::dPERBzdx]/cp_NW[CellParams::DX]);
+   // Hall term
+   if(Parameters::ohmHallTerm) {
+      Ey_NW += (Bx_W*((derivs_NW[fs::dBGBydx]+derivs_NW[fs::dPERBydx])/cp_NW[CellParams::DX] -
+                      (derivs_NW[fs::dBGBxdy]+derivs_NW[fs::dPERBxdy])/cp_NW[CellParams::DY]) -
+                Bz_N*((derivs_NW[fs::dBGBzdy]+derivs_NW[fs::dPERBzdy])/cp_NW[CellParams::DY] -
+                     ((derivs_NW[fs::dBGBydz]+derivs_NW[fs::dPERBydz])/cp_NW[CellParams::DZ])))
+               / (physicalconstants::MU_0*cp_NW[CellParams::RHO]*Parameters::q);
+   }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ey_NW += +HALF*((Bz_N + HALF*dBzdx_N)*(+derivs_NW[fs::dVxdx] - derivs_NW[fs::dVxdz]) + dBzdx_N*Vx0 + SIXTH*dBzdy_N*derivs_NW[fs::dVxdy]);
@@ -1131,6 +1187,14 @@ void calculateEdgeElectricFieldY(
                (cp_NE[CellParams::RHO]*Parameters::q) /
             physicalconstants::MU_0 *
             (derivs_NE[fs::dPERBxdz]/cp_NE[CellParams::DZ] - derivs_NE[fs::dPERBzdx]/cp_NE[CellParams::DX]);
+   // Hall term
+   if(Parameters::ohmHallTerm) {
+      Ey_NE += (Bx_E*((derivs_NE[fs::dBGBydx]+derivs_NE[fs::dPERBydx])/cp_NE[CellParams::DX] -
+                      (derivs_NE[fs::dBGBxdy]+derivs_NE[fs::dPERBxdy])/cp_NE[CellParams::DY]) -
+                Bz_N*((derivs_NE[fs::dBGBzdy]+derivs_NE[fs::dPERBzdy])/cp_NE[CellParams::DY] -
+                     ((derivs_NE[fs::dBGBydz]+derivs_NE[fs::dPERBydz])/cp_NE[CellParams::DZ])))
+               / (physicalconstants::MU_0*cp_NE[CellParams::RHO]*Parameters::q);
+   }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ey_NE += +HALF*((Bz_N + HALF*dBzdx_N)*(+derivs_NE[fs::dVxdx] + derivs_NE[fs::dVxdz]) + dBzdx_N*Vx0 + SIXTH*dBzdy_N*derivs_NE[fs::dVxdy]);
@@ -1279,6 +1343,14 @@ void calculateEdgeElectricFieldZ(
                (cp_SW[CellParams::RHO]*Parameters::q) /
             physicalconstants::MU_0 *
             (derivs_SW[fs::dPERBydx]/cp_SW[CellParams::DX] - derivs_SW[fs::dPERBxdy]/cp_SW[CellParams::DY]);
+   // Hall term
+   if(Parameters::ohmHallTerm) {
+      Ez_SW += (By_W*((derivs_SW[fs::dBGBzdy]+derivs_SW[fs::dPERBzdy])/cp_SW[CellParams::DY] -
+                      (derivs_SW[fs::dBGBydz]+derivs_SW[fs::dPERBydz])/cp_SW[CellParams::DZ]) -
+                Bx_S*((derivs_SW[fs::dBGBxdz]+derivs_SW[fs::dPERBxdz])/cp_SW[CellParams::DZ] -
+                     ((derivs_SW[fs::dBGBzdx]+derivs_SW[fs::dPERBzdx])/cp_SW[CellParams::DX])))
+               / (physicalconstants::MU_0*cp_SW[CellParams::RHO]*Parameters::q);
+   }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_SW  += +HALF*((Bx_S - HALF*dBxdy_S)*(-derivs_SW[fs::dVydx] - derivs_SW[fs::dVydy]) - dBxdy_S*Vy0 + SIXTH*dBxdz_S*derivs_SW[fs::dVydz]);
@@ -1323,6 +1395,14 @@ void calculateEdgeElectricFieldZ(
                (cp_SE[CellParams::RHO]*Parameters::q) /
             physicalconstants::MU_0 *
             (derivs_SE[fs::dPERBydx]/cp_SE[CellParams::DX] - derivs_SE[fs::dPERBxdy]/cp_SE[CellParams::DY]);
+   // Hall term
+   if(Parameters::ohmHallTerm) {
+      Ez_SE += (By_E*((derivs_SE[fs::dBGBzdy]+derivs_SE[fs::dPERBzdy])/cp_SE[CellParams::DY] -
+                      (derivs_SE[fs::dBGBydz]+derivs_SE[fs::dPERBydz])/cp_SE[CellParams::DZ]) -
+                Bx_S*((derivs_SE[fs::dBGBxdz]+derivs_SE[fs::dPERBxdz])/cp_SE[CellParams::DZ] -
+                     ((derivs_SE[fs::dBGBzdx]+derivs_SE[fs::dPERBzdx])/cp_SE[CellParams::DX])))
+               / (physicalconstants::MU_0*cp_SE[CellParams::RHO]*Parameters::q);
+   }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_SE  += +HALF*((Bx_S - HALF*dBxdy_S)*(+derivs_SE[fs::dVydx] - derivs_SE[fs::dVydy]) - dBxdy_S*Vy0 + SIXTH*dBxdz_S*derivs_SE[fs::dVydz]);
@@ -1365,6 +1445,14 @@ void calculateEdgeElectricFieldZ(
                (cp_NW[CellParams::RHO]*Parameters::q) /
             physicalconstants::MU_0 *
             (derivs_NW[fs::dPERBydx]/cp_NW[CellParams::DX] - derivs_NW[fs::dPERBxdy]/cp_NW[CellParams::DY]);
+   // Hall term
+   if(Parameters::ohmHallTerm) {
+      Ez_NW += (By_W*((derivs_NW[fs::dBGBzdy]+derivs_NW[fs::dPERBzdy])/cp_NW[CellParams::DY] -
+                      (derivs_NW[fs::dBGBydz]+derivs_NW[fs::dPERBydz])/cp_NW[CellParams::DZ]) -
+                Bx_N*((derivs_NW[fs::dBGBxdz]+derivs_NW[fs::dPERBxdz])/cp_NW[CellParams::DZ] -
+                     ((derivs_NW[fs::dBGBzdx]+derivs_NW[fs::dPERBzdx])/cp_NW[CellParams::DX])))
+               / (physicalconstants::MU_0*cp_NW[CellParams::RHO]*Parameters::q);
+   }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_NW  += +HALF*((Bx_N + HALF*dBxdy_N)*(-derivs_NW[fs::dVydx] + derivs_NW[fs::dVydy]) + dBxdy_N*Vy0 + SIXTH*dBxdz_N*derivs_NW[fs::dVydz]);
@@ -1407,6 +1495,14 @@ void calculateEdgeElectricFieldZ(
                (cp_NE[CellParams::RHO]*Parameters::q) /
             physicalconstants::MU_0 *
             (derivs_NE[fs::dPERBydx]/cp_NE[CellParams::DX] - derivs_NE[fs::dPERBxdy]/cp_NE[CellParams::DY]);
+   // Hall term
+   if(Parameters::ohmHallTerm) {
+      Ez_NE += (By_E*((derivs_NE[fs::dBGBzdy]+derivs_NE[fs::dPERBzdy])/cp_NE[CellParams::DY] -
+                      (derivs_NE[fs::dBGBydz]+derivs_NE[fs::dPERBydz])/cp_NE[CellParams::DZ]) -
+                Bx_N*((derivs_NE[fs::dBGBxdz]+derivs_NE[fs::dPERBxdz])/cp_NE[CellParams::DZ] -
+                     ((derivs_NE[fs::dBGBzdx]+derivs_NE[fs::dPERBzdx])/cp_NE[CellParams::DX])))
+               / (physicalconstants::MU_0*cp_NE[CellParams::RHO]*Parameters::q);
+   }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_NE  += +HALF*((Bx_N + HALF*dBxdy_N)*(+derivs_NE[fs::dVydx] + derivs_NE[fs::dVydy]) + dBxdy_N*Vy0 + SIXTH*dBxdz_N*derivs_NE[fs::dVydz]);

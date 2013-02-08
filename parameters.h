@@ -86,6 +86,7 @@ struct Parameters {
    
    static Real maxAlfvenVelocity; /*!< Maximum Alfven velocity allowed in fastMS computation in LDZ. */
    static Real resistivity; /*!< Resistivity in Ohm's law eta*J term. */
+   static bool ohmHallTerm; /*!< Hall term in Ohm's law JXB term. */
    static bool fieldSolverDiffusiveEterms; /*!< Enable resitive terms in the computation of E*/
    
    static bool lorentzHallTerm;  /*!< Add JxB hall term to Lorentz force. Assumes there is not hall term in the fieldsolver*/
