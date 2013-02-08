@@ -54,6 +54,9 @@ namespace projects {
    void Dispersion::addParameters() {
       typedef Readparameters RP;
       RP::add("Dispersion.B0", "Guide magnetic field strength (T)", 1.0e-9);
+      RP::add("Dispersion.VX0", "Bulk velocity (m/s)", 0.0);
+      RP::add("Dispersion.VY0", "Bulk velocity (m/s)", 0.0);
+      RP::add("Dispersion.VZ0", "Bulk velocity (m/s)", 0.0);
       RP::add("Dispersion.angleXY", "Orientation of the guide magnetic field with respect to the x-axis in x-y plane (rad)", 0.001);
       RP::add("Dispersion.angleXZ", "Orientation of the guide magnetic field with respect to the x-axis in x-z plane (rad)", 0.001);
       RP::add("Dispersion.rho", "Number density (m^-3)", 1.0e7);
@@ -72,6 +75,9 @@ namespace projects {
    void Dispersion::getParameters() {
       typedef Readparameters RP;
       RP::get("Dispersion.B0", this->B0);
+      RP::get("Dispersion.VX0", this->VX0);
+      RP::get("Dispersion.VY0", this->VY0);
+      RP::get("Dispersion.VZ0", this->VZ0);
       RP::get("Dispersion.angleXY", this->angleXY);
       RP::get("Dispersion.angleXZ", this->angleXZ);
       RP::get("Dispersion.rho", this->DENSITY);
@@ -90,7 +96,7 @@ namespace projects {
    Real Dispersion::getDistribValue(creal& vx,creal& vy, creal& vz) {
       creal k = 1.3806505e-23; // Boltzmann
       creal mass = 1.67262171e-27; // m_p in kg
-      return exp(- mass * (vx*vx + vy*vy + vz*vz) / (2.0 * k * this->TEMPERATURE));
+      return exp(- mass * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0) + (vz-this->VZ0)*(vz-this->VZ0)) / (2.0 * k * this->TEMPERATURE));
    }
    
    Real Dispersion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {

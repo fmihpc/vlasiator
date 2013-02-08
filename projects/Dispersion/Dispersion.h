@@ -46,6 +46,9 @@ namespace projects {
          );
          
          Real B0;
+         Real VX0;
+         Real VY0;
+         Real VZ0;
          Real angleXY;
          Real angleXZ;
          Real DENSITY;
