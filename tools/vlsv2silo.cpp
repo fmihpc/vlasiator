@@ -24,13 +24,16 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <silo.h>
 #include <sstream>
 #include <dirent.h>
-
 #include <mpi.h>
 
 #include "vlsvreader2.h"
 #include "definitions.h"
 
 using namespace std;
+
+
+
+
 
 static DBfile* fileptr = NULL; // Pointer to file opened by SILO
 
@@ -378,6 +381,7 @@ bool convertMesh(VLSVReader& vlsvReader,const string& meshName) {
 
 bool convertSILO(const string& fname) {
    bool success = true;
+
    
    // Open VLSV file for reading:
    VLSVReader vlsvReader;
@@ -385,9 +389,12 @@ bool convertSILO(const string& fname) {
       cerr << "Failed to open '" << fname << "'" << endl;
       return false;
    }
+
    
    // Open SILO file for writing:
-   string fileout = fname;
+   size_t found=fname.find_last_of("/\\");
+   //remove path from vlsvfile name
+   string fileout =  fname.substr(found+1);
    size_t pos = fileout.rfind(".vlsv");
    if (pos != string::npos) fileout.replace(pos,5,".silo");
    
@@ -432,11 +439,17 @@ int main(int argn,char* args[]) {
    for (int i=1; i<argn; ++i) masks.push_back(args[i]);
 
    // Compare directory contents against each mask:
-   const string directory = ".";
+
    const string suffix = ".vlsv";
    int filesFound = 0, filesConverted = 0;
    for (size_t mask=0; mask<masks.size(); ++mask) {
-      if(rank == 0) {cout << "Comparing mask '" << masks[mask] << "'" << endl;}
+      size_t found=masks[mask].find_last_of("/\\");
+      string directory=".";
+      if(found != string::npos)
+         directory = masks[mask].substr(0,found);
+      const string maskName =  masks[mask].substr(found+1);
+
+      if(rank == 0) {cout << "Comparing mask '" << maskName << "' in folder '" << directory <<"'" << endl;}
       DIR* dir = opendir(directory.c_str());
       if (dir == NULL) continue;
       
@@ -444,11 +457,16 @@ int main(int argn,char* args[]) {
       while (entry != NULL) {
 	 const string entryName = entry->d_name;
 	 // Compare entry name against given mask and file suffix ".vlsv":
-	 if (entryName.find(masks[mask]) == string::npos || entryName.find(suffix) == string::npos) {
-	    entry = readdir(dir);
+	 if (entryName.find(maskName) == string::npos || entryName.find(suffix) == string::npos) {
+            
+            entry = readdir(dir);
 	    continue;
+            
 	 }
-	 fileList.push_back(entryName);
+         
+         fileList.push_back(directory);
+         fileList.back().append("/");
+	 fileList.back().append(entryName);
 	 filesFound++;
 	 entry = readdir(dir);
       }
