@@ -199,9 +199,12 @@ bool convertMeshVariable(VLSVReader& vlsvReader,const string& meshName,const str
    // Write the unstructured mesh variable to SILO.
    if (DBPutUcdvar(fileptr,varName.c_str(),meshName.c_str(),vectorSize,&(varNamePtrs[0]),components,arraySize,NULL,0,
 		   SiloType(dataType,dataSize),DB_ZONECENT,NULL) < 0) success = false;
-   
+
+   for (uint64_t i=0; i<vectorSize; ++i) {
+      delete [] components[i];
+   }
    delete [] components;
-   delete buffer;   
+   delete [] buffer;   
    return success;
 }
 
