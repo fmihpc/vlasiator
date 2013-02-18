@@ -35,9 +35,6 @@ CXXFLAGS += -DUSE_AGNER_VECTORCLASS
 # CXXFLAGS += -DFS_1ST_ORDER_SPACE
 # CXXFLAGS += -DFS_1ST_ORDER_TIME
 
-#DCCRG defines, it should use the user provided mpi datatype mode
-CXXFLAGS += -DDCCRG_CELL_DATA_SIZE_FROM_USER  -DDCCRG_USER_MPI_DATA_TYPE #-DDCCRG_SEND_SINGLE_CELLS
-
 
 #//////////////////////////////////////////////////////
 # The rest of this file users shouldn't need to change

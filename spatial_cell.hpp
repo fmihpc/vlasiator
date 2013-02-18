@@ -854,10 +854,17 @@ namespace velocity_neighbor {
          return block_ptr->data[cell];
       }
       
-      void* at(void) {return this;}
-      
-      MPI_Datatype mpi_datatype(void){
-            MPI_Datatype type;
+      void mpi_datatype(
+         void*& address,
+         int& count,
+         MPI_Datatype& datatype,
+         const uint64_t /*cell_id*/,
+         const int /*sender*/,
+         const int /*receiver*/,
+         const bool receiving
+      ) {
+            address = this;
+
             std::vector<MPI_Aint> displacements;
             std::vector<int> block_lengths;
             unsigned int block_index = 0;
@@ -1007,18 +1014,18 @@ namespace velocity_neighbor {
             }
             
             if (displacements.size() > 0) {
+               count = 1;
                MPI_Type_create_hindexed(
                   displacements.size(),
                   &block_lengths[0],
                   &displacements[0],
                   MPI_BYTE,
-                  &type
+                  &datatype
                   );
             } else {
-               MPI_Type_contiguous(0, MPI_BYTE, &type);
+               count = 0;
+               datatype = MPI_BYTE;
             }
-            
-            return type;
       }
 
       /*!

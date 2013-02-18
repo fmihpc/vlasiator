@@ -486,7 +486,7 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    }
    
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
-   mpiGrid.migrate_cells();
+   mpiGrid.balance_load(false);
    //get new list of local gridcells
    gridCells = mpiGrid.get_cells();
    //unpin cells, otherwise we will never change this initial bad balance
@@ -513,9 +513,9 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
       mpiGrid[gridCells[i]]->parameters[CellParams::XCRD] = mpiGrid.get_cell_x_min(gridCells[i]);
       mpiGrid[gridCells[i]]->parameters[CellParams::YCRD] = mpiGrid.get_cell_y_min(gridCells[i]);
       mpiGrid[gridCells[i]]->parameters[CellParams::ZCRD] = mpiGrid.get_cell_z_min(gridCells[i]);
-      mpiGrid[gridCells[i]]->parameters[CellParams::DX  ] = mpiGrid.get_cell_x_size(gridCells[i]);
-      mpiGrid[gridCells[i]]->parameters[CellParams::DY  ] = mpiGrid.get_cell_y_size(gridCells[i]);
-      mpiGrid[gridCells[i]]->parameters[CellParams::DZ  ] = mpiGrid.get_cell_z_size(gridCells[i]);
+      mpiGrid[gridCells[i]]->parameters[CellParams::DX  ] = mpiGrid.get_cell_length_x(gridCells[i]);
+      mpiGrid[gridCells[i]]->parameters[CellParams::DY  ] = mpiGrid.get_cell_length_y(gridCells[i]);
+      mpiGrid[gridCells[i]]->parameters[CellParams::DZ  ] = mpiGrid.get_cell_length_z(gridCells[i]);
    }
    //where local data start in the blocklists
    uint64_t localBlockStartOffset=0;

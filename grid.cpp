@@ -228,9 +228,9 @@ void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       mpiGrid[cells[i]]->parameters[CellParams::XCRD] = mpiGrid.get_cell_x_min(cells[i]);
       mpiGrid[cells[i]]->parameters[CellParams::YCRD] = mpiGrid.get_cell_y_min(cells[i]);
       mpiGrid[cells[i]]->parameters[CellParams::ZCRD] = mpiGrid.get_cell_z_min(cells[i]);
-      mpiGrid[cells[i]]->parameters[CellParams::DX  ] = mpiGrid.get_cell_x_size(cells[i]);
-      mpiGrid[cells[i]]->parameters[CellParams::DY  ] = mpiGrid.get_cell_y_size(cells[i]);
-      mpiGrid[cells[i]]->parameters[CellParams::DZ  ] = mpiGrid.get_cell_z_size(cells[i]);
+      mpiGrid[cells[i]]->parameters[CellParams::DX  ] = mpiGrid.get_cell_length_x(cells[i]);
+      mpiGrid[cells[i]]->parameters[CellParams::DY  ] = mpiGrid.get_cell_length_y(cells[i]);
+      mpiGrid[cells[i]]->parameters[CellParams::DZ  ] = mpiGrid.get_cell_length_z(cells[i]);
    }
 }
 
@@ -256,16 +256,18 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
       
    }
    
+   mpiGrid.initialize_balance_load(true);
+   
 // tell other processes which velocity blocks exist in remote spatial cells
    phiprof::initializeTimer("Balancing load", "Load balance");
    phiprof::start("Balancing load");
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_SIZE_AND_LIST);
-   mpiGrid.prepare_to_balance_load();
+   mpiGrid.continue_balance_load();
    
    // reserve space for velocity block data in arriving remote cells
    phiprof::start("Preparing receives");
-   const boost::unordered_set<uint64_t>* incoming_cells = mpiGrid.get_balance_added_cells();
-   std::vector<uint64_t> incoming_cells_list (incoming_cells->begin(),incoming_cells->end()); 
+   const boost::unordered_set<uint64_t>& incoming_cells = mpiGrid.get_balance_added_cells();
+   std::vector<uint64_t> incoming_cells_list (incoming_cells.begin(),incoming_cells.end()); 
    
 #pragma omp parallel for
    for(unsigned int i=0;i<incoming_cells_list.size();i++){
@@ -282,7 +284,8 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
 
    phiprof::start("balance load");
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
-   mpiGrid.balance_load(true);
+   mpiGrid.continue_balance_load();
+   mpiGrid.finish_balance_load();
    phiprof::stop("balance load");
 
    phiprof::start("update block lists");
@@ -451,8 +454,8 @@ void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell>& mpiGrid)
    */
    
    phiprof::start("Preparing receives");
-   std::vector<uint64_t> incoming_cells
-      = mpiGrid.get_list_of_remote_cells_with_local_neighbors(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+   const std::vector<uint64_t> incoming_cells
+      = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
 #pragma omp parallel for
    for(unsigned int i=0;i<incoming_cells.size();i++){
       uint64_t cell_id=incoming_cells[i];

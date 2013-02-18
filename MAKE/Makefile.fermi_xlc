@@ -47,11 +47,8 @@ INC_SILO = -I$(LIBRARY_PREFIX)/silo/$(SILO_VERSION)/xlc/$(XLC_VERSION)/include
 LIB_SILO = -L$(LIBRARY_PREFIX)/silo/$(SILO_VERSION)/xlc/$(XLC_VERSION)/lib -lsilo
 
 
-#DCCRG version with reduced neighbourhood. Might not be up-to-date
-#INC_DCCRG = -I$(LIBRARY_PREFIX_B)/dccrg-new
-
 #Official dccrg installation
-INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg-2013-02-15
 
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/xlc/$(XLC_VERSION)/lib -lphiprof
