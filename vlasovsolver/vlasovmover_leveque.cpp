@@ -564,7 +564,23 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,
       const CellID cellID = it->second;
       //cuint byteSize      = avgsByteSize; // NOTE: N_blocks should be ok in buffer cells
       mpiGrid[cellID]->set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
-      MPIrecvTypes.push_back(mpiGrid[cellID]->mpi_datatype());
+
+
+      // get datatype from current cell
+      MPI_Datatype temp_type;
+      MPIrecvTypes.push_back(temp_type);
+      void* address = NULL;
+      int count = -1;
+      mpiGrid[cellID]->mpi_datatype(
+         address,
+         count,
+         MPIrecvTypes.back(),
+         cellID,
+         mpiGrid.get_rank(),
+         mpiGrid.get_rank(),
+         true
+      );
+
       MPI_Type_commit(&(MPIrecvTypes.back()));
       MPIrecvRequests.push_back(MPI_Request());
       MPI_Irecv(mpiGrid[cellID],1,MPIrecvTypes.back(),host,tag,MPI_COMM_WORLD,&(MPIrecvRequests.back()));      
@@ -581,7 +597,20 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,
       cint host           = it->second.first;
       cint tag            = it->second.second;
       mpiGrid[cellID]->set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
-      MPIsendTypes.push_back(mpiGrid[cellID]->mpi_datatype());
+      // get datatype from current cell
+      MPI_Datatype temp_type;
+      MPIsendTypes.push_back(temp_type);
+      void* address = NULL;
+      int count = -1;
+      mpiGrid[cellID]->mpi_datatype(
+         address,
+         count,
+         MPIsendTypes.back(),
+         cellID,
+         mpiGrid.get_rank(),
+         mpiGrid.get_rank(),
+         false
+      );
       MPI_Type_commit(&(MPIsendTypes.back()));
 
       MPIsendRequests.push_back(MPI_Request());      
@@ -589,13 +618,15 @@ void calculateSpatialFluxes(dccrg::Dccrg<SpatialCell>& mpiGrid,
          std::cerr << "calculateSpatialFlux failed to send data!" << std::endl;
       }
       ops++;
+      // FIXME: don't leak memory - free the committed datatype
    }
    phiprof::stop("Start sends",ops,"sends");
    
    // Clear spatial fluxes to zero value. Remote neighbour df/dt arrays 
    // need to be cleared as well:
    vector<CellID> cells=mpiGrid.get_cells();
-   vector<CellID> remoteCells=mpiGrid.get_list_of_remote_cells_with_local_neighbors(VLASOV_SOLVER_FLUXES_NEIGHBORHOOD_ID);
+   const vector<CellID> remoteCells
+      = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_FLUXES_NEIGHBORHOOD_ID);
    cells.insert( cells.end(), remoteCells.begin(), remoteCells.end() );
    
    phiprof::start("Mark unitialized flux");
@@ -790,7 +821,23 @@ void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       cint host             = it->second.first;
       cint tag              = it->second.second;
       mpiGrid[nbrID]->set_mpi_transfer_type(Transfer::VEL_BLOCK_FLUXES);
-      MPIsendTypes.push_back(mpiGrid[nbrID]->mpi_datatype());
+
+      // get datatype from current cell
+      MPI_Datatype temp_type;
+      MPIsendTypes.push_back(temp_type);
+      void* address = NULL;
+      int count = -1;
+      mpiGrid[nbrID]->mpi_datatype(
+         address,
+         count,
+         MPIsendTypes.back(),
+         nbrID,
+         mpiGrid.get_rank(),
+         mpiGrid.get_rank(),
+         false
+      );
+
+
       MPI_Type_commit(&(MPIsendTypes.back()));
       
       MPIsendRequests.push_back(MPI_Request());

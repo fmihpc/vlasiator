@@ -340,13 +340,14 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    
    int timer=phiprof::initializeTimer("Start comm of cell and block data","MPI");
    phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_data_update(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+   mpiGrid.start_remote_neighbor_data_updates(SYSBOUNDARIES_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute process inner cells");
    phiprof::start(timer);
    // Compute Vlasov boundary condition on system boundary/on process inner cells
-   const vector<CellID> localCells = mpiGrid.get_cells_with_local_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+   const vector<CellID> localCells
+      = mpiGrid.get_local_cells_not_on_process_boundary(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 # pragma omp parallel for
    for (uint i=0; i<localCells.size(); i++) {
       cuint sysBoundaryType = mpiGrid[localCells[i]]->sysBoundaryFlag;
@@ -364,7 +365,8 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    // Compute vlasov boundary on system boundary/process boundary cells
    timer=phiprof::initializeTimer("Compute process boundary cells");
    phiprof::start(timer);
-   const vector<CellID> boundaryCells = mpiGrid.get_cells_with_remote_neighbor(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+   const vector<CellID> boundaryCells
+      = mpiGrid.get_local_cells_on_process_boundary(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 # pragma omp parallel for
    for (uint i=0; i<boundaryCells.size(); i++) {
       cuint sysBoundaryType = mpiGrid[boundaryCells[i]]->sysBoundaryFlag;
