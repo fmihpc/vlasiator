@@ -45,7 +45,7 @@ LIB_SILO = -L$(LIBRARY_PREFIX_A)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VE
 
 
 #Official dccrg installation
-INC_DCCRG = -I$(LIBRARY_PREFIX_A)/dccrg-2013-02-15
+INC_DCCRG = -I$(LIBRARY_PREFIX_A)/dccrg-2013-02-20-cray-workarounds
 
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX_B)/phiprof/lib -lphiprof

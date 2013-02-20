@@ -49,7 +49,7 @@ LIB_SILO = -L$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION
 #INC_DCCRG = -I$(LIBRARY_PREFIX_B)/dccrg-new
 
 #Official dccrg installation
-INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg-2013-02-15
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg-2013-02-20-cray-workarounds
 # INC_DCCRG = -Idccrg
 
 
