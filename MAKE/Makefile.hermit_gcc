@@ -49,8 +49,8 @@ LIB_SILO = -L$(LIBRARY_PREFIX_A)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VE
 INC_DCCRG = -I$(LIBRARY_PREFIX_A)/dccrg-2013-02-20-cray-workarounds
 
 
-LIB_PROFILE = -L$(LIBRARY_PREFIX_B)/phiprof/lib -lphiprof
-INC_PROFILE = -I$(LIBRARY_PREFIX_B)/phiprof/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX_B)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib -lphiprof
+INC_PROFILE = -I$(LIBRARY_PREFIX_B)/mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/include
 
 INC_VECTORCLASS = -I$(LIBRARY_PREFIX_B)/vectorclass
 
