@@ -162,14 +162,14 @@ bool Parameters::addParameters(){
    Readparameters::add("fieldsolver.resistivity", "Resistivity for the eta*J term in Ohm's law.", 0.0);
    Readparameters::add("fieldsolver.diffusiveEterms", "Enable diffusive terms in the computation of E",true);
    Readparameters::add("fieldsolver.ohmHallTerm", "Enable the Hall term in Ohm's law", false);
-   Readparameters::add("fieldsolver.maxCFL","The maximum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true. Also used to compute substeps in acceleration",0.5);
-   Readparameters::add("fieldsolver.minCFL","The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true. Also used to compute substeps in acceleration",0.4);
+   Readparameters::add("fieldsolver.maxCFL","The maximum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",0.5);
+   Readparameters::add("fieldsolver.minCFL","The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",0.4);
 
    // Vlasov solver parameters
    Readparameters::add("vlasovsolver.lorentzHallTerm", "Add JxB term to Lorentz force",false);
    Readparameters::add("vlasovsolver.lorentzUseFieldSolverE", "If true, the E from fieldsolver is used. Otherwise -V x B_vol is used (default)",false);
-   Readparameters::add("vlasovsolver.maxCFL","The maximum CFL limit for vlasov propagation. Used to set timestep if dynamic_timestep is true. Also used to compute substeps in acceleration",0.9);
-   Readparameters::add("vlasovsolver.minCFL","The minimum CFL limit for vlasov propagation. Used to set timestep if dynamic_timestep is true. Also used to compute substeps in acceleration",0.7);
+   Readparameters::add("vlasovsolver.maxCFL","The maximum CFL limit for vlasov propagation. Used to set timestep if dynamic_timestep is true. Also used to set substep-dt in acceleration",0.9);
+   Readparameters::add("vlasovsolver.minCFL","The minimum CFL limit for vlasov propagation. Used to set timestep if dynamic_timestep is true. Also used to set substep-dt in acceleration",0.7);
 
    // Grid sparsity parameters
    Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
