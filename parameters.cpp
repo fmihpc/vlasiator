@@ -112,6 +112,7 @@ vector<string> P::diagnosticVariableList;
 string P::projectName = string("");
 
 bool P::lorentzHallTerm=false;
+Real P::lorentzHallMinimumRho=1.0;
 bool P::lorentzUseFieldSolverE=false;
 
 bool Parameters::addParameters(){
@@ -167,6 +168,7 @@ bool Parameters::addParameters(){
 
    // Vlasov solver parameters
    Readparameters::add("vlasovsolver.lorentzHallTerm", "Add JxB term to Lorentz force",false);
+   Readparameters::add("vlasovsolver.lorentzHallMinimumRho", "Minimum rho value used for Hall term in Lorentz force. Default is very low and has no effect in practice.",1.0); 
    Readparameters::add("vlasovsolver.lorentzUseFieldSolverE", "If true, the E from fieldsolver is used. Otherwise -V x B_vol is used (default)",false);
    Readparameters::add("vlasovsolver.maxCFL","The maximum CFL limit for vlasov propagation. Used to set timestep if dynamic_timestep is true. Also used to set substep-dt in acceleration",0.9);
    Readparameters::add("vlasovsolver.minCFL","The minimum CFL limit for vlasov propagation. Used to set timestep if dynamic_timestep is true. Also used to set substep-dt in acceleration",0.7);
@@ -260,6 +262,7 @@ bool Parameters::getParameters(){
    Readparameters::get("fieldsolver.minCFL",P::fieldSolverMinCFL);
    // Get Vlasov solver parameters
    Readparameters::get("vlasovsolver.lorentzHallTerm", P::lorentzHallTerm);
+   Readparameters::get("vlasovsolver.lorentzHallMinimumRho",P::lorentzHallMinimumRho);
    Readparameters::get("vlasovsolver.lorentzUseFieldSolverE",P::lorentzUseFieldSolverE);
    Readparameters::get("vlasovsolver.maxCFL",P::vlasovSolverMaxCFL);
    Readparameters::get("vlasovsolver.minCFL",P::vlasovSolverMinCFL);

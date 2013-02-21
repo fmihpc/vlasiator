@@ -61,8 +61,10 @@ template<typename REAL> void lorentzForceFaceBulk(
    const REAL dBZdx = cellBVOLDerivatives[bvolderivatives::dPERBZVOLdx]/cellParams[CellParams::DX];
    const REAL dBZdy = cellBVOLDerivatives[bvolderivatives::dPERBZVOLdy]/cellParams[CellParams::DY];
    
-   const REAL prefactor =  ((cellParams[CellParams::RHO_V] <= 0) ? 0.0 : 1.0 / (physicalconstants::MU_0 * cellParams[CellParams::RHO_V] * Parameters::q )); 
-
+   const Real hallRho =  (cellParams[CellParams::RHO_V] <= Parameters::lorentzHallMinimumRho ) ? Parameters::lorentzHallMinimumRho : cellParams[CellParams::RHO_V] ;
+   const REAL prefactor = 1.0 / (physicalconstants::MU_0 * hallRho * Parameters::m );
+   
+   
    
    if(Parameters::lorentzUseFieldSolverE) {
       a_bulk[0] = Parameters::q_per_m*EX;
@@ -76,19 +78,20 @@ template<typename REAL> void lorentzForceFaceBulk(
    }
 
 
-   //resisitivity term E=n J
-   a_bulk[0]+=  Parameters::q_per_m*Parameters::resistivity * B *prefactor *(dBZdy-dBYdz);
-   a_bulk[1]+=  Parameters::q_per_m*Parameters::resistivity * B *prefactor *(dBXdz-dBZdx);
-   a_bulk[2]+=  Parameters::q_per_m*Parameters::resistivity * B *prefactor *(dBYdx-dBXdy);
+   //resisitivity term E=n J. No q_per_m as that is taken into account in prefactor
+   a_bulk[0]+=  Parameters::resistivity * B *prefactor *(dBZdy-dBYdz);
+   a_bulk[1]+=  Parameters::resistivity * B *prefactor *(dBXdz-dBZdx);
+   a_bulk[2]+=  Parameters::resistivity * B *prefactor *(dBYdx-dBXdy);
    
    /*
      Hall term  (see QUESPACE-281)  (JxB = curl(B) x B)
+     No q_per_m as that is taken into account in prefactor
    */
    
    if(Parameters::lorentzHallTerm) {
-      a_bulk[0] += Parameters::q_per_m * prefactor * (BZ*dBXdz - BZ*dBZdx - BY*dBYdx + BY*dBXdy);
-      a_bulk[1] += Parameters::q_per_m * prefactor * (BX*dBYdx - BX*dBXdy - BZ*dBZdy + BZ*dBYdz);
-      a_bulk[2] += Parameters::q_per_m * prefactor * (BY*dBZdy - BY*dBYdz - BX*dBXdz + BX*dBZdx);
+      a_bulk[0] += prefactor * (BZ*dBXdz - BZ*dBZdx - BY*dBYdx + BY*dBXdy);
+      a_bulk[1] += prefactor * (BX*dBYdx - BX*dBXdy - BZ*dBZdy + BZ*dBYdz);
+      a_bulk[2] += prefactor * (BY*dBZdy - BY*dBYdz - BX*dBXdz + BX*dBZdx);
    }
 }
 
