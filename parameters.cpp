@@ -65,8 +65,11 @@ Real P::t = 0;
 Real P::t_min = 0;
 Real P::t_max = LARGE_REAL;
 Real P::dt = NAN;
-Real P::CFL_max = NAN;
-Real P::CFL_min = NAN;
+Real P::vlasovSolverMaxCFL = NAN;
+Real P::vlasovSolverMinCFL = NAN;
+Real P::fieldSolverMaxCFL = NAN;
+Real P::fieldSolverMinCFL = NAN;
+
 
 luint P::tstep = 0;
 luint P::tstep_min = 0;
@@ -150,8 +153,7 @@ bool Parameters::addParameters(){
    Readparameters::add("gridbuilder.q","Charge of simulated particle species, in Coulombs.",1.60217653e-19);
    Readparameters::add("gridbuilder.m","Mass of simulated particle species, in kilograms.",1.67262171e-27);
    Readparameters::add("gridbuilder.dt","Initial timestep in seconds.",0.0);
-   Readparameters::add("gridbuilder.CFL_max","The maximum CFL limit for propagation. Used to set timestep if dynamic_timestep is true. Also used to compute substeps in acceleration",0.9);
-   Readparameters::add("gridbuilder.CFL_min","The minimum CFL limit for propagation. Used to set timestep if dynamic_timestep is true. Also used to compute substeps in acceleration",0.7);
+
    Readparameters::add("gridbuilder.t_max","Maximum simulation time, in seconds. If timestep_max limit is hit first this time will never be reached",LARGE_REAL);
    Readparameters::add("gridbuilder.timestep_max","Max. value for timesteps. If t_max limit is hit first, this step will never be reached",numeric_limits<uint>::max());
    
@@ -160,11 +162,14 @@ bool Parameters::addParameters(){
    Readparameters::add("fieldsolver.resistivity", "Resistivity for the eta*J term in Ohm's law.", 0.0);
    Readparameters::add("fieldsolver.diffusiveEterms", "Enable diffusive terms in the computation of E",true);
    Readparameters::add("fieldsolver.ohmHallTerm", "Enable the Hall term in Ohm's law", false);
-   
+   Readparameters::add("fieldsolver.maxCFL","The maximum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true. Also used to compute substeps in acceleration",0.5);
+   Readparameters::add("fieldsolver.minCFL","The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true. Also used to compute substeps in acceleration",0.4);
+
    // Vlasov solver parameters
    Readparameters::add("vlasovsolver.lorentzHallTerm", "Add JxB term to Lorentz force",false);
    Readparameters::add("vlasovsolver.lorentzUseFieldSolverE", "If true, the E from fieldsolver is used. Otherwise -V x B_vol is used (default)",false);
-
+   Readparameters::add("vlasovsolver.maxCFL","The maximum CFL limit for vlasov propagation. Used to set timestep if dynamic_timestep is true. Also used to compute substeps in acceleration",0.9);
+   Readparameters::add("vlasovsolver.minCFL","The minimum CFL limit for vlasov propagation. Used to set timestep if dynamic_timestep is true. Also used to compute substeps in acceleration",0.7);
 
    // Grid sparsity parameters
    Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
@@ -233,8 +238,6 @@ bool Parameters::getParameters(){
    Readparameters::get("gridbuilder.q",P::q);
    Readparameters::get("gridbuilder.m",P::m);
    Readparameters::get("gridbuilder.dt",P::dt);
-   Readparameters::get("gridbuilder.CFL_max",P::CFL_max);
-   Readparameters::get("gridbuilder.CFL_min",P::CFL_min);
 
    Readparameters::get("gridbuilder.t_max",P::t_max);
    Readparameters::get("gridbuilder.timestep_max",P::tstep_max);
@@ -253,9 +256,14 @@ bool Parameters::getParameters(){
    Readparameters::get("fieldsolver.resistivity", P::resistivity);
    Readparameters::get("fieldsolver.diffusiveEterms", P::fieldSolverDiffusiveEterms);
    Readparameters::get("fieldsolver.ohmHallTerm", P::ohmHallTerm);
+   Readparameters::get("fieldsolver.maxCFL",P::fieldSolverMaxCFL);
+   Readparameters::get("fieldsolver.minCFL",P::fieldSolverMinCFL);
    // Get Vlasov solver parameters
    Readparameters::get("vlasovsolver.lorentzHallTerm", P::lorentzHallTerm);
    Readparameters::get("vlasovsolver.lorentzUseFieldSolverE",P::lorentzUseFieldSolverE);
+   Readparameters::get("vlasovsolver.maxCFL",P::vlasovSolverMaxCFL);
+   Readparameters::get("vlasovsolver.minCFL",P::vlasovSolverMinCFL);
+
    // Get sparsity parameters
    Readparameters::get("sparse.minValue", P::sparseMinValue);
    Readparameters::get("sparse.blockAdjustmentInterval", P::blockAdjustmentInterval);

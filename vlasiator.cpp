@@ -82,8 +82,14 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &is
    isChanged=false;
 
    vector<uint64_t> cells = mpiGrid.get_cells();
+   /* Arrays for storing local (per process) and global max dt
+      0th position stores ordinary space propagation dt
+      1st position stores velocity space propagation dt
+      2nd position stores field propagation dt
+   */
    Real dtMaxLocal[3];
    Real dtMaxGlobal[3];
+  
    dtMaxLocal[0]=std::numeric_limits<Real>::max();
    dtMaxLocal[1]=std::numeric_limits<Real>::max();
    dtMaxLocal[2]=std::numeric_limits<Real>::max();
@@ -91,14 +97,14 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &is
       SpatialCell* cell = mpiGrid[*cell_id];
       if ( cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
            (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )) {
-         //spatial fluxes computed also for boundary cells              
-         dtMaxLocal[0]=min(dtMaxLocal[0], cell->parameters[CellParams::MAXRDT]);
-         dtMaxLocal[2]=min(dtMaxLocal[2], cell->parameters[CellParams::MAXFDT]);
+	//spatial fluxes computed also for boundary cells              
+	dtMaxLocal[0]=min(dtMaxLocal[0], cell->parameters[CellParams::MAXRDT]);
+	dtMaxLocal[2]=min(dtMaxLocal[2], cell->parameters[CellParams::MAXFDT]);
       }
       
       if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-         //Acceleration only done on non sysboundary cells
-         dtMaxLocal[1]=min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
+	//Acceleration only done on non sysboundary cells
+	dtMaxLocal[1]=min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
       }
    }
    MPI_Allreduce(&(dtMaxLocal[0]), &(dtMaxGlobal[0]), 3, MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
@@ -128,22 +134,34 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &is
       maxVDtNoSubstepping=std::numeric_limits<Real>::max();
    }
    
-   Real dtMax=std::numeric_limits<Real>::max();
-   dtMax=min(dtMax, dtMaxGlobal[0]);
-   dtMax=min(dtMax, dtMaxGlobal[1]); 
-   dtMax=min(dtMax, dtMaxGlobal[2]);
+   //reduce dt if it is too high for any of the three propagators, or too low for all propagators
+   if(( P::dt > dtMaxGlobal[0]*P::vlasovSolverMaxCFL ||
+        P::dt > dtMaxGlobal[1]*P::vlasovSolverMaxCFL ||
+        P::dt > dtMaxGlobal[2]*P::fieldSolverMaxCFL ) ||
+      ( P::dt < dtMaxGlobal[0]*P::vlasovSolverMinCFL && 
+        P::dt < dtMaxGlobal[1]*P::vlasovSolverMinCFL &&
+	P::dt < dtMaxGlobal[2]*P::fieldSolverMinCFL )
+      ) {
+     //new dt computed
+     isChanged=true;
+
+     //set new timestep to the lowest one of all interval-midpoints
+     newDt = 0.5*(P::vlasovSolverMaxCFL+ P::vlasovSolverMinCFL)*dtMaxGlobal[0];
+     newDt = min(newDt,0.5*(P::vlasovSolverMaxCFL+ P::vlasovSolverMinCFL)*dtMaxGlobal[1]);
+     newDt = min(newDt,0.5*(P::fieldSolverMaxCFL+ P::fieldSolverMinCFL)*dtMaxGlobal[2]);
    
-   
-   if(P::dt < dtMax*P::CFL_min || P::dt > dtMax*P::CFL_max ) {
-      newDt = 0.5*(P::CFL_min + P::CFL_max)*dtMax;
-      isChanged=true;
-      logFile <<"(TIMESTEP) New dt computed: "<< newDt <<
-         " Max dt (not including CFL "<< P::CFL_min <<"-"<<P::CFL_max<<" ) in {r, v+subs, v, BE} was " <<
-         dtMaxGlobal[0] << " " <<
-         dtMaxGlobal[1] << " " <<
-         maxVDtNoSubstepping << " " <<
-         dtMaxGlobal[2] << endl << writeVerbose;
+     logFile <<"(TIMESTEP) New dt = " << newDt << " computed on step "<<  P::tstep <<" at " <<P::t << 
+       "s   Maximum possible dt (not including  vlasovsolver CFL "<< 
+       P::vlasovSolverMinCFL <<"-"<<P::vlasovSolverMaxCFL<<
+       " or fieldsolver CFL "<< 
+       P::fieldSolverMinCFL <<"-"<<P::fieldSolverMaxCFL<<
+       " ) in {r, v+subs, v, BE} was " <<
+       dtMaxGlobal[0] << " " <<
+       dtMaxGlobal[1] << " " <<
+       maxVDtNoSubstepping << " " <<
+       dtMaxGlobal[2] << endl << writeVerbose;
    }
+	
 
    phiprof::stop("compute-timestep");
 
@@ -319,7 +337,7 @@ int main(int argn,char* args[]) {
          vector<uint64_t> cells = mpiGrid.get_cells();      
          
          for(uint i=0;i<cells.size();i++){
-            Real velocityDt=mpiGrid[cells[i]]->parameters[CellParams::MAXVDT]*0.5*(P::CFL_min+P::CFL_max);
+	    Real velocityDt=mpiGrid[cells[i]]->parameters[CellParams::MAXVDT]*0.5*(P::vlasovSolverMinCFL+P::vlasovSolverMaxCFL);
 
             if(velocityDt>0)
                mpiGrid[cells[i]]->subStepsAcceleration=(int)(P::dt/velocityDt)+1;
