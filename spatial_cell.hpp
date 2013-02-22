@@ -1226,8 +1226,9 @@ namespace velocity_neighbor {
 		  }
                //  phiprof::stop(pcontent);
 
-            } else {
-               // phiprof::start(pempty);
+            }
+            else if(doDeleteEmptyBlocks) {
+               //  phiprof::start(pempty);
                // remove local block if also no neighbor has content
                bool neighbors_have_content = false;
 
@@ -1270,16 +1271,12 @@ namespace velocity_neighbor {
                   for(unsigned int i=0;i<WID3;i++)
                      sum+=block_ptr->data[i];
                   this->parameters[CellParams::RHOLOSSADJUST]+=DV3*sum;
-                  
-                  if(doDeleteEmptyBlocks)
-                     this->remove_velocity_block(block);
+                  this->remove_velocity_block(block);
                }
                // phiprof::stop(premove);
                // phiprof::stop(pempty);
                
             }
-
-            
          }
 
          // add local blocks for neighbors in real space with content
@@ -1303,8 +1300,8 @@ namespace velocity_neighbor {
 
          //A normal non-sysboundary cell has to have more than zero blocks!
          //This aborts such simulations to avoid waisting CPU resources on a simulation gone bad
-         if( this->sysBoundaryFlag == sysboundarytype::NOT_SYS_BOUNDARY && this->number_of_blocks<=0 )  {
-            cerr<< "Cell has zero blocks. Aborting!" <<endl;
+         if( this->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && this->number_of_blocks<=0 )  {
+            std::cerr<< "Cell has zero blocks. Aborting!" <<std::endl;
             exit(1);
          }
          
