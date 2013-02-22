@@ -121,30 +121,23 @@ namespace CellParams {
       RHOVX_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVX_R and RHOVX_V*/
       RHOVY_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVY_R and RHOVY_V*/
       RHOVZ_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from RHOVZ_R and RHOVZ_V*/
-      BGBXVOL,   /*!< total magnetic field  PERBX+BGBX averaged over spatial cell.*/
-      BGBYVOL,   /*!< total magnetic field  PERBY+BGBY averaged over spatial cell.*/
-      BGBZVOL,   /*!< total magnetic field  PERBZ+BGBZ averaged over spatial cell.*/
-      PERBXVOL,  /*!< total magnetic field  PERBX+BGBX averaged over spatial cell.*/
-      PERBYVOL,  /*!< total magnetic field  PERBY+BGBY averaged over spatial cell.*/
-      PERBZVOL,  /*!< total magnetic field  PERBZ+BGBZ averaged over spatial cell.*/
-      EXVOL,  /*!< Ex averaged over spatial cell.*/
-      EYVOL,  /*!< Ey averaged over spatial cell.*/
-      EZVOL,  /*!< Ez averaged over spatial cell.*/
-
-      RHO_R,   /*!< RHO after propagation in ordinary space*/
-      RHOVX_R, /*!< RHOVX after propagation in ordinary space*/
-      RHOVY_R, /*!< RHOVX after propagation in ordinary space*/
-      RHOVZ_R, /*!< RHOVX after propagation in ordinary space*/
-      RHO_V,   /*!< RHO after propagation in ordinary spac e*/
-      RHOVX_V, /*!< RHOVX after propagation in ordinary space*/
-      RHOVY_V, /*!< RHOVX after propagation in ordinary space*/
-      RHOVZ_V, /*!< RHOVX after propagation in ordinary space*/
-
-      
-//      BGBXVOL, /*!< BGBx (background field) averaged over spatial cell.*/
-//      BGBYVOL, /*!< BGBy (background field) averaged over spatial cell.*/
-//      BGBZVOL, /*!< BGBz (background field) averaged over spatial cell.*/
-
+      BGBXVOL,   /*!< background magnetic field averaged over spatial cell.*/
+      BGBYVOL,   /*!< background magnetic field averaged over spatial cell.*/
+      BGBZVOL,   /*!< background magnetic field averaged over spatial cell.*/
+      PERBXVOL,  /*!< perturbed magnetic field  PERBX averaged over spatial cell.*/
+      PERBYVOL,  /*!< perturbed magnetic field  PERBY averaged over spatial cell.*/
+      PERBZVOL,  /*!< perturbed magnetic field  PERBZ averaged over spatial cell.*/
+      EXVOL,     /*!< Ex averaged over spatial cell.*/
+      EYVOL,     /*!< Ey averaged over spatial cell.*/
+      EZVOL,     /*!< Ez averaged over spatial cell.*/
+      RHO_R,     /*!< RHO after propagation in ordinary space*/
+      RHOVX_R,   /*!< RHOVX after propagation in ordinary space*/
+      RHOVY_R,   /*!< RHOVX after propagation in ordinary space*/
+      RHOVZ_R,   /*!< RHOVX after propagation in ordinary space*/
+      RHO_V,     /*!< RHO after propagation in velocity space*/
+      RHOVX_V,   /*!< RHOVX after propagation in velocity space*/
+      RHOVY_V,   /*!< RHOVX after propagation in velocity space*/
+      RHOVZ_V,   /*!< RHOVX after propagation in velocity space*/
       RHOLOSSADJUST,      /*!< Counter for massloss from the destroying blocks in blockadjustment*/
       RHOLOSSVELBOUNDARY, /*!< Counter for massloss through outflow boundaries in velocity space*/
       MAXVDT,             /*!< maximum timestep allowed in velocity space for this cell**/
