@@ -92,7 +92,8 @@ struct Parameters {
    static bool fieldSolverDiffusiveEterms; /*!< Enable resitive terms in the computation of E*/
    
    static bool lorentzHallTerm;  /*!< Add JxB hall term to Lorentz force. Assumes there is not hall term in the fieldsolver if we use fieldSolverE*/
-   static Real lorentzHallMinimumRho;  /*!< Minimum rho value used in Hall term in Lorentz force. Assumes there is not hall term in the fieldsolver if we use fieldSolverE*/
+   static Real lorentzHallMinimumRho;  /*!< Minimum rho value used in Hall term in Lorentz force.*/
+   static Real lorentzHallMaximumB;  /*!< Maximum B value used in Hall term in Lorentz force. Does not affect J, only latter total B in JxB*/
    static bool lorentzUseFieldSolverE;  /*!< If true, the E from fieldolver is used. Otherwise -V x B_vol is used*/
    static Real sparseMinValue; /*!< Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents */
    static int sparseBlockAddWidthV; /*!< Number of layers of blocks that are kept in velocity space around the blocks with content */

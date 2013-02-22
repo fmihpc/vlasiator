@@ -62,7 +62,12 @@ template<typename REAL> void lorentzForceFaceBulk(
    const REAL dBZdy = cellBVOLDerivatives[bvolderivatives::dPERBZVOLdy]/cellParams[CellParams::DY];
    
    const Real hallRho =  (cellParams[CellParams::RHO_V] <= Parameters::lorentzHallMinimumRho ) ? Parameters::lorentzHallMinimumRho : cellParams[CellParams::RHO_V] ;
-   const REAL prefactor = 1.0 / (physicalconstants::MU_0 * hallRho * Parameters::m );
+   //hallBscale scales the hallterm such that the B field is not too large 
+   const Real hallBscale =  (B > Parameters::lorentzHallMaximumB ) ? Parameters::lorentzHallMaximumB/B : 1.0;
+   const REAL hallPrefactor = hallBscale / (physicalconstants::MU_0 * hallRho * Parameters::m );
+   
+   const REAL resistivityPrefactor = Parameters::resistivity * B  /
+      (physicalconstants::MU_0 * hallRho * Parameters::m );
    
    
    
@@ -79,9 +84,9 @@ template<typename REAL> void lorentzForceFaceBulk(
 
 
    //resisitivity term E=n J. No q_per_m as that is taken into account in prefactor
-   a_bulk[0]+=  Parameters::resistivity * B *prefactor *(dBZdy-dBYdz);
-   a_bulk[1]+=  Parameters::resistivity * B *prefactor *(dBXdz-dBZdx);
-   a_bulk[2]+=  Parameters::resistivity * B *prefactor *(dBYdx-dBXdy);
+   a_bulk[0]+=  resistivityPrefactor *(dBZdy-dBYdz);
+   a_bulk[1]+=  resistivityPrefactor *(dBXdz-dBZdx);
+   a_bulk[2]+=  resistivityPrefactor *(dBYdx-dBXdy);
    
    /*
      Hall term  (see QUESPACE-281)  (JxB = curl(B) x B)
@@ -89,9 +94,9 @@ template<typename REAL> void lorentzForceFaceBulk(
    */
    
    if(Parameters::lorentzHallTerm) {
-      a_bulk[0] += prefactor * (BZ*dBXdz - BZ*dBZdx - BY*dBYdx + BY*dBXdy);
-      a_bulk[1] += prefactor * (BX*dBYdx - BX*dBXdy - BZ*dBZdy + BZ*dBYdz);
-      a_bulk[2] += prefactor * (BY*dBZdy - BY*dBYdz - BX*dBXdz + BX*dBZdx);
+      a_bulk[0] += hallPrefactor * (BZ*dBXdz - BZ*dBZdx - BY*dBYdx + BY*dBXdy);
+      a_bulk[1] += hallPrefactor * (BX*dBYdx - BX*dBXdy - BZ*dBZdy + BZ*dBYdz);
+      a_bulk[2] += hallPrefactor * (BY*dBZdy - BY*dBYdz - BX*dBXdz + BX*dBZdx);
    }
 }
 
