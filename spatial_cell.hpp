@@ -1175,7 +1175,7 @@ namespace velocity_neighbor {
         neighbouring cells, but these are not written to here. We only
         modify local cell.
       */
-      void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors)
+      void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors, bool doDeleteEmptyBlocks=true)
       {
          //initialize tree of timers to make sure every process has timers, even for processes with no velocity cells.
          //Also reduces overhead in tight loops compared to simple interface
@@ -1271,13 +1271,14 @@ namespace velocity_neighbor {
                      sum+=block_ptr->data[i];
                   this->parameters[CellParams::RHOLOSSADJUST]+=DV3*sum;
                   
-                  
-                  this->remove_velocity_block(block);
+                  if(doDeleteEmptyBlocks)
+                     this->remove_velocity_block(block);
                }
                // phiprof::stop(premove);
                // phiprof::stop(pempty);
                
             }
+
             
          }
 
@@ -1299,16 +1300,23 @@ namespace velocity_neighbor {
             }
          }
          //  phiprof::stop(paddreal);
+
+         //A normal non-sysboundary cell has to have more than zero blocks!
+         //This aborts such simulations to avoid waisting CPU resources on a simulation gone bad
+         if( this->sysBoundaryFlag == sysboundarytype::NOT_SYS_BOUNDARY && this->number_of_blocks<=0 )  {
+            cerr<< "Cell has zero blocks. Aborting!" <<endl;
+            exit(1);
+         }
          
       }
       
       void adjustSingleCellVelocityBlocks() {
          //neighbor_ptrs is empty as we do not have any consistent
          //data in neighbours yet, adjustments done only based on velocity
-         //space.
+         //space. Do not delete blocks, because otherwise we might loose teneous flow in spatial space
          std::vector<SpatialCell*> neighbor_ptrs;
          this->update_all_block_has_content();
-         this->adjust_velocity_blocks(neighbor_ptrs);
+         this->adjust_velocity_blocks(neighbor_ptrs,false);
       }
       
 // set block data pointers. velocity_block_list needs to be up-to-date
