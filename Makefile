@@ -66,6 +66,7 @@ tools: parallel_tools not_parallel_tools
 
 parallel_tools: vlsv2vtk vlsv2silo vlsv2bzt vlsvextract
 
+FORCE:
 # On FERMI one has to use the front-end compiler (e.g. g++) to compile this tool.
 # This target here defines a flag which removes the mpi headers from the code with 
 # #ifdef pragmas such that one can compile this tool to be used on the login nodes.
@@ -111,7 +112,7 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/verificationLarmor/verificationLarmor.h projects/verificationLarmor/verificationLarmor.cpp
 #all objects for vlasiator
 
-OBJS = 	backgroundfield.o ode.o quadr.o dipole.o constantfield.o integratefunction.o \
+OBJS = 	version.o backgroundfield.o ode.o quadr.o dipole.o constantfield.o integratefunction.o \
 	datareducer.o datareductionoperator.o \
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o \
 	sysboundary.o sysboundarycondition.o \
@@ -140,6 +141,12 @@ clean: data
 
 
 # Rules for making each object file needed by the executable
+
+version.cpp: FORCE
+	./generate_version.sh
+
+version.o: version.cpp 
+	 ${CMP} ${CXXFLAGS} ${FLAGS} -c version.cpp
 
 dipole.o: backgroundfield/dipole.cpp backgroundfield/dipole.hpp backgroundfield/fieldfunction.hpp backgroundfield/functions.hpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/dipole.cpp 
@@ -268,7 +275,7 @@ muxml.o: muxml.h muxml.cpp
 parameters.o: parameters.h parameters.cpp readparameters.h
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c parameters.cpp ${INC_BOOST}
 
-readparameters.o: readparameters.h readparameters.cpp
+readparameters.o: readparameters.h readparameters.cpp version.h version.cpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c readparameters.cpp ${INC_BOOST}
 
 vlscommon.o:  $(DEPS_COMMON)  vlscommon.h vlscommon.cpp

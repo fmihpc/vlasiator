@@ -53,6 +53,7 @@ struct Readparameters {
     
     static bool finalize();
     static bool helpMessage();
+    static bool versionMessage();
     static bool isInitialized();
     static bool parse();
    

@@ -28,6 +28,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <fstream>
 #include <iostream>
 #include "readparameters.h"
+#include "version.h"
 
 using namespace std;
 
@@ -235,9 +236,12 @@ bool Readparameters::addComposing(const string& name,const string& desc) {
 bool Readparameters::addDefaultParameters() {
     if (initialized == false) return false;
     if(rank==MASTER_RANK){
-        descriptions->add_options()
+       descriptions->add_options()
             ("help", "print this help message");
-        
+       descriptions->add_options()
+          ("version", "print version information");
+
+       
         // Parameters which set the names of the configuration file(s):
         descriptions->add_options()
             ("global_config", PO::value<string>(&global_config_file_name)->default_value(""),"read options from the global configuration file arg (relative to the current working directory). Options given in this file are overridden by options given in the user's and run's configuration files and by options given in environment variables (prefixed with MAIN_) and the command line")
@@ -559,6 +563,24 @@ bool Readparameters::helpMessage() {
 
 
 
+/** Write version information to standard output if 
+ * an option called "version" has been read.
+ * @return If true, option called "version" was found and descriptions were written 
+ * to standard output.
+ */
+bool Readparameters::versionMessage() {
+    if(rank==MASTER_RANK){
+        if (variables->count("version") > 0) {
+           printVersion();
+           return true;
+        }
+        return false;
+    }
+    return true;
+}
+
+
+
 /** Query is Parameters has initialized successfully.
  * @return If true, Parameters is ready for use.
  */
@@ -624,6 +646,14 @@ bool Readparameters::parse() {
     bool hasHelpOption=helpMessage();
     MPI_Bcast(&hasHelpOption,sizeof(bool),MPI_BYTE,0,MPI_COMM_WORLD);
     if(hasHelpOption){
+        MPI_Finalize();
+        exit(0);
+    }
+
+    //Check if the user has specified --version
+    bool hasVersionOption=versionMessage();
+    MPI_Bcast(&hasVersionOption,sizeof(bool),MPI_BYTE,0,MPI_COMM_WORLD);
+    if(hasVersionOption){
         MPI_Finalize();
         exit(0);
     }
