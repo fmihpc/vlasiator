@@ -298,8 +298,7 @@ int main(int argn,char* args[]) {
      phiprof::start("write-initial-state");
      if (myRank == MASTER_RANK)
        logFile << "(IO): Writing initial state to disk, tstep = "  << endl << writeVerbose;
-     writeGrid(mpiGrid,outputReducer,"initial-velocity-space",0,true);
-     writeGrid(mpiGrid,outputReducer,"initial-grid",0,false);
+     writeReducedGrid(mpiGrid,outputReducer,"initial-grid",0);
      phiprof::stop("write-initial-state");
    }
    
@@ -436,7 +435,7 @@ int main(int argn,char* args[]) {
          phiprof::start("write-system");
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-         writeGrid(mpiGrid,outputReducer,"grid",systemWrites,false);
+         writeReducedGrid(mpiGrid,outputReducer,"grid",systemWrites);
          systemWrites++;
          if (myRank == MASTER_RANK)
             logFile << "(IO): .... done!"<< endl << writeVerbose;
@@ -450,7 +449,7 @@ int main(int argn,char* args[]) {
          phiprof::start("write-restart");
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-         writeGrid(mpiGrid,outputReducer,"restart",restartWrites,true);
+         writeRestart(mpiGrid,outputReducer,"restart",restartWrites);
          restartWrites++;
          if (myRank == MASTER_RANK)
             logFile << "(IO): .... done!"<< endl << writeVerbose;

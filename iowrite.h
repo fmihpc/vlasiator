@@ -16,15 +16,29 @@
 \param dataReducer Contains datareductionoperators that are used to compute data that is added into file
 \param name       File name prefix, file will be called "name.index.vlsv"
 \param index      File index, file will be called "name.index.vlsv"
+*/
+
+
+bool writeReducedGrid(const dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,DataReducer& dataReducer,const std::string& name,const uint& index);
+
+
+/*!
+
+\brief Write out a restart of the simulation into a vlsv file
+
+\param mpiGrid   The DCCRG grid with spatial cells
+\param dataReducer Contains datareductionoperators that are used to compute data that is added into file
+\param name       File name prefix, file will be called "name.index.vlsv"
+\param index      File index, file will be called "name.index.vlsv"
 \param writeRestart If true, the full velocity distribution will be written out.
 */
 
 
-bool writeGrid(const dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
+bool writeRestart(const dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
                DataReducer& dataReducer,
                const std::string& name,
-               const uint& index,
-               const bool& writeRestart);
+               const uint& index);
+
 
 
 
