@@ -143,7 +143,7 @@ clean: data
 # Rules for making each object file needed by the executable
 
 version.cpp: FORCE
-	./generate_version.sh
+	./generate_version.sh "${CMP}" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_DCCRG}" "${INC_ZOLTAN}" "${INC_BOOST}"
 
 version.o: version.cpp 
 	 ${CMP} ${CXXFLAGS} ${FLAGS} -c version.cpp
