@@ -117,7 +117,6 @@ namespace SBC {
             creal dx, creal dy, creal dz
          );
          void copyCellData(SpatialCell *from, SpatialCell *to);
-//          void zeroCellData( SpatialCell *to);
          
          CellID getClosestNonsysboundaryCell(
             const dccrg::Dccrg<SpatialCell>& mpiGrid,

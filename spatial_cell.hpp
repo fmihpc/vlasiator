@@ -914,12 +914,12 @@ namespace velocity_neighbor {
                   displacements.push_back((uint8_t*) &(this->block_data[0]) - (uint8_t*) this);               
                   block_lengths.push_back(sizeof(Real) * VELOCITY_BLOCK_LENGTH* this->number_of_blocks);
                }
-            
+               
                if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_FLUXES)!=0){
                   displacements.push_back((uint8_t*) &(this->block_fx[0]) - (uint8_t*) this);               
                   block_lengths.push_back(sizeof(Real) * SIZE_FLUXS* this->number_of_blocks);
                }
-            
+               
                // send  spatial cell parameters
                if((SpatialCell::mpi_transfer_type & Transfer::CELL_PARAMETERS)!=0){
                   displacements.push_back((uint8_t*) &(this->parameters[0]) - (uint8_t*) this);

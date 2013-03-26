@@ -280,7 +280,7 @@ namespace SBC {
                   }
                }
             }
-            return closestCell;
+      return closestCell;
    }
    
    /*! Function used in some cases to know which faces the system boundary condition is being applied to.*/
