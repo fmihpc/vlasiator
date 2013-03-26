@@ -40,6 +40,7 @@ namespace projects {
       RP::add("Magnetosphere.VX0", "Initial bulk velocity in x-direction", 0.0);
       RP::add("Magnetosphere.VY0", "Initial bulk velocity in y-direction", 0.0);
       RP::add("Magnetosphere.VZ0", "Initial bulk velocity in z-direction", 0.0);
+      RP::add("Magnetosphere.constBgBX", "Constant flat Bx component in the whole simulation box. Default is none.", 0.0);
       RP::add("Magnetosphere.rhoTransitionCenter", "Abscissa in GSE around which the background magnetospheric density transitions to a 10 times higher value (m)", 0.0);
       RP::add("Magnetosphere.rhoTransitionWidth", "Width of the magnetospheric background density (m)", 0.0);
       RP::add("Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
@@ -76,6 +77,10 @@ namespace projects {
          exit(1);
       }
       if(!RP::get("Magnetosphere.VZ0", this->V0[2])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!RP::get("Magnetosphere.constBgBX", this->constBgBX)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -186,8 +191,8 @@ namespace projects {
         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdz]=0.0;
      }
-     if(P::zcells_ini==1) {                                                                         
-        cell->parameters[CellParams::BGBX]=0;   
+     if(P::zcells_ini==1) {
+        cell->parameters[CellParams::BGBX]=0;
         cell->parameters[CellParams::BGBY]=0;
         cell->parameters[CellParams::BGBYVOL]=0.0;
         cell->parameters[CellParams::BGBXVOL]=0.0;
@@ -199,6 +204,10 @@ namespace projects {
         cell->derivativesBVOL[bvolderivatives::dBGBXVOLdz]=0.0;
         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdz]=0.0;
+     }
+     if(this->constBgBX != 0.0) {
+        cell->parameters[CellParams::BGBX] += this->constBgBX;
+        cell->parameters[CellParams::BGBXVOL] += this->constBgBX;
      }
    }
       
@@ -212,12 +221,16 @@ namespace projects {
       }
       
       creal radius = sqrt(x*x + y*y + z*z);
-      if(radius < this->ionosphereTaperRadius && radius > this->ionosphereRadius) {
+      if(radius < this->ionosphereTaperRadius) {
          // linear tapering
          //initRho = this->ionosphereRho - (ionosphereRho-tailRho)*(radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
          
          // sine tapering
          initRho = this->tailRho - (this->tailRho-this->ionosphereRho)*0.5*(1.0+sin(M_PI*(radius-this->ionosphereRadius)/(this->ionosphereTaperRadius-this->ionosphereRadius)+0.5*M_PI));
+         if(radius < this->ionosphereRadius) {
+            // Just to be safe, there are observed cases where tis failed.
+            initRho = this->ionosphereRho;
+         }
       }
       
       initRho *= 1.0 + 9.0 * 0.5 * (1.0 + tanh((x-this->rhoTransitionCenter) / this->rhoTransitionWidth));
@@ -236,13 +249,17 @@ namespace projects {
       Real ionosphereV0 = this->ionosphereV0[component];
       
       creal radius = sqrt(x*x + y*y + z*z);
-      if(radius < this->ionosphereTaperRadius && radius > this->ionosphereRadius) {
+      if(radius < this->ionosphereTaperRadius) {
          // linear tapering
          //initV0[i] *= (radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
          
          // sine tapering
          Real q=0.5*(1.0-sin(M_PI*(radius-this->ionosphereRadius)/(this->ionosphereTaperRadius-this->ionosphereRadius)+0.5*M_PI));
          V0=q*(V0-ionosphereV0)+ionosphereV0;
+         if(radius < this->ionosphereRadius) {
+            // Just to be safe, there are observed cases where tis failed.
+            V0 = ionosphereV0;
+         }
       }
       
       return V0;
