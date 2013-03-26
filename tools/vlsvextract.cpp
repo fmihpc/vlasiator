@@ -170,10 +170,6 @@ bool convertVelocityBlockVariable(VLSVReader& vlsvReader,const string& spatGridN
       return success;
    }
    
-   stringstream ss;
-   ss << varName << cellID;
-   string varName2 = ss.str();
-   
    string label = "Distrib.function";
    string unit = "1/m^3 (m/s)^3";
    int conserved = 1;
@@ -183,7 +179,7 @@ bool convertVelocityBlockVariable(VLSVReader& vlsvReader,const string& spatGridN
    DBAddOption(optList,DBOPT_EXTENTS_SIZE,const_cast<char*>(unit.c_str()));
    DBAddOption(optList,DBOPT_CONSERVED,&conserved);
    DBAddOption(optList,DBOPT_EXTENSIVE,&extensive);
-   DBPutUcdvar1(fileptr,varName2.c_str(),velGridName.c_str(),buffer,N_blocks*vectorSize,NULL,0,SiloType(dataType,dataSize),DB_ZONECENT,optList);
+   DBPutUcdvar1(fileptr,varName.c_str(),velGridName.c_str(),buffer,N_blocks*vectorSize,NULL,0,SiloType(dataType,dataSize),DB_ZONECENT,optList);
    
    DBFreeOptlist(optList);
    delete buffer;
