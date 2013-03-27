@@ -416,7 +416,7 @@ vectorsize=6
 .
  Finally, the volume averages are written into an array 
 \family typewriter
-(BLOCKVARIABLE, avgs)
+(BLOCKVARIABLE, f)
 \family default
 , which also has an attribute 
 \family typewriter
@@ -515,7 +515,7 @@ status open
 
 \begin_layout Plain Layout
 
-		name="avgs"
+		name="f"
 \end_layout
 
 \begin_layout Plain Layout

@@ -327,7 +327,7 @@ bool writeRestart(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    attribs.clear();
    attribs["mesh"] = "SpatialGrid";
    if (vlsvWriter.writeArray("BLOCKVARIABLE","f",attribs,totalBlocks,SIZE_VELBLOCK,&(velocityBlockData[0])) == false) success=false;
-   if (success ==false)      logFile << "(MAIN) writeGrid: ERROR occurred when writing BLOCKVARIABLE avgs" << endl << writeVerbose;
+   if (success ==false)      logFile << "(MAIN) writeGrid: ERROR occurred when writing BLOCKVARIABLE f" << endl << writeVerbose;
    velocityBlockData.clear();
    vlsvWriter.close();
    

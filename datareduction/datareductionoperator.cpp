@@ -61,6 +61,7 @@ namespace DRO {
       return string("");
    }
    
+   // TODO update this documentation snippet.
    /** Reduce the data and write the data vector to the given buffer.
     * @param N_blocks Number of velocity blocks in array avgs.
     * @param avgs Array containing distribution function values for each velocity block.
@@ -73,6 +74,7 @@ namespace DRO {
       return false;
    }
    
+   // TODO update this documentation snippet.
    /** Reduce the data and write the data vector to the given variable.
     * @param N_blocks Number of velocity blocks in array avgs.
     * @param avgs Array containing distribution function values for each velocity block.

@@ -173,7 +173,7 @@ bool readBlockData(VLSVParReader & file,
   bool success=true;
    
   coordAttribs.push_back(make_pair("name","SpatialGrid"));
-  avgAttribs.push_back(make_pair("name","avgs"));
+  avgAttribs.push_back(make_pair("name","f"));
   avgAttribs.push_back(make_pair("mesh","SpatialGrid"));
   
 
