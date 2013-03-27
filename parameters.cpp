@@ -123,7 +123,7 @@ bool Parameters::addParameters(){
    Readparameters::add("restart_write_t_interval","Save the complete simulation every arg simulated seconds. Negative values disable writes.",-1.0);
    Readparameters::add("write_initial_state","Write initial state, not even the 0.5 dt propagation is done. Do not use for restarting. ",false);
 
-   //TODO Readparameters::add("output.restart_walltime_interval","Save the complete simulation every arg wall-time seconds",numeric_limits<uint>::max());
+   Readparameters::add("output.restart_walltime_interval","Save the complete simulation every arg wall-time seconds",numeric_limits<uint>::max());
 
    Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
    Readparameters::add("propagate_vlasov","Propagate distribution functions during the simulation",true);
@@ -201,6 +201,8 @@ bool Parameters::getParameters(){
    Readparameters::get("system_write_t_interval", P::saveSystemTimeInterval);
    Readparameters::get("restart_write_t_interval", P::saveRestartTimeInterval);
    Readparameters::get("write_initial_state", P::writeInitialState);
+
+   Readparameters::get("output.restart_walltime_interval", P::saveRestartWalltimeInterval);
    
    Readparameters::get("propagate_field",P::propagateField);
    Readparameters::get("propagate_vlasov",P::propagateVlasov);

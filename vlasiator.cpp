@@ -377,7 +377,9 @@ int main(int argn,char* args[]) {
    unsigned int computedTotalCells=0;
    unsigned int restartWrites=(int)(P::t_min/P::saveRestartTimeInterval);
    unsigned int systemWrites=(int)(P::t_min/P::saveSystemTimeInterval);
-
+   
+   unsigned int wallTime_counter=1;
+   
    addTimedBarrier("barrier-end-initialization");
    
    phiprof::start("Simulation");
@@ -456,9 +458,37 @@ int main(int argn,char* args[]) {
 
          phiprof::stop("write-restart");
       }
+      
+      
+      // ADDED 
+      int writeOption = 0;  // SHOULD THIS BE DEFINED SOMEWHERE ELSE??
+      if (myRank == MASTER_RANK) { 
+         if (P::saveRestartWalltimeInterval*wallTime_counter <=  MPI_Wtime()){
+            writeOption = 1;
+            MPI_Bcast( &writeOption, 1 , MPI_INT , 0 ,comm); // WHAT SHOULD BE IN THE SECOND LAST SPOT?
+            wallTime_counter++;
+         }
+      }
+      
+      if (writeOption == 1){
+         phiprof::start("write-restart");
+         if (myRank == MASTER_RANK)
+            logFile << "(IO): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
+         writeRestart(mpiGrid,outputReducer,"restart",restartWrites);
+         restartWrites++;
+         if (myRank == MASTER_RANK)
+            logFile << "(IO): .... done!"<< endl << writeVerbose;
+            
+         phiprof::stop("write-restart");
+      
+      }   
+      
+      
+      
       phiprof::stop("IO");
       addTimedBarrier("barrier-end-io");      
 
+           
       
       //no need to propagate if we are on the final step, we just
       //wanted to make sure all IO is done even for final step
