@@ -79,6 +79,8 @@ Real P::saveRestartTimeInterval = -1.0;
 Real P::saveSystemTimeInterval = -1.0;
 bool P::writeInitialState = true;
 
+Real P::saveRestartWalltimeInterval = -1.0;
+
 uint P::transmit = 0;
 
 bool P::recalculateStencils = true;
@@ -123,7 +125,7 @@ bool Parameters::addParameters(){
    Readparameters::add("restart_write_t_interval","Save the complete simulation every arg simulated seconds. Negative values disable writes.",-1.0);
    Readparameters::add("write_initial_state","Write initial state, not even the 0.5 dt propagation is done. Do not use for restarting. ",false);
 
-   Readparameters::add("output.restart_walltime_interval","Save the complete simulation every arg wall-time seconds",numeric_limits<uint>::max());
+   Readparameters::add("output.restart_walltime_interval","Save the complete simulation in given walltime intervals. Negative values disable writes.",-1.0);
 
    Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
    Readparameters::add("propagate_vlasov","Propagate distribution functions during the simulation",true);

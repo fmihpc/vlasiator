@@ -189,6 +189,9 @@ int main(int argn,char* args[]) {
          cerr << "(MAIN): MPI_Init_thread failed! Got " << provided << ", need "<<required <<endl;
       exit(1);
    }    
+   
+   double initialWtime =  MPI_Wtime();
+   
    MPI_Comm comm = MPI_COMM_WORLD;
    MPI_Comm_rank(comm,&myRank);
    dccrg::Dccrg<SpatialCell> mpiGrid;
@@ -378,7 +381,7 @@ int main(int argn,char* args[]) {
    unsigned int restartWrites=(int)(P::t_min/P::saveRestartTimeInterval);
    unsigned int systemWrites=(int)(P::t_min/P::saveSystemTimeInterval);
    
-   unsigned int wallTime_counter=1;
+   unsigned int wallTimeRestart_counter=1;
    
    addTimedBarrier("barrier-end-initialization");
    
@@ -451,7 +454,7 @@ int main(int argn,char* args[]) {
          phiprof::start("write-restart");
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-         writeRestart(mpiGrid,outputReducer,"restart",restartWrites);
+         writeRestart(mpiGrid,outputReducer,"grid_fullvspace",restartWrites);
          restartWrites++;
          if (myRank == MASTER_RANK)
             logFile << "(IO): .... done!"<< endl << writeVerbose;
@@ -460,22 +463,25 @@ int main(int argn,char* args[]) {
       }
       
       
-      // ADDED 
-      int writeOption = 0;  // SHOULD THIS BE DEFINED SOMEWHERE ELSE??
+      // ADDED
+      int writeRestartWTime;
       if (myRank == MASTER_RANK) { 
-         if (P::saveRestartWalltimeInterval*wallTime_counter <=  MPI_Wtime()){
-            writeOption = 1;
-            MPI_Bcast( &writeOption, 1 , MPI_INT , 0 ,comm); // WHAT SHOULD BE IN THE SECOND LAST SPOT?
-            wallTime_counter++;
+         if (P::saveRestartWalltimeInterval*wallTimeRestart_counter <=  MPI_Wtime()-initialWtime){
+            writeRestartWTime = 1;
          }
+         else {
+            writeRestartWTime = 0;
+         }  
       }
-      
-      if (writeOption == 1){
+      MPI_Bcast( &writeRestartWTime, 1 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD); // WHAT SHOULD BE IN THE SECOND LAST SPOT?
+            
+      if (writeRestartWTime == 1){   
          phiprof::start("write-restart");
+         wallTimeRestart_counter++;
+        
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-         writeRestart(mpiGrid,outputReducer,"restart",restartWrites);
-         restartWrites++;
+         writeRestart(mpiGrid,outputReducer,"restart",(uint)P::t);
          if (myRank == MASTER_RANK)
             logFile << "(IO): .... done!"<< endl << writeVerbose;
             
