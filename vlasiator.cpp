@@ -466,14 +466,15 @@ int main(int argn,char* args[]) {
       // ADDED
       int writeRestartWTime;
       if (myRank == MASTER_RANK) { 
-         if (P::saveRestartWalltimeInterval*wallTimeRestart_counter <=  MPI_Wtime()-initialWtime){
+         if (P::saveRestartWalltimeInterval >=0.0 && 
+            P::saveRestartWalltimeInterval*wallTimeRestart_counter <=  MPI_Wtime()-initialWtime){
             writeRestartWTime = 1;
          }
          else {
             writeRestartWTime = 0;
          }  
       }
-      MPI_Bcast( &writeRestartWTime, 1 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD); // WHAT SHOULD BE IN THE SECOND LAST SPOT?
+      MPI_Bcast( &writeRestartWTime, 1 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
             
       if (writeRestartWTime == 1){   
          phiprof::start("write-restart");
@@ -481,7 +482,7 @@ int main(int argn,char* args[]) {
         
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-         writeRestart(mpiGrid,outputReducer,"restart",(uint)P::t);
+         writeRestart(mpiGrid,outputReducer,"restartWtime",(uint)P::t);
          if (myRank == MASTER_RANK)
             logFile << "(IO): .... done!"<< endl << writeVerbose;
             
