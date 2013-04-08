@@ -381,7 +381,7 @@ int main(int argn,char* args[]) {
    unsigned int restartWrites=(int)(P::t_min/P::saveRestartTimeInterval);
    unsigned int systemWrites=(int)(P::t_min/P::saveSystemTimeInterval);
    
-   unsigned int wallTimeRestart_counter=1;
+   unsigned int wallTimeRestartCounter=1;
    
    addTimedBarrier("barrier-end-initialization");
    
@@ -392,7 +392,8 @@ int main(int argn,char* args[]) {
    double beforeStep=P::tstep_min;
    
    while(P::tstep <=P::tstep_max  &&
-         P::t-P::dt <= P::t_max+DT_EPSILON) {
+         P::t-P::dt <= P::t_max+DT_EPSILON &&
+         wallTimeRestartCounter <= P::exitAfterRestarts) {
 
       addTimedBarrier("barrier-loop-start");
          
@@ -467,7 +468,7 @@ int main(int argn,char* args[]) {
       int writeRestartWTime;
       if (myRank == MASTER_RANK) { 
          if (P::saveRestartWalltimeInterval >=0.0 && 
-            P::saveRestartWalltimeInterval*wallTimeRestart_counter <=  MPI_Wtime()-initialWtime){
+            P::saveRestartWalltimeInterval*wallTimeRestartCounter <=  MPI_Wtime()-initialWtime){
             writeRestartWTime = 1;
          }
          else {
@@ -478,7 +479,7 @@ int main(int argn,char* args[]) {
             
       if (writeRestartWTime == 1){   
          phiprof::start("write-restart");
-         wallTimeRestart_counter++;
+         wallTimeRestartCounter++;
         
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
@@ -487,9 +488,8 @@ int main(int argn,char* args[]) {
             logFile << "(IO): .... done!"<< endl << writeVerbose;
             
          phiprof::stop("write-restart");
-      
+         
       }   
-      
       
       
       phiprof::stop("IO");

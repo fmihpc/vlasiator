@@ -80,6 +80,7 @@ Real P::saveSystemTimeInterval = -1.0;
 bool P::writeInitialState = true;
 
 Real P::saveRestartWalltimeInterval = -1.0;
+uint P::exitAfterRestarts = numeric_limits<uint>::max();
 
 uint P::transmit = 0;
 
@@ -125,8 +126,9 @@ bool Parameters::addParameters(){
    Readparameters::add("restart_write_t_interval","Save the complete simulation every arg simulated seconds. Negative values disable writes.",-1.0);
    Readparameters::add("write_initial_state","Write initial state, not even the 0.5 dt propagation is done. Do not use for restarting. ",false);
 
-   Readparameters::add("output.restart_walltime_interval","Save the complete simulation in given walltime intervals. Negative values disable writes.",-1.0);
-
+   Readparameters::add("io.restart_walltime_interval","Save the complete simulation in given walltime intervals. Negative values disable writes.",-1.0);
+   Readparameters::add("io.number_of_restarts","Exit the silmuation after certain number of walltime-based restarts.",numeric_limits<uint>::max());
+   
    Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
    Readparameters::add("propagate_vlasov","Propagate distribution functions during the simulation",true);
    Readparameters::add("max_acceleration_substeps","Maximum number of  acceleration substeps that are allowed to be taken in acceleration. The default number of 1 disables substepping and the acceleration is always done in one step. A value of 0 has a special meaning, it activates unlimited substepping",1);
@@ -204,7 +206,8 @@ bool Parameters::getParameters(){
    Readparameters::get("restart_write_t_interval", P::saveRestartTimeInterval);
    Readparameters::get("write_initial_state", P::writeInitialState);
 
-   Readparameters::get("output.restart_walltime_interval", P::saveRestartWalltimeInterval);
+   Readparameters::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
+   Readparameters::get("io.number_of_restarts", P::exitAfterRestarts);
    
    Readparameters::get("propagate_field",P::propagateField);
    Readparameters::get("propagate_vlasov",P::propagateVlasov);
