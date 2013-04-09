@@ -17,8 +17,7 @@ while read line; do
     size=$(echo $line | gawk '{print $5}')
   
 #chunksize
-    #chunkSize=1000000000
-    chunkSize=100000
+    chunkSize=1000000000
     retval=0
     totalChunks=$(( 1+size/chunkSize )) 
     if [ -e $file ] 
