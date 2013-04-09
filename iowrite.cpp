@@ -127,8 +127,6 @@ bool writeCommonGridData(VLSVWriter& vlsvWriter,const dccrg::Dccrg<SpatialCell>&
       cerr << "Proc #" << myRank << " failed to write cell coords!" << endl;
    }
    delete[] buffer;   
-   
-   
    writeScalarParameter("t",P::t,vlsvWriter,0,MPI_COMM_WORLD);
    writeScalarParameter("dt",P::dt,vlsvWriter,0,MPI_COMM_WORLD);
    writeScalarParameter("tstep",P::tstep,vlsvWriter,0,MPI_COMM_WORLD);
@@ -164,12 +162,18 @@ bool writeVelocityDistributionData(VLSVWriter& vlsvWriter,const dccrg::Dccrg<Spa
    
    //Compute totalBlocks
    uint64_t totalBlocks = 0;  
+   vector<uint> blocksPerCell;   
    for(size_t cell=0;cell<cells.size();++cell){
       totalBlocks+=mpiGrid[cells[cell]]->number_of_blocks;
+      blocksPerCell.push_back(mpiGrid[cells[cell]]->number_of_blocks);
    }
    
    if (vlsvWriter.writeArray("CELLSWITHBLOCKS","SpatialGrid",attribs,cells.size(),1,&(cells[0])) == false) success = false;
    if (success == false) logFile << "(MAIN) writeGrid: ERROR failed to write CELLSWITHBLOCKS to file!" << endl << writeVerbose;
+   //Write blocks per cell, this has to be in the same order as cellswitblocks so that extracting works
+   if(vlsvWriter.writeArray("BLOCKSPERCELL","SpatialGrid",attribs,blocksPerCell.size(),1,&(blocksPerCell[0])) == false) success = false;
+   if (success == false) logFile << "(MAIN) writeGrid: ERROR failed to write CELLSWITHBLOCKS to file!" << endl << writeVerbose;
+
    //Write velocity block coordinates.
    std::vector<Real> velocityBlockParameters;
    try {
@@ -230,7 +234,7 @@ bool writeVelocityDistributionData(VLSVWriter& vlsvWriter,const dccrg::Dccrg<Spa
    
    attribs.clear();
    attribs["mesh"] = "SpatialGrid";
-   if (vlsvWriter.writeArray("BLOCKVARIABLE","f",attribs,totalBlocks,SIZE_VELBLOCK,&(velocityBlockData[0])) == false) success=false;
+   if (vlsvWriter.writeArray("BLOCKVARIABLE","avgs",attribs,totalBlocks,SIZE_VELBLOCK,&(velocityBlockData[0])) == false) success=false;
    if (success ==false)      logFile << "(MAIN) writeGrid: ERROR occurred when writing BLOCKVARIABLE f" << endl << writeVerbose;
    velocityBlockData.clear();
     
@@ -269,7 +273,6 @@ bool writeGrid(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    //write basic description of grid
    writeCommonGridData(vlsvWriter,mpiGrid,cells,index,MPI_COMM_WORLD);
    
-
    // Write variables calculate d by DataReductionOperators (DRO). We do not know how many 
    // numbers each DRO calculates, so a buffer has to be re-allocated for each DRO:
    for (uint i = 0; i < dataReducer.size(); ++i) {
@@ -344,7 +347,6 @@ bool writeRestart(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_dt2",CellParams::RHO_DT2,4));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_r",CellParams::RHO_R,4));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_v",CellParams::RHO_V,4));
-   restartReducer.addOperator(new DRO::Blocks);
    restartReducer.addOperator(new DRO::MPIrank);
    restartReducer.addOperator(new DRO::BoundaryType);
    restartReducer.addOperator(new DRO::BoundaryLayer);
