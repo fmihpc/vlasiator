@@ -301,7 +301,7 @@ int main(int argn,char* args[]) {
      phiprof::start("write-initial-state");
      if (myRank == MASTER_RANK)
        logFile << "(IO): Writing initial state to disk, tstep = "  << endl << writeVerbose;
-     writeReducedGrid(mpiGrid,outputReducer,"initial-grid",0);
+     writeGrid(mpiGrid,outputReducer,0,"initial-grid",0);
      phiprof::stop("write-initial-state");
    }
    
@@ -378,8 +378,11 @@ int main(int argn,char* args[]) {
    unsigned int computedCellsWithSubsteps=0;
    unsigned int computedCells=0;
    unsigned int computedTotalCells=0;
-   unsigned int restartWrites=(int)(P::t_min/P::saveRestartTimeInterval);
-   unsigned int systemWrites=(int)(P::t_min/P::saveSystemTimeInterval);
+  //Compute here based on time what the file intervals are
+   P::systemWrites.clear();
+   for(uint i=0;i< P::systemWriteTimeInterval.size();i++){
+       P::systemWrites.push_back((int)(P::t_min/P::systemWriteTimeInterval[i]));
+   }
    
    unsigned int wallTimeRestartCounter=1;
    
@@ -434,37 +437,22 @@ int main(int argn,char* args[]) {
          }
          phiprof::stop("Diagnostic");
       }
-      // Save reduced data
-      if ( P::saveSystemTimeInterval >=0.0 && 
-           P::t >= systemWrites*P::saveSystemTimeInterval-DT_EPSILON ){
-         
-         phiprof::start("write-system");
-         if (myRank == MASTER_RANK)
+      // write system, loop through write classes
+      for (uint i = 0; i < P::systemWriteTimeInterval.size(); i++) {
+         if (P::systemWriteTimeInterval[i] >= 0.0 &&
+                 P::t >= P::systemWrites[i] * P::systemWriteTimeInterval[i] - DT_EPSILON) {
+            
+            phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-         writeReducedGrid(mpiGrid,outputReducer,"grid",systemWrites);
-         systemWrites++;
-         if (myRank == MASTER_RANK)
-            logFile << "(IO): .... done!"<< endl << writeVerbose;
-
-         phiprof::stop("write-system");
-      }
-
-      // Save restart data        
-      if (P::saveRestartTimeInterval >=0.0 &&
-          P::t >= restartWrites*P::saveRestartTimeInterval-DT_EPSILON){
-         phiprof::start("write-restart");
-         if (myRank == MASTER_RANK)
-            logFile << "(IO): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-         writeRestart(mpiGrid,outputReducer,"grid_fullvspace",restartWrites);
-         restartWrites++;
-         if (myRank == MASTER_RANK)
-            logFile << "(IO): .... done!"<< endl << writeVerbose;
-
-         phiprof::stop("write-restart");
+            writeGrid(mpiGrid, outputReducer,P::systemWriteDistributionWriteStride[i], P::systemWriteName[i], P::systemWrites[i]);
+            P::systemWrites[i]++;
+            logFile << "(IO): .... done!" << endl << writeVerbose;
+            phiprof::stop("write-system");
+         }
       }
       
       
-      // ADDED
+      // Write restart data if needed (based on walltime)
       int writeRestartWTime;
       if (myRank == MASTER_RANK) { 
          if (P::saveRestartWalltimeInterval >=0.0 && 
@@ -490,7 +478,6 @@ int main(int argn,char* args[]) {
          phiprof::stop("write-restart");
          
       }   
-      
       
       phiprof::stop("IO");
       addTimedBarrier("barrier-end-io");      

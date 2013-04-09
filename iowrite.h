@@ -14,12 +14,13 @@
 
 \param mpiGrid   The DCCRG grid with spatial cells
 \param dataReducer Contains datareductionoperators that are used to compute data that is added into file
+\param velspaceStride Every velspaceStride'th cells velocity space is written to disk. If 0, then none are written
 \param name       File name prefix, file will be called "name.index.vlsv"
 \param index      File index, file will be called "name.index.vlsv"
 */
 
 
-bool writeReducedGrid(const dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,DataReducer& dataReducer,const std::string& name,const uint& index);
+bool writeGrid(const dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,DataReducer& dataReducer,const uint velSpaceStride, const std::string& name,const uint& index);
 
 
 /*!

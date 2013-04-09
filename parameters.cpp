@@ -75,9 +75,13 @@ luint P::tstep = 0;
 luint P::tstep_min = 0;
 luint P::tstep_max = 0;
 luint P::diagnosticInterval = numeric_limits<uint>::max();
-Real P::saveRestartTimeInterval = -1.0;
-Real P::saveSystemTimeInterval = -1.0;
 bool P::writeInitialState = true;
+
+std::vector<std::string> P::systemWriteName; 
+std::vector<Real> P::systemWriteTimeInterval;
+std::vector<int> P::systemWriteDistributionWriteStride;
+std::vector<int> P::systemWrites;
+   
 
 Real P::saveRestartWalltimeInterval = -1.0;
 uint P::exitAfterRestarts = numeric_limits<uint>::max();
@@ -121,10 +125,14 @@ bool P::lorentzUseFieldSolverE=false;
 
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
-   Readparameters::add("diagnostic_write_interval", "Write diagnostic output every arg time steps",numeric_limits<uint>::max());
-   Readparameters::add("system_write_t_interval", "Save the simulation every arg simulated seconds. Negative values disable writes.",-1.0);
-   Readparameters::add("restart_write_t_interval","Save the complete simulation every arg simulated seconds. Negative values disable writes.",-1.0);
-   Readparameters::add("write_initial_state","Write initial state, not even the 0.5 dt propagation is done. Do not use for restarting. ",false);
+   Readparameters::add("io.diagnostic_write_interval", "Write diagnostic output every arg time steps",numeric_limits<uint>::max());
+   
+
+   Readparameters::addComposing("io.system_write_t_interval", "Save the simulation every arg simulated seconds. Negative values disable writes.");
+   Readparameters::addComposing("io.system_write_file_name", "Save the simulation to this filename series");
+   Readparameters::addComposing("io.system_write_distribution_stride", "Every this many cells write out their velocity space. 0 is none");
+
+   Readparameters::add("io.write_initial_state","Write initial state, not even the 0.5 dt propagation is done. Do not use for restarting. ",false);
 
    Readparameters::add("io.restart_walltime_interval","Save the complete simulation in given walltime intervals. Negative values disable writes.",-1.0);
    Readparameters::add("io.number_of_restarts","Exit the silmuation after certain number of walltime-based restarts.",numeric_limits<uint>::max());
@@ -201,11 +209,12 @@ bool Parameters::addParameters(){
 bool Parameters::getParameters(){
    //get numerical values of the parameters
 
-   Readparameters::get("diagnostic_write_interval", P::diagnosticInterval);
-   Readparameters::get("system_write_t_interval", P::saveSystemTimeInterval);
-   Readparameters::get("restart_write_t_interval", P::saveRestartTimeInterval);
-   Readparameters::get("write_initial_state", P::writeInitialState);
-
+   Readparameters::get("io.diagnostic_write_interval", P::diagnosticInterval);
+   Readparameters::get("io.system_write_t_interval", P::systemWriteTimeInterval);
+   Readparameters::get("io.system_write_file_name", P::systemWriteName);
+   Readparameters::get("io.system_write_distribution_stride", P::systemWriteDistributionWriteStride);
+   //TODO, check that the systemWrite vecotrs are of equal length
+   Readparameters::get("io.write_initial_state", P::writeInitialState);
    Readparameters::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
    Readparameters::get("io.number_of_restarts", P::exitAfterRestarts);
    

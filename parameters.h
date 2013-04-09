@@ -71,11 +71,14 @@ struct Parameters {
    static luint tstep;               /*!< The number of the current timestep. 0=initial state. */
 
    static luint diagnosticInterval;
-   static Real saveRestartTimeInterval;
-   static Real saveSystemTimeInterval;
-   static bool writeInitialState;        /*!< If true, initial state is writen. This is useful for debugging as the restarts are always written out after propagation of 0.5dt in real space.*/
-   static Real saveRestartWalltimeInterval;
-   static uint exitAfterRestarts;
+   static std::vector<std::string> systemWriteName; /*< Names for the different classes of grid output*/
+   static std::vector<Real> systemWriteTimeInterval;/*< Interval in simusecond for output for each class*/
+   static std::vector<int> systemWriteDistributionWriteStride;/*< Every this many cells write out their velocity space in each class*/
+   static std::vector<int> systemWrites; /* How many files have been written of each class*/
+
+   static bool writeInitialState;           /*!< If true, initial state is written. This is useful for debugging as the restarts are always written out after propagation of 0.5dt in real space.*/
+   static Real saveRestartWalltimeInterval; /*< Interval in walltime seconds for restart data*/
+   static uint exitAfterRestarts;           /*< Exit after this many restarts*/
    
    static uint transmit;
    /*!< Indicates the data that needs to be transmitted to remote nodes.
