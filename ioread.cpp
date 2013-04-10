@@ -120,17 +120,16 @@ bool readNBlocks(VLSVParReader & file,
    int rank;
    MPI_Comm_rank(comm,&rank);
    if(rank==masterRank){
-      //master reads this piece of data
-      attribs.push_back(make_pair("name","Blocks"));
-      attribs.push_back(make_pair("mesh","SpatialGrid"));
-      if (file.getArrayInfoMaster("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
+      //master reads data
+      attribs.push_back(make_pair("name","SpatialGrid"));
+      if (file.getArrayInfoMaster("BLOCKSPERCELL",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
          logFile << "(RESTARTBUILDER) ERROR: Failed to read number of blocks" << endl << write;
          success= false;
       }
 
    
       nBlocks.resize(vectorSize*arraySize);
-      if (file.readArrayMaster("VARIABLE",attribs,0,arraySize,(char*)&(nBlocks[0])) == false) {
+      if (file.readArrayMaster("BLOCKSPERCELL",attribs,0,arraySize,(char*)&(nBlocks[0])) == false) {
          logFile << "(RESTARTBUILDER) ERROR: Failed to read number of blocks!" << endl << write;
          success = false;
       }
