@@ -144,6 +144,7 @@ namespace CellParams {
       MAXRDT,             /*!< maximum timestep allowed in ordinary space for this cell **/
       MAXFDT,             /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
       LBWEIGHTCOUNTER,    /*!< Counter for storing compute time weights needed by the load balancing**/
+      ISCELLSAVINGF,      /*!< Value telling whether a cell is saving its distribution function when partial f data is written out. */
       N_SPATIAL_CELL_PARAMS
    };
 }

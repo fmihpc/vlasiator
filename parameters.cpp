@@ -80,6 +80,9 @@ bool P::writeInitialState = true;
 std::vector<std::string> P::systemWriteName; 
 std::vector<Real> P::systemWriteTimeInterval;
 std::vector<int> P::systemWriteDistributionWriteStride;
+std::vector<int> P::systemWriteDistributionWriteXlineStride;
+std::vector<int> P::systemWriteDistributionWriteYlineStride;
+std::vector<int> P::systemWriteDistributionWriteZlineStride;
 std::vector<int> P::systemWrites;
    
 
@@ -130,12 +133,15 @@ bool Parameters::addParameters(){
 
    Readparameters::addComposing("io.system_write_t_interval", "Save the simulation every arg simulated seconds. Negative values disable writes.");
    Readparameters::addComposing("io.system_write_file_name", "Save the simulation to this filename series");
-   Readparameters::addComposing("io.system_write_distribution_stride", "Every this many cells write out their velocity space. 0 is none");
+   Readparameters::addComposing("io.system_write_distribution_stride", "Every this many cells write out their velocity space. 0 is none.");
+   Readparameters::addComposing("io.system_write_distribution_xline_stride", "Every this many lines of cells along the x direction write out their velocity space. 0 is none.");
+   Readparameters::addComposing("io.system_write_distribution_yline_stride", "Every this many lines of cells along the y direction write out their velocity space. 0 is none.");
+   Readparameters::addComposing("io.system_write_distribution_zline_stride", "Every this many lines of cells along the z direction write out their velocity space. 0 is none.");
 
    Readparameters::add("io.write_initial_state","Write initial state, not even the 0.5 dt propagation is done. Do not use for restarting. ",false);
 
    Readparameters::add("io.restart_walltime_interval","Save the complete simulation in given walltime intervals. Negative values disable writes.",-1.0);
-   Readparameters::add("io.number_of_restarts","Exit the silmuation after certain number of walltime-based restarts.",numeric_limits<uint>::max());
+   Readparameters::add("io.number_of_restarts","Exit the simulation after certain number of walltime-based restarts.",numeric_limits<uint>::max());
    
    Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
    Readparameters::add("propagate_vlasov","Propagate distribution functions during the simulation",true);
@@ -213,7 +219,10 @@ bool Parameters::getParameters(){
    Readparameters::get("io.system_write_t_interval", P::systemWriteTimeInterval);
    Readparameters::get("io.system_write_file_name", P::systemWriteName);
    Readparameters::get("io.system_write_distribution_stride", P::systemWriteDistributionWriteStride);
-   //TODO, check that the systemWrite vecotrs are of equal length
+   Readparameters::get("io.system_write_distribution_xline_stride", P::systemWriteDistributionWriteXlineStride);
+   Readparameters::get("io.system_write_distribution_xline_stride", P::systemWriteDistributionWriteYlineStride);
+   Readparameters::get("io.system_write_distribution_xline_stride", P::systemWriteDistributionWriteZlineStride);
+   //TODO, check that the systemWrite vectors are of equal length
    Readparameters::get("io.write_initial_state", P::writeInitialState);
    Readparameters::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
    Readparameters::get("io.number_of_restarts", P::exitAfterRestarts);
