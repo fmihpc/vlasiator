@@ -298,29 +298,29 @@ int main(int argn,char* args[]) {
 
    // Save restart data
    if (P::writeInitialState) {
-//       phiprof::start("write-initial-state");
-//       if (myRank == MASTER_RANK)
-//          logFile << "(IO): Writing initial state to disk, tstep = "  << endl << writeVerbose;
-// //    P::systemWriteDistributionWriteStride[i], P::systemWriteName[i], P::systemWrites[i]
-//       P::systemWriteDistributionWriteStride.push_back(1);
-//       P::systemWriteName.push_back("initial-grid");
-//       P::systemWrites.push_back(0);
-//       P::systemWriteDistributionWriteXlineStride.push_back(0);
-//       P::systemWriteDistributionWriteYlineStride.push_back(0);
-//       P::systemWriteDistributionWriteZlineStride.push_back(0);
-//       
-//       writeGrid(mpiGrid,outputReducer,P::systemWriteName.size()-1);
-//       
-//       P::systemWriteDistributionWriteStride.pop_back();
-//       P::systemWriteName.pop_back();
-//       P::systemWrites.pop_back();
-//       P::systemWriteDistributionWriteXlineStride.pop_back();
-//       P::systemWriteDistributionWriteYlineStride.pop_back();
-//       P::systemWriteDistributionWriteZlineStride.pop_back();
-      
-//       phiprof::stop("write-initial-state");
+      phiprof::start("write-initial-state");
       if (myRank == MASTER_RANK)
-         logFile << "(IO): Writing initial state to disk disabled until debugged. "  << endl << writeVerbose;
+         logFile << "(IO): Writing initial state to disk, tstep = "  << endl << writeVerbose;
+//    P::systemWriteDistributionWriteStride[i], P::systemWriteName[i], P::systemWrites[i]
+      P::systemWriteDistributionWriteStride.push_back(1);
+      P::systemWriteName.push_back("initial-grid");
+      P::systemWriteDistributionWriteXlineStride.push_back(0);
+      P::systemWriteDistributionWriteYlineStride.push_back(0);
+      P::systemWriteDistributionWriteZlineStride.push_back(0);
+      
+      for(uint si=0; si<P::systemWriteName.size(); si++) {
+         P::systemWrites.push_back(0);
+      }
+      
+      writeGrid(mpiGrid,outputReducer,P::systemWriteName.size()-1);
+      
+      P::systemWriteDistributionWriteStride.pop_back();
+      P::systemWriteName.pop_back();
+      P::systemWriteDistributionWriteXlineStride.pop_back();
+      P::systemWriteDistributionWriteYlineStride.pop_back();
+      P::systemWriteDistributionWriteZlineStride.pop_back();
+      
+      phiprof::stop("write-initial-state");
    }
    
          
