@@ -151,14 +151,16 @@ bool readNBlocks(VLSVParReader & file,
      
 */
 template <typename fileReal>
-bool readBlockData(VLSVParReader & file,
-                   const vector<uint64_t>& fileCells,
-		   const uint64_t localCellStartOffset,
-		   const uint64_t localCells,
-		   const vector<uint>& nBlocks,
-		   const uint64_t localBlockStartOffset,
-		   const uint64_t localBlocks,
-                   dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid){
+bool readBlockData(
+   VLSVParReader & file,
+   const vector<uint64_t>& fileCells,
+   const uint64_t localCellStartOffset,
+   const uint64_t localCells,
+   const vector<uint>& nBlocks,
+   const uint64_t localBlockStartOffset,
+   const uint64_t localBlocks,
+   dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid
+) {
   uint64_t arraySize;
   uint64_t avgVectorSize;
   uint64_t coordVectorSize;
