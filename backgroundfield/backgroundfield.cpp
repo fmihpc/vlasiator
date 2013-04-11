@@ -24,8 +24,12 @@
 #include "integratefunction.hpp"
 
 //FieldFunction should be initialized
-void setBackgroundField(FieldFunction& bgFunction,Real* cellParams, Real* faceDerivatives, Real* volumeDerivatives)
-{
+void setBackgroundField(
+   FieldFunction& bgFunction,
+   Real* cellParams,
+   Real* faceDerivatives,
+   Real* volumeDerivatives
+) {
    using namespace CellParams;
    using namespace fieldsolver;
    using namespace bvolderivatives;
@@ -98,4 +102,26 @@ void setBackgroundField(FieldFunction& bgFunction,Real* cellParams, Real* faceDe
    //COmpute divergence and curl of volume averaged field and check that both are zero. 
 }
 
-
+void setBackgroundFieldToZero(
+   Real* cellParams,
+   Real* faceDerivatives,
+   Real* volumeDerivatives
+) {
+   using namespace CellParams;
+   using namespace fieldsolver;
+   using namespace bvolderivatives;
+   
+   //Face averages
+   for(unsigned int fComponent=0;fComponent<3;fComponent++){
+      cellParams[CellParams::BGBX+fComponent] = 0.0;
+      faceDerivatives[fieldsolver::dBGBxdy+2*fComponent] = 0.0;
+      faceDerivatives[fieldsolver::dBGBxdy+1+2*fComponent] = 0.0;
+   }
+   
+   //Volume averages
+   for(unsigned int fComponent=0;fComponent<3;fComponent++){
+      cellParams[CellParams::BGBXVOL+fComponent] = 0.0;
+      volumeDerivatives[bvolderivatives::dBGBXVOLdy+2*fComponent] = 0.0;
+      volumeDerivatives[bvolderivatives::dBGBXVOLdy+1+2*fComponent] =0.0;
+   }
+}

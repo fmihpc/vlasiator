@@ -20,7 +20,18 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #define BACKGROUNDFIELD_H
 
 #include "fieldfunction.hpp"
-void setBackgroundField(FieldFunction& bgFunction,Real* cellParams, Real* faceDerivatives, Real* volumeDerivatives);
+void setBackgroundField(
+   FieldFunction& bgFunction,
+   Real* cellParams,
+   Real* faceDerivatives,
+   Real* volumeDerivatives
+);
+
+void setBackgroundFieldToZero(
+   Real* cellParams,
+   Real* faceDerivatives,
+   Real* volumeDerivatives
+);
 
 #endif
 

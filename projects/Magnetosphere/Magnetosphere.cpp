@@ -43,6 +43,7 @@ namespace projects {
       RP::add("Magnetosphere.constBgBX", "Constant flat Bx component in the whole simulation box. Default is none.", 0.0);
       RP::add("Magnetosphere.constBgBY", "Constant flat By component in the whole simulation box. Default is none.", 0.0);
       RP::add("Magnetosphere.constBgBZ", "Constant flat Bz component in the whole simulation box. Default is none.", 0.0);
+      RP::add("Magnetosphere.noDipoleInSW", "If set to 1, the dipole magnetic field is not set in the solar wind inflow cells. Default 0.", 0.0);
       RP::add("Magnetosphere.rhoTransitionCenter", "Abscissa in GSE around which the background magnetospheric density transitions to a 10 times higher value (m)", 0.0);
       RP::add("Magnetosphere.rhoTransitionWidth", "Width of the magnetospheric background density (m)", 0.0);
       RP::add("Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
@@ -52,6 +53,7 @@ namespace projects {
    
    void Magnetosphere::getParameters(){
       int myRank;
+      Real dummy;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       typedef Readparameters RP;
       if(!RP::get("Magnetosphere.rho", this->tailRho)) {
@@ -94,6 +96,11 @@ namespace projects {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
+      if(!RP::get("Magnetosphere.noDipoleInSW", dummy)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      this->isDipoleInSW = dummy == 1 ? true:false;
       if(!RP::get("Magnetosphere.nSpaceSamples", this->nSpaceSamples)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
@@ -171,7 +178,11 @@ namespace projects {
    void Magnetosphere::setCellBackgroundField(SpatialCell *cell){
       Dipole bgField;
       bgField.initialize(8e15 *this->dipoleScalingFactor); //set dipole moment
-      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+      if(cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN && !this->isDipoleInSW) {
+         setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
+      } else {
+         setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+      }
       
 
       //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
