@@ -33,12 +33,13 @@ cat $inputfile |gawk '{s=s+$5} END {print "Downloading ", NR, " files with ",s/(
 while read line; do
     #inputfile produced with ls -la, get name and size
     file=$(echo $line | gawk '{print $9}')  
-    size=$(echo $line | gawk '{print $5}')
-  
+    size=$(echo $line | gawk '{print $5}')    
+
     #chunksize
     chunkSize=1000000000
     totalChunks=$(( 1+size/chunkSize )) 
     retval=0
+    #compute where to start download
     if [ -e $file ] 
 	then
 	#file exists
@@ -61,9 +62,21 @@ while read line; do
     do
 	#offset into file where we start to download data
 	offset=$(echo $i $chunkSize|gawk '{print $1*$2}')
-	
-	echo "Downloading $f chunk $((i+1))/$totalChunks at $offset for $file" 
+
+	echo "Downloading $f chunk $((i+1))/$totalChunks at $offset for $file ... " 
+        localStartSize=$offset
+	startTime=$( date +"%s" )
 	globus-url-copy  -rst -len $chunkSize  -off $offset  ${server}/${path}/$file ./
+	localEndSize=$( ls -la  $file | gawk '{print $5}' )
+	endTime=$( date +"%s" )
+	echo $startTime $endTime $localStartSize $localEndSize | 
+	gawk '{
+             dataMb=($4-$3)/(1024*1024);
+             times=($2-$1); 
+             print "  ... chunk downloaded at", dataMb," MB in ",times " s : ", dataMb/times, "MB/s"
+            }'
+
+
 
 	localSize=$( ls -la  $file | gawk '{print $5}' )
 	if [ $localSize -eq $size ] 
@@ -92,6 +105,9 @@ while read line; do
 	    fi 
 	fi
     done
+
+   
+    
 done < $inputfile
 
 
