@@ -41,6 +41,8 @@ namespace projects {
       RP::add("Magnetosphere.VY0", "Initial bulk velocity in y-direction", 0.0);
       RP::add("Magnetosphere.VZ0", "Initial bulk velocity in z-direction", 0.0);
       RP::add("Magnetosphere.constBgBX", "Constant flat Bx component in the whole simulation box. Default is none.", 0.0);
+      RP::add("Magnetosphere.constBgBY", "Constant flat By component in the whole simulation box. Default is none.", 0.0);
+      RP::add("Magnetosphere.constBgBZ", "Constant flat Bz component in the whole simulation box. Default is none.", 0.0);
       RP::add("Magnetosphere.rhoTransitionCenter", "Abscissa in GSE around which the background magnetospheric density transitions to a 10 times higher value (m)", 0.0);
       RP::add("Magnetosphere.rhoTransitionWidth", "Width of the magnetospheric background density (m)", 0.0);
       RP::add("Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
@@ -80,7 +82,15 @@ namespace projects {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      if(!RP::get("Magnetosphere.constBgBX", this->constBgBX)) {
+      if(!RP::get("Magnetosphere.constBgBX", this->constBgB[0])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!RP::get("Magnetosphere.constBgBY", this->constBgB[1])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!RP::get("Magnetosphere.constBgBZ", this->constBgB[2])) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -159,56 +169,58 @@ namespace projects {
 
    /* set 0-centered dipole */
    void Magnetosphere::setCellBackgroundField(SpatialCell *cell){
-     Dipole bgField;
-     bgField.initialize(8e15 *this->dipoleScalingFactor); //set dipole moment
-     setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
-     
+      Dipole bgField;
+      bgField.initialize(8e15 *this->dipoleScalingFactor); //set dipole moment
+      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+      
 
-     //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
-     if(P::xcells_ini==1) {
-        cell->parameters[CellParams::BGBX]=0;
-        cell->parameters[CellParams::BGBXVOL]=0.0;
-        cell->derivatives[fieldsolver::dBGBydx]=0.0;
-        cell->derivatives[fieldsolver::dBGBzdx]=0.0;
-        cell->derivatives[fieldsolver::dBGBxdy]=0.0;
-        cell->derivatives[fieldsolver::dBGBxdz]=0.0;
-        cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
-        cell->derivativesBVOL[bvolderivatives::dBGBZVOLdx]=0.0;
-        cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
-        cell->derivativesBVOL[bvolderivatives::dBGBXVOLdz]=0.0;
-     }
-     
-     if(P::ycells_ini==1) {
-        /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
-        cell->parameters[CellParams::BGBY]=0.0;
-        cell->parameters[CellParams::BGBYVOL]=0.0;
-        cell->derivatives[fieldsolver::dBGBxdy]=0.0;
-        cell->derivatives[fieldsolver::dBGBzdy]=0.0;
-        cell->derivatives[fieldsolver::dBGBydx]=0.0;
-        cell->derivatives[fieldsolver::dBGBydz]=0.0;
-        cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
-        cell->derivativesBVOL[bvolderivatives::dBGBZVOLdy]=0.0;
-        cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
-        cell->derivativesBVOL[bvolderivatives::dBGBYVOLdz]=0.0;
-     }
-     if(P::zcells_ini==1) {
-        cell->parameters[CellParams::BGBX]=0;
-        cell->parameters[CellParams::BGBY]=0;
-        cell->parameters[CellParams::BGBYVOL]=0.0;
-        cell->parameters[CellParams::BGBXVOL]=0.0;
-        cell->derivatives[fieldsolver::dBGBxdy]=0.0;
-        cell->derivatives[fieldsolver::dBGBxdz]=0.0;
-        cell->derivatives[fieldsolver::dBGBydx]=0.0;
-        cell->derivatives[fieldsolver::dBGBydz]=0.0;
-        cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
-        cell->derivativesBVOL[bvolderivatives::dBGBXVOLdz]=0.0;
-        cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
-        cell->derivativesBVOL[bvolderivatives::dBGBYVOLdz]=0.0;
-     }
-     if(this->constBgBX != 0.0) {
-        cell->parameters[CellParams::BGBX] += this->constBgBX;
-        cell->parameters[CellParams::BGBXVOL] += this->constBgBX;
-     }
+      //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
+      if(P::xcells_ini==1) {
+         cell->parameters[CellParams::BGBX]=0;
+         cell->parameters[CellParams::BGBXVOL]=0.0;
+         cell->derivatives[fieldsolver::dBGBydx]=0.0;
+         cell->derivatives[fieldsolver::dBGBzdx]=0.0;
+         cell->derivatives[fieldsolver::dBGBxdy]=0.0;
+         cell->derivatives[fieldsolver::dBGBxdz]=0.0;
+         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
+         cell->derivativesBVOL[bvolderivatives::dBGBZVOLdx]=0.0;
+         cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
+         cell->derivativesBVOL[bvolderivatives::dBGBXVOLdz]=0.0;
+      }
+      
+      if(P::ycells_ini==1) {
+         /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
+         cell->parameters[CellParams::BGBY]=0.0;
+         cell->parameters[CellParams::BGBYVOL]=0.0;
+         cell->derivatives[fieldsolver::dBGBxdy]=0.0;
+         cell->derivatives[fieldsolver::dBGBzdy]=0.0;
+         cell->derivatives[fieldsolver::dBGBydx]=0.0;
+         cell->derivatives[fieldsolver::dBGBydz]=0.0;
+         cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
+         cell->derivativesBVOL[bvolderivatives::dBGBZVOLdy]=0.0;
+         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
+         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdz]=0.0;
+      }
+      if(P::zcells_ini==1) {
+         cell->parameters[CellParams::BGBX]=0;
+         cell->parameters[CellParams::BGBY]=0;
+         cell->parameters[CellParams::BGBYVOL]=0.0;
+         cell->parameters[CellParams::BGBXVOL]=0.0;
+         cell->derivatives[fieldsolver::dBGBxdy]=0.0;
+         cell->derivatives[fieldsolver::dBGBxdz]=0.0;
+         cell->derivatives[fieldsolver::dBGBydx]=0.0;
+         cell->derivatives[fieldsolver::dBGBydz]=0.0;
+         cell->derivativesBVOL[bvolderivatives::dBGBXVOLdy]=0.0;
+         cell->derivativesBVOL[bvolderivatives::dBGBXVOLdz]=0.0;
+         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdx]=0.0;
+         cell->derivativesBVOL[bvolderivatives::dBGBYVOLdz]=0.0;
+      }
+      for(uint component=0; component<3; component++) {
+         if(this->constBgB[component] != 0.0) {
+            cell->parameters[CellParams::BGBX+component] += this->constBgB[component];
+            cell->parameters[CellParams::BGBXVOL+component] += this->constBgB[component];
+         }
+      }
    }
       
       
