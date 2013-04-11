@@ -120,17 +120,16 @@ bool readNBlocks(VLSVParReader & file,
    int rank;
    MPI_Comm_rank(comm,&rank);
    if(rank==masterRank){
-      //master reads this piece of data
-      attribs.push_back(make_pair("name","Blocks"));
-      attribs.push_back(make_pair("mesh","SpatialGrid"));
-      if (file.getArrayInfoMaster("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
+      //master reads data
+      attribs.push_back(make_pair("name","SpatialGrid"));
+      if (file.getArrayInfoMaster("BLOCKSPERCELL",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
          logFile << "(RESTARTBUILDER) ERROR: Failed to read number of blocks" << endl << write;
          success= false;
       }
 
    
       nBlocks.resize(vectorSize*arraySize);
-      if (file.readArrayMaster("VARIABLE",attribs,0,arraySize,(char*)&(nBlocks[0])) == false) {
+      if (file.readArrayMaster("BLOCKSPERCELL",attribs,0,arraySize,(char*)&(nBlocks[0])) == false) {
          logFile << "(RESTARTBUILDER) ERROR: Failed to read number of blocks!" << endl << write;
          success = false;
       }
@@ -152,14 +151,16 @@ bool readNBlocks(VLSVParReader & file,
      
 */
 template <typename fileReal>
-bool readBlockData(VLSVParReader & file,
-                   const vector<uint64_t>& fileCells,
-		   const uint64_t localCellStartOffset,
-		   const uint64_t localCells,
-		   const vector<uint>& nBlocks,
-		   const uint64_t localBlockStartOffset,
-		   const uint64_t localBlocks,
-                   dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid){
+bool readBlockData(
+   VLSVParReader & file,
+   const vector<uint64_t>& fileCells,
+   const uint64_t localCellStartOffset,
+   const uint64_t localCells,
+   const vector<uint>& nBlocks,
+   const uint64_t localBlockStartOffset,
+   const uint64_t localBlocks,
+   dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid
+) {
   uint64_t arraySize;
   uint64_t avgVectorSize;
   uint64_t coordVectorSize;

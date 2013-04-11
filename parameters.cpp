@@ -75,9 +75,19 @@ luint P::tstep = 0;
 luint P::tstep_min = 0;
 luint P::tstep_max = 0;
 luint P::diagnosticInterval = numeric_limits<uint>::max();
-Real P::saveRestartTimeInterval = -1.0;
-Real P::saveSystemTimeInterval = -1.0;
 bool P::writeInitialState = true;
+
+std::vector<std::string> P::systemWriteName; 
+std::vector<Real> P::systemWriteTimeInterval;
+std::vector<int> P::systemWriteDistributionWriteStride;
+std::vector<int> P::systemWriteDistributionWriteXlineStride;
+std::vector<int> P::systemWriteDistributionWriteYlineStride;
+std::vector<int> P::systemWriteDistributionWriteZlineStride;
+std::vector<int> P::systemWrites;
+   
+
+Real P::saveRestartWalltimeInterval = -1.0;
+uint P::exitAfterRestarts = numeric_limits<uint>::max();
 
 uint P::transmit = 0;
 
@@ -120,13 +130,21 @@ bool P::replaceNegativeDensityCells=false;
 
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
-   Readparameters::add("diagnostic_write_interval", "Write diagnostic output every arg time steps",numeric_limits<uint>::max());
-   Readparameters::add("system_write_t_interval", "Save the simulation every arg simulated seconds. Negative values disable writes.",-1.0);
-   Readparameters::add("restart_write_t_interval","Save the complete simulation every arg simulated seconds. Negative values disable writes.",-1.0);
-   Readparameters::add("write_initial_state","Write initial state, not even the 0.5 dt propagation is done. Do not use for restarting. ",false);
+   Readparameters::add("io.diagnostic_write_interval", "Write diagnostic output every arg time steps",numeric_limits<uint>::max());
+   
 
-   //TODO Readparameters::add("output.restart_walltime_interval","Save the complete simulation every arg wall-time seconds",numeric_limits<uint>::max());
+   Readparameters::addComposing("io.system_write_t_interval", "Save the simulation every arg simulated seconds. Negative values disable writes.");
+   Readparameters::addComposing("io.system_write_file_name", "Save the simulation to this filename series");
+   Readparameters::addComposing("io.system_write_distribution_stride", "Every this many cells write out their velocity space. 0 is none.");
+   Readparameters::addComposing("io.system_write_distribution_xline_stride", "Every this many lines of cells along the x direction write out their velocity space. 0 is none.");
+   Readparameters::addComposing("io.system_write_distribution_yline_stride", "Every this many lines of cells along the y direction write out their velocity space. 0 is none.");
+   Readparameters::addComposing("io.system_write_distribution_zline_stride", "Every this many lines of cells along the z direction write out their velocity space. 0 is none.");
 
+   Readparameters::add("io.write_initial_state","Write initial state, not even the 0.5 dt propagation is done. Do not use for restarting. ",false);
+
+   Readparameters::add("io.restart_walltime_interval","Save the complete simulation in given walltime intervals. Negative values disable writes.",-1.0);
+   Readparameters::add("io.number_of_restarts","Exit the simulation after certain number of walltime-based restarts.",numeric_limits<uint>::max());
+   
    Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
    Readparameters::add("propagate_vlasov","Propagate distribution functions during the simulation",true);
    Readparameters::add("max_acceleration_substeps","Maximum number of  acceleration substeps that are allowed to be taken in acceleration. The default number of 1 disables substepping and the acceleration is always done in one step. A value of 0 has a special meaning, it activates unlimited substepping",1);
@@ -201,10 +219,17 @@ bool Parameters::addParameters(){
 bool Parameters::getParameters(){
    //get numerical values of the parameters
 
-   Readparameters::get("diagnostic_write_interval", P::diagnosticInterval);
-   Readparameters::get("system_write_t_interval", P::saveSystemTimeInterval);
-   Readparameters::get("restart_write_t_interval", P::saveRestartTimeInterval);
-   Readparameters::get("write_initial_state", P::writeInitialState);
+   Readparameters::get("io.diagnostic_write_interval", P::diagnosticInterval);
+   Readparameters::get("io.system_write_t_interval", P::systemWriteTimeInterval);
+   Readparameters::get("io.system_write_file_name", P::systemWriteName);
+   Readparameters::get("io.system_write_distribution_stride", P::systemWriteDistributionWriteStride);
+   Readparameters::get("io.system_write_distribution_xline_stride", P::systemWriteDistributionWriteXlineStride);
+   Readparameters::get("io.system_write_distribution_xline_stride", P::systemWriteDistributionWriteYlineStride);
+   Readparameters::get("io.system_write_distribution_xline_stride", P::systemWriteDistributionWriteZlineStride);
+   //TODO, check that the systemWrite vectors are of equal length
+   Readparameters::get("io.write_initial_state", P::writeInitialState);
+   Readparameters::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
+   Readparameters::get("io.number_of_restarts", P::exitAfterRestarts);
    
    Readparameters::get("propagate_field",P::propagateField);
    Readparameters::get("propagate_vlasov",P::propagateVlasov);
