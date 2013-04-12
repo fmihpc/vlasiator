@@ -100,7 +100,7 @@ namespace projects {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
-      this->isDipoleInSW = dummy == 1 ? true:false;
+      this->noDipoleInSW = dummy == 1 ? true:false;
       if(!RP::get("Magnetosphere.nSpaceSamples", this->nSpaceSamples)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
@@ -178,7 +178,7 @@ namespace projects {
    void Magnetosphere::setCellBackgroundField(SpatialCell *cell){
       Dipole bgField;
       bgField.initialize(8e15 *this->dipoleScalingFactor); //set dipole moment
-      if(cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN && !this->isDipoleInSW) {
+      if(cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN && this->noDipoleInSW) {
          setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
       } else {
          setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
