@@ -1966,9 +1966,11 @@ void calculateDerivativesSimple(
    // Calculate derivatives on process inner cells
    const vector<uint64_t> cellsWithLocalNeighbours
       = mpiGrid.get_local_cells_not_on_process_boundary(FIELD_SOLVER_NEIGHBORHOOD_ID);
-   for (vector<uint64_t>::const_iterator cell = cellsWithLocalNeighbours.begin(); cell != cellsWithLocalNeighbours.end(); cell++) {
-      if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-      calculateDerivatives(*cell, mpiGrid, sysBoundaries, RKCase);
+#pragma omp parallel for
+   for(uint i=0;i<cellsWithLocalNeighbours.size();i++){
+      const CellID cellID = cellsWithLocalNeighbours[i];
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+      calculateDerivatives(cellID, mpiGrid, sysBoundaries, RKCase);
    }
    phiprof::stop(timer);
    
@@ -1982,9 +1984,11 @@ void calculateDerivativesSimple(
    phiprof::start(timer);
    const vector<uint64_t> cellsWithRemoteNeighbours
       = mpiGrid.get_local_cells_on_process_boundary(FIELD_SOLVER_NEIGHBORHOOD_ID);
-   for (vector<uint64_t>::const_iterator cell = cellsWithRemoteNeighbours.begin(); cell != cellsWithRemoteNeighbours.end(); cell++) {
-      if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-      calculateDerivatives(*cell, mpiGrid, sysBoundaries, RKCase);
+#pragma omp parallel for
+   for(uint i=0;i<cellsWithRemoteNeighbours.size();i++){
+      const CellID cellID = cellsWithRemoteNeighbours[i];
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+      calculateDerivatives(cellID, mpiGrid, sysBoundaries, RKCase);
    }
    phiprof::stop(timer);
    
@@ -2027,36 +2031,38 @@ void calculateUpwindedElectricFieldSimple(
    // Calculate upwinded electric field on inner cells
    const vector<uint64_t> cellsWithLocalNeighbours
       = mpiGrid.get_local_cells_not_on_process_boundary(FIELD_SOLVER_NEIGHBORHOOD_ID);
-   for (vector<uint64_t>::const_iterator cell = cellsWithLocalNeighbours.begin(); cell != cellsWithLocalNeighbours.end(); cell++) {
-      if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-      cuint fieldSolverSysBoundaryFlag = sysBoundaryFlags[*cell];
-      cuint cellSysBoundaryFlag = mpiGrid[*cell]->sysBoundaryFlag;
-      cuint cellSysBoundaryLayer = mpiGrid[*cell]->sysBoundaryLayer;
+#pragma omp parallel for
+   for(uint cell=0;cell<cellsWithLocalNeighbours.size();cell++){
+      const CellID cellID = cellsWithLocalNeighbours[cell];
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+      cuint fieldSolverSysBoundaryFlag = sysBoundaryFlags[cellID];
+      cuint cellSysBoundaryFlag = mpiGrid[cellID]->sysBoundaryFlag;
+      cuint cellSysBoundaryLayer = mpiGrid[cellID]->sysBoundaryLayer;
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
             (cellSysBoundaryLayer != 1)) {
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
-               fieldSolverBoundaryCondElectricField(mpiGrid, *cell, RKCase, 0);
+               fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 0);
          } else {
-            calculateEdgeElectricFieldX(mpiGrid, *cell, RKCase);
+            calculateEdgeElectricFieldX(mpiGrid, cellID, RKCase);
          }
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
             (cellSysBoundaryLayer != 1)) {
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
-            fieldSolverBoundaryCondElectricField(mpiGrid, *cell, RKCase, 1);
+            fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 1);
          } else {
-            calculateEdgeElectricFieldY(mpiGrid, *cell, RKCase);
+            calculateEdgeElectricFieldY(mpiGrid, cellID, RKCase);
          }
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
             (cellSysBoundaryLayer != 1)) {
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
-            fieldSolverBoundaryCondElectricField(mpiGrid, *cell, RKCase, 2);
+            fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 2);
          } else {
-            calculateEdgeElectricFieldZ(mpiGrid, *cell, RKCase);
+            calculateEdgeElectricFieldZ(mpiGrid, cellID, RKCase);
          }
       }
    }
@@ -2070,36 +2076,38 @@ void calculateUpwindedElectricFieldSimple(
    // Calculate upwinded electric field on boundary cells:
    const vector<uint64_t> cellsWithRemoteNeighbours
       = mpiGrid.get_local_cells_on_process_boundary(FIELD_SOLVER_NEIGHBORHOOD_ID);
-   for (vector<uint64_t>::const_iterator cell = cellsWithRemoteNeighbours.begin(); cell != cellsWithRemoteNeighbours.end(); cell++) {
-      if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-      cuint fieldSolverSysBoundaryFlag = sysBoundaryFlags[*cell];
-      cuint cellSysBoundaryFlag = mpiGrid[*cell]->sysBoundaryFlag;
-      cuint cellSysBoundaryLayer = mpiGrid[*cell]->sysBoundaryLayer;
+#pragma omp parallel for
+   for(uint cell=0;cell<cellsWithRemoteNeighbours.size();cell++){
+      const CellID cellID = cellsWithRemoteNeighbours[cell];
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+      cuint fieldSolverSysBoundaryFlag = sysBoundaryFlags[cellID];
+      cuint cellSysBoundaryFlag = mpiGrid[cellID]->sysBoundaryFlag;
+      cuint cellSysBoundaryLayer = mpiGrid[cellID]->sysBoundaryLayer;
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
             (cellSysBoundaryLayer != 1)) {
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
-            fieldSolverBoundaryCondElectricField(mpiGrid, *cell, RKCase, 0);
+            fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 0);
          } else {
-            calculateEdgeElectricFieldX(mpiGrid, *cell, RKCase);
+            calculateEdgeElectricFieldX(mpiGrid, cellID, RKCase);
          }
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
             (cellSysBoundaryLayer != 1)) {
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
-            fieldSolverBoundaryCondElectricField(mpiGrid, *cell, RKCase, 1);
+            fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 1);
          } else {
-            calculateEdgeElectricFieldY(mpiGrid, *cell, RKCase);
+            calculateEdgeElectricFieldY(mpiGrid, cellID, RKCase);
          }
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
             (cellSysBoundaryLayer != 1)) {
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
-            fieldSolverBoundaryCondElectricField(mpiGrid, *cell, RKCase, 2);
+            fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 2);
          } else {
-            calculateEdgeElectricFieldZ(mpiGrid, *cell, RKCase);
+            calculateEdgeElectricFieldZ(mpiGrid, cellID, RKCase);
          }
       }
    }
@@ -2145,6 +2153,7 @@ static void propagateMagneticFieldSimple(
    int timer=phiprof::initializeTimer("Compute system inner cells");
    phiprof::start(timer);
    // Propagate B on all local cells:
+#pragma omp parallel for
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
@@ -2174,10 +2183,12 @@ static void propagateMagneticFieldSimple(
    // Propagate B on system boundary/process inner cells
    const vector<uint64_t> cellsWithLocalNeighbours
       = mpiGrid.get_local_cells_not_on_process_boundary(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
-   for (vector<uint64_t>::const_iterator cell = cellsWithLocalNeighbours.begin(); cell != cellsWithLocalNeighbours.end(); cell++) {
-      if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-         mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) continue;
-      propagateSysBoundaryMagneticField(mpiGrid, *cell, sysBoundaries, dt, RKCase);
+#pragma omp parallel for
+   for (size_t cell=0; cell<cellsWithLocalNeighbours.size(); ++cell) {
+      const CellID cellID = cellsWithLocalNeighbours[cell];
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+         mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) continue;
+      propagateSysBoundaryMagneticField(mpiGrid, cellID, sysBoundaries, dt, RKCase);
    }
    phiprof::stop(timer);
    
@@ -2191,10 +2202,12 @@ static void propagateMagneticFieldSimple(
    phiprof::start(timer);
    const vector<uint64_t> cellsWithRemoteNeighbours
       = mpiGrid.get_local_cells_on_process_boundary(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
-   for (vector<uint64_t>::const_iterator cell = cellsWithRemoteNeighbours.begin(); cell != cellsWithRemoteNeighbours.end(); cell++) {
-      if(mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-         mpiGrid[*cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) continue;
-      propagateSysBoundaryMagneticField(mpiGrid, *cell, sysBoundaries, dt, RKCase);
+#pragma omp parallel for
+   for (size_t cell=0; cell<cellsWithRemoteNeighbours.size(); ++cell) {
+      const CellID cellID = cellsWithRemoteNeighbours[cell];
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+         mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) continue;
+      propagateSysBoundaryMagneticField(mpiGrid, cellID, sysBoundaries, dt, RKCase);
    }
    phiprof::stop(timer);
    
