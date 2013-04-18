@@ -161,6 +161,22 @@ Real limiter(creal& left,creal& cent,creal& rght) {
    return limited;
 }
 
+/*
+  get a vector of cellIDs (cellList) and compute a new vector with only those cells which are on a sysboundary and are to be computed
+*/
+bool getBoundaryCellList(const dccrg::Dccrg<SpatialCell>& mpiGrid,
+                         const vector<uint64_t>& cellList,
+                         vector<uint64_t>& boundaryCellList){
+   boundaryCellList.clear();
+   for (size_t cell=0; cell<cellList.size(); ++cell) {
+      const CellID cellID = cellList[cell];
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+         mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) continue;
+      boundaryCellList.push_back(cellID);
+   }
+   return true;
+}
+
 CellID getNeighbourID(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
    const CellID& cellID,
@@ -2157,7 +2173,7 @@ static void propagateMagneticFieldSimple(
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-       mpiGrid[cellID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
+         mpiGrid[cellID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
       propagateMagneticField(cellID, mpiGrid, dt, RKCase);
    }
    phiprof::stop(timer);
@@ -2181,13 +2197,13 @@ static void propagateMagneticFieldSimple(
    timer=phiprof::initializeTimer("Compute system boundary/process inner cells");
    phiprof::start(timer);
    // Propagate B on system boundary/process inner cells
-   const vector<uint64_t> cellsWithLocalNeighbours
-      = mpiGrid.get_local_cells_not_on_process_boundary(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+   vector<uint64_t> boundaryCellsWithLocalNeighbours;
+   getBoundaryCellList(mpiGrid,
+                       mpiGrid.get_local_cells_not_on_process_boundary(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID),
+                       boundaryCellsWithLocalNeighbours);
 #pragma omp parallel for
-   for (size_t cell=0; cell<cellsWithLocalNeighbours.size(); ++cell) {
-      const CellID cellID = cellsWithLocalNeighbours[cell];
-      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-         mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) continue;
+   for (size_t cell=0; cell<boundaryCellsWithLocalNeighbours.size(); ++cell) {
+      const CellID cellID = boundaryCellsWithLocalNeighbours[cell];
       propagateSysBoundaryMagneticField(mpiGrid, cellID, sysBoundaries, dt, RKCase);
    }
    phiprof::stop(timer);
@@ -2200,13 +2216,15 @@ static void propagateMagneticFieldSimple(
    // Propagate B on system boundary/process boundary cells
    timer=phiprof::initializeTimer("Compute system boundary/process boundary cells");
    phiprof::start(timer);
-   const vector<uint64_t> cellsWithRemoteNeighbours
-      = mpiGrid.get_local_cells_on_process_boundary(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+   
+
+   vector<uint64_t> boundaryCellsWithRemoteNeighbours;
+   getBoundaryCellList(mpiGrid,
+                       mpiGrid.get_local_cells_on_process_boundary(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID),
+                       boundaryCellsWithRemoteNeighbours);
 #pragma omp parallel for
-   for (size_t cell=0; cell<cellsWithRemoteNeighbours.size(); ++cell) {
-      const CellID cellID = cellsWithRemoteNeighbours[cell];
-      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-         mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) continue;
+   for (size_t cell=0; cell<boundaryCellsWithRemoteNeighbours.size(); ++cell) {
+      const CellID cellID = boundaryCellsWithRemoteNeighbours[cell];
       propagateSysBoundaryMagneticField(mpiGrid, cellID, sysBoundaries, dt, RKCase);
    }
    phiprof::stop(timer);
@@ -2397,9 +2415,7 @@ void calculateVolumeAveragedFields(
    namespace cp = CellParams;
    
    vector<uint64_t> localCells = mpiGrid.get_cells();
-   
-   Real perturbedCoefficients[Rec::c_zz+1];
-   
+
    cuint EX_CELLS = (1 << calcNbrNumber(1,1,1))
       | (1 << calcNbrNumber(1,2,1))
       | (1 << calcNbrNumber(1,1,2))
@@ -2412,11 +2428,13 @@ void calculateVolumeAveragedFields(
       | (1 << calcNbrNumber(2,1,1))
       | (1 << calcNbrNumber(1,2,1))
       | (1 << calcNbrNumber(2,2,1));
-   
-   uint existingCells = 0;
+
+#pragma omp parallel for
    for (size_t cell=0; cell<localCells.size(); ++cell) {
-      const CellID cellID = localCells[cell];
-      
+      const CellID cellID = localCells[cell]; 
+      Real perturbedCoefficients[Rec::c_zz+1];
+      uint existingCells = 0;
+     
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
       
       // Get neighbour flags for the cell:
