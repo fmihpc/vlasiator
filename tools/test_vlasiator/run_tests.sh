@@ -22,7 +22,7 @@ run_dir="run"
 
 # choose tests to run
 #run_tests=(1 2
-run_tests=( 1 2 )
+run_tests=( 1  )
 
 # test 1
 test_name[1]="Fluctuations_A"
@@ -38,7 +38,7 @@ comparison_vlsv[2]="grid.0000003.vlsv"
 # if 0 then we check the validity against the reference
 create_verification_files=0
 #folder for reference data
-reference_dir="/stornext/field/users/alfthan/vlasiator_reference_data/r1569"
+reference_dir="/stornext/field/users/alfthan/vlasiator_reference_data/r1725"
 # give here t%he variables you want to be tested
 variables_name=( "rho" "rho_v" "rho_v" "rho_v" "B" "B" "B" "E" "E" "E" )
 # and the corresponding components to variables, 
