@@ -1,34 +1,13 @@
 #!/bin/bash
 # Sebastian von Alfthan sebastian.von.alfthan@fmi.fi
 
-server=gsiftp://gridftp-fr1.hww.de:2812
-path=$1
-inputfile=$2
 
-if [ ! $# -eq 2 ]
-then
-cat <<EOF
-transferHermitData path transfer_file
+# FUNCTIONS ##################################
 
-    Script for transferring data using gridFTP. Please start up the proxy using grid_proxy_init first
-
-    path          is a path on hermit (e.g. /univ_1/ws1/ws/iprsalft-paper1-runs-0/2D/ecliptic/AAE)"
-    transfer_file is a file in the path on hermit created using ls -la *myfiles* > tranfer.txt"       
-EOF
-
-exit
-
-fi
-
-export GLOBUS_TCP_SOURCE_RANGE=20000,20500
-export GLOBUS_TCP_PORT_RANGE=20000,20500
-
-
-
-echo "Downloading inputfile $inputfile from $path" 
-globus-url-copy  -rst  gsiftp://gridftp-fr1.hww.de:2812/${path}/$inputfile ./$inputfile
-cat $inputfile |gawk '{s=s+$5} END {print "Downloading ", NR, " files with ",s/(1024*1024*1024),"GB of data"}'
-
+function transferFileList {
+server=$1
+path=$2
+inputfile=$3
 
 while read line; do
     #inputfile produced with ls -la, get name and size
@@ -50,7 +29,7 @@ while read line; do
 	then
 	    #file complete
 	    retval=1
-	    echo "File $file is already transferred"
+	    echo "$(date) ${file}: File is already transferred"
 	fi
     else
 	#nothing has been transferred, start from beginning
@@ -60,20 +39,21 @@ while read line; do
     retryIndex=0
     while [ $retval -eq 0 ]
     do
+	sleep 1 #short sleep to make it easier to cancel..
 	#offset into file where we start to download data
 	offset=$(echo $i $chunkSize|gawk '{print $1*$2}')
-
-	echo "Downloading $f chunk $((i+1))/$totalChunks at $offset for $file ... " 
+	
+	echo "$(date) ${file}: Starting download of chunk $((i+1))/$totalChunks at $offset " 
         localStartSize=$offset
 	startTime=$( date +"%s" )
 	globus-url-copy  -rst -len $chunkSize  -off $offset  ${server}/${path}/$file ./
 	localEndSize=$( ls -la  $file | gawk '{print $5}' )
 	endTime=$( date +"%s" )
-	echo $startTime $endTime $localStartSize $localEndSize | 
+	echo $startTime $endTime $localStartSize $localEndSize $file $((i+1)) "$(date)" | 
 	gawk '{
              dataMb=($4-$3)/(1024*1024);
              times=($2-$1); 
-             print "  ... chunk downloaded at", dataMb," MB in ",times " s : ", dataMb/times, "MB/s"
+             print $7,$5,": chunk ",$6," downloaded at", dataMb," MB in ",times " s : ", dataMb/times, "MB/s"
             }'
 
 
@@ -82,7 +62,7 @@ while read line; do
 	if [ $localSize -eq $size ] 
 	then
             #the whole file has been downloaded, excellent!
-	    echo "Done"
+	    echo "$(date) ${file}: Done"
 	    retval=1
 	    retryIndex=0
 	else
@@ -91,11 +71,10 @@ while read line; do
 	    then
      	        #we failed to download the whole chunk
 	        retryIndex=$(( retryIndex+1 ))
-		echo "Chunk transfer failed, retry number $retryIndex "
+		echo "$(date) ${file}: Chunk transfer failed, retry number $retryIndex "
 		if [ $retryIndex -gt 2 ]
 		then
-		    echo "Too many retries, abort"
-		    echo "Failed on reading to offset $offset"
+		    echo "$(date) ${file}: Too many retries, abort. Failed on reading to offset $offset"
 		    retval=2
 		fi
 	    else
@@ -109,6 +88,71 @@ while read line; do
    
     
 done < $inputfile
+
+
+}
+
+
+# MAIN PROGRAM ##################################
+
+
+server=gsiftp://gridftp-fr1.hww.de:2812
+path=$1
+inputfile=$2
+parallelTransfers=10
+
+if [ ! $# -eq 2 ]
+then
+cat <<EOF
+transferHermitData path transfer_file
+
+    Script for transferring data using gridFTP. Please start up the proxy using grid_proxy_init first
+
+    path          is a path on hermit (e.g. /univ_1/ws1/ws/iprsalft-paper1-runs-0/2D/ecliptic/AAE)"
+    transfer_file is a file in the path on hermit created using ls -la *myfiles* > tranfer.txt"       
+EOF
+
+exit
+
+fi
+
+export GLOBUS_TCP_SOURCE_RANGE=20000,20500
+export GLOBUS_TCP_PORT_RANGE=20000,20500
+
+#clean up old inputfile
+
+if [ -e $inputfile ]
+then
+rm $inputfile 
+fi
+
+
+echo "Downloading inputfile $inputfile from $path" 
+globus-url-copy  -rst  gsiftp://gridftp-fr1.hww.de:2812/${path}/$inputfile ./$inputfile
+
+echo "Transferring files in $inputfile at $path" >> transferLog.txt
+cat $inputfile |gawk '{s=s+$5} END {print  NR, " files with ",s/(1024*1024*1024),"GB of data"}' >> transferLog.txt
+
+
+#how many files (max) per transfer
+filesPerTransfer=$( wc -l $inputfile |gawk -v p=$parallelTransfers '{print int($1/p)+1}' )
+echo "$parallelTransfers parallel transfers with up to $filesPerTransfer per transfer" >> transferLog.txt
+
+#split into transferfiles
+rm -f .para_$inputfile_*
+split -l $filesPerTransfer -d $inputfile .para_$inputfile_
+
+
+i=0
+for paraInput in .para_$inputfile_*
+do
+   transferFileList  $server $path $paraInput >> transferLog.txt &
+   echo "Started background transfer-job $!"
+   transferPids[$i]=$!
+   i=$((i+1))
+done 
+
+
 
 
 
