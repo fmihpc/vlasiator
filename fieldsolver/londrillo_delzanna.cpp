@@ -63,8 +63,6 @@ using namespace fieldsolver;
 
 static creal EPS = 1.0e-30;
 
-//due to leapfrog this is hardcoded
-static Real ALPHA = 0.5;
 
 static map<CellID,uint> sysBoundaryFlags;
 /*!< Boundary status flags for all cells on this process. Here "boundary cell" 
@@ -1655,14 +1653,12 @@ static void propagateMagneticField(
       cp0[CellParams::PERBX] += dt/dz*(cp2[CellParams::EY] - cp0[CellParams::EY]) + dt/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ]);
       # else
       if(RKCase == RK_ORDER2_STEP1) {
-         cp0[CellParams::PERBX_DT2] = cp0[CellParams::PERBX] +
-         ALPHA*dt*(1.0/dz*(cp2[CellParams::EY] - cp0[CellParams::EY]) + 1.0/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ]));
+         cp0[CellParams::PERBX_DT2] =
+            cp0[CellParams::PERBX] + 0.5*dt*(1.0/dz*(cp2[CellParams::EY] - cp0[CellParams::EY]) +
+                                             1.0/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ]));
       } else {
-         cp0[CellParams::PERBX] += dt * ((1.0 - 0.5/ALPHA) * (1.0/dz*(cp2[CellParams::EY] -cp0[CellParams::EY]) +
-                                                                            1.0/dy*(cp0[CellParams::EZ] - cp1[CellParams::EZ])) +
-                                        0.5/ALPHA * (1.0/dz*(cp2[CellParams::EY_DT2] - cp0[CellParams::EY_DT2]) +
-                                                                    1.0/dy*(cp0[CellParams::EZ_DT2] - cp1[CellParams::EZ_DT2]))
-                                        );
+         cp0[CellParams::PERBX] += dt * (1.0/dz*(cp2[CellParams::EY_DT2] - cp0[CellParams::EY_DT2]) +
+                                         1.0/dy*(cp0[CellParams::EZ_DT2] - cp1[CellParams::EZ_DT2]));
       }
       # endif
    }
@@ -1703,14 +1699,12 @@ static void propagateMagneticField(
       cp0[CellParams::PERBY] += dt/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) + dt/dz*(cp0[CellParams::EX] - cp1[CellParams::EX]);
       # else
       if(RKCase == RK_ORDER2_STEP1) {
-         cp0[CellParams::PERBY_DT2] = cp0[CellParams::PERBY] +
-         ALPHA*dt*(1.0/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) + 1.0/dz*(cp0[CellParams::EX] - cp1[CellParams::EX]));
+         cp0[CellParams::PERBY_DT2] =
+            cp0[CellParams::PERBY] + 0.5*dt*(1.0/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) +
+                                             1.0/dz*(cp0[CellParams::EX] - cp1[CellParams::EX]));
       } else {
-         cp0[CellParams::PERBY] += dt * ((1.0 - 0.5/ALPHA) * (1.0/dx*(cp2[CellParams::EZ] - cp0[CellParams::EZ]) +
-                                                                            1.0/dz*(cp0[CellParams::EX] - cp1[CellParams::EX])) + 
-                                        0.5/ALPHA * (1.0/dx*(cp2[CellParams::EZ_DT2] - cp0[CellParams::EZ_DT2]) +
-                                                                    1.0/dz*(cp0[CellParams::EX_DT2] - cp1[CellParams::EX_DT2]))
-                                        );
+         cp0[CellParams::PERBY] += dt * (1.0/dx*(cp2[CellParams::EZ_DT2] - cp0[CellParams::EZ_DT2]) +
+                                         1.0/dz*(cp0[CellParams::EX_DT2] - cp1[CellParams::EX_DT2]));
       }
       # endif
    }
@@ -1751,13 +1745,12 @@ static void propagateMagneticField(
       cp0[CellParams::PERBZ] += dt/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) + dt/dx*(cp0[CellParams::EY] - cp1[CellParams::EY]);
       # else
       if(RKCase == RK_ORDER2_STEP1) {
-         cp0[CellParams::PERBZ_DT2] = cp0[CellParams::PERBZ] +
-         ALPHA*dt*(1.0/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) + 1.0/dx*(cp0[CellParams::EY] - cp1[CellParams::EY]));
+         cp0[CellParams::PERBZ_DT2] =
+            cp0[CellParams::PERBZ] + 0.5*dt*(1.0/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) +
+                                             1.0/dx*(cp0[CellParams::EY] - cp1[CellParams::EY]));
       } else {
-         cp0[CellParams::PERBZ] += dt * ((1.0 - 0.5/ALPHA) * (1.0/dy*(cp2[CellParams::EX] - cp0[CellParams::EX]) +
-                                                                          1.0/dx*(cp0[CellParams::EY] - cp1[CellParams::EY])) +
-         0.5/ALPHA * (1.0/dy*(cp2[CellParams::EX_DT2] - cp0[CellParams::EX_DT2]) +
-                                     1.0/dx*(cp0[CellParams::EY_DT2] - cp1[CellParams::EY_DT2])));
+         cp0[CellParams::PERBZ] += dt  * (1.0/dy*(cp2[CellParams::EX_DT2] - cp0[CellParams::EX_DT2]) +
+                                          1.0/dx*(cp0[CellParams::EY_DT2] - cp1[CellParams::EY_DT2]));
       }
 # endif
    }
