@@ -1,5 +1,5 @@
 #ifdef __GNUC__
-
+#define CACHELINE_BYTES 64
 inline void prefetch(const char *addr, int sz){
    const int Nlines = sz/CACHELINE_BYTES+1;
    for (int c=0; c<Nlines; c++)
@@ -14,7 +14,6 @@ inline void prefetch(const char*,int);
 
 
 
-prefetch(reinterpret_cast<char*>(&listptr[1]),sizeof(InternalParticleBlock));
 
 
 
