@@ -300,6 +300,7 @@ void fetchAllAverages(Velocity_Block* block,Real* const avgs) {
    }
 }
 
+
 //zero fluxes
 void cpu_clearVelFluxes(SpatialCell *cell,const unsigned int& BLOCK) {
    Velocity_Block* block=cell->at(BLOCK);
@@ -326,6 +327,7 @@ void cpu_calcVelFluxes(
    
    Velocity_Block* block=cell->at(BLOCK);
    Real avgs[8*WID3];
+
    fetchAllAverages(block,avgs);
 
    const Real dt_per_dvx = DT / block->parameters[BlockParams::DVX];
@@ -379,10 +381,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i  ,j+1,k+1)] -= corrWave;
 	 #endif
 
-	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*fabs(Az)*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j+2,k+1)] -= transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] += transIncrWave*R;	 
-	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*fabs(Ay)*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j+1,k+2)] -= transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] += transIncrWave*R;
 
@@ -426,10 +428,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i  ,j+1,k+1)] -= corrWave;
          #endif
 
-	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*fabs(Az)*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j+2,k+1)] -= transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] += transIncrWave*R;	 
-	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*fabs(Ay)*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j+1,k  )] += transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] -= transIncrWave*R;
 
@@ -473,10 +475,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i  ,j+1,k+1)] -= corrWave;
          #endif
 
-	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*fabs(Az)*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j  ,k+1)] += transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] -= transIncrWave*R;	 
-	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*fabs(Ay)*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j+1,k+2)] -= transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] += transIncrWave*R;
 
@@ -520,10 +522,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i  ,j+1,k+1)] -= corrWave;
          #endif
 
-	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*fabs(Az)*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j  ,k+1)] += transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] -= transIncrWave*R;	 
-	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*fabs(Ay)*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j+1,k  )] += transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] -= transIncrWave*R;
          #if MOVER_VLASOV_ORDER > 1
@@ -566,10 +568,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i  ,j+1,k+1)] -= corrWave;
 	 #endif
 
-	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*fabs(Az)*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i  ,j+2,k+1)] -= transIncrWave*R;
 	 dfdt[findex(i  ,j+1,k+1)] += transIncrWave*R;	 
-	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*fabs(Ay)*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i  ,j+1,k+2)] -= transIncrWave*R;
 	 dfdt[findex(i  ,j+1,k+1)] += transIncrWave*R;
 	 #if MOVER_VLASOV_ORDER > 1
@@ -612,10 +614,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i  ,j+1,k+1)] -= corrWave;
          #endif
 
-	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*fabs(Az)*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i  ,j+2,k+1)] -= transIncrWave*R;
 	 dfdt[findex(i  ,j+1,k+1)] += transIncrWave*R;	 
-	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*fabs(Ay)*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i  ,j+1,k  )] += transIncrWave*R;
 	 dfdt[findex(i  ,j+1,k+1)] -= transIncrWave*R;
 	 #if MOVER_VLASOV_ORDER > 1
@@ -658,10 +660,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i  ,j+1,k+1)] -= corrWave;
          #endif
 
-	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*fabs(Az)*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i  ,j  ,k+1)] += transIncrWave*R;
 	 dfdt[findex(i  ,j+1,k+1)] -= transIncrWave*R;	 
-	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*fabs(Ay)*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i  ,j+1,k+2)] -= transIncrWave*R;
 	 dfdt[findex(i  ,j+1,k+1)] += transIncrWave*R;
 	 #if MOVER_VLASOV_ORDER > 1
@@ -704,10 +706,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i  ,j+1,k+1)] -= corrWave;
          #endif
 
-	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*fabs(Az)*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i  ,j  ,k+1)] += transIncrWave*R;
 	 dfdt[findex(i  ,j+1,k+1)] -= transIncrWave*R;	 
-	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*fabs(Ay)*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i  ,j+1,k  )] += transIncrWave*R;
 	 dfdt[findex(i  ,j+1,k+1)] -= transIncrWave*R;
 	 #if MOVER_VLASOV_ORDER > 1
@@ -773,10 +775,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i+1,j  ,k+1)] -= corrWave;
 	 #endif
 	 
-	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*fabs(Az)*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+2,j+1,k+1)] -= transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] += transIncrWave*R;
-	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*fabs(Ax)*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j+1,k+2)] -= transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] += transIncrWave*R;
 	 #if MOVER_VLASOV_ORDER > 1
@@ -819,10 +821,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i+1,j  ,k+1)] -= corrWave;
          #endif
 	 
-	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*fabs(Az)*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+2,j+1,k+1)] -= transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] += transIncrWave*R;
-	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*fabs(Ax)*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j+1,k  )] += transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] -= transIncrWave*R;
 	 #if MOVER_VLASOV_ORDER > 1
@@ -865,10 +867,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i+1,j  ,k+1)] -= corrWave;
 	 #endif
 	 
-	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*fabs(Az)*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+2,j  ,k+1)] -= transIncrWave*R;
 	 dfdt[findex(i+1,j  ,k+1)] += transIncrWave*R;
-	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*fabs(Ax)*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j  ,k+2)] -= transIncrWave*R;
 	 dfdt[findex(i+1,j  ,k+1)] += transIncrWave*R;
 	 #if MOVER_VLASOV_ORDER > 1
@@ -911,10 +913,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i+1,j  ,k+1)] -= corrWave;
          #endif
 	 
-	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*fabs(Az)*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+2,j  ,k+1)] -= transIncrWave*R;
 	 dfdt[findex(i+1,j  ,k+1)] += transIncrWave*R;
-	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*fabs(Ax)*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j  ,k  )] += transIncrWave*R;
 	 dfdt[findex(i+1,j  ,k+1)] -= transIncrWave*R;
 	 #if MOVER_VLASOV_ORDER > 1
@@ -957,10 +959,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i+1,j  ,k+1)] -= corrWave;
          #endif
 
-	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*fabs(Az)*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i  ,j+1,k+1)] += transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] -= transIncrWave*R;
-	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*fabs(Ax)*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j+1,k+2)] -= transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] += transIncrWave*R;
 	 #if MOVER_VLASOV_ORDER > 1
@@ -1003,10 +1005,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i+1,j  ,k+1)] -= corrWave;
          #endif
 	 
-	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*fabs(Az)*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i  ,j+1,k+1)] += transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] -= transIncrWave*R;
-	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*fabs(Ax)*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j+1,k  )] += transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] -= transIncrWave*R;
 	 #if MOVER_VLASOV_ORDER > 1
@@ -1049,10 +1051,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i+1,j  ,k+1)] -= corrWave;
          #endif
 	 
-	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*fabs(Az)*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i  ,j  ,k+1)] += transIncrWave*R;
 	 dfdt[findex(i+1,j  ,k+1)] -= transIncrWave*R;
-	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*fabs(Ax)*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j  ,k+2)] -= transIncrWave*R;
 	 dfdt[findex(i+1,j  ,k+1)] += transIncrWave*R;
 	 #if MOVER_VLASOV_ORDER > 1
@@ -1095,10 +1097,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i+1,j  ,k+1)] -= corrWave;
          #endif
 
-	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy - SIXTH*Ax*Ay*fabs(Az)*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Ay*dt_per_dvx*dt_per_dvy + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i  ,j  ,k+1)] += transIncrWave*R;
 	 dfdt[findex(i+1,j  ,k+1)] -= transIncrWave*R;
-	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*fabs(Ax)*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j  ,k  )] += transIncrWave*R;
 	 dfdt[findex(i+1,j  ,k+1)] -= transIncrWave*R;
 	 #if MOVER_VLASOV_ORDER > 1
@@ -1166,10 +1168,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i+1,j+1,k  )] -= corrWave;
 	 #endif
 	 
-	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*fabs(Ay)*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+2,j+1,k+1)] -= transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] += transIncrWave*R;
-	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*fabs(Ax)*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j+2,k+1)] -= transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] += transIncrWave*R;
 	 #if MOVER_VLASOV_ORDER > 1
@@ -1212,10 +1214,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i+1,j+1,k  )] -= corrWave;
          #endif
 	 
-	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*fabs(Ay)*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+2,j+1,k  )] -= transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k  )] += transIncrWave*R;
-	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*fabs(Ax)*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j+2,k  )] -= transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k  )] += transIncrWave*R;
 	 #if MOVER_VLASOV_ORDER > 1
@@ -1258,10 +1260,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i+1,j+1,k  )] -= corrWave;
          #endif
 	 
-	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*fabs(Ay)*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+2,j+1,k+1)] -= transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] += transIncrWave*R;
-	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*fabs(Ax)*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j  ,k+1)] += transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] -= transIncrWave*R;
 	 #if MOVER_VLASOV_ORDER > 1
@@ -1304,10 +1306,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i+1,j+1,k  )] -= corrWave;
          #endif
 	 
-	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*fabs(Ay)*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+2,j+1,k  )] -= transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k  )] += transIncrWave*R;
-	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*fabs(Ax)*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j  ,k  )] += transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k  )] -= transIncrWave*R;
 	 #if MOVER_VLASOV_ORDER > 1
@@ -1350,10 +1352,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i+1,j+1,k  )] -= corrWave;
          #endif
 	 
-	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*fabs(Ay)*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i  ,j+1,k+1)] += transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] -= transIncrWave*R;
-	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*fabs(Ax)*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j+2,k+1)] -= transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] += transIncrWave*R;
 	 #if MOVER_VLASOV_ORDER > 1
@@ -1396,10 +1398,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i+1,j+1,k  )] -= corrWave;
          #endif
 	 
-	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*fabs(Ay)*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i  ,j+1,k  )] += transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k  )] -= transIncrWave*R;
-	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*fabs(Ax)*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j+2,k  )] -= transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k  )] += transIncrWave*R;
 	 #if MOVER_VLASOV_ORDER > 1
@@ -1442,10 +1444,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i+1,j+1,k  )] -= corrWave;
          #endif
 	 
-	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*fabs(Ay)*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i  ,j+1,k+1)] += transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] -= transIncrWave*R;
-	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*fabs(Ax)*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j  ,k+1)] += transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k+1)] -= transIncrWave*R;
 	 #if MOVER_VLASOV_ORDER > 1
@@ -1488,10 +1490,10 @@ void cpu_calcVelFluxes(
 	 dfdt[findex(i+1,j+1,k  )] -= corrWave;
          #endif
 	 
-	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz - SIXTH*Ax*fabs(Ay)*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ax*Az*dt_per_dvx*dt_per_dvz + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i  ,j+1,k  )] += transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k  )] -= transIncrWave*R;
-	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz - SIXTH*fabs(Ax)*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
+	 transIncrWave = HALF*Ay*Az*dt_per_dvy*dt_per_dvz + SIXTH*Ax*Ay*Az*dt_per_dvx*dt_per_dvy*dt_per_dvz;
 	 dfdt[findex(i+1,j  ,k  )] += transIncrWave*R;
 	 dfdt[findex(i+1,j+1,k  )] -= transIncrWave*R;
 	 #if MOVER_VLASOV_ORDER > 1
