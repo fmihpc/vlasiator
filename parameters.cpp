@@ -126,8 +126,6 @@ Real P::lorentzHallMinimumRho=1.0;
 Real P::lorentzHallMaximumB=1.0;
 bool P::lorentzUseFieldSolverE=false;
 
-bool P::replaceNegativeDensityCells=false;
-
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
    Readparameters::add("io.diagnostic_write_interval", "Write diagnostic output every arg time steps",numeric_limits<uint>::max());
@@ -206,7 +204,6 @@ bool Parameters::addParameters(){
    Readparameters::add("loadBalance.alpha", "alpha in LB weight = blocks * (alpha + beta*substeps)",1.0);
    Readparameters::add("loadBalance.beta", "alpha in LB weight = blocks * (alpha + beta*substeps)",0.2);
    
-   Readparameters::add("replaceNegativeDensityCells", "If true, cells with negative densities get replaced by a close neighbour", false);
    
 // Output variable parameters
    Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available are B BackgroundB PerturbedB E Rho RhoV RhoLossAdjust RhoLossVelBoundary MPIrank Blocks BoundaryType BoundaryLayer VolE VolB Pressure PTensor derivs BVOLderivs MaxVdt MaxRdt MaxFieldsdt LBweight VelocitySubSteps.");
@@ -313,8 +310,6 @@ bool Parameters::getParameters(){
    // Get output variable parameters
    Readparameters::get("variables.output", P::outputVariableList);
    Readparameters::get("variables.diagnostic", P::diagnosticVariableList);
-   
-   Readparameters::get("replaceNegativeDensityCells", P::replaceNegativeDensityCells);
    
    return true;
 }

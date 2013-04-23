@@ -643,83 +643,8 @@ int main(int argn,char* args[]) {
          }
          phiprof::stop("Propagate Vlasov",computedCells,"Cells");
       }
+
       
-      if(P::replaceNegativeDensityCells == true) {
-         #pragma omp parallel for
-         for (size_t c=0; c<cells.size(); ++c) {
-            const CellID cellID = cells[c];
-            SpatialCell* SC = mpiGrid[cellID];
-            if(SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
-               continue;
-            }
-            if(SC->parameters[CellParams::RHO] <= 0.0) {
-               CellID saneNeighbor = INVALID_CELLID;
-               bool found = false;
-               for(int i=-1; i<2; i++) {
-                  for(int j=-1; j<2; j++) {
-                     for(int k=-1; k<2; k++) {
-                        const CellID cell = getNeighbour(mpiGrid,cellID,i,j,k);
-                        if(cell != INVALID_CELLID) {
-                           if(mpiGrid[cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                              if(mpiGrid[cell]->parameters[CellParams::RHO] > 0.0) {
-                                 saneNeighbor = cell;
-                                 found = true;
-                              }
-                           }
-                        }
-                        if(found) break;
-                     }
-                     if(found) break;
-                  }
-                  if(found) break;
-               }
-               if(found == false) {
-                  cerr << __FILE__ << ":" << __LINE__ << ":" << "ERROR: all neighbours are insane!" << endl;
-               } else {
-                  SpatialCell* savior = mpiGrid[saneNeighbor];
-                  logFile << "WARNING: Rescuing cell " << cellID << " as it has negative density!" << endl<<writeVerbose;
-                  for(int i=CellParams::EX; i<CellParams::N_SPATIAL_CELL_PARAMS; i++) {
-                     SC->parameters[i] = savior->parameters[i];
-                  }
-                  /*prepare list of blocks to remove. It is not safe to loop over
-                   * velocity_block_list while adding/removing blocks*/
-                  std::vector<uint> blocksToRemove;
-                  for(uint block_i=0;
-                      block_i<SC->number_of_blocks;
-                  block_i++) {
-                     cuint blockID=SC->velocity_block_list[block_i];
-                     if(savior->is_null_block(savior->at(blockID))) {
-                        //this block does not exist in savior -> mark for removal.
-                        blocksToRemove.push_back(blockID);
-                     }
-                  }
-                  
-                  /*remove blocks*/
-                  for(uint block_i=0;
-                      block_i<blocksToRemove.size();
-                  block_i++) {
-                     cuint blockID=blocksToRemove[block_i];
-                     SC->remove_velocity_block(blockID);
-                  }
-                  
-                  /*add blocks*/
-                  for(uint block_i=0;
-                      block_i<savior->number_of_blocks;
-                  block_i++) {
-                     cuint blockID = savior->velocity_block_list[block_i];
-                     
-                     SC->add_velocity_block(blockID);          
-                     const Velocity_Block* toBlock = SC->at(blockID);
-                     const Velocity_Block* fromBlock = savior->at(blockID);
-                     for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
-                        toBlock->data[i] = fromBlock->data[i];
-                     }
-                  }
-               }
-               
-            }
-         }
-      }
       
       // Propagate fields forward in time by dt.
       if (P::propagateField == true) {

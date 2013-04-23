@@ -48,6 +48,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <set>
 
 #include "../common.h"
+#include "../grid.h"
 #include "../parameters.h"
 #include "../fieldsolver.h"
 #include "limiters.h"
@@ -159,21 +160,6 @@ Real limiter(creal& left,creal& cent,creal& rght) {
    return limited;
 }
 
-/*
-  get a vector of cellIDs (cellList) and compute a new vector with only those cells which are on a sysboundary and are to be computed
-*/
-bool getBoundaryCellList(const dccrg::Dccrg<SpatialCell>& mpiGrid,
-                         const vector<uint64_t>& cellList,
-                         vector<uint64_t>& boundaryCellList){
-   boundaryCellList.clear();
-   for (size_t cell=0; cell<cellList.size(); ++cell) {
-      const CellID cellID = cellList[cell];
-      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-         mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) continue;
-      boundaryCellList.push_back(cellID);
-   }
-   return true;
-}
 
 CellID getNeighbourID(
    dccrg::Dccrg<SpatialCell>& mpiGrid,

@@ -120,7 +120,6 @@ struct Parameters {
    static uint maxAccelerationSubsteps; /*!< Maximum number of substeps that is allowed */
    static bool dynamicTimestep; /*!< If true, timestep is set based on  CFL limit */
    
-   static bool replaceNegativeDensityCells; /*!< If true, cells with negative densities get replaced by a close neighbour.*/
    
    static std::string projectName; /*!< Project to be used in this run. */
    

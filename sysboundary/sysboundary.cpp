@@ -346,13 +346,12 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    timer=phiprof::initializeTimer("Compute process inner cells");
    phiprof::start(timer);
    // Compute Vlasov boundary condition on system boundary/on process inner cells
-   const vector<CellID> localCells
-      = mpiGrid.get_local_cells_not_on_process_boundary(SYSBOUNDARIES_NEIGHBORHOOD_ID);
-# pragma omp parallel for
+   vector<CellID> localCells;
+   getBoundaryCellList(mpiGrid,mpiGrid.get_local_cells_not_on_process_boundary(SYSBOUNDARIES_NEIGHBORHOOD_ID),localCells);
+   
+#pragma omp parallel for
    for (uint i=0; i<localCells.size(); i++) {
       cuint sysBoundaryType = mpiGrid[localCells[i]]->sysBoundaryFlag;
-      if(sysBoundaryType == sysboundarytype::DO_NOT_COMPUTE ||
-         sysBoundaryType == sysboundarytype::NOT_SYSBOUNDARY) continue;
       this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, localCells[i]);
    }
    phiprof::stop(timer);
@@ -365,13 +364,11 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    // Compute vlasov boundary on system boundary/process boundary cells
    timer=phiprof::initializeTimer("Compute process boundary cells");
    phiprof::start(timer);
-   const vector<CellID> boundaryCells
-      = mpiGrid.get_local_cells_on_process_boundary(SYSBOUNDARIES_NEIGHBORHOOD_ID);
-# pragma omp parallel for
+   vector<CellID> boundaryCells;
+   getBoundaryCellList(mpiGrid,mpiGrid.get_local_cells_on_process_boundary(SYSBOUNDARIES_NEIGHBORHOOD_ID),boundaryCells);
+#pragma omp parallel for
    for (uint i=0; i<boundaryCells.size(); i++) {
       cuint sysBoundaryType = mpiGrid[boundaryCells[i]]->sysBoundaryFlag;
-      if(sysBoundaryType == sysboundarytype::DO_NOT_COMPUTE ||
-         sysBoundaryType == sysboundarytype::NOT_SYSBOUNDARY) continue;
       this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i]);
    }
    phiprof::stop(timer);
@@ -418,3 +415,20 @@ bool SysBoundary::isDynamic() const {return isThisDynamic;}
  * \retval isPeriodic Is the system periodic in the queried direction.
  */
 bool SysBoundary::isBoundaryPeriodic(uint direction) const {return isPeriodic[direction];}
+
+
+
+
+bool getBoundaryCellList(const dccrg::Dccrg<SpatialCell>& mpiGrid,
+                         const vector<uint64_t>& cellList,
+                         vector<uint64_t>& boundaryCellList){
+   boundaryCellList.clear();
+   for (size_t cell=0; cell<cellList.size(); ++cell) {
+      const CellID cellID = cellList[cell];
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+         mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) continue;
+      boundaryCellList.push_back(cellID);
+   }
+   return true;
+}
+
