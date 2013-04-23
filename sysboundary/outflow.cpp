@@ -366,8 +366,8 @@ namespace SBC {
          cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
          abort();
       }
-      
-      copyCellData(mpiGrid[closestCell], mpiGrid[cellID]);
+      //Do not allow block adjustment, the block structure when calling vlasovBoundaryCondition should be static
+      copyCellData(mpiGrid[closestCell], mpiGrid[cellID],false);
    }
    
    void Outflow::getFaces(bool* faces) {

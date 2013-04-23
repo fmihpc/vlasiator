@@ -209,45 +209,65 @@ namespace SBC {
    }
    
    //if the spatialcells are neighbors
-   void SysBoundaryCondition::copyCellData(SpatialCell *from, SpatialCell *to)
+   void SysBoundaryCondition::copyCellData(SpatialCell *from, SpatialCell *to,bool allowBlockAdjustment)
    {
       if(to->sysBoundaryLayer == 1) { // Do this only for the first layer, the inner layer does not need this.
-         /*prepare list of blocks to remove. It is not safe to loop over
-         * velocity_block_list while adding/removing blocks*/
-         std::vector<uint> blocksToRemove;
-         for(uint block_i=0;
-            block_i<to->number_of_blocks;
-            block_i++) {
-            cuint blockID=to->velocity_block_list[block_i];
-            if(from->is_null_block(from->at(blockID))) {
-               //this block does not exist in from -> mark for removal.
-               blocksToRemove.push_back(blockID);
+
+         if(allowBlockAdjustment) {
+/*prepare list of blocks to remove. It is not safe to loop over
+ * velocity_block_list while adding/removing blocks*/
+            std::vector<uint> blocksToRemove;
+            for(uint block_i=0;
+                block_i<to->number_of_blocks;
+                block_i++) {
+               cuint blockID=to->velocity_block_list[block_i];
+               if(from->is_null_block(from->at(blockID))) {
+                  //this block does not exist in from -> mark for removal.
+                  blocksToRemove.push_back(blockID);
+               }
+            }
+         
+            /*remove blocks*/
+            for(uint block_i=0;
+                block_i<blocksToRemove.size();
+                block_i++) {
+               cuint blockID=blocksToRemove[block_i];
+               to->remove_velocity_block(blockID);
+            }
+         
+            /*add blocks*/
+            for(uint block_i=0;
+                block_i<from->number_of_blocks;
+                block_i++) {
+               cuint blockID = from->velocity_block_list[block_i];
+
+               to->add_velocity_block(blockID);          
+               const Velocity_Block* toBlock = to->at(blockID);
+               const Velocity_Block* fromBlock = from->at(blockID);
+               for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
+                  toBlock->data[i] = fromBlock->data[i];
+               }
             }
          }
-         
-         /*remove blocks*/
-         for(uint block_i=0;
-            block_i<blocksToRemove.size();
-            block_i++) {
-            cuint blockID=blocksToRemove[block_i];
-            to->remove_velocity_block(blockID);
-         }
-         
-         /*add blocks*/
-         for(uint block_i=0;
-            block_i<from->number_of_blocks;
-            block_i++) {
-            cuint blockID = from->velocity_block_list[block_i];
-
-            to->add_velocity_block(blockID);          
-            const Velocity_Block* toBlock = to->at(blockID);
-            const Velocity_Block* fromBlock = from->at(blockID);
-            for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
-               toBlock->data[i] = fromBlock->data[i];
+         else{
+            //just copy data to existing blocks, no modification of to blocks allowed
+            for(uint block_i=0; block_i<to->number_of_blocks;block_i++) {
+               cuint blockID=to->velocity_block_list[block_i];
+               const Velocity_Block* toBlock = to->at(blockID);
+               const Velocity_Block* fromBlock = from->at(blockID);
+               if(from->is_null_block(from->at(blockID))) {
+                  for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
+                     toBlock->data[i] = 0.0; //block did not exist in from cell, fill with zeros.
+                  }
+               }
+               else {
+                  for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
+                     toBlock->data[i] = fromBlock->data[i];
+                  }     
+               }
             }
          }
       }
-      
       // WARNING Time-independence assumed here. _R and _V not copied, as boundary conditions cells should not set/use them
       to->parameters[CellParams::RHO_DT2] = from->parameters[CellParams::RHO_DT2];
       to->parameters[CellParams::RHOVX_DT2] = from->parameters[CellParams::RHOVX_DT2];

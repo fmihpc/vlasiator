@@ -196,6 +196,8 @@ namespace SBC {
       const CellID& cellID
    ) {
 //      phiprof::start("vlasovBoundaryCondition (SetByUser)");
+      // No need to do anything in this function, as the propagators do not touch the distribution function   
+      /*
       SpatialCell* cell = mpiGrid[cellID];
       creal dx = cell->parameters[CellParams::DX];
       creal dy = cell->parameters[CellParams::DY];
@@ -203,16 +205,15 @@ namespace SBC {
       creal x = cell->parameters[CellParams::XCRD] + 0.5*dx;
       creal y = cell->parameters[CellParams::YCRD] + 0.5*dy;
       creal z = cell->parameters[CellParams::ZCRD] + 0.5*dz;
-      
       bool isThisCellOnAFace[6];
-      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
-      
+      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);      
       for(uint i=0; i<6; i++) {
          if(isThisCellOnAFace[i]) {
-            copyCellData(&templateCells[i], cell);
+            copyCellData(&templateCells[i], cell,false);
             break; // This effectively sets the precedence of faces through the order of faces.
          }
       }
+      */
 //      phiprof::stop("vlasovBoundaryCondition (SetByUser)");
    }
    
@@ -242,7 +243,7 @@ namespace SBC {
                cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
                cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
                
-               copyCellData(&templateCells[i], cell);
+               copyCellData(&templateCells[i], cell,true);
                break; // This effectively sets the precedence of faces through the order of faces.
             }
          }

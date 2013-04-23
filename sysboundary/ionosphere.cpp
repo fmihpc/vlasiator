@@ -363,9 +363,8 @@ namespace SBC {
       const CellID& cellID
    ) {
       //phiprof::start("vlasovBoundaryCondition (Ionosphere)");
-      
-      copyCellData(&templateCell, mpiGrid[cellID]);
-      
+      //No need to copy distribution function, will be constant throughout simulation
+      //copyCellData(&templateCell, mpiGrid[cellID],false);
       //phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
    }
    
@@ -496,8 +495,8 @@ namespace SBC {
       // The ionospheric cell has the same state as the initial state of non-system boundary cells so far.
       cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
       cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
-      
-      copyCellData(&templateCell, cell);
+      //Copy, and allow to change blocks
+      copyCellData(&templateCell, cell,true);
    }
    
    std::string Ionosphere::getName() const {return "Ionosphere";}

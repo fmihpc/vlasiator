@@ -377,10 +377,10 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    phiprof::start(timer);
    mpiGrid.wait_neighbor_data_update_sends();
    phiprof::stop(timer);
-   
-   //FIXME, we should have a boolean that tells us if this is needed or not... 
-   updateRemoteVelocityBlockLists(mpiGrid);
-   adjustVelocityBlocks(mpiGrid);
+
+//  No need to adjust, vlasovBoundaryCondition not allowed to modify block structure!   
+//   updateRemoteVelocityBlockLists(mpiGrid);
+//   adjustVelocityBlocks(mpiGrid);
 
    /*
   // NOTE, I do not think these are needed.  VEL_BLOCK_DATA is

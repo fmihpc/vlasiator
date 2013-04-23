@@ -99,6 +99,7 @@ namespace SBC {
             const CellID& cellID,
             cuint& component
          );
+      /*This function computes the vlasov (distribution function) boundary condition. It is not! allowed to change block structure in cell*/
          virtual void vlasovBoundaryCondition(
             const dccrg::Dccrg<SpatialCell>& mpiGrid,
             const CellID& cellID
@@ -116,8 +117,7 @@ namespace SBC {
             creal x, creal y, creal z,
             creal dx, creal dy, creal dz
          );
-         void copyCellData(SpatialCell *from, SpatialCell *to);
-         
+         void copyCellData(SpatialCell *from, SpatialCell *to,bool allowBlockAdjustment);
          CellID getClosestNonsysboundaryCell(
             const dccrg::Dccrg<SpatialCell>& mpiGrid,
             const CellID& cellID
