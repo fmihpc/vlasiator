@@ -329,7 +329,7 @@ bool writeGrid(
    uint64_t numVelSpaceCells;
    uint64_t localNumVelSpaceCells;
    localNumVelSpaceCells=velSpaceCells.size();
-   MPI_Allreduce(&localNumVelSpaceCells,&numVelSpaceCells,1,MPI_UNSIGNED_LONG_LONG,MPI_SUM,MPI_COMM_WORLD);
+   MPI_Allreduce(&localNumVelSpaceCells,&numVelSpaceCells,1,MPI_UINT64_T,MPI_SUM,MPI_COMM_WORLD);
    if(numVelSpaceCells>0) {
       //write out velocity space data, if there are cells with this data
       writeVelocityDistributionData(vlsvWriter,mpiGrid,velSpaceCells,MPI_COMM_WORLD);
