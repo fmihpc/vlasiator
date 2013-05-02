@@ -27,19 +27,23 @@ class File(object):
 
 
     def ls(self):
-        print "Parameters:"
+        print "tag = PARAMETERS"
         for child in self.__xml_root:
             if child.tag=="PARAMETERS":
                 print "    ",child.attrib["name"]," = ",child.attrib["value"]
-        print "Data arrays:"
+        print "tag = VARIABLE"
         for child in self.__xml_root:
             if child.tag=="VARIABLE":
                 print "    ",child.attrib["name"]
+        print "Other:"
+        for child in self.__xml_root:
+            if child.tag!="PARAMETERS" and child.tag!="VARIABLE":
+                print "     tag = ",child.tag, " name = ", child.attrib["name"]
 
     
-    def read(self,name):
+    def read(self,name,tag="VARIABLE"):
         for child in self.__xml_root:
-            if child.attrib["name"]==name:
+            if child.tag==tag and child.attrib["name"]==name:
                 vector_size=ast.literal_eval(child.attrib["vectorsize"])
                 array_size=ast.literal_eval(child.attrib["arraysize"])
                 element_size=ast.literal_eval(child.attrib["datasize"])
@@ -70,5 +74,43 @@ class File(object):
                         return data[0]
                     else:
                         return data
+
+
+    def read_blocks(self,cellID):
+        #these two arrays are in the same order: 
+        #list of cells for which dist function is saved
+        cells_with_blocks=self.read("SpatialGrid","CELLSWITHBLOCKS")
+        #number of blocks in each cell for which data is stored
+        blocks_per_cell=self.read("SpatialGrid","BLOCKSPERCELL")
+        (cells_with_blocks_index,)=np.where(cells_with_blocks==cellID)
+
+        if len(cells_with_blocks_index)==0:
+            #block data did not exist
+            return []
+
+        num_of_blocks=blocks_per_cell[cells_with_blocks_index[0]]
+
+        for child in self.__xml_root:
+            if child.attrib["name"]=="avgs":
+                vector_size=ast.literal_eval(child.attrib["vectorsize"])
+                array_size=ast.literal_eval(child.attrib["arraysize"])
+                element_size=ast.literal_eval(child.attrib["datasize"])
+                datatype=child.attrib["datatype"]
                 
+                offset=ast.literal_eval(child.text)
+                
+                for i in range(0,cells_with_blocks_index[0]):
+                    offset+=blocks_per_cell[i]*vector_size*element_size
+
+                fd=open(self.__file_name,"rb")
+                fd.seek(offset)
+                if datatype=="float" and element_size==4:
+                    data=np.fromfile(fd,dtype=np.float32,count=vector_size*num_of_blocks)
+                if datatype=="float" and element_size==8:
+                    data=np.fromfile(fd,dtype=np.float64,count=vector_size*num_of_blocks)
+                fd.close()
+                return data.reshape(num_of_blocks,vector_size)    
+
     
+        return []
+            
