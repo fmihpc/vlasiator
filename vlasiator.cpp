@@ -488,7 +488,7 @@ int main(int argn,char* args[]) {
          wallTimeRestartCounter++;
         
          if (myRank == MASTER_RANK)
-            logFile << "(IO): Writing spatial cell and restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
+            logFile << "(IO): Writing restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          writeRestart(mpiGrid,outputReducer,"restart",(uint)P::t);
          if (myRank == MASTER_RANK)
             logFile << "(IO): .... done!"<< endl << writeVerbose;
@@ -513,8 +513,10 @@ int main(int argn,char* args[]) {
       
       //Re-loadbalance if needed
       if( P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min) {
+         logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          balanceLoad(mpiGrid);
          addTimedBarrier("barrier-end-load-balance");
+         logFile << "(LB): ... done!"  << endl << writeVerbose;
       }
       
       //get local cells       

@@ -115,7 +115,7 @@ bool writeCommonGridData(
    MPI_Comm_rank(comm,&myRank);
    map<string,string> attribs;
    attribs.clear();
-   if (vlsvWriter.writeArray("MESH","SpatialGrid",attribs,cells.size(),1,&(cells[0])) == false) {
+   if (vlsvWriter.writeArray("MESH","SpatialGrid",attribs,cells.size(),1,cells.data()) == false) {
       cerr << "Proc #" << myRank << " failed to write cell Ids!" << endl;
    }
 
@@ -178,10 +178,10 @@ bool writeVelocityDistributionData(
       blocksPerCell.push_back(mpiGrid[cells[cell]]->number_of_blocks);
    }
    
-   if (vlsvWriter.writeArray("CELLSWITHBLOCKS","SpatialGrid",attribs,cells.size(),1,&(cells[0])) == false) success = false;
+   if (vlsvWriter.writeArray("CELLSWITHBLOCKS","SpatialGrid",attribs,cells.size(),1,cells.data()) == false) success = false;
    if (success == false) logFile << "(MAIN) writeGrid: ERROR failed to write CELLSWITHBLOCKS to file!" << endl << writeVerbose;
    //Write blocks per cell, this has to be in the same order as cellswitblocks so that extracting works
-   if(vlsvWriter.writeArray("BLOCKSPERCELL","SpatialGrid",attribs,blocksPerCell.size(),1,&(blocksPerCell[0])) == false) success = false;
+   if(vlsvWriter.writeArray("BLOCKSPERCELL","SpatialGrid",attribs,blocksPerCell.size(),1,blocksPerCell.data()) == false) success = false;
    if (success == false) logFile << "(MAIN) writeGrid: ERROR failed to write CELLSWITHBLOCKS to file!" << endl << writeVerbose;
 
    //Write velocity block coordinates.
@@ -212,7 +212,7 @@ bool writeVelocityDistributionData(
    
    
    attribs.clear();
-   if (vlsvWriter.writeArray("BLOCKCOORDINATES","SpatialGrid",attribs,totalBlocks,BlockParams::N_VELOCITY_BLOCK_PARAMS,&(velocityBlockParameters[0])) == false) success = false;
+   if (vlsvWriter.writeArray("BLOCKCOORDINATES","SpatialGrid",attribs,totalBlocks,BlockParams::N_VELOCITY_BLOCK_PARAMS,velocityBlockParameters.data()) == false) success = false;
    if (success == false) logFile << "(MAIN) writeGrid: ERROR failed to write BLOCKCOORDINATES to file!" << endl << writeVerbose;
    velocityBlockParameters.clear();
    
@@ -244,7 +244,7 @@ bool writeVelocityDistributionData(
    
    attribs.clear();
    attribs["mesh"] = "SpatialGrid";
-   if (vlsvWriter.writeArray("BLOCKVARIABLE","avgs",attribs,totalBlocks,SIZE_VELBLOCK,&(velocityBlockData[0])) == false) success=false;
+   if (vlsvWriter.writeArray("BLOCKVARIABLE","avgs",attribs,totalBlocks,SIZE_VELBLOCK,velocityBlockData.data()) == false) success=false;
    if (success ==false)      logFile << "(MAIN) writeGrid: ERROR occurred when writing BLOCKVARIABLE f" << endl << writeVerbose;
    velocityBlockData.clear();
     
