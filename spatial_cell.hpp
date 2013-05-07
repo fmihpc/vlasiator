@@ -666,6 +666,8 @@ namespace velocity_neighbor {
          for (unsigned int i = 0; i < bvolderivatives::N_BVOL_DERIVATIVES; i++) {
             this->derivativesBVOL[i]=0;
          }
+	 //is transferred by default
+	 this->mpiTransferEnabled=true;
 
          //reset number of substeps
          this->subStepsAcceleration=1; 
@@ -674,6 +676,7 @@ namespace velocity_neighbor {
       SpatialCell(const SpatialCell& other):
          initialized(other.initialized),
          velocity_blocks(other.velocity_blocks),
+	 mpiTransferEnabled(other.mpiTransferEnabled),
          number_of_blocks(other.number_of_blocks),
          velocity_block_list(other.velocity_block_list),
          mpi_number_of_blocks(other.mpi_number_of_blocks),
@@ -687,7 +690,9 @@ namespace velocity_neighbor {
          procBoundaryFlag(other.procBoundaryFlag),
          sysBoundaryFlag(other.sysBoundaryFlag),
          sysBoundaryLayer(other.sysBoundaryLayer),
-         subStepsAcceleration(other.subStepsAcceleration)
+    	 subStepsAcceleration(other.subStepsAcceleration)
+
+         
          {
 
 //       phiprof::initializeTimer("SpatialCell copy", "SpatialCell copy");
@@ -870,9 +875,10 @@ namespace velocity_neighbor {
             unsigned int block_index = 0;
 
             /*create daatype for actual data if we are in the first two layers around a boundary, or if we send for thw whole system*/
-            if(SpatialCell::mpiTransferAtSysBoundaries==false ||
-               this->sysBoundaryLayer ==1 || this->sysBoundaryLayer ==2 ) {
-
+            if(this->mpiTransferEnabled &&
+	       (SpatialCell::mpiTransferAtSysBoundaries==false || this->sysBoundaryLayer ==1 || this->sysBoundaryLayer ==2 )
+	       ) {
+	      
                //add data to send/recv to displacement and block length lists
                if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_SIZE)!=0){
                   //first copy values in case this is the send operation
@@ -1591,11 +1597,11 @@ namespace velocity_neighbor {
             set_block_data_pointers(block_index);
 
          }
-
-
       }
-
-
+     /*! Apply velocity boundary condition.
+       
+       The outermost layer of velocity cells are set to zero, and the loss counters are updated with the mass lost in this operation.
+     */
       void applyVelocityBoundaryCondition(){
             //is not     computed as the other cell does not exist = no outflow).
             //x-1 face
@@ -1679,6 +1685,16 @@ namespace velocity_neighbor {
          return SpatialCell::mpi_transfer_type;
       }
 
+     /*!
+       Set if this cell is transferred/received using MPI in the next communication phase.
+     */
+
+      void set_mpi_transfer_enabled(bool transferEnabled){
+        this->mpiTransferEnabled=transferEnabled;
+      }
+
+
+
       /*
       Primary velocity grid parameters
       */
@@ -1748,7 +1764,7 @@ namespace velocity_neighbor {
 
      std::vector<Velocity_Block*> block_address_cache;
      
-
+     bool mpiTransferEnabled;
       
    public:
       //number of blocks in cell
