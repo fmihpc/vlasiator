@@ -1549,8 +1549,9 @@ namespace velocity_neighbor {
             for (unsigned int i = 0; i < SpatialCell::max_velocity_blocks; i++) {
                this->block_address_cache[i] = &(this->null_block);
             }
-            this->block_data.clear();
-            this->block_fx.clear();
+            //use the swap trick to force c++ to release the memory held by the vectors.
+            std::vector<Real,aligned_allocator<Real,64> >().swap(this->block_data);
+            std::vector<Real,aligned_allocator<Real,64> >().swap(this->block_fx);
             this->number_of_blocks=0;
          }
 
