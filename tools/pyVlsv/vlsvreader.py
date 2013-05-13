@@ -46,12 +46,13 @@ class VlsvFile(object):
                 print "     tag = ", child.tag, " name = ", child.attrib["name"]
 
     
-    def read(self, name, tag="VARIABLE"):
+    def read(self, name, tag="VARIABLE",read_single_cell_index=-1):
         ''' Read data from the open vlsv file. 
         
         Arguments:
         :param name Name of the data array
         :param tag  Tag of the data array. Defaults to VARIABLE.
+        :param read_single_cell_index  If -1 then all data is read. If nonzero then only the vector at that index in array is read. (index in array, not cell ID! read MESH array to get index of a particular cell id.
         :returns numpy array with the data
 
         '''
@@ -63,6 +64,9 @@ class VlsvFile(object):
                 element_size = ast.literal_eval(child.attrib["datasize"])
                 datatype = child.attrib["datatype"]                
                 offset = ast.literal_eval(child.text)
+                if read_single_cell_index >= 0:
+                    offset=offset+read_single_cell_index*element_size*vector_size
+                    array_size=1
 
                 fptr = open(self.__file_name, "rb")
                 fptr.seek(offset)
@@ -82,12 +86,12 @@ class VlsvFile(object):
                 fptr.close() 
 
                 if vector_size > 1:
-                    return data.reshape(array_size, vector_size)
+                    data=data.reshape(array_size, vector_size)
+                
+                if array_size == 1:
+                    return data[0]
                 else:
-                    if len(data) == 1:
-                        return data[0]
-                    else:
-                        return data
+                    return data
 
 
     def read_blocks(self, cell_id):
