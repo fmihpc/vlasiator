@@ -10,10 +10,11 @@ class VlsvFile(object):
     def __init__(self, file_name):
         self.__file_name = file_name
         self.__xml_root = ET.fromstring("<VLSV></VLSV>")
-        self.__parse_xml_footer()
+        self.__fileindex_for_cellid={}
+        self.__read_xml_footer()
+        self.__read_fileindex_for_cellid()
 
-
-    def __parse_xml_footer(self):
+    def __read_xml_footer(self):
         ''' Reads in the XML footer of the VLSV file and store all the content
         ''' 
         max_xml_size = 1000000
@@ -27,9 +28,16 @@ class VlsvFile(object):
         (xml_string,) = struct.unpack("%ds" % len(xml_data), xml_data)
         self.__xml_root = ET.fromstring(xml_string)
 
+    def __read_fileindex_for_cellid(self):
+        """ Read in the cell ids and create an internal dictionary to give the index of an arbitrary cellID
+        """
+        cellids=self.read(name="SpatialGrid",tag="MESH")
+        for index,cellid in enumerate(cellids):
+            self.__fileindex_for_cellid[cellid]=index
+        
 
     def list(self):
-        ''' Prints out a desritption of the content of the file. Useful
+        ''' Print out a description of the content of the file. Useful
             for interactive usage
         '''
         print "tag = PARAMETERS"
@@ -46,17 +54,19 @@ class VlsvFile(object):
                 print "     tag = ", child.tag, " name = ", child.attrib["name"]
 
     
-    def read(self, name, tag="VARIABLE",read_single_cell_index=-1):
+
+    def read(self, name, tag="VARIABLE",read_single_cellid=-1):
         ''' Read data from the open vlsv file. 
         
         Arguments:
         :param name Name of the data array
         :param tag  Tag of the data array. Defaults to VARIABLE.
-        :param read_single_cell_index  If -1 then all data is read. If nonzero then only the vector at that index in array is read. (index in array, not cell ID! read MESH array to get index of a particular cell id.
+        :param read_single_cellid  If -1 then all data is read. If nonzero then only the vector for the specified cell id is read
         :returns numpy array with the data
 
         '''
-
+        #TODO, read_single_cellid should perhaps be an list/numpy array with cellids that are read in. This could be more efficient to 
+        #      study multiple cells, e.g., along a line
         for child in self.__xml_root:
             if child.tag == tag and child.attrib["name"] == name:
                 vector_size = ast.literal_eval(child.attrib["vectorsize"])
@@ -64,8 +74,8 @@ class VlsvFile(object):
                 element_size = ast.literal_eval(child.attrib["datasize"])
                 datatype = child.attrib["datatype"]                
                 offset = ast.literal_eval(child.text)
-                if read_single_cell_index >= 0:
-                    offset=offset+read_single_cell_index*element_size*vector_size
+                if read_single_cellid >= 0:
+                    offset=offset+self.__fileindex_for_cellid[read_single_cellid]*element_size*vector_size
                     array_size=1
 
                 fptr = open(self.__file_name, "rb")
