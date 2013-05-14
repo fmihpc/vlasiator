@@ -8,10 +8,13 @@ function transferFileList {
 server=$1
 path=$2
 inputfile=$3
+export GLOBUS_TCP_SOURCE_RANGE=20000,20500
+export GLOBUS_TCP_PORT_RANGE=20000,20500
+
 
 while read line; do
-    #inputfile produced with ls -la, get name and size
-    file=$(echo $line | gawk '{print $9}')  
+    #inputfile produced with ls -la, get name and size. sed one-liner to remove color-codes
+    file=$(echo $line| sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g" | gawk '{print $9}')  
     size=$(echo $line | gawk '{print $5}')    
 
     #chunksize
@@ -46,7 +49,12 @@ while read line; do
 	echo "$(date) ${file}: Starting download of chunk $((i+1))/$totalChunks at $offset " 
         localStartSize=$offset
 	startTime=$( date +"%s" )
-	globus-url-copy  -rst -len $chunkSize  -off $offset  ${server}/${path}/$file ./
+	globus-url-copy  -rst -len $chunkSize  -off $offset  ${server}/${path}/${file} ./
+	rc=$?
+	if [[ $rc != 0 ]] ; then
+	    echo "Failed: globus-url-copy  -rst -len $chunkSize  -off $offset  ${server}/${path}/$file ./"
+	    exit $rc
+	fi
 	localEndSize=$( ls -la  $file | gawk '{print $5}' )
 	endTime=$( date +"%s" )
 	echo $startTime $endTime $localStartSize $localEndSize $file $((i+1)) "$(date)" | 
@@ -129,6 +137,12 @@ fi
 
 echo "Downloading inputfile $inputfile from $path" 
 globus-url-copy  -rst  gsiftp://gridftp-fr1.hww.de:2812/${path}/$inputfile ./$inputfile
+rc=$?
+if [[ $rc != 0 ]] ; then
+    echo "Failed: globus-url-copy -rst  gsiftp://gridftp-fr1.hww.de:2812/${path}/$inputfile ./$inputfile"
+    echo "Could not download list of files"
+    exit $rc
+fi
 
 echo "Transferring files in $inputfile at $path" >> transferLog.txt
 cat $inputfile |gawk '{s=s+$5} END {print  NR, " files with ",s/(1024*1024*1024),"GB of data"}' >> transferLog.txt
