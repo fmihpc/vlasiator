@@ -489,7 +489,7 @@ int main(int argn,char* args[]) {
         
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-         writeRestart(mpiGrid,outputReducer,"restart",(uint)P::t);
+         writeRestart(mpiGrid,outputReducer,"restart",(uint)P::t, P::restartStripeFactor);   
          if (myRank == MASTER_RANK)
             logFile << "(IO): .... done!"<< endl << writeVerbose;
             

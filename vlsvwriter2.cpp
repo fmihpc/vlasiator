@@ -75,7 +75,7 @@ bool VLSVWriter::close() {
     return true;
 }
 
-bool VLSVWriter::open(const std::string& fname,MPI_Comm comm,const int& MASTERRANK) {
+bool VLSVWriter::open(const std::string& fname,MPI_Comm comm,const int& MASTERRANK, int stripe) {
     //FIXME: should be MPI_COMM_DUP
     this->comm = comm;
     masterRank = MASTERRANK;
@@ -84,13 +84,23 @@ bool VLSVWriter::open(const std::string& fname,MPI_Comm comm,const int& MASTERRA
     MPI_Comm_size(comm,&N_processes);
     // All processes in communicator comm open the same file:
     int accessMode = (MPI_MODE_WRONLY | MPI_MODE_CREATE);
-    MPI_Info MPIinfo = MPI_INFO_NULL;
-    
-    MPI_File_delete(const_cast<char*>(fname.c_str()),MPI_INFO_NULL);
+    MPI_Info MPIinfo; 
+    if (stripe == 0 || stripe < -1){
+       MPIinfo = MPI_INFO_NULL;
+    } else {
+       MPI_Info_create(&MPIinfo);
+       char stripeChar[6];
+       sprintf(stripeChar,"%d",stripe);
+       /* no. of I/O devices to be used for file striping */
+       MPI_Info_set(MPIinfo, "striping_factor", stripeChar);
+    }    
+  
+    MPI_File_delete(const_cast<char*>(fname.c_str()), MPIinfo);
     if (MPI_File_open(comm,const_cast<char*>(fname.c_str()),accessMode,MPIinfo,&fileptr)    
         != MPI_SUCCESS) 
         return false;
-    MPI_File_set_view(fileptr,0,MPI_BYTE,MPI_BYTE,const_cast<char*>("native"),MPI_INFO_NULL);
+    MPI_File_set_view(fileptr,0,MPI_BYTE,MPI_BYTE,const_cast<char*>("native"),MPIinfo);
+    MPI_Info_free(&MPIinfo);    
     fileOpen = true;
     fileName = fname;
     offset = 0; //offset set to 0 when opening a new file

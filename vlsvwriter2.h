@@ -39,7 +39,7 @@ class VLSVWriter {
    
    bool close();
    bool endMultiwrite(const std::string& tagName,const std::string& arrayName,const std::map<std::string,std::string>& attribs);
-   bool open(const std::string& fname,MPI_Comm comm,const int& MASTERRANK);
+   bool open(const std::string& fname,MPI_Comm comm,const int& MASTERRANK, int stripe);
    
    bool startMultiwrite(const std::string& dataType,const uint64_t& arraySize,const uint64_t& vectorSize,const uint64_t& dataSize);
    

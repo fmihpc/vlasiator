@@ -271,7 +271,7 @@ bool writeGrid(
    fname << P::systemWrites[index] << ".vlsv";
    
    VLSVWriter vlsvWriter;
-   vlsvWriter.open(fname.str(),MPI_COMM_WORLD,0);
+   vlsvWriter.open(fname.str(),MPI_COMM_WORLD,0,0);
    
    // Get all local cell Ids 
    map<string,string> attribs;
@@ -352,7 +352,8 @@ bool writeGrid(
 bool writeRestart(const dccrg::Dccrg<SpatialCell>& mpiGrid,
                   DataReducer& dataReducer,
                   const string& name,
-                  const uint& index) {
+                  const uint& index,
+                  const int& stripe) {
    double allStart = MPI_Wtime();
    bool success = true;
    int myRank;
@@ -369,9 +370,8 @@ bool writeRestart(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    fname << index << ".vlsv";
    
    VLSVWriter vlsvWriter;
-   vlsvWriter.open(fname.str(),MPI_COMM_WORLD,0);
-   
-   // Get all local cell Ids and write to file:
+   vlsvWriter.open(fname.str(),MPI_COMM_WORLD,0,stripe); 
+    // Get all local cell Ids and write to file:
    map<string,string> attribs;
    vector<uint64_t> cells = mpiGrid.get_cells();
    //no order assumed so let's order cells here

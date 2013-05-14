@@ -82,6 +82,7 @@ struct Parameters {
    static bool writeInitialState;           /*!< If true, initial state is written. This is useful for debugging as the restarts are always written out after propagation of 0.5dt in real space.*/
    static Real saveRestartWalltimeInterval; /*!< Interval in walltime seconds for restart data*/
    static uint exitAfterRestarts;           /*!< Exit after this many restarts*/
+   static int restartStripeFactor;           /*!< stripe_factor for restart writing*/
    
    static uint transmit;
    /*!< Indicates the data that needs to be transmitted to remote nodes.
