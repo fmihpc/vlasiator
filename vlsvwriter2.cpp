@@ -100,7 +100,10 @@ bool VLSVWriter::open(const std::string& fname,MPI_Comm comm,const int& MASTERRA
         != MPI_SUCCESS) 
         return false;
     MPI_File_set_view(fileptr,0,MPI_BYTE,MPI_BYTE,const_cast<char*>("native"),MPIinfo);
-    MPI_Info_free(&MPIinfo);    
+
+    if(MPIinfo != MPI_INFO_NULL)
+       MPI_Info_free(&MPIinfo);    
+
     fileOpen = true;
     fileName = fname;
     offset = 0; //offset set to 0 when opening a new file
