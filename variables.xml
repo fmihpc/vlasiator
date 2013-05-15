@@ -480,4 +480,16 @@
         <Field name="dbName" type="string">__none__</Field>
         <Field name="autoExpression" type="bool">false</Field>
     </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">"Heli's criterion"</Field>
+        <Field name="definition" type="string">"rho*\<volume/Vx\>*\<volume/Vx\>/ (1.0e6*25.0e10)"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
 </Object>
