@@ -239,6 +239,11 @@ void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 
 
 void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
+// tell other processes which velocity blocks exist in remote spatial cells
+   phiprof::initializeTimer("Balancing load", "Load balance");
+   phiprof::start("Balancing load");
+   
+
    //set weights based on each cells LB weight counter
    vector<uint64_t> cells = mpiGrid.get_cells();
    for (uint i=0; i<cells.size(); ++i){
@@ -254,16 +259,10 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
       }
       mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
    }
-   
+   phiprof::start("dccrg.initialize_balance_load");
    mpiGrid.initialize_balance_load(true);
+   phiprof::stop("dccrg.initialize_balance_load");
    
-// tell other processes which velocity blocks exist in remote spatial cells
-   phiprof::initializeTimer("Balancing load", "Load balance");
-   phiprof::start("Balancing load");
-   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_SIZE_AND_LIST);
-   mpiGrid.continue_balance_load();
-   
-   // reserve space for velocity block data in arriving remote cells
    const boost::unordered_set<uint64_t>& incoming_cells = mpiGrid.get_balance_added_cells();
    std::vector<uint64_t> incoming_cells_list (incoming_cells.begin(),incoming_cells.end()); 
 
@@ -271,37 +270,52 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    std::vector<uint64_t> outgoing_cells_list (outgoing_cells.begin(),outgoing_cells.end()); 
    
    /*transfer cells in parts to preserve memory*/
-   const uint64_t num_part_transfers=10;
+   const uint64_t num_part_transfers=4;
    for(uint64_t transfer_part=0;transfer_part<num_part_transfers;transfer_part++){
      
-     //Set transfers on for the incming cells in this transfer set and prepare for receive
+     //Set transfers on/off for the incming cells in this transfer set and prepare for receive
      for(unsigned int i=0;i<incoming_cells_list.size();i++){
-       uint64_t cell_id=incoming_cells_list[i];
-       SpatialCell* cell = mpiGrid[cell_id];
-
-       if(cell_id%num_part_transfers!=transfer_part) {
-	 //do not transfer data if it is not in this transfer part
-	 cell->set_mpi_transfer_enabled(false);
-       }
-       else{
-	 phiprof::start("Preparing receives");
-	 cell->set_mpi_transfer_enabled(true);
-	 cell->prepare_to_receive_blocks();
-	 phiprof::stop("Preparing receives", incoming_cells_list.size(), "Spatial cells");
-       }
+        uint64_t cell_id=incoming_cells_list[i];
+        SpatialCell* cell = mpiGrid[cell_id];
+        if(cell_id%num_part_transfers!=transfer_part) {
+           cell->set_mpi_transfer_enabled(false);
+        }
+        else{
+           cell->set_mpi_transfer_enabled(true);
+        }
      }
      
-     //Set transfers on for the outgoing cells in this transfer set
+     //Set transfers on/off for the outgoing cells in this transfer set
      for(unsigned int i=0;i<outgoing_cells_list.size();i++){
        uint64_t cell_id=outgoing_cells_list[i];
        SpatialCell* cell = mpiGrid[cell_id];
        if(cell_id%num_part_transfers!=transfer_part) {
-	 cell->set_mpi_transfer_enabled(false);
+          cell->set_mpi_transfer_enabled(false);
        }
        else {
-	 cell->set_mpi_transfer_enabled(true);
+          cell->set_mpi_transfer_enabled(true);
        }
      }
+     
+     //send velocity block size and list
+     SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_SIZE);
+     mpiGrid.continue_balance_load();
+
+     SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST);
+     mpiGrid.continue_balance_load();
+
+     for(unsigned int i=0;i<incoming_cells_list.size();i++){
+       uint64_t cell_id=incoming_cells_list[i];
+       SpatialCell* cell = mpiGrid[cell_id];
+       if(cell_id%num_part_transfers==transfer_part) {
+          phiprof::start("Preparing receives");
+          // reserve space for velocity block data in arriving remote cells
+          cell->prepare_to_receive_blocks();
+          phiprof::stop("Preparing receives", incoming_cells_list.size(), "Spatial cells");
+
+       }
+     }
+     
      //do the actual transfer of data for the set of cells to be transferred
      phiprof::start("transfer_all_data");     
      SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
@@ -313,7 +327,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
        uint64_t cell_id=outgoing_cells_list[i];
        SpatialCell* cell = mpiGrid[cell_id];
        if(cell_id%num_part_transfers==transfer_part) 
-	 cell->clear(); //free memory of this cell as it has already been transferred.
+	 cell->clear(); //free memory of this cell as it has already been transferred. It will not be used anymore
      }
    }
    //finish up load balancing
@@ -473,16 +487,11 @@ void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell>& mpiGrid)
    
    phiprof::initializeTimer("Velocity block list update","MPI");
    phiprof::start("Velocity block list update");
-   if( P::vxblocks_ini * P::vyblocks_ini * P::vzblocks_ini > 20*20*20 ) {
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_SIZE);
-      mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST);
-      mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
-   }
-   else{
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_SIZE_AND_LIST);
-      mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
-   }
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_SIZE);
+   mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST);
+   mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+
    phiprof::stop("Velocity block list update");
 
    /*      

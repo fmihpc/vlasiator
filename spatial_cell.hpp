@@ -85,7 +85,6 @@ namespace spatial_cell {
       const uint64_t VEL_BLOCK_LIST_SIZE      = (1<<2);
 //to update BLOCK_LIST, BLOCK_LIST_SIZE has to be updated in a separate stage
       const uint64_t VEL_BLOCK_LIST           = (1<<3);
-      const uint64_t VEL_BLOCK_SIZE_AND_LIST  = (1<<4);
       const uint64_t VEL_BLOCK_DATA           = (1<<5);
       const uint64_t VEL_BLOCK_FLUXES         = (1<<6);
       const uint64_t VEL_BLOCK_PARAMETERS     = (1<<7);
@@ -623,15 +622,9 @@ namespace velocity_neighbor {
          /*
            Block list and cache always have room for all blocks
          */
-         this->velocity_block_list.resize(SpatialCell::max_velocity_blocks);
          this->number_of_blocks=0;
-         this->mpi_velocity_block_list.resize(SpatialCell::max_velocity_blocks);
          this->mpi_number_of_blocks=0;
 
-         //reserve space for 100 blocks to begin with
-         this->block_data.resize(100*VELOCITY_BLOCK_LENGTH);
-         this->block_fx.resize(100*SIZE_FLUXS);
-         
          this->block_has_content.reserve(SpatialCell::max_velocity_blocks); 
          for (unsigned int block = 0; block < SpatialCell::max_velocity_blocks; block++) {
             this->block_has_content.push_back(0);
@@ -894,26 +887,25 @@ namespace velocity_neighbor {
                }
             
                if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST)!=0){
-                  //first copy values in case this is the send operation
-                  for(unsigned int i=0;i< this->number_of_blocks;i++)
-                     this->mpi_velocity_block_list[i]=this->velocity_block_list[i];
+                  // VEL_BLOCK_LIST_SIZE should have been trensferred already!
+                  if(receiving) {
+                     //mpi_number_of_blocks transferred earlier
+                     this->mpi_velocity_block_list.resize(this->mpi_number_of_blocks);
+                  }
+                  else {
+                     //resize to correct size (it will avoid reallociation if it is big enough, I assume)
+                     this->mpi_number_of_blocks=this->number_of_blocks;
+                     this->mpi_velocity_block_list.resize(this->number_of_blocks);
+                     //copy values if this is the send operation                     
+                     for(unsigned int i=0;i< this->number_of_blocks;i++)
+                        this->mpi_velocity_block_list[i]=this->velocity_block_list[i];
+                     
+                  }
                   // send velocity block list
                   displacements.push_back((uint8_t*) &(this->mpi_velocity_block_list[0]) - (uint8_t*) this);
                   block_lengths.push_back(sizeof(unsigned int) * this->mpi_number_of_blocks);
                }
 
-               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_SIZE_AND_LIST)!=0){
-                  //first copy values in case this is the send operation
-                  this->mpi_number_of_blocks=this->number_of_blocks;
-                  for(unsigned int i=0;i< this->number_of_blocks;i++)
-                     this->mpi_velocity_block_list[i]=this->velocity_block_list[i];
-                  // send velocity block list size
-                  displacements.push_back((uint8_t*) &(this->mpi_number_of_blocks) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(unsigned int));
-                  // send velocity block list, all elements as we do not know number of blocks when sending at once
-                  displacements.push_back((uint8_t*) &(this->mpi_velocity_block_list[0]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(unsigned int) * SpatialCell::max_velocity_blocks);
-               }
 
                if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_HAS_CONTENT)!=0){
                   // send velocity block list, all elements as we do not know number of blocks when sending at once
@@ -1203,7 +1195,7 @@ namespace velocity_neighbor {
 
          // don't iterate over blocks created / removed by this function
          std::vector<unsigned int> original_block_list;
-         original_block_list.reserve(SpatialCell::max_velocity_blocks);
+         original_block_list.reserve(this->velocity_block_list.size());
          for(unsigned int block_index=0;block_index<this->number_of_blocks;block_index++){
             unsigned int block = this->velocity_block_list[block_index];
             original_block_list.push_back(block);
@@ -1392,9 +1384,10 @@ namespace velocity_neighbor {
          //update number of blocks
          this->number_of_blocks++;
                   
-         //add block to list of existing blocks
-         this->velocity_block_list[this->number_of_blocks-1] = block;
-
+         //add block to list of existing block
+         this->velocity_block_list.push_back(block);
+         //add more space for block data 
+         resize_block_data();
          //fix block data pointers   
          set_block_data_pointers(this->number_of_blocks-1);
          
@@ -1449,8 +1442,6 @@ namespace velocity_neighbor {
          }
          
 
-         //add more space if needed for future adds
-         resize_block_data();
          return true;
       }
       
@@ -1510,16 +1501,21 @@ namespace velocity_neighbor {
          }
          
          //Find where in the block list the removed block was (index to block list). We need to fill this hole.    
-         unsigned int block_index = 0;
-         while (block_index < SpatialCell::max_velocity_blocks
-                && this->velocity_block_list[block_index] != block) {
-            block_index++;
+         unsigned int block_index = -1;
+         for(unsigned int i=0; i< velocity_block_list.size();i++) {
+            if(this->velocity_block_list[i] == block) {
+               block_index=i;
+               break;
+            }
          }
+         
          /*
            Move the last existing block in the block list
            to the removed block's position
          */
-         this->velocity_block_list[block_index] = this->velocity_block_list[this->number_of_blocks - 1];
+         this->velocity_block_list[block_index] = this->velocity_block_list.back();
+         this->velocity_block_list.pop_back(); //remove last item
+            
 
          //copy velocity block data to the removed blocks position in order to fill the hole
          for(unsigned int i=0;i<VELOCITY_BLOCK_LENGTH;i++){
@@ -1537,25 +1533,26 @@ namespace velocity_neighbor {
          //also remove velocity block structure
          this->velocity_blocks.erase(block);
 
-
-
          //check if we can decrease memory consumption
          resize_block_data();         
       }
 
       
       /*!
-        Removes all velocity blocks from this spatial cell.
+        Removes all velocity blocks from this spatial cell and frees memory in the cell
       */
       void clear(void)
          {
-            this->velocity_blocks.clear();
-            //use the swap trick to force c++ to release the memory held by the vectors.
+            //use the swap trick to force c++ to release the memory held by the vectors & maps
+            //FIXME: we could jsut as well just set this->vector=std::vector<> ?
+            boost::unordered_map<unsigned int, Velocity_Block> ().swap(this->velocity_blocks);
+            //remove block data (value and fluxes)
             std::vector<Real,aligned_allocator<Real,64> >().swap(this->block_data);
             std::vector<Real,aligned_allocator<Real,64> >().swap(this->block_fx);
+            std::vector<unsigned int>().swap(this->velocity_block_list);
+            std::vector<unsigned int>().swap(this->mpi_velocity_block_list);
             this->number_of_blocks=0;
          }
-
 
       /*!       
         Prepares this spatial cell to receive the velocity grid over MPI.
@@ -1767,8 +1764,6 @@ namespace velocity_neighbor {
       unsigned int number_of_blocks;
       // List of velocity blocks in this cell,
       std::vector<unsigned int> velocity_block_list;
-      
-      
       //number of blocks in mpi_velocity_block_list
       unsigned int mpi_number_of_blocks;
       //this list is used for communicating a velocity block list over MPI
