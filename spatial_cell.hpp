@@ -633,10 +633,8 @@ namespace velocity_neighbor {
          this->block_fx.resize(100*SIZE_FLUXS);
          
          this->block_has_content.reserve(SpatialCell::max_velocity_blocks); 
-         this->block_address_cache.reserve(SpatialCell::max_velocity_blocks);
          for (unsigned int block = 0; block < SpatialCell::max_velocity_blocks; block++) {
             this->block_has_content.push_back(0);
-            this->block_address_cache.push_back(&(this->null_block));
          }
 
          //allocate memory for null block arrays
@@ -710,13 +708,7 @@ namespace velocity_neighbor {
          for(unsigned int i=0;i< bvolderivatives::N_BVOL_DERIVATIVES;i++){
             derivativesBVOL[i]=other.derivativesBVOL[i];
          }
-         //add pointers to block_address_cache
-         for (unsigned int block = 0; block < SpatialCell::max_velocity_blocks; block++) {
-            if( other.block_address_cache[block] == &(other.null_block))
-               this->block_address_cache.push_back(&(this->null_block));
-            else
-               this->block_address_cache.push_back(&(this->velocity_blocks.at(block)));
-         }
+
          
          // zero neighbor lists of null block
          for (unsigned int i = 0; i < N_NEIGHBOR_VELOCITY_BLOCKS; i++) {
@@ -730,7 +722,7 @@ namespace velocity_neighbor {
 
          for(unsigned int block_i=0;block_i<number_of_blocks;block_i++){
             unsigned int block=velocity_block_list[block_i];
-            Velocity_Block* block_ptr = this->block_address_cache[block];
+            Velocity_Block* block_ptr = this->at(block);
             //fix block data pointers   
             set_block_data_pointers(block_i);
             
@@ -767,28 +759,41 @@ namespace velocity_neighbor {
         Returns a pointer to the given velocity block or to
         the null block if given velocity block doesn't exist.
       */
-      Velocity_Block* at(const unsigned int block)
-         {
-            if (block == error_velocity_block
-                || block >= SpatialCell::max_velocity_blocks) {
-               return &(this->null_block);
-            } else {
-               return this->block_address_cache.at(block);
-            }
+      Velocity_Block* at(const unsigned int block){
+         // check if block cannot exist, non-allowed block index
+         if(block==error_velocity_block || block >= SpatialCell::max_velocity_blocks) {
+            return &(this->null_block);
          }
+         
+         boost::unordered_map<unsigned int, Velocity_Block>::iterator iter=this->velocity_blocks.find(block);
+         //check if it exists in map
+         if(iter == this->velocity_blocks.end()){
+            return &(this->null_block);
+         }
+         else {
+            return &(iter->second);
+         }
+      }
 
       /*!
         A const version of the non-const at function.
       */
-      Velocity_Block const* at(const unsigned int block) const
-         {
-            if (block == error_velocity_block
-                || block >= SpatialCell::max_velocity_blocks) {
-               return &(this->null_block);
-            } else {
-               return this->block_address_cache.at(block);
-            }
+      Velocity_Block const* at(const unsigned int block) const {
+         //  check if block cannot exist, non-allowed block inde        x
+         if(block==error_velocity_block || block >= SpatialCell::max_velocity_blocks) {
+            return &(this->null_block);
          }
+         
+         boost::unordered_map<unsigned int, Velocity_Block>::const_iterator iter=this->velocity_blocks.find(block);
+         //check if it exists in map
+         if(iter == this->velocity_blocks.end()){
+            return &(this->null_block);
+         }
+         else {
+            return &(iter->second);
+         }
+      }
+      
 
       bool is_null_block(Velocity_Block* block_ptr) const
          {
@@ -1269,7 +1274,7 @@ namespace velocity_neighbor {
                
                if (!neighbors_have_content) {
                   //increment rho loss counter
-                  Velocity_Block* block_ptr = this->block_address_cache[block];
+                  Velocity_Block* block_ptr = this->at(block);
                   const Real DV3 = block_ptr->parameters[BlockParams::DVX]*
                      block_ptr->parameters[BlockParams::DVY]*
                      block_ptr->parameters[BlockParams::DVZ];
@@ -1294,7 +1299,7 @@ namespace velocity_neighbor {
               ) {
             for(unsigned int block_index=0;block_index<(*neighbor)->number_of_blocks;block_index++){
                unsigned int block = (*neighbor)->velocity_block_list[block_index];
-               if ( this->block_address_cache[block] != &(this->null_block))
+               if ( this->at(block) != &(this->null_block))
                   continue; //block already exists, no need to check if we should add it
                
                if ((*neighbor)->get_block_has_content(block)) {
@@ -1324,7 +1329,7 @@ namespace velocity_neighbor {
       
 // set block data pointers. velocity_block_list needs to be up-to-date
       void set_block_data_pointers(int block_index){
-         Velocity_Block* tmp_block_ptr = this->block_address_cache[this->velocity_block_list[block_index]];
+         Velocity_Block* tmp_block_ptr = this->at(this->velocity_block_list[block_index]);
          tmp_block_ptr->data=&(this->block_data[block_index*VELOCITY_BLOCK_LENGTH]);
          tmp_block_ptr->fx=&(this->block_fx[block_index*SIZE_FLUXS]);
 
@@ -1387,15 +1392,15 @@ namespace velocity_neighbor {
          //update number of blocks
          this->number_of_blocks++;
                   
-         //set ptr into block address cache
-         this->block_address_cache[block] = &(this->velocity_blocks.at(block));
-         //get pointer to block
-         Velocity_Block* block_ptr = this->block_address_cache[block];
          //add block to list of existing blocks
          this->velocity_block_list[this->number_of_blocks-1] = block;
 
          //fix block data pointers   
          set_block_data_pointers(this->number_of_blocks-1);
+         
+         //get pointer to block
+         Velocity_Block* block_ptr = this->at(block);
+
 
 
          //clear block
@@ -1531,8 +1536,7 @@ namespace velocity_neighbor {
 
          //also remove velocity block structure
          this->velocity_blocks.erase(block);
-         //set pointer to block to null
-         this->block_address_cache[block] = &(this->null_block);
+
 
 
          //check if we can decrease memory consumption
@@ -1546,9 +1550,6 @@ namespace velocity_neighbor {
       void clear(void)
          {
             this->velocity_blocks.clear();
-            for (unsigned int i = 0; i < SpatialCell::max_velocity_blocks; i++) {
-               this->block_address_cache[i] = &(this->null_block);
-            }
             //use the swap trick to force c++ to release the memory held by the vectors.
             std::vector<Real,aligned_allocator<Real,64> >().swap(this->block_data);
             std::vector<Real,aligned_allocator<Real,64> >().swap(this->block_fx);
@@ -1758,12 +1759,6 @@ namespace velocity_neighbor {
       // data of velocity blocks that exist in this cell
       boost::unordered_map<unsigned int, Velocity_Block> velocity_blocks;
 
-      /*
-        Speed up access to velocity block addresses in the hash table above.
-        Addresses of non-existing blocks point to the null block.
-      */
-
-     std::vector<Velocity_Block*> block_address_cache;
      
      bool mpiTransferEnabled;
       
