@@ -297,11 +297,11 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
        }
      }
      
-     //send velocity block size and list
-     SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_SIZE);
+     //Transfer velocity block list
+     SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
      mpiGrid.continue_balance_load();
 
-     SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST);
+     SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
      mpiGrid.continue_balance_load();
 
      for(unsigned int i=0;i<incoming_cells_list.size();i++){
@@ -375,20 +375,48 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
 bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid, bool reInitMover) {
    phiprof::initializeTimer("re-adjust blocks","Block adjustment");
    phiprof::start("re-adjust blocks");
+   const vector<uint64_t> cells = mpiGrid.get_cells();
 
-   vector<uint64_t> cells = mpiGrid.get_cells();
-   phiprof::start("Check for content");
+   phiprof::start("Compute with_content_list");
 #pragma omp parallel for  
    for (uint i=0; i<cells.size(); ++i) 
-      mpiGrid[cells[i]]->update_all_block_has_content();     
-   phiprof::stop("Check for content");
-   phiprof::initializeTimer("Transfer block data","MPI");
-   phiprof::start("Transfer block data");
-   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_HAS_CONTENT );
+      mpiGrid[cells[i]]->update_velocity_block_content_lists();
+   phiprof::stop("Compute with_content_list");
+
+   phiprof::initializeTimer("Transfer with_content_list","MPI");
+   phiprof::start("Transfer with_content_list");
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1 );
    mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
-   phiprof::stop("Transfer block data");
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2 );
+   mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+   phiprof::stop("Transfer with_content_list");
+
    
-   adjust_local_velocity_blocks(mpiGrid);
+   //Adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
+   phiprof::start("Adjusting blocks");
+#pragma omp parallel for
+   for(unsigned int i=0;i<cells.size();i++){
+      uint64_t cell_id=cells[i];
+      SpatialCell* cell = mpiGrid[cell_id];
+
+     // gather spatial neighbor list and create vector with pointers to neighbor spatial cells
+      const vector<uint64_t>* neighbors = mpiGrid.get_neighbors(cell_id, VLASOV_SOLVER_NEIGHBORHOOD_ID);
+      vector<SpatialCell*> neighbor_ptrs;
+      neighbor_ptrs.reserve(neighbors->size());
+      for (vector<uint64_t>::const_iterator neighbor_id = neighbors->begin();
+           neighbor_id != neighbors->end(); ++neighbor_id) {
+         if (*neighbor_id == 0 || *neighbor_id == cell_id) {
+            continue;
+         }
+         neighbor_ptrs.push_back(mpiGrid[*neighbor_id]);
+      }
+      //is threadsafe
+      cell->adjust_velocity_blocks(neighbor_ptrs);
+   }
+   phiprof::stop("Adjusting blocks");
+
+   //Updated newly adjusted velocity block lists on remote cells, and
+   //prepare to receive block data
    updateRemoteVelocityBlockLists(mpiGrid);
 
    //re-init vlasovmover
@@ -401,79 +429,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid, bool reInitMover) 
    return true;
 }
 
-/*!
-Adjusts velocity blocks in local spatial cells.
 
-Doesn't adjust velocity blocks in remote cells, this has to be fixed
-by calling updateRemoteVelocityBlockLists()
-
-*/
-bool adjust_local_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
-   phiprof::start("Adjusting blocks");
-
-   const vector<uint64_t> cells = mpiGrid.get_cells();
-
-#pragma omp parallel for
-   for(unsigned int i=0;i<cells.size();i++){
-      uint64_t cell_id=cells[i];
-      SpatialCell* cell = mpiGrid[cell_id];
-      if (cell == NULL) {
-         std::cerr << __FILE__ << ":" << __LINE__
-                   << " No data for spatial cell " << cell_id
-                   << endl;
-         abort();
-      }
-      // gather spatial neighbor list
-      const vector<uint64_t>* neighbors
-      	= mpiGrid.get_neighbors(cell_id, VLASOV_SOLVER_NEIGHBORHOOD_ID);
-      vector<SpatialCell*> neighbor_ptrs;
-
-      neighbor_ptrs.reserve(neighbors->size());
-      
-      for (vector<uint64_t>::const_iterator
-           neighbor_id = neighbors->begin();
-           neighbor_id != neighbors->end();
-           ++neighbor_id
-      ) {
-         if (*neighbor_id == 0 || *neighbor_id == cell_id) {
-            continue;
-         }
-         
-         SpatialCell* neighbor = mpiGrid[*neighbor_id];
-         if (neighbor == NULL) {
-            std::cerr << __FILE__ << ":" << __LINE__
-                      << " No data for neighbor " << *neighbor_id
-                      << " of cell " << cell_id
-                      << endl;
-            abort();
-         }
-
-         neighbor_ptrs.push_back(neighbor);         
-      }
-      //is threadsafe
-      cell->adjust_velocity_blocks(neighbor_ptrs);
-   }
-   phiprof::stop("Adjusting blocks");
-   phiprof::start("Set cell weight");
-   // set cells' weights based on adjusted number of velocity blocks
-   for (std::vector<uint64_t>::const_iterator
-        cell_id = cells.begin();
-        cell_id != cells.end();
-        ++cell_id
-   ) {
-      SpatialCell* cell = mpiGrid[*cell_id];
-      if (cell == NULL) {
-         std::cerr << __FILE__ << ":" << __LINE__ << " No data for spatial cell " << *cell_id << endl;
-         abort();
-      }
-
-      
-
-   }
-   phiprof::stop("Set cell weight");
-
-   return true;
-}
 
 /*
 Updates velocity block lists between remote neighbors and prepares local
@@ -487,9 +443,9 @@ void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell>& mpiGrid)
    
    phiprof::initializeTimer("Velocity block list update","MPI");
    phiprof::start("Velocity block list update");
-   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_SIZE);
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
    mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
-   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST);
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
    mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
 
    phiprof::stop("Velocity block list update");

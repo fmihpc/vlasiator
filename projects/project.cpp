@@ -95,6 +95,7 @@ namespace projects {
                creal vy = P::vymin + (jv+0.5) * SpatialCell::block_dvy; // vy-
                creal vz = P::vzmin + (kv+0.5) * SpatialCell::block_dvz; // vz-
                //FIXME, add_velocity_blocks should  not be needed as set_value handles it!!
+               //FIXME,  We should get_velocity_block based on indices, not v
                cell->add_velocity_block(cell->get_velocity_block(vx, vy, vz));
                blocksToInitialize.push_back(cell->get_velocity_block(vx, vy, vz));
       }
@@ -125,6 +126,7 @@ namespace projects {
          for (uint kc=0; kc<WID; ++kc) 
             for (uint jc=0; jc<WID; ++jc) 
                for (uint ic=0; ic<WID; ++ic) {
+                  //FIXME, block/cell index should be handled by spatial cell function (create if it does not exist)
                   creal vxCell = vxBlock + ic*dvxCell;
                   creal vyCell = vyBlock + jc*dvyCell;
                   creal vzCell = vzBlock + kc*dvzCell;
@@ -135,6 +137,8 @@ namespace projects {
                      dvxCell,dvyCell,dvzCell);
                   
                   if(average!=0.0){
+                     //FIXME!!! set_value is slow as we again have to convert v -> index
+                     // We should set_value to a specific block index (as we already have it!)
                      creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
                      creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
                      creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;

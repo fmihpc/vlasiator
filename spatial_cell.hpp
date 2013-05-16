@@ -82,13 +82,13 @@ namespace spatial_cell {
       const uint64_t NONE                     = 0;
       const uint64_t CELL_PARAMETERS          = (1<<0);
       const uint64_t CELL_DERIVATIVES         = (1<<1);
-      const uint64_t VEL_BLOCK_LIST_SIZE      = (1<<2);
-//to update BLOCK_LIST, BLOCK_LIST_SIZE has to be updated in a separate stage
-      const uint64_t VEL_BLOCK_LIST           = (1<<3);
-      const uint64_t VEL_BLOCK_DATA           = (1<<5);
-      const uint64_t VEL_BLOCK_FLUXES         = (1<<6);
-      const uint64_t VEL_BLOCK_PARAMETERS     = (1<<7);
-      const uint64_t VEL_BLOCK_HAS_CONTENT    = (1<<8); 
+      const uint64_t VEL_BLOCK_LIST_STAGE1    = (1<<2);
+      const uint64_t VEL_BLOCK_LIST_STAGE2    = (1<<3);
+      const uint64_t VEL_BLOCK_DATA           = (1<<4);
+      const uint64_t VEL_BLOCK_FLUXES         = (1<<5);
+      const uint64_t VEL_BLOCK_PARAMETERS     = (1<<6);
+      const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE1  = (1<<7); 
+      const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE2  = (1<<8); 
       const uint64_t CELL_SYSBOUNDARYFLAG     = (1<<9);
       const uint64_t CELL_E                   = (1<<10);
       const uint64_t CELL_EDT2                = (1<<11);
@@ -625,19 +625,14 @@ namespace velocity_neighbor {
          this->number_of_blocks=0;
          this->mpi_number_of_blocks=0;
 
-         this->block_has_content.reserve(SpatialCell::max_velocity_blocks); 
-         for (unsigned int block = 0; block < SpatialCell::max_velocity_blocks; block++) {
-            this->block_has_content.push_back(0);
-         }
-
-         //allocate memory for null block arrays
+         //allocate memory for null block
          this->null_block_data.resize(VELOCITY_BLOCK_LENGTH);
          this->null_block_fx.resize(SIZE_FLUXS);
          this->null_block.data=&(this->null_block_data[0]);
          this->null_block.fx=&(this->null_block_fx[0]);
          this->sysBoundaryLayer=0; /*!< Default value, layer not yet initialized*/
-            
          this->null_block.clear();
+
          // zero neighbor lists of null block
          for (unsigned int i = 0; i < N_NEIGHBOR_VELOCITY_BLOCKS; i++) {
             this->null_block.neighbors[i] = NULL;
@@ -672,7 +667,8 @@ namespace velocity_neighbor {
          velocity_block_list(other.velocity_block_list),
          mpi_number_of_blocks(other.mpi_number_of_blocks),
          mpi_velocity_block_list(other.mpi_velocity_block_list),
-         block_has_content(other.block_has_content),
+         velocity_block_with_content_list(other.velocity_block_with_content_list),
+         velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
          block_data(other.block_data),
          block_fx(other.block_fx),
          null_block_data(other.null_block_data),
@@ -878,7 +874,7 @@ namespace velocity_neighbor {
 	       ) {
 	      
                //add data to send/recv to displacement and block length lists
-               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_SIZE)!=0){
+               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE1)!=0){
                   //first copy values in case this is the send operation
                   this->mpi_number_of_blocks=this->number_of_blocks;
                   // send velocity block list size
@@ -886,8 +882,8 @@ namespace velocity_neighbor {
                   block_lengths.push_back(sizeof(unsigned int));
                }
             
-               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST)!=0){
-                  // VEL_BLOCK_LIST_SIZE should have been trensferred already!
+               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE2)!=0){
+                  // STAGE1 should have been done, otherwise we have problems...
                   if(receiving) {
                      //mpi_number_of_blocks transferred earlier
                      this->mpi_velocity_block_list.resize(this->mpi_number_of_blocks);
@@ -906,11 +902,20 @@ namespace velocity_neighbor {
                   block_lengths.push_back(sizeof(unsigned int) * this->mpi_number_of_blocks);
                }
 
-
-               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_HAS_CONTENT)!=0){
-                  // send velocity block list, all elements as we do not know number of blocks when sending at once
-                  displacements.push_back((uint8_t*) &(this->block_has_content[0]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(char)* SpatialCell::max_velocity_blocks);
+               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1)!=0){
+                  //Communicate size of list so that buffers can be allocated on receiving side
+                  if(!receiving)
+                     this->velocity_block_with_content_list_size=this->velocity_block_with_content_list.size();
+                  displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list_size) - (uint8_t*) this);
+                  block_lengths.push_back(sizeof(unsigned int));
+               }
+               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2)!=0){
+                  if(receiving) {
+                     this->velocity_block_with_content_list.resize(this->velocity_block_with_content_list_size);
+                  }
+                  //velocity_block_with_content_list_size should first be updated, before this can be done (STAGE1)
+                  displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list[0]) - (uint8_t*) this);
+                  block_lengths.push_back(sizeof(unsigned int)*this->velocity_block_with_content_list_size);
                }
 
                if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA)!=0){
@@ -1033,20 +1038,6 @@ namespace velocity_neighbor {
 
       /*!
         Returns true if given velocity block has enough of a distribution function.
-        Returns Fals othwerwise, also returns false if given block doesn't exist or is an error block.   
-        Reads data from the precomputed array  that is computed using update_all_block_has_content.
-      */
-      bool get_block_has_content(
-         const unsigned int block
-         ) const
-         {
-            if (block == error_velocity_block) {
-               return false;
-            }
-            return (this->block_has_content[block]!=0);
-         }
-      /*!
-        Returns true if given velocity block has enough of a distribution function.
         Returns false if the value of the distribution function is too low in every
         sense in given block.
         Also returns false if given block doesn't exist or is an error block.
@@ -1062,8 +1053,6 @@ namespace velocity_neighbor {
          
          for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
             if (block_ptr->data[i] >= SpatialCell::velocity_block_min_value) {
-// FIXME, temporary disabling of fabs -> cfg parameter
-//            if (fabs(block_ptr->data[i]) >= SpatialCell::velocity_block_min_value) {
                has_content = true;
                break;
             }
@@ -1071,21 +1060,25 @@ namespace velocity_neighbor {
          
          return has_content;
       }
-   
-      void update_all_block_has_content(void){
-       for (unsigned int i = 0; i < SpatialCell::max_velocity_blocks; i++) {
-         //clear list, not really needed if only existing blocks are read, but safest to add.
-         this->block_has_content[i]=0;
-       }
-     
-       for(unsigned int block_index=0;block_index<this->number_of_blocks;block_index++){
-         unsigned int block = this->velocity_block_list[block_index];
-         if(this->compute_block_has_content(block)){
-            this->block_has_content[block]=1;
+
+      /*!
+        Update the two lists containing blocks with content, and blocks without content.
+      */
+      void update_velocity_block_content_lists(void){
+         this->velocity_block_with_content_list.clear();
+         this->velocity_block_with_no_content_list.clear();
+         
+         for(unsigned int block_index=0;block_index<this->number_of_blocks;block_index++){
+            unsigned int block = this->velocity_block_list[block_index];
+            if(this->compute_block_has_content(block)){
+               this->velocity_block_with_content_list.push_back(block);
+            }
+            else{
+               this->velocity_block_with_no_content_list.push_back(block);
+            }
          }
-       }
-       
-     }
+         
+      }
      
       /*!
         Returns the total value of the distribution function within this spatial cell.
@@ -1161,10 +1154,12 @@ namespace velocity_neighbor {
 
       /*!  Adds "important" and removes "unimportant" velocity blocks
         to/from this cell.
-      
-        block_has_content list needs to be up to date in local cells
-        and its neighbours, update_all_block_has_content() should have
-        been called with the current distribution function values.
+        
+        velocity_block_with_content_list needs to be up to date in local and remote cells.
+        velocity_block_with_no_content_list needs to be up to date in local cells.
+        
+        update_velocity_block_with_content_lists() should have
+        been called with the current distribution function values, and then the contetn list transferred.
         
         Removes all velocity blocks from this spatial cell which don't
         have content and don't have spatial or velocity neighbors with
@@ -1180,92 +1175,54 @@ namespace velocity_neighbor {
       */
       void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors, bool doDeleteEmptyBlocks=true)
       {
-         //initialize tree of timers to make sure every process has timers, even for processes with no velocity cells.
-         //Also reduces overhead in tight loops compared to simple interface
-/*         
-         int pcontent = phiprof::initializeTimer("add_in_velocityspace");
-         int pempty = phiprof::initializeTimer("try_to_remove");
-         phiprof::start(pempty);
-         int pcheckvel=phiprof::initializeTimer("check vel space ngbrs");
-         int pcheckreal=phiprof::initializeTimer("check real space ngbrs");
-         int premove=phiprof::initializeTimer("remove");
-         phiprof::stop(pempty);
-         int paddreal=phiprof::initializeTimer("add_for_realspace");
-*/       
+         //  This set contains all those cellids which have neighbors in any
+         //  of the 6-dimensions Actually, we would only need to add
+         //  local blocks with no content here, as blocks with content
+         //  do not need to be created and also will not be removed as
+         //  we only check for removal for blocks with no content
+         boost::unordered_set<unsigned int> neighbors_have_content;
+         
+         //add neighbor content info for velocity space neighbors to map. We loop over blocks
+         //with content and raise the neighbors_have_content for
+         //itself, and for all its neighbors
+         for(unsigned int block_index=0;block_index< this->velocity_block_with_content_list.size();block_index++){
+            unsigned int block = this->velocity_block_with_content_list[block_index];
+            neighbors_have_content.insert(block); //also add the cell itself
+            for(int offset_vx=-P::sparseBlockAddWidthV;offset_vx<=P::sparseBlockAddWidthV;offset_vx++)
+               for(int offset_vy=-P::sparseBlockAddWidthV;offset_vy<=P::sparseBlockAddWidthV;offset_vy++)
+		  for(int offset_vz=-P::sparseBlockAddWidthV;offset_vz<=P::sparseBlockAddWidthV;offset_vz++){                  
+                     const unsigned int neighbor_block = get_velocity_block_from_offsets(block, offset_vx,offset_vy,offset_vz);
+                     if (neighbor_block == error_velocity_block) {
+                        continue;
+                     }
+                     neighbors_have_content.insert(neighbor_block);
+                  }
+         }
+         //add neighbor content info for spatial space neighbors to map. We loop over
+         //neighbor cell lists with existing blocks, and raise the
+         //flag for the local block with same block id
+         for (std::vector<SpatialCell*>::const_iterator neighbor = spatial_neighbors.begin();
+              neighbor != spatial_neighbors.end(); neighbor++ ) {
+            for(unsigned int block_index=0;block_index< (*neighbor)->velocity_block_with_content_list.size();block_index++){
+               unsigned int block = (*neighbor)->velocity_block_with_content_list[block_index];
+               neighbors_have_content.insert(block);
+            }
+         }
 
-         // don't iterate over blocks created / removed by this function
-         std::vector<unsigned int> original_block_list;
-         original_block_list.reserve(this->velocity_block_list.size());
-         for(unsigned int block_index=0;block_index<this->number_of_blocks;block_index++){
-            unsigned int block = this->velocity_block_list[block_index];
-            original_block_list.push_back(block);
+         // ADD all blocks with neighbors in spatial or velocity space (if it exists then the block is unchanged)
+         for (boost::unordered_set<unsigned int>::iterator it= neighbors_have_content.begin(); it != neighbors_have_content.end();++it) {
+            this->add_velocity_block(*it);
          }
          
-         // remove all blocks in this cell without content + without neighbors with content
-         // add neighboring blocks in velocity space for blocks with content
-         for(unsigned int block_index=0;block_index< original_block_list.size();block_index++){
-	   unsigned int block = original_block_list[block_index];
-	   const bool original_has_content = this->get_block_has_content(block);
-            
-            if (original_has_content) {             
-               //             phiprof::start(pcontent);
-               // add missing neighbors in velocity space
-	      
-	      for(int offset_vx=-P::sparseBlockAddWidthV;offset_vx<=P::sparseBlockAddWidthV;offset_vx++)
-		for(int offset_vy=-P::sparseBlockAddWidthV;offset_vy<=P::sparseBlockAddWidthV;offset_vy++)
-		  for(int offset_vz=-P::sparseBlockAddWidthV;offset_vz<=P::sparseBlockAddWidthV;offset_vz++){                  
-		    const unsigned int neighbor_block = get_velocity_block_from_offsets(block, offset_vx,offset_vy,offset_vz);
-		    if (neighbor_block == error_velocity_block) {
-		      continue;
-		    }
-		    
-		    if (!this->add_velocity_block(neighbor_block)) {
-		      std::cerr << __FILE__ << ":" << __LINE__
-				<< " Failed to add neighbor block " << neighbor_block
-				<< " for block " << block
-				<< std::endl;
-		      abort();
-		    }
-		  }
-               //  phiprof::stop(pcontent);
-
-            }
-            else if(doDeleteEmptyBlocks) {
-               //  phiprof::start(pempty);
-               // remove local block if also no neighbor has content
-               bool neighbors_have_content = false;
-
-//                     phiprof::start(pcheckvel);
-               // velocity space neighbors
-               for(int offset_vx=-P::sparseBlockAddWidthV;offset_vx<=P::sparseBlockAddWidthV;offset_vx++)
-               for(int offset_vy=-P::sparseBlockAddWidthV;offset_vy<=P::sparseBlockAddWidthV;offset_vy++)
-               for(int offset_vz=-P::sparseBlockAddWidthV;offset_vz<=P::sparseBlockAddWidthV;offset_vz++) {
-                  const unsigned int neighbor_block = get_velocity_block_from_offsets(block, offset_vx,offset_vy,offset_vz);
-                  if (this->get_block_has_content(neighbor_block)) { 
-                     neighbors_have_content = true;
-                     break;
-                  }
-               }
-               //  phiprof::stop(pcheckvel);
-               // phiprof::start(pcheckreal);
-               // real space neighbors
-               if(!neighbors_have_content){
-                  for (std::vector<SpatialCell*>::const_iterator
-                          neighbor = spatial_neighbors.begin();
-                       neighbor != spatial_neighbors.end();
-                       neighbor++
-                       ) {
-                     if ((*neighbor)->get_block_has_content(block)) {
-                        neighbors_have_content = true;
-                        break;
-                     }
-                  }
-               }
-               //   phiprof::stop(pcheckreal);
-               // phiprof::start(premove);
-               
-               if (!neighbors_have_content) {
-                  //increment rho loss counter
+         
+         // REMOVE all blocks in this cell without content + without neighbors with content
+         if(doDeleteEmptyBlocks) {
+            for(unsigned int block_index=0;block_index< this->velocity_block_with_no_content_list.size();block_index++){
+               unsigned int block = this->velocity_block_with_no_content_list[block_index];
+               boost::unordered_set<unsigned int>::iterator it = neighbors_have_content.find(block);
+               if(it==neighbors_have_content.end()) {
+                  //No content, and also no neighbor have content -> remove
+                  //increment rho loss counters
                   Velocity_Block* block_ptr = this->at(block);
                   const Real DV3 = block_ptr->parameters[BlockParams::DVX]*
                      block_ptr->parameters[BlockParams::DVY]*
@@ -1274,40 +1231,11 @@ namespace velocity_neighbor {
                   for(unsigned int i=0;i<WID3;i++)
                      sum+=block_ptr->data[i];
                   this->parameters[CellParams::RHOLOSSADJUST]+=DV3*sum;
+                  //and finally remove block
                   this->remove_velocity_block(block);
                }
-               // phiprof::stop(premove);
-               // phiprof::stop(pempty);
-               
             }
          }
-
-         // add local blocks for neighbors in real space with content
-         //     phiprof::start(paddreal);
-         for (std::vector<SpatialCell*>::const_iterator
-            neighbor = spatial_neighbors.begin();
-            neighbor != spatial_neighbors.end();
-            neighbor++
-              ) {
-            for(unsigned int block_index=0;block_index<(*neighbor)->number_of_blocks;block_index++){
-               unsigned int block = (*neighbor)->velocity_block_list[block_index];
-               if ( this->at(block) != &(this->null_block))
-                  continue; //block already exists, no need to check if we should add it
-               
-               if ((*neighbor)->get_block_has_content(block)) {
-                  this->add_velocity_block(block);
-               }
-            }
-         }
-         //  phiprof::stop(paddreal);
-
-         //A normal non-sysboundary cell has to have more than zero blocks!
-         //This aborts such simulations to avoid waisting CPU resources on a simulation gone bad
-         if( this->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && this->number_of_blocks<=0 )  {
-            std::cerr<< "Cell has zero blocks. Aborting!" <<std::endl;
-            exit(1);
-         }
-         
       }
       
       void adjustSingleCellVelocityBlocks() {
@@ -1315,7 +1243,7 @@ namespace velocity_neighbor {
          //data in neighbours yet, adjustments done only based on velocity
          //space. Do not delete blocks, because otherwise we might loose teneous flow in spatial space
          std::vector<SpatialCell*> neighbor_ptrs;
-         this->update_all_block_has_content();
+         this->update_velocity_block_content_lists();
          this->adjust_velocity_blocks(neighbor_ptrs,false);
       }
       
@@ -1365,6 +1293,10 @@ namespace velocity_neighbor {
         of the velocity grid.
       */
       bool add_velocity_block(const unsigned int block) {
+         if (this->velocity_blocks.count(block) > 0) {
+            return true;
+         }
+
          if (block == error_velocity_block) {
             std::cerr << "ERROR: trying to add a block with the key error_velocity_block!" << std::endl;
             return false;
@@ -1375,9 +1307,6 @@ namespace velocity_neighbor {
             return false;
          }
 
-         if (this->velocity_blocks.count(block) > 0) {
-            return true;
-         }
 
          //create block
          this->velocity_blocks[block];
@@ -1445,25 +1374,6 @@ namespace velocity_neighbor {
          return true;
       }
       
-      /*!
-        Adds all velocity blocks than don't exist into the velocity grid.
-
-        Returns true if all non-existing blocks were added, false otherwise.
-      */
-      bool add_all_velocity_blocks(void)
-         {
-            bool result = true;
-            for (unsigned int i = 0; i < SpatialCell::max_velocity_blocks; i++) {
-               if (this->velocity_blocks.count(i) > 0) {
-                  continue;
-               }
-
-               if (!this->add_velocity_block(i)) {
-                  result = false;
-               }
-            }
-            return result;
-         }
 
 
       /*!
@@ -1753,14 +1663,14 @@ namespace velocity_neighbor {
       Velocity_Block null_block;
 
 
-      // data of velocity blocks that exist in this cell
+      //Storage container for velocity blocks that exist in this cell
       boost::unordered_map<unsigned int, Velocity_Block> velocity_blocks;
 
      
      bool mpiTransferEnabled;
       
    public:
-      //number of blocks in cell
+      //number of blocks in cell (should be equal to velocity_block_list.size())
       unsigned int number_of_blocks;
       // List of velocity blocks in this cell,
       std::vector<unsigned int> velocity_block_list;
@@ -1768,15 +1678,20 @@ namespace velocity_neighbor {
       unsigned int mpi_number_of_blocks;
       //this list is used for communicating a velocity block list over MPI
       std::vector<unsigned int>  mpi_velocity_block_list;
-     
-     /*bool list telling if a block has content or not, uses actual blocks as indexes and not the order in velocity_block_list
-       This is only guaranteed to be up to date after update_all_block_has_content() has been called.
-      */
 
-      std::vector<char> block_has_content;
+      //List of existing cells with content, only up-to-date after
+      //call to update_has_content
+      std::vector<unsigned int> velocity_block_with_content_list;
+      //Size of vector. Needed for MPI communication of size before actual list transfer.
+      unsigned int velocity_block_with_content_list_size;
+      //List of existing cells with no content, only up-to-date after
+      //call to update_has_content. This is also never transferred
+      //over MPI, so is invalid on remote cells
+      std::vector<unsigned int> velocity_block_with_no_content_list;
+      
 
-
-      //vectors for storing block data
+      //vectors for storing block data. We set pointers to this
+      //datastorage in set_block_date_pointers()
       std::vector<Real,aligned_allocator<Real,64> > block_data;
       std::vector<Real,aligned_allocator<Real,64> > block_fx;
 
