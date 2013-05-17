@@ -1247,7 +1247,12 @@ namespace velocity_neighbor {
          this->adjust_velocity_blocks(neighbor_ptrs,false);
       }
       
-// set block data pointers. velocity_block_list needs to be up-to-date
+      //set block data pointers data and fx for block
+      //velocity_block_list[block_index], so that they point to the
+      //same index as in block_list in the block_data and block_fx
+      //which contain all data for all blocks. It just sets the
+      //pointers and does not care about what is there earlier.
+      //velocity_block_list needs to be up-to-date
       void set_block_data_pointers(int block_index){
          Velocity_Block* tmp_block_ptr = this->at(this->velocity_block_list[block_index]);
          tmp_block_ptr->data=&(this->block_data[block_index*VELOCITY_BLOCK_LENGTH]);
@@ -1266,7 +1271,6 @@ namespace velocity_neighbor {
       //If there is free space for more than 2*block_allocation_chunk
       //blocks, resize it so that we have free space for an additional
       //block_allocation_chunks blocks.
-
       void resize_block_data(){
          const int block_allocation_chunk=100;
          
