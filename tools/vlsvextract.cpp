@@ -408,17 +408,19 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader, const string& meshName, cons
 
    const int N_dims = 3; // Number of dimensions
    const int N_nodes = nodes.size(); // Total number of nodes
-   const int N_zones = N_blocks * 64; // Total number of zones (=spatial cells)
+   const int N_zones = N_blocks * 64; // Total number of zones (=velocity cells)
    int shapeTypes[] = {DB_ZONETYPE_HEX}; // Hexahedrons only
    int shapeSizes[] = {8}; // Each hexahedron has 8 nodes
    int shapeCnt[] = {N_zones}; // Only 1 shape type (hexahedron)
    const int N_shapes = 1; //  -- "" --
-
+   
    void* coords[3]; // Pointers to coordinate arrays
    coords[0] = vx_crds;
    coords[1] = vy_crds;
    coords[2] = vz_crds;
-
+   
+   // TODO convert them to another basis here...
+   
    // Write zone list into silo file:
    stringstream ss;
    ss << "VelGrid" << cellID;
