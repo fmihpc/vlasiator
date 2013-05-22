@@ -492,4 +492,147 @@
         <Field name="dbName" type="string">__none__</Field>
         <Field name="autoExpression" type="bool">false</Field>
     </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">gyrotropicity/theta</Field>
+        <Field name="definition" type="string">"if(
+   and(
+      eq(\<volume/By\>, 0.0),
+      eq(\<volume/Bx\>, 0.0)
+   ),
+   0.0,
+   acos(\<volume/Bz\> / B_vol_magnitude)
+)"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">gyrotropicity/u</Field>
+        <Field name="definition" type="string">"if(
+   and(
+      eq(\<volume/By\>, 0.0),
+      eq(\<volume/Bx\>, 0.0)
+   ),
+   {0.0, 0.0, 0.0},
+   {\<volume/By\>, -\<volume/Bx\>, 0.0} / (B_vol_magnitude * sin(\<gyrotropicity/theta\>))
+)"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">VectorMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">gyrotropicity/ux</Field>
+        <Field name="definition" type="string">\<gyrotropicity/u\>[0]</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">gyrotropicity/uy</Field>
+        <Field name="definition" type="string">\<gyrotropicity/u\>[1]</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">gyrotropicity/uz</Field>
+        <Field name="definition" type="string">\<gyrotropicity/u\>[2]</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">gyrotropicity/R</Field>
+        <Field name="definition" type="string">"if(
+   and(
+      eq(\<volume/By\>, 0.0),
+      eq(\<volume/Bx\>, 0.0)
+   ),
+   {{1.0, 0.0, 0.0},
+    {0.0, 1.0, 0.0},
+    {0.0, 0.0, 1.0}},
+   {
+      {cos(\<gyrotropicity/theta\>) + \<gyrotropicity/ux\>^2 * (1.0 - cos(\<gyrotropicity/theta\>)),
+      \<gyrotropicity/ux\> * \<gyrotropicity/uy\> * (1.0 - cos(\<gyrotropicity/theta\>)) - \<gyrotropicity/uz\> * sin(\<gyrotropicity/theta\>),
+      \<gyrotropicity/ux\> * \<gyrotropicity/uz\> * (1.0 - cos(\<gyrotropicity/theta\>)) + \<gyrotropicity/uy\> * sin(\<gyrotropicity/theta\>)},
+
+      {\<gyrotropicity/uy\> * \<gyrotropicity/ux\> * (1.0 - cos(\<gyrotropicity/theta\>)) + \<gyrotropicity/uz\> * sin(\<gyrotropicity/theta\>),
+      cos(\<gyrotropicity/theta\>) + \<gyrotropicity/uy\>^2 * (1.0 - cos(\<gyrotropicity/theta\>)),
+      \<gyrotropicity/uy\> * \<gyrotropicity/uz\> * (1.0 - cos(\<gyrotropicity/theta\>)) - \<gyrotropicity/ux\> * sin(\<gyrotropicity/theta\>)},
+
+      {\<gyrotropicity/uz\> * \<gyrotropicity/ux\> * (1.0 - cos(\<gyrotropicity/theta\>)) - \<gyrotropicity/uy\> * sin(\<gyrotropicity/theta\>),
+      \<gyrotropicity/uz\> * \<gyrotropicity/uy\> * (1.0 - cos(\<gyrotropicity/theta\>)) + \<gyrotropicity/ux\> * sin(\<gyrotropicity/theta\>),
+      cos(\<gyrotropicity/theta\>) + \<gyrotropicity/uz\>^2 * (1.0 - cos(\<gyrotropicity/theta\>))}
+   }
+)"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">TensorMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">PTensor_rotated</Field>
+        <Field name="definition" type="string">\<gyrotropicity/R\>*PTensor</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">TensorMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">gyrotropicity/V_to_B</Field>
+        <Field name="definition" type="string">"\<gyrotropicity/R\>*{0.0, 0.0, \<volume/Vz\>}"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">VectorMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">gyrotropicity/gyrotropicity</Field>
+        <Field name="definition" type="string">"2.0 * (PTensor_rotated[0][1] - PTensor_rotated[1][0]) / (PTensor_rotated[0][1] + PTensor_rotated[1][0])"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
 </Object>
