@@ -141,8 +141,12 @@ bool VLSVWriter::open(const std::string& fname,MPI_Comm comm,const int& MASTERRA
 return success;
 }
 
-bool VLSVWriter::startMultiwrite(const std::string& dataType,const uint64_t& arraySize,
-                                 const uint64_t& vectorSize,const uint64_t& dataSize) {
+bool VLSVWriter::startMultiwrite(
+    const std::string& dataType,
+    const uint64_t& arraySize,
+    const uint64_t& vectorSize,
+    const uint64_t& dataSize
+) {
     bool success = true;
     
    // Calculate the amount of data written by this process in bytes, 
