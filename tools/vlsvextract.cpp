@@ -34,13 +34,12 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 //O:
 #include "./Eigen/Dense"
 
-//O:
-//#include "vlsvrotation.h"
-
 using namespace std;
 //O:
 /////////////////
 using namespace Eigen;
+//If we want to rotate: (Do this properly later on)
+#define _ROTATE_V_TO_Z
 /////////////////
 
 static DBfile* fileptr = NULL; // Pointer to file opened by SILO
@@ -428,12 +427,14 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader, const string& meshName, cons
    const int N_shapes = 1; //  -- "" --
 
    //O: This is moved and edited to coords[0] = vx_crds_rotated, (Done later on)
-   /*
+   #ifndef _ROTATE_V_TO_Z
+
    void* coords[3]; // Pointers to coordinate arrays
    coords[0] = vx_crds;
    coords[1] = vy_crds;
    coords[2] = vz_crds;
-   */
+
+   #else
 
    // TODO convert them to another basis here...
    //O:
@@ -553,6 +554,7 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader, const string& meshName, cons
    coords[0] = vx_crds_rotated;
    coords[1] = vy_crds_rotated;
    coords[2] = vz_crds_rotated;
+   #endif
 
 
    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -576,9 +578,11 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader, const string& meshName, cons
    delete bc_buffer;
    //O:
    ////////////////////////////////////
+   #ifdef _ROTATE_V_TO_Z
    delete[] vx_crds_rotated;
    delete[] vy_crds_rotated;
    delete[] vz_crds_rotated;
+   #endif
    ////////////////////////////////////
 
    list<string> blockVarNames;
