@@ -1,3 +1,13 @@
+//SVA
+// Comments
+//  Do not include eigen in our svn, it should be installed like any other library
+//  Why does svn show that the whole/most of the document has changed, did you change whitespacing?
+//  Do not use ifdefs to define rotation, parameter or possibly too meshes in silo
+//  Separate rotation into separate function
+//  the complete B_vol is read in but not used, remove.
+
+
+  
 /*
 This file is part of Vlasiator.
 
