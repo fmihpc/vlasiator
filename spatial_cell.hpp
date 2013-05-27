@@ -820,6 +820,7 @@ namespace velocity_neighbor {
                   abort();
                }
             }
+            
             Velocity_Block* block_ptr = &(this->velocity_blocks.at(block));
             if (block_ptr == NULL) {
                std::cerr << __FILE__ << ":" << __LINE__
@@ -829,6 +830,31 @@ namespace velocity_neighbor {
 
             const unsigned int cell = get_velocity_cell(block, vx, vy, vz);
             block_ptr->data[cell] = value;
+      }
+
+      
+      /*!
+        Increments the value of velocity cell at given coordinate-
+
+        Creates the velocity block at given coordinates if it doesn't exist.
+      */
+      void increment_value(const Real vx, const Real vy, const Real vz, const Real value) {
+            const unsigned int block = get_velocity_block(vx, vy, vz);
+            if (this->velocity_blocks.count(block) == 0) {
+               if (!this->add_velocity_block(block)) {
+                  std::cerr << "Couldn't add velocity block " << block << std::endl;
+                  abort();
+               }
+            }
+            Velocity_Block* block_ptr = &(this->velocity_blocks.at(block));
+            if (block_ptr == NULL) {
+               std::cerr << __FILE__ << ":" << __LINE__
+                  << " block_ptr == NULL" << std::endl;
+               abort();
+            }
+
+            const unsigned int cell = get_velocity_cell(block, vx, vy, vz);
+            block_ptr->data[cell] += value;
       }
       
       /*!

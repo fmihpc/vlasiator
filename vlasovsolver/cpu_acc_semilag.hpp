@@ -95,6 +95,7 @@ void cpu_accelerate_cell(
    spatial_cell->parameters[CellParams::RHOVX_V] = 0.0;
    spatial_cell->parameters[CellParams::RHOVY_V] = 0.0;
    spatial_cell->parameters[CellParams::RHOVZ_V] = 0.0;
+   
    for(unsigned int block_i=0; block_i< spatial_cell->number_of_blocks;block_i++){
       unsigned int block = spatial_cell->velocity_block_list[block_i];         
       cpu_calcVelocityMoments(spatial_cell,block,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V);   
@@ -108,24 +109,7 @@ void cpu_accelerate_cell(
                                  spatial_cell->parameters[CellParams::RHOVY_V]/rho,
                                  spatial_cell->parameters[CellParams::RHOVZ_V]/rho);   
 
-
    
-   /*copy distribution function values into the flux table, and zero the existing distribution function*/
-   for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
-      const unsigned int block = spatial_cell->velocity_block_list[block_i];
-      Velocity_Block* block_ptr = spatial_cell->at(block);
-      for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
-         block_ptr->fx[cell] = block_ptr->data[cell];
-         block_ptr->data[cell] = 0.0;
-      }
-   }
-   
-   // Make a copy of the blocklist as we don't want to iterate over blocks added by this function
-   std::vector<unsigned int> blocks;
-   for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
-      blocks.push_back(spatial_cell->velocity_block_list[block_i]);
-   }
-
    /*compute total transformation*/
    Transform<double,3,Affine> total_transform;
    const unsigned int bulk_velocity_substeps=dt/(gyro_period*(0.1/360.0)); /*!<in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep*/
@@ -149,8 +133,66 @@ void cpu_accelerate_cell(
       total_transform*=Translation<double,3>(rotation_origin);
    }
 
-   cout<< total_transform.matrix();
+   cout << "Old bulk velocity "<< bulk_velocity << " new bulk velocity "<<  total_transform*bulk_velocity<<endl;
+   /*update bulk velocity, have not yet rotated the dist function*/
+   bulk_velocity=total_transform*bulk_velocity;
+   spatial_cell->parameters[CellParams::RHOVX_V] = rho*bulk_velocity[0];
+   spatial_cell->parameters[CellParams::RHOVY_V] = rho*bulk_velocity[1];
+   spatial_cell->parameters[CellParams::RHOVZ_V] = rho*bulk_velocity[2];
+
+
    
+   // Make a copy of the blocklist as we don't want to iterate over blocks added by this function
+   std::vector<unsigned int> blocks;
+   for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
+      blocks.push_back(spatial_cell->velocity_block_list[block_i]);
+   }
+
+   
+   /*copy distribution function values into the flux table, and zero the existing distribution function*/
+   for (unsigned int block_i = 0; block_i < blocks.size(); block_i++) {
+      const unsigned int block = blocks[block_i];
+      Velocity_Block* block_ptr = spatial_cell->at(block);
+      for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
+         block_ptr->fx[cell] = block_ptr->data[cell];
+         block_ptr->data[cell] = 0.0;
+      }
+   }
+   
+
+   const int subcells=3;
+   const double sub_dvx = SpatialCell::cell_dvx / subcells,
+      sub_dvy = SpatialCell::cell_dvy / subcells,
+      sub_dvz = SpatialCell::cell_dvz / subcells;        
+
+   /*do the actual accerelation operation*/
+   /*PERF TODO, instead of doing these transformations in velocity units, we could do them in index units (assuming dvx=dvy=dvz =>
+     would get rid od a lot of computing back and forth of velocities and indices*/
+   /*QUALITY TODO, interpolations, better integration (take into account overlap, hwo to combine with interpolation?*/
+   
+   for (unsigned int block_i = 0; block_i < blocks.size(); block_i++) {
+      const unsigned int block = blocks[block_i];
+      Velocity_Block* block_ptr = spatial_cell->at(block);
+      for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
+         const double cell_vx_min = SpatialCell::get_velocity_cell_vx_min(block, cell);
+         const double cell_vy_min = SpatialCell::get_velocity_cell_vy_min(block, cell);
+         const double cell_vz_min = SpatialCell::get_velocity_cell_vz_min(block, cell);
+         
+         const double subcell_rho = block_ptr->fx[cell] / (subcells*subcells*subcells);
+
+         for (int x_i = 0; x_i < subcells; x_i++)
+            for (int y_i = 0; y_i < subcells; y_i++)
+               for (int z_i = 0; z_i < subcells; z_i++) {
+                  Vector3d subcell_position(cell_vx_min + (x_i + 0.5) * sub_dvx,
+                                            cell_vy_min + (y_i + 0.5) * sub_dvy,
+                                            cell_vz_min + (z_i + 0.5) * sub_dvz);
+                  Vector3d subcell_new_position=total_transform*subcell_position;
+                  spatial_cell->increment_value(subcell_new_position[0],
+                                                subcell_new_position[1],
+                                                subcell_new_position[2],subcell_rho);
+               }
+      }
+   }
 }
 
 
