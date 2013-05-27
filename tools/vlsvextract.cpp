@@ -208,6 +208,167 @@ bool convertVelocityBlockVariable(VLSVReader& vlsvReader, const string& spatGrid
    return success;
 }
 
+Real * GetBVol( VLSVReader& vlsvReader, const string& meshName, const uint64_t& cellID ) {
+
+   //Get B_vol:
+
+   //Declarations
+
+   VLSV::datatype meshDataType;
+
+   uint64_t meshArraySize, meshVectorSize, meshDataSize;
+
+
+
+   //Output: meshArraySize, meshVectorSize, meshDataType, meshDatasize (inside if() because getArray is bool and returns false if something unexpected happens)
+
+   if (vlsvReader.getArrayInfo("MESH", meshName, meshArraySize, meshVectorSize, meshDataType, meshDataSize) == false) return false;
+
+
+
+   // Declare buffers and allocate memory
+
+   char * meshBuffer = new char[meshArraySize*meshVectorSize*meshDataSize];
+
+
+
+   //read the array into meshBuffer starting from 0 up until meshArraySize which was received from getArrayInfo
+
+   if (vlsvReader.readArray("MESH",meshName,0,meshArraySize,meshBuffer) == false) return false;
+
+
+
+   // Search for the given cellID:
+
+   uint64_t cellIndex = numeric_limits<uint64_t>::max();
+
+
+
+   for (uint64_t cell = 0; cell < meshArraySize; ++cell) {
+
+      //the CellID are not sorted in the array, so we'll have to search the array -- the CellID is stored in mesh
+
+      const uint64_t readCellID = convUInt(meshBuffer + cell*meshDataSize, meshDataType, meshDataSize);
+
+      if (cellID == readCellID) {
+
+         //Found the right cell ID, break
+
+         cellIndex = cell;
+
+         break;
+
+      }
+
+   }
+
+   if (cellIndex == numeric_limits<uint64_t>::max()) {
+
+      //cerr << "Spatial cell #" << cellID << " not found!" << endl;
+
+      return false;
+
+   }
+
+
+
+   //These are needed to determine the buffer size.
+
+   VLSV::datatype variableDataType;
+
+   uint64_t variableArraySize, variableVectorSize, variableDataSize;
+
+   //getArrayInfo output: variableArraysize, variableVectorSize, ...
+
+   if (vlsvReader.getArrayInfo("VARIABLE", "B_vol", meshName, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) return false;
+
+   //Declare a buffer for reading the specific vector from the array
+
+   char * the_actual_buffer = new char[variableVectorSize * variableDataSize];     //Needs to store vector times data size (Got that from getArrayInfo)
+
+   Real * the_actual_buffer_ptr = reinterpret_cast<Real*>(the_actual_buffer);
+
+   //The corresponding B vector is in the cellIndex we got from mesh -- we only need to read one vector -- that's why the '1' parameter
+
+   const uint64_t numOfVecs = 1;
+
+   //store the vector in the_actual_buffer buffer -- the data is extracted vector at a time
+
+   if(vlsvReader.readArray("VARIABLE", "B_vol", cellIndex, numOfVecs, the_actual_buffer) == false) return false;
+
+   //Return the B_vol vector in Real* form
+
+   return the_actual_buffer_ptr;
+
+}
+
+void doRotation(
+
+  Real * vx_crds_rotated, Real * vy_crds_rotated, Real * vz_crds_rotated,
+
+  const Real * vx_crds, const Real * vy_crds, const Real * vz_crds, 
+
+  const Real * B_vol, const unsigned int vec_size
+
+ 	      ) {
+   //NOTE: assuming that B_vol is a vector of size 3 and that _crds_rotated has been allocated
+
+   //Using eigen3 library here.
+
+   //Now we have the B_vol vector, so now the idea is to rotate the v-coordinates so that B_vol always faces z-direction
+
+   //Since we're handling only one spatial cell, B_vol is the same in every v-coordinate.
+
+
+
+   Matrix<Real, 3, 1> _B(B_vol[0], B_vol[1], B_vol[2]);
+
+   Matrix<Real, 3, 1> unit_z(0, 0, 1);                    //Unit vector in z-direction
+
+   Matrix<Real, 3, 1> Bxu = -1*_B.cross( unit_z );        //Cross product of B and unit_z //Remove -1 if necessary -- just that I think it's the other way around
+
+   //Check if divide by zero -- if there's division by zero, the B vector is already in the direction of z-axis
+
+   //Note: Bxu[2] is zero so it can be removed if need be but because of the loop later on it won't really make a difference in terms of performance
+
+   if( (Bxu[0]*Bxu[0] + Bxu[1]*Bxu[1] + Bxu[2]*Bxu[2]) != 0 ) {
+
+      //Determine the axis of rotation: (Note: Bxu[2] is zero)
+
+      Matrix<Real, 3, 1> axisDir = Bxu/(sqrt(Bxu[0]*Bxu[0] + Bxu[1]*Bxu[1] + Bxu[2]*Bxu[2]));
+
+      //Determine the angle of rotation: (No need for a check for div/by/zero because of the above check)
+
+      Real rotAngle = acos(_B[2] / sqrt(_B[0]*_B[0] + _B[1]*_B[1] + _B[2]*_B[2])); //B_z / |B|
+
+      //Determine the rotation matrix:
+
+      Transform<Real, 3, 3> rotationMatrix( AngleAxis<Real>(rotAngle, axisDir) );
+
+
+
+      for( unsigned int i = 0; i < vec_size; ++i ) {
+
+         Matrix<Real, 3, 1> _v(vx_crds[i], vy_crds[i], vz_crds[i]);
+
+         //Now we have the velocity vector. Let's rotate it in z-dir and save the rotated vec
+
+         Matrix<Real, 3, 1> rotated_v = rotationMatrix*_v;
+
+         //Save values:
+
+         vx_crds_rotated[i] = rotated_v[0];
+
+         vy_crds_rotated[i] = rotated_v[1];
+
+         vz_crds_rotated[i] = rotated_v[2];
+
+      }
+
+   }
+
+}
+
 bool convertVelocityBlocks2(VLSVReader& vlsvReader, const string& meshName, const uint64_t& cellID) {
    //return true;
    bool success = true;
@@ -450,115 +611,27 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader, const string& meshName, cons
    //O:
    //Get B:
    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-   //An attempt at documentation..
-   //Declarations
-   VLSV::datatype meshDataType;
-   VLSV::datatype variableDataType;
-   uint64_t meshArraySize, meshVectorSize, meshDataSize;
-   uint64_t variableArraySize, variableVectorSize, variableDataSize;
-
-   //Output: meshArraySize, meshVectorSize, meshDataType, meshDatasize (inside if() because getArray is bool and returns false if something unexpected happens)
-   if (vlsvReader.getArrayInfo("MESH", meshName, meshArraySize, meshVectorSize, meshDataType, meshDataSize) == false) return false;
-   //Output: variableArraysize, ...
-   //( Vectorsize = 3 with B_vol ( 3-dimensional vector ), datatype float or double ) -- those should be the output
-   if (vlsvReader.getArrayInfo("VARIABLE", "B_vol", meshName, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) return false;
-   if (meshArraySize != variableArraySize) {
-      cerr << "ERROR array size mismatch" << endl;
-   }
-
-   // Declare buffers and allocate memory
-   char * meshBuffer = new char[meshArraySize*meshVectorSize*meshDataSize];
-   char * variableBuffer = new char[variableArraySize*variableVectorSize*variableDataSize];
-
-   //read the array into meshBuffer starting from 0 up until meshArraySize which was received from getArrayInfo
-   if (vlsvReader.readArray("MESH",meshName,0,meshArraySize,meshBuffer) == false) return false;
-   //Read the array into variableBuffer -||-
-   if (vlsvReader.readArray("VARIABLE", "B_vol", 0, meshArraySize, variableBuffer) == false) return false;
-
-   // Search for the given cellID:
-   cellIndex = numeric_limits<uint64_t>::max();
-
-   for (uint64_t cell = 0; cell < variableArraySize; ++cell) {
-      //the CellID are not sorted in the array, so we'll have to search the array -- the CellID is stored in mesh
-      const uint64_t readCellID = convUInt(meshBuffer + cell*meshDataSize, meshDataType, meshDataSize);
-      if (cellID == readCellID) {
-         //Found the right cell ID, break
-         cellIndex = cell;
-         break;
-      }
-   }
-   if (cellIndex == numeric_limits<uint64_t>::max()) {
-      //cerr << "Spatial cell #" << cellID << " not found!" << endl;
-      return false;
-   }
-
-   //Declare a buffer for reading the specific vector from the array
-   char * the_actual_buffer = new char[variableVectorSize * variableDataSize];     //Needs to store vector time data size
-   Real * the_actual_buffer_ptr = reinterpret_cast<Real*>(the_actual_buffer);
+   
+   Real * B_vol_ptr = GetBVol( vlsvReader, meshName, cellID ); //Note: allocates memory
+   
    //Declare B_vol vector -- here Real is either float or double depending on how it's defined in definitions.h
    Real B_vol[3];
-   //The corresponding B vector is in the cellIndex we got from mesh -- we only need to read one vector -- that's why the '1' parameter
-   const uint64_t numOfVecs = 1;
-   //store the vector in the_actual_buffer buffer -- the data is extracted vector at a time
-   if(vlsvReader.readArray("VARIABLE", "B_vol", cellIndex, numOfVecs, the_actual_buffer) == false) return false;
-
-
-   //Now the pointer should be stored in the_actual_buffer, so the_actual_buffer_ptr will give us the interpreted version in real form
-   for(uint64_t i=0; i<variableVectorSize; i++) {
-      B_vol[i] = the_actual_buffer_ptr[i];
+   //Now the pointer should be stored in B_vol_ptr:
+   for(uint64_t i=0; i<3; i++) {
+      B_vol[i] = B_vol_ptr[i];
    }
 
-
-/*
-   void* coords[3]; // Pointers to coordinate arrays
-   Real * vx_crds = new Real[_node_size];
-   coords[0] = vx_crds;
-   coords[1] = vy_crds;
-   coords[2] = vz_crds;
-*/
-
    //Now rotate:
-   //Using eigen3 library here..
-   //From definitions.h:
-   /*
-   #ifdef DP
-   typedef double Real;
-   typedef const double creal;
-   #else
-   typedef float Real;
-   typedef const float creal;
-   #endif
-   */
-   //Now we have the B_vol vector, so now the idea is to rotate the v-coordinates so that B_vol always faced z-direction
+   //Using eigen3 library here.
+   //Now we have the B_vol vector, so now the idea is to rotate the v-coordinates so that B_vol always faces z-direction
    //Since we're handling only one spatial cell, B_vol is the same in every v-coordinate.
    //So, declare rotated vx, vy, vz crds:
    Real * vx_crds_rotated = new Real[_node_size];
    Real * vy_crds_rotated = new Real[_node_size];
    Real * vz_crds_rotated = new Real[_node_size];
 
-   Matrix<Real, 3, 1> _B(B_vol[0], B_vol[1], B_vol[2]);    //O: Remove this later
-   Matrix<Real, 3, 1> unit_z(0, 0, 1);         //Unit vector in z-direction
-   Matrix<Real, 3, 1> Bxu = -1*_B.cross( unit_z );  //Cross product of B and unit_z //Remove -1 if necessary -- just that I think it's the other way around
-   //Check if divide by zero -- if there's division by zero, the B vector is already in the direction of z-axis
-   //Note: Bxu[2] is zero so it can be removed if need be but because of the loop later on it won't reall make a difference
-   if( (Bxu[0]*Bxu[0] + Bxu[1]*Bxu[1] + Bxu[2]*Bxu[2]) != 0 ) {
-      //Determine the axis of rotation: (Note: Bxu[2] is zero)
-      Matrix<Real, 3, 1> axisDir = Bxu/(sqrt(Bxu[0]*Bxu[0] + Bxu[1]*Bxu[1] + Bxu[2]*Bxu[2]));
-      //Determine the angle of rotation: (No need for a check for div/by/zero because of the above check)
-      Real rotAngle = acos(_B[2] / sqrt(_B[0]*_B[0] + _B[1]*_B[1] + _B[2]*_B[2])); //B_z / |B|
-      //Determine the rotation matrix:
-      Transform<Real, 3, 3> rotationMatrix( AngleAxis<Real>(rotAngle, axisDir) );
-
-      for( unsigned int i = 0; i < _node_size; ++i ) {
-         Matrix<Real, 3, 1> _v(vx_crds[i], vy_crds[i], vz_crds[i]);
-         //Now we have the velocity vector. Let's rotate it in z-dir and save the rotated vec
-         Matrix<Real, 3, 1> rotated_v = rotationMatrix*_v;
-         //Save values:
-         vx_crds_rotated[i] = rotated_v[0];
-         vy_crds_rotated[i] = rotated_v[1];
-         vz_crds_rotated[i] = rotated_v[2];
-      }
-   }
+   //Rotate the v-coordinates:
+   doRotation( vx_crds_rotated, vy_crds_rotated, vz_crds_rotated, vx_crds, vy_crds, vz_crds, B_vol, _node_size );
 
    void* coords[3]; // Pointers to coordinate arrays
    coords[0] = vx_crds_rotated;
