@@ -26,6 +26,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "common.h"
 #include "spatial_cell.hpp"
 
+#include <Eigen/Geometry>
 using namespace std;
 using namespace spatial_cell;
 
@@ -68,55 +69,30 @@ void cpu_accelerate_cell(
    const double perBz = spatial_cell->parameters[CellParams::PERBZVOL];
 
 
+   
+   Eigen::Vector3d B(Bx,By,Bz);
+   Eigen::Vector3d unitB(B.normalized());
+   const double gyro_period = 2 * M_PI * Parameters::m  / (fabs(Parameters::q) * B.norm());
 
    
-   // don't iterate over blocks added by this function
+   /*copy distribution function values int o the flux table, and zero the existing distribution function*/
+   for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
+      const unsigned int block = spatial_cell->velocity_block_list[block_i];
+      Velocity_Block* block_ptr = spatial_cell->at(block);
+      for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
+         block_ptr->fx[cell] = block_ptr->data[cell];
+         block_ptr->data[cell] = 0.0;
+      }
+   }
+   
+   // Make a copy of the blocklist as we  don't want to iterate over blocks added by this function
    std::vector<unsigned int> blocks;
    for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
       blocks.push_back(spatial_cell->velocity_block_list[block_i]);
    }
 
    
-//   orbit_time = 2 * M_PI * Parameters::m  / (fabs(Parameters::q) * B_abs);
-        
-   /*loop over velocity cells */
-   for(unsigned int block_i = 0; block_i < blocks.size(); block_i++) {
-      Velocity_Block* block=spatial_cell->at(blocks[block_i]);
-      for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
-         const unsigned int block=blocks[block_i];
-         const double cell_vx_min = SpatialCell::get_velocity_cell_vx_min(block, cell);
-         const double cell_vy_min = SpatialCell::get_velocity_cell_vy_min(block, cell);
-         const double cell_vz_min = SpatialCell::get_velocity_cell_vz_min(block, cell);
-         const double distribution_function = spatial_cell->at(block)->data[cell];
-
-         /*
-         if (!spatial_cell->add_velocity_block(target_block)) {
-            std::cerr << __FILE__ << ":" << __LINE__
-                      << " Couldn't add target velocity block " << target_block
-                      << std::endl;
-            abort();
-         }
-         */
-
-      }
-   }
-
-
-/*!
-Applies fluxes of the distribution function in given spatial cell.
-
-Overwrites current cell data with fluxes where we stored rotated data.
-*/
-
-   for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
-      const unsigned int block = spatial_cell->velocity_block_list[block_i];
-      
-      Velocity_Block* block_ptr = spatial_cell->at(block);
-
-      for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
-         block_ptr->data[cell] = block_ptr->fx[cell];
-      }
-   }
+   
 }
 
 

@@ -242,7 +242,7 @@ spatial_cell.o: spatial_cell.cpp spatial_cell.hpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c spatial_cell.cpp $(INC_BOOST)
 
 vlasovmover_leveque.o: spatial_cell.hpp transferstencil.h  vlasovsolver/cpu_acc_$(ACCSOLVER).hpp vlasovsolver/cpu_trans_leveque.h vlasovsolver/cpu_lorentz.hpp vlasovsolver/limiters.h  vlasovsolver/limiters_vec4.h vlasovsolver/leveque_common.h vlasovsolver/vlasovmover_leveque.cpp		
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -DMOVER_VLASOV_ORDER=2  -c vlasovsolver/vlasovmover_leveque.cpp -I$(CURDIR) ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG}  ${INC_PROFILE}  ${INC_VECTORCLASS}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -DMOVER_VLASOV_ORDER=2  -c vlasovsolver/vlasovmover_leveque.cpp -I$(CURDIR) ${INC_ZOLTAN} ${INC_BOOST} ${INC_DCCRG}  ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN}
 
 londrillo_delzanna.o: spatial_cell.hpp transferstencil.h   parameters.h common.h fieldsolver/londrillo_delzanna.cpp
 	 ${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/londrillo_delzanna.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_DCCRG}  ${INC_PROFILE}  ${INC_ZOLTAN}
