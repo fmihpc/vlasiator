@@ -1,10 +1,8 @@
 //SVA
 // Comments
 //  Do not include eigen in our svn, it should be installed like any other library
-//  Why does svn show that the whole/most of the document has changed, did you change whitespacing?
 //  Do not use ifdefs to define rotation, parameter or possibly too meshes in silo
 //  Separate rotation into separate function
-//  the complete B_vol is read in but not used, remove.
 
 
   
@@ -325,7 +323,7 @@ void doRotation(
 
    Matrix<Real, 3, 1> unit_z(0, 0, 1);                    //Unit vector in z-direction
 
-   Matrix<Real, 3, 1> Bxu = -1*_B.cross( unit_z );        //Cross product of B and unit_z //Remove -1 if necessary -- just that I think it's the other way around
+   Matrix<Real, 3, 1> Bxu = _B.cross( unit_z );        //Cross product of B and unit_z //Remove -1 if necessary -- just that I think it's the other way around
 
    //Check if divide by zero -- if there's division by zero, the B vector is already in the direction of z-axis
 
@@ -369,7 +367,7 @@ void doRotation(
 
 }
 
-bool convertVelocityBlocks2(VLSVReader& vlsvReader, const string& meshName, const uint64_t& cellID) {
+bool convertVelocityBlocks2(VLSVReader& vlsvReader, const string& meshName, const uint64_t& cellID, const int rotate) {
    //return true;
    bool success = true;
 
@@ -597,50 +595,46 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader, const string& meshName, cons
    int shapeCnt[] = {N_zones}; // Only 1 shape type (hexahedron)
    const int N_shapes = 1; //  -- "" --
 
-   //O: This is moved and edited to coords[0] = vx_crds_rotated, (Done later on)
-   #ifndef _ROTATE_V_TO_Z
-
-   void* coords[3]; // Pointers to coordinate arrays
-   coords[0] = vx_crds;
-   coords[1] = vy_crds;
-   coords[2] = vz_crds;
-
-   #else
-
-   // TODO convert them to another basis here...
    //O:
-   //Get B:
-   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-   
-   Real * B_vol_ptr = GetBVol( vlsvReader, meshName, cellID ); //Note: allocates memory
-   
-   //Declare B_vol vector -- here Real is either float or double depending on how it's defined in definitions.h
-   Real B_vol[3];
-   //Now the pointer should be stored in B_vol_ptr:
-   for(uint64_t i=0; i<3; i++) {
-      B_vol[i] = B_vol_ptr[i];
-   }
-
-   //Now rotate:
-   //Using eigen3 library here.
-   //Now we have the B_vol vector, so now the idea is to rotate the v-coordinates so that B_vol always faces z-direction
-   //Since we're handling only one spatial cell, B_vol is the same in every v-coordinate.
-   //So, declare rotated vx, vy, vz crds:
+   void* coords[3]; // Pointers to coordinate arrays
    Real * vx_crds_rotated = new Real[_node_size];
    Real * vy_crds_rotated = new Real[_node_size];
    Real * vz_crds_rotated = new Real[_node_size];
+   if( rotate == 0 ) {
+      coords[0] = vx_crds;
+      coords[1] = vy_crds;
+      coords[2] = vz_crds;
+   } else {
+      //rotate == 1, do the rotation
+      // TODO convert them to another basis here...
+      //O:
+      //Get B vector:
+      Real * B_vol_ptr = GetBVol( vlsvReader, meshName, cellID ); //Note: allocates memory and stores the vector value into B_vol_ptr
+      //Test that this works: (REMOVE THIS LATER)
+      for( int i = 0; i < 3; ++i ) {
+         cout << B_vol_ptr[i] << " "; //REMOVE!
+      }
+      cout << endl;
+   
 
-   //Rotate the v-coordinates:
-   doRotation( vx_crds_rotated, vy_crds_rotated, vz_crds_rotated, vx_crds, vy_crds, vz_crds, B_vol, _node_size );
+      //Now rotate:
+      //Using eigen3 library here.
+      //Now we have the B_vol vector, so now the idea is to rotate the v-coordinates so that B_vol always faces z-direction
+      //Since we're handling only one spatial cell, B_vol is the same in every v-coordinate.
+      //So, declare rotated vx, vy, vz crds:
+      //vx_crds_rotated = new Real[_node_size];
+      //vy_crds_rotated = new Real[_node_size];
+      //vz_crds_rotated = new Real[_node_size];
 
-   void* coords[3]; // Pointers to coordinate arrays
-   coords[0] = vx_crds_rotated;
-   coords[1] = vy_crds_rotated;
-   coords[2] = vz_crds_rotated;
-   #endif
+      //Rotate the v-coordinates and store them in vx_crds_rotated, vy_crds_rotated, ... :
+      doRotation( vx_crds_rotated, vy_crds_rotated, vz_crds_rotated, vx_crds, vy_crds, vz_crds, B_vol_ptr, _node_size );
+
+      coords[0] = vx_crds_rotated;
+      coords[1] = vy_crds_rotated;
+      coords[2] = vz_crds_rotated;
+   }
 
 
-   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
@@ -660,13 +654,12 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader, const string& meshName, cons
    delete vz_crds;
    delete bc_buffer;
    //O:
-   ////////////////////////////////////
-   #ifdef _ROTATE_V_TO_Z
+   //Free memory
+   //if( rotate != 0 ) {
    delete[] vx_crds_rotated;
    delete[] vy_crds_rotated;
    delete[] vz_crds_rotated;
-   #endif
-   ////////////////////////////////////
+   //}
 
    list<string> blockVarNames;
    if (vlsvReader.getBlockVariableNames(meshName, blockVarNames) == false) {
@@ -688,9 +681,9 @@ int main(int argn, char* args[]) {
    MPI_Comm_size(MPI_COMM_WORLD, &ntasks);
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-   if (rank == 0 && argn != 3) {
+   if (rank == 0 && argn < 3) {
       cout << endl;
-      cout << "USAGE: ./vlsvextract <file name mask> <cell ID>" << endl;
+      cout << "USAGE: ./vlsvextract <file name mask> <cell ID> <OPTIONAL: rotate (0 or 1)>" << endl;
       cout << endl;
       cout << "Each VLSV file in the currect directory is compared against the mask," << endl;
       cout << "and if the file name matches the mask, the given velocity grid is " << endl;
@@ -703,6 +696,28 @@ int main(int argn, char* args[]) {
    //const string fname = args[1];
    const string mask = args[1];
    const uint64_t cellID = atoi(args[2]);
+   //O:
+   //Check if we want to rotate
+   int rotate;
+   if( argn > 3 ) {
+      //Rotation called
+      rotate = atoi(args[3]);
+      if( atoi(args[3]) != 0 && atoi(args[3]) != 1 ) {
+         cout << endl;
+         cout << "USAGE: ./vlsvextract <file name mask> <cell ID> <OPTIONAL: rotate (0 or 1)>" << endl;
+         cout << endl;
+         cout << "Each VLSV file in the currect directory is compared against the mask," << endl;
+         cout << "and if the file name matches the mask, the given velocity grid is " << endl;
+         cout << "written to a SILO file." << endl;
+         cout << endl;
+         cout << "Cell ID is the ID of the spatial cell whose velocity grid is to be extracted." << endl;
+         cout << endl;
+         return 1;
+      }
+   } else {
+      rotate = 0;
+   }
+   //
 
    const string directory = ".";
    const string suffix = ".vlsv";
@@ -773,7 +788,8 @@ int main(int argn, char* args[]) {
          // Extract velocity grid from VLSV file, if possible, and convert into SILO format:
          bool velGridExtracted = true;
          for (list<string>::const_iterator it = meshNames.begin(); it != meshNames.end(); ++it) {
-            if (convertVelocityBlocks2(vlsvReader, *it, cellID) == false) {
+            //O: Added rotate (by default it's zero)
+            if (convertVelocityBlocks2(vlsvReader, *it, cellID, rotate ) == false) {
                velGridExtracted = false;
             } else {
                cout << "\t extracted from '" << fileList[entryName] << "'" << endl;
