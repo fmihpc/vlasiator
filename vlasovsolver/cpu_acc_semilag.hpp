@@ -1,4 +1,8 @@
 
+
+
+
+
 /*
 This file is part of Vlasiator.
 
@@ -111,15 +115,17 @@ void cpu_accelerate_cell(
 
    
    /*compute total transformation*/
-   Transform<double,3,Affine> total_transform;
+   Transform<double,3,Affine> total_transform(Matrix4d::Identity());
+
+   
    const unsigned int bulk_velocity_substeps=dt/(gyro_period*(0.1/360.0)); /*!<in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep*/
-   const double substeps_radians=(2.0*M_PI*dt/gyro_period)/bulk_velocity_substeps; /*!< how many radians each substep is*/
+   const double substeps_radians=-(2.0*M_PI*dt/gyro_period)/bulk_velocity_substeps; /*!< how many radians each substep is*/
    for(uint i=0;i<bulk_velocity_substeps;i++){
    
       /*rotation origin is the point through which we place our rotation axis (direction of which is unitB)*/
       /*first add bulk velocity (using the total transform computed this far*/
       Vector3d rotation_origin(total_transform*bulk_velocity);
-
+      
       if(Parameters::lorentzHallTerm) {
          //inlude lorentzHallTerm (we should include, always)      
          rotation_origin[0]-=hallPrefactor*(dBZdy - dBYdz);
@@ -128,12 +134,11 @@ void cpu_accelerate_cell(
       }
       
       /*add to transform matrix*/
-      total_transform*=Translation<double,3>(-rotation_origin);
-      total_transform*=AngleAxis<double>(substeps_radians,unit_B);
       total_transform*=Translation<double,3>(rotation_origin);
+      total_transform*=AngleAxis<double>(substeps_radians,unit_B);
+      total_transform*=Translation<double,3>(-rotation_origin);
    }
 
-   cout << "Old bulk velocity "<< bulk_velocity << " new bulk velocity "<<  total_transform*bulk_velocity<<endl;
    /*update bulk velocity, have not yet rotated the dist function*/
    bulk_velocity=total_transform*bulk_velocity;
    spatial_cell->parameters[CellParams::RHOVX_V] = rho*bulk_velocity[0];
