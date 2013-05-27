@@ -288,13 +288,13 @@ int main(int argn,char* args[]) {
    readparameters.finalize();
 
          
-   bool updateVelocityBlocksAfterAcceleration=false;
-#ifdef SEMILAG
-   updateVelocityBlocksAfterAcceleration=true;
-#endif
-   if(P::maxAccelerationSubsteps!=1)
+   bool updateVelocityBlocksAfterAcceleration;
+   if(P::maxAccelerationSubsteps!=1 || P::vlasovSemiLagAcceleration) {
       updateVelocityBlocksAfterAcceleration=true;
-
+   }
+   else{
+      updateVelocityBlocksAfterAcceleration=false;
+   }
 
    // Save restart data
    if (P::writeInitialState) {

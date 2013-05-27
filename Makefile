@@ -41,12 +41,6 @@ CXXFLAGS += -DUSE_AGNER_VECTORCLASS
 #//////////////////////////////////////////////////////
 
 
-ifeq ($(strip $(ACCSOLVER)),semilag)
-# If defined accelerates velocity space using cpu_acc_semilag.hpp.
-# Otherwise the same solver is used in real and velocity spaces.
-CXXFLAGS += -DSEMILAG
-endif
-
 ifeq ($(strip $(TRANSSOLVER)),leveque)
 CXXFLAGS += -DSOLVER_LEVEQUE
 endif

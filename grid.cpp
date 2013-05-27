@@ -89,12 +89,7 @@ void initializeGrid(
    mpiGrid.initialize(
       comm,
       &P::loadBalanceAlgorithm[0],
-      // neighborhood size
-      #ifdef SOLVER_KT
-      1, // kt needs 0 but field volume average calculation needs 1
-      #elif defined SOLVER_LEVEQUE
-      2,
-      #endif
+      2, // neighborhood size
       0, // maximum refinement level
       sysBoundaries.isBoundaryPeriodic(0),
       sysBoundaries.isBoundaryPeriodic(1),
