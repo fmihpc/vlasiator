@@ -58,22 +58,34 @@ function vlasiator_setup_next {
    next_job=$1
    cd $next_job
    
-   # Subtracting half an hour for restart io
-   RESTART_WALLTIME_INTERVAL=$( echo "scale=2; ($WALLTIME * 3600.0 - $RESTART_IO_EXTRA_TIME) / $NUMBER_OF_RESTARTS" | bc )
-   
+   # Create a unique cfg file
    cp Magnetosphere.cfg Magnetosphere.$BATCH_JOBID.cfg
+   
+   # Set up restart interval and number of restarts
+   # Subtract extra time for restart io
+   RESTART_WALLTIME_INTERVAL=$( echo "scale=2; ($WALLTIME * 3600.0 - $RESTART_IO_EXTRA_TIME) / $NUMBER_OF_RESTARTS" | bc )
    
    sed -i'' -e 's/RESTART_WALLTIME_INTERVAL/'${RESTART_WALLTIME_INTERVAL}'/' Magnetosphere.$BATCH_JOBID.cfg
    sed -i'' -e 's/NUMBER_OF_RESTARTS/'${NUMBER_OF_RESTARTS}'/' Magnetosphere.$BATCH_JOBID.cfg
    
+   # Set up the correct restart file
+   last_restart=$( ls restart.*.vlsv | tail -1 )
+   
+   if [ -z ${last_restart-unset} ]
+   then
+      echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) No restart file! Not running."
+      do_run=0
+   else
+      echo " " >> Magnetosphere.$BATCH_JOBID.cfg
+      echo "[restart]" >> Magnetosphere.$BATCH_JOBID.cfg
+      echo "filename = $last_restart" >> Magnetosphere.$BATCH_JOBID.cfg
+   fi
+
 }
 
 function vlasiator_run {
    # Launch the OpenMP job to the allocated compute node
-#    aprun -n $NUM_PROCESSES -N $((32/$OMP_NUM_THREADS)) -d $OMP_NUM_THREADS ./vlasiator --run_config=Magnetosphere.$BATCH_JOBID.cfg
-   cat Magnetosphere.$BATCH_JOBID.cfg
-   echo $NUM_PROCESSES
-   echo $OMP_NUM_THREADS
+   aprun -n $NUM_PROCESSES -N $((32/$OMP_NUM_THREADS)) -d $OMP_NUM_THREADS ./vlasiator --run_config=Magnetosphere.$BATCH_JOBID.cfg
    cd ..
 }
 
@@ -105,9 +117,13 @@ do
       echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Running $next_job."
       
       vlasiator_setup_next $next_job
-      vlasiator_run $next_job
-      
-      doing_something=1
-      echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Done $next_job."
+      if [ $do_run = 1 ]
+      then
+         vlasiator_run $next_job
+         doing_something=1
+         echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Done $next_job."
+      else
+         doing_something=0
+      fi
    fi
 done
