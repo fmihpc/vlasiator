@@ -1,8 +1,3 @@
-
-
-
-
-
 /*
 This file is part of Vlasiator.
 
@@ -94,7 +89,7 @@ void cpu_accelerate_cell(
 
    
    
-   //compute initial moments, based on actual distribution function
+  //compute initial moments, based on actual distribution function
    spatial_cell->parameters[CellParams::RHO_V  ] = 0.0;
    spatial_cell->parameters[CellParams::RHOVX_V] = 0.0;
    spatial_cell->parameters[CellParams::RHOVY_V] = 0.0;
@@ -114,29 +109,38 @@ void cpu_accelerate_cell(
                                  spatial_cell->parameters[CellParams::RHOVZ_V]/rho);   
 
    
+   /*transform that scales normal velocity units (m/s) to block indices*/
+   // Transform<double,3,Affine> velocity_to_indices(Matrix4d::Identity()); 
+   //   velocity_to_indices*=Translation<double,3>(Vector3d(
+   
+   
    /*compute total transformation*/
    Transform<double,3,Affine> total_transform(Matrix4d::Identity());
-
-   
+      
    const unsigned int bulk_velocity_substeps=dt/(gyro_period*(0.1/360.0)); /*!<in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep*/
+   /*note, we assume q is positive (pretty good assumption though)*/
    const double substeps_radians=-(2.0*M_PI*dt/gyro_period)/bulk_velocity_substeps; /*!< how many radians each substep is*/
    for(uint i=0;i<bulk_velocity_substeps;i++){
    
       /*rotation origin is the point through which we place our rotation axis (direction of which is unitB)*/
       /*first add bulk velocity (using the total transform computed this far*/
-      Vector3d rotation_origin(total_transform*bulk_velocity);
+      Vector3d rotation_pivot(total_transform*bulk_velocity);
       
       if(Parameters::lorentzHallTerm) {
          //inlude lorentzHallTerm (we should include, always)      
-         rotation_origin[0]-=hallPrefactor*(dBZdy - dBYdz);
-         rotation_origin[1]-=hallPrefactor*(dBXdz - dBZdx);
-         rotation_origin[2]-=hallPrefactor*(dBYdx - dBXdy);
+         rotation_pivot[0]-=hallPrefactor*(dBZdy - dBYdz);
+         rotation_pivot[1]-=hallPrefactor*(dBXdz - dBZdx);
+         rotation_pivot[2]-=hallPrefactor*(dBYdx - dBXdy);
       }
       
-      /*add to transform matrix*/
-      total_transform*=Translation<double,3>(rotation_origin);
-      total_transform*=AngleAxis<double>(substeps_radians,unit_B);
-      total_transform*=Translation<double,3>(-rotation_origin);
+      /*add to transform matrix the small rotation around  pivot
+        when added like thism, and not using *= operator, the transformations
+        are in the correct order
+       */
+      total_transform=Translation<double,3>(-rotation_pivot)*total_transform;
+      total_transform=AngleAxis<double>(substeps_radians,unit_B)*total_transform;
+      total_transform=Translation<double,3>(rotation_pivot)*total_transform;
+      //TODO: In which order are these operations done on a point!!!
    }
 
    /*update bulk velocity, have not yet rotated the dist function*/
@@ -172,7 +176,7 @@ void cpu_accelerate_cell(
 
    /*do the actual accerelation operation*/
    /*PERF TODO, instead of doing these transformations in velocity units, we could do them in index units (assuming dvx=dvy=dvz =>
-     would get rid od a lot of computing back and forth of velocities and indices*/
+     would get rid of a lot of computing back and forth of velocities and indices. */
    /*QUALITY TODO, interpolations, better integration (take into account overlap, hwo to combine with interpolation?*/
    
    for (unsigned int block_i = 0; block_i < blocks.size(); block_i++) {
