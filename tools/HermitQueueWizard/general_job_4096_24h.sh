@@ -17,12 +17,12 @@ JOBLIST=${PBS_O_WORKDIR}/joblist_4096_24h.txt
 # Set the number of OpenMP threads per node
 export OMP_NUM_THREADS=8
 # Determine the number of processes
-NUM_PROCESSES=$(qstat -f $BATCH_JOBID | grep mppwidth | cut -d " " -f 7) / $OMP_NUM_THREADS
+NUM_PROCESSES=$(( $(qstat -f $BATCH_JOBID | grep "Resource_List.mppwidth" | cut -d "=" -f 2) / $OMP_NUM_THREADS ))
 # Set the number of restarts to write
-NUMBER_OF_RESTARTS=2
+NUMBER_OF_RESTARTS=4
 # Allow for this buffer for the restart IO (in s)
 RESTART_IO_EXTRA_TIME=1800.0
 # Determine walltime
-WALLTIME=$(qstat -f $BATCH_JOBID | grep walltime | cut -d " " -f 7 | cut -d ":" -f 1)
+WALLTIME=$(qstat -f $BATCH_JOBID | grep "Resource_List.walltime" | cut -d "=" -f 2 | cut -d ":" -f 1)
 
 source vlasiator_run_next.sh

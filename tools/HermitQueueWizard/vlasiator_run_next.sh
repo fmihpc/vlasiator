@@ -9,43 +9,44 @@ function get_next_job {
 }
 
 function test_job {
-   job=$1
-   echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Testing whether to run $job..."
-   cd $job
+   echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Testing whether to run $next_job..."
+   cd $next_job
    
    #do not run if there is an ongoing simulation, or if the last has aborted for whatever reason 
    if [ -e logfile.txt ]
    then
+      has_not_run_yet=0
       if [ -e *.OU ]
       then
          # Job running in another slot
          is_running=1
-         echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores)   $job is already running."
+         echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores)   $next_job is already running."
       else
          is_running=0
          # Has it exited cleanly?
          has_exited_cleanly=$( tail -2 logfile.txt |grep Exiting |wc -l )
          if [ $has_exited_cleanly -eq 1 ]
          then
-            echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores)   $job has exited cleanly before."
+            echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores)   $next_job has exited cleanly before."
             # Has it reached the maximum time wished for in the cfg file?
-            simulated=$( grep "total simulated" logfile.txt | cut -d " " -f 19 )
-            wanted=$( grep "t_max" Magnetosphere.cfg | cut -d " " -f 3 )
+            simulated=$( grep "total simulated" logfile.txt | cut -d "," -f 2 | cut -d " " -f 5 )
+            wanted=$( grep "t_max" Magnetosphere.cfg | cut -d "=" -f 2 )
             has_completed=$( echo $simulated $wanted | gawk '{if($1>$2) print 1; else print 0}' )
             if [ $has_completed -eq 1 ]
             then
-               echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores)   $job has completed according to cfg specifications."
+               echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores)   $next_job has completed according to cfg specifications."
             fi
          else
-            echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores)   $job has not exited cleanly before."
+            echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores)   $next_job has not exited cleanly before."
             has_completed=0
          fi
       fi
    else
-      echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores)   $job has not run yet."
+      echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores)   $next_job has not run yet."
       is_running=0
       has_exited_cleanly=1
       has_completed=0
+      has_not_run_yet=1
    fi
    
    if [[ $is_running -eq 0 && $has_exited_cleanly -eq 1 && $has_completed -eq 0 ]]
@@ -59,7 +60,6 @@ function test_job {
 }
 
 function vlasiator_setup_next {
-   next_job=$1
    cd $next_job
    
    # Create a unique cfg file
@@ -75,19 +75,23 @@ function vlasiator_setup_next {
    # Set up the correct restart file
    last_restart=$( ls restart.*.vlsv | tail -1 )
    
-   if [ -z ${last_restart-unset} ]
+   if [[ -z ${last_restart-unset} && $has_not_run_yet -eq 0 ]]
    then
       echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) No restart file! Not running."
       do_run=0
    else
-      echo " " >> Magnetosphere.$BATCH_JOBID.cfg
-      echo "[restart]" >> Magnetosphere.$BATCH_JOBID.cfg
-      echo "filename = $last_restart" >> Magnetosphere.$BATCH_JOBID.cfg
+      if [ $has_not_run_yet -eq 0 ]
+      then
+         echo " " >> Magnetosphere.$BATCH_JOBID.cfg
+         echo "[restart]" >> Magnetosphere.$BATCH_JOBID.cfg
+         echo "filename = $last_restart" >> Magnetosphere.$BATCH_JOBID.cfg
+      fi
    fi
-
+   cd ..
 }
 
 function vlasiator_run {
+   cd $next_job
    # Launch the OpenMP job to the allocated compute node
    aprun -n $NUM_PROCESSES -N $((32/$OMP_NUM_THREADS)) -d $OMP_NUM_THREADS ./vlasiator --run_config=Magnetosphere.$BATCH_JOBID.cfg
    cd ..
@@ -118,18 +122,18 @@ do
       exit
    fi
 
-   test_job $next_job
+   test_job
 
    if [ $do_run -eq 0 ]
    then
-      echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Tried $next_job, another job is running, or it has exited uncleanly, or it has completed already. Not doing this one."
+      echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Tried $next_job, not doing this one (see above)."
    else
       echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Running $next_job."
       
-      vlasiator_setup_next $next_job
+      vlasiator_setup_next
       if [ $do_run = 1 ]
       then
-         vlasiator_run $next_job
+         vlasiator_run
          doing_something=1
          echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Done $next_job."
       else
