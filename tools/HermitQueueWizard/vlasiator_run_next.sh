@@ -1,5 +1,9 @@
 #!/bin/bash
 
+################
+### FUNCTIONS
+################
+
 function get_next_job {
    next_job=$(cat $JOBLIST | head -n $1 | tail -n 1)
 }
@@ -88,6 +92,12 @@ function vlasiator_run {
    aprun -n $NUM_PROCESSES -N $((32/$OMP_NUM_THREADS)) -d $OMP_NUM_THREADS ./vlasiator --run_config=Magnetosphere.$BATCH_JOBID.cfg
    cd ..
 }
+
+####################
+### HERE WE START
+####################
+
+cd $PBS_O_WORKDIR
 
 doing_something=0
 job_to_check_in_list=0
