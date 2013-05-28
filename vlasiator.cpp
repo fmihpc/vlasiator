@@ -471,19 +471,23 @@ int main(int argn,char* args[]) {
       
       
       // Write restart data if needed (based on walltime)
-      int writeRestartWTime;
+      int writeRestartNow;
       if (myRank == MASTER_RANK) { 
-         if (P::saveRestartWalltimeInterval >=0.0 && 
-            P::saveRestartWalltimeInterval*wallTimeRestartCounter <=  MPI_Wtime()-initialWtime){
-            writeRestartWTime = 1;
+         if (P::saveRestartWalltimeInterval >=0.0 && (
+               P::saveRestartWalltimeInterval*wallTimeRestartCounter <=  MPI_Wtime()-initialWtime ||
+               P::tstep ==P::tstep_max ||
+               P::t >= P::t_max
+            )
+         ) {
+            writeRestartNow = 1;
          }
          else {
-            writeRestartWTime = 0;
+            writeRestartNow = 0;
          }  
       }
-      MPI_Bcast( &writeRestartWTime, 1 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
+      MPI_Bcast( &writeRestartNow, 1 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
             
-      if (writeRestartWTime == 1){   
+      if (writeRestartNow == 1){   
          phiprof::start("write-restart");
          wallTimeRestartCounter++;
         
