@@ -13,7 +13,7 @@ umask 002
 cd $PBS_O_WORKDIR
 
 # Set job list to choose from
-JOBLIST=${PBS_O_WORKDIR}/joblist_4096_24h.txt
+JOBLIST=${PBS_O_WORKDIR}/joblist_4096.txt
 # Set the number of OpenMP threads per node
 export OMP_NUM_THREADS=8
 # Determine the number of processes
