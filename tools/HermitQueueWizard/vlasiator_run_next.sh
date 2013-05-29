@@ -56,7 +56,7 @@ function test_job {
       do_run=0
    fi
    
-   cd ..
+   cd $PBS_O_WORKDIR
 }
 
 function vlasiator_setup_next {
@@ -94,7 +94,7 @@ function vlasiator_run {
    cd $next_job
    # Launch the OpenMP job to the allocated compute node
    aprun -n $NUM_PROCESSES -N $((32/$OMP_NUM_THREADS)) -d $OMP_NUM_THREADS ./vlasiator --run_config=Magnetosphere.$BATCH_JOBID.cfg
-   cd ..
+   cd $PBS_O_WORKDIR
 }
 
 ####################
