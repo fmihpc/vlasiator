@@ -48,7 +48,7 @@ bool get_intersecting_cube(Vector3d & intersect_center,
       if(lower>=upper)
          return false;
       intersect_center[i]=0.5*(upper+lower);
-      intersect_dv[i]=0.5*(upper-lower);
+      intersect_dv[i]=upper-lower;
    }
    return true;
 }
@@ -211,7 +211,9 @@ void cpu_accelerate_cell(
                   /*rotate subcell to new position*/
                   subcell_center=total_transform*subcell_center;
 		 
-                  /*map it back, go through all 8 corners to find all potential overlapping cubes*/
+                  /*map it back,*/
+
+                  /*go through all 8 corners to find all potential overlapping cubes*/
                   /*hew we disregard to rotation of the subcell cube, ok for small angles*/
                   set< pair<unsigned int,unsigned int>> completed_targets;
                   
@@ -244,10 +246,12 @@ void cpu_accelerate_cell(
                                                        subcell_center,subcell_dv,
                                                        new_cell_center,cell_dv)){
                                  /*add if they are intersecting*/
-                                 //                               cout <<"adding to " << new_block << " " << new_cell <<" rho of " << subcell_rho*(intersecting_dv[0]*intersecting_dv[1]*intersecting_dv[2])/( subcell_dv[0]*subcell_dv[1]*subcell_dv[2])<<endl;
+                                 // cout <<"adding to " << new_block << " " << new_cell <<" rho of " << subcell_rho*(intersecting_dv[0]*intersecting_dv[1]*intersecting_dv[2])/( subcell_dv[0]*subcell_dv[1]*subcell_dv[2])<<endl;
                                  spatial_cell->increment_value(new_block,new_cell,
-                                                               subcell_rho*(intersecting_dv[0]*intersecting_dv[1]*intersecting_dv[2])/( subcell_dv[0]*subcell_dv[1]*subcell_dv[2]));
-                              
+                                                               subcell_rho*
+                                                               (intersecting_dv[0]*intersecting_dv[1]*intersecting_dv[2])/
+                                                               ( subcell_dv[0]*subcell_dv[1]*subcell_dv[2]));
+                                 
                               }
                            }
                         }
