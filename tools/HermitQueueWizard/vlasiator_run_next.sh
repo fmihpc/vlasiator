@@ -5,7 +5,7 @@
 ################
 
 function get_next_job {
-   next_job=$(cat $JOBLIST | head -n $1 | tail -n 1)
+   next_job=$(cat $JOBLIST | head -n $job_to_check_in_list | tail -n 1)
 }
 
 function test_job {
@@ -29,7 +29,7 @@ function test_job {
          then
             echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores)   $next_job has exited cleanly before."
             # Has it reached the maximum time wished for in the cfg file?
-            simulated=$( grep "total simulated" logfile.txt | cut -d "," -f 2 | cut -d " " -f 5 )
+            simulated=$( grep "dt =" logfile.txt | tail -n 1 | cut -d "=" -f 3 | cut -d " " -f 2 )
             wanted=$( grep "t_max" Magnetosphere.cfg | cut -d "=" -f 2 )
             has_completed=$( echo $simulated $wanted | gawk '{if($1>$2) print 1; else print 0}' )
             if [ $has_completed -eq 1 ]
@@ -109,19 +109,19 @@ while [ $doing_something -eq 0 ]
 do
    # Getting next job  to do from $JOBLIST
    let job_to_check_in_list=$job_to_check_in_list+1
-   get_next_job $job_to_check_in_list
-   
-   if [ -z ${next_job-unset} ]
-   then
-      continue
-   fi
+   get_next_job
    
    if [ "$job_to_check_in_list" -gt "$( cat $JOBLIST | wc -l )" ]
    then
       echo "($(date) $(($NUM_PROCESSES*$OMP_NUM_THREADS)) cores) Nothing can be run, exiting. Stop wasting queuing time!"
       exit
    fi
-
+   
+   if [ -z ${next_job-unset} ]
+   then
+      continue
+   fi
+   
    test_job
 
    if [ $do_run -eq 0 ]
