@@ -1,5 +1,6 @@
 #!/bin/bash
 #PBS -N c8192_24h
+#PBS -j oe
 # Request the number of cores that you need in total
 #PBS -l mppwidth=8192
 #PBS -l mppnppn=32
