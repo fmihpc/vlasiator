@@ -220,8 +220,8 @@ void cpu_accelerate_cell(
                   for(int cornerx=-1;cornerx<=1;cornerx++) 
                      for(int cornery=-1;cornery<=1;cornery++) 
                         for(int cornerz=-1;cornerz<=1;cornerz++) {
-                           if(cornerx*cornery*cornerz==0 && !(cornerx==0 && cornerx==0 && cornerx==0 ))
-                              continue; //not middle, or one of the 8 corners;  
+//                           if(cornerx*cornery*cornerz==0 && !(cornerx==0 && cornerx==0 && cornerx==0 ))
+                           //                            continue; //not middle, or one of the 8 corners;  
                            
                            unsigned int new_block=SpatialCell::get_velocity_block(subcell_center[0]+cornerx*0.5*subcell_dv[0],
                                                                                   subcell_center[1]+cornery*0.5*subcell_dv[1],
@@ -244,14 +244,11 @@ void cpu_accelerate_cell(
                               Vector3d new_cell_center(new_cell_vx_min + 0.5 * cell_dv[0],
                                                        new_cell_vy_min + 0.5 * cell_dv[1],
                                                        new_cell_vz_min + 0.5 * cell_dv[2]);
-//                              cout<< "target cell is block "<<new_block << " cell "<<new_cell << " at " << new_cell_center[0] <<" "<< new_cell_center[1] <<" "<< new_cell_center[2] <<endl;
-                           
                               Vector3d intersecting_center,intersecting_dv;
                               if(get_intersecting_cube(intersecting_center,intersecting_dv,
                                                        subcell_center,subcell_dv,
                                                        new_cell_center,cell_dv)){
                                  /*add if they are intersecting*/
-                                 // cout <<"adding to " << new_block << " " << new_cell <<" rho of " << subcell_rho*(intersecting_dv[0]*intersecting_dv[1]*intersecting_dv[2])/( subcell_dv[0]*subcell_dv[1]*subcell_dv[2])<<endl;
                                  spatial_cell->increment_value(new_block,new_cell,
                                                                subcell_rho*
                                                                (intersecting_dv[0]*intersecting_dv[1]*intersecting_dv[2])/
