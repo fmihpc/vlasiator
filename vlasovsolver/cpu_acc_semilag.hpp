@@ -31,25 +31,30 @@ using namespace std;
 using namespace spatial_cell;
 using namespace Eigen;
 
-/*!
-Return the relative shared volume of cubes specified by given arguments.
 
-Returned value is relative to length1^3 and is between 0 and 1.
-*/
-double get_relative_shared_volume(
-	const boost::array<double, 3>& center1,
-	const double length1,
-	const boost::array<double, 3>& center2,
-	const double length2
-) {
-	const double overlapping_x = std::min(length1, std::min(length2, (length1 + length2) / 2 - fabs(center1[0] - center2[0]))),
-		overlapping_y = std::min(length1, std::min(length2, (length1 + length2) / 2 - fabs(center1[1] - center2[1]))),
-		overlapping_z = std::min(length1, std::min(length2, (length1 + length2) / 2 - fabs(center1[2] - center2[2])));
-	return std::max(0.0, overlapping_x)
-		* std::max(0.0, overlapping_y)
-		* std::max(0.0, overlapping_z)
-		/ std::min(length1 * length1 * length1, length2 * length2 * length2);
+
+
+
+bool get_intersecting_cube(Vector3d & intersect_center,
+                           Vector3d & intersect_dv,
+                           const Vector3d & source_center,
+                           const Vector3d & source_dv,
+                           const Vector3d & target_center,
+                           const Vector3d & target_dv
+                           )  {
+   for(int i=0;i<3;i++){
+      double lower=max(source_center[i]-0.5*source_dv[i],target_center[i]-0.5*target_dv[i]);
+      double upper=min(source_center[i]+0.5*source_dv[i],target_center[i]+0.5*target_dv[i]);
+      if(lower>=upper) return false;
+      intersect_center[i]=0.5*(upper+lower);
+      intersect_dv[i]=0.5*(upper-lower);
+   }
+   return true;
 }
+
+                         
+                         
+   
 
 /*!
 Propagates the distribution function in velocity space of given real space cell.
@@ -170,9 +175,11 @@ void cpu_accelerate_cell(
    
 
    const int subcells=3;
-   const double sub_dvx = SpatialCell::cell_dvx / subcells,
-      sub_dvy = SpatialCell::cell_dvy / subcells,
-      sub_dvz = SpatialCell::cell_dvz / subcells;        
+   const Vector3d cell_dv(SpatialCell::cell_dvx,
+                             SpatialCell::cell_dvy,
+                             SpatialCell::cell_dvz);
+   const Vector3d subcell_dv(cell_dv/subcells);
+   
 
    /*do the actual accerelation operation*/
    /*PERF TODO, instead of doing these transformations in velocity units, we could do them in index units (assuming dvx=dvy=dvz =>
