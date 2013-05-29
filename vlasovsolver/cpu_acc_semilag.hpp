@@ -228,9 +228,8 @@ void cpu_accelerate_cell(
 
                            pair<unsigned int,unsigned int> target_cell(new_block,new_cell);
                            /*Only add contributions to cells we have not
-                             computed yet!, searching from at most 8
-                             elements in vetor is not too bad*/
-                           if(completed_targets.find(target_cell) != completed_targets.end() ){
+                             computed yet!*/
+                           if(completed_targets.find(target_cell) == completed_targets.end() ){
                               completed_targets.insert(target_cell);
                               const double new_cell_vx_min = SpatialCell::get_velocity_cell_vx_min(new_block, new_cell);
                               const double new_cell_vy_min = SpatialCell::get_velocity_cell_vy_min(new_block, new_cell);
@@ -238,14 +237,14 @@ void cpu_accelerate_cell(
                               Vector3d new_cell_center(new_cell_vx_min + 0.5 * cell_dv[0],
                                                        new_cell_vy_min + 0.5 * cell_dv[1],
                                                        new_cell_vz_min + 0.5 * cell_dv[2]);
-                              cout<< "target cell is block "<<new_block << " cell "<<new_cell << " at " << new_cell_center[0] <<" "<< new_cell_center[1] <<" "<< new_cell_center[2] <<endl;
+//                              cout<< "target cell is block "<<new_block << " cell "<<new_cell << " at " << new_cell_center[0] <<" "<< new_cell_center[1] <<" "<< new_cell_center[2] <<endl;
                            
                               Vector3d intersecting_center,intersecting_dv;
                               if(get_intersecting_cube(intersecting_center,intersecting_dv,
                                                        subcell_center,subcell_dv,
                                                        new_cell_center,cell_dv)){
                                  /*add if they are intersecting*/
-                                 cout <<"adding to " << new_block << " " << new_cell <<" rho of " << subcell_rho*(intersecting_dv[0]*intersecting_dv[1]*intersecting_dv[2])/( subcell_dv[0]*subcell_dv[1]*subcell_dv[2])<<endl;
+                                 //                               cout <<"adding to " << new_block << " " << new_cell <<" rho of " << subcell_rho*(intersecting_dv[0]*intersecting_dv[1]*intersecting_dv[2])/( subcell_dv[0]*subcell_dv[1]*subcell_dv[2])<<endl;
                                  spatial_cell->increment_value(new_block,new_cell,
                                                                subcell_rho*(intersecting_dv[0]*intersecting_dv[1]*intersecting_dv[2])/( subcell_dv[0]*subcell_dv[1]*subcell_dv[2]));
                               
