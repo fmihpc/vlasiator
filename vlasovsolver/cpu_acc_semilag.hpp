@@ -213,21 +213,26 @@ void cpu_accelerate_cell(
 		 
                   /*map it back,*/
 
-                  /*go through all 8 corners to find all potential overlapping cubes*/
-                  /*hew we disregard to rotation of the subcell cube, ok for small angles*/
+                  /*go through all 8 corners, and middle, to find all potential overlapping cubes*/
+                  /*here we disregard to rotation of the subcell cube, ok for small angles*/
                   set< pair<unsigned int,unsigned int>> completed_targets;
                   
-                  for(int cornerx=-1;cornerx<=1;cornerx+=2) 
-                     for(int cornery=-1;cornery<=1;cornery+=2) 
-                        for(int cornerz=-1;cornerz<=1;cornerz+=2) {
+                  for(int cornerx=-1;cornerx<=1;cornerx++) 
+                     for(int cornery=-1;cornery<=1;cornery++) 
+                        for(int cornerz=-1;cornerz<=1;cornerz++) {
+                           if(cornerx*cornery*cornerz==0 && !(cornerx==0 && cornerx==0 && cornerx==0 ))
+                              continue; //not middle, or one of the 8 corners;  
+                           
                            unsigned int new_block=SpatialCell::get_velocity_block(subcell_center[0]+cornerx*0.5*subcell_dv[0],
                                                                                   subcell_center[1]+cornery*0.5*subcell_dv[1],
                                                                                   subcell_center[2]+cornerz*0.5*subcell_dv[2]);
+                           if(new_block==error_velocity_block) continue;
                            unsigned int new_cell=SpatialCell::get_velocity_cell(new_block,
                                                                                 subcell_center[0]+cornerx*0.5*subcell_dv[0],
                                                                                 subcell_center[1]+cornery*0.5*subcell_dv[1],
                                                                                 subcell_center[2]+cornerz*0.5*subcell_dv[2]);
-
+                           if(new_cell==error_velocity_cell) continue;
+                           
                            pair<unsigned int,unsigned int> target_cell(new_block,new_cell);
                            /*Only add contributions to cells we have not
                              computed yet!*/
