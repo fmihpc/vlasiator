@@ -41,7 +41,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 //O:
 #include <array> //std::array is from here
 #include <boost/program_options.hpp>
-#include "./Eigen/Dense"
+#include <Eigen/Dense>
+//Not needed:
 #include <dccrg_cartesian_geometry.hpp>
 
 //O: The //O:'s are just something to help navigate through and keep track of recent changes (they will be removed later on)
