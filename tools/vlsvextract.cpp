@@ -1216,6 +1216,7 @@ void printUsageMessage() {
    cout << endl;
 }
 
+//O: FIX! The user input for coordinates does not accept negative input for y-coordinate!
 //Used in main() to retrieve options (returns false if something goes wrong)
 //Input:
 //[0] int argn -- number of arguments in args
