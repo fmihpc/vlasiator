@@ -1,26 +1,18 @@
-# source test_package_meteo.sh
-# wait
-# source test_definitions.sh
-
 ##--------------------------------------------------##
 ## code, no need to touch ##
 ##--------------------------------------------------##
-
-
 
 ## add absolute paths to folder names, filenames
 reference_dir=$( readlink -f $reference_dir )
 run_dir=$( readlink -f $run_dir )
 bin=$( readlink -f $bin )
+test_dir=$( readlink -f $test_dir)
 
-
-for run in ${run_tests[*]}
-  do
-  test_cfg[$run]=$( readlink -f ${test_cfg[$run]} )
-  if [ ${test_name[$run]} = "Magnetosphere" ]; then
-     sw_data=$( readlink -f $sw_data )
-  fi
-done  
+# for run in ${run_tests[*]}
+#   do
+#   test_dir[$run]=$( readlink -f runs/${test_name[$run]} )
+#   test_cfg[$run]=$( readlink -f runs/${test_name[$run]}/${test_name[$run]}.cfg )
+# done  
 
 
 if [ $create_verification_files == 1 ]
@@ -48,6 +40,7 @@ for run in ${run_tests[*]}
   do
 # directory for test results
   vlsv_dir=${run_dir}/${test_name[$run]}
+  cfg_dir=${test_dir}/${test_name[$run]}
   
 # Check if folder for new run exists, if not create them, otherwise delete old results
   if [ ! -d ${vlsv_dir} ]; then
@@ -58,13 +51,12 @@ for run in ${run_tests[*]}
   
 # change to run directory of the test case, e.g. test_Fluctuations
   cd ${vlsv_dir}
-   if [ ${test_name[$run]} = "Magnetosphere" ]; then
-      cp $sw_data .
-   fi
-#   
+  cp ${cfg_dir}/* .
+  
   export OMP_NUM_THREADS=$t
   export MPICH_MAX_THREAD_SAFETY=funneled
-  $run_command -n $p -N 1 -d $t $bin --run_config=${test_cfg[$run]}
+
+  $run_command $bin --run_config=${test_name[$run]}.cfg
   cd $base_dir
 
 

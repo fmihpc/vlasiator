@@ -4,11 +4,13 @@
 #PBS -l walltime=01:00:00
 #PBS -V  
 #PBS -N test
-#command for running stuff, FIXME: should be a function or so that could easily be extended to mpirun etc
-run_command="aprun"
 
-#processes and threads
-p=10    # mppwidth = p*t
+#command for running stuff, FIXME: should be a function or so that could easily be extended to mpirun etc
+run_command="aprun -n 10 -N 1 -d 12"
+
+# -n $p -N 1 -d $t
+# #processes and threads
+# p=2    # mppwidth = p*t
 t=12   # mppnppn = t
 
 #get baseddir from PBS_O_WORKDIR if set (batch job), otherwise go to current folder

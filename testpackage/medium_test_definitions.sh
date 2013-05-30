@@ -11,21 +11,20 @@ fi
 #where the tests are run
 run_dir="run"
 
+# where the directories for different tests, including cfg and other needed data files are located 
+test_dir="tests"
+
 # choose tests to run
-#run_tests=(1 2
 run_tests=( 1 2 )
 
 # test 1
-test_name[1]="Fluctuations"
-test_cfg[1]="data/Fluctuations_medium.cfg"
+test_name[1]="Fluctuations_medium"
 comparison_vlsv[1]="grid.0000010.vlsv"
 
 # test 2
-test_name[2]="Magnetosphere"
-test_cfg[2]="data/Magnetosphere_medium.cfg"
+test_name[2]="Magnetosphere_medium"
 comparison_vlsv[2]="bulk.0000005.vlsv"
-# Solar wind data (named as sw1.dat) file location for magnetosphere test
-sw_data="data/sw1.dat"
+
 
 # define here the variables you want to be tested
 variables_name=( "rho" "rho_v" "rho_v" "rho_v" "B" "B" "B" "E" "E" "E" )
