@@ -174,14 +174,10 @@ void cpu_accelerate_cell(
       }
    }
    
-
-   const int subcells=1;
    const Vector3d cell_dv(SpatialCell::cell_dvx,
-                             SpatialCell::cell_dvy,
-                             SpatialCell::cell_dvz);
-   const Vector3d subcell_dv(cell_dv/subcells);
+                          SpatialCell::cell_dvy,
+                          SpatialCell::cell_dvz);
    
-
    /*do the actual accerelation operation*/
    /*PERF TODO, 
      Instead of doing these transformations in velocity units, we could do them in index units (assuming dvx=dvy=dvz =>
@@ -198,70 +194,64 @@ void cpu_accelerate_cell(
          const double cell_vy_min = SpatialCell::get_velocity_cell_vy_min(block, cell);
          const double cell_vz_min = SpatialCell::get_velocity_cell_vz_min(block, cell);
          
-         const double subcell_rho = block_ptr->fx[cell] /(subcells*subcells*subcells);
-	 
+         const double cell_rho = block_ptr->fx[cell];
+         
+         Vector3d cell_center(cell_vx_min + 0.5 * cell_dv[0],
+                              cell_vy_min + 0.5 * cell_dv[1],
+                              cell_vz_min + 0.5 * cell_dv[2]);
+         /*rotate cell center to new position*/
+         cell_center=total_transform*cell_center;
+         
+         
+         
+         
+         
+         /*go through all 8 corners, and middle, to find all potential overlapping cubes*/
+         /*here we disregard to rotation of the cell cube, ok for small angles*/
+         set< pair<unsigned int,unsigned int>> completed_targets;
 
-         for (int x_i = 0; x_i < subcells; x_i++)
-            for (int y_i = 0; y_i < subcells; y_i++)
-               for (int z_i = 0; z_i < subcells; z_i++) {
-		 
-                  Vector3d subcell_center(cell_vx_min + (x_i + 0.5) * subcell_dv[0],
-                                          cell_vy_min + (y_i + 0.5) * subcell_dv[1],
-                                          cell_vz_min + (z_i + 0.5) * subcell_dv[2]);
-                  /*rotate subcell to new position*/
-                  subcell_center=total_transform*subcell_center;
-		 
-                  /*map it back,*/
-
-                  /*go through all 8 corners, and middle, to find all potential overlapping cubes*/
-                  /*here we disregard to rotation of the subcell cube, ok for small angles*/
-                  set< pair<unsigned int,unsigned int>> completed_targets;
+         
+         for(int cornerx=-1;cornerx<=1;cornerx++) 
+            for(int cornery=-1;cornery<=1;cornery++) 
+               for(int cornerz=-1;cornerz<=1;cornerz++) {
+                  unsigned int new_block=SpatialCell::get_velocity_block(cell_center[0]+cornerx*0.5*cell_dv[0],
+                                                                         cell_center[1]+cornery*0.5*cell_dv[1],
+                                                                         cell_center[2]+cornerz*0.5*cell_dv[2]);
+                  if(new_block==error_velocity_block) continue;
+                  unsigned int new_cell=SpatialCell::get_velocity_cell(new_block,
+                                                                       cell_center[0]+cornerx*0.5*cell_dv[0],
+                                                                       cell_center[1]+cornery*0.5*cell_dv[1],
+                                                                       cell_center[2]+cornerz*0.5*cell_dv[2]);
+                  if(new_cell==error_velocity_cell) continue;
                   
-                  for(int cornerx=-1;cornerx<=1;cornerx++) 
-                     for(int cornery=-1;cornery<=1;cornery++) 
-                        for(int cornerz=-1;cornerz<=1;cornerz++) {
-//                           if(cornerx*cornery*cornerz==0 && !(cornerx==0 && cornerx==0 && cornerx==0 ))
-                           //                            continue; //not middle, or one of the 8 corners;  
-                           
-                           unsigned int new_block=SpatialCell::get_velocity_block(subcell_center[0]+cornerx*0.5*subcell_dv[0],
-                                                                                  subcell_center[1]+cornery*0.5*subcell_dv[1],
-                                                                                  subcell_center[2]+cornerz*0.5*subcell_dv[2]);
-                           if(new_block==error_velocity_block) continue;
-                           unsigned int new_cell=SpatialCell::get_velocity_cell(new_block,
-                                                                                subcell_center[0]+cornerx*0.5*subcell_dv[0],
-                                                                                subcell_center[1]+cornery*0.5*subcell_dv[1],
-                                                                                subcell_center[2]+cornerz*0.5*subcell_dv[2]);
-                           if(new_cell==error_velocity_cell) continue;
-                           
-                           pair<unsigned int,unsigned int> target_cell(new_block,new_cell);
-                           /*Only add contributions to cells we have not
-                             computed yet!*/
-                           if(completed_targets.find(target_cell) == completed_targets.end() ){
-                              completed_targets.insert(target_cell);
-                              const double new_cell_vx_min = SpatialCell::get_velocity_cell_vx_min(new_block, new_cell);
-                              const double new_cell_vy_min = SpatialCell::get_velocity_cell_vy_min(new_block, new_cell);
-                              const double new_cell_vz_min = SpatialCell::get_velocity_cell_vz_min(new_block, new_cell);
-                              Vector3d new_cell_center(new_cell_vx_min + 0.5 * cell_dv[0],
-                                                       new_cell_vy_min + 0.5 * cell_dv[1],
-                                                       new_cell_vz_min + 0.5 * cell_dv[2]);
-                              Vector3d intersecting_center,intersecting_dv;
-                              if(get_intersecting_cube(intersecting_center,intersecting_dv,
-                                                       subcell_center,subcell_dv,
-                                                       new_cell_center,cell_dv)){
-                                 /*add if they are intersecting*/
-                                 spatial_cell->increment_value(new_block,new_cell,
-                                                               subcell_rho*
-                                                               (intersecting_dv[0]*intersecting_dv[1]*intersecting_dv[2])/
-                                                               ( subcell_dv[0]*subcell_dv[1]*subcell_dv[2]));
-                                 
-                              }
-                           }
-                        }
-	       }
+                  pair<unsigned int,unsigned int> target_cell(new_block,new_cell);
+                  /*Only add contributions to cells we have not
+                    computed yet!*/
+                  if(completed_targets.find(target_cell) == completed_targets.end() ){
+                     completed_targets.insert(target_cell);
+                     const double new_cell_vx_min = SpatialCell::get_velocity_cell_vx_min(new_block, new_cell);
+                     const double new_cell_vy_min = SpatialCell::get_velocity_cell_vy_min(new_block, new_cell);
+                     const double new_cell_vz_min = SpatialCell::get_velocity_cell_vz_min(new_block, new_cell);
+                     Vector3d new_cell_center(new_cell_vx_min + 0.5 * cell_dv[0],
+                                              new_cell_vy_min + 0.5 * cell_dv[1],
+                                              new_cell_vz_min + 0.5 * cell_dv[2]);
+                     Vector3d intersecting_center,intersecting_dv;
+                     if(get_intersecting_cube(intersecting_center,intersecting_dv,
+                                              cell_center,cell_dv,
+                                              new_cell_center,cell_dv)){
+                        /*add if they are intersecting*/
+                        spatial_cell->increment_value(new_block,new_cell,
+                                                      cell_rho*
+                                                      (intersecting_dv[0]*intersecting_dv[1]*intersecting_dv[2])/
+                                                      ( cell_dv[0]*cell_dv[1]*cell_dv[2]));
+                        
+                        
+                     }
+                  }
+               }
       }
    }
 }
-   
    
 
 #endif
