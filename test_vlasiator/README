@@ -1,0 +1,23 @@
+README file for running tests with run_tests.sh
+
+To do before running real tests:
+-Reference files does not yet have verified results, but after they have been added this should be ready to use.
+
+-Reference directories should have only the last grid-file named grid grid.0000001.vlsv (and the first grid.0000000.vlsv).
+
+-Also the cfg files for test should be changed so that the save only the last vlsv file.
+
+-Only short test is tested at the moment, longer version works probably also if you change the values of p and t and #PBS -l mppwidth=, #PBS -l mppdepth=, so that mppwidth=p and mppdepth=t.
+
+-This version is for meteo.
+
+-vlsvdiff.cpp should be changed so that it does not print the dots after the numbers. Lines 297, 298, 300 and 301, remove dots at the end of the print
+
+
+Usage:
+-in run_tests.sh you can choose which test to run, and the parameters compared in the test
+-you can specify the directories for the reference files
+
+
+
+
