@@ -1,8 +1,3 @@
-//SVA
-// Comments
-//  Do not include eigen in our svn, it should be installed like any other library
-
-
   
 /*
 This file is part of Vlasiator.
@@ -42,7 +37,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <array> //std::array is from here
 #include <boost/program_options.hpp>
 #include <Eigen/Dense>
-//Not needed:
+//Fix: Not needed:
 #include <dccrg_cartesian_geometry.hpp>
 
 //O: The //O:'s are just something to help navigate through and keep track of recent changes (they will be removed later on)
@@ -1257,8 +1252,8 @@ bool retrieveOptions( const int argn, char *args[], bool & getCellIdFromCoordina
          
       //For mapping input
       po::variables_map vm;
-      //Store input into vm
-      po::store(po::parse_command_line(argn, args, desc), vm);
+      //Store input into vm (Don't allow short options)
+      po::store(po::parse_command_line(argn, args, desc, po::command_line_style::unix_style ^ po::command_line_style::allow_short), vm);
       po::notify(vm);
       //Check if help was prompted
       if( vm.count("help") ) {
