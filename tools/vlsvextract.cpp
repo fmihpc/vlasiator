@@ -52,6 +52,9 @@ namespace po = boost::program_options;
 
 static DBfile* fileptr = NULL; // Pointer to file opened by SILO
 
+//Multiplier (Only used in conversions from one coordinate system to the other)
+static Real unit_conversion = 1;
+
 template<typename REAL> struct NodeCrd {
    static REAL EPS;
    REAL x;
@@ -735,14 +738,16 @@ void getCellCoordinates( const CellStructure & cellStruct, const uint64_t cellId
    }
    //Calculate the cell coordinates in block coordinates (so in the cell grid where the coordinates are integers)
    uint64_t currentCellCoordinate[3];
-   //Note: _cell_bounds is a static variable and it tells the length of a cell in x, y or z direction (depending on the index)
+   //Note: cell_bounds is a variable that tells the length of a cell in x, y or z direction (depending on the index)
+   //cellStruct is a struct that holds info on the cell structure used in simulation (such as the length of the cell and the mininum
+   //value of x within the cell grid)
    currentCellCoordinate[0] = cellId % cellStruct.cell_bounds[0];
    currentCellCoordinate[1] = ((cellId - currentCellCoordinate[0]) / cellStruct.cell_bounds[0]) % cellStruct.cell_bounds[1];
    currentCellCoordinate[2] = ((cellId - cellStruct.cell_bounds[0]*currentCellCoordinate[1]) / (cellStruct.cell_bounds[0]*cellStruct.cell_bounds[1]));
    //the currentCellCoordinate is always off by one -- This is just a matter of how stuff has been calculated. If cell bounds and
    //other stuff were defined slightly in other parts of this code differently, this would not be needed.
    currentCellCoordinate[0] -= 1;
-   //Get the coordinates of the cell -- so the double or float valued coordinates
+   //Get the coordinates of the cell. These are the coordinates in actual space (not cell coordinates, which are integers from 1 up to some number)
    coordinates[0] = cellStruct.min_coordinates[0] + currentCellCoordinate[0] * cellStruct.cell_length[0];
    coordinates[1] = cellStruct.min_coordinates[1] + currentCellCoordinate[1] * cellStruct.cell_length[1];
    coordinates[2] = cellStruct.min_coordinates[2] + currentCellCoordinate[2] * cellStruct.cell_length[2];
@@ -833,12 +838,13 @@ void setCellVariables( VLSVReader & vlsvReader, CellStructure & cellStruct ) {
    for( int i = 0; i < 3; ++i ) {
       cellStruct.cell_bounds[i] = cell_bounds[i];
    }
-   cellStruct.cell_length[0] = x_length / (Real)(cell_bounds[0]);
-   cellStruct.cell_length[1] = y_length / (Real)(cell_bounds[1]);
-   cellStruct.cell_length[2] = z_length / (Real)(cell_bounds[2]);
-   cellStruct.min_coordinates[0] = x_min;
-   cellStruct.min_coordinates[1] = y_min;
-   cellStruct.min_coordinates[2] = z_min;
+   //NOTE: Real unit_conversion is a static variable (and it's 1 by default)
+   cellStruct.cell_length[0] = ( x_length / (Real)(cell_bounds[0]) ) * unit_conversion;
+   cellStruct.cell_length[1] = ( y_length / (Real)(cell_bounds[1]) ) * unit_conversion;
+   cellStruct.cell_length[2] = ( z_length / (Real)(cell_bounds[2]) ) * unit_conversion;
+   cellStruct.min_coordinates[0] = x_min * unit_conversion;
+   cellStruct.min_coordinates[1] = y_min * unit_conversion;
+   cellStruct.min_coordinates[2] = z_min * unit_conversion;
    return;
 }
 
@@ -969,7 +975,6 @@ void printUsageMessage() {
    cout << endl;
 }
 
-//O: FIX! The user input for coordinates does not accept negative input for y-coordinate!
 //Used in main() to retrieve options (returns false if something goes wrong)
 //Input:
 //[0] int argn -- number of arguments in args
@@ -987,15 +992,15 @@ void printUsageMessage() {
 //coordinates we want to pick
 //[9] max_distance -- the max distance from the cell to the given coordinates (Used if calculating cell id from coordinates or 
 //a line)
-//[10] outputPath -- Determines where the file is saved
+//[10] outputDirectoryPath -- Determines where the file is saved
 bool retrieveOptions( const int argn, char *args[], bool & getCellIdFromCoordinates, bool & getCellIdFromInput, 
                       bool & calculateCellIdFromLine,
                       bool & rotateVectors, vector<Real> & _coordinates,
                       vector<Real> & _point1, vector<Real> & _point2, uint64_t & _cellID, 
                       unsigned int & numberOfCoordinatesInALine, Real & max_distance,
-                      vector<string> & outputPath ) {
-   //By default every bool input should be false and _coordinates should be empty
-   if( getCellIdFromCoordinates || rotateVectors || !_coordinates.empty() ) {
+                      vector<string> & outputDirectoryPath ) {
+   //By default every bool input should be false and vectors should be empty
+   if( getCellIdFromCoordinates || rotateVectors || !_coordinates.empty() || !outputDirectoryPath.empty() ) {
       cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", invalid arguments in retrieveOptions()" << endl;
       return false;
    }
@@ -1009,10 +1014,11 @@ bool retrieveOptions( const int argn, char *args[], bool & getCellIdFromCoordina
          ("rotate", "Rotate velocities so that they face z-axis")
          ("coordinates", po::value< vector<Real> >()->multitoken(), "Set spatial coordinates x y z")
          ("maxdistance", po::value<Real>(), "The max allowed distance from the cell to the given coordinates (OPTIONAL)")
+         ("unit", po::value<string>(), "Sets the units. Options: re, km, m (OPTIONAL)")
          ("point1", po::value< vector<Real> >()->multitoken(), "Set the starting point x y z of a line")
          ("point2", po::value< vector<Real> >()->multitoken(), "Set the ending point x y z of a line")
          ("pointamount", po::value<unsigned int>(), "Number of points along a line (OPTIONAL)")
-         ("savelocation", po::value< vector<string> >(), "Where to save the file (default current folder) (OPTIONAL)");
+         ("outputdirectory", po::value< vector<string> >(), "The directory where the file is saved (default current folder) (OPTIONAL)");
          
       //For mapping input
       po::variables_map vm;
@@ -1066,23 +1072,96 @@ bool retrieveOptions( const int argn, char *args[], bool & getCellIdFromCoordina
             max_distance = vm["maxdistance"].as<Real>();
             if( max_distance < 0 ) {
                 cout << "Max distance must be positive!" << endl;
+                cout << desc << endl;
                 return false;
             }
          } else {
             cout << "maxdistance should be set only when calculating along a line or from coordinates" << endl;
+            cout << desc << endl;
             return false;
          }
       }
-      if( vm.count("savelocation") ) {
+      if( vm.count("outputdirectory") ) {
          //Save input
-         outputPath = vm["savelocation"].as< vector<string> >();
+         outputDirectoryPath = vm["outputdirectory"].as< vector<string> >();
+         //Make sure the vector is of length 1:
+         if( outputDirectoryPath.size() != 1 ) {
+            return false;
+         }
+         //If '/' or '\' was not added to the end of the path, add it:
+         string & pathName = outputDirectoryPath.back();
+         //Find the last index of a char with '\' or '/'
+         const unsigned index = pathName.find_last_of("/\\");
+         //Check if the last index is '/' or '\':
+         if( index != (pathName.length() - 1) ) {
+            //Make sure both '/' and '\' were not used:
+            const size_t index1 = pathName.find("/");
+            const size_t index2 = pathName.find("\\");
+            //Check if the character was found:
+            if( index1 != string::npos && index2 != string::npos ) {
+               cout << "Do not use both '/' and '\\' in directory path! " << index1 << " " << index2 << endl;
+               cout << desc << endl;
+               return false;
+            } else if( index1 != string::npos ) {
+               //The user used '/' in the path
+               const char c = '/';
+               //Add '/' at the end
+               pathName.append( 1, c );
+            } else {
+               //The user used '/' in the path
+               const char c = '\\';
+               //Add '\' at the end
+               pathName.append( 1, c );
+            }
+         }
       } else {
-         string _default = "default";
-         outputPath.push_back(_default);
+         string defaultPath = "";
+         outputDirectoryPath.push_back(defaultPath);
       }
-      //Check to make sure the input for outputPath is valid
-      if( outputPath.size() != 1 ) {
-         cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", invalid outputPath!" << endl;
+      if( vm.count("unit") ) {
+         //Multiply the coordinates with this a static variable unit_conversion
+         //Get the input into 'unit'
+         const string unit = vm["unit"].as<string>();
+         if( unit.compare( "re" ) ) {
+            //earth radius
+            unit_conversion = 6371000;
+         } else if( unit.compare( "km" ) ) {
+            //km
+            unit_conversion = 1000;
+         } else if( unit.compare( "m" ) ) {
+            //meters
+            unit_conversion = 1;
+         } else {
+            //No known unit
+            cout << "Invalid unit!" << endl;
+            cout << desc << endl;
+            return false;
+         }
+         //Convert the coordinates into correct units:
+//calculateCellIdFromLine, getCellIdFromCoordinates,
+         if( calculateCellIdFromLine ) {
+            vector<Real>::iterator i = _point1.begin();
+            vector<Real>::iterator j = _point2.begin();
+            for( ; i != _point1.end() && j != _point2.end(); ++i, ++j ) {
+               //Multiply the coordinates:
+               *i = (*i) * unit_conversion;
+               *j = (*j) * unit_conversion;
+            }
+         } else if( getCellIdFromCoordinates ) {
+            vector<Real>::iterator i = _coordinates.begin();
+            for( ; i != _coordinates.end(); ++i ) {
+               //Multiply the coordinates:
+               *i = (*i) * unit_conversion;
+            }
+         } else {
+            cout << "Nothing to convert!" << endl;
+            cout << desc << endl;
+            return false;
+         }
+      }
+      //Check to make sure the input for outputDirectoryPath is valid
+      if( outputDirectoryPath.size() != 1 ) {
+         cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", invalid outputDirectoryPath!" << endl;
          exit(1);
       }
    } catch( exception &e ) {
@@ -1231,10 +1310,10 @@ int main(int argn, char* args[]) {
    vector<Real> _point2; //Used to calculate cell ids across a line (This is the ending point of the line)
    unsigned int numberOfCoordinatesInALine;
    Real maxDistance = -1; //The max allowed distance from given coordinates to a cell (if calculating along a line or from coordinates) (default value -1)
-   vector< string > outputPath; //Tells where to output the file
+   vector<string> outputDirectoryPath; //Tells where to output the file
 
    //Get user input and set the retrieve options variables
-   if( retrieveOptions( argn, args, getCellIdFromCoordinates, getCellIdFromInput, calculateCellIdFromLine, rotateVectors, _coordinates, _point1, _point2, _cellID, numberOfCoordinatesInALine, maxDistance, outputPath ) == false ) {
+   if( retrieveOptions( argn, args, getCellIdFromCoordinates, getCellIdFromInput, calculateCellIdFromLine, rotateVectors, _coordinates, _point1, _point2, _cellID, numberOfCoordinatesInALine, maxDistance, outputDirectoryPath ) == false ) {
       //Failed to retrieve options (Due to contradiction or an error)
       printUsageMessage(); //Prints the usage message
       return 0;
@@ -1244,6 +1323,8 @@ int main(int argn, char* args[]) {
       printUsageMessage(); //Prints the usage message
       return 0;
    }
+
+
    //Get the file name
    const string mask = args[1];  
 
@@ -1395,6 +1476,7 @@ int main(int argn, char* args[]) {
          //declare extractNum for keeping track of which extraction is going on and informing the user (used in the iteration)
          int extractNum = 1;
          //Give some info on how many extractions there are and what the save path is:
+         //O: TODO Add this!
          cout << "Save path: " << endl;
          cout << "Total number of extractions: " << cellIdList.size() << endl;
          //Iterate:
@@ -1419,15 +1501,35 @@ int main(int argn, char* args[]) {
             ss2 >> newPrefix;
 
             // Replace .vlsv with the new suffix:
-            string fileout = fileList[entryName];
-            size_t pos = fileout.rfind(".vlsv");
-            if (pos != string::npos) fileout.replace(pos, 5, newSuffix);
+            string outputFileName = fileList[entryName];
+            size_t pos = outputFileName.rfind(".vlsv");
+            if (pos != string::npos) outputFileName.replace(pos, 5, newSuffix);
    
-            pos = fileout.find(".");
-            if (pos != string::npos) fileout.replace(0, pos, newPrefix);
+            pos = outputFileName.find(".");
+            if (pos != string::npos) outputFileName.replace(0, pos, newPrefix);
+
+            //O: REMOVE THIS
+            /*
+            // Create a SILO file for writing:
+            fileptr = DBCreate("/lustre/tmp/hannuksela/asd.silo", DB_CLOBBER, DB_LOCAL, "Vlasov data file", DB_PDB);
+            if (fileptr == NULL) {
+               cerr << "\t failed to create output SILO file for input file '" << fileList[entryName] << "'" << endl;
+               DBClose(fileptr);
+               vlsvReader.close();
+               continue;
+            }
+            */
+
+            //Declare the file path (used in DBCreate to save the file in the correct location)
+            string outputFilePath;
+            //Get the path (outputDirectoryPath was retrieved from user input and it's a vector<string>):
+            outputFilePath.append( outputDirectoryPath.front() );
+            //The complete file path is still missing the file name, so add it to the end:
+            outputFilePath.append( outputFileName );
+            
 
             // Create a SILO file for writing:
-            fileptr = DBCreate(fileout.c_str(), DB_CLOBBER, DB_LOCAL, "Vlasov data file", DB_PDB);
+            fileptr = DBCreate(outputFilePath.c_str(), DB_CLOBBER, DB_LOCAL, "Vlasov data file", DB_PDB);
             if (fileptr == NULL) {
                cerr << "\t failed to create output SILO file for input file '" << fileList[entryName] << "'" << endl;
                DBClose(fileptr);
@@ -1460,7 +1562,7 @@ int main(int argn, char* args[]) {
 
             // If velocity grid was not extracted, delete the SILO file:
             if (velGridExtracted == false) {
-               if (remove(fileout.c_str()) != 0) {
+               if (remove(outputFilePath.c_str()) != 0) {
                   cerr << "\t ERROR: failed to remote dummy output file!" << endl;
                }
             }
