@@ -120,6 +120,14 @@ struct NodeComp {
    }
 };
 
+
+//O: Added cell structure for keeping information on cell geometry
+struct CellStructure {
+   uint64_t cell_bounds[3]; //The number of cells in x, y, z direction (initialized somewhere in read parameters)
+   Real cell_length[3]; //Length of a cell in x, y, z direction
+   Real min_coordinates[3]; //x_min, y_min, z_min are stored here
+};
+
 int SiloType(const VLSV::datatype& dataType, const uint64_t& dataSize) {
    switch (dataType) {
       case VLSV::INT:
@@ -286,7 +294,7 @@ void doRotation(
    Matrix<Real, 3, 1> _B(B_vol[0], B_vol[1], B_vol[2]);
    Matrix<Real, 3, 1> unit_z(0, 0, 1);                    //Unit vector in z-direction
    Matrix<Real, 3, 1> Bxu = _B.cross( unit_z );        //Cross product of B and unit_z //Remove -1 if necessary -- just that I think it's the other way around
-   //Check if divide by zero -- if there's division by zero, the B vector is already in the direction of z-axis
+   //Check if divide by zero -- if there's division by zero, the B vector is already in the direction of z-axis and no need to do anything
    //Note: Bxu[2] is zero so it can be removed if need be but because of the loop later on it won't really make a difference in terms of performance
    if( (Bxu[0]*Bxu[0] + Bxu[1]*Bxu[1] + Bxu[2]*Bxu[2]) != 0 ) {
       //Determine the axis of rotation: (Note: Bxu[2] is zero)
@@ -599,7 +607,7 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader, const string& meshName, cons
    return success;
 }
 
-//O: Check if VLSVReader supports const correctness
+//O: Note: Check if VLSVReader supports const correctness
 //Loads a parameter from a file
 //usage: Real x = loadParameter( vlsvReader, nameOfParameter );
 //Note: this is used in getCellIdFromCoords
@@ -638,6 +646,7 @@ char * loadParameter( VLSVReader& vlsvReader, const string& name ) {
 }
 
 
+/*
 //O: THIS IS CURRENTLY NOT USED IN THE CODE! Do not remove, though, as it might be needed later (if drawing a line and picking
 //points needs optimizing)
 //Input:
@@ -667,102 +676,9 @@ void sortCellIds( const uint64_t * cellIdList, const uint64_t vectorSize, vector
    sort( sorted_cellIdList.begin(), sorted_cellIdList.end() );
    //Vector should be sorted now. use std::binary_search( sorted_cellIdList.begin(), sorted_cellIdList.end(), <value> ) to search
 }
-
-
-
-//O: Not needed currently because getLayerCoordinates is not being used (I can make a backup of these if need be)
-/*
-//Checks if given coordinates are out of bound and returns true if not
-bool checkBounds( array<uint64_t, 3> & coordinateToCheck, const uint64_t * cell_bounds ) {
-   int vectorSize = 3;
-   for( int i = 0; i < vectorSize; ++i ) {
-      if( coordinateToCheck[i] >= cell_bounds[i] ) {
-         return false;
-      }
-   }
-   return true;
-}
 */
-//O: This is currently not needed. If there will be a need to optimize the code at some point then this can be used.
-//So, keep it here for now (or alternatively I can make a backup of this)
-/*
-//Gets the coordinates near given cell coordinates and stores them in outputVector
-//Input:
-//[0] cell_coordinate -- some cell coordinate x, y, z
-//[1] cell_bounds -- the bounds of some cell coordinates NOTE: in this coordinate system the cell_coordinates can be
-//0<=x<x_max which is why cell_bounds is only of size 3 (cell_bounds[0] = x_max, cell_bounds[1] = y_max, cell_bounds[2] = z_max)
-//[2] layer -- The layer we want to calculate (for example if coordinate are (5,5,5) and layer 1, we would calculate the coordinates
-//next to it
-//Output:
-//[0] outputQueue -- output queue which has all the coordinates one layer away from the given cell_coordinates in std::array
-//container
-void getLayerCoordinates( 
-                         const uint64_t * cell_coordinate, 
-                         const uint64_t * cell_bounds,
-                         const uint64_t layer,
-                         std::queue< array<uint64_t,3> > & outputVector
-                        ) {
-   //Check for null pointers
-   if( !cell_coordinate || !cell_bounds ) {
-      cerr << "Error: passed null pointer to getLayerCoordinates at: " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
-   }
-   if( layer < 1 ) {
-      cerr << "Invalid input at: "  << __FILE__ << " " << __LINE__ << ", cannot give layer = 0 to getLayerCoordinates\n";
-      exit(1);
-   }
-   //O: outputVector can have stuff in it. In fact, it's smarter that way so I'm commenting this out in case I change my mind
-   if( !outputVector.empty() ) {
-      cerr << "Error: passed non-empty vector to getLayerCoordinates at: " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
-   }
-   //Calculate the layer coordinates:
-   //O: REMEMBER TO CHECK IF Z-BOUND IS 1 -- IF IS, DON'T TRY TO CALCULATE ANYTHING IN Z-DIRECTION
-   bool dontCalculateZ;
-   if( cell_bounds[2] == 1 ) dontCalculateZ = true;
-   else dontCalculateZ = false;
-   //Used for storing data into outputVector
-   array<uint64_t, 3> currentCoordinate;
-   if( dontCalculateZ ) {
-      //2D image, so dont calculate z
-      currentCoordinate[2] = 0;
-      //O: NOTE: cell coordinates start from zero and go up all the way to cell_bounds[i] - 1
-      //First go to upper-right corner:
-      //currentCoordinate[0] = cell_coordinate[0] + layer;
-      //currentCoordinate[1] = cell_coordinate[1] + layer;
-      //Loop through all the cells on the layer
-      
-      //int numberOfSides = 4;
-      //int numberOfCellsInSides = 2*layer;
-      //int currentSide = 0;
-      //Iterate through the coordinates one by one starting from left-upper corner:
-      for( unsigned int i = 0; i < 2*layer + 1; ++i ) {
-         //Set the y-coordinate:
-         currentCoordinate[1] = cell_coordinate[1] - layer + i;
-         //Set the x-coordinate:
-         if( i != 0 && i != 2*layer ) {
-            //Set values and input into outputVector if the coordinates are not out of bound
-            currentCoordinate[0] = cell_coordinate[0] - layer;
-            if( checkBounds( currentCoordinate, cell_bounds ) ) outputVector.push( currentCoordinate );
-            currentCoordinate[0] = cell_coordinate[0] + layer;
-            if( checkBounds( currentCoordinate, cell_bounds ) ) outputVector.push( currentCoordinate ); 
-         } else {
-            //We are at the first or last coordinate y-axis-wise:
-            for( unsigned int j = 0; j < 2*layer + 1; ++j ) {
-               currentCoordinate[0] = cell_coordinate[0] - layer + j;
-               //set value if not out of bound
-               if( checkBounds( currentCoordinate, cell_bounds ) ) outputVector.push( currentCoordinate );
-            }
-         }
-      }
-      
-   } else {
-      //O: TODO: IMPLEMENT THIS
-      cerr << "Error! coordinate retrieval for 3d not yet implemented" << endl;
-      exit(1);
-   }
-}
-*/
+
+
 
 //Retrieves the cell id list and its length and saves it into cellIdList and vecSize
 //Input:
@@ -808,26 +724,29 @@ void pointToCellIdList( VLSVReader & vlsvReader, uint64_t *& cellIdList, uint64_
 }
 
 
-//O: FIX THIS! There's really no need for static variables. Should do a class or a struct to hold the info and pass it to the func
 //Calculates the cell coordinates and outputs into *coordinates with 
 //NOTE: ASSUMING COORDINATES IS NOT NULL!
-//Creating static variables for this function
-static uint64_t _cell_bounds[3]; //The number of cells in x, y, z direction (initialized somewhere in read parameters)
-static Real _cell_length[3]; //Length of a cell in x, y, z direction
-static Real _min_coordinates[3]; //x_min, y_min, z_min are stored here
-void get_cell_coordinates( const uint64_t cellId, Real * coordinates ) {
+//O: Note: change the name to getCellCoordinates
+void getCellCoordinates( const CellStructure & cellStruct, const uint64_t cellId, Real * coordinates ) {
+   //Check for null pointer
    if( !coordinates ) {
       cerr << "Passed invalid pointer at: " << __FILE__ << " " << __LINE__ << endl;
       exit(1);
    }
+   //Calculate the cell coordinates in block coordinates (so in the cell grid where the coordinates are integers)
    uint64_t currentCellCoordinate[3];
-   currentCellCoordinate[0] = cellId % _cell_bounds[0];
-   currentCellCoordinate[1] = ((cellId - currentCellCoordinate[0]) / _cell_bounds[0]) % _cell_bounds[1];
-   currentCellCoordinate[2] = ((cellId - _cell_bounds[0]*currentCellCoordinate[1]) / (_cell_bounds[0]*_cell_bounds[1]));
+   //Note: _cell_bounds is a static variable and it tells the length of a cell in x, y or z direction (depending on the index)
+   currentCellCoordinate[0] = cellId % cellStruct.cell_bounds[0];
+   currentCellCoordinate[1] = ((cellId - currentCellCoordinate[0]) / cellStruct.cell_bounds[0]) % cellStruct.cell_bounds[1];
+   currentCellCoordinate[2] = ((cellId - cellStruct.cell_bounds[0]*currentCellCoordinate[1]) / (cellStruct.cell_bounds[0]*cellStruct.cell_bounds[1]));
+   //the currentCellCoordinate is always off by one -- This is just a matter of how stuff has been calculated. If cell bounds and
+   //other stuff were defined slightly in other parts of this code differently, this would not be needed.
    currentCellCoordinate[0] -= 1;
-   coordinates[0] = _min_coordinates[0] + currentCellCoordinate[0] * _cell_length[0];
-   coordinates[1] = _min_coordinates[1] + currentCellCoordinate[1] * _cell_length[1];
-   coordinates[2] = _min_coordinates[2] + currentCellCoordinate[2] * _cell_length[2];
+   //Get the coordinates of the cell -- so the double or float valued coordinates
+   coordinates[0] = cellStruct.min_coordinates[0] + currentCellCoordinate[0] * cellStruct.cell_length[0];
+   coordinates[1] = cellStruct.min_coordinates[1] + currentCellCoordinate[1] * cellStruct.cell_length[1];
+   coordinates[2] = cellStruct.min_coordinates[2] + currentCellCoordinate[2] * cellStruct.cell_length[2];
+   //all done
    return;
 }
 
@@ -835,7 +754,7 @@ void get_cell_coordinates( const uint64_t cellId, Real * coordinates ) {
 //O: FIX! Currently there's no need for cartesian geometry except for checking the cell id in main (It's not being used in the func)
 //Searches for the closest cell id in a list of cell ids and returns it
 //NOTE: Ask about geometry's const correctness..
-uint64_t searchForBestCellId( const dccrg::Cartesian_Geometry & geometry,
+uint64_t searchForBestCellId( const CellStructure & cellStruct,
                               const uint64_t * cellIdList, 
                               const Real * coordinates, 
                               const uint64_t sizeOfCellIdList ) {
@@ -857,7 +776,7 @@ uint64_t searchForBestCellId( const dccrg::Cartesian_Geometry & geometry,
       //Create cellCoordinate and store the current cell id's coordinates in there
       Real cellCoordinate[3];
       //Stores the current cell's coordinates into cellCoordinate
-      get_cell_coordinates( currentCell, cellCoordinate );
+      getCellCoordinates( cellStruct, currentCell, cellCoordinate );
       //Calculate distance from cell coordinates to input coordinates
       Real dist = ( 
                    (cellCoordinate[0] - coordinates[0]) * (cellCoordinate[0] - coordinates[0])
@@ -874,7 +793,17 @@ uint64_t searchForBestCellId( const dccrg::Cartesian_Geometry & geometry,
    return bestCellId;
 }
 
-void setStaticVariables( VLSVReader & vlsvReader ) {
+//Sets static variables for cell ids. This might change later on because it makes more sense to make a separate class/struct for
+//holding cell structure information
+//Input:
+//[0] VLSVReader vlsvReader - some reader with a file open (used for loading parameters)
+//Output:
+//[0] uint64_t cellStruct.cell_bounds[3] -- The bounds of cell geometry. For example if there's 300 cells used in the simulation in 
+//x-direction, then cell_bounds[0] would be 300
+//[1] Real _cell_length[3] -- the length of a cell in x, y or z-direction
+//[2] Real _min_coordinate[3] -- the mininum x, y, z coordinates. After calling this function _min_coordinate[0], for example,
+//should tell the value of corner with smallest x-coordinate in the cell grid
+void setCellVariables( VLSVReader & vlsvReader, CellStructure & cellStruct ) {
    //Get x_min, x_max, y_min, y_max, etc so that we know where the given cell id is in (loadParameter returns char*, hence the cast)
    //O: Note: Not actually sure if these are Real valued or not
    Real x_min = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "xmin" ) );
@@ -900,17 +829,16 @@ void setStaticVariables( VLSVReader & vlsvReader ) {
    Real x_length = x_max - x_min;
    Real y_length = y_max - y_min;
    Real z_length = z_max - z_min;
-   //GIVE CELL INFO TO STATIC VARIABLES:
-   //O: FIX INTO BETTER SYNTAX (remove static variables and pass as a function parameter instead)
+   //Set the cell structure properly:
    for( int i = 0; i < 3; ++i ) {
-      _cell_bounds[i] = cell_bounds[i];
+      cellStruct.cell_bounds[i] = cell_bounds[i];
    }
-   _cell_length[0] = x_length / (Real)(cell_bounds[0]);
-   _cell_length[1] = y_length / (Real)(cell_bounds[1]);
-   _cell_length[2] = z_length / (Real)(cell_bounds[2]);
-   _min_coordinates[0] = x_min;
-   _min_coordinates[1] = y_min;
-   _min_coordinates[2] = z_min;
+   cellStruct.cell_length[0] = x_length / (Real)(cell_bounds[0]);
+   cellStruct.cell_length[1] = y_length / (Real)(cell_bounds[1]);
+   cellStruct.cell_length[2] = z_length / (Real)(cell_bounds[2]);
+   cellStruct.min_coordinates[0] = x_min;
+   cellStruct.min_coordinates[1] = y_min;
+   cellStruct.min_coordinates[2] = z_min;
    return;
 }
 
@@ -923,7 +851,8 @@ void setStaticVariables( VLSVReader & vlsvReader ) {
 //[2] max_distance -- Max allowed distance between the given coordinates *coords and the returned cell id's coordinates
 //Output:
 //[0] Returns the cell id in uint64_t
-uint64_t getCellIdFromCoords( VLSVReader& vlsvReader, const Real * coords, const Real max_distance ) {
+uint64_t getCellIdFromCoords( VLSVReader& vlsvReader, const CellStructure & cellStruct, 
+                              const Real * coords, const Real max_distance ) {
    if( !coords ) {
       cerr << "NULL pointer passed to getCellIdFromCoords! " << __FILE__ << " " << __LINE__ << endl;
       exit(1);
@@ -933,24 +862,21 @@ uint64_t getCellIdFromCoords( VLSVReader& vlsvReader, const Real * coords, const
    Real y = coords[1];
    Real z = coords[2];
    for( int i = 0; i < 3; ++i ) {
-      cout << " x:" << x << " y:" << y << " z:" << z;
+      //cout << " x:" << x << " y:" << y << " z:" << z;
    }
-   cout << endl;
+   //cout << endl;
 
-   //Sets static variables (for cell geometry)
-   //O: FIX THIS LATER! There should be no static variables -- they just make things more confusing
-   //THIS IS A TEMPORARY SOLUTION!
-   setStaticVariables( vlsvReader );
 
    //Declare geometry
+   //O: FIX! This is currently only used for debugging.
    dccrg::Cartesian_Geometry geometry;
    //set geometry (give all necessary coordinates to calculate cell id from coordinates)
 
    //O: FIX: This is currently only being used to get a cell id (Values _cell_bounds, etc, are static variables)
    geometry.set_geometry ( 
-                          _cell_bounds[0], _cell_bounds[1], _cell_bounds[2], 
-                          _min_coordinates[0], _min_coordinates[1], _min_coordinates[2], 
-                          _cell_length[0], _cell_length[1], _cell_length[2]
+                          cellStruct.cell_bounds[0], cellStruct.cell_bounds[1], cellStruct.cell_bounds[2], 
+                          cellStruct.min_coordinates[0], cellStruct.min_coordinates[1], cellStruct.min_coordinates[2], 
+                          cellStruct.cell_length[0], cellStruct.cell_length[1], cellStruct.cell_length[2]
                          );
    //Set periodicity to false
    for( int i = 0; i < 3; ++i ) {
@@ -974,225 +900,57 @@ uint64_t getCellIdFromCoords( VLSVReader& vlsvReader, const Real * coords, const
       exit(1);
    }
 
-
+   //O: FIX! REMOVE THIS!
    uint64_t __CELLID__ = geometry.get_cell(0, x, y, z);
    Real __COORDINATES__[3];
-   get_cell_coordinates( __CELLID__, __COORDINATES__ );            
-   cout << "Cell id: " << geometry.get_cell(0, x, y, z) << " Coordinates: ";
+   getCellCoordinates( cellStruct, __CELLID__, __COORDINATES__ );            
+   //cout << "Cell id: " << geometry.get_cell(0, x, y, z) << " Coordinates: ";
    for( int i = 0; i < 3; ++i ) {
-      cout << __COORDINATES__[i] << " ";
+      //cout << __COORDINATES__[i] << " ";
    }
-   cout << endl;
-   cout << "Possible deviations: ";
+   //cout << endl;
+   //cout << "Possible deviations: ";
    for( int i = 0; i < 3; ++i ) {
-      cout << _cell_length[i] << " ";
+      //cout << cellStruct.cell_length[i] << " ";
    }
-   cout << endl;
+   //cout << endl;
 
 
    //Now pick the closest cell id to the given coordinates:
-   uint64_t cellId = searchForBestCellId( geometry, cellIdList, coords, sizeOfCellIdList );
+   uint64_t cellId = searchForBestCellId( cellStruct, cellIdList, coords, sizeOfCellIdList );
    //We now have the best cell id, but because not every cell id has distribution and because the cells have discrete coordinate
    //(x = 1, 2, 3 etc ), check the distance between the retrieved cell id and the given coordinates. If the distance is larger
    //than the maximum given distance (max_distance), exit the program
    Real cellCoordinate[3];
-   cellCoordinate[0] = geometry.get_cell_x( cellId );
-   cellCoordinate[1] = geometry.get_cell_y( cellId );
-   cellCoordinate[2] = geometry.get_cell_z( cellId );
+   //Set the cell coordinates: (Takes the cell id and inputs the cell id's coordinates into getCellCoordinates
+   getCellCoordinates( cellStruct, cellId, cellCoordinate );
    //Calculate distance from cell coordinates to input coordinates
    Real dist = ( 
                 (cellCoordinate[0] - coords[0]) * (cellCoordinate[0] - coords[0])
                 + (cellCoordinate[1] - coords[1]) * (cellCoordinate[1] - coords[1])
                 + (cellCoordinate[2] - coords[2]) * (cellCoordinate[2] - coords[2])
                );
-   if( max_distance < dist ) {
+   //Declare the max distance parameter (If user-defined then _max_distance is the same as max_distance given as an input parameter)
+   Real _max_distance;
+   //If max_distance is -1 then user has not input values to it so we have to define it now:
+   if( max_distance == -1 ) {
+      //Use the cell grid's geometry to determine a good max_distance:
+      //In this case the distance would be a cell's diagonal length times 40 (NOTE: _cell_length[] is a static variable)
+      _max_distance = sqrt(cellStruct.cell_length[0]*cellStruct.cell_length[0] + cellStruct.cell_length[0]*cellStruct.cell_length[0] + cellStruct.cell_length[0]*cellStruct.cell_length[0]);
+   } else {
+      //Get the max distance from user input
+      _max_distance = max_distance;
+   }
+   //If the distance from the given coordinates (accurate) to the given coordinates is too larger then don't use the cell id
+   //Note: If cell id equals numeric limits then stop the program
+   if( _max_distance < sqrt( dist ) ) {
+      //Return numeric limit to let the program know we didn't find a cell id
       return numeric_limits<uint64_t>::max();
    }
    //Everything ok, return the cell id:
    return cellId;
 }
 
-/*
-//O: TODO: line between two points (probably better to create a global cell id list and sort it only once)
-//Returns the cell id closest to the given coordinates:
-//Input:
-//[0] vlsvReader -- some VLSVReader which has a file opened
-//[1] coords -- coordinates (some x, y, z)
-//Output:
-//[0] cell id that is closest to the coordinates
-uint64_t getCellIdFromCoords( VLSVReader& vlsvReader, const Real * coords ) {
-   //O: NOTE: <dccrg_cartesian_geometry.hpp> actually already has functions for retrieving cell in x,y,z direction so some of the
-   //code here is in fact repetition of previously (already made) stuff.
-   //If anyone wants to use get_cell(refinement_level, x, y, z) and so on to make things clearer, be my guest! (x,y,z are double)
-   //Assuming that coords is not null and vlsvReader has a file open
-   if( !coords ) {
-      cerr << "NULL pointer passed to getCellIdFromCoords! " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
-   }
-   Real x = coords[0];
-   Real y = coords[1];
-   Real z = coords[2];
-   //Get x_min, x_max, y_min, y_max, etc so that we know where the given cell id is in (loadParameter returns char*, hence the cast)
-   //O: Note: Not actually sure if these are Real valued or not
-   Real x_min = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "xmin" ) );
-   Real x_max = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "xmax" ) );
-   Real y_min = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "ymin" ) );
-   Real y_max = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "ymax" ) );
-   Real z_min = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "zmin" ) );
-   Real z_max = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "zmax" ) );
-   //Number of cells in x, y, z directions (used later for calculating where in the cell coordinates (which are ints) the given
-   //coordinates are)
-   //There's x, y and z coordinates so the number of different coordinates is 3:
-   const int NumberOfCoordinates = 3;
-   uint64_t cell_bounds[NumberOfCoordinates];
-   //Get the number of cells in x,y,z direction from the file:
-   //x-direction
-   cell_bounds[0] = *reinterpret_cast<uint64_t*>( loadParameter( vlsvReader, "xcells_ini" ) );
-   //y-direction
-   cell_bounds[1] = *reinterpret_cast<uint64_t*>( loadParameter( vlsvReader, "ycells_ini" ) );
-   //z-direction
-   cell_bounds[2] = *reinterpret_cast<uint64_t*>( loadParameter( vlsvReader, "zcells_ini" ) );
-   //Now we have the needed variables, so let's calculate how much in one block equals in length:
-   //Total length of x, y, z:
-   Real x_length = x_max - x_min;
-   Real y_length = y_max - y_min;
-   Real z_length = z_max - z_min;
-   //Calculate the position of the cell:
-   //NOTE: The coordinates start from 0 but it doesn't matter since there's no check for out of bounds and the CellID calculation 
-   //later on works properly this way
-   uint64_t cell_coordinates[NumberOfCoordinates];
-   //x-coordinate:
-   cell_coordinates[0] = (uint64_t)(((x - x_min) / x_length) * cell_bounds[0]);
-   //y-coordinate:
-   cell_coordinates[1] = (uint64_t)(((y - y_min) / y_length) * cell_bounds[1]);
-   //z-coordinate:
-   cell_coordinates[2] = (uint64_t)(((z - z_min) / z_length) * cell_bounds[2]);
-   //Check for index out of bounds (NumberOfCoordinates = 3):
-   for( int i = 0; i < NumberOfCoordinates; ++i ) {
-      if( cell_coordinates[i] > cell_bounds[i] ) {
-         //Something very wrong here -- index out of bounds (not a problem with casting):
-         cerr << "Error: cell coordinate index: " << i << ", Index out of bounds at: " << __FILE__ << " " << __LINE__ << endl;
-         exit(1);
-      }
-   }
-
-   //O: I want to test this...
-   //dccrg::Cartesian_Geometry geometry;
-   //geometry.set_geometry ( cell_bounds[0], cell_bounds[1], cell_bounds[2], x_min, y_min, z_min, (x_max-x_min)/(double)(cell_bounds[0]), (y_max-y_min)/(double)(cell_bounds[1]), (z_max-z_min)/(double)(cell_bounds[2]) );
-   //uint64_t _CELLINDEX = geometry.get_cell( 0, coords[0], coords[1], coords[2] );
-   //Yeah, it works.. ........................ ...........
-   //Sigh
-   
-
-
-   //We now have the cell coordinates, now transform them into CellID:
-   //Ideally, the CellID would be this number here:
-   uint64_t CellID = (uint64_t)(
-                     cell_coordinates[2] * cell_bounds[1] * cell_bounds[0] 
-                     + cell_coordinates[1] * cell_bounds[0]
-                     + cell_coordinates[0] + 1
-                     );
-   //However, it's possible that the CellID we just received might not have any distribtuion, so making a check here
-   //and if possible, replace the CellID with something close to it.
-   //For example: If we received CellID: 67, but it doesn't have any distribution, check if for example
-   //CellID 70 has and return that, since it's close enough
-
-   //Check the cell id for index out of bounds:
-   if( CellID <= 0 || CellID > cell_bounds[0]*cell_bounds[1]*cell_bounds[2] ) {
-      //Check if the index is just off by one or if something really weird happened
-      if( CellID == 0 ) {
-         cout << "Warning, CellID " << CellID << " out of bounds by one at: " << __FILE__ << " " << __LINE__ << ", fixing.." << endl;
-      } else if( CellID == cell_bounds[0]*cell_bounds[1]*cell_bounds[2] + 1 ) {
-         cout << "Warning, CellID " << CellID << " out of bounds by one at: " << __FILE__ << " " << __LINE__ << ", fixing.." << endl;
-      } else {
-         //Something very weird happened
-         cerr << "Error: CellID out of bounds at: " << __FILE__ << " " << __LINE__ << ", terminating.." << endl;
-         exit(1);
-      }
-   }
-
-
-   //Get a list of possible CellIDs from the file under CELLSWITHBLOCKS:
-   //Declare vectorSize, arraySize, .., so we know the size of the array we're going to read:
-   VLSV::datatype cwb_dataType;
-   uint64_t cwb_arraySize, cwb_vectorSize, cwb_dataSize; //cwb stands for CELLWITHBLOCKS (named after the tag)
-   //O: TODO put these in user input
-   string tag = "CELLSWITHBLOCKS"; //Tag (used in getArrayInfo -- basically this is a list of Cell IDs that are not empty)
-   //O: FIX: "SpatialGrid" might change later on so it should be one of the function parameters
-   string meshName = "SpatialGrid"; //mesh name -- Spatial means that we are interested in the spatial system not velocity space
-   //Read arraySize, vectorSize, dataType and dataSize and store them with getArrayInfo:
-   if (vlsvReader.getArrayInfo(tag, meshName, cwb_arraySize, cwb_vectorSize, cwb_dataType, cwb_dataSize) == false) {
-      cerr << "Could not find array CELLSWITHBLOCKS" << endl;
-      exit(1); //error, terminate program
-      return -1;
-   }
-   //Check to make sure that the vectorSize is indeed 1 (Assuming so later on):
-   if( cwb_vectorSize != 1 ) {
-      cerr << "CELLSWITHBLOCK's vector size is not 1 at: " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
-   }
-   //We now have the arraySize and everything else needed
-   //Create a buffer -- the size is determined by the data we received from getArrayInfo and as before, cwb simply stands for:
-   //'CELLSWITHBLOCKS'
-   char * cwb_buffer = new char[cwb_arraySize * cwb_vectorSize * cwb_dataSize];
-   //Reinterpret the buffer because we're interested in the uint64_t form (cell ids):
-   uint64_t * cellIdList = reinterpret_cast<uint64_t*>(cwb_buffer);
-   //Read data into the buffer with readArray:
-   if (vlsvReader.readArray(tag, meshName, 0, cwb_arraySize, cwb_buffer) == false) {
-      cerr << "Failed to read block metadata for mesh '" << meshName << "'" << endl;
-      delete cwb_buffer;
-      exit(1);
-   }
-
-   //TODO:
-   
-   //O: FIX: Sort the cell ids (Change to std::set later)
-   //vector<uint64_t> sorted_cellIdList; //std::vector
-   //Store the cellIdList in the vector sorted_cellIdList and sort it (Input also the size of cellIdList
-   //sortCellIds( cellIdList, cwb_arraySize, sorted_cellIdList );
-   
-
-   //TODO:
-   //const uint64_t cell_coordinates[NumberOfCoordinates];
-   //const unsigned int layer
-   //vector< array<uint64_t, 3> > getLayerCoordinates( cell_coordinates, cell_bounds, layer ); //(array = std::array)
-   
-
-   //TODO: accurate distance between two cells (not from cell_coordinates but from the x-y-z value given by user)
-
-
-   //TODO: Get the accurate cell id from checking if nearby cell coordinates have distribution function
-   //We now have the list of cell id candidates, so pick the closest one to the one we calculated:
-   //Let's say that the cell can differ from our cell by 50 
-
-   //O: FIX THIS LATER (The max_cell_difference parameter should be input from the user) (TODO)
-   uint64_t max_cell_difference = 50;
-   //The best cell id so far:
-   uint64_t bestCellID = numeric_limits<uint64_t>::max();
-   //Iterate through the whole list of cell id candidates to determine which, if any, is the best one:
-   //Note: The cell ids are not in order (as in not 1, 2, 3, ..,)
-   for( uint64_t i = 0; i < cwb_arraySize; ++i ) {
-      if( cellIdList[i] == _CELLINDEX ) cout << "HEY!" << endl;
-      //The absolute value of difference between the value we calculated and the one in the list of candidates:
-      //Note: Assuming cellIdList's vectorsize is 1 (check was made earlier):
-      const uint64_t difference = abs( cellIdList[i] - CellID );
-      //If the current cell id is closer to than the best so far, replace the best cell id with that:
-      if( difference <= max_cell_difference && difference < abs( bestCellID - CellID ) ) {
-         bestCellID = cellIdList[i];
-      }
-   }
-   //Check if we found a cell id:
-   if( bestCellID == numeric_limits<uint64_t>::max() ) {
-      //Could not find the cell id:
-      cerr << "Cell id " << CellID << " not found, exiting.." << endl;
-      delete cwb_buffer;
-      exit(1);
-   }
-   //All good -- we now have the cell id and can return it:
-   cout << "Cell id: " << bestCellID << endl; //Print it for debugging
-   return bestCellID;
-}
-*/
 
 
 //Prints out the usage message
@@ -1227,11 +985,15 @@ void printUsageMessage() {
 //[7] uint64_t _cellID -- If specified, the cell id is retrieved from input
 //[8] unsigned int numberOfCoordinatesInALine -- If we want to calculate the cell ids from a line, it can be specified how many
 //coordinates we want to pick
+//[9] max_distance -- the max distance from the cell to the given coordinates (Used if calculating cell id from coordinates or 
+//a line)
+//[10] outputPath -- Determines where the file is saved
 bool retrieveOptions( const int argn, char *args[], bool & getCellIdFromCoordinates, bool & getCellIdFromInput, 
                       bool & calculateCellIdFromLine,
                       bool & rotateVectors, vector<Real> & _coordinates,
                       vector<Real> & _point1, vector<Real> & _point2, uint64_t & _cellID, 
-                      unsigned int & numberOfCoordinatesInALine ) {
+                      unsigned int & numberOfCoordinatesInALine, Real & max_distance,
+                      vector<string> & outputPath ) {
    //By default every bool input should be false and _coordinates should be empty
    if( getCellIdFromCoordinates || rotateVectors || !_coordinates.empty() ) {
       cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", invalid arguments in retrieveOptions()" << endl;
@@ -1246,9 +1008,11 @@ bool retrieveOptions( const int argn, char *args[], bool & getCellIdFromCoordina
          ("cellid", po::value<uint64_t>(), "Set cell id")
          ("rotate", "Rotate velocities so that they face z-axis")
          ("coordinates", po::value< vector<Real> >()->multitoken(), "Set spatial coordinates x y z")
+         ("maxdistance", po::value<Real>(), "The max allowed distance from the cell to the given coordinates (OPTIONAL)")
          ("point1", po::value< vector<Real> >()->multitoken(), "Set the starting point x y z of a line")
          ("point2", po::value< vector<Real> >()->multitoken(), "Set the ending point x y z of a line")
-         ("pointAmount", po::value<unsigned int>(), "Number of points along a line (OPTIONAL)");
+         ("pointamount", po::value<unsigned int>(), "Number of points along a line (OPTIONAL)")
+         ("savelocation", po::value< vector<string> >(), "Where to save the file (default current folder) (OPTIONAL)");
          
       //For mapping input
       po::variables_map vm;
@@ -1278,8 +1042,8 @@ bool retrieveOptions( const int argn, char *args[], bool & getCellIdFromCoordina
            //User specified the number of points -- set it
            numberOfCoordinatesInALine = vm["pointAmount"].as<unsigned int>();
         } else {
-           //No user input -- set it to 40
-           numberOfCoordinatesInALine = 40;
+           //No user input -- set it to 0 (default value)
+           numberOfCoordinatesInALine = 0;
         }
         //Let the program know we want to get the cell id from coordinates
         calculateCellIdFromLine = true;
@@ -1294,6 +1058,32 @@ bool retrieveOptions( const int argn, char *args[], bool & getCellIdFromCoordina
          //Save input
          _cellID = vm["cellid"].as<uint64_t>();
          getCellIdFromInput = true;
+      }
+      if( vm.count("maxdistance") ) {
+         //Set only if we're calculating cell id from coordinates
+         if( calculateCellIdFromLine || getCellIdFromCoordinates ) {
+            //save input
+            max_distance = vm["maxdistance"].as<Real>();
+            if( max_distance < 0 ) {
+                cout << "Max distance must be positive!" << endl;
+                return false;
+            }
+         } else {
+            cout << "maxdistance should be set only when calculating along a line or from coordinates" << endl;
+            return false;
+         }
+      }
+      if( vm.count("savelocation") ) {
+         //Save input
+         outputPath = vm["savelocation"].as< vector<string> >();
+      } else {
+         string _default = "default";
+         outputPath.push_back(_default);
+      }
+      //Check to make sure the input for outputPath is valid
+      if( outputPath.size() != 1 ) {
+         cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", invalid outputPath!" << endl;
+         exit(1);
       }
    } catch( exception &e ) {
       cerr << "Error " << e.what() << " at " << __FILE__ << " " << __LINE__ << endl;
@@ -1317,7 +1107,7 @@ bool retrieveOptions( const int argn, char *args[], bool & getCellIdFromCoordina
    }
 }
 
-//O: Fix this into better syntax..
+//O: Fix this into better syntax.. (Looks... bad.)
 //Outputs a number of coordinates along a line whose starting point is start and ending point end into outPutCoordinates
 //Input:
 //[0] vector<Real> & start -- Starting x, y, z coordinates of a line
@@ -1328,20 +1118,63 @@ bool retrieveOptions( const int argn, char *args[], bool & getCellIdFromCoordina
 //Example: setCoordinatesAlongALine( {0,0,0}, {3,0,0}, 4, output ) would store coordinates {0,0,0}, {1,0,0}, {2,0,0}, {3,0,0} in
 //output
 void setCoordinatesAlongALine( 
-                               vector<Real> & start, vector<Real> & end, const unsigned int numberOfCoordinates,
+                               const CellStructure & cellStruct,
+                               vector<Real> & start, vector<Real> & end, unsigned int numberOfCoordinates,
                                vector< array<Real, 3> > & outputCoordinates 
                              ) {
+   //Check vector sizes:
+   if( start.size() != 3 || end.size() != 3 ) {
+      cerr << "Error! Invalid vectorsize passed to setCoordinatesAlongALine at: " << __FILE__ << " " << __LINE__ << endl;
+      exit(1); //terminate
+   }
+   //Declare _numberOfCoordinates (The same as the input except if the input is 0 (default value))
+   //Used in calculations in place of numberOfCoordinates
+   unsigned int _numberOfCoordinates;
    //make sure the input is valid
-   if( numberOfCoordinates > 1 ) {
+   if( numberOfCoordinates == 0 ) {
+      //Default value -- determine the number of coordinates yourself (Should be about the same size as the number of cells along
+      //the line
+      //Calculate the length of the line:
+      Real line_length = sqrt(
+                              (end[0] - start[0]) * (end[0] - start[0]) 
+                              + (end[1] - start[1]) * (end[1] - start[1]) 
+                              + (end[2] - start[2]) * (end[2] - start[2])
+                             );
+      //Calculate the average of line_length / cell_length[i] (just a guess)
+      //cell_length if of size 3 so divide by 3:
+      Real division = 3;
+      //Calculate number of coordinates:
+      //NOTE: _cell_length[i] = a cell's length in i-direction (for example _cell_length[0] means in x-direction)
+      _numberOfCoordinates = (unsigned int)( 
+                                            (line_length / cellStruct.cell_length[0]) / division 
+                                            + (line_length / cellStruct.cell_length[1]) / division
+                                            + (line_length / cellStruct.cell_length[1]) / division
+                                           );
+      //All of the points along the line should be calculated now, but just to be on the safe side, calculate a few more:
+      _numberOfCoordinates = (unsigned int)( _numberOfCoordinates * 1.2 );
+      //Make sure the number is valid (Must be at least 2 points):
+      if( _numberOfCoordinates < 2 ) {
+         cerr << "Cannot use numberOfCoordinates lower than 2 at " << __FILE__ << " " << __LINE__ << endl;
+         exit(1);
+      }
+      //O: FIX: FOR DEBUGGING:
+      cout << _numberOfCoordinates << endl;
+   } else if( numberOfCoordinates < 2 ) {
       cerr << "Cannot use numberOfCoordinates lower than 2 at " << __FILE__ << " " << __LINE__ << endl;
       exit(1);
+   } else {
+      //User defined input
+      _numberOfCoordinates = numberOfCoordinates;
    }
    //Store the unit of line vector ( the vector from start to end divided by the numberOfCoordinates ) into std::vector line_unit
    vector<Real> line_unit;
+   //Initialize iterator i to start function's first value
    vector<Real>::iterator i = start.begin();
+   //Initialize iterator j to end function's first value
    vector<Real>::iterator j = end.begin();
+   //Iterator (Note: end.end() means the .end() of end vector)
    for( ; i != start.end() && j !=end.end(); ++j, ++i ) {
-      line_unit.push_back( (*j - *i) / (Real)(numberOfCoordinates - 1) );
+      line_unit.push_back( (*j - *i) / (Real)(_numberOfCoordinates - 1) );
    }
    //Check if vector is of size 3 -- if not, display error
    if( line_unit.size() != 3 ) {
@@ -1352,22 +1185,29 @@ void setCoordinatesAlongALine(
    //Calculate the coordinates in a loop:
    //Declare the array to be used in storing coordinates
    array<Real, 3> currentArray;
-   //Set starting values
+   //Set starting values for currentArray
    unsigned int k = 0;
+   //Iterate through start: (Note: there's a ++i AND ++k in the for loop)
    for( i = start.begin(); i != start.end(); ++i, ++k ) {
+      //Iterating through start vector so in the beginning currentArray has the same values as 'start' vector (starting point vec)
       currentArray[k] = *i;
    }
-   for( k = 0; k < numberOfCoordinates; ++k ) {
-      //Save vector first:
+   for( k = 0; k < _numberOfCoordinates; ++k ) {
+      //Save vector first (We want the starting point, too)
       outputCoordinates.push_back( currentArray );
-      //Declare the array to be used in storing coordinates
-      //array<Real, 3> currentArray;
+      //Declare j and iterator for iterating:
       int j = 0;
       vector<Real>::iterator it = line_unit.begin();
+      //Iterate through line (NOTE: there's a ++it AND ++j in the for loop)
       for( ; it != line_unit.end(); ++it, ++j ) {
-         //Input the values by using the line_unit vector
+         //Input the values by using the line_unit vector -- just plus the currentArray by one
          currentArray[j] = currentArray[j] + *it;
       }
+   }
+   //Make sure the output is not empty
+   if( outputCoordinates.empty() ) {
+      cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", Calculated coordinates empty!" << endl;
+      exit(1);
    }
    return;
 }
@@ -1390,9 +1230,11 @@ int main(int argn, char* args[]) {
    vector<Real> _point1; //Used to calculate cell ids across a line (This is the starting point of the line)
    vector<Real> _point2; //Used to calculate cell ids across a line (This is the ending point of the line)
    unsigned int numberOfCoordinatesInALine;
+   Real maxDistance = -1; //The max allowed distance from given coordinates to a cell (if calculating along a line or from coordinates) (default value -1)
+   vector< string > outputPath; //Tells where to output the file
 
    //Get user input and set the retrieve options variables
-   if( retrieveOptions( argn, args, getCellIdFromCoordinates, getCellIdFromInput, calculateCellIdFromLine, rotateVectors, _coordinates, _point1, _point2, _cellID, numberOfCoordinatesInALine ) == false ) {
+   if( retrieveOptions( argn, args, getCellIdFromCoordinates, getCellIdFromInput, calculateCellIdFromLine, rotateVectors, _coordinates, _point1, _point2, _cellID, numberOfCoordinatesInALine, maxDistance, outputPath ) == false ) {
       //Failed to retrieve options (Due to contradiction or an error)
       printUsageMessage(); //Prints the usage message
       return 0;
@@ -1444,6 +1286,10 @@ int main(int argn, char* args[]) {
 
          //Declare cell id (defined based on user options):
          uint64_t cellID;
+         //Declare a vector for holding multiple cell ids (Note: Used only if we want to calculate the cell id along a line)
+         vector<uint64_t> cellIdList;
+         //Declare Cell structure (used for calculations and has for example cell length inside it)
+         CellStructure cellStruct;
          //Determine how to get the cell id:
          //O: FIX INTO BETTER SYNTAX
          //(getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used, I'm keeping to
@@ -1459,10 +1305,15 @@ int main(int argn, char* args[]) {
             for( j = _coordinates.begin(); j != _coordinates.end(); ++j, ++i ) {
                coords[i] = *j;
             }
-            //O: FIX: TODO put user option for max_distance
-	    Real max_distance = numeric_limits<Real>::max();
+
+            //Sets cell variables (for cell geometry) -- used in getCellIdFromCoords function
+            //O: FIX THIS LATER! There should be no static variables -- they just make things more confusing
+            setCellVariables( vlsvReader, cellStruct );
+
             //Get the cell id from coordinates
-            cellID = getCellIdFromCoords( vlsvReader, coords, max_distance );
+            //Note: By the way, this is not the same as bool getCellIdFromCoordinates (should change the name)
+            cellID = getCellIdFromCoords( vlsvReader, cellStruct, coords, maxDistance );
+
             if( cellID == numeric_limits<uint64_t>::max() ) {
                //Could not find a cell id
                cout << "Could not find a cell id close enough to the input coordinates!" << endl;
@@ -1471,17 +1322,66 @@ int main(int argn, char* args[]) {
             }
             delete[] coords;
             //Print the cell id:
-            cout << "Cell id: " << cellID << endl;
+            //cout << "Cell id: " << cellID << endl;
+            //store the cel lid in the list of cell ids (This is only used because it makes the code for 
+            //calculating the cell ids from a line clearer)
+            cellIdList.push_back( cellID );
+         //O: REMOVE THIS!
          } else if( calculateCellIdFromLine ) {
-            //O: FIX! Not yet implemented
-            cerr << "Calculating from a line is not yet implemented" << endl;
-            vlsvReader.close();
-            exit(1);
+            //Now there are multiple cell ids so do the same treatment for the cell ids as with getCellIdFromCoordinates
+            //but now for multiple cell ids
+
+            //Sets static variables (for cell geometry) -- used in setCoordinatesAlongALine() and getCellIdFromCoords()
+            //O: FIX THIS LATER! There should be no static variables -- they just make things more confusing
+            setCellVariables( vlsvReader, cellStruct );
+
+            //We're handling 3-dimensional arrays so the vector size is 3
+            const int _vectorSize = 3;
+            //Declare a vector for storing coordinates:
+            vector< array<Real, 3> > coordinateList;
+            //Store cell ids into coordinateList:
+            setCoordinatesAlongALine( cellStruct, _point1, _point2, numberOfCoordinatesInALine, coordinateList );
+            //Note: (getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used,
+            // I'm keeping to previously used syntax)
+            //Declare an iterator
+            vector< array<Real, _vectorSize> >::iterator currentArray;
+            //Calculate every cell id in coordinateList
+            for( currentArray = coordinateList.begin(); currentArray != coordinateList.end(); ++currentArray ) {
+               //NOTE: since this code is nearly identical to the code for calculating single coordinates, it could be smart to create a separate function for this
+               //declare coordinates array
+               Real * coords = new Real[_vectorSize];
+               for( int i = 0; i < _vectorSize; ++i ) {
+                  //Store the array info received from the iterator into coordinates coords (to be used in getCellIdFromCoords)
+                  coords[i] = (*currentArray)[i];
+               }
+               //Get the cell id from coordinates
+               //Note: (getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used,
+               // I'm keeping to previously used syntax)
+               cellID = getCellIdFromCoords( vlsvReader, cellStruct, coords, maxDistance );
+               if( cellID == numeric_limits<uint64_t>::max() ) {
+                  //Could not find a cell id
+                  cout << "Could not find a cell id close enough to the input coordinates!" << endl;
+                  vlsvReader.close();
+                  return 0;
+               }
+               delete[] coords;
+               //Store the cell id in the list of cell ids but only if it is not already there:
+               if( cellIdList.empty() ) {
+                  //cell id list empty so it's safe to input
+                  cellIdList.push_back( cellID );
+               } else if( cellIdList.back() != cellID ) {
+                  //cellID has not already been calculated, so calculate it now:
+                  cellIdList.push_back( cellID );
+               }
+            }
          } else if( getCellIdFromInput ) {
             //Declare cellID and set it if the cell id is specified by the user
             //bool calculateCellIdFromLine equals true) -- this is done later on in the code ( After the file has been opened)
             //O: Move this to the same place
             cellID = _cellID;
+            //store the cel lid in the list of cell ids (This is only used because it makes the code for 
+            //calculating the cell ids from a line clearer)
+            cellIdList.push_back( cellID );
          } else {
             //This should never happen but it's better to be safe than sorry
             cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", No input concerning cell id!" << endl;
@@ -1489,55 +1389,80 @@ int main(int argn, char* args[]) {
             exit(1);
          }
 
-         // Create a new file suffix for the output file:
-         stringstream ss1;
-         ss1 << ".silo";
-         string newSuffix;
-         ss1 >> newSuffix;
+         //Next task is to iterate through the cell ids and save files:
+         //Save all of the cell ids' velocities into files:
+         vector<uint64_t>::iterator it;
+         //declare extractNum for keeping track of which extraction is going on and informing the user (used in the iteration)
+         int extractNum = 1;
+         //Give some info on how many extractions there are and what the save path is:
+         cout << "Save path: " << endl;
+         cout << "Total number of extractions: " << cellIdList.size() << endl;
+         //Iterate:
+         for( it = cellIdList.begin(); it != cellIdList.end(); ++it ) {
+            //get the cell id from the iterator:
+            cellID = *it;
+            // Create a new file suffix for the output file:
+            stringstream ss1;
+            ss1 << ".silo";
+            string newSuffix;
+            ss1 >> newSuffix;
 
-         // Create a new file prefix for the output file:
-         stringstream ss2;
-         //cout << cellID << endl;
-         if( rotateVectors ) {
-            ss2 << "velgrid" << '.' << "rotated" << '.' << cellID;
-         } else {
-            ss2 << "velgrid" << '.' << cellID;
-         }
-         string newPrefix;
-         ss2 >> newPrefix;
-
-         // Replace .vlsv with the new suffix:
-         string fileout = fileList[entryName];
-         size_t pos = fileout.rfind(".vlsv");
-         if (pos != string::npos) fileout.replace(pos, 5, newSuffix);
-
-         pos = fileout.find(".");
-         if (pos != string::npos) fileout.replace(0, pos, newPrefix);
-
-         // Create a SILO file for writing:
-         fileptr = DBCreate(fileout.c_str(), DB_CLOBBER, DB_LOCAL, "Vlasov data file", DB_PDB);
-         if (fileptr == NULL) {
-            cerr << "\t failed to create output SILO file for input file '" << fileList[entryName] << "'" << endl;
-            DBClose(fileptr);
-            vlsvReader.close();
-            continue;
-         }
-
-         // Extract velocity grid from VLSV file, if possible, and convert into SILO format:
-         bool velGridExtracted = true;
-         for (list<string>::const_iterator it = meshNames.begin(); it != meshNames.end(); ++it) {
-            if (convertVelocityBlocks2(vlsvReader, *it, cellID, rotateVectors ) == false) {
-               velGridExtracted = false;
+            // Create a new file prefix for the output file:
+            stringstream ss2;
+            //cout << cellID << endl;
+            if( rotateVectors ) {
+               ss2 << "velgrid" << '.' << "rotated" << '.' << cellID;
             } else {
-               cout << "\t extracted from '" << fileList[entryName] << "'" << endl;
+               ss2 << "velgrid" << '.' << cellID;
             }
-         }
-         DBClose(fileptr);
+            string newPrefix;
+            ss2 >> newPrefix;
 
-         // If velocity grid was not extracted, delete the SILO file:
-         if (velGridExtracted == false) {
-            if (remove(fileout.c_str()) != 0) {
-               cerr << "\t ERROR: failed to remote dummy output file!" << endl;
+            // Replace .vlsv with the new suffix:
+            string fileout = fileList[entryName];
+            size_t pos = fileout.rfind(".vlsv");
+            if (pos != string::npos) fileout.replace(pos, 5, newSuffix);
+   
+            pos = fileout.find(".");
+            if (pos != string::npos) fileout.replace(0, pos, newPrefix);
+
+            // Create a SILO file for writing:
+            fileptr = DBCreate(fileout.c_str(), DB_CLOBBER, DB_LOCAL, "Vlasov data file", DB_PDB);
+            if (fileptr == NULL) {
+               cerr << "\t failed to create output SILO file for input file '" << fileList[entryName] << "'" << endl;
+               DBClose(fileptr);
+               vlsvReader.close();
+               continue;
+            }
+
+            // Extract velocity grid from VLSV file, if possible, and convert into SILO format:
+            bool velGridExtracted = true;
+            for (list<string>::const_iterator it = meshNames.begin(); it != meshNames.end(); ++it) {
+               if (convertVelocityBlocks2(vlsvReader, *it, cellID, rotateVectors ) == false) {
+                  velGridExtracted = false;
+               } else {
+                  //Display message for the user:
+                  if( calculateCellIdFromLine ) {
+                     //Extracting multiple cell ids:
+                     //Display how mant extracted and how many more to go:
+                     int moreToGo = cellIdList.size() - extractNum;
+                     //Display message
+                     cout << "Extracted num. " << extractNum << ", " << moreToGo << " more to go" << endl;
+                     //Move to the next extraction number
+                     ++extractNum;
+                  } else {
+                     //Single cell id:
+                     cout << "\t extracted from '" << fileList[entryName] << "'" << endl;
+                  }
+               }
+            }
+            DBClose(fileptr);
+
+            // If velocity grid was not extracted, delete the SILO file:
+            if (velGridExtracted == false) {
+               if (remove(fileout.c_str()) != 0) {
+                  cerr << "\t ERROR: failed to remote dummy output file!" << endl;
+               }
             }
          }
 
