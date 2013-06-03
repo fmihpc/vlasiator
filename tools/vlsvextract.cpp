@@ -1432,6 +1432,8 @@ int main(int argn, char* args[]) {
          for( it = cellIdList.begin(); it != cellIdList.end(); ++it ) {
             //get the cell id from the iterator:
             cellID = *it;
+            //Print out the cell id:
+            cout << "Cell id: " << cellID << endl;
             // Create a new file suffix for the output file:
             stringstream ss1;
             ss1 << ".silo";
