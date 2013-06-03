@@ -20,7 +20,7 @@ export OMP_NUM_THREADS=8
 # Determine the number of processes
 NUM_PROCESSES=$(( $(qstat -f $BATCH_JOBID | grep "Resource_List.mppwidth" | cut -d "=" -f 2) / $OMP_NUM_THREADS ))
 # Set the number of restarts to write
-NUMBER_OF_RESTARTS=2
+NUMBER_OF_RESTARTS=1
 # Allow for this buffer for the restart IO (in s)
 RESTART_IO_EXTRA_TIME=900.0
 # Determine walltime
