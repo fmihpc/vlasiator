@@ -33,18 +33,13 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "vlsvreader2.h"
 #include "definitions.h"
 
-//O:
 #include <array> //std::array is from here
 #include <boost/program_options.hpp>
 #include <Eigen/Dense>
-//Fix: Not needed:
-#include <dccrg_cartesian_geometry.hpp>
 
-//O: The //O:'s are just something to help navigate through and keep track of recent changes (they will be removed later on)
 
 using namespace std;
 
-//O:
 using namespace Eigen;
 namespace po = boost::program_options;
 
@@ -441,7 +436,6 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader, const string& meshName, cons
    Real* vx_crds = new Real[nodes.size()];
    Real* vy_crds = new Real[nodes.size()];
    Real* vz_crds = new Real[nodes.size()];
-   //O:
    const unsigned int _node_size = nodes.size();
    uint64_t counter = 0;
    for (map<NodeCrd<Real>, uint64_t>::iterator it = nodes.begin(); it != nodes.end(); ++it) {
@@ -591,7 +585,6 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader, const string& meshName, cons
    delete vy_crds;
    delete vz_crds;
    delete bc_buffer;
-   //O:
    delete[] vx_crds_rotated;
    delete[] vy_crds_rotated;
    delete[] vz_crds_rotated;
@@ -623,7 +616,6 @@ char * loadParameter( VLSVReader& vlsvReader, const string& name ) {
    uint64_t arraySize, vectorSize, dataSize; //vectorSize should be 1
    //Write into dataType, arraySize, etc with getArrayInfo -- if fails to read, give error message
    if( vlsvReader.getArrayInfo( "PARAMETERS", name, arraySize, vectorSize, dataType, dataSize ) == false ) {
-      //O: FIX THIS! Most likely not the correct way of coding
       cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
       exit(1); //Terminate
       return 0;
@@ -851,7 +843,6 @@ uint64_t getCellIdFromCoords( VLSVReader& vlsvReader, const CellStructure & cell
    uint64_t * cellIdList = NULL;
    uint64_t sizeOfCellIdList;
    //Creates a cell id list and points cellIdList to it:
-   //O: Do this with properly later
    pointToCellIdList( vlsvReader, cellIdList, sizeOfCellIdList);
 
    //Check for null pointers
@@ -1068,13 +1059,13 @@ bool retrieveOptions( const int argn, char *args[], bool & getCellIdFromCoordina
       if( vm.count("unit") ) {
          //Get the input into 'unit'
          const string unit = vm["unit"].as<string>();
-         if( unit.compare( "re" ) ) {
+         if( unit.compare( "re" ) == 0 ) {
             //earth radius
             unit_conversion = 6371000;
-         } else if( unit.compare( "km" ) ) {
+         } else if( unit.compare( "km" ) == 0 ) {
             //km
             unit_conversion = 1000;
-         } else if( unit.compare( "m" ) ) {
+         } else if( unit.compare( "m" ) == 0 ) {
             //meters
             unit_conversion = 1;
          } else {
@@ -1134,7 +1125,6 @@ bool retrieveOptions( const int argn, char *args[], bool & getCellIdFromCoordina
    return true;
 }
 
-//O: Fix this into better syntax.. (Looks... bad.)
 //Outputs a number of coordinates along a line whose starting point is start and ending point end into outPutCoordinates
 //Input:
 //[0] vector<Real> & start -- Starting x, y, z coordinates of a line
@@ -1185,8 +1175,6 @@ void setCoordinatesAlongALine(
          cerr << "Cannot use numberOfCoordinates lower than 2 at " << __FILE__ << " " << __LINE__ << endl;
          exit(1);
       }
-      //O: FIX: FOR DEBUGGING:
-      cout << _numberOfCoordinates << endl;
    } else if( numberOfCoordinates < 2 ) {
       cerr << "Cannot use numberOfCoordinates lower than 2 at " << __FILE__ << " " << __LINE__ << endl;
       exit(1);
@@ -1273,7 +1261,6 @@ int main(int argn, char* args[]) {
       return 0;
    }
 
-
    //Get the file name
    const string mask = args[1];  
 
@@ -1321,7 +1308,6 @@ int main(int argn, char* args[]) {
          //Declare Cell structure (used for calculations and has for example cell length inside it)
          CellStructure cellStruct;
          //Determine how to get the cell id:
-         //O: FIX INTO BETTER SYNTAX
          //(getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used, I'm keeping to
          //previously used syntax)
          if( getCellIdFromCoordinates ) {
@@ -1337,7 +1323,6 @@ int main(int argn, char* args[]) {
             }
 
             //Sets cell variables (for cell geometry) -- used in getCellIdFromCoords function
-            //O: FIX THIS LATER! There should be no static variables -- they just make things more confusing
             setCellVariables( vlsvReader, cellStruct );
 
             //Get the cell id from coordinates
@@ -1356,13 +1341,11 @@ int main(int argn, char* args[]) {
             //store the cel lid in the list of cell ids (This is only used because it makes the code for 
             //calculating the cell ids from a line clearer)
             cellIdList.push_back( cellID );
-         //O: REMOVE THIS!
          } else if( calculateCellIdFromLine ) {
             //Now there are multiple cell ids so do the same treatment for the cell ids as with getCellIdFromCoordinates
             //but now for multiple cell ids
 
-            //Sets static variables (for cell geometry) -- used in setCoordinatesAlongALine() and getCellIdFromCoords()
-            //O: FIX THIS LATER! There should be no static variables -- they just make things more confusing
+            //Sets cell variables (for cell geometry) -- used in setCoordinatesAlongALine() and getCellIdFromCoords()
             setCellVariables( vlsvReader, cellStruct );
 
             //We're handling 3-dimensional arrays so the vector size is 3
@@ -1407,7 +1390,6 @@ int main(int argn, char* args[]) {
          } else if( getCellIdFromInput ) {
             //Declare cellID and set it if the cell id is specified by the user
             //bool calculateCellIdFromLine equals true) -- this is done later on in the code ( After the file has been opened)
-            //O: Move this to the same place
             cellID = _cellID;
             //store the cel lid in the list of cell ids (This is only used because it makes the code for 
             //calculating the cell ids from a line clearer)
@@ -1425,8 +1407,7 @@ int main(int argn, char* args[]) {
          //declare extractNum for keeping track of which extraction is going on and informing the user (used in the iteration)
          int extractNum = 1;
          //Give some info on how many extractions there are and what the save path is:
-         //O: TODO Add this!
-         cout << "Save path: " << endl;
+         cout << "Save path: " << outputDirectoryPath.front() << endl;
          cout << "Total number of extractions: " << cellIdList.size() << endl;
          //Iterate:
          for( it = cellIdList.begin(); it != cellIdList.end(); ++it ) {
@@ -1459,17 +1440,6 @@ int main(int argn, char* args[]) {
             pos = outputFileName.find(".");
             if (pos != string::npos) outputFileName.replace(0, pos, newPrefix);
 
-            //O: REMOVE THIS
-            /*
-            // Create a SILO file for writing:
-            fileptr = DBCreate("/lustre/tmp/hannuksela/asd.silo", DB_CLOBBER, DB_LOCAL, "Vlasov data file", DB_PDB);
-            if (fileptr == NULL) {
-               cerr << "\t failed to create output SILO file for input file '" << fileList[entryName] << "'" << endl;
-               DBClose(fileptr);
-               vlsvReader.close();
-               continue;
-            }
-            */
 
             //Declare the file path (used in DBCreate to save the file in the correct location)
             string outputFilePath;
