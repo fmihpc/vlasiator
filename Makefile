@@ -89,6 +89,7 @@ LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_MPI}
 LIBS += ${LIB_CUDA}
 LIBS += ${LIB_PROFILE}
+LIBS += ${LIB_VLSV}
 
 # Define common dependencies
 DEPS_COMMON = common.h definitions.h mpiconversion.h logger.h
