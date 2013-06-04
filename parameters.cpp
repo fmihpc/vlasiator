@@ -19,6 +19,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "parameters.h"
 #include "readparameters.h"
 #include <limits>
+//O: limits included twice?
 #include <limits>
 
 #ifndef NAN
