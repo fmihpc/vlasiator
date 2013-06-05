@@ -16,8 +16,8 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MUXML_H
-#define MUXML_H
+#ifndef MUXML_NOT_NEW_H
+#define MUXML_NOT_NEW_H
 
 #include <ostream>
 #include <map>
