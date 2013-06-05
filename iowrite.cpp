@@ -153,8 +153,8 @@ bool o_writeDomainSizes( Writer & vlsvWriter,
 bool o_writeZoneGlobalIdNumbers( Writer & vlsvWriter,
                                  const string & meshName,
                                  const array<unsigned int, 3> & _cells,
-                                 const vector< array<unsigned int, 3> > & local_zones,
-                                 const vector< array<unsigned int, 3> > & ghost_zones ) {
+                                 const vector<Zone> & local_zones,
+                                 const vector<Zone> & ghost_zones ) {
    //Get the cells in x, y, z direction right off the bat (for the sake of clarity):
    const unsigned int xCells = _cells[0];
    const unsigned int yCells = _cells[1];
@@ -165,13 +165,14 @@ bool o_writeZoneGlobalIdNumbers( Writer & vlsvWriter,
 
    //Iterate through local_zones and store the values into globalIDs
    //Note: globalID is defined as follows: global ID = z*yCells*xCells + y*xCells + x
-   vector< array<unsigned int, 3> >::const_iterator it;
+   vector<Zone>::const_iterator it;
    for( it = local_zones.begin(); it != local_zones.end(); ++it ) {
+      const array<unsigned int, 3> & indices = it->getIndices();
       //Get the coordinates for the sake of clarity:
       //Note: These are cell coordinates (integers)
-      const unsigned int x = (*it)[0];
-      const unsigned int y = (*it)[1];
-      const unsigned int z = (*it)[2];
+      const unsigned int x = indices[0];
+      const unsigned int y = indices[1];
+      const unsigned int z = indices[2];
 
       //Calculate the global id:
       const unsigned int globalId = z * yCells * xCells + y * xCells + x;
@@ -184,11 +185,12 @@ bool o_writeZoneGlobalIdNumbers( Writer & vlsvWriter,
    }
    //Do the same for ghost zones: (Append to the end of the list of global ids)
    for( it = ghost_zones.begin(); it != ghost_zones.end(); ++it ) {
+      const array<unsigned int, 3> & indices = it->getIndices();
       //Get the coordinates for the sake of clarity:
       //Note: These are cell coordinates (integers)
-      const unsigned int x = (*it)[0];
-      const unsigned int y = (*it)[1];
-      const unsigned int z = (*it)[2];
+      const unsigned int x = indices[0];
+      const unsigned int y = indices[1];
+      const unsigned int z = indices[2];
 
       //Calculate the global id:
       const unsigned int globalId = z * yCells * xCells + y * xCells + x;
