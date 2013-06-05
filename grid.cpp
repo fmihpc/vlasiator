@@ -500,6 +500,14 @@ void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
          << std::endl;
       abort();
    }
+
+
+   if (!mpiGrid.add_remote_update_neighborhood(NEAREST_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+         << " Couldn't set field solver neighborhood"
+         << std::endl;
+      abort();
+   }
    
    std::vector<neigh_t> twonearestneighbor_neighborhood;
    for (int z = -2; z <= 2; z++) {
@@ -521,6 +529,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
       << std::endl;
       abort();
    }
+
+
    
    if (!mpiGrid.add_remote_update_neighborhood(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID, twonearestneighbor_neighborhood)) {
       std::cerr << __FILE__ << ":" << __LINE__

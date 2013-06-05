@@ -274,7 +274,7 @@ namespace physicalconstants {
 // When classifying sysboundaries, all 26 nearest neighbors are included,
 #define SYSBOUNDARIES_NEIGHBORHOOD_ID 5
 #define SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID 6
-
+#define NEAREST_NEIGHBORHOOD_ID 7
 
 
 
