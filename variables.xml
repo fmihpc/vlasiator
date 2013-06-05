@@ -636,4 +636,28 @@
         <Field name="dbName" type="string">__none__</Field>
         <Field name="autoExpression" type="bool">false</Field>
     </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">TemperatureTensor</Field>
+        <Field name="definition" type="string">"{{PTensor[0][0]/rho, PTensor[0][1]/rho, PTensor[0][2]/rho},{PTensor[1][0]/rho, PTensor[1][1]/rho, PTensor[1][2]/rho},{PTensor[2][0]/rho, PTensor[2][1]/rho, PTensor[2][2]/rho}}"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">TensorMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">TemperatureTensor_rotated</Field>
+        <Field name="definition" type="string">\<gyrotropicity/R\>*TemperatureTensor*transpose(\<gyrotropicity/R\>)</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
 </Object>
