@@ -101,6 +101,8 @@ namespace spatial_cell {
       const uint64_t CELL_BVOL                = (1<<17);
       const uint64_t CELL_BVOL_DERIVATIVES    = (1<<18);
       const uint64_t CELL_DIMENSIONS          = (1<<19);
+      //OTTO: ADDED LOCAL CELL ID
+      const uint64_t CELL_IOLOCALCELLID       = (1<<20);
       
      // OTTO, let's not add it here
       const uint64_t ALL_DATA =
@@ -1004,6 +1006,11 @@ namespace velocity_neighbor {
                }
 
 	       //OTTO localCellID, similar as below, but only one
+               if((SpatialCell::mpi_transfer_type & Transfer::CELL_IOLOCALCELLID)!=0){
+                  displacements.push_back((uint8_t*) &(this->ioLocalCellId) - (uint8_t*) this);
+                  block_lengths.push_back(sizeof(uint64_t));
+               }
+
                // send  sysBoundaryFlag        
                if((SpatialCell::mpi_transfer_type & Transfer::CELL_SYSBOUNDARYFLAG)!=0){
                   displacements.push_back((uint8_t*) &(this->sysBoundaryFlag) - (uint8_t*) this);
