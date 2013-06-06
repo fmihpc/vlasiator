@@ -119,7 +119,7 @@ class Zone {
 
 // array<unsigned int, 3> & cell_bounds
 
-bool createZone(  const dccrg::Dccrg<SpatialCell> & mpiGrid,
+bool createZone(  dccrg::Dccrg<SpatialCell> & mpiGrid,
                   const vector<uint64_t> & local_cells,
                   const vector<uint64_t> & ghost_cells,
                   vector<Zone> & local_zones,
@@ -182,15 +182,13 @@ bool createZone(  const dccrg::Dccrg<SpatialCell> & mpiGrid,
       //O: FOR DEBUGGING: (REMOVE)
       cout << _zone.getRank() << endl;
 
-      //O: Set the local id:
-      //O: Hmm, I'm not sure whether MPI is needed for the local ids if every process has their own local ids
-      //O: Let's do it here anyway in case it turns out it's needed
-      /*
+      //O: Set the local id: (Used in o_writeGhostZoneDomainAndLocalIdNumbers)
+      //O: In o_writeGhostZoneDomainAndLocalIdNumbers: The process needs to know the local id of its ghost cell in another process
+      //which is why MPI is needed here
       SpatialCell * cell = mpiGrid[cellId];
       cell->ioLocalCellId = localId;
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_IOLOCALCELLID);
       mpiGrid.update_remote_neighbor_data(NEAREST_NEIGHBORHOOD_ID);
-      */
 
       //Set the local id:
       _zone.setLocalId( localId );
@@ -1011,7 +1009,7 @@ bool writeVelocityDistributionData(
 
 //O: Added bool new here which is false by default. bool new determines whether we want to use the new vlsv library or the old one
 bool writeGrid(
-               const dccrg::Dccrg<SpatialCell>& mpiGrid,
+               dccrg::Dccrg<SpatialCell>& mpiGrid,
                DataReducer& dataReducer,
                const uint& index,
                bool newLib ) {
@@ -1201,6 +1199,7 @@ bool writeRestart(const dccrg::Dccrg<SpatialCell>& mpiGrid,
                   bool newLib) {
    if( newLib ) {
       //Go with the new vlsv library
+
    } else {
       //Go with the old vlsv library
       double allStart = MPI_Wtime();
