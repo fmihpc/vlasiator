@@ -141,15 +141,15 @@ bool createZone(  dccrg::Dccrg<SpatialCell> & mpiGrid,
    //Iterate through local cells and save the data into zones
    for( it = local_cells.begin(); it != local_cells.end(); ++it ) {
       //Declare Zone -- this will be appended to vector<Zone> & zone
-      Zone _zone;
+      Zone zone;
       const uint64_t cellId = (*it);
       //Set the cell id and indices (cell coordinates):
-      _zone.setGeometry( cellId, cell_bounds );
-      //Set the cell's MPI process:
-      _zone.setRank( mpiGrid.get_process( cellId ) );
+      zone.setGeometry( cellId, cell_bounds );
+      //Set the cell's MPI process: NOTE: I think this is the same for every zone inside this function
+      zone.setRank( mpiGrid.get_process( cellId ) );
 
       //O: FOR DEBUGGING: (REMOVE)
-      cout << _zone.getRank() << endl;
+      cout << zone.getRank() << endl;
 
       //O: Set the local id:
       //O: Set the local id: (Used in o_writeGhostZoneDomainAndLocalIdNumbers)
@@ -161,25 +161,26 @@ bool createZone(  dccrg::Dccrg<SpatialCell> & mpiGrid,
       mpiGrid.update_remote_neighbor_data(NEAREST_NEIGHBORHOOD_ID);
 
       //Set the local id:
-      _zone.setLocalId( localId );
+      //O: NOTE! This is currently not used
+      zone.setLocalId( localId );
 
       //Append _zone to the list of zones:
-      local_zones.push_back( _zone );
+      local_zones.push_back( zone );
       //Increment the local id
       localId++;
    }
    //Do the same for ghost_zones:
    for( it = ghost_cells.begin(); it != ghost_cells.end(); ++it ) {
       //Declare Zone -- this will be appended to vector<Zone> & zone
-      Zone _zone;
+      Zone zone;
       const uint64_t cellId = (*it);
       //Set the cell id and indices (cell coordinates):
-      _zone.setGeometry( cellId, cell_bounds );
+      zone.setGeometry( cellId, cell_bounds );
       //Set the cell's MPI process:
-      _zone.setRank( mpiGrid.get_process( cellId ) );
+      zone.setRank( mpiGrid.get_process( cellId ) );
 
       //O: FOR DEBUGGING: (REMOVE)
-      cout << _zone.getRank() << endl;
+      cout << zone.getRank() << endl;
 
       //O: Set the local id: (Used in o_writeGhostZoneDomainAndLocalIdNumbers)
       //O: In o_writeGhostZoneDomainAndLocalIdNumbers: The process needs to know the local id of its ghost cell in another process
@@ -192,10 +193,11 @@ bool createZone(  dccrg::Dccrg<SpatialCell> & mpiGrid,
       */
 
       //Set the local id:
-      _zone.setLocalId( localId );
+      //O: NOTE! This is currently not used
+      zone.setLocalId( localId );
 
-      //Append _zone to the list of zones:
-      ghost_zones.push_back( _zone );
+      //Append zone to the list of zones:
+      ghost_zones.push_back( zone );
       //Increment the local id
       localId++;
    }
@@ -458,7 +460,6 @@ bool o_writeVariables( dccrg::Dccrg<SpatialCell>& mpiGrid,
            lineX % P::systemWriteDistributionWriteXlineStride[index] == 0)
       ) {
          //This zone writes out its velocity space so add it to the std::vector
-         //O: FIX THIS!
          velSpaceZones.push_back( &(*it) );
          mpiGrid[cellId]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
       }
