@@ -152,14 +152,13 @@ bool createZone(  dccrg::Dccrg<SpatialCell> & mpiGrid,
       cout << _zone.getRank() << endl;
 
       //O: Set the local id:
-      //O: Hmm, I'm not sure whether MPI is needed for the local ids if every process has their own local ids
-      //O: Let's do it here anyway in case it turns out it's needed
-      /*
+      //O: Set the local id: (Used in o_writeGhostZoneDomainAndLocalIdNumbers)
+      //O: In o_writeGhostZoneDomainAndLocalIdNumbers: The process needs to know the local id of its ghost cell in another process
+      //which is why MPI is needed here
       SpatialCell * cell = mpiGrid[cellId];
       cell->ioLocalCellId = localId;
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_IOLOCALCELLID);
       mpiGrid.update_remote_neighbor_data(NEAREST_NEIGHBORHOOD_ID);
-      */
 
       //Set the local id:
       _zone.setLocalId( localId );
@@ -185,10 +184,12 @@ bool createZone(  dccrg::Dccrg<SpatialCell> & mpiGrid,
       //O: Set the local id: (Used in o_writeGhostZoneDomainAndLocalIdNumbers)
       //O: In o_writeGhostZoneDomainAndLocalIdNumbers: The process needs to know the local id of its ghost cell in another process
       //which is why MPI is needed here
+      /*
       SpatialCell * cell = mpiGrid[cellId];
       cell->ioLocalCellId = localId;
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_IOLOCALCELLID);
       mpiGrid.update_remote_neighbor_data(NEAREST_NEIGHBORHOOD_ID);
+      */
 
       //Set the local id:
       _zone.setLocalId( localId );
@@ -222,7 +223,7 @@ bool globalSuccess(bool success,string errorMessage,MPI_Comm comm){
 
 bool o_writeVelocityDistributionData(
                                     Writer& vlsvWriter,
-                                    const dccrg::Dccrg<SpatialCell>& mpiGrid,
+                                    dccrg::Dccrg<SpatialCell>& mpiGrid,
                                     const vector<const Zone*> & zones,
                                     MPI_Comm comm
                                     ) {
@@ -247,7 +248,7 @@ bool o_writeVelocityDistributionData(
    for( it = zones.begin(); it != zones.end(); ++it ) {
       //Get the zone that is currently being iterated:
       const Zone * zone = *it;
-      //Make sure zone is not empty:
+      //Check for null pointer:
       if( !zone ) {
          cerr << "Error, passed NULL pointer at: " << __FILE__ << " " << __LINE__ << endl;
          return false;
@@ -345,7 +346,7 @@ bool o_writeVelocityDistributionData(
 }
 
 
-bool o_writeDataReducer(const dccrg::Dccrg<SpatialCell>& mpiGrid,
+bool o_writeDataReducer(dccrg::Dccrg<SpatialCell>& mpiGrid,
                       const vector<Zone> & local_zones,
                       DataReducer& dataReducer,
                       int dataReducerIndex,
@@ -404,7 +405,7 @@ bool o_writeDataReducer(const dccrg::Dccrg<SpatialCell>& mpiGrid,
 }
 
 
-bool o_writeVariables( const dccrg::Dccrg<SpatialCell>& mpiGrid,
+bool o_writeVariables( dccrg::Dccrg<SpatialCell>& mpiGrid,
                        DataReducer& dataReducer,
                        Writer & vlsvWriter, 
                        const uint & index,
@@ -499,7 +500,7 @@ bool o_writeScalarParameter(string name,T value,Writer& vlsvWriter,int masterRan
 
 bool o_writeCommonGridData(
    Writer& vlsvWriter,
-   const dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
    vector<uint64_t> &cells,
    const uint& index,
    MPI_Comm comm
@@ -533,10 +534,10 @@ bool o_writeCommonGridData(
 }
 
 
-//O: Ok this function name is ridiculously long. I just lack the imagination for a proper name.
+//O: FIX THE FUNCTION NAME
 //O: Not done
-
-bool o_writeGhostZoneDomainAndLocalIdNumbers( Writer & vlsvWriter,
+bool o_writeGhostZoneDomainAndLocalIdNumbers( dccrg::Dccrg<SpatialCell>& mpiGrid,
+                                              Writer & vlsvWriter,
                                               const string & meshName,
                                               const vector<Zone> & ghost_zones ) {
    //Make sure ghost_zones is not empty:
@@ -552,14 +553,39 @@ bool o_writeGhostZoneDomainAndLocalIdNumbers( Writer & vlsvWriter,
    vector<unsigned int> ghostLocalIds;
 
    //Iterate through all ghost zones:
-   vector<Zone>::const_iterator it;
-   for( it = ghost_zones.begin(); it != ghost_zones.end(); ++it ) {
+   vector<Zone>::const_iterator zone;
+   for( zone = ghost_zones.begin(); zone != ghost_zones.end(); ++zone ) {
       //Domain id is the MPI process rank owning the ghost zone
       //O: Find out about the mpi process rank
-      const int domainId = it->getRank();
-      //get the local id
-      //O: How to define?
-      const int localId = it->getLocalId();
+      const int domainId = zone->getRank();
+
+      //get the local id of the zone in the process where THIS ghost zone is a local zone:
+      //In order to do this we need MPI
+      //Example:
+      //Marking zones with a letter A, B, C, D etc and local ids are numbers above the zones
+      //local id:                     0  1  2                  3 4 5
+      //Process 1. has: local zones ( A, B, C ), ghost zones ( D E F )
+
+      //local id:                     0  1                  2
+      //Process 2. has: local zones ( D, G ), ghost zones ( H )
+      //Now if we're in process 1. and our ghost zone is D, its domainId would be 2. because process 2. has D as local zone
+      //In process 2, the local id of D is 0, so that's the local id we want now
+      //The local id is being saved in createZone function
+      SpatialCell * cell = mpiGrid[zone->getCellId()];
+      //Check for NULL:
+      if( cell == NULL ) {
+         //Better to check for NULL like this 
+         cerr << "Null pointer at: " << __FILE__ << " " << __LINE__ << endl;
+         return false;
+      }
+      if( !cell ) {
+         cerr << "Null pointer at: " << __FILE__ << " " << __LINE__ << endl;
+      }
+      //Get the local id:
+      const int localId = cell->ioLocalCellId;
+
+      //O: This was here before: (REMOVE): const int localId = zone->getLocalId();
+
       //Append to the vectors
       ghostDomainIds.push_back( domainId );
       ghostLocalIds.push_back( localId );
@@ -1042,9 +1068,6 @@ bool writeGrid(
       //O: NOTE: Should this be done? It might be better to input the local cell ids first -- or not. Probably better to sort first
       std::sort(local_cells.begin(), local_cells.end());
 
-      //Create the local zones (inputs proper values into local_zones):
-      //O: THIS IS INCORRECT! createZone should create both local zone and ghost zone at the same time
-      //if( createZone( mpiGrid, local_cells, local_zones ) == false ) return false;
 
       //Declare ghost zones:
       vector<Zone> ghost_zones;
@@ -1052,7 +1075,9 @@ bool writeGrid(
       vector<uint64_t> ghost_cells = mpiGrid.get_remote_cells_on_process_boundary( NEAREST_NEIGHBORHOOD_ID );
       //Sort the cells:
       std::sort(ghost_cells.begin(), ghost_cells.end());
+
       //Create the zones (inputs proper values into local_zones and ghost_zones):
+      //Also there's some MPI communication
       if( createZone( mpiGrid, local_cells, ghost_cells, local_zones, ghost_zones ) == false ) return false;
 
       //The mesh name is "SpatialGrid"
@@ -1080,7 +1105,7 @@ bool writeGrid(
       if( o_writeDomainSizes( vlsvWriter, meshName, local_zones.size(), ghost_zones.size() ) == false ) return false;
 
       //Write ghost zone domain and local id numbers
-      if( o_writeGhostZoneDomainAndLocalIdNumbers( vlsvWriter, meshName, ghost_zones ) == false ) return false;
+      if( o_writeGhostZoneDomainAndLocalIdNumbers( mpiGrid, vlsvWriter, meshName, ghost_zones ) == false ) return false;
 
       //Write necessary variables:
       if( o_writeVariables( mpiGrid, dataReducer, vlsvWriter, index, meshName, local_zones ) == false ) return false;
