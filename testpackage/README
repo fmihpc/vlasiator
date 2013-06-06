@@ -1,23 +1,31 @@
-README file for running tests with run_tests.sh
+README file for vlasiator test package
 
-To do before running real tests:
--Reference files does not yet have verified results, but after they have been added this should be ready to use.
+Test package consists of three parts:
+   1. settings for different computers
+   2. settings for different tests
+   3. running the tests
+for the first two parts the scripts for short and medium test are separate.
 
--Reference directories should have only the last grid-file named grid grid.0000001.vlsv (and the first grid.0000000.vlsv).
+1. Computer settings
+   - files are named: short/medium_test_hermit.sh, this is the file that is submitted
+   - in these files user can define settings for running the program
+   - define location for reference data directory
+   - with variable create_verification_files you can define if you want to use the existing reference data or if you want first run the data for reference.
+   - NOTE that if you choose to run the reference data first, the reference data directory must be somewhere from where you can submit runs
 
--Also the cfg files for test should be changed so that the save only the last vlsv file.
-
--Only short test is tested at the moment, longer version works probably also if you change the values of p and t and #PBS -l mppwidth=, #PBS -l mppdepth=, so that mppwidth=p and mppdepth=t.
-
--This version is for meteo.
-
--vlsvdiff.cpp should be changed so that it does not print the dots after the numbers. Lines 297, 298, 300 and 301, remove dots at the end of the print
-
-
-Usage:
--in run_tests.sh you can choose which test to run, and the parameters compared in the test
--you can specify the directories for the reference files
-
+2. Test settings
+   - files are named short/medium_test_definitions.sh
+   - User can choose which tests are run. At the moment options are Fluctuations and Magnetosphere
+   - In arrays variables_name and variables_component use defines which parameters are compared. 
+   - variables_name has the name of the variable and variables_component have the number of the component that is compared 
+   - variables_name and variables_component must have same number of elements
+   - For example:
+      variables_name=( "rho" "rho_v" "rho_v" "rho_v" "B" "B" "B" "E" "E" "E" )
+      variables_components=( 0 0 1 2 0 1 2 0 1 2 )
+      -> e.g. 1st variable for comparison is variables_name[1] variables_component[1] = rho 0, 
+              4th is  variables_name[4] variables_component[4] = rho_v 4
 
 
+3. Running tests
+   - writes the results of the comparison in test.o file
 

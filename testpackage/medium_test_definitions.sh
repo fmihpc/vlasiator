@@ -23,7 +23,7 @@ comparison_vlsv[1]="grid.0000010.vlsv"
 
 # test 2
 test_name[2]="Magnetosphere_medium"
-comparison_vlsv[2]="bulk.0000005.vlsv"
+comparison_vlsv[2]="bulk.0000010.vlsv"
 
 
 # define here the variables you want to be tested

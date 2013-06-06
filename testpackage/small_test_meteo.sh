@@ -1,17 +1,16 @@
 #!/bin/bash -l
-#PBS -l mppwidth=120
+#PBS -l mppwidth=24
 #PBS -l mppnppn=12
-#PBS -l walltime=01:00:00
+#PBS -l walltime=00:15:00
 #PBS -V  
 #PBS -N test
 
-#command for running stuff, FIXME: should be a function or so that could easily be extended to mpirun etc
-run_command="aprun -n 10 -N 1 -d 12"
 
-# -n $p -N 1 -d $t
-# #processes and threads
-# p=2    # mppwidth = p*t
-t=12   # mppnppn = t
+#threads
+t=12  
+
+#command for running stuff
+run_command="aprun -n 2 -N 1 -d $t"
 
 #get baseddir from PBS_O_WORKDIR if set (batch job), otherwise go to current folder
 #http://stackoverflow.com/questions/307503/whats-the-best-way-to-check-that-environment-variables-are-set-in-unix-shellscr
@@ -26,7 +25,8 @@ reference_dir="/stornext/field/users/hoilijo/Vlasiator/reference_data"
 # if 0 then we check the validity against the reference
 create_verification_files=0
 
-# Define test small/medium/long
+# Define test
 source /stornext/field/users/hoilijo/Vlasiator/vlasiator/trunk/testpackage/medium_test_definitions.sh
 wait
+# Run tests
 source /stornext/field/users/hoilijo/Vlasiator/vlasiator/trunk/testpackage/run_tests.sh
