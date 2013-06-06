@@ -19,7 +19,7 @@
 
 
 bool writeGrid(
-   const dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
+   dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    DataReducer& dataReducer,
    const uint& index,
    bool newLib = false
