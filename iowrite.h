@@ -21,7 +21,8 @@
 bool writeGrid(
    const dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    DataReducer& dataReducer,
-   const uint& index
+   const uint& index,
+   bool newLib = false
 );
 
 
@@ -40,7 +41,8 @@ bool writeRestart(const dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
                DataReducer& dataReducer,
                const std::string& name,
                const uint& index,
-               const int& stripe);
+               const int& stripe,
+               bool newLib = false);
 
 
 
@@ -54,6 +56,6 @@ bool writeRestart(const dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
 \param dataReducer Contains datareductionoperators that are used to compute diagnostic data
 */
 
-bool writeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid, DataReducer& dataReducer);
+bool writeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid, DataReducer& dataReducer, bool newLib = false);
 
 #endif
