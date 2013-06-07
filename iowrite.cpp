@@ -137,7 +137,7 @@ bool createZone(  dccrg::Dccrg<SpatialCell> & mpiGrid,
    //Declare an iterator for iterating though the cell ids
    vector<uint64_t>::const_iterator it;
    //Local ids for the process start from 0 (this is used in the iteration)
-   uint64_t localId = 0;
+   uint64_t thisProcessLocalId = 0;
    //Iterate through local cells and save the data into zones
    for( it = local_cells.begin(); it != local_cells.end(); ++it ) {
       //Declare Zone -- this will be appended to vector<Zone> & zone
@@ -152,22 +152,44 @@ bool createZone(  dccrg::Dccrg<SpatialCell> & mpiGrid,
       cout << zone.getRank() << endl;
 
       //O: Set the local id:
-      //O: Set the local id: (Used in o_writeGhostZoneDomainAndLocalIdNumbers)
-      //O: In o_writeGhostZoneDomainAndLocalIdNumbers: The process needs to know the local id of its ghost cell in another process
-      //which is why MPI is needed here
+
+      //Explanation of how the local ids are done right now:
+      //There's multiple processes, so in one process the cells and local ids look somewhat like this:
+      //this process' local ids: 0 1 2                 - -
+      //Process 1: local zones: (A B C), ghost zones: (D E)
+      //this process' local ids: 0 1                 - - - -
+      //Process 2: local zones: (E F), ghost zones: (G H I J)
+      //this process' local ids: 0 1 2 3 4                 - - - -
+      //Process 3: local zones: (D G H I J), ghost zones: (A B C F)
+      //So every process has zones numbered with local ids and what we want to do here concerning local ids is that we
+      //want ghost zones to know where the same zone is being processed and which local id it has in the process where
+      //it is being processed.
+      //For example, the ghost zone D would have a domain id 3 and a local id 0 because D is a local zone in process 3
+      //and its local id in process 3. is 0
+
+      //O: Set the current process' local id: (Used in o_writeGhostZoneDomainAndLocalIdNumbers)
       SpatialCell * cell = mpiGrid[cellId];
-      cell->ioLocalCellId = localId;
+      //Check for null pointer:
+      if( cell == NULL ) {
+         cerr << "Error, passed a null pointer at: " << __FILE__ << " " << __LINE__ << endl;
+      }
+      //Set the local id
+      cell->ioLocalCellId = thisProcessLocalId;
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_IOLOCALCELLID);
+      //Make sure the neighbours get the data (make an update)
       mpiGrid.update_remote_neighbor_data(NEAREST_NEIGHBORHOOD_ID);
 
+      //O: Local Id is being set in MPI so for local zones the local id is useless.
+      /*
       //Set the local id:
       //O: NOTE! This is currently not used
       zone.setLocalId( localId );
+      */
 
       //Append _zone to the list of zones:
       local_zones.push_back( zone );
       //Increment the local id
-      localId++;
+      thisProcessLocalId++;
    }
    //Do the same for ghost_zones:
    for( it = ghost_cells.begin(); it != ghost_cells.end(); ++it ) {
@@ -192,14 +214,22 @@ bool createZone(  dccrg::Dccrg<SpatialCell> & mpiGrid,
       mpiGrid.update_remote_neighbor_data(NEAREST_NEIGHBORHOOD_ID);
       */
 
-      //Set the local id:
-      //O: NOTE! This is currently not used
-      zone.setLocalId( localId );
+      //O: REMAINDER: Explain this better..
+      //Set the ghost zone's local id to match the local id it has in the process where the ghost zone is local zone
+      const SpatialCell * cell = mpiGrid[cellId];
+      //Check for null pointer:
+      if( cell == NULL ) {
+         cerr << "Error, passed a null pointer at: " << __FILE__ << " " << __LINE__ << endl;
+      }
+      const int zonesLocalIdWhereItIsBeingProcessed = cell->ioLocalCellId;
+      zone.setLocalId( zonesLocalIdWhereItIsBeingProcessed );
 
       //Append zone to the list of zones:
       ghost_zones.push_back( zone );
       //Increment the local id
-      localId++;
+      //O: NOTE: This is actually not being used currently (It's a useless operation)
+      //But I commented it in hopes of making this code slightly clearer
+      //thisProcessLocalId++;
    }
    return true;
 }
@@ -572,6 +602,9 @@ bool o_writeGhostZoneDomainAndLocalIdNumbers( dccrg::Dccrg<SpatialCell>& mpiGrid
       //Now if we're in process 1. and our ghost zone is D, its domainId would be 2. because process 2. has D as local zone
       //In process 2, the local id of D is 0, so that's the local id we want now
       //The local id is being saved in createZone function
+      
+      //O: REMOVE THIS!
+      /*
       SpatialCell * cell = mpiGrid[zone->getCellId()];
       //Check for NULL:
       if( cell == NULL ) {
@@ -584,8 +617,9 @@ bool o_writeGhostZoneDomainAndLocalIdNumbers( dccrg::Dccrg<SpatialCell>& mpiGrid
       }
       //Get the local id:
       const int localId = cell->ioLocalCellId;
+      */
 
-      //O: This was here before: (REMOVE): const int localId = zone->getLocalId();
+      const int localId = zone->getLocalId();
 
       //Append to the vectors
       ghostDomainIds.push_back( domainId );
