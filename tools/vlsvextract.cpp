@@ -866,18 +866,30 @@ uint64_t getCellIdFromCoords( VLSVReader& vlsvReader, const CellStructure & cell
    //Set the cell coordinates: (Takes the cell id and inputs the cell id's coordinates into getCellCoordinates
    getCellCoordinates( cellStruct, cellId, cellCoordinate );
    //Calculate distance from cell coordinates to input coordinates
-   Real dist = ( 
-                (cellCoordinate[0] - coords[0]) * (cellCoordinate[0] - coords[0])
-                + (cellCoordinate[1] - coords[1]) * (cellCoordinate[1] - coords[1])
-                + (cellCoordinate[2] - coords[2]) * (cellCoordinate[2] - coords[2])
-               );
+   Real dist;
+   if( cellStruct.cell_bounds[2] < 2 ) {
+      dist = ( 
+                   (cellCoordinate[0] - coords[0]) * (cellCoordinate[0] - coords[0])
+                   + (cellCoordinate[1] - coords[1]) * (cellCoordinate[1] - coords[1])
+                  );
+   } else {
+      dist = (
+                   (cellCoordinate[0] - coords[0]) * (cellCoordinate[0] - coords[0])
+                   + (cellCoordinate[1] - coords[1]) * (cellCoordinate[1] - coords[1])
+                   + (cellCoordinate[2] - coords[2]) * (cellCoordinate[2] - coords[2])
+                  );
+   }
    //Declare the max distance parameter (If user-defined then _max_distance is the same as max_distance given as an input parameter)
    Real _max_distance;
    //If max_distance is -1 then user has not input values to it so we have to define it now:
    if( max_distance == -1 ) {
       //Use the cell grid's geometry to determine a good max_distance:
       //In this case the distance would be a cell's diagonal length times 40 (NOTE: _cell_length[] is a static variable)
-      _max_distance = sqrt(cellStruct.cell_length[0]*cellStruct.cell_length[0] + cellStruct.cell_length[0]*cellStruct.cell_length[0] + cellStruct.cell_length[0]*cellStruct.cell_length[0]);
+      if( cellStruct.cell_bounds[2] < 2 ) {
+         _max_distance = sqrt(cellStruct.cell_length[0]*cellStruct.cell_length[0] + cellStruct.cell_length[1]*cellStruct.cell_length[1]);
+      } else {
+         _max_distance = sqrt(cellStruct.cell_length[0]*cellStruct.cell_length[0] + cellStruct.cell_length[1]*cellStruct.cell_length[1] + cellStruct.cell_length[2]*cellStruct.cell_length[2]);
+      }
    } else {
       //Get the max distance from user input
       _max_distance = max_distance;
@@ -1153,11 +1165,20 @@ void setCoordinatesAlongALine(
       //Default value -- determine the number of coordinates yourself (Should be about the same size as the number of cells along
       //the line
       //Calculate the length of the line:
-      Real line_length = sqrt(
-                              (end[0] - start[0]) * (end[0] - start[0]) 
-                              + (end[1] - start[1]) * (end[1] - start[1]) 
-                              + (end[2] - start[2]) * (end[2] - start[2])
-                             );
+      Real line_length;
+      if( cellStruct.cell_bounds[2] < 2 ) {
+         line_length = sqrt(
+                                 (end[0] - start[0]) * (end[0] - start[0]) 
+                                 + (end[1] - start[1]) * (end[1] - start[1]) 
+                                );
+      } else {
+         line_length = sqrt(
+                                 (end[0] - start[0]) * (end[0] - start[0])
+                                 + (end[1] - start[1]) * (end[1] - start[1])
+                                 + (end[2] - start[2]) * (end[2] - start[2])
+                                );
+      }
+
       //Calculate the average of line_length / cell_length[i] (just a guess)
       //cell_length if of size 3 so divide by 3:
       Real division = 3;
@@ -1166,10 +1187,8 @@ void setCoordinatesAlongALine(
       _numberOfCoordinates = (unsigned int)( 
                                             (line_length / cellStruct.cell_length[0]) / division 
                                             + (line_length / cellStruct.cell_length[1]) / division
-                                            + (line_length / cellStruct.cell_length[1]) / division
+                                            + (line_length / cellStruct.cell_length[2]) / division
                                            );
-      //All of the points along the line should be calculated now, but just to be on the safe side, calculate a few more:
-      _numberOfCoordinates = (unsigned int)( _numberOfCoordinates * 1.2 );
       //Make sure the number is valid (Must be at least 2 points):
       if( _numberOfCoordinates < 2 ) {
          cerr << "Cannot use numberOfCoordinates lower than 2 at " << __FILE__ << " " << __LINE__ << endl;
@@ -1372,20 +1391,22 @@ int main(int argn, char* args[]) {
                // I'm keeping to previously used syntax)
                cellID = getCellIdFromCoords( vlsvReader, cellStruct, coords, maxDistance );
                if( cellID == numeric_limits<uint64_t>::max() ) {
+                  //O: DONT TERMINATE!
                   //Could not find a cell id
-                  cout << "Could not find a cell id close enough to the input coordinates!" << endl;
-                  vlsvReader.close();
-                  return 0;
+                  //cout << "Could not find a cell id close enough to the input coordinates!" << endl;
+                  //vlsvReader.close();
+                  //return 0;
+               } else {
+                  //Store the cell id in the list of cell ids but only if it is not already there:
+                  if( cellIdList.empty() ) {
+                     //cell id list empty so it's safe to input
+                     cellIdList.push_back( cellID );
+                  } else if( cellIdList.back() != cellID ) {
+                     //cellID has not already been calculated, so calculate it now:
+                     cellIdList.push_back( cellID );
+                  }
                }
                delete[] coords;
-               //Store the cell id in the list of cell ids but only if it is not already there:
-               if( cellIdList.empty() ) {
-                  //cell id list empty so it's safe to input
-                  cellIdList.push_back( cellID );
-               } else if( cellIdList.back() != cellID ) {
-                  //cellID has not already been calculated, so calculate it now:
-                  cellIdList.push_back( cellID );
-               }
             }
          } else if( getCellIdFromInput ) {
             //Declare cellID and set it if the cell id is specified by the user
@@ -1399,6 +1420,12 @@ int main(int argn, char* args[]) {
             cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", No input concerning cell id!" << endl;
             vlsvReader.close();
             exit(1);
+         }
+
+         //Check for proper input
+         if( cellIdList.empty() ) {
+            cout << "Could not find a cell id!" << endl;
+            return 0;
          }
 
          //Next task is to iterate through the cell ids and save files:
