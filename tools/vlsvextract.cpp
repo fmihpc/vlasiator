@@ -879,24 +879,9 @@ uint64_t getCellIdFromCoords( VLSVReader& vlsvReader, const CellStructure & cell
                    + (cellCoordinate[2] - coords[2]) * (cellCoordinate[2] - coords[2])
                   );
    }
-   //Declare the max distance parameter (If user-defined then _max_distance is the same as max_distance given as an input parameter)
-   Real _max_distance;
-   //If max_distance is -1 then user has not input values to it so we have to define it now:
-   if( max_distance == -1 ) {
-      //Use the cell grid's geometry to determine a good max_distance:
-      //In this case the distance would be a cell's diagonal length times 40 (NOTE: _cell_length[] is a static variable)
-      if( cellStruct.cell_bounds[2] < 2 ) {
-         _max_distance = sqrt(cellStruct.cell_length[0]*cellStruct.cell_length[0] + cellStruct.cell_length[1]*cellStruct.cell_length[1]);
-      } else {
-         _max_distance = sqrt(cellStruct.cell_length[0]*cellStruct.cell_length[0] + cellStruct.cell_length[1]*cellStruct.cell_length[1] + cellStruct.cell_length[2]*cellStruct.cell_length[2]);
-      }
-   } else {
-      //Get the max distance from user input
-      _max_distance = max_distance;
-   }
    //If the distance from the given coordinates (accurate) to the given coordinates is too larger then don't use the cell id
-   //Note: If cell id equals numeric limits then stop the program
-   if( _max_distance < sqrt( dist ) ) {
+   //Note: If cell id equals numeric limits then the cell id won't be picked
+   if( max_distance < sqrt( dist ) ) {
       //Return numeric limit to let the program know we didn't find a cell id
       return numeric_limits<uint64_t>::max();
    }
@@ -1167,33 +1152,45 @@ void setCoordinatesAlongALine(
       //Calculate the length of the line:
       Real line_length;
       if( cellStruct.cell_bounds[2] < 2 ) {
+         //We are in 2D
          line_length = sqrt(
                                  (end[0] - start[0]) * (end[0] - start[0]) 
                                  + (end[1] - start[1]) * (end[1] - start[1]) 
                                 );
+         //Calculate the average of line_length / cell_length[i] (just a guess)
+         //cell_length if of size 3 so divide by 3:
+         Real division = 2;
+         //Calculate number of coordinates:
+         //NOTE: _cell_length[i] = a cell's length in i-direction (for example _cell_length[0] means in x-direction)
+         _numberOfCoordinates = (unsigned int)( 
+                                               (line_length / cellStruct.cell_length[0]) / division 
+                                               + (line_length / cellStruct.cell_length[1]) / division
+                                              );
       } else {
          line_length = sqrt(
                                  (end[0] - start[0]) * (end[0] - start[0])
                                  + (end[1] - start[1]) * (end[1] - start[1])
                                  + (end[2] - start[2]) * (end[2] - start[2])
                                 );
+         //Calculate the average of line_length / cell_length[i] (just a guess)
+         //cell_length if of size 3 so divide by 3:
+         Real division = 3;
+         //Calculate number of coordinates:
+         //NOTE: _cell_length[i] = a cell's length in i-direction (for example _cell_length[0] means in x-direction)
+         _numberOfCoordinates = (unsigned int)( 
+                                               (line_length / cellStruct.cell_length[0]) / division 
+                                               + (line_length / cellStruct.cell_length[1]) / division
+                                               + (line_length / cellStruct.cell_length[2]) / division
+                                              );
       }
 
-      //Calculate the average of line_length / cell_length[i] (just a guess)
-      //cell_length if of size 3 so divide by 3:
-      Real division = 3;
-      //Calculate number of coordinates:
-      //NOTE: _cell_length[i] = a cell's length in i-direction (for example _cell_length[0] means in x-direction)
-      _numberOfCoordinates = (unsigned int)( 
-                                            (line_length / cellStruct.cell_length[0]) / division 
-                                            + (line_length / cellStruct.cell_length[1]) / division
-                                            + (line_length / cellStruct.cell_length[2]) / division
-                                           );
       //Make sure the number is valid (Must be at least 2 points):
       if( _numberOfCoordinates < 2 ) {
          cerr << "Cannot use numberOfCoordinates lower than 2 at " << __FILE__ << " " << __LINE__ << endl;
          exit(1);
       }
+      //Just to make sure that there's enough coordinates let's add a few more:
+      _numberOfCoordinates = 1.3 * _numberOfCoordinates;
    } else if( numberOfCoordinates < 2 ) {
       cerr << "Cannot use numberOfCoordinates lower than 2 at " << __FILE__ << " " << __LINE__ << endl;
       exit(1);
@@ -1280,6 +1277,8 @@ int main(int argn, char* args[]) {
       return 0;
    }
 
+
+
    //Get the file name
    const string mask = args[1];  
 
@@ -1320,12 +1319,26 @@ int main(int argn, char* args[]) {
             continue;
          }
 
+         //Sets cell variables (for cell geometry) -- used in getCellIdFromCoords function
+         CellStructure cellStruct;
+         setCellVariables( vlsvReader, cellStruct );
+      
+         //If maxDistance is -1 then user has not input values to it so we have to define it now:
+         if( maxDistance == -1 ) {
+            //Use the cell grid's geometry to determine a good max_distance:
+            if( cellStruct.cell_bounds[2] < 2 ) {
+               //No z axis (2D):
+               maxDistance = 0.7*sqrt(cellStruct.cell_length[0]*cellStruct.cell_length[0] + cellStruct.cell_length[1]*cellStruct.cell_length[1]);
+            } else {
+               //Get the z axis too (3D)
+               maxDistance = 0.7*sqrt(cellStruct.cell_length[0]*cellStruct.cell_length[0] + cellStruct.cell_length[1]*cellStruct.cell_length[1] + cellStruct.cell_length[2]*cellStruct.cell_length[2]);
+            }
+          }
+
          //Declare cell id (defined based on user options):
          uint64_t cellID;
          //Declare a vector for holding multiple cell ids (Note: Used only if we want to calculate the cell id along a line)
          vector<uint64_t> cellIdList;
-         //Declare Cell structure (used for calculations and has for example cell length inside it)
-         CellStructure cellStruct;
          //Determine how to get the cell id:
          //(getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used, I'm keeping to
          //previously used syntax)
@@ -1341,16 +1354,13 @@ int main(int argn, char* args[]) {
                coords[i] = *j;
             }
 
-            //Sets cell variables (for cell geometry) -- used in getCellIdFromCoords function
-            setCellVariables( vlsvReader, cellStruct );
-
             //Get the cell id from coordinates
             //Note: By the way, this is not the same as bool getCellIdFromCoordinates (should change the name)
             cellID = getCellIdFromCoords( vlsvReader, cellStruct, coords, maxDistance );
 
             if( cellID == numeric_limits<uint64_t>::max() ) {
                //Could not find a cell id
-               cout << "Could not find a cell id close enough to the input coordinates!" << endl;
+               cout << "Could not find a cell id close enough to the input coordinates! Try raising --max-distance" << endl;
                vlsvReader.close();
                return 0;
             }
@@ -1363,9 +1373,6 @@ int main(int argn, char* args[]) {
          } else if( calculateCellIdFromLine ) {
             //Now there are multiple cell ids so do the same treatment for the cell ids as with getCellIdFromCoordinates
             //but now for multiple cell ids
-
-            //Sets cell variables (for cell geometry) -- used in setCoordinatesAlongALine() and getCellIdFromCoords()
-            setCellVariables( vlsvReader, cellStruct );
 
             //We're handling 3-dimensional arrays so the vector size is 3
             const int _vectorSize = 3;
@@ -1390,13 +1397,8 @@ int main(int argn, char* args[]) {
                //Note: (getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used,
                // I'm keeping to previously used syntax)
                cellID = getCellIdFromCoords( vlsvReader, cellStruct, coords, maxDistance );
-               if( cellID == numeric_limits<uint64_t>::max() ) {
-                  //O: DONT TERMINATE!
-                  //Could not find a cell id
-                  //cout << "Could not find a cell id close enough to the input coordinates!" << endl;
-                  //vlsvReader.close();
-                  //return 0;
-               } else {
+               if( cellID != numeric_limits<uint64_t>::max() ) {
+                  //A valid cell id:
                   //Store the cell id in the list of cell ids but only if it is not already there:
                   if( cellIdList.empty() ) {
                      //cell id list empty so it's safe to input
