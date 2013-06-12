@@ -19,12 +19,10 @@ run_tests=( 1 2 )
 
 # test 1
 test_name[1]="Fluctuations_small"
-#test_cfg[1]="data/Fluctuations_small.cfg"
 comparison_vlsv[1]="grid.0000010.vlsv"
 
 # test 2
 test_name[2]="Magnetosphere_small"
-#test_cfg[2]="data/Magnetosphere_small.cfg"
 comparison_vlsv[2]="bulk.0000010.vlsv"
 
 
