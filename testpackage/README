@@ -16,6 +16,7 @@ for the first two parts the scripts for short and medium test are separate.
 2. Test settings
    - files are named short/medium_test_definitions.sh
    - User can choose which tests are run. At the moment options are Fluctuations and Magnetosphere
+   - Define the vlsv file for comparison	
    - In arrays variables_name and variables_component use defines which parameters are compared. 
    - variables_name has the name of the variable and variables_component have the number of the component that is compared 
    - variables_name and variables_component must have same number of elements
