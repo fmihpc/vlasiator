@@ -44,6 +44,7 @@ w_end = 500
 
 # WHAMP
 #whamp_f_list = arange(0.1,50.1,0.5)
+plotWHAMP = 1 # 0: skip WHAMP; 1: plot WHAMP
 whamp_f_list = (0.1,0.2,0.3,0.4,0.5,0.9,1.1,1.2,5.1,6.1,7.1,8.1,9.1,10.1)
 #whamp_f_list = [0.1,0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5,7.0,7.5,8.0,8.5,9.0,9.5,10.1,20.1,50.1,100.1]
 #whamp_f_list = [1.1,2.1,10.1,25.1,50.1,75.1,100.1,150.1,200.1,250.1,500.1,750.1,1000.1,1250.1]
@@ -162,111 +163,114 @@ axes.plot(kaxis[k_start:k_end], w_lh/w_ci * numpy.ones(kaxis[k_start:k_end].size
 # Treumann Baumjohann 9.140
 #axes.plot(kaxis[k_start:k_end], 0.5 * w_ce / w_ci / (1.0 + w_pe**2 / (kaxis[k_start:k_end]**2 * c**2 / r_Larmor**2)) * (numpy.sqrt(1.0 + 4.0 * w_pi**2 / (kaxis[k_start:k_end]**2 * c**2/ r_Larmor**2)) - 1.0), '-.', lw=2, scalex=False, scaley=False, color='k')
 
-print "Starting WHAMP..."
-## Generate input file
-fileWHAMPinput = open("WHAMPinput", "w")
-fileWHAMPinput.write("%e %e 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0\n" % (density, density)) # Number density of species
-fileWHAMPinput.write("%e %e 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0\n" % (Temperature*kb/(1000.0*eV), electronTemperature/1000.0)) # Temperatures in keV
-fileWHAMPinput.write("1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0\n")
-fileWHAMPinput.write("1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0\n")
-fileWHAMPinput.write("0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0\n")
-fileWHAMPinput.write("1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0\n") # Species (1 H, 0 electron)
-fileWHAMPinput.write("0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0\n")
-fileWHAMPinput.write("%e\n" % (q * B0 / (2.0 * math.pi * me * 1000.0))) # electron gyrofrequency in kHz
-fileWHAMPinput.write("0\n")
-fileWHAMPinput.close()
+if plotWHAMP == 1:
+   print "Starting WHAMP..."
+   ## Generate input file
+   fileWHAMPinput = open("WHAMPinput", "w")
+   fileWHAMPinput.write("%e %e 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0\n" % (density, density)) # Number density of species
+   fileWHAMPinput.write("%e %e 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0\n" % (Temperature*kb/(1000.0*eV), electronTemperature/1000.0)) # Temperatures in keV
+   fileWHAMPinput.write("1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0\n")
+   fileWHAMPinput.write("1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0\n")
+   fileWHAMPinput.write("0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0\n")
+   fileWHAMPinput.write("1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0\n") # Species (1 H, 0 electron)
+   fileWHAMPinput.write("0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0\n")
+   fileWHAMPinput.write("%e\n" % (q * B0 / (2.0 * math.pi * me * 1000.0))) # electron gyrofrequency in kHz
+   fileWHAMPinput.write("0\n")
+   fileWHAMPinput.close()
+   
+   ## Overplot WHAMP data
+   #from subprocess import PIPE, Popen
+   #fileWHAMPOut = open('WHAMP_CLI_output.txt', 'w')
+   #proc = Popen('whamp', stdin=PIPE, stdout=fileWHAMPOut)
+   #proc.stdin.write('./WHAMPinput\n')
+   #proc.stdin.write('M(2)=0.0,f=0.01,z=0.01,p=0.01\n')
+   #proc.stdin.write('zpf\n')
+   ## p perpendicular
+   ## z parallel
+   
+   fileWHAMP_CLIinput = open("WHAMP_CLIinput", "w")
+   fileWHAMP_CLIinput.write('./WHAMPinput\n')
+   fileWHAMP_CLIinput.write('M(2)=0.0,f=0.01,z=0.01,p=0.01\n')
+   fileWHAMP_CLIinput.write('zpf\n')
+   
+   #import os
+   for j in whamp_f_list:
+      for i in numpy.arange(k_start, k_end):
+         #proc.stdin.write('f=')
+         #proc.stdin.write(str(j))
+         #proc.stdin.write('z=')
+         #proc.stdin.write(str(kaxis[i]*math.cos(angle)))
+         #proc.stdin.write('p=')
+         #proc.stdin.write(str(kaxis[i]*math.sin(angle)))
+         #proc.stdin.write('\n')
+         fileWHAMP_CLIinput.write('f=')
+         fileWHAMP_CLIinput.write(str(j))
+         fileWHAMP_CLIinput.write('z=')
+         fileWHAMP_CLIinput.write(str(kaxis[i]*math.cos(angle)))
+         fileWHAMP_CLIinput.write('p=')
+         fileWHAMP_CLIinput.write(str(kaxis[i]*math.sin(angle)))
+         fileWHAMP_CLIinput.write('\n')
+   
+   #proc.stdin.write('s\n\n')
+   fileWHAMP_CLIinput.write('s\n\n')
+   
+   ##fileWHAMPOut.flush()
+   ##os.fsync(fileWHAMPOut.fileno())
+   
+   ##for k in proc.stdout.readlines():
+      ##fileWHAMPOut.write(str(k)),
+      ##retval = proc.wait()
+   
+   #fileWHAMPOut.close()
+   fileWHAMP_CLIinput.close()
+   
+   from subprocess import call
+   call(["sync"])
+   
+   fileWHAMPOut = open('WHAMP_CLI_output.txt', 'w')
+   fileWHAMP_CLIinput = open("WHAMP_CLIinput", "r")
+   #proc = Popen('whamp', stdin=PIPE, stdout=fileWHAMPOut)
+   
+   from subprocess import Popen
+   proc = Popen("whamp", stdin=fileWHAMP_CLIinput, stdout=fileWHAMPOut)
+   proc.wait()
+   
+   #from subprocess import call
+   #call(["sync"])
+   
+   print "WHAMP done."
+   
+   #sleep(5);
+   
+   print "Loading WHAMP data..."
+   from pylab import load
+   WHAMP=load('WHAMP_CLI_output.txt')
+   print "Loading done."
+   
+   print "Processing WHAMP data..."
+   import numpy.ma
+   dampingNegative = (WHAMP[:,3] < 0)
+   dampingNegative.resize(len(WHAMP[:,3]), 4)
+   dampingPositive = (WHAMP[:,3] >= 0)
+   dampingPositive.resize(len(WHAMP[:,3]), 4)
+   
+   WHAMPneg = numpy.ma.masked_array(WHAMP, dampingNegative)
+   WHAMPpos = numpy.ma.masked_array(WHAMP, dampingPositive)
+   
+   #Plot with different colour scales for positive and negative damping
+   #axes.scatter(numpy.sqrt(WHAMPpos[:,1]*WHAMPpos[:,1] + WHAMPpos[:,0]*WHAMPpos[:,0]), WHAMPpos[:,2], s=5, cmap=matplotlib.pyplot.cm.get_cmap('Blues_r'), marker='d', c=WHAMPpos[:,3], edgecolor='none', alpha=0.5);
+   #matplotlib.pyplot.colorbar(shrink=0.9);
+   
+   #axes.scatter(numpy.sqrt(WHAMPneg[:,1]*WHAMPneg[:,1] + WHAMPneg[:,0]*WHAMPneg[:,0]), WHAMPneg[:,2], s=5, cmap=matplotlib.pyplot.cm.get_cmap('Reds'), marker='d', c=WHAMPneg[:,3], edgecolor='none', alpha=0.5);
+   #matplotlib.pyplot.colorbar(shrink=0.9);
+   
+   #Plot all in black 
+   axes.scatter(numpy.sqrt(WHAMPpos[:,1]*WHAMPpos[:,1] + WHAMPpos[:,0]*WHAMPpos[:,0]), WHAMPpos[:,2], s=3, marker='d', edgecolor='none', alpha=0.5, color='k');
+   axes.scatter(numpy.sqrt(WHAMPneg[:,1]*WHAMPneg[:,1] + WHAMPneg[:,0]*WHAMPneg[:,0]), WHAMPneg[:,2], s=3, marker='d', edgecolor='none', alpha=0.5, color='k');
 
-## Overplot WHAMP data
-#from subprocess import PIPE, Popen
-#fileWHAMPOut = open('WHAMP_CLI_output.txt', 'w')
-#proc = Popen('whamp', stdin=PIPE, stdout=fileWHAMPOut)
-#proc.stdin.write('./WHAMPinput\n')
-#proc.stdin.write('M(2)=0.0,f=0.01,z=0.01,p=0.01\n')
-#proc.stdin.write('zpf\n')
-## p perpendicular
-## z parallel
-
-fileWHAMP_CLIinput = open("WHAMP_CLIinput", "w")
-fileWHAMP_CLIinput.write('./WHAMPinput\n')
-fileWHAMP_CLIinput.write('M(2)=0.0,f=0.01,z=0.01,p=0.01\n')
-fileWHAMP_CLIinput.write('zpf\n')
-
-#import os
-for j in whamp_f_list:
-   for i in numpy.arange(k_start, k_end):
-      #proc.stdin.write('f=')
-      #proc.stdin.write(str(j))
-      #proc.stdin.write('z=')
-      #proc.stdin.write(str(kaxis[i]*math.cos(angle)))
-      #proc.stdin.write('p=')
-      #proc.stdin.write(str(kaxis[i]*math.sin(angle)))
-      #proc.stdin.write('\n')
-      fileWHAMP_CLIinput.write('f=')
-      fileWHAMP_CLIinput.write(str(j))
-      fileWHAMP_CLIinput.write('z=')
-      fileWHAMP_CLIinput.write(str(kaxis[i]*math.cos(angle)))
-      fileWHAMP_CLIinput.write('p=')
-      fileWHAMP_CLIinput.write(str(kaxis[i]*math.sin(angle)))
-      fileWHAMP_CLIinput.write('\n')
-
-#proc.stdin.write('s\n\n')
-fileWHAMP_CLIinput.write('s\n\n')
-
-##fileWHAMPOut.flush()
-##os.fsync(fileWHAMPOut.fileno())
-
-##for k in proc.stdout.readlines():
-   ##fileWHAMPOut.write(str(k)),
-   ##retval = proc.wait()
-
-#fileWHAMPOut.close()
-fileWHAMP_CLIinput.close()
-
-from subprocess import call
-call(["sync"])
-
-fileWHAMPOut = open('WHAMP_CLI_output.txt', 'w')
-fileWHAMP_CLIinput = open("WHAMP_CLIinput", "r")
-#proc = Popen('whamp', stdin=PIPE, stdout=fileWHAMPOut)
-
-from subprocess import Popen
-proc = Popen("whamp", stdin=fileWHAMP_CLIinput, stdout=fileWHAMPOut)
-proc.wait()
-
-#from subprocess import call
-#call(["sync"])
-
-print "WHAMP done."
-
-#sleep(5);
-
-print "Loading WHAMP data..."
-from pylab import load
-WHAMP=load('WHAMP_CLI_output.txt')
-print "Loading done."
-
-print "Processing WHAMP data..."
-import numpy.ma
-dampingNegative = (WHAMP[:,3] < 0)
-dampingNegative.resize(len(WHAMP[:,3]), 4)
-dampingPositive = (WHAMP[:,3] >= 0)
-dampingPositive.resize(len(WHAMP[:,3]), 4)
-
-WHAMPneg = numpy.ma.masked_array(WHAMP, dampingNegative)
-WHAMPpos = numpy.ma.masked_array(WHAMP, dampingPositive)
-
-#Plot with different colour scales for positive and negative damping
-#axes.scatter(numpy.sqrt(WHAMPpos[:,1]*WHAMPpos[:,1] + WHAMPpos[:,0]*WHAMPpos[:,0]), WHAMPpos[:,2], s=5, cmap=matplotlib.pyplot.cm.get_cmap('Blues_r'), marker='d', c=WHAMPpos[:,3], edgecolor='none', alpha=0.5);
-#matplotlib.pyplot.colorbar(shrink=0.9);
-
-#axes.scatter(numpy.sqrt(WHAMPneg[:,1]*WHAMPneg[:,1] + WHAMPneg[:,0]*WHAMPneg[:,0]), WHAMPneg[:,2], s=5, cmap=matplotlib.pyplot.cm.get_cmap('Reds'), marker='d', c=WHAMPneg[:,3], edgecolor='none', alpha=0.5);
-#matplotlib.pyplot.colorbar(shrink=0.9);
-
-#Plot all in black 
-axes.scatter(numpy.sqrt(WHAMPpos[:,1]*WHAMPpos[:,1] + WHAMPpos[:,0]*WHAMPpos[:,0]), WHAMPpos[:,2], s=3, marker='d', edgecolor='none', alpha=0.5, color='k');
-axes.scatter(numpy.sqrt(WHAMPneg[:,1]*WHAMPneg[:,1] + WHAMPneg[:,0]*WHAMPneg[:,0]), WHAMPneg[:,2], s=3, marker='d', edgecolor='none', alpha=0.5, color='k');
+# Now we're also done with WHAMP
 print "Et voilà !"
-
+   
 matplotlib.pyplot.xlabel('$k\cdot r_L$', fontsize=30)
 matplotlib.pyplot.ylabel('$\omega/\omega_{ci}$', fontsize=30)
 
