@@ -3,7 +3,7 @@
 #PBS -l mppnppn=32
 #PBS -l walltime=00:15:00
 #PBS -V  
-#PBS -N test
+#PBS -N test_small
 
 #threads
 t=8   
@@ -18,15 +18,14 @@ base_dir=${PBS_O_WORKDIR:=$(pwd)}
 cd  $base_dir
 
 #folder for reference data 
-reference_dir="/univ_1/ws1/ws/iprshoil-test_testpackage2-0/reference_data"
-
+reference_dir="/zhome/academic/HLRS/pri/iprsalft/vlasiator_reference_data/revision1956"
 
 #If 1, the reference vlsv files are generated
 # if 0 then we check the validity against the reference
-create_verification_files=1
+create_verification_files=0
 
 # Define test small/medium/long
-source /zhome/academic/HLRS/pri/iprshoil/vlasiator/trunk/testpackage/small_test_definitions.sh
+source small_test_definitions.sh
 wait
 #run the test
-source /zhome/academic/HLRS/pri/iprshoil/vlasiator/trunk/testpackage/run_tests.sh
+source run_tests.sh
