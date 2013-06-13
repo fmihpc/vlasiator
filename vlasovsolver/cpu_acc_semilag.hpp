@@ -27,48 +27,32 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "spatial_cell.hpp"
 
 #include <Eigen/Geometry>
+#include "vlasovsolver/cpu_interpolated_block.hpp"
 using namespace std;
 using namespace spatial_cell;
 using namespace Eigen;
 
 
 
-
-
-bool get_intersecting_cube(Vector3d & intersect_center,
-                           Vector3d & intersect_dv,
-                           const Vector3d & source_center,
-                           const Vector3d & source_dv,
-                           const Vector3d & target_center,
-                           const Vector3d & target_dv
-                           )  {
-   for(int i=0;i<3;i++){
-      double lower=max(source_center[i]-0.5*source_dv[i],target_center[i]-0.5*target_dv[i]);
-      double upper=min(source_center[i]+0.5*source_dv[i],target_center[i]+0.5*target_dv[i]);
-      if(lower>=upper)
-         return false;
-      intersect_center[i]=0.5*(upper+lower);
-      intersect_dv[i]=upper-lower;
-   }
-   return true;
+/*
+template<typename T> inline T cell_full_id(const T& cell_x,const T& cell_y,const T& cell_z,
+                                         const T& block_x,const T& block_y,const T& block_z) {
+   return WID*block_x+cell_x +
+      WID*SpatialCell::vx_length*(WID*block_y+cell_y) +
+      WID2*SpatialCell::vx_length*SpatialCell::vy_length*(WID*block_z+cell_z);
 }
 
-                         
-                         
-   
 
-/*!
-Propagates the distribution function in velocity space of given real space cell.
-
-TODO:
-  now this is all double: enable Real
-
+template<typename T> inline T block_id(const T& block_x,const T& block_y,const T& block_z){
+   return block_x + SpatialCell::vx_length*block_y + SpatialCell::vx_length*SpatialCell::vy_length*block_z;
+}
 */
-void cpu_accelerate_cell(
-   SpatialCell* spatial_cell,
-   const double dt) {
 
 
+
+/*Compute transform during on timestep, and update the bulk velocity of the cell*/
+
+Transform<double,3,Affine> compute_acceleration_transformation( SpatialCell* spatial_cell, const double dt) {
    /*total field*/
    const double Bx = spatial_cell->parameters[CellParams::BGBXVOL]+spatial_cell->parameters[CellParams::PERBXVOL];
    const double By = spatial_cell->parameters[CellParams::BGBYVOL]+spatial_cell->parameters[CellParams::PERBYVOL];
@@ -81,6 +65,7 @@ void cpu_accelerate_cell(
    const double dBXdy = spatial_cell->derivativesBVOL[bvolderivatives::dPERBXVOLdy]/spatial_cell->parameters[CellParams::DY];
    const double dBXdz = spatial_cell->derivativesBVOL[bvolderivatives::dPERBXVOLdz]/spatial_cell->parameters[CellParams::DZ];
    const double dBYdx = spatial_cell->derivativesBVOL[bvolderivatives::dPERBYVOLdx]/spatial_cell->parameters[CellParams::DX];
+
    const double dBYdz = spatial_cell->derivativesBVOL[bvolderivatives::dPERBYVOLdz]/spatial_cell->parameters[CellParams::DZ];
    const double dBZdx = spatial_cell->derivativesBVOL[bvolderivatives::dPERBZVOLdx]/spatial_cell->parameters[CellParams::DX];
    const double dBZdy = spatial_cell->derivativesBVOL[bvolderivatives::dPERBZVOLdy]/spatial_cell->parameters[CellParams::DY];
@@ -89,11 +74,9 @@ void cpu_accelerate_cell(
    const Vector3d B(Bx,By,Bz);
    const Vector3d unit_B(B.normalized());
    const double gyro_period = 2 * M_PI * Parameters::m  / (fabs(Parameters::q) * B.norm());
-   //Compute maximum timestep limit for this cell, based ona  maximum allowed rotation angle
+   //Set maximum timestep limit for this cell, based on a  maximum allowed rotation angle
    //TODO, max angle could be read in from cfg
    spatial_cell->parameters[CellParams::MAXVDT]=gyro_period*(10.0/360.0);
-
-   
    
   //compute initial moments, based on actual distribution function
    spatial_cell->parameters[CellParams::RHO_V  ] = 0.0;
@@ -105,6 +88,9 @@ void cpu_accelerate_cell(
       unsigned int block = spatial_cell->velocity_block_list[block_i];         
       cpu_calcVelocityMoments(spatial_cell,block,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V);   
    }
+
+   
+   
    const double rho=spatial_cell->parameters[CellParams::RHO_V];
    //scale rho for hall term, if user requests
    const double hallRho =  (rho <= Parameters::lorentzHallMinimumRho ) ? Parameters::lorentzHallMinimumRho : rho ;
@@ -114,12 +100,7 @@ void cpu_accelerate_cell(
                                  spatial_cell->parameters[CellParams::RHOVY_V]/rho,
                                  spatial_cell->parameters[CellParams::RHOVZ_V]/rho);   
 
-   
-   /*transform that scales normal velocity units (m/s) to block indices*/
-   // Transform<double,3,Affine> velocity_to_indices(Matrix4d::Identity()); 
-   //   velocity_to_indices*=Translation<double,3>(Vector3d(
-   
-   
+      
    /*compute total transformation*/
    Transform<double,3,Affine> total_transform(Matrix4d::Identity());
       
@@ -155,6 +136,23 @@ void cpu_accelerate_cell(
    spatial_cell->parameters[CellParams::RHOVY_V] = rho*bulk_velocity[1];
    spatial_cell->parameters[CellParams::RHOVZ_V] = rho*bulk_velocity[2];
 
+   return total_transform;
+}
+
+/*!
+Propagates the distribution function in velocity space of given real space cell.
+
+TODO:
+  now this is all double: enable Real
+
+*/
+void cpu_accelerate_cell(
+   SpatialCell* spatial_cell,
+   const double dt) {
+
+   //compute the transform performed in this acceleration
+   Transform<double,3,Affine> total_transform= compute_acceleration_transformation(spatial_cell,dt);
+
 
    
    // Make a copy of the blocklist as we don't want to iterate over blocks added by this function
@@ -173,82 +171,46 @@ void cpu_accelerate_cell(
          block_ptr->data[cell] = 0.0;
       }
    }
+
+
+   /*do not change, current simple linear approximation is based on this.*/
+   const Array3d  grid_min(SpatialCell::vx_min,SpatialCell::vy_min,SpatialCell::vz_min);
+   const Array3d  block_dv(SpatialCell::block_dvx,SpatialCell::block_dvy,SpatialCell::block_dvz);
+   const Array3d  cell_dv(SpatialCell::cell_dvx,SpatialCell::cell_dvy,SpatialCell::cell_dvz);
    
-   const Vector3d cell_dv(SpatialCell::cell_dvx,
-                          SpatialCell::cell_dvy,
-                          SpatialCell::cell_dvz);
-   
-   /*do the actual accerelation operation*/
-   /*PERF TODO, 
-     Instead of doing these transformations in velocity units, we could do them in index units (assuming dvx=dvy=dvz =>
-     would get rid of a lot of computing back and forth of velocities and indices.
-     Use Array3d to get rid of index based computation
-   */
-   /*QUALITY TODO, interpolations, better integration (take into account overlap, hwo to combine with interpolation?*/
-   
+   const unsigned int n_subcells=3;
+   interpolated_block iblock;
+
    for (unsigned int block_i = 0; block_i < blocks.size(); block_i++) {
       const unsigned int block = blocks[block_i];
       Velocity_Block* block_ptr = spatial_cell->at(block);
-      for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
-         const double cell_vx_min = SpatialCell::get_velocity_cell_vx_min(block, cell);
-         const double cell_vy_min = SpatialCell::get_velocity_cell_vy_min(block, cell);
-         const double cell_vz_min = SpatialCell::get_velocity_cell_vz_min(block, cell);
-         
-         const double cell_rho = block_ptr->fx[cell];
-         
-         Vector3d cell_center(cell_vx_min + 0.5 * cell_dv[0],
-                              cell_vy_min + 0.5 * cell_dv[1],
-                              cell_vz_min + 0.5 * cell_dv[2]);
-         /*rotate cell center to new position*/
-         cell_center=total_transform*cell_center;
-         
-         
-         
-         
-         
-         /*go through all 8 corners, and middle, to find all potential overlapping cubes*/
-         /*here we disregard to rotation of the cell cube, ok for small angles*/
-         set< pair<unsigned int,unsigned int>> completed_targets;
+      iblock.set_block(block_ptr);
 
-         
-         for(int cornerx=-1;cornerx<=1;cornerx++) 
-            for(int cornery=-1;cornery<=1;cornery++) 
-               for(int cornerz=-1;cornerz<=1;cornerz++) {
-                  unsigned int new_block=SpatialCell::get_velocity_block(cell_center[0]+cornerx*0.5*cell_dv[0],
-                                                                         cell_center[1]+cornery*0.5*cell_dv[1],
-                                                                         cell_center[2]+cornerz*0.5*cell_dv[2]);
-                  if(new_block==error_velocity_block) continue;
-                  unsigned int new_cell=SpatialCell::get_velocity_cell(new_block,
-                                                                       cell_center[0]+cornerx*0.5*cell_dv[0],
-                                                                       cell_center[1]+cornery*0.5*cell_dv[1],
-                                                                       cell_center[2]+cornerz*0.5*cell_dv[2]);
-                  if(new_cell==error_velocity_cell) continue;
-                  
-                  pair<unsigned int,unsigned int> target_cell(new_block,new_cell);
-                  /*Only add contributions to cells we have not
-                    computed yet!*/
-                  if(completed_targets.find(target_cell) == completed_targets.end() ){
-                     completed_targets.insert(target_cell);
-                     const double new_cell_vx_min = SpatialCell::get_velocity_cell_vx_min(new_block, new_cell);
-                     const double new_cell_vy_min = SpatialCell::get_velocity_cell_vy_min(new_block, new_cell);
-                     const double new_cell_vz_min = SpatialCell::get_velocity_cell_vz_min(new_block, new_cell);
-                     Vector3d new_cell_center(new_cell_vx_min + 0.5 * cell_dv[0],
-                                              new_cell_vy_min + 0.5 * cell_dv[1],
-                                              new_cell_vz_min + 0.5 * cell_dv[2]);
-                     Vector3d intersecting_center,intersecting_dv;
-                     if(get_intersecting_cube(intersecting_center,intersecting_dv,
-                                              cell_center,cell_dv,
-                                              new_cell_center,cell_dv)){
-                        /*add if they are intersecting*/
-                        spatial_cell->increment_value(new_block,new_cell,
-                                                      cell_rho*
-                                                      (intersecting_dv[0]*intersecting_dv[1]*intersecting_dv[2])/
-                                                      ( cell_dv[0]*cell_dv[1]*cell_dv[2]));
-                        
-                        
-                     }
-                  }
-               }
+      double dvx=block_ptr->parameters[BlockParams::DVX]/n_subcells;
+      double dvy=block_ptr->parameters[BlockParams::DVY]/n_subcells;
+      double dvz=block_ptr->parameters[BlockParams::DVZ]/n_subcells;
+      double block_start_vx=block_ptr->parameters[BlockParams::VXCRD] + 0.5*dvx;
+      double block_start_vy=block_ptr->parameters[BlockParams::VYCRD] + 0.5*dvy;
+      double block_start_vz=block_ptr->parameters[BlockParams::VZCRD] + 0.5*dvz;
+
+      
+      
+      //loop over internal points in block
+      for (unsigned int cell_xi = 0; cell_xi < WID*n_subcells; cell_xi++) {
+         for (unsigned int cell_yi = 0; cell_yi < WID*n_subcells; cell_yi++) {
+            for (unsigned int cell_zi = 0; cell_zi < WID*n_subcells; cell_zi++) {
+               const Vector3d s_node_position(block_start_vx + cell_xi*dvx,
+                                              block_start_vy + cell_yi*dvy,
+                                              block_start_vz + cell_zi*dvz);
+               
+               const Vector3d s_node_position_tf=total_transform*s_node_position;
+
+
+               double value=iblock.get_value(s_node_position_tf[0],s_node_position_tf[1],s_node_position_tf[2])/
+                  (n_subcells*n_subcells*n_subcells);
+               spatial_cell->increment_value(s_node_position_tf[0],s_node_position_tf[1],s_node_position_tf[2],value);
+            }
+         }
       }
    }
 }
