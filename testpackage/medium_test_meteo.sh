@@ -3,7 +3,7 @@
 #PBS -l mppnppn=12
 #PBS -l walltime=01:00:00
 #PBS -V  
-#PBS -N test
+#PBS -N test_medium
 
 #threads
 t=12  
@@ -17,7 +17,7 @@ base_dir=${PBS_O_WORKDIR:=$(pwd)}
 cd  $base_dir
 
 #folder for reference data 
-reference_dir="/stornext/field/users/hoilijo/Vlasiator/reference_data"
+reference_dir="/stornext/field/users/hoilijo/vlasiator/reference_data/revision1956"
 
 
 #If 1, the reference vlsv files are generated
@@ -25,7 +25,7 @@ reference_dir="/stornext/field/users/hoilijo/Vlasiator/reference_data"
 create_verification_files=0
 
 # Define test
-source /stornext/field/users/hoilijo/Vlasiator/vlasiator/trunk/testpackage/medium_test_definitions.sh
+source medium_test_definitions.sh
 wait
 # Run test
-source /stornext/field/users/hoilijo/Vlasiator/vlasiator/trunk/testpackage/run_tests.sh
+source run_tests.sh
