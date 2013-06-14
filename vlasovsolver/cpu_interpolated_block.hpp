@@ -13,7 +13,7 @@ class interpolated_block {
    inline double get_value(double x,double y,double z){
       double value;
       eval_UBspline_3d_d(spline,x,y,z,&value);
-      return value
+      return value;
    }
 
    void set_block(Velocity_Block*  block){
@@ -39,24 +39,14 @@ private:
       z_grid.start = block_ptr->parameters[BlockParams::VZCRD] - 0.5*block_ptr->parameters[BlockParams::DVZ];
       z_grid.end = block_ptr->parameters[BlockParams::VZCRD] + (WID+0.5)*block_ptr->parameters[BlockParams::DVZ];
       z_grid.num = WID+2; //< how long is our array of points ?
-
-
       /** Boundary Conditions **/
       BCtype_d xBC = {NATURAL, NATURAL , 0.,0.};
       BCtype_d yBC = {NATURAL, NATURAL , 0.,0.};
       BCtype_d zBC = {NATURAL, NATURAL , 0.,0.};
-
       spline=create_UBspline_3d_d(x_grid,y_grid,z_grid,xBC,yBC,zBC,avgs);
-
-
-      
    }
-   
 
-
-   
-   
-   load_data(){
+   void load_data(){
       Real* nbrAvgs;
       //typedef Parameters P;
       
@@ -254,5 +244,5 @@ private:
    Velocity_Block*  block_ptr;
    double avgs[512];
    UBspline_3d_d *spline;
-}
+};
 
