@@ -310,8 +310,8 @@ OBJS_VLSVREADEREXTRA = muxml.o vlscommon.o vlsvreader2extra.o
 
 
 vlsvextract: ${DEPS_VLSVREADER} tools/vlsvextract.cpp ${OBJS_VLSVREADER}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvextract.cpp ${INC_BOOST} ${INC_DCCRG} ${INC_SILO} ${INC_EIGEN} -I$(CURDIR) 
-	${LNK} -o vlsvextract_${FP_PRECISION} vlsvextract.o ${OBJS_VLSVREADER} ${LIB_BOOST} ${LIB_DCCRG} ${LIB_SILO} ${LDFLAGS}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvextract.cpp ${INC_BOOST} ${INC_DCCRG} ${INC_SILO} ${INC_EIGEN} ${INC_VLSV} -I$(CURDIR) 
+	${LNK} -o vlsvextract_${FP_PRECISION} vlsvextract.o ${OBJS_VLSVREADER} ${LIB_BOOST} ${LIB_DCCRG} ${LIB_SILO} ${LIB_VLSV} ${LDFLAGS}
 
 
 vlsv2vtk: ${DEPS_VLSVREADER} ${OBJS_VLSVREADER} tools/vlsv2vtk.cpp
