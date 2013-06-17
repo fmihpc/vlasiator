@@ -247,9 +247,10 @@ bool o_writeVelocityDistributionData(
       blocksPerCell.push_back(mpiGrid[cells[cell]]->number_of_blocks);
    }
    
-   //O: FIX! NOT SURE IF THIS IS CORRECT (Visit plugin most likely won't understand this)
+   //The name of the mesh is "SpatialGrid"
    attribs["mesh"] = "SpatialGrid";
    const unsigned int vectorSize = 1;
+   //Write the array:
    if (vlsvWriter.writeArray("CELLSWITHBLOCKS",attribs,cells.size(),vectorSize,cells.data()) == false) success = false;
    if (success == false) logFile << "(MAIN) writeGrid: ERROR failed to write CELLSWITHBLOCKS to file!" << endl << writeVerbose;
    //Write blocks per cell, this has to be in the same order as cellswitblocks so that extracting works
@@ -273,6 +274,7 @@ bool o_writeVelocityDistributionData(
          }
       }
    } catch (...) {
+      cerr << "FAILED TO WRITE VELOCITY BLOCK COORDINATES AT: " << __FILE__ << " " << __LINE__ << endl;
       success=false;
    }
    
@@ -317,6 +319,7 @@ bool o_writeVelocityDistributionData(
    //O: FIX! MAKE SURE THIS IS CORRECT!
    attribs["mesh"] = "SpatialGrid";
    attribs["name"] = "avgs";
+   //O: note: This could be done with &(velocityBlockData[0]), too
    if (vlsvWriter.writeArray("BLOCKVARIABLE",attribs,totalBlocks,SIZE_VELBLOCK,velocityBlockData.data()) == false) success=false;
    if (success ==false)      logFile << "(MAIN) writeGrid: ERROR occurred when writing BLOCKVARIABLE f" << endl << writeVerbose;
    velocityBlockData.clear();
@@ -396,18 +399,26 @@ bool o_writeVariables( dccrg::Dccrg<SpatialCell>& mpiGrid,
 
 template <typename T>
 bool o_writeScalarParameter(string name,T value,Writer& vlsvWriter,int masterRank,MPI_Comm comm){
-//bool Writer::writeParameter(const std::string& parameterName,const T* const array)
    int myRank;
    MPI_Comm_rank(comm,&myRank);
-   if( myRank==masterRank ){
-      const unsigned int arraySize = 1;
-      const unsigned int vectorSize = 1;
-      map<string,string> attributes;
+   unsigned int arraySize;
+   unsigned int vectorSize;
+   map<string,string> xmlAttributes;
+   if( myRank==masterRank ) {
+      //Only master rank writes out the data:
+      arraySize = 1;
+      vectorSize = 1;
       std::ostringstream s;
       s << value;
-      attributes["value"]=s.str();
-      vlsvWriter.writeArray("PARAMETER", attributes, arraySize, vectorSize, &value);
+      xmlAttributes["value"]=s.str();
+   } else {
+      //Write dummy data:
+      arraySize = 0;
+      vectorSize = 1;
+      xmlAttributes["value"]="";
    }
+   //Write the data:
+   vlsvWriter.writeArray("PARAMETER", xmlAttributes, arraySize, vectorSize, &value);
    return true;
 }
 
@@ -578,7 +589,8 @@ bool o_writeZoneGlobalIdNumbers( const dccrg::Dccrg<SpatialCell>& mpiGrid,
    //Write:
    if( numberOfZones == 0 ) {
       const uint64_t dummy_data = 0;
-      if( vlsvWriter.writeArray( "MESH", xmlAttributes, numberOfZones, 1, &dummy_data ) == false ) {
+      const unsigned int dummy_array = 0;
+      if( vlsvWriter.writeArray( "MESH", xmlAttributes, dummy_array, 1, &dummy_data ) == false ) {
          cerr << "Unsuccessful writing of MESH at: " << __FILE__ << " " << __LINE__ << endl;
          return false;
       }
@@ -670,7 +682,7 @@ bool o_writeBoundingBoxNodeCoordinates ( Writer & vlsvWriter,
       arraySize = zCells + 1;
       if( vlsvWriter.writeArray("MESH_NODE_CRDS_Z", xmlAttributes, arraySize, vectorSize, zNodeCoordinates) == false ) success = false;
    } else {
-      //O: Not a master process, so write empty:
+      //Not a master process, so write empty:
       arraySize = 0;
       if( vlsvWriter.writeArray("MESH_NODE_CRDS_X", xmlAttributes, arraySize, vectorSize, xNodeCoordinates) == false ) success = false;
       if( vlsvWriter.writeArray("MESH_NODE_CRDS_Y", xmlAttributes, arraySize, vectorSize, yNodeCoordinates) == false ) success = false;
@@ -1010,7 +1022,7 @@ bool o_writeVelocitySpace( dccrg::Dccrg<SpatialCell>& mpiGrid,
          //write out velocity space data, if there are cells with this data
          o_writeVelocityDistributionData( vlsvWriter, mpiGrid, velSpaceCells, MPI_COMM_WORLD );
       }
-
+      return true;
 }
 
 
@@ -1027,9 +1039,6 @@ bool writeGrid(
 
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       phiprof::start("writeGrid-reduced");
-
-      //DEBUGGING:
-      cerr << endl << "- RANK " << myRank << " STARTED -" << endl;
 
       // Create a name for the output file and open it with VLSVWriter:
       stringstream fname;
@@ -1049,14 +1058,14 @@ bool writeGrid(
       vector<uint64_t> local_cells = mpiGrid.get_cells();
       //no order assumed so let's order cells here
       //O: NOTE: Should this be done? It might be better to input the local cell ids first -- or not. Probably better to sort first
-      std::sort(local_cells.begin(), local_cells.end());
+      //std::sort(local_cells.begin(), local_cells.end());
 
       //Declare ghost zones:
       vector<Zone> ghost_zones;
       // Get all ghost cell Ids (NOTE: this works slightly differently depending on whether the grid is periodic or not)
       vector<uint64_t> ghost_cells = mpiGrid.get_remote_cells_on_process_boundary( NEAREST_NEIGHBORHOOD_ID );
       //Sort the cells:
-      std::sort(ghost_cells.begin(), ghost_cells.end());
+      //std::sort(ghost_cells.begin(), ghost_cells.end());
 
       //Make sure the local cells and ghost cells are fetched properly
       if( local_cells.empty() ) {
@@ -1066,12 +1075,6 @@ bool writeGrid(
             exit( 1 );
          }
          cerr << "Warning, inputting empty local cells at: " << __FILE__ << " " << __LINE__ << endl;;
-      }
-      //O: FOR DEBUGGING:
-      //Make sure local cells and ghost cells don't have same members:
-      if( checkForSameMembers( local_cells, ghost_cells ) ) {
-         cerr << "ERROR! SAME MEMBER FOUND IN BOTH LOCAL CELLS AND GHOST CELLS: " << __FILE__ << " " << __LINE__ << endl;
-         exit( 1 );
       }
 
       //Create the zones (inputs proper values into local_zones and ghost_zones):
@@ -1089,7 +1092,7 @@ bool writeGrid(
       if( o_writeBoundingBoxNodeCoordinates( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) return false;
 
       //Write basic grid variables: NOTE: master process only
-      //if( o_writeCommonGridData(vlsvWriter, mpiGrid, P::systemWrites[index], MPI_COMM_WORLD) == false ) return false;
+      if( o_writeCommonGridData(vlsvWriter, mpiGrid, P::systemWrites[index], MPI_COMM_WORLD) == false ) return false;
 
       //Write zone global id numbers:
       if( o_writeZoneGlobalIdNumbers( mpiGrid, vlsvWriter, meshName, local_zones, ghost_zones ) == false ) return false;
@@ -1103,7 +1106,7 @@ bool writeGrid(
       //Write necessary variables:
       if( o_writeVariables( mpiGrid, dataReducer, vlsvWriter, local_cells ) == false ) return false;
 
-      //if( o_writeVelocitySpace( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
+      if( o_writeVelocitySpace( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
 
       phiprof::initializeTimer("Barrier","MPI","Barrier");
       phiprof::start("Barrier");
@@ -1111,8 +1114,6 @@ bool writeGrid(
       phiprof::stop("Barrier");
       vlsvWriter.close();
       phiprof::stop("writeGrid-reduced");
-
-      cerr << endl << "- RANK " << myRank << " ENDED -" << endl;
 
       return success;
 
