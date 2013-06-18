@@ -37,7 +37,7 @@ bool writeGrid(
 */
 
 
-bool writeRestart(const dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
+bool writeRestart(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
                DataReducer& dataReducer,
                const std::string& name,
                const uint& index,

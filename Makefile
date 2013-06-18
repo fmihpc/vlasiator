@@ -64,7 +64,7 @@ default: vlasiator
 
 tools: parallel_tools not_parallel_tools
 
-parallel_tools: vlsv2vtk vlsv2silo vlsv2bzt vlsvextract
+parallel_tools: vlsv2vtk vlsv2silo vlsv2bzt vlsvextract vlsvextract_new
 
 FORCE:
 # On FERMI one has to use the front-end compiler (e.g. g++) to compile this tool.
@@ -138,7 +138,7 @@ data:
 
 c: clean
 clean: data
-	rm -rf *.o *~ */*~ */*/*~ ${EXE} vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION} vlsv2vtk_${FP_PRECISION} vlsvdiff_${FP_PRECISION} vlsv2bzt_${FP_PRECISION} check_projects_compil_logs/ check_projects_cfg_logs/
+	rm -rf *.o *~ */*~ */*/*~ ${EXE} vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION} vlsvextract_new_${FP_PRECISION} vlsv2vtk_${FP_PRECISION} vlsvdiff_${FP_PRECISION} vlsv2bzt_${FP_PRECISION} check_projects_compil_logs/ check_projects_cfg_logs/
 
 
 # Rules for making each object file needed by the executable
@@ -313,6 +313,9 @@ vlsvextract: ${DEPS_VLSVREADER} tools/vlsvextract.cpp ${OBJS_VLSVREADER}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvextract.cpp ${INC_BOOST} ${INC_DCCRG} ${INC_SILO} ${INC_EIGEN} ${INC_VLSV} -I$(CURDIR) 
 	${LNK} -o vlsvextract_${FP_PRECISION} vlsvextract.o ${OBJS_VLSVREADER} ${LIB_BOOST} ${LIB_DCCRG} ${LIB_SILO} ${LIB_VLSV} ${LDFLAGS}
 
+vlsvextract_new: ${DEPS_VLSVREADER} tools/vlsvextract_new.cpp ${OBJS_VLSVREADER}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvextract_new.cpp ${INC_BOOST} ${INC_DCCRG} ${INC_SILO} ${INC_EIGEN} ${INC_VLSV} -I$(CURDIR)
+	${LNK} -o vlsvextract_new_${FP_PRECISION} vlsvextract_new.o ${OBJS_VLSVREADER} ${LIB_BOOST} ${LIB_DCCRG} ${LIB_SILO} ${LIB_VLSV} ${LDFLAGS}
 
 vlsv2vtk: ${DEPS_VLSVREADER} ${OBJS_VLSVREADER} tools/vlsv2vtk.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsv2vtk.cpp ${INC_BOOST} -I$(CURDIR) 

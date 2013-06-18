@@ -311,8 +311,8 @@ int main(int argn,char* args[]) {
       for(uint si=0; si<P::systemWriteName.size(); si++) {
          P::systemWrites.push_back(0);
       }
-      
-      writeGrid(mpiGrid,outputReducer,P::systemWriteName.size()-1);
+      //O: PUT FALSE!
+      writeGrid(mpiGrid,outputReducer,P::systemWriteName.size()-1, true);
       
       P::systemWriteDistributionWriteStride.pop_back();
       P::systemWriteName.pop_back();
@@ -462,7 +462,8 @@ int main(int argn,char* args[]) {
             
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-            writeGrid(mpiGrid, outputReducer, i);
+            //O: PUT FALSE
+            writeGrid(mpiGrid, outputReducer, i, true);
             P::systemWrites[i]++;
             logFile << "(IO): .... done!" << endl << writeVerbose;
             phiprof::stop("write-system");
