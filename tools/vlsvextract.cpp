@@ -4,17 +4,17 @@ This file is part of Vlasiator.
 
 Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
-Vlasiator is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 3
-as published by the Free Software Foundation.
 
-Vlasiator is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+
+
+
+
+
+
+
+
  */
 
 
@@ -31,7 +31,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 
 #include "vlsvreader2.h"
-#include "vlsv_reader.h"
 #include "definitions.h"
 
 #include <array> //std::array is from here
@@ -867,25 +866,22 @@ uint64_t getCellIdFromCoords( VLSVReader& vlsvReader, const CellStructure & cell
    //Set the cell coordinates: (Takes the cell id and inputs the cell id's coordinates into getCellCoordinates
    getCellCoordinates( cellStruct, cellId, cellCoordinate );
    //Calculate distance from cell coordinates to input coordinates
-   Real dist = ( 
-                (cellCoordinate[0] - coords[0]) * (cellCoordinate[0] - coords[0])
-                + (cellCoordinate[1] - coords[1]) * (cellCoordinate[1] - coords[1])
-                + (cellCoordinate[2] - coords[2]) * (cellCoordinate[2] - coords[2])
-               );
-   //Declare the max distance parameter (If user-defined then _max_distance is the same as max_distance given as an input parameter)
-   Real _max_distance;
-   //If max_distance is -1 then user has not input values to it so we have to define it now:
-   if( max_distance == -1 ) {
-      //Use the cell grid's geometry to determine a good max_distance:
-      //In this case the distance would be a cell's diagonal length times 40 (NOTE: _cell_length[] is a static variable)
-      _max_distance = sqrt(cellStruct.cell_length[0]*cellStruct.cell_length[0] + cellStruct.cell_length[0]*cellStruct.cell_length[0] + cellStruct.cell_length[0]*cellStruct.cell_length[0]);
+   Real dist;
+   if( cellStruct.cell_bounds[2] < 2 ) {
+      dist = ( 
+                   (cellCoordinate[0] - coords[0]) * (cellCoordinate[0] - coords[0])
+                   + (cellCoordinate[1] - coords[1]) * (cellCoordinate[1] - coords[1])
+                  );
    } else {
-      //Get the max distance from user input
-      _max_distance = max_distance;
+      dist = (
+                   (cellCoordinate[0] - coords[0]) * (cellCoordinate[0] - coords[0])
+                   + (cellCoordinate[1] - coords[1]) * (cellCoordinate[1] - coords[1])
+                   + (cellCoordinate[2] - coords[2]) * (cellCoordinate[2] - coords[2])
+                  );
    }
    //If the distance from the given coordinates (accurate) to the given coordinates is too larger then don't use the cell id
-   //Note: If cell id equals numeric limits then stop the program
-   if( _max_distance < sqrt( dist ) ) {
+   //Note: If cell id equals numeric limits then the cell id won't be picked
+   if( max_distance < sqrt( dist ) ) {
       //Return numeric limit to let the program know we didn't find a cell id
       return numeric_limits<uint64_t>::max();
    }
@@ -1154,28 +1150,47 @@ void setCoordinatesAlongALine(
       //Default value -- determine the number of coordinates yourself (Should be about the same size as the number of cells along
       //the line
       //Calculate the length of the line:
-      Real line_length = sqrt(
-                              (end[0] - start[0]) * (end[0] - start[0]) 
-                              + (end[1] - start[1]) * (end[1] - start[1]) 
-                              + (end[2] - start[2]) * (end[2] - start[2])
-                             );
-      //Calculate the average of line_length / cell_length[i] (just a guess)
-      //cell_length if of size 3 so divide by 3:
-      Real division = 3;
-      //Calculate number of coordinates:
-      //NOTE: _cell_length[i] = a cell's length in i-direction (for example _cell_length[0] means in x-direction)
-      _numberOfCoordinates = (unsigned int)( 
-                                            (line_length / cellStruct.cell_length[0]) / division 
-                                            + (line_length / cellStruct.cell_length[1]) / division
-                                            + (line_length / cellStruct.cell_length[1]) / division
-                                           );
-      //All of the points along the line should be calculated now, but just to be on the safe side, calculate a few more:
-      _numberOfCoordinates = (unsigned int)( _numberOfCoordinates * 1.2 );
+      Real line_length;
+      if( cellStruct.cell_bounds[2] < 2 ) {
+         //We are in 2D
+         line_length = sqrt(
+                                 (end[0] - start[0]) * (end[0] - start[0]) 
+                                 + (end[1] - start[1]) * (end[1] - start[1]) 
+                                );
+         //Calculate the average of line_length / cell_length[i] (just a guess)
+         //cell_length if of size 3 so divide by 3:
+         Real division = 2;
+         //Calculate number of coordinates:
+         //NOTE: _cell_length[i] = a cell's length in i-direction (for example _cell_length[0] means in x-direction)
+         _numberOfCoordinates = (unsigned int)( 
+                                               (line_length / cellStruct.cell_length[0]) / division 
+                                               + (line_length / cellStruct.cell_length[1]) / division
+                                              );
+      } else {
+         line_length = sqrt(
+                                 (end[0] - start[0]) * (end[0] - start[0])
+                                 + (end[1] - start[1]) * (end[1] - start[1])
+                                 + (end[2] - start[2]) * (end[2] - start[2])
+                                );
+         //Calculate the average of line_length / cell_length[i] (just a guess)
+         //cell_length if of size 3 so divide by 3:
+         Real division = 3;
+         //Calculate number of coordinates:
+         //NOTE: _cell_length[i] = a cell's length in i-direction (for example _cell_length[0] means in x-direction)
+         _numberOfCoordinates = (unsigned int)( 
+                                               (line_length / cellStruct.cell_length[0]) / division 
+                                               + (line_length / cellStruct.cell_length[1]) / division
+                                               + (line_length / cellStruct.cell_length[2]) / division
+                                              );
+      }
+
       //Make sure the number is valid (Must be at least 2 points):
       if( _numberOfCoordinates < 2 ) {
          cerr << "Cannot use numberOfCoordinates lower than 2 at " << __FILE__ << " " << __LINE__ << endl;
          exit(1);
       }
+      //Just to make sure that there's enough coordinates let's add a few more:
+      _numberOfCoordinates = 1.3 * _numberOfCoordinates;
    } else if( numberOfCoordinates < 2 ) {
       cerr << "Cannot use numberOfCoordinates lower than 2 at " << __FILE__ << " " << __LINE__ << endl;
       exit(1);
@@ -1241,7 +1256,6 @@ int main(int argn, char* args[]) {
    bool rotateVectors = false; //True if velocities are rotated so the z-axis faces B_vol vector (done in convertVelocityBlocks2)
    bool getCellIdFromInput = false; //True if user gave input
    bool calculateCellIdFromLine = false;
-   bool useNewLibrary = false; //Check if the user wants to use the new vlsv library or not
    vector<Real> _coordinates; //Store retrieved coordinate input from the user
    uint64_t _cellID = 0; //_cellID from user input
    //For line calculation (These are set by user input):
@@ -1263,125 +1277,128 @@ int main(int argn, char* args[]) {
       return 0;
    }
 
-   if( useNewLibrary ) {
-      //Get the file name
-      const string mask = args[1];  
-   
-      const string directory = ".";
-      const string suffix = ".vlsv";
-      DIR* dir = opendir(directory.c_str());
-      if (dir == NULL) {
-         cerr << "ERROR in reading directory contents!" << endl;
-         closedir(dir);
-         return 1;
-      }
 
-      Reader vlsvReader;
-      int filesFound = 0, entryCounter = 0;
-      vector<string> fileList;
-      struct dirent* entry = readdir(dir);
-      while (entry != NULL) {
-         const string entryName = entry->d_name;
-         if (entryName.find(mask) == string::npos || entryName.find(suffix) == string::npos) {
-            entry = readdir(dir);
+
+   //Get the file name
+   const string mask = args[1];  
+
+   const string directory = ".";
+   const string suffix = ".vlsv";
+   DIR* dir = opendir(directory.c_str());
+   if (dir == NULL) {
+      cerr << "ERROR in reading directory contents!" << endl;
+      closedir(dir);
+      return 1;
+   }
+
+   VLSVReader vlsvReader;
+   int filesFound = 0, entryCounter = 0;
+   vector<string> fileList;
+   struct dirent* entry = readdir(dir);
+   while (entry != NULL) {
+      const string entryName = entry->d_name;
+      if (entryName.find(mask) == string::npos || entryName.find(suffix) == string::npos) {
+         entry = readdir(dir);
+         continue;
+      }
+      fileList.push_back(entryName);
+      filesFound++;
+      entry = readdir(dir);
+   }
+   if (rank == 0 && filesFound == 0) cout << "\t no matches found" << endl;
+   closedir(dir);
+
+   for (size_t entryName = 0; entryName < fileList.size(); entryName++) {
+      if (entryCounter++ % ntasks == rank) {
+         // Open VLSV file and read mesh names:
+         vlsvReader.open(fileList[entryName]);
+         list<string> meshNames;
+         if (vlsvReader.getMeshNames(meshNames) == false) {
+            cout << "\t file '" << fileList[entryName] << "' not compatible" << endl;
+            vlsvReader.close();
             continue;
          }
-         fileList.push_back(entryName);
-         filesFound++;
-         entry = readdir(dir);
-      }
-      if (rank == 0 && filesFound == 0) cout << "\t no matches found" << endl;
-      closedir(dir);
 
-      for (size_t entryName = 0; entryName < fileList.size(); entryName++) {
-         if (entryCounter++ % ntasks == rank) {
-            // Open VLSV file and read mesh names:
-            vlsvReader.open(fileList[entryName]);
-            list<string> meshNames;
-            //O: getMeshNames might not be supported - check
-            if (vlsvReader.getMeshNames(meshNames) == false) {
-               cout << "\t file '" << fileList[entryName] << "' not compatible" << endl;
-               vlsvReader.close();
-               continue;
+         //Sets cell variables (for cell geometry) -- used in getCellIdFromCoords function
+         CellStructure cellStruct;
+         setCellVariables( vlsvReader, cellStruct );
+      
+         //If maxDistance is -1 then user has not input values to it so we have to define it now:
+         if( maxDistance == -1 ) {
+            //Use the cell grid's geometry to determine a good max_distance:
+            if( cellStruct.cell_bounds[2] < 2 ) {
+               //No z axis (2D):
+               maxDistance = 0.7*sqrt(cellStruct.cell_length[0]*cellStruct.cell_length[0] + cellStruct.cell_length[1]*cellStruct.cell_length[1]);
+            } else {
+               //Get the z axis too (3D)
+               maxDistance = 0.7*sqrt(cellStruct.cell_length[0]*cellStruct.cell_length[0] + cellStruct.cell_length[1]*cellStruct.cell_length[1] + cellStruct.cell_length[2]*cellStruct.cell_length[2]);
             }
-   
-            //Declare cell id (defined based on user options):
-            uint64_t cellID;
-            //Declare a vector for holding multiple cell ids (Note: Used only if we want to calculate the cell id along a line)
-            vector<uint64_t> cellIdList;
-            //Declare Cell structure (used for calculations and has for example cell length inside it)
-            CellStructure cellStruct;
-            //Determine how to get the cell id:
+          }
+
+         //Declare cell id (defined based on user options):
+         uint64_t cellID;
+         //Declare a vector for holding multiple cell ids (Note: Used only if we want to calculate the cell id along a line)
+         vector<uint64_t> cellIdList;
+         //Determine how to get the cell id:
+         //(getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used, I'm keeping to
+         //previously used syntax)
+         if( getCellIdFromCoordinates ) {
             //(getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used, I'm keeping to
             //previously used syntax)
-            if( getCellIdFromCoordinates ) {
-               //(getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used, I'm keeping to
-               //previously used syntax)
-               int _vectorSize = 3;
+            int _vectorSize = 3;
+            Real * coords = new Real[_vectorSize];
+            //Iterate through the coordinates vector retrived from user input
+            vector<Real>::iterator j;
+            int i = 0;
+            for( j = _coordinates.begin(); j != _coordinates.end(); ++j, ++i ) {
+               coords[i] = *j;
+            }
+
+            //Get the cell id from coordinates
+            //Note: By the way, this is not the same as bool getCellIdFromCoordinates (should change the name)
+            cellID = getCellIdFromCoords( vlsvReader, cellStruct, coords, maxDistance );
+
+            if( cellID == numeric_limits<uint64_t>::max() ) {
+               //Could not find a cell id
+               cout << "Could not find a cell id close enough to the input coordinates! Try raising --max-distance" << endl;
+               vlsvReader.close();
+               return 0;
+            }
+            delete[] coords;
+            //Print the cell id:
+            //cout << "Cell id: " << cellID << endl;
+            //store the cel lid in the list of cell ids (This is only used because it makes the code for 
+            //calculating the cell ids from a line clearer)
+            cellIdList.push_back( cellID );
+         } else if( calculateCellIdFromLine ) {
+            //Now there are multiple cell ids so do the same treatment for the cell ids as with getCellIdFromCoordinates
+            //but now for multiple cell ids
+
+            //We're handling 3-dimensional arrays so the vector size is 3
+            const int _vectorSize = 3;
+            //Declare a vector for storing coordinates:
+            vector< array<Real, 3> > coordinateList;
+            //Store cell ids into coordinateList:
+            setCoordinatesAlongALine( cellStruct, point1, point2, numberOfCoordinatesInALine, coordinateList );
+            //Note: (getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used,
+            // I'm keeping to previously used syntax)
+            //Declare an iterator
+            vector< array<Real, _vectorSize> >::iterator currentArray;
+            //Calculate every cell id in coordinateList
+            for( currentArray = coordinateList.begin(); currentArray != coordinateList.end(); ++currentArray ) {
+               //NOTE: since this code is nearly identical to the code for calculating single coordinates, it could be smart to create a separate function for this
+               //declare coordinates array
                Real * coords = new Real[_vectorSize];
-               //Iterate through the coordinates vector retrived from user input
-               vector<Real>::iterator j;
-               int i = 0;
-               for( j = _coordinates.begin(); j != _coordinates.end(); ++j, ++i ) {
-                  coords[i] = *j;
+               for( int i = 0; i < _vectorSize; ++i ) {
+                  //Store the array info received from the iterator into coordinates coords (to be used in getCellIdFromCoords)
+                  coords[i] = (*currentArray)[i];
                }
-   
-               //Sets cell variables (for cell geometry) -- used in getCellIdFromCoords function
-               setCellVariables( vlsvReader, cellStruct );
-   
                //Get the cell id from coordinates
-               //Note: By the way, this is not the same as bool getCellIdFromCoordinates (should change the name)
-               cellID = getCellIdFromCoords( vlsvReader, cellStruct, coords, maxDistance );
-   
-               if( cellID == numeric_limits<uint64_t>::max() ) {
-                  //Could not find a cell id
-                  cout << "Could not find a cell id close enough to the input coordinates!" << endl;
-                  vlsvReader.close();
-                  return 0;
-               }
-               delete[] coords;
-               //Print the cell id:
-               //cout << "Cell id: " << cellID << endl;
-               //store the cel lid in the list of cell ids (This is only used because it makes the code for 
-               //calculating the cell ids from a line clearer)
-               cellIdList.push_back( cellID );
-            } else if( calculateCellIdFromLine ) {
-               //Now there are multiple cell ids so do the same treatment for the cell ids as with getCellIdFromCoordinates
-               //but now for multiple cell ids
-   
-               //Sets cell variables (for cell geometry) -- used in setCoordinatesAlongALine() and getCellIdFromCoords()
-               setCellVariables( vlsvReader, cellStruct );
-   
-               //We're handling 3-dimensional arrays so the vector size is 3
-               const int _vectorSize = 3;
-               //Declare a vector for storing coordinates:
-               vector< array<Real, 3> > coordinateList;
-               //Store cell ids into coordinateList:
-               setCoordinatesAlongALine( cellStruct, point1, point2, numberOfCoordinatesInALine, coordinateList );
                //Note: (getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used,
                // I'm keeping to previously used syntax)
-               //Declare an iterator
-               vector< array<Real, _vectorSize> >::iterator currentArray;
-               //Calculate every cell id in coordinateList
-               for( currentArray = coordinateList.begin(); currentArray != coordinateList.end(); ++currentArray ) {
-                  //NOTE: since this code is nearly identical to the code for calculating single coordinates, it could be smart to create a separate function for this
-                  //declare coordinates array
-                  Real * coords = new Real[_vectorSize];
-                  for( int i = 0; i < _vectorSize; ++i ) {
-                     //Store the array info received from the iterator into coordinates coords (to be used in getCellIdFromCoords)
-                     coords[i] = (*currentArray)[i];
-                  }
-                  //Get the cell id from coordinates
-                  //Note: (getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used,
-                  // I'm keeping to previously used syntax)
-                  cellID = getCellIdFromCoords( vlsvReader, cellStruct, coords, maxDistance );
-                  if( cellID == numeric_limits<uint64_t>::max() ) {
-                     //Could not find a cell id
-                     cout << "Could not find a cell id close enough to the input coordinates!" << endl;
-                     vlsvReader.close();
-                     return 0;
-                  }
-                  delete[] coords;
+               cellID = getCellIdFromCoords( vlsvReader, cellStruct, coords, maxDistance );
+               if( cellID != numeric_limits<uint64_t>::max() ) {
+                  //A valid cell id:
                   //Store the cell id in the list of cell ids but only if it is not already there:
                   if( cellIdList.empty() ) {
                      //cell id list empty so it's safe to input
@@ -1391,344 +1408,120 @@ int main(int argn, char* args[]) {
                      cellIdList.push_back( cellID );
                   }
                }
-            } else if( getCellIdFromInput ) {
-               //Declare cellID and set it if the cell id is specified by the user
-               //bool calculateCellIdFromLine equals true) -- this is done later on in the code ( After the file has been opened)
-               cellID = _cellID;
-               //store the cel lid in the list of cell ids (This is only used because it makes the code for 
-               //calculating the cell ids from a line clearer)
-               cellIdList.push_back( cellID );
-            } else {
-               //This should never happen but it's better to be safe than sorry
-               cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", No input concerning cell id!" << endl;
-               vlsvReader.close();
-               exit(1);
+               delete[] coords;
             }
-   
-            //Next task is to iterate through the cell ids and save files:
-            //Save all of the cell ids' velocities into files:
-            vector<uint64_t>::iterator it;
-            //declare extractNum for keeping track of which extraction is going on and informing the user (used in the iteration)
-            int extractNum = 1;
-            //Give some info on how many extractions there are and what the save path is:
-            cout << "Save path: " << outputDirectoryPath.front() << endl;
-            cout << "Total number of extractions: " << cellIdList.size() << endl;
-            //Iterate:
-            for( it = cellIdList.begin(); it != cellIdList.end(); ++it ) {
-               //get the cell id from the iterator:
-               cellID = *it;
-               //Print out the cell id:
-               cout << "Cell id: " << cellID << endl;
-               // Create a new file suffix for the output file:
-               stringstream ss1;
-               ss1 << ".silo";
-               string newSuffix;
-               ss1 >> newSuffix;
-   
-               // Create a new file prefix for the output file:
-               stringstream ss2;
-               //cout << cellID << endl;
-               if( rotateVectors ) {
-                  ss2 << "velgrid" << '.' << "rotated" << '.' << cellID;
-               } else {
-                  ss2 << "velgrid" << '.' << cellID;
-               }
-               string newPrefix;
-               ss2 >> newPrefix;
-   
-               // Replace .vlsv with the new suffix:
-               string outputFileName = fileList[entryName];
-               size_t pos = outputFileName.rfind(".vlsv");
-               if (pos != string::npos) outputFileName.replace(pos, 5, newSuffix);
-      
-               pos = outputFileName.find(".");
-               if (pos != string::npos) outputFileName.replace(0, pos, newPrefix);
-   
-   
-               //Declare the file path (used in DBCreate to save the file in the correct location)
-               string outputFilePath;
-               //Get the path (outputDirectoryPath was retrieved from user input and it's a vector<string>):
-               outputFilePath.append( outputDirectoryPath.front() );
-               //The complete file path is still missing the file name, so add it to the end:
-               outputFilePath.append( outputFileName );
-               
-   
-               // Create a SILO file for writing:
-               fileptr = DBCreate(outputFilePath.c_str(), DB_CLOBBER, DB_LOCAL, "Vlasov data file", DB_PDB);
-               if (fileptr == NULL) {
-                  cerr << "\t failed to create output SILO file for input file '" << fileList[entryName] << "'" << endl;
-                  DBClose(fileptr);
-                  vlsvReader.close();
-                  continue;
-               }
-   
-               // Extract velocity grid from VLSV file, if possible, and convert into SILO format:
-               bool velGridExtracted = true;
-               for (list<string>::const_iterator it = meshNames.begin(); it != meshNames.end(); ++it) {
-                  if (convertVelocityBlocks2(vlsvReader, *it, cellID, rotateVectors ) == false) {
-                     velGridExtracted = false;
-                  } else {
-                     //Display message for the user:
-                     if( calculateCellIdFromLine ) {
-                        //Extracting multiple cell ids:
-                        //Display how mant extracted and how many more to go:
-                        int moreToGo = cellIdList.size() - extractNum;
-                        //Display message
-                        cout << "Extracted num. " << extractNum << ", " << moreToGo << " more to go" << endl;
-                        //Move to the next extraction number
-                        ++extractNum;
-                     } else {
-                        //Single cell id:
-                        cout << "\t extracted from '" << fileList[entryName] << "'" << endl;
-                     }
-                  }
-               }
-               DBClose(fileptr);
-   
-               // If velocity grid was not extracted, delete the SILO file:
-               if (velGridExtracted == false) {
-                  if (remove(outputFilePath.c_str()) != 0) {
-                     cerr << "\t ERROR: failed to remote dummy output file!" << endl;
-                  }
-               }
-            }
-   
+         } else if( getCellIdFromInput ) {
+            //Declare cellID and set it if the cell id is specified by the user
+            //bool calculateCellIdFromLine equals true) -- this is done later on in the code ( After the file has been opened)
+            cellID = _cellID;
+            //store the cel lid in the list of cell ids (This is only used because it makes the code for 
+            //calculating the cell ids from a line clearer)
+            cellIdList.push_back( cellID );
+         } else {
+            //This should never happen but it's better to be safe than sorry
+            cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", No input concerning cell id!" << endl;
             vlsvReader.close();
+            exit(1);
          }
-      }
-   } else {
-      //Get the file name
-      const string mask = args[1];  
-   
-      const string directory = ".";
-      const string suffix = ".vlsv";
-      DIR* dir = opendir(directory.c_str());
-      if (dir == NULL) {
-         cerr << "ERROR in reading directory contents!" << endl;
-         closedir(dir);
-         return 1;
-      }
-   
-      VLSVReader vlsvReader;
-      int filesFound = 0, entryCounter = 0;
-      vector<string> fileList;
-      struct dirent* entry = readdir(dir);
-      while (entry != NULL) {
-         const string entryName = entry->d_name;
-         if (entryName.find(mask) == string::npos || entryName.find(suffix) == string::npos) {
-            entry = readdir(dir);
-            continue;
+
+         //Check for proper input
+         if( cellIdList.empty() ) {
+            cout << "Could not find a cell id!" << endl;
+            return 0;
          }
-         fileList.push_back(entryName);
-         filesFound++;
-         entry = readdir(dir);
-      }
-      if (rank == 0 && filesFound == 0) cout << "\t no matches found" << endl;
-      closedir(dir);
+
+         //Next task is to iterate through the cell ids and save files:
+         //Save all of the cell ids' velocities into files:
+         vector<uint64_t>::iterator it;
+         //declare extractNum for keeping track of which extraction is going on and informing the user (used in the iteration)
+         int extractNum = 1;
+         //Give some info on how many extractions there are and what the save path is:
+         cout << "Save path: " << outputDirectoryPath.front() << endl;
+         cout << "Total number of extractions: " << cellIdList.size() << endl;
+         //Iterate:
+         for( it = cellIdList.begin(); it != cellIdList.end(); ++it ) {
+            //get the cell id from the iterator:
+            cellID = *it;
+            //Print out the cell id:
+            cout << "Cell id: " << cellID << endl;
+            // Create a new file suffix for the output file:
+            stringstream ss1;
+            ss1 << ".silo";
+            string newSuffix;
+            ss1 >> newSuffix;
+
+            // Create a new file prefix for the output file:
+            stringstream ss2;
+            //cout << cellID << endl;
+            if( rotateVectors ) {
+               ss2 << "velgrid" << '.' << "rotated" << '.' << cellID;
+            } else {
+               ss2 << "velgrid" << '.' << cellID;
+            }
+            string newPrefix;
+            ss2 >> newPrefix;
+
+            // Replace .vlsv with the new suffix:
+            string outputFileName = fileList[entryName];
+            size_t pos = outputFileName.rfind(".vlsv");
+            if (pos != string::npos) outputFileName.replace(pos, 5, newSuffix);
    
-      for (size_t entryName = 0; entryName < fileList.size(); entryName++) {
-         if (entryCounter++ % ntasks == rank) {
-            // Open VLSV file and read mesh names:
-            vlsvReader.open(fileList[entryName]);
-            list<string> meshNames;
-            if (vlsvReader.getMeshNames(meshNames) == false) {
-               cout << "\t file '" << fileList[entryName] << "' not compatible" << endl;
+            pos = outputFileName.find(".");
+            if (pos != string::npos) outputFileName.replace(0, pos, newPrefix);
+
+
+            //Declare the file path (used in DBCreate to save the file in the correct location)
+            string outputFilePath;
+            //Get the path (outputDirectoryPath was retrieved from user input and it's a vector<string>):
+            outputFilePath.append( outputDirectoryPath.front() );
+            //The complete file path is still missing the file name, so add it to the end:
+            outputFilePath.append( outputFileName );
+            
+
+            // Create a SILO file for writing:
+            fileptr = DBCreate(outputFilePath.c_str(), DB_CLOBBER, DB_LOCAL, "Vlasov data file", DB_PDB);
+            if (fileptr == NULL) {
+               cerr << "\t failed to create output SILO file for input file '" << fileList[entryName] << "'" << endl;
+               DBClose(fileptr);
                vlsvReader.close();
                continue;
             }
-   
-            //Declare cell id (defined based on user options):
-            uint64_t cellID;
-            //Declare a vector for holding multiple cell ids (Note: Used only if we want to calculate the cell id along a line)
-            vector<uint64_t> cellIdList;
-            //Declare Cell structure (used for calculations and has for example cell length inside it)
-            CellStructure cellStruct;
-            //Determine how to get the cell id:
-            //(getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used, I'm keeping to
-            //previously used syntax)
-            if( getCellIdFromCoordinates ) {
-               //(getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used, I'm keeping to
-               //previously used syntax)
-               int _vectorSize = 3;
-               Real * coords = new Real[_vectorSize];
-               //Iterate through the coordinates vector retrived from user input
-               vector<Real>::iterator j;
-               int i = 0;
-               for( j = _coordinates.begin(); j != _coordinates.end(); ++j, ++i ) {
-                  coords[i] = *j;
-               }
-   
-               //Sets cell variables (for cell geometry) -- used in getCellIdFromCoords function
-               setCellVariables( vlsvReader, cellStruct );
-   
-               //Get the cell id from coordinates
-               //Note: By the way, this is not the same as bool getCellIdFromCoordinates (should change the name)
-               cellID = getCellIdFromCoords( vlsvReader, cellStruct, coords, maxDistance );
-   
-               if( cellID == numeric_limits<uint64_t>::max() ) {
-                  //Could not find a cell id
-                  cout << "Could not find a cell id close enough to the input coordinates!" << endl;
-                  vlsvReader.close();
-                  return 0;
-               }
-               delete[] coords;
-               //Print the cell id:
-               //cout << "Cell id: " << cellID << endl;
-               //store the cel lid in the list of cell ids (This is only used because it makes the code for 
-               //calculating the cell ids from a line clearer)
-               cellIdList.push_back( cellID );
-            } else if( calculateCellIdFromLine ) {
-               //Now there are multiple cell ids so do the same treatment for the cell ids as with getCellIdFromCoordinates
-               //but now for multiple cell ids
-   
-               //Sets cell variables (for cell geometry) -- used in setCoordinatesAlongALine() and getCellIdFromCoords()
-               setCellVariables( vlsvReader, cellStruct );
-   
-               //We're handling 3-dimensional arrays so the vector size is 3
-               const int _vectorSize = 3;
-               //Declare a vector for storing coordinates:
-               vector< array<Real, 3> > coordinateList;
-               //Store cell ids into coordinateList:
-               setCoordinatesAlongALine( cellStruct, point1, point2, numberOfCoordinatesInALine, coordinateList );
-               //Note: (getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used,
-               // I'm keeping to previously used syntax)
-               //Declare an iterator
-               vector< array<Real, _vectorSize> >::iterator currentArray;
-               //Calculate every cell id in coordinateList
-               for( currentArray = coordinateList.begin(); currentArray != coordinateList.end(); ++currentArray ) {
-                  //NOTE: since this code is nearly identical to the code for calculating single coordinates, it could be smart to create a separate function for this
-                  //declare coordinates array
-                  Real * coords = new Real[_vectorSize];
-                  for( int i = 0; i < _vectorSize; ++i ) {
-                     //Store the array info received from the iterator into coordinates coords (to be used in getCellIdFromCoords)
-                     coords[i] = (*currentArray)[i];
-                  }
-                  //Get the cell id from coordinates
-                  //Note: (getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used,
-                  // I'm keeping to previously used syntax)
-                  cellID = getCellIdFromCoords( vlsvReader, cellStruct, coords, maxDistance );
-                  if( cellID == numeric_limits<uint64_t>::max() ) {
-                     //Could not find a cell id
-                     cout << "Could not find a cell id close enough to the input coordinates!" << endl;
-                     vlsvReader.close();
-                     return 0;
-                  }
-                  delete[] coords;
-                  //Store the cell id in the list of cell ids but only if it is not already there:
-                  if( cellIdList.empty() ) {
-                     //cell id list empty so it's safe to input
-                     cellIdList.push_back( cellID );
-                  } else if( cellIdList.back() != cellID ) {
-                     //cellID has not already been calculated, so calculate it now:
-                     cellIdList.push_back( cellID );
-                  }
-               }
-            } else if( getCellIdFromInput ) {
-               //Declare cellID and set it if the cell id is specified by the user
-               //bool calculateCellIdFromLine equals true) -- this is done later on in the code ( After the file has been opened)
-               cellID = _cellID;
-               //store the cel lid in the list of cell ids (This is only used because it makes the code for 
-               //calculating the cell ids from a line clearer)
-               cellIdList.push_back( cellID );
-            } else {
-               //This should never happen but it's better to be safe than sorry
-               cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", No input concerning cell id!" << endl;
-               vlsvReader.close();
-               exit(1);
-            }
-   
-            //Next task is to iterate through the cell ids and save files:
-            //Save all of the cell ids' velocities into files:
-            vector<uint64_t>::iterator it;
-            //declare extractNum for keeping track of which extraction is going on and informing the user (used in the iteration)
-            int extractNum = 1;
-            //Give some info on how many extractions there are and what the save path is:
-            cout << "Save path: " << outputDirectoryPath.front() << endl;
-            cout << "Total number of extractions: " << cellIdList.size() << endl;
-            //Iterate:
-            for( it = cellIdList.begin(); it != cellIdList.end(); ++it ) {
-               //get the cell id from the iterator:
-               cellID = *it;
-               //Print out the cell id:
-               cout << "Cell id: " << cellID << endl;
-               // Create a new file suffix for the output file:
-               stringstream ss1;
-               ss1 << ".silo";
-               string newSuffix;
-               ss1 >> newSuffix;
-   
-               // Create a new file prefix for the output file:
-               stringstream ss2;
-               //cout << cellID << endl;
-               if( rotateVectors ) {
-                  ss2 << "velgrid" << '.' << "rotated" << '.' << cellID;
+
+            // Extract velocity grid from VLSV file, if possible, and convert into SILO format:
+            bool velGridExtracted = true;
+            for (list<string>::const_iterator it = meshNames.begin(); it != meshNames.end(); ++it) {
+               if (convertVelocityBlocks2(vlsvReader, *it, cellID, rotateVectors ) == false) {
+                  velGridExtracted = false;
                } else {
-                  ss2 << "velgrid" << '.' << cellID;
-               }
-               string newPrefix;
-               ss2 >> newPrefix;
-   
-               // Replace .vlsv with the new suffix:
-               string outputFileName = fileList[entryName];
-               size_t pos = outputFileName.rfind(".vlsv");
-               if (pos != string::npos) outputFileName.replace(pos, 5, newSuffix);
-      
-               pos = outputFileName.find(".");
-               if (pos != string::npos) outputFileName.replace(0, pos, newPrefix);
-   
-   
-               //Declare the file path (used in DBCreate to save the file in the correct location)
-               string outputFilePath;
-               //Get the path (outputDirectoryPath was retrieved from user input and it's a vector<string>):
-               outputFilePath.append( outputDirectoryPath.front() );
-               //The complete file path is still missing the file name, so add it to the end:
-               outputFilePath.append( outputFileName );
-               
-   
-               // Create a SILO file for writing:
-               fileptr = DBCreate(outputFilePath.c_str(), DB_CLOBBER, DB_LOCAL, "Vlasov data file", DB_PDB);
-               if (fileptr == NULL) {
-                  cerr << "\t failed to create output SILO file for input file '" << fileList[entryName] << "'" << endl;
-                  DBClose(fileptr);
-                  vlsvReader.close();
-                  continue;
-               }
-   
-               // Extract velocity grid from VLSV file, if possible, and convert into SILO format:
-               bool velGridExtracted = true;
-               for (list<string>::const_iterator it = meshNames.begin(); it != meshNames.end(); ++it) {
-                  if (convertVelocityBlocks2(vlsvReader, *it, cellID, rotateVectors ) == false) {
-                     velGridExtracted = false;
+                  //Display message for the user:
+                  if( calculateCellIdFromLine ) {
+                     //Extracting multiple cell ids:
+                     //Display how mant extracted and how many more to go:
+                     int moreToGo = cellIdList.size() - extractNum;
+                     //Display message
+                     cout << "Extracted num. " << extractNum << ", " << moreToGo << " more to go" << endl;
+                     //Move to the next extraction number
+                     ++extractNum;
                   } else {
-                     //Display message for the user:
-                     if( calculateCellIdFromLine ) {
-                        //Extracting multiple cell ids:
-                        //Display how mant extracted and how many more to go:
-                        int moreToGo = cellIdList.size() - extractNum;
-                        //Display message
-                        cout << "Extracted num. " << extractNum << ", " << moreToGo << " more to go" << endl;
-                        //Move to the next extraction number
-                        ++extractNum;
-                     } else {
-                        //Single cell id:
-                        cout << "\t extracted from '" << fileList[entryName] << "'" << endl;
-                     }
-                  }
-               }
-               DBClose(fileptr);
-   
-               // If velocity grid was not extracted, delete the SILO file:
-               if (velGridExtracted == false) {
-                  if (remove(outputFilePath.c_str()) != 0) {
-                     cerr << "\t ERROR: failed to remote dummy output file!" << endl;
+                     //Single cell id:
+                     cout << "\t extracted from '" << fileList[entryName] << "'" << endl;
                   }
                }
             }
-   
-            vlsvReader.close();
+            DBClose(fileptr);
+
+            // If velocity grid was not extracted, delete the SILO file:
+            if (velGridExtracted == false) {
+               if (remove(outputFilePath.c_str()) != 0) {
+                  cerr << "\t ERROR: failed to remote dummy output file!" << endl;
+               }
+            }
          }
+
+         vlsvReader.close();
       }
    }
+
    MPI_Finalize();
    return 0;
 }

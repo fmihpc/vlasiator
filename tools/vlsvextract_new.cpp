@@ -462,18 +462,17 @@ bool convertVelocityBlocks2( Reader& vlsvReader, const string& meshName, const u
    //O: CHANGED FROM "name" TO "mesh"
    attribs.push_back(make_pair("mesh", meshName));
    if (vlsvReader.getArrayInfo("BLOCKSPERCELL", attribs, nb_arraySize, nb_vectorSize, nb_dataType, nb_dataSize) == false) {
-      //cerr << "Could not find array CELLSWITHBLOCKS" << endl;
+      cerr << "ERROR, COULD NOT FIND ARRAY BLOCKSPERCELL AT " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
 
    // Create buffers for  number of blocks (nb) and read data:
    const int startingPoint = 0; //Read the array from 0 (the beginning)
    char* nb_buffer = new char[nb_arraySize * nb_vectorSize * nb_dataSize];
-   if (vlsvReader.readArray("BLOCKSPERCELL", attribs, startingPoint, nb_arraySize, nb_buffer) == false) success = false;
-   if (success == false) {
+   if (vlsvReader.readArray("BLOCKSPERCELL", attribs, startingPoint, nb_arraySize, nb_buffer) == false) {
       cerr << "Failed to read number of blocks for mesh '" << meshName << "'" << endl;
       delete nb_buffer;
-      return success;
+      return false;
    }
 
 
@@ -497,7 +496,7 @@ bool convertVelocityBlocks2( Reader& vlsvReader, const string& meshName, const u
 
    //O: MIGHT BE SMART TO DO BLOCKID!
    if (vlsvReader.getArrayInfo("BLOCKCOORDINATES", attribs, bc_arraySize, bc_vectorSize, bc_dataType, bc_dataSize) == false) {
-      //cerr << "Could not find array BLOCKCOORDINATES" << endl;
+      cerr << "Could not find array BLOCKCOORDINATES" << endl;
       return false;
    }
 
@@ -516,7 +515,7 @@ bool convertVelocityBlocks2( Reader& vlsvReader, const string& meshName, const u
       blockOffset += N_blocks;
    }
    if (cellIndex == numeric_limits<uint64_t>::max()) {
-      //cerr << "Spatial cell #" << cellID << " not found!" << endl;
+      cerr << "Spatial cell #" << cellID << " not found!" << endl;
       return false;
    } else {
       //cout << "Spatial cell #" << cellID << " has offset " << blockOffset << endl;
@@ -526,7 +525,11 @@ bool convertVelocityBlocks2( Reader& vlsvReader, const string& meshName, const u
 
    // Read all block coordinates of the velocity grid:
    char* bc_buffer = new char[N_blocks * bc_vectorSize * bc_dataSize];
-   vlsvReader.readArray("BLOCKCOORDINATES", attribs, blockOffset, N_blocks, bc_buffer);
+   if( vlsvReader.readArray("BLOCKCOORDINATES", attribs, blockOffset, N_blocks, bc_buffer) == false ) {
+      cerr << "ERROR, FAILED TO READ BLOCKCOORDINATES AT " << __FILE__ << " " << __LINE__ << endl;
+      delete[] bc_buffer;
+      return false;
+   }
    for (uint64_t b = 0; b < N_blocks; ++b) {
       Real vx_min, vy_min, vz_min, dvx, dvy, dvz;
       if (bc_dataSize == 4) {
@@ -732,7 +735,7 @@ bool convertVelocityBlocks2( Reader& vlsvReader, const string& meshName, const u
    //O: FIX THE FILE NAME!
    if( vlsvWriter.open( "file.vlsv", MPI_COMM_WORLD, masterProcessId )  == false ) {
       cerr << "UNABLE TO OPEN FILE AT" << __FILE__ << " " << __LINE__ << endl;
-      success = false;
+      return false;
    }
    const int myRank = 0;
    const unsigned int notBlockBased = 1;
@@ -741,6 +744,7 @@ bool convertVelocityBlocks2( Reader& vlsvReader, const string& meshName, const u
    //Write the spatial grid:
    if( writeSpatialGrid( vlsvWriter, masterProcessId, myRank, gridName, nodeCoordinates, boundaryBox ) == false ) {
       cerr << "ERROR! Failed to write velocity grid at: " << __FILE__ << " " << __LINE__ << endl;
+      return false;
    }
 
    delete nodeList;
@@ -755,15 +759,16 @@ bool convertVelocityBlocks2( Reader& vlsvReader, const string& meshName, const u
    set<string> blockVarNames;
    if (vlsvReader.getUniqueAttributeValues( "BLOCKVARIABLE", meshName, blockVarNames) == false) {
       cerr << "Failed to read block variable names!" << endl;
-      success = false;
+      return false;
    }
 
    
    //O: Not writing SILO file so this is commented out
    if (success == true) {
       for (set<string>::iterator it = blockVarNames.begin(); it != blockVarNames.end(); ++it) {
-         if (convertVelocityBlockVariable( vlsvWriter, vlsvReader, meshName, gridName, cellID, N_blocks, blockOffset, *it) == false) success = false;
-         //O: CONTINUE HERE
+         if (convertVelocityBlockVariable( vlsvWriter, vlsvReader, meshName, gridName, cellID, N_blocks, blockOffset, *it) == false) {
+            cerr << "ERROR, convertVelocityBlockVariable FAILED AT " << __FILE__ << " " << __LINE__ << endl;
+         }
       }
    }
 

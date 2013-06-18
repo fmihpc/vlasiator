@@ -256,6 +256,7 @@ bool o_writeVelocityDistributionData(
    //Write blocks per cell, this has to be in the same order as cellswitblocks so that extracting works
    if(vlsvWriter.writeArray("BLOCKSPERCELL",attribs,blocksPerCell.size(),vectorSize,blocksPerCell.data()) == false) success = false;
    if (success == false) logFile << "(MAIN) writeGrid: ERROR failed to write CELLSWITHBLOCKS to file!" << endl << writeVerbose;
+   cerr << "WROTE BLOCKSPERCELL" << endl;
 
    //Write velocity block coordinates.
    std::vector<Real> velocityBlockParameters;
@@ -397,30 +398,33 @@ bool o_writeVariables( dccrg::Dccrg<SpatialCell>& mpiGrid,
    return true;
 }
 
-template <typename T>
-bool o_writeScalarParameter(string name,T value,Writer& vlsvWriter,int masterRank,MPI_Comm comm){
-   int myRank;
-   MPI_Comm_rank(comm,&myRank);
-   unsigned int arraySize;
-   unsigned int vectorSize;
-   map<string,string> xmlAttributes;
-   if( myRank==masterRank ) {
-      //Only master rank writes out the data:
-      arraySize = 1;
-      vectorSize = 1;
-      std::ostringstream s;
-      s << value;
-      xmlAttributes["value"]=s.str();
-   } else {
-      //Write dummy data:
-      arraySize = 0;
-      vectorSize = 1;
-      xmlAttributes["value"]="";
-   }
-   //Write the data:
-   vlsvWriter.writeArray("PARAMETER", xmlAttributes, arraySize, vectorSize, &value);
-   return true;
-}
+
+//template <typename T>
+//bool o_writeScalarParameter(string name,T value,Writer& vlsvWriter,int masterRank,MPI_Comm comm){
+//   int myRank;
+//   MPI_Comm_rank(comm,&myRank);
+//   unsigned int arraySize;
+//   unsigned int vectorSize;
+//   map<string,string> xmlAttributes;
+//   if( myRank==masterRank ) {
+//      //Only master rank writes out the data:
+//      arraySize = 1;
+//      vectorSize = 1;
+//      std::ostringstream s;
+//      s << value;
+//      xmlAttributes["value"]=s.str();
+//   } else {
+//      //Write dummy data:
+//      arraySize = 0;
+//      vectorSize = 1;
+//      xmlAttributes["value"] = "";
+//   }
+//   xmlAttributes["name"] = name;
+//   //Write the data:
+//   vlsvWriter.writeArray("PARAMETER", xmlAttributes, arraySize, vectorSize, &value);
+//   return true;
+//}
+
 
 bool o_writeCommonGridData(
    Writer& vlsvWriter,
@@ -431,28 +435,27 @@ bool o_writeCommonGridData(
    int myRank;
    MPI_Comm_rank(comm, &myRank);
    const int masterProcessId = 0;
-   o_writeScalarParameter("t",P::t,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
-   o_writeScalarParameter("dt",P::dt,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
-   o_writeScalarParameter("tstep",P::tstep,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
-   o_writeScalarParameter("fileIndex",index,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
-   o_writeScalarParameter("xmin",P::xmin,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
-   o_writeScalarParameter("xmax",P::xmax,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
-   o_writeScalarParameter("ymin",P::ymin,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
-   o_writeScalarParameter("ymax",P::ymax,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
-   o_writeScalarParameter("zmin",P::zmin,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
-   o_writeScalarParameter("zmax",P::zmax,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
-   o_writeScalarParameter("xcells_ini",P::xcells_ini,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
-   o_writeScalarParameter("ycells_ini",P::ycells_ini,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
-   o_writeScalarParameter("zcells_ini",P::zcells_ini,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
-   o_writeScalarParameter("vxmin",P::vxmin,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
-   o_writeScalarParameter("vxmax",P::vxmax,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
-   o_writeScalarParameter("vymin",P::vymin,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
-   o_writeScalarParameter("vymax",P::vymax,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
-   o_writeScalarParameter("vzmin",P::vzmin,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
-   o_writeScalarParameter("vzmax",P::vzmax,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
-   o_writeScalarParameter("vxblocks_ini",P::vxblocks_ini,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
-   o_writeScalarParameter("vyblocks_ini",P::vyblocks_ini,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
-   o_writeScalarParameter("vzblocks_ini",P::vzblocks_ini,vlsvWriter,masterProcessId,MPI_COMM_WORLD);
+   vlsvWriter.writeParameter("t", &P::t);
+   vlsvWriter.writeParameter("dt", &P::dt);
+   vlsvWriter.writeParameter("tstep", &P::tstep);
+   vlsvWriter.writeParameter("xmin", &P::xmin);
+   vlsvWriter.writeParameter("xmax", &P::xmax);
+   vlsvWriter.writeParameter("ymin", &P::ymin);
+   vlsvWriter.writeParameter("ymax", &P::ymax);
+   vlsvWriter.writeParameter("zmin", &P::zmin);
+   vlsvWriter.writeParameter("zmax", &P::zmax);
+   vlsvWriter.writeParameter("xcells_ini", &P::xcells_ini);
+   vlsvWriter.writeParameter("ycells_ini", &P::ycells_ini);
+   vlsvWriter.writeParameter("zcells_ini", &P::zcells_ini);
+   vlsvWriter.writeParameter("vxmin", &P::vxmin);
+   vlsvWriter.writeParameter("vxmax", &P::vxmax);
+   vlsvWriter.writeParameter("vymin", &P::vymin);
+   vlsvWriter.writeParameter("vymax", &P::vymax);
+   vlsvWriter.writeParameter("vzmin", &P::vzmin);
+   vlsvWriter.writeParameter("vzmax", &P::vzmax);
+   vlsvWriter.writeParameter("vxblocks_ini", &P::vxblocks_ini);
+   vlsvWriter.writeParameter("vyblocks_ini", &P::vyblocks_ini);
+   vlsvWriter.writeParameter("vzblocks_ini", &P::vzblocks_ini);
    return true; //to make compiler happy,no real errorchecking done
 }
 
@@ -1020,7 +1023,9 @@ bool o_writeVelocitySpace( dccrg::Dccrg<SpatialCell>& mpiGrid,
       MPI_Allreduce(&localNumVelSpaceCells,&numVelSpaceCells,1,MPI_UINT64_T,MPI_SUM,MPI_COMM_WORLD);
       if(numVelSpaceCells>0) {
          //write out velocity space data, if there are cells with this data
-         o_writeVelocityDistributionData( vlsvWriter, mpiGrid, velSpaceCells, MPI_COMM_WORLD );
+         if( o_writeVelocityDistributionData( vlsvWriter, mpiGrid, velSpaceCells, MPI_COMM_WORLD ) == false ) {
+            cerr << "ERROR, FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT " << __FILE__ << " " << __LINE__ << endl;
+         }
       }
       return true;
 }
