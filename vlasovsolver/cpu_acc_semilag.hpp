@@ -146,6 +146,12 @@ TODO:
   now this is all double: enable Real
 
 */
+
+
+void grid_interpolation(SpatialCell* spatial_cell,Array3d position, Array3d width,double value, uint type) {}
+
+
+
 void cpu_accelerate_cell(
    SpatialCell* spatial_cell,
    const double dt) {
@@ -178,7 +184,7 @@ void cpu_accelerate_cell(
    const Array3d  block_dv(SpatialCell::block_dvx,SpatialCell::block_dvy,SpatialCell::block_dvz);
    const Array3d  cell_dv(SpatialCell::cell_dvx,SpatialCell::cell_dvy,SpatialCell::cell_dvz);
    
-   const unsigned int n_subcells=3;
+   const unsigned int n_subcells=5;
    interpolated_block iblock;
 
    for (unsigned int block_i = 0; block_i < blocks.size(); block_i++) {
@@ -206,7 +212,7 @@ void cpu_accelerate_cell(
                const Vector3d s_node_position_tf=total_transform*s_node_position;
 
 
-               double value=iblock.get_value(s_node_position_tf[0],s_node_position_tf[1],s_node_position_tf[2])/
+               double value=iblock.get_value(s_node_position[0],s_node_position[1],s_node_position[2])/
                   (n_subcells*n_subcells*n_subcells);
                spatial_cell->increment_value(s_node_position_tf[0],s_node_position_tf[1],s_node_position_tf[2],value);
             }
