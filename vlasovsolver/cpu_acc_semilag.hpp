@@ -148,7 +148,7 @@ TODO:
 */
 
 void cic_increment_cell_value(SpatialCell* spatial_cell,const unsigned int p_i,const unsigned int p_j,const unsigned int p_k,
-                         const unsigned int n_subcells, const int value){
+                         const unsigned int n_subcells, const double value){
 
    const unsigned int block_i=p_i/(WID*n_subcells);
    const unsigned int block_j=p_j/(WID*n_subcells);
@@ -162,16 +162,23 @@ void cic_increment_cell_value(SpatialCell* spatial_cell,const unsigned int p_i,c
 }
 
 /*cloud in cell interpolation*/
-void cic_interpolation(SpatialCell* spatial_cell,Array3d v,const unsigned int n_subcells,const double value) {
+//TODO, what about negative indices p_ijk, reformulate
+void cic_interpolation(SpatialCell* spatial_cell,const Array3d v,const unsigned int n_subcells,const double value) {
+   static int count=0;
    const double particle_dvx=SpatialCell::cell_dvx/n_subcells;
    const double particle_dvy=SpatialCell::cell_dvy/n_subcells;
-   const double particle_dvz=SpatialCell::cell_dvz/n_subcells;   
-   const unsigned int p_i=(v[0] - SpatialCell::vx_min) / particle_dvx;
-   const unsigned int p_j=(v[1] - SpatialCell::vy_min) / particle_dvy;
-   const unsigned int p_k=(v[2] - SpatialCell::vz_min) / particle_dvz;
-   const double wx=(v[0]-p_i*particle_dvx)/particle_dvx;
-   const double wy=(v[1]-p_j*particle_dvy)/particle_dvy;
-   const double wz=(v[2]-p_k*particle_dvz)/particle_dvz;
+   const double particle_dvz=SpatialCell::cell_dvz/n_subcells;
+   const int p_i=(v[0] - SpatialCell::vx_min-0.5*particle_dvx) / particle_dvx;
+   const int p_j=(v[1] - SpatialCell::vy_min-0.5*particle_dvy) / particle_dvy;
+   const int p_k=(v[2] - SpatialCell::vz_min-0.5*particle_dvz) / particle_dvz;
+   const double wx=(v[0]-p_i*particle_dvx - SpatialCell::vx_min-0.5*particle_dvx)/particle_dvx;
+   const double wy=(v[1]-p_j*particle_dvy - SpatialCell::vy_min-0.5*particle_dvy)/particle_dvy;
+   const double wz=(v[2]-p_k*particle_dvz - SpatialCell::vz_min-0.5*particle_dvz)/particle_dvz;
+   if(count<5) {
+      cout << p_i <<" " << p_j <<" " << p_k <<" "<< wx  <<" "<< wy <<" "<< wz <<endl;
+      count++;
+   }
+   
    cic_increment_cell_value(spatial_cell, p_i  , p_j  , p_k  , n_subcells, (1-wx)*(1-wy)*(1-wz)*value);
    cic_increment_cell_value(spatial_cell, p_i+1, p_j  , p_k  , n_subcells,     wx*(1-wy)*(1-wz)*value);
    cic_increment_cell_value(spatial_cell, p_i  , p_j+1, p_k  , n_subcells, (1-wx)*   wy *(1-wz)*value);
@@ -220,7 +227,7 @@ void cpu_accelerate_cell(
    const Array3d  block_dv(SpatialCell::block_dvx,SpatialCell::block_dvy,SpatialCell::block_dvz);
    const Array3d  cell_dv(SpatialCell::cell_dvx,SpatialCell::cell_dvy,SpatialCell::cell_dvz);
    
-   const unsigned int n_subcells=5;
+   const unsigned int n_subcells=3;
    interpolated_block iblock;
 
    for (unsigned int block_i = 0; block_i < blocks.size(); block_i++) {
@@ -228,12 +235,13 @@ void cpu_accelerate_cell(
       Velocity_Block* block_ptr = spatial_cell->at(block);
       iblock.set_block(block_ptr);
 
-      double dvx=block_ptr->parameters[BlockParams::DVX]/n_subcells;
-      double dvy=block_ptr->parameters[BlockParams::DVY]/n_subcells;
-      double dvz=block_ptr->parameters[BlockParams::DVZ]/n_subcells;
-      double block_start_vx=block_ptr->parameters[BlockParams::VXCRD] + 0.5*dvx;
-      double block_start_vy=block_ptr->parameters[BlockParams::VYCRD] + 0.5*dvy;
-      double block_start_vz=block_ptr->parameters[BlockParams::VZCRD] + 0.5*dvz;
+      const double dvx=block_ptr->parameters[BlockParams::DVX]/n_subcells;
+      const double dvy=block_ptr->parameters[BlockParams::DVY]/n_subcells;
+      const double dvz=block_ptr->parameters[BlockParams::DVZ]/n_subcells;
+      const double block_start_vx=block_ptr->parameters[BlockParams::VXCRD] + 0.5*dvx;
+      const double block_start_vy=block_ptr->parameters[BlockParams::VYCRD] + 0.5*dvy;
+      const double block_start_vz=block_ptr->parameters[BlockParams::VZCRD] + 0.5*dvz;
+
 
       
       
@@ -248,6 +256,16 @@ void cpu_accelerate_cell(
                const Vector3d s_node_position_tf=total_transform*s_node_position;
                double value=iblock.get_value(s_node_position[0],s_node_position[1],s_node_position[2])/(n_subcells*n_subcells*n_subcells);
                cic_interpolation(spatial_cell,s_node_position_tf.matrix(),n_subcells,value);
+
+               //scaling, just to test things...
+               /*
+                 double value=iblock.get_value(s_node_position[0],s_node_position[1],s_node_position[2]);
+                 const Vector3d s_node_position_tf(n_subcells*s_node_position[0],
+                 n_subcells*s_node_position[1],
+                 n_subcells*s_node_position[2]);
+                 ngp_interpolation(spatial_cell,s_node_position_tf.matrix(),n_subcells,value);
+               */
+               
             }
          }
       }

@@ -1,7 +1,7 @@
 #include <einspline/bspline.h>
 
 //template<typename T> inline T cell_ib_id(const T& i,const T& j,const T& k) {return k*64+j*8+i;}
-template<typename T> inline T cell_ib_id(const T& i,const T& j,const T& k) {return k*36+j*6+i;}
+template<typename T> inline T cell_ib_id(const T& i,const T& j,const T& k) {return k+j*6+i*36;} //einspline required order
 template<typename T> inline T cell_id(const T& i,const T& j,const T& k) {return k*WID2+j*WID+i;}
 
 class interpolated_block {
