@@ -45,6 +45,11 @@ INC_SILO = -I$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION
 LIB_SILO = -L$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/lib -lsilo
 
 
+INC_EIGEN = -I$(LIBRARY_PREFIX_B)/eigen/eigen-eigen-2249f9c22fe8
+
+INC_EINSPLINE = -I$(LIBRARY_PREFIX_B)/einspline/include
+LIB_EINSPLINE = -L$(LIBRARY_PREFIX_B)/einspline/lib -leinspline
+
 #DCCRG version with reduced neighbourhood. Might not be up-to-date
 #INC_DCCRG = -I$(LIBRARY_PREFIX_B)/dccrg-new
 
