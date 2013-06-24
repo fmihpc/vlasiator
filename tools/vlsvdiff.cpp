@@ -158,7 +158,9 @@ bool getLocalCellIds( T & vlsvReader,
 
       //Push to the list of cells
       for( unsigned int j = 0; j < howManyToRead; ++j ) {
-         cellIds.push_back( cellIds_uint_pointer[j] - 1 );
+         //In visit cell ids start from 0 which is why they're stored like that in the file,
+         //in vlasiator, they start from 1 -- hence the '+ 1'
+         cellIds.push_back( (cellIds_uint_pointer[j]) + 1 );
       }
       delete[] cellIds_buffer;
       offsetIndex += howManyToSkip;
