@@ -12,9 +12,11 @@
 
 \brief Write out system into a vlsv file
 
-\param mpiGrid   The DCCRG grid with spatial cells
+\param mpiGrid     The DCCRG grid with spatial cells
 \param dataReducer Contains datareductionoperators that are used to compute data that is added into file
-\param index     Index to call the correct member of the various parameter vectors
+\param index       Index to call the correct member of the various parameter vectors
+\param newLib      Use the updated version of VLSV library
+\param writeGhosts Write ghost zones
 */
 
 
@@ -22,7 +24,9 @@ bool writeGrid(
    dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    DataReducer& dataReducer,
    const uint& index,
-   bool newLib = false
+   bool newLib = false,
+   bool writeSmaller = false,
+   bool writeGhosts = true
 );
 
 

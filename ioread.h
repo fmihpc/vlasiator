@@ -15,6 +15,6 @@
 \brief Read in state from a vlsv file in order to restart simulations
 */
 bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
-              const std::string& name);
+              const std::string& name, bool newLib = false);
 
 #endif

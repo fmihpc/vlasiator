@@ -71,7 +71,7 @@ FORCE:
 # This target here defines a flag which removes the mpi headers from the code with 
 # #ifdef pragmas such that one can compile this tool to be used on the login nodes.
 # To ensure this works one also needs to change the compiler at the top of Makefile.fermi*.
-not_parallel_tools: vlsvdiff
+not_parallel_tools: vlsvdiff vlsvdiff_new
 
 all: vlasiator tools
 
@@ -138,7 +138,7 @@ data:
 
 c: clean
 clean: data
-	rm -rf *.o *~ */*~ */*/*~ ${EXE} vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION} vlsvextract_new_${FP_PRECISION} vlsv2vtk_${FP_PRECISION} vlsvdiff_${FP_PRECISION} vlsv2bzt_${FP_PRECISION} check_projects_compil_logs/ check_projects_cfg_logs/
+	rm -rf *.o *~ */*~ */*/*~ ${EXE} vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION} vlsvextract_new_${FP_PRECISION} vlsv2vtk_${FP_PRECISION} vlsvdiff_${FP_PRECISION} vlsvdiff_new_${FP_PRECISION} vlsv2bzt_${FP_PRECISION} check_projects_compil_logs/ check_projects_cfg_logs/
 
 
 # Rules for making each object file needed by the executable
@@ -331,8 +331,12 @@ vlsv2bzt: ${DEPS_VLSVREADER} ${OBJS_VLSVREADER} tools/vlsv2bzt.cpp
 	${LNK} -o vlsv2bzt_${FP_PRECISION} vlsv2bzt.o ${OBJS_VLSVREADER} ${LDFLAGS}
 
 vlsvdiff: ${DEPS_VLSVREADER} ${OBJS_VLSVREADEREXTRA} tools/vlsvdiff.cpp
-	${CMP} ${CXXEXTRAFLAGS} ${FLAGS} -c tools/vlsvdiff.cpp -I$(CURDIR)
-	${LNK} -o vlsvdiff_${FP_PRECISION} vlsvdiff.o ${OBJS_VLSVREADER} ${LDFLAGS}
+	${CMP} ${CXXEXTRAFLAGS} ${FLAGS} -c tools/vlsvdiff.cpp ${INC_VLSV} -I$(CURDIR)
+	${LNK} -o vlsvdiff_${FP_PRECISION} vlsvdiff.o ${OBJS_VLSVREADER} ${LIB_VLSV} ${LDFLAGS}
+
+vlsvdiff_new: ${DEPS_VLSVREADER} ${OBJS_VLSVREADEREXTRA} tools/vlsvdiff_new.cpp
+	${CMP} ${CXXEXTRAFLAGS} ${FLAGS} -c tools/vlsvdiff_new.cpp ${INC_VLSV} -I$(CURDIR)
+	${LNK} -o vlsvdiff_new_${FP_PRECISION} vlsvdiff_new.o ${OBJS_VLSVREADER} ${LIB_VLSV} ${LDFLAGS}
 
 
 # DO NOT DELETE

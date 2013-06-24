@@ -24,6 +24,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "definitions.h"
 
 #include <array> //std::array is from here
+#include <unordered_set> //std::unordered_set from here
 #include <boost/program_options.hpp>
 #include <Eigen/Dense>
 
@@ -33,7 +34,6 @@ using namespace std;
 using namespace Eigen;
 using namespace vlsv;
 namespace po = boost::program_options;
-
 
 
 static DBfile* fileptr = NULL; // Pointer to file opened by SILO
@@ -128,6 +128,13 @@ struct CellStructure {
    Real cell_length[3];
    //x_min, y_min, z_min are stored here
    Real min_coordinates[3];
+
+   //The number of cells in x, y, z direction (initialized somewhere in read parameters)
+   uint64_t vcell_bounds[3];
+   //Length of a cell in x, y, z direction
+   Real vblock_length[3];
+   //vx_min, vy_min, vz_min are stored here
+   Real min_vcoordinates[3];
 };
 
 //Writes a spatial grid in VLSV format. CURRENTLY DOES NOT SUPPORT PARALLEL SAVING
@@ -193,7 +200,23 @@ bool writeSpatialGrid( Writer & vlsvWriter,
 //      arraySize = globalIds.size(); //Set the array size
 //      if( vlsvWriter.writeArray( "MESH", xmlAttributesIds, arraySize, vectorSize, &(globalIds[0]) )  == false ) return false;
       const unsigned int dummyData = 0;
-      if( vlsvWriter.writeArray( "MESH", xmlAttributesIds, 0, 1, &dummyData )  == false ) return false;
+      
+      if( vlsvWriter.writeArray( "MESH", xmlAttributesIds, 1, 1, &dummyData )  == false ) return false;
+
+      /*
+      vector<unsigned int> globalIds;
+      cerr << "GOT HERE2 " << boundaryBox[0] << " " << boundaryBox[1] << " " << boundaryBox[2] << endl;
+      globalIds.reserve( boundaryBox[0] * boundaryBox[1] * boundaryBox[2] );
+      cerr << "GOT HERE1" << endl;
+      for( unsigned int i = 0; i < boundaryBox[0]*boundaryBox[1]*boundaryBox[2]; ++i ) {
+         globalIds.push_back( i );
+      }
+      cerr << "GOT HERE" << endl;
+      */
+/*
+      if( vlsvWriter.writeArray( "MESH", xmlAttributesIds, globalIds.size(), 1, globalIds.data() )  == false ) return false;
+      cerr << "DIDNT GET HERE" << endl;
+*/
 
       //Write domain sizes:
       const int numberOfGhostZones = 0;
@@ -239,30 +262,52 @@ bool writeSpatialGrid( Writer & vlsvWriter,
    return true;
 }
 
+//Outputs the velocity block indices of some given block into indices
+//Input:
+//[0] cellStruct -- some cell structure that has been constructed properly
+//[1] block -- some velocity block id
+//Output:
+//[0] indices -- the array where to store the indices
+void getVelocityBlockCoordinates(const CellStructure & cellStruct, const uint64_t block, array<Real, 3> & coordinates ) {
+   //First get indices:
+   array<uint64_t, 3> blockIndices;
+   blockIndices[0] = block % cellStruct.vcell_bounds[0];
+   blockIndices[1] = (block / cellStruct.vcell_bounds[0]) % cellStruct.vcell_bounds[1];
+   blockIndices[2] = block / (cellStruct.vcell_bounds[0] * cellStruct.vcell_bounds[1]);
+   //Store the coordinates:
+   for( int i = 0; i < 3; ++i ) {
+      coordinates[i] = cellStruct.min_vcoordinates[i] + cellStruct.vblock_length[i] * blockIndices[i];
+   }
+   return;
+}
 
 
-//int SiloType(const VLSV::datatype& dataType, const uint64_t& dataSize) {
-//   switch (dataType) {
-//      case VLSV::INT:
-//         if (dataSize == 2) return DB_SHORT;
-//         else if (dataSize == 4) return DB_INT;
-//         else if (dataSize == 8) return DB_LONG;
-//         else return -1;
-//         break;
-//      case VLSV::UINT:
-//         if (dataSize == 2) return DB_SHORT;
-//         else if (dataSize == 4) return DB_INT;
-//         else if (dataSize == 8) return DB_LONG;
-//         else return -1;
-//         break;
-//      case VLSV::FLOAT:
-//         if (dataSize == 4) return DB_FLOAT;
-//         else if (dataSize == 8) return DB_DOUBLE;
-//         else return -1;
-//         break;
-//   }
-//   return -1;
-//}
+
+int SiloType(const datatype::type & dataType, const uint64_t & dataSize) {
+   switch (dataType) {
+      case datatype::type::INT:
+         if (dataSize == 2) return DB_SHORT;
+         else if (dataSize == 4) return DB_INT;
+         else if (dataSize == 8) return DB_LONG;
+         else return -1;
+         break;
+      case datatype::type::UINT:
+         if (dataSize == 2) return DB_SHORT;
+         else if (dataSize == 4) return DB_INT;
+         else if (dataSize == 8) return DB_LONG;
+         else return -1;
+         break;
+      case datatype::type::FLOAT:
+         if (dataSize == 4) return DB_FLOAT;
+         else if (dataSize == 8) return DB_DOUBLE;
+         else return -1;
+         break;
+      case datatype::type::UNKNOWN:
+         cerr << "INVALID DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
+         exit(1);
+   }
+   return -1;
+}
 
 uint64_t convUInt(const char* ptr, const datatype::type & dataType, const uint64_t& dataSize) {
    if (dataType != datatype::type::UINT) {
@@ -287,7 +332,7 @@ uint64_t convUInt(const char* ptr, const datatype::type & dataType, const uint64
    return 0;
 }
 
-bool convertVelocityBlockVariable( Writer & vlsvWriter, Reader& vlsvReader, const string& spatGridName, const string& velGridName, const uint64_t& cellID, const uint64_t& N_blocks, const uint64_t& blockOffset, const string& varName) {
+bool o_convertVelocityBlockVariable( Writer & vlsvWriter, Reader& vlsvReader, const string& spatGridName, const string& velGridName, const uint64_t& cellID, const uint64_t& N_blocks, const uint64_t& blockOffset, const string& varName) {
    bool success = true;
    list<pair<string, string> > attribs;
    attribs.push_back(make_pair("name", varName));
@@ -333,6 +378,47 @@ bool convertVelocityBlockVariable( Writer & vlsvWriter, Reader& vlsvReader, cons
    delete buffer;
    return success;
 }
+
+bool convertVelocityBlockVariable(Reader& vlsvReader, const string& spatGridName, const string& velGridName, const uint64_t& cellID,
+        const uint64_t& N_blocks, const uint64_t& blockOffset, const string& varName) {
+   bool success = true;
+   list<pair<string, string> > attribs;
+   attribs.push_back(make_pair("name", varName));
+   attribs.push_back(make_pair("mesh", spatGridName));
+
+   datatype::type dataType;
+   uint64_t arraySize, vectorSize, dataSize;
+   if (vlsvReader.getArrayInfo("BLOCKVARIABLE", attribs, arraySize, vectorSize, dataType, dataSize) == false) {
+      cerr << "Could not read BLOCKVARIABLE array info" << endl;
+      return false;
+   }
+
+   //attribs.clear();
+   //attribs.push_back(make_pair("mesh", spatGridName));
+   char* buffer = new char[N_blocks * vectorSize * dataSize];
+   if (vlsvReader.readArray("BLOCKVARIABLE", attribs, blockOffset, N_blocks, buffer) == false) success = false;
+   if (success == false) {
+      cerr << "ERROR could not read block variable" << endl;
+      delete buffer;
+      return success;
+   }
+
+   string label = "Distrib.function";
+   string unit = "1/m^3 (m/s)^3";
+   int conserved = 1;
+   int extensive = 1;
+   DBoptlist* optList = DBMakeOptlist(4);
+   DBAddOption(optList, DBOPT_LABEL, const_cast<char*> (label.c_str()));
+   DBAddOption(optList, DBOPT_EXTENTS_SIZE, const_cast<char*> (unit.c_str()));
+   DBAddOption(optList, DBOPT_CONSERVED, &conserved);
+   DBAddOption(optList, DBOPT_EXTENSIVE, &extensive);
+   DBPutUcdvar1(fileptr, varName.c_str(), velGridName.c_str(), buffer, N_blocks*vectorSize, NULL, 0, SiloType(dataType, dataSize), DB_ZONECENT, optList);
+
+   DBFreeOptlist(optList);
+   delete buffer;
+   return success;
+}
+
 
 Real * GetBVol( Reader& vlsvReader, const string& meshName, const uint64_t& cellID ) {
    //Get B_vol:
@@ -440,7 +526,7 @@ void doRotation(
    }
 }
 
-bool convertVelocityBlocks2( Reader& vlsvReader, const string& meshName, const uint64_t& cellID, const bool rotate ) {
+bool convertVelocityBlocks2( Reader& vlsvReader, const string& meshName, const CellStructure & cellStruct, const uint64_t& cellID, const bool rotate ) {
    //return true;
    bool success = true;
 
@@ -451,23 +537,21 @@ bool convertVelocityBlocks2( Reader& vlsvReader, const string& meshName, const u
    list<pair<string, string> > attribs;
 
 
-   datatype::type cwb_dataType, nb_dataType, bc_dataType;
+   datatype::type cwb_dataType, nb_dataType;
    uint64_t cwb_arraySize, cwb_vectorSize, cwb_dataSize;
    uint64_t nb_arraySize, nb_vectorSize, nb_dataSize;
-   uint64_t bc_arraySize, bc_vectorSize, bc_dataSize;
 
 
-   //read in number of blocks per cell
-   attribs.clear();
-   //O: CHANGED FROM "name" TO "mesh"
+   //Get the mesh name for reading in data from the correct place
    attribs.push_back(make_pair("mesh", meshName));
+   //Read array info -- stores output in nb_arraySize, nb_vectorSize, nb_dataType, nb_dataSize
    if (vlsvReader.getArrayInfo("BLOCKSPERCELL", attribs, nb_arraySize, nb_vectorSize, nb_dataType, nb_dataSize) == false) {
       cerr << "ERROR, COULD NOT FIND ARRAY BLOCKSPERCELL AT " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
 
    // Create buffers for  number of blocks (nb) and read data:
-   const int startingPoint = 0; //Read the array from 0 (the beginning)
+   const short int startingPoint = 0; //Read the array from 0 (the beginning)
    char* nb_buffer = new char[nb_arraySize * nb_vectorSize * nb_dataSize];
    if (vlsvReader.readArray("BLOCKSPERCELL", attribs, startingPoint, nb_arraySize, nb_buffer) == false) {
       cerr << "Failed to read number of blocks for mesh '" << meshName << "'" << endl;
@@ -478,10 +562,8 @@ bool convertVelocityBlocks2( Reader& vlsvReader, const string& meshName, const u
 
 
    //read in other metadata
-   attribs.clear();
-   attribs.push_back(make_pair("mesh", meshName));
    if (vlsvReader.getArrayInfo("CELLSWITHBLOCKS", attribs, cwb_arraySize, cwb_vectorSize, cwb_dataType, cwb_dataSize) == false) {
-      cerr << "Could not find array CELLSWITHBLOCKS" << endl;
+      cerr << "ERROR, COULD NOT FIND ARRAY CELLSWITHBLOCKS AT " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
 
@@ -493,13 +575,6 @@ bool convertVelocityBlocks2( Reader& vlsvReader, const string& meshName, const u
       delete cwb_buffer;
       return success;
    }
-
-   //O: MIGHT BE SMART TO DO BLOCKID!
-   if (vlsvReader.getArrayInfo("BLOCKCOORDINATES", attribs, bc_arraySize, bc_vectorSize, bc_dataType, bc_dataSize) == false) {
-      cerr << "Could not find array BLOCKCOORDINATES" << endl;
-      return false;
-   }
-
 
    // Search for the given cellID:
    uint64_t blockOffset = 0;
@@ -523,41 +598,61 @@ bool convertVelocityBlocks2( Reader& vlsvReader, const string& meshName, const u
 
    map<NodeCrd<Real>, uint64_t, NodeComp> nodes;
 
-   // Read all block coordinates of the velocity grid:
-   char* bc_buffer = new char[N_blocks * bc_vectorSize * bc_dataSize];
-   if( vlsvReader.readArray("BLOCKCOORDINATES", attribs, blockOffset, N_blocks, bc_buffer) == false ) {
-      cerr << "ERROR, FAILED TO READ BLOCKCOORDINATES AT " << __FILE__ << " " << __LINE__ << endl;
-      delete[] bc_buffer;
+   //O: READ BLOCK IDS:
+   uint64_t blockIds_arraySize, blockIds_vectorSize, blockIds_dataSize;
+   datatype::type blockIds_dataType;
+   //Input blockIds_arraySize, blockIds_vectorSize, blockIds_dataSize blockIds_dataType: (Returns false if fails)
+   if (vlsvReader.getArrayInfo("BLOCKIDS", attribs, blockIds_arraySize, blockIds_vectorSize, blockIds_dataType, blockIds_dataSize) == false) {
+      cerr << "ERROR, COULD NOT FIND BLOCKIDS AT " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
+   //Make sure blockid's datatype is correct:
+   if( blockIds_dataType != datatype::type::UINT ) {
+      cerr << "ERROR, bad datatype at " << __FILE__ << " " << __LINE__ << endl;
+      return false;
+   }
+   //Create buffer for reading in data:  (Note: arraySize, vectorSize, etc were fetched from getArrayInfo)
+   char * blockIds_buffer = new char[N_blocks*blockIds_vectorSize*blockIds_dataSize];
+   //Read the data into the buffer:
+   if( vlsvReader.readArray( "BLOCKIDS", attribs, blockOffset, N_blocks, blockIds_buffer ) == false ) {
+      cerr << "ERROR, FAILED TO READ BLOCKIDS AT " << __FILE__ << " " << __LINE__ << endl;
+      delete[] blockIds_buffer;
+      return false;
+   }
+
+
    for (uint64_t b = 0; b < N_blocks; ++b) {
-      Real vx_min, vy_min, vz_min, dvx, dvy, dvz;
-      if (bc_dataSize == 4) {
-         vx_min = *reinterpret_cast<float*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 0 * bc_dataSize);
-         vy_min = *reinterpret_cast<float*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 1 * bc_dataSize);
-         vz_min = *reinterpret_cast<float*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 2 * bc_dataSize);
-         dvx = *reinterpret_cast<float*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 3 * bc_dataSize);
-         dvy = *reinterpret_cast<float*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 4 * bc_dataSize);
-         dvz = *reinterpret_cast<float*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 5 * bc_dataSize);
+      uint64_t blockId;
+      //Note: blockid's datatype is uint
+      const short unsigned int datasize_uint = 4;
+      const short unsigned int datasize_uint64 = 8;
+      const short unsigned int cellsInBlocksPerDirection = 4;
+      if( blockIds_dataSize == datasize_uint ) {
+         unsigned int * blockIds = reinterpret_cast<unsigned int*>(blockIds_buffer);
+         blockId = blockIds[b];
       } else {
-         vx_min = *reinterpret_cast<double*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 0 * bc_dataSize);
-         vy_min = *reinterpret_cast<double*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 1 * bc_dataSize);
-         vz_min = *reinterpret_cast<double*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 2 * bc_dataSize);
-         dvx = *reinterpret_cast<double*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 3 * bc_dataSize);
-         dvy = *reinterpret_cast<double*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 4 * bc_dataSize);
-         dvz = *reinterpret_cast<double*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 5 * bc_dataSize);
+         //blockIds_dataSize == datasize_uint64
+         uint64_t * blockIds = reinterpret_cast<uint64_t*>(blockIds_buffer);
+         blockId = blockIds[b];
+      }
+      array<Real, 3> blockCoordinates;
+      getVelocityBlockCoordinates( cellStruct, blockId, blockCoordinates );
+      const unsigned short int numberOfCoordinates = 3;
+      Real vcell_length[numberOfCoordinates];
+      for( int j = 0; j < numberOfCoordinates; ++j ) {
+         vcell_length[j] = cellStruct.vblock_length[j] / cellsInBlocksPerDirection;
       }
 
-      //O: What's happening here?
+
       creal EPS = 1.0e-7;
       for (int kv = 0; kv < 5; ++kv) {
-         Real VZ = vz_min + kv*dvz;
+         Real VZ = blockCoordinates[2] + kv*vcell_length[2];
          if (fabs(VZ) < EPS) VZ = 0.0;
          for (int jv = 0; jv < 5; ++jv) {
-            Real VY = vy_min + jv*dvy;
+            Real VY = blockCoordinates[1] + jv*vcell_length[1];
             if (fabs(VY) < EPS) VY = 0.0;
             for (int iv = 0; iv < 5; ++iv) {
-               Real VX = vx_min + iv*dvx;
+               Real VX = blockCoordinates[0] + iv*vcell_length[0];
                if (fabs(VX) < EPS) VX = 0.0;
                nodes.insert(make_pair(NodeCrd<Real>(VX, VY, VZ), (uint64_t) 0));
             }
@@ -581,24 +676,174 @@ bool convertVelocityBlocks2( Reader& vlsvReader, const string& meshName, const u
    const uint64_t nodeListSize = N_blocks * 64 * 8;
    int* nodeList = new int[nodeListSize];
    for (uint64_t b = 0; b < N_blocks; ++b) {
-      Real vx_min, vy_min, vz_min, dvx, dvy, dvz;
-      if (bc_dataSize == 4) {
-         // floats
-         vx_min = *reinterpret_cast<float*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 0 * sizeof (float));
-         vy_min = *reinterpret_cast<float*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 1 * sizeof (float));
-         vz_min = *reinterpret_cast<float*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 2 * sizeof (float));
-         dvx = *reinterpret_cast<float*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 3 * sizeof (float));
-         dvy = *reinterpret_cast<float*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 4 * sizeof (float));
-         dvz = *reinterpret_cast<float*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 5 * sizeof (float));
+      uint64_t blockId;
+      //Note: blockid's datatype is uint
+      const short unsigned int datasize_uint = 4;
+      const short unsigned int datasize_uint64 = 8;
+      const short unsigned int cellsInBlocksPerDirection = 4;
+      if( blockIds_dataSize == datasize_uint ) {
+         unsigned int * blockIds = reinterpret_cast<unsigned int*>(blockIds_buffer);
+         blockId = blockIds[b];
       } else {
-         // doubles
-         vx_min = *reinterpret_cast<double*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 0 * sizeof (double));
-         vy_min = *reinterpret_cast<double*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 1 * sizeof (double));
-         vz_min = *reinterpret_cast<double*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 2 * sizeof (double));
-         dvx = *reinterpret_cast<double*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 3 * sizeof (double));
-         dvy = *reinterpret_cast<double*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 4 * sizeof (double));
-         dvz = *reinterpret_cast<double*> (bc_buffer + b * bc_vectorSize * bc_dataSize + 5 * sizeof (double));
+         //blockIds_dataSize == datasize_uint64
+         uint64_t * blockIds = reinterpret_cast<uint64_t*>(blockIds_buffer);
+         blockId = blockIds[b];
       }
+      array<Real, 3> blockCoordinates;
+      getVelocityBlockCoordinates( cellStruct, blockId, blockCoordinates );
+      const unsigned short int numberOfCoordinates = 3;
+      Real vcell_length[numberOfCoordinates];
+      for( int j = 0; j < numberOfCoordinates; ++j ) {
+         vcell_length[j] = cellStruct.vblock_length[j] / cellsInBlocksPerDirection;
+      }
+
+
+
+      Real VX, VY, VZ;
+      creal EPS = 1.0e-7;
+      map<NodeCrd<Real>, uint64_t>::const_iterator it;
+      for (int kv = 0; kv < 4; ++kv) {
+         for (int jv = 0; jv < 4; ++jv) {
+            for (int iv = 0; iv < 4; ++iv) {
+               const unsigned int cellInd = kv * 16 + jv * 4 + iv;
+               VX = blockCoordinates[0] + iv*vcell_length[0];
+               if (fabs(VX) < EPS) VX = 0.0;
+               VY = blockCoordinates[1] + jv*vcell_length[1];
+               if (fabs(VY) < EPS) VY = 0.0;
+               VZ = blockCoordinates[2] + kv*vcell_length[2];
+               if (fabs(VZ) < EPS) VZ = 0.0;
+               it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
+               if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
+               nodeList[b * 64 * 8 + cellInd * 8 + 0] = it->second;
+
+               VX = blockCoordinates[0] + (iv + 1) * vcell_length[0];
+               if (fabs(VX) < EPS) VX = 0.0;
+               it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
+               if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
+               nodeList[b * 64 * 8 + cellInd * 8 + 1] = it->second;
+
+               VY = blockCoordinates[1] + (jv + 1) * vcell_length[1];
+               if (fabs(VY) < EPS) VY = 0.0;
+               it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
+               if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
+               nodeList[b * 64 * 8 + cellInd * 8 + 2] = it->second;
+
+               VX = blockCoordinates[0] + iv*vcell_length[0];
+               if (fabs(VX) < EPS) VX = 0.0;
+               it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
+               if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
+               nodeList[b * 64 * 8 + cellInd * 8 + 3] = it->second;
+
+               VY = blockCoordinates[1] + jv*vcell_length[1];
+               if (fabs(VY) < EPS) VY = 0.0;
+               VZ = blockCoordinates[2] + (kv + 1) * vcell_length[2];
+               if (fabs(VZ) < EPS) VZ = 0.0;
+               it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
+               if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
+               nodeList[b * 64 * 8 + cellInd * 8 + 4] = it->second;
+
+               VX = blockCoordinates[0] + (iv + 1) * vcell_length[0];
+               if (fabs(VX) < EPS) VX = 0.0;
+               it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
+               if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
+               nodeList[b * 64 * 8 + cellInd * 8 + 5] = it->second;
+
+               VY = blockCoordinates[1] + (jv + 1) * vcell_length[1];
+               if (fabs(VY) < EPS) VY = 0.0;
+               it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
+               if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
+               nodeList[b * 64 * 8 + cellInd * 8 + 6] = it->second;
+
+               VX = blockCoordinates[0] + iv*vcell_length[0];
+               if (fabs(VX) < EPS) VX = 0.0;
+               it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
+               if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY + vcell_length[1] << ' ' << VZ + vcell_length[2] << endl;
+               nodeList[b * 64 * 8 + cellInd * 8 + 7] = it->second;
+            }
+         }
+      }
+   }
+
+/*
+   for( uint64_t i = 0; i < N_blocks; ++i ) {
+      uint64_t blockId;
+      //Note: blockid's datatype is uint
+      const short unsigned int datasize_uint = 4;
+      const short unsigned int datasize_uint64 = 8;
+      const short unsigned int cellsInBlocksPerDirection = 4;
+      if( blockIds_dataSize == datasize_uint ) {
+         unsigned int * blockIds = reinterpret_cast<unsigned int*>(blockIds_buffer);
+         blockId = blockIds[i];
+      } else {
+         //blockIds_dataSize == datasize_uint64
+         uint64_t * blockIds = reinterpret_cast<uint64_t*>(blockIds_buffer);
+         blockId = blockIds[i];
+      }
+      array<Real, 3> blockCoordinates;
+      getVelocityBlockCoordinates( cellStruct, blockId, blockCoordinates );
+      const unsigned short int numberOfCoordinates = 3;
+      Real vcell_length[numberOfCoordinates];
+      for( int j = 0; j < numberOfCoordinates; ++j ) {
+         vcell_length[j] = cellStruct.vblock_length[j] / cellsInBlocksPerDirection;
+      }
+
+
+      //Calculate the nodes for the block coordinates ( every block has 8 corners so we need 8 nodes for every block )
+      creal EPS = 1.0e-7;
+      for (int kv = 0; kv < 5; ++kv) {
+         Real VZ = blockCoordinates[0] + kv*vcell_length[0];
+         if (fabs(VZ) < EPS) VZ = 0.0;
+         for (int jv = 0; jv < 5; ++jv) {
+            Real VY = blockCoordinates[1] + jv*vcell_length[1];
+            if (fabs(VY) < EPS) VY = 0.0;
+            for (int iv = 0; iv < 5; ++iv) {
+               Real VX = blockCoordinates[2] + iv*vcell_length[2];
+               if (fabs(VX) < EPS) VX = 0.0;
+               nodes.insert(make_pair(NodeCrd<Real>(VX, VY, VZ), (uint64_t) 0));
+            }
+         }
+      }
+   }
+
+
+   Real* vx_crds = new Real[nodes.size()];
+   Real* vy_crds = new Real[nodes.size()];
+   Real* vz_crds = new Real[nodes.size()];
+   const unsigned int _node_size = nodes.size();
+   uint64_t counter = 0;
+   for (map<NodeCrd<Real>, uint64_t>::iterator it = nodes.begin(); it != nodes.end(); ++it) {
+      it->second = counter;
+      vx_crds[counter] = it->first.x;
+      vy_crds[counter] = it->first.y;
+      vz_crds[counter] = it->first.z;
+      ++counter;
+   }
+
+   const uint64_t nodeListSize = N_blocks * 64 * 8;
+   int* nodeList = new int[nodeListSize];
+   for (uint64_t i = 0; i < N_blocks; ++i) {
+      uint64_t blockId;
+      //Note: blockid's datatype is uint
+      const short unsigned int datasize_uint = 4;
+      const short unsigned int datasize_uint64 = 8;
+      const short unsigned int cellsInBlocksPerDirection = 4;
+      if( blockIds_dataSize == datasize_uint ) {
+         unsigned int * blockIds = reinterpret_cast<unsigned int*>(blockIds_buffer);
+         blockId = blockIds[i];
+      } else {
+         //blockIds_dataSize == datasize_uint64
+         uint64_t * blockIds = reinterpret_cast<uint64_t*>(blockIds_buffer);
+         blockId = blockIds[i];
+      }
+      array<Real, 3> blockCoordinates;
+      getVelocityBlockCoordinates( cellStruct, blockId, blockCoordinates );
+      const unsigned short int numberOfCoordinates = 3;
+      Real vcell_length[numberOfCoordinates];
+      for( int j = 0; j < numberOfCoordinates; ++j ) {
+         //There's 4 cells in x, y, z direction in every block
+         vcell_length[j] = cellStruct.vblock_length[j] / cellsInBlocksPerDirection; 
+      }
+
       Real VX, VY, VZ;
       creal EPS = 1.0e-7;
       map<NodeCrd<Real>, uint64_t>::const_iterator it;
@@ -615,63 +860,68 @@ bool convertVelocityBlocks2( Reader& vlsvReader, const string& meshName, const u
                const unsigned int cellInd = kv * yCoordinateBoundary * xCoordinateBoundary 
                                             + jv * xCoordinateBoundary 
                                             + iv;
-               VX = vx_min + iv*dvx;
+               VX = blockCoordinates[0] + iv*vcell_length[0];
                if (fabs(VX) < EPS) VX = 0.0;
-               VY = vy_min + jv*dvy;
+               VY = blockCoordinates[1] + jv*vcell_length[1];
                if (fabs(VY) < EPS) VY = 0.0;
-               VZ = vz_min + kv*dvz;
+               VZ = blockCoordinates[2] + kv*vcell_length[2];
                if (fabs(VZ) < EPS) VZ = 0.0;
                it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
                if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
-               nodeList[b * 64 * 8 + cellInd * 8 + 0] = it->second; //O: Hmm, what's happening here?
+               nodeList[i * 64 * 8 + cellInd * 8 + 0] = it->second; //O: Hmm, what's happening here?
 
-               VX = vx_min + (iv + 1) * dvx;
+               VX = blockCoordinates[0] + (iv + 1) * vcell_length[0];
                if (fabs(VX) < EPS) VX = 0.0;
                it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
                if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
-               nodeList[b * 64 * 8 + cellInd * 8 + 1] = it->second;
+               nodeList[i * 64 * 8 + cellInd * 8 + 1] = it->second;
 
-               VY = vy_min + (jv + 1) * dvy;
+               VY = blockCoordinates[1] + (jv + 1) * vcell_length[1];
                if (fabs(VY) < EPS) VY = 0.0;
                it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
                if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
-               nodeList[b * 64 * 8 + cellInd * 8 + 2] = it->second;
+               nodeList[i * 64 * 8 + cellInd * 8 + 2] = it->second;
 
-               VX = vx_min + iv*dvx;
+               VX = blockCoordinates[0] + iv*vcell_length[0];
                if (fabs(VX) < EPS) VX = 0.0;
                it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
                if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
-               nodeList[b * 64 * 8 + cellInd * 8 + 3] = it->second; 
+               nodeList[i * 64 * 8 + cellInd * 8 + 3] = it->second; 
 
-               VY = vy_min + jv*dvy;
+               VY = blockCoordinates[1] + jv*vcell_length[1];
                if (fabs(VY) < EPS) VY = 0.0;
-               VZ = vz_min + (kv + 1) * dvz;
+               VZ = blockCoordinates[2] + (kv + 1) * vcell_length[2];
                if (fabs(VZ) < EPS) VZ = 0.0;
                it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
                if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
-               nodeList[b * 64 * 8 + cellInd * 8 + 4] = it->second;
+               nodeList[i * 64 * 8 + cellInd * 8 + 4] = it->second;
 
-               VX = vx_min + (iv + 1) * dvx;
+               VX = blockCoordinates[0] + (iv + 1) * vcell_length[0];
                if (fabs(VX) < EPS) VX = 0.0;
                it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
                if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
-               nodeList[b * 64 * 8 + cellInd * 8 + 5] = it->second;
+               nodeList[i * 64 * 8 + cellInd * 8 + 5] = it->second;
 
-               VY = vy_min + (jv + 1) * dvy;
+               VY = blockCoordinates[1] + (jv + 1) * vcell_length[1];
                if (fabs(VY) < EPS) VY = 0.0;
                it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
                if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
-               nodeList[b * 64 * 8 + cellInd * 8 + 6] = it->second;
+               nodeList[i * 64 * 8 + cellInd * 8 + 6] = it->second;
 
-               VX = vx_min + iv*dvx;
+               VX = blockCoordinates[0] + iv*vcell_length[0];
                if (fabs(VX) < EPS) VX = 0.0;
                it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
-               if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY + dvy << ' ' << VZ + dvz << endl;
-               nodeList[b * 64 * 8 + cellInd * 8 + 7] = it->second;
+               if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY + vcell_length[1] << ' ' << VZ + vcell_length[2] << endl;
+               nodeList[i * 64 * 8 + cellInd * 8 + 7] = it->second;
             }
          }
       }
    }
+*/
+
+   //const unsigned int * const blockIds = reinterpret_cast<unsigned int*>(blockIds_buffer);
+   delete[] blockIds_buffer;
+
 
    const int N_dims = 3; // Number of dimensions
    const int N_nodes = nodes.size(); // Total number of nodes
@@ -723,56 +973,57 @@ bool convertVelocityBlocks2( Reader& vlsvReader, const string& meshName, const u
    ss << "VelGrid" << cellID;
    const string zoneListName = ss.str() + "Zones";
    //O: We're not writing a silo file now
-   //if (DBPutZonelist2(fileptr, zoneListName.c_str(), N_zones, N_dims, nodeList, nodeListSize, 0, 0, 0, shapeTypes, shapeSizes, shapeCnt, N_shapes, NULL) < 0) success = false;
+   if (DBPutZonelist2(fileptr, zoneListName.c_str(), N_zones, N_dims, nodeList, nodeListSize, 0, 0, 0, shapeTypes, shapeSizes, shapeCnt, N_shapes, NULL) < 0) success = false;
 
    // Write grid into silo file:
    const string gridName = ss.str();
-   //O: We're not writing a silo file now
-   //if (DBPutUcdmesh(fileptr, gridName.c_str(), N_dims, NULL, coords, N_nodes, N_zones, zoneListName.c_str(), NULL, SiloType(bc_dataType, bc_dataSize), NULL) < 0) success = false;
-   const int masterProcessId = 0;
-   Writer vlsvWriter;
-   //O: Let's hope it recognizes MPI_COMM_WORLD
-   //O: FIX THE FILE NAME!
-   if( vlsvWriter.open( "file.vlsv", MPI_COMM_WORLD, masterProcessId )  == false ) {
-      cerr << "UNABLE TO OPEN FILE AT" << __FILE__ << " " << __LINE__ << endl;
-      return false;
-   }
-   const int myRank = 0;
-   const unsigned int notBlockBased = 1;
-   const long unsigned int boundaryBox[6] = {_node_size, _node_size, _node_size, notBlockBased, notBlockBased, notBlockBased};
-   //vector<unsigned int> globalIds;
-   //Write the spatial grid:
-   if( writeSpatialGrid( vlsvWriter, masterProcessId, myRank, gridName, nodeCoordinates, boundaryBox ) == false ) {
-      cerr << "ERROR! Failed to write velocity grid at: " << __FILE__ << " " << __LINE__ << endl;
-      return false;
-   }
+   const datatype::type siloDataType = datatype::type::FLOAT;
+   const uint64_t siloDataSize = sizeof(Real);
+   cout << sizeof(Real) << endl;
+   if (DBPutUcdmesh(fileptr, gridName.c_str(), N_dims, NULL, coords, N_nodes, N_zones, zoneListName.c_str(), NULL, SiloType(siloDataType, siloDataSize), NULL) < 0) success = false;
+//   const int masterProcessId = 0;
+//   Writer vlsvWriter;
+//   //O: Let's hope it recognizes MPI_COMM_WORLD
+//   //O: FIX THE FILE NAME!
+//   if( vlsvWriter.open( "file.vlsv", MPI_COMM_WORLD, masterProcessId )  == false ) {
+//      cerr << "UNABLE TO OPEN FILE AT" << __FILE__ << " " << __LINE__ << endl;
+//      return false;
+//   }
+//   const int myRank = 0;
+//   const unsigned int notBlockBased = 1;
+//   const long unsigned int boundaryBox[6] = {_node_size, _node_size, _node_size, notBlockBased, notBlockBased, notBlockBased};
+//   //vector<unsigned int> globalIds;
+//   //Write the spatial grid:
+//   if( writeSpatialGrid( vlsvWriter, masterProcessId, myRank, gridName, nodeCoordinates, boundaryBox ) == false ) {
+//      cerr << "ERROR! Failed to write velocity grid at: " << __FILE__ << " " << __LINE__ << endl;
+//      return false;
+//   }
 
    delete nodeList;
    delete vx_crds;
    delete vy_crds;
    delete vz_crds;
-   delete bc_buffer;
    delete[] vx_crds_rotated;
    delete[] vy_crds_rotated;
    delete[] vz_crds_rotated;
 
+   //Get the name of variables:
    set<string> blockVarNames;
-   if (vlsvReader.getUniqueAttributeValues( "BLOCKVARIABLE", meshName, blockVarNames) == false) {
-      cerr << "Failed to read block variable names!" << endl;
-      return false;
+   const string attributeName = "name";
+   if (vlsvReader.getUniqueAttributeValues( "BLOCKVARIABLE", attributeName, blockVarNames) == false) {
+      cerr << "FAIL" << endl;
    }
 
-   
-   //O: Not writing SILO file so this is commented out
+   //Writing SILO file
    if (success == true) {
       for (set<string>::iterator it = blockVarNames.begin(); it != blockVarNames.end(); ++it) {
-         if (convertVelocityBlockVariable( vlsvWriter, vlsvReader, meshName, gridName, cellID, N_blocks, blockOffset, *it) == false) {
+         if (convertVelocityBlockVariable( vlsvReader, meshName, gridName, cellID, N_blocks, blockOffset, *it) == false) {
             cerr << "ERROR, convertVelocityBlockVariable FAILED AT " << __FILE__ << " " << __LINE__ << endl;
          }
       }
    }
 
-   vlsvWriter.close();
+   //vlsvWriter.close();
 
    return success;
 }
@@ -881,7 +1132,7 @@ void pointToCellIdList( Reader & vlsvReader, uint64_t *& cellIdList, uint64_t & 
 //[1] uint64_t cellId -- Some given cell id
 //Output:
 //[0] Real * coordinates -- Some coordinates x, y, z (NOTE: the vector size should be 3!)
-void getCellCoordinates( const CellStructure & cellStruct, const uint64_t cellId, Real * coordinates ) {
+void getCellCoordinates( const CellStructure & cellStruct, const uint64_t & cellId, Real * coordinates ) {
    //Check for null pointer
    if( !coordinates ) {
       cerr << "Passed invalid pointer at: " << __FILE__ << " " << __LINE__ << endl;
@@ -895,9 +1146,12 @@ void getCellCoordinates( const CellStructure & cellStruct, const uint64_t cellId
    currentCellCoordinate[0] = cellId % cellStruct.cell_bounds[0];
    currentCellCoordinate[1] = ((cellId - currentCellCoordinate[0]) / cellStruct.cell_bounds[0]) % cellStruct.cell_bounds[1];
    currentCellCoordinate[2] = ((cellId - cellStruct.cell_bounds[0]*currentCellCoordinate[1]) / (cellStruct.cell_bounds[0]*cellStruct.cell_bounds[1]));
+
    //the currentCellCoordinate is always off by one -- This is just a matter of how stuff has been calculated. If cell bounds and
    //other stuff were defined slightly in other parts of this code differently, this would not be needed.
-   currentCellCoordinate[0] -= 1;
+   //O: NOTE: This is actually wrong! CHANGE IT WITH THE VLSVEXTRACT.CPP TOO!
+   //currentCellCoordinate[0] -= 1;
+
    //Get the coordinates of the cell. These are the coordinates in actual space (not cell coordinates, which are integers from 1 up to some number)
    coordinates[0] = cellStruct.min_coordinates[0] + currentCellCoordinate[0] * cellStruct.cell_length[0];
    coordinates[1] = cellStruct.min_coordinates[1] + currentCellCoordinate[1] * cellStruct.cell_length[1];
@@ -915,43 +1169,32 @@ void getCellCoordinates( const CellStructure & cellStruct, const uint64_t cellId
 //Output:
 //[0] Returns the closest cell id to the given coordinates
 uint64_t searchForBestCellId( const CellStructure & cellStruct,
-                              const uint64_t * cellIdList, 
-                              const Real * coordinates, 
-                              const uint64_t sizeOfCellIdList ) {
+                              const unordered_set<uint64_t> & cellIdList, 
+                              const array<Real, 3> coordinates ) {
    //Check for null pointer:
-   if( !cellIdList || !coordinates ) {
-      cerr << "Error at: ";
-      cerr << __FILE__ << " " << __LINE__;
-      cerr << ", passed a null pointer to searchForBestCellId" << endl;
+   if( coordinates.empty() ) {
+      cerr << "ERROR, PASSED AN EMPTY COORDINATES AT " << __FILE__ << " " << __LINE__ << endl;
       exit(1);
-      return 0;
    }
-   //Create variables to help iterate through cellIdList. (Used to keep track of the best cell id and best distance so far)
-   Real bestDistance = numeric_limits<Real>::max();
-   Real bestCellId = numeric_limits<uint64_t>::max();
-   //Iterate through the list of cell id candidates ( cell ids with distribution )
-   for( uint64_t i = 0; i < sizeOfCellIdList; ++i ) {
-      //Get coordinates from the cell currently being handled in the iteration:
-      const uint64_t currentCell = cellIdList[i];
-      //Create cellCoordinate and store the current cell id's coordinates in there
-      const size_t _size = 3;
-      Real cellCoordinate[_size];
-      //Stores the current cell's coordinates into cellCoordinate
-      getCellCoordinates( cellStruct, currentCell, cellCoordinate );
-      //Calculate distance from cell coordinates to input coordinates
-      Real dist = ( 
-                   (cellCoordinate[0] - coordinates[0]) * (cellCoordinate[0] - coordinates[0])
-                   + (cellCoordinate[1] - coordinates[1]) * (cellCoordinate[1] - coordinates[1])
-                   + (cellCoordinate[2] - coordinates[2]) * (cellCoordinate[2] - coordinates[2])
-                  );
-      //if the distance from the given coordinates to the cell coordinates is the best so far, set that cell id as the best cell id
-      if( bestDistance > dist ) {
-         bestDistance = dist;
-         bestCellId = currentCell;
-      }
+   if( cellIdList.empty() ) {
+      cerr << "ERROR, PASSED AN EMPTY CELL ID LIST AT " << __FILE__ << " " << __LINE__ << endl;
+      exit(1);
    }
-   //return the best cell id:
-   return bestCellId;
+
+   //Get the cell id corresponding to the given coordinates:
+   unsigned int cellCoordinates[3];
+   for( unsigned int i = 0; i < 3; ++i ) {
+      //Note: Cell coordinates work like this:
+      //cell id = z * (num. of cell in y-direction) * (num. of cell in z-direction) + y * (num. of cell in x-direction) + x
+      cellCoordinates[i] = (unsigned int)( (coordinates[i] - cellStruct.min_coordinates[i]) / cellStruct.cell_length[i] );
+   }
+
+   //Return the cell id at cellCoordinates:
+   return (
+            cellCoordinates[2] * cellStruct.cell_bounds[1] * cellStruct.cell_bounds[0]
+            + cellCoordinates[1] * cellStruct.cell_bounds[0]
+            + cellCoordinates[0]
+          );
 }
 
 
@@ -964,7 +1207,7 @@ uint64_t searchForBestCellId( const CellStructure & cellStruct,
 void setCellVariables( Reader & vlsvReader, CellStructure & cellStruct ) {
    //Get x_min, x_max, y_min, y_max, etc so that we know where the given cell id is in (loadParameter returns char*, hence the cast)
    //O: Note: Not actually sure if these are Real valued or not
-   Real x_min, x_max, y_min, y_max, z_min, z_max;
+   Real x_min, x_max, y_min, y_max, z_min, z_max, vx_min, vx_max, vy_min, vy_max, vz_min, vz_max;
    //Read in the parameter:
    if( vlsvReader.readParameter( "xmin", x_min ) == false )
       cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
@@ -978,40 +1221,132 @@ void setCellVariables( Reader & vlsvReader, CellStructure & cellStruct ) {
       cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
    if( vlsvReader.readParameter( "zmax", z_max ) == false )
       cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+
+   if( vlsvReader.readParameter( "vxmin", vx_min ) == false )
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   if( vlsvReader.readParameter( "vxmax", vx_max ) == false )
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   if( vlsvReader.readParameter( "vymin", vy_min ) == false )
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   if( vlsvReader.readParameter( "vymax", vy_max ) == false )
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   if( vlsvReader.readParameter( "vzmin", vz_min ) == false )
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   if( vlsvReader.readParameter( "vzmax", vz_max ) == false )
+      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+
    //Number of cells in x, y, z directions (used later for calculating where in the cell coordinates the given
    //coordinates are) (Done in getCellCoordinates)
    //There's x, y and z coordinates so the number of different coordinates is 3:
-   const int NumberOfCoordinates = 3;
+   const short int NumberOfCoordinates = 3;
    uint64_t cell_bounds[NumberOfCoordinates];
+   uint64_t vcell_bounds[NumberOfCoordinates];
    //Get the number of cells in x,y,z direction from the file:
    //x-direction
-   if( vlsvReader.readParameter( "xcells_ini", cell_bounds[0] ) == false )
+   if( vlsvReader.readParameter( "vxblocks_ini", vcell_bounds[0] ) == false )
       cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
    //y-direction
-   if( vlsvReader.readParameter( "ycells_ini", cell_bounds[1] ) == false )
+   if( vlsvReader.readParameter( "vyblocks_ini", vcell_bounds[1] ) == false )
       cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
    //z-direction
-   if( vlsvReader.readParameter( "zcells_ini", cell_bounds[2] ) == false )
+   if( vlsvReader.readParameter( "vzblocks_ini", vcell_bounds[2] ) == false )
       cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
    //Now we have the needed variables, so let's calculate how much in one block equals in length:
    //Total length of x, y, z:
    Real x_length = x_max - x_min;
    Real y_length = y_max - y_min;
    Real z_length = z_max - z_min;
+
+   Real vx_length = vx_max - vx_min;
+   Real vy_length = vy_max - vy_min;
+   Real vz_length = vz_max - vz_min;
    //Set the cell structure properly:
    for( int i = 0; i < NumberOfCoordinates; ++i ) {
       cellStruct.cell_bounds[i] = cell_bounds[i];
+      cellStruct.vcell_bounds[i] = vcell_bounds[i];
    }
    //Calculate the cell length
    cellStruct.cell_length[0] = ( x_length / (Real)(cell_bounds[0]) );
    cellStruct.cell_length[1] = ( y_length / (Real)(cell_bounds[1]) );
    cellStruct.cell_length[2] = ( z_length / (Real)(cell_bounds[2]) );
+   //Calculate the velocity cell length
+   cellStruct.vblock_length[0] = ( vx_length / (Real)(vcell_bounds[0]) );
+   cellStruct.vblock_length[1] = ( vy_length / (Real)(vcell_bounds[1]) );
+   cellStruct.vblock_length[2] = ( vz_length / (Real)(vcell_bounds[2]) );
    //Calculate the minimum coordinates
    cellStruct.min_coordinates[0] = x_min;
    cellStruct.min_coordinates[1] = y_min;
    cellStruct.min_coordinates[2] = z_min;
+   //Calculate the minimum coordinates for velocity cells
+   cellStruct.min_vcoordinates[0] = vx_min;
+   cellStruct.min_vcoordinates[1] = vy_min;
+   cellStruct.min_vcoordinates[2] = vz_min;
+
+
+   for( int i = 0; i < 3; ++i ) {
+      if( cellStruct.cell_length[i] == 0 || cellStruct.cell_bounds[i] == 0 || cellStruct.vblock_length[i] == 0 || cellStruct.vcell_bounds[i] == 0 ) {
+         cerr << "ERROR, ZERO CELL LENGTH OR CELL_BOUNDS AT " << __FILE__ << " " << __LINE__ << endl;
+         exit(1);
+      }
+   }
    return;
 }
+
+//Creates a cell id list of type std::unordered set and saves it in the input parameters
+//Input:
+//[0] vlsvReader -- some vlsv reader with a file open
+//Output:
+//[0] cellIdList -- Inputs a list of cell ids here
+//[1] sizeOfCellIdList -- Inputs the size of the cell id list here
+bool createCellIdList( Reader & vlsvReader, unordered_set<uint64_t> & cellIdList ) {
+   if( !cellIdList.empty() )
+      cerr << "ERROR, PASSED A NON-EMPTY CELL ID LIST AT " << __FILE__ << " " << __LINE__ <<  endl; return false;
+   //meshname should be "SpatialGrid" and tag should be "CELLSWITHBLOCKS"
+   const string meshName = "SpatialGrid";
+   const string tagName = "CELLSWITHBLOCKS";
+   //For reading in attributes 
+   list< pair<string, string> > attributes;
+   attributes.push_back( make_pair("mesh", meshName) );
+   //Get a list of possible CellIDs from the file under CELLSWITHBLOCKS:
+   //Declare vectorSize, arraySize, .., so we know the size of the array we're going to read:
+   datatype::type dataType;
+   uint64_t arraySize, vectorSize, dataSize; //used to store info on the data we want to retrieve (needed for readArray)
+   //Read arraySize, vectorSize, dataType and dataSize and store them with getArrayInfo:
+   if (vlsvReader.getArrayInfo( tagName, attributes, arraySize, vectorSize, dataType, dataSize ) == false) {
+      cerr << "Could not find array " << tagName << " at: " << __FILE__ << " " << __LINE__ << endl;
+      exit(1); //error, terminate program
+      return false; //Shouldn't actually even get this far but whatever
+   }
+   //Check to make sure that the vectorSize is 1 as the CellIdList should be (Assuming so later on):
+   if( vectorSize != 1 ) {
+      cerr << tagName << "'s vector size is not 1 at: " << __FILE__ << " " << __LINE__ << endl;
+      exit(1);
+      return false;
+   }
+
+   //We now have the arraySize and everything else needed
+   //Create a buffer -- the size is determined by the data we received from getArrayInfo
+   char * buffer = new char[arraySize * vectorSize * dataSize];
+   const int beginningPoint = 0; //Read from the beginning ( 0 ) up to arraySize ( arraySize )
+   //Read data into the buffer with readArray:
+   if (vlsvReader.readArray(tagName, attributes, beginningPoint, arraySize, buffer) == false) {
+      cerr << "Failed to read block metadata for mesh '" << meshName << "' at: ";
+      cerr << __FILE__ << " " << __LINE__ << endl;
+      delete buffer;
+      exit(1);
+      return false;
+   }
+
+   //Reinterpret the buffer and point cellIdList in the right direction:
+   uint64_t * _cellIdList = reinterpret_cast<uint64_t*>(buffer);
+   //Reserve space for the cell id list:
+   cellIdList.rehash( (uint64_t)(arraySize * 1.25) );
+   for( uint64_t i = 0; i < arraySize; ++i ) {
+      cellIdList.insert( (uint64_t)( _cellIdList[i] ) );
+   }
+   return true;
+}
+
 
 //Returns a cell id based on some given coordinates
 //Returns numeric_limits<uint64_t>::max(), if the distance from the coordinates to cell id is larger than max_distance
@@ -1022,63 +1357,34 @@ void setCellVariables( Reader & vlsvReader, CellStructure & cellStruct ) {
 //[2] max_distance -- Max allowed distance between the given coordinates *coords and the returned cell id's coordinates
 //Output:
 //[0] Returns the cell id in uint64_t
-uint64_t getCellIdFromCoords( Reader& vlsvReader, const CellStructure & cellStruct, 
-                              const Real * coords, const Real max_distance ) {
-   if( !coords ) {
-      cerr << "NULL pointer passed to getCellIdFromCoords! " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
+uint64_t getCellIdFromCoords( Reader& vlsvReader, const CellStructure & cellStruct, const unordered_set<uint64_t> cellIdList,
+                              const array<Real, 3> coords, const Real max_distance ) {
+   if( coords.empty() ) {
+      cerr << "ERROR, PASSED AN EMPTY STD::ARRAY FOR COORDINATES AT " << __FILE__ << " " << __LINE__ << endl;
    }
-   //Assuming coords is of size 3
-   Real x = coords[0];
-   Real y = coords[1];
-   Real z = coords[2];
 
-   //Get the list of cell ids that have distribution function and save them in cellIdList and sizeOfCellIdList
-   uint64_t * cellIdList = NULL;
-   uint64_t sizeOfCellIdList;
-   //Creates a cell id list and points cellIdList to it:
-   pointToCellIdList( vlsvReader, cellIdList, sizeOfCellIdList);
 
-   //Check for null pointers
-   if( !cellIdList ) {
+   //Check for empty vectors
+   if( cellIdList.empty() ) {
       cerr << "Invalid cellIdList at " << __FILE__ << " " << __LINE__ << endl;
       exit(1);
    }
-   if( !coords ) {
+   if( coords.empty() ) {
       cerr << "Invalid coords at " << __FILE__ << " " << __LINE__ << endl;
       exit(1);
    }
 
 
    //Now pick the closest cell id to the given coordinates:
-   uint64_t cellId = searchForBestCellId( cellStruct, cellIdList, coords, sizeOfCellIdList );
-   //We now have the best cell id, but because not every cell id has distribution and because the cells have discrete coordinate
-   //(x = 1, 2, 3 etc ), check the distance between the retrieved cell id and the given coordinates. If the distance is larger
-   //than the maximum given distance (max_distance), exit the program
-   const size_t _size = 3;
-   Real cellCoordinate[_size];
-   //Set the cell coordinates: (Takes the cell id and inputs the cell id's coordinates into getCellCoordinates
-   getCellCoordinates( cellStruct, cellId, cellCoordinate );
-   //Calculate distance from cell coordinates to input coordinates
-   Real dist;
-   if( cellStruct.cell_bounds[2] < 2 ) {
-      dist = ( 
-                   (cellCoordinate[0] - coords[0]) * (cellCoordinate[0] - coords[0])
-                   + (cellCoordinate[1] - coords[1]) * (cellCoordinate[1] - coords[1])
-                  );
-   } else {
-      dist = (
-                   (cellCoordinate[0] - coords[0]) * (cellCoordinate[0] - coords[0])
-                   + (cellCoordinate[1] - coords[1]) * (cellCoordinate[1] - coords[1])
-                   + (cellCoordinate[2] - coords[2]) * (cellCoordinate[2] - coords[2])
-                  );
-   }
-   //If the distance from the given coordinates (accurate) to the given coordinates is too larger then don't use the cell id
-   //Note: If cell id equals numeric limits then the cell id won't be picked
-   if( max_distance < sqrt( dist ) ) {
-      //Return numeric limit to let the program know we didn't find a cell id
+   uint64_t cellId = searchForBestCellId( cellStruct, cellIdList, coords );
+
+   //Check to make sure the cell id has distribution (It does if it's in the list of cell ids)
+   unordered_set<uint64_t>::const_iterator foundCellId = cellIdList.find( cellId );
+   if( foundCellId == cellIdList.end() ) {
+      //Didn't find the cell id from the list of possible cell ids so return numerical limit:
       return numeric_limits<uint64_t>::max();
    }
+
    //Everything ok, return the cell id:
    return cellId;
 }
@@ -1327,7 +1633,7 @@ bool retrieveOptions( const int argn, char *args[], bool & getCellIdFromCoordina
 //output
 void setCoordinatesAlongALine( 
                                const CellStructure & cellStruct,
-                               vector<Real> & start, vector<Real> & end, unsigned int numberOfCoordinates,
+                               const vector<Real> & start, const vector<Real> & end, const unsigned int numberOfCoordinates,
                                vector< array<Real, 3> > & outputCoordinates 
                              ) {
    //Check vector sizes:
@@ -1395,9 +1701,9 @@ void setCoordinatesAlongALine(
    //Store the unit of line vector ( the vector from start to end divided by the numberOfCoordinates ) into std::vector line_unit
    vector<Real> line_unit;
    //Initialize iterator i to start function's first value
-   vector<Real>::iterator i = start.begin();
+   vector<Real>::const_iterator i = start.begin();
    //Initialize iterator j to end function's first value
-   vector<Real>::iterator j = end.begin();
+   vector<Real>::const_iterator j = end.begin();
    //Iterator (Note: end.end() means the .end() of end vector)
    for( ; i != start.end() && j !=end.end(); ++j, ++i ) {
       line_unit.push_back( (*j - *i) / (Real)(_numberOfCoordinates - 1) );
@@ -1539,24 +1845,29 @@ int main(int argn, char* args[]) {
          uint64_t cellID;
          //Declare a vector for holding multiple cell ids (Note: Used only if we want to calculate the cell id along a line)
          vector<uint64_t> cellIdList;
+
          //Determine how to get the cell id:
          //(getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used, I'm keeping to
          //previously used syntax)
          if( getCellIdFromCoordinates ) {
-            //(getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used, I'm keeping to
-            //previously used syntax)
-            int _vectorSize = 3;
-            Real * coords = new Real[_vectorSize];
+
+            //Get the cell id list of cell ids with velocity distribution
+            unordered_set<uint64_t> cellIdList_velocity;
+            createCellIdList( vlsvReader, cellIdList_velocity );
+
+            //Put the coordinates into an array:
+            const unsigned int _vectorSize = 3;
+            array<Real, _vectorSize> coords;
             //Iterate through the coordinates vector retrived from user input
             vector<Real>::iterator j;
-            int i = 0;
-            for( j = _coordinates.begin(); j != _coordinates.end(); ++j, ++i ) {
+            unsigned int i = 0;
+            for( j = _coordinates.begin(); j != _coordinates.end() && i < _vectorSize; ++j, ++i ) {
                coords[i] = *j;
             }
 
             //Get the cell id from coordinates
             //Note: By the way, this is not the same as bool getCellIdFromCoordinates (should change the name)
-            cellID = getCellIdFromCoords( vlsvReader, cellStruct, coords, maxDistance );
+            cellID = getCellIdFromCoords( vlsvReader, cellStruct, cellIdList_velocity, coords, maxDistance );
 
             if( cellID == numeric_limits<uint64_t>::max() ) {
                //Could not find a cell id
@@ -1564,13 +1875,16 @@ int main(int argn, char* args[]) {
                vlsvReader.close();
                return 0;
             }
-            delete[] coords;
             //Print the cell id:
             //cout << "Cell id: " << cellID << endl;
             //store the cel lid in the list of cell ids (This is only used because it makes the code for 
             //calculating the cell ids from a line clearer)
             cellIdList.push_back( cellID );
          } else if( calculateCellIdFromLine ) {
+            //Get the cell id list of cell ids with velocity distribution
+            unordered_set<uint64_t> cellIdList_velocity;
+            createCellIdList( vlsvReader, cellIdList_velocity );
+
             //Now there are multiple cell ids so do the same treatment for the cell ids as with getCellIdFromCoordinates
             //but now for multiple cell ids
 
@@ -1588,7 +1902,7 @@ int main(int argn, char* args[]) {
             for( currentArray = coordinateList.begin(); currentArray != coordinateList.end(); ++currentArray ) {
                //NOTE: since this code is nearly identical to the code for calculating single coordinates, it could be smart to create a separate function for this
                //declare coordinates array
-               Real * coords = new Real[_vectorSize];
+               array<Real, 3> coords;
                for( int i = 0; i < _vectorSize; ++i ) {
                   //Store the array info received from the iterator into coordinates coords (to be used in getCellIdFromCoords)
                   coords[i] = (*currentArray)[i];
@@ -1596,7 +1910,8 @@ int main(int argn, char* args[]) {
                //Get the cell id from coordinates
                //Note: (getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used,
                // I'm keeping to previously used syntax)
-               cellID = getCellIdFromCoords( vlsvReader, cellStruct, coords, maxDistance );
+               cellID = getCellIdFromCoords( vlsvReader, cellStruct, cellIdList_velocity, coords, maxDistance );
+               //CONTINUE HERE
                if( cellID != numeric_limits<uint64_t>::max() ) {
                   //A valid cell id:
                   //Store the cell id in the list of cell ids but only if it is not already there:
@@ -1608,7 +1923,6 @@ int main(int argn, char* args[]) {
                      cellIdList.push_back( cellID );
                   }
                }
-               delete[] coords;
             }
          } else if( getCellIdFromInput ) {
             //Declare cellID and set it if the cell id is specified by the user
@@ -1647,7 +1961,7 @@ int main(int argn, char* args[]) {
             // Create a new file suffix for the output file:
             stringstream ss1;
             //O: CHANGED THIS
-            ss1 << ".vlsv";
+            ss1 << ".silo";
             string newSuffix;
             ss1 >> newSuffix;
 
@@ -1681,19 +1995,18 @@ int main(int argn, char* args[]) {
 
             //O: COMMENTED THIS
             // Create a SILO file for writing:
-            //fileptr = DBCreate(outputFilePath.c_str(), DB_CLOBBER, DB_LOCAL, "Vlasov data file", DB_PDB);
-            //if (fileptr == NULL) {
-               //cerr << "\t failed to create output SILO file for input file '" << fileList[entryName] << "'" << endl;
-               //DBClose(fileptr);
-               //vlsvReader.close();
-               //continue;
-            //}
+            fileptr = DBCreate(outputFilePath.c_str(), DB_CLOBBER, DB_LOCAL, "Vlasov data file", DB_PDB);
+            if (fileptr == NULL) {
+               cerr << "\t failed to create output SILO file for input file '" << fileList[entryName] << "'" << endl;
+               DBClose(fileptr);
+               vlsvReader.close();
+               continue;
+            }
 
             // Extract velocity grid from VLSV file, if possible, and convert into SILO format:
             bool velGridExtracted = true;
             for (set<string>::const_iterator it = meshNames.begin(); it != meshNames.end(); ++it) {
-               if (convertVelocityBlocks2(vlsvReader, *it, cellID, rotateVectors ) == false) {
-                  //O: CONTINUE HERE
+               if (convertVelocityBlocks2(vlsvReader, *it, cellStruct, cellID, rotateVectors ) == false) {
                   velGridExtracted = false;
                } else {
                   //Display message for the user:
@@ -1711,14 +2024,14 @@ int main(int argn, char* args[]) {
                   }
                }
             }
-            //DBClose(fileptr);
+            DBClose(fileptr);
 
             // If velocity grid was not extracted, delete the SILO file:
             if (velGridExtracted == false) {
                cerr << "ERROR, FAILED TO EXTRACT VELOCITY GRID AT: " << __FILE__ << " " << __LINE__ << endl;
-//               if (remove(outputFilePath.c_str()) != 0) {
-//                  cerr << "\t ERROR: failed to remote dummy output file!" << endl;
-//               }
+               if (remove(outputFilePath.c_str()) != 0) {
+                  cerr << "\t ERROR: failed to remote dummy output file!" << endl;
+               }
             }
          }
 
