@@ -308,11 +308,15 @@ void calculateAcceleration(
 
    if(P::vlasovSemiLagAcceleration) {
       //Semilagrangian acceleration
+      phiprof::start("semilag-acc");
 #pragma omp parallel for
       for (size_t c=0; c<propagatedCells.size(); ++c) {
          const CellID cellID = propagatedCells[c];
+         phiprof::start("cell-semilag-acc");
          cpu_accelerate_cell(mpiGrid[cellID],dt);
+         phiprof::stop("cell-semilag-acc");
       }
+      phiprof::stop("semilag-acc");
    }
    else {
       //Leveque acceleration
