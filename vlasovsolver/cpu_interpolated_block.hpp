@@ -60,7 +60,11 @@ private:
       const unsigned int MAX = 5;
       const unsigned int BLOCKMIN = 0;
       const unsigned int BLOCKMAX = 3;
-   
+
+      for (unsigned int i=0; i<216;i++)
+         avgs[i]=0.0;
+
+      
       // ***** NEIGHBOURS TO NEGATIVE VZ DIRECTION *****           
       // Neighbour (iv-1,jv-1,kv-1):
    
@@ -68,10 +72,6 @@ private:
          nbrAvgs = block_ptr->neighbors[velocity_neighbor::XM1_YM1_ZM1]->fx;
          avgs[cell_ib_id(MIN,MIN,MIN)]=nbrAvgs[cell_id(BLOCKMAX,BLOCKMAX,BLOCKMAX)];
       }
-      else {
-         avgs[cell_ib_id(MIN,MIN,MIN)]=0.0;
-      }
-   
    
       // Neighbour (iv  ,jv-1,kv-1):
       if (block_ptr->neighbors[velocity_neighbor::XCC_YM1_ZM1] != NULL) {
@@ -79,10 +79,7 @@ private:
          for (unsigned int i=0; i<WID; ++i)
             avgs[cell_ib_id(i+1,MIN,MIN)]=nbrAvgs[cell_id(i,BLOCKMAX,BLOCKMAX)];
       }
-      else{
-         for (unsigned int i=0; i<WID; ++i)
-            avgs[cell_ib_id(i+1,MIN,MIN)]=0.0;
-      }
+      
       // Neighbour (iv+1,jv-1,kv-1):
       if (block_ptr->neighbors[velocity_neighbor::XP1_YM1_ZM1] != NULL) {
          nbrAvgs = block_ptr->neighbors[velocity_neighbor::XP1_YM1_ZM1]->fx;
@@ -93,8 +90,10 @@ private:
       if (block_ptr->neighbors[velocity_neighbor::XM1_YCC_ZM1] != NULL) {
          nbrAvgs = block_ptr->neighbors[velocity_neighbor::XM1_YCC_ZM1]->fx;
          for (unsigned int j=0; j<WID; ++j)
-            avgs[cell_ib_id(MIN,j+1,MIN)] = nbrAvgs[cell_id(BLOCKMAX,j,BLOCKMAX)];
+            avgs[cell_ib_id(MIN,j+1,MIN)] = nbrAvgs[cell_id(BLOCKMAX,j,BLOCKMAX)];         
       }
+
+      
       // Neighbour (iv  ,jv  ,kv-1):       
       if (block_ptr->neighbors[velocity_neighbor::XCC_YCC_ZM1] != NULL) {
          nbrAvgs = block_ptr->neighbors[velocity_neighbor::XCC_YCC_ZM1]->fx;
@@ -102,12 +101,14 @@ private:
             for (unsigned int i=0; i<WID; ++i)
                avgs[cell_ib_id(i+1,j+1,MIN)]=nbrAvgs[cell_id(i,j,BLOCKMAX)];
       }
+
       // Neighbour (iv+1,jv  ,kv-1):
       if (block_ptr->neighbors[velocity_neighbor::XP1_YCC_ZM1] != NULL) {
          nbrAvgs  = block_ptr->neighbors[velocity_neighbor::XP1_YCC_ZM1]->fx;
          for (unsigned int j=0; j<WID; ++j)
             avgs[cell_ib_id(MAX,j+1,MIN)]=nbrAvgs[cell_id(BLOCKMIN,j,BLOCKMAX)];
       }
+         
       // Neighbour (iv-1,jv+1,kv-1):
       if (block_ptr->neighbors[velocity_neighbor::XM1_YP1_ZM1] != NULL) {
          nbrAvgs =  block_ptr->neighbors[velocity_neighbor::XM1_YP1_ZM1]->fx;
@@ -242,7 +243,7 @@ private:
    }
    
    Velocity_Block*  block_ptr;
-   double avgs[512];
+   double avgs[216];
    UBspline_3d_d *spline;
 };
 
