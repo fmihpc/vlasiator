@@ -100,11 +100,16 @@ Transform<double,3,Affine> compute_acceleration_transformation( SpatialCell* spa
                                  spatial_cell->parameters[CellParams::RHOVY_V]/rho,
                                  spatial_cell->parameters[CellParams::RHOVZ_V]/rho);   
 
-      
    /*compute total transformation*/
    Transform<double,3,Affine> total_transform(Matrix4d::Identity());
       
-   const unsigned int bulk_velocity_substeps=dt/(gyro_period*(0.1/360.0)); /*!<in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep*/
+   unsigned int bulk_velocity_substeps; /*!<in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep*/
+
+   if(Parameters::lorentzHallTerm)
+      bulk_velocity_substeps=dt/(gyro_period*(0.1/360.0)); 
+   else
+      bulk_velocity_substeps=1;
+   
    /*note, we assume q is positive (pretty good assumption though)*/
    const double substeps_radians=-(2.0*M_PI*dt/gyro_period)/bulk_velocity_substeps; /*!< how many radians each substep is*/
    for(uint i=0;i<bulk_velocity_substeps;i++){
@@ -147,17 +152,36 @@ TODO:
 
 */
 
-void cic_increment_cell_value(SpatialCell* spatial_cell,const unsigned int p_i,const unsigned int p_j,const unsigned int p_k,
+void cic_increment_cell_value(SpatialCell* spatial_cell,const int p_i,const int p_j,const int p_k,
                          const unsigned int n_subcells, const double value){
+   if(p_i<0 ||p_j<0||p_k<0)
+      return;
 
    const unsigned int block_i=p_i/(WID*n_subcells);
    const unsigned int block_j=p_j/(WID*n_subcells);
    const unsigned int block_k=p_k/(WID*n_subcells);
    const unsigned int cell_i=(p_i/n_subcells)%WID;
    const unsigned int cell_j=(p_j/n_subcells)%WID;
-   const unsigned int cell_k=(p_k/n_subcells)%WID;   
+   const unsigned int cell_k=(p_k/n_subcells)%WID;  
+
+   /*
+     const unsigned int fcell_i=p_i/n_subcells;
+     const unsigned int fcell_j=p_j/n_subcells;
+     const unsigned int fcell_k=p_k/n_subcells;
+     const unsigned int block_i=fcell_i/WID;
+     const unsigned int block_j=fcell_j/WID;
+     const unsigned int block_k=fcell_k/WID;
+     const unsigned int cell_i=fcell_i-block_i*WID;
+     const unsigned int cell_j=fcell_j-block_j*WID;
+     const unsigned int cell_k=fcell_k-block_k*WID;
+   */
+   if(block_i>= SpatialCell::vx_length ||
+      block_j>= SpatialCell::vy_length ||
+      block_k>= SpatialCell::vz_length)
+      return;
+         
    const unsigned int block = block_i + block_j * SpatialCell::vx_length + block_k * SpatialCell::vx_length * SpatialCell::vy_length;
-   const unsigned int cell =cell_i+cell_j*WID+cell_k*WID2;
+   const unsigned int cell  = cell_i + cell_j * WID + cell_k * WID2;
    spatial_cell->increment_value(block,cell,value);
 }
 
@@ -199,9 +223,10 @@ void cpu_accelerate_cell(
    SpatialCell* spatial_cell,
    const double dt) {
 
+   phiprof::start("compute-transform");
    //compute the transform performed in this acceleration
    Transform<double,3,Affine> total_transform= compute_acceleration_transformation(spatial_cell,dt);
-
+   phiprof::stop("compute-transform");
 
    
    // Make a copy of the blocklist as we don't want to iterate over blocks added by this function
