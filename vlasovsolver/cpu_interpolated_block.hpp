@@ -75,8 +75,8 @@ private:
          (y - hh_parameters[cell_id][Y0]) * hh_parameters[cell_id][DFDY]+
          (z - hh_parameters[cell_id][Z0]) * hh_parameters[cell_id][DFDZ];
    }
-
-   double eval_hinged_hyperplane_at_cell(double x,double y,double z,unsigned int cell_id) {
+   /*get value in a particular velocity cell, at x,y,z*/
+   double eval_hinged_hyperplane_at_cell(unsigned int cell_id,double x,double y,double z){
       //TODO, we could store x0,y0,z0 and dfdxyz for each cell when reading the block and then reuse them when evaluating. Coudl save for multiple subcells.
       //TODO, derivatives need to be limited to avoid negative regions. Do we also need similar limiters like in fvm...?
       return avgs[cell_id]+
@@ -84,7 +84,7 @@ private:
          (y - hh_parameters[cell_id][Y0]) * hh_parameters[cell_id][DFDY]+
          (z - hh_parameters[cell_id][Z0]) * hh_parameters[cell_id][DFDZ];
    }
-
+   
 
    void prepare_hinged_hyperplane(){
       for(unsigned int cell_x=0;cell_x<WID;cell_x++){
@@ -103,12 +103,29 @@ private:
                                   avgs[cell_ib_id(cell_x+1,cell_y+1,cell_z+0)])/(2.0*block_ptr->parameters[BlockParams::DVZ]);
                hh_parameters[216][NUM_HH_PARAMS];
 
+               /*Get the minimum value of the interpolation from one
+                * of the 8 corners of the cell. We know based on the
+                * derivatives which it is*/
+               double minVal=eval_hinged_hyperplane_at_cell(cell_id,
+                                                            block_ptr->parameters[BlockParams::VXCRD]+
+                                                            (cell_x+(hh_parameters[cell_id][DFDX]<0))*block_ptr->parameters[BlockParams::DVX],
+                                                            block_ptr->parameters[BlockParams::VYCRD]+
+                                                            (cell_y+(hh_parameters[cell_id][DFDY]<0))*block_ptr->parameters[BlockParams::DVY],
+                                                            block_ptr->parameters[BlockParams::VZCRD]+
+                                                            (cell_z+(hh_parameters[cell_id][DFDZ]<0))*block_ptr->parameters[BlockParams::DVZ]);
+               
+               if(minVal<0){
+                  /*scale derivatives so that the minimum value of the interpolation is zero*/
+                  double alpha=avgs[cell_id]/(avgs[cell_id]-minVal);
+                  hh_parameters[cell_id][DFDX]*=alpha;
+                  hh_parameters[cell_id][DFDY]*=alpha;
+                  hh_parameters[cell_id][DFDZ]*=alpha;
+               }
                
                
-               
-            }
-         }
-      }
+            } 
+         } 
+      } 
    }
    
    void prepare_einspline(){
