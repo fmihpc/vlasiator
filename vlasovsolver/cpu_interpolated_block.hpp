@@ -4,26 +4,112 @@
 template<typename T> inline T cell_ib_id(const T& i,const T& j,const T& k) {return k+j*6+i*36;} //einspline required order
 template<typename T> inline T cell_id(const T& i,const T& j,const T& k) {return k*WID2+j*WID+i;}
 
+enum BlockInterpolationType { CONSTANT, HINGED_HYPERPLANE, EINSPLINE };
+
+enum HingedHyperplaneParams {X0,Y0,Z0,DFDX,DFDY,DFDZ,NUM_HH_PARAMS};
+
 class interpolated_block {
 
   public:
    
-   interpolated_block () {}
+   interpolated_block (BlockInterpolationType type) : interpolationType(type) {
+   }
    
    inline double get_value(double x,double y,double z){
-      double value;
-      eval_UBspline_3d_d(spline,x,y,z,&value);
-      return value;
+      switch(this->interpolationType) {
+          case CONSTANT:
+             return eval_nointerpolation(x,y,z);
+          case HINGED_HYPERPLANE:
+             return eval_hinged_hyperplane(x,y,z);
+          case EINSPLINE:
+             double value;
+             eval_UBspline_3d_d(spline,x,y,z,&value);
+             return value;
+      }
+      return 0.0;
    }
 
-   void set_block(Velocity_Block*  block){
-      block_ptr=block;
+   void set_block(Velocity_Block* block){
+      block_ptr = block;
       this->load_data();
-      this->prepare_einspline();
+      switch(this->interpolationType) {
+          case HINGED_HYPERPLANE:     
+             this->prepare_hinged_hyperplane();
+             break;
+          case EINSPLINE:
+             this->prepare_einspline();
+             break;
+      }
    }
    
    
 private:
+   /*private parameters*/
+   const BlockInterpolationType interpolationType;
+   Velocity_Block*  block_ptr;
+   //TODO FIX 216 now hardcoded
+   double avgs[216];
+//TODO, extra stuff stored for all, at least hh_parameters should perhaps be dynamic
+   double hh_parameters[216][NUM_HH_PARAMS]; /*< Parameters for hinged hyperplanes*/
+   UBspline_3d_d *spline;
+
+
+   /*private functions*/
+   double eval_nointerpolation(double x,double y,double z) {
+      const unsigned int cell_x=(x-block_ptr->parameters[BlockParams::VXCRD])/block_ptr->parameters[BlockParams::DVX];
+      const unsigned int cell_y=(y-block_ptr->parameters[BlockParams::VYCRD])/block_ptr->parameters[BlockParams::DVY];
+      const unsigned int cell_z=(z-block_ptr->parameters[BlockParams::VZCRD])/block_ptr->parameters[BlockParams::DVZ];
+      const unsigned int cell_id=cell_ib_id(cell_x+1,cell_y+1,cell_z+1);
+      return avgs[cell_id];
+   }
+   
+   double eval_hinged_hyperplane(double x,double y,double z) {
+      //TODO, we could store x0,y0,z0 and dfdxyz for each cell when reading the block and then reuse them when evaluating. Coudl save for multiple subcells.
+      //TODO, derivatives need to be limited to avoid negative regions. Do we also need similar limiters like in fvm...?
+      const unsigned int cell_x=(x-block_ptr->parameters[BlockParams::VXCRD])/block_ptr->parameters[BlockParams::DVX];
+      const unsigned int cell_y=(y-block_ptr->parameters[BlockParams::VYCRD])/block_ptr->parameters[BlockParams::DVY];
+      const unsigned int cell_z=(z-block_ptr->parameters[BlockParams::VZCRD])/block_ptr->parameters[BlockParams::DVZ];
+      const unsigned int cell_id=cell_ib_id(cell_x+1,cell_y+1,cell_z+1);
+      return avgs[cell_id]+
+         (x - hh_parameters[cell_id][X0]) * hh_parameters[cell_id][DFDX]+
+         (y - hh_parameters[cell_id][Y0]) * hh_parameters[cell_id][DFDY]+
+         (z - hh_parameters[cell_id][Z0]) * hh_parameters[cell_id][DFDZ];
+   }
+
+   double eval_hinged_hyperplane_at_cell(double x,double y,double z,unsigned int cell_id) {
+      //TODO, we could store x0,y0,z0 and dfdxyz for each cell when reading the block and then reuse them when evaluating. Coudl save for multiple subcells.
+      //TODO, derivatives need to be limited to avoid negative regions. Do we also need similar limiters like in fvm...?
+      return avgs[cell_id]+
+         (x - hh_parameters[cell_id][X0]) * hh_parameters[cell_id][DFDX]+
+         (y - hh_parameters[cell_id][Y0]) * hh_parameters[cell_id][DFDY]+
+         (z - hh_parameters[cell_id][Z0]) * hh_parameters[cell_id][DFDZ];
+   }
+
+
+   void prepare_hinged_hyperplane(){
+      for(unsigned int cell_x=0;cell_x<WID;cell_x++){
+         for(unsigned int cell_y=0;cell_y<WID;cell_y++){
+            for(unsigned int cell_z=0;cell_z<WID;cell_z++){
+               const unsigned int cell_id=cell_ib_id(cell_x+1,cell_y+1,cell_z+1);
+               hh_parameters[cell_id][X0]=block_ptr->parameters[BlockParams::VXCRD]+(cell_x+0.5)*block_ptr->parameters[BlockParams::DVX];
+               hh_parameters[cell_id][Y0]=block_ptr->parameters[BlockParams::VYCRD]+(cell_y+0.5)*block_ptr->parameters[BlockParams::DVY];
+               hh_parameters[cell_id][Z0]=block_ptr->parameters[BlockParams::VZCRD]+(cell_z+0.5)*block_ptr->parameters[BlockParams::DVZ];
+               
+               hh_parameters[cell_id][DFDX]=(avgs[cell_ib_id(cell_x+2,cell_y+1,cell_z+1)]-
+                                  avgs[cell_ib_id(cell_x+0,cell_y+1,cell_z+1)])/(2.0*block_ptr->parameters[BlockParams::DVX]);
+               hh_parameters[cell_id][DFDY]=(avgs[cell_ib_id(cell_x+1,cell_y+2,cell_z+1)]-
+                                             avgs[cell_ib_id(cell_x+1,cell_y+0,cell_z+1)])/(2.0*block_ptr->parameters[BlockParams::DVY]);
+               hh_parameters[cell_id][DFDZ]=(avgs[cell_ib_id(cell_x+1,cell_y+1,cell_z+2)]-
+                                  avgs[cell_ib_id(cell_x+1,cell_y+1,cell_z+0)])/(2.0*block_ptr->parameters[BlockParams::DVZ]);
+               hh_parameters[216][NUM_HH_PARAMS];
+
+               
+               
+               
+            }
+         }
+      }
+   }
    
    void prepare_einspline(){
       /* Here we set the grid, used for the computation */
@@ -241,9 +327,6 @@ private:
          avgs[cell_ib_id(MAX,MAX,MAX)]=nbrAvgs[cell_id(BLOCKMIN,BLOCKMIN,BLOCKMIN)];
       }
    }
-   
-   Velocity_Block*  block_ptr;
-   double avgs[216];
-   UBspline_3d_d *spline;
+
 };
 

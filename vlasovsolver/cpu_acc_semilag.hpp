@@ -253,7 +253,7 @@ void cpu_accelerate_cell(
    const Array3d  cell_dv(SpatialCell::cell_dvx,SpatialCell::cell_dvy,SpatialCell::cell_dvz);
    
    const unsigned int n_subcells=3;
-   interpolated_block iblock;
+   interpolated_block iblock(HINGED_HYPERPLANE);
 
    for (unsigned int block_i = 0; block_i < blocks.size(); block_i++) {
       const unsigned int block = blocks[block_i];
@@ -277,20 +277,19 @@ void cpu_accelerate_cell(
                const Vector3d s_node_position(block_start_vx + cell_xi*dvx,
                                               block_start_vy + cell_yi*dvy,
                                               block_start_vz + cell_zi*dvz);
-               
+
                const Vector3d s_node_position_tf=total_transform*s_node_position;
                double value=iblock.get_value(s_node_position[0],s_node_position[1],s_node_position[2])/(n_subcells*n_subcells*n_subcells);
                cic_interpolation(spatial_cell,s_node_position_tf.matrix(),n_subcells,value);
-
+               
                //scaling, just to test things...
                /*
-                 double value=iblock.get_value(s_node_position[0],s_node_position[1],s_node_position[2]);
-                 const Vector3d s_node_position_tf(n_subcells*s_node_position[0],
-                 n_subcells*s_node_position[1],
-                 n_subcells*s_node_position[2]);
-                 ngp_interpolation(spatial_cell,s_node_position_tf.matrix(),n_subcells,value);
+               double value=iblock.get_value(s_node_position[0],s_node_position[1],s_node_position[2]);
+               const Vector3d s_node_position_tf(n_subcells*s_node_position[0],
+                                                 n_subcells*s_node_position[1],
+                                                 n_subcells*s_node_position[2]);
+               ngp_interpolation(spatial_cell,s_node_position_tf.matrix(),n_subcells,value);
                */
-               
             }
          }
       }
