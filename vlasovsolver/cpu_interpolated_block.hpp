@@ -33,6 +33,8 @@ class interpolated_block {
       block_ptr = block;
       this->load_data();
       switch(this->interpolationType) {
+          case CONSTANT:
+             break; 
           case HINGED_HYPERPLANE:     
              this->prepare_hinged_hyperplane();
              break;
