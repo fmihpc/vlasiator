@@ -198,11 +198,7 @@ void cic_interpolation(SpatialCell* spatial_cell,const Array3d v,const unsigned 
    const double wx=(v[0]-p_i*particle_dvx - SpatialCell::vx_min-0.5*particle_dvx)/particle_dvx;
    const double wy=(v[1]-p_j*particle_dvy - SpatialCell::vy_min-0.5*particle_dvy)/particle_dvy;
    const double wz=(v[2]-p_k*particle_dvz - SpatialCell::vz_min-0.5*particle_dvz)/particle_dvz;
-   if(count<5) {
-      cout << p_i <<" " << p_j <<" " << p_k <<" "<< wx  <<" "<< wy <<" "<< wz <<endl;
-      count++;
-   }
-   
+      
    cic_increment_cell_value(spatial_cell, p_i  , p_j  , p_k  , n_subcells, (1-wx)*(1-wy)*(1-wz)*value);
    cic_increment_cell_value(spatial_cell, p_i+1, p_j  , p_k  , n_subcells,     wx*(1-wy)*(1-wz)*value);
    cic_increment_cell_value(spatial_cell, p_i  , p_j+1, p_k  , n_subcells, (1-wx)*   wy *(1-wz)*value);
