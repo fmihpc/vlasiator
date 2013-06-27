@@ -638,6 +638,7 @@ namespace velocity_neighbor {
             this->null_block_data.resize(VELOCITY_BLOCK_LENGTH*2);
             this->null_block.data=&(this->null_block_data[0]);
             this->null_block.data_acc_frame=&(this->null_block_data[VELOCITY_BLOCK_LENGTH]);
+            acc_transform=Eigen::Matrix<Real,4,4>::Identity();
          }
          else {
             this->null_block_data.resize(VELOCITY_BLOCK_LENGTH);
@@ -690,13 +691,12 @@ namespace velocity_neighbor {
          block_fx(other.block_fx),
          null_block_data(other.null_block_data),
          null_block_fx(other.null_block_fx),
+         acc_transform(other.acc_transform),
          neighbors(other.neighbors),
          procBoundaryFlag(other.procBoundaryFlag),
          sysBoundaryFlag(other.sysBoundaryFlag),
          sysBoundaryLayer(other.sysBoundaryLayer),
     	 subStepsAcceleration(other.subStepsAcceleration)
-
-         
          {
 
 //       phiprof::initializeTimer("SpatialCell copy", "SpatialCell copy");
@@ -990,6 +990,8 @@ namespace velocity_neighbor {
                   if(P::semiLagAccFrame) {
                      displacements.push_back((uint8_t*) &(this->block_data_acc_frame[0]) - (uint8_t*) this);
                      block_lengths.push_back(sizeof(Real) * VELOCITY_BLOCK_LENGTH* this->number_of_blocks);
+                     displacements.push_back((uint8_t*) (this->acc_transform.data()) - (uint8_t*) this);
+                     block_lengths.push_back(sizeof(Real) * 4*4);
                   }
                }
                
@@ -1794,8 +1796,9 @@ namespace velocity_neighbor {
       std::vector<Real,aligned_allocator<Real,64> > null_block_fx;
 
       //A transformation that is used to map from acc_frame data to normal frame.
-      Eigen::Transform<Real,3,Affine> acc_transform;
-      /*
+      Eigen::Transform<Real,3,Eigen::Affine> acc_transform;
+
+/*
         Bulk variables in this spatial cell.
       */
       Real parameters[CellParams::N_SPATIAL_CELL_PARAMS];
