@@ -123,6 +123,7 @@ vector<string> P::diagnosticVariableList;
 string P::projectName = string("");
 
 bool P::vlasovSemiLagAcceleration=true;
+int P::semiLagSubcellsPerDim=3;
 bool P::lorentzHallTerm=false;
 Real P::lorentzHallMinimumRho=1.0;
 Real P::lorentzHallMaximumB=1.0;
@@ -190,6 +191,7 @@ bool Parameters::addParameters(){
 
    // Vlasov solver parameters
    Readparameters::add("vlasovsolver.vlasovSemiLagAcceleration","Use Semi-Lagrangian solver for acceleration",true);
+   Readparameters::add("vlasovsolver.semiLagSubcellsPerDim","Into how many subcells in vx,vy,vz is each velocity cell divided. Higher is slower and gives better quality",3);
    Readparameters::add("vlasovsolver.lorentzHallTerm", "Add JxB term to Lorentz force",true);
    Readparameters::add("vlasovsolver.lorentzHallMinimumRho", "Minimum rho value used for Hall term in Lorentz force. Default is very low and has no effect in practice.",1.0);
    Readparameters::add("vlasovsolver.lorentzHallMaximumB", "Maximum value used for Hall term in Lorentz force. Default is very high and has no effect in practice.",1.0); 
@@ -295,6 +297,7 @@ bool Parameters::getParameters(){
    Readparameters::get("fieldsolver.minCFL",P::fieldSolverMinCFL);
    // Get Vlasov solver parameters
    Readparameters::get("vlasovsolver.vlasovSemiLagAcceleration",P::vlasovSemiLagAcceleration);
+   Readparameters::get("vlasovsolver.semiLagSubcellsPerDim",P::semiLagSubcellsPerDim);
    Readparameters::get("vlasovsolver.lorentzHallTerm", P::lorentzHallTerm);
    Readparameters::get("vlasovsolver.lorentzHallMinimumRho",P::lorentzHallMinimumRho);
    Readparameters::get("vlasovsolver.lorentzHallMaximumB",P::lorentzHallMaximumB);

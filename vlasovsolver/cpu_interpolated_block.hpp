@@ -3,15 +3,13 @@ template<typename T> inline T cell_ib_id(const T& i,const T& j,const T& k) {retu
 template<typename T> inline T cell_id(const T& i,const T& j,const T& k) {return k*WID2+j*WID+i;}
 
 enum BlockInterpolationType { CONSTANT, HINGED_HYPERPLANE};
-
 enum HingedHyperplaneParams {X0,Y0,Z0,DFDX,DFDY,DFDZ,NUM_HH_PARAMS};
 
 class interpolated_block {
 
   public:
    
-   interpolated_block (BlockInterpolationType type) : interpolationType(type) {
-   }
+   interpolated_block (BlockInterpolationType type) : interpolationType(type) {}
    
    inline double get_value(double x,double y,double z){
       switch(this->interpolationType) {
@@ -23,7 +21,7 @@ class interpolated_block {
       return 0.0;
    }
 
-   void set_block(Velocity_Block* block){
+   void load_block(Velocity_Block* block){
       block_ptr = block;
       this->load_data();
       switch(this->interpolationType) {
