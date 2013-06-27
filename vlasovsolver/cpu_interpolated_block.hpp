@@ -1,10 +1,8 @@
-#include <einspline/bspline.h>
-
 //template<typename T> inline T cell_ib_id(const T& i,const T& j,const T& k) {return k*64+j*8+i;}
 template<typename T> inline T cell_ib_id(const T& i,const T& j,const T& k) {return k+j*6+i*36;} //einspline required order
 template<typename T> inline T cell_id(const T& i,const T& j,const T& k) {return k*WID2+j*WID+i;}
 
-enum BlockInterpolationType { CONSTANT, HINGED_HYPERPLANE, EINSPLINE };
+enum BlockInterpolationType { CONSTANT, HINGED_HYPERPLANE};
 
 enum HingedHyperplaneParams {X0,Y0,Z0,DFDX,DFDY,DFDZ,NUM_HH_PARAMS};
 
@@ -21,10 +19,6 @@ class interpolated_block {
              return eval_nointerpolation(x,y,z);
           case HINGED_HYPERPLANE:
              return eval_hinged_hyperplane(x,y,z);
-          case EINSPLINE:
-             double value;
-             eval_UBspline_3d_d(spline,x,y,z,&value);
-             return value;
       }
       return 0.0;
    }
@@ -38,9 +32,6 @@ class interpolated_block {
           case HINGED_HYPERPLANE:     
              this->prepare_hinged_hyperplane();
              break;
-          case EINSPLINE:
-             this->prepare_einspline();
-             break;
       }
    }
    
@@ -51,10 +42,8 @@ private:
    Velocity_Block*  block_ptr;
    //TODO FIX 216 now hardcoded
    double avgs[216];
-//TODO, extra stuff stored for all, at least hh_parameters should perhaps be dynamic
+   //TODO, extra stuff stored for all, at least hh_parameters should perhaps be dynamic
    double hh_parameters[216][NUM_HH_PARAMS]; /*< Parameters for hinged hyperplanes*/
-   UBspline_3d_d *spline;
-
 
    /*private functions*/
    double eval_nointerpolation(double x,double y,double z) {
@@ -130,26 +119,7 @@ private:
       } 
    }
    
-   void prepare_einspline(){
-      /* Here we set the grid, used for the computation */
-      Ugrid x_grid;
-      Ugrid y_grid;
-      Ugrid z_grid;
-      x_grid.start = block_ptr->parameters[BlockParams::VXCRD] - 0.5*block_ptr->parameters[BlockParams::DVX];
-      x_grid.end = block_ptr->parameters[BlockParams::VXCRD] + (WID+0.5)*block_ptr->parameters[BlockParams::DVX];
-      x_grid.num = WID+2; //< how long is our array of points ?
-      y_grid.start = block_ptr->parameters[BlockParams::VYCRD] - 0.5*block_ptr->parameters[BlockParams::DVY];
-      y_grid.end = block_ptr->parameters[BlockParams::VYCRD] + (WID+0.5)*block_ptr->parameters[BlockParams::DVY];
-      y_grid.num = WID+2; //< how long is our array of points ? 
-      z_grid.start = block_ptr->parameters[BlockParams::VZCRD] - 0.5*block_ptr->parameters[BlockParams::DVZ];
-      z_grid.end = block_ptr->parameters[BlockParams::VZCRD] + (WID+0.5)*block_ptr->parameters[BlockParams::DVZ];
-      z_grid.num = WID+2; //< how long is our array of points ?
-      /** Boundary Conditions **/
-      BCtype_d xBC = {NATURAL, NATURAL , 0.,0.};
-      BCtype_d yBC = {NATURAL, NATURAL , 0.,0.};
-      BCtype_d zBC = {NATURAL, NATURAL , 0.,0.};
-      spline=create_UBspline_3d_d(x_grid,y_grid,z_grid,xBC,yBC,zBC,avgs);
-   }
+
 
    void load_data(){
       Real* nbrAvgs;
