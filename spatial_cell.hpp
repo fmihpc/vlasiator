@@ -39,6 +39,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "common.h"
 #include "parameters.h"
 #include "definitions.h"
+#include <Eigen/Geometry>
 typedef Parameters P;
 
 // size of velocity blocks in velocity cells
@@ -1551,6 +1552,8 @@ namespace velocity_neighbor {
             std::vector<Real,aligned_allocator<Real,64> >().swap(this->block_fx);
             std::vector<unsigned int>().swap(this->velocity_block_list);
             std::vector<unsigned int>().swap(this->mpi_velocity_block_list);
+            acc_transform=Eigen::Matrix<Real,4,4>::Identity();
+            
             this->number_of_blocks=0;
          }
 
@@ -1789,7 +1792,9 @@ namespace velocity_neighbor {
       //vectors for storing null block data
       std::vector<Real,aligned_allocator<Real,64> > null_block_data;
       std::vector<Real,aligned_allocator<Real,64> > null_block_fx;
-      
+
+      //A transformation that is used to map from acc_frame data to normal frame.
+      Eigen::Transform<Real,3,Affine> acc_transform;
       /*
         Bulk variables in this spatial cell.
       */
