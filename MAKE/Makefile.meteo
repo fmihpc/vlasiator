@@ -7,7 +7,7 @@ LNK = CC
 #                         errors that come up when using 
 #                         mpi.h in c++ on Cray
 
-CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK
+CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK -DNDEBUG -DEIGEN_NO_DEBUG
 
 FLAGS = 
 
