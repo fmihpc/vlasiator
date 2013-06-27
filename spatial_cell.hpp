@@ -85,26 +85,27 @@ namespace spatial_cell {
       const uint64_t VEL_BLOCK_LIST_STAGE1    = (1<<2);
       const uint64_t VEL_BLOCK_LIST_STAGE2    = (1<<3);
       const uint64_t VEL_BLOCK_DATA           = (1<<4);
-      const uint64_t VEL_BLOCK_FLUXES         = (1<<5);
-      const uint64_t VEL_BLOCK_PARAMETERS     = (1<<6);
-      const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE1  = (1<<7); 
-      const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE2  = (1<<8); 
-      const uint64_t CELL_SYSBOUNDARYFLAG     = (1<<9);
-      const uint64_t CELL_E                   = (1<<10);
-      const uint64_t CELL_EDT2                = (1<<11);
-      const uint64_t CELL_PERB                = (1<<12);
-      const uint64_t CELL_PERBDT2             = (1<<13);
-      const uint64_t CELL_BGB                 = (1<<14);
-      const uint64_t CELL_RHO_RHOV            = (1<<15);
-      const uint64_t CELL_RHODT2_RHOVDT2      = (1<<16);
-      const uint64_t CELL_BVOL                = (1<<17);
-      const uint64_t CELL_BVOL_DERIVATIVES    = (1<<18);
-      const uint64_t CELL_DIMENSIONS          = (1<<19);
+      const uint64_t VEL_BLOCK_DATA_ACC_FRAME = (1<<5);
+      const uint64_t VEL_BLOCK_FLUXES         = (1<<6);
+      const uint64_t VEL_BLOCK_PARAMETERS     = (1<<7);
+      const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE1  = (1<<8); 
+      const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE2  = (1<<9); 
+      const uint64_t CELL_SYSBOUNDARYFLAG     = (1<<10);
+      const uint64_t CELL_E                   = (1<<11);
+      const uint64_t CELL_EDT2                = (1<<12);
+      const uint64_t CELL_PERB                = (1<<13);
+      const uint64_t CELL_PERBDT2             = (1<<14);
+      const uint64_t CELL_BGB                 = (1<<15);
+      const uint64_t CELL_RHO_RHOV            = (1<<16);
+      const uint64_t CELL_RHODT2_RHOVDT2      = (1<<17);
+      const uint64_t CELL_BVOL                = (1<<18);
+      const uint64_t CELL_BVOL_DERIVATIVES    = (1<<19);
+      const uint64_t CELL_DIMENSIONS          = (1<<20);
       
       const uint64_t ALL_DATA =
       CELL_PARAMETERS
       | CELL_DERIVATIVES | CELL_BVOL_DERIVATIVES
-      | VEL_BLOCK_DATA
+      | VEL_BLOCK_DATA | VEL_BLOCK_DATA_ACC_FRAME
       | VEL_BLOCK_FLUXES
       | CELL_SYSBOUNDARYFLAG;
    }
@@ -173,9 +174,10 @@ namespace velocity_neighbor {
    class Velocity_Block {
    public:
       // value of the distribution function
-      Real *data;   
+      Real *data;
+      // value of the distribution function in the rotated frame.
+      Real *data_acc_frame;   
       // spatial fluxes of this block
-      //fixme, fx could be called flux for leveque
       Real *fx;
       
       Real parameters[BlockParams::N_VELOCITY_BLOCK_PARAMS];
@@ -189,6 +191,11 @@ namespace velocity_neighbor {
             for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
                this->data[i] = 0;
             }
+            if(P::semiLagAccFrame)
+               for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
+                  this->data_acc_frame[i] = 0;
+               }  
+            
             for (unsigned int i = 0; i < SIZE_FLUXS; i++) {
                this->fx[i] = 0;
             }
@@ -626,9 +633,17 @@ namespace velocity_neighbor {
          this->mpi_number_of_blocks=0;
 
          //allocate memory for null block
-         this->null_block_data.resize(VELOCITY_BLOCK_LENGTH);
+         if(P::semiLagAccFrame){
+            this->null_block_data.resize(VELOCITY_BLOCK_LENGTH*2);
+            this->null_block.data=&(this->null_block_data[0]);
+            this->null_block.data_acc_frame=&(this->null_block_data[VELOCITY_BLOCK_LENGTH]);
+         }
+         else {
+            this->null_block_data.resize(VELOCITY_BLOCK_LENGTH);
+            this->null_block.data=&(this->null_block_data[0]);
+         }
+            
          this->null_block_fx.resize(SIZE_FLUXS);
-         this->null_block.data=&(this->null_block_data[0]);
          this->null_block.fx=&(this->null_block_fx[0]);
          this->sysBoundaryLayer=0; /*!< Default value, layer not yet initialized*/
          this->null_block.clear();
@@ -670,6 +685,7 @@ namespace velocity_neighbor {
          velocity_block_with_content_list(other.velocity_block_with_content_list),
          velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
          block_data(other.block_data),
+         block_data_acc_frame(other.block_data_acc_frame),
          block_fx(other.block_fx),
          null_block_data(other.null_block_data),
          null_block_fx(other.null_block_fx),
@@ -969,6 +985,12 @@ namespace velocity_neighbor {
                   displacements.push_back((uint8_t*) &(this->block_data[0]) - (uint8_t*) this);               
                   block_lengths.push_back(sizeof(Real) * VELOCITY_BLOCK_LENGTH* this->number_of_blocks);
                }
+               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA_ACC_FRAME)!=0){
+                  if(P::semiLagAccFrame) {
+                     displacements.push_back((uint8_t*) &(this->block_data_acc_frame[0]) - (uint8_t*) this);
+                     block_lengths.push_back(sizeof(Real) * VELOCITY_BLOCK_LENGTH* this->number_of_blocks);
+                  }
+               }
                
                if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_FLUXES)!=0){
                   displacements.push_back((uint8_t*) &(this->block_fx[0]) - (uint8_t*) this);               
@@ -1104,6 +1126,13 @@ namespace velocity_neighbor {
                break;
             }
          }
+         if(P::semiLagAccFrame)
+            for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
+               if (block_ptr->data_acc_frame[i] >= SpatialCell::velocity_block_min_value) {
+                  has_content = true;
+                  break;
+               }
+            }
          
          return has_content;
       }
@@ -1303,8 +1332,11 @@ namespace velocity_neighbor {
       void set_block_data_pointers(int block_index){
          Velocity_Block* tmp_block_ptr = this->at(this->velocity_block_list[block_index]);
          tmp_block_ptr->data=&(this->block_data[block_index*VELOCITY_BLOCK_LENGTH]);
+         if(P::semiLagAccFrame) tmp_block_ptr->data_acc_frame=&(this->block_data_acc_frame[block_index*VELOCITY_BLOCK_LENGTH]);
          tmp_block_ptr->fx=&(this->block_fx[block_index*SIZE_FLUXS]);
 
+         
+         
       }
       
       //This function will resize block data if needed, resize happen
@@ -1320,13 +1352,13 @@ namespace velocity_neighbor {
       //block_allocation_chunks blocks.
       void resize_block_data(){
          const int block_allocation_chunk=100;
-         
          if((this->number_of_blocks+1)*VELOCITY_BLOCK_LENGTH>=this->block_data.size() ||
             (this->number_of_blocks+2*block_allocation_chunk)*VELOCITY_BLOCK_LENGTH<this->block_data.size()){
             
             //resize so that free space is block_allocation_chunk blocks
             int new_size=this->number_of_blocks+block_allocation_chunk;
             this->block_data.resize(new_size*VELOCITY_BLOCK_LENGTH);
+            if(P::semiLagAccFrame) this->block_data_acc_frame.resize(new_size*VELOCITY_BLOCK_LENGTH);
             this->block_fx.resize(new_size*SIZE_FLUXS);
             
             //fix block pointers if a reallocation occured
@@ -1481,13 +1513,19 @@ namespace velocity_neighbor {
          //copy velocity block data to the removed blocks position in order to fill the hole
          for(unsigned int i=0;i<VELOCITY_BLOCK_LENGTH;i++){
             this->block_data[block_index*VELOCITY_BLOCK_LENGTH+i] = this->block_data[(this->number_of_blocks - 1)*VELOCITY_BLOCK_LENGTH+i];
+
          }
+         if(P::semiLagAccFrame)
+            for(unsigned int i=0;i<VELOCITY_BLOCK_LENGTH;i++){
+               this->block_data_acc_frame[block_index*VELOCITY_BLOCK_LENGTH+i] =
+                  this->block_data_acc_frame[(this->number_of_blocks - 1)*VELOCITY_BLOCK_LENGTH+i];
+            }
          for(unsigned int i=0;i<SIZE_FLUXS;i++){
             this->block_fx[block_index*SIZE_FLUXS+i] = this->block_fx[(this->number_of_blocks - 1)*SIZE_FLUXS+i];
          }
          //set block data pointers to the location where we copied data
          set_block_data_pointers(block_index);
-
+         
          //reduce number of blocks
          this->number_of_blocks--;
 
@@ -1509,6 +1547,7 @@ namespace velocity_neighbor {
             boost::unordered_map<unsigned int, Velocity_Block> ().swap(this->velocity_blocks);
             //remove block data (value and fluxes)
             std::vector<Real,aligned_allocator<Real,64> >().swap(this->block_data);
+            std::vector<Real,aligned_allocator<Real,64> >().swap(this->block_data_acc_frame);
             std::vector<Real,aligned_allocator<Real,64> >().swap(this->block_fx);
             std::vector<unsigned int>().swap(this->velocity_block_list);
             std::vector<unsigned int>().swap(this->mpi_velocity_block_list);
@@ -1744,6 +1783,7 @@ namespace velocity_neighbor {
       //vectors for storing block data. We set pointers to this
       //datastorage in set_block_date_pointers()
       std::vector<Real,aligned_allocator<Real,64> > block_data;
+      std::vector<Real,aligned_allocator<Real,64> > block_data_acc_frame;
       std::vector<Real,aligned_allocator<Real,64> > block_fx;
 
       //vectors for storing null block data
