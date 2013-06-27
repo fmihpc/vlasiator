@@ -152,14 +152,10 @@ TODO:
 
 */
 
-void cic_increment_cell_value(SpatialCell* spatial_cell,const int p_i,const int p_j,const int p_k,
+inline void cic_increment_cell_value(SpatialCell* spatial_cell,const unsigned int fcell_i,const unsigned int fcell_j,const unsigned int fcell_k,
                          const unsigned int n_subcells, const double value){
-   if(p_i<0 ||p_j<0||p_k<0)
-      return;
 
-   const unsigned int fcell_i=p_i/n_subcells;
-   const unsigned int fcell_j=p_j/n_subcells;
-   const unsigned int fcell_k=p_k/n_subcells;
+
    const unsigned int block_i=fcell_i/WID;
    const unsigned int block_j=fcell_j/WID;
    const unsigned int block_k=fcell_k/WID;
@@ -190,15 +186,35 @@ void cic_interpolation(SpatialCell* spatial_cell,const Array3d v,const unsigned 
    const double wx=(v[0]-p_i*particle_dvx - SpatialCell::vx_min-0.5*particle_dvx)/particle_dvx;
    const double wy=(v[1]-p_j*particle_dvy - SpatialCell::vy_min-0.5*particle_dvy)/particle_dvy;
    const double wz=(v[2]-p_k*particle_dvz - SpatialCell::vz_min-0.5*particle_dvz)/particle_dvz;
-      
-   cic_increment_cell_value(spatial_cell, p_i  , p_j  , p_k  , n_subcells, (1-wx)*(1-wy)*(1-wz)*value);
-   cic_increment_cell_value(spatial_cell, p_i+1, p_j  , p_k  , n_subcells,     wx*(1-wy)*(1-wz)*value);
-   cic_increment_cell_value(spatial_cell, p_i  , p_j+1, p_k  , n_subcells, (1-wx)*   wy *(1-wz)*value);
-   cic_increment_cell_value(spatial_cell, p_i  , p_j  , p_k+1, n_subcells, (1-wx)*(1-wy)*   wz *value);
-   cic_increment_cell_value(spatial_cell, p_i  , p_j+1, p_k+1, n_subcells, (1-wx)*   wy *   wz *value);
-   cic_increment_cell_value(spatial_cell, p_i+1, p_j  , p_k+1, n_subcells,    wx *(1-wy)*  -wz *value);
-   cic_increment_cell_value(spatial_cell, p_i+1, p_j+1, p_k  , n_subcells,    wx *   wy *(1-wz)*value);
-   cic_increment_cell_value(spatial_cell, p_i+1, p_j+1, p_k+1, n_subcells,    wx *   wy *   wz *value);   
+
+
+   const unsigned int fcell_i=p_i/n_subcells;
+   const unsigned int fcell_j=p_j/n_subcells;
+   const unsigned int fcell_k=p_k/n_subcells;
+
+   const unsigned int fcell_p1_i=(p_i+1)/n_subcells;
+   const unsigned int fcell_p1_j=(p_j+1)/n_subcells;
+   const unsigned int fcell_p1_k=(p_k+1)/n_subcells;
+
+//   if(p_i<0 || p_j<0 || p_k<0){
+      //not goog enough, we need cheap and good test for out of bounds
+   //    cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_p1_j, fcell_p1_k, n_subcells,    wx *   wy *   wz *value);   
+   //   return;
+   // }
+
+   if(fcell_i==fcell_p1_i && fcell_j==fcell_p1_j && fcell_k==fcell_p1_k){
+      cic_increment_cell_value(spatial_cell, fcell_i  , fcell_j  , fcell_k  , n_subcells, value);
+   }
+   else{
+      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_k   , n_subcells, (1-wx)*(1-wy)*(1-wz)*value);
+      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_j   , fcell_k   , n_subcells,     wx*(1-wy)*(1-wz)*value);
+      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_p1_j, fcell_k   , n_subcells, (1-wx)*   wy *(1-wz)*value);
+      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_p1_k, n_subcells, (1-wx)*(1-wy)*   wz *value);
+      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_p1_j, fcell_p1_k, n_subcells, (1-wx)*   wy *   wz *value);
+      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_j   , fcell_p1_k, n_subcells,    wx *(1-wy)*  -wz *value);
+      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_p1_j, fcell_k   , n_subcells,    wx *   wy *(1-wz)*value);
+      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_p1_j, fcell_p1_k, n_subcells,    wx *   wy *   wz *value);   
+   }
 }
 
 /*nearest grid point*/
