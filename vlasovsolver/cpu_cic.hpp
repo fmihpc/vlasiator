@@ -123,8 +123,9 @@ void cic(SpatialCell *spatial_cell,Transform<double,3,Affine>& transform) {
          block_ptr->data[cell] = 0.0;
       }
    }
-   
-   const unsigned int n_subcells=Parameters::semiLagSubcellsPerDim;
+
+   //n_subcells should be known at compile time, otherwise mapping is ~ 25% slower (!)
+   const unsigned int n_subcells=3;//Parameters::semiLagSubcellsPerDim;
    interpolated_block iblock(HINGED_HYPERPLANE);
    for (unsigned int block_i = 0; block_i < blocks.size(); block_i++) {
       const unsigned int block = blocks[block_i];

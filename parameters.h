@@ -101,7 +101,7 @@ struct Parameters {
    static bool fieldSolverDiffusiveEterms; /*!< Enable resitive terms in the computation of E*/
 
    static bool vlasovSemiLagAcceleration; /*!< If true, a semilagrangian solver is used for acceleration, otherwise we use a the Leveque solver*/
-   static int semiLagSubcellsPerDim; /*!< Number of subcells per dimension*/
+   static bool semiLagAccFrame; /*!< Do we keep an additional dist func for acceleratio and map spatial changes to it*/
    static bool lorentzHallTerm;  /*!< Add JxB hall term to Lorentz force. Assumes there is not hall term in the fieldsolver if we use fieldSolverE*/
    static Real lorentzHallMinimumRho;  /*!< Minimum rho value used in Hall term in Lorentz force.*/
    static Real lorentzHallMaximumB;  /*!< Maximum B value used in Hall term in Lorentz force. Does not affect J, only latter total B in JxB*/
