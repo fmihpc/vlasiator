@@ -32,7 +32,18 @@ using namespace std;
 using namespace spatial_cell;
 using namespace Eigen;
 
+/*
 
+TODO
+
+Handle v space boundaries properly and quickly
+Use real not double (or own float datatype?)
+remove einspline (useless)
+Use agner's vectorclass (perhaps the 3 vectors with position?)
+test nsubcells and make to parameter
+
+
+*/
 
 /*
 template<typename T> inline T cell_full_id(const T& cell_x,const T& cell_y,const T& cell_z,
@@ -175,7 +186,7 @@ inline void cic_increment_cell_value(SpatialCell* spatial_cell,const unsigned in
 
 /*cloud in cell interpolation*/
 //TODO, what about negative indices p_ijk, reformulate
-void cic_interpolation(SpatialCell* spatial_cell,const Array3d v,const unsigned int n_subcells,const double value) {
+inline void cic_interpolation(SpatialCell* spatial_cell,const Array3d v,const unsigned int n_subcells,const double value) {
    static int count=0;
    const double particle_dvx=SpatialCell::cell_dvx/n_subcells;
    const double particle_dvy=SpatialCell::cell_dvy/n_subcells;
@@ -186,7 +197,6 @@ void cic_interpolation(SpatialCell* spatial_cell,const Array3d v,const unsigned 
    const unsigned int fcell_i=p_i/n_subcells;
    const unsigned int fcell_j=p_j/n_subcells;
    const unsigned int fcell_k=p_k/n_subcells;
-
    const unsigned int fcell_p1_i=(p_i+1)/n_subcells;
    const unsigned int fcell_p1_j=(p_j+1)/n_subcells;
    const unsigned int fcell_p1_k=(p_k+1)/n_subcells;
@@ -282,14 +292,8 @@ void cpu_accelerate_cell(
    }
 
 
-   /*do not change, current simple linear approximation is based on this.*/
-   const Array3d  grid_min(SpatialCell::vx_min,SpatialCell::vy_min,SpatialCell::vz_min);
-   const Array3d  block_dv(SpatialCell::block_dvx,SpatialCell::block_dvy,SpatialCell::block_dvz);
-   const Array3d  cell_dv(SpatialCell::cell_dvx,SpatialCell::cell_dvy,SpatialCell::cell_dvz);
-   
    const unsigned int n_subcells=3;
    interpolated_block iblock(HINGED_HYPERPLANE);
-
    for (unsigned int block_i = 0; block_i < blocks.size(); block_i++) {
       const unsigned int block = blocks[block_i];
       Velocity_Block* block_ptr = spatial_cell->at(block);
