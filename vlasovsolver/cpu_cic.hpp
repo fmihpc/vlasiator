@@ -130,9 +130,9 @@ inline void volintegrated_interpolation(SpatialCell* spatial_cell,const Array3d 
    const double midpoint_z=p_k*particle_dvz + SpatialCell::vz_min+0.5*particle_dvz;
 
    //weights for CIC
-   const double wx=(fcell_i!=fcell_p1_i)?((v[0]-midpoint_x)/particle_dvx):0.0;
-   const double wy=(fcell_j!=fcell_p1_j)?((v[1]-midpoint_y)/particle_dvy):0.0;
-   const double wz=(fcell_k!=fcell_p1_k)?((v[2]-midpoint_z)/particle_dvz):0.0;
+   const double wx=(v[0]-midpoint_x)/particle_dvx;
+   const double wy=(v[1]-midpoint_y)/particle_dvy;
+   const double wz=(v[2]-midpoint_z)/particle_dvz;
 //includes no rotation
    const double to_source_frame_x=v_source[0]-v[0];
    const double to_source_frame_y=v_source[1]-v[1];
@@ -165,15 +165,7 @@ inline void volintegrated_interpolation(SpatialCell* spatial_cell,const Array3d 
       const double ic_p1_vy = ic_vy+0.5*particle_dvy;
       const double ic_p1_vz = ic_vz+0.5*particle_dvz;
 
-
-/*
-      const double ic_vx =    v[0]+to_source_frame_x;
-      const double ic_p1_vx = v[0]+to_source_frame_x;
-      const double ic_vy =    v[1]+to_source_frame_y;
-      const double ic_p1_vy = v[1]+to_source_frame_y;
-      const double ic_vz =    v[2]+to_source_frame_z;
-      const double ic_p1_vz = v[2]+to_source_frame_z;
-*/   
+   
       cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_k   , n_subcells,(1-wx)*(1-wy)*(1-wz) * subcell_vol_frac * iblock.get_value(ic_vx   ,ic_vy   ,ic_vz   ));
       cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_j   , fcell_k   , n_subcells,    wx*(1-wy)*(1-wz) * subcell_vol_frac * iblock.get_value(ic_p1_vx,ic_vy   ,ic_vz   ));
       cic_increment_cell_value(spatial_cell, fcell_i   , fcell_p1_j, fcell_k   , n_subcells,(1-wx)*   wy *(1-wz) * subcell_vol_frac * iblock.get_value(ic_vx   ,ic_p1_vy,ic_vz   ));
@@ -240,7 +232,7 @@ void cic(SpatialCell *spatial_cell,Transform<double,3,Affine>& transform) {
                const Vector3d s_node_position_tf=transform*s_node_position;
                //cic_interpolation(spatial_cell,s_node_position_tf.matrix(),n_subcells,
                //                        iblock.get_value(s_node_position[0],s_node_position[1],s_node_position[2])/(n_subcells*n_subcells*n_subcells));
-               volintegrated_interpolation(spatial_cell,s_node_position_tf.matrix(),iblock,s_node_position,n_subcells);
+               volintegrated_interpolation(spatial_cell,s_node_position_tf.matrix(),iblock,s_node_position.matrix(),n_subcells);
                //scaling, just to test things...
                /*
                  double value=iblock.get_value(s_node_position[0],s_node_position[1],s_node_position[2]);
