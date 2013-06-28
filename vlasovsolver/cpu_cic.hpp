@@ -156,30 +156,32 @@ inline void volintegrated_interpolation(SpatialCell* spatial_cell,const Array3d 
      //frame, as that is what we use to read in from iblock the value
      //of the middle of the cube. For a hinged hyperplane
      //interpolation this will * volume give us and exact integration
-     const double ic_vx =    0.5*(midpoint_x+v[0]             )+to_source_frame_x;
-     const double ic_p1_vx = 0.5*(midpoint_x+v[0]+particle_dvx)+to_source_frame_x;
-     const double ic_vy =    0.5*(midpoint_y+v[1]             )+to_source_frame_y;
-     const double ic_p1_vy = 0.5*(midpoint_y+v[1]+particle_dvy)+to_source_frame_y;
-     const double ic_vz =    0.5*(midpoint_z+v[2]             )+to_source_frame_z;
-     const double ic_p1_vz = 0.5*(midpoint_z+v[2]+particle_dvz)+to_source_frame_z;
 
-     
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_k   , n_subcells, 
-			       (1-wx)*(1-wy)*(1-wz) * subcell_vol_frac * iblock.get_value(ic_vx,ic_vy,ic_vz));
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_j   , fcell_k   , n_subcells,     
-			       wx*(1-wy)*(1-wz) * subcell_vol_frac * iblock.get_value(ic_p1_vx,ic_vy,ic_vz));
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_p1_j, fcell_k   , n_subcells, 
-			       (1-wx)*   wy *(1-wz) * subcell_vol_frac * iblock.get_value(ic_vx,ic_p1_vy,ic_vz));
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_p1_k, n_subcells, 
-			       (1-wx)*(1-wy)*   wz * subcell_vol_frac * iblock.get_value(ic_vx,ic_vy,ic_p1_vz));
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_p1_j, fcell_p1_k, n_subcells, 
-			       (1-wx)*   wy *   wz * subcell_vol_frac * iblock.get_value(ic_vx,ic_p1_vy,ic_p1_vz));
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_j   , fcell_p1_k, n_subcells,    
-			       wx *(1-wy)*   wz * subcell_vol_frac  * iblock.get_value(ic_p1_vx,ic_vy,ic_p1_vz));
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_p1_j, fcell_k   , n_subcells,    
-			       wx *   wy *(1-wz) * subcell_vol_frac * iblock.get_value(ic_p1_vx,ic_p1_vy,ic_vz));
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_p1_j, fcell_p1_k, n_subcells,    
-			       wx *   wy *   wz * subcell_vol_frac  * iblock.get_value(ic_p1_vx,ic_p1_vy,ic_p1_vz));
+
+      const double ic_vx    = 0.5*(midpoint_x+v[0])+to_source_frame_x;
+      const double ic_vy    = 0.5*(midpoint_y+v[1])+to_source_frame_y;
+      const double ic_vz    = 0.5*(midpoint_z+v[2])+to_source_frame_z;
+      const double ic_p1_vx = ic_vx+0.5*particle_dvx;
+      const double ic_p1_vy = ic_vy+0.5*particle_dvy;
+      const double ic_p1_vz = ic_vz+0.5*particle_dvz;
+
+
+/*
+      const double ic_vx =    v[0]+to_source_frame_x;
+      const double ic_p1_vx = v[0]+to_source_frame_x;
+      const double ic_vy =    v[1]+to_source_frame_y;
+      const double ic_p1_vy = v[1]+to_source_frame_y;
+      const double ic_vz =    v[2]+to_source_frame_z;
+      const double ic_p1_vz = v[2]+to_source_frame_z;
+*/   
+      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_k   , n_subcells,(1-wx)*(1-wy)*(1-wz) * subcell_vol_frac * iblock.get_value(ic_vx   ,ic_vy   ,ic_vz   ));
+      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_j   , fcell_k   , n_subcells,    wx*(1-wy)*(1-wz) * subcell_vol_frac * iblock.get_value(ic_p1_vx,ic_vy   ,ic_vz   ));
+      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_p1_j, fcell_k   , n_subcells,(1-wx)*   wy *(1-wz) * subcell_vol_frac * iblock.get_value(ic_vx   ,ic_p1_vy,ic_vz   ));
+      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_p1_k, n_subcells,(1-wx)*(1-wy)*   wz  * subcell_vol_frac * iblock.get_value(ic_vx   ,ic_vy   ,ic_p1_vz));
+      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_p1_j, fcell_p1_k, n_subcells,(1-wx)*   wy *   wz  * subcell_vol_frac * iblock.get_value(ic_vx   ,ic_p1_vy,ic_p1_vz));
+      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_j   , fcell_p1_k, n_subcells,   wx *(1-wy)*   wz  * subcell_vol_frac * iblock.get_value(ic_p1_vx,ic_vy   ,ic_p1_vz));
+      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_p1_j, fcell_k   , n_subcells,   wx *   wy *(1-wz) * subcell_vol_frac * iblock.get_value(ic_p1_vx,ic_p1_vy,ic_vz   ));
+      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_p1_j, fcell_p1_k, n_subcells,   wx *   wy *   wz  * subcell_vol_frac * iblock.get_value(ic_p1_vx,ic_p1_vy,ic_p1_vz));
    }
 }
 
