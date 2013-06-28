@@ -122,7 +122,7 @@ inline void volintegrated_interpolation(SpatialCell* spatial_cell,const Array3d 
    const unsigned int fcell_p1_i=(p_i+1)/n_subcells;
    const unsigned int fcell_p1_j=(p_j+1)/n_subcells;
    const unsigned int fcell_p1_k=(p_k+1)/n_subcells;
-   const subcell_vol_frac=1.0/(n_subcells*n_subcells*n_subcells); //relative part of the total volume for the one subcell represented by v
+   const double  subcell_vol_frac=1.0/(n_subcells*n_subcells*n_subcells); //relative part of the total volume for the one subcell represented by v
 
    //midpoint of the lower left cell
    const double midpoint_x=p_i*particle_dvx + SpatialCell::vx_min+0.5*particle_dvx;
@@ -134,9 +134,9 @@ inline void volintegrated_interpolation(SpatialCell* spatial_cell,const Array3d 
    const double wy=(fcell_j!=fcell_p1_j)?((v[1]-midpoint_y)/particle_dvy):0.0;
    const double wz=(fcell_k!=fcell_p1_k)?((v[2]-midpoint_z)/particle_dvz):0.0;
 //includes no rotation
-   const double to_source_frame_i=v_source[0]-v[0];
-   const double to_source_frame_j=v_source[1]-v[1];
-   const double to_source_frame_k=v_source[2]-v[2];
+   const double to_source_frame_x=v_source[0]-v[0];
+   const double to_source_frame_y=v_source[1]-v[1];
+   const double to_source_frame_z=v_source[2]-v[2];
    
    
    
@@ -156,12 +156,12 @@ inline void volintegrated_interpolation(SpatialCell* spatial_cell,const Array3d 
      //frame, as that is what we use to read in from iblock the value
      //of the middle of the cube. For a hinged hyperplane
      //interpolation this will * volume give us and exact integration
-     const double ic_vx =    0.5*(midpoint_x+v[0]             )+to_source_frame[0];
-     const double ic_p1_vx = 0.5*(midpoint_x+v[0]+particle_dvx)+to_source_frame[0];
-     const double ic_vy =    0.5*(midpoint_y+v[1]             )+to_source_frame[1];
-     const double ic_p1_vy = 0.5*(midpoint_y+v[1]+particle_dvy)+to_source_frame[1];
-     const double ic_vz =    0.5*(midpoint_z+v[2]             )+to_source_frame[2];
-     const double ic_p1_vz = 0.5*(midpoint_z+v[2]+particle_dvz)+to_source_frame[2];
+     const double ic_vx =    0.5*(midpoint_x+v[0]             )+to_source_frame_x;
+     const double ic_p1_vx = 0.5*(midpoint_x+v[0]+particle_dvx)+to_source_frame_x;
+     const double ic_vy =    0.5*(midpoint_y+v[1]             )+to_source_frame_y;
+     const double ic_p1_vy = 0.5*(midpoint_y+v[1]+particle_dvy)+to_source_frame_y;
+     const double ic_vz =    0.5*(midpoint_z+v[2]             )+to_source_frame_z;
+     const double ic_p1_vz = 0.5*(midpoint_z+v[2]+particle_dvz)+to_source_frame_z;
 
      
       cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_k   , n_subcells, 
