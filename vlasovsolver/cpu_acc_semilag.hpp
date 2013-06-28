@@ -37,12 +37,14 @@ using namespace Eigen;
 
 TODO
 
-Handle v space boundaries properly and quickly
+Handle v space boundaries properly and quickly in CIC
 Use real not double (or own float datatype?)
-remove einspline (useless)
 Use agner's vectorclass (perhaps the 3 vectors with position?)
-test nsubcells and make to parameter
 
+
+DONE/WONTFIX
+remove einspline (useless)
+test nsubcells and make to parameter: Parameter much slower (wontfix)
 
 */
 
