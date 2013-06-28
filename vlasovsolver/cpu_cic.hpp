@@ -122,7 +122,7 @@ inline void volintegrated_interpolation(SpatialCell* spatial_cell,const Array3d 
    const unsigned int fcell_p1_i=(p_i+1)/n_subcells;
    const unsigned int fcell_p1_j=(p_j+1)/n_subcells;
    const unsigned int fcell_p1_k=(p_k+1)/n_subcells;
-   const relative_volume=1.0/(n_subcells*n_subcells*n_subcells); //relative part of the total volume for the one subcell represented by v
+   const subcell_vol_frac=1.0/(n_subcells*n_subcells*n_subcells); //relative part of the total volume for the one subcell represented by v
 
    //midpoint of the lower left cell
    const double midpoint_x=p_i*particle_dvx + SpatialCell::vx_min+0.5*particle_dvx;
@@ -134,54 +134,52 @@ inline void volintegrated_interpolation(SpatialCell* spatial_cell,const Array3d 
    const double wy=(fcell_j!=fcell_p1_j)?((v[1]-midpoint_y)/particle_dvy):0.0;
    const double wz=(fcell_k!=fcell_p1_k)?((v[2]-midpoint_z)/particle_dvz):0.0;
 //includes no rotation
-   const to_source_frame=v_source[
+   const double to_source_frame_i=v_source[0]-v[0];
+   const double to_source_frame_j=v_source[1]-v[1];
+   const double to_source_frame_k=v_source[2]-v[2];
+   
    
    
    if(fcell_i==fcell_p1_i && fcell_j==fcell_p1_j && fcell_k==fcell_p1_k){
       cic_increment_cell_value(spatial_cell, fcell_i  , fcell_j  , fcell_k  , n_subcells,
-                               iblock.get_value(v_source[0],v_source[1],v_source[2])*relative_volume);
+                               iblock.get_value(v_source[0],v_source[1],v_source[2])*subcell_vol_frac);
    }
-   else if (fcell_i==fcell_p1_i && fcell_j==fcell_p1_j)  {
-      
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_k   , n_subcells,
-                               (1-wz)*iblock.get_value(v_source[0],v_source[1], 0.5*(midpoint_z+v[2])  )*relative_volume);
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_p1_k, n_subcells,  wz *value);
-   }
-   else if (fcell_j==fcell_p1_j && fcell_k==fcell_p1_k)  {
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_k   , n_subcells, (1-wx)*value);
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_j   , fcell_k   , n_subcells, wx*value);
-   }
-   else if (fcell_i==fcell_p1_i && fcell_k==fcell_p1_k)  {
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_k   , n_subcells, (1-wy)*value);
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_p1_j, fcell_k   , n_subcells,  wy *value);
-   }
-   else if (fcell_i==fcell_p1_i)  {
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_k   , n_subcells, (1-wy)*(1-wz)*value);
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_p1_j, fcell_k   , n_subcells,    wy *(1-wz)*value);
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_p1_j, fcell_p1_k, n_subcells,    wy *   wz *value);
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_p1_k, n_subcells, (1-wy)*   wz *value);
-   }
-   else if (fcell_j==fcell_p1_j)  {
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_k   , n_subcells, (1-wx)*(1-wz)*value);
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_j   , fcell_k   , n_subcells, wx*(1-wz)*value);
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_p1_k, n_subcells, (1-wx)* wz *value);
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_j   , fcell_p1_k, n_subcells,    wx * wz *value);
-   }
-   else if (fcell_k==fcell_p1_k)  {
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_k   , n_subcells, (1-wx)*(1-wy)*value);
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_j   , fcell_k   , n_subcells,     wx*(1-wy)*value);
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_p1_j, fcell_k   , n_subcells, (1-wx)*   wy *value);
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_p1_j, fcell_k   , n_subcells,    wx *   wy *value);
-   }
+   //   else if (fcell_i==fcell_p1_i && fcell_j==fcell_p1_j)  {
+   //   else if (fcell_j==fcell_p1_j && fcell_k==fcell_p1_k)  {
+   //   else if (fcell_i==fcell_p1_i && fcell_k==fcell_p1_k)  {
+   //   else if (fcell_i==fcell_p1_i)  {
+   //   else if (fcell_j==fcell_p1_j)  {
+   //   else if (fcell_k==fcell_p1_k)  {
    else{
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_k   , n_subcells, (1-wx)*(1-wy)*(1-wz)*value);
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_j   , fcell_k   , n_subcells,     wx*(1-wy)*(1-wz)*value);
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_p1_j, fcell_k   , n_subcells, (1-wx)*   wy *(1-wz)*value);
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_p1_k, n_subcells, (1-wx)*(1-wy)*   wz *value);
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_p1_j, fcell_p1_k, n_subcells, (1-wx)*   wy *   wz *value);
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_j   , fcell_p1_k, n_subcells,    wx *(1-wy)*   wz *value);
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_p1_j, fcell_k   , n_subcells,    wx *   wy *(1-wz)*value);
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_p1_j, fcell_p1_k, n_subcells,    wx *   wy *   wz *value);   
+     //these are the midpoints of the intersecting cubes formed by the
+     //particle cubic clound with the target grid. It is in source
+     //frame, as that is what we use to read in from iblock the value
+     //of the middle of the cube. For a hinged hyperplane
+     //interpolation this will * volume give us and exact integration
+     const double ic_vx =    0.5*(midpoint_x+v[0]             )+to_source_frame[0];
+     const double ic_p1_vx = 0.5*(midpoint_x+v[0]+particle_dvx)+to_source_frame[0];
+     const double ic_vy =    0.5*(midpoint_y+v[1]             )+to_source_frame[1];
+     const double ic_p1_vy = 0.5*(midpoint_y+v[1]+particle_dvy)+to_source_frame[1];
+     const double ic_vz =    0.5*(midpoint_z+v[2]             )+to_source_frame[2];
+     const double ic_p1_vz = 0.5*(midpoint_z+v[2]+particle_dvz)+to_source_frame[2];
+
+     
+      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_k   , n_subcells, 
+			       (1-wx)*(1-wy)*(1-wz) * subcell_vol_frac * iblock.get_value(ic_vx,ic_vy,ic_vz));
+      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_j   , fcell_k   , n_subcells,     
+			       wx*(1-wy)*(1-wz) * subcell_vol_frac * iblock.get_value(ic_p1_vx,ic_vy,ic_vz));
+      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_p1_j, fcell_k   , n_subcells, 
+			       (1-wx)*   wy *(1-wz) * subcell_vol_frac * iblock.get_value(ic_vx,ic_p1_vy,ic_vz));
+      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_p1_k, n_subcells, 
+			       (1-wx)*(1-wy)*   wz * subcell_vol_frac * iblock.get_value(ic_vx,ic_vy,ic_p1_vz));
+      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_p1_j, fcell_p1_k, n_subcells, 
+			       (1-wx)*   wy *   wz * subcell_vol_frac * iblock.get_value(ic_vx,ic_p1_vy,ic_p1_vz));
+      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_j   , fcell_p1_k, n_subcells,    
+			       wx *(1-wy)*   wz * subcell_vol_frac  * iblock.get_value(ic_p1_vx,ic_vy,ic_p1_vz));
+      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_p1_j, fcell_k   , n_subcells,    
+			       wx *   wy *(1-wz) * subcell_vol_frac * iblock.get_value(ic_p1_vx,ic_p1_vy,ic_vz));
+      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_p1_j, fcell_p1_k, n_subcells,    
+			       wx *   wy *   wz * subcell_vol_frac  * iblock.get_value(ic_p1_vx,ic_p1_vy,ic_p1_vz));
    }
 }
 
