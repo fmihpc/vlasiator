@@ -1,5 +1,8 @@
+
+
+
 //template<typename T> inline T cell_ib_id(const T& i,const T& j,const T& k) {return k*64+j*8+i;}
-template<typename T> inline T cell_ib_id(const T& i,const T& j,const T& k) {return k+j*6+i*36;} //einspline required order
+template<typename T> inline T cell_ib_id(const T& i,const T& j,const T& k) {return k+j*6+i*36;} //internal get ib cell id. This takes in indices in natural 6x6x6 frame
 template<typename T> inline T cell_id(const T& i,const T& j,const T& k) {return k*WID2+j*WID+i;}
 
 enum BlockInterpolationType { CONSTANT, HINGED_HYPERPLANE};
@@ -17,6 +20,17 @@ class interpolated_block {
              return eval_nointerpolation(x,y,z);
           case HINGED_HYPERPLANE:
              return eval_hinged_hyperplane(x,y,z);
+
+      }
+      return 0.0;
+   }
+   
+   inline double get_value(unsigned int cellid,double x,double y,double z){
+      switch(this->interpolationType) {
+          case CONSTANT:
+             return eval_nointerpolation(x,y,z);
+          case HINGED_HYPERPLANE:
+             return eval_hinged_hyperplane(cellid,x,y,z);
       }
       return 0.0;
    }
@@ -32,8 +46,10 @@ class interpolated_block {
              break;
       }
    }
-   
-   
+   inline unsigned int get_cell_id(const unsigned int i,const unsigned int j,const unsigned int k){
+      return cell_ib_id(i+1,j+1,k+1);
+   }
+
 private:
    /*private parameters*/
    const BlockInterpolationType interpolationType;
@@ -65,7 +81,7 @@ private:
          (z - hh_parameters[cell_id][Z0]) * hh_parameters[cell_id][DFDZ];
    }
    /*get value in a particular velocity cell, at x,y,z*/
-   double eval_hinged_hyperplane_at_cell(unsigned int cell_id,double x,double y,double z){
+   double eval_hinged_hyperplane(unsigned int cell_id,double x,double y,double z){
       //TODO, we could store x0,y0,z0 and dfdxyz for each cell when reading the block and then reuse them when evaluating. Coudl save for multiple subcells.
       //TODO, derivatives need to be limited to avoid negative regions. Do we also need similar limiters like in fvm...?
       return avgs[cell_id]+
@@ -95,13 +111,13 @@ private:
                /*Get the minimum value of the interpolation from one
                 * of the 8 corners of the cell. We know based on the
                 * derivatives which it is*/
-               double minVal=eval_hinged_hyperplane_at_cell(cell_id,
-                                                            block_ptr->parameters[BlockParams::VXCRD]+
-                                                            (cell_x+(hh_parameters[cell_id][DFDX]<0))*block_ptr->parameters[BlockParams::DVX],
-                                                            block_ptr->parameters[BlockParams::VYCRD]+
-                                                            (cell_y+(hh_parameters[cell_id][DFDY]<0))*block_ptr->parameters[BlockParams::DVY],
-                                                            block_ptr->parameters[BlockParams::VZCRD]+
-                                                            (cell_z+(hh_parameters[cell_id][DFDZ]<0))*block_ptr->parameters[BlockParams::DVZ]);
+               double minVal=eval_hinged_hyperplane(cell_id,
+                                                    block_ptr->parameters[BlockParams::VXCRD]+
+                                                    (cell_x+(hh_parameters[cell_id][DFDX]<0))*block_ptr->parameters[BlockParams::DVX],
+                                                    block_ptr->parameters[BlockParams::VYCRD]+
+                                                    (cell_y+(hh_parameters[cell_id][DFDY]<0))*block_ptr->parameters[BlockParams::DVY],
+                                                    block_ptr->parameters[BlockParams::VZCRD]+
+                                                    (cell_z+(hh_parameters[cell_id][DFDZ]<0))*block_ptr->parameters[BlockParams::DVZ]);
                
                if(minVal<0){
                   /*scale derivatives so that the minimum value of the interpolation is zero*/
