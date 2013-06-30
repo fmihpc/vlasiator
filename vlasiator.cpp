@@ -349,7 +349,8 @@ int main(int argn,char* args[]) {
          P::dt=newDt;
       phiprof::stop("compute-dt");
 
-      if(P::maxAccelerationSubsteps!=1){
+      
+      if(P::maxAccelerationSubsteps!=1 && ! P::vlasovSemiLagAcceleration){
          //Now we make a small "hack" and compute an artifical number
          //of substeps, this is here to improve the initial load
          //balance, otherwise the first step may have a really bad load imbalance
