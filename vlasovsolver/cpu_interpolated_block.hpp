@@ -99,15 +99,22 @@ private:
                hh_parameters[cell_id][X0]=block_ptr->parameters[BlockParams::VXCRD]+(cell_x+0.5)*block_ptr->parameters[BlockParams::DVX];
                hh_parameters[cell_id][Y0]=block_ptr->parameters[BlockParams::VYCRD]+(cell_y+0.5)*block_ptr->parameters[BlockParams::DVY];
                hh_parameters[cell_id][Z0]=block_ptr->parameters[BlockParams::VZCRD]+(cell_z+0.5)*block_ptr->parameters[BlockParams::DVZ];
-               
+
+               if(avgs[cell_id]<0) {
+                  //Not-so-nice situation of negative dist function produced by limiters of Leveque, or something else*/
+                  //Let's  just have a flat hyperplane here to avoid more serious problems
+                  hh_parameters[cell_id][DFDX]=0.0;
+                  hh_parameters[cell_id][DFDY]=0.0;
+                  hh_parameters[cell_id][DFDZ]=0.0;
+                  continue;
+               }
                hh_parameters[cell_id][DFDX]=(avgs[cell_ib_id(cell_x+2,cell_y+1,cell_z+1)]-
                                   avgs[cell_ib_id(cell_x+0,cell_y+1,cell_z+1)])/(2.0*block_ptr->parameters[BlockParams::DVX]);
                hh_parameters[cell_id][DFDY]=(avgs[cell_ib_id(cell_x+1,cell_y+2,cell_z+1)]-
                                              avgs[cell_ib_id(cell_x+1,cell_y+0,cell_z+1)])/(2.0*block_ptr->parameters[BlockParams::DVY]);
                hh_parameters[cell_id][DFDZ]=(avgs[cell_ib_id(cell_x+1,cell_y+1,cell_z+2)]-
                                   avgs[cell_ib_id(cell_x+1,cell_y+1,cell_z+0)])/(2.0*block_ptr->parameters[BlockParams::DVZ]);
-               hh_parameters[216][NUM_HH_PARAMS];
-
+               
                /*Get the minimum value of the interpolation from one
                 * of the 8 corners of the cell. We know based on the
                 * derivatives which it is*/
@@ -118,7 +125,6 @@ private:
                                                     (cell_y+(hh_parameters[cell_id][DFDY]<0))*block_ptr->parameters[BlockParams::DVY],
                                                     block_ptr->parameters[BlockParams::VZCRD]+
                                                     (cell_z+(hh_parameters[cell_id][DFDZ]<0))*block_ptr->parameters[BlockParams::DVZ]);
-               
                if(minVal<0){
                   /*scale derivatives so that the minimum value of the interpolation is zero*/
                   double alpha=avgs[cell_id]/(avgs[cell_id]-minVal);
@@ -329,7 +335,7 @@ private:
          nbrAvgs = block_ptr->neighbors[velocity_neighbor::XP1_YP1_ZP1]->fx;
          avgs[cell_ib_id(MAX,MAX,MAX)]=nbrAvgs[cell_id(BLOCKMIN,BLOCKMIN,BLOCKMIN)];
       }
+   
    }
-
 };
 
