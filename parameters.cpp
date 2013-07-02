@@ -210,7 +210,10 @@ bool Parameters::addParameters(){
 // Output variable parameters
    Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available are B BackgroundB PerturbedB E Rho RhoV RhoLossAdjust RhoLossVelBoundary MPIrank Blocks BoundaryType BoundaryLayer VolE VolB Pressure PTensor derivs BVOLderivs MaxVdt MaxRdt MaxFieldsdt LBweight VelocitySubSteps.");
    Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Available (20121005) are Blocks FluxB FluxE Rho RhoLossAdjust RhoLossVelBoundary  MaxDistributionFunction MinDistributionFunction  BoundaryType BoundaryLayer  MaxVdt MaxRdt MaxFieldsdt LBweight.");
-
+   Readparameters::addComposing("variables.dr_backstream_vx", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.");
+   Readparameters::addComposing("variables.dr_backstream_vy", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.");
+   Readparameters::addComposing("variables.dr_backstream_vz", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.");
+   Readparameters::addComposing("variables.dr_backstream_radius", "Radius of the maxwellian distribution. Used for calculating the backstream contriution for rho");
    
    return true;
 }
@@ -313,6 +316,14 @@ bool Parameters::getParameters(){
    // Get output variable parameters
    Readparameters::get("variables.output", P::outputVariableList);
    Readparameters::get("variables.diagnostic", P::diagnosticVariableList);
+
+   //Get parameters related to calculating backstream contributions
+   Readparameters::get("variables.dr_backstream_radius", P::backstreamradius);
+   Readparameters::get("variables.dr_backstream_vx", P::backstreamvx);
+   Readparameters::get("variables.dr_backstream_vy", P::backstreamvy);
+   Readparameters::get("variables.dr_backstream_vz", P::backstreamvz);
+
+
    
    return true;
 }

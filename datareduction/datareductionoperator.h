@@ -22,6 +22,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <vector>
 #include "../definitions.h"
 #include "../spatial_cell.hpp"
+#include "../parameters.h"
 using namespace spatial_cell;
 
 namespace DRO {
@@ -289,6 +290,81 @@ namespace DRO {
    protected:
       Real minF;
    };
+
+   class VariableRhoBackstream: public DataReductionOperator {
+     public:
+        VariableRhoBackstream();
+        virtual ~VariableRhoBackstream();
+     
+        virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+        virtual std::string getName() const;
+        virtual bool reduceData(const SpatialCell* cell,char* buffer);
+        virtual bool setSpatialCell(const SpatialCell* cell);
+     
+     protected:
+	Real RhoBackstream;
+   };
+
+   class VariableRhoNonBackstream: public DataReductionOperator {
+     public:
+        VariableRhoNonBackstream();
+        virtual ~VariableRhoNonBackstream();
+     
+        virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+        virtual std::string getName() const;
+        virtual bool reduceData(const SpatialCell* cell,char* buffer);
+        virtual bool setSpatialCell(const SpatialCell* cell);
+     
+     protected:
+	Real Rho;
+   };
+
+
+   class VariableRhoVBackstream: public DataReductionOperator {
+     public:
+        VariableRhoVBackstream();
+        virtual ~VariableRhoVBackstream();
+     
+        virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+        virtual std::string getName() const;
+        virtual bool reduceData(const SpatialCell* cell,char* buffer);
+        virtual bool setSpatialCell(const SpatialCell* cell);
+     
+     protected:
+	Real RhoVBackstream[3];
+   };
+
+   class VariablePressureBackstream: public DataReductionOperator {
+     public:
+        VariablePressureBackstream();
+        virtual ~VariablePressureBackstream();
+
+        virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+        virtual std::string getName() const;
+        virtual bool reduceData(const SpatialCell* cell,char* buffer);
+        virtual bool setSpatialCell(const SpatialCell* cell);
+
+     protected:
+        Real averageVX, averageVY, averageVZ;
+        Real Pressure;
+   };
+
+   class VariablePTensorBackstreamDiagonal: public DataReductionOperator {
+   public:
+      VariablePTensorBackstreamDiagonal();
+      virtual ~VariablePTensorBackstreamDiagonal();
+      
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      
+   protected:
+      Real averageVX, averageVY, averageVZ;
+      Real PTensor[3];
+   };
+
+
    
 } // namespace DRO
 

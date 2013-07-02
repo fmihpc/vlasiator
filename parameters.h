@@ -53,6 +53,12 @@ struct Parameters {
    static uint vyblocks_ini; /*!< Initial number of velocity grid blocks in vy-direction. */
    static uint vzblocks_ini; /*!< Initial number of velocity grid blocks in vz-direction. */
 
+   static Real backstreamradius; /*!< Radius of the maxwellian distribution. Used for calculating rho of the backstream population. */
+   static Real backstreamvx; /*!< X coordinate of the origin of the maxwellian distribution. Used for calculating rho of the backstream population. */
+   static Real backstreamvy; /*!< Y coordinate of the origin of the maxwellian distribution. Used for calculating rho of the backstream population. */
+   static Real backstreamvz; /*!< Z coordinate of the origin of the maxwellian distribution. Used for calculating rho of the backstream population. */
+
+
    static Real q;                    /*!< Charge of simulated particle species.*/
    static Real m;                    /*!< Mass of simulated particle species.*/
    static Real q_per_m;              /*!< Charge-to-mass ratio of simulated particle species,
