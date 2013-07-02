@@ -23,7 +23,7 @@
 
 #include "datareductionoperator.h"
 #include "../vlscommon.h"
-#include "../parameters.h"
+//#include "../parameters.h"
 
 using namespace std;
 

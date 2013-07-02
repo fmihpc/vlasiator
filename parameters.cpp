@@ -2,18 +2,6 @@
 This file is part of Vlasiator.
 
 Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
-
 */
 
 #include "parameters.h"
@@ -50,6 +38,11 @@ Real P::vymin = NAN;
 Real P::vymax = NAN;
 Real P::vzmin = NAN;
 Real P::vzmax = NAN;
+
+Real backstreamradius = NAN;
+Real backstreamvx = NAN;
+Real backstreamvy = NAN;
+Real backstreamvz = NAN;
 
 uint P::xcells_ini = numeric_limits<uint>::max();
 uint P::ycells_ini = numeric_limits<uint>::max();
@@ -210,11 +203,11 @@ bool Parameters::addParameters(){
 // Output variable parameters
    Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available are B BackgroundB PerturbedB E Rho RhoV RhoLossAdjust RhoLossVelBoundary MPIrank Blocks BoundaryType BoundaryLayer VolE VolB Pressure PTensor derivs BVOLderivs MaxVdt MaxRdt MaxFieldsdt LBweight VelocitySubSteps.");
    Readparameters::addComposing("variables.diagnostic", "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Available (20121005) are Blocks FluxB FluxE Rho RhoLossAdjust RhoLossVelBoundary  MaxDistributionFunction MinDistributionFunction  BoundaryType BoundaryLayer  MaxVdt MaxRdt MaxFieldsdt LBweight.");
-   Readparameters::addComposing("variables.dr_backstream_vx", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.");
-   Readparameters::addComposing("variables.dr_backstream_vy", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.");
-   Readparameters::addComposing("variables.dr_backstream_vz", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.");
-   Readparameters::addComposing("variables.dr_backstream_radius", "Radius of the maxwellian distribution. Used for calculating the backstream contriution for rho");
-   
+   Readparameters::add("variables.dr_backstream_vx", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.", 0.0);
+   Readparameters::add("variables.dr_backstream_vy", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.", 0.0);
+   Readparameters::add("variables.dr_backstream_vz", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.", 0.0);
+   Readparameters::add("variables.dr_backstream_radius", "Radius of the maxwellian distribution. Used for calculating the backstream contriution for rho", 10.0);
+
    return true;
 }
 
