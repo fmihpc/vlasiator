@@ -842,10 +842,8 @@ namespace DRO {
             getBackstreamVelocityCells(block, vCells);
             for( vector< uint64_t >::const_iterator it = vCells.begin(); it != vCells.end(); ++it ) {
                //velocity cell id = *it
-               thread_n_sum += block-> data[(*it)];
+               thread_n_sum += block-> data[(*it)] * DV3;
             }
-            //Multiply by the volume:
-            thread_n_sum = thread_n_sum * DV3;
          }
 
          // Accumulate contributions coming from this velocity block
@@ -895,10 +893,8 @@ namespace DRO {
             getBackstreamVelocityCells(block, vCells);
             for( vector< uint64_t >::const_iterator it = vCells.begin(); it != vCells.end(); ++it ) {
                //velocity cell id = *it
-               thread_n_sum += block-> data[(*it)];
+               thread_n_sum += block-> data[(*it)] * DV3;
             }
-            //Multiply by the volume:
-            thread_n_sum = thread_n_sum * DV3;
          }
 
          // Accumulate contributions coming from this velocity block
@@ -957,13 +953,10 @@ namespace DRO {
                const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
                const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
                const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
-               thread_nvx_sum += block->data[cellIndex(i,j,k)]*VX;
-               thread_nvy_sum += block->data[cellIndex(i,j,k)]*VY;
-               thread_nvz_sum += block->data[cellIndex(i,j,k)]*VZ;
+               thread_nvx_sum += block->data[cellIndex(i,j,k)]*VX*DV3;
+               thread_nvy_sum += block->data[cellIndex(i,j,k)]*VY*DV3;
+               thread_nvz_sum += block->data[cellIndex(i,j,k)]*VZ*DV3;
             }
-            thread_nvx_sum = thread_nvx_sum * DV3;
-            thread_nvy_sum = thread_nvy_sum * DV3;
-            thread_nvz_sum = thread_nvz_sum * DV3;
          }
 
          // Accumulate contributions coming from this velocity block
@@ -1028,14 +1021,10 @@ namespace DRO {
                const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
                const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
                const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
-               thread_nvx2_sum += block-> data[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX);
-               thread_nvy2_sum += block-> data[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY);
-               thread_nvz2_sum += block-> data[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ);
+               thread_nvx2_sum += block-> data[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
+               thread_nvy2_sum += block-> data[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
+               thread_nvz2_sum += block-> data[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
             }
-            //Multiply by volume:
-            thread_nvx2_sum = thread_nvx2_sum * DV3;
-            thread_nvy2_sum = thread_nvy2_sum * DV3;
-            thread_nvz2_sum = thread_nvz2_sum * DV3;
          }
          
          // Accumulate contributions coming from this velocity block to the 
@@ -1107,14 +1096,10 @@ namespace DRO {
                const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
                const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
                const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
-               thread_nvxvx_sum += block-> data[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX);
-               thread_nvyvy_sum += block-> data[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY);
-               thread_nvzvz_sum += block-> data[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ);
+               thread_nvxvx_sum += block-> data[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
+               thread_nvyvy_sum += block-> data[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
+               thread_nvzvz_sum += block-> data[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
             }
-            //Multiply by volume:
-            thread_nvxvx_sum = thread_nvxvx_sum * DV3;
-            thread_nvyvy_sum = thread_nvyvy_sum * DV3;
-            thread_nvzvz_sum = thread_nvzvz_sum * DV3;
          }
          
          // Accumulate contributions coming from this velocity block to the 
