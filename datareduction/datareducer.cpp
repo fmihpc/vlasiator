@@ -41,8 +41,18 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("E",CellParams::EX,3));
       if(*it == "Rho")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho",CellParams::RHO,1));
+      if(*it == "RhoBackstream")
+         outputReducer->addOperator(new DRO::VariableRhoBackstream);
       if(*it == "RhoV")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_v",CellParams::RHOVX,3));
+      if(*it == "RhoVBackstream")
+         outputReducer->addOperator(new DRO::VariableRhoVBackstream);
+      if(*it == "PressureBackstream")
+         outputReducer->addOperator(new DRO::VariablePressureBackstream);
+      if(*it == "PTensorBackstreamDiagonal")
+         outputReducer->addOperator(new DRO::VariablePTensorBackstreamDiagonal);
+      if(*it == "RhoNonBackstream")
+         outputReducer->addOperator(new DRO::VariableRhoNonBackstream);
       if(*it == "RhoLossAdjust")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_adjust",CellParams::RHOLOSSADJUST,1));
       if(*it == "RhoLossVelBoundary")

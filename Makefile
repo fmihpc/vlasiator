@@ -169,7 +169,7 @@ integratefunction.o: ${DEPS_COMMON} backgroundfield/integratefunction.cpp backgr
 datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/datareducer.h datareduction/datareductionoperator.h datareduction/datareducer.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareduction/datareducer.cpp ${INC_MPI} ${INC_BOOST}
 
-datareductionoperator.o:  ${DEPS_COMMON} spatial_cell.hpp datareduction/datareductionoperator.h datareduction/datareductionoperator.cpp
+datareductionoperator.o:  ${DEPS_COMMON} parameters.h spatial_cell.hpp datareduction/datareductionoperator.h datareduction/datareductionoperator.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareduction/datareductionoperator.cpp ${INC_MPI} ${INC_BOOST}
 
 donotcompute.o: ${DEPS_COMMON} sysboundary/donotcompute.h sysboundary/donotcompute.cpp

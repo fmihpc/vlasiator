@@ -23,8 +23,11 @@
 
 #include "datareductionoperator.h"
 #include "../vlscommon.h"
+//#include "../parameters.h"
 
 using namespace std;
+
+typedef Parameters P;
 
 namespace DRO {
    
@@ -774,5 +777,373 @@ namespace DRO {
       return true;
    }
 
+   //Helper function for getting the velocity cell ids that are a part of the backstream population:
+   static void getBackstreamVelocityCells( const Velocity_Block * block, vector<uint64_t> & vCellIds ) {
+      const Real HALF = 0.5;
+      for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
+         const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
+         const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
+         const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+         if( ( (P::backstreamvx - VX)*(P::backstreamvx - VX)
+             + (P::backstreamvy - VY)*(P::backstreamvy - VY)
+             + (P::backstreamvz - VZ)*(P::backstreamvz - VZ) )
+             >
+             P::backstreamradius*P::backstreamradius ) {
+             //The velocity cell is a part of the backstream population:
+             vCellIds.push_back(cellIndex(i,j,k));
+          }
+      }
+   }
+   //Helper function for getting the velocity cell ids that are a part of the backstream population as well as their coordinates:
+   static void getBackstreamVelocityCellIndices( const Velocity_Block * block, 
+                                                 vector<array<uint, 3>> & vCellIndices ) {
+      const Real HALF = 0.5;
+      for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
+         const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
+         const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
+         const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+         if( ( (P::backstreamvx - VX)*(P::backstreamvx - VX)
+             + (P::backstreamvy - VY)*(P::backstreamvy - VY)
+             + (P::backstreamvz - VZ)*(P::backstreamvz - VZ) )
+             >
+             P::backstreamradius*P::backstreamradius ) {
+             //The velocity cell is a part of the backstream population:
+             const array<uint, 3> indices{{i, j, k}};
+             vCellIndices.push_back( indices );
+          }
+      }
+   }
+
+   // Rho backstream:
+   VariableRhoBackstream::VariableRhoBackstream(): DataReductionOperator() { }
+   VariableRhoBackstream::~VariableRhoBackstream() { }
+   
+   std::string VariableRhoBackstream::getName() const {return "RhoBackstream";}
+   
+   bool VariableRhoBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 1;
+      return true;
+   }
+   
+   // Adding rho backstream calculations to Vlasiator.
+   bool VariableRhoBackstream::reduceData(const SpatialCell* cell,char* buffer) {
+      const Real HALF = 0.5;
+      # pragma omp parallel
+      {
+         Real thread_n_sum = 0.0;
+         # pragma omp for
+         for(uint n=0; n<cell->number_of_blocks; n++) {
+            const unsigned int blockId = cell->velocity_block_list[n];
+            const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
+            const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
+            vector< uint64_t > vCells; //Velocity cell ids
+            getBackstreamVelocityCells(block, vCells);
+            for( vector< uint64_t >::const_iterator it = vCells.begin(); it != vCells.end(); ++it ) {
+               //velocity cell id = *it
+               thread_n_sum += block-> data[(*it)];
+            }
+            //Multiply by the volume:
+            thread_n_sum = thread_n_sum * DV3;
+         }
+
+         // Accumulate contributions coming from this velocity block
+         // If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         # pragma omp critical
+         {
+            RhoBackstream += thread_n_sum;
+         }
+      }
+      const char* ptr = reinterpret_cast<const char*>(&RhoBackstream);
+      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariableRhoBackstream::setSpatialCell(const SpatialCell* cell) {
+      RhoBackstream = 0.0;
+      return true;
+   }
+
+
+   // Rho non backstream:
+   VariableRhoNonBackstream::VariableRhoNonBackstream(): DataReductionOperator() { }
+   VariableRhoNonBackstream::~VariableRhoNonBackstream() { }
+   
+   std::string VariableRhoNonBackstream::getName() const {return "RhoNonBackstream";}
+   
+   bool VariableRhoNonBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 1;
+      return true;
+   }
+   
+   // Adding rho non backstream calculations to Vlasiator.
+   bool VariableRhoNonBackstream::reduceData(const SpatialCell* cell,char* buffer) {
+      const Real HALF = 0.5;
+      # pragma omp parallel
+      {
+         Real thread_n_sum = 0.0;
+         # pragma omp for
+         for(uint n=0; n<cell->number_of_blocks; n++) {
+            const unsigned int blockId = cell->velocity_block_list[n];
+            const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
+            const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
+            vector< uint64_t > vCells; //Velocity cell ids
+            getBackstreamVelocityCells(block, vCells);
+            for( vector< uint64_t >::const_iterator it = vCells.begin(); it != vCells.end(); ++it ) {
+               //velocity cell id = *it
+               thread_n_sum += block-> data[(*it)];
+            }
+            //Multiply by the volume:
+            thread_n_sum = thread_n_sum * DV3;
+         }
+
+         // Accumulate contributions coming from this velocity block
+         // If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         # pragma omp critical
+         {
+            Rho += thread_n_sum;
+         }
+      }
+      const char* ptr = reinterpret_cast<const char*>(&Rho);
+      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariableRhoNonBackstream::setSpatialCell(const SpatialCell* cell) {
+      Rho = 0.0;
+      return true;
+   }
+
+   //Rho v backstream:
+   VariableRhoVBackstream::VariableRhoVBackstream(): DataReductionOperator() { }
+   VariableRhoVBackstream::~VariableRhoVBackstream() { }
+   
+   std::string VariableRhoVBackstream::getName() const {return "RhoVBackstream";}
+   
+   bool VariableRhoVBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 3;
+      return true;
+   }
+
+
+
+   // Adding rho v backstream calculations to Vlasiator.
+   bool VariableRhoVBackstream::reduceData(const SpatialCell* cell,char* buffer) {
+      const Real HALF = 0.5;
+      # pragma omp parallel
+      {
+         Real thread_nvx_sum = 0.0;
+         Real thread_nvy_sum = 0.0;
+         Real thread_nvz_sum = 0.0;
+         # pragma omp for
+         for(uint n=0; n<cell->number_of_blocks; n++) {
+            const unsigned int blockId = cell->velocity_block_list[n];
+            const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
+            const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
+            vector< array<uint, 3> > vCellIndices;
+            getBackstreamVelocityCellIndices(block, vCellIndices);
+            for( vector< array<uint, 3> >::const_iterator it = vCellIndices.begin(); it != vCellIndices.end(); ++it ) {
+               const array<uint, 3> indices = *it;
+               const uint i = indices[0];
+               const uint j = indices[1];
+               const uint k = indices[2];
+               const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
+               const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
+               const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+               thread_nvx_sum += block->data[cellIndex(i,j,k)]*VX;
+               thread_nvy_sum += block->data[cellIndex(i,j,k)]*VY;
+               thread_nvz_sum += block->data[cellIndex(i,j,k)]*VZ;
+            }
+            thread_nvx_sum = thread_nvx_sum * DV3;
+            thread_nvy_sum = thread_nvy_sum * DV3;
+            thread_nvz_sum = thread_nvz_sum * DV3;
+         }
+
+         // Accumulate contributions coming from this velocity block
+         // If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         # pragma omp critical
+         {
+            RhoVBackstream[0] += thread_nvx_sum;
+            RhoVBackstream[1] += thread_nvy_sum;
+            RhoVBackstream[2] += thread_nvz_sum;
+         }
+      }
+      const uint RhoVBackstreamSize = 3;
+      const char* ptr = reinterpret_cast<const char*>(&RhoVBackstream);
+      for (uint i=0; i<RhoVBackstreamSize*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariableRhoVBackstream::setSpatialCell(const SpatialCell* cell) {
+      for( uint i = 0; i < 3; ++i ) {
+         RhoVBackstream[i] = 0.0;
+      }
+      return true;
+   }
+
+   // Scalar pressure of backstream
+   VariablePressureBackstream::VariablePressureBackstream(): DataReductionOperator() { }
+   VariablePressureBackstream::~VariablePressureBackstream() { }
+   
+   std::string VariablePressureBackstream::getName() const {return "PressureBackstream";}
+   
+   bool VariablePressureBackstream::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 1;
+      return true;
+   }
+   
+   // Adding pressure backstream calculations to Vlasiator.
+   // p = m/3 * integral((v - <V>)^2 * f(r,v) dV), doing the sum of the x, y and z components.
+   bool VariablePressureBackstream::reduceData(const SpatialCell* cell,char* buffer) {
+      const Real HALF = 0.5;
+      const Real THIRD = 1.0/3.0;
+      # pragma omp parallel
+      {
+         Real thread_nvx2_sum = 0.0;
+         Real thread_nvy2_sum = 0.0;
+         Real thread_nvz2_sum = 0.0;
+         # pragma omp for
+         for(uint n=0; n<cell->number_of_blocks; n++) {
+            unsigned int blockId = cell->velocity_block_list[n];
+            const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
+            const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
+            vector< array<uint, 3> > vCellIndices;
+            getBackstreamVelocityCellIndices(block, vCellIndices);
+            for( vector< array<uint, 3> >::const_iterator it = vCellIndices.begin(); it != vCellIndices.end(); ++it ) {
+               //Go through every velocity cell:
+               const array<uint, 3> indices = *it;
+               const uint i = indices[0];
+               const uint j = indices[1];
+               const uint k = indices[2];
+               const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
+               const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
+               const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+               thread_nvx2_sum += block-> data[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX);
+               thread_nvy2_sum += block-> data[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY);
+               thread_nvz2_sum += block-> data[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ);
+            }
+            //Multiply by volume:
+            thread_nvx2_sum = thread_nvx2_sum * DV3;
+            thread_nvy2_sum = thread_nvy2_sum * DV3;
+            thread_nvz2_sum = thread_nvz2_sum * DV3;
+         }
+         
+         // Accumulate contributions coming from this velocity block to the 
+         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         # pragma omp critical
+         {
+            Pressure += physicalconstants::MASS_PROTON * THIRD * (thread_nvx2_sum + thread_nvy2_sum + thread_nvz2_sum);
+         }
+      }
+      const char* ptr = reinterpret_cast<const char*>(&Pressure);
+      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariablePressureBackstream::setSpatialCell(const SpatialCell* cell) {
+      if(cell-> parameters[CellParams::RHO] != 0.0) {
+         averageVX = cell-> parameters[CellParams::RHOVX] / cell-> parameters[CellParams::RHO];
+         averageVY = cell-> parameters[CellParams::RHOVY] / cell-> parameters[CellParams::RHO];
+         averageVZ = cell-> parameters[CellParams::RHOVZ] / cell-> parameters[CellParams::RHO];
+      } else {
+         averageVX = 0.0;
+         averageVY = 0.0;
+         averageVZ = 0.0;
+      }
+      Pressure = 0.0;
+      return true;
+   }
+
+   // Adding pressure calculations for backstream population to Vlasiator.
+   // p_ij = m/3 * integral((v - <V>)_i(v - <V>)_j * f(r,v) dV)
+   
+   // Pressure tensor 6 components (11, 22, 33, 23, 13, 12) added by YK
+   // Split into VariablePTensorBackstreamDiagonal (11, 22, 33)
+   // and VariablePTensorOffDiagonal (23, 13, 12)
+   VariablePTensorBackstreamDiagonal::VariablePTensorBackstreamDiagonal(): DataReductionOperator() { }
+   VariablePTensorBackstreamDiagonal::~VariablePTensorBackstreamDiagonal() { }
+   
+   std::string VariablePTensorBackstreamDiagonal::getName() const {return "PTensorDiagonal";}
+   
+   bool VariablePTensorBackstreamDiagonal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 3;
+      return true;
+   }
+   
+   bool VariablePTensorBackstreamDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
+      const Real HALF = 0.5;
+      const Real THIRD = 1.0/3.0;
+      # pragma omp parallel
+      {
+         Real thread_nvxvx_sum = 0.0;
+         Real thread_nvyvy_sum = 0.0;
+         Real thread_nvzvz_sum = 0.0;
+         # pragma omp for
+         for(uint n=0; n<cell->number_of_blocks; n++) {
+            unsigned int blockId = cell->velocity_block_list[n];
+            const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
+            const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
+            vector< array<uint, 3> > vCellIndices;
+            getBackstreamVelocityCellIndices(block, vCellIndices);
+            for( vector< array<uint, 3> >::const_iterator it = vCellIndices.begin(); it != vCellIndices.end(); ++it ) {
+               //Go through every velocity cell:
+               const array<uint, 3> indices = *it;
+               const uint i = indices[0];
+               const uint j = indices[1];
+               const uint k = indices[2];
+               const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
+               const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
+               const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+               thread_nvxvx_sum += block-> data[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX);
+               thread_nvyvy_sum += block-> data[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY);
+               thread_nvzvz_sum += block-> data[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ);
+            }
+            //Multiply by volume:
+            thread_nvxvx_sum = thread_nvxvx_sum * DV3;
+            thread_nvyvy_sum = thread_nvyvy_sum * DV3;
+            thread_nvzvz_sum = thread_nvzvz_sum * DV3;
+         }
+         
+         // Accumulate contributions coming from this velocity block to the 
+         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         # pragma omp critical
+         {
+            PTensor[0] += physicalconstants::MASS_PROTON * THIRD * thread_nvxvx_sum;
+            PTensor[1] += physicalconstants::MASS_PROTON * THIRD * thread_nvyvy_sum;
+            PTensor[2] += physicalconstants::MASS_PROTON * THIRD * thread_nvzvz_sum;
+         }
+      }
+      const char* ptr = reinterpret_cast<const char*>(&PTensor);
+      for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariablePTensorBackstreamDiagonal::setSpatialCell(const SpatialCell* cell) {
+      if(cell-> parameters[CellParams::RHO] != 0.0) {
+         averageVX = cell-> parameters[CellParams::RHOVX] / cell-> parameters[CellParams::RHO];
+         averageVY = cell-> parameters[CellParams::RHOVY] / cell-> parameters[CellParams::RHO];
+         averageVZ = cell-> parameters[CellParams::RHOVZ] / cell-> parameters[CellParams::RHO];
+      } else {
+         averageVX = 0.0;
+         averageVY = 0.0;
+         averageVZ = 0.0;
+      }
+      for(int i = 0; i < 3; i++) PTensor[i] = 0.0;
+      return true;
+   }
    
 } // namespace DRO

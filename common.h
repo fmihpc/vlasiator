@@ -108,6 +108,7 @@ namespace CellParams {
       PERBY,  /*!< Perturbed Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
       PERBZ,  /*!< Perturbed Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
       RHO,    /*!< Number density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      RHO_BACKSTREAM, /*!< Number density of the backstream.*/
       RHOVX,  /*!< x-component of number density times Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOVY,  /*!< y-component of number density times Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOVZ,  /*!< z-component of number density times Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
@@ -135,6 +136,7 @@ namespace CellParams {
       RHOVY_R,   /*!< RHOVX after propagation in ordinary space*/
       RHOVZ_R,   /*!< RHOVX after propagation in ordinary space*/
       RHO_V,     /*!< RHO after propagation in velocity space*/
+      RHO_V_BACKSTREAM, /*!< RHO_BACKSTREAM after propagation in velocity space*/
       RHOVX_V,   /*!< RHOVX after propagation in velocity space*/
       RHOVY_V,   /*!< RHOVX after propagation in velocity space*/
       RHOVZ_V,   /*!< RHOVX after propagation in velocity space*/
