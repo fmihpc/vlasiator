@@ -113,9 +113,10 @@ bool P::isRestart=false;
 string P::loadBalanceAlgorithm = string("");
 string P::loadBalanceTolerance = string("");
 uint P::rebalanceInterval = numeric_limits<uint>::max();
+
 Real P::loadBalanceAlpha = 1.0;
 Real P::loadBalanceBeta = 0.0;
-
+Real P::loadBalanceGamma = 0.0;
 
 vector<string> P::outputVariableList;
 vector<string> P::diagnosticVariableList;
@@ -208,8 +209,9 @@ bool Parameters::addParameters(){
    Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("RCB"));
    Readparameters::add("loadBalance.tolerance", "Load imbalance tolerance", std::string("1.05"));
    Readparameters::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
-   Readparameters::add("loadBalance.alpha", "alpha in LB weight = blocks * (alpha + beta*substeps)",1.0);
-   Readparameters::add("loadBalance.beta", "alpha in LB weight = blocks * (alpha + beta*substeps)",0.2);
+   Readparameters::add("loadBalance.alpha", "alpha in LB weight = gamma + blocks * (alpha + beta*substeps)",1.0);
+   Readparameters::add("loadBalance.beta", "beta in LB weight = gamma + blocks * (alpha + beta*substeps)",0.2);
+   Readparameters::add("loadBalance.gamma", "gamma in LB weight = gamma + blocks * (alpha + beta*substeps)",0);
    
    
 // Output variable parameters
@@ -316,6 +318,7 @@ bool Parameters::getParameters(){
    Readparameters::get("loadBalance.rebalanceInterval", P::rebalanceInterval);
    Readparameters::get("loadBalance.alpha", P::loadBalanceAlpha);
    Readparameters::get("loadBalance.beta", P::loadBalanceBeta);
+   Readparameters::get("loadBalance.gamma", P::loadBalanceGamma);
 
    // Get output variable parameters
    Readparameters::get("variables.output", P::outputVariableList);

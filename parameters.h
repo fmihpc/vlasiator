@@ -112,8 +112,9 @@ struct Parameters {
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
    static std::string loadBalanceTolerance; /*!< Load imbalance tolerance. */ 
    static uint rebalanceInterval; /*!< Load rebalance interval (steps). */
-   static Real loadBalanceAlpha; /*!< alpha in cell load balance weight = blocks * (alpha + beta*substeps) */
-   static Real loadBalanceBeta; /*!< alpha in cell load balance weight = blocks * (alpha + beta*substeps) */
+   static Real loadBalanceAlpha; /*!< alpha in cell load balance weight = gamma + blocks * (alpha + beta*substeps) */
+   static Real loadBalanceBeta; /*!< alpha in cell load balance weight = gamma + blocks * (alpha + beta*substeps) */
+   static Real loadBalanceGamma; /*!< gamma icell load balance weight = gamma + blocks * (alpha + beta*substeps) */
    
    static std::vector<std::string> outputVariableList; /*!< List of data reduction operators (DROs) to add to the grid file output.*/
    static std::vector<std::string> diagnosticVariableList; /*!< List of data reduction operators (DROs) to add to the diagnostic runtime output.*/
