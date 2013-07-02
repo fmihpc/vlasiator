@@ -39,10 +39,10 @@ Real P::vymax = NAN;
 Real P::vzmin = NAN;
 Real P::vzmax = NAN;
 
-Real backstreamradius = NAN;
-Real backstreamvx = NAN;
-Real backstreamvy = NAN;
-Real backstreamvz = NAN;
+Real P::backstreamradius = NAN;
+Real P::backstreamvx = NAN;
+Real P::backstreamvy = NAN;
+Real P::backstreamvz = NAN;
 
 uint P::xcells_ini = numeric_limits<uint>::max();
 uint P::ycells_ini = numeric_limits<uint>::max();
