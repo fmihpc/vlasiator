@@ -48,21 +48,6 @@ test nsubcells and make to parameter: Parameter much slower (wontfix)
 
 */
 
-/*
-template<typename T> inline T cell_full_id(const T& cell_x,const T& cell_y,const T& cell_z,
-                                         const T& block_x,const T& block_y,const T& block_z) {
-   return WID*block_x+cell_x +
-      WID*SpatialCell::vx_length*(WID*block_y+cell_y) +
-      WID2*SpatialCell::vx_length*SpatialCell::vy_length*(WID*block_z+cell_z);
-}
-
-
-template<typename T> inline T block_id(const T& block_x,const T& block_y,const T& block_z){
-   return block_x + SpatialCell::vx_length*block_y + SpatialCell::vx_length*SpatialCell::vy_length*block_z;
-}
-*/
-
-
 
 /*Compute transform during on timestep, and update the bulk velocity of the cell*/
 
@@ -148,12 +133,6 @@ Transform<double,3,Affine> compute_acceleration_transformation( SpatialCell* spa
       total_transform=Translation<double,3>(rotation_pivot)*total_transform;
       //TODO: In which order are these operations done on a point!!!
    }
-
-   /*update bulk velocity, have not yet rotated the dist function*/
-   bulk_velocity=total_transform*bulk_velocity;
-   spatial_cell->parameters[CellParams::RHOVX_V] = rho*bulk_velocity[0];
-   spatial_cell->parameters[CellParams::RHOVY_V] = rho*bulk_velocity[1];
-   spatial_cell->parameters[CellParams::RHOVZ_V] = rho*bulk_velocity[2];
 
    return total_transform;
 }
