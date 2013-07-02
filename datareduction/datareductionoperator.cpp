@@ -794,6 +794,23 @@ namespace DRO {
           }
       }
    }
+   //Helper function for getting the velocity cell ids that are a part of the backstream population:
+   static void getNonBackstreamVelocityCells( const Velocity_Block * block, vector<uint64_t> & vCellIds ) {
+      const Real HALF = 0.5;
+      for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
+         const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
+         const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
+         const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+         if( ( (P::backstreamvx - VX)*(P::backstreamvx - VX)
+             + (P::backstreamvy - VY)*(P::backstreamvy - VY)
+             + (P::backstreamvz - VZ)*(P::backstreamvz - VZ) )
+             <=
+             P::backstreamradius*P::backstreamradius ) {
+             //The velocity cell is a part of the backstream population:
+             vCellIds.push_back(cellIndex(i,j,k));
+          }
+      }
+   }
    //Helper function for getting the velocity cell ids that are a part of the backstream population as well as their coordinates:
    static void getBackstreamVelocityCellIndices( const Velocity_Block * block, 
                                                  vector<array<uint, 3>> & vCellIndices ) {
@@ -890,7 +907,7 @@ namespace DRO {
             const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
             const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
             vector< uint64_t > vCells; //Velocity cell ids
-            getBackstreamVelocityCells(block, vCells);
+            getNonBackstreamVelocityCells(block, vCells);
             for( vector< uint64_t >::const_iterator it = vCells.begin(); it != vCells.end(); ++it ) {
                //velocity cell id = *it
                thread_n_sum += block-> data[(*it)] * DV3;
