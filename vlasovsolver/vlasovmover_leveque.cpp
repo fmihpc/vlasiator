@@ -310,7 +310,7 @@ void calculateAcceleration(
       //Semilagrangian acceleration
 
       phiprof::start("semilag-acc");
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic,1)
       for (size_t c=0; c<propagatedCells.size(); ++c) {
          const CellID cellID = propagatedCells[c];
          mpiGrid[cellID]->subStepsAcceleration=1;// always just one substep in SL
