@@ -3,244 +3,146 @@ This file is part of Vlasiator.
 
 Copyright 2012 Finnish Meteorological Institute
 
-
-
-
-
-
-
-
-
-
-
-
 */
 
 #ifndef CPU_ACC_SEMILAG_H
 #define CPU_ACC_SEMILAG_H
 
 #include "algorithm"
-#include "boost/array.hpp"
-#include "boost/assign/list_of.hpp"
-#include "boost/foreach.hpp"
 #include "cmath"
 #include "utility"
 
 #include "common.h"
 #include "spatial_cell.hpp"
 
+#include <Eigen/Geometry>
+#include "vlasovsolver/cpu_interpolated_block.hpp"
+#include "vlasovsolver/cpu_cic.hpp"
 using namespace std;
 using namespace spatial_cell;
+using namespace Eigen;
 
-typedef boost::array<double, 3> coordinate_t;
+/*
 
-/*!
-Return the relative shared volume of cubes specified by given arguments.
+TODO
 
-Returned value is relative to length1^3 and is between 0 and 1.
+Handle v space boundaries properly and quickly in CIC
+Use real not double (or own float datatype?)
+Use agner's vectorclass (perhaps the 3 vectors with position?)
+
+
+DONE/WONTFIX
+remove einspline (useless)
+test nsubcells and make to parameter: Parameter much slower (wontfix)
+
 */
-double get_relative_shared_volume(
-	const boost::array<double, 3>& center1,
-	const double length1,
-	const boost::array<double, 3>& center2,
-	const double length2
-) {
-	const double overlapping_x = std::min(length1, std::min(length2, (length1 + length2) / 2 - fabs(center1[0] - center2[0]))),
-		overlapping_y = std::min(length1, std::min(length2, (length1 + length2) / 2 - fabs(center1[1] - center2[1]))),
-		overlapping_z = std::min(length1, std::min(length2, (length1 + length2) / 2 - fabs(center1[2] - center2[2])));
-	return std::max(0.0, overlapping_x)
-		* std::max(0.0, overlapping_y)
-		* std::max(0.0, overlapping_z)
-		/ std::min(length1 * length1 * length1, length2 * length2 * length2);
+
+
+/*Compute transform during on timestep, and update the bulk velocity of the cell*/
+
+Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spatial_cell, const Real dt) {
+   /*total field*/
+   const Real Bx = spatial_cell->parameters[CellParams::BGBXVOL]+spatial_cell->parameters[CellParams::PERBXVOL];
+   const Real By = spatial_cell->parameters[CellParams::BGBYVOL]+spatial_cell->parameters[CellParams::PERBYVOL];
+   const Real Bz = spatial_cell->parameters[CellParams::BGBZVOL]+spatial_cell->parameters[CellParams::PERBZVOL];
+   /*perturbed field*/
+   const Real perBx = spatial_cell->parameters[CellParams::PERBXVOL];
+   const Real perBy = spatial_cell->parameters[CellParams::PERBYVOL];
+   const Real perBz = spatial_cell->parameters[CellParams::PERBZVOL];   
+   //read in derivatives need for curl of B (only pertrubed, curl of background field is always 0!)
+   const Real dBXdy = spatial_cell->derivativesBVOL[bvolderivatives::dPERBXVOLdy]/spatial_cell->parameters[CellParams::DY];
+   const Real dBXdz = spatial_cell->derivativesBVOL[bvolderivatives::dPERBXVOLdz]/spatial_cell->parameters[CellParams::DZ];
+   const Real dBYdx = spatial_cell->derivativesBVOL[bvolderivatives::dPERBYVOLdx]/spatial_cell->parameters[CellParams::DX];
+
+   const Real dBYdz = spatial_cell->derivativesBVOL[bvolderivatives::dPERBYVOLdz]/spatial_cell->parameters[CellParams::DZ];
+   const Real dBZdx = spatial_cell->derivativesBVOL[bvolderivatives::dPERBZVOLdx]/spatial_cell->parameters[CellParams::DX];
+   const Real dBZdy = spatial_cell->derivativesBVOL[bvolderivatives::dPERBZVOLdy]/spatial_cell->parameters[CellParams::DY];
+
+   
+   const Eigen::Matrix<Real,3,1> B(Bx,By,Bz);
+   const Eigen::Matrix<Real,3,1> unit_B(B.normalized());
+   const Real gyro_period = 2 * M_PI * Parameters::m  / (fabs(Parameters::q) * B.norm());
+   //Set maximum timestep limit for this cell, based on a  maximum allowed rotation angle
+   //TODO, max angle could be read in from cfg
+   spatial_cell->parameters[CellParams::MAXVDT]=gyro_period*(10.0/360.0);
+   
+  //compute initial moments, based on actual distribution function
+   spatial_cell->parameters[CellParams::RHO_V  ] = 0.0;
+   spatial_cell->parameters[CellParams::RHOVX_V] = 0.0;
+   spatial_cell->parameters[CellParams::RHOVY_V] = 0.0;
+   spatial_cell->parameters[CellParams::RHOVZ_V] = 0.0;
+   
+   for(unsigned int block_i=0; block_i< spatial_cell->number_of_blocks;block_i++){
+      unsigned int block = spatial_cell->velocity_block_list[block_i];         
+      cpu_calcVelocityMoments(spatial_cell,block,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V);   
+   }
+
+   
+   
+   const Real rho=spatial_cell->parameters[CellParams::RHO_V];
+   //scale rho for hall term, if user requests
+   const Real hallRho =  (rho <= Parameters::lorentzHallMinimumRho ) ? Parameters::lorentzHallMinimumRho : rho ;
+   const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRho * Parameters::q );
+
+   Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::RHOVX_V]/rho,
+                                 spatial_cell->parameters[CellParams::RHOVY_V]/rho,
+                                 spatial_cell->parameters[CellParams::RHOVZ_V]/rho);   
+
+   /*compute total transformation*/
+   Transform<Real,3,Affine> total_transform(Matrix4d::Identity());
+      
+   unsigned int bulk_velocity_substeps; /*!<in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep*/
+
+   if(Parameters::lorentzHallTerm)
+      bulk_velocity_substeps=dt/(gyro_period*(0.1/360.0)); 
+   else
+      bulk_velocity_substeps=1;
+   
+   /*note, we assume q is positive (pretty good assumption though)*/
+   const Real substeps_radians=-(2.0*M_PI*dt/gyro_period)/bulk_velocity_substeps; /*!< how many radians each substep is*/
+   for(uint i=0;i<bulk_velocity_substeps;i++){
+   
+      /*rotation origin is the point through which we place our rotation axis (direction of which is unitB)*/
+      /*first add bulk velocity (using the total transform computed this far*/
+      Eigen::Matrix<Real,3,1> rotation_pivot(total_transform*bulk_velocity);
+      
+      if(Parameters::lorentzHallTerm) {
+         //inlude lorentzHallTerm (we should include, always)      
+         rotation_pivot[0]-=hallPrefactor*(dBZdy - dBYdz);
+         rotation_pivot[1]-=hallPrefactor*(dBXdz - dBZdx);
+         rotation_pivot[2]-=hallPrefactor*(dBYdx - dBXdy);
+      }
+      
+      /*add to transform matrix the small rotation around  pivot
+        when added like thism, and not using *= operator, the transformations
+        are in the correct order
+       */
+      total_transform=Translation<Real,3>(-rotation_pivot)*total_transform;
+      total_transform=AngleAxis<Real>(substeps_radians,unit_B)*total_transform;
+      total_transform=Translation<Real,3>(rotation_pivot)*total_transform;
+      //TODO: In which order are these operations done on a point!!!
+   }
+
+   return total_transform;
 }
 
 /*!
 Propagates the distribution function in velocity space of given real space cell.
+
+TODO:
+  now this is all Real: enable Real
+
 */
-void cpu_accelerate_cell(
-	SpatialCell& spatial_cell,
-	const double dt,
-	const double steps_per_orbit,
-	const double charge,
-	const double mass
-) {
-	if (dt <= 0) {
-		std::cerr << __FILE__ << ":" << __LINE__ << " dt must be > 0: " << dt << std::endl;
-		abort();
-	}
 
-	if (mass <= 0) {
-		std::cerr << __FILE__ << ":" << __LINE__ << " mass must be > 0: " << dt << std::endl;
-		abort();
-	}
+void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
 
-	const double Bx = spatial_cell.parameters[CellParams::BXVOL],
-		By = spatial_cell.parameters[CellParams::BYVOL],
-		Bz = spatial_cell.parameters[CellParams::BZVOL],
-		Ex = spatial_cell.parameters[CellParams::EXVOL],
-		Ey = spatial_cell.parameters[CellParams::EYVOL],
-		Ez = spatial_cell.parameters[CellParams::EZVOL];
-
-	// don't iterate over blocks added by this function
-	std::vector<unsigned int> blocks;
-	for (unsigned int block_i = 0; block_i < spatial_cell.number_of_blocks; block_i++) {
-		blocks.push_back(spatial_cell.velocity_block_list[block_i]);
-	}
-
-	// calculate how many steps to take when tracing particle trajectory
-	unsigned int substeps = 0;
-	double orbit_time = 0;
-	const double B_abs = sqrt(Bx * Bx + By * By + Bz * Bz);
-	if (B_abs == 0) {
-		substeps = 1;
-	} else {
-		orbit_time = 2 * M_PI * mass / (fabs(charge) * B_abs);
-		substeps = (unsigned int) ceil(dt / (orbit_time * steps_per_orbit));
-	}
-
-	// break every velocity cell into this many subcells when accelerating
-	const int x_subcells = 1,
-		y_subcells = 1,
-		z_subcells = 1,
-		subcells = x_subcells * y_subcells * z_subcells;
-
-	const double sub_dvx = SpatialCell::cell_dvx / x_subcells,
-		sub_dvy = SpatialCell::cell_dvy / y_subcells,
-		sub_dvz = SpatialCell::cell_dvz / z_subcells;
-
-	BOOST_FOREACH(unsigned int block, blocks) {
-
-		for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
-
-			const double cell_vx_min = SpatialCell::get_velocity_cell_vx_min(block, cell),
-				cell_vy_min = SpatialCell::get_velocity_cell_vy_min(block, cell),
-				cell_vz_min = SpatialCell::get_velocity_cell_vz_min(block, cell);
-
-			// TODO: higher order reconstruction of distribution function in subcells
-			const double distribution_function = spatial_cell.at(block)->data[cell] / subcells;
-
-			for (int x_i = 0; x_i < x_subcells; x_i++)
-			for (int y_i = 0; y_i < y_subcells; y_i++)
-			for (int z_i = 0; z_i < z_subcells; z_i++) {
-
-				// accelerate a particle with given charge and mass
-				boost::array<double, 3> current_v = {{
-					cell_vx_min + (x_i + 0.5) * sub_dvx,
-					cell_vy_min + (y_i + 0.5) * sub_dvy,
-					cell_vz_min + (z_i + 0.5) * sub_dvz
-				}};
-
-				for (unsigned int substep = 0; substep < substeps; substep++) {
-					const double ax = charge * (Ex + current_v[1] * Bz - current_v[2] * By) / mass,
-						ay = charge * (Ey + current_v[2] * Bx - current_v[0] * Bz) / mass,
-						az = charge * (Ez + current_v[0] * By - current_v[1] * Bx) / mass;
-
-						current_v[0] += ax * dt / substeps;
-						current_v[1] += ay * dt / substeps;
-						current_v[2] += az * dt / substeps;
-				}
-
-				// get all velocity block & cell pairs which overlap with current subcell
-				boost::unordered_set<std::pair<unsigned int, unsigned int> > targets;
-
-				const double dvx = sub_dvx / 2,
-					dvy = sub_dvy / 2,
-					dvz = sub_dvz / 2;
-
-				const boost::array<boost::array<double, 3>, 8> target_coordinates = boost::assign::list_of
-					(boost::assign::list_of(current_v[0] - dvx)(current_v[1] - dvy)(current_v[2] - dvz))
-					(boost::assign::list_of(current_v[0] - dvx)(current_v[1] - dvy)(current_v[2] + dvz))
-					(boost::assign::list_of(current_v[0] - dvx)(current_v[1] + dvy)(current_v[2] - dvz))
-					(boost::assign::list_of(current_v[0] - dvx)(current_v[1] + dvy)(current_v[2] + dvz))
-					(boost::assign::list_of(current_v[0] + dvx)(current_v[1] - dvy)(current_v[2] - dvz))
-					(boost::assign::list_of(current_v[0] + dvx)(current_v[1] - dvy)(current_v[2] + dvz))
-					(boost::assign::list_of(current_v[0] + dvx)(current_v[1] + dvy)(current_v[2] - dvz))
-					(boost::assign::list_of(current_v[0] + dvx)(current_v[1] + dvy)(current_v[2] + dvz));
-
-				BOOST_FOREACH(coordinate_t coordinate, target_coordinates) {
-					const unsigned int target_block = SpatialCell::get_velocity_block(
-						coordinate[0],
-						coordinate[1],
-						coordinate[2]
-					);
-
-					if (target_block == error_velocity_block) {
-						continue;
-					}
-
-					if (!spatial_cell.add_velocity_block(target_block)) {
-						std::cerr << __FILE__ << ":" << __LINE__
-							<< " Couldn't add target velocity block " << target_block
-							<< std::endl;
-						abort();
-					}
-
-					const unsigned int target_cell = SpatialCell::get_velocity_cell(
-						target_block,
-						coordinate[0],
-						coordinate[1],
-						coordinate[2]
-					);
-
-					if (target_cell == error_velocity_cell) {
-						continue;
-					}
-
-					targets.insert(std::make_pair(target_block, target_cell));
-				}
-
-				// assign fluxes to target cells from current subcell
-				for (boost::unordered_set<std::pair<unsigned int, unsigned int> >::const_iterator
-					item = targets.begin();
-					item != targets.end();
-					item++
-				) {
-					const unsigned int target_block = item->first,
-						target_cell = item->second;
-
-					const boost::array<double, 3> target_v = {{
-						(SpatialCell::get_velocity_cell_vx_min(target_block, target_cell)
-							+ SpatialCell::get_velocity_cell_vx_max(target_block, target_cell)) / 2,
-						(SpatialCell::get_velocity_cell_vy_min(target_block, target_cell)
-							+ SpatialCell::get_velocity_cell_vy_max(target_block, target_cell)) / 2,
-						(SpatialCell::get_velocity_cell_vz_min(target_block, target_cell)
-							+ SpatialCell::get_velocity_cell_vz_max(target_block, target_cell)) / 2
-					}};
-
-					// assign value based on shared volume between target and source cells
-					const double shared_V = get_relative_shared_volume(
-						current_v,
-						sub_dvx,
-						target_v,
-						SpatialCell::cell_dvx
-					);
-
-					Velocity_Block* block_ptr = spatial_cell.at(target_block);
-					block_ptr->fx[target_cell] += distribution_function * shared_V;
-				}
-			}
-		}
-	}
+   phiprof::start("compute-transform");
+   //compute the transform performed in this acceleration
+   Transform<Real,3,Affine> total_transform= compute_acceleration_transformation(spatial_cell,dt);
+   phiprof::stop("compute-transform");
+   cic(spatial_cell,total_transform);
 }
-
-/*!
-Applies fluxes of the distribution function in given spatial cell.
-
-Overwrites current cell data with fluxes and zeroes fluxes.
-*/
-void apply_fluxes(SpatialCell& spatial_cell)
-{
-	for (unsigned int block_i = 0; block_i < spatial_cell.number_of_blocks; block_i++) {
-		const unsigned int block = spatial_cell.velocity_block_list[block_i];
-
-		Velocity_Block* block_ptr = spatial_cell.at(block);
-
-		for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
-			block_ptr->data[cell] = block_ptr->fx[cell];
-			block_ptr->fx[cell] = 0;
-		}
-	}
-}
+   
 
 #endif
 

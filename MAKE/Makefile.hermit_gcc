@@ -19,9 +19,9 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 4.7.2
-CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -pedantic -Wno-unused  -fabi-version=6 -mfma4
+CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -pedantic -Wno-unused  -fabi-version=6 -mfma4 -DEIGEN_NO_DEBUG
 # CXXFLAGS += -g -O0 -funroll-loops -fopenmp -std=c++0x -fabi-version=6 -mfma4
-MATHFLAGS = -ffast-math
+MATHFLAGS =  -ffast-math
 LDFLAGS =
 LIB_MPI = -lgomp
 

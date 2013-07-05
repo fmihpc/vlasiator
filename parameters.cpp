@@ -106,14 +106,17 @@ bool P::isRestart=false;
 string P::loadBalanceAlgorithm = string("");
 string P::loadBalanceTolerance = string("");
 uint P::rebalanceInterval = numeric_limits<uint>::max();
+
 Real P::loadBalanceAlpha = 1.0;
 Real P::loadBalanceBeta = 0.0;
-
+Real P::loadBalanceGamma = 0.0;
 
 vector<string> P::outputVariableList;
 vector<string> P::diagnosticVariableList;
 
 string P::projectName = string("");
+
+bool P::vlasovSemiLagAcceleration=true;
 
 bool P::lorentzHallTerm=false;
 Real P::lorentzHallMinimumRho=1.0;
@@ -181,6 +184,7 @@ bool Parameters::addParameters(){
    Readparameters::add("fieldsolver.minCFL","The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",0.4);
 
    // Vlasov solver parameters
+   Readparameters::add("vlasovsolver.vlasovSemiLagAcceleration","Use Semi-Lagrangian solver for acceleration",false);
    Readparameters::add("vlasovsolver.lorentzHallTerm", "Add JxB term to Lorentz force",true);
    Readparameters::add("vlasovsolver.lorentzHallMinimumRho", "Minimum rho value used for Hall term in Lorentz force. Default is very low and has no effect in practice.",1.0);
    Readparameters::add("vlasovsolver.lorentzHallMaximumB", "Maximum value used for Hall term in Lorentz force. Default is very high and has no effect in practice.",1.0); 
@@ -196,8 +200,9 @@ bool Parameters::addParameters(){
    Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("RCB"));
    Readparameters::add("loadBalance.tolerance", "Load imbalance tolerance", std::string("1.05"));
    Readparameters::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
-   Readparameters::add("loadBalance.alpha", "alpha in LB weight = blocks * (alpha + beta*substeps)",1.0);
-   Readparameters::add("loadBalance.beta", "alpha in LB weight = blocks * (alpha + beta*substeps)",0.2);
+   Readparameters::add("loadBalance.alpha", "alpha in LB weight = gamma + blocks * (alpha + beta*substeps)",1.0);
+   Readparameters::add("loadBalance.beta", "beta in LB weight = gamma + blocks * (alpha + beta*substeps)",0.2);
+   Readparameters::add("loadBalance.gamma", "gamma in LB weight = gamma + blocks * (alpha + beta*substeps)",0);
    
    
 // Output variable parameters
@@ -288,6 +293,7 @@ bool Parameters::getParameters(){
    Readparameters::get("fieldsolver.maxCFL",P::fieldSolverMaxCFL);
    Readparameters::get("fieldsolver.minCFL",P::fieldSolverMinCFL);
    // Get Vlasov solver parameters
+   Readparameters::get("vlasovsolver.vlasovSemiLagAcceleration",P::vlasovSemiLagAcceleration);
    Readparameters::get("vlasovsolver.lorentzHallTerm", P::lorentzHallTerm);
    Readparameters::get("vlasovsolver.lorentzHallMinimumRho",P::lorentzHallMinimumRho);
    Readparameters::get("vlasovsolver.lorentzHallMaximumB",P::lorentzHallMaximumB);
@@ -305,6 +311,7 @@ bool Parameters::getParameters(){
    Readparameters::get("loadBalance.rebalanceInterval", P::rebalanceInterval);
    Readparameters::get("loadBalance.alpha", P::loadBalanceAlpha);
    Readparameters::get("loadBalance.beta", P::loadBalanceBeta);
+   Readparameters::get("loadBalance.gamma", P::loadBalanceGamma);
 
    // Get output variable parameters
    Readparameters::get("variables.output", P::outputVariableList);

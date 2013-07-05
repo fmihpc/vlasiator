@@ -40,9 +40,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "crayxttorus.h"
 #endif
 
-#ifdef SEMILAG
 #include "cpu_acc_semilag.hpp"
-#endif
 #include "cpu_acc_leveque.hpp"
 
 #include "cpu_lorentz.hpp"
@@ -307,97 +305,100 @@ void calculateAcceleration(
 
       SC->subStepsAcceleration=0;// subSteps is the number of substeps for each cell
    }
-   
 
-/*
-  TODO notes
-  - Adjust blocks takes a lot of time, probably does not need to be done at every timestep
-*/
-   
-   if(P::maxAccelerationSubsteps!=1){
-      int step=0;
-      //substep acceleration until total dt is reached. dt should
-      //be set such that the maximum number of substeps is not
-      //exceeded. As the max dt is set separately for each substep,
-      //we may compute slightly more steps anyway
-      vector< Real> subDt(propagatedCells.size(),0.0);      //subdt is the current time step for each cell 
-      vector< Real> subt(propagatedCells.size(),0.0);       //subt is the current time in the substep for each cell (should be iterated up to dt)  
-      vector<bool> lastCellIntegration(propagatedCells.size(),false); //used to check if a step is the last on or not
-      //boolean to exit time integration
-      bool doIntegration=true;
+   if(P::vlasovSemiLagAcceleration) {
+      //Semilagrangian acceleration
+
+      phiprof::start("semilag-acc");
+#pragma omp parallel for schedule(dynamic,1)
+      for (size_t c=0; c<propagatedCells.size(); ++c) {
+         const CellID cellID = propagatedCells[c];
+         mpiGrid[cellID]->subStepsAcceleration=1;// always just one substep in SL
+         phiprof::start("cell-semilag-acc");
+         cpu_accelerate_cell(mpiGrid[cellID],dt);
+         phiprof::stop("cell-semilag-acc");
+      }
+      phiprof::stop("semilag-acc");
+   }
+   else {
+      //Leveque acceleration
+      if(P::maxAccelerationSubsteps!=1){
+         int step=0;
+         //substep acceleration until total dt is reached. dt should
+         //be set such that the maximum number of substeps is not
+         //exceeded. As the max dt is set separately for each substep,
+         //we may compute slightly more steps anyway
+         vector< Real> subDt(propagatedCells.size(),0.0);      //subdt is the current time step for each cell 
+         vector< Real> subt(propagatedCells.size(),0.0);       //subt is the current time in the substep for each cell (should be iterated up to dt)  
+         vector<bool> lastCellIntegration(propagatedCells.size(),false); //used to check if a step is the last on or not
+         //boolean to exit time integration
+         bool doIntegration=true;
       
-      while(propagatedCells.size()>0){
-         //compute  dt for substep
-         for (size_t c=0; c<propagatedCells.size(); ++c) {
-            const CellID cellID = propagatedCells[c];
-            subDt[c]=0.5*(P::vlasovSolverMinCFL+P::vlasovSolverMaxCFL) * mpiGrid[cellID]->parameters[CellParams::MAXVDT];
-            if(subDt[c]+subt[c]>=dt){
-               lastCellIntegration[c]=true; //will not be propagated next step, this is the last one
-               subDt[c]=dt-subt[c]; //set length of final step so that we hit the exact time
-            }
-         }
-         //calculate acceleration, this is internally threaded over blocks
-         calculateAccelerationSubstep(mpiGrid,propagatedCells,subDt);
-
-         
-         //update time and steps
-         for (size_t c=0; c<propagatedCells.size(); ++c) {
-            subt[c]+=subDt[c];
-         }
-
-         
-         //update propagatedCells that are to be calculated on next step
-         uint writePos=0;
-         for (size_t c=0; c<propagatedCells.size(); ++c) {
-            if(!lastCellIntegration[c]){
-               propagatedCells[writePos]=propagatedCells[c];
-               subt[writePos]=subt[c];
-               subDt[writePos]=subDt[c];
-               lastCellIntegration[writePos]=lastCellIntegration[c];
-               writePos++;
-            }
-         }
-         propagatedCells.resize(writePos);
-         /* Not needed to be resized, as their size is never read (and we only reduce size)
-            subt.resize(writePos);
-            subDt.resize(writePos);
-            lastCellIntegration.resize(writePos);
-         */
-
-
-         if(1) {  //step%4==0 && 0) {
-            /*adjust blocks from time to time*/
-            phiprof::start("adjust-blocks");
-#pragma omp  parallel for       
+         while(propagatedCells.size()>0){
+            //compute  dt for substep
             for (size_t c=0; c<propagatedCells.size(); ++c) {
-               //Update block info, no need to do on last step (so
-               //this is done after updating
-               //propagatedCells. This will modify velocity bl
-               //ock lists, need to make sure
-               //updateRemoteVelocityBlockLists(mpiGrid) is called
-               //before any further communication involving
-               //velocity space takes place empty neighbor list,
-               //only local neighbors in velocity space taken into
-               //account.
-               mpiGrid[propagatedCells[c]]->adjustSingleCellVelocityBlocks();
+               const CellID cellID = propagatedCells[c];
+               subDt[c]=0.5*(P::vlasovSolverMinCFL+P::vlasovSolverMaxCFL) * mpiGrid[cellID]->parameters[CellParams::MAXVDT];
+               if(subDt[c]+subt[c]>=dt){
+                  lastCellIntegration[c]=true; //will not be propagated next step, this is the last one
+                  subDt[c]=dt-subt[c]; //set length of final step so that we hit the exact time
+               }
             }
+            //calculate acceleration, this is internally threaded over blocks
+            calculateAccelerationSubstep(mpiGrid,propagatedCells,subDt);
+            //update time and steps
+            for (size_t c=0; c<propagatedCells.size(); ++c) {
+               subt[c]+=subDt[c];
+            }         
+            //update propagatedCells that are to be calculated on next step
+            uint writePos=0;
+            for (size_t c=0; c<propagatedCells.size(); ++c) {
+               if(!lastCellIntegration[c]){
+                  propagatedCells[writePos]=propagatedCells[c];
+                  subt[writePos]=subt[c];
+                  subDt[writePos]=subDt[c];
+                  lastCellIntegration[writePos]=lastCellIntegration[c];
+                  writePos++;
+               }
+            }
+            propagatedCells.resize(writePos);
+            /* Not needed to be resized, as their size is never read (and we only reduce size)
+               subt.resize(writePos);
+               subDt.resize(writePos);
+               lastCellIntegration.resize(writePos);
+            */
+            if(1) {  //step%4==0 && 0) {
+               /*adjust blocks from time to time*/
+               phiprof::start("adjust-blocks");
+#pragma omp  parallel for       
+               for (size_t c=0; c<propagatedCells.size(); ++c) {
+                  //Update block info, no need to do on last step (so
+                  //this is done after updating
+                  //propagatedCells. This will modify velocity bl
+                  //ock lists, need to make sure
+                  //updateRemoteVelocityBlockLists(mpiGrid) is called
+                  //before any further communication involving
+                  //velocity space takes place empty neighbor list,
+                  //only local neighbors in velocity space taken into
+                  //account.
+                  mpiGrid[propagatedCells[c]]->adjustSingleCellVelocityBlocks();
+               }
+            }
+            phiprof::stop("adjust-blocks");
+            step++;
          }
-         phiprof::stop("adjust-blocks");
-         step++;
+      }
+   
+      else{
+         //no substepping
+         vector< Real> subDt(propagatedCells.size(),dt);       //subdt is now the total timestep for all steps, no substepping
+         //just one normal acceleration step
+         calculateAccelerationSubstep(mpiGrid,propagatedCells,subDt);
+      
       }
    }
-   
-   else{
-      //no substepping
-      vector< Real> subDt(propagatedCells.size(),dt);       //subdt is now the total timestep for all steps, no substepping
-      
-//just one normal acceleration step
-      calculateAccelerationSubstep(mpiGrid,propagatedCells,subDt);
-      
-   }
-   
 
-
+   
    phiprof::start("Compute moments");
 #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {

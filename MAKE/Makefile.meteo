@@ -7,7 +7,7 @@ LNK = CC
 #                         errors that come up when using 
 #                         mpi.h in c++ on Cray
 
-CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK
+CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK -DNDEBUG -DEIGEN_NO_DEBUG
 
 FLAGS = 
 
@@ -45,6 +45,9 @@ LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSI
 
 INC_SILO = -I$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/include
 LIB_SILO = -L$(LIBRARY_PREFIX)/mpt/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/silo/$(SILO_VERSION)/lib -lsilo
+
+
+INC_EIGEN = -I$(LIBRARY_PREFIX_B)/eigen/eigen-eigen-2249f9c22fe8
 
 
 #DCCRG version with reduced neighbourhood. Might not be up-to-date
