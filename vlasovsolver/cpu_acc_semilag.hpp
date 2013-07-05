@@ -3,17 +3,6 @@ This file is part of Vlasiator.
 
 Copyright 2012 Finnish Meteorological Institute
 
-Vlasiator is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 3
-as published by the Free Software Foundation.
-
-Vlasiator is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #ifndef CPU_ACC_SEMILAG_H
@@ -70,8 +59,8 @@ Transform<double,3,Affine> compute_acceleration_transformation( SpatialCell* spa
    const double dBZdy = spatial_cell->derivativesBVOL[bvolderivatives::dPERBZVOLdy]/spatial_cell->parameters[CellParams::DY];
 
    
-   const Vector3d B(Bx,By,Bz);
-   const Vector3d unit_B(B.normalized());
+   const Eigen::Matrix<double,3,1> B(Bx,By,Bz);
+   const Eigen::Matrix<double,3,1> unit_B(B.normalized());
    const double gyro_period = 2 * M_PI * Parameters::m  / (fabs(Parameters::q) * B.norm());
    //Set maximum timestep limit for this cell, based on a  maximum allowed rotation angle
    //TODO, max angle could be read in from cfg
@@ -95,7 +84,7 @@ Transform<double,3,Affine> compute_acceleration_transformation( SpatialCell* spa
    const double hallRho =  (rho <= Parameters::lorentzHallMinimumRho ) ? Parameters::lorentzHallMinimumRho : rho ;
    const double hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRho * Parameters::q );
 
-   Vector3d bulk_velocity(spatial_cell->parameters[CellParams::RHOVX_V]/rho,
+   Eigen::Matrix<double,3,1> bulk_velocity(spatial_cell->parameters[CellParams::RHOVX_V]/rho,
                                  spatial_cell->parameters[CellParams::RHOVY_V]/rho,
                                  spatial_cell->parameters[CellParams::RHOVZ_V]/rho);   
 
@@ -115,7 +104,7 @@ Transform<double,3,Affine> compute_acceleration_transformation( SpatialCell* spa
    
       /*rotation origin is the point through which we place our rotation axis (direction of which is unitB)*/
       /*first add bulk velocity (using the total transform computed this far*/
-      Vector3d rotation_pivot(total_transform*bulk_velocity);
+      Eigen::Matrix<double,3,1> rotation_pivot(total_transform*bulk_velocity);
       
       if(Parameters::lorentzHallTerm) {
          //inlude lorentzHallTerm (we should include, always)      

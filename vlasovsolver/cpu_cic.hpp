@@ -243,16 +243,16 @@ void cic(SpatialCell *spatial_cell,Transform<double,3,Affine>& transform) {
                   for (unsigned int subcell_yi = 0; subcell_yi < n_subcells; subcell_yi++) {
                      for (unsigned int subcell_zi = 0; subcell_zi < n_subcells; subcell_zi++) {
                         
-                        const Vector3d s_node_position(block_start_vx + (cell_xi*n_subcells+subcell_xi)*dvx,
-                                                       block_start_vy + (cell_yi*n_subcells+subcell_yi)*dvy,
-                                                       block_start_vz + (cell_zi*n_subcells+subcell_zi)*dvz);
+                        const Eigen::Matrix<double,3,1> s_node_position(block_start_vx + (cell_xi*n_subcells+subcell_xi)*dvx,
+                                                                        block_start_vy + (cell_yi*n_subcells+subcell_yi)*dvy,
+                                                                        block_start_vz + (cell_zi*n_subcells+subcell_zi)*dvz);
 
-                        const Vector3d s_node_position_tf=transform*s_node_position;
+                        const Eigen::Matrix<double,3,1> s_node_position_tf=transform*s_node_position;
                         volintegrated_interpolation(spatial_cell,s_node_position_tf.matrix(),iblock,s_node_position.matrix(),ib_cellid,n_subcells);
                         //scaling, just to test things...
                         /*
                           double value=iblock.get_value(s_node_position[0],s_node_position[1],s_node_position[2]);
-                          const Vector3d s_node_position_tf(n_subcells*s_node_position[0],
+                          const Matrix<double,3> s_node_position_tf(n_subcells*s_node_position[0],
                           n_subcells*s_node_position[1],
                           n_subcells*s_node_position[2]);
                           ngp_interpolation(spatial_cell,s_node_position_tf.matrix(),n_subcells,value);
