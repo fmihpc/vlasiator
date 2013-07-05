@@ -7,7 +7,7 @@ using namespace Eigen;
 
 inline void cic_increment_cell_value(SpatialCell* spatial_cell,
                                      const unsigned int fcell_i, const unsigned int fcell_j,const unsigned int fcell_k,
-                                     const unsigned int n_subcells, const double value){
+                                     const unsigned int n_subcells, const Real value){
    
 
    const unsigned int block_i=fcell_i/WID;
@@ -24,7 +24,7 @@ inline void cic_increment_cell_value(SpatialCell* spatial_cell,
       block_k>= SpatialCell::vz_length ||
       cell>64 ) {
       //outside outer bounds -> density is lost
-      const double DV3=SpatialCell::cell_dvx*SpatialCell::cell_dvy*SpatialCell::cell_dvz;
+      const Real DV3=SpatialCell::cell_dvx*SpatialCell::cell_dvy*SpatialCell::cell_dvz;
       spatial_cell->parameters[CellParams::RHOLOSSVELBOUNDARY]+=DV3*value;
       return;
    }         
@@ -34,11 +34,11 @@ inline void cic_increment_cell_value(SpatialCell* spatial_cell,
 
 /*cloud in cell interpolation*/
 //TODO, what about negative indices p_ijk, reformulate
-inline void cic_interpolation(SpatialCell* spatial_cell,const Array3d v,const unsigned int n_subcells,const double value) {
+inline void cic_interpolation(SpatialCell* spatial_cell,const Array3d v,const unsigned int n_subcells,const Real value) {
    static int count=0;
-   const double particle_dvx=SpatialCell::cell_dvx/n_subcells;
-   const double particle_dvy=SpatialCell::cell_dvy/n_subcells;
-   const double particle_dvz=SpatialCell::cell_dvz/n_subcells;
+   const Real particle_dvx=SpatialCell::cell_dvx/n_subcells;
+   const Real particle_dvy=SpatialCell::cell_dvy/n_subcells;
+   const Real particle_dvz=SpatialCell::cell_dvz/n_subcells;
    const int p_i=(v[0] - SpatialCell::vx_min-0.5*particle_dvx) / particle_dvx;
    const int p_j=(v[1] - SpatialCell::vy_min-0.5*particle_dvy) / particle_dvy;
    const int p_k=(v[2] - SpatialCell::vz_min-0.5*particle_dvz) / particle_dvz;
@@ -51,14 +51,14 @@ inline void cic_interpolation(SpatialCell* spatial_cell,const Array3d v,const un
 
    if (p_i < 0 || p_j < 0 || p_k < 0 ) {
       //we do not try to handle the edge of (total) velocity space in any smart way, this cell is essentiall lost
-      const double DV3=SpatialCell::cell_dvx*SpatialCell::cell_dvy*SpatialCell::cell_dvz;
+      const Real DV3=SpatialCell::cell_dvx*SpatialCell::cell_dvy*SpatialCell::cell_dvz;
       spatial_cell->parameters[CellParams::RHOLOSSVELBOUNDARY]+=DV3*value;
       return;
    }
 
-   const double wx=(fcell_i!=fcell_p1_i)?((v[0]-p_i*particle_dvx - SpatialCell::vx_min-0.5*particle_dvx)/particle_dvx):0.0;
-   const double wy=(fcell_j!=fcell_p1_j)?((v[1]-p_j*particle_dvy - SpatialCell::vy_min-0.5*particle_dvy)/particle_dvy):0.0;
-   const double wz=(fcell_k!=fcell_p1_k)?((v[2]-p_k*particle_dvz - SpatialCell::vz_min-0.5*particle_dvz)/particle_dvz):0.0;
+   const Real wx=(fcell_i!=fcell_p1_i)?((v[0]-p_i*particle_dvx - SpatialCell::vx_min-0.5*particle_dvx)/particle_dvx):0.0;
+   const Real wy=(fcell_j!=fcell_p1_j)?((v[1]-p_j*particle_dvy - SpatialCell::vy_min-0.5*particle_dvy)/particle_dvy):0.0;
+   const Real wz=(fcell_k!=fcell_p1_k)?((v[2]-p_k*particle_dvz - SpatialCell::vz_min-0.5*particle_dvz)/particle_dvz):0.0;
 
    if(fcell_i==fcell_p1_i && fcell_j==fcell_p1_j && fcell_k==fcell_p1_k){
       cic_increment_cell_value(spatial_cell, fcell_i  , fcell_j  , fcell_k  , n_subcells, value);
@@ -115,9 +115,9 @@ inline void cic_interpolation(SpatialCell* spatial_cell,const Array3d v,const un
 //todo comment on what things are
 inline void volintegrated_interpolation(SpatialCell* spatial_cell,const Array3d v,interpolated_block& iblock,const Array3d v_source,unsigned int ib_cellid,const unsigned int n_subcells){
    static int count=0;
-   const double particle_dvx=SpatialCell::cell_dvx/n_subcells;
-   const double particle_dvy=SpatialCell::cell_dvy/n_subcells;
-   const double particle_dvz=SpatialCell::cell_dvz/n_subcells;
+   const Real particle_dvx=SpatialCell::cell_dvx/n_subcells;
+   const Real particle_dvy=SpatialCell::cell_dvy/n_subcells;
+   const Real particle_dvz=SpatialCell::cell_dvz/n_subcells;
 
    //note that p_ijk can also have a value of -1 right at the edge(!)
    //When we compute p_i we compare inside which shifted-by-halfvxyz
@@ -133,34 +133,34 @@ inline void volintegrated_interpolation(SpatialCell* spatial_cell,const Array3d 
    const unsigned int fcell_p1_i=(p_i+1)/n_subcells;
    const unsigned int fcell_p1_j=(p_j+1)/n_subcells;
    const unsigned int fcell_p1_k=(p_k+1)/n_subcells;
-   const double subcell_vol_frac=1.0/(n_subcells*n_subcells*n_subcells); //relative part of the total volume for the one subcell represented by v
+   const Real subcell_vol_frac=1.0/(n_subcells*n_subcells*n_subcells); //relative part of the total volume for the one subcell represented by v
 
    //midpoint of the lower left cell
-   const double midpoint_x=p_i*particle_dvx + SpatialCell::vx_min+0.5*particle_dvx;
-   const double midpoint_y=p_j*particle_dvy + SpatialCell::vy_min+0.5*particle_dvy;
-   const double midpoint_z=p_k*particle_dvz + SpatialCell::vz_min+0.5*particle_dvz;
+   const Real midpoint_x=p_i*particle_dvx + SpatialCell::vx_min+0.5*particle_dvx;
+   const Real midpoint_y=p_j*particle_dvy + SpatialCell::vy_min+0.5*particle_dvy;
+   const Real midpoint_z=p_k*particle_dvz + SpatialCell::vz_min+0.5*particle_dvz;
 
    //weights for CIC
-   const double wx=(v[0]-midpoint_x)/particle_dvx;
-   const double wy=(v[1]-midpoint_y)/particle_dvy;
-   const double wz=(v[2]-midpoint_z)/particle_dvz;
+   const Real wx=(v[0]-midpoint_x)/particle_dvx;
+   const Real wy=(v[1]-midpoint_y)/particle_dvy;
+   const Real wz=(v[2]-midpoint_z)/particle_dvz;
 //includes no rotation
-   const double to_source_frame_x=v_source[0]-v[0];
-   const double to_source_frame_y=v_source[1]-v[1];
-   const double to_source_frame_z=v_source[2]-v[2];
+   const Real to_source_frame_x=v_source[0]-v[0];
+   const Real to_source_frame_y=v_source[1]-v[1];
+   const Real to_source_frame_z=v_source[2]-v[2];
 
    
-   const double ic_vx    = 0.5*(midpoint_x+v[0])+to_source_frame_x;
-   const double ic_vy    = 0.5*(midpoint_y+v[1])+to_source_frame_y;
-   const double ic_vz    = 0.5*(midpoint_z+v[2])+to_source_frame_z;
-   const double ic_p1_vx = ic_vx+0.5*particle_dvx;
-   const double ic_p1_vy = ic_vy+0.5*particle_dvy;
-   const double ic_p1_vz = ic_vz+0.5*particle_dvz;
+   const Real ic_vx    = 0.5*(midpoint_x+v[0])+to_source_frame_x;
+   const Real ic_vy    = 0.5*(midpoint_y+v[1])+to_source_frame_y;
+   const Real ic_vz    = 0.5*(midpoint_z+v[2])+to_source_frame_z;
+   const Real ic_p1_vx = ic_vx+0.5*particle_dvx;
+   const Real ic_p1_vy = ic_vy+0.5*particle_dvy;
+   const Real ic_p1_vz = ic_vz+0.5*particle_dvz;
 
 
    if (p_i < 0 || p_j < 0 || p_k < 0 ) {
       //we do not try to handle the edge of (total) velocity space in any smart way, this cell is essentiall lost
-      const double DV3=SpatialCell::cell_dvx*SpatialCell::cell_dvy*SpatialCell::cell_dvz;
+      const Real DV3=SpatialCell::cell_dvx*SpatialCell::cell_dvy*SpatialCell::cell_dvz;
       spatial_cell->parameters[CellParams::RHOLOSSVELBOUNDARY]+=DV3*iblock.get_value(ib_cellid,v_source[0],v_source[1],v_source[2]);
       return;
    }
@@ -199,7 +199,7 @@ inline void volintegrated_interpolation(SpatialCell* spatial_cell,const Array3d 
 
 
 
-void cic(SpatialCell *spatial_cell,Transform<double,3,Affine>& transform) {
+void cic(SpatialCell *spatial_cell,Transform<Real,3,Affine>& transform) {
    
    // Make a copy of the blocklist as we don't want to iterate over blocks added by this function
    std::vector<unsigned int> blocks;
@@ -226,12 +226,12 @@ void cic(SpatialCell *spatial_cell,Transform<double,3,Affine>& transform) {
       Velocity_Block* block_ptr = spatial_cell->at(block);
       iblock.load_block(block_ptr);
 
-      const double dvx=block_ptr->parameters[BlockParams::DVX]/n_subcells;
-      const double dvy=block_ptr->parameters[BlockParams::DVY]/n_subcells;
-      const double dvz=block_ptr->parameters[BlockParams::DVZ]/n_subcells;
-      const double block_start_vx=block_ptr->parameters[BlockParams::VXCRD] + 0.5*dvx;
-      const double block_start_vy=block_ptr->parameters[BlockParams::VYCRD] + 0.5*dvy;
-      const double block_start_vz=block_ptr->parameters[BlockParams::VZCRD] + 0.5*dvz;
+      const Real dvx=block_ptr->parameters[BlockParams::DVX]/n_subcells;
+      const Real dvy=block_ptr->parameters[BlockParams::DVY]/n_subcells;
+      const Real dvz=block_ptr->parameters[BlockParams::DVZ]/n_subcells;
+      const Real block_start_vx=block_ptr->parameters[BlockParams::VXCRD] + 0.5*dvx;
+      const Real block_start_vy=block_ptr->parameters[BlockParams::VYCRD] + 0.5*dvy;
+      const Real block_start_vz=block_ptr->parameters[BlockParams::VZCRD] + 0.5*dvz;
       
       //loop over internal points in block
       //todo, split into siz loops, outer over cells, inner over subcells. Better memory usage, and we need cellidfor get value (fast version)
@@ -243,16 +243,16 @@ void cic(SpatialCell *spatial_cell,Transform<double,3,Affine>& transform) {
                   for (unsigned int subcell_yi = 0; subcell_yi < n_subcells; subcell_yi++) {
                      for (unsigned int subcell_zi = 0; subcell_zi < n_subcells; subcell_zi++) {
                         
-                        const Eigen::Matrix<double,3,1> s_node_position(block_start_vx + (cell_xi*n_subcells+subcell_xi)*dvx,
+                        const Eigen::Matrix<Real,3,1> s_node_position(block_start_vx + (cell_xi*n_subcells+subcell_xi)*dvx,
                                                                         block_start_vy + (cell_yi*n_subcells+subcell_yi)*dvy,
                                                                         block_start_vz + (cell_zi*n_subcells+subcell_zi)*dvz);
 
-                        const Eigen::Matrix<double,3,1> s_node_position_tf=transform*s_node_position;
+                        const Eigen::Matrix<Real,3,1> s_node_position_tf=transform*s_node_position;
                         volintegrated_interpolation(spatial_cell,s_node_position_tf.matrix(),iblock,s_node_position.matrix(),ib_cellid,n_subcells);
                         //scaling, just to test things...
                         /*
-                          double value=iblock.get_value(s_node_position[0],s_node_position[1],s_node_position[2]);
-                          const Matrix<double,3> s_node_position_tf(n_subcells*s_node_position[0],
+                          Real value=iblock.get_value(s_node_position[0],s_node_position[1],s_node_position[2]);
+                          const Matrix<Real,3> s_node_position_tf(n_subcells*s_node_position[0],
                           n_subcells*s_node_position[1],
                           n_subcells*s_node_position[2]);
                           ngp_interpolation(spatial_cell,s_node_position_tf.matrix(),n_subcells,value);

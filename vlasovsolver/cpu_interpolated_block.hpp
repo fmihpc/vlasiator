@@ -14,7 +14,7 @@ class interpolated_block {
    
    interpolated_block (BlockInterpolationType type) : interpolationType(type) {}
    
-   inline double get_value(double x,double y,double z){
+   inline Real get_value(Real x,Real y,Real z){
       switch(this->interpolationType) {
           case CONSTANT:
              return eval_nointerpolation(x,y,z);
@@ -25,7 +25,7 @@ class interpolated_block {
       return 0.0;
    }
    
-   inline double get_value(unsigned int cellid,double x,double y,double z){
+   inline Real get_value(unsigned int cellid,Real x,Real y,Real z){
       switch(this->interpolationType) {
           case CONSTANT:
              return eval_nointerpolation(x,y,z);
@@ -55,12 +55,12 @@ private:
    const BlockInterpolationType interpolationType;
    Velocity_Block*  block_ptr;
    //TODO FIX 216 now hardcoded
-   double avgs[216];
+   Real avgs[216];
    //TODO, extra stuff stored for all, at least hh_parameters should perhaps be dynamic
-   double hh_parameters[216][NUM_HH_PARAMS]; /*< Parameters for hinged hyperplanes*/
+   Real hh_parameters[216][NUM_HH_PARAMS]; /*< Parameters for hinged hyperplanes*/
 
    /*private functions*/
-   double eval_nointerpolation(double x,double y,double z) {
+   Real eval_nointerpolation(Real x,Real y,Real z) {
       const unsigned int cell_x=(x-block_ptr->parameters[BlockParams::VXCRD])/block_ptr->parameters[BlockParams::DVX];
       const unsigned int cell_y=(y-block_ptr->parameters[BlockParams::VYCRD])/block_ptr->parameters[BlockParams::DVY];
       const unsigned int cell_z=(z-block_ptr->parameters[BlockParams::VZCRD])/block_ptr->parameters[BlockParams::DVZ];
@@ -68,7 +68,7 @@ private:
       return avgs[cell_id];
    }
    
-   double eval_hinged_hyperplane(double x,double y,double z) {
+   Real eval_hinged_hyperplane(Real x,Real y,Real z) {
       //TODO, we could store x0,y0,z0 and dfdxyz for each cell when reading the block and then reuse them when evaluating. Coudl save for multiple subcells.
       //TODO, derivatives need to be limited to avoid negative regions. Do we also need similar limiters like in fvm...?
       const unsigned int cell_x=(x-block_ptr->parameters[BlockParams::VXCRD])/block_ptr->parameters[BlockParams::DVX];
@@ -81,7 +81,7 @@ private:
          (z - hh_parameters[cell_id][Z0]) * hh_parameters[cell_id][DFDZ];
    }
    /*get value in a particular velocity cell, at x,y,z*/
-   double eval_hinged_hyperplane(unsigned int cell_id,double x,double y,double z){
+   Real eval_hinged_hyperplane(unsigned int cell_id,Real x,Real y,Real z){
       //TODO, we could store x0,y0,z0 and dfdxyz for each cell when reading the block and then reuse them when evaluating. Coudl save for multiple subcells.
       //TODO, derivatives need to be limited to avoid negative regions. Do we also need similar limiters like in fvm...?
       return avgs[cell_id]+
@@ -118,7 +118,7 @@ private:
                /*Get the minimum value of the interpolation from one
                 * of the 8 corners of the cell. We know based on the
                 * derivatives which it is*/
-               double minVal=eval_hinged_hyperplane(cell_id,
+               Real minVal=eval_hinged_hyperplane(cell_id,
                                                     block_ptr->parameters[BlockParams::VXCRD]+
                                                     (cell_x+(hh_parameters[cell_id][DFDX]<0))*block_ptr->parameters[BlockParams::DVX],
                                                     block_ptr->parameters[BlockParams::VYCRD]+
@@ -127,7 +127,7 @@ private:
                                                     (cell_z+(hh_parameters[cell_id][DFDZ]<0))*block_ptr->parameters[BlockParams::DVZ]);
                if(minVal<0){
                   /*scale derivatives so that the minimum value of the interpolation is zero*/
-                  double alpha=avgs[cell_id]/(avgs[cell_id]-minVal);
+                  Real alpha=avgs[cell_id]/(avgs[cell_id]-minVal);
                   hh_parameters[cell_id][DFDX]*=alpha;
                   hh_parameters[cell_id][DFDY]*=alpha;
                   hh_parameters[cell_id][DFDZ]*=alpha;

@@ -40,28 +40,28 @@ test nsubcells and make to parameter: Parameter much slower (wontfix)
 
 /*Compute transform during on timestep, and update the bulk velocity of the cell*/
 
-Transform<double,3,Affine> compute_acceleration_transformation( SpatialCell* spatial_cell, const double dt) {
+Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spatial_cell, const Real dt) {
    /*total field*/
-   const double Bx = spatial_cell->parameters[CellParams::BGBXVOL]+spatial_cell->parameters[CellParams::PERBXVOL];
-   const double By = spatial_cell->parameters[CellParams::BGBYVOL]+spatial_cell->parameters[CellParams::PERBYVOL];
-   const double Bz = spatial_cell->parameters[CellParams::BGBZVOL]+spatial_cell->parameters[CellParams::PERBZVOL];
+   const Real Bx = spatial_cell->parameters[CellParams::BGBXVOL]+spatial_cell->parameters[CellParams::PERBXVOL];
+   const Real By = spatial_cell->parameters[CellParams::BGBYVOL]+spatial_cell->parameters[CellParams::PERBYVOL];
+   const Real Bz = spatial_cell->parameters[CellParams::BGBZVOL]+spatial_cell->parameters[CellParams::PERBZVOL];
    /*perturbed field*/
-   const double perBx = spatial_cell->parameters[CellParams::PERBXVOL];
-   const double perBy = spatial_cell->parameters[CellParams::PERBYVOL];
-   const double perBz = spatial_cell->parameters[CellParams::PERBZVOL];   
+   const Real perBx = spatial_cell->parameters[CellParams::PERBXVOL];
+   const Real perBy = spatial_cell->parameters[CellParams::PERBYVOL];
+   const Real perBz = spatial_cell->parameters[CellParams::PERBZVOL];   
    //read in derivatives need for curl of B (only pertrubed, curl of background field is always 0!)
-   const double dBXdy = spatial_cell->derivativesBVOL[bvolderivatives::dPERBXVOLdy]/spatial_cell->parameters[CellParams::DY];
-   const double dBXdz = spatial_cell->derivativesBVOL[bvolderivatives::dPERBXVOLdz]/spatial_cell->parameters[CellParams::DZ];
-   const double dBYdx = spatial_cell->derivativesBVOL[bvolderivatives::dPERBYVOLdx]/spatial_cell->parameters[CellParams::DX];
+   const Real dBXdy = spatial_cell->derivativesBVOL[bvolderivatives::dPERBXVOLdy]/spatial_cell->parameters[CellParams::DY];
+   const Real dBXdz = spatial_cell->derivativesBVOL[bvolderivatives::dPERBXVOLdz]/spatial_cell->parameters[CellParams::DZ];
+   const Real dBYdx = spatial_cell->derivativesBVOL[bvolderivatives::dPERBYVOLdx]/spatial_cell->parameters[CellParams::DX];
 
-   const double dBYdz = spatial_cell->derivativesBVOL[bvolderivatives::dPERBYVOLdz]/spatial_cell->parameters[CellParams::DZ];
-   const double dBZdx = spatial_cell->derivativesBVOL[bvolderivatives::dPERBZVOLdx]/spatial_cell->parameters[CellParams::DX];
-   const double dBZdy = spatial_cell->derivativesBVOL[bvolderivatives::dPERBZVOLdy]/spatial_cell->parameters[CellParams::DY];
+   const Real dBYdz = spatial_cell->derivativesBVOL[bvolderivatives::dPERBYVOLdz]/spatial_cell->parameters[CellParams::DZ];
+   const Real dBZdx = spatial_cell->derivativesBVOL[bvolderivatives::dPERBZVOLdx]/spatial_cell->parameters[CellParams::DX];
+   const Real dBZdy = spatial_cell->derivativesBVOL[bvolderivatives::dPERBZVOLdy]/spatial_cell->parameters[CellParams::DY];
 
    
-   const Eigen::Matrix<double,3,1> B(Bx,By,Bz);
-   const Eigen::Matrix<double,3,1> unit_B(B.normalized());
-   const double gyro_period = 2 * M_PI * Parameters::m  / (fabs(Parameters::q) * B.norm());
+   const Eigen::Matrix<Real,3,1> B(Bx,By,Bz);
+   const Eigen::Matrix<Real,3,1> unit_B(B.normalized());
+   const Real gyro_period = 2 * M_PI * Parameters::m  / (fabs(Parameters::q) * B.norm());
    //Set maximum timestep limit for this cell, based on a  maximum allowed rotation angle
    //TODO, max angle could be read in from cfg
    spatial_cell->parameters[CellParams::MAXVDT]=gyro_period*(10.0/360.0);
@@ -79,17 +79,17 @@ Transform<double,3,Affine> compute_acceleration_transformation( SpatialCell* spa
 
    
    
-   const double rho=spatial_cell->parameters[CellParams::RHO_V];
+   const Real rho=spatial_cell->parameters[CellParams::RHO_V];
    //scale rho for hall term, if user requests
-   const double hallRho =  (rho <= Parameters::lorentzHallMinimumRho ) ? Parameters::lorentzHallMinimumRho : rho ;
-   const double hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRho * Parameters::q );
+   const Real hallRho =  (rho <= Parameters::lorentzHallMinimumRho ) ? Parameters::lorentzHallMinimumRho : rho ;
+   const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRho * Parameters::q );
 
-   Eigen::Matrix<double,3,1> bulk_velocity(spatial_cell->parameters[CellParams::RHOVX_V]/rho,
+   Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::RHOVX_V]/rho,
                                  spatial_cell->parameters[CellParams::RHOVY_V]/rho,
                                  spatial_cell->parameters[CellParams::RHOVZ_V]/rho);   
 
    /*compute total transformation*/
-   Transform<double,3,Affine> total_transform(Matrix4d::Identity());
+   Transform<Real,3,Affine> total_transform(Matrix4d::Identity());
       
    unsigned int bulk_velocity_substeps; /*!<in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep*/
 
@@ -99,12 +99,12 @@ Transform<double,3,Affine> compute_acceleration_transformation( SpatialCell* spa
       bulk_velocity_substeps=1;
    
    /*note, we assume q is positive (pretty good assumption though)*/
-   const double substeps_radians=-(2.0*M_PI*dt/gyro_period)/bulk_velocity_substeps; /*!< how many radians each substep is*/
+   const Real substeps_radians=-(2.0*M_PI*dt/gyro_period)/bulk_velocity_substeps; /*!< how many radians each substep is*/
    for(uint i=0;i<bulk_velocity_substeps;i++){
    
       /*rotation origin is the point through which we place our rotation axis (direction of which is unitB)*/
       /*first add bulk velocity (using the total transform computed this far*/
-      Eigen::Matrix<double,3,1> rotation_pivot(total_transform*bulk_velocity);
+      Eigen::Matrix<Real,3,1> rotation_pivot(total_transform*bulk_velocity);
       
       if(Parameters::lorentzHallTerm) {
          //inlude lorentzHallTerm (we should include, always)      
@@ -117,9 +117,9 @@ Transform<double,3,Affine> compute_acceleration_transformation( SpatialCell* spa
         when added like thism, and not using *= operator, the transformations
         are in the correct order
        */
-      total_transform=Translation<double,3>(-rotation_pivot)*total_transform;
-      total_transform=AngleAxis<double>(substeps_radians,unit_B)*total_transform;
-      total_transform=Translation<double,3>(rotation_pivot)*total_transform;
+      total_transform=Translation<Real,3>(-rotation_pivot)*total_transform;
+      total_transform=AngleAxis<Real>(substeps_radians,unit_B)*total_transform;
+      total_transform=Translation<Real,3>(rotation_pivot)*total_transform;
       //TODO: In which order are these operations done on a point!!!
    }
 
@@ -130,15 +130,15 @@ Transform<double,3,Affine> compute_acceleration_transformation( SpatialCell* spa
 Propagates the distribution function in velocity space of given real space cell.
 
 TODO:
-  now this is all double: enable Real
+  now this is all Real: enable Real
 
 */
 
-void cpu_accelerate_cell(SpatialCell* spatial_cell,const double dt) {
+void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
 
    phiprof::start("compute-transform");
    //compute the transform performed in this acceleration
-   Transform<double,3,Affine> total_transform= compute_acceleration_transformation(spatial_cell,dt);
+   Transform<Real,3,Affine> total_transform= compute_acceleration_transformation(spatial_cell,dt);
    phiprof::stop("compute-transform");
    cic(spatial_cell,total_transform);
 }
