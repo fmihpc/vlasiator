@@ -3,17 +3,6 @@ This file is part of Vlasiator.
 
 Copyright 2011, 2012 Finnish Meteorological Institute
 
-
-
-
-
-
-
-
-
-
-
-
 */
 
 #ifndef MAGNETOSPHERE_H
@@ -65,6 +54,7 @@ namespace projects {
          Real ionosphereRadius;
          Real ionosphereTaperRadius;
          Real dipoleScalingFactor;
+         Real dipoleTilt;
          uint nSpaceSamples;
          uint nVelocitySamples;
    }; // class Magnetosphere

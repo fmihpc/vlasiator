@@ -2,18 +2,6 @@
 This file is part of Vlasiator.
 
 Copyright 2011, 2012 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
-
 */
 
 #include <cstdlib>
@@ -49,6 +37,7 @@ namespace projects {
       RP::add("Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
       RP::add("Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
       RP::add("Magnetosphere.dipoleScalingFactor","Scales the field strength of the magnetic dipole compared to Earths.", 1.0);
+      RP::add("Magnetosphere.dipoleTilt","The tilt of Earth's dipole in the X-Z plane, against the z-axis. In radians.", 0.0);
    }
    
    void Magnetosphere::getParameters(){
@@ -114,6 +103,9 @@ namespace projects {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
+      //ok default
+      RP::get("Magnetosphere.dipoleTilt",this->dipoleTilt);
+      
       if(!RP::get("ionosphere.rho", this->ionosphereRho)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
@@ -177,7 +169,7 @@ namespace projects {
    /* set 0-centered dipole */
    void Magnetosphere::setCellBackgroundField(SpatialCell *cell){
       Dipole bgField;
-      bgField.initialize(8e15 *this->dipoleScalingFactor); //set dipole moment
+      bgField.initialize(8e15 *this->dipoleScalingFactor,this->dipoleTilt); //set dipole moment
       if(cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN && this->noDipoleInSW) {
          setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
       } else {

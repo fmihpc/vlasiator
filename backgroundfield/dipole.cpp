@@ -9,13 +9,14 @@ Copyright 1997, 1998, 1999, 2000, 2001, 2010, 2011, 2012 Finnish Meteorological 
 #include "dipole.hpp"
 #include "../common.h"
 
-
-void Dipole::initialize(const double moment)
+//tilt_angle is agains the z axis in the x-z plane. In radians*/
+void Dipole::initialize(const double moment,const double tilt_angle=0)
 {
+
    this->initialized = true;
-   q[0]=0.0;
+   q[0]=-sin(tilt_angle)*moment;
    q[1]=0.0;
-   q[2]=-moment;
+   q[2]=-cos(tilt_angle)*moment;
    center[0]=0.0;
    center[1]=0.0;
    center[2]=0.0;
