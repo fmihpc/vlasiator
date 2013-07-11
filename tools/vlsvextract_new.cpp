@@ -1032,7 +1032,7 @@ bool convertVelocityBlocks2( Reader& vlsvReader, const string& meshName, const C
 //usage: Real x = loadParameter( vlsvReader, nameOfParameter );
 //Note: this is used in getCellIdFromCoords
 //Input:
-//[0] vlsvReader -- some VLSVReader which has a file opened
+//[0] vlsvReader -- some vlsv::Reader which has a file opened
 //Output:
 //[0] A parameter's value, for example the value of "xmin" or "xmax" (NOTE: must be cast into proper form -- usually UINT or Real)
 //char * loadParameter( Reader& vlsvReader, const string& name ) {
@@ -1068,7 +1068,7 @@ bool convertVelocityBlocks2( Reader& vlsvReader, const string& meshName, const C
 
 //Retrieves the cell id list and its length and saves it into cellIdList and vecSize
 //Input:
-//[0] VLSVReader& vlsvReader -- Some given vlsvReader with a file open
+//[0] vlsv::Reader& vlsvReader -- Some given vlsvReader with a file open
 //Output:
 //[0] uint64_t* cellIdList -- Stores cell ids retrieved with vlsvReader here (Note: This could be done as a vector, too)
 //[1] uint64_t& sizeOfCellIdList -- Stores the vector size of cellIdList here
@@ -1200,7 +1200,7 @@ uint64_t searchForBestCellId( const CellStructure & cellStruct,
 
 //Initalizes cellStruct
 //Input:
-//[0] VLSVReader vlsvReader -- some reader with a file open (used for loading parameters)
+//[0] vlsv::Reader vlsvReader -- some reader with a file open (used for loading parameters)
 //Output:
 //[0] CellStructure cellStruct -- Holds info on cellStruct. The members are given the correct values here (Note: CellStructure could be made into a class
 //instead of a struct with this as the constructor but since a geometry class has already been coded before, it would be a waste)
@@ -1209,31 +1209,19 @@ void setCellVariables( Reader & vlsvReader, CellStructure & cellStruct ) {
    //O: Note: Not actually sure if these are Real valued or not
    Real x_min, x_max, y_min, y_max, z_min, z_max, vx_min, vx_max, vy_min, vy_max, vz_min, vz_max;
    //Read in the parameter:
-   if( vlsvReader.readParameter( "xmin", x_min ) == false )
-      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "xmax", x_max ) == false )
-      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "ymin", y_min ) == false )
-      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "ymax", y_max ) == false )
-      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "zmin", z_min ) == false )
-      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "zmax", z_max ) == false )
-      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   if( vlsvReader.readParameter( "xmin", x_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   if( vlsvReader.readParameter( "xmax", x_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   if( vlsvReader.readParameter( "ymin", y_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   if( vlsvReader.readParameter( "ymax", y_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   if( vlsvReader.readParameter( "zmin", z_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   if( vlsvReader.readParameter( "zmax", z_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
 
-   if( vlsvReader.readParameter( "vxmin", vx_min ) == false )
-      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "vxmax", vx_max ) == false )
-      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "vymin", vy_min ) == false )
-      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "vymax", vy_max ) == false )
-      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "vzmin", vz_min ) == false )
-      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "vzmax", vz_max ) == false )
-      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   if( vlsvReader.readParameter( "vxmin", vx_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   if( vlsvReader.readParameter( "vxmax", vx_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   if( vlsvReader.readParameter( "vymin", vy_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   if( vlsvReader.readParameter( "vymax", vy_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   if( vlsvReader.readParameter( "vzmin", vz_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   if( vlsvReader.readParameter( "vzmax", vz_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
 
    //Number of cells in x, y, z directions (used later for calculating where in the cell coordinates the given
    //coordinates are) (Done in getCellCoordinates)
@@ -1241,16 +1229,20 @@ void setCellVariables( Reader & vlsvReader, CellStructure & cellStruct ) {
    const short int NumberOfCoordinates = 3;
    uint64_t cell_bounds[NumberOfCoordinates];
    uint64_t vcell_bounds[NumberOfCoordinates];
+   //Get the number of velocity blocks in x,y,z direction from the file:
+   //x-direction
+   if( vlsvReader.readParameter( "vxblocks_ini", vcell_bounds[0] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   //y-direction
+   if( vlsvReader.readParameter( "vyblocks_ini", vcell_bounds[1] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   //z-direction
+   if( vlsvReader.readParameter( "vzblocks_ini", vcell_bounds[2] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
    //Get the number of cells in x,y,z direction from the file:
    //x-direction
-   if( vlsvReader.readParameter( "vxblocks_ini", vcell_bounds[0] ) == false )
-      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   if( vlsvReader.readParameter( "xcells_ini", cell_bounds[0] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
    //y-direction
-   if( vlsvReader.readParameter( "vyblocks_ini", vcell_bounds[1] ) == false )
-      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   if( vlsvReader.readParameter( "ycells_ini", cell_bounds[1] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
    //z-direction
-   if( vlsvReader.readParameter( "vzblocks_ini", vcell_bounds[2] ) == false )
-      cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+   if( vlsvReader.readParameter( "zcells_ini", cell_bounds[2] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
    //Now we have the needed variables, so let's calculate how much in one block equals in length:
    //Total length of x, y, z:
    Real x_length = x_max - x_min;
@@ -1351,7 +1343,7 @@ bool createCellIdList( Reader & vlsvReader, unordered_set<uint64_t> & cellIdList
 //Returns a cell id based on some given coordinates
 //Returns numeric_limits<uint64_t>::max(), if the distance from the coordinates to cell id is larger than max_distance
 //Input:
-//[0] VLSVReader& vlsvReader -- Some vlsvReader (with a file open)
+//[0] vlsv::Reader& vlsvReader -- Some vlsvReader (with a file open)
 //[1] Real * coords -- Some given coordinates (in this file the coordinates are retrieved from the user as an input)
 //Note: Assuming coords is a pointer of size 3
 //[2] max_distance -- Max allowed distance between the given coordinates *coords and the returned cell id's coordinates

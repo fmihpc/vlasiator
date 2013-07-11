@@ -323,8 +323,8 @@ vlsv2vtk: ${DEPS_VLSVREADER} ${OBJS_VLSVREADER} tools/vlsv2vtk.cpp
 
 
 vlsv2silo: ${DEPS_VLSVREADER} ${OBJS_VLSVREADER} tools/vlsv2silo.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsv2silo.cpp ${INC_SILO} -I$(CURDIR) 
-	${LNK} -o vlsv2silo_${FP_PRECISION} vlsv2silo.o ${OBJS_VLSVREADER} ${LIB_SILO} ${LDFLAGS}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsv2silo.cpp ${INC_SILO} ${INC_VLSV} -I$(CURDIR) 
+	${LNK} -o vlsv2silo_${FP_PRECISION} vlsv2silo.o ${OBJS_VLSVREADER} ${LIB_SILO} ${LIB_VLSV} ${LDFLAGS}
 
 vlsv2bzt: ${DEPS_VLSVREADER} ${OBJS_VLSVREADER} tools/vlsv2bzt.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsv2bzt.cpp -I$(CURDIR) 

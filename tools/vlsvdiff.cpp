@@ -69,6 +69,8 @@ namespace diffVlsv {
 
 using namespace vlsv;
 
+//O: NOTE: CHANGE THIS!
+//The local cell ids are stored as a variable currently
 template <class T>
 bool getLocalCellIds( T & vlsvReader, 
                       const string & meshName, 

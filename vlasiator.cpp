@@ -317,7 +317,7 @@ int main(int argn,char* args[]) {
       const bool newLib = true;
 //      const bool writeSmaller = true;
 //      const bool writeGhosts = true;
-      if( writeGrid(mpiGrid,outputReducer,P::systemWriteName.size()-1) == false ) {
+      if( writeGrid(mpiGrid,outputReducer,P::systemWriteName.size()-1, true) == false ) {
          cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
       }
       
@@ -473,12 +473,9 @@ int main(int argn,char* args[]) {
             const bool newLib = true;
             const bool writeSmaller = true;
             const bool writeGhosts = true;
-            cout << __LINE__ << endl;
-            cout << P::systemWriteName[P::systemWriteName.size()-1] << endl;
-            if( writeGrid(mpiGrid,outputReducer,P::systemWriteName.size()-1) == false ) {
+            if( writeGrid(mpiGrid,outputReducer,P::systemWriteName.size()-1, true) == false ) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
-            cout << __LINE__ << endl;
             P::systemWrites[i]++;
             logFile << "(IO): .... done!" << endl << writeVerbose;
             phiprof::stop("write-system");
@@ -510,7 +507,7 @@ int main(int argn,char* args[]) {
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          //Write the restart:
-         if( writeRestart(mpiGrid,outputReducer,"restart",(uint)P::t, P::restartStripeFactor) == false ) {
+         if( writeRestart(mpiGrid,outputReducer,"restart",(uint)P::t, P::restartStripeFactor, true) == false ) {
             logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
             cerr << "FAILED TO WRITE RESTART" << endl;
          }
