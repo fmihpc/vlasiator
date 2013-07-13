@@ -171,8 +171,6 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &is
 
 
 int main(int argn,char* args[]) {
-   //O: REMOVE THIS (Debugging)
-   cerr << "Vlasiator starting" << endl;
    bool success = true;
    int myRank;
    const creal DT_EPSILON=1e-12;
@@ -314,10 +312,9 @@ int main(int argn,char* args[]) {
          P::systemWrites.push_back(0);
       }
       //O: PUT FALSE!
-      const bool newLib = true;
-//      const bool writeSmaller = true;
-//      const bool writeGhosts = true;
-      if( writeGrid(mpiGrid,outputReducer,P::systemWriteName.size()-1, true) == false ) {
+      const bool writeSmaller = true;
+      const bool writeGhosts = true;
+      if( writeGrid(mpiGrid,outputReducer,P::systemWriteName.size()-1, writeSmaller, writeGhosts) == false ) {
          cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
       }
       
@@ -469,11 +466,9 @@ int main(int argn,char* args[]) {
             
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-            //O: PUT FALSE
-            const bool newLib = true;
             const bool writeSmaller = true;
             const bool writeGhosts = true;
-            if( writeGrid(mpiGrid,outputReducer,P::systemWriteName.size()-1, true) == false ) {
+            if( writeGrid(mpiGrid,outputReducer, i, writeSmaller, writeGhosts) == false ) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
             P::systemWrites[i]++;
@@ -507,7 +502,7 @@ int main(int argn,char* args[]) {
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          //Write the restart:
-         if( writeRestart(mpiGrid,outputReducer,"restart",(uint)P::t, P::restartStripeFactor, true) == false ) {
+         if( writeRestart(mpiGrid,outputReducer,"restart",(uint)P::t, P::restartStripeFactor) == false ) {
             logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
             cerr << "FAILED TO WRITE RESTART" << endl;
          }
