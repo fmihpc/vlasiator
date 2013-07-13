@@ -64,7 +64,7 @@ default: vlasiator
 
 tools: parallel_tools not_parallel_tools
 
-parallel_tools: vlsv2vtk vlsv2silo vlsv2bzt vlsvextract vlsvextract_new
+parallel_tools: vlsv2vtk vlsv2silo vlsv2bzt vlsvextract vlsvextract_new vlsvreaderinterface
 
 FORCE:
 # On FERMI one has to use the front-end compiler (e.g. g++) to compile this tool.
@@ -312,6 +312,10 @@ OBJS_VLSVREADEREXTRA = muxml.o vlscommon.o vlsvreader2extra.o
 vlsvextract: ${DEPS_VLSVREADER} tools/vlsvextract.cpp ${OBJS_VLSVREADER}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvextract.cpp ${INC_BOOST} ${INC_DCCRG} ${INC_SILO} ${INC_EIGEN} ${INC_VLSV} -I$(CURDIR) 
 	${LNK} -o vlsvextract_${FP_PRECISION} vlsvextract.o ${OBJS_VLSVREADER} ${LIB_BOOST} ${LIB_DCCRG} ${LIB_SILO} ${LIB_VLSV} ${LDFLAGS}
+
+vlsvreaderinterface: ${DEPS_VLSVREADER} tools/vlsvreaderinterface.h ${OBJS_VLSVREADER}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvreaderinterface.cpp ${INC_VLSV} -I${CURDIR}
+	${LNK} -o vlsvreaderinterface vlsvreaderinterface.o ${LIB_VLSV}
 
 vlsvextract_new: ${DEPS_VLSVREADER} tools/vlsvextract_new.cpp ${OBJS_VLSVREADER}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvextract_new.cpp ${INC_BOOST} ${INC_DCCRG} ${INC_SILO} ${INC_EIGEN} ${INC_VLSV} -I$(CURDIR)

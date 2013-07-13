@@ -301,10 +301,10 @@ bool writeVelocityDistributionData(
 
 bool writeDataReducer(const dccrg::Dccrg<SpatialCell>& mpiGrid,
                       const vector<uint64_t>& cells,
+                      const bool writeSmaller,
                       DataReducer& dataReducer,
                       int dataReducerIndex,
-                      Writer& vlsvWriter,
-                      const bool writeSmaller){
+                      Writer& vlsvWriter){
    map<string,string> attribs;                      
    string variableName,dataType;
    bool success=true;
@@ -872,10 +872,11 @@ bool writeGrid(
    if( writeGhostZoneDomainAndLocalIdNumbers( mpiGrid, vlsvWriter, meshName, ghost_cells ) == false ) return false;
 
    //Write necessary variables:
+   //const bool writeSmaller = P::writeSmaller; //Determines whether we write in floats or doubles
    for( uint i = 0; i < dataReducer.size(); ++i ) {
-      if( writeDataReducer( mpiGrid, local_cells, dataReducer, i, vlsvWriter, writeSmaller ) == false ) return false;
+      if( writeDataReducer( mpiGrid, local_cells, P::writeSmaller, dataReducer, i, vlsvWriter ) == false ) return false;
    }
-   if( writeSmaller == true ) {
+   if( P::writeSmaller == true ) {
       if( writeVelocitySpace<float>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
    } else {
       if( writeVelocitySpace<Real>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
@@ -978,7 +979,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
    //writeVelocityDistributionData
    const bool writeSmaller = false;
    for (uint i=0; i<restartReducer.size(); ++i) {
-      writeDataReducer(mpiGrid, local_cells, restartReducer, i, vlsvWriter, writeSmaller);
+      writeDataReducer(mpiGrid, local_cells, writeSmaller, restartReducer, i, vlsvWriter);
    }
 
    //write the velocity distribution data -- note: it's expecting a vector of pointers:

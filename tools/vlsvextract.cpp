@@ -334,6 +334,117 @@ bool convertVelocityBlockVariable(Reader& vlsvReader, const string& spatGridName
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <class T>
+Real * GetBVol( T & vlsvReader, const string& meshName, const uint64_t& cellID ) {
+   //Get B_vol:
+   //Declarations
+   VLSV::datatype meshDataType;
+   uint64_t meshArraySize, meshVectorSize, meshDataSize;
+   //Output: meshArraySize, meshVectorSize, meshDataType, meshDatasize (inside if() because getArray is bool and returns false if something unexpected happens)
+   if (vlsvReader.getArrayInfo("MESH", meshName, meshArraySize, meshVectorSize, meshDataType, meshDataSize) == false) {
+      //cerr << "Spatial cell #" << cellID << " not found!" << endl;
+      cerr << "Error " << __FILE__ << " " << __LINE__ << endl;
+      exit(1);
+      return NULL;
+   }
+   // Declare buffers and allocate memory
+   char * meshBuffer = new char[meshArraySize*meshVectorSize*meshDataSize];
+   //read the array into meshBuffer starting from 0 up until meshArraySize which was received from getArrayInfo
+   if (vlsvReader.readArray("MESH",meshName,0,meshArraySize,meshBuffer) == false) {
+      //cerr << "Spatial cell #" << cellID << " not found!" << endl;
+      cerr << "Error " << __FILE__ << " " << __LINE__ << endl;
+      exit(1);
+      return NULL;
+   }
+   // Search for the given cellID:
+   uint64_t cellIndex = numeric_limits<uint64_t>::max();
+   for (uint64_t cell = 0; cell < meshArraySize; ++cell) {
+      //the CellID are not sorted in the array, so we'll have to search the array -- the CellID is stored in mesh
+      const uint64_t readCellID = convUInt(meshBuffer + cell*meshDataSize, meshDataType, meshDataSize);
+      if (cellID == readCellID) {
+         //Found the right cell ID, break
+         cellIndex = cell;
+         break;
+      }
+   }
+
+   if (cellIndex == numeric_limits<uint64_t>::max()) {
+      //cerr << "Spatial cell #" << cellID << " not found!" << endl;
+      cerr << "Error " << __FILE__ << " " << __LINE__ << endl;
+      exit(1);
+      return NULL;
+   }
+
+   //These are needed to determine the buffer size.
+   VLSV::datatype variableDataType;
+   uint64_t variableArraySize, variableVectorSize, variableDataSize;
+   //getArrayInfo output: variableArraysize, variableVectorSize, ...
+   if (vlsvReader.getArrayInfo("VARIABLE", "B_vol", meshName, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) {
+      cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
+      exit(1);
+      return NULL;
+   }
+
+   //Declare a buffer for reading the specific vector from the array
+   char * the_actual_buffer = new char[variableVectorSize * variableDataSize];     //Needs to store vector times data size (Got that from getArrayInfo)
+   if( variableDataSize != sizeof(Real) ) {
+      cerr << "ERROR, bad datasize at " << __FILE__ << " " << __LINE__ << endl;
+      exit(1);
+   }
+   Real * the_actual_buffer_ptr = reinterpret_cast<Real*>(the_actual_buffer);
+   //The corresponding B vector is in the cellIndex we got from mesh -- we only need to read one vector -- that's why the '1' parameter
+   const uint64_t numOfVecs = 1;
+   //store the vector in the_actual_buffer buffer -- the data is extracted vector at a time
+   if(vlsvReader.readArray("VARIABLE", "B_vol", cellIndex, numOfVecs, the_actual_buffer) == false) {
+      cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
+      exit(1);
+      return 0;
+   }
+   //Return the B_vol vector in Real* form
+   return the_actual_buffer_ptr;
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Real * GetBVol( VLSVReader& vlsvReader, const string& meshName, const uint64_t& cellID ) {
    //Get B_vol:
    //Declarations
@@ -2535,7 +2646,6 @@ namespace newVlsv {
                outputFilePath.append( outputFileName );
                
    
-               //O: COMMENTED THIS
                // Create a SILO file for writing:
                fileptr = DBCreate(outputFilePath.c_str(), DB_CLOBBER, DB_LOCAL, "Vlasov data file", DB_PDB);
                if (fileptr == NULL) {

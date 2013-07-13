@@ -111,6 +111,7 @@ int P::sparseBlockAddWidthV = 1;
 
 string P::restartFileName = string("");                
 bool P::isRestart=false;
+bool P::writeSmaller = false;
 string P::loadBalanceAlgorithm = string("");
 string P::loadBalanceTolerance = string("");
 uint P::rebalanceInterval = numeric_limits<uint>::max();
@@ -145,6 +146,7 @@ bool Parameters::addParameters(){
    Readparameters::add("io.restart_walltime_interval","Save the complete simulation in given walltime intervals. Negative values disable writes.",-1.0);
    Readparameters::add("io.number_of_restarts","Exit the simulation after certain number of walltime-based restarts.",numeric_limits<uint>::max());
    Readparameters::add("io.write_restart_stripe_factor","Stripe factor for restar writing.", -1);
+   Readparameters::add("io.write_smaller","If true, write in floats instead of doubles", false);
    
    Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
    Readparameters::add("propagate_vlasov","Propagate distribution functions during the simulation",true);
@@ -231,6 +233,7 @@ bool Parameters::getParameters(){
    Readparameters::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
    Readparameters::get("io.number_of_restarts", P::exitAfterRestarts);
    Readparameters::get("io.write_restart_stripe_factor", P::restartStripeFactor);
+   Readparameters::get("io.write_smaller", P::writeSmaller);
    
    Readparameters::get("propagate_field",P::propagateField);
    Readparameters::get("propagate_vlasov",P::propagateVlasov);
