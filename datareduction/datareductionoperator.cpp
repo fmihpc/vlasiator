@@ -777,102 +777,40 @@ namespace DRO {
       return true;
    }
 
-   //Helper function for getting the velocity cell ids of the cells that are a part of the non backstream population:
-   //Note: Fetches the velocity cell ID
-   static void getBackstreamVelocityCells( const Velocity_Block * block, vector< uint64_t > & vCellIds ) {
+   //Helper function for getting the velocity cell ids that are a part of the backstream population:
+   static void getBackstreamVelocityCells( const Velocity_Block * block, vector<uint64_t> & vCellIds ) {
       const Real HALF = 0.5;
-      Real coordinates[3];
-      for( uint i = 0; i < WID; ++i ) {
-         coordinates[0] = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
-         for( uint j = 0; j < WID; ++j ) {
-            coordinates[1] = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
-            for( uint k = 0; k < WID; ++k ) {
-               coordinates[2] = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
-               if( ( (P::backstreamvx - coordinates[0])*(P::backstreamvx - coordinates[0])
-                   + (P::backstreamvy - coordinates[1])*(P::backstreamvy - coordinates[1])
-                   + (P::backstreamvz - coordinates[2])*(P::backstreamvz - coordinates[2]) )
-                   >
-                   P::backstreamradius*P::backstreamradius ) {
-                   //The velocity cell is a part of the backstream population:
-                   vCellIds.push_back( cellIndex(i,j,k) );
-               }
-            }
-         }
+      for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
+         const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
+         const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
+         const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+         if( ( (P::backstreamvx - VX)*(P::backstreamvx - VX)
+             + (P::backstreamvy - VY)*(P::backstreamvy - VY)
+             + (P::backstreamvz - VZ)*(P::backstreamvz - VZ) )
+             >
+             P::backstreamradius*P::backstreamradius ) {
+             //The velocity cell is a part of the backstream population:
+             vCellIds.push_back(cellIndex(i,j,k));
+          }
       }
    }
-
-   //Helper function for getting the velocity cell ids of the cells that are a part of the non backstream population:
-   //Note: Fetches the velocity cell ID
-   static void getNonBackstreamVelocityCells( const Velocity_Block * block, vector< uint64_t > & vCellIds ) {
+   //Helper function for getting the velocity cell ids that are a part of the backstream population:
+   static void getNonBackstreamVelocityCells( const Velocity_Block * block, vector<uint64_t> & vCellIds ) {
       const Real HALF = 0.5;
-      Real coordinates[3];
-      for( uint i = 0; i < WID; ++i ) {
-         coordinates[0] = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
-         for( uint j = 0; j < WID; ++j ) {
-            coordinates[1] = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
-            for( uint k = 0; k < WID; ++k ) {
-               coordinates[2] = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
-               if( ( (P::backstreamvx - coordinates[0])*(P::backstreamvx - coordinates[0])
-                   + (P::backstreamvy - coordinates[1])*(P::backstreamvy - coordinates[1])
-                   + (P::backstreamvz - coordinates[2])*(P::backstreamvz - coordinates[2]) )
-                   <=
-                   P::backstreamradius*P::backstreamradius ) {
-                   //The velocity cell is a part of the backstream population:
-                   vCellIds.push_back( cellIndex(i,j,k) );
-               }
-            }
-         }
+      for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
+         const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
+         const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
+         const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+         if( ( (P::backstreamvx - VX)*(P::backstreamvx - VX)
+             + (P::backstreamvy - VY)*(P::backstreamvy - VY)
+             + (P::backstreamvz - VZ)*(P::backstreamvz - VZ) )
+             <=
+             P::backstreamradius*P::backstreamradius ) {
+             //The velocity cell is a part of the backstream population:
+             vCellIds.push_back(cellIndex(i,j,k));
+          }
       }
    }
-
-   //Helper function for getting the velocity cells that are a part of the non backstream population:
-   //Note: Fetches both the velocity cell ID and the coordinates
-   static void getBackstreamVelocityCells( const Velocity_Block * block, vector< pair<uint64_t, array<Real, 3>> > & vCells ) {
-      const Real HALF = 0.5;
-      array<Real, 3> coordinates;
-      for( uint i = 0; i < WID; ++i ) {
-         coordinates[0] = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
-         for( uint j = 0; j < WID; ++j ) {
-            coordinates[1] = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
-            for( uint k = 0; k < WID; ++k ) {
-               coordinates[2] = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
-               if( ( (P::backstreamvx - coordinates[0])*(P::backstreamvx - coordinates[0])
-                   + (P::backstreamvy - coordinates[1])*(P::backstreamvy - coordinates[1])
-                   + (P::backstreamvz - coordinates[2])*(P::backstreamvz - coordinates[2]) )
-                   >
-                   P::backstreamradius*P::backstreamradius ) {
-                   //The velocity cell is a part of the backstream population:
-                   vCells.push_back( make_pair( cellIndex(i,j,k), coordinates ) );
-               }
-            }
-         }
-      }
-   }
-
-   //Helper function for getting the velocity cells that are a part of the non backstream population:
-   //Note: Fetches both the velocity cell ID and the coordinates
-   static void getNonBackstreamVelocityCells( const Velocity_Block * block, vector< pair<uint64_t, array<Real, 3>> > & vCells ) {
-      const Real HALF = 0.5;
-      array<Real, 3> coordinates;
-      for( uint i = 0; i < WID; ++i ) {
-         coordinates[0] = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
-         for( uint j = 0; j < WID; ++j ) {
-            coordinates[1] = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
-            for( uint k = 0; k < WID; ++k ) {
-               coordinates[2] = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
-               if( ( (P::backstreamvx - coordinates[0])*(P::backstreamvx - coordinates[0])
-                   + (P::backstreamvy - coordinates[1])*(P::backstreamvy - coordinates[1])
-                   + (P::backstreamvz - coordinates[2])*(P::backstreamvz - coordinates[2]) )
-                   <=
-                   P::backstreamradius*P::backstreamradius ) {
-                   //The velocity cell is a part of the backstream population:
-                   vCells.push_back( make_pair( cellIndex(i,j,k), coordinates ) );
-               }
-            }
-         }
-      }
-   }
-
    //Helper function for getting the velocity cell indices that are a part of the backstream population:
    static void getBackstreamVelocityCellIndices( const Velocity_Block * block, 
                                                  vector<array<uint, 3>> & vCellIndices ) {
