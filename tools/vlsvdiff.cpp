@@ -3,17 +3,17 @@ This file is part of Vlasiator.
 
 Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
+Vlasiator is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License version 3
+as published by the Free Software Foundation.
 
+Vlasiator is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
 
-
-
-
-
-
-
-
-
-
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
 /*! \file vlsvdiff.cpp
@@ -40,11 +40,138 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <set>
 #include <sstream>
 #include <dirent.h>
+#include <typeinfo>
 
 #include "vlsvreader2.h"
 #include "definitions.h"
+#include "vlsv_reader.h"
+
 
 using namespace std;
+
+namespace diffVlsv {
+   class Reader : public vlsv::Reader {
+   public:
+      bool getMeshNames( list<string> & meshNames ) {
+         set<string> meshNames_set;
+         if (getUniqueAttributeValues("MESH", "name", meshNames_set) == false) {
+            cerr << "Failed to read mesh names" << endl;
+            return false;
+         }               
+         //Input the mesh names:
+         for( set<string>::const_iterator it = meshNames_set.begin(); it != meshNames_set.end(); ++it ) {
+            meshNames.push_back( *it );
+         }
+         return true;
+      }
+   };
+}
+
+using namespace vlsv;
+
+//O: NOTE: CHANGE THIS!
+//The local cell ids are stored as a variable currently
+template <class T>
+bool getLocalCellIds( T & vlsvReader, 
+                      const string & meshName, 
+                      vector<uint64_t> & cellIds ) {
+   if( !cellIds.empty() ) {
+      cerr << "ERROR, cellIds must be empty at " << __FILE__ << " " << __LINE__ << endl;
+   }
+
+   datatype::type domainSizesDataType;
+   uint64_t domainSizesArraySize, domainSizesVectorSize, domainSizesDataSize;
+
+   //Create attribute list for reading in arrays (contains things like variable name and mesh name)
+   //Read domain sizes: This is done to distinguish local cells and ghost cells in the array "MESH"
+   list<pair<string, string> > domainSizesAttributes;
+   domainSizesAttributes.push_back( make_pair("mesh", meshName) );
+   //Retrieve info on the array:
+   if (vlsvReader.getArrayInfo("MESH_DOMAIN_SIZES", domainSizesAttributes, domainSizesArraySize, domainSizesVectorSize, domainSizesDataType, domainSizesDataSize) == false) {
+      cerr << "ERROR, failed to get array info from MESH_DOMAIN_SIZES at " << __FILE__ << " " << __LINE__ << endl;
+      return false;
+   }
+   if( domainSizesDataType != datatype::type::UINT ) {
+      cerr << "ERROR, bad datatype at: " << __FILE__ << " " << __LINE__ << endl;
+   }
+   if( domainSizesVectorSize != 2 ) {
+      cerr << "ERROR, bad domain sizes vector size at: " << __FILE__ << " " << __LINE__ << endl;
+   }
+
+   //Read in the array:
+   const int short domainSizesFirstIndex = 0;
+   //Declare a buffer (info on the size was fetched with getArrayInfo)
+   char * domainSizesBuffer = new char[domainSizesArraySize 
+                                       * domainSizesVectorSize 
+                                       * domainSizesDataSize / sizeof(char)];
+   if (vlsvReader.readArray("MESH_DOMAIN_SIZES", domainSizesAttributes, domainSizesFirstIndex, domainSizesArraySize, domainSizesBuffer) == false) {
+      cerr << "ERROR, failed to read MESH_DOMAIN_SIZES at " << __FILE__ << " " << __LINE__ << endl;
+      return false;
+   }
+   uint32_t * domainSizes = reinterpret_cast<unsigned int*>(domainSizesBuffer);
+
+
+   //Get the total amount of local cells:
+   unsigned int numberOfLocalCells = 0;
+   for( unsigned int i = 0; i < domainSizesArraySize; ++i ) {
+      numberOfLocalCells += domainSizes[2 * i] - domainSizes[2 * i + 1];
+   }
+   //Reserve vector space for it:
+   cellIds.reserve( numberOfLocalCells );
+
+
+   //Get mesh info (for cell ids):
+   datatype::type meshDataType;
+   uint64_t meshVectorSize, meshArraySize, meshDataSize;
+   list<pair<string, string> > meshAttributes;
+   meshAttributes.push_back( make_pair("name", meshName) );
+   if (vlsvReader.getArrayInfo("MESH", meshAttributes, meshArraySize, meshVectorSize, meshDataType, meshDataSize) == false) {
+         cerr << "ERROR, failed to get info on array MESH at " << __FILE__ << " " << __LINE__ << endl;
+         return false;
+   }
+
+   //Check that the data size is correct:
+   if( meshDataSize != sizeof(uint64_t) ) {
+      cerr << "ERROR, invalid data size at " << __FILE__ << " " << __LINE__ << endl;
+      delete[] domainSizesBuffer;
+      exit(1);
+   }
+
+
+   //Read the cell ids:
+   unsigned int j = 0;
+   uint64_t offsetIndex = 0;
+   for( unsigned int i = 0; i < domainSizesArraySize; ++i ) {
+      uint64_t howManyToRead;
+      uint64_t howManyToSkip;
+      howManyToRead = domainSizes[2 * i] - domainSizes[2 * i + 1];
+      howManyToSkip = domainSizes[2 * i];
+
+      //Read the cell ids:
+      char * cellIds_buffer = new char[howManyToRead * meshDataSize * meshVectorSize];
+      //The cell ids are of type uint64_t so reinterpret_cast the char pointer into readable form
+      uint64_t * cellIds_uint_pointer = reinterpret_cast<uint64_t*>(cellIds_buffer);
+      if (vlsvReader.readArray("MESH", meshAttributes, offsetIndex, howManyToRead, cellIds_buffer) == false) {
+         cerr << "FAILED TO READ ARRAY MESH AT " << __FILE__ << " " << __LINE__ << endl;
+         delete[] cellIds_buffer;
+         delete[] domainSizesBuffer;
+         exit(1);
+      }
+
+      //Push to the list of cells
+      for( unsigned int j = 0; j < howManyToRead; ++j ) {
+         //In visit cell ids start from 0 which is why they're stored like that in the file,
+         //in vlasiator, they start from 1 -- hence the '+ 1'
+         cellIds.push_back( (cellIds_uint_pointer[j]) + 1 );
+      }
+      delete[] cellIds_buffer;
+      offsetIndex += howManyToSkip;
+   }
+
+   delete[] domainSizesBuffer;
+   return true;
+}
+
 
 /*! Extracts the dataset from the VLSV file opened by convertSILO.
  * \param vlsvReader VLSVReader class object used to access the VLSV file
@@ -53,7 +180,108 @@ using namespace std;
  * \param compToExtract Unsigned int designating the component to extract (0 for scalars)
  * \param orderedData Pointer to the return argument map which will get the extracted dataset
  */
-bool convertMesh(VLSVReader& vlsvReader,
+bool convertMesh(diffVlsv::Reader& vlsvReader,
+                 const string& meshName,
+                 const char * varToExtract,
+                 const uint compToExtract,
+                 map<uint, Real> * orderedData) {
+   //Check for null pointer:
+   if( !varToExtract || !orderedData ) {
+      cerr << "ERROR, PASSED A NULL POINTER AT " << __FILE__ << " " << __LINE__ << endl;
+      return false;
+   }
+   bool meshSuccess = true;
+   bool variableSuccess = true;
+   
+   datatype::type meshDataType;
+   datatype::type variableDataType;
+   uint64_t meshArraySize, meshVectorSize, meshDataSize;
+   uint64_t variableArraySize, variableVectorSize, variableDataSize;
+
+
+   //Get local cell ids:
+   vector<uint64_t> local_cells;
+   getLocalCellIds( vlsvReader, meshName, local_cells );
+
+   list<pair<string, string> > variableAttributes;
+   const string _varToExtract( varToExtract );
+   variableAttributes.push_back( make_pair("mesh", meshName) );
+   variableAttributes.push_back( make_pair("name", _varToExtract) );
+   //Read in array size, vector size, data type and data size of the array "VARIABLE" in the vlsv file (Needed in reading the array)
+   if (vlsvReader.getArrayInfo("VARIABLE", variableAttributes, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) {
+      cerr << "ERROR, failed to read variable at " << __FILE__ << " " << __LINE__ << endl;
+      return false;
+   }
+
+
+   //Check for correct output:
+   if (local_cells.size() != variableArraySize) {
+      cerr << "ERROR array size mismatch: " << local_cells.size() << " " << variableArraySize << endl;
+   }
+   if (compToExtract + 1 > variableVectorSize) {
+      cerr << "ERROR invalid component, this variable has size " << variableVectorSize << endl;
+      abort();
+   }
+   
+   // Read the mesh array one node (of a spatial cell) at a time 
+   // and create a map which contains each cell's CellID and variable to be extracted
+   char* variableBuffer = new char[variableVectorSize*variableDataSize];
+   float* variablePtrFloat = reinterpret_cast<float*>(variableBuffer);
+   double* variablePtrDouble = reinterpret_cast<double*>(variableBuffer);
+   uint* variablePtrUint = reinterpret_cast<uint*>(variableBuffer);
+   int* variablePtrInt = reinterpret_cast<int*>(variableBuffer);
+   
+   for (uint64_t i=0; i<local_cells.size(); ++i) {
+      const short int amountToReadIn = 1;
+      const uint64_t & startingReadIndex = i;
+      if (vlsvReader.readArray("VARIABLE", variableAttributes, startingReadIndex, amountToReadIn, variableBuffer) == false) {
+         cerr << "ERROR, failed to read variable at " << __FILE__ << " " << __LINE__ << endl;
+         variableSuccess = false; 
+         break;
+      }
+      // Get the CellID
+      uint64_t & CellID = local_cells[i];
+      // Get the variable value
+      Real extract = NAN;
+      
+      switch (variableDataType)
+      {
+         case datatype::type::FLOAT:
+            if(variableDataSize == sizeof(float)) extract = (Real)(variablePtrFloat[compToExtract]);
+            if(variableDataSize == sizeof(double)) extract = (Real)(variablePtrDouble[compToExtract]);
+            break;
+         case datatype::type::UINT:
+            extract = (Real)(variablePtrUint[compToExtract]);
+            break;
+         case datatype::type::INT:
+            extract = (Real)(variablePtrInt[compToExtract]);
+            break;
+         case datatype::type::UNKNOWN:
+            cerr << "ERROR, BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
+            break;
+      }
+      // Put those into the map
+      orderedData->insert(pair<uint64_t, Real>(CellID, extract));
+   }
+   
+   if (meshSuccess == false) {
+      cerr << "ERROR reading array MESH" << endl;
+   }
+   if (variableSuccess == false) {
+      cerr << "ERROR reading array VARIABLE " << varToExtract << endl;
+   }
+   return meshSuccess && variableSuccess;
+}
+
+
+/*! Extracts the dataset from the VLSV file opened by convertSILO.
+ * \param vlsvReader VLSVReader class object used to access the VLSV file
+ * \param meshName Address of the string containing the name of the mesh to be extracted
+ * \param varToExtract Pointer to the char array containing the name of the variable to extract
+ * \param compToExtract Unsigned int designating the component to extract (0 for scalars)
+ * \param orderedData Pointer to the return argument map which will get the extracted dataset
+ */
+bool convertMesh(VLSVReader & vlsvReader,
                  const string& meshName,
                  const char * varToExtract,
                  const uint compToExtract,
@@ -121,6 +349,28 @@ bool convertMesh(VLSVReader& vlsvReader,
    return meshSuccess && variableSuccess;
 }
 
+/* Checks if the vlsv file is using the new library or not
+ * Input:
+ * \param vlsvReader -- some vlsv reader with a file open
+ * Output:
+ * Returns true if the vlsv file has been written with the new vlsv library and false if not
+ */
+int checkVersion( Reader & vlsvReader ) {
+   string versionTag = "version";
+   float version;
+   if( vlsvReader.readParameter( versionTag, version ) == false ) {
+      return 0;
+   }
+   if( version == 1.00 ) {
+      return 1;
+   } else {
+      cerr << "Invalid version!" << endl;
+      exit(1);
+      return 0;
+   }
+}
+
+
 /*! Opens the VLSV file and extracts the mesh names. Sends for processing to convertMesh.
  * \param fileName String containing the name of the file to be processed
  * \param varToExtract Pointer to the char array containing the name of the variable to extract
@@ -128,6 +378,7 @@ bool convertMesh(VLSVReader& vlsvReader,
  * \param orderedData Pointer to the return argument map which will get the extracted dataset
  * \sa convertMesh
  */
+template <class T>
 bool convertSILO(const string fileName,
                  const char * varToExtract,
                  const uint compToExtract,
@@ -136,7 +387,7 @@ bool convertSILO(const string fileName,
    bool success = true;
    
    // Open VLSV file for reading:
-   VLSVReader vlsvReader;
+   T vlsvReader;
    
    if (vlsvReader.open(fileName) == false)
    {
@@ -146,10 +397,11 @@ bool convertSILO(const string fileName,
    
    // Get the names of all meshes in vlsv file
    list<string> meshNames;
-   if (vlsvReader.getMeshNames(meshNames) == false)
-   {
-      return false;
+   if (vlsvReader.getMeshNames(meshNames) == false) {
+      cerr << "Failed to read mesh names" << endl;
+      exit(1);
    }
+
    
    for (list<string>::const_iterator it=meshNames.begin(); it!=meshNames.end(); ++it)
    {
@@ -479,16 +731,43 @@ bool process2Files(const string fileName1,
    map<uint, Real> orderedData1;
    map<uint, Real> orderedData2;
    Real absolute, relative, mini, maxi, size, avg, stdev;
-   
-   if(convertSILO(fileName1, varToExtract, compToExtract, &orderedData1) != true) {
+
+
+   //Check whether the file(s) use new or old vlsv library:
+   Reader vlsvCheck1;
+   vlsvCheck1.open( fileName1 );
+   const bool file1UsesNewVlsvLib = (checkVersion( vlsvCheck1 ) == 1.00);
+   if( file1UsesNewVlsvLib == false )
+   vlsvCheck1.close();
+
+   Reader vlsvCheck2;
+   vlsvCheck2.open( fileName2 );
+   const bool file2UsesNewVlsvLib = (checkVersion( vlsvCheck2 ) == 1.00);
+   if( file1UsesNewVlsvLib == false )
+   vlsvCheck2.close();
+
+   bool success = true;
+   if( file1UsesNewVlsvLib ) {
+      success = convertSILO<diffVlsv::Reader>(fileName1, varToExtract, compToExtract, &orderedData1);
+   } else {
+      success = convertSILO<VLSVReader>(fileName1, varToExtract, compToExtract, &orderedData1);
+   }
+   if( success == false ) {
       cerr << "ERROR Data import error with " << fileName1 << endl;
       return 1;
    }
-   if(convertSILO(fileName2, varToExtract, compToExtract, &orderedData2) != true) {
+
+   if( file2UsesNewVlsvLib ) {
+      success = convertSILO<diffVlsv::Reader>(fileName2, varToExtract, compToExtract, &orderedData2);
+   } else {
+      success = convertSILO<VLSVReader>(fileName2, varToExtract, compToExtract, &orderedData2);
+   }
+   if( success == false ) {
       cerr << "ERROR Data import error with " << fileName2 << endl;
       return 1;
    }
-   
+
+
    // Basic consistency check
    if(orderedData1.size() != orderedData2.size()) {
       cerr << "ERROR Datasets have different size." << endl;
@@ -530,7 +809,6 @@ bool process2Files(const string fileName1,
  * \param fileList Pointer to a set of strings, return argument for the produced file list
  */
 bool processDirectory(DIR* dir, set<string> * fileList) {
-   VLSVReader vlsvReader;
    int filesFound = 0, entryCounter = 0;
    
    const string mask = "grid";
@@ -589,6 +867,7 @@ int main(int argn,char* args[])
       
       // Process two files with verbose output (last argument true)
       process2Files(fileName1, fileName2, varToExtract, compToExtract, true);
+      //CONTINUE
       
       closedir(dir1);
       closedir(dir2);
