@@ -675,13 +675,13 @@ float checkVersion( Reader & vlsvReader ) {
 //FIXME, readGrid has no support for checking or converting endianness
    //FIXME, hard coded that files have double-precision data. Fix 
 bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
-              const std::string& name, bool newLib){
+              const std::string& name){
    Reader vlsvCheck;
    vlsvCheck.open( name );
-   newLib = (checkVersion( vlsvCheck ) == 1.00);
+   //Check the vlsv version from the file:
+   const bool newLib = (checkVersion( vlsvCheck ) == 1.00);
    vlsvCheck.close();
    if( newLib ) {
-      cerr << __LINE__ << endl;
       vector<uint64_t> fileCells; /*< CellIds for all cells in file*/
       vector<uint> nBlocks;/*< Number of blocks for all cells in file*/
       bool success=true;
@@ -1065,6 +1065,7 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
       exitOnError(success,"(RESTART) Other failure",MPI_COMM_WORLD);
       return success;
    }
+   return false;
 }
 
 

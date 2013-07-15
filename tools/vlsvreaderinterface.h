@@ -4,23 +4,61 @@
 #include "vlsvreader2.h"
 #include "vlsv_reader.h"
 
+extern float checkVersion( const std::string & fname );
+
 namespace newVlsv {
    class Reader : public vlsv::Reader {
    private:
       std::unordered_map<uint64_t, uint64_t> cellIdLocations;
+      std::unordered_map<uint64_t, std::pair<uint64_t, uint32_t>> cellsWithBlocksLocations;
       bool cellIdsSet;
+      bool cellsWithBlocksSet;
    public:
       Reader();
       virtual ~Reader();
-      inline bool getMeshNames( std::list<std::string> & meshNames ); //Function for getting mesh names
-      inline bool getCellIds( std::vector<uint64_t> & cellIds );
+      bool getMeshNames( std::list<std::string> & meshNames ); //Function for getting mesh names
+      bool getMeshNames( std::set<std::string> & meshNames );
+      bool getVariableNames( const std::string&, std::list<std::string> & meshNames );
+      bool getVariableNames( std::set<std::string> & meshNames );
+      bool getCellIds( std::vector<uint64_t> & cellIds );
       //Reads in a variable:
-      template <typename T, uint N>
-      inline bool getVariable( const std::string & variableName, const uint64_t & cellId, std::array<T, N> & variable );
+      template <typename T, size_t N>
+      bool getVariable( const std::string & variableName, const uint64_t & cellId, std::array<T, N> & variable );
+      bool getBlockIds( const uint64_t & cellId, std::vector<uint64_t> & blockIds );
       bool setCellIds();
+      inline void clearCellIds() {
+         cellIdLocations.clear();
+         cellIdsSet = false;
+      }
+      bool setCellsWithBlocks();
+      inline void clearCellsWithBlocks() {
+         cellsWithBlocksLocations.clear();
+         cellsWithBlocksSet = false;
+      }
+      bool getVelocityBlockVariables( const std::string & variableName, const uint64_t & cellId, char * buffer, bool allocateMemory = true );
+      inline uint64_t getBlockOffset( const uint64_t & cellId ) {
+         //Check if the cell id can be found:
+         std::unordered_map<uint64_t, std::pair<uint64_t, uint32_t>>::const_iterator it = cellsWithBlocksLocations.find( cellId );
+         if( it == cellsWithBlocksLocations.end() ) {
+            std::cerr << "COULDNT FIND CELL ID " << cellId << " AT " << __FILE__ << " " << __LINE__ << std::endl;
+            exit(1);
+         }
+         //Get offset:
+         return std::get<0>(it->second);
+      }
+      inline uint32_t getNumberOfBlocks( const uint64_t & cellId ) {
+         //Check if the cell id can be found:
+         std::unordered_map<uint64_t, std::pair<uint64_t, uint32_t>>::const_iterator it = cellsWithBlocksLocations.find( cellId );
+         if( it == cellsWithBlocksLocations.end() ) {
+            std::cerr << "COULDNT FIND CELL ID " << cellId << " AT " << __FILE__ << " " << __LINE__ << std::endl;
+            exit(1);
+         }
+         //Get number of blocks:
+         return std::get<1>(it->second);
+      }
    };
 
-   template <typename T, uint N>
+   template <typename T, size_t N> inline
    bool Reader::getVariable( const std::string & variableName, const uint64_t & cellId, std::array<T, N> & variable ) {
       if( cellIdsSet == false ) {
          std::cerr << "ERROR, CELL IDS NOT SET AT " << __FILE__ << " " << __LINE__ << std::endl;
@@ -28,7 +66,7 @@ namespace newVlsv {
       }
       //Check if the cell id is in the list:
       std::unordered_map<uint64_t, uint64_t>::const_iterator findCell = cellIdLocations.find(cellId);
-      if( findCell = cellIdLocations.end() ) {
+      if( findCell == cellIdLocations.end() ) {
          std::cerr << "ERROR, CELL ID NOT FOUND AT " << __FILE__ << " " << __LINE__ << std::endl;
          return false;
       }
@@ -113,7 +151,11 @@ namespace newVlsv {
 
 }
 
-
 namespace oldVlsv {
-
+   class Reader : public VLSVReader {
+   public:
+      bool getArrayInfo(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
+                        uint64_t& arraySize,uint64_t& vectorSize,vlsv::datatype::type& _dataType,uint64_t& dataSize) const;
+   };
 }
+
