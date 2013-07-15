@@ -1376,7 +1376,6 @@ uint64_t getCellIdFromCoords( const CellStructure & cellStruct,
 
    //Now pick the closest cell id to the given coordinates:
    uint64_t cellId = searchForBestCellId( cellStruct, cellIdList, coords );
-   cout << "cell iddd:" << cellId << endl;
 
    //Check to make sure the cell id has distribution (It does if it's in the list of cell ids)
    unordered_set<uint64_t>::const_iterator foundCellId = cellIdList.find( cellId );
@@ -1737,7 +1736,7 @@ void convertFileToSilo( const string & fileName, const UserOptions & mainOptions
 
       if( cellID == numeric_limits<uint64_t>::max() ) {
          //Could not find a cell id
-         cout << "Could not find a cell id close enough to the input coordinates!" << endl;
+         cout << "Could not find a cell id in the given coordinates!" << endl;
          vlsvReader.close();
          return;
       }
