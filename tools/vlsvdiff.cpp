@@ -45,28 +45,10 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "vlsvreader2.h"
 #include "definitions.h"
 #include "vlsv_reader.h"
+#include "vlsvreaderinterface.h"
 
 
 using namespace std;
-
-namespace diffVlsv {
-   class Reader : public vlsv::Reader {
-   public:
-      bool getMeshNames( list<string> & meshNames ) {
-         set<string> meshNames_set;
-         if (getUniqueAttributeValues("MESH", "name", meshNames_set) == false) {
-            cerr << "Failed to read mesh names" << endl;
-            return false;
-         }               
-         //Input the mesh names:
-         for( set<string>::const_iterator it = meshNames_set.begin(); it != meshNames_set.end(); ++it ) {
-            meshNames.push_back( *it );
-         }
-         return true;
-      }
-   };
-}
-
 using namespace vlsv;
 
 //O: NOTE: CHANGE THIS!
@@ -180,7 +162,7 @@ bool getLocalCellIds( T & vlsvReader,
  * \param compToExtract Unsigned int designating the component to extract (0 for scalars)
  * \param orderedData Pointer to the return argument map which will get the extracted dataset
  */
-bool convertMesh(diffVlsv::Reader& vlsvReader,
+bool convertMesh(newVlsv::Reader& vlsvReader,
                  const string& meshName,
                  const char * varToExtract,
                  const uint compToExtract,
@@ -748,7 +730,7 @@ bool process2Files(const string fileName1,
 
    bool success = true;
    if( file1UsesNewVlsvLib ) {
-      success = convertSILO<diffVlsv::Reader>(fileName1, varToExtract, compToExtract, &orderedData1);
+      success = convertSILO<newVlsv::Reader>(fileName1, varToExtract, compToExtract, &orderedData1);
    } else {
       success = convertSILO<VLSVReader>(fileName1, varToExtract, compToExtract, &orderedData1);
    }
@@ -758,7 +740,7 @@ bool process2Files(const string fileName1,
    }
 
    if( file2UsesNewVlsvLib ) {
-      success = convertSILO<diffVlsv::Reader>(fileName2, varToExtract, compToExtract, &orderedData2);
+      success = convertSILO<newVlsv::Reader>(fileName2, varToExtract, compToExtract, &orderedData2);
    } else {
       success = convertSILO<VLSVReader>(fileName2, varToExtract, compToExtract, &orderedData2);
    }
