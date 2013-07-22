@@ -190,7 +190,6 @@ void initializeGrid(
    mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop("Fetch Neighbour data");
    phiprof::stop("Set initial state");
-   
 
 }
 

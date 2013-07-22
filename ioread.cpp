@@ -136,10 +136,16 @@ bool readCellIds(ParallelReader & file,
          uint32_t* ptr = reinterpret_cast<uint32_t*>(IDbuffer);
          //O: Input cell ids
          //note: The cell ids in the file start from 0 and vlasiator expects them to start with 1
-         for (uint64_t i=0; i<numberOfCells; ++i) fileCells[i] = ptr[i] + 1;
+         for (uint64_t i=0; i<numberOfCells; ++i) {
+            const uint64_t globalID = ptr[i];
+            fileCells[i] = globalID + 1;
+         }
       } else if (dataType == datatype::type::UINT && byteSize == 8) {
          uint64_t* ptr = reinterpret_cast<uint64_t*>(IDbuffer);
-         for (uint64_t i=0; i<numberOfCells; ++i) fileCells[i] = ptr[i] + 1;
+         for (uint64_t i=0; i<numberOfCells; ++i) {
+            const uint64_t globalID = ptr[i];
+            fileCells[i] = globalID + 1;
+         }
       } else {
          logFile << "(RESTARTBUILDER) ERROR: VLSVParReader returned an unsupported datatype for cell Ids!" << endl << write;
          success = false;

@@ -37,7 +37,12 @@ namespace VlsHeader {
 namespace VLSV {
    const unsigned char LITTLE_END = 0;
    const unsigned char BIG_END    = 1;
-   enum datatype {INT,UINT,FLOAT};
+   enum datatype {
+      UNKNOWN,                                            /**< Unknown or unsupported datatype.*/
+      INT,                                                /**< Signed integer datatype.*/
+      UINT,                                               /**< Unsinged integer datatype.*/
+      FLOAT                                               /**< Floating point datatype.*/
+   };
 }
 
 unsigned char detectEndianness();

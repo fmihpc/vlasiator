@@ -156,7 +156,7 @@ bool getLocalCellIds( T & vlsvReader,
 
 
 /*! Extracts the dataset from the VLSV file opened by convertSILO.
- * \param vlsvReader VLSVReader class object used to access the VLSV file
+ * \param vlsvReader oldVlsv::Reader class object used to access the VLSV file
  * \param meshName Address of the string containing the name of the mesh to be extracted
  * \param varToExtract Pointer to the char array containing the name of the variable to extract
  * \param compToExtract Unsigned int designating the component to extract (0 for scalars)
@@ -257,13 +257,13 @@ bool convertMesh(newVlsv::Reader& vlsvReader,
 
 
 /*! Extracts the dataset from the VLSV file opened by convertSILO.
- * \param vlsvReader VLSVReader class object used to access the VLSV file
+ * \param vlsvReader oldVlsv::Reader class object used to access the VLSV file
  * \param meshName Address of the string containing the name of the mesh to be extracted
  * \param varToExtract Pointer to the char array containing the name of the variable to extract
  * \param compToExtract Unsigned int designating the component to extract (0 for scalars)
  * \param orderedData Pointer to the return argument map which will get the extracted dataset
  */
-bool convertMesh(VLSVReader & vlsvReader,
+bool convertMesh(oldVlsv::Reader & vlsvReader,
                  const string& meshName,
                  const char * varToExtract,
                  const uint compToExtract,
@@ -272,13 +272,17 @@ bool convertMesh(VLSVReader & vlsvReader,
    bool meshSuccess = true;
    bool variableSuccess = true;
    
-   VLSV::datatype meshDataType;
-   VLSV::datatype variableDataType;
+   datatype::type meshDataType;
+   datatype::type variableDataType;
    uint64_t meshArraySize, meshVectorSize, meshDataSize;
    uint64_t variableArraySize, variableVectorSize, variableDataSize;
-   
-   if (vlsvReader.getArrayInfo("MESH", meshName, meshArraySize, meshVectorSize, meshDataType, meshDataSize) == false) return false;
-   if (vlsvReader.getArrayInfo("VARIABLE", varToExtract, meshName, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) return false;
+   list<pair<string,string>> meshAttributes;
+   meshAttributes.push_back(make_pair("name", meshName));
+   if (vlsvReader.getArrayInfo("MESH", meshAttributes, meshArraySize, meshVectorSize, meshDataType, meshDataSize) == false) return false;
+   list<pair<string,string>> varAttributes;
+   varAttributes.push_back(make_pair("mesh", meshName));
+   varAttributes.push_back(make_pair("name", varToExtract));
+   if (vlsvReader.getArrayInfo("VARIABLE", varAttributes, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) return false;
    if (meshArraySize != variableArraySize) {
       cerr << "ERROR array size mismatch" << endl;
    }
@@ -298,8 +302,8 @@ bool convertMesh(VLSVReader & vlsvReader,
    int* variablePtrInt = reinterpret_cast<int*>(variableBuffer);
    
    for (uint64_t i=0; i<meshArraySize; ++i) {
-      if (vlsvReader.readArray("MESH", meshName, i, 1, meshBuffer) == false) {meshSuccess = false; break;}
-      if (vlsvReader.readArray("VARIABLE", varToExtract, i, 1, variableBuffer) == false) {variableSuccess = false; break;}
+      if (vlsvReader.readArray("MESH", meshAttributes, i, 1, meshBuffer) == false) {meshSuccess = false; break;}
+      if (vlsvReader.readArray("VARIABLE", varAttributes, i, 1, variableBuffer) == false) {variableSuccess = false; break;}
       // Get the CellID
       uint64_t CellID  = meshPtr[0];
       // Get the variable value
@@ -307,15 +311,23 @@ bool convertMesh(VLSVReader & vlsvReader,
       
       switch (variableDataType)
       {
-         case VLSV::FLOAT:
+         case datatype::type::FLOAT:
             if(variableDataSize == sizeof(float)) extract = (Real)(variablePtrFloat[compToExtract]);
             if(variableDataSize == sizeof(double)) extract = (Real)(variablePtrDouble[compToExtract]);
             break;
-         case VLSV::UINT:
+         case datatype::type::UINT:
             extract = (Real)(variablePtrUint[compToExtract]);
             break;
-         case VLSV::INT:
+         case datatype::type::INT:
             extract = (Real)(variablePtrInt[compToExtract]);
+            break;
+         case datatype::type::UNKNOWN:
+            cerr << "BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
+            return false;
+            break;
+         case default:
+            cerr << "BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
+            return false;
             break;
       }
       // Put those into the map
@@ -732,7 +744,7 @@ bool process2Files(const string fileName1,
    if( file1UsesNewVlsvLib ) {
       success = convertSILO<newVlsv::Reader>(fileName1, varToExtract, compToExtract, &orderedData1);
    } else {
-      success = convertSILO<VLSVReader>(fileName1, varToExtract, compToExtract, &orderedData1);
+      success = convertSILO<oldVlsv::Reader>(fileName1, varToExtract, compToExtract, &orderedData1);
    }
    if( success == false ) {
       cerr << "ERROR Data import error with " << fileName1 << endl;
@@ -742,7 +754,7 @@ bool process2Files(const string fileName1,
    if( file2UsesNewVlsvLib ) {
       success = convertSILO<newVlsv::Reader>(fileName2, varToExtract, compToExtract, &orderedData2);
    } else {
-      success = convertSILO<VLSVReader>(fileName2, varToExtract, compToExtract, &orderedData2);
+      success = convertSILO<oldVlsv::Reader>(fileName2, varToExtract, compToExtract, &orderedData2);
    }
    if( success == false ) {
       cerr << "ERROR Data import error with " << fileName2 << endl;
