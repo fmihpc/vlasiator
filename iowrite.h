@@ -24,7 +24,6 @@ bool writeGrid(
    dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    DataReducer& dataReducer,
    const uint& index,
-   const bool writeSmaller = false,
    const bool writeGhosts = true
 );
 

@@ -311,10 +311,8 @@ int main(int argn,char* args[]) {
       for(uint si=0; si<P::systemWriteName.size(); si++) {
          P::systemWrites.push_back(0);
       }
-      //O: PUT FALSE!
-      const bool writeSmaller = true;
       const bool writeGhosts = true;
-      if( writeGrid(mpiGrid,outputReducer,P::systemWriteName.size()-1, writeSmaller, writeGhosts) == false ) {
+      if( writeGrid(mpiGrid,outputReducer,P::systemWriteName.size()-1, writeGhosts) == false ) {
          cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
       }
       
@@ -466,9 +464,8 @@ int main(int argn,char* args[]) {
             
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-            const bool writeSmaller = true;
             const bool writeGhosts = true;
-            if( writeGrid(mpiGrid,outputReducer, i, writeSmaller, writeGhosts) == false ) {
+            if( writeGrid(mpiGrid,outputReducer, i, writeGhosts) == false ) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
             P::systemWrites[i]++;

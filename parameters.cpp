@@ -111,7 +111,7 @@ int P::sparseBlockAddWidthV = 1;
 
 string P::restartFileName = string("");                
 bool P::isRestart=false;
-bool P::writeSmaller = false;
+int P::writeSmaller = false;
 string P::loadBalanceAlgorithm = string("");
 string P::loadBalanceTolerance = string("");
 uint P::rebalanceInterval = numeric_limits<uint>::max();

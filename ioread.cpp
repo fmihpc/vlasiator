@@ -443,7 +443,6 @@ bool readBlockData(
      }
    }
 
-  cerr << __LINE__ << endl;
 
    delete(avgBuffer);
    delete[] blockIdBuffer_char;
@@ -759,10 +758,8 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
       }
       
       exitOnError(success,"(RESTART) Wrong number of cells in restartfile",MPI_COMM_WORLD);
-      cout << __LINE__ << endl;
       if(success) 
          success=readNBlocks(file,nBlocks,masterRank,MPI_COMM_WORLD);
-      cout << __LINE__ << endl;
      
       //make sure all cells are empty, we will anyway overwrite everything and in that case moving cells is easier...
       vector<uint64_t> gridCells = mpiGrid.get_cells();

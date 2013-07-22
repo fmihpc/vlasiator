@@ -802,7 +802,6 @@ bool writeGrid(
                dccrg::Dccrg<SpatialCell>& mpiGrid,
                DataReducer& dataReducer,
                const uint& index,
-               const bool writeSmaller,
                const bool writeGhosts ) {
    //Go with the new vlsv library:
    double allStart = MPI_Wtime();
@@ -874,9 +873,9 @@ bool writeGrid(
    //Write necessary variables:
    //const bool writeSmaller = P::writeSmaller; //Determines whether we write in floats or doubles
    for( uint i = 0; i < dataReducer.size(); ++i ) {
-      if( writeDataReducer( mpiGrid, local_cells, P::writeSmaller, dataReducer, i, vlsvWriter ) == false ) return false;
+      if( writeDataReducer( mpiGrid, local_cells, (P::writeSmaller==1), dataReducer, i, vlsvWriter ) == false ) return false;
    }
-   if( P::writeSmaller == true ) {
+   if( P::writeSmaller == 1 ) {
       if( writeVelocitySpace<float>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
    } else {
       if( writeVelocitySpace<Real>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
