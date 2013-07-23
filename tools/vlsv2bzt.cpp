@@ -220,7 +220,7 @@ int main(int argn,char* args[]) {
       set<string>::iterator it;
       for(entryName = 0, it=fileList.begin(); entryName < fileList.size(); entryName++, it++)
       {
-         if(entryName%(ntasks - 1) + 1 == rank) {
+         if(entryName%(ntasks - 1) + 1 == (unsigned int)rank) {
             cout << "\tProc " << rank << " converting '" << *it << "'" << endl;
             convertSILO(*it, entryName, varToExtract, compToExtract);
             filesConverted++;

@@ -396,29 +396,32 @@ bool writeCommonGridData(
    map<string, string> xmlAttributes;
    xmlAttributes["name"] = "CellID";
    xmlAttributes["mesh"] = "SpatialGrid";
-   vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, &(local_cells[0]) );
+   if( vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, &(local_cells[0]) ) == false ) {
+      return false;
+   }
 
-   vlsvWriter.writeParameter("t", &P::t);
-   vlsvWriter.writeParameter("dt", &P::dt);
-   vlsvWriter.writeParameter("tstep", &P::tstep);
-   vlsvWriter.writeParameter("xmin", &P::xmin);
-   vlsvWriter.writeParameter("xmax", &P::xmax);
-   vlsvWriter.writeParameter("ymin", &P::ymin);
-   vlsvWriter.writeParameter("ymax", &P::ymax);
-   vlsvWriter.writeParameter("zmin", &P::zmin);
-   vlsvWriter.writeParameter("zmax", &P::zmax);
-   vlsvWriter.writeParameter("xcells_ini", &P::xcells_ini);
-   vlsvWriter.writeParameter("ycells_ini", &P::ycells_ini);
-   vlsvWriter.writeParameter("zcells_ini", &P::zcells_ini);
-   vlsvWriter.writeParameter("vxmin", &P::vxmin);
-   vlsvWriter.writeParameter("vxmax", &P::vxmax);
-   vlsvWriter.writeParameter("vymin", &P::vymin);
-   vlsvWriter.writeParameter("vymax", &P::vymax);
-   vlsvWriter.writeParameter("vzmin", &P::vzmin);
-   vlsvWriter.writeParameter("vzmax", &P::vzmax);
-   vlsvWriter.writeParameter("vxblocks_ini", &P::vxblocks_ini);
-   vlsvWriter.writeParameter("vyblocks_ini", &P::vyblocks_ini);
-   vlsvWriter.writeParameter("vzblocks_ini", &P::vzblocks_ini);
+   //Write parameters:
+   if( vlsvWriter.writeParameter("t", &P::t) == false ) { return false; }
+   if( vlsvWriter.writeParameter("dt", &P::dt) == false ) { return false; }
+   if( vlsvWriter.writeParameter("tstep", &P::tstep) == false ) { return false; }
+   if( vlsvWriter.writeParameter("xmin", &P::xmin) == false ) { return false; }
+   if( vlsvWriter.writeParameter("xmax", &P::xmax) == false ) { return false; }
+   if( vlsvWriter.writeParameter("ymin", &P::ymin) == false ) { return false; }
+   if( vlsvWriter.writeParameter("ymax", &P::ymax) == false ) { return false; }
+   if( vlsvWriter.writeParameter("zmin", &P::zmin) == false ) { return false; }
+   if( vlsvWriter.writeParameter("zmax", &P::zmax) == false ) { return false; }
+   if( vlsvWriter.writeParameter("xcells_ini", &P::xcells_ini) == false ) { return false; }
+   if( vlsvWriter.writeParameter("ycells_ini", &P::ycells_ini) == false ) { return false; }
+   if( vlsvWriter.writeParameter("zcells_ini", &P::zcells_ini) == false ) { return false; }
+   if( vlsvWriter.writeParameter("vxmin", &P::vxmin) == false ) { return false; }
+   if( vlsvWriter.writeParameter("vxmax", &P::vxmax) == false ) { return false; }
+   if( vlsvWriter.writeParameter("vymin", &P::vymin) == false ) { return false; }
+   if( vlsvWriter.writeParameter("vymax", &P::vymax) == false ) { return false; }
+   if( vlsvWriter.writeParameter("vzmin", &P::vzmin) == false ) { return false; }
+   if( vlsvWriter.writeParameter("vzmax", &P::vzmax) == false ) { return false; }
+   if( vlsvWriter.writeParameter("vxblocks_ini", &P::vxblocks_ini) == false ) { return false; }
+   if( vlsvWriter.writeParameter("vyblocks_ini", &P::vyblocks_ini) == false ) { return false; }
+   if( vlsvWriter.writeParameter("vzblocks_ini", &P::vzblocks_ini) == false ) { return false; }
    //Mark the new version:
    float version = 1.00;
    vlsvWriter.writeParameter( "version", &version );
@@ -585,9 +588,9 @@ bool writeZoneGlobalIdNumbers( const dccrg::Dccrg<SpatialCell>& mpiGrid,
 //Note: meshName should probably be spatialGrid
 //_cells contains number of cells in x, y and z direction
 bool writeBoundingBoxNodeCoordinates ( Writer & vlsvWriter,
-                                         const string & meshName,
-                                         const int masterRank,
-                                         MPI_Comm comm ) {
+                                       const string & meshName,
+                                       const int masterRank,
+                                       MPI_Comm comm ) {
 
    //Create variables xCells, yCells, zCells which tell the number of zones in the given direction
    //Note: This is for the sake of clarity.
@@ -623,6 +626,7 @@ bool writeBoundingBoxNodeCoordinates ( Writer & vlsvWriter,
    }
    if( yNodeCoordinates == NULL || yNodeCoordinates == NULL || zNodeCoordinates == NULL ) {
       cerr << "ERROR, NULL POINTER AT: " << __FILE__ << " " << __LINE__ << endl;
+      logFile << "(MAIN) writeGrid: ERROR, NULL POINTER AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
       exit(1);
    }
 
@@ -650,7 +654,7 @@ bool writeBoundingBoxNodeCoordinates ( Writer & vlsvWriter,
    MPI_Comm_rank(comm, &myRank);
    //Check the rank and write the arrays:
    const unsigned int vectorSize = 1;
-   unsigned int arraySize;
+   uint64_t arraySize;
    if( myRank == masterRank ) {
       //Save with the correct name "MESH_NODE_CRDS_X" -- writeArray returns false if something goes wrong
       arraySize = xCells + 1;
@@ -666,6 +670,7 @@ bool writeBoundingBoxNodeCoordinates ( Writer & vlsvWriter,
       if( vlsvWriter.writeArray("MESH_NODE_CRDS_Y", xmlAttributes, arraySize, vectorSize, yNodeCoordinates) == false ) success = false;
       if( vlsvWriter.writeArray("MESH_NODE_CRDS_Z", xmlAttributes, arraySize, vectorSize, zNodeCoordinates) == false ) success = false;
    }
+   //Free the memory
    delete[] xNodeCoordinates;
    delete[] yNodeCoordinates;
    delete[] zNodeCoordinates;
@@ -678,9 +683,9 @@ bool writeBoundingBoxNodeCoordinates ( Writer & vlsvWriter,
 //O: meshName should probably be "SpatialGrid"
 //O: Should this do anything if it isn't a master process?
 bool writeMeshBoundingBox( Writer & vlsvWriter, 
-                             const string & meshName, 
-                             const int masterRank,
-                             MPI_Comm comm ) {
+                           const string & meshName, 
+                           const int masterRank,
+                           MPI_Comm comm ) {
    //Get my rank from the MPI_Comm
    int myRank;
    MPI_Comm_rank(comm, &myRank);
@@ -857,6 +862,7 @@ bool writeGrid(
 
    //Write basic grid variables: NOTE: master process only
    if( writeCommonGridData(vlsvWriter, mpiGrid, local_cells, P::systemWrites[index], MPI_COMM_WORLD) == false ) return false;
+   //CONTINUE
 
    //Write zone global id numbers:
    if( writeZoneGlobalIdNumbers( mpiGrid, vlsvWriter, meshName, local_cells, ghost_cells ) == false ) return false;

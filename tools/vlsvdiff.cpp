@@ -325,10 +325,6 @@ bool convertMesh(oldVlsv::Reader & vlsvReader,
             cerr << "BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
             return false;
             break;
-         case default:
-            cerr << "BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
-            return false;
-            break;
       }
       // Put those into the map
       orderedData->insert(pair<uint64_t, Real>(CellID, extract));

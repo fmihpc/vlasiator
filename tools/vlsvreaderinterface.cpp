@@ -398,8 +398,10 @@ static vlsv::datatype::type transferVLSVDatatypeToOld( VLSV::datatype& dataType 
       case VLSV::INT:
          return vlsv::datatype::type::INT;
          break;
+      case VLSV::UNKNOWN:
+         cout << "BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
+         break;
    }
-   cerr << "ERROR BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
    return vlsv::datatype::type::INT;
 }
 

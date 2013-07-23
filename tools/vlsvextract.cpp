@@ -182,6 +182,9 @@ int SiloType(const VLSV::datatype& dataType, const uint64_t& dataSize) {
          else if (dataSize == 8) return DB_DOUBLE;
          else return -1;
          break;
+      case VLSV::UNKNOWN:
+         cout << "BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
+         break;
    }
    return -1;
 }
