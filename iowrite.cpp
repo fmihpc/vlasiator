@@ -271,6 +271,7 @@ bool writeVelocityDistributionData(
                if( block_data->data[vc] > numeric_limits<T>::max() ) {
                   logFile << "(MAIN) writeGrid: ERROR invalid conversion in velocityBlockData in writeVelocityDistributionData" << endl << writeVerbose;
                   cerr << "(MAIN) writeGrid: ERROR invalid conversion in velocityBlockData in writeVelocityDistributionData" << endl;
+                  return false;
                }
                //Append to the vector:
                velocityBlockData.push_back((T)(block_data->data[vc]));
@@ -344,8 +345,8 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell>& mpiGrid,
          double * varBuffer_double = reinterpret_cast<double*>(varBuffer);
          //Declare smaller varbuffer:
          const uint64_t arraySize_smaller = cells.size();
-         const uint16_t vectorSize_smaller = vectorSize;
-         const uint16_t dataSize_smaller = sizeof(float);
+         const uint32_t vectorSize_smaller = vectorSize;
+         const uint32_t dataSize_smaller = sizeof(float);
          const string dataType_smaller = dataType;
          float * varBuffer_smaller = new float[arraySize_smaller * vectorSize_smaller];
          //Input varBuffer_double into varBuffer_smaller:
@@ -355,6 +356,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell>& mpiGrid,
          }
          //Cast the varBuffer to char:
          char * varBuffer_smaller_char = reinterpret_cast<char*>(varBuffer_smaller);
+         //Write the array:
          if (vlsvWriter.writeArray("VARIABLE", attribs, dataType_smaller, arraySize_smaller, vectorSize_smaller, dataSize_smaller, varBuffer_smaller_char) == false) {
             success = false;
             logFile << "(MAIN) writeGrid: ERROR failed to write datareductionoperator data to file!" << endl << writeVerbose;
@@ -424,8 +426,8 @@ bool writeCommonGridData(
    if( vlsvWriter.writeParameter("vzblocks_ini", &P::vzblocks_ini) == false ) { return false; }
    //Mark the new version:
    float version = 1.00;
-   vlsvWriter.writeParameter( "version", &version );
-   return true; //to make compiler happy,no real errorchecking done
+   if( vlsvWriter.writeParameter( "version", &version ) == false ) { return false; }
+   return true; 
 }
 
 
@@ -542,13 +544,20 @@ bool writeZoneGlobalIdNumbers( const dccrg::Dccrg<SpatialCell>& mpiGrid,
    //Note: globalID is defined as follows: global ID = z*yCells*xCells + y*xCells + x
    vector<uint64_t>::const_iterator it;
    for( it = local_zones.begin(); it != local_zones.end(); ++it ) {
-      if( (*it) == 0 ) cerr << "ERROR, Invalid cell id at " << __FILE__ << " " << __LINE__ << endl;
+      if( (*it) == 0 ) {
+         cerr << "ERROR, Invalid cell id at " << __FILE__ << " " << __LINE__ << endl;
+         return false;
+      }
       //Add the global id:
+      //Note: Unlike cell ids, global ids start from 0
       globalIds.push_back( (*it) - 1 );
    }
    //Do the same for ghost zones: (Append to the end of the list of global ids)
    for( it = ghost_zones.begin(); it != ghost_zones.end(); ++it ) {
-      if( (*it) == 0 ) cerr << "ERROR, Invalid cell id at " << __FILE__ << " " << __LINE__ << endl;
+      if( (*it) == 0 ) {
+         cerr << "ERROR, Invalid cell id at " << __FILE__ << " " << __LINE__ << endl;
+         return false;
+      }
       //Add the global id:
       globalIds.push_back( (*it) - 1 );
    }
@@ -563,9 +572,9 @@ bool writeZoneGlobalIdNumbers( const dccrg::Dccrg<SpatialCell>& mpiGrid,
    //A mandatory 'type' -- just something visit hopefully understands, because I dont :)
    xmlAttributes["type"] = "multi_ucd";
    //Set periodicity:
-   if( mpiGrid.is_periodic( 0 ) ) xmlAttributes["xperiodic"] = "yes"; else xmlAttributes["xperiodic"] = "no";
-   if( mpiGrid.is_periodic( 1 ) ) xmlAttributes["yperiodic"] = "yes"; else xmlAttributes["yperiodic"] = "no";
-   if( mpiGrid.is_periodic( 2 ) ) xmlAttributes["zperiodic"] = "yes"; else xmlAttributes["zperiodic"] = "no";
+   if( mpiGrid.is_periodic( 0 ) ) { xmlAttributes["xperiodic"] = "yes"; } else { xmlAttributes["xperiodic"] = "no"; }
+   if( mpiGrid.is_periodic( 1 ) ) { xmlAttributes["yperiodic"] = "yes"; } else { xmlAttributes["yperiodic"] = "no"; }
+   if( mpiGrid.is_periodic( 2 ) ) { xmlAttributes["zperiodic"] = "yes"; } else { xmlAttributes["zperiodic"] = "no"; }
    //Write:
    if( numberOfZones == 0 ) {
       const uint64_t dummy_data = 0;
@@ -862,7 +871,6 @@ bool writeGrid(
 
    //Write basic grid variables: NOTE: master process only
    if( writeCommonGridData(vlsvWriter, mpiGrid, local_cells, P::systemWrites[index], MPI_COMM_WORLD) == false ) return false;
-   //CONTINUE
 
    //Write zone global id numbers:
    if( writeZoneGlobalIdNumbers( mpiGrid, vlsvWriter, meshName, local_cells, ghost_cells ) == false ) return false;
