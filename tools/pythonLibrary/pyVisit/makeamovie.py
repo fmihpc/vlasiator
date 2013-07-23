@@ -117,23 +117,14 @@ def make_movie( variableName, minValue, maxValue, inputDirectory, inputFileName,
    for i in xrange(_startFrame, _endFrame+1):
       vis.SetTimeSliderState(i)
       frame = i - _startFrame
-      #View2DAtts = View2DAttributes()
-      #View2DAtts.windowCoords = (startX + frame*dx, endX + frame*dx, startY + frame*dy, endY + frame*dy)
-      #View2DAtts.viewportCoords = (0.2, 0.95, 0.15, 0.95)
-      #View2DAtts.fullFrameActivationMode = View2DAtts.Auto  # On, Off, Auto
-      #View2DAtts.fullFrameAutoThreshold = 100
-      #View2DAtts.xScale = View2DAtts.LINEAR  # LINEAR, LOG
-      #View2DAtts.yScale = View2DAtts.LINEAR  # LINEAR, LOG
-      #View2DAtts.windowValid = 1
-      #SetView2D(View2DAtts)
       vis.SaveWindowAtts = vis.SaveWindowAttributes()
       vis.SaveWindowAtts.outputToCurrentDirectory = 0
       vis.SaveWindowAtts.outputDirectory = _outputDir
       vis.SaveWindowAtts.fileName = _outputFileName
       vis.SaveWindowAtts.family = 1
       vis.SaveWindowAtts.format = vis.SaveWindowAtts.PNG  # BMP, CURVE, JPEG, OBJ, PNG, POSTSCRIPT, POVRAY, PPM, RGB, STL, TIFF, ULTRA, VTK, PLY
-      vis.SaveWindowAtts.width = 1024
-      vis.SaveWindowAtts.height = 1024
+      vis.SaveWindowAtts.width = 3000
+      vis.SaveWindowAtts.height = 3000
       vis.SaveWindowAtts.screenCapture = 0
       vis.SaveWindowAtts.saveTiled = 0
       vis.SaveWindowAtts.quality = 100
@@ -153,5 +144,5 @@ def make_movie( variableName, minValue, maxValue, inputDirectory, inputFileName,
    pyVisitPath = "pyVisit/"
    #subprocess.call(pythonLibDirectoryPath + pyVisitPath + "moviecompilescript.sh")
    #subprocess.call(pythonLibDirectoryPath + pyVisitPath + "moviecompilescript.sh " + _outputDir + " " + _outputFileName)
-   framerate = 10
+   framerate = "10"
    subprocess.call([pythonLibDirectoryPath + pyVisitPath + "moviecompilescript.sh", _outputDir, _outputFileName, framerate])

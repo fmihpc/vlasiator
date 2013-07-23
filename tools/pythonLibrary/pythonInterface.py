@@ -13,6 +13,7 @@ sys.path.insert(0, pythonLibDirectoryPath + pyVisitPath)
 sys.path.insert(0, pythonLibDirectoryPath + pyMiscPath)
 from vlsvreader import *
 from makeamovie import *
+from makeamovieauto import *
 from spacecraft import *
 from distributionplot import *
 from movingframeofreference import *
@@ -54,7 +55,7 @@ def list_functionality():
    print "      make_movie(variableName=\"rho\", minValue=1.0e6, maxValue=5.0e6, inputDirectory=\"/home/hannukse/meteo/stornext/field/vlasiator/2D/AAJ/silo_files/\", inputFileName=\"bulk.*.silo\", outputDirectory=\"/home/hannukse/MOVINGFRAME_MOVIES/AAJ_BZ_REMAKE/\", outputFileName=\"RHO_FORESHOCK_\", colorTable=\"hot_desaturated\", startFrame=30, endFrame=120)\n"
    print "Function: " + colored("make_movie_auto(BBOX)", "red")
    print "   Example usage:"
-   print "      make_movie_auto(BBOX)\n"
+   print "      make_movie_auto( variableName=\"rho\", boundaryBox=array([1.14322e8, 2.51245e8, -3.38029e7, 3.89375e7, 0, 0]), vlsvFileName=\"bulk.0000970.vlsv\", inputDirectory=\"/home/hannukse/meteo/lustre/tmp/hannuksela/pythonTests/\", inputFileName=\"bulk.*.silo\", outputDirectory=\"/home/hannukse/testFile/\", outputFileName=\"RHO_TEST\", colorTableName=\"hot_desaturated\", startFrame=-1, endFrame=-1 )\n"
    print "Function: " + colored("make_moving_frame_of_reference_movie( x_begin, x_end, y_begin, y_end, speed_x, speed_y, variable_name, minThreshold, maxThreshold, input_directory, input_file_name, output_directory, output_file_name, color_table=\"hot_desaturated\", start_frame=-1, end_frame=-1, frame_skip_dt=1.0 )", "red")
    print "   Example usage:"
    print "      make_moving_frame_of_reference_movie( x_begin=50e6, x_end=150e6, y_begin=-150e6, y_end=-50e6, speed_x=-500000, speed_y=1000, variable_name=\"rho\", minThreshold=1.0e5, maxThreshold=1.0e6, input_directory=\"/stornext/field/vlasiator/AAJ/distributions/\", input_file_name=\"bulk.*.silo\", output_directory=\"/stornext/field/vlasiator/visualizations/\", output_file_name=\"RHO_MOVIE\", color_table=\"hot_desaturated\", start_frame=0, end_frame=85, frame_skip_dt=2.0 )\n"

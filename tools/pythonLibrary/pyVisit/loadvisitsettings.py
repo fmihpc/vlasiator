@@ -425,7 +425,7 @@ def load_visit_settings():
    vis.DefineTensorExpression("gyrotropicity/invR", "inverse(<gyrotropicity/R>)")
    vis.DefineScalarExpression("gyrotropicity/maxDIagonalPressureDifference", "max(   2.0 * abs(PTensor_rotated[0][0] - PTensor_rotated[1][1]) / (PTensor_rotated[0][0] + PTensor_rotated[1][1]),   2.0 * abs(PTensor_rotated[1][1] - PTensor_rotated[2][2]) / (PTensor_rotated[1][1] + PTensor_rotated[2][2]))")
    vis.DefineScalarExpression("Temperature", "Pressure / ((rho + 1) * 1.38065e-23)")
-   vis.DefineTensorExpressiourveExpression("operators/Lineout/volumeVx", "rho_v[0] / rho")
+   vis.DefineCurveExpression("operators/Lineout/volumeVx", "rho_v[0] / rho")
    vis.DefineCurveExpression("operators/Lineout/volumeVy", "rho_v[1]/rho")
    vis.DefineCurveExpression("operators/Lineout/volumeVz", "rho_v[2]/rho")
    vis.DefineCurveExpression("operators/Lineout/edgeEx", "E[0]")

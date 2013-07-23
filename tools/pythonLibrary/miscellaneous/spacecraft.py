@@ -128,17 +128,18 @@ class SpaceCraft(object):
       if len(self.__vlsvfiles) == 0:
          print "BAD LENGTH IN SPACECRAFT INIT!"
       # Get xmax, xmin and xcells_ini
-      self.__xmax = self.__vlsvfiles[0].read(name="xmax",tag="PARAMETERS")
-      self.__xmin = self.__vlsvfiles[0].read(name="xmin",tag="PARAMETERS")
-      self.__xcells = self.__vlsvfiles[0].read(name="xcells_ini",tag="PARAMETERS")
+      self.__xmax = self.__vlsvfiles[0].read_parameter(name="xmax")
+      self.__xmin = self.__vlsvfiles[0].read_parameter(name="xmin")
+      self.__xcells = self.__vlsvfiles[0].read_parameter(name="xcells_ini")
       # Do the same for y
-      self.__ymax = self.__vlsvfiles[0].read(name="ymax",tag="PARAMETERS")
-      self.__ymin = self.__vlsvfiles[0].read(name="ymin",tag="PARAMETERS")
-      self.__ycells = self.__vlsvfiles[0].read(name="ycells_ini",tag="PARAMETERS")
+      self.__ymax = self.__vlsvfiles[0].read_parameter(name="ymax")
+      self.__ymin = self.__vlsvfiles[0].read_parameter(name="ymin")
+      self.__ycells = self.__vlsvfiles[0].read_parameter(name="ycells_ini")
       # And for z
-      self.__zmax = self.__vlsvfiles[0].read(name="zmax",tag="PARAMETERS")
-      self.__zmin = self.__vlsvfiles[0].read(name="zmin",tag="PARAMETERS")
-      self.__zcells = self.__vlsvfiles[0].read(name="zcells_ini",tag="PARAMETERS")
+      self.__zmax = self.__vlsvfiles[0].read_parameter(name="zmax")
+      self.__zmin = self.__vlsvfiles[0].read_parameter(name="zmin")
+      self.__zcells = self.__vlsvfiles[0].read_parameter(name="zcells_ini")
+      
       # Get cell lengths
       self.__cell_lengths = np.array([(self.__xmax - self.__xmin)/(float)(self.__xcells), (self.__ymax - self.__ymin)/(float)(self.__ycells), (self.__zmax - self.__zmin)/(float)(self.__zcells)])
       # Get the cell id and coordinates:
