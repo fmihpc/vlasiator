@@ -209,11 +209,28 @@ class VlsvFile(object):
       ''' Read variables from the open vlsv file. 
       
       Arguments:
-      :param _name Name of the variable
+      :param name Name of the variable
       :returns numpy array with the data
 
       '''
       return self.read(mesh="SpatialGrid", name=name, tag="VARIABLE", read_single_cellid=-1)
+
+   def read_variables_for_cellids(self, name, cellids):
+      ''' Read variables from the open vlsv file. 
+      
+      Arguments:
+      :param name Name of the variable
+      :param cellids List of cellids
+      :returns numpy array with the data
+      '''
+      # Read the variable:
+      variablelist = self.read_variables(name)
+      #Pick the variables with the cell ids in the list:
+      returnvariablelist = []
+      for cellid in cellids:
+         returnvariablelist.append(variablelist[self.__fileindex_for_cellid[cellid]])
+      # Return the variables:
+      return np.array(returnvariablelist)
 
    def read_variable(self, name, cellid):
       ''' Read a variable of a given cell from the open vlsv file. 

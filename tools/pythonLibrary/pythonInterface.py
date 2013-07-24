@@ -18,6 +18,7 @@ from spacecraft import *
 from distributionplot import *
 from movingframeofreference import *
 from movingline import *
+from vlsvplots import *
 
 visitLaunched = False
 
@@ -41,12 +42,12 @@ def launch_visit(noWindow=True):
 def list_functionality():
    print "Class: " + colored("VlsvFile", "red")
    print "   Example usage:"
-   print "      myReader = VlsvFile(\"distribution.vlsv\") -- opens a vlsv file for reading"
-   print "      myReader.list() -- Gives a list of attributes in the vlsv file"
-   print "      myReader.read(name=\"rho\", tag=\"VARIABLE\", mesh=\"SpatialGrid\", read_single_cellid=-1) -- Reads array with the name 'rho', tag 'VARIABLE', mesh 'SpatialGrid'. if read_single_cellid is specified then the reader reads only the given cell id, if specified as -1 it reads the whole array."
-   print "      myReader.read_variables(\"rho\") -- Reads values of rho in the form of array"
-   print "      myReader.read_variable(\"rho\", 16) -- Reads the 16th cell id's value of rho and returns it"
-   print "      myReader.read_blocks(16) -- Reads the raw blocks of cell 16\n"
+   print "      vlsvReader = VlsvFile(\"distribution.vlsv\") -- opens a vlsv file for reading"
+   print "      vlsvReader.list() -- Gives a list of attributes in the vlsv file"
+   print "      vlsvReader.read(name=\"rho\", tag=\"VARIABLE\", mesh=\"SpatialGrid\", read_single_cellid=-1) -- Reads array with the name 'rho', tag 'VARIABLE', mesh 'SpatialGrid'. if read_single_cellid is specified then the reader reads only the given cell id, if specified as -1 it reads the whole array."
+   print "      vlsvReader.read_variables(\"rho\") -- Reads values of rho in the form of array"
+   print "      vlsvReader.read_variable(\"rho\", 16) -- Reads the 16th cell id's value of rho and returns it"
+   print "      vlsvReader.read_blocks(16) -- Reads the raw blocks of cell 16\n"
    print "Function: " + colored("launch_visit(noWindow=True)", "red")
    print "   Example usage:"
    print "      launch_visit(noWindow=False) NOTE: this must be launched before doing anything regarding visit\n"
@@ -69,6 +70,23 @@ def list_functionality():
    print "Function: " + colored("make_moving_spacecraft_plot()", "red")
    print "   Example usage:"
    print "      make_moving_spacecraft_plot(\n)"
-   print "Function: " + colored("make_cut_through_plot()", "red")
+   print "Function: " + colored("draw_plots_by_cellid(vlsvReader, variables1, variables2, cellids, coordinates=[], distances=[])", "red")
    print "   Example usage:"
-   print "      make_cut_through_plot()\n"
+   print "      draw_plots_by_cellid(vlsvReader, variables1, variables2, cellids, coordinates=[], distances=[])"
+   print "Function: " + colored("take_cut_through( fileName, variables1, variables2, point1, point2 )", "red")
+   print "   Example usage:"
+   print "      Note: this would create plots of (x, rho), (x, B[1]), (x, B[2]), (y, rho), (y, B[1]), (y, B[2])"
+   print "      variables2 = {}"
+   print "      variables2[\"rho\"] = 0"
+   print "      variables2[\"B\"] = [1, 2]"
+   print "      variables1 = {}"
+   print "      variables1[\"coordinates\"] = [0, 1]"
+   print "      take_cut_through( fileName=\"bulk.00001.vlsv\", variables1=variables1, variables2=variables2, point1=[0,0,0], point2=[150e6, 0, 0] )\n"
+
+
+
+
+
+
+
+
