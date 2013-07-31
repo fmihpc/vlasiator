@@ -34,7 +34,7 @@ def loadplotdata( fileName, showplot=True ):
       pl.show()
 
 
-def fourier_array(t, y):
+def fourier_array(t, y, kaiserwindowparameter=0):
    ''' Function for returning fourier series of some given arrays t and y
        :param t         time variable (along the x-axis)
        :param y         variable along the y-axis
@@ -45,6 +45,8 @@ def fourier_array(t, y):
    for i in xrange(len(t)-1):
       if dt != t[i+1] - t[i]:
          print "Gave bad timestep to plot_fourier, the time step in array t must be constant (for now)"
+   if usehammingwindow == True:
+      y = y*np.kaiser(len(y), kaiserwindowparameter)
    # Do FFT on the data
    fourier=np.fft.fft(y)*(1/(float)(len(t)))
    # Get frequencies of the fourier
@@ -56,7 +58,7 @@ def fourier_array(t, y):
    y2=np.array([np.sum(fourier*np.exp(complex(0,1)*2*np.pi*freq*T)) for T in t2])
    return np.array([[t2,y2], freq])
 
-def plot_fourier(t, y, subplotnums=[[2,1,1],[2,1,2]], savedata="none"):
+def plot_fourier(t, y, subplotnums=[[2,1,1],[2,1,2]], savedata="none", kaiserwindowparameter=0):
    ''' Function for plotting fourier series of some given arrays t and y
        :param t         time variable (plotted along the x-axis)
        :param y         variable to be plotted along the y-axis
@@ -67,6 +69,9 @@ def plot_fourier(t, y, subplotnums=[[2,1,1],[2,1,2]], savedata="none"):
    for i in xrange(len(t)-1):
       if dt != t[i+1] - t[i]:
          print "Gave bad timestep to plot_fourier, the time step in array t must be constant (for now)"
+   # Use hamming window on y:
+   if usehammingwindow == True:
+      y = y*np.kaiser(len(y), kaiserwindowparameter)
    # Do FFT on the data
    fourier=np.fft.fft(y)*(1/(float)(len(t)))
    # Get frequencies of the fourier
@@ -94,8 +99,8 @@ def plot_fourier(t, y, subplotnums=[[2,1,1],[2,1,2]], savedata="none"):
       saveplotdata( freq[1:toIndex], np.log(2*np.abs(fourier[1:toIndex])), savedata + ".npy" )
    pl.plot(freq[1:toIndex],2*np.abs(fourier[1:toIndex]), marker='.', linestyle='-', linewidth=0.5)
    pl.ylim([0,1.05*max(2*np.abs(fourier[1:len(fourier)/2]))])
-   #xTicks = np.arange(15)/100.0
-   #pl.xticks(xTicks)
+   xTicks = np.arange(15)/100.0
+   pl.xticks(xTicks)
    # Put interactive mode on and show the plot:
    #pl.ion()
    #pl.show()

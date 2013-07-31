@@ -286,7 +286,7 @@ def take_cut_through( fileName, variables1, variables2, point1, point2, fitFunct
    # Plot the variables:
    draw_plots_by_cellid(vlsvReader=vlsvReader, variables1=variables1, variables2=variables2, cellids=cellids, coordinates=coordinateList, distances=distances, fitFunction=fitFunction)
 
-def time_evolution_array( fileNames, dt, cellid, variables, forceConstantAmplitude=False, fitFunction=nullfit ):
+def time_evolution_array( fileNames, dt, cellid, variables, forceConstantAmplitude=False, fitFunction=nullfit, kaiserwindowparameter=0 ):
    ''' Plots the time evolution of some cell and fits a fourier series in the plot
        :param fileNames      Name of the files
        :param dt             The time step between frames in the files
@@ -334,7 +334,7 @@ t2 & y2                   |                    frequencies
       print "hey2"
       fourier_variables = []
       for i in xrange(len(np.atleast_1d(y))):
-         fourier_variables.append(fourier_array(t, y[i]))
+         fourier_variables.append(fourier_array(t, y[i], kaiserwindowparameter=kaiserwindowparameter))
    else:
       fitFunction = np.atleast_1d(fitFunction)
       fourier_variables=[]
@@ -365,11 +365,11 @@ t2 & y2                   |                    frequencies
             # Create a new array y2 which has a forced constant amplitude for the (possible) waves:
             y2 = y[i] - y_fitted
             # Plot the data  with fourier fit
-            fourier_variables.append(fourier_array(t, y2))
+            fourier_variables.append(fourier_array(t, y2, kaiserwindowparameter=kaiserwindowparameter))
    # Return the fourier array:
    return np.array([fourier_variables, y])
 
-def plot_time_evolution( fileNames, dt, cellid, variables, forceConstantAmplitude=False, fitFunction=nullfit, saveplot="none", showplots=True, savedata=False ):
+def plot_time_evolution( fileNames, dt, cellid, variables, forceConstantAmplitude=False, fitFunction=nullfit, saveplot="none", showplots=True, savedata=False, kaiserwindowparameter=0 ):
    ''' Plots the time evolution of some cell and fits a fourier series in the plot
        :param fileNames      Name of the files
        :param dt             The time step between frames in the files
@@ -412,7 +412,7 @@ def plot_time_evolution( fileNames, dt, cellid, variables, forceConstantAmplitud
             save=saveplot
          else:
             save="none"
-         plot_fourier(t, y[i], subplotnums=subplotnums, savedata=save)
+         plot_fourier(t, y[i], subplotnums=subplotnums, savedata=save, kaiserwindowparameter=kaiserwindowparameter)
          subplotnums[0][2] = subplotnums[0][2] + 2
          subplotnums[1][2] = subplotnums[1][2] + 2
          # Save the plot if user wants to:
@@ -466,7 +466,7 @@ def plot_time_evolution( fileNames, dt, cellid, variables, forceConstantAmplitud
                save=saveplot
             else:
                save="none"
-            plot_fourier(t, y2, subplotnums=subplotnums, savedata=save)
+            plot_fourier(t, y2, subplotnums=subplotnums, savedata=save, kaiserwindowparameter=kaiserwindowparameter)
             subplotnums[0][2] = subplotnums[0][2] + 3
             subplotnums[1][2] = subplotnums[1][2] + 3
          # Save the plot if user wants to:
