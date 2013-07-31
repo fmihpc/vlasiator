@@ -94,8 +94,8 @@ def plot_fourier(t, y, subplotnums=[[2,1,1],[2,1,2]], savedata="none"):
       saveplotdata( freq[1:toIndex], np.log(2*np.abs(fourier[1:toIndex])), savedata + ".npy" )
    pl.plot(freq[1:toIndex],2*np.abs(fourier[1:toIndex]), marker='.', linestyle='-', linewidth=0.5)
    pl.ylim([0,1.05*max(2*np.abs(fourier[1:len(fourier)/2]))])
-   xTicks = np.arange(15)/100.0
-   pl.xticks(xTicks)
+   #xTicks = np.arange(15)/100.0
+   #pl.xticks(xTicks)
    # Put interactive mode on and show the plot:
    #pl.ion()
    #pl.show()

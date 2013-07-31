@@ -13,7 +13,7 @@ def create_point_vtk( fileName, coordinates ):
    f.write("CELLS 1 2\n1 0\nCELL_TYPES 1\n1\n")
    f.close()
 
-def draw_point_picture( variableName, minValue, maxValue, inputDirectory, inputFileNames, coordinate, outputDirectory, outputFileName, colorTable="hot_desaturated"):
+def draw_point_picture( variableName, minValue, maxValue, inputDirectory, inputFileName, coordinate, outputDirectory, outputFileName, colorTable="hot_desaturated"):
    '''
    Function for making a visit plot with a point
    
@@ -22,7 +22,7 @@ def draw_point_picture( variableName, minValue, maxValue, inputDirectory, inputF
    :param minValue                      Minimum value of the variable
    :param maxValue                      Maximum value of the variable
    :param inputDirectory                Path to input vlsv/silo files
-   :param inputFileNames                Name of the file, for example \"bulk.00000.silo\"
+   :param inputFileName                Name of the file, for example \"bulk.00000.silo\"
    :param coordinates                   Coordinates corresponding to the files so for example [ [[0,0,0], [0,1,0]], [[2,1,2], [2,1,4]] ]
    :param outputDirectory               Path to output directory
    :param outputFileName                Name of the output file
@@ -40,7 +40,6 @@ def draw_point_picture( variableName, minValue, maxValue, inputDirectory, inputF
    # Input directory and file names
    _outputDir = outputDirectory
    _outputFileName = outputFileName # The file names for the png files.
-   inputFileName = inputFileNames
    databaseName = "localhost:" + inputDirectory + inputFileName # For navigating to the silo files
    # Note: a slice of the plot in z-axis is taken automatically
    #################################################################

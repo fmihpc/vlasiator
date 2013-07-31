@@ -50,22 +50,22 @@ def list_functions():
    print "      vlsvReader.read_variables(\"rho\") -- Reads values of rho in the form of array"
    print "      vlsvReader.read_variable(\"rho\", 16) -- Reads the 16th cell id's value of rho and returns it"
    print "      vlsvReader.read_blocks(16) -- Reads the raw blocks of cell 16\n"
-   print "Function: " + colored("launch_visit(noWindow=True)", "red")
-   print "Function: " + colored("make_movie( variableName, minValue, maxValue, inputDirectory, inputFileName, outputDirectory, outputFileName, colorTable=\"hot_desaturated\", startFrame=-1, endFrame=-1 )", "red")
-   print "Function: " + colored("make_movie_auto(BBOX)", "red")
-   print "Function: " + colored("make_moving_frame_of_reference_movie( x_begin, x_end, y_begin, y_end, speed_x, speed_y, variable_name, minThreshold, maxThreshold, input_directory, input_file_name, output_directory, output_file_name, color_table=\"hot_desaturated\", start_frame=-1, end_frame=-1, frame_skip_dt=1.0 )", "red")
-   print "Function: " + colored("make_moving_frame_of_reference_line_plot(  point1, point2, velocity, variable_name, input_directory, input_file_name, output_directory, output_file_name, start_frame=-1, end_frame=-1, frame_skip_dt=1.0 )", "red")
-   print "Function: " + colored("make_distribution_movie(cellids, rotated, inputDirectory, outputDirectory, outputFileName, zoom=1.0, viewNormal=[0.488281, 0.382966, -0.784167], minThreshold=1e-18, maxThreshold=1e37)", "red")
-   print "Function: " + colored("make_moving_spacecraft_plot()", "red")
-   print "Function: " + colored("draw_plots_by_cellid(vlsvReader, variables1, variables2, cellids, coordinates=[], distances=[])", "red")
-   print "Function: " + colored("list_fit_functions()", "red")
-   print "Function: " + colored("take_cut_through( fileName, variables1, variables2, point1, point2 )", "red")
-   print "Function: " + colored("take_cut_through_array(fileName, variables1, variables2, point1, point2 )", "red")
-   print "Function: " + colored("draw_plots_by_cellid(vlsvReader, variables1, variables2, cellids, coordinates=[], distances=[], fitFunction=nullfit)", "red")
-   print "Function: " + colored("draw_by_cellid_array(vlsvReader, variables1, variables2, cellids, coordinates=[], distances=[], fitFunction=nullfit)", "red")
-   print "Function: " + colored("plot_time_evolution( fileNames, dt, cellid, variables, forceConstantAmplitude=False, fitFunction=nullfit )", "red")
-   print "Function: " + colored("time_evolution_array( fileNames, dt, cellid, variables, forceConstantAmplitude=False, fitFunction=nullfit )", "red")
-   print "Function: " + colored("draw_point_picture( variableName, minValue, maxValue, inputDirectory, inputFileNames, coordinates, outputDirectory, outputFileName, colorTable=\"hot_desaturated\")", "red")
+   print "Function: " + colored("launch_visit", "red")
+   print "Function: " + colored("make_movie", "red")
+   print "Function: " + colored("make_movie_auto", "red")
+   print "Function: " + colored("make_moving_frame_of_reference_movie", "red")
+   print "Function: " + colored("make_moving_frame_of_reference_line_plot", "red")
+   print "Function: " + colored("make_distribution_movie", "red")
+   print "Function: " + colored("make_moving_spacecraft_plot", "red")
+   print "Function: " + colored("draw_plots_by_cellid", "red")
+   print "Function: " + colored("draw_point_picture", "red")
+   print "Function: " + colored("draw_plots_by_cellid", "red")
+   print "Function: " + colored("draw_by_cellid_array", "red")
+   print "Function: " + colored("plot_time_evolution", "red")
+   print "Function: " + colored("take_cut_through", "red")
+   print "Function: " + colored("take_cut_through_array", "red")
+   print "Function: " + colored("time_evolution_array", "red")
+   print "Function: " + colored("list_fit_functions", "red")
 
 
 def old_list_functions():
