@@ -917,7 +917,7 @@ bool convertVelocityBlocks2( newVlsv::Reader& vlsvReader, const string& meshName
       //Input the B vector:
       const string variableName = "B";
       if( vlsvReader.getVariable( variableName, cellID, B ) == false ) {
-         cerr << "ERROR, FAILED TO LOAD VARIABLE B_VOL AT " << __FILE__ << " " << __LINE__ << endl;
+         cerr << "ERROR, FAILED TO LOAD VARIABLE B AT " << __FILE__ << " " << __LINE__ << endl;
          delete[] vx_crds_rotated;
          delete[] vy_crds_rotated;
          delete[] vz_crds_rotated;

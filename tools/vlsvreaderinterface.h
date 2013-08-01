@@ -77,10 +77,10 @@ namespace newVlsv {
       xmlAttributes.push_back( std::make_pair( "name", variableName ) );
       xmlAttributes.push_back( std::make_pair( "mesh", "SpatialGrid" ) );
       if( getArrayInfo( "VARIABLE", xmlAttributes, arraySize, vectorSize, dataType, byteSize ) == false ) return false;
-      if( dataType != vlsv::datatype::type::UINT ) {
-         std::cerr << "ERROR, BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << std::endl;
-         return false;
-      }
+//      if( dataType != vlsv::datatype::type::UINT ) {
+//         std::cerr << "ERROR, BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << std::endl;
+//         return false;
+//      }
       if( vectorSize != N ) {
          std::cerr << "ERROR, BAD VECTORSIZE AT " << __FILE__ << " " << __LINE__ << std::endl;
          return false;
