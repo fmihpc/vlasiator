@@ -21,6 +21,7 @@ from movingline import *
 from vlsvplots import *
 from plotfunctions import *
 from filenames import *
+from getvariables import *
 
 visitLaunched = False
 

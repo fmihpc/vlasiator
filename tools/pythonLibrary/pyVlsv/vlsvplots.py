@@ -406,16 +406,19 @@ def plot_time_evolution( fileNames, dt, cellid, variables, forceConstantAmplitud
    # Create a new plot window:
    if forceConstantAmplitude==False:
       pl.figure()
-      subplotnums=[[len(y)*2,1,1],[len(y)*2,1,2]]
+      #subplotnums=[[len(y)*2,1,1],[len(y)*2,1,2]]
+      plotsPerVariable = (len(np.atleast_1d(kaiserwindowparameter)) + 1)
+      subplotnums=[[len(y)*plotsPerVariable, 1, k + 1] for k in range(plotsPerVariable)]
       for i in xrange(len(np.atleast_1d(y))):
          if savedata == True:
             save=saveplot
          else:
             save="none"
          plot_fourier(t, y[i], subplotnums=subplotnums, savedata=save, kaiserwindowparameter=kaiserwindowparameter)
-         subplotnums[0][2] = subplotnums[0][2] + 2
-         subplotnums[1][2] = subplotnums[1][2] + 2
+         for k in xrange(len(subplotnums)):
+            subplotnums[k][2] = subplotnums[k][2] + plotsPerVariable
          # Save the plot if user wants to:
+         pl.tight_layout()
          if saveplot != "none":
             pl.savefig(saveplot + ".ps")
    else:
@@ -443,7 +446,10 @@ def plot_time_evolution( fileNames, dt, cellid, variables, forceConstantAmplitud
          parameters = functionClass.get_parameters()
    
          # Declare subplotnum (For plotting multiple plots in one window)
-         subplotnums=[[len(y)*3,1,2],[len(y)*3,1,3]]
+         plotsPerVariable = (len(np.atleast_1d(kaiserwindowparameter)) + 2)
+         numberofVariables = len(y)
+         subplotnums=[[numberofVariables*plotsPerVariable, 1, k + 2] for k in range(plotsPerVariable - 1)]
+         #subplotnums=[[len(y)*3,1,2],[len(y)*3,1,3]]
          for i in xrange(len(np.atleast_1d(y))):
             # Fit a polynomial into the data
             if functionClass != functionList["emptyfit"]:
@@ -452,7 +458,7 @@ def plot_time_evolution( fileNames, dt, cellid, variables, forceConstantAmplitud
             else:
                y_fitted = np.zeros(len(y[i]))
             # Plot t, y:
-            pl.subplot(len(y)*3,1,i*3+1)
+            pl.subplot(numberofVariables*plotsPerVariable,1,i*plotsPerVariable+1)
             pl.plot(t,y[i], '.')
             # Set title:
             if i == 0:
@@ -467,9 +473,12 @@ def plot_time_evolution( fileNames, dt, cellid, variables, forceConstantAmplitud
             else:
                save="none"
             plot_fourier(t, y2, subplotnums=subplotnums, savedata=save, kaiserwindowparameter=kaiserwindowparameter)
-            subplotnums[0][2] = subplotnums[0][2] + 3
-            subplotnums[1][2] = subplotnums[1][2] + 3
+            for k in xrange(len(subplotnums)):
+               subplotnums[k][2] = subplotnums[k][2] + plotsPerVariable
+            #subplotnums[0][2] = subplotnums[0][2] + 3
+            #subplotnums[1][2] = subplotnums[1][2] + 3
          # Save the plot if user wants to:
+         pl.tight_layout()
          if saveplot != "none":
             pl.savefig(saveplot + str(plotnumber) + ".png")
             plotnumber = plotnumber + 1
