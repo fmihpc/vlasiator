@@ -22,6 +22,7 @@ from vlsvplots import *
 from plotfunctions import *
 from filenames import *
 from getvariables import *
+from fourier2d import *
 
 visitLaunched = False
 
@@ -51,6 +52,8 @@ def list_functions():
    print "      vlsvReader.read_variables(\"rho\") -- Reads values of rho in the form of array"
    print "      vlsvReader.read_variable(\"rho\", 16) -- Reads the 16th cell id's value of rho and returns it"
    print "      vlsvReader.read_blocks(16) -- Reads the raw blocks of cell 16\n"
+   print "      vlsvReader.get_cell_coordinates(cellid=21421) -- Returns a given cell's coordinates"
+   print "      vlsvReader.get_cellid(coordinates=[2e6, 120e6, 0]) -- Returns the cell at given coordinates"
    print "Function: " + colored("launch_visit", "red")
    print "Function: " + colored("make_movie", "red")
    print "Function: " + colored("make_movie_auto", "red")
@@ -67,6 +70,9 @@ def list_functions():
    print "Function: " + colored("take_cut_through_array", "red")
    print "Function: " + colored("time_evolution_array", "red")
    print "Function: " + colored("list_fit_functions", "red")
+   print "Function: " + colored("get_cell_coordinates_from_file", "red")
+   print "Function: " + colored("get_cell_id_from_file", "red")
+
 
 
 def old_list_functions():

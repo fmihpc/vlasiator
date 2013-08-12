@@ -232,6 +232,71 @@ class VlsvFile(object):
       # Return the variables:
       return np.array(returnvariablelist)
 
+   def get_cellid(self, coordinates):
+      ''' Returns the cell id at given coordinates
+
+      Arguments:
+      :param coordinates        The cell's coordinates
+      :returns the cell id
+      '''
+      # Get xmax, xmin and xcells_ini
+      xmax = self.read_parameter(name="xmax")
+      xmin = self.read_parameter(name="xmin")
+      xcells = (int)(self.read_parameter(name="xcells_ini"))
+      # Do the same for y
+      ymax = self.read_parameter(name="ymax")
+      ymin = self.read_parameter(name="ymin")
+      ycells = (int)(self.read_parameter(name="ycells_ini"))
+      # And for z
+      zmax = self.read_parameter(name="zmax")
+      zmin = self.read_parameter(name="zmin")
+      zcells = (int)(self.read_parameter(name="zcells_ini"))
+   
+      # Get cell lengths:
+      cell_lengths = np.array([(xmax - xmin)/(float)(xcells), (ymax - ymin)/(float)(ycells), (zmax - zmin)/(float)(zcells)])
+   
+      # Get cell indices:
+      cellindices = np.array([(int)((coordinates[0] - xmin)/(float)(cell_lengths[0])), (int)((coordinates[1] - ymin)/(float)(cell_lengths[1])), (int)((coordinates[2] - zmin)/(float)(cell_lengths[2]))])
+      # Get the cell id:
+      cellid = cellindices[0] + cellindices[1] * xcells + cellindices[2] * xcells * ycells + 1
+      return cellid
+
+   def get_cell_coordinates(self, cellid):
+      ''' Returns a given cell's coordinates as a numpy array
+
+      Arguments:
+      :param cellid            The cell's ID
+      :returns a numpy array with the coordinates
+      '''
+      # Get xmax, xmin and xcells_ini
+      xmax = self.read_parameter(name="xmax")
+      xmin = self.read_parameter(name="xmin")
+      xcells = (int)(self.read_parameter(name="xcells_ini"))
+      # Do the same for y
+      ymax = self.read_parameter(name="ymax")
+      ymin = self.read_parameter(name="ymin")
+      ycells = (int)(self.read_parameter(name="ycells_ini"))
+      # And for z
+      zmax = self.read_parameter(name="zmax")
+      zmin = self.read_parameter(name="zmin")
+      zcells = (int)(self.read_parameter(name="zcells_ini"))
+      # Get cell lengths:
+      cell_lengths = np.array([(xmax - xmin)/(float)(xcells), (ymax - ymin)/(float)(ycells), (zmax - zmin)/(float)(zcells)])
+      # Get cell indices:
+      cellid = (int)(cellid - 1)
+      cellindices[0] = (int)(cellid)%(int)(xcells)
+      cellindices[1] = ((int)(cellid)/(int)(xcells))%(int)(ycells)
+      cellindices[2] = (int)(cellid)/(int)(xcells*ycells)
+   
+      # Get cell coordinates:
+      cellcoordinates = np.zeros(3)
+      cellcoordinates[0] = xmin + (cellindices[0] + 0.5) * cell_lengths[0]
+      cellcoordinates[1] = ymin + (cellindices[1] + 0.5) * cell_lengths[1]
+      cellcoordinates[2] = zmin + (cellindices[2] + 0.5) * cell_lengths[2]
+      # Return the coordinates:
+      return np.array(cellcoordinates)
+
+
    def read_variable(self, name, cellid):
       ''' Read a variable of a given cell from the open vlsv file. 
       

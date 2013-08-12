@@ -44,31 +44,32 @@ def get_cell_indices( bounds, cellid ):
 #   return cellindices[0] + cellindices[1]
    
 
-def get_3d_cellids( bounds, BBOX ):
-   # Get xmin, xmax, etc
-   xmin = bounds[0]
-   ymin = bounds[0 + 3]
-   zmin = bounds[0 + 3 + 3]
-   
-   xmax = bounds[1]
-   ymax = bounds[1 + 3]
-   zmax = bounds[1 + 3 + 3]
-
-   xcells = bounds[2]
-   ycells = bounds[2 + 3]
-   zcells = bounds[2 + 3 + 3]
-
-   # Get cell lengths:
-   cell_lengths = np.array([(xmax - xmin)/(float)(xcells), (ymax - ymin)/(float)(ycells), (zmax - zmin)/(float)(zcells)])
-
-   minCellId = get_cell_id(bounds, [BBOX[0], BBOX[2], BBOX[4]])
-   maxCellId = 
+#def get_3d_cellids( bounds, BBOX ):
+#   # Get xmin, xmax, etc
+#   xmin = bounds[0]
+#   ymin = bounds[0 + 3]
+#   zmin = bounds[0 + 3 + 3]
+#   
+#   xmax = bounds[1]
+#   ymax = bounds[1 + 3]
+#   zmax = bounds[1 + 3 + 3]
+#
+#   xcells = bounds[2]
+#   ycells = bounds[2 + 3]
+#   zcells = bounds[2 + 3 + 3]
+#
+#   # Get cell lengths:
+#   cell_lengths = np.array([(xmax - xmin)/(float)(xcells), (ymax - ymin)/(float)(ycells), (zmax - zmin)/(float)(zcells)])
+#
+#   minCellId = get_cell_id(bounds, [BBOX[0], BBOX[2], BBOX[4]])
+#   maxCellId = 
 
 def get_2d_array( fileNames, variables, BBOX ):
    '''Fetches the cell's data from filenames
       :param fileNames         List of the files
       :param variables         list of variables
       :param BBOX              boundary box, (=[xmin, xmax, ymin, ymax, zmin, zmax])
+      :returns array of variables
    '''
    cellids = []
 
@@ -127,10 +128,10 @@ def get_2d_array( fileNames, variables, BBOX ):
       print "BAD CELLIDS"
 
    # Create an array for holding variables
-   2d_variables = []
+   two_d_variables = []
    for i in xrange(maxIndices[1] - minIndices[1]):
-      2d_variables.append(np.zeros((maxIndices[0] - minIndices[0])))
-   2d_variables = np.array(2d_variables)
+      two_d_variables.append(np.zeros((maxIndices[0] - minIndices[0])))
+   two_d_variables = np.array(two_d_variables)
 
    # Input positions of the cell ids
    positions = {}
@@ -152,11 +153,11 @@ def get_2d_array( fileNames, variables, BBOX ):
          # Input into correct positions:
          for j in xrange(len(cellids)):
             position = positions[cellids[j]]
-            2d_variables[position[1]][position[0]] = variableArray[j]
+            two_d_variables[position[1]][position[0]] = variableArray[j]
          # Input variables:
-         variable_dict[i].append(np.array(2d_variables))
+         variable_dict[i].append(np.array(two_d_variables))
    # Return variables:
-   variable_dict[i]
+   return np.array(variable_dict)
 
 def fourier_2d_array():
    print "test"
