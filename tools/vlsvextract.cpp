@@ -1193,20 +1193,25 @@ uint64_t searchForBestCellId( const CellStructure & cellStruct,
    }
 
    //Get the cell id corresponding to the given coordinates:
-   unsigned int cellCoordinates[3];
+   int cellCoordinates[3];
    for( unsigned int i = 0; i < 3; ++i ) {
       //Note: Cell coordinates work like this:
       //cell id = z * (num. of cell in y-direction) * (num. of cell in z-direction) + y * (num. of cell in x-direction) + x
-      cellCoordinates[i] = (unsigned int)( (coordinates[i] - cellStruct.min_coordinates[i]) / cellStruct.cell_length[i] );
+      cellCoordinates[i] = floor((coordinates[i] - cellStruct.min_coordinates[i]) / cellStruct.cell_length[i]);
+      if( cellCoordinates[i] < 0 ) {
+         cerr << "Coordinates out of bounds at " << __FILE__ << " " << __LINE__ << endl;
+         return numeric_limits<uint64_t>::max();
+      }
    }
 
    //Return the cell id at cellCoordinates:
    //Note: In vlasiator, the cell ids start from 1 hence the '+ 1'
-   return (
+   
+   return ( (uint64_t)(
             cellCoordinates[2] * cellStruct.cell_bounds[1] * cellStruct.cell_bounds[0]
             + cellCoordinates[1] * cellStruct.cell_bounds[0]
             + cellCoordinates[0] + 1
-          );
+          ) );
 }
 
 
@@ -1686,11 +1691,10 @@ void setCoordinatesAlongALine(
    //Insert the coordinates:
    outputCoordinates.reserve(_numberOfCoordinates);
    for( uint j = 0; j < _numberOfCoordinates; ++j ) {
-      for( uint i = 0; i < 3; ++i ) {
-         //Insert coordinates:
-         const array<Real, 3> input{{start[i] + j * line_unit[i]}};
-         outputCoordinates.push_back(input);
-      }
+      const array<Real, 3> input{{start[0] + j * line_unit[0],
+                                  start[1] + j * line_unit[1],
+                                  start[2] + j * line_unit[2],}};
+      outputCoordinates.push_back(input);
    }
 
    //Make sure the output is not empty
@@ -1761,7 +1765,6 @@ void convertFileToSilo( const string & fileName, const UserOptions & mainOptions
       //Store cell ids into coordinateList:
       //Note: All mainOptions are user-input
       setCoordinatesAlongALine( cellStruct, mainOptions.point1, mainOptions.point2, mainOptions.numberOfCoordinatesInALine, coordinateList );
-
       //Note: (getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used,
       // I'm keeping to previously used syntax)
       //Declare an iterator
