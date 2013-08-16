@@ -86,6 +86,7 @@ def plot_fourier(t, y, subplotnums=[[2,1,1],[2,1,2]], savedata="none", kaiserwin
    # Declare y2
    y2=np.array([np.sum(fourier*np.exp(complex(0,1)*2*np.pi*freq*T)) for T in t2])
    pl.plot(t2,y2,'-',color='b')
+   pl.legend(["data", "fourier_fit"])
    # Plot the frequency spectrums
    j = 0
    for i in subplotnums[1:]:
@@ -107,6 +108,7 @@ def plot_fourier(t, y, subplotnums=[[2,1,1],[2,1,2]], savedata="none", kaiserwin
       if savedata != "none":
          saveplotdata( freq[1:toIndex], np.log(2*np.abs(fourier[1:toIndex])), savedata + "_" + str(j) + ".npy" )
       pl.plot(freq[1:toIndex],2*np.abs(fourier[1:toIndex]), marker='.', linestyle='-', linewidth=0.5)
+      pl.legend(["frequency_spectrum"])
       pl.ylim([0,1.05*max(2*np.abs(fourier[1:len(fourier)/2]))])
       #pl.xlim([0, 0.13])
       #xTicks = np.arange(14)/100.0

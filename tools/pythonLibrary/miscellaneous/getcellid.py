@@ -91,10 +91,6 @@ def get_cell_coordinates_from_file( fileName, cellid ):
    # Get cell indices:
    cellid = (int)(cellid - 1)
    cellindices[0] = (int)(cellid)%(int)(xcells)
-   #cellindices[1] = ((int)(cellid - cellindices[0])%(int)(ycells))/xcells
-   #cellindices[2] = (cellid - cellindices[1]*xcells - cellindices[0])/(xcells*ycells)
-   #cellindices[1] = ((int)(cellid)%(int)(ycells))/(int)(xcells)
-   #cellindices[2] = (int)(cellid)/(int)(xcells*ycells)
    cellindices[1] = ((int)(cellid)/(int)(xcells))%(int)(ycells)
    cellindices[2] = (int)(cellid)/(int)(xcells*ycells)
 

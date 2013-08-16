@@ -23,6 +23,7 @@ from plotfunctions import *
 from filenames import *
 from getvariables import *
 from fourier2d import *
+from plots import *
 
 visitLaunched = False
 

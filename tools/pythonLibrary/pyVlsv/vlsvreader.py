@@ -2,7 +2,7 @@ import struct
 import xml.etree.ElementTree as ET
 import ast
 import numpy as np
-   
+
 
 class VlsvFile(object):
    ''' Class for reading VLSV files
@@ -19,7 +19,39 @@ class VlsvFile(object):
            if child.attrib["name"] == "version":
              self.__uses_new_vlsv_format = True
       self.__read_fileindex_for_cellid()
-           
+      # Read parameters (Note: Reading the spatial cell locations and storing them will anyway take the most time and memory):
+      self.__vxblocks = (int)(self.read_parameter("vxblocks_ini"))
+      self.__vyblocks = (int)(self.read_parameter("vyblocks_ini"))
+      self.__vzblocks = (int)(self.read_parameter("vzblocks_ini"))
+
+      self.__xcells = (int)(self.read_parameter("xcells_ini"))
+      self.__ycells = (int)(self.read_parameter("ycells_ini"))
+      self.__zcells = (int)(self.read_parameter("zcells_ini"))
+
+      self.__xmin = self.read_parameter("xmin")
+      self.__ymin = self.read_parameter("ymin")
+      self.__zmin = self.read_parameter("zmin")
+      self.__xmax = self.read_parameter("xmax")
+      self.__ymax = self.read_parameter("ymax")
+      self.__zmax = self.read_parameter("zmax")
+
+      self.__vxmin = self.read_parameter("vxmin")
+      self.__vymin = self.read_parameter("vymin")
+      self.__vzmin = self.read_parameter("vzmin")
+      self.__vxmax = self.read_parameter("vxmax")
+      self.__vymax = self.read_parameter("vymax")
+      self.__vzmax = self.read_parameter("vzmax")
+
+      self.__dx = (self.__xmax - self.__xmin) / (float)(self.__xcells)
+      self.__dy = (self.__ymax - self.__ymin) / (float)(self.__xcells)
+      self.__dz = (self.__zmax - self.__xmin) / (float)(self.__xcells)
+
+      # Velocity cell lengths
+      velocity_cells_per_direction = 4
+      self.__dvx = ((self.__vxmax - self.__vxmin) / (float)(self.__vxblocks)) / (float)(velocity_cells_per_direction)
+      self.__dvy = ((self.__vymax - self.__vymin) / (float)(self.__vyblocks)) / (float)(velocity_cells_per_direction)
+      self.__dvz = ((self.__vzmax - self.__vzmin) / (float)(self.__vzblocks)) / (float)(velocity_cells_per_direction)
+
 
    def __read_xml_footer(self):
       ''' Reads in the XML footer of the VLSV file and store all the content
@@ -151,7 +183,7 @@ class VlsvFile(object):
       
       Arguments:
       :param name Name of the data array
-      :param tag  Tag of the data array. Defaults to VARIABLE.
+      :param tag  Tag of the data array.
       :param read_single_cellid  If -1 then all data is read. If nonzero then only the vector for the specified cell id is read
       :returns numpy array with the data
 
@@ -215,7 +247,7 @@ class VlsvFile(object):
       '''
       return self.read(mesh="SpatialGrid", name=name, tag="VARIABLE", read_single_cellid=-1)
 
-   def read_variables_for_cellids(self, name, cellids):
+   def read_variables_for_cellids(self, name, cellids, index=3):
       ''' Read variables from the open vlsv file. 
       
       Arguments:
@@ -228,7 +260,10 @@ class VlsvFile(object):
       #Pick the variables with the cell ids in the list:
       returnvariablelist = []
       for cellid in cellids:
-         returnvariablelist.append(variablelist[self.__fileindex_for_cellid[cellid]])
+         if index == 3:
+            returnvariablelist.append(np.array(variablelist[self.__fileindex_for_cellid[cellid]]))
+         else:
+            returnvariablelist.append(np.array(variablelist[self.__fileindex_for_cellid[cellid]][index]))
       # Return the variables:
       return np.array(returnvariablelist)
 
@@ -296,6 +331,28 @@ class VlsvFile(object):
       # Return the coordinates:
       return np.array(cellcoordinates)
 
+   def get_velocity_cell_coordinates(self, vcellid):
+      ''' Returns a given velocity cell's coordinates as a numpy array
+
+      Arguments:
+      :param vcellid       The velocity cell's ID
+      :return a numpy array with the coordinates
+      '''
+      # Get block id:
+      block = (int)(vcellid) / 64
+      # Get block coordinates:
+      blockIndices = np.array( [(int)(block)%(int)(self.__vxblocks), ((int)(block) / (int)(self.__vxblocks))%self.__vyblocks, (int)(block)/(int)(self.__vxblocks*self.__vyblocks)] )
+      blockCoordinates = np.array([self.__vxmin + 4 * self.__dvx * blockIndices[0],
+                                   self.__vymin + 4 * self.__dvy * blockIndices[1],
+                                   self.__vzmin + 4 * self.__dvz * blockIndices[2]])
+      #vcellid = 64 * velocity_block_id + kv*4*4 + jv*4 + iv
+      # Get cell coordinates:
+      cellIndices = np.array([(int)(vcellid)%4, (int)(((int)(vcellid)/4))%4, (int)(vcellid)/(int)(4*4)])
+      cellCoordinates = np.array([(cellIndices[0] + 0.5) * self.__dvx, (cellIndices[1] + 0.5) * self.__dvy, (cellIndices[2] + 0.5) * self.__dvz])
+      # Get the coordinates:
+      vcellCoordinates = blockCoordinates + cellCoordinates
+      return vcellCoordinates
+
 
    def read_variable(self, name, cellid):
       ''' Read a variable of a given cell from the open vlsv file. 
@@ -329,7 +386,7 @@ class VlsvFile(object):
       '''
       if self.__uses_new_vlsv_format == False:
          # Uses old format
-         return self.__read_blocks_old()
+         return self.__read_blocks_old(cell_id)
       #these two arrays are in the same order: 
       #list of cells for which dist function is saved
       cells_with_blocks = self.read("","CELLSWITHBLOCKS")
@@ -366,4 +423,226 @@ class VlsvFile(object):
 
    
       return []
-         
+
+
+#getVelocityBlockCoordinates( cellStruct, blockId, blockCoordinates )
+#void getVelocityBlockCoordinates(const CellStructure & cellStruct, const uint64_t block, array<Real, 3> & coordinates ) {
+#   //First get indices:
+#   array<uint64_t, 3> blockIndices;
+#   blockIndices[0] = block % cellStruct.vcell_bounds[0];
+#   blockIndices[1] = (block / cellStruct.vcell_bounds[0]) % cellStruct.vcell_bounds[1];
+#   blockIndices[2] = block / (cellStruct.vcell_bounds[0] * cellStruct.vcell_bounds[1]);
+#   //Store the coordinates:
+#   for( int i = 0; i < 3; ++i ) {
+#      coordinates[i] = cellStruct.min_vcoordinates[i] + cellStruct.vblock_length[i] * blockIndices[i];
+#   }
+#   return;
+#}
+#if( vlsvReader.readParameter( "vxblocks_ini", vcell_bounds[0] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+#//y-direction
+#if( vlsvReader.readParameter( "vyblocks_ini", vcell_bounds[1] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+#//z-direction
+#if( vlsvReader.readParameter( "vzblocks_ini", vcell_bounds[2] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
+#for child in self.__xml_root:
+#   if tag != "":
+#      if child.tag != tag:
+#         continue
+#   if name != "":
+#      if child.attrib["name"] != name:
+#         continue
+#   if mesh != "":
+#      if child.attrib["mesh"] != mesh:
+#         continue
+#   if child.tag == tag and child.attrib["name"] == name:
+#      vector_size = ast.literal_eval(child.attrib["vectorsize"])
+#      array_size = ast.literal_eval(child.attrib["arraysize"])
+#      element_size = ast.literal_eval(child.attrib["datasize"])
+#      datatype = child.attrib["datatype"]            
+#      offset = ast.literal_eval(child.text)
+#      if read_single_cellid >= 0:
+#         offset=offset+self.__fileindex_for_cellid[read_single_cellid]*element_size*vector_size
+#         array_size=1
+#
+#      fptr = open(self.__file_name, "rb")
+#      fptr.seek(offset)
+#
+#      if datatype == "float" and element_size == 4:
+#         data = np.fromfile(fptr, dtype = np.float32, count=vector_size*array_size)
+#      if datatype == "float" and element_size == 8:
+#         data = np.fromfile(fptr, dtype=np.float64, count=vector_size*array_size)
+#      if datatype == "int" and element_size == 4:
+#         data = np.fromfile(fptr, dtype=np.int32, count=vector_size*array_size)
+#      if datatype == "int" and element_size == 8:
+#         data = np.fromfile(fptr, dtype=np.int64, count=vector_size*array_size)
+#      if datatype == "uint" and element_size == 4:
+#         data = np.fromfile(fptr, dtype=np.uint32, count=vector_size*array_size)
+#      if datatype == "uint" and element_size == 8:
+#         data = np.fromfile(fptr, dtype=np.uint64, count=vector_size*array_size)
+#      fptr.close() 
+#
+#      if vector_size > 1:
+#         data=data.reshape(array_size, vector_size)
+#      
+#      if array_size == 1:
+#         return data[0]
+#      else:
+#         return data
+
+   def __read_velocity_cells_old( self, cellid, cells_with_blocks, blocks_per_cell, cells_with_blocks_index  ):
+      # Read in the coordinates:
+      #block_coordinates = self.read(name="",tag="BLOCKCOORDINATES")
+      # Navigate to the correct position:
+      offset = 0
+      for i in xrange(0, cells_with_blocks_index[0]):
+         offset += blocks_per_cell[i]
+
+      num_of_blocks = blocks_per_cell[cells_with_blocks_index[0]]
+
+      # Read in avgs and velocity cell ids:
+      for child in self.__xml_root:
+         # Read in avgs
+         if child.attrib["name"] == "avgs":
+            vector_size = ast.literal_eval(child.attrib["vectorsize"])
+            #array_size = ast.literal_eval(child.attrib["arraysize"])
+            element_size = ast.literal_eval(child.attrib["datasize"])
+            datatype = child.attrib["datatype"]
+
+            # Navigate to the correct position
+            offset_avgs = offset * vector_size * element_size + ast.literal_eval(child.text)
+#            for i in range(0, cells_with_blocks_index[0]):
+#               offset_avgs += blocks_per_cell[i]*vector_size*element_size
+
+            fptr = open(self.__file_name,"rb")
+            fptr.seek(offset_avgs)
+            if datatype == "float" and element_size == 4:
+               data_avgs = np.fromfile(fptr, dtype = np.float32, count = vector_size*num_of_blocks)
+            if datatype == "float" and element_size == 8:
+               data_avgs = np.fromfile(fptr, dtype = np.float64, count = vector_size*num_of_blocks)
+            fptr.close()
+            data_avgs = data_avgs.reshape(num_of_blocks, vector_size)
+         # Read in block coordinates:
+         if child.attrib["name"] == "SpatialGrid" and child.tag == "BLOCKCOORDINATES":
+            vector_size = ast.literal_eval(child.attrib["vectorsize"])
+            #array_size = ast.literal_eval(child.attrib["arraysize"])
+            element_size = ast.literal_eval(child.attrib["datasize"])
+            datatype = child.attrib["datatype"]
+
+            offset_block_coordinates = offset * vector_size * element_size + ast.literal_eval(child.text)
+
+            fptr = open(self.__file_name,"rb")
+            fptr.seek(offset_block_coordinates)
+            if datatype == "float" and element_size == 4:
+               data_block_coordinates = np.fromfile(fptr, dtype = np.float32, count = vector_size*num_of_blocks)
+            if datatype == "float" and element_size == 8:
+               data_block_coordinates = np.fromfile(fptr, dtype = np.float64, count = vector_size*num_of_blocks)
+            fptr.close()
+
+            data_block_coordinates = data_block_coordinates.reshape(num_of_blocks, vector_size)
+
+      # Check to make sure the sizes match (just some extra debugging)
+      if len(data_avgs) != len(data_block_coordinates):
+         print "BAD DATA SIZES"
+      # Make a dictionary (hash map) out of velocity cell ids and avgs:
+      velocity_cells = {}
+      array_size = len(data_avgs)
+      # Read vx_min, vy_min, etc
+      vx_min = self.read_parameter(name="vxmin")
+      vy_min = self.read_parameter(name="vymin")
+      vz_min = self.read_parameter(name="vzmin")
+      vx_blocks = self.read_parameter(name="vxblocks_ini")
+      vy_blocks = self.read_parameter(name="vyblocks_ini")
+      #vz_blocks = self.read_parameter(name="vzblocks_ini")
+      
+      for i in xrange(array_size):
+         block_coordinate = data_block_coordinates[i]
+         # The minimum corner coordinates of the blocks
+         vx = block_coordinate[0]
+         vy = block_coordinate[1]
+         vz = block_coordinate[2]
+         # The diff in blocks
+         dvx = block_coordinate[3]
+         dvy = block_coordinate[4]
+         dvz = block_coordinate[5]
+         avgs = data_avgs[i]
+         # Get the velocity cell id (First transform coordinates to block indices, then block indices to block id and then block id to velocity cell ids):
+         velocity_block_indices = np.array([np.floor((vx - vx_min) / dvx), np.floor((vy - vy_min) / dvy), np.floor((vz - vz_min) / dvz)])
+         velocity_block_id = velocity_block_indices[0] + velocity_block_indices[1] * vx_blocks + velocity_block_indices[2] * vx_blocks * vy_blocks
+         avgIndex = 0
+
+         for kv in xrange(4):
+            for jv in xrange(4):
+               for iv in xrange(4):
+                  #appending = np.array([iv, jv, kv])
+                  #velocity_cell_indices = velocity_block_indices * 4 + appending
+                  #Note: There  are 64 velocity cells in every block and 4 in every direction (4 times 4 times 4 = 64)
+                  #vcellid = 64 * velocity_block_id + kv*4*4 + jv*4 + iv
+                  velocity_cells[(int)(64 * velocity_block_id + kv*16 + jv*4 + iv)] = avgs[avgIndex]
+                  avgIndex = avgIndex + 1
+      return velocity_cells
+      
+#const velocity_block_indices_t indices = {{
+#   (unsigned int) np.floor((vx - SpatialCell::vx_min) / SpatialCell::block_dvx),
+#   (unsigned int) np.floor((vy - SpatialCell::vy_min) / SpatialCell::block_dvy),
+#   (unsigned int) np.floor((vz - SpatialCell::vz_min) / SpatialCell::block_dvz)
+#}};
+#indices[0] = cell % block_vx_length;
+#indices[1] = (cell / block_vx_length) % block_vy_length;
+#indices[2] = cell / (block_vx_length * block_vy_length);
+#static unsigned int get_velocity_block(
+#   const Real vx,
+#   const Real vy,
+#   const Real vz
+#) {
+#   if (vx < SpatialCell::vx_min || vx >= SpatialCell::vx_max
+#       || vy < SpatialCell::vy_min || vy >= SpatialCell::vy_max
+#       || vz < SpatialCell::vz_min || vz >= SpatialCell::vz_max) {
+#      return error_velocity_block;
+#   }
+#
+#   const velocity_block_indices_t indices = {{
+#      (unsigned int) np.floor((vx - SpatialCell::vx_min) / SpatialCell::block_dvx),
+#      (unsigned int) np.floor((vy - SpatialCell::vy_min) / SpatialCell::block_dvy),
+#      (unsigned int) np.floor((vz - SpatialCell::vz_min) / SpatialCell::block_dvz)
+#   }};
+#
+#   return SpatialCell::get_velocity_block(indices);
+#}
+
+   def read_velocity_cells(self, cellid):
+      ''' Read velocity cells from a spatial cell
+      
+      Arguments:
+      :param cellid Cell ID of the cell whose velocity cells are read
+      :returns numpy array with blocks in the cell. Empty if cell has no stored blocks.
+      '''
+      #these two arrays are in the same order: 
+      #list of cells for which dist function is saved
+      cells_with_blocks = self.read("SpatialGrid","CELLSWITHBLOCKS")
+      #number of blocks in each cell for which data is stored
+      blocks_per_cell = self.read("SpatialGrid","BLOCKSPERCELL")
+      (cells_with_blocks_index,) = np.where(cells_with_blocks == cellid)
+
+      if len(cells_with_blocks_index) == 0:
+         #block data did not exist
+         print "Cell does not have velocity distribution"
+         return []
+
+      num_of_blocks = blocks_per_cell[cells_with_blocks_index[0]]
+
+      # Check for the old library
+      if self.__uses_new_vlsv_format == False:
+         # Uses old format
+         return self.__read_velocity_cells_old(cellid=cellid, cells_with_blocks=cells_with_blocks, blocks_per_cell=blocks_per_cell, cells_with_blocks_index=cells_with_blocks_index)
+      else:
+         # Uses new format:
+         return self.__read_velocity_cells_new(cellid=cellid, cells_with_blocks=cells_with_blocks, blocks_per_cell=blocks_per_cell, cells_with_blocks_index=cells_with_blocks_index)
+
+
+
+
+
+
+
+
+
+

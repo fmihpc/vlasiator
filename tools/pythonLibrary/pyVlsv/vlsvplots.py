@@ -9,101 +9,91 @@ from fourierplot import *
 class nullfit:
    nulldata=[]
 
-def draw_by_cellid_array(vlsvReader, variables1, variables2, cellids, coordinates=[], distances=[], fitFunction=nullfit):
-   '''Returns variables for the given cell ids as well as fitted function if specified
-      :param vlsvReader    some VlsvFile with a file open
-      :param variables1    some dictionary of variables to be plotted as the x-axis
-      :param variables2    some dictionary of variables to be plotted as the y-axis
-      :param cellids       some list of cellids
-      :param coordinates   some list of coordinates for the cell ids (Only used if variables include the variable \"coordinates\")
-      :param distances     some list of distances from the starting cell id (Only used if variables include the variable \"distances\")
-      :param fitFunction   some function for making a fit for the x, y plot
-      :returns             list of variables fetched from the vlsvReader as well as the fitted variables in dictionary form: np.array([variables1list, variables2list, variables1listfitted, variables2listfitted])
-   '''
-   if fitFunction != nullfit:
-      # Get function:
-      fetchedFunction = False
-      global functionList
-      # Try to get the function by name first
-      for i in functionList.iteritems():
-         if fitFunction == i[0]:
-            functionClass = functionList[fitFunction]
-            fetchedFunction = True
-      # If the user didn't fetch function by name, then it's simply the class itself:
-      if fetchedFunction == False:
-         functionClass = fitFunction
-      function = functionClass.get_function()
-      parameters = functionClass.get_parameters()
-
-   # Number of variables in y-axis
-   xplotnum = 0
-   for var in variables1.iteritems():
-      xplotnum = xplotnum + len(np.atleast_1d(var[1]))
-   # Number of variables in x-axis
-   yplotnum = 0
-   for var in variables2.iteritems():
-      yplotnum = yplotnum + len(np.atleast_1d(var[1]))
-   index = 1
-   # Insert variables:
-   variable1list = dict()
-   variable2list = dict()
-   variable1listfitted = dict()
-   variable2listfitted = dict()
-   for i in variables1.iteritems():
-      variable1list[i[0]] = []
-      variable1listfitted[i[0]] = []
-      for j in variables2.iteritems():
-         variable2list[j[0]] = []
-         variable2listfitted[j[0]] = []
-   # Note: variables1 is a python dictionary dict()
-   for variable1 in variables1.iteritems():
-      for variable2 in variables2.iteritems():
-         # Read the variables:
-         def read_plot_var(variable, cellids, coordinates, distances, vlsvReader):
-            if variable != "CellID" and variable != "coordinates" and variable != "distance":
-               # Get the variable from a file:
-               variablelist = vlsvReader.read_variables_for_cellids(variable, cellids)
-            elif variable == "CellID":
-               variablelist = np.array(cellids)
-            elif variable == "distance":
-               variablelist = np.array(distances)
-            elif variable == "coordinates":
-               variablelist = np.array(coordinates)
-            else:
-               print "Bad variable1 name " + str(variable)
-               variablelist = []
-            return variablelist
-         variable1list[variable1[0]].append(read_plot_var(variable=variable1[0], cellids=cellids, coordinates=coordinates, distances=distances, vlsvReader=vlsvReader))
-         variable2list[variable2[0]].append(read_plot_var(variable=variable2[0], cellids=cellids, coordinates=coordinates, distances=distances, vlsvReader=vlsvReader))
-
-         # Get the variable:
-         for i in np.atleast_1d(variable1[1]):
-            # Get x plot coordinates:
-            x = []
-            for variableVector in variable1list:
-               x.append(np.atleast_1d(variableVector)[i])
-            for j in np.atleast_1d(variable2[1]):
-               # Get y plot coordinates:
-               y = []
-               for variableVector in variable2list:
-                  y.append(np.atleast_1d(variableVector)[j])
-               # Fit a curve into the plot if the user wants to:
-               if fitFunction != nullfit:
-                  # Fit the function into raw data:
-                  fit = optimize.leastsq(function, np.ones(parameters), args=(x,y))
-                  # Get arguments
-                  fitargs = []
-                  for k in xrange(parameters):
-                     fitargs.append(fit[0][k])
-                  # Get the X coordinates for the fit plot:
-                  X = min(x) + np.arange(100*len(x)).astype(float) / (float)(100*len(x)) * max(x)
-                  # Get the Y coordinates for the fit plot:
-                  Y = (-1)*function(fitargs, X, 0)
-                  #Input the fitted variables:
-                  variables1listfitted[variable1[0]].append(X)
-                  variables2listfitted[variable2[0]].append(Y)
-   # Return the fitted and normal variables:
-   np.array([variables1list, variables2list, variables1listfitted, variables2listfitted])
+#def draw_by_cellid_array(vlsvReader, variables1, variables2, cellids, coordinates=[], distances=[], fitFunction=nullfit):
+#   '''Returns variables for the given cell ids as well as fitted function if specified
+#      :param vlsvReader    some VlsvFile with a file open
+#      :param variables1    some dictionary of variables to be plotted as the x-axis
+#      :param variables2    some dictionary of variables to be plotted as the y-axis
+#      :param cellids       some list of cellids
+#      :param coordinates   some list of coordinates for the cell ids (Only used if variables include the variable \"coordinates\")
+#      :param distances     some list of distances from the starting cell id (Only used if variables include the variable \"distances\")
+#      :param fitFunction   some function for making a fit for the x, y plot
+#      :returns             list of variables fetched from the vlsvReader as well as the fitted variables in dictionary form: np.array([variables1list, variables2list, variables1listfitted, variables2listfitted])
+#   '''
+#   if fitFunction != nullfit:
+#      # Get function:
+#      fetchedFunction = False
+#      global functionList
+#      # Try to get the function by name first
+#      for i in functionList.iteritems():
+#         if fitFunction == i[0]:
+#            functionClass = functionList[fitFunction]
+#            fetchedFunction = True
+#      # If the user didn't fetch function by name, then it's simply the class itself:
+#      if fetchedFunction == False:
+#         functionClass = fitFunction
+#      function = functionClass.get_function()
+#      parameters = functionClass.get_parameters()
+#
+#   # Number of variables in y-axis
+#   xplotnum = 0
+#   for var in variables1.iteritems():
+#      xplotnum = xplotnum + len(np.atleast_1d(var[1]))
+#   # Number of variables in x-axis
+#   yplotnum = 0
+#   for var in variables2.iteritems():
+#      yplotnum = yplotnum + len(np.atleast_1d(var[1]))
+#   index = 1
+#   # Insert variables:
+#   variable1list = dict()
+#   variable2list = dict()
+#   variable1listfitted = dict()
+#   variable2listfitted = dict()
+#   for i in variables1.iteritems():
+#      variable1list[i[0]] = []
+#      variable1listfitted[i[0]] = []
+#      for j in variables2.iteritems():
+#         variable2list[j[0]] = []
+#         variable2listfitted[j[0]] = []
+#   def read_plot_var(variable, cellids, coordinates, distances, vlsvReader):
+#      if variable != "CellID" and variable != "coordinates" and variable != "distance":
+#         # Get the variable from a file:
+#         variablelist = vlsvReader.read_variables_for_cellids(variable, cellids)
+#      elif variable == "CellID":
+#         variablelist = np.array(cellids)
+#      elif variable == "distance":
+#         variablelist = np.array(distances)
+#      elif variable == "coordinates":
+#         variablelist = np.array(coordinates)
+#      else:
+#         print "Bad variable1 name " + str(variable)
+#         variablelist = []
+#      return variablelist
+#   # Note: variables1 is a python dictionary dict()
+#   for variable1 in variables1.iteritems():
+#      variable1list[variable1[0]].append(read_plot_var(variable=variable1[0], cellids=cellids, coordinates=coordinates, distances=distances, vlsvReader=vlsvReader))
+#      for variable2 in variables2.iteritems():
+#         # Read the variables:
+#         variable2list[variable2[0]].append(read_plot_var(variable=variable2[0], cellids=cellids, coordinates=coordinates, distances=distances, vlsvReader=vlsvReader))
+#         # Get the fitted functions:
+#         # Fit a curve into the plot if the user wants to:
+#         if fitFunction != nullfit:
+#            # Fit the function into raw data:
+#            fit = optimize.leastsq(function, np.ones(parameters), args=(x,y))
+#            # Get arguments
+#            fitargs = []
+#            for k in xrange(parameters):
+#               fitargs.append(fit[0][k])
+#            # Get the X coordinates for the fit plot:
+#            X = min(x) + np.arange(100*len(x)).astype(float) / (float)(100*len(x)) * max(x)
+#            # Get the Y coordinates for the fit plot:
+#            Y = (-1)*function(fitargs, X, 0)
+#            
+#         else:
+#            variables1listfitted = []
+#            variables2listfitted = []
+#   # Return the fitted and normal variables:
+#   return [variables1list, variables2list, variables1listfitted, variables2listfitted]
 
 def draw_plots_by_cellid(vlsvReader, variables1, variables2, cellids, coordinates=[], distances=[], fitFunction=nullfit):
    '''Draws a plot of given variables for the given cell ids
@@ -168,12 +158,23 @@ def draw_plots_by_cellid(vlsvReader, variables1, variables2, cellids, coordinate
             # Get x plot coordinates:
             x = []
             for variableVector in variable1list:
-               x.append(np.atleast_1d(variableVector)[i])
+               # Check the vector's index ( 3 stands for the magnitude )
+               if i != 3:
+                  # Get the vector by index
+                  x.append(np.atleast_1d(variableVector)[i])
+               else:
+                  # Get the vector's magnitude:
+                  x.append(np.linalg.norm(np.atleast_1d(variableVector)))
             for j in np.atleast_1d(variable2[1]):
                # Get y plot coordinates:
                y = []
                for variableVector in variable2list:
-                  y.append(np.atleast_1d(variableVector)[j])
+                  if j != 3:
+                     # Get the vector by index
+                     y.append(np.atleast_1d(variableVector)[j])
+                  else:
+                     # Get the vector's magnitude:
+                     y.append(np.linalg.norm(np.atleast_1d(variableVector)))
                # Set subplot
                pl.subplot(yplotnum,xplotnum,index)
                # Set labels:
@@ -206,14 +207,13 @@ def draw_plots_by_cellid(vlsvReader, variables1, variables2, cellids, coordinate
                #Increment the index:
                index = index + 1
    # Show the plot:
+   pl.tight_layout()
    pl.ion()
    pl.show()
 
-def take_cut_through_array( fileName, variables1, variables2, point1, point2 ):
+def take_cut_through_array( fileName, point1, point2 ):
    '''Creates an array of cut-through of some variable from a vlsv file
    :param fileName         Name of the vlsv file
-   :param variables1       Variables to be plotted in the x-axis
-   :param variables2       Variables to be plotted in the y-axis
    :param point1           The starting coordinates of the line
    :param point2           The ending coordinates of the line
    :returns                Numpy array np.array([cellids, coordinates, distances]) of the cut through
@@ -268,7 +268,7 @@ def take_cut_through_array( fileName, variables1, variables2, point1, point2 ):
          # Get the distance
          distances.append(np.linalg.norm(i - point1))
    # Return the cut through:
-   return np.array([cellids, coordinateList, distances])
+   return [cellids, coordinateList, distances]
 
 def take_cut_through( fileName, variables1, variables2, point1, point2, fitFunction=nullfit):
    '''Creates a plot of cut-through of some variable from a vlsv file
@@ -279,12 +279,12 @@ def take_cut_through( fileName, variables1, variables2, point1, point2, fitFunct
    :param point2           The ending coordinates of the line
    '''
    # Get the cell ids, coordinates and distances from the cut through:
-   cutThrough = take_cut_through_array( fileName=fileName, variables1=variables1, variables2=variables2, point1=point1, point2=point2 )
+   cutThrough = take_cut_through_array( fileName=fileName, point1=point1, point2=point2 )
    cellids = cutThrough[0]
    coordinateList = cutThrough[1]
    distances = cutThrough[2]
    # Plot the variables:
-   draw_plots_by_cellid(vlsvReader=vlsvReader, variables1=variables1, variables2=variables2, cellids=cellids, coordinates=coordinateList, distances=distances, fitFunction=fitFunction)
+   draw_plots_by_cellid(vlsvReader=VlsvFile(fileName), variables1=variables1, variables2=variables2, cellids=cellids, coordinates=coordinateList, distances=distances, fitFunction=fitFunction)
 
 def time_evolution_array( fileNames, dt, cellid, variables, forceConstantAmplitude=False, fitFunction=nullfit, kaiserwindowparameter=0 ):
    ''' Plots the time evolution of some cell and fits a fourier series in the plot
@@ -331,7 +331,6 @@ t2 & y2                   |                    frequencies
       index = index + 1
    # Check if the user wants to force constant amplitudes
    if forceConstantAmplitude==False:
-      print "hey2"
       fourier_variables = []
       for i in xrange(len(np.atleast_1d(y))):
          fourier_variables.append(fourier_array(t, y[i], kaiserwindowparameter=kaiserwindowparameter))
@@ -464,6 +463,10 @@ def plot_time_evolution( fileNames, dt, cellid, variables, forceConstantAmplitud
             if i == 0:
                pl.title(np.atleast_1d(fileNames)[0] + " - " + np.atleast_1d(fileNames)[len(np.atleast_1d(fileNames)) - 1])
             pl.plot(t,y_fitted)
+            from scipy.interpolate import InterpolatedUnivariateSpline
+            s = InterpolatedUnivariateSpline(t,y[i])
+            pl.plot(t, s(t))
+            pl.legend(["data", "fitted_curve", "spline"])
             # Create a new array y2 which has a forced constant amplitude for the (possible) waves:
             y2 = y[i] - y_fitted
             # Plot the data  with fourier fit

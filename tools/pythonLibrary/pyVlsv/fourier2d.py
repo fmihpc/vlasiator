@@ -1,4 +1,5 @@
 import numpy as np
+import pylab as pl
 from getcellid import *
 
 def get_cell_indices( bounds, cellid ):
@@ -21,11 +22,11 @@ def get_cell_indices( bounds, cellid ):
 
    cellindices = np.zeros(3)
 
-   cellindices[0] = cellid%(int)(xcells)
-   cellindices[1] = (cellid%ycells)/(int)(xcells)
-   cellindices[2] = cellid/(int)(xcells*ycells)
+   cellindices[0] = (int)(cellid)%(int)(xcells)
+   cellindices[1] = ((int)(cellid)/(int)(xcells))%(int)(ycells)
+   cellindices[2] = (int)(cellid)/(int)(xcells*ycells)
 
-   return cellindices
+   return cellindices.astype(int)
 
 #def get_cell_id_from_indices( bounds, cellindices ):
 #   # Get xmin, xmax, etc
@@ -74,6 +75,7 @@ def get_2d_array( fileNames, variables, BBOX ):
    cellids = []
 
    fileNames = np.atleast_1d(fileNames)
+   variables = np.atleast_1d(variables)
 
    # Get the cell ids inside the boundary box:
    vlsvReader = VlsvFile(fileNames[0])
@@ -101,7 +103,7 @@ def get_2d_array( fileNames, variables, BBOX ):
    #Iterate through the BBOX coordinates:
    minCoordinates = [BBOX[0], BBOX[2], BBOX[4]]
    maxCoordinates = [BBOX[1], BBOX[3], BBOX[5]]
-   coordinates = minCoordinates
+   coordinates = np.array(minCoordinates)
 
    xindex = 0
    yindex = 0
@@ -121,16 +123,15 @@ def get_2d_array( fileNames, variables, BBOX ):
       coordinates[2] = coordinates[2] + cell_lengths[2]
       coordinates[1] = minCoordinates[1]
       coordinates[0] = minCoordinates[0]
+   print ""
    # Create an array for holding variables:
    maxIndices = get_cell_indices( bounds, max(cellids) )
    minIndices = get_cell_indices( bounds, min(cellids) )
-   if (maxIndices[0] - minIndices[0])*(maxIndices[1] - minIndices[1]) != len(cellids):
-      print "BAD CELLIDS"
 
    # Create an array for holding variables
    two_d_variables = []
-   for i in xrange(maxIndices[1] - minIndices[1]):
-      two_d_variables.append(np.zeros((maxIndices[0] - minIndices[0])))
+   for i in xrange(maxIndices[1] - minIndices[1] + 1):
+      two_d_variables.append(np.zeros((maxIndices[0] - minIndices[0] + 1)))
    two_d_variables = np.array(two_d_variables)
 
    # Input positions of the cell ids
@@ -142,6 +143,7 @@ def get_2d_array( fileNames, variables, BBOX ):
    for i in variables:
       variable_dict[i] = []
 
+   print cellids
    # Read variables:
    for f in fileNames:
       # Open file
@@ -157,11 +159,33 @@ def get_2d_array( fileNames, variables, BBOX ):
          # Input variables:
          variable_dict[i].append(np.array(two_d_variables))
    # Return variables:
-   return np.array(variable_dict)
+   return variable_dict
 
-def fourier_2d_array():
-   print "test"
-
+def fourier_2d_array( variables, showplots=False, saveplots="none", showraw=False, kaiserwindowparameter=0, t_start=0, dt=1.0 ):
+   # Go through all the variables:
+   for i in variables.iteritems():
+      variable = i[0]
+      arrays = i[1]
+      index = 0
+      for array in arrays:
+         pl.figure()
+         # Plot the image
+         if showraw == True:
+            pl.subplot(2,1,1)
+         pl.imshow(np.abs(np.fft.fftshift(np.fft.fft2(np.outer(np.kaiser(len(array), kaiserwindowparameter),np.kaiser(len(array[0]), kaiserwindowparameter))*(array-np.mean(array))))), interpolation="Nearest")
+         if showraw == True:
+            pl.subplot(2,1,2)
+            pl.imshow(array, interpolation="Nearest")
+         # Save the image:
+         pl.title(variable + " " + str(t_start + index*dt))
+         if saveplots != "none":
+            pl.savefig(saveplots + "_" + variable + "_" + str(index) + ".png")
+         if showplots == False:
+            pl.close()
+         index = index + 1
+   if showplots == True:
+      pl.show()
+   
 
 
 
