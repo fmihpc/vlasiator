@@ -24,129 +24,7 @@ extern Logger logFile, diagnostic;
 typedef Parameters P;
 
 
-class Zone_base {
-   protected:
-      //Points to some given mpiGrid
-      const dccrg::Dccrg<SpatialCell> * mpiGrid;
-      //Points to some given cell in the mpiGrid
-      const SpatialCell * cellInfo;
-      //Cell id of the zone
-      //NOTE: Zone is basically equivalent to a cell
-      //NOTE: This cell id is following the logic used for grids in visit
-      //so it's starting from 0 as opposed to 1 as is the case in vlasiator code
-      uint64_t cellId;
-   public:
-      const uint64_t & getCellId() const {
-         return cellId;
-      }
-      const uint64_t & getLocalId() const {
-         //Return the zone's local id:
-         return cellInfo->ioLocalCellId;
-      }
-      const SpatialCell * getSpatialCell() const {
-         return cellInfo;
-      }
-      inline int getRank() const {
-         //Return the zone's rank:
-         return mpiGrid->get_process( cellId + 1 );
-      }
-      Zone_base( const dccrg::Dccrg<SpatialCell> & _mpiGrid, const uint64_t & _cellId ) {
-         //Point the mpiGrid in the right direction:
-         mpiGrid = &_mpiGrid;
-         //Get the cell info
-         cellInfo = _mpiGrid[_cellId];
-         //Note: Visit is following a grid logic where cell ids start from number 0 and move up
-         //Vlasiator's grid starts from cell id 1. What we want is the visit's logic
-         cellId = _cellId - 1;
-      }
-      virtual ~Zone_base() {
-      }
-};
-
-//A version of Zone_base with error checks:
-class Zone_safe : public Zone_base {
-   private:
-      //A few checks to make sure everything is ok.
-      //There might be a chance the cellInfo is pointing to null or the given cell id is out of bounds
-      //So let the user decide if he wants to check for it:
-      bool cellIdIsOk() const {
-         //Make sure the cell id is not out of bounds:
-         const uint64_t & xCells = P::xcells_ini; //Number of cells in x-direction in our grid
-         const uint64_t & yCells = P::ycells_ini;
-         const uint64_t & zCells = P::zcells_ini;
-         const uint64_t maxXCoordinate = xCells - 1; //The largest coordinate number for x in our grid
-         const uint64_t maxYCoordinate = yCells - 1;
-         const uint64_t maxZCoordinate = zCells - 1;
-
-         //Calculate the largest possible cell id:
-         const uint64_t maxCellId =  maxZCoordinate * yCells * xCells + maxYCoordinate * xCells + maxXCoordinate;
-         if( cellId > maxCellId ) return false; //If the cell id is out of bounds, return false
-         return true; //Everything ok
-      }
-      bool cellInfoIsOk() const {
-         //Checks if cellInfo is pointing to anything:
-         if( cellInfo == NULL ) return false;
-         return true; //Everything ok
-      }
-      bool cellGridIsOk() const {
-         //Checks if mpiGrid is pointing to anything:
-         if( mpiGrid == NULL ) return false;
-         return true; //Everything ok
-      }
-      bool isOk() const {
-         //Check to make sure the cell id is ok:
-         if( !cellIdIsOk() ) return false;
-         //Check to make sure cellInfo is pointing to something
-         if( !cellInfoIsOk() ) return false;
-         //Check to make sure mpiGrid is pointing to something
-         if( !cellGridIsOk() ) return false;
-         return true; //Everything ok
-      }
-   public:
-      const uint64_t & getLocalId() const {
-         //Do error checking
-         if( !cellInfoIsOk() ) {
-            cerr << "ERROR at: " << __FILE__ << " " << __LINE__ << ", invalid cell id!" << endl;
-            
-         }
-         //Return the same as Zone_base would return:
-         return Zone_base::getLocalId();
-      }
-      inline int getRank() const {
-         if( !cellGridIsOk() ) {
-            cerr << "ERROR at: " << __FILE__ << " " << __LINE__ << ", NULL GRID!" << endl;
-         }
-         return Zone_base::getRank();
-      }
-      const SpatialCell * getSpatialCell() const {
-         if( !cellInfoIsOk() ) {
-            cerr << "ERROR at: " << __FILE__ << " " << __LINE__ << ", invalid cell id!" << endl;
-         }
-         return Zone_base::getSpatialCell();
-      }
-      Zone_safe( const dccrg::Dccrg<SpatialCell> & _mpiGrid, const uint64_t & _cellId )
-               : Zone_base( _mpiGrid, _cellId ) {
-         if( !cellIdIsOk() ) {
-            cerr << "ERROR at: " << __FILE__ << " " << __LINE__ << ", INVALID CELL ID " << cellId << endl;
-         }
-         if( !cellInfoIsOk() ) {
-            cerr << "ERROR at: " << __FILE__ << " " << __LINE__ << ", INVALID CELL INFO" << endl;
-         }
-         if( !cellGridIsOk() ) {
-            cerr << "ERROR at: " << __FILE__ << " " << __LINE__ << ", INVALID CELL GRID" << endl;
-         }
-         if( _cellId == 0 ) {
-            cerr << "ERROR at: " << __FILE__ << " " << __LINE__ << ", INVALID CELL ID INPUT!" << endl;
-         }
-      }
-      ~Zone_safe() {
-      }
-};
-
-//We want to use Zone_base:
-//typedef Zone_base Zone;
-typedef Zone_safe Zone;
-
+// Updates local ids across MPI
 bool updateLocalIds(  dccrg::Dccrg<SpatialCell> & mpiGrid,
                       const vector<uint64_t> & local_cells,
                       MPI_Comm comm ) {
@@ -191,6 +69,7 @@ bool globalSuccess(bool success,string errorMessage,MPI_Comm comm){
    }
 }
 
+
 template <typename T>
 bool writeVelocityDistributionData(
                                     Writer& vlsvWriter,
@@ -198,7 +77,6 @@ bool writeVelocityDistributionData(
                                     const vector<uint64_t> & cells,
                                     MPI_Comm comm
                                     ) {
-   // O: NOTE: I'm not entirely sure this works with the VisIt plugin
    // Write velocity blocks and related data. 
    // In restart we just write velocity grids for all cells.
    // First write global Ids of those cells which write velocity blocks (here: all cells):
@@ -292,7 +170,7 @@ bool writeVelocityDistributionData(
    attribs.clear();
    attribs["mesh"] = "SpatialGrid";
    attribs["name"] = "avgs";
-   //O: note: This could be done with &(velocityBlockData[0]), too
+   //Note: This could be done with &(velocityBlockData[0]), too
    if (vlsvWriter.writeArray("BLOCKVARIABLE",attribs,totalBlocks,SIZE_VELBLOCK,velocityBlockData.data()) == false) success=false;
    if (success ==false)      logFile << "(MAIN) writeGrid: ERROR occurred when writing BLOCKVARIABLE f" << endl << writeVerbose;
    velocityBlockData.clear();
@@ -388,6 +266,7 @@ bool writeCommonGridData(
    const uint& index,
    MPI_Comm comm
 ) {
+   // Writes parameters and cell ids into the VLSV file
    int myRank;
    MPI_Comm_rank(comm, &myRank);
    const int masterProcessId = 0;
@@ -594,8 +473,7 @@ bool writeZoneGlobalIdNumbers( const dccrg::Dccrg<SpatialCell>& mpiGrid,
 }
 
 //Writes the cell coordinates
-//Note: meshName should probably be spatialGrid
-//_cells contains number of cells in x, y and z direction
+//Note: meshName is SpatialGrid
 bool writeBoundingBoxNodeCoordinates ( Writer & vlsvWriter,
                                        const string & meshName,
                                        const int masterRank,
@@ -689,8 +567,7 @@ bool writeBoundingBoxNodeCoordinates ( Writer & vlsvWriter,
 
 //Writes the boundaries for the grid. box_values should be a vector of size 6 and should contain:
 //num of blocks in x, y, z direction, number of cells in x, y, z direction
-//O: meshName should probably be "SpatialGrid"
-//O: Should this do anything if it isn't a master process?
+//meshName should probably be "SpatialGrid"
 bool writeMeshBoundingBox( Writer & vlsvWriter, 
                            const string & meshName, 
                            const int masterRank,
@@ -817,7 +694,6 @@ bool writeGrid(
                DataReducer& dataReducer,
                const uint& index,
                const bool writeGhosts ) {
-   //Go with the new vlsv library:
    double allStart = MPI_Wtime();
    bool success = true;
    int myRank;
@@ -885,7 +761,7 @@ bool writeGrid(
    if( writeGhostZoneDomainAndLocalIdNumbers( mpiGrid, vlsvWriter, meshName, ghost_cells ) == false ) return false;
 
    //Write necessary variables:
-   //const bool writeSmaller = P::writeSmaller; //Determines whether we write in floats or doubles
+   //Determines whether we write in floats or doubles
    for( uint i = 0; i < dataReducer.size(); ++i ) {
       if( writeDataReducer( mpiGrid, local_cells, (P::writeSmaller==1), dataReducer, i, vlsvWriter ) == false ) return false;
    }
@@ -912,8 +788,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
                   const string& name,
                   const uint& index,
                   const int& stripe) {
-   //Go with the new vlsv library
-   //Go with the old vlsv library
+   // Writes a restart
    double allStart = MPI_Wtime();
    bool success = true;
    int myRank;
@@ -933,16 +808,12 @@ bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
    const int masterProcessId = 0;
    vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId );
 
-   //Declare local zones:
-   vector<Zone> local_zones;
    // Get all local cell Ids 
    vector<uint64_t> local_cells = mpiGrid.get_cells();
    //no order assumed so let's order cells here
-   //O: NOTE: Should this be done? It might be better to input the local cell ids first -- or not. Probably better to sort first
    std::sort(local_cells.begin(), local_cells.end());
 
    //Note: No need to write ghost zones for write restart
-   vector<Zone> ghost_zones;
    const vector<uint64_t> ghost_cells;
 
    //The mesh name is "SpatialGrid"
@@ -960,14 +831,6 @@ bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
 
    //Write zone global id numbers:
    if( writeZoneGlobalIdNumbers( mpiGrid, vlsvWriter, meshName, local_cells, ghost_cells ) == false ) return false;
-
-   //Write domain sizes:
-   //Note: For write restart, no need to write this
-   //if( writeDomainSizes( vlsvWriter, meshName, local_zones.size(), ghost_zones.size() ) == false ) return false;
-
-   //Write ghost zone domain and local id numbers
-   //Note: For write restart, no need to write this
-   //if( writeGhostZoneDomainAndLocalIdNumbers( mpiGrid, vlsvWriter, meshName, ghost_zones ) == false ) return false;
 
    //write out DROs we need for restarts
    DataReducer restartReducer;
@@ -990,8 +853,6 @@ bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
    restartReducer.addOperator(new DRO::VelocitySubSteps);
 
    //Write necessary variables:
-   //O: NOTE: Looking at the original write restart function I think we only need writeDataReducer and
-   //writeVelocityDistributionData
    const bool writeSmaller = false;
    for (uint i=0; i<restartReducer.size(); ++i) {
       writeDataReducer(mpiGrid, local_cells, writeSmaller, restartReducer, i, vlsvWriter);

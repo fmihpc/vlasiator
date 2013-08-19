@@ -175,40 +175,6 @@ bool readCellIds(ParallelReader & file,
 */
 
 
-//bool readNBlocks(VLSVParReader & file,
-//                 vector<unsigned int>& nBlocks, int masterRank,MPI_Comm comm){
-//   // Get info on array containing cell Ids:
-//   uint64_t arraySize;
-//   uint64_t vectorSize;
-//   VLSV::datatype dataType;
-//   uint64_t byteSize;
-//   list<pair<string,string> > attribs;
-//   bool success=true;
-//   int rank;
-//   MPI_Comm_rank(comm,&rank);
-//   if(rank==masterRank){
-//      //master reads data
-//      attribs.push_back(make_pair("name","SpatialGrid"));
-//      if (file.getArrayInfoMaster("BLOCKSPERCELL",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-//         logFile << "(RESTARTBUILDER) ERROR: Failed to read number of blocks" << endl << write;
-//         success= false;
-//      }
-//
-//   
-//      nBlocks.resize(vectorSize*arraySize);
-//      if (file.readArrayMaster("BLOCKSPERCELL",attribs,0,arraySize,(char*)&(nBlocks[0])) == false) {
-//         logFile << "(RESTARTBUILDER) ERROR: Failed to read number of blocks!" << endl << write;
-//         success = false;
-//      }
-//   }
-//
-//   //now broadcast the data to everybody
-//   MPI_Bcast(&arraySize,1,MPI_UINT64_T,masterRank,comm);
-//   MPI_Bcast(&vectorSize,1,MPI_UINT64_T,masterRank,comm);
-//   nBlocks.resize(vectorSize*arraySize);
-//   MPI_Bcast(&(nBlocks[0]),vectorSize*arraySize,MPI_UNSIGNED,masterRank,comm);
-//   return success;
-//}
 
 template <class T>
 bool readNBlocks( T & file,
@@ -472,53 +438,6 @@ bool readBlockData(
 
 
 
-//template <typename fileReal>
-//bool readCellParamsVariable(VLSVParReader & file,
-//			    const vector<uint64_t>& fileCells,
-//                            const uint64_t localCellStartOffset,
-//			    const uint64_t localCells,
-//			    const string& variableName,
-//                            const size_t cellParamsIndex,
-//                            const size_t expectedVectorSize,
-//                            dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid){
-//   uint64_t arraySize;
-//   uint64_t vectorSize;
-//   VLSV::datatype dataType;
-//   uint64_t byteSize;
-//   list<pair<string,string> > attribs;
-//   fileReal *buffer;
-//   bool success=true;
-//   
-//   attribs.push_back(make_pair("name",variableName));
-//   attribs.push_back(make_pair("mesh","SpatialGrid"));
-//   
-//   
-//   if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-//      logFile << "(RESTARTBUILDER)  ERROR: Failed to read " << endl << write;
-//      return false;
-//   }
-//
-//   if(vectorSize!=expectedVectorSize){
-//      logFile << "(RESTARTBUILDER)  vectorsize wrong " << endl << write;
-//      return false;
-//   }
-//   
-//   buffer=new fileReal[vectorSize*localCells];
-//   if(file.readArray("VARIABLE",attribs,localCellStartOffset,localCells,(char *)buffer) == false ) {
-//      logFile << "(RESTARTBUILDER)  ERROR: Failed to read " << variableName << endl << write;
-//      return false;
-//   }
-//   
-//   for(uint i=0;i<localCells;i++){
-//     uint cell=fileCells[localCellStartOffset+i];
-//     for(uint j=0;j<vectorSize;j++){
-//        mpiGrid[cell]->parameters[cellParamsIndex+j]=buffer[i*vectorSize+j];
-//     }
-//   }
-//   
-//   delete(buffer);
-//   return success;
-//}
 
 template <typename fileReal, class U>
 bool readCellParamsVariable(U & file,
@@ -684,6 +603,7 @@ float checkVersion( Reader & vlsvReader ) {
    }
 }
 
+//FIXME, hard coded that files have double-precision data. Fix 
 template <class T>
 bool exec_readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
                    const std::string& name) {
@@ -870,7 +790,6 @@ bool exec_readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
 }
 
 //FIXME, readGrid has no support for checking or converting endianness
-   //FIXME, hard coded that files have double-precision data. Fix 
 bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
               const std::string& name){
    Reader vlsvCheck;
