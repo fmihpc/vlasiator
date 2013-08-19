@@ -44,7 +44,7 @@ class VlsvFile(object):
 
       self.__dx = (self.__xmax - self.__xmin) / (float)(self.__xcells)
       self.__dy = (self.__ymax - self.__ymin) / (float)(self.__xcells)
-      self.__dz = (self.__zmax - self.__xmin) / (float)(self.__xcells)
+      self.__dz = (self.__zmax - self.__zmin) / (float)(self.__xcells)
 
       # Velocity cell lengths
       velocity_cells_per_direction = 4
@@ -71,7 +71,7 @@ class VlsvFile(object):
       """ Read in the cell ids and create an internal dictionary to give the index of an arbitrary cellID
       """
       cellids=self.read(name="SpatialGrid",tag="MESH")
-      for index,cellid in enumerate(cellids):
+      for index,cellid in enumerate(np.atleast_1d(cellids)):
          self.__fileindex_for_cellid[cellid]=index
 
    def __read_fileindex_for_cellid(self):
@@ -331,27 +331,48 @@ class VlsvFile(object):
       # Return the coordinates:
       return np.array(cellcoordinates)
 
-   def get_velocity_cell_coordinates(self, vcellid):
+   def get_velocity_cell_coordinates(self, vcellids):
       ''' Returns a given velocity cell's coordinates as a numpy array
 
       Arguments:
       :param vcellid       The velocity cell's ID
       :return a numpy array with the coordinates
       '''
-      # Get block id:
-      block = (int)(vcellid) / 64
+      vcellids = np.atleast_1d(vcellids)
+      # Get block ids:
+      blocks = vcellids.astype(int) / 64
       # Get block coordinates:
-      blockIndices = np.array( [(int)(block)%(int)(self.__vxblocks), ((int)(block) / (int)(self.__vxblocks))%self.__vyblocks, (int)(block)/(int)(self.__vxblocks*self.__vyblocks)] )
-      blockCoordinates = np.array([self.__vxmin + 4 * self.__dvx * blockIndices[0],
-                                   self.__vymin + 4 * self.__dvy * blockIndices[1],
-                                   self.__vzmin + 4 * self.__dvz * blockIndices[2]])
-      #vcellid = 64 * velocity_block_id + kv*4*4 + jv*4 + iv
+      blockIndicesX = np.remainder(blocks.astype(int), (int)(self.__vxblocks))
+      blockIndicesY = np.remainder(blocks.astype(int)/(int)(self.__vxblocks), (int)(self.__vyblocks))
+      blockIndicesZ = blocks.astype(int)/(int)(self.__vxblocks*self.__vyblocks)
+      blockCoordinatesX = blockIndicesX.astype(float) * self.__dvx * 4 + self.__vxmin
+      blockCoordinatesY = blockIndicesY.astype(float) * self.__dvy * 4 + self.__vymin
+      blockCoordinatesZ = blockIndicesZ.astype(float) * self.__dvz * 4 + self.__vzmin
+      # Get cell indices:
+      cellids = np.remainder(vcellids.astype(int), (int)(64))
+      cellIndicesX = np.remainder(cellids.astype(int), (int)(4))
+      cellIndicesY = np.remainder((cellids.astype(int)/(int)(4)).astype(int), (int)(4))
+      cellIndicesZ = cellids.astype(int)/(int)(16)
       # Get cell coordinates:
-      cellIndices = np.array([(int)(vcellid)%4, (int)(((int)(vcellid)/4))%4, (int)(vcellid)/(int)(4*4)])
-      cellCoordinates = np.array([(cellIndices[0] + 0.5) * self.__dvx, (cellIndices[1] + 0.5) * self.__dvy, (cellIndices[2] + 0.5) * self.__dvz])
-      # Get the coordinates:
-      vcellCoordinates = blockCoordinates + cellCoordinates
-      return vcellCoordinates
+      cellCoordinates = np.array([blockCoordinatesX.astype(float) + (cellIndicesX.astype(float) + 0.5) * self.__dvx,
+                                  blockCoordinatesY.astype(float) + (cellIndicesY.astype(float) + 0.5) * self.__dvy,
+                                  blockCoordinatesZ.astype(float) + (cellIndicesZ.astype(float) + 0.5) * self.__dvz])
+
+#      # Get block id:
+#      block = (int)(vcellid) / 64
+#      # Get block coordinates:
+#      blockIndices = np.array( [(int)(block)%(int)(self.__vxblocks), (int)((int)(block)/(int)(self.__vxblocks))%(int)(self.__vyblocks), (int)(block)/(int)(self.__vxblocks*self.__vyblocks)] )
+#      blockCoordinates = np.array([self.__vxmin + 4 * self.__dvx * blockIndices[0],
+#                                   self.__vymin + 4 * self.__dvy * blockIndices[1],
+#                                   self.__vzmin + 4 * self.__dvz * blockIndices[2]])
+#      #vcellid = 64 * velocity_block_id + kv*4*4 + jv*4 + iv
+#      # Get cell coordinates:
+#      cellIndices = np.array([(int)((int)(vcellid)%64)%4, (int)(((int)((int)(vcellid)%64)/4))%4, (int)((int)(vcellid)%64)/(int)(4*4)])
+#      cellCoordinates = np.array([(cellIndices[0] + 0.5) * self.__dvx, (cellIndices[1] + 0.5) * self.__dvy, (cellIndices[2] + 0.5) * self.__dvz])
+#      # Get the coordinates:
+#      vcellCoordinates = blockCoordinates + cellCoordinates
+      # Return cell coordinates:
+      return cellCoordinates.transpose()
 
 
    def read_variable(self, name, cellid):
@@ -496,7 +517,7 @@ class VlsvFile(object):
       for i in xrange(0, cells_with_blocks_index[0]):
          offset += blocks_per_cell[i]
 
-      num_of_blocks = blocks_per_cell[cells_with_blocks_index[0]]
+      num_of_blocks = np.atleast_1d(blocks_per_cell)[cells_with_blocks_index[0]]
 
       # Read in avgs and velocity cell ids:
       for child in self.__xml_root:
@@ -545,14 +566,22 @@ class VlsvFile(object):
       # Make a dictionary (hash map) out of velocity cell ids and avgs:
       velocity_cells = {}
       array_size = len(data_avgs)
-      # Read vx_min, vy_min, etc
-      vx_min = self.read_parameter(name="vxmin")
-      vy_min = self.read_parameter(name="vymin")
-      vz_min = self.read_parameter(name="vzmin")
-      vx_blocks = self.read_parameter(name="vxblocks_ini")
-      vy_blocks = self.read_parameter(name="vyblocks_ini")
-      #vz_blocks = self.read_parameter(name="vzblocks_ini")
-      
+
+      # Construct velocity cells:
+      velocity_cell_ids = []
+      for kv in xrange(4):
+         for jv in xrange(4):
+            for iv in xrange(4):
+               velocity_cell_ids.append(kv*16 + jv*4 + iv)
+#      velocity_cell_ids_temp = np.array(velocity_cell_ids)
+#      # Construct velocity blocks:
+#      dv = np.array([self.__dvx, self.__dvy, self.__dvz])
+#      v_mins = np.array([self.__vx_min, self.__vy_min, self.__vz_min])
+#      velocity_block_indices = np.array(np.floor(data_block_coordinates - v_mins) / (4*dv))
+#      velocity_block_ids = velocity_block_indices * np.array([1, self.__vx_blocks, self.__vx_blocks*self.__vy_blocks])
+#      velocity_cell_ids = np.array([
+
+
       for i in xrange(array_size):
          block_coordinate = data_block_coordinates[i]
          # The minimum corner coordinates of the blocks
@@ -560,24 +589,27 @@ class VlsvFile(object):
          vy = block_coordinate[1]
          vz = block_coordinate[2]
          # The diff in blocks
-         dvx = block_coordinate[3]
-         dvy = block_coordinate[4]
-         dvz = block_coordinate[5]
+#         dvx = block_coordinate[3]
+#         dvy = block_coordinate[4]
+#         dvz = block_coordinate[5]
          avgs = data_avgs[i]
          # Get the velocity cell id (First transform coordinates to block indices, then block indices to block id and then block id to velocity cell ids):
-         velocity_block_indices = np.array([np.floor((vx - vx_min) / dvx), np.floor((vy - vy_min) / dvy), np.floor((vz - vz_min) / dvz)])
-         velocity_block_id = velocity_block_indices[0] + velocity_block_indices[1] * vx_blocks + velocity_block_indices[2] * vx_blocks * vy_blocks
+         velocity_block_indices = np.array([np.floor((vx - self.__vxmin) / (4*self.__dvx)), np.floor((vy - self.__vymin) / (4*self.__dvy)), np.floor((vz - self.__vzmin) / (4*self.__dvz))])
+         velocity_block_id = velocity_block_indices[0] + velocity_block_indices[1] * self.__vxblocks + velocity_block_indices[2] * self.__vxblocks * self.__vyblocks
          avgIndex = 0
 
-         for kv in xrange(4):
-            for jv in xrange(4):
-               for iv in xrange(4):
-                  #appending = np.array([iv, jv, kv])
-                  #velocity_cell_indices = velocity_block_indices * 4 + appending
-                  #Note: There  are 64 velocity cells in every block and 4 in every direction (4 times 4 times 4 = 64)
-                  #vcellid = 64 * velocity_block_id + kv*4*4 + jv*4 + iv
-                  velocity_cells[(int)(64 * velocity_block_id + kv*16 + jv*4 + iv)] = avgs[avgIndex]
-                  avgIndex = avgIndex + 1
+         for j in velocity_cell_ids + 64*velocity_block_id:
+            velocity_cells[(int)(j)] = avgs[avgIndex]
+            avgIndex = avgIndex + 1
+#         for kv in xrange(4):
+#            for jv in xrange(4):
+#               for iv in xrange(4):
+#                  #appending = np.array([iv, jv, kv])
+#                  #velocity_cell_indices = velocity_block_indices * 4 + appending
+#                  #Note: There  are 64 velocity cells in every block and 4 in every direction (4 times 4 times 4 = 64)
+#                  #vcellid = 64 * velocity_block_id + kv*4*4 + jv*4 + iv
+#                  velocity_cells[(int)(64 * velocity_block_id + kv*16 + jv*4 + iv)] = avgs[avgIndex]
+#                  avgIndex = avgIndex + 1
       return velocity_cells
       
 #const velocity_block_indices_t indices = {{
@@ -627,7 +659,7 @@ class VlsvFile(object):
          print "Cell does not have velocity distribution"
          return []
 
-      num_of_blocks = blocks_per_cell[cells_with_blocks_index[0]]
+      num_of_blocks = np.atleast_1d(blocks_per_cell)[cells_with_blocks_index[0]]
 
       # Check for the old library
       if self.__uses_new_vlsv_format == False:
@@ -635,6 +667,7 @@ class VlsvFile(object):
          return self.__read_velocity_cells_old(cellid=cellid, cells_with_blocks=cells_with_blocks, blocks_per_cell=blocks_per_cell, cells_with_blocks_index=cells_with_blocks_index)
       else:
          # Uses new format:
+         print "NOT IMPLEMENTED YET"
          return self.__read_velocity_cells_new(cellid=cellid, cells_with_blocks=cells_with_blocks, blocks_per_cell=blocks_per_cell, cells_with_blocks_index=cells_with_blocks_index)
 
 
