@@ -123,7 +123,7 @@ namespace SBC {
             maxwellianDistribution(
                rho,
                T,
-               VX0 + counter*SpatialCell::block_dvx, VY0, VZ0
+               counter*SpatialCell::block_dvx, 0.0, 0.0
             )
          ) {
             search = false;
