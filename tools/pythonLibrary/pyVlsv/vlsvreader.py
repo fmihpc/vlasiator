@@ -319,6 +319,7 @@ class VlsvFile(object):
       cell_lengths = np.array([(xmax - xmin)/(float)(xcells), (ymax - ymin)/(float)(ycells), (zmax - zmin)/(float)(zcells)])
       # Get cell indices:
       cellid = (int)(cellid - 1)
+      cellindices = np.zeros(3)
       cellindices[0] = (int)(cellid)%(int)(xcells)
       cellindices[1] = ((int)(cellid)/(int)(xcells))%(int)(ycells)
       cellindices[2] = (int)(cellid)/(int)(xcells*ycells)

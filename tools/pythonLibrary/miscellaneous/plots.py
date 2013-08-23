@@ -104,7 +104,7 @@ def plot_from_list( list_of_coordinates, fitfunction="nullfit", cubicspline=True
       pl.xlim([min(x) - 0.01*xlength, max(x) + 0.01*xlength])
       pl.ylim([min(y) - 0.05*ylength, max(y) + 0.05*ylength])
       plot_variables(x,y,False,fitfunction,cubicspline=cubicspline)
-      pl.ticklabel_format(style='sci', axis='y', scilimits=(0,3))
+      pl.ticklabel_format(style='sci', axis='y', scilimits=(-3,3))
       # Set y ticks
       if yticks > 0 and len(i) == 4:
          ticks = min(y) + np.arange(yticks + 1) / (float)(yticks)*ylength

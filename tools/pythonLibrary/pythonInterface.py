@@ -25,6 +25,7 @@ from getvariables import *
 from fourier2d import *
 from plots import *
 from pitchangle import *
+from rotation import *
 
 visitLaunched = False
 

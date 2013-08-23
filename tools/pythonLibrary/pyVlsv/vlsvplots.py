@@ -253,22 +253,66 @@ def take_cut_through_array( fileName, point1, point2 ):
    # Input coordinates:
    for i in xrange((int)(np.linalg.norm(point2 - point1) / np.linalg.norm(oneVec)) + 1):
       coordinateList.append( point1 + oneVec*i )
-   # Get the cell ids at the coordinates:
+#   # Get the cell ids at the coordinates:
+#   cellids = []
+#   for coordinate in coordinateList:
+#      # Get cell indices:
+#      cellindices = np.array([(int)((coordinate[0] - xmin)/(float)(cell_lengths[0])), (int)((coordinate[1] - ymin)/(float)(cell_lengths[1])), (int)((coordinate[2] - zmin)/(float)(cell_lengths[2]))])
+#      # Get the cell id:
+#      cellid = cellindices[0] + cellindices[1] * xcells + cellindices[2] * xcells * ycells + 1
+#      # Append the cell id:
+#      cellids.append(cellid)
+#   # Get the distances to coordinates from the starting point:
+#   distances = []
+#   for i in coordinateList:
+#      # Get the distance
+#      distances.append(np.linalg.norm(i - point1))
    cellids = []
+   coordinates = []
+   distances = []
+   curDists = []
+   appDist = False
    for coordinate in coordinateList:
-      # Get cell indices:
+      # Get the cell indices
       cellindices = np.array([(int)((coordinate[0] - xmin)/(float)(cell_lengths[0])), (int)((coordinate[1] - ymin)/(float)(cell_lengths[1])), (int)((coordinate[2] - zmin)/(float)(cell_lengths[2]))])
       # Get the cell id:
       cellid = cellindices[0] + cellindices[1] * xcells + cellindices[2] * xcells * ycells + 1
-      # Append the cell id:
+      curDists.append(np.linalg.norm(coordinate - point1))
+      # If the cell id is already in the list, don't append:
+      if len(cellids) > 0:
+         if cellid == cellids[len(cellids)-1]:
+            continue
+      # Append everything:
       cellids.append(cellid)
-      # Get the distances to coordinates from the starting point:
-      distances = []
-      for i in coordinateList:
-         # Get the distance
-         distances.append(np.linalg.norm(i - point1))
+      coordinates.append(coordinate)
+      if appDist == True:
+         distances.append(np.median(curDists))
+         curDists = []
+      else:
+         appDist = True
+   if len(curDists) != 0:
+      distances.append(np.median(curDists))
+   else:
+      distances.append(distances[len(distances)-1])
+#   cellids = []
+#   coordinates = []
+#   distances = []
+#   for coordinate in coordinateList:
+#      # Get the cell indices
+#      cellindices = np.array([(int)((coordinate[0] - xmin)/(float)(cell_lengths[0])), (int)((coordinate[1] - ymin)/(float)(cell_lengths[1])), (int)((coordinate[2] - zmin)/(float)(cell_lengths[2]))])
+#      # Get the cell id:
+#      cellid = cellindices[0] + cellindices[1] * xcells + cellindices[2] * xcells * ycells + 1
+#      # If the cell id is already in the list, don't append:
+#      if len(cellids) > 0:
+#         if cellid == cellids[len(cellids)-1]:
+#            continue
+#      # Append everything:
+#      cellids.append(cellid)
+#      coordinates.append(coordinate)
+#      distances.append(np.linalg.norm(coordinate - point1))
    # Return the cut through:
-   return [cellids, coordinateList, distances]
+   #return [cellids, coordinateList, distances]
+   return [cellids[0:len(cellids)-2], coordinates[0:len(distances)-2], distances[0:len(distances)-2]]
 
 def take_cut_through( fileName, variables1, variables2, point1, point2, fitFunction=nullfit):
    '''Creates a plot of cut-through of some variable from a vlsv file
