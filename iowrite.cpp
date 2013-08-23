@@ -10,8 +10,6 @@
 #include "phiprof.hpp"
 #include "parameters.h"
 #include "logger.h"
-#include "vlsvwriter2.h"
-#include "vlsvreader2.h"
 #include "vlsv_writer.h"
 #include "vlasovmover.h"
 

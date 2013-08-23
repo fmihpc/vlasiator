@@ -121,7 +121,7 @@ OBJS = 	version.o backgroundfield.o ode.o quadr.o dipole.o constantfield.o integ
 	Alfven.o Diffusion.o Dispersion.o Firehose.o Flowthrough.o Fluctuations.o  KHB.o Larmor.o Magnetosphere.o MultiPeak.o Riemann1.o Shock.o test_fp.o test_trans.o verificationLarmor.o\
 	grid.o ioread.o iowrite.o vlasiator.o logger.o muxml.o \
 	parameters.o readparameters.o spatial_cell.o \
-	vlscommon.o vlsvreader2.o vlsvwriter2.o vlasovmover_$(TRANSSOLVER).o $(FIELDSOLVER).o
+	vlscommon.o vlsvreader2.o  vlasovmover_$(TRANSSOLVER).o $(FIELDSOLVER).o
 
 
 help:
@@ -264,7 +264,7 @@ ioread.o:  ${DEPS_COMMON} parameters.h  spatial_cell.hpp ioread.cpp ioread.h  vl
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c ioread.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV}
 
 
-iowrite.o:  ${DEPS_COMMON} parameters.h  spatial_cell.hpp iowrite.cpp iowrite.h  vlsvwriter2.cpp
+iowrite.o:  ${DEPS_COMMON} parameters.h  spatial_cell.hpp iowrite.cpp iowrite.h  
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c iowrite.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV}
 
 logger.o: logger.h logger.cpp
@@ -288,10 +288,6 @@ vlsvreader2.o:  muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
 
 vlsvreader2extra.o:  muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
 	${CMP} ${CXXEXTRAFLAGS} ${FLAGS} -c vlsvreader2.cpp ${INC_VLSV}
-
-vlsvwriter2.o: mpiconversion.h muxml.h muxml.cpp vlscommon.h vlsvwriter2.h vlsvwriter2.cpp 
-	${CMP} ${CXXFLAGS} ${FLAGS} -c vlsvwriter2.cpp ${INC_MPI}
-
 
 
 # Make executable

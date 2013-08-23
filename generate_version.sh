@@ -45,16 +45,17 @@ svn status |gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}' >> ver
 echo "    cout << endl << \"----------- svn diff ----.------ \"<<endl;" >>version.cpp
 
 #print diff, but do not include generate_version.sh
-svn diff | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g' |gawk '
-BEGIN {doWrite=1;}
-{
-if(doWrite) 
- printf("%s\"%s\"%s\n","cout <<",$0,"<< endl;"); 
-if($2=="generate_version.sh") 
-  doWrite=0; 
-else if($1=="Index:") 
- doWrite=1;  
-}' >> version.cpp
+#svn diff | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g' |gawk '
+#BEGIN {doWrite=1;}
+#{
+#if(doWrite) 
+# printf("%s\"%s\"%s\n","cout <<",$0,"<< endl;"); 
+#if($2=="generate_version.sh") 
+#  doWrite=0; 
+#else if($1=="Index:") 
+# doWrite=1;  
+#}' >> version.cpp
+
 
 cat >> version.cpp <<EOF
   }

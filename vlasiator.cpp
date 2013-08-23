@@ -34,7 +34,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "sysboundary/sysboundary.h"
 #include "transferstencil.h"
 
-#include "vlsvwriter2.h" 
 #include "fieldsolver.h"
 #include "projects/project.h"
 #include "grid.h"
