@@ -86,7 +86,9 @@ bool VLSVReader::getArrayInfo(const std::string& tagName,const std::string& arra
    attribs.push_back(make_pair("mesh",meshName));
    XMLNode* node = xmlReader.find(tagName,attribs);
    if (node == NULL) {
-      cerr << __FILE__ << ":" << __LINE__ << " node == NULL" << endl;
+      cerr << "ERROR, failed to get array info at " <<  __FILE__ << " " << __LINE__ << endl;
+      cerr << "getArrayInfo input: array name: " << arrayName << " mesh name: " << meshName << " tag: " << tagName << endl;
+      //cerr << __FILE__ << ":" << __LINE__ << " node == NULL" << endl;
       return false;
    }
 
