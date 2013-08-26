@@ -710,7 +710,8 @@ bool writeGrid(
    //Open the file with vlsvWriter:
    Writer vlsvWriter;
    const int masterProcessId = 0;
-   vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId );
+   MPI_Info MPIinfo = MPI_INFO_NULL;
+   vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId, MPIinfo );
 
    // Get all local cell Ids 
    vector<uint64_t> local_cells = mpiGrid.get_cells();
@@ -804,7 +805,18 @@ bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
    //Open the file with vlsvWriter:
    Writer vlsvWriter;
    const int masterProcessId = 0;
-   vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId );
+   MPI_Info MPIinfo; 
+   if (stripe == 0 || stripe < -1){
+      MPIinfo = MPI_INFO_NULL;
+   } else {
+      MPI_Info_create(&MPIinfo);
+      char stripeChar[6];
+      sprintf(stripeChar,"%d",stripe);
+      /* no. of I/O devices to be used for file striping */
+      char factor[] = "striping_factor";
+      MPI_Info_set(MPIinfo, factor, stripeChar);
+   }
+   vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId, MPIinfo );
 
    // Get all local cell Ids 
    vector<uint64_t> local_cells = mpiGrid.get_cells();
