@@ -9,12 +9,11 @@ def get_pitch_angles( fileName, cellid, bins=100, cosine=True, log=False, plasma
    print "Reading.."
    velocity_cell_data = vlsvReader.read_velocity_cells(cellid)
    # Read bulk velocity:
-   bulk_velocity = vlsvReader.read_variable("rho_v", cellid) / vlsvReader.read_variable("rho", cellid)
+   bulk_velocity = np.array(vlsvReader.read_variable("rho_v", cellid) / vlsvReader.read_variable("rho", cellid))
+   print bulk_velocity
    print "Calculating.."
    # Calculate the pitch angles for the data:
    B = vlsvReader.read_variable("B", cellid)
-   print B
-   print vlsvReader.read_variable("E", cellid)
    B_unit = B / np.linalg.norm(B)
    # Get cells:
    vcellids = velocity_cell_data.keys()
@@ -22,7 +21,7 @@ def get_pitch_angles( fileName, cellid, bins=100, cosine=True, log=False, plasma
    avgs = velocity_cell_data.values()
    # Get a list of velocity coordinates:
    if plasmaframe == True:
-      
+      v = vlsvReader.get_velocity_cell_coordinates(vcellids) / bulk_velocity
    else:
       v = vlsvReader.get_velocity_cell_coordinates(vcellids)
    # Get norms:

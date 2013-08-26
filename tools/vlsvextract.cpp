@@ -153,6 +153,7 @@ int SiloType(const VLSV::datatype& dataType, const uint64_t& dataSize) {
 uint64_t convUInt(const char* ptr, const VLSV::datatype& dataType, const uint64_t& dataSize) {
    if (dataType != VLSV::UINT) {
       cerr << "Erroneous datatype given to convUInt" << endl;
+      MPI_Finalize();
       exit(1);
    }
 
@@ -220,8 +221,8 @@ Real * GetBVol( VLSVReader& vlsvReader, const string& meshName, const uint64_t& 
    uint64_t meshArraySize, meshVectorSize, meshDataSize;
    //Output: meshArraySize, meshVectorSize, meshDataType, meshDatasize (inside if() because getArray is bool and returns false if something unexpected happens)
    if (vlsvReader.getArrayInfo("MESH", meshName, meshArraySize, meshVectorSize, meshDataType, meshDataSize) == false) {
-      //cerr << "Spatial cell #" << cellID << " not found!" << endl;
       cerr << "Error " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
       exit(1);
       return NULL;
    }
@@ -231,6 +232,7 @@ Real * GetBVol( VLSVReader& vlsvReader, const string& meshName, const uint64_t& 
    if (vlsvReader.readArray("MESH",meshName,0,meshArraySize,meshBuffer) == false) {
       //cerr << "Spatial cell #" << cellID << " not found!" << endl;
       cerr << "Error " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
       exit(1);
       return NULL;
    }
@@ -247,8 +249,8 @@ Real * GetBVol( VLSVReader& vlsvReader, const string& meshName, const uint64_t& 
    }
 
    if (cellIndex == numeric_limits<uint64_t>::max()) {
-      //cerr << "Spatial cell #" << cellID << " not found!" << endl;
       cerr << "Error " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
       exit(1);
       return NULL;
    }
@@ -258,9 +260,16 @@ Real * GetBVol( VLSVReader& vlsvReader, const string& meshName, const uint64_t& 
    uint64_t variableArraySize, variableVectorSize, variableDataSize;
    //getArrayInfo output: variableArraysize, variableVectorSize, ...
    if (vlsvReader.getArrayInfo("VARIABLE", "B_vol", meshName, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) {
-      cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
-      return NULL;
+      //cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
+      //exit(1);
+      //return NULL;
+      //If B_vol wasn't saved, return a warning and tell the user we're picking B instead
+      if (vlsvReader.getArrayInfo("VARIABLE", "B", meshName, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) {
+         cerr << "ERROR, COULD NOT FIND B_VOL OR B FROM THE VLSV FILE AT " << __FILE__ << " " << __LINE__ << endl;
+         MPI_Finalize();
+         exit(1);
+         return NULL;
+      }
    }
 
    //Declare a buffer for reading the specific vector from the array
@@ -270,9 +279,14 @@ Real * GetBVol( VLSVReader& vlsvReader, const string& meshName, const uint64_t& 
    const uint64_t numOfVecs = 1;
    //store the vector in the_actual_buffer buffer -- the data is extracted vector at a time
    if(vlsvReader.readArray("VARIABLE", "B_vol", cellIndex, numOfVecs, the_actual_buffer) == false) {
-      cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
-      return 0;
+      //If B_vol wasn't saved, return a warning and tell the user we're picking B instead
+      if(vlsvReader.readArray("VARIABLE", "B", cellIndex, numOfVecs, the_actual_buffer) == false) {
+         cerr << "ERROR, COULD NOT FIND B_VOL OR B FROM THE VLSV FILE AT " << __FILE__ << " " << __LINE__ << endl;
+         MPI_Finalize();
+         exit(1);
+         return NULL;
+      }
+      cerr << "Warning: B_vol was not saved in the file, so picking B instead" << endl;
    }
    //Return the B_vol vector in Real* form
    return the_actual_buffer_ptr;
@@ -617,6 +631,7 @@ char * loadParameter( VLSVReader& vlsvReader, const string& name ) {
    //Write into dataType, arraySize, etc with getArrayInfo -- if fails to read, give error message
    if( vlsvReader.getArrayInfo( "PARAMETERS", name, arraySize, vectorSize, dataType, dataSize ) == false ) {
       cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
+      MPI_Finalize();
       exit(1); //Terminate
       return 0;
    }
@@ -626,12 +641,14 @@ char * loadParameter( VLSVReader& vlsvReader, const string& name ) {
    //Read data into the buffer and return error if something went wrong
    if( vlsvReader.readArray( "PARAMETERS", name, 0, vectorSize, buffer ) == false ) {
       cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
+      MPI_Finalize();
       exit(1);
       return 0;
    }
    //SHOULD be a vector of size 1 and since I am going to want to assume that, making a check here
    if( vectorSize != 1 ) {
       cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
+      MPI_Finalize();
       exit(1);
       return 0;
    }
@@ -651,6 +668,7 @@ void pointToCellIdList( VLSVReader & vlsvReader, uint64_t *& cellIdList, uint64_
    //NOTE: This could be changed -- we're assuming cellIdList is a null pointer:
    if( cellIdList ) {
       cerr << "Error! Expected null pointer at: " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
       exit(1);
    }
    //meshname should be "SpatialGrid" and tag should be "CELLSWITHBLOCKS"
@@ -663,12 +681,14 @@ void pointToCellIdList( VLSVReader & vlsvReader, uint64_t *& cellIdList, uint64_
    //Read arraySize, vectorSize, dataType and dataSize and store them with getArrayInfo:
    if (vlsvReader.getArrayInfo(tag, meshName, arraySize, vectorSize, dataType, dataSize) == false) {
       cerr << "Could not find array " << tag << " at: " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
       exit(1); //error, terminate program
       return; //Shouldn't actually even get this far but whatever
    }
    //Check to make sure that the vectorSize is 1 as the CellIdList should be (Assuming so later on):
    if( vectorSize != 1 ) {
       cerr << tag << "'s vector size is not 1 at: " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
       exit(1);
       return;
    }
@@ -680,6 +700,7 @@ void pointToCellIdList( VLSVReader & vlsvReader, uint64_t *& cellIdList, uint64_
       cerr << "Failed to read block metadata for mesh '" << meshName << "' at: ";
       cerr << __FILE__ << " " << __LINE__ << endl;
       delete buffer;
+      MPI_Finalize();
       exit(1);
       return;
    }
@@ -702,6 +723,7 @@ void getCellCoordinates( const CellStructure & cellStruct, const uint64_t cellId
    //Check for null pointer
    if( !coordinates ) {
       cerr << "Passed invalid pointer at: " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
       exit(1);
    }
    //Calculate the cell coordinates in block coordinates (so in the cell grid where the coordinates are integers)
@@ -740,6 +762,7 @@ uint64_t searchForBestCellId( const CellStructure & cellStruct,
       cerr << "Error at: ";
       cerr << __FILE__ << " " << __LINE__;
       cerr << ", passed a null pointer to searchForBestCellId" << endl;
+      MPI_Finalize();
       exit(1);
       return 0;
    }
@@ -832,6 +855,7 @@ uint64_t getCellIdFromCoords( VLSVReader& vlsvReader, const CellStructure & cell
                               const Real * coords, const Real max_distance ) {
    if( !coords ) {
       cerr << "NULL pointer passed to getCellIdFromCoords! " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
       exit(1);
    }
    //Assuming coords is of size 3
@@ -848,10 +872,12 @@ uint64_t getCellIdFromCoords( VLSVReader& vlsvReader, const CellStructure & cell
    //Check for null pointers
    if( !cellIdList ) {
       cerr << "Invalid cellIdList at " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
       exit(1);
    }
    if( !coords ) {
       cerr << "Invalid coords at " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
       exit(1);
    }
 
@@ -1116,6 +1142,7 @@ bool retrieveOptions( const int argn, char *args[], bool & getCellIdFromCoordina
    //Check to make sure the input for outputDirectoryPath is valid
    if( outputDirectoryPath.size() != 1 ) {
       cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", invalid outputDirectoryPath!" << endl;
+      MPI_Finalize();
       exit(1);
    }
    //Everything ok
@@ -1140,6 +1167,7 @@ void setCoordinatesAlongALine(
    const size_t _size = 3;
    if( start.size() != _size || end.size() != _size ) {
       cerr << "Error! Invalid vectorsize passed to setCoordinatesAlongALine at: " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
       exit(1); //terminate
    }
    //Declare _numberOfCoordinates (The same as the input except if the input is 0 (default value))
@@ -1187,12 +1215,14 @@ void setCoordinatesAlongALine(
       //Make sure the number is valid (Must be at least 2 points):
       if( _numberOfCoordinates < 2 ) {
          cerr << "Cannot use numberOfCoordinates lower than 2 at " << __FILE__ << " " << __LINE__ << endl;
+         MPI_Finalize();
          exit(1);
       }
       //Just to make sure that there's enough coordinates let's add a few more:
       _numberOfCoordinates = 1.3 * _numberOfCoordinates;
    } else if( numberOfCoordinates < 2 ) {
       cerr << "Cannot use numberOfCoordinates lower than 2 at " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
       exit(1);
    } else {
       //User defined input
@@ -1211,6 +1241,7 @@ void setCoordinatesAlongALine(
    //Check if vector is of size 3 -- if not, display error
    if( line_unit.size() != _size ) {
       cerr << "Error at " << __FILE__ << " " << __LINE__ << ", line vector not of size 3!" << endl;
+      MPI_Finalize();
       exit(1);
    }
 
@@ -1239,6 +1270,7 @@ void setCoordinatesAlongALine(
    //Make sure the output is not empty
    if( outputCoordinates.empty() ) {
       cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", Calculated coordinates empty!" << endl;
+      MPI_Finalize();
       exit(1);
    }
    return;
@@ -1421,6 +1453,7 @@ int main(int argn, char* args[]) {
             //This should never happen but it's better to be safe than sorry
             cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", No input concerning cell id!" << endl;
             vlsvReader.close();
+            MPI_Finalize();
             exit(1);
          }
 

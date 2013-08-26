@@ -521,6 +521,7 @@ class VlsvFile(object):
       num_of_blocks = np.atleast_1d(blocks_per_cell)[cells_with_blocks_index[0]]
 
       # Read in avgs and velocity cell ids:
+      #CONT
       for child in self.__xml_root:
          # Read in avgs
          if child.attrib["name"] == "avgs":
@@ -574,14 +575,6 @@ class VlsvFile(object):
          for jv in xrange(4):
             for iv in xrange(4):
                velocity_cell_ids.append(kv*16 + jv*4 + iv)
-#      velocity_cell_ids_temp = np.array(velocity_cell_ids)
-#      # Construct velocity blocks:
-#      dv = np.array([self.__dvx, self.__dvy, self.__dvz])
-#      v_mins = np.array([self.__vx_min, self.__vy_min, self.__vz_min])
-#      velocity_block_indices = np.array(np.floor(data_block_coordinates - v_mins) / (4*dv))
-#      velocity_block_ids = velocity_block_indices * np.array([1, self.__vx_blocks, self.__vx_blocks*self.__vy_blocks])
-#      velocity_cell_ids = np.array([
-
 
       for i in xrange(array_size):
          block_coordinate = data_block_coordinates[i]
@@ -590,9 +583,6 @@ class VlsvFile(object):
          vy = block_coordinate[1]
          vz = block_coordinate[2]
          # The diff in blocks
-#         dvx = block_coordinate[3]
-#         dvy = block_coordinate[4]
-#         dvz = block_coordinate[5]
          avgs = data_avgs[i]
          # Get the velocity cell id (First transform coordinates to block indices, then block indices to block id and then block id to velocity cell ids):
          velocity_block_indices = np.array([np.floor((vx - self.__vxmin) / (4*self.__dvx)), np.floor((vy - self.__vymin) / (4*self.__dvy)), np.floor((vz - self.__vzmin) / (4*self.__dvz))])
@@ -602,16 +592,91 @@ class VlsvFile(object):
          for j in velocity_cell_ids + 64*velocity_block_id:
             velocity_cells[(int)(j)] = avgs[avgIndex]
             avgIndex = avgIndex + 1
-#         for kv in xrange(4):
-#            for jv in xrange(4):
-#               for iv in xrange(4):
-#                  #appending = np.array([iv, jv, kv])
-#                  #velocity_cell_indices = velocity_block_indices * 4 + appending
-#                  #Note: There  are 64 velocity cells in every block and 4 in every direction (4 times 4 times 4 = 64)
-#                  #vcellid = 64 * velocity_block_id + kv*4*4 + jv*4 + iv
-#                  velocity_cells[(int)(64 * velocity_block_id + kv*16 + jv*4 + iv)] = avgs[avgIndex]
-#                  avgIndex = avgIndex + 1
       return velocity_cells
+
+   def __read_velocity_cells_new( self, cellid, cells_with_blocks, blocks_per_cell, cells_with_blocks_index  ):
+      # Read in the coordinates:
+      #block_coordinates = self.read(name="",tag="BLOCKCOORDINATES")
+      # Navigate to the correct position:
+      offset = 0
+      for i in xrange(0, cells_with_blocks_index[0]):
+         offset += blocks_per_cell[i]
+
+      num_of_blocks = np.atleast_1d(blocks_per_cell)[cells_with_blocks_index[0]]
+
+      # Read in avgs and velocity cell ids:
+      for child in self.__xml_root:
+         # Read in avgs
+         if child.attrib["name"] == "avgs":
+            vector_size = ast.literal_eval(child.attrib["vectorsize"])
+            #array_size = ast.literal_eval(child.attrib["arraysize"])
+            element_size = ast.literal_eval(child.attrib["datasize"])
+            datatype = child.attrib["datatype"]
+
+            # Navigate to the correct position
+            offset_avgs = offset * vector_size * element_size + ast.literal_eval(child.text)
+#            for i in range(0, cells_with_blocks_index[0]):
+#               offset_avgs += blocks_per_cell[i]*vector_size*element_size
+
+            fptr = open(self.__file_name,"rb")
+            fptr.seek(offset_avgs)
+            if datatype == "float" and element_size == 4:
+               data_avgs = np.fromfile(fptr, dtype = np.float32, count = vector_size*num_of_blocks)
+            if datatype == "float" and element_size == 8:
+               data_avgs = np.fromfile(fptr, dtype = np.float64, count = vector_size*num_of_blocks)
+            fptr.close()
+            data_avgs = data_avgs.reshape(num_of_blocks, vector_size)
+         # Read in block coordinates:
+         if child.attrib["name"] == "SpatialGrid" and child.tag == "BLOCKCOORDINATES":
+            vector_size = ast.literal_eval(child.attrib["vectorsize"])
+            #array_size = ast.literal_eval(child.attrib["arraysize"])
+            element_size = ast.literal_eval(child.attrib["datasize"])
+            datatype = child.attrib["datatype"]
+
+            offset_block_coordinates = offset * vector_size * element_size + ast.literal_eval(child.text)
+
+            fptr = open(self.__file_name,"rb")
+            fptr.seek(offset_block_coordinates)
+            if datatype == "float" and element_size == 4:
+               data_block_coordinates = np.fromfile(fptr, dtype = np.float32, count = vector_size*num_of_blocks)
+            if datatype == "float" and element_size == 8:
+               data_block_coordinates = np.fromfile(fptr, dtype = np.float64, count = vector_size*num_of_blocks)
+            fptr.close()
+
+            data_block_coordinates = data_block_coordinates.reshape(num_of_blocks, vector_size)
+
+      # Check to make sure the sizes match (just some extra debugging)
+      if len(data_avgs) != len(data_block_coordinates):
+         print "BAD DATA SIZES"
+      # Make a dictionary (hash map) out of velocity cell ids and avgs:
+      velocity_cells = {}
+      array_size = len(data_avgs)
+
+      # Construct velocity cells:
+      velocity_cell_ids = []
+      for kv in xrange(4):
+         for jv in xrange(4):
+            for iv in xrange(4):
+               velocity_cell_ids.append(kv*16 + jv*4 + iv)
+
+      for i in xrange(array_size):
+         block_coordinate = data_block_coordinates[i]
+         # The minimum corner coordinates of the blocks
+         vx = block_coordinate[0]
+         vy = block_coordinate[1]
+         vz = block_coordinate[2]
+         # The diff in blocks
+         avgs = data_avgs[i]
+         # Get the velocity cell id (First transform coordinates to block indices, then block indices to block id and then block id to velocity cell ids):
+         velocity_block_indices = np.array([np.floor((vx - self.__vxmin) / (4*self.__dvx)), np.floor((vy - self.__vymin) / (4*self.__dvy)), np.floor((vz - self.__vzmin) / (4*self.__dvz))])
+         velocity_block_id = velocity_block_indices[0] + velocity_block_indices[1] * self.__vxblocks + velocity_block_indices[2] * self.__vxblocks * self.__vyblocks
+         avgIndex = 0
+
+         for j in velocity_cell_ids + 64*velocity_block_id:
+            velocity_cells[(int)(j)] = avgs[avgIndex]
+            avgIndex = avgIndex + 1
+      return velocity_cells
+
       
 #const velocity_block_indices_t indices = {{
 #   (unsigned int) np.floor((vx - SpatialCell::vx_min) / SpatialCell::block_dvx),
