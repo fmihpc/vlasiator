@@ -1157,9 +1157,10 @@ template <class T, class U>
 bool compareAvgs( const string fileName1,
                   const string fileName2,
                   const bool verboseOutput,
-                  vector<uint64_t> & cellIds
+                  vector<uint64_t> & cellIds1,
+                  vector<uint64_t> & cellIds2
                 ) {
-   if( cellIds.empty() == true ) {
+   if( cellIds1.empty() == true || cellIds2.empty() == true ) {
       cerr << "ERROR, CELL IDS EMPTY IN COMPARE AVGS" << endl;
       return false;
    }
@@ -1200,26 +1201,34 @@ bool compareAvgs( const string fileName1,
    double totalAbsAvgs = 0;
    uint64_t numOfIdenticalBlocks = 0;
    uint64_t numOfNonIdenticalBlocks = 0;
-   if( cellIds[0] == 0 ) {
-      cellIds.clear();
+   if( cellIds1[0] == 0 || cellIds2[0] == 0 ) {
+      // User input 0 as the cell id -- compare all cell ids
+      cellIds1.clear();
+      cellIds2.clear();
       for( unordered_map<uint64_t, pair<uint64_t, uint32_t>>::const_iterator it = cellsWithBlocksLocations1.begin(); it != cellsWithBlocksLocations1.end(); ++it ) {
-         cellIds.push_back(it->first);
+         cellIds1.push_back(it->first);
+         cellIds2.push_back(it->first);
       }
    }
 
+   if( cellIds1.size() != cellIds2.size() ) {
+      cerr << "ERROR, BAD CELL ID SIZES AT " << __FILE__ << " " << __LINE__ << endl;
+      return false;
+   }
    // Go through cell ids:
-   for( vector<uint64_t>::const_iterator it = cellIds.begin(); it != cellIds.end(); ++it ) {
-      const uint64_t & cellId = *it;
+   for( uint cellIndex = 0; cellIndex < cellIds2.size(); cellIndex++ ) {
+      const uint64_t & cellId1 = cellIds1[cellIndex];
+      const uint64_t & cellId2 = cellIds2[cellIndex];
       // Get the avgs in a hash map (The velocity block id is the key and avgs is the value):
       const uint velocityCellsPerBlock = 64;
       unordered_map<uint32_t, array<double, velocityCellsPerBlock> > avgs1;
       unordered_map<uint32_t, array<double, velocityCellsPerBlock> > avgs2;
       // Store the avgs in avgs1 and 2:
-      if( readAvgs( vlsvReader1, cellsWithBlocksLocations1, cellId, avgs1 ) == false ) {
+      if( readAvgs( vlsvReader1, cellsWithBlocksLocations1, cellId1, avgs1 ) == false ) {
          cerr << "ERROR, FAILED TO READ AVGS AT " << __FILE__ << " " << __LINE__ << endl;
          return false;
       }
-      if( readAvgs( vlsvReader2, cellsWithBlocksLocations2, cellId, avgs2 ) == false ) {
+      if( readAvgs( vlsvReader2, cellsWithBlocksLocations2, cellId2, avgs2 ) == false ) {
          cerr << "ERROR, FAILED TO READ AVGS AT " << __FILE__ << " " << __LINE__ << endl;
          return false;
       }
@@ -1363,7 +1372,8 @@ bool process2Files(const string fileName1,
                    const string fileName2,
                    const char * varToExtract,
                    const uint compToExtract,
-                   const bool verboseOutput
+                   const bool verboseOutput,
+                   const uint compToExtract2 = 0
                   ) {
    //Check whether the file(s) use new or old vlsv library:
 //   Reader vlsvCheck1;
@@ -1387,19 +1397,22 @@ bool process2Files(const string fileName1,
 
    // If the user wants to  check avgs, call the avgs check function and return it. Otherwise move on to compare variables:
    if( strcmp(varToExtract, "avgs") == 0 ) {
-      vector<uint64_t> cellIds;
-      cellIds.reserve(1);
-      cellIds.push_back(compToExtract);
+      vector<uint64_t> cellIds1;
+      vector<uint64_t> cellIds2;
+      cellIds1.reserve(1);
+      cellIds2.reserve(1);
+      cellIds1.push_back(compToExtract);
+      cellIds2.push_back(compToExtract2);
       // Compare files:
       if( file1UsesNewVlsvLib && file2UsesNewVlsvLib ) {
-         if( compareAvgs<newVlsv::Reader, newVlsv::Reader>(fileName1, fileName2, verboseOutput, cellIds) == false ) { return false; }
+         if( compareAvgs<newVlsv::Reader, newVlsv::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false ) { return false; }
       } else if( file1UsesNewVlsvLib && !file2UsesNewVlsvLib ) {
-         if( compareAvgs<newVlsv::Reader, oldVlsv::Reader>(fileName1, fileName2, verboseOutput, cellIds) == false ) { return false; }
+         if( compareAvgs<newVlsv::Reader, oldVlsv::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false ) { return false; }
       } else if( !file1UsesNewVlsvLib && file2UsesNewVlsvLib ) {
-         if( compareAvgs<oldVlsv::Reader, newVlsv::Reader>(fileName1, fileName2, verboseOutput, cellIds) == false ) { return false; }
+         if( compareAvgs<oldVlsv::Reader, newVlsv::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false ) { return false; }
       } else {
          // Both are old vlsv format
-         if( compareAvgs<oldVlsv::Reader, oldVlsv::Reader>(fileName1, fileName2, verboseOutput, cellIds) == false ) { return false; }
+         if( compareAvgs<oldVlsv::Reader, oldVlsv::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false ) { return false; }
       }
    } else {
    
@@ -1516,6 +1529,13 @@ int main(int argn,char* args[])
    char * varToExtract = args[3];
    // 4th arg is its component, 0 for scalars, 2 for z component etc
    uint compToExtract = atoi(args[4]);
+   // 5h arg if there is one:
+   uint compToExtract2;
+   if( argn > 5 ) {
+      compToExtract2 = atoi(args[5]);
+   } else {
+      compToExtract2 = compToExtract;
+   }
    
    DIR* dir1 = opendir(fileName1.c_str());
    DIR* dir2 = opendir(fileName2.c_str());
@@ -1524,7 +1544,7 @@ int main(int argn,char* args[])
       cout << "INFO Reading in two files." << endl;
       
       // Process two files with verbose output (last argument true)
-      process2Files(fileName1, fileName2, varToExtract, compToExtract, true);
+      process2Files(fileName1, fileName2, varToExtract, compToExtract, true, compToExtract2);
       //CONTINUE
       
       closedir(dir1);
@@ -1542,7 +1562,7 @@ int main(int argn,char* args[])
          processDirectory(dir2, &fileList);
          for(it = fileList.begin(); it != fileList.end();++it){
             // Process two files with non-verbose output (last argument false), give full path to the file processor
-            process2Files(fileName1,fileName2 + "/" + *it, varToExtract, compToExtract, false);
+            process2Files(fileName1,fileName2 + "/" + *it, varToExtract, compToExtract, false, compToExtract2);
          }
       }
 
@@ -1551,7 +1571,7 @@ int main(int argn,char* args[])
          processDirectory(dir1, &fileList);
          for(it = fileList.begin(); it != fileList.end();++it){
             // Process two files with non-verbose output (last argument false), give full path to the file processor
-            process2Files(fileName1+"/"+*it,fileName2, varToExtract, compToExtract, false);
+            process2Files(fileName1+"/"+*it,fileName2, varToExtract, compToExtract, false, compToExtract2);
          }
       }
 
@@ -1583,7 +1603,7 @@ int main(int argn,char* args[])
       {
       // Process two files with non-verbose output (last argument false), give full path to the file processor
       process2Files(fileName1 + "/" + *it1,
-                    fileName2 + "/" + *it2, varToExtract, compToExtract, false);
+                    fileName2 + "/" + *it2, varToExtract, compToExtract, false, compToExtract2);
       }
       
       closedir(dir1);
