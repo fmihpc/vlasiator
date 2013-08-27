@@ -782,7 +782,6 @@ bool getBlockIds( newVlsv::Reader & vlsvReader,
    pair<uint64_t, uint32_t> offsetAndBlocks = it->second;
    const uint64_t blockOffset = get<0>(offsetAndBlocks);
    const uint32_t N_blocks = get<1>(offsetAndBlocks);
-   cout << "BLOCKOFFSET: (NEW) " << blockOffset << ", N_BLOCKS: " << N_blocks << endl;
 
    // Get some required info from VLSV file:
    list<pair<string, string> > attribs;
@@ -920,7 +919,6 @@ bool getBlockIds( oldVlsv::Reader & vlsvReader,
    pair<uint64_t, uint32_t> offsetAndBlocks = it->second;
    const uint64_t blockOffset = get<0>(offsetAndBlocks);
    const uint32_t N_blocks = get<1>(offsetAndBlocks);
-   cout << "BLOCKOFFSET: (OLD) " << blockOffset << ", N_BLOCKS: " << N_blocks << endl;
 
    // Get some required info from VLSV file:
    list<pair<string, string> > attribs;
@@ -957,7 +955,6 @@ bool getBlockIds( oldVlsv::Reader & vlsvReader,
    loadParameter( vlsvReader, "vxblocks_ini", vx_length );
    loadParameter( vlsvReader, "vyblocks_ini", vy_length );
    loadParameter( vlsvReader, "vzblocks_ini", vz_length );
-   cout << vx_min << " " << vy_min << " " << vz_min << " " << vx_length << " " << vy_length << " " << vz_length << endl;
 
    double vx, vy, vz, dvx, dvy, dvz;
 
@@ -1002,7 +999,6 @@ bool readAvgs( T & vlsvReader,
    // Get the block ids:
    vector<uint32_t> blockIds;
    if( getBlockIds( vlsvReader, cellsWithBlocksLocations, cellId, blockIds ) == false ) { return false; }
-   cout << "LENGTH OF BLOCK IDS: " << blockIds.size() << endl;
    // Read avgs:
    list<pair<string, string> > attribs;
    attribs.push_back(make_pair("name", "avgs"));
@@ -1029,7 +1025,6 @@ bool readAvgs( T & vlsvReader,
    pair<uint64_t, uint32_t> offsetAndBlocks = it->second;
    const uint64_t blockOffset = get<0>(offsetAndBlocks);
    const uint32_t N_blocks = get<1>(offsetAndBlocks);
-   cout << "AVGS OFFSET AND N_BLOCKS: " << blockOffset << " " << N_blocks << endl;
 
    if( N_blocks != blockIds.size() ) {
       cerr << "ERROR, BAD AVGS ARRAY SIZE AT " << __FILE__ << " " << __LINE__ << endl;
@@ -1162,8 +1157,12 @@ template <class T, class U>
 bool compareAvgs( const string fileName1,
                   const string fileName2,
                   const bool verboseOutput,
-                  const vector<uint64_t> & cellIds
+                  vector<uint64_t> & cellIds
                 ) {
+   if( cellIds.empty() == true ) {
+      cerr << "ERROR, CELL IDS EMPTY IN COMPARE AVGS" << endl;
+      return false;
+   }
    // Declare map for locating velocity spaces within cell ids
    // Note: Key = cell id, value->first = blockOffset, value->second = numberOfBlocksToRead
    unordered_map<uint64_t, pair<uint64_t, uint32_t>> cellsWithBlocksLocations1;
@@ -1190,7 +1189,23 @@ bool compareAvgs( const string fileName1,
       cerr << "ERROR AT " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
+   // Consistency check:
+   if( cellsWithBlocksLocations2.size() != cellsWithBlocksLocations1.size() ) {
+      cerr << "BAD CELLS WITH BLOCKS SIZE AT "  << __FILE__ << " " << __LINE__ << endl;
+      return false;
+   }
 
+   // Create a few variables for the cell id loop:
+   vector< double > avgsDiffs;
+   double totalAbsAvgs = 0;
+   uint64_t numOfIdenticalBlocks = 0;
+   uint64_t numOfNonIdenticalBlocks = 0;
+   if( cellIds[0] == 0 ) {
+      cellIds.clear();
+      for( unordered_map<uint64_t, pair<uint64_t, uint32_t>>::const_iterator it = cellsWithBlocksLocations1.begin(); it != cellsWithBlocksLocations1.end(); ++it ) {
+         cellIds.push_back(it->first);
+      }
+   }
 
    // Go through cell ids:
    for( vector<uint64_t>::const_iterator it = cellIds.begin(); it != cellIds.end(); ++it ) {
@@ -1212,9 +1227,7 @@ bool compareAvgs( const string fileName1,
       //Compare the avgs values:
       // First make a check on how many of the block ids are identical:
       const size_t sizeOfAvgs1 = avgs1.size();
-      cout << "SIZE OF AVGS1: " << sizeOfAvgs1 << endl;
       const size_t sizeOfAvgs2 = avgs2.size();
-      cout << "SIZE OF AVGS2: " << sizeOfAvgs2 << endl;
       // Vector of block ids that are the same
       vector<uint32_t> blockIds1;
       vector<uint32_t> blockIds2;
@@ -1231,11 +1244,6 @@ bool compareAvgs( const string fileName1,
       // Sort
       sort( blockIds1.begin(), blockIds1.end() );
       sort( blockIds2.begin(), blockIds2.end() );
-      // Print the block ids:
-//      for( uint i = 0; i < blockIds1.size(); ++i ) {
-//         cout << "Block 1: " << blockIds1[i] << " Block 2: " << blockIds2[i] << endl;
-//      }
-      cout << "File name 2: " << fileName2 << endl;
       // Create iterators
       vector<uint32_t>::const_iterator it1 = blockIds1.begin();
       vector<uint32_t>::const_iterator it2 = blockIds2.begin();
@@ -1276,9 +1284,7 @@ bool compareAvgs( const string fileName1,
       const uint64_t totalNumberOfBlocks = identicalBlockIds.size() + nonIdenticalBlockIds.size();
       const double percentageOfIdenticalBlocks = (double)(totalNumberOfBlocks) / (double)(identicalBlockIds.size());
       // Compare the avgs values of the identical blocks:
-      vector< double > avgsDiffs;
-      avgsDiffs.reserve(identicalBlockIds.size() * velocityCellsPerBlock);
-      double totalAbsAvgs = 0;
+      avgsDiffs.reserve(avgsDiffs.size() + identicalBlockIds.size() * velocityCellsPerBlock);
       for( vector<uint32_t>::const_iterator it = identicalBlockIds.begin(); it != identicalBlockIds.end(); ++it ) {
          // Get the block id
          const uint32_t blockId = *it;
@@ -1291,22 +1297,57 @@ bool compareAvgs( const string fileName1,
             totalAbsAvgs += (abs(avgsValues1[i]) + abs(avgsValues2[i]));
          }
       }
-      // Get the max and min diff, and the sum of the diff
-      double maxDiff = 0;
-      double minDiff = numeric_limits<Real>::max();
-      double sumDiff = 0;
-      for( vector<double>::const_iterator it = avgsDiffs.begin(); it != avgsDiffs.end(); ++it ) {
-         sumDiff += *it;
-         if( maxDiff < *it ) {
-            maxDiff = *it;
+      // Compare the avgs values of nonidentical blocks:
+      array<double, velocityCellsPerBlock> zeroAvgs;
+      for( uint i = 0; i < velocityCellsPerBlock; ++i ) {
+         zeroAvgs[i] = 0;
+      }
+      for( vector<uint32_t>::const_iterator it = nonIdenticalBlockIds.begin(); it != nonIdenticalBlockIds.end(); ++it ) {
+         // Get the block id
+         const uint32_t blockId = *it;
+         // Get avgs values: 
+
+         const array<double, velocityCellsPerBlock> * avgsValues1;
+         const array<double, velocityCellsPerBlock> * avgsValues2;
+
+         unordered_map<uint32_t, array<double, velocityCellsPerBlock> >::const_iterator it = avgs1.find( blockId );
+         if( it == avgs1.end() ) {
+            avgsValues1 = &zeroAvgs;
+         } else {
+            avgsValues1 = &(it->second);
          }
-         if( minDiff > *it ) {
-            minDiff = *it;
+
+         it = avgs2.find( blockId );
+         if( it == avgs2.end() ) {
+            avgsValues2 = &zeroAvgs;
+         } else {
+            avgsValues2 = &(it->second);
+         }
+         // Get the diff:
+         for( uint i = 0; i < velocityCellsPerBlock; ++i ) {
+            avgsDiffs.push_back( abs(avgsValues1->operator[](i) - avgsValues2->operator[](i)) );
+            totalAbsAvgs += (abs(avgsValues1->operator[](i)) + abs(avgsValues2->operator[](i)));
          }
       }
-      const double relativeSumDiff = sumDiff / totalAbsAvgs;
-      cout << "File names: " << fileName1 << " & " << fileName2 << ": NonIdenticalBlocks: " << nonIdenticalBlockIds.size() << " Identical blocks: " << identicalBlockIds.size() << " sum of the avgs diff: " << sumDiff << " sum of the avgs diff relative to the total avgs: " << relativeSumDiff << " max avgs diff: " << maxDiff << " min avgs diff: " << minDiff << endl;
+      numOfIdenticalBlocks += identicalBlockIds.size();
+      numOfNonIdenticalBlocks += nonIdenticalBlockIds.size();
    }
+   // Get the max and min diff, and the sum of the diff
+   double maxDiff = 0;
+   double minDiff = numeric_limits<Real>::max();
+   double sumDiff = 0;
+   for( vector<double>::const_iterator it = avgsDiffs.begin(); it != avgsDiffs.end(); ++it ) {
+      sumDiff += *it;
+      if( maxDiff < *it ) {
+         maxDiff = *it;
+      }
+      if( minDiff > *it ) {
+         minDiff = *it;
+      }
+   }
+   const double relativeSumDiff = sumDiff / totalAbsAvgs;
+   cout << "File names: " << fileName1 << " & " << fileName2 << ": NonIdenticalBlocks: " << numOfNonIdenticalBlocks << " Identical blocks: " << numOfIdenticalBlocks << " sum of the avgs diff: " << sumDiff << " sum of the avgs diff relative to the total avgs: " << relativeSumDiff << " max avgs diff: " << maxDiff << " min avgs diff: " << minDiff << endl;
+
    return true;
 }
 
