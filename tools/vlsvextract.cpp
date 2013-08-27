@@ -622,9 +622,9 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader, const string& meshName, cons
 //Note: this is used in getCellIdFromCoords
 //Input:
 //[0] vlsvReader -- some VLSVReader which has a file opened
+//[1] name -- name of the parameter, e.g. "xmin"
 //Output:
-//[0] Saves the data size into dataSize
-//[1] Returns A parameter's value, for example the value of "xmin" or "xmax" (NOTE: must be cast into proper form -- usually UINT or Real)
+//[0] Parameter -- Saves the parameter into the parameter variable
 template <typename T>
 bool loadParameter( VLSVReader& vlsvReader, const string& name, T & parameter ) {
    //Declare dataType, arraySize, vectorSize, dataSize so we know how much data we want to store
