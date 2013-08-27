@@ -625,7 +625,8 @@ bool convertVelocityBlocks2(VLSVReader& vlsvReader, const string& meshName, cons
 //Output:
 //[0] Saves the data size into dataSize
 //[1] Returns A parameter's value, for example the value of "xmin" or "xmax" (NOTE: must be cast into proper form -- usually UINT or Real)
-char * loadParameter( VLSVReader& vlsvReader, const string& name, uint64_t & dataSize_output ) {
+template <typename T>
+bool loadParameter( VLSVReader& vlsvReader, const string& name, T & parameter ) {
    //Declare dataType, arraySize, vectorSize, dataSize so we know how much data we want to store
    VLSV::datatype dataType;
    uint64_t arraySize, vectorSize, dataSize; //vectorSize should be 1
@@ -634,7 +635,7 @@ char * loadParameter( VLSVReader& vlsvReader, const string& name, uint64_t & dat
       cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
       MPI_Finalize();
       exit(1); //Terminate
-      return 0;
+      return false;
    }
    //Declare a buffer to write the parameter's data in (arraySize, etc was received from getArrayInfo)
    char * buffer = new char[arraySize * vectorSize * dataSize];
@@ -644,18 +645,42 @@ char * loadParameter( VLSVReader& vlsvReader, const string& name, uint64_t & dat
       cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
       MPI_Finalize();
       exit(1);
-      return 0;
+      return false;
    }
    //SHOULD be a vector of size 1 and since I am going to want to assume that, making a check here
    if( vectorSize != 1 ) {
       cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
       MPI_Finalize();
       exit(1);
-      return 0;
+      return false;
    }
-   dataSize_output = dataSize;
-   //Return the parameter:
-   return buffer;
+   //Input the parameter
+   if( typeid(T) == typeid(double) ) {
+      if( dataSize == 8 ) {
+         parameter = *reinterpret_cast<double*>(buffer);
+      } else if( dataSize == 4 ) {
+         parameter = *reinterpret_cast<float*>(buffer);
+      } else {
+         cerr << "Error, bad datasize while reading parameters at " << __FILE__ << " " << __LINE__ << endl;
+         return false;
+      }
+   } else if( typeid(T) == typeid(uint64_t) ) {
+      if( dataSize == 8 ) {
+         parameter = *reinterpret_cast<uint64_t*>(buffer);
+      } else if( dataSize == 4 ) {
+         parameter = *reinterpret_cast<uint32_t*>(buffer);
+      } else {
+         cerr << "Error, bad datasize while reading parameters at " << __FILE__ << " " << __LINE__ << endl;
+         return false;
+      }
+   } else {
+      cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
+      cerr << " Error message: invalid type in loadParameters" << endl;
+      MPI_Finalize();
+      exit(1);
+      return false;
+   }
+   return true;
 }
 
 
@@ -806,33 +831,39 @@ uint64_t searchForBestCellId( const CellStructure & cellStruct,
 void setCellVariables( VLSVReader & vlsvReader, CellStructure & cellStruct ) {
    //Get x_min, x_max, y_min, y_max, etc so that we know where the given cell id is in (loadParameter returns char*, hence the cast)
    uint64_t dataSize;
-   Real x_min = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "xmin", dataSize ) );
-   if( dataSize != 8 ) { cerr << "BAD DATASIZE ENCOUNTERED IN PARAMETERS AT " << __FILE__ << " " << __LINE__ << endl; }
-   Real x_max = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "xmax", dataSize ) );
-   if( dataSize != 8 ) { cerr << "BAD DATASIZE ENCOUNTERED IN PARAMETERS AT " << __FILE__ << " " << __LINE__ << endl; }
-   Real y_min = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "ymin", dataSize ) );
-   if( dataSize != 8 ) { cerr << "BAD DATASIZE ENCOUNTERED IN PARAMETERS AT " << __FILE__ << " " << __LINE__ << endl; }
-   Real y_max = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "ymax", dataSize ) );
-   if( dataSize != 8 ) { cerr << "BAD DATASIZE ENCOUNTERED IN PARAMETERS AT " << __FILE__ << " " << __LINE__ << endl; }
-   Real z_min = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "zmin", dataSize ) );
-   if( dataSize != 8 ) { cerr << "BAD DATASIZE ENCOUNTERED IN PARAMETERS AT " << __FILE__ << " " << __LINE__ << endl; }
-   Real z_max = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "zmax", dataSize ) );
-   if( dataSize != 8 ) { cerr << "BAD DATASIZE ENCOUNTERED IN PARAMETERS AT " << __FILE__ << " " << __LINE__ << endl; }
+//   Real x_min = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "xmin", dataSize ) );
+//   Real x_max = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "xmax", dataSize ) );
+//   Real y_min = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "ymin", dataSize ) );
+//   Real y_max = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "ymax", dataSize ) );
+//   Real z_min = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "zmin", dataSize ) );
+//   Real z_max = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "zmax", dataSize ) );
+   Real x_min, x_max, y_min, y_max, z_min, z_max;
+   loadParameter( vlsvReader, "xmin", x_min );
+   loadParameter( vlsvReader, "xmax", x_max );
+   loadParameter( vlsvReader, "ymin", y_min );
+   loadParameter( vlsvReader, "ymax", y_max );
+   loadParameter( vlsvReader, "zmin", z_min );
+   loadParameter( vlsvReader, "zmax", z_max );
    //Number of cells in x, y, z directions (used later for calculating where in the cell coordinates (which are ints) the given
    //coordinates are) (Done in 
    //There's x, y and z coordinates so the number of different coordinates is 3:
    const int NumberOfCoordinates = 3;
    uint64_t cell_bounds[NumberOfCoordinates];
    //Get the number of cells in x,y,z direction from the file:
+//   //x-direction
+//   cell_bounds[0] = *reinterpret_cast<uint64_t*>( loadParameter( vlsvReader, "xcells_ini", dataSize ) );
+//   //y-direction
+//   cell_bounds[1] = *reinterpret_cast<uint64_t*>( loadParameter( vlsvReader, "ycells_ini", dataSize ) );
+//   //z-direction
+//   cell_bounds[2] = *reinterpret_cast<uint64_t*>( loadParameter( vlsvReader, "zcells_ini", dataSize ) );
+
    //x-direction
-   cell_bounds[0] = *reinterpret_cast<uint64_t*>( loadParameter( vlsvReader, "xcells_ini", dataSize ) );
-   if( dataSize != 8 ) { cerr << "BAD DATASIZE ENCOUNTERED IN PARAMETERS AT " << __FILE__ << " " << __LINE__ << endl; }
+   loadParameter( vlsvReader, "xcells_ini", cell_bounds[0] );
    //y-direction
-   cell_bounds[1] = *reinterpret_cast<uint64_t*>( loadParameter( vlsvReader, "ycells_ini", dataSize ) );
-   if( dataSize != 8 ) { cerr << "BAD DATASIZE ENCOUNTERED IN PARAMETERS AT " << __FILE__ << " " << __LINE__ << endl; }
+   loadParameter( vlsvReader, "ycells_ini", cell_bounds[1] );
    //z-direction
-   cell_bounds[2] = *reinterpret_cast<uint64_t*>( loadParameter( vlsvReader, "zcells_ini", dataSize ) );
-   if( dataSize != 8 ) { cerr << "BAD DATASIZE ENCOUNTERED IN PARAMETERS AT " << __FILE__ << " " << __LINE__ << endl; }
+   loadParameter( vlsvReader, "zcells_ini", cell_bounds[2] );
+
    //Now we have the needed variables, so let's calculate how much in one block equals in length:
    //Total length of x, y, z:
    Real x_length = x_max - x_min;
