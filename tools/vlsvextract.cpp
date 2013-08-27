@@ -730,11 +730,11 @@ bool convertVelocityBlocks2( newVlsv::Reader& vlsvReader, const string& meshName
    //Map for holding nodes:
    map<NodeCrd<Real>, uint64_t, NodeComp> nodes;
 
-   //Read cells with blocks into vlsvReader:
-   if( vlsvReader.setCellsWithBlocks() == false ) {
-      cerr << "ERROR, FAILED TO SET CELLS WITH BLOCKS AT " << __FILE__ << " " << __LINE__ << endl;
-      return false;
-   }
+//   //Read cells with blocks into vlsvReader:
+//   if( vlsvReader.setCellsWithBlocks() == false ) {
+//      cerr << "ERROR, FAILED TO SET CELLS WITH BLOCKS AT " << __FILE__ << " " << __LINE__ << endl;
+//      return false;
+//   }
    //Read block ids:
    vector<uint64_t> blockIds;
    if( vlsvReader.getBlockIds( cellID, blockIds ) == false ) {
@@ -987,43 +987,70 @@ bool convertVelocityBlocks2( newVlsv::Reader& vlsvReader, const string& meshName
    return success;
 }
 
-
 //Loads a parameter from a file
 //usage: Real x = loadParameter( vlsvReader, nameOfParameter );
 //Note: this is used in getCellIdFromCoords
 //Input:
-//[0] vlsvReader -- some oldVlsv::Reader which has a file opened
+//[0] vlsvReader -- some VLSVReader which has a file opened
+//[1] name -- name of the parameter, e.g. "xmin"
 //Output:
-//[0] A parameter's value, for example the value of "xmin" or "xmax" (NOTE: must be cast into proper form -- usually UINT or Real)
-char * loadParameter( oldVlsv::Reader& vlsvReader, const string& name ) {
+//[0] Parameter -- Saves the parameter into the parameter variable
+template <typename T>
+bool loadParameter( VLSVReader& vlsvReader, const string& name, T & parameter ) {
    //Declare dataType, arraySize, vectorSize, dataSize so we know how much data we want to store
-   vlsv::datatype::type dataType;
+   VLSV::datatype dataType;
    uint64_t arraySize, vectorSize, dataSize; //vectorSize should be 1
-   list< pair<string, string> > xmlAttributes;
-   xmlAttributes.push_back( make_pair("name", name) );
    //Write into dataType, arraySize, etc with getArrayInfo -- if fails to read, give error message
-   if( vlsvReader.getArrayInfo( "PARAMETERS", xmlAttributes, arraySize, vectorSize, dataType, dataSize ) == false ) {
+   if( vlsvReader.getArrayInfo( "PARAMETERS", name, arraySize, vectorSize, dataType, dataSize ) == false ) {
       cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
+      MPI_Finalize();
       exit(1); //Terminate
-      return 0;
+      return false;
    }
    //Declare a buffer to write the parameter's data in (arraySize, etc was received from getArrayInfo)
    char * buffer = new char[arraySize * vectorSize * dataSize];
   
    //Read data into the buffer and return error if something went wrong
-   if( vlsvReader.readArray( "PARAMETERS", xmlAttributes, 0, vectorSize, buffer ) == false ) {
+   if( vlsvReader.readArray( "PARAMETERS", name, 0, vectorSize, buffer ) == false ) {
       cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
+      MPI_Finalize();
       exit(1);
-      return 0;
+      return false;
    }
    //SHOULD be a vector of size 1 and since I am going to want to assume that, making a check here
    if( vectorSize != 1 ) {
       cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
+      MPI_Finalize();
       exit(1);
-      return 0;
+      return false;
    }
-   //Return the parameter:
-   return buffer;
+   //Input the parameter
+   if( typeid(T) == typeid(double) ) {
+      if( dataSize == 8 ) {
+         parameter = *reinterpret_cast<double*>(buffer);
+      } else if( dataSize == 4 ) {
+         parameter = *reinterpret_cast<float*>(buffer);
+      } else {
+         cerr << "Error, bad datasize while reading parameters at " << __FILE__ << " " << __LINE__ << endl;
+         return false;
+      }
+   } else if( typeid(T) == typeid(uint64_t) ) {
+      if( dataSize == 8 ) {
+         parameter = *reinterpret_cast<uint64_t*>(buffer);
+      } else if( dataSize == 4 ) {
+         parameter = *reinterpret_cast<uint32_t*>(buffer);
+      } else {
+         cerr << "Error, bad datasize while reading parameters at " << __FILE__ << " " << __LINE__ << endl;
+         return false;
+      }
+   } else {
+      cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
+      cerr << " Error message: invalid type in loadParameters" << endl;
+      MPI_Finalize();
+      exit(1);
+      return false;
+   }
+   return true;
 }
 
 //Creates a cell id list of type std::unordered set and saves it in the input parameters
@@ -1224,13 +1251,14 @@ uint64_t searchForBestCellId( const CellStructure & cellStruct,
 //instead of a struct with this as the constructor but since a geometry class has already been coded before, it would be a waste)
 void setCellVariables( oldVlsv::Reader & vlsvReader, CellStructure & cellStruct ) {
    //Get x_min, x_max, y_min, y_max, etc so that we know where the given cell id is in (loadParameter returns char*, hence the cast)
-   //Note: Not actually sure if these are Real valued or not
-   Real x_min = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "xmin" ) );
-   Real x_max = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "xmax" ) );
-   Real y_min = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "ymin" ) );
-   Real y_max = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "ymax" ) );
-   Real z_min = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "zmin" ) );
-   Real z_max = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "zmax" ) );
+   Real x_min, x_max, y_min, y_max, z_min, z_max;
+   loadParameter( vlsvReader, "xmin", x_min );
+   loadParameter( vlsvReader, "xmax", x_max );
+   loadParameter( vlsvReader, "ymin", y_min );
+   loadParameter( vlsvReader, "ymax", y_max );
+   loadParameter( vlsvReader, "zmin", z_min );
+   loadParameter( vlsvReader, "zmax", z_max );
+
    //Number of cells in x, y, z directions (used later for calculating where in the cell coordinates (which are ints) the given
    //coordinates are) (Done in 
    //There's x, y and z coordinates so the number of different coordinates is 3:
@@ -1238,11 +1266,12 @@ void setCellVariables( oldVlsv::Reader & vlsvReader, CellStructure & cellStruct 
    uint64_t cell_bounds[NumberOfCoordinates];
    //Get the number of cells in x,y,z direction from the file:
    //x-direction
-   cell_bounds[0] = *reinterpret_cast<uint64_t*>( loadParameter( vlsvReader, "xcells_ini" ) );
+   loadParameter( vlsvReader, "xcells_ini", cell_bounds[0] );
    //y-direction
-   cell_bounds[1] = *reinterpret_cast<uint64_t*>( loadParameter( vlsvReader, "ycells_ini" ) );
+   loadParameter( vlsvReader, "ycells_ini", cell_bounds[1] );
    //z-direction
-   cell_bounds[2] = *reinterpret_cast<uint64_t*>( loadParameter( vlsvReader, "zcells_ini" ) );
+   loadParameter( vlsvReader, "zcells_ini", cell_bounds[2] );
+
    //Now we have the needed variables, so let's calculate how much in one block equals in length:
    //Total length of x, y, z:
    Real x_length = x_max - x_min;
@@ -1404,14 +1433,7 @@ void printUsageMessage() {
    cout << endl;
    cout << "USAGE: ./vlsvextract <file name mask> <options>" << endl;
    cout << endl;
-   cout << "Possible options are '--help', '--rotate', '--cellid <cell ID>', '--coordinates <x y z>'" << endl;
-   cout << "Example: ./vlsvextract file.vlsv --cellid 15000 --rotate" << endl;
-   cout << endl;
-   cout << "Each VLSV file in the currect directory is compared against the mask," << endl;
-   cout << "and if the file name matches the mask, the given velocity grid is " << endl;
-   cout << "written to a SILO file." << endl;
-   cout << endl;
-   cout << "Cell ID is the ID of the spatial cell whose velocity grid is to be extracted." << endl;
+   cout << "To get a list of options use --help" << endl;
    cout << endl;
 }
 
@@ -1421,19 +1443,7 @@ void printUsageMessage() {
 //[0] int argn -- number of arguments in args
 //[1] char *args -- arguments
 //Output:
-//[0] bool getCellIdFromCoordinates -- true if the user wants the cell id from coordinates
-//[1] bool getCellIdFromInput -- true if the user wants the cell id from input
-//[2] bool getCellIdFromLine -- true if the user wants cell ids along a line
-//[3] bool rotateVectors -- true if the user wants to rotate velocities' z-axis to align with B vector
-//[4] vector<Real> coordinates -- If specified, coordinate input is retrieved from input
-//[5] vector<Real> point1 -- Starting coordinate of a line
-//[6] vector<Real> point2 -- Ending coordinate of a line
-//[7] uint64_t _cellID -- If specified, the cell id is retrieved from input
-//[8] unsigned int numberOfCoordinatesInALine -- If we want to calculate the cell ids from a line, it can be specified how many
-//coordinates we want to pick
-//[9] max_distance -- the max distance from the cell to the given coordinates (Used if calculating cell id from coordinates or 
-//a line)
-//[10] outputDirectoryPath -- Determines where the file is saved
+//[0] UserOptions & mainOptions -- Saves all the options in this class
 bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) {
    //Get variables from mainOptions
    bool & getCellIdFromCoordinates = mainOptions.getCellIdFromCoordinates;
@@ -1868,6 +1878,9 @@ void convertFileToSilo( const string & fileName, const UserOptions & mainOptions
 
       // Extract velocity grid from VLSV file, if possible, and convert into SILO format:
       bool velGridExtracted = true;
+      if( typeid(vlsvReader) == typeid(newVlsv::Reader) ) {
+         vlsvReader.setCellsWithBlocks();
+      }
       for (list<string>::const_iterator it = meshNames.begin(); it != meshNames.end(); ++it) {
          if (convertVelocityBlocks2(vlsvReader, *it, cellStruct, cellID, mainOptions.rotateVectors ) == false) {
             velGridExtracted = false;

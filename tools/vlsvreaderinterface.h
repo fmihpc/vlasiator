@@ -4,6 +4,8 @@
 #include "vlsvreader2.h"
 #include "vlsv_reader.h"
 
+// Returns the vlsv file's version number. Returns 0 if the version does not have a version mark (The old vlsv format does not have it)
+//Input: File name
 extern float checkVersion( const std::string & fname );
 
 namespace newVlsv {
@@ -156,6 +158,7 @@ namespace oldVlsv {
    public:
       bool getArrayInfo(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
                         uint64_t& arraySize,uint64_t& vectorSize,vlsv::datatype::type& _dataType,uint64_t& dataSize) const;
+      bool setCellsWithBlocks() { return true; }
    };
 }
 

@@ -89,51 +89,52 @@ struct CellStructure {
 
 using namespace vlsv;
 
-//Some functions to help reading files:
-bool getCellIds( newVlsv::Reader & vlsvReader, const string & meshName, vector<uint64_t> & cellIds ) {
-   if( cellIds.empty() == false ) {
-      cerr << "ERROR, Passed a nonempty vector to getCellIds at " << __FILE__ << " " << __LINE__ << endl;
-      return false;
-   }
-   //Declare variables for reading array info:
-   list< pair<string, string> > xmlAttributes;
-   xmlAttributes.push_back( make_pair("mesh", meshName) );
-   //The name of the variable is CellID and it's defined in iowrite.cpp
-   xmlAttributes.push_back( make_pair("name", "CellID") ); 
-   datatype::type dataType;
-   uint64_t arraySize, vectorSize, byteSize;
-   //Read the array info and store the results in arraySize, vectorSize, dataType and byteSize
-   //Note: Returns false if fails -- these values are used for reading the array MESH_BBOX
-   if( vlsvReader.getArrayInfo("VARIABLE", xmlAttributes, arraySize, vectorSize, dataType, byteSize) == false ) {
-      return false;
-   }
-   //Check to make sure the values are valid (These are just values that should have been set in iowrite)
-
-
-   if( vectorSize != 1 || dataType != datatype::type::UINT || byteSize != sizeof(uint64_t) ) {
-      cerr << "ERROR, bad sizes or types while reading boundary box at " << __FILE__ << " " << __LINE__ << endl;
-      return false;
-   }
-
-   //Read the array itself into buffer:
-   char * buffer_char = new char[vectorSize * byteSize * arraySize];
-   const short unsigned int firstIndex = 0;
-   //Note: Reads the first n number of indexes from the array where n is arraySize
-   if( vlsvReader.readArray( "VARIABLE", xmlAttributes, firstIndex, arraySize, buffer_char ) == false ) {
-      return false;
-   }
-
-   //Input the cell id values into cell id array:
-   cellIds.reserve(arraySize);
-   //Reinterpret the char buffer pointer into readable form:
-   uint64_t * buffer = reinterpret_cast<uint64_t*>(buffer_char);
-   for( unsigned short int i = 0; i < arraySize; ++i ) {
-      cellIds.push_back( buffer[i] );
-   }
-   delete[] buffer;
-   buffer = NULL;
-   return true;
-}
+// O: REMOVE THIS! (NO LONGER NEEDED)
+////Some functions to help reading files:
+//bool getCellIds( newVlsv::Reader & vlsvReader, const string & meshName, vector<uint64_t> & cellIds ) {
+//   if( cellIds.empty() == false ) {
+//      cerr << "ERROR, Passed a nonempty vector to getCellIds at " << __FILE__ << " " << __LINE__ << endl;
+//      return false;
+//   }
+//   //Declare variables for reading array info:
+//   list< pair<string, string> > xmlAttributes;
+//   xmlAttributes.push_back( make_pair("mesh", meshName) );
+//   //The name of the variable is CellID and it's defined in iowrite.cpp
+//   xmlAttributes.push_back( make_pair("name", "CellID") ); 
+//   datatype::type dataType;
+//   uint64_t arraySize, vectorSize, byteSize;
+//   //Read the array info and store the results in arraySize, vectorSize, dataType and byteSize
+//   //Note: Returns false if fails -- these values are used for reading the array MESH_BBOX
+//   if( vlsvReader.getArrayInfo("VARIABLE", xmlAttributes, arraySize, vectorSize, dataType, byteSize) == false ) {
+//      return false;
+//   }
+//   //Check to make sure the values are valid (These are just values that should have been set in iowrite)
+//
+//
+//   if( vectorSize != 1 || dataType != datatype::type::UINT || byteSize != sizeof(uint64_t) ) {
+//      cerr << "ERROR, bad sizes or types while reading boundary box at " << __FILE__ << " " << __LINE__ << endl;
+//      return false;
+//   }
+//
+//   //Read the array itself into buffer:
+//   char * buffer_char = new char[vectorSize * byteSize * arraySize];
+//   const short unsigned int firstIndex = 0;
+//   //Note: Reads the first n number of indexes from the array where n is arraySize
+//   if( vlsvReader.readArray( "VARIABLE", xmlAttributes, firstIndex, arraySize, buffer_char ) == false ) {
+//      return false;
+//   }
+//
+//   //Input the cell id values into cell id array:
+//   cellIds.reserve(arraySize);
+//   //Reinterpret the char buffer pointer into readable form:
+//   uint64_t * buffer = reinterpret_cast<uint64_t*>(buffer_char);
+//   for( unsigned short int i = 0; i < arraySize; ++i ) {
+//      cellIds.push_back( buffer[i] );
+//   }
+//   delete[] buffer;
+//   buffer = NULL;
+//   return true;
+//}
 
 //Calculates the cell coordinates and outputs into coordinates
 //Input:
@@ -414,7 +415,11 @@ struct NodeComp {
 };
 
 
-//O: ORIGINALLY T = VLSVReader
+//Function for converting a mesh variable (Saves the variable into an open SILO file)
+//Input:
+//[0] vlsvReader -- some vlsv reader with a file open
+//[1] meshName -- name of the mesh, e.g. "SpatialGrid"
+//[2] varName -- Name of the variable
 template <class T>
 bool convertMeshVariable(T & vlsvReader,const string& meshName,const string& varName) {
    bool success = true;
