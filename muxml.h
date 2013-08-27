@@ -16,8 +16,8 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
 */
 
-#ifndef MUXML_NOT_NEW_H
-#define MUXML_NOT_NEW_H
+#ifndef MUXML_H
+#define MUXML_H
 
 #include <ostream>
 #include <map>

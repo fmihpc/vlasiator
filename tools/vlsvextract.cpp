@@ -3,6 +3,18 @@
 This file is part of Vlasiator.
 
 Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
+
+
+
+
+
+
+
+
+
+
+
+
  */
 
 
@@ -20,11 +32,8 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
 #include "vlsvreader2.h"
 #include "definitions.h"
-#include "vlsv_reader.h"
-#include "vlsvreaderinterface.h"
 
 #include <array> //std::array is from here
-#include <unordered_set> //std::unordered_set from here
 #include <boost/program_options.hpp>
 #include <Eigen/Dense>
 
@@ -32,7 +41,6 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 using namespace std;
 
 using namespace Eigen;
-using namespace vlsv;
 namespace po = boost::program_options;
 
 
@@ -116,39 +124,7 @@ struct CellStructure {
    Real cell_length[3];
    //x_min, y_min, z_min are stored here
    Real min_coordinates[3];
-   //The number of cells in x, y, z direction (initialized somewhere in read parameters)
-   uint64_t vcell_bounds[3];
-   //Length of a cell in x, y, z direction
-   Real vblock_length[3];
-   //vx_min, vy_min, vz_min are stored here
-   Real min_vcoordinates[3];
 };
-
-
-//A class for holding user options
-class UserOptions {
-public:
-   bool getCellIdFromLine;
-   bool getCellIdFromInput;
-   bool getCellIdFromCoordinates;
-   bool rotateVectors;
-   uint64_t cellId;
-   uint32_t numberOfCoordinatesInALine;
-   vector<string> outputDirectoryPath;
-   array<Real, 3> coordinates;
-   array<Real, 3> point1;
-   array<Real, 3> point2;
-   UserOptions() {
-      getCellIdFromLine = false;
-      getCellIdFromInput = false;
-      getCellIdFromCoordinates = false;
-      rotateVectors = false;
-      cellId = numeric_limits<uint64_t>::max();
-      numberOfCoordinatesInALine = 0;
-   }
-   ~UserOptions() {}
-};
-
 
 
 int SiloType(const VLSV::datatype& dataType, const uint64_t& dataSize) {
@@ -170,35 +146,6 @@ int SiloType(const VLSV::datatype& dataType, const uint64_t& dataSize) {
          else if (dataSize == 8) return DB_DOUBLE;
          else return -1;
          break;
-      case VLSV::UNKNOWN:
-         cout << "BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
-         break;
-   }
-   return -1;
-}
-
-int SiloType(const datatype::type & dataType, const uint64_t & dataSize) {
-   switch (dataType) {
-      case datatype::type::INT:
-         if (dataSize == 2) return DB_SHORT;
-         else if (dataSize == 4) return DB_INT;
-         else if (dataSize == 8) return DB_LONG;
-         else return -1;
-         break;
-      case datatype::type::UINT:
-         if (dataSize == 2) return DB_SHORT;
-         else if (dataSize == 4) return DB_INT;
-         else if (dataSize == 8) return DB_LONG;
-         else return -1;
-         break;
-      case datatype::type::FLOAT:
-         if (dataSize == 4) return DB_FLOAT;
-         else if (dataSize == 8) return DB_DOUBLE;
-         else return -1;
-         break;
-      case datatype::type::UNKNOWN:
-         cerr << "INVALID DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
-         exit(1);
    }
    return -1;
 }
@@ -206,6 +153,7 @@ int SiloType(const datatype::type & dataType, const uint64_t & dataSize) {
 uint64_t convUInt(const char* ptr, const VLSV::datatype& dataType, const uint64_t& dataSize) {
    if (dataType != VLSV::UINT) {
       cerr << "Erroneous datatype given to convUInt" << endl;
+      MPI_Finalize();
       exit(1);
    }
 
@@ -226,71 +174,27 @@ uint64_t convUInt(const char* ptr, const VLSV::datatype& dataType, const uint64_
    return 0;
 }
 
-uint64_t convUInt(const char* ptr, const datatype::type & dataType, const uint64_t& dataSize) {
-   if (dataType != datatype::type::UINT) {
-      cerr << "Erroneous datatype given to convUInt" << endl;
-      exit(1);
-   }
-
-   switch (dataSize) {
-      case 1:
-         return *reinterpret_cast<const unsigned char*> (ptr);
-         break;
-      case 2:
-         return *reinterpret_cast<const unsigned short int*> (ptr);
-         break;
-      case 4:
-         return *reinterpret_cast<const unsigned int*> (ptr);
-         break;
-      case 8:
-         return *reinterpret_cast<const unsigned long int*> (ptr);
-         break;
-   }
-   return 0;
-}
-
-
-//Outputs the velocity block indices of some given block into indices
-//Input:
-//[0] cellStruct -- some cell structure that has been constructed properly
-//[1] block -- some velocity block id
-//Output:
-//[0] indices -- the array where to store the indices
-void getVelocityBlockCoordinates(const CellStructure & cellStruct, const uint64_t block, array<Real, 3> & coordinates ) {
-   //First get indices:
-   array<uint64_t, 3> blockIndices;
-   blockIndices[0] = block % cellStruct.vcell_bounds[0];
-   blockIndices[1] = (block / cellStruct.vcell_bounds[0]) % cellStruct.vcell_bounds[1];
-   blockIndices[2] = block / (cellStruct.vcell_bounds[0] * cellStruct.vcell_bounds[1]);
-   //Store the coordinates:
-   for( int i = 0; i < 3; ++i ) {
-      coordinates[i] = cellStruct.min_vcoordinates[i] + cellStruct.vblock_length[i] * blockIndices[i];
-   }
-   return;
-}
-
-
-
-
-template <class T>
-bool convertVelocityBlockVariable(T& vlsvReader, const string& spatGridName, const string& velGridName, const uint64_t& cellID,
+bool convertVelocityBlockVariable(VLSVReader& vlsvReader, const string& spatGridName, const string& velGridName, const uint64_t& cellID,
         const uint64_t& N_blocks, const uint64_t& blockOffset, const string& varName) {
    bool success = true;
    list<pair<string, string> > attribs;
    attribs.push_back(make_pair("name", varName));
    attribs.push_back(make_pair("mesh", spatGridName));
 
-   datatype::type dataType;
+   VLSV::datatype dataType;
    uint64_t arraySize, vectorSize, dataSize;
    if (vlsvReader.getArrayInfo("BLOCKVARIABLE", attribs, arraySize, vectorSize, dataType, dataSize) == false) {
       cerr << "Could not read BLOCKVARIABLE array info" << endl;
       return false;
    }
 
+   attribs.clear();
+   attribs.push_back(make_pair("mesh", spatGridName));
    char* buffer = new char[N_blocks * vectorSize * dataSize];
-   if (vlsvReader.readArray("BLOCKVARIABLE", attribs, blockOffset, N_blocks, buffer) == false) {
+   if (vlsvReader.readArray("BLOCKVARIABLE", varName, attribs, blockOffset, N_blocks, buffer) == false) success = false;
+   if (success == false) {
       cerr << "ERROR could not read block variable" << endl;
-      delete[] buffer;
+      delete buffer;
       return success;
    }
 
@@ -306,21 +210,19 @@ bool convertVelocityBlockVariable(T& vlsvReader, const string& spatGridName, con
    DBPutUcdvar1(fileptr, varName.c_str(), velGridName.c_str(), buffer, N_blocks*vectorSize, NULL, 0, SiloType(dataType, dataSize), DB_ZONECENT, optList);
 
    DBFreeOptlist(optList);
-   delete[] buffer;
+   delete buffer;
    return success;
 }
 
-Real * getB( oldVlsv::Reader& vlsvReader, const string& meshName, const uint64_t& cellID ) {
-   //Get B:
+Real * GetBVol( VLSVReader& vlsvReader, const string& meshName, const uint64_t& cellID ) {
+   //Get B_vol:
    //Declarations
-   vlsv::datatype::type meshDataType;
+   VLSV::datatype meshDataType;
    uint64_t meshArraySize, meshVectorSize, meshDataSize;
    //Output: meshArraySize, meshVectorSize, meshDataType, meshDatasize (inside if() because getArray is bool and returns false if something unexpected happens)
-   list<pair<string, string>> xmlAttributes;
-   xmlAttributes.push_back(make_pair("name", "SpatialGrid"));
-   if (vlsvReader.getArrayInfo("MESH", xmlAttributes, meshArraySize, meshVectorSize, meshDataType, meshDataSize) == false) {
-      //cerr << "Spatial cell #" << cellID << " not found!" << endl;
+   if (vlsvReader.getArrayInfo("MESH", meshName, meshArraySize, meshVectorSize, meshDataType, meshDataSize) == false) {
       cerr << "Error " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
       exit(1);
       return NULL;
    }
@@ -330,6 +232,7 @@ Real * getB( oldVlsv::Reader& vlsvReader, const string& meshName, const uint64_t
    if (vlsvReader.readArray("MESH",meshName,0,meshArraySize,meshBuffer) == false) {
       //cerr << "Spatial cell #" << cellID << " not found!" << endl;
       cerr << "Error " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
       exit(1);
       return NULL;
    }
@@ -346,59 +249,62 @@ Real * getB( oldVlsv::Reader& vlsvReader, const string& meshName, const uint64_t
    }
 
    if (cellIndex == numeric_limits<uint64_t>::max()) {
-      //cerr << "Spatial cell #" << cellID << " not found!" << endl;
       cerr << "Error " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
       exit(1);
       return NULL;
    }
 
    //These are needed to determine the buffer size.
-   vlsv::datatype::type variableDataType;
+   VLSV::datatype variableDataType;
    uint64_t variableArraySize, variableVectorSize, variableDataSize;
    //getArrayInfo output: variableArraysize, variableVectorSize, ...
-   xmlAttributes.clear();
-   xmlAttributes.push_back(make_pair("mesh", meshName));
-   xmlAttributes.push_back(make_pair("name", "B"));
-
-   if (vlsvReader.getArrayInfo("VARIABLE", xmlAttributes, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) {
-      cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
-      return NULL;
+   if (vlsvReader.getArrayInfo("VARIABLE", "B_vol", meshName, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) {
+      //cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
+      //exit(1);
+      //return NULL;
+      //If B_vol wasn't saved, return a warning and tell the user we're picking B instead
+      if (vlsvReader.getArrayInfo("VARIABLE", "B", meshName, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) {
+         cerr << "ERROR, COULD NOT FIND B_VOL OR B FROM THE VLSV FILE AT " << __FILE__ << " " << __LINE__ << endl;
+         MPI_Finalize();
+         exit(1);
+         return NULL;
+      }
    }
 
    //Declare a buffer for reading the specific vector from the array
    char * the_actual_buffer = new char[variableVectorSize * variableDataSize];     //Needs to store vector times data size (Got that from getArrayInfo)
-   if( variableDataSize != sizeof(Real) ) {
-      cerr << "ERROR, bad datasize at " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
-   }
    Real * the_actual_buffer_ptr = reinterpret_cast<Real*>(the_actual_buffer);
    //The corresponding B vector is in the cellIndex we got from mesh -- we only need to read one vector -- that's why the '1' parameter
    const uint64_t numOfVecs = 1;
    //store the vector in the_actual_buffer buffer -- the data is extracted vector at a time
-   if(vlsvReader.readArray("VARIABLE", "B", cellIndex, numOfVecs, the_actual_buffer) == false) {
-      cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
-      return 0;
+   if(vlsvReader.readArray("VARIABLE", "B_vol", cellIndex, numOfVecs, the_actual_buffer) == false) {
+      //If B_vol wasn't saved, return a warning and tell the user we're picking B instead
+      if(vlsvReader.readArray("VARIABLE", "B", cellIndex, numOfVecs, the_actual_buffer) == false) {
+         cerr << "ERROR, COULD NOT FIND B_VOL OR B FROM THE VLSV FILE AT " << __FILE__ << " " << __LINE__ << endl;
+         MPI_Finalize();
+         exit(1);
+         return NULL;
+      }
+      cerr << "Warning: B_vol was not saved in the file, so picking B instead" << endl;
    }
-   //Return the B vector in Real* form
+   //Return the B_vol vector in Real* form
    return the_actual_buffer_ptr;
 
 }
 
-
 void doRotation(
   Real * vx_crds_rotated, Real * vy_crds_rotated, Real * vz_crds_rotated,
   const Real * vx_crds, const Real * vy_crds, const Real * vz_crds, 
-  const Real * B, const unsigned int vec_size
+  const Real * B_vol, const unsigned int vec_size
  	      ) {
-   //NOTE: assuming that B is a vector of size 3 and that _crds_rotated has been allocated
+   //NOTE: assuming that B_vol is a vector of size 3 and that _crds_rotated has been allocated
    //Using eigen3 library here.
-   //Now we have the B vector, so now the idea is to rotate the v-coordinates so that B always faces z-direction
-   //Since we're handling only one spatial cell, B is the same in every v-coordinate.
+   //Now we have the B_vol vector, so now the idea is to rotate the v-coordinates so that B_vol always faces z-direction
+   //Since we're handling only one spatial cell, B_vol is the same in every v-coordinate.
    const int _size = 3;
 
-   Matrix<Real, _size, 1> _B(B[0], B[1], B[2]);
+   Matrix<Real, _size, 1> _B(B_vol[0], B_vol[1], B_vol[2]);
    Matrix<Real, _size, 1> unit_z(0, 0, 1);                    //Unit vector in z-direction
    Matrix<Real, _size, 1> Bxu = _B.cross( unit_z );        //Cross product of B and unit_z //Remove -1 if necessary -- just that I think it's the other way around
    //Check if divide by zero -- if there's division by zero, the B vector is already in the direction of z-axis and no need to do anything
@@ -422,7 +328,7 @@ void doRotation(
    }
 }
 
-bool convertVelocityBlocks2(oldVlsv::Reader& vlsvReader, const string& meshName, const CellStructure & cellStruct, const uint64_t& cellID, const bool rotate) {
+bool convertVelocityBlocks2(VLSVReader& vlsvReader, const string& meshName, const uint64_t& cellID, const bool rotate) {
    //return true;
    bool success = true;
 
@@ -433,7 +339,7 @@ bool convertVelocityBlocks2(oldVlsv::Reader& vlsvReader, const string& meshName,
    list<pair<string, string> > attribs;
 
 
-   vlsv::datatype::type cwb_dataType, nb_dataType, bc_dataType;
+   VLSV::datatype cwb_dataType, nb_dataType, bc_dataType;
    uint64_t cwb_arraySize, cwb_vectorSize, cwb_dataSize;
    uint64_t nb_arraySize, nb_vectorSize, nb_dataSize;
    uint64_t bc_arraySize, bc_vectorSize, bc_dataSize;
@@ -658,16 +564,16 @@ bool convertVelocityBlocks2(oldVlsv::Reader& vlsvReader, const string& meshName,
       coords[2] = vz_crds;
    } else {
       //rotate == true, do the rotation
-      Real * B_ptr = getB( vlsvReader, meshName, cellID ); //Note: allocates memory and stores the vector value into B_ptr
+      Real * B_vol_ptr = GetBVol( vlsvReader, meshName, cellID ); //Note: allocates memory and stores the vector value into B_vol_ptr
    
 
       //Now rotate:
       //Using eigen3 library here.
-      //Now we have the B vector, so now the idea is to rotate the v-coordinates so that B always faces z-direction
-      //Since we're handling only one spatial cell, B is the same in every v-coordinate.
+      //Now we have the B_vol vector, so now the idea is to rotate the v-coordinates so that B_vol always faces z-direction
+      //Since we're handling only one spatial cell, B_vol is the same in every v-coordinate.
 
       //Rotate the v-coordinates and store them in vx_crds_rotated, vy_crds_rotated, ... :
-      doRotation( vx_crds_rotated, vy_crds_rotated, vz_crds_rotated, vx_crds, vy_crds, vz_crds, B_ptr, _node_size );
+      doRotation( vx_crds_rotated, vy_crds_rotated, vz_crds_rotated, vx_crds, vy_crds, vz_crds, B_vol_ptr, _node_size );
 
       coords[0] = vx_crds_rotated;
       coords[1] = vy_crds_rotated;
@@ -707,270 +613,6 @@ bool convertVelocityBlocks2(oldVlsv::Reader& vlsvReader, const string& meshName,
          if (convertVelocityBlockVariable(vlsvReader, meshName, gridName, cellID, N_blocks, blockOffset, *it) == false) success = false;
       }
    }
-
-   return success;
-}
-
-bool convertVelocityBlocks2( newVlsv::Reader& vlsvReader, const string& meshName, const CellStructure & cellStruct, const uint64_t& cellID, const bool rotate ) {
-   //return true;
-   bool success = true;
-
-   //Map for holding nodes:
-   map<NodeCrd<Real>, uint64_t, NodeComp> nodes;
-
-//   //Read cells with blocks into vlsvReader:
-//   if( vlsvReader.setCellsWithBlocks() == false ) {
-//      cerr << "ERROR, FAILED TO SET CELLS WITH BLOCKS AT " << __FILE__ << " " << __LINE__ << endl;
-//      return false;
-//   }
-   //Read block ids:
-   vector<uint64_t> blockIds;
-   if( vlsvReader.getBlockIds( cellID, blockIds ) == false ) {
-      cerr << "ERROR, FAILED TO READ BLOCK IDS AT " << __FILE__ << " " << __LINE__ << endl;
-      return false;
-   }
-   //Clear cells with blocks (Calls clear on an unordered map inside vlsvReader)
-   //vlsvReader.clearCellsWithBlocks();
-
-   for (vector<uint64_t>::const_iterator it = blockIds.begin(); it != blockIds.end(); ++it) {
-      const uint64_t & blockId = *it;
-
-      //Get the block's coordinates:
-      array<Real, 3> blockCoordinates;
-      getVelocityBlockCoordinates( cellStruct, blockId, blockCoordinates );
-
-      const unsigned short int numberOfCoordinates = 3;
-
-      const uint16_t cellsInBlocksPerDirection = 4;
-      //Get the length of a velocity cell
-      Real vcell_length[numberOfCoordinates];
-      for( int j = 0; j < numberOfCoordinates; ++j ) {
-         vcell_length[j] = cellStruct.vblock_length[j] / cellsInBlocksPerDirection;
-      }
-
-      //Insert coordinates into nodes:
-      creal EPS = 1.0e-7;
-      const uint16_t numberOfNodesPerDirectionPerBlock = 5;
-      for (int kv = 0; kv < numberOfNodesPerDirectionPerBlock; ++kv) {
-         Real VZ = blockCoordinates[2] + kv*vcell_length[2];
-         if (fabs(VZ) < EPS) VZ = 0.0;
-         for (int jv = 0; jv < numberOfNodesPerDirectionPerBlock; ++jv) {
-            Real VY = blockCoordinates[1] + jv*vcell_length[1];
-            if (fabs(VY) < EPS) VY = 0.0;
-            for (int iv = 0; iv < numberOfNodesPerDirectionPerBlock; ++iv) {
-               Real VX = blockCoordinates[0] + iv*vcell_length[0];
-               if (fabs(VX) < EPS) VX = 0.0;
-               nodes.insert(make_pair(NodeCrd<Real>(VX, VY, VZ), (uint64_t) 0));
-            }
-         }
-      }
-   }
-
-   Real* vx_crds = new Real[nodes.size()];
-   Real* vy_crds = new Real[nodes.size()];
-   Real* vz_crds = new Real[nodes.size()];
-   const unsigned int _node_size = nodes.size();
-   uint64_t counter = 0;
-   for (map<NodeCrd<Real>, uint64_t>::iterator it = nodes.begin(); it != nodes.end(); ++it) {
-      it->second = counter;
-      vx_crds[counter] = it->first.x;
-      vy_crds[counter] = it->first.y;
-      vz_crds[counter] = it->first.z;
-      ++counter;
-   }
-
-   const uint64_t nodeListSize = blockIds.size() * 64 * 8;
-   int* nodeList = new int[nodeListSize];
-   //Iteratre through blocks
-   uint b = 0;
-   for (vector<uint64_t>::const_iterator i = blockIds.begin(); i != blockIds.end(); ++i, ++b) {
-
-
-      const uint64_t & blockId = *i;
-
-      //Get the block's coordinates:
-      array<Real, 3> blockCoordinates;
-      getVelocityBlockCoordinates( cellStruct, blockId, blockCoordinates );
-
-      const unsigned short int numberOfCoordinates = 3;
-
-      const uint16_t cellsInBlocksPerDirection = 4;
-
-      //Get the length of a velocity cell
-      Real vcell_length[numberOfCoordinates];
-      for( int j = 0; j < numberOfCoordinates; ++j ) {
-         vcell_length[j] = cellStruct.vblock_length[j] / cellsInBlocksPerDirection;
-      }
-
-      //Input velocity cell coordinates:
-      Real VX, VY, VZ;
-      creal EPS = 1.0e-7;
-      map<NodeCrd<Real>, uint64_t>::const_iterator it;
-      for (int kv = 0; kv < 4; ++kv) {
-         for (int jv = 0; jv < 4; ++jv) {
-            for (int iv = 0; iv < 4; ++iv) {
-               const unsigned int cellInd = kv * 16 + jv * 4 + iv;
-               VX = blockCoordinates[0] + iv*vcell_length[0];
-               if (fabs(VX) < EPS) VX = 0.0;
-               VY = blockCoordinates[1] + jv*vcell_length[1];
-               if (fabs(VY) < EPS) VY = 0.0;
-               VZ = blockCoordinates[2] + kv*vcell_length[2];
-               if (fabs(VZ) < EPS) VZ = 0.0;
-               it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
-               if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
-               nodeList[b * 64 * 8 + cellInd * 8 + 0] = it->second;
-
-               VX = blockCoordinates[0] + (iv + 1) * vcell_length[0];
-               if (fabs(VX) < EPS) VX = 0.0;
-               it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
-               if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
-               nodeList[b * 64 * 8 + cellInd * 8 + 1] = it->second;
-
-               VY = blockCoordinates[1] + (jv + 1) * vcell_length[1];
-               if (fabs(VY) < EPS) VY = 0.0;
-               it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
-               if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
-               nodeList[b * 64 * 8 + cellInd * 8 + 2] = it->second;
-
-               VX = blockCoordinates[0] + iv*vcell_length[0];
-               if (fabs(VX) < EPS) VX = 0.0;
-               it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
-               if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
-               nodeList[b * 64 * 8 + cellInd * 8 + 3] = it->second;
-
-               VY = blockCoordinates[1] + jv*vcell_length[1];
-               if (fabs(VY) < EPS) VY = 0.0;
-               VZ = blockCoordinates[2] + (kv + 1) * vcell_length[2];
-               if (fabs(VZ) < EPS) VZ = 0.0;
-               it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
-               if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
-               nodeList[b * 64 * 8 + cellInd * 8 + 4] = it->second;
-
-               VX = blockCoordinates[0] + (iv + 1) * vcell_length[0];
-               if (fabs(VX) < EPS) VX = 0.0;
-               it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
-               if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
-               nodeList[b * 64 * 8 + cellInd * 8 + 5] = it->second;
-
-               VY = blockCoordinates[1] + (jv + 1) * vcell_length[1];
-               if (fabs(VY) < EPS) VY = 0.0;
-               it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
-               if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY << ' ' << VZ << endl;
-               nodeList[b * 64 * 8 + cellInd * 8 + 6] = it->second;
-
-               VX = blockCoordinates[0] + iv*vcell_length[0];
-               if (fabs(VX) < EPS) VX = 0.0;
-               it = nodes.find(NodeCrd<Real>(VX, VY, VZ));
-               if (it == nodes.end()) cerr << "Could not find node " << VX << ' ' << VY + vcell_length[1] << ' ' << VZ + vcell_length[2] << endl;
-               nodeList[b * 64 * 8 + cellInd * 8 + 7] = it->second;
-            }
-         }
-      }
-   }
-
-   uint N_blocks = blockIds.size();
-   //Block ids not needed any longer
-   blockIds.clear();
-
-   const int N_dims = 3; // Number of dimensions
-   const int N_nodes = nodes.size(); // Total number of nodes
-   const int N_zones = N_blocks * 64; // Total number of zones (=velocity cells)
-   int shapeTypes[] = {DB_ZONETYPE_HEX}; // Hexahedrons only
-   int shapeSizes[] = {8}; // Each hexahedron has 8 nodes
-   int shapeCnt[] = {N_zones}; // Only 1 shape type (hexahedron)
-   const int N_shapes = 1; //  -- "" --
-
-   void* coords[3]; // Pointers to coordinate arrays
-   Real * vx_crds_rotated = new Real[_node_size];
-   Real * vy_crds_rotated = new Real[_node_size];
-   Real * vz_crds_rotated = new Real[_node_size];
-   Real * nodeCoordinates[3];
-   if( !rotate ) {
-      coords[0] = vx_crds;
-      coords[1] = vy_crds;
-      coords[2] = vz_crds;
-      nodeCoordinates[0] = vx_crds;
-      nodeCoordinates[1] = vy_crds;
-      nodeCoordinates[2] = vz_crds;
-   } else {
-      //Get B vector
-      array<Real, 3> B;
-      if( vlsvReader.setCellIds() == false ) {
-         cerr << "ERROR, FAILED TO SET CELL IDS AT " << __FILE__ << " " << __LINE__ << endl;
-         delete[] vx_crds_rotated;
-         delete[] vy_crds_rotated;
-         delete[] vz_crds_rotated;
-         return false;
-      }
-      //Input the B vector:
-      const string variableName = "B";
-      if( vlsvReader.getVariable( variableName, cellID, B ) == false ) {
-         cerr << "ERROR, FAILED TO LOAD VARIABLE B AT " << __FILE__ << " " << __LINE__ << endl;
-         delete[] vx_crds_rotated;
-         delete[] vy_crds_rotated;
-         delete[] vz_crds_rotated;
-         return false;
-      }
-
-      //Now rotate:
-      //Using eigen3 library here.
-      //Now we have the B vector, so now the idea is to rotate the v-coordinates so that B always faces z-direction
-      //Since we're handling only one spatial cell, B is the same in every v-coordinate.
-
-      //Rotate the v-coordinates and store them in vx_crds_rotated, vy_crds_rotated, ... :
-      doRotation( vx_crds_rotated, vy_crds_rotated, vz_crds_rotated, vx_crds, vy_crds, vz_crds, B.data(), _node_size );
-
-      coords[0] = vx_crds_rotated;
-      coords[1] = vy_crds_rotated;
-      coords[2] = vz_crds_rotated;
-      nodeCoordinates[0] = vx_crds;
-      nodeCoordinates[1] = vy_crds;
-      nodeCoordinates[2] = vz_crds;
-   }
-
-
-
-
-   // Write zone list into silo file:
-   stringstream ss;
-   ss << "VelGrid" << cellID;
-   const string zoneListName = ss.str() + "Zones";
-   //We're not writing a silo file now
-   if (DBPutZonelist2(fileptr, zoneListName.c_str(), N_zones, N_dims, nodeList, nodeListSize, 0, 0, 0, shapeTypes, shapeSizes, shapeCnt, N_shapes, NULL) < 0) success = false;
-
-   // Write grid into silo file:
-   const string gridName = ss.str();
-   const datatype::type siloDataType = datatype::type::FLOAT;
-   const uint64_t siloDataSize = sizeof(Real);
-   if (DBPutUcdmesh(fileptr, gridName.c_str(), N_dims, NULL, coords, N_nodes, N_zones, zoneListName.c_str(), NULL, SiloType(siloDataType, siloDataSize), NULL) < 0) success = false;
-
-   delete nodeList;
-   delete vx_crds;
-   delete vy_crds;
-   delete vz_crds;
-   delete[] vx_crds_rotated;
-   delete[] vy_crds_rotated;
-   delete[] vz_crds_rotated;
-
-   //Get the name of variables:
-   set<string> blockVarNames;
-   const string attributeName = "name";
-   if (vlsvReader.getUniqueAttributeValues( "BLOCKVARIABLE", attributeName, blockVarNames) == false) {
-      cerr << "ERROR, FAILED TO GET UNIQUE ATTRIBUTE VALUES AT " << __FILE__ << " " << __LINE__ << endl;
-   }
-
-
-   //Writing SILO file
-   if (success == true) {
-      for (set<string>::iterator it = blockVarNames.begin(); it != blockVarNames.end(); ++it) {
-         if (convertVelocityBlockVariable( vlsvReader, meshName, gridName, cellID, N_blocks, vlsvReader.getBlockOffset(cellID), *it) == false) {
-            cerr << "ERROR, convertVelocityBlockVariable FAILED AT " << __FILE__ << " " << __LINE__ << endl;
-         }
-      }
-   }
-   vlsvReader.clearCellsWithBlocks();
-
-   //vlsvWriter.close();
 
    return success;
 }
@@ -1041,68 +683,58 @@ bool loadParameter( VLSVReader& vlsvReader, const string& name, T & parameter ) 
    return true;
 }
 
-//Creates a cell id list of type std::unordered set and saves it in the input parameters
+
+
+//Retrieves the cell id list and its length and saves it into cellIdList and vecSize
 //Input:
-//[0] vlsvReader -- some vlsv reader with a file open
+//[0] VLSVReader& vlsvReader -- Some given vlsvReader with a file open
 //Output:
-//[0] cellIdList -- Inputs a list of cell ids here
-//[1] sizeOfCellIdList -- Inputs the size of the cell id list here
-template <class T>
-bool createCellIdList( T & vlsvReader, unordered_set<uint64_t> & cellIdList ) {
-   if( cellIdList.empty() == false ) {
-      cerr << "ERROR, PASSED A NON-EMPTY CELL ID LIST AT " << __FILE__ << " " << __LINE__ <<  endl;
-      return false;
+//[0] uint64_t* cellIdList -- Stores cell ids retrieved with vlsvReader here (Note: This could be done as a vector, too)
+//[1] uint64_t& sizeOfCellIdList -- Stores the vector size of cellIdList here
+void pointToCellIdList( VLSVReader & vlsvReader, uint64_t *& cellIdList, uint64_t & sizeOfCellIdList ) {
+   //NOTE: This could be changed -- we're assuming cellIdList is a null pointer:
+   if( cellIdList ) {
+      cerr << "Error! Expected null pointer at: " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
+      exit(1);
    }
    //meshname should be "SpatialGrid" and tag should be "CELLSWITHBLOCKS"
    const string meshName = "SpatialGrid";
-   const string tagName = "CELLSWITHBLOCKS";
-   //For reading in attributes 
-   list< pair<string, string> > attributes;
-   if( typeid(vlsvReader) == typeid(oldVlsv::Reader) ) {
-      attributes.push_back( make_pair("name", meshName) );
-   } else {
-      attributes.push_back( make_pair("mesh", meshName) );
-   }
+   const string tag = "CELLSWITHBLOCKS";
    //Get a list of possible CellIDs from the file under CELLSWITHBLOCKS:
    //Declare vectorSize, arraySize, .., so we know the size of the array we're going to read:
-   datatype::type dataType;
+   VLSV::datatype dataType;
    uint64_t arraySize, vectorSize, dataSize; //used to store info on the data we want to retrieve (needed for readArray)
    //Read arraySize, vectorSize, dataType and dataSize and store them with getArrayInfo:
-   if (vlsvReader.getArrayInfo( tagName, attributes, arraySize, vectorSize, dataType, dataSize ) == false) {
-      cerr << "Could not find array " << tagName << " at: " << __FILE__ << " " << __LINE__ << endl;
+   if (vlsvReader.getArrayInfo(tag, meshName, arraySize, vectorSize, dataType, dataSize) == false) {
+      cerr << "Could not find array " << tag << " at: " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
       exit(1); //error, terminate program
-      return false; //Shouldn't actually even get this far but whatever
+      return; //Shouldn't actually even get this far but whatever
    }
    //Check to make sure that the vectorSize is 1 as the CellIdList should be (Assuming so later on):
    if( vectorSize != 1 ) {
-      cerr << tagName << "'s vector size is not 1 at: " << __FILE__ << " " << __LINE__ << endl;
+      cerr << tag << "'s vector size is not 1 at: " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
       exit(1);
-      return false;
+      return;
    }
-
    //We now have the arraySize and everything else needed
    //Create a buffer -- the size is determined by the data we received from getArrayInfo
    char * buffer = new char[arraySize * vectorSize * dataSize];
-   const int beginningPoint = 0; //Read from the beginning ( 0 ) up to arraySize ( arraySize )
    //Read data into the buffer with readArray:
-   if (vlsvReader.readArray(tagName, attributes, beginningPoint, arraySize, buffer) == false) {
+   if (vlsvReader.readArray(tag, meshName, 0, arraySize, buffer) == false) {
       cerr << "Failed to read block metadata for mesh '" << meshName << "' at: ";
       cerr << __FILE__ << " " << __LINE__ << endl;
       delete buffer;
+      MPI_Finalize();
       exit(1);
-      return false;
+      return;
    }
-
-
-   //Reinterpret the buffer and point cellIdList in the right direction:
-   uint64_t * _cellIdList = reinterpret_cast<uint64_t*>(buffer);
-   //Reserve space for the cell id list:
-   cellIdList.rehash( (uint64_t)(arraySize * 1.25) );
-   for( uint64_t i = 0; i < arraySize; ++i ) {
-      cellIdList.insert( (uint64_t)( _cellIdList[i] ) );
-   }
-   delete[] buffer;
-   return true;
+   //Set size -- the vectorSize is 1 so the size we want is arraySize
+   sizeOfCellIdList = arraySize;
+   //Reinterpret the buffer and set cellIdList:
+   cellIdList = reinterpret_cast<uint64_t*>(buffer);
 }
 
 
@@ -1118,6 +750,7 @@ void getCellCoordinates( const CellStructure & cellStruct, const uint64_t cellId
    //Check for null pointer
    if( !coordinates ) {
       cerr << "Passed invalid pointer at: " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
       exit(1);
    }
    //Calculate the cell coordinates in block coordinates (so in the cell grid where the coordinates are integers)
@@ -1156,6 +789,7 @@ uint64_t searchForBestCellId( const CellStructure & cellStruct,
       cerr << "Error at: ";
       cerr << __FILE__ << " " << __LINE__;
       cerr << ", passed a null pointer to searchForBestCellId" << endl;
+      MPI_Finalize();
       exit(1);
       return 0;
    }
@@ -1187,58 +821,22 @@ uint64_t searchForBestCellId( const CellStructure & cellStruct,
    return bestCellId;
 }
 
-//Searches for the closest cell id to the given coordinates from a list of cell ids and returns it
-//Input:
-//[0] CellStructure cellStruct -- a struct that holds info on cell structure
-//[1] cellIdList -- Some list of cell ids
-//[2] coordinates, -- Some coordinates x, y, z 
-//Output:
-//[0] Returns the closest cell id to the given coordinates
-uint64_t searchForBestCellId( const CellStructure & cellStruct,
-                              const unordered_set<uint64_t> & cellIdList, 
-                              const array<Real, 3> coordinates ) {
-   //Check for null pointer:
-   if( coordinates.empty() ) {
-      cerr << "ERROR, PASSED AN EMPTY COORDINATES AT " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
-   }
-   if( cellIdList.empty() ) {
-      cerr << "ERROR, PASSED AN EMPTY CELL ID LIST AT " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
-   }
-
-   //Get the cell id corresponding to the given coordinates:
-   int cellCoordinates[3];
-   for( unsigned int i = 0; i < 3; ++i ) {
-      //Note: Cell coordinates work like this:
-      //cell id = z * (num. of cell in y-direction) * (num. of cell in z-direction) + y * (num. of cell in x-direction) + x
-      cellCoordinates[i] = floor((coordinates[i] - cellStruct.min_coordinates[i]) / cellStruct.cell_length[i]);
-      if( cellCoordinates[i] < 0 ) {
-         cerr << "Coordinates out of bounds at " << __FILE__ << " " << __LINE__ << endl;
-         return numeric_limits<uint64_t>::max();
-      }
-   }
-
-   //Return the cell id at cellCoordinates:
-   //Note: In vlasiator, the cell ids start from 1 hence the '+ 1'
-   
-   return ( (uint64_t)(
-            cellCoordinates[2] * cellStruct.cell_bounds[1] * cellStruct.cell_bounds[0]
-            + cellCoordinates[1] * cellStruct.cell_bounds[0]
-            + cellCoordinates[0] + 1
-          ) );
-}
-
-
 
 //Initalizes cellStruct
 //Input:
-//[0] oldVlsv::Reader vlsvReader -- some reader with a file open (used for loading parameters)
+//[0] VLSVReader vlsvReader -- some reader with a file open (used for loading parameters)
 //Output:
 //[0] CellStructure cellStruct -- Holds info on cellStruct. The members are given the correct values here (Note: CellStructure could be made into a class
 //instead of a struct with this as the constructor but since a geometry class has already been coded before, it would be a waste)
-void setCellVariables( oldVlsv::Reader & vlsvReader, CellStructure & cellStruct ) {
+void setCellVariables( VLSVReader & vlsvReader, CellStructure & cellStruct ) {
    //Get x_min, x_max, y_min, y_max, etc so that we know where the given cell id is in (loadParameter returns char*, hence the cast)
+   uint64_t dataSize;
+//   Real x_min = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "xmin", dataSize ) );
+//   Real x_max = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "xmax", dataSize ) );
+//   Real y_min = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "ymin", dataSize ) );
+//   Real y_max = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "ymax", dataSize ) );
+//   Real z_min = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "zmin", dataSize ) );
+//   Real z_max = *reinterpret_cast<Real*>( loadParameter( vlsvReader, "zmax", dataSize ) );
    Real x_min, x_max, y_min, y_max, z_min, z_max;
    loadParameter( vlsvReader, "xmin", x_min );
    loadParameter( vlsvReader, "xmax", x_max );
@@ -1246,13 +844,19 @@ void setCellVariables( oldVlsv::Reader & vlsvReader, CellStructure & cellStruct 
    loadParameter( vlsvReader, "ymax", y_max );
    loadParameter( vlsvReader, "zmin", z_min );
    loadParameter( vlsvReader, "zmax", z_max );
-
    //Number of cells in x, y, z directions (used later for calculating where in the cell coordinates (which are ints) the given
    //coordinates are) (Done in 
    //There's x, y and z coordinates so the number of different coordinates is 3:
    const int NumberOfCoordinates = 3;
    uint64_t cell_bounds[NumberOfCoordinates];
    //Get the number of cells in x,y,z direction from the file:
+//   //x-direction
+//   cell_bounds[0] = *reinterpret_cast<uint64_t*>( loadParameter( vlsvReader, "xcells_ini", dataSize ) );
+//   //y-direction
+//   cell_bounds[1] = *reinterpret_cast<uint64_t*>( loadParameter( vlsvReader, "ycells_ini", dataSize ) );
+//   //z-direction
+//   cell_bounds[2] = *reinterpret_cast<uint64_t*>( loadParameter( vlsvReader, "zcells_ini", dataSize ) );
+
    //x-direction
    loadParameter( vlsvReader, "xcells_ini", cell_bounds[0] );
    //y-direction
@@ -1280,139 +884,78 @@ void setCellVariables( oldVlsv::Reader & vlsvReader, CellStructure & cellStruct 
    return;
 }
 
-//Initalizes cellStruct
-//Input:
-//[0] vlsv::Reader vlsvReader -- some reader with a file open (used for loading parameters)
-//Output:
-//[0] CellStructure cellStruct -- Holds info on cellStruct. The members are given the correct values here (Note: CellStructure could be made into a class
-//instead of a struct with this as the constructor but since a geometry class has already been coded before, it would be a waste)
-void setCellVariables( Reader & vlsvReader, CellStructure & cellStruct ) {
-   //Get x_min, x_max, y_min, y_max, etc so that we know where the given cell id is in (loadParameter returns char*, hence the cast)
-   //Note: Not actually sure if these are Real valued or not
-   Real x_min, x_max, y_min, y_max, z_min, z_max, vx_min, vx_max, vy_min, vy_max, vz_min, vz_max;
-   //Read in the parameter:
-   if( vlsvReader.readParameter( "xmin", x_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "xmax", x_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "ymin", y_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "ymax", y_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "zmin", z_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "zmax", z_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-
-   if( vlsvReader.readParameter( "vxmin", vx_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "vxmax", vx_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "vymin", vy_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "vymax", vy_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "vzmin", vz_min ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   if( vlsvReader.readParameter( "vzmax", vz_max ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-
-   //Number of cells in x, y, z directions (used later for calculating where in the cell coordinates the given
-   //coordinates are) (Done in getCellCoordinates)
-   //There's x, y and z coordinates so the number of different coordinates is 3:
-   const short int NumberOfCoordinates = 3;
-   uint64_t cell_bounds[NumberOfCoordinates];
-   uint64_t vcell_bounds[NumberOfCoordinates];
-   //Get the number of velocity blocks in x,y,z direction from the file:
-   //x-direction
-   if( vlsvReader.readParameter( "vxblocks_ini", vcell_bounds[0] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   //y-direction
-   if( vlsvReader.readParameter( "vyblocks_ini", vcell_bounds[1] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   //z-direction
-   if( vlsvReader.readParameter( "vzblocks_ini", vcell_bounds[2] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   //Get the number of spatial cells in x,y,z direction from the file:
-   //x-direction
-   if( vlsvReader.readParameter( "xcells_ini", cell_bounds[0] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   //y-direction
-   if( vlsvReader.readParameter( "ycells_ini", cell_bounds[1] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-   //z-direction
-   if( vlsvReader.readParameter( "zcells_ini", cell_bounds[2] ) == false ) cerr << "FAILED TO READ PARAMETER AT " << __FILE__ << " " << __LINE__ << endl;
-
-   //Now we have the needed variables, so let's calculate how much in one block equals in length:
-   //Total length of x, y, z:
-   Real x_length = x_max - x_min;
-   Real y_length = y_max - y_min;
-   Real z_length = z_max - z_min;
-
-   Real vx_length = vx_max - vx_min;
-   Real vy_length = vy_max - vy_min;
-   Real vz_length = vz_max - vz_min;
-   //Set the cell structure properly:
-   for( int i = 0; i < NumberOfCoordinates; ++i ) {
-      cellStruct.cell_bounds[i] = cell_bounds[i];
-      cellStruct.vcell_bounds[i] = vcell_bounds[i];
-   }
-   //Calculate the cell length
-   cellStruct.cell_length[0] = ( x_length / (Real)(cell_bounds[0]) );
-   cellStruct.cell_length[1] = ( y_length / (Real)(cell_bounds[1]) );
-   cellStruct.cell_length[2] = ( z_length / (Real)(cell_bounds[2]) );
-
-   //Calculate the velocity cell length
-   cellStruct.vblock_length[0] = ( vx_length / (Real)(vcell_bounds[0]) );
-   cellStruct.vblock_length[1] = ( vy_length / (Real)(vcell_bounds[1]) );
-   cellStruct.vblock_length[2] = ( vz_length / (Real)(vcell_bounds[2]) );
-   //Calculate the minimum coordinates
-   cellStruct.min_coordinates[0] = x_min;
-   cellStruct.min_coordinates[1] = y_min;
-   cellStruct.min_coordinates[2] = z_min;
-   //Calculate the minimum coordinates for velocity cells
-   cellStruct.min_vcoordinates[0] = vx_min;
-   cellStruct.min_vcoordinates[1] = vy_min;
-   cellStruct.min_vcoordinates[2] = vz_min;
-
-
-   for( int i = 0; i < 3; ++i ) {
-      if( cellStruct.cell_length[i] == 0 || cellStruct.cell_bounds[i] == 0 || cellStruct.vblock_length[i] == 0 || cellStruct.vcell_bounds[i] == 0 ) {
-         cerr << "ERROR, ZERO CELL LENGTH OR CELL_BOUNDS AT " << __FILE__ << " " << __LINE__ << endl;
-         exit(1);
-      }
-   }
-   return;
-}
-
-
-
-
 //Returns a cell id based on some given coordinates
 //Returns numeric_limits<uint64_t>::max(), if the distance from the coordinates to cell id is larger than max_distance
 //Input:
-//[0] vlsv::Reader& vlsvReader -- Some vlsvReader (with a file open)
+//[0] VLSVReader& vlsvReader -- Some vlsvReader (with a file open)
 //[1] Real * coords -- Some given coordinates (in this file the coordinates are retrieved from the user as an input)
 //Note: Assuming coords is a pointer of size 3
 //[2] max_distance -- Max allowed distance between the given coordinates *coords and the returned cell id's coordinates
 //Output:
 //[0] Returns the cell id in uint64_t
-uint64_t getCellIdFromCoords( const CellStructure & cellStruct, 
-                              const unordered_set<uint64_t> cellIdList,
-                              const array<Real, 3> coords) {
-   if( coords.empty() ) {
-      cerr << "ERROR, PASSED AN EMPTY STD::ARRAY FOR COORDINATES AT " << __FILE__ << " " << __LINE__ << endl;
-   }
-
-
-   //Check for empty vectors
-   if( cellIdList.empty() ) {
-      cerr << "Invalid cellIdList at " << __FILE__ << " " << __LINE__ << endl;
+uint64_t getCellIdFromCoords( VLSVReader& vlsvReader, const CellStructure & cellStruct, 
+                              const Real * coords, const Real max_distance ) {
+   if( !coords ) {
+      cerr << "NULL pointer passed to getCellIdFromCoords! " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
       exit(1);
    }
-   if( coords.empty() ) {
+   //Assuming coords is of size 3
+   Real x = coords[0];
+   Real y = coords[1];
+   Real z = coords[2];
+
+   //Get the list of cell ids that have distribution function and save them in cellIdList and sizeOfCellIdList
+   uint64_t * cellIdList = NULL;
+   uint64_t sizeOfCellIdList;
+   //Creates a cell id list and points cellIdList to it:
+   pointToCellIdList( vlsvReader, cellIdList, sizeOfCellIdList);
+
+   //Check for null pointers
+   if( !cellIdList ) {
+      cerr << "Invalid cellIdList at " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
+      exit(1);
+   }
+   if( !coords ) {
       cerr << "Invalid coords at " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
       exit(1);
    }
 
 
    //Now pick the closest cell id to the given coordinates:
-   uint64_t cellId = searchForBestCellId( cellStruct, cellIdList, coords );
-
-   //Check to make sure the cell id has distribution (It does if it's in the list of cell ids)
-   unordered_set<uint64_t>::const_iterator foundCellId = cellIdList.find( cellId );
-   if( foundCellId == cellIdList.end() ) {
-      //Didn't find the cell id from the list of possible cell ids so return numerical limit:
+   uint64_t cellId = searchForBestCellId( cellStruct, cellIdList, coords, sizeOfCellIdList );
+   //We now have the best cell id, but because not every cell id has distribution and because the cells have discrete coordinate
+   //(x = 1, 2, 3 etc ), check the distance between the retrieved cell id and the given coordinates. If the distance is larger
+   //than the maximum given distance (max_distance), exit the program
+   const size_t _size = 3;
+   Real cellCoordinate[_size];
+   //Set the cell coordinates: (Takes the cell id and inputs the cell id's coordinates into getCellCoordinates
+   getCellCoordinates( cellStruct, cellId, cellCoordinate );
+   //Calculate distance from cell coordinates to input coordinates
+   Real dist;
+   if( cellStruct.cell_bounds[2] < 2 ) {
+      dist = ( 
+                   (cellCoordinate[0] - coords[0]) * (cellCoordinate[0] - coords[0])
+                   + (cellCoordinate[1] - coords[1]) * (cellCoordinate[1] - coords[1])
+                  );
+   } else {
+      dist = (
+                   (cellCoordinate[0] - coords[0]) * (cellCoordinate[0] - coords[0])
+                   + (cellCoordinate[1] - coords[1]) * (cellCoordinate[1] - coords[1])
+                   + (cellCoordinate[2] - coords[2]) * (cellCoordinate[2] - coords[2])
+                  );
+   }
+   //If the distance from the given coordinates (accurate) to the given coordinates is too larger then don't use the cell id
+   //Note: If cell id equals numeric limits then the cell id won't be picked
+   if( max_distance < sqrt( dist ) ) {
+      //Return numeric limit to let the program know we didn't find a cell id
       return numeric_limits<uint64_t>::max();
    }
-
    //Everything ok, return the cell id:
    return cellId;
 }
-
 
 
 
@@ -1421,32 +964,43 @@ void printUsageMessage() {
    cout << endl;
    cout << "USAGE: ./vlsvextract <file name mask> <options>" << endl;
    cout << endl;
-   cout << "To get a list of options use --help" << endl;
+   cout << "Possible options are '--help', '--rotate', '--cellid <cell ID>', '--coordinates <x y z>'" << endl;
+   cout << "Example: ./vlsvextract file.vlsv --cellid 15000 --rotate" << endl;
+   cout << endl;
+   cout << "Each VLSV file in the currect directory is compared against the mask," << endl;
+   cout << "and if the file name matches the mask, the given velocity grid is " << endl;
+   cout << "written to a SILO file." << endl;
+   cout << endl;
+   cout << "Cell ID is the ID of the spatial cell whose velocity grid is to be extracted." << endl;
    cout << endl;
 }
-
 
 //Used in main() to retrieve options (returns false if something goes wrong)
 //Input:
 //[0] int argn -- number of arguments in args
 //[1] char *args -- arguments
 //Output:
-//[0] UserOptions & mainOptions -- Saves all the options in this class
-bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) {
-   //Get variables from mainOptions
-   bool & getCellIdFromCoordinates = mainOptions.getCellIdFromCoordinates;
-   bool & getCellIdFromInput = mainOptions.getCellIdFromInput;
-   bool & getCellIdFromLine = mainOptions.getCellIdFromLine;
-   bool & rotateVectors = mainOptions.rotateVectors;
-   uint64_t & cellId = mainOptions.cellId;
-   uint32_t & numberOfCoordinatesInALine = mainOptions.numberOfCoordinatesInALine;
-   vector<string>  & outputDirectoryPath = mainOptions.outputDirectoryPath;
-   array<Real, 3> & coordinates = mainOptions.coordinates;
-   array<Real, 3> & point1 = mainOptions.point1;
-   array<Real, 3> & point2 = mainOptions.point2;
-
+//[0] bool getCellIdFromCoordinates -- true if the user wants the cell id from coordinates
+//[1] bool getCellIdFromInput -- true if the user wants the cell id from input
+//[2] bool calculateCellIdFromLine -- true if the user wants cell ids along a line
+//[3] bool rotateVectors -- true if the user wants to rotate velocities' z-axis to align with B_vol vector
+//[4] vector<Real> coordinates -- If specified, coordinate input is retrieved from input
+//[5] vector<Real> point1 -- Starting coordinate of a line
+//[6] vector<Real> point2 -- Ending coordinate of a line
+//[7] uint64_t _cellID -- If specified, the cell id is retrieved from input
+//[8] unsigned int numberOfCoordinatesInALine -- If we want to calculate the cell ids from a line, it can be specified how many
+//coordinates we want to pick
+//[9] max_distance -- the max distance from the cell to the given coordinates (Used if calculating cell id from coordinates or 
+//a line)
+//[10] outputDirectoryPath -- Determines where the file is saved
+bool retrieveOptions( const int argn, char *args[], bool & getCellIdFromCoordinates, bool & getCellIdFromInput, 
+                      bool & calculateCellIdFromLine,
+                      bool & rotateVectors, vector<Real> & coordinates,
+                      vector<Real> & point1, vector<Real> & point2, uint64_t & _cellID, 
+                      unsigned int & numberOfCoordinatesInALine, Real & max_distance,
+                      vector<string> & outputDirectoryPath ) {
    //By default every bool input should be false and vectors should be empty
-   if( getCellIdFromCoordinates == true || rotateVectors == true || getCellIdFromInput == true || getCellIdFromLine == true || outputDirectoryPath.empty() == false ) {
+   if( getCellIdFromCoordinates || rotateVectors || !coordinates.empty() || !outputDirectoryPath.empty() ) {
       cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", invalid arguments in retrieveOptions()" << endl;
       return false;
    }
@@ -1459,6 +1013,7 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
          ("cellid", po::value<uint64_t>(), "Set cell id")
          ("rotate", "Rotate velocities so that they face z-axis")
          ("coordinates", po::value< vector<Real> >()->multitoken(), "Set spatial coordinates x y z")
+         ("maxdistance", po::value<Real>(), "The max allowed distance from the cell to the given coordinates (OPTIONAL)")
          ("unit", po::value<string>(), "Sets the units. Options: re, km, m (OPTIONAL)")
          ("point1", po::value< vector<Real> >()->multitoken(), "Set the starting point x y z of a line")
          ("point2", po::value< vector<Real> >()->multitoken(), "Set the ending point x y z of a line")
@@ -1480,32 +1035,25 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
       const size_t _size = 3;
       if( !vm["coordinates"].empty() && vm["coordinates"].as< vector<Real> >().size() == _size ) {
         //Save input into coordinates vector (later on the values are stored into a *Real pointer
-        vector<Real> _coordinates = vm["coordinates"].as< vector<Real> >();
-        for( uint i = 0; i < 3; ++i ) {
-           coordinates[i] = _coordinates[i];
-        }
+        coordinates = vm["coordinates"].as< vector<Real> >();
         //Let the program know we want to get the cell id from coordinates
         getCellIdFromCoordinates = true;
       }
       if( !vm["point1"].empty() && vm["point1"].as< vector<Real> >().size() == _size
        && !vm["point2"].empty() && vm["point2"].as< vector<Real> >().size() == _size ) {
         //Save input into point vector (later on the values are stored into a *Real pointer
-        vector<Real> _point1 = vm["point1"].as< vector<Real> >();
-        vector<Real> _point2 = vm["point2"].as< vector<Real> >();
-        //Input the values
-        for( uint i = 0; i < 3; ++i ) {
-           point1[i] = _point1[i];
-           point2[i] = _point2[i];
-        }
-        _point1.clear();
-        _point2.clear();
+        point1 = vm["point1"].as< vector<Real> >();
+        point2 = vm["point2"].as< vector<Real> >();
         //Check if the user wants to specify number of coordinates we want to calculate:
         if( vm.count("pointAmount") ) {
            //User specified the number of points -- set it
-           numberOfCoordinatesInALine = vm["pointAmount"].as<uint32_t>();
+           numberOfCoordinatesInALine = vm["pointAmount"].as<unsigned int>();
+        } else {
+           //No user input -- set it to 0 (default value)
+           numberOfCoordinatesInALine = 0;
         }
         //Let the program know we want to get the cell id from coordinates
-        getCellIdFromLine = true;
+        calculateCellIdFromLine = true;
       }
       //Check for rotation
       if( vm.count("rotate") ) {
@@ -1515,8 +1063,24 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
       //Check for cell id input
       if( vm.count("cellid") ) {
          //Save input
-         cellId = vm["cellid"].as<uint64_t>();
+         _cellID = vm["cellid"].as<uint64_t>();
          getCellIdFromInput = true;
+      }
+      if( vm.count("maxdistance") ) {
+         //Set only if we're calculating cell id from coordinates
+         if( calculateCellIdFromLine || getCellIdFromCoordinates ) {
+            //save input
+            max_distance = vm["maxdistance"].as<Real>();
+            if( max_distance < 0 ) {
+                cout << "Max distance must be positive!" << endl;
+                cout << desc << endl;
+                return false;
+            }
+         } else {
+            cout << "maxdistance should be set only when calculating along a line or from coordinates" << endl;
+            cout << desc << endl;
+            return false;
+         }
       }
       if( vm.count("outputdirectory") ) {
          //Save input
@@ -1576,19 +1140,20 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
             return false;
          }
          //Convert the coordinates into correct units:
-//getCellIdFromLine, getCellIdFromCoordinates,
-         if( getCellIdFromLine ) {
-            const uint16_t vectorSize = 3;
-            for( uint i = 0; i < vectorSize; ++i ) {
+//calculateCellIdFromLine, getCellIdFromCoordinates,
+         if( calculateCellIdFromLine ) {
+            vector<Real>::iterator i = point1.begin();
+            vector<Real>::iterator j = point2.begin();
+            for( ; i != point1.end() && j != point2.end(); ++i, ++j ) {
                //Multiply the coordinates:
-               point1[i] = point1[i] * unit_conversion;
-               point2[i] = point2[i] * unit_conversion;
+               *i = (*i) * unit_conversion;
+               *j = (*j) * unit_conversion;
             }
          } else if( getCellIdFromCoordinates ) {
-            const uint16_t vectorSize = 3;
-            for( uint i = 0; i < vectorSize; ++i ) {
+            vector<Real>::iterator i = coordinates.begin();
+            for( ; i != coordinates.end(); ++i ) {
                //Multiply the coordinates:
-               coordinates[i] = coordinates[i] * unit_conversion;
+               *i = (*i) * unit_conversion;
             }
          } else {
             cout << "Nothing to convert!" << endl;
@@ -1601,7 +1166,7 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
       //The cell id can be either received from input or calculated from coordinates or from a line, but only one option is ok:
       //Also, we have to get the cell id from somewhere so either cell id must be input or coordinates/line must be input
       int count = 0;
-      if( getCellIdFromLine ) ++count;
+      if( calculateCellIdFromLine ) ++count;
       if( getCellIdFromInput ) ++count;
       if( getCellIdFromCoordinates ) ++count;
       if( count != 1 ) {
@@ -1619,6 +1184,7 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
    //Check to make sure the input for outputDirectoryPath is valid
    if( outputDirectoryPath.size() != 1 ) {
       cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", invalid outputDirectoryPath!" << endl;
+      MPI_Finalize();
       exit(1);
    }
    //Everything ok
@@ -1627,8 +1193,8 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
 
 //Outputs a number of coordinates along a line whose starting point is start and ending point end into outPutCoordinates
 //Input:
-//[0] array<Real, 3> & start -- Starting x, y, z coordinates of a line
-//[1] array<Real, 3> & end -- Starting x, y, z coordinates of a line
+//[0] vector<Real> & start -- Starting x, y, z coordinates of a line
+//[1] vector<Real> & end -- Starting x, y, z coordinates of a line
 //[2] unsigned int numberOfCoordinates -- Number of coordinates stored into outputCoordinates
 //Output:
 //[0] vector< array<Real, 3> > & outputCoordinates -- Stores the coordinates here
@@ -1636,278 +1202,121 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
 //output
 void setCoordinatesAlongALine( 
                                const CellStructure & cellStruct,
-                               const array<Real, 3> & start, const array<Real, 3> & end, uint32_t numberOfCoordinates,
+                               vector<Real> & start, vector<Real> & end, unsigned int numberOfCoordinates,
                                vector< array<Real, 3> > & outputCoordinates 
                              ) {
+   //Check vector sizes:
+   const size_t _size = 3;
+   if( start.size() != _size || end.size() != _size ) {
+      cerr << "Error! Invalid vectorsize passed to setCoordinatesAlongALine at: " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
+      exit(1); //terminate
+   }
+   //Declare _numberOfCoordinates (The same as the input except if the input is 0 (default value))
    //Used in calculations in place of numberOfCoordinates
-   uint32_t _numberOfCoordinates;
+   unsigned int _numberOfCoordinates;
    //make sure the input is valid
    if( numberOfCoordinates == 0 ) {
       //Default value -- determine the number of coordinates yourself (Should be about the same size as the number of cells along
       //the line
       //Calculate the length of the line:
-      const Real line_length = sqrt(
-                                     (end[0] - start[0]) * (end[0] - start[0])
-                                   + (end[1] - start[1]) * (end[1] - start[1])
-                                   + (end[2] - start[2]) * (end[2] - start[2])
-                                   );
-      Real minCellLength = numeric_limits<Real>::max();
-
-      const uint32_t sizeOfCellLength = 3;
-      //Get the smallest cell length (usually they're all the same size)
-      for( uint i = 0; i < sizeOfCellLength; ++i ) {
-         if( minCellLength > cellStruct.cell_length[i] ) {minCellLength = cellStruct.cell_length[i];}
+      Real line_length;
+      if( cellStruct.cell_bounds[2] < 2 ) {
+         //We are in 2D
+         line_length = sqrt(
+                                 (end[0] - start[0]) * (end[0] - start[0]) 
+                                 + (end[1] - start[1]) * (end[1] - start[1]) 
+                                );
+         //Calculate the average of line_length / cell_length[i] (just a guess)
+         //cell_length if of size 3 so divide by 3:
+         Real division = 2;
+         //Calculate number of coordinates:
+         //NOTE: _cell_length[i] = a cell's length in i-direction (for example _cell_length[0] means in x-direction)
+         _numberOfCoordinates = (unsigned int)( 
+                                               (line_length / cellStruct.cell_length[0]) / division 
+                                               + (line_length / cellStruct.cell_length[1]) / division
+                                              );
+      } else {
+         line_length = sqrt(
+                                 (end[0] - start[0]) * (end[0] - start[0])
+                                 + (end[1] - start[1]) * (end[1] - start[1])
+                                 + (end[2] - start[2]) * (end[2] - start[2])
+                                );
+         //Calculate the average of line_length / cell_length[i] (just a guess)
+         //cell_length if of size 3 so divide by 3:
+         Real division = 3;
+         //Calculate number of coordinates:
+         //NOTE: _cell_length[i] = a cell's length in i-direction (for example _cell_length[0] means in x-direction)
+         _numberOfCoordinates = (unsigned int)( 
+                                               (line_length / cellStruct.cell_length[0]) / division 
+                                               + (line_length / cellStruct.cell_length[1]) / division
+                                               + (line_length / cellStruct.cell_length[2]) / division
+                                              );
       }
-
-      if( minCellLength == 0 ) {
-         cerr << "ERROR, BAD MINIMUM CELL LENGTH AT " << __FILE__ << " " << __LINE__ << endl;
-         exit(1);
-      }
-      _numberOfCoordinates = (uint32_t)( line_length / minCellLength );
 
       //Make sure the number is valid (Must be at least 2 points):
       if( _numberOfCoordinates < 2 ) {
          cerr << "Cannot use numberOfCoordinates lower than 2 at " << __FILE__ << " " << __LINE__ << endl;
+         MPI_Finalize();
          exit(1);
       }
-
       //Just to make sure that there's enough coordinates let's add a few more:
-      _numberOfCoordinates = (uint32_t)(1.2 * _numberOfCoordinates);
+      _numberOfCoordinates = 1.3 * _numberOfCoordinates;
    } else if( numberOfCoordinates < 2 ) {
       cerr << "Cannot use numberOfCoordinates lower than 2 at " << __FILE__ << " " << __LINE__ << endl;
+      MPI_Finalize();
       exit(1);
    } else {
       //User defined input
       _numberOfCoordinates = numberOfCoordinates;
    }
-   //Store the unit of line vector ( the vector from start to end divided by the numberOfCoordinates ) into line_unit
-   array<Real, 3> line_unit;
-   for( uint i = 0; i < 3; ++i ) {
-      line_unit[i] = (end[i] - start[i]) / (Real)(_numberOfCoordinates - 1);
+   //Store the unit of line vector ( the vector from start to end divided by the numberOfCoordinates ) into std::vector line_unit
+   vector<Real> line_unit;
+   //Initialize iterator i to start function's first value
+   vector<Real>::iterator i = start.begin();
+   //Initialize iterator j to end function's first value
+   vector<Real>::iterator j = end.begin();
+   //Iterator (Note: end.end() means the .end() of end vector)
+   for( ; i != start.end() && j !=end.end(); ++j, ++i ) {
+      line_unit.push_back( (*j - *i) / (Real)(_numberOfCoordinates - 1) );
+   }
+   //Check if vector is of size 3 -- if not, display error
+   if( line_unit.size() != _size ) {
+      cerr << "Error at " << __FILE__ << " " << __LINE__ << ", line vector not of size 3!" << endl;
+      MPI_Finalize();
+      exit(1);
    }
 
-   //Insert the coordinates:
-   outputCoordinates.reserve(_numberOfCoordinates);
-   for( uint j = 0; j < _numberOfCoordinates; ++j ) {
-      const array<Real, 3> input{{start[0] + j * line_unit[0],
-                                  start[1] + j * line_unit[1],
-                                  start[2] + j * line_unit[2],}};
-      outputCoordinates.push_back(input);
+   //Calculate the coordinates in a loop:
+   //Declare the array to be used in storing coordinates
+   array<Real, _size> currentArray;
+   //Set starting values for currentArray
+   unsigned int k = 0;
+   //Iterate through start: (Note: there's a ++i AND ++k in the for loop)
+   for( i = start.begin(); i != start.end(); ++i, ++k ) {
+      //Iterating through start vector so in the beginning currentArray has the same values as 'start' vector (starting point vec)
+      currentArray[k] = *i;
    }
-
+   for( k = 0; k < _numberOfCoordinates; ++k ) {
+      //Save vector first (We want the starting point, too)
+      outputCoordinates.push_back( currentArray );
+      //Declare j and iterator for iterating:
+      int j = 0;
+      vector<Real>::iterator it = line_unit.begin();
+      //Iterate through line (NOTE: there's a ++it AND ++j in the for loop)
+      for( ; it != line_unit.end(); ++it, ++j ) {
+         //Input the values by using the line_unit vector -- just plus the currentArray by one
+         currentArray[j] = currentArray[j] + *it;
+      }
+   }
    //Make sure the output is not empty
    if( outputCoordinates.empty() ) {
       cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", Calculated coordinates empty!" << endl;
+      MPI_Finalize();
       exit(1);
    }
    return;
 }
-
-
-template <class T>
-void convertFileToSilo( const string & fileName, const UserOptions & mainOptions ) {
-   T vlsvReader;
-   // Open VLSV file and read mesh names:
-   vlsvReader.open(fileName);
-   list<string> meshNames;
-   const string tagName = "MESH";
-   const string attributeName = "name";
-   
-   if (vlsvReader.getMeshNames(meshNames) == false) {
-      cout << "\t file '" << fileName << "' not compatible" << endl;
-      vlsvReader.close();
-      return;
-   }
-
-   //Sets cell variables (for cell geometry) -- used in getCellIdFromCoords function
-   CellStructure cellStruct;
-   setCellVariables( vlsvReader, cellStruct );
-
-   //Declare a vector for holding multiple cell ids (Note: Used only if we want to calculate the cell id along a line)
-   vector<uint64_t> cellIdList;
-
-   //Determine how to get the cell id:
-   //(getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used, I'm keeping to
-   //previously used syntax)
-   if( mainOptions.getCellIdFromCoordinates ) {
-
-      //Get the cell id list of cell ids with velocity distribution
-      unordered_set<uint64_t> cellIdList_velocity;
-      createCellIdList( vlsvReader, cellIdList_velocity );
-
-      //Get the cell id from coordinates
-      //Note: By the way, this is not the same as bool getCellIdFromCoordinates (should change the name)
-      const uint64_t cellID = getCellIdFromCoords( cellStruct, cellIdList_velocity, mainOptions.coordinates );
-
-      if( cellID == numeric_limits<uint64_t>::max() ) {
-         //Could not find a cell id
-         cout << "Could not find a cell id in the given coordinates!" << endl;
-         vlsvReader.close();
-         return;
-      }
-
-      //Print the cell id:
-      //store the cel lid in the list of cell ids (This is only used because it makes the code for 
-      //calculating the cell ids from a line clearer)
-      cellIdList.push_back( cellID );
-   } else if( mainOptions.getCellIdFromLine ) {
-      //Get the cell id list of cell ids with velocity distribution
-      unordered_set<uint64_t> cellIdList_velocity;
-      createCellIdList( vlsvReader, cellIdList_velocity );
-
-      //Now there are multiple cell ids so do the same treatment for the cell ids as with getCellIdFromCoordinates
-      //but now for multiple cell ids
-
-      //Declare a vector for storing coordinates:
-      vector< array<Real, 3> > coordinateList;
-      //Store cell ids into coordinateList:
-      //Note: All mainOptions are user-input
-      setCoordinatesAlongALine( cellStruct, mainOptions.point1, mainOptions.point2, mainOptions.numberOfCoordinatesInALine, coordinateList );
-      //Note: (getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used,
-      // I'm keeping to previously used syntax)
-      //Declare an iterator
-      vector< array<Real, 3> >::iterator it;
-      //Calculate every cell id in coordinateList
-      for( it = coordinateList.begin(); it != coordinateList.end(); ++it ) {
-         //NOTE: since this code is nearly identical to the code for calculating single coordinates, it could be smart to create a separate function for this
-         //declare coordinates array
-         const array<Real, 3> & coords = *it;
-         //Get the cell id from coordinates
-         const uint64_t cellID = getCellIdFromCoords( cellStruct, cellIdList_velocity, coords );
-         if( cellID != numeric_limits<uint64_t>::max() ) {
-            //A valid cell id:
-            //Store the cell id in the list of cell ids but only if it is not already there:
-            if( cellIdList.empty() ) {
-               //cell id list empty so it's safe to input
-               cellIdList.push_back( cellID );
-            } else if( cellIdList.back() != cellID ) {
-               //cellID has not already been added, so add it now:
-               cellIdList.push_back( cellID );
-            }
-         }
-      }
-   } else if( mainOptions.getCellIdFromInput ) {
-      //Declare cellID and set it if the cell id is specified by the user
-      //bool getCellIdFromLine equals true) -- this is done later on in the code ( After the file has been opened)
-      const uint64_t cellID = mainOptions.cellId;
-      //store the cell id in the list of cell ids (This is only used because it makes the code for 
-      //calculating the cell ids from a line clearer)
-      cellIdList.push_back( cellID );
-   } else {
-      //This should never happen but it's better to be safe than sorry
-      cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", No user input for cell id retrieval!" << endl;
-      vlsvReader.close();
-      exit(1);
-   }
-
-   //Check for proper input
-   if( cellIdList.empty() ) {
-      cout << "Could not find a cell id!" << endl;
-      return;
-   }
-
-   //Next task is to iterate through the cell ids and save files:
-   //Save all of the cell ids' velocities into files:
-   vector<uint64_t>::iterator it;
-   //declare extractNum for keeping track of which extraction is going on and informing the user (used in the iteration)
-   int extractNum = 1;
-   //Give some info on how many extractions there are and what the save path is:
-   cout << "Save path: " << mainOptions.outputDirectoryPath.front() << endl;
-   cout << "Total number of extractions: " << cellIdList.size() << endl;
-   //Iterate:
-   for( it = cellIdList.begin(); it != cellIdList.end(); ++it ) {
-      //get the cell id from the iterator:
-      const uint64_t cellID = *it;
-      //Print out the cell id:
-      cout << "Cell id: " << cellID << endl;
-      // Create a new file suffix for the output file:
-      stringstream ss1;
-      ss1 << ".silo";
-      string newSuffix;
-      ss1 >> newSuffix;
-
-      // Create a new file prefix for the output file:
-      stringstream ss2;
-      if( mainOptions.rotateVectors ) {
-         ss2 << "velgrid" << '.' << "rotated" << '.' << cellID;
-      } else {
-         ss2 << "velgrid" << '.' << cellID;
-      }
-      string newPrefix;
-      ss2 >> newPrefix;
-
-      // Replace .vlsv with the new suffix:
-      string outputFileName = fileName;
-      size_t pos = outputFileName.rfind(".vlsv");
-      if (pos != string::npos) outputFileName.replace(pos, 5, newSuffix);
-   
-      pos = outputFileName.find(".");
-      if (pos != string::npos) outputFileName.replace(0, pos, newPrefix);
-
-
-      //Declare the file path (used in DBCreate to save the file in the correct location)
-      string outputFilePath;
-      //Get the path (outputDirectoryPath was retrieved from user input and it's a vector<string>):
-      outputFilePath.append( mainOptions.outputDirectoryPath.front() );
-      //The complete file path is still missing the file name, so add it to the end:
-      outputFilePath.append( outputFileName );
-      
-
-      // Create a SILO file for writing:
-      fileptr = DBCreate(outputFilePath.c_str(), DB_CLOBBER, DB_LOCAL, "Vlasov data file", DB_PDB);
-      if (fileptr == NULL) {
-         cerr << "\t failed to create output SILO file for input file '" << fileName << "'" << endl;
-         DBClose(fileptr);
-         vlsvReader.close();
-         return;
-      }
-
-
-
-      // Extract velocity grid from VLSV file, if possible, and convert into SILO format:
-      bool velGridExtracted = true;
-      if( typeid(vlsvReader) == typeid(newVlsv::Reader) ) {
-         vlsvReader.setCellsWithBlocks();
-      }
-      for (list<string>::const_iterator it = meshNames.begin(); it != meshNames.end(); ++it) {
-         if (convertVelocityBlocks2(vlsvReader, *it, cellStruct, cellID, mainOptions.rotateVectors ) == false) {
-            velGridExtracted = false;
-         } else {
-            //Display message for the user:
-            if( mainOptions.getCellIdFromLine ) {
-               //Extracting multiple cell ids:
-               //Display how mant extracted and how many more to go:
-               int moreToGo = cellIdList.size() - extractNum;
-               //Display message
-               cout << "Extracted num. " << extractNum << ", " << moreToGo << " more to go" << endl;
-               //Move to the next extraction number
-               ++extractNum;
-            } else {
-               //Single cell id:
-               cout << "\t extracted from '" << fileName << "'" << endl;
-            }
-         }
-      }
-      DBClose(fileptr);
-
-      // If velocity grid was not extracted, delete the SILO file:
-      if (velGridExtracted == false) {
-         cerr << "ERROR, FAILED TO EXTRACT VELOCITY GRID AT: " << __FILE__ << " " << __LINE__ << endl;
-         if (remove(outputFilePath.c_str()) != 0) {
-            cerr << "\t ERROR: failed to remote dummy output file!" << endl;
-         }
-      }
-   }
-
-   vlsvReader.close();
-
-}
-
-
-
-
-
-
 
 
 int main(int argn, char* args[]) {
@@ -1915,6 +1324,34 @@ int main(int argn, char* args[]) {
    MPI_Init(&argn, &args);
    MPI_Comm_size(MPI_COMM_WORLD, &ntasks);
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+   //Retrieve options variables:
+   bool getCellIdFromCoordinates = false; //true if the cell id is calculated from coordinates
+   bool rotateVectors = false; //True if velocities are rotated so the z-axis faces B_vol vector (done in convertVelocityBlocks2)
+   bool getCellIdFromInput = false; //True if user gave input
+   bool calculateCellIdFromLine = false;
+   vector<Real> _coordinates; //Store retrieved coordinate input from the user
+   uint64_t _cellID = 0; //_cellID from user input
+   //For line calculation (These are set by user input):
+   vector<Real> point1; //Used to calculate cell ids across a line (This is the starting point of the line)
+   vector<Real> point2; //Used to calculate cell ids across a line (This is the ending point of the line)
+   unsigned int numberOfCoordinatesInALine;
+   Real maxDistance = -1; //The max allowed distance from given coordinates to a cell (if calculating along a line or from coordinates) (default value -1)
+   vector<string> outputDirectoryPath; //Tells where to output the file
+
+   //Get user input and set the retrieve options variables
+   if( retrieveOptions( argn, args, getCellIdFromCoordinates, getCellIdFromInput, calculateCellIdFromLine, rotateVectors, _coordinates, point1, point2, _cellID, numberOfCoordinatesInALine, maxDistance, outputDirectoryPath ) == false ) {
+      //Failed to retrieve options (Due to contradiction or an error)
+      printUsageMessage(); //Prints the usage message
+      return 0;
+   }
+   if (rank == 0 && argn < 3) {
+      //Failed to retrieve options (Due to contradiction or an error)
+      printUsageMessage(); //Prints the usage message
+      return 0;
+   }
+
+
 
    //Get the file name
    const string mask = args[1];  
@@ -1928,6 +1365,7 @@ int main(int argn, char* args[]) {
       return 1;
    }
 
+   VLSVReader vlsvReader;
    int filesFound = 0, entryCounter = 0;
    vector<string> fileList;
    struct dirent* entry = readdir(dir);
@@ -1941,43 +1379,225 @@ int main(int argn, char* args[]) {
       filesFound++;
       entry = readdir(dir);
    }
-   if (filesFound == 0) cout << "\t no matches found" << endl;
+   if (rank == 0 && filesFound == 0) cout << "\t no matches found" << endl;
    closedir(dir);
 
-   //Retrieve options variables:
-   UserOptions mainOptions;
-
-   //Get user input and set the retrieve options variables
-   if( retrieveOptions( argn, args, mainOptions ) == false ) {
-      //Failed to retrieve options (Due to contradiction or an error)
-      printUsageMessage(); //Prints the usage message
-      return 0;
-   }
-   if (rank == 0 && argn < 3) {
-      //Failed to retrieve options (Due to contradiction or an error)
-      printUsageMessage(); //Prints the usage message
-      return 0;
-   }
-
-   //Convert files
    for (size_t entryName = 0; entryName < fileList.size(); entryName++) {
       if (entryCounter++ % ntasks == rank) {
-         //Get the file name
-         const string & fileName = fileList[entryName];
-         //Check vlsv library version
-         if( checkVersion(fileName) == 1.00 ) {
-            //Using new vlsv library
-            convertFileToSilo<newVlsv::Reader>( fileName, mainOptions );
-         } else {
-            //Using old vlsv library
-            convertFileToSilo<oldVlsv::Reader>( fileName, mainOptions );
+         // Open VLSV file and read mesh names:
+         vlsvReader.open(fileList[entryName]);
+         list<string> meshNames;
+         if (vlsvReader.getMeshNames(meshNames) == false) {
+            cout << "\t file '" << fileList[entryName] << "' not compatible" << endl;
+            vlsvReader.close();
+            continue;
          }
+
+         //Sets cell variables (for cell geometry) -- used in getCellIdFromCoords function
+         CellStructure cellStruct;
+         setCellVariables( vlsvReader, cellStruct );
+      
+         //If maxDistance is -1 then user has not input values to it so we have to define it now:
+         if( maxDistance == -1 ) {
+            //Use the cell grid's geometry to determine a good max_distance:
+            if( cellStruct.cell_bounds[2] < 2 ) {
+               //No z axis (2D):
+               maxDistance = 0.7*sqrt(cellStruct.cell_length[0]*cellStruct.cell_length[0] + cellStruct.cell_length[1]*cellStruct.cell_length[1]);
+            } else {
+               //Get the z axis too (3D)
+               maxDistance = 0.7*sqrt(cellStruct.cell_length[0]*cellStruct.cell_length[0] + cellStruct.cell_length[1]*cellStruct.cell_length[1] + cellStruct.cell_length[2]*cellStruct.cell_length[2]);
+            }
+          }
+
+         //Declare cell id (defined based on user options):
+         uint64_t cellID;
+         //Declare a vector for holding multiple cell ids (Note: Used only if we want to calculate the cell id along a line)
+         vector<uint64_t> cellIdList;
+         //Determine how to get the cell id:
+         //(getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used, I'm keeping to
+         //previously used syntax)
+         if( getCellIdFromCoordinates ) {
+            //(getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used, I'm keeping to
+            //previously used syntax)
+            int _vectorSize = 3;
+            Real * coords = new Real[_vectorSize];
+            //Iterate through the coordinates vector retrived from user input
+            vector<Real>::iterator j;
+            int i = 0;
+            for( j = _coordinates.begin(); j != _coordinates.end(); ++j, ++i ) {
+               coords[i] = *j;
+            }
+
+            //Get the cell id from coordinates
+            //Note: By the way, this is not the same as bool getCellIdFromCoordinates (should change the name)
+            cellID = getCellIdFromCoords( vlsvReader, cellStruct, coords, maxDistance );
+
+            if( cellID == numeric_limits<uint64_t>::max() ) {
+               //Could not find a cell id
+               cout << "Could not find a cell id close enough to the input coordinates! Try raising --max-distance" << endl;
+               vlsvReader.close();
+               return 0;
+            }
+            delete[] coords;
+            //Print the cell id:
+            //cout << "Cell id: " << cellID << endl;
+            //store the cel lid in the list of cell ids (This is only used because it makes the code for 
+            //calculating the cell ids from a line clearer)
+            cellIdList.push_back( cellID );
+         } else if( calculateCellIdFromLine ) {
+            //Now there are multiple cell ids so do the same treatment for the cell ids as with getCellIdFromCoordinates
+            //but now for multiple cell ids
+
+            //We're handling 3-dimensional arrays so the vector size is 3
+            const int _vectorSize = 3;
+            //Declare a vector for storing coordinates:
+            vector< array<Real, 3> > coordinateList;
+            //Store cell ids into coordinateList:
+            setCoordinatesAlongALine( cellStruct, point1, point2, numberOfCoordinatesInALine, coordinateList );
+            //Note: (getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used,
+            // I'm keeping to previously used syntax)
+            //Declare an iterator
+            vector< array<Real, _vectorSize> >::iterator currentArray;
+            //Calculate every cell id in coordinateList
+            for( currentArray = coordinateList.begin(); currentArray != coordinateList.end(); ++currentArray ) {
+               //NOTE: since this code is nearly identical to the code for calculating single coordinates, it could be smart to create a separate function for this
+               //declare coordinates array
+               Real * coords = new Real[_vectorSize];
+               for( int i = 0; i < _vectorSize; ++i ) {
+                  //Store the array info received from the iterator into coordinates coords (to be used in getCellIdFromCoords)
+                  coords[i] = (*currentArray)[i];
+               }
+               //Get the cell id from coordinates
+               //Note: (getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used,
+               // I'm keeping to previously used syntax)
+               cellID = getCellIdFromCoords( vlsvReader, cellStruct, coords, maxDistance );
+               if( cellID != numeric_limits<uint64_t>::max() ) {
+                  //A valid cell id:
+                  //Store the cell id in the list of cell ids but only if it is not already there:
+                  if( cellIdList.empty() ) {
+                     //cell id list empty so it's safe to input
+                     cellIdList.push_back( cellID );
+                  } else if( cellIdList.back() != cellID ) {
+                     //cellID has not already been calculated, so calculate it now:
+                     cellIdList.push_back( cellID );
+                  }
+               }
+               delete[] coords;
+            }
+         } else if( getCellIdFromInput ) {
+            //Declare cellID and set it if the cell id is specified by the user
+            //bool calculateCellIdFromLine equals true) -- this is done later on in the code ( After the file has been opened)
+            cellID = _cellID;
+            //store the cel lid in the list of cell ids (This is only used because it makes the code for 
+            //calculating the cell ids from a line clearer)
+            cellIdList.push_back( cellID );
+         } else {
+            //This should never happen but it's better to be safe than sorry
+            cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", No input concerning cell id!" << endl;
+            vlsvReader.close();
+            MPI_Finalize();
+            exit(1);
+         }
+
+         //Check for proper input
+         if( cellIdList.empty() ) {
+            cout << "Could not find a cell id!" << endl;
+            return 0;
+         }
+
+         //Next task is to iterate through the cell ids and save files:
+         //Save all of the cell ids' velocities into files:
+         vector<uint64_t>::iterator it;
+         //declare extractNum for keeping track of which extraction is going on and informing the user (used in the iteration)
+         int extractNum = 1;
+         //Give some info on how many extractions there are and what the save path is:
+         cout << "Save path: " << outputDirectoryPath.front() << endl;
+         cout << "Total number of extractions: " << cellIdList.size() << endl;
+         //Iterate:
+         for( it = cellIdList.begin(); it != cellIdList.end(); ++it ) {
+            //get the cell id from the iterator:
+            cellID = *it;
+            //Print out the cell id:
+            cout << "Cell id: " << cellID << endl;
+            // Create a new file suffix for the output file:
+            stringstream ss1;
+            ss1 << ".silo";
+            string newSuffix;
+            ss1 >> newSuffix;
+
+            // Create a new file prefix for the output file:
+            stringstream ss2;
+            //cout << cellID << endl;
+            if( rotateVectors ) {
+               ss2 << "velgrid" << '.' << "rotated" << '.' << cellID;
+            } else {
+               ss2 << "velgrid" << '.' << cellID;
+            }
+            string newPrefix;
+            ss2 >> newPrefix;
+
+            // Replace .vlsv with the new suffix:
+            string outputFileName = fileList[entryName];
+            size_t pos = outputFileName.rfind(".vlsv");
+            if (pos != string::npos) outputFileName.replace(pos, 5, newSuffix);
+   
+            pos = outputFileName.find(".");
+            if (pos != string::npos) outputFileName.replace(0, pos, newPrefix);
+
+
+            //Declare the file path (used in DBCreate to save the file in the correct location)
+            string outputFilePath;
+            //Get the path (outputDirectoryPath was retrieved from user input and it's a vector<string>):
+            outputFilePath.append( outputDirectoryPath.front() );
+            //The complete file path is still missing the file name, so add it to the end:
+            outputFilePath.append( outputFileName );
+            
+
+            // Create a SILO file for writing:
+            fileptr = DBCreate(outputFilePath.c_str(), DB_CLOBBER, DB_LOCAL, "Vlasov data file", DB_PDB);
+            if (fileptr == NULL) {
+               cerr << "\t failed to create output SILO file for input file '" << fileList[entryName] << "'" << endl;
+               DBClose(fileptr);
+               vlsvReader.close();
+               continue;
+            }
+
+            // Extract velocity grid from VLSV file, if possible, and convert into SILO format:
+            bool velGridExtracted = true;
+            for (list<string>::const_iterator it = meshNames.begin(); it != meshNames.end(); ++it) {
+               if (convertVelocityBlocks2(vlsvReader, *it, cellID, rotateVectors ) == false) {
+                  velGridExtracted = false;
+               } else {
+                  //Display message for the user:
+                  if( calculateCellIdFromLine ) {
+                     //Extracting multiple cell ids:
+                     //Display how mant extracted and how many more to go:
+                     int moreToGo = cellIdList.size() - extractNum;
+                     //Display message
+                     cout << "Extracted num. " << extractNum << ", " << moreToGo << " more to go" << endl;
+                     //Move to the next extraction number
+                     ++extractNum;
+                  } else {
+                     //Single cell id:
+                     cout << "\t extracted from '" << fileList[entryName] << "'" << endl;
+                  }
+               }
+            }
+            DBClose(fileptr);
+
+            // If velocity grid was not extracted, delete the SILO file:
+            if (velGridExtracted == false) {
+               if (remove(outputFilePath.c_str()) != 0) {
+                  cerr << "\t ERROR: failed to remote dummy output file!" << endl;
+               }
+            }
+         }
+
+         vlsvReader.close();
       }
    }
+
    MPI_Finalize();
-   return 0;
-
-
    return 0;
 }
 
