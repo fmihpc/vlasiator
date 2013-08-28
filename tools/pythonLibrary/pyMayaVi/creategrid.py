@@ -128,7 +128,7 @@ class MayaviPlots:
       for i in sorted_index_for_cellid_dict:
          variable_array_sorted.append(variable_array[i[1]])
       # Draw the grid:
-      self.__generate_grid( mins=mins, lengths=lengths, cells=cells, datas=variable_array_sorted, variable )
+      self.__generate_grid( mins=mins, lengths=lengths, cells=cells, datas=variable_array_sorted, name=variable )
    
 
 
