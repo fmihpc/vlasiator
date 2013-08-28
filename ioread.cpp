@@ -245,7 +245,6 @@ static inline void inputBlockData( const uint64_t & cell, const uint64_t & buffe
      - Machinery in readvlsv does not at the moment support setting fileviews, this should be improved.
      
 */
-template <typename fileReal>
 bool readBlockData(
    VLSVParReader & file,
    const vector<uint64_t>& fileCells,
@@ -387,7 +386,6 @@ void getVelocityBlockCoordinates( const uint64_t & block, array<Real, 3> & block
      - Machinery in readvlsv does not at the moment support setting fileviews, this should be improved.
      
 */
-template <typename fileReal>
 bool readBlockData(
    ParallelReader & file,
    const vector<uint64_t>& fileCells,
@@ -901,7 +899,7 @@ bool exec_readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    
    phiprof::stop("readCellParameters");
    phiprof::start("readBlockData");
-   if(success) { success=readBlockData<double>(file,fileCells,localCellStartOffset,localCells,nBlocks,localBlockStartOffset,localBlocks,mpiGrid); }
+   if(success) { success=readBlockData(file,fileCells,localCellStartOffset,localCells,nBlocks,localBlockStartOffset,localBlocks,mpiGrid); }
    //CONTINUE
    phiprof::stop("readBlockData");
    if(success) { success=file.close(); }
