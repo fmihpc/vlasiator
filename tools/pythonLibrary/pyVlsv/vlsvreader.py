@@ -43,8 +43,8 @@ class VlsvFile(object):
       self.__vzmax = self.read_parameter("vzmax")
 
       self.__dx = (self.__xmax - self.__xmin) / (float)(self.__xcells)
-      self.__dy = (self.__ymax - self.__ymin) / (float)(self.__xcells)
-      self.__dz = (self.__zmax - self.__zmin) / (float)(self.__xcells)
+      self.__dy = (self.__ymax - self.__ymin) / (float)(self.__ycells)
+      self.__dz = (self.__zmax - self.__zmin) / (float)(self.__zcells)
 
       # Velocity cell lengths
       velocity_cells_per_direction = 4
