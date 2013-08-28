@@ -33,7 +33,8 @@ SILO_VERSION = 4.8
 LIBRARY_PREFIX_A = /zhome/academic/HLRS/pri/iprilhon/libraries
 LIBRARY_PREFIX_B = /zhome/academic/HLRS/pri/iprsalft/libraries
 
-
+INC_VLSV = -I$(LIBRARY_PREFIX_B)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX_B)/vlsv -lvlsv
 
 INC_BOOST = -I$(LIBRARY_PREFIX_A)/cray-mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/$(BOOST_VERSION)/include
 LIB_BOOST = -L$(LIBRARY_PREFIX_A)/cray-mpich2/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/$(BOOST_VERSION)/lib -lboost_program_options
