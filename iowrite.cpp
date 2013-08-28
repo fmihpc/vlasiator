@@ -206,7 +206,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    } catch( bad_alloc& ) {
       cerr << "ERROR, FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl;
       logFile << "(MAIN) writeGrid: ERROR FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
-      exit( 1 );
+      success = false;
    }
    for (uint64_t cell=0; cell<cells.size(); ++cell) {
       //Reduce data ( return false if the operation fails )
@@ -492,7 +492,6 @@ bool writeBoundingBoxNodeCoordinates ( Writer & vlsvWriter,
    const Real & xCellLength = (Real)P::dx_ini;
    const Real & yCellLength = (Real)P::dy_ini;
    const Real & zCellLength = (Real)P::dz_ini;
-   
 
    //Create node coordinates:
    //These are the coordinates for any given node in x y or z direction
@@ -589,7 +588,7 @@ bool writeMeshBoundingBox( Writer & vlsvWriter,
    //Write:
    //Declare attributes
    map<string, string> xmlAttributes;
-   //We received mesh name as a parameter: MOST LIKELY THIS IS SpatialGrid!
+   //We received mesh name as a parameter: most likely SpatialGrid
    xmlAttributes["mesh"] = meshName;
 
    //Write an array (NOTE: success will be returned and writeArray will return true or false depending on whether or not the write is successful)

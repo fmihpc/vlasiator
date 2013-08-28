@@ -195,7 +195,7 @@ bool readNBlocks( T & file,
       } else if( typeid(T) == typeid(VLSVParReader) ) {
          attribs.push_back(make_pair("name","SpatialGrid"));
       } else {
-         cout << "(RESTARTBUILDER) ERROR: BAD TYPEID IN READNBLOCKS AT " << __FILE__ << " " << __LINE__ << endl;
+         cerr << "(RESTARTBUILDER) ERROR: BAD TYPEID IN READNBLOCKS AT " << __FILE__ << " " << __LINE__ << endl;
          logFile << "(RESTARTBUILDER) ERROR: BAD TYPEID IN READNBLOCKS AT " << __FILE__ << " " << __LINE__ << endl << write;
          return false;
       }
@@ -220,6 +220,25 @@ bool readNBlocks( T & file,
    return success;
 }
 
+template <typename T, typename U>
+static inline void inputBlockData( const uint64_t & cell, const uint64_t & bufferBlock, const uint64_t & coordVectorSize, const uint64_t & avgVectorSize, const T * coordBuffer, const U * avgBuffer, dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid ) {
+   const T vx_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VXCRD];
+   const T vy_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VYCRD];
+   const T vz_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VZCRD];
+   const T dvx_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVX];
+   const T dvy_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVY];
+   const T dvz_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVZ];
+   // set    volume average of distrib. function for each cell in the block.
+   for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
+      creal vx_cell_center = (Real)(vx_block) + (ic+convert<Real>(0.5))*(Real)(dvx_blockCell);
+      creal vy_cell_center = (Real)(vy_block) + (jc+convert<Real>(0.5))*(Real)(dvy_blockCell);
+      creal vz_cell_center = (Real)(vz_block) + (kc+convert<Real>(0.5))*(Real)(dvz_blockCell);
+      const U avgValue = avgBuffer[bufferBlock*avgVectorSize+cellIndex(ic,jc,kc)];
+      mpiGrid[cell]->set_value(vx_cell_center, vy_cell_center, vz_cell_center, (Real)(avgValue));
+   }
+}
+
+
 /*   
      This reads in data one cell at a time. It is not the most efficient way but has the following benefits
      - For large datasets (distribution function), we avoid any problem with having to store all distribution functions twice in memory
@@ -240,13 +259,14 @@ bool readBlockData(
   uint64_t arraySize;
   uint64_t avgVectorSize;
   uint64_t coordVectorSize;
-  uint64_t cellParamsVectorSize;
-  VLSV::datatype dataType;
-  uint64_t byteSize;
+  VLSV::datatype avgDataType;
+  VLSV::datatype coordDataType;
+  VLSV::datatype cellParamsDataType;
+  uint64_t avgByteSize;
+  uint64_t coordByteSize;
+  uint64_t cellParamsByteSize;
   list<pair<string,string> > avgAttribs;
   list<pair<string,string> > coordAttribs;
-  fileReal *coordBuffer;
-  fileReal *avgBuffer;
   bool success=true;
    
   coordAttribs.push_back(make_pair("name","SpatialGrid"));
@@ -255,52 +275,89 @@ bool readBlockData(
   
 
   //Get array info for cell parameters 
-  if (file.getArrayInfo("BLOCKCOORDINATES",coordAttribs,arraySize,coordVectorSize,dataType,byteSize) == false ){
+  if (file.getArrayInfo("BLOCKCOORDINATES",coordAttribs,arraySize,coordVectorSize,coordDataType,coordByteSize) == false ){
     logFile << "(RESTARTBUILDER) ERROR: Failed to read BLOCKCOORDINATES array info " << endl << write;
     return false;
   }
 
-  if(file.getArrayInfo("BLOCKVARIABLE",avgAttribs,arraySize,avgVectorSize,dataType,byteSize) == false ){
+  if(file.getArrayInfo("BLOCKVARIABLE",avgAttribs,arraySize,avgVectorSize,avgDataType,avgByteSize) == false ){
     logFile << "(RESTARTBUILDER) ERROR: Failed to read BLOCKVARIABLE array info " << endl << write;
     return false;
   }
 
-  //todo: more errorchecks!!  
+  //todo: more errorchecks!!
+   if( coordByteSize != 8 && coordByteSize != 4 ) {
+      logFile << "(RESTARTBUILDER) ERROR: Bad velocity coordinate byte size in restart file " << endl << write;
+      return false;
+   }
+   if( avgByteSize != 8 && avgByteSize != 4 ) {
+      logFile << "(RESTARTBUILDER) ERROR: Bad velocity avg byte size in restart file " << endl << write;
+      return false;
+   }
+   if( avgDataType != VLSV::FLOAT ) {
+      logFile << "(RESTARTBUILDER) ERROR: Bad avg datatype in restart file " << endl << write;
+      return false;
+   }
+   if( coordDataType != VLSV::FLOAT ) {
+      logFile << "(RESTARTBUILDER) ERROR: Bad velocity block coordinates datatype in restart file " << endl << write;
+      return false;
+   }
    if(avgVectorSize!=WID3){
       logFile << "(RESTARTBUILDER) ERROR: Blocksize does not match in restart file " << endl << write;
       return false;
    }
       
-   coordBuffer=new fileReal[coordVectorSize*localBlocks];
-   avgBuffer=new fileReal[avgVectorSize*localBlocks];
-   
-   file.readArray("BLOCKCOORDINATES",coordAttribs,localBlockStartOffset,localBlocks,(char*)coordBuffer);
-   file.readArray("BLOCKVARIABLE",avgAttribs,localBlockStartOffset,localBlocks,(char*)avgBuffer);
-   
+   //fileReal * coordBuffer=new fileReal[coordVectorSize*localBlocks];
+   //fileReal * avgBuffer=new fileReal[avgVectorSize*localBlocks];
+   char * coordBuffer = new char[coordVectorSize*localBlocks*coordByteSize];
+   char * avgBuffer = new char[avgVectorSize*localBlocks*avgByteSize];
+
+   file.readArray("BLOCKCOORDINATES",coordAttribs,localBlockStartOffset,localBlocks,coordBuffer);
+   file.readArray("BLOCKVARIABLE",avgAttribs,localBlockStartOffset,localBlocks,avgBuffer);
+
+   // Cast the buffers into different types
+   const float * coordBuffer_float = reinterpret_cast<float*>(coordBuffer);
+   const double * coordBuffer_double = reinterpret_cast<double*>(coordBuffer);
+
+   const float * avgBuffer_float = reinterpret_cast<float*>(avgBuffer);
+   const double * avgBuffer_double = reinterpret_cast<double*>(avgBuffer);
+
    uint64_t bufferBlock=0;
    for(uint i=0;i<localCells;i++){
-     uint cell=fileCells[localCellStartOffset+i];
+     const uint64_t cell=fileCells[localCellStartOffset+i];
      for (uint blockIndex=0;blockIndex<nBlocks[localCellStartOffset+i];blockIndex++){
-        creal vx_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VXCRD];
-        creal vy_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VYCRD];
-        creal vz_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VZCRD];
-        creal dvx_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVX];
-        creal dvy_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVY];
-        creal dvz_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVZ];
-        // set    volume average of distrib. function for each cell in the block.
-        for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-           creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
-           creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
-           creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
-           mpiGrid[cell]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgBuffer[bufferBlock*avgVectorSize+cellIndex(ic,jc,kc)]);
+        //CONT
+        if( coordByteSize == 8 && avgByteSize == 8 ) {
+           inputBlockData( cell, bufferBlock, coordVectorSize, avgVectorSize, coordBuffer_double, avgBuffer_double, mpiGrid );
+        } else if( coordByteSize == 4 && avgByteSize == 4 ) {
+           inputBlockData( cell, bufferBlock, coordVectorSize, avgVectorSize, coordBuffer_float, avgBuffer_float, mpiGrid );
+        } else if( coordByteSize == 4 && avgByteSize == 8 ) {
+           inputBlockData( cell, bufferBlock, coordVectorSize, avgVectorSize, coordBuffer_float, avgBuffer_double, mpiGrid );
+        } else {
+           // coordByteSize == 8 && avgByteSize == 4
+           inputBlockData( cell, bufferBlock, coordVectorSize, avgVectorSize, coordBuffer_double, avgBuffer_float, mpiGrid );
         }
+
+//        creal vx_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VXCRD];
+//        creal vy_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VYCRD];
+//        creal vz_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VZCRD];
+//        creal dvx_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVX];
+//        creal dvy_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVY];
+//        creal dvz_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVZ];
+//        // set    volume average of distrib. function for each cell in the block.
+//        for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
+//           creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
+//           creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
+//           creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
+//           mpiGrid[cell]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgBuffer[bufferBlock*avgVectorSize+cellIndex(ic,jc,kc)]);
+//        }
         bufferBlock++; 
      }
    }
 
 
-   delete(avgBuffer);
-   delete(coordBuffer);
+   delete[] avgBuffer;
+   delete[] coordBuffer;
    return success;
 }
 
@@ -341,54 +398,75 @@ bool readBlockData(
    const uint64_t localBlocks,
    dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid
 ) {
-  uint64_t arraySize;
-  uint64_t avgVectorSize;
-  uint64_t cellParamsVectorSize;
-  datatype::type dataType;
-  uint64_t byteSize;
-  list<pair<string,string> > avgAttribs;
-  fileReal *avgBuffer;
-  bool success=true;
+   uint64_t arraySize;
+   uint64_t avgVectorSize;
+   datatype::type avgDataType;
+   uint64_t avgByteSize;
+   list<pair<string,string> > avgAttribs;
+   bool success=true;
+    
+   avgAttribs.push_back(make_pair("name","avgs"));
+   avgAttribs.push_back(make_pair("mesh","SpatialGrid"));
    
-  avgAttribs.push_back(make_pair("name","avgs"));
-  avgAttribs.push_back(make_pair("mesh","SpatialGrid"));
-  
-
-
-  //Get block id array info and store them into blockIdAttribs, lockIdByteSize, blockIdDataType, blockIdVectorSize
-  list<pair<string,string> > blockIdAttribs;
-  uint64_t blockIdVectorSize, blockIdByteSize;
-  datatype::type blockIdDataType;
-  blockIdAttribs.push_back( make_pair("mesh", "SpatialGrid") );
-  if (file.getArrayInfo("BLOCKIDS",blockIdAttribs,arraySize,blockIdVectorSize,blockIdDataType,blockIdByteSize) == false ){
-    logFile << "(RESTARTBUILDER) ERROR: Failed to read BLOCKCOORDINATES array info " << endl << write;
-    return false;
-  }
-
-  if(file.getArrayInfo("BLOCKVARIABLE",avgAttribs,arraySize,avgVectorSize,dataType,byteSize) == false ){
-    logFile << "(RESTARTBUILDER) ERROR: Failed to read BLOCKVARIABLE array info " << endl << write;
-    return false;
-  }
+ 
+ 
+   //Get block id array info and store them into blockAttribs, lockIdByteSize, blockDataType, blockVectorSize
+   list<pair<string,string> > blockAttribs;
+   uint64_t blockVectorSize, blockByteSize;
+   datatype::type blockDataType;
+   blockAttribs.push_back( make_pair("mesh", "SpatialGrid") );
+   if (file.getArrayInfo("BLOCKIDS",blockAttribs,arraySize,blockVectorSize,blockDataType,blockByteSize) == false ){
+     logFile << "(RESTARTBUILDER) ERROR: Failed to read BLOCKCOORDINATES array info " << endl << write;
+     return false;
+   }
+ 
+   if(file.getArrayInfo("BLOCKVARIABLE",avgAttribs,arraySize,avgVectorSize,avgDataType,avgByteSize) == false ){
+     logFile << "(RESTARTBUILDER) ERROR: Failed to read BLOCKVARIABLE array info " << endl << write;
+     return false;
+   }
 
    //Some routine error checks:
+   if( blockByteSize != 8 && blockByteSize != 4 ) {
+      logFile << "(RESTARTBUILDER) ERROR: Bad velocity block byte size in restart file " << endl << write;
+      return false;
+   }
+   if( avgByteSize != 8 && avgByteSize != 4 ) {
+      logFile << "(RESTARTBUILDER) ERROR: Bad velocity avg byte size in restart file " << endl << write;
+      return false;
+   }
+   if( avgDataType != vlsv::datatype::type::FLOAT ) {
+      logFile << "(RESTARTBUILDER) ERROR: Bad avg datatype in restart file " << endl << write;
+      return false;
+   }
+   if( blockDataType != vlsv::datatype::type::FLOAT ) {
+      logFile << "(RESTARTBUILDER) ERROR: Bad velocity block datatype in restart file " << endl << write;
+      return false;
+   }
    if( avgVectorSize!=WID3 ){
       logFile << "(RESTARTBUILDER) ERROR: Blocksize does not match in restart file " << endl << write;
       return false;
    }
-   if( byteSize != sizeof(fileReal) ) {
-      logFile << "(RESTARTBUILDER) ERROR: Bad avgs bytesize at " << __FILE__ << " " << __LINE__ << endl << write;
-      return false;
-   }
-      
-   avgBuffer=new fileReal[avgVectorSize*localBlocks];
+
+   //avgBuffer=new fileReal[avgVectorSize*localBlocks];
+   char * avgBuffer = new char[avgVectorSize*localBlocks*avgByteSize];
 
    //Create a buffer for writing in block ids
-   char * blockIdBuffer_char = new char[blockIdVectorSize * localBlocks * blockIdByteSize / sizeof(char)];
+   char * blockBuffer_char = new char[blockVectorSize * localBlocks * blockByteSize];
   
-   //Read block ids into blockIdBuffer_char
-   file.readArray( "BLOCKIDS", blockIdAttribs, localBlockStartOffset, localBlocks, blockIdBuffer_char );
+   //Read block ids into blockBuffer_char
+   if( file.readArray( "BLOCKIDS", blockAttribs, localBlockStartOffset, localBlocks, blockBuffer_char ) == false ) {
+      logFile << "(RESTARTBUILDER) ERROR: Failed to read array BLOCKIDS " << endl << write;
+      return false;
+   }
 
-   file.readArray("BLOCKVARIABLE",avgAttribs,localBlockStartOffset,localBlocks,(char*)avgBuffer);
+   if( file.readArray("BLOCKVARIABLE",avgAttribs,localBlockStartOffset,localBlocks,avgBuffer) == false ) {
+      logFile << "(RESTARTBUILDER) ERROR: Failed to read array BLOCKVARIABLE " << endl << write;
+      return false;
+   }
+
+   // Cast avgBuffer into more readable form:
+   float * avgBuffer_float = reinterpret_cast<float*>(avgBuffer);
+   double * avgBuffer_double = reinterpret_cast<double*>(avgBuffer);
 
    //Get velocity cell lengths for iteration:
    const unsigned short int numberOfCellsInBlocksPerDirection = 4;
@@ -400,30 +478,36 @@ bool readBlockData(
    uint64_t bufferBlock=0;
    for(uint i=0;i<localCells;i++){
      //Go through all spatial cells
-     uint cell=fileCells[localCellStartOffset+i];
+     const uint64_t cell=fileCells[localCellStartOffset+i];
      for (uint blockIndex=0;blockIndex<nBlocks[localCellStartOffset+i];blockIndex++){
         //Get the block id:
-        uint64_t blockId;
+        uint64_t block;
         //Note: blockid's datatype is uint
         const short unsigned int cellsInBlocksPerDirection = 4;
-        if( blockIdByteSize == sizeof(unsigned int) ) {
-           unsigned int * blockIds = reinterpret_cast<unsigned int*>(blockIdBuffer_char);
-           blockId = blockIds[bufferBlock];
+        if( blockByteSize == sizeof(unsigned int) ) {
+           unsigned int * blocks = reinterpret_cast<unsigned int*>(blockBuffer_char);
+           block = blocks[bufferBlock];
         } else {
-           //blockIds_dataSize == sizeof(uint64_t)
-           uint64_t * blockIds = reinterpret_cast<uint64_t*>(blockIdBuffer_char);
-           blockId = blockIds[bufferBlock];
+           //blocks_dataSize == sizeof(uint64_t)
+           uint64_t * blocks = reinterpret_cast<uint64_t*>(blockBuffer_char);
+           block = blocks[bufferBlock];
         }
         //Get the block's coordinates (min coordinates)
         array<Real, 3> blockCoordinates;
-        getVelocityBlockCoordinates( blockId, blockCoordinates );
+        getVelocityBlockCoordinates( block, blockCoordinates );
 
         // set    volume average of distrib. function for each cell in the block.
         for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
            creal vx_cell_center = blockCoordinates[0] + (ic+convert<Real>(0.5))*dvx_blockCell;
            creal vy_cell_center = blockCoordinates[1] + (jc+convert<Real>(0.5))*dvy_blockCell;
            creal vz_cell_center = blockCoordinates[2] + (kc+convert<Real>(0.5))*dvz_blockCell;
-           mpiGrid[cell]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgBuffer[bufferBlock*avgVectorSize+cellIndex(ic,jc,kc)]);
+           if( avgByteSize == 8 ) {
+              const double avgValue = avgBuffer_double[bufferBlock*avgVectorSize+cellIndex(ic,jc,kc)];
+              mpiGrid[cell]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgValue);
+           } else {
+              const float avgValue = avgBuffer_float[bufferBlock*avgVectorSize+cellIndex(ic,jc,kc)];
+              mpiGrid[cell]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgValue);
+           }
         }
         bufferBlock++; 
      }
@@ -431,7 +515,7 @@ bool readBlockData(
 
 
    delete(avgBuffer);
-   delete[] blockIdBuffer_char;
+   delete[] blockBuffer_char;
    return success;
 }
 
@@ -439,7 +523,7 @@ bool readBlockData(
 
 
 
-template <typename fileReal, class U>
+template <class U>
 bool readCellParamsVariable(U & file,
 			    const vector<uint64_t>& fileCells,
                             const uint64_t localCellStartOffset,
@@ -453,7 +537,6 @@ bool readCellParamsVariable(U & file,
    datatype::type dataType;
    uint64_t byteSize;
    list<pair<string,string> > attribs;
-   fileReal *buffer;
    bool success=true;
    
    attribs.push_back(make_pair("name",variableName));
@@ -470,16 +553,53 @@ bool readCellParamsVariable(U & file,
       return false;
    }
    
-   buffer=new fileReal[vectorSize*localCells];
-   if(file.readArray("VARIABLE",attribs,localCellStartOffset,localCells,(char *)buffer) == false ) {
+   //buffer=new fileReal[vectorSize*localCells];
+   // Create a buffer for reading in vell params
+   char * buffer = new char[localCells * vectorSize * byteSize];
+   if(file.readArray("VARIABLE",attribs,localCellStartOffset,localCells,buffer) == false ) {
       logFile << "(RESTARTBUILDER)  ERROR: Failed to read " << variableName << endl << write;
+      delete[] buffer;
       return false;
    }
-   
+   const int32_t * buffer_int32_t = reinterpret_cast<int32_t*>(buffer);
+   const int64_t * buffer_int64_t = reinterpret_cast<int64_t*>(buffer);
+   const uint32_t * buffer_uint32_t = reinterpret_cast<uint32_t*>(buffer);
+   const uint64_t * buffer_uint64_t = reinterpret_cast<uint64_t*>(buffer);
+   const float * buffer_float = reinterpret_cast<float*>(buffer);
+   const double * buffer_double = reinterpret_cast<double*>(buffer);
    for(uint i=0;i<localCells;i++){
      uint cell=fileCells[localCellStartOffset+i];
      for(uint j=0;j<vectorSize;j++){
-        mpiGrid[cell]->parameters[cellParamsIndex+j]=buffer[i*vectorSize+j];
+        // Input the data
+        if( dataType == vlsv::datatype::type::FLOAT && byteSize == 8 ) {
+           const double input = buffer_double[i*vectorSize+j];
+           mpiGrid[cell]->parameters[cellParamsIndex+j] = input;
+
+        } else if( dataType == vlsv::datatype::type::FLOAT && byteSize == 4 ) {
+           const float input = buffer_float[i*vectorSize+j];
+           mpiGrid[cell]->parameters[cellParamsIndex+j] = input;
+
+        } else if( dataType == vlsv::datatype::type::UINT && byteSize == 8 ) {
+           const uint64_t input = buffer_uint64_t[i*vectorSize+j];
+           mpiGrid[cell]->parameters[cellParamsIndex+j] = input;
+
+        } else if( dataType == vlsv::datatype::type::UINT && byteSize == 4 ) {
+           const uint32_t input = buffer_uint32_t[i*vectorSize+j];
+           mpiGrid[cell]->parameters[cellParamsIndex+j] = input;
+
+        } else if( dataType == vlsv::datatype::type::INT && byteSize == 8 ) {
+           const int64_t input = buffer_int64_t[i*vectorSize+j];
+           mpiGrid[cell]->parameters[cellParamsIndex+j] = input;
+
+        } else if( dataType == vlsv::datatype::type::INT && byteSize == 4 ) {
+           const int32_t input = buffer_int32_t[i*vectorSize+j];
+           mpiGrid[cell]->parameters[cellParamsIndex+j] = input;
+
+        } else {
+           logFile << "(RESTARTBUILDER)  ERROR: Failed to read " << variableName << ", bad datasize or type" <<  endl << write;
+           delete[] buffer;
+           return false;
+        }
      }
    }
    
@@ -760,27 +880,29 @@ bool exec_readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    phiprof::start("readCellParameters");
 
 
-   if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"perturbed_B",CellParams::PERBX,3,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"perturbed_B",CellParams::PERBX,3,mpiGrid); }
+   //CONTINUE
 // This has to be set anyway, there are also the derivatives tahat should be written/read if we want to only read in bancground field
 //   if(success)
 //     success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"background_B",CellParams::BGBX,3,mpiGrid);
-   if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"moments",CellParams::RHO,4,mpiGrid); }
-   if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"moments_dt2",CellParams::RHO_DT2,4,mpiGrid); }
-   if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"moments_r",CellParams::RHO_R,4,mpiGrid); }
-   if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"moments_v",CellParams::RHO_V,4,mpiGrid); }
-   if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"LB_weight",CellParams::LBWEIGHTCOUNTER,1,mpiGrid); }
-   if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"max_v_dt",CellParams::MAXVDT,1,mpiGrid); }
-   if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"max_r_dt",CellParams::MAXRDT,1,mpiGrid); }
-   if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"max_fields_dt",CellParams::MAXFDT,1,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments",CellParams::RHO,4,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_dt2",CellParams::RHO_DT2,4,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_r",CellParams::RHO_R,4,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_v",CellParams::RHO_V,4,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"LB_weight",CellParams::LBWEIGHTCOUNTER,1,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_v_dt",CellParams::MAXVDT,1,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_r_dt",CellParams::MAXRDT,1,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_fields_dt",CellParams::MAXFDT,1,mpiGrid); }
    if( typeid(T) == typeid(ParallelReader) ) {
       // Read rho losses Note: vector size = 1 (In the older versions the rho loss wasn't recorded)
-      if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"rho_loss_adjust",CellParams::RHOLOSSADJUST,1,mpiGrid); }
-      if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"rho_loss_velocity_boundary",CellParams::RHOLOSSVELBOUNDARY,1,mpiGrid); }
+      if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"rho_loss_adjust",CellParams::RHOLOSSADJUST,1,mpiGrid); }
+      if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"rho_loss_velocity_boundary",CellParams::RHOLOSSVELBOUNDARY,1,mpiGrid); }
    }
    
    phiprof::stop("readCellParameters");
    phiprof::start("readBlockData");
    if(success) { success=readBlockData<double>(file,fileCells,localCellStartOffset,localCells,nBlocks,localBlockStartOffset,localBlocks,mpiGrid); }
+   //CONTINUE
    phiprof::stop("readBlockData");
    if(success) { success=file.close(); }
    phiprof::stop("readGrid");
