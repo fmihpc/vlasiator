@@ -777,15 +777,15 @@ bool convertMesh(newVlsv::Reader & vlsvReader,const string& meshName) {
       
       // Search the cell's nodes from the map created above. For each node in nodelist 
       // store an index into an array which only contains the unique nodes:
-      map<NodeCrd<Real>,uint64_t,NodeComp>::const_iterator it;
-      it = nodes.find(NodeCrd<Real>(X0,Y0,Z0)); if (it == nodes.end()) success = false; nodelist[i*8+0] = it->second;
-      it = nodes.find(NodeCrd<Real>(X1,Y0,Z0)); if (it == nodes.end()) success = false; nodelist[i*8+1] = it->second;
-      it = nodes.find(NodeCrd<Real>(X1,Y1,Z0)); if (it == nodes.end()) success = false; nodelist[i*8+2] = it->second;
-      it = nodes.find(NodeCrd<Real>(X0,Y1,Z0)); if (it == nodes.end()) success = false; nodelist[i*8+3] = it->second;
-      it = nodes.find(NodeCrd<Real>(X0,Y0,Z1)); if (it == nodes.end()) success = false; nodelist[i*8+4] = it->second;
-      it = nodes.find(NodeCrd<Real>(X1,Y0,Z1)); if (it == nodes.end()) success = false; nodelist[i*8+5] = it->second;
-      it = nodes.find(NodeCrd<Real>(X1,Y1,Z1)); if (it == nodes.end()) success = false; nodelist[i*8+6] = it->second;
-      it = nodes.find(NodeCrd<Real>(X0,Y1,Z1)); if (it == nodes.end()) success = false; nodelist[i*8+7] = it->second;
+      map<NodeCrd<Real>,uint64_t,NodeComp>::const_iterator it2;
+      it2 = nodes.find(NodeCrd<Real>(X0,Y0,Z0)); if (it2 == nodes.end()) success = false; nodelist[i*8+0] = it2->second;
+      it2 = nodes.find(NodeCrd<Real>(X1,Y0,Z0)); if (it2 == nodes.end()) success = false; nodelist[i*8+1] = it2->second;
+      it2 = nodes.find(NodeCrd<Real>(X1,Y1,Z0)); if (it2 == nodes.end()) success = false; nodelist[i*8+2] = it2->second;
+      it2 = nodes.find(NodeCrd<Real>(X0,Y1,Z0)); if (it2 == nodes.end()) success = false; nodelist[i*8+3] = it2->second;
+      it2 = nodes.find(NodeCrd<Real>(X0,Y0,Z1)); if (it2 == nodes.end()) success = false; nodelist[i*8+4] = it2->second;
+      it2 = nodes.find(NodeCrd<Real>(X1,Y0,Z1)); if (it2 == nodes.end()) success = false; nodelist[i*8+5] = it2->second;
+      it2 = nodes.find(NodeCrd<Real>(X1,Y1,Z1)); if (it2 == nodes.end()) success = false; nodelist[i*8+6] = it2->second;
+      it2 = nodes.find(NodeCrd<Real>(X0,Y1,Z1)); if (it2 == nodes.end()) success = false; nodelist[i*8+7] = it2->second;
    }
    //O: REMOVE THIS
    //delete coordsBuffer;

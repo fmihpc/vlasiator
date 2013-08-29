@@ -78,6 +78,7 @@ as an index that would be outside of the velocity grid in this cell
 
 namespace spatial_cell {
    //fixme namespaces in lower case
+   // OTTO, local cell id, add new transfertype
    namespace Transfer {
       const uint64_t NONE                     = 0;
       const uint64_t CELL_PARAMETERS          = (1<<0);
@@ -100,8 +101,10 @@ namespace spatial_cell {
       const uint64_t CELL_BVOL                = (1<<17);
       const uint64_t CELL_BVOL_DERIVATIVES    = (1<<18);
       const uint64_t CELL_DIMENSIONS          = (1<<19);
+      //OTTO: ADDED LOCAL CELL ID
       const uint64_t CELL_IOLOCALCELLID       = (1<<20);
       
+     // OTTO, let's not add it here
       const uint64_t ALL_DATA =
       CELL_PARAMETERS
       | CELL_DERIVATIVES | CELL_BVOL_DERIVATIVES
