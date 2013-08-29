@@ -81,12 +81,6 @@ bool writeVelocityDistributionData(
    map<string,string> attribs;
    bool success=true;
 
-   //Make sure zones is not empty:
-   if( cells.empty() ) {
-      cerr << "Warning, passed empty zones vector at: " << __FILE__ << " " << __LINE__ << endl;
-      //return false
-   }
-
    //Compute totalBlocks
    uint64_t totalBlocks = 0;  
    vector<uint> blocksPerCell;   
@@ -206,7 +200,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    } catch( bad_alloc& ) {
       cerr << "ERROR, FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl;
       logFile << "(MAIN) writeGrid: ERROR FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
-      exit( 1 );
+      return false;
    }
    for (uint64_t cell=0; cell<cells.size(); ++cell) {
       //Reduce data ( return false if the operation fails )
@@ -275,7 +269,7 @@ bool writeCommonGridData(
    map<string, string> xmlAttributes;
    xmlAttributes["name"] = "CellID";
    xmlAttributes["mesh"] = "SpatialGrid";
-   if( vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, &(local_cells[0]) ) == false ) {
+   if( vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, local_cells.data() ) == false ) {
       return false;
    }
 
@@ -350,13 +344,13 @@ bool writeGhostZoneDomainAndLocalIdNumbers( dccrg::Dccrg<SpatialCell>& mpiGrid,
    xmlAttributes["mesh"] = meshName;
    const unsigned int vectorSize = 1;
    //Write the in the number of ghost domains: (Returns false if writing fails)
-   if( vlsvWriter.writeArray( "MESH_GHOST_DOMAINS", xmlAttributes, numberOfGhosts, vectorSize, &(ghostDomainIds[0]) ) == false ) {
+   if( vlsvWriter.writeArray( "MESH_GHOST_DOMAINS", xmlAttributes, numberOfGhosts, vectorSize, ghostDomainIds.data() ) == false ) {
       cerr << "Error, failed to write MEST_GHOST_DOMAINS at: " << __FILE__ << " " << __LINE__ << endl;
       logFile << "(MAIN) writeGrid: ERROR failed to write MEST_GHOST_DOMAINS at: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
       return false;
    }
    //Write the in the number of ghost local ids: (Returns false if writing fails)
-   if( vlsvWriter.writeArray( "MESH_GHOST_LOCALIDS", xmlAttributes, numberOfGhosts, vectorSize, &(ghostLocalIds[0]) ) == false ) {
+   if( vlsvWriter.writeArray( "MESH_GHOST_LOCALIDS", xmlAttributes, numberOfGhosts, vectorSize, ghostLocalIds.data()) ) == false ) {
       cerr << "Error, failed to write MEST_GHOST_LOCALIDS at: " << __FILE__ << " " << __LINE__ << endl;
       logFile << "(MAIN) writeGrid: ERROR failed to write MEST_GHOST_LOCALIDS at: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
       return false;
@@ -404,9 +398,8 @@ bool writeZoneGlobalIdNumbers( const dccrg::Dccrg<SpatialCell>& mpiGrid,
       if( !ghost_zones.empty() ) {
          //Something very wrong -- local zones should always have members when ghost zones has members
          cerr << "ERROR, LOCAL ZONES EMPTY BUT GHOST ZONES NOT AT " << __FILE__ << __LINE__ << endl;
-         exit( 1 );
+         return false;
       }
-      cerr << "Warning: Inputting empty local zones at: " << __FILE__ << " " << __LINE__ << endl;
    }
 
    //Get the cells in x, y, z direction right off the bat (for the sake of clarity):
@@ -461,7 +454,7 @@ bool writeZoneGlobalIdNumbers( const dccrg::Dccrg<SpatialCell>& mpiGrid,
          return false;
       }
    } else {
-      if( vlsvWriter.writeArray( "MESH", xmlAttributes, numberOfZones, 1, &(globalIds[0]) ) == false ) {
+      if( vlsvWriter.writeArray( "MESH", xmlAttributes, numberOfZones, 1, globalIds.data() ) == false ) {
          cerr << "Unsuccessful writing of MESH at: " << __FILE__ << " " << __LINE__ << endl;
          return false;
       }
@@ -507,12 +500,12 @@ bool writeBoundingBoxNodeCoordinates ( Writer & vlsvWriter,
    } catch( bad_alloc& ) {
       cerr << "ERROR, FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl;
       logFile << "(MAIN) writeGrid: ERROR FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
-      exit(1);
+      return false;
    }
    if( yNodeCoordinates == NULL || yNodeCoordinates == NULL || zNodeCoordinates == NULL ) {
       cerr << "ERROR, NULL POINTER AT: " << __FILE__ << " " << __LINE__ << endl;
       logFile << "(MAIN) writeGrid: ERROR, NULL POINTER AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
-      exit(1);
+      return false;
    }
 
    //Input the coordinates for the nodes:
