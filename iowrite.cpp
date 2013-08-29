@@ -490,34 +490,41 @@ bool writeBoundingBoxNodeCoordinates ( Writer & vlsvWriter,
    //Create node coordinates:
    //These are the coordinates for any given node in x y or z direction
    //Note: Nodes are basically the box coordinates
-   Real * xNodeCoordinates = NULL;
-   Real * yNodeCoordinates = NULL;
-   Real * zNodeCoordinates = NULL;
-   try{
-      xNodeCoordinates = new Real[xCells + 1];
-      yNodeCoordinates = new Real[yCells + 1];
-      zNodeCoordinates = new Real[zCells + 1];
-   } catch( bad_alloc& ) {
-      cerr << "ERROR, FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl;
-      logFile << "(MAIN) writeGrid: ERROR FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
-      return false;
-   }
-   if( yNodeCoordinates == NULL || yNodeCoordinates == NULL || zNodeCoordinates == NULL ) {
-      cerr << "ERROR, NULL POINTER AT: " << __FILE__ << " " << __LINE__ << endl;
-      logFile << "(MAIN) writeGrid: ERROR, NULL POINTER AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
-      return false;
-   }
+//   Real * xNodeCoordinates = NULL;
+//   Real * yNodeCoordinates = NULL;
+//   Real * zNodeCoordinates = NULL;
+//   try{
+//      xNodeCoordinates = new Real[xCells + 1];
+//      yNodeCoordinates = new Real[yCells + 1];
+//      zNodeCoordinates = new Real[zCells + 1];
+//   } catch( bad_alloc& ) {
+//      cerr << "ERROR, FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl;
+//      logFile << "(MAIN) writeGrid: ERROR FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
+//      return false;
+//   }
+//   if( yNodeCoordinates == NULL || yNodeCoordinates == NULL || zNodeCoordinates == NULL ) {
+//      cerr << "ERROR, NULL POINTER AT: " << __FILE__ << " " << __LINE__ << endl;
+//      logFile << "(MAIN) writeGrid: ERROR, NULL POINTER AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
+//      return false;
+//   }
+
+   vector<Real> xNodeCoordinates;
+   xNodeCoordinates.reserve(xCells + 1);
+   vector<Real> yNodeCoordinates;
+   yNodeCoordinates.reserve(yCells + 1);
+   vector<Real> zNodeCoordinates;
+   zNodeCoordinates.reserve(zCells + 1);
 
    //Input the coordinates for the nodes:
    for( unsigned int i = 0; i < xCells + 1; ++i ) {
       //The x coordinate of the first node should be xmin, the second xmin + xCellLength and so on
-      xNodeCoordinates[i] = xmin + xCellLength * i;
+      xNodeCoordinates.push_back(xmin + xCellLength * i);
    }
    for( unsigned int i = 0; i < yCells + 1; ++i ) {
-      yNodeCoordinates[i] = ymin + yCellLength * i;
+      yNodeCoordinates.push_back(ymin + yCellLength * i);
    }
    for( unsigned int i = 0; i < zCells + 1; ++i ) {
-      zNodeCoordinates[i] = zmin + zCellLength * i;
+      zNodeCoordinates.push_back(zmin + zCellLength * i);
    }
 
    //Write the arrays:
@@ -536,22 +543,25 @@ bool writeBoundingBoxNodeCoordinates ( Writer & vlsvWriter,
    if( myRank == masterRank ) {
       //Save with the correct name "MESH_NODE_CRDS_X" -- writeArray returns false if something goes wrong
       arraySize = xCells + 1;
-      if( vlsvWriter.writeArray("MESH_NODE_CRDS_X", xmlAttributes, arraySize, vectorSize, xNodeCoordinates) == false ) success = false;
+      if( vlsvWriter.writeArray("MESH_NODE_CRDS_X", xmlAttributes, arraySize, vectorSize, xNodeCoordinates.data()) == false ) success = false;
       arraySize = yCells + 1;
-      if( vlsvWriter.writeArray("MESH_NODE_CRDS_Y", xmlAttributes, arraySize, vectorSize, yNodeCoordinates) == false ) success = false;
+      if( vlsvWriter.writeArray("MESH_NODE_CRDS_Y", xmlAttributes, arraySize, vectorSize, yNodeCoordinates.data()) == false ) success = false;
       arraySize = zCells + 1;
-      if( vlsvWriter.writeArray("MESH_NODE_CRDS_Z", xmlAttributes, arraySize, vectorSize, zNodeCoordinates) == false ) success = false;
+      if( vlsvWriter.writeArray("MESH_NODE_CRDS_Z", xmlAttributes, arraySize, vectorSize, zNodeCoordinates.data()) == false ) success = false;
    } else {
       //Not a master process, so write empty:
       arraySize = 0;
-      if( vlsvWriter.writeArray("MESH_NODE_CRDS_X", xmlAttributes, arraySize, vectorSize, xNodeCoordinates) == false ) success = false;
-      if( vlsvWriter.writeArray("MESH_NODE_CRDS_Y", xmlAttributes, arraySize, vectorSize, yNodeCoordinates) == false ) success = false;
-      if( vlsvWriter.writeArray("MESH_NODE_CRDS_Z", xmlAttributes, arraySize, vectorSize, zNodeCoordinates) == false ) success = false;
+      if( vlsvWriter.writeArray("MESH_NODE_CRDS_X", xmlAttributes, arraySize, vectorSize, xNodeCoordinates.data()) == false ) success = false;
+      if( vlsvWriter.writeArray("MESH_NODE_CRDS_Y", xmlAttributes, arraySize, vectorSize, yNodeCoordinates.data()) == false ) success = false;
+      if( vlsvWriter.writeArray("MESH_NODE_CRDS_Z", xmlAttributes, arraySize, vectorSize, zNodeCoordinates.data()) == false ) success = false;
    }
    //Free the memory
-   delete[] xNodeCoordinates;
-   delete[] yNodeCoordinates;
-   delete[] zNodeCoordinates;
+//   delete[] xNodeCoordinates;
+//   delete[] yNodeCoordinates;
+//   delete[] zNodeCoordinates;
+   xNodeCoordinates.clear();
+   yNodeCoordinates.clear();
+   zNodeCoordinates.clear();
    return success;
 }
 
