@@ -350,7 +350,7 @@ bool writeGhostZoneDomainAndLocalIdNumbers( dccrg::Dccrg<SpatialCell>& mpiGrid,
       return false;
    }
    //Write the in the number of ghost local ids: (Returns false if writing fails)
-   if( vlsvWriter.writeArray( "MESH_GHOST_LOCALIDS", xmlAttributes, numberOfGhosts, vectorSize, ghostLocalIds.data()) ) == false ) {
+   if( vlsvWriter.writeArray( "MESH_GHOST_LOCALIDS", xmlAttributes, numberOfGhosts, vectorSize, ghostLocalIds.data()) == false ) {
       cerr << "Error, failed to write MEST_GHOST_LOCALIDS at: " << __FILE__ << " " << __LINE__ << endl;
       logFile << "(MAIN) writeGrid: ERROR failed to write MEST_GHOST_LOCALIDS at: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
       return false;
