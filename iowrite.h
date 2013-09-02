@@ -35,14 +35,14 @@ bool writeGrid(
 \param mpiGrid   The DCCRG grid with spatial cells
 \param dataReducer Contains datareductionoperators that are used to compute data that is added into file
 \param name       File name prefix, file will be called "name.index.vlsv"
-\param index      File index, file will be called "name.index.vlsv"
+\param fileIndex  File index, file will be called "name.index.vlsv"
 */
 
 
 bool writeRestart(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
                DataReducer& dataReducer,
                const std::string& name,
-               const uint& index,
+               const uint& fileIndex,
                const int& stripe);
 
 

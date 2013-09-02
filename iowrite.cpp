@@ -194,14 +194,8 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    const uint64_t varBufferArraySize = cells.size()*vectorSize*dataSize;
    
    //Request DataReductionOperator to calculate the reduced data for all local cells:
-   char* varBuffer = NULL;
-   try {
-      varBuffer = new char[varBufferArraySize];
-   } catch( bad_alloc& ) {
-      cerr << "ERROR, FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl;
-      logFile << "(MAIN) writeGrid: ERROR FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
-      return false;
-   }
+   char * varBuffer = new char[varBufferArraySize];
+
    for (uint64_t cell=0; cell<cells.size(); ++cell) {
       //Reduce data ( return false if the operation fails )
       if (dataReducer.reduceData(mpiGrid[cells[cell]],dataReducerIndex,varBuffer + cell*vectorSize*dataSize) == false){
@@ -255,7 +249,7 @@ bool writeCommonGridData(
    Writer& vlsvWriter,
    dccrg::Dccrg<SpatialCell>& mpiGrid,
    vector<uint64_t> & local_cells,
-   const uint& index,
+   const uint& fileIndex,
    MPI_Comm comm
 ) {
    // Writes parameters and cell ids into the VLSV file
@@ -277,6 +271,7 @@ bool writeCommonGridData(
    if( vlsvWriter.writeParameter("t", &P::t) == false ) { return false; }
    if( vlsvWriter.writeParameter("dt", &P::dt) == false ) { return false; }
    if( vlsvWriter.writeParameter("tstep", &P::tstep) == false ) { return false; }
+   if( vlsvWriter.writeParameter("fileIndex", &fileIndex) == false ) { return false; }
    if( vlsvWriter.writeParameter("xmin", &P::xmin) == false ) { return false; }
    if( vlsvWriter.writeParameter("xmax", &P::xmax) == false ) { return false; }
    if( vlsvWriter.writeParameter("ymin", &P::ymin) == false ) { return false; }
@@ -490,24 +485,6 @@ bool writeBoundingBoxNodeCoordinates ( Writer & vlsvWriter,
    //Create node coordinates:
    //These are the coordinates for any given node in x y or z direction
    //Note: Nodes are basically the box coordinates
-//   Real * xNodeCoordinates = NULL;
-//   Real * yNodeCoordinates = NULL;
-//   Real * zNodeCoordinates = NULL;
-//   try{
-//      xNodeCoordinates = new Real[xCells + 1];
-//      yNodeCoordinates = new Real[yCells + 1];
-//      zNodeCoordinates = new Real[zCells + 1];
-//   } catch( bad_alloc& ) {
-//      cerr << "ERROR, FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl;
-//      logFile << "(MAIN) writeGrid: ERROR FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
-//      return false;
-//   }
-//   if( yNodeCoordinates == NULL || yNodeCoordinates == NULL || zNodeCoordinates == NULL ) {
-//      cerr << "ERROR, NULL POINTER AT: " << __FILE__ << " " << __LINE__ << endl;
-//      logFile << "(MAIN) writeGrid: ERROR, NULL POINTER AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
-//      return false;
-//   }
-
    vector<Real> xNodeCoordinates;
    xNodeCoordinates.reserve(xCells + 1);
    vector<Real> yNodeCoordinates;
@@ -556,9 +533,6 @@ bool writeBoundingBoxNodeCoordinates ( Writer & vlsvWriter,
       if( vlsvWriter.writeArray("MESH_NODE_CRDS_Z", xmlAttributes, arraySize, vectorSize, zNodeCoordinates.data()) == false ) success = false;
    }
    //Free the memory
-//   delete[] xNodeCoordinates;
-//   delete[] yNodeCoordinates;
-//   delete[] zNodeCoordinates;
    xNodeCoordinates.clear();
    yNodeCoordinates.clear();
    zNodeCoordinates.clear();
@@ -788,7 +762,7 @@ bool writeGrid(
 bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
                   DataReducer& dataReducer,
                   const string& name,
-                  const uint& index,
+                  const uint& fileIndex,
                   const int& stripe) {
    // Writes a restart
    double allStart = MPI_Wtime();
@@ -803,7 +777,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
    fname << name <<".";
    fname.width(7);
    fname.fill('0');
-   fname << index << ".vlsv";
+   fname << fileIndex << ".vlsv";
 
    //Open the file with vlsvWriter:
    Writer vlsvWriter;
@@ -840,7 +814,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
    if( writeBoundingBoxNodeCoordinates( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) return false;
 
    //Write basic grid parameters: NOTE: master process only ( I think )
-   if( writeCommonGridData(vlsvWriter, mpiGrid, local_cells, P::systemWrites[index], MPI_COMM_WORLD) == false ) return false;
+   if( writeCommonGridData(vlsvWriter, mpiGrid, local_cells, fileIndex, MPI_COMM_WORLD) == false ) return false;
 
    //Write zone global id numbers:
    if( writeZoneGlobalIdNumbers( mpiGrid, vlsvWriter, meshName, local_cells, ghost_cells ) == false ) return false;
