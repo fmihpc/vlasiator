@@ -1869,8 +1869,8 @@ void convertFileToSilo( const string & fileName, const UserOptions & mainOptions
       if( typeid(vlsvReader) == typeid(newVlsv::Reader) ) {
          vlsvReader.setCellsWithBlocks();
       }
-      for (list<string>::const_iterator it = meshNames.begin(); it != meshNames.end(); ++it) {
-         if (convertVelocityBlocks2(vlsvReader, *it, cellStruct, cellID, mainOptions.rotateVectors ) == false) {
+      for (list<string>::const_iterator it2 = meshNames.begin(); it2 != meshNames.end(); ++it2) {
+         if (convertVelocityBlocks2(vlsvReader, *it2, cellStruct, cellID, mainOptions.rotateVectors ) == false) {
             velGridExtracted = false;
          } else {
             //Display message for the user:
