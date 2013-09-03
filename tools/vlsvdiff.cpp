@@ -1319,18 +1319,18 @@ bool compareAvgs( const string fileName1,
          const array<double, velocityCellsPerBlock> * avgsValues1;
          const array<double, velocityCellsPerBlock> * avgsValues2;
 
-         unordered_map<uint32_t, array<double, velocityCellsPerBlock> >::const_iterator it = avgs1.find( blockId );
-         if( it == avgs1.end() ) {
+         unordered_map<uint32_t, array<double, velocityCellsPerBlock> >::const_iterator it2 = avgs1.find( blockId );
+         if( it2 == avgs1.end() ) {
             avgsValues1 = &zeroAvgs;
          } else {
-            avgsValues1 = &(it->second);
+            avgsValues1 = &(it2->second);
          }
 
-         it = avgs2.find( blockId );
-         if( it == avgs2.end() ) {
+         it2 = avgs2.find( blockId );
+         if( it2 == avgs2.end() ) {
             avgsValues2 = &zeroAvgs;
          } else {
-            avgsValues2 = &(it->second);
+            avgsValues2 = &(it2->second);
          }
          // Get the diff:
          for( uint i = 0; i < velocityCellsPerBlock; ++i ) {

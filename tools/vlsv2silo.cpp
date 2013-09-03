@@ -35,39 +35,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 using namespace std;
 
-//O: REMOVE THIS
-//bool getBoundaryBox( newVlsv::Reader & vlsvReader, const string & meshName, array<uint64_t, 6> & boundaryBox ) {
-//   //Declare variables for reading array info:
-//   list< pair<string, string> > xmlAttributes;
-//   xmlAttributes.push_back( make_pair("mesh", meshName) );
-//   datatype::type dataType;
-//   uint64_t arraySize, vectorSize, byteSize;
-//   //Read the array info and store the results in arraySize, vectorSize, dataType and byteSize
-//   //Note: Returns false if fails -- these values are used for reading the array MESH_BBOX
-//   if( vlsvReader.getArrayInfo("MESH_BBOX", xmlAttributes, arraySize, vectorSize, datatype::type& dataType, byteSize) == false ) {
-//      return false;
-//   }
-//
-//   //Check to make sure the values are valid (These are just values that should be set in iowrite)
-//   if( arraySize != 6 || vectorSize != 1 || dataType != datatype::type::UINT || byteSize != sizeof(uint64_t) ) {
-//      cerr << "Error, bad sizes or types while reading boundary box at " << __FILE__ << " " << __LINE__ << endl;
-//      return false;
-//   }
-//
-//   //Read the array itself into buffer:
-//   uint64_t * buffer = new uint64_t[arraySize];
-//   const short unsigned int firstIndex = 0;
-//   //Note: Reads the first n number of indexes from the array where n is arraySize
-//   if( vlsvReader.readArray( "MESH_BBOX", xmlAttributes, firstIndex, arraySize, buffer ) == false ) {
-//      return false;
-//   }
-//
-//   //Input the mesh_bbox values into boundaryBox array:
-//   for( unsigned short int = 0; i < arraySize; ++i ) {
-//      boundaryBox[i] = buffer[i];
-//   }
-//   delete[] buffer;
-//}
 
 //A struct for holding info on cell structure (the grid)
 struct CellStructure {
@@ -88,53 +55,6 @@ struct CellStructure {
 
 
 using namespace vlsv;
-
-// O: REMOVE THIS! (NO LONGER NEEDED)
-////Some functions to help reading files:
-//bool getCellIds( newVlsv::Reader & vlsvReader, const string & meshName, vector<uint64_t> & cellIds ) {
-//   if( cellIds.empty() == false ) {
-//      cerr << "ERROR, Passed a nonempty vector to getCellIds at " << __FILE__ << " " << __LINE__ << endl;
-//      return false;
-//   }
-//   //Declare variables for reading array info:
-//   list< pair<string, string> > xmlAttributes;
-//   xmlAttributes.push_back( make_pair("mesh", meshName) );
-//   //The name of the variable is CellID and it's defined in iowrite.cpp
-//   xmlAttributes.push_back( make_pair("name", "CellID") ); 
-//   datatype::type dataType;
-//   uint64_t arraySize, vectorSize, byteSize;
-//   //Read the array info and store the results in arraySize, vectorSize, dataType and byteSize
-//   //Note: Returns false if fails -- these values are used for reading the array MESH_BBOX
-//   if( vlsvReader.getArrayInfo("VARIABLE", xmlAttributes, arraySize, vectorSize, dataType, byteSize) == false ) {
-//      return false;
-//   }
-//   //Check to make sure the values are valid (These are just values that should have been set in iowrite)
-//
-//
-//   if( vectorSize != 1 || dataType != datatype::type::UINT || byteSize != sizeof(uint64_t) ) {
-//      cerr << "ERROR, bad sizes or types while reading boundary box at " << __FILE__ << " " << __LINE__ << endl;
-//      return false;
-//   }
-//
-//   //Read the array itself into buffer:
-//   char * buffer_char = new char[vectorSize * byteSize * arraySize];
-//   const short unsigned int firstIndex = 0;
-//   //Note: Reads the first n number of indexes from the array where n is arraySize
-//   if( vlsvReader.readArray( "VARIABLE", xmlAttributes, firstIndex, arraySize, buffer_char ) == false ) {
-//      return false;
-//   }
-//
-//   //Input the cell id values into cell id array:
-//   cellIds.reserve(arraySize);
-//   //Reinterpret the char buffer pointer into readable form:
-//   uint64_t * buffer = reinterpret_cast<uint64_t*>(buffer_char);
-//   for( unsigned short int i = 0; i < arraySize; ++i ) {
-//      cellIds.push_back( buffer[i] );
-//   }
-//   delete[] buffer;
-//   buffer = NULL;
-//   return true;
-//}
 
 //Calculates the cell coordinates and outputs into coordinates
 //Input:
@@ -742,7 +662,6 @@ bool convertMesh(newVlsv::Reader & vlsvReader,const string& meshName) {
       ++counter;
    }
 
-   //O: REMOVE THE COMMENTED CODE
    // Read through the coordinate array again and create a node list. Each 3D spatial cell is 
    // associated with 8 nodes, and most of these nodes are shared with neighbouring cells. In 
    // order to get VisIt display the data correctly, the duplicate nodes should not be used. 
