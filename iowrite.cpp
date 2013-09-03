@@ -194,7 +194,15 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    const uint64_t varBufferArraySize = cells.size()*vectorSize*dataSize;
    
    //Request DataReductionOperator to calculate the reduced data for all local cells:
-   char * varBuffer = new char[varBufferArraySize];
+   char* varBuffer = NULL;
+   try {
+      varBuffer = new char[varBufferArraySize];
+   } catch( bad_alloc& ) {
+      cerr << "ERROR, FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl;
+      logFile << "(MAIN) writeGrid: ERROR FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
+      return false;
+   }
+
 
    for (uint64_t cell=0; cell<cells.size(); ++cell) {
       //Reduce data ( return false if the operation fails )
@@ -212,7 +220,16 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell>& mpiGrid,
          const uint32_t vectorSize_smaller = vectorSize;
          const uint32_t dataSize_smaller = sizeof(float);
          const string dataType_smaller = dataType;
-         float * varBuffer_smaller = new float[arraySize_smaller * vectorSize_smaller];
+         float * varBuffer_smaller = NULL;
+         try {
+            varBuffer_smaller = new float[arraySize_smaller * vectorSize_smaller];
+         } catch( bad_alloc& ) {
+            cerr << "ERROR, FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl;
+            logFile << "(MAIN) writeGrid: ERROR FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
+            delete[] varBuffer;
+            varBuffer = NULL;
+            return false;
+         }
          //Input varBuffer_double into varBuffer_smaller:
          for( uint64_t i = 0; i < arraySize_smaller * vectorSize_smaller; ++i ) {
             const double value = varBuffer_double[i];
