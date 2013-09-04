@@ -5,6 +5,26 @@
 template<typename T> inline T cell_ib_id(const T& i,const T& j,const T& k) {return k+j*6+i*36;} //internal get ib cell id. This takes in indices in natural 6x6x6 frame
 template<typename T> inline T cell_id(const T& i,const T& j,const T& k) {return k*WID2+j*WID+i;}
 
+
+//none
+//template<typename T> inline T slope_limiter(const T& l,const T& m, const T& r) { return (r-l)/2.0; }
+
+//MC  limiter
+template<typename T> inline T slope_limiter(const T& l,const T& m, const T& r) {
+   T sign;
+   T a=r-m;
+   T b=m-l;
+   if (a*b < 0.0)
+      return 0.0;
+   T minval=min(2.0*fabs(a),2.0*fabs(b));
+   minval=min(minval,0.5*fabs(a+b));
+
+   if(a<0)
+      return -minval;
+   else
+      return minval;
+}
+
 enum BlockInterpolationType { CONSTANT, HINGED_HYPERPLANE};
 enum HingedHyperplaneParams {X0,Y0,Z0,DFDX,DFDY,DFDZ,NUM_HH_PARAMS};
 
@@ -108,12 +128,16 @@ private:
                   hh_parameters[cell_id][DFDZ]=0.0;
                   continue;
                }
-               hh_parameters[cell_id][DFDX]=(avgs[cell_ib_id(cell_x+2,cell_y+1,cell_z+1)]-
-                                  avgs[cell_ib_id(cell_x+0,cell_y+1,cell_z+1)])/(2.0*block_ptr->parameters[BlockParams::DVX]);
-               hh_parameters[cell_id][DFDY]=(avgs[cell_ib_id(cell_x+1,cell_y+2,cell_z+1)]-
-                                             avgs[cell_ib_id(cell_x+1,cell_y+0,cell_z+1)])/(2.0*block_ptr->parameters[BlockParams::DVY]);
-               hh_parameters[cell_id][DFDZ]=(avgs[cell_ib_id(cell_x+1,cell_y+1,cell_z+2)]-
-                                  avgs[cell_ib_id(cell_x+1,cell_y+1,cell_z+0)])/(2.0*block_ptr->parameters[BlockParams::DVZ]);
+               hh_parameters[cell_id][DFDX]=slope_limiter(avgs[cell_ib_id(cell_x+0,cell_y+1,cell_z+1)],
+                                                          avgs[cell_ib_id(cell_x+1,cell_y+1,cell_z+1)],
+                                                          avgs[cell_ib_id(cell_x+2,cell_y+1,cell_z+1)])/block_ptr->parameters[BlockParams::DVX];
+               hh_parameters[cell_id][DFDY]=slope_limiter(avgs[cell_ib_id(cell_x+1,cell_y+0,cell_z+1)],
+                                                          avgs[cell_ib_id(cell_x+1,cell_y+1,cell_z+1)],
+                                                          avgs[cell_ib_id(cell_x+1,cell_y+2,cell_z+1)])/block_ptr->parameters[BlockParams::DVY];
+               hh_parameters[cell_id][DFDZ]=slope_limiter(avgs[cell_ib_id(cell_x+1,cell_y+1,cell_z+0)],
+                                                          avgs[cell_ib_id(cell_x+1,cell_y+1,cell_z+1)],
+                                                          avgs[cell_ib_id(cell_x+1,cell_y+1,cell_z+2)])/block_ptr->parameters[BlockParams::DVZ];
+
                
                /*Get the minimum value of the interpolation from one
                 * of the 8 corners of the cell. We know based on the
