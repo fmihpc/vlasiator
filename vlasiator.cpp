@@ -400,7 +400,14 @@ int main(int argn,char* args[]) {
   //Compute here based on time what the file intervals are
    P::systemWrites.clear();
    for(uint i=0;i< P::systemWriteTimeInterval.size();i++){
-       P::systemWrites.push_back((int)(P::t_min/P::systemWriteTimeInterval[i]));
+      int index=(int)(P::t_min/P::systemWriteTimeInterval[i]);
+      //if we are already over 1% further than the time interval time that
+      //is requested for writing, then jump to next writing index. This is to
+      //make sure that at restart we do not write in the middle of
+      //the interval.
+      if(P::t_min>(index+0.01)*P::systemWriteTimeInterval[i])
+         index++;
+      P::systemWrites.push_back(index);
    }
    
    unsigned int wallTimeRestartCounter=1;
