@@ -34,87 +34,18 @@ inline void cic_increment_cell_value(SpatialCell* spatial_cell,
    spatial_cell->increment_value(block,cell,value);
 }
 
-/*cloud in cell interpolation*/
-//TODO, what about negative indices p_ijk, reformulate
-inline void cic_interpolation(SpatialCell* spatial_cell,const Array3d v,const unsigned int n_subcells,const Real value) {
-   static int count=0;
-   const Real particle_dvx=SpatialCell::cell_dvx/n_subcells;
-   const Real particle_dvy=SpatialCell::cell_dvy/n_subcells;
-   const Real particle_dvz=SpatialCell::cell_dvz/n_subcells;
-   const int p_i=(v[0] - SpatialCell::vx_min-0.5*particle_dvx) / particle_dvx;
-   const int p_j=(v[1] - SpatialCell::vy_min-0.5*particle_dvy) / particle_dvy;
-   const int p_k=(v[2] - SpatialCell::vz_min-0.5*particle_dvz) / particle_dvz;
-   const unsigned int fcell_i=p_i/n_subcells;
-   const unsigned int fcell_j=p_j/n_subcells;
-   const unsigned int fcell_k=p_k/n_subcells;
-   const unsigned int fcell_p1_i=(p_i+1)/n_subcells;
-   const unsigned int fcell_p1_j=(p_j+1)/n_subcells;
-   const unsigned int fcell_p1_k=(p_k+1)/n_subcells;
-
-   if (p_i < 0 || p_j < 0 || p_k < 0 ) {
-      //we do not try to handle the edge of (total) velocity space in any smart way, this cell is essentiall lost
-      const Real DV3=SpatialCell::cell_dvx*SpatialCell::cell_dvy*SpatialCell::cell_dvz;
-      spatial_cell->parameters[CellParams::RHOLOSSVELBOUNDARY]+=DV3*value;
-      return;
-   }
-
-   const Real wx=(fcell_i!=fcell_p1_i)?((v[0]-p_i*particle_dvx - SpatialCell::vx_min-0.5*particle_dvx)/particle_dvx):0.0;
-   const Real wy=(fcell_j!=fcell_p1_j)?((v[1]-p_j*particle_dvy - SpatialCell::vy_min-0.5*particle_dvy)/particle_dvy):0.0;
-   const Real wz=(fcell_k!=fcell_p1_k)?((v[2]-p_k*particle_dvz - SpatialCell::vz_min-0.5*particle_dvz)/particle_dvz):0.0;
-
-   if(fcell_i==fcell_p1_i && fcell_j==fcell_p1_j && fcell_k==fcell_p1_k){
-      cic_increment_cell_value(spatial_cell, fcell_i  , fcell_j  , fcell_k  , n_subcells, value);
-   }
-   else if (fcell_i==fcell_p1_i && fcell_j==fcell_p1_j)  {
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_k   , n_subcells, (1-wz)*value);
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_p1_k, n_subcells,  wz *value);
-   }
-   else if (fcell_j==fcell_p1_j && fcell_k==fcell_p1_k)  {
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_k   , n_subcells, (1-wx)*value);
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_j   , fcell_k   , n_subcells, wx*value);
-   }
-   else if (fcell_i==fcell_p1_i && fcell_k==fcell_p1_k)  {
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_k   , n_subcells, (1-wy)*value);
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_p1_j, fcell_k   , n_subcells,  wy *value);
-   }
-   else if (fcell_i==fcell_p1_i)  {
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_k   , n_subcells, (1-wy)*(1-wz)*value);
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_p1_j, fcell_k   , n_subcells,    wy *(1-wz)*value);
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_p1_j, fcell_p1_k, n_subcells,    wy *   wz *value);
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_p1_k, n_subcells, (1-wy)*   wz *value);
-   }
-   else if (fcell_j==fcell_p1_j)  {
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_k   , n_subcells, (1-wx)*(1-wz)*value);
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_j   , fcell_k   , n_subcells, wx*(1-wz)*value);
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_p1_k, n_subcells, (1-wx)* wz *value);
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_j   , fcell_p1_k, n_subcells,    wx * wz *value);
-   }
-   else if (fcell_k==fcell_p1_k)  {
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_k   , n_subcells, (1-wx)*(1-wy)*value);
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_j   , fcell_k   , n_subcells,     wx*(1-wy)*value);
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_p1_j, fcell_k   , n_subcells, (1-wx)*   wy *value);
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_p1_j, fcell_k   , n_subcells,    wx *   wy *value);
-   }
-   else{
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_k   , n_subcells, (1-wx)*(1-wy)*(1-wz)*value);
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_j   , fcell_k   , n_subcells,     wx*(1-wy)*(1-wz)*value);
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_p1_j, fcell_k   , n_subcells, (1-wx)*   wy *(1-wz)*value);
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_j   , fcell_p1_k, n_subcells, (1-wx)*(1-wy)*   wz *value);
-      cic_increment_cell_value(spatial_cell, fcell_i   , fcell_p1_j, fcell_p1_k, n_subcells, (1-wx)*   wy *   wz *value);
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_j   , fcell_p1_k, n_subcells,    wx *(1-wy)*   wz *value);
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_p1_j, fcell_k   , n_subcells,    wx *   wy *(1-wz)*value);
-      cic_increment_cell_value(spatial_cell, fcell_p1_i, fcell_p1_j, fcell_p1_k, n_subcells,    wx *   wy *   wz *value);   
-   }
-}
-
-
 
 
 /*volme integrated version of cic*/
-//TODO: use knowledge of cellid to speed up get value in iblock
-//
-//TODO, what about negative indices p_ijk, 
-//todo comment on what things are
+/*
+  \par spatial_cell Spatial cell that is integrated
+  \par v velocity lower left corner of subcell after rotation
+  \par iblock interpolated block describing the block to be rotated
+  \par v_source Original position of v prior to rotation
+  \par ib_cellid  cellid in interpolated block corresponding to v_source
+  \par n_subcells Number of subcells per dimension
+*/
+
 inline void volintegrated_interpolation(SpatialCell* spatial_cell,const Array3d v,interpolated_block& iblock,const Array3d v_source,unsigned int ib_cellid,const unsigned int n_subcells){
    static int count=0;
    const Real particle_dvx=SpatialCell::cell_dvx/n_subcells;
