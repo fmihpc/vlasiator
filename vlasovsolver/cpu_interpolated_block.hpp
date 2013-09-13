@@ -25,7 +25,7 @@ template<typename T> inline T slope_limiter(const T& l,const T& m, const T& r) {
       return minval;
 }
 
-enum BlockInterpolationType { CONSTANT, HINGED_HYPERPLANE};
+enum BlockInterpolationType { CONSTANT,LINEAR,PARABOLIC};
 enum HingedHyperplaneParams {X0,Y0,Z0,DFDX,DFDY,DFDZ,NUM_HH_PARAMS};
 
 class interpolated_block {
@@ -38,8 +38,10 @@ class interpolated_block {
       switch(this->interpolationType) {
           case CONSTANT:
              return eval_nointerpolation(x,y,z);
-          case HINGED_HYPERPLANE:
+          case LINEAR:
              return eval_hinged_hyperplane(x,y,z);
+          case PARABOLIC:
+             return 0.0; //Not implemented
 
       }
       return 0.0;
@@ -49,8 +51,10 @@ class interpolated_block {
       switch(this->interpolationType) {
           case CONSTANT:
              return eval_nointerpolation(x,y,z);
-          case HINGED_HYPERPLANE:
+          case LINEAR:
              return eval_hinged_hyperplane(cellid,x,y,z);
+          case PARABOLIC:
+             return 0.0; //Not implemented
       }
       return 0.0;
    }
@@ -61,9 +65,11 @@ class interpolated_block {
       switch(this->interpolationType) {
           case CONSTANT:
              break; 
-          case HINGED_HYPERPLANE:     
+          case LINEAR:     
              this->prepare_hinged_hyperplane();
              break;
+          case PARABOLIC:
+             break; //Not implemented
       }
    }
    inline unsigned int get_cell_id(const unsigned int i,const unsigned int j,const unsigned int k){

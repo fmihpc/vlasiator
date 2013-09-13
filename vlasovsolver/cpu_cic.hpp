@@ -3,6 +3,8 @@
 
 #include "spatial_cell.hpp"
 #include <Eigen/Geometry>
+#include "../parameters.h"
+
 using namespace Eigen;
 
 inline void cic_increment_cell_value(SpatialCell* spatial_cell,
@@ -220,7 +222,20 @@ void cic(SpatialCell *spatial_cell,Transform<Real,3,Affine>& transform) {
 
    //n_subcells should be known at compile time, otherwise mapping is ~ 25% slower (!)
    const unsigned int n_subcells=1;//Parameters::semiLagSubcellsPerDim;
-   interpolated_block iblock(HINGED_HYPERPLANE);
+   BlockInterpolationType interpolation;
+   switch(Parameters::vlasovSemiLagOrder){
+       case 0:
+          interpolation=CONSTANT;
+          break;
+       case 1:
+          interpolation=LINEAR;
+       case 2:
+          interpolation=PARABOLIC;
+       default:
+          interpolation=LINEAR;
+   }
+   
+   interpolated_block iblock(interpolation);
    for (unsigned int block_i = 0; block_i < blocks.size(); block_i++) {
       const unsigned int block = blocks[block_i];
       Velocity_Block* block_ptr = spatial_cell->at(block);

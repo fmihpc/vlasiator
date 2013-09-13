@@ -117,6 +117,7 @@ vector<string> P::diagnosticVariableList;
 string P::projectName = string("");
 
 bool P::vlasovSemiLagAcceleration=true;
+uint P::vlasovSemiLagOrder=1;
 
 bool P::lorentzHallTerm=false;
 Real P::lorentzHallMinimumRho=1.0;
@@ -184,7 +185,8 @@ bool Parameters::addParameters(){
    Readparameters::add("fieldsolver.minCFL","The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",0.4);
 
    // Vlasov solver parameters
-   Readparameters::add("vlasovsolver.vlasovSemiLagAcceleration","Use Semi-Lagrangian solver for acceleration",false);
+   Readparameters::add("vlasovsolver.vlasovSemiLagAcceleration","Use cell integrated Semi-Lagrangian solver for acceleration",false);
+   Readparameters::add("vlasovsolver.vlasovSemiLagOrder","Order of reconstruction for cell values: 0 constant, 1 linear piecewice (default), 2 parabolic piecewise (in development)",1);
    Readparameters::add("vlasovsolver.lorentzHallTerm", "Add JxB term to Lorentz force",true);
    Readparameters::add("vlasovsolver.lorentzHallMinimumRho", "Minimum rho value used for Hall term in Lorentz force. Default is very low and has no effect in practice.",1.0);
    Readparameters::add("vlasovsolver.lorentzHallMaximumB", "Maximum value used for Hall term in Lorentz force. Default is very high and has no effect in practice.",1.0); 
@@ -294,6 +296,7 @@ bool Parameters::getParameters(){
    Readparameters::get("fieldsolver.minCFL",P::fieldSolverMinCFL);
    // Get Vlasov solver parameters
    Readparameters::get("vlasovsolver.vlasovSemiLagAcceleration",P::vlasovSemiLagAcceleration);
+   Readparameters::get("vlasovsolver.vlasovSemiLagOrder",P::vlasovSemiLagOrder);
    Readparameters::get("vlasovsolver.lorentzHallTerm", P::lorentzHallTerm);
    Readparameters::get("vlasovsolver.lorentzHallMinimumRho",P::lorentzHallMinimumRho);
    Readparameters::get("vlasovsolver.lorentzHallMaximumB",P::lorentzHallMaximumB);
