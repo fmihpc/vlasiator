@@ -23,6 +23,20 @@ while read line; do
     chunkSize=1000000000
     totalChunks=$(( 1+size/chunkSize )) 
     retval=0
+
+    #file exists on archive folder, if it is incomplete on archive server then that is not taken into account in any way
+    if [ -e ${localTapePath}/${file} ] 
+    then
+	tapeSize=$( ls -la  ${localTapePath}/${file} | gawk '{print $5}' )
+	if [ $tapeSize -eq  $size ]
+	then
+	    #file complete
+	    retval=1
+	    echo "$(date) ${file}: File is already transferred and on archive"
+	fi
+    fi
+    
+    
     #compute where to start download
     if [ -e $file ] 
 	then
@@ -40,6 +54,8 @@ while read line; do
 	#nothing has been transferred, start from beginning
 	i=0
     fi
+
+
 
     retryIndex=0
     while [ $retval -eq 0 ]
