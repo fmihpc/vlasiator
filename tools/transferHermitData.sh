@@ -89,8 +89,14 @@ while read line; do
 	then
             #the whole file has been downloaded, excellent!
 	    echo "$(date) ${file}: Done"
-	    mv ${file} ${localTapePath}/
-	    echo "$(date) ${file}: Moved from staging at $( pwd ) to ${localTapePath}"
+	    if [ -e ${localTapePath}/${file} ] 
+	    then
+		echo "$(date) ${file}: WARNING file with the same name already exists on ${localTapePath} - file not moved from staging at $(pwd)"
+	    else
+ 		mv ${file} ${localTapePath}/
+		echo "$(date) ${file}: Moved from staging at $( pwd ) to ${localTapePath}"
+	    fi
+
 	    retval=1
 	    retryIndex=0
 	else
