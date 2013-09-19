@@ -8,6 +8,8 @@ function transferFileList {
 server=$1
 path=$2
 inputfile=$3
+localTapePath=$4
+
 export GLOBUS_TCP_SOURCE_RANGE=20000,20500
 export GLOBUS_TCP_PORT_RANGE=20000,20500
 
@@ -71,6 +73,8 @@ while read line; do
 	then
             #the whole file has been downloaded, excellent!
 	    echo "$(date) ${file}: Done"
+	    mv ${file} ${localTapePath}/
+	    echo "$(date) ${file}: Moved from staging at $( pwd ) to ${localTapePath}"
 	    retval=1
 	    retryIndex=0
 	else
@@ -108,21 +112,31 @@ server=gsiftp://gridftp-fr1.hww.de:2812
 path=$1
 inputfile=$2
 parallelTransfers=10
+localTapePath=$3
 
-if [ ! $# -eq 2 ]
+if [ ! $# -eq 3 ]
 then
 cat <<EOF
-transferHermitData path transfer_file
+transferHermitData path transfer_file local_tape_path
 
     Script for transferring data using gridFTP. Please start up the proxy using grid_proxy_init first
 
-    path          is a path on hermit (e.g. /univ_1/ws1/ws/iprsalft-paper1-runs-0/2D/ecliptic/AAE)"
-    transfer_file is a file in the path on hermit created using ls -la *myfiles* > tranfer.txt"       
+    path             is a path on hermit (e.g. /univ_1/ws1/ws/iprsalft-paper1-runs-0/2D/ecliptic/AAE)"
+    transfer_file    is a file in the path on hermit created using ls -la *myfiles* > tranfer.txt"       
+    local_tape_path  is the folder where the files are ultimately copied after transfer. During transfer they go to the local folder
 EOF
 
 exit
 
 fi
+
+
+if [ ! -d $localTapePath ]
+then
+echo "Tape path $localTapePath does not exist!"
+exit
+fi
+
 
 export GLOBUS_TCP_SOURCE_RANGE=20000,20500
 export GLOBUS_TCP_PORT_RANGE=20000,20500
@@ -145,6 +159,7 @@ if [[ $rc != 0 ]] ; then
 fi
 
 echo "Transferring files in $inputfile at $path" >> transferLog.txt
+echo "Files staged at $( pwd) and archived at ${localTapePath}" >> transferLog.txt
 cat $inputfile |gawk '{s=s+$5} END {print  NR, " files with ",s/(1024*1024*1024),"GB of data"}' >> transferLog.txt
 
 
@@ -160,7 +175,7 @@ split -l $filesPerTransfer -d $inputfile .para_$inputfile_
 i=0
 for paraInput in .para_$inputfile_*
 do
-   transferFileList  $server $path $paraInput >> transferLog.txt &
+   transferFileList  $server $path $paraInput $localTapePath >> transferLog.txt &
    echo "Started background transfer-job $!"
    transferPids[$i]=$!
    i=$((i+1))
