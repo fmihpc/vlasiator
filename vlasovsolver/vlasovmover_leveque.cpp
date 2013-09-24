@@ -3,23 +3,8 @@ This file is part of Vlasiator.
 
 Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
-
-
-
-
-
-
-
-
-
-
-
 */
 
-// This is used to compile with XLC and the O3 option on FERMI.
-// # pragma options maxmem=46829
-
-// TODO YK Clarify ambiguities between system boundary and proc boundary cells, it is still confusing in at least two places.
 
 #include <cstdlib>
 #include <iostream>
@@ -239,9 +224,10 @@ bool initializeSpatialLeveque(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 bool deallocateSpatialLevequeBuffers(){
    remoteUpdates.clear();
    updateBuffers.clear();
+   return true;
 }
 
-bool allocateSpatialLevequeBuffers(dccrg::Dccrg<SpatialCell>& mpiGrid){
+bool allocateSpatialLevequeBuffers(const dccrg::Dccrg<SpatialCell>& mpiGrid){
    // Allocate receive buffers for all local cells that 
    // have at least one remote neighbour. For GPUs the first 
    // buffer must be allocated using page-locked memory:

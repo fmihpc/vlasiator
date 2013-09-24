@@ -237,8 +237,10 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
 // tell other processes which velocity blocks exist in remote spatial cells
    phiprof::initializeTimer("Balancing load", "Load balance");
    phiprof::start("Balancing load");
-   
 
+   //free buffers in leveque solvers to decrease memory load. 
+   deallocateSpatialLevequeBuffers();
+   
    //set weights based on each cells LB weight counter
    vector<uint64_t> cells = mpiGrid.get_cells();
    for (uint i=0; i<cells.size(); ++i){
@@ -267,7 +269,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    std::vector<uint64_t> outgoing_cells_list (outgoing_cells.begin(),outgoing_cells.end()); 
    
    /*transfer cells in parts to preserve memory*/
-   const uint64_t num_part_transfers=4;
+   const uint64_t num_part_transfers=5;
    for(uint64_t transfer_part=0;transfer_part<num_part_transfers;transfer_part++){
      
      //Set transfers on/off for the incming cells in this transfer set and prepare for receive
@@ -341,7 +343,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    phiprof::stop("update block lists");
 
    phiprof::start("Init solvers");
-   //need to re-initialize stencils and neighbors in leveque solver
+   //need to re-initialize stencils and neighbors in leveque solver, buffers also allocated here
    if (initializeSpatialLeveque(mpiGrid) == false) {
       logFile << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << writeVerbose;
       exit(1);
@@ -374,6 +376,12 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid, bool reInitMover) 
    phiprof::start("re-adjust blocks");
    const vector<uint64_t> cells = mpiGrid.get_cells();
 
+   if(reInitMover) {
+      phiprof::start("deallocateSpatialLevequeBuffers");
+      deallocateSpatialLevequeBuffers();
+      phiprof::stop("deallocateSpatialLevequeBuffers");
+   }
+   
    phiprof::start("Compute with_content_list");
 #pragma omp parallel for  
    for (uint i=0; i<cells.size(); ++i) 

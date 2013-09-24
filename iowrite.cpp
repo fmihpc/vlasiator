@@ -262,7 +262,8 @@ bool writeGrid(
 
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    phiprof::start("writeGrid-reduced");
-    
+
+   
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
    fname << P::systemWriteName[index] <<".";
@@ -361,7 +362,9 @@ bool writeRestart(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    phiprof::start("writeGrid-restart");
 
-    
+   //de-allocate buffers for spatial leveque solver to reduce memory peak 
+   deallocateSpatialLevequeBuffers();
+   
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
    fname << name <<".";
@@ -407,6 +410,8 @@ bool writeRestart(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    writeVelocityDistributionData(vlsvWriter,mpiGrid,cells,MPI_COMM_WORLD);
    
    vlsvWriter.close();
+   //re-allocate buffers now that we have written the restart 
+   allocateSpatialLevequeBuffers(mpiGrid);
    
    phiprof::stop("writeGrid-restart");//,1.0e-6*bytesWritten,"MB");
 

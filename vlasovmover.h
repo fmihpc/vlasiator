@@ -3,17 +3,6 @@ This file is part of Vlasiator.
 
 Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
-
-
-
-
-
-
-
-
-
-
-
 */
 
 #ifndef VLASOVMOVER_H
@@ -32,7 +21,8 @@ using namespace spatial_cell;
 
 bool finalizeMover();
 bool initializeSpatialLeveque(dccrg::Dccrg<SpatialCell>& mpiGrid);
-bool allocateSpatialLevequeBuffers(dccrg::Dccrg<SpatialCell>& mpiGrid);
+bool allocateSpatialLevequeBuffers(const dccrg::Dccrg<SpatialCell>& mpiGrid);
+bool deallocateSpatialLevequeBuffers();
 void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,uint64_t& cell);
 
 void calculateAcceleration(
