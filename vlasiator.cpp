@@ -255,7 +255,7 @@ int main(int argn,char* args[]) {
    //VlsWriter vlsWriter;
    phiprof::start("Init vlasov propagator");
    // Initialize Vlasov propagator:
-   if (initializeMover(mpiGrid) == false) {
+   if (initializeSpatialLeveque(mpiGrid) == false) {
       logFile << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << writeVerbose;
       exit(1);
    }

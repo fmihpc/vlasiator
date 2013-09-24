@@ -342,7 +342,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
 
    phiprof::start("Init solvers");
    //need to re-initialize stencils and neighbors in leveque solver
-   if (initializeMover(mpiGrid) == false) {
+   if (initializeSpatialLeveque(mpiGrid) == false) {
       logFile << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << writeVerbose;
       exit(1);
    }
@@ -418,9 +418,9 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid, bool reInitMover) 
 
    //re-init vlasovmover
    if(reInitMover) {
-      phiprof::start("InitMoverAfterBlockChange");
-      initMoverAfterBlockChange(mpiGrid);
-      phiprof::stop("InitMoverAfterBlockChange");
+      phiprof::start("allocateSpatialLevequeBuffers");
+      allocateSpatialLevequeBuffers(mpiGrid);
+      phiprof::stop("allocateSpatialLevequeBuffers");
    }
    phiprof::stop("re-adjust blocks");
    return true;

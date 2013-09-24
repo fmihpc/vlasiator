@@ -110,7 +110,7 @@ CellID getNeighbourID(
    }
 }
 
-bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid) { 
+bool initializeSpatialLeveque(dccrg::Dccrg<SpatialCell>& mpiGrid) { 
    
    // Exchange sysBoundaryFlags between neighbouring processes, 
    // so that boundary condition functions are correctly called 
@@ -233,16 +233,20 @@ bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       const CellID cellID = cells[c];
       if (mpiGrid[cellID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) sysBoundaryCells.insert(cellID);
    }
-   initMoverAfterBlockChange(mpiGrid);
+   allocateSpatialLevequeBuffers(mpiGrid);
    return true;
 }
+bool deallocateSpatialLevequeBuffers(){
+   remoteUpdates.clear();
+   updateBuffers.clear();
+}
 
-bool initMoverAfterBlockChange(dccrg::Dccrg<SpatialCell>& mpiGrid){
+bool allocateSpatialLevequeBuffers(dccrg::Dccrg<SpatialCell>& mpiGrid){
    // Allocate receive buffers for all local cells that 
    // have at least one remote neighbour. For GPUs the first 
    // buffer must be allocated using page-locked memory:
-   remoteUpdates.clear();
-   updateBuffers.clear();
+   deallocateSpatialLevequeBuffers();
+   
    for (map<pair<int,int>,CellID>::const_iterator it=stencilUpdates.recvs.begin(); it!=stencilUpdates.recvs.end(); ++it) {
       cint host            = it->first.first;
       const CellID localID = it->second;

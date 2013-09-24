@@ -31,8 +31,8 @@ using namespace spatial_cell;
 
 
 bool finalizeMover();
-bool initializeMover(dccrg::Dccrg<SpatialCell>& mpiGrid);
-bool initMoverAfterBlockChange(dccrg::Dccrg<SpatialCell>& mpiGrid);
+bool initializeSpatialLeveque(dccrg::Dccrg<SpatialCell>& mpiGrid);
+bool allocateSpatialLevequeBuffers(dccrg::Dccrg<SpatialCell>& mpiGrid);
 void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,uint64_t& cell);
 
 void calculateAcceleration(
