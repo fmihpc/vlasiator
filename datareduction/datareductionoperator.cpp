@@ -781,10 +781,13 @@ namespace DRO {
    //Helper function for getting the velocity cell ids that are a part of the backstream population:
    static void getBackstreamVelocityCells( const Velocity_Block * block, vector<uint64_t> & vCellIds ) {
       const Real HALF = 0.5;
+      // Go through every velocity cell (i, j, k are indices)
       for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
+         // Get the vx, vy, vz coordinates of the velocity cell
          const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
          const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
          const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+         // Compare the distance of the velocity cell from the center of the maxwellian distribution to the radius of the maxwellian distribution
          if( ( (P::backstreamvx - VX)*(P::backstreamvx - VX)
              + (P::backstreamvy - VY)*(P::backstreamvy - VY)
              + (P::backstreamvz - VZ)*(P::backstreamvz - VZ) )
@@ -869,6 +872,7 @@ namespace DRO {
             const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
             const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
             vector< uint64_t > vCells; //Velocity cell ids
+            vCells.clear();
             if( calculateBackstream == true ) {
                getBackstreamVelocityCells(block, vCells);
             } else {
