@@ -816,16 +816,19 @@ namespace DRO {
    static void getBackstreamVelocityCellIndices( const Velocity_Block * block, 
                                                  vector<array<uint, 3>> & vCellIndices ) {
       const Real HALF = 0.5;
+      // Go through a block's every velocity cell
       for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
+         // Get the coordinates of the velocity cell (e.g. VX = block_vx_min_coordinates + (velocity_cell_indice_x+0.5)*length_of_velocity_cell_in_x_direction
          const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
          const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
          const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+         // Calculate the distance of the velocity cell from the center of the maxwellian distribution and compare it to the approximate radius of the maxwellian distribution
          if( ( (P::backstreamvx - VX)*(P::backstreamvx - VX)
              + (P::backstreamvy - VY)*(P::backstreamvy - VY)
              + (P::backstreamvz - VZ)*(P::backstreamvz - VZ) )
              >
              P::backstreamradius*P::backstreamradius ) {
-             //The velocity cell is a part of the backstream population:
+             //The velocity cell is a part of the backstream population because it is not within the radius:
              const array<uint, 3> indices{{i, j, k}};
              vCellIndices.push_back( indices );
           }
@@ -835,16 +838,19 @@ namespace DRO {
    static void getNonBackstreamVelocityCellIndices( const Velocity_Block * block, 
                                                  vector<array<uint, 3>> & vCellIndices ) {
       const Real HALF = 0.5;
+      // Go through a block's every velocity cell
       for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
+         // Get the coordinates of the velocity cell (e.g. VX = block_vx_min_coordinates + (velocity_cell_indice_x+0.5)*length_of_velocity_cell_in_x_direction
          const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
          const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
          const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+         // Calculate the distance of the velocity cell from the center of the maxwellian distribution and compare it to the approximate radius of the maxwellian distribution
          if( ( (P::backstreamvx - VX)*(P::backstreamvx - VX)
              + (P::backstreamvy - VY)*(P::backstreamvy - VY)
              + (P::backstreamvz - VZ)*(P::backstreamvz - VZ) )
              <=
              P::backstreamradius*P::backstreamradius ) {
-             //The velocity cell is a part of the backstream population:
+             //The velocity cell is a part of the backstream population because it is within the radius:
              const array<uint, 3> indices{{i, j, k}};
              vCellIndices.push_back( indices );
           }
@@ -900,22 +906,28 @@ namespace DRO {
          for(uint n=0; n<cell->number_of_blocks; n++) {
             const unsigned int blockId = cell->velocity_block_list[n];
             const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
-            const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
+            const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ]; // Get the volume of a velocity cell
+            // Get the velocity cell indices of the cells that are a part of the backstream population
             vector< array<uint, 3> > vCellIndices;
             vCellIndices.clear();
+            // Save indices to the std::vector
             if( calculateBackstream == true ) {
                getBackstreamVelocityCellIndices(block, vCellIndices);
             } else {
-               getNonBackstreamVelocityCellIndices(block, vCellIndices);//CONT
+               getNonBackstreamVelocityCellIndices(block, vCellIndices);
             }
+            // We have now fethced all of the needed velocity cell indices, so now go through them:
             for( vector< array<uint, 3> >::const_iterator it = vCellIndices.begin(); it != vCellIndices.end(); ++it ) {
+               // Get the indices of the current iterated velocity cell
                const array<uint, 3> indices = *it;
                const uint i = indices[0];
                const uint j = indices[1];
                const uint k = indices[2];
+               // Get the coordinates of the velocity cell (e.g. VX = block_vx_min_coordinates + (velocity_cell_indice_x+0.5)*length_of_velocity_cell_in_x_direction)
                const Real VX = block-> parameters[BlockParams::VXCRD] + (i+HALF) * block-> parameters[BlockParams::DVX];
                const Real VY = block-> parameters[BlockParams::VYCRD] + (j+HALF) * block-> parameters[BlockParams::DVY];
                const Real VZ = block-> parameters[BlockParams::VZCRD] + (k+HALF) * block-> parameters[BlockParams::DVZ];
+               // Add the value of the coordinates and multiply by the AVGS value of the velocity cell and the volume of the velocity cell
                thread_nvx_sum += block->data[cellIndex(i,j,k)]*VX*DV3;
                thread_nvy_sum += block->data[cellIndex(i,j,k)]*VY*DV3;
                thread_nvz_sum += block->data[cellIndex(i,j,k)]*VZ*DV3;
@@ -1174,6 +1186,7 @@ namespace DRO {
    }
    
    bool VariableRhoVBackstream::setSpatialCell(const SpatialCell* cell) {
+      // Initialize values
       for( uint i = 0; i < 3; ++i ) {
          RhoVBackstream[i] = 0.0;
       }
@@ -1205,6 +1218,7 @@ namespace DRO {
    }
    
    bool VariableRhoVNonBackstream::setSpatialCell(const SpatialCell* cell) {
+      // Initialize values
       for( uint i = 0; i < 3; ++i ) {
          RhoV[i] = 0.0;
       }
