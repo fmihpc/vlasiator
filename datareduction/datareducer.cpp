@@ -47,6 +47,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_v",CellParams::RHOVX,3));
       if(*it == "RhoVBackstream")
          outputReducer->addOperator(new DRO::VariableRhoVBackstream);
+      if(*it == "RhoVNonBackstream")
+         outputReducer->addOperator(new DRO::VariableRhoVNonBackstream);
       if(*it == "PressureBackstream")
          outputReducer->addOperator(new DRO::VariablePressureBackstream);
       if(*it == "PTensorBackstreamDiagonal")
