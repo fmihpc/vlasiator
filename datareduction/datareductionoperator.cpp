@@ -1239,10 +1239,7 @@ namespace DRO {
       if(cell-> parameters[CellParams::RHO] != 0.0) {
          //Get rho and rho v of the backstream:
          Real rho = 0;
-         Real rhoV[3];
-         for( uint i = 0; i < 3; ++i ) {
-            rhoV[i] = 0;
-         }
+         Real rhoV[3] = {0};
          const bool calculateBackstream = true;
          rhoBackstreamCalculation( cell, calculateBackstream, rho );
          rhoVBackstreamCalculation( cell, calculateBackstream, rhoV );
