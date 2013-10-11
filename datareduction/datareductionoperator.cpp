@@ -885,8 +885,12 @@ namespace DRO {
       return;
    }
 
-   static void rhoVBackstreamCalculation( const SpatialCell * cell, const bool calculateBackstream, array<Real, 3> & rhoV ) {
+   static void rhoVBackstreamCalculation( const SpatialCell * cell, const bool calculateBackstream, Real * rhoV ) {
       const Real HALF = 0.5;
+      // Make sure the rhoV is initialized
+      rhoV[0] = 0;
+      rhoV[1] = 0;
+      rhoV[2] = 0;
       # pragma omp parallel
       {
          Real thread_nvx_sum = 0.0;
@@ -898,10 +902,11 @@ namespace DRO {
             const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
             const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
             vector< array<uint, 3> > vCellIndices;
+            vCellIndices.clear();
             if( calculateBackstream == true ) {
                getBackstreamVelocityCellIndices(block, vCellIndices);
             } else {
-               getNonBackstreamVelocityCellIndices(block, vCellIndices);
+               getNonBackstreamVelocityCellIndices(block, vCellIndices);//CONT
             }
             for( vector< array<uint, 3> >::const_iterator it = vCellIndices.begin(); it != vCellIndices.end(); ++it ) {
                const array<uint, 3> indices = *it;
@@ -938,6 +943,7 @@ namespace DRO {
                                                Real & Pressure ) {
       const Real HALF = 0.5;
       const Real THIRD = 1.0/3.0;
+      Pressure = 0;
       # pragma omp parallel
       {
          Real thread_nvx2_sum = 0.0;
@@ -949,6 +955,7 @@ namespace DRO {
             const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
             const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
             vector< array<uint, 3> > vCellIndices;
+            vCellIndices.clear();
             //Note: Could use function pointers
             if( calculateBackstream == true ) {
                getBackstreamVelocityCellIndices(block, vCellIndices);
@@ -985,7 +992,7 @@ namespace DRO {
                                                       const Real averageVX,
                                                       const Real averageVY,
                                                       const Real averageVZ,
-                                                      array<Real, 3> & PTensor ) {
+                                                      Real * PTensor ) {
       const Real HALF = 0.5;
       const Real THIRD = 1.0/3.0;
       # pragma omp parallel
@@ -999,6 +1006,7 @@ namespace DRO {
             const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
             const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
             vector< array<uint, 3> > vCellIndices;
+            vCellIndices.clear();
             if( calculateBackstream == true ) {
                getBackstreamVelocityCellIndices(block, vCellIndices);
             } else {
@@ -1037,7 +1045,7 @@ namespace DRO {
                                                          const Real averageVX,
                                                          const Real averageVY,
                                                          const Real averageVZ,
-                                                         array<Real, 3> & PTensor ) {
+                                                         Real * PTensor ) {
       const Real HALF = 0.5;
       const Real THIRD = 1.0/3.0;
       # pragma omp parallel
@@ -1157,13 +1165,8 @@ namespace DRO {
    // Adding rho v backstream calculations to Vlasiator.
    bool VariableRhoVBackstream::reduceData(const SpatialCell* cell,char* buffer) {
       const bool calculateBackstream = true;
-      array<Real, 3> rhoValues;
       //Calculate rho v backstream
-      rhoVBackstreamCalculation( cell, calculateBackstream, rhoValues );
-      //Insert results
-      RhoVBackstream[0] = rhoValues[0];
-      RhoVBackstream[1] = rhoValues[1];
-      RhoVBackstream[2] = rhoValues[2];
+      rhoVBackstreamCalculation( cell, calculateBackstream, RhoVBackstream );
       const uint RhoVBackstreamSize = 3;
       const char* ptr = reinterpret_cast<const char*>(&RhoVBackstream);
       for (uint i=0; i<RhoVBackstreamSize*sizeof(Real); ++i) buffer[i] = ptr[i];
@@ -1193,13 +1196,8 @@ namespace DRO {
    // Adding rho v non backstream calculations to Vlasiator.
    bool VariableRhoVNonBackstream::reduceData(const SpatialCell* cell,char* buffer) {
       const bool calculateBackstream = false;
-      array<Real, 3> rhoValues;
       //Calculate rho v backstream
-      rhoVBackstreamCalculation( cell, calculateBackstream, rhoValues );
-      //Insert results
-      RhoV[0] = rhoValues[0];
-      RhoV[1] = rhoValues[1];
-      RhoV[2] = rhoValues[2];
+      rhoVBackstreamCalculation( cell, calculateBackstream, RhoV );
       const uint vectorSize = 3;
       const char* ptr = reinterpret_cast<const char*>(&RhoV);
       for (uint i=0; i<vectorSize*sizeof(Real); ++i) buffer[i] = ptr[i];
@@ -1240,8 +1238,11 @@ namespace DRO {
    bool VariablePressureBackstream::setSpatialCell(const SpatialCell* cell) {
       if(cell-> parameters[CellParams::RHO] != 0.0) {
          //Get rho and rho v of the backstream:
-         Real rho;
-         array<Real, 3> rhoV;
+         Real rho = 0;
+         Real rhoV[3];
+         for( uint i = 0; i < 3; ++i ) {
+            rhoV[i] = 0;
+         }
          const bool calculateBackstream = true;
          rhoBackstreamCalculation( cell, calculateBackstream, rho );
          rhoVBackstreamCalculation( cell, calculateBackstream, rhoV );
@@ -1284,8 +1285,11 @@ namespace DRO {
    bool VariablePressureNonBackstream::setSpatialCell(const SpatialCell* cell) {
       if(cell-> parameters[CellParams::RHO] != 0.0) {
          //Get rho and rho v of the backstream:
-         Real rho;
-         array<Real, 3> rhoV;
+         Real rho = 0;
+         Real rhoV[3];
+         for( uint i = 0; i < 3; ++i ) {
+            rhoV[i] = 0;
+         }
          const bool calculateBackstream = false;
          rhoBackstreamCalculation( cell, calculateBackstream, rho );
          rhoVBackstreamCalculation( cell, calculateBackstream, rhoV );
@@ -1323,13 +1327,9 @@ namespace DRO {
    
    bool VariablePTensorBackstreamDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
       const bool calculateBackstream = true;
-      array<Real, 3> PTensorArray;
       //Calculate PTensor and save it in PTensorArray:
-      PTensorDiagonalBackstreamCalculations( cell, calculateBackstream, averageVX, averageVY, averageVZ, PTensorArray );
+      PTensorDiagonalBackstreamCalculations( cell, calculateBackstream, averageVX, averageVY, averageVZ, PTensor );
       const uint vectorSize = 3;
-      for( uint i = 0; i < vectorSize; ++i ) {
-         PTensor[i] = PTensorArray[i];
-      }
       //Save the data into buffer:
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
       for (uint i=0; i<vectorSize*sizeof(Real); ++i) buffer[i] = ptr[i];
@@ -1339,8 +1339,11 @@ namespace DRO {
    bool VariablePTensorBackstreamDiagonal::setSpatialCell(const SpatialCell* cell) {
       if(cell-> parameters[CellParams::RHO] != 0.0) {
          //Get rho and rho v of the backstream:
-         Real rho;
-         array<Real, 3> rhoV;
+         Real rho = 0;
+         Real rhoV[3];
+         for( uint i = 0; i < 3; ++i ) {
+            rhoV[i] = 0;
+         }
          const bool calculateBackstream = true; //We are calculating backstream
          rhoBackstreamCalculation( cell, calculateBackstream, rho );
          rhoVBackstreamCalculation( cell, calculateBackstream, rhoV );
@@ -1378,13 +1381,9 @@ namespace DRO {
    
    bool VariablePTensorNonBackstreamDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
       const bool calculateBackstream = false;
-      array<Real, 3> PTensorArray;
       //Calculate PTensor and save it in PTensorArray:
-      PTensorDiagonalBackstreamCalculations( cell, calculateBackstream, averageVX, averageVY, averageVZ, PTensorArray );
+      PTensorDiagonalBackstreamCalculations( cell, calculateBackstream, averageVX, averageVY, averageVZ, PTensor );
       const uint vectorSize = 3;
-      for( uint i = 0; i < vectorSize; ++i ) {
-         PTensor[i] = PTensorArray[i];
-      }
       //Save the data into buffer:
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
       for (uint i=0; i<vectorSize*sizeof(Real); ++i) buffer[i] = ptr[i];
@@ -1394,8 +1393,11 @@ namespace DRO {
    bool VariablePTensorNonBackstreamDiagonal::setSpatialCell(const SpatialCell* cell) {
       if(cell-> parameters[CellParams::RHO] != 0.0) {
          //Get rho and rho v of the backstream:
-         Real rho;
-         array<Real, 3> rhoV;
+         Real rho = 0;
+         Real rhoV[3];
+         for( uint i = 0; i < 3; ++i ) {
+            rhoV[i] = 0;
+         }
          const bool calculateBackstream = false; //We are not calculating backstream
          rhoBackstreamCalculation( cell, calculateBackstream, rho );
          rhoVBackstreamCalculation( cell, calculateBackstream, rhoV );
@@ -1428,14 +1430,9 @@ namespace DRO {
    bool VariablePTensorBackstreamOffDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
       //Calculate PTensor for PTensorArray:
       const bool calculateBackstream = true;
-      array<Real, 3> PTensorArray;
       //Calculate and save:
-      PTensorOffDiagonalBackstreamCalculations( cell, calculateBackstream, averageVX, averageVY, averageVZ, PTensorArray );
+      PTensorOffDiagonalBackstreamCalculations( cell, calculateBackstream, averageVX, averageVY, averageVZ, PTensor );
       const uint vectorSize = 3;
-      //Input PTensorArray into PTensor
-      for( uint i = 0; i < vectorSize; ++i ) {
-         PTensor[i] = PTensorArray[i];
-      }
       //Input data into buffer
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
       for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
@@ -1445,8 +1442,11 @@ namespace DRO {
    bool VariablePTensorBackstreamOffDiagonal::setSpatialCell(const SpatialCell* cell) {
       if(cell-> parameters[CellParams::RHO] != 0.0) {
          //Get rho and rho v of the backstream:
-         Real rho;
-         array<Real, 3> rhoV;
+         Real rho = 0;
+         Real rhoV[3];
+         for( uint i = 0; i < 3; ++i ) {
+            rhoV[i] = 0;
+         }
          const bool calculateBackstream = true; //We are calculating backstream
          rhoBackstreamCalculation( cell, calculateBackstream, rho );
          rhoVBackstreamCalculation( cell, calculateBackstream, rhoV );
@@ -1478,14 +1478,9 @@ namespace DRO {
    bool VariablePTensorNonBackstreamOffDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
       //Calculate PTensor for PTensorArray:
       const bool calculateBackstream = false;
-      array<Real, 3> PTensorArray;
       //Calculate and save:
-      PTensorOffDiagonalBackstreamCalculations( cell, calculateBackstream, averageVX, averageVY, averageVZ, PTensorArray );
+      PTensorOffDiagonalBackstreamCalculations( cell, calculateBackstream, averageVX, averageVY, averageVZ, PTensor );
       const uint vectorSize = 3;
-      //Input PTensorArray into PTensor
-      for( uint i = 0; i < vectorSize; ++i ) {
-         PTensor[i] = PTensorArray[i];
-      }
       //Input data into buffer
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
       for (uint i=0; i<3*sizeof(Real); ++i) buffer[i] = ptr[i];
@@ -1495,8 +1490,11 @@ namespace DRO {
    bool VariablePTensorNonBackstreamOffDiagonal::setSpatialCell(const SpatialCell* cell) {
       if(cell-> parameters[CellParams::RHO] != 0.0) {
          //Get rho and rho v of the backstream:
-         Real rho;
-         array<Real, 3> rhoV;
+         Real rho = 0;
+         Real rhoV[3];
+         for( uint i = 0; i < 3; ++i ) {
+            rhoV[i] = 0;
+         }
          const bool calculateBackstream = false; //We are not calculating backstream
          rhoBackstreamCalculation( cell, calculateBackstream, rho );
          rhoVBackstreamCalculation( cell, calculateBackstream, rhoV );
