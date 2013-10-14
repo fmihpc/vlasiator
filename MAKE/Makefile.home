@@ -2,30 +2,30 @@ CMP = mpic++
 LNK = mpic++
 
 FLAGS =
-#CXXFLAGS = -I $(HOME)/include  -L $(HOME)/lib -g  -funroll-loops -std=c++0x -fopenmp -W -Wall -pedantic -Wno-unused -fabi-version=0 -mavx
-CXXFLAGS = -I $(HOME)/include  -L $(HOME)/lib -O3  -funroll-loops -std=c++0x -fopenmp -W -Wall -pedantic -Wno-unused -fabi-version=0 -mavx
+CXXFLAGS = -I $(HOME)/include -L $(HOME)/lib -O3 -funroll-loops -std=c++11 -W -Wall -pedantic -Wno-unused -Wno-unused-parameter -Wno-missing-braces  -fopenmp
 MATHFLAGS = -ffast-math
 LDFLAGS = -L $(HOME)/lib
-LIB_MPI = -lgomp 
+LIB_MPI = -lgomp
 
 LIBRARY_PREFIX = $HOME
 LIBRARY_PREFIX_B = $HOME
 
-INC_BOOST =
-LIB_BOOST = -lboost_program_options
+INC_BOOST = -I${HOME}/include
+LIB_BOOST = -L${HOME}/lib -lboost_program_options
 
 INC_ZOLTAN =
-LIB_ZOLTAN = -lzoltan
+LIB_ZOLTAN = -L${HOME}/lib -lzoltan
 
 INC_VLSV = 
 LIB_VLSV = -lvlsv
 
-INC_SILO =
-LIB_SILO = -lsilo
+INC_SILO = -I${HOME}/include
+LIB_SILO = -L${HOME}/lib -lsilo
 
-INC_DCCRG =
+INC_DCCRG = -I${HOME}/include
 
-LIB_PROFILE = -lphiprof
-INC_PROFILE =
+LIB_PROFILE = -L${HOME}/phiprof/lib -lphiprof
+INC_PROFILE = -I${HOME}/phiprof/include
 INC_TOPO =
 
+INC_EIGEN = -I/home/kempf/Codes/eigen-eigen-2249f9c22fe8

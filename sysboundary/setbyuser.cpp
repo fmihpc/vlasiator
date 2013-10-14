@@ -146,13 +146,13 @@ namespace SBC {
    ) {
       switch(component) {
          case 0:
-            calculateEdgeElectricFieldX(mpiGrid, cellID, RKCase);
+//             calculateEdgeElectricFieldX(mpiGrid, cellID, RKCase);
             break;
          case 1:
-            calculateEdgeElectricFieldY(mpiGrid, cellID, RKCase);
+//             calculateEdgeElectricFieldY(mpiGrid, cellID, RKCase);
             break;
          case 2:
-            calculateEdgeElectricFieldZ(mpiGrid, cellID, RKCase);
+//             calculateEdgeElectricFieldZ(mpiGrid, cellID, RKCase);
             break;
          default:
             cerr << "ERROR: Reached end of switch in SetByUser::fieldSolverBoundaryCondElectricField." << endl;

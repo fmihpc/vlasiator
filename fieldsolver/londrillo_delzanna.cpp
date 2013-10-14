@@ -81,6 +81,9 @@ static map<CellID,uint> sysBoundaryFlags;
 static uint CALCULATE_DX = 0; /**< Bit mask determining if x-derivatives can be calculated on a cell.*/
 static uint CALCULATE_DY = 0; /**< Bit mask determining if y-derivatives can be calculated on a cell.*/
 static uint CALCULATE_DZ = 0; /**< Bit mask determining if z-derivatives can be calculated on a cell.*/
+static uint CALCULATE_DXY = 0; /**< Bit mask determining if xy mixed derivatives can be calculated on a cell.*/
+static uint CALCULATE_DXZ = 0; /**< Bit mask determining if xz mixed derivatives can be calculated on a cell.*/
+static uint CALCULATE_DYZ = 0; /**< Bit mask determining if yz mixed derivatives can be calculated on a cell.*/
 static uint CALCULATE_EX = 0; /**< Bit mask determining if edge Ex can be calculated on a cell.*/
 static uint CALCULATE_EY = 0; /**< Bit mask determining if edge Ey can be calculated on a cell.*/
 static uint CALCULATE_EZ = 0; /**< Bit mask determining if edge Ez can be calculated on a cell.*/
@@ -95,24 +98,33 @@ static uint PROPAGATE_BZ = 0; /**< Bit mask determining if face Bz is propagated
 const Real HALF    = 0.5;
 const Real MINUS   = -1.0;
 const Real PLUS    = +1.0;
-const Real EIGTH   = 1.0/8.0;
+const Real THIRD   = 1.0/3.0;
 const Real FOURTH  = 1.0/4.0;
 const Real SIXTH   = 1.0/6.0;
+const Real EIGTH   = 1.0/8.0;
+const Real TENTH   = 1.0/10.0;
 const Real TWELWTH = 1.0/12.0;
 const Real TWO     = 2.0;
 const Real ZERO    = 0.0;
 
-void calculateDerivativesSimple(dccrg::Dccrg<SpatialCell>& mpiGrid,
-                                    SysBoundary& sysBoundaries,
-                                    const vector<CellID>& localCells,
-                                    cint& RKCase);
-void calculateBVOLDerivativesSimple(dccrg::Dccrg<SpatialCell>& mpiGrid,
-                                    SysBoundary& sysBoundaries,
-                                    const vector<CellID>& localCells);
-void calculateUpwindedElectricFieldSimple(dccrg::Dccrg<SpatialCell>& mpiGrid,
-                                          SysBoundary& sysBoundaries,
-                                          const vector<CellID>& localCells,
-                                          cint& RKCase);
+
+void calculateDerivativesSimple(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   SysBoundary& sysBoundaries,
+   const vector<CellID>& localCells,
+   cint& RKCase
+);
+void calculateBVOLDerivativesSimple(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   SysBoundary& sysBoundaries,
+   const vector<CellID>& localCells
+);
+void calculateUpwindedElectricFieldSimple(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   SysBoundary& sysBoundaries,
+   const vector<CellID>& localCells,
+   cint& RKCase
+);
 
 
 /*! \brief Calculate the neighbour number.
@@ -241,6 +253,203 @@ Real divideIfNonZero(creal rhoV, creal rho) {
    }
 }
 
+/*! Namespace encompassing the enum defining the list of reconstruction coefficients used in field component reconstructions.*/
+namespace Rec {
+   /*! Enum defining the list of reconstruction coefficients used in field component reconstructions.*/
+   enum Rec {
+      a_0, a_x, a_y, a_z, a_xx, a_yy, a_zz, a_xy, a_xz, a_yz, a_xxx, a_xxy, a_xyy, a_xxz, a_xzz, a_xyz,
+      b_0, b_x, b_y, b_z, b_xx, b_yy, b_zz, b_xy, b_xz, b_yz, b_xxy, b_xyy, b_yyy, b_yyz, b_yzz, b_xyz,
+      c_0, c_x, c_y, c_z, c_xx, c_yy, c_zz, c_xy, c_xz, c_yz, c_xxz, c_xzz, c_yyz, c_yzz, c_xyz, c_zzz,
+      N_REC_COEFFICIENTS
+   };
+}
+
+/*! \brief Low-level helper function.
+ * 
+ * Computes the reconstruction coefficients used for field component reconstruction.
+ * Only implemented for 2nd and 3rd order.
+ * 
+ * \param reconstructionOrder Reconstruction order of the fields after Balsara 2009, 2 used for BVOL, 3 used for 2nd-order Hall term calculations.
+ */
+void reconstructionCoefficients(
+   const CellID& cellID,
+   const CellID& nbr_i2j1k1,
+   const CellID& nbr_i1j2k1,
+   const CellID& nbr_i1j1k2,
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   Real* perturbedResult,
+   creal reconstructionOrder
+) {
+   // Do not calculate values for non-existing cells:
+   if (cellID == INVALID_CELLID) {
+      for (int i=0; i<Rec::N_REC_COEFFICIENTS; ++i) {
+         perturbedResult[i] = 0.0;
+      }
+      return;
+   }
+   
+   namespace fs = fieldsolver;
+   namespace cp = CellParams;
+   
+   Real* const cep_i1j1k1 = mpiGrid[cellID]->parameters;
+   
+   // Create a dummy array for containing zero values for cellParams on non-existing cells:
+   Real dummyCellParams[CellParams::N_SPATIAL_CELL_PARAMS];
+   for (uint i=0; i<CellParams::N_SPATIAL_CELL_PARAMS; ++i) dummyCellParams[i] = 0.0;
+   
+   Real* cep_i2j1k1 = NULL;
+   Real* cep_i1j2k1 = NULL;
+   Real* cep_i1j1k2 = NULL;
+   if (nbr_i2j1k1 == INVALID_CELLID) cep_i2j1k1 = dummyCellParams;
+   else cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->parameters;
+   if (nbr_i1j2k1 == INVALID_CELLID) cep_i1j2k1 = dummyCellParams;
+   else cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->parameters;
+   if (nbr_i1j1k2 == INVALID_CELLID) cep_i1j1k2 = dummyCellParams;
+   else cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->parameters;
+   
+   #ifndef FS_1ST_ORDER_SPACE
+   creal* const der_i1j1k1 = mpiGrid[cellID]->derivatives;
+   
+   // Create a dummy array for containing zero values for derivatives on non-existing cells:
+   Real dummyDerivatives[N_SPATIAL_CELL_DERIVATIVES];
+   for (uint i=0; i<N_SPATIAL_CELL_DERIVATIVES; ++i) dummyDerivatives[i] = 0.0;
+   
+   // Fetch neighbour cell derivatives, or in case the neighbour does not 
+   // exist, use dummyDerivatives array:
+   Real* der_i2j1k1 = NULL;
+   Real* der_i1j2k1 = NULL;
+   Real* der_i1j1k2 = NULL;
+   if (nbr_i2j1k1 == INVALID_CELLID) der_i2j1k1 = dummyDerivatives;
+   else der_i2j1k1 = mpiGrid[nbr_i2j1k1]->derivatives;
+   if (nbr_i1j2k1 == INVALID_CELLID) der_i1j2k1 = dummyDerivatives;
+   else der_i1j2k1 = mpiGrid[nbr_i1j2k1]->derivatives;
+   if (nbr_i1j1k2 == INVALID_CELLID) der_i1j1k2 = dummyDerivatives;
+   else der_i1j1k2 = mpiGrid[nbr_i1j1k2]->derivatives;
+   
+   // Calculate 3rd order reconstruction coefficients:
+   if(reconstructionOrder == 2) {
+      perturbedResult[Rec::a_yy] = 0.0;
+      perturbedResult[Rec::a_zz] = 0.0;
+      perturbedResult[Rec::a_yz] = 0.0;
+      perturbedResult[Rec::a_xxx] = 0.0;
+      perturbedResult[Rec::a_xxy] = 0.0;
+      perturbedResult[Rec::a_xxz] = 0.0;
+      perturbedResult[Rec::a_xyy] = 0.0;
+      perturbedResult[Rec::a_xyz] = 0.0;
+      perturbedResult[Rec::a_xzz] = 0.0;
+      perturbedResult[Rec::b_xx] = 0.0;
+      perturbedResult[Rec::b_xz] = 0.0;
+      perturbedResult[Rec::b_zz] = 0.0;
+      perturbedResult[Rec::b_xxy] = 0.0;
+      perturbedResult[Rec::b_xyy] = 0.0;
+      perturbedResult[Rec::b_xyz] = 0.0;
+      perturbedResult[Rec::b_yyy] = 0.0;
+      perturbedResult[Rec::b_yyz] = 0.0;
+      perturbedResult[Rec::b_yzz] = 0.0;
+      perturbedResult[Rec::c_xx] = 0.0;
+      perturbedResult[Rec::c_xy] = 0.0;
+      perturbedResult[Rec::c_yy] = 0.0;
+      perturbedResult[Rec::c_xxz] = 0.0;
+      perturbedResult[Rec::c_xyz] = 0.0;
+      perturbedResult[Rec::c_xzz] = 0.0;
+      perturbedResult[Rec::c_yyz] = 0.0;
+      perturbedResult[Rec::c_yzz] = 0.0;
+      perturbedResult[Rec::c_zzz] = 0.0;
+   } else if(reconstructionOrder == 3) {
+      perturbedResult[Rec::a_yy] = HALF * (der_i2j1k1[fs::dPERBxdyy] + der_i1j1k1[fs::dPERBxdyy]);
+      perturbedResult[Rec::a_zz] = HALF * (der_i2j1k1[fs::dPERBxdzz] + der_i1j1k1[fs::dPERBxdzz]);
+      perturbedResult[Rec::a_yz] = HALF * (der_i2j1k1[fs::dPERBxdyz] + der_i1j1k1[fs::dPERBxdyz]);
+      perturbedResult[Rec::a_xyy] = der_i2j1k1[fs::dPERBxdyy] - der_i1j1k1[fs::dPERBxdyy];
+      perturbedResult[Rec::a_xyz] = der_i2j1k1[fs::dPERBxdyz] - der_i1j1k1[fs::dPERBxdyz];
+      perturbedResult[Rec::a_xzz] = der_i2j1k1[fs::dPERBxdzz] - der_i1j1k1[fs::dPERBxdzz];
+      
+      perturbedResult[Rec::b_xx] = HALF * (der_i1j2k1[fs::dPERBydxx] + der_i1j1k1[fs::dPERBydxx]);
+      perturbedResult[Rec::b_xz] = HALF * (der_i1j2k1[fs::dPERBydzz] + der_i1j1k1[fs::dPERBydzz]);
+      perturbedResult[Rec::b_zz] = HALF * (der_i1j2k1[fs::dPERBydxz] + der_i1j1k1[fs::dPERBydxz]);
+      perturbedResult[Rec::b_xxy] = der_i1j2k1[fs::dPERBydxx] - der_i1j1k1[fs::dPERBydxx];
+      perturbedResult[Rec::b_xyz] = der_i1j2k1[fs::dPERBydxz] - der_i1j1k1[fs::dPERBydxz];
+      perturbedResult[Rec::b_yzz] = der_i1j2k1[fs::dPERBydzz] - der_i1j1k1[fs::dPERBydzz];
+      
+      perturbedResult[Rec::c_xx] = HALF * (der_i1j1k2[fs::dPERBzdxx] + der_i1j1k1[fs::dPERBzdxx]);
+      perturbedResult[Rec::c_xy] = HALF * (der_i1j1k2[fs::dPERBzdxy] + der_i1j1k1[fs::dPERBzdxy]);
+      perturbedResult[Rec::c_yy] = HALF * (der_i1j1k2[fs::dPERBzdyy] + der_i1j1k1[fs::dPERBzdyy]);
+      perturbedResult[Rec::c_xxz] = der_i1j1k2[fs::dPERBzdxx] - der_i1j1k1[fs::dPERBzdxx];
+      perturbedResult[Rec::c_xyz] = der_i1j1k2[fs::dPERBzdxy] - der_i1j1k1[fs::dPERBzdxy];
+      perturbedResult[Rec::c_yyz] = der_i1j1k2[fs::dPERBzdyy] - der_i1j1k1[fs::dPERBzdyy];
+      
+      perturbedResult[Rec::a_xxx] = -THIRD*(perturbedResult[Rec::b_xxy] + perturbedResult[Rec::c_xxz]);
+      perturbedResult[Rec::a_xxy] = -FOURTH*perturbedResult[Rec::c_xyz];
+      perturbedResult[Rec::a_xxz] = -FOURTH*perturbedResult[Rec::b_xyz];
+      
+      perturbedResult[Rec::b_xyy] = -FOURTH*perturbedResult[Rec::c_xyz];
+      perturbedResult[Rec::b_yyy] = -THIRD*(perturbedResult[Rec::c_yyz] + perturbedResult[Rec::a_xyy]);
+      perturbedResult[Rec::b_yyz] = -FOURTH*perturbedResult[Rec::a_xyz];
+      
+      perturbedResult[Rec::c_xzz] = -FOURTH*perturbedResult[Rec::b_xyz];
+      perturbedResult[Rec::c_yzz] = -FOURTH*perturbedResult[Rec::a_xyz];
+      perturbedResult[Rec::c_zzz] = -THIRD*(perturbedResult[Rec::a_xzz] + perturbedResult[Rec::b_yzz]);
+   } else {
+      std::cerr << "Not coded yet!" << std::endl;
+      abort();
+   }
+   
+   // Calculate 2nd order reconstruction coefficients:
+   perturbedResult[Rec::a_xy] = der_i2j1k1[fs::dPERBxdy] - der_i1j1k1[fs::dPERBxdy];
+   CHECK_FLOAT(perturbedResult[Rec::a_xy])
+   perturbedResult[Rec::a_xz] = der_i2j1k1[fs::dPERBxdz] - der_i1j1k1[fs::dPERBxdz];
+   CHECK_FLOAT(perturbedResult[Rec::a_xz])
+   perturbedResult[Rec::a_x ] = cep_i2j1k1[cp::PERBX] - cep_i1j1k1[cp::PERBX] - TENTH*perturbedResult[Rec::a_xxx];
+   CHECK_FLOAT(perturbedResult[Rec::a_x ])
+   perturbedResult[Rec::a_y ] = HALF*(der_i2j1k1[fs::dPERBxdy] + der_i1j1k1[fs::dPERBxdy]) - SIXTH*perturbedResult[Rec::a_xxy];
+   CHECK_FLOAT(perturbedResult[Rec::a_y ])
+   perturbedResult[Rec::a_z ] = HALF*(der_i2j1k1[fs::dPERBxdz] + der_i1j1k1[fs::dPERBxdz]) - SIXTH*perturbedResult[Rec::a_xxz];
+   CHECK_FLOAT(perturbedResult[Rec::a_z ])
+   
+   perturbedResult[Rec::b_xy] = der_i1j2k1[fs::dPERBydx] - der_i1j1k1[fs::dPERBydx];
+   CHECK_FLOAT(perturbedResult[Rec::b_xy])
+   perturbedResult[Rec::b_yz] = der_i1j2k1[fs::dPERBydz] - der_i1j1k1[fs::dPERBydz];
+   CHECK_FLOAT(perturbedResult[Rec::b_yz])
+   perturbedResult[Rec::b_x ] = HALF*(der_i1j2k1[fs::dPERBydx] + der_i1j1k1[fs::dPERBydx]) - SIXTH*perturbedResult[Rec::b_xyy];
+   CHECK_FLOAT(perturbedResult[Rec::b_x ])
+   perturbedResult[Rec::b_y ] = cep_i1j2k1[cp::PERBY] - cep_i1j1k1[cp::PERBY] - TENTH*perturbedResult[Rec::b_yyy];
+   CHECK_FLOAT(perturbedResult[Rec::b_y ])
+   perturbedResult[Rec::b_z ] = HALF*(der_i1j2k1[fs::dPERBydz] + der_i1j1k1[fs::dPERBydz]) - SIXTH*perturbedResult[Rec::b_yyz];
+   CHECK_FLOAT(perturbedResult[Rec::b_z ])
+   
+   // lunch break
+   
+   perturbedResult[Rec::c_xz] = der_i1j1k2[fs::dPERBzdx] - der_i1j1k1[fs::dPERBzdx];
+   CHECK_FLOAT(perturbedResult[Rec::c_zx])
+   perturbedResult[Rec::c_yz] = der_i1j1k2[fs::dPERBzdy] - der_i1j1k1[fs::dPERBzdy];
+   CHECK_FLOAT(perturbedResult[Rec::c_zy])
+   perturbedResult[Rec::c_x ] = HALF*(der_i1j1k2[fs::dPERBzdx] + der_i1j1k1[fs::dPERBzdx]) - SIXTH*perturbedResult[Rec::c_xzz];
+   CHECK_FLOAT(perturbedResult[Rec::c_x ])
+   perturbedResult[Rec::c_y ] = HALF*(der_i1j1k2[fs::dPERBzdy] + der_i1j1k1[fs::dPERBzdy]) - SIXTH*perturbedResult[Rec::c_yzz];
+   CHECK_FLOAT(perturbedResult[Rec::c_y ])
+   perturbedResult[Rec::c_z ] = cep_i1j1k2[cp::PERBZ] - cep_i1j1k1[cp::PERBZ] - TENTH*perturbedResult[Rec::c_zzz];
+   CHECK_FLOAT(perturbedResult[Rec::c_z ])
+   
+   perturbedResult[Rec::a_xx] = -HALF*(perturbedResult[Rec::b_xy] + perturbedResult[Rec::c_xz]);
+   CHECK_FLOAT(perturbedResult[Rec::a_xx])
+   perturbedResult[Rec::b_yy] = -HALF*(perturbedResult[Rec::a_xy] + perturbedResult[Rec::c_yz]);
+   CHECK_FLOAT(perturbedResult[Rec::b_yy])
+   perturbedResult[Rec::c_zz] = -HALF*(perturbedResult[Rec::a_xz] + perturbedResult[Rec::b_yz]);
+   CHECK_FLOAT(perturbedResult[Rec::c_zz])
+   #else
+   for (int i=0; i<Rec::c_zz+1; ++i) {
+      perturbedResult[i] = 0.0;
+   }
+   #endif
+   
+   // Calculate 1st order reconstruction coefficients:
+   perturbedResult[Rec::a_0 ] = HALF*(cep_i2j1k1[cp::PERBX] + cep_i1j1k1[cp::PERBX]) - SIXTH*perturbedResult[Rec::a_xx];
+   CHECK_FLOAT(perturbedResult[Rec::a_0 ])
+   perturbedResult[Rec::b_0 ] = HALF*(cep_i1j2k1[cp::PERBY] + cep_i1j1k1[cp::PERBY]) - SIXTH*perturbedResult[Rec::b_yy];
+   CHECK_FLOAT(perturbedResult[Rec::b_0 ])
+   perturbedResult[Rec::c_0 ] = HALF*(cep_i1j1k2[cp::PERBZ] + cep_i1j1k1[cp::PERBZ]) - SIXTH*perturbedResult[Rec::c_zz];
+   CHECK_FLOAT(perturbedResult[Rec::c_0 ])
+}
+
 /*! \brief Low-level spatial derivatives calculation.
  * 
  * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in project.h. Uses RHO, RHOV[XYZ] and B[XYZ] in the first-order time accuracy method and in the second step of the second-order method, and RHO_DT2, RHOV[XYZ]1 and B[XYZ]1 in the first step of the second-order method.
@@ -279,6 +488,13 @@ static void calculateDerivatives(
    }
    #endif
    creal* rght = NULL;
+   #ifndef FS_1ST_ORDER_SPACE
+   CellID botLeftNbrID, botRghtNbrID, topLeftNbrID, topRghtNbrID;
+   creal* botLeft = NULL;
+   creal* botRght = NULL;
+   creal* topLeft = NULL;
+   creal* topRght = NULL;
+   #endif
    
    // Calculate x-derivatives (is not TVD for AMR mesh):
    if (((existingCells & CALCULATE_DX) == CALCULATE_DX) &&
@@ -319,6 +535,13 @@ static void calculateDerivatives(
                                      divideIfNonZero(rght[cp::RHOVZ], rght[cp::RHO]));
          array[fs::dPERBydx]  = limiter(left[cp::PERBY],cent[cp::PERBY],rght[cp::PERBY]);
          array[fs::dPERBzdx]  = limiter(left[cp::PERBZ],cent[cp::PERBZ],rght[cp::PERBZ]);
+         #ifdef FS_1ST_ORDER_SPACE
+         array[fs::dPERBydxx] = 0.0;
+         array[fs::dPERBzdxx] = 0.0;
+         #else
+         array[fs::dPERBydxx] = left[cp::PERBY] + rght[cp::PERBY] - 2.0*cent[cp::PERBY];
+         array[fs::dPERBzdxx] = left[cp::PERBZ] + rght[cp::PERBZ] - 2.0*cent[cp::PERBZ];
+         #endif
       }
       if (RKCase == RK_ORDER2_STEP1) {
          array[fs::drhodx] = limiter(left[cp::RHO_DT2],cent[cp::RHO_DT2],rght[cp::RHO_DT2]);
@@ -333,6 +556,13 @@ static void calculateDerivatives(
                                      divideIfNonZero(rght[cp::RHOVZ_DT2], rght[cp::RHO_DT2]));
          array[fs::dPERBydx]  = limiter(left[cp::PERBY_DT2],cent[cp::PERBY_DT2],rght[cp::PERBY_DT2]);
          array[fs::dPERBzdx]  = limiter(left[cp::PERBZ_DT2],cent[cp::PERBZ_DT2],rght[cp::PERBZ_DT2]);
+         #ifdef FS_1ST_ORDER_SPACE
+         array[fs::dPERBydxx] = 0.0;
+         array[fs::dPERBzdxx] = 0.0;
+         #else
+         array[fs::dPERBydxx] = left[cp::PERBY_DT2] + rght[cp::PERBY_DT2] - 2.0*cent[cp::PERBY_DT2];
+         array[fs::dPERBzdxx] = left[cp::PERBZ_DT2] + rght[cp::PERBZ_DT2] - 2.0*cent[cp::PERBZ_DT2];
+         #endif
       }
    } else {
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -384,6 +614,13 @@ static void calculateDerivatives(
                                      divideIfNonZero(rght[cp::RHOVZ], rght[cp::RHO]));
          array[fs::dPERBxdy]  = limiter(left[cp::PERBX],cent[cp::PERBX],rght[cp::PERBX]);
          array[fs::dPERBzdy]  = limiter(left[cp::PERBZ],cent[cp::PERBZ],rght[cp::PERBZ]);
+         #ifdef FS_1ST_ORDER_SPACE
+         array[fs::dPERBxdyy] = 0.0;
+         array[fs::dPERBzdyy] = 0.0;
+         #else
+         array[fs::dPERBxdyy] = left[cp::PERBX] + rght[cp::PERBX] - 2.0*cent[cp::PERBX];
+         array[fs::dPERBzdyy] = left[cp::PERBZ] + rght[cp::PERBZ] - 2.0*cent[cp::PERBZ];
+         #endif
       }
       if (RKCase == RK_ORDER2_STEP1) {
          array[fs::drhody] = limiter(left[cp::RHO_DT2],cent[cp::RHO_DT2],rght[cp::RHO_DT2]);
@@ -398,6 +635,13 @@ static void calculateDerivatives(
                                      divideIfNonZero(rght[cp::RHOVZ_DT2], rght[cp::RHO_DT2]));
          array[fs::dPERBxdy]  = limiter(left[cp::PERBX_DT2],cent[cp::PERBX_DT2],rght[cp::PERBX_DT2]);
          array[fs::dPERBzdy]  = limiter(left[cp::PERBZ_DT2],cent[cp::PERBZ_DT2],rght[cp::PERBZ_DT2]);
+         #ifdef FS_1ST_ORDER_SPACE
+         array[fs::dPERBxdyy] = 0.0;
+         array[fs::dPERBzdyy] = 0.0;
+         #else
+         array[fs::dPERBxdyy] = left[cp::PERBX_DT2] + rght[cp::PERBX_DT2] - 2.0*cent[cp::PERBX_DT2];
+         array[fs::dPERBzdyy] = left[cp::PERBZ_DT2] + rght[cp::PERBZ_DT2] - 2.0*cent[cp::PERBZ_DT2];
+         #endif
       }
    } else {
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -447,6 +691,13 @@ static void calculateDerivatives(
                                      divideIfNonZero(rght[cp::RHOVZ], rght[cp::RHO]));
          array[fs::dPERBxdz]  = limiter(left[cp::PERBX],cent[cp::PERBX],rght[cp::PERBX]);
          array[fs::dPERBydz]  = limiter(left[cp::PERBY],cent[cp::PERBY],rght[cp::PERBY]);
+         #ifdef FS_1ST_ORDER_SPACE
+         array[fs::dPERBxdzz] = 0.0;
+         array[fs::dPERBydzz] = 0.0;
+         #else
+         array[fs::dPERBxdzz] = left[cp::PERBX] + rght[cp::PERBX] - 2.0*cent[cp::PERBX];
+         array[fs::dPERBydzz] = left[cp::PERBY] + rght[cp::PERBY] - 2.0*cent[cp::PERBY];
+         #endif
       }
       if (RKCase == RK_ORDER2_STEP1) {
          array[fs::drhodz] = limiter(left[cp::RHO_DT2],cent[cp::RHO_DT2],rght[cp::RHO_DT2]);
@@ -461,6 +712,13 @@ static void calculateDerivatives(
                                      divideIfNonZero(rght[cp::RHOVZ_DT2], rght[cp::RHO_DT2]));
          array[fs::dPERBxdz]  = limiter(left[cp::PERBX_DT2],cent[cp::PERBX_DT2],rght[cp::PERBX_DT2]);
          array[fs::dPERBydz]  = limiter(left[cp::PERBY_DT2],cent[cp::PERBY_DT2],rght[cp::PERBY_DT2]);
+         #ifdef FS_1ST_ORDER_SPACE
+         array[fs::dPERBxdzz] = 0.0;
+         array[fs::dPERBydzz] = 0.0;
+         #else
+         array[fs::dPERBxdzz] = left[cp::PERBX_DT2] + rght[cp::PERBX_DT2] - 2.0*cent[cp::PERBX_DT2];
+         array[fs::dPERBydzz] = left[cp::PERBY_DT2] + rght[cp::PERBY_DT2] - 2.0*cent[cp::PERBY_DT2];
+         #endif
       }
    } else {
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -470,6 +728,207 @@ static void calculateDerivatives(
          ->fieldSolverBoundaryCondDerivatives(mpiGrid, cellID, RKCase, 2);
       }
    }
+   
+   #ifdef FS_1ST_ORDER_SPACE
+   array[fs::dPERBxdyz] = 0.0;
+   array[fs::dPERBydxz] = 0.0;
+   array[fs::dPERBzdxy] = 0.0;
+   #else
+   // Calculate xy mixed derivatives:
+   if (((existingCells & CALCULATE_DXY) == CALCULATE_DXY) &&
+      ((mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
+      (mpiGrid[cellID]->sysBoundaryLayer == 1))
+   ) {
+      botLeftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2-1,2  );
+      botRghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2-1,2  );
+      topLeftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2+1,2  );
+      topRghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2+1,2  );
+      botLeft = mpiGrid[botLeftNbrID]->parameters;
+      #ifdef DEBUG_SOLVERS
+      if (botLeft[cp::RHO] <= 0) {
+         std::cerr << __FILE__ << ":" << __LINE__
+         << (botLeft[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << botLeftNbrID
+         << std::endl;
+         abort();
+      }
+      #endif
+      botRght = mpiGrid[botRghtNbrID]->parameters;
+      #ifdef DEBUG_SOLVERS
+      if (botRght[cp::RHO] <= 0) {
+         std::cerr << __FILE__ << ":" << __LINE__
+         << (botRght[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << botRghtNbrID
+         << std::endl;
+         abort();
+      }
+      #endif
+      topLeft = mpiGrid[topLeftNbrID]->parameters;
+      #ifdef DEBUG_SOLVERS
+      if (topLeft[cp::RHO] <= 0) {
+         std::cerr << __FILE__ << ":" << __LINE__
+         << (topLeft[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << topLeftNbrID
+         << std::endl;
+         abort();
+      }
+      #endif
+      topRght = mpiGrid[topRghtNbrID]->parameters;
+      #ifdef DEBUG_SOLVERS
+      if (topRght[cp::RHO] <= 0) {
+         std::cerr << __FILE__ << ":" << __LINE__
+         << (topRght[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << topRghtNbrID
+         << std::endl;
+         abort();
+      }
+      #endif
+      
+      if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+         array[fs::dPERBzdxy] = FOURTH * (botLeft[cp::PERBZ] + topRght[cp::PERBZ] - botRght[cp::PERBZ] - topLeft[cp::PERBZ]);
+      }
+      if (RKCase == RK_ORDER2_STEP1) {
+         array[fs::dPERBzdxy] = FOURTH * (botLeft[cp::PERBZ_DT2] + topRght[cp::PERBZ_DT2] - botRght[cp::PERBZ_DT2] - topLeft[cp::PERBZ_DT2]);
+      }
+   } else {
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         std::cerr << "Not coded yet!" << std::endl;
+         abort();
+         //SBC::SysBoundaryCondition::setCellDerivativesToZero(mpiGrid, cellID, 0);
+      } else {
+         std::cerr << "Not coded yet!" << std::endl;
+         abort();
+         //sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)
+         //->fieldSolverBoundaryCondDerivatives(mpiGrid, cellID, RKCase, 0);
+      }
+   }
+   
+   // Calculate xz mixed derivatives:
+   if (((existingCells & CALCULATE_DXZ) == CALCULATE_DXZ) &&
+      ((mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
+      (mpiGrid[cellID]->sysBoundaryLayer == 1))
+   ) {
+      botLeftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2  ,2-1);
+      botRghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2  ,2-1);
+      topLeftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2  ,2+1);
+      topRghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2  ,2+1);
+      botLeft = mpiGrid[botLeftNbrID]->parameters;
+      #ifdef DEBUG_SOLVERS
+      if (botLeft[cp::RHO] <= 0) {
+         std::cerr << __FILE__ << ":" << __LINE__
+         << (botLeft[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << botLeftNbrID
+         << std::endl;
+         abort();
+      }
+      #endif
+      botRght = mpiGrid[botRghtNbrID]->parameters;
+      #ifdef DEBUG_SOLVERS
+      if (botRght[cp::RHO] <= 0) {
+         std::cerr << __FILE__ << ":" << __LINE__
+         << (botRght[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << botRghtNbrID
+         << std::endl;
+         abort();
+      }
+      #endif
+      topLeft = mpiGrid[topLeftNbrID]->parameters;
+      #ifdef DEBUG_SOLVERS
+      if (topLeft[cp::RHO] <= 0) {
+         std::cerr << __FILE__ << ":" << __LINE__
+         << (topLeft[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << topLeftNbrID
+         << std::endl;
+         abort();
+      }
+      #endif
+      topRght = mpiGrid[topRghtNbrID]->parameters;
+      #ifdef DEBUG_SOLVERS
+      if (topRght[cp::RHO] <= 0) {
+         std::cerr << __FILE__ << ":" << __LINE__
+         << (topRght[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << topRghtNbrID
+         << std::endl;
+         abort();
+      }
+      #endif
+      
+      if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+         array[fs::dPERBydxz] = FOURTH * (botLeft[cp::PERBY] + topRght[cp::PERBY] - botRght[cp::PERBY] - topLeft[cp::PERBY]);
+      }
+      if (RKCase == RK_ORDER2_STEP1) {
+         array[fs::dPERBydxz] = FOURTH * (botLeft[cp::PERBY_DT2] + topRght[cp::PERBY_DT2] - botRght[cp::PERBY_DT2] - topLeft[cp::PERBY_DT2]);
+      }
+   } else {
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         std::cerr << "Not coded yet!\n" << std::endl;
+         abort();
+         //SBC::SysBoundaryCondition::setCellDerivativesToZero(mpiGrid, cellID, 0);
+      } else {
+         std::cerr << "Not coded yet!\n" << std::endl;
+         abort();
+         //sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)
+         //->fieldSolverBoundaryCondDerivatives(mpiGrid, cellID, RKCase, 0);
+      }
+   }
+   
+   // Calculate yz mixed derivatives:
+   if (((existingCells & CALCULATE_DYZ) == CALCULATE_DYZ) &&
+      ((mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
+      (mpiGrid[cellID]->sysBoundaryLayer == 1))
+   ) {
+      botLeftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2-1,2-1);
+      botRghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2+1,2-1);
+      topLeftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2-1,2+1);
+      topRghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2+1,2+1);
+      botLeft = mpiGrid[botLeftNbrID]->parameters;
+      #ifdef DEBUG_SOLVERS
+      if (botLeft[cp::RHO] <= 0) {
+         std::cerr << __FILE__ << ":" << __LINE__
+         << (botLeft[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << botLeftNbrID
+         << std::endl;
+         abort();
+      }
+      #endif
+      botRght = mpiGrid[botRghtNbrID]->parameters;
+      #ifdef DEBUG_SOLVERS
+      if (botRght[cp::RHO] <= 0) {
+         std::cerr << __FILE__ << ":" << __LINE__
+         << (botRght[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << botRghtNbrID
+         << std::endl;
+         abort();
+      }
+      #endif
+      topLeft = mpiGrid[topLeftNbrID]->parameters;
+      #ifdef DEBUG_SOLVERS
+      if (topLeft[cp::RHO] <= 0) {
+         std::cerr << __FILE__ << ":" << __LINE__
+         << (topLeft[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << topLeftNbrID
+         << std::endl;
+         abort();
+      }
+      #endif
+      topRght = mpiGrid[topRghtNbrID]->parameters;
+      #ifdef DEBUG_SOLVERS
+      if (topRght[cp::RHO] <= 0) {
+         std::cerr << __FILE__ << ":" << __LINE__
+         << (topRght[cp::RHO] < 0 ? " Negative" : " Zero") << " density in spatial cell " << topRghtNbrID
+         << std::endl;
+         abort();
+      }
+      #endif
+      
+      if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+         array[fs::dPERBxdyz] = FOURTH * (botLeft[cp::PERBX] + topRght[cp::PERBX] - botRght[cp::PERBX] - topLeft[cp::PERBX]);
+      }
+      if (RKCase == RK_ORDER2_STEP1) {
+         array[fs::dPERBxdyz] = FOURTH * (botLeft[cp::PERBX_DT2] + topRght[cp::PERBX_DT2] - botRght[cp::PERBX_DT2] - topLeft[cp::PERBX_DT2]);
+      }
+   } else {
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         std::cerr << "Not coded yet!\n" << std::endl;
+         abort();
+         //SBC::SysBoundaryCondition::setCellDerivativesToZero(mpiGrid, cellID, 0);
+      } else {
+         std::cerr << "Not coded yet!\n" << std::endl;
+         abort();
+         //sysBoundaries.getSysBoundary(mpiGrid[cellID]->sysBoundaryFlag)
+         //->fieldSolverBoundaryCondDerivatives(mpiGrid, cellID, RKCase, 0);
+      }
+   }
+   #endif
 }
 
 /*! \brief Low-level helper function.
@@ -615,12 +1074,13 @@ template<typename REAL> REAL calculateFastMSspeedXY(const REAL* cp, const REAL* 
 void calculateEdgeElectricFieldX(
       dccrg::Dccrg<SpatialCell>& mpiGrid,
       const CellID& cellID,
+      const Real* const perturbedCoefficients,
       cint& RKCase
 ) {
    namespace fs = fieldsolver;
    
    // An edge has four neighbouring spatial cells. Calculate
-   // electric field in each of the four cells per edge.   
+   // electric field in each of the four cells per edge.
    Real ay_pos,ay_neg;              // Max. characteristic velocities to y-direction
    Real az_pos,az_neg;              // Max. characteristic velocities to z-direction
    Real Vy0,Vz0;                    // Reconstructed V
@@ -689,11 +1149,15 @@ void calculateEdgeElectricFieldX(
             (derivs_SW[fs::dPERBzdy]/cp_SW[CellParams::DY] - derivs_SW[fs::dPERBydz]/cp_SW[CellParams::DZ]);
    // Hall term
    if(Parameters::ohmHallTerm) {
+      #ifdef FS_1ST_ORDER_SPACE
       Ex_SW += (Bz_W*((derivs_SW[fs::dBGBxdz]+derivs_SW[fs::dPERBxdz])/cp_SW[CellParams::DZ] -
                       (derivs_SW[fs::dBGBzdx]+derivs_SW[fs::dPERBzdx])/cp_SW[CellParams::DX]) -
                 By_S*((derivs_SW[fs::dBGBydx]+derivs_SW[fs::dPERBydx])/cp_SW[CellParams::DX]-
                      ((derivs_SW[fs::dBGBxdy]+derivs_SW[fs::dPERBxdy])/cp_SW[CellParams::DY])))
                / (physicalconstants::MU_0*cp_SW[CellParams::RHO]*Parameters::q);
+      #else
+      Ex_SW += 
+      #endif
    }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
@@ -922,6 +1386,7 @@ void calculateEdgeElectricFieldX(
 void calculateEdgeElectricFieldY(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
    const CellID& cellID,
+   const Real* const perturbedCoefficients,
    cint& RKCase
 ) {
    // An edge has four neighbouring spatial cells. Calculate
@@ -1227,6 +1692,7 @@ void calculateEdgeElectricFieldY(
 void calculateEdgeElectricFieldZ(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
    const CellID& cellID,
+   const Real* const perturbedCoefficients,
    cint& RKCase
 ) {
    namespace fs = fieldsolver;
@@ -1793,7 +2259,32 @@ bool initializeFieldPropagator(
    CALCULATE_DZ = CALCULATE_DZ | (1 << calcNbrNumber(1,1,0));
    CALCULATE_DZ = CALCULATE_DZ | (1 << calcNbrNumber(1,1,2));
    
-   // Edge Ex is calculated i   f -y,-z,+/-x neighbours exist:
+   // xy mixed derivatives are calculated if +/-x,+/-y diagonal neighbours exist
+   CALCULATE_DXY = 0;
+   #ifndef FS_1ST_ORDER_SPACE
+   CALCULATE_DXY = CALCULATE_DXY | (1 << calcNbrNumber(0,0,1));
+   CALCULATE_DXY = CALCULATE_DXY | (1 << calcNbrNumber(2,2,1));
+   CALCULATE_DXY = CALCULATE_DXY | (1 << calcNbrNumber(0,2,1));
+   CALCULATE_DXY = CALCULATE_DXY | (1 << calcNbrNumber(2,0,1));
+   #endif
+   // xz mixed derivatives are calculated if +/-x,+/-z diagonal neighbours exist
+   CALCULATE_DXZ = 0;
+   #ifndef FS_1ST_ORDER_SPACE
+   CALCULATE_DXZ = CALCULATE_DXZ | (1 << calcNbrNumber(0,1,0));
+   CALCULATE_DXZ = CALCULATE_DXZ | (1 << calcNbrNumber(2,1,2));
+   CALCULATE_DXZ = CALCULATE_DXZ | (1 << calcNbrNumber(0,1,2));
+   CALCULATE_DXZ = CALCULATE_DXZ | (1 << calcNbrNumber(2,1,0));
+   #endif
+   // yz mixed derivatives are calculated if +/-y,+/-z diagonal neighbours exist
+   CALCULATE_DYZ = 0;
+   #ifndef FS_1ST_ORDER_SPACE
+   CALCULATE_DYZ = CALCULATE_DYZ | (1 << calcNbrNumber(1,0,0));
+   CALCULATE_DYZ = CALCULATE_DYZ | (1 << calcNbrNumber(1,2,2));
+   CALCULATE_DYZ = CALCULATE_DYZ | (1 << calcNbrNumber(1,0,2));
+   CALCULATE_DYZ = CALCULATE_DYZ | (1 << calcNbrNumber(1,2,0));
+   #endif
+   
+   // Edge Ex is calculated if -y,-z,+/-x neighbours exist:
    CALCULATE_EX = 0;
    CALCULATE_EX = CALCULATE_EX | (1 << calcNbrNumber(1,0,1)); // -y nbr
    CALCULATE_EX = CALCULATE_EX | (1 << calcNbrNumber(1,1,0)); // -z nbr
@@ -1990,13 +2481,29 @@ void calculateUpwindedElectricFieldSimple(
       cuint fieldSolverSysBoundaryFlag = sysBoundaryFlags[cellID];
       cuint cellSysBoundaryFlag = mpiGrid[cellID]->sysBoundaryFlag;
       cuint cellSysBoundaryLayer = mpiGrid[cellID]->sysBoundaryLayer;
+      
+      // Calculate reconstruction coefficients for this cell:
+      Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
+      const CellID nbr_i2j1k1 = getNeighbourID(mpiGrid, cellID, 2+1, 2  , 2  );
+      const CellID nbr_i1j2k1 = getNeighbourID(mpiGrid, cellID, 2  , 2+1, 2  );
+      const CellID nbr_i1j1k2 = getNeighbourID(mpiGrid, cellID, 2  , 2  , 2+1);
+      reconstructionCoefficients(
+         cellID,
+         nbr_i2j1k1,
+         nbr_i1j2k1,
+         nbr_i1j1k2,
+         mpiGrid,
+         perturbedCoefficients,
+         3 // Reconstruction order of the fields after Balsara 2009, 2 used here, 3 used for 2nd-order Hall term
+      );
+      
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
             (cellSysBoundaryLayer != 1)) {
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
                fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 0);
          } else {
-            calculateEdgeElectricFieldX(mpiGrid, cellID, RKCase);
+            calculateEdgeElectricFieldX(mpiGrid, cellID, perturbedCoefficients, RKCase);
          }
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
@@ -2005,7 +2512,7 @@ void calculateUpwindedElectricFieldSimple(
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
             fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 1);
          } else {
-            calculateEdgeElectricFieldY(mpiGrid, cellID, RKCase);
+            calculateEdgeElectricFieldY(mpiGrid, cellID, perturbedCoefficients, RKCase);
          }
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
@@ -2014,7 +2521,7 @@ void calculateUpwindedElectricFieldSimple(
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
             fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 2);
          } else {
-            calculateEdgeElectricFieldZ(mpiGrid, cellID, RKCase);
+            calculateEdgeElectricFieldZ(mpiGrid, cellID, perturbedCoefficients, RKCase);
          }
       }
    }
@@ -2035,13 +2542,29 @@ void calculateUpwindedElectricFieldSimple(
       cuint fieldSolverSysBoundaryFlag = sysBoundaryFlags[cellID];
       cuint cellSysBoundaryFlag = mpiGrid[cellID]->sysBoundaryFlag;
       cuint cellSysBoundaryLayer = mpiGrid[cellID]->sysBoundaryLayer;
+      
+      // Calculate reconstruction coefficients for this cell:
+      Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
+      const CellID nbr_i2j1k1 = getNeighbourID(mpiGrid, cellID, 2+1, 2  , 2  );
+      const CellID nbr_i1j2k1 = getNeighbourID(mpiGrid, cellID, 2  , 2+1, 2  );
+      const CellID nbr_i1j1k2 = getNeighbourID(mpiGrid, cellID, 2  , 2  , 2+1);
+      reconstructionCoefficients(
+         cellID,
+         nbr_i2j1k1,
+         nbr_i1j2k1,
+         nbr_i1j1k2,
+         mpiGrid,
+         perturbedCoefficients,
+         3 // Reconstruction order of the fields after Balsara 2009, 2 used for general B, 3 used here for 2nd-order Hall term
+      );
+      
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
             (cellSysBoundaryLayer != 1)) {
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
             fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 0);
          } else {
-            calculateEdgeElectricFieldX(mpiGrid, cellID, RKCase);
+            calculateEdgeElectricFieldX(mpiGrid, cellID, perturbedCoefficients, RKCase);
          }
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
@@ -2050,7 +2573,7 @@ void calculateUpwindedElectricFieldSimple(
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
             fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 1);
          } else {
-            calculateEdgeElectricFieldY(mpiGrid, cellID, RKCase);
+            calculateEdgeElectricFieldY(mpiGrid, cellID, perturbedCoefficients, RKCase);
          }
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
@@ -2059,7 +2582,7 @@ void calculateUpwindedElectricFieldSimple(
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
             fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 2);
          } else {
-            calculateEdgeElectricFieldZ(mpiGrid, cellID, RKCase);
+            calculateEdgeElectricFieldZ(mpiGrid, cellID, perturbedCoefficients, RKCase);
          }
       }
    }
@@ -2214,128 +2737,6 @@ bool propagateFields(
    return true;
 }
 
-/*! Namespace encompassing the enum defining the list of reconstruction coefficients used in field component reconstructions.*/
-namespace Rec {
-   /*! Enum defining the list of reconstruction coefficients used in field component reconstructions.*/
-   enum Rec {a_0,a_x,a_y,a_z,a_xx,a_xy,a_xz,
-   b_0,b_x,b_y,b_z,b_yx,b_yy,b_yz,
-   c_0,c_x,c_y,c_z,c_zx,c_zy,c_zz
-   };
-}
-
-/*! \brief Low-level helper function.
- *
- * Computes the reconstruction coefficients used for field component reconstruction.
- */
-void reconstructionCoefficients(
-   const CellID& cellID,
-   const CellID& nbr_i2j1k1,
-   const CellID& nbr_i1j2k1,
-   const CellID& nbr_i1j1k2,
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
-   Real* perturbedResult
-) {
-   // Do not calculate values for non-existing cells:
-   if (cellID == INVALID_CELLID) {
-      for (int i=0; i<Rec::c_zz+1; ++i) {
-         perturbedResult[i] = 0.0;
-      }
-      return;
-   }
-   
-   namespace fs = fieldsolver;
-   namespace cp = CellParams;
-   
-   Real* const cep_i1j1k1 = mpiGrid[cellID]->parameters;
-   
-   // Create a dummy array for containing zero values for cellParams on non-existing cells:
-   Real dummyCellParams[CellParams::N_SPATIAL_CELL_PARAMS];
-   for (uint i=0; i<CellParams::N_SPATIAL_CELL_PARAMS; ++i) dummyCellParams[i] = 0.0;
-   
-   Real* cep_i2j1k1 = NULL;
-   Real* cep_i1j2k1 = NULL;
-   Real* cep_i1j1k2 = NULL;
-   if (nbr_i2j1k1 == INVALID_CELLID) cep_i2j1k1 = dummyCellParams;
-   else cep_i2j1k1 = mpiGrid[nbr_i2j1k1]->parameters;
-   if (nbr_i1j2k1 == INVALID_CELLID) cep_i1j2k1 = dummyCellParams;
-   else cep_i1j2k1 = mpiGrid[nbr_i1j2k1]->parameters;
-   if (nbr_i1j1k2 == INVALID_CELLID) cep_i1j1k2 = dummyCellParams;
-   else cep_i1j1k2 = mpiGrid[nbr_i1j1k2]->parameters;
-
-   #ifndef FS_1ST_ORDER_SPACE
-      creal* const der_i1j1k1 = mpiGrid[cellID]->derivatives;
-
-      // Create a dummy array for containing zero values for derivatives on non-existing cells:
-      Real dummyDerivatives[N_SPATIAL_CELL_DERIVATIVES];
-      for (uint i=0; i<N_SPATIAL_CELL_DERIVATIVES; ++i) dummyDerivatives[i] = 0.0;
-   
-      // Fetch neighbour cell derivatives, or in case the neighbour does not 
-      // exist, use dummyDerivatives array:
-      Real* der_i2j1k1 = NULL;
-      Real* der_i1j2k1 = NULL;
-      Real* der_i1j1k2 = NULL;
-      if (nbr_i2j1k1 == INVALID_CELLID) der_i2j1k1 = dummyDerivatives;
-      else der_i2j1k1 = mpiGrid[nbr_i2j1k1]->derivatives;
-      if (nbr_i1j2k1 == INVALID_CELLID) der_i1j2k1 = dummyDerivatives;
-      else der_i1j2k1 = mpiGrid[nbr_i1j2k1]->derivatives;
-      if (nbr_i1j1k2 == INVALID_CELLID) der_i1j1k2 = dummyDerivatives;
-      else der_i1j1k2 = mpiGrid[nbr_i1j1k2]->derivatives;
-
-      // Calculate 2nd order reconstruction coefficients:
-      perturbedResult[Rec::a_xy] = der_i2j1k1[fs::dPERBxdy] - der_i1j1k1[fs::dPERBxdy];
-      CHECK_FLOAT(perturbedResult[Rec::a_xy])
-      perturbedResult[Rec::a_xz] = der_i2j1k1[fs::dPERBxdz] - der_i1j1k1[fs::dPERBxdz];
-      CHECK_FLOAT(perturbedResult[Rec::a_xz])
-      perturbedResult[Rec::a_x ] = cep_i2j1k1[cp::PERBX] - cep_i1j1k1[cp::PERBX];
-      CHECK_FLOAT(perturbedResult[Rec::a_x ])
-      perturbedResult[Rec::a_y ] = HALF*(der_i2j1k1[fs::dPERBxdy] + der_i1j1k1[fs::dPERBxdy]);
-      CHECK_FLOAT(perturbedResult[Rec::a_y ])
-      perturbedResult[Rec::a_z ] = HALF*(der_i2j1k1[fs::dPERBxdz] + der_i1j1k1[fs::dPERBxdz]);
-      CHECK_FLOAT(perturbedResult[Rec::a_z ])
-   
-      perturbedResult[Rec::b_yx] = der_i1j2k1[fs::dPERBydx] - der_i1j1k1[fs::dPERBydx];
-      CHECK_FLOAT(perturbedResult[Rec::b_yx])
-      perturbedResult[Rec::b_yz] = der_i1j2k1[fs::dPERBydz] - der_i1j1k1[fs::dPERBydz];
-      CHECK_FLOAT(perturbedResult[Rec::b_yz])
-      perturbedResult[Rec::b_x ] = HALF*(der_i1j2k1[fs::dPERBydx] + der_i1j1k1[fs::dPERBydx]);
-      CHECK_FLOAT(perturbedResult[Rec::b_x ])
-      perturbedResult[Rec::b_y ] = cep_i1j2k1[cp::PERBY] - cep_i1j1k1[cp::PERBY];
-      CHECK_FLOAT(perturbedResult[Rec::b_y ])
-      perturbedResult[Rec::b_z ] = HALF*(der_i1j2k1[fs::dPERBydz] + der_i1j1k1[fs::dPERBydz]);
-      CHECK_FLOAT(perturbedResult[Rec::b_z ])
-   
-      perturbedResult[Rec::c_zx] = der_i1j1k2[fs::dPERBzdx] - der_i1j1k1[fs::dPERBzdx];
-      CHECK_FLOAT(perturbedResult[Rec::c_zx])
-      perturbedResult[Rec::c_zy] = der_i1j1k2[fs::dPERBzdy] - der_i1j1k1[fs::dPERBzdy];
-      CHECK_FLOAT(perturbedResult[Rec::c_zy])
-      perturbedResult[Rec::c_x ] = HALF*(der_i1j1k2[fs::dPERBzdx] + der_i1j1k1[fs::dPERBzdx]);
-      CHECK_FLOAT(perturbedResult[Rec::c_x ])
-      perturbedResult[Rec::c_y ] = HALF*(der_i1j1k2[fs::dPERBzdy] + der_i1j1k1[fs::dPERBzdy]);
-      CHECK_FLOAT(perturbedResult[Rec::c_y ])
-      perturbedResult[Rec::c_z ] = cep_i1j1k2[cp::PERBZ] - cep_i1j1k1[cp::PERBZ];
-      CHECK_FLOAT(perturbedResult[Rec::c_z ])
-   
-      perturbedResult[Rec::a_xx] = -HALF*(perturbedResult[Rec::b_yx] + perturbedResult[Rec::c_zx]);
-      CHECK_FLOAT(perturbedResult[Rec::a_xx])
-      perturbedResult[Rec::b_yy] = -HALF*(perturbedResult[Rec::a_xy] + perturbedResult[Rec::c_zy]);
-      CHECK_FLOAT(perturbedResult[Rec::b_yy])
-      perturbedResult[Rec::c_zz] = -HALF*(perturbedResult[Rec::a_xz] + perturbedResult[Rec::b_yz]);
-      CHECK_FLOAT(perturbedResult[Rec::c_zz])
-   #else
-      for (int i=0; i<Rec::c_zz+1; ++i) {
-         perturbedResult[i] = 0.0;
-      }
-   #endif
-   
-   // Calculate 1st order reconstruction coefficients:
-   perturbedResult[Rec::a_0 ] = HALF*(cep_i2j1k1[cp::PERBX] + cep_i1j1k1[cp::PERBX]) - SIXTH*perturbedResult[Rec::a_xx];
-   CHECK_FLOAT(perturbedResult[Rec::a_0 ])
-   perturbedResult[Rec::b_0 ] = HALF*(cep_i1j2k1[cp::PERBY] + cep_i1j1k1[cp::PERBY]) - SIXTH*perturbedResult[Rec::b_yy];
-   CHECK_FLOAT(perturbedResult[Rec::b_0 ])
-   perturbedResult[Rec::c_0 ] = HALF*(cep_i1j1k2[cp::PERBZ] + cep_i1j1k1[cp::PERBZ]) - SIXTH*perturbedResult[Rec::c_zz];
-   CHECK_FLOAT(perturbedResult[Rec::c_0 ])
-}
-
 /*! \brief Top-level field averaging function.
  * 
  * Averages the electric and magnetic fields over the cell volumes.
@@ -2368,7 +2769,7 @@ void calculateVolumeAveragedFields(
 #pragma omp parallel for
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell]; 
-      Real perturbedCoefficients[Rec::c_zz+1];
+      Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
       uint existingCells = 0;
      
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
@@ -2388,7 +2789,8 @@ void calculateVolumeAveragedFields(
          nbr_i1j2k1,
          nbr_i1j1k2,
          mpiGrid,
-         perturbedCoefficients
+         perturbedCoefficients,
+         2 // Reconstruction order of the fields after Balsara 2009, 2 used here, 3 used for 2nd-order Hall term
        );
       
       // Calculate volume average of B:

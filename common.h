@@ -173,6 +173,28 @@ namespace fieldsolver {
       dPERBydz,     /*!< Derivative of face-averaged By to z-direction. */
       dPERBzdx,     /*!< Derivative of face-averaged Bz to x-direction. */
       dPERBzdy,     /*!< Derivative of face-averaged Bz to y-direction. */
+      // Insert for Hall term
+      // NOTE 2nd derivatives of BGBn are not needed as curl(dipole) = 0.0
+      // will change if BGB is not curl-free
+//       dBGBxdyy,     /*!< Second derivative of face-averaged Bx to yy-direction. */
+//       dBGBxdzz,     /*!< Second derivative of face-averaged Bx to zz-direction. */
+//       dBGBxdyz,     /*!< Second derivative of face-averaged Bx to yz-direction. */
+//       dBGBydxx,     /*!< Second derivative of face-averaged By to xx-direction. */
+//       dBGBydzz,     /*!< Second derivative of face-averaged By to zz-direction. */
+//       dBGBydxz,     /*!< Second derivative of face-averaged By to xz-direction. */
+//       dBGBzdxx,     /*!< Second derivative of face-averaged Bz to xx-direction. */
+//       dBGBzdyy,     /*!< Second derivative of face-averaged Bz to yy-direction. */
+//       dBGBzdxy,     /*!< Second derivative of face-averaged Bz to xy-direction. */
+      dPERBxdyy,     /*!< Second derivative of face-averaged Bx to yy-direction. */
+      dPERBxdzz,     /*!< Second derivative of face-averaged Bx to zz-direction. */
+      dPERBxdyz,     /*!< Second derivative of face-averaged Bx to yz-direction. */
+      dPERBydxx,     /*!< Second derivative of face-averaged By to xx-direction. */
+      dPERBydzz,     /*!< Second derivative of face-averaged By to zz-direction. */
+      dPERBydxz,     /*!< Second derivative of face-averaged By to xz-direction. */
+      dPERBzdxx,     /*!< Second derivative of face-averaged Bz to xx-direction. */
+      dPERBzdyy,     /*!< Second derivative of face-averaged Bz to yy-direction. */
+      dPERBzdxy,     /*!< Second derivative of face-averaged Bz to xy-direction. */
+      // End of insert for Hall term
       dVxdx,     /*!< Derivative of volume-averaged Vx to x-direction. */
       dVxdy,     /*!< Derivative of volume-averaged Vx to y-direction. */
       dVxdz,     /*!< Derivative of volume-averaged Vx to z-direction. */
