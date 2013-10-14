@@ -74,11 +74,11 @@ void setBackgroundField(
       
       //Compute derivatives. Note that we scale by dx[] as the arrays are assumed to contain differences, not true derivatives!
       bgFunction.setDerivative(1);
-      bgFunction.setDerivComponent((coordinate)faceCoord1[fComponent]);      
+      bgFunction.setDerivComponent((coordinate)faceCoord1[fComponent]);
       faceDerivatives[fieldsolver::dBGBxdy+2*fComponent] =
          dx[faceCoord1[fComponent]]*
          surfaceAverage(bgFunction,(coordinate)fComponent,accuracy,start,dx[faceCoord1[fComponent]],dx[faceCoord2[fComponent]]);
-      bgFunction.setDerivComponent((coordinate)faceCoord2[fComponent]);      
+      bgFunction.setDerivComponent((coordinate)faceCoord2[fComponent]);
       faceDerivatives[fieldsolver::dBGBxdy+1+2*fComponent] =
          dx[faceCoord2[fComponent]]*
          surfaceAverage(bgFunction,(coordinate)fComponent,accuracy,start,dx[faceCoord1[fComponent]],dx[faceCoord2[fComponent]]);
@@ -87,12 +87,12 @@ void setBackgroundField(
    //Volume averages
    for(unsigned int fComponent=0;fComponent<3;fComponent++){
       bgFunction.setDerivative(0);
-      bgFunction.setComponent((coordinate)fComponent);      
+      bgFunction.setComponent((coordinate)fComponent);
       cellParams[CellParams::BGBXVOL+fComponent] = volumeAverage(bgFunction,accuracy,start,end);
 
       //Compute derivatives. Note that we scale by dx[] as the arrays are assumed to contain differences, not true derivatives!      
       bgFunction.setDerivative(1);
-      bgFunction.setDerivComponent((coordinate)faceCoord1[fComponent]);      
+      bgFunction.setDerivComponent((coordinate)faceCoord1[fComponent]);
       volumeDerivatives[bvolderivatives::dBGBXVOLdy+2*fComponent] =  dx[faceCoord1[fComponent]]*volumeAverage(bgFunction,accuracy,start,end);
       bgFunction.setDerivComponent((coordinate)faceCoord2[fComponent]);
       volumeDerivatives[bvolderivatives::dBGBXVOLdy+1+2*fComponent] = dx[faceCoord2[fComponent]]*volumeAverage(bgFunction,accuracy,start,end);

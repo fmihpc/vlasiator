@@ -20,7 +20,7 @@
 #include <mpi.h>
 #include <iostream>
 #include <limits>
-
+#include <array>
 #include "datareductionoperator.h"
 #include "../vlscommon.h"
 //#include "../parameters.h"

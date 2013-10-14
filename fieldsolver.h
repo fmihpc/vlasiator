@@ -50,14 +50,17 @@ bool propagateFields(dccrg::Dccrg<SpatialCell>& mpiGrid,
 void calculateEdgeElectricFieldX(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
    const CellID& cellID,
+   const Real* const perturbedCoefficients,
    cint& RKCase);
 void calculateEdgeElectricFieldY(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
    const CellID& cellID,
+   const Real* const perturbedCoefficients,
    cint& RKCase);
 void calculateEdgeElectricFieldZ(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
    const CellID& cellID,
+   const Real* const perturbedCoefficients,
    cint& RKCase);
 
 CellID getNeighbourID(

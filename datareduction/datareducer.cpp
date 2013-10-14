@@ -57,11 +57,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::VariablePTensorBackstreamOffDiagonal);
       if(*it == "PTensorNonBackstreamOffDiagonal")
          outputReducer->addOperator(new DRO::VariablePTensorNonBackstreamOffDiagonal);
-      if(*it == "PTensorBackStream") {
+      if(*it == "PTensorBackstream") {
          outputReducer->addOperator(new DRO::VariablePTensorBackstreamDiagonal);
          outputReducer->addOperator(new DRO::VariablePTensorBackstreamOffDiagonal);
       }
-      if(*it == "PTensorNonBackStream") {
+      if(*it == "PTensorNonBackstream") {
          outputReducer->addOperator(new DRO::VariablePTensorNonBackstreamDiagonal);
          outputReducer->addOperator(new DRO::VariablePTensorNonBackstreamOffDiagonal);
       }

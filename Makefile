@@ -1,5 +1,5 @@
 #set default architecture, can be overridden from the compile line
-ARCH = $(VLASIATOR_ARCH)
+ARCH = home
 include MAKE/Makefile.${ARCH}
 
 #set FP precision to SP (single) or DP (double)
