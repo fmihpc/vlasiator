@@ -981,7 +981,7 @@ Real calculateEdgeHallTermX(
 }
 
 Real calculateEdgeHallTermY(
-   const Real* const perturbedCoefficients,
+   const Real* const pC,
    creal& xEdge,
    creal& zEdge
 ) {
@@ -1001,7 +1001,7 @@ Real calculateEdgeHallTermY(
    +
    // <Bz*(-dBzdy + dBydz)>_y
    (pC[c_0] + p1x*pC[c_x] + p1z*pC[c_z] + p2z*pC[c_zz] + p1x*p1z*pC[c_xz]) *
-   (-pC[c_y] - p1z*pC[c_yz] - p1x*pC[c_xy] - p1x*P1z*pC[c_xyz] - p2z*pC[c_yzz] + pC[b_z] + 2.0*p1z*pC[b_zz] + p1x*pC[b_xz])
+   (-pC[c_y] - p1z*pC[c_yz] - p1x*pC[c_xy] - p1x*p1z*pC[c_xyz] - p2z*pC[c_yzz] + pC[b_z] + 2.0*p1z*pC[b_zz] + p1x*pC[b_xz])
    +
    p1y2 * (pC[c_y] + p1z*pC[c_yz]) *
    (-2.0*pC[c_yy] - 2.0*p1z*pC[c_yyz] + pC[b_yz] + 2.0*p1z*pC[b_yzz] + p1x*pC[b_xyz])
@@ -1009,7 +1009,7 @@ Real calculateEdgeHallTermY(
 }
 
 Real calculateEdgeHallTermZ(
-   const Real* const perturbedCoefficients,
+   const Real* const pC,
    creal& xEdge,
    creal& yEdge
 ) {
@@ -1043,24 +1043,25 @@ void calculateEdgeHallTermXComponents(
    cint& RKCase
 ) {
    Real* cp = mpiGrid[cellID]->parameters;
+   Real* derivs = mpiGrid[cellID]->derivatives;
    #ifdef FS_1ST_ORDER_SPACE
-   creal By, Bz, EXHall;
+   Real By, Bz, EXHall=0.0;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       By = cp[CellParams::PERBY]+cp[CellParams::BGBY];
       Bz = cp[CellParams::PERBZ]+cp[CellParams::BGBZ];
-      EXHall = (Bz*((derivs[fs::dBGBxdz]+derivs[fs::dPERBxdz])/cp[CellParams::DZ] -
-                    (derivs[fs::dBGBzdx]+derivs[fs::dPERBzdx])/cp[CellParams::DX]) -
-                By*((derivs[fs::dBGBydx]+derivs[fs::dPERBydx])/cp[CellParams::DX]-
-                   ((derivs[fs::dBGBxdy]+derivs[fs::dPERBxdy])/cp[CellParams::DY])))
+      EXHall = (Bz*((derivs[fieldsolver::dBGBxdz]+derivs[fieldsolver::dPERBxdz])/cp[CellParams::DZ] -
+                    (derivs[fieldsolver::dBGBzdx]+derivs[fieldsolver::dPERBzdx])/cp[CellParams::DX]) -
+                By*((derivs[fieldsolver::dBGBydx]+derivs[fieldsolver::dPERBydx])/cp[CellParams::DX]-
+                   ((derivs[fieldsolver::dBGBxdy]+derivs[fieldsolver::dPERBxdy])/cp[CellParams::DY])))
                / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q);
    }
    if(RKCase == RK_ORDER2_STEP1) {
       By = cp[CellParams::PERBY_DT2]+cp[CellParams::BGBY];
       Bz = cp[CellParams::PERBZ_DT2]+cp[CellParams::BGBZ];
-      EXHall = (Bz*((derivs[fs::dBGBxdz]+derivs[fs::dPERBxdz])/cp[CellParams::DZ] -
-                    (derivs[fs::dBGBzdx]+derivs[fs::dPERBzdx])/cp[CellParams::DX]) -
-                By*((derivs[fs::dBGBydx]+derivs[fs::dPERBydx])/cp[CellParams::DX]-
-                   ((derivs[fs::dBGBxdy]+derivs[fs::dPERBxdy])/cp[CellParams::DY])))
+      EXHall = (Bz*((derivs[fieldsolver::dBGBxdz]+derivs[fieldsolver::dPERBxdz])/cp[CellParams::DZ] -
+                    (derivs[fieldsolver::dBGBzdx]+derivs[fieldsolver::dPERBzdx])/cp[CellParams::DX]) -
+                By*((derivs[fieldsolver::dBGBydx]+derivs[fieldsolver::dPERBydx])/cp[CellParams::DX]-
+                   ((derivs[fieldsolver::dBGBxdy]+derivs[fieldsolver::dPERBxdy])/cp[CellParams::DY])))
                / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q);
    }
    
@@ -1091,25 +1092,26 @@ void calculateEdgeHallTermYComponents(
    cint& RKCase
 ) {
    Real* cp = mpiGrid[cellID]->parameters;
+   Real* derivs = mpiGrid[cellID]->derivatives;
    #ifdef FS_1ST_ORDER_SPACE
-   creal Bx, Bz, EYHall;
+   Real Bx, Bz, EYHall=0.0;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       Bx = cp[CellParams::PERBX]+cp[CellParams::BGBX];
       Bz = cp[CellParams::PERBZ]+cp[CellParams::BGBZ];
-      EYHall = (Bx*((derivs[fs::dBGBydx]+derivs[fs::dPERBydx])/cp[CellParams::DX] -
-                    (derivs[fs::dBGBxdy]+derivs[fs::dPERBxdy])/cp[CellParams::DY]) -
-                Bz*((derivs[fs::dBGBzdy]+derivs[fs::dPERBzdy])/cp[CellParams::DY] -
-                   ((derivs[fs::dBGBydz]+derivs[fs::dPERBydz])/cp[CellParams::DZ] )))
-               / (physicalconstants::MU_0*cp_SW[CellParams::RHO]*Parameters::q);
+      EYHall = (Bx*((derivs[fieldsolver::dBGBydx]+derivs[fieldsolver::dPERBydx])/cp[CellParams::DX] -
+                    (derivs[fieldsolver::dBGBxdy]+derivs[fieldsolver::dPERBxdy])/cp[CellParams::DY]) -
+                Bz*((derivs[fieldsolver::dBGBzdy]+derivs[fieldsolver::dPERBzdy])/cp[CellParams::DY] -
+                   ((derivs[fieldsolver::dBGBydz]+derivs[fieldsolver::dPERBydz])/cp[CellParams::DZ] )))
+               / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q);
    }
    if(RKCase == RK_ORDER2_STEP1) {
       Bx = cp[CellParams::PERBX_DT2]+cp[CellParams::BGBX];
       Bz = cp[CellParams::PERBZ_DT2]+cp[CellParams::BGBZ];
-      EYHall = (Bx*((derivs[fs::dBGBydx]+derivs[fs::dPERBydx])/cp[CellParams::DX] -
-                    (derivs[fs::dBGBxdy]+derivs[fs::dPERBxdy])/cp[CellParams::DY]) -
-                Bz*((derivs[fs::dBGBzdy]+derivs[fs::dPERBzdy])/cp[CellParams::DY] -
-                   ((derivs[fs::dBGBydz]+derivs[fs::dPERBydz])/cp[CellParams::DZ] )))
-               / (physicalconstants::MU_0*cp_SW[CellParams::RHO_DT2]*Parameters::q);
+      EYHall = (Bx*((derivs[fieldsolver::dBGBydx]+derivs[fieldsolver::dPERBydx])/cp[CellParams::DX] -
+                    (derivs[fieldsolver::dBGBxdy]+derivs[fieldsolver::dPERBxdy])/cp[CellParams::DY]) -
+                Bz*((derivs[fieldsolver::dBGBzdy]+derivs[fieldsolver::dPERBzdy])/cp[CellParams::DY] -
+                   ((derivs[fieldsolver::dBGBydz]+derivs[fieldsolver::dPERBydz])/cp[CellParams::DZ] )))
+               / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q);
    }
    
    cp[CellParams::EYHALL_000_010] =
@@ -1131,24 +1133,25 @@ void calculateEdgeHallTermZComponents(
    cint& RKCase
 ) {
    Real* cp = mpiGrid[cellID]->parameters;
+   Real* derivs = mpiGrid[cellID]->derivatives;
    #ifdef FS_1ST_ORDER_SPACE
-   creal Bx, By, EZHall;
+   Real Bx, By, EZHall=0.0;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       Bx = cp[CellParams::PERBX]+cp[CellParams::BGBX];
       By = cp[CellParams::PERBY]+cp[CellParams::BGBY];
-      EZHall = (By*((derivs[fs::dBGBzdy]+derivs[fs::dPERBzdy])/cp[CellParams::DY] -
-                    (derivs[fs::dBGBydz]+derivs[fs::dPERBydz])/cp[CellParams::DZ]) -
-                Bx*((derivs[fs::dBGBxdz]+derivs[fs::dPERBxdz])/cp[CellParams::DZ] -
-                   ((derivs[fs::dBGBzdx]+derivs[fs::dPERBzdx])/cp[CellParams::DX])))
+      EZHall = (By*((derivs[fieldsolver::dBGBzdy]+derivs[fieldsolver::dPERBzdy])/cp[CellParams::DY] -
+                    (derivs[fieldsolver::dBGBydz]+derivs[fieldsolver::dPERBydz])/cp[CellParams::DZ]) -
+                Bx*((derivs[fieldsolver::dBGBxdz]+derivs[fieldsolver::dPERBxdz])/cp[CellParams::DZ] -
+                   ((derivs[fieldsolver::dBGBzdx]+derivs[fieldsolver::dPERBzdx])/cp[CellParams::DX])))
                / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q);
    }
    if(RKCase == RK_ORDER2_STEP1) {
       Bx = cp[CellParams::PERBX_DT2]+cp[CellParams::BGBX];
       By = cp[CellParams::PERBY_DT2]+cp[CellParams::BGBY];
-      EZHall = (By*((derivs[fs::dBGBzdy]+derivs[fs::dPERBzdy])/cp[CellParams::DY] -
-                    (derivs[fs::dBGBydz]+derivs[fs::dPERBydz])/cp[CellParams::DZ]) -
-                Bx*((derivs[fs::dBGBxdz]+derivs[fs::dPERBxdz])/cp[CellParams::DZ] -
-                   ((derivs[fs::dBGBzdx]+derivs[fs::dPERBzdx])/cp[CellParams::DX])))
+      EZHall = (By*((derivs[fieldsolver::dBGBzdy]+derivs[fieldsolver::dPERBzdy])/cp[CellParams::DY] -
+                    (derivs[fieldsolver::dBGBydz]+derivs[fieldsolver::dPERBydz])/cp[CellParams::DZ]) -
+                Bx*((derivs[fieldsolver::dBGBxdz]+derivs[fieldsolver::dPERBxdz])/cp[CellParams::DZ] -
+                   ((derivs[fieldsolver::dBGBzdx]+derivs[fieldsolver::dPERBzdx])/cp[CellParams::DX])))
                / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q);
    }
    
