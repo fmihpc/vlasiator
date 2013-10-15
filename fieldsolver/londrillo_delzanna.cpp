@@ -458,8 +458,6 @@ void reconstructionCoefficients(
    perturbedResult[Rec::b_z ] = HALF*(der_i1j2k1[fs::dPERBydz] + der_i1j1k1[fs::dPERBydz]) - SIXTH*perturbedResult[Rec::b_yyz];
    CHECK_FLOAT(perturbedResult[Rec::b_z ])
    
-   // lunch break
-   
    perturbedResult[Rec::c_xz] = der_i1j1k2[fs::dPERBzdx] - der_i1j1k1[fs::dPERBzdx];
    CHECK_FLOAT(perturbedResult[Rec::c_zx])
    perturbedResult[Rec::c_yz] = der_i1j1k2[fs::dPERBzdy] - der_i1j1k1[fs::dPERBzdy];
@@ -972,6 +970,19 @@ static void calculateDerivatives(
    }
    #endif
 }
+
+void calculateHallTerm(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   SysBoundary& sysBoundaries,
+   const vector<CellID>& localCells
+) {
+   #ifdef FS_1ST_ORDER_SPATIAL
+   
+   #else
+   
+   #endif
+}
+
 
 /*! \brief Low-level helper function.
  * 
