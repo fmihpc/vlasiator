@@ -130,6 +130,18 @@ namespace CellParams {
       EXVOL,     /*!< Ex averaged over spatial cell.*/
       EYVOL,     /*!< Ey averaged over spatial cell.*/
       EZVOL,     /*!< Ez averaged over spatial cell.*/
+      EXHALL_000_100,   /*!< Hall term x averaged along x on -y/-z edge of spatial cell.*/
+      EYHALL_000_010,   /*!< Hall term y averaged along y on -x/-z edge of spatial cell.*/
+      EZHALL_000_001,   /*!< Hall term z averaged along z on -x/-y edge of spatial cell.*/
+      EYHALL_100_110,   /*!< Hall term y averaged along y on +x/-z edge of spatial cell.*/
+      EZHALL_100_101,   /*!< Hall term z averaged along z on +x/-y edge of spatial cell.*/
+      EXHALL_010_110,   /*!< Hall term x averaged along x on +y/-z edge of spatial cell.*/
+      EZHALL_010_011,   /*!< Hall term z averaged along z on +y/-x edge of spatial cell.*/
+      EZHALL_110_111,   /*!< Hall term z averaged along z on +x/+y edge of spatial cell.*/
+      EXHALL_001_101,   /*!< Hall term x averaged along x on -y/+z edge of spatial cell.*/
+      EYHALL_001_011,   /*!< Hall term y averaged along y on -x/+z edge of spatial cell.*/
+      EYHALL_101_111,   /*!< Hall term y averaged along y on +x/+z edge of spatial cell.*/
+      EXHALL_011_111,   /*!< Hall term x averaged along x on +y/+z edge of spatial cell.*/
       RHO_R,     /*!< RHO after propagation in ordinary space*/
       RHOVX_R,   /*!< RHOVX after propagation in ordinary space*/
       RHOVY_R,   /*!< RHOVX after propagation in ordinary space*/

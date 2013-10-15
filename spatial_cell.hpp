@@ -95,6 +95,7 @@ namespace spatial_cell {
       const uint64_t CELL_DIMENSIONS          = (1<<19);
       const uint64_t CELL_IOLOCALCELLID       = (1<<20);
       const uint64_t NEIGHBOR_VEL_BLOCK_FLUXES = (1<<21);
+      const uint64_t CELL_HALL_TERM           = (1<<22);
       
       //all data, expect for the fx table (never needed on remote cells)
       const uint64_t ALL_DATA =
@@ -1084,21 +1085,26 @@ namespace velocity_neighbor {
                if((SpatialCell::mpi_transfer_type & Transfer::CELL_DERIVATIVES)!=0){
                   displacements.push_back((uint8_t*) &(this->derivatives[0]) - (uint8_t*) this);
                   block_lengths.push_back(sizeof(Real) * fieldsolver::N_SPATIAL_CELL_DERIVATIVES);
-                  
                }
-
+               
                // send  spatial cell BVOL derivatives
                if((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL_DERIVATIVES)!=0){
                   displacements.push_back((uint8_t*) &(this->derivativesBVOL[0]) - (uint8_t*) this);
                   block_lengths.push_back(sizeof(Real) * bvolderivatives::N_BVOL_DERIVATIVES);
                }
-
+               
                if((SpatialCell::mpi_transfer_type & Transfer::CELL_IOLOCALCELLID)!=0){
                   displacements.push_back((uint8_t*) &(this->ioLocalCellId) - (uint8_t*) this);
                   block_lengths.push_back(sizeof(uint64_t));
                }
-
-               // send  sysBoundaryFlag        
+               
+               // send Hall term components
+               if((SpatialCell::mpi_transfer_type & Transfer::CELL_HALL_TERM)!=0){
+                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::JXB_000_100]) - (uint8_t*) this);
+                  block_lengths.push_back(sizeof(Real) * 12);
+               }
+               
+               // send  sysBoundaryFlag
                if((SpatialCell::mpi_transfer_type & Transfer::CELL_SYSBOUNDARYFLAG)!=0){
                   displacements.push_back((uint8_t*) &(this->sysBoundaryFlag) - (uint8_t*) this);
                   block_lengths.push_back(sizeof(uint));
