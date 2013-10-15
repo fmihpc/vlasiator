@@ -108,12 +108,12 @@ const Real TWO     = 2.0;
 const Real ZERO    = 0.0;
 
 
-// void calculateDerivativesSimple(
-//    dccrg::Dccrg<SpatialCell>& mpiGrid,
-//    SysBoundary& sysBoundaries,
-//    const vector<CellID>& localCells,
-//    cint& RKCase
-// );
+void calculateDerivativesSimple(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   SysBoundary& sysBoundaries,
+   const vector<CellID>& localCells,
+   cint& RKCase
+);
 void calculateBVOLDerivativesSimple(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
    SysBoundary& sysBoundaries,
@@ -985,6 +985,7 @@ Real calculateEdgeHallTermY(
    creal& xEdge,
    creal& zEdge
 ) {
+   using namespace Rec;
    creal p1x = 0.5*xEdge; // P_1(x) at xEdge
    creal p1z = 0.5*zEdge; // P_1(z) at zEdge
    creal p2x = SIXTH; // P_2(x) at edge
@@ -1012,6 +1013,7 @@ Real calculateEdgeHallTermZ(
    creal& xEdge,
    creal& yEdge
 ) {
+   using namespace Rec;
    creal p1x = 0.5*xEdge; // P_1(x) at xEdge
    creal p1y = 0.5*yEdge; // P_1(y) at yEdge
    creal p2x = SIXTH; // P_2(x) at edge
@@ -1036,11 +1038,11 @@ Real calculateEdgeHallTermZ(
 
 void calculateEdgeHallTermXComponents(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
-   CellID& cellID,
+   const CellID& cellID,
    const Real* const perturbedCoefficients,
    cint& RKCase
 ) {
-   Real* cp = mpiGrid[cellID]->cellParams;
+   Real* cp = mpiGrid[cellID]->parameters;
    #ifdef FS_1ST_ORDER_SPACE
    creal By, Bz, EXHall;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1084,11 +1086,11 @@ void calculateEdgeHallTermXComponents(
 
 void calculateEdgeHallTermYComponents(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
-   CellID& cellID,
+   const CellID& cellID,
    const Real* const perturbedCoefficients,
    cint& RKCase
 ) {
-   Real* cp = mpiGrid[cellID]->cellParams;
+   Real* cp = mpiGrid[cellID]->parameters;
    #ifdef FS_1ST_ORDER_SPACE
    creal Bx, Bz, EYHall;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1124,11 +1126,11 @@ void calculateEdgeHallTermYComponents(
 
 void calculateEdgeHallTermZComponents(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
-   CellID& cellID,
+   const CellID& cellID,
    const Real* const perturbedCoefficients,
    cint& RKCase
 ) {
-   Real* cp = mpiGrid[cellID]->cellParams;
+   Real* cp = mpiGrid[cellID]->parameters;
    #ifdef FS_1ST_ORDER_SPACE
    creal Bx, By, EZHall;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -1444,7 +1446,6 @@ template<typename REAL> REAL calculateFastMSspeedXY(const REAL* cp, const REAL* 
 void calculateEdgeElectricFieldX(
       dccrg::Dccrg<SpatialCell>& mpiGrid,
       const CellID& cellID,
-      const Real* const perturbedCoefficients,
       cint& RKCase
 ) {
    namespace fs = fieldsolver;
@@ -1520,7 +1521,7 @@ void calculateEdgeElectricFieldX(
             (derivs_SW[fs::dPERBzdy]/cp_SW[CellParams::DY] - derivs_SW[fs::dPERBydz]/cp_SW[CellParams::DZ]);
    // Hall term
    if(Parameters::ohmHallTerm) {
-      Ex_SW += cp_SW[EXHALL_000_100];
+      Ex_SW += cp_SW[CellParams::EXHALL_000_100];
    }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
@@ -1740,7 +1741,6 @@ void calculateEdgeElectricFieldX(
 void calculateEdgeElectricFieldY(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
    const CellID& cellID,
-   const Real* const perturbedCoefficients,
    cint& RKCase
 ) {
    // An edge has four neighbouring spatial cells. Calculate
@@ -2034,7 +2034,6 @@ void calculateEdgeElectricFieldY(
 void calculateEdgeElectricFieldZ(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
    const CellID& cellID,
-   const Real* const perturbedCoefficients,
    cint& RKCase
 ) {
    namespace fs = fieldsolver;
@@ -2208,7 +2207,7 @@ void calculateEdgeElectricFieldZ(
             (derivs_NW[fs::dPERBydx]/cp_NW[CellParams::DX] - derivs_NW[fs::dPERBxdy]/cp_NW[CellParams::DY]);
    // Hall term
    if(Parameters::ohmHallTerm) {
-      Ez_NW += cp_NW[cellParams::EZHALL_010_011];
+      Ez_NW += cp_NW[CellParams::EZHALL_010_011];
    }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
@@ -2829,7 +2828,7 @@ void calculateUpwindedElectricFieldSimple(
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
                fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 0);
          } else {
-            calculateEdgeElectricFieldX(mpiGrid, cellID, perturbedCoefficients, RKCase);
+            calculateEdgeElectricFieldX(mpiGrid, cellID, RKCase);
          }
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
@@ -2838,7 +2837,7 @@ void calculateUpwindedElectricFieldSimple(
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
             fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 1);
          } else {
-            calculateEdgeElectricFieldY(mpiGrid, cellID, perturbedCoefficients, RKCase);
+            calculateEdgeElectricFieldY(mpiGrid, cellID, RKCase);
          }
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
@@ -2847,7 +2846,7 @@ void calculateUpwindedElectricFieldSimple(
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
             fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 2);
          } else {
-            calculateEdgeElectricFieldZ(mpiGrid, cellID, perturbedCoefficients, RKCase);
+            calculateEdgeElectricFieldZ(mpiGrid, cellID, RKCase);
          }
       }
    }
@@ -2875,7 +2874,7 @@ void calculateUpwindedElectricFieldSimple(
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
             fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 0);
          } else {
-            calculateEdgeElectricFieldX(mpiGrid, cellID, perturbedCoefficients, RKCase);
+            calculateEdgeElectricFieldX(mpiGrid, cellID, RKCase);
          }
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
@@ -2884,7 +2883,7 @@ void calculateUpwindedElectricFieldSimple(
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
             fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 1);
          } else {
-            calculateEdgeElectricFieldY(mpiGrid, cellID, perturbedCoefficients, RKCase);
+            calculateEdgeElectricFieldY(mpiGrid, cellID, RKCase);
          }
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
@@ -2893,7 +2892,7 @@ void calculateUpwindedElectricFieldSimple(
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
             fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 2);
          } else {
-            calculateEdgeElectricFieldZ(mpiGrid, cellID, perturbedCoefficients, RKCase);
+            calculateEdgeElectricFieldZ(mpiGrid, cellID, RKCase);
          }
       }
    }
@@ -3110,7 +3109,8 @@ void calculateVolumeAveragedFields(
          nbr_i1j1k2,
          mpiGrid,
          perturbedCoefficients,
-         2 // Reconstruction order of the fields after Balsara 2009, 2 used here, 3 used for 2nd-order Hall term
+         2, // Reconstruction order of the fields after Balsara 2009, 2 used here, 3 used for 2nd-order Hall term
+         RK_ORDER1
        );
       
       // Calculate volume average of B:
