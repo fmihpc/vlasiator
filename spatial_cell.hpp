@@ -100,6 +100,7 @@ namespace spatial_cell {
       const uint64_t CELL_BVOL                = (1<<17);
       const uint64_t CELL_BVOL_DERIVATIVES    = (1<<18);
       const uint64_t CELL_DIMENSIONS          = (1<<19);
+      const uint64_t CELL_HALL_TERM           = (1<<20);
       
       const uint64_t ALL_DATA =
       CELL_PARAMETERS
@@ -1039,16 +1040,21 @@ namespace velocity_neighbor {
                if((SpatialCell::mpi_transfer_type & Transfer::CELL_DERIVATIVES)!=0){
                   displacements.push_back((uint8_t*) &(this->derivatives[0]) - (uint8_t*) this);
                   block_lengths.push_back(sizeof(Real) * fieldsolver::N_SPATIAL_CELL_DERIVATIVES);
-                  
                }
-
+               
                // send  spatial cell BVOL derivatives
                if((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL_DERIVATIVES)!=0){
                   displacements.push_back((uint8_t*) &(this->derivativesBVOL[0]) - (uint8_t*) this);
                   block_lengths.push_back(sizeof(Real) * bvolderivatives::N_BVOL_DERIVATIVES);
                }
-
-               // send  sysBoundaryFlag        
+               
+               // send Hell term components
+               if((SpatialCell::mpi_transfer_type & Transfer::CELL_HALL_TERM)!=0){
+                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::JXB_000_100]) - (uint8_t*) this);
+                  block_lengths.push_back(sizeof(Real) * 12);
+               }
+               
+               // send  sysBoundaryFlag
                if((SpatialCell::mpi_transfer_type & Transfer::CELL_SYSBOUNDARYFLAG)!=0){
                   displacements.push_back((uint8_t*) &(this->sysBoundaryFlag) - (uint8_t*) this);
                   block_lengths.push_back(sizeof(uint));

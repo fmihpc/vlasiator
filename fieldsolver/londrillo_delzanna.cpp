@@ -119,12 +119,12 @@ const Real TWO     = 2.0;
 const Real ZERO    = 0.0;
 
 
-void calculateDerivativesSimple(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
-   SysBoundary& sysBoundaries,
-   const vector<CellID>& localCells,
-   cint& RKCase
-);
+// void calculateDerivativesSimple(
+//    dccrg::Dccrg<SpatialCell>& mpiGrid,
+//    SysBoundary& sysBoundaries,
+//    const vector<CellID>& localCells,
+//    cint& RKCase
+// );
 void calculateBVOLDerivativesSimple(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
    SysBoundary& sysBoundaries,
@@ -320,7 +320,8 @@ void reconstructionCoefficients(
    const CellID& nbr_i1j1k2,
    dccrg::Dccrg<SpatialCell>& mpiGrid,
    Real* perturbedResult,
-   creal reconstructionOrder
+   creal& reconstructionOrder,
+   cint& RKCase
 ) {
    // Do not calculate values for non-existing cells:
    if (cellID == INVALID_CELLID) {
@@ -440,8 +441,6 @@ void reconstructionCoefficients(
    CHECK_FLOAT(perturbedResult[Rec::a_xy])
    perturbedResult[Rec::a_xz] = der_i2j1k1[fs::dPERBxdz] - der_i1j1k1[fs::dPERBxdz];
    CHECK_FLOAT(perturbedResult[Rec::a_xz])
-   perturbedResult[Rec::a_x ] = cep_i2j1k1[cp::PERBX] - cep_i1j1k1[cp::PERBX] - TENTH*perturbedResult[Rec::a_xxx];
-   CHECK_FLOAT(perturbedResult[Rec::a_x ])
    perturbedResult[Rec::a_y ] = HALF*(der_i2j1k1[fs::dPERBxdy] + der_i1j1k1[fs::dPERBxdy]) - SIXTH*perturbedResult[Rec::a_xxy];
    CHECK_FLOAT(perturbedResult[Rec::a_y ])
    perturbedResult[Rec::a_z ] = HALF*(der_i2j1k1[fs::dPERBxdz] + der_i1j1k1[fs::dPERBxdz]) - SIXTH*perturbedResult[Rec::a_xxz];
@@ -453,8 +452,6 @@ void reconstructionCoefficients(
    CHECK_FLOAT(perturbedResult[Rec::b_yz])
    perturbedResult[Rec::b_x ] = HALF*(der_i1j2k1[fs::dPERBydx] + der_i1j1k1[fs::dPERBydx]) - SIXTH*perturbedResult[Rec::b_xyy];
    CHECK_FLOAT(perturbedResult[Rec::b_x ])
-   perturbedResult[Rec::b_y ] = cep_i1j2k1[cp::PERBY] - cep_i1j1k1[cp::PERBY] - TENTH*perturbedResult[Rec::b_yyy];
-   CHECK_FLOAT(perturbedResult[Rec::b_y ])
    perturbedResult[Rec::b_z ] = HALF*(der_i1j2k1[fs::dPERBydz] + der_i1j1k1[fs::dPERBydz]) - SIXTH*perturbedResult[Rec::b_yyz];
    CHECK_FLOAT(perturbedResult[Rec::b_z ])
    
@@ -466,8 +463,6 @@ void reconstructionCoefficients(
    CHECK_FLOAT(perturbedResult[Rec::c_x ])
    perturbedResult[Rec::c_y ] = HALF*(der_i1j1k2[fs::dPERBzdy] + der_i1j1k1[fs::dPERBzdy]) - SIXTH*perturbedResult[Rec::c_yzz];
    CHECK_FLOAT(perturbedResult[Rec::c_y ])
-   perturbedResult[Rec::c_z ] = cep_i1j1k2[cp::PERBZ] - cep_i1j1k1[cp::PERBZ] - TENTH*perturbedResult[Rec::c_zzz];
-   CHECK_FLOAT(perturbedResult[Rec::c_z ])
    
    perturbedResult[Rec::a_xx] = -HALF*(perturbedResult[Rec::b_xy] + perturbedResult[Rec::c_xz]);
    CHECK_FLOAT(perturbedResult[Rec::a_xx])
@@ -475,6 +470,24 @@ void reconstructionCoefficients(
    CHECK_FLOAT(perturbedResult[Rec::b_yy])
    perturbedResult[Rec::c_zz] = -HALF*(perturbedResult[Rec::a_xz] + perturbedResult[Rec::b_yz]);
    CHECK_FLOAT(perturbedResult[Rec::c_zz])
+   
+   if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+      perturbedResult[Rec::a_x ] = cep_i2j1k1[cp::PERBX] - cep_i1j1k1[cp::PERBX] - TENTH*perturbedResult[Rec::a_xxx];
+      CHECK_FLOAT(perturbedResult[Rec::a_x ])
+      perturbedResult[Rec::b_y ] = cep_i1j2k1[cp::PERBY] - cep_i1j1k1[cp::PERBY] - TENTH*perturbedResult[Rec::b_yyy];
+      CHECK_FLOAT(perturbedResult[Rec::b_y ])
+      perturbedResult[Rec::c_z ] = cep_i1j1k2[cp::PERBZ] - cep_i1j1k1[cp::PERBZ] - TENTH*perturbedResult[Rec::c_zzz];
+      CHECK_FLOAT(perturbedResult[Rec::c_z ])
+   }
+   if(RKCase == RK_ORDER2_STEP1) {
+      perturbedResult[Rec::a_x ] = cep_i2j1k1[cp::PERBX_DT2] - cep_i1j1k1[cp::PERBX_DT2] - TENTH*perturbedResult[Rec::a_xxx];
+      CHECK_FLOAT(perturbedResult[Rec::a_x ])
+      perturbedResult[Rec::b_y ] = cep_i1j2k1[cp::PERBY_DT2] - cep_i1j1k1[cp::PERBY_DT2] - TENTH*perturbedResult[Rec::b_yyy];
+      CHECK_FLOAT(perturbedResult[Rec::b_y ])
+      perturbedResult[Rec::c_z ] = cep_i1j1k2[cp::PERBZ_DT2] - cep_i1j1k1[cp::PERBZ_DT2] - TENTH*perturbedResult[Rec::c_zzz];
+      CHECK_FLOAT(perturbedResult[Rec::c_z ])
+   }
+   
    #else
    for (int i=0; i<Rec::c_zz+1; ++i) {
       perturbedResult[i] = 0.0;
@@ -482,12 +495,22 @@ void reconstructionCoefficients(
    #endif
    
    // Calculate 1st order reconstruction coefficients:
-   perturbedResult[Rec::a_0 ] = HALF*(cep_i2j1k1[cp::PERBX] + cep_i1j1k1[cp::PERBX]) - SIXTH*perturbedResult[Rec::a_xx];
-   CHECK_FLOAT(perturbedResult[Rec::a_0 ])
-   perturbedResult[Rec::b_0 ] = HALF*(cep_i1j2k1[cp::PERBY] + cep_i1j1k1[cp::PERBY]) - SIXTH*perturbedResult[Rec::b_yy];
-   CHECK_FLOAT(perturbedResult[Rec::b_0 ])
-   perturbedResult[Rec::c_0 ] = HALF*(cep_i1j1k2[cp::PERBZ] + cep_i1j1k1[cp::PERBZ]) - SIXTH*perturbedResult[Rec::c_zz];
-   CHECK_FLOAT(perturbedResult[Rec::c_0 ])
+   if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+      perturbedResult[Rec::a_0 ] = HALF*(cep_i2j1k1[cp::PERBX] + cep_i1j1k1[cp::PERBX]) - SIXTH*perturbedResult[Rec::a_xx];
+      CHECK_FLOAT(perturbedResult[Rec::a_0 ])
+      perturbedResult[Rec::b_0 ] = HALF*(cep_i1j2k1[cp::PERBY] + cep_i1j1k1[cp::PERBY]) - SIXTH*perturbedResult[Rec::b_yy];
+      CHECK_FLOAT(perturbedResult[Rec::b_0 ])
+      perturbedResult[Rec::c_0 ] = HALF*(cep_i1j1k2[cp::PERBZ] + cep_i1j1k1[cp::PERBZ]) - SIXTH*perturbedResult[Rec::c_zz];
+      CHECK_FLOAT(perturbedResult[Rec::c_0 ])
+   }
+   if(RKCase == RK_ORDER2_STEP1) {
+      perturbedResult[Rec::a_0 ] = HALF*(cep_i2j1k1[cp::PERBX_DT2] + cep_i1j1k1[cp::PERBX_DT2]) - SIXTH*perturbedResult[Rec::a_xx];
+      CHECK_FLOAT(perturbedResult[Rec::a_0 ])
+      perturbedResult[Rec::b_0 ] = HALF*(cep_i1j2k1[cp::PERBY_DT2] + cep_i1j1k1[cp::PERBY_DT2]) - SIXTH*perturbedResult[Rec::b_yy];
+      CHECK_FLOAT(perturbedResult[Rec::b_0 ])
+      perturbedResult[Rec::c_0 ] = HALF*(cep_i1j1k2[cp::PERBZ_DT2] + cep_i1j1k1[cp::PERBZ_DT2]) - SIXTH*perturbedResult[Rec::c_zz];
+      CHECK_FLOAT(perturbedResult[Rec::c_0 ])
+   }
 }
 
 /*! \brief Low-level spatial derivatives calculation.
@@ -971,16 +994,352 @@ static void calculateDerivatives(
    #endif
 }
 
-void calculateHallTerm(
+Real calculateEdgeHallTermX(
+   const Real* const pC,
+   creal& yEdge,
+   creal& zEdge
+) {
+   using namespace Rec;
+   creal p1y = 0.5*yEdge; // P_1(y) at yEdge
+   creal p1z = 0.5*zEdge; // P_1(z) at zEdge
+   creal p2y = SIXTH; // P_2(y) at edge
+   creal p2z = SIXTH; // P_2(z) at edge
+   creal p1x2 = TWELWTH; // <P_1(x)> along x edge
+   return
+   // <Bz*(dBxdz - dBzdx)>_x
+   (pC[c_0] + p1y*pC[c_y] + p1z*pC[c_z] + p2z*pC[c_zz] + p1y*p1z*pC[c_yz]) * 
+   (pC[a_z] + 2.0*p1z*pC[a_zz] + p1y*pC[a_yz] - pC[c_x] - p1z*pC[c_xz] - p1y*pC[c_xy] - p1y*p1z*pC[c_xyz] - p2z*pC[c_xzz])
+   +
+   p1x2 * (pC[c_x] + p1z*pC[c_xz]) *
+   (pC[a_xz] + 2.0*p1z*pC[a_xzz] + p1y*pC[a_xyz] - 2.0*pC[c_xx] - 2.0*p1z*pC[c_xxz])
+   +
+   // <By*(dBxdy - dBydx)>_x
+   (pC[b_0] + p1y*pC[b_y] + p1z*pC[b_z] + p2y*pC[b_yy] + p1y*p1z*pC[b_yz]) *
+   (-pC[b_x] - p1y*pC[b_xy] - p1z*pC[b_xz] - p1y*p1z*pC[b_xyz] - p2y*pC[b_xyy] + pC[a_y] + 2.0*p1y*pC[a_yy] + p1z*pC[a_yz])
+   +
+   p1x2 * (pC[b_x] + p1y*pC[b_xy]) *
+   (-2.0*pC[b_xx] - 2.0*p1y*pC[b_xyy] + pC[a_xy] + 2.0*p1y*pC[a_xyy] + p1z*pC[a_xyz])
+   ;
+}
+
+Real calculateEdgeHallTermY(
+   const Real* const perturbedCoefficients,
+   creal& xEdge,
+   creal& zEdge
+) {
+   creal p1x = 0.5*xEdge; // P_1(x) at xEdge
+   creal p1z = 0.5*zEdge; // P_1(z) at zEdge
+   creal p2x = SIXTH; // P_2(x) at edge
+   creal p2z = SIXTH; // P_2(z) at edge
+   creal p1y2 = TWELWTH; // <P_1(y)> along y edge
+   return
+   // <Bx*(dBydx - dBxdy)>_y
+   (pC[a_0] + p1x*pC[a_x] + p1z*pC[a_z] + p2x*pC[a_xx] + p1x*p1z*pC[a_xz]) *
+   (pC[b_x] + 2.0*p1x*pC[b_xx] + p1z*pC[b_xz] - pC[a_y] - p1x*pC[a_xy] - p1z*pC[a_yz] - p1x*p1z*pC[a_xyz] - p2x*pC[a_xxy])
+   +
+   p1y2 * (pC[a_y] + p1x*pC[a_xy]) *
+   (pC[b_xy] + 2.0*p1x*pC[b_xxy] + p1z*pC[b_xyz] - 2.0*pC[a_yy] - 2.0*p1x*pC[a_xyy])
+   +
+   // <Bz*(-dBzdy + dBydz)>_y
+   (pC[c_0] + p1x*pC[c_x] + p1z*pC[c_z] + p2z*pC[c_zz] + p1x*p1z*pC[c_xz]) *
+   (-pC[c_y] - p1z*pC[c_yz] - p1x*pC[c_xy] - p1x*P1z*pC[c_xyz] - p2z*pC[c_yzz] + pC[b_z] + 2.0*p1z*pC[b_zz] + p1x*pC[b_xz])
+   +
+   p1y2 * (pC[c_y] + p1z*pC[c_yz]) *
+   (-2.0*pC[c_yy] - 2.0*p1z*pC[c_yyz] + pC[b_yz] + 2.0*p1z*pC[b_yzz] + p1x*pC[b_xyz])
+   ;
+}
+
+Real calculateEdgeHallTermZ(
+   const Real* const perturbedCoefficients,
+   creal& xEdge,
+   creal& yEdge
+) {
+   creal p1x = 0.5*xEdge; // P_1(x) at xEdge
+   creal p1y = 0.5*yEdge; // P_1(y) at yEdge
+   creal p2x = SIXTH; // P_2(x) at edge
+   creal p2y = SIXTH; // P_2(y) at edge
+   creal p1z2 = TWELWTH; // <P_1(z)> along z edge
+   return
+   // <By*(dBzdy - dBydz)>_z
+   (pC[b_0] + p1x*pC[b_x] + p1y*pC[b_y] + p2y*pC[b_yy] + p1x*p1y*pC[b_xy]) *
+   (pC[c_y] + 2.0*p1y*pC[c_yy] + p1x*pC[c_xy] - pC[b_z] - p1y*pC[b_yz] - p1x*pC[b_xz] - p1x*p1y*pC[b_xyz] - p2y*pC[b_yyz])
+   +
+   p1z2 * (pC[b_z] + p1y*pC[b_yz]) *
+   (pC[c_yz] + 2.0*p1y*pC[c_yyz] + p1x*pC[c_xyz] -2.0*pC[b_zz] - 2.0*p1y*pC[b_yzz])
+   +
+   // <Bx*(-dBxdz + dBzdx)>_z
+   (pC[a_0] + p1x*pC[a_x] + p1y*pC[a_y] + p2x*pC[a_xx] + p1x*p1y*pC[a_xy]) *
+   (-pC[a_z] - p1x*pC[a_xz] - p1y*pC[a_yz] - p1x*p1y*pC[a_xyz] - p2x*pC[a_xxz] + pC[c_x] + 2.0*p1x*pC[c_xx] + p1y*pC[c_xy])
+   +
+   p1z2 * (pC[a_z] + p1x*pC[a_xz]) *
+   (-2.0*pC[a_zz] - 2.0*p1x*pC[a_xzz] + pC[c_xz] + 2.0*p1x*pC[c_xxz] + p1y*pC[c_xyz])
+   ;
+}
+
+void calculateEdgeHallTermXComponents(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   CellID& cellID,
+   const Real* const perturbedCoefficients,
+   cint& RKCase
+) {
+   Real* cp = mpiGrid[cellID]->cellParams;
+   #ifdef FS_1ST_ORDER_SPACE
+   creal By, Bz, EXHall;
+   if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+      By = cp[CellParams::PERBY]+cp[CellParams::BGBY];
+      Bz = cp[CellParams::PERBZ]+cp[CellParams::BGBZ];
+      EXHall = (Bz*((derivs[fs::dBGBxdz]+derivs[fs::dPERBxdz])/cp[CellParams::DZ] -
+                    (derivs[fs::dBGBzdx]+derivs[fs::dPERBzdx])/cp[CellParams::DX]) -
+                By*((derivs[fs::dBGBydx]+derivs[fs::dPERBydx])/cp[CellParams::DX]-
+                   ((derivs[fs::dBGBxdy]+derivs[fs::dPERBxdy])/cp[CellParams::DY])))
+               / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q);
+   }
+   if(RKCase == RK_ORDER2_STEP1) {
+      By = cp[CellParams::PERBY_DT2]+cp[CellParams::BGBY];
+      Bz = cp[CellParams::PERBZ_DT2]+cp[CellParams::BGBZ];
+      EXHall = (Bz*((derivs[fs::dBGBxdz]+derivs[fs::dPERBxdz])/cp[CellParams::DZ] -
+                    (derivs[fs::dBGBzdx]+derivs[fs::dPERBzdx])/cp[CellParams::DX]) -
+                By*((derivs[fs::dBGBydx]+derivs[fs::dPERBydx])/cp[CellParams::DX]-
+                   ((derivs[fs::dBGBxdy]+derivs[fs::dPERBxdy])/cp[CellParams::DY])))
+               / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q);
+   }
+   
+   cp[CellParams::EXHALL_000_100] =
+   cp[CellParams::EXHALL_010_110] =
+   cp[CellParams::EXHALL_001_101] =
+   cp[CellParams::EXHALL_011_111] = EXHall;
+   #else
+   if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+      cp[CellParams::EXHALL_000_100] = calculateEdgeHallTermX(perturbedCoefficients, -1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q);
+      cp[CellParams::EXHALL_010_110] = calculateEdgeHallTermX(perturbedCoefficients,  1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q);
+      cp[CellParams::EXHALL_011_111] = calculateEdgeHallTermX(perturbedCoefficients,  1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q);
+      cp[CellParams::EXHALL_001_101] = calculateEdgeHallTermX(perturbedCoefficients, -1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q);
+   }
+   if(RKCase == RK_ORDER2_STEP1) {
+      cp[CellParams::EXHALL_000_100] = calculateEdgeHallTermX(perturbedCoefficients, -1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q);
+      cp[CellParams::EXHALL_010_110] = calculateEdgeHallTermX(perturbedCoefficients,  1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q);
+      cp[CellParams::EXHALL_011_111] = calculateEdgeHallTermX(perturbedCoefficients,  1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q);
+      cp[CellParams::EXHALL_001_101] = calculateEdgeHallTermX(perturbedCoefficients, -1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q);
+   }
+   #endif
+}
+
+void calculateEdgeHallTermYComponents(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   CellID& cellID,
+   const Real* const perturbedCoefficients,
+   cint& RKCase
+) {
+   Real* cp = mpiGrid[cellID]->cellParams;
+   #ifdef FS_1ST_ORDER_SPACE
+   creal Bx, Bz, EYHall;
+   if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+      Bx = cp[CellParams::PERBX]+cp[CellParams::BGBX];
+      Bz = cp[CellParams::PERBZ]+cp[CellParams::BGBZ];
+      EYHall = (Bx*((derivs[fs::dBGBydx]+derivs[fs::dPERBydx])/cp[CellParams::DX] -
+                    (derivs[fs::dBGBxdy]+derivs[fs::dPERBxdy])/cp[CellParams::DY]) -
+                Bz*((derivs[fs::dBGBzdy]+derivs[fs::dPERBzdy])/cp[CellParams::DY] -
+                   ((derivs[fs::dBGBydz]+derivs[fs::dPERBydz])/cp[CellParams::DZ] )))
+               / (physicalconstants::MU_0*cp_SW[CellParams::RHO]*Parameters::q);
+   }
+   if(RKCase == RK_ORDER2_STEP1) {
+      Bx = cp[CellParams::PERBX_DT2]+cp[CellParams::BGBX];
+      Bz = cp[CellParams::PERBZ_DT2]+cp[CellParams::BGBZ];
+      EYHall = (Bx*((derivs[fs::dBGBydx]+derivs[fs::dPERBydx])/cp[CellParams::DX] -
+                    (derivs[fs::dBGBxdy]+derivs[fs::dPERBxdy])/cp[CellParams::DY]) -
+                Bz*((derivs[fs::dBGBzdy]+derivs[fs::dPERBzdy])/cp[CellParams::DY] -
+                   ((derivs[fs::dBGBydz]+derivs[fs::dPERBydz])/cp[CellParams::DZ] )))
+               / (physicalconstants::MU_0*cp_SW[CellParams::RHO_DT2]*Parameters::q);
+   }
+   
+   cp[CellParams::EYHALL_000_010] =
+   cp[CellParams::EYHALL_100_110] =
+   cp[CellParams::EYHALL_101_111] =
+   cp[CellParams::EYHALL_001_011] = EYHall;
+   #else
+   cp[CellParams::EYHALL_000_010] = calculateEdgeHallTermY(perturbedCoefficients, -1.0, -1.0);
+   cp[CellParams::EYHALL_100_110] = calculateEdgeHallTermY(perturbedCoefficients,  1.0, -1.0);
+   cp[CellParams::EYHALL_101_111] = calculateEdgeHallTermY(perturbedCoefficients,  1.0,  1.0);
+   cp[CellParams::EYHALL_001_011] = calculateEdgeHallTermY(perturbedCoefficients, -1.0,  1.0);
+   #endif
+}
+
+void calculateEdgeHallTermZComponents(
+   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   CellID& cellID,
+   const Real* const perturbedCoefficients,
+   cint& RKCase
+) {
+   Real* cp = mpiGrid[cellID]->cellParams;
+   #ifdef FS_1ST_ORDER_SPACE
+   creal Bx, By, EZHall;
+   if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+      Bx = cp[CellParams::PERBX]+cp[CellParams::BGBX];
+      By = cp[CellParams::PERBY]+cp[CellParams::BGBY];
+      EZHall = (By*((derivs[fs::dBGBzdy]+derivs[fs::dPERBzdy])/cp[CellParams::DY] -
+                    (derivs[fs::dBGBydz]+derivs[fs::dPERBydz])/cp[CellParams::DZ]) -
+                Bx*((derivs[fs::dBGBxdz]+derivs[fs::dPERBxdz])/cp[CellParams::DZ] -
+                   ((derivs[fs::dBGBzdx]+derivs[fs::dPERBzdx])/cp[CellParams::DX])))
+               / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q);
+   }
+   if(RKCase == RK_ORDER2_STEP1) {
+      Bx = cp[CellParams::PERBX_DT2]+cp[CellParams::BGBX];
+      By = cp[CellParams::PERBY_DT2]+cp[CellParams::BGBY];
+      EZHall = (By*((derivs[fs::dBGBzdy]+derivs[fs::dPERBzdy])/cp[CellParams::DY] -
+                    (derivs[fs::dBGBydz]+derivs[fs::dPERBydz])/cp[CellParams::DZ]) -
+                Bx*((derivs[fs::dBGBxdz]+derivs[fs::dPERBxdz])/cp[CellParams::DZ] -
+                   ((derivs[fs::dBGBzdx]+derivs[fs::dPERBzdx])/cp[CellParams::DX])))
+               / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q);
+   }
+   
+   cp[CellParams::EZHALL_000_001] =
+   cp[CellParams::EZHALL_100_101] =
+   cp[CellParams::EZHALL_110_111] =
+   cp[CellParams::EZHALL_010_011] = EZHall;
+   #else
+   cp[CellParams::EZHALL_000_001] = calculateEdgeHallTermZ(perturbedCoefficients, -1.0, -1.0);
+   cp[CellParams::EZHALL_100_101] = calculateEdgeHallTermZ(perturbedCoefficients,  1.0, -1.0);
+   cp[CellParams::EZHALL_110_111] = calculateEdgeHallTermZ(perturbedCoefficients,  1.0,  1.0);
+   cp[CellParams::EZHALL_010_011] = calculateEdgeHallTermZ(perturbedCoefficients, -1.0,  1.0);
+   #endif
+}
+
+void calculateHallTermSimple(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
    SysBoundary& sysBoundaries,
-   const vector<CellID>& localCells
+   const vector<CellID>& localCells,
+   cint& RKCase
 ) {
-   #ifdef FS_1ST_ORDER_SPATIAL
+   namespace fs = fieldsolver;
+   int timer;
+   phiprof::start("Calculate Hall term");
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_DERIVATIVES);
    
-   #else
+   timer=phiprof::initializeTimer("Start communication of derivatives","MPI");
+   phiprof::start(timer);
+   mpiGrid.start_remote_neighbor_data_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   phiprof::stop(timer);
    
-   #endif
+   timer=phiprof::initializeTimer("Compute inner cells");
+   phiprof::start(timer);
+   // Calculate Hall term on inner cells
+   const vector<uint64_t> cellsWithLocalNeighbours
+      = mpiGrid.get_local_cells_not_on_process_boundary(FIELD_SOLVER_NEIGHBORHOOD_ID);
+#pragma omp parallel for
+   for(uint cell=0;cell<cellsWithLocalNeighbours.size();cell++){
+      const CellID cellID = cellsWithLocalNeighbours[cell];
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+      cuint fieldSolverSysBoundaryFlag = sysBoundaryFlags[cellID];
+      cuint cellSysBoundaryFlag = mpiGrid[cellID]->sysBoundaryFlag;
+      cuint cellSysBoundaryLayer = mpiGrid[cellID]->sysBoundaryLayer;
+      
+      // Calculate reconstruction coefficients for this cell:
+      Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
+      const CellID nbr_i2j1k1 = getNeighbourID(mpiGrid, cellID, 2+1, 2  , 2  );
+      const CellID nbr_i1j2k1 = getNeighbourID(mpiGrid, cellID, 2  , 2+1, 2  );
+      const CellID nbr_i1j1k2 = getNeighbourID(mpiGrid, cellID, 2  , 2  , 2+1);
+      reconstructionCoefficients(
+         cellID,
+         nbr_i2j1k1,
+         nbr_i1j2k1,
+         nbr_i1j1k2,
+         mpiGrid,
+         perturbedCoefficients,
+         3, // Reconstruction order of the fields after Balsara 2009, 2 used here, 3 used for 2nd-order Hall term
+         RKCase
+      );
+      
+      if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
+         if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
+            (cellSysBoundaryLayer != 1)) {
+            std::cerr << "Not coded yet!" << std::endl;
+         } else {
+            calculateEdgeHallTermXComponents(mpiGrid, cellID, perturbedCoefficients, RKCase);
+         }
+      }
+      if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
+         if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
+            (cellSysBoundaryLayer != 1)) {
+            std::cerr << "Not coded yet!" << std::endl;
+         } else {
+            calculateEdgeHallTermYComponents(mpiGrid, cellID, perturbedCoefficients, RKCase);
+         }
+      }
+      if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
+         if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
+            (cellSysBoundaryLayer != 1)) {
+            std::cerr << "Not coded yet!" << std::endl;
+         } else {
+            calculateEdgeHallTermZComponents(mpiGrid, cellID, perturbedCoefficients, RKCase);
+         }
+      }
+   }
+   phiprof::stop(timer);
+   timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
+   phiprof::start(timer);
+   mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   phiprof::stop(timer);
+   timer=phiprof::initializeTimer("Compute boundary cells");
+   phiprof::start(timer);
+   // Calculate Hall term on boundary cells:
+   const vector<uint64_t> cellsWithRemoteNeighbours
+      = mpiGrid.get_local_cells_on_process_boundary(FIELD_SOLVER_NEIGHBORHOOD_ID);
+#pragma omp parallel for
+   for(uint cell=0;cell<cellsWithRemoteNeighbours.size();cell++){
+      const CellID cellID = cellsWithRemoteNeighbours[cell];
+      if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+      cuint fieldSolverSysBoundaryFlag = sysBoundaryFlags[cellID];
+      cuint cellSysBoundaryFlag = mpiGrid[cellID]->sysBoundaryFlag;
+      cuint cellSysBoundaryLayer = mpiGrid[cellID]->sysBoundaryLayer;
+      
+      // Calculate reconstruction coefficients for this cell:
+      Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
+      const CellID nbr_i2j1k1 = getNeighbourID(mpiGrid, cellID, 2+1, 2  , 2  );
+      const CellID nbr_i1j2k1 = getNeighbourID(mpiGrid, cellID, 2  , 2+1, 2  );
+      const CellID nbr_i1j1k2 = getNeighbourID(mpiGrid, cellID, 2  , 2  , 2+1);
+      reconstructionCoefficients(
+         cellID,
+         nbr_i2j1k1,
+         nbr_i1j2k1,
+         nbr_i1j1k2,
+         mpiGrid,
+         perturbedCoefficients,
+         3, // Reconstruction order of the fields after Balsara 2009, 2 used for general B, 3 used here for 2nd-order Hall term
+         RKCase
+      );
+      
+      if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
+         if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
+            (cellSysBoundaryLayer != 1)) {
+            std::cerr << "Not coded yet!" << std::endl;
+         } else {
+            calculateEdgeHallTermXComponents(mpiGrid, cellID, perturbedCoefficients, RKCase);
+         }
+      }
+      if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
+         if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
+            (cellSysBoundaryLayer != 1)) {
+            std::cerr << "Not coded yet!" << std::endl;
+         } else {
+            calculateEdgeHallTermYComponents(mpiGrid, cellID, perturbedCoefficients, RKCase);
+         }
+      }
+      if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
+         if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
+            (cellSysBoundaryLayer != 1)) {
+            std::cerr << "Not coded yet!" << std::endl;
+         } else {
+            calculateEdgeHallTermZComponents(mpiGrid, cellID, perturbedCoefficients, RKCase);
+         }
+      }
+   }
+   phiprof::stop(timer);
+   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+   phiprof::start(timer);
+   mpiGrid.wait_neighbor_data_update_sends();
+   phiprof::stop(timer);
+   
+   phiprof::stop("Calculate Hall term");
 }
 
 
@@ -1189,6 +1548,7 @@ void calculateEdgeElectricFieldX(
    // 1st order terms:
    Real Ex_SW = By_S*Vz0 - Bz_W*Vy0;
    // Resistive term
+   // FIXME this does not include RK stepping
    Ex_SW += Parameters::resistivity *
             sqrt((cp_SW[CellParams::BGBX]+cp_SW[CellParams::PERBX])*
                  (cp_SW[CellParams::BGBX]+cp_SW[CellParams::PERBX]) +
@@ -1202,15 +1562,7 @@ void calculateEdgeElectricFieldX(
             (derivs_SW[fs::dPERBzdy]/cp_SW[CellParams::DY] - derivs_SW[fs::dPERBydz]/cp_SW[CellParams::DZ]);
    // Hall term
    if(Parameters::ohmHallTerm) {
-      #ifdef FS_1ST_ORDER_SPACE
-      Ex_SW += (Bz_W*((derivs_SW[fs::dBGBxdz]+derivs_SW[fs::dPERBxdz])/cp_SW[CellParams::DZ] -
-                      (derivs_SW[fs::dBGBzdx]+derivs_SW[fs::dPERBzdx])/cp_SW[CellParams::DX]) -
-                By_S*((derivs_SW[fs::dBGBydx]+derivs_SW[fs::dPERBydx])/cp_SW[CellParams::DX]-
-                     ((derivs_SW[fs::dBGBxdy]+derivs_SW[fs::dPERBxdy])/cp_SW[CellParams::DY])))
-               / (physicalconstants::MU_0*cp_SW[CellParams::RHO]*Parameters::q);
-      #else
-      Ex_SW += 
-      #endif
+      Ex_SW += cp_SW[EXHALL_000_100];
    }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
@@ -1243,6 +1595,7 @@ void calculateEdgeElectricFieldX(
    // 1st order terms:
    Real Ex_SE = By_S*Vz0 - Bz_E*Vy0;
    // Resistive term
+   // FIXME this does not include RK stepping
    Ex_SE += Parameters::resistivity *
             sqrt((cp_SE[CellParams::BGBX]+cp_SE[CellParams::PERBX])*
                  (cp_SE[CellParams::BGBX]+cp_SE[CellParams::PERBX]) +
@@ -1256,11 +1609,7 @@ void calculateEdgeElectricFieldX(
             (derivs_SE[fs::dPERBzdy]/cp_SE[CellParams::DY] - derivs_SE[fs::dPERBydz]/cp_SE[CellParams::DZ]);
    // Hall term
    if(Parameters::ohmHallTerm) {
-      Ex_SE += (Bz_E*((derivs_SE[fs::dBGBxdz]+derivs_SE[fs::dPERBxdz])/cp_SE[CellParams::DZ] -
-                      (derivs_SE[fs::dBGBzdx]+derivs_SE[fs::dPERBzdx])/cp_SE[CellParams::DX]) -
-                By_S*((derivs_SE[fs::dBGBydx]+derivs_SE[fs::dPERBydx])/cp_SE[CellParams::DX] -
-                     ((derivs_SE[fs::dBGBxdy]+derivs_SE[fs::dPERBxdy])/cp_SE[CellParams::DY])))
-               / (physicalconstants::MU_0*cp_SE[CellParams::RHO]*Parameters::q);
+      Ex_SE += cp_SE[CellParams::EXHALL_010_110];
    }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
@@ -1293,6 +1642,7 @@ void calculateEdgeElectricFieldX(
    // 1st order terms:
    Real Ex_NW    = By_N*Vz0 - Bz_W*Vy0;
    // Resistive term
+   // FIXME this does not include RK stepping
    Ex_NW += Parameters::resistivity *
             sqrt((cp_NW[CellParams::BGBX]+cp_NW[CellParams::PERBX])*
                  (cp_NW[CellParams::BGBX]+cp_NW[CellParams::PERBX]) +
@@ -1306,11 +1656,7 @@ void calculateEdgeElectricFieldX(
             (derivs_NW[fs::dPERBzdy]/cp_NW[CellParams::DY] - derivs_NW[fs::dPERBydz]/cp_NW[CellParams::DZ]);
    // Hall term
    if(Parameters::ohmHallTerm) {
-      Ex_NW += (Bz_W*((derivs_NW[fs::dBGBxdz]+derivs_NW[fs::dPERBxdz])/cp_NW[CellParams::DZ] -
-                      (derivs_NW[fs::dBGBzdx]+derivs_NW[fs::dPERBzdx])/cp_NW[CellParams::DX]) -
-                By_N*((derivs_NW[fs::dBGBydx]+derivs_NW[fs::dPERBydx])/cp_NW[CellParams::DX]-
-                     ((derivs_NW[fs::dBGBxdy]+derivs_NW[fs::dPERBxdy])/cp_NW[CellParams::DY])))
-               / (physicalconstants::MU_0*cp_NW[CellParams::RHO]*Parameters::q);
+      Ex_NW += cp_NW[CellParams::EXHALL_001_101];
    }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
@@ -1343,6 +1689,7 @@ void calculateEdgeElectricFieldX(
    // 1st order terms:
    Real Ex_NE    = By_N*Vz0 - Bz_E*Vy0;
    // Resistive term
+   // FIXME this does not include RK stepping
    Ex_NE += Parameters::resistivity *
             sqrt((cp_NE[CellParams::BGBX]+cp_NE[CellParams::PERBX])*
                  (cp_NE[CellParams::BGBX]+cp_NE[CellParams::PERBX]) +
@@ -1356,11 +1703,7 @@ void calculateEdgeElectricFieldX(
             (derivs_NE[fs::dPERBzdy]/cp_NE[CellParams::DY] - derivs_NE[fs::dPERBydz]/cp_NE[CellParams::DZ]);
    // Hall term
    if(Parameters::ohmHallTerm) {
-      Ex_NE += (Bz_E*((derivs_NE[fs::dBGBxdz]+derivs_NE[fs::dPERBxdz])/cp_NE[CellParams::DZ] -
-                      (derivs_NE[fs::dBGBzdx]+derivs_NE[fs::dPERBzdx])/cp_NE[CellParams::DX]) -
-                By_N*((derivs_NE[fs::dBGBydx]+derivs_NE[fs::dPERBydx])/cp_NE[CellParams::DX] -
-                     ((derivs_NE[fs::dBGBxdy]+derivs_NE[fs::dPERBxdy])/cp_NE[CellParams::DY])))
-               / (physicalconstants::MU_0*cp_NE[CellParams::RHO]*Parameters::q);
+      Ex_NE += cp_NE[CellParams::EXHALL_011_111];
    }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
@@ -1502,6 +1845,7 @@ void calculateEdgeElectricFieldY(
    // 1st order terms:
    Real Ey_SW  = Bz_S*Vx0 - Bx_W*Vz0;
    // Resistive term
+   // FIXME this does not include RK stepping
    Ey_SW += Parameters::resistivity *
             sqrt((cp_SW[CellParams::BGBX]+cp_SW[CellParams::PERBX])*
                  (cp_SW[CellParams::BGBX]+cp_SW[CellParams::PERBX]) +
@@ -1515,11 +1859,7 @@ void calculateEdgeElectricFieldY(
             (derivs_SW[fs::dPERBxdz]/cp_SW[CellParams::DZ] - derivs_SW[fs::dPERBzdx]/cp_SW[CellParams::DX]);
    // Hall term
    if(Parameters::ohmHallTerm) {
-      Ey_SW += (Bx_W*((derivs_SW[fs::dBGBydx]+derivs_SW[fs::dPERBydx])/cp_SW[CellParams::DX] -
-                      (derivs_SW[fs::dBGBxdy]+derivs_SW[fs::dPERBxdy])/cp_SW[CellParams::DY]) -
-                Bz_S*((derivs_SW[fs::dBGBzdy]+derivs_SW[fs::dPERBzdy])/cp_SW[CellParams::DY] -
-                     ((derivs_SW[fs::dBGBydz]+derivs_SW[fs::dPERBydz])/cp_SW[CellParams::DZ] )))
-               / (physicalconstants::MU_0*cp_SW[CellParams::RHO]*Parameters::q);
+      Ey_SW += cp_SW[CellParams::EYHALL_000_010];
    }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms
@@ -1552,6 +1892,7 @@ void calculateEdgeElectricFieldY(
    // 1st order terms:
    Real Ey_SE    = Bz_S*Vx0 - Bx_E*Vz0;
    // Resistive term
+   // FIXME this does not include RK stepping
    Ey_SE += Parameters::resistivity *
             sqrt((cp_SE[CellParams::BGBX]+cp_SE[CellParams::PERBX])*
                  (cp_SE[CellParams::BGBX]+cp_SE[CellParams::PERBX]) +
@@ -1565,11 +1906,7 @@ void calculateEdgeElectricFieldY(
             (derivs_SE[fs::dPERBxdz]/cp_SE[CellParams::DZ] - derivs_SE[fs::dPERBzdx]/cp_SE[CellParams::DX]);
    // Hall term
    if(Parameters::ohmHallTerm) {
-      Ey_SE += (Bx_E*((derivs_SE[fs::dBGBydx]+derivs_SE[fs::dPERBydx])/cp_SE[CellParams::DX] -
-                      (derivs_SE[fs::dBGBxdy]+derivs_SE[fs::dPERBxdy])/cp_SE[CellParams::DY]) -
-                Bz_S*((derivs_SE[fs::dBGBzdy]+derivs_SE[fs::dPERBzdy])/cp_SE[CellParams::DY] -
-                     ((derivs_SE[fs::dBGBydz]+derivs_SE[fs::dPERBydz])/cp_SE[CellParams::DZ])))
-               / (physicalconstants::MU_0*cp_SE[CellParams::RHO]*Parameters::q);
+      Ey_SE += cp_SE[CellParams::EYHALL_001_011];
    }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
@@ -1602,6 +1939,7 @@ void calculateEdgeElectricFieldY(
    // 1st order terms:
    Real Ey_NW    = Bz_N*Vx0 - Bx_W*Vz0;
    // Resistive term
+   // FIXME this does not include RK stepping
    Ey_NW += Parameters::resistivity *
             sqrt((cp_NW[CellParams::BGBX]+cp_NW[CellParams::PERBX])*
                  (cp_NW[CellParams::BGBX]+cp_NW[CellParams::PERBX]) +
@@ -1615,11 +1953,7 @@ void calculateEdgeElectricFieldY(
             (derivs_NW[fs::dPERBxdz]/cp_NW[CellParams::DZ] - derivs_NW[fs::dPERBzdx]/cp_NW[CellParams::DX]);
    // Hall term
    if(Parameters::ohmHallTerm) {
-      Ey_NW += (Bx_W*((derivs_NW[fs::dBGBydx]+derivs_NW[fs::dPERBydx])/cp_NW[CellParams::DX] -
-                      (derivs_NW[fs::dBGBxdy]+derivs_NW[fs::dPERBxdy])/cp_NW[CellParams::DY]) -
-                Bz_N*((derivs_NW[fs::dBGBzdy]+derivs_NW[fs::dPERBzdy])/cp_NW[CellParams::DY] -
-                     ((derivs_NW[fs::dBGBydz]+derivs_NW[fs::dPERBydz])/cp_NW[CellParams::DZ])))
-               / (physicalconstants::MU_0*cp_NW[CellParams::RHO]*Parameters::q);
+      Ey_NW += cp_NW[CellParams::EYHALL_100_110];
    }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
@@ -1652,6 +1986,7 @@ void calculateEdgeElectricFieldY(
    // 1st order terms:
    Real Ey_NE    = Bz_N*Vx0 - Bx_E*Vz0;
    // Resistive term
+   // FIXME this does not include RK stepping
    Ey_NE += Parameters::resistivity *
             sqrt((cp_NE[CellParams::BGBX]+cp_NE[CellParams::PERBX])*
                  (cp_NE[CellParams::BGBX]+cp_NE[CellParams::PERBX]) +
@@ -1665,11 +2000,7 @@ void calculateEdgeElectricFieldY(
             (derivs_NE[fs::dPERBxdz]/cp_NE[CellParams::DZ] - derivs_NE[fs::dPERBzdx]/cp_NE[CellParams::DX]);
    // Hall term
    if(Parameters::ohmHallTerm) {
-      Ey_NE += (Bx_E*((derivs_NE[fs::dBGBydx]+derivs_NE[fs::dPERBydx])/cp_NE[CellParams::DX] -
-                      (derivs_NE[fs::dBGBxdy]+derivs_NE[fs::dPERBxdy])/cp_NE[CellParams::DY]) -
-                Bz_N*((derivs_NE[fs::dBGBzdy]+derivs_NE[fs::dPERBzdy])/cp_NE[CellParams::DY] -
-                     ((derivs_NE[fs::dBGBydz]+derivs_NE[fs::dPERBydz])/cp_NE[CellParams::DZ])))
-               / (physicalconstants::MU_0*cp_NE[CellParams::RHO]*Parameters::q);
+      Ey_NE += cp_NE[CellParams::EYHALL_101_111];
    }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
@@ -1809,6 +2140,7 @@ void calculateEdgeElectricFieldZ(
    // 1st order terms:
    Real Ez_SW = Bx_S*Vy0 - By_W*Vx0;
    // Resistive term
+   // FIXME this does not include RK stepping
    Ez_SW += Parameters::resistivity *
             sqrt((cp_SW[CellParams::BGBX]+cp_SW[CellParams::PERBX])*
                  (cp_SW[CellParams::BGBX]+cp_SW[CellParams::PERBX]) +
@@ -1822,11 +2154,7 @@ void calculateEdgeElectricFieldZ(
             (derivs_SW[fs::dPERBydx]/cp_SW[CellParams::DX] - derivs_SW[fs::dPERBxdy]/cp_SW[CellParams::DY]);
    // Hall term
    if(Parameters::ohmHallTerm) {
-      Ez_SW += (By_W*((derivs_SW[fs::dBGBzdy]+derivs_SW[fs::dPERBzdy])/cp_SW[CellParams::DY] -
-                      (derivs_SW[fs::dBGBydz]+derivs_SW[fs::dPERBydz])/cp_SW[CellParams::DZ]) -
-                Bx_S*((derivs_SW[fs::dBGBxdz]+derivs_SW[fs::dPERBxdz])/cp_SW[CellParams::DZ] -
-                     ((derivs_SW[fs::dBGBzdx]+derivs_SW[fs::dPERBzdx])/cp_SW[CellParams::DX])))
-               / (physicalconstants::MU_0*cp_SW[CellParams::RHO]*Parameters::q);
+      Ez_SW += cp_SW[CellParams::EZHALL_000_001];
    }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
@@ -1861,6 +2189,7 @@ void calculateEdgeElectricFieldZ(
    // 1st order terms:
    Real Ez_SE = Bx_S*Vy0 - By_E*Vx0;
    // Resistive term
+   // FIXME this does not include RK stepping
    Ez_SE += Parameters::resistivity *
             sqrt((cp_SE[CellParams::BGBX]+cp_SE[CellParams::PERBX])*
                  (cp_SE[CellParams::BGBX]+cp_SE[CellParams::PERBX]) +
@@ -1874,11 +2203,7 @@ void calculateEdgeElectricFieldZ(
             (derivs_SE[fs::dPERBydx]/cp_SE[CellParams::DX] - derivs_SE[fs::dPERBxdy]/cp_SE[CellParams::DY]);
    // Hall term
    if(Parameters::ohmHallTerm) {
-      Ez_SE += (By_E*((derivs_SE[fs::dBGBzdy]+derivs_SE[fs::dPERBzdy])/cp_SE[CellParams::DY] -
-                      (derivs_SE[fs::dBGBydz]+derivs_SE[fs::dPERBydz])/cp_SE[CellParams::DZ]) -
-                Bx_S*((derivs_SE[fs::dBGBxdz]+derivs_SE[fs::dPERBxdz])/cp_SE[CellParams::DZ] -
-                     ((derivs_SE[fs::dBGBzdx]+derivs_SE[fs::dPERBzdx])/cp_SE[CellParams::DX])))
-               / (physicalconstants::MU_0*cp_SE[CellParams::RHO]*Parameters::q);
+      Ez_SE += cp_SE[CellParams::EZHALL_100_101];
    }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
@@ -1911,6 +2236,7 @@ void calculateEdgeElectricFieldZ(
    // 1st order terms:
    Real Ez_NW = Bx_N*Vy0 - By_W*Vx0;
    // Resistive term
+   // FIXME this does not include RK stepping
    Ez_NW += Parameters::resistivity *
             sqrt((cp_NW[CellParams::BGBX]+cp_NW[CellParams::PERBX])*
                  (cp_NW[CellParams::BGBX]+cp_NW[CellParams::PERBX]) +
@@ -1924,11 +2250,7 @@ void calculateEdgeElectricFieldZ(
             (derivs_NW[fs::dPERBydx]/cp_NW[CellParams::DX] - derivs_NW[fs::dPERBxdy]/cp_NW[CellParams::DY]);
    // Hall term
    if(Parameters::ohmHallTerm) {
-      Ez_NW += (By_W*((derivs_NW[fs::dBGBzdy]+derivs_NW[fs::dPERBzdy])/cp_NW[CellParams::DY] -
-                      (derivs_NW[fs::dBGBydz]+derivs_NW[fs::dPERBydz])/cp_NW[CellParams::DZ]) -
-                Bx_N*((derivs_NW[fs::dBGBxdz]+derivs_NW[fs::dPERBxdz])/cp_NW[CellParams::DZ] -
-                     ((derivs_NW[fs::dBGBzdx]+derivs_NW[fs::dPERBzdx])/cp_NW[CellParams::DX])))
-               / (physicalconstants::MU_0*cp_NW[CellParams::RHO]*Parameters::q);
+      Ez_NW += cp_NW[cellParams::EZHALL_010_011];
    }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
@@ -1961,6 +2283,7 @@ void calculateEdgeElectricFieldZ(
    // 1st order terms:
    Real Ez_NE = Bx_N*Vy0 - By_E*Vx0;
    // Resistive term
+   // FIXME this does not include RK stepping
    Ez_NE += Parameters::resistivity *
             sqrt((cp_NE[CellParams::BGBX]+cp_NE[CellParams::PERBX])*
                  (cp_NE[CellParams::BGBX]+cp_NE[CellParams::PERBX]) +
@@ -1974,11 +2297,7 @@ void calculateEdgeElectricFieldZ(
             (derivs_NE[fs::dPERBydx]/cp_NE[CellParams::DX] - derivs_NE[fs::dPERBxdy]/cp_NE[CellParams::DY]);
    // Hall term
    if(Parameters::ohmHallTerm) {
-      Ez_NE += (By_E*((derivs_NE[fs::dBGBzdy]+derivs_NE[fs::dPERBzdy])/cp_NE[CellParams::DY] -
-                      (derivs_NE[fs::dBGBydz]+derivs_NE[fs::dPERBydz])/cp_NE[CellParams::DZ]) -
-                Bx_N*((derivs_NE[fs::dBGBxdz]+derivs_NE[fs::dPERBxdz])/cp_NE[CellParams::DZ] -
-                     ((derivs_NE[fs::dBGBzdx]+derivs_NE[fs::dPERBzdx])/cp_NE[CellParams::DX])))
-               / (physicalconstants::MU_0*cp_NE[CellParams::RHO]*Parameters::q);
+      Ez_NE += cp_NE[CellParams::EZHALL_110_111];
    }
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
@@ -2293,6 +2612,13 @@ bool initializeFieldPropagator(
         dccrg::Dccrg<SpatialCell>& mpiGrid,
         SysBoundary& sysBoundaries
 ) {
+   // Checking that spatial cells are cubic, otherwise field solver is incorrect (cf. derivatives in E, Hall term)
+   if((abs((P::dx_ini-P::dy_ini)/P::dx_ini) > 0.001) ||
+      (abs((P::dx_ini-P::dz_ini)/P::dx_ini) > 0.001) ||
+      (abs((P::dy_ini-P::dz_ini)/P::dy_ini) > 0.001)) {
+      std::cerr << "WARNING: Your spatial cells seem not to be cubic. However the field solver is assuming them to be. Use at your own risk and responsibility!" << std::endl;
+   }
+   
    vector<uint64_t> localCells = mpiGrid.get_cells();
    
    calculateSysBoundaryFlags(mpiGrid,localCells);
@@ -2526,9 +2852,13 @@ void calculateUpwindedElectricFieldSimple(
    namespace fs = fieldsolver;
    int timer;
    phiprof::start("Calculate upwinded electric field");
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_DERIVATIVES);
+   if(P::ohmHallTerm) {
+      SpatialCell::set_mpi_transfer_type(Transfer::CELL_HALL_TERM);
+   } else {
+      SpatialCell::set_mpi_transfer_type(Transfer::CELL_DERIVATIVES);
+   }
    
-   timer=phiprof::initializeTimer("Start communication of derivatives","MPI");
+   timer=phiprof::initializeTimer("Start communication in calculateUpwindedElectricFieldSimple","MPI");
    phiprof::start(timer);
    mpiGrid.start_remote_neighbor_data_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
@@ -2545,21 +2875,6 @@ void calculateUpwindedElectricFieldSimple(
       cuint fieldSolverSysBoundaryFlag = sysBoundaryFlags[cellID];
       cuint cellSysBoundaryFlag = mpiGrid[cellID]->sysBoundaryFlag;
       cuint cellSysBoundaryLayer = mpiGrid[cellID]->sysBoundaryLayer;
-      
-      // Calculate reconstruction coefficients for this cell:
-      Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
-      const CellID nbr_i2j1k1 = getNeighbourID(mpiGrid, cellID, 2+1, 2  , 2  );
-      const CellID nbr_i1j2k1 = getNeighbourID(mpiGrid, cellID, 2  , 2+1, 2  );
-      const CellID nbr_i1j1k2 = getNeighbourID(mpiGrid, cellID, 2  , 2  , 2+1);
-      reconstructionCoefficients(
-         cellID,
-         nbr_i2j1k1,
-         nbr_i1j2k1,
-         nbr_i1j1k2,
-         mpiGrid,
-         perturbedCoefficients,
-         3 // Reconstruction order of the fields after Balsara 2009, 2 used here, 3 used for 2nd-order Hall term
-      );
       
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
@@ -2606,21 +2921,6 @@ void calculateUpwindedElectricFieldSimple(
       cuint fieldSolverSysBoundaryFlag = sysBoundaryFlags[cellID];
       cuint cellSysBoundaryFlag = mpiGrid[cellID]->sysBoundaryFlag;
       cuint cellSysBoundaryLayer = mpiGrid[cellID]->sysBoundaryLayer;
-      
-      // Calculate reconstruction coefficients for this cell:
-      Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
-      const CellID nbr_i2j1k1 = getNeighbourID(mpiGrid, cellID, 2+1, 2  , 2  );
-      const CellID nbr_i1j2k1 = getNeighbourID(mpiGrid, cellID, 2  , 2+1, 2  );
-      const CellID nbr_i1j1k2 = getNeighbourID(mpiGrid, cellID, 2  , 2  , 2+1);
-      reconstructionCoefficients(
-         cellID,
-         nbr_i2j1k1,
-         nbr_i1j2k1,
-         nbr_i1j1k2,
-         mpiGrid,
-         perturbedCoefficients,
-         3 // Reconstruction order of the fields after Balsara 2009, 2 used for general B, 3 used here for 2nd-order Hall term
-      );
       
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
@@ -2785,14 +3085,23 @@ bool propagateFields(
 # ifdef FS_1ST_ORDER_TIME
    propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER1);
    calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+   if(P::ohmHallTerm) {
+      calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+   }
    calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
 # else
    propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER2_STEP1);
    calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
+   if(P::ohmHallTerm) {
+      calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
+   }
    calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
    
    propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER2_STEP2);
    calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
+   if(P::ohmHallTerm) {
+      calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
+   }
    calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
 # endif
    
@@ -2863,7 +3172,7 @@ void calculateVolumeAveragedFields(
       cellParams[cp::PERBYVOL] = perturbedCoefficients[Rec::b_0];
       cellParams[cp::PERBZVOL] = perturbedCoefficients[Rec::c_0];
       
-      // Calculate volume average of E (NEEDS IMPROVEMENT):
+      // Calculate volume average of E (FIXME NEEDS IMPROVEMENT):
       const CellID nbr_i1j2k2 = getNeighbourID(mpiGrid, cellID, 2  , 2+1, 2+1);
       const CellID nbr_i2j1k2 = getNeighbourID(mpiGrid, cellID, 2+1, 2  , 2+1);
       const CellID nbr_i2j2k1 = getNeighbourID(mpiGrid, cellID, 2+1, 2+1, 2  );
