@@ -1050,7 +1050,7 @@ namespace velocity_neighbor {
                
                // send Hell term components
                if((SpatialCell::mpi_transfer_type & Transfer::CELL_HALL_TERM)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::JXB_000_100]) - (uint8_t*) this);
+                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::EXHALL_000_100]) - (uint8_t*) this);
                   block_lengths.push_back(sizeof(Real) * 12);
                }
                
