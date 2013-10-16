@@ -135,14 +135,12 @@ namespace projects {
       CellID cellID = (int) ((x - Parameters::xmin) / dx) +
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-
+      
       setRandomSeed(cellID);
       
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
-
-
       
       this->rndRho=getRandomNumber();
       this->rndVel[0]=getRandomNumber();
