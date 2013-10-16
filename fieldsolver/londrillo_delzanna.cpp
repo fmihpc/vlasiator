@@ -2402,16 +2402,6 @@ static void propagateMagneticField(
          cp0[CellParams::PERBX] += dt * (1.0/dz*(cp2[CellParams::EY_DT2] - cp0[CellParams::EY_DT2]) +
                                          1.0/dy*(cp0[CellParams::EZ_DT2] - cp1[CellParams::EZ_DT2]));
       }
-//       if(cellID == 123) {
-//          std::cerr << cellID << " "
-//                    << RKCase << " "
-//                    << cp0[CellParams::PERBX] << " "
-//                    << cp2[CellParams::EY_DT2] << " "
-//                    << cp0[CellParams::EY_DT2] << " "
-//                    << cp0[CellParams::EZ_DT2] << " "
-//                    << cp1[CellParams::EZ_DT2] << " "
-//                    << std::endl;
-//       }
       # endif
    }
    
@@ -2504,7 +2494,7 @@ static void propagateMagneticField(
          cp0[CellParams::PERBZ] += dt  * (1.0/dy*(cp2[CellParams::EX_DT2] - cp0[CellParams::EX_DT2]) +
                                           1.0/dx*(cp0[CellParams::EY_DT2] - cp1[CellParams::EY_DT2]));
       }
-# endif
+      # endif
    }
 }
 

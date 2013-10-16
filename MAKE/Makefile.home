@@ -2,10 +2,12 @@ CMP = mpic++
 LNK = mpic++
 
 FLAGS =
-CXXFLAGS = -I $(HOME)/include -L $(HOME)/lib -O3 -funroll-loops -std=c++11 -W -Wall -pedantic -Wno-unused -Wno-unused-parameter -Wno-missing-braces  -fopenmp
+CXXFLAGS = -I$(HOME)/include -I/usr/include -L$(HOME)/lib -L/usr/lib -O3 -funroll-loops -std=c++11 -W -Wall -pedantic -Wno-unused -Wno-unused-parameter -Wno-missing-braces  -fopenmp
+#CXXFLAGS = -I$(HOME)/include -L$(HOME)/lib -O0 -funroll-loops -std=c++11 -W -Wall -pedantic -Wno-unused -Wno-unused-parameter -Wno-missing-braces -g -fopenmp
 MATHFLAGS = -ffast-math
 LDFLAGS = -L $(HOME)/lib
 LIB_MPI = -lgomp
+# LIB_MPI = 
 
 LIBRARY_PREFIX = $HOME
 LIBRARY_PREFIX_B = $HOME

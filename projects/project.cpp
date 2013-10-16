@@ -188,7 +188,7 @@ namespace projects {
      \param seedModified d. Seed is based on the seed read in from cfg + the seedModifier parameter                                   
    */
    
-   void Project::setRandomSeed(uint64_t seedModifier) {
+   void Project::setRandomSeed(CellID seedModifier) {
       memset(&(this->rngDataBuffer), 0, sizeof(this->rngDataBuffer));
 #ifdef _AIX
       initstate_r(this->seed+seedModifier, &(this->rngStateBuffer[0]), 256, NULL, &(this->rngDataBuffer));

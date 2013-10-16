@@ -38,18 +38,7 @@ namespace projects {
    Dispersion::Dispersion(): Project() { }
    Dispersion::~Dispersion() { }
    
-   bool Dispersion::initialize(void) {
-      int myRank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      
-      memset(&(this->rngDataBuffer), 0, sizeof(this->rngDataBuffer));
-      #ifndef _AIX
-      initstate_r(this->seed*myRank, &(this->rngStateBuffer[0]), 256, &(this->rngDataBuffer));
-      #else
-      initstate_r(this->seed*myRank, &(this->rngStateBuffer[0]), 256, NULL, &(this->rngDataBuffer));
-      #endif
-      return true;
-   }
+   bool Dispersion::initialize(void) {return true;}
    
    void Dispersion::addParameters() {
       typedef Readparameters RP;
@@ -149,33 +138,25 @@ namespace projects {
       creal z = cellParams[CellParams::ZCRD];
       creal dz = cellParams[CellParams::DZ];
       
-      uint cellID = (int) ((x - Parameters::xmin) / dx) +
-      (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
-      (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
+      CellID cellID = (int) ((x - Parameters::xmin) / dx) +
+         (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
+         (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
+      
+      setRandomSeed(cellID);
       
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
       
-      #ifndef _AIX
-      int32_t rndBuffer[3];
-      random_r(&rngDataBuffer, &rndBuffer[0]);
-      random_r(&rngDataBuffer, &rndBuffer[1]);
-      random_r(&rngDataBuffer, &rndBuffer[2]);
-      random_r(&rngDataBuffer, &(this->rndRho));
-      random_r(&rngDataBuffer, &(this->rndVel[0]));
-      random_r(&rngDataBuffer, &(this->rndVel[1]));
-      random_r(&rngDataBuffer, &(this->rndVel[2]));
-      #else
-      int64_t rndBuffer[3];
-      random_r(&rndBuffer[0], &rngDataBuffer);
-      random_r(&rndBuffer[1], &rngDataBuffer);
-      random_r(&rndBuffer[2], &rngDataBuffer);
-      random_r(&(this->rndRho), &rngDataBuffer);
-      random_r(&(this->rndVel[0]), &rngDataBuffer);
-      random_r(&(this->rndVel[1]), &rngDataBuffer);
-      random_r(&(this->rndVel[2]), &rngDataBuffer);
-      #endif
+      this->rndRho=getRandomNumber();
+      this->rndVel[0]=getRandomNumber();
+      this->rndVel[1]=getRandomNumber();
+      this->rndVel[2]=getRandomNumber();
+      
+      Real rndBuffer[3];
+      rndBuffer[0]=getRandomNumber();
+      rndBuffer[1]=getRandomNumber();
+      rndBuffer[2]=getRandomNumber();
 
       cellParams[CellParams::PERBX] = this->magXPertAbsAmp * (0.5 - (double)rndBuffer[0] / (double)RAND_MAX);
       cellParams[CellParams::PERBY] = this->magYPertAbsAmp * (0.5 - (double)rndBuffer[1] / (double)RAND_MAX);

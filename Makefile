@@ -45,6 +45,9 @@ CXXFLAGS += -DUSE_AGNER_VECTORCLASS
 # CXXFLAGS += -DCATCH_FPE
 
 
+#Add -DFS_1ST_ORDER_SPACE or -DFS_1ST_ORDER_TIME to make the field solver first-order in space or time
+#CXXFLAGS += -DFS_1ST_ORDER_SPACE
+#CXXFLAGS += -DFS_1ST_ORDER_TIME
 
 #//////////////////////////////////////////////////////
 # The rest of this file users shouldn't need to change

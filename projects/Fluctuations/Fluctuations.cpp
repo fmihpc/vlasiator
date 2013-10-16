@@ -125,8 +125,19 @@ namespace projects {
    }
    
    void Fluctuations::calcCellParameters(Real* cellParams,creal& t) {
-      setRandomCellSeed(cellParams);
-
+      creal x = cellParams[CellParams::XCRD];
+      creal dx = cellParams[CellParams::DX];
+      creal y = cellParams[CellParams::YCRD];
+      creal dy = cellParams[CellParams::DY];
+      creal z = cellParams[CellParams::ZCRD];
+      creal dz = cellParams[CellParams::DZ];
+      
+      CellID cellID = (int) ((x - Parameters::xmin) / dx) +
+         (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
+         (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
+      
+      setRandomSeed(cellID);
+      
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
