@@ -28,11 +28,7 @@
 
 #include "Dispersion.h"
 
-#ifndef _AIX
-int32_t projects::Dispersion::rndRho, projects::Dispersion::rndVel[3];
-#else
-int64_t projects::Dispersion::rndRho, projects::Dispersion::rndVel[3];
-#endif
+Real projects::Dispersion::rndRho, projects::Dispersion::rndVel[3];
 
 namespace projects {
    Dispersion::Dispersion(): Project() { }
@@ -55,7 +51,6 @@ namespace projects {
       RP::add("Dispersion.magZPertAbsAmp", "Absolute amplitude of the magnetic perturbation along z (T)", 1.0e-9);
       RP::add("Dispersion.densityPertRelAmp", "Relative amplitude of the density perturbation", 0.1);
       RP::add("Dispersion.velocityPertAbsAmp", "Absolute amplitude of the velocity perturbation", 1.0e6);
-      RP::add("Dispersion.seed", "Seed for the RNG", 42);
       RP::add("Dispersion.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
       RP::add("Dispersion.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
       RP::add("Dispersion.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
@@ -63,6 +58,7 @@ namespace projects {
    
    void Dispersion::getParameters() {
       typedef Readparameters RP;
+      Project::getParameters();
       RP::get("Dispersion.B0", this->B0);
       RP::get("Dispersion.VX0", this->VX0);
       RP::get("Dispersion.VY0", this->VY0);
@@ -76,7 +72,6 @@ namespace projects {
       RP::get("Dispersion.magZPertAbsAmp", this->magZPertAbsAmp);
       RP::get("Dispersion.densityPertRelAmp", this->densityPertRelAmp);
       RP::get("Dispersion.velocityPertAbsAmp", this->velocityPertAbsAmp);
-      RP::get("Dispersion.seed", this->seed);
       RP::get("Dispersion.nSpaceSamples", this->nSpaceSamples);
       RP::get("Dispersion.nVelocitySamples", this->nVelocitySamples);
       RP::get("Dispersion.maxwCutoff", this->maxwCutoff);
@@ -112,14 +107,14 @@ namespace projects {
             for (uint vk=0; vk<this->nVelocitySamples; ++vk)
             {
                avg += getDistribValue(
-                  vx+vi*d_vx - this->velocityPertAbsAmp * (0.5 - (double)(this->rndVel[0]) / (double)RAND_MAX),
-                  vy+vj*d_vy - this->velocityPertAbsAmp * (0.5 - (double)(this->rndVel[1]) / (double)RAND_MAX),
-                  vz+vk*d_vz - this->velocityPertAbsAmp * (0.5 - (double)(this->rndVel[2]) / (double)RAND_MAX)
+                  vx+vi*d_vx - this->velocityPertAbsAmp * (0.5 - this->rndVel[0]),
+                  vy+vj*d_vy - this->velocityPertAbsAmp * (0.5 - this->rndVel[1]),
+                  vz+vk*d_vz - this->velocityPertAbsAmp * (0.5 - this->rndVel[2])
                );
             }
             
             creal result = avg *
-            this->DENSITY * (1.0 + this->densityPertRelAmp * (0.5 - (double)(Dispersion::rndRho) / (double)RAND_MAX)) *
+            this->DENSITY * (1.0 + this->densityPertRelAmp * (0.5 - this->rndRho)) *
             pow(mass / (2.0 * M_PI * k * this->TEMPERATURE), 1.5) /
             //            (Parameters::vzmax - Parameters::vzmin) / 
             (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
@@ -149,6 +144,7 @@ namespace projects {
       cellParams[CellParams::EZ   ] = 0.0;
       
       this->rndRho=getRandomNumber();
+      
       this->rndVel[0]=getRandomNumber();
       this->rndVel[1]=getRandomNumber();
       this->rndVel[2]=getRandomNumber();
@@ -158,9 +154,9 @@ namespace projects {
       rndBuffer[1]=getRandomNumber();
       rndBuffer[2]=getRandomNumber();
 
-      cellParams[CellParams::PERBX] = this->magXPertAbsAmp * (0.5 - (double)rndBuffer[0] / (double)RAND_MAX);
-      cellParams[CellParams::PERBY] = this->magYPertAbsAmp * (0.5 - (double)rndBuffer[1] / (double)RAND_MAX);
-      cellParams[CellParams::PERBZ] = this->magZPertAbsAmp * (0.5 - (double)rndBuffer[2] / (double)RAND_MAX);
+      cellParams[CellParams::PERBX] = this->magXPertAbsAmp * (0.5 - rndBuffer[0]);
+      cellParams[CellParams::PERBY] = this->magYPertAbsAmp * (0.5 - rndBuffer[1]);
+      cellParams[CellParams::PERBZ] = this->magZPertAbsAmp * (0.5 - rndBuffer[2]);
 
    }
    
