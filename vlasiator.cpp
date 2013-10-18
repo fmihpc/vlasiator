@@ -261,7 +261,7 @@ int main(int argn,char* args[]) {
    }
    //compute moments, and set them  in RHO*. If restart, they are already read in
    if(!P::isRestart) {
-      calculateVelocityMoments(mpiGrid);
+      calculateInitialVelocityMoments(mpiGrid);
    }
    phiprof::stop("Init vlasov propagator");
    

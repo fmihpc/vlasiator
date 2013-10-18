@@ -987,7 +987,7 @@ void calculateCellVelocityMoments(
 }
  
 
-void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid){
+void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid){
    vector<CellID> cells;
    cells=mpiGrid.get_cells();
    phiprof::start("Calculate moments"); 
@@ -997,6 +997,10 @@ void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid){
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
       calculateCellVelocityMoments(SC);
+      SC->parameters[CellParams::RHO_DT2  ] = SC->parameters[CellParams::RHO  ];
+      SC->parameters[CellParams::RHOVX_DT2] = SC->parameters[CellParams::RHOVX];
+      SC->parameters[CellParams::RHOVY_DT2] = SC->parameters[CellParams::RHOVY];
+      SC->parameters[CellParams::RHOVZ_DT2] = SC->parameters[CellParams::RHOVZ];
    }
    phiprof::stop("Calculate moments"); 
 }
