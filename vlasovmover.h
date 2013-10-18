@@ -45,11 +45,11 @@ void calculateCellVelocityMoments(
 
 
 /*!
-  \brief Compute 0th and 1st velocity moments (RHO,RHOVX,RHOVY,RHOVZ) for all cells in the grid directly from distribution function.The simulation should be at a true time-step!
+  \brief Compute 0th and 1st velocity moments (RHO,RHOVX,RHOVY,RHOVZ and *_DT2) for all cells in the grid directly from distribution function. The simulation should be at a true time-step! This is at the moment only called at initialisation.
   \param mpiGrid Grid of spatial cells for which moments are computed 
   
 */
-void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid);
+void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
 
 
