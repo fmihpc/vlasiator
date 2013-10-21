@@ -68,6 +68,11 @@ void updateRemoteVelocityBlockLists(
    dccrg::Dccrg<SpatialCell>& mpiGrid
 );
 
+/*! Deallocates all blocks in remote cells in order to save
+ *  memory. 
+ * \param mpiGrid Spatial grid
+ */
+void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
 
 

@@ -238,9 +238,12 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    phiprof::initializeTimer("Balancing load", "Load balance");
    phiprof::start("Balancing load");
 
+   phiprof::start("deallocate boundary data");
    //free buffers in leveque solvers to decrease memory load. 
    deallocateSpatialLevequeBuffers();
-   
+   //deallocate blocks in remote cells to decrease memory load
+   deallocateRemoteCellBlocks(mpiGrid);
+   phiprof::stop("deallocate boundary data");
    //set weights based on each cells LB weight counter
    vector<uint64_t> cells = mpiGrid.get_cells();
    for (uint i=0; i<cells.size(); ++i){
@@ -269,6 +272,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    std::vector<uint64_t> outgoing_cells_list (outgoing_cells.begin(),outgoing_cells.end()); 
    
    /*transfer cells in parts to preserve memory*/
+   phiprof::start("Data transfers");
    const uint64_t num_part_transfers=5;
    for(uint64_t transfer_part=0;transfer_part<num_part_transfers;transfer_part++){
      
@@ -329,8 +333,11 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
 	 cell->clear(); //free memory of this cell as it has already been transferred. It will not be used anymore
      }
    }
+   phiprof::stop("Data transfers");
    //finish up load balancing
+   phiprof::start("dccrg.finish_balance_load");
    mpiGrid.finish_balance_load();
+   phiprof::stop("dccrg.finish_balance_load");
  
    //Make sure transfers are enabled for all cells
    cells = mpiGrid.get_cells();
@@ -360,9 +367,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    // Done initially in sysboundarycondition.cpp:classifyCells().
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
-   
-   phiprof::stop("Init solvers");
-   
+   phiprof::stop("Init solvers");   
    phiprof::stop("Balancing load");
 }
 
@@ -432,6 +437,27 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid, bool reInitMover) 
    }
    phiprof::stop("re-adjust blocks");
    return true;
+}
+
+
+/*! Deallocates all block data in remote cells in order to save
+ *  memory
+ * \param mpiGrid Spatial grid
+ */
+ 
+void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+
+   const std::vector<uint64_t> incoming_cells
+      = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+   
+   for(unsigned int i=0;i<incoming_cells.size();i++){
+      uint64_t cell_id=incoming_cells[i];
+      SpatialCell* cell = mpiGrid[cell_id];
+      if (cell != NULL) {
+         cell->clear();
+      }
+   }
+
 }
 
 

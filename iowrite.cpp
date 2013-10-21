@@ -6,6 +6,7 @@
 #include <sstream>
 #include <ctime>
 #include "iowrite.h"
+#include "grid.h"
 #include "phiprof.hpp"
 #include "parameters.h"
 #include "logger.h"
@@ -350,7 +351,7 @@ bool writeGrid(
 
 
 
-bool writeRestart(const dccrg::Dccrg<SpatialCell>& mpiGrid,
+bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
                   DataReducer& dataReducer,
                   const string& name,
                   const uint& index,
@@ -364,6 +365,8 @@ bool writeRestart(const dccrg::Dccrg<SpatialCell>& mpiGrid,
 
    //de-allocate buffers for spatial leveque solver to reduce memory peak 
    deallocateSpatialLevequeBuffers();
+   //deallocate blocks in remote cells to decrease memory load
+   deallocateRemoteCellBlocks(mpiGrid);
    
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
@@ -410,8 +413,12 @@ bool writeRestart(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    writeVelocityDistributionData(vlsvWriter,mpiGrid,cells,MPI_COMM_WORLD);
    
    vlsvWriter.close();
+   //Updated newly adjusted velocity block lists on remote cells, and
+   //prepare to receive block data
+   updateRemoteVelocityBlockLists(mpiGrid);
    //re-allocate buffers now that we have written the restart 
    allocateSpatialLevequeBuffers(mpiGrid);
+
    
    phiprof::stop("writeGrid-restart");//,1.0e-6*bytesWritten,"MB");
 

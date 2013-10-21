@@ -27,7 +27,7 @@ bool writeGrid(
 
 /*!
 
-\brief Write out a restart of the simulation into a vlsv file
+\brief Write out a restart of the simulation into a vlsv file. All block data in remote cells will be reset.
 
 \param mpiGrid   The DCCRG grid with spatial cells
 \param dataReducer Contains datareductionoperators that are used to compute data that is added into file
@@ -36,7 +36,7 @@ bool writeGrid(
 */
 
 
-bool writeRestart(const dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
+bool writeRestart(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
                DataReducer& dataReducer,
                const std::string& name,
                const uint& index,
