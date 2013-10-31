@@ -37,7 +37,9 @@ namespace DRO {
     * 
     * If needed, a user can write his or her own DRO::DataReductionOperators, which 
     * are loaded when the simulation initializes.
+    * NOTE: DATAREDUCTION OPERATOR IS *NOT* GUARANTEED TO BE THREAD-SAFE (PRIVATE VARIABLES CHANGED IN setSpatialCell AND READ IN reduceData IN SOME CASES)
     */
+
    class DataReductionOperator {
     public:
       DataReductionOperator();
