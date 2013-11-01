@@ -4,16 +4,6 @@ This file is part of Vlasiator.
 Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
 
-
-
-
-
-
-
-
-
-
-
 */
 
 #ifndef DATAREDUCTIONOPERATOR_H
@@ -37,7 +27,8 @@ namespace DRO {
     * 
     * If needed, a user can write his or her own DRO::DataReductionOperators, which 
     * are loaded when the simulation initializes.
-    * NOTE: DATAREDUCTION OPERATOR IS *NOT* GUARANTEED TO BE THREAD-SAFE (PRIVATE VARIABLES CHANGED IN setSpatialCell AND READ IN reduceData IN SOME CASES)
+    *
+    * Datareduction oeprators are not thread-safe, some of the more intensive ones are threaded within. 
     */
 
    class DataReductionOperator {

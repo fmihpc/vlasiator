@@ -19,7 +19,7 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 4.8.1
-CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -pedantic -Wno-unused  -fabi-version=0 -mavx
+CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -pedantic  -Wno-unused -fabi-version=0 -mavx
 MATHFLAGS = -ffast-math
 LDFLAGS =
 LIB_MPI = -lgomp
@@ -33,6 +33,9 @@ LIBRARY_PREFIX = /stornext/field/users/honkonen/libraries
 LIBRARY_PREFIX_B = /stornext/field/users/alfthan/libraries
 
 INC_EIGEN = -I$(LIBRARY_PREFIX_B)/eigen/eigen-eigen-2249f9c22fe8
+
+INC_VLSV = -I$(LIBRARY_PREFIX_B)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX_B)/vlsv -lvlsv
 
 INC_BOOST = -I$(LIBRARY_PREFIX)/cray-mpich/$(CRAY_MPICH_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/$(BOOST_VERSION)/include
 LIB_BOOST = -L$(LIBRARY_PREFIX)/cray-mpich/$(CRAY_MPICH_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/$(BOOST_VERSION)/lib -lboost_program_options

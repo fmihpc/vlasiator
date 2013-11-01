@@ -292,6 +292,7 @@ bool readBlockData(
            creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
            creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
            creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
+           //todo, use faster set_value interface
            mpiGrid[cell]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgBuffer[bufferBlock*avgVectorSize+cellIndex(ic,jc,kc)]);
         }
         bufferBlock++; 
@@ -423,6 +424,7 @@ bool readBlockData(
            creal vx_cell_center = blockCoordinates[0] + (ic+convert<Real>(0.5))*dvx_blockCell;
            creal vy_cell_center = blockCoordinates[1] + (jc+convert<Real>(0.5))*dvy_blockCell;
            creal vz_cell_center = blockCoordinates[2] + (kc+convert<Real>(0.5))*dvz_blockCell;
+           //TODO: use faster set_value
            mpiGrid[cell]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgBuffer[bufferBlock*avgVectorSize+cellIndex(ic,jc,kc)]);
         }
         bufferBlock++; 

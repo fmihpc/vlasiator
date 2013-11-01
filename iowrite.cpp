@@ -682,8 +682,7 @@ bool checkForSameMembers( const vector<uint64_t> local_cells, const vector<uint6
 
 
 
-bool writeGrid(
-               dccrg::Dccrg<SpatialCell>& mpiGrid,
+bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
                DataReducer& dataReducer,
                const uint& index,
                const bool writeGhosts ) {
@@ -885,8 +884,6 @@ bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
 bool writeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
                      DataReducer& dataReducer)
 {
-   //Go with the new vlsv library
-   //O: I just copypasted this from the old -section. I don't think vlsvWriter is being used here.
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    

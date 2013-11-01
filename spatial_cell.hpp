@@ -1,3 +1,4 @@
+
 /*!
 Spatial cell class for Vlasiator that supports a variable number of velocity blocks.
 
@@ -821,6 +822,35 @@ namespace velocity_neighbor {
             block_ptr->data[cell] = value;
       }
 
+//TODO - thread save set/increment functions which do not create blocks automatically
+      
+      /*! Sets the value of a particular cell in a block. The block is
+       *  created if it does not exist. This version is faster than
+       *  the velocity value based version.
+       *
+       * This function is not thread safe due to the creation of
+       * blocks.
+
+        \param block Block index of velocity-cell
+        \param cell  Cell index (0..WID3-1) of velocity-cell in block
+        \param value Value that is set for velocity-cell
+      */
+     void set_value(const unsigned int block,const unsigned int cell, const Real value) {
+            if (this->velocity_blocks.count(block) == 0) {
+               if (!this->add_velocity_block(block)) {
+                  std::cerr << "Couldn't add velocity block " << block << std::endl;
+                  abort();
+               }
+            }
+            Velocity_Block* block_ptr = &(this->velocity_blocks.at(block));
+            if (block_ptr == NULL) {
+               std::cerr << __FILE__ << ":" << __LINE__
+                  << " block_ptr == NULL" << std::endl;
+               abort();
+            }
+            block_ptr->data[cell] = value;
+      }
+      
       
       /*!
         Increments the value of velocity cell at given coordinate-

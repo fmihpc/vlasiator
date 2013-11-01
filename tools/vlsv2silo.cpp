@@ -794,7 +794,6 @@ bool convertSILO(const string& fname) {
 	 return false;
       }
    }
-   
    vlsvReader.close();
    DBClose(fileptr);
    return success;
