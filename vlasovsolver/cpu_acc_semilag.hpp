@@ -108,7 +108,6 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
       total_transform=Translation<Real,3>(-rotation_pivot)*total_transform;
       total_transform=AngleAxis<Real>(substeps_radians,unit_B)*total_transform;
       total_transform=Translation<Real,3>(rotation_pivot)*total_transform;
-      //TODO: In which order are these operations done on a point!!!
    }
 
    return total_transform;
@@ -119,6 +118,7 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
 /*!
 Propagates the distribution function in velocity space of given real space cell.
 
+Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A three‐dimensional monotone and conservative semi‐Lagrangian scheme (SLICE‐3D) for transport problems." Quarterly Journal of the Royal Meteorological Society 138.667 (2012): 1640-1651.
 
 */
 
@@ -126,28 +126,44 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
 
    
    
-   /*copy distribution function values into the flux table, and zero the existing distribution function */
+   /* Compute masses based on densities, and store it in fx. data is
+     cleared to make way for comutation of downstream blocks, and
+     finally also the actual accelerated values. */
    for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
       const unsigned int block = spatial_cell->velocity_block_list[block_i];
       Velocity_Block* block_ptr = spatial_cell->at(block);
+      const Real volume=block_ptr->parameters[BlockParams::DVX]*
+         block_ptr->parameters[BlockParams::DVY]*
+         block_ptr->parameters[BlockParams::DVZ];
       for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
-         block_ptr->fx[cell] = block_ptr->data[cell];
+         block_ptr->fx[cell] = block_ptr->data[cell]*volume;
          block_ptr->data[cell] = 0.0;
       }
    }
    
-   
+   /*compute transform, forward in time and backward in time*/
    phiprof::start("compute-transform");
    //compute the transform performed in this acceleration
-   Transform<Real,3,Affine> total_transform= compute_acceleration_transformation(spatial_cell,dt);
+   Transform<Real,3,Affine> fwd_transform= compute_acceleration_transformation(spatial_cell,dt);
+   Transform<Real,3,Affine> bwd_transform= fwd.transform.inverse();
    phiprof::stop("compute-transform");
 
-
+   /*compute all downstream blocks, blocks to which the distribution flows during this timestep*/   
    std::vector<unsigned int> downstream_blocks;
-   /*compute all downstream blocks, blocks to which the distriubtion flows during this timestep*/
-   compute_downstream_blocks(spatial_cell,total_transform,downstream_blocks);
-   
-   
+   compute_downstream_blocks(spatial_cell,fwd_transform,downstream_blocks);
+
+   /*Loop over all downstream blocks one at a time and compute their mass using slice-3d*/
+   for (unsigned int block_i = 0; block_i < downstream_blocks.size(); block_i++){
+      const unsigned int dwns_block = downstream_blocks(block_i);
+      Velocity_Block* dwns_block_ptr = spatial_cell->at(block);
+
+      for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
+
+
+
+      }
+      
+   }
    
    
 }
