@@ -2,18 +2,6 @@
 Spatial cell class for Vlasiator that supports a variable number of velocity blocks.
 
 Copyright 2011 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
-
 */
 
 #ifndef VLASIATOR_SPATIAL_CELL_HPP
@@ -100,6 +88,7 @@ namespace spatial_cell {
       const uint64_t CELL_BVOL                = (1<<17);
       const uint64_t CELL_BVOL_DERIVATIVES    = (1<<18);
       const uint64_t CELL_DIMENSIONS          = (1<<19);
+      const uint64_t CELL_IOLOCALCELLID       = (1<<20);
       
       const uint64_t ALL_DATA =
       CELL_PARAMETERS
@@ -1048,6 +1037,11 @@ namespace velocity_neighbor {
                   block_lengths.push_back(sizeof(Real) * bvolderivatives::N_BVOL_DERIVATIVES);
                }
 
+               if((SpatialCell::mpi_transfer_type & Transfer::CELL_IOLOCALCELLID)!=0){
+                  displacements.push_back((uint8_t*) &(this->ioLocalCellId) - (uint8_t*) this);
+                  block_lengths.push_back(sizeof(uint64_t));
+               }
+
                // send  sysBoundaryFlag        
                if((SpatialCell::mpi_transfer_type & Transfer::CELL_SYSBOUNDARYFLAG)!=0){
                   displacements.push_back((uint8_t*) &(this->sysBoundaryFlag) - (uint8_t*) this);
@@ -1771,7 +1765,7 @@ namespace velocity_neighbor {
       uint sysBoundaryFlag;          /*!< What type of system boundary does the cell belong to. Enumerated in the sysboundarytype namespace's enum */
       uint sysBoundaryLayer;         /*!< Layers counted from closest systemBoundary. If 0 then it has not been computed. First sysboundary layer is layer 1 */
       uint subStepsAcceleration;
-      
+      uint64_t ioLocalCellId;       /*!< Local cell ID used for IO, not needed elsewhere and thus not being kept up-to-date*/ 
    }; // class SpatialCell
    
 

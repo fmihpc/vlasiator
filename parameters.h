@@ -2,9 +2,6 @@
 This file is part of Vlasiator.
 
 Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
-
-
-
 */
 
 #ifndef PARAMETERS_H
@@ -118,6 +115,7 @@ struct Parameters {
    
    static std::string restartFileName; /*!< If defined, restart from this file*/
    static bool isRestart; /*!< true if this is a restart, false otherwise */
+   static int writeSmaller; /*!< true if writing into VLSV in floats instead of doubles, false otherwise */
    static uint maxAccelerationSubsteps; /*!< Maximum number of substeps that is allowed */
    static bool dynamicTimestep; /*!< If true, timestep is set based on  CFL limit */
    

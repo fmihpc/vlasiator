@@ -520,6 +520,52 @@ bool VLSVParReader::getArrayInfoMaster(const std::string& tagName,
    return VLSVReader::getArrayInfo(tagName,attribs,arraySize,vectorSize,dataType,dataSize);
 }
 
+bool VLSVParReader::getArrayInfoMaster(const std::string& tagName,
+                                       const std::list<std::pair<std::string,std::string> >& attribs,
+                                       uint64_t& arraySize,
+                                       uint64_t& vectorSize,
+                                       vlsv::datatype::type& dataType,
+                                       uint64_t& dataSize) {
+   if (myRank != masterRank) {
+      cerr << "(VLSVPARREADER): getArrayInfoMaster called on process #" << myRank << endl;
+      exit(1);
+   }
+   //Convert vlsv::datatype::type to VLSV::datatype
+   VLSV::datatype _dataType;
+   switch(dataType) {
+      case vlsv::datatype::type::INT:
+         _dataType = VLSV::INT;
+         break;
+      case vlsv::datatype::type::UINT:
+         _dataType = VLSV::UINT;
+         break;
+      case vlsv::datatype::type::FLOAT:
+         _dataType = VLSV::FLOAT;
+         break;
+      case vlsv::datatype::type::UNKNOWN:
+         _dataType = VLSV::UNKNOWN;
+         break;
+   }
+   bool success = true;
+   success = VLSVReader::getArrayInfo(tagName,attribs,arraySize,vectorSize,_dataType,dataSize);
+   //Convert back to vlsv::datatype::type
+   switch(_dataType) {
+      case VLSV::INT:
+         dataType = vlsv::datatype::type::INT;
+         break;
+      case VLSV::UINT:
+         dataType = vlsv::datatype::type::UINT;
+         break;
+      case VLSV::FLOAT:
+         dataType = vlsv::datatype::type::FLOAT;
+         break;
+      case VLSV::UNKNOWN:
+         dataType = vlsv::datatype::type::UNKNOWN;
+         break;
+   }
+   return success;
+}
+
 bool VLSVParReader::getArrayInfo(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs) {
    bool success = true;
    if (myRank == masterRank) {
@@ -557,6 +603,56 @@ bool VLSVParReader::getArrayInfo(const std::string& tagName,
    byteSize   = arrayOpen.dataSize;
    return true;
 }
+
+bool VLSVParReader::getArrayInfo(const std::string& tagName,
+                                 const std::list<std::pair<std::string,std::string> >& attribs,
+                                 uint64_t& arraySize,
+                                 uint64_t& vectorSize,
+                                 vlsv::datatype::type& dataType,
+                                 uint64_t& byteSize) {
+   //Convert vlsv::datatype::type to VLSV::datatype
+   VLSV::datatype _dataType;
+   switch(dataType) {
+      case vlsv::datatype::type::INT:
+         _dataType = VLSV::INT;
+         break;
+      case vlsv::datatype::type::UINT:
+         _dataType = VLSV::UINT;
+         break;
+      case vlsv::datatype::type::FLOAT:
+         _dataType = VLSV::FLOAT;
+         break;
+      case vlsv::datatype::type::UNKNOWN:
+         _dataType = VLSV::UNKNOWN;
+         break;
+   }
+   bool success = true;
+   if (getArrayInfo(tagName,attribs) == false) return false;
+
+   // Copy values to output variables:
+   arraySize  = arrayOpen.arraySize;
+   vectorSize = arrayOpen.vectorSize;
+   _dataType   = arrayOpen.dataType;
+   byteSize   = arrayOpen.dataSize;
+
+   //Convert back to vlsv::datatype::type
+   switch(_dataType) {
+      case VLSV::INT:
+         dataType = vlsv::datatype::type::INT;
+         break;
+      case VLSV::UINT:
+         dataType = vlsv::datatype::type::UINT;
+         break;
+      case VLSV::FLOAT:
+         dataType = vlsv::datatype::type::FLOAT;
+         break;
+      case VLSV::UNKNOWN:
+         dataType = vlsv::datatype::type::UNKNOWN;
+         break;
+   }
+   return success;
+}
+
 
 bool VLSVParReader::multiReadAddUnit(const uint64_t& amount,char* buffer) {
    bool success = true;

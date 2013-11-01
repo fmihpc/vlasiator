@@ -23,7 +23,6 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "sysboundary/sysboundary.h"
 #include "transferstencil.h"
 
-#include "vlsvwriter2.h" 
 #include "fieldsolver.h"
 #include "projects/project.h"
 #include "grid.h"
@@ -300,8 +299,10 @@ int main(int argn,char* args[]) {
       for(uint si=0; si<P::systemWriteName.size(); si++) {
          P::systemWrites.push_back(0);
       }
-      
-      writeGrid(mpiGrid,outputReducer,P::systemWriteName.size()-1);
+      const bool writeGhosts = true;
+      if( writeGrid(mpiGrid,outputReducer,P::systemWriteName.size()-1, writeGhosts) == false ) {
+         cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
+      }
       
       P::systemWriteDistributionWriteStride.pop_back();
       P::systemWriteName.pop_back();
@@ -459,7 +460,10 @@ int main(int argn,char* args[]) {
             
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-            writeGrid(mpiGrid, outputReducer, i);
+            const bool writeGhosts = true;
+            if( writeGrid(mpiGrid,outputReducer, i, writeGhosts) == false ) {
+               cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
+            }
             P::systemWrites[i]++;
             logFile << "(IO): .... done!" << endl << writeVerbose;
             phiprof::stop("write-system");
@@ -490,7 +494,11 @@ int main(int argn,char* args[]) {
         
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-         writeRestart(mpiGrid,outputReducer,"restart",(uint)P::t, P::restartStripeFactor);   
+         //Write the restart:
+         if( writeRestart(mpiGrid,outputReducer,"restart",(uint)P::t, P::restartStripeFactor) == false ) {
+            logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
+            cerr << "FAILED TO WRITE RESTART" << endl;
+         }
          if (myRank == MASTER_RANK)
             logFile << "(IO): .... done!"<< endl << writeVerbose;
             

@@ -2,7 +2,6 @@
 This file is part of Vlasiator.
 
 Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
-
 */
 
 #ifndef VLASOVMOVER_H

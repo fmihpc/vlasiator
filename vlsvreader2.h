@@ -31,6 +31,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <stdint.h>
 #include <list>
 #include <fstream>
+#include "vlsv_reader.h"
 #include "muxml.h"
 #include "vlscommon.h"
 
@@ -196,8 +197,12 @@ class VLSVParReader: public VLSVReader {
    bool close();
    bool getArrayInfo(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
 		     uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& byteSize);
+   bool getArrayInfo(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
+                     uint64_t& arraySize,uint64_t& vectorSize,vlsv::datatype::type& dataType,uint64_t& byteSize);
    bool getArrayInfoMaster(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
 			   uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& dataSize);
+   bool getArrayInfoMaster(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
+                           uint64_t& arraySize,uint64_t& vectorSize,vlsv::datatype::type& dataType,uint64_t& dataSize);
    bool multiReadStart(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs);
    bool multiReadAddUnit(const uint64_t& amount,char* buffer);
    bool multiReadEnd(const uint64_t& offset);
