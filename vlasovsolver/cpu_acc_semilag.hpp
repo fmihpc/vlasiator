@@ -16,24 +16,12 @@ Copyright 2012 Finnish Meteorological Institute
 #include "spatial_cell.hpp"
 
 #include <Eigen/Geometry>
-#include "vlasovsolver/cpu_interpolated_block.hpp"
-#include "vlasovsolver/cpu_cic.hpp"
+#include "vlasovsolver/cpu_compute_downstream_blocks.hpp"
 using namespace std;
 using namespace spatial_cell;
 using namespace Eigen;
 
 /*
-
-TODO
-
-Handle v space boundaries properly and quickly in CIC
-Use real not double (or own float datatype?)
-Use agner's vectorclass (perhaps the 3 vectors with position?)
-
-
-DONE/WONTFIX
-remove einspline (useless)
-test nsubcells and make to parameter: Parameter much slower (wontfix)
 
 */
 
@@ -126,22 +114,45 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
    return total_transform;
 }
 
+
+
 /*!
 Propagates the distribution function in velocity space of given real space cell.
 
-TODO:
-  now this is all Real: enable Real
 
 */
 
 void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
 
+   
+   
+   /*copy distribution function values into the flux table, and zero the existing distribution function */
+   for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
+      const unsigned int block = spatial_cell->velocity_block_list[block_i];
+      Velocity_Block* block_ptr = spatial_cell->at(block);
+      for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
+         block_ptr->fx[cell] = block_ptr->data[cell];
+         block_ptr->data[cell] = 0.0;
+      }
+   }
+   
+   
    phiprof::start("compute-transform");
    //compute the transform performed in this acceleration
    Transform<Real,3,Affine> total_transform= compute_acceleration_transformation(spatial_cell,dt);
    phiprof::stop("compute-transform");
-   cic(spatial_cell,total_transform);
+
+
+   std::vector<unsigned int> downstream_blocks;
+   /*compute all downstream blocks, blocks to which the distriubtion flows during this timestep*/
+   compute_downstream_blocks(spatial_cell,total_transform,downstream_blocks);
+   
+   
+   
+   
 }
+
+
    
 
 #endif

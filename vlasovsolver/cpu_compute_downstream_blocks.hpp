@@ -84,14 +84,14 @@ inline void mark_downstream_cells(SpatialCell* spatial_cell,const Array3d v){
 
 /* Computes which blocks the distribution function will flow. These
  * will be used to compute the upstream Lagrangian cells. The upstream
- * blocks are also created here if they did not exist. fx values for
- * cells are overwritten here, and are not in a clean state afterwards.
+ * blocks are also created here if they did not exist. data values for
+ * cells are assumed to be zero(!), and will still be zero after this function
   \par spatial_cell Spatial cell that is integrated
   \par transform The euclidian acceleration transform (forward int time)
   \par downstream_blocks List of blocks which will have content 
 */
 
-void compute_downstream_blocks(SpatialCell *spatial_cell,const Transform<Real,3,Affine>& transform,std::vector<unstigned int>& downstream_blocks) {
+void compute_downstream_blocks(SpatialCell *spatial_cell,const Transform<Real,3,Affine>& transform,std::vector<unsigned int>& downstream_blocks) {
    
    // Make a copy of the blocklist as we don't want to iterate over blocks added by this function
    std::vector<unsigned int> blocks;
@@ -99,13 +99,6 @@ void compute_downstream_blocks(SpatialCell *spatial_cell,const Transform<Real,3,
       blocks.push_back(spatial_cell->velocity_block_list[block_i]);
    }
 
-   /*set all cell fx-values to zero, fx will be used to mark cells to be created*/
-   for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
-      Velocity_Block* block_ptr = spatial_cell->at(spatial_cell->velocity_block_list[block_i]);
-      for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
-         block_ptr->fx[cell] = 0.0;
-      }
-   }
 
    for (unsigned int block_i = 0; block_i < blocks.size(); block_i++) {
       Velocity_Block* block_ptr = spatial_cell->at(blocks[block_i]);
@@ -121,8 +114,6 @@ void compute_downstream_blocks(SpatialCell *spatial_cell,const Transform<Real,3,
       for (unsigned int cell_xi = 0; cell_xi < WID; cell_xi++) {
          for (unsigned int cell_yi = 0; cell_yi < WID; cell_yi++) {
             for (unsigned int cell_zi = 0; cell_zi < WID; cell_zi++) {
-               unsigned int ib_cellid=iblock.get_cell_id(cell_xi,cell_yi,cell_zi);
-
                /*this is the center of the cell*/
                const Eigen::Matrix<Real,3,1> s_node_position(block_start_vx + cell_xi*dvx,
                                                              block_start_vy + cell_yi*dvy,
@@ -138,17 +129,19 @@ void compute_downstream_blocks(SpatialCell *spatial_cell,const Transform<Real,3,
    }
 
    //compute downstream block list based on marked cell datas. 
-   downstream_blocks.clear();   
-   for (unsigned int block_i = 0; block_i < blocks.size(); block_i++) {
-      Velocity_Block* block_ptr = spatial_cell->at(blocks[block_i]);
+   downstream_blocks.clear();
+   for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
+      unsigned int block = spatial_cell->velocity_block_list[block_i];
+      Velocity_Block* block_ptr = spatial_cell->at(block);
+      bool is_downstream_block=false;
       for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
-         if(block_ptr->fx[cell] >0.0 ){
-            downstream_blocks.push_back(block);
-            break;
-         }
+         if(block_ptr->data[cell] >0.0 )
+            is_downstream_block=true;
+         block_ptr->data[cell] = 0.0;
       }
+      if(is_downstream_block)
+         downstream_blocks.push_back(block);
    }
-   
 }
 
 #endif
