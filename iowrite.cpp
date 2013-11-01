@@ -1,3 +1,13 @@
+/*
+This file is part of Vlasiator.
+
+Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
+*/
+
+/*! \file vlsvdiff.cpp
+ \brief File containing write IO for vlasiator. More info at: https://agora.fmi.fi/display/CORSAIR/VLSV+File+Format
+*/
+
 #include <cstdlib>
 #include <iostream>
 #include <iomanip> // for setprecision()
@@ -23,7 +33,12 @@ extern Logger logFile, diagnostic;
 typedef Parameters P;
 
 
-// Updates local ids across MPI
+/*! Updates local ids across MPI to let other processes know in which order this process saves the local cell ids
+ \param mpiGrid Vlasiator's MPI grid
+ \param local_cells local cells on in the current process (no ghost cells included)
+ \param comm The MPi comm
+ \return Returns true if operation was successful
+ */
 bool updateLocalIds(  dccrg::Dccrg<SpatialCell> & mpiGrid,
                       const vector<uint64_t> & local_cells,
                       MPI_Comm comm ) {
@@ -49,6 +64,12 @@ bool updateLocalIds(  dccrg::Dccrg<SpatialCell> & mpiGrid,
    return true;
 }
 
+/*! Checks the success of write IO
+ \param success Parameter for determining whether the IO has been successful
+ \param errorMessage The message to be shown if global success is false
+ \param comm The MPI comm
+ \return Returns true if all of the processes running this function had success value of true, false otherwise
+ */
 bool globalSuccess(bool success,string errorMessage,MPI_Comm comm){
    int successInt;
    int globalSuccessInt;
@@ -68,7 +89,13 @@ bool globalSuccess(bool success,string errorMessage,MPI_Comm comm){
    }
 }
 
-
+/*! Writes the velocity distribution into the file. Template can be double or float depending on whether the user wants to write the distribution as floats or doubles into the file.
+ \param vlsvWriter Some vlsv writer with a file open
+ \param mpiGrid Vlasiator's grid
+ \param cells Vector of local cells within this process (no ghost cells)
+ \param comm The MPI comm
+ \return Returns true if operation was successful
+ */
 template <typename T>
 bool writeVelocityDistributionData(
                                     Writer& vlsvWriter,
@@ -171,9 +198,18 @@ bool writeVelocityDistributionData(
    return success;
 }
 
+/*! Writes info received from data reducer. This function writes out the variable arrays into the file
+ \param mpiGrid The Vlasiator's grid
+ \param cells List of local cells (no ghost cells included)
+ \param writeAsFloat If true, the data reducer writes variable arrays as float instead of double
+ \param dataReducer The data reducer which contains the necessary functions for calculating variables
+ \param dataReducerIndex Index in the data reducer (determines which variable to read) Note: size of the data reducer can be retrieved with dataReducer.size()
+ \param vlsvWriter Some vlsv writer with a file open
+ \return Returns true if operation was successful
+ */
 bool writeDataReducer(const dccrg::Dccrg<SpatialCell>& mpiGrid,
                       const vector<uint64_t>& cells,
-                      const bool writeSmaller,
+                      const bool writeAsFloat,
                       DataReducer& dataReducer,
                       int dataReducerIndex,
                       Writer& vlsvWriter){
@@ -214,7 +250,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell>& mpiGrid,
       }
    }
    if( success ) {
-      if( (writeSmaller == true && dataType.compare("float") == 0) && dataSize == sizeof(double) ) {
+      if( (writeAsFloat == true && dataType.compare("float") == 0) && dataSize == sizeof(double) ) {
          double * varBuffer_double = reinterpret_cast<double*>(varBuffer);
          //Declare smaller varbuffer:
          const uint64_t arraySize_smaller = cells.size();
@@ -262,7 +298,14 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell>& mpiGrid,
 
 
 
-
+/*! Writes common grid data such as parameters (time steps, x_min, ..) as well as local cell ids as variables
+ \param vlsvWriter Some vlsv writer with a file open
+ \param mpiGrid Vlasiator's grid
+ \param local_cells The local cell ids in this process
+ \param fileIndex File index, file will be called "name.index.vlsv"
+ \param comm The MPI comm
+ \return Returns true if operation was successful
+ */
 bool writeCommonGridData(
    Writer& vlsvWriter,
    dccrg::Dccrg<SpatialCell>& mpiGrid,
@@ -315,19 +358,27 @@ bool writeCommonGridData(
 }
 
 
+/*! Writes ghost cell ids into the file
+ \param mpiGrid Vlasiator's grid
+ \param vlsvWriter Some vlsv writer with a file open
+ \param meshName Name of the mesh (If unsure, put SpatialGrid)
+ \param ghost_cells List of cell ids on the process boundary (Ghost cells)
+ \return Returns true if operation was successful
+ \sa updateLocalIds
+ */
 bool writeGhostZoneDomainAndLocalIdNumbers( dccrg::Dccrg<SpatialCell>& mpiGrid,
                                               Writer & vlsvWriter,
                                               const string & meshName,
-                                              const vector<uint64_t> & ghost_zones ) {
+                                              const vector<uint64_t> & ghost_cells ) {
    //Declare vectors for storing data
    vector<uint64_t> ghostDomainIds;
-   ghostDomainIds.reserve( ghost_zones.size() );
+   ghostDomainIds.reserve( ghost_cells.size() );
    vector<uint64_t> ghostLocalIds;
-   ghostLocalIds.reserve( ghost_zones.size() );
+   ghostLocalIds.reserve( ghost_cells.size() );
 
    //Iterate through all ghost zones:
    vector<uint64_t>::const_iterator it;
-   for( it = ghost_zones.begin(); it != ghost_zones.end(); ++it ) {
+   for( it = ghost_cells.begin(); it != ghost_cells.end(); ++it ) {
       //Domain id is the MPI process rank owning the ghost zone
 
       //get the local id of the zone in the process where THIS ghost zone is a local zone:
@@ -343,13 +394,13 @@ bool writeGhostZoneDomainAndLocalIdNumbers( dccrg::Dccrg<SpatialCell>& mpiGrid,
       //In process 2, the local id of D is 0, so that's the local id we want now
       //The local id is being saved in createZone function     
 
-      //Append to the vectors
+      //Append to the vectors Note: Check updateLocalIds function
       ghostDomainIds.push_back( mpiGrid.get_process( *it ) );
       ghostLocalIds.push_back( mpiGrid[(*it)]->ioLocalCellId );
    }
 
    //We need the number of ghost zones for vlsvWriter:
-   uint64_t numberOfGhosts = ghost_zones.size();
+   uint64_t numberOfGhosts = ghost_cells.size();
 
    //Write:
    map<string, string> xmlAttributes; //Used for writing in info
@@ -373,7 +424,13 @@ bool writeGhostZoneDomainAndLocalIdNumbers( dccrg::Dccrg<SpatialCell>& mpiGrid,
 }
 
 
-
+/*! Writes domain sizes into the vlsv file, so the number of ghost and local cell ids in this process
+ \param vlsvWriter Some vlsv writer with a file open
+ \param meshName Name of the mesh (SpatialGrid used in the writeGrid function)
+ \param numberOfLocalZones Number of local cells in this process
+ \param numberOfGhostZones Number of ghost cells in this process ( Cells on the process boundary )
+ \return Returns true if operation was successful
+ */
 bool writeDomainSizes( Writer & vlsvWriter,
                          const string & meshName,
                          const unsigned int & numberOfLocalZones,
@@ -401,14 +458,21 @@ bool writeDomainSizes( Writer & vlsvWriter,
 
 
 
-//Writes the global id numbers. Note: vector< array<unsigned int, 3> > & local_zones is a vector which has coordinates for local zones
+/*! Writes the zone global id numbers into the file. The vlsv file needs to know in which order the local cells + ghost cells are written. Local cells are first appended to a vector called global ids, after which the ghost cells are appended. The global ids vector will then be saved into a vlsv file
+ \param mpiGrid Vlasiator's MPI grid
+ \param vlsvWriter Some vlsv writer with a file open
+ \param meshName Name of the mesh ("SpatialGrid" used in the writeGrid function and it should be the default)
+ \param local_cells Vector containing the local cells of this process
+ \param ghost_cells Vector containing the ghost cells of this process ( The cells on process boundary )
+ \return Returns true if the operation was successful
+ */
 bool writeZoneGlobalIdNumbers( const dccrg::Dccrg<SpatialCell>& mpiGrid,
                                  Writer & vlsvWriter,
                                  const string & meshName,
-                                 const vector<uint64_t> & local_zones,
-                                 const vector<uint64_t> & ghost_zones ) {
-   if( local_zones.empty() ) {
-      if( !ghost_zones.empty() ) {
+                                 const vector<uint64_t> & local_cells,
+                                 const vector<uint64_t> & ghost_cells ) {
+   if( local_cells.empty() ) {
+      if( !ghost_cells.empty() ) {
          //Something very wrong -- local zones should always have members when ghost zones has members
          cerr << "ERROR, LOCAL ZONES EMPTY BUT GHOST ZONES NOT AT " << __FILE__ << __LINE__ << endl;
          return false;
@@ -421,12 +485,12 @@ bool writeZoneGlobalIdNumbers( const dccrg::Dccrg<SpatialCell>& mpiGrid,
    const unsigned int zCells = P::zcells_ini;
 
    vector<uint64_t> globalIds;
-   globalIds.reserve( local_zones.size() + ghost_zones.size() );
+   globalIds.reserve( local_cells.size() + ghost_cells.size() );
 
-   //Iterate through local_zones and store the values into globalIDs
+   //Iterate through local_cells and store the values into globalIDs
    //Note: globalID is defined as follows: global ID = z*yCells*xCells + y*xCells + x
    vector<uint64_t>::const_iterator it;
-   for( it = local_zones.begin(); it != local_zones.end(); ++it ) {
+   for( it = local_cells.begin(); it != local_cells.end(); ++it ) {
       if( (*it) == 0 ) {
          cerr << "ERROR, Invalid cell id at " << __FILE__ << " " << __LINE__ << endl;
          return false;
@@ -436,7 +500,7 @@ bool writeZoneGlobalIdNumbers( const dccrg::Dccrg<SpatialCell>& mpiGrid,
       globalIds.push_back( (*it) - 1 );
    }
    //Do the same for ghost zones: (Append to the end of the list of global ids)
-   for( it = ghost_zones.begin(); it != ghost_zones.end(); ++it ) {
+   for( it = ghost_cells.begin(); it != ghost_cells.end(); ++it ) {
       if( (*it) == 0 ) {
          cerr << "ERROR, Invalid cell id at " << __FILE__ << " " << __LINE__ << endl;
          return false;
@@ -476,8 +540,13 @@ bool writeZoneGlobalIdNumbers( const dccrg::Dccrg<SpatialCell>& mpiGrid,
    return true;
 }
 
-//Writes the cell coordinates
-//Note: meshName is SpatialGrid
+/*! Writes the node coordinates. This means basically every cell's node (Corner of each cell). Note: The grid is a structured one, so writing the nodes means starting from the corner of the grid and writing coordinates per every cell length until reaching the other corner of the grid
+ \param vlsvWriter Some vlsv writer with a file open
+ \param meshName Name of the mesh (SpatialGrid used in writeGrid and should be the default)
+ \param masterRank The master rank (Vlasiator uses 0)
+ \param comm The MPI comm
+ \return Returns true if the operation was successful
+ */
 bool writeBoundingBoxNodeCoordinates ( Writer & vlsvWriter,
                                        const string & meshName,
                                        const int masterRank,
@@ -558,9 +627,13 @@ bool writeBoundingBoxNodeCoordinates ( Writer & vlsvWriter,
 }
 
 
-//Writes the boundaries for the grid. box_values should be a vector of size 6 and should contain:
-//num of blocks in x, y, z direction, number of cells in x, y, z direction
-//meshName should probably be "SpatialGrid"
+/*! Function for writing the bounding box. This writes only if the process running it is the master rank. This array contains info on the boundaries of the grid so for example the number of cells in x, y, z direction.
+ \param vlsvWriter Some vlsv writer with a file open
+ \param meshName Name of the mesh to write ("SpatialGrid" is used in writeGrid and it should be the default)
+ \param masterRank The master process' id. Vlasiator uses 0 as the master process id, so by default should be 0
+ \param comm MPI comm
+ \return Returns true if operation was successful
+ */
 bool writeMeshBoundingBox( Writer & vlsvWriter, 
                            const string & meshName, 
                            const int masterRank,
@@ -603,6 +676,14 @@ bool writeMeshBoundingBox( Writer & vlsvWriter,
    return success;
 }
 
+/*! This function writes the velocity space. Note: Template can be either float or double and it determines in which format the avgs values of the velocity distribution will be written in. If floats are used, the file size is smaller.
+ \param mpiGrid Vlasiator's grid
+ \param vlsvWriter some vlsv writer with a file open
+ \param index Index to call the correct member of the various parameter vectors
+ \param cells Vector containing local cells of this process
+ \return Returns true if the operation was successful
+ \sa writeVelocityDistributionData
+ */
 template <typename T>
 bool writeVelocitySpace( dccrg::Dccrg<SpatialCell>& mpiGrid,
                          Writer & vlsvWriter,
@@ -660,6 +741,10 @@ bool writeVelocitySpace( dccrg::Dccrg<SpatialCell>& mpiGrid,
       return true;
 }
 
+/*! This function makes sure that local cells and ghost cells do not have any identical members (used for error checking)
+ \param local_cells List of local cells within this process
+ \param ghost_cells List of ghost cells within this process (cells on the process boundary)
+ */
 bool checkForSameMembers( const vector<uint64_t> local_cells, const vector<uint64_t> ghost_cells ) {
    //NOTE: VECTORS MUST BE SORTED
    //Make sure ghost cells and local cells don't have same members in them:
@@ -681,7 +766,15 @@ bool checkForSameMembers( const vector<uint64_t> local_cells, const vector<uint6
 }
 
 
+/*!
 
+\brief Write out system into a vlsv file
+
+\param mpiGrid     The DCCRG grid with spatial cells
+\param dataReducer Contains datareductionoperators that are used to compute data that is added into file
+\param index       Index to call the correct member of the various parameter vectors
+\param writeGhosts If true, writes out ghost cells (cells that exist on the process boundary so other process' cells)
+*/
 bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
                DataReducer& dataReducer,
                const uint& index,
@@ -755,9 +848,9 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
    //Write necessary variables:
    //Determines whether we write in floats or doubles
    for( uint i = 0; i < dataReducer.size(); ++i ) {
-      if( writeDataReducer( mpiGrid, local_cells, (P::writeSmaller==1), dataReducer, i, vlsvWriter ) == false ) return false;
+      if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), dataReducer, i, vlsvWriter ) == false ) return false;
    }
-   if( P::writeSmaller == 1 ) {
+   if( P::writeAsFloat == 1 ) {
       if( writeVelocitySpace<float>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
    } else {
       if( writeVelocitySpace<Real>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
@@ -774,6 +867,15 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
 }
    
 
+/*!
+
+\brief Write out a restart of the simulation into a vlsv file. All block data in remote cells will be reset.
+
+\param mpiGrid   The DCCRG grid with spatial cells
+\param dataReducer Contains datareductionoperators that are used to compute data that is added into file
+\param name       File name prefix, file will be called "name.index.vlsv"
+\param fileIndex  File index, file will be called "name.index.vlsv"
+*/
 bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
                   DataReducer& dataReducer,
                   const string& name,
@@ -859,12 +961,13 @@ bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
    restartReducer.addOperator(new DRO::VelocitySubSteps);
 
    //Write necessary variables:
-   const bool writeSmaller = false;
+   const bool writeAsFloat = false;
    for (uint i=0; i<restartReducer.size(); ++i) {
-      writeDataReducer(mpiGrid, local_cells, writeSmaller, restartReducer, i, vlsvWriter);
+      writeDataReducer(mpiGrid, local_cells, writeAsFloat, restartReducer, i, vlsvWriter);
    }
 
    //write the velocity distribution data -- note: it's expecting a vector of pointers:
+   // Note: restart should always write double values to ensure the accuracy of the restart runs. In case of distribution data it is not as important as they are mainly used for visualization purposes
    writeVelocityDistributionData<Real>(vlsvWriter, mpiGrid, local_cells, MPI_COMM_WORLD);
 
    vlsvWriter.close();
@@ -880,7 +983,13 @@ bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
    
 
 
+/*!
 
+\brief Write out simulation diagnostics into diagnostic.txt
+
+\param mpiGrid   The DCCRG grid with spatial cells
+\param dataReducer Contains datareductionoperators that are used to compute diagnostic data
+*/
 bool writeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
                      DataReducer& dataReducer)
 {

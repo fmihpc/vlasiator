@@ -15,7 +15,6 @@
 \param mpiGrid     The DCCRG grid with spatial cells
 \param dataReducer Contains datareductionoperators that are used to compute data that is added into file
 \param index       Index to call the correct member of the various parameter vectors
-\param newLib      Use the updated version of VLSV library
 \param writeGhosts Write ghost zones
 */
 

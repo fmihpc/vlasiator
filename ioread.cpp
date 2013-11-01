@@ -26,9 +26,11 @@ typedef Parameters P;
 
   If any process(es) have a false success values then the program will
   abort and write out the message to the logfile
+  \param success This process' value for successful execution
+  \param message Error message to be shown upon failure
+  \param comm MPI comm
+  \return Returns true if the operation was successful
 */
-
-  
 bool exitOnError(bool success,string message,MPI_Comm comm) {
    int successInt;
    int globalSuccessInt;
@@ -51,7 +53,11 @@ bool exitOnError(bool success,string message,MPI_Comm comm) {
 
 /*!
  \brief Read cell ID's
- Read in cell ID's from file
+ Read in cell ID's from file. Note: Uses the older version of vlsv parallel reader
+ \param file Some vlsv reader with a file open
+ \param fileCells Vector in whic to store the cell ids
+ \param masterRank The simulation's master rank id (Vlasiator uses 0, which should be the default)
+ \param comm MPI comm (MPI_COMM_WORLD should be the default)
 */
 
 bool readCellIds(VLSVParReader & file,
@@ -102,6 +108,14 @@ bool readCellIds(VLSVParReader & file,
    return success;
 }
 
+/*!
+ \brief Read cell ID's
+ Read in cell ID's from file. Note: Uses the newer version of vlsv parallel reader
+ \param file Some vlsv reader with a file open
+ \param fileCells Vector in whic to store the cell ids
+ \param masterRank The simulation's master rank id (Vlasiator uses 0, which should be the default)
+ \param comm MPI comm (MPI_COMM_WORLD should be the default)
+*/
 bool readCellIds(ParallelReader & file,
                  vector<uint64_t>& fileCells, const int masterRank,MPI_Comm comm){
    // Get info on array containing cell Ids:
@@ -171,11 +185,13 @@ bool readCellIds(ParallelReader & file,
 
 /*!
  \brief Read number of blocks per cell
-
+ \param file Some vlsv reader with a file open (can be old or new vlsv reader)
+ \param nBlocks Vector for holding information on cells and the number of blocks in them -- this function saves data here
+ \param masterRank The master rank of this process (Vlasiator uses masterRank = 0 and so it should be the default)
+ \param comm MPI comm
+ \return Returns true if the operation was successful
+ \sa exec_readGrid
 */
-
-
-
 template <class T>
 bool readNBlocks( T & file,
                  vector<unsigned int>& nBlocks, int masterRank,MPI_Comm comm){
@@ -220,12 +236,21 @@ bool readNBlocks( T & file,
    return success;
 }
 
-/*   
-     This reads in data one cell at a time. It is not the most efficient way but has the following benefits
-     - For large datasets (distribution function), we avoid any problem with having to store all distribution functions twice in memory
-     - Machinery in readvlsv does not at the moment support setting fileviews, this should be improved.
-     
+/*! This reads in data one cell at a time. It is not the most efficient way but has the following benefits
+ - For large datasets (distribution function), we avoid any problem with having to store all distribution functions twice in memory
+ - Machinery in readvlsv does not at the moment support setting fileviews, this should be improved.
+ The template stands for the file type so if one is reading doubles, fileReal should be double
+ TODO: Get rid of fileReal (Was done once in a branch but it caused problems)
+ \param file Some vlsv reader with a file open
+ \param fileCells List of all cell ids
+ \param localCellStartOffset The offset from which to start reading cells ( This should be balanced so that every process has roughly the same amount of blocks to read )
+ \param localCells How many cells after the offset to read ( This should be balanced so that every process has roughly the same amount of blocks to read )
+ \param localBlockStartOffset localCellStartOffset's corresponding block offset in this process ( Calculated from nBlocks and localCellStartOffset )
+ \param localCells localCellStartOffset's corresponding block block amount in this process ( Calculated from nBlocks and localCellStartOffset and localCellStartOffset )
+ \param mpiGrid Vlasiator's grid
+ \sa exec_readGrid
 */
+
 template <typename fileReal>
 bool readBlockData(
    VLSVParReader & file,
@@ -311,6 +336,12 @@ bool readBlockData(
 //[1] block -- some velocity block id
 //Output:
 //[0] indices -- the array where to store the indices
+
+/*! Outputs given block's velocity min coordinates (the corner of the block) itn blockCoordinates
+ \param block The block's id
+ \param blockCoordinates An empty array where to store the block coordinates
+ \sa readBlockData
+ */
 void getVelocityBlockCoordinates( const uint64_t & block, array<Real, 3> & blockCoordinates ) {
    //Get indices:
    array<uint64_t, 3> blockIndices;
@@ -325,11 +356,19 @@ void getVelocityBlockCoordinates( const uint64_t & block, array<Real, 3> & block
 }
 
 
-/*   
-     This reads in data one cell at a time. It is not the most efficient way but has the following benefits
-     - For large datasets (distribution function), we avoid any problem with having to store all distribution functions twice in memory
-     - Machinery in readvlsv does not at the moment support setting fileviews, this should be improved.
-     
+/*! This reads in data one cell at a time. It is not the most efficient way but has the following benefits
+ - For large datasets (distribution function), we avoid any problem with having to store all distribution functions twice in memory
+ - Machinery in readvlsv does not at the moment support setting fileviews, this should be improved.
+ The template stands for the file type so if one is reading doubles, fileReal should be double
+ TODO: Get rid of fileReal (Was done once in a branch but it caused problems)
+ \param file Some vlsv reader with a file open
+ \param fileCells List of all cell ids
+ \param localCellStartOffset The offset from which to start reading cells ( This should be balanced so that every process has roughly the same amount of blocks to read )
+ \param localCells How many cells after the offset to read ( This should be balanced so that every process has roughly the same amount of blocks to read )
+ \param localBlockStartOffset localCellStartOffset's corresponding block offset in this process ( Calculated from nBlocks and localCellStartOffset )
+ \param localCells localCellStartOffset's corresponding block block amount in this process ( Calculated from nBlocks and localCellStartOffset and localCellStartOffset )
+ \param mpiGrid Vlasiator's grid
+ \sa exec_readGrid
 */
 template <typename fileReal>
 bool readBlockData(
@@ -440,7 +479,16 @@ bool readBlockData(
 
 
 
-
+/*! Reads cell parameters from the file and saves them in the right place in mpiGrid
+ \param file Some parallel vlsv reader with a file open
+ \param fileCells List of all cell ids
+ \param localCellStartOffset Offset in the fileCells list for this process ( calculated so that the amount of blocks is distributed somewhat evenly between processes)
+ \param localCells The amount of cells to read in this process after localCellStartOffset
+ \param cellParamsIndex The parameter of the cell index e.g. CellParams::RHO
+ \param expectedVectorSize The amount of elements in the parameter (parameter can be a scalar or a vector of size N)
+ \param mpiGrid Vlasiator's grid (the parameters are saved here)
+ \return Returns true if the operation is successful
+ */
 template <typename fileReal, class U>
 bool readCellParamsVariable(U & file,
 			    const vector<uint64_t>& fileCells,
@@ -491,7 +539,14 @@ bool readCellParamsVariable(U & file,
 
 
 
-
+/*! A function for reading parameters e.g. 'timestep'
+ \param file Some vlsv parallel reader with a file open
+ \param name Name of the parameter
+ \param value Variable in which to store the scalar variable (double, float, int .. )
+ \param masterRank The master process' id (Vlasiator uses 0 so this should equal 0 by default)
+ \param comm MPI comm (MPI_COMM_WORLD should be the default)
+ \return Returns true if the operation is successful
+ */
 template <typename T>
 bool readScalarParameter(VLSVParReader & file, string name,T& value, int masterRank,MPI_Comm comm){
    bool success=true;
@@ -567,11 +622,27 @@ bool readScalarParameter(VLSVParReader & file, string name,T& value, int masterR
    return success;
 }
 
+/*! A function for reading parameters e.g. 'timestep'
+ \param file Some vlsv parallel reader with a file open
+ \param name Name of the parameter
+ \param value Variable in which to store the scalar variable (double, float, int .. )
+ \param masterRank The master process' id (Vlasiator uses 0 so this should equal 0 by default)
+ \param comm MPI comm (MPI_COMM_WORLD should be the default)
+ \return Returns true if the operation is successful
+ */
 template <typename T>
 bool readScalarParameter(ParallelReader & file, const string & name,T& value, int masterRank,MPI_Comm comm){
    return file.readParameter( name, value );
 }
 
+/*! A function for checking the scalar parameter
+ \param file Some parallel vlsv reader with a file open
+ \param name Name of the parameter
+ \param correctValue The correct value of the parameter to compare to
+ \param masterRank The master process' id (Vlasiator uses 0 so this should be 0 by default)
+ \param comm MPI comm (Default should be MPI_COMM_WORLD)
+ \return Returns true if the operation is successful
+ */
 template <class U, typename T>
 bool checkScalarParameter(U & file, const string & name, T correctValue, int masterRank,MPI_Comm comm){
    T value;
@@ -590,6 +661,10 @@ bool checkScalarParameter(U & file, const string & name, T correctValue, int mas
    }
 }
 
+/*! A function for checking the version of the file
+ \param vlsvReader Some vlsv reader with a file open
+ \return Returns the version number
+ */
 float checkVersion( Reader & vlsvReader ) {
    string versionTag = "version";
    float version;
@@ -605,6 +680,12 @@ float checkVersion( Reader & vlsvReader ) {
    }
 }
 
+/*! This function is used to read the restart file. The template class T can be ParallelReader or VLSVParReader
+ \param mpiGrid Vlasiator's grid
+ \param name Name of restart file
+ \return Returns true if the operation was successful
+ \sa readGrid
+ */
 template <class T>
 bool exec_readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
                    const std::string& name) {
@@ -791,6 +872,11 @@ bool exec_readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
 }
 
 //FIXME, readGrid has no support for checking or converting endianness
+/*!
+\brief Read in state from a vlsv file in order to restart simulations
+\param mpiGrid Vlasiator's grid
+\param name Name of the restart file e.g. "restart.00052.vlsv"
+*/
 bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
               const std::string& name){
    Reader vlsvCheck;
