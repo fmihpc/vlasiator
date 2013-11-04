@@ -113,6 +113,25 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
    return total_transform;
 }
 
+/*!
+  Computes the intersection point of a plane and a line
+
+  \param l_point Point on the line
+  \param l_direction Vector in the direction of the line
+  \param p_point Point on plane
+  \param p_normal Normal vector to plane
+  \param intersection The function will set this to the intersection point
+*/
+
+void line_plane_intersection(const Vector<Real,3>& l_point,const Vector<Real,3>& l_direction,
+			     const Vector<Real,3>& p_point,const Vector<Real,3>& p_normal,
+			     Vector<Real,3>& intersection){
+  const Real d=(p_point-l_point)*p_normal/(l_direction*p_normal);
+  return l_point+d*l_direction;
+}
+
+
+
 
 
 /*!
@@ -152,18 +171,27 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
    std::vector<unsigned int> downstream_blocks;
    compute_downstream_blocks(spatial_cell,fwd_transform,downstream_blocks);
 
+
+   /*As in article (Zerroukat 2012), interections of lines along z at
+     cell edges, with the Lagrangian departure cells xd-yd plane*/
+
+   Real *ztilde_ijk=new Real[downstream_blocks.size()*WID3];
+
    /*Loop over all downstream blocks one at a time and compute their mass using slice-3d*/
    for (unsigned int block_i = 0; block_i < downstream_blocks.size(); block_i++){
       const unsigned int dwns_block = downstream_blocks(block_i);
       Velocity_Block* dwns_block_ptr = spatial_cell->at(block);
-
       for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
-
-
-
+	
+	
+	const Eigen::Matrix<Real,3,1> s_node_position(block_start_vx + cell_xi*dvx,
+						      block_start_vy + cell_yi*dvy,
+						      block_start_vz + cell_zi*dvz);
+	/* and where it was rotated*/
+	const Eigen::Matrix<Real,3,1> s_node_position_tf=transform*s_node_position;	
       }
-      
    }
+   delete[] ztilde_ijk;
    
    
 }
