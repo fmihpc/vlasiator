@@ -25,6 +25,13 @@ using namespace Eigen;
 
 */
 
+uint64_t inline cell_id(Eigen::Vector<uint,3> cell_coordinate){
+
+  
+
+}
+
+
 
 /*Compute transform during on timestep, and update the bulk velocity of the cell*/
 
@@ -123,15 +130,50 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
   \param intersection The function will set this to the intersection point
 */
 
-void line_plane_intersection(const Vector<Real,3>& l_point,const Vector<Real,3>& l_direction,
-			     const Vector<Real,3>& p_point,const Vector<Real,3>& p_normal,
-			     Vector<Real,3>& intersection){
+void line_plane_intersection(const Eigen::Vector<Real,3>& l_point,const Eigen::Vector<Real,3>& l_direction,
+			     const Eigen::Vector<Real,3>& p_point,const Eigen::Vector<Real,3>& p_normal,
+			     Eigen::Vector<Real,3>& intersection){
   const Real d=(p_point-l_point)*p_normal/(l_direction*p_normal);
   return l_point+d*l_direction;
 }
 
 
+/*!
+Computes the first intersection data; this is z~ in section 2.4 in Zerroukat et al (2012). 
 
+\param coord1 coordinate 1 defining the line columns (typically 1,0,0)
+\param coord2 coordinate 2 defining the line columns (typically 0,1,0)
+\param intersection_coord Coordinate along line (typically 0,0,1)
+\param bwd_transform Transform that is used to compute the lagrangian departure grid
+\param intersections map keys are indices of line (with regards to coord1 and coord2), values are value of coordinate at first intersection, index of  first intersection and index of last intersection.
+\param intersection_distance Distance between intersections
+*/
+
+
+void compute_intersections_1(SpatialCell* spatial_cell,const Eigen::Vector<int,3>& coord1,const Eigen::Vector<int,3>& coord2,const Eigen::Vector<int,3>& intersection_coord, const Transform<Real,3,Affine>& bwd_transform,
+			     std::unordered_map<std::tuple<uint64_t,uint64_t>, std::tuple<Real,int,int > >& intersections, Real& intersection_distance) {
+  
+  /*compute xdyd plane normal*/
+  const Eigen::Vector<Real,3> plane_normal=bwd_transform*intersection_coord;
+
+  Loop over blocks,
+    compute x,y indices of cells (in global sense),
+    add to map
+
+ Loop over map
+    Loop over blocks
+       Compute 
+    compute minimum z intersection of each x,y column with
+    
+      
+
+   
+     
+			     
+
+
+){
+			   
 
 
 /*!
@@ -143,11 +185,17 @@ Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A three‐dimensional
 
 void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
 
-   
-   
+ 
+  // Make a copy of the blocklist, these are the current Eulerian cells
+  std::vector<unsigned int> upstream_blocks;
+  for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
+    upstream_blocks.push_back(spatial_cell->velocity_block_list[block_i]);
+  }
+  
    /* Compute masses based on densities, and store it in fx. data is
-     cleared to make way for comutation of downstream blocks, and
-     finally also the actual accelerated values. */
+      cleared to make way for comutation of downstream blocks, and
+      finally also the actual accelerated values.
+   */
    for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
       const unsigned int block = spatial_cell->velocity_block_list[block_i];
       Velocity_Block* block_ptr = spatial_cell->at(block);
@@ -167,33 +215,65 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
    Transform<Real,3,Affine> bwd_transform= fwd.transform.inverse();
    phiprof::stop("compute-transform");
 
-   /*compute all downstream blocks, blocks to which the distribution flows during this timestep*/   
+   /*compute all downstream blocks, blocks to which the distribution
+     flows during this timestep, this will also create new downstream
+     blocks
+    */   
    std::vector<unsigned int> downstream_blocks;
    compute_downstream_blocks(spatial_cell,fwd_transform,downstream_blocks);
-
-
-   /*As in article (Zerroukat 2012), interections of lines along z at
-     cell edges, with the Lagrangian departure cells xd-yd plane*/
-
-   Real *ztilde_ijk=new Real[downstream_blocks.size()*WID3];
-
-   /*Loop over all downstream blocks one at a time and compute their mass using slice-3d*/
+   
+   
+   /* Maximum and minimum extent of downstream blocks*/
+   Real max_downstream_z=spatial_cell->at(downstream_blocks[0])->parameters[BlockParams::VZCRD];
+   Real min_downstream_z=max_z;
    for (unsigned int block_i = 0; block_i < downstream_blocks.size(); block_i++){
-      const unsigned int dwns_block = downstream_blocks(block_i);
-      Velocity_Block* dwns_block_ptr = spatial_cell->at(block);
-      for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
-	
-	
-	const Eigen::Matrix<Real,3,1> s_node_position(block_start_vx + cell_xi*dvx,
-						      block_start_vy + cell_yi*dvy,
-						      block_start_vz + cell_zi*dvz);
-	/* and where it was rotated*/
-	const Eigen::Matrix<Real,3,1> s_node_position_tf=transform*s_node_position;	
+     const unsigned int block = downstream_blocks[block_i];
+     Velocity_Block* block_ptr = spatial_cell->at(block);
+     const Real dvz=block_ptr->parameters[BlockParams::DVZ];
+     const Real block_start_vz=block_ptr->parameters[BlockParams::VZCRD];
+     if(block_start_vz<min_downstream_z) min_downstream_z= block_start_vz;
+     if(block_start_vz+WID*dvz>max_downstream_z) max_downstream_z=block_start_vz+WID*dvz;
+   }
+      
+   
+
+   /*As in article (Zerroukat 2012), interections of lines along z
+     from the middle of the eulerian cells, with the Lagrangian
+     departure cells xd-yd plane*/
+
+
+
+   
+
+
+   
+   Real *ztilde_ijk=new Real[downstream_blocks.size()*WID3];
+   for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
+      const unsigned int block = spatial_cell->velocity_block_list[block_i];
+      Velocity_Block* block_ptr = spatial_cell->at(block);
+      const Real dvx=block_ptr->parameters[BlockParams::DVX];
+      const Real dvy=block_ptr->parameters[BlockParams::DVY];
+      /* shifted to start in middle of cells*/
+      const Real block_start_vx=block_ptr->parameters[BlockParams::VXCRD] + 0.5*dvx;
+      const Real block_start_vy=block_ptr->parameters[BlockParams::VYCRD] + 0.5*dvy;
+
+      
+
+      for (unsigned int cell_xi = 0; cell_xi< WID;cell_xi++) {
+	for (unsigned int cell_yi = 0; cell_yi< WID;cell_yi++){
+	  const Eigen::Vector<Real,3>  eulerian_column(block_start_vx + cell_xi*dvx,						      
+						       block_start_vy + cell_yi*dvy,
+						       0.0);
+
+	  
+	  
+	}
+      }
+
       }
    }
    delete[] ztilde_ijk;
-   
-   
+      
 }
 
 
