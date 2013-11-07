@@ -847,10 +847,13 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
 
    //Write necessary variables:
    //Determines whether we write in floats or doubles
+   const bool asFloat = false;
    for( uint i = 0; i < dataReducer.size(); ++i ) {
-      if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), dataReducer, i, vlsvWriter ) == false ) return false;
+      //if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), dataReducer, i, vlsvWriter ) == false ) return false;
+      if( writeDataReducer( mpiGrid, local_cells, asFloat, dataReducer, i, vlsvWriter ) == false ) return false;
    }
-   if( P::writeAsFloat == 1 ) {
+   //if( P::writeAsFloat == 1 ) {
+   if( asFloat ) {
       if( writeVelocitySpace<float>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
    } else {
       if( writeVelocitySpace<Real>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
