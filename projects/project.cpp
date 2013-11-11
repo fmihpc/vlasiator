@@ -10,6 +10,7 @@
 #include "Firehose/Firehose.h"
 #include "Flowthrough/Flowthrough.h"
 #include "Fluctuations/Fluctuations.h"
+#include "Harris/Harris.h"
 #include "KHB/KHB.h"
 #include "Larmor/Larmor.h"
 #include "Magnetosphere/Magnetosphere.h"
@@ -44,7 +45,7 @@ namespace projects {
       projects::Firehose::addParameters();
       projects::Flowthrough::addParameters();
       projects::Fluctuations::addParameters();
-//      projects::Harris::addParameters();
+      projects::Harris::addParameters();
       projects::KHB::addParameters();
       projects::Larmor::addParameters();
       projects::Magnetosphere::addParameters();
@@ -239,10 +240,10 @@ Project* createProject() {
          return new projects::Fluctuations;
    }
 
-/*   if(Parameters::projectName == "Harris") {
+   if(Parameters::projectName == "Harris") {
       return new projects::Harris;
    }
-*/
+
    if(Parameters::projectName == "KHB") {
       return new projects::KHB;
    }
