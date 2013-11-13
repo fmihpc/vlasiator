@@ -365,8 +365,8 @@ void reconstructionCoefficients(
       perturbedResult[Rec::a_xzz] = der_i2j1k1[fs::dPERBxdzz] - der_i1j1k1[fs::dPERBxdzz];
       
       perturbedResult[Rec::b_xx] = HALF * (der_i1j2k1[fs::dPERBydxx] + der_i1j1k1[fs::dPERBydxx]);
-      perturbedResult[Rec::b_xz] = HALF * (der_i1j2k1[fs::dPERBydzz] + der_i1j1k1[fs::dPERBydzz]);
-      perturbedResult[Rec::b_zz] = HALF * (der_i1j2k1[fs::dPERBydxz] + der_i1j1k1[fs::dPERBydxz]);
+      perturbedResult[Rec::b_xz] = HALF * (der_i1j2k1[fs::dPERBydxz] + der_i1j1k1[fs::dPERBydxz]);
+      perturbedResult[Rec::b_zz] = HALF * (der_i1j2k1[fs::dPERBydzz] + der_i1j1k1[fs::dPERBydzz]);
       perturbedResult[Rec::b_xxy] = der_i1j2k1[fs::dPERBydxx] - der_i1j1k1[fs::dPERBydxx];
       perturbedResult[Rec::b_xyz] = der_i1j2k1[fs::dPERBydxz] - der_i1j1k1[fs::dPERBydxz];
       perturbedResult[Rec::b_yzz] = der_i1j2k1[fs::dPERBydzz] - der_i1j1k1[fs::dPERBydzz];
@@ -396,54 +396,33 @@ void reconstructionCoefficients(
    
    // Calculate 2nd order reconstruction coefficients:
    perturbedResult[Rec::a_xy] = der_i2j1k1[fs::dPERBxdy] - der_i1j1k1[fs::dPERBxdy];
-   CHECK_FLOAT(perturbedResult[Rec::a_xy])
    perturbedResult[Rec::a_xz] = der_i2j1k1[fs::dPERBxdz] - der_i1j1k1[fs::dPERBxdz];
-   CHECK_FLOAT(perturbedResult[Rec::a_xz])
    perturbedResult[Rec::a_y ] = HALF*(der_i2j1k1[fs::dPERBxdy] + der_i1j1k1[fs::dPERBxdy]) - SIXTH*perturbedResult[Rec::a_xxy];
-   CHECK_FLOAT(perturbedResult[Rec::a_y ])
    perturbedResult[Rec::a_z ] = HALF*(der_i2j1k1[fs::dPERBxdz] + der_i1j1k1[fs::dPERBxdz]) - SIXTH*perturbedResult[Rec::a_xxz];
-   CHECK_FLOAT(perturbedResult[Rec::a_z ])
    
    perturbedResult[Rec::b_xy] = der_i1j2k1[fs::dPERBydx] - der_i1j1k1[fs::dPERBydx];
-   CHECK_FLOAT(perturbedResult[Rec::b_xy])
    perturbedResult[Rec::b_yz] = der_i1j2k1[fs::dPERBydz] - der_i1j1k1[fs::dPERBydz];
-   CHECK_FLOAT(perturbedResult[Rec::b_yz])
    perturbedResult[Rec::b_x ] = HALF*(der_i1j2k1[fs::dPERBydx] + der_i1j1k1[fs::dPERBydx]) - SIXTH*perturbedResult[Rec::b_xyy];
-   CHECK_FLOAT(perturbedResult[Rec::b_x ])
    perturbedResult[Rec::b_z ] = HALF*(der_i1j2k1[fs::dPERBydz] + der_i1j1k1[fs::dPERBydz]) - SIXTH*perturbedResult[Rec::b_yyz];
-   CHECK_FLOAT(perturbedResult[Rec::b_z ])
    
    perturbedResult[Rec::c_xz] = der_i1j1k2[fs::dPERBzdx] - der_i1j1k1[fs::dPERBzdx];
-   CHECK_FLOAT(perturbedResult[Rec::c_zx])
    perturbedResult[Rec::c_yz] = der_i1j1k2[fs::dPERBzdy] - der_i1j1k1[fs::dPERBzdy];
-   CHECK_FLOAT(perturbedResult[Rec::c_zy])
    perturbedResult[Rec::c_x ] = HALF*(der_i1j1k2[fs::dPERBzdx] + der_i1j1k1[fs::dPERBzdx]) - SIXTH*perturbedResult[Rec::c_xzz];
-   CHECK_FLOAT(perturbedResult[Rec::c_x ])
    perturbedResult[Rec::c_y ] = HALF*(der_i1j1k2[fs::dPERBzdy] + der_i1j1k1[fs::dPERBzdy]) - SIXTH*perturbedResult[Rec::c_yzz];
-   CHECK_FLOAT(perturbedResult[Rec::c_y ])
    
    perturbedResult[Rec::a_xx] = -HALF*(perturbedResult[Rec::b_xy] + perturbedResult[Rec::c_xz]);
-   CHECK_FLOAT(perturbedResult[Rec::a_xx])
    perturbedResult[Rec::b_yy] = -HALF*(perturbedResult[Rec::a_xy] + perturbedResult[Rec::c_yz]);
-   CHECK_FLOAT(perturbedResult[Rec::b_yy])
    perturbedResult[Rec::c_zz] = -HALF*(perturbedResult[Rec::a_xz] + perturbedResult[Rec::b_yz]);
-   CHECK_FLOAT(perturbedResult[Rec::c_zz])
    
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       perturbedResult[Rec::a_x ] = cep_i2j1k1[cp::PERBX] - cep_i1j1k1[cp::PERBX] - TENTH*perturbedResult[Rec::a_xxx];
-      CHECK_FLOAT(perturbedResult[Rec::a_x ])
       perturbedResult[Rec::b_y ] = cep_i1j2k1[cp::PERBY] - cep_i1j1k1[cp::PERBY] - TENTH*perturbedResult[Rec::b_yyy];
-      CHECK_FLOAT(perturbedResult[Rec::b_y ])
       perturbedResult[Rec::c_z ] = cep_i1j1k2[cp::PERBZ] - cep_i1j1k1[cp::PERBZ] - TENTH*perturbedResult[Rec::c_zzz];
-      CHECK_FLOAT(perturbedResult[Rec::c_z ])
    }
    if(RKCase == RK_ORDER2_STEP1) {
       perturbedResult[Rec::a_x ] = cep_i2j1k1[cp::PERBX_DT2] - cep_i1j1k1[cp::PERBX_DT2] - TENTH*perturbedResult[Rec::a_xxx];
-      CHECK_FLOAT(perturbedResult[Rec::a_x ])
       perturbedResult[Rec::b_y ] = cep_i1j2k1[cp::PERBY_DT2] - cep_i1j1k1[cp::PERBY_DT2] - TENTH*perturbedResult[Rec::b_yyy];
-      CHECK_FLOAT(perturbedResult[Rec::b_y ])
       perturbedResult[Rec::c_z ] = cep_i1j1k2[cp::PERBZ_DT2] - cep_i1j1k1[cp::PERBZ_DT2] - TENTH*perturbedResult[Rec::c_zzz];
-      CHECK_FLOAT(perturbedResult[Rec::c_z ])
    }
    
    #else
@@ -455,19 +434,13 @@ void reconstructionCoefficients(
    // Calculate 1st order reconstruction coefficients:
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       perturbedResult[Rec::a_0 ] = HALF*(cep_i2j1k1[cp::PERBX] + cep_i1j1k1[cp::PERBX]) - SIXTH*perturbedResult[Rec::a_xx];
-      CHECK_FLOAT(perturbedResult[Rec::a_0 ])
       perturbedResult[Rec::b_0 ] = HALF*(cep_i1j2k1[cp::PERBY] + cep_i1j1k1[cp::PERBY]) - SIXTH*perturbedResult[Rec::b_yy];
-      CHECK_FLOAT(perturbedResult[Rec::b_0 ])
       perturbedResult[Rec::c_0 ] = HALF*(cep_i1j1k2[cp::PERBZ] + cep_i1j1k1[cp::PERBZ]) - SIXTH*perturbedResult[Rec::c_zz];
-      CHECK_FLOAT(perturbedResult[Rec::c_0 ])
    }
    if(RKCase == RK_ORDER2_STEP1) {
       perturbedResult[Rec::a_0 ] = HALF*(cep_i2j1k1[cp::PERBX_DT2] + cep_i1j1k1[cp::PERBX_DT2]) - SIXTH*perturbedResult[Rec::a_xx];
-      CHECK_FLOAT(perturbedResult[Rec::a_0 ])
       perturbedResult[Rec::b_0 ] = HALF*(cep_i1j2k1[cp::PERBY_DT2] + cep_i1j1k1[cp::PERBY_DT2]) - SIXTH*perturbedResult[Rec::b_yy];
-      CHECK_FLOAT(perturbedResult[Rec::b_0 ])
       perturbedResult[Rec::c_0 ] = HALF*(cep_i1j1k2[cp::PERBZ_DT2] + cep_i1j1k1[cp::PERBZ_DT2]) - SIXTH*perturbedResult[Rec::c_zz];
-      CHECK_FLOAT(perturbedResult[Rec::c_0 ])
    }
 }
 
@@ -3067,6 +3040,32 @@ bool propagateFields(
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];
       mpiGrid[cellID]->parameters[CellParams::MAXFDT]=std::numeric_limits<Real>::max();
+      
+//       if(cellID == 103) {
+//          std::cout << "Cell " << cellID << std::endl
+//                    << "X " << mpiGrid[cellID]->parameters[CellParams::XCRD] << std::endl
+//                    << "Y " << mpiGrid[cellID]->parameters[CellParams::YCRD] << std::endl
+//                    << "Z " << mpiGrid[cellID]->parameters[CellParams::ZCRD] << std::endl
+//                    << "EX "   << mpiGrid[cellID]->parameters[CellParams::EX] << std::endl
+//                    << "EX "   << mpiGrid[cellID]->parameters[CellParams::EX] << std::endl
+//                    << "EXHALL_000_100 " << mpiGrid[cellID]->parameters[CellParams::EXHALL_000_100] << std::endl
+//                    << "EXHALL_001_101 " << mpiGrid[cellID]->parameters[CellParams::EXHALL_001_101] << std::endl
+//                    << "EXHALL_010_110 " << mpiGrid[cellID]->parameters[CellParams::EXHALL_010_110] << std::endl
+//                    << "EXHALL_011_111 " << mpiGrid[cellID]->parameters[CellParams::EXHALL_011_111] << std::endl
+//                    << "EY "   << mpiGrid[cellID]->parameters[CellParams::EY] << std::endl
+//                    << "EYHALL_000_010 " << mpiGrid[cellID]->parameters[CellParams::EYHALL_000_010] << std::endl
+//                    << "EYHALL_001_011 " << mpiGrid[cellID]->parameters[CellParams::EYHALL_001_011] << std::endl
+//                    << "EYHALL_100_110 " << mpiGrid[cellID]->parameters[CellParams::EYHALL_100_110] << std::endl
+//                    << "EYHALL_101_111 " << mpiGrid[cellID]->parameters[CellParams::EYHALL_101_111] << std::endl
+//                    << "EZ "   << mpiGrid[cellID]->parameters[CellParams::EZ] << std::endl
+//                    << "EZHALL_000_001 " << mpiGrid[cellID]->parameters[CellParams::EZHALL_000_001] << std::endl
+//                    << "EZHALL_010_011 " << mpiGrid[cellID]->parameters[CellParams::EZHALL_010_011] << std::endl
+//                    << "EZHALL_100_101 " << mpiGrid[cellID]->parameters[CellParams::EZHALL_100_101] << std::endl
+//                    << "EZHALL_110_111 " << mpiGrid[cellID]->parameters[CellParams::EZHALL_110_111] << std::endl;
+//                    for( int indi = 0; indi<fieldsolver::N_SPATIAL_CELL_DERIVATIVES; indi++) {
+//                       cout << mpiGrid[cellID]->derivatives[indi] << endl;
+//                    }
+//       }
    }
    
    calculateVolumeAveragedFields(mpiGrid);
