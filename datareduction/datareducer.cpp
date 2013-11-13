@@ -93,6 +93,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("fSaved",CellParams::ISCELLSAVINGF,1));
       if(*it == "VolE")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("E_vol",CellParams::EXVOL,3));
+      if(*it == "HallE") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EX_Hall",CellParams::EXHALL_000_100,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EY_Hall",CellParams::EYHALL_000_010,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("EZ_Hall",CellParams::EZHALL_000_001,1));
+      }
       if(*it == "VolB")
          outputReducer->addOperator(new DRO::VariableBVol);
       if(*it == "BackgroundVolB")
