@@ -22,6 +22,7 @@ Copyright 2012 Finnish Meteorological Institute
 #include "spatial_cell.hpp"
 
 #include <Eigen/Geometry>
+#include <Eigen/Core>
 #include "vlasovsolver/cpu_compute_downstream_blocks.hpp"
 using namespace std;
 using namespace spatial_cell;
@@ -128,8 +129,7 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
 
 
 Eigen::Matrix<Real,3,1> line_plane_intersection(const Eigen::Matrix<Real,3,1>& l_point,const Eigen::Matrix<Real,3,1>& l_direction,
-						const Eigen::Matrix<Real,3,1>& p_point,const Eigen::Matrix<Real,3,1>& p_normal,
-						Eigen::Matrix<Real,3,1>& intersection){
+						const Eigen::Matrix<Real,3,1>& p_point,const Eigen::Matrix<Real,3,1>& p_normal){
   const Real nom=p_normal.dot(p_point-l_point);
   const Real dem=p_normal.dot(l_direction);
   return l_point+(nom/dem)*l_direction;
@@ -140,56 +140,76 @@ Eigen::Matrix<Real,3,1> line_plane_intersection(const Eigen::Matrix<Real,3,1>& l
 Computes the first intersection data; this is z~ in section 2.4 in Zerroukat et al (2012). We assume all velocity cells have the same dimensions
 
 \param bwd_transform Transform that is used to compute the lagrangian departure grid
-\param intersections map keys are indices of line (with regards to coord1 and coord2), values are value of coordinate at first intersection, index of  first intersection and index of last intersection.
+\param intersections map keys are indices of line (with regards to coord1 and coord2), values are value of coordinate at first intersection, number of intersections.
 \param intersection_distance Distance between intersections
 */
 
 
 void intersections_1(SpatialCell* spatial_cell, std::vector<unsigned int> downstream_blocks,
-		     const Transform<Real,3,Affine>& bwd_transform,
-		     boost::unordered_map<std::tuple<uint64_t,uint64_t>, std::tuple<Real,int,int > >& intersections, 
+		     const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,
+		     boost::unordered_map< boost::array<int,2> , std::vector<Real> >& intersections, 
 		     Real& intersection_distance){
   
    Real max_z=spatial_cell->at(downstream_blocks[0])->parameters[BlockParams::VZCRD];
    Real min_z=max_z;
-   Real dvz;
+   Real dvz=spatial_cell->block_dvz;
 
 
   /*compute the i,j indices of all blocks, use set to get rid of dupicates
-   Also compute max and min z of blocks*/
-  boost::unordered_set< boost::array<int,2> > block_ij;
-  for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
-    const unsigned int block = spatial_cell->velocity_block_list[block_i];
-    Velocity_Block* block_ptr = spatial_cell->at(block);
-    dvz=block_ptr->parameters[BlockParams::DVZ];
-    const Real block_start_vz=block_ptr->parameters[BlockParams::VZCRD];
-    if(block_start_vz<min_z) min_z= block_start_vz;
-    if(block_start_vz+WID*dvz>max_z) max_z=block_start_vz+WID*dvz;
-    block_ij.insert( {{ block%WID , (block/WID)%WID }} );
+    Also compute max and min z of blocks*/
+   boost::unordered_set< boost::array<int,2> > block_ij;
+   for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
+     const unsigned int block = spatial_cell->velocity_block_list[block_i];
+     Velocity_Block* block_ptr = spatial_cell->at(block);
+     const Real block_start_vz=block_ptr->parameters[BlockParams::VZCRD];
+     if(block_start_vz<min_z) min_z= block_start_vz;
+     if(block_start_vz+WID*dvz>max_z) max_z=block_start_vz+WID*dvz;
+     block_ij.insert( {{ block%WID , (block/WID)%WID }} );
+   }
+  
+  
+   
+   /*compute xdyd plane normal*/
+   const Eigen::Matrix<Real,3,1> plane_normal=bwd_transform*Eigen::Matrix<Real,3,1>(0,0,1.0); //Normal of lagrangian planes
+   const Eigen::Matrix<Real,3,1> plane_point=bwd_transform*Eigen::Matrix<Real,3,1>(0,0,min_z); //Point on lowest lagrangian plane (not all blocks exist of course)
+   const Eigen::Matrix<Real,3,1> plane_delta=bwd_transform*Eigen::Matrix<Real,3,1>(0,0,dvz); //vector between two lagrangian planes
+   const Eigen::Matrix<Real,3,1> line_direction=Eigen::Matrix<Real,3,1>(0,0,1.0); //line along euclidian z direction, unit vector
+   
 
-  }
-  
-  
-
-  /*compute xdyd plane normal*/
-  const Eigen::Matrix<Real,3,1> plane_normal=bwd_transform*Eigen::Matrix<Real,3,1>(0,0,1.0);
-  const Eigen::Matrix<Real,3,1> plane_point=bwd_transform*Eigen::Matrix<Real,3,1>(0,0,min_z);
-  const Eigen::Matrix<Real,3,1> plane_delta=bwd_transform*Eigen::Matrix<Real,3,1>(0,0,dvz); //vector between two lagrangian planes
-  const Eigen::Matrix<Real,3,1> line_direction=Eigen::Matrix<Real,3,1>(0,0,1.0);
-  
-
-  
-  Real dvx_L = plane_delta.norm2()/plane_delta.dot(line_direction); /*<Distance between lagrangian planes along line direction in Euclidian coordinates,assuming line direction has unit length!*/
-  
-  /*loop over block_ij*/
-  for (const auto& ij: block_ij){
+   /*Distance between lagrangian planes along line direction in Euclidian coordinates,assuming line direction has unit length*/
+   intersection_distance = plane_delta.dot(plane_delta)/plane_delta.dot(line_direction); 
+   
+  /*loop over instersections and add intersection position to map*/
+   for (const auto& ij: block_ij){
     for (uint cell_xi=0;cell_xi<WID;cell_xi++){
       for (uint cell_yi=0;cell_yi<WID;cell_yi++){
-	Eigen::Matrix<Real,3,1> line_point((ij[0]*WID+cell_xi+0.5)*SpatialCell::block_dvx+SpatialCell::vx_min,
-					   (ij[1]*WID+cell_yi+0.5)*SpatialCell::block_dvy+SpatialCell::vy_min,
-					   0.0);
+
+	const Eigen::Matrix<Real,3,1> line_point((ij[0]*WID+cell_xi+0.5)*SpatialCell::block_dvx+SpatialCell::vx_min,
+						 (ij[1]*WID+cell_yi+0.5)*SpatialCell::block_dvy+SpatialCell::vy_min,
+						 0.0);
+	const boost::array<int,2> cell_ij = {{ ij[0] * WID + cell_xi , ij[1] * WID + cell_yi }}; /* cell indices in x and y*/
+	//	intersections.insert(std::make_pair(cell_ij,std::vector<Real>()));
 	
+	/*compute intersection between the line along z, with the lowest possible plane*/
+	Eigen::Matrix<Real,3,1> intersection=line_plane_intersection(line_point,line_direction,plane_point,plane_normal);
 	
+	/*loop over z coordinate of all possible intersections*/
+	while(intersection[2]<max_z) {
+
+	  /* Transform velocity coordinate of lagrangian cell to the actual one it has in the propagated state*/
+	  const Eigen::Matrix<Real,3,1> lagrangian_cell_velocity=fwd_transform*(intersection + plane_delta);
+	  
+	  /*check if block exists*/
+	  const unsigned int block=spatial_cell->get_velocity_block(lagrangian_cell_velocity[0],
+								    lagrangian_cell_velocity[1],
+								    lagrangian_cell_velocity[2]);
+	  /* exists, add z value to intersections list*/
+	  if(block!=error_velocity_block)
+	    intersections[cell_ij].push_back(intersection[2]);
+	  
+	  /*go to next possible intersection*/
+	  intersection[2]+=intersection_distance;
+	}
       }
     }
   }
