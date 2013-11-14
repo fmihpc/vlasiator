@@ -2,16 +2,16 @@ CMP = mpic++
 LNK = mpic++
 
 FLAGS =
-CXXFLAGS = -I $(HOME)/include -L $(HOME)/lib -O3  -funroll-loops -std=c++0x -fopenmp -W -Wall -pedantic -Wno-unused
+CXXFLAGS = -I $(HOME)/include  -L $(HOME)/lib -O3  -funroll-loops -std=c++0x -fopenmp -W -Wall -pedantic -Wno-unused -fabi-version=0 -mavx
 MATHFLAGS = -ffast-math
-LDFLAGS =
+LDFLAGS = -L $(HOME)/lib
 LIB_MPI = -lgomp 
 
 LIBRARY_PREFIX = $HOME
 LIBRARY_PREFIX_B = $HOME
 
 INC_BOOST =
-LIB_BOOST = -lboost_mpi -lboost_serialization -lboost_program_options
+LIB_BOOST = -lboost_program_options
 
 INC_ZOLTAN =
 LIB_ZOLTAN = -lzoltan
