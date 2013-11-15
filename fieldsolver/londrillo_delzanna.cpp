@@ -1044,16 +1044,16 @@ void calculateEdgeHallTermXComponents(
    cp[CellParams::EXHALL_011_111] = EXHall;
    #else
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      cp[CellParams::EXHALL_000_100] = calculateEdgeHallTermX(perturbedCoefficients, -1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DX];
-      cp[CellParams::EXHALL_010_110] = calculateEdgeHallTermX(perturbedCoefficients,  1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DX];
-      cp[CellParams::EXHALL_011_111] = calculateEdgeHallTermX(perturbedCoefficients,  1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DX];
-      cp[CellParams::EXHALL_001_101] = calculateEdgeHallTermX(perturbedCoefficients, -1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DX];
+      cp[CellParams::EXHALL_000_100] = calculateEdgeHallTermX(perturbedCoefficients, -1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) * cp[CellParams::DX];
+      cp[CellParams::EXHALL_010_110] = calculateEdgeHallTermX(perturbedCoefficients,  1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) * cp[CellParams::DX];
+      cp[CellParams::EXHALL_011_111] = calculateEdgeHallTermX(perturbedCoefficients,  1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) * cp[CellParams::DX];
+      cp[CellParams::EXHALL_001_101] = calculateEdgeHallTermX(perturbedCoefficients, -1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) * cp[CellParams::DX];
    }
    if(RKCase == RK_ORDER2_STEP1) {
-      cp[CellParams::EXHALL_000_100] = calculateEdgeHallTermX(perturbedCoefficients, -1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DX];
-      cp[CellParams::EXHALL_010_110] = calculateEdgeHallTermX(perturbedCoefficients,  1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DX];
-      cp[CellParams::EXHALL_011_111] = calculateEdgeHallTermX(perturbedCoefficients,  1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DX];
-      cp[CellParams::EXHALL_001_101] = calculateEdgeHallTermX(perturbedCoefficients, -1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DX];
+      cp[CellParams::EXHALL_000_100] = calculateEdgeHallTermX(perturbedCoefficients, -1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) * cp[CellParams::DX];
+      cp[CellParams::EXHALL_010_110] = calculateEdgeHallTermX(perturbedCoefficients,  1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) * cp[CellParams::DX];
+      cp[CellParams::EXHALL_011_111] = calculateEdgeHallTermX(perturbedCoefficients,  1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) * cp[CellParams::DX];
+      cp[CellParams::EXHALL_001_101] = calculateEdgeHallTermX(perturbedCoefficients, -1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) * cp[CellParams::DX];
    }
    #endif
 }
@@ -1093,16 +1093,16 @@ void calculateEdgeHallTermYComponents(
    cp[CellParams::EYHALL_001_011] = EYHall;
    #else
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      cp[CellParams::EYHALL_000_010] = calculateEdgeHallTermY(perturbedCoefficients, -1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DY];
-      cp[CellParams::EYHALL_100_110] = calculateEdgeHallTermY(perturbedCoefficients,  1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DY];
-      cp[CellParams::EYHALL_101_111] = calculateEdgeHallTermY(perturbedCoefficients,  1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DY];
-      cp[CellParams::EYHALL_001_011] = calculateEdgeHallTermY(perturbedCoefficients, -1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DY];
+      cp[CellParams::EYHALL_000_010] = calculateEdgeHallTermY(perturbedCoefficients, -1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) * cp[CellParams::DY];
+      cp[CellParams::EYHALL_100_110] = calculateEdgeHallTermY(perturbedCoefficients,  1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) * cp[CellParams::DY];
+      cp[CellParams::EYHALL_101_111] = calculateEdgeHallTermY(perturbedCoefficients,  1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) * cp[CellParams::DY];
+      cp[CellParams::EYHALL_001_011] = calculateEdgeHallTermY(perturbedCoefficients, -1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) * cp[CellParams::DY];
    }
    if(RKCase == RK_ORDER2_STEP1) {
-      cp[CellParams::EYHALL_000_010] = calculateEdgeHallTermY(perturbedCoefficients, -1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DY];
-      cp[CellParams::EYHALL_100_110] = calculateEdgeHallTermY(perturbedCoefficients,  1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DY];
-      cp[CellParams::EYHALL_101_111] = calculateEdgeHallTermY(perturbedCoefficients,  1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DY];
-      cp[CellParams::EYHALL_001_011] = calculateEdgeHallTermY(perturbedCoefficients, -1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DY];
+      cp[CellParams::EYHALL_000_010] = calculateEdgeHallTermY(perturbedCoefficients, -1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) * cp[CellParams::DY];
+      cp[CellParams::EYHALL_100_110] = calculateEdgeHallTermY(perturbedCoefficients,  1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) * cp[CellParams::DY];
+      cp[CellParams::EYHALL_101_111] = calculateEdgeHallTermY(perturbedCoefficients,  1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) * cp[CellParams::DY];
+      cp[CellParams::EYHALL_001_011] = calculateEdgeHallTermY(perturbedCoefficients, -1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) * cp[CellParams::DY];
    }
    #endif
 }
@@ -1142,16 +1142,16 @@ void calculateEdgeHallTermZComponents(
    cp[CellParams::EZHALL_010_011] = EZHall;
    #else
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      cp[CellParams::EZHALL_000_001] = calculateEdgeHallTermZ(perturbedCoefficients, -1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DZ];
-      cp[CellParams::EZHALL_100_101] = calculateEdgeHallTermZ(perturbedCoefficients,  1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DZ];
-      cp[CellParams::EZHALL_110_111] = calculateEdgeHallTermZ(perturbedCoefficients,  1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DZ];
-      cp[CellParams::EZHALL_010_011] = calculateEdgeHallTermZ(perturbedCoefficients, -1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DZ];
+      cp[CellParams::EZHALL_000_001] = calculateEdgeHallTermZ(perturbedCoefficients, -1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) * cp[CellParams::DZ];
+      cp[CellParams::EZHALL_100_101] = calculateEdgeHallTermZ(perturbedCoefficients,  1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) * cp[CellParams::DZ];
+      cp[CellParams::EZHALL_110_111] = calculateEdgeHallTermZ(perturbedCoefficients,  1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) * cp[CellParams::DZ];
+      cp[CellParams::EZHALL_010_011] = calculateEdgeHallTermZ(perturbedCoefficients, -1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) * cp[CellParams::DZ];
    }
    if(RKCase == RK_ORDER2_STEP1) {
-      cp[CellParams::EZHALL_000_001] = calculateEdgeHallTermZ(perturbedCoefficients, -1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DZ];
-      cp[CellParams::EZHALL_100_101] = calculateEdgeHallTermZ(perturbedCoefficients,  1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DZ];
-      cp[CellParams::EZHALL_110_111] = calculateEdgeHallTermZ(perturbedCoefficients,  1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DZ];
-      cp[CellParams::EZHALL_010_011] = calculateEdgeHallTermZ(perturbedCoefficients, -1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DZ];
+      cp[CellParams::EZHALL_000_001] = calculateEdgeHallTermZ(perturbedCoefficients, -1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) * cp[CellParams::DZ];
+      cp[CellParams::EZHALL_100_101] = calculateEdgeHallTermZ(perturbedCoefficients,  1.0, -1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) * cp[CellParams::DZ];
+      cp[CellParams::EZHALL_110_111] = calculateEdgeHallTermZ(perturbedCoefficients,  1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) * cp[CellParams::DZ];
+      cp[CellParams::EZHALL_010_011] = calculateEdgeHallTermZ(perturbedCoefficients, -1.0,  1.0) /  (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) * cp[CellParams::DZ];
    }
    #endif
 }
@@ -3041,7 +3041,7 @@ bool propagateFields(
       const CellID cellID = localCells[cell];
       mpiGrid[cellID]->parameters[CellParams::MAXFDT]=std::numeric_limits<Real>::max();
       
-//       if(cellID == 103) {
+//       if(cellID == 14) {
 //          std::cout << "Cell " << cellID << std::endl
 //                    << "X " << mpiGrid[cellID]->parameters[CellParams::XCRD] << std::endl
 //                    << "Y " << mpiGrid[cellID]->parameters[CellParams::YCRD] << std::endl
@@ -3063,9 +3063,9 @@ bool propagateFields(
 //                    << "EZHALL_100_101 " << mpiGrid[cellID]->parameters[CellParams::EZHALL_100_101] << std::endl
 //                    << "EZHALL_110_111 " << mpiGrid[cellID]->parameters[CellParams::EZHALL_110_111] << std::endl;
 //                    for( int indi = 0; indi<fieldsolver::N_SPATIAL_CELL_DERIVATIVES; indi++) {
-//                       cout << mpiGrid[cellID]->derivatives[indi] << endl;
+//                       cout << indi+1 << " " << mpiGrid[cellID]->derivatives[indi] << endl;
 //                    }
-//       }
+      }
    }
    
    calculateVolumeAveragedFields(mpiGrid);
