@@ -160,7 +160,7 @@ void compute_intersections_z(SpatialCell* spatial_cell, std::vector<unsigned int
   cout <<"number of downstream blocks " <<downstream_blocks.size()<< "total blocks "<<spatial_cell->number_of_blocks <<endl;
   Real max_z=spatial_cell->at(downstream_blocks[0])->parameters[BlockParams::VZCRD];
   Real min_z=max_z;
-  Real dvz=spatial_cell->block_dvz;
+  Real dvz=spatial_cell->cell_dvz;
    
   /*compute the i,j indices of all blocks, use set to get rid of dupicates
     Also compute max and min z of blocks*/
@@ -179,6 +179,8 @@ void compute_intersections_z(SpatialCell* spatial_cell, std::vector<unsigned int
    const Eigen::Matrix<Real,3,1> plane_delta=bwd_transform*Eigen::Matrix<Real,3,1>(0,0,dvz); //vector between two lagrangian planes
    const Eigen::Matrix<Real,3,1> line_direction=Eigen::Matrix<Real,3,1>(0,0,1.0); //line along euclidian z direction, unit vector
    
+   cout << "Angle of rotation "<< acos( plane_normal.dot(Eigen::Matrix<Real,3,1>(0,0,1.0))) * 180.0/(M_PI) <<endl;
+   cout << "dvz "<< dvz;
    /*Distance between lagrangian planes along line direction in Euclidian coordinates,assuming line direction has unit length*/
    intersection_distance = plane_delta.dot(plane_delta)/plane_delta.dot(line_direction); 
    
