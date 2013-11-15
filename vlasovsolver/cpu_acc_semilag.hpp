@@ -30,6 +30,13 @@ using namespace Eigen;
 
 
 
+
+
+
+
+
+
+
 /*Compute transform during on timestep, and update the bulk velocity of the cell*/
 
 Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spatial_cell, const Real dt) {
@@ -145,16 +152,16 @@ Computes the first intersection data; this is z~ in section 2.4 in Zerroukat et 
 */
 
 
-void intersections_1(SpatialCell* spatial_cell, std::vector<unsigned int> downstream_blocks,
+void compute_intersections_z(SpatialCell* spatial_cell, std::vector<unsigned int> downstream_blocks,
 		     const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,
 		     boost::unordered_map< boost::array<int,2> , std::vector<Real> >& intersections, 
 		     Real& intersection_distance){
   
-   Real max_z=spatial_cell->at(downstream_blocks[0])->parameters[BlockParams::VZCRD];
-   Real min_z=max_z;
-   Real dvz=spatial_cell->block_dvz;
-
-
+  cout <<"number of downstream blocks " <<downstream_blocks.size()<< "total blocks "<<spatial_cell->number_of_blocks <<endl;
+  Real max_z=spatial_cell->at(downstream_blocks[0])->parameters[BlockParams::VZCRD];
+  Real min_z=max_z;
+  Real dvz=spatial_cell->block_dvz;
+   
   /*compute the i,j indices of all blocks, use set to get rid of dupicates
     Also compute max and min z of blocks*/
    boost::unordered_set< boost::array<int,2> > block_ij;
@@ -166,20 +173,16 @@ void intersections_1(SpatialCell* spatial_cell, std::vector<unsigned int> downst
      if(block_start_vz+WID*dvz>max_z) max_z=block_start_vz+WID*dvz;
      block_ij.insert( {{ block%WID , (block/WID)%WID }} );
    }
-  
-  
-   
-   /*compute xdyd plane normal*/
+
    const Eigen::Matrix<Real,3,1> plane_normal=bwd_transform*Eigen::Matrix<Real,3,1>(0,0,1.0); //Normal of lagrangian planes
    const Eigen::Matrix<Real,3,1> plane_point=bwd_transform*Eigen::Matrix<Real,3,1>(0,0,min_z); //Point on lowest lagrangian plane (not all blocks exist of course)
    const Eigen::Matrix<Real,3,1> plane_delta=bwd_transform*Eigen::Matrix<Real,3,1>(0,0,dvz); //vector between two lagrangian planes
    const Eigen::Matrix<Real,3,1> line_direction=Eigen::Matrix<Real,3,1>(0,0,1.0); //line along euclidian z direction, unit vector
    
-
    /*Distance between lagrangian planes along line direction in Euclidian coordinates,assuming line direction has unit length*/
    intersection_distance = plane_delta.dot(plane_delta)/plane_delta.dot(line_direction); 
    
-  /*loop over instersections and add intersection position to map*/
+   /*loop over instersections and add intersection position to map*/
    for (const auto& ij: block_ij){
     for (uint cell_xi=0;cell_xi<WID;cell_xi++){
       for (uint cell_yi=0;cell_yi<WID;cell_yi++){
@@ -212,9 +215,9 @@ void intersections_1(SpatialCell* spatial_cell, std::vector<unsigned int> downst
 	}
       }
     }
-  }
+   }
 }
-      
+
 /*!  
 
 Propagates the distribution function in velocity space of given real
@@ -228,6 +231,13 @@ Meteorological Society 138.667 (2012): 1640-1651.
 */
 
 void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
+
+   /*compute transform, forward in time and backward in time*/
+   phiprof::start("compute-transform");
+   //compute the transform performed in this acceleration
+   Transform<Real,3,Affine> fwd_transform= compute_acceleration_transformation(spatial_cell,dt);
+   Transform<Real,3,Affine> bwd_transform= fwd_transform.inverse();
+   phiprof::stop("compute-transform");
 
  
   // Make a copy of the blocklist, these are the current Eulerian cells
@@ -252,21 +262,31 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
       }
    }
    
-   /*compute transform, forward in time and backward in time*/
-   phiprof::start("compute-transform");
-   //compute the transform performed in this acceleration
-   Transform<Real,3,Affine> fwd_transform= compute_acceleration_transformation(spatial_cell,dt);
-   Transform<Real,3,Affine> bwd_transform= fwd_transform.inverse();
-   phiprof::stop("compute-transform");
    
-   /*compute all downstream blocks, blocks to which the distribution
+   /*
+     compute all downstream blocks, blocks to which the distribution
      flows during this timestep, this will also create new downstream
      blocks
     */   
+   
    std::vector<unsigned int> downstream_blocks;
    compute_downstream_blocks(spatial_cell,fwd_transform,downstream_blocks);
+
+   boost::unordered_map< boost::array<int,2> , std::vector<Real> > intersections_z;
+   Real intersection_z_distance;
+   compute_intersections_z(spatial_cell, downstream_blocks, bwd_transform, fwd_transform,intersections_z,intersection_z_distance);
    
-   
+   cout<< "Distance "<<intersection_z_distance<<endl;
+   for (const auto& iz: intersections_z){   
+     cout<< iz.first[0] << ","<< iz.first [1]<< ": ";
+     for (const auto& z: iz.second){   
+       cout << z <<" ";
+     }
+     cout<<endl;
+
+
+   }
+   exit(1);
 
 
 
