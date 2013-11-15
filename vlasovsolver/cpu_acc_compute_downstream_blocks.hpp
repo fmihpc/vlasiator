@@ -1,5 +1,5 @@
-#ifndef CPU_DOWNSTREAM_BLOCKS_H
-#define CPU_DOWNSTREAM_BLOCKS_H
+#ifndef CPU_ACC_DOWNSTREAM_BLOCKS_H
+#define CPU_ACC_DOWNSTREAM_BLOCKS_H
 
 #include "spatial_cell.hpp"
 #include <Eigen/Geometry>
