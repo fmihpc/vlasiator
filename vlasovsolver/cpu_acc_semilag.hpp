@@ -208,12 +208,22 @@ void compute_intersections_z(SpatialCell* spatial_cell, std::vector<unsigned int
 	  const unsigned int block=spatial_cell->get_velocity_block(lagrangian_cell_velocity[0],
 								    lagrangian_cell_velocity[1],
 								    lagrangian_cell_velocity[2]);
-	  /* exists, add z value to intersections list*/
-	  if(block!=error_velocity_block)
+
+	  /*	  cout << "block " << block  << " vorg " << 
+	    intersection[0]+plane_delta[0] << ", "<<
+	    intersection[1]+plane_delta[1] << ", "<<
+	    intersection[2]+plane_delta[2] << "  lag_v "<<
+	    lagrangian_cell_velocity[0] << ", "<<
+	    lagrangian_cell_velocity[1] << ", "<<
+	    lagrangian_cell_velocity[2] << endl;
+	  */
+
+	  /* check if block exists, add z value to intersections list if it does*/
+	  if(! spatial_cell->is_null_block(spatial_cell->at(block))){
 	    intersections[cell_ij].push_back(intersection[2]);
-	  
-	  /*go to next possible intersection*/
-	  intersection[2]+=intersection_distance;
+	  }
+	    /*go to next possible intersection*/
+	    intersection[2]+=intersection_distance;
 	}
       }
     }
