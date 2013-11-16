@@ -86,10 +86,17 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
   compute_downstream_blocks(spatial_cell,fwd_transform,downstream_blocks);
  
   //TODO, we might want to compute a index instead of using an array, let's keep it for now and benchmark later on
+  boost::unordered_map<  boost::array<int,3> , Real > intersections_x;
   boost::unordered_map<  boost::array<int,3> , Real > intersections_z;
+  Real intersection_x_distance;
   Real intersection_z_distance;
   compute_intersections_z(spatial_cell, bwd_transform, fwd_transform,intersections_z,intersection_z_distance);
-  
+  compute_intersections_x(spatial_cell, bwd_transform, fwd_transform,intersections_x,intersection_x_distance);
+
+  cout<< "x-intersections "<<intersection_x_distance<<endl;
+  for (const auto& ix: intersections_x){   
+    cout<< ix.first[0] << ","<< ix.first [1] <<","<< ix.first[2]<< ": "<< ix.second<<endl;
+  }  
   
   cout<< "z-intersections "<<intersection_z_distance<<endl;
   for (const auto& iz: intersections_z){   
@@ -97,9 +104,8 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
   }
 
 
-  boost::unordered_map<  boost::array<int,3> , Real > intersections_x;
-  Real intersection_x_distance;
-  //compute_intersections_x(spatial_cell, bwd_transform, fwd_transform,intersections_z,intersection_z_distance,intersections_x,intersection_x_distance);
+
+
   //   compute_mapping
   exit(1);
   
