@@ -51,73 +51,87 @@ Computes the first intersection data; this is z~ in section 2.4 in Zerroukat et 
 */
 
 
-void compute_intersections_z(SpatialCell* spatial_cell, std::vector<unsigned int> downstream_blocks,
-		     const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,
-		     boost::unordered_map< boost::array<int,2> , std::vector<Real> >& intersections, 
-		     Real& intersection_distance){
+void compute_intersections_z(SpatialCell* spatial_cell,
+			     const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,
+			     boost::unordered_map< boost::array<int,3> , Real >& intersections, 
+			     Real& intersection_distance){
   
-  cout <<"number of downstream blocks " <<downstream_blocks.size()<< "total blocks "<<spatial_cell->number_of_blocks <<endl;
-  Real max_z=spatial_cell->at(downstream_blocks[0])->parameters[BlockParams::VZCRD];
-  Real min_z=max_z;
-  Real dvz=spatial_cell->cell_dvz;
-   
-  /*compute the i,j indices of all blocks, use set to get rid of dupicates
+  if(spatial_cell->number_of_blocks==0)
+    return; //not much to do
+  
+  uint min_z_bindex,max_z_bindex;
+  /*gather unique list of the i,j indices of all blocks, use set to get rid of dupicates
     Also compute max and min z of blocks*/
-   boost::unordered_set< boost::array<int,2> > block_ij;
-   for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
+  boost::unordered_set< boost::array<int,2> > block_ij;
+  for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
      const unsigned int block = spatial_cell->velocity_block_list[block_i];
      Velocity_Block* block_ptr = spatial_cell->at(block);
      const Real block_start_vz=block_ptr->parameters[BlockParams::VZCRD];
-     if(block_start_vz<min_z) min_z= block_start_vz;
-     if(block_start_vz+WID*dvz>max_z) max_z=block_start_vz+WID*dvz;
-     block_ij.insert( {{ block%WID , (block/WID)%WID }} );
-   }
+     const velocity_block_indices_t block_ijk= spatial_cell->get_velocity_block_indices(block);
 
-   const Eigen::Matrix<Real,3,1> plane_normal=bwd_transform*Eigen::Matrix<Real,3,1>(0,0,1.0); //Normal of lagrangian planes
-   const Eigen::Matrix<Real,3,1> plane_point=bwd_transform*Eigen::Matrix<Real,3,1>(0,0,min_z); //Point on lowest lagrangian plane (not all blocks exist of course)
-   const Eigen::Matrix<Real,3,1> plane_delta=bwd_transform*Eigen::Matrix<Real,3,1>(0,0,dvz); //vector between two lagrangian planes
-   const Eigen::Matrix<Real,3,1> line_direction=Eigen::Matrix<Real,3,1>(0,0,1.0); //line along euclidian z direction, unit vector
-   
-   cout << "Angle of rotation "<< acos( plane_normal.dot(Eigen::Matrix<Real,3,1>(0,0,1.0))) * 180.0/(M_PI) <<endl;
-   cout << "dvz "<< dvz;
-   /*Distance between lagrangian planes along line direction in Euclidian coordinates,assuming line direction has unit length*/
-   intersection_distance = plane_delta.dot(plane_delta)/plane_delta.dot(line_direction); 
-   
-   /*loop over instersections and add intersection position to map*/
-   for (const auto& ij: block_ij){
+     if(block_i==0) {
+       /*initialize values on first iteration, will not cost much as
+	 the branch predictor will optimize this if away*/
+       min_z_bindex = block_ijk[2]; 
+       max_z_bindex = block_ijk[2]; 
+     }
+     if( min_z_bindex > block_ijk[2] )
+       min_z_bindex = block_ijk[2]; //this is the lowest block index in z-direction
+
+     if( max_z_bindex < block_ijk[2] )
+       max_z_bindex = block_ijk[2]; //this is the highest block index in z-direction
+
+     block_ij.insert( {{ block_ijk[0] , block_ijk[1] }} );
+  }
+  
+  cout << "min/mz v index "<< min_z_bindex<< " " <<max_z_bindex <<endl;
+  const Eigen::Matrix<Real,3,1> plane_normal = bwd_transform*Eigen::Matrix<Real,3,1>(0,0,1.0); //Normal of lagrangian planes
+  const Eigen::Matrix<Real,3,1> plane_point =  bwd_transform*Eigen::Matrix<Real,3,1>(0,0,SpatialCell::vz_min+SpatialCell::block_dvz*min_z_bindex); //Point on lowest lagrangian plane (not all blocks exist of course)
+  const Eigen::Matrix<Real,3,1> plane_delta =  bwd_transform*Eigen::Matrix<Real,3,1>(0,0,SpatialCell::cell_dvz); //vector between two lagrangian planes
+  const Eigen::Matrix<Real,3,1> line_direction = Eigen::Matrix<Real,3,1>(0,0,1.0); //line along euclidian z direction, unit vector
+  
+  cout << "Angle of rotation "<< acos( plane_normal.dot(Eigen::Matrix<Real,3,1>(0,0,1.0))) * 180.0/(M_PI) <<endl;
+
+  /*Distance between lagrangian planes along line direction in Euclidian coordinates,assuming line direction has unit length*/
+  intersection_distance = plane_delta.dot(plane_delta)/plane_delta.dot(line_direction); 
+  
+  /*loop over instersections and add intersection position to map*/
+  /*first loop over ij in euclidian space*/
+  for (const auto& ij: block_ij){    
     for (uint cell_xi=0;cell_xi<WID;cell_xi++){
       for (uint cell_yi=0;cell_yi<WID;cell_yi++){
-
-	const Eigen::Matrix<Real,3,1> line_point((ij[0]*WID+cell_xi+0.5)*SpatialCell::block_dvx+SpatialCell::vx_min,
-						 (ij[1]*WID+cell_yi+0.5)*SpatialCell::block_dvy+SpatialCell::vy_min,
-						 0.0);
-	const boost::array<int,2> cell_ij = {{ ij[0] * WID + cell_xi , ij[1] * WID + cell_yi }}; /* cell indices in x and y*/
-	//	intersections.insert(std::make_pair(cell_ij,std::vector<Real>()));
 	
-	/*compute intersection between the line along z, with the lowest possible plane*/
+	const Eigen::Matrix<Real,3,1> line_point((ij[0]*WID+cell_xi+0.5)*SpatialCell::cell_dvx+SpatialCell::vx_min,
+						 (ij[1]*WID+cell_yi+0.5)*SpatialCell::cell_dvy+SpatialCell::vy_min,
+						 0.0);
+	boost::array<int,3> cell_ijk = {{ ij[0] * WID + cell_xi , ij[1] * WID + cell_yi , 0 }}; /* cell indices in x and y, z has a dummy value*/
+	/*compute intersection between the line along z, with the lowest possible plane corresponding to z-block min_z_bindex*/
 	Eigen::Matrix<Real,3,1> intersection=line_plane_intersection(line_point,line_direction,plane_point,plane_normal);
 	
-	/*loop over z coordinate of all possible intersections*/
-	while(intersection[2]<max_z) {
-
-	  /* Transform velocity coordinate of lagrangian cell to the actual one it has in the propagated state*/
-	  const Eigen::Matrix<Real,3,1> lagrangian_cell_velocity=fwd_transform*(intersection + plane_delta);
+	
+	/*loop over z of all possible intersections, indices in lagrangian space*/
+	for(uint  block_zi= min_z_bindex;block_zi<=max_z_bindex;block_zi++){
+	  for(uint cell_zi=0;cell_zi<WID;cell_zi++) {
+	    /* Transform velocity coordinate of lagrangian cell to the actual one it has in the propagated state*/
+	    const Eigen::Matrix<Real,3,1> lagrangian_cell_velocity=fwd_transform * ( intersection + plane_delta );
 	  
-	  /*check if block exists*/
-	  const unsigned int block=spatial_cell->get_velocity_block(lagrangian_cell_velocity[0],
-								    lagrangian_cell_velocity[1],
-								    lagrangian_cell_velocity[2]);
-
-	  /* check if block exists, add z value to intersections list if it does*/
-	  if(! spatial_cell->is_null_block(spatial_cell->at(block))){
-	    intersections[cell_ij].push_back(intersection[2]);
+	    /*check if block exists*/
+	    const unsigned int block=spatial_cell->get_velocity_block(lagrangian_cell_velocity[0],
+								      lagrangian_cell_velocity[1],
+								      lagrangian_cell_velocity[2]);
+	    
+	    /* check if block exists, add z value to intersections list if it does*/
+	    if(! spatial_cell->is_null_block(spatial_cell->at(block))){
+	      cell_ijk[2]=block_zi*WID+cell_zi;
+	      intersections[cell_ijk]=intersection[2];
+	    }
+	    /*go to next possible intersection*/
+	    intersection[2]+=intersection_distance;
 	  }
-	  /*go to next possible intersection*/
-	  intersection[2]+=intersection_distance;
 	}
       }
     }
-   }
+  }
 }
 
 #endif

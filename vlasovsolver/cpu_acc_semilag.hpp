@@ -59,52 +59,54 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
     upstream_blocks.push_back(spatial_cell->velocity_block_list[block_i]);
   }
   
-   /* Compute masses based on densities, and store it in fx. data is
-      cleared to make way for comutation of downstream blocks, and
-      finally also the actual accelerated values.
-   */
-   for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
-      const unsigned int block = spatial_cell->velocity_block_list[block_i];
-      Velocity_Block* block_ptr = spatial_cell->at(block);
-      const Real volume=block_ptr->parameters[BlockParams::DVX]*
-         block_ptr->parameters[BlockParams::DVY]*
+  /* Compute masses based on densities, and store it in fx. data is
+     cleared to make way for comutation of downstream blocks, and
+     finally also the actual accelerated values.
+  */
+  for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
+    const unsigned int block = spatial_cell->velocity_block_list[block_i];
+    Velocity_Block* block_ptr = spatial_cell->at(block);
+    const Real volume=block_ptr->parameters[BlockParams::DVX]*
+      block_ptr->parameters[BlockParams::DVY]*
          block_ptr->parameters[BlockParams::DVZ];
-      for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
-         block_ptr->fx[cell] = block_ptr->data[cell]*volume;
-         block_ptr->data[cell] = 0.0;
-      }
-   }
+    for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
+      block_ptr->fx[cell] = block_ptr->data[cell]*volume;
+      block_ptr->data[cell] = 0.0;
+    }
+  }
+  
+  
+  /*
+    compute all downstream blocks, blocks to which the distribution
+    flows during this timestep, this will also create new downstream
+    blocks
+  */   
+  
+  std::vector<unsigned int> downstream_blocks;
+  compute_downstream_blocks(spatial_cell,fwd_transform,downstream_blocks);
+ 
+  //TODO, we might want to compute a index instead of using an array, let's keep it for now and benchmark later on
+  boost::unordered_map<  boost::array<int,3> , Real > intersections_z;
+  Real intersection_z_distance;
+  compute_intersections_z(spatial_cell, bwd_transform, fwd_transform,intersections_z,intersection_z_distance);
+  
+  
+  cout<< "z-intersections "<<intersection_z_distance<<endl;
+  for (const auto& iz: intersections_z){   
+    cout<< iz.first[0] << ","<< iz.first [1] <<","<< iz.first[2]<< ": "<< iz.second<<endl;
+  }
+
+
+  boost::unordered_map<  boost::array<int,3> , Real > intersections_x;
+  Real intersection_x_distance;
+  //compute_intersections_x(spatial_cell, bwd_transform, fwd_transform,intersections_z,intersection_z_distance,intersections_x,intersection_x_distance);
+  //   compute_mapping
+  exit(1);
+  
    
    
-   /*
-     compute all downstream blocks, blocks to which the distribution
-     flows during this timestep, this will also create new downstream
-     blocks
-    */   
    
-   std::vector<unsigned int> downstream_blocks;
-   compute_downstream_blocks(spatial_cell,fwd_transform,downstream_blocks);
-
-   boost::unordered_map< boost::array<int,2> , std::vector<Real> > intersections_z;
-   Real intersection_z_distance;
-   compute_intersections_z(spatial_cell, downstream_blocks, bwd_transform, fwd_transform,intersections_z,intersection_z_distance);
-   
-   cout<< "Distance "<<intersection_z_distance<<endl;
-   for (const auto& iz: intersections_z){   
-     cout<< iz.first[0] << ","<< iz.first [1]<< ": ";
-     for (const auto& z: iz.second){   
-       cout << z <<" ";
-     }
-     cout<<endl;
-
-
-   }
-   exit(1);
-
-
-
-      
-}
+ }
 
 
    
