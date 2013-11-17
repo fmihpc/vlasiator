@@ -86,8 +86,10 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
   compute_downstream_blocks(spatial_cell,fwd_transform,downstream_blocks);
  
   //TODO, we might want to compute a index instead of using an array, let's keep it for now and benchmark later on
-  boost::unordered_map<  boost::array<int,3> , Real > intersections_x;
-  boost::unordered_map<  boost::array<int,3> , Real > intersections_z;
+  //intersections_z  key: x,y index of cell (euclidian), value: vector of pair(z index of cell (Lagrangian), z where cell starts)
+  boost::unordered_map<  boost::array<uint,2> , std::vector<  std::pair<uint,Real>  > > intersections_z;
+  //intersections_x  key: y (euclidian),z (lagrangian) index of cell, value: vector of pair(x index of cell (Lagrangian), x where cell starts)
+  boost::unordered_map<  boost::array<uint,2> , std::vector<  std::pair<uint,Real>  > > intersections_x;
   Real intersection_x_distance;
   Real intersection_z_distance;
   compute_intersections_z(spatial_cell, bwd_transform, fwd_transform,intersections_z,intersection_z_distance);
@@ -95,13 +97,20 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
 
   cout<< "x-intersections "<<intersection_x_distance<<endl;
   for (const auto& ix: intersections_x){   
-    cout<< ix.first[0] << ","<< ix.first [1] <<","<< ix.first[2]<< ": "<< ix.second<<endl;
+    cout<< ix.first[0] << ","<< ix.first [1] <<":";
+    for (const auto& value: ix.second) 
+      cout << value.first<< ","<< value.second<<" ";
+    cout <<endl;
+  }  
+
+  cout<< "z-intersectionsions "<<intersection_z_distance<<endl;
+  for (const auto& iz: intersections_z){   
+    cout<< iz.first[0] << ","<< iz.first [1] <<":";
+    for (const auto& value: iz.second) 
+      cout << value.first<< ","<< value.second<<" ";
+    cout <<endl;
   }  
   
-  cout<< "z-intersections "<<intersection_z_distance<<endl;
-  for (const auto& iz: intersections_z){   
-    cout<< iz.first[0] << ","<< iz.first [1] <<","<< iz.first[2]<< ": "<< iz.second<<endl;
-  }
 
 
 

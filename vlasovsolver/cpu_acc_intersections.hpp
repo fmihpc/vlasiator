@@ -44,16 +44,17 @@ Eigen::Matrix<Real,3,1> line_plane_intersection(const Eigen::Matrix<Real,3,1>& l
 
 /*!
 Computes the first intersection data; this is z~ in section 2.4 in Zerroukat et al (2012). We assume all velocity cells have the same dimensions
-
-\param bwd_transform Transform that is used to compute the lagrangian departure grid
-\param intersections map keys are indices of line (with regards to coord1 and coord2), values are value of coordinate at first intersection, number of intersections.
-\param intersection_distance Distance between intersections
+\param spatial_cell spatial cell that is accelerated
+\param fwd_transform Transform that describes acceleration forward in time
+\param bwd_transform Transform that describes acceleration backward in time, used to compute the lagrangian departure grid
+\param intersections_z  key: x,y index of cell (euclidian), value: vector of pair(z index of cell (Lagrangian), z where cell starts)
+\param intersection_distance Distance between intersections in z direction
 */
 
 
 void compute_intersections_z(SpatialCell* spatial_cell,
 			     const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,
-			     boost::unordered_map< boost::array<int,3> , Real >& intersections, 
+			     boost::unordered_map<  boost::array<uint,2> , std::vector<  std::pair<uint,Real> > >& intersections_z,
 			     Real& intersection_distance){
   
   if(spatial_cell->number_of_blocks==0)
@@ -62,7 +63,7 @@ void compute_intersections_z(SpatialCell* spatial_cell,
   uint min_z_bindex,max_z_bindex
 ;  /*gather unique list of the i,j indices of all blocks, use set to get rid of dupicates
     Also compute max and min z of blocks*/
-  boost::unordered_set< boost::array<int,2> > block_ij;
+  boost::unordered_set< boost::array<uint,2> > block_ij;
   for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
      const unsigned int block = spatial_cell->velocity_block_list[block_i];
      Velocity_Block* block_ptr = spatial_cell->at(block);
@@ -103,11 +104,10 @@ void compute_intersections_z(SpatialCell* spatial_cell,
 	const Eigen::Matrix<Real,3,1> line_point((ij[0]*WID+cell_xi+0.5)*SpatialCell::cell_dvx+SpatialCell::vx_min,
 						 (ij[1]*WID+cell_yi+0.5)*SpatialCell::cell_dvy+SpatialCell::vy_min,
 						 0.0);
-	boost::array<int,3> cell_ijk = {{ ij[0] * WID + cell_xi , ij[1] * WID + cell_yi , 0 }}; /* cell indices in x and y, z has a dummy value*/
 	/*compute intersection between the line along z, with the lowest possible plane corresponding to z-block min_z_bindex*/
 	Eigen::Matrix<Real,3,1> intersection=line_plane_intersection(line_point,line_direction,plane_point,plane_normal);
 	
-	
+	const boost::array<uint,2> cell_ij = {{ ij[0] * WID + cell_xi , ij[1] * WID + cell_yi }}; /* cell indices in x and y*/
 	/*loop over z of all possible intersections, indices in lagrangian space*/
 	for(uint  block_zi= min_z_bindex;block_zi<=max_z_bindex;block_zi++){
 	  for(uint cell_zi=0;cell_zi<WID;cell_zi++) {
@@ -122,8 +122,7 @@ void compute_intersections_z(SpatialCell* spatial_cell,
 	    /* check if block exists, add z value to intersections list if it does*/
 	    /*TODO, this check is probably not foolproof, would need an additional cell to make sure nothing is missed?*/
 	    if(! spatial_cell->is_null_block(spatial_cell->at(block))){
-	      cell_ijk[2]=block_zi*WID+cell_zi;
-	      intersections[cell_ijk]=intersection[2];
+	      intersections_z[cell_ij].push_back(std::make_pair(block_zi*WID+cell_zi,intersection[2]));
 	    }
 	    /*go to next possible intersection*/
 	    intersection[2]+=intersection_distance;
@@ -147,14 +146,14 @@ void compute_intersections_z(SpatialCell* spatial_cell,
 Computes the second intersection data; this is x~ in section 2.4 in Zerroukat et al (2012). We assume all velocity cells have the same dimensions
 
 \param bwd_transform Transform that is used to compute the lagrangian departure grid
-\param intersections map keys are indices of the new cells to which mass in mapped, x and y in euclidian space, z in lagrangian. Value is z-coordinate of cell
+\param intersections_x  key: y (euclidian),z (lagrangian) index of cell, value: vector of pair(x index of cell (Lagrangian), x where cell starts)
 \param intersection_distance Distance between intersections
 */
 
 
 void compute_intersections_x(SpatialCell* spatial_cell,
 			     const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,
-			     boost::unordered_map< boost::array<int,3> , Real >& intersections, 
+			     boost::unordered_map<  boost::array<uint,2> , std::vector<  std::pair<uint,Real> > >& intersections_x,
 			     Real& intersection_distance){
   
   if(spatial_cell->number_of_blocks==0)
@@ -165,7 +164,7 @@ void compute_intersections_x(SpatialCell* spatial_cell,
   uint min_y_bindex,max_y_bindex;
   /*gather unique list of the i,k indices of all blocks, use set to get rid of dupicates
     Also compute max and min z of blocks*/
-  boost::unordered_set< boost::array<int,2> > block_ik;  
+  boost::unordered_set< boost::array<uint,2> > block_ik;  
   for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
     const unsigned int block = spatial_cell->velocity_block_list[block_i];
     Velocity_Block* block_ptr = spatial_cell->at(block);
@@ -205,19 +204,16 @@ void compute_intersections_x(SpatialCell* spatial_cell,
   Real intersection_distance_L_x =intersection_2[0]-intersection_1[0];
   
 
-  /*loop over instersections and add intersection position to map*/
-  /*first loop over ij in euclidian space*/
-
-
+  /*loop over Lagrangian x,z blocks,cells*/
+  
   for (const auto& ik: block_ik){    
     for (uint cell_xi=0;cell_xi<WID;cell_xi++){
       for (uint cell_zi=0;cell_zi<WID;cell_zi++){
 	
 	const Eigen::Matrix<Real,3,1> line_point = bwd_transform*Eigen::Matrix<Real,3,1>((ik[0]*WID+cell_xi+0.5)*SpatialCell::cell_dvx+SpatialCell::vx_min,
-										       0.0,
-										       (ik[1]*WID+cell_zi+0.5)*SpatialCell::cell_dvz+SpatialCell::vz_min);
+											 0.0,
+											 (ik[1]*WID+cell_zi+0.5)*SpatialCell::cell_dvz+SpatialCell::vz_min);
 	
-	boost::array<int,3> cell_ijk = {{ ik[0] * WID + cell_xi,0 , ik[1] * WID + cell_zi  }}; /* cell indices in x and z, y has a dummy value*/
 
 	/*compute intersection between the line along lagrangian y, with the lowest possible plane corresponding to y-block min_y_bindex*/
 	
@@ -240,8 +236,8 @@ void compute_intersections_x(SpatialCell* spatial_cell,
 	    
 	    /* check if block exists, add z value to intersections list if it does*/
 	    if(! spatial_cell->is_null_block(spatial_cell->at(block))){
-	      cell_ijk[1]=block_yi*WID+cell_yi;
-	      intersections[cell_ijk]=intersection[0];
+	      boost::array<uint,2> cell_jk = {{block_yi*WID+cell_yi, ik[1] * WID + cell_zi  }}; /* cell indices in x and z*/
+	      intersections_x[cell_jk].push_back( std::make_pair( ik[0] * WID + cell_xi,intersection[0]));
 	    }
 
 	  }
