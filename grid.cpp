@@ -122,9 +122,7 @@ void initializeGrid(
          SpatialCell* cell = mpiGrid[cells[i]];
          project.setCellBackgroundField(cell);
       }
-      
-   }
-   else {
+   } else {
       //Initial state based on project, background field in all cells
       //and other initial values in non-sysboundary cells
       phiprof::start("Apply initial state");
@@ -297,8 +295,8 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
      for(unsigned int i=0;i<outgoing_cells_list.size();i++){
        uint64_t cell_id=outgoing_cells_list[i];
        SpatialCell* cell = mpiGrid[cell_id];
-       if(cell_id%num_part_transfers==transfer_part) 
-	 cell->clear(); //free memory of this cell as it has already been transferred. It will not be used anymore
+       if(cell_id%num_part_transfers==transfer_part)
+          cell->clear(); //free memory of this cell as it has already been transferred. It will not be used anymore
      }
    }
    phiprof::stop("Data transfers");
@@ -306,7 +304,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    phiprof::start("dccrg.finish_balance_load");
    mpiGrid.finish_balance_load();
    phiprof::stop("dccrg.finish_balance_load");
- 
+    
    //Make sure transfers are enabled for all cells
    cells = mpiGrid.get_cells();
    for (uint i=0; i<cells.size(); ++i) 
@@ -376,39 +374,38 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
      const vector<uint64_t>* neighbors = mpiGrid.get_neighbors(cell_id, NEAREST_NEIGHBORHOOD_ID);
      vector<SpatialCell*> neighbor_ptrs;
      neighbor_ptrs.reserve(neighbors->size());
-     for (vector<uint64_t>::const_iterator neighbor_id = neighbors->begin();
-	  neighbor_id != neighbors->end(); ++neighbor_id) {
+     for (vector<uint64_t>::const_iterator neighbor_id = neighbors->begin(); neighbor_id != neighbors->end(); ++neighbor_id) {
        if (*neighbor_id == 0 || *neighbor_id == cell_id) {
-	 continue;
-         }
+         continue;
+       }
        neighbor_ptrs.push_back(mpiGrid[*neighbor_id]);
      }
      if(P::sparse_conserve_mass) {
        for (unsigned int block_i = 0; block_i < cell->number_of_blocks; block_i++) {
-	 Velocity_Block * block_ptr = cell->at(cell->velocity_block_list[block_i]);
-	 for(unsigned int cell_i = 0;cell_i<WID3;cell_i++){
-	   density_pre_adjust+=block_ptr->data[cell_i]; 
-	 }
+         Velocity_Block * block_ptr = cell->at(cell->velocity_block_list[block_i]);
+         for(unsigned int cell_i = 0;cell_i<WID3;cell_i++){
+            density_pre_adjust+=block_ptr->data[cell_i]; 
+         }
        }
      }
      cell->adjust_velocity_blocks(neighbor_ptrs);
      
      if(P::sparse_conserve_mass) {
        for (unsigned int block_i = 0; block_i < cell->number_of_blocks; block_i++) {
-	 Velocity_Block * block_ptr = cell->at(cell->velocity_block_list[block_i]);
-	 for(unsigned int cell_i = 0;cell_i<WID3;cell_i++){
-	   density_post_adjust+=block_ptr->data[cell_i]; 
-	  }
+         Velocity_Block * block_ptr = cell->at(cell->velocity_block_list[block_i]);
+         for(unsigned int cell_i = 0;cell_i<WID3;cell_i++){
+            density_post_adjust+=block_ptr->data[cell_i]; 
+         }
        }
        if(density_post_adjust!=0.0){
-	 for (unsigned int block_i = 0; block_i < cell->number_of_blocks; block_i++) {
-	   Velocity_Block * block_ptr = cell->at(cell->velocity_block_list[block_i]);
-	   for(unsigned int cell_i = 0;cell_i<WID3;cell_i++){
-	     block_ptr->data[cell_i]*=density_pre_adjust/density_post_adjust;                           
-	   }
-	 }
-       }    
-     }    
+         for (unsigned int block_i = 0; block_i < cell->number_of_blocks; block_i++) {
+            Velocity_Block * block_ptr = cell->at(cell->velocity_block_list[block_i]);
+            for(unsigned int cell_i = 0;cell_i<WID3;cell_i++){
+               block_ptr->data[cell_i]*=density_pre_adjust/density_post_adjust;                           
+            }
+         }
+       }
+     }
    }
    phiprof::stop("Adjusting blocks");
 
@@ -497,13 +494,12 @@ void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    logFile << "(MEM)   Max capacity:     " << max_mem[2].val   << " on  process " << max_mem[2].rank << endl;
    logFile << "(MEM)   Min capacity:     " << min_mem[2].val   << " on  process " << min_mem[2].rank << endl;
    logFile << writeVerbose;
-}        
+}
 
 /*! Deallocates all block data in remote cells in order to save
  *  memory
  * \param mpiGrid Spatial grid
  */
- 
 void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    const std::vector<uint64_t> incoming_cells
       = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
@@ -538,7 +534,7 @@ void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell>& mpiGrid)
 
    phiprof::stop("Velocity block list update");
 
-   /*      
+   /*
    Prepare spatial cells for receiving velocity block data
    */
    
@@ -779,5 +775,4 @@ void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
    neighborhood.clear();
    neighborhood.push_back({{0, 0, -1}});
    mpiGrid.add_remote_update_neighborhood(SHIFT_P_Z_NEIGHBORHOOD_ID, neighborhood);
-
 }
