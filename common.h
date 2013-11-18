@@ -104,6 +104,7 @@ namespace CellParams {
       BGBX,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
       BGBY,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
       BGBZ,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
+      
       PERBX,  /*!< Perturbed Magnetic field x-component, averaged over cell x-face. Propagated by field solver.*/
       PERBY,  /*!< Perturbed Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
       PERBZ,  /*!< Perturbed Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
@@ -124,6 +125,30 @@ namespace CellParams {
       BGBXVOL,   /*!< background magnetic field averaged over spatial cell.*/
       BGBYVOL,   /*!< background magnetic field averaged over spatial cell.*/
       BGBZVOL,   /*!< background magnetic field averaged over spatial cell.*/
+      BGBX_000_010,   /*!< Background Bx averaged along y on -x/-z edge of spatial cell (for Hall term only).*/
+      BGBX_100_110,   /*!< Background Bx averaged along y on +x/-z edge of spatial cell (for Hall term only).*/
+      BGBX_001_011,   /*!< Background Bx averaged along y on -x/+z edge of spatial cell (for Hall term only).*/
+      BGBX_101_111,   /*!< Background Bx averaged along y on +x/+z edge of spatial cell (for Hall term only).*/
+      BGBX_000_001,   /*!< Background Bx averaged along z on -x/-y edge of spatial cell (for Hall term only).*/
+      BGBX_100_101,   /*!< Background Bx averaged along z on +x/-y edge of spatial cell (for Hall term only).*/
+      BGBX_010_011,   /*!< Background Bx averaged along z on +y/-x edge of spatial cell (for Hall term only).*/
+      BGBX_110_111,   /*!< Background Bx averaged along z on +x/+y edge of spatial cell (for Hall term only).*/
+      BGBY_000_100,   /*!< Background By averaged along x on -y/-z edge of spatial cell (for Hall term only).*/
+      BGBY_010_110,   /*!< Background By averaged along x on +y/-z edge of spatial cell (for Hall term only).*/
+      BGBY_001_101,   /*!< Background By averaged along x on -y/+z edge of spatial cell (for Hall term only).*/
+      BGBY_011_111,   /*!< Background By averaged along x on +y/+z edge of spatial cell (for Hall term only).*/
+      BGBY_000_001,   /*!< Background By averaged along z on -x/-y edge of spatial cell (for Hall term only).*/
+      BGBY_100_101,   /*!< Background By averaged along z on +x/-y edge of spatial cell (for Hall term only).*/
+      BGBY_010_011,   /*!< Background By averaged along z on +y/-x edge of spatial cell (for Hall term only).*/
+      BGBY_110_111,   /*!< Background By averaged along z on +x/+y edge of spatial cell (for Hall term only).*/
+      BGBZ_000_100,   /*!< Background Bz averaged along x on -y/-z edge of spatial cell (for Hall term only).*/
+      BGBZ_010_110,   /*!< Background Bz averaged along x on +y/-z edge of spatial cell (for Hall term only).*/
+      BGBZ_001_101,   /*!< Background Bz averaged along x on -y/+z edge of spatial cell (for Hall term only).*/
+      BGBZ_011_111,   /*!< Background Bz averaged along x on +y/+z edge of spatial cell (for Hall term only).*/
+      BGBZ_000_010,   /*!< Background Bz averaged along y on -x/-z edge of spatial cell (for Hall term only).*/
+      BGBZ_100_110,   /*!< Background Bz averaged along y on +x/-z edge of spatial cell (for Hall term only).*/
+      BGBZ_001_011,   /*!< Background Bz averaged along y on -x/+z edge of spatial cell (for Hall term only).*/
+      BGBZ_101_111,   /*!< Background Bz averaged along y on +x/+z edge of spatial cell (for Hall term only).*/
       PERBXVOL,  /*!< perturbed magnetic field  PERBX averaged over spatial cell.*/
       PERBYVOL,  /*!< perturbed magnetic field  PERBY averaged over spatial cell.*/
       PERBZVOL,  /*!< perturbed magnetic field  PERBZ averaged over spatial cell.*/

@@ -141,7 +141,6 @@ void initializeGrid(
          SpatialCell* cell = mpiGrid[cells[i]];
          project.setCellBackgroundField(cell);
       }
-      
    } else {
      //Initial state based on project, background field in all cells
      //and other initial values in non-sysboundary cells
