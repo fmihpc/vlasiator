@@ -1377,7 +1377,7 @@ void calculateHallTermSimple(
          }
       }
    }
-//    phiprof::stop(timer);
+   phiprof::stop(timer);
 //    timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
 //    phiprof::start(timer);
 //    mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
