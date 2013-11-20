@@ -1358,11 +1358,12 @@ void calculateHallTermSimple(
    int timer;
    phiprof::start("Calculate Hall term");
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DERIVATIVES);
+   mpiGrid.update_remote_neighbor_data(FIELD_SOLVER_NEIGHBORHOOD_ID);
    
-   timer=phiprof::initializeTimer("Start communication of derivatives","MPI");
-   phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_data_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
-   phiprof::stop(timer);
+//    timer=phiprof::initializeTimer("Start communication of derivatives","MPI");
+//    phiprof::start(timer);
+//    mpiGrid.start_remote_neighbor_data_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
+//    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute inner cells");
    phiprof::start(timer);
@@ -1418,11 +1419,11 @@ void calculateHallTermSimple(
          }
       }
    }
-   phiprof::stop(timer);
-   timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
-   phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
-   phiprof::stop(timer);
+//    phiprof::stop(timer);
+//    timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
+//    phiprof::start(timer);
+//    mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
+//    phiprof::stop(timer);
    timer=phiprof::initializeTimer("Compute boundary cells");
    phiprof::start(timer);
    // Calculate Hall term on boundary cells:
@@ -1478,10 +1479,10 @@ void calculateHallTermSimple(
       }
    }
    phiprof::stop(timer);
-   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
-   phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_sends();
-   phiprof::stop(timer);
+//    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+//    phiprof::start(timer);
+//    mpiGrid.wait_neighbor_data_update_sends();
+//    phiprof::stop(timer);
    
    phiprof::stop("Calculate Hall term");
 }
