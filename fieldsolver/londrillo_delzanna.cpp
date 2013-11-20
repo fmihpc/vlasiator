@@ -1358,12 +1358,11 @@ void calculateHallTermSimple(
    int timer;
    phiprof::start("Calculate Hall term");
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DERIVATIVES);
-   mpiGrid.update_remote_neighbor_data(FIELD_SOLVER_NEIGHBORHOOD_ID);
    
-//    timer=phiprof::initializeTimer("Start communication of derivatives","MPI");
-//    phiprof::start(timer);
-//    mpiGrid.start_remote_neighbor_data_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
-//    phiprof::stop(timer);
+   timer=phiprof::initializeTimer("Start communication of derivatives","MPI");
+   phiprof::start(timer);
+   mpiGrid.start_remote_neighbor_data_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute inner cells");
    phiprof::start(timer);
@@ -1420,10 +1419,10 @@ void calculateHallTermSimple(
       }
    }
    phiprof::stop(timer);
-//    timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
-//    phiprof::start(timer);
-//    mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
-//    phiprof::stop(timer);
+   timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
+   phiprof::start(timer);
+   mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   phiprof::stop(timer);
    timer=phiprof::initializeTimer("Compute boundary cells");
    phiprof::start(timer);
    // Calculate Hall term on boundary cells:
@@ -1479,10 +1478,10 @@ void calculateHallTermSimple(
       }
    }
    phiprof::stop(timer);
-//    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
-//    phiprof::start(timer);
-//    mpiGrid.wait_neighbor_data_update_sends();
-//    phiprof::stop(timer);
+   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+   phiprof::start(timer);
+   mpiGrid.wait_neighbor_data_update_sends();
+   phiprof::stop(timer);
    
    phiprof::stop("Calculate Hall term");
 }
@@ -2924,12 +2923,10 @@ void calculateDerivativesSimple(
          abort();
    }
    
-   mpiGrid.update_remote_neighbor_data(FIELD_SOLVER_NEIGHBORHOOD_ID);
-   
-//    timer=phiprof::initializeTimer("Start comm","MPI");
-//    phiprof::start(timer);
-//    mpiGrid.start_remote_neighbor_data_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
-//    phiprof::stop(timer);
+   timer=phiprof::initializeTimer("Start comm","MPI");
+   phiprof::start(timer);
+   mpiGrid.start_remote_neighbor_data_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute process inner cells");
    phiprof::start(timer);
@@ -2944,10 +2941,10 @@ void calculateDerivativesSimple(
    }
    phiprof::stop(timer);
    
-//    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
-//    phiprof::start(timer);
-//    mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
-//    phiprof::stop(timer);
+   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+   phiprof::start(timer);
+   mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   phiprof::stop(timer);
    
    // Calculate derivatives on process boundary cells
    timer=phiprof::initializeTimer("Compute process boundary cells");
@@ -2962,10 +2959,10 @@ void calculateDerivativesSimple(
    }
    phiprof::stop(timer);
    
-//    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
-//    phiprof::start(timer);
-//    mpiGrid.wait_neighbor_data_update_sends();
-//    phiprof::stop(timer);
+   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+   phiprof::start(timer);
+   mpiGrid.wait_neighbor_data_update_sends();
+   phiprof::stop(timer);
    
    phiprof::stop("Calculate face derivatives");
 }
@@ -2997,10 +2994,10 @@ void calculateUpwindedElectricFieldSimple(
    
    mpiGrid.update_remote_neighbor_data(FIELD_SOLVER_NEIGHBORHOOD_ID);
    
-//    timer=phiprof::initializeTimer("Start communication in calculateUpwindedElectricFieldSimple","MPI");
-//    phiprof::start(timer);
-//    mpiGrid.start_remote_neighbor_data_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
-//    phiprof::stop(timer);
+   timer=phiprof::initializeTimer("Start communication in calculateUpwindedElectricFieldSimple","MPI");
+   phiprof::start(timer);
+   mpiGrid.start_remote_neighbor_data_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute inner cells");
    phiprof::start(timer);
@@ -3044,10 +3041,10 @@ void calculateUpwindedElectricFieldSimple(
       }
    }
    phiprof::stop(timer);
-//    timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
-//    phiprof::start(timer);
-//    mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
-//    phiprof::stop(timer);
+   timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
+   phiprof::start(timer);
+   mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   phiprof::stop(timer);
    timer=phiprof::initializeTimer("Compute boundary cells");
    phiprof::start(timer);
    // Calculate upwinded electric field on boundary cells:
@@ -3090,10 +3087,10 @@ void calculateUpwindedElectricFieldSimple(
       }
    }
    phiprof::stop(timer);
-//    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
-//    phiprof::start(timer);
-//    mpiGrid.wait_neighbor_data_update_sends();
-//    phiprof::stop(timer);
+   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+   phiprof::start(timer);
+   mpiGrid.wait_neighbor_data_update_sends();
+   phiprof::stop(timer);
    
    // Exchange electric field with neighbouring processes
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -3147,14 +3144,19 @@ static void propagateMagneticFieldSimple(
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       // Exchange PERBX,PERBY,PERBZ with neighbours
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERB,true);
+//       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS|Transfer::CELL_DERIVATIVES);
    } else { // RKCase == RK_ORDER2_STEP1
       // Exchange PERBX_DT2,PERBY_DT2,PERBZ_DT2 with neighbours
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PERBDT2,true);
+//       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS|Transfer::CELL_DERIVATIVES);
    }
-   timer=phiprof::initializeTimer("Start comm of B","MPI");
-   phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_data_updates(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
-   phiprof::stop(timer);
+   
+   mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+   
+//    timer=phiprof::initializeTimer("Start comm of B","MPI");
+//    phiprof::start(timer);
+//    mpiGrid.start_remote_neighbor_data_updates(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+//    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute system boundary/process inner cells");
    phiprof::start(timer);
@@ -3170,10 +3172,10 @@ static void propagateMagneticFieldSimple(
    }
    phiprof::stop(timer);
    
-   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
-   phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_receives(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
-   phiprof::stop(timer);
+//    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+//    phiprof::start(timer);
+//    mpiGrid.wait_neighbor_data_update_receives(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+//    phiprof::stop(timer);
    
    // Propagate B on system boundary/process boundary cells
    timer=phiprof::initializeTimer("Compute system boundary/process boundary cells");
@@ -3191,10 +3193,10 @@ static void propagateMagneticFieldSimple(
    }
    phiprof::stop(timer);
    
-   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
-   phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_sends();
-   phiprof::stop(timer);
+//    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+//    phiprof::start(timer);
+//    mpiGrid.wait_neighbor_data_update_sends();
+//    phiprof::stop(timer);
    
    phiprof::stop("Propagate magnetic field");
 }
@@ -3509,6 +3511,7 @@ void calculateBVOLDerivativesSimple(
    phiprof::start("Calculate volume derivatives");
    
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_BVOL);
+   mpiGrid.update_remote_neighbor_data(FIELD_SOLVER_NEIGHBORHOOD_ID);
    
    timer=phiprof::initializeTimer("Start comm","MPI");
    phiprof::start(timer);

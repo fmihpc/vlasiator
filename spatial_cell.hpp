@@ -991,10 +991,12 @@ namespace velocity_neighbor {
                // send  BGBX BGBY BGBZ and all edge-averaged BGBs
                if((SpatialCell::mpi_transfer_type & Transfer::CELL_BGB)!=0){
                   displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBX]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * 27);
+                  block_lengths.push_back(sizeof(Real) * 3);
+                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBX_000_010]) - (uint8_t*) this);
+                  block_lengths.push_back(sizeof(Real) * 24);
                }
             
-               // send  BXVOL BYVOL BZVOL
+               // send  BGBXVOL BGBYVOL BGBZVOL PERBXVOL PERBYVOL PERBZVOL
                if((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL)!=0){
                   displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBXVOL]) - (uint8_t*) this);
                   block_lengths.push_back(sizeof(Real) * 6);
