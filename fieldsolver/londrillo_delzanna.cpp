@@ -2944,10 +2944,12 @@ void calculateUpwindedElectricFieldSimple(
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_DERIVATIVES);
    }
    
-   timer=phiprof::initializeTimer("Start communication in calculateUpwindedElectricFieldSimple","MPI");
-   phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_data_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
-   phiprof::stop(timer);
+   mpiGrid.update_remote_neighbor_data(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   
+//    timer=phiprof::initializeTimer("Start communication in calculateUpwindedElectricFieldSimple","MPI");
+//    phiprof::start(timer);
+//    mpiGrid.start_remote_neighbor_data_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
+//    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute inner cells");
    phiprof::start(timer);
@@ -2991,10 +2993,10 @@ void calculateUpwindedElectricFieldSimple(
       }
    }
    phiprof::stop(timer);
-   timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
-   phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
-   phiprof::stop(timer);
+//    timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
+//    phiprof::start(timer);
+//    mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
+//    phiprof::stop(timer);
    timer=phiprof::initializeTimer("Compute boundary cells");
    phiprof::start(timer);
    // Calculate upwinded electric field on boundary cells:
@@ -3037,10 +3039,10 @@ void calculateUpwindedElectricFieldSimple(
       }
    }
    phiprof::stop(timer);
-   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
-   phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_sends();
-   phiprof::stop(timer);
+//    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+//    phiprof::start(timer);
+//    mpiGrid.wait_neighbor_data_update_sends();
+//    phiprof::stop(timer);
    
    // Exchange electric field with neighbouring processes
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
