@@ -2873,10 +2873,12 @@ void calculateDerivativesSimple(
          abort();
    }
    
-   timer=phiprof::initializeTimer("Start comm","MPI");
-   phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_data_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
-   phiprof::stop(timer);
+   mpiGrid.update_remote_neighbor_data(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   
+//    timer=phiprof::initializeTimer("Start comm","MPI");
+//    phiprof::start(timer);
+//    mpiGrid.start_remote_neighbor_data_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
+//    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute process inner cells");
    phiprof::start(timer);
@@ -2891,10 +2893,10 @@ void calculateDerivativesSimple(
    }
    phiprof::stop(timer);
    
-   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
-   phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
-   phiprof::stop(timer);
+//    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+//    phiprof::start(timer);
+//    mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
+//    phiprof::stop(timer);
    
    // Calculate derivatives on process boundary cells
    timer=phiprof::initializeTimer("Compute process boundary cells");
@@ -2909,10 +2911,10 @@ void calculateDerivativesSimple(
    }
    phiprof::stop(timer);
    
-   timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
-   phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_sends();
-   phiprof::stop(timer);
+//    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
+//    phiprof::start(timer);
+//    mpiGrid.wait_neighbor_data_update_sends();
+//    phiprof::stop(timer);
    
    phiprof::stop("Calculate face derivatives");
 }
