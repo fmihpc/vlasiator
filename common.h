@@ -104,7 +104,6 @@ namespace CellParams {
       BGBX,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
       BGBY,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
       BGBZ,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
-      
       PERBX,  /*!< Perturbed Magnetic field x-component, averaged over cell x-face. Propagated by field solver.*/
       PERBY,  /*!< Perturbed Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
       PERBZ,  /*!< Perturbed Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
@@ -125,6 +124,9 @@ namespace CellParams {
       BGBXVOL,   /*!< background magnetic field averaged over spatial cell.*/
       BGBYVOL,   /*!< background magnetic field averaged over spatial cell.*/
       BGBZVOL,   /*!< background magnetic field averaged over spatial cell.*/
+      PERBXVOL,  /*!< perturbed magnetic field  PERBX averaged over spatial cell.*/
+      PERBYVOL,  /*!< perturbed magnetic field  PERBY averaged over spatial cell.*/
+      PERBZVOL,  /*!< perturbed magnetic field  PERBZ averaged over spatial cell.*/
       BGBX_000_010,   /*!< Background Bx averaged along y on -x/-z edge of spatial cell (for Hall term only).*/
       BGBX_100_110,   /*!< Background Bx averaged along y on +x/-z edge of spatial cell (for Hall term only).*/
       BGBX_001_011,   /*!< Background Bx averaged along y on -x/+z edge of spatial cell (for Hall term only).*/
@@ -149,9 +151,6 @@ namespace CellParams {
       BGBZ_100_110,   /*!< Background Bz averaged along y on +x/-z edge of spatial cell (for Hall term only).*/
       BGBZ_001_011,   /*!< Background Bz averaged along y on -x/+z edge of spatial cell (for Hall term only).*/
       BGBZ_101_111,   /*!< Background Bz averaged along y on +x/+z edge of spatial cell (for Hall term only).*/
-      PERBXVOL,  /*!< perturbed magnetic field  PERBX averaged over spatial cell.*/
-      PERBYVOL,  /*!< perturbed magnetic field  PERBY averaged over spatial cell.*/
-      PERBZVOL,  /*!< perturbed magnetic field  PERBZ averaged over spatial cell.*/
       EXVOL,     /*!< Ex averaged over spatial cell.*/
       EYVOL,     /*!< Ey averaged over spatial cell.*/
       EZVOL,     /*!< Ez averaged over spatial cell.*/
