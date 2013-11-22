@@ -357,26 +357,26 @@ void reconstructionCoefficients(
       perturbedResult[Rec::c_yzz] = 0.0;
       perturbedResult[Rec::c_zzz] = 0.0;
    } else if(reconstructionOrder == 3) {
-      perturbedResult[Rec::a_yy] = HALF * (der_i2j1k1[fs::dPERBxdyy] + der_i1j1k1[fs::dPERBxdyy]);
-      perturbedResult[Rec::a_zz] = HALF * (der_i2j1k1[fs::dPERBxdzz] + der_i1j1k1[fs::dPERBxdzz]);
-      perturbedResult[Rec::a_yz] = HALF * (der_i2j1k1[fs::dPERBxdyz] + der_i1j1k1[fs::dPERBxdyz]);
-      perturbedResult[Rec::a_xyy] = der_i2j1k1[fs::dPERBxdyy] - der_i1j1k1[fs::dPERBxdyy];
-      perturbedResult[Rec::a_xyz] = der_i2j1k1[fs::dPERBxdyz] - der_i1j1k1[fs::dPERBxdyz];
-      perturbedResult[Rec::a_xzz] = der_i2j1k1[fs::dPERBxdzz] - der_i1j1k1[fs::dPERBxdzz];
+      perturbedResult[Rec::a_yy] = HALF * (der_i2j1k1[fs::dPERBxdyy] + der_i1j1k1[fs::dPERBxdyy]) / cep_i1j1k1[CellParams::DY];
+      perturbedResult[Rec::a_zz] = HALF * (der_i2j1k1[fs::dPERBxdzz] + der_i1j1k1[fs::dPERBxdzz]) / cep_i1j1k1[CellParams::DZ];
+      perturbedResult[Rec::a_yz] = HALF * (der_i2j1k1[fs::dPERBxdyz] + der_i1j1k1[fs::dPERBxdyz]) / cep_i1j1k1[CellParams::DY];
+      perturbedResult[Rec::a_xyy] = (der_i2j1k1[fs::dPERBxdyy] - der_i1j1k1[fs::dPERBxdyy]) / cep_i1j1k1[CellParams::DY];
+      perturbedResult[Rec::a_xyz] = (der_i2j1k1[fs::dPERBxdyz] - der_i1j1k1[fs::dPERBxdyz]) / cep_i1j1k1[CellParams::DY];
+      perturbedResult[Rec::a_xzz] = (der_i2j1k1[fs::dPERBxdzz] - der_i1j1k1[fs::dPERBxdzz]) / cep_i1j1k1[CellParams::DZ];
       
-      perturbedResult[Rec::b_xx] = HALF * (der_i1j2k1[fs::dPERBydxx] + der_i1j1k1[fs::dPERBydxx]);
-      perturbedResult[Rec::b_xz] = HALF * (der_i1j2k1[fs::dPERBydxz] + der_i1j1k1[fs::dPERBydxz]);
-      perturbedResult[Rec::b_zz] = HALF * (der_i1j2k1[fs::dPERBydzz] + der_i1j1k1[fs::dPERBydzz]);
-      perturbedResult[Rec::b_xxy] = der_i1j2k1[fs::dPERBydxx] - der_i1j1k1[fs::dPERBydxx];
-      perturbedResult[Rec::b_xyz] = der_i1j2k1[fs::dPERBydxz] - der_i1j1k1[fs::dPERBydxz];
-      perturbedResult[Rec::b_yzz] = der_i1j2k1[fs::dPERBydzz] - der_i1j1k1[fs::dPERBydzz];
+      perturbedResult[Rec::b_xx] = HALF * (der_i1j2k1[fs::dPERBydxx] + der_i1j1k1[fs::dPERBydxx]) / cep_i1j1k1[CellParams::DX];
+      perturbedResult[Rec::b_xz] = HALF * (der_i1j2k1[fs::dPERBydxz] + der_i1j1k1[fs::dPERBydxz]) / cep_i1j1k1[CellParams::DX];
+      perturbedResult[Rec::b_zz] = HALF * (der_i1j2k1[fs::dPERBydzz] + der_i1j1k1[fs::dPERBydzz]) / cep_i1j1k1[CellParams::DZ];
+      perturbedResult[Rec::b_xxy] = (der_i1j2k1[fs::dPERBydxx] - der_i1j1k1[fs::dPERBydxx]) / cep_i1j1k1[CellParams::DX];
+      perturbedResult[Rec::b_xyz] = (der_i1j2k1[fs::dPERBydxz] - der_i1j1k1[fs::dPERBydxz]) / cep_i1j1k1[CellParams::DX];
+      perturbedResult[Rec::b_yzz] = (der_i1j2k1[fs::dPERBydzz] - der_i1j1k1[fs::dPERBydzz]) / cep_i1j1k1[CellParams::DY];
       
-      perturbedResult[Rec::c_xx] = HALF * (der_i1j1k2[fs::dPERBzdxx] + der_i1j1k1[fs::dPERBzdxx]);
-      perturbedResult[Rec::c_xy] = HALF * (der_i1j1k2[fs::dPERBzdxy] + der_i1j1k1[fs::dPERBzdxy]);
-      perturbedResult[Rec::c_yy] = HALF * (der_i1j1k2[fs::dPERBzdyy] + der_i1j1k1[fs::dPERBzdyy]);
-      perturbedResult[Rec::c_xxz] = der_i1j1k2[fs::dPERBzdxx] - der_i1j1k1[fs::dPERBzdxx];
-      perturbedResult[Rec::c_xyz] = der_i1j1k2[fs::dPERBzdxy] - der_i1j1k1[fs::dPERBzdxy];
-      perturbedResult[Rec::c_yyz] = der_i1j1k2[fs::dPERBzdyy] - der_i1j1k1[fs::dPERBzdyy];
+      perturbedResult[Rec::c_xx] = HALF * (der_i1j1k2[fs::dPERBzdxx] + der_i1j1k1[fs::dPERBzdxx]) / cep_i1j1k1[CellParams::DX];
+      perturbedResult[Rec::c_xy] = HALF * (der_i1j1k2[fs::dPERBzdxy] + der_i1j1k1[fs::dPERBzdxy]) / cep_i1j1k1[CellParams::DX];
+      perturbedResult[Rec::c_yy] = HALF * (der_i1j1k2[fs::dPERBzdyy] + der_i1j1k1[fs::dPERBzdyy]) / cep_i1j1k1[CellParams::DY];
+      perturbedResult[Rec::c_xxz] = (der_i1j1k2[fs::dPERBzdxx] - der_i1j1k1[fs::dPERBzdxx]) / cep_i1j1k1[CellParams::DX];
+      perturbedResult[Rec::c_xyz] = (der_i1j1k2[fs::dPERBzdxy] - der_i1j1k1[fs::dPERBzdxy]) / cep_i1j1k1[CellParams::DX];
+      perturbedResult[Rec::c_yyz] = (der_i1j1k2[fs::dPERBzdyy] - der_i1j1k1[fs::dPERBzdyy]) / cep_i1j1k1[CellParams::DY];
       
       perturbedResult[Rec::a_xxx] = -THIRD*(perturbedResult[Rec::b_xxy] + perturbedResult[Rec::c_xxz]);
       perturbedResult[Rec::a_xxy] = -FOURTH*perturbedResult[Rec::c_xyz];
@@ -426,7 +426,7 @@ void reconstructionCoefficients(
    }
    
    #else
-   for (int i=0; i<Rec::c_zz+1; ++i) {
+   for (int i=0; i<Rec::N_REC_COEFFICIENTS; ++i) {
       perturbedResult[i] = 0.0;
    }
    #endif
@@ -951,7 +951,7 @@ Real calculateEdgeHallTermX(
    (-pC[b_x] - p1y*pC[b_xy] - p1z*pC[b_xz] - p1y*p1z*pC[b_xyz] - p2y*pC[b_xyy] + pC[a_y] + 2.0*p1y*pC[a_yy] + p1z*pC[a_yz])
    +
    p1x2 * (pC[b_x] + p1y*pC[b_xy]) *
-   (-2.0*pC[b_xx] - 2.0*p1y*pC[b_xyy] + pC[a_xy] + 2.0*p1y*pC[a_xyy] + p1z*pC[a_xyz])
+   (-2.0*pC[b_xx] - 2.0*p1y*/*OHO*/pC[b_xxy] + pC[a_xy] + 2.0*p1y*pC[a_xyy] + p1z*pC[a_xyz])
    ;
 }
 
@@ -981,7 +981,7 @@ Real calculateEdgeHallTermY(
    (-pC[c_y] - p1z*pC[c_yz] - p1x*pC[c_xy] - p1x*p1z*pC[c_xyz] - p2z*pC[c_yzz] + pC[b_z] + 2.0*p1z*pC[b_zz] + p1x*pC[b_xz])
    +
    p1y2 * (pC[c_y] + p1z*pC[c_yz]) *
-   (-2.0*pC[c_yy] - 2.0*p1z*pC[c_yyz] + pC[b_yz] + 2.0*p1z*pC[b_yzz] + p1x*pC[b_xyz])
+   (-2.0*pC[c_yy] - 2.0*p1z*/*OHO*/pC[c_yyz] + pC[b_yz] + 2.0*p1z*pC[b_yzz] + p1x*pC[b_xyz])
    ;
 }
 
@@ -1004,14 +1004,14 @@ Real calculateEdgeHallTermZ(
    (pC[c_y] + 2.0*p1y*pC[c_yy] + p1x*pC[c_xy] - pC[b_z] - p1y*pC[b_yz] - p1x*pC[b_xz] - p1x*p1y*pC[b_xyz] - p2y*pC[b_yyz])
    +
    p1z2 * (pC[b_z] + p1y*pC[b_yz]) *
-   (pC[c_yz] + 2.0*p1y*pC[c_yyz] + p1x*pC[c_xyz] -2.0*pC[b_zz] - 2.0*p1y*pC[b_yzz])
+   (pC[c_yz] + 2.0*p1y*pC[c_yyz] + p1x*pC[c_xyz] - 2.0*pC[b_zz] - 2.0*p1y*pC[b_yzz])
    +
    // <Bx*(-dBxdz + dBzdx)>_z
    (BGBx + pC[a_0] + p1x*pC[a_x] + p1y*pC[a_y] + p2x*pC[a_xx] + p1x*p1y*pC[a_xy]) *
    (-pC[a_z] - p1x*pC[a_xz] - p1y*pC[a_yz] - p1x*p1y*pC[a_xyz] - p2x*pC[a_xxz] + pC[c_x] + 2.0*p1x*pC[c_xx] + p1y*pC[c_xy])
    +
    p1z2 * (pC[a_z] + p1x*pC[a_xz]) *
-   (-2.0*pC[a_zz] - 2.0*p1x*pC[a_xzz] + pC[c_xz] + 2.0*p1x*pC[c_xxz] + p1y*pC[c_xyz])
+   (-2.0*pC[a_zz] - 2.0*p1x*/*OHO*/pC[a_xzz] + pC[c_xz] + 2.0*p1x*pC[c_xxz] + p1y*pC[c_xyz])
    ;
 }
 
