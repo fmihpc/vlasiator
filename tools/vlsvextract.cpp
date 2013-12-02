@@ -258,6 +258,7 @@ Real * GetBVol( VLSVReader& vlsvReader, const string& meshName, const uint64_t& 
    //These are needed to determine the buffer size.
    VLSV::datatype variableDataType;
    uint64_t variableArraySize, variableVectorSize, variableDataSize;
+   bool foundSingleB = true;
    //getArrayInfo output: variableArraysize, variableVectorSize, ...
    if (vlsvReader.getArrayInfo("VARIABLE", "B_vol", meshName, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) {
       //cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
@@ -265,28 +266,50 @@ Real * GetBVol( VLSVReader& vlsvReader, const string& meshName, const uint64_t& 
       //return NULL;
       //If B_vol wasn't saved, return a warning and tell the user we're picking B instead
       if (vlsvReader.getArrayInfo("VARIABLE", "B", meshName, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) {
-         cerr << "ERROR, COULD NOT FIND B_VOL OR B FROM THE VLSV FILE AT " << __FILE__ << " " << __LINE__ << endl;
-         MPI_Finalize();
-         exit(1);
-         return NULL;
+         foundSingleB = false;
+         if ((vlsvReader.getArrayInfo("VARIABLE", "background_B", meshName, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) &&
+             (vlsvReader.getArrayInfo("VARIABLE", "perturbed_B", meshName, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false)
+            ) {
+            cerr << "ERROR, COULD NOT FIND (B_VOL) OR (B) OR (BGB + PERB) FROM THE VLSV FILE AT " << __FILE__ << " " << __LINE__ << endl;
+            MPI_Finalize();
+            exit(1);
+            return NULL;
+         }
       }
    }
-
    //Declare a buffer for reading the specific vector from the array
    char * the_actual_buffer = new char[variableVectorSize * variableDataSize];     //Needs to store vector times data size (Got that from getArrayInfo)
    Real * the_actual_buffer_ptr = reinterpret_cast<Real*>(the_actual_buffer);
    //The corresponding B vector is in the cellIndex we got from mesh -- we only need to read one vector -- that's why the '1' parameter
    const uint64_t numOfVecs = 1;
-   //store the vector in the_actual_buffer buffer -- the data is extracted vector at a time
-   if(vlsvReader.readArray("VARIABLE", "B_vol", cellIndex, numOfVecs, the_actual_buffer) == false) {
-      //If B_vol wasn't saved, return a warning and tell the user we're picking B instead
-      if(vlsvReader.readArray("VARIABLE", "B", cellIndex, numOfVecs, the_actual_buffer) == false) {
-         cerr << "ERROR, COULD NOT FIND B_VOL OR B FROM THE VLSV FILE AT " << __FILE__ << " " << __LINE__ << endl;
-         MPI_Finalize();
-         exit(1);
-         return NULL;
+   if(foundSingleB) {
+      //store the vector in the_actual_buffer buffer -- the data is extracted vector at a time
+      if(vlsvReader.readArray("VARIABLE", "B_vol", cellIndex, numOfVecs, the_actual_buffer) == false) {
+         //If B_vol wasn't saved, return a warning and tell the user we're picking B instead
+         if(vlsvReader.readArray("VARIABLE", "B", cellIndex, numOfVecs, the_actual_buffer) == false) {
+            cerr << "ERROR, COULD NOT FIND B_VOL OR B FROM THE VLSV FILE AT " << __FILE__ << " " << __LINE__ << endl;
+            MPI_Finalize();
+            exit(1);
+            return NULL;
+         }
+         cerr << "Warning: B_vol was not saved in the file, so picking B instead" << endl;
       }
-      cerr << "Warning: B_vol was not saved in the file, so picking B instead" << endl;
+   } else {
+      cerr << "Warning: B and B_vol were not saved in the file, so picking BGB+PERB instead" << endl;
+      if(vlsvReader.readArray("VARIABLE", "background_B", cellIndex, numOfVecs, the_actual_buffer) == false) {
+         cerr << "ERROR: Failed to read background_B in VSLV file at " <<  __FILE__ << " " << __LINE__ << endl;
+      }
+      Real bgbValue[3];
+      for(uint i=0; i<3; i++) bgbValue[i] = the_actual_buffer_ptr[i];
+      if(vlsvReader.readArray("VARIABLE", "perturbed_B", cellIndex, numOfVecs, the_actual_buffer) == false) {
+         cerr << "ERROR: Failed to read perturbed_B in VSLV file at " <<  __FILE__ << " " << __LINE__ << endl;
+      }
+      Real perbValue[3];
+      for(uint i=0; i<3; i++) perbValue[i] = the_actual_buffer_ptr[i];
+      Real bValue[3];
+      for(uint i=0; i<3; i++) bValue[i] = bgbValue[i] + perbValue[i];
+      the_actual_buffer_ptr = &(bValue[0]);
+      cout << " "; // If this magic line is not there the pointer does not get the summed values but only the perturbed ones. Compiler voodoo I (YK) guess.
    }
    //Return the B_vol vector in Real* form
    return the_actual_buffer_ptr;
