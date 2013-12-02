@@ -60,8 +60,7 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
   }
   
   /* Compute masses based on densities, and store it in fx. data is
-     cleared to make way for comutation of downstream blocks, and
-     finally also the actual accelerated values.
+     cleared to make way for the actual accelerated values.
   */
   for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
     const unsigned int block = spatial_cell->velocity_block_list[block_i];
@@ -76,45 +75,18 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
   }
   
   
-  /*
-    compute all downstream blocks, blocks to which the distribution
-    flows during this timestep, this will also create new downstream
-    blocks
-  */   
-  
-  std::vector<unsigned int> downstream_blocks;
-  compute_downstream_blocks(spatial_cell,fwd_transform,downstream_blocks);
  
   //TODO, we might want to compute a index instead of using an array, let's keep it for now and benchmark later on
-  //intersections_z  key: x,y index of cell (euclidian), value: vector of pair(z index of cell (Lagrangian), z where cell starts)
-  boost::unordered_map<  boost::array<uint,2> , std::vector<  std::pair<uint,Real>  > > intersections_z;
   //intersections_x  key: y (euclidian),z (lagrangian) index of cell, value: vector of pair(x index of cell (Lagrangian), x where cell starts)
-  boost::unordered_map<  boost::array<uint,2> , std::vector<  std::pair<uint,Real>  > > intersections_x;
-  Real intersection_x_distance;
-  Real intersection_z_distance;
-  compute_intersections_z(spatial_cell, bwd_transform, fwd_transform,intersections_z,intersection_z_distance);
-  compute_intersections_x(spatial_cell, bwd_transform, fwd_transform,intersections_x,intersection_x_distance);
-
-  cout<< "x-intersections "<<intersection_x_distance<<endl;
-  for (const auto& ix: intersections_x){   
-    cout<< ix.first[0] << ","<< ix.first [1] <<":";
-    for (const auto& value: ix.second) 
-      cout << value.first<< ","<< value.second<<" ";
-    cout <<endl;
-  }  
-
-  cout<< "z-intersectionsions "<<intersection_z_distance<<endl;
-  for (const auto& iz: intersections_z){   
-    cout<< iz.first[0] << ","<< iz.first [1] <<":";
-    for (const auto& value: iz.second) 
-      cout << value.first<< ","<< value.second<<" ";
-    cout <<endl;
-  }  
+  Real intersection_x;
+  Real intersection_x_di;
+  Real intersection_x_dj;
+  Real intersection_x_dk;
+    
   
-
-
-
-
+  compute_intersections_x(spatial_cell, bwd_transform, fwd_transform,
+			  intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
+  
   //   compute_mapping
   exit(1);
   
