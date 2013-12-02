@@ -363,11 +363,12 @@ Real * getB( oldVlsv::Reader& vlsvReader, const string& meshName, const uint64_t
    xmlAttributes.push_back(make_pair("name", "B"));
 
    if (vlsvReader.getArrayInfo("VARIABLE", xmlAttributes, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) {
+      xmlAttributes.pop_back();
+      
       cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
       exit(1);
       return NULL;
    }
-
    //Declare a buffer for reading the specific vector from the array
    char * the_actual_buffer = new char[variableVectorSize * variableDataSize];     //Needs to store vector times data size (Got that from getArrayInfo)
    if( variableDataSize != sizeof(Real) ) {
