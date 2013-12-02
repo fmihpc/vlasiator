@@ -3,18 +3,6 @@
 This file is part of Vlasiator.
 
 Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
-
  */
 
 
@@ -282,6 +270,7 @@ Real * GetBVol( VLSVReader& vlsvReader, const string& meshName, const uint64_t& 
    Real * the_actual_buffer_ptr = reinterpret_cast<Real*>(the_actual_buffer);
    //The corresponding B vector is in the cellIndex we got from mesh -- we only need to read one vector -- that's why the '1' parameter
    const uint64_t numOfVecs = 1;
+   // True if B_vol or B found
    if(foundSingleB) {
       //store the vector in the_actual_buffer buffer -- the data is extracted vector at a time
       if(vlsvReader.readArray("VARIABLE", "B_vol", cellIndex, numOfVecs, the_actual_buffer) == false) {
@@ -299,17 +288,22 @@ Real * GetBVol( VLSVReader& vlsvReader, const string& meshName, const uint64_t& 
       if(vlsvReader.readArray("VARIABLE", "background_B", cellIndex, numOfVecs, the_actual_buffer) == false) {
          cerr << "ERROR: Failed to read background_B in VSLV file at " <<  __FILE__ << " " << __LINE__ << endl;
       }
+      // Declare background B temp variable and save the values in the buffer
       Real bgbValue[3];
-      for(uint i=0; i<3; i++) bgbValue[i] = the_actual_buffer_ptr[i];
+      for(uint i=0; i<3; i++) {
+         bgbValue[i] = the_actual_buffer_ptr[i];
+      }
       if(vlsvReader.readArray("VARIABLE", "perturbed_B", cellIndex, numOfVecs, the_actual_buffer) == false) {
          cerr << "ERROR: Failed to read perturbed_B in VSLV file at " <<  __FILE__ << " " << __LINE__ << endl;
       }
       Real perbValue[3];
-      for(uint i=0; i<3; i++) perbValue[i] = the_actual_buffer_ptr[i];
-      Real bValue[3];
-      for(uint i=0; i<3; i++) bValue[i] = bgbValue[i] + perbValue[i];
-      the_actual_buffer_ptr = &(bValue[0]);
-      cout << " "; // If this magic line is not there the pointer does not get the summed values but only the perturbed ones. Compiler voodoo I (YK) guess.
+      for(uint i=0; i<3; i++) {
+         perbValue[i] = the_actual_buffer_ptr[i];
+      }
+      // Save the value into buffer ptr
+      for(uint i=0; i<3; i++) {
+         the_actual_buffer_ptr[i] = bgbValue[i] + perbValue[i];
+      }
    }
    //Return the B_vol vector in Real* form
    return the_actual_buffer_ptr;
