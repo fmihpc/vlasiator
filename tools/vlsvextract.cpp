@@ -415,7 +415,6 @@ Real * getB( oldVlsv::Reader& vlsvReader, const string& meshName, const uint64_t
    }
    //Return the B vector in Real* form
    return the_actual_buffer_ptr;
-
 }
 
 
@@ -423,7 +422,7 @@ void doRotation(
   Real * vx_crds_rotated, Real * vy_crds_rotated, Real * vz_crds_rotated,
   const Real * vx_crds, const Real * vy_crds, const Real * vz_crds, 
   const Real * B, const unsigned int vec_size
- 	      ) {
+) {
    //NOTE: assuming that B is a vector of size 3 and that _crds_rotated has been allocated
    //Using eigen3 library here.
    //Now we have the B vector, so now the idea is to rotate the v-coordinates so that B always faces z-direction
