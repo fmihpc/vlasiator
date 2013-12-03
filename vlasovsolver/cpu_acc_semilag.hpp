@@ -22,9 +22,9 @@ Copyright 2012 Finnish Meteorological Institute
 #include <Eigen/Geometry>
 #include <Eigen/Core>
 
-#include "vlasovsolver/cpu_acc_compute_downstream_blocks.hpp"
 #include "vlasovsolver/cpu_acc_transform.hpp"
 #include "vlasovsolver/cpu_acc_intersections.hpp"
+#include "vlasovsolver/cpu_acc_map.hpp"
 
 using namespace std;
 using namespace spatial_cell;
@@ -59,8 +59,9 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
     upstream_blocks.push_back(spatial_cell->velocity_block_list[block_i]);
   }
   
-  /* Compute masses based on densities, and store it in fx. data is
-     cleared to make way for the actual accelerated values.
+  /* 
+     Compute masses based on densities and store in data, fx is
+     cleared.
   */
   for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
     const unsigned int block = spatial_cell->velocity_block_list[block_i];
@@ -74,18 +75,35 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
     }
   }
   
-  
- 
-  //TODO, we might want to compute a index instead of using an array, let's keep it for now and benchmark later on
-  //intersections_x  key: y (euclidian),z (lagrangian) index of cell, value: vector of pair(x index of cell (Lagrangian), x where cell starts)
-  Real intersection_x;
-  Real intersection_x_di;
-  Real intersection_x_dj;
-  Real intersection_x_dk;
-    
-  
+  Real intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk;  
+  Real intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk;  
+  Real intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk;  
+  compute_intersections_z(spatial_cell, bwd_transform, fwd_transform,
+			  intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
   compute_intersections_x(spatial_cell, bwd_transform, fwd_transform,
 			  intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
+  compute_intersections_y(spatial_cell, bwd_transform, fwd_transform,
+			  intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
+  
+  
+  map_z(spatial_cell, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk); /*< map along z, mass from fx->data, clear fx*/
+  map_x(spatial_cell, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk); /*< map along z, mass from data->fx, clear data*/
+  map_y(spatial_cell, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk); /*< map along z, mass from fx->data, (clear fx)*/
+  
+
+  /* 
+     Compute densities from the mass we have created
+  */
+  for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
+    const unsigned int block = spatial_cell->velocity_block_list[block_i];
+    Velocity_Block* block_ptr = spatial_cell->at(block);
+    const Real volume=block_ptr->parameters[BlockParams::DVX]*
+      block_ptr->parameters[BlockParams::DVY]*
+      block_ptr->parameters[BlockParams::DVZ];
+    for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
+      block_ptr->data[cell]/=volume;
+    }
+  }
   
   //   compute_mapping
   exit(1);

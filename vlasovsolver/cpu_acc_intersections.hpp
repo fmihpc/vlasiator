@@ -124,4 +124,25 @@ void compute_intersections_x(const SpatialCell* spatial_cell,
 
 }
 
+
+/*!
+  Computes the third intersection data; this is y intersesctions in Zerroukat et al (2012). We assume all velocity cells have the same dimensions.
+  Intersection y-coordinate for (i,j,k) is: intersection + i * intersection_di + j * intersection_dj + k * intersection_dk 
+  \param spatial_cell spatial cell that is accelerated
+  \param fwd_transform Transform that describes acceleration forward in time
+  \param bwd_transform Transform that describes acceleration backward in time, used to compute the lagrangian departure grid
+  \param intersection Intersection y-coordinate at i,j,k=0
+  \param intersection_di Change in y-coordinate for a change in i index of 1
+  \param intersection_dj Change in y-coordinate for a change in j index of 1
+  \param intersection_dk Change in y-coordinate for a change in k index of 1
+*/
+void compute_intersections_y(const SpatialCell* spatial_cell,
+			     const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,
+			     Real& intersection,Real& intersection_di,Real& intersection_dj,Real& intersection_dk){
+  
+  //stub
+}
+
+
+
 #endif
