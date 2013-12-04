@@ -53,27 +53,8 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
    phiprof::stop("compute-transform");
 
  
-  // Make a copy of the blocklist, these are the current Eulerian cells
-  std::vector<unsigned int> upstream_blocks;
-  for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
-    upstream_blocks.push_back(spatial_cell->velocity_block_list[block_i]);
-  }
   
-  /* 
-     Compute masses based on densities and store in data, fx is
-     cleared.
-  */
-  for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
-    const unsigned int block = spatial_cell->velocity_block_list[block_i];
-    Velocity_Block* block_ptr = spatial_cell->at(block);
-    const Real volume=block_ptr->parameters[BlockParams::DVX]*
-      block_ptr->parameters[BlockParams::DVY]*
-         block_ptr->parameters[BlockParams::DVZ];
-    for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
-      block_ptr->fx[cell] = block_ptr->data[cell]*volume;
-      block_ptr->data[cell] = 0.0;
-    }
-  }
+
   
   Real intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk;  
   Real intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk;  
@@ -87,8 +68,8 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
   
   
   map_z(spatial_cell, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk); /*< map along z, mass from fx->data, clear fx*/
-  map_x(spatial_cell, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk); /*< map along z, mass from data->fx, clear data*/
-  map_y(spatial_cell, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk); /*< map along z, mass from fx->data, (clear fx)*/
+  map_x(spatial_cell, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk); /*< map along z, mass from fx->data, clear fx*/
+  map_y(spatial_cell, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk); /*< map along z, mass from fx->data, clear fx*/
   
 
   /* 
