@@ -71,26 +71,7 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
   map_1d(spatial_cell, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); /*< map along x*/
   map_1d(spatial_cell, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); /*< map along y*/
   
-
-  /* 
-     Compute densities from the mass we have created
-  */
-  for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
-    const unsigned int block = spatial_cell->velocity_block_list[block_i];
-    Velocity_Block* block_ptr = spatial_cell->at(block);
-    const Real volume=block_ptr->parameters[BlockParams::DVX]*
-      block_ptr->parameters[BlockParams::DVY]*
-      block_ptr->parameters[BlockParams::DVZ];
-    for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
-      block_ptr->data[cell]/=volume;
-    }
-  }
   
-  //   compute_mapping
-  exit(1);
-  
-   
-   
    
  }
 

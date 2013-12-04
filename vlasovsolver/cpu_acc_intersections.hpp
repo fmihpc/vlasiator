@@ -135,12 +135,28 @@ void compute_intersections_x(const SpatialCell* spatial_cell,
   \param intersection_di Change in y-coordinate for a change in i index of 1
   \param intersection_dj Change in y-coordinate for a change in j index of 1
   \param intersection_dk Change in y-coordinate for a change in k index of 1
+
+
+  euclidian y goes from vy_min to vy_max, this is mapped to wherever y plane is in lagrangian
+
 */
 void compute_intersections_y(const SpatialCell* spatial_cell,
 			     const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,
 			     Real& intersection,Real& intersection_di,Real& intersection_dj,Real& intersection_dk){
   
-  //stub
+  const Eigen::Matrix<Real,3,1> point_1 = bwd_transform*Eigen::Matrix<Real,3,1>(0.5 * SpatialCell::cell_dvx + SpatialCell::vx_min,
+										SpatialCell::vy_min,
+										0.5 * SpatialCell::cell_dvz + SpatialCell::vz_min);
+  
+  const Eigen::Matrix<Real,3,1> lagrangian_di = bwd_transform*Eigen::Matrix<Real,3,1>(SpatialCell::cell_dvx,0,0.0); 
+  const Eigen::Matrix<Real,3,1> lagrangian_dj = bwd_transform*Eigen::Matrix<Real,3,1>(0,SpatialCell::cell_dvy,0.0); 
+  const Eigen::Matrix<Real,3,1> lagrangian_dk = bwd_transform*Eigen::Matrix<Real,3,1>(0.0,0.0,SpatialCell::cell_dvz); 
+  
+  /*compute intersections, varying lines and plane in i,j,k*/
+  intersection=point_1[1];
+  intersection_di=point_1[1]+lagrangian_di[1];
+  intersection_dj=point_1[1]+lagrangian_dj[1];
+  intersection_dk=point_1[1]+lagrangian_dk[1];
 }
 
 

@@ -173,9 +173,9 @@ bool map_1d(SpatialCell* spatial_cell,   Real intersection, Real intersection_di
   for (unsigned int block_i = 0; block_i < nblocks; block_i++) {
     const unsigned int block = spatial_cell->velocity_block_list[block_i];
     blocks[block_i] = block; 
-    Velocity_Block* restrict block_ptr = spatial_cell->at(block);
-    Real * restrict fx = block_ptr->fx;
-    Real * restrict data = block_ptr->data;
+    Velocity_Block * __restrict__ block_ptr = spatial_cell->at(block);
+    Real * __restrict__ fx = block_ptr->fx;
+    Real * __restrict__ data = block_ptr->data;
 
     for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
       fx[cell] = data[cell];
