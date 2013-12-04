@@ -320,8 +320,10 @@ bool map_1d(SpatialCell* spatial_cell,   Real intersection, Real intersection_di
 	    j*cell_indices_to_id[1] +
 	    (lagrangian_gk_r%WID)*cell_indices_to_id[2];
 	  
-	  spatial_cell->increment_value(target_block_l,target_cell_l,target_mass_l*i_dr);
-	  spatial_cell->increment_value(target_block_r,target_cell_r,target_mass_r*i_dr);
+	  if (target_block_l < SpatialCell::max_velocity_blocks) 
+	    spatial_cell->increment_value(target_block_l,target_cell_l,target_mass_l*i_dr);
+	  if (target_block_r < SpatialCell::max_velocity_blocks) 
+	    spatial_cell->increment_value(target_block_r,target_cell_r,target_mass_r*i_dr);
 	  
 	}
       }

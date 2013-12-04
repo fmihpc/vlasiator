@@ -118,9 +118,9 @@ void compute_intersections_x(const SpatialCell* spatial_cell,
   Eigen::Matrix<Real,3,1> intersect_0_0_1 = line_plane_intersection(line_point + lagrangian_dk, line_direction, plane_point, plane_normal);
   
   intersection=intersect_0_0_0[0];
-  intersection_di = intersect_0_0_0[0] - intersect_1_0_0[0];
-  intersection_dj = intersect_0_0_0[0] - intersect_0_1_0[0];
-  intersection_dk = intersect_0_0_0[0] - intersect_0_0_1[0];
+  intersection_di = intersect_1_0_0[0] - intersect_0_0_0[0];
+  intersection_dj = intersect_0_1_0[0] - intersect_0_0_0[0];
+  intersection_dk = intersect_0_0_1[0] - intersect_0_0_0[0];
 
 }
 
@@ -154,9 +154,9 @@ void compute_intersections_y(const SpatialCell* spatial_cell,
   
   /*compute intersections, varying lines and plane in i,j,k*/
   intersection=point_1[1];
-  intersection_di=point_1[1]+lagrangian_di[1];
-  intersection_dj=point_1[1]+lagrangian_dj[1];
-  intersection_dk=point_1[1]+lagrangian_dk[1];
+  intersection_di=lagrangian_di[1];
+  intersection_dj=lagrangian_dj[1];
+  intersection_dk=lagrangian_dk[1];
 }
 
 
