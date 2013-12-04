@@ -67,9 +67,9 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
 			  intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
   
   
-  map_z(spatial_cell, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk); /*< map along z, mass from fx->data, clear fx*/
-  map_x(spatial_cell, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk); /*< map along z, mass from fx->data, clear fx*/
-  map_y(spatial_cell, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk); /*< map along z, mass from fx->data, clear fx*/
+  map_1d(spatial_cell, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); /*< map along z*/
+  map_1d(spatial_cell, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); /*< map along x*/
+  map_1d(spatial_cell, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); /*< map along y*/
   
 
   /* 
