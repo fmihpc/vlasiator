@@ -35,6 +35,9 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
    const Eigen::Matrix<Real,3,1> B(Bx,By,Bz);
    const Eigen::Matrix<Real,3,1> unit_B(B.normalized());
    const Real gyro_period = 2 * M_PI * Parameters::m  / (fabs(Parameters::q) * B.norm());
+   
+   cout <<"B: " << Bx << ", " << By << ", " << Bz << endl;
+   
    //Set maximum timestep limit for this cell, based on a  maximum allowed rotation angle
    //TODO, max angle could be read in from cfg
    spatial_cell->parameters[CellParams::MAXVDT]=gyro_period*(10.0/360.0);
@@ -57,9 +60,12 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
    const Real hallRho =  (rho <= Parameters::lorentzHallMinimumRho ) ? Parameters::lorentzHallMinimumRho : rho ;
    const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRho * Parameters::q );
 
+   
    Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::RHOVX_V]/rho,
                                  spatial_cell->parameters[CellParams::RHOVY_V]/rho,
                                  spatial_cell->parameters[CellParams::RHOVZ_V]/rho);   
+   cout <<"Rho "<<rho<<endl;
+   cout <<"V " << bulk_velocity[0]<<", "<< bulk_velocity[1]<<", "<< bulk_velocity[2]<<endl;
 
    /*compute total transformation*/
    Transform<Real,3,Affine> total_transform(Matrix4d::Identity());

@@ -51,9 +51,12 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
    Transform<Real,3,Affine> fwd_transform= compute_acceleration_transformation(spatial_cell,dt);
    Transform<Real,3,Affine> bwd_transform= fwd_transform.inverse();
    phiprof::stop("compute-transform");
-
+   
  
-  
+   cout<< "fwd_transform"<< fwd_transform.matrix()<<endl;
+   cout<< "bwd_transform"<< bwd_transform.matrix()<<endl;
+   cout<< "bwd_transform_linear"<< bwd_transform.linear().matrix()<<endl;
+
 
   
   Real intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk;  
@@ -78,8 +81,6 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
   map_1d(spatial_cell, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); /*< map along z*/
   map_1d(spatial_cell, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); /*< map along x*/
   map_1d(spatial_cell, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); /*< map along y*/
-  
-  
    
  }
 

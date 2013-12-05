@@ -296,7 +296,7 @@ bool map_1d(SpatialCell* spatial_cell,   Real intersection, Real intersection_di
 	  //than v_l, set it then to v_l
 	  const Real lagrangian_v = max(lagrangian_gk_r * intersection_dk + intersection_min, v_l);
 	  
-	  cout <<"vl vr lagrangian_v lagrangian_gklr" << v_l << " " << v_r << " " <<lagrangian_v<<" "<< lagrangian_gk_l << " " <<lagrangian_gk_r<< endl;
+	  //	  cout <<"vl vr lagrangian_v lagrangian_gklr" << v_l << " " << v_r << " " <<lagrangian_v<<" "<< lagrangian_gk_l << " " <<lagrangian_gk_r<< endl;
 	  
 	  //target mass is value in center of intersecting length,
 	  //times length (missing x,y, but they would be cancelled

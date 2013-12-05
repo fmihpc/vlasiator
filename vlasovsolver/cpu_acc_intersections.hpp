@@ -55,9 +55,8 @@ void compute_intersections_z(const SpatialCell* spatial_cell,
 			     const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,
 			     Real& intersection,Real& intersection_di,Real& intersection_dj,Real& intersection_dk){
   
-  const Eigen::Matrix<Real,3,1> plane_normal = bwd_transform*Eigen::Matrix<Real,3,1>(0,0,1.0); //Normal of lagrangian planes
+  const Eigen::Matrix<Real,3,1> plane_normal = bwd_transform.linear()*Eigen::Matrix<Real,3,1>(0,0,1.0); //Normal of lagrangian planes
   const Eigen::Matrix<Real,3,1> plane_point =  bwd_transform*Eigen::Matrix<Real,3,1>(0.0,0.0,SpatialCell::vz_min); /*<Point on lowest potential lagrangian plane */
-  const Eigen::Matrix<Real,3,1> plane_delta =  bwd_transform*Eigen::Matrix<Real,3,1>(0,0,SpatialCell::cell_dvz); //vector between two lagrangian planes
   const Eigen::Matrix<Real,3,1> line_direction = Eigen::Matrix<Real,3,1>(0,0,1.0); //line along euclidian z direction, unit vector
   const Eigen::Matrix<Real,3,1> line_point(0.5*SpatialCell::cell_dvx+SpatialCell::vx_min,
 					   0.5*SpatialCell::cell_dvy+SpatialCell::vy_min,
@@ -65,7 +64,7 @@ void compute_intersections_z(const SpatialCell* spatial_cell,
 
   const Eigen::Matrix<Real,3,1> euclidian_di  = Eigen::Matrix<Real,3,1>(SpatialCell::cell_dvx,0,0.0); 
   const Eigen::Matrix<Real,3,1> euclidian_dj  = Eigen::Matrix<Real,3,1>(0,SpatialCell::cell_dvy,0.0); 
-  const Eigen::Matrix<Real,3,1> lagrangian_dk = bwd_transform*Eigen::Matrix<Real,3,1>(0.0,0.0,SpatialCell::cell_dvz); 
+  const Eigen::Matrix<Real,3,1> lagrangian_dk = bwd_transform.linear()*Eigen::Matrix<Real,3,1>(0.0,0.0,SpatialCell::cell_dvz); 
   
   
   
@@ -74,6 +73,12 @@ void compute_intersections_z(const SpatialCell* spatial_cell,
   const Eigen::Matrix<Real,3,1> intersection_1_0_0 = line_plane_intersection(line_point + euclidian_di, line_direction, plane_point, plane_normal);
   const Eigen::Matrix<Real,3,1> intersection_0_1_0 = line_plane_intersection(line_point + euclidian_dj, line_direction, plane_point, plane_normal);
   const Eigen::Matrix<Real,3,1> intersection_0_0_1 = line_plane_intersection(line_point, line_direction, plane_point + lagrangian_dk, plane_normal);
+  
+  cout <<"line point " << line_point<<endl;
+  cout <<"line direction " << line_direction<<endl;
+  cout <<"plane point " << plane_point<<endl;
+  cout <<"plane normal " << plane_normal<<endl;
+  cout <<"intersection "<<intersection_0_0_0<<endl;
 
   intersection=intersection_0_0_0[2];
   intersection_di=intersection_1_0_0[2]-intersection_0_0_0[2];
@@ -99,14 +104,12 @@ void compute_intersections_x(const SpatialCell* spatial_cell,
 
   const Eigen::Matrix<Real,3,1> plane_normal = Eigen::Matrix<Real,3,1>(0.0, 1.0, 0.0); //Normal of Euclidian y-plane
   Eigen::Matrix<Real,3,1> plane_point =  Eigen::Matrix<Real,3,1>(0,SpatialCell::vy_min+SpatialCell::cell_dvy*0.5,0); //Point on lowest euclidian y-plane through middle of cells
-  const Eigen::Matrix<Real,3,1> plane_delta = Eigen::Matrix<Real,3,1>(0,SpatialCell::cell_dvy,0.0); //Distance between euclidian planes
-
-  const Eigen::Matrix<Real,3,1> lagrangian_di = bwd_transform * Eigen::Matrix<Real,3,1>(SpatialCell::cell_dvx,0,0.0); 
+  const Eigen::Matrix<Real,3,1> lagrangian_di = bwd_transform.linear() * Eigen::Matrix<Real,3,1>(SpatialCell::cell_dvx,0,0.0); 
   const Eigen::Matrix<Real,3,1> euclidian_dj  = Eigen::Matrix<Real,3,1>(0,SpatialCell::cell_dvy,0.0); //Distance between euclidian planes
-  const Eigen::Matrix<Real,3,1> lagrangian_dk = bwd_transform * Eigen::Matrix<Real,3,1>(0.0,0.0,SpatialCell::cell_dvz); 
+  const Eigen::Matrix<Real,3,1> lagrangian_dk = bwd_transform.linear() * Eigen::Matrix<Real,3,1>(0.0,0.0,SpatialCell::cell_dvz); 
   
   
-  const Eigen::Matrix<Real,3,1> line_direction = bwd_transform * Eigen::Matrix<Real,3,1>(0,1.0,0.0); //line along lagrangian y line, unit vector
+  const Eigen::Matrix<Real,3,1> line_direction = bwd_transform.linear() * Eigen::Matrix<Real,3,1>(0,1.0,0.0); //line along lagrangian y line, unit vector. Only rotation here, not translation
   const Eigen::Matrix<Real,3,1> line_point = bwd_transform * Eigen::Matrix<Real,3,1>(SpatialCell::vx_min,
 										     0.5*SpatialCell::cell_dvy+SpatialCell::vy_min,
 										     0.5*SpatialCell::cell_dvz+SpatialCell::vz_min);  
@@ -148,15 +151,16 @@ void compute_intersections_y(const SpatialCell* spatial_cell,
 										SpatialCell::vy_min,
 										0.5 * SpatialCell::cell_dvz + SpatialCell::vz_min);
   
-  const Eigen::Matrix<Real,3,1> lagrangian_di = bwd_transform*Eigen::Matrix<Real,3,1>(SpatialCell::cell_dvx,0,0.0); 
-  const Eigen::Matrix<Real,3,1> lagrangian_dj = bwd_transform*Eigen::Matrix<Real,3,1>(0,SpatialCell::cell_dvy,0.0); 
-  const Eigen::Matrix<Real,3,1> lagrangian_dk = bwd_transform*Eigen::Matrix<Real,3,1>(0.0,0.0,SpatialCell::cell_dvz); 
-  
+  const Eigen::Matrix<Real,3,1> lagrangian_di = bwd_transform.linear()*Eigen::Matrix<Real,3,1>(SpatialCell::cell_dvx,0,0.0); 
+  const Eigen::Matrix<Real,3,1> lagrangian_dj = bwd_transform.linear()*Eigen::Matrix<Real,3,1>(0,SpatialCell::cell_dvy,0.0); 
+  const Eigen::Matrix<Real,3,1> lagrangian_dk = bwd_transform.linear()*Eigen::Matrix<Real,3,1>(0.0,0.0,SpatialCell::cell_dvz); 
+  const Eigen::Matrix<Real,3,1> unit_y = Eigen::Matrix<Real,3,1>(0.0, 1.0, 0.0); //line along euclidian y direction, unit vector
   /*compute intersections, varying lines and plane in i,j,k*/
-  intersection=point_1[1];
-  intersection_di=lagrangian_di[1];
-  intersection_dj=lagrangian_dj[1];
-  intersection_dk=lagrangian_dk[1];
+  cout <<"lagrangian_dj:"<<endl<< lagrangian_dj<<endl;
+  intersection = point_1[1];
+  intersection_di = lagrangian_di[1];
+  intersection_dj = lagrangian_dj.dot(lagrangian_dj)/lagrangian_dj.dot(unit_y);
+  intersection_dk = lagrangian_dk[1];
 }
 
 
