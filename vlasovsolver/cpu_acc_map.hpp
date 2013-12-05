@@ -290,47 +290,39 @@ bool map_1d(SpatialCell* spatial_cell,   Real intersection, Real intersection_di
 	  //lagrangian grid, the intersecting cells
 	  const uint lagrangian_gk_l=(v_l-intersection_min)/intersection_dk; 
 	  const uint lagrangian_gk_r=(v_r-intersection_min)/intersection_dk;
-
-	  //the velocity between the two target cells. If both v_r and
-	  //v_l are in same cell then lagrangian_v will be smaller
-	  //than v_l, set it then to v_l
-	  const Real lagrangian_v = max(lagrangian_gk_r * intersection_dk + intersection_min, v_l);
 	  
-	  //	  cout <<"vl vr lagrangian_v lagrangian_gklr" << v_l << " " << v_r << " " <<lagrangian_v<<" "<< lagrangian_gk_l << " " <<lagrangian_gk_r<< endl;
-	  
-	  //target mass is value in center of intersecting length,
-	  //times length (missing x,y, but they would be cancelled
-	  //anyway when we divide to get density
-	  const Real target_mass_l = (f + A * (0.5*(lagrangian_v+v_l)-v_c))*(lagrangian_v - v_l);
-	  const Real target_mass_r = f*dv-target_mass_l; //the rest	  
-	  
-
-	  //the blocks of the two lagrangian cells
-	  const uint target_block_l = 
-	    block_indices[0]*block_indices_to_id[0]+
-	    block_indices[1]*block_indices_to_id[1]+
-	    (lagrangian_gk_l/WID)*block_indices_to_id[2];
-	  const uint target_block_r= 
-	    block_indices[0]*block_indices_to_id[0]+
-	    block_indices[1]*block_indices_to_id[1]+
-	    (lagrangian_gk_r/WID)*block_indices_to_id[2];
-	  
-	  //cell index in the block of the l,r target cells
-	  const uint target_cell_l = 
-	    i*cell_indices_to_id[0] + 
-	    j*cell_indices_to_id[1] +
-	    (lagrangian_gk_l%WID)*cell_indices_to_id[2];
-
-	  const uint target_cell_r = 
-	    i*cell_indices_to_id[0] + 
-	    j*cell_indices_to_id[1] +
-	    (lagrangian_gk_r%WID)*cell_indices_to_id[2];
-	  
-	  if (target_block_l < SpatialCell::max_velocity_blocks) 
-	    spatial_cell->increment_value(target_block_l,target_cell_l,target_mass_l*i_dv);
-	  if (target_block_r < SpatialCell::max_velocity_blocks) 
-	    spatial_cell->increment_value(target_block_r,target_cell_r,target_mass_r*i_dv);
-	  
+	  //todo, annoying loop. probably pretty bad for vectorization
+	  //since each i,j pair can have a different amount
+	  //here... based on distances one knows beforhand if the loop
+	  //can have 1-2, or 2-3 iterations, we could split the whole
+	  //thing..
+	  for(uint gk=lagrangian_gk_l;gk<=lagrangian_gk_r;gk++){
+	    //the blocks of the two lagrangian cells
+	    const uint target_block = 
+	      block_indices[0]*block_indices_to_id[0]+
+	      block_indices[1]*block_indices_to_id[1]+
+	      (gk/WID)*block_indices_to_id[2];
+	    //cell index in the target block 
+	    const uint target_cell = 
+	      i*cell_indices_to_id[0] + 
+	      j*cell_indices_to_id[1] +
+	      (gk%WID)*cell_indices_to_id[2];
+	    
+	    //the velocity between the two target cells. If both v_r and
+	    //v_l are in same cell then lagrangian_v will be smaller
+	    //than v_l, set it then to v_l
+	    const Real lagrangian_v_1 = max(gk * intersection_dk + intersection_min, v_l);
+	    const Real lagrangian_v_2 = min((gk+1) * intersection_dk + intersection_min, v_r);
+	    
+	    //target mass is value in center of intersecting length,
+	    //times length (missing x,y, but they would be cancelled
+	    //anyway when we divide to get density
+	    const Real target_mass = (f + A * (0.5*(lagrangian_v_1+lagrangian_v_2)-v_c))*(lagrangian_v_2 - lagrangian_v_1);
+	    
+	    if (target_block < SpatialCell::max_velocity_blocks) 
+	      spatial_cell->increment_value(target_block,target_cell,target_mass*i_dv);
+	    
+	  }
 	}
       }
     }

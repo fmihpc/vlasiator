@@ -147,20 +147,23 @@ void compute_intersections_y(const SpatialCell* spatial_cell,
 			     const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,
 			     Real& intersection,Real& intersection_di,Real& intersection_dj,Real& intersection_dk){
   
-  const Eigen::Matrix<Real,3,1> point_1 = bwd_transform*Eigen::Matrix<Real,3,1>(0.5 * SpatialCell::cell_dvx + SpatialCell::vx_min,
-										SpatialCell::vy_min,
-										0.5 * SpatialCell::cell_dvz + SpatialCell::vz_min);
-  
-  const Eigen::Matrix<Real,3,1> lagrangian_di = bwd_transform.linear()*Eigen::Matrix<Real,3,1>(SpatialCell::cell_dvx,0,0.0); 
-  const Eigen::Matrix<Real,3,1> lagrangian_dj = bwd_transform.linear()*Eigen::Matrix<Real,3,1>(0,SpatialCell::cell_dvy,0.0); 
-  const Eigen::Matrix<Real,3,1> lagrangian_dk = bwd_transform.linear()*Eigen::Matrix<Real,3,1>(0.0,0.0,SpatialCell::cell_dvz); 
-  const Eigen::Matrix<Real,3,1> unit_y = Eigen::Matrix<Real,3,1>(0.0, 1.0, 0.0); //line along euclidian y direction, unit vector
-  /*compute intersections, varying lines and plane in i,j,k*/
-  cout <<"lagrangian_dj:"<<endl<< lagrangian_dj<<endl;
-  intersection = point_1[1];
-  intersection_di = lagrangian_di[1];
-  intersection_dj = lagrangian_dj.dot(lagrangian_dj)/lagrangian_dj.dot(unit_y);
-  intersection_dk = lagrangian_dk[1];
+  const Eigen::Matrix<Real,3,1> point_0_0_0 = bwd_transform*Eigen::Matrix<Real,3,1>(0.5 * SpatialCell::cell_dvx + SpatialCell::vx_min,
+										    SpatialCell::vy_min,
+										    0.5 * SpatialCell::cell_dvz + SpatialCell::vz_min);
+  const Eigen::Matrix<Real,3,1> point_1_0_0 = bwd_transform*Eigen::Matrix<Real,3,1>(1.5 * SpatialCell::cell_dvx + SpatialCell::vx_min,
+										    SpatialCell::vy_min,
+										    0.5 * SpatialCell::cell_dvz + SpatialCell::vz_min);
+  const Eigen::Matrix<Real,3,1> point_0_1_0 = bwd_transform*Eigen::Matrix<Real,3,1>(0.5 * SpatialCell::cell_dvx + SpatialCell::vx_min,
+										    1.0 * SpatialCell::cell_dvy + SpatialCell::vy_min,
+										    0.5 * SpatialCell::cell_dvz + SpatialCell::vz_min);
+  const Eigen::Matrix<Real,3,1> point_0_0_1 = bwd_transform*Eigen::Matrix<Real,3,1>(0.5 * SpatialCell::cell_dvx + SpatialCell::vx_min,
+										    SpatialCell::vy_min,
+										    1.5 * SpatialCell::cell_dvz + SpatialCell::vz_min);
+
+  intersection = point_0_0_0[1];
+  intersection_di = point_1_0_0[1]-point_0_0_0[1];
+  intersection_dj = point_0_1_0[1]-point_0_0_0[1];
+  intersection_dk = point_0_0_1[1]-point_0_0_0[1];
 }
 
 
