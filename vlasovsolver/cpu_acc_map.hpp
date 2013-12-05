@@ -158,6 +158,7 @@ inline void copy_block_data_y(Velocity_Block *block,Real *values){
 }
 
 
+// TODO, looking at data the target block computation might be off?
 
 bool map_1d(SpatialCell* spatial_cell,   Real intersection, Real intersection_di, Real intersection_dj,Real intersection_dk,
 	   uint dimension ) {
@@ -185,7 +186,7 @@ bool map_1d(SpatialCell* spatial_cell,   Real intersection, Real intersection_di
   if(dimension>2)
     return false; //not possible
   
-  Real dr;
+  Real dv,v_min;
   Real is_temp;
   uint block_indices_to_id[3];
   uint cell_indices_to_id[3];
@@ -194,7 +195,8 @@ bool map_1d(SpatialCell* spatial_cell,   Real intersection, Real intersection_di
   case 0:
     /* i and k coordinates have been swapped*/
     /*set cell size in dimension direction*/
-    dr=SpatialCell::cell_dvx; 
+    dv=SpatialCell::cell_dvx; 
+    v_min=SpatialCell::vx_min; 
     /*swap intersection i and k coordinates*/
     is_temp=intersection_di;
     intersection_di=intersection_dk;
@@ -211,7 +213,8 @@ bool map_1d(SpatialCell* spatial_cell,   Real intersection, Real intersection_di
   case 1:
     /* j and k coordinates have been swapped*/
     /*set cell size in dimension direction*/
-    dr=SpatialCell::cell_dvy;
+    dv=SpatialCell::cell_dvy;
+    v_min=SpatialCell::vy_min; 
     /*swap intersection j and k coordinates*/
     is_temp=intersection_dj;
     intersection_dj=intersection_dk;
@@ -227,7 +230,8 @@ bool map_1d(SpatialCell* spatial_cell,   Real intersection, Real intersection_di
     break;
   case 2:
     /*set cell size in dimension direction*/
-    dr=SpatialCell::cell_dvz;
+    dv=SpatialCell::cell_dvz;
+    v_min=SpatialCell::vz_min; 
     /*set values in array that is used to transfer blockindices to id using a dot product*/
     block_indices_to_id[0]=1;
     block_indices_to_id[1]=SpatialCell::vx_length;
@@ -238,7 +242,7 @@ bool map_1d(SpatialCell* spatial_cell,   Real intersection, Real intersection_di
     cell_indices_to_id[2]=WID2;
     break;
   }
-  const Real i_dr=1.0/dr;
+  const Real i_dv=1.0/dv;
   
   for (unsigned int block_i = 0; block_i < nblocks; block_i++) {
     Velocity_Block *block=spatial_cell->at(blocks[block_i]);
@@ -269,9 +273,9 @@ bool map_1d(SpatialCell* spatial_cell,   Real intersection, Real intersection_di
      */
     for (uint k=0; k<WID; ++k){ 
       //todo, could also compute z index and compute the start velocity of block
-      const Real v_l=(WID*block_indices[2]+k)*dr;
-      const Real v_c=v_l+0.5*dr;
-      const Real v_r=v_l+dr;
+      const Real v_l=(WID*block_indices[2]+k)*dv+v_min;
+      const Real v_c=v_l+0.5*dv;
+      const Real v_r=v_l+dv;
       for (uint j = 0; j < WID; ++j){
 	for (uint i = 0; i < WID; ++i){
 	  const Real intersection_min=intersection +
@@ -281,7 +285,7 @@ bool map_1d(SpatialCell* spatial_cell,   Real intersection, Real intersection_di
 	  const Real f = values[i_pblock(i,j,k)];
 	  //A is slope of linear approximation
 	  const Real A = slope_limiter(values[i_pblock(i,j,k-1)],
-				       f,values[i_pblock(i,j,k+1)])*i_dr;
+				       f,values[i_pblock(i,j,k+1)])*i_dv;
 	  //left(l) and right(r) k values (global index) in the target
 	  //lagrangian grid, the intersecting cells
 	  const uint lagrangian_gk_l=(v_l-intersection_min)/intersection_dk; 
@@ -292,11 +296,13 @@ bool map_1d(SpatialCell* spatial_cell,   Real intersection, Real intersection_di
 	  //than v_l, set it then to v_l
 	  const Real lagrangian_v = max(lagrangian_gk_r * intersection_dk + intersection_min, v_l);
 	  
+	  cout <<"vl vr lagrangian_v lagrangian_gklr" << v_l << " " << v_r << " " <<lagrangian_v<<" "<< lagrangian_gk_l << " " <<lagrangian_gk_r<< endl;
+	  
 	  //target mass is value in center of intersecting length,
 	  //times length (missing x,y, but they would be cancelled
 	  //anyway when we divide to get density
 	  const Real target_mass_l = (f + A * (0.5*(lagrangian_v+v_l)-v_c))*(lagrangian_v - v_l);
-	  const Real target_mass_r = f*dr-target_mass_l; //the rest	  
+	  const Real target_mass_r = f*dv-target_mass_l; //the rest	  
 	  
 
 	  //the blocks of the two lagrangian cells
@@ -321,9 +327,9 @@ bool map_1d(SpatialCell* spatial_cell,   Real intersection, Real intersection_di
 	    (lagrangian_gk_r%WID)*cell_indices_to_id[2];
 	  
 	  if (target_block_l < SpatialCell::max_velocity_blocks) 
-	    spatial_cell->increment_value(target_block_l,target_cell_l,target_mass_l*i_dr);
+	    spatial_cell->increment_value(target_block_l,target_cell_l,target_mass_l*i_dv);
 	  if (target_block_r < SpatialCell::max_velocity_blocks) 
-	    spatial_cell->increment_value(target_block_r,target_cell_r,target_mass_r*i_dr);
+	    spatial_cell->increment_value(target_block_r,target_cell_r,target_mass_r*i_dv);
 	  
 	}
       }
