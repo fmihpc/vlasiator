@@ -73,12 +73,6 @@ void compute_intersections_z(const SpatialCell* spatial_cell,
   const Eigen::Matrix<Real,3,1> intersection_1_0_0 = line_plane_intersection(line_point + euclidian_di, line_direction, plane_point, plane_normal);
   const Eigen::Matrix<Real,3,1> intersection_0_1_0 = line_plane_intersection(line_point + euclidian_dj, line_direction, plane_point, plane_normal);
   const Eigen::Matrix<Real,3,1> intersection_0_0_1 = line_plane_intersection(line_point, line_direction, plane_point + lagrangian_dk, plane_normal);
-  
-  cout <<"line point " << line_point<<endl;
-  cout <<"line direction " << line_direction<<endl;
-  cout <<"plane point " << plane_point<<endl;
-  cout <<"plane normal " << plane_normal<<endl;
-  cout <<"intersection "<<intersection_0_0_0<<endl;
 
   intersection=intersection_0_0_0[2];
   intersection_di=intersection_1_0_0[2]-intersection_0_0_0[2];
