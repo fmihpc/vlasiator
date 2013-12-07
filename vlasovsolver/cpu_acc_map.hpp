@@ -14,7 +14,11 @@ Copyright 2012 Finnish Meteorological Institute
 #include "common.h"
 #include "spatial_cell.hpp"
 
-const int STENCIL_WIDTH=2; //at most equalt to WID
+#ifdef ACC_SEMILAG_ORDER_1
+const int STENCIL_WIDTH=1;
+#else
+const int STENCIL_WIDTH=2;
+#endif
 
 using namespace std;
 using namespace spatial_cell;
