@@ -356,14 +356,15 @@ bool map_1d(SpatialCell* spatial_cell,   Real intersection, Real intersection_di
 	    
 	    //the velocity between which we will integrate to put mass int the targe cell. If both v_r and
 	    //v_l are in same cell then v will be small than v_l, set it then to v_l
-	    const Real v_1 = max(gk * intersection_dk + intersection_min, v_l);
-	    const Real v_2 = min((gk+1) * intersection_dk + intersection_min, v_r);
+	    //note that we also have shifted velocity to have origo at v_c (center velocity of euclidian cell)
+	    const Real v_1 = max(gk * intersection_dk + intersection_min, v_l)-v_c;
+	    const Real v_2 = min((gk+1) * intersection_dk + intersection_min, v_r)-v_c;
 
 #ifdef ACC_SEMILAG_ORDER_1	    
 	    //target mass is value in center of intersecting length,
 	    //times length (missing x,y, but they would be cancelled
 	    //anyway when we divide to get density
-	    const Real target_mass = (cv + A * (0.5*(v_1+v_2)-v_c))*(v_2 - v_1);
+	    const Real target_mass = (cv + A * 0.5*(v_1+v_2)*(v_2 - v_1);
 #endif
 #ifdef ACC_SEMILAG_ORDER_2
             //todo, we recompute integrals, could do some reuse at least over gk loop (same with v also)
