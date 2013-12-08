@@ -53,29 +53,26 @@ template<typename T> inline T slope_limiter(const T& l,const T& m, const T& r) {
 inline void fit_poly2_rec(Real dv, Real mmv, Real mv, Real cv, Real pv, Real ppv,
                           Real &A, Real &B, Real &BB){
    // First fit a second order         polynomial for faces(it would acually be better with higher order?)
-    // f(x)=a+b*x+c*x*x
-    // f(0) = cv
-    // f(-1) = mv 
-    // f(+1) = pv
-    // m_face=f(-0.5)
-    // p_face=f(0.5)
-  /*
-    Real a=cv;
-    Real b=(pv - mv)*0.5;
-    Real c=(pv + mv)*0.5 - cv;
-    Real m_face=a-b*0.5+c*0.25; 
-    Real p_face=a+b*0.5+c*0.25;
-  */
   
   //compute p_face,m_face. Or use 1.9 in PPM Coella,1984
   const Real one_sixth=1.0/6.0;
   const Real d_pv=slope_limiter(cv,pv,ppv);
   const Real d_cv=slope_limiter(mv,cv,pv);
   const Real d_mv=slope_limiter(mmv,mv,cv);
-  const Real p_face=0.5*(pv+cv) + one_sixth * (d_cv-d_pv);
-  const Real m_face=0.5*(cv+mv) + one_sixth * (d_mv-d_cv);
+  Real p_face=0.5*(pv+cv) + one_sixth * (d_cv-d_pv);
+  Real m_face=0.5*(cv+mv) + one_sixth * (d_mv-d_cv);
   
-
+  //Coella1984 eq. 1.10
+  if( (p_face-cv)*(cv-m_face) <0) {
+    p_face=cv;
+    m_face=cv;
+  }
+  else if( (p_face-m_face)*(cv-0.5*(m_face+p_face))>(p_face-m_face)*(p_face-m_face)*one_sixth){
+    m_face=3*cv-2*p_face;
+  }
+  else if( -(p_face-m_face)*(p_face-m_face)*one_sixth > (p_face-m_face)*(cv-0.5*(m_face+p_face))) {
+    p_face=3*cv-2*m_face;
+  }
 
   //Fit a second order polynomial for reconstruction, set rec_par[A], rec_par[B]
   // f(v)= cv + A * v + B * ( BB - v**2 )
@@ -86,13 +83,7 @@ inline void fit_poly2_rec(Real dv, Real mmv, Real mv, Real cv, Real pv, Real ppv
   A=(p_face-m_face)/dv;
   B=(6*cv - 3*(p_face+m_face))/(dv*dv);    
   BB=dv*dv/12.0;
-  
-  //Hack to see if we are monotonic in cell, if not compute a linear approximation
-  Real extrema_v=A/(2*B);
-  if(extrema_v>-0.5*dv && extrema_v < 0.5*dv) {
-    A=slope_limiter(mv,cv,pv)/dv;
-    B=0.0;
-  }
+
   
 }
 
