@@ -59,39 +59,42 @@ inline void fit_poly2_rec(Real dv, Real mmv, Real mv, Real cv, Real pv, Real ppv
     // f(+1) = pv
     // m_face=f(-0.5)
     // p_face=f(0.5)
+  /*
     Real a=cv;
     Real b=(pv - mv)*0.5;
     Real c=(pv + mv)*0.5 - cv;
     Real m_face=a-b*0.5+c*0.25; 
     Real p_face=a+b*0.5+c*0.25;
+  */
+  
+  //compute p_face,m_face. Or use 1.9 in PPM Coella,1984
+  const Real one_sixth=1.0/6.0;
+  const Real d_pv=slope_limiter(cv,pv,ppv);
+  const Real d_cv=slope_limiter(mv,cv,pv);
+  const Real d_mv=slope_limiter(mmv,mv,cv);
+  const Real p_face=0.5*(pv+cv) + one_sixth * (d_cv-d_pv);
+  const Real m_face=0.5*(cv+mv) + one_sixth * (d_mv-d_cv);
+  
 
-    //face values should not cause new extremas, use linear average if it is above, below either cell value
-    Real m_face_max=max(mv,cv);
-    Real m_face_min=min(mv,cv);
-    if(m_face < m_face_min || m_face > m_face_max)
-      m_face=(mv+cv)*0.5; 
-    Real p_face_max=max(pv,cv);
-    Real p_face_min=min(pv,cv);
-    if(p_face < p_face_min || p_face > p_face_max)
-       p_face=(pv+cv)*0.5; 
-    
-    //Fit a second order polynomial for reconstruction, set rec_par[A], rec_par[B]
-    // f(v)= cv + A * v + B * ( BB - v**2 )
-    // f(-dv/2) = m_face
-    // f(+dv/2) = p_face
-    //see carpenter et al. 1990
-    A=(p_face-m_face)/dv;
-    B=(6*cv - 3*(p_face+m_face))/(dv*dv);    
-    BB=dv*dv/12.0;
-    
-    //Hack to see if we are monotonic in cell, if not compute a linear approximation
-    Real extrema_v=A/(2*B);
-    if(extrema_v>-0.5*dv && extrema_v < 0.5*dv) {
-       A=slope_limiter(mv,cv,pv)/dv;
-       B=0.0;
-    }
 
+  //Fit a second order polynomial for reconstruction, set rec_par[A], rec_par[B]
+  // f(v)= cv + A * v + B * ( BB - v**2 )
+  // f(-dv/2) = m_face
+  // f(+dv/2) = p_face
+  //see carpenter et al. 1990
+  
+  A=(p_face-m_face)/dv;
+  B=(6*cv - 3*(p_face+m_face))/(dv*dv);    
+  BB=dv*dv/12.0;
+  
+  //Hack to see if we are monotonic in cell, if not compute a linear approximation
+  Real extrema_v=A/(2*B);
+  if(extrema_v>-0.5*dv && extrema_v < 0.5*dv) {
+    A=slope_limiter(mv,cv,pv)/dv;
+    B=0.0;
   }
+  
+}
 
 
 
