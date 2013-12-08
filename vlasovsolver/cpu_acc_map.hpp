@@ -14,7 +14,7 @@ Copyright 2012 Finnish Meteorological Institute
 #include "common.h"
 #include "spatial_cell.hpp"
 
-#ifdef ACC_SEMILAG_ORDER_1
+#ifdef ACC_SEMILAG_LPM
 const int STENCIL_WIDTH=1;
 #else
 const int STENCIL_WIDTH=2;
@@ -23,7 +23,13 @@ const int STENCIL_WIDTH=2;
 using namespace std;
 using namespace spatial_cell;
 
+const Real one_sixth=1.0/6.0;
+const Real one_twelfth=1.0/12.0;
+const Real seven_twelfth=7.0/12.0;
+const Real one_third=1.0/3.0;
 
+// indices in padded z block
+#define i_pblock(i,j,k) ( ((k) + STENCIL_WIDTH ) * WID2 + (j) * WID + (i) )
 
 
 
@@ -47,20 +53,22 @@ template<typename T> inline T slope_limiter(const T& l,const T& m, const T& r) {
 }
 
 
-  
-
 
 inline void fit_poly2_rec(Real dv, Real mmv, Real mv, Real cv, Real pv, Real ppv,
                           Real &A, Real &B, Real &BB){
-   // First fit a second order         polynomial for faces(it would acually be better with higher order?)
-  
-  //compute p_face,m_face. Or use 1.9 in PPM Coella,1984
-  const Real one_sixth=1.0/6.0;
+
+  //compute p_face,m_face. 
   const Real d_pv=slope_limiter(cv,pv,ppv);
   const Real d_cv=slope_limiter(mv,cv,pv);
   const Real d_mv=slope_limiter(mmv,mv,cv);
   Real p_face=0.5*(pv+cv) + one_sixth * (d_cv-d_pv);
   Real m_face=0.5*(cv+mv) + one_sixth * (d_mv-d_cv);
+  
+  /*
+    Coella1984 eq. 1.09, claimed to give same resoult as above but that is not the case..
+    Real p_face=seven_twelfth*(pv+cv)-one_twelfth*(ppv+mv);
+    Real m_face=seven_twelfth*(cv+mv)-one_twelfth*(pv+mmv);
+  */
   
   //Coella1984 eq. 1.10
   if( (p_face-cv)*(cv-m_face) <0) {
@@ -83,18 +91,11 @@ inline void fit_poly2_rec(Real dv, Real mmv, Real mv, Real cv, Real pv, Real ppv
   A=(p_face-m_face)/dv;
   B=(6*cv - 3*(p_face+m_face))/(dv*dv);    
   BB=dv*dv/12.0;
-
-  
 }
 
 
+/*!
 
-// indices in padded z block
-#define i_pblock(i,j,k) ( ((k) + STENCIL_WIDTH ) * WID2 + (j) * WID + (i) )
-// indices in normal block
-#define i_block(i,j,k) ( (k) * WID2 + (j) * WID + (i) )
-
-/*
   value array should be initialized to zero
   
   For dimension=0 data copy  we have rotated data
@@ -189,10 +190,11 @@ inline void copy_block_data(Velocity_Block *block,Real * __restrict__ values, in
 }
 
 
-bool map_1d(SpatialCell* spatial_cell,   Real intersection, Real intersection_di, Real intersection_dj,Real intersection_dk,
-	   uint dimension ) {
-   const Real onethird=1.0/3.0;
-/*values used with an stencil in 1 dimension, initialized to 0 */  
+bool map_1d(SpatialCell* spatial_cell,   
+	    Real intersection, Real intersection_di, Real intersection_dj,Real intersection_dk,
+	    uint dimension ) {
+
+  /*values used with an stencil in 1 dimension, initialized to 0 */  
    Real values[WID*WID*(WID+2*STENCIL_WIDTH)]={};
   // Make a copy of the blocklist, the blocklist will change during this algorithm
   uint*  blocks=new uint[spatial_cell->number_of_blocks];
@@ -310,20 +312,17 @@ bool map_1d(SpatialCell* spatial_cell,   Real intersection, Real intersection_di
 	  //f is mean value
 	  const Real cv = values[i_pblock(i,j,k)];
           
-#ifdef ACC_SEMILAG_ORDER_1
+#ifdef ACC_SEMILAG_LPM
 	  //A is slope of linear approximation
 	  const Real A = slope_limiter(values[i_pblock(i,j,k-1)],
 				       cv,values[i_pblock(i,j,k+1)])*i_dv;
 #endif
-#ifdef ACC_SEMILAG_ORDER_2
+#ifdef ACC_SEMILAG_PPM
           Real A,B,BB;
           fit_poly2_rec(dv,values[i_pblock(i,j,k-2)],values[i_pblock(i,j,k-1)],
                         cv,values[i_pblock(i,j,k+1)],values[i_pblock(i,j,k+2)],
                         A,B,BB);
 #endif
-
-          
-          
 	  //left(l) and right(r) k values (global index) in the target
 	  //lagrangian grid, the intersecting cells
 	  const Real intersection_min=intersection +
@@ -348,27 +347,28 @@ bool map_1d(SpatialCell* spatial_cell,   Real intersection, Real intersection_di
 	      j*cell_indices_to_id[1] +
 	      (gk%WID)*cell_indices_to_id[2];
 	    
-	    //the velocity between which we will integrate to put mass int the targe cell. If both v_r and
-	    //v_l are in same cell then v will be small than v_l, set it then to v_l
-	    //note that we also have shifted velocity to have origo at v_c (center velocity of euclidian cell)
+	    //the velocity between which we will integrate to put mass
+	    //int the targe cell. If both v_r and v_l are in same cell
+	    //then v_1,v_2 should be between v_l and v_r.
+	    //Note that we also have shifted velocity to have origo at v_c
+	    //(center velocity of euclidian cell)
 	    const Real v_1 = max(gk * intersection_dk + intersection_min, v_l)-v_c;
 	    const Real v_2 = min((gk+1) * intersection_dk + intersection_min, v_r)-v_c;
 
-#ifdef ACC_SEMILAG_ORDER_1	    
+#ifdef ACC_SEMILAG_LPM	    
 	    //target mass is value in center of intersecting length,
 	    //times length (missing x,y, but they would be cancelled
 	    //anyway when we divide to get density
 	    const Real target_mass = (cv + A * 0.5*(v_1+v_2)*(v_2 - v_1);
 #endif
-#ifdef ACC_SEMILAG_ORDER_2
-            //todo, we recompute integrals, could do some reuse at least over gk loop (same with v also)
-            const Real integral_1=v_1*(cv+0.5*A*v_1+B*(BB-v_1*v_1*onethird));
-            const Real integral_2=v_2*(cv+0.5*A*v_2+B*(BB-v_2*v_2*onethird));
+#ifdef ACC_SEMILAG_PPM
+	    //todo, we recompute integrals, could do some reuse at least over gk loop (same with v also)
+            const Real integral_1=v_1*(cv+0.5*A*v_1+B*(BB-v_1*v_1*one_third));
+            const Real integral_2=v_2*(cv+0.5*A*v_2+B*(BB-v_2*v_2*one_third));
             const Real target_mass=integral_2-integral_1;
 #endif
 	    if (target_block < SpatialCell::max_velocity_blocks) 
 	      spatial_cell->increment_value(target_block,target_cell,target_mass*i_dv);
-	    
 	  }
 	}
       }
