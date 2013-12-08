@@ -20,7 +20,7 @@ CXXFLAGS += -DPROFILE
 CXXFLAGS += -DNDEBUG
 
 #set order of semilag solver in acceleration (Linear only one supported at the moment)
-CXXFLAGS += -DACC_SEMILAG_ORDER_1
+CXXFLAGS += -DACC_SEMILAG_ORDER_2
 
 #define USE_AGNER_VECTORCLASS to use an external vector class that is used in some of the solvers
 #If not defined a slower but portable implementation is used, as the external one only supports 
