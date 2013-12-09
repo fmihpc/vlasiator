@@ -296,7 +296,7 @@ void calculateAcceleration(
       SC->subStepsAcceleration=0;// subSteps is the number of substeps for each cell
    }
 
-   if(P::vlasovSemiLagAcceleration) {
+   if(P::useSlAcceleration) {
       //Semilagrangian acceleration
 
       phiprof::start("semilag-acc");

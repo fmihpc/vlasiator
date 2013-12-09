@@ -278,7 +278,7 @@ int main(int argn,char* args[]) {
 
          
    bool updateVelocityBlocksAfterAcceleration;
-   if(P::maxAccelerationSubsteps!=1 || P::vlasovSemiLagAcceleration) {
+   if(P::maxAccelerationSubsteps!=1 || P::useSlAcceleration) {
       updateVelocityBlocksAfterAcceleration=true;
    }
    else{
@@ -339,7 +339,7 @@ int main(int argn,char* args[]) {
       phiprof::stop("compute-dt");
 
       
-      if(P::maxAccelerationSubsteps!=1 && ! P::vlasovSemiLagAcceleration){
+      if(P::maxAccelerationSubsteps!=1 && ! P::useSlAcceleration){
          //Now we make a small "hack" and compute an artifical number
          //of substeps, this is here to improve the initial load
          //balance, otherwise the first step may have a really bad load imbalance
