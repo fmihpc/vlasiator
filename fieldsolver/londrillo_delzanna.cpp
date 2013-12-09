@@ -399,26 +399,26 @@ void reconstructionCoefficients(
       perturbedResult[Rec::c_yzz] = 0.0;
       perturbedResult[Rec::c_zzz] = 0.0;
    } else if(reconstructionOrder == 3) {
-      perturbedResult[Rec::a_yy] = HALF * (der_i2j1k1[fs::dPERBxdyy] + der_i1j1k1[fs::dPERBxdyy]) / cep_i1j1k1[CellParams::DY];
-      perturbedResult[Rec::a_zz] = HALF * (der_i2j1k1[fs::dPERBxdzz] + der_i1j1k1[fs::dPERBxdzz]) / cep_i1j1k1[CellParams::DZ];
-      perturbedResult[Rec::a_yz] = HALF * (der_i2j1k1[fs::dPERBxdyz] + der_i1j1k1[fs::dPERBxdyz]) / cep_i1j1k1[CellParams::DY];
-      perturbedResult[Rec::a_xyy] = (der_i2j1k1[fs::dPERBxdyy] - der_i1j1k1[fs::dPERBxdyy]) / cep_i1j1k1[CellParams::DY];
-      perturbedResult[Rec::a_xyz] = (der_i2j1k1[fs::dPERBxdyz] - der_i1j1k1[fs::dPERBxdyz]) / cep_i1j1k1[CellParams::DY];
-      perturbedResult[Rec::a_xzz] = (der_i2j1k1[fs::dPERBxdzz] - der_i1j1k1[fs::dPERBxdzz]) / cep_i1j1k1[CellParams::DZ];
+      perturbedResult[Rec::a_yy] = HALF * (der_i2j1k1[fs::dPERBxdyy] + der_i1j1k1[fs::dPERBxdyy]);
+      perturbedResult[Rec::a_zz] = HALF * (der_i2j1k1[fs::dPERBxdzz] + der_i1j1k1[fs::dPERBxdzz]);
+      perturbedResult[Rec::a_yz] = HALF * (der_i2j1k1[fs::dPERBxdyz] + der_i1j1k1[fs::dPERBxdyz]);
+      perturbedResult[Rec::a_xyy] = (der_i2j1k1[fs::dPERBxdyy] - der_i1j1k1[fs::dPERBxdyy]);
+      perturbedResult[Rec::a_xyz] = (der_i2j1k1[fs::dPERBxdyz] - der_i1j1k1[fs::dPERBxdyz]);
+      perturbedResult[Rec::a_xzz] = (der_i2j1k1[fs::dPERBxdzz] - der_i1j1k1[fs::dPERBxdzz]);
       
-      perturbedResult[Rec::b_xx] = HALF * (der_i1j2k1[fs::dPERBydxx] + der_i1j1k1[fs::dPERBydxx]) / cep_i1j1k1[CellParams::DX];
-      perturbedResult[Rec::b_xz] = HALF * (der_i1j2k1[fs::dPERBydxz] + der_i1j1k1[fs::dPERBydxz]) / cep_i1j1k1[CellParams::DX];
-      perturbedResult[Rec::b_zz] = HALF * (der_i1j2k1[fs::dPERBydzz] + der_i1j1k1[fs::dPERBydzz]) / cep_i1j1k1[CellParams::DZ];
-      perturbedResult[Rec::b_xxy] = (der_i1j2k1[fs::dPERBydxx] - der_i1j1k1[fs::dPERBydxx]) / cep_i1j1k1[CellParams::DX];
-      perturbedResult[Rec::b_xyz] = (der_i1j2k1[fs::dPERBydxz] - der_i1j1k1[fs::dPERBydxz]) / cep_i1j1k1[CellParams::DX];
-      perturbedResult[Rec::b_yzz] = (der_i1j2k1[fs::dPERBydzz] - der_i1j1k1[fs::dPERBydzz]) / cep_i1j1k1[CellParams::DY];
+      perturbedResult[Rec::b_xx] = HALF * (der_i1j2k1[fs::dPERBydxx] + der_i1j1k1[fs::dPERBydxx]);
+      perturbedResult[Rec::b_xz] = HALF * (der_i1j2k1[fs::dPERBydxz] + der_i1j1k1[fs::dPERBydxz]);
+      perturbedResult[Rec::b_zz] = HALF * (der_i1j2k1[fs::dPERBydzz] + der_i1j1k1[fs::dPERBydzz]);
+      perturbedResult[Rec::b_xxy] = (der_i1j2k1[fs::dPERBydxx] - der_i1j1k1[fs::dPERBydxx]);
+      perturbedResult[Rec::b_xyz] = (der_i1j2k1[fs::dPERBydxz] - der_i1j1k1[fs::dPERBydxz]);
+      perturbedResult[Rec::b_yzz] = (der_i1j2k1[fs::dPERBydzz] - der_i1j1k1[fs::dPERBydzz]);
       
-      perturbedResult[Rec::c_xx] = HALF * (der_i1j1k2[fs::dPERBzdxx] + der_i1j1k1[fs::dPERBzdxx]) / cep_i1j1k1[CellParams::DX];
-      perturbedResult[Rec::c_xy] = HALF * (der_i1j1k2[fs::dPERBzdxy] + der_i1j1k1[fs::dPERBzdxy]) / cep_i1j1k1[CellParams::DX];
-      perturbedResult[Rec::c_yy] = HALF * (der_i1j1k2[fs::dPERBzdyy] + der_i1j1k1[fs::dPERBzdyy]) / cep_i1j1k1[CellParams::DY];
-      perturbedResult[Rec::c_xxz] = (der_i1j1k2[fs::dPERBzdxx] - der_i1j1k1[fs::dPERBzdxx]) / cep_i1j1k1[CellParams::DX];
-      perturbedResult[Rec::c_xyz] = (der_i1j1k2[fs::dPERBzdxy] - der_i1j1k1[fs::dPERBzdxy]) / cep_i1j1k1[CellParams::DX];
-      perturbedResult[Rec::c_yyz] = (der_i1j1k2[fs::dPERBzdyy] - der_i1j1k1[fs::dPERBzdyy]) / cep_i1j1k1[CellParams::DY];
+      perturbedResult[Rec::c_xx] = HALF * (der_i1j1k2[fs::dPERBzdxx] + der_i1j1k1[fs::dPERBzdxx]);
+      perturbedResult[Rec::c_xy] = HALF * (der_i1j1k2[fs::dPERBzdxy] + der_i1j1k1[fs::dPERBzdxy]);
+      perturbedResult[Rec::c_yy] = HALF * (der_i1j1k2[fs::dPERBzdyy] + der_i1j1k1[fs::dPERBzdyy]);
+      perturbedResult[Rec::c_xxz] = (der_i1j1k2[fs::dPERBzdxx] - der_i1j1k1[fs::dPERBzdxx]);
+      perturbedResult[Rec::c_xyz] = (der_i1j1k2[fs::dPERBzdxy] - der_i1j1k1[fs::dPERBzdxy]);
+      perturbedResult[Rec::c_yyz] = (der_i1j1k2[fs::dPERBzdyy] - der_i1j1k1[fs::dPERBzdyy]);
       
       perturbedResult[Rec::a_xxx] = -THIRD*(perturbedResult[Rec::b_xxy] + perturbedResult[Rec::c_xxz]);
       perturbedResult[Rec::a_xxy] = -FOURTH*perturbedResult[Rec::c_xyz];
@@ -967,6 +967,7 @@ static void calculateDerivatives(
    #endif
 }
 
+/* Maxima-calculated JXB coming
 Real calculateEdgeHallTermX(
    const Real* const pC,
    creal& yEdge,
@@ -993,7 +994,7 @@ Real calculateEdgeHallTermX(
    (-pC[b_x] - p1y*pC[b_xy] - p1z*pC[b_xz] - p1y*p1z*pC[b_xyz] - p2y*pC[b_xyy] + pC[a_y] + 2.0*p1y*pC[a_yy] + p1z*pC[a_yz])
    +
    p1x2 * (pC[b_x] + p1y*pC[b_xy]) *
-   (-2.0*pC[b_xx] - 2.0*p1y*/*OHO*/pC[b_xxy] + pC[a_xy] + 2.0*p1y*pC[a_xyy] + p1z*pC[a_xyz])
+   (-2.0*pC[b_xx] - 2.0*p1y*pC[b_xxy] + pC[a_xy] + 2.0*p1y*pC[a_xyy] + p1z*pC[a_xyz])
    ;
 }
 
@@ -1023,7 +1024,7 @@ Real calculateEdgeHallTermY(
    (-pC[c_y] - p1z*pC[c_yz] - p1x*pC[c_xy] - p1x*p1z*pC[c_xyz] - p2z*pC[c_yzz] + pC[b_z] + 2.0*p1z*pC[b_zz] + p1x*pC[b_xz])
    +
    p1y2 * (pC[c_y] + p1z*pC[c_yz]) *
-   (-2.0*pC[c_yy] - 2.0*p1z*/*OHO*/pC[c_yyz] + pC[b_yz] + 2.0*p1z*pC[b_yzz] + p1x*pC[b_xyz])
+   (-2.0*pC[c_yy] - 2.0*p1z*pC[c_yyz] + pC[b_yz] + 2.0*p1z*pC[b_yzz] + p1x*pC[b_xyz])
    ;
 }
 
@@ -1053,9 +1054,10 @@ Real calculateEdgeHallTermZ(
    (-pC[a_z] - p1x*pC[a_xz] - p1y*pC[a_yz] - p1x*p1y*pC[a_xyz] - p2x*pC[a_xxz] + pC[c_x] + 2.0*p1x*pC[c_xx] + p1y*pC[c_xy])
    +
    p1z2 * (pC[a_z] + p1x*pC[a_xz]) *
-   (-2.0*pC[a_zz] - 2.0*p1x*/*OHO*/pC[a_xzz] + pC[c_xz] + 2.0*p1x*pC[c_xxz] + p1y*pC[c_xyz])
+   (-2.0*pC[a_zz] - 2.0*p1x*pC[a_xzz] + pC[c_xz] + 2.0*p1x*pC[c_xxz] + p1y*pC[c_xyz])
    ;
 }
+*/
 
 void calculateEdgeHallTermXComponents(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
@@ -1091,8 +1093,10 @@ void calculateEdgeHallTermXComponents(
    cp[CellParams::EXHALL_001_101] =
    cp[CellParams::EXHALL_011_111] = EXHall;
    #else
+   using namespace Rec;
+   const Real* const pC = perturbedCoefficients;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      cp[CellParams::EXHALL_000_100] = calculateEdgeHallTermX(
+/*      cp[CellParams::EXHALL_000_100] = calculateEdgeHallTermX(
          perturbedCoefficients,
          -1.0,
          -1.0,
@@ -1119,10 +1123,42 @@ void calculateEdgeHallTermXComponents(
          1.0,
          cp[CellParams::BGBY_001_101],
          cp[CellParams::BGBZ_001_101]
-      ) / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DX];
+      ) / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DX];*/
+      
+      cp[CellParams::EXHALL_000_100] = 
+         (- (pC[c_xzz]*pC[c_zz])/36.0 + (pC[c_xz]*pC[c_zz])/12.0 - (pC[c_xyz]*pC[c_zz])/24.0 + (pC[c_xy]*pC[c_zz])/12.0 - (pC[c_x]*pC[c_zz])/6.0 + (pC[c_xzz]*pC[c_z])/12.0 - (pC[c_xz]*pC[c_z])/4.0 + (pC[c_xyz]*pC[c_z])/8.0 - (pC[c_xy]*pC[c_z])/4.0 + (pC[c_x]*pC[c_z])/2.0 - (pC[c_xzz]*pC[c_yz])/24.0 + (pC[c_xz]*pC[c_yz])/8.0 - (pC[c_xyz]*pC[c_yz])/16.0 + (pC[c_xy]*pC[c_yz])/8.0 - (pC[c_x]*pC[c_yz])/4.0 +
+         (pC[c_xzz]*pC[c_y])/12.0 - (pC[c_xz]*pC[c_y])/4.0 + (pC[c_xyz]*pC[c_y])/8.0 - (pC[c_xy]*pC[c_y])/4.0 + (pC[c_x]*pC[c_y])/2.0 - (pC[c_0]*pC[c_xzz])/6.0 - (pC[c_xxz]*pC[c_xz])/24.0 + (pC[c_xx]*pC[c_xz])/12.0 + (pC[c_0]*pC[c_xz])/2.0 - (pC[c_0]*pC[c_xyz])/4.0 + (pC[c_0]*pC[c_xy])/2.0 + (pC[c_x]*pC[c_xxz])/12.0 - (pC[c_x]*pC[c_xx])/6.0 - pC[c_0]*pC[c_x] - (pC[b_xz]*pC[b_z])/4.0 + (pC[b_xyz]*pC[b_z])/8.0 + (pC[b_xyy]*pC[b_z])/12.0
+         - (pC[b_xy]*pC[b_z])/4.0 + (pC[b_x]*pC[b_z])/2.0 + (pC[b_xz]*pC[b_yz])/8.0 - (pC[b_xyz]*pC[b_yz])/16.0 - (pC[b_xyy]*pC[b_yz])/24.0 + (pC[b_xy]*pC[b_yz])/8.0 - (pC[b_x]*pC[b_yz])/4.0 + (pC[b_xz]*pC[b_yy])/12.0 - (pC[b_xyz]*pC[b_yy])/24.0 - (pC[b_xyy]*pC[b_yy])/36.0 + (pC[b_xy]*pC[b_yy])/12.0 - (pC[b_x]*pC[b_yy])/6.0 - (pC[b_xz]*pC[b_y])/4.0 + (pC[b_xyz]*pC[b_y])/8.0 + (pC[b_xyy]*pC[b_y])/12.0 - (pC[b_xy]*pC[b_y])/4.0 + (pC[b_x]*pC[b_y])/2.0 +
+         (pC[b_0]*pC[b_xz])/2.0 - (pC[b_0]*pC[b_xyz])/4.0 - (pC[b_0]*pC[b_xyy])/6.0 - (pC[b_xxy]*pC[b_xy])/24.0 + (pC[b_xx]*pC[b_xy])/12.0 + (pC[b_0]*pC[b_xy])/2.0 + (pC[b_x]*pC[b_xxy])/12.0 - (pC[b_x]*pC[b_xx])/6.0 - pC[b_0]*pC[b_x])
+         
+         / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DX];
+      
+      cp[CellParams::EXHALL_010_110] =
+         (- (pC[c_xzz]*pC[c_zz])/36.0 + (pC[c_xz]*pC[c_zz])/12.0 + (pC[c_xyz]*pC[c_zz])/24.0 - (pC[c_xy]*pC[c_zz])/12.0 - (pC[c_x]*pC[c_zz])/6.0 + (pC[c_xzz]*pC[c_z])/12.0 - (pC[c_xz]*pC[c_z])/4.0 - (pC[c_xyz]*pC[c_z])/8.0 + (pC[c_xy]*pC[c_z])/4.0 + (pC[c_x]*pC[c_z])/2.0 + (pC[c_xzz]*pC[c_yz])/24.0 - (pC[c_xz]*pC[c_yz])/8.0 - (pC[c_xyz]*pC[c_yz])/16.0 + (pC[c_xy]*pC[c_yz])/8.0 + (pC[c_x]*pC[c_yz])/4.0 -
+         (pC[c_xzz]*pC[c_y])/12.0 + (pC[c_xz]*pC[c_y])/4.0 + (pC[c_xyz]*pC[c_y])/8.0 - (pC[c_xy]*pC[c_y])/4.0 - (pC[c_x]*pC[c_y])/2.0 - (pC[c_0]*pC[c_xzz])/6.0 - (pC[c_xxz]*pC[c_xz])/24.0 + (pC[c_xx]*pC[c_xz])/12.0 + (pC[c_0]*pC[c_xz])/2.0 + (pC[c_0]*pC[c_xyz])/4.0 - (pC[c_0]*pC[c_xy])/2.0 + (pC[c_x]*pC[c_xxz])/12.0 - (pC[c_x]*pC[c_xx])/6.0 - pC[c_0]*pC[c_x] - (pC[b_xz]*pC[b_z])/4.0 - (pC[b_xyz]*pC[b_z])/8.0 + (pC[b_xyy]*pC[b_z])/12.0 +
+         (pC[b_xy]*pC[b_z])/4.0 + (pC[b_x]*pC[b_z])/2.0 - (pC[b_xz]*pC[b_yz])/8.0 - (pC[b_xyz]*pC[b_yz])/16.0 + (pC[b_xyy]*pC[b_yz])/24.0 + (pC[b_xy]*pC[b_yz])/8.0 + (pC[b_x]*pC[b_yz])/4.0 + (pC[b_xz]*pC[b_yy])/12.0 + (pC[b_xyz]*pC[b_yy])/24.0 - (pC[b_xyy]*pC[b_yy])/36.0 - (pC[b_xy]*pC[b_yy])/12.0 - (pC[b_x]*pC[b_yy])/6.0 + (pC[b_xz]*pC[b_y])/4.0 + (pC[b_xyz]*pC[b_y])/8.0 - (pC[b_xyy]*pC[b_y])/12.0 - (pC[b_xy]*pC[b_y])/4.0 - (pC[b_x]*pC[b_y])/2.0 +
+         (pC[b_0]*pC[b_xz])/2.0 + (pC[b_0]*pC[b_xyz])/4.0 - (pC[b_0]*pC[b_xyy])/6.0 - (pC[b_xxy]*pC[b_xy])/24.0 - (pC[b_xx]*pC[b_xy])/12.0 - (pC[b_0]*pC[b_xy])/2.0 - (pC[b_x]*pC[b_xxy])/12.0 - (pC[b_x]*pC[b_xx])/6.0 - pC[b_0]*pC[b_x])
+         
+         / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DX];
+      
+      cp[CellParams::EXHALL_001_101] =
+         (- (pC[c_xzz]*pC[c_zz])/36.0 - (pC[c_xz]*pC[c_zz])/12.0 + (pC[c_xyz]*pC[c_zz])/24.0 + (pC[c_xy]*pC[c_zz])/12.0 - (pC[c_x]*pC[c_zz])/6.0 - (pC[c_xzz]*pC[c_z])/12.0 - (pC[c_xz]*pC[c_z])/4.0 + (pC[c_xyz]*pC[c_z])/8.0 + (pC[c_xy]*pC[c_z])/4.0 - (pC[c_x]*pC[c_z])/2.0 + (pC[c_xzz]*pC[c_yz])/24.0 + (pC[c_xz]*pC[c_yz])/8.0 - (pC[c_xyz]*pC[c_yz])/16.0 - (pC[c_xy]*pC[c_yz])/8.0 + (pC[c_x]*pC[c_yz])/4.0 +
+         (pC[c_xzz]*pC[c_y])/12.0 + (pC[c_xz]*pC[c_y])/4.0 - (pC[c_xyz]*pC[c_y])/8.0 - (pC[c_xy]*pC[c_y])/4.0 + (pC[c_x]*pC[c_y])/2.0 - (pC[c_0]*pC[c_xzz])/6.0 - (pC[c_xxz]*pC[c_xz])/24.0 - (pC[c_xx]*pC[c_xz])/12.0 - (pC[c_0]*pC[c_xz])/2.0 + (pC[c_0]*pC[c_xyz])/4.0 + (pC[c_0]*pC[c_xy])/2.0 - (pC[c_x]*pC[c_xxz])/12.0 - (pC[c_x]*pC[c_xx])/6.0 - pC[c_0]*pC[c_x] - (pC[b_xz]*pC[b_z])/4.0 + (pC[b_xyz]*pC[b_z])/8.0 - (pC[b_xyy]*pC[b_z])/12.0 +
+         (pC[b_xy]*pC[b_z])/4.0 - (pC[b_x]*pC[b_z])/2.0 + (pC[b_xz]*pC[b_yz])/8.0 - (pC[b_xyz]*pC[b_yz])/16.0 + (pC[b_xyy]*pC[b_yz])/24.0 - (pC[b_xy]*pC[b_yz])/8.0 + (pC[b_x]*pC[b_yz])/4.0 - (pC[b_xz]*pC[b_yy])/12.0 + (pC[b_xyz]*pC[b_yy])/24.0 - (pC[b_xyy]*pC[b_yy])/36.0 + (pC[b_xy]*pC[b_yy])/12.0 - (pC[b_x]*pC[b_yy])/6.0 + (pC[b_xz]*pC[b_y])/4.0 - (pC[b_xyz]*pC[b_y])/8.0 + (pC[b_xyy]*pC[b_y])/12.0 - (pC[b_xy]*pC[b_y])/4.0 + (pC[b_x]*pC[b_y])/2.0 -
+         (pC[b_0]*pC[b_xz])/2.0 + (pC[b_0]*pC[b_xyz])/4.0 - (pC[b_0]*pC[b_xyy])/6.0 - (pC[b_xxy]*pC[b_xy])/24.0 + (pC[b_xx]*pC[b_xy])/12.0 + (pC[b_0]*pC[b_xy])/2.0 + (pC[b_x]*pC[b_xxy])/12.0 - (pC[b_x]*pC[b_xx])/6.0 - pC[b_0]*pC[b_x])
+         
+         / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DX];
+      
+      cp[CellParams::EXHALL_011_111] =
+         (- (pC[c_xzz]*pC[c_zz])/36.0 - (pC[c_xz]*pC[c_zz])/12.0 - (pC[c_xyz]*pC[c_zz])/24.0 - (pC[c_xy]*pC[c_zz])/12.0 - (pC[c_x]*pC[c_zz])/6.0 - (pC[c_xzz]*pC[c_z])/12.0 - (pC[c_xz]*pC[c_z])/4.0 - (pC[c_xyz]*pC[c_z])/8.0 - (pC[c_xy]*pC[c_z])/4.0 - (pC[c_x]*pC[c_z])/2.0 - (pC[c_xzz]*pC[c_yz])/24.0 - (pC[c_xz]*pC[c_yz])/8.0 - (pC[c_xyz]*pC[c_yz])/16.0 - (pC[c_xy]*pC[c_yz])/8.0 - (pC[c_x]*pC[c_yz])/4.0 - 
+         (pC[c_xzz]*pC[c_y])/12.0 - (pC[c_xz]*pC[c_y])/4.0 - (pC[c_xyz]*pC[c_y])/8.0 - (pC[c_xy]*pC[c_y])/4.0 - (pC[c_x]*pC[c_y])/2.0 - (pC[c_0]*pC[c_xzz])/6.0 - (pC[c_xxz]*pC[c_xz])/24.0 - (pC[c_xx]*pC[c_xz])/12.0 - (pC[c_0]*pC[c_xz])/2.0 - (pC[c_0]*pC[c_xyz])/4.0 - (pC[c_0]*pC[c_xy])/2.0 - (pC[c_x]*pC[c_xxz])/12.0 - (pC[c_x]*pC[c_xx])/6.0 - pC[c_0]*pC[c_x] - (pC[b_xz]*pC[b_z])/4.0 - (pC[b_xyz]*pC[b_z])/8.0 - (pC[b_xyy]*pC[b_z])/12.0 - 
+         (pC[b_xy]*pC[b_z])/4.0 - (pC[b_x]*pC[b_z])/2.0 - (pC[b_xz]*pC[b_yz])/8.0 - (pC[b_xyz]*pC[b_yz])/16.0 - (pC[b_xyy]*pC[b_yz])/24.0 - (pC[b_xy]*pC[b_yz])/8.0 - (pC[b_x]*pC[b_yz])/4.0 - (pC[b_xz]*pC[b_yy])/12.0 - (pC[b_xyz]*pC[b_yy])/24.0 - (pC[b_xyy]*pC[b_yy])/36.0 - (pC[b_xy]*pC[b_yy])/12.0 - (pC[b_x]*pC[b_yy])/6.0 - (pC[b_xz]*pC[b_y])/4.0 - (pC[b_xyz]*pC[b_y])/8.0 - (pC[b_xyy]*pC[b_y])/12.0 - (pC[b_xy]*pC[b_y])/4.0 - (pC[b_x]*pC[b_y])/2.0 -
+         (pC[b_0]*pC[b_xz])/2.0 - (pC[b_0]*pC[b_xyz])/4.0 - (pC[b_0]*pC[b_xyy])/6.0 - (pC[b_xxy]*pC[b_xy])/24.0 - (pC[b_xx]*pC[b_xy])/12.0 - (pC[b_0]*pC[b_xy])/2.0 - (pC[b_x]*pC[b_xxy])/12.0 - (pC[b_x]*pC[b_xx])/6.0 - pC[b_0]*pC[b_x])
+         
+         / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DX];
    }
    if(RKCase == RK_ORDER2_STEP1) {
-      cp[CellParams::EXHALL_000_100] = calculateEdgeHallTermX(
+/*      cp[CellParams::EXHALL_000_100] = calculateEdgeHallTermX(
          perturbedCoefficients,
          -1.0,
          -1.0,
@@ -1149,7 +1185,39 @@ void calculateEdgeHallTermXComponents(
          1.0,
          cp[CellParams::BGBY_001_101],
          cp[CellParams::BGBZ_001_101]
-      ) / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DX];
+      ) / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DX];*/
+      
+      cp[CellParams::EXHALL_000_100] = 
+         (- (pC[c_xzz]*pC[c_zz])/36.0 + (pC[c_xz]*pC[c_zz])/12.0 - (pC[c_xyz]*pC[c_zz])/24.0 + (pC[c_xy]*pC[c_zz])/12.0 - (pC[c_x]*pC[c_zz])/6.0 + (pC[c_xzz]*pC[c_z])/12.0 - (pC[c_xz]*pC[c_z])/4.0 + (pC[c_xyz]*pC[c_z])/8.0 - (pC[c_xy]*pC[c_z])/4.0 + (pC[c_x]*pC[c_z])/2.0 - (pC[c_xzz]*pC[c_yz])/24.0 + (pC[c_xz]*pC[c_yz])/8.0 - (pC[c_xyz]*pC[c_yz])/16.0 + (pC[c_xy]*pC[c_yz])/8.0 - (pC[c_x]*pC[c_yz])/4.0 +
+         (pC[c_xzz]*pC[c_y])/12.0 - (pC[c_xz]*pC[c_y])/4.0 + (pC[c_xyz]*pC[c_y])/8.0 - (pC[c_xy]*pC[c_y])/4.0 + (pC[c_x]*pC[c_y])/2.0 - (pC[c_0]*pC[c_xzz])/6.0 - (pC[c_xxz]*pC[c_xz])/24.0 + (pC[c_xx]*pC[c_xz])/12.0 + (pC[c_0]*pC[c_xz])/2.0 - (pC[c_0]*pC[c_xyz])/4.0 + (pC[c_0]*pC[c_xy])/2.0 + (pC[c_x]*pC[c_xxz])/12.0 - (pC[c_x]*pC[c_xx])/6.0 - pC[c_0]*pC[c_x] - (pC[b_xz]*pC[b_z])/4.0 + (pC[b_xyz]*pC[b_z])/8.0 + (pC[b_xyy]*pC[b_z])/12.0
+         - (pC[b_xy]*pC[b_z])/4.0 + (pC[b_x]*pC[b_z])/2.0 + (pC[b_xz]*pC[b_yz])/8.0 - (pC[b_xyz]*pC[b_yz])/16.0 - (pC[b_xyy]*pC[b_yz])/24.0 + (pC[b_xy]*pC[b_yz])/8.0 - (pC[b_x]*pC[b_yz])/4.0 + (pC[b_xz]*pC[b_yy])/12.0 - (pC[b_xyz]*pC[b_yy])/24.0 - (pC[b_xyy]*pC[b_yy])/36.0 + (pC[b_xy]*pC[b_yy])/12.0 - (pC[b_x]*pC[b_yy])/6.0 - (pC[b_xz]*pC[b_y])/4.0 + (pC[b_xyz]*pC[b_y])/8.0 + (pC[b_xyy]*pC[b_y])/12.0 - (pC[b_xy]*pC[b_y])/4.0 + (pC[b_x]*pC[b_y])/2.0 +
+         (pC[b_0]*pC[b_xz])/2.0 - (pC[b_0]*pC[b_xyz])/4.0 - (pC[b_0]*pC[b_xyy])/6.0 - (pC[b_xxy]*pC[b_xy])/24.0 + (pC[b_xx]*pC[b_xy])/12.0 + (pC[b_0]*pC[b_xy])/2.0 + (pC[b_x]*pC[b_xxy])/12.0 - (pC[b_x]*pC[b_xx])/6.0 - pC[b_0]*pC[b_x])
+         
+         / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DX];
+      
+      cp[CellParams::EXHALL_010_110] =
+         (- (pC[c_xzz]*pC[c_zz])/36.0 + (pC[c_xz]*pC[c_zz])/12.0 + (pC[c_xyz]*pC[c_zz])/24.0 - (pC[c_xy]*pC[c_zz])/12.0 - (pC[c_x]*pC[c_zz])/6.0 + (pC[c_xzz]*pC[c_z])/12.0 - (pC[c_xz]*pC[c_z])/4.0 - (pC[c_xyz]*pC[c_z])/8.0 + (pC[c_xy]*pC[c_z])/4.0 + (pC[c_x]*pC[c_z])/2.0 + (pC[c_xzz]*pC[c_yz])/24.0 - (pC[c_xz]*pC[c_yz])/8.0 - (pC[c_xyz]*pC[c_yz])/16.0 + (pC[c_xy]*pC[c_yz])/8.0 + (pC[c_x]*pC[c_yz])/4.0 -
+         (pC[c_xzz]*pC[c_y])/12.0 + (pC[c_xz]*pC[c_y])/4.0 + (pC[c_xyz]*pC[c_y])/8.0 - (pC[c_xy]*pC[c_y])/4.0 - (pC[c_x]*pC[c_y])/2.0 - (pC[c_0]*pC[c_xzz])/6.0 - (pC[c_xxz]*pC[c_xz])/24.0 + (pC[c_xx]*pC[c_xz])/12.0 + (pC[c_0]*pC[c_xz])/2.0 + (pC[c_0]*pC[c_xyz])/4.0 - (pC[c_0]*pC[c_xy])/2.0 + (pC[c_x]*pC[c_xxz])/12.0 - (pC[c_x]*pC[c_xx])/6.0 - pC[c_0]*pC[c_x] - (pC[b_xz]*pC[b_z])/4.0 - (pC[b_xyz]*pC[b_z])/8.0 + (pC[b_xyy]*pC[b_z])/12.0 +
+         (pC[b_xy]*pC[b_z])/4.0 + (pC[b_x]*pC[b_z])/2.0 - (pC[b_xz]*pC[b_yz])/8.0 - (pC[b_xyz]*pC[b_yz])/16.0 + (pC[b_xyy]*pC[b_yz])/24.0 + (pC[b_xy]*pC[b_yz])/8.0 + (pC[b_x]*pC[b_yz])/4.0 + (pC[b_xz]*pC[b_yy])/12.0 + (pC[b_xyz]*pC[b_yy])/24.0 - (pC[b_xyy]*pC[b_yy])/36.0 - (pC[b_xy]*pC[b_yy])/12.0 - (pC[b_x]*pC[b_yy])/6.0 + (pC[b_xz]*pC[b_y])/4.0 + (pC[b_xyz]*pC[b_y])/8.0 - (pC[b_xyy]*pC[b_y])/12.0 - (pC[b_xy]*pC[b_y])/4.0 - (pC[b_x]*pC[b_y])/2.0 +
+         (pC[b_0]*pC[b_xz])/2.0 + (pC[b_0]*pC[b_xyz])/4.0 - (pC[b_0]*pC[b_xyy])/6.0 - (pC[b_xxy]*pC[b_xy])/24.0 - (pC[b_xx]*pC[b_xy])/12.0 - (pC[b_0]*pC[b_xy])/2.0 - (pC[b_x]*pC[b_xxy])/12.0 - (pC[b_x]*pC[b_xx])/6.0 - pC[b_0]*pC[b_x])
+         
+         / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DX];
+      
+      cp[CellParams::EXHALL_001_101] =
+         (- (pC[c_xzz]*pC[c_zz])/36.0 - (pC[c_xz]*pC[c_zz])/12.0 + (pC[c_xyz]*pC[c_zz])/24.0 + (pC[c_xy]*pC[c_zz])/12.0 - (pC[c_x]*pC[c_zz])/6.0 - (pC[c_xzz]*pC[c_z])/12.0 - (pC[c_xz]*pC[c_z])/4.0 + (pC[c_xyz]*pC[c_z])/8.0 + (pC[c_xy]*pC[c_z])/4.0 - (pC[c_x]*pC[c_z])/2.0 + (pC[c_xzz]*pC[c_yz])/24.0 + (pC[c_xz]*pC[c_yz])/8.0 - (pC[c_xyz]*pC[c_yz])/16.0 - (pC[c_xy]*pC[c_yz])/8.0 + (pC[c_x]*pC[c_yz])/4.0 +
+         (pC[c_xzz]*pC[c_y])/12.0 + (pC[c_xz]*pC[c_y])/4.0 - (pC[c_xyz]*pC[c_y])/8.0 - (pC[c_xy]*pC[c_y])/4.0 + (pC[c_x]*pC[c_y])/2.0 - (pC[c_0]*pC[c_xzz])/6.0 - (pC[c_xxz]*pC[c_xz])/24.0 - (pC[c_xx]*pC[c_xz])/12.0 - (pC[c_0]*pC[c_xz])/2.0 + (pC[c_0]*pC[c_xyz])/4.0 + (pC[c_0]*pC[c_xy])/2.0 - (pC[c_x]*pC[c_xxz])/12.0 - (pC[c_x]*pC[c_xx])/6.0 - pC[c_0]*pC[c_x] - (pC[b_xz]*pC[b_z])/4.0 + (pC[b_xyz]*pC[b_z])/8.0 - (pC[b_xyy]*pC[b_z])/12.0 +
+         (pC[b_xy]*pC[b_z])/4.0 - (pC[b_x]*pC[b_z])/2.0 + (pC[b_xz]*pC[b_yz])/8.0 - (pC[b_xyz]*pC[b_yz])/16.0 + (pC[b_xyy]*pC[b_yz])/24.0 - (pC[b_xy]*pC[b_yz])/8.0 + (pC[b_x]*pC[b_yz])/4.0 - (pC[b_xz]*pC[b_yy])/12.0 + (pC[b_xyz]*pC[b_yy])/24.0 - (pC[b_xyy]*pC[b_yy])/36.0 + (pC[b_xy]*pC[b_yy])/12.0 - (pC[b_x]*pC[b_yy])/6.0 + (pC[b_xz]*pC[b_y])/4.0 - (pC[b_xyz]*pC[b_y])/8.0 + (pC[b_xyy]*pC[b_y])/12.0 - (pC[b_xy]*pC[b_y])/4.0 + (pC[b_x]*pC[b_y])/2.0 -
+         (pC[b_0]*pC[b_xz])/2.0 + (pC[b_0]*pC[b_xyz])/4.0 - (pC[b_0]*pC[b_xyy])/6.0 - (pC[b_xxy]*pC[b_xy])/24.0 + (pC[b_xx]*pC[b_xy])/12.0 + (pC[b_0]*pC[b_xy])/2.0 + (pC[b_x]*pC[b_xxy])/12.0 - (pC[b_x]*pC[b_xx])/6.0 - pC[b_0]*pC[b_x])
+         
+         / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DX];
+      
+      cp[CellParams::EXHALL_011_111] =
+         (- (pC[c_xzz]*pC[c_zz])/36.0 - (pC[c_xz]*pC[c_zz])/12.0 - (pC[c_xyz]*pC[c_zz])/24.0 - (pC[c_xy]*pC[c_zz])/12.0 - (pC[c_x]*pC[c_zz])/6.0 - (pC[c_xzz]*pC[c_z])/12.0 - (pC[c_xz]*pC[c_z])/4.0 - (pC[c_xyz]*pC[c_z])/8.0 - (pC[c_xy]*pC[c_z])/4.0 - (pC[c_x]*pC[c_z])/2.0 - (pC[c_xzz]*pC[c_yz])/24.0 - (pC[c_xz]*pC[c_yz])/8.0 - (pC[c_xyz]*pC[c_yz])/16.0 - (pC[c_xy]*pC[c_yz])/8.0 - (pC[c_x]*pC[c_yz])/4.0 - 
+         (pC[c_xzz]*pC[c_y])/12.0 - (pC[c_xz]*pC[c_y])/4.0 - (pC[c_xyz]*pC[c_y])/8.0 - (pC[c_xy]*pC[c_y])/4.0 - (pC[c_x]*pC[c_y])/2.0 - (pC[c_0]*pC[c_xzz])/6.0 - (pC[c_xxz]*pC[c_xz])/24.0 - (pC[c_xx]*pC[c_xz])/12.0 - (pC[c_0]*pC[c_xz])/2.0 - (pC[c_0]*pC[c_xyz])/4.0 - (pC[c_0]*pC[c_xy])/2.0 - (pC[c_x]*pC[c_xxz])/12.0 - (pC[c_x]*pC[c_xx])/6.0 - pC[c_0]*pC[c_x] - (pC[b_xz]*pC[b_z])/4.0 - (pC[b_xyz]*pC[b_z])/8.0 - (pC[b_xyy]*pC[b_z])/12.0 - 
+         (pC[b_xy]*pC[b_z])/4.0 - (pC[b_x]*pC[b_z])/2.0 - (pC[b_xz]*pC[b_yz])/8.0 - (pC[b_xyz]*pC[b_yz])/16.0 - (pC[b_xyy]*pC[b_yz])/24.0 - (pC[b_xy]*pC[b_yz])/8.0 - (pC[b_x]*pC[b_yz])/4.0 - (pC[b_xz]*pC[b_yy])/12.0 - (pC[b_xyz]*pC[b_yy])/24.0 - (pC[b_xyy]*pC[b_yy])/36.0 - (pC[b_xy]*pC[b_yy])/12.0 - (pC[b_x]*pC[b_yy])/6.0 - (pC[b_xz]*pC[b_y])/4.0 - (pC[b_xyz]*pC[b_y])/8.0 - (pC[b_xyy]*pC[b_y])/12.0 - (pC[b_xy]*pC[b_y])/4.0 - (pC[b_x]*pC[b_y])/2.0 -
+         (pC[b_0]*pC[b_xz])/2.0 - (pC[b_0]*pC[b_xyz])/4.0 - (pC[b_0]*pC[b_xyy])/6.0 - (pC[b_xxy]*pC[b_xy])/24.0 - (pC[b_xx]*pC[b_xy])/12.0 - (pC[b_0]*pC[b_xy])/2.0 - (pC[b_x]*pC[b_xxy])/12.0 - (pC[b_x]*pC[b_xx])/6.0 - pC[b_0]*pC[b_x])
+         
+         / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DX];
    }
    #endif
 }
@@ -1188,8 +1256,10 @@ void calculateEdgeHallTermYComponents(
    cp[CellParams::EYHALL_101_111] =
    cp[CellParams::EYHALL_001_011] = EYHall;
    #else
+   using namespace Rec;
+   const Real* const pC = perturbedCoefficients;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      cp[CellParams::EYHALL_000_010] = calculateEdgeHallTermY(
+/*      cp[CellParams::EYHALL_000_010] = calculateEdgeHallTermY(
          perturbedCoefficients,
          -1.0,
          -1.0,
@@ -1216,10 +1286,42 @@ void calculateEdgeHallTermYComponents(
          1.0,
          cp[CellParams::BGBX_001_011],
          cp[CellParams::BGBZ_001_011]
-      ) / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DY];
+      ) / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DY];*/
+      
+      cp[CellParams::EYHALL_000_010] =
+      (- (pC[c_yzz]*pC[c_zz])/36.0 + (pC[c_yz]*pC[c_zz])/12.0 - (pC[c_y]*pC[c_zz])/6.0 - (pC[c_xyz]*pC[c_zz])/24.0 + (pC[c_xy]*pC[c_zz])/12.0 + (pC[c_yzz]*pC[c_z])/12.0 - (pC[c_yz]*pC[c_z])/4.0 + (pC[c_y]*pC[c_z])/2.0 + (pC[c_xyz]*pC[c_z])/8.0 - (pC[c_xy]*pC[c_z])/4.0 - (pC[c_xz]*pC[c_yzz])/24.0 + (pC[c_x]*pC[c_yzz])/12.0 - (pC[c_0]*pC[c_yzz])/6.0 - (pC[c_yyz]*pC[c_yz])/24.0 + (pC[c_yy]*pC[c_yz])/12.0 + 
+      (pC[c_xz]*pC[c_yz])/8.0 - (pC[c_x]*pC[c_yz])/4.0 + (pC[c_0]*pC[c_yz])/2.0 + (pC[c_y]*pC[c_yyz])/12.0 - (pC[c_y]*pC[c_yy])/6.0 - (pC[c_xz]*pC[c_y])/4.0 + (pC[c_x]*pC[c_y])/2.0 - pC[c_0]*pC[c_y] - (pC[c_xyz]*pC[c_xz])/16.0 + (pC[c_xy]*pC[c_xz])/8.0 + (pC[c_x]*pC[c_xyz])/8.0 - (pC[c_0]*pC[c_xyz])/4.0 - (pC[c_x]*pC[c_xy])/4.0 + (pC[c_0]*pC[c_xy])/2.0 + pC[a_z]*pC[a_z]/2.0 - (pC[a_yz]*pC[a_z])/4.0 - (pC[a_xz]*pC[a_z])/2.0 + 
+      (pC[a_xyz]*pC[a_z])/8.0 + (pC[a_xxy]*pC[a_z])/12.0 - (pC[a_xx]*pC[a_z])/6.0 + (pC[a_x]*pC[a_z])/2.0 - pC[a_0]*pC[a_z] + (pC[a_xz]*pC[a_yz])/8.0 + (pC[a_xx]*pC[a_yz])/12.0 - (pC[a_x]*pC[a_yz])/4.0 + (pC[a_0]*pC[a_yz])/2.0 - (pC[a_y]*pC[a_yy])/6.0 + (pC[a_xy]*pC[a_yy])/12.0 + (pC[a_xyy]*pC[a_y])/12.0 + pC[a_xz]*pC[a_xz]/8.0 - (pC[a_xyz]*pC[a_xz])/16.0 - (pC[a_xxy]*pC[a_xz])/24.0 + (pC[a_xx]*pC[a_xz])/12.0 - (pC[a_x]*pC[a_xz])/4 +
+      (pC[a_0]*pC[a_xz])/2.0 - (pC[a_xx]*pC[a_xyz])/24.0 + (pC[a_x]*pC[a_xyz])/8.0 - (pC[a_0]*pC[a_xyz])/4.0 - (pC[a_xy]*pC[a_xyy])/24.0 - (pC[a_xx]*pC[a_xxy])/36.0 + (pC[a_x]*pC[a_xxy])/12.0 - (pC[a_0]*pC[a_xxy])/6.0)
+      
+      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DY];
+      
+      cp[CellParams::EYHALL_100_110] =
+      (- (pC[c_yzz]*pC[c_zz])/36.0 + (pC[c_yz]*pC[c_zz])/12.0 - (pC[c_y]*pC[c_zz])/6.0 + (pC[c_xyz]*pC[c_zz])/24.0 - (pC[c_xy]*pC[c_zz])/12.0 + (pC[c_yzz]*pC[c_z])/12.0 - (pC[c_yz]*pC[c_z])/4.0 + (pC[c_y]*pC[c_z])/2.0 - (pC[c_xyz]*pC[c_z])/8.0 + (pC[c_xy]*pC[c_z])/4.0 + (pC[c_xz]*pC[c_yzz])/24.0 - (pC[c_x]*pC[c_yzz])/12.0 - (pC[c_0]*pC[c_yzz])/6.0 - (pC[c_yyz]*pC[c_yz])/24.0 + (pC[c_yy]*pC[c_yz])/12.0 - 
+      (pC[c_xz]*pC[c_yz])/8.0 + (pC[c_x]*pC[c_yz])/4.0 + (pC[c_0]*pC[c_yz])/2.0 + (pC[c_y]*pC[c_yyz])/12.0 - (pC[c_y]*pC[c_yy])/6.0 + (pC[c_xz]*pC[c_y])/4.0 - (pC[c_x]*pC[c_y])/2.0 - pC[c_0]*pC[c_y] - (pC[c_xyz]*pC[c_xz])/16.0 + (pC[c_xy]*pC[c_xz])/8.0 + (pC[c_x]*pC[c_xyz])/8.0 + (pC[c_0]*pC[c_xyz])/4.0 - (pC[c_x]*pC[c_xy])/4.0 - (pC[c_0]*pC[c_xy])/2.0 + pC[a_z]*pC[a_z]/2.0 - (pC[a_yz]*pC[a_z])/4.0 + (pC[a_xz]*pC[a_z])/2.0 - 
+      (pC[a_xyz]*pC[a_z])/8.0 + (pC[a_xxy]*pC[a_z])/12.0 - (pC[a_xx]*pC[a_z])/6.0 - (pC[a_x]*pC[a_z])/2.0 - pC[a_0]*pC[a_z] - (pC[a_xz]*pC[a_yz])/8.0 + (pC[a_xx]*pC[a_yz])/12.0 + (pC[a_x]*pC[a_yz])/4.0 + (pC[a_0]*pC[a_yz])/2.0 - (pC[a_y]*pC[a_yy])/6.0 - (pC[a_xy]*pC[a_yy])/12.0 - (pC[a_xyy]*pC[a_y])/12.0 + pC[a_xz]*pC[a_xz]/8.0 - (pC[a_xyz]*pC[a_xz])/16.0 + (pC[a_xxy]*pC[a_xz])/24.0 - (pC[a_xx]*pC[a_xz])/12.0 - (pC[a_x]*pC[a_xz])/4.0 - 
+      (pC[a_0]*pC[a_xz])/2.0 + (pC[a_xx]*pC[a_xyz])/24.0 + (pC[a_x]*pC[a_xyz])/8.0 + (pC[a_0]*pC[a_xyz])/4.0 - (pC[a_xy]*pC[a_xyy])/24.0 - (pC[a_xx]*pC[a_xxy])/36.0 - (pC[a_x]*pC[a_xxy])/12.0 - (pC[a_0]*pC[a_xxy])/6.0)
+      
+      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DY];
+      
+      cp[CellParams::EYHALL_001_011] =
+      (- (pC[c_yzz]*pC[c_zz])/36.0 - (pC[c_yz]*pC[c_zz])/12.0 - (pC[c_y]*pC[c_zz])/6.0 + (pC[c_xyz]*pC[c_zz])/24.0 + (pC[c_xy]*pC[c_zz])/12.0 - (pC[c_yzz]*pC[c_z])/12.0 - (pC[c_yz]*pC[c_z])/4.0 - (pC[c_y]*pC[c_z])/2.0 + (pC[c_xyz]*pC[c_z])/8.0 + (pC[c_xy]*pC[c_z])/4.0 + (pC[c_xz]*pC[c_yzz])/24.0 + (pC[c_x]*pC[c_yzz])/12.0 - (pC[c_0]*pC[c_yzz])/6.0 - (pC[c_yyz]*pC[c_yz])/24.0 - (pC[c_yy]*pC[c_yz])/12.0 +
+      (pC[c_xz]*pC[c_yz])/8.0 + (pC[c_x]*pC[c_yz])/4.0 - (pC[c_0]*pC[c_yz])/2.0 - (pC[c_y]*pC[c_yyz])/12.0 - (pC[c_y]*pC[c_yy])/6.0 + (pC[c_xz]*pC[c_y])/4.0 + (pC[c_x]*pC[c_y])/2.0 - pC[c_0]*pC[c_y] - (pC[c_xyz]*pC[c_xz])/16.0 - (pC[c_xy]*pC[c_xz])/8.0 - (pC[c_x]*pC[c_xyz])/8.0 + (pC[c_0]*pC[c_xyz])/4.0 - (pC[c_x]*pC[c_xy])/4.0 + (pC[c_0]*pC[c_xy])/2.0 - pC[a_z]*pC[a_z]/2.0 - (pC[a_yz]*pC[a_z])/4.0 + (pC[a_xz]*pC[a_z])/2.0 + 
+      (pC[a_xyz]*pC[a_z])/8.0 - (pC[a_xxy]*pC[a_z])/12.0 - (pC[a_xx]*pC[a_z])/6.0 + (pC[a_x]*pC[a_z])/2.0 - pC[a_0]*pC[a_z] + (pC[a_xz]*pC[a_yz])/8.0 - (pC[a_xx]*pC[a_yz])/12.0 + (pC[a_x]*pC[a_yz])/4.0 - (pC[a_0]*pC[a_yz])/2.0 - (pC[a_y]*pC[a_yy])/6.0 + (pC[a_xy]*pC[a_yy])/12.0 + (pC[a_xyy]*pC[a_y])/12.0 - pC[a_xz]*pC[a_xz]/8.0 - (pC[a_xyz]*pC[a_xz])/16.0 + (pC[a_xxy]*pC[a_xz])/24.0 + (pC[a_xx]*pC[a_xz])/12.0 - (pC[a_x]*pC[a_xz])/4.0 +
+      (pC[a_0]*pC[a_xz])/2.0 + (pC[a_xx]*pC[a_xyz])/24.0 - (pC[a_x]*pC[a_xyz])/8.0 + (pC[a_0]*pC[a_xyz])/4.0 - (pC[a_xy]*pC[a_xyy])/24.0 - (pC[a_xx]*pC[a_xxy])/36.0 + (pC[a_x]*pC[a_xxy])/12.0 - (pC[a_0]*pC[a_xxy])/6.0)
+      
+      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DY];
+      
+      cp[CellParams::EYHALL_101_111] =
+      (- (pC[c_yzz]*pC[c_zz])/36.0 - (pC[c_yz]*pC[c_zz])/12.0 - (pC[c_y]*pC[c_zz])/6.0 - (pC[c_xyz]*pC[c_zz])/24.0 - (pC[c_xy]*pC[c_zz])/12.0 - (pC[c_yzz]*pC[c_z])/12.0 - (pC[c_yz]*pC[c_z])/4.0 - (pC[c_y]*pC[c_z])/2.0 - (pC[c_xyz]*pC[c_z])/8.0 - (pC[c_xy]*pC[c_z])/4.0 - (pC[c_xz]*pC[c_yzz])/24.0 - (pC[c_x]*pC[c_yzz])/12.0 - (pC[c_0]*pC[c_yzz])/6.0 - (pC[c_yyz]*pC[c_yz])/24.0 - (pC[c_yy]*pC[c_yz])/12.0 - 
+      (pC[c_xz]*pC[c_yz])/8.0 - (pC[c_x]*pC[c_yz])/4.0 - (pC[c_0]*pC[c_yz])/2.0 - (pC[c_y]*pC[c_yyz])/12.0 - (pC[c_y]*pC[c_yy])/6.0 - (pC[c_xz]*pC[c_y])/4.0 - (pC[c_x]*pC[c_y])/2.0 - pC[c_0]*pC[c_y] - (pC[c_xyz]*pC[c_xz])/16.0 - (pC[c_xy]*pC[c_xz])/8.0 - (pC[c_x]*pC[c_xyz])/8.0 - (pC[c_0]*pC[c_xyz])/4.0 - (pC[c_x]*pC[c_xy])/4.0 - (pC[c_0]*pC[c_xy])/2.0 - pC[a_z]*pC[a_z]/2.0 - (pC[a_yz]*pC[a_z])/4.0 - (pC[a_xz]*pC[a_z])/2.0 - 
+      (pC[a_xyz]*pC[a_z])/8.0 - (pC[a_xxy]*pC[a_z])/12.0 - (pC[a_xx]*pC[a_z])/6.0 - (pC[a_x]*pC[a_z])/2.0 - pC[a_0]*pC[a_z] - (pC[a_xz]*pC[a_yz])/8.0 - (pC[a_xx]*pC[a_yz])/12.0 - (pC[a_x]*pC[a_yz])/4.0 - (pC[a_0]*pC[a_yz])/2.0 - (pC[a_y]*pC[a_yy])/6.0 - (pC[a_xy]*pC[a_yy])/12.0 - (pC[a_xyy]*pC[a_y])/12.0 - pC[a_xz]*pC[a_xz]/8.0 - (pC[a_xyz]*pC[a_xz])/16.0 - (pC[a_xxy]*pC[a_xz])/24.0 - (pC[a_xx]*pC[a_xz])/12.0 - (pC[a_x]*pC[a_xz])/4.0 - 
+      (pC[a_0]*pC[a_xz])/2.0 - (pC[a_xx]*pC[a_xyz])/24.0 - (pC[a_x]*pC[a_xyz])/8.0 - (pC[a_0]*pC[a_xyz])/4.0 - (pC[a_xy]*pC[a_xyy])/24.0 - (pC[a_xx]*pC[a_xxy])/36.0 - (pC[a_x]*pC[a_xxy])/12.0 - (pC[a_0]*pC[a_xxy])/6.0)
+      
+      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DY];
    }
    if(RKCase == RK_ORDER2_STEP1) {
-      cp[CellParams::EYHALL_000_010] = calculateEdgeHallTermY(
+/*      cp[CellParams::EYHALL_000_010] = calculateEdgeHallTermY(
          perturbedCoefficients,
          -1.0,
          -1.0,
@@ -1246,7 +1348,39 @@ void calculateEdgeHallTermYComponents(
          1.0,
          cp[CellParams::BGBX_001_011],
          cp[CellParams::BGBZ_001_011]
-      ) / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DY];
+      ) / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DY];*/
+      
+      cp[CellParams::EYHALL_000_010] =
+      (- (pC[c_yzz]*pC[c_zz])/36.0 + (pC[c_yz]*pC[c_zz])/12.0 - (pC[c_y]*pC[c_zz])/6.0 - (pC[c_xyz]*pC[c_zz])/24.0 + (pC[c_xy]*pC[c_zz])/12.0 + (pC[c_yzz]*pC[c_z])/12.0 - (pC[c_yz]*pC[c_z])/4.0 + (pC[c_y]*pC[c_z])/2.0 + (pC[c_xyz]*pC[c_z])/8.0 - (pC[c_xy]*pC[c_z])/4.0 - (pC[c_xz]*pC[c_yzz])/24.0 + (pC[c_x]*pC[c_yzz])/12.0 - (pC[c_0]*pC[c_yzz])/6.0 - (pC[c_yyz]*pC[c_yz])/24.0 + (pC[c_yy]*pC[c_yz])/12.0 + 
+      (pC[c_xz]*pC[c_yz])/8.0 - (pC[c_x]*pC[c_yz])/4.0 + (pC[c_0]*pC[c_yz])/2.0 + (pC[c_y]*pC[c_yyz])/12.0 - (pC[c_y]*pC[c_yy])/6.0 - (pC[c_xz]*pC[c_y])/4.0 + (pC[c_x]*pC[c_y])/2.0 - pC[c_0]*pC[c_y] - (pC[c_xyz]*pC[c_xz])/16.0 + (pC[c_xy]*pC[c_xz])/8.0 + (pC[c_x]*pC[c_xyz])/8.0 - (pC[c_0]*pC[c_xyz])/4.0 - (pC[c_x]*pC[c_xy])/4.0 + (pC[c_0]*pC[c_xy])/2.0 + pC[a_z]*pC[a_z]/2.0 - (pC[a_yz]*pC[a_z])/4.0 - (pC[a_xz]*pC[a_z])/2.0 + 
+      (pC[a_xyz]*pC[a_z])/8.0 + (pC[a_xxy]*pC[a_z])/12.0 - (pC[a_xx]*pC[a_z])/6.0 + (pC[a_x]*pC[a_z])/2.0 - pC[a_0]*pC[a_z] + (pC[a_xz]*pC[a_yz])/8.0 + (pC[a_xx]*pC[a_yz])/12.0 - (pC[a_x]*pC[a_yz])/4.0 + (pC[a_0]*pC[a_yz])/2.0 - (pC[a_y]*pC[a_yy])/6.0 + (pC[a_xy]*pC[a_yy])/12.0 + (pC[a_xyy]*pC[a_y])/12.0 + pC[a_xz]*pC[a_xz]/8.0 - (pC[a_xyz]*pC[a_xz])/16.0 - (pC[a_xxy]*pC[a_xz])/24.0 + (pC[a_xx]*pC[a_xz])/12.0 - (pC[a_x]*pC[a_xz])/4 +
+      (pC[a_0]*pC[a_xz])/2.0 - (pC[a_xx]*pC[a_xyz])/24.0 + (pC[a_x]*pC[a_xyz])/8.0 - (pC[a_0]*pC[a_xyz])/4.0 - (pC[a_xy]*pC[a_xyy])/24.0 - (pC[a_xx]*pC[a_xxy])/36.0 + (pC[a_x]*pC[a_xxy])/12.0 - (pC[a_0]*pC[a_xxy])/6.0)
+      
+      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DY];
+      
+      cp[CellParams::EYHALL_100_110] =
+      (- (pC[c_yzz]*pC[c_zz])/36.0 + (pC[c_yz]*pC[c_zz])/12.0 - (pC[c_y]*pC[c_zz])/6.0 + (pC[c_xyz]*pC[c_zz])/24.0 - (pC[c_xy]*pC[c_zz])/12.0 + (pC[c_yzz]*pC[c_z])/12.0 - (pC[c_yz]*pC[c_z])/4.0 + (pC[c_y]*pC[c_z])/2.0 - (pC[c_xyz]*pC[c_z])/8.0 + (pC[c_xy]*pC[c_z])/4.0 + (pC[c_xz]*pC[c_yzz])/24.0 - (pC[c_x]*pC[c_yzz])/12.0 - (pC[c_0]*pC[c_yzz])/6.0 - (pC[c_yyz]*pC[c_yz])/24.0 + (pC[c_yy]*pC[c_yz])/12.0 - 
+      (pC[c_xz]*pC[c_yz])/8.0 + (pC[c_x]*pC[c_yz])/4.0 + (pC[c_0]*pC[c_yz])/2.0 + (pC[c_y]*pC[c_yyz])/12.0 - (pC[c_y]*pC[c_yy])/6.0 + (pC[c_xz]*pC[c_y])/4.0 - (pC[c_x]*pC[c_y])/2.0 - pC[c_0]*pC[c_y] - (pC[c_xyz]*pC[c_xz])/16.0 + (pC[c_xy]*pC[c_xz])/8.0 + (pC[c_x]*pC[c_xyz])/8.0 + (pC[c_0]*pC[c_xyz])/4.0 - (pC[c_x]*pC[c_xy])/4.0 - (pC[c_0]*pC[c_xy])/2.0 + pC[a_z]*pC[a_z]/2.0 - (pC[a_yz]*pC[a_z])/4.0 + (pC[a_xz]*pC[a_z])/2.0 - 
+      (pC[a_xyz]*pC[a_z])/8.0 + (pC[a_xxy]*pC[a_z])/12.0 - (pC[a_xx]*pC[a_z])/6.0 - (pC[a_x]*pC[a_z])/2.0 - pC[a_0]*pC[a_z] - (pC[a_xz]*pC[a_yz])/8.0 + (pC[a_xx]*pC[a_yz])/12.0 + (pC[a_x]*pC[a_yz])/4.0 + (pC[a_0]*pC[a_yz])/2.0 - (pC[a_y]*pC[a_yy])/6.0 - (pC[a_xy]*pC[a_yy])/12.0 - (pC[a_xyy]*pC[a_y])/12.0 + pC[a_xz]*pC[a_xz]/8.0 - (pC[a_xyz]*pC[a_xz])/16.0 + (pC[a_xxy]*pC[a_xz])/24.0 - (pC[a_xx]*pC[a_xz])/12.0 - (pC[a_x]*pC[a_xz])/4.0 - 
+      (pC[a_0]*pC[a_xz])/2.0 + (pC[a_xx]*pC[a_xyz])/24.0 + (pC[a_x]*pC[a_xyz])/8.0 + (pC[a_0]*pC[a_xyz])/4.0 - (pC[a_xy]*pC[a_xyy])/24.0 - (pC[a_xx]*pC[a_xxy])/36.0 - (pC[a_x]*pC[a_xxy])/12.0 - (pC[a_0]*pC[a_xxy])/6.0)
+      
+      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DY];
+      
+      cp[CellParams::EYHALL_001_011] =
+      (- (pC[c_yzz]*pC[c_zz])/36.0 - (pC[c_yz]*pC[c_zz])/12.0 - (pC[c_y]*pC[c_zz])/6.0 + (pC[c_xyz]*pC[c_zz])/24.0 + (pC[c_xy]*pC[c_zz])/12.0 - (pC[c_yzz]*pC[c_z])/12.0 - (pC[c_yz]*pC[c_z])/4.0 - (pC[c_y]*pC[c_z])/2.0 + (pC[c_xyz]*pC[c_z])/8.0 + (pC[c_xy]*pC[c_z])/4.0 + (pC[c_xz]*pC[c_yzz])/24.0 + (pC[c_x]*pC[c_yzz])/12.0 - (pC[c_0]*pC[c_yzz])/6.0 - (pC[c_yyz]*pC[c_yz])/24.0 - (pC[c_yy]*pC[c_yz])/12.0 +
+      (pC[c_xz]*pC[c_yz])/8.0 + (pC[c_x]*pC[c_yz])/4.0 - (pC[c_0]*pC[c_yz])/2.0 - (pC[c_y]*pC[c_yyz])/12.0 - (pC[c_y]*pC[c_yy])/6.0 + (pC[c_xz]*pC[c_y])/4.0 + (pC[c_x]*pC[c_y])/2.0 - pC[c_0]*pC[c_y] - (pC[c_xyz]*pC[c_xz])/16.0 - (pC[c_xy]*pC[c_xz])/8.0 - (pC[c_x]*pC[c_xyz])/8.0 + (pC[c_0]*pC[c_xyz])/4.0 - (pC[c_x]*pC[c_xy])/4.0 + (pC[c_0]*pC[c_xy])/2.0 - pC[a_z]*pC[a_z]/2.0 - (pC[a_yz]*pC[a_z])/4.0 + (pC[a_xz]*pC[a_z])/2.0 + 
+      (pC[a_xyz]*pC[a_z])/8.0 - (pC[a_xxy]*pC[a_z])/12.0 - (pC[a_xx]*pC[a_z])/6.0 + (pC[a_x]*pC[a_z])/2.0 - pC[a_0]*pC[a_z] + (pC[a_xz]*pC[a_yz])/8.0 - (pC[a_xx]*pC[a_yz])/12.0 + (pC[a_x]*pC[a_yz])/4.0 - (pC[a_0]*pC[a_yz])/2.0 - (pC[a_y]*pC[a_yy])/6.0 + (pC[a_xy]*pC[a_yy])/12.0 + (pC[a_xyy]*pC[a_y])/12.0 - pC[a_xz]*pC[a_xz]/8.0 - (pC[a_xyz]*pC[a_xz])/16.0 + (pC[a_xxy]*pC[a_xz])/24.0 + (pC[a_xx]*pC[a_xz])/12.0 - (pC[a_x]*pC[a_xz])/4.0 +
+      (pC[a_0]*pC[a_xz])/2.0 + (pC[a_xx]*pC[a_xyz])/24.0 - (pC[a_x]*pC[a_xyz])/8.0 + (pC[a_0]*pC[a_xyz])/4.0 - (pC[a_xy]*pC[a_xyy])/24.0 - (pC[a_xx]*pC[a_xxy])/36.0 + (pC[a_x]*pC[a_xxy])/12.0 - (pC[a_0]*pC[a_xxy])/6.0)
+      
+      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DY];
+      
+      cp[CellParams::EYHALL_101_111] =
+      (- (pC[c_yzz]*pC[c_zz])/36.0 - (pC[c_yz]*pC[c_zz])/12.0 - (pC[c_y]*pC[c_zz])/6.0 - (pC[c_xyz]*pC[c_zz])/24.0 - (pC[c_xy]*pC[c_zz])/12.0 - (pC[c_yzz]*pC[c_z])/12.0 - (pC[c_yz]*pC[c_z])/4.0 - (pC[c_y]*pC[c_z])/2.0 - (pC[c_xyz]*pC[c_z])/8.0 - (pC[c_xy]*pC[c_z])/4.0 - (pC[c_xz]*pC[c_yzz])/24.0 - (pC[c_x]*pC[c_yzz])/12.0 - (pC[c_0]*pC[c_yzz])/6.0 - (pC[c_yyz]*pC[c_yz])/24.0 - (pC[c_yy]*pC[c_yz])/12.0 - 
+      (pC[c_xz]*pC[c_yz])/8.0 - (pC[c_x]*pC[c_yz])/4.0 - (pC[c_0]*pC[c_yz])/2.0 - (pC[c_y]*pC[c_yyz])/12.0 - (pC[c_y]*pC[c_yy])/6.0 - (pC[c_xz]*pC[c_y])/4.0 - (pC[c_x]*pC[c_y])/2.0 - pC[c_0]*pC[c_y] - (pC[c_xyz]*pC[c_xz])/16.0 - (pC[c_xy]*pC[c_xz])/8.0 - (pC[c_x]*pC[c_xyz])/8.0 - (pC[c_0]*pC[c_xyz])/4.0 - (pC[c_x]*pC[c_xy])/4.0 - (pC[c_0]*pC[c_xy])/2.0 - pC[a_z]*pC[a_z]/2.0 - (pC[a_yz]*pC[a_z])/4.0 - (pC[a_xz]*pC[a_z])/2.0 - 
+      (pC[a_xyz]*pC[a_z])/8.0 - (pC[a_xxy]*pC[a_z])/12.0 - (pC[a_xx]*pC[a_z])/6.0 - (pC[a_x]*pC[a_z])/2.0 - pC[a_0]*pC[a_z] - (pC[a_xz]*pC[a_yz])/8.0 - (pC[a_xx]*pC[a_yz])/12.0 - (pC[a_x]*pC[a_yz])/4.0 - (pC[a_0]*pC[a_yz])/2.0 - (pC[a_y]*pC[a_yy])/6.0 - (pC[a_xy]*pC[a_yy])/12.0 - (pC[a_xyy]*pC[a_y])/12.0 - pC[a_xz]*pC[a_xz]/8.0 - (pC[a_xyz]*pC[a_xz])/16.0 - (pC[a_xxy]*pC[a_xz])/24.0 - (pC[a_xx]*pC[a_xz])/12.0 - (pC[a_x]*pC[a_xz])/4.0 - 
+      (pC[a_0]*pC[a_xz])/2.0 - (pC[a_xx]*pC[a_xyz])/24.0 - (pC[a_x]*pC[a_xyz])/8.0 - (pC[a_0]*pC[a_xyz])/4.0 - (pC[a_xy]*pC[a_xyy])/24.0 - (pC[a_xx]*pC[a_xxy])/36.0 - (pC[a_x]*pC[a_xxy])/12.0 - (pC[a_0]*pC[a_xxy])/6.0)
+      
+      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DY];
    }
    #endif
 }
@@ -1285,8 +1419,10 @@ void calculateEdgeHallTermZComponents(
    cp[CellParams::EZHALL_110_111] =
    cp[CellParams::EZHALL_010_011] = EZHall;
    #else
+   using namespace Rec;
+   const Real* const pC = perturbedCoefficients;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      cp[CellParams::EZHALL_000_001] = calculateEdgeHallTermZ(
+/*      cp[CellParams::EZHALL_000_001] = calculateEdgeHallTermZ(
          perturbedCoefficients,
          -1.0,
          -1.0,
@@ -1313,10 +1449,42 @@ void calculateEdgeHallTermZComponents(
          1.0,
          cp[CellParams::BGBX_010_011],
          cp[CellParams::BGBY_010_011]
-      ) / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DZ];
+      ) / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DZ];*/
+      
+      cp[CellParams::EZHALL_000_001] =
+      (- (pC[b_z]*pC[b_zz])/6.0 + (pC[b_yz]*pC[b_zz])/12.0 + (pC[b_yzz]*pC[b_z])/12.0 - (pC[b_yy]*pC[b_z])/6.0 + (pC[b_y]*pC[b_z])/2.0 - (pC[b_xy]*pC[b_z])/4.0 + (pC[b_x]*pC[b_z])/2.0 - pC[b_0]*pC[b_z] - (pC[b_yz]*pC[b_yzz])/24.0 + (pC[b_yy]*pC[b_yz])/12.0 - (pC[b_y]*pC[b_yz])/4.0 + (pC[b_xy]*pC[b_yz])/8.0 - (pC[b_x]*pC[b_yz])/4.0 + (pC[b_0]*pC[b_yz])/2.0 - (pC[b_yy]*pC[b_yyz])/36.0 + (pC[b_y]*pC[b_yyz])/12.0
+      - (pC[b_xy]*pC[b_yyz])/24.0 + (pC[b_x]*pC[b_yyz])/12.0 - (pC[b_0]*pC[b_yyz])/6.0 + (pC[b_xz]*pC[b_yy])/12.0 - (pC[b_xyz]*pC[b_yy])/24.0 - (pC[b_xz]*pC[b_y])/4.0 + (pC[b_xyz]*pC[b_y])/8.0 + (pC[b_xy]*pC[b_xz])/8.0 - (pC[b_x]*pC[b_xz])/4.0 + (pC[b_0]*pC[b_xz])/2.0 - (pC[b_xy]*pC[b_xyz])/16.0 + (pC[b_x]*pC[b_xyz])/8.0 - (pC[b_0]*pC[b_xyz])/4.0 - (pC[a_z]*pC[a_zz])/6.0 + (pC[a_xz]*pC[a_zz])/12.0 + (pC[a_xzz]*pC[a_z])/12.0
+      - (pC[a_y]*pC[a_yz])/4.0 + (pC[a_xy]*pC[a_yz])/8.0 + (pC[a_xx]*pC[a_yz])/12.0 - (pC[a_x]*pC[a_yz])/4.0 + (pC[a_0]*pC[a_yz])/2.0 + pC[a_y]*pC[a_y]/2.0 + (pC[a_xyz]*pC[a_y])/8.0 - (pC[a_xy]*pC[a_y])/2.0 + (pC[a_xxz]*pC[a_y])/12.0 - (pC[a_xx]*pC[a_y])/6.0 + (pC[a_x]*pC[a_y])/2.0 - pC[a_0]*pC[a_y] - (pC[a_xz]*pC[a_xzz])/24.0 - (pC[a_xy]*pC[a_xyz])/16.0 - (pC[a_xx]*pC[a_xyz])/24.0 + (pC[a_x]*pC[a_xyz])/8.0 - (pC[a_0]*pC[a_xyz])/4.0 +
+      pC[a_xy]*pC[a_xy]/8.0 - (pC[a_xxz]*pC[a_xy])/24.0 + (pC[a_xx]*pC[a_xy])/12.0 - (pC[a_x]*pC[a_xy])/4.0 + (pC[a_0]*pC[a_xy])/2.0 - (pC[a_xx]*pC[a_xxz])/36.0 + (pC[a_x]*pC[a_xxz])/12.0 - (pC[a_0]*pC[a_xxz])/6)
+      
+      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DZ];
+      
+      cp[CellParams::EZHALL_100_101] =
+      (- (pC[b_z]*pC[b_zz])/6.0 + (pC[b_yz]*pC[b_zz])/12.0 + (pC[b_yzz]*pC[b_z])/12.0 - (pC[b_yy]*pC[b_z])/6.0 + (pC[b_y]*pC[b_z])/2.0 + (pC[b_xy]*pC[b_z])/4.0 - (pC[b_x]*pC[b_z])/2.0 - pC[b_0]*pC[b_z] - (pC[b_yz]*pC[b_yzz])/24.0 + (pC[b_yy]*pC[b_yz])/12.0 - (pC[b_y]*pC[b_yz])/4.0 - (pC[b_xy]*pC[b_yz])/8.0 + (pC[b_x]*pC[b_yz])/4.0 + (pC[b_0]*pC[b_yz])/2.0 - (pC[b_yy]*pC[b_yyz])/36.0 + (pC[b_y]*pC[b_yyz])/12.0
+      + (pC[b_xy]*pC[b_yyz])/24.0 - (pC[b_x]*pC[b_yyz])/12.0 - (pC[b_0]*pC[b_yyz])/6.0 - (pC[b_xz]*pC[b_yy])/12.0 + (pC[b_xyz]*pC[b_yy])/24.0 + (pC[b_xz]*pC[b_y])/4.0 - (pC[b_xyz]*pC[b_y])/8.0 + (pC[b_xy]*pC[b_xz])/8.0 - (pC[b_x]*pC[b_xz])/4.0 - (pC[b_0]*pC[b_xz])/2.0 - (pC[b_xy]*pC[b_xyz])/16.0 + (pC[b_x]*pC[b_xyz])/8.0 + (pC[b_0]*pC[b_xyz])/4.0 - (pC[a_z]*pC[a_zz])/6.0 - (pC[a_xz]*pC[a_zz])/12.0 - (pC[a_xzz]*pC[a_z])/12.0 - 
+      (pC[a_y]*pC[a_yz])/4.0 - (pC[a_xy]*pC[a_yz])/8.0 + (pC[a_xx]*pC[a_yz])/12.0 + (pC[a_x]*pC[a_yz])/4.0 + (pC[a_0]*pC[a_yz])/2.0 + pC[a_y]*pC[a_y]/2.0 - (pC[a_xyz]*pC[a_y])/8.0 + (pC[a_xy]*pC[a_y])/2.0 + (pC[a_xxz]*pC[a_y])/12.0 - (pC[a_xx]*pC[a_y])/6.0 - (pC[a_x]*pC[a_y])/2.0 - pC[a_0]*pC[a_y] - (pC[a_xz]*pC[a_xzz])/24.0 - (pC[a_xy]*pC[a_xyz])/16.0 + (pC[a_xx]*pC[a_xyz])/24.0 + (pC[a_x]*pC[a_xyz])/8.0 + (pC[a_0]*pC[a_xyz])/4
+      + pC[a_xy]*pC[a_xy]/8.0 + (pC[a_xxz]*pC[a_xy])/24.0 - (pC[a_xx]*pC[a_xy])/12.0 - (pC[a_x]*pC[a_xy])/4.0 - (pC[a_0]*pC[a_xy])/2.0 - (pC[a_xx]*pC[a_xxz])/36.0 - (pC[a_x]*pC[a_xxz])/12.0 - (pC[a_0]*pC[a_xxz])/6)
+      
+      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DZ];
+      
+      cp[CellParams::EZHALL_010_011] =
+      (- (pC[b_z]*pC[b_zz])/6.0 - (pC[b_yz]*pC[b_zz])/12.0 - (pC[b_yzz]*pC[b_z])/12.0 - (pC[b_yy]*pC[b_z])/6.0 - (pC[b_y]*pC[b_z])/2.0 + (pC[b_xy]*pC[b_z])/4.0 + (pC[b_x]*pC[b_z])/2.0 - pC[b_0]*pC[b_z] - (pC[b_yz]*pC[b_yzz])/24.0 - (pC[b_yy]*pC[b_yz])/12.0 - (pC[b_y]*pC[b_yz])/4.0 + (pC[b_xy]*pC[b_yz])/8.0 + (pC[b_x]*pC[b_yz])/4.0 - (pC[b_0]*pC[b_yz])/2.0 - (pC[b_yy]*pC[b_yyz])/36.0 - (pC[b_y]*pC[b_yyz])/12.0 + 
+      (pC[b_xy]*pC[b_yyz])/24.0 + (pC[b_x]*pC[b_yyz])/12.0 - (pC[b_0]*pC[b_yyz])/6.0 + (pC[b_xz]*pC[b_yy])/12.0 + (pC[b_xyz]*pC[b_yy])/24.0 + (pC[b_xz]*pC[b_y])/4.0 + (pC[b_xyz]*pC[b_y])/8.0 - (pC[b_xy]*pC[b_xz])/8.0 - (pC[b_x]*pC[b_xz])/4.0 + (pC[b_0]*pC[b_xz])/2.0 - (pC[b_xy]*pC[b_xyz])/16.0 - (pC[b_x]*pC[b_xyz])/8.0 + (pC[b_0]*pC[b_xyz])/4.0 - (pC[a_z]*pC[a_zz])/6.0 + (pC[a_xz]*pC[a_zz])/12.0 + (pC[a_xzz]*pC[a_z])/12.0 - 
+      (pC[a_y]*pC[a_yz])/4.0 + (pC[a_xy]*pC[a_yz])/8.0 - (pC[a_xx]*pC[a_yz])/12.0 + (pC[a_x]*pC[a_yz])/4.0 - (pC[a_0]*pC[a_yz])/2.0 - pC[a_y]*pC[a_y]/2.0 + (pC[a_xyz]*pC[a_y])/8.0 + (pC[a_xy]*pC[a_y])/2.0 - (pC[a_xxz]*pC[a_y])/12.0 - (pC[a_xx]*pC[a_y])/6.0 + (pC[a_x]*pC[a_y])/2.0 - pC[a_0]*pC[a_y] - (pC[a_xz]*pC[a_xzz])/24.0 - (pC[a_xy]*pC[a_xyz])/16.0 + (pC[a_xx]*pC[a_xyz])/24.0 - (pC[a_x]*pC[a_xyz])/8.0 + (pC[a_0]*pC[a_xyz])/4
+      - pC[a_xy]*pC[a_xy]/8.0 + (pC[a_xxz]*pC[a_xy])/24.0 + (pC[a_xx]*pC[a_xy])/12.0 - (pC[a_x]*pC[a_xy])/4.0 + (pC[a_0]*pC[a_xy])/2.0 - (pC[a_xx]*pC[a_xxz])/36.0 + (pC[a_x]*pC[a_xxz])/12.0 - (pC[a_0]*pC[a_xxz])/6)
+      
+      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DZ];
+      
+      cp[CellParams::EZHALL_110_111] = 
+      (- (pC[b_z]*pC[b_zz])/6.0 - (pC[b_yz]*pC[b_zz])/12.0 - (pC[b_yzz]*pC[b_z])/12.0 - (pC[b_yy]*pC[b_z])/6.0 - (pC[b_y]*pC[b_z])/2.0 - (pC[b_xy]*pC[b_z])/4.0 - (pC[b_x]*pC[b_z])/2.0 - pC[b_0]*pC[b_z] - (pC[b_yz]*pC[b_yzz])/24.0 - (pC[b_yy]*pC[b_yz])/12.0 - (pC[b_y]*pC[b_yz])/4.0 - (pC[b_xy]*pC[b_yz])/8.0 - (pC[b_x]*pC[b_yz])/4.0 - (pC[b_0]*pC[b_yz])/2.0 - (pC[b_yy]*pC[b_yyz])/36.0 - (pC[b_y]*pC[b_yyz])/12.0 - 
+      (pC[b_xy]*pC[b_yyz])/24.0 - (pC[b_x]*pC[b_yyz])/12.0 - (pC[b_0]*pC[b_yyz])/6.0 - (pC[b_xz]*pC[b_yy])/12.0 - (pC[b_xyz]*pC[b_yy])/24.0 - (pC[b_xz]*pC[b_y])/4.0 - (pC[b_xyz]*pC[b_y])/8.0 - (pC[b_xy]*pC[b_xz])/8.0 - (pC[b_x]*pC[b_xz])/4.0 - (pC[b_0]*pC[b_xz])/2.0 - (pC[b_xy]*pC[b_xyz])/16.0 - (pC[b_x]*pC[b_xyz])/8.0 - (pC[b_0]*pC[b_xyz])/4.0 - (pC[a_z]*pC[a_zz])/6.0 - (pC[a_xz]*pC[a_zz])/12.0 - (pC[a_xzz]*pC[a_z])/12.0 - 
+      (pC[a_y]*pC[a_yz])/4.0 - (pC[a_xy]*pC[a_yz])/8.0 - (pC[a_xx]*pC[a_yz])/12.0 - (pC[a_x]*pC[a_yz])/4.0 - (pC[a_0]*pC[a_yz])/2.0 - pC[a_y]*pC[a_y]/2.0 - (pC[a_xyz]*pC[a_y])/8.0 - (pC[a_xy]*pC[a_y])/2.0 - (pC[a_xxz]*pC[a_y])/12.0 - (pC[a_xx]*pC[a_y])/6.0 - (pC[a_x]*pC[a_y])/2.0 - pC[a_0]*pC[a_y] - (pC[a_xz]*pC[a_xzz])/24.0 - (pC[a_xy]*pC[a_xyz])/16.0 - (pC[a_xx]*pC[a_xyz])/24.0 - (pC[a_x]*pC[a_xyz])/8.0 - (pC[a_0]*pC[a_xyz])/4.0 - 
+      pC[a_xy]*pC[a_xy]/8.0 - (pC[a_xxz]*pC[a_xy])/24.0 - (pC[a_xx]*pC[a_xy])/12.0 - (pC[a_x]*pC[a_xy])/4.0 - (pC[a_0]*pC[a_xy])/2.0 - (pC[a_xx]*pC[a_xxz])/36.0 - (pC[a_x]*pC[a_xxz])/12.0 - (pC[a_0]*pC[a_xxz])/6)
+      
+      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q) / cp[CellParams::DZ];
    }
    if(RKCase == RK_ORDER2_STEP1) {
-      cp[CellParams::EZHALL_000_001] = calculateEdgeHallTermZ(
+/*      cp[CellParams::EZHALL_000_001] = calculateEdgeHallTermZ(
          perturbedCoefficients,
          -1.0,
          -1.0,
@@ -1343,7 +1511,39 @@ void calculateEdgeHallTermZComponents(
          1.0,
          cp[CellParams::BGBX_010_011],
          cp[CellParams::BGBY_010_011]
-      ) / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DZ];
+      ) / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DZ];*/
+      
+      cp[CellParams::EZHALL_000_001] =
+      (- (pC[b_z]*pC[b_zz])/6.0 + (pC[b_yz]*pC[b_zz])/12.0 + (pC[b_yzz]*pC[b_z])/12.0 - (pC[b_yy]*pC[b_z])/6.0 + (pC[b_y]*pC[b_z])/2.0 - (pC[b_xy]*pC[b_z])/4.0 + (pC[b_x]*pC[b_z])/2.0 - pC[b_0]*pC[b_z] - (pC[b_yz]*pC[b_yzz])/24.0 + (pC[b_yy]*pC[b_yz])/12.0 - (pC[b_y]*pC[b_yz])/4.0 + (pC[b_xy]*pC[b_yz])/8.0 - (pC[b_x]*pC[b_yz])/4.0 + (pC[b_0]*pC[b_yz])/2.0 - (pC[b_yy]*pC[b_yyz])/36.0 + (pC[b_y]*pC[b_yyz])/12.0
+      - (pC[b_xy]*pC[b_yyz])/24.0 + (pC[b_x]*pC[b_yyz])/12.0 - (pC[b_0]*pC[b_yyz])/6.0 + (pC[b_xz]*pC[b_yy])/12.0 - (pC[b_xyz]*pC[b_yy])/24.0 - (pC[b_xz]*pC[b_y])/4.0 + (pC[b_xyz]*pC[b_y])/8.0 + (pC[b_xy]*pC[b_xz])/8.0 - (pC[b_x]*pC[b_xz])/4.0 + (pC[b_0]*pC[b_xz])/2.0 - (pC[b_xy]*pC[b_xyz])/16.0 + (pC[b_x]*pC[b_xyz])/8.0 - (pC[b_0]*pC[b_xyz])/4.0 - (pC[a_z]*pC[a_zz])/6.0 + (pC[a_xz]*pC[a_zz])/12.0 + (pC[a_xzz]*pC[a_z])/12.0
+      - (pC[a_y]*pC[a_yz])/4.0 + (pC[a_xy]*pC[a_yz])/8.0 + (pC[a_xx]*pC[a_yz])/12.0 - (pC[a_x]*pC[a_yz])/4.0 + (pC[a_0]*pC[a_yz])/2.0 + pC[a_y]*pC[a_y]/2.0 + (pC[a_xyz]*pC[a_y])/8.0 - (pC[a_xy]*pC[a_y])/2.0 + (pC[a_xxz]*pC[a_y])/12.0 - (pC[a_xx]*pC[a_y])/6.0 + (pC[a_x]*pC[a_y])/2.0 - pC[a_0]*pC[a_y] - (pC[a_xz]*pC[a_xzz])/24.0 - (pC[a_xy]*pC[a_xyz])/16.0 - (pC[a_xx]*pC[a_xyz])/24.0 + (pC[a_x]*pC[a_xyz])/8.0 - (pC[a_0]*pC[a_xyz])/4.0 +
+      pC[a_xy]*pC[a_xy]/8.0 - (pC[a_xxz]*pC[a_xy])/24.0 + (pC[a_xx]*pC[a_xy])/12.0 - (pC[a_x]*pC[a_xy])/4.0 + (pC[a_0]*pC[a_xy])/2.0 - (pC[a_xx]*pC[a_xxz])/36.0 + (pC[a_x]*pC[a_xxz])/12.0 - (pC[a_0]*pC[a_xxz])/6)
+      
+      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DZ];
+      
+      cp[CellParams::EZHALL_100_101] =
+      (- (pC[b_z]*pC[b_zz])/6.0 + (pC[b_yz]*pC[b_zz])/12.0 + (pC[b_yzz]*pC[b_z])/12.0 - (pC[b_yy]*pC[b_z])/6.0 + (pC[b_y]*pC[b_z])/2.0 + (pC[b_xy]*pC[b_z])/4.0 - (pC[b_x]*pC[b_z])/2.0 - pC[b_0]*pC[b_z] - (pC[b_yz]*pC[b_yzz])/24.0 + (pC[b_yy]*pC[b_yz])/12.0 - (pC[b_y]*pC[b_yz])/4.0 - (pC[b_xy]*pC[b_yz])/8.0 + (pC[b_x]*pC[b_yz])/4.0 + (pC[b_0]*pC[b_yz])/2.0 - (pC[b_yy]*pC[b_yyz])/36.0 + (pC[b_y]*pC[b_yyz])/12.0
+      + (pC[b_xy]*pC[b_yyz])/24.0 - (pC[b_x]*pC[b_yyz])/12.0 - (pC[b_0]*pC[b_yyz])/6.0 - (pC[b_xz]*pC[b_yy])/12.0 + (pC[b_xyz]*pC[b_yy])/24.0 + (pC[b_xz]*pC[b_y])/4.0 - (pC[b_xyz]*pC[b_y])/8.0 + (pC[b_xy]*pC[b_xz])/8.0 - (pC[b_x]*pC[b_xz])/4.0 - (pC[b_0]*pC[b_xz])/2.0 - (pC[b_xy]*pC[b_xyz])/16.0 + (pC[b_x]*pC[b_xyz])/8.0 + (pC[b_0]*pC[b_xyz])/4.0 - (pC[a_z]*pC[a_zz])/6.0 - (pC[a_xz]*pC[a_zz])/12.0 - (pC[a_xzz]*pC[a_z])/12.0 - 
+      (pC[a_y]*pC[a_yz])/4.0 - (pC[a_xy]*pC[a_yz])/8.0 + (pC[a_xx]*pC[a_yz])/12.0 + (pC[a_x]*pC[a_yz])/4.0 + (pC[a_0]*pC[a_yz])/2.0 + pC[a_y]*pC[a_y]/2.0 - (pC[a_xyz]*pC[a_y])/8.0 + (pC[a_xy]*pC[a_y])/2.0 + (pC[a_xxz]*pC[a_y])/12.0 - (pC[a_xx]*pC[a_y])/6.0 - (pC[a_x]*pC[a_y])/2.0 - pC[a_0]*pC[a_y] - (pC[a_xz]*pC[a_xzz])/24.0 - (pC[a_xy]*pC[a_xyz])/16.0 + (pC[a_xx]*pC[a_xyz])/24.0 + (pC[a_x]*pC[a_xyz])/8.0 + (pC[a_0]*pC[a_xyz])/4
+      + pC[a_xy]*pC[a_xy]/8.0 + (pC[a_xxz]*pC[a_xy])/24.0 - (pC[a_xx]*pC[a_xy])/12.0 - (pC[a_x]*pC[a_xy])/4.0 - (pC[a_0]*pC[a_xy])/2.0 - (pC[a_xx]*pC[a_xxz])/36.0 - (pC[a_x]*pC[a_xxz])/12.0 - (pC[a_0]*pC[a_xxz])/6)
+      
+      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DZ];
+      
+      cp[CellParams::EZHALL_010_011] =
+      (- (pC[b_z]*pC[b_zz])/6.0 - (pC[b_yz]*pC[b_zz])/12.0 - (pC[b_yzz]*pC[b_z])/12.0 - (pC[b_yy]*pC[b_z])/6.0 - (pC[b_y]*pC[b_z])/2.0 + (pC[b_xy]*pC[b_z])/4.0 + (pC[b_x]*pC[b_z])/2.0 - pC[b_0]*pC[b_z] - (pC[b_yz]*pC[b_yzz])/24.0 - (pC[b_yy]*pC[b_yz])/12.0 - (pC[b_y]*pC[b_yz])/4.0 + (pC[b_xy]*pC[b_yz])/8.0 + (pC[b_x]*pC[b_yz])/4.0 - (pC[b_0]*pC[b_yz])/2.0 - (pC[b_yy]*pC[b_yyz])/36.0 - (pC[b_y]*pC[b_yyz])/12.0 + 
+      (pC[b_xy]*pC[b_yyz])/24.0 + (pC[b_x]*pC[b_yyz])/12.0 - (pC[b_0]*pC[b_yyz])/6.0 + (pC[b_xz]*pC[b_yy])/12.0 + (pC[b_xyz]*pC[b_yy])/24.0 + (pC[b_xz]*pC[b_y])/4.0 + (pC[b_xyz]*pC[b_y])/8.0 - (pC[b_xy]*pC[b_xz])/8.0 - (pC[b_x]*pC[b_xz])/4.0 + (pC[b_0]*pC[b_xz])/2.0 - (pC[b_xy]*pC[b_xyz])/16.0 - (pC[b_x]*pC[b_xyz])/8.0 + (pC[b_0]*pC[b_xyz])/4.0 - (pC[a_z]*pC[a_zz])/6.0 + (pC[a_xz]*pC[a_zz])/12.0 + (pC[a_xzz]*pC[a_z])/12.0 - 
+      (pC[a_y]*pC[a_yz])/4.0 + (pC[a_xy]*pC[a_yz])/8.0 - (pC[a_xx]*pC[a_yz])/12.0 + (pC[a_x]*pC[a_yz])/4.0 - (pC[a_0]*pC[a_yz])/2.0 - pC[a_y]*pC[a_y]/2.0 + (pC[a_xyz]*pC[a_y])/8.0 + (pC[a_xy]*pC[a_y])/2.0 - (pC[a_xxz]*pC[a_y])/12.0 - (pC[a_xx]*pC[a_y])/6.0 + (pC[a_x]*pC[a_y])/2.0 - pC[a_0]*pC[a_y] - (pC[a_xz]*pC[a_xzz])/24.0 - (pC[a_xy]*pC[a_xyz])/16.0 + (pC[a_xx]*pC[a_xyz])/24.0 - (pC[a_x]*pC[a_xyz])/8.0 + (pC[a_0]*pC[a_xyz])/4
+      - pC[a_xy]*pC[a_xy]/8.0 + (pC[a_xxz]*pC[a_xy])/24.0 + (pC[a_xx]*pC[a_xy])/12.0 - (pC[a_x]*pC[a_xy])/4.0 + (pC[a_0]*pC[a_xy])/2.0 - (pC[a_xx]*pC[a_xxz])/36.0 + (pC[a_x]*pC[a_xxz])/12.0 - (pC[a_0]*pC[a_xxz])/6)
+      
+      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DZ];
+      
+      cp[CellParams::EZHALL_110_111] = 
+      (- (pC[b_z]*pC[b_zz])/6.0 - (pC[b_yz]*pC[b_zz])/12.0 - (pC[b_yzz]*pC[b_z])/12.0 - (pC[b_yy]*pC[b_z])/6.0 - (pC[b_y]*pC[b_z])/2.0 - (pC[b_xy]*pC[b_z])/4.0 - (pC[b_x]*pC[b_z])/2.0 - pC[b_0]*pC[b_z] - (pC[b_yz]*pC[b_yzz])/24.0 - (pC[b_yy]*pC[b_yz])/12.0 - (pC[b_y]*pC[b_yz])/4.0 - (pC[b_xy]*pC[b_yz])/8.0 - (pC[b_x]*pC[b_yz])/4.0 - (pC[b_0]*pC[b_yz])/2.0 - (pC[b_yy]*pC[b_yyz])/36.0 - (pC[b_y]*pC[b_yyz])/12.0 - 
+      (pC[b_xy]*pC[b_yyz])/24.0 - (pC[b_x]*pC[b_yyz])/12.0 - (pC[b_0]*pC[b_yyz])/6.0 - (pC[b_xz]*pC[b_yy])/12.0 - (pC[b_xyz]*pC[b_yy])/24.0 - (pC[b_xz]*pC[b_y])/4.0 - (pC[b_xyz]*pC[b_y])/8.0 - (pC[b_xy]*pC[b_xz])/8.0 - (pC[b_x]*pC[b_xz])/4.0 - (pC[b_0]*pC[b_xz])/2.0 - (pC[b_xy]*pC[b_xyz])/16.0 - (pC[b_x]*pC[b_xyz])/8.0 - (pC[b_0]*pC[b_xyz])/4.0 - (pC[a_z]*pC[a_zz])/6.0 - (pC[a_xz]*pC[a_zz])/12.0 - (pC[a_xzz]*pC[a_z])/12.0 - 
+      (pC[a_y]*pC[a_yz])/4.0 - (pC[a_xy]*pC[a_yz])/8.0 - (pC[a_xx]*pC[a_yz])/12.0 - (pC[a_x]*pC[a_yz])/4.0 - (pC[a_0]*pC[a_yz])/2.0 - pC[a_y]*pC[a_y]/2.0 - (pC[a_xyz]*pC[a_y])/8.0 - (pC[a_xy]*pC[a_y])/2.0 - (pC[a_xxz]*pC[a_y])/12.0 - (pC[a_xx]*pC[a_y])/6.0 - (pC[a_x]*pC[a_y])/2.0 - pC[a_0]*pC[a_y] - (pC[a_xz]*pC[a_xzz])/24.0 - (pC[a_xy]*pC[a_xyz])/16.0 - (pC[a_xx]*pC[a_xyz])/24.0 - (pC[a_x]*pC[a_xyz])/8.0 - (pC[a_0]*pC[a_xyz])/4.0 - 
+      pC[a_xy]*pC[a_xy]/8.0 - (pC[a_xxz]*pC[a_xy])/24.0 - (pC[a_xx]*pC[a_xy])/12.0 - (pC[a_x]*pC[a_xy])/4.0 - (pC[a_0]*pC[a_xy])/2.0 - (pC[a_xx]*pC[a_xxz])/36.0 - (pC[a_x]*pC[a_xxz])/12.0 - (pC[a_0]*pC[a_xxz])/6)
+      
+      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q) / cp[CellParams::DZ];
    }
    #endif
 }
