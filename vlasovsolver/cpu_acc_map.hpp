@@ -359,7 +359,7 @@ bool map_1d(SpatialCell* spatial_cell,
 	    //target mass is value in center of intersecting length,
 	    //times length (missing x,y, but they would be cancelled
 	    //anyway when we divide to get density
-	    const Real target_mass = (cv + A * 0.5*(v_1+v_2)*(v_2 - v_1);
+	    const Real target_mass = (cv + A * 0.5*(v_1+v_2))*(v_2 - v_1);
 #endif
 #ifdef ACC_SEMILAG_PPM
 	    //todo, we recompute integrals, could do some reuse at least over gk loop (same with v also)
