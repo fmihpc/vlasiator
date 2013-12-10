@@ -14,7 +14,7 @@ Copyright 2012 Finnish Meteorological Institute
 #include "common.h"
 #include "spatial_cell.hpp"
 
-#ifdef ACC_SEMILAG_LPM
+#ifdef ACC_SEMILAG_PLM
 const int STENCIL_WIDTH=1;
 #else
 const int STENCIL_WIDTH=2;
@@ -52,9 +52,15 @@ template<typename T> inline T slope_limiter(const T& l,const T& m, const T& r) {
     return minval;
 }
 
+/*!
+Compute PPM coefficients as in:
+ Coella 1984
+ Carpenter et al. 1990
+For v=-dv/2 .. dv/2 in a cell we compute
+f(v)= cv + A * v + B * ( BB - v**2 )
+*/
 
-
-inline void fit_poly2_rec(Real dv, Real mmv, Real mv, Real cv, Real pv, Real ppv,
+inline void compute_ppm_coeff(Real dv, Real mmv, Real mv, Real cv, Real pv, Real ppv,
                           Real &A, Real &B, Real &BB){
 
   //compute p_face,m_face. 
@@ -65,7 +71,9 @@ inline void fit_poly2_rec(Real dv, Real mmv, Real mv, Real cv, Real pv, Real ppv
   Real m_face=0.5*(cv+mv) + one_sixth * (d_mv-d_cv);
   
   /*
-    Coella1984 eq. 1.09, claimed to give same resoult as above but that is not the case..
+    Coella1984 eq. 1.09, claimed to give same resoult as above but that is not the case.
+    Does not include the slope limiter
+    
     Real p_face=seven_twelfth*(pv+cv)-one_twelfth*(ppv+mv);
     Real m_face=seven_twelfth*(cv+mv)-one_twelfth*(pv+mmv);
   */
@@ -86,7 +94,7 @@ inline void fit_poly2_rec(Real dv, Real mmv, Real mv, Real cv, Real pv, Real ppv
     p_face=3*cv-2*m_face;
   }
 
-  //Fit a second order polynomial for reconstruction, set rec_par[A], rec_par[B]
+  //Fit a second order polynomial for reconstruction
   // f(v)= cv + A * v + B * ( BB - v**2 )
   // f(-dv/2) = m_face
   // f(+dv/2) = p_face
@@ -95,6 +103,59 @@ inline void fit_poly2_rec(Real dv, Real mmv, Real mv, Real cv, Real pv, Real ppv
   A=(p_face-m_face)/dv;
   B=(6*cv - 3*(p_face+m_face))/(dv*dv);    
   BB=dv*dv/12.0;
+}
+
+/*!
+Piecewise cubic method as in
+
+Zerroukat et al., SLICE: A Semi-Lagrangian Inherently Conserving and Ef cient scheme for
+transport problems, Q. J. R. Meteorol. Soc. (2002), 128, pp. 2801–2820
+
+f(v) = a[0] + a[1]*t + a[2]*t**2 + a[3]*t**3
+t=(v-v_{i-0.5})/dv where v_{i-0.5} is the left face of a cell
+*/
+
+inline void compute_pcm_coeff(Real mmv, Real mv, Real cv, Real pv, Real ppv,
+			      Real * __restrict__ a){
+  //compute rho_R,rho_L exactly as in PPM. 
+  /*
+  const Real d_pv=slope_limiter(cv,pv,ppv);
+  const Real d_cv=slope_limiter(mv,cv,pv);
+  const Real d_mv=slope_limiter(mmv,mv,cv);
+  Real rho_R=0.5*(pv+cv) + one_sixth * (d_cv-d_pv);
+  Real rho_L=0.5*(cv+mv) + one_sixth * (d_mv-d_cv);
+  */
+  /*
+    Coella1984 eq. 1.09, claimed to give same resoult as above but that is not the case.
+    Does not include the slope limiter
+  */  
+  Real rho_R=seven_twelfth*(pv+cv)-one_twelfth*(ppv+mv);
+  Real rho_L=seven_twelfth*(cv+mv)-one_twelfth*(pv+mmv);
+  //derivative, eq (17) in Zerroukat 2002. See notebook sheet for computation details
+  // Real d_rho = (-12.0*cv - 22.0*mv + 5.0*mmv + 22.0*pv + 7.0*ppv)/48.0;
+  Real d_rho=seven_twelfth*(pv-mv) + 1.0/24.0 * ( mmv - ppv );
+  //Coella1984 eq. 1.10
+  if( (rho_R-cv)*(cv-rho_L) <0) {
+    //Maxima, constant 
+    rho_R=cv;
+    rho_L=cv;
+    d_rho=0;
+  }
+
+  /*
+    else if( (rho_R-rho_L)*(cv-0.5*(rho_L+rho_R))>(rho_R-rho_L)*(rho_R-rho_L)*one_sixth){
+    rho_L=3*cv-2*rho_R;
+    }
+    else if( -(rho_R-rho_L)*(rho_R-rho_L)*one_sixth > (rho_R-rho_L)*(cv-0.5*(rho_L+rho_R))) {
+    rho_R=3*cv-2*rho_L;
+    }
+  */
+
+  //Coefficients as in eq. (13) 
+  a[0] = rho_L;
+  a[1] = 6.0*(cv - rho_L)                     - 2.0 * d_rho;
+  a[2] = 3.0*(3.0 * rho_L - 2.0 * cv - rho_R) + 6.0 * d_rho;
+  a[3] = 4.0*(rho_R - rho_L)                  - 4.0 * d_rho;
 }
 
 
@@ -316,17 +377,23 @@ bool map_1d(SpatialCell* spatial_cell,
 	  //f is mean value
 	  const Real cv = values[i_pblock(i,j,k)];
           
-#ifdef ACC_SEMILAG_LPM
+#ifdef ACC_SEMILAG_PLM
 	  //A is slope of linear approximation
 	  const Real A = slope_limiter(values[i_pblock(i,j,k-1)],
 				       cv,values[i_pblock(i,j,k+1)])*i_dv;
 #endif
 #ifdef ACC_SEMILAG_PPM
           Real A,B,BB;
-          fit_poly2_rec(dv,values[i_pblock(i,j,k-2)],values[i_pblock(i,j,k-1)],
-                        cv,values[i_pblock(i,j,k+1)],values[i_pblock(i,j,k+2)],
-                        A,B,BB);
+          compute_ppm_coeff(dv,values[i_pblock(i,j,k-2)],values[i_pblock(i,j,k-1)],
+			    cv,values[i_pblock(i,j,k+1)],values[i_pblock(i,j,k+2)],
+			    A,B,BB);
 #endif
+#ifdef ACC_SEMILAG_PCM
+	  Real a[4];
+          compute_pcm_coeff(values[i_pblock(i,j,k-2)],values[i_pblock(i,j,k-1)],
+			    cv,values[i_pblock(i,j,k+1)],values[i_pblock(i,j,k+2)],a);
+#endif	  
+
 	  //left(l) and right(r) k values (global index) in the target
 	  //lagrangian grid, the intersecting cells
 	  const Real intersection_min=intersection +
@@ -352,27 +419,43 @@ bool map_1d(SpatialCell* spatial_cell,
 	      (gk%WID)*cell_indices_to_id[2];
 	    
 	    //the velocity between which we will integrate to put mass
-	    //int the targe cell. If both v_r and v_l are in same cell
+	    //in the targe cell. If both v_r and v_l are in same cell
 	    //then v_1,v_2 should be between v_l and v_r.
+
+
+
+#ifdef ACC_SEMILAG_PLM	    
 	    //Note that we also have shifted velocity to have origo at v_c
 	    //(center velocity of euclidian cell)
 	    const Real v_1 = max(gk * intersection_dk + intersection_min, v_l)-v_c;
 	    const Real v_2 = min((gk+1) * intersection_dk + intersection_min, v_r)-v_c;
-
-#ifdef ACC_SEMILAG_LPM	    
 	    //target mass is value in center of intersecting length,
 	    //times length (missing x,y, but they would be cancelled
 	    //anyway when we divide to get density
-	    const Real target_mass = (cv + A * 0.5*(v_1+v_2))*(v_2 - v_1);
+	    const Real target_density = (cv + A * 0.5*(v_1+v_2))*(v_2 - v_1)*i_dv;
 #endif
 #ifdef ACC_SEMILAG_PPM
+	    //Note that we also have shifted velocity to have origo at v_c
+	    //(center velocity of euclidian cell)
+	    const Real v_1 = max(gk * intersection_dk + intersection_min, v_l)-v_c;
+	    const Real v_2 = min((gk+1) * intersection_dk + intersection_min, v_r)-v_c;
 	    //todo, we recompute integrals, could do some reuse at least over gk loop (same with v also)
             const Real integral_1=v_1*(cv+0.5*A*v_1+B*(BB-v_1*v_1*one_third));
             const Real integral_2=v_2*(cv+0.5*A*v_2+B*(BB-v_2*v_2*one_third));
-            const Real target_mass=integral_2-integral_1;
+            const Real target_density=(integral_2-integral_1)*i_dv;
+#endif
+#ifdef ACC_SEMILAG_PCM
+	    //in pcm we normalize by dv and in the center cell the v coordinate goes from 0 to 1
+	    const Real v_1 = (max(gk * intersection_dk + intersection_min, v_l)-v_l)/dv;
+	    const Real v_2 = (min((gk+1) * intersection_dk + intersection_min, v_r)-v_l)/dv;
+	    //todo, we recompute integrals, could do some reuse at least over gk loop (same with v also)
+            const Real integral_1=v_1*(a[0]+0.5*a[1]*v_1+one_third*a[2]*v_1*v_1+0.25*a[3]*v_1*v_1*v_1);
+            const Real integral_2=v_2*(a[0]+0.5*a[1]*v_2+one_third*a[2]*v_2*v_2+0.25*a[3]*v_2*v_2*v_2);
+            const Real target_density=integral_2-integral_1;
+
 #endif
 	    if (target_block < SpatialCell::max_velocity_blocks) 
-	      spatial_cell->increment_value(target_block,target_cell,target_mass*i_dv);
+	      spatial_cell->increment_value(target_block,target_cell,target_density);
 	  }
 	}
       }
