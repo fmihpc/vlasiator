@@ -37,8 +37,7 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
    const Real gyro_period = 2 * M_PI * Parameters::m  / (fabs(Parameters::q) * B.norm());
    
    //Set maximum timestep limit for this cell, based on a  maximum allowed rotation angle
-   //TODO, max angle could be read in from cfg
-   spatial_cell->parameters[CellParams::MAXVDT]=gyro_period*(10.0/360.0);
+   spatial_cell->parameters[CellParams::MAXVDT]=gyro_period*(P::maxSlAccelerationRotation/360.0);
    
   //compute initial moments, based on actual distribution function
    spatial_cell->parameters[CellParams::RHO_V  ] = 0.0;

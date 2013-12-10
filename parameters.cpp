@@ -185,8 +185,9 @@ bool Parameters::addParameters(){
    Readparameters::add("fieldsolver.minCFL","The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",0.4);
 
    // Vlasov solver parameters
-   Readparameters::add("vlasovsolver.useSlAcceleration","Use Slice3D Semi-Lagrangian solver for acceleration",false);
+   Readparameters::add("vlasovsolver.useSlAcceleration","Use Slice3D Semi-Lagrangian solver for acceleration",true);
    Readparameters::add("vlasovsolver.maxSlAccelerationRotation","Maximum rotation angle allowed by the Semi-Lagrangian solver (Do not use too large values, test properly)",10.0);
+
    Readparameters::add("vlasovsolver.lorentzHallTerm", "Add JxB term to Lorentz force",true);
    Readparameters::add("vlasovsolver.lorentzHallMinimumRho", "Minimum rho value used for Hall term in Lorentz force. Default is very low and has no effect in practice.",1.0);
    Readparameters::add("vlasovsolver.lorentzHallMaximumB", "Maximum value used for Hall term in Lorentz force. Default is very high and has no effect in practice.",1.0); 

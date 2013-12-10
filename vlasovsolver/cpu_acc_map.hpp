@@ -69,11 +69,15 @@ inline void fit_poly2_rec(Real dv, Real mmv, Real mv, Real cv, Real pv, Real ppv
     Real p_face=seven_twelfth*(pv+cv)-one_twelfth*(ppv+mv);
     Real m_face=seven_twelfth*(cv+mv)-one_twelfth*(pv+mmv);
   */
+
   
   //Coella1984 eq. 1.10
   if( (p_face-cv)*(cv-m_face) <0) {
-    p_face=cv;
-    m_face=cv;
+     //Extrema, cv higher/lowe than both face values. This is the
+     //same as setting B=0 and A=0, so constant approximation
+     p_face=cv;
+     m_face=cv;
+     
   }
   else if( (p_face-m_face)*(cv-0.5*(m_face+p_face))>(p_face-m_face)*(p_face-m_face)*one_sixth){
     m_face=3*cv-2*p_face;
