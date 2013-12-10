@@ -16,8 +16,12 @@ Copyright 2012 Finnish Meteorological Institute
 
 #ifdef ACC_SEMILAG_PLM
 const int STENCIL_WIDTH=1;
-#else
+#endif
+#ifdef ACC_SEMILAG_PPM
 const int STENCIL_WIDTH=2;
+#endif
+#ifdef ACC_SEMILAG_PCM
+const int STENCIL_WIDTH=3;
 #endif
 
 using namespace std;
@@ -81,10 +85,10 @@ inline void compute_ppm_coeff(Real dv, Real mmv, Real mv, Real cv, Real pv, Real
   
   //Coella1984 eq. 1.10
   if( (p_face-cv)*(cv-m_face) <0) {
-     //Extrema, cv higher/lowe than both face values. This is the
-     //same as setting B=0 and A=0, so constant approximation
-     p_face=cv;
-     m_face=cv;
+    //Extrema, cv higher/lowe than both face values. This is the
+    //same as setting B=0 and A=0, so constant approximation
+    p_face=cv;
+    m_face=cv;
      
   }
   else if( (p_face-m_face)*(cv-0.5*(m_face+p_face))>(p_face-m_face)*(p_face-m_face)*one_sixth){
@@ -115,43 +119,10 @@ f(v) = a[0] + a[1]*t + a[2]*t**2 + a[3]*t**3
 t=(v-v_{i-0.5})/dv where v_{i-0.5} is the left face of a cell
 */
 
-inline void compute_pcm_coeff(Real mmv, Real mv, Real cv, Real pv, Real ppv,
+
+inline void compute_pcm_coeff(Real rho_L,Real cv,Real rho_R,Real d_rho,
 			      Real * __restrict__ a){
-  //compute rho_R,rho_L exactly as in PPM. 
-  /*
-  const Real d_pv=slope_limiter(cv,pv,ppv);
-  const Real d_cv=slope_limiter(mv,cv,pv);
-  const Real d_mv=slope_limiter(mmv,mv,cv);
-  Real rho_R=0.5*(pv+cv) + one_sixth * (d_cv-d_pv);
-  Real rho_L=0.5*(cv+mv) + one_sixth * (d_mv-d_cv);
-  */
-  /*
-    Coella1984 eq. 1.09, claimed to give same resoult as above but that is not the case.
-    Does not include the slope limiter
-  */  
-  Real rho_R=seven_twelfth*(pv+cv)-one_twelfth*(ppv+mv);
-  Real rho_L=seven_twelfth*(cv+mv)-one_twelfth*(pv+mmv);
-  //derivative, eq (17) in Zerroukat 2002. See notebook sheet for computation details
-  // Real d_rho = (-12.0*cv - 22.0*mv + 5.0*mmv + 22.0*pv + 7.0*ppv)/48.0;
-  Real d_rho=seven_twelfth*(pv-mv) + 1.0/24.0 * ( mmv - ppv );
-  //Coella1984 eq. 1.10
-  if( (rho_R-cv)*(cv-rho_L) <0) {
-    //Maxima, constant 
-    rho_R=cv;
-    rho_L=cv;
-    d_rho=0;
-  }
-
-  /*
-    else if( (rho_R-rho_L)*(cv-0.5*(rho_L+rho_R))>(rho_R-rho_L)*(rho_R-rho_L)*one_sixth){
-    rho_L=3*cv-2*rho_R;
-    }
-    else if( -(rho_R-rho_L)*(rho_R-rho_L)*one_sixth > (rho_R-rho_L)*(cv-0.5*(rho_L+rho_R))) {
-    rho_R=3*cv-2*rho_L;
-    }
-  */
-
-  //Coefficients as in eq. (13) 
+  //Coefficients as in eq. (13), Zerroukat 2002 
   a[0] = rho_L;
   a[1] = 6.0*(cv - rho_L)                     - 2.0 * d_rho;
   a[2] = 3.0*(3.0 * rho_L - 2.0 * cv - rho_R) + 6.0 * d_rho;
@@ -159,8 +130,32 @@ inline void compute_pcm_coeff(Real mmv, Real mv, Real cv, Real pv, Real ppv,
 }
 
 
-/*!
+inline Real compute_pcm_d_rho(Real m2v, Real m1v, Real p1v,Real p2v){
+  //derivative, eq (17) in Zerroukat 2002. See notebook sheet for computation details
+  Real d_rho=seven_twelfth*(p1v-m1v) + 1.0/24.0 * ( m2v - p2v );  
+  return d_rho;
+}
 
+inline Real compute_pcm_rho_L(Real m3v,Real m2v, Real m1v, Real cv, Real p1v,Real p2v){
+  //compute rho_L  as in PPM (but without slope limiter)
+  Real rho_L=seven_twelfth*(cv+m1v)-one_twelfth*(p1v+m2v);
+  //Zerroukat 2005 3.1-3.5
+  if((rho_L-m1v)*(cv-rho_L) < 0 &&
+     ( ( m1v - m2v ) * ( p1v - cv ) >= 0 ||
+       ( m1v - m2v ) * ( m2v - m3v ) <= 0 ||
+       ( p1v - cv ) * ( p2v - m1v ) <= 0 ||
+       ( rho_L - m1v ) * ( m1v - m2v ) <= 0 )) {
+    //eq 3.6 & 3.7
+    Real x=fabs(rho_L-cv)-fabs(rho_L-m1v);
+    rho_L= (x<0) ? cv : m1v;
+  }
+  return rho_L;
+}
+
+
+
+
+/*!
   value array should be initialized to zero
   
   For dimension=0 data copy  we have rotated data
@@ -367,38 +362,60 @@ bool map_1d(SpatialCell* spatial_cell,
     /*i,j,k are now relative to the order in which we copied data to the values array. 
       After this point in the k,j,i loops there should be no branches based on dimensions
      */
-    for (uint k=0; k<WID; ++k){ 
-      //todo, could also compute z index and compute the start velocity of block
-      const Real v_l=(WID*block_indices[2]+k)*dv+v_min;
-      const Real v_c=v_l+0.5*dv;
-      const Real v_r=v_l+dv;
-      for (uint j = 0; j < WID; ++j){
-         for (uint i = 0; i < WID; ++i){
-	  //f is mean value
-	  const Real cv = values[i_pblock(i,j,k)];
-          
+    //TODO, the data layout is not optimal anymore, in memory we shoul dhave i first, k then and then j
+    
+    for (uint j = 0; j < WID; ++j){ 
+      for (uint i = 0; i < WID; ++i){ //TODO, use i to vectorize computation
+	const Real intersection_min=intersection +
+	  (block_indices[0]*WID+i)*intersection_di + 
+	  (block_indices[1]*WID+j)*intersection_dj;
+	
+#ifdef ACC_SEMILAG_PCM
+	Real rho_L[WID+1];
+	Real d_rho[WID];
+	for (uint k=0; k<WID+1; ++k){ 
+	  rho_L[k]=compute_pcm_rho_L(values[i_pblock(i,j,k-3)],
+				     values[i_pblock(i,j,k-2)],
+				     values[i_pblock(i,j,k-1)],
+				     values[i_pblock(i,j,k)],
+				     values[i_pblock(i,j,k+1)],
+				     values[i_pblock(i,j,k+2)]);
+	}
+	for (uint k=0; k<WID; ++k){ 
+	  d_rho[k]=compute_pcm_d_rho(values[i_pblock(i,j,k-2)],
+				     values[i_pblock(i,j,k-1)],
+				     values[i_pblock(i,j,k+1)],
+				     values[i_pblock(i,j,k+2)]);
+	}
+#endif
+	for (uint k=0; k<WID; ++k){ 
 #ifdef ACC_SEMILAG_PLM
 	  //A is slope of linear approximation
 	  const Real A = slope_limiter(values[i_pblock(i,j,k-1)],
-				       cv,values[i_pblock(i,j,k+1)])*i_dv;
+ 				       values[i_pblock(i,j,k)],
+				       values[i_pblock(i,j,k+1)])*i_dv;
 #endif
 #ifdef ACC_SEMILAG_PPM
           Real A,B,BB;
-          compute_ppm_coeff(dv,values[i_pblock(i,j,k-2)],values[i_pblock(i,j,k-1)],
-			    cv,values[i_pblock(i,j,k+1)],values[i_pblock(i,j,k+2)],
+          compute_ppm_coeff(dv,
+			    values[i_pblock(i,j,k-2)],
+			    values[i_pblock(i,j,k-1)],
+			    values[i_pblock(i,j,k)],
+			    values[i_pblock(i,j,k+1)],
+			    values[i_pblock(i,j,k+2)],
 			    A,B,BB);
 #endif
 #ifdef ACC_SEMILAG_PCM
 	  Real a[4];
-          compute_pcm_coeff(values[i_pblock(i,j,k-2)],values[i_pblock(i,j,k-1)],
-			    cv,values[i_pblock(i,j,k+1)],values[i_pblock(i,j,k+2)],a);
+          compute_pcm_coeff(rho_L[k],values[i_pblock(i,j,k)],rho_L[k+1],d_rho[k],a);
 #endif	  
 
+	  const Real v_l=(WID*block_indices[2]+k)*dv+v_min;
+	  const Real v_c=v_l+0.5*dv;
+	  const Real v_r=v_l+dv;
+          
 	  //left(l) and right(r) k values (global index) in the target
 	  //lagrangian grid, the intersecting cells
-	  const Real intersection_min=intersection +
-	    (block_indices[0]*WID+i)*intersection_di + 
-             (block_indices[1]*WID+j)*intersection_dj;
 	  const uint lagrangian_gk_l=(v_l-intersection_min)/intersection_dk; 
 	  const uint lagrangian_gk_r=(v_r-intersection_min)/intersection_dk;
 	  //todo, annoying loop. probably pretty bad for vectorization
@@ -415,8 +432,8 @@ bool map_1d(SpatialCell* spatial_cell,
 	    //cell index in the target block 
 	    const uint target_cell = 
                i*cell_indices_to_id[0] + 
-	      j*cell_indices_to_id[1] +
-	      (gk%WID)*cell_indices_to_id[2];
+	       j*cell_indices_to_id[1] +
+	       (gk%WID)*cell_indices_to_id[2];
 	    
 	    //the velocity between which we will integrate to put mass
 	    //in the targe cell. If both v_r and v_l are in same cell
