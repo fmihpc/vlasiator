@@ -31,7 +31,8 @@ const Real seven_twelfth=7.0/12.0;
 const Real one_third=1.0/3.0;
 
 // indices in padded z block
-#define i_pblock(i,j,k) ( ((k) + STENCIL_WIDTH ) * WID2 + (j) * WID + (i) )
+//#define i_pblock(i,j,k) ( ((k) + STENCIL_WIDTH ) * WID2 + (j) * WID + (i) )
+#define i_pblock(i,j,k) ( ((k) + STENCIL_WIDTH ) * WID + (j) * WID * (WID + 2* STENCIL_WIDTH) + (i) )
 
 
 
@@ -483,11 +484,11 @@ bool map_1d(SpatialCell* spatial_cell,
 	  //lagrangian grid, the intersecting cells
 	  const uint lagrangian_gk_l=(v_l-intersection_min)/intersection_dk; 
 	  const uint lagrangian_gk_r=(v_r-intersection_min)/intersection_dk;
-#ifdef ACC_SEMILAG_PLM
-#endif
+          
 #ifdef ACC_SEMILAG_PPM
           Real A,B;
 	  const Real BB=dv*dv/12.0;
+	  const Real cv = values[i_pblock(i,j,k)];
           compute_ppm_coeff(dv,
 			    values[i_pblock(i,j,k-1)],
 			    values[i_pblock(i,j,k  )],
@@ -496,23 +497,12 @@ bool map_1d(SpatialCell* spatial_cell,
 			    slopes[k+1],  //slope for k
 			    slopes[k+2],  //slope for k+1
 			    A,B);
-
-	  //Compute integrals at intersection points
-	  Real integrals[10]; //enough space
-	  const Real cv = values[i_pblock(i,j,k)];
-	  for(uint gk=lagrangian_gk_l;gk <= lagrangian_gk_r+1;gk++){
-	    Real v_1 =gk * intersection_dk + intersection_min;
-	    v_1 = max(v_l,v_1);
-	    v_1 = min(v_r,v_1);
-	    v_1 = v_1 - v_c;
-	    integrals[gk - lagrangian_gk_l] = v_1 * (cv + 0.5 * A * v_1 + B * (BB - v_1 * v_1 * one_third));
-	  }
 #endif
 	  
 	  //add values to target cell
-	  for(uint gk=lagrangian_gk_l;gk<=lagrangian_gk_r;gk++){
-	    //the blocks of the lagrangian cell to which we map
-	    const uint target_block = 
+          for(uint gk=lagrangian_gk_l;gk<=lagrangian_gk_r;gk++){
+             //the blocks of the lagrangian cell to which we map
+             const uint target_block = 
 	      block_indices[0]*block_indices_to_id[0]+
 	      block_indices[1]*block_indices_to_id[1]+
 	      (gk/WID)*block_indices_to_id[2];
@@ -521,8 +511,6 @@ bool map_1d(SpatialCell* spatial_cell,
                i*cell_indices_to_id[0] + 
 	       j*cell_indices_to_id[1] +
 	       (gk%WID)*cell_indices_to_id[2];
-	    
-#ifdef ACC_SEMILAG_PLM	    
 	    //the velocity between which we will integrate to put mass
 	    //in the targe cell. If both v_r and v_l are in same cell
 	    //then v_1,v_2 should be between v_l and v_r.
@@ -530,6 +518,7 @@ bool map_1d(SpatialCell* spatial_cell,
 	    //(center velocity of euclidian cell)
 	    const Real v_1 = max(gk * intersection_dk + intersection_min, v_l)-v_c;
 	    const Real v_2 = min((gk+1) * intersection_dk + intersection_min, v_r)-v_c;
+#ifdef ACC_SEMILAG_PLM	    
 	    //target mass is value in center of intersecting length,
 	    //times length (missing x,y, but they would be cancelled
 	    //anyway when we divide to get density
@@ -537,8 +526,9 @@ bool map_1d(SpatialCell* spatial_cell,
 	    const Real target_density = (cv + A * 0.5*(v_1+v_2))*(v_2 - v_1)*i_dv;
 #endif
 #ifdef ACC_SEMILAG_PPM
-	    //Use precomputed integrals
-            const Real target_density=(integrals[gk+1-lagrangian_gk_l]-integrals[gk-lagrangian_gk_l])*i_dv;
+            const Real target_density=
+               (v_2 * (cv + 0.5 * A * v_2 + B * (BB - v_2 * v_2 * one_third)) - 
+                v_1 * (cv + 0.5 * A * v_1 + B * (BB - v_1 * v_1 * one_third)))*i_dv;
 #endif
 	    if (target_block < SpatialCell::max_velocity_blocks) 
 	      spatial_cell->increment_value(target_block,target_cell,target_density);
