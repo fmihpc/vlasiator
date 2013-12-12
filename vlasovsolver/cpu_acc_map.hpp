@@ -43,8 +43,6 @@ Piecewise cubic method as in
 Zerroukat et al., SLICE: A Semi-Lagrangian Inherently Conserving and Ef cient scheme for
 transport problems, Q. J. R. Meteorol. Soc. (2002), 128, pp. 2801–2820
 
-f(v) = a[0] + a[1]*t + a[2]*t**2 + a[3]*t**3
-t=(v-v_{i-0.5})/dv where v_{i-0.5} is the left face of a cell
 
 
 PCM has a big weakness in that the filters of Zerroukat 2005 demands a
@@ -96,7 +94,7 @@ const int STENCIL_WIDTH=3;
 			    values[i_pblock(i,j,k-2)],
 			    values[i_pblock(i,j,k-1)],
 			    values[i_pblock(i,j,k)],
-			    values[i_pblock(i,j,k+1)],
+                            values[i_pblock(i,j,k+1)],
 			    values[i_pblock(i,j,k+2)],
 			    A,B,BB);
 	  }
@@ -201,30 +199,35 @@ template<typename T> inline T slope_limiter(const T& l,const T& m, const T& r) {
 }
 
 
-
 /*!
-Compute PPM coefficients as in:
- Coella 1984
- Carpenter et al. 1990
-For v=-dv/2 .. dv/2 in a cell we compute
-f(v)= cv + A * v + B * ( BB - v**2 )
+  Compute PLM coefficients
+f(v) = a[0] + a[1]/2.0*t 
+t=(v-v_{i-0.5})/dv where v_{i-0.5} is the left face of a cell
+The factor 2.0 is in the polynom to ease integration, then integral is a[0]*t + a[1]*t**2
 */
 
-inline void compute_ppm_coeff(Real dv, 
-			      Real mv, Real cv, Real pv, 
-			      Real d_mv, Real d_cv, Real d_pv,
-			      Real &A, Real &B){
-  //compute p_face,m_face. 
-  Real p_face=0.5*(pv+cv) + one_sixth * (d_cv-d_pv);
-  Real m_face=0.5*(cv+mv) + one_sixth * (d_mv-d_cv);
-  
-  /*
-    Coella1984 eq. 1.09, claimed to give same resoult as above but that is not the case,
-    They do not include the slope limiter which (artificially) steepens the solution    
-    Real p_face=seven_twelfth*(pv+cv)-one_twelfth*(ppv+mv);
-    Real m_face=seven_twelfth*(cv+mv)-one_twelfth*(pv+mmv);
-  */
+inline void compute_plm_coeff(Real cv, Real d_cv,
+			      Real * __restrict__ a){
+   a[0] = cv - d_cv * 0.5;
+   a[1] = d_cv * 0.5;
+}
 
+
+
+/*!
+Compute PPM coefficients
+f(v) = a[0] + a[1]/2.0*t + a[2]/3.0*t**2 
+t=(v-v_{i-0.5})/dv where v_{i-0.5} is the left face of a cell
+The factors 2.0 and 3.0 are in the polynom to ease integration, then integral is a[0]*t + a[1]*t**2+a[2]*t**3
+*/
+
+inline void compute_ppm_coeff(Real mv, Real cv, Real pv, 
+			      Real d_mv, Real d_cv, Real d_pv,
+			      Real * __restrict__ a){
+
+   //compute p_face,m_face as in Coella 1984 wit MC limiter
+   Real p_face=0.5*(pv+cv) + one_sixth * (d_cv-d_pv);
+   Real m_face=0.5*(cv+mv) + one_sixth * (d_mv-d_cv);
   
   //Coella1984 eq. 1.10
   if( (p_face-cv)*(cv-m_face) <0) {
@@ -242,13 +245,10 @@ inline void compute_ppm_coeff(Real dv,
   }
 
   //Fit a second order polynomial for reconstruction
-  // f(v)= cv + A * v + B * ( BB - v**2 )
-  // f(-dv/2) = m_face
-  // f(+dv/2) = p_face
-  //see carpenter et al. 1990
-  
-  A=(p_face-m_face)/dv;
-  B=(6*cv - 3*(p_face+m_face))/(dv*dv);    
+  //sew, e.g., White 2008 (PQM article) (note additional integration factors built in, contrary to White (2008) eq. 4
+  a[0]=m_face;
+  a[1]=3.0*cv-2.0*m_face-p_face;
+  a[2]=(m_face+p_face-2.0*cv);
 }
 
 
@@ -471,9 +471,9 @@ bool map_1d(SpatialCell* spatial_cell,
 	/*precompute slopes for each cell, this data is reused for ppm solver*/
 	Real slopes[WID+2];	
 	for (uint k = 0; k < WID + 2; ++k){ 
-	  slopes[k]=slope_limiter(values[i_pblock(i,j,k-2)],
-				  values[i_pblock(i,j,k-1)],
-				  values[i_pblock(i,j,k)]);
+           slopes[k]=slope_limiter(values[i_pblock(i,j,k-2)],
+                                   values[i_pblock(i,j,k-1)],
+                                   values[i_pblock(i,j,k)]);
 	}
 	
 	for (uint k=0; k<WID; ++k){ 
@@ -486,17 +486,20 @@ bool map_1d(SpatialCell* spatial_cell,
 	  const uint lagrangian_gk_r=(v_r-intersection_min)/intersection_dk;
           
 #ifdef ACC_SEMILAG_PPM
-          Real A,B;
-	  const Real BB=dv*dv/12.0;
-	  const Real cv = values[i_pblock(i,j,k)];
-          compute_ppm_coeff(dv,
-			    values[i_pblock(i,j,k-1)],
+          Real a[3];
+          compute_ppm_coeff(values[i_pblock(i,j,k-1)],
 			    values[i_pblock(i,j,k  )],
 			    values[i_pblock(i,j,k+1)],
 			    slopes[k  ],  //slope for k-1
 			    slopes[k+1],  //slope for k
 			    slopes[k+2],  //slope for k+1
-			    A,B);
+			    a);
+#endif
+#ifdef ACC_SEMILAG_PLM
+          Real a[2];
+          compute_plm_coeff(values[i_pblock(i,j,k  )],
+			    slopes[k+1],  //slope for k
+			    a);
 #endif
 	  
 	  //add values to target cell
@@ -514,24 +517,21 @@ bool map_1d(SpatialCell* spatial_cell,
 	    //the velocity between which we will integrate to put mass
 	    //in the targe cell. If both v_r and v_l are in same cell
 	    //then v_1,v_2 should be between v_l and v_r.
-	    //Note that we also have shifted velocity to have origo at v_c
-	    //(center velocity of euclidian cell)
-	    const Real v_1 = max(gk * intersection_dk + intersection_min, v_l)-v_c;
-	    const Real v_2 = min((gk+1) * intersection_dk + intersection_min, v_r)-v_c;
+            //v_1 and v_2 normalized to be between 0 and 1 in the cell
+	    const Real v_1 = (max(gk * intersection_dk + intersection_min, v_l)-v_l)*i_dv;
+	    const Real v_2 = (min((gk+1) * intersection_dk + intersection_min, v_r)-v_l)*i_dv;
 #ifdef ACC_SEMILAG_PLM	    
-	    //target mass is value in center of intersecting length,
-	    //times length (missing x,y, but they would be cancelled
-	    //anyway when we divide to get density
-	    const Real A = slopes[k+1];
-	    const Real target_density = (cv + A * 0.5*(v_1+v_2))*(v_2 - v_1)*i_dv;
+            const Real target_density=
+               ((v_2-v_1)*a[0]+(v_2*v_2-v_1*v_1)*a[1])*i_dv;
 #endif
 #ifdef ACC_SEMILAG_PPM
             const Real target_density=
-               (v_2 * (cv + 0.5 * A * v_2 + B * (BB - v_2 * v_2 * one_third)) - 
-                v_1 * (cv + 0.5 * A * v_1 + B * (BB - v_1 * v_1 * one_third)))*i_dv;
+               (v_2 - v_1) * a[0] +
+               (v_2 * v_2 - v_1 * v_1) * a[1] +
+               (v_2 * v_2 * v_2 - v_1 * v_1 * v_1) * a[2];
 #endif
 	    if (target_block < SpatialCell::max_velocity_blocks) 
-	      spatial_cell->increment_value(target_block,target_cell,target_density);
+               spatial_cell->increment_value(target_block,target_cell,target_density);
 	  }
 	}
       }
