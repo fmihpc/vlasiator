@@ -14,6 +14,9 @@ Copyright 2012 Finnish Meteorological Institute
 #include "common.h"
 #include "spatial_cell.hpp"
 
+#ifdef ACC_SEMILAG_PCONSTM
+const int STENCIL_WIDTH=0;
+#endif
 #ifdef ACC_SEMILAG_PLM
 const int STENCIL_WIDTH=1;
 #endif
@@ -200,42 +203,50 @@ template<typename T> inline T slope_limiter(const T& l,const T& m, const T& r) {
 
 
 /*!
-  Compute PLM coefficients
+ Compute PLM coefficients
 f(v) = a[0] + a[1]/2.0*t 
 t=(v-v_{i-0.5})/dv where v_{i-0.5} is the left face of a cell
 The factor 2.0 is in the polynom to ease integration, then integral is a[0]*t + a[1]*t**2
 */
 
-inline void compute_plm_coeff(Real cv, Real d_cv,
+inline void compute_plm_coeff(Real mv,Real cv, Real pv,
 			      Real * __restrict__ a){
-   a[0] = cv - d_cv * 0.5;
-   a[1] = d_cv * 0.5;
+  const Real d_cv=slope_limiter(mv,cv,pv);
+  a[0] = cv - d_cv * 0.5;
+  a[1] = d_cv * 0.5;
 }
 
 
 
-/*!
-Compute PPM coefficients
-f(v) = a[0] + a[1]/2.0*t + a[2]/3.0*t**2 
-t=(v-v_{i-0.5})/dv where v_{i-0.5} is the left face of a cell
-The factors 2.0 and 3.0 are in the polynom to ease integration, then integral is a[0]*t + a[1]*t**2+a[2]*t**3
-*/
 
-inline void compute_ppm_coeff(Real mv, Real cv, Real pv, 
-			      Real d_mv, Real d_cv, Real d_pv,
+inline void compute_ppm_coeff(Real mmv,Real mv, Real cv, Real pv,Real ppv,
 			      Real * __restrict__ a){
-
-   //compute p_face,m_face as in Coella 1984 wit MC limiter
-   Real p_face=0.5*(pv+cv) + one_sixth * (d_cv-d_pv);
-   Real m_face=0.5*(cv+mv) + one_sixth * (d_mv-d_cv);
   
+  //compute p_face,m_face as in Coella 1984 wit MC limiter
+     
+  Real p_face=seven_twelfth*(pv+cv)-one_twelfth*(ppv+mv);
+  Real m_face=seven_twelfth*(cv+mv)-one_twelfth*(pv+mmv);
+   
+  
+  if(p_face < 0 || m_face<0) {
+    //Check for positiveness, use limited version from Coella et al 1984 in that case
+    // TODO, or then we use the limited for all cases
+    
+    const Real d_mv=slope_limiter(mmv,mv,cv);
+    const Real d_cv=slope_limiter(mv,cv,pv);
+    const Real d_pv=slope_limiter(cv,pv,ppv);
+    p_face=0.5*(pv+cv) + one_sixth * (d_cv-d_pv);                                                                                        
+    m_face=0.5*(cv+mv) + one_sixth * (d_mv-d_cv);     
+  }
+  
+
   //Coella1984 eq. 1.10
   if( (p_face-cv)*(cv-m_face) <0) {
     //Extrema, cv higher/lower than both face values. This is the
-    //same as setting B=0 and A=0, so constant approximation
+    //same as setting a[1]=0 and a[2]=0, so constant approximation
     p_face=cv;
     m_face=cv;
-     
+    
   }
   else if( (p_face-m_face)*(cv-0.5*(m_face+p_face))>(p_face-m_face)*(p_face-m_face)*one_sixth){
     m_face=3*cv-2*p_face;
@@ -468,14 +479,6 @@ bool map_1d(SpatialCell* spatial_cell,
 	const Real intersection_min=intersection +
 	  (block_indices[0]*WID+i)*intersection_di + 
 	  (block_indices[1]*WID+j)*intersection_dj;
-	/*precompute slopes for each cell, this data is reused for ppm solver*/
-	Real slopes[WID+2];	
-	for (uint k = 0; k < WID + 2; ++k){ 
-           slopes[k]=slope_limiter(values[i_pblock(i,j,k-2)],
-                                   values[i_pblock(i,j,k-1)],
-                                   values[i_pblock(i,j,k)]);
-	}
-	
 	for (uint k=0; k<WID; ++k){ 
 	  const Real v_l=(WID*block_indices[2]+k)*dv+v_min;
 	  const Real v_c=v_l+0.5*dv;
@@ -487,18 +490,18 @@ bool map_1d(SpatialCell* spatial_cell,
           
 #ifdef ACC_SEMILAG_PPM
           Real a[3];
-          compute_ppm_coeff(values[i_pblock(i,j,k-1)],
+	  compute_ppm_coeff(values[i_pblock(i,j,k-2)],
+			    values[i_pblock(i,j,k-1)],
 			    values[i_pblock(i,j,k  )],
 			    values[i_pblock(i,j,k+1)],
-			    slopes[k  ],  //slope for k-1
-			    slopes[k+1],  //slope for k
-			    slopes[k+2],  //slope for k+1
+			    values[i_pblock(i,j,k+2)],
 			    a);
 #endif
 #ifdef ACC_SEMILAG_PLM
           Real a[2];
-          compute_plm_coeff(values[i_pblock(i,j,k  )],
-			    slopes[k+1],  //slope for k
+          compute_plm_coeff(values[i_pblock(i,j,k-1)],
+			    values[i_pblock(i,j,k  )],
+			    values[i_pblock(i,j,k+1)],
 			    a);
 #endif
 	  
@@ -520,9 +523,14 @@ bool map_1d(SpatialCell* spatial_cell,
             //v_1 and v_2 normalized to be between 0 and 1 in the cell
 	    const Real v_1 = (max(gk * intersection_dk + intersection_min, v_l)-v_l)*i_dv;
 	    const Real v_2 = (min((gk+1) * intersection_dk + intersection_min, v_r)-v_l)*i_dv;
+#ifdef ACC_SEMILAG_PCONSTM	    
+            const Real target_density=
+	      (v_2 - v_1) *  values[i_pblock(i,j,k)];
+#endif
 #ifdef ACC_SEMILAG_PLM	    
             const Real target_density=
-               ((v_2-v_1)*a[0]+(v_2*v_2-v_1*v_1)*a[1])*i_dv;
+	      (v_2 - v_1) * a[0] +
+	      (v_2 * v_2 - v_1 * v_1) * a[1];
 #endif
 #ifdef ACC_SEMILAG_PPM
             const Real target_density=
@@ -531,7 +539,7 @@ bool map_1d(SpatialCell* spatial_cell,
                (v_2 * v_2 * v_2 - v_1 * v_1 * v_1) * a[2];
 #endif
 	    if (target_block < SpatialCell::max_velocity_blocks) 
-               spatial_cell->increment_value(target_block,target_cell,target_density);
+	      spatial_cell->increment_value(target_block,target_cell,target_density);
 	  }
 	}
       }

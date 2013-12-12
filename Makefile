@@ -19,7 +19,7 @@ CXXFLAGS += -DPROFILE
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
 CXXFLAGS += -DNDEBUG
 
-#set order of semilag solver in acceleration, PLM, PPM 
+#set order of semilag solver in acceleration, PCONSTM, PLM, PPM 
 CXXFLAGS += -DACC_SEMILAG_PPM
 
 #define USE_AGNER_VECTORCLASS to use an external vector class that is used in some of the solvers

@@ -96,7 +96,7 @@ template<> inline std::string VLSVWriter::arrayDataType<uint8_t>() {return "uint
 template<> inline std::string VLSVWriter::arrayDataType<uint16_t>() {return "uint";}
 template<> inline std::string VLSVWriter::arrayDataType<uint32_t>() {return "uint";}
 template<> inline std::string VLSVWriter::arrayDataType<uint64_t>() {return "uint";}
-//template<> inline std::string VLSVWriter::arrayDataType<unsigned long>() {return "uint";}
+template<> inline std::string VLSVWriter::arrayDataType<unsigned long>() {return "uint";}
 template<> inline std::string VLSVWriter::arrayDataType<float>() {return "float";}
 template<> inline std::string VLSVWriter::arrayDataType<double>() {return "float";}
 template<> inline std::string VLSVWriter::arrayDataType<long double>() {return "float";}
