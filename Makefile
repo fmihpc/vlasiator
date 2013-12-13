@@ -19,8 +19,18 @@ CXXFLAGS += -DPROFILE
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
 CXXFLAGS += -DNDEBUG
 
-#set order of semilag solver in acceleration, PCONSTM, PLM, PPM 
-CXXFLAGS += -DACC_SEMILAG_PPM
+#Set order of semilag solver in acceleration, 
+#  ACC_SEMILAG_PCONSTM	1st order
+#  ACC_SEMILAG_PLM 	2nd order	
+#  ACC_SEMILAG_PPM	3rd order
+#Set face estimations for PPM 
+#  PPM_FACEEST_H6	6th order (not bounded)
+#  PPM_FACEEST_H4	4th order (not bounded)
+#  PPM_FACEEST_LIMITED	4th order, limited with MC to be bounded. (Coella 1984)
+#Set face value filters (monotonicity and extrema filters always on)
+#  PPM_FACEFILTER_WHITE_BOUND  Make face values bounded (White 2008, eq 19,20)
+#  PPM_FACEFILTER_POSITIVE     Face values never negative, makes algorithm positive definite
+CXXFLAGS += -DACC_SEMILAG_PPM -DPPM_FACEEST_H6 -DPPM_FACEFILTER_POSITIVE
 
 #define USE_AGNER_VECTORCLASS to use an external vector class that is used in some of the solvers
 #If not defined a slower but portable implementation is used, as the external one only supports 
@@ -98,6 +108,7 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/Larmor/Larmor.h projects/Larmor/Larmor.cpp \
 		projects/Magnetosphere/Magnetosphere.h projects/Magnetosphere/Magnetosphere.cpp\
 		projects/MultiPeak/MultiPeak.h projects/MultiPeak/MultiPeak.cpp \
+		projects/VelocityBox/VelocityBox.h projects/VelocityBox/VelocityBox.cpp \
 		projects/Riemann1/Riemann1.h projects/Riemann1/Riemann1.cpp \
 		projects/Shock/Shock.h projects/Shock/Shock.cpp \
 		projects/test_fp/test_fp.h projects/test_fp/test_fp.cpp \
@@ -110,7 +121,7 @@ OBJS = 	version.o backgroundfield.o ode.o quadr.o dipole.o constantfield.o integ
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o \
 	sysboundary.o sysboundarycondition.o \
 	project.o projectIsotropicMaxwellian.o \
-	Alfven.o Diffusion.o Dispersion.o Firehose.o Flowthrough.o Fluctuations.o  KHB.o Larmor.o Magnetosphere.o MultiPeak.o Riemann1.o Shock.o test_fp.o test_trans.o verificationLarmor.o\
+	Alfven.o Diffusion.o Dispersion.o Firehose.o Flowthrough.o Fluctuations.o  KHB.o Larmor.o Magnetosphere.o MultiPeak.o VelocityBox.o Riemann1.o Shock.o test_fp.o test_trans.o verificationLarmor.o\
 	grid.o ioread.o iowrite.o vlasiator.o logger.o muxml.o \
 	parameters.o readparameters.o spatial_cell.o \
 	vlscommon.o vlsvreader2.o vlsvwriter2.o vlasovmover_$(TRANSSOLVER).o $(FIELDSOLVER).o
@@ -215,6 +226,10 @@ Magnetosphere.o: ${DEPS_COMMON} projects/Magnetosphere/Magnetosphere.h projects/
 
 MultiPeak.o: ${DEPS_COMMON} projects/MultiPeak/MultiPeak.h projects/MultiPeak/MultiPeak.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/MultiPeak/MultiPeak.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+
+VelocityBox.o: ${DEPS_COMMON} projects/VelocityBox/VelocityBox.h projects/VelocityBox/VelocityBox.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/VelocityBox/VelocityBox.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+
 
 Riemann1.o: ${DEPS_COMMON} projects/Riemann1/Riemann1.h projects/Riemann1/Riemann1.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Riemann1/Riemann1.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}

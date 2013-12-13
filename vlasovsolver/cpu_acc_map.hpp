@@ -20,7 +20,7 @@ const int STENCIL_WIDTH=0;
 #ifdef ACC_SEMILAG_PLM
 const int STENCIL_WIDTH=1;
 #endif
-#ifdef ACC_SEMILAG_PPM
+#if ACC_SEMILAG_PPM
 const int STENCIL_WIDTH=3;
 #endif
 
@@ -36,150 +36,6 @@ const Real one_third=1.0/3.0;
 // indices in padded z block
 //#define i_pblock(i,j,k) ( ((k) + STENCIL_WIDTH ) * WID2 + (j) * WID + (i) ) // x first, then y and z
 #define i_pblock(i,j,k) ( ((k) + STENCIL_WIDTH ) * WID + (j) * WID * (WID + 2* STENCIL_WIDTH) + (i) )
-
-
-
-/*---------------- PCM functions start ------------------------------*/
-/*!
-Piecewise cubic method as in
-
-Zerroukat et al., SLICE: A Semi-Lagrangian Inherently Conserving and Ef cient scheme for
-transport problems, Q. J. R. Meteorol. Soc. (2002), 128, pp. 2801–2820
-
-
-
-PCM has a big weakness in that the filters of Zerroukat 2005 demands a
-_large_ stencil. Here the filtering for extrema is not properly
-implemented due to that, and is not supported in main mapping code
-
-*/
-/*
-Some pieces of code need for PCM in the main map routine
-#ifdef ACC_SEMILAG_PCM
-const int STENCIL_WIDTH=3;
-#endif
-
-
-#ifdef ACC_SEMILAG_PCM
-	Real rho_L[WID+1];
-	Real d_rho[WID];
-	for (uint k=0; k<WID+1; ++k){ 
-	  rho_L[k]=compute_pcm_rho_L(values[i_pblock(i,j,k-3)],
-	                         values[i_pblock(i,j,k-2)],
-				     values[i_pblock(i,j,k-1)],
-				     values[i_pblock(i,j,k)],
-				     values[i_pblock(i,j,k+1)],
-				     values[i_pblock(i,j,k+2)]);
-	}
-	for (uint k=0; k<WID; ++k){ 
-	  d_rho[k]=compute_pcm_d_rho(values[i_pblock(i,j,k-2)],
-				     values[i_pblock(i,j,k-1)],
-				     values[i_pblock(i,j,k+1)],
-				     values[i_pblock(i,j,k+2)]);
-	}
-#endif
-
-
-
-#ifdef ACC_SEMILAG_PCM
-	  bool use_ppm;
-	  Real a[4];
-          Real A,B,BB;
-          compute_pcm_coeff(rho_L[k],
-			    values[i_pblock(i,j,k)],
-			    rho_L[k+1],
-			    d_rho[k],
-			    use_ppm,
-			    a);
-	  
-	  if(use_ppm){
-	    compute_ppm_coeff(dv,
-			    values[i_pblock(i,j,k-2)],
-			    values[i_pblock(i,j,k-1)],
-			    values[i_pblock(i,j,k)],
-                            values[i_pblock(i,j,k+1)],
-			    values[i_pblock(i,j,k+2)],
-			    A,B,BB);
-	  }
-#endif	  
-
-#ifdef ACC_SEMILAG_PCM
-	    //in pcm we normalize by dv and in the center cell the v coordinate goes from 0 to 1
-	    Real target_density;
-	    if(use_ppm){
-	      	    //Note that we also have shifted velocity to have origo at v_c
-	      //(center velocity of euclidian cell)
-	      const Real v_1 = max(gk * intersection_dk + intersection_min, v_l)-v_c;
-	      const Real v_2 = min((gk+1) * intersection_dk + intersection_min, v_r)-v_c;
-	      //todo, we recompute integrals, could do some reuse at least over gk loop (same with v also)
-	      const Real cv = values[i_pblock(i,j,k)];
-	      const Real integral_1=v_1*(cv+0.5*A*v_1+B*(BB-v_1*v_1*one_third));
-	      const Real integral_2=v_2*(cv+0.5*A*v_2+B*(BB-v_2*v_2*one_third));
-	      target_density=(integral_2-integral_1)*i_dv;
-	    }
-	    else{
-	      const Real v_1 = (max(gk * intersection_dk + intersection_min, v_l)-v_l)/dv;
-	      const Real v_2 = (min((gk+1) * intersection_dk + intersection_min, v_r)-v_l)/dv;
-	      //todo, we recompute integrals, could do some reuse at least over gk loop (same with v also)
-	      const Real integral_1=v_1*(a[0]+0.5*a[1]*v_1+one_third*a[2]*v_1*v_1+0.25*a[3]*v_1*v_1*v_1);
-	      const Real integral_2=v_2*(a[0]+0.5*a[1]*v_2+one_third*a[2]*v_2*v_2+0.25*a[3]*v_2*v_2*v_2);
-	      target_density=integral_2-integral_1;
-	    }
-#endif
-
-
-inline void compute_pcm_coeff(Real rho_L,Real cv,Real rho_R,Real d_rho,
-			      bool &use_ppm,
-			      Real * __restrict__ a){
-  //Coefficients as in eq. (13), Zerroukat 2002 
-  a[0] = rho_L;
-  a[1] = 6.0*(cv - rho_L)                     - 2.0 * d_rho;
-  a[2] = 3.0*(3.0 * rho_L - 2.0 * cv - rho_R) + 6.0 * d_rho;
-  a[3] = 4.0*(rho_R - rho_L)                  - 4.0 * d_rho;
-
-  use_ppm=false;
-  
-  //eq. 3.8 Zerroukat 2005
-  //check for two extrema within [0,1]
-  if( a[1] * (a[1] + 2 * a[2] + 3 * a[3]) > 0 &&
-      3*a[3]/a[2] >=0 && 
-      3*a[3]/a[2] <=0 &&
-      a[1]*a[3] >0)
-    use_ppm=true;
-    
-  //one extrema within [0,1]
-  if( a[1] * (a[1] + 2 * a[2] + 3 * a[3]) <0 )
-    use_ppm=true;
-	
-
-    
-}
-
-
-inline Real compute_pcm_d_rho(Real m2v, Real m1v, Real p1v,Real p2v){
-  //derivative, eq (17) in Zerroukat 2002. See notebook sheet for computation details
-  Real d_rho=seven_twelfth*(p1v-m1v) + 1.0/24.0 * ( m2v - p2v );  
-  return d_rho;
-}
-
-inline Real compute_pcm_rho_L(Real m3v,Real m2v, Real m1v, Real cv, Real p1v,Real p2v){
-  //compute rho_L  as in PPM (but without slope limiter)
-  Real rho_L=seven_twelfth*(cv+m1v)-one_twelfth*(p1v+m2v);
-  //Zerroukat 2005 3.1-3.5
-  if((rho_L-m1v)*(cv-rho_L) < 0 &&
-     ( ( m1v - m2v ) * ( p1v - cv ) >= 0 ||
-       ( m1v - m2v ) * ( m2v - m3v ) <= 0 ||
-       ( p1v - cv ) * ( p2v - m1v ) <= 0 ||
-       ( rho_L - m1v ) * ( m1v - m2v ) <= 0 )) {
-    //eq 3.6 & 3.7
-    Real x=fabs(rho_L-cv)-fabs(rho_L-m1v);
-    rho_L= (x<0) ? cv : m1v;
-  }
-  return rho_L;
-}
-*/
-
-/*---------------- PCM functions end------------------------------*/
 
 
 /*!
@@ -221,56 +77,68 @@ inline void compute_plm_coeff(Real mv,Real cv, Real pv,
 
 inline void compute_ppm_coeff(Real mmmv,Real mmv,Real mv, Real cv, Real pv,Real ppv,Real pppv,
 			      Real * __restrict__ a){
-
    Real p_face;
    Real m_face;
-   //h6 estimates
-   p_face=(mmv -8.0 * mv + 37.0 * cv + 37.0 * pv - 8.0 * ppv + pppv)/60.0;
-   if( (p_face - cv)*(p_face - pv) > 0 ) {
-      //Face value out of bounds, try h4 estimate
-      //h4 estimates (fourth order), white 2008       
-      p_face=seven_twelfth*(pv+cv)-one_twelfth*(ppv+mv);
-      if( (p_face - cv)*(p_face - pv) > 0) {
-         //out of bounds, use limited version from Coella 1984
-         const Real d_cv=slope_limiter(mv,cv,pv);
-         const Real d_pv=slope_limiter(cv,pv,ppv);
-         p_face=0.5*(pv+cv) + one_sixth * (d_cv-d_pv);
-      }
-   }
 
-   //h6 estimate
-   m_face=(mmmv -8.0 * mmv + 37.0 * mv + 37.0 * cv - 8.0 * pv + ppv)/60.0;
-   if( (m_face - cv)*(m_face - mv) > 0) {
-      //Face value out of bounds, try h4 estimate
-      //h4 estimates (fourth order), white 2008       
-      m_face=seven_twelfth*(cv+mv)-one_twelfth*(pv+mmv);
-      if( (m_face - cv)*(m_face - mv) > 0) {
-         //out of bounds, use limited version from Coella 1984
-         const Real d_mv=slope_limiter(mmv,mv,cv);
-         const Real d_cv=slope_limiter(mv,cv,pv);
-         m_face=0.5*(cv+mv) + one_sixth * (d_mv-d_cv);     
-      }
+   //Compute estimations of the face values. 
+#ifdef PPM_FACEEST_H6
+   //h6 estimates (sixth order), white 2008       
+   p_face=(mmv -8.0 * mv + 37.0 * cv + 37.0 * pv - 8.0 * ppv + pppv)/60.0;
+   m_face=(mmmv -8.0 * mmv + 37.0 * mv + 37.0 * cv - 8.0 * pv + ppv)/60.0;   
+#endif
+#ifdef PPM_FACEEST_H4
+   //h4 estimates (fourth order), white 2008       
+   p_face=seven_twelfth*(pv+cv)-one_twelfth*(ppv+mv);
+   m_face=seven_twelfth*(cv+mv)-one_twelfth*(pv+mmv);
+#endif
+#ifdef PPM_FACEEST_LIMITED
+   //limited estimates, like in Coella 1984
+   const Real d_cv=slope_limiter(mv,cv,pv);
+   const Real d_pv=slope_limiter(cv,pv,ppv);
+   const Real d_mv=slope_limiter(mmv,mv,cv);
+
+   p_face=0.5*(pv+cv) + one_sixth * (d_cv-d_pv);
+   m_face=0.5*(cv+mv) + one_sixth * (d_mv-d_cv);        
+#endif
+
+
+     
+#ifdef PPM_FACEFILTER_WHITE_BOUND
+   //This is EQ 19-20 in White et al 2008 (PQM paper). Well, the type(?) is fixed
+   if( (p_face - cv)*(p_face - pv) > 0 ) {
+     //Face value out of bounds
+     const Real d_cv=slope_limiter(mv,cv,pv);
+     p_face = cv + copysign(1.0,d_cv)* min(d_cv * 0.5, fabs( pv - cv ));
    }
-   
-  //Coella1984 eq. 1.10
-  if( (p_face-cv)*(cv-m_face) <0) {
-    //Extrema, cv higher/lower than both face values. This is the
-    //same as setting a[1]=0 and a[2]=0, so constant approximation
+   if( (m_face - cv)*(m_face - mv) > 0) { 
+     //Face value out of bounds
+     const Real d_cv=slope_limiter(mv,cv,pv);
+     m_face = cv - copysign(1.0,d_cv)* min(d_cv * 0.5, fabs( mv - cv ));
+   }
+#endif
+#ifdef PPM_FACEFILTER_POSITIVE
+   if(p_face<0) p_face=0;
+   if(m_face<0) m_face=0;
+#endif
+
+  //Coella1984 eq. 1.10, detect extream
+   if( (p_face-cv)*(cv-m_face) <0) {
+     //set to constant approximation
      p_face=cv;
      m_face=cv;
-  }
-//     m_face = cv - copysign(1.0,d_cv)* min(d_cv * 0.5, fabs( mv - cv ));
+   }
 
-  //Coella et al, check for monotonicity
-  if( (p_face-m_face)*(cv-0.5*(m_face+p_face))>(p_face-m_face)*(p_face-m_face)*one_sixth){
-    m_face=3*cv-2*p_face;
-  }
-  if( -(p_face-m_face)*(p_face-m_face)*one_sixth > (p_face-m_face)*(cv-0.5*(m_face+p_face))) {
-    p_face=3*cv-2*m_face;
-  }
+   //Coella et al, check for monotonicity
+   else if( (p_face-m_face)*(cv-0.5*(m_face+p_face))>(p_face-m_face)*(p_face-m_face)*one_sixth){
+     m_face=3*cv-2*p_face;
+   }
+   else if( -(p_face-m_face)*(p_face-m_face)*one_sixth > (p_face-m_face)*(cv-0.5*(m_face+p_face))) {
+     p_face=3*cv-2*m_face;
+   }
 
-  //Fit a second order polynomial for reconstruction
-  //sew, e.g., White 2008 (PQM article) (note additional integration factors built in, contrary to White (2008) eq. 4
+  //Fit a second order polynomial for reconstruction see, e.g., White
+  //2008 (PQM article) (note additional integration factors built in,
+  //contrary to White (2008) eq. 4
   a[0]=m_face;
   a[1]=3.0*cv-2.0*m_face-p_face;
   a[2]=(m_face+p_face-2.0*cv);

@@ -13,6 +13,7 @@
 #include "Larmor/Larmor.h"
 #include "Magnetosphere/Magnetosphere.h"
 #include "MultiPeak/MultiPeak.h"
+#include "VelocityBox/VelocityBox.h"
 #include "Riemann1/Riemann1.h"
 #include "Shock/Shock.h"
 #include "test_fp/test_fp.h"
@@ -45,6 +46,7 @@ namespace projects {
       projects::Larmor::addParameters();
       projects::Magnetosphere::addParameters();
       projects::MultiPeak::addParameters();
+      projects::VelocityBox::addParameters();
       projects::Riemann1::addParameters();
       projects::Shock::addParameters();
       projects::test_fp::addParameters();
@@ -216,6 +218,9 @@ Project* createProject() {
    }
    if(Parameters::projectName == "MultiPeak") {
       return new projects::MultiPeak;
+   } 
+   if(Parameters::projectName == "VelocityBox") {
+      return new projects::VelocityBox;
    } 
    if(Parameters::projectName == "Riemann1") {
       return new projects::Riemann1;
