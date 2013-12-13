@@ -27,10 +27,14 @@ CXXFLAGS += -DNDEBUG
 #  PPM_FACEEST_H6	6th order (not bounded)
 #  PPM_FACEEST_H4	4th order (not bounded)
 #  PPM_FACEEST_LIMITED	4th order, limited with MC to be bounded. (Coella 1984)
-#Set face value filters (monotonicity and extrema filters always on)
+#Set face value filters for PPM (monotonicity and extrema filters always on)
 #  PPM_FACEFILTER_WHITE_BOUND  Make face values bounded (White 2008, eq 19,20)
 #  PPM_FACEFILTER_POSITIVE     Face values never negative, makes algorithm positive definite
-CXXFLAGS += -DACC_SEMILAG_PPM -DPPM_FACEEST_H6 -DPPM_FACEFILTER_POSITIVE
+#
+#Least diffusion is obtained with (expect over/undershoots!):
+CXXFLAGS += -DACC_SEMILAG_PPM -DPPM_FACEEST_H6 -DPPM_FACEFILTER_POSITIVE 
+#Safest results with:
+#CXXFLAGS += -DACC_SEMILAG_PPM -DPPM_FACEEST_LIMITED 
 
 #define USE_AGNER_VECTORCLASS to use an external vector class that is used in some of the solvers
 #If not defined a slower but portable implementation is used, as the external one only supports 
