@@ -23,10 +23,7 @@ namespace projects {
          virtual void getParameters(void);
          virtual void setCellBackgroundField(SpatialCell* cell);
       protected:
-         Real getDistribValue(
-            creal& x,creal& y, creal& z,
-            creal& vx, creal& vy, creal& vz
-         );
+         Real getDistribValue(creal& vx, creal& vy, creal& vz);
          virtual void calcCellParameters(Real* cellParams,creal& t);
          virtual Real calcPhaseSpaceDensity(
             creal& x, creal& y, creal& z,

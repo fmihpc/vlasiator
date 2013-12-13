@@ -74,9 +74,12 @@ namespace projects {
 
 
 
-   Real VelocityBox::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   
-     return getDistribValue(vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz);
-   }
+  Real VelocityBox::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, 
+					  creal& dx, creal& dy, creal& dz, 
+					  creal& vx, creal& vy, creal& vz, 
+					  creal& dvx, creal& dvy, creal& dvz) {   
+    return getDistribValue(vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz);
+  }
 
 
   
