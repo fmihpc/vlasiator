@@ -21,7 +21,7 @@ const int STENCIL_WIDTH=0;
 const int STENCIL_WIDTH=1;
 #endif
 #ifdef ACC_SEMILAG_PPM
-const int STENCIL_WIDTH=2;
+const int STENCIL_WIDTH=3;
 #endif
 
 
@@ -219,39 +219,53 @@ inline void compute_plm_coeff(Real mv,Real cv, Real pv,
 
 
 
-inline void compute_ppm_coeff(Real mmv,Real mv, Real cv, Real pv,Real ppv,
+inline void compute_ppm_coeff(Real mmmv,Real mmv,Real mv, Real cv, Real pv,Real ppv,Real pppv,
 			      Real * __restrict__ a){
-  
-  //compute p_face,m_face as in Coella 1984 wit MC limiter
-     
-  Real p_face=seven_twelfth*(pv+cv)-one_twelfth*(ppv+mv);
-  Real m_face=seven_twelfth*(cv+mv)-one_twelfth*(pv+mmv);
-   
-  
-  if(p_face < 0 || m_face<0) {
-    //Check for positiveness, use limited version from Coella et al 1984 in that case
-    // TODO, or then we use the limited for all cases
-    
-    const Real d_mv=slope_limiter(mmv,mv,cv);
-    const Real d_cv=slope_limiter(mv,cv,pv);
-    const Real d_pv=slope_limiter(cv,pv,ppv);
-    p_face=0.5*(pv+cv) + one_sixth * (d_cv-d_pv);                                                                                        
-    m_face=0.5*(cv+mv) + one_sixth * (d_mv-d_cv);     
-  }
-  
 
+   Real p_face;
+   Real m_face;
+   //h6 estimates
+   p_face=(mmv -8.0 * mv + 37.0 * cv + 37.0 * pv - 8.0 * ppv + pppv)/60.0;
+   if( (p_face - cv)*(p_face - pv) > 0 ) {
+      //Face value out of bounds, try h4 estimate
+      //h4 estimates (fourth order), white 2008       
+      p_face=seven_twelfth*(pv+cv)-one_twelfth*(ppv+mv);
+      if( (p_face - cv)*(p_face - pv) > 0) {
+         //out of bounds, use limited version from Coella 1984
+         const Real d_cv=slope_limiter(mv,cv,pv);
+         const Real d_pv=slope_limiter(cv,pv,ppv);
+         p_face=0.5*(pv+cv) + one_sixth * (d_cv-d_pv);
+      }
+   }
+
+   //h6 estimate
+   m_face=(mmmv -8.0 * mmv + 37.0 * mv + 37.0 * cv - 8.0 * pv + ppv)/60.0;
+   if( (m_face - cv)*(m_face - mv) > 0) {
+      //Face value out of bounds, try h4 estimate
+      //h4 estimates (fourth order), white 2008       
+      m_face=seven_twelfth*(cv+mv)-one_twelfth*(pv+mmv);
+      if( (m_face - cv)*(m_face - mv) > 0) {
+         //out of bounds, use limited version from Coella 1984
+         const Real d_mv=slope_limiter(mmv,mv,cv);
+         const Real d_cv=slope_limiter(mv,cv,pv);
+         m_face=0.5*(cv+mv) + one_sixth * (d_mv-d_cv);     
+      }
+   }
+   
   //Coella1984 eq. 1.10
   if( (p_face-cv)*(cv-m_face) <0) {
     //Extrema, cv higher/lower than both face values. This is the
     //same as setting a[1]=0 and a[2]=0, so constant approximation
-    p_face=cv;
-    m_face=cv;
-    
+     p_face=cv;
+     m_face=cv;
   }
-  else if( (p_face-m_face)*(cv-0.5*(m_face+p_face))>(p_face-m_face)*(p_face-m_face)*one_sixth){
+//     m_face = cv - copysign(1.0,d_cv)* min(d_cv * 0.5, fabs( mv - cv ));
+
+  //Coella et al, check for monotonicity
+  if( (p_face-m_face)*(cv-0.5*(m_face+p_face))>(p_face-m_face)*(p_face-m_face)*one_sixth){
     m_face=3*cv-2*p_face;
   }
-  else if( -(p_face-m_face)*(p_face-m_face)*one_sixth > (p_face-m_face)*(cv-0.5*(m_face+p_face))) {
+  if( -(p_face-m_face)*(p_face-m_face)*one_sixth > (p_face-m_face)*(cv-0.5*(m_face+p_face))) {
     p_face=3*cv-2*m_face;
   }
 
@@ -509,11 +523,13 @@ bool map_1d(SpatialCell* spatial_cell,
           
 #ifdef ACC_SEMILAG_PPM
           Real a[3];
-	  compute_ppm_coeff(values[i_pblock(i,j,k-2)],
+	  compute_ppm_coeff(values[i_pblock(i,j,k-3)],
+             values[i_pblock(i,j,k-2)],
 			    values[i_pblock(i,j,k-1)],
 			    values[i_pblock(i,j,k  )],
 			    values[i_pblock(i,j,k+1)],
 			    values[i_pblock(i,j,k+2)],
+                            values[i_pblock(i,j,k+3)],
 			    a);
 #endif
 #ifdef ACC_SEMILAG_PLM
