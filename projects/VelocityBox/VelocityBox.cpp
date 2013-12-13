@@ -70,6 +70,8 @@ namespace projects {
 	 vy >= this->Vy[0] && vy <= this->Vy[1] &&
 	 vz >= this->Vz[0] && vz <= this->Vz[1])
        return this->rho;
+     else
+       return 0.0;
    }
 
 
