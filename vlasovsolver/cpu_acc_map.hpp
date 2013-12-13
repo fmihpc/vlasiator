@@ -34,7 +34,7 @@ const Real seven_twelfth=7.0/12.0;
 const Real one_third=1.0/3.0;
 
 // indices in padded z block
-//#define i_pblock(i,j,k) ( ((k) + STENCIL_WIDTH ) * WID2 + (j) * WID + (i) )
+//#define i_pblock(i,j,k) ( ((k) + STENCIL_WIDTH ) * WID2 + (j) * WID + (i) ) // x first, then y and z
 #define i_pblock(i,j,k) ( ((k) + STENCIL_WIDTH ) * WID + (j) * WID * (WID + 2* STENCIL_WIDTH) + (i) )
 
 
@@ -324,6 +324,16 @@ inline void copy_block_data(Velocity_Block *block,Real * __restrict__ values, in
           }
        }
     }
+    else {
+       for (int k=-STENCIL_WIDTH; k<0; ++k) {
+          for (uint j=0; j<WID; ++j) {
+             for (uint i=0; i<WID; ++i) {
+	       values[i_pblock(i,j,k)] = 0.0;
+             }
+          }
+       }
+    }
+
 
     Real * __restrict__ fx = block->fx;
     // Copy volume averages of this block:
@@ -355,7 +365,16 @@ inline void copy_block_data(Velocity_Block *block,Real * __restrict__ values, in
           }
        }
     }
-    
+    else {
+      //no neighbor, set neighbor values to zero
+      for (uint k=WID; k<WID+STENCIL_WIDTH; ++k) {             
+	for (uint j=0; j<WID; ++j) {
+	  for (uint i=0; i<WID; ++i) {
+	    values[i_pblock(i,j,k)] = 0.0;
+	  }
+	}
+      }
+    }
 }
 
 
