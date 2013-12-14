@@ -108,12 +108,12 @@ inline void compute_ppm_coeff(Real mmmv,Real mmv,Real mv, Real cv, Real pv,Real 
    if( (p_face - cv)*(p_face - pv) > 0 ) {
      //Face value out of bounds
      const Real d_cv=slope_limiter(mv,cv,pv);
-     p_face = cv + copysign(1.0,d_cv)* min(d_cv * 0.5, fabs( pv - cv ));
+     p_face = cv + copysign(1.0,d_cv)* min( fabs(d_cv) * 0.5, fabs( p_face - cv ));
    }
    if( (m_face - cv)*(m_face - mv) > 0) { 
      //Face value out of bounds
      const Real d_cv=slope_limiter(mv,cv,pv);
-     m_face = cv - copysign(1.0,d_cv)* min(d_cv * 0.5, fabs( mv - cv ));
+     m_face = cv - copysign(1.0,d_cv)* min( fabs(d_cv) * 0.5, fabs( m_face - cv ));
    }
 #endif
 #ifdef PPM_FACEFILTER_POSITIVE
