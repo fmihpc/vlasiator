@@ -1132,7 +1132,7 @@ void calculateEdgeHallTermXComponents(
       (pC[b_xyy]*pC[b_yz])/24+(pC[b_xy]*pC[b_yz])/8-(pC[b_x]*pC[b_yz])/4+(pC[b_xz]*pC[b_yy])/12-(pC[b_xyz]*pC[b_yy])/24-(pC[b_xyy]*pC[b_yy])/36+(pC[b_xy]*pC[b_yy])/12-(pC[b_x]*pC[b_yy])/6-(pC[b_xz]*pC[b_y])/4+(pC[b_xyz]*pC[b_y])/8+(pC[b_xyy]*pC[b_y])/12-(pC[b_xy]*pC[b_y])/4+(pC[b_x]*pC[b_y])/2+(pC[b_0]*pC[b_xz])/2-(pC[b_0]*pC[b_xyz])/4-(pC[b_0]*pC[b_xyy])/6-
       (pC[b_xxy]*pC[b_xy])/24+(pC[b_xx]*pC[b_xy])/12+(pC[b_0]*pC[b_xy])/2+(pC[b_x]*pC[b_xxy])/12-(pC[b_x]*pC[b_xx])/6-pC[b_0]*pC[b_x])
          
-         / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q);
+         / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q*cp[CellParams::DX]);
       
       cp[CellParams::EXHALL_010_110] =
       (-(pC[c_xzz]*cp[CellParams::BGBZ])/6+(pC[c_xz]*cp[CellParams::BGBZ])/2+(pC[c_xyz]*cp[CellParams::BGBZ])/4-(pC[c_xy]*cp[CellParams::BGBZ])/2-pC[c_x]*cp[CellParams::BGBZ]+(pC[b_xz]*cp[CellParams::BGBY])/2+(pC[b_xyz]*cp[CellParams::BGBY])/4-(pC[b_xyy]*cp[CellParams::BGBY])/6-(pC[b_xy]*cp[CellParams::BGBY])/2-pC[b_x]*cp[CellParams::BGBY]-(pC[c_xzz]*pC[c_zz])/36+(pC[c_xz]*pC[c_zz])/12+(pC[c_xyz]*pC[c_zz])/24-(pC[c_xy]*pC[c_zz])/12-
@@ -1141,7 +1141,7 @@ void calculateEdgeHallTermXComponents(
       (pC[b_xyy]*pC[b_yz])/24+(pC[b_xy]*pC[b_yz])/8+(pC[b_x]*pC[b_yz])/4+(pC[b_xz]*pC[b_yy])/12+(pC[b_xyz]*pC[b_yy])/24-(pC[b_xyy]*pC[b_yy])/36-(pC[b_xy]*pC[b_yy])/12-(pC[b_x]*pC[b_yy])/6+(pC[b_xz]*pC[b_y])/4+(pC[b_xyz]*pC[b_y])/8-(pC[b_xyy]*pC[b_y])/12-(pC[b_xy]*pC[b_y])/4-(pC[b_x]*pC[b_y])/2+(pC[b_0]*pC[b_xz])/2+(pC[b_0]*pC[b_xyz])/4-(pC[b_0]*pC[b_xyy])/6-
       (pC[b_xxy]*pC[b_xy])/24-(pC[b_xx]*pC[b_xy])/12-(pC[b_0]*pC[b_xy])/2-(pC[b_x]*pC[b_xxy])/12-(pC[b_x]*pC[b_xx])/6-pC[b_0]*pC[b_x])
          
-         / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q);
+         / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q*cp[CellParams::DX]);
       
       cp[CellParams::EXHALL_001_101] =
       (-(pC[c_xzz]*cp[CellParams::BGBZ])/6-(pC[c_xz]*cp[CellParams::BGBZ])/2+(pC[c_xyz]*cp[CellParams::BGBZ])/4+(pC[c_xy]*cp[CellParams::BGBZ])/2-pC[c_x]*cp[CellParams::BGBZ]-(pC[b_xz]*cp[CellParams::BGBY])/2+(pC[b_xyz]*cp[CellParams::BGBY])/4-(pC[b_xyy]*cp[CellParams::BGBY])/6+(pC[b_xy]*cp[CellParams::BGBY])/2-pC[b_x]*cp[CellParams::BGBY]-(pC[c_xzz]*pC[c_zz])/36-(pC[c_xz]*pC[c_zz])/12+(pC[c_xyz]*pC[c_zz])/24+(pC[c_xy]*pC[c_zz])/12-
@@ -1150,7 +1150,7 @@ void calculateEdgeHallTermXComponents(
       (pC[b_xyy]*pC[b_yz])/24-(pC[b_xy]*pC[b_yz])/8+(pC[b_x]*pC[b_yz])/4-(pC[b_xz]*pC[b_yy])/12+(pC[b_xyz]*pC[b_yy])/24-(pC[b_xyy]*pC[b_yy])/36+(pC[b_xy]*pC[b_yy])/12-(pC[b_x]*pC[b_yy])/6+(pC[b_xz]*pC[b_y])/4-(pC[b_xyz]*pC[b_y])/8+(pC[b_xyy]*pC[b_y])/12-(pC[b_xy]*pC[b_y])/4+(pC[b_x]*pC[b_y])/2-(pC[b_0]*pC[b_xz])/2+(pC[b_0]*pC[b_xyz])/4-(pC[b_0]*pC[b_xyy])/6-
       (pC[b_xxy]*pC[b_xy])/24+(pC[b_xx]*pC[b_xy])/12+(pC[b_0]*pC[b_xy])/2+(pC[b_x]*pC[b_xxy])/12-(pC[b_x]*pC[b_xx])/6-pC[b_0]*pC[b_x])
          
-         / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q);
+         / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q*cp[CellParams::DX]);
       
       cp[CellParams::EXHALL_011_111] =
       (-(pC[c_xzz]*cp[CellParams::BGBZ])/6-(pC[c_xz]*cp[CellParams::BGBZ])/2-(pC[c_xyz]*cp[CellParams::BGBZ])/4-(pC[c_xy]*cp[CellParams::BGBZ])/2-pC[c_x]*cp[CellParams::BGBZ]-(pC[b_xz]*cp[CellParams::BGBY])/2-(pC[b_xyz]*cp[CellParams::BGBY])/4-(pC[b_xyy]*cp[CellParams::BGBY])/6-(pC[b_xy]*cp[CellParams::BGBY])/2-pC[b_x]*cp[CellParams::BGBY]-(pC[c_xzz]*pC[c_zz])/36-(pC[c_xz]*pC[c_zz])/12-(pC[c_xyz]*pC[c_zz])/24-(pC[c_xy]*pC[c_zz])/12-
@@ -1159,7 +1159,7 @@ void calculateEdgeHallTermXComponents(
       (pC[b_xy]*pC[b_yz])/8-(pC[b_x]*pC[b_yz])/4-(pC[b_xz]*pC[b_yy])/12-(pC[b_xyz]*pC[b_yy])/24-(pC[b_xyy]*pC[b_yy])/36-(pC[b_xy]*pC[b_yy])/12-(pC[b_x]*pC[b_yy])/6-(pC[b_xz]*pC[b_y])/4-(pC[b_xyz]*pC[b_y])/8-(pC[b_xyy]*pC[b_y])/12-(pC[b_xy]*pC[b_y])/4-(pC[b_x]*pC[b_y])/2-(pC[b_0]*pC[b_xz])/2-(pC[b_0]*pC[b_xyz])/4-(pC[b_0]*pC[b_xyy])/6-(pC[b_xxy]*pC[b_xy])/24-
       (pC[b_xx]*pC[b_xy])/12-(pC[b_0]*pC[b_xy])/2-(pC[b_x]*pC[b_xxy])/12-(pC[b_x]*pC[b_xx])/6-pC[b_0]*pC[b_x])
          
-         / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q);
+         / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q*cp[CellParams::DX]);
    }
    if(RKCase == RK_ORDER2_STEP1) {
 /*      cp[CellParams::EXHALL_000_100] = calculateEdgeHallTermX(
@@ -1198,7 +1198,7 @@ void calculateEdgeHallTermXComponents(
       (pC[b_xyy]*pC[b_yz])/24+(pC[b_xy]*pC[b_yz])/8-(pC[b_x]*pC[b_yz])/4+(pC[b_xz]*pC[b_yy])/12-(pC[b_xyz]*pC[b_yy])/24-(pC[b_xyy]*pC[b_yy])/36+(pC[b_xy]*pC[b_yy])/12-(pC[b_x]*pC[b_yy])/6-(pC[b_xz]*pC[b_y])/4+(pC[b_xyz]*pC[b_y])/8+(pC[b_xyy]*pC[b_y])/12-(pC[b_xy]*pC[b_y])/4+(pC[b_x]*pC[b_y])/2+(pC[b_0]*pC[b_xz])/2-(pC[b_0]*pC[b_xyz])/4-(pC[b_0]*pC[b_xyy])/6-
       (pC[b_xxy]*pC[b_xy])/24+(pC[b_xx]*pC[b_xy])/12+(pC[b_0]*pC[b_xy])/2+(pC[b_x]*pC[b_xxy])/12-(pC[b_x]*pC[b_xx])/6-pC[b_0]*pC[b_x])
          
-         / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q);
+         / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q*cp[CellParams::DX]);
       
       cp[CellParams::EXHALL_010_110] =
       (-(pC[c_xzz]*cp[CellParams::BGBZ])/6+(pC[c_xz]*cp[CellParams::BGBZ])/2+(pC[c_xyz]*cp[CellParams::BGBZ])/4-(pC[c_xy]*cp[CellParams::BGBZ])/2-pC[c_x]*cp[CellParams::BGBZ]+(pC[b_xz]*cp[CellParams::BGBY])/2+(pC[b_xyz]*cp[CellParams::BGBY])/4-(pC[b_xyy]*cp[CellParams::BGBY])/6-(pC[b_xy]*cp[CellParams::BGBY])/2-pC[b_x]*cp[CellParams::BGBY]-(pC[c_xzz]*pC[c_zz])/36+(pC[c_xz]*pC[c_zz])/12+(pC[c_xyz]*pC[c_zz])/24-(pC[c_xy]*pC[c_zz])/12-
@@ -1207,7 +1207,7 @@ void calculateEdgeHallTermXComponents(
       (pC[b_xyy]*pC[b_yz])/24+(pC[b_xy]*pC[b_yz])/8+(pC[b_x]*pC[b_yz])/4+(pC[b_xz]*pC[b_yy])/12+(pC[b_xyz]*pC[b_yy])/24-(pC[b_xyy]*pC[b_yy])/36-(pC[b_xy]*pC[b_yy])/12-(pC[b_x]*pC[b_yy])/6+(pC[b_xz]*pC[b_y])/4+(pC[b_xyz]*pC[b_y])/8-(pC[b_xyy]*pC[b_y])/12-(pC[b_xy]*pC[b_y])/4-(pC[b_x]*pC[b_y])/2+(pC[b_0]*pC[b_xz])/2+(pC[b_0]*pC[b_xyz])/4-(pC[b_0]*pC[b_xyy])/6-
       (pC[b_xxy]*pC[b_xy])/24-(pC[b_xx]*pC[b_xy])/12-(pC[b_0]*pC[b_xy])/2-(pC[b_x]*pC[b_xxy])/12-(pC[b_x]*pC[b_xx])/6-pC[b_0]*pC[b_x])
          
-         / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q);
+         / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q*cp[CellParams::DX]);
       
       cp[CellParams::EXHALL_001_101] =
       (-(pC[c_xzz]*cp[CellParams::BGBZ])/6-(pC[c_xz]*cp[CellParams::BGBZ])/2+(pC[c_xyz]*cp[CellParams::BGBZ])/4+(pC[c_xy]*cp[CellParams::BGBZ])/2-pC[c_x]*cp[CellParams::BGBZ]-(pC[b_xz]*cp[CellParams::BGBY])/2+(pC[b_xyz]*cp[CellParams::BGBY])/4-(pC[b_xyy]*cp[CellParams::BGBY])/6+(pC[b_xy]*cp[CellParams::BGBY])/2-pC[b_x]*cp[CellParams::BGBY]-(pC[c_xzz]*pC[c_zz])/36-(pC[c_xz]*pC[c_zz])/12+(pC[c_xyz]*pC[c_zz])/24+(pC[c_xy]*pC[c_zz])/12-
@@ -1216,7 +1216,7 @@ void calculateEdgeHallTermXComponents(
       (pC[b_xyy]*pC[b_yz])/24-(pC[b_xy]*pC[b_yz])/8+(pC[b_x]*pC[b_yz])/4-(pC[b_xz]*pC[b_yy])/12+(pC[b_xyz]*pC[b_yy])/24-(pC[b_xyy]*pC[b_yy])/36+(pC[b_xy]*pC[b_yy])/12-(pC[b_x]*pC[b_yy])/6+(pC[b_xz]*pC[b_y])/4-(pC[b_xyz]*pC[b_y])/8+(pC[b_xyy]*pC[b_y])/12-(pC[b_xy]*pC[b_y])/4+(pC[b_x]*pC[b_y])/2-(pC[b_0]*pC[b_xz])/2+(pC[b_0]*pC[b_xyz])/4-(pC[b_0]*pC[b_xyy])/6-
       (pC[b_xxy]*pC[b_xy])/24+(pC[b_xx]*pC[b_xy])/12+(pC[b_0]*pC[b_xy])/2+(pC[b_x]*pC[b_xxy])/12-(pC[b_x]*pC[b_xx])/6-pC[b_0]*pC[b_x])
          
-         / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q);
+         / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q*cp[CellParams::DX]);
       
       cp[CellParams::EXHALL_011_111] =
       (-(pC[c_xzz]*cp[CellParams::BGBZ])/6-(pC[c_xz]*cp[CellParams::BGBZ])/2-(pC[c_xyz]*cp[CellParams::BGBZ])/4-(pC[c_xy]*cp[CellParams::BGBZ])/2-pC[c_x]*cp[CellParams::BGBZ]-(pC[b_xz]*cp[CellParams::BGBY])/2-(pC[b_xyz]*cp[CellParams::BGBY])/4-(pC[b_xyy]*cp[CellParams::BGBY])/6-(pC[b_xy]*cp[CellParams::BGBY])/2-pC[b_x]*cp[CellParams::BGBY]-(pC[c_xzz]*pC[c_zz])/36-(pC[c_xz]*pC[c_zz])/12-(pC[c_xyz]*pC[c_zz])/24-(pC[c_xy]*pC[c_zz])/12-
@@ -1225,7 +1225,7 @@ void calculateEdgeHallTermXComponents(
       (pC[b_xy]*pC[b_yz])/8-(pC[b_x]*pC[b_yz])/4-(pC[b_xz]*pC[b_yy])/12-(pC[b_xyz]*pC[b_yy])/24-(pC[b_xyy]*pC[b_yy])/36-(pC[b_xy]*pC[b_yy])/12-(pC[b_x]*pC[b_yy])/6-(pC[b_xz]*pC[b_y])/4-(pC[b_xyz]*pC[b_y])/8-(pC[b_xyy]*pC[b_y])/12-(pC[b_xy]*pC[b_y])/4-(pC[b_x]*pC[b_y])/2-(pC[b_0]*pC[b_xz])/2-(pC[b_0]*pC[b_xyz])/4-(pC[b_0]*pC[b_xyy])/6-(pC[b_xxy]*pC[b_xy])/24-
       (pC[b_xx]*pC[b_xy])/12-(pC[b_0]*pC[b_xy])/2-(pC[b_x]*pC[b_xxy])/12-(pC[b_x]*pC[b_xx])/6-pC[b_0]*pC[b_x])
          
-         / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q);
+         / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q*cp[CellParams::DX]);
    }
    #endif
 }
@@ -1303,7 +1303,7 @@ void calculateEdgeHallTermYComponents(
       (pC[a_xz]*pC[a_yz])/8+(pC[a_xx]*pC[a_yz])/12-(pC[a_x]*pC[a_yz])/4+(pC[a_0]*pC[a_yz])/2-(pC[a_y]*pC[a_yy])/6+(pC[a_xy]*pC[a_yy])/12+(pC[a_xyy]*pC[a_y])/12+pC[a_xz]*pC[a_xz]/8-(pC[a_xyz]*pC[a_xz])/16-(pC[a_xxy]*pC[a_xz])/24+(pC[a_xx]*pC[a_xz])/12-(pC[a_x]*pC[a_xz])/4+(pC[a_0]*pC[a_xz])/2-(pC[a_xx]*pC[a_xyz])/24+(pC[a_x]*pC[a_xyz])/8-(pC[a_0]*pC[a_xyz])/4-
       (pC[a_xy]*pC[a_xyy])/24-(pC[a_xx]*pC[a_xxy])/36+(pC[a_x]*pC[a_xxy])/12-(pC[a_0]*pC[a_xxy])/6)
       
-      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q);
+      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q*cp[CellParams::DX]);
       
       cp[CellParams::EYHALL_100_110] =
       (-(pC[c_yzz]*cp[CellParams::BGBZ])/6+(pC[c_yz]*cp[CellParams::BGBZ])/2-pC[c_y]*cp[CellParams::BGBZ]+(pC[c_xyz]*cp[CellParams::BGBZ])/4-(pC[c_xy]*cp[CellParams::BGBZ])/2-pC[a_z]*cp[CellParams::BGBX]+(pC[a_yz]*cp[CellParams::BGBX])/2-(pC[a_xz]*cp[CellParams::BGBX])/2+(pC[a_xyz]*cp[CellParams::BGBX])/4-(pC[a_xxy]*cp[CellParams::BGBX])/6-(pC[c_yzz]*pC[c_zz])/36+(pC[c_yz]*pC[c_zz])/12-(pC[c_y]*pC[c_zz])/6+(pC[c_xyz]*pC[c_zz])/24-
@@ -1312,7 +1312,7 @@ void calculateEdgeHallTermYComponents(
       (pC[a_xz]*pC[a_yz])/8+(pC[a_xx]*pC[a_yz])/12+(pC[a_x]*pC[a_yz])/4+(pC[a_0]*pC[a_yz])/2-(pC[a_y]*pC[a_yy])/6-(pC[a_xy]*pC[a_yy])/12-(pC[a_xyy]*pC[a_y])/12+pC[a_xz]*pC[a_xz]/8-(pC[a_xyz]*pC[a_xz])/16+(pC[a_xxy]*pC[a_xz])/24-(pC[a_xx]*pC[a_xz])/12-(pC[a_x]*pC[a_xz])/4-(pC[a_0]*pC[a_xz])/2+(pC[a_xx]*pC[a_xyz])/24+(pC[a_x]*pC[a_xyz])/8+(pC[a_0]*pC[a_xyz])/4-
       (pC[a_xy]*pC[a_xyy])/24-(pC[a_xx]*pC[a_xxy])/36-(pC[a_x]*pC[a_xxy])/12-(pC[a_0]*pC[a_xxy])/6)
       
-      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q);
+      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q*cp[CellParams::DX]);
       
       cp[CellParams::EYHALL_001_011] =
       (-(pC[c_yzz]*cp[CellParams::BGBZ])/6-(pC[c_yz]*cp[CellParams::BGBZ])/2-pC[c_y]*cp[CellParams::BGBZ]+(pC[c_xyz]*cp[CellParams::BGBZ])/4+(pC[c_xy]*cp[CellParams::BGBZ])/2-pC[a_z]*cp[CellParams::BGBX]-(pC[a_yz]*cp[CellParams::BGBX])/2+(pC[a_xz]*cp[CellParams::BGBX])/2+(pC[a_xyz]*cp[CellParams::BGBX])/4-(pC[a_xxy]*cp[CellParams::BGBX])/6-(pC[c_yzz]*pC[c_zz])/36-(pC[c_yz]*pC[c_zz])/12-(pC[c_y]*pC[c_zz])/6+(pC[c_xyz]*pC[c_zz])/24+
@@ -1321,7 +1321,7 @@ void calculateEdgeHallTermYComponents(
       (pC[a_xz]*pC[a_yz])/8-(pC[a_xx]*pC[a_yz])/12+(pC[a_x]*pC[a_yz])/4-(pC[a_0]*pC[a_yz])/2-(pC[a_y]*pC[a_yy])/6+(pC[a_xy]*pC[a_yy])/12+(pC[a_xyy]*pC[a_y])/12-pC[a_xz]*pC[a_xz]/8-(pC[a_xyz]*pC[a_xz])/16+(pC[a_xxy]*pC[a_xz])/24+(pC[a_xx]*pC[a_xz])/12-(pC[a_x]*pC[a_xz])/4+(pC[a_0]*pC[a_xz])/2+(pC[a_xx]*pC[a_xyz])/24-(pC[a_x]*pC[a_xyz])/8+(pC[a_0]*pC[a_xyz])/4-
       (pC[a_xy]*pC[a_xyy])/24-(pC[a_xx]*pC[a_xxy])/36+(pC[a_x]*pC[a_xxy])/12-(pC[a_0]*pC[a_xxy])/6)
       
-      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q);
+      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q*cp[CellParams::DX]);
       
       cp[CellParams::EYHALL_101_111] =
       (-(pC[c_yzz]*cp[CellParams::BGBZ])/6-(pC[c_yz]*cp[CellParams::BGBZ])/2-pC[c_y]*cp[CellParams::BGBZ]-(pC[c_xyz]*cp[CellParams::BGBZ])/4-(pC[c_xy]*cp[CellParams::BGBZ])/2-pC[a_z]*cp[CellParams::BGBX]-(pC[a_yz]*cp[CellParams::BGBX])/2-(pC[a_xz]*cp[CellParams::BGBX])/2-(pC[a_xyz]*cp[CellParams::BGBX])/4-(pC[a_xxy]*cp[CellParams::BGBX])/6-(pC[c_yzz]*pC[c_zz])/36-(pC[c_yz]*pC[c_zz])/12-(pC[c_y]*pC[c_zz])/6-(pC[c_xyz]*pC[c_zz])/24-
@@ -1330,7 +1330,7 @@ void calculateEdgeHallTermYComponents(
       (pC[a_xz]*pC[a_yz])/8-(pC[a_xx]*pC[a_yz])/12-(pC[a_x]*pC[a_yz])/4-(pC[a_0]*pC[a_yz])/2-(pC[a_y]*pC[a_yy])/6-(pC[a_xy]*pC[a_yy])/12-(pC[a_xyy]*pC[a_y])/12-pC[a_xz]*pC[a_xz]/8-(pC[a_xyz]*pC[a_xz])/16-(pC[a_xxy]*pC[a_xz])/24-(pC[a_xx]*pC[a_xz])/12-(pC[a_x]*pC[a_xz])/4-(pC[a_0]*pC[a_xz])/2-(pC[a_xx]*pC[a_xyz])/24-(pC[a_x]*pC[a_xyz])/8-(pC[a_0]*pC[a_xyz])/4-
       (pC[a_xy]*pC[a_xyy])/24-(pC[a_xx]*pC[a_xxy])/36-(pC[a_x]*pC[a_xxy])/12-(pC[a_0]*pC[a_xxy])/6)
       
-      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q);
+      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q*cp[CellParams::DX]);
    }
    if(RKCase == RK_ORDER2_STEP1) {
 /*      cp[CellParams::EYHALL_000_010] = calculateEdgeHallTermY(
@@ -1369,7 +1369,7 @@ void calculateEdgeHallTermYComponents(
       (pC[a_xz]*pC[a_yz])/8+(pC[a_xx]*pC[a_yz])/12-(pC[a_x]*pC[a_yz])/4+(pC[a_0]*pC[a_yz])/2-(pC[a_y]*pC[a_yy])/6+(pC[a_xy]*pC[a_yy])/12+(pC[a_xyy]*pC[a_y])/12+pC[a_xz]*pC[a_xz]/8-(pC[a_xyz]*pC[a_xz])/16-(pC[a_xxy]*pC[a_xz])/24+(pC[a_xx]*pC[a_xz])/12-(pC[a_x]*pC[a_xz])/4+(pC[a_0]*pC[a_xz])/2-(pC[a_xx]*pC[a_xyz])/24+(pC[a_x]*pC[a_xyz])/8-(pC[a_0]*pC[a_xyz])/4-
       (pC[a_xy]*pC[a_xyy])/24-(pC[a_xx]*pC[a_xxy])/36+(pC[a_x]*pC[a_xxy])/12-(pC[a_0]*pC[a_xxy])/6)
       
-      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q);
+      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q*cp[CellParams::DX]);
       
       cp[CellParams::EYHALL_100_110] =
       (-(pC[c_yzz]*cp[CellParams::BGBZ])/6+(pC[c_yz]*cp[CellParams::BGBZ])/2-pC[c_y]*cp[CellParams::BGBZ]+(pC[c_xyz]*cp[CellParams::BGBZ])/4-(pC[c_xy]*cp[CellParams::BGBZ])/2-pC[a_z]*cp[CellParams::BGBX]+(pC[a_yz]*cp[CellParams::BGBX])/2-(pC[a_xz]*cp[CellParams::BGBX])/2+(pC[a_xyz]*cp[CellParams::BGBX])/4-(pC[a_xxy]*cp[CellParams::BGBX])/6-(pC[c_yzz]*pC[c_zz])/36+(pC[c_yz]*pC[c_zz])/12-(pC[c_y]*pC[c_zz])/6+(pC[c_xyz]*pC[c_zz])/24-
@@ -1378,7 +1378,7 @@ void calculateEdgeHallTermYComponents(
       (pC[a_xz]*pC[a_yz])/8+(pC[a_xx]*pC[a_yz])/12+(pC[a_x]*pC[a_yz])/4+(pC[a_0]*pC[a_yz])/2-(pC[a_y]*pC[a_yy])/6-(pC[a_xy]*pC[a_yy])/12-(pC[a_xyy]*pC[a_y])/12+pC[a_xz]*pC[a_xz]/8-(pC[a_xyz]*pC[a_xz])/16+(pC[a_xxy]*pC[a_xz])/24-(pC[a_xx]*pC[a_xz])/12-(pC[a_x]*pC[a_xz])/4-(pC[a_0]*pC[a_xz])/2+(pC[a_xx]*pC[a_xyz])/24+(pC[a_x]*pC[a_xyz])/8+(pC[a_0]*pC[a_xyz])/4-
       (pC[a_xy]*pC[a_xyy])/24-(pC[a_xx]*pC[a_xxy])/36-(pC[a_x]*pC[a_xxy])/12-(pC[a_0]*pC[a_xxy])/6)
       
-      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q);
+      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q*cp[CellParams::DX]);
       
       cp[CellParams::EYHALL_001_011] =
       (-(pC[c_yzz]*cp[CellParams::BGBZ])/6-(pC[c_yz]*cp[CellParams::BGBZ])/2-pC[c_y]*cp[CellParams::BGBZ]+(pC[c_xyz]*cp[CellParams::BGBZ])/4+(pC[c_xy]*cp[CellParams::BGBZ])/2-pC[a_z]*cp[CellParams::BGBX]-(pC[a_yz]*cp[CellParams::BGBX])/2+(pC[a_xz]*cp[CellParams::BGBX])/2+(pC[a_xyz]*cp[CellParams::BGBX])/4-(pC[a_xxy]*cp[CellParams::BGBX])/6-(pC[c_yzz]*pC[c_zz])/36-(pC[c_yz]*pC[c_zz])/12-(pC[c_y]*pC[c_zz])/6+(pC[c_xyz]*pC[c_zz])/24+
@@ -1387,7 +1387,7 @@ void calculateEdgeHallTermYComponents(
       (pC[a_xz]*pC[a_yz])/8-(pC[a_xx]*pC[a_yz])/12+(pC[a_x]*pC[a_yz])/4-(pC[a_0]*pC[a_yz])/2-(pC[a_y]*pC[a_yy])/6+(pC[a_xy]*pC[a_yy])/12+(pC[a_xyy]*pC[a_y])/12-pC[a_xz]*pC[a_xz]/8-(pC[a_xyz]*pC[a_xz])/16+(pC[a_xxy]*pC[a_xz])/24+(pC[a_xx]*pC[a_xz])/12-(pC[a_x]*pC[a_xz])/4+(pC[a_0]*pC[a_xz])/2+(pC[a_xx]*pC[a_xyz])/24-(pC[a_x]*pC[a_xyz])/8+(pC[a_0]*pC[a_xyz])/4-
       (pC[a_xy]*pC[a_xyy])/24-(pC[a_xx]*pC[a_xxy])/36+(pC[a_x]*pC[a_xxy])/12-(pC[a_0]*pC[a_xxy])/6)
       
-      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q);
+      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q*cp[CellParams::DX]);
       
       cp[CellParams::EYHALL_101_111] =
       (-(pC[c_yzz]*cp[CellParams::BGBZ])/6-(pC[c_yz]*cp[CellParams::BGBZ])/2-pC[c_y]*cp[CellParams::BGBZ]-(pC[c_xyz]*cp[CellParams::BGBZ])/4-(pC[c_xy]*cp[CellParams::BGBZ])/2-pC[a_z]*cp[CellParams::BGBX]-(pC[a_yz]*cp[CellParams::BGBX])/2-(pC[a_xz]*cp[CellParams::BGBX])/2-(pC[a_xyz]*cp[CellParams::BGBX])/4-(pC[a_xxy]*cp[CellParams::BGBX])/6-(pC[c_yzz]*pC[c_zz])/36-(pC[c_yz]*pC[c_zz])/12-(pC[c_y]*pC[c_zz])/6-(pC[c_xyz]*pC[c_zz])/24-
@@ -1396,7 +1396,7 @@ void calculateEdgeHallTermYComponents(
       (pC[a_xz]*pC[a_yz])/8-(pC[a_xx]*pC[a_yz])/12-(pC[a_x]*pC[a_yz])/4-(pC[a_0]*pC[a_yz])/2-(pC[a_y]*pC[a_yy])/6-(pC[a_xy]*pC[a_yy])/12-(pC[a_xyy]*pC[a_y])/12-pC[a_xz]*pC[a_xz]/8-(pC[a_xyz]*pC[a_xz])/16-(pC[a_xxy]*pC[a_xz])/24-(pC[a_xx]*pC[a_xz])/12-(pC[a_x]*pC[a_xz])/4-(pC[a_0]*pC[a_xz])/2-(pC[a_xx]*pC[a_xyz])/24-(pC[a_x]*pC[a_xyz])/8-(pC[a_0]*pC[a_xyz])/4-
       (pC[a_xy]*pC[a_xyy])/24-(pC[a_xx]*pC[a_xxy])/36-(pC[a_x]*pC[a_xxy])/12-(pC[a_0]*pC[a_xxy])/6)
       
-      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q);
+      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q*cp[CellParams::DX]);
    }
    #endif
 }
@@ -1474,7 +1474,7 @@ void calculateEdgeHallTermZComponents(
       +(pC[a_xyz]*pC[a_y])/8-(pC[a_xy]*pC[a_y])/2+(pC[a_xxz]*pC[a_y])/12-(pC[a_xx]*pC[a_y])/6+(pC[a_x]*pC[a_y])/2-pC[a_0]*pC[a_y]-(pC[a_xz]*pC[a_xzz])/24-(pC[a_xy]*pC[a_xyz])/16-(pC[a_xx]*pC[a_xyz])/24+(pC[a_x]*pC[a_xyz])/8-(pC[a_0]*pC[a_xyz])/4+pC[a_xy]*pC[a_xy]/8-(pC[a_xxz]*pC[a_xy])/24+(pC[a_xx]*pC[a_xy])/12-(pC[a_x]*pC[a_xy])/4+(pC[a_0]*pC[a_xy])/2-
       (pC[a_xx]*pC[a_xxz])/36+(pC[a_x]*pC[a_xxz])/12-(pC[a_0]*pC[a_xxz])/6)
       
-      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q);
+      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q*cp[CellParams::DX]);
       
       cp[CellParams::EZHALL_100_101] =
       (-pC[b_z]*cp[CellParams::BGBY]+(pC[b_yz]*cp[CellParams::BGBY])/2-(pC[b_yyz]*cp[CellParams::BGBY])/6-(pC[b_xz]*cp[CellParams::BGBY])/2+(pC[b_xyz]*cp[CellParams::BGBY])/4+(pC[a_yz]*cp[CellParams::BGBX])/2-pC[a_y]*cp[CellParams::BGBX]+(pC[a_xyz]*cp[CellParams::BGBX])/4-(pC[a_xy]*cp[CellParams::BGBX])/2-(pC[a_xxz]*cp[CellParams::BGBX])/6-(pC[b_z]*pC[b_zz])/6+(pC[b_yz]*pC[b_zz])/12+(pC[b_yzz]*pC[b_z])/12-(pC[b_yy]*pC[b_z])/6+(pC[b_y]*pC[b_z])/2+
@@ -1483,7 +1483,7 @@ void calculateEdgeHallTermZComponents(
       (pC[a_xyz]*pC[a_y])/8+(pC[a_xy]*pC[a_y])/2+(pC[a_xxz]*pC[a_y])/12-(pC[a_xx]*pC[a_y])/6-(pC[a_x]*pC[a_y])/2-pC[a_0]*pC[a_y]-(pC[a_xz]*pC[a_xzz])/24-(pC[a_xy]*pC[a_xyz])/16+(pC[a_xx]*pC[a_xyz])/24+(pC[a_x]*pC[a_xyz])/8+(pC[a_0]*pC[a_xyz])/4+pC[a_xy]*pC[a_xy]/8+(pC[a_xxz]*pC[a_xy])/24-(pC[a_xx]*pC[a_xy])/12-(pC[a_x]*pC[a_xy])/4-(pC[a_0]*pC[a_xy])/2-
       (pC[a_xx]*pC[a_xxz])/36-(pC[a_x]*pC[a_xxz])/12-(pC[a_0]*pC[a_xxz])/6)
       
-      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q);
+      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q*cp[CellParams::DX]);
       
       cp[CellParams::EZHALL_010_011] =
       (-pC[b_z]*cp[CellParams::BGBY]-(pC[b_yz]*cp[CellParams::BGBY])/2-(pC[b_yyz]*cp[CellParams::BGBY])/6+(pC[b_xz]*cp[CellParams::BGBY])/2+(pC[b_xyz]*cp[CellParams::BGBY])/4-(pC[a_yz]*cp[CellParams::BGBX])/2-pC[a_y]*cp[CellParams::BGBX]+(pC[a_xyz]*cp[CellParams::BGBX])/4+(pC[a_xy]*cp[CellParams::BGBX])/2-(pC[a_xxz]*cp[CellParams::BGBX])/6-(pC[b_z]*pC[b_zz])/6-(pC[b_yz]*pC[b_zz])/12-(pC[b_yzz]*pC[b_z])/12-(pC[b_yy]*pC[b_z])/6-(pC[b_y]*pC[b_z])/2+
@@ -1492,7 +1492,7 @@ void calculateEdgeHallTermZComponents(
       (pC[a_xyz]*pC[a_y])/8+(pC[a_xy]*pC[a_y])/2-(pC[a_xxz]*pC[a_y])/12-(pC[a_xx]*pC[a_y])/6+(pC[a_x]*pC[a_y])/2-pC[a_0]*pC[a_y]-(pC[a_xz]*pC[a_xzz])/24-(pC[a_xy]*pC[a_xyz])/16+(pC[a_xx]*pC[a_xyz])/24-(pC[a_x]*pC[a_xyz])/8+(pC[a_0]*pC[a_xyz])/4-pC[a_xy]*pC[a_xy]/8+(pC[a_xxz]*pC[a_xy])/24+(pC[a_xx]*pC[a_xy])/12-(pC[a_x]*pC[a_xy])/4+(pC[a_0]*pC[a_xy])/2-
       (pC[a_xx]*pC[a_xxz])/36+(pC[a_x]*pC[a_xxz])/12-(pC[a_0]*pC[a_xxz])/6)
       
-      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q);
+      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q*cp[CellParams::DX]);
       
       cp[CellParams::EZHALL_110_111] = 
       (-pC[b_z]*cp[CellParams::BGBY]-(pC[b_yz]*cp[CellParams::BGBY])/2-(pC[b_yyz]*cp[CellParams::BGBY])/6-(pC[b_xz]*cp[CellParams::BGBY])/2-(pC[b_xyz]*cp[CellParams::BGBY])/4-(pC[a_yz]*cp[CellParams::BGBX])/2-pC[a_y]*cp[CellParams::BGBX]-(pC[a_xyz]*cp[CellParams::BGBX])/4-(pC[a_xy]*cp[CellParams::BGBX])/2-(pC[a_xxz]*cp[CellParams::BGBX])/6-(pC[b_z]*pC[b_zz])/6-(pC[b_yz]*pC[b_zz])/12-(pC[b_yzz]*pC[b_z])/12-(pC[b_yy]*pC[b_z])/6-(pC[b_y]*pC[b_z])/2-
@@ -1501,7 +1501,7 @@ void calculateEdgeHallTermZComponents(
       (pC[a_xyz]*pC[a_y])/8-(pC[a_xy]*pC[a_y])/2-(pC[a_xxz]*pC[a_y])/12-(pC[a_xx]*pC[a_y])/6-(pC[a_x]*pC[a_y])/2-pC[a_0]*pC[a_y]-(pC[a_xz]*pC[a_xzz])/24-(pC[a_xy]*pC[a_xyz])/16-(pC[a_xx]*pC[a_xyz])/24-(pC[a_x]*pC[a_xyz])/8-(pC[a_0]*pC[a_xyz])/4-pC[a_xy]*pC[a_xy]/8-(pC[a_xxz]*pC[a_xy])/24-(pC[a_xx]*pC[a_xy])/12-(pC[a_x]*pC[a_xy])/4-(pC[a_0]*pC[a_xy])/2-
       (pC[a_xx]*pC[a_xxz])/36-(pC[a_x]*pC[a_xxz])/12-(pC[a_0]*pC[a_xxz])/6)
       
-      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q);
+      / (physicalconstants::MU_0*cp[CellParams::RHO]*Parameters::q*cp[CellParams::DX]);
    }
    if(RKCase == RK_ORDER2_STEP1) {
 /*      cp[CellParams::EZHALL_000_001] = calculateEdgeHallTermZ(
@@ -1540,7 +1540,7 @@ void calculateEdgeHallTermZComponents(
       +(pC[a_xyz]*pC[a_y])/8-(pC[a_xy]*pC[a_y])/2+(pC[a_xxz]*pC[a_y])/12-(pC[a_xx]*pC[a_y])/6+(pC[a_x]*pC[a_y])/2-pC[a_0]*pC[a_y]-(pC[a_xz]*pC[a_xzz])/24-(pC[a_xy]*pC[a_xyz])/16-(pC[a_xx]*pC[a_xyz])/24+(pC[a_x]*pC[a_xyz])/8-(pC[a_0]*pC[a_xyz])/4+pC[a_xy]*pC[a_xy]/8-(pC[a_xxz]*pC[a_xy])/24+(pC[a_xx]*pC[a_xy])/12-(pC[a_x]*pC[a_xy])/4+(pC[a_0]*pC[a_xy])/2-
       (pC[a_xx]*pC[a_xxz])/36+(pC[a_x]*pC[a_xxz])/12-(pC[a_0]*pC[a_xxz])/6)
       
-      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q);
+      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q*cp[CellParams::DX]);
       
       cp[CellParams::EZHALL_100_101] =
       (-pC[b_z]*cp[CellParams::BGBY]+(pC[b_yz]*cp[CellParams::BGBY])/2-(pC[b_yyz]*cp[CellParams::BGBY])/6-(pC[b_xz]*cp[CellParams::BGBY])/2+(pC[b_xyz]*cp[CellParams::BGBY])/4+(pC[a_yz]*cp[CellParams::BGBX])/2-pC[a_y]*cp[CellParams::BGBX]+(pC[a_xyz]*cp[CellParams::BGBX])/4-(pC[a_xy]*cp[CellParams::BGBX])/2-(pC[a_xxz]*cp[CellParams::BGBX])/6-(pC[b_z]*pC[b_zz])/6+(pC[b_yz]*pC[b_zz])/12+(pC[b_yzz]*pC[b_z])/12-(pC[b_yy]*pC[b_z])/6+(pC[b_y]*pC[b_z])/2+
@@ -1549,7 +1549,7 @@ void calculateEdgeHallTermZComponents(
       (pC[a_xyz]*pC[a_y])/8+(pC[a_xy]*pC[a_y])/2+(pC[a_xxz]*pC[a_y])/12-(pC[a_xx]*pC[a_y])/6-(pC[a_x]*pC[a_y])/2-pC[a_0]*pC[a_y]-(pC[a_xz]*pC[a_xzz])/24-(pC[a_xy]*pC[a_xyz])/16+(pC[a_xx]*pC[a_xyz])/24+(pC[a_x]*pC[a_xyz])/8+(pC[a_0]*pC[a_xyz])/4+pC[a_xy]*pC[a_xy]/8+(pC[a_xxz]*pC[a_xy])/24-(pC[a_xx]*pC[a_xy])/12-(pC[a_x]*pC[a_xy])/4-(pC[a_0]*pC[a_xy])/2-
       (pC[a_xx]*pC[a_xxz])/36-(pC[a_x]*pC[a_xxz])/12-(pC[a_0]*pC[a_xxz])/6)
       
-      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q);
+      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q*cp[CellParams::DX]);
       
       cp[CellParams::EZHALL_010_011] =
       (-pC[b_z]*cp[CellParams::BGBY]-(pC[b_yz]*cp[CellParams::BGBY])/2-(pC[b_yyz]*cp[CellParams::BGBY])/6+(pC[b_xz]*cp[CellParams::BGBY])/2+(pC[b_xyz]*cp[CellParams::BGBY])/4-(pC[a_yz]*cp[CellParams::BGBX])/2-pC[a_y]*cp[CellParams::BGBX]+(pC[a_xyz]*cp[CellParams::BGBX])/4+(pC[a_xy]*cp[CellParams::BGBX])/2-(pC[a_xxz]*cp[CellParams::BGBX])/6-(pC[b_z]*pC[b_zz])/6-(pC[b_yz]*pC[b_zz])/12-(pC[b_yzz]*pC[b_z])/12-(pC[b_yy]*pC[b_z])/6-(pC[b_y]*pC[b_z])/2+
@@ -1558,7 +1558,7 @@ void calculateEdgeHallTermZComponents(
       (pC[a_xyz]*pC[a_y])/8+(pC[a_xy]*pC[a_y])/2-(pC[a_xxz]*pC[a_y])/12-(pC[a_xx]*pC[a_y])/6+(pC[a_x]*pC[a_y])/2-pC[a_0]*pC[a_y]-(pC[a_xz]*pC[a_xzz])/24-(pC[a_xy]*pC[a_xyz])/16+(pC[a_xx]*pC[a_xyz])/24-(pC[a_x]*pC[a_xyz])/8+(pC[a_0]*pC[a_xyz])/4-pC[a_xy]*pC[a_xy]/8+(pC[a_xxz]*pC[a_xy])/24+(pC[a_xx]*pC[a_xy])/12-(pC[a_x]*pC[a_xy])/4+(pC[a_0]*pC[a_xy])/2-
       (pC[a_xx]*pC[a_xxz])/36+(pC[a_x]*pC[a_xxz])/12-(pC[a_0]*pC[a_xxz])/6)
       
-      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q);
+      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q*cp[CellParams::DX]);
       
       cp[CellParams::EZHALL_110_111] = 
       (-pC[b_z]*cp[CellParams::BGBY]-(pC[b_yz]*cp[CellParams::BGBY])/2-(pC[b_yyz]*cp[CellParams::BGBY])/6-(pC[b_xz]*cp[CellParams::BGBY])/2-(pC[b_xyz]*cp[CellParams::BGBY])/4-(pC[a_yz]*cp[CellParams::BGBX])/2-pC[a_y]*cp[CellParams::BGBX]-(pC[a_xyz]*cp[CellParams::BGBX])/4-(pC[a_xy]*cp[CellParams::BGBX])/2-(pC[a_xxz]*cp[CellParams::BGBX])/6-(pC[b_z]*pC[b_zz])/6-(pC[b_yz]*pC[b_zz])/12-(pC[b_yzz]*pC[b_z])/12-(pC[b_yy]*pC[b_z])/6-(pC[b_y]*pC[b_z])/2-
@@ -1567,7 +1567,7 @@ void calculateEdgeHallTermZComponents(
       (pC[a_xyz]*pC[a_y])/8-(pC[a_xy]*pC[a_y])/2-(pC[a_xxz]*pC[a_y])/12-(pC[a_xx]*pC[a_y])/6-(pC[a_x]*pC[a_y])/2-pC[a_0]*pC[a_y]-(pC[a_xz]*pC[a_xzz])/24-(pC[a_xy]*pC[a_xyz])/16-(pC[a_xx]*pC[a_xyz])/24-(pC[a_x]*pC[a_xyz])/8-(pC[a_0]*pC[a_xyz])/4-pC[a_xy]*pC[a_xy]/8-(pC[a_xxz]*pC[a_xy])/24-(pC[a_xx]*pC[a_xy])/12-(pC[a_x]*pC[a_xy])/4-(pC[a_0]*pC[a_xy])/2-
       (pC[a_xx]*pC[a_xxz])/36-(pC[a_x]*pC[a_xxz])/12-(pC[a_0]*pC[a_xxz])/6)
       
-      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q);
+      / (physicalconstants::MU_0*cp[CellParams::RHO_DT2]*Parameters::q*cp[CellParams::DX]);
    }
    #endif
 }
