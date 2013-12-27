@@ -23,9 +23,7 @@ const int STENCIL_WIDTH=1;
 #if ACC_SEMILAG_PPM
 const int STENCIL_WIDTH=2;
 #endif
-#if ACC_SEMILAG_PQM
-const int STENCIL_WIDTH=3;
-#endif
+
 
 
 using namespace std;
@@ -84,10 +82,14 @@ inline void compute_ppm_coeff(Real mmv,Real mv, Real cv, Real pv,Real ppv,
    Real m_face;
 
    //Compute estimations of the face values. 
-#ifdef PPM_FACEEST_H4
-   //h4 estimates (fourth order), white 2008       
+
+#ifdef PPM_FACEEST_H4_POS
+   //h4 estimates (fourth order), white 2008. No negative values, no other filtering here
    p_face=seven_twelfth*(pv+cv)-one_twelfth*(ppv+mv);
    m_face=seven_twelfth*(cv+mv)-one_twelfth*(pv+mmv);
+   if(p_face<0) p_face=0;
+   if(m_face<0) m_face=0;
+
 #endif
 
 #ifdef PPM_FACEEST_LIMITED
@@ -100,26 +102,6 @@ inline void compute_ppm_coeff(Real mmv,Real mv, Real cv, Real pv,Real ppv,
    m_face=0.5*(cv+mv) + one_sixth * (d_mv-d_cv);        
 #endif
 
-
-     
-#ifdef PPM_FACEFILTER_WHITE_BOUND
-   //This is EQ 19-20 in White et al 2008 (PQM paper).
-   if( (p_face - cv)*(p_face - pv) > 0 ) {
-     //Face value out of bounds
-     const Real d_cv=slope_limiter(mv,cv,pv);
-     p_face = cv + copysign(1.0,d_cv)* min( fabs(d_cv) * 0.5, fabs( p_face - cv ));
-   }
-   if( (m_face - cv)*(m_face - mv) > 0) { 
-     //Face value out of bounds
-     const Real d_cv=slope_limiter(mv,cv,pv);
-     m_face = cv - copysign(1.0,d_cv)* min( fabs(d_cv) * 0.5, fabs( m_face - cv ));
-   }
-#endif
-
-#ifdef PPM_FACEFILTER_POSITIVE
-   if(p_face<0) p_face=0;
-   if(m_face<0) m_face=0;
-#endif
 
 
   //Coella1984 eq. 1.10, detect extream
@@ -148,33 +130,6 @@ inline void compute_ppm_coeff(Real mmv,Real mv, Real cv, Real pv,Real ppv,
 
 
 
-
-inline void compute_pqm_coeff(Real mmmv,Real mmv,Real mv, Real cv, Real pv,Real ppv,Real pppv,
-			      Real * __restrict__ a){
-   Real p_face;
-   Real m_face;
-   //Compute estimations of the face values. 
-   //h6 estimates (sixth order), white 2008       
-   p_face=(mmv -8.0 * mv + 37.0 * cv + 37.0 * pv - 8.0 * ppv + pppv)/60.0;
-   m_face=(mmmv -8.0 * mmv + 37.0 * mv + 37.0 * cv - 8.0 * pv + ppv)/60.0;   
-
-
-
-   //This is EQ 19-20 in White et al 2008 (PQM paper).
-   if( (p_face - cv)*(p_face - pv) > 0 ) {
-     //Face value out of bounds
-     const Real d_cv=slope_limiter(mv,cv,pv);
-     p_face = cv + copysign(1.0,d_cv)* min( fabs(d_cv) * 0.5, fabs( p_face - cv ));
-   }
-   if( (m_face - cv)*(m_face - mv) > 0) { 
-     //Face value out of bounds
-     const Real d_cv=slope_limiter(mv,cv,pv);
-     m_face = cv - copysign(1.0,d_cv)* min( fabs(d_cv) * 0.5, fabs( m_face - cv ));
-   }
-
-   //TODO....
-
-}
 
 
 
@@ -437,17 +392,6 @@ bool map_1d(SpatialCell* spatial_cell,
 			    values[i_pblock(i,j,k+2)],
 			    a);
 #endif
-#ifdef ACC_SEMILAG_PQM
-          Real a[4];
-	  compute_pqm_coeff(values[i_pblock(i,j,k-3)],
-                            values[i_pblock(i,j,k-2)],
-			    values[i_pblock(i,j,k-1)],
-			    values[i_pblock(i,j,k  )],
-			    values[i_pblock(i,j,k+1)],
-			    values[i_pblock(i,j,k+2)],
-			    values[i_pblock(i,j,k+3)],
-			    a);
-#endif          
 	  //add values to target cell
           for(uint gk=lagrangian_gk_l;gk<=lagrangian_gk_r;gk++){
              //the blocks of the lagrangian cell to which we map
@@ -480,13 +424,6 @@ bool map_1d(SpatialCell* spatial_cell,
                (v_2 - v_1) * a[0] +
                (v_2 * v_2 - v_1 * v_1) * a[1] +
                (v_2 * v_2 * v_2 - v_1 * v_1 * v_1) * a[2];
-#endif
-#ifdef ACC_SEMILAG_PQM
-            const Real target_density=
-               (v_2 - v_1) * a[0] +
-               (v_2 * v_2 - v_1 * v_1) * a[1] +
-               (v_2 * v_2 * v_2 - v_1 * v_1 * v_1) * a[2];
-               (v_2 * v_2 * v_2 * v_2 - v_1 * v_1 * v_1 * v_1) * a[3];
 #endif
 	    if (target_block < SpatialCell::max_velocity_blocks) 
 	      spatial_cell->increment_value(target_block,target_cell,target_density);
