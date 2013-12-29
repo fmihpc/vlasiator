@@ -19,18 +19,11 @@ CXXFLAGS += -DPROFILE
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
 CXXFLAGS += -DNDEBUG
 
-#Set order of semilag solver in acceleration, 
+#Set order of semilag solver in acceleration
 #  ACC_SEMILAG_PCONSTM	1st order
 #  ACC_SEMILAG_PLM 	2nd order	
-#  ACC_SEMILAG_PPM	3rd order
-#Set face estimations for PPM. Monotonicity and extrema filters always on.
-#  PPM_FACEEST_H4_POS	4th order, Face values never negative, algorithm positive definite, not bounded.
-#  PPM_FACEEST_LIMITED	4th order, limited with MC to be bounded. (Coella 1984)
-#
-#Least diffusion is obtained with (expect over/undershoots!):
-#CXXFLAGS += -DACC_SEMILAG_PPM -DPPM_FACEEST_H4_POS
-#Best results with:
-CXXFLAGS += -DACC_SEMILAG_PPM -DPPM_FACEEST_LIMITED 
+#  ACC_SEMILAG_PPM	3rd order (use this one unless you are testing, only ~20% slower than 2nd order)
+CXXFLAGS += -DACC_SEMILAG_PPM
 
 #define USE_AGNER_VECTORCLASS to use an external vector class that is used in some of the solvers
 #If not defined a slower but portable implementation is used, as the external one only supports 
