@@ -11,9 +11,6 @@ AR ?= ar
 #leveque (no other options)
 TRANSSOLVER ?= leveque
 
-#leveque or semilag
-ACCSOLVER ?= leveque
-
 #londrillo_delzanna (no other options)
 FIELDSOLVER ?= londrillo_delzanna
 
@@ -21,6 +18,12 @@ CXXFLAGS += -DPROFILE
 
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
 CXXFLAGS += -DNDEBUG
+
+#Set order of semilag solver in acceleration
+#  ACC_SEMILAG_PCONSTM	1st order
+#  ACC_SEMILAG_PLM 	2nd order	
+#  ACC_SEMILAG_PPM	3rd order (use this one unless you are testing, only ~20% slower than 2nd order)
+CXXFLAGS += -DACC_SEMILAG_PPM
 
 #define USE_AGNER_VECTORCLASS to use an external vector class that is used in some of the solvers
 #If not defined a slower but portable implementation is used, as the external one only supports 
@@ -99,6 +102,7 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/Larmor/Larmor.h projects/Larmor/Larmor.cpp \
 		projects/Magnetosphere/Magnetosphere.h projects/Magnetosphere/Magnetosphere.cpp\
 		projects/MultiPeak/MultiPeak.h projects/MultiPeak/MultiPeak.cpp \
+		projects/VelocityBox/VelocityBox.h projects/VelocityBox/VelocityBox.cpp \
 		projects/Riemann1/Riemann1.h projects/Riemann1/Riemann1.cpp \
 		projects/Shock/Shock.h projects/Shock/Shock.cpp \
 		projects/test_fp/test_fp.h projects/test_fp/test_fp.cpp \
@@ -111,7 +115,7 @@ OBJS = 	version.o backgroundfield.o ode.o quadr.o dipole.o constantfield.o integ
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o \
 	sysboundary.o sysboundarycondition.o \
 	project.o projectIsotropicMaxwellian.o \
-	Alfven.o Diffusion.o Dispersion.o Firehose.o Flowthrough.o Fluctuations.o  KHB.o Larmor.o Magnetosphere.o MultiPeak.o Riemann1.o Shock.o test_fp.o test_trans.o verificationLarmor.o\
+	Alfven.o Diffusion.o Dispersion.o Firehose.o Flowthrough.o Fluctuations.o  KHB.o Larmor.o Magnetosphere.o MultiPeak.o VelocityBox.o Riemann1.o Shock.o test_fp.o test_trans.o verificationLarmor.o\
 	grid.o ioread.o iowrite.o vlasiator.o logger.o muxml.o \
 	parameters.o readparameters.o spatial_cell.o \
 	vlscommon.o vlsvreader2.o  vlasovmover_$(TRANSSOLVER).o $(FIELDSOLVER).o
@@ -217,6 +221,10 @@ Magnetosphere.o: ${DEPS_COMMON} projects/Magnetosphere/Magnetosphere.h projects/
 MultiPeak.o: ${DEPS_COMMON} projects/MultiPeak/MultiPeak.h projects/MultiPeak/MultiPeak.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/MultiPeak/MultiPeak.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
+VelocityBox.o: ${DEPS_COMMON} projects/VelocityBox/VelocityBox.h projects/VelocityBox/VelocityBox.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/VelocityBox/VelocityBox.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+
+
 Riemann1.o: ${DEPS_COMMON} projects/Riemann1/Riemann1.h projects/Riemann1/Riemann1.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Riemann1/Riemann1.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
@@ -241,7 +249,7 @@ projectIsotropicMaxwellian.o: ${DEPS_COMMON} $(DEPS_PROJECTS)
 spatial_cell.o: spatial_cell.cpp spatial_cell.hpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c spatial_cell.cpp $(INC_BOOST) ${INC_EIGEN}
 
-vlasovmover_leveque.o: spatial_cell.hpp transferstencil.h  vlasovsolver/cpu_acc_$(ACCSOLVER).hpp vlasovsolver/cpu_trans_leveque.h vlasovsolver/cpu_lorentz.hpp vlasovsolver/limiters.h  vlasovsolver/limiters_vec4.h vlasovsolver/leveque_common.h vlasovsolver/vlasovmover_leveque.cpp		
+vlasovmover_leveque.o: spatial_cell.hpp transferstencil.h  vlasovsolver/cpu_acc_leveque.hpp vlasovsolver/cpu_trans_leveque.h vlasovsolver/cpu_lorentz.hpp vlasovsolver/limiters.h  vlasovsolver/limiters_vec4.h vlasovsolver/leveque_common.h vlasovsolver/vlasovmover_leveque.cpp vlasovsolver/cpu_acc_map.hpp vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_semilag.hpp		vlasovsolver/cpu_acc_transform.hpp	
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -DMOVER_VLASOV_ORDER=2  -c vlasovsolver/vlasovmover_leveque.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG}  ${INC_ZOLTAN}     ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN}  
 
 londrillo_delzanna.o: spatial_cell.hpp transferstencil.h   parameters.h common.h fieldsolver/londrillo_delzanna.cpp

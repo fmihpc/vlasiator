@@ -733,6 +733,12 @@ namespace velocity_neighbor {
 //         phiprof::stop("SpatialCell copy");
       }
       
+      /*!
+        Returns a pointer to the given velocity block. Fast version, no error checking. Need to check separately for existence.
+      */
+      Velocity_Block* at_fast(const unsigned int block){
+	return &(this->velocity_blocks.at(block));
+      }
       
       /*!
         Returns a pointer to the given velocity block or to
@@ -822,8 +828,8 @@ namespace velocity_neighbor {
             block_ptr->data[cell] = value;
       }
 
-//TODO - thread save set/increment functions which do not create blocks automatically
-      
+//TODO - thread safe set/increment functions which do not create blocks automatically
+
       /*! Sets the value of a particular cell in a block. The block is
        *  created if it does not exist. This version is faster than
        *  the velocity value based version.
@@ -851,7 +857,7 @@ namespace velocity_neighbor {
             block_ptr->data[cell] = value;
       }
       
-      
+          
       /*!
         Increments the value of velocity cell at given coordinate-
 
@@ -877,13 +883,13 @@ namespace velocity_neighbor {
       }
 
       /*!
-        Increments the value of velocity cell at given coordinate-
+        Increments the value of velocity cell at given index
 
-        Creates the velocity block at given coordinates if it doesn't exist.
+        Creates the velocity block if it doesn't exist.
       */
      void increment_value(const unsigned int block,const unsigned int cell, const Real value) {
             if (this->velocity_blocks.count(block) == 0) {
-               if (!this->add_velocity_block(block)) {
+	      if (!this->add_velocity_block(block)) {
                   std::cerr << "Couldn't add velocity block " << block << std::endl;
                   abort();
                }
@@ -897,6 +903,7 @@ namespace velocity_neighbor {
             block_ptr->data[cell] += value;
       }
       
+
       /*!
        * Gets the value of a velocity cell at given coordinates.
        * 
