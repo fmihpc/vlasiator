@@ -262,13 +262,6 @@ int main(int argn,char* args[]) {
    readparameters.finalize();
 
          
-   bool updateVelocityBlocksAfterAcceleration;
-   if(P::maxAccelerationSubsteps!=1 || P::useSlAcceleration) {
-      updateVelocityBlocksAfterAcceleration=true;
-   }
-   else{
-      updateVelocityBlocksAfterAcceleration=false;
-   }
 
    // Save restart data
    if (P::writeInitialState) {
@@ -310,12 +303,11 @@ int main(int argn,char* args[]) {
          calculateSpatialFluxes(mpiGrid, sysBoundaries, 0.0);
          calculateAcceleration(mpiGrid,0.0);
       }
-      if(updateVelocityBlocksAfterAcceleration){
-         //this is probably not ever needed, as a zero length step
-         //should not require changes
-         updateRemoteVelocityBlockLists(mpiGrid);
-         adjustVelocityBlocks(mpiGrid);
-      }
+      //this is probably not ever needed, as a zero length step
+      //should not require changes
+      updateRemoteVelocityBlockLists(mpiGrid);
+      adjustVelocityBlocks(mpiGrid);
+      
       if(P::propagateField) {
          propagateFields(mpiGrid, sysBoundaries, 0.0);
       }
@@ -325,26 +317,9 @@ int main(int argn,char* args[]) {
          P::dt=newDt;
       phiprof::stop("compute-dt");
 
+      //and balance load
+      balanceLoad(mpiGrid);
       
-      if(P::maxAccelerationSubsteps!=1 && ! P::useSlAcceleration){
-         //Now we make a small "hack" and compute an artifical number
-         //of substeps, this is here to improve the initial load
-         //balance, otherwise the first step may have a really bad load imbalance
-         //get local cells         
-         vector<uint64_t> cells = mpiGrid.get_cells();      
-         
-         for(uint i=0;i<cells.size();i++){
-	    Real velocityDt=mpiGrid[cells[i]]->parameters[CellParams::MAXVDT]*0.5*(P::vlasovSolverMinCFL+P::vlasovSolverMaxCFL);
-
-            if(velocityDt>0)
-               mpiGrid[cells[i]]->subStepsAcceleration=(int)(P::dt/velocityDt)+1;
-            else
-               mpiGrid[cells[i]]->subStepsAcceleration=0;
-               
-         }
-         //and balance load
-         balanceLoad(mpiGrid);
-      }
    }
    
 
@@ -370,7 +345,6 @@ int main(int argn,char* args[]) {
    // Main simulation loop:
    if (myRank == MASTER_RANK) logFile << "(MAIN): Starting main simulation loop." << endl << writeVerbose;
    
-   unsigned int computedCellsWithSubsteps=0;
    unsigned int computedCells=0;
    unsigned int computedTotalCells=0;
   //Compute here based on time what the file intervals are
@@ -531,16 +505,13 @@ int main(int argn,char* args[]) {
             phiprof::start("update-dt");
             //propagate velocity space to real-time
             calculateAcceleration(mpiGrid,0.5*P::dt);
+            //need to do a update of block lists as all cells have made local changes
+            updateRemoteVelocityBlockLists(mpiGrid);
+            adjustVelocityBlocks(mpiGrid);
             //re-compute moments for real time for fieldsolver, and
             //shift compute rho_dt2 as average of old rho and new
             //rho. In practice this value is at a 1/4 timestep, as we
             //take 1/2 timestep forward in fieldsolver
-            if(updateVelocityBlocksAfterAcceleration){
-               //need to do a update of block lists as all cells have made local changes
-               updateRemoteVelocityBlockLists(mpiGrid);
-               adjustVelocityBlocks(mpiGrid);
-            }
-
 #pragma omp parallel for
             for (size_t c=0; c<cells.size(); ++c) {
                const CellID cellID = cells[c];
@@ -590,18 +561,13 @@ int main(int argn,char* args[]) {
          phiprof::start("Propagate Vlasov");
          phiprof::start("Velocity-space");
          calculateAcceleration(mpiGrid,P::dt);
-         computedCellsWithSubsteps=0;
-         for(uint i=0;i<cells.size();i++)
-            computedCellsWithSubsteps+=mpiGrid[cells[i]]->number_of_blocks*WID3*mpiGrid[cells[i]]->subStepsAcceleration;
-         phiprof::stop("Velocity-space",computedCellsWithSubsteps,"Cells");
+         phiprof::stop("Velocity-space",computedCells,"Cells");
          addTimedBarrier("barrier-after-acceleration");
 
-         if(updateVelocityBlocksAfterAcceleration){
-            //need to do a update of block lists as all cells have made local changes
-            updateRemoteVelocityBlockLists(mpiGrid);
-            adjustVelocityBlocks(mpiGrid);
-            addTimedBarrier("barrier-after-adjust-blocks");
-         }
+         //need to do a update of block lists as all cells have made local changes
+         updateRemoteVelocityBlockLists(mpiGrid);
+         adjustVelocityBlocks(mpiGrid);
+         addTimedBarrier("barrier-after-adjust-blocks");
          
          calculateInterpolatedVelocityMoments(
             mpiGrid,
@@ -629,15 +595,6 @@ int main(int argn,char* args[]) {
             CellParams::RHOVY,
             CellParams::RHOVZ);
          
-         if(!updateVelocityBlocksAfterAcceleration){
-            //if no semi-lagrangean or substepping in leveque   
-            //acceleration then we do the adjustment here. In that
-            //case no local block adjustments have been done, so
-            //remote velocty blocks do not need to be updated
-            if(P::tstep%P::blockAdjustmentInterval == 0){
-               adjustVelocityBlocks(mpiGrid);
-            }
-         }
          phiprof::stop("Propagate Vlasov",computedCells,"Cells");
       }
 

@@ -17,18 +17,12 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
 #include "../vlasovmover.h"
 #include "phiprof.hpp"
-#include "cpu_trans_leveque.h"
+
 #include "cpu_moments.h"
-#ifdef CRAY_TOPOLOGY_OPTIMIZATION
-#include "graph.h"
-#include "mapping.h"
-#include "crayxttorus.h"
-#endif
-
 #include "cpu_acc_semilag.hpp"
-#include "cpu_acc_leveque.hpp"
+#include "cpu_trans_leveque.h"
 
-#include "cpu_lorentz.hpp"
+
 
 #include <stdint.h>
 #include <dccrg.hpp>

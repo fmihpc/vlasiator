@@ -97,7 +97,6 @@ bool P::fieldSolverDiffusiveEterms = true;
 bool P::ohmHallTerm = false;
 
 Real P::sparseMinValue = NAN;
-uint P::blockAdjustmentInterval = numeric_limits<uint>::max();
 int P::sparseBlockAddWidthV = 1;
 
 string P::restartFileName = string("");                
@@ -115,13 +114,9 @@ vector<string> P::diagnosticVariableList;
 
 string P::projectName = string("");
 
-bool P::useSlAcceleration=true;
 Real P::maxSlAccelerationRotation=10.0;
-
 bool P::lorentzHallTerm=false;
 Real P::lorentzHallMinimumRho=1.0;
-Real P::lorentzHallMaximumB=1.0;
-bool P::lorentzUseFieldSolverE=false;
 
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
@@ -185,19 +180,17 @@ bool Parameters::addParameters(){
    Readparameters::add("fieldsolver.minCFL","The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",0.4);
 
    // Vlasov solver parameters
-   Readparameters::add("vlasovsolver.useSlAcceleration","Use Slice3D Semi-Lagrangian solver for acceleration",false);
    Readparameters::add("vlasovsolver.maxSlAccelerationRotation","Maximum rotation angle allowed by the Semi-Lagrangian solver (Do not use too large values, test properly)",10.0);
-
    Readparameters::add("vlasovsolver.lorentzHallTerm", "Add JxB term to Lorentz force",true);
    Readparameters::add("vlasovsolver.lorentzHallMinimumRho", "Minimum rho value used for Hall term in Lorentz force. Default is very low and has no effect in practice.",1.0);
-   Readparameters::add("vlasovsolver.lorentzHallMaximumB", "Maximum value used for Hall term in Lorentz force. Default is very high and has no effect in practice.",1.0); 
-   Readparameters::add("vlasovsolver.lorentzUseFieldSolverE", "If true, the E from fieldsolver is used. Otherwise -V x B_vol is used (default)",false);
-   Readparameters::add("vlasovsolver.maxCFL","The maximum CFL limit for vlasov propagation. Used to set timestep if dynamic_timestep is true. Also used to set substep-dt in acceleration",0.9);
-   Readparameters::add("vlasovsolver.minCFL","The minimum CFL limit for vlasov propagation. Used to set timestep if dynamic_timestep is true. Also used to set substep-dt in acceleration",0.7);
+   Readparameters::add("vlasovsolver.maxCFL","The maximum CFL limit for vlasov-leveque propagation. Used to set timestep if dynamic_timestep is true.",0.9);
+   Readparameters::add("vlasovsolver.minCFL","The minimum CFL limit for vlasov-leveque propagation. Used to set timestep if dynamic_timestep is true.",0.7);
 
+
+
+   
    // Grid sparsity parameters
    Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
-   Readparameters::add("sparse.blockAdjustmentInterval", "Block adjustment interval (steps)", 1);
    Readparameters::add("sparse.blockAddWidthV", "Number of layers of blocks that are kept in velocity space around the blocks with content",1);
    // Load balancing parameters
    Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("RCB"));
@@ -296,18 +289,14 @@ bool Parameters::getParameters(){
    Readparameters::get("fieldsolver.maxCFL",P::fieldSolverMaxCFL);
    Readparameters::get("fieldsolver.minCFL",P::fieldSolverMinCFL);
    // Get Vlasov solver parameters
-   Readparameters::get("vlasovsolver.useSlAcceleration",P::useSlAcceleration);
    Readparameters::get("vlasovsolver.maxSlAccelerationRotation",P::maxSlAccelerationRotation);
    Readparameters::get("vlasovsolver.lorentzHallTerm", P::lorentzHallTerm);
    Readparameters::get("vlasovsolver.lorentzHallMinimumRho",P::lorentzHallMinimumRho);
-   Readparameters::get("vlasovsolver.lorentzHallMaximumB",P::lorentzHallMaximumB);
-   Readparameters::get("vlasovsolver.lorentzUseFieldSolverE",P::lorentzUseFieldSolverE);
    Readparameters::get("vlasovsolver.maxCFL",P::vlasovSolverMaxCFL);
    Readparameters::get("vlasovsolver.minCFL",P::vlasovSolverMinCFL);
 
    // Get sparsity parameters
    Readparameters::get("sparse.minValue", P::sparseMinValue);
-   Readparameters::get("sparse.blockAdjustmentInterval", P::blockAdjustmentInterval);
    Readparameters::get("sparse.blockAddWidthV", P::sparseBlockAddWidthV); 
    // Get load balance parameters
    Readparameters::get("loadBalance.algorithm", P::loadBalanceAlgorithm);

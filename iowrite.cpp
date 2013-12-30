@@ -961,7 +961,6 @@ bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
    restartReducer.addOperator(new DRO::MPIrank);
    restartReducer.addOperator(new DRO::BoundaryType);
    restartReducer.addOperator(new DRO::BoundaryLayer);
-   restartReducer.addOperator(new DRO::VelocitySubSteps);
 
    //Write necessary variables:
    const bool writeAsFloat = false;
