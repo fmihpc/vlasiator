@@ -353,6 +353,9 @@ bool map_1d(SpatialCell* spatial_cell,
       Note that the i dimension is vectorized, and thus there are no loops over i
     */
     for (uint j = 0; j < WID; ++j){ 
+      /*target cell/block index contribution not dependent on k index*/
+      const Vec4i target_cell_index_common = j*cell_indices_to_id[1] + Vec4i(0, cell_indices_to_id[0], 2 * cell_indices_to_id[0], 3 * cell_indices_to_id[0]);
+      const int target_block_index_common(block_indices[0]*block_indices_to_id[0]+block_indices[1]*block_indices_to_id[1]);
       /* 
 	 intersection_min is the intersection z coordinate (z after
 	 swaps that is) of the lowest possible z plane for each i,j
@@ -401,13 +404,9 @@ bool map_1d(SpatialCell* spatial_cell,
 	  const Vec4i gk_div_WID = gk/WID;
 	  const Vec4i gk_mod_WID = (gk - gk_div_WID * WID);
 	  //the block of the lagrangian cell to which we map
-	  const Vec4i target_block = 	
-	    block_indices[0]*block_indices_to_id[0]+
-	    block_indices[1]*block_indices_to_id[1]+
-	    gk_div_WID*block_indices_to_id[2];
+	  const Vec4i target_block(target_block_index_common + gk_div_WID * block_indices_to_id[2]);
 	  //cell index in the target block 
-	  const Vec4i target_cell_base = j*cell_indices_to_id[1] + gk_mod_WID*cell_indices_to_id[2];
-	  const Vec4i target_cell(target_cell_base + Vec4i(0, cell_indices_to_id[0], 2 * cell_indices_to_id[0], 3 * cell_indices_to_id[0]));
+	  const Vec4i target_cell(target_cell_index_common + gk_mod_WID * cell_indices_to_id[2]);
 	  
 	  //the velocity between which we will integrate to put mass
 	  //in the targe cell. If both v_r and v_l are in same cell
