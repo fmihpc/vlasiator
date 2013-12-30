@@ -246,29 +246,6 @@ bool allocateSpatialLevequeBuffers(const dccrg::Dccrg<SpatialCell>& mpiGrid){
 
 bool finalizeMover() {return true;}
 
-void updateBlockQuadrantLists(
-   const dccrg::Dccrg<SpatialCell>& mpiGrid,
-   const vector<CellID> &propagatedCells,
-   vector< vector<uint64_t> > &blockId,
-   vector< vector<uint> > &cellIndex){
-   
-   const vector<CellID> cells = mpiGrid.get_cells();
-   //resize to 
-   for(uint q=0;q<8;q++){
-      blockId[q].resize(0);
-      cellIndex[q].resize(0);
-   }
-   //construct lists
-   for (size_t c=0; c<propagatedCells.size(); ++c) {
-      for(unsigned int block_i=0; block_i< mpiGrid[propagatedCells[c]]->number_of_blocks;block_i++){
-         unsigned int block = mpiGrid[propagatedCells[c]]->velocity_block_list[block_i];         
-         velocity_block_indices_t indices =SpatialCell::get_velocity_block_indices(block);
-         uint quadrant= (indices[0]%2)+2*( (indices[1]%2) + 2*(indices[2]%2) );
-         blockId[quadrant].push_back(block);
-         cellIndex[quadrant].push_back(c);
-      }
-   }
-}
 
 void calculateAcceleration(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
@@ -292,102 +269,19 @@ void calculateAcceleration(
          SC->number_of_blocks != 0) {
          propagatedCells.push_back(cells[c]);
       }
-
-      SC->subStepsAcceleration=0;// subSteps is the number of substeps for each cell
    }
-
-   if(P::useSlAcceleration) {
-      //Semilagrangian acceleration
-
-      phiprof::start("semilag-acc");
-#pragma omp parallel for schedule(dynamic,1)
-      for (size_t c=0; c<propagatedCells.size(); ++c) {
-         const CellID cellID = propagatedCells[c];
-         mpiGrid[cellID]->subStepsAcceleration=1;// always just one substep in SL
-         phiprof::start("cell-semilag-acc");
-         cpu_accelerate_cell(mpiGrid[cellID],dt);
-         phiprof::stop("cell-semilag-acc");
-      }
-      phiprof::stop("semilag-acc");
-   }
-   else {
-      //Leveque acceleration
-      if(P::maxAccelerationSubsteps!=1){
-         int step=0;
-         //substep acceleration until total dt is reached. dt should
-         //be set such that the maximum number of substeps is not
-         //exceeded. As the max dt is set separately for each substep,
-         //we may compute slightly more steps anyway
-         vector< Real> subDt(propagatedCells.size(),0.0);      //subdt is the current time step for each cell 
-         vector< Real> subt(propagatedCells.size(),0.0);       //subt is the current time in the substep for each cell (should be iterated up to dt)  
-         vector<bool> lastCellIntegration(propagatedCells.size(),false); //used to check if a step is the last on or not
-         //boolean to exit time integration
-         bool doIntegration=true;
-      
-         while(propagatedCells.size()>0){
-            //compute  dt for substep
-            for (size_t c=0; c<propagatedCells.size(); ++c) {
-               const CellID cellID = propagatedCells[c];
-               subDt[c]=0.5*(P::vlasovSolverMinCFL+P::vlasovSolverMaxCFL) * mpiGrid[cellID]->parameters[CellParams::MAXVDT];
-               if(subDt[c]+subt[c]>=dt){
-                  lastCellIntegration[c]=true; //will not be propagated next step, this is the last one
-                  subDt[c]=dt-subt[c]; //set length of final step so that we hit the exact time
-               }
-            }
-            //calculate acceleration, this is internally threaded over blocks
-            calculateAccelerationSubstep(mpiGrid,propagatedCells,subDt);
-            //update time and steps
-            for (size_t c=0; c<propagatedCells.size(); ++c) {
-               subt[c]+=subDt[c];
-            }         
-            //update propagatedCells that are to be calculated on next step
-            uint writePos=0;
-            for (size_t c=0; c<propagatedCells.size(); ++c) {
-               if(!lastCellIntegration[c]){
-                  propagatedCells[writePos]=propagatedCells[c];
-                  subt[writePos]=subt[c];
-                  subDt[writePos]=subDt[c];
-                  lastCellIntegration[writePos]=lastCellIntegration[c];
-                  writePos++;
-               }
-            }
-            propagatedCells.resize(writePos);
-            /* Not needed to be resized, as their size is never read (and we only reduce size)
-               subt.resize(writePos);
-               subDt.resize(writePos);
-               lastCellIntegration.resize(writePos);
-            */
-            if(1) {  //step%4==0 && 0) {
-               /*adjust blocks from time to time*/
-               phiprof::start("adjust-blocks");
-#pragma omp  parallel for       
-               for (size_t c=0; c<propagatedCells.size(); ++c) {
-                  //Update block info, no need to do on last step (so
-                  //this is done after updating
-                  //propagatedCells. This will modify velocity bl
-                  //ock lists, need to make sure
-                  //updateRemoteVelocityBlockLists(mpiGrid) is called
-                  //before any further communication involving
-                  //velocity space takes place empty neighbor list,
-                  //only local neighbors in velocity space taken into
-                  //account.
-                  mpiGrid[propagatedCells[c]]->adjustSingleCellVelocityBlocks();
-               }
-            }
-            phiprof::stop("adjust-blocks");
-            step++;
-         }
-      }
    
-      else{
-         //no substepping
-         vector< Real> subDt(propagatedCells.size(),dt);       //subdt is now the total timestep for all steps, no substepping
-         //just one normal acceleration step
-         calculateAccelerationSubstep(mpiGrid,propagatedCells,subDt);
-      
-      }
+   //Semilagrangian acceleration
+   
+   phiprof::start("semilag-acc");
+#pragma omp parallel for schedule(dynamic,1)
+   for (size_t c=0; c<propagatedCells.size(); ++c) {
+      const CellID cellID = propagatedCells[c];
+      phiprof::start("cell-semilag-acc");
+      cpu_accelerate_cell(mpiGrid[cellID],dt);
+      phiprof::stop("cell-semilag-acc");
    }
-
+   phiprof::stop("semilag-acc");
    
    phiprof::start("Compute moments");
 #pragma omp parallel for
@@ -405,120 +299,6 @@ void calculateAcceleration(
       }
    }
    phiprof::stop("Compute moments");
-}
-
-
-//compute one acceleration substep 
-void calculateAccelerationSubstep(
-   const dccrg::Dccrg<SpatialCell>& mpiGrid,
-   const vector< CellID > &propagatedCells,
-   const vector< Real > &subDt){
-   
-
-   typedef Parameters P;
-
-
-
-   vector< vector<uint64_t> > blockId(8, vector<uint64_t>(0,0) ); //blockIds. This array is first over 8 different positions in a octant, and then over all blocks in this octant in all local cells
-   vector< vector<uint> > cellIndex(8, vector<uint>(0,0) ); // spatial-cell index (not id!) to which a particular block belongs.  
-   //re-construct lists of blocks that are accelerated       
-   updateBlockQuadrantLists(mpiGrid,propagatedCells,blockId,cellIndex);
-
-   //compute bulk forces
-   vector< vector<Real> > bulkForce(propagatedCells.size(), vector<Real>(3,0.0) ); 
-   for (size_t c=0; c<propagatedCells.size(); ++c) {
-      const CellID cellID = propagatedCells[c];
-      lorentzForceFaceBulk(&(bulkForce[c][0]),  mpiGrid[cellID]->parameters, mpiGrid[cellID]->derivativesBVOL);
-   }
-   
-#pragma omp parallel
-   {
-      //private variable with the maximum dt's computed by each 
-      vector< Real > maxDt(propagatedCells.size(),numeric_limits<Real>::max());
-      phiprof::start("clearVelFluxes");
-      for (uint q=0;q<8;q++) {
-#pragma omp  for
-         for(unsigned int i=0; i< blockId[q].size();i++){
-            uint c=cellIndex[q][i];
-            cpu_clearVelFluxes(mpiGrid[propagatedCells[c]],blockId[q][i]);
-         }
-      }
-      phiprof::stop("clearVelFluxes");
-
-
-      phiprof::start("Compute moments");
-#pragma omp for
-      for (size_t c=0; c<propagatedCells.size(); ++c) {
-         const CellID cellID = propagatedCells[c];
-         //compute moments after acceleration
-         mpiGrid[cellID]->parameters[CellParams::RHO_V  ] = 0.0;
-         mpiGrid[cellID]->parameters[CellParams::RHOVX_V] = 0.0;
-         mpiGrid[cellID]->parameters[CellParams::RHOVY_V] = 0.0;
-         mpiGrid[cellID]->parameters[CellParams::RHOVZ_V] = 0.0;
-         
-         for(unsigned int block_i=0; block_i< mpiGrid[cellID]->number_of_blocks;block_i++){
-            unsigned int block = mpiGrid[cellID]->velocity_block_list[block_i];         
-            cpu_calcVelocityMoments(mpiGrid[cellID],block,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V);   //set moments before acc, these are used by Lorentz force
-         }
-      }
-      phiprof::stop("Compute moments");
-
-      //   Calculate df/dt contributions of all blocks
-      phiprof::start("calcVelFluxes");
-      for (uint q=0;q<8;q++) {
-#pragma omp  for
-         for(unsigned int i=0; i< blockId[q].size();i++){
-            Real maxAx,maxAy,maxAz;
-            uint c=cellIndex[q][i];
-            SpatialCell* cell=mpiGrid[propagatedCells[c]];
-            Velocity_Block* block_ptr=cell->at(blockId[q][i]);
-            cpu_calcVelFluxes(cell,blockId[q][i],subDt[c],&(bulkForce[c][0]),maxAx,maxAy,maxAz);
-            
-            if(maxAx!=ZERO) maxDt[c] =min(maxDt[c] ,block_ptr->parameters[BlockParams::DVX]/maxAx);
-            if(maxAy!=ZERO) maxDt[c] =min(maxDt[c] ,block_ptr->parameters[BlockParams::DVY]/maxAy);
-            if(maxAz!=ZERO) maxDt[c] =min(maxDt[c] ,block_ptr->parameters[BlockParams::DVZ]/maxAz);
-         }
-      }
-      phiprof::stop("calcVelFluxes");
-      //update max allowed timestep for acceleration in this cell, which is the minimum of CFL=1 timesteps for all blocks in cell
-   
-      
-      phiprof::start("propagateVel");
-      // Propagate distribution functions in velocity space 
-      for (uint q=0;q<8;q++) {
-#pragma omp for
-         for(unsigned int i=0; i< blockId[q].size();i++){
-            uint c=cellIndex[q][i];
-            cpu_propagateVel(mpiGrid[propagatedCells[c]],blockId[q][i],subDt[c]);
-         }
-      }
-      phiprof::stop("propagateVel");
-      
-      phiprof::start("vBoundaryCondition");
-      //apply boundary outflow condition in velocity space
-#pragma omp  for        
-      for (size_t c=0; c<propagatedCells.size(); ++c) {
-         mpiGrid[propagatedCells[c]]->applyVelocityBoundaryCondition();
-      }
-      phiprof::stop("vBoundaryCondition");
-
-      
-      //reset maxvdt and update number of substeps. There is an implicit barrier at the end, so the threads are synchronized after this
-#pragma omp for
-      for (size_t c=0; c<propagatedCells.size(); ++c) {
-         mpiGrid[propagatedCells[c]]->parameters[CellParams::MAXVDT] =numeric_limits<Real>::max();
-         mpiGrid[propagatedCells[c]]->subStepsAcceleration++;// subSteps is the number of substeps for each cell          
-      }
-
-      //each thread updates maxvdt with their values from the private maxDt's, one at a time!
-#pragma omp critical      
-      for (size_t c=0; c<propagatedCells.size(); ++c) {
-         mpiGrid[propagatedCells[c]]->parameters[CellParams::MAXVDT] = min(mpiGrid[propagatedCells[c]]->parameters[CellParams::MAXVDT],maxDt[c]);
-      }
-
-      
-   }
-   
 }
 
 

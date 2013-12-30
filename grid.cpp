@@ -233,18 +233,10 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    //set weights based on each cells LB weight counter
    vector<uint64_t> cells = mpiGrid.get_cells();
    for (uint i=0; i<cells.size(); ++i){
-      if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-      //weight set according to substeps * blocks. If no substepping allowed, substeps will be 1.
-         mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]=
-            Parameters::loadBalanceGamma +
-            mpiGrid[cells[i]]->number_of_blocks*Parameters::loadBalanceAlpha +
-            mpiGrid[cells[i]]->number_of_blocks*mpiGrid[cells[i]]->subStepsAcceleration*Parameters::loadBalanceBeta;
-      }
-      else {
-         mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]=
-            Parameters::loadBalanceGamma +
-            mpiGrid[cells[i]]->number_of_blocks*Parameters::loadBalanceAlpha;
-      }
+      //weight set 
+      mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]=
+         Parameters::loadBalanceGamma +
+         mpiGrid[cells[i]]->number_of_blocks*Parameters::loadBalanceAlpha;
       mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
    }
    phiprof::start("dccrg.initialize_balance_load");

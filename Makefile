@@ -8,8 +8,6 @@ FP_PRECISION = DP
 #set a default archive utility, can also be set in Makefile.arch
 AR ?= ar
 
-#leveque (no other options)
-TRANSSOLVER ?= leveque
 
 #londrillo_delzanna (no other options)
 FIELDSOLVER ?= londrillo_delzanna
@@ -118,7 +116,7 @@ OBJS = 	version.o backgroundfield.o ode.o quadr.o dipole.o constantfield.o integ
 	Alfven.o Diffusion.o Dispersion.o Firehose.o Flowthrough.o Fluctuations.o  KHB.o Larmor.o Magnetosphere.o MultiPeak.o VelocityBox.o Riemann1.o Shock.o test_fp.o test_trans.o verificationLarmor.o\
 	grid.o ioread.o iowrite.o vlasiator.o logger.o muxml.o \
 	parameters.o readparameters.o spatial_cell.o \
-	vlscommon.o vlsvreader2.o  vlasovmover_$(TRANSSOLVER).o $(FIELDSOLVER).o
+	vlscommon.o vlsvreader2.o  vlasovmover.o $(FIELDSOLVER).o
 
 
 help:
@@ -249,8 +247,8 @@ projectIsotropicMaxwellian.o: ${DEPS_COMMON} $(DEPS_PROJECTS)
 spatial_cell.o: spatial_cell.cpp spatial_cell.hpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c spatial_cell.cpp $(INC_BOOST) ${INC_EIGEN}
 
-vlasovmover_leveque.o: spatial_cell.hpp transferstencil.h  vlasovsolver/cpu_acc_leveque.hpp vlasovsolver/cpu_trans_leveque.h vlasovsolver/cpu_lorentz.hpp vlasovsolver/limiters.h  vlasovsolver/limiters_vec4.h vlasovsolver/leveque_common.h vlasovsolver/vlasovmover_leveque.cpp vlasovsolver/cpu_acc_map.hpp vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_semilag.hpp		vlasovsolver/cpu_acc_transform.hpp	
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -DMOVER_VLASOV_ORDER=2  -c vlasovsolver/vlasovmover_leveque.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG}  ${INC_ZOLTAN}     ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN}  
+vlasovmover.o: spatial_cell.hpp transferstencil.h  vlasovsolver/cpu_trans_leveque.h vlasovsolver/limiters.h  vlasovsolver/limiters_vec4.h vlasovsolver/leveque_common.h vlasovsolver/vlasovmover.cpp vlasovsolver/cpu_acc_map.hpp vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_semilag.hpp		vlasovsolver/cpu_acc_transform.hpp	
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -DMOVER_VLASOV_ORDER=2  -c vlasovsolver/vlasovmover.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG}  ${INC_ZOLTAN}     ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN}  
 
 londrillo_delzanna.o: spatial_cell.hpp transferstencil.h   parameters.h common.h fieldsolver/londrillo_delzanna.cpp
 	 ${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/londrillo_delzanna.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG}  ${INC_PROFILE}  ${INC_ZOLTAN}

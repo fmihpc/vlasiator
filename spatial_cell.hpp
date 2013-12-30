@@ -645,8 +645,6 @@ namespace velocity_neighbor {
 	 //is transferred by default
 	 this->mpiTransferEnabled=true;
 
-         //reset number of substeps
-         this->subStepsAcceleration=1; 
       }
       
       SpatialCell(const SpatialCell& other):
@@ -666,10 +664,7 @@ namespace velocity_neighbor {
          neighbors(other.neighbors),
          procBoundaryFlag(other.procBoundaryFlag),
          sysBoundaryFlag(other.sysBoundaryFlag),
-         sysBoundaryLayer(other.sysBoundaryLayer),
-    	 subStepsAcceleration(other.subStepsAcceleration)
-
-         
+         sysBoundaryLayer(other.sysBoundaryLayer)
          {
 
 //       phiprof::initializeTimer("SpatialCell copy", "SpatialCell copy");
@@ -1801,7 +1796,6 @@ namespace velocity_neighbor {
       unsigned int procBoundaryFlag; /*!< bitfield usied in leveque vlasov solver to see if a neighbor exists, or if it is outside the system. TODO: bad/missleading name */
       uint sysBoundaryFlag;          /*!< What type of system boundary does the cell belong to. Enumerated in the sysboundarytype namespace's enum */
       uint sysBoundaryLayer;         /*!< Layers counted from closest systemBoundary. If 0 then it has not been computed. First sysboundary layer is layer 1 */
-      uint subStepsAcceleration;
       uint64_t ioLocalCellId;       /*!< Local cell ID used for IO, not needed elsewhere and thus not being kept up-to-date*/ 
    }; // class SpatialCell
    

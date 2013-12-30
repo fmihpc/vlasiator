@@ -81,34 +81,22 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &is
    dtMaxLocal[0]=std::numeric_limits<Real>::max();
    dtMaxLocal[1]=std::numeric_limits<Real>::max();
    dtMaxLocal[2]=std::numeric_limits<Real>::max();
+
    for (std::vector<uint64_t>::const_iterator cell_id = cells.begin(); cell_id != cells.end(); ++cell_id) {
       SpatialCell* cell = mpiGrid[*cell_id];
       if ( cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
            (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )) {
-	//spatial fluxes computed also for boundary cells              
-	dtMaxLocal[0]=min(dtMaxLocal[0], cell->parameters[CellParams::MAXRDT]);
-	dtMaxLocal[2]=min(dtMaxLocal[2], cell->parameters[CellParams::MAXFDT]);
+         //spatial fluxes computed also for boundary cells              
+         dtMaxLocal[0]=min(dtMaxLocal[0], cell->parameters[CellParams::MAXRDT]);
+         dtMaxLocal[2]=min(dtMaxLocal[2], cell->parameters[CellParams::MAXFDT]);
       }
       
       if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-	//Acceleration only done on non sysboundary cells
-	dtMaxLocal[1]=min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
+         //Acceleration only done on non sysboundary cells
+         dtMaxLocal[1]=min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
       }
    }
    MPI_Allreduce(&(dtMaxLocal[0]), &(dtMaxGlobal[0]), 3, MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
-   
-   
-   Real maxVDtNoSubstepping=dtMaxGlobal[1];
-   
-   //Increase timestep limit in velocity space based on
-   //maximum number of substeps we are allowed to take. As
-   //the length of each substep is unknown beforehand the
-   //limit is not hard, it may be exceeded in some cases.
-   // A value of 0 means that there is no limit on substepping
-   if(P::maxAccelerationSubsteps==0)
-      dtMaxGlobal[1]=std::numeric_limits<Real>::max();
-   else
-      dtMaxGlobal[1]*=P::maxAccelerationSubsteps;
    
    //If fieldsolver is off there should be no limit on time-step from it
    if (P::propagateField == false) {
@@ -119,7 +107,6 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &is
    if (P::propagateVlasov == false) {
       dtMaxGlobal[0]=std::numeric_limits<Real>::max();
       dtMaxGlobal[1]=std::numeric_limits<Real>::max();
-      maxVDtNoSubstepping=std::numeric_limits<Real>::max();
    }
    
    //reduce dt if it is too high for any of the three propagators, or too low for all propagators
@@ -143,10 +130,9 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &is
        P::vlasovSolverMinCFL <<"-"<<P::vlasovSolverMaxCFL<<
        " or fieldsolver CFL "<< 
        P::fieldSolverMinCFL <<"-"<<P::fieldSolverMaxCFL<<
-       " ) in {r, v+subs, v, BE} was " <<
+       " ) in {r, v, BE} was " <<
        dtMaxGlobal[0] << " " <<
        dtMaxGlobal[1] << " " <<
-       maxVDtNoSubstepping << " " <<
        dtMaxGlobal[2] << endl << writeVerbose;
    }
 	
