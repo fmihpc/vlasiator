@@ -317,6 +317,11 @@ bool map_1d(SpatialCell* spatial_cell,
   }
   const Real i_dv=1.0/dv;
 
+
+  /*these two temporary variables are used to optimize access to target cells*/
+  uint previous_target_block = error_velocity_block;
+  Real *target_block_data;
+
   
   for (unsigned int block_i = 0; block_i < nblocks; block_i++) {
     Velocity_Block *block=spatial_cell->at(blocks[block_i]);
@@ -430,8 +435,23 @@ bool map_1d(SpatialCell* spatial_cell,
 	  
 	  //store values, one element at a time
 	  for(uint target_i = 0; target_i < 4;target_i ++ ){
-	    if (target_block[target_i] < SpatialCell::max_velocity_blocks && target_density[target_i]!=0.0) 
-	      spatial_cell->increment_value(target_block[target_i],target_cell[target_i],target_density[target_i]);
+	    const uint tblock=target_block[target_i];
+	    const uint tcell=target_cell[target_i];
+	    const Real tval=target_density[target_i];
+	    if (tblock < SpatialCell::max_velocity_blocks && tval != 0.0) {	      
+	      if(previous_target_block != tblock) {
+		previous_target_block = tblock;
+		//not the same block as last time, lets create it if we
+		//need to and fetch its data array pointer and store it in target_block_data.
+		if (spatial_cell->count(tblock) == 0) {
+		  //count faster since the add_velocity_block call is more expensive
+		  spatial_cell->add_velocity_block(tblock);
+		}
+		Velocity_Block* block_ptr = spatial_cell->at_fast(tblock);
+		target_block_data=block_ptr->data;
+	      }
+	      target_block_data[tcell] += tval;
+	    }
 	  }
 	  gk++; //next iteration in while loop
 	}

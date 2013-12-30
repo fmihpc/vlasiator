@@ -731,6 +731,12 @@ namespace velocity_neighbor {
 //         phiprof::stop("SpatialCell copy");
       }
       
+      /*!
+        Returns a pointer to the given velocity block. Fast version, no error checking. Need to check separately for existence.
+      */
+      Velocity_Block* at_fast(const unsigned int block){
+	return &(this->velocity_blocks.at(block));
+      }
       
       /*!
         Returns a pointer to the given velocity block or to
