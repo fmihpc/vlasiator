@@ -15,37 +15,23 @@ using namespace spatial_cell;
 
 #include <stdint.h>
 #include <dccrg.hpp>
-#include "sysboundary/sysboundary.h"
 
-
-bool finalizeMover();
-bool initializeSpatialLeveque(dccrg::Dccrg<SpatialCell>& mpiGrid);
-bool allocateSpatialLevequeBuffers(const dccrg::Dccrg<SpatialCell>& mpiGrid);
-bool deallocateSpatialLevequeBuffers();
-void calculateCellParameters(dccrg::Dccrg<SpatialCell>& mpiGrid,creal& t,uint64_t& cell);
 
 void calculateAcceleration(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
    Real dt
 );
 
-void calculateSpatialFluxes(
+void calculateSpatialTranslation(
    dccrg::Dccrg<SpatialCell>& mpiGrid,
-   const SysBoundary& sysBoundaries,
    creal dt);
-void calculateSpatialPropagation(dccrg::Dccrg<SpatialCell>& mpiGrid);
-void initialLoadBalance(dccrg::Dccrg<SpatialCell>& mpiGrid);
-
 
 /*!
   \brief Compute real-time 1st order accurate moments from the moments after propagation in velocity and spatial space
-
 */
  
 void calculateInterpolatedVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid,
                                            const int cp_rho, const int cp_rhovx, const int cp_rhovy, const int cp_rhovz);
-
-
 
 /*!
    \brief Compute 0th and 1st velocity moments (RHO,RHOVX,RHOVY,RHOVZ) for a cell directly from distribution function. The simulation should be at a true time-step!

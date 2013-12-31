@@ -3,17 +3,6 @@ This file is part of Vlasiator.
 
 Copyright 2011, 2012 Finnish Meteorological Institute
 
-
-
-
-
-
-
-
-
-
-
-
 */
 
 #ifndef PROJECTS_COMMON_H

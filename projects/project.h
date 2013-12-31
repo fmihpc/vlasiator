@@ -1,7 +1,7 @@
 #ifndef PROJECT_H
 #define PROJECT_H
 
-# include "projects_common.h"
+#include "projects_common.h"
 #include <cstdlib>
 
 

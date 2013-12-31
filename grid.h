@@ -44,16 +44,9 @@ void initializeGrid(
 
   
   \param[in,out] mpiGrid The DCCRG grid with spatial cells
-  \param[in] reInitMover Does it also re-initialize the solvers based on the new
-  block structure? The default is true, and that should always be used
-  unless it is called before solvers have been initialized.
-  
   
 */
-bool adjustVelocityBlocks(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
-   bool reInitMover=true
-);
+bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
 
 /*!

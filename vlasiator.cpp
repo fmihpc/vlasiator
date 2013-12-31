@@ -21,7 +21,6 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "spatial_cell.hpp"
 #include "datareduction/datareducer.h"
 #include "sysboundary/sysboundary.h"
-#include "transferstencil.h"
 
 #include "fieldsolver.h"
 #include "projects/project.h"
@@ -238,17 +237,14 @@ int main(int argn,char* args[]) {
    phiprof::stop("Init DROs");
    
    //VlsWriter vlsWriter;
-   phiprof::start("Init vlasov propagator");
-   // Initialize Vlasov propagator:
-   if (initializeSpatialLeveque(mpiGrid) == false) {
-      logFile << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << writeVerbose;
-      exit(1);
-   }
-   //compute moments, and set them  in RHO*. If restart, they are already read in
    if(!P::isRestart) {
+     phiprof::start("Init moments");
+     //compute moments, and set them  in RHO*. If restart, they are already read in
       calculateVelocityMoments(mpiGrid);
+      phiprof::stop("Init moments");
    }
-   phiprof::stop("Init vlasov propagator");
+
+
    
    phiprof::start("Init field propagator");
    // Initialize field propagator:
@@ -299,8 +295,7 @@ int main(int argn,char* args[]) {
       //per-cell dt limits. In restarts, we read in dt from file
       phiprof::start("compute-dt");
       if(P::propagateVlasov) {
-         //Flux computation is sufficient, no need to propagate
-         calculateSpatialFluxes(mpiGrid, sysBoundaries, 0.0);
+         calculateSpatialTranslation(mpiGrid,0.0);
          calculateAcceleration(mpiGrid,0.0);
       }
       //this is probably not ever needed, as a zero length step
@@ -328,8 +323,7 @@ int main(int argn,char* args[]) {
       //go forward by dt/2 in x, initializes leapfrog split. In restarts the
       //the distribution function is already propagated forward in time by dt/2
       phiprof::start("propagate-spatial-space-dt/2");
-      calculateSpatialFluxes(mpiGrid, sysBoundaries, 0.5*P::dt);
-      calculateSpatialPropagation(mpiGrid);
+      calculateSpatialTranslation(mpiGrid, 0.5*P::dt);
       phiprof::stop("propagate-spatial-space-dt/2");
    }
 
@@ -544,8 +538,9 @@ int main(int argn,char* args[]) {
             P::dt=newDt;
             
             //go forward by dt/2 again in x
-            calculateSpatialFluxes(mpiGrid, sysBoundaries, 0.5*P::dt);
-            calculateSpatialPropagation(mpiGrid);
+
+            calculateSpatialTranslation(mpiGrid, 0.5*P::dt);
+
             logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
             phiprof::stop("update-dt");
             continue; //
@@ -582,10 +577,7 @@ int main(int argn,char* args[]) {
          addTimedBarrier("barrier-boundary-conditions");
                   
          phiprof::start("Spatial-space");
-         calculateSpatialFluxes(mpiGrid, sysBoundaries, P::dt);
-         addTimedBarrier("barrier-spatial-Fluxes");
-         calculateSpatialPropagation(mpiGrid);
-         addTimedBarrier("barrier-spatial-propagation");
+	 calculateSpatialTranslation(mpiGrid,P::dt);
          phiprof::stop("Spatial-space",computedCells,"Cells");
 
          calculateInterpolatedVelocityMoments(
@@ -622,7 +614,6 @@ int main(int argn,char* args[]) {
    
    phiprof::stop("Simulation");
    phiprof::start("Finalization");   
-   finalizeMover();
    finalizeFieldPropagator(mpiGrid);
    
    if (myRank == MASTER_RANK) {

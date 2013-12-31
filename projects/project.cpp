@@ -1,5 +1,7 @@
 #include "project.h"
 #include <cstdlib>
+#include "../parameters.h"
+#include "../readparameters.h"
 #include "../vlasovmover.h"
 
 #include "Alfven/Alfven.h"
@@ -8,7 +10,6 @@
 #include "Firehose/Firehose.h"
 #include "Flowthrough/Flowthrough.h"
 #include "Fluctuations/Fluctuations.h"
-//#include "Harris/Harris.h"
 #include "KHB/KHB.h"
 #include "Larmor/Larmor.h"
 #include "Magnetosphere/Magnetosphere.h"

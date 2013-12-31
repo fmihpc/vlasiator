@@ -23,7 +23,6 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
 #include "datareduction/datareducer.h"
 #include "sysboundary/sysboundary.h"
-#include "transferstencil.h"
 
 #include "fieldsolver.h"
 #include "projects/project.h"
@@ -157,7 +156,7 @@ void initializeGrid(
 
    
       updateRemoteVelocityBlockLists(mpiGrid);
-      adjustVelocityBlocks(mpiGrid,false); // do not initialize mover, mover has not yet been initialized here
+      adjustVelocityBlocks(mpiGrid); // do not initialize mover, mover has not yet been initialized here
    }
 
    
@@ -225,8 +224,6 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    phiprof::start("Balancing load");
 
    phiprof::start("deallocate boundary data");
-   //free buffers in leveque solvers to decrease memory load. 
-   deallocateSpatialLevequeBuffers();
    //deallocate blocks in remote cells to decrease memory load
    deallocateRemoteCellBlocks(mpiGrid);
    phiprof::stop("deallocate boundary data");
@@ -328,13 +325,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    phiprof::stop("update block lists");
 
    phiprof::start("Init solvers");
-   //need to re-initialize stencils and neighbors in leveque solver, buffers also allocated here
-   if (initializeSpatialLeveque(mpiGrid) == false) {
-      logFile << "(MAIN): Vlasov propagator did not initialize correctly!" << endl << writeVerbose;
-      exit(1);
-   }
-
-      // Initialize field propagator:
+   // Initialize field propagator:
    if (initializeFieldPropagatorAfterRebalance(mpiGrid) == false) {
        logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
        exit(1);
@@ -354,16 +345,10 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
 //data. Solvers are also updated so that their internal structures are
 //ready for the new number of blocks.
 
-bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid, bool reInitMover) {
+bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    phiprof::initializeTimer("re-adjust blocks","Block adjustment");
    phiprof::start("re-adjust blocks");
    const vector<uint64_t> cells = mpiGrid.get_cells();
-
-   if(reInitMover) {
-      phiprof::start("deallocateSpatialLevequeBuffers");
-      deallocateSpatialLevequeBuffers();
-      phiprof::stop("deallocateSpatialLevequeBuffers");
-   }
    
    phiprof::start("Compute with_content_list");
 #pragma omp parallel for  
@@ -433,12 +418,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid, bool reInitMover) 
    //prepare to receive block data
    updateRemoteVelocityBlockLists(mpiGrid);
 
-   //re-init vlasovmover
-   if(reInitMover) {
-      phiprof::start("allocateSpatialLevequeBuffers");
-      allocateSpatialLevequeBuffers(mpiGrid);
-      phiprof::stop("allocateSpatialLevequeBuffers");
-   }
+
    phiprof::stop("re-adjust blocks");
    return true;
 }
