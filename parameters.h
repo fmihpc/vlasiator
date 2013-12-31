@@ -60,11 +60,11 @@ struct Parameters {
    static Real fieldSolverMinCFL;     /*!< The minimum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
    static Real fieldSolverMaxCFL;     /*!< The maximum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
 
-   static luint tstep_min;           /*!< Timestep when simulation starts, needed for restarts.*/
-   static luint tstep_max;           /*!< Maximum timestep. */
-   static luint tstep;               /*!< The number of the current timestep. 0=initial state. */
+   static uint tstep_min;           /*!< Timestep when simulation starts, needed for restarts.*/
+   static uint tstep_max;           /*!< Maximum timestep. */
+   static uint tstep;               /*!< The number of the current timestep. 0=initial state. */
 
-   static luint diagnosticInterval;
+   static uint diagnosticInterval;
    static std::vector<std::string> systemWriteName; /*!< Names for the different classes of grid output*/
    static std::vector<Real> systemWriteTimeInterval;/*!< Interval in simusecond for output for each class*/
    static std::vector<int> systemWriteDistributionWriteStride; /*!< Every this many cells write out their velocity space in each class. */
@@ -99,6 +99,7 @@ struct Parameters {
    static Real lorentzHallMinimumRho;  /*!< Minimum rho value used in Hall term in Lorentz force.*/
    static Real sparseMinValue; /*!< Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents */
    static int sparseBlockAddWidthV; /*!< Number of layers of blocks that are kept in velocity space around the blocks with content */
+  static bool sparse_conserve_mass; /*!< If true, density is scaled to conserve mass when removing blocks*/
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
    static std::string loadBalanceTolerance; /*!< Load imbalance tolerance. */ 
    static uint rebalanceInterval; /*!< Load rebalance interval (steps). */

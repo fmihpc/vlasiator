@@ -63,10 +63,10 @@ Real P::fieldSolverMaxCFL = NAN;
 Real P::fieldSolverMinCFL = NAN;
 
 
-luint P::tstep = 0;
-luint P::tstep_min = 0;
-luint P::tstep_max = 0;
-luint P::diagnosticInterval = numeric_limits<uint>::max();
+uint P::tstep = 0;
+uint P::tstep_min = 0;
+uint P::tstep_max = 0;
+uint P::diagnosticInterval = numeric_limits<uint>::max();
 bool P::writeInitialState = true;
 
 std::vector<std::string> P::systemWriteName; 
@@ -98,6 +98,7 @@ bool P::ohmHallTerm = false;
 
 Real P::sparseMinValue = NAN;
 int P::sparseBlockAddWidthV = 1;
+bool P::sparse_conserve_mass = false;
 
 string P::restartFileName = string("");                
 bool P::isRestart=false;
@@ -192,6 +193,8 @@ bool Parameters::addParameters(){
    // Grid sparsity parameters
    Readparameters::add("sparse.minValue", "Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents", 0);
    Readparameters::add("sparse.blockAddWidthV", "Number of layers of blocks that are kept in velocity space around the blocks with content",1);
+   Readparameters::add("sparse.conserve_mass", "If true, then mass is conserved by scaling the dist. func. in the remaining blocks", false);
+
    // Load balancing parameters
    Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("RCB"));
    Readparameters::add("loadBalance.tolerance", "Load imbalance tolerance", std::string("1.05"));
@@ -298,6 +301,8 @@ bool Parameters::getParameters(){
    // Get sparsity parameters
    Readparameters::get("sparse.minValue", P::sparseMinValue);
    Readparameters::get("sparse.blockAddWidthV", P::sparseBlockAddWidthV); 
+   Readparameters::get("sparse.conserve_mass", P::sparse_conserve_mass);
+
    // Get load balance parameters
    Readparameters::get("loadBalance.algorithm", P::loadBalanceAlgorithm);
    Readparameters::get("loadBalance.tolerance", P::loadBalanceTolerance);

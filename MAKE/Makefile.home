@@ -16,6 +16,9 @@ LIB_BOOST = -lboost_program_options
 INC_ZOLTAN =
 LIB_ZOLTAN = -lzoltan
 
+INC_VLSV = 
+LIB_VLSV = -lvlsv
+
 INC_SILO =
 LIB_SILO = -lsilo
 
