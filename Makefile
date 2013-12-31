@@ -11,6 +11,9 @@ AR ?= ar
 
 #londrillo_delzanna (no other options)
 FIELDSOLVER ?= londrillo_delzanna
+#Add -DFS_1ST_ORDER_SPACE or -DFS_1ST_ORDER_TIME to make the field solver first-order in space or time
+# CXXFLAGS += -DFS_1ST_ORDER_SPACE
+# CXXFLAGS += -DFS_1ST_ORDER_TIME
 
 CXXFLAGS += -DPROFILE
 
@@ -21,7 +24,11 @@ CXXFLAGS += -DNDEBUG
 #  ACC_SEMILAG_PCONSTM	1st order
 #  ACC_SEMILAG_PLM 	2nd order	
 #  ACC_SEMILAG_PPM	3rd order (use this one unless you are testing, only ~20% slower than 2nd order)
-CXXFLAGS += -DACC_SEMILAG_PPM
+#Set order of semilag solver in spatial translation
+#  TRANS_SEMILAG_PCONSTM	1st order
+#  TRANS_SEMILAG_PLM 	2nd order	
+#  TRANS_SEMILAG_PPM	3rd order (use this one unless you are testing, only ~20% slower than 2nd order)
+CXXFLAGS += -DACC_SEMILAG_PPM -DTRANS_SEMILAG_PPM
 
 #define USE_AGNER_VECTORCLASS to use an external vector class that is used in some of the solvers
 #If not defined a slower but portable implementation is used, as the external one only supports 
@@ -32,19 +39,10 @@ CXXFLAGS += -DUSE_AGNER_VECTORCLASS
 # CXXFLAGS += -DCATCH_FPE
 
 
-#Add -DFS_1ST_ORDER_SPACE or -DFS_1ST_ORDER_TIME to make the field solver first-order in space or time
-# CXXFLAGS += -DFS_1ST_ORDER_SPACE
-# CXXFLAGS += -DFS_1ST_ORDER_TIME
-
 
 #//////////////////////////////////////////////////////
 # The rest of this file users shouldn't need to change
 #//////////////////////////////////////////////////////
-
-
-ifeq ($(strip $(TRANSSOLVER)),leveque)
-CXXFLAGS += -DSOLVER_LEVEQUE
-endif
 
 #will need profiler in most places..
 CXXFLAGS += ${INC_PROFILE} 

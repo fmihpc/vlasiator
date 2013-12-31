@@ -8,6 +8,17 @@
 #include "projects/project.h"
 #include <string>
 
+
+//neighborhoods, these are initialized in initializeGrid
+
+#define FIELD_SOLVER_NEIGHBORHOOD_ID 1
+#define VLASOV_SOLVER_NEIGHBORHOOD_ID 2
+#define SYSBOUNDARIES_NEIGHBORHOOD_ID 3 // When classifying sysboundaries, all 26 nearest neighbors are included,
+#define SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID 4
+#define NEAREST_NEIGHBORHOOD_ID 5
+
+
+
 /*!
   \brief Initialize parallel grid
 */
@@ -72,5 +83,11 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
 //subroutine to adjust blocks of local cells; remove/add based on user-defined limits
 bool adjust_local_velocity_blocks(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
+
+
+
+
+
+
 
 #endif

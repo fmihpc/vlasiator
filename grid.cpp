@@ -499,8 +499,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
          for (int x = -1; x <= 1; x++) {
             if (x == 0 && y == 0 && z == 0) {
                continue;
-            }
-            
+            }            
             neigh_t offsets = {{x, y, z}};
             nearestneighbor_neighborhood.push_back(offsets);
          }
@@ -521,7 +520,16 @@ void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
          << std::endl;
       abort();
    }
+
+   if (!mpiGrid.add_remote_update_neighborhood(SYSBOUNDARIES_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+      << " Couldn't set system boundaries neighborhood"
+      << std::endl;
+      abort();
+   }
+
    
+
    std::vector<neigh_t> twonearestneighbor_neighborhood;
    for (int z = -2; z <= 2; z++) {
       for (int y = -2; y <= 2; y++) {
@@ -536,15 +544,6 @@ void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
       }
    }
    
-   if (!mpiGrid.add_remote_update_neighborhood(SYSBOUNDARIES_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
-      std::cerr << __FILE__ << ":" << __LINE__
-      << " Couldn't set system boundaries neighborhood"
-      << std::endl;
-      abort();
-   }
-
-
-   
    if (!mpiGrid.add_remote_update_neighborhood(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID, twonearestneighbor_neighborhood)) {
       std::cerr << __FILE__ << ":" << __LINE__
       << " Couldn't set system boundaries extended neighborhood"
@@ -552,74 +551,41 @@ void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
       abort();
    }
    
+#ifdef TRANS_SEMILAG_PCONSTM
+   const int vlasov_stencil_width=1;
+#endif
+#ifdef TRANS_SEMILAG_PLM
+   const int vlasov_stencil_width=2;
+#endif
+#if TRANS_SEMILAG_PPM
+   const int vlasov_stencil_width=3;
+#endif
    
-   // set a reduced neighborhood for all possible communication in  vlasov solver
-   //FIXME, the +2 neighbors can be removed as we do not receive from +2, do check though...
-   const std::vector<neigh_t> vlasov_neighborhood
-      = boost::assign::list_of<neigh_t>
-      (boost::assign::list_of( 0)( 0)(-2))
-      (boost::assign::list_of(-1)(-1)(-1))
-      (boost::assign::list_of( 0)(-1)(-1))
-      (boost::assign::list_of( 1)(-1)(-1))
-      (boost::assign::list_of(-1)( 0)(-1))
-      (boost::assign::list_of( 0)( 0)(-1))
-      (boost::assign::list_of( 1)( 0)(-1))
-      (boost::assign::list_of(-1)( 1)(-1))
-      (boost::assign::list_of( 0)( 1)(-1))
-      (boost::assign::list_of( 1)( 1)(-1))
-      (boost::assign::list_of( 0)(-2)( 0))
-      (boost::assign::list_of(-1)(-1)( 0))
-      (boost::assign::list_of( 0)(-1)( 0))
-      (boost::assign::list_of( 1)(-1)( 0))
-      (boost::assign::list_of(-2)( 0)( 0))
-      (boost::assign::list_of(-1)( 0)( 0))
-      (boost::assign::list_of( 1)( 0)( 0))
-      (boost::assign::list_of( 2)( 0)( 0))
-      (boost::assign::list_of(-1)( 1)( 0))
-      (boost::assign::list_of( 0)( 1)( 0))
-      (boost::assign::list_of( 1)( 1)( 0))
-      (boost::assign::list_of( 0)( 2)( 0))
-      (boost::assign::list_of(-1)(-1)( 1))
-      (boost::assign::list_of( 0)(-1)( 1))
-      (boost::assign::list_of( 1)(-1)( 1))
-      (boost::assign::list_of(-1)( 0)( 1))
-      (boost::assign::list_of( 0)( 0)( 1))
-      (boost::assign::list_of( 1)( 0)( 1))
-      (boost::assign::list_of(-1)( 1)( 1))
-      (boost::assign::list_of( 0)( 1)( 1))
-      (boost::assign::list_of( 1)( 1)( 1))
-      (boost::assign::list_of( 0)( 0)( 2));
+   std::vector<neigh_t> vlasov_neighborhood;
+   int x=0;
+   for (int z = -vlasov_stencil_width; z <= vlasov_stencil_width; z++) {
+     for (int y = -vlasov_stencil_width; y <= vlasov_stencil_width; y++) {
+       if (x == 0 && y == 0 && z == 0) {
+	 continue;
+       }
+       neigh_t offsets = {{x, y, z}};
+       vlasov_neighborhood.push_back(offsets);
+     }
+   }
    
+   int y=0;
+   int z=0;
+   for (int x = -vlasov_stencil_width; x <= vlasov_stencil_width; x++) {
+     if (x == 0 && y == 0 && z == 0) {
+       continue;
+     }
+     neigh_t offsets = {{x, y, z}};
+     vlasov_neighborhood.push_back(offsets);
+   }
+
    if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_NEIGHBORHOOD_ID, vlasov_neighborhood)) {
       std::cerr << __FILE__ << ":" << __LINE__
                 << " Couldn't set vlasov solver neighborhood"
-                << std::endl;
-      abort();
-   }
-   
-   // A reduced neighborhood for vlasov distribution function receives
-   const std::vector<neigh_t> vlasov_density_neighborhood
-      = boost::assign::list_of<neigh_t>
-      (boost::assign::list_of( 0)( 0)(-1))
-      (boost::assign::list_of( 0)( 0)( 1))
-      (boost::assign::list_of( 0)(-1)( 0))
-      (boost::assign::list_of( 0)( 1)( 0))
-      (boost::assign::list_of(-1)( 0)( 0))
-      (boost::assign::list_of( 1)( 0)( 0))
-      (boost::assign::list_of(-2)( 0)( 0))
-      (boost::assign::list_of( 0)(-2)( 0))
-      (boost::assign::list_of( 0)( 0)(-2));
-   
-   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_DENSITY_NEIGHBORHOOD_ID, vlasov_density_neighborhood)) {
-      std::cerr << __FILE__ << ":" << __LINE__
-                << " Couldn't set field solver neighborhood"
-                << std::endl;
-      abort();
-   }
-   
-   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_FLUXES_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
-      std::cerr << __FILE__ << ":" << __LINE__
-                << " Couldn't set field solver neighborhood"
                 << std::endl;
       abort();
    }

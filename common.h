@@ -265,21 +265,6 @@ namespace physicalconstants {
 
 
 
-//neighborhoods, these are initialized in initializeGrid
-
-#define FIELD_SOLVER_NEIGHBORHOOD_ID 1
-#define VLASOV_SOLVER_NEIGHBORHOOD_ID 2
-#define VLASOV_SOLVER_FLUXES_NEIGHBORHOOD_ID 3
-#define VLASOV_SOLVER_DENSITY_NEIGHBORHOOD_ID 4
-// When classifying sysboundaries, all 26 nearest neighbors are included,
-#define SYSBOUNDARIES_NEIGHBORHOOD_ID 5
-#define SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID 6
-#define NEAREST_NEIGHBORHOOD_ID 7
-
-
-
-
-
 
 #endif
 
