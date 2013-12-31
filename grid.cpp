@@ -563,8 +563,9 @@ void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
    
    std::vector<neigh_t> vlasov_neighborhood;
    int x=0;
-   for (int z = -vlasov_stencil_width; z <= vlasov_stencil_width; z++) {
-     for (int y = -vlasov_stencil_width; y <= vlasov_stencil_width; y++) {
+   int z,y;
+   for (z = -vlasov_stencil_width; z <= vlasov_stencil_width; z++) {
+     for (y = -vlasov_stencil_width; y <= vlasov_stencil_width; y++) {
        if (x == 0 && y == 0 && z == 0) {
 	 continue;
        }
@@ -573,9 +574,9 @@ void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
      }
    }
    
-   int y=0;
-   int z=0;
-   for (int x = -vlasov_stencil_width; x <= vlasov_stencil_width; x++) {
+   y=0;
+   z=0;
+   for (x = -vlasov_stencil_width; x <= vlasov_stencil_width; x++) {
      if (x == 0 && y == 0 && z == 0) {
        continue;
      }
@@ -584,6 +585,37 @@ void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
    }
 
    if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_NEIGHBORHOOD_ID, vlasov_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+                << " Couldn't set vlasov solver neighborhood"
+                << std::endl;
+      abort();
+   }
+
+
+   const uint vlasov_source_stencil_width = 1;
+   std::vector<neigh_t> vlasov_source_neighborhood;
+   x=0;
+   for (z = -vlasov_source_stencil_width; z <= vlasov_source_stencil_width; z++) {
+     for (y = -vlasov_source_stencil_width; y <= vlasov_source_stencil_width; y++) {
+       if (x == 0 && y == 0 && z == 0) {
+	 continue;
+       }
+       neigh_t offsets = {{x, y, z}};
+       vlasov_source_neighborhood.push_back(offsets);
+     }
+   }
+   
+   y=0;
+   z=0;
+   for (x = -vlasov_source_stencil_width; x <= vlasov_source_stencil_width; x++) {
+     if (x == 0 && y == 0 && z == 0) {
+       continue;
+     }
+     neigh_t offsets = {{x, y, z}};
+     vlasov_source_neighborhood.push_back(offsets);
+   }
+
+   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_SOURCE_NEIGHBORHOOD_ID, vlasov_source_neighborhood)) {
       std::cerr << __FILE__ << ":" << __LINE__
                 << " Couldn't set vlasov solver neighborhood"
                 << std::endl;

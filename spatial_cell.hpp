@@ -661,7 +661,6 @@ namespace velocity_neighbor {
          block_fx(other.block_fx),
          null_block_data(other.null_block_data),
          null_block_fx(other.null_block_fx),
-         neighbors(other.neighbors),
          procBoundaryFlag(other.procBoundaryFlag),
          sysBoundaryFlag(other.sysBoundaryFlag),
          sysBoundaryLayer(other.sysBoundaryLayer)
@@ -1788,10 +1787,6 @@ namespace velocity_neighbor {
       
       // Derivatives of BVOL needed by the acceleration. Separate array because it does not need to be communicated.
       Real derivativesBVOL[bvolderivatives::N_BVOL_DERIVATIVES];
-      
-      //neighbor id's. Kept up to date in solvers, not by the spatial_cell class
-      std::vector<uint64_t> neighbors;
-     
       
       unsigned int procBoundaryFlag; /*!< bitfield usied in leveque vlasov solver to see if a neighbor exists, or if it is outside the system. TODO: bad/missleading name */
       uint sysBoundaryFlag;          /*!< What type of system boundary does the cell belong to. Enumerated in the sysboundarytype namespace's enum */

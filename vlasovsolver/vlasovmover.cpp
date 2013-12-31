@@ -76,7 +76,7 @@ CellID getNeighbourID(
    }
 }
 
-
+/*
 bool initialize_cell_neighbors(dccrg::Dccrg<SpatialCell>& mpiGrid) { 
    
    // Exchange sysBoundaryFlags between neighbouring processes, 
@@ -133,12 +133,12 @@ bool initialize_cell_neighbors(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       
       for(unsigned int i=0;i<SC->neighbors.size();i++){
          if (SC->neighbors[i] == INVALID_CELLID) {
-      // Offsets to missing 
-      // neighbours are replaced by offsets to this cell so that cells on the 
-      // boundary of the simulation domain (="ghost cells") can be propagated.
-      // This allows boundary values (set by user) to propagate into simulation 
-      // domain.
-            SC->neighbors[i]=cellID;
+	   // Offsets to missing 
+	   // neighbours are replaced by offsets to this cell so that cells on the 
+	   // boundary of the simulation domain (="ghost cells") can be propagated.
+	   // This allows boundary values (set by user) to propagate into simulation 
+	   // domain.
+	   SC->neighbors[i]=cellID;
          }
          else
 	   SC->procBoundaryFlag = SC->procBoundaryFlag | (1 << i);
@@ -146,69 +146,120 @@ bool initialize_cell_neighbors(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    }
    return true;
 }
+*/
 
 void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
 				 creal dt) {
   typedef Parameters P;
   
-  //mpiGrid[cellID]->set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
   
-  //  const vector<CellID> remoteCells
-  //     = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_FLUXES_NEIGHBORHOOD_ID);
+  /*start by doing all transfers in a blocking fashion (communication stage can be optimized separately) */
+  SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+  mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);  
+  
 
-  /*compute max timestep, and reset data arrays*/
-   const vector<CellID> cells = mpiGrid.get_cells();
-#pragma omp  parallel for
-  for (size_t c=0; c<cells.size(); ++c) {
-    const CellID cellID = cells[c];
+
+  
+  const vector<CellID> local_cells = mpiGrid.get_cells();
+  const vector<CellID> remote_translated_cells = 
+    mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+  vector<CellID> propagated_cells; /*cells has all cells that we want to translate*/
+  propagated_cells.reserve(local_cells.size() + remote_translated_cells.size() ); //reserve space
+  /*add local cells */
+  for(uint cell_i = 0;cell_i< local_cells.size();cell_i++) {
+    const CellID cellID = local_cells[cell_i];
     SpatialCell* SC=mpiGrid[cellID];
     if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
        (SC->sysBoundaryLayer != 1  &&
 	SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)
        ) continue;
+    propagated_cells.push_back(cellID);
+  }
 
+  /*add remote cells*/
+  for(uint cell_i = 0;cell_i< remote_translated_cells.size();cell_i++) {
+    const CellID cellID = remote_translated_cells[cell_i];
+    SpatialCell* SC=mpiGrid[cellID];
+    if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+       (SC->sysBoundaryLayer != 1  &&
+	SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)
+       ) continue;
+    propagated_cells.push_back(cellID);
+  }
+  
+  /*first move all values from data to fx, and compute maximum timestep for this solver*/
+  phiprof::start("move-data");
+#pragma omp  parallel for
+  for (size_t c=0; c<propagated_cells.size(); ++c) {
+    SpatialCell* SC=mpiGrid[propagated_cells[c]];
      const Real dx=SC->parameters[CellParams::DX];
      const Real dy=SC->parameters[CellParams::DY];
      const Real dz=SC->parameters[CellParams::DZ];
-     
      //Reset limit from spatial space
      SC->parameters[CellParams::MAXRDT]=numeric_limits<Real>::max();
+     
+     for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+       unsigned int block = SC->velocity_block_list[block_i];
+       Velocity_Block* block_ptr = SC->at(block);
+       const Real* const blockParams = block_ptr->parameters;
+       
+       //mark that this block is uninitialized
+       for(unsigned int cell_i=0;cell_i<WID3;cell_i++) {
+	 block_ptr->fx[cell_i] = block_ptr->data[cell_i];
+	 block_ptr->data[cell_i] = 0.0;
+       }
+       
+       //compute maximum dt. In separate loop here, as the propagation
+       //loops are parallelized over blocks, which would force us to
+       //add critical regions.
+       //loop over max/min velocity cells in block
+       //Even the SL has a CFL condition, since it is written only for the case where we have a stencil supporting max translation of one cell 
+       for (unsigned int i=0; i<WID;i+=WID-1) {
+	 const Real Vx = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
+	 const Real Vy = blockParams[BlockParams::VYCRD] + (i+HALF)*blockParams[BlockParams::DVY];
+	 const Real Vz = blockParams[BlockParams::VZCRD] + (i+HALF)*blockParams[BlockParams::DVZ];
+	 
+	 if(fabs(Vx)!=ZERO) SC->parameters[CellParams::MAXRDT]=min(dx/fabs(Vx),SC->parameters[CellParams::MAXRDT]);
+	 if(fabs(Vy)!=ZERO) SC->parameters[CellParams::MAXRDT]=min(dy/fabs(Vy),SC->parameters[CellParams::MAXRDT]);
+	 if(fabs(Vz)!=ZERO) SC->parameters[CellParams::MAXRDT]=min(dz/fabs(Vz),SC->parameters[CellParams::MAXRDT]);
+       }
+     }
+  }
+  phiprof::stop("move-data");
 
-      for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
-         unsigned int block = SC->velocity_block_list[block_i];
-         Velocity_Block* block_ptr = SC->at(block);
-         const Real* const blockParams = block_ptr->parameters;
-	 
-         //mark that this block is uninitialized
-         for(unsigned int cell_i=0;cell_i<WID3;cell_i++) {
-	   block_ptr->fx[cell_i] = block_ptr->data[cell_i];
-	   block_ptr->data[cell_i] = 0.0;
-	 }
-	 
-         //compute maximum dt. In separate loop here, as the propagation
-         //loops are parallelized over blocks, which would force us to
-         //add critical regions.
-         //loop over max/min velocity cells in block
-	 //Even the SL has a CFL condition, since it is written only for the case where we have a stencil supporting max translation of one cell 
-         for (unsigned int i=0; i<WID;i+=WID-1) {
-            const Real Vx = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
-            const Real Vy = blockParams[BlockParams::VYCRD] + (i+HALF)*blockParams[BlockParams::DVY];
-            const Real Vz = blockParams[BlockParams::VZCRD] + (i+HALF)*blockParams[BlockParams::DVZ];
-	    
-            if(fabs(Vx)!=ZERO) SC->parameters[CellParams::MAXRDT]=min(dx/fabs(Vx),SC->parameters[CellParams::MAXRDT]);
-            if(fabs(Vy)!=ZERO) SC->parameters[CellParams::MAXRDT]=min(dy/fabs(Vy),SC->parameters[CellParams::MAXRDT]);
-            if(fabs(Vz)!=ZERO) SC->parameters[CellParams::MAXRDT]=min(dz/fabs(Vz),SC->parameters[CellParams::MAXRDT]);
-         }
-         
+  /*propagate*/
+  phiprof::start("semilag-trans");
+  for (size_t c=0; c<propagated_cells.size(); ++c) {
+    SpatialCell* SC=mpiGrid[propagated_cells[c]];
+
+
+  }
+  phiprof::stop("semilag-trans");
+
+   phiprof::start("Compute moments");
+#pragma omp parallel for
+   for (size_t c=0; c<local_cells.size(); ++c) {
+      const CellID cellID = local_cells[c];
+      //compute moments after acceleration
+      mpiGrid[cellID]->parameters[CellParams::RHO_V  ] = 0.0;
+      mpiGrid[cellID]->parameters[CellParams::RHOVX_V] = 0.0;
+      mpiGrid[cellID]->parameters[CellParams::RHOVY_V] = 0.0;
+      mpiGrid[cellID]->parameters[CellParams::RHOVZ_V] = 0.0;
+
+      for(unsigned int block_i=0; block_i< mpiGrid[cellID]->number_of_blocks;block_i++){
+         unsigned int block = mpiGrid[cellID]->velocity_block_list[block_i];         
+         cpu_calcVelocityMoments(mpiGrid[cellID],block,CellParams::RHO_R,CellParams::RHOVX_R,CellParams::RHOVY_R,CellParams::RHOVZ_R);   //set moments after translation
       }
    }
-   
-
+   phiprof::stop("Compute moments");
+  
 }
 
-/*--------------------------------------------------
-Acceleration (velocity space propagation)
---------------------------------------------------*/
+/*
+  --------------------------------------------------
+  Acceleration (velocity space propagation)
+  --------------------------------------------------
+*/
 
 
 void calculateAcceleration(
@@ -228,10 +279,10 @@ void calculateAcceleration(
    for (size_t c=0; c<cells.size(); ++c) {
       SpatialCell* SC = mpiGrid[cells[c]];
       //disregard boundary cells
-      //do not integrate cells with no blocks    (well, do not computes in practice)
+      //do not integrate cells with no blocks  (well, do not computes in practice)
       if(SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY &&
          SC->number_of_blocks != 0) {
-         propagatedCells.push_back(cells[c]);
+	propagatedCells.push_back(cells[c]);
       }
    }
    

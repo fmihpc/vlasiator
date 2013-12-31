@@ -13,9 +13,10 @@
 
 #define FIELD_SOLVER_NEIGHBORHOOD_ID 1
 #define VLASOV_SOLVER_NEIGHBORHOOD_ID 2
-#define SYSBOUNDARIES_NEIGHBORHOOD_ID 3 // When classifying sysboundaries, all 26 nearest neighbors are included,
-#define SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID 4
-#define NEAREST_NEIGHBORHOOD_ID 5
+#define VLASOV_SOLVER_SOURCE_NEIGHBORHOOD_ID 3
+#define SYSBOUNDARIES_NEIGHBORHOOD_ID 4 // When classifying sysboundaries, all 26 nearest neighbors are included,
+#define SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID 5
+#define NEAREST_NEIGHBORHOOD_ID 6
 
 
 
