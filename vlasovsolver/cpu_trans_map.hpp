@@ -1,12 +1,12 @@
 
 /*
 This file is part of Vlasiator.
-Copyright 2013, 2014 Finnish Meteorological Institute
+Copyright 2012 Finnish Meteorological Institute
 
 */
 
-#ifndef CPU_ACC_MAP_H
-#define CPU_ACC_MAP_H
+#ifndef CPU_TRANS_MAP_H
+#define CPU_TRANS_MAP_H
 
 #include  "vec4.h"
 #include "algorithm"
@@ -15,26 +15,26 @@ Copyright 2013, 2014 Finnish Meteorological Institute
 #include "common.h"
 #include "spatial_cell.hpp"
 #include "cpu_1d_interpolations.hpp"
-#ifdef ACC_SEMILAG_PCONSTM
+
+#ifdef TRANS_SEMILAG_PCONSTM
 const int STENCIL_WIDTH=0;
 #endif
-#ifdef ACC_SEMILAG_PLM
+#ifdef TRANS_SEMILAG_PLM
 const int STENCIL_WIDTH=1;
 #endif
-#if ACC_SEMILAG_PPM
+#if TRANS_SEMILAG_PPM
 const int STENCIL_WIDTH=2;
 #endif
-
 
 
 
 using namespace std;
 using namespace spatial_cell;
 
-
-// indices in padded z block
-#define i_pblock(i,j,k) ( ((k) + STENCIL_WIDTH ) * WID + (j) * WID * (WID + 2* STENCIL_WIDTH) + (i) )
-#define i_pblockv(j,k) ( ((k) + STENCIL_WIDTH ) * WID + (j) * WID * (WID + 2* STENCIL_WIDTH) )
+// indices in padded block. b_k is the block index in z direction in ordinary space, i,j,k are the cell ids inside on block. Data order i,b_k,j,k.
+// b_k range is  -STENCIL_WIDTH -  + STENCil_WIDTH, so in total 1 + 2 * STENCIL_WIDTH values 
+#define i_pblock(b_k,i,j,k) ( (i) + ((b_k) + STENCIL_WIDTH) * WID + (j) * WID * (1 + 2 * STENCIL_WIDTH) + (k) * WID2 * (1 + 2 * STENCIL_WIDTH))
+#define i_pblockv(b_k,j,k) ( ((b_k) + STENCIL_WIDTH) * WID + (j) * WID * (1 + 2 * STENCIL_WIDTH) + (k) * WID2 * (1 + 2 * STENCIL_WIDTH))
 
 
 /*!
@@ -50,8 +50,9 @@ For dimension=1 data copy  we have rotated data
   k -> j
 For dimension=0 data copy 
 */
-inline void copy_block_data(Velocity_Block *block,Real * __restrict__ values, int dimension){
-    Velocity_Block *nbrBlock;
+inline void copy_trans_block_data(SpatialCell* spatial_cell, uint blockID,Real * __restrict__ values, int dimension){
+  Velocity_Block *block=spatial_cell->at(blockID);
+  Velocity_Block *nbrBlock;
     uint cell_indices_to_id[3];
     uint block_P1,block_M1;
     switch (dimension){
@@ -153,23 +154,22 @@ inline void copy_block_data(Velocity_Block *block,Real * __restrict__ values, in
 /* 
    Here we map from the current time step grid, to a target grid which
    is the lagrangian departure grid (so th grid at timestep +dt,
-   tracked backwards by -dt)
+   tracked backwards by -dt). This is done in ordinary space in the translation step
 */
 
-bool map_1d(SpatialCell* spatial_cell,   
-	    Real intersection, Real intersection_di, Real intersection_dj,Real intersection_dk,
-	    uint dimension ) {
+bool map_trans_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,uint dimension ) {
+
+  if(dimension>2)
+    return false; //not possible
 
   /*values used with an stencil in 1 dimension, initialized to 0 */  
-  Real values[WID*WID*(WID+2*STENCIL_WIDTH)]={};
-  // Make a copy of the blocklist, the blocklist will change during this algorithm
-  uint*  blocks=new uint[spatial_cell->number_of_blocks];
-  const uint nblocks=spatial_cell->number_of_blocks;
+  Real values[WID3*(1+2*STENCIL_WIDTH)];
+  
   /* 
      Move densities from data to fx and clear data, to prepare for mapping
      Also copy blocklist since the velocity block list in spatial cell changes when we add values
   */
-  for (unsigned int block_i = 0; block_i < nblocks; block_i++) {
+  for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
     const unsigned int block = spatial_cell->velocity_block_list[block_i];
     blocks[block_i] = block; 
     Velocity_Block * __restrict__ block_ptr = spatial_cell->at(block);
@@ -181,8 +181,6 @@ bool map_1d(SpatialCell* spatial_cell,
       data[cell] = 0.0;
     }
   }
-  if(dimension>2)
-    return false; //not possible
 
   
   Real dv,v_min;
