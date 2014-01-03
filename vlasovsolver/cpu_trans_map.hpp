@@ -38,30 +38,34 @@ using namespace spatial_cell;
 
 
 
-CellID getNeighbourID(
-   const dccrg::Dccrg<SpatialCell>& mpiGrid,
-   const CellID& cellID,
-   const uchar& i,
-   const uchar& j,
-   const uchar& k ) {
-  const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of(cellID, int(i) - 2, int(j) - 2, int(k) - 2);
+Velocity_Block * getSpatialNeighbourBlock(
+			 const dccrg::Dccrg<SpatialCell>& mpiGrid,
+			 const CellID& cellID,
+			 const uint& blockID,
+			 const int spatial_di,
+			 const int spatial_dj,
+			 const int spatial_dk ) {
+  
+  const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of(cellID,spatial_di,spatial_dj,spatial_dk);
   if (neighbors.size() == 0) {
     std::cerr << __FILE__ << ":" << __LINE__
 	      << " No neighbor for cell " << cellID
 	      << " at offsets " << int(i) - 2 << ", " << int(j) - 2 << ", " << int(k) - 2
-                 << std::endl;
+	      << std::endl;
     abort();
   }
-  // TODO support spatial refinement
+  
   if( neighbors[0] == INVALID_CELLID  ||
       mpiGrid[neighbors[0]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
       (mpiGrid[neighbors[0]]->sysBoundaryLayer != 1  &&
        mpiGrid[neighbors[0]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )
       ) {
-     return INVALID_CELLID;
+    return NULL; //use whatever ngbr condition we need to do in copy function
   } 
   else {
-    return neighbors[0];
+    const CellID ngbrCellID=neighbors[0]; //no AMR
+    SpatialCell* spatial_cell = mpiGrid[ngbrCellID];
+    return spatial_cell->at(blockID);
   }
 }
 
@@ -78,107 +82,85 @@ For dimension=1 data copy  we have rotated data
   k -> j
 For dimension=0 data copy 
 */
-inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,uint dimension ) {
+inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,const uint blockID,uint dimension ) {
+  SpatialCell* spatial_cell = mpiGrid[cellID];
+  Velocity_Block *blocks[5];
+  blocks[2] = spatial_cell->at(blockID);
+  uint cell_indices_to_id[3];
+  Velocity_Block * block_p,block_m,block_pp,block_mm;
+  switch (dimension){
+  case 0:
+    /* i and k coordinates have been swapped*/
+    cell_indices_to_id[0]=WID2;
+    cell_indices_to_id[1]=WID;
+    cell_indices_to_id[2]=1;
+    blocks[0] = getSpatialNeighbourBlock(mpiGrid, cellID, blockID, -2, 0, 0);
+    blocks[1] = getSpatialNeighbourBlock(mpiGrid, cellID, blockID, -1, 0, 0);
+    blocks[3] = getSpatialNeighbourBlock(mpiGrid, cellID, blockID, 1, 0, 0);
+    blocks[4] = getSpatialNeighbourBlock(mpiGrid, cellID, blockID, 2, 0, 0);
+    break;
+  case 1:
+    /* j and k coordinates have been swapped*/
+    cell_indices_to_id[0]=1;
+    cell_indices_to_id[1]=WID2;
+    cell_indices_to_id[2]=WID;
+    blocks[0] = getSpatialNeighbourBlock(mpiGrid, cellID, blockID, 0, -2, 0);
+    blocks[1] = getSpatialNeighbourBlock(mpiGrid, cellID, blockID, 0, -1, 0);
+    blocks[3] = getSpatialNeighbourBlock(mpiGrid, cellID, blockID, 0, 1, 0);
+    blocks[4] = getSpatialNeighbourBlock(mpiGrid, cellID, blockID, 0, 2, 0);
+    break;
+  case 2:
+    cell_indices_to_id[0]=1;
+    cell_indices_to_id[1]=WID;
+    cell_indices_to_id[2]=WID2;
+    blocks[0] = getSpatialNeighbourBlock(mpiGrid, cellID, blockID, 0, 0, -2);
+    blocks[1] = getSpatialNeighbourBlock(mpiGrid, cellID, blockID, 0, 0, -1);
+    blocks[3] = getSpatialNeighbourBlock(mpiGrid, cellID, blockID, 0, 0, 1);
+    blocks[4] = getSpatialNeighbourBlock(mpiGrid, cellID, blockID, 0, 0, 2);
+    break;
+  }
+  
 
-  Velocity_Block *block=spatial_cell->at(blockID);
-  Velocity_Block *nbrBlock;
-    uint cell_indices_to_id[3];
-    uint block_P1,block_M1;
-    switch (dimension){
-        case 0:
-           /* i and k coordinates have been swapped*/
-           cell_indices_to_id[0]=WID2;
-           cell_indices_to_id[1]=WID;
-           cell_indices_to_id[2]=1;
-           block_P1=velocity_neighbor::XP1_YCC_ZCC;
-           block_M1=velocity_neighbor::XM1_YCC_ZCC;
-           break;
-        case 1:
-           /* i and k coordinates have been swapped*/
-           cell_indices_to_id[0]=1;
-           cell_indices_to_id[1]=WID2;
-           cell_indices_to_id[2]=WID;
-           block_P1=velocity_neighbor::XCC_YP1_ZCC;
-           block_M1=velocity_neighbor::XCC_YM1_ZCC;
-           break;
-        case 2:
-           cell_indices_to_id[0]=1;
-           cell_indices_to_id[1]=WID;
-           cell_indices_to_id[2]=WID2;
-           block_P1=velocity_neighbor::XCC_YCC_ZP1;
-           block_M1=velocity_neighbor::XCC_YCC_ZM1;
-           break;
-    }
-    
-    // Construct values
-    // Copy averages from -1 neighbour if it exists (if not, array is initialized to zero)
-    nbrBlock = block->neighbors[block_M1];
-    if ( nbrBlock != NULL) {
-       Real * __restrict__ ngbr_fx = nbrBlock->fx;
-       for (int k=-STENCIL_WIDTH; k<0; ++k) {
-          for (uint j=0; j<WID; ++j) {
-             for (uint i=0; i<WID; ++i) {
-                const uint cell =
-                   i * cell_indices_to_id[0] +
-                   j * cell_indices_to_id[1] +
-                   (k + WID) * cell_indices_to_id[2];
-                values[i_pblock(i,j,k)] = ngbr_fx[cell];
-             }
-          }
-       }
-    }
-    else {
-       for (int k=-STENCIL_WIDTH; k<0; ++k) {
-          for (uint j=0; j<WID; ++j) {
-             for (uint i=0; i<WID; ++i) {
-	       values[i_pblock(i,j,k)] = 0.0;
-             }
-          }
-       }
-    }
+  
 
+  // Copy volume averages of this block:
+  for (uint b=0; b<5; ++b) {
+    Real * __restrict__ fx;
 
-    Real * __restrict__ fx = block->fx;
-    // Copy volume averages of this block:
+    /*check if ngbr blocks exist, and use values from closest neighbor if they do not exist.*/
+    if ( b == 0 && blocks[b] == NULL && blocks[b + 1] == NULL )
+      fx = blocks[2]->fx;
+
+    if ( b == 0 && blocks[b] == NULL && blocks[b + 1] != NULL )
+      fx = blocks[1]->fx;
+
+    if ( b == 1 && blocks[b] == NULL )
+      fx = blocks[2]->fx;
+
+    if ( b == 3 && blocks[b] == NULL )
+      fx = blocks[2]->fx;
+
+    if ( b == 4 && blocks[b] == NULL && blocks[b - 1] == NULL )
+      fx = blocks[2]->fx;
+
+    if ( b == 4 && blocks[b] == NULL && blocks[b - 1] != NULL )
+      fx = blocks[3]->fx;
+
     for (uint k=0; k<WID; ++k) {
-       for (uint j=0; j<WID; ++j) {
-          for (uint i=0; i<WID; ++i) {
-             const uint cell =
-                i * cell_indices_to_id[0] +
-                j * cell_indices_to_id[1] +
-                k * cell_indices_to_id[2];
-             values[i_pblock(i,j,k)] = fx[cell];
-          }
-       }
-    }
-    
-    // Copy averages from +1 neighbour if it exists (if not, array is initialized to zero)
-    nbrBlock = block->neighbors[block_P1];
-    if ( nbrBlock != NULL) {
-       Real * __restrict__ ngbr_fx = nbrBlock->fx;
-       for (uint k=WID; k<WID+STENCIL_WIDTH; ++k) {             
-          for (uint j=0; j<WID; ++j) {
-             for (uint i=0; i<WID; ++i) {
-                const uint cell =
-                   i * cell_indices_to_id[0] +
-                   j * cell_indices_to_id[1] +
-                   (k-WID) * cell_indices_to_id[2];
-                values[i_pblock(i,j,k)] = ngbr_fx[cell];
-             }
-          }
-       }
-    }
-    else {
-      //no neighbor, set neighbor values to zero
-      for (uint k=WID; k<WID+STENCIL_WIDTH; ++k) {             
-	for (uint j=0; j<WID; ++j) {
-	  for (uint i=0; i<WID; ++i) {
-	    values[i_pblock(i,j,k)] = 0.0;
-	  }
+      for (uint j=0; j<WID; ++j) {
+	for (uint i=0; i<WID; ++i) {
+	  const uint cell =
+	    i * cell_indices_to_id[0] +
+	    j * cell_indices_to_id[1] +
+	    k * cell_indices_to_id[2];
+	  /*copy data, when reading data from fx we swap dimensions using cell_indices_to_id*/
+	  values[i_pblock(i,j,k)] = fx[cell];
 	}
       }
     }
+  }
 }
+
 
 /* 
    Here we map from the current time step grid, to a target grid which
@@ -235,7 +217,7 @@ bool map_trans_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,u
     const unsigned int block = spatial_cell->velocity_block_list[block_i];
     Velocity_Block * __restrict__ block_ptr = spatial_cell->at(block);
     
-    copy_block_data(block_ptr,values,dimension); 
+    copy_block_data(mpiGrid,cellID,block,values,dimension); 
     velocity_block_indices_t block_indices=SpatialCell::get_velocity_block_indices(block);
     
     
