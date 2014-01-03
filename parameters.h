@@ -60,11 +60,11 @@ struct Parameters {
    static Real fieldSolverMinCFL;     /*!< The minimum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
    static Real fieldSolverMaxCFL;     /*!< The maximum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
 
-   static luint tstep_min;           /*!< Timestep when simulation starts, needed for restarts.*/
-   static luint tstep_max;           /*!< Maximum timestep. */
-   static luint tstep;               /*!< The number of the current timestep. 0=initial state. */
+   static uint tstep_min;           /*!< Timestep when simulation starts, needed for restarts.*/
+   static uint tstep_max;           /*!< Maximum timestep. */
+   static uint tstep;               /*!< The number of the current timestep. 0=initial state. */
 
-   static luint diagnosticInterval;
+   static uint diagnosticInterval;
    static std::vector<std::string> systemWriteName; /*!< Names for the different classes of grid output*/
    static std::vector<Real> systemWriteTimeInterval;/*!< Interval in simusecond for output for each class*/
    static std::vector<int> systemWriteDistributionWriteStride; /*!< Every this many cells write out their velocity space in each class. */

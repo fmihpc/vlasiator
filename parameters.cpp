@@ -63,10 +63,10 @@ Real P::fieldSolverMaxCFL = NAN;
 Real P::fieldSolverMinCFL = NAN;
 
 
-luint P::tstep = 0;
-luint P::tstep_min = 0;
-luint P::tstep_max = 0;
-luint P::diagnosticInterval = numeric_limits<uint>::max();
+uint P::tstep = 0;
+uint P::tstep_min = 0;
+uint P::tstep_max = 0;
+uint P::diagnosticInterval = numeric_limits<uint>::max();
 bool P::writeInitialState = true;
 
 std::vector<std::string> P::systemWriteName; 
