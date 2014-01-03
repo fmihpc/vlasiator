@@ -37,6 +37,34 @@ using namespace spatial_cell;
 #define i_pblockv(b_k,j,k) ( ((b_k) + STENCIL_WIDTH) * WID + (j) * WID * (1 + 2 * STENCIL_WIDTH) + (k) * WID2 * (1 + 2 * STENCIL_WIDTH))
 
 
+
+CellID getNeighbourID(
+   const dccrg::Dccrg<SpatialCell>& mpiGrid,
+   const CellID& cellID,
+   const uchar& i,
+   const uchar& j,
+   const uchar& k ) {
+  const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of(cellID, int(i) - 2, int(j) - 2, int(k) - 2);
+  if (neighbors.size() == 0) {
+    std::cerr << __FILE__ << ":" << __LINE__
+	      << " No neighbor for cell " << cellID
+	      << " at offsets " << int(i) - 2 << ", " << int(j) - 2 << ", " << int(k) - 2
+                 << std::endl;
+    abort();
+  }
+  // TODO support spatial refinement
+  if( neighbors[0] == INVALID_CELLID  ||
+      mpiGrid[neighbors[0]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+      (mpiGrid[neighbors[0]]->sysBoundaryLayer != 1  &&
+       mpiGrid[neighbors[0]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )
+      ) {
+     return INVALID_CELLID;
+  } 
+  else {
+    return neighbors[0];
+  }
+}
+
 /*!
   value array should be initialized to zero
   
@@ -50,7 +78,8 @@ For dimension=1 data copy  we have rotated data
   k -> j
 For dimension=0 data copy 
 */
-inline void copy_trans_block_data(SpatialCell* spatial_cell, uint blockID,Real * __restrict__ values, int dimension){
+inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,uint dimension ) {
+
   Velocity_Block *block=spatial_cell->at(blockID);
   Velocity_Block *nbrBlock;
     uint cell_indices_to_id[3];
@@ -158,99 +187,60 @@ inline void copy_trans_block_data(SpatialCell* spatial_cell, uint blockID,Real *
 */
 
 bool map_trans_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,uint dimension ) {
+  /*values used with an stencil in 1 dimension, initialized to 0. Contains a block, and its spatial neighbours in one dimension */  
+  Real values[WID3*(1+2*STENCIL_WIDTH)];
+  Real dz,z_min;
+  SpatialCell* spatial_cell = mpiGrid[cellID];
 
   if(dimension>2)
     return false; //not possible
 
-  /*values used with an stencil in 1 dimension, initialized to 0 */  
-  Real values[WID3*(1+2*STENCIL_WIDTH)];
+  /*set cell size in dimension direction*/  
+  switch (dimension){
+  case 0:
+    dz = P::dx_ini;
+    z_min = P::xmin;
+    break;
+  case 1:
+    dz = P::dy_ini;
+    z_min = P::ymin;
+    break;
+  case 2:
+    dz = P::dz_ini;
+    z_min = P::zmin;
+    break;
+  }
+  const Real i_dz=1.0/dz;
+
   
   /* 
      Move densities from data to fx and clear data, to prepare for mapping
-     Also copy blocklist since the velocity block list in spatial cell changes when we add values
   */
   for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
     const unsigned int block = spatial_cell->velocity_block_list[block_i];
-    blocks[block_i] = block; 
     Velocity_Block * __restrict__ block_ptr = spatial_cell->at(block);
     Real * __restrict__ fx = block_ptr->fx;
     Real * __restrict__ data = block_ptr->data;
-
+    
     for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
       fx[cell] = data[cell];
       data[cell] = 0.0;
     }
   }
-
   
-  Real dv,v_min;
-  Real is_temp;
-  uint block_indices_to_id[3]; /*< used when computing id of target block */
-  uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
-  switch (dimension){
-  case 0:
-    /* i and k coordinates have been swapped*/
-    /*set cell size in dimension direction*/
-    dv=SpatialCell::cell_dvx; 
-    v_min=SpatialCell::vx_min; 
-    /*swap intersection i and k coordinates*/
-    is_temp=intersection_di;
-    intersection_di=intersection_dk;
-    intersection_dk=is_temp;
-    /*set values in array that is used to transfer blockindices to id using a dot product*/
-    block_indices_to_id[0]=SpatialCell::vx_length * SpatialCell::vy_length;
-    block_indices_to_id[1]=SpatialCell::vx_length;
-    block_indices_to_id[2]=1;
-    /*set values in array that is used to transfer blockindices to id using a dot product*/
-    cell_indices_to_id[0]=WID2;
-    cell_indices_to_id[1]=WID;
-    cell_indices_to_id[2]=1;
-    break;
-  case 1:
-    /* j and k coordinates have been swapped*/
-    /*set cell size in dimension direction*/
-    dv=SpatialCell::cell_dvy;
-    v_min=SpatialCell::vy_min; 
-    /*swap intersection j and k coordinates*/
-    is_temp=intersection_dj;
-    intersection_dj=intersection_dk;
-    intersection_dk=is_temp;
-    /*set values in array that is used to transfer blockindices to id using a dot product*/
-    block_indices_to_id[0]=1;
-    block_indices_to_id[1]=SpatialCell::vx_length * SpatialCell::vy_length;
-    block_indices_to_id[2]=SpatialCell::vx_length;
-    /*set values in array that is used to transfer blockindices to id using a dot product*/
-    cell_indices_to_id[0]=1;
-    cell_indices_to_id[1]=WID2;
-    cell_indices_to_id[2]=WID;
-    break;
-  case 2:
-    /*set cell size in dimension direction*/
-    dv=SpatialCell::cell_dvz;
-    v_min=SpatialCell::vz_min; 
-    /*set values in array that is used to transfer blockindices to id using a dot product*/
-    block_indices_to_id[0]=1;
-    block_indices_to_id[1]=SpatialCell::vx_length;
-    block_indices_to_id[2]=SpatialCell::vx_length * SpatialCell::vy_length;
-    /*set values in array that is used to transfer blockindices to id using a dot product*/
-    cell_indices_to_id[0]=1;
-    cell_indices_to_id[1]=WID;
-    cell_indices_to_id[2]=WID2;
-    break;
-  }
-  const Real i_dv=1.0/dv;
-
-
-  /*these two temporary variables are used to optimize access to target cells*/
-  uint previous_target_block = error_velocity_block;
-  Real *target_block_data;
-
   
-  for (unsigned int block_i = 0; block_i < nblocks; block_i++) {
-    Velocity_Block *block=spatial_cell->at(blocks[block_i]);
-    velocity_block_indices_t block_indices=SpatialCell::get_velocity_block_indices(blocks[block_i]);
+  
+
+  for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
+    const unsigned int block = spatial_cell->velocity_block_list[block_i];
+    Velocity_Block * __restrict__ block_ptr = spatial_cell->at(block);
+    
+    copy_block_data(block_ptr,values,dimension); 
+    velocity_block_indices_t block_indices=SpatialCell::get_velocity_block_indices(block);
+    
+    
     uint temp;
-    //Switch block indices according to dimensions, the alogirthm has
+    //Switch block indices according to dimensions, the alogrithm has
     //been written for integrating along z.
     switch (dimension){
         case 0:
@@ -268,7 +258,7 @@ bool map_trans_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,u
         case 2:
            break;
     }
-    copy_block_data(block,values,dimension); 
+
 
     /*i,j,k are now relative to the order in which we copied data to the values array. 
       After this point in the k,j,i loops there should be no branches based on dimensions
