@@ -125,7 +125,8 @@ For dimension=1 data copy  we have rotated data
   k -> j
 For dimension=0 data copy 
 */
-inline void copy_block_data(Velocity_Block *block,Real * __restrict__ values, int dimension){
+inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __restrict__ values, int dimension){
+    Velocity_Block *block=spatial_cell->at(blockID);
     Velocity_Block *nbrBlock;
     uint cell_indices_to_id[3];
     uint block_P1,block_M1;
@@ -158,9 +159,9 @@ inline void copy_block_data(Velocity_Block *block,Real * __restrict__ values, in
     // Construct values
     // Copy averages from -1 neighbour if it exists (if not, array is initialized to zero)
     nbrBlock = block->neighbors[block_M1];
-    if ( nbrBlock != NULL) {
-       Real * __restrict__ ngbr_fx = nbrBlock->fx;
-       for (int k=-STENCIL_WIDTH; k<0; ++k) {
+    if ( !spatial_cell->is_null_block(nbrBlock)) {
+      Real * __restrict__ ngbr_fx = nbrBlock->fx;
+      for (int k=-STENCIL_WIDTH; k<0; ++k) {
           for (uint j=0; j<WID; ++j) {
              for (uint i=0; i<WID; ++i) {
                 const uint cell =
@@ -199,7 +200,7 @@ inline void copy_block_data(Velocity_Block *block,Real * __restrict__ values, in
     
     // Copy averages from +1 neighbour if it exists (if not, array is initialized to zero)
     nbrBlock = block->neighbors[block_P1];
-    if ( nbrBlock != NULL) {
+    if ( !spatial_cell->is_null_block(nbrBlock)) {
        Real * __restrict__ ngbr_fx = nbrBlock->fx;
        for (uint k=WID; k<WID+STENCIL_WIDTH; ++k) {             
           for (uint j=0; j<WID; ++j) {
@@ -324,7 +325,6 @@ bool map_1d(SpatialCell* spatial_cell,
 
   
   for (unsigned int block_i = 0; block_i < nblocks; block_i++) {
-    Velocity_Block *block=spatial_cell->at(blocks[block_i]);
     velocity_block_indices_t block_indices=SpatialCell::get_velocity_block_indices(blocks[block_i]);
     uint temp;
     //Switch block indices according to dimensions, the alogirthm has
@@ -345,7 +345,7 @@ bool map_1d(SpatialCell* spatial_cell,
         case 2:
            break;
     }
-    copy_block_data(block,values,dimension); 
+    copy_block_data(spatial_cell, blocks[block_i] ,values,dimension); 
 
     /*i,j,k are now relative to the order in which we copied data to the values array. 
       After this point in the k,j,i loops there should be no branches based on dimensions
