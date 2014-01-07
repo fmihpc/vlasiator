@@ -32,14 +32,12 @@ using namespace std;
 using namespace spatial_cell;
 
 
-// indices in padded z block
+// indices in padded z block where we buffer the block and its neighbors in one velocity dimension
 #define i_pblock(i,j,k) ( ((k) + STENCIL_WIDTH ) * WID + (j) * WID * (WID + 2* STENCIL_WIDTH) + (i) )
 #define i_pblockv(j,k) ( ((k) + STENCIL_WIDTH ) * WID + (j) * WID * (WID + 2* STENCIL_WIDTH) )
 
 
 /*!
-  value array should be initialized to zero
-  
   For dimension=0 data copy  we have rotated data
   i -> k
   j -> j
@@ -48,7 +46,7 @@ For dimension=1 data copy  we have rotated data
   i -> i
   j -> k
   k -> j
-For dimension=0 data copy 
+
 */
 inline void copy_block_data(Velocity_Block *block,Real * __restrict__ values, int dimension){
     Velocity_Block *nbrBlock;
