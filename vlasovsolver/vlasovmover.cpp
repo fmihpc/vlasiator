@@ -20,7 +20,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
 #include "cpu_moments.h"
 #include "cpu_acc_semilag.hpp"
-//#include "cpu_trans_semilag.h"
+#include "cpu_trans_map.hpp"
 
 
 
@@ -62,15 +62,9 @@ Meteorological Society 138.667 (2012): 1640-1651.
 void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
 				 creal dt) {
   typedef Parameters P;
+  int trans_time;
+
   phiprof::start("semilag-trans");
-
-  int trans_timer=phiprof::initializeTimer(name,"transfer-stencil-data","MPI");
-  phiprof::start(trans_timer);
-  /*start by doing all transfers in a blocking fashion (communication stage can be optimized separately) */
-  SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
-  mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);  
-  phiprof::stop(trans_timer);
-
   phiprof::start("compute_cell_lists");
   const vector<CellID> local_cells = mpiGrid.get_cells();
   const vector<CellID> remote_translated_cells = 
@@ -100,18 +94,37 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
   phiprof::stop("compute_cell_lists");  
 
 
-
   /*propagate*/
+  trans_timer=phiprof::initializeTimer(name,"transfer-stencil-data-z","MPI");
+  phiprof::start(trans_timer);
+  /*start by doing all transfers in a blocking fashion (communication stage can be optimized separately) */
+  SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+  mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);  
+  phiprof::stop(trans_timer);
   phiprof::start("compute-mapping-z");
   for (size_t c=0; c<propagated_cells.size(); ++c) {
     map_1d_trans(mpiGrid,propagated_cells[c], 2); /*< map along z*/
   }
   phiprof::stop("compute-mapping-z");
+
+  trans_timer=phiprof::initializeTimer(name,"transfer-stencil-data-x","MPI");
+  phiprof::start(trans_timer);
+  /*start by doing all transfers in a blocking fashion (communication stage can be optimized separately) */
+  SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+  mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);  
+  phiprof::stop(trans_timer);
   phiprof::start("compute-mapping-x");
   for (size_t c=0; c<propagated_cells.size(); ++c) {
     map_1d_trans(mpiGrid,propagated_cells[c], 0); /*< map along x*/
   }
   phiprof::stop("compute-mapping-x");
+    
+  trans_timer=phiprof::initializeTimer(name,"transfer-stencil-data-y","MPI");
+  phiprof::start(trans_timer);
+  /*start by doing all transfers in a blocking fashion (communication stage can be optimized separately) */
+  SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+  mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);  
+  phiprof::stop(trans_timer);
   phiprof::start("compute-mapping-y");
   for (size_t c=0; c<propagated_cells.size(); ++c) {
     map_1d_trans(mpiGrid,propagated_cells[c], 1); /*< map along y*/
