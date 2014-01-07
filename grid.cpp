@@ -550,6 +550,9 @@ void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
       << std::endl;
       abort();
    }
+
+
+   /*stencils for semilagrangian propagators*/ 
    
 #ifdef TRANS_SEMILAG_PCONSTM
    const int vlasov_stencil_width=1;
@@ -560,65 +563,70 @@ void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
 #if TRANS_SEMILAG_PPM
    const int vlasov_stencil_width=3;
 #endif
-   
-   std::vector<neigh_t> vlasov_neighborhood;
-   int x=0;
-   int z,y;
-   for (z = -vlasov_stencil_width; z <= vlasov_stencil_width; z++) {
-     for (y = -vlasov_stencil_width; y <= vlasov_stencil_width; y++) {
-       if (x == 0 && y == 0 && z == 0) {
-	 continue;
-       }
-       neigh_t offsets = {{x, y, z}};
-       vlasov_neighborhood.push_back(offsets);
+   std::vector<neigh_t> vlasov_neighborhood;   
+   for (int d = -vlasov_stencil_width; d <= vlasov_stencil_width; d++) {
+     if (d != 0) {
+        vlasov_neighborhood.push_back({{d, 0, 0}});
+        vlasov_neighborhood.push_back({{0, d, 0}});
+        vlasov_neighborhood.push_back({{0, 0, d}});
      }
    }
-   
-   y=0;
-   z=0;
-   for (x = -vlasov_stencil_width; x <= vlasov_stencil_width; x++) {
-     if (x == 0 && y == 0 && z == 0) {
-       continue;
-     }
-     neigh_t offsets = {{x, y, z}};
-     vlasov_neighborhood.push_back(offsets);
-   }
-
    if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_NEIGHBORHOOD_ID, vlasov_neighborhood)) {
       std::cerr << __FILE__ << ":" << __LINE__
                 << " Couldn't set vlasov solver neighborhood"
                 << std::endl;
       abort();
    }
-
-
-   const uint vlasov_source_stencil_width = 1;
-   std::vector<neigh_t> vlasov_source_neighborhood;
-   x=0;
-   for (z = -vlasov_source_stencil_width; z <= vlasov_source_stencil_width; z++) {
-     for (y = -vlasov_source_stencil_width; y <= vlasov_source_stencil_width; y++) {
-       if (x == 0 && y == 0 && z == 0) {
-	 continue;
-       }
-       neigh_t offsets = {{x, y, z}};
-       vlasov_source_neighborhood.push_back(offsets);
+   vlasov_neighborhood.clear();
+   for (int d = -vlasov_stencil_width; d <= vlasov_stencil_width; d++) {
+     if (d != 0) {
+        vlasov_neighborhood.push_back({{d, 0, 0}});
      }
    }
-   
-   y=0;
-   z=0;
-   for (x = -vlasov_source_stencil_width; x <= vlasov_source_stencil_width; x++) {
-     if (x == 0 && y == 0 && z == 0) {
-       continue;
-     }
-     neigh_t offsets = {{x, y, z}};
-     vlasov_source_neighborhood.push_back(offsets);
+   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_X_NEIGHBORHOOD_ID, vlasov_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+                << " Couldn't set vlasov solver neighborhood in x dimenension"
+                << std::endl;
+      abort();
    }
-
-   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_SOURCE_NEIGHBORHOOD_ID, vlasov_source_neighborhood)) {
+   vlasov_neighborhood.clear();
+   for (int d = -vlasov_stencil_width; d <= vlasov_stencil_width; d++) {
+     if (d != 0) {
+        vlasov_neighborhood.push_back({{0, d, 0}});
+     }
+   }
+   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID, vlasov_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+                << " Couldn't set vlasov solver neighborhood in x dimenension"
+                << std::endl;
+      abort();
+   }
+   vlasov_neighborhood.clear();
+   for (int d = -vlasov_stencil_width; d <= vlasov_stencil_width; d++) {
+     if (d != 0) {
+        vlasov_neighborhood.push_back({{0, 0, d}});
+     }
+   }
+   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID, vlasov_neighborhood)) {
+      std::cerr << __FILE__ << ":" << __LINE__
+                << " Couldn't set vlasov solver neighborhood in x dimenension"
+                << std::endl;
+      abort();
+   }
+   for (int d = -1; d <= 1; d++) {
+     if (d != 0) {
+        vlasov_neighborhood.push_back({{d, 0, 0}});
+        vlasov_neighborhood.push_back({{0, d, 0}});
+        vlasov_neighborhood.push_back({{0, 0, d}});
+     }
+   }
+   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_SOURCE_NEIGHBORHOOD_ID, vlasov_neighborhood)) {
       std::cerr << __FILE__ << ":" << __LINE__
                 << " Couldn't set vlasov solver neighborhood"
                 << std::endl;
       abort();
    }
+
+   
+
 }

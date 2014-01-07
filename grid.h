@@ -12,11 +12,14 @@
 //neighborhoods, these are initialized in initializeGrid
 
 #define FIELD_SOLVER_NEIGHBORHOOD_ID 1
-#define VLASOV_SOLVER_NEIGHBORHOOD_ID 2
-#define VLASOV_SOLVER_SOURCE_NEIGHBORHOOD_ID 3
-#define SYSBOUNDARIES_NEIGHBORHOOD_ID 4 // When classifying sysboundaries, all 26 nearest neighbors are included,
-#define SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID 5
-#define NEAREST_NEIGHBORHOOD_ID 6
+#define VLASOV_SOLVER_NEIGHBORHOOD_ID 2   //up to third(PPM) neighbor in each face direction
+#define VLASOV_SOLVER_X_NEIGHBORHOOD_ID 3 //up to third(PPM) neighbor in x face directions
+#define VLASOV_SOLVER_Y_NEIGHBORHOOD_ID 4 //up to third(PPM) neighbor in y face directions
+#define VLASOV_SOLVER_Z_NEIGHBORHOOD_ID 5 //up to third(PPM) neighbor in z face directions
+#define VLASOV_SOLVER_SOURCE_NEIGHBORHOOD_ID 6 //nearest neighbor in each face direction, these can propaga to local cells
+#define SYSBOUNDARIES_NEIGHBORHOOD_ID 7 // When classifying sysboundaries, all 26 nearest neighbors are included,
+#define SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID 8
+#define NEAREST_NEIGHBORHOOD_ID 9
 
 
 
