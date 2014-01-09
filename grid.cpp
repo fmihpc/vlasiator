@@ -85,7 +85,7 @@ void initializeGrid(
    mpiGrid.initialize(
       comm,
       &P::loadBalanceAlgorithm[0],
-      2, // neighborhood size
+      vlasov_stencil_width, // neighborhood size
       0, // maximum refinement level
       sysBoundaries.isBoundaryPeriodic(0),
       sysBoundaries.isBoundaryPeriodic(1),
