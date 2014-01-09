@@ -62,7 +62,8 @@ Meteorological Society 138.667 (2012): 1640-1651.
 void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
 				 creal dt) {
   typedef Parameters P;
-  int trans_time;
+  int trans_timer;
+  
 
   phiprof::start("semilag-trans");
   phiprof::start("compute_cell_lists");
@@ -95,7 +96,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
 
 
   /*propagate*/
-  trans_timer=phiprof::initializeTimer(name,"transfer-stencil-data-z","MPI");
+  trans_timer=phiprof::initializeTimer("transfer-stencil-data-z","MPI");
   phiprof::start(trans_timer);
   /*start by doing all transfers in a blocking fashion (communication stage can be optimized separately) */
   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
@@ -103,11 +104,11 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
   phiprof::stop(trans_timer);
   phiprof::start("compute-mapping-z");
   for (size_t c=0; c<propagated_cells.size(); ++c) {
-    map_1d_trans(mpiGrid,propagated_cells[c], 2); /*< map along z*/
+     map_trans_1d(mpiGrid,propagated_cells[c], 2, dt); /*< map along z*/
   }
   phiprof::stop("compute-mapping-z");
 
-  trans_timer=phiprof::initializeTimer(name,"transfer-stencil-data-x","MPI");
+  trans_timer=phiprof::initializeTimer("transfer-stencil-data-x","MPI");
   phiprof::start(trans_timer);
   /*start by doing all transfers in a blocking fashion (communication stage can be optimized separately) */
   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
@@ -115,11 +116,11 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
   phiprof::stop(trans_timer);
   phiprof::start("compute-mapping-x");
   for (size_t c=0; c<propagated_cells.size(); ++c) {
-    map_1d_trans(mpiGrid,propagated_cells[c], 0); /*< map along x*/
+     map_trans_1d(mpiGrid,propagated_cells[c], 0, dt); /*< map along x*/
   }
   phiprof::stop("compute-mapping-x");
     
-  trans_timer=phiprof::initializeTimer(name,"transfer-stencil-data-y","MPI");
+  trans_timer=phiprof::initializeTimer("transfer-stencil-data-y","MPI");
   phiprof::start(trans_timer);
   /*start by doing all transfers in a blocking fashion (communication stage can be optimized separately) */
   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
@@ -127,7 +128,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
   phiprof::stop(trans_timer);
   phiprof::start("compute-mapping-y");
   for (size_t c=0; c<propagated_cells.size(); ++c) {
-    map_1d_trans(mpiGrid,propagated_cells[c], 1); /*< map along y*/
+     map_trans_1d(mpiGrid,propagated_cells[c], 1, dt); /*< map along y*/
   }
   phiprof::stop("compute-mapping-y");
   

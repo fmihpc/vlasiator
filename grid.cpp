@@ -72,6 +72,16 @@ void initializeGrid(
 
    
    MPI_Comm comm = MPI_COMM_WORLD;
+#ifdef TRANS_SEMILAG_PCONSTM
+   const int vlasov_stencil_width=1;
+#endif
+#ifdef TRANS_SEMILAG_PLM
+   const int vlasov_stencil_width=2;
+#endif
+#if TRANS_SEMILAG_PPM
+   const int vlasov_stencil_width=3;
+#endif
+
    mpiGrid.initialize(
       comm,
       &P::loadBalanceAlgorithm[0],

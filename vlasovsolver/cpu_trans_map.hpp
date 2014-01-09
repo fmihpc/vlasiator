@@ -1,14 +1,14 @@
 
 /*
 This file is part of Vlasiator.
-Copyright 2012 Finnish Meteorological Institute
+Copyright 2014 Finnish Meteorological Institute
 
 */
 
 #ifndef CPU_TRANS_MAP_H
 #define CPU_TRANS_MAP_H
 
-#include  "vec4.h"
+#include "vec4.h"
 #include "algorithm"
 #include "cmath"
 #include "utility"
@@ -33,149 +33,182 @@ using namespace std;
 using namespace spatial_cell;
 
 //size of padded block where we store the block, and its spatial neighbors in one dimension
-#define pblock_xw  WID
-#define pblock_yw  WID
-#define pblock_zw  (1 + 2 * TRANS_STENCIL_WIDTH)
+#define trans_pblock_xw  WID
+#define trans_pblock_yw  WID
+#define trans_pblock_zblockw  (WID * (1 + 2 * TRANS_STENCIL_WIDTH))    //how many blocks in z directions
+#define trans_pblock_zw  (WID * trans_pblock_zblockw)  //how many cells in z direction
+
 // indices in padded block. b_k is the block index in z direction in ordinary space, i,j,k are the cell ids inside on block. Data order i,b_k,j,k.
-#define i_pblock(b_k,i,j,k) ( (i) + ((b_k) + TRANS_STENCIL_WIDTH) * pblock_xw + (j) * pblock_xw * pblock_zw  + (k) * pblock_xw * pblock_yw * pblock_zw)
-#define i_pblockv(b_k,j,k)  ( ((b_k) + TRANS_STENCIL_WIDTH) * pblock_xw + (j) * pblock_xw * pblock_zw  + (k) * pblock_xw * pblock_yw * pblock_zw)
+#define i_trans_pblock(b_k,i,j,k) ( (i) + ((b_k) + TRANS_STENCIL_WIDTH) * trans_pblock_xw + (j) * trans_pblock_xw * trans_pblock_zblockw  + (k) * trans_pblock_xw * trans_pblock_yw * trans_pblock_zblockw)
+#define i_trans_pblockv(b_k,j,k)  ( i_trans_pblock(b_k,0,j,k) )
 
-//size of padded block where we write the target data
-#define ptblock_xw  WID 
-#define ptblock_yw  WID
-#define ptblock_zw  3
+//size of xadded block where we write the target data
+#define trans_ptblock_yw  WID
+#define trans_ptblock_zblockw  3  //how many blocks in z directions
+#define trans_ptblock_zw  (WID * trans_ptblock_zblockw)  //how many cells in z direction
 // indices in padded  target block, which has Vec4 elements. b_k is the block index in z direction in ordinary space, i,j,k are the cell ids inside on block (i in vector elements). Data order i,b_k,j,k.
-#define i_ptblockv(b_k,j,k)  ( ((b_k) + 1) + (j) *  ptblock_zw  + (k) * ptblock_yw * ptblock_zw)
+#define i_trans_ptblockv(b_k,j,k)  ( ((b_k) + 1) + (j) *  trans_ptblock_zw  + (k) * trans_ptblock_yw * trans_ptblock_zw)
 
 
 
-Velocity_Block * getSpatialNeighbourBlock(
-			 const dccrg::Dccrg<SpatialCell>& mpiGrid,
-			 const CellID& cellID,
-			 const uint& blockID,
-			 const int spatial_di,
-			 const int spatial_dj,
-			 const int spatial_dk ) {
-  
+
+/*return INVALID_CELLID if the spatial neighbor does not exist, or if
+ * it is a cell that is not computed. If the
+ * include_first_boundary_layer flag is set, then also first boundary
+ * layer is inlcuded (does not return INVALID_CELLID).
+
+
+ */
+
+uint get_spatial_neighbor(const dccrg::Dccrg<SpatialCell>& mpiGrid,
+                          const CellID& cellID,
+                          const bool include_first_boundary_layer,
+                          const int spatial_di,
+                          const int spatial_dj,
+                          const int spatial_dk ) {
+   if(spatial_di == 0 && spatial_dj == 0 && spatial_dk == 0 )
+      return cellID;
+   
+   
    const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of(cellID,spatial_di,spatial_dj,spatial_dk);
    if (neighbors.size() == 0) {
       std::cerr << __FILE__ << ":" << __LINE__
                 << " No neighbor for cell " << cellID
-                << " at offsets " << int(i) - 2 << ", " << int(j) - 2 << ", " << int(k) - 2
-	      << std::endl;
+                << " at offsets " << spatial_di << ", " << spatial_dj << ", " << spatial_dk
+                << std::endl;
       abort();
   }
-  
-  if( neighbors[0] == INVALID_CELLID  ||
-      mpiGrid[neighbors[0]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-      (mpiGrid[neighbors[0]]->sysBoundaryLayer != 1  &&
-       mpiGrid[neighbors[0]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )
-      ) {
-     return NULL; //use whatever ngbr condition we need to do in copy function
-  } 
-  else {
-    const CellID ngbrCellID=neighbors[0]; //no AMR
-    SpatialCell* spatial_cell = mpiGrid[ngbrCellID];
-    return spatial_cell->at(blockID); /*if it does not exits, its null_block will be returned*/
-  }
+
+   // not existing cell or do not compute       
+   if( neighbors[0] == INVALID_CELLID  || mpiGrid[neighbors[0]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
+      return INVALID_CELLID; 
+
+   //cell on boundary, but not first layer and we want to include first layer (e.g. when we compute source cells)
+   if( include_first_boundary_layer &&
+       mpiGrid[neighbors[0]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+       mpiGrid[neighbors[0]]->sysBoundaryLayer != 1 ) {
+      return INVALID_CELLID;
+   }
+   //cell on boundary, and we want none of the layers, invalid.(e.g. when we compute targets)
+   if( !include_first_boundary_layer &&
+       mpiGrid[neighbors[0]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY){
+      return INVALID_CELLID;
+   }
+   
+   return neighbors[0]; //no AMR
+
 }
 
-/*!
-  For dimension=0 data copy  we have rotated data
-  i -> k
-  j -> j
-  k -> i
-For dimension=1 data copy  we have rotated data
-  i -> i
-  j -> k
-  k -> j
+/*compute spatial neighbors for source stencil with a size of 2*
+ * TRANS_STENCIL_WIDTH + 1, cellID at TRANS_STENCIL_WIDTH. First
+ * bondary layer included. Invalid cells are replaced by closest good
+ * cells (i.e. boundary condition uses constant extrapolation for the
+ * stencil values at boundaries*/
+  
+void compute_spatial_source_neighbors(const dccrg::Dccrg<SpatialCell>& mpiGrid,
+                               const CellID& cellID,
+                               const uint dimension,
+                               CellID *neighbors){
+   for(int i = -TRANS_STENCIL_WIDTH; i <= TRANS_STENCIL_WIDTH; i++){
+      switch (dimension){
+          case 0:
+             neighbors[i + TRANS_STENCIL_WIDTH] = get_spatial_neighbor(mpiGrid, cellID, true, i, 0, 0);
+             break;
+          case 1:
+             neighbors[i + TRANS_STENCIL_WIDTH] = get_spatial_neighbor(mpiGrid, cellID, true, 0, i, 0);
+             break;
+          case 2:
+             neighbors[i + TRANS_STENCIL_WIDTH] = get_spatial_neighbor(mpiGrid, cellID, true, 0, 0, i);
+             break;             
+      }             
+   }
 
-*/
+   CellID last_good_cellID = cellID;
+   /*loop to neative side and replace all invalid cells with the closest good cell*/
+   for(int i = -1;i>=-TRANS_STENCIL_WIDTH;i--){
+      if(neighbors[i + TRANS_STENCIL_WIDTH] == INVALID_CELLID) 
+         neighbors[i + TRANS_STENCIL_WIDTH] = last_good_cellID;
+      else
+         last_good_cellID = neighbors[i + TRANS_STENCIL_WIDTH];
+   }
 
-/*FIXME, use stencil and not hardcoded eighborhood*/
-inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,const uint blockID,Real * __restrict__ values, int dimension){
-  SpatialCell* spatial_cell = mpiGrid[cellID];
-  Velocity_Block *blocks[pblock_zw];
-  uint cell_indices_to_id[3];
-  switch (dimension){
+   last_good_cellID = cellID;
+   /*loop to positive side and replace all invalid cells with the closest good cell*/
+   for(int i = 1; i <= TRANS_STENCIL_WIDTH; i++){
+      if(neighbors[i + TRANS_STENCIL_WIDTH] == INVALID_CELLID) 
+         neighbors[i + TRANS_STENCIL_WIDTH] = last_good_cellID;
+      else
+         last_good_cellID = neighbors[i + TRANS_STENCIL_WIDTH];
+   }
+
+}
+
+/*compute spatial target neighbors, stencil has a size of 3. No boundary cells are included*/
+void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell>& mpiGrid,
+                                      const CellID& cellID,
+                                      const uint dimension,
+                                      CellID *neighbors){
+   for(int i = -1; i <= 1; i++){
+      switch (dimension){
+          case 0:
+             neighbors[i + 1] = get_spatial_neighbor(mpiGrid, cellID, false, i, 0, 0);
+             break;
+          case 1:
+             neighbors[i + 1] = get_spatial_neighbor(mpiGrid, cellID, false, 0, i, 0);
+             break;
+          case 2:
+             neighbors[i + 1] = get_spatial_neighbor(mpiGrid, cellID, false, 0, 0, i);
+             break;             
+      }             
+   }
+}
+
+/* Copy the fx data to the temporary values array, so that the
+ * dimensions are correctly swapped. Also, copy the same block for
+ * then neighboring spatial cells (in the dimension). neighbors
+ * generated with compute_spatial_neighbors_wboundcond)*/
+
+inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID, const CellID *source_neighbors, const uint blockID, Real * __restrict__ values, int dimension){
+   uint cell_indices_to_id[3];
+   switch (dimension){
       case 0:
     /* i and k coordinates have been swapped*/
          cell_indices_to_id[0]=WID2;
          cell_indices_to_id[1]=WID;
          cell_indices_to_id[2]=1;
-         for (int bk=-TRANS_STENCIL_WIDTH; bk <= TRANS_STENCIL_WIDTH;bk++) {
-            if(bk!=0)
-               blocks[bk + TRANS_STENCIL_WIDTH] = getSpatialNeighbourBlock(mpiGrid, cellID, blockID, bk, 0, 0);
-            else
-               blocks[bk + TRANS_STENCIL_WIDTH] = spatial_cell->at(blockID);
-         }
          break;
       case 1:
          /* j and k coordinates have been swapped*/
          cell_indices_to_id[0]=1;
          cell_indices_to_id[1]=WID2;
          cell_indices_to_id[2]=WID;
-         for (int bk=-TRANS_STENCIL_WIDTH; bk <= TRANS_STENCIL_WIDTH;bk++) {
-            if(bk!=0)
-          blocks[bk + TRANS_STENCIL_WIDTH] = getSpatialNeighbourBlock(mpiGrid, cellID, blockID, 0, bk, 0);
-            else
-               blocks[bk + TRANS_STENCIL_WIDTH] = spatial_cell->at(blockID);
-         }
          break;
       case 2:
          cell_indices_to_id[0]=1;
          cell_indices_to_id[1]=WID;
          cell_indices_to_id[2]=WID2;
-         for (int bk=-TRANS_STENCIL_WIDTH; bk <= TRANS_STENCIL_WIDTH;bk++) {
-            if(bk!=0)
-               blocks[bk + TRANS_STENCIL_WIDTH] = getSpatialNeighbourBlock(mpiGrid, cellID, blockID, 0, 0, bk);
-            else
-               blocks[bk + TRANS_STENCIL_WIDTH] = spatial_cell->at(blockID);
-         }
          break;
   }
-  
-  // Copy volume averages of this block:
-  for (uint b=0; b<pblock_zw; ++b) {
-    Real * __restrict__ fx;
-
-    /*get closest possible block (on boundaries some cells have no
-     * blocks). If a normal spatial cell does not simply have the block, its value
-     * will be its null_block which is fine. This null_block has a
-     * value of zero in fx, and that is thus the velocity space
-     * boundary*/
-    if (b == STENCIL_WIDTH)
-       fx = blocks[b]->fx;
-    else if (b<STENCIL_WIDTH)
-       /*copy closest existing block for spatial cell on the negative side*/
-       for (db = 0; b + db <= STENCIL_WIDTH;db ++) {
-          if ( blocks[b + db] !=NULL) {
-             fx = blocks[b+ db]->fx;
-             break;
+  // Copy volume averages of this block from all spatial cells:
+   for(int b = -TRANS_STENCIL_WIDTH; b <= TRANS_STENCIL_WIDTH; b++){
+      Velocity_Block * block = mpiGrid[source_neighbors[b]]->at(blockID);
+     /* Copy fx table, spatial source_neighbors already taken care of when
+      *   creating source_neighbors table. If a normal spatial cell does not
+      *   simply have the block, its value will be its null_block which
+      *   is fine. This null_block has a value of zero in fx, and that
+      *   is thus the velocity space boundary*/
+     for (uint k=0; k<WID; ++k) {
+       for (uint j=0; j<WID; ++j) {
+          for (uint i=0; i<WID; ++i) {
+             const uint cell =
+                i * cell_indices_to_id[0] +
+                j * cell_indices_to_id[1] +
+                k * cell_indices_to_id[2];
+             /*copy data, when reading data from fx we swap dimensions using cell_indices_to_id*/
+             values[i_trans_pblock(b,i,j,k)] = block->fx[cell];
           }
        }
-
-    else if (b<STENCIL_WIDTH)
-       /*copy closest existing block for spatial cell on the positive side*/
-       for (db = 0; b - db <= STENCIL_WIDTH;db ++) {
-          if ( blocks[b - db] !=NULL) {
-             fx = blocks[b - db]->fx;
-             break;
-          }
-       }
-    //we have our fx table from the closest possible block, copy data now
-    for (uint k=0; k<WID; ++k) {
-      for (uint j=0; j<WID; ++j) {
-	for (uint i=0; i<WID; ++i) {
-	  const uint cell =
-	    i * cell_indices_to_id[0] +
-	    j * cell_indices_to_id[1] +
-	    k * cell_indices_to_id[2];
-	  /*copy data, when reading data from fx we swap dimensions using cell_indices_to_id*/
-	  values[i_pblock(b,i,j,k)] = fx[cell];
-	}
-      }
-    }
+     }
   }
 }
 
@@ -193,67 +226,52 @@ For dimension=1   we have rotated data
   k -> j
   
 */
-inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,const uint blockID,Vec4 * __restrict__ target_values, int dimension){
-  SpatialCell* spatial_cell = mpiGrid[cellID];
-  Velocity_Block *blocks[3];
+inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, const CellID cellID, const CellID *target_neighbors, const uint blockID, Vec4 * __restrict__ target_values, int dimension){
   uint cell_indices_to_id[3];
-  Velocity_Block * block_p,block_m,block_pp,block_mm;
   
-  blocks[1] = spatial_cell->at(blockID);
   switch (dimension){
   case 0:
     /* i and k coordinates have been swapped*/
     cell_indices_to_id[0]=WID2;
     cell_indices_to_id[1]=WID;
     cell_indices_to_id[2]=1;
-    blocks[0] = getSpatialNeighbourBlock(mpiGrid, cellID, blockID, -1, 0, 0);
-    blocks[2] = getSpatialNeighbourBlock(mpiGrid, cellID, blockID, 1, 0, 0);
     break;
   case 1:
     /* j and k coordinates have been swapped*/
     cell_indices_to_id[0]=1;
     cell_indices_to_id[1]=WID2;
     cell_indices_to_id[2]=WID;
-    blocks[0] = getSpatialNeighbourBlock(mpiGrid, cellID, blockID, 0, -1, 0);
-    blocks[2] = getSpatialNeighbourBlock(mpiGrid, cellID, blockID, 0, 1, 0);
     break;
   case 2:
     cell_indices_to_id[0]=1;
     cell_indices_to_id[1]=WID;
     cell_indices_to_id[2]=WID2;
-    blocks[0] = getSpatialNeighbourBlock(mpiGrid, cellID, blockID, 0, 0, -1);
-    blocks[2] = getSpatialNeighbourBlock(mpiGrid, cellID, blockID, 0, 0, 1);
     break;
   }
-  
-  
+
   //Store volume averages in target blocks:
   for (uint b=0; b<3; ++b) {
-    Real * __restrict__ data;
-    if (blocks[b] != NULL) {
-       
-       if (spatial_cell->count(tblock) == 0) {
-          //count faster since the add_velocity_block call is more expensive
-          spatial_cell->add_velocity_block(tblock);
-       }
-       Velocity_Block* block_ptr = spatial_cell->at_fast(tblock);
-       target_block_data=block_ptr->data;
-       
-          
-       for (uint k=0; k<WID; ++k) {
-          for (uint j=0; j<WID; ++j) {
-             for (uint i=0; i<WID; ++i) {
-                const uint cell =
-                   i * cell_indices_to_id[0] +
-                   j * cell_indices_to_id[1] +
-                   k * cell_indices_to_id[2];
-                /*copy data, when reading data from    data we swap dimensions using cell_indices_to_id*/
-                
-                blocks[b]->data[cell] = target_values[i_pblock(b,j,k)][i];
-             }
-          }
-       }
-    }
+     if (target_neighbors[b] == INVALID_CELLID)
+        continue; //do not store to boundary cells or otherwise invalid cells
+     SpatialCell* spatial_cell = mpiGrid[target_neighbors[b]];
+     Velocity_Block *block = spatial_cell->at(blockID);
+     if (spatial_cell->is_null_block(block)) {
+        /*block does not exist, let's create it*/
+        spatial_cell->add_velocity_block(blockID);
+        block = spatial_cell->at(blockID);
+     }
+     for (uint k=0; k<WID; ++k) {
+        for (uint j=0; j<WID; ++j) {
+           for (uint i=0; i<WID; ++i) {
+              const uint cell =
+                 i * cell_indices_to_id[0] +
+                 j * cell_indices_to_id[1] +
+                 k * cell_indices_to_id[2];
+              /*store data, when reading data from  data we swap dimensions using cell_indices_to_id*/
+              block->data[cell] = target_values[i_trans_pblockv(b,j,k)][i];
+           }
+        }
+     }
   }
 }
 
@@ -272,6 +290,17 @@ bool map_trans_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/   
    if(dimension>2)
       return false; //not possible
+
+
+   /*compute spatial neighbors, separately for targets and source. In
+    * source cells we have a wider stencil and take into account
+    * boundaries. For targets we only have actual cells as we do not
+    * want to propagate boundary cells (array may contain
+    * INVALID_CELLIDs at boundaries)*/
+   CellID source_neighbors[1 + 2 * TRANS_STENCIL_WIDTH];
+   CellID target_neighbors[3];
+   compute_spatial_source_neighbors(mpiGrid,cellID,dimension,source_neighbors);
+   compute_spatial_target_neighbors(mpiGrid,cellID,dimension,target_neighbors); 
    
   /*set cell size in dimension direction*/  
    switch (dimension){
@@ -340,16 +369,18 @@ bool map_trans_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
   }
   
   
+  /*Loop over blocks in spatial cell. In ordinary space the number of
+   * blocks in this spatial cell does not change, blocks in
+   * neighboring cells might*/
   
-
   for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
-    const unsigned int blockID = spatial_cell->velocity_block_list[block_i];
-    Velocity_Block * __restrict__ block = spatial_cell->at(block);
+     const unsigned int blockID = spatial_cell->velocity_block_list[block_i];
+    Velocity_Block * __restrict__ block = spatial_cell->at(blockID);
 
-    Real values[pblock_xw * pblock_yw * pblock_zw];
-    Vec4 target_values[ptblock_yw * ptblock_zw]={}; /*buffer where we write data, initialized to 0*/
-
-    copy_block_data(mpiGrid,cellID,blockID,values,dimension);
+    Real values[trans_pblock_xw * trans_pblock_yw * trans_pblock_zw];
+    Vec4 target_values[trans_ptblock_yw * trans_ptblock_zw]={}; /*buffer where we write data, initialized to 0*/
+    
+    copy_trans_block_data(mpiGrid,cellID,source_neighbors,blockID,values,dimension);
 
     velocity_block_indices_t block_indices=SpatialCell::get_velocity_block_indices(blockID);
     
@@ -362,26 +393,26 @@ bool map_trans_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
     for (uint k=0; k<WID; ++k){
        const Real cell_vz = (block_indices[dimension] * WID + k + 0.5) * dvz + vz_min; //cell centered velocity
        const Real z_translation = - cell_vz * dt * i_dz; // how much it moved in time - dt (departure grid) (in units of dz)
-       const Real target_scell_index = (z_translation > 0) ? 1: -1; //part of density goes here (cell index change along spatial direcion)
+       const int target_scell_index = (z_translation > 0) ? 1: -1; //part of density goes here (cell index change along spatial direcion)
 
        for (uint j = 0; j < WID; ++j){ 
           /*compute reconstruction*/
 #ifdef TRANS_SEMILAG_PLM
           Vec4 a[2];
           Vec4 mv,cv,pv;
-          mv.load(values + i_pblockv(-1,j,k));
-          cv.load(values + i_pblockv(0,j,k));
-          pv.load(values + i_pblockv(1,j,k));
+          mv.load(values + i_trans_pblockv(-1,j,k));
+          cv.load(values + i_trans_pblockv(0,j,k));
+          pv.load(values + i_trans_pblockv(1,j,k));
           compute_plm_coeff(mv,cv,pv,a);
 #endif
 #ifdef TRANS_SEMILAG_PPM
           Vec4 a[3];
           Vec4 mmv,mv,cv,pv,ppv;
-          mmv.load(values + i_pblockv(-2,j,k));
-          mv.load(values + i_pblockv(-1,j,k));
-          cv.load(values + i_pblockv(0,j,k));
-          pv.load(values + i_pblockv(1,j,k));
-          ppv.load(values + i_pblockv(2,j,k));
+          mmv.load(values + i_trans_pblockv(-2,j,k));
+          mv.load(values + i_trans_pblockv(-1,j,k));
+          cv.load(values + i_trans_pblockv(0,j,k));
+          pv.load(values + i_trans_pblockv(1,j,k));
+          ppv.load(values + i_trans_pblockv(2,j,k));
           compute_ppm_coeff(mmv,mv,cv,pv,ppv,a);
 #endif
           
@@ -400,44 +431,24 @@ bool map_trans_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
           
 #ifdef TRANS_SEMILAG_PLM	    
 	  const Vec4 ngbr_target_density =
-	    (v_2 - v_1) * a[0] +
-	    (v_2 * v_2 - v_1 * v_1) * a[1];
+	    (z_2 - z_1) * a[0] +
+	    (z_2 * z_2 - z_1 * z_1) * a[1];
 #endif
 #ifdef TRANS_SEMILAG_PPM
-	  const Vec4 ngbr_target_density=
-             (v_2 - v_1) * a[0] +
-             (v_2 * v_2 - v_1 * v_1) * a[1] +
-             (v_2 * v_2 * v_2 - v_1 * v_1 * v_1) * a[2];
+	  const Vec4 ngbr_target_density =
+             (z_2 - z_1) * a[0] +
+             (z_2 * z_2 - z_1 * z_1) * a[1] +
+             (z_2 * z_2 * z_2 - z_1 * z_1 * z_1) * a[2];
 #endif
-          target_values[i_ptblockv(target_scell_index,j,k)] + =  ngbr_target_density; //in the current original cells we will put this density        
-          target_values[i_ptblockv(0,j,k)] + =  cv - ngbr_target_density; //in the current original cells we will put the rest of the original density
+          target_values[i_trans_ptblockv(target_scell_index,j,k)] +=  ngbr_target_density; //in the current original cells we will put this density        
+          target_values[i_trans_ptblockv(0,j,k)] +=  cv - ngbr_target_density; //in the current original cells we will put the rest of the original density
        }
     }
-
     
-    //store values from target_values array to the actual , one element at a time
-    for(uint target_i = 0; target_i < 4;target_i ++ ){
-       
-       if(previous_target_block != tblock) {
-          previous_target_block = tblock;
-		//not the same block as last time, lets create it if we
-		//need to and fetch its data array pointer and store it in target_block_data.
-		if (spatial_cell->count(tblock) == 0) {
-                   //count faster since the add_velocity_block call is more expensive
-		  spatial_cell->add_velocity_block(tblock);
-		}
-		Velocity_Block* block_ptr = spatial_cell->at_fast(tblock);
-		target_block_data=block_ptr->data;
-	      }
-	      target_block_data[tcell] += tval;
-	    }
-	  }
-	  gk++; //next iteration in while loop
-	}
-      }
-    }
+    //store values from target_values array to the actual blocks
+    store_trans_block_data(mpiGrid, cellID, target_neighbors, blockID,target_values,dimension);
   }
-  delete [] blocks;
+
   return true;
 }
 
