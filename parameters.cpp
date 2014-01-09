@@ -85,7 +85,8 @@ int P::restartStripeFactor = -1;
 uint P::transmit = 0;
 
 bool P::recalculateStencils = true;
-bool P::propagateVlasov = true;
+bool P::propagateVlasovAcceleration = true;
+bool P::propagateVlasovTranslation = true;
 bool P::propagateField = true;
 
 uint P::maxAccelerationSubsteps=1;
@@ -116,7 +117,6 @@ vector<string> P::diagnosticVariableList;
 string P::projectName = string("");
 
 Real P::maxSlAccelerationRotation=10.0;
-bool P::lorentzHallTerm=false;
 Real P::lorentzHallMinimumRho=1.0;
 
 bool Parameters::addParameters(){
@@ -139,9 +139,10 @@ bool Parameters::addParameters(){
    Readparameters::add("io.write_as_float","If true, write in floats instead of doubles", false);
    
    Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
-   Readparameters::add("propagate_vlasov","Propagate distribution functions during the simulation",true);
+   Readparameters::add("propagate_vlasov_acceleration","Propagate distribution functions during the simulation in velocity space. If false, it is propagated with zero length timesteps.",true);
+   Readparameters::add("propagate_vlasov_translation","Propagate distribution functions during the simulation in ordinary space. If false, it is propagated with zero length timesteps.",true);
    Readparameters::add("max_acceleration_substeps","Maximum number of  acceleration substeps that are allowed to be taken in acceleration. The default number of 1 disables substepping and the acceleration is always done in one step. A value of 0 has a special meaning, it activates unlimited substepping",1);
-   Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limits (default)",true);
+   Readparameters::add("dynamic_timestep","If true,  timestep is set based on  CFL limits (default on)",true);
    Readparameters::add("project", "Specify the name of the project to use. Supported to date (20121112): Alfven Diffusion Dispersion Firehose Flowthrough Fluctuations harm1D KelvinHelmholtz Magnetosphere", "Fluctuations");
 
    Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string(""));     
@@ -182,10 +183,9 @@ bool Parameters::addParameters(){
 
    // Vlasov solver parameters
    Readparameters::add("vlasovsolver.maxSlAccelerationRotation","Maximum rotation angle allowed by the Semi-Lagrangian solver (Do not use too large values, test properly)",10.0);
-   Readparameters::add("vlasovsolver.lorentzHallTerm", "Add JxB term to Lorentz force",true);
    Readparameters::add("vlasovsolver.lorentzHallMinimumRho", "Minimum rho value used for Hall term in Lorentz force. Default is very low and has no effect in practice.",1.0);
-   Readparameters::add("vlasovsolver.maxCFL","The maximum CFL limit for vlasov-leveque propagation. Used to set timestep if dynamic_timestep is true.",0.9);
-   Readparameters::add("vlasovsolver.minCFL","The minimum CFL limit for vlasov-leveque propagation. Used to set timestep if dynamic_timestep is true.",0.7);
+   Readparameters::add("vlasovsolver.maxCFL","The maximum CFL limit for vlasov propagation in ordinary space. Used to set timestep if dynamic_timestep is true.",0.99);
+   Readparameters::add("vlasovsolver.minCFL","The minimum CFL limit for vlasov propagation in ordinary space. Used to set timestep if dynamic_timestep is true.",0.8);
 
 
 
@@ -232,7 +232,8 @@ bool Parameters::getParameters(){
    Readparameters::get("io.write_as_float", P::writeAsFloat);
    
    Readparameters::get("propagate_field",P::propagateField);
-   Readparameters::get("propagate_vlasov",P::propagateVlasov);
+   Readparameters::get("propagate_vlasov_acceleration",P::propagateVlasovAcceleration);
+   Readparameters::get("propagate_vlasov_translation",P::propagateVlasovTranslation);
    Readparameters::get("max_acceleration_substeps",P::maxAccelerationSubsteps);
    Readparameters::get("dynamic_timestep",P::dynamicTimestep);
    Readparameters::get("restart.filename",P::restartFileName);
@@ -293,7 +294,6 @@ bool Parameters::getParameters(){
    Readparameters::get("fieldsolver.minCFL",P::fieldSolverMinCFL);
    // Get Vlasov solver parameters
    Readparameters::get("vlasovsolver.maxSlAccelerationRotation",P::maxSlAccelerationRotation);
-   Readparameters::get("vlasovsolver.lorentzHallTerm", P::lorentzHallTerm);
    Readparameters::get("vlasovsolver.lorentzHallMinimumRho",P::lorentzHallMinimumRho);
    Readparameters::get("vlasovsolver.maxCFL",P::vlasovSolverMaxCFL);
    Readparameters::get("vlasovsolver.minCFL",P::vlasovSolverMinCFL);

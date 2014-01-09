@@ -97,16 +97,13 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &is
    }
    MPI_Allreduce(&(dtMaxLocal[0]), &(dtMaxGlobal[0]), 3, MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
    
-   //If fieldsolver is off there should be no limit on time-step from it
-   if (P::propagateField == false) {
-      dtMaxGlobal[2]=std::numeric_limits<Real>::max();
-   }
-   
-   //If vlasovsolver is off there should be no limit on time-step from it
-   if (P::propagateVlasov == false) {
+   //If any of the solvers are disable there should be no limits in timespace from it
+   if (P::propagateVlasovTranslation == false) 
       dtMaxGlobal[0]=std::numeric_limits<Real>::max();
+   if (P::propagateVlasovAcceleration == false) 
       dtMaxGlobal[1]=std::numeric_limits<Real>::max();
-   }
+   if (P::propagateField == false) 
+      dtMaxGlobal[2]=std::numeric_limits<Real>::max();
    
    //reduce dt if it is too high for any of the three propagators, or too low for all propagators
    if(( P::dt > dtMaxGlobal[0]*P::vlasovSolverMaxCFL ||
@@ -294,10 +291,9 @@ int main(int argn,char* args[]) {
       //compute vlasovsolver once with zero dt, this is  to initialize
       //per-cell dt limits. In restarts, we read in dt from file
       phiprof::start("compute-dt");
-      if(P::propagateVlasov) {
-         calculateSpatialTranslation(mpiGrid,0.0);
-         calculateAcceleration(mpiGrid,0.0);
-      }
+      calculateSpatialTranslation(mpiGrid,0.0);
+      calculateAcceleration(mpiGrid,0.0);
+
       //this is probably not ever needed, as a zero length step
       //should not require changes
       updateRemoteVelocityBlockLists(mpiGrid);
@@ -319,11 +315,14 @@ int main(int argn,char* args[]) {
    
 
    
-   if(P::propagateVlasov && !P::isRestart) {
+   if(!P::isRestart) {
       //go forward by dt/2 in x, initializes leapfrog split. In restarts the
       //the distribution function is already propagated forward in time by dt/2
       phiprof::start("propagate-spatial-space-dt/2");
-      calculateSpatialTranslation(mpiGrid, 0.5*P::dt);
+      if(P::propagateVlasovTranslation)
+         calculateSpatialTranslation(mpiGrid, 0.5*P::dt);
+      else
+         calculateSpatialTranslation(mpiGrid, 0.0);
       phiprof::stop("propagate-spatial-space-dt/2");
    }
 
@@ -498,7 +497,10 @@ int main(int argn,char* args[]) {
          if(dtIsChanged) {
             phiprof::start("update-dt");
             //propagate velocity space to real-time
-            calculateAcceleration(mpiGrid,0.5*P::dt);
+            if( P::propagateVlasovAcceleration ) 
+               calculateAcceleration(mpiGrid,0.5*P::dt);
+            else
+               calculateAcceleration(mpiGrid,0.0);
             //need to do a update of block lists as all cells have made local changes
             updateRemoteVelocityBlockLists(mpiGrid);
             adjustVelocityBlocks(mpiGrid);
@@ -538,8 +540,10 @@ int main(int argn,char* args[]) {
             P::dt=newDt;
             
             //go forward by dt/2 again in x
-
-            calculateSpatialTranslation(mpiGrid, 0.5*P::dt);
+            if( P::propagateVlasovTranslation)
+               calculateSpatialTranslation(mpiGrid, 0.5*P::dt);
+            else
+               calculateSpatialTranslation(mpiGrid, 0.0);
 
             logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
             phiprof::stop("update-dt");
@@ -552,13 +556,17 @@ int main(int argn,char* args[]) {
       
       phiprof::start("Propagate");
       //Propagate the state of simulation forward in time by dt:
-      if (P::propagateVlasov == true) {
+      if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::start("Propagate Vlasov");
          phiprof::start("Velocity-space");
-         calculateAcceleration(mpiGrid,P::dt);
+         if( P::propagateVlasovAcceleration ) 
+            calculateAcceleration(mpiGrid,P::dt);
+         else
+            calculateAcceleration(mpiGrid,0.0);
          phiprof::stop("Velocity-space",computedCells,"Cells");
          addTimedBarrier("barrier-after-acceleration");
-
+         
+         
          //need to do a update of block lists as all cells have made local changes
          updateRemoteVelocityBlockLists(mpiGrid);
          adjustVelocityBlocks(mpiGrid);
@@ -575,9 +583,13 @@ int main(int argn,char* args[]) {
          sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt); 
          phiprof::stop("Update system boundaries (Vlasov)");
          addTimedBarrier("barrier-boundary-conditions");
-                  
+
+
          phiprof::start("Spatial-space");
-	 calculateSpatialTranslation(mpiGrid,P::dt);
+         if( P::propagateVlasovTranslation)
+            calculateSpatialTranslation(mpiGrid,P::dt);
+         else
+            calculateSpatialTranslation(mpiGrid,0.0);
          phiprof::stop("Spatial-space",computedCells,"Cells");
 
          calculateInterpolatedVelocityMoments(

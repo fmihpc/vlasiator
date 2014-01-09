@@ -86,7 +86,8 @@ struct Parameters {
    static bool recalculateStencils; /*!< If true, MPI stencils should be recalculated because of load balancing.*/
    
    static bool propagateField;      /*!< If true, magnetic field is propagated during the simulation.*/
-   static bool propagateVlasov;     /*!< If true, distribution function is propagated during the simulation.*/
+   static bool propagateVlasovAcceleration;     /*!< If true, distribution function is propagated in velocity space during the simulation.*/
+   static bool propagateVlasovTranslation;      /*!< If true, distribution function is propagated in ordinary space during the simulation.*/
    static bool periodic_x, periodic_y, periodic_z; /*!< Whether spatial vlasov grid is periodic */
    
    static Real maxAlfvenVelocity; /*!< Maximum Alfven velocity allowed in fastMS computation in LDZ. */
@@ -95,7 +96,6 @@ struct Parameters {
    static bool fieldSolverDiffusiveEterms; /*!< Enable resitive terms in the computation of E*/
 
    static Real maxSlAccelerationRotation; /*!< Maximum rotation in acceleration for semilagrangian solver*/
-   static bool lorentzHallTerm;  /*!< Add JxB hall term to Lorentz force. Assumes there is not hall term in the fieldsolver if we use fieldSolverE*/
    static Real lorentzHallMinimumRho;  /*!< Minimum rho value used in Hall term in Lorentz force.*/
    static Real sparseMinValue; /*!< Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents */
    static int sparseBlockAddWidthV; /*!< Number of layers of blocks that are kept in velocity space around the blocks with content */

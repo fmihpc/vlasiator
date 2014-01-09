@@ -1,18 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2011, 2012 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
+Copyright 2011, 2012, 2014 Finnish Meteorological Institute
 
 */
 
@@ -58,8 +47,7 @@ namespace projects {
 
 
    Real test_trans::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
-                              creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {
-
+                                          creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {      
       //Please use even number of cells in velocity and real space
       Real xyz[3];
       Real vxyz[3];
