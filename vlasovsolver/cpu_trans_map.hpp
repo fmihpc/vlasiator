@@ -47,7 +47,7 @@ using namespace spatial_cell;
 #define trans_ptblock_zblockw  3  //how many blocks in z directions
 #define trans_ptblock_zw  (WID * trans_ptblock_zblockw)  //how many cells in z direction
 // indices in padded  target block, which has Vec4 elements. b_k is the block index in z direction in ordinary space, i,j,k are the cell ids inside on block (i in vector elements). Data order i,b_k,j,k.
-#define i_trans_ptblockv(b_k,j,k)  ( ((b_k) + 1) + (j) *  trans_ptblock_zw  + (k) * trans_ptblock_yw * trans_ptblock_zw)
+#define i_trans_ptblockv(b_k,j,k)  ( ((b_k) + 1) + (j) *  trans_ptblock_zblockw  + (k) * trans_ptblock_yw * trans_ptblock_zblockw)
 
 
 
@@ -230,23 +230,32 @@ inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, con
   uint cell_indices_to_id[3];
   
   switch (dimension){
-  case 0:
-    /* i and k coordinates have been swapped*/
-    cell_indices_to_id[0]=WID2;
-    cell_indices_to_id[1]=WID;
-    cell_indices_to_id[2]=1;
-    break;
-  case 1:
-    /* j and k coordinates have been swapped*/
-    cell_indices_to_id[0]=1;
-    cell_indices_to_id[1]=WID2;
-    cell_indices_to_id[2]=WID;
-    break;
-  case 2:
-    cell_indices_to_id[0]=1;
-    cell_indices_to_id[1]=WID;
-    cell_indices_to_id[2]=WID2;
-    break;
+      case 0:
+         /* i and k coordinates have been swapped*/
+         cell_indices_to_id[0]=WID2;
+         cell_indices_to_id[1]=WID;
+         cell_indices_to_id[2]=1;
+         break;
+      case 1:
+         /* j and k coordinates have been swapped*/
+         cell_indices_to_id[0]=1;
+         cell_indices_to_id[1]=WID2;
+         cell_indices_to_id[2]=WID;
+         break;
+      case 2:
+         cell_indices_to_id[0]=1;
+         cell_indices_to_id[1]=WID;
+         cell_indices_to_id[2]=WID2;
+         break;
+         
+      default:
+         //same as for dimension 2, mostly here to get rid of compiler warning
+         cell_indices_to_id[0]=1;
+         cell_indices_to_id[1]=1;
+         cell_indices_to_id[2]=1;
+         cerr << "Dimension argument wrong: " << dimension << " at " << __FILE__ << ":" << __LINE__ << endl;
+         exit(1);
+         break;
   }
 
   //Store volume averages in target blocks:
@@ -322,12 +331,15 @@ bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, const Ce
 */
 
 bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,const uint dimension, const Real dt) {
+   uint count = 0;
+//   cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;
    /*values used with an stencil in 1 dimension, initialized to 0. Contains a block, and its spatial neighbours in one dimension */  
    Real dz,z_min, dvz,vz_min;
    SpatialCell* spatial_cell = mpiGrid[cellID];
    uint block_indices_to_id[3]; /*< used when computing id of target block */
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/   
-   uint count = 0;
+
+
    if(dimension>2)
       return false; //not possible
 
@@ -339,9 +351,11 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
     * INVALID_CELLIDs at boundaries)*/
    CellID source_neighbors[1 + 2 * TRANS_STENCIL_WIDTH];
    CellID target_neighbors[3];
+//   cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;
    compute_spatial_source_neighbors(mpiGrid,cellID,dimension,source_neighbors);
+//   cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;
    compute_spatial_target_neighbors(mpiGrid,cellID,dimension,target_neighbors); 
-   
+//   cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;   
   /*set cell size in dimension direction*/  
    switch (dimension){
       case 0:
@@ -396,18 +410,18 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
   /*Loop over blocks in spatial cell. In ordinary space the number of
    * blocks in this spatial cell does not change, blocks in
    * neighboring cells might*/
-  cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;
+//  cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;
   
   for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
-     cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;  
+//     cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;  
      const unsigned int blockID = spatial_cell->velocity_block_list[block_i];
     Velocity_Block * __restrict__ block = spatial_cell->at(blockID);
 
     Real values[trans_pblock_xw * trans_pblock_yw * trans_pblock_zw];
     Vec4 target_values[trans_ptblock_yw * trans_ptblock_zw]={}; /*buffer where we write data, initialized to 0*/
-    cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;  
+//    cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;  
     copy_trans_block_data(mpiGrid,cellID,source_neighbors,blockID,values,dimension);
-   cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;
+//   cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;
     velocity_block_indices_t block_indices=SpatialCell::get_velocity_block_indices(blockID);
     
     /*i,j,k are now relative to the order in which we copied data to the values array. 
@@ -423,7 +437,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
 
        for (uint j = 0; j < WID; ++j){ 
           /*compute reconstruction*/
-          cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;
+//          cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;
 #ifdef TRANS_SEMILAG_PLM
           Vec4 a[2];
           Vec4 mv,cv,pv;
@@ -442,7 +456,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
           ppv.load(values + i_trans_pblockv(2,j,k));
           compute_ppm_coeff(mmv,mv,cv,pv,ppv,a);
 #endif
-             cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;
+//             cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;
 	  
 	  //the velocity between which we will integrate to put mass
 	  //in the targe cell. z_translation defines the departure grid. As we are below CFL<1, we know that mass will go to two cells: current and the new one. 
@@ -467,18 +481,19 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
              (z_2 * z_2 - z_1 * z_1) * a[1] +
              (z_2 * z_2 * z_2 - z_1 * z_1 * z_1) * a[2];
 #endif
-          cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;
+//          cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;
           target_values[i_trans_ptblockv(target_scell_index,j,k)] +=  ngbr_target_density; //in the current original cells we will put this density        
           target_values[i_trans_ptblockv(0,j,k)] +=  cv - ngbr_target_density; //in the current original cells we will put the rest of the original density
-          cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;
+//          cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;
        }
     }
-    cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;
+//    cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;
     //store values from target_values array to the actual blocks
     store_trans_block_data(mpiGrid, cellID, target_neighbors, blockID,target_values,dimension);
-    cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;
+//    cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;
   }
 
+//  cout<< "Count "<< count++<<" at " << __FILE__ << ":"<<__LINE__<<endl;
   return true;
 }
 
