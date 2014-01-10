@@ -24,7 +24,8 @@ LIB_SILO = -lsilo
 
 INC_DCCRG =
 
-LIB_PROFILE = -lphiprof_debug
+LIB_PROFILE = -lphiprof 
+#_debug
 INC_PROFILE =
 INC_TOPO =
 
