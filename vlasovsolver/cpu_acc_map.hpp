@@ -76,6 +76,16 @@ inline void copy_block_data(Velocity_Block *block,Real * __restrict__ values, in
            block_P1=velocity_neighbor::XCC_YCC_ZP1;
            block_M1=velocity_neighbor::XCC_YCC_ZM1;
            break;
+        default:
+           //same as for dimension 2, mostly here to get rid of compiler warning
+           cell_indices_to_id[0]=1;
+           cell_indices_to_id[1]=1;
+           cell_indices_to_id[2]=1;
+           block_P1=1;
+           block_M1=1;
+           cerr << "Dimension argument wrong: " << dimension << " at " << __FILE__ << ":" << __LINE__ << endl;
+           exit(1);
+           break;
     }
     
     // Construct values
@@ -152,6 +162,12 @@ inline void copy_block_data(Velocity_Block *block,Real * __restrict__ values, in
    Here we map from the current time step grid, to a target grid which
    is the lagrangian departure grid (so th grid at timestep +dt,
    tracked backwards by -dt)
+
+   TODO: parallelize with openMP over block-columns. If one also
+   pre-creates new blocks in a separate loop first (serial operation),
+   then the openmp parallization would scale well (better than over
+   spatial cells), and would not need synchronization.
+   
 */
 
 bool map_1d(SpatialCell* spatial_cell,   
