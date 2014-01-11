@@ -105,7 +105,8 @@ void compute_spatial_source_neighbors(const dccrg::Dccrg<SpatialCell>& mpiGrid,
              break;             
       }             
    }
-
+   neighbors[TRANS_STENCIL_WIDTH] = cellID; //for some reason dccrg does not give the cell itself for an offset of 0,0,0
+   
    CellID last_good_cellID = cellID;
    /*loop to neative side and replace all invalid cells with the closest good cell*/
    for(int i = -1;i>=-TRANS_STENCIL_WIDTH;i--){
@@ -131,6 +132,7 @@ void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell>& mpiGrid,
                                       const CellID& cellID,
                                       const uint dimension,
                                       CellID *neighbors){
+
    for(int i = -1; i <= 1; i++){
       switch (dimension){
           case 0:
@@ -144,6 +146,7 @@ void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell>& mpiGrid,
              break;             
       }             
    }
+   neighbors[1] = cellID; //for some reason dccrg does not give the cell itself for an offset of 0,0,0     
 }
 
 /* Copy the fx data to the temporary values array, so that the
@@ -242,18 +245,23 @@ inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, con
    }
 
    //Store volume averages in target blocks:
-   for (uint b=0; b<3; ++b) {
-      if (target_neighbors[b] == INVALID_CELLID)
+   for (int b=-1; b<=1; ++b) {
+      
+      if (target_neighbors[b + 1] == INVALID_CELLID) {
+         cout << "for b " << b << " invalid cellid"<<endl;
          continue; //do not store to boundary cells or otherwise invalid cells
-      SpatialCell* spatial_cell = mpiGrid[target_neighbors[b]];
+      }
+      SpatialCell* spatial_cell = mpiGrid[target_neighbors[b + 1]];
       Velocity_Block *block = spatial_cell->at(blockID);
       if (spatial_cell->is_null_block(block)) {
          /*block does not exist. If so, we do not create it and add stuff to it here. We
           * have already created blocks around blocks with content in
           * spatial sense, so we have no need to create even more blocks here*/
          /*TODO add loss counter*/
+         cout << "for b " << b << " null block"<<endl;
          continue;
       }
+      cout << "for b " << b << " store data!"<<endl;
       for (uint k=0; k<WID; ++k) {
          for (uint j=0; j<WID; ++j) {
             for (uint i=0; i<WID; ++i) {
@@ -262,6 +270,8 @@ inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, con
                   j * cell_indices_to_id[1] +
                   k * cell_indices_to_id[2];
                /*store data, when reading data from  data we swap dimensions using cell_indices_to_id*/
+               if(target_values[i_trans_ptblockv(b,j,k)][i] > 0.5) 
+                  cout <<"Store denisty "<< target_values[i_trans_ptblockv(b,j,k)][i] << " into "<< i <<", "<< j <<", "<< k <<" in cell " << cell << "in block "<<blockID<<" in cell "<< target_neighbors[b] << " neighbor "<<b<<" of "<<cellID<<endl;
                block->data[cell] += target_values[i_trans_ptblockv(b,j,k)][i];
             }
          }
@@ -320,7 +330,8 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
    uint block_indices_to_id[3]; /*< used when computing id of target block */
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/   
 
-
+   if(spatial_cell->number_of_blocks>0)
+      cout << "Start trans_map_1d in dimension " <<dimension << " with dt " << dt <<endl;
    if(dimension>2)
       return false; //not possible
 
@@ -412,7 +423,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
       for (uint k=0; k<WID; ++k){
          const Real cell_vz = (block_indices[dimension] * WID + k + 0.5) * dvz + vz_min; //cell centered velocity
          const Real z_translation = - cell_vz * dt * i_dz; // how much it moved in time - dt (departure grid) (in units of dz)
-         cout << "z_translation  "<< z_translation<<endl;
+         cout << "z_translation  "<< z_translation<< " cell_vz " << cell_vz << " dt " << dt <<endl;
          const int target_scell_index = (z_translation > 0) ? 1: -1; //part of density goes here (cell index change along spatial direcion)
 	  
          //the coordinates (scaled units) between which we will
@@ -464,14 +475,18 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
             target_values[i_trans_ptblockv(target_scell_index,j,k)] +=  ngbr_target_density; //in the current original cells we will put this density        
             target_values[i_trans_ptblockv(0,j,k)] +=  cv - ngbr_target_density; //in the current original cells we will put the rest of the original density
             for (int elem = 0;elem<4;elem++)
-               cout <<" cv = "<< cv[elem] <<", ngbr_tar get_density = "<< ngbr_target_density[elem] << " at " << __FILE__<<":"<<__LINE__<<endl;
-          
+               if(cv[elem] > 0.1)
+                  cout  <<"ijk "<< elem << "," <<j << "," << k << " cv = "<< cv[elem] <<", ngbr_tar get_density = "<< ngbr_target_density[elem] << " at " << __FILE__<<":"<<__LINE__<<endl;
+            
          }
       }
       //store values from target_values array to the actual blocks
       store_trans_block_data(mpiGrid, cellID, target_neighbors, blockID,target_values,dimension);
    }
 
+   static int count=0;
+   if(spatial_cell->number_of_blocks>0)
+      cout << "cell "<< cellID << ":"<< count /3 << " map done for dim "<<dimension <<endl;
    return true;
 }
 

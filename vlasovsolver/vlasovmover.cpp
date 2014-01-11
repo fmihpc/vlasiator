@@ -64,7 +64,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
   typedef Parameters P;
   int trans_timer;
   
-
+  cout << "Start calculateSpatialTranslation  with dt " << dt <<endl;
   phiprof::start("semilag-trans");
   phiprof::start("compute_cell_lists");
   const vector<CellID> local_cells = mpiGrid.get_cells();
