@@ -81,6 +81,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
                                     * have it separately in X and Y to
                                     * cut down the number of cells
                                     * that are propagated*/ 
+
   propagated_cells.reserve(local_cells.size() + remote_propagated_cells.size() ); //reserve space
   /*add local cells */
   for(uint cell_i = 0;cell_i< local_cells.size();cell_i++) {
@@ -105,6 +106,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
   phiprof::stop("compute_cell_lists");
 
   /* ------------- SLICE - map dist function in Z --------------- */
+
   trans_timer=phiprof::initializeTimer("transfer-stencil-data-z","MPI");
   phiprof::start(trans_timer);
   /*start by doing all transfers in a blocking fashion (communication stage can be optimized separately) */
@@ -158,6 +160,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
      trans_map_1d(mpiGrid,propagated_cells[c], 1, dt); /*< map along y*/
   }
   phiprof::stop("compute-mapping-y");
+
   
 /* Mapping complete, update moments */
   phiprof::start("compute-moments-n-maxdt");
@@ -167,10 +170,10 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
     const Real dx=SC->parameters[CellParams::DX];
     const Real dy=SC->parameters[CellParams::DY];
     const Real dz=SC->parameters[CellParams::DZ];
-    SC->parameters[CellParams::RHO_V  ] = 0.0;
-    SC->parameters[CellParams::RHOVX_V] = 0.0;
-    SC->parameters[CellParams::RHOVY_V] = 0.0;
-    SC->parameters[CellParams::RHOVZ_V] = 0.0;
+    SC->parameters[CellParams::RHO_R  ] = 0.0;
+    SC->parameters[CellParams::RHOVX_R] = 0.0;
+    SC->parameters[CellParams::RHOVY_R] = 0.0;
+    SC->parameters[CellParams::RHOVZ_R] = 0.0;
 
     //Reset spatial max DT
     SC->parameters[CellParams::MAXRDT]=numeric_limits<Real>::max();

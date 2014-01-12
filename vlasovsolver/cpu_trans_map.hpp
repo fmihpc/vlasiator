@@ -253,7 +253,7 @@ inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, con
       if (spatial_cell->is_null_block(block)) {
          /*block does not exist. If so, we do not create it and add stuff to it here. We
           * have already created blocks around blocks with content in
-          * spatial sense, so we have no need to create even more blocks here*/
+,          * spatial sense, so we have no need to create even more blocks here*/
          /*TODO add loss counter*/
          continue;
       }
@@ -394,14 +394,15 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
    for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
       const unsigned int blockID = spatial_cell->velocity_block_list[block_i];
       Velocity_Block * __restrict__ block = spatial_cell->at(blockID);
+      
       /*buffer where we write data, initialized to 0*/
       Vec4 target_values[3 * WID2];
       //init target_values
-      for(uint i = 0;i<3*WID2;i++)
-         target_values[i] = Vec4(0.0);
+      for(uint i = 0; i < 3 * WID2; i++)
+         target_values[i] = Vec4(0.0, 0.0, 0.0, 0.0);
       /*buffer where we read in source data*/
       Real values[(1 + 2 * TRANS_STENCIL_WIDTH) * WID3];
-      copy_trans_block_data(mpiGrid,cellID,source_neighbors,blockID,values,dimension);
+      copy_trans_block_data(mpiGrid, cellID, source_neighbors, blockID, values, dimension);
       velocity_block_indices_t block_indices=SpatialCell::get_velocity_block_indices(blockID);
     
       /*i,j,k are now relative to the order in which we copied data to the values array. 
@@ -416,17 +417,17 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
          const int target_scell_index = (z_translation > 0) ? 1: -1; //part of density goes here (cell index change along spatial direcion)
 	  
          //the coordinates (scaled units) between which we will
-         //integrate to put mass in the targe cell. z_translation
-         //defines the departure grid. As we are below CFL<1, we know
+         //integrate to put mass in the target  neighboring cell. 
+         //As we are below CFL<1, we know
          //that mass will go to two cells: current and the new one.
          Real z_1,z_2;
          if ( z_translation < 0 ) {
-            z_1 = 0.5 + z_translation;
-            z_2 = 0.5;
+            z_1 = -0.5;
+            z_2 = -0.5 - z_translation; 
          }
          else {
-            z_1 = -0.5;
-            z_2 = -0.5 + z_translation;
+            z_1 = 0.5 - z_translation;
+            z_2 = 0.5;
          }
        
          for (uint j = 0; j < WID; ++j){ 
@@ -465,6 +466,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
             target_values[i_trans_ptblockv(0,j,k)] +=  cv - ngbr_target_density; //in the current original cells we will put the rest of the original density
          }
       }
+      
       //store values from target_values array to the actual blocks
       store_trans_block_data(mpiGrid, cellID, target_neighbors, blockID,target_values,dimension);
    }
