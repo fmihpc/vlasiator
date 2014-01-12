@@ -416,18 +416,18 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
          const Real z_translation = cell_vz * dt * i_dz; // how much it moved in time dt (in units of dz)
          const int target_scell_index = (z_translation > 0) ? 1: -1; //part of density goes here (cell index change along spatial direcion)
 	  
-         //the coordinates (scaled units) between which we will
+         //the coordinates (scaled units from 0 to 1) between which we will
          //integrate to put mass in the target  neighboring cell. 
          //As we are below CFL<1, we know
          //that mass will go to two cells: current and the new one.
          Real z_1,z_2;
          if ( z_translation < 0 ) {
-            z_1 = -0.5;
-            z_2 = -0.5 - z_translation; 
+            z_1 = 0;
+            z_2 = -z_translation; 
          }
          else {
-            z_1 = 0.5 - z_translation;
-            z_2 = 0.5;
+            z_1 = 1.0 - z_translation;
+            z_2 = 1.0;
          }
        
          for (uint j = 0; j < WID; ++j){ 
