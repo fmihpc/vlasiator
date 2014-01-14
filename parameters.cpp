@@ -95,7 +95,7 @@ bool P::dynamicTimestep = true;
 Real P::maxAlfvenVelocity = 0.0;
 Real P::resistivity = NAN;
 bool P::fieldSolverDiffusiveEterms = true;
-bool P::ohmHallTerm = false;
+uint P::ohmHallTerm = 0;
 
 Real P::sparseMinValue = NAN;
 uint P::blockAdjustmentInterval = numeric_limits<uint>::max();
@@ -180,7 +180,7 @@ bool Parameters::addParameters(){
    Readparameters::add("fieldsolver.maxAlfvenVelocity", "Maximum Alfven velocity allowed in the fast MS velocity determination in m/s, default unlimited", LARGE_REAL);
    Readparameters::add("fieldsolver.resistivity", "Resistivity for the eta*J term in Ohm's law.", 0.0);
    Readparameters::add("fieldsolver.diffusiveEterms", "Enable diffusive terms in the computation of E",true);
-   Readparameters::add("fieldsolver.ohmHallTerm", "Enable the Hall term in Ohm's law", false);
+   Readparameters::add("fieldsolver.ohmHallTerm", "Enable/choose spatial order of the Hall term in Ohm's law. 0: off, 1: 1st spatial order, 2: 2nd spatial order", 0);
    Readparameters::add("fieldsolver.maxCFL","The maximum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",0.5);
    Readparameters::add("fieldsolver.minCFL","The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",0.4);
 
