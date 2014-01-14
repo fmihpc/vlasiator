@@ -92,7 +92,7 @@ struct Parameters {
    
    static Real maxAlfvenVelocity; /*!< Maximum Alfven velocity allowed in fastMS computation in LDZ. */
    static Real resistivity; /*!< Resistivity in Ohm's law eta*J term. */
-   static bool ohmHallTerm; /*!< Hall term in Ohm's law JXB term. */
+   static uint ohmHallTerm; /*!< Enable/choos spatial order of Hall term in Ohm's law JXB term. 0: off, 1: 1st spatial order, 2: 2nd spatial order. */
    static bool fieldSolverDiffusiveEterms; /*!< Enable resitive terms in the computation of E*/
 
    static Real maxSlAccelerationRotation; /*!< Maximum rotation in acceleration for semilagrangian solver*/
