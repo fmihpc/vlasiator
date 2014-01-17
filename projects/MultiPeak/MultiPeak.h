@@ -47,13 +47,16 @@ namespace projects {
             );
          
          Real rho[2];
-         Real T[2];
+         Real Tx[2];
+         Real Ty[2];
+         Real Tz[2];
          Real Vx[2];
          Real Vy[2];
          Real Vz[2];
          Real Bx;
          Real By;
          Real Bz;
+         Real lambda;
          uint nVelocitySamples;
          
    }; // class MultiPeak
