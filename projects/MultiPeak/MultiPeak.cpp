@@ -56,6 +56,9 @@ namespace projects {
       RP::add("MultiPeak.Bx", "Magnetic field x component (T)", 0.0);
       RP::add("MultiPeak.By", "Magnetic field y component (T)", 0.0);
       RP::add("MultiPeak.Bz", "Magnetic field z component (T)", 0.0);
+      RP::add("MultiPeak.dBx", "Magnetic field x component perturbation amplitude (T)", 0.0);
+      RP::add("MultiPeak.dBy", "Magnetic field y component perturbation amplitude (T)", 0.0);
+      RP::add("MultiPeak.dBz", "Magnetic field z component perturbation amplitude (T)", 0.0);
       RP::add("MultiPeak.lambda", "B perturbation wavelength (m)", 0.0);
       RP::add("MultiPeak.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
    }
@@ -79,6 +82,10 @@ namespace projects {
       RP::get("MultiPeak.Bx", this->Bx);
       RP::get("MultiPeak.By", this->By);
       RP::get("MultiPeak.Bz", this->Bz);
+      RP::get("MultiPeak.dBx", this->dBx);
+      RP::get("MultiPeak.dBy", this->dBy);
+      RP::get("MultiPeak.dBz", this->dBz);
+      RP::get("MultiPeak.lambda", this->lambda);
       RP::get("MultiPeak.nVelocitySamples", this->nVelocitySamples);
    }
 
@@ -111,15 +118,15 @@ namespace projects {
             {
                avg += getDistribValue(vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
             }
-         return avg / pow(this->nVelocitySamples, 3.0);
+            return avg / (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
    }
 
 
 
    void MultiPeak::calcCellParameters(Real* cellParams,creal& t) {
-      cellParams[CellParams::PERBX   ] = 0.1*this->Bx*cos(cellParams[CellParams::XCRD] / lambda);
-      cellParams[CellParams::PERBY   ] = 0.1*this->Bx*sin(cellParams[CellParams::XCRD] / lambda);
-      cellParams[CellParams::PERBZ   ] = 0.1*this->Bx*cos(cellParams[CellParams::XCRD] / lambda);
+      cellParams[CellParams::PERBX   ] = this->dBx*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
+      cellParams[CellParams::PERBY   ] = this->dBy*sin(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
+      cellParams[CellParams::PERBZ   ] = this->dBz*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
    }
 
    void MultiPeak::setCellBackgroundField(SpatialCell* cell) {

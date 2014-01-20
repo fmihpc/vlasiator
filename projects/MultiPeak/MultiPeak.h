@@ -56,6 +56,9 @@ namespace projects {
          Real Bx;
          Real By;
          Real Bz;
+         Real dBx;
+         Real dBy;
+         Real dBz;
          Real lambda;
          uint nVelocitySamples;
          
