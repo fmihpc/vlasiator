@@ -89,11 +89,12 @@ namespace projects {
       //  creal q = 1.60217653e-19; // q_i
       //  creal gamma = 5./3.;
       
-      return
-      this->rho[0] * pow(mass / (2.0 * M_PI * k * sqrt(this->Tx[0]*this->Tx[0] + this->Ty[0]*this->Ty[0] + this->Tz[0]*this->Tz[0])), 1.5) *
-      exp(- mass * (pow(vx - this->Vx[0], 2.0) / (2.0 * k * this->Tx[0]) + pow(vy - this->Vy[0], 2.0) / (2.0 * k * this->Ty[0]) + pow(vz - this->Vz[0], 2.0) / (2.0 * k * this->Tz[0]))) +
-      this->rho[1] * pow(mass / (2.0 * M_PI * k * sqrt(this->Tx[0]*this->Tx[0] + this->Ty[0]*this->Ty[0] + this->Tz[0]*this->Tz[0])), 1.5) *
-      exp(- mass * (pow(vx - this->Vx[1], 2.0) / (2.0 * k * this->Tx[1]) + pow(vy - this->Vy[1], 2.0) / (2.0 * k * this->Ty[1]) + pow(vz - this->Vz[2], 2.0) / (2.0 * k * this->Tz[2])));
+      Real value = 0.0;
+      for(uint i=0; i<2; i++) {
+         value += this->rho[i] * pow(mass / (2.0 * M_PI * k * sqrt(this->Tx[i]*this->Tx[i] + this->Ty[i]*this->Ty[i] + this->Tz[i]*this->Tz[i])), 1.5) *
+      exp(- mass * (pow(vx - this->Vx[i], 2.0) / (2.0 * k * this->Tx[i]) + pow(vy - this->Vy[i], 2.0) / (2.0 * k * this->Ty[i]) + pow(vz - this->Vz[i], 2.0) / (2.0 * k * this->Tz[i])));
+      }
+      return value;
    }
 
 
@@ -117,8 +118,8 @@ namespace projects {
 
    void MultiPeak::calcCellParameters(Real* cellParams,creal& t) {
       cellParams[CellParams::PERBX   ] = 0.1*this->Bx*cos(cellParams[CellParams::XCRD] / lambda);
-      cellParams[CellParams::PERBY   ] = 0.1*this->Bx*sin(cellParams[CellParams::YCRD] / lambda);
-      cellParams[CellParams::PERBZ   ] = 0.1*this->Bz*cos(cellParams[CellParams::ZCRD] / lambda);
+      cellParams[CellParams::PERBY   ] = 0.1*this->Bx*sin(cellParams[CellParams::XCRD] / lambda);
+      cellParams[CellParams::PERBZ   ] = 0.1*this->Bx*cos(cellParams[CellParams::XCRD] / lambda);
    }
 
    void MultiPeak::setCellBackgroundField(SpatialCell* cell) {
