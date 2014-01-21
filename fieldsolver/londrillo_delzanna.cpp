@@ -1750,6 +1750,10 @@ void propagateSysBoundaryMagneticField(
 bool initializeFieldPropagatorAfterRebalance(
         dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
+   // Assume static background field, they are not communicated here
+   // but are assumed to be ok after each load balance as that
+   // communicates all spatial data
+   
    vector<uint64_t> localCells = mpiGrid.get_cells();
    calculateSysBoundaryFlags(mpiGrid,localCells);
    return true;
@@ -1835,12 +1839,10 @@ bool initializeFieldPropagator(
    PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,2,1)); // +y nbr
    
 
-   // ASSUME STATIC background field, we do not later on explicitly transfer it
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_BGB);
-   int timer=phiprof::initializeTimer("Communicate BGB","MPI","Wait");
-   phiprof::start(timer);
-   mpiGrid.update_remote_neighbor_data(FIELD_SOLVER_NEIGHBORHOOD_ID);
-   phiprof::stop(timer);
+   // Assume static background field, they are not communicated here
+   // but are assumed to be ok after each load balance as that
+   // communicates all spatial data
+
    // Calculate derivatives and upwinded edge-E. Exchange derivatives 
    // and edge-E:s between neighbouring processes and calculate 
    // face-averaged E,B fields.

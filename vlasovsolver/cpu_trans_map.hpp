@@ -349,8 +349,9 @@ bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, const Ce
    is the lagrangian departure grid (so th grid at timestep +dt,
    tracked backwards by -dt). This is done in ordinary space in the translation step
 
-   TODO: parallelize with OpenMP over blocks
-*/
+   This function can, and should be, safely called in a parallel
+OpenMP region (as long as it does only one dimension per parallel
+refion). It is safe as each thread only computes certain blocks (blockID%tnum_threads = thread_num */
 
 bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,const uint dimension, const Real dt) {
    /*values used with an stencil in 1 dimension, initialized to 0. Contains a block, and its spatial neighbours in one dimension */  
@@ -358,7 +359,14 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
    SpatialCell* spatial_cell = mpiGrid[cellID];
    uint block_indices_to_id[3]; /*< used when computing id of target block */
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/   
-
+   int thread_id = 0;  //thread id. Default value for serial case
+   int num_threads = 1; //Number of threads. Default value for serial case
+   #ifdef _OPENMP
+   //get actual values if OpenMP is enabled
+   thread_id = omp_get_thread_num();
+   num_threads = omp_get_num_threads(); 
+   #endif
+   
    /*compute spatial neighbors, separately for targets and source. In
     * source cells we have a wider stencil and take into account
     * boundaries. For targets we only have actual cells as we do not
@@ -424,9 +432,11 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
   
    /*Loop over blocks in spatial cell. In ordinary space the number of
     * blocks in this spatial cell does not change*/
-#pragma omp  for nowait
    for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
       const unsigned int blockID = spatial_cell->velocity_block_list[block_i];
+      if(blockID % num_threads != thread_id)
+         continue; //Each thread only computes a certain non-overlapping subset of blocks
+      
       Velocity_Block * __restrict__ block = spatial_cell->at(blockID);
       
       /*buffer where we write data, initialized to 0*/

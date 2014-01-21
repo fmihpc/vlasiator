@@ -131,10 +131,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &is
        dtMaxGlobal[1] << " " <<
        dtMaxGlobal[2] << endl << writeVerbose;
    }
-	
-
    phiprof::stop("compute-timestep");
-
    return true;
 }
 
@@ -223,13 +220,7 @@ int main(int argn,char* args[]) {
       FULL_NEIGHBORHOOD. Block lists up to date for
       VLASOV_SOLVER_NEIGHBORHOOD (but dist function has not been communicated)
    */
-   initializeGrid(
-      argn,
-      args,
-      mpiGrid,
-      sysBoundaries,
-      *project
-   );
+   initializeGrid(argn,args,mpiGrid,sysBoundaries,*project);
    
    isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
    phiprof::stop("Init grid");
@@ -241,12 +232,12 @@ int main(int argn,char* args[]) {
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    phiprof::stop("Init DROs");
    
-   //VlsWriter vlsWriter;
+   //TODO, move to initializeGrid
    if(!P::isRestart) {
      phiprof::start("Init moments");
      //compute moments, and set them  in RHO*. If restart, they are already read in
-      calculateVelocityMoments(mpiGrid);
-      phiprof::stop("Init moments");
+     calculateVelocityMoments(mpiGrid);
+     phiprof::stop("Init moments");
    }
 
 
@@ -540,16 +531,16 @@ int main(int argn,char* args[]) {
                // test cases have to be put here.  In doing this be
                // sure the needed components have been updated.
             }
-            ++P::tstep;
-            P::t += P::dt*0.5;
-            P::dt=newDt;
-            
             //go forward by dt/2 again in x
             if( P::propagateVlasovTranslation)
                calculateSpatialTranslation(mpiGrid, 0.5*P::dt);
             else
                calculateSpatialTranslation(mpiGrid, 0.0);
-
+            ++P::tstep;
+            P::t += P::dt*0.5;
+            P::dt=newDt;
+            
+            
             logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
             phiprof::stop("update-dt");
             continue; //
