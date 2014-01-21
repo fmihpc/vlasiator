@@ -103,15 +103,18 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
      trans_prepare_block_data(mpiGrid,remote_stencil_cells_z[c]);
   phiprof::stop("prepare-block-data-z");  
   phiprof::start("compute-mapping-z");
-  for (size_t c=0; c<local_cells.size(); ++c) {
-     if(do_translate_cell(mpiGrid[local_cells[c]]))
-        trans_map_1d(mpiGrid,local_cells[c], 2, dt); /*< map along z*/
+#pragma omp parallel
+  {
+     for (size_t c=0; c<local_cells.size(); ++c) {
+        if(do_translate_cell(mpiGrid[local_cells[c]]))
+           trans_map_1d(mpiGrid,local_cells[c], 2, dt); /*< map along z*/
+     }
+     for (size_t c=0; c<remote_propagated_cells_z.size();c++){
+        if(do_translate_cell(mpiGrid[remote_propagated_cells_z[c]]))
+           trans_map_1d(mpiGrid,remote_propagated_cells_z[c], 2, dt); /*< map along z*/
+     }
   }
-  for (size_t c=0; c<remote_propagated_cells_z.size();c++){
-     if(do_translate_cell(mpiGrid[remote_propagated_cells_z[c]]))
-        trans_map_1d(mpiGrid,remote_propagated_cells_z[c], 2, dt); /*< map along z*/
-  }
-  phiprof::stop("compute-mapping-z");
+phiprof::stop("compute-mapping-z");
 
 
 /* ------------- SLICE - map dist function in X --------------- */
@@ -128,13 +131,16 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
      trans_prepare_block_data(mpiGrid,remote_stencil_cells_x[c]);
   phiprof::stop("prepare-block-data-x");  
   phiprof::start("compute-mapping-x");
-  for (size_t c=0; c<local_cells.size(); ++c) {
-     if(do_translate_cell(mpiGrid[local_cells[c]]))
-        trans_map_1d(mpiGrid,local_cells[c], 0, dt); /*< map along x*/
-  }
-  for (size_t c=0; c<remote_propagated_cells_x.size();c++){
-     if(do_translate_cell(mpiGrid[remote_propagated_cells_x[c]]))
-        trans_map_1d(mpiGrid,remote_propagated_cells_x[c], 0, dt); /*< map along x*/
+#pragma omp parallel
+  {
+     for (size_t c=0; c<local_cells.size(); ++c) {
+        if(do_translate_cell(mpiGrid[local_cells[c]]))
+           trans_map_1d(mpiGrid,local_cells[c], 0, dt); /*< map along x*/
+     }
+     for (size_t c=0; c<remote_propagated_cells_x.size();c++){
+        if(do_translate_cell(mpiGrid[remote_propagated_cells_x[c]]))
+           trans_map_1d(mpiGrid,remote_propagated_cells_x[c], 0, dt); /*< map along x*/
+     }
   }
   phiprof::stop("compute-mapping-x");
 
@@ -153,13 +159,16 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
      trans_prepare_block_data(mpiGrid,remote_stencil_cells_y[c]);
   phiprof::stop("prepare-block-data-y");  
   phiprof::start("compute-mapping-y");
-  for (size_t c=0; c<local_cells.size(); ++c) {
-     if(do_translate_cell(mpiGrid[local_cells[c]]))
-        trans_map_1d(mpiGrid,local_cells[c], 1, dt); /*< map along y*/
-  }
-  for (size_t c=0; c<remote_propagated_cells_y.size();c++){
-     if(do_translate_cell(mpiGrid[remote_propagated_cells_y[c]]))
-        trans_map_1d(mpiGrid,remote_propagated_cells_y[c], 1, dt); /*< map along y*/
+#pragma omp parallel
+  {
+     for (size_t c=0; c<local_cells.size(); ++c) {
+        if(do_translate_cell(mpiGrid[local_cells[c]]))
+           trans_map_1d(mpiGrid,local_cells[c], 1, dt); /*< map along y*/
+     }
+     for (size_t c=0; c<remote_propagated_cells_y.size();c++){
+        if(do_translate_cell(mpiGrid[remote_propagated_cells_y[c]]))
+           trans_map_1d(mpiGrid,remote_propagated_cells_y[c], 1, dt); /*< map along y*/
+     }
   }
   phiprof::stop("compute-mapping-y");
 

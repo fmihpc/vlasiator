@@ -362,10 +362,6 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
    uint block_indices_to_id[3]; /*< used when computing id of target block */
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/   
 
-   if(dimension>2)
-      return false; //not possible
-
-
    /*compute spatial neighbors, separately for targets and source. In
     * source cells we have a wider stencil and take into account
     * boundaries. For targets we only have actual cells as we do not
@@ -419,17 +415,19 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
           cell_indices_to_id[0]=1;
           cell_indices_to_id[1]=WID;
           cell_indices_to_id[2]=WID2;
+          break;
 
-    
+       default:
+          cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
+          abort();
           break;
    }
    const Real i_dz=1.0/dz;
 
   
    /*Loop over blocks in spatial cell. In ordinary space the number of
-    * blocks in this spatial cell does not change, blocks in
-    * neighboring cells might*/
-  
+    * blocks in this spatial cell does not change*/
+#pragma omp  for nowait
    for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
       const unsigned int blockID = spatial_cell->velocity_block_list[block_i];
       Velocity_Block * __restrict__ block = spatial_cell->at(blockID);
@@ -452,7 +450,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
     
       for (uint k=0; k<WID; ++k){
          const Real cell_vz = (block_indices[dimension] * WID + k + 0.5) * dvz + vz_min; //cell centered velocity
-         const Real z_translation = cell_vz * dt * i_dz; // how much it moved in time dt (in units of dz)
+         const Real z_translation = cell_vz * dt * i_dz; // how much it moved in time dt (reduced units)
          const int target_scell_index = (z_translation > 0) ? 1: -1; //part of density goes here (cell index change along spatial direcion)
 	  
          //the coordinates (scaled units from 0 to 1) between which we will
