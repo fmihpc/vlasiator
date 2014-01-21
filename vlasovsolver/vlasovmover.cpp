@@ -63,8 +63,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
 				 creal dt) {
   typedef Parameters P;
   int trans_timer;
-  
-  cout << "Start calculateSpatialTranslation  with dt " << dt <<endl;
+
   phiprof::start("semilag-trans");
   phiprof::start("compute_cell_lists");
   const vector<CellID> local_cells = mpiGrid.get_cells();
@@ -107,7 +106,6 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
   phiprof::stop("compute_cell_lists");
 
   /* ------------- SLICE - map dist function in Z --------------- */
-
   trans_timer=phiprof::initializeTimer("transfer-stencil-data-z","MPI");
   phiprof::start(trans_timer);
   /*start by doing all transfers in a blocking fashion (communication stage can be optimized separately) */
