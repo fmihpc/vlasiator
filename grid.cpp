@@ -39,9 +39,6 @@ void initVelocityGridGeometry();
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell>& mpiGrid);
 void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
-bool adjust_local_velocity_blocks(dccrg::Dccrg<SpatialCell>& mpiGrid);
-
-
 void initializeGrid(
    int argn,
    char **argc,
@@ -356,8 +353,10 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
 //Compute which blocks have content, adjust local velocity blocks, and
 //make sure remote cells are up-to-date and ready to receive
 //data. Solvers are also updated so that their internal structures are
-//ready for the new number of blocks.
-
+//ready for the new number of blocks.  Blocks exist if they have
+//contents, or if their nearest neighbor in spatial or velocity space
+//have content. Note that block existence does not use vlasov stencil
+//as it is important to also include diagonals to avoid massloss
 bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    phiprof::initializeTimer("re-adjust blocks","Block adjustment");
    phiprof::start("re-adjust blocks");
@@ -368,13 +367,13 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    for (uint i=0; i<cells.size(); ++i) 
      mpiGrid[cells[i]]->update_velocity_block_content_lists();
    phiprof::stop("Compute with_content_list");
-
+   
    phiprof::initializeTimer("Transfer with_content_list","MPI");
    phiprof::start("Transfer with_content_list");
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1 );
-   mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+   mpiGrid.update_remote_neighbor_data(NEAREST_NEIGHBORHOOD_ID);
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2 );
-   mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+   mpiGrid.update_remote_neighbor_data(NEAREST_NEIGHBORHOOD_ID);
    phiprof::stop("Transfer with_content_list");
 
    
@@ -388,7 +387,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
      SpatialCell* cell = mpiGrid[cell_id];
      
      // gather spatial neighbor list and create vector with pointers to neighbor spatial cells
-     const vector<uint64_t>* neighbors = mpiGrid.get_neighbors(cell_id, VLASOV_SOLVER_NEIGHBORHOOD_ID);
+     const vector<uint64_t>* neighbors = mpiGrid.get_neighbors(cell_id, NEAREST_NEIGHBORHOOD_ID);
      vector<SpatialCell*> neighbor_ptrs;
      neighbor_ptrs.reserve(neighbors->size());
      for (vector<uint64_t>::const_iterator neighbor_id = neighbors->begin();
