@@ -20,14 +20,13 @@ CXXFLAGS += -DPROFILE
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
 CXXFLAGS += -DNDEBUG
 
-#Set order of semilag solver in acceleration
+#Set order of semilag solver in velocity space acceleration
 #  ACC_SEMILAG_PCONSTM	1st order
 #  ACC_SEMILAG_PLM 	2nd order	
 #  ACC_SEMILAG_PPM	3rd order (use this one unless you are testing, only ~20% slower than 2nd order)
 #Set order of semilag solver in spatial translation
-#  TRANS_SEMILAG_PCONSTM	1st order
 #  TRANS_SEMILAG_PLM 	2nd order	
-#  TRANS_SEMILAG_PPM	3rd order (use this one unless you are testing, only ~20% slower than 2nd order)
+#  TRANS_SEMILAG_PPM	3rd order 
 CXXFLAGS += -DACC_SEMILAG_PPM -DTRANS_SEMILAG_PPM
 #define USE_AGNER_VECTORCLASS to use an external vector class that is used in some of the solvers
 #If not defined a slower but portable implementation is used, as the external one only supports 

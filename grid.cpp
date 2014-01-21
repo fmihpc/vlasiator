@@ -550,9 +550,6 @@ FULL (Includes all possible communication for PPM stencil width of 3)
 
 void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
    
-#ifdef TRANS_SEMILAG_PCONSTM
-   const int vlasov_stencil_width=1;
-#endif
 #ifdef TRANS_SEMILAG_PLM
    const int vlasov_stencil_width=2;
 #endif

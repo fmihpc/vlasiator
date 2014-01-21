@@ -12,9 +12,6 @@
 #include "spatial_cell.hpp"
 #include "cpu_1d_interpolations.hpp"
 
-#ifdef TRANS_SEMILAG_PCONSTM
-#define  TRANS_STENCIL_WIDTH 0
-#endif
 #ifdef TRANS_SEMILAG_PLM
 #define  TRANS_STENCIL_WIDTH 1
 #endif
