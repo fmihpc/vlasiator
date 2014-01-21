@@ -69,20 +69,15 @@ void initializeGrid(
 
    
    MPI_Comm comm = MPI_COMM_WORLD;
-#ifdef TRANS_SEMILAG_PCONSTM
-   const int vlasov_stencil_width=1;
-#endif
-#ifdef TRANS_SEMILAG_PLM
-   const int vlasov_stencil_width=2;
-#endif
+   int neighborhood_size = 2; // At least this needed by fieldsolver
 #if TRANS_SEMILAG_PPM
-   const int vlasov_stencil_width=3;
+   neighborhood_size = 3; //PPM requires wider stencil
 #endif
 
    mpiGrid.initialize(
       comm,
       &P::loadBalanceAlgorithm[0],
-      vlasov_stencil_width, // neighborhood size
+      neighborhood_size, // neighborhood size
       0, // maximum refinement level
       sysBoundaries.isBoundaryPeriodic(0),
       sysBoundaries.isBoundaryPeriodic(1),

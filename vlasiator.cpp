@@ -462,9 +462,7 @@ int main(int argn,char* args[]) {
          }
          if (myRank == MASTER_RANK)
             logFile << "(IO): .... done!"<< endl << writeVerbose;
-            
-         phiprof::stop("write-restart");
-         
+         phiprof::stop("write-restart");         
       }   
       
       phiprof::stop("IO");
@@ -478,10 +476,9 @@ int main(int argn,char* args[]) {
          P::t >= P::t_max) {
          break;
       }
-
-      
       
       //Re-loadbalance if needed
+      //TODO - add LB measure nad do LB if it exceeds threshold
       if( P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          balanceLoad(mpiGrid);
