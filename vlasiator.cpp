@@ -216,6 +216,13 @@ int main(int argn,char* args[]) {
    phiprof::stop("open logFile & diagnostic");
    
    phiprof::start("Init grid");
+   /* Initialize grid.  After initializeGrid local cells have dist
+      functions, and B fields set. Cells have also been classified for
+      the various sys boundary conditions.  All remote cells have been
+      created. All spatial date computed this far is up to date for
+      FULL_NEIGHBORHOOD. Block lists up to date for
+      VLASOV_SOLVER_NEIGHBORHOOD (but dist function has not been communicated)
+   */
    initializeGrid(
       argn,
       args,
@@ -223,6 +230,7 @@ int main(int argn,char* args[]) {
       sysBoundaries,
       *project
    );
+   
    isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
    phiprof::stop("Init grid");
    

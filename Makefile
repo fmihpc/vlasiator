@@ -29,7 +29,6 @@ CXXFLAGS += -DNDEBUG
 #  TRANS_SEMILAG_PLM 	2nd order	
 #  TRANS_SEMILAG_PPM	3rd order (use this one unless you are testing, only ~20% slower than 2nd order)
 CXXFLAGS += -DACC_SEMILAG_PPM -DTRANS_SEMILAG_PPM
-
 #define USE_AGNER_VECTORCLASS to use an external vector class that is used in some of the solvers
 #If not defined a slower but portable implementation is used, as the external one only supports 
 #Linux & x86 processors  

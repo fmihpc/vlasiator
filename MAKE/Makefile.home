@@ -2,6 +2,7 @@ CMP = mpic++
 LNK = mpic++
 
 FLAGS =
+#CXXFLAGS = -I $(HOME)/include  -L $(HOME)/lib -g  -funroll-loops -std=c++0x -fopenmp -W -Wall -pedantic -Wno-unused -fabi-version=0 -mavx
 CXXFLAGS = -I $(HOME)/include  -L $(HOME)/lib -O3  -funroll-loops -std=c++0x -fopenmp -W -Wall -pedantic -Wno-unused -fabi-version=0 -mavx
 MATHFLAGS = -ffast-math
 LDFLAGS = -L $(HOME)/lib
@@ -24,8 +25,7 @@ LIB_SILO = -lsilo
 
 INC_DCCRG =
 
-LIB_PROFILE = -lphiprof 
-#_debug
+LIB_PROFILE = -lphiprof_debug
 INC_PROFILE =
 INC_TOPO =
 

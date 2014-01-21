@@ -138,9 +138,10 @@ void initializeGrid(
          project.setCellBackgroundField(cell);
       }
       
-   } else {
-     //Initial state based on project, background field in all cells
-     //and other initial values in non-sysboundary cells
+   }
+   else {
+      //Initial state based on project, background field in all cells
+      //and other initial values in non-sysboundary cells
       phiprof::start("Apply initial state");
       // Go through every cell on this node and initialize the 
       //    -Background field on all cells
@@ -161,12 +162,11 @@ void initializeGrid(
          cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
          exit(1);
       }
-      
       phiprof::stop("Apply system boundary conditions state");
-
-   
       updateRemoteVelocityBlockLists(mpiGrid);
       adjustVelocityBlocks(mpiGrid); // do not initialize mover, mover has not yet been initialized here
+
+
    }
 
    
@@ -175,10 +175,10 @@ void initializeGrid(
    
    phiprof::initializeTimer("Fetch Neighbour data","MPI");
    phiprof::start("Fetch Neighbour data");
-   // update complete spatial cell data
-   //FIXME: here we transfer all data so that all remote cells have up-to-date data. Should not be needed...?
-   SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
-   mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+   // update complet cell spatial data for full stencil (
+   SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
+   mpiGrid.update_remote_neighbor_data(FULL_NEIGHBORHOOD_ID);
+
    phiprof::stop("Fetch Neighbour data");
    phiprof::stop("Set initial state");
 
@@ -329,11 +329,18 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    for (uint i=0; i<cells.size(); ++i) 
       mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);
 
+   // Communicate all spatial data for FULL neighborhood, which
+   // includes all data with the exception of dist function data
+   SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
+   mpiGrid.update_remote_neighbor_data(FULL_NEIGHBORHOOD_ID);
+
+
    phiprof::start("update block lists");
    //new partition, re/initialize blocklists of remote cells.
    updateRemoteVelocityBlockLists(mpiGrid);
    phiprof::stop("update block lists");
-
+   
+   
    phiprof::start("Init solvers");
    // Initialize field propagator:
    if (initializeFieldPropagatorAfterRebalance(mpiGrid) == false) {
@@ -341,11 +348,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
        exit(1);
    }
    
-   // The following is done so that everyone knows their neighbour's layer flags.
-   // This is needed for the correct use of the system boundary local communication patterns.
-   // Done initially in sysboundarycondition.cpp:classifyCells().
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
-   mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+
    phiprof::stop("Init solvers");   
    phiprof::stop("Balancing load");
 }
@@ -495,74 +498,63 @@ void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell>& mpiGrid)
    }
    phiprof::stop("Preparing receives", incoming_cells.size(), "SpatialCells");
 }
+/*
+  Set stencils. These are the stencils (in 2D, real ones in 3D of
+  course). x are stencil neighbor to cell local cell o:
 
+NEAREST FIELD_SOLVER  SYSBOUNDARIES  (nearest neighbor)
+-----------
+  xxx
+  xox
+  xxx
+-----------
+
+EXTENDED_SYSBOUNDARIES (second nearest neighbor, also in diagonal)
+-----------
+  xxxxx
+  xxxxx
+  xxoxx
+  xxxxx
+  xxxxx
+-----------  
+
+VLASOV
+-----------  
+    x
+    x
+    x
+ xxxoxxx
+    x
+    x
+    x
+-----------    
+
+VLASOV_{XYZ}
+-----------
+ xxxoxxxx
+-----------
+
+VLASOV_SOURCE
+-----------
+   x
+  xox
+   x
+-----------
+   
+FULL (Includes all possible communication for PPM stencil width of 3)
+-----------
+    x
+  xxxxx
+  xxxxx
+ xxxoxxx
+  xxxxx
+  xxxxx
+    x
+-----------
+    
+*/
 
 void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
-
-   // set reduced neighborhoods
-   typedef dccrg::Types<3>::neighborhood_item_t neigh_t;
-   
-   // set a reduced neighborhood for field solver
-   std::vector<neigh_t> nearestneighbor_neighborhood;
-   for (int z = -1; z <= 1; z++) {
-      for (int y = -1; y <= 1; y++) {
-         for (int x = -1; x <= 1; x++) {
-            if (x == 0 && y == 0 && z == 0) {
-               continue;
-            }            
-            neigh_t offsets = {{x, y, z}};
-            nearestneighbor_neighborhood.push_back(offsets);
-         }
-      }
-   }
-   
-   if (!mpiGrid.add_remote_update_neighborhood(FIELD_SOLVER_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
-      std::cerr << __FILE__ << ":" << __LINE__
-         << " Couldn't set field solver neighborhood"
-         << std::endl;
-      abort();
-   }
-
-
-   if (!mpiGrid.add_remote_update_neighborhood(NEAREST_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
-      std::cerr << __FILE__ << ":" << __LINE__
-         << " Couldn't set field solver neighborhood"
-         << std::endl;
-      abort();
-   }
-
-   if (!mpiGrid.add_remote_update_neighborhood(SYSBOUNDARIES_NEIGHBORHOOD_ID, nearestneighbor_neighborhood)) {
-      std::cerr << __FILE__ << ":" << __LINE__
-      << " Couldn't set system boundaries neighborhood"
-      << std::endl;
-      abort();
-   }
-
-   
-
-   std::vector<neigh_t> twonearestneighbor_neighborhood;
-   for (int z = -2; z <= 2; z++) {
-      for (int y = -2; y <= 2; y++) {
-         for (int x = -2; x <= 2; x++) {
-            if (x == 0 && y == 0 && z == 0) {
-               continue;
-            }
-            
-            neigh_t offsets = {{x, y, z}};
-            twonearestneighbor_neighborhood.push_back(offsets);
-         }
-      }
-   }
-   
-   if (!mpiGrid.add_remote_update_neighborhood(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID, twonearestneighbor_neighborhood)) {
-      std::cerr << __FILE__ << ":" << __LINE__
-      << " Couldn't set system boundaries extended neighborhood"
-      << std::endl;
-      abort();
-   }
-
-
-   /*stencils for semilagrangian propagators*/ 
    
 #ifdef TRANS_SEMILAG_PCONSTM
    const int vlasov_stencil_width=1;
@@ -573,69 +565,102 @@ void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
 #if TRANS_SEMILAG_PPM
    const int vlasov_stencil_width=3;
 #endif
-   std::vector<neigh_t> vlasov_neighborhood;   
+   
+   // set reduced neighborhoods
+   typedef dccrg::Types<3>::neighborhood_item_t neigh_t;
+   
+   // set a reduced neighborhood for field solver
+   std::vector<neigh_t> neighborhood;
+   for (int z = -1; z <= 1; z++) {
+      for (int y = -1; y <= 1; y++) {
+         for (int x = -1; x <= 1; x++) {
+            if (x == 0 && y == 0 && z == 0) {
+               continue;
+            }            
+            neigh_t offsets = {{x, y, z}};
+            neighborhood.push_back(offsets);
+         }
+      }
+   }
+   mpiGrid.add_remote_update_neighborhood(FIELD_SOLVER_NEIGHBORHOOD_ID, neighborhood);
+   mpiGrid.add_remote_update_neighborhood(NEAREST_NEIGHBORHOOD_ID, neighborhood);
+   mpiGrid.add_remote_update_neighborhood(SYSBOUNDARIES_NEIGHBORHOOD_ID, neighborhood);
+
+   neighborhood.clear();
+   for (int z = -2; z <= 2; z++) {
+      for (int y = -2; y <= 2; y++) {
+         for (int x = -2; x <= 2; x++) {
+            if (x == 0 && y == 0 && z == 0) {
+               continue;
+            }
+            neigh_t offsets = {{x, y, z}};
+            neighborhood.push_back(offsets);
+         }
+      }
+   }
+   mpiGrid.add_remote_update_neighborhood(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID, neighborhood);
+
+   if(vlasov_stencil_width>=3) {
+      /*add face neighbors if stencil width larger than 2*/
+      neighborhood.push_back({{ vlasov_stencil_width, 0, 0}});
+      neighborhood.push_back({{-vlasov_stencil_width, 0, 0}});
+      neighborhood.push_back({{0, vlasov_stencil_width, 0}});
+      neighborhood.push_back({{0,-vlasov_stencil_width, 0}});
+      neighborhood.push_back({{0, 0, vlasov_stencil_width}});
+      neighborhood.push_back({{0, 0,-vlasov_stencil_width}});     
+   }
+   /*all possible communication pairs*/
+   mpiGrid.add_remote_update_neighborhood(FULL_NEIGHBORHOOD_ID, neighborhood);
+
+   
+   /*stencils for semilagrangian propagators*/ 
+   neighborhood.clear();
    for (int d = -vlasov_stencil_width; d <= vlasov_stencil_width; d++) {
      if (d != 0) {
-        vlasov_neighborhood.push_back({{d, 0, 0}});
-        vlasov_neighborhood.push_back({{0, d, 0}});
-        vlasov_neighborhood.push_back({{0, 0, d}});
+        neighborhood.push_back({{d, 0, 0}});
+        neighborhood.push_back({{0, d, 0}});
+        neighborhood.push_back({{0, 0, d}});
      }
    }
-   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_NEIGHBORHOOD_ID, vlasov_neighborhood)) {
-      std::cerr << __FILE__ << ":" << __LINE__
-                << " Couldn't set vlasov solver neighborhood"
-                << std::endl;
-      abort();
-   }
-   vlasov_neighborhood.clear();
+   mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_NEIGHBORHOOD_ID, neighborhood);
+
+   
+   neighborhood.clear();
    for (int d = -vlasov_stencil_width; d <= vlasov_stencil_width; d++) {
      if (d != 0) {
-        vlasov_neighborhood.push_back({{d, 0, 0}});
+        neighborhood.push_back({{d, 0, 0}});
      }
    }
-   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_X_NEIGHBORHOOD_ID, vlasov_neighborhood)) {
-      std::cerr << __FILE__ << ":" << __LINE__
-                << " Couldn't set vlasov solver neighborhood in x dimenension"
-                << std::endl;
-      abort();
-   }
-   vlasov_neighborhood.clear();
+   mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_X_NEIGHBORHOOD_ID, neighborhood);
+
+   
+   neighborhood.clear();
    for (int d = -vlasov_stencil_width; d <= vlasov_stencil_width; d++) {
      if (d != 0) {
-        vlasov_neighborhood.push_back({{0, d, 0}});
+        neighborhood.push_back({{0, d, 0}});
      }
    }
-   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID, vlasov_neighborhood)) {
-      std::cerr << __FILE__ << ":" << __LINE__
-                << " Couldn't set vlasov solver neighborhood in x dimenension"
-                << std::endl;
-      abort();
-   }
-   vlasov_neighborhood.clear();
+   mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID, neighborhood);
+
+   
+   neighborhood.clear();
    for (int d = -vlasov_stencil_width; d <= vlasov_stencil_width; d++) {
      if (d != 0) {
-        vlasov_neighborhood.push_back({{0, 0, d}});
+        neighborhood.push_back({{0, 0, d}});
      }
    }
-   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID, vlasov_neighborhood)) {
-      std::cerr << __FILE__ << ":" << __LINE__
-                << " Couldn't set vlasov solver neighborhood in x dimenension"
-                << std::endl;
-      abort();
-   }
+   mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID, neighborhood);
+
+   neighborhood.clear();
    for (int d = -1; d <= 1; d++) {
      if (d != 0) {
-        vlasov_neighborhood.push_back({{d, 0, 0}});
-        vlasov_neighborhood.push_back({{0, d, 0}});
-        vlasov_neighborhood.push_back({{0, 0, d}});
+        neighborhood.push_back({{d, 0, 0}});
+        neighborhood.push_back({{0, d, 0}});
+        neighborhood.push_back({{0, 0, d}});
      }
    }
-   if (!mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_SOURCE_NEIGHBORHOOD_ID, vlasov_neighborhood)) {
-      std::cerr << __FILE__ << ":" << __LINE__
-                << " Couldn't set vlasov solver neighborhood"
-                << std::endl;
-      abort();
-   }
+   mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_SOURCE_NEIGHBORHOOD_ID, neighborhood);
+
 
    
 

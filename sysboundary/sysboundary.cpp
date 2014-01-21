@@ -219,22 +219,27 @@ bool SysBoundary::initSysBoundaries(
 bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    bool success = true;
    vector<CellID> cells = mpiGrid.get_cells();
-   
+
+   /*set all cells to default value, not_sysboundary*/
    for(uint i=0; i<cells.size(); i++) {
       mpiGrid[cells[i]]->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
    }
-   
+   /*
+     loop through sysboundaries and let all sysboundaries set in local
+   cells if they are part of which sysboundary (cell location needs to
+   be updated by now. No remote data needed/available, so assignement
+   has to be based individually on each cells location
+   */
    list<SBC::SysBoundaryCondition*>::iterator it;
-   for (it = sysBoundaries.begin();
-        it != sysBoundaries.end();
-        it++) {
+   for (it = sysBoundaries.begin(); it != sysBoundaries.end(); it++) {
       success = success && (*it)->assignSysBoundary(mpiGrid);
    }
    
+   /*communicate boundary assignements (sysBoundaryFlag and
+    * sysBoundaryLayer communicated)*/
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_NEIGHBORHOOD_ID);
-   int rank;
-   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+
 
    /*set distance 1 cells to boundary cells, that have neighbors which are normal cells */
    for(uint i=0; i<cells.size(); i++) {
@@ -250,13 +255,14 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid) {
          }
       }
    }
-   
+
+   /*communicate which cells have Layer 1 set above for local cells (sysBoundaryFlag
+    * and sysBoundaryLayer communicated)*/
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_NEIGHBORHOOD_ID);
    
    /*Compute distances*/
-   /*Construct vector with all cells, both local and remote*/
-   uint maxLayers=10;
+   uint maxLayers=max(max(P::xcells_ini, P::ycells_ini), P::zcells_ini);
    for(uint layer=1;layer<maxLayers;layer++){
       for(uint i=0; i<cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryLayer==0){
@@ -275,7 +281,8 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_NEIGHBORHOOD_ID);
    }
    
-   
+   /*set cells to DO_NOT_COMPUTE if they are on boundary, and are not
+    * in the first two layers of the boundary*/
    for(uint i=0; i<cells.size(); i++) {
       if(mpiGrid[cells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
          mpiGrid[cells[i]]->sysBoundaryLayer != 1 &&
@@ -285,10 +292,11 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       }
    }
    
-   // The following is done so that everyone knows their neighbour's layer flags.
-   // This is needed for the correct use of the system boundary local communication patterns.
+   // The following is done so that everyone knows their neighbour's
+   // layer flags.  This is needed for the correct use of the system
+   // boundary local communication patterns.
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
-   mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+   mpiGrid.update_remote_neighbor_data(FULL_NEIGHBORHOOD_ID);
    
    return success;
 }

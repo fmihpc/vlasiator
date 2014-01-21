@@ -1,22 +1,8 @@
 /*
 This file is part of Vlasiator.
-
 Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
-
-
-
-
-
-
-
-
-
-
-
-*/
-
-/*! \file londrillo_delzanna.cpp
+ *! \file londrillo_delzanna.cpp
  * \brief Londrillo -- Del Zanna upwind constrained transport field solver.
  * 
  * On the divergence-free condition in Godunov-type schemes for
@@ -56,8 +42,11 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "phiprof.hpp"
 #include "sysboundary/sysboundary.h"
 #include "sysboundary/sysboundarycondition.h"
+#include "boost/format.hpp"
+
 
 using namespace std;
+
 using namespace fieldsolver;
 
 #include <stdint.h>
@@ -198,41 +187,6 @@ CellID getNeighbourID(
      abort();
    }
 
-   // FIXME: only face and edge neighbors should be required?
-   /*if (i == 1 && j == 1 && k == 1) {
-     cerr << __FILE__ << ":" << __LINE__ << endl;
-     abort();
-   }
-   if (i == 1 && j == 1 && k == 3) {
-     cerr << __FILE__ << ":" << __LINE__ << endl;
-     abort();
-   }
-   if (i == 1 && j == 3 && k == 1) {
-     cerr << __FILE__ << ":" << __LINE__ << endl;
-     abort();
-   }
-   if (i == 1 && j == 3 && k == 3) {
-     cerr << __FILE__ << ":" << __LINE__ << endl;
-     abort();
-   }
-   if (i == 3 && j == 1 && k == 1) {
-     cerr << __FILE__ << ":" << __LINE__ << endl;
-     abort();
-   }
-   if (i == 3 && j == 1 && k == 3) {
-     cerr << __FILE__ << ":" << __LINE__ << endl;
-     abort();
-   }
-   if (i == 3 && j == 3 && k == 1) {
-     cerr << __FILE__ << ":" << __LINE__ << endl;
-     abort();
-   }
-   if (i == 3 && j == 3 && k == 3) {
-     cerr << __FILE__ << ":" << __LINE__ << endl;
-     abort();
-   }*/
-   //#endif
-
    const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of(cellID, int(i) - 2, int(j) - 2, int(k) - 2);
    if (neighbors.size() == 0) {
       cerr << __FILE__ << ":" << __LINE__
@@ -252,20 +206,24 @@ static void calculateSysBoundaryFlags(
    sysBoundaryFlags.clear();
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];
-      
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
       
       // Raise the bit for each existing cell within a 3x3 cube of 
       // spatial cells. This cell sits at the center of the cube.
       uint sysBoundaryFlag = (1 << calcNbrNumber(1,1,1)); // The cell itself exists (bit 13 set to 1)
       
-      for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
-         if (i == 0 && (j == 0 && k == 0)) continue;
-         const CellID nbr = getNeighbourID(mpiGrid, cellID, 2 + i, 2 + j, 2 + k);
-         if (nbr == INVALID_CELLID) continue;
-         if (mpiGrid[nbr]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-         sysBoundaryFlag = sysBoundaryFlag | (1 << calcNbrNumber(1+i,1+j,1+k));
-      }
+      for (int k=-1; k<2; ++k)
+         for (int j=-1; j<2; ++j)
+            for (int i=-1; i<2; ++i) {
+               if (i == 0 && (j == 0 && k == 0)) continue;
+               const CellID nbr = getNeighbourID(mpiGrid, cellID, 2 + i, 2 + j, 2 + k);
+               if (nbr == INVALID_CELLID)
+                  continue;
+               
+               if (mpiGrid[nbr]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
+                  continue;
+               sysBoundaryFlag = sysBoundaryFlag | (1 << calcNbrNumber(1+i,1+j,1+k));
+            }
       sysBoundaryFlags[cellID] = sysBoundaryFlag;
    }
 }
@@ -1786,27 +1744,14 @@ void propagateSysBoundaryMagneticField(
    }
 }
 
+/*re-init field propagater after rebalance. E, BGB, RHO, RHO_V,
+  cell_dimensions, sysboundaryflag need to be up to date for the
+  extended neighborhood*/  
 bool initializeFieldPropagatorAfterRebalance(
         dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
    vector<uint64_t> localCells = mpiGrid.get_cells();
-
    calculateSysBoundaryFlags(mpiGrid,localCells);
-
-   // need E when computing magnetic field later on
-   // ASSUME STATIC background field, we do not later on explicitly transfer it!
-   SpatialCell::set_mpi_transfer_type(
-      Transfer::CELL_E |
-      Transfer::CELL_BGB |
-      Transfer::CELL_RHO_RHOV |
-      Transfer::CELL_DIMENSIONS
-   );
-   int timer=phiprof::initializeTimer("Communicate E and BGB","MPI","Wait");
-   phiprof::start(timer);
-   // CELL_DIMENSIONS is needed in the extended neighborhood, thus taking the larger.
-   mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
-   phiprof::stop(timer);
-   
    return true;
 }
 

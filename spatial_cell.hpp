@@ -91,11 +91,16 @@ namespace spatial_cell {
       const uint64_t CELL_DIMENSIONS          = (1<<19);
       const uint64_t CELL_IOLOCALCELLID       = (1<<20);
       
+      //all data, expect for the fx table (never needed on remote cells)
       const uint64_t ALL_DATA =
       CELL_PARAMETERS
       | CELL_DERIVATIVES | CELL_BVOL_DERIVATIVES
       | VEL_BLOCK_DATA
-      | VEL_BLOCK_FLUXES
+      | CELL_SYSBOUNDARYFLAG;
+      //all data, except the distribution function
+      const uint64_t ALL_SPATIAL_DATA =
+      CELL_PARAMETERS
+      | CELL_DERIVATIVES | CELL_BVOL_DERIVATIVES
       | CELL_SYSBOUNDARYFLAG;
    }
 
