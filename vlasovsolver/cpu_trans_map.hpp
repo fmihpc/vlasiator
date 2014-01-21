@@ -36,48 +36,87 @@ using namespace spatial_cell;
 // ids inside on block (i in vector elements).
 #define i_trans_ptblockv(b_k,j,k)  ( (j) + (k) * WID +((b_k) + 1 ) * WID2)
 
-/*return INVALID_CELLID if the spatial neighbor does not exist, or if
+/*
+ * return INVALID_CELLID if the spatial neighbor does not exist, or if
  * it is a cell that is not computed. If the
  * include_first_boundary_layer flag is set, then also first boundary
  * layer is inlcuded (does not return INVALID_CELLID).
+ * This does not use dccrg's get_neighbor_of function as it does not support computing neighbors for remote cells
  */
 
-uint get_spatial_neighbor(const dccrg::Dccrg<SpatialCell>& mpiGrid,
-                          const CellID& cellID,
-                          const bool include_first_boundary_layer,
-                          const int spatial_di,
-                          const int spatial_dj,
-                          const int spatial_dk ) {
+CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell>& mpiGrid,
+                            const CellID& cellID,
+                            const bool include_first_boundary_layer,
+                            const int spatial_di,
+                            const int spatial_dj,
+                            const int spatial_dk ) {
    if(spatial_di == 0 && spatial_dj == 0 && spatial_dk == 0 )
-      return cellID;
+      return cellID; 
    
+   dccrg::Types<3>::indices_t indices_unsigned = mpiGrid.get_indices(cellID);
+   int64_t indices[3];
+   uint64_t length[3];
+
+   //compute raw new indices
+   indices[0] = spatial_di + indices_unsigned[0];
+   indices[1] = spatial_dj + indices_unsigned[1];
+   indices[2] = spatial_dk + indices_unsigned[2];
+   //size of grid (unrefined)
+   length[0] = mpiGrid.get_length_x();
+   length[1] = mpiGrid.get_length_y();
+   length[2] = mpiGrid.get_length_z();
    
-   const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of(cellID,spatial_di,spatial_dj,spatial_dk);
-   if (neighbors.size() == 0) {
+   //take periodicity into account
+   for(uint i = 0; i<3; i++) {
+      if(mpiGrid.is_periodic(i)) {
+         while(indices[i] < 0 )
+            indices[i] += length[i];
+         while(indices[i] >= length[i] )
+            indices[i] -= length[i];
+      }
+      
+   }
+   //return INVALID_CELLID for cells outside system (non-periodic)
+   for(uint i = 0; i<3; i++) {
+      if(indices[i]< 0)
+         return INVALID_CELLID;
+      if(indices[i]>=length[i])
+         return INVALID_CELLID;
+   }
+
+   //store nbr indices into the correct datatype
+   for(uint i = 0; i<3; i++) {
+      indices_unsigned[i] = indices[i];
+   }
+   //get nbrID
+   CellID nbrID =  mpiGrid.get_cell_from_indices(indices_unsigned,0);
+
+   if (nbrID == dccrg::error_cell ) {
       std::cerr << __FILE__ << ":" << __LINE__
-                << " No neighbor for cell " << cellID
+                << " No neighbor for cell?" << cellID
                 << " at offsets " << spatial_di << ", " << spatial_dj << ", " << spatial_dk
                 << std::endl;
+      
       abort();
    }
 
    // not existing cell or do not compute       
-   if( neighbors[0] == INVALID_CELLID  || mpiGrid[neighbors[0]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
+   if( mpiGrid[nbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
       return INVALID_CELLID; 
 
    //cell on boundary, but not first layer and we want to include first layer (e.g. when we compute source cells)
    if( include_first_boundary_layer &&
-       mpiGrid[neighbors[0]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
-       mpiGrid[neighbors[0]]->sysBoundaryLayer != 1 ) {
+       mpiGrid[nbrID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+       mpiGrid[nbrID]->sysBoundaryLayer != 1 ) {
       return INVALID_CELLID;
    }
    //cell on boundary, and we want none of the layers, invalid.(e.g. when we compute targets)
    if( !include_first_boundary_layer &&
-       mpiGrid[neighbors[0]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY){
+       mpiGrid[nbrID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY){
       return INVALID_CELLID;
    }
    
-   return neighbors[0]; //no AMR
+   return nbrID; //no AMR
 
 }
 

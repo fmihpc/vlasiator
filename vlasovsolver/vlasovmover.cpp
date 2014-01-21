@@ -82,7 +82,8 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
                                     * cut down the number of cells
                                     * that are propagated*/ 
 
-  propagated_cells.reserve(local_cells.size() + remote_propagated_cells.size() ); //reserve space
+  //reserve space for cells to propagate        
+  propagated_cells.reserve(local_cells.size() + remote_propagated_cells.size() ); 
   /*add local cells */
   for(uint cell_i = 0;cell_i< local_cells.size();cell_i++) {
     const CellID cellID = local_cells[cell_i];
