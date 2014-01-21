@@ -47,6 +47,16 @@ creal EPSILON = 1.0e-25;
 Translation function (real space propagation)
 --------------------------------------------------*/
 
+//Is cell translated? It is not translated if DO_NO_COMPUTE or if it is sysboundary cell and not in first sysboundarylayer
+bool do_translate_cell(SpatialCell* SC){
+   if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+      (SC->sysBoundaryLayer != 1  && SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))
+      return false;
+   else
+      return true;
+ }
+
+
 /*!  
 
 Propagates the distribution function in spatial space. 
@@ -57,8 +67,6 @@ three‐dimensional monotone and conservative semi‐Lagrangian scheme
 Meteorological Society 138.667 (2012): 1640-1651.
 
 */
-
-
 void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
 				 creal dt) {
   typedef Parameters P;
@@ -67,42 +75,18 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
   phiprof::start("semilag-trans");
   phiprof::start("compute_cell_lists");
   const vector<CellID> local_cells = mpiGrid.get_cells();
-  const vector<CellID> remote_propagated_cells = 
-     mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_SOURCE_NEIGHBORHOOD_ID);
+  const vector<CellID> remote_propagated_cells_x = 
+     mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_SOURCE_X_NEIGHBORHOOD_ID);
+  const vector<CellID> remote_propagated_cells_y = 
+     mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_SOURCE_Y_NEIGHBORHOOD_ID);
+  const vector<CellID> remote_propagated_cells_z = 
+     mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_SOURCE_Z_NEIGHBORHOOD_ID);
   const vector<CellID> remote_stencil_cells_x = 
      mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
   const vector<CellID> remote_stencil_cells_y = 
      mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
   const vector<CellID> remote_stencil_cells_z = 
      mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
-  vector<CellID> propagated_cells; /*cells has all cells that we want
-                                    * to translate. TODO: we could
-                                    * have it separately in X and Y to
-                                    * cut down the number of cells
-                                    * that are propagated*/ 
-
-  //reserve space for cells to propagate        
-  propagated_cells.reserve(local_cells.size() + remote_propagated_cells.size() ); 
-  /*add local cells */
-  for(uint cell_i = 0;cell_i< local_cells.size();cell_i++) {
-    const CellID cellID = local_cells[cell_i];
-    SpatialCell* SC=mpiGrid[cellID];
-    if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-       (SC->sysBoundaryLayer != 1  &&
-	SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)
-       ) continue;
-    propagated_cells.push_back(cellID);
-  }
-  /*add remote cells*/
-  for(uint cell_i = 0;cell_i< remote_propagated_cells.size();cell_i++) {
-    const CellID cellID = remote_propagated_cells[cell_i];
-    SpatialCell* SC=mpiGrid[cellID];
-    if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-       (SC->sysBoundaryLayer != 1  &&
-	SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)
-       ) continue;
-    propagated_cells.push_back(cellID);
-  }
   phiprof::stop("compute_cell_lists");
 
   /* ------------- SLICE - map dist function in Z --------------- */
@@ -119,10 +103,17 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
      trans_prepare_block_data(mpiGrid,remote_stencil_cells_z[c]);
   phiprof::stop("prepare-block-data-z");  
   phiprof::start("compute-mapping-z");
-  for (size_t c=0; c<propagated_cells.size(); ++c) {
-     trans_map_1d(mpiGrid,propagated_cells[c], 2, dt); /*< map along z*/
+  for (size_t c=0; c<local_cells.size(); ++c) {
+     if(do_translate_cell(mpiGrid[local_cells[c]]))
+        trans_map_1d(mpiGrid,local_cells[c], 2, dt); /*< map along z*/
+  }
+  for (size_t c=0; c<remote_propagated_cells_z.size();c++){
+     if(do_translate_cell(mpiGrid[remote_propagated_cells_z[c]]))
+        trans_map_1d(mpiGrid,remote_propagated_cells_z[c], 2, dt); /*< map along z*/
   }
   phiprof::stop("compute-mapping-z");
+
+
 /* ------------- SLICE - map dist function in X --------------- */
   trans_timer=phiprof::initializeTimer("transfer-stencil-data-x","MPI");
   phiprof::start(trans_timer);
@@ -137,10 +128,17 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
      trans_prepare_block_data(mpiGrid,remote_stencil_cells_x[c]);
   phiprof::stop("prepare-block-data-x");  
   phiprof::start("compute-mapping-x");
-  for (size_t c=0; c<propagated_cells.size(); ++c) {
-     trans_map_1d(mpiGrid,propagated_cells[c], 0, dt); /*< map along x*/
+  for (size_t c=0; c<local_cells.size(); ++c) {
+     if(do_translate_cell(mpiGrid[local_cells[c]]))
+        trans_map_1d(mpiGrid,local_cells[c], 0, dt); /*< map along x*/
+  }
+  for (size_t c=0; c<remote_propagated_cells_x.size();c++){
+     if(do_translate_cell(mpiGrid[remote_propagated_cells_x[c]]))
+        trans_map_1d(mpiGrid,remote_propagated_cells_x[c], 0, dt); /*< map along x*/
   }
   phiprof::stop("compute-mapping-x");
+
+
 /* ------------- SLICE - map dist function in Y --------------- */
   trans_timer=phiprof::initializeTimer("transfer-stencil-data-y","MPI");
   phiprof::start(trans_timer);
@@ -155,8 +153,13 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
      trans_prepare_block_data(mpiGrid,remote_stencil_cells_y[c]);
   phiprof::stop("prepare-block-data-y");  
   phiprof::start("compute-mapping-y");
-  for (size_t c=0; c<propagated_cells.size(); ++c) {
-     trans_map_1d(mpiGrid,propagated_cells[c], 1, dt); /*< map along y*/
+  for (size_t c=0; c<local_cells.size(); ++c) {
+     if(do_translate_cell(mpiGrid[local_cells[c]]))
+        trans_map_1d(mpiGrid,local_cells[c], 1, dt); /*< map along y*/
+  }
+  for (size_t c=0; c<remote_propagated_cells_y.size();c++){
+     if(do_translate_cell(mpiGrid[remote_propagated_cells_y[c]]))
+        trans_map_1d(mpiGrid,remote_propagated_cells_y[c], 1, dt); /*< map along y*/
   }
   phiprof::stop("compute-mapping-y");
 

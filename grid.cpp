@@ -654,11 +654,25 @@ void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
    for (int d = -1; d <= 1; d++) {
      if (d != 0) {
         neighborhood.push_back({{d, 0, 0}});
+     }
+   }
+   mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_SOURCE_X_NEIGHBORHOOD_ID, neighborhood);
+
+   neighborhood.clear();
+   for (int d = -1; d <= 1; d++) {
+     if (d != 0) {
         neighborhood.push_back({{0, d, 0}});
+     }
+   }
+   mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_SOURCE_Y_NEIGHBORHOOD_ID, neighborhood);
+
+   neighborhood.clear();
+   for (int d = -1; d <= 1; d++) {
+     if (d != 0) {
         neighborhood.push_back({{0, 0, d}});
      }
    }
-   mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_SOURCE_NEIGHBORHOOD_ID, neighborhood);
+   mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_SOURCE_Z_NEIGHBORHOOD_ID, neighborhood);
 
 
    

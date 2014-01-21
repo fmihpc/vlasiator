@@ -16,11 +16,13 @@
 #define VLASOV_SOLVER_X_NEIGHBORHOOD_ID 3 //up to third(PPM) neighbor in x face directions
 #define VLASOV_SOLVER_Y_NEIGHBORHOOD_ID 4 //up to third(PPM) neighbor in y face directions
 #define VLASOV_SOLVER_Z_NEIGHBORHOOD_ID 5 //up to third(PPM) neighbor in z face directions
-#define VLASOV_SOLVER_SOURCE_NEIGHBORHOOD_ID 6 //nearest neighbor in each face direction, these can propaga to local cells
-#define SYSBOUNDARIES_NEIGHBORHOOD_ID 7 // When classifying sysboundaries, all 26 nearest neighbors are included,
-#define SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID 8 //Up to second nearest neighbors in all directions (also diagonals)
-#define NEAREST_NEIGHBORHOOD_ID 9  //nearest neighbors
-#define FULL_NEIGHBORHOOD_ID 10   //Up to second nearest neighbors in all directions (also diagonals) + vlasov solver neighborhood
+#define VLASOV_SOLVER_SOURCE_X_NEIGHBORHOOD_ID 6 //nearest neighbor in X face direction, f() can propagate to local cells in X dir
+#define VLASOV_SOLVER_SOURCE_Y_NEIGHBORHOOD_ID 7 //nearest neighbor in Y face direction, f() can propagate to local cells in Y dir
+#define VLASOV_SOLVER_SOURCE_Z_NEIGHBORHOOD_ID 8 //nearest neighbor in Z face direction, f() can propagate to local cells in Z dir
+#define SYSBOUNDARIES_NEIGHBORHOOD_ID 9 // When classifying sysboundaries, all 26 nearest neighbors are included,
+#define SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID 10 //Up to second nearest neighbors in all directions (also diagonals)
+#define NEAREST_NEIGHBORHOOD_ID 11  //nearest neighbors
+#define FULL_NEIGHBORHOOD_ID 12  //Up to second nearest neighbors in all directions (also diagonals) + vlasov solver neighborhood
 
 
 
