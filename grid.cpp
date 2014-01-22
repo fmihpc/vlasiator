@@ -157,11 +157,7 @@ void initializeGrid(
       phiprof::stop("Apply system boundary conditions state");
       updateRemoteVelocityBlockLists(mpiGrid);
       adjustVelocityBlocks(mpiGrid); // do not initialize mover, mover has not yet been initialized here
-
-
    }
-
-   
    //Balance load before we transfer all data below
    balanceLoad(mpiGrid);
    
