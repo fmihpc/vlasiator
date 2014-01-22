@@ -98,7 +98,7 @@ namespace projects {
       
       Real value = 0.0;
       for(uint i=0; i<2; i++) {
-         value += this->rho[i] * pow(mass / (2.0 * M_PI * k * sqrt(this->Tx[i]*this->Tx[i] + this->Ty[i]*this->Ty[i] + this->Tz[i]*this->Tz[i])), 1.5) *
+         value += this->rho[i] * pow(mass / (2.0 * M_PI * k ), 1.5) * 1.0 / sqrt(this->Tx[i]*this->Ty[i]*this->Tz[i]) *
       exp(- mass * (pow(vx - this->Vx[i], 2.0) / (2.0 * k * this->Tx[i]) + pow(vy - this->Vy[i], 2.0) / (2.0 * k * this->Ty[i]) + pow(vz - this->Vz[i], 2.0) / (2.0 * k * this->Tz[i])));
       }
       return value;
