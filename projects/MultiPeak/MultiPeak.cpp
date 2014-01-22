@@ -41,8 +41,12 @@ namespace projects {
       typedef Readparameters RP;
       RP::add("MultiPeak.rho1", "Number density, first peak (m^-3)", 0.0);
       RP::add("MultiPeak.rho2", "Number density, second peak (m^-3)", 0.0);
-      RP::add("MultiPeak.T1", "Temperature, first peak (K)", 0.0);
-      RP::add("MultiPeak.T2", "Temperature, second peak (K)", 0.0);
+      RP::add("MultiPeak.Tx1", "Temperature, first peak (K)", 0.0);
+      RP::add("MultiPeak.Tx2", "Temperature, second peak (K)", 0.0);
+      RP::add("MultiPeak.Ty1", "Temperature, first peak (K)", 0.0);
+      RP::add("MultiPeak.Ty2", "Temperature, second peak (K)", 0.0);
+      RP::add("MultiPeak.Tz1", "Temperature, first peak (K)", 0.0);
+      RP::add("MultiPeak.Tz2", "Temperature, second peak (K)", 0.0);
       RP::add("MultiPeak.Vx1", "Bulk velocity x component, first peak (m/s)", 0.0);
       RP::add("MultiPeak.Vx2", "Bulk velocity x component, second peak (m/s)", 0.0);
       RP::add("MultiPeak.Vy1", "Bulk velocity y component, first peak (m/s)", 0.0);
@@ -52,6 +56,10 @@ namespace projects {
       RP::add("MultiPeak.Bx", "Magnetic field x component (T)", 0.0);
       RP::add("MultiPeak.By", "Magnetic field y component (T)", 0.0);
       RP::add("MultiPeak.Bz", "Magnetic field z component (T)", 0.0);
+      RP::add("MultiPeak.dBx", "Magnetic field x component perturbation amplitude (T)", 0.0);
+      RP::add("MultiPeak.dBy", "Magnetic field y component perturbation amplitude (T)", 0.0);
+      RP::add("MultiPeak.dBz", "Magnetic field z component perturbation amplitude (T)", 0.0);
+      RP::add("MultiPeak.lambda", "B perturbation wavelength (m)", 0.0);
       RP::add("MultiPeak.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
    }
 
@@ -59,8 +67,12 @@ namespace projects {
       typedef Readparameters RP;
       RP::get("MultiPeak.rho1", this->rho[0]);
       RP::get("MultiPeak.rho2", this->rho[1]);
-      RP::get("MultiPeak.T1", this->T[0]);
-      RP::get("MultiPeak.T2", this->T[1]);
+      RP::get("MultiPeak.Tx1", this->Tx[0]);
+      RP::get("MultiPeak.Tx2", this->Tx[1]);
+      RP::get("MultiPeak.Ty1", this->Ty[0]);
+      RP::get("MultiPeak.Ty2", this->Ty[1]);
+      RP::get("MultiPeak.Tz1", this->Tz[0]);
+      RP::get("MultiPeak.Tz2", this->Tz[1]);
       RP::get("MultiPeak.Vx1", this->Vx[0]);
       RP::get("MultiPeak.Vx2", this->Vx[1]);
       RP::get("MultiPeak.Vy1", this->Vy[0]);
@@ -70,6 +82,10 @@ namespace projects {
       RP::get("MultiPeak.Bx", this->Bx);
       RP::get("MultiPeak.By", this->By);
       RP::get("MultiPeak.Bz", this->Bz);
+      RP::get("MultiPeak.dBx", this->dBx);
+      RP::get("MultiPeak.dBy", this->dBy);
+      RP::get("MultiPeak.dBz", this->dBz);
+      RP::get("MultiPeak.lambda", this->lambda);
       RP::get("MultiPeak.nVelocitySamples", this->nVelocitySamples);
    }
 
@@ -80,11 +96,12 @@ namespace projects {
       //  creal q = 1.60217653e-19; // q_i
       //  creal gamma = 5./3.;
       
-      return
-      this->rho[0] * pow(mass / (2.0 * M_PI * k * this->T[0]), 1.5) *
-      exp(- mass * (pow(vx - this->Vx[0], 2.0) + pow(vy - this->Vy[0], 2.0) + pow(vz - this->Vz[0], 2.0)) / (2.0 * k * this->T[0])) +
-      this->rho[1] * pow(mass / (2.0 * M_PI * k * this->T[1]), 1.5) *
-      exp(- mass * (pow(vx - this->Vx[1], 2.0) + pow(vy - this->Vy[1], 2.0) + pow(vz - this->Vz[1], 2.0)) / (2.0 * k * this->T[1]));
+      Real value = 0.0;
+      for(uint i=0; i<2; i++) {
+         value += this->rho[i] * pow(mass / (2.0 * M_PI * k * sqrt(this->Tx[i]*this->Tx[i] + this->Ty[i]*this->Ty[i] + this->Tz[i]*this->Tz[i])), 1.5) *
+      exp(- mass * (pow(vx - this->Vx[i], 2.0) / (2.0 * k * this->Tx[i]) + pow(vy - this->Vy[i], 2.0) / (2.0 * k * this->Ty[i]) + pow(vz - this->Vz[i], 2.0) / (2.0 * k * this->Tz[i])));
+      }
+      return value;
    }
 
 
@@ -101,18 +118,15 @@ namespace projects {
             {
                avg += getDistribValue(vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
             }
-         return avg / pow(this->nVelocitySamples, 3.0);
+            return avg / (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
    }
 
 
 
    void MultiPeak::calcCellParameters(Real* cellParams,creal& t) {
-      cellParams[CellParams::EX   ] = 0.0;
-      cellParams[CellParams::EY   ] = 0.0;
-      cellParams[CellParams::EZ   ] = 0.0;
-      cellParams[CellParams::PERBX   ] = 0.0;
-      cellParams[CellParams::PERBY   ] = 0.0;
-      cellParams[CellParams::PERBZ   ] = 0.0;
+      cellParams[CellParams::PERBX   ] = this->dBx*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
+      cellParams[CellParams::PERBY   ] = this->dBy*sin(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
+      cellParams[CellParams::PERBZ   ] = this->dBz*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
    }
 
    void MultiPeak::setCellBackgroundField(SpatialCell* cell) {

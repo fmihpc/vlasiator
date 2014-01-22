@@ -64,7 +64,7 @@ SysBoundary::~SysBoundary() {
  * help.
  */
 void SysBoundary::addParameters() {
-   Readparameters::addComposing("boundaries.boundary", "List of boundary condition (BC) types to be used. Each boundary condition to be used has to be on a new line boundary = YYY. Available (20120820) are outflow ionosphere maxwellian.");
+   Readparameters::addComposing("boundaries.boundary", "List of boundary condition (BC) types to be used. Each boundary condition to be used has to be on a new line boundary = YYY. Available (20140113) are Outflow Ionosphere Maxwellian.");
    Readparameters::add("boundaries.periodic_x","If 'yes' the grid is periodic in x-direction. Defaults to 'no'.","no");
    Readparameters::add("boundaries.periodic_y","If 'yes' the grid is periodic in y-direction. Defaults to 'no'.","no");
    Readparameters::add("boundaries.periodic_z","If 'yes' the grid is periodic in z-direction. Defaults to 'no'.","no");
@@ -154,6 +154,19 @@ bool SysBoundary::initSysBoundaries(
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    bool success = true;
    vector<string>::const_iterator it;
+   
+   if(sysBoundaryCondList.size() == 0) {
+      if(!isPeriodic[0]) {
+         if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_x = no but you didn't load any system boundary condition using the option boundaries.boundary, are you sure this is correct?" << endl;
+      }
+      if(!isPeriodic[1]) {
+         if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_y = no but you didn't load any system boundary condition using the option boundaries.boundary, are you sure this is correct?" << endl;
+      }
+      if(!isPeriodic[2]) {
+         if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_z = no but you didn't load any system boundary condition using the option boundaries.boundary, are you sure this is correct?" << endl;
+      }
+   }
+   
    for (it = sysBoundaryCondList.begin();
         it != sysBoundaryCondList.end();
         it++) {
