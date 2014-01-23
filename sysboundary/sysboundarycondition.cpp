@@ -147,30 +147,44 @@ namespace SBC {
    ) {
       Real* const derivs = &(mpiGrid[cellID]->derivatives[0]);
       switch(component) {
-         case 0:
+         case 0: // x, xx
             derivs[fieldsolver::drhodx] = 0.0;
             derivs[fieldsolver::dPERBydx]  = 0.0;
             derivs[fieldsolver::dPERBzdx]  = 0.0;
             derivs[fieldsolver::dVxdx]  = 0.0;
             derivs[fieldsolver::dVydx]  = 0.0;
             derivs[fieldsolver::dVzdx]  = 0.0;
+            derivs[fieldsolver::dPERBydxx] = 0.0;
+            derivs[fieldsolver::dPERBzdxx] = 0.0;
             break;
-         case 1:
+         case 1: // y, yy
             derivs[fieldsolver::drhody] = 0.0;
             derivs[fieldsolver::dPERBxdy]  = 0.0;
             derivs[fieldsolver::dPERBzdy]  = 0.0;
             derivs[fieldsolver::dVxdy]  = 0.0;
             derivs[fieldsolver::dVydy]  = 0.0;
             derivs[fieldsolver::dVzdy]  = 0.0;
+            derivs[fieldsolver::dPERBxdyy] = 0.0;
+            derivs[fieldsolver::dPERBzdyy] = 0.0;
             break;
-         case 2:
+         case 2: // z, zz
             derivs[fieldsolver::drhodz] = 0.0;
             derivs[fieldsolver::dPERBxdz]  = 0.0;
             derivs[fieldsolver::dPERBydz]  = 0.0;
             derivs[fieldsolver::dVxdz]  = 0.0;
             derivs[fieldsolver::dVydz]  = 0.0;
             derivs[fieldsolver::dVzdz]  = 0.0;
+            derivs[fieldsolver::dPERBxdzz] = 0.0;
+            derivs[fieldsolver::dPERBydzz] = 0.0;
             break;
+         case 3: // xy
+            derivs[fieldsolver::dPERBzdxy] = 0.0;
+            break;
+         case 4: // xz
+            derivs[fieldsolver::dPERBydxz] = 0.0;
+            break;
+         case 5: // yz
+            derivs[fieldsolver::dPERBxdyz] = 0.0;
          default:
             cerr << "Invalid component" << endl;
       }

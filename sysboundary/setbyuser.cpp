@@ -25,7 +25,7 @@
 
 #include "setbyuser.h"
 #include "../vlasovmover.h"
-#include "../fieldsolver.h"
+#include "../fieldsolver/fs_common.h"
 
 using namespace std;
 
