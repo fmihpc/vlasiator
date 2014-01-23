@@ -20,6 +20,7 @@
 #include "Shock/Shock.h"
 #include "Template/Template.h"
 #include "test_fp/test_fp.h"
+#include "testHall/testHall.h"
 #include "test_trans/test_trans.h"
 #include "verificationLarmor/verificationLarmor.h"
 #include "../backgroundfield/backgroundfield.h"
@@ -55,6 +56,7 @@ namespace projects {
       projects::Shock::addParameters();
       projects::Template::addParameters();
       projects::test_fp::addParameters();
+      projects::TestHall::addParameters();
       projects::test_trans::addParameters();
       projects::verificationLarmor::addParameters();
       projects::Shocktest::addParameters();
@@ -270,6 +272,9 @@ Project* createProject() {
    }
    if(Parameters::projectName == "test_fp") {
       return new projects::test_fp;
+   }
+   if(Parameters::projectName == "testHall") {
+      return new projects::TestHall;
    }
    if(Parameters::projectName == "test_trans") {
       return new projects::test_trans;
