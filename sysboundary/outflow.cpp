@@ -25,7 +25,7 @@
 
 #include "outflow.h"
 #include "../projects/projects_common.h"
-#include "../fieldsolver.h"
+#include "../fieldsolver/fs_common.h"
 
 using namespace std;
 

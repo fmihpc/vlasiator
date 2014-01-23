@@ -27,8 +27,8 @@
 #include "../projects/project.h"
 #include "../projects/projects_common.h"
 #include "../vlasovmover.h"
-#include "../fieldsolver.h"
-#include "../fieldsolver/limiters.h"
+#include "../fieldsolver/fs_common.h"
+#include "../fieldsolver/fs_limiters.h"
 #include "../common.h"
 
 namespace SBC {
@@ -189,7 +189,6 @@ namespace SBC {
    ) {
       // For B: use background B + perturbed B in normal cells, only background B in the ionosphere and DO_NOT_COMPUTE cells
       // For RHO and V: use self. One could also use the DO_NOT_COMPUTE cells and give them the ionospheric values too but that means more code changes than just here.
-      // this->setCellDerivativesToZero(mpiGrid, cellID, component);
       Real* const array       = mpiGrid[cellID]->derivatives;
       CellID leftNbrID,rghtNbrID;
       creal* rhovLeft = NULL;
@@ -197,10 +196,15 @@ namespace SBC {
       creal* cent = mpiGrid[cellID]->parameters;
       creal* rhovRght = NULL;
       creal* rght = NULL;
+      CellID botLeftNbrID, botRghtNbrID, topLeftNbrID, topRghtNbrID;
+      creal* botLeft = NULL;
+      creal* botRght = NULL;
+      creal* topLeft = NULL;
+      creal* topRght = NULL;
       switch(component) {
          namespace cp = CellParams;
          namespace fs = fieldsolver;
-         case 0:
+         case 0: // x,xx
             leftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2  ,2  );
             rghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2  ,2  );
             left = mpiGrid[leftNbrID]->parameters;
@@ -230,6 +234,13 @@ namespace SBC {
                array[fs::dBGBydx]  = limiter(left[cp::BGBY],cent[cp::BGBY],rght[cp::BGBY]);
                array[fs::dPERBzdx]  = limiter(left[cp::PERBZ],cent[cp::PERBZ],rght[cp::PERBZ]);
                array[fs::dBGBzdx]  = limiter(left[cp::BGBZ],cent[cp::BGBZ],rght[cp::BGBZ]);
+               if(Parameters::ohmHallTerm < 2) {
+                  array[fs::dPERBydxx] = 0.0;
+                  array[fs::dPERBzdxx] = 0.0;
+               } else {
+                  array[fs::dPERBydxx] = left[cp::PERBY] + rght[cp::PERBY] - 2.0*cent[cp::PERBY];
+                  array[fs::dPERBzdxx] = left[cp::PERBZ] + rght[cp::PERBZ] - 2.0*cent[cp::PERBZ];
+               }
             }
             if (RKCase == RK_ORDER2_STEP1) {
                array[fs::drhodx] = limiter(rhovLeft[cp::RHO_DT2],cent[cp::RHO_DT2],rhovRght[cp::RHO_DT2]);
@@ -246,9 +257,16 @@ namespace SBC {
                array[fs::dBGBydx]  = limiter(left[cp::BGBY],cent[cp::BGBY],rght[cp::BGBY]);
                array[fs::dPERBzdx]  = limiter(left[cp::PERBZ_DT2],cent[cp::PERBZ_DT2],rght[cp::PERBZ_DT2]);
                array[fs::dBGBzdx]  = limiter(left[cp::BGBZ],cent[cp::BGBZ],rght[cp::BGBZ]);
+               if(Parameters::ohmHallTerm < 2) {
+                  array[fs::dPERBydxx] = 0.0;
+                  array[fs::dPERBzdxx] = 0.0;
+               } else {
+                  array[fs::dPERBydxx] = left[cp::PERBY_DT2] + rght[cp::PERBY_DT2] - 2.0*cent[cp::PERBY_DT2];
+                  array[fs::dPERBzdxx] = left[cp::PERBZ_DT2] + rght[cp::PERBZ_DT2] - 2.0*cent[cp::PERBZ_DT2];
+               }
             }
             break;
-         case 1:
+         case 1: // y,yy
             leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2-1,2  );
             rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2+1,2  );
             left = mpiGrid[leftNbrID]->parameters;
@@ -278,6 +296,13 @@ namespace SBC {
                array[fs::dBGBxdy]  = limiter(left[cp::BGBX],cent[cp::BGBX],rght[cp::BGBX]);
                array[fs::dPERBzdy]  = limiter(left[cp::PERBZ],cent[cp::PERBZ],rght[cp::PERBZ]);
                array[fs::dBGBzdy]  = limiter(left[cp::BGBZ],cent[cp::BGBZ],rght[cp::BGBZ]);
+               if(Parameters::ohmHallTerm < 2) {
+                  array[fs::dPERBxdyy] = 0.0;
+                  array[fs::dPERBzdyy] = 0.0;
+               } else {
+                  array[fs::dPERBxdyy] = left[cp::PERBX] + rght[cp::PERBX] - 2.0*cent[cp::PERBX];
+                  array[fs::dPERBzdyy] = left[cp::PERBZ] + rght[cp::PERBZ] - 2.0*cent[cp::PERBZ];
+               }
             }
             if (RKCase == RK_ORDER2_STEP1) {
                array[fs::drhody] = limiter(rhovLeft[cp::RHO_DT2],cent[cp::RHO_DT2],rhovRght[cp::RHO_DT2]);
@@ -294,9 +319,16 @@ namespace SBC {
                array[fs::dBGBxdy]  = limiter(left[cp::BGBX],cent[cp::BGBX],rght[cp::BGBX]);
                array[fs::dPERBzdy]  = limiter(left[cp::PERBZ_DT2],cent[cp::PERBZ_DT2],rght[cp::PERBZ_DT2]);
                array[fs::dBGBzdy]  = limiter(left[cp::BGBZ],cent[cp::BGBZ],rght[cp::BGBZ]);
+               if(Parameters::ohmHallTerm < 2) {
+                  array[fs::dPERBxdyy] = 0.0;
+                  array[fs::dPERBzdyy] = 0.0;
+               } else {
+                  array[fs::dPERBxdyy] = left[cp::PERBX_DT2] + rght[cp::PERBX_DT2] - 2.0*cent[cp::PERBX_DT2];
+                  array[fs::dPERBzdyy] = left[cp::PERBZ_DT2] + rght[cp::PERBZ_DT2] - 2.0*cent[cp::PERBZ_DT2];
+               }
             }
             break;
-         case 2:
+         case 2: // z, zz
             leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2-1);
             rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2+1);
             left = mpiGrid[leftNbrID]->parameters;
@@ -326,6 +358,13 @@ namespace SBC {
                array[fs::dBGBxdz]  = limiter(left[cp::BGBX],cent[cp::BGBX],rght[cp::BGBX]);
                array[fs::dPERBydz]  = limiter(left[cp::PERBY],cent[cp::PERBY],rght[cp::PERBY]);
                array[fs::dBGBydz]  = limiter(left[cp::BGBY],cent[cp::BGBY],rght[cp::BGBY]);
+               if(Parameters::ohmHallTerm < 2) {
+                  array[fs::dPERBxdzz] = 0.0;
+                  array[fs::dPERBydzz] = 0.0;
+               } else {
+                  array[fs::dPERBxdzz] = left[cp::PERBX] + rght[cp::PERBX] - 2.0*cent[cp::PERBX];
+                  array[fs::dPERBydzz] = left[cp::PERBY] + rght[cp::PERBY] - 2.0*cent[cp::PERBY];
+               }
             }
             if (RKCase == RK_ORDER2_STEP1) {
                array[fs::drhodz] = limiter(rhovLeft[cp::RHO_DT2],cent[cp::RHO_DT2],rhovRght[cp::RHO_DT2]);
@@ -342,6 +381,76 @@ namespace SBC {
                array[fs::dBGBxdz]  = limiter(left[cp::BGBX],cent[cp::BGBX],rght[cp::BGBX]);
                array[fs::dPERBydz]  = limiter(left[cp::PERBY_DT2],cent[cp::PERBY_DT2],rght[cp::PERBY_DT2]);
                array[fs::dBGBydz]  = limiter(left[cp::BGBY],cent[cp::BGBY],rght[cp::BGBY]);
+               if(Parameters::ohmHallTerm < 2) {
+                  array[fs::dPERBxdzz] = 0.0;
+                  array[fs::dPERBydzz] = 0.0;
+               } else {
+                  array[fs::dPERBxdzz] = left[cp::PERBX_DT2] + rght[cp::PERBX_DT2] - 2.0*cent[cp::PERBX_DT2];
+                  array[fs::dPERBydzz] = left[cp::PERBY_DT2] + rght[cp::PERBY_DT2] - 2.0*cent[cp::PERBY_DT2];
+               }
+            }
+            break;
+         case 3: // xy
+            if(Parameters::ohmHallTerm < 2) {
+               array[fs::dPERBzdxy] = 0.0;
+            } else {
+               botLeftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2-1,2  );
+               botRghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2-1,2  );
+               topLeftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2+1,2  );
+               topRghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2+1,2  );
+               botLeft = mpiGrid[botLeftNbrID]->parameters;
+               botRght = mpiGrid[botRghtNbrID]->parameters;
+               topLeft = mpiGrid[topLeftNbrID]->parameters;
+               topRght = mpiGrid[topRghtNbrID]->parameters;
+               
+               if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+                  array[fs::dPERBzdxy] = FOURTH * (botLeft[cp::PERBZ] + topRght[cp::PERBZ] - botRght[cp::PERBZ] - topLeft[cp::PERBZ]);
+               }
+               if (RKCase == RK_ORDER2_STEP1) {
+                  array[fs::dPERBzdxy] = FOURTH * (botLeft[cp::PERBZ_DT2] + topRght[cp::PERBZ_DT2] - botRght[cp::PERBZ_DT2] - topLeft[cp::PERBZ_DT2]);
+               }
+            }
+            break;
+         case 4: // xz
+            if(Parameters::ohmHallTerm < 2) {
+               array[fs::dPERBydxz] = 0.0;
+            } else {
+               botLeftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2  ,2-1);
+               botRghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2  ,2-1);
+               topLeftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2  ,2+1);
+               topRghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2  ,2+1);
+               botLeft = mpiGrid[botLeftNbrID]->parameters;
+               botRght = mpiGrid[botRghtNbrID]->parameters;
+               topLeft = mpiGrid[topLeftNbrID]->parameters;
+               topRght = mpiGrid[topRghtNbrID]->parameters;
+               
+               if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+                  array[fs::dPERBydxz] = FOURTH * (botLeft[cp::PERBY] + topRght[cp::PERBY] - botRght[cp::PERBY] - topLeft[cp::PERBY]);
+               }
+               if (RKCase == RK_ORDER2_STEP1) {
+                  array[fs::dPERBydxz] = FOURTH * (botLeft[cp::PERBY_DT2] + topRght[cp::PERBY_DT2] - botRght[cp::PERBY_DT2] - topLeft[cp::PERBY_DT2]);
+               }
+            }
+            break;
+         case 5: // yz
+            if(Parameters::ohmHallTerm < 2) {
+               array[fs::dPERBxdyz] = 0.0;
+            } else {
+               botLeftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2-1,2-1);
+               botRghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2+1,2-1);
+               topLeftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2-1,2+1);
+               topRghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2+1,2+1);
+               botLeft = mpiGrid[botLeftNbrID]->parameters;
+               botRght = mpiGrid[botRghtNbrID]->parameters;
+               topLeft = mpiGrid[topLeftNbrID]->parameters;
+               topRght = mpiGrid[topRghtNbrID]->parameters;
+               
+               if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+                  array[fs::dPERBxdyz] = FOURTH * (botLeft[cp::PERBX] + topRght[cp::PERBX] - botRght[cp::PERBX] - topLeft[cp::PERBX]);
+               }
+               if (RKCase == RK_ORDER2_STEP1) {
+                  array[fs::dPERBxdyz] = FOURTH * (botLeft[cp::PERBX_DT2] + topRght[cp::PERBX_DT2] - botRght[cp::PERBX_DT2] - topLeft[cp::PERBX_DT2]);
+               }
             }
             break;
          default:
