@@ -128,28 +128,29 @@ bool initializeFieldPropagator(
    
    // xy mixed derivatives are calculated if +/-x,+/-y diagonal neighbours exist
    CALCULATE_DXY = 0;
-   #ifndef FS_1ST_ORDER_SPACE
-   CALCULATE_DXY = CALCULATE_DXY | (1 << calcNbrNumber(0,0,1));
-   CALCULATE_DXY = CALCULATE_DXY | (1 << calcNbrNumber(2,2,1));
-   CALCULATE_DXY = CALCULATE_DXY | (1 << calcNbrNumber(0,2,1));
-   CALCULATE_DXY = CALCULATE_DXY | (1 << calcNbrNumber(2,0,1));
-   #endif
+   if(P::ohmHallTerm > 1) {
+      CALCULATE_DXY = CALCULATE_DXY | (1 << calcNbrNumber(0,0,1));
+      CALCULATE_DXY = CALCULATE_DXY | (1 << calcNbrNumber(2,2,1));
+      CALCULATE_DXY = CALCULATE_DXY | (1 << calcNbrNumber(0,2,1));
+      CALCULATE_DXY = CALCULATE_DXY | (1 << calcNbrNumber(2,0,1));
+   }
+   
    // xz mixed derivatives are calculated if +/-x,+/-z diagonal neighbours exist
    CALCULATE_DXZ = 0;
-   #ifndef FS_1ST_ORDER_SPACE
-   CALCULATE_DXZ = CALCULATE_DXZ | (1 << calcNbrNumber(0,1,0));
-   CALCULATE_DXZ = CALCULATE_DXZ | (1 << calcNbrNumber(2,1,2));
-   CALCULATE_DXZ = CALCULATE_DXZ | (1 << calcNbrNumber(0,1,2));
-   CALCULATE_DXZ = CALCULATE_DXZ | (1 << calcNbrNumber(2,1,0));
-   #endif
+   if(P::ohmHallTerm > 1) {
+      CALCULATE_DXZ = CALCULATE_DXZ | (1 << calcNbrNumber(0,1,0));
+      CALCULATE_DXZ = CALCULATE_DXZ | (1 << calcNbrNumber(2,1,2));
+      CALCULATE_DXZ = CALCULATE_DXZ | (1 << calcNbrNumber(0,1,2));
+      CALCULATE_DXZ = CALCULATE_DXZ | (1 << calcNbrNumber(2,1,0));
+   }
    // yz mixed derivatives are calculated if +/-y,+/-z diagonal neighbours exist
    CALCULATE_DYZ = 0;
-   #ifndef FS_1ST_ORDER_SPACE
-   CALCULATE_DYZ = CALCULATE_DYZ | (1 << calcNbrNumber(1,0,0));
-   CALCULATE_DYZ = CALCULATE_DYZ | (1 << calcNbrNumber(1,2,2));
-   CALCULATE_DYZ = CALCULATE_DYZ | (1 << calcNbrNumber(1,0,2));
-   CALCULATE_DYZ = CALCULATE_DYZ | (1 << calcNbrNumber(1,2,0));
-   #endif
+   if(P::ohmHallTerm > 1) {
+      CALCULATE_DYZ = CALCULATE_DYZ | (1 << calcNbrNumber(1,0,0));
+      CALCULATE_DYZ = CALCULATE_DYZ | (1 << calcNbrNumber(1,2,2));
+      CALCULATE_DYZ = CALCULATE_DYZ | (1 << calcNbrNumber(1,0,2));
+      CALCULATE_DYZ = CALCULATE_DYZ | (1 << calcNbrNumber(1,2,0));
+   }
    
    // Edge Ex is calculated if -y,-z,+/-x neighbours exist:
    CALCULATE_EX = 0;
