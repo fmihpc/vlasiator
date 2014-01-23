@@ -21,6 +21,7 @@
 #include "verificationLarmor/verificationLarmor.h"
 #include "../backgroundfield/backgroundfield.h"
 #include "../backgroundfield/constantfield.hpp"
+#include "Shocktest/Shocktest.h"
 
 using namespace std;
 
@@ -52,6 +53,7 @@ namespace projects {
       projects::test_fp::addParameters();
       projects::test_trans::addParameters();
       projects::verificationLarmor::addParameters();
+      projects::Shocktest::addParameters();
       RP::add("Project_common.seed", "Seed for the RNG", 42);
    }
    
@@ -236,6 +238,9 @@ Project* createProject() {
    }
    if(Parameters::projectName == "verificationLarmor") {
       return new projects::verificationLarmor;
+   }
+   if(Parameters::projectName == "Shocktest") {
+      return new projects::Shocktest;
    }
    cerr << "Unknown project name!" << endl;
    abort();
