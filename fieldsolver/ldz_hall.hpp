@@ -439,26 +439,29 @@ void calculateHallTermSimple(
          RKCase
       );
       
-      if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
+      if((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
             (cellSysBoundaryLayer != 1)) {
-            std::cerr << "Not coded yet!" << std::endl;
+           sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
+              fieldSolverBoundaryCondHallElectricField(mpiGrid, cellID, RKCase, 0);
          } else {
             calculateEdgeHallTermXComponents(mpiGrid, cellID, perturbedCoefficients, RKCase);
          }
       }
-      if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
+      if((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
             (cellSysBoundaryLayer != 1)) {
-            std::cerr << "Not coded yet!" << std::endl;
+           sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
+              fieldSolverBoundaryCondHallElectricField(mpiGrid, cellID, RKCase, 1);
          } else {
             calculateEdgeHallTermYComponents(mpiGrid, cellID, perturbedCoefficients, RKCase);
          }
       }
-      if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
+      if((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
             (cellSysBoundaryLayer != 1)) {
-            std::cerr << "Not coded yet!" << std::endl;
+           sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
+              fieldSolverBoundaryCondHallElectricField(mpiGrid, cellID, RKCase, 2);
          } else {
             calculateEdgeHallTermZComponents(mpiGrid, cellID, perturbedCoefficients, RKCase);
          }
@@ -498,26 +501,29 @@ void calculateHallTermSimple(
          RKCase
       );
       
-      if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
+      if((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
             (cellSysBoundaryLayer != 1)) {
-            std::cerr << "Not coded yet!" << std::endl;
+           sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
+              fieldSolverBoundaryCondHallElectricField(mpiGrid, cellID, RKCase, 0);
          } else {
             calculateEdgeHallTermXComponents(mpiGrid, cellID, perturbedCoefficients, RKCase);
          }
       }
-      if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
+      if((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
             (cellSysBoundaryLayer != 1)) {
-            std::cerr << "Not coded yet!" << std::endl;
+           sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
+              fieldSolverBoundaryCondHallElectricField(mpiGrid, cellID, RKCase, 1);
          } else {
             calculateEdgeHallTermYComponents(mpiGrid, cellID, perturbedCoefficients, RKCase);
          }
       }
-      if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
+      if((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
             (cellSysBoundaryLayer != 1)) {
-            std::cerr << "Not coded yet!" << std::endl;
+           sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
+              fieldSolverBoundaryCondHallElectricField(mpiGrid, cellID, RKCase, 2);
          } else {
             calculateEdgeHallTermZComponents(mpiGrid, cellID, perturbedCoefficients, RKCase);
          }

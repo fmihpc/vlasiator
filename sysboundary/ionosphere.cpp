@@ -181,6 +181,36 @@ namespace SBC {
       return;
    }
    
+   void Ionosphere::fieldSolverBoundaryCondHallElectricField(
+      dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const CellID& cellID,
+      cuint RKCase,
+      cuint component
+   ) {
+      switch(component) {
+         case 0:
+            mpiGrid[cellID]->parameters[CellParams::EXHALL_000_100] = 0.0;
+            mpiGrid[cellID]->parameters[CellParams::EXHALL_010_110] = 0.0;
+            mpiGrid[cellID]->parameters[CellParams::EXHALL_001_101] = 0.0;
+            mpiGrid[cellID]->parameters[CellParams::EXHALL_011_111] = 0.0;
+            break;
+         case 1:
+            mpiGrid[cellID]->parameters[CellParams::EYHALL_000_010] = 0.0;
+            mpiGrid[cellID]->parameters[CellParams::EYHALL_100_110] = 0.0;
+            mpiGrid[cellID]->parameters[CellParams::EYHALL_001_011] = 0.0;
+            mpiGrid[cellID]->parameters[CellParams::EYHALL_101_111] = 0.0;
+            break;
+         case 2:
+            mpiGrid[cellID]->parameters[CellParams::EZHALL_000_001] = 0.0;
+            mpiGrid[cellID]->parameters[CellParams::EZHALL_100_101] = 0.0;
+            mpiGrid[cellID]->parameters[CellParams::EZHALL_010_011] = 0.0;
+            mpiGrid[cellID]->parameters[CellParams::EZHALL_110_111] = 0.0;
+            break;
+         default:
+            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
+      }
+   }
+   
    void Ionosphere::fieldSolverBoundaryCondDerivatives(
       dccrg::Dccrg<SpatialCell>& mpiGrid,
       const CellID& cellID,
@@ -454,7 +484,7 @@ namespace SBC {
             }
             break;
          default:
-            cerr << "Invalid component" << endl;
+            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
       }
    }
    
@@ -550,7 +580,7 @@ namespace SBC {
       
       calculateCellVelocityMoments(&templateCell, true);
       
-      // WARNING Time-independence assumed here. Normal momentes computed in setProjectCell
+      // WARNING Time-independence assumed here. Normal moments computed in setProjectCell
       templateCell.parameters[CellParams::RHO_DT2] = templateCell.parameters[CellParams::RHO];
       templateCell.parameters[CellParams::RHOVX_DT2] = templateCell.parameters[CellParams::RHOVX];
       templateCell.parameters[CellParams::RHOVY_DT2] = templateCell.parameters[CellParams::RHOVY];
@@ -571,11 +601,13 @@ namespace SBC {
    ) {
       vector<uint> blocksToInitialize;
       bool search = true;
-      int counter = 0;
+      uint counter = 0;
       
       while(search) {
          if(0.1 * P::sparseMinValue >
             shiftedMaxwellianDistribution(counter*SpatialCell::block_dvx, 0.0, 0.0)
+            ||
+            counter > P::vxblocks_ini
          ) {
             search = false;
          }
