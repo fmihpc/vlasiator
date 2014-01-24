@@ -47,7 +47,7 @@ namespace projects {
          );
          
          Real SCA_LAMBDA;
-         Real B0;
+         Real BX0, BY0, BZ0;
          Real TEMPERATURE;
          Real DENSITY;
    }; // class Harris
