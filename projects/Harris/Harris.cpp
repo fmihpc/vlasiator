@@ -37,7 +37,9 @@ namespace projects {
    void Harris::addParameters(){
       typedef Readparameters RP;
       RP::add("Harris.Scale_size", "Harris sheet scale size (m)", 150000.0);
-      RP::add("Harris.B0", "Magnetic field at infinity (T)", 8.33061003094e-8);
+      RP::add("Harris.BX0", "Magnetic field at infinity (T)", 8.33061003094e-8);
+      RP::add("Harris.BY0", "Magnetic field at infinity (T)", 8.33061003094e-8);
+      RP::add("Harris.BZ0", "Magnetic field at infinity (T)", 8.33061003094e-8);
       RP::add("Harris.Temperature", "Temperature (K)", 2.0e6);
       RP::add("Harris.rho", "Number density at infinity (m^-3)", 1.0e7);
    }
@@ -45,7 +47,9 @@ namespace projects {
    void Harris::getParameters(){
       typedef Readparameters RP;
       RP::get("Harris.Scale_size", this->SCA_LAMBDA);
-      RP::get("Harris.B0", this->B0);
+      RP::get("Harris.BX0", this->BX0);
+      RP::get("Harris.BY0", this->BY0);
+      RP::get("Harris.BZ0", this->BZ0);
       RP::get("Harris.Temperature", this->TEMPERATURE);
       RP::get("Harris.rho", this->DENSITY);
    }
@@ -72,15 +76,19 @@ namespace projects {
    void Harris::calcCellParameters(Real* cellParams,creal& t) {
       creal x = cellParams[CellParams::XCRD];
       creal dx = cellParams[CellParams::DX];
+      creal y = cellParams[CellParams::YCRD];
+      creal dy = cellParams[CellParams::DY];
+      creal z = cellParams[CellParams::ZCRD];
+      creal dz = cellParams[CellParams::DZ];
       
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
-      cellParams[CellParams::PERBX   ] = 0.0;
-      cellParams[CellParams::PERBY   ] = 0.0;
-      cellParams[CellParams::PERBZ   ] = 0.0;
+      cellParams[CellParams::PERBX   ] = this->BX0 * tanh((y + 0.5 * dy) / this->SCA_LAMBDA);
+      cellParams[CellParams::PERBY   ] = this->BY0 * tanh((z + 0.5 * dz) / this->SCA_LAMBDA);
+      cellParams[CellParams::PERBZ   ] = this->BZ0 * tanh((x + 0.5 * dx) / this->SCA_LAMBDA);
       cellParams[CellParams::BGBX   ] = 0.0;
       cellParams[CellParams::BGBY   ] = 0.0;
-      cellParams[CellParams::BGBZ   ] = this->B0 * tanh((x + 0.5 * dx) / this->SCA_LAMBDA);
+      cellParams[CellParams::BGBZ   ] = 0.0;
    }
 } // namespace projects
