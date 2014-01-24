@@ -129,23 +129,27 @@ inline void compute_ppm_coeff(Vec4 mmv,Vec4 mv, Vec4 cv, Vec4 pv,Vec4 ppv,
    Vec4 m_face;
    //white 08 H5 face estimates
    m_face = 1.0/60.0 * ( -3 * mmv + 27 * mv + 47 * cv - 13 * pv + 2 * ppv);
-   p_face = 1.0/60.0 * ( 2 * mmv -13 * mv + 47 * cv + 27 * pv - 3 * ppv);
-   
-   Vec4 slope_abs,slope_sign;
-   slope_limiter(mv,cv,pv,slope_abs,slope_sign);
+   p_face = 1.0/60.0 * (  2 * mmv - 13 * mv + 47 * cv + 27 * pv - 3 * ppv);
 
-   //detect and fix boundedness, as in WHITE 2008
-   m_face = select((mv - m_face) * (m_face - cv) < 0,
-                   cv - slope_sign * min( 0.5 * slope_abs, abs(m_face - cv)),
-                   m_face);
-   p_face = select((pv - p_face) * (p_face - cv) < 0,
-                   cv + slope_sign * min( 0.5 * slope_abs, abs(p_face - cv)),
-                   p_face);
+
+   bool fix_bounds = horizontal_or((mv - m_face) * (m_face - cv) < 0 || (pv - p_face) * (p_face - cv) < 0);
+   if(fix_bounds) {
+      Vec4 slope_abs,slope_sign;
+      slope_limiter(mv,cv,pv,slope_abs,slope_sign);
+
+      //detect and fix boundedness, as in WHITE 2008
+      m_face = select((mv - m_face) * (m_face - cv) < 0,
+                      cv - slope_sign * min( 0.5 * slope_abs, abs(m_face - cv)),
+                      m_face);
+      p_face = select((pv - p_face) * (p_face - cv) < 0,
+                      cv + slope_sign * min( 0.5 * slope_abs, abs(p_face - cv)),
+                      p_face);
+   }
    
    //Coella1984 eq. 1.10, detect extrema and make algorithm constant if it is
    Vec4 extrema_check = ((p_face - cv) * (cv - m_face));
    m_face = select(extrema_check < 0, cv, m_face);
-   p_face = select(extrema_check < 0,cv, p_face);
+   p_face = select(extrema_check < 0, cv, p_face);
    
    //Coella et al, check for monotonicity   
    m_face = select((p_face-m_face)*(cv-0.5*(m_face+p_face))>(p_face-m_face)*(p_face-m_face)*one_sixth,
