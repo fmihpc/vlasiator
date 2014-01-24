@@ -121,6 +121,16 @@ namespace SBC {
       exit(1);
    }
    
+   void SysBoundaryCondition::fieldSolverBoundaryCondHallElectricField(
+      dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const CellID& cellID,
+      cuint RKCase,
+      cuint component
+   ) {
+      cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondHallElectricField called instead of derived class function!" << endl;
+      exit(1);
+   }
+   
    void SysBoundaryCondition::fieldSolverBoundaryCondDerivatives(
       dccrg::Dccrg<SpatialCell>& mpiGrid,
       const CellID& cellID,
@@ -185,8 +195,9 @@ namespace SBC {
             break;
          case 5: // yz
             derivs[fieldsolver::dPERBxdyz] = 0.0;
+            break;
          default:
-            cerr << "Invalid component" << endl;
+            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
       }
    }
    
@@ -210,7 +221,7 @@ namespace SBC {
             derivs[bvolderivatives::dPERBYVOLdz] = 0.0;
             break;
          default:
-            cerr << "Invalid component" << endl;
+            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
       }
    }
    
