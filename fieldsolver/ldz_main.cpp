@@ -268,11 +268,6 @@ bool propagateFields(
    calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
 # endif
    
-   for (size_t cell=0; cell<localCells.size(); ++cell) {
-      const CellID cellID = localCells[cell];
-      mpiGrid[cellID]->parameters[CellParams::MAXFDT]=std::numeric_limits<Real>::max();
-   }
-   
    calculateVolumeAveragedFields(mpiGrid);
    calculateBVOLDerivativesSimple(mpiGrid, sysBoundaries, localCells);
    return true;
