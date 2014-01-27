@@ -22,8 +22,8 @@
 #define SYSBOUNDARIES_NEIGHBORHOOD_ID 9 // When classifying sysboundaries, all 26 nearest neighbors are included,
 #define SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID 10 //Up to second nearest neighbors in all directions (also diagonals)
 #define NEAREST_NEIGHBORHOOD_ID 11  //nearest neighbors
-#define FULL_NEIGHBORHOOD_ID 12  //Up to second nearest neighbors in all directions (also diagonals) + vlasov solver neighborhood
-
+#define FULL_NEIGHBORHOOD_ID 12      //Up to second nearest neighbors in all directions (also diagonals) + vlasov solver neighborhood
+#define DIST_FUNC_NEIGHBORHOOD_ID 13 //nearest neighbors in all directions (also diagonals) + vlasov solver neighborhood
 
 
 /*!

@@ -460,9 +460,9 @@ void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell>& mpiGrid)
    phiprof::initializeTimer("Velocity block list update","MPI");
    phiprof::start("Velocity block list update");
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
-   mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+   mpiGrid.update_remote_neighbor_data(DIST_FUNC_NEIGHBORHOOD_ID);
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
-   mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+   mpiGrid.update_remote_neighbor_data(DIST_FUNC_NEIGHBORHOOD_ID);
 
    phiprof::stop("Velocity block list update");
 
@@ -472,7 +472,7 @@ void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell>& mpiGrid)
    
    phiprof::start("Preparing receives");
    const std::vector<uint64_t> incoming_cells
-      = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+      = mpiGrid.get_remote_cells_on_process_boundary(DIST_FUNC_NEIGHBORHOOD_ID);
 #pragma omp parallel for
    for(unsigned int i=0;i<incoming_cells.size();i++){
       uint64_t cell_id=incoming_cells[i];
@@ -482,8 +482,7 @@ void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell>& mpiGrid)
               << " No data for spatial cell " << cell_id
               << endl;
          abort();
-      }
-      
+      }      
       cell->prepare_to_receive_blocks();
    }
    phiprof::stop("Preparing receives", incoming_cells.size(), "SpatialCells");
@@ -529,7 +528,20 @@ VLASOV_SOURCE
    x
   xox
    x
+
 -----------
+
+DIST_FUNC  (Includes all cells which should now about each others blocks and have space for them. VLASOV + SYSBOUNDARIES.
+-----------  
+    x
+    x
+   xxx
+ xxxoxxx
+   xxx
+    x
+    x
+-----------    
+
    
 FULL (Includes all possible communication for PPM stencil width of 3)
 -----------
@@ -611,6 +623,21 @@ void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
    }
    mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_NEIGHBORHOOD_ID, neighborhood);
 
+   // add remaining nearest neighbors for DIST_FUNC neighborhood
+   for (int z = -1; z <= 1; z++) {
+      for (int y = -1; y <= 1; y++) {
+         for (int x = -1; x <= 1; x++) {
+            //do not add cells already in neighborhood (vlasov solver)
+            if (x == 0 && y == 0 ) continue;
+            if (x == 0 && z == 0 ) continue;
+            if (y == 0 && z == 0 ) continue;
+            
+            neigh_t offsets = {{x, y, z}};
+            neighborhood.push_back(offsets);
+         }
+      }
+   }
+   mpiGrid.add_remote_update_neighborhood(DIST_FUNC_NEIGHBORHOOD_ID, neighborhood);
    
    neighborhood.clear();
    for (int d = -vlasov_stencil_width; d <= vlasov_stencil_width; d++) {
