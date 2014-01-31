@@ -47,9 +47,6 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell>& mpiGrid,
                             const int spatial_di,
                             const int spatial_dj,
                             const int spatial_dk ) {
-   if(spatial_di == 0 && spatial_dj == 0 && spatial_dk == 0 )
-      return cellID; 
-   
    dccrg::Types<3>::indices_t indices_unsigned = mpiGrid.get_indices(cellID);
    int64_t indices[3];
    uint64_t length[3];
@@ -366,6 +363,9 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
    thread_id = omp_get_thread_num();
    num_threads = omp_get_num_threads(); 
    #endif
+   //do nothing if it is not a normal cell, or a cell that is in the first boundary layer
+   if( get_spatial_neighbor(mpiGrid,cellID,true,0,0,0) == INVALID_CELLID)
+      return true; 
    
    /*compute spatial neighbors, separately for targets and source. In
     * source cells we have a wider stencil and take into account
