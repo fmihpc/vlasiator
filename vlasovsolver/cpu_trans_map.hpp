@@ -319,11 +319,19 @@ bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, const Ce
    */
    SpatialCell* spatial_cell = mpiGrid[cellID];   
    const bool clear_data = (spatial_cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY);
-
+   int thread_id = 0;  //thread id. Default value for serial case
+   int num_threads = 1; //Number of threads. Default value for serial case
+   #ifdef _OPENMP
+   //get actual values if OpenMP is enabled
+   thread_id = omp_get_thread_num();
+   num_threads = omp_get_num_threads(); 
+   #endif
    
    for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
-      const unsigned int block = spatial_cell->velocity_block_list[block_i];
-      Velocity_Block * __restrict__ block_ptr = spatial_cell->at(block);
+      const unsigned int blockID = spatial_cell->velocity_block_list[block_i];
+      if(blockID % num_threads != thread_id)
+         continue; //Each thread only prepares a certain non-overlapping subset of blocks (same as in mapping)
+      Velocity_Block * __restrict__ block_ptr = spatial_cell->at(blockID);
       Real * __restrict__ fx = block_ptr->fx;
       Real * __restrict__ data = block_ptr->data;
       
@@ -333,7 +341,6 @@ bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, const Ce
             data[cell] = 0.0;
       }
    }
-
 }
 
 

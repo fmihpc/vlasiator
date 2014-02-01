@@ -99,15 +99,16 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
       mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);  
       phiprof::stop(trans_timer);
-      phiprof::start("prepare-block-data-z");
-      for (size_t c=0; c<local_cells.size(); ++c)
-         trans_prepare_block_data(mpiGrid,local_cells[c]);
-      for (size_t c=0; c<remote_stencil_cells_z.size(); ++c)
-         trans_prepare_block_data(mpiGrid,remote_stencil_cells_z[c]);
-      phiprof::stop("prepare-block-data-z");  
-      phiprof::start("compute-mapping-z");
 #pragma omp parallel
       {
+         phiprof::start("prepare-block-data-z");
+         for (size_t c=0; c<local_cells.size(); ++c)
+            trans_prepare_block_data(mpiGrid,local_cells[c]);
+         for (size_t c=0; c<remote_stencil_cells_z.size(); ++c)
+            trans_prepare_block_data(mpiGrid,remote_stencil_cells_z[c]);
+#pragma omp barrier
+         phiprof::stop("prepare-block-data-z");  
+         phiprof::start("compute-mapping-z");
          for (size_t c=0; c<local_cells.size(); ++c) {
             if(do_translate_cell(mpiGrid[local_cells[c]]))
                trans_map_1d(mpiGrid,local_cells[c], 2, dt); /*< map along z*/
@@ -129,15 +130,16 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
       mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);  
       phiprof::stop(trans_timer);
-      phiprof::start("prepare-block-data-x");
-      for (size_t c=0; c<local_cells.size(); ++c)
-         trans_prepare_block_data(mpiGrid,local_cells[c]);
-      for (size_t c=0; c<remote_stencil_cells_x.size(); ++c)
-         trans_prepare_block_data(mpiGrid,remote_stencil_cells_x[c]);
-      phiprof::stop("prepare-block-data-x");  
-      phiprof::start("compute-mapping-x");
 #pragma omp parallel
       {
+         phiprof::start("prepare-block-data-x");
+         for (size_t c=0; c<local_cells.size(); ++c)
+            trans_prepare_block_data(mpiGrid,local_cells[c]);
+         for (size_t c=0; c<remote_stencil_cells_x.size(); ++c)
+            trans_prepare_block_data(mpiGrid,remote_stencil_cells_x[c]);
+#pragma omp barrier
+         phiprof::stop("prepare-block-data-x");
+         phiprof::start("compute-mapping-x");
          for (size_t c=0; c<local_cells.size(); ++c) {
             if(do_translate_cell(mpiGrid[local_cells[c]]))
                trans_map_1d(mpiGrid,local_cells[c], 0, dt); /*< map along x*/
@@ -158,15 +160,16 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
       mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);  
       phiprof::stop(trans_timer);
-      phiprof::start("prepare-block-data-y");
-      for (size_t c=0; c<local_cells.size(); ++c)
-         trans_prepare_block_data(mpiGrid,local_cells[c]);
-      for (size_t c=0; c<remote_stencil_cells_y.size(); ++c)
-         trans_prepare_block_data(mpiGrid,remote_stencil_cells_y[c]);
-      phiprof::stop("prepare-block-data-y");  
-      phiprof::start("compute-mapping-y");
 #pragma omp parallel
       {
+         phiprof::start("prepare-block-data-y");
+         for (size_t c=0; c<local_cells.size(); ++c)
+            trans_prepare_block_data(mpiGrid,local_cells[c]);
+         for (size_t c=0; c<remote_stencil_cells_y.size(); ++c)
+            trans_prepare_block_data(mpiGrid,remote_stencil_cells_y[c]);
+#pragma omp barrier
+         phiprof::stop("prepare-block-data-y");         
+         phiprof::start("compute-mapping-y");
          for (size_t c=0; c<local_cells.size(); ++c) {
             if(do_translate_cell(mpiGrid[local_cells[c]]))
                trans_map_1d(mpiGrid,local_cells[c], 1, dt); /*< map along y*/
