@@ -137,8 +137,7 @@ void compute_spatial_source_neighbors(const dccrg::Dccrg<SpatialCell>& mpiGrid,
              break;             
       }             
    }
-   neighbors[TRANS_STENCIL_WIDTH] = cellID; //for some reason dccrg does not give the cell itself for an offset of 0,0,0
-   
+
    CellID last_good_cellID = cellID;
    /*loop to neative side and replace all invalid cells with the closest good cell*/
    for(int i = -1;i>=-TRANS_STENCIL_WIDTH;i--){
@@ -177,7 +176,7 @@ void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell>& mpiGrid,
              break;             
       }             
    }
-   neighbors[1] = cellID; //for some reason dccrg does not give the cell itself for an offset of 0,0,0     
+
 }
 
 /* Copy the fx data to the temporary values array, so that the

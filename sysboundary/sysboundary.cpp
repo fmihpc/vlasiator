@@ -4,16 +4,6 @@ This file is part of Vlasiator.
 Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
 
-
-
-
-
-
-
-
-
-
-
 */
 
 /*! \file sysboundary.cpp
@@ -357,10 +347,9 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
       Transfer::CELL_SYSBOUNDARYFLAG,true);
    mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
    // Then the block data in the reduced neighbourhood:
-   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,true);
-   
    int timer=phiprof::initializeTimer("Start comm of cell and block data","MPI");
    phiprof::start(timer);
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,true);
    mpiGrid.start_remote_neighbor_data_updates(SYSBOUNDARIES_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
@@ -400,7 +389,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    phiprof::stop(timer);
 
 //  No need to adjust, vlasovBoundaryCondition not allowed to modify block structure!   
-//   updateRemoteVelocityBlockLists(mpiGrid);
+   updateRemoteVelocityBlockLists(mpiGrid);
 //   adjustVelocityBlocks(mpiGrid);
 
    /*
