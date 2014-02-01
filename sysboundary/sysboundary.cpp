@@ -388,19 +388,12 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    mpiGrid.wait_neighbor_data_update_sends();
    phiprof::stop(timer);
 
-//  No need to adjust, vlasovBoundaryCondition not allowed to modify block structure!   
-   updateRemoteVelocityBlockLists(mpiGrid);
-//   adjustVelocityBlocks(mpiGrid);
+//  No need to adjust, vlasovBoundaryCondition not allowed to modify block structure!!!   
+/*
+  updateRemoteVelocityBlockLists(mpiGrid);
+  adjustVelocityBlocks(mpiGrid);
+*/
 
-   /*
-  // NOTE, I do not think these are needed.  VEL_BLOCK_DATA is
-  // transferred in the leveque solver, and the moments are needed when
-  // computing fields -> should be handled there
-   
-   SpatialCell::set_mpi_transfer_type(
-   Transfer::CELL_RHO_RHOV| Transfer::VEL_BLOCK_DATA );
-   mpiGrid.update_remote_neighbor_data(xxx);
-   */
 }   
 
 /*! Get a pointer to the SysBoundaryCondition of given index.
