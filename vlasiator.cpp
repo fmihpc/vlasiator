@@ -295,7 +295,6 @@ int main(int argn,char* args[]) {
 
       //this is probably not ever needed, as a zero length step
       //should not require changes
-      updateRemoteVelocityBlockLists(mpiGrid);
       adjustVelocityBlocks(mpiGrid);
       
       if(P::propagateField) {
@@ -497,8 +496,7 @@ int main(int argn,char* args[]) {
                calculateAcceleration(mpiGrid,0.5*P::dt);
             else
                calculateAcceleration(mpiGrid,0.0);
-            //need to do a update of block lists as all cells have made local changes
-            updateRemoteVelocityBlockLists(mpiGrid);
+            //adjust blocks after acceleration
             adjustVelocityBlocks(mpiGrid);
             //re-compute moments for real time for fieldsolver, and
             //shift compute rho_dt2 as average of old rho and new
@@ -562,9 +560,6 @@ int main(int argn,char* args[]) {
          phiprof::stop("Velocity-space",computedCells,"Cells");
          addTimedBarrier("barrier-after-acceleration");
          
-         
-         //need to do a update of block lists as all cells have made local changes
-         updateRemoteVelocityBlockLists(mpiGrid);
          adjustVelocityBlocks(mpiGrid);
          addTimedBarrier("barrier-after-adjust-blocks");
          
