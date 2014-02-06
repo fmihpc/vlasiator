@@ -69,10 +69,7 @@ void initializeGrid(
 
    
    MPI_Comm comm = MPI_COMM_WORLD;
-   int neighborhood_size = 2; // At least this needed by fieldsolver
-#if TRANS_SEMILAG_PPM
-   neighborhood_size = 3; //PPM requires wider stencil
-#endif
+   int neighborhood_size = 2; // At least this needed by fieldsolver. It is also fine for vlasovsolver
 
    mpiGrid.initialize(
       comm,
@@ -511,16 +508,14 @@ VLASOV
 -----------  
     x
     x
-    x
- xxxoxxx
-    x
+  xxoxx
     x
     x
 -----------    
 
 VLASOV_{XYZ}
 -----------
- xxxoxxxx
+ xxoxxx
 -----------
 
 VLASOV_SOURCE
@@ -531,38 +526,39 @@ VLASOV_SOURCE
 
 -----------
 
-DIST_FUNC  (Includes all cells which should now about each others blocks and have space for them. VLASOV + SYSBOUNDARIES.
+DIST_FUNC  (Includes all cells which should know about each others blocks and have space for them. VLASOV + SYSBOUNDARIES.
 -----------  
     x
-    x
    xxx
- xxxoxxx
+  xxoxx
    xxx
     x
-    x
+    
 -----------    
 
    
-FULL (Includes all possible communication for PPM stencil width of 3)
+FULL (Includes all possible communication)
 -----------
-    x
   xxxxx
   xxxxx
- xxxoxxx
+  xxoxx
   xxxxx
   xxxxx
-    x
+
 -----------
-    
+
+SHIFT_M_X    ox
+SHIFT_P_X   xo
+ Y, Z in the same way
 */
 
 void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
    
 #ifdef TRANS_SEMILAG_PLM
-   const int vlasov_stencil_width=2;
+   const int vlasov_stencil_width=1;
 #endif
 #if TRANS_SEMILAG_PPM
-   const int vlasov_stencil_width=3;
+   const int vlasov_stencil_width=2;
 #endif
    
    // set reduced neighborhoods
@@ -690,6 +686,23 @@ void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
    mpiGrid.add_remote_update_neighborhood(VLASOV_SOLVER_SOURCE_Z_NEIGHBORHOOD_ID, neighborhood);
 
 
-   
+   neighborhood.clear();
+   neighborhood.push_back({{1, 0, 0}});
+   mpiGrid.add_remote_update_neighborhood(SHIFT_M_X_NEIGHBORHOOD_ID, neighborhood);
+   neighborhood.clear();
+   neighborhood.push_back({{0, 1, 0}});
+   mpiGrid.add_remote_update_neighborhood(SHIFT_M_Y_NEIGHBORHOOD_ID, neighborhood);
+   neighborhood.clear();
+   neighborhood.push_back({{0, 0, 1}});
+   mpiGrid.add_remote_update_neighborhood(SHIFT_M_Z_NEIGHBORHOOD_ID, neighborhood);
+   neighborhood.clear();
+   neighborhood.push_back({{-1, 0, 0}});
+   mpiGrid.add_remote_update_neighborhood(SHIFT_P_X_NEIGHBORHOOD_ID, neighborhood);
+   neighborhood.clear();
+   neighborhood.push_back({{0, -1, 0}});
+   mpiGrid.add_remote_update_neighborhood(SHIFT_P_Y_NEIGHBORHOOD_ID, neighborhood);
+   neighborhood.clear();
+   neighborhood.push_back({{0, 0, -1}});
+   mpiGrid.add_remote_update_neighborhood(SHIFT_P_Z_NEIGHBORHOOD_ID, neighborhood);
 
 }
