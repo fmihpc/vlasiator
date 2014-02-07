@@ -311,7 +311,6 @@ inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, con
   touch data.
 
   TODO: MPI communication and boundary conditions could be made smarter to avoid these extra copies.
-  TODO: parallelize with OpenMP
 */
 bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, const CellID cellID){
    /* 

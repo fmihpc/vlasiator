@@ -77,12 +77,6 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
    phiprof::start("semilag-trans");
    phiprof::start("compute_cell_lists");
    const vector<CellID> local_cells = mpiGrid.get_cells();
-   const vector<CellID> remote_propagated_cells_x = 
-      mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_SOURCE_X_NEIGHBORHOOD_ID);
-   const vector<CellID> remote_propagated_cells_y = 
-      mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_SOURCE_Y_NEIGHBORHOOD_ID);
-   const vector<CellID> remote_propagated_cells_z = 
-      mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_SOURCE_Z_NEIGHBORHOOD_ID);
    const vector<CellID> remote_stencil_cells_x = 
       mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
    const vector<CellID> remote_stencil_cells_y = 
@@ -113,10 +107,15 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
             if(do_translate_cell(mpiGrid[local_cells[c]]))
                trans_map_1d(mpiGrid,local_cells[c], 2, dt); /*< map along z*/
          }
-         for (size_t c=0; c<remote_propagated_cells_z.size();c++){
-            if(do_translate_cell(mpiGrid[remote_propagated_cells_z[c]]))
-               trans_map_1d(mpiGrid,remote_propagated_cells_z[c], 2, dt); /*< map along z*/
-         }
+
+         /*shift +z*/
+         for (size_t c=0; c<local_cells.size(); ++c) {
+            if(do_translate_cell(mpiGrid[local_cells[c]]))
+               if
+               
+         
+        TODO:  now we need to transfer the "flux" which is in neighbor cell data.
+            First set neighborblockdata pointer for those local cells with such a neighbor, and then shift. Other direction and shift. Finally sum data and fx in local cells with new data.
       }
       phiprof::stop("compute-mapping-z");
    }
@@ -144,10 +143,6 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
             if(do_translate_cell(mpiGrid[local_cells[c]]))
                trans_map_1d(mpiGrid,local_cells[c], 0, dt); /*< map along x*/
          }
-         for (size_t c=0; c<remote_propagated_cells_x.size();c++){
-            if(do_translate_cell(mpiGrid[remote_propagated_cells_x[c]]))
-               trans_map_1d(mpiGrid,remote_propagated_cells_x[c], 0, dt); /*< map along x*/
-         }
       }
       phiprof::stop("compute-mapping-x");
    }
@@ -173,10 +168,6 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
          for (size_t c=0; c<local_cells.size(); ++c) {
             if(do_translate_cell(mpiGrid[local_cells[c]]))
                trans_map_1d(mpiGrid,local_cells[c], 1, dt); /*< map along y*/
-         }
-         for (size_t c=0; c<remote_propagated_cells_y.size();c++){
-            if(do_translate_cell(mpiGrid[remote_propagated_cells_y[c]]))
-               trans_map_1d(mpiGrid,remote_propagated_cells_y[c], 1, dt); /*< map along y*/
          }
       }
       phiprof::stop("compute-mapping-y");
