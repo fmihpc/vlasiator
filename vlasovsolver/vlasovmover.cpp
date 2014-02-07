@@ -110,8 +110,11 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
 
          /*shift +z*/
          for (size_t c=0; c<local_cells.size(); ++c) {
-            if(do_translate_cell(mpiGrid[local_cells[c]]))
-               if
+            if(do_translate_cell(mpiGrid[local_cells[c]])) {
+               
+
+            }
+               
                
          
         TODO:  now we need to transfer the "flux" which is in neighbor cell data.

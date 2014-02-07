@@ -999,23 +999,15 @@ namespace velocity_neighbor {
                   block_lengths.push_back(sizeof(Real) * SIZE_FLUXS* this->number_of_blocks);
                }
 
-               if((SpatialCell::mpi_transfer_type & Transfer::SHIFT_P_VEL_BLOCK_FLUXES)!=0){
-                  // shift in plus direction. Function incomplete*/
-                  if(receiving) {
-                     displacements.push_back((uint8_t*) this->neighbor_block_data - (uint8_t*) this);               
-                     block_lengths.push_back(sizeof(Real) * SIZE_FLUXS* this->neighbor_number_of_blocks);
-                  }
-                  else {
-                     /*sending. We are actually sending the data of a
-                      * neighbor. The values of neighbor_block_data
-                      * and neighbor_number_of_blocks should be set in
-                      * solver.*/
-                     displacements.push_back((uint8_t*) this->neighbor_block_data - (uint8_t*) this);               
-                     block_lengths.push_back(sizeof(Real) * SIZE_FLUXS* this->neighbor_number_of_blocks);
-                  }
-                  displacements.push_back((uint8_t*) &(this->block_data[0]) - (uint8_t*) this);               
-                  block_lengths.push_back(sizeof(Real) * VELOCITY_BLOCK_LENGTH* this->number_of_blocks);
+               if((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_FLUXES)!=0){
+                  /*We are actually transfering the data of a
+                   * neighbor. The values of neighbor_block_data
+                   * and neighbor_number_of_blocks should be set in
+                   * solver.*/               
+                  displacements.push_back((uint8_t*) this->neighbor_block_data - (uint8_t*) this);               
+                  block_lengths.push_back(sizeof(Real) * SIZE_FLUXS* this->neighbor_number_of_blocks);
                }
+
                
                // send  spatial cell parameters
                if((SpatialCell::mpi_transfer_type & Transfer::CELL_PARAMETERS)!=0){
