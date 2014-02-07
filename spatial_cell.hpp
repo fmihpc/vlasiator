@@ -1682,15 +1682,9 @@ namespace velocity_neighbor {
         Neighbors that would be outside of the grid are always NULL.
       */
       Velocity_Block null_block;
-
-
       //Storage container for velocity blocks that exist in this cell
       boost::unordered_map<unsigned int, Velocity_Block> velocity_blocks;
-
-      
-     
-      bool mpiTransferEnabled;
-      
+      bool mpiTransferEnabled;      
    public:
       //number of blocks in cell (should be equal to velocity_block_list.size())
       unsigned int number_of_blocks;

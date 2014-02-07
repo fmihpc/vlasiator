@@ -688,21 +688,21 @@ void initializeStencils(dccrg::Dccrg<SpatialCell>& mpiGrid){
 
    neighborhood.clear();
    neighborhood.push_back({{1, 0, 0}});
-   mpiGrid.add_remote_update_neighborhood(SHIFT_M_X_NEIGHBORHOOD_ID, neighborhood);
-   neighborhood.clear();
-   neighborhood.push_back({{0, 1, 0}});
-   mpiGrid.add_remote_update_neighborhood(SHIFT_M_Y_NEIGHBORHOOD_ID, neighborhood);
-   neighborhood.clear();
-   neighborhood.push_back({{0, 0, 1}});
-   mpiGrid.add_remote_update_neighborhood(SHIFT_M_Z_NEIGHBORHOOD_ID, neighborhood);
-   neighborhood.clear();
-   neighborhood.push_back({{-1, 0, 0}});
    mpiGrid.add_remote_update_neighborhood(SHIFT_P_X_NEIGHBORHOOD_ID, neighborhood);
    neighborhood.clear();
-   neighborhood.push_back({{0, -1, 0}});
+   neighborhood.push_back({{0, 1, 0}});
    mpiGrid.add_remote_update_neighborhood(SHIFT_P_Y_NEIGHBORHOOD_ID, neighborhood);
    neighborhood.clear();
-   neighborhood.push_back({{0, 0, -1}});
+   neighborhood.push_back({{0, 0, 1}});
    mpiGrid.add_remote_update_neighborhood(SHIFT_P_Z_NEIGHBORHOOD_ID, neighborhood);
+   neighborhood.clear();
+   neighborhood.push_back({{-1, 0, 0}});
+   mpiGrid.add_remote_update_neighborhood(SHIFT_M_X_NEIGHBORHOOD_ID, neighborhood);
+   neighborhood.clear();
+   neighborhood.push_back({{0, -1, 0}});
+   mpiGrid.add_remote_update_neighborhood(SHIFT_M_Y_NEIGHBORHOOD_ID, neighborhood);
+   neighborhood.clear();
+   neighborhood.push_back({{0, 0, -1}});
+   mpiGrid.add_remote_update_neighborhood(SHIFT_M_Z_NEIGHBORHOOD_ID, neighborhood);
 
 }
