@@ -325,7 +325,12 @@ inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, con
   set to zero, if boundary cell then   we copy from data to fx, but do not
   touch data.
 
-  TODO: MPI communication and boundary conditions could be made smarter to avoid these extra copies.
+  TODO: MPI communication and boundary conditions could be made
+  smarter to avoid these extra copies; MPI send data -> fx directly
+  TODO: as fx data and block data is in one big array, we could just
+  loop through it and not look at the blocklist which does not go
+  through it in order.
+  
 */
 bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, const CellID cellID){
    /* 
@@ -547,24 +552,16 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
   \par direction: 1 for + dir, -1 for - dir
 */
   
-void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell>& mpiGrid,const uint dimension,int direction) {
+void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell>& mpiGrid, const uint dimension, int direction) {
    const vector<CellID> local_cells = mpiGrid.get_cells();
-   const vector <CellID> remote_cells= mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
    vector<CellID> receive_cells;
+   vector<CellID> send_cells;
    
    //normalize
    if(direction > 0)
       direction = 1;
    if(direction < 0)
       direction = -1;
-   
-   for (size_t c=0; c< remote_cells.size(); ++c) {
-      SpatialCell *cell = mpiGrid[remote_cells[c]];
-      //default values, to avoid any extra sends and receives
-      cell->neighbor_block_data = &(cell->block_data[0]);
-      cell->neighbor_number_of_blocks = 0;
-   }
-   
    
    //prepare arrays
    for (size_t c=0; c<local_cells.size(); ++c) {
@@ -595,13 +592,14 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell>& mpiGrid,const
       SpatialCell *pcell=mpiGrid[p_ngbr];
       SpatialCell *mcell=mpiGrid[m_ngbr];
 
-      //ok, we should shift data in p_ngbr data array that we just translated (that is, send it).
-      if(!mpiGrid.is_local(p_ngbr) && do_translate_cell(ccell) ){
+      if(!mpiGrid.is_local(p_ngbr) && do_translate_cell(ccell) ) {
+         //ok, we should shift data in p_ngbr data array that we just mapped to     (that is, send it).
          ccell->neighbor_block_data = &(pcell->block_data[0]);
          ccell->neighbor_number_of_blocks = pcell->number_of_blocks;
+         send_cells.push_back(p_ngbr);
       }
-      //ok, we should receive shift data from mcell to ccell. Will be received into mcells fx table
       if(!mpiGrid.is_local(m_ngbr) && do_translate_cell(mcell) ){
+         //If m_ngbr is remote cell, and has been propagated then receive its mapped content to this local cell fx array
          mcell->neighbor_block_data = &(ccell->block_fx[0]);
          mcell->neighbor_number_of_blocks = ccell->number_of_blocks;
          receive_cells.push_back(local_cells[c]);
@@ -625,7 +623,6 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell>& mpiGrid,const
           break;
    }
 
-   //reduce data: sum receive fx  to data
 #pragma omp parallel
    {
       int thread_id = 0;  //thread id. Default value for serial case
@@ -635,6 +632,7 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell>& mpiGrid,const
       thread_id = omp_get_thread_num();
       num_threads = omp_get_num_threads(); 
 #endif
+      //reduce data: sum received fx to data
       for (size_t c=0; c < receive_cells.size(); ++c) {
          SpatialCell *ccell = mpiGrid[receive_cells[c]];
          
@@ -648,7 +646,26 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell>& mpiGrid,const
             Real * __restrict__ data = block_ptr->data;
             
             for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
-               data[cell]+=fx[cell];
+               data[cell] += fx[cell];
+            }
+         }
+      }
+      /*send cell data is set to zero. This is to avoid double copy if
+       * one cell is the neighbor on bot + and - side to the same
+       * process*/
+      for (size_t c=0; c < send_cells.size(); ++c) {
+         SpatialCell *ccell = mpiGrid[send_cells[c]];
+         for (unsigned int block_i = 0; block_i < ccell->number_of_blocks; block_i++) {
+            const unsigned int blockID = ccell->velocity_block_list[block_i];
+            if(blockID % num_threads != thread_id)
+               continue; //same threading over blocks as elsewhere
+            
+            Velocity_Block * __restrict__ block_ptr = ccell->at(blockID);
+            Real * __restrict__ fx = block_ptr->fx;
+            Real * __restrict__ data = block_ptr->data;
+            
+            for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
+               data[cell] = 0;
             }
          }
       }

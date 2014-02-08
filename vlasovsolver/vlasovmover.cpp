@@ -1,7 +1,7 @@
 /*
   This file is part of Vlasiator.
 
-  Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
+  Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 
 */
 
@@ -97,12 +97,12 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid, creal dt) {
       
       trans_timer=phiprof::initializeTimer("update_remote-z","MPI");
       phiprof::start("update_remote-z");
-      update_remote_mapping_contribution(mpiGrid,2,1);
-      update_remote_mapping_contribution(mpiGrid,2,-1);
+      update_remote_mapping_contribution(mpiGrid, 2, 1);
+      update_remote_mapping_contribution(mpiGrid, 2, -1);
       phiprof::stop("update_remote-z");
    }
 
-
+   
 /* ------------- SLICE - map dist function in X --------------- */
    if(P::xcells_ini > 1 ){
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-x","MPI");
