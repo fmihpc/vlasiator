@@ -549,6 +549,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
   
 void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell>& mpiGrid,const uint dimension,int direction) {
    const vector<CellID> local_cells = mpiGrid.get_cells();
+   const vector <CellID> remote_cells= mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
    vector<CellID> receive_cells;
    
    //normalize
@@ -556,6 +557,13 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell>& mpiGrid,const
       direction = 1;
    if(direction < 0)
       direction = -1;
+   
+   for (size_t c=0; c< remote_cells.size(); ++c) {
+      SpatialCell *cell = mpiGrid[remote_cells[c]];
+      //default values, to avoid any extra sends and receives
+      cell->neighbor_block_data = &(cell->block_data[0]);
+      cell->neighbor_number_of_blocks = 0;
+   }
    
    
    //prepare arrays
@@ -579,6 +587,7 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell>& mpiGrid,const
              m_ngbr=mpiGrid.get_neighbors_of(local_cells[c], 0, 0, -direction)[0];
              break;
       }
+      
       if(mpiGrid.is_local(p_ngbr) && mpiGrid.is_local(m_ngbr))
          continue; //internal cell, not much to do
 
@@ -600,6 +609,7 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell>& mpiGrid,const
    }
    //Do communication
    SpatialCell::set_mpi_transfer_type(Transfer::NEIGHBOR_VEL_BLOCK_FLUXES);
+
    switch(dimension) {
        case 0:
           if(direction > 0) mpiGrid.update_remote_neighbor_data(SHIFT_P_X_NEIGHBORHOOD_ID);  
@@ -614,7 +624,7 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell>& mpiGrid,const
           if(direction < 0) mpiGrid.update_remote_neighbor_data(SHIFT_M_Z_NEIGHBORHOOD_ID);  
           break;
    }
-   
+
    //reduce data: sum receive fx  to data
 #pragma omp parallel
    {
