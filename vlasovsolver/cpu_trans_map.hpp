@@ -38,7 +38,7 @@ using namespace spatial_cell;
 //Is cell translated? It is not translated if DO_NO_COMPUTE or if it is sysboundary cell and not in first sysboundarylayer
 bool do_translate_cell(SpatialCell* SC){
    if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-      (SC->sysBoundaryLayer != 1  && SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))
+      (SC->sysBoundaryLayer != 1 && SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))
       return false;
    else
       return true;
@@ -556,6 +556,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
   
 void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell>& mpiGrid, const uint dimension, int direction) {
    const vector<CellID> local_cells = mpiGrid.get_cells();
+   const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
    vector<CellID> receive_cells;
    vector<CellID> send_cells;
    
@@ -564,6 +565,13 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell>& mpiGrid, cons
       direction = 1;
    if(direction < 0)
       direction = -1;
+
+   for (size_t c=0; c<remote_cells.size(); ++c) {
+      SpatialCell *ccell = mpiGrid[remote_cells[c]];
+      //default values, to avoid any extra sends and receives
+      ccell->neighbor_block_data = &(ccell->block_data[0]);
+      ccell->neighbor_number_of_blocks = 0;
+   }
    
    //prepare arrays
    for (size_t c=0; c<local_cells.size(); ++c) {
@@ -654,7 +662,6 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell>& mpiGrid, cons
       //reduce data: sum received fx to data
       for (size_t c=0; c < receive_cells.size(); ++c) {
          SpatialCell *ccell = mpiGrid[receive_cells[c]];
-         
          for (unsigned int block_i = 0; block_i < ccell->number_of_blocks; block_i++) {
             const unsigned int blockID = ccell->velocity_block_list[block_i];
             if(blockID % num_threads != thread_id)
