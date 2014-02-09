@@ -113,13 +113,15 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    if( mpiGrid[nbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
       return INVALID_CELLID; 
 
-   //cell on boundary, but not first layer and we want to include first layer (e.g. when we compute source cells)
+   //cell on boundary, but not first layer and we want to include
+   //first layer (e.g. when we compute source cells)
    if( include_first_boundary_layer &&
        mpiGrid[nbrID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
        mpiGrid[nbrID]->sysBoundaryLayer != 1 ) {
       return INVALID_CELLID;
    }
-   //cell on boundary, and we want none of the layers, invalid.(e.g. when we compute targets)
+   //cell on boundary, and we want none of the layers,
+   //invalid.(e.g. when we compute targets)
    if( !include_first_boundary_layer &&
        mpiGrid[nbrID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY){
       return INVALID_CELLID;
@@ -570,44 +572,61 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell>& mpiGrid, cons
       ccell->neighbor_block_data = &(ccell->block_data[0]);
       ccell->neighbor_number_of_blocks = 0;
       CellID p_ngbr,m_ngbr;
+      
       switch(dimension) {
           case 0:
-             p_ngbr=mpiGrid.get_neighbors_of(local_cells[c], direction, 0, 0)[0];
-             m_ngbr=mpiGrid.get_neighbors_of(local_cells[c], -direction, 0, 0)[0];
+             p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false,  direction, 0, 0); //p_ngbr is target, if in boundaries then it is not updated
+             m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true, -direction, 0, 0); //m_ngbr is source, first boundary layer is propagated so that it flows into system
              break;
           case 1:
-             p_ngbr=mpiGrid.get_neighbors_of(local_cells[c], 0, direction, 0)[0];
-             m_ngbr=mpiGrid.get_neighbors_of(local_cells[c], 0, -direction, 0)[0];
+             p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false, 0, direction, 0); //p_ngbr is target, if in boundaries then it is not update
+             m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true, 0, -direction, 0); //m_ngbr is source, first boundary layer is propagated so that it flows into system
              break;
           case 2:
-             p_ngbr=mpiGrid.get_neighbors_of(local_cells[c], 0, 0, direction)[0];
-             m_ngbr=mpiGrid.get_neighbors_of(local_cells[c], 0, 0, -direction)[0];
+             p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false, 0, 0, direction); //p_ngbr is target, if in boundaries then it is not update
+             m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true,  0, 0, -direction); //m_ngbr is source, first boundary layer is propagated so that it flows into system
              break;
       }
       
       if(mpiGrid.is_local(p_ngbr) && mpiGrid.is_local(m_ngbr))
          continue; //internal cell, not much to do
+            
+      SpatialCell *pcell = NULL;
+      if(p_ngbr != INVALID_CELLID)
+         pcell = mpiGrid[p_ngbr];
+      SpatialCell *mcell = NULL;
+      if(m_ngbr != INVALID_CELLID)
+         mcell = mpiGrid[m_ngbr];
 
-      
-      SpatialCell *pcell=mpiGrid[p_ngbr];
-      SpatialCell *mcell=mpiGrid[m_ngbr];
-
-      if(!mpiGrid.is_local(p_ngbr) && do_translate_cell(ccell) ) {
-         //ok, we should shift data in p_ngbr data array that we just mapped to     (that is, send it).
+      if(p_ngbr != INVALID_CELLID &&
+         !mpiGrid.is_local(p_ngbr) &&
+         do_translate_cell(ccell) 
+         ) {
+         //Send data in p_ngbr data array that we just
+         //mapped to if 1) it is a valid target,
+         //2) is remote cell, 3) if the source cell in center was
+         //translated
          ccell->neighbor_block_data = &(pcell->block_data[0]);
          ccell->neighbor_number_of_blocks = pcell->number_of_blocks;
          send_cells.push_back(p_ngbr);
       }
-      if(!mpiGrid.is_local(m_ngbr) && do_translate_cell(mcell) ){
-         //If m_ngbr is remote cell, and has been propagated then receive its mapped content to this local cell fx array
+      
+      if(m_ngbr != INVALID_CELLID &&
+         !mpiGrid.is_local(m_ngbr) &&
+         ccell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY 
+         ){
+         //Receive data that mcell mapped to ccell to this local cell
+         //fx array, if 1) m is a valid source cell, 2) center cell is to be updated (normal cell) 3)  m is remote
          mcell->neighbor_block_data = &(ccell->block_fx[0]);
          mcell->neighbor_number_of_blocks = ccell->number_of_blocks;
          receive_cells.push_back(local_cells[c]);
       }
+
    }
    //Do communication
    SpatialCell::set_mpi_transfer_type(Transfer::NEIGHBOR_VEL_BLOCK_FLUXES);
 
+   
    switch(dimension) {
        case 0:
           if(direction > 0) mpiGrid.update_remote_neighbor_data(SHIFT_P_X_NEIGHBORHOOD_ID);  
