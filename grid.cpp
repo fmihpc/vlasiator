@@ -228,7 +228,8 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
       //weight set 
       mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]=
          Parameters::loadBalanceGamma +
-         mpiGrid[cells[i]]->number_of_blocks*Parameters::loadBalanceAlpha;
+         mpiGrid[cells[i]]->number_of_blocks * Parameters::loadBalanceAlpha + 
+         mpiGrid[cells[i]]->number_of_blocks * mpiGrid[cells[i]]->number_of_blocks * Parameters::loadBalanceBeta;
       mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
    }
    phiprof::start("dccrg.initialize_balance_load");
