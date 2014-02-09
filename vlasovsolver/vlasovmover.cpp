@@ -174,8 +174,6 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid, creal dt) {
 #pragma omp  parallel for
    for (size_t c=0; c<local_cells.size(); ++c) {
       SpatialCell* SC=mpiGrid[local_cells[c]];
-      if(SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)
-         continue; //do not compute for boundary cells, we do not need it there
       
       const Real dx=SC->parameters[CellParams::DX];
       const Real dy=SC->parameters[CellParams::DY];
@@ -205,7 +203,8 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid, creal dt) {
          }
 
          //compute moments for this block
-         cpu_calcVelocityMoments(SC,block,CellParams::RHO_R,CellParams::RHOVX_R,CellParams::RHOVY_R,CellParams::RHOVZ_R);   //set moments after translation
+         if(SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
+            cpu_calcVelocityMoments(SC,block,CellParams::RHO_R,CellParams::RHOVX_R,CellParams::RHOVY_R,CellParams::RHOVZ_R);   //set moments after translation
       }
    }
    phiprof::stop("compute-moments-n-maxdt");
