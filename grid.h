@@ -24,6 +24,12 @@
 #define NEAREST_NEIGHBORHOOD_ID 11  //nearest neighbors
 #define FULL_NEIGHBORHOOD_ID 12      //Up to second nearest neighbors in all directions (also diagonals) + vlasov solver neighborhood
 #define DIST_FUNC_NEIGHBORHOOD_ID 13 //nearest neighbors in all directions (also diagonals) + vlasov solver neighborhood
+#define SHIFT_P_X_NEIGHBORHOOD_ID 14 //Shift in +x direction
+#define SHIFT_P_Y_NEIGHBORHOOD_ID 15 //Shift in +y direction
+#define SHIFT_P_Z_NEIGHBORHOOD_ID 16 //Shift in +z direction
+#define SHIFT_M_X_NEIGHBORHOOD_ID 17 //Shift in -x direction
+#define SHIFT_M_Y_NEIGHBORHOOD_ID 18 //Shift in -y direction
+#define SHIFT_M_Z_NEIGHBORHOOD_ID 19 //Shift in -z direction
 
 
 /*!

@@ -11,6 +11,7 @@
 #include "common.h"
 #include "spatial_cell.hpp"
 #include "cpu_1d_interpolations.hpp"
+#include "grid.h"
 
 #ifdef TRANS_SEMILAG_PLM
 #define  TRANS_STENCIL_WIDTH 1
@@ -33,12 +34,26 @@ using namespace spatial_cell;
 // ids inside on block (i in vector elements).
 #define i_trans_ptblockv(b_k,j,k)  ( (j) + (k) * WID +((b_k) + 1 ) * WID2)
 
+
+//Is cell translated? It is not translated if DO_NO_COMPUTE or if it is sysboundary cell and not in first sysboundarylayer
+bool do_translate_cell(SpatialCell* SC){
+   if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+      (SC->sysBoundaryLayer != 1 && SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))
+      return false;
+   else
+      return true;
+}
+
+
+
 /*
  * return INVALID_CELLID if the spatial neighbor does not exist, or if
  * it is a cell that is not computed. If the
  * include_first_boundary_layer flag is set, then also first boundary
  * layer is inlcuded (does not return INVALID_CELLID).
  * This does not use dccrg's get_neighbor_of function as it does not support computing neighbors for remote cells
+
+ TODO: not needed anymore as we do not need to compute ngbrs for remote cells
  */
 
 CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell>& mpiGrid,
@@ -98,13 +113,15 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    if( mpiGrid[nbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
       return INVALID_CELLID; 
 
-   //cell on boundary, but not first layer and we want to include first layer (e.g. when we compute source cells)
+   //cell on boundary, but not first layer and we want to include
+   //first layer (e.g. when we compute source cells)
    if( include_first_boundary_layer &&
        mpiGrid[nbrID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
        mpiGrid[nbrID]->sysBoundaryLayer != 1 ) {
       return INVALID_CELLID;
    }
-   //cell on boundary, and we want none of the layers, invalid.(e.g. when we compute targets)
+   //cell on boundary, and we want none of the layers,
+   //invalid.(e.g. when we compute targets)
    if( !include_first_boundary_layer &&
        mpiGrid[nbrID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY){
       return INVALID_CELLID;
@@ -310,8 +327,12 @@ inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, con
   set to zero, if boundary cell then   we copy from data to fx, but do not
   touch data.
 
-  TODO: MPI communication and boundary conditions could be made smarter to avoid these extra copies.
-  TODO: parallelize with OpenMP
+  TODO: MPI communication and boundary conditions could be made
+  smarter to avoid these extra copies; MPI send data -> fx directly
+  TODO: as fx data and block data is in one big array, we could just
+  loop through it and not look at the blocklist which does not go
+  through it in order.
+  
 */
 bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, const CellID cellID){
    /* 
@@ -370,7 +391,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
    num_threads = omp_get_num_threads(); 
    #endif
    //do nothing if it is not a normal cell, or a cell that is in the first boundary layer
-   if( get_spatial_neighbor(mpiGrid,cellID,true,0,0,0) == INVALID_CELLID)
+   if(get_spatial_neighbor(mpiGrid, cellID, true, 0, 0, 0) == INVALID_CELLID)
       return true; 
    
    /*compute spatial neighbors, separately for targets and source. In
@@ -524,5 +545,158 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
    return true;
 }
 
+/*!
+
+  This function communicates the mapping on process boundaries, and then updates the data to their correct values.
+  TODO, this could be inside an openmp region, in which case some m ore barriers and masters should be added
+
+  \par dimension: 0,1,2 for x,y,z
+  \par direction: 1 for + dir, -1 for - dir
+*/
+  
+void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell>& mpiGrid, const uint dimension, int direction) {
+   const vector<CellID> local_cells = mpiGrid.get_cells();
+   const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+   vector<CellID> receive_cells;
+   vector<CellID> send_cells;
+   
+   //normalize
+   if(direction > 0)
+      direction = 1;
+   if(direction < 0)
+      direction = -1;
+
+   for (size_t c=0; c<remote_cells.size(); ++c) {
+      SpatialCell *ccell = mpiGrid[remote_cells[c]];
+      //default values, to avoid any extra sends and receives
+      ccell->neighbor_block_data = &(ccell->block_data[0]);
+      ccell->neighbor_number_of_blocks = 0;
+   }
+   
+   //prepare arrays
+   for (size_t c=0; c<local_cells.size(); ++c) {
+      SpatialCell *ccell = mpiGrid[local_cells[c]];
+      //default values, to avoid any extra sends and receives
+      ccell->neighbor_block_data = &(ccell->block_data[0]);
+      ccell->neighbor_number_of_blocks = 0;
+      CellID p_ngbr,m_ngbr;
+      
+      switch(dimension) {
+          case 0:
+             p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false,  direction, 0, 0); //p_ngbr is target, if in boundaries then it is not updated
+             m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true, -direction, 0, 0); //m_ngbr is source, first boundary layer is propagated so that it flows into system
+             break;
+          case 1:
+             p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false, 0, direction, 0); //p_ngbr is target, if in boundaries then it is not update
+             m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true, 0, -direction, 0); //m_ngbr is source, first boundary layer is propagated so that it flows into system
+             break;
+          case 2:
+             p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false, 0, 0, direction); //p_ngbr is target, if in boundaries then it is not update
+             m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true,  0, 0, -direction); //m_ngbr is source, first boundary layer is propagated so that it flows into system
+             break;
+      }
+      
+      if(mpiGrid.is_local(p_ngbr) && mpiGrid.is_local(m_ngbr))
+         continue; //internal cell, not much to do
+            
+      SpatialCell *pcell = NULL;
+      if(p_ngbr != INVALID_CELLID)
+         pcell = mpiGrid[p_ngbr];
+      SpatialCell *mcell = NULL;
+      if(m_ngbr != INVALID_CELLID)
+         mcell = mpiGrid[m_ngbr];
+
+      if(p_ngbr != INVALID_CELLID &&
+         !mpiGrid.is_local(p_ngbr) &&
+         do_translate_cell(ccell) 
+         ) {
+         //Send data in p_ngbr data array that we just
+         //mapped to if 1) it is a valid target,
+         //2) is remote cell, 3) if the source cell in center was
+         //translated
+         ccell->neighbor_block_data = &(pcell->block_data[0]);
+         ccell->neighbor_number_of_blocks = pcell->number_of_blocks;
+         send_cells.push_back(p_ngbr);
+      }
+      
+      if(m_ngbr != INVALID_CELLID &&
+         !mpiGrid.is_local(m_ngbr) &&
+         ccell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY 
+         ){
+         //Receive data that mcell mapped to ccell to this local cell
+         //fx array, if 1) m is a valid source cell, 2) center cell is to be updated (normal cell) 3)  m is remote
+         mcell->neighbor_block_data = &(ccell->block_fx[0]);
+         mcell->neighbor_number_of_blocks = ccell->number_of_blocks;
+         receive_cells.push_back(local_cells[c]);
+      }
+
+   }
+   //Do communication
+   SpatialCell::set_mpi_transfer_type(Transfer::NEIGHBOR_VEL_BLOCK_FLUXES);
+
+   
+   switch(dimension) {
+       case 0:
+          if(direction > 0) mpiGrid.update_remote_neighbor_data(SHIFT_P_X_NEIGHBORHOOD_ID);  
+          if(direction < 0) mpiGrid.update_remote_neighbor_data(SHIFT_M_X_NEIGHBORHOOD_ID);  
+          break;
+       case 1:
+          if(direction > 0) mpiGrid.update_remote_neighbor_data(SHIFT_P_Y_NEIGHBORHOOD_ID);  
+          if(direction < 0) mpiGrid.update_remote_neighbor_data(SHIFT_M_Y_NEIGHBORHOOD_ID);  
+          break;
+       case 2:
+          if(direction > 0) mpiGrid.update_remote_neighbor_data(SHIFT_P_Z_NEIGHBORHOOD_ID);  
+          if(direction < 0) mpiGrid.update_remote_neighbor_data(SHIFT_M_Z_NEIGHBORHOOD_ID);  
+          break;
+   }
+
+#pragma omp parallel
+   {
+      int thread_id = 0;  //thread id. Default value for serial case
+      int num_threads = 1; //Number of threads. Default value for serial case
+#ifdef _OPENMP
+   //get actual values if OpenMP is enabled
+      thread_id = omp_get_thread_num();
+      num_threads = omp_get_num_threads(); 
+#endif
+      //reduce data: sum received fx to data
+      for (size_t c=0; c < receive_cells.size(); ++c) {
+         SpatialCell *ccell = mpiGrid[receive_cells[c]];
+         for (unsigned int block_i = 0; block_i < ccell->number_of_blocks; block_i++) {
+            const unsigned int blockID = ccell->velocity_block_list[block_i];
+            if(blockID % num_threads != thread_id)
+               continue; //same threading over blocks as elsewhere
+            
+            Velocity_Block * __restrict__ block_ptr = ccell->at(blockID);
+            Real * __restrict__ fx = block_ptr->fx;
+            Real * __restrict__ data = block_ptr->data;
+            
+            for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
+               data[cell] += fx[cell];
+            }
+         }
+      }
+      /*send cell data is set to zero. This is to avoid double copy if
+       * one cell is the neighbor on bot + and - side to the same
+       * process*/
+      for (size_t c=0; c < send_cells.size(); ++c) {
+         SpatialCell *ccell = mpiGrid[send_cells[c]];
+         for (unsigned int block_i = 0; block_i < ccell->number_of_blocks; block_i++) {
+            const unsigned int blockID = ccell->velocity_block_list[block_i];
+            if(blockID % num_threads != thread_id)
+               continue; //same threading over blocks as elsewhere
+            
+            Velocity_Block * __restrict__ block_ptr = ccell->at(blockID);
+            Real * __restrict__ fx = block_ptr->fx;
+            Real * __restrict__ data = block_ptr->data;
+            
+            for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
+               data[cell] = 0;
+            }
+         }
+      }
+   }
+}
+   
 
 #endif   

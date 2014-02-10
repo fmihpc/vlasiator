@@ -1,7 +1,7 @@
 /*
   This file is part of Vlasiator.
 
-  Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
+  Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 
 */
 
@@ -43,46 +43,25 @@ creal TWO     = 2.0;
 creal EPSILON = 1.0e-25;
 
 
-/*--------------------------------------------------
-  Translation function (real space propagation)
-  --------------------------------------------------*/
-
-//Is cell translated? It is not translated if DO_NO_COMPUTE or if it is sysboundary cell and not in first sysboundarylayer
-bool do_translate_cell(SpatialCell* SC){
-   if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-      (SC->sysBoundaryLayer != 1  && SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))
-      return false;
-   else
-      return true;
-}
-
-
 /*!  
 
   Propagates the distribution function in spatial space. 
- 
+  
   Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A
   three‐dimensional monotone and conservative semi‐Lagrangian scheme
   (SLICE‐3D) for transport problems." Quarterly Journal of the Royal
   Meteorological Society 138.667 (2012): 1640-1651.
 
 */
-void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
-				 creal dt) {
 
+void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid, creal dt) {
    typedef Parameters P;
    int trans_timer;
-
+   
 
    phiprof::start("semilag-trans");
    phiprof::start("compute_cell_lists");
    const vector<CellID> local_cells = mpiGrid.get_cells();
-   const vector<CellID> remote_propagated_cells_x = 
-      mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_SOURCE_X_NEIGHBORHOOD_ID);
-   const vector<CellID> remote_propagated_cells_y = 
-      mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_SOURCE_Y_NEIGHBORHOOD_ID);
-   const vector<CellID> remote_propagated_cells_z = 
-      mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_SOURCE_Z_NEIGHBORHOOD_ID);
    const vector<CellID> remote_stencil_cells_x = 
       mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
    const vector<CellID> remote_stencil_cells_y = 
@@ -113,15 +92,17 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
             if(do_translate_cell(mpiGrid[local_cells[c]]))
                trans_map_1d(mpiGrid,local_cells[c], 2, dt); /*< map along z*/
          }
-         for (size_t c=0; c<remote_propagated_cells_z.size();c++){
-            if(do_translate_cell(mpiGrid[remote_propagated_cells_z[c]]))
-               trans_map_1d(mpiGrid,remote_propagated_cells_z[c], 2, dt); /*< map along z*/
-         }
+         phiprof::stop("compute-mapping-z");
       }
-      phiprof::stop("compute-mapping-z");
+      
+      trans_timer=phiprof::initializeTimer("update_remote-z","MPI");
+      phiprof::start("update_remote-z");
+      update_remote_mapping_contribution(mpiGrid, 2, 1);
+      update_remote_mapping_contribution(mpiGrid, 2, -1);
+      phiprof::stop("update_remote-z");
    }
 
-
+   
 /* ------------- SLICE - map dist function in X --------------- */
    if(P::xcells_ini > 1 ){
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-x","MPI");
@@ -144,12 +125,15 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
             if(do_translate_cell(mpiGrid[local_cells[c]]))
                trans_map_1d(mpiGrid,local_cells[c], 0, dt); /*< map along x*/
          }
-         for (size_t c=0; c<remote_propagated_cells_x.size();c++){
-            if(do_translate_cell(mpiGrid[remote_propagated_cells_x[c]]))
-               trans_map_1d(mpiGrid,remote_propagated_cells_x[c], 0, dt); /*< map along x*/
-         }
+         phiprof::stop("compute-mapping-x");
       }
-      phiprof::stop("compute-mapping-x");
+
+      trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
+      phiprof::start("update_remote-x");
+      update_remote_mapping_contribution(mpiGrid, 0, 1);
+      update_remote_mapping_contribution(mpiGrid, 0, -1);
+      phiprof::stop("update_remote-x");
+      
    }
 
 /* ------------- SLICE - map dist function in Y --------------- */
@@ -174,19 +158,23 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
             if(do_translate_cell(mpiGrid[local_cells[c]]))
                trans_map_1d(mpiGrid,local_cells[c], 1, dt); /*< map along y*/
          }
-         for (size_t c=0; c<remote_propagated_cells_y.size();c++){
-            if(do_translate_cell(mpiGrid[remote_propagated_cells_y[c]]))
-               trans_map_1d(mpiGrid,remote_propagated_cells_y[c], 1, dt); /*< map along y*/
-         }
+         phiprof::stop("compute-mapping-y");
       }
-      phiprof::stop("compute-mapping-y");
+      
+      trans_timer=phiprof::initializeTimer("update_remote-y","MPI");
+      phiprof::start("update_remote-y");
+      update_remote_mapping_contribution(mpiGrid, 1, 1);
+      update_remote_mapping_contribution(mpiGrid, 1, -1);
+      phiprof::stop("update_remote-y");
+
    }
-  
+   
 /* Mapping complete, update moments */
    phiprof::start("compute-moments-n-maxdt");
 #pragma omp  parallel for
    for (size_t c=0; c<local_cells.size(); ++c) {
       SpatialCell* SC=mpiGrid[local_cells[c]];
+      
       const Real dx=SC->parameters[CellParams::DX];
       const Real dy=SC->parameters[CellParams::DY];
       const Real dz=SC->parameters[CellParams::DZ];
@@ -215,7 +203,8 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid,
          }
 
          //compute moments for this block
-         cpu_calcVelocityMoments(SC,block,CellParams::RHO_R,CellParams::RHOVX_R,CellParams::RHOVY_R,CellParams::RHOVZ_R);   //set moments after translation
+         if(SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
+            cpu_calcVelocityMoments(SC,block,CellParams::RHO_R,CellParams::RHOVX_R,CellParams::RHOVY_R,CellParams::RHOVZ_R);   //set moments after translation
       }
    }
    phiprof::stop("compute-moments-n-maxdt");

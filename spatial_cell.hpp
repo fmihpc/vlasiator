@@ -90,6 +90,7 @@ namespace spatial_cell {
       const uint64_t CELL_BVOL_DERIVATIVES    = (1<<18);
       const uint64_t CELL_DIMENSIONS          = (1<<19);
       const uint64_t CELL_IOLOCALCELLID       = (1<<20);
+      const uint64_t NEIGHBOR_VEL_BLOCK_FLUXES = (1<<21);
       
       //all data, expect for the fx table (never needed on remote cells)
       const uint64_t ALL_DATA =
@@ -934,7 +935,6 @@ namespace velocity_neighbor {
          const bool receiving
       ) {
             address = this;
-
             std::vector<MPI_Aint> displacements;
             std::vector<int> block_lengths;
             unsigned int block_index = 0;
@@ -998,6 +998,16 @@ namespace velocity_neighbor {
                   displacements.push_back((uint8_t*) &(this->block_fx[0]) - (uint8_t*) this);               
                   block_lengths.push_back(sizeof(Real) * SIZE_FLUXS* this->number_of_blocks);
                }
+
+               if((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_FLUXES)!=0){
+                  /*We are actually transfering the data of a
+                   * neighbor. The values of neighbor_block_data
+                   * and neighbor_number_of_blocks should be set in
+                   * solver.*/               
+                  displacements.push_back((uint8_t*) this->neighbor_block_data - (uint8_t*) this);               
+                  block_lengths.push_back(sizeof(Real) * SIZE_FLUXS* this->neighbor_number_of_blocks);
+               }
+
                
                // send  spatial cell parameters
                if((SpatialCell::mpi_transfer_type & Transfer::CELL_PARAMETERS)!=0){
@@ -1672,14 +1682,9 @@ namespace velocity_neighbor {
         Neighbors that would be outside of the grid are always NULL.
       */
       Velocity_Block null_block;
-
-
       //Storage container for velocity blocks that exist in this cell
       boost::unordered_map<unsigned int, Velocity_Block> velocity_blocks;
-
-     
-     bool mpiTransferEnabled;
-      
+      bool mpiTransferEnabled;      
    public:
       //number of blocks in cell (should be equal to velocity_block_list.size())
       unsigned int number_of_blocks;
@@ -1706,6 +1711,12 @@ namespace velocity_neighbor {
       std::vector<Real,aligned_allocator<Real,64> > block_data;
       std::vector<Real,aligned_allocator<Real,64> > block_fx;
 
+      /*Pointersfor translation operator.  We can point to neighbor
+        cell block data. We do not allocate memory for the
+        pointer*/
+      Real * neighbor_block_data;
+      unsigned int neighbor_number_of_blocks;
+      
       //vectors for storing null block data
       std::vector<Real,aligned_allocator<Real,64> > null_block_data;
       std::vector<Real,aligned_allocator<Real,64> > null_block_fx;
