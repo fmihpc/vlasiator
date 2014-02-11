@@ -323,43 +323,53 @@ inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, con
 
 
 /*
-  For cells that are not boundary cells  block data is copied from data to fx, and data is
+  For local cells that are not boundary cells  block data is copied from data to fx, and data is
   set to zero, if boundary cell then   we copy from data to fx, but do not
-  touch data.
-
-  TODO: MPI communication and boundary conditions could be made
-  smarter to avoid these extra copies; MPI send data -> fx directly
-  TODO: as fx data and block data is in one big array, we could just
-  loop through it and not look at the blocklist which does not go
-  through it in order.
+  touch data. FOr remote cells fx is already up to data as we receive there.
   
 */
 bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, const CellID cellID){
-   /* 
-      Move densities from data to fx and clear data, to prepare for mapping
-   */
    SpatialCell* spatial_cell = mpiGrid[cellID];   
-   const bool clear_data = (spatial_cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY);
-   int thread_id = 0;  //thread id. Default value for serial case
-   int num_threads = 1; //Number of threads. Default value for serial case
-   #ifdef _OPENMP
-   //get actual values if OpenMP is enabled
-   thread_id = omp_get_thread_num();
-   num_threads = omp_get_num_threads(); 
-   #endif
+   /*if we are on boundary then we do not set the data values to zero as these cells should not be updated*/
+   const bool is_boundary = (spatial_cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY);
+   /*if the cell is remote, then we do no copy data to the fx table, it should already have been set there*/
+   const bool is_local = mpiGrid.is_local(cellID);
    
-   for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
-      const unsigned int blockID = spatial_cell->velocity_block_list[block_i];
-      if(blockID % num_threads != thread_id)
-         continue; //Each thread only prepares a certain non-overlapping subset of blocks (same as in mapping)
-      Velocity_Block * __restrict__ block_ptr = spatial_cell->at(blockID);
-      Real * __restrict__ fx = block_ptr->fx;
-      Real * __restrict__ data = block_ptr->data;
-      
-      for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
-         fx[cell] = data[cell];
-         if(clear_data)
-            data[cell] = 0.0;
+
+   if(is_local && !is_boundary) {
+#pragma omp for nowait
+      for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->number_of_blocks; cell++) {
+         //copy data to fx for solvers, and set data to zero as we will map new values there
+         spatial_cell->block_fx[cell] = spatial_cell->block_data[cell];
+         spatial_cell->block_data[cell] = 0.0;
+      }
+   }
+   
+   
+   else if(!is_local && !is_boundary) {
+#pragma omp for nowait
+      for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->number_of_blocks; cell++) {
+         //fx already up to date as we received to fx. data
+         //needs to be reset as the updates we collect there will
+         //be sent to other processes
+         spatial_cell->block_data[cell] = 0.0;
+      }
+   }
+
+   else if(is_local && is_boundary) {
+#pragma omp for nowait
+      for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->number_of_blocks; cell++) {
+         //data values are up to date, copy to fx for solvers. Do
+         //not reset data as we will not propagate stuff there
+         spatial_cell->block_fx[cell] = spatial_cell->block_data[cell];
+      }
+   }
+   
+   else if(!is_local && is_boundary) {
+#pragma omp for nowait
+      for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->number_of_blocks; cell++) {
+         //fx already up to date as we received to fx. We copy to data, even if this is not needed...
+         spatial_cell->block_data[cell] = spatial_cell->block_fx[cell];
       }
    }
 }
@@ -652,47 +662,25 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell>& mpiGrid, cons
 
 #pragma omp parallel
    {
-      int thread_id = 0;  //thread id. Default value for serial case
-      int num_threads = 1; //Number of threads. Default value for serial case
-#ifdef _OPENMP
-   //get actual values if OpenMP is enabled
-      thread_id = omp_get_thread_num();
-      num_threads = omp_get_num_threads(); 
-#endif
       //reduce data: sum received fx to data
       for (size_t c=0; c < receive_cells.size(); ++c) {
-         SpatialCell *ccell = mpiGrid[receive_cells[c]];
-         for (unsigned int block_i = 0; block_i < ccell->number_of_blocks; block_i++) {
-            const unsigned int blockID = ccell->velocity_block_list[block_i];
-            if(blockID % num_threads != thread_id)
-               continue; //same threading over blocks as elsewhere
-            
-            Velocity_Block * __restrict__ block_ptr = ccell->at(blockID);
-            Real * __restrict__ fx = block_ptr->fx;
-            Real * __restrict__ data = block_ptr->data;
-            
-            for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
-               data[cell] += fx[cell];
-            }
+         SpatialCell *spatial_cell = mpiGrid[receive_cells[c]];      
+#pragma omp for nowait
+         for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->number_of_blocks; cell++) {
+            //copy data to fx for solvers, and set data to zero as we will map new values there
+            spatial_cell->block_data[cell] += spatial_cell->block_fx[cell];
          }
       }
+
+   
       /*send cell data is set to zero. This is to avoid double copy if
        * one cell is the neighbor on bot + and - side to the same
        * process*/
       for (size_t c=0; c < send_cells.size(); ++c) {
-         SpatialCell *ccell = mpiGrid[send_cells[c]];
-         for (unsigned int block_i = 0; block_i < ccell->number_of_blocks; block_i++) {
-            const unsigned int blockID = ccell->velocity_block_list[block_i];
-            if(blockID % num_threads != thread_id)
-               continue; //same threading over blocks as elsewhere
-            
-            Velocity_Block * __restrict__ block_ptr = ccell->at(blockID);
-            Real * __restrict__ fx = block_ptr->fx;
-            Real * __restrict__ data = block_ptr->data;
-            
-            for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
-               data[cell] = 0;
-            }
+         SpatialCell *spatial_cell = mpiGrid[send_cells[c]];      
+#pragma omp for nowait
+         for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->number_of_blocks; cell++) {
+            spatial_cell->block_data[cell] = 0.0;
          }
       }
    }

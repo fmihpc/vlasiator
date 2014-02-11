@@ -75,7 +75,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid, creal dt) {
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-z","MPI");
       phiprof::start(trans_timer);
       /*start by doing all transfers in a blocking fashion (communication stage can be optimized separately) */
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA_TO_FLUXES);
       mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);  
       phiprof::stop(trans_timer);
 #pragma omp parallel
@@ -108,7 +108,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid, creal dt) {
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-x","MPI");
       phiprof::start(trans_timer);
       /*start by doing all transfers in a blocking fashion (communication stage can be optimized separately) */
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA_TO_FLUXES);
       mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);  
       phiprof::stop(trans_timer);
 #pragma omp parallel
@@ -141,7 +141,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid, creal dt) {
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-y","MPI");
       phiprof::start(trans_timer);
       /*start by doing all transfers in a blocking fashion (communication stage can be optimized separately) */
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA_TO_FLUXES);
       mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);  
       phiprof::stop(trans_timer);
 #pragma omp parallel

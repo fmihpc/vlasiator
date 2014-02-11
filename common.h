@@ -241,17 +241,7 @@ template<typename UINT> inline UINT cellIndex(const UINT& i,const UINT& j,const 
    return k*WID2 + j*WID + i;
 }
 
-
-
-
 const uint SIZE_VELBLOCK    = WID3; /*!< Number of cells in a velocity block. */
-const uint SIZE_BLOCKPARAMS = 6;    /*!< Number of parameters per velocity block. */
-
-const uint SIZE_BOUND       = WID3;
-const uint SIZE_BDERI       = WID2;
-const uint SIZE_BFLUX       = WID2;
-const uint SIZE_DERIV       = WID3;
-const uint SIZE_FLUXS       = WID3;
 
 // Natural constants
 namespace physicalconstants {

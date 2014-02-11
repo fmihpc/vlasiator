@@ -34,8 +34,8 @@ typedef Parameters P;
 #define block_vx_length WID
 #define block_vy_length WID
 #define block_vz_length WID
-#define VELOCITY_BLOCK_LENGTH (block_vx_length * block_vy_length * block_vz_length)
-
+//this is also defined in common.h as SIZE_VELBLOCK, we should remove either one
+#define VELOCITY_BLOCK_LENGTH WID3
 #define N_NEIGHBOR_VELOCITY_BLOCKS 28
 
 
@@ -74,7 +74,7 @@ namespace spatial_cell {
       const uint64_t VEL_BLOCK_LIST_STAGE1    = (1<<2);
       const uint64_t VEL_BLOCK_LIST_STAGE2    = (1<<3);
       const uint64_t VEL_BLOCK_DATA           = (1<<4);
-      const uint64_t VEL_BLOCK_FLUXES         = (1<<5);
+      const uint64_t VEL_BLOCK_DATA_TO_FLUXES         = (1<<5);
       const uint64_t VEL_BLOCK_PARAMETERS     = (1<<6);
       const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE1  = (1<<7); 
       const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE2  = (1<<8); 
@@ -185,7 +185,7 @@ namespace velocity_neighbor {
             for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
                this->data[i] = 0;
             }
-            for (unsigned int i = 0; i < SIZE_FLUXS; i++) {
+            for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
                this->fx[i] = 0;
             }
          }
@@ -623,7 +623,7 @@ namespace velocity_neighbor {
 
          //allocate memory for null block
          this->null_block_data.resize(VELOCITY_BLOCK_LENGTH);
-         this->null_block_fx.resize(SIZE_FLUXS);
+         this->null_block_fx.resize(VELOCITY_BLOCK_LENGTH);
          this->null_block.data=&(this->null_block_data[0]);
          this->null_block.fx=&(this->null_block_fx[0]);
          this->sysBoundaryLayer=0; /*!< Default value, layer not yet initialized*/
@@ -994,18 +994,23 @@ namespace velocity_neighbor {
                   block_lengths.push_back(sizeof(Real) * VELOCITY_BLOCK_LENGTH* this->number_of_blocks);
                }
                
-               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_FLUXES)!=0){
-                  displacements.push_back((uint8_t*) &(this->block_fx[0]) - (uint8_t*) this);               
-                  block_lengths.push_back(sizeof(Real) * SIZE_FLUXS* this->number_of_blocks);
+               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA_TO_FLUXES)!=0){
+                  if(receiving) {
+                     displacements.push_back((uint8_t*) &(this->block_fx[0]) - (uint8_t*) this);               
+                  }
+                  else {
+                     displacements.push_back((uint8_t*) &(this->block_data[0]) - (uint8_t*) this);               
+                  }
+                  block_lengths.push_back(sizeof(Real) * VELOCITY_BLOCK_LENGTH* this->number_of_blocks);
                }
-
+               
                if((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_FLUXES)!=0){
                   /*We are actually transfering the data of a
                    * neighbor. The values of neighbor_block_data
                    * and neighbor_number_of_blocks should be set in
                    * solver.*/               
                   displacements.push_back((uint8_t*) this->neighbor_block_data - (uint8_t*) this);               
-                  block_lengths.push_back(sizeof(Real) * SIZE_FLUXS* this->neighbor_number_of_blocks);
+                  block_lengths.push_back(sizeof(Real) * VELOCITY_BLOCK_LENGTH* this->neighbor_number_of_blocks);
                }
 
                
@@ -1342,7 +1347,7 @@ namespace velocity_neighbor {
       void set_block_data_pointers(int block_index){
          Velocity_Block* tmp_block_ptr = this->at(this->velocity_block_list[block_index]);
          tmp_block_ptr->data=&(this->block_data[block_index*VELOCITY_BLOCK_LENGTH]);
-         tmp_block_ptr->fx=&(this->block_fx[block_index*SIZE_FLUXS]);
+         tmp_block_ptr->fx=&(this->block_fx[block_index*VELOCITY_BLOCK_LENGTH]);
 
       }
       
@@ -1366,7 +1371,7 @@ namespace velocity_neighbor {
             //resize so that free space is block_allocation_chunk blocks
             int new_size=this->number_of_blocks+block_allocation_chunk;
             this->block_data.resize(new_size*VELOCITY_BLOCK_LENGTH);
-            this->block_fx.resize(new_size*SIZE_FLUXS);
+            this->block_fx.resize(new_size*VELOCITY_BLOCK_LENGTH);
             
             //fix block pointers if a reallocation occured
             for(unsigned int block_index=0;block_index<this->number_of_blocks;block_index++){
@@ -1521,8 +1526,8 @@ namespace velocity_neighbor {
          for(unsigned int i=0;i<VELOCITY_BLOCK_LENGTH;i++){
             this->block_data[block_index*VELOCITY_BLOCK_LENGTH+i] = this->block_data[(this->number_of_blocks - 1)*VELOCITY_BLOCK_LENGTH+i];
          }
-         for(unsigned int i=0;i<SIZE_FLUXS;i++){
-            this->block_fx[block_index*SIZE_FLUXS+i] = this->block_fx[(this->number_of_blocks - 1)*SIZE_FLUXS+i];
+         for(unsigned int i=0;i<VELOCITY_BLOCK_LENGTH;i++){
+            this->block_fx[block_index*VELOCITY_BLOCK_LENGTH+i] = this->block_fx[(this->number_of_blocks - 1)*VELOCITY_BLOCK_LENGTH+i];
          }
          //set block data pointers to the location where we copied data
          set_block_data_pointers(block_index);
