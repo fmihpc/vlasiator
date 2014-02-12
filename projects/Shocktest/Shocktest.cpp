@@ -19,7 +19,7 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 using namespace std;
 namespace projects {
 
-   Shocktest::Shocktest() : Project::Project() {} // Constructor
+   Shocktest::Shocktest() : IsotropicMaxwellian::IsotropicMaxwellian() {} // Constructor
    Shocktest::~Shocktest() {} // Destructor
 
    
@@ -95,7 +95,32 @@ namespace projects {
       return this->rho[side] * pow(mass / (2.0 * M_PI * k * this->T[side]), 1.5) *
       exp(- mass * (pow(vx - this->Vx[side], 2.0) + pow(vy - this->Vy[side], 2.0) + pow(vz - this->Vz[side], 2.0)) / (2.0 * k * this->T[side]));
    }
-   
+
+
+   /** Returns the center coordinates of the maxwellian distribution
+   @ param x The x coordinate of the given spatial cell
+   @ param y The x coordinate of the given spatial cell
+   @ param z The x coordinate of the given spatial cell
+   @ param component The component to be returned
+   */
+
+   Real Shocktest::getV0( 
+      creal x,
+      creal y,
+      creal z,
+      cuint component
+   ) {
+      Real V0;
+      if( component == 0 ) {
+         V0 = this->Vx[this->LEFT];
+      } else if( component == 1 ) {
+         V0 = this->Vy[this->LEFT];
+      } else if( component == 2 ) {
+         V0 = this->Vz[this->LEFT];
+      }
+      return V0;
+   }
+
    /** Integrate the distribution function over the given six-dimensional phase-space cell.
     * @param x Starting value of the x-coordinate of the cell.
     * @param y Starting value of the y-coordinate of the cell.
