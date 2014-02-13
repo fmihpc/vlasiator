@@ -180,22 +180,24 @@ bool map_1d(SpatialCell* spatial_cell,
   // Make a copy of the blocklist, the blocklist will change during this algorithm
   uint*  blocks=new uint[spatial_cell->number_of_blocks];
   const uint nblocks=spatial_cell->number_of_blocks;
-  /* 
-     Move densities from data to fx and clear data, to prepare for mapping
-     Also copy blocklist since the velocity block list in spatial cell changes when we add values
-  */
-  for (unsigned int block_i = 0; block_i < nblocks; block_i++) {
-    const unsigned int block = spatial_cell->velocity_block_list[block_i];
-    blocks[block_i] = block; 
-    Velocity_Block * __restrict__ block_ptr = spatial_cell->at(block);
-    Real * __restrict__ fx = block_ptr->fx;
-    Real * __restrict__ data = block_ptr->data;
 
-    for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
-      fx[cell] = data[cell];
-      data[cell] = 0.0;
-    }
+  /*     
+     Move densities from data to fx and clear data, to prepare for mapping
+  */
+  for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->number_of_blocks; cell++) {
+     //copy data to fx for solvers, and set data to zero as we will map new values there
+     spatial_cell->block_fx[cell] = spatial_cell->block_data[cell];
+     spatial_cell->block_data[cell] = 0.0;
   }
+  
+  /*copy blocklist since the velocity block list in spatial cell changes when we add values */
+  for (unsigned int block_i = 0; block_i < nblocks; block_i++) {
+     const unsigned int block = spatial_cell->velocity_block_list[block_i];
+     blocks[block_i] = block; 
+  }
+
+
+  
   if(dimension>2)
     return false; //not possible
 
@@ -260,7 +262,7 @@ bool map_1d(SpatialCell* spatial_cell,
 
   /*these two temporary variables are used to optimize access to target cells*/
   uint previous_target_block = error_velocity_block;
-  Real *target_block_data;
+  Real *target_block_data = NULL;
 
   
   for (unsigned int block_i = 0; block_i < nblocks; block_i++) {

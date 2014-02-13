@@ -64,7 +64,7 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell>& mpiGrid,
                             const int spatial_dk ) {
    dccrg::Types<3>::indices_t indices_unsigned = mpiGrid.get_indices(cellID);
    int64_t indices[3];
-   uint64_t length[3];
+   int64_t length[3];
 
    //compute raw new indices
    indices[0] = spatial_di + indices_unsigned[0];
@@ -202,7 +202,7 @@ void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell>& mpiGrid,
  * generated with compute_spatial_neighbors_wboundcond)*/
 
 inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID, const CellID *source_neighbors, const uint blockID, Real * __restrict__ values, int dimension){
-   uint cell_indices_to_id[3];
+   uint cell_indices_to_id[3]={};
    switch (dimension){
        case 0:
           /* i and k coordinates have been swapped*/
@@ -329,6 +329,7 @@ inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, con
   
 */
 bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, const CellID cellID){
+   bool return_value=false;
    SpatialCell* spatial_cell = mpiGrid[cellID];   
    /*if we are on boundary then we do not set the data values to zero as these cells should not be updated*/
    const bool is_boundary = (spatial_cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY);
@@ -342,7 +343,9 @@ bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, const Ce
          //copy data to fx for solvers, and set data to zero as we will map new values there
          spatial_cell->block_fx[cell] = spatial_cell->block_data[cell];
          spatial_cell->block_data[cell] = 0.0;
+         return_value=true;
       }
+      
    }
    
    
@@ -353,6 +356,7 @@ bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, const Ce
          //needs to be reset as the updates we collect there will
          //be sent to other processes
          spatial_cell->block_data[cell] = 0.0;
+         return_value=true;
       }
    }
 
@@ -362,6 +366,7 @@ bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, const Ce
          //data values are up to date, copy to fx for solvers. Do
          //not reset data as we will not propagate stuff there
          spatial_cell->block_fx[cell] = spatial_cell->block_data[cell];
+         return_value=true;
       }
    }
    
@@ -370,8 +375,11 @@ bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, const Ce
       for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->number_of_blocks; cell++) {
          //fx already up to date as we received to fx. We copy to data, even if this is not needed...
          spatial_cell->block_data[cell] = spatial_cell->block_fx[cell];
+         return_value=true;
       }
    }
+   
+   return return_value;
 }
 
 
@@ -393,8 +401,8 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
    SpatialCell* spatial_cell = mpiGrid[cellID];
    uint block_indices_to_id[3]; /*< used when computing id of target block */
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/   
-   int thread_id = 0;  //thread id. Default value for serial case
-   int num_threads = 1; //Number of threads. Default value for serial case
+   uint thread_id = 0;  //thread id. Default value for serial case
+   uint num_threads = 1; //Number of threads. Default value for serial case
    #ifdef _OPENMP
    //get actual values if OpenMP is enabled
    thread_id = omp_get_thread_num();
@@ -604,6 +612,9 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell>& mpiGrid, cons
              p_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], false, 0, 0, direction); //p_ngbr is target, if in boundaries then it is not update
              m_ngbr=get_spatial_neighbor(mpiGrid, local_cells[c], true,  0, 0, -direction); //m_ngbr is source, first boundary layer is propagated so that it flows into system
              break;
+          default:
+             cerr << "Dimension wrong at (impossible!) "<< __FILE__ <<":" << __LINE__<<endl;
+             exit(1);
       }
       
       if(mpiGrid.is_local(p_ngbr) && mpiGrid.is_local(m_ngbr))
