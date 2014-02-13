@@ -352,8 +352,13 @@ bool map_1d(SpatialCell* spatial_cell,
 	  //then v_1,v_2 should be between v_l and v_r.
 	  //v_1 and v_2 normalized to be between 0 and 1 in the cell.
 	  //For vector elements where gk is already larger than needed (lagrangian_gk_r), v_2=v_1=v_r and thus the value is zero.
+#ifdef DP
 	  const Vec4 v_1 = (min(max(to_double(gk) * intersection_dk + intersection_min, v_l), v_r) - v_l) * i_dv;
 	  const Vec4 v_2 = (min(to_double(gk + 1) * intersection_dk + intersection_min,       v_r) - v_l) * i_dv;
+#else
+          const Vec4 v_1 = (min(max(to_float(gk) * intersection_dk + intersection_min, v_l), v_r) - v_l) * i_dv;
+          const Vec4 v_2 = (min(to_float(gk + 1) * intersection_dk + intersection_min,       v_r) - v_l) * i_dv;
+#endif
 #ifdef ACC_SEMILAG_PCONSTM
 	  Vec4 cv;	    
 	  cv.load(values + i_pblockv(j,k));
