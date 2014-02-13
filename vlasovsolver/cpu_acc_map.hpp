@@ -260,7 +260,7 @@ bool map_1d(SpatialCell* spatial_cell,
 
   /*these two temporary variables are used to optimize access to target cells*/
   uint previous_target_block = error_velocity_block;
-  Real *target_block_data;
+  Real *target_block_data = NULL;
 
   
   for (unsigned int block_i = 0; block_i < nblocks; block_i++) {
