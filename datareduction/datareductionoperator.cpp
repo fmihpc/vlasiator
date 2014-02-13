@@ -303,31 +303,6 @@ namespace DRO {
       boundaryLayer = (int)cell->sysBoundaryLayer;
       return true;
    }
-
-   // VelocitySubSteps
-   VelocitySubSteps::VelocitySubSteps(): DataReductionOperator() { }
-   VelocitySubSteps::~VelocitySubSteps() { }
-   
-   bool VelocitySubSteps::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "int";
-      dataSize = sizeof(int);
-      vectorSize = 1;
-      return true;
-   }
-   
-   std::string VelocitySubSteps::getName() const {return "Velocity_substeps";}
-   
-   bool VelocitySubSteps::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&substeps);
-      for (uint i=0; i<sizeof(int); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VelocitySubSteps::setSpatialCell(const SpatialCell* cell) {
-      substeps = (int)cell->subStepsAcceleration;
-      return true;
-   }
-
    
    // Blocks
    Blocks::Blocks(): DataReductionOperator() { }

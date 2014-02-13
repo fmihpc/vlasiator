@@ -892,8 +892,6 @@ bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    phiprof::start("writeGrid-restart");
 
-   //de-allocate buffers for spatial leveque solver to reduce memory peak 
-   deallocateSpatialLevequeBuffers();
    //deallocate blocks in remote cells to decrease memory load
    deallocateRemoteCellBlocks(mpiGrid);
    // Create a name for the output file and open it with VLSVWriter:
@@ -961,7 +959,6 @@ bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
    restartReducer.addOperator(new DRO::MPIrank);
    restartReducer.addOperator(new DRO::BoundaryType);
    restartReducer.addOperator(new DRO::BoundaryLayer);
-   restartReducer.addOperator(new DRO::VelocitySubSteps);
 
    //Write necessary variables:
    const bool writeAsFloat = false;
@@ -977,8 +974,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
    updateRemoteVelocityBlockLists(mpiGrid);
-   //re-allocate buffers now that we have written the restart 
-   allocateSpatialLevequeBuffers(mpiGrid);
+
    phiprof::stop("writeGrid-restart");//,1.0e-6*bytesWritten,"MB");
 
    return success;

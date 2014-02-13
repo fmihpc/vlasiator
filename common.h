@@ -241,17 +241,7 @@ template<typename UINT> inline UINT cellIndex(const UINT& i,const UINT& j,const 
    return k*WID2 + j*WID + i;
 }
 
-
-
-
 const uint SIZE_VELBLOCK    = WID3; /*!< Number of cells in a velocity block. */
-const uint SIZE_BLOCKPARAMS = 6;    /*!< Number of parameters per velocity block. */
-
-const uint SIZE_BOUND       = WID3;
-const uint SIZE_BDERI       = WID2;
-const uint SIZE_BFLUX       = WID2;
-const uint SIZE_DERIV       = WID3;
-const uint SIZE_FLUXS       = WID3;
 
 // Natural constants
 namespace physicalconstants {
@@ -262,21 +252,6 @@ namespace physicalconstants {
    const Real MASS_PROTON = 1.67262158e-27; /*!< Proton rest mass.*/
    const Real R_E = 6.3712e6; /*!< radius of the Earth. */
 }
-
-
-
-//neighborhoods, these are initialized in initializeGrid
-
-#define FIELD_SOLVER_NEIGHBORHOOD_ID 1
-#define VLASOV_SOLVER_NEIGHBORHOOD_ID 2
-#define VLASOV_SOLVER_FLUXES_NEIGHBORHOOD_ID 3
-#define VLASOV_SOLVER_DENSITY_NEIGHBORHOOD_ID 4
-// When classifying sysboundaries, all 26 nearest neighbors are included,
-#define SYSBOUNDARIES_NEIGHBORHOOD_ID 5
-#define SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID 6
-#define NEAREST_NEIGHBORHOOD_ID 7
-
-
 
 
 

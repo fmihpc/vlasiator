@@ -65,11 +65,8 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
    Transform<Real,3,Affine> total_transform(Matrix4d::Identity());
       
    unsigned int bulk_velocity_substeps; /*!<in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep*/
+   bulk_velocity_substeps=dt/(gyro_period*(0.1/360.0)); 
 
-   if(Parameters::lorentzHallTerm)
-      bulk_velocity_substeps=dt/(gyro_period*(0.1/360.0)); 
-   else
-      bulk_velocity_substeps=1;
    
    /*note, we assume q is positive (pretty good assumption though)*/
    const Real substeps_radians=-(2.0*M_PI*dt/gyro_period)/bulk_velocity_substeps; /*!< how many radians each substep is*/
@@ -79,13 +76,11 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
       /*first add bulk velocity (using the total transform computed this far*/
       Eigen::Matrix<Real,3,1> rotation_pivot(total_transform*bulk_velocity);
       
-      if(Parameters::lorentzHallTerm) {
-         //inlude lorentzHallTerm (we should include, always)      
-         rotation_pivot[0]-=hallPrefactor*(dBZdy - dBYdz);
-         rotation_pivot[1]-=hallPrefactor*(dBXdz - dBZdx);
-         rotation_pivot[2]-=hallPrefactor*(dBYdx - dBXdy);
-      }
-      
+      //inlude lorentzHallTerm (we should include, always)      
+      rotation_pivot[0]-=hallPrefactor*(dBZdy - dBYdz);
+      rotation_pivot[1]-=hallPrefactor*(dBXdz - dBZdx);
+      rotation_pivot[2]-=hallPrefactor*(dBYdx - dBXdy);
+
       /*add to transform matrix the small rotation around  pivot
         when added like thism, and not using *= operator, the transformations
         are in the correct order

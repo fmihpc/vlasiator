@@ -1,7 +1,7 @@
 
 /*
 This file is part of Vlasiator.
-Copyright 2012 Finnish Meteorological Institute
+Copyright 2013, 2014 Finnish Meteorological Institute
 
 */
 
@@ -14,7 +14,7 @@ Copyright 2012 Finnish Meteorological Institute
 #include "utility"
 #include "common.h"
 #include "spatial_cell.hpp"
-
+#include "cpu_1d_interpolations.hpp"
 #ifdef ACC_SEMILAG_PCONSTM
 const int STENCIL_WIDTH=0;
 #endif
@@ -27,94 +27,17 @@ const int STENCIL_WIDTH=2;
 
 
 
+
 using namespace std;
 using namespace spatial_cell;
 
-const Vec4 one_sixth(1.0/6.0);
-const Vec4 one_twelfth(1.0/12.0);
-const Vec4 seven_twelfth(7.0/12.0);
-const Vec4 one_third(1.0/3.0);
 
-// indices in padded z block
+// indices in padded z block where we buffer the block and its neighbors in one velocity dimension
 #define i_pblock(i,j,k) ( ((k) + STENCIL_WIDTH ) * WID + (j) * WID * (WID + 2* STENCIL_WIDTH) + (i) )
 #define i_pblockv(j,k) ( ((k) + STENCIL_WIDTH ) * WID + (j) * WID * (WID + 2* STENCIL_WIDTH) )
 
 
 /*!
-  MC slope limiter
-*/
-
-inline Vec4 slope_limiter(const Vec4& l,const Vec4& m, const Vec4& r) {
-  const Vec4 two(2.0);
-  const Vec4 half(0.5);
-  const Vec4 zero(0.0);
-  Vec4 sign;
-  Vec4 a=r-m;
-  Vec4 b=m-l; 
-  Vec4 minval=min(two*abs(a),two*abs(b));
-  minval=min(minval,half*abs(a+b));
-  
-  //check for extrema
-  Vec4 output = select(a*b < 0,zero,minval);
-  
-  //set sign
-  return select(a + b < 0,-output,output);
-}
-
-
-/*!
- Compute PLM coefficients
-f(v) = a[0] + a[1]/2.0*t 
-t=(v-v_{i-0.5})/dv where v_{i-0.5} is the left face of a cell
-The factor 2.0 is in the polynom to ease integration, then integral is a[0]*t + a[1]*t**2
-*/
-
-inline void compute_plm_coeff(Vec4 mv,Vec4 cv, Vec4 pv,
-			      Vec4 * __restrict__ a){
-  const Vec4 d_cv=slope_limiter(mv,cv,pv);
-  a[0] = cv - d_cv * 0.5;
-  a[1] = d_cv * 0.5;
-}
-
-
-
-
-inline void compute_ppm_coeff(Vec4 mmv,Vec4 mv, Vec4 cv, Vec4 pv,Vec4 ppv,
-			      Vec4 * __restrict__ a){
-   Vec4 p_face;
-   Vec4 m_face;
-
-   //Compute estimations of the face values. Limited estimates, like in Coella 1984. 
-   const Vec4 d_cv=slope_limiter(mv,cv,pv);
-   const Vec4 d_pv=slope_limiter(cv,pv,ppv);
-   const Vec4 d_mv=slope_limiter(mmv,mv,cv);
-
-   p_face=0.5*(pv+cv) + one_sixth * (d_cv-d_pv);
-   m_face=0.5*(cv+mv) + one_sixth * (d_mv-d_cv);        
-
-   //Coella1984 eq. 1.10, detect extrema
-   m_face = select((p_face - cv) * (cv - m_face) < 0,cv, m_face);
-   p_face = select((p_face - cv) * (cv - m_face) < 0,cv, p_face);
-   
-   //Coella et al, check for monotonicity   
-   m_face = select((p_face-m_face)*(cv-0.5*(m_face+p_face))>(p_face-m_face)*(p_face-m_face)*one_sixth,
-		  3*cv-2*p_face,
-		  m_face);
-   p_face = select(-(p_face-m_face)*(p_face-m_face)*one_sixth > (p_face-m_face)*(cv-0.5*(m_face+p_face)),
-		   3*cv-2*m_face,
-		   p_face);
-
-   //Fit a second order polynomial for reconstruction see, e.g., White
-   //2008 (PQM article) (note additional integration factors built in,
-   //contrary to White (2008) eq. 4
-   a[0]=m_face;
-   a[1]=3.0*cv-2.0*m_face-p_face;
-   a[2]=(m_face+p_face-2.0*cv);
-}
-
-/*!
-  value array should be initialized to zero
-  
   For dimension=0 data copy  we have rotated data
   i -> k
   j -> j
@@ -123,7 +46,7 @@ For dimension=1 data copy  we have rotated data
   i -> i
   j -> k
   k -> j
-For dimension=0 data copy 
+
 */
 inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __restrict__ values, int dimension){
     Velocity_Block *block=spatial_cell->at(blockID);
@@ -153,6 +76,16 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
            cell_indices_to_id[2]=WID2;
            block_P1=velocity_neighbor::XCC_YCC_ZP1;
            block_M1=velocity_neighbor::XCC_YCC_ZM1;
+           break;
+        default:
+           //same as for dimension 2, mostly here to get rid of compiler warning
+           cell_indices_to_id[0]=1;
+           cell_indices_to_id[1]=1;
+           cell_indices_to_id[2]=1;
+           block_P1=1;
+           block_M1=1;
+           cerr << "Dimension argument wrong: " << dimension << " at " << __FILE__ << ":" << __LINE__ << endl;
+           exit(1);
            break;
     }
     
@@ -230,6 +163,12 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
    Here we map from the current time step grid, to a target grid which
    is the lagrangian departure grid (so th grid at timestep +dt,
    tracked backwards by -dt)
+
+   TODO: parallelize with openMP over block-columns. If one also
+   pre-creates new blocks in a separate loop first (serial operation),
+   then the openmp parallization would scale well (better than over
+   spatial cells), and would not need synchronization.
+   
 */
 
 bool map_1d(SpatialCell* spatial_cell,   

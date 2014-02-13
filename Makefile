@@ -8,23 +8,31 @@ FP_PRECISION = DP
 #set a default archive utility, can also be set in Makefile.arch
 AR ?= ar
 
-#leveque (no other options)
-TRANSSOLVER ?= leveque
 
 #londrillo_delzanna (no other options)
 FIELDSOLVER ?= londrillo_delzanna
+#Add -DFS_1ST_ORDER_SPACE or -DFS_1ST_ORDER_TIME to make the field solver first-order in space or time
+# CXXFLAGS += -DFS_1ST_ORDER_SPACE
+# CXXFLAGS += -DFS_1ST_ORDER_TIME
 
 CXXFLAGS += -DPROFILE
 
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
 CXXFLAGS += -DNDEBUG
 
-#Set order of semilag solver in acceleration
+#Set order of semilag solver in velocity space acceleration
 #  ACC_SEMILAG_PCONSTM	1st order
 #  ACC_SEMILAG_PLM 	2nd order	
 #  ACC_SEMILAG_PPM	3rd order (use this one unless you are testing, only ~20% slower than 2nd order)
-CXXFLAGS += -DACC_SEMILAG_PPM
+#Set order of semilag solver in spatial translation
+#  TRANS_SEMILAG_PLM 	2nd order	
+#  TRANS_SEMILAG_PPM	3rd order 
+#If PPM is used in either trans or acc, then also set one opf these:
+#  PPM_COELLA84                            PPM like in the 1984 coella paper
+#  PPM_COELLA08                            PPM like in the 2008 coella paper
+#  PPM_COELLA84_WITH_WHITE08_H5FACEVALS    PPM with White 208 H5 bounded face values, with Coella 1984 extrema and monotonicity filters
 
+CXXFLAGS += -DACC_SEMILAG_PPM -DTRANS_SEMILAG_PPM -DPPM_COELLA84_WITH_WHITE08_H5FACEVALS   
 #define USE_AGNER_VECTORCLASS to use an external vector class that is used in some of the solvers
 #If not defined a slower but portable implementation is used, as the external one only supports 
 #Linux & x86 processors  
@@ -34,19 +42,10 @@ CXXFLAGS += -DUSE_AGNER_VECTORCLASS
 # CXXFLAGS += -DCATCH_FPE
 
 
-#Add -DFS_1ST_ORDER_SPACE or -DFS_1ST_ORDER_TIME to make the field solver first-order in space or time
-# CXXFLAGS += -DFS_1ST_ORDER_SPACE
-# CXXFLAGS += -DFS_1ST_ORDER_TIME
-
 
 #//////////////////////////////////////////////////////
 # The rest of this file users shouldn't need to change
 #//////////////////////////////////////////////////////
-
-
-ifeq ($(strip $(TRANSSOLVER)),leveque)
-CXXFLAGS += -DSOLVER_LEVEQUE
-endif
 
 #will need profiler in most places..
 CXXFLAGS += ${INC_PROFILE} 
@@ -119,7 +118,7 @@ OBJS = 	version.o backgroundfield.o ode.o quadr.o dipole.o constantfield.o integ
 	Alfven.o Diffusion.o Dispersion.o Firehose.o Flowthrough.o Fluctuations.o  KHB.o Larmor.o Magnetosphere.o MultiPeak.o VelocityBox.o Riemann1.o Shock.o test_fp.o test_trans.o verificationLarmor.o Shocktest.o \
 	grid.o ioread.o iowrite.o vlasiator.o logger.o muxml.o \
 	parameters.o readparameters.o spatial_cell.o \
-	vlscommon.o vlsvreader2.o  vlasovmover_$(TRANSSOLVER).o $(FIELDSOLVER).o
+	vlscommon.o vlsvreader2.o  vlasovmover.o $(FIELDSOLVER).o
 
 
 help:
@@ -253,10 +252,10 @@ projectIsotropicMaxwellian.o: ${DEPS_COMMON} $(DEPS_PROJECTS)
 spatial_cell.o: spatial_cell.cpp spatial_cell.hpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c spatial_cell.cpp $(INC_BOOST) ${INC_EIGEN}
 
-vlasovmover_leveque.o: spatial_cell.hpp transferstencil.h  vlasovsolver/cpu_acc_leveque.hpp vlasovsolver/cpu_trans_leveque.h vlasovsolver/cpu_lorentz.hpp vlasovsolver/limiters.h  vlasovsolver/limiters_vec4.h vlasovsolver/leveque_common.h vlasovsolver/vlasovmover_leveque.cpp vlasovsolver/cpu_acc_map.hpp vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_semilag.hpp		vlasovsolver/cpu_acc_transform.hpp	
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -DMOVER_VLASOV_ORDER=2  -c vlasovsolver/vlasovmover_leveque.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG}  ${INC_ZOLTAN}     ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN}  
+vlasovmover.o: spatial_cell.hpp  vlasovsolver/vlasovmover.cpp vlasovsolver/cpu_acc_map.hpp vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_semilag.hpp vlasovsolver/cpu_acc_transform.hpp	
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -DMOVER_VLASOV_ORDER=2  -c vlasovsolver/vlasovmover.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG}  ${INC_ZOLTAN}     ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN}  
 
-londrillo_delzanna.o: spatial_cell.hpp transferstencil.h   parameters.h common.h fieldsolver/londrillo_delzanna.cpp
+londrillo_delzanna.o: spatial_cell.hpp  parameters.h common.h fieldsolver/londrillo_delzanna.cpp
 	 ${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/londrillo_delzanna.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG}  ${INC_PROFILE}  ${INC_ZOLTAN}
 
 vlasiator.o:  ${DEPS_COMMON} readparameters.h parameters.h ${DEPS_PROJECTS} grid.h spatial_cell.hpp vlasiator.cpp

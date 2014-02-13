@@ -3,17 +3,6 @@ This file is part of Vlasiator.
 
 Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
-
-
-
-
-
-
-
-
-
-
-
 */
 
 #ifndef CPU_MOMENTS_H
@@ -25,7 +14,6 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
 #include "../definitions.h"
 #include "../common.h"
-#include "leveque_common.h"
 #include "spatial_cell.hpp"
 using namespace spatial_cell;
 
