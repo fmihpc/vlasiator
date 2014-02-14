@@ -236,6 +236,15 @@ bool readNBlocks( T & file,
    return success;
 }
 
+/*! This is a function for calling templated functions whose template is determined by data type and size read by vlsv reader. Note: 
+ \param
+ \param
+
+*/
+bool executeWithTemplate( 7 ) {
+
+}
+
 /*! This reads in data one cell at a time. It is not the most efficient way but has the following benefits
  - For large datasets (distribution function), we avoid any problem with having to store all distribution functions twice in memory
  - Machinery in readvlsv does not at the moment support setting fileviews, this should be improved.
