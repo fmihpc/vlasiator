@@ -500,7 +500,7 @@ bool readBlockData(
  \return Returns true if the operation is successful
  */
 template <typename fileReal, class U>
-bool readCellParamsVariable(U & file,
+static bool _readCellParamsVariable(U & file,
 			    const vector<uint64_t>& fileCells,
                             const uint64_t localCellStartOffset,
 			    const uint64_t localCells,
@@ -547,6 +547,69 @@ bool readCellParamsVariable(U & file,
    return success;
 }
 
+/*! Reads cell parameters from the file and saves them in the right place in mpiGrid
+ \param file Some parallel vlsv reader with a file open
+ \param fileCells List of all cell ids
+ \param localCellStartOffset Offset in the fileCells list for this process ( calculated so that the amount of blocks is distributed somewhat evenly between processes)
+ \param localCells The amount of cells to read in this process after localCellStartOffset
+ \param cellParamsIndex The parameter of the cell index e.g. CellParams::RHO
+ \param expectedVectorSize The amount of elements in the parameter (parameter can be a scalar or a vector of size N)
+ \param mpiGrid Vlasiator's grid (the parameters are saved here)
+ \return Returns true if the operation is successful
+ */
+template <class U>
+bool readCellParamsVariable(U & file,
+			    const vector<uint64_t>& fileCells,
+                            const uint64_t localCellStartOffset,
+			    const uint64_t localCells,
+			    const string& variableName,
+                            const size_t cellParamsIndex,
+                            const size_t expectedVectorSize,
+                            dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid){
+   uint64_t arraySize;
+   uint64_t vectorSize;
+   datatype::type dataType;
+   uint64_t byteSize;
+   list<pair<string,string> > attribs;
+   
+   attribs.push_back(make_pair("name",variableName));
+   attribs.push_back(make_pair("mesh","SpatialGrid"));
+   
+   
+   if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
+      logFile << "(RESTARTBUILDER)  ERROR: Failed to read " << endl << write;
+      return false;
+   }
+
+   // Call _readCellParamsVariable
+   if( dataType == datatype::type::FLOAT ) {
+      switch (byteSize) {
+         case sizeof(double):
+            return _readCellParamsVariable<double>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
+            break;
+         case sizeof(float):
+            return _readCellParamsVariable<float>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
+            break;
+      }
+   } else if( dataType == datatype::type::UINT ) {
+         case sizeof(uint32_t):
+            return _readCellParamsVariable<uint32_t>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
+            break;
+         case sizeof(uint64_t):
+            return _readCellParamsVariable<uint64_t>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
+            break;
+   } else if( dataType == datatype::type::INT ) {
+         case sizeof(int32_t):
+            return _readCellParamsVariable<int32_t>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
+            break;
+         case sizeof(int64_t):
+            return _readCellParamsVariable<int64_t>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
+            break;
+   } else {
+      logFile << "(RESTARTBUILDER)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
+      return false;
+   }
+}
 
 
 /*! A function for reading parameters e.g. 'timestep'
