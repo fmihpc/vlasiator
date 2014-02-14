@@ -5,6 +5,7 @@
 #include <vector>
 #include <sstream>
 #include <ctime>
+#include "boost/array.hpp"
 #include "ioread.h"
 #include "phiprof.hpp"
 #include "parameters.h"
@@ -342,9 +343,9 @@ bool readBlockData(
  \param blockCoordinates An empty array where to store the block coordinates
  \sa readBlockData
  */
-void getVelocityBlockCoordinates( const uint64_t & block, array<Real, 3> & blockCoordinates ) {
+void getVelocityBlockCoordinates( const uint64_t & block, boost::array<Real, 3> & blockCoordinates ) {
    //Get indices:
-   array<uint64_t, 3> blockIndices;
+   boost::array<uint64_t, 3> blockIndices;
    blockIndices[0] = block % P::vxblocks_ini;
    blockIndices[1] = (block / P::vxblocks_ini) % P::vyblocks_ini;
    blockIndices[2] = block / (P::vxblocks_ini * P::vyblocks_ini);
@@ -455,7 +456,7 @@ bool readBlockData(
            blockId = blockIds[bufferBlock];
         }
         //Get the block's coordinates (min coordinates)
-        array<Real, 3> blockCoordinates;
+        boost::array<Real, 3> blockCoordinates;
         getVelocityBlockCoordinates( blockId, blockCoordinates );
 
         // set    volume average of distrib. function for each cell in the block.
