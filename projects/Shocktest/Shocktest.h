@@ -23,13 +23,14 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #include "../../spatial_cell.hpp"
 //#include "../projects_common.h"
 #include "../project.h"
+#include "../projectIsotropicMaxwellian.h"
 
 //#include "../projects_vlasov_acceleration.h"
 
 #include "dccrg.hpp"
 
 namespace projects {
-   class Shocktest : public Project {
+   class Shocktest: public IsotropicMaxwellian {
       public:
          Shocktest(); // Constructor
          virtual ~Shocktest(); // Destructor
@@ -66,6 +67,13 @@ namespace projects {
             creal& dx, creal& dy, creal& dz,
             creal& vx, creal& vy, creal& vz,
             creal& dvx, creal& dvy, creal& dvz
+         );
+         //virtual std::vector<uint> findBlocksToInitialize(SpatialCell* cell);
+         virtual Real getV0(
+            creal x,
+            creal y,
+            creal z,
+            cuint component
          );
 
          // Couldn't find an explanation for this        
