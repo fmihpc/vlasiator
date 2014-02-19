@@ -252,7 +252,8 @@ namespace SBC {
     */
    vector<vector<Real> > SetByUser::loadFile(const char *fn) {
       vector<vector<Real> > dataset;
-      
+ 
+   
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       
@@ -265,16 +266,19 @@ namespace SBC {
       }
       uint nlines = 0;
       int ret = nParams;
+
+      // Make sure the type id of Real is correct
+      Assert( typeid( Real ) != typeid(float) && typeid( Real ) != typeid(double) );
+
       while (!feof(fp) && ret == (int)nParams) {
-         Real x;
+         Real readParam;
          ret = 0;
-         if ( typeid( Real ) == typeid(double) ) {
-            for(uint i=0; i<nParams; i++) ret += fscanf(fp, "%lf", &x);
-         } else if( typeid( Real ) == typeid(float) ) {
-            for(uint i=0; i<nParams; i++) ret += fscanf(fp, "%f", &x);
+         if ( typeid( readParam ) == typeid(double) ) {
+            for(uint i=0; i<nParams; i++) ret += fscanf(fp, "%lf", &readParam);
+         } else if( typeid( readParam ) == typeid(float) ) {
+            for(uint i=0; i<nParams; i++) ret += fscanf(fp, "%f", &readParam);
          } else {
-            Assert( typeid( Real ) != typeid(float) && typeid( Real ) != typeid(double) );
-            exit(1);
+            Assert( typeid( readParam ) != typeid(float) && typeid( readParam ) != typeid(double) );
          }
          nlines++;
       }
@@ -293,12 +297,19 @@ namespace SBC {
       for (uint line=0; line<nlines; line++) {
          vector<Real> tempData;
          for (uint i=0; i<nParams; i++) {
-            Real x;
-            int ret = fscanf(fp,"%lf",&x);
+            Real readParam;
+            int ret;
+            if ( typeid( readParam ) == typeid(double) ) {
+               ret = fscanf(fp,"%lf",&readParam);
+            } else if( typeid( readParam ) == typeid(float) ) {
+               ret = fscanf(fp,"%f",&readParam);
+            } else {
+               Assert( typeid( readParam ) != typeid(float) && typeid( readParam ) != typeid(double) ); 
+            }
             if (ret != 1) {
                cerr << "Couldn't read a number from parameter file " << *fn << " for line value " << line << endl;
             }
-            tempData.push_back(x);
+            tempData.push_back(readParam);
          }
          dataset.push_back(tempData);
       }
