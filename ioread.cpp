@@ -506,7 +506,6 @@ bool readBlockData(
    attribs.push_back(make_pair("name","avgs"));
    attribs.push_back(make_pair("mesh","SpatialGrid"));
 
-   file, fileCells, localCellStartOffset, localCells, nBlocks, localBlockStartOffset, localBlocks, mpiGrid
 
    if (file.getArrayInfo("BLOCKVARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
       logFile << "(RESTARTBUILDER)  ERROR: Failed to read BLOCKVARIABLE INFO" << endl << write;
@@ -525,19 +524,23 @@ bool readBlockData(
             break;
       }
    } else if( dataType == datatype::type::UINT ) {
+      switch (byteSize) {
          case sizeof(uint32_t):
             return _readBlockData<uint32_t>( file, fileCells, localCellStartOffset, localCells, nBlocks, localBlockStartOffset, localBlocks, mpiGrid );
             break;
          case sizeof(uint64_t):
             return _readBlockData<uint64_t>( file, fileCells, localCellStartOffset, localCells, nBlocks, localBlockStartOffset, localBlocks, mpiGrid );
             break;
+      }
    } else if( dataType == datatype::type::INT ) {
+      switch (byteSize) {
          case sizeof(int32_t):
             return _readBlockData<int32_t>( file, fileCells, localCellStartOffset, localCells, nBlocks, localBlockStartOffset, localBlocks, mpiGrid );
             break;
          case sizeof(int64_t):
             return _readBlockData<int64_t>( file, fileCells, localCellStartOffset, localCells, nBlocks, localBlockStartOffset, localBlocks, mpiGrid );
             break;
+      }
    } else {
       logFile << "(RESTARTBUILDER)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
       return false;
@@ -651,19 +654,24 @@ bool readCellParamsVariable(U & file,
             break;
       }
    } else if( dataType == datatype::type::UINT ) {
+      switch (byteSize) {
+
          case sizeof(uint32_t):
             return _readCellParamsVariable<uint32_t>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
             break;
          case sizeof(uint64_t):
             return _readCellParamsVariable<uint64_t>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
             break;
+      }
    } else if( dataType == datatype::type::INT ) {
+      switch (byteSize) {
          case sizeof(int32_t):
             return _readCellParamsVariable<int32_t>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
             break;
          case sizeof(int64_t):
             return _readCellParamsVariable<int64_t>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
             break;
+      }
    } else {
       logFile << "(RESTARTBUILDER)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
       return false;
