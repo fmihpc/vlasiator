@@ -118,7 +118,7 @@ OBJS = 	version.o backgroundfield.o ode.o quadr.o dipole.o constantfield.o integ
 	Alfven.o Diffusion.o Dispersion.o Firehose.o Flowthrough.o Fluctuations.o  KHB.o Larmor.o Magnetosphere.o MultiPeak.o VelocityBox.o Riemann1.o Shock.o test_fp.o test_trans.o verificationLarmor.o Shocktest.o \
 	grid.o ioread.o iowrite.o vlasiator.o logger.o muxml.o \
 	parameters.o readparameters.o spatial_cell.o \
-	vlscommon.o vlsvreader2.o  vlasovmover.o $(FIELDSOLVER).o
+	vlscommon.o vlsvreader2.o  vlasovmover.o $(FIELDSOLVER).o \
 
 
 help:

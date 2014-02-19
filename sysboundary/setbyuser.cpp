@@ -268,7 +268,14 @@ namespace SBC {
       while (!feof(fp) && ret == (int)nParams) {
          Real x;
          ret = 0;
-         for(uint i=0; i<nParams; i++) ret += fscanf(fp, "%lf", &x);
+         if ( typeid( Real ) == typeid(double) ) {
+            for(uint i=0; i<nParams; i++) ret += fscanf(fp, "%lf", &x);
+         } else if( typeid( Real ) == typeid(float) ) {
+            for(uint i=0; i<nParams; i++) ret += fscanf(fp, "%f", &x);
+         } else {
+            Assert( typeid( Real ) != typeid(float) && typeid( Real ) != typeid(double) );
+            exit(1);
+         }
          nlines++;
       }
       nlines--;
