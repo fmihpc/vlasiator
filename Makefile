@@ -86,7 +86,7 @@ LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_VLSV}
 
 # Define common dependencies
-DEPS_COMMON = common.h definitions.h mpiconversion.h logger.h
+DEPS_COMMON = common.h definitions.h mpiconversion.h logger.h definitions.cpp
 
 # Define dependencies on all project files
 DEPS_PROJECTS =	projects/project.h projects/project.cpp \
@@ -119,6 +119,7 @@ OBJS = 	version.o backgroundfield.o ode.o quadr.o dipole.o constantfield.o integ
 	grid.o ioread.o iowrite.o vlasiator.o logger.o muxml.o \
 	parameters.o readparameters.o spatial_cell.o \
 	vlscommon.o vlsvreader2.o  vlasovmover.o $(FIELDSOLVER).o \
+        definitions.o
 
 
 help:
@@ -291,6 +292,9 @@ vlsvreader2.o:  muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
 
 vlsvreader2extra.o:  muxml.h muxml.cpp vlscommon.h vlsvreader2.h vlsvreader2.cpp
 	${CMP} ${CXXEXTRAFLAGS} ${FLAGS} -c vlsvreader2.cpp ${INC_VLSV}
+
+definitions.o: definitions.h
+	${CMP} ${CXXEXTRAFLAGS} ${FLAGS} -c definitions.cpp
 
 
 # Make executable
