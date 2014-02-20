@@ -31,13 +31,6 @@ typedef uint64_t CellID;
 
 template<typename T> T convert(const T& number) {return number;}
 
-// vlasiator_assert function for debugging Vlasiator
-void vlasiator_assert( bool condition, const char * error, const char * file, int line );
 
-#ifndef VLASIATOR_NDEBUG
-#define vlasiator_assert(a) vlasiator_assert( a, #a, __FILE__, __LINE__ )    //The a is the truth-value input, b is a char* input, aka const char* in our case, __FILE__ is recognized as the filename and __LINE__ the line number 
-#else
-#define vlasiator_assert(a)
-#endif
 
 #endif
