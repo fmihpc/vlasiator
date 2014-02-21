@@ -48,14 +48,22 @@ namespace projects {
    }
    
    void Shocktest::getParameters(){
-      this->rho[2] = {NAN};
-      this->T[2] = {NAN};
-      this->Vx[2] = {NAN};
-      this->Vy[2] = {NAN};
-      this->Vz[2] = {NAN};
-      this->Bx[2] = {NAN};
-      this->By[2] = {NAN};
-      this->Bz[2] = {NAN};
+      this->rho[this->LEFT] = {NAN};
+      this->T[this->LEFT] = {NAN};
+      this->Vx[this->LEFT] = {NAN};
+      this->Vy[this->LEFT] = {NAN};
+      this->Vz[this->LEFT] = {NAN};
+      this->Bx[this->LEFT] = {NAN};
+      this->By[this->LEFT] = {NAN};
+      this->Bz[this->LEFT] = {NAN};
+      this->rho[this->RIGHT] = {NAN};
+      this->T[this->RIGHT] = {NAN};
+      this->Vx[this->RIGHT] = {NAN};
+      this->Vy[this->RIGHT] = {NAN};
+      this->Vz[this->RIGHT] = {NAN};
+      this->Bx[this->RIGHT] = {NAN};
+      this->By[this->RIGHT] = {NAN};
+      this->Bz[this->RIGHT] = {NAN};
       this->nSpaceSamples = 0;
       this->nVelocitySamples = 0;
 
