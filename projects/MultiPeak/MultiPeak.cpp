@@ -28,6 +28,12 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 
 #include "MultiPeak.h"
 
+// #ifndef _AIX
+// int32_t projects::MultiPeak::rndRho, projects::MultiPeak::rndVel1[3], projects::MultiPeak::rndVel2[3];
+// #else
+// int64_t projects::MultiPeak::rndRho, projects::MultiPeak::rndVel1[3], projects::MultiPeak::rndVel2[3];
+// #endif
+
 using namespace std;
 
 namespace projects {
@@ -35,7 +41,18 @@ namespace projects {
    MultiPeak::~MultiPeak() { }
 
 
-   bool MultiPeak::initialize(void) {return true;}
+   bool MultiPeak::initialize(void) {
+      int myRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      
+      memset(&(this->rngDataBuffer), 0, sizeof(this->rngDataBuffer));
+      #ifndef _AIX
+      initstate_r(this->seed*myRank, &(this->rngStateBuffer[0]), 256, &(this->rngDataBuffer));
+      #else
+      initstate_r(this->seed*myRank, &(this->rngStateBuffer[0]), 256, NULL, &(this->rngDataBuffer));
+      #endif
+      return true;
+   }
 
    void MultiPeak::addParameters(){
       typedef Readparameters RP;
@@ -56,10 +73,22 @@ namespace projects {
       RP::add("MultiPeak.Bx", "Magnetic field x component (T)", 0.0);
       RP::add("MultiPeak.By", "Magnetic field y component (T)", 0.0);
       RP::add("MultiPeak.Bz", "Magnetic field z component (T)", 0.0);
-      RP::add("MultiPeak.dBx", "Magnetic field x component perturbation amplitude (T)", 0.0);
-      RP::add("MultiPeak.dBy", "Magnetic field y component perturbation amplitude (T)", 0.0);
-      RP::add("MultiPeak.dBz", "Magnetic field z component perturbation amplitude (T)", 0.0);
-      RP::add("MultiPeak.lambda", "B perturbation wavelength (m)", 0.0);
+      RP::add("MultiPeak.dBx", "Magnetic field x component cosine perturbation amplitude (T)", 0.0);
+      RP::add("MultiPeak.dBy", "Magnetic field y component cosine perturbation amplitude (T)", 0.0);
+      RP::add("MultiPeak.dBz", "Magnetic field z component cosine perturbation amplitude (T)", 0.0);
+      RP::add("MultiPeak.magXPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along x (T)", 1.0e-9);
+      RP::add("MultiPeak.magYPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along y (T)", 1.0e-9);
+      RP::add("MultiPeak.magZPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along z (T)", 1.0e-9);
+//       RP::add("MultiPeak.rho1PertRelAmp", "Relative amplitude of the density perturbation, first peak", 0.1);
+//       RP::add("MultiPeak.rho2PertRelAmp", "Relative amplitude of the density perturbation, second peak", 0.1);
+//       RP::add("MultiPeak.Vx1PertAbsAmp", "Absolute amplitude of the Vx perturbation, first peak", 1.0e6);
+//       RP::add("MultiPeak.Vy1PertAbsAmp", "Absolute amplitude of the Vy perturbation, first peak", 1.0e6);
+//       RP::add("MultiPeak.Vz1PertAbsAmp", "Absolute amplitude of the Vz perturbation, first peak", 1.0e6);
+//       RP::add("MultiPeak.Vx2PertAbsAmp", "Absolute amplitude of the Vx perturbation, second peak", 1.0e6);
+//       RP::add("MultiPeak.Vy2PertAbsAmp", "Absolute amplitude of the Vy perturbation, second peak", 1.0e6);
+//       RP::add("MultiPeak.Vz2PertAbsAmp", "Absolute amplitude of the Vz perturbation, second peak", 1.0e6);
+      RP::add("MultiPeak.lambda", "B cosine perturbation wavelength (m)", 0.0);
+      RP::add("MultiPeak.seed", "Seed for the RNG", 42);
       RP::add("MultiPeak.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
    }
 
@@ -82,6 +111,17 @@ namespace projects {
       RP::get("MultiPeak.Bx", this->Bx);
       RP::get("MultiPeak.By", this->By);
       RP::get("MultiPeak.Bz", this->Bz);
+      RP::get("MultiPeak.magXPertAbsAmp", this->magXPertAbsAmp);
+      RP::get("MultiPeak.magYPertAbsAmp", this->magYPertAbsAmp);
+      RP::get("MultiPeak.magZPertAbsAmp", this->magZPertAbsAmp);
+//       RP::get("MultiPeak.rho1PertRelAmp", this->rho1PertRelAmp);
+//       RP::get("MultiPeak.rho2PertRelAmp", this->rho2PertRelAmp);
+//       RP::get("MultiPeak.Vx1PertAbsAmp", this->Vx1PertAbsAmp);
+//       RP::get("MultiPeak.Vy1PertAbsAmp", this->Vy1PertAbsAmp);
+//       RP::get("MultiPeak.Vz1PertAbsAmp", this->Vz1PertAbsAmp);
+//       RP::get("MultiPeak.Vx2PertAbsAmp", this->Vx2PertAbsAmp);
+//       RP::get("MultiPeak.Vy2PertAbsAmp", this->Vy2PertAbsAmp);
+//       RP::get("MultiPeak.Vz2PertAbsAmp", this->Vz2PertAbsAmp);
       RP::get("MultiPeak.dBx", this->dBx);
       RP::get("MultiPeak.dBy", this->dBy);
       RP::get("MultiPeak.dBz", this->dBz);
@@ -124,9 +164,40 @@ namespace projects {
 
 
    void MultiPeak::calcCellParameters(Real* cellParams,creal& t) {
-      cellParams[CellParams::PERBX   ] = this->dBx*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
-      cellParams[CellParams::PERBY   ] = this->dBy*sin(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
-      cellParams[CellParams::PERBZ   ] = this->dBz*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
+      #ifndef _AIX
+      int32_t rndBuffer[3];
+      random_r(&rngDataBuffer, &rndBuffer[0]);
+      random_r(&rngDataBuffer, &rndBuffer[1]);
+      random_r(&rngDataBuffer, &rndBuffer[2]);
+//       random_r(&rngDataBuffer, &(this->rndRho1));
+//       random_r(&rngDataBuffer, &(this->rndRho2));
+//       random_r(&rngDataBuffer, &(this->rndVel1[0]));
+//       random_r(&rngDataBuffer, &(this->rndVel1[1]));
+//       random_r(&rngDataBuffer, &(this->rndVel1[2]));
+//       random_r(&rngDataBuffer, &(this->rndVel2[0]));
+//       random_r(&rngDataBuffer, &(this->rndVel2[1]));
+//       random_r(&rngDataBuffer, &(this->rndVel2[2]));
+      #else
+      int64_t rndBuffer[3];
+      random_r(&rndBuffer[0], &rngDataBuffer);
+      random_r(&rndBuffer[1], &rngDataBuffer);
+      random_r(&rndBuffer[2], &rngDataBuffer);
+//       random_r(&(this->rndRho1), &rngDataBuffer);
+//       random_r(&(this->rndRho2), &rngDataBuffer);
+//       random_r(&(this->rndVel1[0]), &rngDataBuffer);
+//       random_r(&(this->rndVel1[1]), &rngDataBuffer);
+//       random_r(&(this->rndVel1[2]), &rngDataBuffer);
+//       random_r(&(this->rndVel2[0]), &rngDataBuffer);
+//       random_r(&(this->rndVel2[1]), &rngDataBuffer);
+//       random_r(&(this->rndVel2[2]), &rngDataBuffer);
+      #endif
+      
+      cellParams[CellParams::PERBX] = this->dBx*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda) +
+                                      this->magXPertAbsAmp * (0.5 - (double)rndBuffer[0] / (double)RAND_MAX);
+      cellParams[CellParams::PERBY] = this->dBy*sin(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda) +
+                                      this->magYPertAbsAmp * (0.5 - (double)rndBuffer[1] / (double)RAND_MAX);
+      cellParams[CellParams::PERBZ] = this->dBz*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda) +
+                                      this->magZPertAbsAmp * (0.5 - (double)rndBuffer[2] / (double)RAND_MAX);
    }
 
    void MultiPeak::setCellBackgroundField(SpatialCell* cell) {
