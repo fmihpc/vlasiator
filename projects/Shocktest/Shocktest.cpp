@@ -196,14 +196,20 @@ namespace projects {
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
-      cellParams[CellParams::PERBX   ] = 0.0;
-      cellParams[CellParams::PERBY   ] = 0.0;
-      cellParams[CellParams::PERBZ   ] = 0.0;
-      cellParams[CellParams::BGBX   ] = Bxavg / nPts;
-      cellParams[CellParams::BGBY   ] = Byavg / nPts;
-      cellParams[CellParams::BGBZ   ] = Bzavg / nPts;
+      cellParams[CellParams::PERBX   ] = Bxavg / nPts;
+      cellParams[CellParams::PERBY   ] = Byavg / nPts;
+      cellParams[CellParams::PERBZ   ] = Bzavg / nPts;
    }
    
+
+   /*! Base class sets zero background field */
+   void Shocktest::setCellBackgroundField(SpatialCell* cell) {
+      ConstantField bgField;
+      bgField.initialize(0,0,0); //bg bx, by,bz
+      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+   }
+
+
    void Shocktest::setCell(SpatialCell* cell) {
       // Set up cell parameters:
       calcCellParameters(&((*cell).parameters[0]), 0.0);
