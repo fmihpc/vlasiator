@@ -7,6 +7,9 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
+#include "../backgroundfield/backgroundfield.h"
+#include "../backgroundfield/constantfield.hpp"
+
 
 #include "Shocktest.h"
 #include "../../spatial_cell.hpp"
