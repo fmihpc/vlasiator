@@ -7,6 +7,9 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
+#include "../../backgroundfield/backgroundfield.h"
+#include "../../backgroundfield/constantfield.hpp"
+
 
 #include "Shocktest.h"
 #include "../../spatial_cell.hpp"
@@ -48,14 +51,22 @@ namespace projects {
    }
    
    void Shocktest::getParameters(){
-      this->rho[2] = {NAN};
-      this->T[2] = {NAN};
-      this->Vx[2] = {NAN};
-      this->Vy[2] = {NAN};
-      this->Vz[2] = {NAN};
-      this->Bx[2] = {NAN};
-      this->By[2] = {NAN};
-      this->Bz[2] = {NAN};
+      this->rho[this->LEFT] = {NAN};
+      this->T[this->LEFT] = {NAN};
+      this->Vx[this->LEFT] = {NAN};
+      this->Vy[this->LEFT] = {NAN};
+      this->Vz[this->LEFT] = {NAN};
+      this->Bx[this->LEFT] = {NAN};
+      this->By[this->LEFT] = {NAN};
+      this->Bz[this->LEFT] = {NAN};
+      this->rho[this->RIGHT] = {NAN};
+      this->T[this->RIGHT] = {NAN};
+      this->Vx[this->RIGHT] = {NAN};
+      this->Vy[this->RIGHT] = {NAN};
+      this->Vz[this->RIGHT] = {NAN};
+      this->Bx[this->RIGHT] = {NAN};
+      this->By[this->RIGHT] = {NAN};
+      this->Bz[this->RIGHT] = {NAN};
       this->nSpaceSamples = 0;
       this->nVelocitySamples = 0;
 
@@ -188,14 +199,20 @@ namespace projects {
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
-      cellParams[CellParams::PERBX   ] = 0.0;
-      cellParams[CellParams::PERBY   ] = 0.0;
-      cellParams[CellParams::PERBZ   ] = 0.0;
-      cellParams[CellParams::BGBX   ] = Bxavg / nPts;
-      cellParams[CellParams::BGBY   ] = Byavg / nPts;
-      cellParams[CellParams::BGBZ   ] = Bzavg / nPts;
+      cellParams[CellParams::PERBX   ] = Bxavg / nPts;
+      cellParams[CellParams::PERBY   ] = Byavg / nPts;
+      cellParams[CellParams::PERBZ   ] = Bzavg / nPts;
    }
    
+
+   /*! Base class sets zero background field */
+   void Shocktest::setCellBackgroundField(SpatialCell* cell) {
+      ConstantField bgField;
+      bgField.initialize(0,0,0); //bg bx, by,bz
+      setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+   }
+
+
    void Shocktest::setCell(SpatialCell* cell) {
       // Set up cell parameters:
       calcCellParameters(&((*cell).parameters[0]), 0.0);

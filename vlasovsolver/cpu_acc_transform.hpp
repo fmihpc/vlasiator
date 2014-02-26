@@ -66,7 +66,8 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
 
    unsigned int bulk_velocity_substeps; /*!<in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep*/
    bulk_velocity_substeps=dt/(gyro_period*(0.1/360.0)); 
-
+   if(bulk_velocity_substeps<1)
+      bulk_velocity_substeps=1;
    
    /*note, we assume q is positive (pretty good assumption though)*/
    const Real substeps_radians=-(2.0*M_PI*dt/gyro_period)/bulk_velocity_substeps; /*!< how many radians each substep is*/

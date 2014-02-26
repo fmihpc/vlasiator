@@ -59,8 +59,30 @@ namespace projects {
          Real dBx;
          Real dBy;
          Real dBz;
+         Real magXPertAbsAmp;
+         Real magYPertAbsAmp;
+         Real magZPertAbsAmp;
+//          Real rho1PertRelAmp;
+//          Real rho2PertRelAmp;
+//          Real Vx1PertAbsAmp;
+//          Real Vy1PertAbsAmp;
+//          Real Vz1PertAbsAmp;
+//          Real Vx2PertAbsAmp;
+//          Real Vy2PertAbsAmp;
+//          Real Vz2PertAbsAmp;
          Real lambda;
          uint nVelocitySamples;
+         uint seed;
+         
+         char rngStateBuffer[256];
+         random_data rngDataBuffer;
+         
+//          #ifdef _AIX
+//          static int64_t rndRho, rndVel1[3], rndVel2[3];
+//          #else
+//          static int32_t rndRho, rndVel1[3], rndVel2[3];
+//          #endif
+//          #pragma omp threadprivate(rndRho,rndVel)
          
    }; // class MultiPeak
 } //  namespace projects
