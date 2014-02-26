@@ -20,6 +20,7 @@ Copyright 2012 Finnish Meteorological Institute
 #define BACKGROUNDFIELD_H
 
 #include "fieldfunction.hpp"
+#include "../definitions.h"
 void setBackgroundField(
    FieldFunction& bgFunction,
    Real* cellParams,
