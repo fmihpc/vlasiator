@@ -391,6 +391,7 @@ int main(int argn,char* args[]) {
          beforeTime = MPI_Wtime();
          beforeSimulationTime=P::t;
          beforeStep=P::tstep;
+         report_memory_consumption(mpiGrid);
       }               
       logFile << writeVerbose;
    

@@ -12,18 +12,14 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <vector>
 #include <sstream>
 #include <ctime>
-
 #include "grid.h"
-
 #include "vlasovmover.h"
 #include "definitions.h"
 #include "mpiconversion.h"
 #include "logger.h"
 #include "parameters.h"
-
 #include "datareduction/datareducer.h"
 #include "sysboundary/sysboundary.h"
-
 #include "fieldsolver.h"
 #include "projects/project.h"
 #include "iowrite.h"
@@ -418,12 +414,63 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
    updateRemoteVelocityBlockLists(mpiGrid);
-
-
    phiprof::stop("re-adjust blocks");
    return true;
 }
 
+
+/*! Estimates memory consumption and writes it into logfile. Collective operation on MPI_COMM_WORLD
+ * \param mpiGrid Spatial grid
+ */
+
+
+void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   /*now report memory consumption into logfile*/
+   const vector<uint64_t> cells = mpiGrid.get_cells();
+   const std::vector<uint64_t> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(DIST_FUNC_NEIGHBORHOOD_ID);   
+   int rank,n_procs;
+   MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
+   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+   
+   uint64_t local_blocks=0;
+   for(unsigned int i=0;i<cells.size();i++){
+      local_blocks+=mpiGrid[cells[i]]->number_of_blocks;
+   }
+   uint64_t remote_blocks=0;
+   for(unsigned int i=0;i<remote_cells.size();i++){
+      remote_blocks+=mpiGrid[remote_cells[i]]->number_of_blocks;
+   }
+   /*compute memory consumption of the block data, double as MPI does
+    * not define proper uint64_t datatypes for MAXLOC. Not Real, as we
+    * want double here not to loose accuracy.
+    * Computed as number of blocks * 2 arrays with block data (fx, data) *  WID3 amount of cells per block *  each cell has a size of Real
+    */
+   double mem_usage[3];
+   double sum_mem[3];      
+   mem_usage[0] = local_blocks * WID3 * 2 * sizeof(Real); 
+   mem_usage[1] = remote_blocks * WID3 * 2 * sizeof(Real); 
+   mem_usage[2] = mem_usage[0] + mem_usage[1];
+   MPI_Reduce(mem_usage,sum_mem,3,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD);
+
+   
+   struct {
+      double val;
+      int   rank;
+   } max_mem[3],mem_usage_loc[3],min_mem[3];
+   for(uint i = 0; i<3; i++){
+      mem_usage_loc[i].val = mem_usage[i];
+      mem_usage_loc[i].rank = rank;
+   }
+   
+   MPI_Reduce(mem_usage_loc, max_mem, 3, MPI_DOUBLE_INT, MPI_MAXLOC, 0, MPI_COMM_WORLD);
+   MPI_Reduce(mem_usage_loc, min_mem, 3, MPI_DOUBLE_INT, MPI_MINLOC, 0, MPI_COMM_WORLD);
+
+   logFile << "Total memory consumption: " << sum_mem[2] << endl;
+   logFile << "   Average:  total " << sum_mem[2]/n_procs << " local cells " << sum_mem[0]/n_procs << " remote cells " << sum_mem[1]/n_procs << endl;
+   logFile << "   Max:      total " << max_mem[2].val   << " on  process " << max_mem[2].rank << endl;
+   logFile << "   Min:      total " << min_mem[2].val   << " on  process " << min_mem[2].rank << endl;
+   logFile << writeVerbose;       
+}        
 
 /*! Deallocates all block data in remote cells in order to save
  *  memory
