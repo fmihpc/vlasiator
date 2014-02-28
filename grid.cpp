@@ -431,48 +431,57 @@ void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    int rank,n_procs;
    MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-   
-   uint64_t local_blocks=0;
-   for(unsigned int i=0;i<cells.size();i++){
-      local_blocks+=mpiGrid[cells[i]]->number_of_blocks;
-   }
-   uint64_t remote_blocks=0;
-   for(unsigned int i=0;i<remote_cells.size();i++){
-      remote_blocks+=mpiGrid[remote_cells[i]]->number_of_blocks;
-   }
    /*compute memory consumption of the block data, double as MPI does
-    * not define proper uint64_t datatypes for MAXLOC. Not Real, as we
+    * not define proper uint64_t datatypes for MAXLOCNot Real, as we
     * want double here not to loose accuracy.
     * Computed as number of blocks * 2 arrays with block data (fx, data) *  WID3 amount of cells per block *  each cell has a size of Real
     */
-   double mem_usage[3];
-   double sum_mem[3];      
-   mem_usage[0] = local_blocks * WID3 * 2 * sizeof(Real); 
-   mem_usage[1] = remote_blocks * WID3 * 2 * sizeof(Real); 
-   mem_usage[2] = mem_usage[0] + mem_usage[1];
-   MPI_Reduce(mem_usage,sum_mem,3,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD);
 
+   /*report data for memory needed by blocks*/
+   double mem[9] = {};
+   double sum_mem[9];   
+   
+   for(unsigned int i=0;i<cells.size();i++){
+      mem[0] += mpiGrid[cells[i]]->number_of_blocks * WID3 * 2 * sizeof(Real); 
+      mem[3] += (mpiGrid[cells[i]]->block_data.size() +  mpiGrid[cells[i]]->block_fx.size()) * sizeof(Real);
+      mem[6] += (mpiGrid[cells[i]]->block_data.capacity() +  mpiGrid[cells[i]]->block_fx.capacity()) * sizeof(Real);
+   }
+
+   for(unsigned int i=0;i<remote_cells.size();i++){
+      mem[1] += mpiGrid[remote_cells[i]]->number_of_blocks * WID3 * 2 * sizeof(Real); 
+      mem[4] += (mpiGrid[remote_cells[i]]->block_data.size() +  mpiGrid[remote_cells[i]]->block_fx.size()) * sizeof(Real);
+      mem[7] += (mpiGrid[remote_cells[i]]->block_data.capacity() +  mpiGrid[remote_cells[i]]->block_fx.capacity()) * sizeof(Real);
+   }
+   
+   mem[2] = mem[0] + mem[1];
+   mem[5] = mem[3] + mem[4];
+   mem[8] = mem[6] + mem[7];
+
+   MPI_Reduce(mem, sum_mem, 9, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+   logFile << "(MEM) needed for blocks: " << sum_mem[2] << endl;
+   logFile << "(MEM) needed for block vectors (size): " << sum_mem[5] << endl;   
+   logFile << "(MEM) needed for block vectors (capacity) " << sum_mem[8] << endl;   
    
    struct {
       double val;
       int   rank;
    } max_mem[3],mem_usage_loc[3],min_mem[3];
    for(uint i = 0; i<3; i++){
-      mem_usage_loc[i].val = mem_usage[i];
+      mem_usage_loc[i].val = mem[i + 6]; //report on capacity number
       mem_usage_loc[i].rank = rank;
    }
    
    MPI_Reduce(mem_usage_loc, max_mem, 3, MPI_DOUBLE_INT, MPI_MAXLOC, 0, MPI_COMM_WORLD);
    MPI_Reduce(mem_usage_loc, min_mem, 3, MPI_DOUBLE_INT, MPI_MINLOC, 0, MPI_COMM_WORLD);
-
-   logFile << "Total memory consumption: " << sum_mem[2] << endl;
-   logFile << "   Average:  total " << sum_mem[2]/n_procs << " local cells " << sum_mem[0]/n_procs << " remote cells " << sum_mem[1]/n_procs << endl;
-   logFile << "   Max:      total " << max_mem[2].val   << " on  process " << max_mem[2].rank << endl;
-   logFile << "   Min:      total " << min_mem[2].val   << " on  process " << min_mem[2].rank << endl;
-   logFile << writeVerbose;       
+   
+   logFile << "(MEM)   Average capacity: " << sum_mem[2]/n_procs << " local cells " << sum_mem[0]/n_procs << " remote cells " << sum_mem[1]/n_procs << endl;
+   logFile << "(MEM)   Max capacity:     " << max_mem[2].val   << " on  process " << max_mem[2].rank << endl;
+   logFile << "(MEM)   Min capacity:     " << min_mem[2].val   << " on  process " << min_mem[2].rank << endl;
+   logFile << writeVerbose;
 }        
 
-/*! Deallocates all block data in remote cells in order to save
+/*!      Deallocates all block data in remote cells in order to save
  *  memory
  * \param mpiGrid Spatial grid
  */
