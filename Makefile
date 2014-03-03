@@ -3,7 +3,7 @@ ARCH = $(VLASIATOR_ARCH)
 include MAKE/Makefile.${ARCH}
 
 #set FP precision to SP (single) or DP (double)
-FP_PRECISION = SP
+FP_PRECISION = DP
 
 #set a default archive utility, can also be set in Makefile.arch
 AR ?= ar
