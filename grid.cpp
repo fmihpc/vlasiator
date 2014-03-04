@@ -442,15 +442,15 @@ void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    double sum_mem[9];   
    
    for(unsigned int i=0;i<cells.size();i++){
-      mem[0] += mpiGrid[cells[i]]->number_of_blocks * WID3 * 2 * sizeof(Real); 
-      mem[3] += (mpiGrid[cells[i]]->block_data.size() +  mpiGrid[cells[i]]->block_fx.size()) * sizeof(Real);
-      mem[6] += (mpiGrid[cells[i]]->block_data.capacity() +  mpiGrid[cells[i]]->block_fx.capacity()) * sizeof(Real);
+      mem[0] += mpiGrid[cells[i]]->number_of_blocks * WID3 * 2 * sizeof(Realf); 
+      mem[3] += (mpiGrid[cells[i]]->block_data.size() +  mpiGrid[cells[i]]->block_fx.size()) * sizeof(Realf);
+      mem[6] += (mpiGrid[cells[i]]->block_data.capacity() +  mpiGrid[cells[i]]->block_fx.capacity()) * sizeof(Realf);
    }
 
    for(unsigned int i=0;i<remote_cells.size();i++){
-      mem[1] += mpiGrid[remote_cells[i]]->number_of_blocks * WID3 * 2 * sizeof(Real); 
-      mem[4] += (mpiGrid[remote_cells[i]]->block_data.size() +  mpiGrid[remote_cells[i]]->block_fx.size()) * sizeof(Real);
-      mem[7] += (mpiGrid[remote_cells[i]]->block_data.capacity() +  mpiGrid[remote_cells[i]]->block_fx.capacity()) * sizeof(Real);
+      mem[1] += mpiGrid[remote_cells[i]]->number_of_blocks * WID3 * 2 * sizeof(Realf); 
+      mem[4] += (mpiGrid[remote_cells[i]]->block_data.size() +  mpiGrid[remote_cells[i]]->block_fx.size()) * sizeof(Realf);
+      mem[7] += (mpiGrid[remote_cells[i]]->block_data.capacity() +  mpiGrid[remote_cells[i]]->block_fx.capacity()) * sizeof(Realf);
    }
    
    mem[2] = mem[0] + mem[1];
