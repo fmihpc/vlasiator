@@ -1713,8 +1713,8 @@ namespace velocity_neighbor {
 
       //vectors for storing block data. We set pointers to this
       //datastorage in set_block_date_pointers()
-      std::vector<Real,aligned_allocator<Real,64> > block_data;
-      std::vector<Real,aligned_allocator<Real,64> > block_fx;
+      std::vector<Real,aligned_allocator<Realf,64> > block_data;
+      std::vector<Real,aligned_allocator<Realf,64> > block_fx;
 
       /*Pointersfor translation operator.  We can point to neighbor
         cell block data. We do not allocate memory for the
@@ -1723,8 +1723,8 @@ namespace velocity_neighbor {
       unsigned int neighbor_number_of_blocks;
       
       //vectors for storing null block data
-      std::vector<Real,aligned_allocator<Real,64> > null_block_data;
-      std::vector<Real,aligned_allocator<Real,64> > null_block_fx;
+      std::vector<Real,aligned_allocator<Realf,64> > null_block_data;
+      std::vector<Real,aligned_allocator<Realf,64> > null_block_fx;
       
       /*
         Bulk variables in this spatial cell.
