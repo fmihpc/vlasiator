@@ -807,7 +807,7 @@ namespace velocity_neighbor {
 
         Creates the velocity block at given coordinates if it doesn't exist.
       */
-      void set_value(const Real vx, const Real vy, const Real vz, const Real value) {
+      void set_value(const Real vx, const Real vy, const Real vz, const Realf value) {
             const unsigned int block = get_velocity_block(vx, vy, vz);
             if (this->velocity_blocks.count(block) == 0) {
                if (!this->add_velocity_block(block)) {
@@ -840,7 +840,7 @@ namespace velocity_neighbor {
         \param cell  Cell index (0..WID3-1) of velocity-cell in block
         \param value Value that is set for velocity-cell
       */
-     void set_value(const unsigned int block,const unsigned int cell, const Real value) {
+     void set_value(const unsigned int block,const unsigned int cell, const Realf value) {
             if (this->velocity_blocks.count(block) == 0) {
                if (!this->add_velocity_block(block)) {
                   std::cerr << "Couldn't add velocity block " << block << std::endl;
@@ -862,7 +862,7 @@ namespace velocity_neighbor {
 
         Creates the velocity block at given coordinates if it doesn't exist.
       */
-      void increment_value(const Real vx, const Real vy, const Real vz, const Real value) {
+      void increment_value(const Real vx, const Real vy, const Real vz, const Realf value) {
             const unsigned int block = get_velocity_block(vx, vy, vz);
             if (this->velocity_blocks.count(block) == 0) {
                if (!this->add_velocity_block(block)) {
@@ -908,7 +908,7 @@ namespace velocity_neighbor {
        * 
        * Returns 0 if it doesn't exist.
        */
-      Real get_value(const Real vx, const Real vy, const Real vz) const
+      Realf get_value(const Real vx, const Real vy, const Real vz) const
       {
          const unsigned int block = get_velocity_block(vx, vy, vz);
          if (this->velocity_blocks.count(block) == 0) {
@@ -991,7 +991,7 @@ namespace velocity_neighbor {
 
                if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA)!=0){
                   displacements.push_back((uint8_t*) &(this->block_data[0]) - (uint8_t*) this);               
-                  block_lengths.push_back(sizeof(Real) * VELOCITY_BLOCK_LENGTH* this->number_of_blocks);
+                  block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH* this->number_of_blocks);
                }
                
                if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA_TO_FLUXES)!=0){
@@ -1001,7 +1001,7 @@ namespace velocity_neighbor {
                   else {
                      displacements.push_back((uint8_t*) &(this->block_data[0]) - (uint8_t*) this);               
                   }
-                  block_lengths.push_back(sizeof(Real) * VELOCITY_BLOCK_LENGTH* this->number_of_blocks);
+                  block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH* this->number_of_blocks);
                }
                
                if((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_FLUXES)!=0){
@@ -1010,7 +1010,7 @@ namespace velocity_neighbor {
                    * and neighbor_number_of_blocks should be set in
                    * solver.*/               
                   displacements.push_back((uint8_t*) this->neighbor_block_data - (uint8_t*) this);               
-                  block_lengths.push_back(sizeof(Real) * VELOCITY_BLOCK_LENGTH* this->neighbor_number_of_blocks);
+                  block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH* this->neighbor_number_of_blocks);
                }
 
                
@@ -1174,9 +1174,9 @@ namespace velocity_neighbor {
       /*!
         Returns the total value of the distribution function within this spatial cell.
       */
-      Real get_total_value(void) const
+      Realf get_total_value(void) const
          {
-            Real total = 0;
+            Realf total = 0;
 
             for (boost::unordered_map<unsigned int, Velocity_Block>::const_iterator
                block = this->velocity_blocks.begin();
@@ -1201,9 +1201,11 @@ namespace velocity_neighbor {
          {
             const unsigned int n = this->velocity_blocks.size();
 
+            // TODO: Should 2 be defined as some meaningful constant?
+
             return 2 * sizeof(Real)
                + n * sizeof(unsigned int)
-               + n * 2 * VELOCITY_BLOCK_LENGTH * sizeof(Real);
+               + n * 2 * VELOCITY_BLOCK_LENGTH * sizeof(Realf);
          }
 
 
@@ -1318,7 +1320,7 @@ namespace velocity_neighbor {
                   const Real DV3 = block_ptr->parameters[BlockParams::DVX]*
                      block_ptr->parameters[BlockParams::DVY]*
                      block_ptr->parameters[BlockParams::DVZ];
-                  Real sum=0;
+                  Realf sum=0;
                   for(unsigned int i=0;i<WID3;i++)
                      sum+=block_ptr->data[i];
                   this->parameters[CellParams::RHOLOSSADJUST]+=DV3*sum;
@@ -1552,8 +1554,8 @@ namespace velocity_neighbor {
             //FIXME: we could jsut as well just set this->vector=std::vector<> ?
             boost::unordered_map<unsigned int, Velocity_Block> ().swap(this->velocity_blocks);
             //remove block data (value and fluxes)
-            std::vector<Real,aligned_allocator<Real,64> >().swap(this->block_data);
-            std::vector<Real,aligned_allocator<Real,64> >().swap(this->block_fx);
+            std::vector<Realf,aligned_allocator<Realf,64> >().swap(this->block_data);
+            std::vector<Realf,aligned_allocator<Realf,64> >().swap(this->block_fx);
             std::vector<unsigned int>().swap(this->velocity_block_list);
             std::vector<unsigned int>().swap(this->mpi_velocity_block_list);
             this->number_of_blocks=0;
@@ -1713,18 +1715,18 @@ namespace velocity_neighbor {
 
       //vectors for storing block data. We set pointers to this
       //datastorage in set_block_date_pointers()
-      std::vector<Real,aligned_allocator<Realf,64> > block_data;
-      std::vector<Real,aligned_allocator<Realf,64> > block_fx;
+      std::vector<Realf,aligned_allocator<Realf,64> > block_data;
+      std::vector<Realf,aligned_allocator<Realf,64> > block_fx;
 
       /*Pointersfor translation operator.  We can point to neighbor
         cell block data. We do not allocate memory for the
         pointer*/
-      Real * neighbor_block_data;
+      Realf * neighbor_block_data;
       unsigned int neighbor_number_of_blocks;
       
       //vectors for storing null block data
-      std::vector<Real,aligned_allocator<Realf,64> > null_block_data;
-      std::vector<Real,aligned_allocator<Realf,64> > null_block_fx;
+      std::vector<Realf,aligned_allocator<Realf,64> > null_block_data;
+      std::vector<Realf,aligned_allocator<Realf,64> > null_block_fx;
       
       /*
         Bulk variables in this spatial cell.
