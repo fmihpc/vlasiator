@@ -192,6 +192,12 @@ namespace projects {
 //       random_r(&(this->rndVel2[2]), &rngDataBuffer);
       #endif
       
+      if(this->lambda == 0.0) {
+         this->dBx = 0.0;
+         this->dBy = 0.0;
+         this->dBz = 0.0;
+      }
+      
       cellParams[CellParams::PERBX] = this->dBx*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda) +
                                       this->magXPertAbsAmp * (0.5 - (double)rndBuffer[0] / (double)RAND_MAX);
       cellParams[CellParams::PERBY] = this->dBy*sin(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda) +
