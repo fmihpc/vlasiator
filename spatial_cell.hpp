@@ -169,10 +169,10 @@ namespace velocity_neighbor {
    class Velocity_Block {
    public:
       // value of the distribution function
-      Real *data;   
+      Realf *data;   
       // spatial fluxes of this block
       //fixme, fx could be called flux for leveque
-      Real *fx;
+      Realf *fx;
       
       Real parameters[BlockParams::N_VELOCITY_BLOCK_PARAMS];
       Velocity_Block* neighbors[N_NEIGHBOR_VELOCITY_BLOCKS];
