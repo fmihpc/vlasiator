@@ -93,7 +93,7 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
     // Copy averages from -1 neighbour if it exists (if not, array is initialized to zero)
     nbrBlock = block->neighbors[block_M1];
     if ( !spatial_cell->is_null_block(nbrBlock)) {
-      Real * __restrict__ ngbr_fx = nbrBlock->fx;
+      Realf * __restrict__ ngbr_fx = nbrBlock->fx;
       for (int k=-STENCIL_WIDTH; k<0; ++k) {
           for (uint j=0; j<WID; ++j) {
              for (uint i=0; i<WID; ++i) {
@@ -101,7 +101,9 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
                    i * cell_indices_to_id[0] +
                    j * cell_indices_to_id[1] +
                    (k + WID) * cell_indices_to_id[2];
-                values[i_pblock(i,j,k)] = ngbr_fx[cell];
+                // Cast to real
+                const Real value = ngbr_fx[cell];
+                values[i_pblock(i,j,k)] = value;
              }
           }
        }
@@ -117,7 +119,7 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
     }
 
 
-    Real * __restrict__ fx = block->fx;
+    Realf * __restrict__ fx = block->fx;
     // Copy volume averages of this block:
     for (uint k=0; k<WID; ++k) {
        for (uint j=0; j<WID; ++j) {
@@ -126,7 +128,8 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
                 i * cell_indices_to_id[0] +
                 j * cell_indices_to_id[1] +
                 k * cell_indices_to_id[2];
-             values[i_pblock(i,j,k)] = fx[cell];
+             const Real value = fx[cell];
+             values[i_pblock(i,j,k)] = value;
           }
        }
     }
@@ -134,7 +137,7 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
     // Copy averages from +1 neighbour if it exists (if not, array is initialized to zero)
     nbrBlock = block->neighbors[block_P1];
     if ( !spatial_cell->is_null_block(nbrBlock)) {
-       Real * __restrict__ ngbr_fx = nbrBlock->fx;
+       Realf * __restrict__ ngbr_fx = nbrBlock->fx;
        for (uint k=WID; k<WID+STENCIL_WIDTH; ++k) {             
           for (uint j=0; j<WID; ++j) {
              for (uint i=0; i<WID; ++i) {
@@ -142,7 +145,8 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
                    i * cell_indices_to_id[0] +
                    j * cell_indices_to_id[1] +
                    (k-WID) * cell_indices_to_id[2];
-                values[i_pblock(i,j,k)] = ngbr_fx[cell];
+                const Real value = ngbr_fx[cell];
+                values[i_pblock(i,j,k)] = value;
              }
           }
        }
