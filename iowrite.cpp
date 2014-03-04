@@ -845,9 +845,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
    //Write ghost zone domain and local id numbers ( VisIt plugin needs this for MPI )
    if( writeGhostZoneDomainAndLocalIdNumbers( mpiGrid, vlsvWriter, meshName, ghost_cells ) == false ) return false;
 
-   //if( P::writeAsFloat == 1 ) {
-   const bool asFloat = false;
-   if( asFloat ) {
+   if( P::writeAsFloat == 1 ) {
       if( writeVelocitySpace<float>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
    } else {
       if( writeVelocitySpace<Real>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
@@ -856,8 +854,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
    //Write necessary variables:
    //Determines whether we write in floats or doubles
    for( uint i = 0; i < dataReducer.size(); ++i ) {
-      //if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), dataReducer, i, vlsvWriter ) == false ) return false;
-      if( writeDataReducer( mpiGrid, local_cells, asFloat, dataReducer, i, vlsvWriter ) == false ) return false;
+      if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), dataReducer, i, vlsvWriter ) == false ) return false;
    }
 
    phiprof::initializeTimer("Barrier","MPI","Barrier");
