@@ -185,7 +185,7 @@ bool map_1d(SpatialCell* spatial_cell,
   uint*  blocks=new uint[spatial_cell->number_of_blocks];
   const uint nblocks=spatial_cell->number_of_blocks;
 
-  /*     
+  /*
      Move densities from data to fx and clear data, to prepare for mapping
   */
   for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->number_of_blocks; cell++) {
@@ -205,7 +205,7 @@ bool map_1d(SpatialCell* spatial_cell,
   if(dimension>2)
     return false; //not possible
 
-  
+
   Real dv,v_min;
   Real is_temp;
   uint block_indices_to_id[3]; /*< used when computing id of target block */
@@ -266,7 +266,7 @@ bool map_1d(SpatialCell* spatial_cell,
 
   /*these two temporary variables are used to optimize access to target cells*/
   uint previous_target_block = error_velocity_block;
-  Real *target_block_data = NULL;
+  Realf *target_block_data = NULL;
 
   
   for (unsigned int block_i = 0; block_i < nblocks; block_i++) {
