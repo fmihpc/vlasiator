@@ -366,8 +366,8 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    phiprof::start("Adjusting blocks");
 #pragma omp parallel for
    for(unsigned int i=0;i<cells.size();i++){
-     Real density_pre_adjust=0.0;
-     Real density_post_adjust=0.0;
+     Realf density_pre_adjust=0.0;
+     Realf density_post_adjust=0.0;
      uint64_t cell_id=cells[i];
      SpatialCell* cell = mpiGrid[cell_id];
      
