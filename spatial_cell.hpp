@@ -1192,21 +1192,22 @@ namespace velocity_neighbor {
          }
 
 
+      // TODO: Do this properly
       /*!
         Returns the total size of the data in this spatial cell in bytes.
 
         Does not include velocity block lists, the null velocity block or velocity block neighbor lists.
       */
-      size_t get_data_size(void) const
-         {
-            const unsigned int n = this->velocity_blocks.size();
-
-            // TODO: Should 2 be defined as some meaningful constant?
-
-            return 2 * sizeof(Real)
-               + n * sizeof(unsigned int)
-               + n * 2 * VELOCITY_BLOCK_LENGTH * sizeof(Realf);
-         }
+//      size_t get_data_size(void) const
+//         {
+//            const unsigned int n = this->velocity_blocks.size();
+//
+//            // TODO: Should 2 be defined as some meaningful constant?
+//
+//            return 2 * sizeof(Real)
+//               + n * sizeof(unsigned int)
+//               + n * 2 * VELOCITY_BLOCK_LENGTH * sizeof(Realf);
+//         }
 
 
       /*!
