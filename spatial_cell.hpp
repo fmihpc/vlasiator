@@ -1323,7 +1323,7 @@ namespace velocity_neighbor {
                   const Real DV3 = block_ptr->parameters[BlockParams::DVX]*
                      block_ptr->parameters[BlockParams::DVY]*
                      block_ptr->parameters[BlockParams::DVZ];
-                  Realf sum=0;
+                  Real sum=0;
                   for(unsigned int i=0;i<WID3;i++)
                      sum+=block_ptr->data[i];
                   this->parameters[CellParams::RHOLOSSADJUST]+=DV3*sum;
