@@ -908,7 +908,7 @@ namespace velocity_neighbor {
        * 
        * Returns 0 if it doesn't exist.
        */
-      Realf get_value(const Real vx, const Real vy, const Real vz) const
+      Real get_value(const Real vx, const Real vy, const Real vz) const
       {
          const unsigned int block = get_velocity_block(vx, vy, vz);
          if (this->velocity_blocks.count(block) == 0) {
@@ -922,7 +922,9 @@ namespace velocity_neighbor {
          }
          
          const unsigned int cell = get_velocity_cell(block, vx, vy, vz);
-         return block_ptr->data[cell];
+         // Cast to real: Note block_ptr->data[cell] is Realf type
+         const Real value = block_ptr->data[cell];
+         return value;
       }
       
       void mpi_datatype(
@@ -1174,9 +1176,9 @@ namespace velocity_neighbor {
       /*!
         Returns the total value of the distribution function within this spatial cell.
       */
-      Realf get_total_value(void) const
+      Real get_total_value(void) const
          {
-            Realf total = 0;
+            Real total = 0;
 
             for (boost::unordered_map<unsigned int, Velocity_Block>::const_iterator
                block = this->velocity_blocks.begin();
