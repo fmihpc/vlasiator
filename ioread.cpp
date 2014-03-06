@@ -253,7 +253,7 @@ bool readNBlocks( T & file,
 */
 
 template <typename fileReal>
-bool readBlockData(
+bool _readBlockData(
    VLSVParReader & file,
    const vector<uint64_t>& fileCells,
    const uint64_t localCellStartOffset,
@@ -372,7 +372,7 @@ void getVelocityBlockCoordinates( const uint64_t & block, boost::array<Real, 3> 
  \sa exec_readGrid
 */
 template <typename fileReal>
-bool readBlockData(
+bool _readBlockData(
    ParallelReader & file,
    const vector<uint64_t>& fileCells,
    const uint64_t localCellStartOffset,
@@ -477,6 +477,68 @@ bool readBlockData(
    return success;
 }
 
+template <class T>
+bool readBlockData(
+   T & file,
+   const vector<uint64_t>& fileCells,
+   const uint64_t localCellStartOffset,
+   const uint64_t localCells,
+   const vector<uint>& nBlocks,
+   const uint64_t localBlockStartOffset,
+   const uint64_t localBlocks,
+   dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid
+) {
+   uint64_t arraySize;
+   uint64_t vectorSize;
+   datatype::type dataType;
+   uint64_t byteSize;
+   list<pair<string,string> > attribs;
+
+   attribs.push_back(make_pair("name","avgs"));
+   attribs.push_back(make_pair("mesh","SpatialGrid"));
+
+
+   if (file.getArrayInfo("BLOCKVARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
+      logFile << "(RESTARTBUILDER)  ERROR: Failed to read BLOCKVARIABLE INFO" << endl << write;
+      return false;
+   }
+
+
+   // Call _readBlockData
+   if( dataType == datatype::type::FLOAT ) {
+      switch (byteSize) {
+         case sizeof(double):
+            return _readBlockData<double>( file, fileCells, localCellStartOffset, localCells, nBlocks, localBlockStartOffset, localBlocks, mpiGrid );
+            break;
+         case sizeof(float):
+            return _readBlockData<float>( file, fileCells, localCellStartOffset, localCells, nBlocks, localBlockStartOffset, localBlocks, mpiGrid );
+            break;
+      }
+   } else if( dataType == datatype::type::UINT ) {
+      switch (byteSize) {
+         case sizeof(uint32_t):
+            return _readBlockData<uint32_t>( file, fileCells, localCellStartOffset, localCells, nBlocks, localBlockStartOffset, localBlocks, mpiGrid );
+            break;
+         case sizeof(uint64_t):
+            return _readBlockData<uint64_t>( file, fileCells, localCellStartOffset, localCells, nBlocks, localBlockStartOffset, localBlocks, mpiGrid );
+            break;
+      }
+   } else if( dataType == datatype::type::INT ) {
+      switch (byteSize) {
+         case sizeof(int32_t):
+            return _readBlockData<int32_t>( file, fileCells, localCellStartOffset, localCells, nBlocks, localBlockStartOffset, localBlocks, mpiGrid );
+            break;
+         case sizeof(int64_t):
+            return _readBlockData<int64_t>( file, fileCells, localCellStartOffset, localCells, nBlocks, localBlockStartOffset, localBlocks, mpiGrid );
+            break;
+      }
+   } else {
+      logFile << "(RESTARTBUILDER)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
+      return false;
+   }
+}
+
+
 
 
 
@@ -491,7 +553,7 @@ bool readBlockData(
  \return Returns true if the operation is successful
  */
 template <typename fileReal, class U>
-bool readCellParamsVariable(U & file,
+static bool _readCellParamsVariable(U & file,
 			    const vector<uint64_t>& fileCells,
                             const uint64_t localCellStartOffset,
 			    const uint64_t localCells,
@@ -538,6 +600,74 @@ bool readCellParamsVariable(U & file,
    return success;
 }
 
+/*! Reads cell parameters from the file and saves them in the right place in mpiGrid
+ \param file Some parallel vlsv reader with a file open
+ \param fileCells List of all cell ids
+ \param localCellStartOffset Offset in the fileCells list for this process ( calculated so that the amount of blocks is distributed somewhat evenly between processes)
+ \param localCells The amount of cells to read in this process after localCellStartOffset
+ \param cellParamsIndex The parameter of the cell index e.g. CellParams::RHO
+ \param expectedVectorSize The amount of elements in the parameter (parameter can be a scalar or a vector of size N)
+ \param mpiGrid Vlasiator's grid (the parameters are saved here)
+ \return Returns true if the operation is successful
+ */
+template <class U>
+bool readCellParamsVariable(U & file,
+			    const vector<uint64_t>& fileCells,
+                            const uint64_t localCellStartOffset,
+			    const uint64_t localCells,
+			    const string& variableName,
+                            const size_t cellParamsIndex,
+                            const size_t expectedVectorSize,
+                            dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid){
+   uint64_t arraySize;
+   uint64_t vectorSize;
+   datatype::type dataType;
+   uint64_t byteSize;
+   list<pair<string,string> > attribs;
+   
+   attribs.push_back(make_pair("name",variableName));
+   attribs.push_back(make_pair("mesh","SpatialGrid"));
+   
+   
+   if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
+      logFile << "(RESTARTBUILDER)  ERROR: Failed to read " << endl << write;
+      return false;
+   }
+
+   // Call _readCellParamsVariable
+   if( dataType == datatype::type::FLOAT ) {
+      switch (byteSize) {
+         case sizeof(double):
+            return _readCellParamsVariable<double>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
+            break;
+         case sizeof(float):
+            return _readCellParamsVariable<float>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
+            break;
+      }
+   } else if( dataType == datatype::type::UINT ) {
+      switch (byteSize) {
+
+         case sizeof(uint32_t):
+            return _readCellParamsVariable<uint32_t>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
+            break;
+         case sizeof(uint64_t):
+            return _readCellParamsVariable<uint64_t>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
+            break;
+      }
+   } else if( dataType == datatype::type::INT ) {
+      switch (byteSize) {
+         case sizeof(int32_t):
+            return _readCellParamsVariable<int32_t>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
+            break;
+         case sizeof(int64_t):
+            return _readCellParamsVariable<int64_t>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
+            break;
+      }
+   } else {
+      logFile << "(RESTARTBUILDER)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
+      return false;
+   }
+}
 
 
 /*! A function for reading parameters e.g. 'timestep'
@@ -843,27 +973,27 @@ bool exec_readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
    phiprof::start("readCellParameters");
 
 
-   if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"perturbed_B",CellParams::PERBX,3,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"perturbed_B",CellParams::PERBX,3,mpiGrid); }
 // This has to be set anyway, there are also the derivatives tahat should be written/read if we want to only read in bancground field
 //   if(success)
-//     success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"background_B",CellParams::BGBX,3,mpiGrid);
-   if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"moments",CellParams::RHO,4,mpiGrid); }
-   if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"moments_dt2",CellParams::RHO_DT2,4,mpiGrid); }
-   if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"moments_r",CellParams::RHO_R,4,mpiGrid); }
-   if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"moments_v",CellParams::RHO_V,4,mpiGrid); }
-   if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"LB_weight",CellParams::LBWEIGHTCOUNTER,1,mpiGrid); }
-   if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"max_v_dt",CellParams::MAXVDT,1,mpiGrid); }
-   if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"max_r_dt",CellParams::MAXRDT,1,mpiGrid); }
-   if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"max_fields_dt",CellParams::MAXFDT,1,mpiGrid); }
+//     success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"background_B",CellParams::BGBX,3,mpiGrid);
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments",CellParams::RHO,4,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_dt2",CellParams::RHO_DT2,4,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_r",CellParams::RHO_R,4,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_v",CellParams::RHO_V,4,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"LB_weight",CellParams::LBWEIGHTCOUNTER,1,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_v_dt",CellParams::MAXVDT,1,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_r_dt",CellParams::MAXRDT,1,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_fields_dt",CellParams::MAXFDT,1,mpiGrid); }
    if( typeid(T) == typeid(ParallelReader) ) {
       // Read rho losses Note: vector size = 1 (In the older versions the rho loss wasn't recorded)
-      if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"rho_loss_adjust",CellParams::RHOLOSSADJUST,1,mpiGrid); }
-      if(success) { success=readCellParamsVariable<double>(file,fileCells,localCellStartOffset,localCells,"rho_loss_velocity_boundary",CellParams::RHOLOSSVELBOUNDARY,1,mpiGrid); }
+      if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"rho_loss_adjust",CellParams::RHOLOSSADJUST,1,mpiGrid); }
+      if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"rho_loss_velocity_boundary",CellParams::RHOLOSSVELBOUNDARY,1,mpiGrid); }
    }
    
    phiprof::stop("readCellParameters");
    phiprof::start("readBlockData");
-   if(success) { success=readBlockData<double>(file,fileCells,localCellStartOffset,localCells,nBlocks,localBlockStartOffset,localBlocks,mpiGrid); }
+   if(success) { success=readBlockData(file,fileCells,localCellStartOffset,localCells,nBlocks,localBlockStartOffset,localBlocks,mpiGrid); }
    phiprof::stop("readBlockData");
    if(success) { success=file.close(); }
    phiprof::stop("readGrid");

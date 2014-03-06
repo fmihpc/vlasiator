@@ -117,9 +117,10 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &is
      isChanged=true;
 
      //set new timestep to the lowest one of all interval-midpoints
-     newDt = 0.5*(P::vlasovSolverMaxCFL+ P::vlasovSolverMinCFL)*dtMaxGlobal[0];
-     newDt = min(newDt,0.5*(P::vlasovSolverMaxCFL+ P::vlasovSolverMinCFL)*dtMaxGlobal[1]);
-     newDt = min(newDt,0.5*(P::fieldSolverMaxCFL+ P::fieldSolverMinCFL)*dtMaxGlobal[2]);
+     const Real half = 0.5;
+     newDt = half*(P::vlasovSolverMaxCFL+ P::vlasovSolverMinCFL)*dtMaxGlobal[0];
+     newDt = min(newDt,half*(P::vlasovSolverMaxCFL+ P::vlasovSolverMinCFL)*dtMaxGlobal[1]);
+     newDt = min(newDt,half*(P::fieldSolverMaxCFL+ P::fieldSolverMinCFL)*dtMaxGlobal[2]);
    
      logFile <<"(TIMESTEP) New dt = " << newDt << " computed on step "<<  P::tstep <<" at " <<P::t << 
        "s   Maximum possible dt (not including  vlasovsolver CFL "<< 
@@ -391,6 +392,7 @@ int main(int argn,char* args[]) {
          beforeTime = MPI_Wtime();
          beforeSimulationTime=P::t;
          beforeStep=P::tstep;
+         report_memory_consumption(mpiGrid);
       }               
       logFile << writeVerbose;
    

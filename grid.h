@@ -100,6 +100,12 @@ bool adjust_local_velocity_blocks(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGr
 
 
 
+/*! Estimates memory consumption and writes it into logfile. Collective operation on MPI_COMM_WORLD
+ * \param mpiGrid Spatial grid
+ */
+void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid);
+
+
 
 
 

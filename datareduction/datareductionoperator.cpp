@@ -674,7 +674,7 @@ namespace DRO {
                for (uint j=0; j<WID; ++j)
                   for (uint i=0; i<WID; ++i) {
                      const int celli=k*WID*WID+j*WID+i;
-                     threadMax = max(block->data[celli], threadMax);
+                     threadMax = max((Real)(block->data[celli]), threadMax);
             }
          }
          #pragma omp critical
@@ -728,7 +728,7 @@ namespace DRO {
                for (uint j=0; j<WID; ++j)
                   for (uint i=0; i<WID; ++i) {
                      const int celli=k*WID*WID+j*WID+i;
-                     threadMin = min(block->data[celli], threadMin);
+                     threadMin = min((Real)(block->data[celli]), threadMin);
             }
          }
          #pragma omp critical
