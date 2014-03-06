@@ -272,7 +272,7 @@ namespace projects {
          Real q=0.5*(1.0-sin(M_PI*(radius-this->ionosphereRadius)/(this->ionosphereTaperRadius-this->ionosphereRadius)+0.5*M_PI));
          V0=q*(V0-ionosphereV0)+ionosphereV0;
          if(radius < this->ionosphereRadius) {
-            // Just to be safe, there are observed cases where tis failed.
+            // Just to be safe, there are observed cases where this failed.
             V0 = ionosphereV0;
          }
       }
