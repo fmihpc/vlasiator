@@ -171,7 +171,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid, creal dt) {
    
 /* Mapping complete, update moments */
    phiprof::start("compute-moments-n-maxdt");
-   // TODO: Parallelization over blocks?
+   // Note: Parallelization over blocks is not thread-safe
 #pragma omp  parallel for
    for (size_t c=0; c<local_cells.size(); ++c) {
       SpatialCell* SC=mpiGrid[local_cells[c]];
