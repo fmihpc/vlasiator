@@ -155,33 +155,8 @@ bool writeVelocityDistributionData(
    if (success == false) logFile << "(MAIN) writeGrid: ERROR failed to write BLOCKIDS to file!" << endl << writeVerbose;
    velocityBlockIds.clear();
    
-//   // Write values of distribution function (the velocity averages)
-//   // FIXME CREATE ONLY SCENARIOS WHERE T IS UINT64_T, UINT32_T, FLOAT OR DOUBLE
-//   std::vector<T> velocityBlockData;
-//   try {
-//      velocityBlockData.reserve(totalBlocks*SIZE_VELBLOCK);
-//      for (size_t cell=0; cell<cells.size(); ++cell) {
-//         SpatialCell* SC = mpiGrid[cells[cell]];
-//         for (unsigned int block_i=0;block_i < SC->number_of_blocks;block_i++){
-//            unsigned int block = SC->velocity_block_list[block_i];
-//            Velocity_Block* block_data = SC->at(block);
-//            for(unsigned int vc=0;vc<SIZE_VELBLOCK;++vc){
-//               if( block_data->data[vc] > numeric_limits<T>::max() ) {
-//                  logFile << "(MAIN) writeGrid: ERROR invalid conversion in velocityBlockData in writeVelocityDistributionData" << endl << writeVerbose;
-//                  cerr << "(MAIN) writeGrid: ERROR invalid conversion in velocityBlockData in writeVelocityDistributionData" << endl;
-//                  return false;
-//               }
-//               //Append to the vector:
-//               velocityBlockData.push_back((T)(block_data->data[vc]));
-//            }
-//         }
-//      }
-//   }
-//   catch (...) {
-//      success=false;
-//   }
-
    // Write the velocity space data
+   // set everything that is needed for writing in data such as the array's name, size, data type, etc..
    attribs.clear();
    attribs["mesh"] = "SpatialGrid"; // Usually the mesh is SpatialGrid
    attribs["name"] = "avgs"; // Name of the velocity space distribution is written avgs
@@ -189,6 +164,7 @@ bool writeVelocityDistributionData(
    const uint64_t arraySize_avgs = 1;
    const uint64_t vectorSize_avgs = WID3; // There are 64 elements in every velocity block
 
+   // Get the data size needed for writing in data
    uint64_t dataSize_avgs;
    if( typeid( Realf ) == typeid( float ) ) {
       dataSize_avgs = sizeof(float);
