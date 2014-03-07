@@ -172,7 +172,7 @@ bool writeVelocityDistributionData(
       dataSize_avgs = sizeof(double);
    } else {
       globalSuccess(success,"(MAIN) writeGrid: ERROR: Invalid Realf typeid",MPI_COMM_WORLD);
-      vlsvWriter.close()
+      vlsvWriter.close();
       return false;
    }
 
@@ -197,10 +197,7 @@ bool writeVelocityDistributionData(
    }
 
    
-   //Note: This could be done with &(velocityBlockData[0]), too
-   if (vlsvWriter.writeArray("BLOCKVARIABLE",attribs,totalBlocks,SIZE_VELBLOCK,velocityBlockData.data()) == false) success=false;
    if (success ==false)      logFile << "(MAIN) writeGrid: ERROR occurred when writing BLOCKVARIABLE f" << endl << writeVerbose;
-   velocityBlockData.clear();
     
    return success;
 }
