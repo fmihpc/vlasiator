@@ -125,38 +125,20 @@ namespace projects {
    }
    
    void Fluctuations::calcCellParameters(Real* cellParams,creal& t) {
-      creal x = cellParams[CellParams::XCRD];
-      creal dx = cellParams[CellParams::DX];
-      creal y = cellParams[CellParams::YCRD];
-      creal dy = cellParams[CellParams::DY];
-      creal z = cellParams[CellParams::ZCRD];
-      creal dz = cellParams[CellParams::DZ];
-      
-      CellID cellID = (int) ((x - Parameters::xmin) / dx) +
-         (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
-         (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
+      setRandomCellSeed(cellParams);
 
-      setRandomSeed(cellID);
-      
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
-
-
       
       this->rndRho=getRandomNumber();
       this->rndVel[0]=getRandomNumber();
       this->rndVel[1]=getRandomNumber();
       this->rndVel[2]=getRandomNumber();
       
-      Real rndBuffer[3];
-      rndBuffer[0]=getRandomNumber();
-      rndBuffer[1]=getRandomNumber();
-      rndBuffer[2]=getRandomNumber();
-      
-      cellParams[CellParams::PERBX] = this->magXPertAbsAmp * (0.5 - rndBuffer[0]);
-      cellParams[CellParams::PERBY] = this->magYPertAbsAmp * (0.5 - rndBuffer[1]);
-      cellParams[CellParams::PERBZ] = this->magZPertAbsAmp * (0.5 - rndBuffer[2]);
+      cellParams[CellParams::PERBX] = this->magXPertAbsAmp * (0.5 - getRandomNumber());
+      cellParams[CellParams::PERBY] = this->magYPertAbsAmp * (0.5 - getRandomNumber());
+      cellParams[CellParams::PERBZ] = this->magZPertAbsAmp * (0.5 - getRandomNumber());
    }
 
    void Fluctuations::setCellBackgroundField(SpatialCell* cell) {
