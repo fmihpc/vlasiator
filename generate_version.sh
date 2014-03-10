@@ -27,6 +27,10 @@ echo "    cout <<  \"INC_ZOLTAN: $6 \"<<endl;" >>version.cpp
 echo "    cout <<  \"INC_BOOST:  $7 \"<<endl;" >>version.cpp
 
 
+echo "    cout << endl << \"----------- git branch --------- \"<<endl;" >>version.cpp
+git branch   | gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}' >> version.cpp
+
+
 echo "    cout << endl << \"----------- git log (last 10 commits) --------- \"<<endl;" >>version.cpp
 git log --oneline   |head | gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}' >> version.cpp
 
@@ -38,22 +42,9 @@ module list 2>&1 | gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}'
 echo "    cout << endl << \"----------- git status --------- \"<<endl;" >>version.cpp
 git status | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g'  |gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}' >> version.cpp
 
-echo "    cout << endl << \"----------- git diff ----.------ \"<<endl;" >>version.cpp
-
-#print diff, but do not include generate_version.sh
-git diff | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g' |gawk '
-BEGIN {doWrite=1;}
-{
-if(doWrite) 
- printf("%s\"%s\"%s\n","cout <<",$0,"<< endl;"); 
-if($2=="generate_version.sh") 
-  doWrite=0; 
-else if($1=="Index:") 
- doWrite=1;  
-}' >> version.cpp
-
 cat >> version.cpp <<EOF
   }
   return true;
 }
 EOF
+
