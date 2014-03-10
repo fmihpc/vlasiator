@@ -28,7 +28,7 @@ echo "    cout <<  \"INC_BOOST:  $7 \"<<endl;" >>version.cpp
 
 
 echo "    cout << endl << \"----------- git log (last 10 commits) --------- \"<<endl;" >>version.cpp
-git log --oneline   |hea | gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}' >> version.cpp
+git log --oneline   |head | gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}' >> version.cpp
 
 
 echo "    cout << endl << \"----------- module list --------- \"<<endl;" >>version.cpp
@@ -36,7 +36,7 @@ module list 2>&1 | gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}'
 
 
 echo "    cout << endl << \"----------- git status --------- \"<<endl;" >>version.cpp
-git status |gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}' >> version.cpp
+git status | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g'  |gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}' >> version.cpp
 
 echo "    cout << endl << \"----------- git diff ----.------ \"<<endl;" >>version.cpp
 
