@@ -27,25 +27,21 @@ echo "    cout <<  \"INC_ZOLTAN: $6 \"<<endl;" >>version.cpp
 echo "    cout <<  \"INC_BOOST:  $7 \"<<endl;" >>version.cpp
 
 
-echo "    cout << endl << \"----------- svnversion --------- \"<<endl;" >>version.cpp
-svnversion| gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}' >> version.cpp
+echo "    cout << endl << \"----------- git log (last 10 commits) --------- \"<<endl;" >>version.cpp
+git log --oneline   |hea | gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}' >> version.cpp
 
 
 echo "    cout << endl << \"----------- module list --------- \"<<endl;" >>version.cpp
 module list 2>&1 | gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}' >> version.cpp
 
 
-echo "    cout << endl << \"----------- svn info ----------- \"<<endl;" >>version.cpp
-svn info |gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}' >> version.cpp
+echo "    cout << endl << \"----------- git status --------- \"<<endl;" >>version.cpp
+git status |gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}' >> version.cpp
 
-
-echo "    cout << endl << \"----------- svn status --------- \"<<endl;" >>version.cpp
-svn status |gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}' >> version.cpp
-
-echo "    cout << endl << \"----------- svn diff ----.------ \"<<endl;" >>version.cpp
+echo "    cout << endl << \"----------- git diff ----.------ \"<<endl;" >>version.cpp
 
 #print diff, but do not include generate_version.sh
-svn diff | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g' |gawk '
+git diff | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g' |gawk '
 BEGIN {doWrite=1;}
 {
 if(doWrite) 
