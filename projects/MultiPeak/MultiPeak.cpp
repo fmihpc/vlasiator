@@ -37,7 +37,7 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 using namespace std;
 
 namespace projects {
-   MultiPeak::MultiPeak(): Project() { }
+   MultiPeak::MultiPeak(): TriAxisSearch() { }
    MultiPeak::~MultiPeak() { }
 
 
@@ -144,8 +144,6 @@ namespace projects {
       return value;
    }
 
-
-
    Real MultiPeak::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   
       creal d_vx = dvx / (this->nVelocitySamples-1);
       creal d_vy = dvy / (this->nVelocitySamples-1);
@@ -160,7 +158,6 @@ namespace projects {
             }
             return avg / (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
    }
-
 
 
    void MultiPeak::calcCellParameters(Real* cellParams,creal& t) {
@@ -210,6 +207,19 @@ namespace projects {
                          this->Bz);
       
       setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+   }
+   
+   vector<std::array<Real, 3>> MultiPeak::getV0(
+      creal x,
+      creal y,
+      creal z
+   ) {
+      vector<std::array<Real, 3>> centerPoints;
+      for(uint i=0; i<2; i++) {
+         std::array<Real, 3> point {{this->Vx[i], this->Vy[i], this->Vz[i]}};
+         centerPoints.push_back(point);
+      }
+      return centerPoints;
    }
    
 }// namespace projects
