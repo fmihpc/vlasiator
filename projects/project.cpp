@@ -166,6 +166,9 @@ namespace projects {
       cerr << "ERROR: Project::calcPhaseSpaceDensity called instead of derived class function!" << endl;
       return -1.0;
    }
+   /*!
+     Get random number between 0 and 1.0. One should always first initialize the rng.
+   */
    
    Real Project::getRandomNumber() {
 #ifdef _AIX
@@ -178,6 +181,12 @@ namespace projects {
       Real rnd = (Real) rndInt / RAND_MAX;
       return rnd;
    }
+
+   /*!  Set random seed (thread-safe). Seed is based on the seed read
+     in from cfg + the seedModifier parameter
+
+     \param seedModified d. Seed is based on the seed read in from cfg + the seedModifier parameter                                   
+   */
    
    void Project::setRandomSeed(uint64_t seedModifier) {
       memset(&(this->rngDataBuffer), 0, sizeof(this->rngDataBuffer));
@@ -187,6 +196,28 @@ namespace projects {
       initstate_r(this->seed+seedModifier, &(this->rngStateBuffer[0]), 256, &(this->rngDataBuffer));   
 #endif
    }
+
+   /*!
+     Set random seed (thread-safe) that is always the same for
+     this particular cellID. Can be used to make reproducible
+     simulations that do not depend on number of processes or threads.
+
+     \param  cellParams The cell parameters list in each spatial cell
+   */
+   void Project::setRandomCellSeed(const Real* const cellParams) {
+      const creal x = cellParams[CellParams::XCRD];
+      const creal y = cellParams[CellParams::YCRD];
+      const creal z = cellParams[CellParams::ZCRD];
+      const creal dx = cellParams[CellParams::DX];
+      const creal dy = cellParams[CellParams::DY];
+      const creal dz = cellParams[CellParams::DZ];
+      const CellID cellID = (int) ((x - Parameters::xmin) / dx) +
+         (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
+         (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;      
+      setRandomSeed(cellID);
+   }
+
+   
    
 Project* createProject() {
    if(Parameters::projectName == "Alfven") {

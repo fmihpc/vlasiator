@@ -161,43 +161,16 @@ namespace projects {
 
 
    void MultiPeak::calcCellParameters(Real* cellParams,creal& t) {
-      #ifndef _AIX
-      int32_t rndBuffer[3];
-      random_r(&rngDataBuffer, &rndBuffer[0]);
-      random_r(&rngDataBuffer, &rndBuffer[1]);
-      random_r(&rngDataBuffer, &rndBuffer[2]);
-//       random_r(&rngDataBuffer, &(this->rndRho1));
-//       random_r(&rngDataBuffer, &(this->rndRho2));
-//       random_r(&rngDataBuffer, &(this->rndVel1[0]));
-//       random_r(&rngDataBuffer, &(this->rndVel1[1]));
-//       random_r(&rngDataBuffer, &(this->rndVel1[2]));
-//       random_r(&rngDataBuffer, &(this->rndVel2[0]));
-//       random_r(&rngDataBuffer, &(this->rndVel2[1]));
-//       random_r(&rngDataBuffer, &(this->rndVel2[2]));
-      #else
-      int64_t rndBuffer[3];
-      random_r(&rndBuffer[0], &rngDataBuffer);
-      random_r(&rndBuffer[1], &rngDataBuffer);
-      random_r(&rndBuffer[2], &rngDataBuffer);
-//       random_r(&(this->rndRho1), &rngDataBuffer);
-//       random_r(&(this->rndRho2), &rngDataBuffer);
-//       random_r(&(this->rndVel1[0]), &rngDataBuffer);
-//       random_r(&(this->rndVel1[1]), &rngDataBuffer);
-//       random_r(&(this->rndVel1[2]), &rngDataBuffer);
-//       random_r(&(this->rndVel2[0]), &rngDataBuffer);
-//       random_r(&(this->rndVel2[1]), &rngDataBuffer);
-//       random_r(&(this->rndVel2[2]), &rngDataBuffer);
-      #endif
-      
+      setRandomCellSeed(cellParams);
       if(this->lambda != 0.0) {
          cellParams[CellParams::PERBX] = this->dBx*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
          cellParams[CellParams::PERBY] = this->dBy*sin(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
          cellParams[CellParams::PERBZ] = this->dBz*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
       }
       
-      cellParams[CellParams::PERBX] += this->magXPertAbsAmp * (0.5 - (double)rndBuffer[0] / (double)RAND_MAX);
-      cellParams[CellParams::PERBY] += this->magYPertAbsAmp * (0.5 - (double)rndBuffer[1] / (double)RAND_MAX);
-      cellParams[CellParams::PERBZ] += this->magZPertAbsAmp * (0.5 - (double)rndBuffer[2] / (double)RAND_MAX);
+      cellParams[CellParams::PERBX] += this->magXPertAbsAmp * (0.5 - getRandomNumber());
+      cellParams[CellParams::PERBY] += this->magYPertAbsAmp * (0.5 - getRandomNumber());
+      cellParams[CellParams::PERBZ] += this->magZPertAbsAmp * (0.5 - getRandomNumber());
    }
 
    void MultiPeak::setCellBackgroundField(SpatialCell* cell) {

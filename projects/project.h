@@ -81,8 +81,25 @@ namespace projects {
             creal& dx, creal& dy, creal& dz,
             creal& vx, creal& vy, creal& vz,
             creal& dvx, creal& dvy, creal& dvz);
+
+      /*!
+        Get random number between 0 and 1.0. One should always first initialize the rng.
+      */
          Real getRandomNumber();
+      /*!  Set random seed (thread-safe). Seed is based on the seed read
+        in from cfg + the seedModifier parameter
+
+        \param seedModified d. Seed is based on the seed read in from cfg + the seedModifier parameter                                   
+      */
          void setRandomSeed(uint64_t seedModifier);
+      /*!
+        Set random seed (thread-safe) that is always the same for
+        this particular cellID. Can be used to make reproducible
+        simulations that do not depend on number of processes or threads.
+
+        \param  cellParams The cell parameters list in each spatial cell
+      */
+      void setRandomCellSeed(const Real* const cellParams);
       
       private:
          uint seed;
