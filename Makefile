@@ -5,6 +5,9 @@ include MAKE/Makefile.${ARCH}
 #set FP precision to SP (single) or DP (double)
 FP_PRECISION = DP
 
+#Set floating point precision for distribution function to SPF (single) or DPF (double)
+DISTRIBUTION_FP_PRECISION = DPF
+
 #set a default archive utility, can also be set in Makefile.arch
 AR ?= ar
 
@@ -52,6 +55,9 @@ CXXFLAGS += ${INC_PROFILE}
 
 #define precision
 CXXFLAGS += -D${FP_PRECISION} 
+
+#define precision for the distribution function
+CXXFLAGS += -D${DISTRIBUTION_FP_PRECISION}
 
 CXXEXTRAFLAGS = ${CXXFLAGS} -DTOOL_NOT_PARALLEL
 
