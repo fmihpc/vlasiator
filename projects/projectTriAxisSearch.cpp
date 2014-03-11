@@ -24,7 +24,6 @@ namespace projects {
       creal dvzBlock = SpatialCell::block_dvz;
       
       const vector<std::array<Real, 3>> V0 = this->getV0(x+0.5*dx, y+0.5*dy, z+0.5*dz);
-      
       for(vector<std::array<Real, 3>>::const_iterator it = V0.begin(); it != V0.end(); it++) {
          // VX search
          search = true;
@@ -50,6 +49,8 @@ namespace projects {
          Real vRadiusSquared = (Real)counter*(Real)counter*dvxBlock*dvxBlock;
          
          // VY search
+         search = true;
+         counter = 0;
          while(search) {
             if(0.1 * P::sparseMinValue >
                calcPhaseSpaceDensity(

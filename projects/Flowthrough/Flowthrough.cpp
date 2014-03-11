@@ -29,7 +29,7 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 using namespace std;
 
 namespace projects {
-   Flowthrough::Flowthrough(): IsotropicMaxwellian() { }
+   Flowthrough::Flowthrough(): TriAxisSearch() { }
    Flowthrough::~Flowthrough() { }
    
    bool Flowthrough::initialize(void) {return true;}
@@ -134,13 +134,15 @@ namespace projects {
       cellParams[CellParams::PERBZ] = this->Bz;
    }
    
-   Real Flowthrough::getV0(
+   vector<std::array<Real, 3>> Flowthrough::getV0(
       creal x,
       creal y,
-      creal z,
-      cuint component
+      creal z
    ) {
-      return this->V0[component];
+      vector<std::array<Real, 3>> centerPoints;
+      std::array<Real, 3> point {{this->V0[0], this->V0[1], this->V0[2]}};
+      centerPoints.push_back(point);
+      return centerPoints;
    }
    
 } //namespace projects

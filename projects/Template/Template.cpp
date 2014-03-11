@@ -18,7 +18,7 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 using namespace std;
 
 namespace projects {
-   Template::Template(): IsotropicMaxwellian() { }
+   Template::Template(): TriAxisSearch() { }
    Template::~Template() { }
    
    void Template::addParameters() {
@@ -44,8 +44,12 @@ namespace projects {
    Real Template::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
       creal rho = 1.0;
       creal T = 1.0;
+      const std::array<Real, 3> V0 = this->getV0(x, y, z)[0];
+      creal Vx0 = V0[0];
+      creal Vy0 = V0[1];
+      creal Vz0 = V0[2];
       return rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * T), 1.5) *
-      exp(- physicalconstants::MASS_PROTON * ((vx-this->getV0(x,y,z,0))*(vx-this->getV0(x,y,z,0)) + (vy-this->getV0(x,y,z,1))*(vy-this->getV0(x,y,z,1)) + (vz-this->getV0(x,y,z,2))*(vz-this->getV0(x,y,z,2))) / (2.0 * physicalconstants::K_B * T));
+      exp(- physicalconstants::MASS_PROTON * ((vx-Vx0)*(vx-Vx0) + (vy-Vy0)*(vy-Vy0) + (vz-Vz0)*(vz-Vz0)) / (2.0 * physicalconstants::K_B * T));
    }
    
    void Template::setCellBackgroundField(SpatialCell *cell){
@@ -58,28 +62,16 @@ namespace projects {
       }
    }
    
-   Real Template::getV0(
+   vector<std::array<Real, 3>> Template::getV0(
       creal x,
       creal y,
-      creal z,
-      cuint component
+      creal z
    ) {
-      Real V0 = 0.0;
-      switch(component) {
-         case 0:
-            V0 = 0.0;
-            break;
-         case 1:
-            if(x < 0.0) V0 = 1.0;
-            else V0 = 0.0;
-            break;
-         case 2:
-            V0 = 0.0;
-            break;
-         default:
-            cerr << __FILE__ << ":" << __LINE__ << ": Wrong component. This should not happen." << endl;
-      }
-      return V0;
+      vector<std::array<Real, 3>> centerPoints;
+      std::array<Real, 3> point {{0.0, 0.0, 0.0}};
+      if(x < 0.0) point[1] = 1.0;
+      centerPoints.push_back(point);
+      return centerPoints;
    }
    
 } // namespace projects

@@ -9,10 +9,10 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #define TEMPLATE_H
 
 #include "../../definitions.h"
-#include "../projectIsotropicMaxwellian.h"
+#include "../projectTriAxisSearch.h"
 
 namespace projects {
-   class Template: public IsotropicMaxwellian {
+   class Template: public TriAxisSearch {
       public:
          Template();
          virtual ~Template();
@@ -29,11 +29,10 @@ namespace projects {
          );
          
       protected:
-         virtual Real getV0(
+         virtual vector<std::array<Real, 3>> getV0(
             creal x,
             creal y,
-            creal z,
-            cuint component
+            creal z
          );
          
          Real param;

@@ -9,10 +9,10 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #define MAGNETOSPHERE_H
 
 #include "../../definitions.h"
-#include "../projectIsotropicMaxwellian.h"
+#include "../projectTriAxisSearch.h"
 
 namespace projects {
-   class Magnetosphere: public IsotropicMaxwellian {
+   class Magnetosphere: public TriAxisSearch {
       public:
          Magnetosphere();
          virtual ~Magnetosphere();
@@ -35,11 +35,10 @@ namespace projects {
             creal& dvx, creal& dvy, creal& dvz
          );
          
-         virtual Real getV0(
+         virtual vector<std::array<Real, 3>> getV0(
             creal x,
             creal y,
-            creal z,
-            cuint component
+            creal z
          );
          
          Real T;
