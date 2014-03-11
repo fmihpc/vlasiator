@@ -28,6 +28,8 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <boost/program_options.hpp>
 #include <Eigen/Dense>
 
+#include "phiprof.hpp"
+
 
 using namespace std;
 
@@ -372,7 +374,10 @@ Real * getB( oldVlsv::Reader& vlsvReader, const string& meshName, const uint64_t
       cerr << "ERROR, bad datasize at " << __FILE__ << " " << __LINE__ << endl;
       exit(1);
    }
-   Real * the_actual_buffer_ptr = reinterpret_cast<Real*>(the_actual_buffer);
+   //Real * the_actual_buffer_ptr = reinterpret_cast<Real*>(the_actual_buffer);
+   double * buffer_double = reinterpret_cast<double*>(the_actual_buffer);
+   float * buffer_float = reinterpret_cast<float*>(the_actual_buffer);
+
    //The corresponding B vector is in the cellIndex we got from mesh -- we only need to read one vector -- that's why the '1' parameter
    const uint64_t numOfVecs = 1;
    //store the vector in the_actual_buffer buffer -- the data is extracted vector at a time
@@ -380,6 +385,32 @@ Real * getB( oldVlsv::Reader& vlsvReader, const string& meshName, const uint64_t
       cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
       exit(1);
       return 0;
+   }
+   // Cast to Real (if necessary)
+   Real * return_pointer;
+   if( sizeof(Real) != variableDataSize ) {
+      // Read-in data has a different size e.g. the variable we just read in is in float form and Real equals double
+      return_pointer = new Real[variableVectorSize];
+      for( uint i = 0; i < variableVectorSize; ++i ) {
+         if( sizeof(float) == variableDataSize ) {
+            const Real value = buffer_float[i];
+            return_pointer[i] = value;
+         } else if( sizeof(double) == variableDataSize ) {
+            const Real value = buffer_double[i];
+            return_pointer[i] = value;
+         } else {
+            phiprof_assert( sizeof(double) != variableDataSize && sizeof(float) != variableDataSize );
+         }
+      }
+      delete[] the_actual_buffer;
+   } else {
+      if( sizeof(float) == variableDataSize ) {
+         return_pointer = buffer_float;
+      } else if( sizeof(double) == variableDataSize ) {
+         return_pointer = buffer_double;
+      } else {
+         phiprof_assert( sizeof(double) != variableDataSize && sizeof(float) != variableDataSize );
+      }
    }
    //Return the B vector in Real* form
    return the_actual_buffer_ptr;

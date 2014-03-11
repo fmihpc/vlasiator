@@ -10,6 +10,12 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 # include <stdint.h>
 
 //set floating point precision here. Default is single precision, use -DDP to set double precision
+#ifdef DPF
+typedef double Realf;
+#else
+typedef float Realf;
+#endif
+
 #ifdef DP
 typedef double Real;
 typedef const double creal;
