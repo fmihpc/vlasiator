@@ -16,6 +16,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <sstream>
 #include <ctime>
 #include <array>
+#include "datareduction/reducepopulation.h"
 #include "iowrite.h"
 #include "grid.h"
 #include "phiprof.hpp"
@@ -860,6 +861,14 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
    for( uint i = 0; i < dataReducer.size(); ++i ) {
       if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), dataReducer, i, vlsvWriter ) == false ) return false;
    }
+
+   phiprof::start("population-reducer");
+   for( vector<uint64_t>::const_iterator it = local_cells.begin(); local_cells != local_cells.end(); ++it ) {
+      const uint64_t cellId = *it;
+      const SpatialCell * cell = mpiGrid[cellId];
+      cerr << evaluate_speed( cell ) << endl;
+   }
+   phiprof::stop("population-reducer");
 
    phiprof::initializeTimer("Barrier","MPI","Barrier");
    phiprof::start("Barrier");
