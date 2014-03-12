@@ -862,6 +862,14 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
       if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), dataReducer, i, vlsvWriter ) == false ) return false;
    }
 
+   phiprof::start("population-reducer-parallel");
+   for( vector<uint64_t>::const_iterator it = local_cells.begin(); it != local_cells.end(); ++it ) {
+      const uint64_t cellId = *it;
+      const SpatialCell * cell = mpiGrid[cellId];
+      cerr << evaluate_speed_parallel( cell ) << endl;
+   }
+   phiprof::stop("population-reducer-parallel");
+
    phiprof::start("population-reducer");
    #pragma omp parallel for
    for( unsigned int i = 0; i < local_cells.size(); ++i ) {
@@ -871,13 +879,6 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
    }
    phiprof::stop("population-reducer");
 
-   phiprof::start("population-reducer-parallel");
-   for( vector<uint64_t>::const_iterator it = local_cells.begin(); it != local_cells.end(); ++it ) {
-      const uint64_t cellId = *it;
-      const SpatialCell * cell = mpiGrid[cellId];
-      cerr << evaluate_speed_parallel( cell ) << endl;
-   }
-   phiprof::stop("population-reducer-parallel");
 
 
    phiprof::initializeTimer("Barrier","MPI","Barrier");
