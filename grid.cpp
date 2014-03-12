@@ -418,10 +418,24 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    return true;
 }
 
+/*! Shirnk to fit velocity space data to save memory.
+ * \param mpiGrid Spatial grid
+ */
+void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   std::vector<uint64_t> cells = mpiGrid.get_cells();
+   const std::vector<uint64_t> remote_cells = mpiGrid.get_remote_cells_on_process_boundary();
 
+   /*append remote cells to cells*/
+   cells.insert(cells.end(),remote_cells.begin(),remote_cells.end());
+#pragma omp parallel for
+   for(unsigned int i=0;i<cells.size();i++){
+      mpiGrid[cells[i]]->shrink_to_fit();
+   }
+}
 /*! Estimates memory consumption and writes it into logfile. Collective operation on MPI_COMM_WORLD
  * \param mpiGrid Spatial grid
  */
+   
 
 
 void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {

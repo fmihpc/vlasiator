@@ -561,6 +561,13 @@ int main(int argn,char* args[]) {
             calculateAcceleration(mpiGrid,0.0);
          phiprof::stop("Velocity-space",computedCells,"Cells");
          addTimedBarrier("barrier-after-acceleration");
+
+         /*remove excess capacity from vectors. This is a good place
+         to do it, as we have a peak in number of blocks after
+         acceleration.*/
+         phiprof::start("Shrink_to_fit");
+         shrink_to_fit_grid_data(mpiGrid);
+         phiprof::stop("Shrink_to_fit");
          
          adjustVelocityBlocks(mpiGrid);
          addTimedBarrier("barrier-after-adjust-blocks");

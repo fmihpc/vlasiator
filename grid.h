@@ -105,7 +105,10 @@ bool adjust_local_velocity_blocks(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGr
  */
 void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
-
+/*! Shrink to fit velocity space data to save memory.
+ * \param mpiGrid Spatial grid
+ */
+void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
 
 

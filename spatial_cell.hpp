@@ -1173,44 +1173,62 @@ namespace velocity_neighbor {
          
       }
      
+
       /*!
-        Returns the total value of the distribution function within this spatial cell.
+        Removes all velocity blocks from this spatial cell and frees memory in the cell
       */
-      Real get_total_value(void) const
+      void clear(void)
          {
-            Real total = 0;
-
-            for (boost::unordered_map<unsigned int, Velocity_Block>::const_iterator
-               block = this->velocity_blocks.begin();
-               block != this->velocity_blocks.end();
-               block++
-            ) {
-               for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
-                  total += block->second.data[i];
-               }
-            }
-
-            return total;
+            //use the swap trick to force c++ to release the memory held by the vectors & maps
+            //FIXME: we could jsut as well just set this->vector=std::vector<> ?
+            boost::unordered_map<unsigned int, Velocity_Block> ().swap(this->velocity_blocks);
+            //remove block data (value and fluxes)
+            std::vector<Realf,aligned_allocator<Realf,64> >().swap(this->block_data);
+            std::vector<Realf,aligned_allocator<Realf,64> >().swap(this->block_fx);
+            std::vector<unsigned int>().swap(this->velocity_block_list);
+            std::vector<unsigned int>().swap(this->mpi_velocity_block_list);
+            this->number_of_blocks=0;
          }
 
+      /*!
+        Purges extra capacity from block vectors. It forces the
+        capacity() to be the same as size.
+        \param purged_memory Here the function returns the number of bytes that where purged.
+        \return True on success
+      */
 
-      // TODO: Do this properly
+      bool shrink_to_fit() {         
+         if (this->block_data.capacity() != this->block_data.size() ) {
+            /*clear all memory reserved by fx, this clears up memory for reallocating block_data*/
+            std::vector<Realf,aligned_allocator<Realf,64> >().swap(this->block_fx);
+            /*trim block_data capacity, we could also use c++11 trim_to_fit at some point of time*/
+            std::vector<Realf,aligned_allocator<Realf,64> >(this->block_data).swap(this->block_data);
+            /*resize block_fx to same size as block_fx*/
+            this->block_fx.resize(this->block_data.size());
+
+            /*fix block pointers if a reallocation occured*/
+            for(unsigned int block_index=0;block_index<this->number_of_blocks;block_index++){
+               set_block_data_pointers(block_index);
+            }
+            
+            return true;
+         }
+      return true;
+      
+   }
+
+  
       /*!
         Returns the total size of the data in this spatial cell in bytes.
 
         Does not include velocity block lists, the null velocity block or velocity block neighbor lists.
       */
-//      size_t get_data_size(void) const
-//         {
-//            const unsigned int n = this->velocity_blocks.size();
-//
-//            // TODO: Should 2 be defined as some meaningful constant?
-//
-//            return 2 * sizeof(Real)
-//               + n * sizeof(unsigned int)
-//               + n * 2 * VELOCITY_BLOCK_LENGTH * sizeof(Realf);
-//         }
-
+/*
+      size_t get_data_size(void) const
+         {
+         // TODO: Do this properly,  include as function of num blocks, size, capacity. Or perhaps only actual capacity?
+         }
+*/
 
       /*!
       Returns a block at given offsets from given block.
@@ -1355,18 +1373,20 @@ namespace velocity_neighbor {
          tmp_block_ptr->fx=&(this->block_fx[block_index*VELOCITY_BLOCK_LENGTH]);
 
       }
-      
-      //This function will resize block data if needed, resize happen
-      //in steps of block_allocation_chunk. It will always preserve
-      //space for one extra block, resize can happen after adding the
-      //block. We need up-to-date velocity_block_list as
-      //set_block_data_pointers needs it.
-      //If there is only free space left for 1 additional block (extra
-      //block should not be needed, but there for safety), resize it
-      //so that we have free space for block_allocation_chunk blocks.
-      //If there is free space for more than 2*block_allocation_chunk
-      //blocks, resize it so that we have free space for an additional
-      //block_allocation_chunks blocks.
+
+   /*!
+     This function will resize block data if needed, resize happen
+     in steps of block_allocation_chunk. It will always preserve
+     space for one extra block, resize can happen after adding the
+     block. We need up-to-date velocity_block_list as
+     set_block_data_pointers needs it.
+     If there is only free space left for 1 additional block (extra
+     block should not be needed, but there for safety), resize it
+     so that we have free space for block_allocation_chunk blocks.
+     If there is free space for more than 2*block_allocation_chunk
+     blocks, resize it so that we have free space for an additional
+     block_allocation_chunks blocks.
+   */
       void resize_block_data(){
          const int block_allocation_chunk=100;
          
@@ -1548,21 +1568,6 @@ namespace velocity_neighbor {
       }
 
       
-      /*!
-        Removes all velocity blocks from this spatial cell and frees memory in the cell
-      */
-      void clear(void)
-         {
-            //use the swap trick to force c++ to release the memory held by the vectors & maps
-            //FIXME: we could jsut as well just set this->vector=std::vector<> ?
-            boost::unordered_map<unsigned int, Velocity_Block> ().swap(this->velocity_blocks);
-            //remove block data (value and fluxes)
-            std::vector<Realf,aligned_allocator<Realf,64> >().swap(this->block_data);
-            std::vector<Realf,aligned_allocator<Realf,64> >().swap(this->block_fx);
-            std::vector<unsigned int>().swap(this->velocity_block_list);
-            std::vector<unsigned int>().swap(this->mpi_velocity_block_list);
-            this->number_of_blocks=0;
-         }
 
       /*!       
         Prepares this spatial cell to receive the velocity grid over MPI.
