@@ -111,7 +111,7 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 #all objects for vlasiator
 
 OBJS = 	version.o backgroundfield.o ode.o quadr.o dipole.o constantfield.o integratefunction.o \
-	datareducer.o datareductionoperator.o \
+	datareducer.o datareductionoperator.o reducepopulation.o \
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o \
 	sysboundary.o sysboundarycondition.o \
 	project.o projectIsotropicMaxwellian.o \
@@ -170,6 +170,9 @@ datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/datareducer.h datar
 
 datareductionoperator.o:  ${DEPS_COMMON} parameters.h spatial_cell.hpp datareduction/datareductionoperator.h datareduction/datareductionoperator.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c datareduction/datareductionoperator.cpp ${INC_MPI} ${INC_BOOST} ${INC_EIGEN}
+
+reducepopulation.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/reducepopulation.h datareduction/reducepopulation.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c datareduction/reducepopulation.cpp  ${INC_MPI} ${INC_BOOST} ${INC_EIGEN}
 
 donotcompute.o: ${DEPS_COMMON} sysboundary/donotcompute.h sysboundary/donotcompute.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/donotcompute.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
