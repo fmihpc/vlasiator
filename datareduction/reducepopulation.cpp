@@ -1,3 +1,4 @@
+#include <iostream>
 #include <vector>
 #include <unordered_set>
 #include <parallel/algorithm>
@@ -63,6 +64,16 @@ Real evaluate_speed( const SpatialCell * cell ) {
    }
    // Sort the list:
    __gnu_parallel::sort(velocityCells.begin(), velocityCells.end());
+   // Return value:
+   Real value_to_return = 0;
+   for( unsigned int i = 0; i < block_data->size(); ++i ) {
+      if( i%2 == 0 ) {
+         value_to_return += (Real)(velocityCells[i].get_avgs());
+      } else {
+         value_to_return -= (Real)(velocityCells[i].get_avgs());
+      }
+   }
+   return value_to_return;
 }
 
 

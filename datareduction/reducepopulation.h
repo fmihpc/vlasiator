@@ -1,4 +1,4 @@
 #include "../spatial_cell.hpp"
 
 
-Real evaluate_speed( const SpatialCell * const cell );
+Real evaluate_speed( const SpatialCell * cell );
