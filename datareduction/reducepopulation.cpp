@@ -5,14 +5,13 @@
 #include "reducepopulation.h"
 
 using namespace std;
+using namespace spatial_cell;
 
 // Note: This is done to save memory
 class Velocity_Cell {
    private:
       const SpatialCell * cell;
    public:
-      Velocity_Cell(); // Constructor
-
       uint64_t index; //Index could be uint32_t is enough
 
       inline void set_data( const SpatialCell * input_cell, const uint32_t input_index ) {
@@ -32,11 +31,11 @@ class Velocity_Cell {
 
       // Compare values
       bool operator<( const Velocity_Cell & other ) const {
-         return block_data[index] < block_data[other.index];
+         return cell->block_data[index] < cell->block_data[other.index];
       }
       // Function for getting the avgs value
       inline Realf get_avgs() const {
-         return block_data[index];
+         return cell->block_data[index];
       }
 };
 
