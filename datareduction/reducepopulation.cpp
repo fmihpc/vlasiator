@@ -2,6 +2,7 @@
 #include <vector>
 #include <unordered_set>
 #include <parallel/algorithm>
+#include <algorithm>
 #include "reducepopulation.h"
 
 using namespace std;
@@ -52,6 +53,36 @@ Real evaluate_speed( const SpatialCell * cell ) {
    const vector<Realf,aligned_allocator<Realf,64> > * block_data = &(cell->block_data);
    // Initialize avgs values vector:
    velocityCells.resize( block_data->size() );
+   for( unsigned int i = 0; i < block_data->size(); ++i ) {
+      // Create a new velocity cell
+      Velocity_Cell input_cell;
+      // Input the block data
+      input_cell.set_data( cell, i);
+      // Input the velocity cell into the vector
+      velocityCells[i] = input_cell;
+   }
+   // Sort the list:
+   sort(velocityCells.begin(), velocityCells.end());
+   // Return value:
+   Real value_to_return = 0;
+   for( unsigned int i = 0; i < block_data->size(); ++i ) {
+      if( i%2 == 0 ) {
+         value_to_return += (Real)(velocityCells[i].get_avgs());
+      } else {
+         value_to_return -= (Real)(velocityCells[i].get_avgs());
+      }
+   }
+   return value_to_return;
+}
+
+//Fast implementation
+Real evaluate_speed_parallel( const SpatialCell * cell ) {
+   // Sort list of avgs values:
+   vector<Velocity_Cell> velocityCells;
+   // Get the block values
+   const vector<Realf,aligned_allocator<Realf,64> > * block_data = &(cell->block_data);
+   // Initialize avgs values vector:
+   velocityCells.resize( block_data->size() );
    #pragma omp parallel for
    for( unsigned int i = 0; i < block_data->size(); ++i ) {
       // Create a new velocity cell
@@ -74,6 +105,7 @@ Real evaluate_speed( const SpatialCell * cell ) {
    }
    return value_to_return;
 }
+
 
 
 
