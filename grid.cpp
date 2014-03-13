@@ -146,11 +146,12 @@ void initializeGrid(
       if(sysBoundaries.applyInitialState(mpiGrid, project) == false) {
          cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
          exit(1);
-      }
+      }      
       phiprof::stop("Apply system boundary conditions state");
-      updateRemoteVelocityBlockLists(mpiGrid);
       adjustVelocityBlocks(mpiGrid); // do not initialize mover, mover has not yet been initialized here
+      shrink_to_fit_grid_data(mpiGrid); //get rid of excess data already here
    }
+   
    //Balance load before we transfer all data below
    balanceLoad(mpiGrid);
    
@@ -330,7 +331,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
        exit(1);
    }
    
-
+   
    phiprof::stop("Init solvers");   
    phiprof::stop("Balancing load");
 }
