@@ -52,6 +52,7 @@ Velocity_Cell * neighbors( const Velocity_Cell & vCell ) {
    const uint32_t blockId = vCell.blockId();
    // Get the velocity cell id:
    const uint16_t vCellId = vCell.vCellId();
+   // Transform to coordinates:
    
 }
 
