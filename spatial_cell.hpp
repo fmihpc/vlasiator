@@ -38,6 +38,10 @@ typedef Parameters P;
 #define VELOCITY_BLOCK_LENGTH WID3
 #define N_NEIGHBOR_VELOCITY_BLOCKS 28
 
+//extra memory allocated for block data. Should be in parameters and read in
+#define block_allocation_factor 1.1
+
+
 
 /*!
 Used as an error from functions returning velocity cells or
@@ -1190,22 +1194,23 @@ namespace velocity_neighbor {
             this->number_of_blocks=0;
          }
 
-      /*!
-        Purges extra capacity from block vectors. It forces the
-        capacity() to be the same as size.
-        \param purged_memory Here the function returns the number of bytes that where purged.
+      /*!  Purges extra capacity from block vectors. It sets size to
+        num_blocks * block_allocation_factor  (if capacity greater than this), and also forces capacity to this new smaller value.
         \return True on success
       */
 
       bool shrink_to_fit() {         
-         if (this->block_data.capacity() != this->block_data.size() ) {
+         /*allow capacity to be a bit large than needed by number of blocks, shrink otherwise*/
+         if (this->block_data.capacity() > (2 + this->number_of_blocks * block_allocation_factor) * VELOCITY_BLOCK_LENGTH ){
+            /*set size for block_data to the correct minimum value (with extra space)*/
+            this->block_data.resize((2 + this->number_of_blocks * block_allocation_factor) * VELOCITY_BLOCK_LENGTH );
             /*clear all memory reserved by fx, this clears up memory for reallocating block_data*/
             std::vector<Realf,aligned_allocator<Realf,64> >().swap(this->block_fx);
-            /*trim block_data capacity, we could also use c++11 trim_to_fit at some point of time*/
+            /*trim block_data capacity, we could also use c++11 shrink_to_fit at some point of time*/
             std::vector<Realf,aligned_allocator<Realf,64> >(this->block_data).swap(this->block_data);
             /*resize block_fx to same size as block_fx*/
             this->block_fx.resize(this->block_data.size());
-
+            
             /*fix block pointers if a reallocation occured*/
             for(unsigned int block_index=0;block_index<this->number_of_blocks;block_index++){
                set_block_data_pointers(block_index);
@@ -1213,9 +1218,38 @@ namespace velocity_neighbor {
             
             return true;
          }
-      return true;
+         return true;
+         
+      }
+         /*!
+     This function will resize (increase) block data if needed, resize happen
+     in steps of block_allocation_chunk. It will always preserve
+     space for one extra block, resize can happen after adding the
+     block. We need up-to-date velocity_block_list as
+     set_block_data_pointers needs it.
+     If there is only free space left for 1 additional block (extra
+     block should not be needed, but there for safety), resize it
+     so that we have free space for block_allocation_chunk blocks.
+
+     This function never decreases memory space. To do that one should
+     call shrink_to_fit(!)
+     
+   */
+      void resize_block_data(){
+         if((this->number_of_blocks+1)*VELOCITY_BLOCK_LENGTH >= this->block_data.size() ){
+            //resize so that free space is block_allocation_chunk blocks, and at least two in case of having zero blocks
+            int new_size = 2 + this->number_of_blocks * block_allocation_factor;
+            this->block_data.resize(new_size*VELOCITY_BLOCK_LENGTH);
+            this->block_fx.resize(new_size*VELOCITY_BLOCK_LENGTH);
+            
+            //fix block pointers if a reallocation occured
+            for(unsigned int block_index=0;block_index<this->number_of_blocks;block_index++){
+               set_block_data_pointers(block_index);
+            }
+         }
+      }
       
-   }
+
 
   
       /*!
@@ -1374,37 +1408,6 @@ namespace velocity_neighbor {
 
       }
 
-   /*!
-     This function will resize block data if needed, resize happen
-     in steps of block_allocation_chunk. It will always preserve
-     space for one extra block, resize can happen after adding the
-     block. We need up-to-date velocity_block_list as
-     set_block_data_pointers needs it.
-     If there is only free space left for 1 additional block (extra
-     block should not be needed, but there for safety), resize it
-     so that we have free space for block_allocation_chunk blocks.
-     If there is free space for more than 2*block_allocation_chunk
-     blocks, resize it so that we have free space for an additional
-     block_allocation_chunks blocks.
-   */
-      void resize_block_data(){
-         const int block_allocation_chunk=100;
-         
-         if((this->number_of_blocks+1)*VELOCITY_BLOCK_LENGTH>=this->block_data.size() ||
-            (this->number_of_blocks+2*block_allocation_chunk)*VELOCITY_BLOCK_LENGTH<this->block_data.size()){
-            
-            //resize so that free space is block_allocation_chunk blocks
-            int new_size=this->number_of_blocks+block_allocation_chunk;
-            this->block_data.resize(new_size*VELOCITY_BLOCK_LENGTH);
-            this->block_fx.resize(new_size*VELOCITY_BLOCK_LENGTH);
-            
-            //fix block pointers if a reallocation occured
-            for(unsigned int block_index=0;block_index<this->number_of_blocks;block_index++){
-               set_block_data_pointers(block_index);
-            }
-         }
-      }
-      
       
       /*!
         Adds an empty velocity block into this spatial cell.
@@ -1563,8 +1566,6 @@ namespace velocity_neighbor {
          //also remove velocity block structure
          this->velocity_blocks.erase(block);
 
-         //check if we can decrease memory consumption
-         resize_block_data();         
       }
 
       
