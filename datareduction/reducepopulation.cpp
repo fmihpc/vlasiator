@@ -19,12 +19,6 @@ class Velocity_Cell {
       uint32_t blockId;
       uint16_t vCellId;
 
-      inline void set_data( const SpatialCell * input_cell, const uint32_t index ) {
-         cell = input_cell;
-         blockId = cell->velocity_block_list[index/64];
-         vCellId = index%64;
-      }
-
       inline void set_data( const SpatialCell * input_cell, const uint32_t input_blockId, const uint16_t input_vCellId ) {
          cell = input_cell;
          blockId = input_blockId;
@@ -101,13 +95,16 @@ Real evaluate_speed( const SpatialCell * cell ) {
    const vector<Realf,aligned_allocator<Realf,64> > * block_data = &(cell->block_data);
    // Initialize avgs values vector:
    velocityCells.resize( block_data->size() );
-   for( unsigned int i = 0; i < block_data->size(); ++i ) {
+   for( unsigned int i = 0; i < cell->number_of_blocks; ++i ) {
       // Create a new velocity cell
       Velocity_Cell input_cell;
-      // Input the block data
-      input_cell.set_data( cell, i);
-      // Input the velocity cell into the vector
-      velocityCells[i] = input_cell;
+      const uint32_t blockId = cell->velocity_block_list[i];
+      for( unsigned int vCellId = 0; vCellId < WID3; ++vCellId ) {
+         // Input the block data
+         input_cell.set_data( cell, blockId, vCellId);
+         // Input the velocity cell into the vector
+         velocityCells[i * WID3 + vCellId] = input_cell;
+      }
    }
    // Sort the list:
    sort(velocityCells.begin(), velocityCells.end());
@@ -132,13 +129,16 @@ Real evaluate_speed_parallel( const SpatialCell * cell ) {
    // Initialize avgs values vector:
    velocityCells.resize( block_data->size() );
    #pragma omp parallel for
-   for( unsigned int i = 0; i < block_data->size(); ++i ) {
+   for( unsigned int i = 0; i < cell->number_of_blocks; ++i ) {
       // Create a new velocity cell
       Velocity_Cell input_cell;
-      // Input the block data
-      input_cell.set_data( cell, i);
-      // Input the velocity cell into the vector
-      velocityCells[i] = input_cell;
+      const uint32_t blockId = cell->velocity_block_list[i];
+      for( unsigned int vCellId = 0; vCellId < WID3; ++vCellId ) {
+         // Input the block data
+         input_cell.set_data( cell, blockId, vCellId);
+         // Input the velocity cell into the vector
+         velocityCells[i * WID3 + vCellId] = input_cell;
+      }
    }
    // Sort the list:
    __gnu_parallel::sort(velocityCells.begin(), velocityCells.end());
