@@ -879,6 +879,15 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
    }
    phiprof::stop("population-reducer");
 
+   phiprof::start("population-reducer-slow");
+   for( unsigned int i = 0; i < local_cells.size(); ++i ) {
+      const uint64_t cellId = local_cells[i];
+      const SpatialCell * cell = mpiGrid[cellId];
+      cerr << evaluate_speed( cell ) << endl;
+   }
+   phiprof::stop("population-reducer-slow");
+
+
 
 
    phiprof::initializeTimer("Barrier","MPI","Barrier");
