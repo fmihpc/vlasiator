@@ -442,7 +442,7 @@ void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    /*now report memory consumption into logfile*/
    const vector<uint64_t> cells = mpiGrid.get_cells();
-   const std::vector<uint64_t> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(DIST_FUNC_NEIGHBORHOOD_ID);   
+   const std::vector<uint64_t> remote_cells = mpiGrid.get_remote_cells_on_process_boundary();   
    int rank,n_procs;
    MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -471,9 +471,9 @@ void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       mem[7] += (mpiGrid[remote_cells[i]]->block_data.capacity() +  mpiGrid[remote_cells[i]]->block_fx.capacity()) * sizeof(Realf);
    }
    
-   mem[2] = mem[0] + mem[1];
-   mem[5] = mem[3] + mem[4];
-   mem[8] = mem[6] + mem[7];
+   mem[2] = mem[0] + mem[1];//total meory according to number_of_blocks (actually used memory)
+   mem[5] = mem[3] + mem[4];//total meory according to vector size()
+   mem[8] = mem[6] + mem[7];//total meory according to vector capacity() (actually allocated memory)
 
    MPI_Reduce(mem, sum_mem, 9, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
@@ -486,20 +486,20 @@ void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       int   rank;
    } max_mem[3],mem_usage_loc[3],min_mem[3];
    for(uint i = 0; i<3; i++){
-      mem_usage_loc[i].val = mem[i + 6]; //report on capacity number
+      mem_usage_loc[i].val = mem[i + 6]; //report on capacity numbers (6: local cells, 7: remote cells, 8: all cells)
       mem_usage_loc[i].rank = rank;
    }
    
    MPI_Reduce(mem_usage_loc, max_mem, 3, MPI_DOUBLE_INT, MPI_MAXLOC, 0, MPI_COMM_WORLD);
    MPI_Reduce(mem_usage_loc, min_mem, 3, MPI_DOUBLE_INT, MPI_MINLOC, 0, MPI_COMM_WORLD);
    
-   logFile << "(MEM)   Average capacity: " << sum_mem[2]/n_procs << " local cells " << sum_mem[0]/n_procs << " remote cells " << sum_mem[1]/n_procs << endl;
+   logFile << "(MEM)   Average capacity: " << sum_mem[8]/n_procs << " local cells " << sum_mem[6]/n_procs << " remote cells " << sum_mem[7]/n_procs << endl;
    logFile << "(MEM)   Max capacity:     " << max_mem[2].val   << " on  process " << max_mem[2].rank << endl;
    logFile << "(MEM)   Min capacity:     " << min_mem[2].val   << " on  process " << min_mem[2].rank << endl;
    logFile << writeVerbose;
 }        
 
-/*!      Deallocates all block data in remote cells in order to save
+/*! Deallocates all block data in remote cells in order to save
  *  memory
  * \param mpiGrid Spatial grid
  */
