@@ -208,6 +208,7 @@ bool map_1d(SpatialCell* spatial_cell,
 
   Real dv,v_min;
   Real is_temp;
+  uint max_v_length;
   uint block_indices_to_id[3]; /*< used when computing id of target block */
   uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
   switch (dimension){
@@ -215,7 +216,8 @@ bool map_1d(SpatialCell* spatial_cell,
     /* i and k coordinates have been swapped*/
     /*set cell size in dimension direction*/
     dv=SpatialCell::cell_dvx; 
-    v_min=SpatialCell::vx_min; 
+    v_min=SpatialCell::vx_min;
+    max_v_length = SpatialCell::vx_length;
     /*swap intersection i and k coordinates*/
     is_temp=intersection_di;
     intersection_di=intersection_dk;
@@ -233,7 +235,8 @@ bool map_1d(SpatialCell* spatial_cell,
     /* j and k coordinates have been swapped*/
     /*set cell size in dimension direction*/
     dv=SpatialCell::cell_dvy;
-    v_min=SpatialCell::vy_min; 
+    v_min=SpatialCell::vy_min;
+    max_v_length = SpatialCell::vy_length;
     /*swap intersection j and k coordinates*/
     is_temp=intersection_dj;
     intersection_dj=intersection_dk;
@@ -250,7 +253,8 @@ bool map_1d(SpatialCell* spatial_cell,
   case 2:
     /*set cell size in dimension direction*/
     dv=SpatialCell::cell_dvz;
-    v_min=SpatialCell::vz_min; 
+    v_min=SpatialCell::vz_min;
+    max_v_length = SpatialCell::vz_length;
     /*set values in array that is used to transfer blockindices to id using a dot product*/
     block_indices_to_id[0]=1;
     block_indices_to_id[1]=SpatialCell::vx_length;
@@ -387,19 +391,28 @@ bool map_1d(SpatialCell* spatial_cell,
 	    const uint tblock=target_block[target_i];
 	    const uint tcell=target_cell[target_i];
 	    const Real tval=target_density[target_i];
-	    if (tblock < SpatialCell::max_velocity_blocks && tval != 0.0) {	      
-	      if(previous_target_block != tblock) {
-		previous_target_block = tblock;
-		//not the same block as last time, lets create it if we
-		//need to and fetch its data array pointer and store it in target_block_data.
-		if (spatial_cell->count(tblock) == 0) {
-		  //count faster since the add_velocity_block call is more expensive
-		  spatial_cell->add_velocity_block(tblock);
-		}
-		Velocity_Block* block_ptr = spatial_cell->at_fast(tblock);
-		target_block_data=block_ptr->data;
-	      }
-	      target_block_data[tcell] += tval;
+            /*check that we are within sane limits. If gk is negative,
+             * or above blocks_per_dim * blockcells_per_dim then we
+             * are outside of the target grid.*/
+            /*TODO, count losses if these are not fulfilled*/
+	    if (gk[target_i] >=0 &&
+                gk[target_i] < max_v_length * WID &&
+                tblock < SpatialCell::max_velocity_blocks &&
+                tblock != error_velocity_block) {
+               if(previous_target_block != tblock) {
+                  previous_target_block = tblock;
+                  //not the same block as last time, lets create it if we
+                  //need to and fetch its data array pointer and store it in target_block_data.
+                  if (spatial_cell->count(tblock) == 0) {
+                     //count faster since the add_velocity_block call is more expensive
+                     spatial_cell->add_velocity_block(tblock);
+                     phiprof_assert(spatial_cell->count(tblock) != 0);
+                  }
+                  Velocity_Block* block_ptr = spatial_cell->at_fast(tblock);
+                  target_block_data=block_ptr->data;
+               }
+               phiprof_assert(tcell < WID3);
+               target_block_data[tcell] += tval;
 	    }
 	  }
 	  gk++; //next iteration in while loop
