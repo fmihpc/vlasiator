@@ -862,11 +862,16 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
       if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), dataReducer, i, vlsvWriter ) == false ) return false;
    }
 
+   array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> local_vcell_neighbors;
+   array< vector< pair<uint16_t, vector<uint16_t> > > > , VELOCITY_BLOCK_LENGTH> remote_vcell_neighbors;
+   set_local_and_remote_velocity_cell_neighbors( local_vcell_neighbors, remote_vcell_neighbors );
+
+
    phiprof::start("population-reducer-parallel");
    for( vector<uint64_t>::const_iterator it = local_cells.begin(); it != local_cells.end(); ++it ) {
       const uint64_t cellId = *it;
       const SpatialCell * cell = mpiGrid[cellId];
-      cerr << evaluate_speed_parallel( cell ) << endl;
+      cerr << evaluate_speed_parallel( cell, local_vcell_neighbors, remote_vcell_neighbors ) << endl;
    }
    phiprof::stop("population-reducer-parallel");
 
@@ -875,17 +880,17 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
    for( unsigned int i = 0; i < local_cells.size(); ++i ) {
       const uint64_t cellId = local_cells[i];
       const SpatialCell * cell = mpiGrid[cellId];
-      cerr << evaluate_speed( cell ) << endl;
+      cerr << evaluate_speed( cell, local_vcell_neighbors, remote_vcell_neighbors ) << endl;
    }
    phiprof::stop("population-reducer");
 
-   phiprof::start("population-reducer-slow");
-   for( unsigned int i = 0; i < local_cells.size(); ++i ) {
-      const uint64_t cellId = local_cells[i];
-      const SpatialCell * cell = mpiGrid[cellId];
-      cerr << evaluate_speed( cell ) << endl;
-   }
-   phiprof::stop("population-reducer-slow");
+//   phiprof::start("population-reducer-slow");
+//   for( unsigned int i = 0; i < local_cells.size(); ++i ) {
+//      const uint64_t cellId = local_cells[i];
+//      const SpatialCell * cell = mpiGrid[cellId];
+//      cerr << evaluate_speed( cell ) << endl;
+//   }
+//   phiprof::stop("population-reducer-slow");
 
 
 
