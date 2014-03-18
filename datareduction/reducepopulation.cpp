@@ -43,12 +43,12 @@ class Velocity_Cell {
 
 // Create neighbors:
 //static array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> local_vcell_neighbors;
-//static array< vector< pair<uint16_t, vector<uint16_t> > > >  , VELOCITY_BLOCK_LENGTH> remote_vcell_neighbors; // Note: This contains both velocity block index and velocity cell index
+//static array< vector< pair<uint16_t, vector<uint16_t> > >  , VELOCITY_BLOCK_LENGTH> remote_vcell_neighbors; // Note: This contains both velocity block index and velocity cell index
 
 
 void set_local_and_remote_velocity_cell_neighbors( 
        array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-       array< vector< pair<uint16_t, vector<uint16_t> > > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
+       array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
                                                  ) {
    // Go through every velocity cell
    for( uint i = 0; i < WID; ++i ) for( uint j = 0; j < WID; ++j ) for( uint k = 0; k < WID; ++k ) {
@@ -100,7 +100,7 @@ void set_local_and_remote_velocity_cell_neighbors(
             // First check if the velocity block is already within the vector
             int index = -1;
             int iterator = 0;
-            for( vector< pair<uint16_t, vector<uint16_t> > > >::iterator it = remote_vcell_neighbors[vCellId].begin();
+            for( vector< pair<uint16_t, vector<uint16_t> > >::iterator it = remote_vcell_neighbors[vCellId].begin();
                  it != remote_vcell_neighbors[vCellId].end();
                  ++it ) {
                // Check for velocity block
@@ -207,7 +207,7 @@ void set_local_and_remote_velocity_cell_neighbors(
 Real evaluate_speed( 
                 const SpatialCell * cell,
                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-                const array< vector< pair<uint16_t, vector<uint16_t> > > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
+                const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
                    ) {
    // Sort list of avgs values:
    vector<Velocity_Cell> velocityCells;
@@ -244,7 +244,7 @@ Real evaluate_speed(
 Real evaluate_speed_parallel(
                 const SpatialCell * cell,
                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-                const array< vector< pair<uint16_t, vector<uint16_t> > > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
+                const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
                             ) {
    // Sort list of avgs values:
    vector<Velocity_Cell> velocityCells;
