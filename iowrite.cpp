@@ -863,7 +863,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
    }
 
    array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> local_vcell_neighbors;
-   array< vector< pair<uint16_t, vector<uint16_t> > > > , VELOCITY_BLOCK_LENGTH> remote_vcell_neighbors;
+   array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> remote_vcell_neighbors;
    set_local_and_remote_velocity_cell_neighbors( local_vcell_neighbors, remote_vcell_neighbors );
 
 
