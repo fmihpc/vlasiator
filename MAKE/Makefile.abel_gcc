@@ -56,6 +56,7 @@ INC_PROFILE = -I$(LIBRARY_PREFIX_A)/phiprof/include
 
 INC_VECTORCLASS = -I$(LIBRARY_PREFIX_A)/vectorclass
 
-
+INC_VLSV = -I$(LIBRARY_PREFIX_A)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX_A)/vlsv -lvlsv
 
 
