@@ -16,10 +16,10 @@ class Velocity_Cell {
    public:
       //uintVELOCITY_BLOCK_LENGTH_t index; //Index could be uint32_t is enough
       //uint32_t blockId;
-      const Velocity_Block * block
+      const Velocity_Block * block;
       uint16_t vCellId;
 
-      inline void set_data( const SpatialCell * input_cell, const Velocity_Block input_block, const uint16_t input_vCellId ) {
+      inline void set_data( const SpatialCell * input_cell, const Velocity_Block * input_block, const uint16_t input_vCellId ) {
          cell = input_cell;
          block = input_block;
          vCellId = input_vCellId;
@@ -59,11 +59,11 @@ void set_local_and_remote_velocity_cell_neighbors(
          if( i_offset == 0 && j_offset == 0 && k_offset == 0 ) { continue; }
          // Get the new indices:
          const int numberOfDirections = 3;
-         const int neighbor_indices[numberOfDirections] = {
-                                                          i + i_offset,
-                                                          j + j_offset,
-                                                          k + k_offset,
-                                                          };
+         int neighbor_indices[numberOfDirections] = {
+                                                    (int)(i) + i_offset,
+                                                    (int)(j) + j_offset,
+                                                    (int)(k) + k_offset,
+                                                    };
          bool isRemoteVCell = false;
          // Check if the indices are out of bounds:
          for( uint index = 0; index < numberOfDirections; ++index ) {
@@ -119,11 +119,11 @@ void set_local_and_remote_velocity_cell_neighbors(
                neighbor_vcells.push_back( neighbor_vCellId );
                pair<uint16_t, vector<uint16_t> > blockAndVCell = make_pair( neighbor_index, neighbor_vcells );
                // Add pair to the remote velocity cells
-               remote_vcell_neighbors[vCellId].reserve( remote_vcell_neighbors[vCellId].size() + 1 )
+               remote_vcell_neighbors[vCellId].reserve( remote_vcell_neighbors[vCellId].size() + 1 );
                remote_vcell_neighbors[vCellId].push_back( blockAndVCell );
             } else {
                // Get the pair
-               pair<uint16_t, vector<uint16_t> > & blockAndVCell = remote_vcell_neighbors[vCellId][index]
+               pair<uint16_t, vector<uint16_t> > & blockAndVCell = remote_vcell_neighbors[vCellId][index];
                // Add velocity cell:
                vector<uint16_t> & neighbor_vcells = get<1>( blockAndVCell );
                neighbor_vcells.reserve( neighbor_vcells.size() + 1 );
@@ -219,7 +219,7 @@ Real evaluate_speed(
       // Create a new velocity cell
       Velocity_Cell input_cell;
       const uint32_t blockId = cell->velocity_block_list[i];
-      for( unsigned int vCellId = 0; vCellId < VELOCITY_BLOCK_LENGTH; ++vCellId ) {
+      for( uint16_t vCellId = 0; vCellId < VELOCITY_BLOCK_LENGTH; ++vCellId ) {
          // Input the block data
          input_cell.set_data( cell, cell->at(blockId), vCellId);
          // Input the velocity cell into the vector
