@@ -21,10 +21,10 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #define MULTIPEAK_H
 
 #include "../../definitions.h"
-#include "../project.h"
+#include "../projectTriAxisSearch.h"
 
 namespace projects {
-   class MultiPeak: public Project {
+   class MultiPeak: public TriAxisSearch {
       public:
          MultiPeak();
          virtual ~MultiPeak();
@@ -44,7 +44,12 @@ namespace projects {
             creal& dx, creal& dy, creal& dz,
             creal& vx, creal& vy, creal& vz,
             creal& dvx, creal& dvy, creal& dvz
-            );
+         );
+         virtual vector<std::array<Real, 3>> getV0(
+            creal x,
+            creal y,
+            creal z
+         );
          
          Real rho[2];
          Real Tx[2];
@@ -72,10 +77,6 @@ namespace projects {
 //          Real Vz2PertAbsAmp;
          Real lambda;
          uint nVelocitySamples;
-         uint seed;
-         
-         char rngStateBuffer[256];
-         random_data rngDataBuffer;
          
 //          #ifdef _AIX
 //          static int64_t rndRho, rndVel1[3], rndVel2[3];

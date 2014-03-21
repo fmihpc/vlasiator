@@ -37,22 +37,11 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 using namespace std;
 
 namespace projects {
-   MultiPeak::MultiPeak(): Project() { }
+   MultiPeak::MultiPeak(): TriAxisSearch() { }
    MultiPeak::~MultiPeak() { }
 
 
-   bool MultiPeak::initialize(void) {
-      int myRank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      
-      memset(&(this->rngDataBuffer), 0, sizeof(this->rngDataBuffer));
-      #ifndef _AIX
-      initstate_r(this->seed*myRank, &(this->rngStateBuffer[0]), 256, &(this->rngDataBuffer));
-      #else
-      initstate_r(this->seed*myRank, &(this->rngStateBuffer[0]), 256, NULL, &(this->rngDataBuffer));
-      #endif
-      return true;
-   }
+   bool MultiPeak::initialize(void) {return true;}
 
    void MultiPeak::addParameters(){
       typedef Readparameters RP;
@@ -88,12 +77,12 @@ namespace projects {
 //       RP::add("MultiPeak.Vy2PertAbsAmp", "Absolute amplitude of the Vy perturbation, second peak", 1.0e6);
 //       RP::add("MultiPeak.Vz2PertAbsAmp", "Absolute amplitude of the Vz perturbation, second peak", 1.0e6);
       RP::add("MultiPeak.lambda", "B cosine perturbation wavelength (m)", 0.0);
-      RP::add("MultiPeak.seed", "Seed for the RNG", 42);
       RP::add("MultiPeak.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
    }
 
    void MultiPeak::getParameters(){
       typedef Readparameters RP;
+      Project::getParameters();
       RP::get("MultiPeak.rho1", this->rho[0]);
       RP::get("MultiPeak.rho2", this->rho[1]);
       RP::get("MultiPeak.Tx1", this->Tx[0]);
@@ -144,8 +133,6 @@ namespace projects {
       return value;
    }
 
-
-
    Real MultiPeak::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   
       creal d_vx = dvx / (this->nVelocitySamples-1);
       creal d_vy = dvy / (this->nVelocitySamples-1);
@@ -162,42 +149,17 @@ namespace projects {
    }
 
 
-
    void MultiPeak::calcCellParameters(Real* cellParams,creal& t) {
-      #ifndef _AIX
-      int32_t rndBuffer[3];
-      random_r(&rngDataBuffer, &rndBuffer[0]);
-      random_r(&rngDataBuffer, &rndBuffer[1]);
-      random_r(&rngDataBuffer, &rndBuffer[2]);
-//       random_r(&rngDataBuffer, &(this->rndRho1));
-//       random_r(&rngDataBuffer, &(this->rndRho2));
-//       random_r(&rngDataBuffer, &(this->rndVel1[0]));
-//       random_r(&rngDataBuffer, &(this->rndVel1[1]));
-//       random_r(&rngDataBuffer, &(this->rndVel1[2]));
-//       random_r(&rngDataBuffer, &(this->rndVel2[0]));
-//       random_r(&rngDataBuffer, &(this->rndVel2[1]));
-//       random_r(&rngDataBuffer, &(this->rndVel2[2]));
-      #else
-      int64_t rndBuffer[3];
-      random_r(&rndBuffer[0], &rngDataBuffer);
-      random_r(&rndBuffer[1], &rngDataBuffer);
-      random_r(&rndBuffer[2], &rngDataBuffer);
-//       random_r(&(this->rndRho1), &rngDataBuffer);
-//       random_r(&(this->rndRho2), &rngDataBuffer);
-//       random_r(&(this->rndVel1[0]), &rngDataBuffer);
-//       random_r(&(this->rndVel1[1]), &rngDataBuffer);
-//       random_r(&(this->rndVel1[2]), &rngDataBuffer);
-//       random_r(&(this->rndVel2[0]), &rngDataBuffer);
-//       random_r(&(this->rndVel2[1]), &rngDataBuffer);
-//       random_r(&(this->rndVel2[2]), &rngDataBuffer);
-      #endif
+      setRandomCellSeed(cellParams);
+      if(this->lambda != 0.0) {
+         cellParams[CellParams::PERBX] = this->dBx*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
+         cellParams[CellParams::PERBY] = this->dBy*sin(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
+         cellParams[CellParams::PERBZ] = this->dBz*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
+      }
       
-      cellParams[CellParams::PERBX] = this->dBx*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda) +
-                                      this->magXPertAbsAmp * (0.5 - (double)rndBuffer[0] / (double)RAND_MAX);
-      cellParams[CellParams::PERBY] = this->dBy*sin(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda) +
-                                      this->magYPertAbsAmp * (0.5 - (double)rndBuffer[1] / (double)RAND_MAX);
-      cellParams[CellParams::PERBZ] = this->dBz*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda) +
-                                      this->magZPertAbsAmp * (0.5 - (double)rndBuffer[2] / (double)RAND_MAX);
+      cellParams[CellParams::PERBX] += this->magXPertAbsAmp * (0.5 - getRandomNumber());
+      cellParams[CellParams::PERBY] += this->magYPertAbsAmp * (0.5 - getRandomNumber());
+      cellParams[CellParams::PERBZ] += this->magZPertAbsAmp * (0.5 - getRandomNumber());
    }
 
    void MultiPeak::setCellBackgroundField(SpatialCell* cell) {
@@ -207,6 +169,19 @@ namespace projects {
                          this->Bz);
       
       setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+   }
+   
+   vector<std::array<Real, 3>> MultiPeak::getV0(
+      creal x,
+      creal y,
+      creal z
+   ) {
+      vector<std::array<Real, 3>> centerPoints;
+      for(uint i=0; i<2; i++) {
+         std::array<Real, 3> point {{this->Vx[i], this->Vy[i], this->Vz[i]}};
+         centerPoints.push_back(point);
+      }
+      return centerPoints;
    }
    
 }// namespace projects
