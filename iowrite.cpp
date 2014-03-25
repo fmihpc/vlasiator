@@ -867,19 +867,19 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
    set_local_and_remote_velocity_cell_neighbors( local_vcell_neighbors, remote_vcell_neighbors );
 
 
-   phiprof::start("population-reducer-parallel");
-   for( vector<uint64_t>::const_iterator it = local_cells.begin(); it != local_cells.end(); ++it ) {
-      const uint64_t cellId = *it;
-      const SpatialCell * cell = mpiGrid[cellId];
-      cerr << evaluate_speed_parallel( cell, local_vcell_neighbors, remote_vcell_neighbors ) << endl;
-   }
-   phiprof::stop("population-reducer-parallel");
-
+//   phiprof::start("population-reducer-parallel");
+//   for( vector<uint64_t>::const_iterator it = local_cells.begin(); it != local_cells.end(); ++it ) {
+//      const uint64_t cellId = *it;
+//      SpatialCell * cell = mpiGrid[cellId];
+//      cerr << evaluate_speed_parallel( cell, local_vcell_neighbors, remote_vcell_neighbors ) << endl;
+//   }
+//   phiprof::stop("population-reducer-parallel");
+//
    phiprof::start("population-reducer");
    #pragma omp parallel for
    for( unsigned int i = 0; i < local_cells.size(); ++i ) {
       const uint64_t cellId = local_cells[i];
-      const SpatialCell * cell = mpiGrid[cellId];
+      SpatialCell * cell = mpiGrid[cellId];
       cerr << evaluate_speed( cell, local_vcell_neighbors, remote_vcell_neighbors ) << endl;
    }
    phiprof::stop("population-reducer");
@@ -887,8 +887,10 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
 //   phiprof::start("population-reducer-slow");
 //   for( unsigned int i = 0; i < local_cells.size(); ++i ) {
 //      const uint64_t cellId = local_cells[i];
-//      const SpatialCell * cell = mpiGrid[cellId];
-//      cerr << evaluate_speed( cell ) << endl;
+//      SpatialCell * cell = mpiGrid[cellId];
+//      Real xi = evaluate_speed( cell, local_vcell_neighbors, remote_vcell_neighbors );
+//      cerr << xi << endl;
+//      //cerr << evaluate_speed( cell, local_vcell_neighbors, remote_vcell_neighbors ) << endl;
 //   }
 //   phiprof::stop("population-reducer-slow");
 
