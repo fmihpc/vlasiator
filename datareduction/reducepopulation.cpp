@@ -302,11 +302,11 @@ static inline void add_to_neighbor_cluster( const uint32_t id, const uint32_t ne
 }
 
 //TODO: FINISH!
-static inline void cluster( 
-                  const vector<Velocity_Cell> & velocityCells,
-                  const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-                  const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
-                  SpatialCell * cell
+static inline uint32_t * cluster( 
+                                const vector<Velocity_Cell> & velocityCells,
+                                const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
+                                const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
+                                SpatialCell * cell
                           ) {
    // Reserve a table for clusters:
    uint32_t * clusterIds = new uint32_t[velocityCells.size()];
@@ -386,8 +386,8 @@ static inline void cluster(
 
 //   cerr << __LINE__ << endl;
 
-   delete[] clusterIds;
-   return;
+   //delete[] clusterIds;
+   return clusterIds;
 }
 
 //TODO: FINISH!
@@ -604,7 +604,7 @@ static void test_neighbor(
 
 
 //Fast implementation
-Real evaluate_speed( 
+uint32_t * evaluate_speed( 
                 SpatialCell * cell,
                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
                 const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
@@ -675,9 +675,9 @@ Real evaluate_speed(
 //   }
 //   cerr << __LINE__ << endl;
 
-   cluster( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
+   //cluster( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
 
-   return 0;
+   return cluster( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
 }
 
 //Fast implementation
