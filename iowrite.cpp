@@ -162,7 +162,7 @@ bool writeVelocityDistributionData(
    attribs["mesh"] = "SpatialGrid"; // Usually the mesh is SpatialGrid
    attribs["name"] = "avgs"; // Name of the velocity space distribution is written avgs
    const string datatype_avgs = "float";
-   const uint64_t arraySize_avgs = 1;
+   const uint64_t arraySize_avgs = totalBlocks;
    const uint64_t vectorSize_avgs = WID3; // There are 64 elements in every velocity block
 
    // Get the data size needed for writing in data
