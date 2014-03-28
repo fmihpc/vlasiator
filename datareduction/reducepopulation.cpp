@@ -302,7 +302,7 @@ static inline void add_to_neighbor_cluster( const uint32_t id, const uint32_t ne
 }
 
 //TODO: FINISH!
-static inline uint32_t * cluster( 
+static inline void cluster( 
                                 const vector<Velocity_Cell> & velocityCells,
                                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
                                 const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
@@ -310,13 +310,15 @@ static inline uint32_t * cluster(
                           ) {
    // Reserve a table for clusters:
    uint32_t * clusterIds = new uint32_t[velocityCells.size()];
-   // Initialize to zero
+   
+   // Initialize to be part of no clusters:
+   const uint32_t noCluster = 1;
    for( uint i = 0; i < velocityCells.size(); ++i ) {
-      clusterIds[i] = 0;
+      clusterIds[i] = noCluster;
    }
 
    // Id for separating clusterIds
-   uint32_t clusterId=1;
+   uint32_t clusterId=2;
 
    // Set the first velocity cell to cluster one
    uint32_t last_vCell = velocityCells.size()-1;
@@ -342,11 +344,11 @@ static inline uint32_t * cluster(
 //         cerr << "HIT" << endl;
 //      } else if( vCell.hash( startingPoint ) == velocityCells.size()-1 ) {
 //         cerr << "HIT2" << endl;
-//      } else if( vCell.hash( startingPoint ) < 0 ) {
-//         cerr << "SOMETHING WRONG " << vCell.hash( startingPoint ) << endl;
-//      } else if( vCell.hash( startingPoint ) >= velocityCells.size() ) {
-//         cerr << "SOMETHING WRONG2 " << vCell.hash( startingPoint ) << " "  << velocityCells.size() << endl;
-//      }
+      if( vCell.hash( startingPoint ) < 0 ) {
+         cerr << "SOMETHING WRONG " << vCell.hash( startingPoint ) << endl;
+      } else if( vCell.hash( startingPoint ) >= velocityCells.size() ) {
+         cerr << "SOMETHING WRONG2 " << vCell.hash( startingPoint ) << " "  << velocityCells.size() << endl;
+      }
       for( vector<Velocity_Cell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
          // Get the id of the neighbor:
          const uint32_t neighbor_id = it->hash( startingPoint );
@@ -355,16 +357,16 @@ static inline uint32_t * cluster(
 //            cerr << "HIT" << endl;
 //         } else if( neighbor_id == velocityCells.size()-1 ) {
 //            cerr << "HIT2" << endl;
-//         } else if( neighbor_id < 0 ) {
-//            cerr << "SOMETHING WRONG " << neighbor_id << " " << it->vCellId << endl;
-//         } else if( neighbor_id >= velocityCells.size() ) {
-//            cerr << "SOMETHING WRONG2 " << neighbor_id << " "  << velocityCells.size() << " " << it->vCellId << endl;
-//         }
+         if( neighbor_id < 0 ) {
+            cerr << "SOMETHING WRONG " << neighbor_id << " " << it->vCellId << endl;
+         } else if( neighbor_id >= velocityCells.size() ) {
+            cerr << "SOMETHING WRONG2 " << neighbor_id << " "  << velocityCells.size() << " " << it->vCellId << endl;
+         }
 
-         // Set the id to equal the same as neighbors'
-         if( clusterIds[neighbor_id] != 0 ) {
+         // Set the id to equal the same as neighbors' if the neighbor is part of a cluster
+         if( clusterIds[neighbor_id] != noCluster ) {
             // If the cluster id has not been set yet, set it now:
-            if( clusterIds[id] == 0 ) {
+            if( clusterIds[id] == noCluster ) {
                // Cluster id has not been set yet
                clusterIds[id] = clusterIds[neighbor_id];
             } else if( clusterIds[id] != clusterIds[neighbor_id] ) {
@@ -374,20 +376,29 @@ static inline uint32_t * cluster(
             }
          }
       }
-      if( clusterIds[id] == 0 ) {
+      // If the cell does not have any neighbors that are part of a cluster then this is a new cluster:
+      if( clusterIds[id] == noCluster ) {
          ++clusterId;
          clusterIds[id] = clusterId;
       }
       neighbors.clear();
    }
-//   // Print out the number of clusterIds:
-//   cerr << "Clusters: " << clusterId << endl;
-//   cerr << "Merges: " << merges << endl;
+   cerr << cell->block_data.size() << " " << velocityCells.size() << " " << cell->block_fx.capacity() << " " << cell->block_fx.size() << endl;
+   if( cell->block_fx.size() < cell->block_data.size() ) { cerr << "WARNING" << endl; }
+   //Realf * blockdata = cell->block_data.data();
+//   for( uint i = 0; i < velocityCells.size(); ++i ) {
+//      const Realf value = clusterIds[i]+0.1;
+//      cell->block_data.at(i) = value;
+//   }
+   // Print out the number of clusterIds:
+   cerr << "Clusters: " << clusterId << endl;
+   cerr << "Merges: " << merges << endl;
+   cerr << "Sizeof: " << sizeof(Realf) << endl;
 
 //   cerr << __LINE__ << endl;
 
-   //delete[] clusterIds;
-   return clusterIds;
+   delete[] clusterIds;
+   return;
 }
 
 //TODO: FINISH!
@@ -604,7 +615,7 @@ static void test_neighbor(
 
 
 //Fast implementation
-uint32_t * evaluate_speed( 
+Real evaluate_speed( 
                 SpatialCell * cell,
                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
                 const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
@@ -675,9 +686,9 @@ uint32_t * evaluate_speed(
 //   }
 //   cerr << __LINE__ << endl;
 
-   //cluster( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
+   cluster( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
 
-   return cluster( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
+   return 0;
 }
 
 //Fast implementation

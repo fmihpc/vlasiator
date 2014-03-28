@@ -850,18 +850,6 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
    //Write ghost zone domain and local id numbers ( VisIt plugin needs this for MPI )
    if( writeGhostZoneDomainAndLocalIdNumbers( mpiGrid, vlsvWriter, meshName, ghost_cells ) == false ) return false;
 
-   if( P::writeAsFloat == 1 ) {
-      if( writeVelocitySpace<float>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
-   } else {
-      if( writeVelocitySpace<Real>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
-   }
-
-   //Write necessary variables:
-   //Determines whether we write in floats or doubles
-   for( uint i = 0; i < dataReducer.size(); ++i ) {
-      if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), dataReducer, i, vlsvWriter ) == false ) return false;
-   }
-
    array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> local_vcell_neighbors;
    array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> remote_vcell_neighbors;
    set_local_and_remote_velocity_cell_neighbors( local_vcell_neighbors, remote_vcell_neighbors );
@@ -875,14 +863,17 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
 //   }
 //   phiprof::stop("population-reducer-parallel");
 //
+   cerr << __LINE__ << endl;
    phiprof::start("population-reducer");
-   #pragma omp parallel for
+   //#pragma omp parallel for
    for( unsigned int i = 0; i < local_cells.size(); ++i ) {
       const uint64_t cellId = local_cells[i];
       SpatialCell * cell = mpiGrid[cellId];
+      cerr << "CELL: " << cellId << endl;
       cerr << evaluate_speed( cell, local_vcell_neighbors, remote_vcell_neighbors ) << endl;
    }
    phiprof::stop("population-reducer");
+   cerr << __LINE__ << endl;
 
 //   phiprof::start("population-reducer-slow");
 //   for( unsigned int i = 0; i < local_cells.size(); ++i ) {
@@ -895,6 +886,20 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
 //   phiprof::stop("population-reducer-slow");
 
 
+   if( P::writeAsFloat == 1 ) {
+      if( writeVelocitySpace<float>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
+   } else {
+      if( writeVelocitySpace<Real>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
+   }
+
+   //Write necessary variables:
+   //Determines whether we write in floats or doubles
+   for( uint i = 0; i < dataReducer.size(); ++i ) {
+      if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), dataReducer, i, vlsvWriter ) == false ) return false;
+   }
+
+
+
 
 
    phiprof::initializeTimer("Barrier","MPI","Barrier");
@@ -903,6 +908,8 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
    phiprof::stop("Barrier");
    vlsvWriter.close();
    phiprof::stop("writeGrid-reduced");
+
+   cerr << __LINE__ << endl;
 
    return success;
 }
