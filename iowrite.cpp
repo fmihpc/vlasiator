@@ -185,7 +185,7 @@ bool writeVelocityDistributionData(
       SpatialCell* SC = mpiGrid[cells[cell]];
       // Get the number of blocks in this cell
       const uint64_t arrayElements = SC->number_of_blocks;
-      char * arrayToWrite = reinterpret_cast<char*>(SC->block_data.data());
+      char * arrayToWrite = reinterpret_cast<char*>(SC->block_fx.data());
       // Add a subarray to write
       vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements); // Note: We told beforehands that the vectorsize = WID3 = 64
    }
@@ -863,17 +863,14 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
 //   }
 //   phiprof::stop("population-reducer-parallel");
 //
-   cerr << __LINE__ << endl;
    phiprof::start("population-reducer");
-   //#pragma omp parallel for
+   #pragma omp parallel for
    for( unsigned int i = 0; i < local_cells.size(); ++i ) {
       const uint64_t cellId = local_cells[i];
       SpatialCell * cell = mpiGrid[cellId];
-      cerr << "CELL: " << cellId << endl;
-      cerr << evaluate_speed( cell, local_vcell_neighbors, remote_vcell_neighbors ) << endl;
+      const Realf test = evaluate_speed( cell, local_vcell_neighbors, remote_vcell_neighbors );
    }
    phiprof::stop("population-reducer");
-   cerr << __LINE__ << endl;
 
 //   phiprof::start("population-reducer-slow");
 //   for( unsigned int i = 0; i < local_cells.size(); ++i ) {
@@ -908,8 +905,6 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
    phiprof::stop("Barrier");
    vlsvWriter.close();
    phiprof::stop("writeGrid-reduced");
-
-   cerr << __LINE__ << endl;
 
    return success;
 }
