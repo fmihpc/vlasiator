@@ -52,6 +52,7 @@ namespace projects {
          );
          
          Real rho[2];
+         Real rhoRnd[2];
          Real Tx[2];
          Real Ty[2];
          Real Tz[2];
@@ -67,8 +68,7 @@ namespace projects {
          Real magXPertAbsAmp;
          Real magYPertAbsAmp;
          Real magZPertAbsAmp;
-//          Real rho1PertRelAmp;
-//          Real rho2PertRelAmp;
+         Real rhoPertAbsAmp[2];
 //          Real Vx1PertAbsAmp;
 //          Real Vy1PertAbsAmp;
 //          Real Vz1PertAbsAmp;
@@ -77,14 +77,6 @@ namespace projects {
 //          Real Vz2PertAbsAmp;
          Real lambda;
          uint nVelocitySamples;
-         
-//          #ifdef _AIX
-//          static int64_t rndRho, rndVel1[3], rndVel2[3];
-//          #else
-//          static int32_t rndRho, rndVel1[3], rndVel2[3];
-//          #endif
-//          #pragma omp threadprivate(rndRho,rndVel)
-         
    }; // class MultiPeak
 } //  namespace projects
 

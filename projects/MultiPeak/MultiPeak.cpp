@@ -68,8 +68,8 @@ namespace projects {
       RP::add("MultiPeak.magXPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along x (T)", 1.0e-9);
       RP::add("MultiPeak.magYPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along y (T)", 1.0e-9);
       RP::add("MultiPeak.magZPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along z (T)", 1.0e-9);
-//       RP::add("MultiPeak.rho1PertRelAmp", "Relative amplitude of the density perturbation, first peak", 0.1);
-//       RP::add("MultiPeak.rho2PertRelAmp", "Relative amplitude of the density perturbation, second peak", 0.1);
+      RP::add("MultiPeak.rho1PertAbsAmp", "Absolute amplitude of the density perturbation, first peak", 0.1);
+      RP::add("MultiPeak.rho2PertAbsAmp", "Absolute amplitude of the density perturbation, second peak", 0.1);
 //       RP::add("MultiPeak.Vx1PertAbsAmp", "Absolute amplitude of the Vx perturbation, first peak", 1.0e6);
 //       RP::add("MultiPeak.Vy1PertAbsAmp", "Absolute amplitude of the Vy perturbation, first peak", 1.0e6);
 //       RP::add("MultiPeak.Vz1PertAbsAmp", "Absolute amplitude of the Vz perturbation, first peak", 1.0e6);
@@ -103,8 +103,8 @@ namespace projects {
       RP::get("MultiPeak.magXPertAbsAmp", this->magXPertAbsAmp);
       RP::get("MultiPeak.magYPertAbsAmp", this->magYPertAbsAmp);
       RP::get("MultiPeak.magZPertAbsAmp", this->magZPertAbsAmp);
-//       RP::get("MultiPeak.rho1PertRelAmp", this->rho1PertRelAmp);
-//       RP::get("MultiPeak.rho2PertRelAmp", this->rho2PertRelAmp);
+      RP::get("MultiPeak.rho1PertAbsAmp", this->rhoPertAbsAmp[0]);
+      RP::get("MultiPeak.rho2PertAbsAmp", this->rhoPertAbsAmp[1]);
 //       RP::get("MultiPeak.Vx1PertAbsAmp", this->Vx1PertAbsAmp);
 //       RP::get("MultiPeak.Vy1PertAbsAmp", this->Vy1PertAbsAmp);
 //       RP::get("MultiPeak.Vz1PertAbsAmp", this->Vz1PertAbsAmp);
@@ -127,7 +127,7 @@ namespace projects {
       
       Real value = 0.0;
       for(uint i=0; i<2; i++) {
-         value += this->rho[i] * pow(mass / (2.0 * M_PI * k ), 1.5) * 1.0 / sqrt(this->Tx[i]*this->Ty[i]*this->Tz[i]) *
+         value += this->rhoRnd[i] * pow(mass / (2.0 * M_PI * k ), 1.5) * 1.0 / sqrt(this->Tx[i]*this->Ty[i]*this->Tz[i]) *
       exp(- mass * (pow(vx - this->Vx[i], 2.0) / (2.0 * k * this->Tx[i]) + pow(vy - this->Vy[i], 2.0) / (2.0 * k * this->Ty[i]) + pow(vz - this->Vz[i], 2.0) / (2.0 * k * this->Tz[i])));
       }
       return value;
@@ -160,6 +160,10 @@ namespace projects {
       cellParams[CellParams::PERBX] += this->magXPertAbsAmp * (0.5 - getRandomNumber());
       cellParams[CellParams::PERBY] += this->magYPertAbsAmp * (0.5 - getRandomNumber());
       cellParams[CellParams::PERBZ] += this->magZPertAbsAmp * (0.5 - getRandomNumber());
+      
+      for(uint i=0; i<2; i++) {
+         this->rhoRnd[i] = this->rho[i] + this->rhoPertAbsAmp[i] * (0.5 - getRandomNumber());
+      }
    }
 
    void MultiPeak::setCellBackgroundField(SpatialCell* cell) {
