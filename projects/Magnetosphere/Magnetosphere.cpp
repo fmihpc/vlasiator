@@ -18,7 +18,7 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 using namespace std;
 
 namespace projects {
-   Magnetosphere::Magnetosphere(): IsotropicMaxwellian() { }
+   Magnetosphere::Magnetosphere(): TriAxisSearch() { }
    Magnetosphere::~Magnetosphere() { }
    
    void Magnetosphere::addParameters() {
@@ -229,11 +229,7 @@ namespace projects {
       
    Real Magnetosphere::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
       Real initRho = this->tailRho;
-      Real initV0[3];
-      
-      for(uint i=0; i<3; i++) {
-         initV0[i] = this->getV0(x, y, z, i);
-      }
+      std::array<Real, 3> initV0 = this->getV0(x, y, z)[0];
       
       creal radius = sqrt(x*x + y*y + z*z);
       if(radius < this->ionosphereTaperRadius) {
@@ -254,14 +250,14 @@ namespace projects {
       exp(- physicalconstants::MASS_PROTON * ((vx-initV0[0])*(vx-initV0[0]) + (vy-initV0[1])*(vy-initV0[1]) + (vz-initV0[2])*(vz-initV0[2])) / (2.0 * physicalconstants::K_B * this->T));
    }
    
-   Real Magnetosphere::getV0(
+   vector<std::array<Real, 3>> Magnetosphere::getV0(
       creal x,
       creal y,
-      creal z,
-      cuint component
+      creal z
    ) {
-      Real V0 = this->V0[component];
-      Real ionosphereV0 = this->ionosphereV0[component];
+      vector<std::array<Real, 3>> centerPoints;
+      std::array<Real, 3> V0 {{this->V0[0], this->V0[1], this->V0[2]}};
+      std::array<Real, 3> ionosphereV0 = {{this->ionosphereV0[0], this->ionosphereV0[1], this->ionosphereV0[2]}};
       
       creal radius = sqrt(x*x + y*y + z*z);
       if(radius < this->ionosphereTaperRadius) {
@@ -270,14 +266,18 @@ namespace projects {
          
          // sine tapering
          Real q=0.5*(1.0-sin(M_PI*(radius-this->ionosphereRadius)/(this->ionosphereTaperRadius-this->ionosphereRadius)+0.5*M_PI));
-         V0=q*(V0-ionosphereV0)+ionosphereV0;
-         if(radius < this->ionosphereRadius) {
-            // Just to be safe, there are observed cases where tis failed.
-            V0 = ionosphereV0;
+         
+         for(uint i=0; i<3; i++) {
+            V0[i]=q*(V0[i]-ionosphereV0[i])+ionosphereV0[i];
+            if(radius < this->ionosphereRadius) {
+               // Just to be safe, there are observed cases where this failed.
+               V0[i] = ionosphereV0[i];
+            }
          }
       }
       
-      return V0;
+      centerPoints.push_back(V0);
+      return centerPoints;
    }
    
 } // namespace projects

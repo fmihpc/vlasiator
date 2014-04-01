@@ -86,7 +86,8 @@ struct Parameters {
    static bool recalculateStencils; /*!< If true, MPI stencils should be recalculated because of load balancing.*/
    
    static bool propagateField;      /*!< If true, magnetic field is propagated during the simulation.*/
-   static bool propagateVlasov;     /*!< If true, distribution function is propagated during the simulation.*/
+   static bool propagateVlasovAcceleration;     /*!< If true, distribution function is propagated in velocity space during the simulation.*/
+   static bool propagateVlasovTranslation;      /*!< If true, distribution function is propagated in ordinary space during the simulation.*/
    static bool periodic_x, periodic_y, periodic_z; /*!< Whether spatial vlasov grid is periodic */
    
    static Real maxAlfvenVelocity; /*!< Maximum Alfven velocity allowed in fastMS computation in LDZ. */
@@ -94,21 +95,17 @@ struct Parameters {
    static bool ohmHallTerm; /*!< Hall term in Ohm's law JXB term. */
    static bool fieldSolverDiffusiveEterms; /*!< Enable resitive terms in the computation of E*/
 
-   static bool useSlAcceleration; /*!< If true, a semilagrangian solver is used for acceleration, otherwise we use a the Leveque solver*/
    static Real maxSlAccelerationRotation; /*!< Maximum rotation in acceleration for semilagrangian solver*/
-   static bool lorentzHallTerm;  /*!< Add JxB hall term to Lorentz force. Assumes there is not hall term in the fieldsolver if we use fieldSolverE*/
    static Real lorentzHallMinimumRho;  /*!< Minimum rho value used in Hall term in Lorentz force.*/
-   static Real lorentzHallMaximumB;  /*!< Maximum B value used in Hall term in Lorentz force. Does not affect J, only latter total B in JxB*/
-   static bool lorentzUseFieldSolverE;  /*!< If true, the E from fieldolver is used. Otherwise -V x B_vol is used*/
    static Real sparseMinValue; /*!< Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents */
    static int sparseBlockAddWidthV; /*!< Number of layers of blocks that are kept in velocity space around the blocks with content */
-   static uint blockAdjustmentInterval; /*!< Block adjustment interval (steps). */
+  static bool sparse_conserve_mass; /*!< If true, density is scaled to conserve mass when removing blocks*/
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
    static std::string loadBalanceTolerance; /*!< Load imbalance tolerance. */ 
    static uint rebalanceInterval; /*!< Load rebalance interval (steps). */
-   static Real loadBalanceAlpha; /*!< alpha in cell load balance weight = gamma + blocks * (alpha + beta*substeps) */
-   static Real loadBalanceBeta; /*!< alpha in cell load balance weight = gamma + blocks * (alpha + beta*substeps) */
-   static Real loadBalanceGamma; /*!< gamma icell load balance weight = gamma + blocks * (alpha + beta*substeps) */
+   static Real loadBalanceAlpha; /*!< alpha in cell load balance weight = gamma + blocks * alpha + beta * blocks**2*/
+   static Real loadBalanceBeta; /*!< beta in cell load balance weight = gamma + blocks * alpha + beta * blocks**2*/
+   static Real loadBalanceGamma; /*!< gamma icell load balance weight = gamma + blocks * alpha + beta * blocks**2*/
    
    static std::vector<std::string> outputVariableList; /*!< List of data reduction operators (DROs) to add to the grid file output.*/
    static std::vector<std::string> diagnosticVariableList; /*!< List of data reduction operators (DROs) to add to the diagnostic runtime output.*/

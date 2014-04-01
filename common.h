@@ -1,18 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
+Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 
 */
 
@@ -20,17 +9,26 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #define COMMON_H
 
 #include <limits>
+#include <string>
 #include "definitions.h"
 
 #ifdef DEBUG_SOLVERS
 #define CHECK_FLOAT(x) \
-	if ((x) != (x)) {\
-		std::cerr << __FILE__ << ":" << __LINE__ << " Illegal value: " << x << std::endl;\
-		abort();\
-	}
+   if ((x) != (x)) {\
+      std::cerr << __FILE__ << ":" << __LINE__ << " Illegal value: " << x << std::endl;\
+      abort();\
+   }
 #else
 #define CHECK_FLOAT(x) {}
 #endif
+
+#define BAILOUT(condition) \
+   if (condition) { \
+      int myRank; \
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank); \
+      globalflags::bailingOut = true; \
+      std::cerr << "Process " << myRank << " bailing out at " << __FILE__ << ":" << __LINE__ << "." << std::endl; \
+   }
 
 #define sqr(x) ((x)*(x))
 #define pow2(x) sqr(x)
@@ -241,17 +239,14 @@ template<typename UINT> inline UINT cellIndex(const UINT& i,const UINT& j,const 
    return k*WID2 + j*WID + i;
 }
 
-
-
-
 const uint SIZE_VELBLOCK    = WID3; /*!< Number of cells in a velocity block. */
-const uint SIZE_BLOCKPARAMS = 6;    /*!< Number of parameters per velocity block. */
 
-const uint SIZE_BOUND       = WID3;
-const uint SIZE_BDERI       = WID2;
-const uint SIZE_BFLUX       = WID2;
-const uint SIZE_DERIV       = WID3;
-const uint SIZE_FLUXS       = WID3;
+/*!
+ * Name space for flags needed globally, such as the bailout flag.
+ */
+struct globalflags {
+   static int bailingOut; /*!< Global flag raised to true if a run bailout (write restart and stop the simulation peacefully) is needed. */
+};
 
 // Natural constants
 namespace physicalconstants {
@@ -262,21 +257,6 @@ namespace physicalconstants {
    const Real MASS_PROTON = 1.67262158e-27; /*!< Proton rest mass.*/
    const Real R_E = 6.3712e6; /*!< radius of the Earth. */
 }
-
-
-
-//neighborhoods, these are initialized in initializeGrid
-
-#define FIELD_SOLVER_NEIGHBORHOOD_ID 1
-#define VLASOV_SOLVER_NEIGHBORHOOD_ID 2
-#define VLASOV_SOLVER_FLUXES_NEIGHBORHOOD_ID 3
-#define VLASOV_SOLVER_DENSITY_NEIGHBORHOOD_ID 4
-// When classifying sysboundaries, all 26 nearest neighbors are included,
-#define SYSBOUNDARIES_NEIGHBORHOOD_ID 5
-#define SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID 6
-#define NEAREST_NEIGHBORHOOD_ID 7
-
-
 
 
 

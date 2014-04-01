@@ -1,7 +1,7 @@
 
 /*
 This file is part of Vlasiator.
-Copyright 2012 Finnish Meteorological Institute
+Copyright 2013, 2014 Finnish Meteorological Institute
 
 */
 
@@ -14,7 +14,7 @@ Copyright 2012 Finnish Meteorological Institute
 #include "utility"
 #include "common.h"
 #include "spatial_cell.hpp"
-
+#include "cpu_1d_interpolations.hpp"
 #ifdef ACC_SEMILAG_PCONSTM
 const int STENCIL_WIDTH=0;
 #endif
@@ -27,94 +27,17 @@ const int STENCIL_WIDTH=2;
 
 
 
+
 using namespace std;
 using namespace spatial_cell;
 
-const Vec4 one_sixth(1.0/6.0);
-const Vec4 one_twelfth(1.0/12.0);
-const Vec4 seven_twelfth(7.0/12.0);
-const Vec4 one_third(1.0/3.0);
 
-// indices in padded z block
+// indices in padded z block where we buffer the block and its neighbors in one velocity dimension
 #define i_pblock(i,j,k) ( ((k) + STENCIL_WIDTH ) * WID + (j) * WID * (WID + 2* STENCIL_WIDTH) + (i) )
 #define i_pblockv(j,k) ( ((k) + STENCIL_WIDTH ) * WID + (j) * WID * (WID + 2* STENCIL_WIDTH) )
 
 
 /*!
-  MC slope limiter
-*/
-
-inline Vec4 slope_limiter(const Vec4& l,const Vec4& m, const Vec4& r) {
-  const Vec4 two(2.0);
-  const Vec4 half(0.5);
-  const Vec4 zero(0.0);
-  Vec4 sign;
-  Vec4 a=r-m;
-  Vec4 b=m-l; 
-  Vec4 minval=min(two*abs(a),two*abs(b));
-  minval=min(minval,half*abs(a+b));
-  
-  //check for extrema
-  Vec4 output = select(a*b < 0,zero,minval);
-  
-  //set sign
-  return select(a + b < 0,-output,output);
-}
-
-
-/*!
- Compute PLM coefficients
-f(v) = a[0] + a[1]/2.0*t 
-t=(v-v_{i-0.5})/dv where v_{i-0.5} is the left face of a cell
-The factor 2.0 is in the polynom to ease integration, then integral is a[0]*t + a[1]*t**2
-*/
-
-inline void compute_plm_coeff(Vec4 mv,Vec4 cv, Vec4 pv,
-			      Vec4 * __restrict__ a){
-  const Vec4 d_cv=slope_limiter(mv,cv,pv);
-  a[0] = cv - d_cv * 0.5;
-  a[1] = d_cv * 0.5;
-}
-
-
-
-
-inline void compute_ppm_coeff(Vec4 mmv,Vec4 mv, Vec4 cv, Vec4 pv,Vec4 ppv,
-			      Vec4 * __restrict__ a){
-   Vec4 p_face;
-   Vec4 m_face;
-
-   //Compute estimations of the face values. Limited estimates, like in Coella 1984. 
-   const Vec4 d_cv=slope_limiter(mv,cv,pv);
-   const Vec4 d_pv=slope_limiter(cv,pv,ppv);
-   const Vec4 d_mv=slope_limiter(mmv,mv,cv);
-
-   p_face=0.5*(pv+cv) + one_sixth * (d_cv-d_pv);
-   m_face=0.5*(cv+mv) + one_sixth * (d_mv-d_cv);        
-
-   //Coella1984 eq. 1.10, detect extrema
-   m_face = select((p_face - cv) * (cv - m_face) < 0,cv, m_face);
-   p_face = select((p_face - cv) * (cv - m_face) < 0,cv, p_face);
-   
-   //Coella et al, check for monotonicity   
-   m_face = select((p_face-m_face)*(cv-0.5*(m_face+p_face))>(p_face-m_face)*(p_face-m_face)*one_sixth,
-		  3*cv-2*p_face,
-		  m_face);
-   p_face = select(-(p_face-m_face)*(p_face-m_face)*one_sixth > (p_face-m_face)*(cv-0.5*(m_face+p_face)),
-		   3*cv-2*m_face,
-		   p_face);
-
-   //Fit a second order polynomial for reconstruction see, e.g., White
-   //2008 (PQM article) (note additional integration factors built in,
-   //contrary to White (2008) eq. 4
-   a[0]=m_face;
-   a[1]=3.0*cv-2.0*m_face-p_face;
-   a[2]=(m_face+p_face-2.0*cv);
-}
-
-/*!
-  value array should be initialized to zero
-  
   For dimension=0 data copy  we have rotated data
   i -> k
   j -> j
@@ -123,7 +46,7 @@ For dimension=1 data copy  we have rotated data
   i -> i
   j -> k
   k -> j
-For dimension=0 data copy 
+
 */
 inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __restrict__ values, int dimension){
     Velocity_Block *block=spatial_cell->at(blockID);
@@ -154,13 +77,23 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
            block_P1=velocity_neighbor::XCC_YCC_ZP1;
            block_M1=velocity_neighbor::XCC_YCC_ZM1;
            break;
+        default:
+           //same as for dimension 2, mostly here to get rid of compiler warning
+           cell_indices_to_id[0]=1;
+           cell_indices_to_id[1]=1;
+           cell_indices_to_id[2]=1;
+           block_P1=1;
+           block_M1=1;
+           cerr << "Dimension argument wrong: " << dimension << " at " << __FILE__ << ":" << __LINE__ << endl;
+           exit(1);
+           break;
     }
     
     // Construct values
     // Copy averages from -1 neighbour if it exists (if not, array is initialized to zero)
     nbrBlock = block->neighbors[block_M1];
     if ( !spatial_cell->is_null_block(nbrBlock)) {
-      Real * __restrict__ ngbr_fx = nbrBlock->fx;
+      Realf * __restrict__ ngbr_fx = nbrBlock->fx;
       for (int k=-STENCIL_WIDTH; k<0; ++k) {
           for (uint j=0; j<WID; ++j) {
              for (uint i=0; i<WID; ++i) {
@@ -168,7 +101,9 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
                    i * cell_indices_to_id[0] +
                    j * cell_indices_to_id[1] +
                    (k + WID) * cell_indices_to_id[2];
-                values[i_pblock(i,j,k)] = ngbr_fx[cell];
+                // Cast to real
+                const Real value = ngbr_fx[cell];
+                values[i_pblock(i,j,k)] = value;
              }
           }
        }
@@ -184,7 +119,7 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
     }
 
 
-    Real * __restrict__ fx = block->fx;
+    Realf * __restrict__ fx = block->fx;
     // Copy volume averages of this block:
     for (uint k=0; k<WID; ++k) {
        for (uint j=0; j<WID; ++j) {
@@ -193,7 +128,8 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
                 i * cell_indices_to_id[0] +
                 j * cell_indices_to_id[1] +
                 k * cell_indices_to_id[2];
-             values[i_pblock(i,j,k)] = fx[cell];
+             const Real value = fx[cell];
+             values[i_pblock(i,j,k)] = value;
           }
        }
     }
@@ -201,7 +137,7 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
     // Copy averages from +1 neighbour if it exists (if not, array is initialized to zero)
     nbrBlock = block->neighbors[block_P1];
     if ( !spatial_cell->is_null_block(nbrBlock)) {
-       Real * __restrict__ ngbr_fx = nbrBlock->fx;
+       Realf * __restrict__ ngbr_fx = nbrBlock->fx;
        for (uint k=WID; k<WID+STENCIL_WIDTH; ++k) {             
           for (uint j=0; j<WID; ++j) {
              for (uint i=0; i<WID; ++i) {
@@ -209,7 +145,8 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
                    i * cell_indices_to_id[0] +
                    j * cell_indices_to_id[1] +
                    (k-WID) * cell_indices_to_id[2];
-                values[i_pblock(i,j,k)] = ngbr_fx[cell];
+                const Real value = ngbr_fx[cell];
+                values[i_pblock(i,j,k)] = value;
              }
           }
        }
@@ -230,6 +167,12 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
    Here we map from the current time step grid, to a target grid which
    is the lagrangian departure grid (so th grid at timestep +dt,
    tracked backwards by -dt)
+
+   TODO: parallelize with openMP over block-columns. If one also
+   pre-creates new blocks in a separate loop first (serial operation),
+   then the openmp parallization would scale well (better than over
+   spatial cells), and would not need synchronization.
+   
 */
 
 bool map_1d(SpatialCell* spatial_cell,   
@@ -241,28 +184,31 @@ bool map_1d(SpatialCell* spatial_cell,
   // Make a copy of the blocklist, the blocklist will change during this algorithm
   uint*  blocks=new uint[spatial_cell->number_of_blocks];
   const uint nblocks=spatial_cell->number_of_blocks;
-  /* 
-     Move densities from data to fx and clear data, to prepare for mapping
-     Also copy blocklist since the velocity block list in spatial cell changes when we add values
-  */
-  for (unsigned int block_i = 0; block_i < nblocks; block_i++) {
-    const unsigned int block = spatial_cell->velocity_block_list[block_i];
-    blocks[block_i] = block; 
-    Velocity_Block * __restrict__ block_ptr = spatial_cell->at(block);
-    Real * __restrict__ fx = block_ptr->fx;
-    Real * __restrict__ data = block_ptr->data;
 
-    for (unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH; cell++) {
-      fx[cell] = data[cell];
-      data[cell] = 0.0;
-    }
+  /*
+     Move densities from data to fx and clear data, to prepare for mapping
+  */
+  for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->number_of_blocks; cell++) {
+     //copy data to fx for solvers, and set data to zero as we will map new values there
+     spatial_cell->block_fx[cell] = spatial_cell->block_data[cell];
+     spatial_cell->block_data[cell] = 0.0;
   }
+  
+  /*copy blocklist since the velocity block list in spatial cell changes when we add values */
+  for (unsigned int block_i = 0; block_i < nblocks; block_i++) {
+     const unsigned int block = spatial_cell->velocity_block_list[block_i];
+     blocks[block_i] = block; 
+  }
+
+
+  
   if(dimension>2)
     return false; //not possible
 
-  
+
   Real dv,v_min;
   Real is_temp;
+  uint max_v_length;
   uint block_indices_to_id[3]; /*< used when computing id of target block */
   uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
   switch (dimension){
@@ -270,7 +216,8 @@ bool map_1d(SpatialCell* spatial_cell,
     /* i and k coordinates have been swapped*/
     /*set cell size in dimension direction*/
     dv=SpatialCell::cell_dvx; 
-    v_min=SpatialCell::vx_min; 
+    v_min=SpatialCell::vx_min;
+    max_v_length = SpatialCell::vx_length;
     /*swap intersection i and k coordinates*/
     is_temp=intersection_di;
     intersection_di=intersection_dk;
@@ -288,7 +235,8 @@ bool map_1d(SpatialCell* spatial_cell,
     /* j and k coordinates have been swapped*/
     /*set cell size in dimension direction*/
     dv=SpatialCell::cell_dvy;
-    v_min=SpatialCell::vy_min; 
+    v_min=SpatialCell::vy_min;
+    max_v_length = SpatialCell::vy_length;
     /*swap intersection j and k coordinates*/
     is_temp=intersection_dj;
     intersection_dj=intersection_dk;
@@ -305,7 +253,8 @@ bool map_1d(SpatialCell* spatial_cell,
   case 2:
     /*set cell size in dimension direction*/
     dv=SpatialCell::cell_dvz;
-    v_min=SpatialCell::vz_min; 
+    v_min=SpatialCell::vz_min;
+    max_v_length = SpatialCell::vz_length;
     /*set values in array that is used to transfer blockindices to id using a dot product*/
     block_indices_to_id[0]=1;
     block_indices_to_id[1]=SpatialCell::vx_length;
@@ -321,7 +270,7 @@ bool map_1d(SpatialCell* spatial_cell,
 
   /*these two temporary variables are used to optimize access to target cells*/
   uint previous_target_block = error_velocity_block;
-  Real *target_block_data;
+  Realf *target_block_data = NULL;
 
   
   for (unsigned int block_i = 0; block_i < nblocks; block_i++) {
@@ -413,8 +362,13 @@ bool map_1d(SpatialCell* spatial_cell,
 	  //then v_1,v_2 should be between v_l and v_r.
 	  //v_1 and v_2 normalized to be between 0 and 1 in the cell.
 	  //For vector elements where gk is already larger than needed (lagrangian_gk_r), v_2=v_1=v_r and thus the value is zero.
+#ifdef DP
 	  const Vec4 v_1 = (min(max(to_double(gk) * intersection_dk + intersection_min, v_l), v_r) - v_l) * i_dv;
 	  const Vec4 v_2 = (min(to_double(gk + 1) * intersection_dk + intersection_min,       v_r) - v_l) * i_dv;
+#else
+          const Vec4 v_1 = (min(max(to_float(gk) * intersection_dk + intersection_min, v_l), v_r) - v_l) * i_dv;
+          const Vec4 v_2 = (min(to_float(gk + 1) * intersection_dk + intersection_min,       v_r) - v_l) * i_dv;
+#endif
 #ifdef ACC_SEMILAG_PCONSTM
 	  Vec4 cv;	    
 	  cv.load(values + i_pblockv(j,k));
@@ -437,19 +391,28 @@ bool map_1d(SpatialCell* spatial_cell,
 	    const uint tblock=target_block[target_i];
 	    const uint tcell=target_cell[target_i];
 	    const Real tval=target_density[target_i];
-	    if (tblock < SpatialCell::max_velocity_blocks && tval != 0.0) {	      
-	      if(previous_target_block != tblock) {
-		previous_target_block = tblock;
-		//not the same block as last time, lets create it if we
-		//need to and fetch its data array pointer and store it in target_block_data.
-		if (spatial_cell->count(tblock) == 0) {
-		  //count faster since the add_velocity_block call is more expensive
-		  spatial_cell->add_velocity_block(tblock);
-		}
-		Velocity_Block* block_ptr = spatial_cell->at_fast(tblock);
-		target_block_data=block_ptr->data;
-	      }
-	      target_block_data[tcell] += tval;
+            /*check that we are within sane limits. If gk is negative,
+             * or above blocks_per_dim * blockcells_per_dim then we
+             * are outside of the target grid.*/
+            /*TODO, count losses if these are not fulfilled*/
+	    if (gk[target_i] >=0 &&
+                gk[target_i] < max_v_length * WID &&
+                tblock < SpatialCell::max_velocity_blocks &&
+                tblock != error_velocity_block) {
+               if(previous_target_block != tblock) {
+                  previous_target_block = tblock;
+                  //not the same block as last time, lets create it if we
+                  //need to and fetch its data array pointer and store it in target_block_data.
+                  if (spatial_cell->count(tblock) == 0) {
+                     //count faster since the add_velocity_block call is more expensive
+                     spatial_cell->add_velocity_block(tblock);
+                     phiprof_assert(spatial_cell->count(tblock) != 0);
+                  }
+                  Velocity_Block* block_ptr = spatial_cell->at_fast(tblock);
+                  target_block_data=block_ptr->data;
+               }
+               phiprof_assert(tcell < WID3);
+               target_block_data[tcell] += tval;
 	    }
 	  }
 	  gk++; //next iteration in while loop

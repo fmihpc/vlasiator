@@ -41,7 +41,18 @@ namespace projects {
    MultiPeak::~MultiPeak() { }
 
 
-   bool MultiPeak::initialize(void) {return true;}
+   bool MultiPeak::initialize(void) {
+      int myRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      
+      memset(&(this->rngDataBuffer), 0, sizeof(this->rngDataBuffer));
+      #ifndef _AIX
+      initstate_r(this->seed*myRank, &(this->rngStateBuffer[0]), 256, &(this->rngDataBuffer));
+      #else
+      initstate_r(this->seed*myRank, &(this->rngStateBuffer[0]), 256, NULL, &(this->rngDataBuffer));
+      #endif
+      return true;
+   }
 
    void MultiPeak::addParameters(){
       typedef Readparameters RP;
@@ -160,7 +171,6 @@ namespace projects {
       cellParams[CellParams::PERBX] += this->magXPertAbsAmp * (0.5 - getRandomNumber());
       cellParams[CellParams::PERBY] += this->magYPertAbsAmp * (0.5 - getRandomNumber());
       cellParams[CellParams::PERBZ] += this->magZPertAbsAmp * (0.5 - getRandomNumber());
-      
       for(uint i=0; i<2; i++) {
          this->rhoRnd[i] = this->rho[i] + this->rhoPertAbsAmp[i] * (0.5 - getRandomNumber());
       }

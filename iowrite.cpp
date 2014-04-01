@@ -845,18 +845,16 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
    //Write ghost zone domain and local id numbers ( VisIt plugin needs this for MPI )
    if( writeGhostZoneDomainAndLocalIdNumbers( mpiGrid, vlsvWriter, meshName, ghost_cells ) == false ) return false;
 
-   //Write necessary variables:
-   //Determines whether we write in floats or doubles
-   const bool asFloat = false;
-   for( uint i = 0; i < dataReducer.size(); ++i ) {
-      //if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), dataReducer, i, vlsvWriter ) == false ) return false;
-      if( writeDataReducer( mpiGrid, local_cells, asFloat, dataReducer, i, vlsvWriter ) == false ) return false;
-   }
-   //if( P::writeAsFloat == 1 ) {
-   if( asFloat ) {
+   if( P::writeAsFloat == 1 ) {
       if( writeVelocitySpace<float>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
    } else {
       if( writeVelocitySpace<Real>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
+   }
+
+   //Write necessary variables:
+   //Determines whether we write in floats or doubles
+   for( uint i = 0; i < dataReducer.size(); ++i ) {
+      if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), dataReducer, i, vlsvWriter ) == false ) return false;
    }
 
    phiprof::initializeTimer("Barrier","MPI","Barrier");
@@ -892,8 +890,6 @@ bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    phiprof::start("writeGrid-restart");
 
-   //de-allocate buffers for spatial leveque solver to reduce memory peak 
-   deallocateSpatialLevequeBuffers();
    //deallocate blocks in remote cells to decrease memory load
    deallocateRemoteCellBlocks(mpiGrid);
    // Create a name for the output file and open it with VLSVWriter:
@@ -961,7 +957,6 @@ bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
    restartReducer.addOperator(new DRO::MPIrank);
    restartReducer.addOperator(new DRO::BoundaryType);
    restartReducer.addOperator(new DRO::BoundaryLayer);
-   restartReducer.addOperator(new DRO::VelocitySubSteps);
 
    //Write necessary variables:
    const bool writeAsFloat = false;
@@ -977,8 +972,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
    updateRemoteVelocityBlockLists(mpiGrid);
-   //re-allocate buffers now that we have written the restart 
-   allocateSpatialLevequeBuffers(mpiGrid);
+
    phiprof::stop("writeGrid-restart");//,1.0e-6*bytesWritten,"MB");
 
    return success;

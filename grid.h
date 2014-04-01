@@ -8,6 +8,30 @@
 #include "projects/project.h"
 #include <string>
 
+
+//neighborhoods, these are initialized in initializeGrid
+
+#define FIELD_SOLVER_NEIGHBORHOOD_ID 1
+#define VLASOV_SOLVER_NEIGHBORHOOD_ID 2   //up to third(PPM) neighbor in each face direction
+#define VLASOV_SOLVER_X_NEIGHBORHOOD_ID 3 //up to third(PPM) neighbor in x face directions
+#define VLASOV_SOLVER_Y_NEIGHBORHOOD_ID 4 //up to third(PPM) neighbor in y face directions
+#define VLASOV_SOLVER_Z_NEIGHBORHOOD_ID 5 //up to third(PPM) neighbor in z face directions
+#define VLASOV_SOLVER_SOURCE_X_NEIGHBORHOOD_ID 6 //nearest neighbor in X face direction, f() can propagate to local cells in X dir
+#define VLASOV_SOLVER_SOURCE_Y_NEIGHBORHOOD_ID 7 //nearest neighbor in Y face direction, f() can propagate to local cells in Y dir
+#define VLASOV_SOLVER_SOURCE_Z_NEIGHBORHOOD_ID 8 //nearest neighbor in Z face direction, f() can propagate to local cells in Z dir
+#define SYSBOUNDARIES_NEIGHBORHOOD_ID 9 // When classifying sysboundaries, all 26 nearest neighbors are included,
+#define SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID 10 //Up to second nearest neighbors in all directions (also diagonals)
+#define NEAREST_NEIGHBORHOOD_ID 11  //nearest neighbors
+#define FULL_NEIGHBORHOOD_ID 12      //Up to second nearest neighbors in all directions (also diagonals) + vlasov solver neighborhood
+#define DIST_FUNC_NEIGHBORHOOD_ID 13 //nearest neighbors in all directions (also diagonals) + vlasov solver neighborhood
+#define SHIFT_P_X_NEIGHBORHOOD_ID 14 //Shift in +x direction
+#define SHIFT_P_Y_NEIGHBORHOOD_ID 15 //Shift in +y direction
+#define SHIFT_P_Z_NEIGHBORHOOD_ID 16 //Shift in +z direction
+#define SHIFT_M_X_NEIGHBORHOOD_ID 17 //Shift in -x direction
+#define SHIFT_M_Y_NEIGHBORHOOD_ID 18 //Shift in -y direction
+#define SHIFT_M_Z_NEIGHBORHOOD_ID 19 //Shift in -z direction
+
+
 /*!
   \brief Initialize parallel grid
 */
@@ -44,16 +68,9 @@ void initializeGrid(
 
   
   \param[in,out] mpiGrid The DCCRG grid with spatial cells
-  \param[in] reInitMover Does it also re-initialize the solvers based on the new
-  block structure? The default is true, and that should always be used
-  unless it is called before solvers have been initialized.
-  
   
 */
-bool adjustVelocityBlocks(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
-   bool reInitMover=true
-);
+bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
 
 /*!
@@ -79,5 +96,20 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid);
 
 //subroutine to adjust blocks of local cells; remove/add based on user-defined limits
 bool adjust_local_velocity_blocks(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
+
+
+
+
+/*! Estimates memory consumption and writes it into logfile. Collective operation on MPI_COMM_WORLD
+ * \param mpiGrid Spatial grid
+ */
+void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid);
+
+/*! Shrink to fit velocity space data to save memory.
+ * \param mpiGrid Spatial grid
+ */
+void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell>& mpiGrid);
+
+
 
 #endif
