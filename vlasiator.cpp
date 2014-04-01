@@ -275,7 +275,7 @@ int main(int argn,char* args[]) {
       if( writeGrid(mpiGrid,outputReducer,P::systemWriteName.size()-1, writeGhosts) == false ) {
          cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
       }
-      cerr << __FILE__ << __LINE__ << endl;
+      
       
       P::systemWriteDistributionWriteStride.pop_back();
       P::systemWriteName.pop_back();
@@ -287,7 +287,7 @@ int main(int argn,char* args[]) {
    }
    
          
-   cerr << __FILE__ << __LINE__ << endl;
+   
 
    if(P::dynamicTimestep && !P::isRestart) {
       //compute vlasovsolver once with zero dt, this is  to initialize
@@ -314,7 +314,7 @@ int main(int argn,char* args[]) {
       
    }
    
-   cerr << __FILE__ << __LINE__ << endl;
+   
 
    
    if(!P::isRestart) {
@@ -328,7 +328,7 @@ int main(int argn,char* args[]) {
       phiprof::stop("propagate-spatial-space-dt/2");
    }
 
-   cerr << __FILE__ << __LINE__ << endl;
+   
    
    
    phiprof::stop("Initialization");
@@ -355,7 +355,7 @@ int main(int argn,char* args[]) {
          index++;
       P::systemWrites.push_back(index);
    }
-   cerr << __FILE__ << __LINE__ << endl;
+   
    
    unsigned int wallTimeRestartCounter=1;
    
@@ -429,7 +429,7 @@ int main(int argn,char* args[]) {
       }
       
       
-   cerr << __FILE__ << __LINE__ << endl;
+   
 
       // Write restart data if needed (based on walltime)
       int writeRestartNow;
@@ -448,7 +448,7 @@ int main(int argn,char* args[]) {
       }
       MPI_Bcast( &writeRestartNow, 1 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
             
-   cerr << __FILE__ << __LINE__ << endl;
+   
       if (writeRestartNow == 1){   
          phiprof::start("write-restart");
          wallTimeRestartCounter++;
@@ -493,7 +493,7 @@ int main(int argn,char* args[]) {
       for(uint i=0;i<cells.size();i++)  computedCells+=mpiGrid[cells[i]]->number_of_blocks*WID3;
       computedTotalCells+=computedCells;
       
-   cerr << __FILE__ << __LINE__ << endl;
+   
       //Check if dt needs to be changed, and propagate half-steps properly to change dt and set up new situation
       //do not compute new dt on first step (in restarts dt comes from file, otherwise it was initialized before we entered
       //simulation loop
@@ -559,7 +559,7 @@ int main(int argn,char* args[]) {
       }
       
       
-   cerr << __FILE__ << __LINE__ << endl;
+   
 
       phiprof::start("Propagate");
       //Propagate the state of simulation forward in time by dt:
@@ -607,7 +607,7 @@ int main(int argn,char* args[]) {
       }
 
       
-   cerr << __FILE__ << __LINE__ << endl;
+   
       
       // Propagate fields forward in time by dt.
       if (P::propagateField == true) {
@@ -626,7 +626,7 @@ int main(int argn,char* args[]) {
       ++P::tstep;
       P::t += P::dt;
    }
-   cerr << __FILE__ << __LINE__ << endl;
+   
 
    double after = MPI_Wtime();
    
@@ -651,7 +651,7 @@ int main(int argn,char* args[]) {
       logFile << writeVerbose;
    }
    
-   cerr << __FILE__ << __LINE__ << endl;
+   
    phiprof::stop("Finalization");   
    phiprof::stop("main");
    
