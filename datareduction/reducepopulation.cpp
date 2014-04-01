@@ -860,7 +860,7 @@ Real evaluate_speed(
       }
    }
    // Sort the list:
-   //sort(velocityCells.begin(), velocityCells.end());
+   sort(velocityCells.begin(), velocityCells.end());
 //   // Return value:
 //   Real value_to_return = 0;
 //   for( unsigned int i = 0; i < velocityCells.size(); ++i ) {
