@@ -23,11 +23,11 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 #endif
 
 #define BAILOUT(condition) \
-   if (condition) { \
+   if ((condition) && (globalflags::bailingOut == 0)) { \
       int myRank; \
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank); \
-      globalflags::bailingOut = true; \
       std::cerr << "Process " << myRank << " bailing out at " << __FILE__ << ":" << __LINE__ << "." << std::endl; \
+      globalflags::bailingOut = 1; \
    }
 
 #define sqr(x) ((x)*(x))

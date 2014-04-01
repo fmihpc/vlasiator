@@ -2212,8 +2212,6 @@ bool propagateFields(
    calculateVolumeAveragedFields(mpiGrid);
    calculateBVOLDerivativesSimple(mpiGrid, sysBoundaries, localCells);
    
-   BAILOUT(P::t > 0.04)
-   
    return true;
 }
 

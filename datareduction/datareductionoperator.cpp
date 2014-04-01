@@ -132,14 +132,14 @@ namespace DRO {
       for (uint i=0; i<_vectorSize*sizeof(Real); ++i){
          buffer[i] = ptr[i];
       }
-      BAILOUT(*_data != *_data)
+      BAILOUT(std::isinf(*_data) || std::isnan(*_data))
       return true;
    }
    
    bool DataReductionOperatorCellParams::reduceData(const SpatialCell* cell,Real* buffer){
       //If _vectorSize is >1 it still works, we just give the first value and no other ones..
       *buffer=_data[0];
-      BAILOUT(*_data != *_data)
+      BAILOUT(std::isinf(*_data) || std::isnan(*_data))
       return true;
    }
    bool DataReductionOperatorCellParams::setSpatialCell(const SpatialCell* cell) {

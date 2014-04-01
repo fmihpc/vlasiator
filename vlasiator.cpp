@@ -367,7 +367,7 @@ int main(int argn,char* args[]) {
    while(P::tstep <=P::tstep_max  &&
          P::t-P::dt <= P::t_max+DT_EPSILON &&
          wallTimeRestartCounter <= P::exitAfterRestarts) {
-
+      
       addTimedBarrier("barrier-loop-start");
       
       phiprof::start("IO");
@@ -623,9 +623,9 @@ int main(int argn,char* args[]) {
       
       phiprof::stop("Propagate",computedCells,"Cells");
       
-//       BAILOUT(P::t > 0.05)
-      
-      //Move forward in time      
+      // Check timestep
+      BAILOUT(P::dt < 1.0e-6)
+      //Move forward in time
       ++P::tstep;
       P::t += P::dt;
    }
