@@ -12,6 +12,8 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/dipole.hpp"
+#include "../../backgroundfield/linedipole.hpp"
+
 
 #include "Magnetosphere.h"
 
@@ -38,6 +40,7 @@ namespace projects {
       RP::add("Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
       RP::add("Magnetosphere.dipoleScalingFactor","Scales the field strength of the magnetic dipole compared to Earths.", 1.0);
       RP::add("Magnetosphere.dipoleTilt","The tilt of Earth's dipole in the X-Z plane, against the z-axis. In radians.", 0.0);
+      RP::add("Magnetosphere.useLineDipole","Use the line dipole, valid only on polar plane", 0.0);
    }
    
    void Magnetosphere::getParameters(){
@@ -106,6 +109,15 @@ namespace projects {
       //ok default
       RP::get("Magnetosphere.dipoleTilt",this->dipoleTilt);
       
+      if(!RP::get("Magnetosphere.useLineDipole", dummy)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      this->useLineDipole = dummy == 1 ? true:false;
+      if(P::ycells_ini!=1 && this->useLineDipole) {
+         if(myRank == MASTER_RANK) cout << " WARNING: You set Magnetosphere.useLineDipole = 1, and you have more than 1 cell in y direction. Are you sure this is correct?" << endl;
+      }
+      
       if(!RP::get("ionosphere.rho", this->ionosphereRho)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
@@ -168,12 +180,21 @@ namespace projects {
 
    /* set 0-centered dipole */
    void Magnetosphere::setCellBackgroundField(SpatialCell *cell){
-      Dipole bgField;
-      bgField.initialize(8e15 *this->dipoleScalingFactor,this->dipoleTilt); //set dipole moment
+      Dipole bgFieldDipole;
+      LineDipole bgFieldLineDipole;
+      if(this->useLineDipole) {
+         bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor,this->dipoleTilt );//set dipole moment
+      } else { 
+         bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor,this->dipoleTilt );//set dipole moment
+      }
       if(cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN && this->noDipoleInSW) {
          setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
       } else {
-         setBackgroundField(bgField,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+         if(this->useLineDipole) {
+            setBackgroundField(bgFieldLineDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+         } else {
+            setBackgroundField(bgFieldDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+         }
       }
       
 
