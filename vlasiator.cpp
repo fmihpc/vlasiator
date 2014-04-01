@@ -1,7 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
+Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 
 */
 
@@ -47,6 +47,8 @@ Logger logFile, diagnostic;
 
 using namespace std;
 using namespace phiprof;
+
+int globalflags::bailingOut = 0;
 
 void addTimedBarrier(string name){
 #ifdef NDEBUG
@@ -111,7 +113,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &is
         P::dt > dtMaxGlobal[2]*P::fieldSolverMaxCFL ) ||
       ( P::dt < dtMaxGlobal[0]*P::vlasovSolverMinCFL && 
         P::dt < dtMaxGlobal[1]*P::vlasovSolverMinCFL &&
-	P::dt < dtMaxGlobal[2]*P::fieldSolverMinCFL )
+        P::dt < dtMaxGlobal[2]*P::fieldSolverMinCFL )
       ) {
      //new dt computed
      isChanged=true;
@@ -140,14 +142,14 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &is
 
 int main(int argn,char* args[]) {
    bool success = true;
-   int myRank;
+   int myRank, doBailout;
    const creal DT_EPSILON=1e-12;
    typedef Parameters P;
    Real newDt;
    bool dtIsChanged;
 
 
-// Init MPI: 
+// Init MPI:
    int required=MPI_THREAD_FUNNELED;
    int provided;
    MPI_Init_thread(&argn,&args,required,&provided);
@@ -156,7 +158,7 @@ int main(int argn,char* args[]) {
       if(myRank==MASTER_RANK)
          cerr << "(MAIN): MPI_Init_thread failed! Got " << provided << ", need "<<required <<endl;
       exit(1);
-   }    
+   }
    
    double initialWtime =  MPI_Wtime();
    
@@ -367,7 +369,7 @@ int main(int argn,char* args[]) {
          wallTimeRestartCounter <= P::exitAfterRestarts) {
 
       addTimedBarrier("barrier-loop-start");
-         
+      
       phiprof::start("IO");
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals).
@@ -393,9 +395,9 @@ int main(int argn,char* args[]) {
          beforeSimulationTime=P::t;
          beforeStep=P::tstep;
          report_memory_consumption(mpiGrid);
-      }               
+      }
       logFile << writeVerbose;
-   
+      
 
       // Check whether diagnostic output has to be produced
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
@@ -423,28 +425,31 @@ int main(int argn,char* args[]) {
          }
       }
       
-      
       // Write restart data if needed (based on walltime)
       int writeRestartNow;
-      if (myRank == MASTER_RANK) { 
+      // Reduce globalflags::bailingOut from all processes
+      MPI_Allreduce(&(globalflags::bailingOut), &(doBailout), 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      
+      if (myRank == MASTER_RANK) {
          if (P::saveRestartWalltimeInterval >=0.0 && (
                P::saveRestartWalltimeInterval*wallTimeRestartCounter <=  MPI_Wtime()-initialWtime ||
                P::tstep ==P::tstep_max ||
-               P::t >= P::t_max
+               P::t >= P::t_max ||
+               doBailout > 0
             )
          ) {
             writeRestartNow = 1;
          }
          else {
             writeRestartNow = 0;
-         }  
+         }
       }
       MPI_Bcast( &writeRestartNow, 1 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
-            
-      if (writeRestartNow == 1){   
+      
+      if (writeRestartNow == 1){
          phiprof::start("write-restart");
          wallTimeRestartCounter++;
-        
+         
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          //Write the restart:
@@ -454,18 +459,19 @@ int main(int argn,char* args[]) {
          }
          if (myRank == MASTER_RANK)
             logFile << "(IO): .... done!"<< endl << writeVerbose;
-         phiprof::stop("write-restart");         
-      }   
+         phiprof::stop("write-restart");
+      }
       
       phiprof::stop("IO");
-      addTimedBarrier("barrier-end-io");      
-
-           
+      addTimedBarrier("barrier-end-io");
+      
+      
       
       //no need to propagate if we are on the final step, we just
       //wanted to make sure all IO is done even for final step
       if(P::tstep ==P::tstep_max ||
-         P::t >= P::t_max) {
+         P::t >= P::t_max ||
+         doBailout > 0) {
          break;
       }
       
@@ -617,6 +623,8 @@ int main(int argn,char* args[]) {
       
       phiprof::stop("Propagate",computedCells,"Cells");
       
+//       BAILOUT(P::t > 0.05)
+      
       //Move forward in time      
       ++P::tstep;
       P::t += P::dt;
@@ -625,10 +633,14 @@ int main(int argn,char* args[]) {
    double after = MPI_Wtime();
    
    phiprof::stop("Simulation");
-   phiprof::start("Finalization");   
+   phiprof::start("Finalization");
    finalizeFieldPropagator(mpiGrid);
    
    if (myRank == MASTER_RANK) {
+      if(doBailout > 0) {
+         logFile << "(MAIN): Bailing out, see error log for details." << endl;
+      }
+      
       double timePerStep;
       if(P::tstep == P::tstep_min) {
          timePerStep=0.0;
@@ -645,7 +657,7 @@ int main(int argn,char* args[]) {
       logFile << writeVerbose;
    }
    
-   phiprof::stop("Finalization");   
+   phiprof::stop("Finalization");
    phiprof::stop("main");
    
    phiprof::print(MPI_COMM_WORLD,"phiprof_full");

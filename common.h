@@ -1,18 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
+Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 
 */
 
@@ -20,17 +9,26 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #define COMMON_H
 
 #include <limits>
+#include <string>
 #include "definitions.h"
 
 #ifdef DEBUG_SOLVERS
 #define CHECK_FLOAT(x) \
-	if ((x) != (x)) {\
-		std::cerr << __FILE__ << ":" << __LINE__ << " Illegal value: " << x << std::endl;\
-		abort();\
-	}
+   if ((x) != (x)) {\
+      std::cerr << __FILE__ << ":" << __LINE__ << " Illegal value: " << x << std::endl;\
+      abort();\
+   }
 #else
 #define CHECK_FLOAT(x) {}
 #endif
+
+#define BAILOUT(condition) \
+   if (condition) { \
+      int myRank; \
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank); \
+      globalflags::bailingOut = true; \
+      std::cerr << "Process " << myRank << " bailing out at " << __FILE__ << ":" << __LINE__ << "." << std::endl; \
+   }
 
 #define sqr(x) ((x)*(x))
 #define pow2(x) sqr(x)
@@ -242,6 +240,13 @@ template<typename UINT> inline UINT cellIndex(const UINT& i,const UINT& j,const 
 }
 
 const uint SIZE_VELBLOCK    = WID3; /*!< Number of cells in a velocity block. */
+
+/*!
+ * Name space for flags needed globally, such as the bailout flag.
+ */
+struct globalflags {
+   static int bailingOut; /*!< Global flag raised to true if a run bailout (write restart and stop the simulation peacefully) is needed. */
+};
 
 // Natural constants
 namespace physicalconstants {

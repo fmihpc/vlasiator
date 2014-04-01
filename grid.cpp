@@ -288,10 +288,10 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
      }
      
      //do the actual transfer of data for the set of cells to be transferred
-     phiprof::start("transfer_all_data");     
+     phiprof::start("transfer_all_data");
      SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
      mpiGrid.continue_balance_load();
-     phiprof::stop("transfer_all_data");     
+     phiprof::stop("transfer_all_data");
 
      //Free memory for cells that have been sent (the blockdata)
      for(unsigned int i=0;i<outgoing_cells_list.size();i++){
