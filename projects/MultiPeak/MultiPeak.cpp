@@ -41,18 +41,7 @@ namespace projects {
    MultiPeak::~MultiPeak() { }
 
 
-   bool MultiPeak::initialize(void) {
-      int myRank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      
-      memset(&(this->rngDataBuffer), 0, sizeof(this->rngDataBuffer));
-      #ifndef _AIX
-      initstate_r(this->seed*myRank, &(this->rngStateBuffer[0]), 256, &(this->rngDataBuffer));
-      #else
-      initstate_r(this->seed*myRank, &(this->rngStateBuffer[0]), 256, NULL, &(this->rngDataBuffer));
-      #endif
-      return true;
-   }
+   bool MultiPeak::initialize(void) {return true;}
 
    void MultiPeak::addParameters(){
       typedef Readparameters RP;
