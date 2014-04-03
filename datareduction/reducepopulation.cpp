@@ -7,8 +7,6 @@
 #include "phiprof.hpp"
 #include "reducepopulation.h"
 
-
-
 using namespace std;
 using namespace spatial_cell;
 
@@ -49,6 +47,240 @@ class Velocity_Cell {
          return block->data[vCellId];
       }
 };
+
+class Cluster {
+   private:
+   public:
+      unordered_set<uint32_t> neighbor_clusters; // Neighbor cluster indexes
+      uint32_t members; // Number of members in this cluster
+      uint32_t clusterId;
+};
+
+class Cluster_Fast {
+   private:
+   public:
+      unordered_set<uint32_t> * neighbor_clusters; // Neighbor cluster indexes
+      uint32_t * members; // Number of members in this cluster
+      uint32_t * clusterId; // This cluster's cluster id
+
+      // Constructor
+      Cluster_Fast() {
+         neighbor_clusters = NULL;
+         members = NULL;
+         clusterId = NULL;
+      }
+      // Destructor
+      ~Cluster_Fast() {
+         neighbor_clusters = NULL;
+         members = NULL;
+         clusterId = NULL;
+      }
+
+      // Pseudo-Constructor:
+      inline void set_data( const uint32_t __clusterId ) {
+         // Reserve space
+         neighbor_clusters = new unordered_set<uint32_t>;
+         members = new uint32_t;
+         clusterId = new uint32_t;
+         // Construct:
+         // One member by default
+         *members = 1;
+         // Input cluster id:
+         *clusterId = __clusterId;
+         neighbor_clusters->insert( __clusterId );
+      }
+
+      // Pseudo-Destructor:
+      inline void remove_data( vector<Cluster_Fast> & clusters ) {
+         // Check if there's anything to delete:
+         if( neighbor_clusters && clusterId && members ) {
+            // Get pointers to be deleted:
+            uint32_t * members_to_delete = members;
+            uint32_t * clusterId_to_delete = clusterId;
+            unordered_set<uint32_t> * neighbor_clusters_to_delete = neighbor_clusters;
+   
+            // Go through every member:
+            for( unordered_set<uint32_t>::const_iterator it = neighbor_clusters->begin(); it != neighbor_clusters->end(); ++it ) {
+               const uint index = *it;
+               // Fix the members to null
+               Cluster_Fast & cluster = clusters[index];
+               cluster.members = NULL;
+               cluster.clusterId = NULL;
+               cluster.neighbor_clusters = NULL;
+            }
+
+            // Remove data:
+            delete members_to_delete;
+            delete clusterId_to_delete;
+            delete neighbor_clusters_to_delete;
+         }
+      }
+
+      inline bool find( const uint32_t __clusterId ) {
+         phiprof_assert( neighbor_clusters );
+         return neighbor_clusters->find( __clusterId ) == neighbor_clusters->end();
+      }
+
+      inline void merge( 
+                  const uint32_t * const clusterIds, 
+                  const uint32_t id, 
+                  const uint32_t neighbor_id, 
+                  vector<Cluster_Fast> & clusters 
+                       ) {
+         // Check the values of members, clusterid and neighbor_clusters
+         phiprof_assert( neighbor_clusters && members && clusterId );
+
+         phiprof_assert( clusterIds );
+         //Set clusters to be the same
+         //----------------------------------------------------
+         const uint index = clusterIds[id];
+         const uint index_neighbor = clusterIds[neighbor_id];
+         phiprof_assert( index < clusters.size() && index_neighbor < clusters.size() );
+         Cluster_Fast & cluster = clusters[index];
+         Cluster_Fast & cluster_neighbor = clusters[index_neighbor];
+ 
+
+         // CREATE NEW VALUES THAT WILL BE SHARED BY BOTH CLUSTERS
+         //*****************
+         // Create new cluster neighbors:
+         unordered_set<uint32_t> * new_neighbor_clusters = new unordered_set<uint32_t>;
+
+         // Append values
+         new_neighbor_clusters->insert( cluster.neighbor_clusters->begin(), cluster.neighbor_clusters->end() );
+         new_neighbor_clusters->insert( cluster_neighbor.neighbor_clusters->begin(), cluster_neighbor.neighbor_clusters->end() );
+
+         // Create new cluster id:
+         uint32_t * new_cluster_id = new uint32_t;
+         *new_cluster_id = min( *cluster.clusterId, *cluster_neighbor.clusterId );
+
+         // Get new members:
+         uint32_t * new_members = new uint32_t;
+         *new_members = *cluster.members + *cluster_neighbor.members;
+         //*****************
+
+         // Get the pointers for the old values ( to be deleted ):
+         //*****************
+         unordered_set<uint32_t> * old_neighbor_clusters = cluster.neighbor_clusters;
+         unordered_set<uint32_t> * old_neighbor_clusters_neighbor = cluster_neighbor.neighbor_clusters;
+         uint32_t * old_cluster_id = cluster.clusterId;
+         uint32_t * old_cluster_id_neighbor = cluster_neighbor.clusterId;
+         uint32_t * old_members = cluster.members;
+         uint32_t * old_members_neighbor = cluster_neighbor.members;
+         //*****************
+
+
+         // Update the cluster neighbors for every cluster:
+         for( unordered_set<uint32_t>::const_iterator jt = new_neighbor_clusters->begin(); jt != new_neighbor_clusters->end(); ++jt ) {
+            const uint iterator_index = *jt;
+ 
+            phiprof_assert( iterator_index < clusters.size() );
+ 
+            // Update the neighbors
+            clusters[iterator_index].neighbor_clusters = new_neighbor_clusters;
+            // Update members:
+            clusters[iterator_index].members = new_members;
+            // Update cluster ids:
+            clusters[iterator_index].clusterId = new_cluster_id;
+         }
+         //----------------------------------------------------
+
+         // Delete the old values:
+         delete old_neighbor_clusters;
+         old_neighbor_clusters = NULL;
+         delete old_neighbor_clusters_neighbor;
+         old_neighbor_clusters_neighbor = NULL;
+         delete old_cluster_id;
+         old_cluster_id = NULL;
+         delete old_cluster_id_neighbor;
+         old_cluster_id_neighbor = NULL;
+         delete old_members;
+         old_members = NULL;
+         delete old_members_neighbor;
+         old_members_neighbor = NULL;
+      }
+
+      inline void merge_fast( 
+                  Cluster_Fast & cluster_neighbor,
+                  vector<Cluster_Fast> & clusters
+                            ) {
+
+         // Make sure this class has no null pointers:
+         phiprof_assert( neighbor_clusters && members && clusterId );
+
+         phiprof_assert( cluster_neighbor.neighbor_clusters && cluster_neighbor.members && cluster_neighbor.clusterId );
+
+         phiprof_assert( cluster_neighbor.clusterId != clusterId );
+
+         // Optimize:
+         if( cluster_neighbor.neighbor_clusters->size() > neighbor_clusters->size() ) {
+            // It's faster to use this function the other way around if the neighbor is a bigger cluster:
+            cluster_neighbor.merge_fast( *this, clusters );
+            return;
+         }
+  
+         // CREATE NEW VALUES THAT WILL BE SHARED BY BOTH CLUSTERS
+         //*****************
+         // Create new cluster neighbors:
+         unordered_set<uint32_t> * new_neighbor_clusters = neighbor_clusters;
+
+         // Append values
+         new_neighbor_clusters->insert( cluster_neighbor.neighbor_clusters->begin(), cluster_neighbor.neighbor_clusters->end() );
+
+         // Create new cluster id:
+         uint32_t * new_cluster_id = clusterId;
+         *new_cluster_id = min( *clusterId, *cluster_neighbor.clusterId );
+
+         // Get new members:
+         uint32_t * new_members = members;
+         *new_members = *members + *cluster_neighbor.members;
+         //*****************
+
+
+
+         // Get the pointers for the old values ( to be deleted ):
+         //*****************
+         unordered_set<uint32_t> * old_neighbor_clusters_neighbor = cluster_neighbor.neighbor_clusters;
+         uint32_t * old_cluster_id_neighbor = cluster_neighbor.clusterId;
+         uint32_t * old_members_neighbor = cluster_neighbor.members;
+         //*****************
+
+
+
+
+
+         // Update the cluster neighbors for every cluster:
+         //----------------------------------------------------
+         for( unordered_set<uint32_t>::const_iterator jt = old_neighbor_clusters_neighbor->begin(); jt != old_neighbor_clusters_neighbor->end(); ++jt ) {
+            const uint iterator_index = *jt;
+ 
+            phiprof_assert( iterator_index < clusters.size() );
+ 
+            // Update the neighbors
+            clusters[iterator_index].neighbor_clusters = new_neighbor_clusters;
+            // Update members:
+            clusters[iterator_index].members = new_members;
+            // Update cluster ids:
+            clusters[iterator_index].clusterId = new_cluster_id;
+         }
+         //----------------------------------------------------
+
+
+
+         // Delete the old values:
+         delete old_neighbor_clusters_neighbor;
+         old_neighbor_clusters_neighbor = NULL;
+         delete old_cluster_id_neighbor;
+         old_cluster_id_neighbor = NULL;
+         delete old_members_neighbor;
+         old_members_neighbor = NULL;
+      }
+
+
+      inline void append( const uint32_t numberOfMembersToAppend ) {
+         *members += numberOfMembersToAppend;
+      }
+};
+
 
 
 namespace std {
@@ -549,7 +781,7 @@ static inline void cluster_simple(
    // This is used for hashing velocity cells
    const size_t startingPoint = (size_t)(cell->block_data.data());
 
-   
+
    uint16_t clusterId = noCluster + 1; // The first cluster id
 
    // Put the first velocity cell as processed
@@ -663,6 +895,339 @@ static inline void cluster(
    uint32_t * clusterIds = new uint32_t[velocityCells.size()];
    
    // Initialize to be part of no clusters:
+   const uint32_t noCluster = 0;
+   for( uint i = 0; i < velocityCells.size(); ++i ) {
+      clusterIds[i] = noCluster;
+   }
+
+
+   // Id for separating clusterIds
+   uint32_t clusterId = noCluster + 1;
+
+   // Set the first velocity cell to cluster one
+   uint32_t last_vCell = velocityCells.size()-1;
+   clusterIds[last_vCell] = clusterId;
+
+
+   // Start getting velocity neighbors
+   vector<Velocity_Cell> neighbors;
+   neighbors.reserve( numberOfVCellNeighbors );
+
+   const size_t startingPoint = (size_t)(cell->block_data.data());
+
+   uint32_t merges = 0;
+
+   //----------------------------------------------
+   // Create clusters
+   vector<Cluster> clusters;
+   const uint estimated_clusters = 200;
+   clusters.reserve( estimated_clusters );
+   {
+      // Create the no-cluster
+      Cluster no_cluster;
+      no_cluster.members = 0;
+      no_cluster.clusterId = noCluster;
+      no_cluster.neighbor_clusters.insert( noCluster );
+      clusters.push_back( no_cluster );
+      // Create the first cluster:
+      Cluster first_cluster;
+      first_cluster.members = 1;
+      first_cluster.clusterId = clusterId;
+      first_cluster.neighbor_clusters.insert( clusterId );
+      clusters.push_back( first_cluster );
+   }
+   //----------------------------------------------
+
+
+   for( int i = velocityCells.size()-1; i >= 0; --i ) {
+      const Velocity_Cell & vCell = velocityCells[i];
+      // Get the neighbors:
+      get_neighbors( neighbors, vCell, local_vcell_neighbors, remote_vcell_neighbors, cell );
+      // Get the id of the velocity cell
+      const uint32_t id = vCell.hash( startingPoint );
+
+      phiprof_assert( id >= 0 && id < velocityCells.size() );
+
+      for( vector<Velocity_Cell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
+         // Get the id of the neighbor:
+         const uint32_t neighbor_id = it->hash( startingPoint );
+
+         phiprof_assert( neighbor_id >= 0 && neighbor_id < velocityCells.size() );
+
+         phiprof_assert( clusterIds[id] < clusters.size() && clusterIds[neighbor_id] < clusters.size() );
+
+         // Set the id to equal the same as neighbors' if the neighbor is part of a cluster
+         if( clusterIds[neighbor_id] != noCluster ) {
+            const uint index = clusterIds[id];
+            const uint index_neighbor = clusterIds[neighbor_id];
+
+            phiprof_assert( index < clusters.size() && index_neighbor < clusters.size() );
+
+            // If the cluster id has not been set yet, set it now:
+            if( clusterIds[id] == noCluster ) {
+               // Cluster id has not been set yet
+               clusterIds[id] = clusterIds[neighbor_id];
+
+               //--------------------------------------------------------------
+               // Increase the amount of members in the cluster by one:
+               unordered_set<uint32_t> & neighbor_clusters = clusters[index_neighbor].neighbor_clusters;
+               // TODO: OPTIMIZE THIS WITH POINTERS WITH POINTERS O(1)
+               for( unordered_set<uint32_t>::const_iterator jt = neighbor_clusters.begin(); jt != neighbor_clusters.end(); ++jt ) {
+                  const uint iterator_index = *jt;
+
+                  phiprof_assert( iterator_index < clusters.size() );
+
+                  clusters[iterator_index].members += 1;
+               }
+               //--------------------------------------------------------------
+
+
+            } else if( clusters[index].neighbor_clusters.find( index_neighbor ) == clusters[index].neighbor_clusters.end() ) {
+               // Clusters are separate clusters
+
+               // Merge the clusters:
+
+               //Set clusters to be the same
+               //----------------------------------------------------
+               const uint index = clusterIds[id];
+               Cluster & cluster = clusters[index];
+               const uint index_neighbor = clusterIds[neighbor_id];
+               Cluster & cluster_neighbor = clusters[index_neighbor];
+
+               // Create new cluster neighbors:
+               unordered_set<uint32_t> neighbor_clusters;
+               neighbor_clusters.insert( cluster.neighbor_clusters.begin(), cluster.neighbor_clusters.end() );
+               neighbor_clusters.insert( cluster_neighbor.neighbor_clusters.begin(), cluster_neighbor.neighbor_clusters.end() );
+
+               // NOTE: IF THE CLUSTERS HAVE BEEN MERGED THEY WILL ALWAYS HAVE THE SAME MEMBERS AND NEIGHBOR_CLUSTERS SO POINTERS SHOULD BE USED
+
+
+               // Update the cluster neighbors for every cluster:
+               // TODO: OPTIMIZE, THIS ONLY NEEDS TO BE DONE ONCE WITH POINTERS (NO COPY CONSTRUCTION), USE POINTERS
+               // Get the new amount of members in the merged cluster:
+               const uint members = cluster.members + cluster_neighbor.members;
+               // Get the minimum cluster id and set it as the cluster id for every cluster
+               const uint32_t new_cluster_id = *min_element( neighbor_clusters.begin(), neighbor_clusters.end() );
+               for( unordered_set<uint32_t>::const_iterator jt = neighbor_clusters.begin(); jt != neighbor_clusters.end(); ++jt ) {
+                  const uint iterator_index = *jt;
+
+                  phiprof_assert( iterator_index < clusters.size() );
+
+                  // Update the neighbors
+                  clusters[iterator_index].neighbor_clusters = neighbor_clusters;
+                  // Update members:
+                  clusters[iterator_index].members = members;
+                  // Update cluster ids:
+                  clusters[iterator_index].clusterId = new_cluster_id;
+               }
+               //----------------------------------------------------
+
+               ++merges;
+            }
+         }
+      }
+      // If the cell does not have any neighbors that are part of a cluster then this is a new cluster:
+      if( clusterIds[id] == noCluster ) {
+         ++clusterId;
+
+         // Create a new cluster
+         //------------------------------------------------
+         Cluster new_cluster;
+         new_cluster.members = 1;
+         new_cluster.clusterId = clusterId;
+         new_cluster.neighbor_clusters.insert( clusterId );
+         clusters.push_back( new_cluster );
+         //------------------------------------------------
+
+         clusterIds[id] = clusterId;
+      }
+      neighbors.clear();
+   }
+
+   phiprof_assert( cell->block_fx.size() >= velocityCells.size() );
+   for( uint i = 0; i < velocityCells.size(); ++i ) {
+      const Realf value = clusters[clusterIds[i]].clusterId;
+      cell->block_fx.at(i) = value;
+   }
+
+   // Print out the number of clusterIds:
+   cerr << "Clusters: " << clusterId << endl;
+   cerr << "Merges: " << merges << endl;
+//   cerr << "Sizeof: " << sizeof(Realf) << endl;
+
+//   
+
+   delete[] clusterIds;
+   return;
+}
+
+static inline void cluster_advanced( 
+                                const vector<Velocity_Cell> & velocityCells,
+                                const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
+                                const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
+                                SpatialCell * cell
+                                  ) {
+
+
+   if( velocityCells.size() == 0 ) { return; }
+   // Reserve a table for clusters:
+   uint32_t * clusterIds = new uint32_t[velocityCells.size()];
+   
+   // Initialize to be part of no clusters:
+   const uint32_t noCluster = 0;
+   for( uint i = 0; i < velocityCells.size(); ++i ) {
+      clusterIds[i] = noCluster;
+   }
+
+   // Id for separating clusterIds
+   uint32_t clusterId = noCluster + 1;
+
+   // Set the first velocity cell to cluster one
+   uint32_t last_vCell = velocityCells.size()-1;
+   clusterIds[last_vCell] = clusterId;
+
+
+   // Start getting velocity neighbors
+   vector<Velocity_Cell> neighbors;
+   neighbors.reserve( numberOfVCellNeighbors );
+
+   const size_t startingPoint = (size_t)(cell->block_data.data());
+
+   uint32_t merges = 0;
+
+   //----------------------------------------------
+   // Create clusters
+   vector<Cluster_Fast> clusters;
+   const uint estimated_clusters = 200;
+   clusters.reserve( estimated_clusters );
+   {
+      // Create the no-cluster
+      Cluster_Fast no_cluster;
+      no_cluster.set_data( noCluster );
+      clusters.push_back( no_cluster );
+      // Create the first cluster:
+      Cluster_Fast first_cluster;
+      first_cluster.set_data( clusterId );
+      clusters.push_back( first_cluster );
+   }
+   //----------------------------------------------
+
+
+   for( int i = velocityCells.size()-1; i >= 0; --i ) {
+      const Velocity_Cell & vCell = velocityCells[i];
+      // Get the neighbors:
+      get_neighbors( neighbors, vCell, local_vcell_neighbors, remote_vcell_neighbors, cell );
+      // Get the id of the velocity cell
+      const uint32_t id = vCell.hash( startingPoint );
+
+      phiprof_assert( id >= 0 && id < velocityCells.size() );
+
+      for( vector<Velocity_Cell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
+
+         // Get the id of the neighbor:
+         const uint32_t neighbor_id = it->hash( startingPoint );
+
+         phiprof_assert( neighbor_id >= 0 && neighbor_id < velocityCells.size() );
+
+         phiprof_assert( clusterIds[id] < clusters.size() && clusterIds[neighbor_id] < clusters.size() );
+
+
+         // Set the id to equal the same as neighbors' if the neighbor is part of a cluster
+         if( clusterIds[neighbor_id] != noCluster ) {
+
+            const uint index = clusterIds[id];
+            const uint index_neighbor = clusterIds[neighbor_id];
+
+            phiprof_assert( index < clusters.size() && index_neighbor < clusters.size() );
+            phiprof_assert( clusters[index].neighbor_clusters );
+
+
+            // If the cluster id has not been set yet, set it now:
+            if( clusterIds[id] == noCluster ) {
+
+               // Cluster id has not been set yet
+               clusterIds[id] = clusterIds[neighbor_id];
+
+               //--------------------------------------------------------------
+               // Increase the amount of members in the cluster by one:
+               clusters[index_neighbor].append(1);
+               //--------------------------------------------------------------
+
+
+            } else if( clusters[index].find( index_neighbor ) ) {
+
+               // Clusters are separate clusters
+
+               // Merge the clusters:
+
+               //Set clusters to be the same (Merge them)
+               //----------------------------------------------------
+               Cluster_Fast & cluster_neighbor = clusters[index_neighbor];
+               Cluster_Fast & cluster = clusters[index];
+
+               // Merge clusters:
+               cluster_neighbor.merge_fast( cluster, clusters );
+               //cluster_neighbor.merge( clusterIds, id, neighbor_id, clusters );
+               //----------------------------------------------------
+
+               ++merges;
+
+            }
+
+         }
+      }
+
+      // If the cell does not have any neighbors that are part of a cluster then this is a new cluster:
+      if( clusterIds[id] == noCluster ) {
+         ++clusterId;
+
+         // Create a new cluster
+         //------------------------------------------------
+         Cluster_Fast new_cluster;
+         new_cluster.set_data( clusterId );
+         clusters.push_back( new_cluster );
+         //------------------------------------------------
+
+         clusterIds[id] = clusterId;
+      }
+
+      neighbors.clear();
+   }
+
+   phiprof_assert( cell->block_fx.size() >= velocityCells.size() );
+   for( uint i = 0; i < velocityCells.size(); ++i ) {
+      const Realf value = *clusters[clusterIds[i]].clusterId;
+      cell->block_fx.at(i) = value;
+   }
+
+
+   // Print out the number of clusterIds:
+//   cerr << "Clusters: " << clusterId << endl;
+//   cerr << "Merges: " << merges << endl;
+//   cerr << "Sizeof: " << sizeof(Realf) << endl;
+
+   delete[] clusterIds;
+   clusterIds = NULL;
+   // Free memory from clusters:
+   for( uint i = 0; i < clusters.size(); ++i ) {
+      clusters[i].remove_data( clusters );
+   }
+   return;
+}
+
+
+static inline void cluster_simple_two( 
+                                const vector<Velocity_Cell> & velocityCells,
+                                const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
+                                const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
+                                SpatialCell * cell
+                          ) {
+
+   if( velocityCells.size() == 0 ) { return; }
+   // Reserve a table for clusters:
+   uint32_t * clusterIds = new uint32_t[velocityCells.size()];
+   
+   // Initialize to be part of no clusters:
    const uint32_t noCluster = 1;
    for( uint i = 0; i < velocityCells.size(); ++i ) {
       clusterIds[i] = noCluster;
@@ -738,6 +1303,7 @@ static inline void cluster(
 
    return;
 }
+
 
 
 
@@ -1032,7 +1598,9 @@ Real evaluate_speed(
 //   
 
    //cluster( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
-   cluster_simple( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
+   //cluster_simple( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
+   cluster_advanced( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
+
 
    return 0;
 }

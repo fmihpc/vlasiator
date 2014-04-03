@@ -863,14 +863,16 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
 //   }
 //   phiprof::stop("population-reducer-parallel");
 //
+
    phiprof::start("population-reducer");
-   #pragma omp parallel for
+   #pragma omp parallel for schedule(dynamic,1)
    for( unsigned int i = 0; i < local_cells.size(); ++i ) {
       const uint64_t cellId = local_cells[i];
       SpatialCell * cell = mpiGrid[cellId];
       const Realf test = evaluate_speed( cell, local_vcell_neighbors, remote_vcell_neighbors );
    }
    phiprof::stop("population-reducer");
+
 
 //   phiprof::start("population-reducer-slow");
 //   for( unsigned int i = 0; i < local_cells.size(); ++i ) {
@@ -894,7 +896,6 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
    for( uint i = 0; i < dataReducer.size(); ++i ) {
       if( writeDataReducer( mpiGrid, local_cells, (P::writeAsFloat==1), dataReducer, i, vlsvWriter ) == false ) return false;
    }
-
 
 
 
