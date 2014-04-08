@@ -732,16 +732,10 @@ bool writeVelocitySpace( dccrg::Dccrg<SpatialCell>& mpiGrid,
          }
       }
 
-      uint64_t numVelSpaceCells;
-      uint64_t localNumVelSpaceCells;
-      localNumVelSpaceCells=velSpaceCells.size();
-      MPI_Allreduce(&localNumVelSpaceCells,&numVelSpaceCells,1,MPI_UINT64_T,MPI_SUM,MPI_COMM_WORLD);
-      if(numVelSpaceCells>0) {
-         //write out velocity space data, if there are cells with this data
-         if( writeVelocityDistributionData<T>( vlsvWriter, mpiGrid, velSpaceCells, MPI_COMM_WORLD ) == false ) {
-            cerr << "ERROR, FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT " << __FILE__ << " " << __LINE__ << endl;
-            logFile << "(MAIN) writeGrid: ERROR FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
-         }
+      //write out velocity space data, if there are cells with this data
+      if( writeVelocityDistributionData<T>( vlsvWriter, mpiGrid, velSpaceCells, MPI_COMM_WORLD ) == false ) {
+         cerr << "ERROR, FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT " << __FILE__ << " " << __LINE__ << endl;
+         logFile << "(MAIN) writeGrid: ERROR FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
       }
       return true;
 }
