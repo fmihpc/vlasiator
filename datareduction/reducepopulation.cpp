@@ -304,9 +304,6 @@ namespace std {
    };
 }
 
-// Create neighbors:
-//static array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> local_vcell_neighbors;
-//static array< vector< pair<uint16_t, vector<uint16_t> > >  , VELOCITY_BLOCK_LENGTH> remote_vcell_neighbors; // Note: This contains both velocity block index and velocity cell index
 
 //A function for creating neighbors for velocity cells.
 // Note: local_vcell_neighbors[vCellId] gives the local neighbors of a velocity cell (neighbors that are within the same block)
@@ -405,67 +402,6 @@ void set_local_and_remote_velocity_cell_neighbors(
       }
    }
 }
-//indices[0] + indices[1] * block_vx_length + indices[2] * block_vx_length * block_vy_length;
-//for(int offset_vx=-1;offset_vx<=1;offset_vx++)
-//   for(int offset_vy=-1;offset_vy<=1;offset_vy++)
-//      for(int offset_vz=-1;offset_vz<=1;offset_vz++){
-//         // location of neighbor pointer in this block's neighbor list
-//         int neighbor_index=(1+offset_vx)+(1+offset_vy)*3+(1+offset_vz)*9;
-//
-//         if (neighbor_block == error_velocity_block) {
-//            block_ptr->neighbors[neighbor_index] = NULL;
-//         }
-
-
-// Returns neighbors of the velociy cell
-//Velocity_Cell * neighbors( const SpatialCell * cell, const Velocity_Cell & vCell ) {
-   // Get the velocity cell neighbors:
-   
-//}
-
-//// Returns neighbors of the velociy cell
-//Velocity_Cell * neighbors( const SpatialCell * cell, const Velocity_Cell & vCell ) {
-//   // Get the velocity cell block id:
-//   const uint32_t blockId = vCell.blockId;
-//   // Get the velocity cell id:
-//   const uint16_t vCellId = vCell.vCellId;
-//   // Transform to coordinates:
-//   const uint32_t indices[3] = { 
-//                        WID * (blockId % SpatialCell::vx_length) + vCellId % block_vx_length,
-//                        WID * ((blockId / SpatialCell::vx_length) % SpatialCell::vy_length) + (vCellId / block_vx_length) % block_vy_length,
-//                        WID * (blockId / (SpatialCell::vx_length * SpatialCell::vy_length)) + vCellId / (block_vx_length * block_vy_length)
-//                               };
-//   // Reserve space for the neighbors:
-//   Velocity_Cell * neighbor_vCells = new Velocity_Cell[block_vx_length*block_vz_length*block_vy_length - 1];
-//   // Get the neighbors:
-//   // Go through neighbor indices e.g. i, j, k (-1,0,1)
-//   int iterator = 0;
-//   for( int i = -1; i <= 1; ++i ) for( unsigned int j = -1; j <= 1; ++j ) for( unsigned int k = -1; k <=1; ++k ) {
-//      // Do not include self as neighbor
-//      if( i == 0 && j == 0 && k == 0 ) { continue; }
-//      // Get the neighbor's indices
-//      const uint32_t neighbor_indices[3] = {
-//                                           indices[0] + i,
-//                                           indices[0] + j,
-//                                           indices[0] + k,
-//                                           };
-//      // Transform into blockid and velocity cell id:
-//      const uint32_t neighbor_blockId = 
-//                             neighbor_indices[0] / WID
-//                             + (neighbor_indices[1] / WID) * SpatialCell::vx_length
-//                             + (neighbor_indices[2] / WID) * SpatialCell::vx_length * SpatialCell::vy_length;
-//      const uint16_t neighbor_vCellId = 
-//                             (neighbor_indices[0] % WID)
-//                           + (neighbor_indices[1] % WID) * block_vx_length
-//                           + (neighbor_indices[2] % WID) * block_vx_length * block_vy_length;
-//      // Get index of the neighbor cell:
-//      
-//      neighbor_vCells[iterator].set_data( cell, neighbor_blockId, neighbor_vCellId );
-//      iterator++;
-//   }
-//   return neighbor_vCells;
-//}
-//
 
 
 
@@ -506,257 +442,8 @@ static inline void get_neighbors(
    return;
 }
 
-
-//// A function for comparing clusters
-//static inline bool same_cluster( const uint32_t id, const uint32_t neighbor_id, uint32_t *** clusterIds ) {
-//   // Make sure that the pointers are NOT null:
-//   phiprof_assert( clusterIds[id] && clusterIds[neighbor_id] );
-//   // Make sure that the pointers are NOT null:
-//   phiprof_assert( *clusterIds[id] && *clusterIds[neighbor_id] );
-//   return (*clusterIds[id] == *clusterIds[neighbor_id]);
-//}
-//
-//// A function for checking if cluster exists
-//static inline bool cluster_exists( const uint32_t id, uint32_t *** clusterIds ) {
-//   return clusterIds[id];
-//}
-//
-//// A function for merging clusters
-//static inline void merge_clusters( const uint32_t id, const uint32_t neighbor_id, uint32_t *** clusterIds ) {
-//   // Make sure that the pointers are NOT null:
-//   phiprof_assert( clusterIds[id] && clusterIds[neighbor_id] );
-//   uint32_t ** cluster_one = clusterIds[id];
-//   uint32_t ** cluster_two = clusterIds[neighbor_id];
-//   const uint32_t numberOfCellsInCluster_one = **cluster_one;
-//   const uint32_t numberOfCellsInCluser_two = **cluster_two;
-//
-//   // Increase the value of cluster two:
-//   **cluster_two += numberOfCellsInCluster_one;
-//   // Delete the value in cluster one:
-//   delete *cluster_one;
-//   // Delete the cluster two as well
-//   // Set the cluster one to point at cluster two:
-//   *clusterIds[id] = *cluster_two;
-//   
-//}
-//
-//// A function for creating a new cluster
-//static inline void create_new_cluster( const uint32_t id, uint32_t *** clusterIds ) {
-//   phiprof_assert( clusterIds );
-//   // Reserve space for the cluster
-//   clusterIds[id] = new uint32_t*;
-//   uint32_t * new_cluster = new uint32_t;
-//   // Input number of velocity cells in this cluster:
-//   *new_cluster = 1;
-//   // Set the velocity cell to point at the new cluster
-//   *clusterIds[id] = new_cluster;
-//}
-//
-//// A function for adding a velocity cell to an existing cluster
-//static inline void add_to_neighbor_cluster( const uint32_t id, const uint32_t neighbor_id, uint32_t *** clusterIds ) {
-//   // Make sure the pointer at id is null
-//   phiprof_assert( !cluster_exists(id, clusterIds) );
-//   // Note: We are assuming that clusterIds[id] is not pointing to anything yet
-//   clusterIds[id] = clusterIds[neighbor_id];
-//   // Now that there's an extra cluster, increase the cluster number:
-//   **clusterIds[id] += 1;
-//}
-//
-//
-//// Delete cluster id
-//static inline void delete_cluster( const uint32_t id, uint32_t *** clusterIds ) {
-//   // Check for null pointers:
-//   if( clusterIds ) {
-//      if( clusterIds[id] ) {
-//         if( *clusterIds[id] ) {
-//            delete *clusterIds[id];
-//            delete[] clusterIds[id];
-//         } else {
-//            delete[] clusterIds[id];
-//         }
-//      }
-//   }
-//}
-//
-//
-//
-//
-////TODO: FINISH!
-//static inline void cluster( 
-//                                const vector<Velocity_Cell> & velocityCells,
-//                                const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-//                                const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
-//                                SpatialCell * cell
-//                          ) {
-//   // Reserve a table for clusters:
-//   uint32_t *** clusterIds = new uint32_t**[velocityCells.size()];
-//
-//   // Set the first velocity cell to first cluster:
-//   uint32_t last_vCell = velocityCells.size()-1;
-//   create_new_cluster( last_vCell, clusterIds);
-//
-//
-//   // Start getting velocity neighbors
-//   vector<Velocity_Cell> neighbors;
-//   neighbors.reserve( numberOfVCellNeighbors );
-//
-//   const size_t startingPoint = (size_t)(cell->block_data.data());
-//
-//   uint32_t merges = 0;
-//
-//   for( int i = velocityCells.size()-1; i >= 0; --i ) {
-//      const Velocity_Cell & vCell = velocityCells[i];
-//      // Get the neighbors:
-//      get_neighbors( neighbors, vCell, local_vcell_neighbors, remote_vcell_neighbors, cell );
-//      // Get the id of the velocity cell
-//      const uint32_t id = vCell.hash( startingPoint );
-//      if( vCell.hash( startingPoint ) < 0 ) {
-//         cerr << "SOMETHING WRONG " << vCell.hash( startingPoint ) << endl;
-//      } else if( vCell.hash( startingPoint ) >= velocityCells.size() ) {
-//         cerr << "SOMETHING WRONG2 " << vCell.hash( startingPoint ) << " "  << velocityCells.size() << endl;
-//      }
-//      for( vector<Velocity_Cell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
-//         // Get the id of the neighbor:
-//         const uint32_t neighbor_id = it->hash( startingPoint );
-//
-//         if( neighbor_id < 0 ) {
-//            cerr << "SOMETHING WRONG " << neighbor_id << " " << it->vCellId << endl;
-//         } else if( neighbor_id >= velocityCells.size() ) {
-//            cerr << "SOMETHING WRONG2 " << neighbor_id << " "  << velocityCells.size() << " " << it->vCellId << endl;
-//         }
-//
-//         // Set the id to equal the same as neighbors' if the neighbor is part of a cluster
-//         if( cluster_exists( neighbor_id, clusterIds ) ) {
-//            // If the cluster id has not been set yet, set it now:
-//            if( !cluster_exists( id, clusterIds ) ) {
-//               // Cluster id has not been set yet
-//               add_to_neighbor_cluster( id, neighbor_id, clusterIds );
-//            } else if( clusterIds[id] != clusterIds[neighbor_id] ) {
-//               // id is a part of a cluster already, merge the clusterIds:
-//               ++merges;
-//               merge_clusters( id, neighbor_id, clusterIds );
-//            }
-//         }
-//      }
-//      // If the cell does not have any neighbors that are part of a cluster then this is a new cluster:
-//      if( !cluster_exists( id, clusterIds ) ) {
-//         create_new_cluster( id, clusterIds );
-//      }
-//      neighbors.clear();
-//   }
-//   cerr << cell->block_data.size() << " " << velocityCells.size() << " " << cell->block_fx.capacity() << " " << cell->block_fx.size() << endl;
-//   if( cell->block_fx.size() < cell->block_data.size() ) { cerr << "WARNING" << endl; }
-//   //Realf * blockdata = cell->block_data.data();
-//   for( uint i = 0; i < velocityCells.size(); ++i ) {
-//      phiprof_assert( cluster_exists( id, clusterIds ) );
-//      const Realf value = **clusterIds[i]+0.1;
-//      cell->block_data.at(i) = value;
-//   }
-//   // Print out the number of clusterIds:
-//   cerr << "Merges: " << merges << endl;
-//   cerr << "Sizeof: " << sizeof(Realf) << endl;
-//
-//   // Delete clusters:
-//   for( uint i = 0; i < velocityCells.size(); ++i ) {
-//      delete_cluster( i, clusterIds );
-//   }
-//   delete[] clusterIds;
-//   return;
-//}
-
-//TODO: FINISH!
-//static inline void cluster( 
-//                                const vector<Velocity_Cell> & velocityCells,
-//                                const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-//                                const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
-//                                SpatialCell * cell
-//                          ) {
-//   // Reserve a table for clusters:
-//   uint32_t * clusterIds = new uint32_t[velocityCells.size()];
-//   
-//   // Initialize to be part of no clusters:
-//   const uint32_t noCluster = 1;
-//   for( uint i = 0; i < velocityCells.size(); ++i ) {
-//      clusterIds[i] = noCluster;
-//   }
-//
-//   // Id for separating clusterIds
-//   uint32_t clusterId=2;
-//
-//   // Set the first velocity cell to cluster one
-//   uint32_t last_vCell = velocityCells.size()-1;
-//   clusterIds[last_vCell] = clusterId;
-//
-//   // Start getting velocity neighbors
-//   vector<Velocity_Cell> neighbors;
-//   neighbors.reserve( numberOfVCellNeighbors );
-//
-////   
-//
-//   const size_t startingPoint = (size_t)(cell->block_data.data());
-//
-//   uint32_t merges = 0;
-//
-//   for( int i = velocityCells.size()-1; i >= 0; --i ) {
-//      const Velocity_Cell & vCell = velocityCells[i];
-//      // Get the neighbors:
-//      get_neighbors( neighbors, vCell, local_vcell_neighbors, remote_vcell_neighbors, cell );
-//      // Get the id of the velocity cell
-//      const uint32_t id = vCell.hash( startingPoint );
-//      if( vCell.hash( startingPoint ) < 0 ) {
-//         cerr << "SOMETHING WRONG " << vCell.hash( startingPoint ) << endl;
-//      } else if( vCell.hash( startingPoint ) >= velocityCells.size() ) {
-//         cerr << "SOMETHING WRONG2 " << vCell.hash( startingPoint ) << " "  << velocityCells.size() << endl;
-//      }
-//      for( vector<Velocity_Cell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
-//         // Get the id of the neighbor:
-//         const uint32_t neighbor_id = it->hash( startingPoint );
-//
-//         if( neighbor_id < 0 ) {
-//            cerr << "SOMETHING WRONG " << neighbor_id << " " << it->vCellId << endl;
-//         } else if( neighbor_id >= velocityCells.size() ) {
-//            cerr << "SOMETHING WRONG2 " << neighbor_id << " "  << velocityCells.size() << " " << it->vCellId << endl;
-//         }
-//
-//         // Set the id to equal the same as neighbors' if the neighbor is part of a cluster
-//         if( clusterIds[neighbor_id] != noCluster ) {
-//            // If the cluster id has not been set yet, set it now:
-//            if( clusterIds[id] == noCluster ) {
-//               // Cluster id has not been set yet
-//               clusterIds[id] = clusterIds[neighbor_id];
-//            } else if( clusterIds[id] != clusterIds[neighbor_id] ) {
-//               // id is a part of a cluster already, merge the clusterIds:
-//               ++merges;
-//               //merge_clusterIds( id, neighbor_id,  );
-//            }
-//         }
-//      }
-//      // If the cell does not have any neighbors that are part of a cluster then this is a new cluster:
-//      if( clusterIds[id] == noCluster ) {
-//         ++clusterId;
-//         clusterIds[id] = clusterId;
-//      }
-//      neighbors.clear();
-//   }
-//   cerr << cell->block_data.size() << " " << velocityCells.size() << " " << cell->block_fx.capacity() << " " << cell->block_fx.size() << endl;
-//   if( cell->block_fx.size() < cell->block_data.size() ) { cerr << "WARNING" << endl; }
-//   //Realf * blockdata = cell->block_data.data();
-//   for( uint i = 0; i < velocityCells.size(); ++i ) {
-//      const Realf value = clusterIds[i]+0.1;
-//      cell->block_data.at(i) = value;
-//   }
-//   // Print out the number of clusterIds:
-//   cerr << "Clusters: " << clusterId << endl;
-//   cerr << "Merges: " << merges << endl;
-//   cerr << "Sizeof: " << sizeof(Realf) << endl;
-//
-////   
-//
-//   delete[] clusterIds;
-//   return;
-//}
-
-
+// A function for clustering velocity cells into separate populations.
+// This algorithm starts from the highest-valued velocity cell and starts clustering until it hits a certain threshold value, after which it starts to find new populations.
 static inline void cluster_simple( 
                                 vector<Velocity_Cell> & velocityCells,
                                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
@@ -879,13 +566,8 @@ static inline void cluster_simple(
       cell->block_fx.at(i) = all_vCells[i];
    }
 
-   // Print out the number of clusterIds:
-//   cerr << "Merges: " << merges << endl;
-//   cerr << "Sizeof: " << sizeof(Realf) << endl;
 
-//   
-
-   //delete[] clusterIds;
+   delete[] all_vCells;
 
    return;
 }
@@ -893,7 +575,8 @@ static inline void cluster_simple(
 
 
 
-
+// A function for clustering velocity cells into separate populations.
+// This algorithm uses Cluster class to save different clusters. It's identical to cluster_advanced but this one does not use pointers, which is why this one is slower.
 static inline void cluster( 
                                 const vector<Velocity_Cell> & velocityCells,
                                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
@@ -1072,6 +755,9 @@ static inline void cluster(
    return;
 }
 
+
+// A function for clustering velocity cells into separate populations.
+// This algorithm uses Cluster_Fast class to save different clusters. The algorithm starts from the highest-valued velocity cell, moves to the second-highest and puts the second-highest into the same cluster as its neighbor, if its neighbor is a part of a cluster.
 static inline void cluster_advanced( 
                                 const vector<Velocity_Cell> & velocityCells,
                                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
@@ -1234,6 +920,7 @@ static inline void cluster_advanced(
 }
 
 
+// Simplest case of clustering. Starts from highest valued velocity cell moves to the second-highest, third-highest, etc. This algorithm does not have cluster merging.
 static inline void cluster_simple_two( 
                                 const vector<Velocity_Cell> & velocityCells,
                                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
@@ -1311,8 +998,8 @@ static inline void cluster_simple_two(
    }
 
    // Print out the number of clusterIds:
-   cerr << "Clusters: " << clusterId << endl;
-   cerr << "Merges: " << merges << endl;
+   //cerr << "Clusters: " << clusterId << endl;
+   //cerr << "Merges: " << merges << endl;
 //   cerr << "Sizeof: " << sizeof(Realf) << endl;
 
 //   
@@ -1324,148 +1011,7 @@ static inline void cluster_simple_two(
 
 
 
-
-
-////TODO: FINISH!
-//static inline void cluster_backup( 
-//                  const vector<Velocity_Cell> & velocityCells,
-//                  const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-//                  const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
-//                  SpatialCell * cell
-//                          ) {
-//   // Start putting neighbors in a list:
-//   // Note: This space is already reserved but it is not being used currently:
-//   
-//   //uint32_t * hashtable = reinterpret_cast<uint32_t*>(cell->block_fx.data());
-//   uint32_t * hashtable = new uint32_t(velocityCells.size());
-//   // Put everything to zero:
-//   for( unsigned int i = 0; i < velocityCells.size(); ++i ) {
-//      hashtable[i] = 0;
-//   }
-//   
-//
-//
-//   const size_t startingPoint = (size_t)(cell->block_data.data());
-//
-//
-//   vector<Velocity_Cell> neighbors;
-//   neighbors.reserve( numberOfVCellNeighbors );
-//   // Do the algorithm:
-//   unsigned int clusterId = 1; // The largest cluster number. This gets updated as the algorithm progresses
-//   // Put the velocity cell with the highest value into the hash table:
-//   const int last_index = velocityCells.size()-2;
-//   hashtable[velocityCells[last_index].hash( startingPoint )] = clusterId;
-//   
-//   for( int i = velocityCells.size()-2; i >= 0; --i ) {
-//      const Velocity_Cell & vCell = velocityCells[i];
-//      // Get the hashed index of this velocity cell:
-//      const size_t index = vCell.hash( startingPoint );
-//      // Get the neighbors:
-//      get_neighbors( neighbors, vCell, local_vcell_neighbors, remote_vcell_neighbors, cell );
-//      // Truth value for whether the velocity cell is a part of any cluster
-//      bool found_cluster = false;
-//      for( unsigned int j = 0; j < neighbors.size(); ++j ) {
-//         // Get the hashed neighbor_index:
-//         const size_t neighbor_index = neighbors[j].hash( startingPoint );
-//         // Check if the neighbor is a part of some cluster -- returns 0 if not
-//         const unsigned int neighbor_clusterId = hashtable[neighbor_index];
-//         if( neighbor_clusterId != 0 ) {
-//            if( found_cluster == true ) {
-//               // Already part of some cluster, so now we can link it to other clusters too:
-//               //TODO
-//               // For now, just print a to get the idea of how many clusters there might be
-//               //cerr << "HIT" << endl;
-//            } else {
-//               // Found out that the velocity cell is a part of a cluster -> don't update cluster number (because this is not a new cluster)
-//               // The velocity cell is a part of a cluster now because its neighbor is a part of a cluster, so set the cluster id equal to its neighbor's
-//               hashtable[index] = neighbor_clusterId;
-//               found_cluster = true;
-//            }
-//         }
-//      }
-//      // Check if the velocity cell was a part of a cluster, if not then make it a new cluster:
-//      if( found_cluster == false ) {
-//         // New cluster, so new cluster id
-//         ++clusterId;
-//         // Set the cluster id
-//         hashtable[index] = clusterId;
-//      }
-//   }
-//   
-//   // Print how many cluster ids:
-//   cerr << "CLUSTER IDS: " <<  clusterId << endl;
-//   return;
-//}
-
-
-//static inline void cluster_fast( 
-//                  const vector<Velocity_Cell> & velocityCells,
-//                  const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-//                  const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
-//                  SpatialCell * cell
-//                               ) {
-//   // Start putting neighbors in a list:
-//   // Note: This space is already reserved but it is not being used currently:
-//   
-//   unordered_set<Velocity_Cell, Hash> processed_vcells;
-//   processed_vcells.reserve( velocityCells.size() );
-//   
-//
-//
-//
-//   vector<Velocity_Cell> neighbors;
-//   neighbors.reserve( numberOfVCellNeighbors );
-//   // Do the algorithm:
-//   unsigned int clusterId = 1; // The largest cluster number. This gets updated as the algorithm progresses
-//   // Put the velocity cell with the highest value into the hash table:
-//   const int last_index = velocityCells.size()-2;
-//   hashtable[velocityCells[last_index].hash( startingPoint )] = clusterId;
-//   
-//   for( int i = velocityCells.size()-2; i >= 0; --i ) {
-//      const Velocity_Cell & vCell = velocityCells[i];
-//      // Get the hashed index of this velocity cell:
-//      const size_t index = vCell.hash( startingPoint );
-//      // Get the neighbors:
-//      get_neighbors( neighbors, vCell, local_vcell_neighbors, remote_vcell_neighbors );
-//      // Truth value for whether the velocity cell is a part of any cluster
-//      bool found_cluster = false;
-//      for( unsigned int j = 0; j < neighbors.size(); ++j ) {
-//         // Get the hashed neighbor_index:
-//         const size_t neighbor_index = neighbors[j].hash( startingPoint );
-//         // Check if the neighbor is a part of some cluster -- returns 0 if not
-//         const unsigned int neighbor_clusterId = hashtable[neighbor_index];
-//   
-//         if( neighbor_clusterId != 0 ) {
-//            if( found_cluster == true ) {
-//               // Already part of some cluster, so now we can link it to other clusters too:
-//               //TODO
-//               // For now, just print a to get the idea of how many clusters there might be
-//               //cerr << "HIT" << endl;
-//            } else {
-//               // Found out that the velocity cell is a part of a cluster -> don't update cluster number (because this is not a new cluster)
-//               // The velocity cell is a part of a cluster now because its neighbor is a part of a cluster, so set the cluster id equal to its neighbor's
-//               hashtable[index] = neighbor_clusterId;
-//               found_cluster = true;
-//            }
-//         }
-//      }
-//   
-//      // Check if the velocity cell was a part of a cluster, if not then make it a new cluster:
-//      if( found_cluster == false ) {
-//         // New cluster, so new cluster id
-//         ++clusterId;
-//         // Set the cluster id
-//         hashtable[index] = clusterId;
-//      }
-//   }
-//   
-//   // Print how many cluster ids:
-//   cerr << "CLUSTER IDS: " <<  clusterId << endl;
-//   return;
-//}
-
-
-
+// Function for debugging the validity of cell neighbors function
 static void test_neighbor(
                 SpatialCell * cell,
                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
@@ -1512,54 +1058,22 @@ static void test_neighbor(
 }
 
 
-//   cerr << "REMOTES: " << endl;
-//   // Same for remote neighbors:
-//   // Print out velocity cell neighbors:
-//   for( uint i = 0; i < local_vcell_neighbors.size(); ++i ) {
-//      // Velocity cell:
-//      cerr << "Velocity cell: " << i << " - ";
-//      // Its indices:
-//      velocity_cell_indices_t indices = cell->get_velocity_cell_indices( i );
-//      for( uint j = 0; j < 3; ++j ) {
-//         cerr << indices[j] << " ";
-//      }
-//      cerr << endl;
-//      for( vector< pair<uint16_t, vector<uint16_t> > >::const_iterator it = remote_vcell_neighbors[i].begin();
-//      it != remote_vcell_neighbors[i].end(); ++it ) {
-//         for( vector<uint16_t>::const_iterator jt = get<1>(*it).begin(); jt != get<1>(*it).end(); ++jt ) {
-//            cerr << "Neighbor2: " << *jt << " - ";
-//            velocity_cell_indices_t indices2 = cell->get_velocity_cell_indices( *jt );
-//            for( uint j = 0; j < 3; ++j ) {
-//               cerr << indices2[j] << " ";
-//            }
-//            cerr << endl;
-//         }
-//      }
-//   }
 
-
-
-//Fast implementation
+//Function for evaluating the speed of population clustering
 Real evaluate_speed( 
                 SpatialCell * cell,
                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
                 const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
                    ) {
-   // Test neighbor functioning:
-   //test_neighbor( cell, local_vcell_neighbors,remote_vcell_neighbors );
-   //cerr << "TESTED!" << endl;
-
    // Sort list of avgs values:
 
+   // Vector for holding velocity cells:
    vector<Velocity_Cell> velocityCells;
-//   // Get the block values
-//   const vector<Realf,aligned_allocator<Realf,VELOCITY_BLOCK_LENGTH> > * block_data = &(cell->block_data);
-   // Get the pointer address of block data:
-   //const size_t startingPoint = (size_t)(static_cast<const void*>((cell->block_data).data()));
    // Initialize avgs values vector:
    velocityCells.resize( cell->number_of_blocks * VELOCITY_BLOCK_LENGTH );
 
 
+   // Input data
    for( unsigned int i = 0; i < cell->number_of_blocks; ++i ) {
       // Create a new velocity cell
       Velocity_Cell input_cell;
@@ -1574,118 +1088,15 @@ Real evaluate_speed(
 
    // Sort the list:
    sort(velocityCells.begin(), velocityCells.end());
-//   // Return value:
-//   Real value_to_return = 0;
-//   for( unsigned int i = 0; i < velocityCells.size(); ++i ) {
-//      if( i%2 == 0 ) {
-//         value_to_return += (Real)(velocityCells[i].get_avgs());
-//      } else {
-//         value_to_return -= (Real)(velocityCells[i].get_avgs());
-//      }
-//   }
 
-
-//   // Start getting velocity neighbors
-//   vector<Velocity_Cell> neighbors;
-//   neighbors.reserve( numberOfVCellNeighbors );
-//   
-//
-//   const size_t startingPoint = (size_t)(cell->block_data.data());
-//
-//   
-//   for( int i = velocityCells.size()-1; i >= 0; --i ) {
-//      const Velocity_Cell & vCell = velocityCells[i];
-//      // Get the neighbors:
-//      get_neighbors( neighbors, vCell, local_vcell_neighbors, remote_vcell_neighbors, cell );
-//      if( vCell.hash( startingPoint ) == 0 ) {
-//         cerr << "HIT" << endl;
-//      } else if( vCell.hash( startingPoint ) == velocityCells.size()-1 ) {
-//         cerr << "HIT2" << endl;
-//      } else if( vCell.hash( startingPoint ) < 0 ) {
-//         cerr << "SOMETHING WRONG " << vCell.hash( startingPoint ) << endl;
-//      } else if( vCell.hash( startingPoint ) >= velocityCells.size() ) {
-//         cerr << "SOMETHING WRONG2 " << vCell.hash( startingPoint ) << " "  << velocityCells.size() << endl;
-//      }
-//      for( vector<Velocity_Cell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
-//         
-//         value_to_return += it->hash(startingPoint)*0.01;
-//         //cerr << it->hash(startingPoint);
-//      }
-//      neighbors.clear();
-//   }
-//   
+   // Test clustering:
 
    //cluster( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
-   cluster_simple( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
+   //cluster_simple( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
+   cluster_simple_two( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
    //cluster_advanced( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
 
 
    return 0;
 }
-
-//Fast implementation
-Real evaluate_speed_parallel(
-                SpatialCell * cell,
-                const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-                const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
-                            ) {
-//   // Sort list of avgs values:
-//   vector<Velocity_Cell> velocityCells;
-////   // Get the block values
-////   const vector<Realf,aligned_allocator<Realf,VELOCITY_BLOCK_LENGTH> > * block_data = &(cell->block_data);
-//   // Get the pointer address of block data:
-//   const size_t startingPoint = (size_t)(static_cast<const void*>((cell->block_data).data()));
-//   // Initialize avgs values vector:
-//   velocityCells.resize( cell->number_of_blocks * VELOCITY_BLOCK_LENGTH );
-//   #pragma omp parallel for
-//   for( unsigned int i = 0; i < cell->number_of_blocks; ++i ) {
-//      // Create a new velocity cell
-//      Velocity_Cell input_cell;
-//      const uint32_t blockId = cell->velocity_block_list[i];
-//      for( unsigned int vCellId = 0; vCellId < VELOCITY_BLOCK_LENGTH; ++vCellId ) {
-//         // Input the block data
-//         input_cell.set_data( cell->at(blockId), vCellId);
-//         // Input the velocity cell into the vector
-//         velocityCells[i * VELOCITY_BLOCK_LENGTH + vCellId] = input_cell;
-//      }
-//   }
-//   // Sort the list:
-//   __gnu_parallel::sort(velocityCells.begin(), velocityCells.end());
-//   // Return value:
-//   Real value_to_return = 0;
-//   #pragma omp parallel
-//   {
-//      Real tmp_value = 0;
-//      #pragma omp for
-//      for( unsigned int i = 0; i < velocityCells.size(); ++i ) {
-//         if( i%2 == 0 ) {
-//            tmp_value += (Real)(velocityCells[i].get_avgs());
-//         } else {
-//            tmp_value -= (Real)(velocityCells[i].get_avgs());
-//         }
-//      }
-//      #pragma omp atomic
-//      value_to_return += tmp_value;
-//   }
-//
-//   // Start getting velocity neighbors
-//   #pragma omp parallel for
-//   for( int i = velocityCells.size()-1; i >= 0; --i ) {
-//      array<Velocity_Cell, numberOfVCellNeighbors> neighbors;
-//      const Velocity_Cell & vCell = velocityCells[i];
-//      // Get the neighbors:
-//      get_neighbors( neighbors, vCell, local_vcell_neighbors, remote_vcell_neighbors );
-//      for( unsigned int j = 0; j < neighbors.size(); ++j ) {
-//         if( neighbors[j].block ) {
-//            value_to_return += neighbors[j].vCellId;
-//         }
-//      }
-//   }
-//
-
-   //return value_to_return;
-   return 0;
-}
-
-
 

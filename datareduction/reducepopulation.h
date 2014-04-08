@@ -13,8 +13,4 @@ Real evaluate_speed(
                 const std::array<std::vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
                 const std::array< std::vector< std::pair<uint16_t, std::vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
                    );
-Real evaluate_speed_parallel(
-                spatial_cell::SpatialCell * cell,
-                const std::array<std::vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-                const std::array< std::vector< std::pair<uint16_t, std::vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
-                            );
+
