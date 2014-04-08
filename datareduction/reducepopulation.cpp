@@ -806,6 +806,7 @@ static inline void cluster_simple(
    vector<Velocity_Cell> tmp_neighbors;
    tmp_neighbors.reserve( numberOfVCellNeighbors );
 
+   uint debugging_iterator = 0;
 
    // Start inputting velocity cells:
    for( uint i = 0; i < velocityCells.size(); ++i ) {
@@ -829,6 +830,11 @@ static inline void cluster_simple(
                // The velocity cell has a bigger value than the threshold so add it
                all_vCells[ id ] = clusterId;
                all_neighbors.push_back( tmp_neighbors[j] );
+               if( debugging_iterator >= velocityCells.size() ) {
+                  cerr << "BUG FOUND2" << endl;
+                  exit(1);
+               }
+               ++debugging_iterator;
             }
          }
       }
@@ -844,21 +850,26 @@ static inline void cluster_simple(
          // None were found, so this cluster has been processed:
          ++clusterId;
          // Find the next velocity cell:
-         for( ; rit != velocityCells.rend(); ++rit ) {
+         for( ; rit != velocityCells.crend(); ++rit ) {
             const uint32_t id = rit->hash( startingPoint );
             if( all_vCells[ id ] == noCluster ) {
                const Realf avgs_value = rit->get_avgs();
                if( avgs_value >= threshold ) {
                   all_vCells[ id ] = clusterId;
                   all_neighbors.push_back( *rit );
+                  if( debugging_iterator >= velocityCells.size() ) {
+                     cerr << "BUG FOUND" << endl;
+                     exit(1);
+                  }
+                  ++debugging_iterator;
                   break;
                } else {
-                  rit = velocityCells.rend();
+                  //rit = velocityCells.rend();
                }
             }
          }
          // If no velocity cell was found then break the algorithm:
-         if( all_neighbors.size() == 0 ) { break; }
+         if( all_neighbors.size() <= 0 ) { break; }
       }
    }
 
@@ -1070,6 +1081,7 @@ static inline void cluster_advanced(
 
 
    if( velocityCells.size() == 0 ) { return; }
+   cerr << "POPULATION: " << velocityCells.size() << endl;
    // Reserve a table for clusters:
    uint32_t * clusterIds = new uint32_t[velocityCells.size()];
    
@@ -1194,6 +1206,9 @@ static inline void cluster_advanced(
       neighbors.clear();
    }
 
+   cerr << "DONE1 " << endl;
+
+
    phiprof_assert( cell->block_fx.size() >= velocityCells.size() );
    for( uint i = 0; i < velocityCells.size(); ++i ) {
       const Realf value = *clusters[clusterIds[i]].clusterId;
@@ -1206,12 +1221,15 @@ static inline void cluster_advanced(
 //   cerr << "Merges: " << merges << endl;
 //   cerr << "Sizeof: " << sizeof(Realf) << endl;
 
+   cerr << "DONE2 " << endl;
+
    delete[] clusterIds;
    clusterIds = NULL;
    // Free memory from clusters:
    for( uint i = 0; i < clusters.size(); ++i ) {
       clusters[i].remove_data( clusters );
    }
+   cerr << "DONE3 " << endl;
    return;
 }
 
@@ -1598,8 +1616,8 @@ Real evaluate_speed(
 //   
 
    //cluster( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
-   //cluster_simple( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
-   cluster_advanced( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
+   cluster_simple( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
+   //cluster_advanced( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
 
 
    return 0;
