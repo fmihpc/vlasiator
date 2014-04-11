@@ -765,9 +765,7 @@ static inline void cluster_advanced(
                                 SpatialCell * cell
                                   ) {
 
-
    if( velocityCells.size() == 0 ) { return; }
-   cerr << "POPULATION: " << velocityCells.size() << endl;
    // Reserve a table for clusters:
    uint32_t * clusterIds = new uint32_t[velocityCells.size()];
    
@@ -892,13 +890,13 @@ static inline void cluster_advanced(
       neighbors.clear();
    }
 
-   cerr << "DONE1 " << endl;
 
 
+   // Set values of clusters
    phiprof_assert( cell->block_fx.size() >= velocityCells.size() );
    for( uint i = 0; i < velocityCells.size(); ++i ) {
       const Realf value = *clusters[clusterIds[i]].clusterId;
-      cell->block_fx.at(i) = value;
+      cell->block_fx[i] = value;
    }
 
 
@@ -907,7 +905,6 @@ static inline void cluster_advanced(
 //   cerr << "Merges: " << merges << endl;
 //   cerr << "Sizeof: " << sizeof(Realf) << endl;
 
-   cerr << "DONE2 " << endl;
 
    delete[] clusterIds;
    clusterIds = NULL;
@@ -915,7 +912,6 @@ static inline void cluster_advanced(
    for( uint i = 0; i < clusters.size(); ++i ) {
       clusters[i].remove_data( clusters );
    }
-   cerr << "DONE3 " << endl;
    return;
 }
 
@@ -1093,8 +1089,8 @@ Real evaluate_speed(
 
    //cluster( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
    //cluster_simple( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
-   cluster_simple_two( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
-   //cluster_advanced( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
+   //cluster_simple_two( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
+   cluster_advanced( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
 
 
    return 0;
