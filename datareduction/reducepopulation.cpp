@@ -122,84 +122,6 @@ class Cluster_Fast {
       }
 
       inline void merge( 
-                  const uint32_t * const clusterIds, 
-                  const uint32_t id, 
-                  const uint32_t neighbor_id, 
-                  vector<Cluster_Fast> & clusters 
-                       ) {
-         // Check the values of members, clusterid and neighbor_clusters
-         phiprof_assert( neighbor_clusters && members && clusterId );
-
-         phiprof_assert( clusterIds );
-         //Set clusters to be the same
-         //----------------------------------------------------
-         const uint index = clusterIds[id];
-         const uint index_neighbor = clusterIds[neighbor_id];
-         phiprof_assert( index < clusters.size() && index_neighbor < clusters.size() );
-         Cluster_Fast & cluster = clusters[index];
-         Cluster_Fast & cluster_neighbor = clusters[index_neighbor];
- 
-
-         // CREATE NEW VALUES THAT WILL BE SHARED BY BOTH CLUSTERS
-         //*****************
-         // Create new cluster neighbors:
-         unordered_set<uint32_t> * new_neighbor_clusters = new unordered_set<uint32_t>;
-
-         // Append values
-         new_neighbor_clusters->insert( cluster.neighbor_clusters->begin(), cluster.neighbor_clusters->end() );
-         new_neighbor_clusters->insert( cluster_neighbor.neighbor_clusters->begin(), cluster_neighbor.neighbor_clusters->end() );
-
-         // Create new cluster id:
-         uint32_t * new_cluster_id = new uint32_t;
-         *new_cluster_id = min( *cluster.clusterId, *cluster_neighbor.clusterId );
-
-         // Get new members:
-         uint32_t * new_members = new uint32_t;
-         *new_members = *cluster.members + *cluster_neighbor.members;
-         //*****************
-
-         // Get the pointers for the old values ( to be deleted ):
-         //*****************
-         unordered_set<uint32_t> * old_neighbor_clusters = cluster.neighbor_clusters;
-         unordered_set<uint32_t> * old_neighbor_clusters_neighbor = cluster_neighbor.neighbor_clusters;
-         uint32_t * old_cluster_id = cluster.clusterId;
-         uint32_t * old_cluster_id_neighbor = cluster_neighbor.clusterId;
-         uint32_t * old_members = cluster.members;
-         uint32_t * old_members_neighbor = cluster_neighbor.members;
-         //*****************
-
-
-         // Update the cluster neighbors for every cluster:
-         for( unordered_set<uint32_t>::const_iterator jt = new_neighbor_clusters->begin(); jt != new_neighbor_clusters->end(); ++jt ) {
-            const uint iterator_index = *jt;
- 
-            phiprof_assert( iterator_index < clusters.size() );
- 
-            // Update the neighbors
-            clusters[iterator_index].neighbor_clusters = new_neighbor_clusters;
-            // Update members:
-            clusters[iterator_index].members = new_members;
-            // Update cluster ids:
-            clusters[iterator_index].clusterId = new_cluster_id;
-         }
-         //----------------------------------------------------
-
-         // Delete the old values:
-         delete old_neighbor_clusters;
-         old_neighbor_clusters = NULL;
-         delete old_neighbor_clusters_neighbor;
-         old_neighbor_clusters_neighbor = NULL;
-         delete old_cluster_id;
-         old_cluster_id = NULL;
-         delete old_cluster_id_neighbor;
-         old_cluster_id_neighbor = NULL;
-         delete old_members;
-         old_members = NULL;
-         delete old_members_neighbor;
-         old_members_neighbor = NULL;
-      }
-
-      inline void merge_fast( 
                   Cluster_Fast & cluster_neighbor,
                   vector<Cluster_Fast> & clusters
                             ) {
@@ -214,7 +136,7 @@ class Cluster_Fast {
          // Optimize:
          if( cluster_neighbor.neighbor_clusters->size() > neighbor_clusters->size() ) {
             // It's faster to use this function the other way around if the neighbor is a bigger cluster:
-            cluster_neighbor.merge_fast( *this, clusters );
+            cluster_neighbor.merge( *this, clusters );
             return;
          }
   
@@ -862,8 +784,7 @@ static inline void cluster_advanced(
                Cluster_Fast & cluster = clusters[index];
 
                // Merge clusters:
-               cluster_neighbor.merge_fast( cluster, clusters );
-               //cluster_neighbor.merge( clusterIds, id, neighbor_id, clusters );
+               cluster_neighbor.merge( cluster, clusters );
                //----------------------------------------------------
 
                ++merges;
