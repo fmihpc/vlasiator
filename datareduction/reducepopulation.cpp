@@ -197,9 +197,12 @@ class Cluster_Fast {
          old_members_neighbor = NULL;
       }
 
+      inline void merge_with_condition() {
+
+      }
 
       inline void append( const uint32_t numberOfMembersToAppend ) {
-         *members += numberOfMembersToAppend;
+         *members = *members + numberOfMembersToAppend;
       }
 };
 
@@ -688,8 +691,9 @@ static inline void cluster_advanced(
                                   ) {
 
    if( velocityCells.size() == 0 ) { return; }
+   const uint numberOfVCells = velocityCells.size();
    // Reserve a table for clusters:
-   uint32_t * clusterIds = new uint32_t[velocityCells.size()];
+   uint32_t * clusterIds = new uint32_t[numberOfVCells];
    
    // Initialize to be part of no clusters:
    const uint32_t noCluster = 0;
@@ -783,8 +787,13 @@ static inline void cluster_advanced(
                Cluster_Fast & cluster_neighbor = clusters[index_neighbor];
                Cluster_Fast & cluster = clusters[index];
 
-               // Merge clusters:
-               cluster_neighbor.merge( cluster, clusters );
+               // Get the cubic root of number of velocity cells
+               const double cRootNumberOfVCells = cbrt( (double)numberOfVCell );
+
+               // Merge clusters if the clusters are ok:
+               if( cbrt( (double)(*cluster.members) ) < 0.01 * cRootNumberOfVCells || cbrt( (double)(*cluster_neighbor.members) ) < 0.01 * cRootNumberOfVCells ) {
+                  cluster_neighbor.merge( cluster, clusters );
+               }
                //----------------------------------------------------
 
                ++merges;
