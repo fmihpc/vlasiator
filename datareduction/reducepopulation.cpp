@@ -694,6 +694,9 @@ static inline void cluster_advanced(
    const uint numberOfVCells = velocityCells.size();
    // Reserve a table for clusters:
    uint32_t * clusterIds = new uint32_t[numberOfVCells];
+
+   // Get the cubic root of number of velocity cells, to be used in checking merging condition
+   const double cRootNumberOfVCells = cbrt( (double)numberOfVCells );
    
    // Initialize to be part of no clusters:
    const uint32_t noCluster = 0;
@@ -787,11 +790,8 @@ static inline void cluster_advanced(
                Cluster_Fast & cluster_neighbor = clusters[index_neighbor];
                Cluster_Fast & cluster = clusters[index];
 
-               // Get the cubic root of number of velocity cells
-               const double cRootNumberOfVCells = cbrt( (double)numberOfVCell );
-
                // Merge clusters if the clusters are ok:
-               if( cbrt( (double)(*cluster.members) ) < 0.01 * cRootNumberOfVCells || cbrt( (double)(*cluster_neighbor.members) ) < 0.01 * cRootNumberOfVCells ) {
+               if( cbrt( (double)(*cluster.members) ) < 0.1 * cRootNumberOfVCells || cbrt( (double)(*cluster_neighbor.members) ) < 0.1 * cRootNumberOfVCells ) {
                   cluster_neighbor.merge( cluster, clusters );
                }
                //----------------------------------------------------
