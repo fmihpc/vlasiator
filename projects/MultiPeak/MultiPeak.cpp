@@ -28,12 +28,6 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 
 #include "MultiPeak.h"
 
-// #ifndef _AIX
-// int32_t projects::MultiPeak::rndRho, projects::MultiPeak::rndVel1[3], projects::MultiPeak::rndVel2[3];
-// #else
-// int64_t projects::MultiPeak::rndRho, projects::MultiPeak::rndVel1[3], projects::MultiPeak::rndVel2[3];
-// #endif
-
 using namespace std;
 
 namespace projects {

@@ -1,0 +1,40 @@
+
+No restart, dynamic dt
+
+
+main()
+  initializeGrid()
+     dccrg.initialize()
+     initializeStencils()
+     initialCellCoordinates()  //init cellparams DXYZ, XYZCRD for local cells
+     initSysBoundaries()       //no communication
+     classifyCells             // Compute sysbounadryflag, layer. Communicated
+                               // to FULL_NEIGHBORHOOD   (and here all remote cells are created!)
+     setCellBackgroundField()  //set bg B fields (local  cells)
+     setCell()                 //set B fields, f() (nonsysbndr cell)
+     applyInitialState()       //set B fields, f() based on project (TODO! we
+                               // could just run the normal bcond? Need to
+                               // communicate more before, of course
+     updateRemoteVelocityBlockList
+     adjustVelocityBlocks      //now block lists are up to date for
+                               //VLASOV_SOLVER_NEIGHBORHOOD. Data not
+                               //transferred
+     balanceLoad              
+          //update ALL_SPATIAL_DATA for full neighborhood 
+          //(all, except dist func stuff)  TODO: probably only need BG fields,
+          //  sysboundary stuff
+
+          updateRemoteVelocityBlockList //now block lists are up to date for                                                                
+                                        //VLASOV_SOLVER_NEIGHBORHOOD.
+          
+                                                                        
+    //after initializeGrid: All remote cells created. 
+   // All spatial data for full stencil up to date (but RHO, RHO_V not computed..?)
+   // block lists up to date for VLASOV_SOLVER_NEIGHBORHOOD
+
+   calculateVelocityMoments   //set RHO, RHO_V for local cells (TODO: also 
+                              //set RHO_DT2,RHOV_DT2)
+  
+   calculateSpatialTranslation(dt=0) //needs sysboundaryflag for
+                                    //VLASOV_SOURCE_NEIGHBORHOOD (this is ok!)
+    

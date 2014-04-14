@@ -303,31 +303,6 @@ namespace DRO {
       boundaryLayer = (int)cell->sysBoundaryLayer;
       return true;
    }
-
-   // VelocitySubSteps
-   VelocitySubSteps::VelocitySubSteps(): DataReductionOperator() { }
-   VelocitySubSteps::~VelocitySubSteps() { }
-   
-   bool VelocitySubSteps::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "int";
-      dataSize = sizeof(int);
-      vectorSize = 1;
-      return true;
-   }
-   
-   std::string VelocitySubSteps::getName() const {return "Velocity_substeps";}
-   
-   bool VelocitySubSteps::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&substeps);
-      for (uint i=0; i<sizeof(int); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool VelocitySubSteps::setSpatialCell(const SpatialCell* cell) {
-      substeps = (int)cell->subStepsAcceleration;
-      return true;
-   }
-
    
    // Blocks
    Blocks::Blocks(): DataReductionOperator() { }
@@ -449,7 +424,6 @@ namespace DRO {
    
    bool VariablePTensorDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
       const Real HALF = 0.5;
-      const Real THIRD = 1.0/3.0;
       # pragma omp parallel
       {
          Real thread_nvxvx_sum = 0.0;
@@ -479,9 +453,9 @@ namespace DRO {
          // these updates need to be atomic:
          # pragma omp critical
          {
-            PTensor[0] += physicalconstants::MASS_PROTON * THIRD * thread_nvxvx_sum;
-            PTensor[1] += physicalconstants::MASS_PROTON * THIRD * thread_nvyvy_sum;
-            PTensor[2] += physicalconstants::MASS_PROTON * THIRD * thread_nvzvz_sum;
+            PTensor[0] += physicalconstants::MASS_PROTON * thread_nvxvx_sum;
+            PTensor[1] += physicalconstants::MASS_PROTON * thread_nvyvy_sum;
+            PTensor[2] += physicalconstants::MASS_PROTON * thread_nvzvz_sum;
          }
       }
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
@@ -517,7 +491,6 @@ namespace DRO {
    
    bool VariablePTensorOffDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
       const Real HALF = 0.5;
-      const Real THIRD = 1.0/3.0;
       # pragma omp parallel
       {
          Real thread_nvxvy_sum = 0.0;
@@ -547,9 +520,9 @@ namespace DRO {
          // these updates need to be atomic:
          # pragma omp critical
          {
-            PTensor[0] += physicalconstants::MASS_PROTON * THIRD * thread_nvyvz_sum;
-            PTensor[1] += physicalconstants::MASS_PROTON * THIRD * thread_nvzvx_sum;
-            PTensor[2] += physicalconstants::MASS_PROTON * THIRD * thread_nvxvy_sum;
+            PTensor[0] += physicalconstants::MASS_PROTON * thread_nvyvz_sum;
+            PTensor[1] += physicalconstants::MASS_PROTON * thread_nvzvx_sum;
+            PTensor[2] += physicalconstants::MASS_PROTON * thread_nvxvy_sum;
          }
       }
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
@@ -699,7 +672,7 @@ namespace DRO {
                for (uint j=0; j<WID; ++j)
                   for (uint i=0; i<WID; ++i) {
                      const int celli=k*WID*WID+j*WID+i;
-                     threadMax = max(block->data[celli], threadMax);
+                     threadMax = max((Real)(block->data[celli]), threadMax);
             }
          }
          #pragma omp critical
@@ -753,7 +726,7 @@ namespace DRO {
                for (uint j=0; j<WID; ++j)
                   for (uint i=0; i<WID; ++i) {
                      const int celli=k*WID*WID+j*WID+i;
-                     threadMin = min(block->data[celli], threadMin);
+                     threadMin = min((Real)(block->data[celli]), threadMin);
             }
          }
          #pragma omp critical
@@ -1010,7 +983,6 @@ namespace DRO {
                                                       const Real averageVZ,
                                                       Real * PTensor ) {
       const Real HALF = 0.5;
-      const Real THIRD = 1.0/3.0;
       # pragma omp parallel
       {
          Real thread_nvxvx_sum = 0.0;
@@ -1048,9 +1020,9 @@ namespace DRO {
          // these updates need to be atomic:
          # pragma omp critical
          {
-            PTensor[0] += physicalconstants::MASS_PROTON * THIRD * thread_nvxvx_sum;
-            PTensor[1] += physicalconstants::MASS_PROTON * THIRD * thread_nvyvy_sum;
-            PTensor[2] += physicalconstants::MASS_PROTON * THIRD * thread_nvzvz_sum;
+            PTensor[0] += physicalconstants::MASS_PROTON * thread_nvxvx_sum;
+            PTensor[1] += physicalconstants::MASS_PROTON * thread_nvyvy_sum;
+            PTensor[2] += physicalconstants::MASS_PROTON * thread_nvzvz_sum;
          }
       }
       return;
@@ -1063,7 +1035,6 @@ namespace DRO {
                                                          const Real averageVZ,
                                                          Real * PTensor ) {
       const Real HALF = 0.5;
-      const Real THIRD = 1.0/3.0;
       # pragma omp parallel
       {
          Real thread_nvxvy_sum = 0.0;
@@ -1100,9 +1071,9 @@ namespace DRO {
          // these updates need to be atomic:
          # pragma omp critical
          {
-            PTensor[0] += physicalconstants::MASS_PROTON * THIRD * thread_nvyvz_sum;
-            PTensor[1] += physicalconstants::MASS_PROTON * THIRD * thread_nvzvx_sum;
-            PTensor[2] += physicalconstants::MASS_PROTON * THIRD * thread_nvxvy_sum;
+            PTensor[0] += physicalconstants::MASS_PROTON * thread_nvyvz_sum;
+            PTensor[1] += physicalconstants::MASS_PROTON * thread_nvzvx_sum;
+            PTensor[2] += physicalconstants::MASS_PROTON * thread_nvxvy_sum;
          }
       }
    }

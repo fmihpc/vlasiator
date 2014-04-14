@@ -3,17 +3,6 @@ This file is part of Vlasiator.
 
 Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
-
-
-
-
-
-
-
-
-
-
-
 */
 
 #ifndef CPU_MOMENTS_H
@@ -25,11 +14,10 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
 #include "../definitions.h"
 #include "../common.h"
-#include "leveque_common.h"
 #include "spatial_cell.hpp"
 using namespace spatial_cell;
 
-template<typename REAL> void cpu_blockVelocityMoments(const Real* const avgs,const REAL* const blockParams,REAL* const cellParams,
+template<typename REAL> void cpu_blockVelocityMoments(const Realf * const avgs,const REAL* const blockParams,REAL* const cellParams,
                                                       const int cp_rho, const int cp_rhovx, const int cp_rhovy, const int cp_rhovz) {
    const REAL HALF = 0.5;
    

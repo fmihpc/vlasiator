@@ -87,8 +87,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::BoundaryType);
       if(*it == "BoundaryLayer")
          outputReducer->addOperator(new DRO::BoundaryLayer);
-      if(*it == "VelocitySubSteps")
-         outputReducer->addOperator(new DRO::VelocitySubSteps);
       if(*it == "Blocks")
          outputReducer->addOperator(new DRO::Blocks);
       if(*it == "fSaved")

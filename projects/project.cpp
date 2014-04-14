@@ -17,6 +17,7 @@
 #include "VelocityBox/VelocityBox.h"
 #include "Riemann1/Riemann1.h"
 #include "Shock/Shock.h"
+#include "Template/Template.h"
 #include "test_fp/test_fp.h"
 #include "test_trans/test_trans.h"
 #include "verificationLarmor/verificationLarmor.h"
@@ -51,6 +52,7 @@ namespace projects {
       projects::VelocityBox::addParameters();
       projects::Riemann1::addParameters();
       projects::Shock::addParameters();
+      projects::Template::addParameters();
       projects::test_fp::addParameters();
       projects::test_trans::addParameters();
       projects::verificationLarmor::addParameters();
@@ -261,6 +263,9 @@ Project* createProject() {
    }
    if(Parameters::projectName == "Shock") {
       return new projects::Shock;
+   }
+   if(Parameters::projectName == "Template") {
+      return new projects::Template;
    }
    if(Parameters::projectName == "test_fp") {
       return new projects::test_fp;
