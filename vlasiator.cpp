@@ -369,6 +369,9 @@ int main(int argn,char* args[]) {
       addTimedBarrier("barrier-loop-start");
          
       phiprof::start("IO");
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals).
       logFile << "------------------ tstep = " << P::tstep << " t = " << P::t <<" dt = " << P::dt << " ------------------" << endl;
@@ -406,6 +409,9 @@ int main(int argn,char* args[]) {
          }
          phiprof::stop("Diagnostic");
       }
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
       // write system, loop through write classes
       for (uint i = 0; i < P::systemWriteTimeInterval.size(); i++) {
          if (P::systemWriteTimeInterval[i] >= 0.0 &&
@@ -413,6 +419,9 @@ int main(int argn,char* args[]) {
             
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
             const bool writeGhosts = true;
             if( writeGrid(mpiGrid,outputReducer, i, writeGhosts) == false ) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
@@ -420,6 +429,9 @@ int main(int argn,char* args[]) {
             P::systemWrites[i]++;
             logFile << "(IO): .... done!" << endl << writeVerbose;
             phiprof::stop("write-system");
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
          }
       }
       
@@ -442,6 +454,10 @@ int main(int argn,char* args[]) {
       MPI_Bcast( &writeRestartNow, 1 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
             
       if (writeRestartNow == 1){   
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
+
          phiprof::start("write-restart");
          wallTimeRestartCounter++;
         
@@ -455,6 +471,9 @@ int main(int argn,char* args[]) {
          if (myRank == MASTER_RANK)
             logFile << "(IO): .... done!"<< endl << writeVerbose;
          phiprof::stop("write-restart");         
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
       }   
       
       phiprof::stop("IO");
@@ -473,8 +492,14 @@ int main(int argn,char* args[]) {
       //TODO - add LB measure nad do LB if it exceeds threshold
       if( P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
          balanceLoad(mpiGrid);
          addTimedBarrier("barrier-end-load-balance");
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
          logFile << "(LB): ... done!"  << endl << writeVerbose;
       }
       
@@ -484,22 +509,41 @@ int main(int argn,char* args[]) {
       computedCells=0;
       for(uint i=0;i<cells.size();i++)  computedCells+=mpiGrid[cells[i]]->number_of_blocks*WID3;
       computedTotalCells+=computedCells;
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
       
       //Check if dt needs to be changed, and propagate half-steps properly to change dt and set up new situation
       //do not compute new dt on first step (in restarts dt comes from file, otherwise it was initialized before we entered
       //simulation loop
       if(P::dynamicTimestep  && P::tstep> P::tstep_min) {
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
          computeNewTimeStep(mpiGrid,newDt,dtIsChanged);
          addTimedBarrier("barrier-check-dt");
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
          if(dtIsChanged) {
             phiprof::start("update-dt");
             //propagate velocity space to real-time
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
             if( P::propagateVlasovAcceleration ) 
                calculateAcceleration(mpiGrid,0.5*P::dt);
             else
                calculateAcceleration(mpiGrid,0.0);
+
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
             //adjust blocks after acceleration
             adjustVelocityBlocks(mpiGrid);
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
             //re-compute moments for real time for fieldsolver, and
             //shift compute rho_dt2 as average of old rho and new
             //rho. In practice this value is at a 1/4 timestep, as we
@@ -519,6 +563,9 @@ int main(int argn,char* args[]) {
                SC->parameters[CellParams::RHOVZ_DT2] += 0.5*SC->parameters[CellParams::RHOVZ];
             }
             
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
             
             // Propagate fields forward in time by 0.5*dt
             if (P::propagateField == true) {
@@ -531,11 +578,18 @@ int main(int argn,char* args[]) {
                // test cases have to be put here.  In doing this be
                // sure the needed components have been updated.
             }
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
             //go forward by dt/2 again in x
             if( P::propagateVlasovTranslation)
                calculateSpatialTranslation(mpiGrid, 0.5*P::dt);
             else
                calculateSpatialTranslation(mpiGrid, 0.0);
+
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
             ++P::tstep;
             P::t += P::dt*0.5;
             P::dt=newDt;
@@ -555,10 +609,16 @@ int main(int argn,char* args[]) {
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::start("Propagate Vlasov");
          phiprof::start("Velocity-space");
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
          if( P::propagateVlasovAcceleration ) 
             calculateAcceleration(mpiGrid,P::dt);
          else
             calculateAcceleration(mpiGrid,0.0);
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
          phiprof::stop("Velocity-space",computedCells,"Cells");
          addTimedBarrier("barrier-after-acceleration");
 
@@ -566,11 +626,23 @@ int main(int argn,char* args[]) {
          to do it, as we have a peak in number of blocks after
          acceleration.*/
          phiprof::start("Shrink_to_fit");
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
          shrink_to_fit_grid_data(mpiGrid);
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
          phiprof::stop("Shrink_to_fit");
          
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
          adjustVelocityBlocks(mpiGrid);
          addTimedBarrier("barrier-after-adjust-blocks");
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
          
          calculateInterpolatedVelocityMoments(
             mpiGrid,
@@ -578,12 +650,18 @@ int main(int argn,char* args[]) {
             CellParams::RHOVX_DT2,
             CellParams::RHOVY_DT2,
             CellParams::RHOVZ_DT2);
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
 
          phiprof::start("Update system boundaries (Vlasov)");
          sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt); 
          phiprof::stop("Update system boundaries (Vlasov)");
          addTimedBarrier("barrier-boundary-conditions");
 
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
 
          phiprof::start("Spatial-space");
          if( P::propagateVlasovTranslation)
@@ -592,6 +670,10 @@ int main(int argn,char* args[]) {
             calculateSpatialTranslation(mpiGrid,0.0);
          phiprof::stop("Spatial-space",computedCells,"Cells");
 
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
+
          calculateInterpolatedVelocityMoments(
             mpiGrid,
             CellParams::RHO,
@@ -599,11 +681,17 @@ int main(int argn,char* args[]) {
             CellParams::RHOVY,
             CellParams::RHOVZ);
          
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
          phiprof::stop("Propagate Vlasov",computedCells,"Cells");
       }
 
       
       
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
       // Propagate fields forward in time by dt.
       if (P::propagateField == true) {
          phiprof::start("Propagate Fields");
@@ -615,6 +703,9 @@ int main(int argn,char* args[]) {
          // In doing this be sure the needed components have been updated.
       }
       
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
       phiprof::stop("Propagate",computedCells,"Cells");
       
       //Move forward in time      
@@ -626,7 +717,13 @@ int main(int argn,char* args[]) {
    
    phiprof::stop("Simulation");
    phiprof::start("Finalization");   
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
    finalizeFieldPropagator(mpiGrid);
+logFile << __FILE__ << " " << __LINE__ << endl;
+report_memory_consumption( mpiGrid );
+logFile << writeVerbose;
    
    if (myRank == MASTER_RANK) {
       double timePerStep;
