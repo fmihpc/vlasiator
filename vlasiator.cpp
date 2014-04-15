@@ -395,6 +395,7 @@ logFile << writeVerbose;
          beforeTime = MPI_Wtime();
          beforeSimulationTime=P::t;
          beforeStep=P::tstep;
+         logFile << __FILE__ << " " << __LINE__ << endl;
          report_memory_consumption(mpiGrid);
       }               
       logFile << writeVerbose;
