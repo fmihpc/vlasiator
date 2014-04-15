@@ -528,6 +528,42 @@ void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    }
    
 #endif
+
+   // Report /proc/meminfo memory consumption:
+   const uint numberOfParameters = 2;
+   double mem_proc[numberOfParameters] = { 0 };
+   FILE * in_file = fopen("/proc/meminfo", "r");
+   char attribute_name[200];
+   int memory;
+   char memory_unit[10];
+   const char * memfree_attribute_name = "MemFree:";
+   const char * totalfree_attribute_name = "MemTotal:";
+   const uint total = 0;
+   const uint free = 1;
+   if( in_file ) {
+      // Read free memory:
+      while( fscanf( in_file, "%s %d %s", attribute_name, &memory, memory_unit ) != EOF ) {
+         if( strcmp(attribute_name, memfree_attribute_name ) == 0 ) {
+            //logFile << "(MEM) Procinfo Memory free: " << memory << " " << memory_unit << endl;
+            mem_proc[free] = (double)(memory);
+         } else if( strcmp(attribute_name, totalfree_attribute_name ) == 0 ) {
+            //logFile << "(MEM) Procinfo Memory free: " << memory << " " << memory_unit << endl;
+            mem_proc[total] = (double)(memory);
+         }
+      }
+   }
+   fclose( in_file );
+
+   double total_mem_proc[numberOfParameters] = { 0 };
+   // Sum all process' results:
+   const int root = 0;
+   MPI_Reduce( mem_proc, total_mem_proc, numberOfParameters, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD );
+
+   // Report memory consumption:
+   logFile << "(MEM) Procinfo Memory total: " << total_mem_proc[total]/n_procs << endl;
+   logFile << "(MEM) Procinfo Memory free: " << total_mem_proc[free]/n_procs << endl;
+
+
    logFile << writeVerbose;
 }
 
@@ -584,24 +620,6 @@ void report_proc_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    logFile << "(MEM)   Max capacity:     " << max_mem[2].val   << " on  process " << max_mem[2].rank << endl;
    logFile << "(MEM)   Min capacity:     " << min_mem[2].val   << " on  process " << min_mem[2].rank << endl;
 
-   // Report /proc/meminfo memory consumption:
-   FILE * in_file = fopen("/proc/meminfo", "r");
-   char attribute_name[200];
-   int memory;
-   char memory_unit[10];
-   const char * memfree_attribute_name = "MemFree:";
-   const char * totalfree_attribute_name = "MemTotal:";
-   if( in_file ) {
-      // Read free memory:
-      while( fscanf( in_file, "%s %d %s", attribute_name, &memory, memory_unit ) != EOF ) {
-         if( strcmp(attribute_name, memfree_attribute_name ) == 0 ) {
-            logFile << "(MEM) Procinfo Memory free: " << memory << " " << memory_unit << endl;
-         } else if( strcmp(attribute_name, totalfree_attribute_name ) == 0 ) {
-            logFile << "(MEM) Procinfo Memory free: " << memory << " " << memory_unit << endl;
-         }
-      }
-   }
-   fclose( in_file );
 
 
    logFile << writeVerbose;
