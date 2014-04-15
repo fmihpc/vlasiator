@@ -531,6 +531,83 @@ void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    logFile << writeVerbose;
 }
 
+void report_proc_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   /*now report memory consumption into logfile*/
+   const vector<uint64_t> cells = mpiGrid.get_cells();
+   const std::vector<uint64_t> remote_cells = mpiGrid.get_remote_cells_on_process_boundary();   
+   int rank,n_procs;
+   MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
+   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+   /*compute memory consumption of the block data, double as MPI does
+    * not define proper uint64_t datatypes for MAXLOCNot Real, as we
+    * want double here not to loose accuracy.
+    * Computed as number of blocks * 2 arrays with block data (fx, data) *  WID3 amount of cells per block *  each cell has a size of Real
+    */
+
+   /*report data for memory needed by blocks*/
+   double mem[6] = {0};
+   double sum_mem[6];   
+
+
+   for(unsigned int i=0;i<cells.size();i++){
+      mem[0] += mpiGrid[cells[i]]->get_cell_memory_size();
+      mem[3] += mpiGrid[cells[i]]->get_cell_memory_capacity();
+   }
+
+   for(unsigned int i=0;i<remote_cells.size();i++){
+      mem[1] += mpiGrid[remote_cells[i]]->get_cell_memory_size();
+      mem[4] += mpiGrid[remote_cells[i]]->get_cell_memory_capacity();
+   }
+   
+   mem[2] = mem[0] + mem[1];//total meory according to size()
+   mem[5] = mem[3] + mem[4];//total memory according to capacity()
+
+
+   MPI_Reduce(mem, sum_mem, 6, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+   logFile << "(MEM) size: " << sum_mem[2] << endl;   
+   logFile << "(MEM) capacity " << sum_mem[5] << endl;   
+   
+   struct {
+      double val;
+      int   rank;
+   } max_mem[3],mem_usage_loc[3],min_mem[3];
+   for(uint i = 0; i<3; i++){
+      mem_usage_loc[i].val = mem[i + 3]; //report on capacity numbers (6: local cells, 7: remote cells, 8: all cells)
+      mem_usage_loc[i].rank = rank;
+   }
+   
+   MPI_Reduce(mem_usage_loc, max_mem, 3, MPI_DOUBLE_INT, MPI_MAXLOC, 0, MPI_COMM_WORLD);
+   MPI_Reduce(mem_usage_loc, min_mem, 3, MPI_DOUBLE_INT, MPI_MINLOC, 0, MPI_COMM_WORLD);
+   
+   logFile << "(MEM)   Average capacity: " << sum_mem[5]/n_procs << " local cells " << sum_mem[3]/n_procs << " remote cells " << sum_mem[4]/n_procs << endl;
+   logFile << "(MEM)   Max capacity:     " << max_mem[2].val   << " on  process " << max_mem[2].rank << endl;
+   logFile << "(MEM)   Min capacity:     " << min_mem[2].val   << " on  process " << min_mem[2].rank << endl;
+
+   // Report /proc/meminfo memory consumption:
+   FILE * in_file = fopen("/proc/meminfo", "r");
+   char attribute_name[200];
+   int memory;
+   char memory_unit[10];
+   const char * memfree_attribute_name = "MemFree:";
+   const char * totalfree_attribute_name = "MemTotal:";
+   if( in_file ) {
+      // Read free memory:
+      while( fscanf( in_file, "%s %d %s", attribute_name, &memory, memory_unit ) != EOF ) {
+         if( strcmp(attribute_name, memfree_attribute_name ) == 0 ) {
+            logFile << "(MEM) Procinfo Memory free: " << memory << " " << memory_unit << endl;
+         } else if( strcmp(attribute_name, totalfree_attribute_name ) == 0 ) {
+            logFile << "(MEM) Procinfo Memory free: " << memory << " " << memory_unit << endl;
+         }
+      }
+   }
+   fclose( in_file );
+
+
+   logFile << writeVerbose;
+}
+
+
 void report_memory_consumption_small(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    /*now report memory consumption into logfile*/
    const vector<uint64_t> cells = mpiGrid.get_cells();
