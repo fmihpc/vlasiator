@@ -18,6 +18,10 @@ FIELDSOLVER ?= londrillo_delzanna
 # CXXFLAGS += -DFS_1ST_ORDER_SPACE
 # CXXFLAGS += -DFS_1ST_ORDER_TIME
 
+#also use papi to report memory consumption?
+CXXFLAGS += -DPAPI_MEM
+
+#is profiling on?
 CXXFLAGS += -DPROFILE
 
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
