@@ -1249,7 +1249,46 @@ namespace velocity_neighbor {
          }
       }
       
-
+      /*!
+        Return the memory consumption in bytes as reported using the size()
+         functions of the containers in spatial cell
+      */
+      uint64_t get_cell_memory_size(){
+         uint64_t size = 0;
+         size += velocity_blocks.size() * sizeof(Velocity_Block); //this is not the whole truth
+         size += block_data.size() * sizeof(Realf);
+         size += block_fx.size() * sizeof(Realf);
+         size += null_block_data.size() * sizeof(Realf);
+         size += null_block_fx.size() * sizeof(Realf);
+         size += velocity_block_list.size() * sizeof(unsigned int);
+         size += mpi_velocity_block_list.size() * sizeof(unsigned int);
+         size += velocity_block_with_content_list.size() * sizeof(unsigned int);
+         size += velocity_block_with_no_content_list.size() * sizeof(unsigned int);
+         size += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
+         size += fieldsolver::N_SPATIAL_CELL_DERIVATIVES * sizeof(Real);
+         size += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
+         return size;
+      }
+      /*!
+        Return the memory consumption in bytes as reported using
+        the size() functions of the containers in spatial cell
+      */
+      uint64_t  get_cell_memory_capacity(){
+         uint64_t capacity = 0;
+         capacity += velocity_blocks.size() * sizeof(Velocity_Block); //this is not the whole truth
+         capacity += block_data.capacity() * sizeof(Realf);
+         capacity += block_fx.capacity()  * sizeof(Realf);
+         capacity += null_block_data.capacity() * sizeof(Realf);
+         capacity += null_block_fx.capacity()  * sizeof(Realf);
+         capacity += velocity_block_list.capacity()  * sizeof(unsigned int);
+         capacity += mpi_velocity_block_list.capacity()  * sizeof(unsigned int);
+         capacity += velocity_block_with_content_list.capacity()  * sizeof(unsigned int);
+         capacity += velocity_block_with_no_content_list.capacity()  * sizeof(unsigned int);
+         capacity += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
+         capacity += fieldsolver::N_SPATIAL_CELL_DERIVATIVES * sizeof(Real);
+         capacity += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
+         return capacity;
+      }
 
   
       /*!
