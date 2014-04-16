@@ -174,6 +174,9 @@ namespace CellParams {
       RHOVX_V,   /*!< RHOVX after propagation in velocity space*/
       RHOVY_V,   /*!< RHOVX after propagation in velocity space*/
       RHOVZ_V,   /*!< RHOVX after propagation in velocity space*/
+      P_11,   /*!< P_xx component */
+      P_22,   /*!< P_yy component */
+      P_33,   /*!< P_zz component */
       RHOLOSSADJUST,      /*!< Counter for massloss from the destroying blocks in blockadjustment*/
       RHOLOSSVELBOUNDARY, /*!< Counter for massloss through outflow boundaries in velocity space*/
       MAXVDT,             /*!< maximum timestep allowed in velocity space for this cell**/
