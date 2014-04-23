@@ -615,10 +615,6 @@ namespace velocity_neighbor {
          return block_vz_min + (block_vz_max - block_vz_min) / block_vz_length * (indices[2] + 1);
       }
 
-      ~SpatialCell() {
-         --SpatialCell::existing_spatial_cells;
-      }
-
       SpatialCell()
       {
          /*
@@ -656,7 +652,6 @@ namespace velocity_neighbor {
          }
 	 //is transferred by default
 	 this->mpiTransferEnabled=true;
-         ++SpatialCell::existing_spatial_cells;
       }
       
       SpatialCell(const SpatialCell& other):
@@ -735,7 +730,6 @@ namespace velocity_neighbor {
                      }
                   }
          }
-         ++SpatialCell::existing_spatial_cells;
 //         phiprof::stop("SpatialCell copy");
       }
       
@@ -1706,9 +1700,6 @@ namespace velocity_neighbor {
 
       // physical size of velocity cells
       static Real cell_dvx, cell_dvy, cell_dvz;
-
-      // Number of existing spatial cells:
-      static int existing_spatial_cells;
 
       /*
         Which data is transferred by the mpi datatype given by spatial cells.
