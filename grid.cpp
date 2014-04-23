@@ -474,8 +474,8 @@ void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {
 
    MPI_Reduce(mem, sum_mem, 6, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
-   logFile << "(MEM) size: " << sum_mem[2] << endl;   
-   logFile << "(MEM) capacity " << sum_mem[5] << endl;   
+   logFile << "(MEM) Total size: " << sum_mem[2] << endl;   
+   logFile << "(MEM) Total capacity " << sum_mem[5] << endl;   
    
    struct {
       double val;
@@ -505,8 +505,8 @@ void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       mem_papi[i++] = dmem.resident * 1024;
       MPI_Reduce(mem_papi, sum_mem_papi, i, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
       i=0;
-      logFile << "(MEM) PAPI Size:" << sum_mem_papi[i++]/n_procs << endl;
-      logFile << "(MEM) PAPI Resident:" << sum_mem_papi[i++]/n_procs << endl;
+      logFile << "(MEM) Average PAPI Size: " << sum_mem_papi[i++]/n_procs << endl;
+      logFile << "(MEM) Average PAPI Resident: " << sum_mem_papi[i++]/n_procs << endl;
    }
    
 #endif
@@ -537,7 +537,7 @@ void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    MPI_Reduce( &mem_proc_free, &total_mem_proc, numberOfParameters, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD );
 
    // Report memory consumption:
-   logFile << "(MEM) Procinfo Memory free: " << total_mem_proc/n_procs << endl;
+   logFile << "(MEM) Average free memory: " << total_mem_proc/n_procs << endl;
    logFile << writeVerbose;
 }
 
