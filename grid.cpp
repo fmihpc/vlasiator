@@ -221,13 +221,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
 
    phiprof::start("deallocate boundary data");
    //deallocate blocks in remote cells to decrease memory load
-//logFile << __FILE__ << " " << __LINE__ << endl;
-//report_memory_consumption(mpiGrid);
-//logFile << writeVerbose;
    deallocateRemoteCellBlocks(mpiGrid);
-//logFile << __FILE__ << " " << __LINE__ << endl;
-//report_memory_consumption(mpiGrid);
-//logFile << writeVerbose;
    phiprof::stop("deallocate boundary data");
    //set weights based on each cells LB weight counter
    vector<uint64_t> cells = mpiGrid.get_cells();
@@ -239,15 +233,9 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
          mpiGrid[cells[i]]->number_of_blocks * mpiGrid[cells[i]]->number_of_blocks * Parameters::loadBalanceBeta;
       mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
    }
-//logFile << __FILE__ << " " << __LINE__ << endl;
-//report_memory_consumption(mpiGrid);
-//logFile << writeVerbose;
    phiprof::start("dccrg.initialize_balance_load");
    mpiGrid.initialize_balance_load(true);
    phiprof::stop("dccrg.initialize_balance_load");
-//logFile << __FILE__ << " " << __LINE__ << endl;
-//report_memory_consumption(mpiGrid);
-//logFile << writeVerbose;
    
    const boost::unordered_set<uint64_t>& incoming_cells = mpiGrid.get_balance_added_cells();
    std::vector<uint64_t> incoming_cells_list (incoming_cells.begin(),incoming_cells.end()); 
@@ -255,9 +243,6 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    const boost::unordered_set<uint64_t>& outgoing_cells = mpiGrid.get_balance_removed_cells();
    std::vector<uint64_t> outgoing_cells_list (outgoing_cells.begin(),outgoing_cells.end()); 
    
-//logFile << __FILE__ << " " << __LINE__ << endl;
-//report_memory_consumption(mpiGrid);
-//logFile << writeVerbose;
    /*transfer cells in parts to preserve memory*/
    phiprof::start("Data transfers");
    const uint64_t num_part_transfers=5;
@@ -274,9 +259,6 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
            cell->set_mpi_transfer_enabled(true);
         }
      }
-//logFile << __FILE__ << " " << __LINE__ << endl;
-//report_memory_consumption(mpiGrid);
-//logFile << writeVerbose;
      
      //Set transfers on/off for the outgoing cells in this transfer set
      for(unsigned int i=0;i<outgoing_cells_list.size();i++){
@@ -290,18 +272,12 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
        }
      }
      
-//logFile << __FILE__ << " " << __LINE__ << endl;
-//report_memory_consumption(mpiGrid);
-//logFile << writeVerbose;
      //Transfer velocity block list
      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
      mpiGrid.continue_balance_load();
 
      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
      mpiGrid.continue_balance_load();
-//logFile << __FILE__ << " " << __LINE__ << endl;
-//report_memory_consumption(mpiGrid);
-//logFile << writeVerbose;
 
      for(unsigned int i=0;i<incoming_cells_list.size();i++){
        uint64_t cell_id=incoming_cells_list[i];
@@ -314,9 +290,6 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
 
        }
      }
-//logFile << __FILE__ << " " << __LINE__ << endl;
-//report_memory_consumption(mpiGrid);
-//logFile << writeVerbose;
      
      //do the actual transfer of data for the set of cells to be transferred
      phiprof::start("transfer_all_data");     
@@ -331,9 +304,6 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
        if(cell_id%num_part_transfers==transfer_part) 
 	 cell->clear(); //free memory of this cell as it has already been transferred. It will not be used anymore
      }
-//logFile << __FILE__ << " " << __LINE__ << endl;
-//report_memory_consumption(mpiGrid);
-//logFile << writeVerbose;
    }
    phiprof::stop("Data transfers");
    //finish up load balancing
@@ -346,26 +316,17 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
    for (uint i=0; i<cells.size(); ++i) 
       mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);
 
-//logFile << __FILE__ << " " << __LINE__ << endl;
-//report_memory_consumption(mpiGrid);
-//logFile << writeVerbose;
    // Communicate all spatial data for FULL neighborhood, which
    // includes all data with the exception of dist function data
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
    mpiGrid.update_remote_neighbor_data(FULL_NEIGHBORHOOD_ID);
 
-//logFile << __FILE__ << " " << __LINE__ << endl;
-//report_memory_consumption(mpiGrid);
-//logFile << writeVerbose;
 
    phiprof::start("update block lists");
    //new partition, re/initialize blocklists of remote cells.
    updateRemoteVelocityBlockLists(mpiGrid);
    phiprof::stop("update block lists");
    
-//logFile << __FILE__ << " " << __LINE__ << endl;
-//report_memory_consumption(mpiGrid);
-//logFile << writeVerbose;
    
    phiprof::start("Init solvers");
    // Initialize field propagator:
@@ -373,10 +334,6 @@ void balanceLoad(dccrg::Dccrg<SpatialCell>& mpiGrid){
        logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
        exit(1);
    }
-   
-//logFile << __FILE__ << " " << __LINE__ << endl;
-//report_memory_consumption(mpiGrid);
-//logFile << writeVerbose;
    
    phiprof::stop("Init solvers");   
    phiprof::stop("Balancing load");
