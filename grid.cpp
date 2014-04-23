@@ -500,8 +500,9 @@ void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       double mem_papi[2] = {};
       double sum_mem_papi[2];
       uint i=0;
-      mem_papi[i++] = dmem.size;
-      mem_papi[i++] = dmem.resident;
+      /*PAPI returns memory in KB units, transform to bytes*/
+      mem_papi[i++] = dmem.size * 1024; 
+      mem_papi[i++] = dmem.resident * 1024;
       MPI_Reduce(mem_papi, sum_mem_papi, i, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
       i=0;
       logFile << "(MEM) PAPI Size:" << sum_mem_papi[i++]/n_procs << endl;
@@ -522,7 +523,8 @@ void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       while( fscanf( in_file, "%s %d %s", attribute_name, &memory, memory_unit ) != EOF ) {
          // Check if the attribute name equals memory free
          if( strcmp(attribute_name, memfree_attribute_name ) == 0 ) {
-            mem_proc_free = (double)(memory);
+            //free memory in KB, transform to B
+            mem_proc_free = (double)(memory) * 1024;
          }
       }
    }
