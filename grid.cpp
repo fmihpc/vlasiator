@@ -436,12 +436,10 @@ void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       mpiGrid[cells[i]]->shrink_to_fit();
    }
 }
+
 /*! Estimates memory consumption and writes it into logfile. Collective operation on MPI_COMM_WORLD
  * \param mpiGrid Spatial grid
  */
-   
-
-
 void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    /*now report memory consumption into logfile*/
    const vector<uint64_t> cells = mpiGrid.get_cells();
@@ -499,262 +497,46 @@ void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    if (PAPI_library_init(PAPI_VER_CURRENT) == PAPI_VER_CURRENT) {
       PAPI_dmem_info_t dmem;  
       PAPI_get_dmem_info(&dmem);
-      double mem_papi[10] = {};
-      double sum_mem_papi[10];
+      double mem_papi[2] = {};
+      double sum_mem_papi[2];
       uint i=0;
       mem_papi[i++] = dmem.size;
       mem_papi[i++] = dmem.resident;
-      mem_papi[i++] = dmem.high_water_mark;
-      mem_papi[i++] = dmem.shared;
-      mem_papi[i++] = dmem.text;
-      mem_papi[i++] = dmem.library;
-      mem_papi[i++] = dmem.heap;
-      mem_papi[i++] = dmem.locked;
-      mem_papi[i++] = dmem.stack;
-      mem_papi[i++] = dmem.pagesize;
       MPI_Reduce(mem_papi, sum_mem_papi, i, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
       i=0;
       logFile << "(MEM) PAPI Size:" << sum_mem_papi[i++]/n_procs << endl;
       logFile << "(MEM) PAPI Resident:" << sum_mem_papi[i++]/n_procs << endl;
-      logFile << "(MEM) PAPI High Water Mark:" << sum_mem_papi[i++]/n_procs << endl;
-      logFile << "(MEM) PAPI Shared:" << sum_mem_papi[i++]/n_procs << endl;
-      logFile << "(MEM) PAPI Text:" << sum_mem_papi[i++]/n_procs << endl;
-      logFile << "(MEM) PAPI Library:" << sum_mem_papi[i++]/n_procs << endl;
-      logFile << "(MEM) PAPI Heap:" << sum_mem_papi[i++]/n_procs << endl;
-      logFile << "(MEM) PAPI Locked:" << sum_mem_papi[i++]/n_procs << endl;
-      logFile << "(MEM) PAPI Stack:" << sum_mem_papi[i++]/n_procs << endl;
-      logFile << "(MEM) PAPI Pagesize:" << sum_mem_papi[i++]/n_procs << endl;
    }
    
 #endif
 
    // Report /proc/meminfo memory consumption:
-   const uint numberOfParameters = 2;
-   double mem_proc[numberOfParameters] = { 0 };
+   double mem_proc_free = 0;
    FILE * in_file = fopen("/proc/meminfo", "r");
    char attribute_name[200];
    int memory;
    char memory_unit[10];
    const char * memfree_attribute_name = "MemFree:";
-   const char * totalfree_attribute_name = "MemTotal:";
-   const uint total = 0;
-   const uint free = 1;
    if( in_file ) {
       // Read free memory:
       while( fscanf( in_file, "%s %d %s", attribute_name, &memory, memory_unit ) != EOF ) {
+         // Check if the attribute name equals memory free
          if( strcmp(attribute_name, memfree_attribute_name ) == 0 ) {
-            //logFile << "(MEM) Procinfo Memory free: " << memory << " " << memory_unit << endl;
             mem_proc[free] = (double)(memory);
-         } else if( strcmp(attribute_name, totalfree_attribute_name ) == 0 ) {
-            //logFile << "(MEM) Procinfo Memory free: " << memory << " " << memory_unit << endl;
-            mem_proc[total] = (double)(memory);
          }
       }
    }
    fclose( in_file );
 
-   double total_mem_proc[numberOfParameters] = { 0 };
+   double total_mem_proc = 0;
    // Sum all process' results:
    const int root = 0;
-   MPI_Reduce( mem_proc, total_mem_proc, numberOfParameters, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD );
+   MPI_Reduce( &mem_proc_free, &total_mem_proc, numberOfParameters, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD );
 
    // Report memory consumption:
-   logFile << "(MEM) Procinfo Memory total: " << total_mem_proc[total]/n_procs << endl;
-   logFile << "(MEM) Procinfo Memory free: " << total_mem_proc[free]/n_procs << endl;
-
-   // Report number of spatial cells:
-   double total_existing_spatial_cells = 0;
-   double existing_spatial_cells = (double)spatial_cell::SpatialCell::existing_spatial_cells;
-   const uint spatialCellParams = 1;
-   MPI_Reduce( &existing_spatial_cells, &total_existing_spatial_cells, spatialCellParams, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD );
-
-   logFile << "(MEM) Average number of spatial cells: " << total_existing_spatial_cells/n_procs << endl;
-   logFile << "(MEM) Number of spatial cells in proc 0: " << spatial_cell::SpatialCell::existing_spatial_cells << endl;
-
+   logFile << "(MEM) Procinfo Memory free: " << total_mem_proc/n_procs << endl;
    logFile << writeVerbose;
 }
-
-void report_proc_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {
-   /*now report memory consumption into logfile*/
-   const vector<uint64_t> cells = mpiGrid.get_cells();
-   const std::vector<uint64_t> remote_cells = mpiGrid.get_remote_cells_on_process_boundary();   
-   int rank,n_procs;
-   MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
-   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-   /*compute memory consumption of the block data, double as MPI does
-    * not define proper uint64_t datatypes for MAXLOCNot Real, as we
-    * want double here not to loose accuracy.
-    * Computed as number of blocks * 2 arrays with block data (fx, data) *  WID3 amount of cells per block *  each cell has a size of Real
-    */
-
-   /*report data for memory needed by blocks*/
-   double mem[6] = {0};
-   double sum_mem[6];   
-
-
-   for(unsigned int i=0;i<cells.size();i++){
-      mem[0] += mpiGrid[cells[i]]->get_cell_memory_size();
-      mem[3] += mpiGrid[cells[i]]->get_cell_memory_capacity();
-   }
-
-   for(unsigned int i=0;i<remote_cells.size();i++){
-      mem[1] += mpiGrid[remote_cells[i]]->get_cell_memory_size();
-      mem[4] += mpiGrid[remote_cells[i]]->get_cell_memory_capacity();
-   }
-   
-   mem[2] = mem[0] + mem[1];//total meory according to size()
-   mem[5] = mem[3] + mem[4];//total memory according to capacity()
-
-
-   MPI_Reduce(mem, sum_mem, 6, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-
-   logFile << "(MEM) size: " << sum_mem[2] << endl;   
-   logFile << "(MEM) capacity " << sum_mem[5] << endl;   
-   
-   struct {
-      double val;
-      int   rank;
-   } max_mem[3],mem_usage_loc[3],min_mem[3];
-   for(uint i = 0; i<3; i++){
-      mem_usage_loc[i].val = mem[i + 3]; //report on capacity numbers (6: local cells, 7: remote cells, 8: all cells)
-      mem_usage_loc[i].rank = rank;
-   }
-   
-   MPI_Reduce(mem_usage_loc, max_mem, 3, MPI_DOUBLE_INT, MPI_MAXLOC, 0, MPI_COMM_WORLD);
-   MPI_Reduce(mem_usage_loc, min_mem, 3, MPI_DOUBLE_INT, MPI_MINLOC, 0, MPI_COMM_WORLD);
-   
-   logFile << "(MEM)   Average capacity: " << sum_mem[5]/n_procs << " local cells " << sum_mem[3]/n_procs << " remote cells " << sum_mem[4]/n_procs << endl;
-   logFile << "(MEM)   Max capacity:     " << max_mem[2].val   << " on  process " << max_mem[2].rank << endl;
-   logFile << "(MEM)   Min capacity:     " << min_mem[2].val   << " on  process " << min_mem[2].rank << endl;
-
-
-
-   logFile << writeVerbose;
-}
-
-
-void report_memory_consumption_small(dccrg::Dccrg<SpatialCell>& mpiGrid) {
-   /*now report memory consumption into logfile*/
-   const vector<uint64_t> cells = mpiGrid.get_cells();
-   const std::vector<uint64_t> remote_cells = mpiGrid.get_remote_cells_on_process_boundary();   
-   int rank,n_procs;
-   MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
-   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-   /*compute memory consumption of the block data, double as MPI does
-    * not define proper uint64_t datatypes for MAXLOCNot Real, as we
-    * want double here not to loose accuracy.
-    * Computed as number of blocks * 2 arrays with block data (fx, data) *  WID3 amount of cells per block *  each cell has a size of Real
-    */
-
-   /*report data for memory needed by blocks*/
-   double mem[6] = {0};
-   double sum_mem[6];   
-
-
-   for(unsigned int i=0;i<cells.size();i++){
-      mem[0] += mpiGrid[cells[i]]->get_cell_memory_size();
-      mem[3] += mpiGrid[cells[i]]->get_cell_memory_capacity();
-   }
-
-   for(unsigned int i=0;i<remote_cells.size();i++){
-      mem[1] += mpiGrid[remote_cells[i]]->get_cell_memory_size();
-      mem[4] += mpiGrid[remote_cells[i]]->get_cell_memory_capacity();
-   }
-   
-   mem[2] = mem[0] + mem[1];//total meory according to size()
-   mem[5] = mem[3] + mem[4];//total memory according to capacity()
-
-
-   MPI_Reduce(mem, sum_mem, 6, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-
-   struct {
-      double val;
-      int   rank;
-   } max_mem[3],mem_usage_loc[3],min_mem[3];
-   for(uint i = 0; i<3; i++){
-      mem_usage_loc[i].val = mem[i + 3]; //report on capacity numbers (6: local cells, 7: remote cells, 8: all cells)
-      mem_usage_loc[i].rank = rank;
-   }
-   
-   MPI_Reduce(mem_usage_loc, max_mem, 3, MPI_DOUBLE_INT, MPI_MAXLOC, 0, MPI_COMM_WORLD);
-   MPI_Reduce(mem_usage_loc, min_mem, 3, MPI_DOUBLE_INT, MPI_MINLOC, 0, MPI_COMM_WORLD);
-   if( rank == 0 ) {
-      logFile << "(MEM)   Average capacity: " << sum_mem[5]/n_procs << " local cells " << sum_mem[3]/n_procs << " remote cells " << sum_mem[4]/n_procs << endl;
-   }
-
-#ifdef PAPI_MEM
-   if (PAPI_library_init(PAPI_VER_CURRENT) == PAPI_VER_CURRENT) {
-      PAPI_dmem_info_t dmem;  
-      PAPI_get_dmem_info(&dmem);
-      double mem_papi[10] = {};
-      double sum_mem_papi[10];
-      uint i=0;
-      mem_papi[i++] = dmem.size;
-      mem_papi[i++] = dmem.resident;
-      mem_papi[i++] = dmem.high_water_mark;
-      mem_papi[i++] = dmem.shared;
-      mem_papi[i++] = dmem.text;
-      mem_papi[i++] = dmem.library;
-      mem_papi[i++] = dmem.heap;
-      mem_papi[i++] = dmem.locked;
-      mem_papi[i++] = dmem.stack;
-      mem_papi[i++] = dmem.pagesize;
-      MPI_Reduce(mem_papi, sum_mem_papi, i, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-      i=0;
-      if( rank == 0 ) {
-         logFile << "(MEM) PAPI Size:" << sum_mem_papi[i++]/n_procs << endl;
-      }
-   }
-   
-#endif
-   if( rank == 0 ) {
-      logFile << writeVerbose;
-   }
-}
-
-void report_memory_consumption_smallest() {
-   /*now report memory consumption into logfile*/
-   int rank,n_procs;
-   MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
-   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-   /*compute memory consumption of the block data, double as MPI does
-    * not define proper uint64_t datatypes for MAXLOCNot Real, as we
-    * want double here not to loose accuracy.
-    * Computed as number of blocks * 2 arrays with block data (fx, data) *  WID3 amount of cells per block *  each cell has a size of Real
-    */
-
-
-#ifdef PAPI_MEM
-   if (PAPI_library_init(PAPI_VER_CURRENT) == PAPI_VER_CURRENT) {
-      PAPI_dmem_info_t dmem;  
-      PAPI_get_dmem_info(&dmem);
-      double mem_papi[10] = {};
-      double sum_mem_papi[10];
-      uint i=0;
-      mem_papi[i++] = dmem.size;
-      mem_papi[i++] = dmem.resident;
-      mem_papi[i++] = dmem.high_water_mark;
-      mem_papi[i++] = dmem.shared;
-      mem_papi[i++] = dmem.text;
-      mem_papi[i++] = dmem.library;
-      mem_papi[i++] = dmem.heap;
-      mem_papi[i++] = dmem.locked;
-      mem_papi[i++] = dmem.stack;
-      mem_papi[i++] = dmem.pagesize;
-      MPI_Reduce(mem_papi, sum_mem_papi, i, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-      i=0;
-      if( rank == 0 ) {
-         logFile << "(MEM) PAPI Size:" << sum_mem_papi[i++]/n_procs << endl;
-      }
-   }
-   
-#endif
-   if( rank == 0 ) {
-      logFile << writeVerbose;
-   }
-}
-
-
 
 /*! Deallocates all block data in remote cells in order to save
  *  memory
