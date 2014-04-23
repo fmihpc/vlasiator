@@ -19,7 +19,7 @@ FIELDSOLVER ?= londrillo_delzanna
 # CXXFLAGS += -DFS_1ST_ORDER_TIME
 
 #also use papi to report memory consumption?
-CXXFLAGS += -DPAPI_MEM
+#CXXFLAGS += -DPAPI_MEM
 
 #is profiling on?
 CXXFLAGS += -DPROFILE
