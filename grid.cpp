@@ -522,7 +522,7 @@ void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {
       while( fscanf( in_file, "%s %d %s", attribute_name, &memory, memory_unit ) != EOF ) {
          // Check if the attribute name equals memory free
          if( strcmp(attribute_name, memfree_attribute_name ) == 0 ) {
-            mem_proc[free] = (double)(memory);
+            mem_proc_free = (double)(memory);
          }
       }
    }
@@ -531,6 +531,7 @@ void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid) {
    double total_mem_proc = 0;
    // Sum all process' results:
    const int root = 0;
+   const int numberOfParameters = 1;
    MPI_Reduce( &mem_proc_free, &total_mem_proc, numberOfParameters, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD );
 
    // Report memory consumption:
