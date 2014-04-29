@@ -154,7 +154,7 @@ data:
 
 c: clean
 clean: data
-	rm -rf *.o *~ */*~ */*/*~ ${EXE} vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION} vlsv2vtk_${FP_PRECISION} vlsvdiff_${FP_PRECISION} vlsv2bzt_${FP_PRECISION} check_projects_compil_logs/ check_projects_cfg_logs/
+	rm -rf *.o *~ */*~ */*/*~ ${EXE} vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION} vlsv2vtk_${FP_PRECISION} vlsvdiff_${FP_PRECISION} vlsv2bzt_${FP_PRECISION} particle_post_pusher check_projects_compil_logs/ check_projects_cfg_logs/
 
 
 # Rules for making each object file needed by the executable
@@ -331,6 +331,9 @@ OBJS_VLSVREADER = muxml.o vlscommon.o vlsvreader2.o
 OBJS_VLSVREADERINTERFACE = vlsvreaderinterface.o
 OBJS_VLSVREADEREXTRA = muxml.o vlscommon.o vlsvreader2extra.o
 
+#particle pusher tool
+DEPS_PARTICLES = particles/particles.h particles/particles.cpp particles/field.h particles/readfields.h particles/relativistic_math.h
+OBJS_PARTICLES = particles/physconst.o particles/particles.o particles/readfields.o
 
 vlsvextract: ${DEPS_VLSVREADER} ${DEPS_VLSVREADERINTERFACE} tools/vlsvextract.cpp ${OBJS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvextract.cpp ${INC_BOOST} ${INC_DCCRG} ${INC_SILO} ${INC_EIGEN} ${INC_VLSV} -I$(CURDIR) 
@@ -354,5 +357,12 @@ vlsvdiff: ${DEPS_VLSVREADER} ${DEPS_VLSVREADERINTERFACE} tools/vlsvdiff.cpp ${OB
 
 vlsvreaderinterface.o: ${DEPS_VLSVREADER} tools/vlsvreaderinterface.h tools/vlsvreaderinterface.cpp ${OBJS_VLSVREADER}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvreaderinterface.cpp ${INC_VLSV} -I$(CURDIR) 
+
+particles/readfields.o: ${DEPS_PARTICLES} ${DEPS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} particles/readfields.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/readfields.cpp ${INC_VLSV} -I$(CURDIR) -Itools -o $@
+
+particle_post_pusher: ${OBJS_PARTICLES} ${DEPS_PARTICLES} ${DEPS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} particles/particle_post_pusher.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/particle_post_pusher.cpp ${INC_VLSV} -I$(CURDIR) -Itools
+	${LNK} -o $@ particle_post_pusher.o ${OBJS_PARTICLES} ${OBJS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} ${LIB_VLSV} ${LDFLAGS}
 
 # DO NOT DELETE

@@ -1,0 +1,211 @@
+#pragma once
+
+#include "vlsvreader2.h"
+#include "vlsv_reader.h"
+#include "vlsvreaderinterface.h"
+#include "field.h"
+#include <vector>
+
+/* Read the cellIDs into an array */
+template <class Reader>
+std::vector<uint64_t> readCellIds(Reader& r) {
+
+	uint64_t arraySize=0;
+	uint64_t vectorSize=0;
+	uint64_t byteSize=0;
+	vlsv::datatype::type dataType;
+	std::list<std::pair<std::string,std::string> > attribs;
+	attribs.push_back(std::pair<std::string,std::string>("name","SpatialGrid"));
+	if( r.getArrayInfo("MESH",attribs, arraySize,vectorSize,dataType,byteSize) == false ) {
+		std::cerr << "getArrayInfo returned false when trying to read MESH." << std::endl;
+		exit(1);
+	}
+
+	if(dataType != vlsv::datatype::type::UINT || byteSize != 8) {
+		std::cerr << "Datatype of MESH entries is not uint64_t." << std::endl;
+		exit(1);
+	}
+
+	/* Allocate memory for the cellIds */
+	std::vector<uint64_t> cellIds(arraySize*vectorSize);
+	
+	if( r.readArray("MESH",attribs,0,arraySize,(char*) cellIds.data()) == false) {
+		std::cerr << "readArray faied when trying to read MESH." << std::endl;
+		exit(1);
+	}
+
+	return cellIds;
+}
+
+/* Read the "raw" field data in file order */
+template <class Reader>
+std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int numcomponents) {
+
+	uint64_t arraySize=0;
+	uint64_t vectorSize=0;
+	uint64_t byteSize=0;
+	vlsv::datatype::type dataType;
+	std::list<std::pair<std::string,std::string> > attribs;
+	attribs.push_back(std::pair<std::string,std::string>("name",name));
+	if( r.getArrayInfo("VARIABLE",attribs, arraySize,vectorSize,dataType,byteSize) == false ) {
+		std::cerr << "getArrayInfo returned false when trying to read VARIABLE \""
+			<< name << "\"." << std::endl;
+		exit(1);
+	}
+
+	if(dataType != vlsv::datatype::type::FLOAT || byteSize != 8 || vectorSize != numcomponents) {
+		std::cerr << "Datatype of VARIABLE \"" << name << "\" entries is not double." << std::endl;
+		exit(1);
+	}
+
+	/* Allocate memory for the data */
+	std::vector<double> buffer(arraySize*vectorSize);
+	
+	if( r.readArray("VARIABLE",attribs,0,arraySize,(char*) buffer.data()) == false) {
+		std::cerr << "readArray faied when trying to read VARIABLE \"" << name << "\"." << std::endl;
+		exit(1);
+	}
+
+	return buffer;
+}
+
+/* Read a single-valued floating point parameter */
+template <class Reader>
+double readDoubleParameter(Reader& r, const char* name) {
+	uint64_t arraySize=0;
+	uint64_t vectorSize=0;
+	uint64_t byteSize=0;
+	vlsv::datatype::type dataType;
+	std::list<std::pair<std::string,std::string> > attribs;
+	attribs.push_back(std::pair<std::string,std::string>("name",name));
+	if( r.getArrayInfo("PARAMETERS",attribs, arraySize,vectorSize,dataType,byteSize) == false ) {
+		std::cerr << "getArrayInfo returned false when trying to read PARAMETER \""
+			<< name << "\"." << std::endl;
+		exit(1);
+	}
+
+	if(dataType != vlsv::datatype::type::FLOAT || byteSize != 8 || vectorSize != 1 || arraySize != 1) {
+		std::cerr << "Datatype of PARAMETER \"" << name << "\" is not a single double value." << std::endl;
+		exit(1);
+	}
+
+	double retval;
+	if( r.readArray("PARAMETERS",attribs,0,arraySize,(char*)&retval) == false) {
+		std::cerr << "readArray faied when trying to read PARAMETER \"" << name << "\"." << std::endl;
+		exit(1);
+	}
+
+	return retval;
+}
+
+/* Read a single-valued integer parameter */
+template <class Reader>
+uint32_t readUintParameter(Reader& r, const char* name) {
+	uint64_t arraySize=0;
+	uint64_t vectorSize=0;
+	uint64_t byteSize=0;
+	vlsv::datatype::type dataType;
+	std::list<std::pair<std::string,std::string> > attribs;
+	attribs.push_back(std::pair<std::string,std::string>("name",name));
+	if( r.getArrayInfo("PARAMETERS",attribs, arraySize,vectorSize,dataType,byteSize) == false ) {
+		std::cerr << "getArrayInfo returned false when trying to read PARAMETER \""
+			<< name << "\"." << std::endl;
+		exit(1);
+	}
+
+	if(dataType != vlsv::datatype::type::UINT || byteSize != 4 || vectorSize != 1 || arraySize != 1) {
+		std::cerr << "Datatype of PARAMETER \"" << name << "\" is not a single uint32_t value." << std::endl;
+		exit(1);
+	}
+
+	uint32_t retval;
+	if( r.readArray("PARAMETERS",attribs,0,arraySize,(char*)&retval) == false) {
+		std::cerr << "readArray faied when trying to read PARAMETER \"" << name << "\"." << std::endl;
+		exit(1);
+	}
+
+	return retval;
+}
+
+/* Read E- and B-Fields from a vlsv file */
+template <class Reader>
+void readfields(std::string& filename, Field& E, Field& B) {
+	Reader r;
+
+	std::cerr << "Opening " << filename << "...";
+	r.open(filename);
+	std::cerr <<"ok." << std::endl;
+
+	/* Read the MESH, yielding the CellIDs */
+	std::vector<uint64_t> cellIds = readCellIds(r);
+
+	/* Also read the raw field data */
+	std::string name("B");
+	std::vector<double> Bbuffer = readFieldData<Reader>(r,name,3u);
+	name = "E";
+	std::vector<double> Ebuffer = readFieldData<Reader>(r,name,3u);
+	
+	/* Coordinate Boundaries */
+	double min[3], max[3];
+	uint64_t cells[3];
+	min[0] = readDoubleParameter<Reader>(r,"xmin");
+	min[1] = readDoubleParameter<Reader>(r,"ymin");
+	min[2] = readDoubleParameter<Reader>(r,"zmin");
+	max[0] = readDoubleParameter<Reader>(r,"xmax");
+	max[1] = readDoubleParameter<Reader>(r,"ymax");
+	max[2] = readDoubleParameter<Reader>(r,"zmax");
+	cells[0] = readUintParameter<Reader>(r,"xcells_ini");
+	cells[1] = readUintParameter<Reader>(r,"ycells_ini");
+	cells[2] = readUintParameter<Reader>(r,"zcells_ini");
+
+	//std::cerr << "Grid is " << cells[0] << " x " << cells[1] << " x " << cells[2] << " Cells, " << std::endl
+	//	<< " with dx = " << ((max[0]-min[0])/cells[0]) << ", dy = " << ((max[1]-min[1])/cells[1])
+	//	<< ", dz = " << ((max[2]-min[2])/cells[2]) << "." << std::endl;
+
+	/* Allocate space for the actual field structures */
+	E.data.resize(4*cells[0]*cells[1]*cells[2]);
+	B.data.resize(4*cells[0]*cells[1]*cells[2]);
+
+	/* Sanity-check stored data sizes */
+	if(3*cellIds.size() != Bbuffer.size()) {
+		std::cerr << "3 * cellIDs.size (" << cellIds.size() << ") != Bbuffer.size (" << Bbuffer.size() << ")!"
+			<< std::endl;
+		exit(1);
+	}
+	if(3*cellIds.size() != Ebuffer.size()) {
+		std::cerr << "3 * cellIDs.size (" << cellIds.size() << ") != Ebuffer.size (" << Ebuffer.size() << ")!"
+			<< std::endl;
+		exit(1);
+	}
+
+	/* Set field sizes */
+	for(int i=0; i<3;i++) {
+		E.min[i] = B.min[i] = min[i];
+		E.max[i] = B.max[i] = max[i];
+		E.cells[i] = B.cells[i] = cells[i];
+		E.dx[i] = B.dx[i] = (max[i]-min[i])/cells[i];
+	}
+
+	/* So, now we've got the cellIDs, the mesh size and the field values,
+	 * we can sort them into place */
+	for(int i=0; i< cellIds.size(); i++) {
+		uint64_t c = cellIds[i];
+		int64_t x = c % cells[0];
+		int64_t y = (c /cells[0]) % cells[1];
+		int64_t z = c /(cells[0]*cells[1]);
+
+		double* Etgt = E.getCellRef(x,y,z);
+		double* Btgt = B.getCellRef(x,y,z);
+		Etgt[0] = Ebuffer[3*i];
+		Etgt[1] = Ebuffer[3*i+1];
+		Etgt[2] = Ebuffer[3*i+2];
+		Btgt[0] = Bbuffer[3*i];
+		Btgt[1] = Bbuffer[3*i+1];
+		Btgt[2] = Bbuffer[3*i+2];
+	}
+
+	r.close();
+}
+
+/* For debugging purposes - dump a field into a png file */
+void debug_output(Field& F, const char* filename);
