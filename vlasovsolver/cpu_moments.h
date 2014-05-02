@@ -54,7 +54,7 @@ template<typename REAL> void cpu_blockVelocityFirstMoments(
 }
 
 template<typename REAL> void cpu_blockVelocitySecondMoments(
-   const Real* const avgs,
+   const Realf* const avgs,
    const REAL* const blockParams,
    REAL* const cellParams,
    const int cp_rho,

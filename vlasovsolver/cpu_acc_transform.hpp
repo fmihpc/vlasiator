@@ -47,7 +47,7 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
    
    for(unsigned int block_i=0; block_i< spatial_cell->number_of_blocks;block_i++){
       unsigned int block = spatial_cell->velocity_block_list[block_i];         
-      cpu_calcVelocityMoments(spatial_cell,block,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V);   
+      cpu_calcVelocityFirstMoments(spatial_cell,block,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V);   
    }
 
    

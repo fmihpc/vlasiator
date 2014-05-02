@@ -205,7 +205,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid, creal dt) {
 
          //compute moments for this block
          if(SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
-            cpu_calcVelocityMoments(SC,block,CellParams::RHO_R,CellParams::RHOVX_R,CellParams::RHOVY_R,CellParams::RHOVZ_R);   //set moments after translation
+            cpu_calcVelocityFirstMoments(SC,block,CellParams::RHO_R,CellParams::RHOVX_R,CellParams::RHOVY_R,CellParams::RHOVZ_R);   //set moments after translation
       }
    }
    phiprof::stop("compute-moments-n-maxdt");
@@ -267,7 +267,7 @@ void calculateAcceleration(
 
       for(unsigned int block_i=0; block_i< mpiGrid[cellID]->number_of_blocks;block_i++){
          unsigned int block = mpiGrid[cellID]->velocity_block_list[block_i];         
-         cpu_calcVelocityMoments(mpiGrid[cellID],block,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V);   //set moments after acceleration
+         cpu_calcVelocityFirstMoments(mpiGrid[cellID],block,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V);   //set moments after acceleration
       }
    }
    phiprof::stop("Compute moments");
@@ -323,7 +323,7 @@ void calculateCellVelocityMoments(
    // and calculate velocity moments:
    for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
       unsigned int block = SC->velocity_block_list[block_i];
-      cpu_calcVelocityMoments(SC,block,CellParams::RHO,CellParams::RHOVX,CellParams::RHOVY,CellParams::RHOVZ);
+      cpu_calcVelocityFirstMoments(SC,block,CellParams::RHO,CellParams::RHOVX,CellParams::RHOVY,CellParams::RHOVZ);
    }
 }
  
