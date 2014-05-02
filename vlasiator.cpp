@@ -373,6 +373,7 @@ int main(int argn,char* args[]) {
       phiprof::start("IO");
       
       if(myRank ==  MASTER_RANK) {
+         // check whether STOP has been passed (as of 2014-05-02)
          checkExternalCommands();
       }
       
