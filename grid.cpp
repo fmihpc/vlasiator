@@ -20,8 +20,6 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "parameters.h"
 #include "datareduction/datareducer.h"
 #include "sysboundary/sysboundary.h"
-#include "transferstencil.h"
-#include "vlsvwriter2.h"
 #include "fieldsolver/fs_common.h"
 #include "projects/project.h"
 #include "iowrite.h"

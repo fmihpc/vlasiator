@@ -280,10 +280,10 @@ fs_common.o: fieldsolver/fs_common.h fieldsolver/fs_common.cpp
 fs_limiters.o: fieldsolver/fs_limiters.h fieldsolver/fs_limiters.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/fs_limiters.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG}  ${INC_PROFILE}  ${INC_ZOLTAN}
 
-londrillo_delzanna.o: spatial_cell.hpp transferstencil.h parameters.h common.h fieldsolver/fs_common.h fieldsolver/fs_common.cpp fieldsolver/derivatives.hpp fieldsolver/ldz_electric_field.hpp fieldsolver/ldz_hall.hpp fieldsolver/ldz_magnetic_field.hpp fieldsolver/ldz_main.cpp fieldsolver/ldz_volume.hpp fieldsolver/ldz_volume.hpp
+londrillo_delzanna.o: spatial_cell.hpp parameters.h common.h fieldsolver/fs_common.h fieldsolver/fs_common.cpp fieldsolver/derivatives.hpp fieldsolver/ldz_electric_field.hpp fieldsolver/ldz_hall.hpp fieldsolver/ldz_magnetic_field.hpp fieldsolver/ldz_main.cpp fieldsolver/ldz_volume.hpp fieldsolver/ldz_volume.hpp
 	 ${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/ldz_main.cpp -o londrillo_delzanna.o -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG}  ${INC_PROFILE}  ${INC_ZOLTAN}
 
-vlasiator.o:  ${DEPS_COMMON} readparameters.h parameters.h ${DEPS_PROJECTS} grid.h spatial_cell.hpp vlasiator.cpp
+vlasiator.o:  ${DEPS_COMMON} readparameters.h parameters.h ${DEPS_PROJECTS} grid.h vlasovmover.h spatial_cell.hpp vlasiator.cpp
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE}
 
 grid.o:  ${DEPS_COMMON} parameters.h ${DEPS_PROJECTS} spatial_cell.hpp grid.cpp grid.h  sysboundary/sysboundary.h
