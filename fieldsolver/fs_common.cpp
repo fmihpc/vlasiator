@@ -44,41 +44,6 @@ CellID getNeighbourID(
       abort();
    }
    
-   // FIXME: only face and edge neighbors should be required?
-   /*if (i == 1 && j == 1 && k == 1) {
-    *    cerr << __FILE__ << ":" << __LINE__ << endl;
-    *    abort();
-}
-if (i == 1 && j == 1 && k == 3) {
-   cerr << __FILE__ << ":" << __LINE__ << endl;
-   abort();
-}
-if (i == 1 && j == 3 && k == 1) {
-   cerr << __FILE__ << ":" << __LINE__ << endl;
-   abort();
-}
-if (i == 1 && j == 3 && k == 3) {
-   cerr << __FILE__ << ":" << __LINE__ << endl;
-   abort();
-}
-if (i == 3 && j == 1 && k == 1) {
-   cerr << __FILE__ << ":" << __LINE__ << endl;
-   abort();
-}
-if (i == 3 && j == 1 && k == 3) {
-   cerr << __FILE__ << ":" << __LINE__ << endl;
-   abort();
-}
-if (i == 3 && j == 3 && k == 1) {
-   cerr << __FILE__ << ":" << __LINE__ << endl;
-   abort();
-}
-if (i == 3 && j == 3 && k == 3) {
-   cerr << __FILE__ << ":" << __LINE__ << endl;
-   abort();
-}*/
-   //#endif
-   
    const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of(cellID, int(i) - 2, int(j) - 2, int(k) - 2);
    if (neighbors.size() == 0) {
       cerr << __FILE__ << ":" << __LINE__

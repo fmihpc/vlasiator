@@ -235,13 +235,11 @@ int main(int argn,char* args[]) {
    
    //TODO, move to initializeGrid
    if(!P::isRestart) {
-     phiprof::start("Init moments");
-     //compute moments, and set them  in RHO*. If restart, they are already read in
-     calculateVelocityMoments(mpiGrid);
-     phiprof::stop("Init moments");
+      phiprof::start("Init moments");
+      //compute moments, and set them in RHO*. If restart, they are already read in
+      calculateVelocityMoments(mpiGrid);
+      phiprof::stop("Init moments");
    }
-
-
    
    phiprof::start("Init field propagator");
    // Initialize field propagator:

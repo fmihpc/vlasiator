@@ -357,6 +357,7 @@ Real * getB( oldVlsv::Reader& vlsvReader, const string& meshName, const uint64_t
    //These are needed to determine the buffer size.
    vlsv::datatype::type variableDataType;
    uint64_t variableArraySize, variableVectorSize, variableDataSize;
+   bool foundSingleB = true;
    //getArrayInfo output: variableArraysize, variableVectorSize, ...
    xmlAttributes.clear();
    xmlAttributes.push_back(make_pair("mesh", meshName));

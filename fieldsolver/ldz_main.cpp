@@ -43,45 +43,40 @@ static void calculateSysBoundaryFlags(
    sysBoundaryFlags.clear();
    for (size_t cell=0; cell<localCells.size(); ++cell) {
       const CellID cellID = localCells[cell];
-      
       if(mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
       
       // Raise the bit for each existing cell within a 3x3 cube of 
       // spatial cells. This cell sits at the center of the cube.
       uint sysBoundaryFlag = (1 << calcNbrNumber(1,1,1)); // The cell itself exists (bit 13 set to 1)
       
-      for (int k=-1; k<2; ++k) for (int j=-1; j<2; ++j) for (int i=-1; i<2; ++i) {
-         if (i == 0 && (j == 0 && k == 0)) continue;
-         const CellID nbr = getNeighbourID(mpiGrid, cellID, 2 + i, 2 + j, 2 + k);
-         if (nbr == INVALID_CELLID) continue;
-         if (mpiGrid[nbr]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-         sysBoundaryFlag = sysBoundaryFlag | (1 << calcNbrNumber(1+i,1+j,1+k));
-      }
+      for (int k=-1; k<2; ++k)
+         for (int j=-1; j<2; ++j)
+            for (int i=-1; i<2; ++i) {
+               if (i == 0 && (j == 0 && k == 0)) continue;
+               const CellID nbr = getNeighbourID(mpiGrid, cellID, 2 + i, 2 + j, 2 + k);
+               if (nbr == INVALID_CELLID)
+                  continue;
+               if (mpiGrid[nbr]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
+                  continue;
+               sysBoundaryFlag = sysBoundaryFlag | (1 << calcNbrNumber(1+i,1+j,1+k));
+            }
       sysBoundaryFlags[cellID] = sysBoundaryFlag;
    }
 }
 
+/*! Re-initialize field propagator after rebalance. E, BGB, RHO, RHO_V,
+ cell_dimensions, sysboundaryflag need to be up to date for the
+ extended neighborhood
+ */
 bool initializeFieldPropagatorAfterRebalance(
         dccrg::Dccrg<SpatialCell>& mpiGrid
 ) {
-   vector<uint64_t> localCells = mpiGrid.get_cells();
-
-   calculateSysBoundaryFlags(mpiGrid,localCells);
-
-   // need E when computing magnetic field later on
-   // ASSUME STATIC background field, we do not later on explicitly transfer it!
-   SpatialCell::set_mpi_transfer_type(
-      Transfer::CELL_E |
-      Transfer::CELL_BGB |
-      Transfer::CELL_RHO_RHOV |
-      Transfer::CELL_DIMENSIONS
-   );
-   int timer=phiprof::initializeTimer("Communicate E and BGB","MPI","Wait");
-   phiprof::start(timer);
-   // CELL_DIMENSIONS is needed in the extended neighborhood, thus taking the larger.
-   mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
-   phiprof::stop(timer);
+   // Assume static background field, they are not communicated here
+   // but are assumed to be ok after each load balance as that
+   // communicates all spatial data
    
+   vector<uint64_t> localCells = mpiGrid.get_cells();
+   calculateSysBoundaryFlags(mpiGrid,localCells);
    return true;
 }
 
@@ -197,12 +192,10 @@ bool initializeFieldPropagator(
    PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,0,1)); // -y nbr
    PROPAGATE_BZ = PROPAGATE_BZ | (1 << calcNbrNumber(1,2,1)); // +y nbr
    
-   // ASSUME STATIC background field, we do not later on explicitly transfer it
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_BGB);
-   int timer=phiprof::initializeTimer("Communicate BGB","MPI","Wait");
-   phiprof::start(timer);
-   mpiGrid.update_remote_neighbor_data(FIELD_SOLVER_NEIGHBORHOOD_ID);
-   phiprof::stop(timer);
+   // Assume static background field, they are not communicated here
+   // but are assumed to be ok after each load balance as that
+   // communicates all spatial data
+   
    // Calculate derivatives and upwinded edge-E. Exchange derivatives 
    // and edge-E:s between neighbouring processes and calculate 
    // face-averaged E,B fields.
