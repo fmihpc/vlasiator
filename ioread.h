@@ -8,8 +8,6 @@
 #include "datareduction/datareducer.h"
 
 
-
-
 /*!
 
 \brief Read in state from a vlsv file in order to restart simulations
@@ -18,5 +16,12 @@
 */
 bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
               const std::string& name);
+
+
+/*!
+ * \brief Check in local directory for external commands passed to the simulation. Only executed by MASTER_RANK
+ */
+void checkExternalCommands();
+
 
 #endif

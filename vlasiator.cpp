@@ -371,6 +371,11 @@ int main(int argn,char* args[]) {
       addTimedBarrier("barrier-loop-start");
       
       phiprof::start("IO");
+      
+      if(myRank ==  MASTER_RANK) {
+         checkExternalCommands();
+      }
+      
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals).
       logFile << "------------------ tstep = " << P::tstep << " t = " << P::t <<" dt = " << P::dt << " ------------------" << endl;
@@ -398,7 +403,7 @@ int main(int argn,char* args[]) {
       }
       logFile << writeVerbose;
       
-
+      
       // Check whether diagnostic output has to be produced
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
          phiprof::start("Diagnostic");
