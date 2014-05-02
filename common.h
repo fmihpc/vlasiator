@@ -246,6 +246,7 @@ const uint SIZE_VELBLOCK    = WID3; /*!< Number of cells in a velocity block. */
  */
 struct globalflags {
    static int bailingOut; /*!< Global flag raised to true if a run bailout (write restart and stop the simulation peacefully) is needed. */
+   static bool replaying; /*!< Global flag raised to true if a run replay is under way. Used to reset static variables manually. */
 };
 
 // Natural constants

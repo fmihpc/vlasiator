@@ -5,6 +5,9 @@
 #include <vector>
 #include <sstream>
 #include <ctime>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include "boost/array.hpp"
 #include "ioread.h"
 #include "phiprof.hpp"
@@ -22,13 +25,34 @@ extern Logger logFile, diagnostic;
 
 typedef Parameters P;
 
-void checkExternalCommands() {
-   FILE *fp;
-   fp=fopen("STOP", "r");
-   if(fp != NULL) {
+int checkExternalCommands() {
+   int doReplay = 0;
+   int file;
+   
+   file = open("STOP", O_RDONLY);
+   if(file > 0) {
       BAILOUT(true)
-      fclose(fp);
+      close(file);
    }
+   
+   file = open("REPLAY", O_RDONLY);
+   if(file > 0) {
+      struct stat buffer;
+      static time_t fileDate = 0;
+      time_t newFileDate;
+      fstat(file, &buffer);
+      newFileDate = buffer.st_mtime;
+      
+      cout << newFileDate << endl;
+      
+      if(fileDate < newFileDate) {
+         doReplay = 1;
+      }
+      fileDate = newFileDate;
+      close(file);
+   }
+   
+   return doReplay;
 }
 
 /*!

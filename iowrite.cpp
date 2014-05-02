@@ -1004,6 +1004,9 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
    Real buffer;
    bool success = true;
    static bool printDiagnosticHeader = true;
+   if(globalflags::replaying) {
+      printDiagnosticHeader = true;
+   }
    
    if (printDiagnosticHeader == true && myRank == MASTER_RANK) {
       if (P::isRestart){

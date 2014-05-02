@@ -20,8 +20,9 @@ bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
 
 /*!
  * \brief Check in local directory for external commands passed to the simulation. Only executed by MASTER_RANK
+ * \return Returns an int for MPI_Bcast purposes. If the return is 1, a replay is performed.
  */
-void checkExternalCommands();
+int checkExternalCommands();
 
 
 #endif

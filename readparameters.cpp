@@ -67,6 +67,9 @@ Readparameters::Readparameters(int argc, char* argv[],MPI_Comm mpicomm) {
     MPI_Comm_rank(Readparameters::comm,&(Readparameters::rank));
 
     if (Readparameters::rank==MASTER_RANK){
+        if(globalflags::replaying == true) {
+            Readparameters::finalize();
+        }
         if (initialized == false) {
             descriptions = new PO::options_description("Usage: main [options (options given on the command line override options given everywhere else)], where options are:");
             variables = new PO::variables_map;
@@ -297,13 +300,16 @@ bool Readparameters::get(const std::string& name,std::vector<std::string>& value
  * @return If true, the given parameter was found and its value was written to value.
  */
 bool Readparameters::get(const std::string& name,std::vector<int>& value) {
+    if(globalflags::replaying) {
+        value.clear();
+    }
     vector<string> stringValue;
     bool ret;
     using boost::lexical_cast;
     ret=Readparameters::get(name,stringValue);
     if (ret) {
         for (vector<string>::iterator i = stringValue.begin(); i!=stringValue.end(); ++i) {
-           try {              
+           try {
               value.push_back(lexical_cast<int>(*i));
            }
            catch (...){
@@ -324,13 +330,16 @@ bool Readparameters::get(const std::string& name,std::vector<int>& value) {
  * @return If true, the given parameter was found and its value was written to value.
  */
 bool Readparameters::get(const std::string& name,std::vector<float>& value) {
+    if(globalflags::replaying) {
+        value.clear();
+    }
     vector<string> stringValue;
     bool ret;
     using boost::lexical_cast;
     ret=Readparameters::get(name,stringValue);
     if (ret) {
         for (vector<string>::iterator i = stringValue.begin(); i!=stringValue.end(); ++i) {
-           try {              
+           try {
               value.push_back(lexical_cast<float>(*i));
            }
            catch (...){
@@ -351,13 +360,16 @@ bool Readparameters::get(const std::string& name,std::vector<float>& value) {
  * @return If true, the given parameter was found and its value was written to value.
  */
 bool Readparameters::get(const std::string& name,std::vector<double>& value) {
+    if(globalflags::replaying) {
+        value.clear();
+    }
     vector<string> stringValue;
     bool ret;
     using boost::lexical_cast;
     ret=Readparameters::get(name,stringValue);
     if (ret) {
         for (vector<string>::iterator i = stringValue.begin(); i!=stringValue.end(); ++i) {
-           try {              
+           try {
               value.push_back(lexical_cast<double>(*i));
            }
            catch (...){
