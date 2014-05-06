@@ -108,58 +108,6 @@ namespace spatial_cell {
       | CELL_SYSBOUNDARYFLAG;
    }
 
-/** A namespace for storing indices into an array containing neighbour information 
- * of velocity grid blocks. 
- */
-namespace velocity_neighbor {
-   const uint WIDTH = 3; //width of neighborhood
-   const uint NNGBRS = WIDTH*WIDTH*WIDTH; //number of neighbors per block in velocity space (27)           
-   const uint SIZE = NNGBRS+1; //number of neighbors per block in velocity space (27) plus one integer for flags
-   const uint XM1_YM1_ZM1 = 0;  /**< Index of (x-1,y-1,z-1) neighbour.*/
-   const uint XCC_YM1_ZM1 = 1;  /**< Index of (x  ,y-1,z-1) neighbour.*/
-   const uint XP1_YM1_ZM1 = 2;  /**< Index of (x+1,y-1,z-1) neighbour.*/
-   const uint XM1_YCC_ZM1 = 3;  /**< Index of (x-1,y  ,z-1) neighbour.*/
-   const uint XCC_YCC_ZM1 = 4;  /**< Index of (x  ,y  ,z-1) neighbour.*/
-   const uint XP1_YCC_ZM1 = 5;  /**< Index of (x+1,y  ,z-1) neighbour.*/
-   const uint XM1_YP1_ZM1 = 6;  /**< Index of (x-1,y+1,z-1) neighbour.*/
-   const uint XCC_YP1_ZM1 = 7;  /**< Index of (x  ,y+1,z-1) neighbour.*/
-   const uint XP1_YP1_ZM1 = 8;  /**< Index of (x+1,y+1,z-1) neighbour.*/   
-   const uint XM1_YM1_ZCC = 9;  /**< Index of (x-1,y-1,z  ) neighbour.*/
-   const uint XCC_YM1_ZCC = 10; /**< Index of (x  ,y-1,z  ) neighbour.*/
-   const uint XP1_YM1_ZCC = 11; /**< Index of (x+1,y-1,z  ) neighbour.*/
-   const uint XM1_YCC_ZCC = 12; /**< Index of (x-1,y  ,z  ) neighbour.*/
-   const uint XCC_YCC_ZCC = 13; /**< Index of (x  ,y  ,z  ) neighbour.*/
-   const uint XP1_YCC_ZCC = 14; /**< Index of (x+1,y  ,z  ) neighbour.*/
-   const uint XM1_YP1_ZCC = 15; /**< Index of (x-1,y+1,z  ) neighbour.*/
-   const uint XCC_YP1_ZCC = 16; /**< Index of (x  ,y+1,z  ) neighbour.*/
-   const uint XP1_YP1_ZCC = 17; /**< Index of (x+1,y+1,z  ) neighbour.*/   
-   const uint XM1_YM1_ZP1 = 18; /**< Index of (x-1,y-1,z+1) neighbour.*/
-   const uint XCC_YM1_ZP1 = 19; /**< Index of (x  ,y-1,z+1) neighbour.*/
-   const uint XP1_YM1_ZP1 = 20; /**< Index of (x+1,y-1,z+1) neighbour.*/
-   const uint XM1_YCC_ZP1 = 21; /**< Index of (x-1,y  ,z+1) neighbour.*/
-   const uint XCC_YCC_ZP1 = 22; /**< Index of (x  ,y  ,z+1) neighbour.*/
-   const uint XP1_YCC_ZP1 = 23; /**< Index of (x+1,y  ,z+1) neighbour.*/
-   const uint XM1_YP1_ZP1 = 24; /**< Index of (x-1,y+1,z+1) neighbour.*/
-   const uint XCC_YP1_ZP1 = 25; /**< Index of (x  ,y+1,z+1) neighbour.*/
-   const uint XP1_YP1_ZP1 = 26; /**< Index of (x+1,y+1,z+1) neighbour.*/
-//   const uint NON_EXISTING = std::numeric_limits<uint>::max(); /**< Invalid block ID, indicating that the block does not exist.*/
-   const uint NBRFLAGS = 27; /**< Index for flags for existing neighbours.*/
-
-   const uint MYIND    = 13; /**< Index of the block. Required for KT solver.*/
-   const uint VXNEG    = 12; /**< Index of -vx neighbour. Required for KT solver.*/
-   const uint VYNEG    = 10; /**< Index of -vy neighbour. Required for KT solver.*/
-   const uint VZNEG    = 4;  /**< Index of -vz neighbour. Required for KT solver.*/
-   const uint VXPOS    = 14; /**< Index of +vx neighbour. Required for KT solver.*/
-   const uint VYPOS    = 16; /**< Index of +vy neighbour. Required for KT solver.*/
-   const uint VZPOS    = 22; /**< Index of +vz neighbour. Required for KT solver.*/
-   const uint VX_NEG_BND = (1 << VXNEG);
-   const uint VX_POS_BND = (1 << VXPOS);
-   const uint VY_NEG_BND = (1 << VYNEG);
-   const uint VY_POS_BND = (1 << VYPOS);
-   const uint VZ_NEG_BND = (1 << VZNEG);
-   const uint VZ_POS_BND = (1 << VZPOS);
-}
-
    
 /*!
   Defines the indices of a velocity cell in a velocity block.
@@ -178,7 +126,6 @@ namespace velocity_neighbor {
       Realf *fx;
       
       Real parameters[BlockParams::N_VELOCITY_BLOCK_PARAMS];
-      Velocity_Block* neighbors[N_NEIGHBOR_VELOCITY_BLOCKS];
 
       /*!
         Sets data, derivatives and fluxes of this block to zero.
@@ -385,68 +332,6 @@ namespace velocity_neighbor {
       }
 
 
-      /*!
-      Returns the id of a velocity cell that is neighboring given cell in given direction.
-      Returns error_velocity_cell in case the neighboring velocity cell would be outside
-      of the velocity block.
-      */
-      static unsigned int get_velocity_cell(
-         const unsigned int cell,
-         const unsigned int direction
-      ) {
-
-      int xyzDirection[3];
-      unsigned int block_len[3];
-      unsigned int offset[3];
-      
-      unsigned int neighborCell;
-      
-      const velocity_cell_indices_t indices = get_velocity_cell_indices(cell);
-      if (indices[0] == error_velocity_cell_index) {
-         return error_velocity_cell;
-      }
-      
-         unsigned int w=velocity_neighbor::WIDTH;
-         xyzDirection[0]=direction%w-1;
-         xyzDirection[1]=(direction/w)%w-1;
-         xyzDirection[2]=(direction/(w*w))%w-1; 
-         
-         block_len[0]=block_vx_length;
-         block_len[1]=block_vy_length;
-         block_len[2]=block_vz_length;
-
-         offset[0]=1;
-         offset[1]=block_vx_length;
-         offset[2]=block_vx_length * block_vy_length;
-
-         neighborCell=cell;
-         //loop over vx,vy,vz
-         for(int c=0;c<3;c++){
-            switch (xyzDirection[c]) {
-               case -1: //in negative direction
-                  if (indices[c] == 0) {
-                     return error_velocity_cell;
-                  } else {
-                     neighborCell+=-offset[c];
-                  }
-                  break;
-               case 0:
-                  break;
-               case 1: //in positive direction
-                  if (indices[c] >= block_len[c] - 1) {
-                     return error_velocity_cell;
-                  } else {
-                     neighborCell += offset[c];
-                  }
-                  break;
-               default:
-                  return error_velocity_cell;
-                  break;
-            }
-         }
-         return neighborCell;
-      }
-
    
       /*!     
       Returns the velocity cell at given location or
@@ -631,10 +516,6 @@ namespace velocity_neighbor {
          this->sysBoundaryLayer=0; /*!< Default value, layer not yet initialized*/
          this->null_block.clear();
 
-         // zero neighbor lists of null block
-         for (unsigned int i = 0; i < N_NEIGHBOR_VELOCITY_BLOCKS; i++) {
-            this->null_block.neighbors[i] = NULL;
-         }
 
          // reset spatial cell parameters
          for (unsigned int i = 0; i < CellParams::N_SPATIAL_CELL_PARAMS; i++) {
@@ -688,11 +569,6 @@ namespace velocity_neighbor {
             derivativesBVOL[i]=other.derivativesBVOL[i];
          }
 
-         
-         // zero neighbor lists of null block
-         for (unsigned int i = 0; i < N_NEIGHBOR_VELOCITY_BLOCKS; i++) {
-            this->null_block.neighbors[i] = NULL;
-         }
          //set null block data
          this->null_block.data=&(this->null_block_data[0]);
          this->null_block.fx=&(this->null_block_fx[0]);
@@ -705,30 +581,6 @@ namespace velocity_neighbor {
             //fix block data pointers   
             set_block_data_pointers(block_i);
             
-//fix neighbor lists of all normal blocks
-            //loop through neighbors
-            for(int offset_vx=-1;offset_vx<=1;offset_vx++)
-               for(int offset_vy=-1;offset_vy<=1;offset_vy++)
-                  for(int offset_vz=-1;offset_vz<=1;offset_vz++){
-                     // location of neighbor pointer in this block's neighbor list
-                     int neighbor_index=(1+offset_vx)+(1+offset_vy)*3+(1+offset_vz)*9;
-                     if(offset_vx==0 && offset_vy==0 && offset_vz==0)
-                        continue;
-
-                     unsigned int neighbor_block = get_velocity_block_from_offsets(block, offset_vx,offset_vy,offset_vz);
-                     //error, make neighbor null
-                     if (neighbor_block == error_velocity_block) {
-                        block_ptr->neighbors[neighbor_index] = NULL;
-                     }
-                     //neighbor not in cell, add null_block as neighbour
-                     else if (this->velocity_blocks.count(neighbor_block) == 0) {
-                        block_ptr->neighbors[neighbor_index] = &(this->null_block);
-                     }
-                     //add neighbor pointer
-                     else {
-                        block_ptr->neighbors[neighbor_index] = &(this->velocity_blocks.at(neighbor_block));
-                     }
-                  }
          }
 //         phiprof::stop("SpatialCell copy");
       }
@@ -1495,41 +1347,6 @@ namespace velocity_neighbor {
          block_ptr->parameters[BlockParams::DVY] = SpatialCell::cell_dvy;
          block_ptr->parameters[BlockParams::DVZ] = SpatialCell::cell_dvz;
 
-         // set neighbour pointers
-         unsigned int neighbor_block;
-         int neighbor_index=0;
-         
-         for(int offset_vx=-1;offset_vx<=1;offset_vx++)
-         for(int offset_vy=-1;offset_vy<=1;offset_vy++)
-         for(int offset_vz=-1;offset_vz<=1;offset_vz++){
-
-            // location of neighbor pointer in this block's neighbor list
-            neighbor_index=(1+offset_vx)+(1+offset_vy)*3+(1+offset_vz)*9;
-            if(offset_vx==0 && offset_vy==0 && offset_vz==0) continue;
-
-            neighbor_block = get_velocity_block_from_offsets(block, offset_vx,offset_vy,offset_vz);
-            if (neighbor_block == error_velocity_block) {
-               block_ptr->neighbors[neighbor_index] = NULL;
-            }
-            else if (this->velocity_blocks.count(neighbor_block) == 0) {
-               block_ptr->neighbors[neighbor_index] = &(this->null_block);
-            } else {
-               block_ptr->neighbors[neighbor_index] = &(this->velocity_blocks.at(neighbor_block));
-               //update the neighbor list of neighboring block
-               //index of current block in neighbors neighbor table
-               //FIXME: check this properly, or write it in a better way
-               int neighbor_neighbor_index=(1-offset_vx)+(1-offset_vy)*3+(1-offset_vz)*9;
-               Velocity_Block* neighbor_ptr = &(this->velocity_blocks.at(neighbor_block));
-               if (neighbor_ptr == NULL) {
-                  std::cerr << __FILE__ << ":" << __LINE__
-                            << " Block pointer == NULL" << std::endl;
-                  abort();
-               }
-               neighbor_ptr->neighbors[neighbor_neighbor_index] = block_ptr;
-            }
-         }
-         
-
          return true;
       }
       
@@ -1549,25 +1366,6 @@ namespace velocity_neighbor {
             return;
          }
 
-         //remove block from neighbors neighbor lists
-         unsigned int neighbor_block;
-         for(int offset_vx=-1;offset_vx<=1;offset_vx++)
-         for(int offset_vy=-1;offset_vy<=1;offset_vy++)
-         for(int offset_vz=-1;offset_vz<=1;offset_vz++) {
-
-            if(offset_vx==0 && offset_vy==0 && offset_vz==0) continue;
-
-            neighbor_block = get_velocity_block_from_offsets(block, offset_vx,offset_vy,offset_vz);
-            if (neighbor_block != error_velocity_block
-                && this->velocity_blocks.count(neighbor_block) > 0) {
-               // TODO use cached addresses of neighbors
-               Velocity_Block* neighbor_data = &(this->velocity_blocks.at(neighbor_block));
-               // update the neighbor list of neighboring block
-               // index of current block in neighbors neighbor table
-               int neighbor_neighbor_index=(1-offset_vx)+(1-offset_vy)*3+(1-offset_vz)*9;
-               neighbor_data->neighbors[neighbor_neighbor_index] = &(this->null_block);
-            }
-         }
          
          //Find where in the block list the removed block was (index to block list). We need to fill this hole.    
          unsigned int block_index = -1;
