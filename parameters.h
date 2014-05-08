@@ -90,7 +90,7 @@ struct Parameters {
    static bool propagateVlasovTranslation;      /*!< If true, distribution function is propagated in ordinary space during the simulation.*/
    static bool periodic_x, periodic_y, periodic_z; /*!< Whether spatial vlasov grid is periodic */
    
-   static Real maxAlfvenVelocity; /*!< Maximum Alfven velocity allowed in fastMS computation in LDZ. */
+   static Real maxWaveVelocity; /*!< Maximum wave velocity allowed in LDZ. */
    static Real resistivity; /*!< Resistivity in Ohm's law eta*J term. */
    static uint ohmHallTerm; /*!< Enable/choos spatial order of Hall term in Ohm's law JXB term. 0: off, 1: 1st spatial order, 2: 2nd spatial order. */
    static bool fieldSolverDiffusiveEterms; /*!< Enable resitive terms in the computation of E*/

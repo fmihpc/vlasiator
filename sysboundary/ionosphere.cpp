@@ -251,6 +251,9 @@ namespace SBC {
             }
             if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
                array[fs::drhodx] = limiter(rhovLeft[cp::RHO],cent[cp::RHO],rhovRght[cp::RHO]);
+               array[fs::dp11dx] = limiter(rhovLeft[cp::P_11],cent[cp::P_11],rhovRght[cp::P_11]);
+               array[fs::dp22dx] = limiter(rhovLeft[cp::P_22],cent[cp::P_22],rhovRght[cp::P_22]);
+               array[fs::dp33dx] = limiter(rhovLeft[cp::P_33],cent[cp::P_33],rhovRght[cp::P_33]);
                array[fs::dVxdx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX], rhovLeft[cp::RHO]),
                                            divideIfNonZero(    cent[cp::RHOVX],     cent[cp::RHO]),
                                            divideIfNonZero(rhovRght[cp::RHOVX], rhovRght[cp::RHO]));
@@ -274,6 +277,9 @@ namespace SBC {
             }
             if (RKCase == RK_ORDER2_STEP1) {
                array[fs::drhodx] = limiter(rhovLeft[cp::RHO_DT2],cent[cp::RHO_DT2],rhovRght[cp::RHO_DT2]);
+               array[fs::dp11dx] = limiter(rhovLeft[cp::P_11_DT2],cent[cp::P_11_DT2],rhovRght[cp::P_11_DT2]);
+               array[fs::dp22dx] = limiter(rhovLeft[cp::P_22_DT2],cent[cp::P_22_DT2],rhovRght[cp::P_22_DT2]);
+               array[fs::dp33dx] = limiter(rhovLeft[cp::P_33_DT2],cent[cp::P_33_DT2],rhovRght[cp::P_33_DT2]);
                array[fs::dVxdx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX_DT2], rhovLeft[cp::RHO_DT2]),
                                            divideIfNonZero(    cent[cp::RHOVX_DT2],     cent[cp::RHO_DT2]),
                                            divideIfNonZero(rhovRght[cp::RHOVX_DT2], rhovRght[cp::RHO_DT2]));
@@ -313,6 +319,9 @@ namespace SBC {
             }
             if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
                array[fs::drhody] = limiter(rhovLeft[cp::RHO],cent[cp::RHO],rhovRght[cp::RHO]);
+               array[fs::dp11dy] = limiter(rhovLeft[cp::P_11],cent[cp::P_11],rhovRght[cp::P_11]);
+               array[fs::dp22dy] = limiter(rhovLeft[cp::P_22],cent[cp::P_22],rhovRght[cp::P_22]);
+               array[fs::dp33dy] = limiter(rhovLeft[cp::P_33],cent[cp::P_33],rhovRght[cp::P_33]);
                array[fs::dVxdy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX], rhovLeft[cp::RHO]),
                                            divideIfNonZero(    cent[cp::RHOVX],     cent[cp::RHO]),
                                            divideIfNonZero(rhovRght[cp::RHOVX], rhovRght[cp::RHO]));
@@ -336,6 +345,9 @@ namespace SBC {
             }
             if (RKCase == RK_ORDER2_STEP1) {
                array[fs::drhody] = limiter(rhovLeft[cp::RHO_DT2],cent[cp::RHO_DT2],rhovRght[cp::RHO_DT2]);
+               array[fs::dp11dy] = limiter(rhovLeft[cp::P_11_DT2],cent[cp::P_11_DT2],rhovRght[cp::P_11_DT2]);
+               array[fs::dp22dy] = limiter(rhovLeft[cp::P_22_DT2],cent[cp::P_22_DT2],rhovRght[cp::P_22_DT2]);
+               array[fs::dp33dy] = limiter(rhovLeft[cp::P_33_DT2],cent[cp::P_33_DT2],rhovRght[cp::P_33_DT2]);
                array[fs::dVxdy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX_DT2], rhovLeft[cp::RHO_DT2]),
                                            divideIfNonZero(    cent[cp::RHOVX_DT2],     cent[cp::RHO_DT2]),
                                            divideIfNonZero(rhovRght[cp::RHOVX_DT2], rhovRght[cp::RHO_DT2]));
@@ -375,6 +387,9 @@ namespace SBC {
             }
             if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
                array[fs::drhodz] = limiter(rhovLeft[cp::RHO],cent[cp::RHO],rhovRght[cp::RHO]);
+               array[fs::dp11dz] = limiter(rhovLeft[cp::P_11],cent[cp::P_11],rhovRght[cp::P_11]);
+               array[fs::dp22dz] = limiter(rhovLeft[cp::P_22],cent[cp::P_22],rhovRght[cp::P_22]);
+               array[fs::dp33dz] = limiter(rhovLeft[cp::P_33],cent[cp::P_33],rhovRght[cp::P_33]);
                array[fs::dVxdz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX], rhovLeft[cp::RHO]),
                                            divideIfNonZero(    cent[cp::RHOVX],     cent[cp::RHO]),
                                            divideIfNonZero(rhovRght[cp::RHOVX], rhovRght[cp::RHO]));
@@ -398,6 +413,9 @@ namespace SBC {
             }
             if (RKCase == RK_ORDER2_STEP1) {
                array[fs::drhodz] = limiter(rhovLeft[cp::RHO_DT2],cent[cp::RHO_DT2],rhovRght[cp::RHO_DT2]);
+               array[fs::dp11dz] = limiter(rhovLeft[cp::P_11_DT2],cent[cp::P_11_DT2],rhovRght[cp::P_11_DT2]);
+               array[fs::dp22dz] = limiter(rhovLeft[cp::P_22_DT2],cent[cp::P_22_DT2],rhovRght[cp::P_22_DT2]);
+               array[fs::dp33dz] = limiter(rhovLeft[cp::P_33_DT2],cent[cp::P_33_DT2],rhovRght[cp::P_33_DT2]);
                array[fs::dVxdz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX_DT2], rhovLeft[cp::RHO_DT2]),
                                            divideIfNonZero(    cent[cp::RHOVX_DT2],     cent[cp::RHO_DT2]),
                                            divideIfNonZero(rhovRght[cp::RHOVX_DT2], rhovRght[cp::RHO_DT2]));

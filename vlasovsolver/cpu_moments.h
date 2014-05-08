@@ -67,6 +67,13 @@ template<typename REAL> void cpu_blockVelocitySecondMoments(
 ) {
    const REAL HALF = 0.5;
    
+   if(cellParams[cp_rho] == 0.0) {
+      cellParams[cp_p11] = 0.0;
+      cellParams[cp_p22] = 0.0;
+      cellParams[cp_p33] = 0.0;
+      return;
+   }
+   
    REAL averageVX = cellParams[cp_rhovx] / cellParams[cp_rho];
    REAL averageVY = cellParams[cp_rhovy] / cellParams[cp_rho];
    REAL averageVZ = cellParams[cp_rhovz] / cellParams[cp_rho];
@@ -83,8 +90,8 @@ template<typename REAL> void cpu_blockVelocitySecondMoments(
       nvz2_sum += avgs[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ);
    }
    
-   // Accumulate contributions coming from this velocity block to the 
-   // spatial cell velocity moments. If multithreading / OpenMP is used, 
+   // Accumulate contributions coming from this velocity block to the
+   // spatial cell velocity moments. If multithreading / OpenMP is used,
    // these updates need to be atomic:
    const REAL mpDV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ]*physicalconstants::MASS_PROTON;
    cellParams[cp_p11] += nvx2_sum * mpDV3;
@@ -102,7 +109,7 @@ template<typename UINT> void cpu_calcVelocityFirstMoments(
    const int cp_rhovy,
    const int cp_rhovz
 ) {
-   Velocity_Block* block=cell->at(blockId); //returns a reference to block            
+   Velocity_Block* block=cell->at(blockId); //returns a reference to block
    // Calculate velocity moments:
    cpu_blockVelocityFirstMoments(block->data,block->parameters,cell->parameters,cp_rho,cp_rhovx,cp_rhovy,cp_rhovz);
 }
@@ -123,9 +130,4 @@ template<typename UINT> void cpu_calcVelocitySecondMoments(
    cpu_blockVelocitySecondMoments(block->data,block->parameters,cell->parameters,cp_rho,cp_rhovx,cp_rhovy,cp_rhovz,cp_p11,cp_p22,cp_p33);
 }
 
-
 #endif
-      
-
-
- 

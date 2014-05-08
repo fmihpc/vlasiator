@@ -142,6 +142,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("PERB_vol",CellParams::PERBXVOL,3));
       if(*it == "Pressure")
          outputReducer->addOperator(new DRO::VariablePressure);
+         outputReducer->addOperator(new DRO::VariablePressureSolver);
       if(*it == "PTensor") {
          outputReducer->addOperator(new DRO::VariablePTensorDiagonal);
          outputReducer->addOperator(new DRO::VariablePTensorOffDiagonal);
@@ -150,6 +151,15 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhodx",fieldsolver::drhodx,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhody",fieldsolver::drhody,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("drhodz",fieldsolver::drhodz,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp11dx",fieldsolver::dp11dx,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp22dx",fieldsolver::dp11dx,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp33dx",fieldsolver::dp11dx,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp11dx",fieldsolver::dp11dy,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp22dx",fieldsolver::dp11dy,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp33dx",fieldsolver::dp11dy,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp11dx",fieldsolver::dp11dz,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp22dx",fieldsolver::dp11dz,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dp33dx",fieldsolver::dp11dz,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBxdy",fieldsolver::dPERBxdy,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dBGBxdy",fieldsolver::dBGBxdy,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorDerivatives("dPERBxdz",fieldsolver::dPERBxdz,1));

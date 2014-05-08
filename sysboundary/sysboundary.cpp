@@ -355,7 +355,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    
    timer=phiprof::initializeTimer("Compute process inner cells");
    phiprof::start(timer);
-   // Compute Vlasov boundary condition on system boundary/on process inner cells
+   // Compute Vlasov boundary condition on system boundary/process inner cells
    vector<CellID> localCells;
    getBoundaryCellList(mpiGrid,mpiGrid.get_local_cells_not_on_process_boundary(SYSBOUNDARIES_NEIGHBORHOOD_ID),localCells);
    
@@ -388,7 +388,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mp
    mpiGrid.wait_neighbor_data_update_sends();
    phiprof::stop(timer);
 
-//  No need to adjust, vlasovBoundaryCondition not allowed to modify block structure!!!   
+//  No need to adjust, vlasovBoundaryCondition not allowed to modify block structure!!!
 /*
   updateRemoteVelocityBlockLists(mpiGrid);
   adjustVelocityBlocks(mpiGrid);

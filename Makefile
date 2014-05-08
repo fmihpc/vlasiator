@@ -22,6 +22,7 @@ CXXFLAGS += -DPROFILE
 
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
 CXXFLAGS += -DNDEBUG
+# CXXFLAGS += -DDEBUG_SOLVERS
 
 #Set order of semilag solver in velocity space acceleration
 #  ACC_SEMILAG_PCONSTM	1st order
@@ -46,8 +47,8 @@ CXXFLAGS += -DUSE_AGNER_VECTORCLASS
 
 
 #Add -DFS_1ST_ORDER_SPACE or -DFS_1ST_ORDER_TIME to make the field solver first-order in space or time
-#CXXFLAGS += -DFS_1ST_ORDER_SPACE
-#CXXFLAGS += -DFS_1ST_ORDER_TIME
+# CXXFLAGS += -DFS_1ST_ORDER_SPACE
+# CXXFLAGS += -DFS_1ST_ORDER_TIME
 
 #//////////////////////////////////////////////////////
 # The rest of this file users shouldn't need to change

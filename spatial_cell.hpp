@@ -96,6 +96,8 @@ namespace spatial_cell {
       const uint64_t CELL_IOLOCALCELLID       = (1<<20);
       const uint64_t NEIGHBOR_VEL_BLOCK_FLUXES = (1<<21);
       const uint64_t CELL_HALL_TERM           = (1<<22);
+      const uint64_t CELL_P                   = (1<<23);
+      const uint64_t CELL_PDT2                = (1<<24);
       
       //all data, expect for the fx table (never needed on remote cells)
       const uint64_t ALL_DATA =
@@ -1104,6 +1106,17 @@ namespace velocity_neighbor {
                if((SpatialCell::mpi_transfer_type & Transfer::CELL_HALL_TERM)!=0){
                   displacements.push_back((uint8_t*) &(this->parameters[CellParams::EXHALL_000_100]) - (uint8_t*) this);
                   block_lengths.push_back(sizeof(Real) * 12);
+               }
+               
+               // send P tensor diagonal components
+               if((SpatialCell::mpi_transfer_type & Transfer::CELL_P)!=0){
+                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::P_11]) - (uint8_t*) this);
+                  block_lengths.push_back(sizeof(Real) * 3);
+               }
+               
+               if((SpatialCell::mpi_transfer_type & Transfer::CELL_PDT2)!=0){
+                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::P_11_DT2]) - (uint8_t*) this);
+                  block_lengths.push_back(sizeof(Real) * 3);
                }
                
                // send  sysBoundaryFlag

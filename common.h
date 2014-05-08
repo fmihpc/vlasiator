@@ -174,9 +174,18 @@ namespace CellParams {
       RHOVX_V,   /*!< RHOVX after propagation in velocity space*/
       RHOVY_V,   /*!< RHOVX after propagation in velocity space*/
       RHOVZ_V,   /*!< RHOVX after propagation in velocity space*/
-      P_11,   /*!< P_xx component */
-      P_22,   /*!< P_yy component */
-      P_33,   /*!< P_zz component */
+      P_11,     /*!< Pressure P_xx component, computed by Vlasov propagator. */
+      P_22,     /*!< Pressure P_yy component, computed by Vlasov propagator. */
+      P_33,     /*!< Pressure P_zz component, computed by Vlasov propagator. */
+      P_11_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_11_R and P_11_V. */
+      P_22_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_22_R and P_22_V. */
+      P_33_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_33_R and P_33_V. */
+      P_11_R,   /*!< P_xx component after propagation in ordinary space */
+      P_22_R,   /*!< P_yy component after propagation in ordinary space */
+      P_33_R,   /*!< P_zz component after propagation in ordinary space */
+      P_11_V,   /*!< P_xx component after propagation in velocity space */
+      P_22_V,   /*!< P_yy component after propagation in velocity space */
+      P_33_V,   /*!< P_zz component after propagation in velocity space */
       RHOLOSSADJUST,      /*!< Counter for massloss from the destroying blocks in blockadjustment*/
       RHOLOSSVELBOUNDARY, /*!< Counter for massloss through outflow boundaries in velocity space*/
       MAXVDT,             /*!< maximum timestep allowed in velocity space for this cell**/
@@ -233,6 +242,15 @@ namespace fieldsolver {
       dPERBzdxx,     /*!< Second derivative of face-averaged Bz to xx-direction. */
       dPERBzdyy,     /*!< Second derivative of face-averaged Bz to yy-direction. */
       dPERBzdxy,     /*!< Second derivative of face-averaged Bz to xy-direction. */
+      dp11dx,        /*!< Derivative of P_11 to x direction. */
+      dp11dy,        /*!< Derivative of P_11 to x direction. */
+      dp11dz,        /*!< Derivative of P_11 to x direction. */
+      dp22dx,        /*!< Derivative of P_22 to y direction. */
+      dp22dy,        /*!< Derivative of P_22 to y direction. */
+      dp22dz,        /*!< Derivative of P_22 to y direction. */
+      dp33dx,        /*!< Derivative of P_33 to z direction. */
+      dp33dy,        /*!< Derivative of P_33 to z direction. */
+      dp33dz,        /*!< Derivative of P_33 to z direction. */
       // End of insert for Hall term
       dVxdx,     /*!< Derivative of volume-averaged Vx to x-direction. */
       dVxdy,     /*!< Derivative of volume-averaged Vx to y-direction. */
@@ -308,7 +326,7 @@ const uint SIZE_VELBLOCK    = WID3; /*!< Number of cells in a velocity block. */
 namespace physicalconstants {
    const Real MU_0 = 1.25663706e-6;  /*!< Permeability of vacuo, unit: (kg m) / (s^2 A^2).*/
    const Real K_B = 1.3806503e-23;   /*!< Boltzmann's constant, unit: (kg m^2) / (s^2 K).*/
-   
+   const Real CHARGE = 1.60217653e-19; /*!< Elementary charge, unit: C. */
    const Real MASS_ELECTRON = 1.60238188e-31; /*!< Electron rest mass.*/
    const Real MASS_PROTON = 1.67262158e-27; /*!< Proton rest mass.*/
    const Real R_E = 6.3712e6; /*!< radius of the Earth. */

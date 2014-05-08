@@ -92,7 +92,7 @@ bool P::propagateField = true;
 uint P::maxAccelerationSubsteps=1;
 bool P::dynamicTimestep = true;
 
-Real P::maxAlfvenVelocity = 0.0;
+Real P::maxWaveVelocity = 0.0;
 Real P::resistivity = NAN;
 bool P::fieldSolverDiffusiveEterms = true;
 uint P::ohmHallTerm = 0;
@@ -175,7 +175,7 @@ bool Parameters::addParameters(){
    Readparameters::add("gridbuilder.timestep_max","Max. value for timesteps. If t_max limit is hit first, this step will never be reached",numeric_limits<uint>::max());
    
    // Field solver parameters
-   Readparameters::add("fieldsolver.maxAlfvenVelocity", "Maximum Alfven velocity allowed in the fast MS velocity determination in m/s, default unlimited", LARGE_REAL);
+   Readparameters::add("fieldsolver.maxWaveVelocity", "Maximum wave velocity allowed in the fastest velocity determination in m/s, default unlimited", LARGE_REAL);
    Readparameters::add("fieldsolver.resistivity", "Resistivity for the eta*J term in Ohm's law.", 0.0);
    Readparameters::add("fieldsolver.diffusiveEterms", "Enable diffusive terms in the computation of E",true);
    Readparameters::add("fieldsolver.ohmHallTerm", "Enable/choose spatial order of the Hall term in Ohm's law. 0: off, 1: 1st spatial order, 2: 2nd spatial order", 0);
@@ -288,7 +288,7 @@ bool Parameters::getParameters(){
    P::tstep = P::tstep_min;
    
    // Get field solver parameters
-   Readparameters::get("fieldsolver.maxAlfvenVelocity", P::maxAlfvenVelocity);
+   Readparameters::get("fieldsolver.maxWaveVelocity", P::maxWaveVelocity);
    Readparameters::get("fieldsolver.resistivity", P::resistivity);
    Readparameters::get("fieldsolver.diffusiveEterms", P::fieldSolverDiffusiveEterms);
    Readparameters::get("fieldsolver.ohmHallTerm", P::ohmHallTerm);

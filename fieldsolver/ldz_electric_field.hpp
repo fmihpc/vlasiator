@@ -16,23 +16,29 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
  * 
  * Selects the RHO/RHO_DT2 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
  * 
- * If fields are not propagated, rewturns 0.0 as there is no information propagating.
+ * If fields are not propagated, returns 0.0 as there is no information propagating.
  * 
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-template<typename REAL> REAL calculateFastMSspeedYZ(const REAL* cp, const REAL* derivs, const REAL* nbr_cp, const REAL* nbr_derivs, const REAL& By, const REAL& Bz, const REAL& dBydx, const REAL& dBydz, const REAL& dBzdx, const REAL& dBzdy, const REAL& ydir, const REAL& zdir, cint& RKCase
+template<typename REAL> REAL calculateWaveSpeedYZ(const REAL* cp, const REAL* derivs, const REAL* nbr_cp, const REAL* nbr_derivs, const REAL& By, const REAL& Bz, const REAL& dBydx, const REAL& dBydz, const REAL& dBzdx, const REAL& dBzdy, const REAL& ydir, const REAL& zdir, cint& RKCase
 ) {
    namespace fs = fieldsolver;
    namespace pc = physicalconstants;
-   REAL A_0, A_X, rho;
+   REAL A_0, A_X, rhom, p11, p22, p33;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       A_0  = HALF*(nbr_cp[CellParams::PERBX] + nbr_cp[CellParams::BGBX] + cp[CellParams::PERBX] + cp[CellParams::BGBX]);
       A_X  = (nbr_cp[CellParams::PERBX] + nbr_cp[CellParams::BGBX]) - (cp[CellParams::PERBX] + cp[CellParams::BGBX]);
-      rho = Parameters::m*(cp[CellParams::RHO] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz]);
+      rhom = pc::MASS_PROTON*(cp[CellParams::RHO] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz]);
+      p11 = cp[CellParams::P_11] + ydir*HALF*derivs[fs::dp11dy] + zdir*HALF*derivs[fs::dp11dz];
+      p22 = cp[CellParams::P_22] + ydir*HALF*derivs[fs::dp22dy] + zdir*HALF*derivs[fs::dp22dz];
+      p33 = cp[CellParams::P_33] + ydir*HALF*derivs[fs::dp33dy] + zdir*HALF*derivs[fs::dp33dz];
    } else { // RKCase == RK_ORDER2_STEP1
       A_0  = HALF*(nbr_cp[CellParams::PERBX_DT2] + nbr_cp[CellParams::BGBX] + cp[CellParams::PERBX_DT2] + cp[CellParams::BGBX]);
       A_X  = (nbr_cp[CellParams::PERBX_DT2] + nbr_cp[CellParams::BGBX]) - (cp[CellParams::PERBX_DT2] + cp[CellParams::BGBX]);
-      rho = Parameters::m*(cp[CellParams::RHO_DT2] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz]);
+      rhom = pc::MASS_PROTON*(cp[CellParams::RHO_DT2] + ydir*HALF*derivs[fs::drhody] + zdir*HALF*derivs[fs::drhodz]);
+      p11 = cp[CellParams::P_11_DT2] + ydir*HALF*derivs[fs::dp11dy] + zdir*HALF*derivs[fs::dp11dz];
+      p22 = cp[CellParams::P_22_DT2] + ydir*HALF*derivs[fs::dp22dy] + zdir*HALF*derivs[fs::dp22dz];
+      p33 = cp[CellParams::P_33_DT2] + ydir*HALF*derivs[fs::dp33dy] + zdir*HALF*derivs[fs::dp33dz];
    }
    const REAL A_Y  = nbr_derivs[fs::dPERBxdy] + nbr_derivs[fs::dBGBxdy] + derivs[fs::dPERBxdy] + derivs[fs::dBGBxdy];
    const REAL A_XY = nbr_derivs[fs::dPERBxdy] + nbr_derivs[fs::dBGBxdy] - (derivs[fs::dPERBxdy] + derivs[fs::dBGBxdy]);
@@ -44,12 +50,16 @@ template<typename REAL> REAL calculateFastMSspeedYZ(const REAL* cp, const REAL* 
    const REAL By2  = (By + zdir*HALF*dBydz)*(By + zdir*HALF*dBydz) + TWELWTH*dBydx*dBydx; // OK
    const REAL Bz2  = (Bz + ydir*HALF*dBzdy)*(Bz + ydir*HALF*dBzdy) + TWELWTH*dBzdx*dBzdx; // OK
    
+   const REAL vA2 = divideIfNonZero(Bx2+By2+Bz2, pc::MU_0*rhom); // Alfven speed
+   const REAL vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
+   const REAL vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, cp[CellParams::DX]*pc::CHARGE*sqrt(Bx2+By2+Bz2)) : 0.0; // whistler speed
+   
    if(!Parameters::propagateField) {
       return 0.0;
    } else {
       return min(
-         Parameters::maxAlfvenVelocity,
-         sqrt(divideIfNonZero(Bx2+By2+Bz2, pc::MU_0*rho))
+         Parameters::maxWaveVelocity,
+         sqrt(vA2 + vS2) + vW
       );
    }
 }
@@ -60,23 +70,29 @@ template<typename REAL> REAL calculateFastMSspeedYZ(const REAL* cp, const REAL* 
  * 
  * Selects the RHO/RHO_DT2 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
  * 
- * If fields are not propagated, rewturns 0.0 as there is no information propagating.
+ * If fields are not propagated, returns 0.0 as there is no information propagating.
  * 
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-template<typename REAL> REAL calculateFastMSspeedXZ(const REAL* cp, const REAL* derivs, const REAL* nbr_cp, const REAL* nbr_derivs, const REAL& Bx, const REAL& Bz, const REAL& dBxdy, const REAL& dBxdz, const REAL& dBzdx, const REAL& dBzdy, const REAL& xdir,const REAL& zdir, cint& RKCase
+template<typename REAL> REAL calculateWaveSpeedXZ(const REAL* cp, const REAL* derivs, const REAL* nbr_cp, const REAL* nbr_derivs, const REAL& Bx, const REAL& Bz, const REAL& dBxdy, const REAL& dBxdz, const REAL& dBzdx, const REAL& dBzdy, const REAL& xdir,const REAL& zdir, cint& RKCase
 ) {
    namespace fs = fieldsolver;
    namespace pc = physicalconstants;
-   REAL B_0, B_Y, rho;
+   REAL B_0, B_Y, rhom, p11, p22, p33;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       B_0  = HALF*(nbr_cp[CellParams::PERBY] + nbr_cp[CellParams::BGBY] + cp[CellParams::PERBY] + cp[CellParams::BGBY]);
       B_Y  = (nbr_cp[CellParams::PERBY] + nbr_cp[CellParams::BGBY]) - (cp[CellParams::PERBY] + cp[CellParams::BGBY]);
-      rho = Parameters::m*(cp[CellParams::RHO] + xdir*HALF*derivs[fs::drhodx] + zdir*HALF*derivs[fs::drhodz]);
+      rhom = pc::MASS_PROTON*(cp[CellParams::RHO] + xdir*HALF*derivs[fs::drhodx] + zdir*HALF*derivs[fs::drhodz]);
+      p11 = cp[CellParams::P_11] + xdir*HALF*derivs[fs::dp11dx] + zdir*HALF*derivs[fs::dp11dz];
+      p22 = cp[CellParams::P_22] + xdir*HALF*derivs[fs::dp22dx] + zdir*HALF*derivs[fs::dp22dz];
+      p33 = cp[CellParams::P_33] + xdir*HALF*derivs[fs::dp33dx] + zdir*HALF*derivs[fs::dp33dz];
    } else { // RKCase == RK_ORDER2_STEP1
       B_0  = HALF*(nbr_cp[CellParams::PERBY_DT2] + nbr_cp[CellParams::BGBY] + cp[CellParams::PERBY_DT2] + cp[CellParams::BGBY]);
       B_Y  = (nbr_cp[CellParams::PERBY_DT2] + nbr_cp[CellParams::BGBY]) - (cp[CellParams::PERBY_DT2] + cp[CellParams::BGBY]);
-      rho = Parameters::m*(cp[CellParams::RHO_DT2] + xdir*HALF*derivs[fs::drhodx] + zdir*HALF*derivs[fs::drhodz]);
+      rhom = pc::MASS_PROTON*(cp[CellParams::RHO_DT2] + xdir*HALF*derivs[fs::drhodx] + zdir*HALF*derivs[fs::drhodz]);
+      p11 = cp[CellParams::P_11_DT2] + xdir*HALF*derivs[fs::dp11dx] + zdir*HALF*derivs[fs::dp11dz];
+      p22 = cp[CellParams::P_22_DT2] + xdir*HALF*derivs[fs::dp22dx] + zdir*HALF*derivs[fs::dp22dz];
+      p33 = cp[CellParams::P_33_DT2] + xdir*HALF*derivs[fs::dp33dx] + zdir*HALF*derivs[fs::dp33dz];
    }
    const REAL B_X  = nbr_derivs[fs::dPERBydx] + nbr_derivs[fs::dBGBydx] + derivs[fs::dPERBydx] + derivs[fs::dBGBydx];
    const REAL B_XY = nbr_derivs[fs::dPERBydx] + nbr_derivs[fs::dBGBydx] - (derivs[fs::dPERBydx] + derivs[fs::dBGBydx]);
@@ -88,12 +104,16 @@ template<typename REAL> REAL calculateFastMSspeedXZ(const REAL* cp, const REAL* 
    const REAL Bx2  = (Bx + zdir*HALF*dBxdz)*(Bx + zdir*HALF*dBxdz) + TWELWTH*dBxdy*dBxdy; // OK
    const REAL Bz2  = (Bz + xdir*HALF*dBzdx)*(Bz + xdir*HALF*dBzdx) + TWELWTH*dBzdy*dBzdy; // OK
    
+   const REAL vA2 = divideIfNonZero(Bx2+By2+Bz2, pc::MU_0*rhom); // Alfven speed
+   const REAL vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
+   const REAL vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, cp[CellParams::DX]*pc::CHARGE*sqrt(Bx2+By2+Bz2)) : 0.0; // whistler speed
+   
    if(!Parameters::propagateField) {
       return 0.0;
    } else {
       return min(
-         Parameters::maxAlfvenVelocity,
-         sqrt(divideIfNonZero(Bx2+By2+Bz2, pc::MU_0*rho))
+         Parameters::maxWaveVelocity,
+         sqrt(vA2 + vS2) + vW
       );
    }
 }
@@ -104,23 +124,29 @@ template<typename REAL> REAL calculateFastMSspeedXZ(const REAL* cp, const REAL* 
  * 
  * Selects the RHO/RHO_DT2 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
  * 
- * If fields are not propagated, rewturns 0.0 as there is no information propagating.
+ * If fields are not propagated, returns 0.0 as there is no information propagating.
  * 
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-template<typename REAL> REAL calculateFastMSspeedXY(const REAL* cp, const REAL* derivs, const REAL* nbr_cp, const REAL* nbr_derivs, const REAL& Bx, const REAL& By, const REAL& dBxdy, const REAL& dBxdz, const REAL& dBydx, const REAL& dBydz, const REAL& xdir,const REAL& ydir, cint& RKCase
+template<typename REAL> REAL calculateWaveSpeedXY(const REAL* cp, const REAL* derivs, const REAL* nbr_cp, const REAL* nbr_derivs, const REAL& Bx, const REAL& By, const REAL& dBxdy, const REAL& dBxdz, const REAL& dBydx, const REAL& dBydz, const REAL& xdir,const REAL& ydir, cint& RKCase
 ) {
    namespace fs = fieldsolver;
    namespace pc = physicalconstants;
-   REAL C_0, C_Z, rho;
+   REAL C_0, C_Z, rhom, p11, p22, p33;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       C_0  = HALF*(nbr_cp[CellParams::PERBZ] + nbr_cp[CellParams::BGBZ] + cp[CellParams::PERBZ] + cp[CellParams::BGBZ]);
       C_Z  = (nbr_cp[CellParams::PERBZ] + nbr_cp[CellParams::BGBZ]) - (cp[CellParams::PERBZ] + cp[CellParams::BGBZ]);
-      rho = Parameters::m*(cp[CellParams::RHO] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody]);
+      rhom = pc::MASS_PROTON*(cp[CellParams::RHO] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody]);
+      p11 = cp[CellParams::P_11] + xdir*HALF*derivs[fs::dp11dx] + ydir*HALF*derivs[fs::dp11dy];
+      p22 = cp[CellParams::P_22] + xdir*HALF*derivs[fs::dp22dx] + ydir*HALF*derivs[fs::dp22dy];
+      p33 = cp[CellParams::P_33] + xdir*HALF*derivs[fs::dp33dx] + ydir*HALF*derivs[fs::dp33dy];
    } else { // RKCase == RK_ORDER2_STEP1
       C_0  = HALF*(nbr_cp[CellParams::PERBZ_DT2] + nbr_cp[CellParams::BGBZ] + cp[CellParams::PERBZ_DT2] + cp[CellParams::BGBZ]);
       C_Z  = (nbr_cp[CellParams::PERBZ_DT2] + nbr_cp[CellParams::BGBZ]) - (cp[CellParams::PERBZ_DT2] + cp[CellParams::BGBZ]);
-      rho = Parameters::m*(cp[CellParams::RHO_DT2] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody]);
+      rhom = pc::MASS_PROTON*(cp[CellParams::RHO_DT2] + xdir*HALF*derivs[fs::drhodx] + ydir*HALF*derivs[fs::drhody]);
+      p11 = cp[CellParams::P_11_DT2] + xdir*HALF*derivs[fs::dp11dx] + ydir*HALF*derivs[fs::dp11dy];
+      p22 = cp[CellParams::P_22_DT2] + xdir*HALF*derivs[fs::dp22dx] + ydir*HALF*derivs[fs::dp22dy];
+      p33 = cp[CellParams::P_33_DT2] + xdir*HALF*derivs[fs::dp33dx] + ydir*HALF*derivs[fs::dp33dy];
    }
    const REAL C_X  = nbr_derivs[fs::dPERBzdx] + nbr_derivs[fs::dBGBzdx] + derivs[fs::dPERBzdx] + derivs[fs::dBGBzdx];
    const REAL C_XZ = nbr_derivs[fs::dPERBzdx] + nbr_derivs[fs::dBGBzdx] - (derivs[fs::dPERBzdx] + derivs[fs::dBGBzdx]);
@@ -132,12 +158,16 @@ template<typename REAL> REAL calculateFastMSspeedXY(const REAL* cp, const REAL* 
    const REAL Bx2  = (Bx + ydir*HALF*dBxdy)*(Bx + ydir*HALF*dBxdy) + TWELWTH*dBxdz*dBxdz;
    const REAL By2  = (By + xdir*HALF*dBydx)*(By + xdir*HALF*dBydx) + TWELWTH*dBydz*dBydz;
    
+   const REAL vA2 = divideIfNonZero(Bx2+By2+Bz2, pc::MU_0*rhom); // Alfven speed
+   const REAL vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
+   const REAL vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, cp[CellParams::DX]*pc::CHARGE*sqrt(Bx2+By2+Bz2)) : 0.0; // whistler speed
+   
    if(!Parameters::propagateField) {
       return 0.0;
    } else {
       return min(
-         Parameters::maxAlfvenVelocity,
-         sqrt(divideIfNonZero(Bx2+By2+Bz2, pc::MU_0*rho))
+         Parameters::maxWaveVelocity,
+         sqrt(vA2 + vS2) + vW
       );
    }
 }
@@ -242,7 +272,7 @@ void calculateEdgeElectricFieldX(
    #endif
    creal* const nbr_cp_SW     = mpiGrid[nbrID_SW]->parameters;
    creal* const nbr_derivs_SW = mpiGrid[nbrID_SW]->derivatives;
-   c_y = calculateFastMSspeedYZ(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, By_S, Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, RKCase);
+   c_y = calculateWaveSpeedYZ(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, By_S, Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, RKCase);
    c_z = c_y;
    ay_neg   = max(ZERO,-Vy0 + c_y);
    ay_pos   = max(ZERO,+Vy0 + c_y);
@@ -289,7 +319,7 @@ void calculateEdgeElectricFieldX(
    #endif
    creal* const nbr_cp_SE     = mpiGrid[nbrID_SE]->parameters;
    creal* const nbr_derivs_SE = mpiGrid[nbrID_SE]->derivatives;
-   c_y = calculateFastMSspeedYZ(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, RKCase);
+   c_y = calculateWaveSpeedYZ(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, RKCase);
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
    ay_pos   = max(ay_pos,+Vy0 + c_y);
@@ -336,7 +366,7 @@ void calculateEdgeElectricFieldX(
    #endif
    creal* const nbr_cp_NW     = mpiGrid[nbrID_NW]->parameters;
    creal* const nbr_derivs_NW = mpiGrid[nbrID_NW]->derivatives;
-   c_y = calculateFastMSspeedYZ(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, RKCase);
+   c_y = calculateWaveSpeedYZ(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, RKCase);
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
    ay_pos   = max(ay_pos,+Vy0 + c_y);
@@ -383,7 +413,7 @@ void calculateEdgeElectricFieldX(
    #endif
    creal* const nbr_cp_NE     = mpiGrid[nbrID_NE]->parameters;
    creal* const nbr_derivs_NE = mpiGrid[nbrID_NE]->derivatives;
-   c_y = calculateFastMSspeedYZ(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, RKCase);
+   c_y = calculateWaveSpeedYZ(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, RKCase);
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
    ay_pos   = max(ay_pos,+Vy0 + c_y);
@@ -538,7 +568,7 @@ void calculateEdgeElectricFieldY(
    #endif
    creal* const nbr_cp_SW     = mpiGrid[nbrID_SW]->parameters;
    creal* const nbr_derivs_SW = mpiGrid[nbrID_SW]->derivatives;
-   c_z = calculateFastMSspeedXZ(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, Bx_W, Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, RKCase);
+   c_z = calculateWaveSpeedXZ(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, Bx_W, Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, RKCase);
    c_x = c_z;
    az_neg   = max(ZERO,-Vz0 + c_z);
    az_pos   = max(ZERO,+Vz0 + c_z);
@@ -585,7 +615,7 @@ void calculateEdgeElectricFieldY(
    #endif
    creal* const nbr_cp_SE     = mpiGrid[nbrID_SE]->parameters;
    creal* const nbr_derivs_SE = mpiGrid[nbrID_SE]->derivatives;
-   c_z = calculateFastMSspeedXZ(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, Bx_E, Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, RKCase);
+   c_z = calculateWaveSpeedXZ(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, Bx_E, Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, RKCase);
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 - c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
@@ -632,7 +662,7 @@ void calculateEdgeElectricFieldY(
    #endif
    creal* const nbr_cp_NW     = mpiGrid[nbrID_NW]->parameters;
    creal* const nbr_derivs_NW = mpiGrid[nbrID_NW]->derivatives;
-   c_z = calculateFastMSspeedXZ(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, Bx_W, Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, RKCase);
+   c_z = calculateWaveSpeedXZ(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, Bx_W, Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, RKCase);
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
@@ -679,7 +709,7 @@ void calculateEdgeElectricFieldY(
    #endif
    creal* const nbr_cp_NE     = mpiGrid[nbrID_NE]->parameters;
    creal* const nbr_derivs_NE = mpiGrid[nbrID_NE]->derivatives;
-   c_z = calculateFastMSspeedXZ(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, Bx_E, Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS, RKCase);
+   c_z = calculateWaveSpeedXZ(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, Bx_E, Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS, RKCase);
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
@@ -834,7 +864,7 @@ void calculateEdgeElectricFieldZ(
    #endif
    creal* const nbr_cp_SW     = mpiGrid[nbrID_SW]->parameters;
    creal* const nbr_derivs_SW = mpiGrid[nbrID_SW]->derivatives;
-   c_x = calculateFastMSspeedXY(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, Bx_S, By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, RKCase);
+   c_x = calculateWaveSpeedXY(cp_SW, derivs_SW, nbr_cp_SW, nbr_derivs_SW, Bx_S, By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, RKCase);
    c_y = c_x;
    ax_neg   = max(ZERO,-Vx0 + c_x);
    ax_pos   = max(ZERO,+Vx0 + c_x);
@@ -881,7 +911,7 @@ void calculateEdgeElectricFieldZ(
    #endif
    creal* const nbr_cp_SE     = mpiGrid[nbrID_SE]->parameters;
    creal* const nbr_derivs_SE = mpiGrid[nbrID_SE]->derivatives;
-   c_x = calculateFastMSspeedXY(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, Bx_S, By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, RKCase);
+   c_x = calculateWaveSpeedXY(cp_SE, derivs_SE, nbr_cp_SE, nbr_derivs_SE, Bx_S, By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, RKCase);
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x);
    ax_pos = max(ax_pos,+Vx0 + c_x);
@@ -928,7 +958,7 @@ void calculateEdgeElectricFieldZ(
    #endif
    creal* const nbr_cp_NW     = mpiGrid[nbrID_NW]->parameters;
    creal* const nbr_derivs_NW = mpiGrid[nbrID_NW]->derivatives;
-   c_x = calculateFastMSspeedXY(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, Bx_N, By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, RKCase);
+   c_x = calculateWaveSpeedXY(cp_NW, derivs_NW, nbr_cp_NW, nbr_derivs_NW, Bx_N, By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, RKCase);
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x); 
    ax_pos = max(ax_pos,+Vx0 + c_x);
@@ -975,7 +1005,7 @@ void calculateEdgeElectricFieldZ(
    #endif
    creal* const nbr_cp_NE     = mpiGrid[nbrID_NE]->parameters;
    creal* const nbr_derivs_NE = mpiGrid[nbrID_NE]->derivatives;
-   c_x = calculateFastMSspeedXY(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, Bx_N, By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS, RKCase);
+   c_x = calculateWaveSpeedXY(cp_NE, derivs_NE, nbr_cp_NE, nbr_derivs_NE, Bx_N, By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS, RKCase);
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x);
    ax_pos = max(ax_pos,+Vx0 + c_x);

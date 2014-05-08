@@ -403,6 +403,31 @@ namespace DRO {
    }
    
    
+   // Scalar pressure from the solvers
+   VariablePressureSolver::VariablePressureSolver(): DataReductionOperator() { }
+   VariablePressureSolver::~VariablePressureSolver() { }
+   
+   std::string VariablePressureSolver::getName() const {return "Pressure_from_solver";}
+   
+   bool VariablePressureSolver::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 1;
+      return true;
+   }
+   
+   bool VariablePressureSolver::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(&Pressure);
+      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariablePressureSolver::setSpatialCell(const SpatialCell* cell) {
+      Pressure = 1.0/3.0 * (cell->parameters[CellParams::P_11] + cell->parameters[CellParams::P_22] + cell->parameters[CellParams::P_33]);
+      return true;
+   }
+   
+   
    // YK Adding pressure calculations to Vlasiator.
    // p_ij = m/3 * integral((v - <V>)_i(v - <V>)_j * f(r,v) dV)
    
