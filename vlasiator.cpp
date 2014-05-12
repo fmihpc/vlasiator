@@ -49,7 +49,6 @@ using namespace std;
 using namespace phiprof;
 
 int globalflags::bailingOut = 0;
-bool globalflags::replaying = false;
 
 void addTimedBarrier(string name){
 #ifdef NDEBUG
@@ -139,13 +138,27 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &is
    return true;
 }
 
-bool runSimulation(int argn,char* args[]) {
-   int doBailout, myRank;
-   int doReplay = 0;
+
+
+int main(int argn,char* args[]) {
+   bool success = true;
+   int myRank, doBailout;
    const creal DT_EPSILON=1e-12;
    typedef Parameters P;
    Real newDt;
    bool dtIsChanged;
+
+
+// Init MPI:
+   int required=MPI_THREAD_FUNNELED;
+   int provided;
+   MPI_Init_thread(&argn,&args,required,&provided);
+   if (required > provided){
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      if(myRank==MASTER_RANK)
+         cerr << "(MAIN): MPI_Init_thread failed! Got " << provided << ", need "<<required <<endl;
+      exit(1);
+   }
    
    double initialWtime =  MPI_Wtime();
    
@@ -242,7 +255,9 @@ bool runSimulation(int argn,char* args[]) {
    
    // Free up memory:
    readparameters.finalize();
-   
+
+         
+
    // Save restart data
    if (P::writeInitialState) {
       phiprof::start("write-initial-state");
@@ -357,23 +372,9 @@ bool runSimulation(int argn,char* args[]) {
       
       phiprof::start("IO");
       
-      if(myRank == MASTER_RANK) {
-         doReplay = checkExternalCommands();
-      }
-      MPI_Bcast( &doReplay, 1 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
-      if(doReplay == 1) {
-         phiprof::stop("IO");
-         phiprof::stop("Simulation");
-         phiprof::stop("main");
-         finalizeFieldPropagator(mpiGrid);
-         phiprof::print(MPI_COMM_WORLD,"phiprof_full");
-         phiprof::print(MPI_COMM_WORLD,"phiprof_reduced",0.01);
-         logFile.close();
-         if (P::diagnosticInterval != 0) diagnostic.close();
-         
-         globalflags::replaying = true; // we need this flag in order to reset manually static variables at replay
-         
-         return true; // keepRunning is true, we perform a replay
+      if(myRank ==  MASTER_RANK) {
+         // check whether STOP has been passed (as of 2014-05-02)
+         checkExternalCommands();
       }
       
       //write out phiprof profiles and logs with a lower interval than normal
@@ -413,12 +414,6 @@ bool runSimulation(int argn,char* args[]) {
          }
          phiprof::stop("Diagnostic");
       }
-      // YK
-      cout << P::systemWriteTimeInterval.size() << endl;
-//       for (uint i = 0; i < P::systemWriteTimeInterval.size(); i++) {
-//          cout << P::systemWriteName[i] << endl;
-//       }
-      
       // write system, loop through write classes
       for (uint i = 0; i < P::systemWriteTimeInterval.size(); i++) {
          if (P::systemWriteTimeInterval[i] >= 0.0 &&
@@ -634,10 +629,6 @@ bool runSimulation(int argn,char* args[]) {
       
       phiprof::stop("Propagate",computedCells,"Cells");
       
-      if(globalflags::replaying) {
-         globalflags::replaying = false; // after this we do not need this flag any longer, all static variables have been reset
-      }
-      
       // Check timestep
       BAILOUT(P::dt < 1.0e-6)
       //Move forward in time
@@ -660,7 +651,7 @@ bool runSimulation(int argn,char* args[]) {
       if(P::tstep == P::tstep_min) {
          timePerStep=0.0;
       } else {
-         timePerStep=double(after  - startTime) / (P::tstep-P::tstep_min); 
+         timePerStep=double(after  - startTime) / (P::tstep-P::tstep_min);	
       }
       double timePerSecond=double(after  - startTime) / (P::t-P::t_min+DT_EPSILON);
       logFile << "(MAIN): All timesteps calculated." << endl;
@@ -681,28 +672,7 @@ bool runSimulation(int argn,char* args[]) {
    if (myRank == MASTER_RANK) logFile << "(MAIN): Exiting." << endl << writeVerbose;
    logFile.close();
    if (P::diagnosticInterval != 0) diagnostic.close();
-   
-   return false; // keepRunning will be false and we exit
-}
 
-
-int main(int argn,char* args[]) {
-   // Init MPI:
-   int required=MPI_THREAD_FUNNELED;
-   int provided, myRank;
-   MPI_Init_thread(&argn,&args,required,&provided);
-   if (required > provided){
-      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      if(myRank==MASTER_RANK)
-         cerr << "(MAIN): MPI_Init_thread failed! Got " << provided << ", need "<<required <<endl;
-      exit(1);
-   }
-   
-   bool keepRunning = true;
-   while(keepRunning) {
-      keepRunning = runSimulation(argn, args);
-   }
-   
    MPI_Finalize();
    return 0;
 }

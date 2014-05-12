@@ -63,13 +63,9 @@ namespace projects {
    Real verificationLarmor::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
 
       static bool isSet=false;
-      static bool replayedIsSet=false;
       //static variables should be threadprivate
-   #pragma omp threadprivate(isSet,replayedIsSet)
-      if(!replayedIsSet && globalflags::replaying) {
-         isSet = false;
-      }
-      
+   #pragma omp threadprivate(isSet)
+
       if(vx < Parameters::vxmin + 0.5 * dvx ||
          vy < Parameters::vymin + 0.5 * dvy ||
          vz < Parameters::vzmin + 0.5 * dvz ||
@@ -94,9 +90,6 @@ namespace projects {
          fabs(y-this->Y0)<dy &&
          fabs(z-this->Z0)<dz){
          isSet=true;
-         if(globalflags::replaying) {
-            replayedIsSet = true;
-         }
          return this->DENSITY/(dvx*dvy*dvz);
       }
 
