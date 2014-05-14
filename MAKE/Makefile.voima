@@ -56,7 +56,7 @@ INC_EIGEN = -I$(LIBRARY_PREFIX_B)/eigen/eigen-eigen-2249f9c22fe8
 #INC_DCCRG = -I$(LIBRARY_PREFIX_B)/dccrg-new
 
 #Official dccrg installation
-INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg-2013-02-20-cray-workarounds
+INC_DCCRG = -I$(LIBRARY_PREFIX_B)/dccrg
 # INC_DCCRG = -Idccrg
 
 

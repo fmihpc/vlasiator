@@ -39,29 +39,29 @@ namespace fieldsolver {
 } // namespace fieldsolver
 */
 
-void calculateVolumeAveragedFields(dccrg::Dccrg<SpatialCell>& mpiGrid);
-bool finalizeFieldPropagator(dccrg::Dccrg<SpatialCell>& mpiGrid);
-bool initializeFieldPropagator(dccrg::Dccrg<SpatialCell>& mpiGrid,
+void calculateVolumeAveragedFields(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+bool finalizeFieldPropagator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+bool initializeFieldPropagator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                SysBoundary& sysBoundaries);
-bool initializeFieldPropagatorAfterRebalance(dccrg::Dccrg<SpatialCell>& mpiGrid);
-bool propagateFields(dccrg::Dccrg<SpatialCell>& mpiGrid,
+bool initializeFieldPropagatorAfterRebalance(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+bool propagateFields(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                      SysBoundary& sysBoundaries,
                      creal& dt);
 void calculateEdgeElectricFieldX(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const CellID& cellID,
    cint& RKCase);
 void calculateEdgeElectricFieldY(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const CellID& cellID,
    cint& RKCase);
 void calculateEdgeElectricFieldZ(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const CellID& cellID,
    cint& RKCase);
 
 CellID getNeighbourID(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const CellID& cellID,
    const uchar& i,
    const uchar& j,

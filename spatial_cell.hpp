@@ -779,207 +779,212 @@ namespace spatial_cell {
          const Real value = block_ptr->data[cell];
          return value;
       }
-      
-      void mpi_datatype(
-         void*& address,
-         int& count,
-         MPI_Datatype& datatype,
-         const uint64_t /*cell_id*/,
-         const int /*sender*/,
-         const int /*receiver*/,
-         const bool receiving
-      ) {
-            address = this;
-            std::vector<MPI_Aint> displacements;
-            std::vector<int> block_lengths;
-            unsigned int block_index = 0;
 
-            /*create daatype for actual data if we are in the first two layers around a boundary, or if we send for thw whole system*/
-            if(this->mpiTransferEnabled &&
-	       (SpatialCell::mpiTransferAtSysBoundaries==false || this->sysBoundaryLayer ==1 || this->sysBoundaryLayer ==2 )
-	       ) {
-	      
-               //add data to send/recv to displacement and block length lists
-               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE1)!=0){
-                  //first copy values in case this is the send operation
+      /*! get mpi datatype for sending the cell data. */
+
+      boost::tuple<void*, int, MPI_Datatype> get_mpi_datatype(
+         const uint64_t cellID/*cell_id*/,
+         const int sender_rank/*sender*/,
+         const int receiver_rank/*receiver*/,
+         const bool receiving,
+         const int neighborhood) {
+         
+         std::vector<MPI_Aint> displacements;
+         std::vector<int> block_lengths;
+         unsigned int block_index = 0;
+         
+         /*create datatype for actual data if we are in the first two layers around a boundary, or if we send for thw whole system*/
+         if(this->mpiTransferEnabled && (SpatialCell::mpiTransferAtSysBoundaries==false || this->sysBoundaryLayer ==1 || this->sysBoundaryLayer ==2 )) {
+	    
+            //add data to send/recv to displacement and block length lists
+            if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE1)!=0){
+               //first copy values in case this is the send operation
+               this->mpi_number_of_blocks=this->number_of_blocks;
+               // send velocity block list size
+               displacements.push_back((uint8_t*) &(this->mpi_number_of_blocks) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(unsigned int));
+            }
+            
+            if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE2)!=0){
+               // STAGE1 should have been done, otherwise we have problems...
+               if(receiving) {
+                  //mpi_number_of_blocks transferred earlier
+                  this->mpi_velocity_block_list.resize(this->mpi_number_of_blocks);
+               }
+               else {
+                  //resize to correct size (it will avoid reallociation if it is big enough, I assume)
                   this->mpi_number_of_blocks=this->number_of_blocks;
-                  // send velocity block list size
-                  displacements.push_back((uint8_t*) &(this->mpi_number_of_blocks) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(unsigned int));
-               }
-            
-               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE2)!=0){
-                  // STAGE1 should have been done, otherwise we have problems...
-                  if(receiving) {
-                     //mpi_number_of_blocks transferred earlier
-                     this->mpi_velocity_block_list.resize(this->mpi_number_of_blocks);
-                  }
-                  else {
-                     //resize to correct size (it will avoid reallociation if it is big enough, I assume)
-                     this->mpi_number_of_blocks=this->number_of_blocks;
-                     this->mpi_velocity_block_list.resize(this->number_of_blocks);
-                     //copy values if this is the send operation                     
-                     for(unsigned int i=0;i< this->number_of_blocks;i++)
-                        this->mpi_velocity_block_list[i]=this->velocity_block_list[i];
+                  this->mpi_velocity_block_list.resize(this->number_of_blocks);
+                  //copy values if this is the send operation                     
+                  for(unsigned int i=0;i< this->number_of_blocks;i++)
+                     this->mpi_velocity_block_list[i]=this->velocity_block_list[i];
                      
-                  }
-                  // send velocity block list
-                  displacements.push_back((uint8_t*) &(this->mpi_velocity_block_list[0]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(unsigned int) * this->mpi_number_of_blocks);
                }
+               // send velocity block list
+               displacements.push_back((uint8_t*) &(this->mpi_velocity_block_list[0]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(unsigned int) * this->mpi_number_of_blocks);
+            }
 
-               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1)!=0){
-                  //Communicate size of list so that buffers can be allocated on receiving side
-                  if(!receiving)
-                     this->velocity_block_with_content_list_size=this->velocity_block_with_content_list.size();
-                  displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list_size) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(unsigned int));
+            if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1)!=0){
+               //Communicate size of list so that buffers can be allocated on receiving side
+               if(!receiving)
+                  this->velocity_block_with_content_list_size=this->velocity_block_with_content_list.size();
+               displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list_size) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(unsigned int));
+            }
+            if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2)!=0){
+               if(receiving) {
+                  this->velocity_block_with_content_list.resize(this->velocity_block_with_content_list_size);
                }
-               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2)!=0){
-                  if(receiving) {
-                     this->velocity_block_with_content_list.resize(this->velocity_block_with_content_list_size);
-                  }
-                  //velocity_block_with_content_list_size should first be updated, before this can be done (STAGE1)
-                  displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list[0]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(unsigned int)*this->velocity_block_with_content_list_size);
-               }
+               //velocity_block_with_content_list_size should first be updated, before this can be done (STAGE1)
+               displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list[0]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(unsigned int)*this->velocity_block_with_content_list_size);
+            }
 
-               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA)!=0){
+            if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA)!=0){
+               displacements.push_back((uint8_t*) &(this->block_data[0]) - (uint8_t*) this);               
+               block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH* this->number_of_blocks);
+            }
+               
+            if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA_TO_FLUXES)!=0){
+               if(receiving) {
+                  displacements.push_back((uint8_t*) &(this->block_fx[0]) - (uint8_t*) this);               
+               }
+               else {
                   displacements.push_back((uint8_t*) &(this->block_data[0]) - (uint8_t*) this);               
-                  block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH* this->number_of_blocks);
                }
+               block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH* this->number_of_blocks);
+            }
                
-               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA_TO_FLUXES)!=0){
-                  if(receiving) {
-                     displacements.push_back((uint8_t*) &(this->block_fx[0]) - (uint8_t*) this);               
-                  }
-                  else {
-                     displacements.push_back((uint8_t*) &(this->block_data[0]) - (uint8_t*) this);               
-                  }
-                  block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH* this->number_of_blocks);
-               }
-               
-               if((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_FLUXES)!=0){
-                  /*We are actually transfering the data of a
-                   * neighbor. The values of neighbor_block_data
-                   * and neighbor_number_of_blocks should be set in
-                   * solver.*/               
-                  displacements.push_back((uint8_t*) this->neighbor_block_data - (uint8_t*) this);               
-                  block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH* this->neighbor_number_of_blocks);
-               }
+            if((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_FLUXES)!=0){
+               /*We are actually transfering the data of a
+                * neighbor. The values of neighbor_block_data
+                * and neighbor_number_of_blocks should be set in
+                * solver.*/               
+               displacements.push_back((uint8_t*) this->neighbor_block_data - (uint8_t*) this);               
+               block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH* this->neighbor_number_of_blocks);
+            }
 
                
-               // send  spatial cell parameters
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_PARAMETERS)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[0]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * CellParams::N_SPATIAL_CELL_PARAMS);
-               }
+            // send  spatial cell parameters
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_PARAMETERS)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[0]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * CellParams::N_SPATIAL_CELL_PARAMS);
+            }
                
-               // send  spatial cell dimensions
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_DIMENSIONS)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::DX]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * 3);
-               }
+            // send  spatial cell dimensions
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_DIMENSIONS)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::DX]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 3);
+            }
                
-               // send  BGBX BGBY BGBZ
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_BGB)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBX]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * 3);
-               }
+            // send  BGBX BGBY BGBZ
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_BGB)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBX]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 3);
+            }
             
-               // send  BXVOL BYVOL BZVOL
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBXVOL]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * 6);
-               }
+            // send  BXVOL BYVOL BZVOL
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBXVOL]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 6);
+            }
             
-               // send  EX, EY EZ
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_E)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * 3);
-               }
+            // send  EX, EY EZ
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_E)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 3);
+            }
             
-               // send  EX_DT2, EY_DT2, EZ_DT2
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_EDT2)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX_DT2]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * 3);
-               }
+            // send  EX_DT2, EY_DT2, EZ_DT2
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_EDT2)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX_DT2]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 3);
+            }
             
-               // send  PERBX, PERBY, PERBZ
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_PERB)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::PERBX]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * 3);
-               }
+            // send  PERBX, PERBY, PERBZ
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_PERB)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::PERBX]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 3);
+            }
             
-               // send  PERBX_DT2, PERBY_DT2, PERBZ_DT2
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_PERBDT2)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::PERBX_DT2]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * 3);
-               }
+            // send  PERBX_DT2, PERBY_DT2, PERBZ_DT2
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_PERBDT2)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::PERBX_DT2]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 3);
+            }
             
-               // send RHO, RHOVX, RHOVY, RHOVZ
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_RHO_RHOV)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHO]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * 4);
-               }
+            // send RHO, RHOVX, RHOVY, RHOVZ
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_RHO_RHOV)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHO]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 4);
+            }
             
-               // send RHO_DT2, RHOVX_DT2, RHOVY_DT2, RHOVZ_DT2
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_RHODT2_RHOVDT2)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHO_DT2]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * 4);
-               }
+            // send RHO_DT2, RHOVX_DT2, RHOVY_DT2, RHOVZ_DT2
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_RHODT2_RHOVDT2)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHO_DT2]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 4);
+            }
             
-               // send  spatial cell derivatives
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_DERIVATIVES)!=0){
-                  displacements.push_back((uint8_t*) &(this->derivatives[0]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * fieldsolver::N_SPATIAL_CELL_DERIVATIVES);
+            // send  spatial cell derivatives
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_DERIVATIVES)!=0){
+               displacements.push_back((uint8_t*) &(this->derivatives[0]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * fieldsolver::N_SPATIAL_CELL_DERIVATIVES);
                   
-               }
+            }
 
-               // send  spatial cell BVOL derivatives
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL_DERIVATIVES)!=0){
-                  displacements.push_back((uint8_t*) &(this->derivativesBVOL[0]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * bvolderivatives::N_BVOL_DERIVATIVES);
-               }
+            // send  spatial cell BVOL derivatives
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL_DERIVATIVES)!=0){
+               displacements.push_back((uint8_t*) &(this->derivativesBVOL[0]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * bvolderivatives::N_BVOL_DERIVATIVES);
+            }
 
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_IOLOCALCELLID)!=0){
-                  displacements.push_back((uint8_t*) &(this->ioLocalCellId) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(uint64_t));
-               }
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_IOLOCALCELLID)!=0){
+               displacements.push_back((uint8_t*) &(this->ioLocalCellId) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(uint64_t));
+            }
 
-               // send  sysBoundaryFlag        
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_SYSBOUNDARYFLAG)!=0){
-                  displacements.push_back((uint8_t*) &(this->sysBoundaryFlag) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(uint));
-                  displacements.push_back((uint8_t*) &(this->sysBoundaryLayer) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(uint));
-               }
-            
-            
-               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_PARAMETERS)!=0){
-                  displacements.reserve(displacements.size()+this->velocity_blocks.size());
-                  block_lengths.reserve(block_lengths.size()+this->velocity_blocks.size());
-                  for(block_index=0;block_index<this->number_of_blocks;block_index++){
-                     // TODO: use cached block addresses
-                     displacements.push_back((uint8_t*) this->velocity_blocks.at(this->velocity_block_list[block_index]).parameters - (uint8_t*) this);
-                     block_lengths.push_back(sizeof(Real) * BlockParams::N_VELOCITY_BLOCK_PARAMS);
-                  }
-               }
+            // send  sysBoundaryFlag        
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_SYSBOUNDARYFLAG)!=0){
+               displacements.push_back((uint8_t*) &(this->sysBoundaryFlag) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(uint));
+               displacements.push_back((uint8_t*) &(this->sysBoundaryLayer) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(uint));
             }
             
-            if (displacements.size() > 0) {
-               count = 1;
-               MPI_Type_create_hindexed(
-                  displacements.size(),
-                  &block_lengths[0],
-                  &displacements[0],
-                  MPI_BYTE,
-                  &datatype
-                  );
-            } else {
-               count = 0;
-               datatype = MPI_BYTE;
+            
+            if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_PARAMETERS)!=0){
+               displacements.reserve(displacements.size()+this->velocity_blocks.size());
+               block_lengths.reserve(block_lengths.size()+this->velocity_blocks.size());
+               for(block_index=0;block_index<this->number_of_blocks;block_index++){
+                  // TODO: use cached block addresses
+                  displacements.push_back((uint8_t*) this->velocity_blocks.at(this->velocity_block_list[block_index]).parameters - (uint8_t*) this);
+                  block_lengths.push_back(sizeof(Real) * BlockParams::N_VELOCITY_BLOCK_PARAMS);
+               }
             }
+         }
+
+
+         void* address = this;
+         int count;
+         MPI_Datatype datatype;
+
+         
+         if (displacements.size() > 0) {
+            count = 1;
+            MPI_Type_create_hindexed(
+               displacements.size(),
+               &block_lengths[0],
+               &displacements[0],
+               MPI_BYTE,
+               &datatype
+                                     );
+         } else {
+            count = 0;
+            datatype = MPI_BYTE;
+         }
+
+         return  boost::make_tuple(address,count,datatype);
       }
 
       /*!

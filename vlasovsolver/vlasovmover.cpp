@@ -54,7 +54,7 @@ creal EPSILON = 1.0e-25;
 
 */
 
-void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid, creal dt) {
+void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal dt) {
    typedef Parameters P;
    int trans_timer;
    
@@ -76,7 +76,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid, creal dt) {
       phiprof::start(trans_timer);
       /*start by doing all transfers in a blocking fashion (communication stage can be optimized separately) */
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA_TO_FLUXES);
-      mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);  
+      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);  
       phiprof::stop(trans_timer);
 #pragma omp parallel
       {
@@ -109,7 +109,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid, creal dt) {
       phiprof::start(trans_timer);
       /*start by doing all transfers in a blocking fashion (communication stage can be optimized separately) */
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA_TO_FLUXES);
-      mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);  
+      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);  
       phiprof::stop(trans_timer);
 #pragma omp parallel
       {
@@ -142,7 +142,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid, creal dt) {
       phiprof::start(trans_timer);
       /*start by doing all transfers in a blocking fashion (communication stage can be optimized separately) */
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA_TO_FLUXES);
-      mpiGrid.update_remote_neighbor_data(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);  
+      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);  
       phiprof::stop(trans_timer);
 #pragma omp parallel
       {
@@ -220,7 +220,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell>& mpiGrid, creal dt) {
 
 
 void calculateAcceleration(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    Real dt
                            ) {
 
@@ -283,7 +283,7 @@ void calculateAcceleration(
 
 
 
-void calculateInterpolatedVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid,
+void calculateInterpolatedVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                           const int cp_rho, const int cp_rhovx, const int cp_rhovy, const int cp_rhovz) {
    vector<CellID> cells;
    cells=mpiGrid.get_cells();
@@ -328,7 +328,7 @@ void calculateCellVelocityMoments(
 }
  
 
-void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid){
+void calculateVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
    vector<CellID> cells;
    cells=mpiGrid.get_cells();
    phiprof::start("Calculate moments"); 

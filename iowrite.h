@@ -2,6 +2,7 @@
 #define IOWRITE_H
 #include "mpi.h"
 #include <dccrg.hpp>
+#include <dccrg_cartesian_geometry.hpp>
 #include <string>
 
 #include "spatial_cell.hpp"
@@ -20,7 +21,7 @@
 
 
 bool writeGrid(
-   dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    DataReducer& dataReducer,
    const uint& index,
    const bool writeGhosts = true
@@ -38,7 +39,7 @@ bool writeGrid(
 */
 
 
-bool writeRestart(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
+bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                DataReducer& dataReducer,
                const std::string& name,
                const uint& fileIndex,
@@ -56,6 +57,6 @@ bool writeRestart(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
 \param dataReducer Contains datareductionoperators that are used to compute diagnostic data
 */
 
-bool writeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid, DataReducer& dataReducer);
+bool writeDiagnostic(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, DataReducer& dataReducer);
 
 #endif

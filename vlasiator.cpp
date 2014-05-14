@@ -60,7 +60,7 @@ void addTimedBarrier(string name){
 }
 
 
-bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &isChanged) {
+bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,Real &newDt, bool &isChanged) {
 
    phiprof::start("compute-timestep");
    //compute maximum time-step, this cannot be done at the first
@@ -162,7 +162,6 @@ int main(int argn,char* args[]) {
    
    MPI_Comm comm = MPI_COMM_WORLD;
    MPI_Comm_rank(comm,&myRank);
-   dccrg::Dccrg<SpatialCell> mpiGrid;
    SysBoundary sysBoundaries;
    bool isSysBoundaryCondDynamic;
    
@@ -221,6 +220,7 @@ int main(int argn,char* args[]) {
       FULL_NEIGHBORHOOD. Block lists up to date for
       VLASOV_SOLVER_NEIGHBORHOOD (but dist function has not been communicated)
    */
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
    initializeGrid(argn,args,mpiGrid,sysBoundaries,*project);
    
    isSysBoundaryCondDynamic = sysBoundaries.isDynamic();

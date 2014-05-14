@@ -261,7 +261,7 @@ bool _readBlockData(
    const vector<uint>& nBlocks,
    const uint64_t localBlockStartOffset,
    const uint64_t localBlocks,
-   dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
 ) {
   uint64_t arraySize;
   uint64_t avgVectorSize;
@@ -380,7 +380,7 @@ bool _readBlockData(
    const vector<uint>& nBlocks,
    const uint64_t localBlockStartOffset,
    const uint64_t localBlocks,
-   dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
 ) {
   uint64_t arraySize;
   uint64_t avgVectorSize;
@@ -486,7 +486,7 @@ bool readBlockData(
    const vector<uint>& nBlocks,
    const uint64_t localBlockStartOffset,
    const uint64_t localBlocks,
-   dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
 ) {
    uint64_t arraySize;
    uint64_t vectorSize;
@@ -560,7 +560,7 @@ static bool _readCellParamsVariable(U & file,
 			    const string& variableName,
                             const size_t cellParamsIndex,
                             const size_t expectedVectorSize,
-                            dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid){
+                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
    uint64_t arraySize;
    uint64_t vectorSize;
    datatype::type dataType;
@@ -618,7 +618,7 @@ bool readCellParamsVariable(U & file,
 			    const string& variableName,
                             const size_t cellParamsIndex,
                             const size_t expectedVectorSize,
-                            dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid){
+                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
    uint64_t arraySize;
    uint64_t vectorSize;
    datatype::type dataType;
@@ -818,7 +818,7 @@ float checkVersion( Reader & vlsvReader ) {
  \sa readGrid
  */
 template <class T>
-bool exec_readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
+bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                    const std::string& name) {
    vector<uint64_t> fileCells; /*< CellIds for all cells in file*/
    vector<uint> nBlocks;/*< Number of blocks for all cells in file*/
@@ -951,12 +951,15 @@ bool exec_readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
 
    //set cell coordinates based on cfg (mpigrid) information
    for(uint i=0;i<gridCells.size();i++){
-      mpiGrid[gridCells[i]]->parameters[CellParams::XCRD] = mpiGrid.get_cell_x_min(gridCells[i]);
-      mpiGrid[gridCells[i]]->parameters[CellParams::YCRD] = mpiGrid.get_cell_y_min(gridCells[i]);
-      mpiGrid[gridCells[i]]->parameters[CellParams::ZCRD] = mpiGrid.get_cell_z_min(gridCells[i]);
-      mpiGrid[gridCells[i]]->parameters[CellParams::DX  ] = mpiGrid.get_cell_length_x(gridCells[i]);
-      mpiGrid[gridCells[i]]->parameters[CellParams::DY  ] = mpiGrid.get_cell_length_y(gridCells[i]);
-      mpiGrid[gridCells[i]]->parameters[CellParams::DZ  ] = mpiGrid.get_cell_length_z(gridCells[i]);
+      boost::array<double, 3> cell_min = mpiGrid.geometry.get_min(gridCells[i]);
+      boost::array<double, 3> cell_length = mpiGrid.geometry.get_length(gridCells[i]);
+      
+      mpiGrid[gridCells[i]]->parameters[CellParams::XCRD] = cell_min[0];
+      mpiGrid[gridCells[i]]->parameters[CellParams::YCRD] = cell_min[1];
+      mpiGrid[gridCells[i]]->parameters[CellParams::ZCRD] = cell_min[2];
+      mpiGrid[gridCells[i]]->parameters[CellParams::DX  ] = cell_length[0];
+      mpiGrid[gridCells[i]]->parameters[CellParams::DY  ] = cell_length[1];
+      mpiGrid[gridCells[i]]->parameters[CellParams::DZ  ] = cell_length[2];
    }
    //where local data start in the blocklists
    uint64_t localBlockStartOffset=0;
@@ -1008,7 +1011,7 @@ bool exec_readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
 \param mpiGrid Vlasiator's grid
 \param name Name of the restart file e.g. "restart.00052.vlsv"
 */
-bool readGrid(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid,
+bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
               const std::string& name){
    Reader vlsvCheck;
    vlsvCheck.open( name );
