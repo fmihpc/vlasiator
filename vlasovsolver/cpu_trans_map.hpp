@@ -56,28 +56,26 @@ bool do_translate_cell(SpatialCell* SC){
  TODO: not needed anymore as we do not need to compute ngbrs for remote cells
  */
 
-CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell>& mpiGrid,
+CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                             const CellID& cellID,
                             const bool include_first_boundary_layer,
                             const int spatial_di,
                             const int spatial_dj,
                             const int spatial_dk ) {
-   dccrg::Types<3>::indices_t indices_unsigned = mpiGrid.get_indices(cellID);
+   dccrg::Types<3>::indices_t indices_unsigned = mpiGrid.mapping.get_indices(cellID);
    int64_t indices[3];
-   int64_t length[3];
-
+   dccrg::Grid_Length::type length = mpiGrid.mapping.length.get();
+   
+   //boost::array<double, 3> cell_length = mpiGrid.geometry.get_length(cells[i]);
+   
    //compute raw new indices
    indices[0] = spatial_di + indices_unsigned[0];
    indices[1] = spatial_dj + indices_unsigned[1];
    indices[2] = spatial_dk + indices_unsigned[2];
-   //size of grid (unrefined)
-   length[0] = mpiGrid.get_length_x();
-   length[1] = mpiGrid.get_length_y();
-   length[2] = mpiGrid.get_length_z();
    
    //take periodicity into account
    for(uint i = 0; i<3; i++) {
-      if(mpiGrid.is_periodic(i)) {
+      if(mpiGrid.topology.is_periodic(i)) {
          while(indices[i] < 0 )
             indices[i] += length[i];
          while(indices[i] >= length[i] )
@@ -98,7 +96,7 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell>& mpiGrid,
       indices_unsigned[i] = indices[i];
    }
    //get nbrID
-   CellID nbrID =  mpiGrid.get_cell_from_indices(indices_unsigned,0);
+   CellID nbrID =  mpiGrid.mapping.get_cell_from_indices(indices_unsigned,0);
 
    if (nbrID == dccrg::error_cell ) {
       std::cerr << __FILE__ << ":" << __LINE__
@@ -137,7 +135,7 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell>& mpiGrid,
  * cells (i.e. boundary condition uses constant extrapolation for the
  * stencil values at boundaries*/
   
-void compute_spatial_source_neighbors(const dccrg::Dccrg<SpatialCell>& mpiGrid,
+void compute_spatial_source_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       const CellID& cellID,
                                       const uint dimension,
                                       CellID *neighbors){
@@ -175,7 +173,7 @@ void compute_spatial_source_neighbors(const dccrg::Dccrg<SpatialCell>& mpiGrid,
 }
 
 /*compute spatial target neighbors, stencil has a size of 3. No boundary cells are included*/
-void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell>& mpiGrid,
+void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       const CellID& cellID,
                                       const uint dimension,
                                       CellID *neighbors){
@@ -201,7 +199,7 @@ void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell>& mpiGrid,
  * then neighboring spatial cells (in the dimension). neighbors
  * generated with compute_spatial_neighbors_wboundcond)*/
 
-inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID, const CellID *source_neighbors, const uint blockID, Real * __restrict__ values, int dimension){
+inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const CellID cellID, const CellID *source_neighbors, const uint blockID, Real * __restrict__ values, int dimension){
    uint cell_indices_to_id[3]={};
    switch (dimension){
        case 0:
@@ -259,7 +257,7 @@ inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid,const
   k -> j
   
 */
-inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, const CellID cellID, const CellID *target_neighbors, const uint blockID, Vec4 * __restrict__ target_values, int dimension){
+inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const CellID cellID, const CellID *target_neighbors, const uint blockID, Vec4 * __restrict__ target_values, int dimension){
    uint cell_indices_to_id[3];
   
    switch (dimension){
@@ -328,7 +326,7 @@ inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, con
   touch data. FOr remote cells fx is already up to data as we receive there.
   
 */
-bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, const CellID cellID){
+bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const CellID cellID){
    bool return_value=false;
    SpatialCell* spatial_cell = mpiGrid[cellID];   
    /*if we are on boundary then we do not set the data values to zero as these cells should not be updated*/
@@ -395,7 +393,7 @@ bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell>& mpiGrid, const Ce
 OpenMP region (as long as it does only one dimension per parallel
 refion). It is safe as each thread only computes certain blocks (blockID%tnum_threads = thread_num */
 
-bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,const uint dimension, const Real dt) {
+bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const CellID cellID,const uint dimension, const Real dt) {
    /*values used with an stencil in 1 dimension, initialized to 0. Contains a block, and its spatial neighbours in one dimension */  
    Real dz,z_min, dvz,vz_min;
    SpatialCell* spatial_cell = mpiGrid[cellID];
@@ -572,7 +570,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CellID cellID,c
   \par direction: 1 for + dir, -1 for - dir
 */
   
-void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell>& mpiGrid, const uint dimension, int direction) {
+void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const uint dimension, int direction) {
    const vector<CellID> local_cells = mpiGrid.get_cells();
    const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
    vector<CellID> receive_cells;
@@ -658,16 +656,16 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell>& mpiGrid, cons
    
    switch(dimension) {
        case 0:
-          if(direction > 0) mpiGrid.update_remote_neighbor_data(SHIFT_P_X_NEIGHBORHOOD_ID);  
-          if(direction < 0) mpiGrid.update_remote_neighbor_data(SHIFT_M_X_NEIGHBORHOOD_ID);  
+          if(direction > 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_P_X_NEIGHBORHOOD_ID);  
+          if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_M_X_NEIGHBORHOOD_ID);  
           break;
        case 1:
-          if(direction > 0) mpiGrid.update_remote_neighbor_data(SHIFT_P_Y_NEIGHBORHOOD_ID);  
-          if(direction < 0) mpiGrid.update_remote_neighbor_data(SHIFT_M_Y_NEIGHBORHOOD_ID);  
+          if(direction > 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_P_Y_NEIGHBORHOOD_ID);  
+          if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_M_Y_NEIGHBORHOOD_ID);  
           break;
        case 2:
-          if(direction > 0) mpiGrid.update_remote_neighbor_data(SHIFT_P_Z_NEIGHBORHOOD_ID);  
-          if(direction < 0) mpiGrid.update_remote_neighbor_data(SHIFT_M_Z_NEIGHBORHOOD_ID);  
+          if(direction > 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_P_Z_NEIGHBORHOOD_ID);  
+          if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_M_Z_NEIGHBORHOOD_ID);  
           break;
    }
 

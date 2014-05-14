@@ -50,40 +50,40 @@ namespace SBC {
          creal& t,
          Project &project
       );
-      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell>& mpiGrid);
+      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
       virtual bool applyInitialState(
-         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          Project &project
       );
 //       virtual bool applySysBoundaryCondition(
-//          const dccrg::Dccrg<SpatialCell>& mpiGrid,
+//          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 //          creal& t
 //       );
       virtual Real fieldSolverBoundaryCondMagneticField(
-         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
          creal& dt,
          cuint& component
       );
       virtual void fieldSolverBoundaryCondElectricField(
-         dccrg::Dccrg<SpatialCell>& mpiGrid,
+         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
          cuint RKCase,
          cuint component
       );
       virtual void fieldSolverBoundaryCondDerivatives(
-         dccrg::Dccrg<SpatialCell>& mpiGrid,
+         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
          cuint& RKCase,
          cuint& component
       );
       virtual void fieldSolverBoundaryCondBVOLDerivatives(
-         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
          cuint& component
       );
       virtual void vlasovBoundaryCondition(
-         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID
       );
       
@@ -99,7 +99,7 @@ namespace SBC {
       
       bool generateTemplateCells(creal& t);
       virtual void generateTemplateCell(spatial_cell::SpatialCell& templateCell, int inputDataIndex, creal& t);
-      bool setCellsFromTemplate(const dccrg::Dccrg<SpatialCell>& mpiGrid);
+      bool setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
       
       /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
       bool facesToProcess[6];

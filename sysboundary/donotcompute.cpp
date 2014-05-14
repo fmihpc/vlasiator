@@ -43,12 +43,12 @@ namespace SBC {
       return true;
    }
    
-   bool DoNotCompute::assignSysBoundary(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   bool DoNotCompute::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
       return true;
    }
    
    bool DoNotCompute::applyInitialState(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       Project &project
    ) {
       vector<uint64_t> cells = mpiGrid.get_cells();
@@ -85,7 +85,7 @@ namespace SBC {
       return true;
    }
    
-   //    bool DoNotCompute::applySysBoundaryCondition(const dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t) {
+   //    bool DoNotCompute::applySysBoundaryCondition(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t) {
 //       return true;
 //    }
    

@@ -72,7 +72,7 @@ namespace SBC {
       return success;
    }
    
-   bool SetByUser::assignSysBoundary(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   bool SetByUser::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
       vector<CellID> cells = mpiGrid.get_cells();
       for(uint i = 0; i < cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
@@ -97,7 +97,7 @@ namespace SBC {
    }
    
    bool SetByUser::applyInitialState(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       Project &project
    ) {
       bool success;
@@ -108,7 +108,7 @@ namespace SBC {
    }
    
    Real SetByUser::fieldSolverBoundaryCondMagneticField(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       creal& dt,
       cuint& component
@@ -139,7 +139,7 @@ namespace SBC {
    }
    
    void SetByUser::fieldSolverBoundaryCondElectricField(
-      dccrg::Dccrg<SpatialCell>& mpiGrid,
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       cuint RKCase,
       cuint component
@@ -161,7 +161,7 @@ namespace SBC {
    }
    
    void SetByUser::fieldSolverBoundaryCondDerivatives(
-      dccrg::Dccrg<SpatialCell>& mpiGrid,
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       cuint& RKCase,
       cuint& component
@@ -170,7 +170,7 @@ namespace SBC {
    }
    
    void SetByUser::fieldSolverBoundaryCondBVOLDerivatives(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       cuint& component
    ) {
@@ -178,13 +178,13 @@ namespace SBC {
    }
    
    void SetByUser::vlasovBoundaryCondition(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
    ) {
       // No need to do anything in this function, as the propagators do not touch the distribution function   
    }
    
-   bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
       vector<uint64_t> cells = mpiGrid.get_cells();
 #pragma omp parallel for
       for (uint i=0; i<cells.size(); i++) {
