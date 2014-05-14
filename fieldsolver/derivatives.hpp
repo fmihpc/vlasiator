@@ -101,8 +101,8 @@ static void calculateDerivatives(
             array[fs::dPERBydxx] = 0.0;
             array[fs::dPERBzdxx] = 0.0;
          } else {
-            array[fs::dPERBydxx] = left[cp::PERBY_DT2] + rght[cp::PERBY_DT2] - 2.0*cent[cp::PERBY_DT2];
-            array[fs::dPERBzdxx] = left[cp::PERBZ_DT2] + rght[cp::PERBZ_DT2] - 2.0*cent[cp::PERBZ_DT2];
+            array[fs::dPERBydxx] = left[cp::PERBY] + rght[cp::PERBY] - 2.0*cent[cp::PERBY];
+            array[fs::dPERBzdxx] = left[cp::PERBZ] + rght[cp::PERBZ] - 2.0*cent[cp::PERBZ];
          }
       }
       if (RKCase == RK_ORDER2_STEP1) {
