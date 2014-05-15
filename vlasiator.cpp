@@ -59,49 +59,6 @@ void addTimedBarrier(string name){
    phiprof::stop(bt);
 }
 
-
-
-
-// Global new
-void *operator new(size_t size)
-{
-   void *p;
-
-   p =  je_malloc(size);
-   if(!p) {
-      bad_alloc ba;
-      throw ba;
-   }
-   return p;
-}
-
-// Global delete
-void operator delete(void *p)
-{
-   je_free(p);
-}
-
-// Global new
-void *operator new[](size_t size)
-{
-   void *p;
-
-   p =  je_malloc(size);
-   if(!p) {
-      bad_alloc ba;
-      throw ba;
-   }
-   return p;
-}
-
-// Global delete
-void operator delete[](void *p)
-{
-   je_free(p);
-}
-
-
-
 bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,Real &newDt, bool &isChanged) {
 
    phiprof::start("compute-timestep");
@@ -412,7 +369,8 @@ int main(int argn,char* args[]) {
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals).
       logFile << "------------------ tstep = " << P::tstep << " t = " << P::t <<" dt = " << P::dt << " ------------------" << endl;
-      report_memory_consumption(mpiGrid);
+      report_grid_memory_consumption(mpiGrid);
+      report_process_memory_consumption();
 
       if (P::diagnosticInterval != 0 &&
           P::tstep % (P::diagnosticInterval*10) == 0 &&

@@ -450,7 +450,7 @@ void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
 /*! Estimates memory consumption and writes it into logfile. Collective operation on MPI_COMM_WORLD
  * \param mpiGrid Spatial grid
  */
-void report_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    /*now report memory consumption into logfile*/
    const vector<uint64_t> cells = mpiGrid.get_cells();
    const std::vector<uint64_t> remote_cells = mpiGrid.get_remote_cells_on_process_boundary();   
@@ -465,9 +465,8 @@ void report_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
 
    /*report data for memory needed by blocks*/
    double mem[6] = {0};
-   double sum_mem[6];   
-
-
+   double sum_mem[6];
+   
    for(unsigned int i=0;i<cells.size();i++){
       mem[0] += mpiGrid[cells[i]]->get_cell_memory_size();
       mem[3] += mpiGrid[cells[i]]->get_cell_memory_capacity();
@@ -502,52 +501,6 @@ void report_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
    logFile << "(MEM)   Average capacity: " << sum_mem[5]/n_procs << " local cells " << sum_mem[3]/n_procs << " remote cells " << sum_mem[4]/n_procs << endl;
    logFile << "(MEM)   Max capacity:     " << max_mem[2].val   << " on  process " << max_mem[2].rank << endl;
    logFile << "(MEM)   Min capacity:     " << min_mem[2].val   << " on  process " << min_mem[2].rank << endl;
-
-#ifdef PAPI_MEM
-   if (PAPI_library_init(PAPI_VER_CURRENT) == PAPI_VER_CURRENT) {
-      PAPI_dmem_info_t dmem;  
-      PAPI_get_dmem_info(&dmem);
-      double mem_papi[2] = {};
-      double sum_mem_papi[2];
-      uint i=0;
-      /*PAPI returns memory in KB units, transform to bytes*/
-      mem_papi[i++] = dmem.size * 1024; 
-      mem_papi[i++] = dmem.resident * 1024;
-      MPI_Reduce(mem_papi, sum_mem_papi, i, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-      i=0;
-      logFile << "(MEM) Average PAPI Size: " << sum_mem_papi[i++]/n_procs << endl;
-      logFile << "(MEM) Average PAPI Resident: " << sum_mem_papi[i++]/n_procs << endl;
-   }
-   
-#endif
-
-   // Report /proc/meminfo memory consumption:
-   double mem_proc_free = 0;
-   FILE * in_file = fopen("/proc/meminfo", "r");
-   char attribute_name[200];
-   int memory;
-   char memory_unit[10];
-   const char * memfree_attribute_name = "MemFree:";
-   if( in_file ) {
-      // Read free memory:
-      while( fscanf( in_file, "%s %d %s", attribute_name, &memory, memory_unit ) != EOF ) {
-         // Check if the attribute name equals memory free
-         if( strcmp(attribute_name, memfree_attribute_name ) == 0 ) {
-            //free memory in KB, transform to B
-            mem_proc_free = (double)(memory) * 1024;
-         }
-      }
-   }
-   fclose( in_file );
-
-   double total_mem_proc = 0;
-   // Sum all process' results:
-   const int root = 0;
-   const int numberOfParameters = 1;
-   MPI_Reduce( &mem_proc_free, &total_mem_proc, numberOfParameters, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD );
-
-   // Report memory consumption:
-   logFile << "(MEM) Average free memory: " << total_mem_proc/n_procs << endl;
    logFile << writeVerbose;
 }
 

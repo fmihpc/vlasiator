@@ -104,7 +104,7 @@ bool adjust_local_velocity_blocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
 /*! Estimates memory consumption and writes it into logfile. Collective operation on MPI_COMM_WORLD
  * \param mpiGrid Spatial grid
  */
-void report_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
 /*! Shrink to fit velocity space data to save memory.
  * \param mpiGrid Spatial grid
