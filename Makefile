@@ -57,6 +57,9 @@ CXXFLAGS += -DUSE_AGNER_VECTORCLASS
 #will need profiler in most places..
 CXXFLAGS += ${INC_PROFILE} 
 
+#use jemalloc
+CXXFLAGS += ${INC_JEMALLOC} 
+
 #define precision
 CXXFLAGS += -D${FP_PRECISION} 
 
@@ -94,6 +97,7 @@ LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_MPI}
 LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_VLSV}
+LIBS += ${LIB_JEMALLOC} 
 
 # Define common dependencies
 DEPS_COMMON = common.h definitions.h mpiconversion.h logger.h 

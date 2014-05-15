@@ -1521,6 +1521,7 @@ namespace spatial_cell {
       static Real velocity_block_min_value;
 
 
+
    private:
 
       SpatialCell & operator= (const SpatialCell&);

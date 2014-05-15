@@ -3,7 +3,8 @@
 
 #include <cstdlib>
 #include <cstddef>
-#include <stdexcept> 
+#include <stdexcept>
+#include "jemalloc/jemalloc.h"
 
 inline void * aligned_malloc(size_t size,std::size_t align) {
 
@@ -15,7 +16,7 @@ inline void * aligned_malloc(size_t size,std::size_t align) {
     * malloc().
     */
    void *ptr;
-   void *p = malloc(size + align - 1 + sizeof(void*));
+   void *p = je_malloc(size + align - 1 + sizeof(void*));
 
    if (p != NULL) {
       /* Address of the aligned memory according to the align parameter*/
@@ -39,7 +40,7 @@ inline void aligned_free(void *p) {
     * of the one below.
     */
    void *ptr = *((void**)((unsigned long)p - sizeof(void*)));
-   free(ptr);
+   je_free(ptr);
    return;
 }
 

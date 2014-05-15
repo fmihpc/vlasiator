@@ -60,6 +60,48 @@ void addTimedBarrier(string name){
 }
 
 
+
+
+// Global new
+void *operator new(size_t size)
+{
+   void *p;
+
+   p =  je_malloc(size);
+   if(!p) {
+      bad_alloc ba;
+      throw ba;
+   }
+   return p;
+}
+
+// Global delete
+void operator delete(void *p)
+{
+   je_free(p);
+}
+
+// Global new
+void *operator new[](size_t size)
+{
+   void *p;
+
+   p =  je_malloc(size);
+   if(!p) {
+      bad_alloc ba;
+      throw ba;
+   }
+   return p;
+}
+
+// Global delete
+void operator delete[](void *p)
+{
+   je_free(p);
+}
+
+
+
 bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,Real &newDt, bool &isChanged) {
 
    phiprof::start("compute-timestep");
@@ -254,8 +296,6 @@ int main(int argn,char* args[]) {
    // Free up memory:
    readparameters.finalize();
 
-         
-
    // Save restart data
    if (P::writeInitialState) {
       phiprof::start("write-initial-state");
@@ -372,6 +412,8 @@ int main(int argn,char* args[]) {
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals).
       logFile << "------------------ tstep = " << P::tstep << " t = " << P::t <<" dt = " << P::dt << " ------------------" << endl;
+      report_memory_consumption(mpiGrid);
+
       if (P::diagnosticInterval != 0 &&
           P::tstep % (P::diagnosticInterval*10) == 0 &&
           P::tstep-P::tstep_min >0) {
@@ -392,7 +434,6 @@ int main(int argn,char* args[]) {
          beforeTime = MPI_Wtime();
          beforeSimulationTime=P::t;
          beforeStep=P::tstep;
-         report_memory_consumption(mpiGrid);
       }               
       logFile << writeVerbose;
    
