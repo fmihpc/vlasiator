@@ -34,11 +34,11 @@ int main(int argc, char** argv) {
 
 	for(int i=0; i< num_particles; i++) {
 		/* Initialize particles */
-		Particle p(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, glm::dvec3(1e6,-1e6,0), glm::dvec3(-1e5,0,0));
+		Particle p(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, Vec3d(1e6,-1e6,0), Vec3d(-1e5,0,0));
 
 		for(int step=0; step<maxsteps; step++) {
 			/* Get E- and B-Field at their position */
-			glm::dvec3 Eval,Bval;
+			Vec3d Eval,Bval;
 
 			Eval = E(p.x);
 			Bval = B(p.x);

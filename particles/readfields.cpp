@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include "field.h"
 #include "readfields.h"
+#include "vectorclass.h"
+#include "vector3d.h"
 
 /* Debugging image output */
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -15,7 +17,7 @@
 void debug_output(Field& F, const char* filename) {
 	
 	/* Find min and max value */
-	glm::dvec3 min, max;
+	Vec3d min, max;
 
 	/* TODO: Darn, this is dirty. */
 	min[0] = min[1] = min[2] = 99999999999;
@@ -40,7 +42,7 @@ void debug_output(Field& F, const char* filename) {
 		for(int x=0; x<F.cells[0]; x++) {
 
 			/* Rescale the field values to lie between 0..255 */
-			glm::dvec3 scaled_val = F.getCell(x,y,0);
+			Vec3d scaled_val = F.getCell(x,y,0);
 			scaled_val -= min;
 			scaled_val /= (max-min);
 			scaled_val *= 255.;

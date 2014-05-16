@@ -1,6 +1,7 @@
 #pragma once
-#include <glm/glm.hpp>
 #include <vector>
+#include "vectorclass.h"
+#include "vector3d.h"
 
 /* A 3D cartesian vector field with suitable interpolation properties for
  * particle pushing */
@@ -29,18 +30,15 @@ struct Field {
 		return cell;
 	}
 
-	glm::dvec3 getCell(int x, int y, int z) {
+	Vec3d getCell(int x, int y, int z) {
 		double* cell = getCellRef(x,y,z);
-		glm::dvec3 retval;
-		retval.x = cell[0];
-		retval.y = cell[1];
-		retval.z = cell[2];
-
+		Vec3d retval;
+		retval.load_partial(3,cell);
 		return retval;
 	}
 
 	/* Round-Brace indexing: indexing by physical location, with interpolation */
-	glm::dvec3 operator()(double x, double y, double z) {
+	Vec3d operator()(double x, double y, double z) {
 		/* TODO: Vectorize these */
 		x -= min[0];
 		y -= min[1];
@@ -55,8 +53,8 @@ struct Field {
 		/* TODO: interpolation */
 		return getCell((int)x,(int)y,(int)z);
 	}
-	glm::dvec3 operator()(glm::dvec3 pos) {
-		return operator()(pos.x,pos.y,pos.z);
+	Vec3d operator()(Vec3d pos) {
+		return operator()(pos[0],pos[1],pos[2]);
 	}
 
 };
