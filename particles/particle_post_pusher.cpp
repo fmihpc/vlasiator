@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
 			/* Output position and velocities */
 			//std::cout << "step " << step << ": B=[" << Bval.x << ", " << Bval.y << ", " << Bval.z << "], E=["
 			//	<< Eval.x << ", " << Eval.y << ", " << Eval.z << "]" << std::endl;
-			std::cout << i << " " << step << " " << p.x.x << " " << p.x.y << " " << p.x.z << std::endl;
+			std::cout << i << " " << step << " " << p.x[0] << " " << p.x[1] << " " << p.x[2] << std::endl;
 			//std::cerr << ".";
 		}
 	}

@@ -6,6 +6,7 @@
 #include "readfields.h"
 #include "vectorclass.h"
 #include "vector3d.h"
+#include "../definitions.h"
 
 /* Debugging image output */
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -17,9 +18,9 @@
 void debug_output(Field& F, const char* filename) {
 	
 	/* Find min and max value */
-	Vec3d min, max;
+	Real min[3], max[3];
 
-	/* TODO: Darn, this is dirty. */
+	/* TODO: ugh, this is an ungly hack */
 	min[0] = min[1] = min[2] = 99999999999;
 	max[0] = max[1] = max[2] = -99999999999;
 
@@ -34,6 +35,11 @@ void debug_output(Field& F, const char* filename) {
 		}
 	}
 
+	Vec3d vmin,vmax;
+
+	vmin.load(min);
+	vmax.load(max);
+
 	/* Allocate a rgb-pixel array */
 	std::vector<uint8_t> pixels(4*F.cells[0]*F.cells[1]);
 
@@ -43,13 +49,13 @@ void debug_output(Field& F, const char* filename) {
 
 			/* Rescale the field values to lie between 0..255 */
 			Vec3d scaled_val = F.getCell(x,y,0);
-			scaled_val -= min;
-			scaled_val /= (max-min);
+			scaled_val -= vmin;
+			scaled_val /= (vmax-vmin);
 			scaled_val *= 255.;
 
-			pixels[4*(y*F.cells[0] + x)] = (uint8_t) scaled_val.x;
-			pixels[4*(y*F.cells[0] + x)+1] = (uint8_t) scaled_val.y;
-			pixels[4*(y*F.cells[0] + x)+2] = (uint8_t) scaled_val.z;
+			pixels[4*(y*F.cells[0] + x)] = (uint8_t) scaled_val[0];
+			pixels[4*(y*F.cells[0] + x)+1] = (uint8_t) scaled_val[1];
+			pixels[4*(y*F.cells[0] + x)+2] = (uint8_t) scaled_val[2];
 			pixels[4*(y*F.cells[0] + x)+3] = 255; // Alpha=1
 		}
 	}

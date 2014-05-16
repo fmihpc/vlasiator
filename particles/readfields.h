@@ -188,7 +188,7 @@ void readfields(std::string& filename, Field& E, Field& B) {
 
 	/* So, now we've got the cellIDs, the mesh size and the field values,
 	 * we can sort them into place */
-	for(int i=0; i< cellIds.size(); i++) {
+	for(uint i=0; i< cellIds.size(); i++) {
 		uint64_t c = cellIds[i];
 		int64_t x = c % cells[0];
 		int64_t y = (c /cells[0]) % cells[1];
