@@ -124,9 +124,10 @@ namespace spatial_cell {
       // spatial fluxes of this block
       //fixme, fx could be called flux for leveque
       Realf *fx;
-      
+      /*block parameters (size, position in velocity space)*/
       Real parameters[BlockParams::N_VELOCITY_BLOCK_PARAMS];
-
+      /*index in block_list vector*/
+      unsigned int block_list_index;
       /*!
         Sets data, derivatives and fluxes of this block to zero.
       */
@@ -1294,12 +1295,13 @@ namespace spatial_cell {
       //same index as in block_list in the block_data and block_fx
       //which contain all data for all blocks. It just sets the
       //pointers and does not care about what is there earlier.
-      //velocity_block_list needs to be up-to-date
+      //velocity_block_list needs to be up-to-date.
+      //We also set block_list_index here to the correct position
       void set_block_data_pointers(int block_index){
          Velocity_Block* tmp_block_ptr = this->at(this->velocity_block_list[block_index]);
          tmp_block_ptr->data=&(this->block_data[block_index*VELOCITY_BLOCK_LENGTH]);
          tmp_block_ptr->fx=&(this->block_fx[block_index*VELOCITY_BLOCK_LENGTH]);
-
+         tmp_block_ptr->block_list_index = block_index;
       }
 
       
@@ -1313,7 +1315,7 @@ namespace spatial_cell {
          if (this->velocity_blocks.count(block) > 0) {
             return true;
          }
-
+         
          if (block == error_velocity_block) {
             std::cerr << "ERROR: trying to add a block with the key error_velocity_block!" << std::endl;
             return false;
@@ -1323,28 +1325,20 @@ namespace spatial_cell {
             std::cerr << "ERROR: trying to add a block with a key > max_velocity_blocks!" << std::endl;
             return false;
          }
-
-
-         //create block
-         this->velocity_blocks[block];
          //update number of blocks
          this->number_of_blocks++;
-                  
+         //create block
+         this->velocity_blocks[block];
          //add block to list of existing block
          this->velocity_block_list.push_back(block);
          //add more space for block data 
          resize_block_data();
-         //fix block data pointers   
-         set_block_data_pointers(this->number_of_blocks-1);
-         
+         //fix block data pointers  
+         set_block_data_pointers(this->number_of_blocks-1);         
          //get pointer to block
          Velocity_Block* block_ptr = this->at(block);
-
-
-
          //clear block
          block_ptr->clear();
-
          // set block parameters
          block_ptr->parameters[BlockParams::VXCRD] = get_velocity_block_vx_min(block);
          block_ptr->parameters[BlockParams::VYCRD] = get_velocity_block_vy_min(block);
@@ -1352,7 +1346,6 @@ namespace spatial_cell {
          block_ptr->parameters[BlockParams::DVX] = SpatialCell::cell_dvx;
          block_ptr->parameters[BlockParams::DVY] = SpatialCell::cell_dvy;
          block_ptr->parameters[BlockParams::DVZ] = SpatialCell::cell_dvz;
-
          return true;
       }
       
@@ -1374,21 +1367,14 @@ namespace spatial_cell {
 
          
          //Find where in the block list the removed block was (index to block list). We need to fill this hole.    
-         unsigned int block_index = -1;
-         for(unsigned int i=0; i< velocity_block_list.size();i++) {
-            if(this->velocity_block_list[i] == block) {
-               block_index=i;
-               break;
-            }
-         }
+         unsigned int block_index = this->at(block)->block_list_index;
          
-         /*
+         /*     
            Move the last existing block in the block list
            to the removed block's position
          */
          this->velocity_block_list[block_index] = this->velocity_block_list.back();
          this->velocity_block_list.pop_back(); //remove last item
-            
 
          //copy velocity block data to the removed blocks position in order to fill the hole
          for(unsigned int i=0;i<VELOCITY_BLOCK_LENGTH;i++){
@@ -1396,8 +1382,8 @@ namespace spatial_cell {
          }
          for(unsigned int i=0;i<VELOCITY_BLOCK_LENGTH;i++){
             this->block_fx[block_index*VELOCITY_BLOCK_LENGTH+i] = this->block_fx[(this->number_of_blocks - 1)*VELOCITY_BLOCK_LENGTH+i];
-         }
-         //set block data pointers to the location where we copied data
+         }         
+         //set block data pointers to the location where we copied data, + fix block_list_index
          set_block_data_pointers(block_index);
 
          //reduce number of blocks
@@ -1405,7 +1391,6 @@ namespace spatial_cell {
 
          //also remove velocity block structure
          this->velocity_blocks.erase(block);
-
       }
 
       
