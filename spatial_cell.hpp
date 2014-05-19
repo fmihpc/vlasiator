@@ -1250,12 +1250,6 @@ namespace spatial_cell {
             }
          }
 
-         // ADD all blocks with neighbors in spatial or velocity space (if it exists then the block is unchanged)
-         for (boost::unordered_set<unsigned int>::iterator it= neighbors_have_content.begin(); it != neighbors_have_content.end();++it) {
-            this->add_velocity_block(*it);
-         }
-         
-         
          // REMOVE all blocks in this cell without content + without neighbors with content
          if(doDeleteEmptyBlocks) {
             for(unsigned int block_index=0;block_index< this->velocity_block_with_no_content_list.size();block_index++){
@@ -1277,6 +1271,13 @@ namespace spatial_cell {
                }
             }
          }
+
+         // ADD all blocks with neighbors in spatial or velocity space (if it exists then the block is unchanged)
+         for (boost::unordered_set<unsigned int>::iterator it= neighbors_have_content.begin(); it != neighbors_have_content.end();++it) {
+            this->add_velocity_block(*it);
+         }
+         
+         
       }
       
       void adjustSingleCellVelocityBlocks() {
