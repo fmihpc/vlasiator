@@ -475,6 +475,10 @@ int main(int argn,char* args[]) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          balanceLoad(mpiGrid);
          addTimedBarrier("barrier-end-load-balance");
+         phiprof::start("Shrink_to_fit");
+         /* shrink to fit after LB*/
+         shrink_to_fit_grid_data(mpiGrid);
+         phiprof::stop("Shrink_to_fit");
          logFile << "(LB): ... done!"  << endl << writeVerbose;
       }
       
@@ -567,11 +571,7 @@ int main(int argn,char* args[]) {
          /*remove excess capacity from vectors. This is a good place
          to do it, as we have a peak in number of blocks after
          acceleration.*/
-/*
-         phiprof::start("Shrink_to_fit");
-         shrink_to_fit_grid_data(mpiGrid);
-         phiprof::stop("Shrink_to_fit");
-*/       
+
          adjustVelocityBlocks(mpiGrid);
          addTimedBarrier("barrier-after-adjust-blocks");
          
