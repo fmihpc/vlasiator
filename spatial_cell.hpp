@@ -1252,8 +1252,11 @@ namespace spatial_cell {
          }
 
          // REMOVE all blocks in this cell without content + without neighbors with content
+         /*better to do it in the reverse order, as then blocks at the
+          * end are removed first, and we may avoid copying extra
+          * data.*/
          if(doDeleteEmptyBlocks) {
-            for(unsigned int block_index=0;block_index< this->velocity_block_with_no_content_list.size();block_index++){
+            for(int block_index= this->velocity_block_with_no_content_list.size()-1; block_index>=0; block_index--){
                unsigned int block = this->velocity_block_with_no_content_list[block_index];
                boost::unordered_set<unsigned int>::iterator it = neighbors_have_content.find(block);
                if(it==neighbors_have_content.end()) {
