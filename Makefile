@@ -18,7 +18,7 @@ FIELDSOLVER ?= londrillo_delzanna
 CXXFLAGS += -DPROFILE
 
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
-CXXFLAGS += -DNDEBUG
+#CXXFLAGS += -DNDEBUG
 
 #Set order of semilag solver in velocity space acceleration
 #  ACC_SEMILAG_PCONSTM	1st order
