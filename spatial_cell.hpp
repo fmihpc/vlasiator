@@ -1229,15 +1229,13 @@ namespace spatial_cell {
          //itself, and for all its neighbors
          for(unsigned int block_index=0;block_index< this->velocity_block_with_content_list.size();block_index++){
             unsigned int block = this->velocity_block_with_content_list[block_index];
+            const velocity_block_indices_t indices = get_velocity_block_indices(block);
             neighbors_have_content.insert(block); //also add the cell itself
             for(int offset_vx=-P::sparseBlockAddWidthV;offset_vx<=P::sparseBlockAddWidthV;offset_vx++)
                for(int offset_vy=-P::sparseBlockAddWidthV;offset_vy<=P::sparseBlockAddWidthV;offset_vy++)
 		  for(int offset_vz=-P::sparseBlockAddWidthV;offset_vz<=P::sparseBlockAddWidthV;offset_vz++){                  
-                     const unsigned int neighbor_block = get_velocity_block_from_offsets(block, offset_vx,offset_vy,offset_vz);
-                     if (neighbor_block == error_velocity_block) {
-                        continue;
-                     }
-                     neighbors_have_content.insert(neighbor_block);
+                     const unsigned int neighbor_block = get_velocity_block({{indices[0] + offset_vx, indices[1] + offset_vy, indices[2] + offset_vz}});
+                     neighbors_have_content.insert(neighbor_block); //add all potential ngbrs of this block with content
                   }
          }
          //add neighbor content info for spatial space neighbors to map. We loop over
@@ -1308,6 +1306,21 @@ namespace spatial_cell {
       }
 
       
+      
+      //set block data pointers data and fx for block
+      //velocity_block_list[block_index], so that they point to the
+      //same index as in block_list in the block_data and block_fx
+      //which contain all data for all blocks. It just sets the
+      //pointers and does not care about what is there earlier.
+      //velocity_block_list needs to be up-to-date.
+      //We also set block_list_index here to the correct position
+      void set_block_data_pointers(Velocity_Block* block_ptr,int block_index){
+         block_ptr->data=&(this->block_data[block_index*VELOCITY_BLOCK_LENGTH]);
+         block_ptr->fx=&(this->block_fx[block_index*VELOCITY_BLOCK_LENGTH]);
+         block_ptr->block_list_index = block_index;
+      }
+
+      
       /*!
         Adds an empty velocity block into this spatial cell.
         Returns true if given block was added or already exists.
@@ -1336,10 +1349,10 @@ namespace spatial_cell {
          this->velocity_block_list.push_back(block);
          //add more space for block data 
          resize_block_data();
-         //fix block data pointers  
-         set_block_data_pointers(this->number_of_blocks-1);         
          //get pointer to block
          Velocity_Block* block_ptr = this->at(block);
+         //fix block data pointers  
+         set_block_data_pointers(block_ptr, this->number_of_blocks-1);         
          //clear block
          block_ptr->clear();
          // set block parameters
