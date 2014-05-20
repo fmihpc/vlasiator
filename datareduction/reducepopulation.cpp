@@ -787,12 +787,12 @@ static inline void cluster_advanced(
                Cluster_Fast & cluster_neighbor = clusters[index_neighbor];
                Cluster_Fast & cluster = clusters[index];
 
-//               // Merge clusters if the clusters are ok:
-//               const uint32_t clusterMembers = *cluster.members;
-//               const uint32_t neighborClusterMembers = *cluster_neighbor.members;
-//               if( i > 0.9*numberOfVCells || clusterMembers < 0.2*neighborClusterMembers || neighborClusterMembers < 0.2*clusterMembers ) {
-//                  cluster_neighbor.merge( cluster, clusters );
-//               }
+               // Merge clusters if the clusters are ok:
+               const uint32_t clusterMembers = *cluster.members;
+               const uint32_t neighborClusterMembers = *cluster_neighbor.members;
+               if( i > 0.9*numberOfVCells || clusterMembers < 0.2*neighborClusterMembers || neighborClusterMembers < 0.2*clusterMembers ) {
+                  cluster_neighbor.merge( cluster, clusters );
+               }
                //----------------------------------------------------
 
                ++merges;
@@ -843,6 +843,170 @@ static inline void cluster_advanced(
    }
    return;
 }
+
+// A function for clustering velocity cells into separate populations.
+// This algorithm uses Cluster_Fast class to save different clusters. The algorithm starts from the highest-valued velocity cell, moves to the second-highest and puts the second-highest into the same cluster as its neighbor, if its neighbor is a part of a cluster.
+static inline void cluster_advanced_two( 
+                                const vector<Velocity_Cell> & velocityCells,
+                                const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
+                                const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
+                                SpatialCell * cell
+                                  ) {
+
+   if( velocityCells.size() == 0 ) { return; }
+   const uint numberOfVCells = velocityCells.size();
+   // Reserve a table for clusters:
+   uint32_t * clusterIds = new uint32_t[numberOfVCells];
+
+   // Initialize to be part of no clusters:
+   const uint32_t noCluster = 0;
+   for( uint i = 0; i < velocityCells.size(); ++i ) {
+      clusterIds[i] = noCluster;
+   }
+
+   // Id for separating clusterIds
+   uint32_t clusterId = noCluster + 1;
+
+   // Set the first velocity cell to cluster one
+   uint32_t last_vCell = velocityCells.size()-1;
+   clusterIds[last_vCell] = clusterId;
+
+
+   // Start getting velocity neighbors
+   vector<Velocity_Cell> neighbors;
+   neighbors.reserve( numberOfVCellNeighbors );
+
+   const size_t startingPoint = (size_t)(cell->block_data.data());
+
+   uint32_t merges = 0;
+
+   //----------------------------------------------
+   // Create clusters
+   vector<Cluster_Fast> clusters;
+   const uint estimated_clusters = 200;
+   clusters.reserve( estimated_clusters );
+   {
+      // Create the no-cluster
+      Cluster_Fast no_cluster;
+      no_cluster.set_data( noCluster );
+      clusters.push_back( no_cluster );
+      // Create the first cluster:
+      Cluster_Fast first_cluster;
+      first_cluster.set_data( clusterId );
+      clusters.push_back( first_cluster );
+   }
+   //----------------------------------------------
+
+
+   for( int i = velocityCells.size()-1; i >= 0; --i ) {
+      const Velocity_Cell & vCell = velocityCells[i];
+      // Get the neighbors:
+      get_neighbors( neighbors, vCell, local_vcell_neighbors, remote_vcell_neighbors, cell );
+      // Get the id of the velocity cell
+      const uint32_t id = vCell.hash( startingPoint );
+
+      phiprof_assert( id >= 0 && id < velocityCells.size() );
+
+      for( vector<Velocity_Cell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
+
+         // Get the id of the neighbor:
+         const uint32_t neighbor_id = it->hash( startingPoint );
+
+         phiprof_assert( neighbor_id >= 0 && neighbor_id < velocityCells.size() );
+
+         phiprof_assert( clusterIds[id] < clusters.size() && clusterIds[neighbor_id] < clusters.size() );
+
+
+         // Set the id to equal the same as neighbors' if the neighbor is part of a cluster
+         if( clusterIds[neighbor_id] != noCluster ) {
+
+            const uint index = clusterIds[id];
+            const uint index_neighbor = clusterIds[neighbor_id];
+
+            phiprof_assert( index < clusters.size() && index_neighbor < clusters.size() );
+            phiprof_assert( clusters[index].neighbor_clusters );
+
+
+            // If the cluster id has not been set yet, set it now:
+            if( clusterIds[id] == noCluster ) {
+
+               // Cluster id has not been set yet
+               clusterIds[id] = clusterIds[neighbor_id];
+
+               //--------------------------------------------------------------
+               // Increase the amount of members in the cluster by one:
+               clusters[index_neighbor].append(1);
+               //--------------------------------------------------------------
+
+
+            } else if( clusters[index].find( index_neighbor ) ) {
+
+               // Clusters are separate clusters
+
+               // Merge the clusters:
+
+               //Set clusters to be the same (Merge them)
+               //----------------------------------------------------
+//               Cluster_Fast & cluster_neighbor = clusters[index_neighbor];
+//               Cluster_Fast & cluster = clusters[index];
+//
+//               // Merge clusters if the clusters are ok:
+//               const uint32_t clusterMembers = *cluster.members;
+//               const uint32_t neighborClusterMembers = *cluster_neighbor.members;
+//               if( i > 0.9*numberOfVCells || clusterMembers < 0.2*neighborClusterMembers || neighborClusterMembers < 0.2*clusterMembers ) {
+//                  cluster_neighbor.merge( cluster, clusters );
+//               }
+//               //----------------------------------------------------
+
+               ++merges;
+
+            }
+
+         }
+      }
+
+      // If the cell does not have any neighbors that are part of a cluster then this is a new cluster:
+      if( clusterIds[id] == noCluster ) {
+         ++clusterId;
+
+         // Create a new cluster
+         //------------------------------------------------
+         Cluster_Fast new_cluster;
+         new_cluster.set_data( clusterId );
+         clusters.push_back( new_cluster );
+         //------------------------------------------------
+
+         clusterIds[id] = clusterId;
+      }
+
+      neighbors.clear();
+   }
+
+
+
+   // Set values of clusters
+   phiprof_assert( cell->block_fx.size() >= velocityCells.size() );
+   for( uint i = 0; i < velocityCells.size(); ++i ) {
+      const Realf value = *clusters[clusterIds[i]].clusterId;
+      cell->block_fx[i] = value;
+   }
+
+
+   // Print out the number of clusterIds:
+//   cerr << "Clusters: " << clusterId << endl;
+//   cerr << "Merges: " << merges << endl;
+//   cerr << "Sizeof: " << sizeof(Realf) << endl;
+
+
+   delete[] clusterIds;
+   clusterIds = NULL;
+   // Free memory from clusters:
+   for( uint i = 0; i < clusters.size(); ++i ) {
+      clusters[i].remove_data( clusters );
+   }
+   return;
+}
+
 
 
 // Simplest case of clustering. Starts from highest valued velocity cell moves to the second-highest, third-highest, etc. This algorithm does not have cluster merging.
