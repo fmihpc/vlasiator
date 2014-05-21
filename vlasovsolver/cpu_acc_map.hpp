@@ -391,7 +391,8 @@ bool map_1d(SpatialCell* spatial_cell,
 	  for(uint target_i = 0; target_i < 4;target_i ++ ){
 	    const uint tblock=target_block[target_i];
 	    const uint tcell=target_cell[target_i];
-	    const Real tval=target_density[target_i];
+            /*do the conversion from Real to Realf here, faster than doin in accumulation*/
+	    const Realf tval=target_density[target_i];
             /*check that we are within sane limits. If gk is negative,
              * or above blocks_per_dim * blockcells_per_dim then we
              * are outside of the target grid.*/
