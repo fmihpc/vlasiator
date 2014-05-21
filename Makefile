@@ -101,6 +101,7 @@ LIBS += ${LIB_MPI}
 LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_VLSV}
 LIBS += ${LIB_JEMALLOC} 
+LIBS += ${LIB_PAPI}
 
 # Define common dependencies
 DEPS_COMMON = common.h definitions.h mpiconversion.h logger.h 
@@ -359,10 +360,13 @@ vlsvreaderinterface.o: ${DEPS_VLSVREADER} tools/vlsvreaderinterface.h tools/vlsv
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvreaderinterface.cpp ${INC_VLSV} -I$(CURDIR) 
 
 particles/readfields.o: ${DEPS_PARTICLES} ${DEPS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} particles/readfields.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/readfields.cpp ${INC_VLSV} -I$(CURDIR) -Itools -o $@
+	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/readfields.cpp ${INC_VLSV} ${INC_VECTORCLASS} -I$(CURDIR) -Itools -o $@
+
+particles/particles.o: ${DEPS_PARTICLES} ${DEPS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} particles/particles.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/particles.cpp ${INC_VLSV} ${INC_VECTORCLASS} -I$(CURDIR) -Itools -o $@
 
 particle_post_pusher: ${OBJS_PARTICLES} ${DEPS_PARTICLES} ${DEPS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} particles/particle_post_pusher.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/particle_post_pusher.cpp ${INC_VLSV} -I$(CURDIR) -Itools
-	${LNK} -o $@ particle_post_pusher.o ${OBJS_PARTICLES} ${OBJS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} ${LIB_VLSV} ${LDFLAGS}
+	${LNK} -o $@ particle_post_pusher.o ${OBJS_PARTICLES} ${OBJS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} ${LIBS} ${LDFLAGS}
 
 # DO NOT DELETE

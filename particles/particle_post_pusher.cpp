@@ -3,57 +3,143 @@
  * for Vlasiator
  *
  */
+#include <mpi.h>
 #include <iostream>
+#include <random>
 #include "particles.h"
 #include "physconst.h"
 #include "readfields.h"
 
+// "mode" that the particle pusher operates in
+enum pusher_mode {
+	single = 0,    // Single particle trajectory tracking
+	distribution  // Particle distribution created at a given point
+};
+
+void help_message() {
+	std::cerr << "Usage: particle_post_pusher <filename> <mode> [args]" << std::endl;
+	std::cerr << "Where <filename> is a .vlsv file providing field input and <mode> is one of:" << std::endl;
+	std::cerr << std::endl;
+	std::cerr  << "  single <x> <y> <z> <vx> <vy> <vz>" << std::endl;
+	std::cerr  << "  distribution <x> <y> <z> <temperature> <num_particles>" << std::endl;
+}
+
 int main(int argc, char** argv) {
 
+	MPI::Init(argc, argv);
+
 	/* Parse commandline */
-	if(argc < 2) {
-		std::cerr << "Usage: particle_post_pusher <filename>" << std::endl;
+	if(argc < 3) {
+		help_message();
 		return 1;
 	}
 
+	/* Read fields from specified input file */
 	std::string filename = argv[1];
-
 	Field E,B;
-
 	if(checkVersion(filename)) {
 			readfields<newVlsv::Reader>(filename,E,B);
 	} else {
 			readfields<oldVlsv::Reader>(filename,E,B);
 	}
+	//debug_output(B, "B.png");
 
-	debug_output(B,"B.png");
+
+	/* Init particles */
+	std::vector<Particle> particles;
+	pusher_mode mode;
 
 	double dt=0.0293778 / 10.;
-	int num_particles = 1;
 	int maxsteps = 10000;
 
-	for(int i=0; i< num_particles; i++) {
-		/* Initialize particles */
-		Particle p(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, Vec3d(1e6,-1e6,0), Vec3d(-1e5,0,0));
+	if(!strcmp(argv[2],"single")) {
 
+		if(argc != 9) {
+			std::cerr<< "Mode 'single' requires 6 additional arguments!" << std::endl;
+			help_message();
+			return 1;
+		}
+
+		double pos[3], vel[3];
+		pos[0] = strtod(argv[3],NULL);
+		pos[1] = strtod(argv[4],NULL);
+		pos[2] = strtod(argv[5],NULL);
+		vel[0] = strtod(argv[6],NULL);
+		vel[1] = strtod(argv[7],NULL);
+		vel[2] = strtod(argv[8],NULL);
+
+		Vec3d Vpos, Vvel;
+		Vpos.load(pos);
+		Vvel.load(vel);
+
+		mode = single;
+		particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, Vpos, Vvel));
+	} else if(!strcmp(argv[2], "distribution")) {
+
+		if(argc != 8) {
+			std::cerr<< "Mode 'distribution' requires 5 additional arguments!" << std::endl;
+			help_message();
+			return 1;
+		}
+
+		double pos[3];
+		double temperature;
+		unsigned int num_particles;
+
+		pos[0] = strtod(argv[3],NULL);
+		pos[1] = strtod(argv[4],NULL);
+		pos[2] = strtod(argv[5],NULL);
+		temperature = strtod(argv[6],NULL);
+		num_particles = strtoul(argv[7],NULL,0);
+
+		Vec3d vpos;
+		vpos.load(pos);
+
+		mode = distribution;
+
+		/* TODO: Don't center the distribution around 0, but around the
+		 * bulk velocity in the given cell */
+		std::normal_distribution<Real> velocity_distribution(0,sqrt(temperature*PhysicalConstantsSI::k/PhysicalConstantsSI::mp));
+		std::default_random_engine generator;
+
+		for(unsigned int i=0; i< num_particles; i++) {
+			Vec3d vel(velocity_distribution(generator),velocity_distribution(generator),velocity_distribution(generator));
+			particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, vpos, vel));
+		}
+	} else {
+		std::cerr << "Unknown operation mode '" << argv[2] << "'." << std::endl;
+		help_message();
+		return 1;
+	}
+
+	/* Dump the initial state */
+	if(mode == distribution) {
+		write_particles(particles, "particles_initial.vlsv");
+	}
+
+	/* Push them around */
+	/* TODO: OpenMP here. */
+	#pragma omp parallel for
+	for(unsigned int i=0; i< particles.size(); i++) {
 		for(int step=0; step<maxsteps; step++) {
 			/* Get E- and B-Field at their position */
 			Vec3d Eval,Bval;
 
-			Eval = E(p.x);
-			Bval = B(p.x);
+			Eval = E(particles[i].x);
+			Bval = B(particles[i].x);
 
 			/* Push them around */
-			p.push(Bval,Eval,dt);
-
-			/* Output position and velocities */
-			//std::cout << "step " << step << ": B=[" << Bval.x << ", " << Bval.y << ", " << Bval.z << "], E=["
-			//	<< Eval.x << ", " << Eval.y << ", " << Eval.z << "]" << std::endl;
-			std::cout << i << " " << step << " " << p.x[0] << " " << p.x[1] << " " << p.x[2] << std::endl;
-			//std::cerr << ".";
+			particles[i].push(Bval,Eval,dt);
 		}
 	}
 
+	/* Dump the final state */
+	if(mode == distribution) {
+		write_particles(particles, "particles_final.vlsv");
+	}
+
 	std::cerr << std::endl;
+
+	MPI::Finalize();
 	return 0;
 }
