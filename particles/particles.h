@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 #include "vectorclass.h"
 #include "vector3d.h"
 #include "../definitions.h"
@@ -18,3 +19,4 @@ struct Particle {
 };
 
 
+void write_particles(std::vector<Particle>& p, const char* filename);
