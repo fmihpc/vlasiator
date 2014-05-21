@@ -369,9 +369,6 @@ int main(int argn,char* args[]) {
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals).
       logFile << "------------------ tstep = " << P::tstep << " t = " << P::t <<" dt = " << P::dt << " ------------------" << endl;
-      report_grid_memory_consumption(mpiGrid);
-      report_process_memory_consumption();
-
       if (P::diagnosticInterval != 0 &&
           P::tstep % (P::diagnosticInterval*10) == 0 &&
           P::tstep-P::tstep_min >0) {
@@ -392,6 +389,8 @@ int main(int argn,char* args[]) {
          beforeTime = MPI_Wtime();
          beforeSimulationTime=P::t;
          beforeStep=P::tstep;
+         report_grid_memory_consumption(mpiGrid);
+         report_process_memory_consumption();
       }               
       logFile << writeVerbose;
    
