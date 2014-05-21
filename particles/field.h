@@ -21,13 +21,16 @@ struct Field {
 
 	double* getCellRef(int x, int y, int z) {
 		/* Bounds checking */
-		if(x > cells[0] || y > cells[1] || z > cells[2] 
-				|| x <0 || y < 0 || z < 0) {
-			std::cerr << "Field access out of bounds!" << std::endl;
-		}
+		//if(x > cells[0] || y > cells[1] || z > cells[2] 
+		//		|| x <0 || y < 0 || z < 0) {
+		//	std::cerr << "Field access out of bounds!" << std::endl;
+		//}
 
-		double* cell = &(data[4*(z*cells[0]*cells[1] + y*cells[0] + x)]);
-		return cell;
+		if(cells[2] == 1) {
+			return &(data[4*(y*cells[0]+x)]);
+		} else {
+			return &(data[4*(z*cells[0]*cells[1] + y*cells[0] + x)]);
+		}
 	}
 
 	Vec3d getCell(int x, int y, int z) {
