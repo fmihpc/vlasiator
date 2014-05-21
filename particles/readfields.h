@@ -7,35 +7,8 @@
 #include <vector>
 
 /* Read the cellIDs into an array */
-template <class Reader>
-std::vector<uint64_t> readCellIds(Reader& r) {
-
-	uint64_t arraySize=0;
-	uint64_t vectorSize=0;
-	uint64_t byteSize=0;
-	vlsv::datatype::type dataType;
-	std::list<std::pair<std::string,std::string> > attribs;
-	attribs.push_back(std::pair<std::string,std::string>("name","SpatialGrid"));
-	if( r.getArrayInfo("MESH",attribs, arraySize,vectorSize,dataType,byteSize) == false ) {
-		std::cerr << "getArrayInfo returned false when trying to read MESH." << std::endl;
-		exit(1);
-	}
-
-	if(dataType != vlsv::datatype::type::UINT || byteSize != 8) {
-		std::cerr << "Datatype of MESH entries is not uint64_t." << std::endl;
-		exit(1);
-	}
-
-	/* Allocate memory for the cellIds */
-	std::vector<uint64_t> cellIds(arraySize*vectorSize);
-	
-	if( r.readArray("MESH",attribs,0,arraySize,(char*) cellIds.data()) == false) {
-		std::cerr << "readArray faied when trying to read MESH." << std::endl;
-		exit(1);
-	}
-
-	return cellIds;
-}
+std::vector<uint64_t> readCellIds(oldVlsv::Reader& r);
+std::vector<uint64_t> readCellIds(newVlsv::Reader& r);
 
 /* Read the "raw" field data in file order */
 template <class Reader>
@@ -69,63 +42,12 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
 	return buffer;
 }
 
-/* Read a single-valued floating point parameter */
-template <class Reader>
-double readDoubleParameter(Reader& r, const char* name) {
-	uint64_t arraySize=0;
-	uint64_t vectorSize=0;
-	uint64_t byteSize=0;
-	vlsv::datatype::type dataType;
-	std::list<std::pair<std::string,std::string> > attribs;
-	attribs.push_back(std::pair<std::string,std::string>("name",name));
-	if( r.getArrayInfo("PARAMETERS",attribs, arraySize,vectorSize,dataType,byteSize) == false ) {
-		std::cerr << "getArrayInfo returned false when trying to read PARAMETER \""
-			<< name << "\"." << std::endl;
-		exit(1);
-	}
-
-	if(dataType != vlsv::datatype::type::FLOAT || byteSize != 8 || vectorSize != 1 || arraySize != 1) {
-		std::cerr << "Datatype of PARAMETER \"" << name << "\" is not a single double value." << std::endl;
-		exit(1);
-	}
-
-	double retval;
-	if( r.readArray("PARAMETERS",attribs,0,arraySize,(char*)&retval) == false) {
-		std::cerr << "readArray faied when trying to read PARAMETER \"" << name << "\"." << std::endl;
-		exit(1);
-	}
-
-	return retval;
-}
+double readDoubleParameter(newVlsv::Reader& r, const char* name);
+double readDoubleParameter(oldVlsv::Reader& r, const char* name);
 
 /* Read a single-valued integer parameter */
-template <class Reader>
-uint32_t readUintParameter(Reader& r, const char* name) {
-	uint64_t arraySize=0;
-	uint64_t vectorSize=0;
-	uint64_t byteSize=0;
-	vlsv::datatype::type dataType;
-	std::list<std::pair<std::string,std::string> > attribs;
-	attribs.push_back(std::pair<std::string,std::string>("name",name));
-	if( r.getArrayInfo("PARAMETERS",attribs, arraySize,vectorSize,dataType,byteSize) == false ) {
-		std::cerr << "getArrayInfo returned false when trying to read PARAMETER \""
-			<< name << "\"." << std::endl;
-		exit(1);
-	}
-
-	if(dataType != vlsv::datatype::type::UINT || byteSize != 4 || vectorSize != 1 || arraySize != 1) {
-		std::cerr << "Datatype of PARAMETER \"" << name << "\" is not a single uint32_t value." << std::endl;
-		exit(1);
-	}
-
-	uint32_t retval;
-	if( r.readArray("PARAMETERS",attribs,0,arraySize,(char*)&retval) == false) {
-		std::cerr << "readArray faied when trying to read PARAMETER \"" << name << "\"." << std::endl;
-		exit(1);
-	}
-
-	return retval;
-}
+uint32_t readUintParameter(newVlsv::Reader& r, const char* name);
+uint32_t readUintParameter(oldVlsv::Reader& r, const char* name);
 
 /* Read E- and B-Fields from a vlsv file */
 template <class Reader>
@@ -141,22 +63,22 @@ void readfields(std::string& filename, Field& E, Field& B) {
 
 	/* Also read the raw field data */
 	std::string name("B");
-	std::vector<double> Bbuffer = readFieldData<Reader>(r,name,3u);
+	std::vector<double> Bbuffer = readFieldData(r,name,3u);
 	name = "E";
-	std::vector<double> Ebuffer = readFieldData<Reader>(r,name,3u);
+	std::vector<double> Ebuffer = readFieldData(r,name,3u);
 	
 	/* Coordinate Boundaries */
 	double min[3], max[3];
 	uint64_t cells[3];
-	min[0] = readDoubleParameter<Reader>(r,"xmin");
-	min[1] = readDoubleParameter<Reader>(r,"ymin");
-	min[2] = readDoubleParameter<Reader>(r,"zmin");
-	max[0] = readDoubleParameter<Reader>(r,"xmax");
-	max[1] = readDoubleParameter<Reader>(r,"ymax");
-	max[2] = readDoubleParameter<Reader>(r,"zmax");
-	cells[0] = readUintParameter<Reader>(r,"xcells_ini");
-	cells[1] = readUintParameter<Reader>(r,"ycells_ini");
-	cells[2] = readUintParameter<Reader>(r,"zcells_ini");
+	min[0] = readDoubleParameter(r,"xmin");
+	min[1] = readDoubleParameter(r,"ymin");
+	min[2] = readDoubleParameter(r,"zmin");
+	max[0] = readDoubleParameter(r,"xmax");
+	max[1] = readDoubleParameter(r,"ymax");
+	max[2] = readDoubleParameter(r,"zmax");
+	cells[0] = readUintParameter(r,"xcells_ini");
+	cells[1] = readUintParameter(r,"ycells_ini");
+	cells[2] = readUintParameter(r,"zcells_ini");
 
 	//std::cerr << "Grid is " << cells[0] << " x " << cells[1] << " x " << cells[2] << " Cells, " << std::endl
 	//	<< " with dx = " << ((max[0]-min[0])/cells[0]) << ", dy = " << ((max[1]-min[1])/cells[1])
