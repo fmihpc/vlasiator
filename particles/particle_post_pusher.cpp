@@ -36,12 +36,13 @@ int main(int argc, char** argv) {
 
 	/* Read fields from specified input file */
 	std::string filename = argv[1];
-	Field E,B;
+	Field E,B,V;
 	if(checkVersion(filename)) {
-			readfields<newVlsv::Reader>(filename,E,B);
+		readfields<newVlsv::Reader>(filename,E,B,V);
 	} else {
-			readfields<oldVlsv::Reader>(filename,E,B);
+		readfields<oldVlsv::Reader>(filename,E,B,V);
 	}
+
 	//debug_output(B, "B.png");
 
 
@@ -98,13 +99,15 @@ int main(int argc, char** argv) {
 
 		mode = distribution;
 
-		/* TODO: Don't center the distribution around 0, but around the
-		 * bulk velocity in the given cell */
+		Vec3d bulk_vel = V(vpos);
 		std::normal_distribution<Real> velocity_distribution(0,sqrt(temperature*PhysicalConstantsSI::k/PhysicalConstantsSI::mp));
 		std::default_random_engine generator;
 
 		for(unsigned int i=0; i< num_particles; i++) {
+			// Generate normal-distribution...
 			Vec3d vel(velocity_distribution(generator),velocity_distribution(generator),velocity_distribution(generator));
+			// .. and shift it by the bulk velocity.
+			vel += bulk_vel;
 			particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, vpos, vel));
 		}
 	} else {
@@ -144,7 +147,7 @@ int main(int argc, char** argv) {
 		}
 
 		/* Draw progress bar */
-		if((step % (maxsteps/70))==0) {
+		if((step % (maxsteps/72))==0) {
 			std::cerr << "=";
 		}
 	}

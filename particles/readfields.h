@@ -49,9 +49,9 @@ double readDoubleParameter(oldVlsv::Reader& r, const char* name);
 uint32_t readUintParameter(newVlsv::Reader& r, const char* name);
 uint32_t readUintParameter(oldVlsv::Reader& r, const char* name);
 
-/* Read E- and B-Fields from a vlsv file */
+/* Read E- and B-Fields as well as velocity field from a vlsv file */
 template <class Reader>
-void readfields(std::string& filename, Field& E, Field& B) {
+void readfields(std::string& filename, Field& E, Field& B, Field& V) {
 	Reader r;
 
 	std::cerr << "Opening " << filename << "...";
@@ -66,7 +66,12 @@ void readfields(std::string& filename, Field& E, Field& B) {
 	std::vector<double> Bbuffer = readFieldData(r,name,3u);
 	name = "E";
 	std::vector<double> Ebuffer = readFieldData(r,name,3u);
-	
+
+	name = "rho_v";
+	std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
+	name = "rho";
+	std::vector<double> rho_buffer = readFieldData(r,name,1u);
+
 	/* Coordinate Boundaries */
 	double min[3], max[3];
 	uint64_t cells[3];
@@ -87,6 +92,7 @@ void readfields(std::string& filename, Field& E, Field& B) {
 	/* Allocate space for the actual field structures */
 	E.data.resize(4*cells[0]*cells[1]*cells[2]);
 	B.data.resize(4*cells[0]*cells[1]*cells[2]);
+	V.data.resize(4*cells[0]*cells[1]*cells[2]);
 
 	/* Sanity-check stored data sizes */
 	if(3*cellIds.size() != Bbuffer.size()) {
@@ -99,13 +105,23 @@ void readfields(std::string& filename, Field& E, Field& B) {
 			<< std::endl;
 		exit(1);
 	}
+	if(3*cellIds.size() != rho_v_buffer.size()) {
+		std::cerr << "3 * cellIDs.size (" << cellIds.size() << ") != rho_v_buffer.size (" << Ebuffer.size() << ")!"
+			<< std::endl;
+		exit(1);
+	}
+	if(cellIds.size() != rho_buffer.size()) {
+		std::cerr << "cellIDs.size (" << cellIds.size() << ") != rho_buffer.size (" << Ebuffer.size() << ")!"
+			<< std::endl;
+		exit(1);
+	}
 
 	/* Set field sizes */
 	for(int i=0; i<3;i++) {
-		E.min[i] = B.min[i] = min[i];
-		E.max[i] = B.max[i] = max[i];
-		E.cells[i] = B.cells[i] = cells[i];
-		E.dx[i] = B.dx[i] = (max[i]-min[i])/cells[i];
+		E.min[i] = B.min[i] = V.min[i] = min[i];
+		E.max[i] = B.max[i] = V.max[i] = max[i];
+		E.cells[i] = B.cells[i] = V.cells[i] = cells[i];
+		E.dx[i] = B.dx[i] = V.dx[i] = (max[i]-min[i])/cells[i];
 	}
 
 	/* So, now we've got the cellIDs, the mesh size and the field values,
@@ -118,12 +134,16 @@ void readfields(std::string& filename, Field& E, Field& B) {
 
 		double* Etgt = E.getCellRef(x,y,z);
 		double* Btgt = B.getCellRef(x,y,z);
+		double* Vtgt = V.getCellRef(x,y,z);
 		Etgt[0] = Ebuffer[3*i];
 		Etgt[1] = Ebuffer[3*i+1];
 		Etgt[2] = Ebuffer[3*i+2];
 		Btgt[0] = Bbuffer[3*i];
 		Btgt[1] = Bbuffer[3*i+1];
 		Btgt[2] = Bbuffer[3*i+2];
+		Vtgt[0] = rho_v_buffer[3*i] / rho_buffer[i];
+		Vtgt[1] = rho_v_buffer[3*i+1] / rho_buffer[i];
+		Vtgt[2] = rho_v_buffer[3*i+2] / rho_buffer[i];
 	}
 
 	r.close();
