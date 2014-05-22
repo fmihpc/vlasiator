@@ -6,6 +6,7 @@
 #include <mpi.h>
 #include <iostream>
 #include <random>
+#include <string.h>
 #include "particles.h"
 #include "physconst.h"
 #include "readfields.h"
