@@ -16,15 +16,12 @@ struct Field {
 	/* Mesh cells */
 	int cells[3];
 
+	bool periodic[3];
+
 	/* The actual field data */
 	std::vector<double> data;
 
 	double* getCellRef(int x, int y, int z) {
-		/* Bounds checking */
-		//if(x > cells[0] || y > cells[1] || z > cells[2] 
-		//		|| x <0 || y < 0 || z < 0) {
-		//	std::cerr << "Field access out of bounds!" << std::endl;
-		//}
 
 		if(cells[2] == 1) {
 			return &(data[4*(y*cells[0]+x)]);
@@ -42,19 +39,30 @@ struct Field {
 
 	/* Round-Brace indexing: indexing by physical location, with interpolation */
 	Vec3d operator()(double x, double y, double z) {
-		/* TODO: Vectorize these */
-		x -= min[0];
-		y -= min[1];
-		z -= min[2];
+		Vec3d v(x,y,z);
+		Vec3d vmin,vdx;
+		vmin.load(min);
+		vdx.load(dx);
 
-		x/=dx[0];
-		y/=dx[1];
-		z/=dx[2];
+		v -= vmin;
+		v /= vdx;
+
+		int index[3];
+		double fract[3];
+		round_to_int(v).store(index);
+		fraction(v).store(fract);
 
 		/* TODO: Boundary behaviour? */
 
-		/* TODO: interpolation */
-		return getCell((int)x,(int)y,(int)z);
+		/* TODO: 3d? */
+		Vec3d interp[4];
+		interp[0] = getCell(index[0],index[1],index[2]);
+		interp[1] = getCell(index[0]+1,index[1],index[2]);
+		interp[2] = getCell(index[0],index[1]+1,index[2]);
+		interp[3] = getCell(index[0]+1,index[1]+1,index[2]);
+
+		return fract[0]*(fract[1]*interp[3]+(1.-fract[1])*interp[1])
+		+ (1.-fract[0])*(fract[1]*interp[2]+(1.-fract[1])*interp[0]);
 	}
 	Vec3d operator()(Vec3d pos) {
 		return operator()(pos[0],pos[1],pos[2]);
