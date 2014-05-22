@@ -49,8 +49,9 @@ int main(int argc, char** argv) {
 	std::vector<Particle> particles;
 	pusher_mode mode;
 
-	double dt=0.0293778 / 10.;
-	int maxsteps = 10000;
+	double dt=0.0004012841091492777/10;
+	double maxtime=100;
+	int maxsteps = maxtime/dt;
 
 	if(!strcmp(argv[2],"single")) {
 
@@ -117,11 +118,21 @@ int main(int argc, char** argv) {
 		write_particles(particles, "particles_initial.vlsv");
 	}
 
+	std::cerr << "Pushing " << particles.size() << " particles for " << maxsteps << " steps..." << std::endl;
+        std::cerr << "[                                                                        ]\x0d[";
+
+	char output_filename[256];
+
 	/* Push them around */
-	/* TODO: OpenMP here. */
-	#pragma omp parallel for
-	for(unsigned int i=0; i< particles.size(); i++) {
-		for(int step=0; step<maxsteps; step++) {
+	for(int step=0; step<maxsteps; step++) {
+
+		if(step%(10000) == 0) {
+			snprintf(output_filename,256, "particles_%06i.vlsv",step);
+			write_particles(particles, output_filename);
+		}
+
+		#pragma omp parallel for
+		for(unsigned int i=0; i< particles.size(); i++) {
 			/* Get E- and B-Field at their position */
 			Vec3d Eval,Bval;
 
@@ -130,6 +141,11 @@ int main(int argc, char** argv) {
 
 			/* Push them around */
 			particles[i].push(Bval,Eval,dt);
+		}
+
+		/* Draw progress bar */
+		if((step % (maxsteps/70))==0) {
+			std::cerr << "=";
 		}
 	}
 
