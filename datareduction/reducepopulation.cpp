@@ -1,6 +1,7 @@
 #include <iostream>
 #include <utility>
 #include <unordered_set>
+#include <unordered_map>
 #include <parallel/algorithm>
 #include <algorithm>
 #include <deque>
@@ -205,6 +206,176 @@ class Cluster_Fast {
          *members = *members + numberOfMembersToAppend;
       }
 };
+
+
+class Cluster_Fast_Two {
+   private:
+   public:
+      unordered_map<uint32_t, uint32_t> * neighbor_clusters; // Neighbor cluster indexes, connectivity
+      uint32_t * members; // Number of members in this cluster
+      uint32_t * clusterId; // This cluster's cluster id
+
+      // Constructor
+      Cluster_Fast_Two() {
+         neighbor_clusters = NULL;
+         members = NULL;
+         clusterId = NULL;
+      }
+      // Destructor
+      ~Cluster_Fast_Two() {
+         neighbor_clusters = NULL;
+         members = NULL;
+         clusterId = NULL;
+      }
+
+      // Pseudo-Constructor:
+      inline void set_data( const uint32_t __clusterId ) {
+         // Reserve space
+         neighbor_clusters = new unordered_map<uint32_t, uint32_t>;
+         members = new uint32_t;
+         clusterId = new uint32_t;
+         // Construct:
+         // One member by default
+         *members = 1;
+         // Input cluster id:
+         *clusterId = __clusterId;
+         neighbor_clusters->insert( make_pair(__clusterId, 0) );
+      }
+
+      // Pseudo-Destructor:
+      inline void remove_data( vector<Cluster_Fast_Two> & clusters ) {
+         // Check if there's anything to delete:
+         if( neighbor_clusters && clusterId && members ) {
+            // Get pointers to be deleted:
+            uint32_t * members_to_delete = members;
+            uint32_t * clusterId_to_delete = clusterId;
+            unordered_map<uint32_t, uint32_t> * neighbor_clusters_to_delete = neighbor_clusters;
+   
+            // Go through every member:
+            for( unordered_map<uint32_t, uint32_t>::const_iterator it = neighbor_clusters->begin(); it != neighbor_clusters->end(); ++it ) {
+               const uint index = it->first;
+               // Fix the members to null
+               Cluster_Fast_Two & cluster = clusters[index];
+               cluster.members = NULL;
+               cluster.clusterId = NULL;
+               cluster.neighbor_clusters = NULL;
+            }
+
+            // Remove data:
+            delete members_to_delete;
+            delete clusterId_to_delete;
+            delete neighbor_clusters_to_delete;
+         }
+      }
+
+      inline bool find( const uint32_t __clusterId ) {
+         phiprof_assert( neighbor_clusters );
+         return neighbor_clusters->find( __clusterId ) == neighbor_clusters->end();
+      }
+
+      inline void merge( 
+                  Cluster_Fast_Two & cluster_neighbor,
+                  vector<Cluster_Fast_Two> & clusters
+                            ) {
+
+         // Make sure this class has no null pointers:
+         phiprof_assert( neighbor_clusters && members && clusterId );
+
+         phiprof_assert( cluster_neighbor.neighbor_clusters && cluster_neighbor.members && cluster_neighbor.clusterId );
+
+         phiprof_assert( cluster_neighbor.clusterId != clusterId );
+
+         // Optimize:
+         if( cluster_neighbor.neighbor_clusters->size() > neighbor_clusters->size() ) {
+            // It's faster to use this function the other way around if the neighbor is a bigger cluster:
+            cluster_neighbor.merge( *this, clusters );
+            return;
+         }
+  
+         // CREATE NEW VALUES THAT WILL BE SHARED BY BOTH CLUSTERS
+         //*****************
+         // Create new cluster neighbors:
+         unordered_map<uint32_t, uint32_t> * new_neighbor_clusters = neighbor_clusters;
+
+         // Append values
+         new_neighbor_clusters->insert( cluster_neighbor.neighbor_clusters->begin(), cluster_neighbor.neighbor_clusters->end() );
+
+         // Create new cluster id:
+         uint32_t * new_cluster_id = clusterId;
+         *new_cluster_id = min( *clusterId, *cluster_neighbor.clusterId );
+
+         // Get new members:
+         uint32_t * new_members = members;
+         *new_members = *members + *cluster_neighbor.members;
+         //*****************
+
+
+
+         // Get the pointers for the old values ( to be deleted ):
+         //*****************
+         unordered_map<uint32_t, uint32_t> * old_neighbor_clusters_neighbor = cluster_neighbor.neighbor_clusters;
+         uint32_t * old_cluster_id_neighbor = cluster_neighbor.clusterId;
+         uint32_t * old_members_neighbor = cluster_neighbor.members;
+         //*****************
+
+
+
+
+
+         // Update the cluster neighbors for every cluster:
+         //----------------------------------------------------
+         for( unordered_map<uint32_t, uint32_t>::const_iterator jt = old_neighbor_clusters_neighbor->begin(); jt != old_neighbor_clusters_neighbor->end(); ++jt ) {
+            const uint iterator_index = jt->first;
+ 
+            phiprof_assert( iterator_index < clusters.size() );
+ 
+            // Update the neighbors
+            clusters[iterator_index].neighbor_clusters = new_neighbor_clusters;
+            // Update members:
+            clusters[iterator_index].members = new_members;
+            // Update cluster ids:
+            clusters[iterator_index].clusterId = new_cluster_id;
+         }
+         //----------------------------------------------------
+
+
+
+         // Delete the old values:
+         delete old_neighbor_clusters_neighbor;
+         old_neighbor_clusters_neighbor = NULL;
+         delete old_cluster_id_neighbor;
+         old_cluster_id_neighbor = NULL;
+         delete old_members_neighbor;
+         old_members_neighbor = NULL;
+      }
+
+      inline void halfmerge( 
+                  Cluster_Fast_Two & cluster_neighbor,
+                  vector<Cluster_Fast_Two> & clusters
+                            ) {
+
+         // Make sure this class has no null pointers:
+         phiprof_assert( neighbor_clusters && members && clusterId );
+
+         phiprof_assert( cluster_neighbor.neighbor_clusters && cluster_neighbor.members && cluster_neighbor.clusterId );
+
+         phiprof_assert( cluster_neighbor.clusterId != clusterId );
+
+         // Check whether the neighbor cluster has already been added as a neighbor
+         if( neighbor_clusters->find( *cluster_neighbor.clusterId ) == neighbor_clusters->end() ) {
+            neighbor_clusters->insert( make_pair( *cluster_neighbor.clusterId, 0 ) );
+            cluster_neighbor.neighbor_clusters->insert( make_pair( *clusterId, 0 ) );
+         }
+         // Append more neighbors: Basically what happens here is that we add neighbor to this cluster's neighbor list and vice versa for the neighbour cluster
+         neighbor_clusters->operator[](*cluster_neighbor.clusterId) = neighbor_clusters->operator[](*cluster_neighbor.clusterId) + 1;
+         cluster_neighbor.neighbor_clusters->operator[](*clusterId) = cluster_neighbor.neighbor_clusters->operator[](*clusterId) + 1;
+      }
+
+      inline void append( const uint32_t numberOfMembersToAppend ) {
+         *members = *members + numberOfMembersToAppend;
+      }
+};
+
 
 
 
@@ -882,16 +1053,16 @@ static inline void cluster_advanced_two(
 
    //----------------------------------------------
    // Create clusters
-   vector<Cluster_Fast> clusters;
+   vector<Cluster_Fast_Two> clusters;
    const uint estimated_clusters = 200;
    clusters.reserve( estimated_clusters );
    {
       // Create the no-cluster
-      Cluster_Fast no_cluster;
+      Cluster_Fast_Two no_cluster;
       no_cluster.set_data( noCluster );
       clusters.push_back( no_cluster );
       // Create the first cluster:
-      Cluster_Fast first_cluster;
+      Cluster_Fast_Two first_cluster;
       first_cluster.set_data( clusterId );
       clusters.push_back( first_cluster );
    }
@@ -947,16 +1118,14 @@ static inline void cluster_advanced_two(
 
                //Set clusters to be the same (Merge them)
                //----------------------------------------------------
-//               Cluster_Fast & cluster_neighbor = clusters[index_neighbor];
-//               Cluster_Fast & cluster = clusters[index];
-//
-//               // Merge clusters if the clusters are ok:
-//               const uint32_t clusterMembers = *cluster.members;
-//               const uint32_t neighborClusterMembers = *cluster_neighbor.members;
-//               if( i > 0.9*numberOfVCells || clusterMembers < 0.2*neighborClusterMembers || neighborClusterMembers < 0.2*clusterMembers ) {
-//                  cluster_neighbor.merge( cluster, clusters );
-//               }
-//               //----------------------------------------------------
+               Cluster_Fast_Two & cluster_neighbor = clusters[index_neighbor];
+               Cluster_Fast_Two & cluster = clusters[index];
+
+               // Merge clusters if the clusters are ok:
+               const uint32_t clusterMembers = *cluster.members;
+               const uint32_t neighborClusterMembers = *cluster_neighbor.members;
+               cluster_neighbor.halfmerge( cluster, clusters );
+               //----------------------------------------------------
 
                ++merges;
 
@@ -971,7 +1140,7 @@ static inline void cluster_advanced_two(
 
          // Create a new cluster
          //------------------------------------------------
-         Cluster_Fast new_cluster;
+         Cluster_Fast_Two new_cluster;
          new_cluster.set_data( clusterId );
          clusters.push_back( new_cluster );
          //------------------------------------------------
@@ -982,6 +1151,36 @@ static inline void cluster_advanced_two(
       neighbors.clear();
    }
 
+
+   // Do the merging:
+   for( vector<Cluster_Fast_Two>::iterator it = clusters.begin(); it != clusters.end(); ++it ) {
+      bool loopAgain = true;
+      while( loopAgain ) {
+         loopAgain = false;
+         const double members = *(it->members);
+         const double volume_exp = pow(members, 2/3.);
+         const double volume_exp2 = 1/volume_exp;
+         // Get the length of velocity cell:
+         const double ds = SpatialCell::block_dvx/4.0;
+         const double ds3 = pow(ds, 3);
+         // Get measures of connectivity
+         unordered_map<uint32_t, uint32_t> * connectivity = it->neighbor_clusters;
+         // Loop through neighbors:
+         for( unordered_map<uint32_t, uint32_t>::const_iterator jt = connectivity->begin(); jt != connectivity->end(); ++jt ) {
+            // If connectivity is good enough, merge clusters:
+            cerr << jt->second / volume_exp2 << " " << ds << endl;
+            if( ds3 * jt->second / volume_exp2 > ds ) {
+               // Get neighbor cluster
+               const uint index = jt->first;
+               Cluster_Fast_Two & cluster_neighbor = clusters[index];
+               Cluster_Fast_Two & cluster = *it;
+               cluster_neighbor.merge( cluster, clusters );
+               loopAgain = true;
+               break;
+            }
+         }
+      }
+   }
 
 
    // Set values of clusters
@@ -1183,8 +1382,8 @@ Real evaluate_speed(
    //cluster( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
    //cluster_simple( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
    //cluster_simple_two( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
-   cluster_advanced( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
-
+   //cluster_advanced( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
+   cluster_advanced_two( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
 
    return 0;
 }
