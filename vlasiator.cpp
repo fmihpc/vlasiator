@@ -270,7 +270,7 @@ int main(int argn,char* args[]) {
          
 
    if(P::dynamicTimestep && !P::isRestart) {
-      //compute vlasovsolver once with zero dt, this is  to initialize
+      //compute vlasovsolver once with zero dt, this is to initialize
       //per-cell dt limits. In restarts, we read in dt from file
       phiprof::start("compute-dt");
       calculateSpatialTranslation(mpiGrid,0.0);
@@ -566,8 +566,8 @@ int main(int argn,char* args[]) {
       }
 
       // Propagate fields forward in time by dt. This could be done
-      // before or after trasnlation, but needs to be done before the
-      // moments for t + dt are computed (field uses t and t+0.5dt
+      // before or after translation, but needs to be done before the
+      // moments for t + dt are computed (field uses t and t+0.5dt)
       if (P::propagateField == true) {
          phiprof::start("Propagate Fields");
          propagateFields(mpiGrid, sysBoundaries, P::dt);
