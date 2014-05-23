@@ -332,9 +332,9 @@ void calculateCellVelocityMoments(
       cpu_calcVelocityMoments(SC,block,CellParams::RHO,CellParams::RHOVX,CellParams::RHOVY,CellParams::RHOVZ);
    }
 }
- 
 
-void calculateVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+
+void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    vector<CellID> cells;
    cells=mpiGrid.get_cells();
    phiprof::start("Calculate moments"); 
