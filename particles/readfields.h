@@ -54,9 +54,13 @@ template <class Reader>
 void readfields(const char* filename, Field& E, Field& B, Field& V) {
 	Reader r;
 
+#ifdef DEBUG
 	std::cerr << "Opening " << filename << "...";
+#endif
 	r.open(filename);
+#ifdef DEBUG
 	std::cerr <<"ok." << std::endl;
+#endif
 
 	/* Read the MESH, yielding the CellIDs */
 	std::vector<uint64_t> cellIds = readCellIds(r);

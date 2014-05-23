@@ -38,16 +38,12 @@ int main(int argc, char** argv) {
 	/* Read starting fields from specified input file */
 	std::string filename_pattern = argv[1];
 	char filename_buffer[256];
-	int input_file_counter=2;
+	int input_file_counter=1;
 	Field E[2],B[2],V;
 	snprintf(filename_buffer,256,filename_pattern.c_str(),0);
 	if(checkVersion(filename_buffer)) {
-		readfields<newVlsv::Reader>(filename_buffer,E[0],B[0],V);
-		snprintf(filename_buffer,256,filename_pattern.c_str(),1);
 		readfields<newVlsv::Reader>(filename_buffer,E[1],B[1],V);
 	} else {
-		readfields<oldVlsv::Reader>(filename_buffer,E[0],B[0],V);
-		snprintf(filename_buffer,256,filename_pattern.c_str(),1);
 		readfields<oldVlsv::Reader>(filename_buffer,E[1],B[1],V);
 	}
 
@@ -135,7 +131,7 @@ int main(int argc, char** argv) {
 	for(int step=0; step<maxsteps; step++) {
 
 		/* Load newer fields, if neccessary */
-		if(step*dt > E[1].time) {
+		if(step*dt >= E[1].time) {
 			E[0]=E[1];
 			B[0]=B[1];
 
@@ -146,10 +142,11 @@ int main(int argc, char** argv) {
 			} else {
 				readfields<oldVlsv::Reader>(filename_buffer,E[1],B[1],V);
 			}
-		}
 
-		if(step%(10000) == 0) {
-			snprintf(output_filename,256, "particles_%06i.vlsv",step);
+			/* This is also a good opportunity to write some output.
+			 * Note the -2 here, since we're writing this as we have just
+			 * passed that given timestep, and incremented it by 1. */
+			snprintf(output_filename,256, "particles_%07i.vlsv",input_file_counter-2);
 			write_particles(particles, output_filename);
 		}
 
