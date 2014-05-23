@@ -51,7 +51,7 @@ uint32_t readUintParameter(oldVlsv::Reader& r, const char* name);
 
 /* Read E- and B-Fields as well as velocity field from a vlsv file */
 template <class Reader>
-void readfields(std::string& filename, Field& E, Field& B, Field& V) {
+void readfields(const char* filename, Field& E, Field& B, Field& V) {
 	Reader r;
 
 	std::cerr << "Opening " << filename << "...";
@@ -73,7 +73,7 @@ void readfields(std::string& filename, Field& E, Field& B, Field& V) {
 	std::vector<double> rho_buffer = readFieldData(r,name,1u);
 
 	/* Coordinate Boundaries */
-	double min[3], max[3];
+	double min[3], max[3], time;
 	uint64_t cells[3];
 	min[0] = readDoubleParameter(r,"xmin");
 	min[1] = readDoubleParameter(r,"ymin");
@@ -84,6 +84,7 @@ void readfields(std::string& filename, Field& E, Field& B, Field& V) {
 	cells[0] = readUintParameter(r,"xcells_ini");
 	cells[1] = readUintParameter(r,"ycells_ini");
 	cells[2] = readUintParameter(r,"zcells_ini");
+	time = readDoubleParameter(r,"t");
 
 	//std::cerr << "Grid is " << cells[0] << " x " << cells[1] << " x " << cells[2] << " Cells, " << std::endl
 	//	<< " with dx = " << ((max[0]-min[0])/cells[0]) << ", dy = " << ((max[1]-min[1])/cells[1])
@@ -125,6 +126,7 @@ void readfields(std::string& filename, Field& E, Field& B, Field& V) {
 		E.max[i] = B.max[i] = V.max[i] = max[i]+shift;
 		E.cells[i] = B.cells[i] = V.cells[i] = cells[i];
 	}
+	E.time = B.time = V.time = time;
 
 	/* So, now we've got the cellIDs, the mesh size and the field values,
 	 * we can sort them into place */

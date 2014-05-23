@@ -35,17 +35,21 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	/* Read fields from specified input file */
-	std::string filename = argv[1];
-	Field E,B,V;
-	if(checkVersion(filename)) {
-		readfields<newVlsv::Reader>(filename,E,B,V);
+	/* Read starting fields from specified input file */
+	std::string filename_pattern = argv[1];
+	char filename_buffer[256];
+	int input_file_counter=2;
+	Field E[2],B[2],V;
+	snprintf(filename_buffer,256,filename_pattern.c_str(),0);
+	if(checkVersion(filename_buffer)) {
+		readfields<newVlsv::Reader>(filename_buffer,E[0],B[0],V);
+		snprintf(filename_buffer,256,filename_pattern.c_str(),1);
+		readfields<newVlsv::Reader>(filename_buffer,E[1],B[1],V);
 	} else {
-		readfields<oldVlsv::Reader>(filename,E,B,V);
+		readfields<oldVlsv::Reader>(filename_buffer,E[0],B[0],V);
+		snprintf(filename_buffer,256,filename_pattern.c_str(),1);
+		readfields<oldVlsv::Reader>(filename_buffer,E[1],B[1],V);
 	}
-
-	//debug_output(B, "B.png");
-
 
 	/* Init particles */
 	std::vector<Particle> particles;
@@ -130,18 +134,35 @@ int main(int argc, char** argv) {
 	/* Push them around */
 	for(int step=0; step<maxsteps; step++) {
 
+		/* Load newer fields, if neccessary */
+		if(step*dt > E[1].time) {
+			E[0]=E[1];
+			B[0]=B[1];
+
+			/* TODO: Don't reload V here! */
+			snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter++);
+			if(checkVersion(filename_buffer)) {
+				readfields<newVlsv::Reader>(filename_buffer,E[1],B[1],V);
+			} else {
+				readfields<oldVlsv::Reader>(filename_buffer,E[1],B[1],V);
+			}
+		}
+
 		if(step%(10000) == 0) {
 			snprintf(output_filename,256, "particles_%06i.vlsv",step);
 			write_particles(particles, output_filename);
 		}
+
+		Interpolated_Field cur_E(E[0],E[1],step*dt);
+		Interpolated_Field cur_B(B[0],B[1],step*dt);
 
 		#pragma omp parallel for
 		for(unsigned int i=0; i< particles.size(); i++) {
 			/* Get E- and B-Field at their position */
 			Vec3d Eval,Bval;
 
-			Eval = E(particles[i].x);
-			Bval = B(particles[i].x);
+			Eval = cur_E(particles[i].x);
+			Bval = cur_B(particles[i].x);
 
 			/* Push them around */
 			particles[i].push(Bval,Eval,dt);

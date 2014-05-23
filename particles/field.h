@@ -6,6 +6,10 @@
 /* A 3D cartesian vector field with suitable interpolation properties for
  * particle pushing */
 struct Field {
+
+	/* Time at which this field is "valid" */
+	double time;
+
 	/* Coordinate boundaries */
 	double min[3];
 	double max[3];
@@ -38,8 +42,7 @@ struct Field {
 	}
 
 	/* Round-Brace indexing: indexing by physical location, with interpolation */
-	Vec3d operator()(double x, double y, double z) {
-		Vec3d v(x,y,z);
+	Vec3d operator()(Vec3d v) {
 		Vec3d vmin,vdx;
 		vmin.load(min);
 		vdx.load(dx);
@@ -64,9 +67,30 @@ struct Field {
 		return fract[0]*(fract[1]*interp[3]+(1.-fract[1])*interp[1])
 		+ (1.-fract[0])*(fract[1]*interp[2]+(1.-fract[1])*interp[0]);
 	}
-	Vec3d operator()(Vec3d pos) {
-		return operator()(pos[0],pos[1],pos[2]);
+	Vec3d operator()(double x, double y, double z) {
+		Vec3d v(x,y,z);
+		return operator()(v);
 	}
 
 };
 
+/* Linear Temporal interpolation between two input fields */
+struct Interpolated_Field {
+	Field& a,b;
+	double t;
+
+	/* Constructor:
+	 * Inputs are the two fields to interpolate between
+	 * and the current time.
+	 */
+	Interpolated_Field(Field& _a, Field& _b, float _t) : a(_a),b(_b),t(_t) {
+	}
+
+	Vec3d operator()(Vec3d v) {
+		Vec3d aval=a(v);
+		Vec3d bval=a(v);
+
+		double fract = (t - a.time)/(b.time-a.time);
+		return fract*bval + (1.-fract)*aval;
+	}
+};
