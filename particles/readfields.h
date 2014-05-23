@@ -62,9 +62,9 @@ void readfields(std::string& filename, Field& E, Field& B, Field& V) {
 	std::vector<uint64_t> cellIds = readCellIds(r);
 
 	/* Also read the raw field data */
-	std::string name("B");
+	std::string name("B_vol");
 	std::vector<double> Bbuffer = readFieldData(r,name,3u);
-	name = "E";
+	name = "E_vol";
 	std::vector<double> Ebuffer = readFieldData(r,name,3u);
 
 	name = "rho_v";
@@ -118,10 +118,12 @@ void readfields(std::string& filename, Field& E, Field& B, Field& V) {
 
 	/* Set field sizes */
 	for(int i=0; i<3;i++) {
-		E.min[i] = B.min[i] = V.min[i] = min[i];
-		E.max[i] = B.max[i] = V.max[i] = max[i];
-		E.cells[i] = B.cells[i] = V.cells[i] = cells[i];
+		/* Volume-centered values -> shift by half a cell in all directions*/
 		E.dx[i] = B.dx[i] = V.dx[i] = (max[i]-min[i])/cells[i];
+		double shift = E.dx[i]/2;
+		E.min[i] = B.min[i] = V.min[i] = min[i]+shift;
+		E.max[i] = B.max[i] = V.max[i] = max[i]+shift;
+		E.cells[i] = B.cells[i] = V.cells[i] = cells[i];
 	}
 
 	/* So, now we've got the cellIDs, the mesh size and the field values,
