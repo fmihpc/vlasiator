@@ -333,8 +333,8 @@ OBJS_VLSVREADERINTERFACE = vlsvreaderinterface.o
 OBJS_VLSVREADEREXTRA = muxml.o vlscommon.o vlsvreader2extra.o
 
 #particle pusher tool
-DEPS_PARTICLES = particles/particles.h particles/particles.cpp particles/field.h particles/readfields.h particles/relativistic_math.h
-OBJS_PARTICLES = particles/physconst.o particles/particles.o particles/readfields.o
+DEPS_PARTICLES = particles/particles.h particles/particles.cpp particles/field.h particles/readfields.h particles/relativistic_math.h particles/particleparameters.h readparameters.h version.h
+OBJS_PARTICLES = particles/physconst.o particles/particles.o particles/readfields.o particles/particleparameters.o readparameters.o version.o
 
 vlsvextract: ${DEPS_VLSVREADER} ${DEPS_VLSVREADERINTERFACE} tools/vlsvextract.cpp ${OBJS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvextract.cpp ${INC_BOOST} ${INC_DCCRG} ${INC_SILO} ${INC_EIGEN} ${INC_VLSV} -I$(CURDIR) 
@@ -358,6 +358,9 @@ vlsvdiff: ${DEPS_VLSVREADER} ${DEPS_VLSVREADERINTERFACE} tools/vlsvdiff.cpp ${OB
 
 vlsvreaderinterface.o: ${DEPS_VLSVREADER} tools/vlsvreaderinterface.h tools/vlsvreaderinterface.cpp ${OBJS_VLSVREADER}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvreaderinterface.cpp ${INC_VLSV} -I$(CURDIR) 
+
+particles/particleparameters.o: ${DEPS_PARTICLES} ${DEPS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} particles/particleparameters.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/particleparameters.cpp ${INC_VLSV} ${INC_VECTORCLASS} -I$(CURDIR) -Itools -o $@
 
 particles/readfields.o: ${DEPS_PARTICLES} ${DEPS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE} particles/readfields.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/readfields.cpp ${INC_VLSV} ${INC_VECTORCLASS} -I$(CURDIR) -Itools -o $@

@@ -10,6 +10,8 @@
 #include "particles.h"
 #include "physconst.h"
 #include "readfields.h"
+#include "particleparameters.h"
+#include "../readparameters.h"
 
 // "mode" that the particle pusher operates in
 enum pusher_mode {
@@ -29,18 +31,20 @@ int main(int argc, char** argv) {
 
 	MPI::Init(argc, argv);
 
-	/* Parse commandline */
-	if(argc < 3) {
-		help_message();
-		return 1;
-	}
+	/* Parse commandline and config*/
+	Readparameters parameters(argc, argv, MPI_COMM_WORLD);
+	ParticleParameters::addParameters();
+	parameters.parse();
+	ParticleParameters::getParameters();
 
 	/* Read starting fields from specified input file */
-	std::string filename_pattern = argv[1];
+	std::string filename_pattern = ParticleParameters::input_filename_pattern;
 	char filename_buffer[256];
-	int input_file_counter=1;
+
+	/* TODO: This assumes that output is written every second. Beware. */
+	int input_file_counter=floor(ParticleParameters::start_time)+1;
 	Field E[2],B[2],V;
-	snprintf(filename_buffer,256,filename_pattern.c_str(),0);
+	snprintf(filename_buffer,256,filename_pattern.c_str(),floor(ParticleParameters::start_time));
 	if(checkVersion(filename_buffer)) {
 		readfields<newVlsv::Reader>(filename_buffer,E[1],B[1],V);
 	} else {
@@ -52,16 +56,13 @@ int main(int argc, char** argv) {
 	pusher_mode mode;
 
 	double dt=0.0004012841091492777/10;
-	double maxtime=100;
+	double maxtime=ParticleParameters::end_time - ParticleParameters::start_time;
 	int maxsteps = maxtime/dt;
 
-	if(!strcmp(argv[2],"single")) {
+	if(ParticleParameters::mode == "single") {
 
-		if(argc != 9) {
-			std::cerr<< "Mode 'single' requires 6 additional arguments!" << std::endl;
-			help_message();
-			return 1;
-		}
+		std::cerr << "Sorry, single-particle mode is currently broken, because urs was to lazy to implement it yet!" << std::endl;
+		return 1;
 
 		double pos[3], vel[3];
 		pos[0] = strtod(argv[3],NULL);
@@ -77,30 +78,20 @@ int main(int argc, char** argv) {
 
 		mode = single;
 		particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, Vpos, Vvel));
-	} else if(!strcmp(argv[2], "distribution")) {
+	} else if(ParticleParameters::mode == "distribution") {
 
-		if(argc != 8) {
-			std::cerr<< "Mode 'distribution' requires 5 additional arguments!" << std::endl;
-			help_message();
-			return 1;
-		}
-
-		double pos[3];
 		double temperature;
-		unsigned int num_particles;
+		uint64_t num_particles;
 
-		pos[0] = strtod(argv[3],NULL);
-		pos[1] = strtod(argv[4],NULL);
-		pos[2] = strtod(argv[5],NULL);
-		temperature = strtod(argv[6],NULL);
-		num_particles = strtoul(argv[7],NULL,0);
+		temperature = ParticleParameters::temperature;
+		num_particles = ParticleParameters::num_particles;
 
-		Vec3d vpos;
-		vpos.load(pos);
-
+		Vec3d vpos(ParticleParameters::init_x, ParticleParameters::init_y, ParticleParameters::init_z);
 		mode = distribution;
 
+		/* Look up builk velocity in the V-field */
 		Vec3d bulk_vel = V(vpos);
+
 		std::normal_distribution<Real> velocity_distribution(0,sqrt(temperature*PhysicalConstantsSI::k/PhysicalConstantsSI::mp));
 		std::default_random_engine generator;
 
@@ -112,8 +103,7 @@ int main(int argc, char** argv) {
 			particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, vpos, vel));
 		}
 	} else {
-		std::cerr << "Unknown operation mode '" << argv[2] << "'." << std::endl;
-		help_message();
+		std::cerr << "Config option particles.mode not set correctly!" << std::endl;
 		return 1;
 	}
 
@@ -125,13 +115,11 @@ int main(int argc, char** argv) {
 	std::cerr << "Pushing " << particles.size() << " particles for " << maxsteps << " steps..." << std::endl;
         std::cerr << "[                                                                        ]\x0d[";
 
-	char output_filename[256];
-
 	/* Push them around */
 	for(int step=0; step<maxsteps; step++) {
 
 		/* Load newer fields, if neccessary */
-		if(step*dt >= E[1].time) {
+		while(ParticleParameters::start_time + step*dt >= E[1].time) {
 			E[0]=E[1];
 			B[0]=B[1];
 
@@ -146,8 +134,8 @@ int main(int argc, char** argv) {
 			/* This is also a good opportunity to write some output.
 			 * Note the -2 here, since we're writing this as we have just
 			 * passed that given timestep, and incremented it by 1. */
-			snprintf(output_filename,256, "particles_%07i.vlsv",input_file_counter-2);
-			write_particles(particles, output_filename);
+			snprintf(filename_buffer,256, ParticleParameters::output_filename_pattern.c_str(),input_file_counter-2);
+			write_particles(particles, filename_buffer);
 		}
 
 		Interpolated_Field cur_E(E[0],E[1],step*dt);
