@@ -860,7 +860,6 @@ static inline void cluster_advanced(
                                 const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
                                 SpatialCell * cell
                                   ) {
-
    if( velocityCells.size() == 0 ) { return; }
    const uint numberOfVCells = velocityCells.size();
    // Reserve a table for clusters:
@@ -878,7 +877,6 @@ static inline void cluster_advanced(
    // Set the first velocity cell to cluster one
    uint32_t last_vCell = velocityCells.size()-1;
    clusterIds[last_vCell] = clusterId;
-
 
    // Start getting velocity neighbors
    vector<Velocity_Cell> neighbors;
@@ -905,6 +903,7 @@ static inline void cluster_advanced(
    }
    //----------------------------------------------
 
+   const uint resolution = P::vxblocks_ini * P::vyblocks_ini * P::vzblocks_ini;
 
    for( int i = velocityCells.size()-1; i >= 0; --i ) {
       const Velocity_Cell & vCell = velocityCells[i];
@@ -916,7 +915,6 @@ static inline void cluster_advanced(
       phiprof_assert( id >= 0 && id < velocityCells.size() );
 
       for( vector<Velocity_Cell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
-
          // Get the id of the neighbor:
          const uint32_t neighbor_id = it->hash( startingPoint );
 
@@ -961,15 +959,15 @@ static inline void cluster_advanced(
                // Merge clusters if the clusters are ok:
                const uint32_t clusterMembers = *cluster.members;
                const uint32_t neighborClusterMembers = *cluster_neighbor.members;
-               if( i > 0.9*numberOfVCells || clusterMembers < 0.2*neighborClusterMembers || neighborClusterMembers < 0.2*clusterMembers ) {
+//               if( i > 0.5*numberOfVCells && (clusterMembers < 0.2*neighborClusterMembers || neighborClusterMembers < 0.2*clusterMembers) ) {
+//                  cluster_neighbor.merge( cluster, clusters );
+//                  ++merges;
+//               }
+               if( clusterMembers < resolution*0.002 || neighborClusterMembers < resolution*0.002 ) {
                   cluster_neighbor.merge( cluster, clusters );
+                  ++merges;
                }
-               //----------------------------------------------------
-
-               ++merges;
-
             }
-
          }
       }
 
@@ -1001,9 +999,9 @@ static inline void cluster_advanced(
 
 
    // Print out the number of clusterIds:
-//   cerr << "Clusters: " << clusterId << endl;
-//   cerr << "Merges: " << merges << endl;
-//   cerr << "Sizeof: " << sizeof(Realf) << endl;
+   cerr << "Clusters: " << clusterId << endl;
+   cerr << "Merges: " << merges << endl;
+   cerr << "Sizeof: " << sizeof(Realf) << endl;
 
 
    delete[] clusterIds;
@@ -1022,7 +1020,7 @@ static inline void cluster_advanced_two(
                                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
                                 const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
                                 SpatialCell * cell
-                                  ) {
+                                       ) {
 
    if( velocityCells.size() == 0 ) { return; }
    const uint numberOfVCells = velocityCells.size();
@@ -1041,7 +1039,6 @@ static inline void cluster_advanced_two(
    // Set the first velocity cell to cluster one
    uint32_t last_vCell = velocityCells.size()-1;
    clusterIds[last_vCell] = clusterId;
-
 
    // Start getting velocity neighbors
    vector<Velocity_Cell> neighbors;
@@ -1097,7 +1094,6 @@ static inline void cluster_advanced_two(
             phiprof_assert( index < clusters.size() && index_neighbor < clusters.size() );
             phiprof_assert( clusters[index].neighbor_clusters );
 
-
             // If the cluster id has not been set yet, set it now:
             if( clusterIds[id] == noCluster ) {
 
@@ -1109,8 +1105,7 @@ static inline void cluster_advanced_two(
                clusters[index_neighbor].append(1);
                //--------------------------------------------------------------
 
-
-            } else if( clusters[index].find( index_neighbor ) ) {
+            } else {
 
                // Clusters are separate clusters
 
@@ -1124,13 +1119,12 @@ static inline void cluster_advanced_two(
                // Merge clusters if the clusters are ok:
                const uint32_t clusterMembers = *cluster.members;
                const uint32_t neighborClusterMembers = *cluster_neighbor.members;
-               cluster_neighbor.halfmerge( cluster, clusters );
-               //----------------------------------------------------
-
-               ++merges;
-
+               if( *(cluster.clusterId) != *(cluster_neighbor.clusterId) ) {
+                  cluster_neighbor.halfmerge( cluster, clusters );
+                  //----------------------------------------------------
+                  ++merges;
+               }
             }
-
          }
       }
 
@@ -1158,22 +1152,22 @@ static inline void cluster_advanced_two(
       while( loopAgain ) {
          loopAgain = false;
          const double members = *(it->members);
-         const double volume_exp = pow(members, 2/3.);
-         const double volume_exp2 = 1/volume_exp;
-         // Get the length of velocity cell:
-         const double ds = SpatialCell::block_dvx/4.0;
-         const double ds3 = pow(ds, 3);
+         // Get exponent of members for evaluating if the connectivity is good enough to do merging
+         const double M23 = pow(members, 2/3.);
          // Get measures of connectivity
          unordered_map<uint32_t, uint32_t> * connectivity = it->neighbor_clusters;
          // Loop through neighbors:
          for( unordered_map<uint32_t, uint32_t>::const_iterator jt = connectivity->begin(); jt != connectivity->end(); ++jt ) {
-            // If connectivity is good enough, merge clusters:
-            cerr << jt->second / volume_exp2 << " " << ds << endl;
-            if( ds3 * jt->second / volume_exp2 > ds ) {
+            // Get the connectivity:
+            const double N = jt->second;
+            // If connectivity is good enough, merge clusters: (also make sure that the clusters are not the same clusters)
+            cerr << N/M23 << " " << 2.5 << endl;
+            cerr << N << endl;
+            const uint index = jt->first;
+            Cluster_Fast_Two & cluster_neighbor = clusters[index];
+            Cluster_Fast_Two & cluster = *it;
+            if( N/M23 > 2.5 && *(cluster_neighbor.clusterId) != *(cluster.clusterId) ) {
                // Get neighbor cluster
-               const uint index = jt->first;
-               Cluster_Fast_Two & cluster_neighbor = clusters[index];
-               Cluster_Fast_Two & cluster = *it;
                cluster_neighbor.merge( cluster, clusters );
                loopAgain = true;
                break;
@@ -1192,9 +1186,9 @@ static inline void cluster_advanced_two(
 
 
    // Print out the number of clusterIds:
-//   cerr << "Clusters: " << clusterId << endl;
-//   cerr << "Merges: " << merges << endl;
-//   cerr << "Sizeof: " << sizeof(Realf) << endl;
+   cerr << "Clusters: " << clusterId << endl;
+   cerr << "Merges: " << merges << endl;
+   cerr << "Sizeof: " << sizeof(Realf) << endl;
 
 
    delete[] clusterIds;
@@ -1382,8 +1376,8 @@ Real evaluate_speed(
    //cluster( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
    //cluster_simple( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
    //cluster_simple_two( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
-   //cluster_advanced( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
-   cluster_advanced_two( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
+   cluster_advanced( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
+   //cluster_advanced_two( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
 
    return 0;
 }
