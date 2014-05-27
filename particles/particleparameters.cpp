@@ -1,3 +1,5 @@
+#include <map>
+#include <iostream>
 #include "particleparameters.h"
 #include "distribution.h"
 #include "../readparameters.h"
