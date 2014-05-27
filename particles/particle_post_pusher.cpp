@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
 	std::vector<Particle> particles;
 	pusher_mode mode;
 
-	double dt=0.0004012841091492777/10;
+	double dt=ParticleParameters::dt;
 	double maxtime=ParticleParameters::end_time - ParticleParameters::start_time;
 	int maxsteps = maxtime/dt;
 

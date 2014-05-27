@@ -17,6 +17,7 @@ struct ParticleParameters {
 	static Real init_y; /*!< Particle starting point, y-coordinate */
 	static Real init_z; /*!< Particle starting point, z-coordinate */
 
+	static Real dt; /*!< Particle pusher timestep */
 	static Real start_time; /*!< Simulation time at which the particles are injected */
 	static Real end_time;  /*!< Simulation time at which the particle-simulation should be stopped */
 
