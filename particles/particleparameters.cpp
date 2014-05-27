@@ -1,5 +1,7 @@
 #include "particleparameters.h"
+#include "distribution.h"
 #include "../readparameters.h"
+#include "physconst.h"
 
 typedef ParticleParameters P;
 
@@ -14,8 +16,11 @@ Real P::start_time = 0;
 Real P::end_time = 0;
 uint64_t P::num_particles = 0;
 
-std::string P::distribution = std::string("maxwell");
+Distribution* (*P::distribution)(std::default_random_engine&) = NULL;
 Real P::temperature = 1e6;
+Real P::particle_vel = 0;
+Real P::mass = PhysicalConstantsSI::mp;
+Real P::charge = PhysicalConstantsSI::e;
 
 bool ParticleParameters::addParameters() {
 	Readparameters::add("particles.input_filename_pattern","Printf() like pattern giving the field input filenames.", std::string("bulk.%07i.vlsv"));
@@ -31,6 +36,9 @@ bool ParticleParameters::addParameters() {
 	Readparameters::add("particles.num_particles", "Number of particles to simulate.",10000);
 	Readparameters::add("particles.distribution", "Type of distribution function to sample particles from.",std::string("maxwell"));
 	Readparameters::add("particles.temperature", "Temperature of the particle distribution",1e6);
+	Readparameters::add("particles.particle_vel", "Initial velocity of the particles (in the plasma rest frame)",0);
+	Readparameters::add("particles.mass", "Mass of the test particles",PhysicalConstantsSI::mp);
+	Readparameters::add("particles.charge", "Charge of the test particles",PhysicalConstantsSI::e);
 	return true;
 }
 
@@ -48,7 +56,22 @@ bool ParticleParameters::getParameters() {
 	Readparameters::get("particles.end_time",P::end_time);
 	Readparameters::get("particles.num_particles",P::num_particles);
 
-	Readparameters::get("particles.distribution",P::distribution);
+	/* Look up particle distribution generator */
+	std::string distribution_name;
+	Readparameters::get("particles.distribution",distribution_name);
+
+	std::map<std::string, Distribution*(*)(std::default_random_engine&)> distribution_lookup;
+	distribution_lookup["maxwell"]=&create_distribution<Maxwell_Boltzmann>;
+	distribution_lookup["monoenergetic"]=&create_distribution<Monoenergetic>;
+
+	if(distribution_lookup.find(distribution_name) == distribution_lookup.end()) {
+		std::cerr << "Error: particles.distribution value \"" << distribution_name << "\" does not specify a valid distribution!" << std::endl;
+		return false;
+	} else {
+		P::distribution = distribution_lookup[distribution_name];
+	}
+
 	Readparameters::get("particles.temperature",P::temperature);
+	Readparameters::get("particles.particle_vel",P::particle_vel);
 	return true;
 }

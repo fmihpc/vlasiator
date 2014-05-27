@@ -10,6 +10,7 @@
 #include "particles.h"
 #include "physconst.h"
 #include "readfields.h"
+#include "distribution.h"
 #include "particleparameters.h"
 #include "../readparameters.h"
 
@@ -80,28 +81,27 @@ int main(int argc, char** argv) {
 		particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, Vpos, Vvel));
 	} else if(ParticleParameters::mode == "distribution") {
 
-		double temperature;
-		uint64_t num_particles;
+		mode = distribution;
 
-		temperature = ParticleParameters::temperature;
-		num_particles = ParticleParameters::num_particles;
+		std::default_random_engine generator;
+		Distribution* velocity_distribution=ParticleParameters::distribution(generator);
 
 		Vec3d vpos(ParticleParameters::init_x, ParticleParameters::init_y, ParticleParameters::init_z);
-		mode = distribution;
 
 		/* Look up builk velocity in the V-field */
 		Vec3d bulk_vel = V(vpos);
 
-		std::normal_distribution<Real> velocity_distribution(0,sqrt(temperature*PhysicalConstantsSI::k/PhysicalConstantsSI::mp));
-		std::default_random_engine generator;
-
-		for(unsigned int i=0; i< num_particles; i++) {
-			// Generate normal-distribution...
-			Vec3d vel(velocity_distribution(generator),velocity_distribution(generator),velocity_distribution(generator));
-			// .. and shift it by the bulk velocity.
-			vel += bulk_vel;
-			particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, vpos, vel));
+		for(unsigned int i=0; i< ParticleParameters::num_particles; i++) {
+			/* Create a particle with velocity drawn from the given distribution ... */
+			Particle p = velocity_distribution->next_particle();
+			/* Shift it by the bulk velocity ... */
+			p.v += bulk_vel;
+			/* And put it in place. */
+			p.x=vpos;
+			particles.push_back(p);
 		}
+
+		delete velocity_distribution;
 	} else {
 		std::cerr << "Config option particles.mode not set correctly!" << std::endl;
 		return 1;
@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
 		}
 
 		/* Draw progress bar */
-		if((step % (maxsteps/72))==0) {
+		if((step % (maxsteps/71))==0) {
 			std::cerr << "=";
 		}
 	}

@@ -1,8 +1,12 @@
 #pragma once
 
+#include <random>
 #include <string>
 
+#include "distribution.h"
 #include "../definitions.h"
+
+class Distribution; //forward declaration
 
 struct ParticleParameters {
 	static std::string input_filename_pattern; /*!< printf() - like pattern giving the input filenames */
@@ -18,8 +22,12 @@ struct ParticleParameters {
 
 	static uint64_t num_particles; /*!< Number of particles to generate */
 
-	static std::string distribution; /*!< Type of distribution from which to sample the particles */
-	static Real temperature; /*!< Initial particle temperature */
+	static Distribution* (*distribution)(std::default_random_engine&); /*!< Type of distribution from which to sample the particles */
+	static Real temperature; /*!< Initial particle temperature (for distributions where a temperature is meaningful) */
+	static Real particle_vel; /*!< Initial particle velocity (for distributions with a single initial velocity) */
+
+	static Real mass; /*!< Mass of the test particles */
+	static Real charge; /*!< Charge of the test particles */
 
 	static bool addParameters();
 	static bool getParameters();
