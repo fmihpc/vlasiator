@@ -75,6 +75,8 @@ bool ParticleParameters::getParameters() {
 	std::map<std::string, Distribution*(*)(std::default_random_engine&)> distribution_lookup;
 	distribution_lookup["maxwell"]=&create_distribution<Maxwell_Boltzmann>;
 	distribution_lookup["monoenergetic"]=&create_distribution<Monoenergetic>;
+	distribution_lookup["kappa2"]=&create_distribution<Kappa2>;
+	distribution_lookup["kappa6"]=&create_distribution<Kappa6>;
 
 	if(distribution_lookup.find(distribution_name) == distribution_lookup.end()) {
 		std::cerr << "Error: particles.distribution value \"" << distribution_name << "\" does not specify a valid distribution!" << std::endl;
