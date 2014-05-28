@@ -19,6 +19,7 @@ Real P::start_time = 0;
 Real P::end_time = 0;
 uint64_t P::num_particles = 0;
 
+std::default_random_engine::result_type P::random_seed = 1;
 Distribution* (*P::distribution)(std::default_random_engine&) = NULL;
 Real P::temperature = 1e6;
 Real P::particle_vel = 0;
@@ -38,6 +39,7 @@ bool ParticleParameters::addParameters() {
 	Readparameters::add("particles.start_time", "Simulation time (seconds) for particle start.",0);
 	Readparameters::add("particles.end_time", "Simulation time (seconds) at which particle simulation stops.",0);
 	Readparameters::add("particles.num_particles", "Number of particles to simulate.",10000);
+	Readparameters::add("particles.random_seed", "Random seed for particle creation.",1);
 	Readparameters::add("particles.distribution", "Type of distribution function to sample particles from.",std::string("maxwell"));
 	Readparameters::add("particles.temperature", "Temperature of the particle distribution",1e6);
 	Readparameters::add("particles.particle_vel", "Initial velocity of the particles (in the plasma rest frame)",0);
@@ -63,6 +65,8 @@ bool ParticleParameters::getParameters() {
 	if(P::dt == 0 || P::end_time <= P::start_time) {
 		return false;
 	}
+
+	Readparameters::get("particles.random_seed",P::random_seed);
 
 	/* Look up particle distribution generator */
 	std::string distribution_name;

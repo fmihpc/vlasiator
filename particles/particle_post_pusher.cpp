@@ -43,9 +43,9 @@ int main(int argc, char** argv) {
 	char filename_buffer[256];
 
 	/* TODO: This assumes that output is written every second. Beware. */
-	int input_file_counter=floor(ParticleParameters::start_time)+1;
+	int input_file_counter=floor(ParticleParameters::start_time);
 	Field E[2],B[2],V;
-	snprintf(filename_buffer,256,filename_pattern.c_str(),floor(ParticleParameters::start_time));
+	snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter-1);
 	if(checkVersion(filename_buffer)) {
 		readfields<newVlsv::Reader>(filename_buffer,E[1],B[1],V);
 	} else {
@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
 
 		mode = distribution;
 
-		std::default_random_engine generator;
+		std::default_random_engine generator(ParticleParameters::random_seed);
 		Distribution* velocity_distribution=ParticleParameters::distribution(generator);
 
 		Vec3d vpos(ParticleParameters::init_x, ParticleParameters::init_y, ParticleParameters::init_z);
