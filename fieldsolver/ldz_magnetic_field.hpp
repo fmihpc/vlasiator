@@ -190,20 +190,6 @@ void propagateSysBoundaryMagneticField(
    creal& dt,
    cint& RKCase
 ) {
-   #ifndef NDEBUG
-   const map<CellID,uint>::const_iterator it = sysBoundaryFlags.find(cellID);
-   if (it == sysBoundaryFlags.end()) {cerr << "ERROR Could not find boundary flag for cell #" << cellID << endl; exit(1);}
-   cuint existingCells = it->second;
-   #else
-   cuint existingCells = sysBoundaryFlags[cellID];
-   #endif
-   if (mpiGrid[cellID] == NULL) {
-      std::cerr << __FILE__ << ":" << __LINE__
-      << " No data for cell " << cellID
-      << std::endl;
-      abort();
-   }
-   
    for(uint component = 0; component < 3; component++) {
       if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
          mpiGrid[cellID]->parameters[CellParams::PERBX + component] =

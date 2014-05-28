@@ -60,17 +60,15 @@ namespace projects {
       creal& vx,creal& vy,creal& vz,
       creal& dvx,creal& dvy,creal& dvz
    ) {
-      creal mass = 1.67262171e-27; // m_p in kg
-      creal k = 1.3806505e-23; // Boltzmann
-      creal mu0 = 1.25663706144e-6; // mu_0
-      creal q = 1.60217653e-19; // q_i
+      creal mass = physicalconstants::MASS_PROTON;
+      creal kb = physicalconstants::K_B;
       
       creal Vy0 = 0.0;
       
-      return this->DENSITY * pow(mass / (2.0 * M_PI * k * this->TEMPERATURE), 1.5) * (
-         5.0 / pow(cosh((x + 0.5 * dx) / (this->SCA_LAMBDA)), 2.0) * exp(- mass * (pow(vx + 0.5 * dvx, 2.0) + pow(vy + 0.5 * dvy - Vy0, 2.0) + pow(vz + 0.5 * dvz, 2.0)) / (2.0 * k * this->TEMPERATURE))
+      return this->DENSITY * pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) * (
+         5.0 / pow(cosh((x + 0.5 * dx) / (this->SCA_LAMBDA)), 2.0) * exp(- mass * (pow(vx + 0.5 * dvx, 2.0) + pow(vy + 0.5 * dvy - Vy0, 2.0) + pow(vz + 0.5 * dvz, 2.0)) / (2.0 * kb * this->TEMPERATURE))
          +
-         exp(- mass * (pow(vx + 0.5 * dvx, 2.0) + pow(vy + 0.5 * dvy, 2.0) + pow(vz + 0.5 * dvz, 2.0)) / (2.0 * k * this->TEMPERATURE)));
+         exp(- mass * (pow(vx + 0.5 * dvx, 2.0) + pow(vy + 0.5 * dvy, 2.0) + pow(vz + 0.5 * dvz, 2.0)) / (2.0 * kb * this->TEMPERATURE)));
    }
    
    void Harris::calcCellParameters(Real* cellParams,creal& t) {

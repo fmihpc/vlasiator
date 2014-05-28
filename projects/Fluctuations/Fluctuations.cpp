@@ -73,9 +73,9 @@ namespace projects {
    }
    
    Real Fluctuations::getDistribValue(creal& vx,creal& vy, creal& vz) {
-      creal k = 1.3806505e-23; // Boltzmann
-      creal mass = 1.67262171e-27; // m_p in kg
-      return exp(- mass * (vx*vx + vy*vy + vz*vz) / (2.0 * k * this->TEMPERATURE));
+      creal mass = physicalconstants::MASS_PROTON;
+      creal kb = physicalconstants::K_B;
+      return exp(- mass * (vx*vx + vy*vy + vz*vz) / (2.0 * kb * this->TEMPERATURE));
    }
 
    Real Fluctuations::calcPhaseSpaceDensity(
@@ -92,10 +92,8 @@ namespace projects {
          vz > Parameters::vzmax - 1.5 * dvz
       ) return 0.0;
       
-      creal mass = Parameters::m;
-      creal q = Parameters::q;
-      creal k = 1.3806505e-23; // Boltzmann
-      creal mu0 = 1.25663706144e-6; // mu_0
+      creal mass = physicalconstants::MASS_PROTON;
+      creal kb = physicalconstants::K_B;
       
       creal d_vx = dvx / (this->nVelocitySamples-1);
       creal d_vy = dvy / (this->nVelocitySamples-1);
@@ -114,7 +112,7 @@ namespace projects {
       
       creal result = avg *
          this->DENSITY * (1.0 + this->densityPertRelAmp * (0.5 - rndRho)) *
-         pow(mass / (2.0 * M_PI * k * this->TEMPERATURE), 1.5) /
+         pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) /
          (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
       
       if(result < this->maxwCutoff) {

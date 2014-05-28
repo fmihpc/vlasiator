@@ -73,13 +73,11 @@ namespace projects {
       creal& vx,creal& vy,creal& vz,
       creal& dvx,creal& dvy,creal& dvz
    ) {
-      creal mass = 1.67262171e-27; // m_p in kg
-      creal k = 1.3806505e-23; // Boltzmann
-      creal mu0 = 1.25663706144e-6; // mu_0
-      creal q = 1.60217653e-19; // q_i
+      creal mass = physicalconstants::MASS_PROTON;
+      creal kb = physicalconstants::K_B;
       
-      return this->DENSITY * pow(mass / (2.0 * M_PI * k * this->TEMPERATURE), 1.5) * (
-         exp(- mass * (pow(vx + 0.5 * dvx - this->VX0, 2.0) + pow(vy + 0.5 * dvy - this->VY0, 2.0) + pow(vz + 0.5 * dvz - this->VZ0, 2.0)) / (2.0 * k * this->TEMPERATURE)));
+      return this->DENSITY * pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) * (
+         exp(- mass * (pow(vx + 0.5 * dvx - this->VX0, 2.0) + pow(vy + 0.5 * dvy - this->VY0, 2.0) + pow(vz + 0.5 * dvz - this->VZ0, 2.0)) / (2.0 * kb * this->TEMPERATURE)));
    }
    
 //    void TestHall::setCellBackgroundField(SpatialCell *cell){
@@ -150,11 +148,23 @@ namespace projects {
       creal Dy = 0.5*dy;
       creal Dz = 0.5*dz;
       
-      creal r = sqrt((x+Dx)*(x+Dx) + (y+Dy)*(y+Dy));
-      creal theta = atan2(y+Dy, x+Dx);
+//       creal r = sqrt((x+Dx)*(x+Dx) + (y+Dy)*(y+Dy));
+//       creal theta = atan2(y+Dy, x+Dx);
       
-      creal I = 1.0e6; // current
-      creal B = physicalconstants::MU_0 * I / (2.0 * 3.1415927);
+//       creal I = 1.0e6; // current
+//       creal B = physicalconstants::MU_0 * I / (2.0 * 3.1415927);
+      
+//       cellParams[CellParams::PERBX] = this->BX0;
+//       cellParams[CellParams::PERBY] = this->BY0;
+//       cellParams[CellParams::PERBZ] = this->BZ0;
+      
+//       cellParams[CellParams::PERBX] = this->BX0 * y;
+//       cellParams[CellParams::PERBY] = this->BY0 * z;
+//       cellParams[CellParams::PERBZ] = this->BZ0 * x;
+      
+      cellParams[CellParams::PERBX] = this->BX0 * cos(2.0*M_PI * 1.0 * x / (P::xmax - P::xmin)) * cos(2.0*M_PI * 1.0 * y / (P::ymax - P::ymin)) * cos(2.0*M_PI * 1.0 * z / (P::zmax - P::zmin));
+      cellParams[CellParams::PERBY] = this->BY0 * cos(2.0*M_PI * 1.0 * x / (P::xmax - P::xmin)) * cos(2.0*M_PI * 1.0 * y / (P::ymax - P::ymin)) * cos(2.0*M_PI * 1.0 * z / (P::zmax - P::zmin));
+      cellParams[CellParams::PERBZ] = this->BZ0 * cos(2.0*M_PI * 1.0 * x / (P::xmax - P::xmin)) * cos(2.0*M_PI * 1.0 * y / (P::ymax - P::ymin)) * cos(2.0*M_PI * 1.0 * z / (P::zmax - P::zmin));
       
 //       cellParams[CellParams::PERBX] = -1.0*(y+Dy) / ((x+Dx)*(x+Dx) + (y+Dy)*(y+Dy));
 //       cellParams[CellParams::PERBY] = (x+Dx) / ((x+Dx)*(x+Dx) + (y+Dy)*(y+Dy));
@@ -166,9 +176,9 @@ namespace projects {
       
 //       cellParams[CellParams::PERBX   ] = this->BX0 * (x+0.5*Dx + y+0.5*Dy + (z+0.5*Dz));
 //       cellParams[CellParams::PERBY   ] = this->BY0 * ((x+0.5*Dx)*(x+0.5*Dx) + (y+0.5*Dy)*(y+0.5*Dy) + (z+0.5*Dz)*(z+0.5*Dz));
-      cellParams[CellParams::PERBX   ] = this->BX0 * ((x+0.5*Dx)*(x+0.5*Dx)*(x+0.5*Dx)/ pow(Parameters::xmax - Parameters::xmin, 3.0) + (y+0.5*Dy)*(y+0.5*Dy)*(y+0.5*Dy)/ pow(Parameters::ymax - Parameters::ymin, 3.0) + (z+0.5*Dz)*(z+0.5*Dz)*(z+0.5*Dz)/ pow(Parameters::zmax - Parameters::zmin, 3.0))   ;
-      cellParams[CellParams::PERBY   ] = this->BY0 * ((x+0.5*Dx)*(x+0.5*Dx)*(x+0.5*Dx)/ pow(Parameters::xmax - Parameters::xmin, 3.0) + (y+0.5*Dy)*(y+0.5*Dy)*(y+0.5*Dy)/ pow(Parameters::ymax - Parameters::ymin, 3.0) + (z+0.5*Dz)*(z+0.5*Dz)*(z+0.5*Dz)/ pow(Parameters::zmax - Parameters::zmin, 3.0));
-      cellParams[CellParams::PERBZ   ] = this->BZ0 * ((x+0.5*Dx)*(x+0.5*Dx)*(x+0.5*Dx)/ pow(Parameters::xmax - Parameters::xmin, 3.0) + (y+0.5*Dy)*(y+0.5*Dy)*(y+0.5*Dy)/ pow(Parameters::ymax - Parameters::ymin, 3.0) + (z+0.5*Dz)*(z+0.5*Dz)*(z+0.5*Dz)/ pow(Parameters::zmax - Parameters::zmin, 3.0));
+//       cellParams[CellParams::PERBX   ] = this->BX0 * ((x+0.5*Dx)*(x+0.5*Dx)*(x+0.5*Dx)/ pow(Parameters::xmax - Parameters::xmin, 3.0) + (y+0.5*Dy)*(y+0.5*Dy)*(y+0.5*Dy)/ pow(Parameters::ymax - Parameters::ymin, 3.0) + (z+0.5*Dz)*(z+0.5*Dz)*(z+0.5*Dz)/ pow(Parameters::zmax - Parameters::zmin, 3.0))   ;
+//       cellParams[CellParams::PERBY   ] = this->BY0 * ((x+0.5*Dx)*(x+0.5*Dx)*(x+0.5*Dx)/ pow(Parameters::xmax - Parameters::xmin, 3.0) + (y+0.5*Dy)*(y+0.5*Dy)*(y+0.5*Dy)/ pow(Parameters::ymax - Parameters::ymin, 3.0) + (z+0.5*Dz)*(z+0.5*Dz)*(z+0.5*Dz)/ pow(Parameters::zmax - Parameters::zmin, 3.0));
+//       cellParams[CellParams::PERBZ   ] = this->BZ0 * ((x+0.5*Dx)*(x+0.5*Dx)*(x+0.5*Dx)/ pow(Parameters::xmax - Parameters::xmin, 3.0) + (y+0.5*Dy)*(y+0.5*Dy)*(y+0.5*Dy)/ pow(Parameters::ymax - Parameters::ymin, 3.0) + (z+0.5*Dz)*(z+0.5*Dz)*(z+0.5*Dz)/ pow(Parameters::zmax - Parameters::zmin, 3.0));
       
 //       cellParams[CellParams::PERBX   ] = this->BX0 * (x+0.5*Dx)*(y+0.5*Dy)*(z+0.5*Dz);
 //       cellParams[CellParams::PERBY   ] = this->BY0 * (x+0.5*Dx)*(y+0.5*Dy)*(z+0.5*Dz)*(x+0.5*Dx)*(y+0.5*Dy)*(z+0.5*Dz);

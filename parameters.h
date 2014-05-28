@@ -40,17 +40,13 @@ struct Parameters {
    static uint vxblocks_ini; /*!< Initial number of velocity grid blocks in vx-direction. */
    static uint vyblocks_ini; /*!< Initial number of velocity grid blocks in vy-direction. */
    static uint vzblocks_ini; /*!< Initial number of velocity grid blocks in vz-direction. */
-
+   
    static Real backstreamradius; /*!< Radius of the maxwellian distribution. Used for calculating rho of the backstream population. */
    static Real backstreamvx; /*!< X coordinate of the origin of the maxwellian distribution. Used for calculating rho of the backstream population. */
    static Real backstreamvy; /*!< Y coordinate of the origin of the maxwellian distribution. Used for calculating rho of the backstream population. */
    static Real backstreamvz; /*!< Z coordinate of the origin of the maxwellian distribution. Used for calculating rho of the backstream population. */
-
-
-   static Real q;                    /*!< Charge of simulated particle species.*/
-   static Real m;                    /*!< Mass of simulated particle species.*/
-   static Real q_per_m;              /*!< Charge-to-mass ratio of simulated particle species,
-                                      *   calculated from Parameters::q and Parameters::m.*/
+   
+   
    static Real t;                    /*!< Current simulation time. */
    static Real t_min;                    /*!< Initial simulation time. */
    static Real t_max;                    /*!< Maximum simulation time. */
@@ -59,11 +55,11 @@ struct Parameters {
    static Real vlasovSolverMinCFL;                  /*!< The minimum CFL limit for propagation of distribution function. Used to set timestep if useCFLlimit is true. Also used to set number of acceleration steps if substepAcceleration is true */
    static Real fieldSolverMinCFL;     /*!< The minimum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
    static Real fieldSolverMaxCFL;     /*!< The maximum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
-
+   
    static uint tstep_min;           /*!< Timestep when simulation starts, needed for restarts.*/
    static uint tstep_max;           /*!< Maximum timestep. */
    static uint tstep;               /*!< The number of the current timestep. 0=initial state. */
-
+   
    static uint diagnosticInterval;
    static std::vector<std::string> systemWriteName; /*!< Names for the different classes of grid output*/
    static std::vector<Real> systemWriteTimeInterval;/*!< Interval in simusecond for output for each class*/
@@ -72,7 +68,7 @@ struct Parameters {
    static std::vector<int> systemWriteDistributionWriteYlineStride; /*!< Every this many lines of cells along the y direction write out their velocity space in each class. */
    static std::vector<int> systemWriteDistributionWriteZlineStride; /*!< Every this many lines of cells along the z direction write out their velocity space in each class. */
    static std::vector<int> systemWrites; /*!< How many files have been written of each class*/
-
+   
    static bool writeInitialState;           /*!< If true, initial state is written. This is useful for debugging as the restarts are always written out after propagation of 0.5dt in real space.*/
    static Real saveRestartWalltimeInterval; /*!< Interval in walltime seconds for restart data*/
    static uint exitAfterRestarts;           /*!< Exit after this many restarts*/
@@ -82,7 +78,7 @@ struct Parameters {
    /*!< Indicates the data that needs to be transmitted to remote nodes.
     * This is created with bitwise or from the values defined in 
     * namespace Transmit.*/
-
+   
    static bool recalculateStencils; /*!< If true, MPI stencils should be recalculated because of load balancing.*/
    
    static bool propagateField;      /*!< If true, magnetic field is propagated during the simulation.*/
@@ -94,12 +90,12 @@ struct Parameters {
    static Real resistivity; /*!< Resistivity in Ohm's law eta*J term. */
    static uint ohmHallTerm; /*!< Enable/choos spatial order of Hall term in Ohm's law JXB term. 0: off, 1: 1st spatial order, 2: 2nd spatial order. */
    static bool fieldSolverDiffusiveEterms; /*!< Enable resitive terms in the computation of E*/
-
+   
    static Real maxSlAccelerationRotation; /*!< Maximum rotation in acceleration for semilagrangian solver*/
    static Real lorentzHallMinimumRho;  /*!< Minimum rho value used in Hall term in Lorentz force.*/
    static Real sparseMinValue; /*!< Minimum value of distribution function in any cell of a velocity block for the block to be considered to have contents */
    static int sparseBlockAddWidthV; /*!< Number of layers of blocks that are kept in velocity space around the blocks with content */
-  static bool sparse_conserve_mass; /*!< If true, density is scaled to conserve mass when removing blocks*/
+   static bool sparse_conserve_mass; /*!< If true, density is scaled to conserve mass when removing blocks*/
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
    static std::string loadBalanceTolerance; /*!< Load imbalance tolerance. */ 
    static uint rebalanceInterval; /*!< Load rebalance interval (steps). */

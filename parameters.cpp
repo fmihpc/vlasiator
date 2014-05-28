@@ -50,9 +50,6 @@ uint P::vxblocks_ini = numeric_limits<uint>::max();
 uint P::vyblocks_ini = numeric_limits<uint>::max();
 uint P::vzblocks_ini = numeric_limits<uint>::max();
 
-Real P::q = NAN;
-Real P::m = NAN;
-Real P::q_per_m = NAN;
 Real P::t = 0;
 Real P::t_min = 0;
 Real P::t_max = LARGE_REAL;
@@ -76,7 +73,6 @@ std::vector<int> P::systemWriteDistributionWriteXlineStride;
 std::vector<int> P::systemWriteDistributionWriteYlineStride;
 std::vector<int> P::systemWriteDistributionWriteZlineStride;
 std::vector<int> P::systemWrites;
-   
 
 Real P::saveRestartWalltimeInterval = -1.0;
 uint P::exitAfterRestarts = numeric_limits<uint>::max();
@@ -101,7 +97,8 @@ Real P::sparseMinValue = NAN;
 int P::sparseBlockAddWidthV = 1;
 bool P::sparse_conserve_mass = false;
 
-string P::restartFileName = string("");                
+
+string P::restartFileName = string("");
 bool P::isRestart=false;
 int P::writeAsFloat = false;
 string P::loadBalanceAlgorithm = string("");
@@ -167,8 +164,6 @@ bool Parameters::addParameters(){
    Readparameters::add("gridbuilder.vy_length","Initial number of velocity blocks in vy-direction.","");
    Readparameters::add("gridbuilder.vz_length","Initial number of velocity blocks in vz-direction.","");
    
-   Readparameters::add("gridbuilder.q","Charge of simulated particle species, in Coulombs.",1.60217653e-19);
-   Readparameters::add("gridbuilder.m","Mass of simulated particle species, in kilograms.",1.67262171e-27);
    Readparameters::add("gridbuilder.dt","Initial timestep in seconds.",0.0);
 
    Readparameters::add("gridbuilder.t_max","Maximum simulation time, in seconds. If timestep_max limit is hit first this time will never be reached",LARGE_REAL);
@@ -271,18 +266,16 @@ bool Parameters::getParameters(){
    P::dy_ini = (P::ymax-P::ymin)/P::ycells_ini;
    P::dz_ini = (P::zmax-P::zmin)/P::zcells_ini;
    
-   Readparameters::get("gridbuilder.q",P::q);
-   Readparameters::get("gridbuilder.m",P::m);
    Readparameters::get("gridbuilder.dt",P::dt);
-
+   
    Readparameters::get("gridbuilder.t_max",P::t_max);
    Readparameters::get("gridbuilder.timestep_max",P::tstep_max);
-
+   
    if(P::dynamicTimestep)
       P::dt=0.0; //if dynamic timestep then first dt is always 0 
-   P::q_per_m = P::q/P::m;
+   
    //if we are restarting, t,t_min, tstep, tstep_min will be overwritten in readGrid
-   P::t_min=0;          
+   P::t_min=0;
    P::t = P::t_min;
    P::tstep_min=0;
    P::tstep = P::tstep_min;
@@ -299,12 +292,12 @@ bool Parameters::getParameters(){
    Readparameters::get("vlasovsolver.lorentzHallMinimumRho",P::lorentzHallMinimumRho);
    Readparameters::get("vlasovsolver.maxCFL",P::vlasovSolverMaxCFL);
    Readparameters::get("vlasovsolver.minCFL",P::vlasovSolverMinCFL);
-
+   
    // Get sparsity parameters
    Readparameters::get("sparse.minValue", P::sparseMinValue);
    Readparameters::get("sparse.blockAddWidthV", P::sparseBlockAddWidthV); 
    Readparameters::get("sparse.conserve_mass", P::sparse_conserve_mass);
-
+   
    // Get load balance parameters
    Readparameters::get("loadBalance.algorithm", P::loadBalanceAlgorithm);
    Readparameters::get("loadBalance.tolerance", P::loadBalanceTolerance);
@@ -312,17 +305,17 @@ bool Parameters::getParameters(){
    Readparameters::get("loadBalance.alpha", P::loadBalanceAlpha);
    Readparameters::get("loadBalance.beta", P::loadBalanceBeta);
    Readparameters::get("loadBalance.gamma", P::loadBalanceGamma);
-
+   
    // Get output variable parameters
    Readparameters::get("variables.output", P::outputVariableList);
    Readparameters::get("variables.diagnostic", P::diagnosticVariableList);
-
+   
    //Get parameters related to calculating backstream contributions
    Readparameters::get("variables.dr_backstream_radius", P::backstreamradius);
    Readparameters::get("variables.dr_backstream_vx", P::backstreamvx);
    Readparameters::get("variables.dr_backstream_vy", P::backstreamvy);
    Readparameters::get("variables.dr_backstream_vz", P::backstreamvz);
-
+   
    
    return true;
 }

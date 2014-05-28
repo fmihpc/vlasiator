@@ -50,6 +50,10 @@ template<typename REAL> REAL calculateWaveSpeedYZ(const REAL* cp, const REAL* de
    const REAL By2  = (By + zdir*HALF*dBydz)*(By + zdir*HALF*dBydz) + TWELWTH*dBydx*dBydx; // OK
    const REAL Bz2  = (Bz + ydir*HALF*dBzdy)*(Bz + ydir*HALF*dBzdy) + TWELWTH*dBzdx*dBzdx; // OK
    
+   p11 = p11 < 0.0 ? 0.0 : p11;
+   p22 = p22 < 0.0 ? 0.0 : p22;
+   p33 = p33 < 0.0 ? 0.0 : p33;
+   
    const REAL vA2 = divideIfNonZero(Bx2+By2+Bz2, pc::MU_0*rhom); // Alfven speed
    const REAL vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
    const REAL vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, cp[CellParams::DX]*pc::CHARGE*sqrt(Bx2+By2+Bz2)) : 0.0; // whistler speed
@@ -104,6 +108,10 @@ template<typename REAL> REAL calculateWaveSpeedXZ(const REAL* cp, const REAL* de
    const REAL Bx2  = (Bx + zdir*HALF*dBxdz)*(Bx + zdir*HALF*dBxdz) + TWELWTH*dBxdy*dBxdy; // OK
    const REAL Bz2  = (Bz + xdir*HALF*dBzdx)*(Bz + xdir*HALF*dBzdx) + TWELWTH*dBzdy*dBzdy; // OK
    
+   p11 = p11 < 0.0 ? 0.0 : p11;
+   p22 = p22 < 0.0 ? 0.0 : p22;
+   p33 = p33 < 0.0 ? 0.0 : p33;
+   
    const REAL vA2 = divideIfNonZero(Bx2+By2+Bz2, pc::MU_0*rhom); // Alfven speed
    const REAL vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
    const REAL vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, cp[CellParams::DX]*pc::CHARGE*sqrt(Bx2+By2+Bz2)) : 0.0; // whistler speed
@@ -157,6 +165,10 @@ template<typename REAL> REAL calculateWaveSpeedXY(const REAL* cp, const REAL* de
      + TWELWTH*(C_Z + xdir*HALF*C_XZ + ydir*HALF*C_YZ)*(C_Z + xdir*HALF*C_XZ + ydir*HALF*C_YZ);
    const REAL Bx2  = (Bx + ydir*HALF*dBxdy)*(Bx + ydir*HALF*dBxdy) + TWELWTH*dBxdz*dBxdz;
    const REAL By2  = (By + xdir*HALF*dBydx)*(By + xdir*HALF*dBydx) + TWELWTH*dBydz*dBydz;
+   
+   p11 = p11 < 0.0 ? 0.0 : p11;
+   p22 = p22 < 0.0 ? 0.0 : p22;
+   p33 = p33 < 0.0 ? 0.0 : p33;
    
    const REAL vA2 = divideIfNonZero(Bx2+By2+Bz2, pc::MU_0*rhom); // Alfven speed
    const REAL vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
@@ -253,7 +265,7 @@ void calculateEdgeElectricFieldX(
                  (cp_SW[CellParams::BGBZ]+cp_SW[CellParams::PERBZ])*
                  (cp_SW[CellParams::BGBZ]+cp_SW[CellParams::PERBZ])
                 ) /
-               (cp_SW[CellParams::RHO]*Parameters::q) /
+               (cp_SW[CellParams::RHO]*physicalconstants::CHARGE) /
             physicalconstants::MU_0 *
             (derivs_SW[fs::dPERBzdy]/cp_SW[CellParams::DY] - derivs_SW[fs::dPERBydz]/cp_SW[CellParams::DZ]);
    // Hall term
@@ -300,7 +312,7 @@ void calculateEdgeElectricFieldX(
                  (cp_SE[CellParams::BGBZ]+cp_SE[CellParams::PERBZ])*
                  (cp_SE[CellParams::BGBZ]+cp_SE[CellParams::PERBZ])
                 ) /
-               (cp_SE[CellParams::RHO]*Parameters::q) /
+               (cp_SE[CellParams::RHO]*physicalconstants::CHARGE) /
             physicalconstants::MU_0 *
             (derivs_SE[fs::dPERBzdy]/cp_SE[CellParams::DY] - derivs_SE[fs::dPERBydz]/cp_SE[CellParams::DZ]);
    // Hall term
@@ -347,7 +359,7 @@ void calculateEdgeElectricFieldX(
                  (cp_NW[CellParams::BGBZ]+cp_NW[CellParams::PERBZ])*
                  (cp_NW[CellParams::BGBZ]+cp_NW[CellParams::PERBZ])
                 ) /
-               (cp_NW[CellParams::RHO]*Parameters::q) /
+               (cp_NW[CellParams::RHO]*physicalconstants::CHARGE) /
             physicalconstants::MU_0 *
             (derivs_NW[fs::dPERBzdy]/cp_NW[CellParams::DY] - derivs_NW[fs::dPERBydz]/cp_NW[CellParams::DZ]);
    // Hall term
@@ -394,7 +406,7 @@ void calculateEdgeElectricFieldX(
                  (cp_NE[CellParams::BGBZ]+cp_NE[CellParams::PERBZ])*
                  (cp_NE[CellParams::BGBZ]+cp_NE[CellParams::PERBZ])
                 ) /
-               (cp_NE[CellParams::RHO]*Parameters::q) /
+               (cp_NE[CellParams::RHO]*physicalconstants::CHARGE) /
             physicalconstants::MU_0 *
             (derivs_NE[fs::dPERBzdy]/cp_NE[CellParams::DY] - derivs_NE[fs::dPERBydz]/cp_NE[CellParams::DZ]);
    // Hall term
@@ -549,7 +561,7 @@ void calculateEdgeElectricFieldY(
                  (cp_SW[CellParams::BGBZ]+cp_SW[CellParams::PERBZ])*
                  (cp_SW[CellParams::BGBZ]+cp_SW[CellParams::PERBZ])
                 ) /
-               (cp_SW[CellParams::RHO]*Parameters::q) /
+               (cp_SW[CellParams::RHO]*physicalconstants::CHARGE) /
             physicalconstants::MU_0 *
             (derivs_SW[fs::dPERBxdz]/cp_SW[CellParams::DZ] - derivs_SW[fs::dPERBzdx]/cp_SW[CellParams::DX]);
    // Hall term
@@ -596,7 +608,7 @@ void calculateEdgeElectricFieldY(
                  (cp_SE[CellParams::BGBZ]+cp_SE[CellParams::PERBZ])*
                  (cp_SE[CellParams::BGBZ]+cp_SE[CellParams::PERBZ])
                 ) /
-               (cp_SE[CellParams::RHO]*Parameters::q) /
+               (cp_SE[CellParams::RHO]*physicalconstants::CHARGE) /
             physicalconstants::MU_0 *
             (derivs_SE[fs::dPERBxdz]/cp_SE[CellParams::DZ] - derivs_SE[fs::dPERBzdx]/cp_SE[CellParams::DX]);
    // Hall term
@@ -643,7 +655,7 @@ void calculateEdgeElectricFieldY(
                  (cp_NW[CellParams::BGBZ]+cp_NW[CellParams::PERBZ])*
                  (cp_NW[CellParams::BGBZ]+cp_NW[CellParams::PERBZ])
                 ) /
-               (cp_NW[CellParams::RHO]*Parameters::q) /
+               (cp_NW[CellParams::RHO]*physicalconstants::CHARGE) /
             physicalconstants::MU_0 *
             (derivs_NW[fs::dPERBxdz]/cp_NW[CellParams::DZ] - derivs_NW[fs::dPERBzdx]/cp_NW[CellParams::DX]);
    // Hall term
@@ -690,7 +702,7 @@ void calculateEdgeElectricFieldY(
                  (cp_NE[CellParams::BGBZ]+cp_NE[CellParams::PERBZ])*
                  (cp_NE[CellParams::BGBZ]+cp_NE[CellParams::PERBZ])
                 ) /
-               (cp_NE[CellParams::RHO]*Parameters::q) /
+               (cp_NE[CellParams::RHO]*physicalconstants::CHARGE) /
             physicalconstants::MU_0 *
             (derivs_NE[fs::dPERBxdz]/cp_NE[CellParams::DZ] - derivs_NE[fs::dPERBzdx]/cp_NE[CellParams::DX]);
    // Hall term
@@ -843,7 +855,7 @@ void calculateEdgeElectricFieldZ(
                  (cp_SW[CellParams::BGBZ]+cp_SW[CellParams::PERBZ])*
                  (cp_SW[CellParams::BGBZ]+cp_SW[CellParams::PERBZ])
                 ) /
-               (cp_SW[CellParams::RHO]*Parameters::q) /
+               (cp_SW[CellParams::RHO]*physicalconstants::CHARGE) /
             physicalconstants::MU_0 *
             (derivs_SW[fs::dPERBydx]/cp_SW[CellParams::DX] - derivs_SW[fs::dPERBxdy]/cp_SW[CellParams::DY]);
    // Hall term
@@ -892,7 +904,7 @@ void calculateEdgeElectricFieldZ(
                  (cp_SE[CellParams::BGBZ]+cp_SE[CellParams::PERBZ])*
                  (cp_SE[CellParams::BGBZ]+cp_SE[CellParams::PERBZ])
                 ) /
-               (cp_SE[CellParams::RHO]*Parameters::q) /
+               (cp_SE[CellParams::RHO]*physicalconstants::CHARGE) /
             physicalconstants::MU_0 *
             (derivs_SE[fs::dPERBydx]/cp_SE[CellParams::DX] - derivs_SE[fs::dPERBxdy]/cp_SE[CellParams::DY]);
    // Hall term
@@ -939,7 +951,7 @@ void calculateEdgeElectricFieldZ(
                  (cp_NW[CellParams::BGBZ]+cp_NW[CellParams::PERBZ])*
                  (cp_NW[CellParams::BGBZ]+cp_NW[CellParams::PERBZ])
                 ) /
-               (cp_NW[CellParams::RHO]*Parameters::q) /
+               (cp_NW[CellParams::RHO]*physicalconstants::CHARGE) /
             physicalconstants::MU_0 *
             (derivs_NW[fs::dPERBydx]/cp_NW[CellParams::DX] - derivs_NW[fs::dPERBxdy]/cp_NW[CellParams::DY]);
    // Hall term
@@ -986,7 +998,7 @@ void calculateEdgeElectricFieldZ(
                  (cp_NE[CellParams::BGBZ]+cp_NE[CellParams::PERBZ])*
                  (cp_NE[CellParams::BGBZ]+cp_NE[CellParams::PERBZ])
                 ) /
-               (cp_NE[CellParams::RHO]*Parameters::q) /
+               (cp_NE[CellParams::RHO]*physicalconstants::CHARGE) /
             physicalconstants::MU_0 *
             (derivs_NE[fs::dPERBydx]/cp_NE[CellParams::DX] - derivs_NE[fs::dPERBxdy]/cp_NE[CellParams::DY]);
    // Hall term

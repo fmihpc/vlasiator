@@ -145,21 +145,18 @@ void setProjectCell(SpatialCell* cell) {
 }
 
 Real getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
-   creal mass = 1.67262171e-27; // m_p in kg
-   creal k = 1.3806505e-23; // Boltzmann
-   //  creal mu0 = 1.25663706144e-6; // mu_0
-   //  creal q = 1.60217653e-19; // q_i
-   //  creal gamma = 5./3.;
+   creal mass = physicalconstants::MASS_PROTON;
+   creal kb = physicalconstants::K_B;
    
    return
-   FH::rho[1] * pow(mass / (2.0 * M_PI * k * FH::Tx[1]), 1.5) *
-   exp(- mass * (pow(vx - FH::Vx[1], 2.0) / (2.0 * k * FH::Tx[1]) + 
-                 pow(vy - FH::Vy[1], 2.0) / (2.0 * k * FH::Ty[1]) + 
-				 pow(vz - FH::Vz[1], 2.0) / (2.0 * k * FH::Tz[1]))); 
-//   FH::rho[2] * pow(mass / (2.0 * M_PI * k * FH::Tx[2]), 1.5) *
-//   exp(- mass * (pow(vx - FH::Vx[2], 2.0) / (2.0 * k * FH::Tx[2]) + 
-//                 pow(vy - FH::Vy[2], 2.0) / (2.0 * k * FH::Ty[2]) + 
-//				 pow(vz - FH::Vz[2], 2.0) / (2.0 * k * FH::Tz[2]))); 
+   FH::rho[1] * pow(mass / (2.0 * M_PI * kb * FH::Tx[1]), 1.5) *
+   exp(- mass * (pow(vx - FH::Vx[1], 2.0) / (2.0 * kb * FH::Tx[1]) + 
+                 pow(vy - FH::Vy[1], 2.0) / (2.0 * kb * FH::Ty[1]) + 
+				 pow(vz - FH::Vz[1], 2.0) / (2.0 * kb * FH::Tz[1]))); 
+//   FH::rho[2] * pow(mass / (2.0 * M_PI * kb * FH::Tx[2]), 1.5) *
+//   exp(- mass * (pow(vx - FH::Vx[2], 2.0) / (2.0 * kb * FH::Tx[2]) + 
+//                 pow(vy - FH::Vy[2], 2.0) / (2.0 * kb * FH::Ty[2]) + 
+//				 pow(vz - FH::Vz[2], 2.0) / (2.0 * kb * FH::Tz[2]))); 
 }
 
 Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   

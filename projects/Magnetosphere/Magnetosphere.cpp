@@ -224,6 +224,23 @@ namespace projects {
             cell->parameters[CellParams::BGBXVOL+component] += this->constBgB[component];
          }
       }
+      
+//       // FIXME
+//       // TESTING HACK to be used when one wants to get the "zero" Hall field from the dipole
+//       cell->parameters[CellParams::PERBX] = cell->parameters[CellParams::BGBX];
+//       cell->parameters[CellParams::PERBXVOL] = cell->parameters[CellParams::BGBXVOL];
+//       cell->parameters[CellParams::BGBX] = 0.0;
+//       cell->parameters[CellParams::BGBXVOL] = 0.0;
+//       cell->parameters[CellParams::PERBY] = cell->parameters[CellParams::BGBY];
+//       cell->parameters[CellParams::PERBYVOL] = cell->parameters[CellParams::BGBYVOL];
+//       cell->parameters[CellParams::BGBY] = 0.0;
+//       cell->parameters[CellParams::BGBYVOL] = 0.0;
+//       cell->parameters[CellParams::PERBZ] = cell->parameters[CellParams::BGBY];
+//       cell->parameters[CellParams::PERBZVOL] = cell->parameters[CellParams::BGBZVOL];
+//       cell->parameters[CellParams::BGBZ] = 0.0;
+//       cell->parameters[CellParams::BGBZVOL] = 0.0;
+//       // END OF TESTING HACK
+      
    }
       
       

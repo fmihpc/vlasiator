@@ -34,7 +34,7 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
    
    const Eigen::Matrix<Real,3,1> B(Bx,By,Bz);
    const Eigen::Matrix<Real,3,1> unit_B(B.normalized());
-   const Real gyro_period = 2 * M_PI * Parameters::m  / (fabs(Parameters::q) * B.norm());
+   const Real gyro_period = 2 * M_PI * physicalconstants::MASS_PROTON  / (fabs(physicalconstants::CHARGE) * B.norm());
    
    //Set maximum timestep limit for this cell, based on a  maximum allowed rotation angle
    spatial_cell->parameters[CellParams::MAXVDT]=gyro_period*(P::maxSlAccelerationRotation/360.0);
@@ -55,7 +55,7 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
    const Real rho=spatial_cell->parameters[CellParams::RHO_V];
    //scale rho for hall term, if user requests
    const Real hallRho =  (rho <= Parameters::lorentzHallMinimumRho ) ? Parameters::lorentzHallMinimumRho : rho ;
-   const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRho * Parameters::q );
+   const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRho * physicalconstants::CHARGE );
 
    
    Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::RHOVX_V]/rho,
