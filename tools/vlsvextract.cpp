@@ -1972,7 +1972,7 @@ int main(int argn, char* args[]) {
       filesFound++;
       entry = readdir(dir);
    }
-   if (filesFound == 0) cout << "\t no matches found" << endl;
+   if (filesFound == 0) cout << "\t no files found" << endl;
    closedir(dir);
 
    //Retrieve options variables:
