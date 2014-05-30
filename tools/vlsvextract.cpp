@@ -1972,7 +1972,7 @@ int main(int argn, char* args[]) {
       filesFound++;
       entry = readdir(dir);
    }
-   if (filesFound == 0) cout << "\t no matches found" << endl;
+   if (filesFound == 0) cout << "\t no file found, check name and read and write rights, vlsvextract currently supports only extracting from the folder where the vlsv file resides (you can get past this by linking the vlsv file" << endl;
    closedir(dir);
 
    //Retrieve options variables:
