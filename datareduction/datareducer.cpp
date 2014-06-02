@@ -89,6 +89,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::BoundaryLayer);
       if(*it == "Blocks")
          outputReducer->addOperator(new DRO::Blocks);
+      if(*it == "numberOfPopulations" )
+         outputReducer->addOperator(new DRO::Populations);
       if(*it == "fSaved")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("fSaved",CellParams::ISCELLSAVINGF,1));
       if(*it == "VolE")
