@@ -621,6 +621,9 @@ namespace velocity_neighbor {
          this->number_of_blocks=0;
          this->mpi_number_of_blocks=0;
 
+         // Default number of populations is one
+         this->number_of_populations=1;
+
          //allocate memory for null block
          this->null_block_data.resize(VELOCITY_BLOCK_LENGTH);
          this->null_block_fx.resize(VELOCITY_BLOCK_LENGTH);
@@ -1702,6 +1705,8 @@ namespace velocity_neighbor {
       std::vector<unsigned int> velocity_block_list;
       //number of blocks in mpi_velocity_block_list
       unsigned int mpi_number_of_blocks;
+      // Number of populations in the spatial cell:
+      unsigned int number_of_populations;
       //this list is used for communicating a velocity block list over MPI
       std::vector<unsigned int>  mpi_velocity_block_list;
 
