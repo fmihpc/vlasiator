@@ -21,7 +21,7 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
  */
 static void propagateMagneticField(
    const CellID& cellID,
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    creal& dt,
    cint& RKCase
 ) {
@@ -184,7 +184,7 @@ static void propagateMagneticField(
 }
 
 void propagateSysBoundaryMagneticField(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const CellID& cellID,
    SysBoundary& sysBoundaries,
    creal& dt,
@@ -215,7 +215,7 @@ void propagateSysBoundaryMagneticField(
  * \sa propagateMagneticField
  */
 static void propagateMagneticFieldSimple(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    creal& dt,
    const vector<CellID>& localCells,
@@ -248,11 +248,11 @@ static void propagateMagneticFieldSimple(
 //       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS|Transfer::CELL_DERIVATIVES);
    }
    
-   mpiGrid.update_remote_neighbor_data(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
    
 //    timer=phiprof::initializeTimer("Start comm of B","MPI");
 //    phiprof::start(timer);
-//    mpiGrid.start_remote_neighbor_data_updates(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+//    mpiGrid.start_remote_neighbor_copy_updates(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
 //    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute system boundary/process inner cells");
@@ -271,7 +271,7 @@ static void propagateMagneticFieldSimple(
    
 //    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
 //    phiprof::start(timer);
-//    mpiGrid.wait_neighbor_data_update_receives(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+//    mpiGrid.wait_remote_neighbor_copy_update_receives(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
 //    phiprof::stop(timer);
    
    // Propagate B on system boundary/process boundary cells
@@ -292,7 +292,7 @@ static void propagateMagneticFieldSimple(
    
 //    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
 //    phiprof::start(timer);
-//    mpiGrid.wait_neighbor_data_update_sends();
+//    mpiGrid.wait_remote_neighbor_copy_update_sends();
 //    phiprof::stop(timer);
    
    phiprof::stop("Propagate magnetic field");

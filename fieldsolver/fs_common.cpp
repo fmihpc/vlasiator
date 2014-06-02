@@ -8,7 +8,7 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 #include "fs_common.h"
 
 CellID getNeighbourID(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const CellID& cellID,
    const uchar& i,
    const uchar& j,
@@ -44,7 +44,7 @@ CellID getNeighbourID(
       abort();
    }
    
-   const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of(cellID, int(i) - 2, int(j) - 2, int(k) - 2);
+   const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of_at_offset(cellID, int(i) - 2, int(j) - 2, int(k) - 2);
    if (neighbors.size() == 0) {
       cerr << __FILE__ << ":" << __LINE__
       << " No neighbor for cell " << cellID
@@ -69,7 +69,7 @@ void reconstructionCoefficients(
    const CellID& nbr_i2j1k1,
    const CellID& nbr_i1j2k1,
    const CellID& nbr_i1j1k2,
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    Real* perturbedResult,
    creal& reconstructionOrder,
    cint& RKCase

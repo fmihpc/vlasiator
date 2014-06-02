@@ -19,7 +19,7 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
  */
 static void calculateDerivatives(
    const CellID& cellID,
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    cint& RKCase
 ) {
@@ -511,7 +511,7 @@ static void calculateDerivatives(
  * \sa calculateDerivatives
  */
 void calculateDerivativesSimple(
-       dccrg::Dccrg<SpatialCell>& mpiGrid,
+       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
        SysBoundary& sysBoundaries,
        const vector<CellID>& localCells,
        cint& RKCase
@@ -548,7 +548,7 @@ void calculateDerivativesSimple(
    
    timer=phiprof::initializeTimer("Start comm","MPI");
    phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_data_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   mpiGrid.start_remote_neighbor_copy_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute process inner cells");
@@ -566,7 +566,7 @@ void calculateDerivativesSimple(
    
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   mpiGrid.wait_remote_neighbor_copy_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    // Calculate derivatives on process boundary cells
@@ -584,7 +584,7 @@ void calculateDerivativesSimple(
    
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_sends();
+   mpiGrid.wait_remote_neighbor_copy_update_sends();
    phiprof::stop(timer);
    
    phiprof::stop("Calculate face derivatives");
@@ -598,7 +598,7 @@ void calculateDerivativesSimple(
  */
 static void calculateBVOLDerivatives(
    const CellID& cellID,
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries
 ) {
    namespace cp = CellParams;
@@ -692,7 +692,7 @@ static void calculateBVOLDerivatives(
  * \sa calculateDerivatives
  */
 void calculateBVOLDerivativesSimple(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    const vector<CellID>& localCells
 ) {
@@ -702,11 +702,11 @@ void calculateBVOLDerivativesSimple(
    phiprof::start("Calculate volume derivatives");
    
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_BVOL);
-   mpiGrid.update_remote_neighbor_data(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(FIELD_SOLVER_NEIGHBORHOOD_ID);
    
    timer=phiprof::initializeTimer("Start comm","MPI");
    phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_data_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   mpiGrid.start_remote_neighbor_copy_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute process inner cells");
@@ -722,7 +722,7 @@ void calculateBVOLDerivativesSimple(
    
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   mpiGrid.wait_remote_neighbor_copy_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    // Calculate derivatives on process boundary cells
@@ -738,7 +738,7 @@ void calculateBVOLDerivativesSimple(
    
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_sends();
+   mpiGrid.wait_remote_neighbor_copy_update_sends();
    phiprof::stop(timer);
    
    phiprof::stop("Calculate volume derivatives");

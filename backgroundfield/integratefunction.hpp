@@ -7,7 +7,7 @@ Copyright 1997, 1998, 1999, 2000, 2001, 2010, 2011 Finnish Meteorological Instit
 #ifndef INTEGRATEFIELDFUNCTION_HPP
 #define INTEGRATEFIELDFUNCTION_HPP
 
-#include "ode.hpp"
+
 #include "quadr.hpp"
 #include "functions.hpp"
 /*!

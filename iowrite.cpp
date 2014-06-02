@@ -39,7 +39,7 @@ typedef Parameters P;
  \param comm The MPi comm
  \return Returns true if operation was successful
  */
-bool updateLocalIds(  dccrg::Dccrg<SpatialCell> & mpiGrid,
+bool updateLocalIds(  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> & mpiGrid,
                       const vector<uint64_t> & local_cells,
                       MPI_Comm comm ) {
    int myRank;
@@ -59,7 +59,7 @@ bool updateLocalIds(  dccrg::Dccrg<SpatialCell> & mpiGrid,
    }
    //Update the local ids (let the other processes know they've been updated)
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_IOLOCALCELLID);
-   mpiGrid.update_remote_neighbor_data(NEAREST_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
 
    return true;
 }
@@ -99,7 +99,7 @@ bool globalSuccess(bool success,string errorMessage,MPI_Comm comm){
 template <typename T>
 bool writeVelocityDistributionData(
                                     Writer& vlsvWriter,
-                                    dccrg::Dccrg<SpatialCell>& mpiGrid,
+                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                     const vector<uint64_t> & cells,
                                     MPI_Comm comm
                                     ) {
@@ -207,7 +207,7 @@ bool writeVelocityDistributionData(
  \param vlsvWriter Some vlsv writer with a file open
  \return Returns true if operation was successful
  */
-bool writeDataReducer(const dccrg::Dccrg<SpatialCell>& mpiGrid,
+bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                       const vector<uint64_t>& cells,
                       const bool writeAsFloat,
                       DataReducer& dataReducer,
@@ -308,7 +308,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell>& mpiGrid,
  */
 bool writeCommonGridData(
    Writer& vlsvWriter,
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    vector<uint64_t> & local_cells,
    const uint& fileIndex,
    MPI_Comm comm
@@ -366,7 +366,7 @@ bool writeCommonGridData(
  \return Returns true if operation was successful
  \sa updateLocalIds
  */
-bool writeGhostZoneDomainAndLocalIdNumbers( dccrg::Dccrg<SpatialCell>& mpiGrid,
+bool writeGhostZoneDomainAndLocalIdNumbers( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                               Writer & vlsvWriter,
                                               const string & meshName,
                                               const vector<uint64_t> & ghost_cells ) {
@@ -466,7 +466,7 @@ bool writeDomainSizes( Writer & vlsvWriter,
  \param ghost_cells Vector containing the ghost cells of this process ( The cells on process boundary )
  \return Returns true if the operation was successful
  */
-bool writeZoneGlobalIdNumbers( const dccrg::Dccrg<SpatialCell>& mpiGrid,
+bool writeZoneGlobalIdNumbers( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                  Writer & vlsvWriter,
                                  const string & meshName,
                                  const vector<uint64_t> & local_cells,
@@ -519,9 +519,9 @@ bool writeZoneGlobalIdNumbers( const dccrg::Dccrg<SpatialCell>& mpiGrid,
    //A mandatory 'type' -- just something visit hopefully understands, because I dont :)
    xmlAttributes["type"] = "multi_ucd";
    //Set periodicity:
-   if( mpiGrid.is_periodic( 0 ) ) { xmlAttributes["xperiodic"] = "yes"; } else { xmlAttributes["xperiodic"] = "no"; }
-   if( mpiGrid.is_periodic( 1 ) ) { xmlAttributes["yperiodic"] = "yes"; } else { xmlAttributes["yperiodic"] = "no"; }
-   if( mpiGrid.is_periodic( 2 ) ) { xmlAttributes["zperiodic"] = "yes"; } else { xmlAttributes["zperiodic"] = "no"; }
+   if( mpiGrid.topology.is_periodic( 0 ) ) { xmlAttributes["xperiodic"] = "yes"; } else { xmlAttributes["xperiodic"] = "no"; }
+   if( mpiGrid.topology.is_periodic( 1 ) ) { xmlAttributes["yperiodic"] = "yes"; } else { xmlAttributes["yperiodic"] = "no"; }
+   if( mpiGrid.topology.is_periodic( 2 ) ) { xmlAttributes["zperiodic"] = "yes"; } else { xmlAttributes["zperiodic"] = "no"; }
    //Write:
    if( numberOfZones == 0 ) {
       const uint64_t dummy_data = 0;
@@ -685,7 +685,7 @@ bool writeMeshBoundingBox( Writer & vlsvWriter,
  \sa writeVelocityDistributionData
  */
 template <typename T>
-bool writeVelocitySpace( dccrg::Dccrg<SpatialCell>& mpiGrid,
+bool writeVelocitySpace( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                          Writer & vlsvWriter,
                          int index,
                          const vector<uint64_t> & cells ) {
@@ -775,7 +775,7 @@ bool checkForSameMembers( const vector<uint64_t> local_cells, const vector<uint6
 \param index       Index to call the correct member of the various parameter vectors
 \param writeGhosts If true, writes out ghost cells (cells that exist on the process boundary so other process' cells)
 */
-bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
+bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                DataReducer& dataReducer,
                const uint& index,
                const bool writeGhosts ) {
@@ -877,7 +877,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
 \param name       File name prefix, file will be called "name.index.vlsv"
 \param fileIndex  File index, file will be called "name.index.vlsv"
 */
-bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
+bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                   DataReducer& dataReducer,
                   const string& name,
                   const uint& fileIndex,
@@ -987,7 +987,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell>& mpiGrid,
 \param mpiGrid   The DCCRG grid with spatial cells
 \param dataReducer Contains datareductionoperators that are used to compute diagnostic data
 */
-bool writeDiagnostic(const dccrg::Dccrg<SpatialCell>& mpiGrid,
+bool writeDiagnostic(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                      DataReducer& dataReducer)
 {
    int myRank;

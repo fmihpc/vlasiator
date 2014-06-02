@@ -46,46 +46,46 @@ namespace SBC {
          creal& t,
          Project &project
       );
-      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell>& mpiGrid);
+      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
       virtual bool applyInitialState(
-         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          Project &project
       );
 //       virtual bool applySysBoundaryCondition(
-//          const dccrg::Dccrg<SpatialCell>& mpiGrid,
+//          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 //          creal& t
 //       );
       virtual Real fieldSolverBoundaryCondMagneticField(
-         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
          creal& dt,
          cuint& component
       );
       virtual void fieldSolverBoundaryCondElectricField(
-         dccrg::Dccrg<SpatialCell>& mpiGrid,
+         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
          cuint RKCase,
          cuint component
       );
       virtual void fieldSolverBoundaryCondHallElectricField(
-         dccrg::Dccrg<SpatialCell>& mpiGrid,
+         dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
          cuint RKCase,
          cuint component
       );
       virtual void fieldSolverBoundaryCondDerivatives(
-         dccrg::Dccrg<SpatialCell>& mpiGrid,
+         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
          cuint& RKCase,
          cuint& component
       );
       virtual void fieldSolverBoundaryCondBVOLDerivatives(
-         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
          cuint& component
       );
       virtual void vlasovBoundaryCondition(
-         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID
       );
       

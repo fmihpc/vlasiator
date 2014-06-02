@@ -83,13 +83,13 @@ static uint PROPAGATE_BY = 0; /**< Bit mask determining if face By is propagated
 static uint PROPAGATE_BZ = 0; /**< Bit mask determining if face Bz is propagated on a cell.*/
 
 bool initializeFieldPropagator(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries
 );
-bool initializeFieldPropagatorAfterRebalance(dccrg::Dccrg<SpatialCell>& mpiGrid);
-bool finalizeFieldPropagator(dccrg::Dccrg<SpatialCell>& mpiGrid);
+bool initializeFieldPropagatorAfterRebalance(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+bool finalizeFieldPropagator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 bool propagateFields(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    creal& dt
 );
@@ -109,7 +109,7 @@ inline uchar calcNbrNumber(const uchar& i,const uchar& j,const uchar& k) {return
 inline uchar calcNbrTypeID(const uchar& i,const uchar& j,const uchar& k) {return k*25+j*5+i;}
 
 CellID getNeighbourID(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const CellID& cellID,
    const uchar& i,
    const uchar& j,
@@ -146,7 +146,7 @@ void reconstructionCoefficients(
    const CellID& nbr_i2j1k1,
    const CellID& nbr_i1j2k1,
    const CellID& nbr_i1j1k2,
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    Real* perturbedResult,
    creal& reconstructionOrder,
    cint& RKCase

@@ -45,12 +45,12 @@ namespace SBC {
          creal& t,
          Project &project
       );
-      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell>& mpiGrid);
+      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
       virtual bool applyInitialState(
-         const dccrg::Dccrg<SpatialCell>& mpiGrid,
+         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          Project &project
       );
-      //       virtual bool applySysBoundaryCondition(const dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t);
+      //       virtual bool applySysBoundaryCondition(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t);
       virtual std::string getName() const;
       virtual uint getIndex() const;
    };

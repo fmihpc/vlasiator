@@ -59,23 +59,23 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
            cell_indices_to_id[0]=WID2;
            cell_indices_to_id[1]=WID;
            cell_indices_to_id[2]=1;
-           block_P1=velocity_neighbor::XP1_YCC_ZCC;
-           block_M1=velocity_neighbor::XM1_YCC_ZCC;
+           block_P1=spatial_cell->get_velocity_block_from_offsets(blockID,1,0,0);
+           block_M1=spatial_cell->get_velocity_block_from_offsets(blockID,-1,0,0);
            break;
         case 1:
            /* i and k coordinates have been swapped*/
            cell_indices_to_id[0]=1;
            cell_indices_to_id[1]=WID2;
            cell_indices_to_id[2]=WID;
-           block_P1=velocity_neighbor::XCC_YP1_ZCC;
-           block_M1=velocity_neighbor::XCC_YM1_ZCC;
+           block_P1=spatial_cell->get_velocity_block_from_offsets(blockID,0,1,0);
+           block_M1=spatial_cell->get_velocity_block_from_offsets(blockID,0,-1,0);
            break;
         case 2:
            cell_indices_to_id[0]=1;
            cell_indices_to_id[1]=WID;
            cell_indices_to_id[2]=WID2;
-           block_P1=velocity_neighbor::XCC_YCC_ZP1;
-           block_M1=velocity_neighbor::XCC_YCC_ZM1;
+           block_P1=spatial_cell->get_velocity_block_from_offsets(blockID,0,0, 1);
+           block_M1=spatial_cell->get_velocity_block_from_offsets(blockID,0,0,-1);
            break;
         default:
            //same as for dimension 2, mostly here to get rid of compiler warning
@@ -91,7 +91,8 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
     
     // Construct values
     // Copy averages from -1 neighbour if it exists (if not, array is initialized to zero)
-    nbrBlock = block->neighbors[block_M1];
+
+    nbrBlock = spatial_cell->at(block_M1);
     if ( !spatial_cell->is_null_block(nbrBlock)) {
       Realf * __restrict__ ngbr_fx = nbrBlock->fx;
       for (int k=-STENCIL_WIDTH; k<0; ++k) {
@@ -135,7 +136,7 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
     }
     
     // Copy averages from +1 neighbour if it exists (if not, array is initialized to zero)
-    nbrBlock = block->neighbors[block_P1];
+    nbrBlock = spatial_cell->at(block_P1);
     if ( !spatial_cell->is_null_block(nbrBlock)) {
        Realf * __restrict__ ngbr_fx = nbrBlock->fx;
        for (uint k=WID; k<WID+STENCIL_WIDTH; ++k) {             
@@ -390,7 +391,8 @@ bool map_1d(SpatialCell* spatial_cell,
 	  for(uint target_i = 0; target_i < 4;target_i ++ ){
 	    const uint tblock=target_block[target_i];
 	    const uint tcell=target_cell[target_i];
-	    const Real tval=target_density[target_i];
+            /*do the conversion from Real to Realf here, faster than doin in accumulation*/
+	    const Realf tval=target_density[target_i];
             /*check that we are within sane limits. If gk is negative,
              * or above blocks_per_dim * blockcells_per_dim then we
              * are outside of the target grid.*/

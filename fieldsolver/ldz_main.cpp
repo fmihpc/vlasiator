@@ -37,7 +37,7 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 #include "fs_limiters.h"
 
 static void calculateSysBoundaryFlags(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const vector<CellID>& localCells
 ) {
    sysBoundaryFlags.clear();
@@ -69,7 +69,7 @@ static void calculateSysBoundaryFlags(
  extended neighborhood
  */
 bool initializeFieldPropagatorAfterRebalance(
-        dccrg::Dccrg<SpatialCell>& mpiGrid
+        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
 ) {
    // Assume static background field, they are not communicated here
    // but are assumed to be ok after each load balance as that
@@ -83,7 +83,7 @@ bool initializeFieldPropagatorAfterRebalance(
 /*! Calculates bit masks used in the field solver and computes the initial edge electric fields from the initial magnetic fields. Then computes the initial volume averages.
  */
 bool initializeFieldPropagator(
-        dccrg::Dccrg<SpatialCell>& mpiGrid,
+        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
         SysBoundary& sysBoundaries
 ) {
    // Checking that spatial cells are cubic, otherwise field solver is incorrect (cf. derivatives in E, Hall term)
@@ -211,7 +211,7 @@ bool initializeFieldPropagator(
 }
 
 bool finalizeFieldPropagator(
-   dccrg::Dccrg<SpatialCell>& mpiGrid
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
 ) {
    return true;
 }
@@ -227,7 +227,7 @@ bool finalizeFieldPropagator(
  * 
  */
 bool propagateFields(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    creal& dt
 ) {

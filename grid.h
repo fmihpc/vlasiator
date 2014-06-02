@@ -3,6 +3,7 @@
 
 #include "spatial_cell.hpp"
 #include <dccrg.hpp>
+#include <dccrg_cartesian_geometry.hpp>
 #include "datareduction/datareducer.h"
 #include "sysboundary/sysboundary.h"
 #include "projects/project.h"
@@ -38,7 +39,7 @@
 void initializeGrid(
    int argn,
    char **argc,
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    Project& project
 );
@@ -48,7 +49,7 @@ void initializeGrid(
 
     \param[in,out] mpiGrid The DCCRG grid with spatial cells
 */
-  void balanceLoad(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
+void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
 
 /*!
@@ -70,7 +71,7 @@ void initializeGrid(
   \param[in,out] mpiGrid The DCCRG grid with spatial cells
   
 */
-bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid);
+bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
 
 /*!
@@ -82,20 +83,20 @@ data. This is needed if one has locally adjusted velocity blocks
 \param mpiGrid   The DCCRG grid with spatial cells
 */
 void updateRemoteVelocityBlockLists(
-   dccrg::Dccrg<SpatialCell>& mpiGrid
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
 );
 
 /*! Deallocates all blocks in remote cells in order to save
  *  memory. 
  * \param mpiGrid Spatial grid
  */
-void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell>& mpiGrid);
+void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
 
 
 
 //subroutine to adjust blocks of local cells; remove/add based on user-defined limits
-bool adjust_local_velocity_blocks(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGrid);
+bool adjust_local_velocity_blocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
 
 
@@ -103,12 +104,12 @@ bool adjust_local_velocity_blocks(dccrg::Dccrg<spatial_cell::SpatialCell>& mpiGr
 /*! Estimates memory consumption and writes it into logfile. Collective operation on MPI_COMM_WORLD
  * \param mpiGrid Spatial grid
  */
-void report_memory_consumption(dccrg::Dccrg<SpatialCell>& mpiGrid);
+void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
 /*! Shrink to fit velocity space data to save memory.
  * \param mpiGrid Spatial grid
  */
-void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell>& mpiGrid);
+void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
 
 

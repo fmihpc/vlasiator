@@ -15,7 +15,7 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
  * \sa reconstructionCoefficients
  */
 void calculateVolumeAveragedFields(
-   dccrg::Dccrg<SpatialCell>& mpiGrid
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
 ) {
    phiprof::start("Calculate volume averaged fields");
    

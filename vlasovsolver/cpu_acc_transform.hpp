@@ -65,7 +65,7 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
    Transform<Real,3,Affine> total_transform(Matrix<Real, 4, 4>::Identity()); //CONTINUE
 
    unsigned int bulk_velocity_substeps; /*!<in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep*/
-   bulk_velocity_substeps=dt/(gyro_period*(0.1/360.0)); 
+   bulk_velocity_substeps=fabs(dt)/(gyro_period*(0.1/360.0)); 
    if(bulk_velocity_substeps<1)
       bulk_velocity_substeps=1;
    

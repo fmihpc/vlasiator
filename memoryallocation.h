@@ -3,20 +3,34 @@
 
 #include <cstdlib>
 #include <cstddef>
-#include <stdexcept> 
+#include <stdexcept>
+#ifdef USE_JEMALLOC
+#include "jemalloc/jemalloc.h"
+#endif
 
+/*! Return the amount of free memory on the node in bytes*/  
+uint64_t get_node_free_memory();
+
+/*! Measures memory consumption and writes it into logfile. Collective
+ *  operation on MPI_COMM_WORLD
+ */
+void report_process_memory_consumption();
+
+/*! Alligned malloc, could be done using aligned_alloc*/
 inline void * aligned_malloc(size_t size,std::size_t align) {
-
-
    /* Allocate necessary memory area
     * client request - size parameter -
     * plus area to store the address
     * of the memory returned by standard
-    * malloc().
+    * malloc(), or je_malloc().
     */
    void *ptr;
+#ifdef USE_JEMALLOC
+   void *p = je_malloc(size + align - 1 + sizeof(void*));
+#else
    void *p = malloc(size + align - 1 + sizeof(void*));
-
+#endif
+   
    if (p != NULL) {
       /* Address of the aligned memory according to the align parameter*/
       ptr = (void*) (((unsigned long)p + sizeof(void*) + align -1) & ~(align-1));
@@ -39,7 +53,11 @@ inline void aligned_free(void *p) {
     * of the one below.
     */
    void *ptr = *((void**)((unsigned long)p - sizeof(void*)));
+#ifdef USE_JEMALLOC
+   je_free(ptr);
+#else
    free(ptr);
+#endif
    return;
 }
 

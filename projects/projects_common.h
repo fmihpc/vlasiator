@@ -7,8 +7,9 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 
 #ifndef PROJECTS_COMMON_H
 #define PROJECTS_COMMON_H
-
-# include "../spatial_cell.hpp"
+#include "../spatial_cell.hpp"
+#include <dccrg.hpp>
+#include <dccrg_cartesian_geometry.hpp>
 
 using namespace spatial_cell;
 namespace projects {
@@ -58,16 +59,16 @@ namespace projects {
 template<typename CELLID,class CONT> bool classifyLevequeGhostCell(const SpatialCell& cell,const CELLID& cellID,const CONT& nbrs);
 
 
-#include <dccrg.hpp>
-template<typename CELLID> CELLID getNeighbour(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k);
+
+template<typename CELLID> CELLID getNeighbour(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k);
 
 
 // ********************************
 // ***** TEMPLATE DEFINITIONS *****
 // ********************************
 
-template<typename CELLID> CELLID getNeighbour(const dccrg::Dccrg<SpatialCell>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k){
-    std::vector<uint64_t> neighbors = mpiGrid.get_neighbors_of(cellID, i, j, k);
+template<typename CELLID> CELLID getNeighbour(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const CELLID& cellID,const int& i,const int& j,const int& k){
+    std::vector<uint64_t> neighbors = mpiGrid.get_neighbors_of_at_offset(cellID, i, j, k);
 
     //FIXME: support refined grids
     if(neighbors.size() > 0) {

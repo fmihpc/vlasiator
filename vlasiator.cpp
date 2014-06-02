@@ -59,8 +59,7 @@ void addTimedBarrier(string name){
    phiprof::stop(bt);
 }
 
-
-bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &isChanged) {
+bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,Real &newDt, bool &isChanged) {
 
    phiprof::start("compute-timestep");
    //compute maximum time-step, this cannot be done at the first
@@ -111,7 +110,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell>& mpiGrid,Real &newDt, bool &is
         P::dt > dtMaxGlobal[2]*P::fieldSolverMaxCFL ) ||
       ( P::dt < dtMaxGlobal[0]*P::vlasovSolverMinCFL && 
         P::dt < dtMaxGlobal[1]*P::vlasovSolverMinCFL &&
-	P::dt < dtMaxGlobal[2]*P::fieldSolverMinCFL )
+        P::dt < dtMaxGlobal[2]*P::fieldSolverMinCFL )
       ) {
      //new dt computed
      isChanged=true;
@@ -161,7 +160,6 @@ int main(int argn,char* args[]) {
    
    MPI_Comm comm = MPI_COMM_WORLD;
    MPI_Comm_rank(comm,&myRank);
-   dccrg::Dccrg<SpatialCell> mpiGrid;
    SysBoundary sysBoundaries;
    bool isSysBoundaryCondDynamic;
    vector<uint64_t> cells;
@@ -221,11 +219,10 @@ int main(int argn,char* args[]) {
       FULL_NEIGHBORHOOD. Block lists up to date for
       VLASOV_SOLVER_NEIGHBORHOOD (but dist function has not been communicated)
    */
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
    initializeGrid(argn,args,mpiGrid,sysBoundaries,*project);
-   
    isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
    phiprof::stop("Init grid");
-   
    phiprof::start("Init DROs");
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
    // user-defined operators:
@@ -236,6 +233,7 @@ int main(int argn,char* args[]) {
    //TODO, move to initializeGrid
    // FIXME in initializeGrid we do this for NOT_SYSBOUNDARY cells and the SBCs do it for their cells,
    // so everyone is done except DO_NOT_COMPUTE, why bother again?
+   // NOTE this is not there anymore after the fix_timestepping_issue_26 branch merge into the QUESPACE-346-Hall-term branch
 //    if(!P::isRestart) {
 //       phiprof::start("Init moments");
 //       //compute moments, and set them in RHO*,P*. If restart, they are already read in
@@ -251,7 +249,6 @@ int main(int argn,char* args[]) {
        exit(1);
    }
    phiprof::stop("Init field propagator");
-   
    // Free up memory:
    readparameters.finalize();
    
@@ -286,7 +283,7 @@ int main(int argn,char* args[]) {
    
    
    if(P::dynamicTimestep && !P::isRestart) {
-      //compute vlasovsolver once with zero dt, this is  to initialize
+      //compute vlasovsolver once with zero dt, this is to initialize
       //per-cell dt limits. In restarts, we read in dt from file
       phiprof::start("compute-dt");
       calculateSpatialTranslation(mpiGrid,0.0);
@@ -320,23 +317,21 @@ int main(int argn,char* args[]) {
       if(dtIsChanged)
          P::dt=newDt;
       phiprof::stop("compute-dt");
-
-      //and balance load
-      balanceLoad(mpiGrid);
-      
    }
    
-
    
    if(!P::isRestart) {
-      //go forward by dt/2 in x, initializes leapfrog split. In restarts the
+      //go forward by dt/2 in V, initializes leapfrog split. In restarts the
       //the distribution function is already propagated forward in time by dt/2
-      phiprof::start("propagate-spatial-space-dt/2");
-      if(P::propagateVlasovTranslation)
-         calculateSpatialTranslation(mpiGrid, 0.5*P::dt);
-      else
-         calculateSpatialTranslation(mpiGrid, 0.0);
-      phiprof::stop("propagate-spatial-space-dt/2");
+      phiprof::start("propagate-velocity-space-dt/2");
+      if(P::propagateVlasovAcceleration) {
+         calculateAcceleration(mpiGrid, 0.5*P::dt);
+      } else {
+         calculateAcceleration(mpiGrid, 0.0);
+      }
+      phiprof::stop("propagate-velocity-space-dt/2");
+      adjustVelocityBlocks(mpiGrid);
+      addTimedBarrier("barrier-after-ad just-blocks");
    }
 
    
@@ -406,7 +401,8 @@ int main(int argn,char* args[]) {
          beforeTime = MPI_Wtime();
          beforeSimulationTime=P::t;
          beforeStep=P::tstep;
-         report_memory_consumption(mpiGrid);
+         report_grid_memory_consumption(mpiGrid);
+         report_process_memory_consumption();
       }               
       logFile << writeVerbose;
    
@@ -440,7 +436,7 @@ int main(int argn,char* args[]) {
       
       // Write restart data if needed (based on walltime)
       int writeRestartNow;
-      if (myRank == MASTER_RANK) { 
+      if (myRank == MASTER_RANK) {
          if (P::saveRestartWalltimeInterval >=0.0 && (
                P::saveRestartWalltimeInterval*wallTimeRestartCounter <=  MPI_Wtime()-initialWtime ||
                P::tstep ==P::tstep_max ||
@@ -489,17 +485,22 @@ int main(int argn,char* args[]) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          balanceLoad(mpiGrid);
          addTimedBarrier("barrier-end-load-balance");
+         phiprof::start("Shrink_to_fit");
+         /* shrink to fit after LB*/
+         shrink_to_fit_grid_data(mpiGrid);
+         phiprof::stop("Shrink_to_fit");
          logFile << "(LB): ... done!"  << endl << writeVerbose;
       }
       
       //get local cells
       cells = mpiGrid.get_cells();
+      
       //compute how many spatial cells we solve for this step
       computedCells=0;
       for(uint i=0;i<cells.size();i++)  computedCells+=mpiGrid[cells[i]]->number_of_blocks*WID3;
       computedTotalCells+=computedCells;
       
-      //Check if dt needs to be changed, and propagate half-steps properly to change dt and set up new situation
+      //Check if dt needs to be changed, and propagate V back a half-step to change dt and set up new situation
       //do not compute new dt on first step (in restarts dt comes from file, otherwise it was initialized before we entered
       //simulation loop
       if(P::dynamicTimestep  && P::tstep> P::tstep_min) {
@@ -507,143 +508,90 @@ int main(int argn,char* args[]) {
          addTimedBarrier("barrier-check-dt");
          if(dtIsChanged) {
             phiprof::start("update-dt");
-            //propagate velocity space to real-time
-            if( P::propagateVlasovAcceleration )
-               calculateAcceleration(mpiGrid,0.5*P::dt);
-            else
+            //propagate velocity space back to real-time
+            if( P::propagateVlasovAcceleration ) {
+               // Back half dt to real time, forward by new half dt
+               calculateAcceleration(mpiGrid,-0.5*P::dt + 0.5*newDt);
+            } else {
                calculateAcceleration(mpiGrid,0.0);
+            }
+            
             //adjust blocks after acceleration
             adjustVelocityBlocks(mpiGrid);
-            //re-compute moments for real time for fieldsolver, and
-            //shift compute rho_dt2 as average of old rho and new
-            //rho. In practice this value is at a 1/4 timestep, as we
-            //take 1/2 timestep forward in fieldsolver
-#pragma omp parallel for
-            for (size_t c=0; c<cells.size(); ++c) {
-               const CellID cellID = cells[c];
-               SpatialCell* SC = mpiGrid[cellID];
-               SC->parameters[CellParams::RHO_DT2] = 0.5*SC->parameters[CellParams::RHO];
-               SC->parameters[CellParams::RHOVX_DT2] = 0.5*SC->parameters[CellParams::RHOVX];
-               SC->parameters[CellParams::RHOVY_DT2] = 0.5*SC->parameters[CellParams::RHOVY];
-               SC->parameters[CellParams::RHOVZ_DT2] = 0.5*SC->parameters[CellParams::RHOVZ];
-               SC->parameters[CellParams::P_11_DT2] = 0.5*SC->parameters[CellParams::P_11];
-               SC->parameters[CellParams::P_22_DT2] = 0.5*SC->parameters[CellParams::P_22];
-               SC->parameters[CellParams::P_33_DT2] = 0.5*SC->parameters[CellParams::P_33];
-               calculateCellVelocityMoments(SC);
-               SC->parameters[CellParams::RHO_DT2] += 0.5*SC->parameters[CellParams::RHO];
-               SC->parameters[CellParams::RHOVX_DT2] += 0.5*SC->parameters[CellParams::RHOVX];
-               SC->parameters[CellParams::RHOVY_DT2] += 0.5*SC->parameters[CellParams::RHOVY];
-               SC->parameters[CellParams::RHOVZ_DT2] += 0.5*SC->parameters[CellParams::RHOVZ];
-               SC->parameters[CellParams::P_11_DT2] += 0.5*SC->parameters[CellParams::P_11];
-               SC->parameters[CellParams::P_22_DT2] += 0.5*SC->parameters[CellParams::P_22];
-               SC->parameters[CellParams::P_33_DT2] += 0.5*SC->parameters[CellParams::P_33];
-            }
             
-            
-            // Propagate fields forward in time by 0.5*dt
-            if (P::propagateField == true) {
-               phiprof::start("Propagate Fields");
-               propagateFields(mpiGrid, sysBoundaries, 0.5*P::dt);
-               phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
-            } else {
-               // TODO Whatever field updating/volume
-               // averaging/etc. needed in test particle and other
-               // test cases have to be put here.  In doing this be
-               // sure the needed components have been updated.
-            }
-            //go forward by dt/2 again in x
-            if( P::propagateVlasovTranslation)
-               calculateSpatialTranslation(mpiGrid, 0.5*P::dt);
-            else
-               calculateSpatialTranslation(mpiGrid, 0.0);
-            ++P::tstep;
-            P::t += P::dt*0.5;
             P::dt=newDt;
-            
             
             logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
             phiprof::stop("update-dt");
             continue; //
             addTimedBarrier("barrier-new-dt-set");
          }
-
       }
       
       
       
       phiprof::start("Propagate");
       //Propagate the state of simulation forward in time by dt:
+      
+      phiprof::start("Spatial-space");
+      if( P::propagateVlasovTranslation)
+         calculateSpatialTranslation(mpiGrid,P::dt);
+      else
+         calculateSpatialTranslation(mpiGrid,0.0);
+      phiprof::stop("Spatial-space",computedCells,"Cells");
+      
+      calculateInterpolatedVelocityMoments(
+         mpiGrid,
+         CellParams::RHO_DT2,
+         CellParams::RHOVX_DT2,
+         CellParams::RHOVY_DT2,
+         CellParams::RHOVZ_DT2,
+         CellParams::P_11_DT2,
+         CellParams::P_22_DT2,
+         CellParams::P_33_DT2
+      );
+      
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
-         phiprof::start("Propagate Vlasov");
-         phiprof::start("Velocity-space");
-         if( P::propagateVlasovAcceleration ) 
-            calculateAcceleration(mpiGrid,P::dt);
-         else
-            calculateAcceleration(mpiGrid,0.0);
-         phiprof::stop("Velocity-space",computedCells,"Cells");
-         addTimedBarrier("barrier-after-acceleration");
-
-         /*remove excess capacity from vectors. This is a good place
-         to do it, as we have a peak in number of blocks after
-         acceleration.*/
-         phiprof::start("Shrink_to_fit");
-         shrink_to_fit_grid_data(mpiGrid);
-         phiprof::stop("Shrink_to_fit");
-         
-         adjustVelocityBlocks(mpiGrid);
-         addTimedBarrier("barrier-after-adjust-blocks");
-         
-         calculateInterpolatedVelocityMoments(
-            mpiGrid,
-            CellParams::RHO_DT2,
-            CellParams::RHOVX_DT2,
-            CellParams::RHOVY_DT2,
-            CellParams::RHOVZ_DT2,
-            CellParams::P_11_DT2,
-            CellParams::P_22_DT2,
-            CellParams::P_33_DT2
-         );
-         
-         
          phiprof::start("Update system boundaries (Vlasov)");
          sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt); 
          phiprof::stop("Update system boundaries (Vlasov)");
          addTimedBarrier("barrier-boundary-conditions");
-         
-         
-         phiprof::start("Spatial-space");
-         if( P::propagateVlasovTranslation)
-            calculateSpatialTranslation(mpiGrid,P::dt);
-         else
-            calculateSpatialTranslation(mpiGrid,0.0);
-         phiprof::stop("Spatial-space",computedCells,"Cells");
-         
-         calculateInterpolatedVelocityMoments(
-            mpiGrid,
-            CellParams::RHO,
-            CellParams::RHOVX,
-            CellParams::RHOVY,
-            CellParams::RHOVZ,
-            CellParams::P_11,
-            CellParams::P_22,
-            CellParams::P_33
-         );
-         
-         phiprof::stop("Propagate Vlasov",computedCells,"Cells");
       }
       
-      
-      
-      // Propagate fields forward in time by dt.
+      // Propagate fields forward in time by dt. This needs to be done before the
+      // moments for t + dt are computed (field uses t and t+0.5dt)
       if (P::propagateField == true) {
          phiprof::start("Propagate Fields");
          propagateFields(mpiGrid, sysBoundaries, P::dt);
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
-      } else {
-         // TODO Whatever field updating/volume averaging/etc. needed in test particle and other test cases have to be put here.
-         // In doing this be sure the needed components have been updated.
       }
+      
+      phiprof::start("Velocity-space");
+      if( P::propagateVlasovAcceleration ) {
+         calculateAcceleration(mpiGrid,P::dt);
+         adjustVelocityBlocks(mpiGrid);
+         addTimedBarrier("barrier-after-ad just-blocks");
+      }
+      else {
+         //do zero length step, just to get things set up (at least rho?_v)
+         calculateAcceleration(mpiGrid,0.0);
+      }
+      phiprof::stop("Velocity-space",computedCells,"Cells");
+      addTimedBarrier("barrier-after-acceleration");
+      
+      /*here we compute rho and rho_v for timestep t + dt, so next
+       * timestep*/
+      calculateInterpolatedVelocityMoments(
+         mpiGrid,
+         CellParams::RHO,
+         CellParams::RHOVX,
+         CellParams::RHOVY,
+         CellParams::RHOVZ,
+         CellParams::P_11,
+         CellParams::P_22,
+         CellParams::P_33
+      );
       
       phiprof::stop("Propagate",computedCells,"Cells");
       

@@ -4,22 +4,14 @@ This file is part of Vlasiator.
 Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
 
-
-
-
-
-
-
-
-
-
-
 */
 
 #ifndef SYSBOUNDARYCONDITION_H
 #define SYSBOUNDARYCONDITION_H
 
 #include <dccrg.hpp>
+#include <dccrg_cartesian_geometry.hpp>
+
 #include <vector>
 #include "../definitions.h"
 #include "../spatial_cell.hpp"
@@ -57,57 +49,57 @@ namespace SBC {
             creal& t,
             Project &project
          );
-         virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell>& mpiGrid);
+         virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
          virtual bool applyInitialState(
-            const dccrg::Dccrg<SpatialCell>& mpiGrid,
+            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             Project &project
          );
 //          virtual bool applySysBoundaryCondition(
-//             const dccrg::Dccrg<SpatialCell>& mpiGrid,
+//             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 //             creal& t
 //          );
          virtual Real fieldSolverBoundaryCondMagneticField(
-            const dccrg::Dccrg<SpatialCell>& mpiGrid,
+            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
             creal& dt,
             cuint& component
          );
          virtual void fieldSolverBoundaryCondElectricField(
-            dccrg::Dccrg<SpatialCell>& mpiGrid,
+            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
             cuint RKCase,
             cuint component
          );
          virtual void fieldSolverBoundaryCondHallElectricField(
-            dccrg::Dccrg<SpatialCell>& mpiGrid,
+            dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
             cuint RKCase,
             cuint component
          );
          virtual void fieldSolverBoundaryCondDerivatives(
-            dccrg::Dccrg<SpatialCell>& mpiGrid,
+            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
             cuint& RKCase,
             cuint& component
          );
          virtual void fieldSolverBoundaryCondBVOLDerivatives(
-            const dccrg::Dccrg<SpatialCell>& mpiGrid,
+            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
             cuint& component
          );
          static void setCellDerivativesToZero(
-            const dccrg::Dccrg<SpatialCell>& mpiGrid,
+            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
             cuint& component
          );
          static void setCellBVOLDerivativesToZero(
-            const dccrg::Dccrg<SpatialCell>& mpiGrid,
+            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
             cuint& component
          );
       /*This function computes the vlasov (distribution function) boundary condition. It is not! allowed to change block structure in cell*/
          virtual void vlasovBoundaryCondition(
-            const dccrg::Dccrg<SpatialCell>& mpiGrid,
+            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID
          );
          
@@ -125,7 +117,7 @@ namespace SBC {
          );
          void copyCellData(SpatialCell *from, SpatialCell *to,bool allowBlockAdjustment);
          CellID getClosestNonsysboundaryCell(
-            const dccrg::Dccrg<SpatialCell>& mpiGrid,
+            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID
          );
          

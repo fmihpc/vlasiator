@@ -11,13 +11,20 @@ DISTRIBUTION_FP_PRECISION = SPF
 #set a default archive utility, can also be set in Makefile.arch
 AR ?= ar
 
-
 #londrillo_delzanna (no other options)
 FIELDSOLVER ?= londrillo_delzanna
 #Add -DFS_1ST_ORDER_SPACE or -DFS_1ST_ORDER_TIME to make the field solver first-order in space or time
 # CXXFLAGS += -DFS_1ST_ORDER_SPACE
 # CXXFLAGS += -DFS_1ST_ORDER_TIME
 
+#also use papi to report memory consumption?
+CXXFLAGS += -DPAPI_MEM
+
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC
+
+#is profiling on?
 CXXFLAGS += -DPROFILE
 
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
@@ -57,6 +64,9 @@ CXXFLAGS += -DUSE_AGNER_VECTORCLASS
 #will need profiler in most places..
 CXXFLAGS += ${INC_PROFILE} 
 
+#use jemalloc
+CXXFLAGS += ${INC_JEMALLOC} 
+
 #define precision
 CXXFLAGS += -D${FP_PRECISION} 
 
@@ -94,6 +104,7 @@ LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_MPI}
 LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_VLSV}
+LIBS += ${LIB_JEMALLOC} 
 
 # Define common dependencies
 DEPS_COMMON = common.h definitions.h mpiconversion.h logger.h 
@@ -123,7 +134,7 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
                 projects/Shocktest/Shocktest.h projects/Shocktest/Shocktest.cpp
 #all objects for vlasiator
 
-OBJS = 	version.o backgroundfield.o ode.o quadr.o dipole.o constantfield.o integratefunction.o \
+OBJS = 	version.o memoryallocation.o backgroundfield.o  quadr.o dipole.o constantfield.o integratefunction.o \
 	datareducer.o datareductionoperator.o \
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o \
 	sysboundary.o sysboundarycondition.o \
@@ -158,14 +169,15 @@ version.cpp: FORCE
 version.o: version.cpp 
 	 ${CMP} ${CXXFLAGS} ${FLAGS} -c version.cpp
 
+memoryallocation.o: memoryallocation.cpp 
+	 ${CMP} ${CXXFLAGS} ${FLAGS} -c memoryallocation.cpp
+
 dipole.o: backgroundfield/dipole.cpp backgroundfield/dipole.hpp backgroundfield/fieldfunction.hpp backgroundfield/functions.hpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/dipole.cpp 
 
 constantfield.o: backgroundfield/constantfield.cpp backgroundfield/constantfield.hpp backgroundfield/fieldfunction.hpp backgroundfield/functions.hpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/constantfield.cpp 
 
-ode.o: backgroundfield/ode.cpp backgroundfield/ode.hpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/ode.cpp
 
 quadr.o: backgroundfield/quadr.cpp backgroundfield/quadr.hpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/quadr.cpp

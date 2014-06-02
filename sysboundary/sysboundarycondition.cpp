@@ -87,14 +87,14 @@ namespace SBC {
     * \param cellParams Pointer to the cell's parameters array.
     * \return The system boundary condition type's index
     */
-   bool SysBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   bool SysBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
       cerr << "ERROR: SysBoundaryCondition::assignSysBoundary called instead of derived class function!" << endl;
       return false;
    }
    
    /*! Function used to apply the system boundary condition initial state to a cell. */
    bool SysBoundaryCondition::applyInitialState(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       Project &project
    ) {
       cerr << "ERROR: SysBoundaryCondition::applyInitialState called instead of derived class function!" << endl;
@@ -102,7 +102,7 @@ namespace SBC {
    }
    
    Real SysBoundaryCondition::fieldSolverBoundaryCondMagneticField(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       creal& dt,
       cuint& component
@@ -112,7 +112,7 @@ namespace SBC {
    }
    
    void SysBoundaryCondition::fieldSolverBoundaryCondElectricField(
-      dccrg::Dccrg<SpatialCell>& mpiGrid,
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       cuint RKCase,
       cuint component
@@ -122,7 +122,7 @@ namespace SBC {
    }
    
    void SysBoundaryCondition::fieldSolverBoundaryCondHallElectricField(
-      dccrg::Dccrg<SpatialCell>& mpiGrid,
+      dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       cuint RKCase,
       cuint component
@@ -132,7 +132,7 @@ namespace SBC {
    }
    
    void SysBoundaryCondition::fieldSolverBoundaryCondDerivatives(
-      dccrg::Dccrg<SpatialCell>& mpiGrid,
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       cuint& RKCase,
       cuint& component
@@ -142,7 +142,7 @@ namespace SBC {
    }
    
    void SysBoundaryCondition::fieldSolverBoundaryCondBVOLDerivatives(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       cuint& component
    ) {
@@ -151,7 +151,7 @@ namespace SBC {
    }
    
    void SysBoundaryCondition::setCellDerivativesToZero(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       cuint& component
    ) {
@@ -211,7 +211,7 @@ namespace SBC {
    }
    
    void SysBoundaryCondition::setCellBVOLDerivativesToZero(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       cuint& component
    ) {
@@ -235,7 +235,7 @@ namespace SBC {
    }
    
    void SysBoundaryCondition::vlasovBoundaryCondition(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
    ) {
       cerr << "ERROR: SysBoundaryCondition::vlasovBoundaryCondition called instead of derived class function!" << endl;
@@ -320,7 +320,7 @@ namespace SBC {
    }
    
    CellID SysBoundaryCondition::getClosestNonsysboundaryCell(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
    ) {
       CellID closestCell = INVALID_CELLID;

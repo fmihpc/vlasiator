@@ -218,7 +218,7 @@ Real JXBZ_110_111(
 }
 
 void calculateEdgeHallTermXComponents(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const CellID& cellID,
    const Real* const perturbedCoefficients,
    cint& RKCase
@@ -277,7 +277,7 @@ void calculateEdgeHallTermXComponents(
 }
 
 void calculateEdgeHallTermYComponents(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const CellID& cellID,
    const Real* const perturbedCoefficients,
    cint& RKCase
@@ -336,7 +336,7 @@ void calculateEdgeHallTermYComponents(
 }
 
 void calculateEdgeHallTermZComponents(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const CellID& cellID,
    const Real* const perturbedCoefficients,
    cint& RKCase
@@ -395,7 +395,7 @@ void calculateEdgeHallTermZComponents(
 }
 
 void calculateHallTermSimple(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    const vector<CellID>& localCells,
    cint& RKCase
@@ -407,7 +407,7 @@ void calculateHallTermSimple(
    
    timer=phiprof::initializeTimer("Start communication of derivatives","MPI");
    phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_data_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   mpiGrid.start_remote_neighbor_copy_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute inner cells");
@@ -470,7 +470,7 @@ void calculateHallTermSimple(
    phiprof::stop(timer);
    timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   mpiGrid.wait_remote_neighbor_copy_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    timer=phiprof::initializeTimer("Compute boundary cells");
    phiprof::start(timer);
@@ -532,7 +532,7 @@ void calculateHallTermSimple(
    phiprof::stop(timer);
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_sends();
+   mpiGrid.wait_remote_neighbor_copy_update_sends();
    phiprof::stop(timer);
    
    phiprof::stop("Calculate Hall term");

@@ -114,7 +114,7 @@ namespace SBC {
       return true;
    }
    
-   bool Ionosphere::assignSysBoundary(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   bool Ionosphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
       vector<CellID> cells = mpiGrid.get_cells();
       for(uint i=0; i<cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -137,7 +137,7 @@ namespace SBC {
    }
    
    bool Ionosphere::applyInitialState(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       Project &project
    ) {
       vector<uint64_t> cells = mpiGrid.get_cells();
@@ -151,14 +151,14 @@ namespace SBC {
    }
    
 //    bool Ionosphere::applySysBoundaryCondition(
-//       const dccrg::Dccrg<SpatialCell>& mpiGrid,
+//       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 //       creal& t
 //    ) {
 //       return true;
 //    }
    
    Real Ionosphere::fieldSolverBoundaryCondMagneticField(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       creal& dt,
       cuint& component
@@ -168,7 +168,7 @@ namespace SBC {
    }
    
    void Ionosphere::fieldSolverBoundaryCondElectricField(
-      dccrg::Dccrg<SpatialCell>& mpiGrid,
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       cuint RKCase,
       cuint component
@@ -182,7 +182,7 @@ namespace SBC {
    }
    
    void Ionosphere::fieldSolverBoundaryCondHallElectricField(
-      dccrg::Dccrg<SpatialCell>& mpiGrid,
+      dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       cuint RKCase,
       cuint component
@@ -212,7 +212,7 @@ namespace SBC {
    }
    
    void Ionosphere::fieldSolverBoundaryCondDerivatives(
-      dccrg::Dccrg<SpatialCell>& mpiGrid,
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       cuint& RKCase,
       cuint& component
@@ -507,7 +507,7 @@ namespace SBC {
    }
    
    void Ionosphere::fieldSolverBoundaryCondBVOLDerivatives(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       cuint& component
    ) {
@@ -516,7 +516,7 @@ namespace SBC {
    }
    
    void Ionosphere::vlasovBoundaryCondition(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
    ) {
       //phiprof::start("vlasovBoundaryCondition (Ionosphere)");
