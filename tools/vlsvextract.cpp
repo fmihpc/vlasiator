@@ -359,18 +359,42 @@ Real * getB( oldVlsv::Reader& vlsvReader, const string& meshName, const uint64_t
    //These are needed to determine the buffer size.
    vlsv::datatype::type variableDataType;
    uint64_t variableArraySize, variableVectorSize, variableDataSize;
-   const string variableName = "B";
-   
-   //getArrayInfo output: variableArraysize, variableVectorSize, ...
-   xmlAttributes.clear();
-   xmlAttributes.push_back(make_pair("mesh", meshName));
-   xmlAttributes.push_back(make_pair("name", variableName));
 
-   if (vlsvReader.getArrayInfo("VARIABLE", xmlAttributes, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) {
-      cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
-      return NULL;
+   // Read in B:
+   
+   //Input the B vector (or B_vol or background_b or perturbed_B depending on which of the arrays are in the vlsv file):
+   vector<string> variableNames;
+   variableNames.push_back("B");
+   variableNames.push_back("B_vol");
+   variableNames.push_back("background_B");
+   variableNames.push_back("perturbed_B");
+   string variableName;
+
+
+   bool foundB = false;
+
+   // Go through all the possible variations of B: note that we're only interested in the direction of B, not its magnitude.
+   for( vector<string>::const_iterator it = variableNames.begin(); it != variableNames.end(); ++it ) {
+      variableName = *it;
+      //getArrayInfo output: variableArraysize, variableVectorSize, ...
+      xmlAttributes.clear();
+      xmlAttributes.push_back(make_pair("mesh", meshName));
+      xmlAttributes.push_back(make_pair("name", variableName));
+
+      if (vlsvReader.getArrayInfo("VARIABLE", xmlAttributes, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == true) {
+         // Found B:
+         foundB = true;
+         break;
+      }
    }
+
+   if( foundB == false ) {
+      // Didn't find B for some reason
+      cerr << "ERROR, FAILED TO LOAD VARIABLE B AT " << __FILE__ << " " << __LINE__ << endl;
+      return false;
+   }
+
+
 
    // Read B for the given cell id:
    const uint vectorsToRead = 1;
@@ -933,10 +957,10 @@ bool convertVelocityBlocks2( newVlsv::Reader& vlsvReader, const string& meshName
 
       //Input the B vector (or B_vol or background_b or perturbed_B depending on which of the arrays are in the vlsv file):
       vector<string> variableNames;
-      variableNames.append("B");
-      variableNames.append("B_vol");
-      variableNames.append("background_B");
-      variableNames.append("perturbed_B");
+      variableNames.push_back("B");
+      variableNames.push_back("B_vol");
+      variableNames.push_back("background_B");
+      variableNames.push_back("perturbed_B");
 
       bool foundB = false;
 
