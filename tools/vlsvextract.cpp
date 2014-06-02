@@ -930,15 +930,32 @@ bool convertVelocityBlocks2( newVlsv::Reader& vlsvReader, const string& meshName
          delete[] vz_crds_rotated;
          return false;
       }
-      //Input the B vector:
-      const string variableName = "B";
-      if( vlsvReader.getVariable( variableName, cellID, B ) == false ) {
+
+      //Input the B vector (or B_vol or background_b or perturbed_B depending on which of the arrays are in the vlsv file):
+      vector<string> variableNames;
+      variableNames.append("B");
+      variableNames.append("B_vol");
+      variableNames.append("background_B");
+      variableNames.append("perturbed_B");
+
+      bool foundB = false;
+
+      for( vector<string>::const_iterator it = variableNames.begin(); it != variableNames.end(); ++it ) {
+         const string variableName = *it;
+         if( vlsvReader.getVariable( variableName, cellID, B ) == true ) {
+            // Found the B vector
+            foundB = true;
+            break;
+         }
+      }
+      if( foundB == false ) {
          cerr << "ERROR, FAILED TO LOAD VARIABLE B AT " << __FILE__ << " " << __LINE__ << endl;
          delete[] vx_crds_rotated;
          delete[] vy_crds_rotated;
          delete[] vz_crds_rotated;
          return false;
       }
+
 
       //Now rotate:
       //Using eigen3 library here.
