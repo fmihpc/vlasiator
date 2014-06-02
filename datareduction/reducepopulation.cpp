@@ -996,12 +996,16 @@ static inline void cluster_advanced(
 
 
 
-   // Set values of clusters
+   // Set values of clusters and calculate number of clusters
+   unordered_set<uint32_t> ids;
    phiprof_assert( cell->block_fx.size() >= velocityCells.size() );
    for( uint i = 0; i < velocityCells.size(); ++i ) {
       const Realf value = *clusters[clusterIds[i]].clusterId;
       cell->block_fx[i] = value;
+      // Insert into ids:
+      ids.insert(value);
    }
+   cell->number_of_populations = ids.size();
 
 
    // Print out the number of clusterIds:
