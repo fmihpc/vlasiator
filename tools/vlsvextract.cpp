@@ -391,7 +391,8 @@ Real * getB( oldVlsv::Reader& vlsvReader, const string& meshName, const uint64_t
    if( foundB == false ) {
       // Didn't find B for some reason
       cerr << "ERROR, FAILED TO LOAD VARIABLE B AT " << __FILE__ << " " << __LINE__ << endl;
-      return false;
+      exit(1);
+      return NULL;
    }
 
 
