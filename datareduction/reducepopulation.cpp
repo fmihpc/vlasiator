@@ -202,7 +202,7 @@ class Cluster_Fast {
 
       }
 
-      inline void append( const uint32_t numberOfMembersToAppend ) {
+      inline void append( const int32_t numberOfMembersToAppend ) {
          *members = *members + numberOfMembersToAppend;
       }
 };
@@ -863,7 +863,8 @@ static inline void cluster_advanced(
    if( velocityCells.size() == 0 ) { return; }
    const uint numberOfVCells = velocityCells.size();
    // Reserve a table for clusters:
-   uint32_t * clusterIds = new uint32_t[numberOfVCells];
+   //uint32_t * clusterIds = new uint32_t[numberOfVCells];
+   vector<Realf,aligned_allocator<Realf,64> > & clusterIds = cell->block_fx;
 
    // Initialize to be part of no clusters:
    const uint32_t noCluster = 0;
@@ -959,13 +960,18 @@ static inline void cluster_advanced(
                // Merge clusters if the clusters are ok:
                const uint32_t clusterMembers = *cluster.members;
                const uint32_t neighborClusterMembers = *cluster_neighbor.members;
-//               if( i > 0.5*numberOfVCells && (clusterMembers < 0.2*neighborClusterMembers || neighborClusterMembers < 0.2*clusterMembers) ) {
-//                  cluster_neighbor.merge( cluster, clusters );
-//                  ++merges;
-//               }
+               // Check if the clusters should be merged: (If not, then check if the velocity cell should belong to the other cluster instead)
                if( clusterMembers < resolution*0.002 || neighborClusterMembers < resolution*0.002 ) {
                   cluster_neighbor.merge( cluster, clusters );
                   ++merges;
+               } else if( neighborClusterMembers > clusterMembers ) {
+                  // The velocity cell should belong to the other cluster, because it's bigger (this is an empirical result..)
+                  // Remove it from the previous cluster
+                  clusters[index].append(-1);
+                  // Set to be the same clusters:
+                  clusterIds[id] = clusterIds[neighbor_id];
+                  // Increase the amount of members in the cluster by one
+                  clusters[index_neighbor].append(1);
                }
             }
          }
@@ -1004,8 +1010,8 @@ static inline void cluster_advanced(
    cerr << "Sizeof: " << sizeof(Realf) << endl;
 
 
-   delete[] clusterIds;
-   clusterIds = NULL;
+   //delete[] clusterIds;
+   //clusterIds = NULL;
    // Free memory from clusters:
    for( uint i = 0; i < clusters.size(); ++i ) {
       clusters[i].remove_data( clusters );
