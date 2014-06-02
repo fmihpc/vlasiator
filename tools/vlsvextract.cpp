@@ -315,31 +315,30 @@ bool convertVelocityBlockVariable(T& vlsvReader, const string& spatGridName, con
 Real * getB( oldVlsv::Reader& vlsvReader, const string& meshName, const uint64_t& cellID ) {
    //Get B:
    //Declarations
-   vlsv::datatype::type meshDataType;
-   uint64_t meshArraySize, meshVectorSize, meshDataSize;
-   //Output: meshArraySize, meshVectorSize, meshDataType, meshDatasize (inside if() because getArray is bool and returns false if something unexpected happens)
+   vlsv::datatype::type cellIdDataType;
+   uint64_t cellIdArraySize, cellIdVectorSize, cellIdDataSize;
+   //Output: cellIdArraySize, cellIdVectorSize, cellIdDataType, cellIdDatasize (inside if() because getArray is bool and returns false if something unexpected happens)
    list<pair<string, string>> xmlAttributes;
    xmlAttributes.push_back(make_pair("name", "SpatialGrid"));
-   if (vlsvReader.getArrayInfo("MESH", xmlAttributes, meshArraySize, meshVectorSize, meshDataType, meshDataSize) == false) {
+   if (vlsvReader.getArrayInfo("MESH", xmlAttributes, cellIdArraySize, cellIdVectorSize, cellIdDataType, cellIdDataSize) == false) {
+      cerr << "Error " << __FILE__ << " " << __LINE__ << endl;
+      exit(1);
+      return NULL;
+   }
+   // Declare buffers and allocate memory, this is done to read in the cell id location:
+   char * cellIdBuffer = new char[cellIdArraySize*cellIdVectorSize*cellIdDataSize];
+   //read the array into cellIdBuffer starting from 0 up until cellIdArraySize which was received from getArrayInfo
+   if (vlsvReader.readArray("MESH",meshName,0,cellIdArraySize,cellIdBuffer) == false) {
       //cerr << "Spatial cell #" << cellID << " not found!" << endl;
       cerr << "Error " << __FILE__ << " " << __LINE__ << endl;
       exit(1);
       return NULL;
    }
-   // Declare buffers and allocate memory
-   char * meshBuffer = new char[meshArraySize*meshVectorSize*meshDataSize];
-   //read the array into meshBuffer starting from 0 up until meshArraySize which was received from getArrayInfo
-   if (vlsvReader.readArray("MESH",meshName,0,meshArraySize,meshBuffer) == false) {
-      //cerr << "Spatial cell #" << cellID << " not found!" << endl;
-      cerr << "Error " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
-      return NULL;
-   }
-   // Search for the given cellID:
+   // Search for the given cellID location, the array in the vlsv file is not ordered depending on the cell id so the array might look like this, for instance: [CellId1, CellId7, CellId5, ...] and the variables are saved in the same order: [CellId1_B_FIELD, CellId7_B_FIELD, CellId5_B_FIELD, ...]
    uint64_t cellIndex = numeric_limits<uint64_t>::max();
-   for (uint64_t cell = 0; cell < meshArraySize; ++cell) {
-      //the CellID are not sorted in the array, so we'll have to search the array -- the CellID is stored in mesh
-      const uint64_t readCellID = convUInt(meshBuffer + cell*meshDataSize, meshDataType, meshDataSize);
+   for (uint64_t cell = 0; cell < cellIdArraySize; ++cell) {
+      //the CellID are not sorted in the array, so we'll have to search the array -- the CellID is stored in cellId
+      const uint64_t readCellID = convUInt(cellIdBuffer + cell*cellIdDataSize, cellIdDataType, cellIdDataSize);
       if (cellID == readCellID) {
          //Found the right cell ID, break
          cellIndex = cell;
@@ -347,20 +346,25 @@ Real * getB( oldVlsv::Reader& vlsvReader, const string& meshName, const uint64_t
       }
    }
 
+   // Check if the cell id was found:
    if (cellIndex == numeric_limits<uint64_t>::max()) {
-      //cerr << "Spatial cell #" << cellID << " not found!" << endl;
-      cerr << "Error " << __FILE__ << " " << __LINE__ << endl;
+      cerr << "Spatial cell #" << cellID << " not found! " << __FILE__ << " " << __LINE__ << endl;
       exit(1);
       return NULL;
    }
 
+   // The buffer for cell id is no longer needed since we have the cellIndex:
+   delete[] cellIdBuffer;
+
    //These are needed to determine the buffer size.
    vlsv::datatype::type variableDataType;
    uint64_t variableArraySize, variableVectorSize, variableDataSize;
+   const string variableName = "B";
+   
    //getArrayInfo output: variableArraysize, variableVectorSize, ...
    xmlAttributes.clear();
    xmlAttributes.push_back(make_pair("mesh", meshName));
-   xmlAttributes.push_back(make_pair("name", "B"));
+   xmlAttributes.push_back(make_pair("name", variableName));
 
    if (vlsvReader.getArrayInfo("VARIABLE", xmlAttributes, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) {
       cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
@@ -368,52 +372,45 @@ Real * getB( oldVlsv::Reader& vlsvReader, const string& meshName, const uint64_t
       return NULL;
    }
 
-   //Declare a buffer for reading the specific vector from the array
-   char * the_actual_buffer = new char[variableVectorSize * variableDataSize];     //Needs to store vector times data size (Got that from getArrayInfo)
-   if( variableDataSize != sizeof(Real) ) {
-      cerr << "ERROR, bad datasize at " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
-   }
-   //Real * the_actual_buffer_ptr = reinterpret_cast<Real*>(the_actual_buffer);
-   double * buffer_double = reinterpret_cast<double*>(the_actual_buffer);
-   float * buffer_float = reinterpret_cast<float*>(the_actual_buffer);
+   // Read B for the given cell id:
+   const uint vectorsToRead = 1;
+   char * B_char = new char[variableVectorSize * variableDataSize * vectorsToRead];
 
-   //The corresponding B vector is in the cellIndex we got from mesh -- we only need to read one vector -- that's why the '1' parameter
-   const uint64_t numOfVecs = 1;
-   //store the vector in the_actual_buffer buffer -- the data is extracted vector at a time
-   if(vlsvReader.readArray("VARIABLE", "B", cellIndex, numOfVecs, the_actual_buffer) == false) {
+   // Read the given cell id's value for B from the vlsv file and store into the B vector:
+   if(vlsvReader.readArray("VARIABLE", variableName, cellIndex, vectorsToRead, B_char) == false) {
       cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
       exit(1);
       return 0;
    }
-   // Cast to Real (if necessary)
-   Real * return_pointer;
+
+   // B might be either double or float 
+   double * B_double = reinterpret_cast<double*>(B_char);
+   float * B_float = reinterpret_cast<float*>(B_char);
+
+   // Convert to Real (if necessary)
+   Real * B;
    if( sizeof(Real) != variableDataSize ) {
       // Read-in data has a different size e.g. the variable we just read in is in float form and Real equals double
-      return_pointer = new Real[variableVectorSize];
+      B = new Real[variableVectorSize];
       for( uint i = 0; i < variableVectorSize; ++i ) {
+         // Check the data size of the B vector in the vlsv file:
          if( sizeof(float) == variableDataSize ) {
-            const Real value = buffer_float[i];
-            return_pointer[i] = value;
+            const Real value = B_float[i];
+            B[i] = value;
          } else if( sizeof(double) == variableDataSize ) {
-            const Real value = buffer_double[i];
-            return_pointer[i] = value;
+            const Real value = B_double[i];
+            B[i] = value;
          } else {
             phiprof_assert( sizeof(double) != variableDataSize && sizeof(float) != variableDataSize );
          }
       }
-      delete[] the_actual_buffer;
+      delete[] B_char;
    } else {
-      if( sizeof(float) == variableDataSize ) {
-         return_pointer = buffer_float;
-      } else if( sizeof(double) == variableDataSize ) {
-         return_pointer = buffer_double;
-      } else {
-         phiprof_assert( sizeof(double) != variableDataSize && sizeof(float) != variableDataSize );
-      }
+      // Don't need to convert:
+      B = reinterpret_cast<Real*>(B_char);
    }
    //Return the B vector in Real* form
-   return the_actual_buffer_ptr;
+   return B;
 
 }
 
