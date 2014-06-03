@@ -185,12 +185,31 @@ bool writeVelocityDistributionData(
       SpatialCell* SC = mpiGrid[cells[cell]];
       // Get the number of blocks in this cell
       const uint64_t arrayElements = SC->number_of_blocks;
-      char * arrayToWrite = reinterpret_cast<char*>(SC->block_fx.data());
+      char * arrayToWrite = reinterpret_cast<char*>(SC->block_data.data());
       // Add a subarray to write
       vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements); // Note: We told beforehands that the vectorsize = WID3 = 64
    }
    // Write the subarrays
    vlsvWriter.endMultiwrite("BLOCKVARIABLE", attribs);
+
+   // FIXME: Fix this to take in a parameter for writing
+   if( true == true ) {
+      // Start multi write
+      vlsvWriter.startMultiwrite(datatype_avgs,arraySize_avgs,vectorSize_avgs,dataSize_avgs);
+      // Loop over cells
+      for( size_t cell = 0; cell < cells.size(); ++cell ) {
+         // Get the spatial cell
+         SpatialCell* SC = mpiGrid[cells[cell]];
+         // Get the number of blocks in this cell
+         const uint64_t arrayElements = SC->number_of_blocks;
+         char * arrayToWrite = reinterpret_cast<char*>(SC->block_fx.data());
+         // Add a subarray to write
+         vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements); // Note: We told beforehands that the vectorsize = WID3 = 64
+      }
+      // Write the subarrays
+      vlsvWriter.endMultiwrite("BLOCKVARIABLEPOPULATION", attribs);
+   }
+
    
    if( globalSuccess(success,"(MAIN) writeGrid: ERROR: Failed to fill temporary velocityBlockData array",MPI_COMM_WORLD) == false) {
       vlsvWriter.close();
