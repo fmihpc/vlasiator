@@ -848,7 +848,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if( P::writeAsFloat == 1 ) {
       if( writeVelocitySpace<float>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
    } else {
-      if( writeVelocitySpace<Real>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
+      if( writeVelocitySpace<Realf>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
    }
 
    //Write necessary variables:
