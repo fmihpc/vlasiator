@@ -230,18 +230,6 @@ int main(int argn,char* args[]) {
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    phiprof::stop("Init DROs");
    
-   //TODO, move to initializeGrid
-   // FIXME in initializeGrid we do this for NOT_SYSBOUNDARY cells and the SBCs do it for their cells,
-   // so everyone is done except DO_NOT_COMPUTE, why bother again?
-   // NOTE this is not there anymore after the fix_timestepping_issue_26 branch merge into the QUESPACE-346-Hall-term branch
-//    if(!P::isRestart) {
-//       phiprof::start("Init moments");
-//       //compute moments, and set them in RHO*,P*. If restart, they are already read in
-//       // TODO not done for restart yet
-//       calculateVelocityMoments(mpiGrid);
-//       phiprof::stop("Init moments");
-//    }
-   
    phiprof::start("Init field propagator");
    // Initialize field propagator:
    if (initializeFieldPropagator(mpiGrid, sysBoundaries) == false) {

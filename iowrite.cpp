@@ -866,7 +866,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    return success;
 }
-   
+
 
 /*!
 
@@ -886,10 +886,10 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    double allStart = MPI_Wtime();
    bool success = true;
    int myRank;
-
+   
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    phiprof::start("writeGrid-restart");
-
+   
    //deallocate blocks in remote cells to decrease memory load
    deallocateRemoteCellBlocks(mpiGrid);
    // Create a name for the output file and open it with VLSVWriter:
@@ -898,7 +898,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    fname.width(7);
    fname.fill('0');
    fname << fileIndex << ".vlsv";
-
+   
    //Open the file with vlsvWriter:
    Writer vlsvWriter;
    const int masterProcessId = 0;
@@ -914,31 +914,31 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       MPI_Info_set(MPIinfo, factor, stripeChar);
    }
    vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId, MPIinfo );
-
+   
    // Get all local cell Ids 
    vector<uint64_t> local_cells = mpiGrid.get_cells();
    //no order assumed so let's order cells here
    std::sort(local_cells.begin(), local_cells.end());
-
+   
    //Note: No need to write ghost zones for write restart
    const vector<uint64_t> ghost_cells;
-
+   
    //The mesh name is "SpatialGrid"
    const string meshName = "SpatialGrid";
-
+   
    //Write mesh boundaries: NOTE: master process only
    //Visit plugin needs to know the boundaries of the mesh so the number of cells in x, y, z direction
    if( writeMeshBoundingBox( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) return false;
-
+   
    //Write the node coordinates: NOTE: master process only
    if( writeBoundingBoxNodeCoordinates( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) return false;
-
+   
    //Write basic grid parameters: NOTE: master process only ( I think )
    if( writeCommonGridData(vlsvWriter, mpiGrid, local_cells, fileIndex, MPI_COMM_WORLD) == false ) return false;
-
+   
    //Write zone global id numbers:
    if( writeZoneGlobalIdNumbers( mpiGrid, vlsvWriter, meshName, local_cells, ghost_cells ) == false ) return false;
-
+   
    //write out DROs we need for restarts
    DataReducer restartReducer;
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("background_B",CellParams::BGBX,3));
@@ -947,37 +947,39 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_dt2",CellParams::RHO_DT2,4));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_r",CellParams::RHO_R,4));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_v",CellParams::RHO_V,4));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure",CellParams::P_11,3));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_dt2",CellParams::P_11_DT2,3));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_r",CellParams::P_11_R,3));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_v",CellParams::P_11_V,3));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("LB_weight",CellParams::LBWEIGHTCOUNTER,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_v_dt",CellParams::MAXVDT,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_r_dt",CellParams::MAXRDT,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt",CellParams::MAXFDT,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_adjust",CellParams::RHOLOSSADJUST,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_velocity_boundary",CellParams::RHOLOSSVELBOUNDARY,1));
-
+   
    restartReducer.addOperator(new DRO::MPIrank);
    restartReducer.addOperator(new DRO::BoundaryType);
    restartReducer.addOperator(new DRO::BoundaryLayer);
-
+   
    //Write necessary variables:
    const bool writeAsFloat = false;
    for (uint i=0; i<restartReducer.size(); ++i) {
       writeDataReducer(mpiGrid, local_cells, writeAsFloat, restartReducer, i, vlsvWriter);
    }
-
+   
    //write the velocity distribution data -- note: it's expecting a vector of pointers:
    // Note: restart should always write double values to ensure the accuracy of the restart runs. In case of distribution data it is not as important as they are mainly used for visualization purposes
    writeVelocityDistributionData<Realf>(vlsvWriter, mpiGrid, local_cells, MPI_COMM_WORLD);
-
    vlsvWriter.close();
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
    updateRemoteVelocityBlockLists(mpiGrid);
-
+   
    phiprof::stop("writeGrid-restart");//,1.0e-6*bytesWritten,"MB");
-
+   
    return success;
 }
-   
 
 
 /*!
