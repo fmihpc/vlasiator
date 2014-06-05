@@ -915,6 +915,9 @@ static inline void cluster_advanced(
 
       phiprof_assert( id >= 0 && id < velocityCells.size() );
 
+      // Keep track of the highest avgs of the neighbor:
+      Realf highest_avgs_neighbor = 0;
+
       for( vector<Velocity_Cell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
          // Get the id of the neighbor:
          const uint32_t neighbor_id = it->hash( startingPoint );
@@ -945,6 +948,8 @@ static inline void cluster_advanced(
                clusters[index_neighbor].append(1);
                //--------------------------------------------------------------
 
+               // Update the highest avgs value counter:
+               highest_avgs_neighbor = it->get_avgs();
 
             } else if( clusters[index].find( index_neighbor ) ) {
 
@@ -962,16 +967,20 @@ static inline void cluster_advanced(
                const uint32_t neighborClusterMembers = *cluster_neighbor.members;
                // Check if the clusters should be merged: (If not, then check if the velocity cell should belong to the other cluster instead)
                if( clusterMembers < resolution*0.002 || neighborClusterMembers < resolution*0.002 ) {
+                  // The other cluster is small enough, so merge the clusters:
                   cluster_neighbor.merge( cluster, clusters );
                   ++merges;
-               } else if( neighborClusterMembers > clusterMembers ) {
-                  // The velocity cell should belong to the other cluster, because it's bigger (this is an empirical result..)
+               } else if( highest_avgs_neighbor < it->get_avgs() ) {
+                  // The velocity cell should belong to the other cluster, because the other cluster has a highest avgs value:
                   // Remove it from the previous cluster
                   clusters[index].append(-1);
                   // Set to be the same clusters:
                   clusterIds[id] = clusterIds[neighbor_id];
                   // Increase the amount of members in the cluster by one
                   clusters[index_neighbor].append(1);
+
+                  // Update the highest avgs value counter:
+                  highest_avgs_neighbor = it->get_avgs();
                }
             }
          }
