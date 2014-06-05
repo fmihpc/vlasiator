@@ -134,6 +134,7 @@ public:
    bool getCellIdFromInput;
    bool getCellIdFromCoordinates;
    bool rotateVectors;
+   bool plasmaFrame;
    uint64_t cellId;
    uint32_t numberOfCoordinatesInALine;
    vector<string> outputDirectoryPath;
@@ -439,6 +440,109 @@ Real * getB( oldVlsv::Reader& vlsvReader, const string& meshName, const uint64_t
 
 }
 
+array<Real, 3> getBulkVelocity( oldVlsv::Reader& vlsvReader, const string& meshName, const uint64_t& cellID ) {
+   //Get bulk velocity:
+   //Declarations
+   vlsv::datatype::type meshDataType;
+   uint64_t meshArraySize, meshVectorSize, meshDataSize;
+   //Output: meshArraySize, meshVectorSize, meshDataType, meshDatasize (inside if() because getArray is bool and returns false if something unexpected happens)
+   list<pair<string, string>> xmlAttributes;
+   xmlAttributes.push_back(make_pair("name", "SpatialGrid"));
+   if (vlsvReader.getArrayInfo("MESH", xmlAttributes, meshArraySize, meshVectorSize, meshDataType, meshDataSize) == false) {
+      //cerr << "Spatial cell #" << cellID << " not found!" << endl;
+      cerr << "Error " << __FILE__ << " " << __LINE__ << endl;
+      exit(1);
+   }
+   // Declare buffers and allocate memory
+   char * meshBuffer = new char[meshArraySize*meshVectorSize*meshDataSize];
+   //read the array into meshBuffer starting from 0 up until meshArraySize which was received from getArrayInfo
+   if (vlsvReader.readArray("MESH",meshName,0,meshArraySize,meshBuffer) == false) {
+      //cerr << "Spatial cell #" << cellID << " not found!" << endl;
+      cerr << "Error " << __FILE__ << " " << __LINE__ << endl;
+      exit(1);
+   }
+   // Search for the given cellID:
+   uint64_t cellIndex = numeric_limits<uint64_t>::max();
+   for (uint64_t cell = 0; cell < meshArraySize; ++cell) {
+      //the CellID are not sorted in the array, so we'll have to search the array -- the CellID is stored in mesh
+      const uint64_t readCellID = convUInt(meshBuffer + cell*meshDataSize, meshDataType, meshDataSize);
+      if (cellID == readCellID) {
+         //Found the right cell ID, break
+         cellIndex = cell;
+         break;
+      }
+   }
+   
+   if (cellIndex == numeric_limits<uint64_t>::max()) {
+      //cerr << "Spatial cell #" << cellID << " not found!" << endl;
+      cerr << "Error " << __FILE__ << " " << __LINE__ << endl;
+      exit(1);
+   }
+   
+   //These are needed to determine the buffer size.
+   vlsv::datatype::type variableDataType;
+   uint64_t variableArraySize, variableVectorSize, variableDataSize;
+   //getArrayInfo output: variableArraysize, variableVectorSize, ...
+   xmlAttributes.clear();
+   xmlAttributes.push_back(make_pair("mesh", meshName));
+   // Get rho_v
+   // FIXME handle the case where moments is available/rho_v is not available
+   xmlAttributes.push_back(make_pair("name", "rho_v"));
+   if (vlsvReader.getArrayInfo("VARIABLE", xmlAttributes, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) {
+      cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
+      exit(1);
+   }
+   
+   //Declare a buffer for reading the specific vector from the array
+   char * rho_v_buffer = new char[variableVectorSize * variableDataSize];     //Needs to store vector times data size (Got that from getArrayInfo)
+   Real * the_actual_buffer_ptr = reinterpret_cast<Real*>(rho_v_buffer);
+   if( variableDataSize != sizeof(Real) ) {
+      cerr << "ERROR, bad datasize at " << __FILE__ << " " << __LINE__ << endl;
+      exit(1);
+   }
+   
+   //The corresponding vector is in the cellIndex we got from mesh -- we only need to read one vector -- that's why the '1' parameter
+   const uint64_t numOfVecs = 1;
+   //store the vector in the_actual_buffer buffer -- the data is extracted vector at a time
+   if(vlsvReader.readArray("VARIABLE", "rho_v", cellIndex, numOfVecs, rho_v_buffer) == false) {
+      cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
+      exit(1);
+   }
+   Real rhov[3];
+   rhov[0] = the_actual_buffer_ptr[0];
+   rhov[1] = the_actual_buffer_ptr[1];
+   rhov[2] = the_actual_buffer_ptr[2];
+   
+   // Get rho
+   xmlAttributes.pop_back();
+   xmlAttributes.push_back(make_pair("name", "rho"));
+   if (vlsvReader.getArrayInfo("VARIABLE", xmlAttributes, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) {
+      cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
+      exit(1);
+   }
+   
+   //Declare a buffer for reading the specific vector from the array
+   char * rho_buffer = new char[variableVectorSize * variableDataSize];     //Needs to store vector times data size (Got that from getArrayInfo)
+   the_actual_buffer_ptr = reinterpret_cast<Real*>(rho_buffer);
+   if( variableDataSize != sizeof(Real) ) {
+      cerr << "ERROR, bad datasize at " << __FILE__ << " " << __LINE__ << endl;
+      exit(1);
+   }
+   
+   //store the vector in the_actual_buffer buffer -- the data is extracted vector at a time
+   if(vlsvReader.readArray("VARIABLE", "rho", cellIndex, numOfVecs, rho_buffer) == false) {
+      cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
+      exit(1);
+   }
+   creal rho = *the_actual_buffer_ptr;
+   
+   array<Real, 3> bulkV;
+   bulkV[0] = (rho == 0.0) ? 0.0 : rhov[0] / rho;
+   bulkV[1] = (rho == 0.0) ? 0.0 : rhov[1] / rho;
+   bulkV[2] = (rho == 0.0) ? 0.0 : rhov[2] / rho;
+   return bulkV;
+   
+}
 
 void doRotation(
   Real * vx_crds_rotated, Real * vy_crds_rotated, Real * vz_crds_rotated,
@@ -475,7 +579,14 @@ void doRotation(
    }
 }
 
-bool convertVelocityBlocks2(oldVlsv::Reader& vlsvReader, const string& meshName, const CellStructure & cellStruct, const uint64_t& cellID, const bool rotate) {
+bool convertVelocityBlocks2(
+   oldVlsv::Reader& vlsvReader,
+   const string& meshName,
+   const CellStructure & cellStruct,
+   const uint64_t& cellID,
+   const bool rotate,
+   const bool plasmaFrame
+) {
    //return true;
    bool success = true;
 
@@ -593,7 +704,12 @@ bool convertVelocityBlocks2(oldVlsv::Reader& vlsvReader, const string& meshName,
          }
       }
    }
-
+   
+   array<Real, 3> bulkV = {{0.0, 0.0, 0.0}};
+   if(plasmaFrame) {
+      bulkV = getBulkVelocity(vlsvReader, meshName, cellID);
+   }
+   
    Real* vx_crds = new Real[nodes.size()];
    Real* vy_crds = new Real[nodes.size()];
    Real* vz_crds = new Real[nodes.size()];
@@ -601,9 +717,10 @@ bool convertVelocityBlocks2(oldVlsv::Reader& vlsvReader, const string& meshName,
    uint64_t counter = 0;
    for (map<NodeCrd<Real>, uint64_t>::iterator it = nodes.begin(); it != nodes.end(); ++it) {
       it->second = counter;
-      vx_crds[counter] = it->first.x;
-      vy_crds[counter] = it->first.y;
-      vz_crds[counter] = it->first.z;
+      // bulkV contains the bulk velocity if plasmaFrame is true, otherwise it is 0.0
+      vx_crds[counter] = it->first.x - bulkV[0];
+      vy_crds[counter] = it->first.y - bulkV[1];
+      vz_crds[counter] = it->first.z - bulkV[2];
       ++counter;
    }
 
@@ -764,7 +881,14 @@ bool convertVelocityBlocks2(oldVlsv::Reader& vlsvReader, const string& meshName,
    return success;
 }
 
-bool convertVelocityBlocks2( newVlsv::Reader& vlsvReader, const string& meshName, const CellStructure & cellStruct, const uint64_t& cellID, const bool rotate ) {
+bool convertVelocityBlocks2(
+   newVlsv::Reader& vlsvReader,
+   const string& meshName,
+   const CellStructure & cellStruct,
+   const uint64_t& cellID,
+   const bool rotate,
+   const bool plasmaFrame
+) {
    //return true;
    bool success = true;
 
@@ -818,7 +942,49 @@ bool convertVelocityBlocks2( newVlsv::Reader& vlsvReader, const string& meshName
          }
       }
    }
-
+   
+   //Get bulk velocity vector
+   array<Real, 3> vect3 = {{0.0, 0.0, 0.0}};
+   array<Real, 4> vect4 = {{0.0, 0.0, 0.0, 0.0}};
+   array<Real, 1> rho = {{0.0}};
+   // if plasmaFrame is true then we get the bulk velocity otherwise it remains 0.0
+   if(plasmaFrame) {
+      if( vlsvReader.setCellIds() == false ) {
+         cerr << "ERROR, FAILED TO SET CELL IDS AT " << __FILE__ << " " << __LINE__ << endl;
+         return false;
+      }
+      //Input the bulk velocity vector:
+      string variableName1 = "rho_v";
+      string variableName2 = "rho";
+      if( (vlsvReader.getVariable( variableName1, cellID, vect3 ) && vlsvReader.getVariable( variableName2, cellID, rho )) == false ) {
+         variableName1 = "moments";
+         if( vlsvReader.getVariable( variableName1, cellID, vect4 ) == false ) {
+            cerr << "ERROR, FAILED TO LOAD VARIABLES rho_v, rho or moments AT " << __FILE__ << " " << __LINE__ << endl;
+            return false;
+         } else {
+            if(vect4[0] != 0.0) {
+               vect3[0] = vect4[1] / vect4[0]; // bulk velocity x
+               vect3[1] = vect4[2] / vect4[0]; // bulk velocity y
+               vect3[2] = vect4[3] / vect4[0]; // bulk velocity z
+            } else {
+               vect3[0] = 0.0;
+               vect3[1] = 0.0;
+               vect3[2] = 0.0;
+            }
+         }
+      } else {
+         if(rho[0] != 0.0) {
+            vect3[0] /= rho[0]; // bulk velocity x
+            vect3[1] /= rho[0]; // bulk velocity y
+            vect3[2] /= rho[0]; // bulk velocity z
+         } else {
+            vect3[0] = 0.0;
+            vect3[1] = 0.0;
+            vect3[2] = 0.0;
+         }
+      }
+   }
+   
    Real* vx_crds = new Real[nodes.size()];
    Real* vy_crds = new Real[nodes.size()];
    Real* vz_crds = new Real[nodes.size()];
@@ -826,9 +992,10 @@ bool convertVelocityBlocks2( newVlsv::Reader& vlsvReader, const string& meshName
    uint64_t counter = 0;
    for (map<NodeCrd<Real>, uint64_t>::iterator it = nodes.begin(); it != nodes.end(); ++it) {
       it->second = counter;
-      vx_crds[counter] = it->first.x;
-      vy_crds[counter] = it->first.y;
-      vz_crds[counter] = it->first.z;
+      // vect3 contains the bulk velocity if plasmaFrame is true, otherwise it is 0.0
+      vx_crds[counter] = it->first.x - vect3[0];
+      vy_crds[counter] = it->first.y - vect3[1];
+      vz_crds[counter] = it->first.z - vect3[2];
       ++counter;
    }
 
@@ -1508,6 +1675,7 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
    bool & getCellIdFromInput = mainOptions.getCellIdFromInput;
    bool & getCellIdFromLine = mainOptions.getCellIdFromLine;
    bool & rotateVectors = mainOptions.rotateVectors;
+   bool & plasmaFrame = mainOptions.plasmaFrame;
    uint64_t & cellId = mainOptions.cellId;
    uint32_t & numberOfCoordinatesInALine = mainOptions.numberOfCoordinatesInALine;
    vector<string>  & outputDirectoryPath = mainOptions.outputDirectoryPath;
@@ -1516,7 +1684,7 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
    array<Real, 3> & point2 = mainOptions.point2;
 
    //By default every bool input should be false and vectors should be empty
-   if( getCellIdFromCoordinates == true || rotateVectors == true || getCellIdFromInput == true || getCellIdFromLine == true || outputDirectoryPath.empty() == false ) {
+   if( getCellIdFromCoordinates == true || rotateVectors == true || plasmaFrame == true || getCellIdFromInput == true || getCellIdFromLine == true || outputDirectoryPath.empty() == false ) {
       cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", invalid arguments in retrieveOptions()" << endl;
       return false;
    }
@@ -1528,6 +1696,7 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
          ("help", "display help")
          ("cellid", po::value<uint64_t>(), "Set cell id")
          ("rotate", "Rotate velocities so that they face z-axis")
+         ("plasmaFrame", "Shift the distribution so that the bulk velocity is 0")
          ("coordinates", po::value< vector<Real> >()->multitoken(), "Set spatial coordinates x y z")
          ("unit", po::value<string>(), "Sets the units. Options: re, km, m (OPTIONAL)")
          ("point1", po::value< vector<Real> >()->multitoken(), "Set the starting point x y z of a line")
@@ -1581,6 +1750,11 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
       if( vm.count("rotate") ) {
          //Rotate the vectors (used in convertVelocityBlocks2 as an argument)
          rotateVectors = true;
+      }
+      //Check for plasma frame shifting
+      if( vm.count("plasmaFrame") ) {
+         // Shift the velocity distribution to plasma frame
+         plasmaFrame = true;
       }
       //Check for cell id input
       if( vm.count("cellid") ) {
@@ -1898,14 +2072,17 @@ void convertFileToSilo( const string & fileName, const UserOptions & mainOptions
 
       // Create a new file prefix for the output file:
       stringstream ss2;
+      ss2 << "velgrid" << '.';
       if( mainOptions.rotateVectors ) {
-         ss2 << "velgrid" << '.' << "rotated" << '.' << cellID;
-      } else {
-         ss2 << "velgrid" << '.' << cellID;
+         ss2 << "rotated" << '.';
       }
+      if( mainOptions.plasmaFrame ) {
+         ss2 << "shifted" << '.';
+      }
+      ss2 << cellID;
       string newPrefix;
       ss2 >> newPrefix;
-
+      
       // Replace .vlsv with the new suffix:
       string outputFileName = fileName;
       size_t pos = outputFileName.rfind(".vlsv");
@@ -1940,7 +2117,7 @@ void convertFileToSilo( const string & fileName, const UserOptions & mainOptions
          vlsvReader.setCellsWithBlocks();
       }
       for (list<string>::const_iterator it2 = meshNames.begin(); it2 != meshNames.end(); ++it2) {
-         if (convertVelocityBlocks2(vlsvReader, *it2, cellStruct, cellID, mainOptions.rotateVectors ) == false) {
+         if (convertVelocityBlocks2(vlsvReader, *it2, cellStruct, cellID, mainOptions.rotateVectors, mainOptions.plasmaFrame ) == false) {
             velGridExtracted = false;
          } else {
             //Display message for the user:
