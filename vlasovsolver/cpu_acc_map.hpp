@@ -59,23 +59,23 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
            cell_indices_to_id[0]=WID2;
            cell_indices_to_id[1]=WID;
            cell_indices_to_id[2]=1;
-           block_P1=velocity_neighbor::XP1_YCC_ZCC;
-           block_M1=velocity_neighbor::XM1_YCC_ZCC;
+           block_P1=spatial_cell->get_velocity_block_from_offsets(blockID,1,0,0);
+           block_M1=spatial_cell->get_velocity_block_from_offsets(blockID,-1,0,0);
            break;
         case 1:
            /* i and k coordinates have been swapped*/
            cell_indices_to_id[0]=1;
            cell_indices_to_id[1]=WID2;
            cell_indices_to_id[2]=WID;
-           block_P1=velocity_neighbor::XCC_YP1_ZCC;
-           block_M1=velocity_neighbor::XCC_YM1_ZCC;
+           block_P1=spatial_cell->get_velocity_block_from_offsets(blockID,0,1,0);
+           block_M1=spatial_cell->get_velocity_block_from_offsets(blockID,0,-1,0);
            break;
         case 2:
            cell_indices_to_id[0]=1;
            cell_indices_to_id[1]=WID;
            cell_indices_to_id[2]=WID2;
-           block_P1=velocity_neighbor::XCC_YCC_ZP1;
-           block_M1=velocity_neighbor::XCC_YCC_ZM1;
+           block_P1=spatial_cell->get_velocity_block_from_offsets(blockID,0,0, 1);
+           block_M1=spatial_cell->get_velocity_block_from_offsets(blockID,0,0,-1);
            break;
         default:
            //same as for dimension 2, mostly here to get rid of compiler warning
@@ -91,7 +91,8 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
     
     // Construct values
     // Copy averages from -1 neighbour if it exists (if not, array is initialized to zero)
-    nbrBlock = block->neighbors[block_M1];
+
+    nbrBlock = spatial_cell->at(block_M1);
     if ( !spatial_cell->is_null_block(nbrBlock)) {
       Realf * __restrict__ ngbr_fx = nbrBlock->fx;
       for (int k=-STENCIL_WIDTH; k<0; ++k) {
@@ -135,7 +136,7 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
     }
     
     // Copy averages from +1 neighbour if it exists (if not, array is initialized to zero)
-    nbrBlock = block->neighbors[block_P1];
+    nbrBlock = spatial_cell->at(block_P1);
     if ( !spatial_cell->is_null_block(nbrBlock)) {
        Realf * __restrict__ ngbr_fx = nbrBlock->fx;
        for (uint k=WID; k<WID+STENCIL_WIDTH; ++k) {             
@@ -208,6 +209,7 @@ bool map_1d(SpatialCell* spatial_cell,
 
   Real dv,v_min;
   Real is_temp;
+  uint max_v_length;
   uint block_indices_to_id[3]; /*< used when computing id of target block */
   uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
   switch (dimension){
@@ -215,7 +217,8 @@ bool map_1d(SpatialCell* spatial_cell,
     /* i and k coordinates have been swapped*/
     /*set cell size in dimension direction*/
     dv=SpatialCell::cell_dvx; 
-    v_min=SpatialCell::vx_min; 
+    v_min=SpatialCell::vx_min;
+    max_v_length = SpatialCell::vx_length;
     /*swap intersection i and k coordinates*/
     is_temp=intersection_di;
     intersection_di=intersection_dk;
@@ -233,7 +236,8 @@ bool map_1d(SpatialCell* spatial_cell,
     /* j and k coordinates have been swapped*/
     /*set cell size in dimension direction*/
     dv=SpatialCell::cell_dvy;
-    v_min=SpatialCell::vy_min; 
+    v_min=SpatialCell::vy_min;
+    max_v_length = SpatialCell::vy_length;
     /*swap intersection j and k coordinates*/
     is_temp=intersection_dj;
     intersection_dj=intersection_dk;
@@ -250,7 +254,8 @@ bool map_1d(SpatialCell* spatial_cell,
   case 2:
     /*set cell size in dimension direction*/
     dv=SpatialCell::cell_dvz;
-    v_min=SpatialCell::vz_min; 
+    v_min=SpatialCell::vz_min;
+    max_v_length = SpatialCell::vz_length;
     /*set values in array that is used to transfer blockindices to id using a dot product*/
     block_indices_to_id[0]=1;
     block_indices_to_id[1]=SpatialCell::vx_length;
@@ -386,20 +391,30 @@ bool map_1d(SpatialCell* spatial_cell,
 	  for(uint target_i = 0; target_i < 4;target_i ++ ){
 	    const uint tblock=target_block[target_i];
 	    const uint tcell=target_cell[target_i];
-	    const Real tval=target_density[target_i];
-	    if (tblock < SpatialCell::max_velocity_blocks && tval != 0.0) {	      
-	      if(previous_target_block != tblock) {
-		previous_target_block = tblock;
-		//not the same block as last time, lets create it if we
-		//need to and fetch its data array pointer and store it in target_block_data.
-		if (spatial_cell->count(tblock) == 0) {
-		  //count faster since the add_velocity_block call is more expensive
-		  spatial_cell->add_velocity_block(tblock);
-		}
-		Velocity_Block* block_ptr = spatial_cell->at_fast(tblock);
-		target_block_data=block_ptr->data;
-	      }
-	      target_block_data[tcell] += tval;
+            /*do the conversion from Real to Realf here, faster than doin in accumulation*/
+	    const Realf tval=target_density[target_i];
+            /*check that we are within sane limits. If gk is negative,
+             * or above blocks_per_dim * blockcells_per_dim then we
+             * are outside of the target grid.*/
+            /*TODO, count losses if these are not fulfilled*/
+	    if (gk[target_i] >=0 &&
+                gk[target_i] < max_v_length * WID &&
+                tblock < SpatialCell::max_velocity_blocks &&
+                tblock != error_velocity_block) {
+               if(previous_target_block != tblock) {
+                  previous_target_block = tblock;
+                  //not the same block as last time, lets create it if we
+                  //need to and fetch its data array pointer and store it in target_block_data.
+                  if (spatial_cell->count(tblock) == 0) {
+                     //count faster since the add_velocity_block call is more expensive
+                     spatial_cell->add_velocity_block(tblock);
+                     phiprof_assert(spatial_cell->count(tblock) != 0);
+                  }
+                  Velocity_Block* block_ptr = spatial_cell->at_fast(tblock);
+                  target_block_data=block_ptr->data;
+               }
+               phiprof_assert(tcell < WID3);
+               target_block_data[tcell] += tval;
 	    }
 	  }
 	  gk++; //next iteration in while loop

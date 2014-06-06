@@ -79,7 +79,7 @@ namespace SBC {
       return true;
    }
    
-   bool Outflow::assignSysBoundary(dccrg::Dccrg<SpatialCell>& mpiGrid) {
+   bool Outflow::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
       vector<CellID> cells = mpiGrid.get_cells();
       for(uint i = 0; i < cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
@@ -105,7 +105,7 @@ namespace SBC {
    }
    
    bool Outflow::applyInitialState(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       Project &project
    ) {
       vector<uint64_t> cells = mpiGrid.get_cells();
@@ -127,7 +127,7 @@ namespace SBC {
    }
    
    Real Outflow::fieldSolverBoundaryCondMagneticField(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       creal& dt,
       cuint& component
@@ -141,7 +141,7 @@ namespace SBC {
    }
    
    void Outflow::fieldSolverBoundaryCondElectricField(
-      dccrg::Dccrg<SpatialCell>& mpiGrid,
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       cuint RKCase,
       cuint component
@@ -163,7 +163,7 @@ namespace SBC {
    }
    
    Real Outflow::fieldBoundaryCopyFromExistingFaceNbrMagneticField(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       cuint& component
    ) {
@@ -180,7 +180,7 @@ namespace SBC {
  // get_neighbors                                                *
  // if all neighbors are of the same size then they are in z order, e.g. with a neighborhood size of 2 the first neighbor is at offset (-2, -2, -2) from the given cell, the second one is at (-1, -2, -2), etc, in size units of the given cell.
  
- const vector<CellID>* neighbors = mpiGrid.get_neighbors(cellID);
+ const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(cellID);
 
       // CORRECT
       // -1  0  0 62
@@ -331,7 +331,7 @@ namespace SBC {
    }
    
    void Outflow::fieldSolverBoundaryCondDerivatives(
-      dccrg::Dccrg<SpatialCell>& mpiGrid,
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       cuint& RKCase,
       cuint& component
@@ -340,7 +340,7 @@ namespace SBC {
    }
    
    void Outflow::fieldSolverBoundaryCondBVOLDerivatives(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       cuint& component
    ) {
@@ -348,7 +348,7 @@ namespace SBC {
    }
    
    void Outflow::vlasovBoundaryCondition(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
    ) {
 //      phiprof::start("vlasovBoundaryCondition (Outflow)");
@@ -357,7 +357,7 @@ namespace SBC {
    }
    
    void Outflow::vlasovBoundaryCopyFromExistingFaceNbr(
-      const dccrg::Dccrg<SpatialCell>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
    ) {
       const CellID closestCell = getClosestNonsysboundaryCell(mpiGrid, cellID);

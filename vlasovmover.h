@@ -15,22 +15,22 @@ using namespace spatial_cell;
 
 #include <stdint.h>
 #include <dccrg.hpp>
-
+#include <dccrg_cartesian_geometry.hpp>
 
 void calculateAcceleration(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    Real dt
 );
 
 void calculateSpatialTranslation(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    creal dt);
 
 /*!
   \brief Compute real-time 1st order accurate moments from the moments after propagation in velocity and spatial space
 */
  
-void calculateInterpolatedVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid,
+void calculateInterpolatedVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                            const int cp_rho, const int cp_rhovx, const int cp_rhovy, const int cp_rhovz);
 
 /*!
@@ -49,7 +49,7 @@ void calculateCellVelocityMoments(
   \param mpiGrid Grid of spatial cells for which moments are computed 
   
 */
-void calculateVelocityMoments(dccrg::Dccrg<SpatialCell>& mpiGrid);
+void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
 
 

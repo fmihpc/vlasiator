@@ -4,16 +4,6 @@ This file is part of Vlasiator.
 Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
 
-
-
-
-
-
-
-
-
-
-
 */
 
 #ifndef SYSBOUNDARY_H
@@ -24,6 +14,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <vector>
 #include "mpi.h"
 #include <dccrg.hpp>
+#include <dccrg_cartesian_geometry.hpp>
 #include "../parameters.h"
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
@@ -66,12 +57,12 @@ class SysBoundary {
          Project& project,
          creal& t
       );
-      bool classifyCells(dccrg::Dccrg<SpatialCell>& mpiGrid);
+      bool classifyCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
       bool applyInitialState(
-         dccrg::Dccrg<SpatialCell>& mpiGrid,
+         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          Project& project
       );
-      void applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell>& mpiGrid, creal& t);
+      void applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t);
       unsigned int size() const;
       SBC::SysBoundaryCondition* getSysBoundary(cuint sysBoundaryType) const;
       bool isDynamic() const;
@@ -103,7 +94,7 @@ bool precedenceSort(const SBC::SysBoundaryCondition* first,
 /*
    Input a vector of cellIDs (cellList) and compute a new vector with only those cells which are on a sysboundary and are to be computed
 */
-bool getBoundaryCellList(const dccrg::Dccrg<SpatialCell>& mpiGrid,
+bool getBoundaryCellList(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                          const vector<uint64_t>& cellList,
                          vector<uint64_t>& boundaryCellList);
 
