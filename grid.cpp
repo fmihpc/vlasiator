@@ -161,10 +161,16 @@ void initializeGrid(
       phiprof::stop("Apply system boundary conditions state");
       adjustVelocityBlocks(mpiGrid); // do not initialize mover, mover has not yet been initialized here
       shrink_to_fit_grid_data(mpiGrid); //get rid of excess data already here
+
+      phiprof::start("Init moments");
+      //compute moments, and set them  in RHO* and RHO_*_DT2. If restart, they are already read in
+      calculateInitialVelocityMoments(mpiGrid);
+      phiprof::stop("Init moments");
    }
    
    //Balance load before we transfer all data below
    balanceLoad(mpiGrid);
+
    
    phiprof::initializeTimer("Fetch Neighbour data","MPI");
    phiprof::start("Fetch Neighbour data");

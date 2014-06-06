@@ -1352,7 +1352,7 @@ namespace spatial_cell {
          //get pointer to block
          Velocity_Block* block_ptr = this->at(block);
          //fix block data pointers  
-         set_block_data_pointers(block_ptr, this->number_of_blocks-1);         
+         set_block_data_pointers(block_ptr, this->number_of_blocks-1);
          //clear block
          block_ptr->clear();
          // set block parameters
