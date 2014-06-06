@@ -166,15 +166,6 @@ bool writeVelocityDistributionData(
 
    // Get the data size needed for writing in data
    uint64_t dataSize_avgs = sizeof(T);
-   if( typeid( Realf ) == typeid( float ) ) {
-      dataSize_avgs = sizeof(float);
-   } else if( typeid( Realf ) == typeid( double ) ) {
-      dataSize_avgs = sizeof(double);
-   } else {
-      globalSuccess(success,"(MAIN) writeGrid: ERROR: Invalid Realf typeid",MPI_COMM_WORLD);
-      vlsvWriter.close();
-      return false;
-   }
 
    // Start multi write
    vlsvWriter.startMultiwrite(datatype_avgs,arraySize_avgs,vectorSize_avgs,dataSize_avgs);
