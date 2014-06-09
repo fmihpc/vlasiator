@@ -137,7 +137,6 @@ bool writeVelocityDistributionData(
          for (unsigned int block_i=0;block_i < SC->number_of_blocks;block_i++){
             unsigned int block = SC->velocity_block_list[block_i];
             velocityBlockIds.push_back( block );
-            Velocity_Block* block_data = SC->at(block);
          }
       }
    } catch (...) {
@@ -178,6 +177,10 @@ bool writeVelocityDistributionData(
       char * arrayToWrite = reinterpret_cast<char*>(SC->block_data.data());
       // Add a subarray to write
       vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements); // Note: We told beforehands that the vectorsize = WID3 = 64
+   }
+   if(cells.size() == 0) {
+      vlsvWriter.addMultiwriteUnit(NULL, 0); //Dummy write to avoid hang in end multiwrite
+
    }
    // Write the subarrays
    vlsvWriter.endMultiwrite("BLOCKVARIABLE", attribs);
@@ -810,7 +813,6 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          //Local cells empty but ghost cells not empty -- something very wrong
          cerr << "ERROR! LOCAL CELLS EMPTY BUT GHOST CELLS NOT AT: " << __FILE__ << " " << __LINE__ << endl;
       }
-      cerr << "Warning, inputting empty local cells at: " << __FILE__ << " " << __LINE__ << endl;;
    }
 
    //The mesh name is "SpatialGrid" (This is used for writing in data)
