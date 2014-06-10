@@ -45,7 +45,8 @@ Meteorological Society 138.667 (2012): 1640-1651.
 
 void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
 
-  /*compute transform, forward in time and backward in time*/
+   double t1=MPI_Wtime();
+   /*compute transform, forward in time and backward in time*/
   phiprof::start("compute-transform");
   //compute the transform performed in this acceleration
   Transform<Real,3,Affine> fwd_transform= compute_acceleration_transformation(spatial_cell,dt);
@@ -67,6 +68,9 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,const Real dt) {
   map_1d(spatial_cell, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); /*< map along x*/
   map_1d(spatial_cell, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); /*< map along y*/
   phiprof::stop("compute-mapping");
+
+  double t2=MPI_Wtime();
+  spatial_cell->parameters[CellParams::LBWEIGHTCOUNTER] += t2 - t1;
  }
 
 

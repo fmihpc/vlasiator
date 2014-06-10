@@ -166,8 +166,12 @@ void initializeGrid(
       //compute moments, and set them  in RHO* and RHO_*_DT2. If restart, they are already read in
       calculateInitialVelocityMoments(mpiGrid);
       phiprof::stop("Init moments");
+      /*set initial LB metric based on number of blocks, all others
+       * will be based on time spent in acceleration*/
+      for (uint i=0; i<cells.size(); ++i) {
+         mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = mpiGrid[cells[i]]->number_of_blocks;
+      }
    }
-   
    //Balance load before we transfer all data below
    balanceLoad(mpiGrid);
 
@@ -243,11 +247,9 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
    vector<uint64_t> cells = mpiGrid.get_cells();
    for (uint i=0; i<cells.size(); ++i){
       //weight set 
-      mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]=
-         Parameters::loadBalanceGamma +
-         (double)(mpiGrid[cells[i]]->number_of_blocks) * Parameters::loadBalanceAlpha + 
-         (double)(mpiGrid[cells[i]]->number_of_blocks) * (double)(mpiGrid[cells[i]]->number_of_blocks) * Parameters::loadBalanceBeta;
       mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
+      //reset counter
+      mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0.0;
    }
    phiprof::start("dccrg.initialize_balance_load");
    mpiGrid.initialize_balance_load(true);
