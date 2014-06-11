@@ -246,8 +246,13 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
    //set weights based on each cells LB weight counter
    vector<uint64_t> cells = mpiGrid.get_cells();
    for (uint i=0; i<cells.size(); ++i){
-      //weight set 
-      mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
+      //Set weight. If acceleration is enabled then we use the weight
+      //counter which is updated in acceleration, otherwise we just
+      //use the number of blocks.
+      if (P::propagateVlasovAcceleration) 
+         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
+      else
+         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->number_of_blocks);
       //reset counter
       mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0.0;
    }
