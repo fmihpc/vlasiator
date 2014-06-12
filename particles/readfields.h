@@ -5,6 +5,7 @@
 #include "vlsvreaderinterface.h"
 #include "field.h"
 #include <vector>
+#include <string>
 
 /* Read the cellIDs into an array */
 std::vector<uint64_t> readCellIds(oldVlsv::Reader& r);
@@ -48,6 +49,84 @@ double readDoubleParameter(oldVlsv::Reader& r, const char* name);
 /* Read a single-valued integer parameter */
 uint32_t readUintParameter(newVlsv::Reader& r, const char* name);
 uint32_t readUintParameter(oldVlsv::Reader& r, const char* name);
+
+/* Read the next logical input file. Depending on sign of dt,
+ * this may be a numerically larger or smaller file.
+ * Return value: true if a new file was read, otherwise false.
+ */
+template <class Reader>
+bool read_next_timestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
+	Field& B0, Field& B1, int& input_file_counter) {
+
+	char filename_buffer[256];
+	bool retval = false;
+
+	while(t < E0.time || t>= E1.time) {
+		input_file_counter += step;
+
+		E0=E1;
+		B0=B1;
+		snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter);
+
+		/* Open next file */
+		Reader r;
+		r.open(filename_buffer);
+		double t = readDoubleParameter(r,"t");
+		E1.time = t;
+		B1.time = t;
+
+		uint64_t cells[3];
+		cells[0] = readUintParameter(r,"xcells_ini");
+		cells[1] = readUintParameter(r,"ycells_ini");
+		cells[2] = readUintParameter(r,"zcells_ini");
+
+		/* Read CellIDs and Field data */
+		std::vector<uint64_t> cellIds = readCellIds(r);
+		std::string name("B_vol");
+		std::vector<double> Bbuffer = readFieldData(r,name,3u);
+		name = "E_vol";
+		std::vector<double> Ebuffer = readFieldData(r,name,3u);
+
+		/* Assign them, without sanity checking */
+		/* TODO: Is this actually a good idea? */
+		for(uint i=0; i< cellIds.size(); i++) {
+			uint64_t c = cellIds[i];
+			int64_t x = c % cells[0];
+			int64_t y = (c /cells[0]) % cells[1];
+			int64_t z = c /(cells[0]*cells[1]);
+
+			double* Etgt = E1.getCellRef(x,y,z);
+			double* Btgt = B1.getCellRef(x,y,z);
+			Etgt[0] = Ebuffer[3*i];
+			Etgt[1] = Ebuffer[3*i+1];
+			Etgt[2] = Ebuffer[3*i+2];
+			Btgt[0] = Bbuffer[3*i];
+			Btgt[1] = Bbuffer[3*i+1];
+			Btgt[2] = Bbuffer[3*i+2];
+		}
+
+		r.close();
+		retval = true;
+	}
+
+	return retval;
+}
+
+/* Non-template version, autodetecting the reader type */
+static bool read_next_timestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
+	Field& B0, Field& B1, int& input_file_counter) {
+
+	char filename_buffer[256];
+	snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter);
+
+	if(checkVersion(filename_buffer)) {
+		return read_next_timestep<newVlsv::Reader>(filename_pattern, t,
+			step,E0,E1,B0,B1,input_file_counter);
+	} else {
+		return read_next_timestep<oldVlsv::Reader>(filename_pattern, t,
+			step,E0,E1,B0,B1,input_file_counter);
+	}
+}
 
 /* Read E- and B-Fields as well as velocity field from a vlsv file */
 template <class Reader>
@@ -155,6 +234,15 @@ void readfields(const char* filename, Field& E, Field& B, Field& V) {
 	}
 
 	r.close();
+}
+
+/* Non-template version, autodetecting the reader type */
+static void readfields(const char* filename, Field& E, Field& B, Field& V) {
+	if(checkVersion(filename)) {
+		readfields<newVlsv::Reader>(filename,E,B,V);
+	} else {
+		readfields<oldVlsv::Reader>(filename,E,B,V);
+	}
 }
 
 /* For debugging purposes - dump a field into a png file */
