@@ -62,23 +62,12 @@ int main(int argc, char** argv) {
 
 	if(ParticleParameters::mode == "single") {
 
-		std::cerr << "Sorry, single-particle mode is currently broken, because urs was to lazy to implement it yet!" << std::endl;
-		return 1;
-
-		double pos[3], vel[3];
-		pos[0] = strtod(argv[3],NULL);
-		pos[1] = strtod(argv[4],NULL);
-		pos[2] = strtod(argv[5],NULL);
-		vel[0] = strtod(argv[6],NULL);
-		vel[1] = strtod(argv[7],NULL);
-		vel[2] = strtod(argv[8],NULL);
-
-		Vec3d Vpos, Vvel;
-		Vpos.load(pos);
-		Vvel.load(vel);
+		Vec3d vpos(ParticleParameters::init_x, ParticleParameters::init_y, ParticleParameters::init_z);
+		/* Look up builk velocity in the V-field */
+		Vec3d bulk_vel = V(vpos);
 
 		mode = single;
-		particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, Vpos, Vvel));
+		particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, vpos, bulk_vel));
 	} else if(ParticleParameters::mode == "distribution") {
 
 		mode = distribution;
