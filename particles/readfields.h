@@ -4,12 +4,45 @@
 #include "vlsv_reader.h"
 #include "vlsvreaderinterface.h"
 #include "field.h"
+#include <algorithm>
 #include <vector>
 #include <string>
+#include <set>
+
+extern std::string B_field_name;
+extern std::string E_field_name;
 
 /* Read the cellIDs into an array */
 std::vector<uint64_t> readCellIds(oldVlsv::Reader& r);
 std::vector<uint64_t> readCellIds(newVlsv::Reader& r);
+
+template <class Reader>
+void detect_field_names(Reader& r) {
+
+#ifdef DEBUG
+	std::cerr << "Checking for volume-averaged fields... ";
+#endif
+	std::list<std::string> variableNames;
+	std::string gridname("SpatialGrid");
+
+	r.getVariableNames(gridname,variableNames);
+	if(find(variableNames.begin(), variableNames.end(), std::string("B_vol"))!=variableNames.end()) {
+#ifdef DEBUG
+		std::cerr << "yep!" << std::endl;
+#endif
+		B_field_name = "B_vol";
+		E_field_name = "E_vol";
+	} else if(find(variableNames.begin(), variableNames.end(), std::string("B"))!=variableNames.end()) {
+#ifdef DEBUG
+		std::cerr << "Nope!" << std::endl;
+#endif
+		B_field_name = "B";
+		E_field_name = "E";
+	} else {
+		std::cerr << "No B- or E-fields found! Strange file format?" << std::endl;
+		exit(1);
+	}
+}
 
 /* Read the "raw" field data in file order */
 template <class Reader>
@@ -82,9 +115,9 @@ bool read_next_timestep(const std::string& filename_pattern, double t, int step,
 
 		/* Read CellIDs and Field data */
 		std::vector<uint64_t> cellIds = readCellIds(r);
-		std::string name("B_vol");
+		std::string name(B_field_name);
 		std::vector<double> Bbuffer = readFieldData(r,name,3u);
-		name = "E_vol";
+		name = E_field_name;
 		std::vector<double> Ebuffer = readFieldData(r,name,3u);
 
 		/* Assign them, without sanity checking */
@@ -141,13 +174,16 @@ void readfields(const char* filename, Field& E, Field& B, Field& V) {
 	std::cerr <<"ok." << std::endl;
 #endif
 
+	/* Check whethere we got volume-centered fields */
+	detect_field_names<Reader>(r);
+
 	/* Read the MESH, yielding the CellIDs */
 	std::vector<uint64_t> cellIds = readCellIds(r);
 
 	/* Also read the raw field data */
-	std::string name("B_vol");
+	std::string name= B_field_name;
 	std::vector<double> Bbuffer = readFieldData(r,name,3u);
-	name = "E_vol";
+	name = E_field_name;
 	std::vector<double> Ebuffer = readFieldData(r,name,3u);
 
 	name = "rho_v";
