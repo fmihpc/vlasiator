@@ -10,6 +10,8 @@
 
 using namespace std;
 using namespace spatial_cell;
+using namespace vlsv;
+
 
 // Note: This is done to save memory (hopefully)
 class Velocity_Cell {
@@ -75,6 +77,11 @@ class Cluster_Fast {
          neighbor_clusters = NULL;
          members = NULL;
          clusterId = NULL;
+      }
+
+      // Compare values
+      bool operator<( const Cluster_Fast & other ) const {
+         return *clusterId < *other.clusterId;
       }
 
       // Pseudo-Constructor:
@@ -196,10 +203,6 @@ class Cluster_Fast {
          old_cluster_id_neighbor = NULL;
          delete old_members_neighbor;
          old_members_neighbor = NULL;
-      }
-
-      inline void merge_with_condition() {
-
       }
 
       inline void append( const int32_t numberOfMembersToAppend ) {
@@ -448,7 +451,7 @@ void set_local_and_remote_velocity_cell_neighbors(
                }
             }
             // Now get the neighbor block index: Note the 3 and 9 are so that we can get block indices with % and / operators
-            const uint16_t neighbor_index = neighbor_block_direction[0]
+            const uint16_t neighbor_block_index = neighbor_block_direction[0]
                                     + neighbor_block_direction[1] * 3
                                     + neighbor_block_direction[2] * 9;
             const uint16_t neighbor_vCellId = neighbor_indices[0] 
@@ -462,8 +465,8 @@ void set_local_and_remote_velocity_cell_neighbors(
                  it != remote_vcell_neighbors[vCellId].end();
                  ++it ) {
                // Check for velocity block
-               const uint16_t iterated_neighbor_index = get<0>(*it);
-               if( iterated_neighbor_index == neighbor_index ) {
+               const uint16_t iterated_neighbor_block_index = get<0>(*it);
+               if( iterated_neighbor_block_index == neighbor_block_index ) {
                   // Found the neighbor index:
                   index = iterator;
                }
@@ -475,7 +478,7 @@ void set_local_and_remote_velocity_cell_neighbors(
                vector<uint16_t> neighbor_vcells;
                neighbor_vcells.reserve(1);
                neighbor_vcells.push_back( neighbor_vCellId );
-               pair<uint16_t, vector<uint16_t> > blockAndVCell = make_pair( neighbor_index, neighbor_vcells );
+               pair<uint16_t, vector<uint16_t> > blockAndVCell = make_pair( neighbor_block_index, neighbor_vcells );
                // Add pair to the remote velocity cells
                remote_vcell_neighbors[vCellId].reserve( remote_vcell_neighbors[vCellId].size() + 1 );
                remote_vcell_neighbors[vCellId].push_back( blockAndVCell );
@@ -841,9 +844,9 @@ static inline void cluster(
    }
 
    // Print out the number of clusterIds:
-   cerr << "Clusters: " << clusterId << endl;
-   cerr << "Merges: " << merges << endl;
-//   cerr << "Sizeof: " << sizeof(Realf) << endl;
+//   cerr << "Clusters: " << clusterId << endl;
+//   cerr << "Merges: " << merges << endl;
+////   cerr << "Sizeof: " << sizeof(Realf) << endl;
 
 //   
 
@@ -915,9 +918,6 @@ static inline void cluster_advanced(
 
       phiprof_assert( id >= 0 && id < velocityCells.size() );
 
-      // Keep track of the highest avgs of the neighbor:
-      Realf highest_avgs_neighbor = 0;
-
       for( vector<Velocity_Cell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
          // Get the id of the neighbor:
          const uint32_t neighbor_id = it->hash( startingPoint );
@@ -948,9 +948,6 @@ static inline void cluster_advanced(
                clusters[index_neighbor].append(1);
                //--------------------------------------------------------------
 
-               // Update the highest avgs value counter:
-               highest_avgs_neighbor = it->get_avgs();
-
             } else if( clusters[index].find( index_neighbor ) ) {
 
                // Clusters are separate clusters
@@ -970,17 +967,6 @@ static inline void cluster_advanced(
                   // The other cluster is small enough, so merge the clusters:
                   cluster_neighbor.merge( cluster, clusters );
                   ++merges;
-               } else if( highest_avgs_neighbor < it->get_avgs() ) {
-                  // The velocity cell should belong to the other cluster, because the other cluster has a highest avgs value:
-                  // Remove it from the previous cluster
-                  clusters[index].append(-1);
-                  // Set to be the same clusters:
-                  clusterIds[id] = clusterIds[neighbor_id];
-                  // Increase the amount of members in the cluster by one
-                  clusters[index_neighbor].append(1);
-
-                  // Update the highest avgs value counter:
-                  highest_avgs_neighbor = it->get_avgs();
                }
             }
          }
@@ -1003,24 +989,67 @@ static inline void cluster_advanced(
       neighbors.clear();
    }
 
+   
 
+   // Fix cluster ids so that they start from 0 and move up: now the cluster list (cluster ids) can look like this: [1 5 7 3 6 8 8 3]
+   // Afterwards, it should look like this:                                                                         [1 3 5 2 4 6 6 2]
+   {
+      unordered_map<uint32_t, uint32_t> ids; // (id, rank)
+      {
+         // get sorted cluster ids:
+         vector<uint32_t> tmp_clusterIds; tmp_clusterIds.reserve(clusters.size());
+         {
+            // Used to make sure we don't re-insert any cluster ids twice:
+            unordered_set<uint32_t> tmp_clusterIds_set;
+            
+            for( uint i = 0; i < clusters.size(); ++i ) {
+               const uint32_t id = *clusters[i].clusterId;
+               if( id == 0) {continue;}
+               if( tmp_clusterIds_set.find( id ) == tmp_clusterIds_set.end() ) { tmp_clusterIds_set.insert(id); tmp_clusterIds.push_back(id); }
+            }
+         }
+         // Sort:
+         sort( tmp_clusterIds.begin(), tmp_clusterIds.end() );
+         // Map the ids:
+         for( uint i = 0; i < tmp_clusterIds.size(); ++i ) {
+            // Before inserting, check if id has already been inserted:
+            const uint32_t id = tmp_clusterIds[i];
+            // Map the id:
+            ids.insert( make_pair( id, i ) );
+         }
+      }
+
+      vector<uint32_t> clusterids_copy; clusterids_copy.resize(clusters.size());
+
+      for( uint i = 0; i < clusters.size(); ++i ) {
+         clusterids_copy[i] = *clusters[i].clusterId;
+      }
+
+      // Fix the clusterids according to the mapped values
+      for( uint i = 0; i < clusters.size(); ++i ) {
+         const uint32_t id = clusterids_copy[i];
+         if( id == 0) {continue;}
+         *clusters[i].clusterId = ids.at(id);
+      }
+
+      // Input number of populations:
+      cell->number_of_populations = ids.size();
+   }
+
+   
 
    // Set values of clusters and calculate number of clusters
-   unordered_set<uint32_t> ids;
    phiprof_assert( cell->block_fx.size() >= velocityCells.size() );
    for( uint i = 0; i < velocityCells.size(); ++i ) {
       const Realf value = *clusters[clusterIds[i]].clusterId;
       cell->block_fx[i] = value;
-      // Insert into ids:
-      ids.insert(value);
    }
-   cell->number_of_populations = ids.size();
 
 
    // Print out the number of clusterIds:
-   cerr << "Clusters: " << clusterId << endl;
-   cerr << "Merges: " << merges << endl;
-   cerr << "Sizeof: " << sizeof(Realf) << endl;
+//   cerr << "Clusters: " << clusterId << endl;
+//   cerr << "Merges: " << merges << endl;
+//   cerr << "Sizeof: " << sizeof(Realf) << endl;
 
 
    //delete[] clusterIds;
@@ -1205,9 +1234,9 @@ static inline void cluster_advanced_two(
 
 
    // Print out the number of clusterIds:
-   cerr << "Clusters: " << clusterId << endl;
-   cerr << "Merges: " << merges << endl;
-   cerr << "Sizeof: " << sizeof(Realf) << endl;
+//   cerr << "Clusters: " << clusterId << endl;
+//   cerr << "Merges: " << merges << endl;
+//   cerr << "Sizeof: " << sizeof(Realf) << endl;
 
 
    delete[] clusterIds;
@@ -1400,4 +1429,86 @@ Real evaluate_speed(
 
    return 0;
 }
+
+// Function for getting the max number of populations:
+static uint max_number_of_populations( dccrg::Dccrg<SpatialCell>& mpiGrid ) {
+   uint max_populations = 0;
+   // Fetch cells:
+   vector<uint64_t> local_cells = mpiGrid.get_cells();
+   // Loop through cells:
+   for( vector<uint64_t>::const_iterator it = local_cells.begin(); it != local_cells.end(); ++it ) {
+      // Get cell:
+      const uint64_t cellid = *it;
+      // Get the cell's spatial cell class:
+      SpatialCell * cell = mpiGrid[cellid];
+      // Check number of populations:
+      if( max_populations < cell->number_of_populations ) { max_populations = cell->number_of_populations; }
+   }
+   return max_populations;
+}
+
+// Function for writing out rho for different populations:
+static inline bool write_rho( const uint max_populations, const vector<uint64_t> & local_cells, dccrg::Dccrg<SpatialCell>& mpiGrid, Writer & vlsvWriter ) {
+   bool success = true;
+   // Reserve space for writing out rho:
+   Real * population_rho = new Real[max_populations * local_cells.size()];
+   // Initialize to zero;
+   for( uint i = 0; i < max_populations * local_cells.size(); ++i ) {
+      population_rho[i] = 0;
+   }
+   // Loop through cells:
+   for( uint i = 0; i < local_cells.size(); ++i ) {
+      // Get cell:
+      const uint64_t cellid = local_cells[i];
+      // Get the cell's spatial cell class:
+      const SpatialCell * cell = mpiGrid[cellid];
+      const Velocity_Block* block_ptr = cell->at(cell->velocity_block_list[0]);
+      const Real DV3 = block_ptr->parameters[BlockParams::DVX] * block_ptr->parameters[BlockParams::DVY] * block_ptr->parameters[BlockParams::DVZ];
+      // Loop through velocity cells and write out the population:
+      for( uint v = 0; v < cell->number_of_blocks * WID3; ++v ) {
+         population_rho[max_populations*i + (uint)(cell->block_fx[v])] += cell->block_data[v] * DV3;
+      }
+   }
+   // Print rho for debugging
+   for( uint i = 0; i < max_populations * local_cells.size(); ++i ) {
+      population_rho[i] += 4.17253e-11;
+   }
+   // Write out the population:
+   //Declare attributes
+   map<string, string> xmlAttributes;
+   //We received mesh name as a parameter: MOST LIKELY THIS IS SpatialGrid!
+   xmlAttributes["mesh"] = "SpatialGrid";
+   xmlAttributes["name"] = "PopulationRho";
+   const unsigned int arraySize = local_cells.size();
+   const unsigned int vectorSize = max_populations;
+   success = vlsvWriter.writeArray("VARIABLE", xmlAttributes, arraySize, vectorSize, population_rho);
+   return success;
+}
+
+// Function for writing out the population variables (for now, writing just rho)
+bool write_population_variables( dccrg::Dccrg<SpatialCell>& mpiGrid, Writer & vlsvWriter ) {
+   // Get max number of populations (to be used in determining how many arrays to write)
+   const uint max_populations = max_number_of_populations( mpiGrid );
+   // Fetch cells:
+   const vector<uint64_t> local_cells = mpiGrid.get_cells();
+   // Write rho:
+   bool success = write_rho( max_populations, local_cells, mpiGrid, vlsvWriter );
+   return success;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
