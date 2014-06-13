@@ -166,16 +166,7 @@ bool writeVelocityDistributionData(
    const uint64_t vectorSize_avgs = WID3; // There are 64 elements in every velocity block
 
    // Get the data size needed for writing in data
-   uint64_t dataSize_avgs;
-   if( typeid( Realf ) == typeid( float ) ) {
-      dataSize_avgs = sizeof(float);
-   } else if( typeid( Realf ) == typeid( double ) ) {
-      dataSize_avgs = sizeof(double);
-   } else {
-      globalSuccess(success,"(MAIN) writeGrid: ERROR: Invalid Realf typeid",MPI_COMM_WORLD);
-      vlsvWriter.close();
-      return false;
-   }
+   uint64_t dataSize_avgs = sizeof( Realf );
 
    // Start multi write
    vlsvWriter.startMultiwrite(datatype_avgs,arraySize_avgs,vectorSize_avgs,dataSize_avgs);
@@ -188,6 +179,10 @@ bool writeVelocityDistributionData(
       char * arrayToWrite = reinterpret_cast<char*>(SC->block_data.data());
       // Add a subarray to write
       vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements); // Note: We told beforehands that the vectorsize = WID3 = 64
+   }
+   if( cells.size() == 0 ) {
+      // Write dummy array to avoid MPI blocking
+      vlsvWriter.addMultiwriteUnit(NULL, 0);
    }
    // Write the subarrays
    vlsvWriter.endMultiwrite("BLOCKVARIABLE", attribs);
@@ -205,6 +200,10 @@ bool writeVelocityDistributionData(
          char * arrayToWrite = reinterpret_cast<char*>(SC->block_fx.data());
          // Add a subarray to write
          vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements); // Note: We told beforehands that the vectorsize = WID3 = 64
+      }
+      if( cells.size() == 0 ) {
+         // Write dummy array to avoid MPI blocking
+         vlsvWriter.addMultiwriteUnit(NULL, 0);
       }
       // Write the subarrays
       vlsvWriter.endMultiwrite("BLOCKVARIABLEPOPULATION", attribs);
@@ -883,6 +882,14 @@ bool writeGrid(dccrg::Dccrg<SpatialCell>& mpiGrid,
       const uint64_t cellId = local_cells[i];
       SpatialCell * cell = mpiGrid[cellId];
       const Realf test = evaluate_speed( cell, local_vcell_neighbors, remote_vcell_neighbors );
+   }
+   cerr << "Done with population reducer" << endl;
+   for (vector<string>::const_iterator it = P::outputVariableList.begin();
+        it != P::outputVariableList.end();
+        it++) {
+      if( *it == "PopulationVariables" ) {
+         write_population_variables( mpiGrid, vlsvWriter );
+      }
    }
    phiprof::stop("population-reducer");
 
