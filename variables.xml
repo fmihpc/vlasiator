@@ -674,7 +674,7 @@
     </Object>
     <Object name="Expression">
         <Field name="name" type="string">Pressure</Field>
-        <Field name="definition" type="string">PTensorDiagonal[0]+PTensorDiagonal[1]+PTensorDiagonal[2]</Field>
+        <Field name="definition" type="string">(PTensorDiagonal[0]+PTensorDiagonal[1]+PTensorDiagonal[2])*1/3</Field>
         <Field name="hidden" type="bool">false</Field>
         <Field name="type" type="string">ScalarMeshVar</Field>
         <Field name="fromDB" type="bool">false</Field>

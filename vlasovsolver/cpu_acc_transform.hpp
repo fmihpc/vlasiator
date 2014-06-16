@@ -34,7 +34,7 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
    
    const Eigen::Matrix<Real,3,1> B(Bx,By,Bz);
    const Eigen::Matrix<Real,3,1> unit_B(B.normalized());
-   const Real gyro_period = 2 * M_PI * Parameters::m  / (fabs(Parameters::q) * B.norm());
+   const Real gyro_period = 2 * M_PI * physicalconstants::MASS_PROTON  / (fabs(Parameters::q) * B.norm());
    
    //Set maximum timestep limit for this cell, based on a  maximum allowed rotation angle
    spatial_cell->parameters[CellParams::MAXVDT]=gyro_period*(P::maxSlAccelerationRotation/360.0);
@@ -65,7 +65,7 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
    Transform<Real,3,Affine> total_transform(Matrix<Real, 4, 4>::Identity()); //CONTINUE
 
    unsigned int bulk_velocity_substeps; /*!<in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep*/
-   bulk_velocity_substeps=dt/(gyro_period*(0.1/360.0)); 
+   bulk_velocity_substeps=fabs(dt)/(gyro_period*(0.1/360.0)); 
    if(bulk_velocity_substeps<1)
       bulk_velocity_substeps=1;
    

@@ -1,0 +1,6 @@
+*.o
+version.cpp
+\#*\#
+*~
+vlasiator
+vlasiator+pat

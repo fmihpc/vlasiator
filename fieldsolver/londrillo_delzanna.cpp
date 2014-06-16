@@ -102,14 +102,14 @@ const Real TWELWTH = 1.0/12.0;
 const Real TWO     = 2.0;
 const Real ZERO    = 0.0;
 
-void calculateDerivativesSimple(dccrg::Dccrg<SpatialCell>& mpiGrid,
+void calculateDerivativesSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                     SysBoundary& sysBoundaries,
                                     const vector<CellID>& localCells,
                                     cint& RKCase);
-void calculateBVOLDerivativesSimple(dccrg::Dccrg<SpatialCell>& mpiGrid,
+void calculateBVOLDerivativesSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                     SysBoundary& sysBoundaries,
                                     const vector<CellID>& localCells);
-void calculateUpwindedElectricFieldSimple(dccrg::Dccrg<SpatialCell>& mpiGrid,
+void calculateUpwindedElectricFieldSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                           SysBoundary& sysBoundaries,
                                           const vector<CellID>& localCells,
                                           cint& RKCase);
@@ -151,7 +151,7 @@ Real limiter(creal& left,creal& cent,creal& rght) {
 
 
 CellID getNeighbourID(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const CellID& cellID,
    const uchar& i,
    const uchar& j,
@@ -187,7 +187,7 @@ CellID getNeighbourID(
      abort();
    }
 
-   const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of(cellID, int(i) - 2, int(j) - 2, int(k) - 2);
+   const std::vector<CellID> neighbors = mpiGrid.get_neighbors_of_at_offset(cellID, int(i) - 2, int(j) - 2, int(k) - 2);
    if (neighbors.size() == 0) {
       cerr << __FILE__ << ":" << __LINE__
          << " No neighbor for cell " << cellID
@@ -200,7 +200,7 @@ CellID getNeighbourID(
 }
 
 static void calculateSysBoundaryFlags(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const vector<CellID>& localCells
 ) {
    sysBoundaryFlags.clear();
@@ -250,7 +250,7 @@ Real divideIfNonZero(creal rhoV, creal rho) {
  */
 static void calculateDerivatives(
    const CellID& cellID,
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    cint& RKCase
 ) {
@@ -613,7 +613,7 @@ template<typename REAL> REAL calculateFastMSspeedXY(const REAL* cp, const REAL* 
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 void calculateEdgeElectricFieldX(
-      dccrg::Dccrg<SpatialCell>& mpiGrid,
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       cint& RKCase
 ) {
@@ -920,7 +920,7 @@ void calculateEdgeElectricFieldX(
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 void calculateEdgeElectricFieldY(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const CellID& cellID,
    cint& RKCase
 ) {
@@ -1225,7 +1225,7 @@ void calculateEdgeElectricFieldY(
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 void calculateEdgeElectricFieldZ(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const CellID& cellID,
    cint& RKCase
 ) {
@@ -1538,7 +1538,7 @@ void calculateEdgeElectricFieldZ(
  */
 static void propagateMagneticField(
    const CellID& cellID,
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    creal& dt,
    cint& RKCase
 ) {
@@ -1711,7 +1711,7 @@ static void propagateMagneticField(
 }
 
 void propagateSysBoundaryMagneticField(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const CellID& cellID,
    SysBoundary& sysBoundaries,
    creal& dt,
@@ -1748,7 +1748,7 @@ void propagateSysBoundaryMagneticField(
   cell_dimensions, sysboundaryflag need to be up to date for the
   extended neighborhood*/  
 bool initializeFieldPropagatorAfterRebalance(
-        dccrg::Dccrg<SpatialCell>& mpiGrid
+        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
 ) {
    // Assume static background field, they are not communicated here
    // but are assumed to be ok after each load balance as that
@@ -1762,7 +1762,7 @@ bool initializeFieldPropagatorAfterRebalance(
 /*! Calculates bit masks used in the field solver and computes the initial edge electric fields from the initial magnetic fields. Then computes the initial volume averages.
  */
 bool initializeFieldPropagator(
-        dccrg::Dccrg<SpatialCell>& mpiGrid,
+        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
         SysBoundary& sysBoundaries
 ) {
    vector<uint64_t> localCells = mpiGrid.get_cells();
@@ -1854,7 +1854,7 @@ bool initializeFieldPropagator(
 }
 
 bool finalizeFieldPropagator(
-   dccrg::Dccrg<SpatialCell>& mpiGrid
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
 ) {
    return true;
 }
@@ -1873,7 +1873,7 @@ bool finalizeFieldPropagator(
  * \sa calculateDerivatives
  */
 void calculateDerivativesSimple(
-       dccrg::Dccrg<SpatialCell>& mpiGrid,
+       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
        SysBoundary& sysBoundaries,
        const vector<CellID>& localCells,
        cint& RKCase
@@ -1910,7 +1910,7 @@ void calculateDerivativesSimple(
    
    timer=phiprof::initializeTimer("Start comm","MPI");
    phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_data_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   mpiGrid.start_remote_neighbor_copy_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute process inner cells");
@@ -1928,7 +1928,7 @@ void calculateDerivativesSimple(
    
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   mpiGrid.wait_remote_neighbor_copy_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    // Calculate derivatives on process boundary cells
@@ -1946,7 +1946,7 @@ void calculateDerivativesSimple(
    
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_sends();
+   mpiGrid.wait_remote_neighbor_copy_update_sends();
    phiprof::stop(timer);
    
    phiprof::stop("Calculate face derivatives");
@@ -1963,7 +1963,7 @@ void calculateDerivativesSimple(
  * \sa calculateEdgeElectricFieldX calculateEdgeElectricFieldY calculateEdgeElectricFieldZ
  */
 void calculateUpwindedElectricFieldSimple(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    const vector<CellID>& localCells,
    cint& RKCase
@@ -1975,7 +1975,7 @@ void calculateUpwindedElectricFieldSimple(
    
    timer=phiprof::initializeTimer("Start communication of derivatives","MPI");
    phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_data_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   mpiGrid.start_remote_neighbor_copy_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute inner cells");
@@ -2021,7 +2021,7 @@ void calculateUpwindedElectricFieldSimple(
    phiprof::stop(timer);
    timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   mpiGrid.wait_remote_neighbor_copy_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    timer=phiprof::initializeTimer("Compute boundary cells");
    phiprof::start(timer);
@@ -2066,7 +2066,7 @@ void calculateUpwindedElectricFieldSimple(
    phiprof::stop(timer);
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_sends();
+   mpiGrid.wait_remote_neighbor_copy_update_sends();
    phiprof::stop(timer);
    
    // Exchange electric field with neighbouring processes
@@ -2077,7 +2077,7 @@ void calculateUpwindedElectricFieldSimple(
    }
    timer=phiprof::initializeTimer("Communicate electric fields","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.update_remote_neighbor_data(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
 
    phiprof::stop("Calculate upwinded electric field");
@@ -2095,7 +2095,7 @@ void calculateUpwindedElectricFieldSimple(
  * \sa propagateMagneticField
  */
 static void propagateMagneticFieldSimple(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    creal& dt,
    const vector<CellID>& localCells,
@@ -2127,7 +2127,7 @@ static void propagateMagneticFieldSimple(
    }
    timer=phiprof::initializeTimer("Start comm of B","MPI");
    phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_data_updates(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+   mpiGrid.start_remote_neighbor_copy_updates(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute system boundary/process inner cells");
@@ -2146,7 +2146,7 @@ static void propagateMagneticFieldSimple(
    
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_receives(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+   mpiGrid.wait_remote_neighbor_copy_update_receives(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    // Propagate B on system boundary/process boundary cells
@@ -2167,7 +2167,7 @@ static void propagateMagneticFieldSimple(
    
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_sends();
+   mpiGrid.wait_remote_neighbor_copy_update_sends();
    phiprof::stop(timer);
    
    phiprof::stop("Propagate magnetic field");
@@ -2184,7 +2184,7 @@ static void propagateMagneticFieldSimple(
  * 
  */
 bool propagateFields(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    creal& dt
 ) {
@@ -2232,7 +2232,7 @@ void reconstructionCoefficients(
    const CellID& nbr_i2j1k1,
    const CellID& nbr_i1j2k1,
    const CellID& nbr_i1j1k2,
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    Real* perturbedResult
 ) {
    // Do not calculate values for non-existing cells:
@@ -2343,7 +2343,7 @@ void reconstructionCoefficients(
  * \sa reconstructionCoefficients
  */
 void calculateVolumeAveragedFields(
-   dccrg::Dccrg<SpatialCell>& mpiGrid
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
 ) {
    phiprof::start("Calculate volume averaged fields");
    
@@ -2459,7 +2459,7 @@ void calculateVolumeAveragedFields(
  */
 static void calculateBVOLDerivatives(
    const CellID& cellID,
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries
 ) {
    namespace cp = CellParams;
@@ -2553,7 +2553,7 @@ static void calculateBVOLDerivatives(
  * \sa calculateDerivatives
  */
 void calculateBVOLDerivativesSimple(
-   dccrg::Dccrg<SpatialCell>& mpiGrid,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    const vector<CellID>& localCells
 ) {
@@ -2566,7 +2566,7 @@ void calculateBVOLDerivativesSimple(
    
    timer=phiprof::initializeTimer("Start comm","MPI");
    phiprof::start(timer);
-   mpiGrid.start_remote_neighbor_data_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   mpiGrid.start_remote_neighbor_copy_updates(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("Compute process inner cells");
@@ -2582,7 +2582,7 @@ void calculateBVOLDerivativesSimple(
    
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
+   mpiGrid.wait_remote_neighbor_copy_update_receives(FIELD_SOLVER_NEIGHBORHOOD_ID);
    phiprof::stop(timer);
    
    // Calculate derivatives on process boundary cells
@@ -2598,7 +2598,7 @@ void calculateBVOLDerivativesSimple(
    
    timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
    phiprof::start(timer);
-   mpiGrid.wait_neighbor_data_update_sends();
+   mpiGrid.wait_remote_neighbor_copy_update_sends();
    phiprof::stop(timer);
    
    phiprof::stop("Calculate volume derivatives");

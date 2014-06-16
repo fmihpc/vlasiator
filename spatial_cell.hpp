@@ -38,6 +38,9 @@ typedef Parameters P;
 #define VELOCITY_BLOCK_LENGTH WID3
 #define N_NEIGHBOR_VELOCITY_BLOCKS 28
 
+//extra memory allocated for block data. Should be in parameters and read in
+#define block_allocation_factor 1.1
+
 
 /*!
 Used as an error from functions returning velocity cells or
@@ -105,58 +108,6 @@ namespace spatial_cell {
       | CELL_SYSBOUNDARYFLAG;
    }
 
-/** A namespace for storing indices into an array containing neighbour information 
- * of velocity grid blocks. 
- */
-namespace velocity_neighbor {
-   const uint WIDTH = 3; //width of neighborhood
-   const uint NNGBRS = WIDTH*WIDTH*WIDTH; //number of neighbors per block in velocity space (27)           
-   const uint SIZE = NNGBRS+1; //number of neighbors per block in velocity space (27) plus one integer for flags
-   const uint XM1_YM1_ZM1 = 0;  /**< Index of (x-1,y-1,z-1) neighbour.*/
-   const uint XCC_YM1_ZM1 = 1;  /**< Index of (x  ,y-1,z-1) neighbour.*/
-   const uint XP1_YM1_ZM1 = 2;  /**< Index of (x+1,y-1,z-1) neighbour.*/
-   const uint XM1_YCC_ZM1 = 3;  /**< Index of (x-1,y  ,z-1) neighbour.*/
-   const uint XCC_YCC_ZM1 = 4;  /**< Index of (x  ,y  ,z-1) neighbour.*/
-   const uint XP1_YCC_ZM1 = 5;  /**< Index of (x+1,y  ,z-1) neighbour.*/
-   const uint XM1_YP1_ZM1 = 6;  /**< Index of (x-1,y+1,z-1) neighbour.*/
-   const uint XCC_YP1_ZM1 = 7;  /**< Index of (x  ,y+1,z-1) neighbour.*/
-   const uint XP1_YP1_ZM1 = 8;  /**< Index of (x+1,y+1,z-1) neighbour.*/   
-   const uint XM1_YM1_ZCC = 9;  /**< Index of (x-1,y-1,z  ) neighbour.*/
-   const uint XCC_YM1_ZCC = 10; /**< Index of (x  ,y-1,z  ) neighbour.*/
-   const uint XP1_YM1_ZCC = 11; /**< Index of (x+1,y-1,z  ) neighbour.*/
-   const uint XM1_YCC_ZCC = 12; /**< Index of (x-1,y  ,z  ) neighbour.*/
-   const uint XCC_YCC_ZCC = 13; /**< Index of (x  ,y  ,z  ) neighbour.*/
-   const uint XP1_YCC_ZCC = 14; /**< Index of (x+1,y  ,z  ) neighbour.*/
-   const uint XM1_YP1_ZCC = 15; /**< Index of (x-1,y+1,z  ) neighbour.*/
-   const uint XCC_YP1_ZCC = 16; /**< Index of (x  ,y+1,z  ) neighbour.*/
-   const uint XP1_YP1_ZCC = 17; /**< Index of (x+1,y+1,z  ) neighbour.*/   
-   const uint XM1_YM1_ZP1 = 18; /**< Index of (x-1,y-1,z+1) neighbour.*/
-   const uint XCC_YM1_ZP1 = 19; /**< Index of (x  ,y-1,z+1) neighbour.*/
-   const uint XP1_YM1_ZP1 = 20; /**< Index of (x+1,y-1,z+1) neighbour.*/
-   const uint XM1_YCC_ZP1 = 21; /**< Index of (x-1,y  ,z+1) neighbour.*/
-   const uint XCC_YCC_ZP1 = 22; /**< Index of (x  ,y  ,z+1) neighbour.*/
-   const uint XP1_YCC_ZP1 = 23; /**< Index of (x+1,y  ,z+1) neighbour.*/
-   const uint XM1_YP1_ZP1 = 24; /**< Index of (x-1,y+1,z+1) neighbour.*/
-   const uint XCC_YP1_ZP1 = 25; /**< Index of (x  ,y+1,z+1) neighbour.*/
-   const uint XP1_YP1_ZP1 = 26; /**< Index of (x+1,y+1,z+1) neighbour.*/
-//   const uint NON_EXISTING = std::numeric_limits<uint>::max(); /**< Invalid block ID, indicating that the block does not exist.*/
-   const uint NBRFLAGS = 27; /**< Index for flags for existing neighbours.*/
-
-   const uint MYIND    = 13; /**< Index of the block. Required for KT solver.*/
-   const uint VXNEG    = 12; /**< Index of -vx neighbour. Required for KT solver.*/
-   const uint VYNEG    = 10; /**< Index of -vy neighbour. Required for KT solver.*/
-   const uint VZNEG    = 4;  /**< Index of -vz neighbour. Required for KT solver.*/
-   const uint VXPOS    = 14; /**< Index of +vx neighbour. Required for KT solver.*/
-   const uint VYPOS    = 16; /**< Index of +vy neighbour. Required for KT solver.*/
-   const uint VZPOS    = 22; /**< Index of +vz neighbour. Required for KT solver.*/
-   const uint VX_NEG_BND = (1 << VXNEG);
-   const uint VX_POS_BND = (1 << VXPOS);
-   const uint VY_NEG_BND = (1 << VYNEG);
-   const uint VY_POS_BND = (1 << VYPOS);
-   const uint VZ_NEG_BND = (1 << VZNEG);
-   const uint VZ_POS_BND = (1 << VZPOS);
-}
-
    
 /*!
   Defines the indices of a velocity cell in a velocity block.
@@ -173,10 +124,10 @@ namespace velocity_neighbor {
       // spatial fluxes of this block
       //fixme, fx could be called flux for leveque
       Realf *fx;
-      
+      /*block parameters (size, position in velocity space)*/
       Real parameters[BlockParams::N_VELOCITY_BLOCK_PARAMS];
-      Velocity_Block* neighbors[N_NEIGHBOR_VELOCITY_BLOCKS];
-
+      /*index in block_list vector*/
+      unsigned int block_list_index;
       /*!
         Sets data, derivatives and fluxes of this block to zero.
       */
@@ -382,68 +333,6 @@ namespace velocity_neighbor {
       }
 
 
-      /*!
-      Returns the id of a velocity cell that is neighboring given cell in given direction.
-      Returns error_velocity_cell in case the neighboring velocity cell would be outside
-      of the velocity block.
-      */
-      static unsigned int get_velocity_cell(
-         const unsigned int cell,
-         const unsigned int direction
-      ) {
-
-      int xyzDirection[3];
-      unsigned int block_len[3];
-      unsigned int offset[3];
-      
-      unsigned int neighborCell;
-      
-      const velocity_cell_indices_t indices = get_velocity_cell_indices(cell);
-      if (indices[0] == error_velocity_cell_index) {
-         return error_velocity_cell;
-      }
-      
-         unsigned int w=velocity_neighbor::WIDTH;
-         xyzDirection[0]=direction%w-1;
-         xyzDirection[1]=(direction/w)%w-1;
-         xyzDirection[2]=(direction/(w*w))%w-1; 
-         
-         block_len[0]=block_vx_length;
-         block_len[1]=block_vy_length;
-         block_len[2]=block_vz_length;
-
-         offset[0]=1;
-         offset[1]=block_vx_length;
-         offset[2]=block_vx_length * block_vy_length;
-
-         neighborCell=cell;
-         //loop over vx,vy,vz
-         for(int c=0;c<3;c++){
-            switch (xyzDirection[c]) {
-               case -1: //in negative direction
-                  if (indices[c] == 0) {
-                     return error_velocity_cell;
-                  } else {
-                     neighborCell+=-offset[c];
-                  }
-                  break;
-               case 0:
-                  break;
-               case 1: //in positive direction
-                  if (indices[c] >= block_len[c] - 1) {
-                     return error_velocity_cell;
-                  } else {
-                     neighborCell += offset[c];
-                  }
-                  break;
-               default:
-                  return error_velocity_cell;
-                  break;
-            }
-         }
-         return neighborCell;
-      }
-
    
       /*!     
       Returns the velocity cell at given location or
@@ -612,7 +501,6 @@ namespace velocity_neighbor {
          return block_vz_min + (block_vz_max - block_vz_min) / block_vz_length * (indices[2] + 1);
       }
 
-
       SpatialCell()
       {
          /*
@@ -632,10 +520,6 @@ namespace velocity_neighbor {
          this->sysBoundaryLayer=0; /*!< Default value, layer not yet initialized*/
          this->null_block.clear();
 
-         // zero neighbor lists of null block
-         for (unsigned int i = 0; i < N_NEIGHBOR_VELOCITY_BLOCKS; i++) {
-            this->null_block.neighbors[i] = NULL;
-         }
 
          // reset spatial cell parameters
          for (unsigned int i = 0; i < CellParams::N_SPATIAL_CELL_PARAMS; i++) {
@@ -653,7 +537,6 @@ namespace velocity_neighbor {
          }
 	 //is transferred by default
 	 this->mpiTransferEnabled=true;
-
       }
       
       SpatialCell(const SpatialCell& other):
@@ -690,11 +573,6 @@ namespace velocity_neighbor {
             derivativesBVOL[i]=other.derivativesBVOL[i];
          }
 
-         
-         // zero neighbor lists of null block
-         for (unsigned int i = 0; i < N_NEIGHBOR_VELOCITY_BLOCKS; i++) {
-            this->null_block.neighbors[i] = NULL;
-         }
          //set null block data
          this->null_block.data=&(this->null_block_data[0]);
          this->null_block.fx=&(this->null_block_fx[0]);
@@ -707,30 +585,6 @@ namespace velocity_neighbor {
             //fix block data pointers   
             set_block_data_pointers(block_i);
             
-//fix neighbor lists of all normal blocks
-            //loop through neighbors
-            for(int offset_vx=-1;offset_vx<=1;offset_vx++)
-               for(int offset_vy=-1;offset_vy<=1;offset_vy++)
-                  for(int offset_vz=-1;offset_vz<=1;offset_vz++){
-                     // location of neighbor pointer in this block's neighbor list
-                     int neighbor_index=(1+offset_vx)+(1+offset_vy)*3+(1+offset_vz)*9;
-                     if(offset_vx==0 && offset_vy==0 && offset_vz==0)
-                        continue;
-
-                     unsigned int neighbor_block = get_velocity_block_from_offsets(block, offset_vx,offset_vy,offset_vz);
-                     //error, make neighbor null
-                     if (neighbor_block == error_velocity_block) {
-                        block_ptr->neighbors[neighbor_index] = NULL;
-                     }
-                     //neighbor not in cell, add null_block as neighbour
-                     else if (this->velocity_blocks.count(neighbor_block) == 0) {
-                        block_ptr->neighbors[neighbor_index] = &(this->null_block);
-                     }
-                     //add neighbor pointer
-                     else {
-                        block_ptr->neighbors[neighbor_index] = &(this->velocity_blocks.at(neighbor_block));
-                     }
-                  }
          }
 //         phiprof::stop("SpatialCell copy");
       }
@@ -929,207 +783,212 @@ namespace velocity_neighbor {
          const Real value = block_ptr->data[cell];
          return value;
       }
-      
-      void mpi_datatype(
-         void*& address,
-         int& count,
-         MPI_Datatype& datatype,
-         const uint64_t /*cell_id*/,
-         const int /*sender*/,
-         const int /*receiver*/,
-         const bool receiving
-      ) {
-            address = this;
-            std::vector<MPI_Aint> displacements;
-            std::vector<int> block_lengths;
-            unsigned int block_index = 0;
 
-            /*create daatype for actual data if we are in the first two layers around a boundary, or if we send for thw whole system*/
-            if(this->mpiTransferEnabled &&
-	       (SpatialCell::mpiTransferAtSysBoundaries==false || this->sysBoundaryLayer ==1 || this->sysBoundaryLayer ==2 )
-	       ) {
-	      
-               //add data to send/recv to displacement and block length lists
-               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE1)!=0){
-                  //first copy values in case this is the send operation
+      /*! get mpi datatype for sending the cell data. */
+
+      boost::tuple<void*, int, MPI_Datatype> get_mpi_datatype(
+         const uint64_t cellID/*cell_id*/,
+         const int sender_rank/*sender*/,
+         const int receiver_rank/*receiver*/,
+         const bool receiving,
+         const int neighborhood) {
+         
+         std::vector<MPI_Aint> displacements;
+         std::vector<int> block_lengths;
+         unsigned int block_index = 0;
+         
+         /*create datatype for actual data if we are in the first two layers around a boundary, or if we send for thw whole system*/
+         if(this->mpiTransferEnabled && (SpatialCell::mpiTransferAtSysBoundaries==false || this->sysBoundaryLayer ==1 || this->sysBoundaryLayer ==2 )) {
+	    
+            //add data to send/recv to displacement and block length lists
+            if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE1)!=0){
+               //first copy values in case this is the send operation
+               this->mpi_number_of_blocks=this->number_of_blocks;
+               // send velocity block list size
+               displacements.push_back((uint8_t*) &(this->mpi_number_of_blocks) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(unsigned int));
+            }
+            
+            if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE2)!=0){
+               // STAGE1 should have been done, otherwise we have problems...
+               if(receiving) {
+                  //mpi_number_of_blocks transferred earlier
+                  this->mpi_velocity_block_list.resize(this->mpi_number_of_blocks);
+               }
+               else {
+                  //resize to correct size (it will avoid reallociation if it is big enough, I assume)
                   this->mpi_number_of_blocks=this->number_of_blocks;
-                  // send velocity block list size
-                  displacements.push_back((uint8_t*) &(this->mpi_number_of_blocks) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(unsigned int));
-               }
-            
-               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE2)!=0){
-                  // STAGE1 should have been done, otherwise we have problems...
-                  if(receiving) {
-                     //mpi_number_of_blocks transferred earlier
-                     this->mpi_velocity_block_list.resize(this->mpi_number_of_blocks);
-                  }
-                  else {
-                     //resize to correct size (it will avoid reallociation if it is big enough, I assume)
-                     this->mpi_number_of_blocks=this->number_of_blocks;
-                     this->mpi_velocity_block_list.resize(this->number_of_blocks);
-                     //copy values if this is the send operation                     
-                     for(unsigned int i=0;i< this->number_of_blocks;i++)
-                        this->mpi_velocity_block_list[i]=this->velocity_block_list[i];
+                  this->mpi_velocity_block_list.resize(this->number_of_blocks);
+                  //copy values if this is the send operation                     
+                  for(unsigned int i=0;i< this->number_of_blocks;i++)
+                     this->mpi_velocity_block_list[i]=this->velocity_block_list[i];
                      
-                  }
-                  // send velocity block list
-                  displacements.push_back((uint8_t*) &(this->mpi_velocity_block_list[0]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(unsigned int) * this->mpi_number_of_blocks);
                }
+               // send velocity block list
+               displacements.push_back((uint8_t*) &(this->mpi_velocity_block_list[0]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(unsigned int) * this->mpi_number_of_blocks);
+            }
 
-               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1)!=0){
-                  //Communicate size of list so that buffers can be allocated on receiving side
-                  if(!receiving)
-                     this->velocity_block_with_content_list_size=this->velocity_block_with_content_list.size();
-                  displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list_size) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(unsigned int));
+            if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1)!=0){
+               //Communicate size of list so that buffers can be allocated on receiving side
+               if(!receiving)
+                  this->velocity_block_with_content_list_size=this->velocity_block_with_content_list.size();
+               displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list_size) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(unsigned int));
+            }
+            if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2)!=0){
+               if(receiving) {
+                  this->velocity_block_with_content_list.resize(this->velocity_block_with_content_list_size);
                }
-               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2)!=0){
-                  if(receiving) {
-                     this->velocity_block_with_content_list.resize(this->velocity_block_with_content_list_size);
-                  }
-                  //velocity_block_with_content_list_size should first be updated, before this can be done (STAGE1)
-                  displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list[0]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(unsigned int)*this->velocity_block_with_content_list_size);
-               }
+               //velocity_block_with_content_list_size should first be updated, before this can be done (STAGE1)
+               displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list[0]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(unsigned int)*this->velocity_block_with_content_list_size);
+            }
 
-               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA)!=0){
+            if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA)!=0){
+               displacements.push_back((uint8_t*) &(this->block_data[0]) - (uint8_t*) this);               
+               block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH* this->number_of_blocks);
+            }
+               
+            if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA_TO_FLUXES)!=0){
+               if(receiving) {
+                  displacements.push_back((uint8_t*) &(this->block_fx[0]) - (uint8_t*) this);               
+               }
+               else {
                   displacements.push_back((uint8_t*) &(this->block_data[0]) - (uint8_t*) this);               
-                  block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH* this->number_of_blocks);
                }
+               block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH* this->number_of_blocks);
+            }
                
-               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA_TO_FLUXES)!=0){
-                  if(receiving) {
-                     displacements.push_back((uint8_t*) &(this->block_fx[0]) - (uint8_t*) this);               
-                  }
-                  else {
-                     displacements.push_back((uint8_t*) &(this->block_data[0]) - (uint8_t*) this);               
-                  }
-                  block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH* this->number_of_blocks);
-               }
-               
-               if((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_FLUXES)!=0){
-                  /*We are actually transfering the data of a
-                   * neighbor. The values of neighbor_block_data
-                   * and neighbor_number_of_blocks should be set in
-                   * solver.*/               
-                  displacements.push_back((uint8_t*) this->neighbor_block_data - (uint8_t*) this);               
-                  block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH* this->neighbor_number_of_blocks);
-               }
+            if((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_FLUXES)!=0){
+               /*We are actually transfering the data of a
+                * neighbor. The values of neighbor_block_data
+                * and neighbor_number_of_blocks should be set in
+                * solver.*/               
+               displacements.push_back((uint8_t*) this->neighbor_block_data - (uint8_t*) this);               
+               block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH* this->neighbor_number_of_blocks);
+            }
 
                
-               // send  spatial cell parameters
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_PARAMETERS)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[0]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * CellParams::N_SPATIAL_CELL_PARAMS);
-               }
+            // send  spatial cell parameters
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_PARAMETERS)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[0]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * CellParams::N_SPATIAL_CELL_PARAMS);
+            }
                
-               // send  spatial cell dimensions
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_DIMENSIONS)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::DX]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * 3);
-               }
+            // send  spatial cell dimensions
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_DIMENSIONS)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::DX]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 3);
+            }
                
-               // send  BGBX BGBY BGBZ
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_BGB)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBX]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * 3);
-               }
+            // send  BGBX BGBY BGBZ
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_BGB)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBX]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 3);
+            }
             
-               // send  BXVOL BYVOL BZVOL
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBXVOL]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * 6);
-               }
+            // send  BXVOL BYVOL BZVOL
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBXVOL]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 6);
+            }
             
-               // send  EX, EY EZ
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_E)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * 3);
-               }
+            // send  EX, EY EZ
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_E)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 3);
+            }
             
-               // send  EX_DT2, EY_DT2, EZ_DT2
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_EDT2)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX_DT2]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * 3);
-               }
+            // send  EX_DT2, EY_DT2, EZ_DT2
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_EDT2)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::EX_DT2]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 3);
+            }
             
-               // send  PERBX, PERBY, PERBZ
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_PERB)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::PERBX]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * 3);
-               }
+            // send  PERBX, PERBY, PERBZ
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_PERB)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::PERBX]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 3);
+            }
             
-               // send  PERBX_DT2, PERBY_DT2, PERBZ_DT2
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_PERBDT2)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::PERBX_DT2]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * 3);
-               }
+            // send  PERBX_DT2, PERBY_DT2, PERBZ_DT2
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_PERBDT2)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::PERBX_DT2]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 3);
+            }
             
-               // send RHO, RHOVX, RHOVY, RHOVZ
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_RHO_RHOV)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHO]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * 4);
-               }
+            // send RHO, RHOVX, RHOVY, RHOVZ
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_RHO_RHOV)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHO]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 4);
+            }
             
-               // send RHO_DT2, RHOVX_DT2, RHOVY_DT2, RHOVZ_DT2
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_RHODT2_RHOVDT2)!=0){
-                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHO_DT2]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * 4);
-               }
+            // send RHO_DT2, RHOVX_DT2, RHOVY_DT2, RHOVZ_DT2
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_RHODT2_RHOVDT2)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHO_DT2]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 4);
+            }
             
-               // send  spatial cell derivatives
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_DERIVATIVES)!=0){
-                  displacements.push_back((uint8_t*) &(this->derivatives[0]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * fieldsolver::N_SPATIAL_CELL_DERIVATIVES);
+            // send  spatial cell derivatives
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_DERIVATIVES)!=0){
+               displacements.push_back((uint8_t*) &(this->derivatives[0]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * fieldsolver::N_SPATIAL_CELL_DERIVATIVES);
                   
-               }
+            }
 
-               // send  spatial cell BVOL derivatives
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL_DERIVATIVES)!=0){
-                  displacements.push_back((uint8_t*) &(this->derivativesBVOL[0]) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Real) * bvolderivatives::N_BVOL_DERIVATIVES);
-               }
+            // send  spatial cell BVOL derivatives
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL_DERIVATIVES)!=0){
+               displacements.push_back((uint8_t*) &(this->derivativesBVOL[0]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * bvolderivatives::N_BVOL_DERIVATIVES);
+            }
 
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_IOLOCALCELLID)!=0){
-                  displacements.push_back((uint8_t*) &(this->ioLocalCellId) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(uint64_t));
-               }
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_IOLOCALCELLID)!=0){
+               displacements.push_back((uint8_t*) &(this->ioLocalCellId) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(uint64_t));
+            }
 
-               // send  sysBoundaryFlag        
-               if((SpatialCell::mpi_transfer_type & Transfer::CELL_SYSBOUNDARYFLAG)!=0){
-                  displacements.push_back((uint8_t*) &(this->sysBoundaryFlag) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(uint));
-                  displacements.push_back((uint8_t*) &(this->sysBoundaryLayer) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(uint));
-               }
-            
-            
-               if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_PARAMETERS)!=0){
-                  displacements.reserve(displacements.size()+this->velocity_blocks.size());
-                  block_lengths.reserve(block_lengths.size()+this->velocity_blocks.size());
-                  for(block_index=0;block_index<this->number_of_blocks;block_index++){
-                     // TODO: use cached block addresses
-                     displacements.push_back((uint8_t*) this->velocity_blocks.at(this->velocity_block_list[block_index]).parameters - (uint8_t*) this);
-                     block_lengths.push_back(sizeof(Real) * BlockParams::N_VELOCITY_BLOCK_PARAMS);
-                  }
-               }
+            // send  sysBoundaryFlag        
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_SYSBOUNDARYFLAG)!=0){
+               displacements.push_back((uint8_t*) &(this->sysBoundaryFlag) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(uint));
+               displacements.push_back((uint8_t*) &(this->sysBoundaryLayer) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(uint));
             }
             
-            if (displacements.size() > 0) {
-               count = 1;
-               MPI_Type_create_hindexed(
-                  displacements.size(),
-                  &block_lengths[0],
-                  &displacements[0],
-                  MPI_BYTE,
-                  &datatype
-                  );
-            } else {
-               count = 0;
-               datatype = MPI_BYTE;
+            
+            if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_PARAMETERS)!=0){
+               displacements.reserve(displacements.size()+this->velocity_blocks.size());
+               block_lengths.reserve(block_lengths.size()+this->velocity_blocks.size());
+               for(block_index=0;block_index<this->number_of_blocks;block_index++){
+                  // TODO: use cached block addresses
+                  displacements.push_back((uint8_t*) this->velocity_blocks.at(this->velocity_block_list[block_index]).parameters - (uint8_t*) this);
+                  block_lengths.push_back(sizeof(Real) * BlockParams::N_VELOCITY_BLOCK_PARAMS);
+               }
             }
+         }
+
+
+         void* address = this;
+         int count;
+         MPI_Datatype datatype;
+
+         
+         if (displacements.size() > 0) {
+            count = 1;
+            MPI_Type_create_hindexed(
+               displacements.size(),
+               &block_lengths[0],
+               &displacements[0],
+               MPI_BYTE,
+               &datatype
+                                     );
+         } else {
+            count = 0;
+            datatype = MPI_BYTE;
+         }
+
+         return  boost::make_tuple(address,count,datatype);
       }
 
       /*!
@@ -1176,44 +1035,131 @@ namespace velocity_neighbor {
          
       }
      
+
       /*!
-        Returns the total value of the distribution function within this spatial cell.
+        Removes all velocity blocks from this spatial cell and frees memory in the cell
       */
-      Real get_total_value(void) const
+      void clear(void)
          {
-            Real total = 0;
-
-            for (boost::unordered_map<unsigned int, Velocity_Block>::const_iterator
-               block = this->velocity_blocks.begin();
-               block != this->velocity_blocks.end();
-               block++
-            ) {
-               for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
-                  total += block->second.data[i];
-               }
-            }
-
-            return total;
+            //use the swap trick to force c++ to release the memory held by the vectors & maps
+            //FIXME: we could jsut as well just set this->vector=std::vector<> ?
+            boost::unordered_map<unsigned int, Velocity_Block> ().swap(this->velocity_blocks);
+            //remove block data (value and fluxes)
+            std::vector<Realf,aligned_allocator<Realf,64> >().swap(this->block_data);
+            std::vector<Realf,aligned_allocator<Realf,64> >().swap(this->block_fx);
+            std::vector<unsigned int>().swap(this->velocity_block_list);
+            std::vector<unsigned int>().swap(this->mpi_velocity_block_list);
+            this->number_of_blocks=0;
          }
 
+      /*!  Purges extra capacity from block vectors. It sets size to
+        num_blocks * block_allocation_factor  (if capacity greater than this), and also forces capacity to this new smaller value.
+        \return True on success
+      */
 
-      // TODO: Do this properly
+      bool shrink_to_fit() {         
+         /*allow capacity to be a bit large than needed by number of blocks, shrink otherwise*/
+         if (this->block_data.capacity() > (2 + this->number_of_blocks * block_allocation_factor) * VELOCITY_BLOCK_LENGTH ){
+            /*set size for block_data to the correct minimum value (with extra space)*/
+            this->block_data.resize((2 + this->number_of_blocks * block_allocation_factor) * VELOCITY_BLOCK_LENGTH );
+            /*clear all memory reserved by fx, this clears up memory for reallocating block_data*/
+            std::vector<Realf,aligned_allocator<Realf,64> >().swap(this->block_fx);
+            /*trim block_data capacity, we could also use c++11 shrink_to_fit at some point of time*/
+            std::vector<Realf,aligned_allocator<Realf,64> >(this->block_data).swap(this->block_data);
+            /*resize block_fx to same size as block_fx*/
+            this->block_fx.resize(this->block_data.size());
+            
+            /*fix block pointers if a reallocation occured*/
+            for(unsigned int block_index=0;block_index<this->number_of_blocks;block_index++){
+               set_block_data_pointers(block_index);
+            }
+            
+            return true;
+         }
+         return true;
+         
+      }
+         /*!
+     This function will resize (increase) block data if needed, resize happen
+     in steps of block_allocation_chunk. It will always preserve
+     space for one extra block, resize can happen after adding the
+     block. We need up-to-date velocity_block_list as
+     set_block_data_pointers needs it.
+     If there is only free space left for 1 additional block (extra
+     block should not be needed, but there for safety), resize it
+     so that we have free space for block_allocation_chunk blocks.
+
+     This function never decreases memory space. To do that one should
+     call shrink_to_fit(!)
+     
+   */
+      void resize_block_data(){
+         if((this->number_of_blocks+1)*VELOCITY_BLOCK_LENGTH >= this->block_data.size() ){
+            //resize so that free space is block_allocation_chunk blocks, and at least two in case of having zero blocks
+            int new_size = 2 + this->number_of_blocks * block_allocation_factor;
+            this->block_data.resize(new_size*VELOCITY_BLOCK_LENGTH);
+            this->block_fx.resize(new_size*VELOCITY_BLOCK_LENGTH);
+            
+            //fix block pointers if a reallocation occured
+            for(unsigned int block_index=0;block_index<this->number_of_blocks;block_index++){
+               set_block_data_pointers(block_index);
+            }
+         }
+      }
+      
+      /*!
+        Return the memory consumption in bytes as reported using the size()
+         functions of the containers in spatial cell
+      */
+      uint64_t get_cell_memory_size(){
+         uint64_t size = 0;
+         size += velocity_blocks.size() * sizeof(Velocity_Block); //this is not the whole truth
+         size += block_data.size() * sizeof(Realf);
+         size += block_fx.size() * sizeof(Realf);
+         size += null_block_data.size() * sizeof(Realf);
+         size += null_block_fx.size() * sizeof(Realf);
+         size += velocity_block_list.size() * sizeof(unsigned int);
+         size += mpi_velocity_block_list.size() * sizeof(unsigned int);
+         size += velocity_block_with_content_list.size() * sizeof(unsigned int);
+         size += velocity_block_with_no_content_list.size() * sizeof(unsigned int);
+         size += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
+         size += fieldsolver::N_SPATIAL_CELL_DERIVATIVES * sizeof(Real);
+         size += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
+         return size;
+      }
+      /*!
+        Return the memory consumption in bytes as reported using
+        the size() functions of the containers in spatial cell
+      */
+      uint64_t  get_cell_memory_capacity(){
+         uint64_t capacity = 0;
+         capacity += velocity_blocks.size() * sizeof(Velocity_Block); //this is not the whole truth
+         capacity += block_data.capacity() * sizeof(Realf);
+         capacity += block_fx.capacity()  * sizeof(Realf);
+         capacity += null_block_data.capacity() * sizeof(Realf);
+         capacity += null_block_fx.capacity()  * sizeof(Realf);
+         capacity += velocity_block_list.capacity()  * sizeof(unsigned int);
+         capacity += mpi_velocity_block_list.capacity()  * sizeof(unsigned int);
+         capacity += velocity_block_with_content_list.capacity()  * sizeof(unsigned int);
+         capacity += velocity_block_with_no_content_list.capacity()  * sizeof(unsigned int);
+         capacity += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
+         capacity += fieldsolver::N_SPATIAL_CELL_DERIVATIVES * sizeof(Real);
+         capacity += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
+         return capacity;
+      }
+
+  
       /*!
         Returns the total size of the data in this spatial cell in bytes.
 
         Does not include velocity block lists, the null velocity block or velocity block neighbor lists.
       */
-//      size_t get_data_size(void) const
-//         {
-//            const unsigned int n = this->velocity_blocks.size();
-//
-//            // TODO: Should 2 be defined as some meaningful constant?
-//
-//            return 2 * sizeof(Real)
-//               + n * sizeof(unsigned int)
-//               + n * 2 * VELOCITY_BLOCK_LENGTH * sizeof(Realf);
-//         }
-
+/*
+      size_t get_data_size(void) const
+         {
+         // TODO: Do this properly,  include as function of num blocks, size, capacity. Or perhaps only actual capacity?
+         }
+*/
 
       /*!
       Returns a block at given offsets from given block.
@@ -1286,15 +1232,13 @@ namespace velocity_neighbor {
          //itself, and for all its neighbors
          for(unsigned int block_index=0;block_index< this->velocity_block_with_content_list.size();block_index++){
             unsigned int block = this->velocity_block_with_content_list[block_index];
+            const velocity_block_indices_t indices = get_velocity_block_indices(block);
             neighbors_have_content.insert(block); //also add the cell itself
             for(int offset_vx=-P::sparseBlockAddWidthV;offset_vx<=P::sparseBlockAddWidthV;offset_vx++)
                for(int offset_vy=-P::sparseBlockAddWidthV;offset_vy<=P::sparseBlockAddWidthV;offset_vy++)
 		  for(int offset_vz=-P::sparseBlockAddWidthV;offset_vz<=P::sparseBlockAddWidthV;offset_vz++){                  
-                     const unsigned int neighbor_block = get_velocity_block_from_offsets(block, offset_vx,offset_vy,offset_vz);
-                     if (neighbor_block == error_velocity_block) {
-                        continue;
-                     }
-                     neighbors_have_content.insert(neighbor_block);
+                     const unsigned int neighbor_block = get_velocity_block({{indices[0] + offset_vx, indices[1] + offset_vy, indices[2] + offset_vz}});
+                     neighbors_have_content.insert(neighbor_block); //add all potential ngbrs of this block with content
                   }
          }
          //add neighbor content info for spatial space neighbors to map. We loop over
@@ -1308,15 +1252,12 @@ namespace velocity_neighbor {
             }
          }
 
-         // ADD all blocks with neighbors in spatial or velocity space (if it exists then the block is unchanged)
-         for (boost::unordered_set<unsigned int>::iterator it= neighbors_have_content.begin(); it != neighbors_have_content.end();++it) {
-            this->add_velocity_block(*it);
-         }
-         
-         
          // REMOVE all blocks in this cell without content + without neighbors with content
+         /*better to do it in the reverse order, as then blocks at the
+          * end are removed first, and we may avoid copying extra
+          * data.*/
          if(doDeleteEmptyBlocks) {
-            for(unsigned int block_index=0;block_index< this->velocity_block_with_no_content_list.size();block_index++){
+            for(int block_index= this->velocity_block_with_no_content_list.size()-1; block_index>=0; block_index--){
                unsigned int block = this->velocity_block_with_no_content_list[block_index];
                boost::unordered_set<unsigned int>::iterator it = neighbors_have_content.find(block);
                if(it==neighbors_have_content.end()) {
@@ -1335,6 +1276,13 @@ namespace velocity_neighbor {
                }
             }
          }
+
+         // ADD all blocks with neighbors in spatial or velocity space (if it exists then the block is unchanged)
+         for (boost::unordered_set<unsigned int>::iterator it= neighbors_have_content.begin(); it != neighbors_have_content.end();++it) {
+            this->add_velocity_block(*it);
+         }
+         
+         
       }
       
       void adjustSingleCellVelocityBlocks() {
@@ -1351,43 +1299,30 @@ namespace velocity_neighbor {
       //same index as in block_list in the block_data and block_fx
       //which contain all data for all blocks. It just sets the
       //pointers and does not care about what is there earlier.
-      //velocity_block_list needs to be up-to-date
+      //velocity_block_list needs to be up-to-date.
+      //We also set block_list_index here to the correct position
       void set_block_data_pointers(int block_index){
          Velocity_Block* tmp_block_ptr = this->at(this->velocity_block_list[block_index]);
          tmp_block_ptr->data=&(this->block_data[block_index*VELOCITY_BLOCK_LENGTH]);
          tmp_block_ptr->fx=&(this->block_fx[block_index*VELOCITY_BLOCK_LENGTH]);
+         tmp_block_ptr->block_list_index = block_index;
+      }
 
-      }
       
-      //This function will resize block data if needed, resize happen
-      //in steps of block_allocation_chunk. It will always preserve
-      //space for one extra block, resize can happen after adding the
-      //block. We need up-to-date velocity_block_list as
-      //set_block_data_pointers needs it.
-      //If there is only free space left for 1 additional block (extra
-      //block should not be needed, but there for safety), resize it
-      //so that we have free space for block_allocation_chunk blocks.
-      //If there is free space for more than 2*block_allocation_chunk
-      //blocks, resize it so that we have free space for an additional
-      //block_allocation_chunks blocks.
-      void resize_block_data(){
-         const int block_allocation_chunk=100;
-         
-         if((this->number_of_blocks+1)*VELOCITY_BLOCK_LENGTH>=this->block_data.size() ||
-            (this->number_of_blocks+2*block_allocation_chunk)*VELOCITY_BLOCK_LENGTH<this->block_data.size()){
-            
-            //resize so that free space is block_allocation_chunk blocks
-            int new_size=this->number_of_blocks+block_allocation_chunk;
-            this->block_data.resize(new_size*VELOCITY_BLOCK_LENGTH);
-            this->block_fx.resize(new_size*VELOCITY_BLOCK_LENGTH);
-            
-            //fix block pointers if a reallocation occured
-            for(unsigned int block_index=0;block_index<this->number_of_blocks;block_index++){
-               set_block_data_pointers(block_index);
-            }
-         }
-      }
       
+      //set block data pointers data and fx for block
+      //velocity_block_list[block_index], so that they point to the
+      //same index as in block_list in the block_data and block_fx
+      //which contain all data for all blocks. It just sets the
+      //pointers and does not care about what is there earlier.
+      //velocity_block_list needs to be up-to-date.
+      //We also set block_list_index here to the correct position
+      void set_block_data_pointers(Velocity_Block* block_ptr,int block_index){
+         block_ptr->data=&(this->block_data[block_index*VELOCITY_BLOCK_LENGTH]);
+         block_ptr->fx=&(this->block_fx[block_index*VELOCITY_BLOCK_LENGTH]);
+         block_ptr->block_list_index = block_index;
+      }
+
       
       /*!
         Adds an empty velocity block into this spatial cell.
@@ -1399,38 +1334,28 @@ namespace velocity_neighbor {
          if (this->velocity_blocks.count(block) > 0) {
             return true;
          }
-
+         
          if (block == error_velocity_block) {
-            std::cerr << "ERROR: trying to add a block with the key error_velocity_block!" << std::endl;
             return false;
          }
 
          if (block >= SpatialCell::max_velocity_blocks) {
-            std::cerr << "ERROR: trying to add a block with a key > max_velocity_blocks!" << std::endl;
             return false;
          }
-
-
-         //create block
-         this->velocity_blocks[block];
          //update number of blocks
          this->number_of_blocks++;
-                  
+         //create block
+         this->velocity_blocks[block];
          //add block to list of existing block
          this->velocity_block_list.push_back(block);
          //add more space for block data 
          resize_block_data();
-         //fix block data pointers   
-         set_block_data_pointers(this->number_of_blocks-1);
-         
          //get pointer to block
          Velocity_Block* block_ptr = this->at(block);
-
-
-
+         //fix block data pointers  
+         set_block_data_pointers(block_ptr, this->number_of_blocks-1);
          //clear block
          block_ptr->clear();
-
          // set block parameters
          block_ptr->parameters[BlockParams::VXCRD] = get_velocity_block_vx_min(block);
          block_ptr->parameters[BlockParams::VYCRD] = get_velocity_block_vy_min(block);
@@ -1438,42 +1363,6 @@ namespace velocity_neighbor {
          block_ptr->parameters[BlockParams::DVX] = SpatialCell::cell_dvx;
          block_ptr->parameters[BlockParams::DVY] = SpatialCell::cell_dvy;
          block_ptr->parameters[BlockParams::DVZ] = SpatialCell::cell_dvz;
-
-         // set neighbour pointers
-         unsigned int neighbor_block;
-         int neighbor_index=0;
-         
-         for(int offset_vx=-1;offset_vx<=1;offset_vx++)
-         for(int offset_vy=-1;offset_vy<=1;offset_vy++)
-         for(int offset_vz=-1;offset_vz<=1;offset_vz++){
-
-            // location of neighbor pointer in this block's neighbor list
-            neighbor_index=(1+offset_vx)+(1+offset_vy)*3+(1+offset_vz)*9;
-            if(offset_vx==0 && offset_vy==0 && offset_vz==0) continue;
-
-            neighbor_block = get_velocity_block_from_offsets(block, offset_vx,offset_vy,offset_vz);
-            if (neighbor_block == error_velocity_block) {
-               block_ptr->neighbors[neighbor_index] = NULL;
-            }
-            else if (this->velocity_blocks.count(neighbor_block) == 0) {
-               block_ptr->neighbors[neighbor_index] = &(this->null_block);
-            } else {
-               block_ptr->neighbors[neighbor_index] = &(this->velocity_blocks.at(neighbor_block));
-               //update the neighbor list of neighboring block
-               //index of current block in neighbors neighbor table
-               //FIXME: check this properly, or write it in a better way
-               int neighbor_neighbor_index=(1-offset_vx)+(1-offset_vy)*3+(1-offset_vz)*9;
-               Velocity_Block* neighbor_ptr = &(this->velocity_blocks.at(neighbor_block));
-               if (neighbor_ptr == NULL) {
-                  std::cerr << __FILE__ << ":" << __LINE__
-                            << " Block pointer == NULL" << std::endl;
-                  abort();
-               }
-               neighbor_ptr->neighbors[neighbor_neighbor_index] = block_ptr;
-            }
-         }
-         
-
          return true;
       }
       
@@ -1493,42 +1382,16 @@ namespace velocity_neighbor {
             return;
          }
 
-         //remove block from neighbors neighbor lists
-         unsigned int neighbor_block;
-         for(int offset_vx=-1;offset_vx<=1;offset_vx++)
-         for(int offset_vy=-1;offset_vy<=1;offset_vy++)
-         for(int offset_vz=-1;offset_vz<=1;offset_vz++) {
-
-            if(offset_vx==0 && offset_vy==0 && offset_vz==0) continue;
-
-            neighbor_block = get_velocity_block_from_offsets(block, offset_vx,offset_vy,offset_vz);
-            if (neighbor_block != error_velocity_block
-                && this->velocity_blocks.count(neighbor_block) > 0) {
-               // TODO use cached addresses of neighbors
-               Velocity_Block* neighbor_data = &(this->velocity_blocks.at(neighbor_block));
-               // update the neighbor list of neighboring block
-               // index of current block in neighbors neighbor table
-               int neighbor_neighbor_index=(1-offset_vx)+(1-offset_vy)*3+(1-offset_vz)*9;
-               neighbor_data->neighbors[neighbor_neighbor_index] = &(this->null_block);
-            }
-         }
          
          //Find where in the block list the removed block was (index to block list). We need to fill this hole.    
-         unsigned int block_index = -1;
-         for(unsigned int i=0; i< velocity_block_list.size();i++) {
-            if(this->velocity_block_list[i] == block) {
-               block_index=i;
-               break;
-            }
-         }
+         unsigned int block_index = this->at(block)->block_list_index;
          
-         /*
+         /*     
            Move the last existing block in the block list
            to the removed block's position
          */
          this->velocity_block_list[block_index] = this->velocity_block_list.back();
          this->velocity_block_list.pop_back(); //remove last item
-            
 
          //copy velocity block data to the removed blocks position in order to fill the hole
          for(unsigned int i=0;i<VELOCITY_BLOCK_LENGTH;i++){
@@ -1536,8 +1399,8 @@ namespace velocity_neighbor {
          }
          for(unsigned int i=0;i<VELOCITY_BLOCK_LENGTH;i++){
             this->block_fx[block_index*VELOCITY_BLOCK_LENGTH+i] = this->block_fx[(this->number_of_blocks - 1)*VELOCITY_BLOCK_LENGTH+i];
-         }
-         //set block data pointers to the location where we copied data
+         }         
+         //set block data pointers to the location where we copied data, + fix block_list_index
          set_block_data_pointers(block_index);
 
          //reduce number of blocks
@@ -1545,27 +1408,9 @@ namespace velocity_neighbor {
 
          //also remove velocity block structure
          this->velocity_blocks.erase(block);
-
-         //check if we can decrease memory consumption
-         resize_block_data();         
       }
 
       
-      /*!
-        Removes all velocity blocks from this spatial cell and frees memory in the cell
-      */
-      void clear(void)
-         {
-            //use the swap trick to force c++ to release the memory held by the vectors & maps
-            //FIXME: we could jsut as well just set this->vector=std::vector<> ?
-            boost::unordered_map<unsigned int, Velocity_Block> ().swap(this->velocity_blocks);
-            //remove block data (value and fluxes)
-            std::vector<Realf,aligned_allocator<Realf,64> >().swap(this->block_data);
-            std::vector<Realf,aligned_allocator<Realf,64> >().swap(this->block_fx);
-            std::vector<unsigned int>().swap(this->velocity_block_list);
-            std::vector<unsigned int>().swap(this->mpi_velocity_block_list);
-            this->number_of_blocks=0;
-         }
 
       /*!       
         Prepares this spatial cell to receive the velocity grid over MPI.
@@ -1677,6 +1522,7 @@ namespace velocity_neighbor {
         block to be considered to have content
       */
       static Real velocity_block_min_value;
+
 
 
    private:

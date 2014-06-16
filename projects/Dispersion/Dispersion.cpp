@@ -1,19 +1,44 @@
 /*
  * This file is part of Vlasiator.
  * 
- * Copyright 2011, 2012 Finnish Meteorological Institute
+ * Copyright 2011, 2012, 2013, 2014 Finnish Meteorological Institute
  * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
+ */
+
+/* NOTE
+ * The following piece of code has to be pasted into the main loop in vlasiator.cpp
+ * to run the Dispersion project and get proper bin output files.
+ * This should be kept here for future reference and reuse!!
+      phiprof::stop("Propagate",computedCells,"Cells");
+      
+      if(P::projectName == "Dispersion") {
+         vector<Real> localRho(P::xcells_ini, 0.0),
+                      outputRho(P::xcells_ini, 0.0),
+                      localPerBy(P::xcells_ini, 0.0),
+                      outputPerBy(P::xcells_ini, 0.0);
+         for(uint i=0; i<cells.size(); i++) {
+            if(cells[i] <= P::xcells_ini) {
+               localPerBy[cells[i] - 1] = mpiGrid[cells[i]]->parameters[CellParams::PERBY];
+               localRho[cells[i] - 1] = mpiGrid[cells[i]]->parameters[CellParams::RHO];
+            }
+         }
+         
+         MPI_Reduce(&(localPerBy[0]), &(outputPerBy[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+         MPI_Reduce(&(localRho[0]), &(outputRho[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+         
+         if(myRank == MASTER_RANK) {
+            FILE* outputFile = fopen("perByt.bin", "ab");
+            fwrite(&(outputPerBy[0]), sizeof(outputPerBy[0]), P::xcells_ini, outputFile);
+            fclose(outputFile);
+            outputFile = fopen("rhot.bin", "ab");
+            fwrite(&(outputRho[0]), sizeof(outputRho[0]), P::xcells_ini, outputFile);
+            fclose(outputFile);
+         }
+      }
+      
+      //Move forward in time      
+      ++P::tstep;
+      P::t += P::dt;
  */
 
 #include <cstdlib>

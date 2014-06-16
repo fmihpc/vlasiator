@@ -37,46 +37,46 @@ namespace projects {
 
    void Shock::addParameters() {
       typedef Readparameters RP;
-      RP::add("GradB.BX0", "Background field value (T)", 1.0e-9);
-      RP::add("GradB.BY0", "Background field value (T)", 2.0e-9);
-      RP::add("GradB.BZ0", "Background field value (T)", 3.0e-9);
-      RP::add("GradB.EX0", "Background electric field", 0.0);
-      RP::add("GradB.VX0", "Bulk velocity in x", 0.0);
-      RP::add("GradB.VY0", "Bulk velocity in y", 0.0);
-      RP::add("GradB.VZ0", "Bulk velocuty in z", 0.0);
-      RP::add("GradB.rho", "Number density (m^-3)", 1.0e7);
-      RP::add("GradB.Temperature", "Temperature (K)", 2.0e6);
-      RP::add("GradB.magPertAmp", "Amplitude of the magnetic perturbation", 1.0e-9);
-      RP::add("GradB.densityPertAmp", "Amplitude factor of the density perturbation", 0.1);
-      RP::add("GradB.velocityPertAmp", "Amplitude of the velocity perturbation", 1.0e6);
-      RP::add("GradB.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-      RP::add("GradB.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
-      RP::add("GradB.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
-      RP::add("GradB.Scale_x", "Scale length in x (m)", 2.0e6);
-      RP::add("GradB.Scale_y", "Scale length in y (m)", 2.0e6);
-      RP::add("GradB.Sharp_Y", "Sharpness of tannh", 0.1);
+      RP::add("Shock.BX0", "Background field value (T)", 1.0e-9);
+      RP::add("Shock.BY0", "Background field value (T)", 2.0e-9);
+      RP::add("Shock.BZ0", "Background field value (T)", 3.0e-9);
+      RP::add("Shock.EX0", "Background electric field", 0.0);
+      RP::add("Shock.VX0", "Bulk velocity in x", 0.0);
+      RP::add("Shock.VY0", "Bulk velocity in y", 0.0);
+      RP::add("Shock.VZ0", "Bulk velocuty in z", 0.0);
+      RP::add("Shock.rho", "Number density (m^-3)", 1.0e7);
+      RP::add("Shock.Temperature", "Temperature (K)", 2.0e6);
+      RP::add("Shock.magPertAmp", "Amplitude of the magnetic perturbation", 1.0e-9);
+      RP::add("Shock.densityPertAmp", "Amplitude factor of the density perturbation", 0.1);
+      RP::add("Shock.velocityPertAmp", "Amplitude of the velocity perturbation", 1.0e6);
+      RP::add("Shock.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
+      RP::add("Shock.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+      RP::add("Shock.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
+      RP::add("Shock.Scale_x", "Scale length in x (m)", 2.0e6);
+      RP::add("Shock.Scale_y", "Scale length in y (m)", 2.0e6);
+      RP::add("Shock.Sharp_Y", "Sharpness of tannh", 0.1);
    }
 
    void Shock::getParameters() {
       typedef Readparameters RP;
-      RP::get("GradB.BX0", this->BX0);
-      RP::get("GradB.BY0", this->BY0);
-      RP::get("GradB.BZ0", this->BZ0);
-      RP::get("GradB.EX0", this->EX0);
-      RP::get("GradB.VX0", this->VX0);
-      RP::get("GradB.VY0", this->VY0);
-      RP::get("GradB.VZ0", this->VZ0);
-      RP::get("GradB.rho", this->DENSITY);
-      RP::get("GradB.Temperature", this->TEMPERATURE);
-      RP::get("GradB.magPertAmp", this->magPertAmp);
-      RP::get("GradB.densityPertAmp", this->densityPertAmp);
-      RP::get("GradB.velocityPertAmp", this->velocityPertAmp);
-      RP::get("GradB.nSpaceSamples", this->nSpaceSamples);
-      RP::get("GradB.nVelocitySamples", this->nVelocitySamples);
-      RP::get("GradB.maxwCutoff", this->maxwCutoff);
-      RP::get("GradB.Scale_x", this->SCA_X);
-      RP::get("GradB.Scale_y", this->SCA_Y);
-      RP::get("GradB.Sharp_Y", this->Sharp_Y);
+      RP::get("Shock.BX0", this->BX0);
+      RP::get("Shock.BY0", this->BY0);
+      RP::get("Shock.BZ0", this->BZ0);
+      RP::get("Shock.EX0", this->EX0);
+      RP::get("Shock.VX0", this->VX0);
+      RP::get("Shock.VY0", this->VY0);
+      RP::get("Shock.VZ0", this->VZ0);
+      RP::get("Shock.rho", this->DENSITY);
+      RP::get("Shock.Temperature", this->TEMPERATURE);
+      RP::get("Shock.magPertAmp", this->magPertAmp);
+      RP::get("Shock.densityPertAmp", this->densityPertAmp);
+      RP::get("Shock.velocityPertAmp", this->velocityPertAmp);
+      RP::get("Shock.nSpaceSamples", this->nSpaceSamples);
+      RP::get("Shock.nVelocitySamples", this->nVelocitySamples);
+      RP::get("Shock.maxwCutoff", this->maxwCutoff);
+      RP::get("Shock.Scale_x", this->SCA_X);
+      RP::get("Shock.Scale_y", this->SCA_Y);
+      RP::get("Shock.Sharp_Y", this->Sharp_Y);
    }
 
    Real Shock::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz) {

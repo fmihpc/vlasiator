@@ -605,7 +605,7 @@ static inline void cluster_simple(
       for( uint j = 0; j < tmp_neighbors.size(); ++j ) {
          const uint32_t id = tmp_neighbors[j].hash( startingPoint );
 
-         phiprof_assert( id >= 0 && id < velocityCells.size() );
+         phiprof_assert( id < velocityCells.size() );
 
          // If the velocity cell is not a part of a cluster, add it
          // NOTE: This is probably not needed
@@ -739,13 +739,13 @@ static inline void cluster(
       // Get the id of the velocity cell
       const uint32_t id = vCell.hash( startingPoint );
 
-      phiprof_assert( id >= 0 && id < velocityCells.size() );
+      phiprof_assert( id < velocityCells.size() );
 
       for( vector<Velocity_Cell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
          // Get the id of the neighbor:
          const uint32_t neighbor_id = it->hash( startingPoint );
 
-         phiprof_assert( neighbor_id >= 0 && neighbor_id < velocityCells.size() );
+         phiprof_assert( neighbor_id < velocityCells.size() );
 
          phiprof_assert( clusterIds[id] < clusters.size() && clusterIds[neighbor_id] < clusters.size() );
 
@@ -916,13 +916,13 @@ static inline void cluster_advanced(
       // Get the id of the velocity cell
       const uint32_t id = vCell.hash( startingPoint );
 
-      phiprof_assert( id >= 0 && id < velocityCells.size() );
+      phiprof_assert( id < velocityCells.size() );
 
       for( vector<Velocity_Cell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
          // Get the id of the neighbor:
          const uint32_t neighbor_id = it->hash( startingPoint );
 
-         phiprof_assert( neighbor_id >= 0 && neighbor_id < velocityCells.size() );
+         phiprof_assert( neighbor_id < velocityCells.size() );
 
          phiprof_assert( clusterIds[id] < clusters.size() && clusterIds[neighbor_id] < clusters.size() );
 
@@ -1121,14 +1121,14 @@ static inline void cluster_advanced_two(
       // Get the id of the velocity cell
       const uint32_t id = vCell.hash( startingPoint );
 
-      phiprof_assert( id >= 0 && id < velocityCells.size() );
+      phiprof_assert( id < velocityCells.size() );
 
       for( vector<Velocity_Cell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
 
          // Get the id of the neighbor:
          const uint32_t neighbor_id = it->hash( startingPoint );
 
-         phiprof_assert( neighbor_id >= 0 && neighbor_id < velocityCells.size() );
+         phiprof_assert( neighbor_id < velocityCells.size() );
 
          phiprof_assert( clusterIds[id] < clusters.size() && clusterIds[neighbor_id] < clusters.size() );
 
@@ -1293,13 +1293,13 @@ static inline void cluster_simple_two(
       // Get the id of the velocity cell
       const uint32_t id = vCell.hash( startingPoint );
 
-      phiprof_assert( id >= 0 && id < velocityCells.size() );
+      phiprof_assert( id < velocityCells.size() );
 
       for( vector<Velocity_Cell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
          // Get the id of the neighbor:
          const uint32_t neighbor_id = it->hash( startingPoint );
 
-         phiprof_assert( neighbor_id >= 0 && neighbor_id < velocityCells.size() );
+         phiprof_assert( neighbor_id < velocityCells.size() );
 
          // Set the id to equal the same as neighbors' if the neighbor is part of a cluster
          if( clusterIds[neighbor_id] != noCluster ) {

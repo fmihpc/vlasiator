@@ -20,11 +20,11 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 #define FLOWTHROUGH_H
 
 #include "../../definitions.h"
-#include "../projectIsotropicMaxwellian.h"
+#include "../projectTriAxisSearch.h"
 
 
 namespace projects {
-   class Flowthrough: public IsotropicMaxwellian {
+   class Flowthrough: public TriAxisSearch {
       public:
          Flowthrough();
          virtual ~Flowthrough();
@@ -47,11 +47,10 @@ namespace projects {
             creal& vx, creal& vy, creal& vz,
             creal& dvx, creal& dvy, creal& dvz
          );
-         virtual Real getV0(
+         virtual vector<std::array<Real, 3>> getV0(
             creal x,
             creal y,
-            creal z,
-            cuint component
+            creal z
          );
          
          Real rho;
