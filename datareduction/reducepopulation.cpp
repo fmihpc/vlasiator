@@ -406,10 +406,10 @@ namespace std {
 
 //A function for creating neighbors for velocity cells.
 // Note: local_vcell_neighbors[vCellId] gives the local neighbors of a velocity cell (neighbors that are within the same block)
-// Note: remote_vcell_neighbors[vCellId] Gives a vector containing remote neighbors of the velocity cell (neighbors that are outside the block) in vector< pair<uint16_t, vector<uint16_t> > > format. The pair's first index gives the neighbor block index (check spatial_cell.hpp for more information) and the second index gives the local velocity cells withing that neighbor block.
+// Note: remote_vcell_neighbors[vCellId] Gives a vector containing remote neighbors of the velocity cell (neighbors that are outside the block) in vector< pair<int16_t, vector<uint16_t> > > format. The pair's first index gives the neighbor block index (check spatial_cell.hpp for more information) and the second index gives the local velocity cells withing that neighbor block.
 void set_local_and_remote_velocity_cell_neighbors( 
        array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-       array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
+       array< vector< pair<int16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
                                                  ) {
    // Go through every velocity cell in a block
    for( uint i = 0; i < WID; ++i ) for( uint j = 0; j < WID; ++j ) for( uint k = 0; k < WID; ++k ) {
@@ -435,7 +435,7 @@ void set_local_and_remote_velocity_cell_neighbors(
          }
          if( isRemoteVCell ) {
             // Do stuff for remote_vcell_neighbors
-            int neighbor_block_direction[numberOfDirections] = {1,1,1};
+            int neighbor_block_direction[numberOfDirections] = {0,0,0};
             // Go through every direction
             for( uint index = 0; index < numberOfDirections; ++index ) {
                if( neighbor_indices[index] < 0 ) {
@@ -450,10 +450,10 @@ void set_local_and_remote_velocity_cell_neighbors(
                   neighbor_indices[index] = 0;
                }
             }
-            // Now get the neighbor block index: Note the 3 and 9 are so that we can get block indices with % and / operators
-            const uint16_t neighbor_block_index = neighbor_block_direction[0]
-                                    + neighbor_block_direction[1] * 3
-                                    + neighbor_block_direction[2] * 9;
+            // Now get the neighbor block index:
+            const int16_t neighbor_block_index = neighbor_block_direction[0]
+                                    + neighbor_block_direction[1] * SpatialCell::vx_length
+                                    + neighbor_block_direction[2] * SpatialCell::vx_length * SpatialCell::vy_length;
             const uint16_t neighbor_vCellId = neighbor_indices[0] 
                                             + neighbor_indices[1] * block_vx_length
                                             + neighbor_indices[2] * block_vx_length * block_vy_length;
@@ -461,7 +461,7 @@ void set_local_and_remote_velocity_cell_neighbors(
             // First check if the velocity block is already within the vector
             int index = -1;
             int iterator = 0;
-            for( vector< pair<uint16_t, vector<uint16_t> > >::iterator it = remote_vcell_neighbors[vCellId].begin();
+            for( vector< pair<int16_t, vector<uint16_t> > >::iterator it = remote_vcell_neighbors[vCellId].begin();
                  it != remote_vcell_neighbors[vCellId].end();
                  ++it ) {
                // Check for velocity block
@@ -472,19 +472,19 @@ void set_local_and_remote_velocity_cell_neighbors(
                }
                ++iterator;
             }
-            // Check if the velocity block was found
+            // Check if the velocity block was found, and if it was add one more velocity cell into the block
             if( index == -1 ) {
                // Velocity block was not found so add it to the list
                vector<uint16_t> neighbor_vcells;
                neighbor_vcells.reserve(1);
                neighbor_vcells.push_back( neighbor_vCellId );
-               pair<uint16_t, vector<uint16_t> > blockAndVCell = make_pair( neighbor_block_index, neighbor_vcells );
+               pair<int16_t, vector<uint16_t> > blockAndVCell = make_pair( neighbor_block_index, neighbor_vcells );
                // Add pair to the remote velocity cells
                remote_vcell_neighbors[vCellId].reserve( remote_vcell_neighbors[vCellId].size() + 1 );
                remote_vcell_neighbors[vCellId].push_back( blockAndVCell );
             } else {
                // Get the pair
-               pair<uint16_t, vector<uint16_t> > & blockAndVCell = remote_vcell_neighbors[vCellId][index];
+               pair<int16_t, vector<uint16_t> > & blockAndVCell = remote_vcell_neighbors[vCellId][index];
                // Add velocity cell:
                vector<uint16_t> & neighbor_vcells = get<1>( blockAndVCell );
                neighbor_vcells.reserve( neighbor_vcells.size() + 1 );
@@ -504,13 +504,50 @@ void set_local_and_remote_velocity_cell_neighbors(
 
 
 
+//// A function for retrieving the velocity cell neighbors of a given velocity cell. Note: There are alwayus 3*3*3-1=26 neighbors
+//const static int numberOfVCellNeighbors = 26;
+//static inline void get_neighbors(
+//                vector<Velocity_Cell> & neighbors,
+//                const Velocity_Cell & vCell,
+//                const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
+//                const array< vector< pair<int16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
+//                const SpatialCell * cell
+//                                ) {
+//   // Get the local neighbors:
+//   const uint16_t vCellId = vCell.vCellId;
+//   for( vector<uint16_t>::const_iterator it = local_vcell_neighbors[vCellId].begin(); it != local_vcell_neighbors[vCellId].end(); ++it ) {
+//      const uint16_t neighbor_vCellId = *it;
+//      // Add to the next neighbor:
+//      Velocity_Cell neighbor;
+//      // Still in the same block , new vCellId
+//      neighbor.set_data( vCell.block, neighbor_vCellId );
+//      neighbors.push_back( neighbor );
+//   }
+//   // Get the remote neighbors
+//   for( vector< pair<int16_t, vector<uint16_t> > >::const_iterator it = remote_vcell_neighbors[vCellId].begin(); it != remote_vcell_neighbors[vCellId].end(); ++it ) {
+//      // Get the neighbor block's index
+//      const uint16_t neighbor_block_index = get<0>(*it);
+//      // Go through the local cells in the neighbor block:
+//      for( vector<uint16_t>::const_iterator jt = local_vcell_neighbors[vCellId].begin(); jt != local_vcell_neighbors[vCellId].end(); ++jt ) {
+//         const uint16_t neighbor_vCellId = *jt;
+//         // Make sure the neighbor is valid
+//         if( vCell.block->neighbors[neighbor_block_index] && vCell.block->neighbors[neighbor_block_index]->data != cell->null_block_data.data() ) {
+//            Velocity_Cell neighbor;
+//            neighbor.set_data( vCell.block->neighbors[neighbor_block_index], neighbor_vCellId );
+//            neighbors.push_back( neighbor );
+//         }
+//      }
+//   }
+//   return;
+//}
+
 // A function for retrieving the velocity cell neighbors of a given velocity cell. Note: There are alwayus 3*3*3-1=26 neighbors
 const static int numberOfVCellNeighbors = 26;
 static inline void get_neighbors(
                 vector<Velocity_Cell> & neighbors,
                 const Velocity_Cell & vCell,
                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-                const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
+                const array< vector< pair<int16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
                 const SpatialCell * cell
                                 ) {
    // Get the local neighbors:
@@ -524,16 +561,20 @@ static inline void get_neighbors(
       neighbors.push_back( neighbor );
    }
    // Get the remote neighbors
-   for( vector< pair<uint16_t, vector<uint16_t> > >::const_iterator it = remote_vcell_neighbors[vCellId].begin(); it != remote_vcell_neighbors[vCellId].end(); ++it ) {
+   for( vector< pair<int16_t, vector<uint16_t> > >::const_iterator it = remote_vcell_neighbors[vCellId].begin(); it != remote_vcell_neighbors[vCellId].end(); ++it ) {
       // Get the neighbor block's index
-      const uint16_t neighbor_block_index = get<0>(*it);
+      const uint32_t blockid = cell->get_velocity_block( vCell.block->parameters[BlockParams::VXCRD], 
+                                                         vCell.block->parameters[BlockParams::VYCRD],
+                                                         vCell.block->parameters[BlockParams::VZCRD] );
+      const uint16_t neighbor_block_id = blockid + get<0>(*it);//CONTINUE
       // Go through the local cells in the neighbor block:
       for( vector<uint16_t>::const_iterator jt = local_vcell_neighbors[vCellId].begin(); jt != local_vcell_neighbors[vCellId].end(); ++jt ) {
          const uint16_t neighbor_vCellId = *jt;
+         const Velocity_Block * neighbor_block = cell->at(neighbor_block_id);
          // Make sure the neighbor is valid
-         if( vCell.block->neighbors[neighbor_block_index] && vCell.block->neighbors[neighbor_block_index]->data != cell->null_block_data.data() ) {
+         if( cell->at(neighbor_block_id) && neighbor_block->data != cell->null_block_data.data() ) {
             Velocity_Cell neighbor;
-            neighbor.set_data( vCell.block->neighbors[neighbor_block_index], neighbor_vCellId );
+            neighbor.set_data( neighbor_block, neighbor_vCellId );
             neighbors.push_back( neighbor );
          }
       }
@@ -541,12 +582,13 @@ static inline void get_neighbors(
    return;
 }
 
+
 // A function for clustering velocity cells into separate populations.
 // This algorithm starts from the highest-valued velocity cell and starts clustering until it hits a certain threshold value, after which it starts to find new populations.
 static inline void cluster_simple( 
                                 vector<Velocity_Cell> & velocityCells,
                                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-                                const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
+                                const array< vector< pair<int16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
                                 SpatialCell * cell
                           ) {
 
@@ -679,7 +721,7 @@ static inline void cluster_simple(
 static inline void cluster( 
                                 const vector<Velocity_Cell> & velocityCells,
                                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-                                const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
+                                const array< vector< pair<int16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
                                 SpatialCell * cell
                           ) {
 
@@ -860,7 +902,7 @@ static inline void cluster(
 static inline void cluster_advanced( 
                                 const vector<Velocity_Cell> & velocityCells,
                                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-                                const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
+                                const array< vector< pair<int16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
                                 SpatialCell * cell
                                   ) {
    if( velocityCells.size() == 0 ) { return; }
@@ -1066,7 +1108,7 @@ static inline void cluster_advanced(
 static inline void cluster_advanced_two( 
                                 const vector<Velocity_Cell> & velocityCells,
                                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-                                const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
+                                const array< vector< pair<int16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
                                 SpatialCell * cell
                                        ) {
 
@@ -1250,94 +1292,94 @@ static inline void cluster_advanced_two(
 
 
 
-// Simplest case of clustering. Starts from highest valued velocity cell moves to the second-highest, third-highest, etc. This algorithm does not have cluster merging.
-static inline void cluster_simple_two( 
-                                const vector<Velocity_Cell> & velocityCells,
-                                const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-                                const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
-                                SpatialCell * cell
-                          ) {
-
-   if( velocityCells.size() == 0 ) { return; }
-   // Reserve a table for clusters:
-   uint32_t * clusterIds = new uint32_t[velocityCells.size()];
-   
-   // Initialize to be part of no clusters:
-   const uint32_t noCluster = 1;
-   for( uint i = 0; i < velocityCells.size(); ++i ) {
-      clusterIds[i] = noCluster;
-   }
-
-
-   // Id for separating clusterIds
-   uint32_t clusterId=2;
-
-   // Set the first velocity cell to cluster one
-   uint32_t last_vCell = velocityCells.size()-1;
-   clusterIds[last_vCell] = clusterId;
-
-
-   // Start getting velocity neighbors
-   vector<Velocity_Cell> neighbors;
-   neighbors.reserve( numberOfVCellNeighbors );
-
-   const size_t startingPoint = (size_t)(cell->block_data.data());
-
-   uint32_t merges = 0;
-
-
-   for( int i = velocityCells.size()-1; i >= 0; --i ) {
-      const Velocity_Cell & vCell = velocityCells[i];
-      // Get the neighbors:
-      get_neighbors( neighbors, vCell, local_vcell_neighbors, remote_vcell_neighbors, cell );
-      // Get the id of the velocity cell
-      const uint32_t id = vCell.hash( startingPoint );
-
-      phiprof_assert( id < velocityCells.size() );
-
-      for( vector<Velocity_Cell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
-         // Get the id of the neighbor:
-         const uint32_t neighbor_id = it->hash( startingPoint );
-
-         phiprof_assert( neighbor_id < velocityCells.size() );
-
-         // Set the id to equal the same as neighbors' if the neighbor is part of a cluster
-         if( clusterIds[neighbor_id] != noCluster ) {
-            // If the cluster id has not been set yet, set it now:
-            if( clusterIds[id] == noCluster ) {
-               // Cluster id has not been set yet
-               clusterIds[id] = clusterIds[neighbor_id];
-            } else if( clusterIds[id] != clusterIds[neighbor_id] ) {
-               // Merge the clusters:
-               ++merges;
-            }
-         }
-      }
-      // If the cell does not have any neighbors that are part of a cluster then this is a new cluster:
-      if( clusterIds[id] == noCluster ) {
-         ++clusterId;
-         clusterIds[id] = clusterId;
-      }
-      neighbors.clear();
-   }
-
-   phiprof_assert( cell->block_fx.size() >= velocityCells.size() );
-   for( uint i = 0; i < velocityCells.size(); ++i ) {
-      const Realf value = clusterIds[i];
-      cell->block_fx.at(i) = value;
-   }
-
-   // Print out the number of clusterIds:
-   //cerr << "Clusters: " << clusterId << endl;
-   //cerr << "Merges: " << merges << endl;
-//   cerr << "Sizeof: " << sizeof(Realf) << endl;
-
+//// Simplest case of clustering. Starts from highest valued velocity cell moves to the second-highest, third-highest, etc. This algorithm does not have cluster merging.
+//static inline void cluster_simple_two( 
+//                                const vector<Velocity_Cell> & velocityCells,
+//                                const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
+//                                const array< vector< pair<int16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
+//                                SpatialCell * cell
+//                          ) {
+//
+//   if( velocityCells.size() == 0 ) { return; }
+//   // Reserve a table for clusters:
+//   uint32_t * clusterIds = new uint32_t[velocityCells.size()];
 //   
-
-   delete[] clusterIds;
-
-   return;
-}
+//   // Initialize to be part of no clusters:
+//   const uint32_t noCluster = 1;
+//   for( uint i = 0; i < velocityCells.size(); ++i ) {
+//      clusterIds[i] = noCluster;
+//   }
+//
+//
+//   // Id for separating clusterIds
+//   uint32_t clusterId=2;
+//
+//   // Set the first velocity cell to cluster one
+//   uint32_t last_vCell = velocityCells.size()-1;
+//   clusterIds[last_vCell] = clusterId;
+//
+//
+//   // Start getting velocity neighbors
+//   vector<Velocity_Cell> neighbors;
+//   neighbors.reserve( numberOfVCellNeighbors );
+//
+//   const size_t startingPoint = (size_t)(cell->block_data.data());
+//
+//   uint32_t merges = 0;
+//
+//
+//   for( int i = velocityCells.size()-1; i >= 0; --i ) {
+//      const Velocity_Cell & vCell = velocityCells[i];
+//      // Get the neighbors:
+//      get_neighbors( neighbors, vCell, local_vcell_neighbors, remote_vcell_neighbors, cell );
+//      // Get the id of the velocity cell
+//      const uint32_t id = vCell.hash( startingPoint );
+//
+//      phiprof_assert( id < velocityCells.size() );
+//
+//      for( vector<Velocity_Cell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
+//         // Get the id of the neighbor:
+//         const uint32_t neighbor_id = it->hash( startingPoint );
+//
+//         phiprof_assert( neighbor_id < velocityCells.size() );
+//
+//         // Set the id to equal the same as neighbors' if the neighbor is part of a cluster
+//         if( clusterIds[neighbor_id] != noCluster ) {
+//            // If the cluster id has not been set yet, set it now:
+//            if( clusterIds[id] == noCluster ) {
+//               // Cluster id has not been set yet
+//               clusterIds[id] = clusterIds[neighbor_id];
+//            } else if( clusterIds[id] != clusterIds[neighbor_id] ) {
+//               // Merge the clusters:
+//               ++merges;
+//            }
+//         }
+//      }
+//      // If the cell does not have any neighbors that are part of a cluster then this is a new cluster:
+//      if( clusterIds[id] == noCluster ) {
+//         ++clusterId;
+//         clusterIds[id] = clusterId;
+//      }
+//      neighbors.clear();
+//   }
+//
+//   phiprof_assert( cell->block_fx.size() >= velocityCells.size() );
+//   for( uint i = 0; i < velocityCells.size(); ++i ) {
+//      const Realf value = clusterIds[i];
+//      cell->block_fx.at(i) = value;
+//   }
+//
+//   // Print out the number of clusterIds:
+//   //cerr << "Clusters: " << clusterId << endl;
+//   //cerr << "Merges: " << merges << endl;
+////   cerr << "Sizeof: " << sizeof(Realf) << endl;
+//
+////   
+//
+//   delete[] clusterIds;
+//
+//   return;
+//}
 
 
 
@@ -1345,7 +1387,7 @@ static inline void cluster_simple_two(
 static void test_neighbor(
                 SpatialCell * cell,
                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-                const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
+                const array< vector< pair<int16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
                   ) {
    cerr << "TESTING NEIGHBOR" << endl;
    // Print out velocity cell neighbors:
@@ -1370,7 +1412,7 @@ static void test_neighbor(
       }
       cerr << "REMOTES: " << endl;
 
-      for( vector< pair<uint16_t, vector<uint16_t> > >::const_iterator it = remote_vcell_neighbors[i].begin();
+      for( vector< pair<int16_t, vector<uint16_t> > >::const_iterator it = remote_vcell_neighbors[i].begin();
       it != remote_vcell_neighbors[i].end(); ++it ) {
          for( vector<uint16_t>::const_iterator jt = get<1>(*it).begin(); jt != get<1>(*it).end(); ++jt ) {
             cerr << "Neighbor2: " << *jt << " - ";
@@ -1393,7 +1435,7 @@ static void test_neighbor(
 Real evaluate_speed( 
                 SpatialCell * cell,
                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-                const array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
+                const array< vector< pair<int16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
                    ) {
    // Sort list of avgs values:
 
@@ -1431,7 +1473,7 @@ Real evaluate_speed(
 }
 
 // Function for getting the max number of populations:
-static uint max_number_of_populations( dccrg::Dccrg<SpatialCell>& mpiGrid ) {
+static uint max_number_of_populations( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) {
    uint max_populations = 0;
    // Fetch cells:
    vector<uint64_t> local_cells = mpiGrid.get_cells();
@@ -1448,7 +1490,7 @@ static uint max_number_of_populations( dccrg::Dccrg<SpatialCell>& mpiGrid ) {
 }
 
 // Function for writing out rho for different populations:
-static inline bool write_rho( const uint max_populations, const vector<uint64_t> & local_cells, dccrg::Dccrg<SpatialCell>& mpiGrid, Writer & vlsvWriter ) {
+static inline bool write_rho( const uint max_populations, const vector<uint64_t> & local_cells, dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, Writer & vlsvWriter ) {
    bool success = true;
    // Reserve space for writing out rho:
    Real * population_rho = new Real[max_populations * local_cells.size()];
@@ -1486,7 +1528,7 @@ static inline bool write_rho( const uint max_populations, const vector<uint64_t>
 }
 
 // Function for writing out the population variables (for now, writing just rho)
-bool write_population_variables( dccrg::Dccrg<SpatialCell>& mpiGrid, Writer & vlsvWriter ) {
+bool write_population_variables( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, Writer & vlsvWriter ) {
    // Get max number of populations (to be used in determining how many arrays to write)
    const uint max_populations = max_number_of_populations( mpiGrid );
    // Fetch cells:
