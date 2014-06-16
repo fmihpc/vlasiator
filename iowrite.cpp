@@ -864,7 +864,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if( writeGhostZoneDomainAndLocalIdNumbers( mpiGrid, vlsvWriter, meshName, ghost_cells ) == false ) return false;
 
    array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> local_vcell_neighbors;
-   array< vector< pair<uint16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> remote_vcell_neighbors;
+   array< vector< pair<int16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> remote_vcell_neighbors;
    set_local_and_remote_velocity_cell_neighbors( local_vcell_neighbors, remote_vcell_neighbors );
 
 
@@ -884,7 +884,6 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       SpatialCell * cell = mpiGrid[cellId];
       const Realf test = evaluate_speed( cell, local_vcell_neighbors, remote_vcell_neighbors );
    }
-   cerr << "Done with population reducer" << endl;
    for (vector<string>::const_iterator it = P::outputVariableList.begin();
         it != P::outputVariableList.end();
         it++) {
