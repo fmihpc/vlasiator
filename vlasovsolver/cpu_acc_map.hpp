@@ -22,11 +22,14 @@ Copyright 2013, 2014 Finnish Meteorological Institute
 using namespace std;
 using namespace spatial_cell;
 
+//#define i_pblock(i,j,k) ( ((k) + STENCIL_WIDTH ) * WID + (j) * WID * (WID + 2* STENCIL_WIDTH) + (i) )
+//#define i_pblockv(j,k) ( ((k) + STENCIL_WIDTH ) * WID + (j) * WID * (WID + 2* STENCIL_WIDTH) )
+
 
 //index in the temporary and padded column data values array. At each there is an empty block
-#define i_pcolumn(block_i, i, j, k) ((block_i + 1) * WID3 + (i) + (j) * WID2 + (k) *  WID )
-#define i_pcolumnv(block_i, j, k) ((block_i + 1) * WID3 +  (j) * WID2 + (k) *  WID )
-#define i_pcolumnb(block_i, i) ((block_i + 1) * WID3 + (i) )
+#define i_pcolumn(nblocks, block_i, i, j, k) ( (i) + (j) * WID2 * nblocks + ( (k) + ( block_i + 1 ) * WID) *  WID )
+#define i_pcolumnv(nblocks, block_i, j, k) ( (j) * WID2 * nblocks + ( (k) + ( block_i + 1 ) * WID) *  WID )
+
 
 
 
@@ -74,8 +77,14 @@ inline void load_column_block_data(SpatialCell* spatial_cell, uint* blocks, uint
    
    /*first set the 0 values fot the two empty blocks we store above and below the existing blosk*/
    for (uint i=0; i<WID3; ++i){
-      values[i_pcolumnb(-1,i)] = 0.0;
-      values[i_pcolumnb(n_blocks,i)] = 0.0;
+      for (uint k=0; k<WID; ++k) {
+         for (uint j=0; j<WID; ++j) {
+            for (uint i=0; i<WID; ++i) {
+               values[i_pcolumn(n_blocks,-1,i,j,k)] = 0.0;
+               values[i_pcolumn(n_blocks,n_blocks,i,j,k)] = 0.0;
+            }
+         }
+      }
    }
 
    /*copy block data for all blocks*/
@@ -91,7 +100,7 @@ inline void load_column_block_data(SpatialCell* spatial_cell, uint* blocks, uint
                   j * cell_indices_to_id[1] +
                   k * cell_indices_to_id[2];
                const Real value = fx[cell];
-               values[i_pcolumn(block_i,i,j,k)] = value;
+               values[i_pcolumn(n_blocks,block_i,i,j,k)] = value;
             }
          }
       }
@@ -264,20 +273,20 @@ bool map_1d(SpatialCell* spatial_cell,
 #ifdef ACC_SEMILAG_PLM
                Vec4 a[2];
                Vec4 mv,cv,pv;
-               mv.load(values + i_pcolumnv(block_i,j,k-1));
-               cv.load(values + i_pcolumnv(block_i,j,k));
-               pv.load(values + i_pcolumnv(block_i,j,k+1));
+               mv.load(values + i_pcolumnv(n_cblocks,block_i,j,k-1));
+               cv.load(values + i_pcolumnv(n_cblocks,block_i,j,k));
+               pv.load(values + i_pcolumnv(n_cblocks,block_i,j,k+1));
                compute_plm_coeff(mv,cv,pv,a);
 
 #endif
 #ifdef ACC_SEMILAG_PPM
                Vec4 a[3];
                Vec4 mmv,mv,cv,pv,ppv;
-               mmv.load(values + i_pcolumnv(block_i,j,k-2));
-               mv.load(values + i_pcolumnv(block_i,j,k-1));
-               cv.load(values + i_pcolumnv(block_i,j,k));
-               pv.load(values + i_pcolumnv(block_i,j,k+1));
-               ppv.load(values + i_pcolumnv(block_i,j,k+2));
+               mmv.load(values + i_pcolumnv(n_cblocks,block_i,j,k-2));
+               mv.load(values + i_pcolumnv(n_cblocks,block_i,j,k-1));
+               cv.load(values + i_pcolumnv(n_cblocks,block_i,j,k));
+               pv.load(values + i_pcolumnv(n_cblocks,block_i,j,k+1));
+               ppv.load(values + i_pcolumnv(n_cblocks,block_i,j,k+2));
                compute_ppm_coeff(mmv,mv,cv,pv,ppv,a);
 #endif
                Vec4i gk(lagrangian_gk_l);	
@@ -303,7 +312,7 @@ bool map_1d(SpatialCell* spatial_cell,
 #endif
 #ifdef ACC_SEMILAG_PCONSTM
                   Vec4 cv;	    
-                  cv.load(values + i_pcolumnv(block_i,j,k));
+                  cv.load(values + i_pcolumnv(n_cblocks,block_i,j,k));
                   const Vec4 target_density=(v_2 - v_1) *  cv;
 #endif
 #ifdef ACC_SEMILAG_PLM	    
