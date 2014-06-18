@@ -5,8 +5,8 @@ Copyright 2013, 2014 Finnish Meteorological Institute
 
 */
 
-#ifndef CPU_ACC_MAP_H
-#define CPU_ACC_MAP_H
+#ifndef CPU_ACC_MAP_SPLINES_H
+#define CPU_ACC_MAP_SPLINES_H
 
 #include  "vec4.h"
 #include "algorithm"
@@ -16,17 +16,6 @@ Copyright 2013, 2014 Finnish Meteorological Institute
 #include "spatial_cell.hpp"
 #include "cpu_1d_interpolations.hpp"
 #include "cpu_sort_blocks_for_acc.hpp"
-
-#ifdef ACC_SEMILAG_PCONSTM
-const int STENCIL_WIDTH=0;
-#endif
-#ifdef ACC_SEMILAG_PLM
-const int STENCIL_WIDTH=1;
-#endif
-#if ACC_SEMILAG_PPM
-const int STENCIL_WIDTH=2;
-#endif
-
 
 
 
@@ -50,7 +39,7 @@ For dimension=1 data copy  we have rotated data
   k -> j
 
 */
-inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __restrict__ values, int dimension){
+inline void copy_column_data(SpatialCell* spatial_cell, uint blockID,Real * __restrict__ values, int dimension){
     Velocity_Block *block=spatial_cell->at(blockID);
     Velocity_Block *nbrBlock;
     uint cell_indices_to_id[3];
@@ -178,116 +167,126 @@ inline void copy_block_data(SpatialCell* spatial_cell, uint blockID,Real * __res
    
 */
 
-bool map_1d(SpatialCell* spatial_cell,   
-	    Real intersection, Real intersection_di, Real intersection_dj,Real intersection_dk,
-	    uint dimension ) {
-
-  /*values used with an stencil in 1 dimension, initialized to 0 */  
-  Real values[WID*WID*(WID+2*STENCIL_WIDTH)]={};
-  // Make a copy of the blocklist, the blocklist will change during this algorithm
-  uint*  blocks=new uint[spatial_cell->number_of_blocks];
-  const uint nblocks=spatial_cell->number_of_blocks;
-
-  /*
+bool map_1d_splines(SpatialCell* spatial_cell,   
+                    Real intersection, Real intersection_di, Real intersection_dj,Real intersection_dk,
+                    uint dimension ) {
+   /*
      Move densities from data to fx and clear data, to prepare for mapping
-  */
-  for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->number_of_blocks; cell++) {
-     //copy data to fx for solvers, and set data to zero as we will map new values there
-     spatial_cell->block_fx[cell] = spatial_cell->block_data[cell];
-     spatial_cell->block_data[cell] = 0.0;
-  }
+   */
+   for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->number_of_blocks; cell++) {
+      //copy data to fx for solvers, and set data to zero as we will map new values there
+      spatial_cell->block_fx[cell] = spatial_cell->block_data[cell];
+      spatial_cell->block_data[cell] = 0.0;
+   }
   
-  /*copy blocklist since the velocity block list in spatial cell changes when we add values */
-  for (unsigned int block_i = 0; block_i < nblocks; block_i++) {
-     const unsigned int block = spatial_cell->velocity_block_list[block_i];
-     blocks[block_i] = block; 
-  }
-  // Copy blocklist and sort it according to the dimension (0=x-dimension, 1=y-dimension, 2=z-dimension)
-  //sort_blocklist_by_dimension( spatial_cell, dimension, blocks );
 
-  
-  if(dimension>2)
-    return false; //not possible
-
-
-  Real dv,v_min;
-  Real is_temp;
-  uint max_v_length;
-  uint block_indices_to_id[3]; /*< used when computing id of target block */
-  uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
-  switch (dimension){
-  case 0:
-    /* i and k coordinates have been swapped*/
-    /*set cell size in dimension direction*/
-    dv=SpatialCell::cell_dvx; 
-    v_min=SpatialCell::vx_min;
-    max_v_length = SpatialCell::vx_length;
-    /*swap intersection i and k coordinates*/
-    is_temp=intersection_di;
-    intersection_di=intersection_dk;
-    intersection_dk=is_temp;
-    /*set values in array that is used to transfer blockindices to id using a dot product*/
-    block_indices_to_id[0]=SpatialCell::vx_length * SpatialCell::vy_length;
-    block_indices_to_id[1]=SpatialCell::vx_length;
-    block_indices_to_id[2]=1;
-    /*set values in array that is used to transfer blockindices to id using a dot product*/
-    cell_indices_to_id[0]=WID2;
-    cell_indices_to_id[1]=WID;
-    cell_indices_to_id[2]=1;
-    break;
-  case 1:
-    /* j and k coordinates have been swapped*/
-    /*set cell size in dimension direction*/
-    dv=SpatialCell::cell_dvy;
-    v_min=SpatialCell::vy_min;
-    max_v_length = SpatialCell::vy_length;
-    /*swap intersection j and k coordinates*/
-    is_temp=intersection_dj;
-    intersection_dj=intersection_dk;
-    intersection_dk=is_temp;
-    /*set values in array that is used to transfer blockindices to id using a dot product*/
-    block_indices_to_id[0]=1;
-    block_indices_to_id[1]=SpatialCell::vx_length * SpatialCell::vy_length;
-    block_indices_to_id[2]=SpatialCell::vx_length;
-    /*set values in array that is used to transfer blockindices to id using a dot product*/
-    cell_indices_to_id[0]=1;
-    cell_indices_to_id[1]=WID2;
-    cell_indices_to_id[2]=WID;
-    break;
-  case 2:
-    /*set cell size in dimension direction*/
-    dv=SpatialCell::cell_dvz;
-    v_min=SpatialCell::vz_min;
-    max_v_length = SpatialCell::vz_length;
-    /*set values in array that is used to transfer blockindices to id using a dot product*/
-    block_indices_to_id[0]=1;
-    block_indices_to_id[1]=SpatialCell::vx_length;
-    block_indices_to_id[2]=SpatialCell::vx_length * SpatialCell::vy_length;
-    /*set values in array that is used to transfer blockindices to id using a dot product*/
-    cell_indices_to_id[0]=1;
-    cell_indices_to_id[1]=WID;
-    cell_indices_to_id[2]=WID2;
-    break;
-  }
-  const Real i_dv=1.0/dv;
+   Real dv,v_min;
+   Real is_temp;
+   uint max_v_length;
+   uint block_indices_to_id[3]; /*< used when computing id of target block */
+   uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
+   switch (dimension){
+       case 0:
+          /* i and k coordinates have been swapped*/
+          /*set cell size in dimension direction*/
+          dv=SpatialCell::cell_dvx; 
+          v_min=SpatialCell::vx_min;
+          max_v_length = SpatialCell::vx_length;
+          /*swap intersection i and k coordinates*/
+          is_temp=intersection_di;
+          intersection_di=intersection_dk;
+          intersection_dk=is_temp;
+          /*set values in array that is used to transfer blockindices to id using a dot product*/
+          block_indices_to_id[0]=SpatialCell::vx_length * SpatialCell::vy_length;
+          block_indices_to_id[1]=SpatialCell::vx_length;
+          block_indices_to_id[2]=1;
+          /*set values in array that is used to transfer blockindices to id using a dot product*/
+          cell_indices_to_id[0]=WID2;
+          cell_indices_to_id[1]=WID;
+          cell_indices_to_id[2]=1;
+          break;
+       case 1:
+          /* j and k coordinates have been swapped*/
+          /*set cell size in dimension direction*/
+          dv=SpatialCell::cell_dvy;
+          v_min=SpatialCell::vy_min;
+          max_v_length = SpatialCell::vy_length;
+          /*swap intersection j and k coordinates*/
+          is_temp=intersection_dj;
+          intersection_dj=intersection_dk;
+          intersection_dk=is_temp;
+          /*set values in array that is used to transfer blockindices to id using a dot product*/
+          block_indices_to_id[0]=1;
+          block_indices_to_id[1]=SpatialCell::vx_length * SpatialCell::vy_length;
+          block_indices_to_id[2]=SpatialCell::vx_length;
+          /*set values in array that is used to transfer blockindices to id using a dot product*/
+          cell_indices_to_id[0]=1;
+          cell_indices_to_id[1]=WID2;
+          cell_indices_to_id[2]=WID;
+          break;
+       case 2:
+          /*set cell size in dimension direction*/
+          dv=SpatialCell::cell_dvz;
+          v_min=SpatialCell::vz_min;
+          max_v_length = SpatialCell::vz_length;
+          /*set values in array that is used to transfer blockindices to id using a dot product*/
+          block_indices_to_id[0]=1;
+          block_indices_to_id[1]=SpatialCell::vx_length;
+          block_indices_to_id[2]=SpatialCell::vx_length * SpatialCell::vy_length;
+          /*set values in array that is used to transfer blockindices to id using a dot product*/
+          cell_indices_to_id[0]=1;
+          cell_indices_to_id[1]=WID;
+          cell_indices_to_id[2]=WID2;
+          break;
+   }
+   const Real i_dv=1.0/dv;
 
 
-  /*these two temporary variables are used to optimize access to target cells*/
-  uint previous_target_block = error_velocity_block;
-  Realf *target_block_data = NULL;
+   
 
-  
-  for (unsigned int block_i = 0; block_i < nblocks; block_i++) {
-    velocity_block_indices_t block_indices=SpatialCell::get_velocity_block_indices(blocks[block_i]);
-    uint temp;
+/*values used with an stencil in 1 dimension, initialized to 0 */  
+   //Real values[WID*WID*(WID+2*STENCIL_WIDTH)]={};
+   // Make a copy of the blocklist, the blocklist will change during this algorithm
+   uint*  blocks=new uint[spatial_cell->number_of_blocks];
+   std::vector<uint> block_column_offsets;
+   const uint nblocks=spatial_cell->number_of_blocks;   
+   if(dimension>2)
+      return false; //not possible
+
+   /*sort blocks according to dimension, and divide them into columns*/
+   sort_blocklist_by_dimension( spatial_cell, dimension, blocks, block_column_offsets);
+   
+   
+
+
+   /*these two temporary variables are used to optimize access to target cells*/
+   uint previous_target_block = error_velocity_block;
+   Realf *target_block_data = NULL;
+
+
+   for (unsigned int block_column_i = 0; block_column_i< block_column_offsets.size(); block_column_i++) {
+      uint n_column_blocks; /*< number of blocks in this column*/
+      if (block_column_i <block_column_offsets.size() - 1)
+         n_column_blocks = block_column_offsets[block_column_i + 1] - block_column_offsets[block_column_i];
+      else
+         n_column_blocks = nBlocks - block_column_offsets[block_column_i];
+
+
+      
+      copy_column_block_data(spatial_cell, blocks + block_column_offsets[block_column_i] ,values,dimension);
+      
+
+         for (unsigned int block_i = block_column_offsets[block_co; block_i < nblocks; block_i++) {
+     velocity_block_indices_t block_indices=SpatialCell::get_velocity_block_indices(blocks[block_i]);
+     uint temp;
     //Switch block indices according to dimensions, the alogirthm has
-    //been written for integrating along z.
-    switch (dimension){
-        case 0:
+    //  been written for integrating along z.
+     switch (dimension){
+         case 0:
 	  /*i and k coordinates have been swapped*/
-	  temp=block_indices[2];
-	  block_indices[2]=block_indices[0];
-	  block_indices[0]=temp;
+            temp=block_indices[2];
+            block_indices[2]=block_indices[0];
+            block_indices[0]=temp;
 	  break;
     case 1:
            /*in values j and k coordinates have been swapped*/
@@ -298,7 +297,7 @@ bool map_1d(SpatialCell* spatial_cell,
         case 2:
            break;
     }
-    copy_block_data(spatial_cell, blocks[block_i] ,values,dimension); 
+
 
     /*i,j,k are now relative to the order in which we copied data to the values array. 
       After this point in the k,j,i loops there should be no branches based on dimensions
@@ -425,6 +424,7 @@ bool map_1d(SpatialCell* spatial_cell,
       }
     }
   }
+   }
   delete [] blocks;
   return true;
 }
