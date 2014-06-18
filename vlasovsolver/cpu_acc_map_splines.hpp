@@ -170,20 +170,6 @@ inline void copy_column_data(SpatialCell* spatial_cell, uint blockID,Real * __re
 bool map_1d_splines(SpatialCell* spatial_cell,   
                     Real intersection, Real intersection_di, Real intersection_dj,Real intersection_dk,
                     uint dimension ) {
-
-  /*values used with an stencil in 1 dimension, initialized to 0 */  
-   //Real values[WID*WID*(WID+2*STENCIL_WIDTH)]={};
-   // Make a copy of the blocklist, the blocklist will change during this algorithm
-   uint*  blocks=new uint[spatial_cell->number_of_blocks];
-   std::vector<uint> block_column_offsets;
-   const uint nblocks=spatial_cell->number_of_blocks;   
-   if(dimension>2)
-      return false; //not possible
-
-   /*sort blocks according to dimension, and divide them into columns*/
-   sort_blocklist_by_dimension( spatial_cell, dimension, blocks, block_column_offsets);
-   
-   
    /*
      Move densities from data to fx and clear data, to prepare for mapping
    */
@@ -193,14 +179,6 @@ bool map_1d_splines(SpatialCell* spatial_cell,
       spatial_cell->block_data[cell] = 0.0;
    }
   
-   /*copy blocklist since the velocity block list in spatial cell changes when we add values */
-   for (unsigned int block_i = 0; block_i < nblocks; block_i++) {
-      const unsigned int block = spatial_cell->velocity_block_list[block_i];
-      blocks[block_i] = block; 
-   }
-   // Copy blocklist and sort it according to the dimension (0=x-dimension, 1=y-dimension, 2=z-dimension)
-
-   
 
    Real dv,v_min;
    Real is_temp;
@@ -264,13 +242,38 @@ bool map_1d_splines(SpatialCell* spatial_cell,
    const Real i_dv=1.0/dv;
 
 
+   
+
+/*values used with an stencil in 1 dimension, initialized to 0 */  
+   //Real values[WID*WID*(WID+2*STENCIL_WIDTH)]={};
+   // Make a copy of the blocklist, the blocklist will change during this algorithm
+   uint*  blocks=new uint[spatial_cell->number_of_blocks];
+   std::vector<uint> block_column_offsets;
+   const uint nblocks=spatial_cell->number_of_blocks;   
+   if(dimension>2)
+      return false; //not possible
+
+   /*sort blocks according to dimension, and divide them into columns*/
+   sort_blocklist_by_dimension( spatial_cell, dimension, blocks, block_column_offsets);
+   
+   
+
+
    /*these two temporary variables are used to optimize access to target cells*/
    uint previous_target_block = error_velocity_block;
    Realf *target_block_data = NULL;
 
 
    for (unsigned int block_column_i = 0; block_column_i< block_column_offsets.size(); block_column_i++) {
-      copy_block_data(spatial_cell, blocks[block_i] ,values,dimension);
+      uint n_column_blocks; /*< number of blocks in this column*/
+      if (block_column_i <block_column_offsets.size() - 1)
+         n_column_blocks = block_column_offsets[block_column_i + 1] - block_column_offsets[block_column_i];
+      else
+         n_column_blocks = nBlocks - block_column_offsets[block_column_i];
+
+
+      
+      copy_column_block_data(spatial_cell, blocks + block_column_offsets[block_column_i] ,values,dimension);
       
 
          for (unsigned int block_i = block_column_offsets[block_co; block_i < nblocks; block_i++) {

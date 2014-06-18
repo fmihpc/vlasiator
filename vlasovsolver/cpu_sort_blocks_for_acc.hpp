@@ -30,8 +30,9 @@ inline bool paircomparator( const pair<uint, uint> & l, const pair<uint, uint> &
 static void sort_blocklist_by_dimension( const SpatialCell* spatial_cell, 
                                          const uint dimension,
                                          uint* blocks,
-                                         std::vector<uint> & block_column_offsets ) {
-  const uint nBlocks = spatial_cell->number_of_blocks; // Number of blocks
+                                         std::vector<uint> & block_column_offsets,
+                                         std::vector<uint> & block_column_length ) {
+   const uint nBlocks = spatial_cell->number_of_blocks; // Number of blocks
   // Copy block data to vector
   vector<pair<uint, uint> > block_pairs;
   block_pairs.resize( nBlocks );
@@ -74,10 +75,10 @@ static void sort_blocklist_by_dimension( const SpatialCell* spatial_cell,
   }
   // Sort the list:
   sort( block_pairs.begin(), block_pairs.end(), paircomparator );
-  // Put in the sorted blocks, and also compute columnoffsets:
+
+  // Put in the sorted blocks, and also compute columnoffsets, and column lengths:
   block_column_offset.push_back(0); //first offset
   uint prev_column_id, prev_dimension_id;
-  
   for( uint i = 0; i < nBlocks; ++i ) {
      uint column_id; /* identifies a particlular column*/
      uint dimension_id; /*identifies a particular block in a column (along the dimension)*/
@@ -99,11 +100,16 @@ static void sort_blocklist_by_dimension( const SpatialCell* spatial_cell,
      if ( i > 0 &&  ( column_id != prev_column_id || dimension_id != (prev_dimension_id + 1) )){
         //encountered new column! For i=0, we already entered the correct offset (0).
         //We also identify it as a new column if there is a break in the column (e.g., gap between two populations)
-        block_column_offset.push_back(i); //first offset      
+        /*add offset where the next column will begin*/
+        block_column_offset.push_back(i); 
+        /*add length of the current column that now ended*/
+        block_column_length.push_back(block_column_offset[block_column_offset.size()-1] - block_column_offset[block_column_offset.size()-2]);
      }
+     
      prev_column_id = column_id;
      prev_dimension_id = dimension_id;
-  }
+  }  
+  block_column_length.push_back(nBlocks - block_column_offset[block_column_offset.size()-1]);
   return;
 }
 
