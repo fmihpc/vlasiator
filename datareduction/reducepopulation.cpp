@@ -404,9 +404,12 @@ namespace std {
 }
 
 
-//A function for creating neighbors for velocity cells.
-// Note: local_vcell_neighbors[vCellId] gives the local neighbors of a velocity cell (neighbors that are within the same block)
-// Note: remote_vcell_neighbors[vCellId] Gives a vector containing remote neighbors of the velocity cell (neighbors that are outside the block) in vector< pair<int16_t, vector<uint16_t> > > format. The pair's first index gives the neighbor block index (check spatial_cell.hpp for more information) and the second index gives the local velocity cells withing that neighbor block.
+/*! A function for calculating local and remote velocity cells for each velocity cell within a block. Remote velocity cells are the cells that would be outside a block and local velocity cells are the cells that are inside a block. Note: This is currently only used in the population_algorithm as a way to optimize the code. This way we don't need to calculate the neighbors for each velocity cell every time, and the memory consumption is negligible. After running this one can retrieve a given velocity cell's neighbors by the velocity cell id (0..63) with local_vcell_neighbors[vCellId] and remote neighbors likewise with remote_vcell_neighbors[vCellId]. The remote velocity cells are stored in pairs of blockid and list of neighbors within that block. So, for instance if remote_vcell_neighbors[vCellId] returned this: [<2,[0,4]> <10,[3,4]>] where <,> signals a pair, then the vCellId at block blockId would have remtoe neighbors at block blockId+2 at velocity cells 0 and 4 and at block blockId+10 at velocity cells 3 and 4
+
+ \param local_vcell_neighbors                 Empty vector where local velocity cells get stored.  local_vcell_neighbors[vCellId] gives the local neighbors of a velocity cell (neighbors that are within the same block)
+ \param remote_vcell_neighbors                Empty vector where remote velocity cells get stored. remote_vcell_neighbors[vCellId] Gives a vector containing remote neighbors of the velocity cell (neighbors that are outside the block) in vector< pair<int16_t, vector<uint16_t> > > format. The pair's first index gives the neighbor block index (check spatial_cell.hpp for more information) and the second index gives the local velocity cells withing that neighbor block.
+
+ */
 void set_local_and_remote_velocity_cell_neighbors( 
        array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
        array< vector< pair<int16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
@@ -418,6 +421,9 @@ void set_local_and_remote_velocity_cell_neighbors(
       for( int i_offset = -1; i_offset <= 1; ++i_offset ) for( int j_offset = -1; j_offset <= 1; ++j_offset ) for( int k_offset = -1; k_offset <= 1; ++k_offset ) {
          // if i=j=k=0 then we're looking at the velocity cell itself, not neighbor
          if( i_offset == 0 && j_offset == 0 && k_offset == 0 ) { continue; }
+         // note: this might not be the smartest idea: TODO: Remove this?
+         if( abs(i_offset) == abs(j_offset) || abs(i_offset) == abs(k_offset) || abs(j_offset) == abs(k_offset) ) { continue; }
+
          // Get the new indices:
          const int numberOfDirections = 3;
          int neighbor_indices[numberOfDirections] = {
@@ -566,9 +572,9 @@ static inline void get_neighbors(
       const uint32_t blockid = cell->get_velocity_block( vCell.block->parameters[BlockParams::VXCRD], 
                                                          vCell.block->parameters[BlockParams::VYCRD],
                                                          vCell.block->parameters[BlockParams::VZCRD] );
-      const uint16_t neighbor_block_id = blockid + get<0>(*it);//CONTINUE
+      const uint32_t neighbor_block_id = blockid + get<0>(*it);
       // Go through the local cells in the neighbor block:
-      for( vector<uint16_t>::const_iterator jt = local_vcell_neighbors[vCellId].begin(); jt != local_vcell_neighbors[vCellId].end(); ++jt ) {
+      for( vector<uint16_t>::const_iterator jt = it->second.begin(); jt != it->second.end(); ++jt ) {
          const uint16_t neighbor_vCellId = *jt;
          const Velocity_Block * neighbor_block = cell->at(neighbor_block_id);
          // Make sure the neighbor is valid
@@ -903,7 +909,8 @@ static inline void cluster_advanced(
                                 const vector<Velocity_Cell> & velocityCells,
                                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
                                 const array< vector< pair<int16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
-                                SpatialCell * cell
+                                SpatialCell * cell,
+                                const Real resolution_threshold
                                   ) {
    if( velocityCells.size() == 0 ) { return; }
    const uint numberOfVCells = velocityCells.size();
@@ -960,6 +967,10 @@ static inline void cluster_advanced(
 
       phiprof_assert( id < velocityCells.size() );
 
+      // Keep track of the highest avgs of the neighbor:
+      //TODO: Remove highest avgs neighbor
+      Realf highest_avgs_neighbor = 0;
+
       for( vector<Velocity_Cell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
          // Get the id of the neighbor:
          const uint32_t neighbor_id = it->hash( startingPoint );
@@ -990,6 +1001,10 @@ static inline void cluster_advanced(
                clusters[index_neighbor].append(1);
                //--------------------------------------------------------------
 
+               // Update the highest avgs value counter:
+               highest_avgs_neighbor = it->get_avgs();
+
+
             } else if( clusters[index].find( index_neighbor ) ) {
 
                // Clusters are separate clusters
@@ -1005,10 +1020,23 @@ static inline void cluster_advanced(
                const uint32_t clusterMembers = *cluster.members;
                const uint32_t neighborClusterMembers = *cluster_neighbor.members;
                // Check if the clusters should be merged: (If not, then check if the velocity cell should belong to the other cluster instead)
-               if( clusterMembers < resolution*0.002 || neighborClusterMembers < resolution*0.002 ) {
+               if( clusterMembers < resolution*resolution_threshold || neighborClusterMembers < resolution*resolution_threshold ) {
                   // The other cluster is small enough, so merge the clusters:
                   cluster_neighbor.merge( cluster, clusters );
                   ++merges;
+                  break;
+               }
+               else if( highest_avgs_neighbor < it->get_avgs() ) {
+                  // The velocity cell should belong to the other cluster, because the other cluster has a highest avgs value:
+                  // Remove it from the previous cluster
+                  clusters[index].append(-1);
+                  // Set to be the same clusters:
+                  clusterIds[id] = clusterIds[neighbor_id];
+                  // Increase the amount of members in the cluster by one
+                  clusters[index_neighbor].append(1);
+
+                  // Update the highest avgs value counter:
+                  highest_avgs_neighbor = it->get_avgs();
                }
             }
          }
@@ -1431,11 +1459,18 @@ static void test_neighbor(
 
 
 
-//Function for evaluating the speed of population clustering
-Real evaluate_speed( 
+/*! Function for calculating the different populations in distribution for a given spatial cell. Note that the results are currently saved in block_fx array within the SpatialCell.
+ \param cell                                A velocity cell from the DCCRG grid
+ \param local_vcell_neighbors               List of velocity cell neighbors within a block for each velocity cell within a block, note that this can be retrieved with the function set_local_and_remote_velocity_cell_neighbors
+ \param remote_vcell_neighbors              List of velocity cell neighbors outside of a block for each velocity cell within a block, note that this can be retrieved with the function set_local_and_remote_velocity_cell_neighbors
+ \param resolution_threshold                A value for determining how large at minimum we want our populations to be. 0.006 seems ok unless there's a reason to believe otherwise.
+
+ */
+void population_algorithm( 
                 SpatialCell * cell,
                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
-                const array< vector< pair<int16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors
+                const array< vector< pair<int16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
+                const Real resolution_threshold
                    ) {
    // Sort list of avgs values:
 
@@ -1466,10 +1501,10 @@ Real evaluate_speed(
    //cluster( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
    //cluster_simple( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
    //cluster_simple_two( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
-   cluster_advanced( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
+   cluster_advanced( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell, resolution_threshold );
    //cluster_advanced_two( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
 
-   return 0;
+   return;
 }
 
 // Function for getting the max number of populations:
@@ -1527,7 +1562,11 @@ static inline bool write_rho( const uint max_populations, const vector<uint64_t>
    return success;
 }
 
-// Function for writing out the population variables (for now, writing just rho)
+/*! Writes the population variables, so variables for different populations.
+
+ \param mpiGrid                 The DCCRG grid with spatial cells
+ \param vlsvWriter              The VLSV writer class for writing VLSV files, note that the file must have been opened already
+ */
 bool write_population_variables( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, Writer & vlsvWriter ) {
    // Get max number of populations (to be used in determining how many arrays to write)
    const uint max_populations = max_number_of_populations( mpiGrid );
@@ -1541,16 +1580,44 @@ bool write_population_variables( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
 
 
 
+/*! Writes the distribution function for different populations. Note that population_algorithm must have been called before this!
 
+ \param mpiGrid                 The DCCRG grid with spatial cells
+ \param vlsvWriter              The VLSV writer class for writing VLSV files, note that the file must have been opened already
+ */
+bool write_population_distribution( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const vector<uint64_t> & local_cells, vlsv::Writer & vlsvWriter ) {
+   string name = "BLOCKVARIABLEPOPULATION";
 
+   //Compute totalBlocks
+   uint64_t totalBlocks = 0;  
+   for(size_t cell=0;cell<local_cells.size();++cell){
+      totalBlocks+=mpiGrid[local_cells[cell]]->number_of_blocks;
+   }
 
+   const string datatype_avgs = "float";
+   const uint64_t arraySize_avgs = totalBlocks;
+   const uint64_t vectorSize_avgs = WID3; // There are 64 elements in every velocity block
+   const uint64_t dataSize_avgs = sizeof(Realf);
 
-
-
-
-
-
-
-
+   // Start multi write
+   vlsvWriter.startMultiwrite(datatype_avgs,arraySize_avgs,vectorSize_avgs,dataSize_avgs);
+   // Loop over local_cells
+   for( size_t cell = 0; cell < local_cells.size(); ++cell ) {
+      // Get the spatial cell
+      SpatialCell* SC = mpiGrid[local_cells[cell]];
+      // Get the number of blocks in this cell
+      const uint64_t arrayElements = SC->number_of_blocks;
+      char * arrayToWrite = reinterpret_cast<char*>(SC->block_fx.data());
+      // Add a subarray to write
+      vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements); // Note: We told beforehands that the vectorsize = WID3 = 64
+   }
+   if( local_cells.size() == 0 ) {
+      // Write dummy array to avoid MPI blocking
+      vlsvWriter.addMultiwriteUnit(NULL, 0);
+   }
+   // Write the subarrays
+   vlsvWriter.endMultiwrite(name, attribs);
+   return true;
+}
 
 
