@@ -95,8 +95,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::BoundaryLayer);
       if(*it == "Blocks")
          outputReducer->addOperator(new DRO::Blocks);
-      if(*it == "numberOfPopulations" )
-         outputReducer->addOperator(new DRO::Populations);
       if(*it == "fSaved")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("fSaved",CellParams::ISCELLSAVINGF,1));
       if(*it == "VolE")
@@ -153,6 +151,9 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dPERBZVOLdy",bvolderivatives::dPERBZVOLdy,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("dBGBZVOLdy",bvolderivatives::dBGBZVOLdy,1));
       }
+//      if(*it == "numberOfPopulations" )
+//         outputReducer->addOperator(new DRO::Populations);
+
    }
    
    for (it = P::diagnosticVariableList.begin();
