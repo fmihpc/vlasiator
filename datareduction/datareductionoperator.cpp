@@ -333,34 +333,34 @@ namespace DRO {
       return true;
    }
 
-   // populations
-   Populations::Populations(): DataReductionOperator() { }
-   Populations::~Populations() { }
-   
-   bool Populations::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "uint";
-      dataSize = 4;
-      vectorSize = 1;
-      return true;
-   }
-   
-   std::string Populations::getName() const {return "Populations";}
-   
-   bool Populations::reduceData(const SpatialCell* cell,char* buffer) {
-      const char* ptr = reinterpret_cast<const char*>(&nPopulations);
-      for (uint i=0; i<sizeof(int); ++i) buffer[i] = ptr[i];
-      return true;
-   }
-   
-   bool Populations::reduceData(const SpatialCell* cell,Real* buffer) {
-      *buffer = 1.0 * nPopulations;
-      return true;
-   }
-   
-   bool Populations::setSpatialCell(const SpatialCell* cell) {
-      nPopulations = cell->number_of_populations;
-      return true;
-   }
+//   // populations
+//   Populations::Populations(): DataReductionOperator() { }
+//   Populations::~Populations() { }
+//   
+//   bool Populations::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+//      dataType = "uint";
+//      dataSize = 4;
+//      vectorSize = 1;
+//      return true;
+//   }
+//   
+//   std::string Populations::getName() const {return "Populations";}
+//   
+//   bool Populations::reduceData(const SpatialCell* cell,char* buffer) {
+//      const char* ptr = reinterpret_cast<const char*>(&nPopulations);
+//      for (uint i=0; i<sizeof(int); ++i) buffer[i] = ptr[i];
+//      return true;
+//   }
+//   
+//   bool Populations::reduceData(const SpatialCell* cell,Real* buffer) {
+//      *buffer = 1.0 * nPopulations;
+//      return true;
+//   }
+//   
+//   bool Populations::setSpatialCell(const SpatialCell* cell) {
+//      nPopulations = cell->number_of_populations;
+//      return true;
+//   }
 
    
    
