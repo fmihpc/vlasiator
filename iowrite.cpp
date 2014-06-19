@@ -793,6 +793,7 @@ bool writePopulation( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       vector<uint32_t> populations;
       populations.resize( local_cells.size() );
 
+      // Fetch different populations:
       for( unsigned int i = 0; i < local_cells.size(); ++i ) {
          const uint64_t cellId = local_cells[i];
          SpatialCell * cell = mpiGrid[cellId];
@@ -800,15 +801,17 @@ bool writePopulation( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          populations[i] = number_of_populations;
       }
 
-      string dataType = "uint";
-      int dataSize = 4;
-      uint vectorSize = 1; // Scalar variable
-      string name = "Populations";
+      // Write the data out, we need arraySizze, vectorSize and name to do this
+      const uint64_t arraySize = local_cells.size();
+      const uint64_t vectorSize = 1; // Population is uint32_t, so a scalar (vector size 1)
+      const string name = "Populations";
+
       map<string, string> xmlAttributes;
       xmlAttributes["name"] = name;
       xmlAttributes["mesh"] = "SpatialGrid";
 
-      if( vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, local_cells.data() ) == false ) {
+      // Write the array and return false if the writing fails
+      if( vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, populations.data() ) == false ) {
          success = false;
       }
       phiprof::stop("write-numberofpopulations");
