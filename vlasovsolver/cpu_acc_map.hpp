@@ -215,51 +215,58 @@ bool map_1d(SpatialCell* spatial_cell,
       uint * cblocks = blocks + block_column_offsets[block_column_i]; /*column blocks*/      
       load_column_block_data(spatial_cell, cblocks, n_cblocks, values, dimension);
 
-      for (unsigned int block_i = 0; block_i<n_cblocks;block_i++){
-         velocity_block_indices_t block_indices=SpatialCell::get_velocity_block_indices(cblocks[block_i]);
-         uint temp;
-         //Switch block indices according to dimensions, the alogirthm has
-         //  been written for integrating along z.
-         switch (dimension){
-             case 0:
-                /*i and k coordinates have been swapped*/
-                temp=block_indices[2];
-                block_indices[2]=block_indices[0];
-                block_indices[0]=temp;
-                break;
-             case 1:
-                /*in values j and k coordinates have been swapped*/
-                temp=block_indices[2];
-                block_indices[2]=block_indices[1];
-                block_indices[1]=temp;
-                break;
-             case 2:
-                break;
-         }
+      /*compute the common indices for this block column*/
+      
+      velocity_block_indices_t block_indices_begin=SpatialCell::get_velocity_block_indices(cblocks[0]); /*First block in column*/
+      uint temp;
+      //Switch block indices according to dimensions, the alogirthm has
+      //  been written for integrating along z.
+      switch (dimension){
+          case 0:
+             /*i and k coordinates have been swapped*/
+             temp=block_indices_begin[2];
+             block_indices_begin[2]=block_indices_begin[0];
+             block_indices_begin[0]=temp;
+             break;
+          case 1:
+             /*in values j and k coordinates have been swapped*/
+             temp=block_indices_begin[2];
+             block_indices_begin[2]=block_indices_begin[1];
+             block_indices_begin[1]=temp;
+             break;
+          case 2:
+             break;
+      }
+            
+      /*  i,j,k are now relative to the order in which we copied data to the values array. 
+          After this point in the k,j,i loops there should be no branches based on dimensions
+          
+          Note that the i dimension is vectorized, and thus there are no loops over i
+      */
 
-         /*i,j,k are now relative to the order in which we copied data to the values array. 
-           After this point in the k,j,i loops there should be no branches based on dimensions
-      
-           Note that the i dimension is vectorized, and thus there are no loops over i
-         */
-         for (uint j = 0; j < WID; ++j){ 
-            /*target cell/block index contribution not dependent on k index*/
-            const Vec4i target_cell_index_common = j*cell_indices_to_id[1] + Vec4i(0, cell_indices_to_id[0], 2 * cell_indices_to_id[0], 3 * cell_indices_to_id[0]);
-            const int target_block_index_common(block_indices[0]*block_indices_to_id[0]+block_indices[1]*block_indices_to_id[1]);
-            /* 
-               intersection_min is the intersection z coordinate (z after
-               swaps that is) of the lowest possible z plane for each i,j
-               index (i in vector)
-            */	 
-            const Real intersection_min_base = intersection +
-               (block_indices[0]*WID)*intersection_di + 
-               (block_indices[1]*WID+j)*intersection_dj;
-            const Vec4 intersection_min(intersection_min_base,
-                                        intersection_min_base + intersection_di,
-                                        intersection_min_base + 2.0 * intersection_di,
-                                        intersection_min_base + 3.0 * intersection_di);
-      
-      
+      for (uint j = 0; j < WID; ++j){
+         /*target cell/block index contribution not dependent on k index*/
+         const Vec4i target_cell_index_common = j*cell_indices_to_id[1] + Vec4i(0, cell_indices_to_id[0], 2 * cell_indices_to_id[0], 3 * cell_indices_to_id[0]);
+         const int target_block_index_common(block_indices_begin[0] * block_indices_to_id[0] + block_indices_begin[1] * block_indices_to_id[1]);
+            
+         /* 
+            intersection_min is the intersection z coordinate (z after
+            swaps that is) of the lowest possible z plane for each i,j
+            index (i in vector)
+         */	 
+         const Real intersection_min_base = intersection +
+            (block_indices_begin[0]*WID)*intersection_di + 
+            (block_indices_begin[1]*WID+j)*intersection_dj;
+         const Vec4 intersection_min(intersection_min_base,
+                                     intersection_min_base + intersection_di,
+                                     intersection_min_base + 2.0 * intersection_di,
+                                     intersection_min_base + 3.0 * intersection_di);
+
+         for (unsigned int block_i = 0; block_i<n_cblocks;block_i++){
+            /*block indices of the current block. Now we know that in each column the blocks are in order*/
+            velocity_block_indices_t block_indices = block_indices_begin;
+            block_indices[2] += block_i;
+            
             for (uint k=0; k<WID; ++k){ 
                /*v_l, v_c, v_r are the left, mid and right velocity coordinates of source cell*/
                Vec4 v_l((WID * block_indices[2] + k) * dv + v_min);
