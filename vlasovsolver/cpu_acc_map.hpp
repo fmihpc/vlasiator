@@ -285,7 +285,6 @@ bool map_1d(SpatialCell* spatial_cell,
                cv.load(values + i_pcolumnv(n_cblocks,block_i,j,k));
                pv.load(values + i_pcolumnv(n_cblocks,block_i,j,k+1));
                compute_plm_coeff(mv,cv,pv,a[block_i * WID + k]);
-
 #endif
 #ifdef ACC_SEMILAG_PPM
                Vec4 mmv,mv,cv,pv,ppv;
@@ -299,21 +298,30 @@ bool map_1d(SpatialCell* spatial_cell,
             }
          }
 
+         /*compute some initial values, that are used to set up the
+          * shifting of values as we go through all blocks in
+          * order. See comments where they are shifted for
+          * explanations of their meening*/
+         Vec4 v_r((WID * block_indices_begin[2]) * dv + v_min);
+         Vec4i lagrangian_gk_r=truncate_to_int((v_r-intersection_min)/intersection_dk);
+         
          /*loop through all blocks in column and compute the mapping as integrals*/
+         
          for (unsigned int block_i = 0; block_i<n_cblocks;block_i++){
             /*block indices of the current block. Now we know that in each column the blocks are in order*/
             velocity_block_indices_t block_indices = block_indices_begin;
             block_indices[2] += block_i;
             
             for (uint k=0; k<WID; ++k){ 
-               /*v_l, v_c, v_r are the left, mid and right velocity coordinates of source cell*/
-               Vec4 v_l((WID * block_indices[2] + k) * dv + v_min);
-               Vec4 v_c(v_l+0.5*dv);
-               Vec4 v_r(v_l+dv);
-               //left(l) and right(r) k values (global index) in the target
-               //lagrangian grid, the intersecting cells
-               const Vec4i lagrangian_gk_l=truncate_to_int((v_l-intersection_min)/intersection_dk);
-               const Vec4i lagrangian_gk_r=truncate_to_int((v_r-intersection_min)/intersection_dk);
+               /*v_l, v_r are the left and right velocity coordinates of source cell. Left is the old right*/
+               Vec4 v_l = v_r; 
+               v_r += dv;
+               /*left(l) and right(r) k values (global index) in the target
+                 lagrangian grid, the intersecting cells. Again old right is new left*/
+               
+               const Vec4i lagrangian_gk_l = lagrangian_gk_r;
+               lagrangian_gk_r = truncate_to_int((v_r-intersection_min)/intersection_dk);
+
                Vec4i gk(lagrangian_gk_l);	
                while (horizontal_or(gk <= lagrangian_gk_r)){
                   const Vec4i gk_div_WID = gk/WID;
