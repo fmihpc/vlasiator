@@ -17,6 +17,12 @@ Copyright 2013, 2014 Finnish Meteorological Institute
 #include "cpu_1d_interpolations.hpp"
 #include "cpu_sort_blocks_for_acc.hpp"
 
+#define MAX_BLOCKS_PER_DIM 100
+#define RECONSTRUCTION_ORDER 2
+//index in the temporary and padded column data values array. At each there is an empty block
+#define i_pcolumn(nblocks, block_i, i, j, k) ( (i) + (j) * WID2 * (nblocks + 2) + ( (k) + ( block_i + 1 ) * WID) *  WID )
+#define i_pcolumnv(nblocks, block_i, j, k) ( (j) * WID2 * (nblocks + 2) + ( (k) + ( block_i + 1 ) * WID) *  WID )
+
 
 
 using namespace std;
@@ -26,9 +32,9 @@ using namespace spatial_cell;
 //#define i_pblockv(j,k) ( ((k) + STENCIL_WIDTH ) * WID + (j) * WID * (WID + 2* STENCIL_WIDTH) )
 
 
-//index in the temporary and padded column data values array. At each there is an empty block
-#define i_pcolumn(nblocks, block_i, i, j, k) ( (i) + (j) * WID2 * (nblocks + 2) + ( (k) + ( block_i + 1 ) * WID) *  WID )
-#define i_pcolumnv(nblocks, block_i, j, k) ( (j) * WID2 * (nblocks + 2) + ( (k) + ( block_i + 1 ) * WID) *  WID )
+
+
+
 
 
 
@@ -196,7 +202,7 @@ bool map_1d(SpatialCell* spatial_cell,
    
 
    // Make a copy of the blocklist, the blocklist will change during this algorithm
-   uint*  blocks=new uint[spatial_cell->number_of_blocks];
+   uint* blocks=new uint[spatial_cell->number_of_blocks];
    std::vector<uint> block_column_offsets;
    std::vector<uint> block_column_lengths;
    /*sort blocks according to dimension, and divide them into columns*/
@@ -205,7 +211,8 @@ bool map_1d(SpatialCell* spatial_cell,
    phiprof::stop("Sort_blocklist");
    const uint max_column_length = *(std::max_element(block_column_lengths.begin(),block_column_lengths.end()));
    /*values array used to store column data*/
-   Real *values = new Real[(max_column_length + 2) * WID3];
+   static Real values[(MAX_BLOCKS_PER_DIM + 2) * WID3];
+   static Vec4 a[MAX_BLOCKS_PER_DIM*WID][RECONSTRUCTION_ORDER + 1];
    
    /*these two temporary variables are used to optimize access to target cells*/
    uint previous_target_block = error_velocity_block;
@@ -263,7 +270,36 @@ bool map_1d(SpatialCell* spatial_cell,
                                      intersection_min_base + intersection_di,
                                      intersection_min_base + 2.0 * intersection_di,
                                      intersection_min_base + 3.0 * intersection_di);
+         
+         /*loop through column and compute reconstructions*/
+         for (unsigned int block_i = 0; block_i<n_cblocks;block_i++){
+            for (uint k=0; k<WID; ++k){ 
+#ifdef ACC_SEMILAG_PCONSTM
+               Vec4 cv;	    
+               cv.load(values + i_pcolumnv(n_cblocks,block_i,j,k));
+               a[block_i * WID + k][0] = cv;
+#endif
+#ifdef ACC_SEMILAG_PLM
+               Vec4 mv,cv,pv;
+               mv.load(values + i_pcolumnv(n_cblocks,block_i,j,k-1));
+               cv.load(values + i_pcolumnv(n_cblocks,block_i,j,k));
+               pv.load(values + i_pcolumnv(n_cblocks,block_i,j,k+1));
+               compute_plm_coeff(mv,cv,pv,a[block_i * WID + k]);
 
+#endif
+#ifdef ACC_SEMILAG_PPM
+               Vec4 mmv,mv,cv,pv,ppv;
+               mmv.load(values + i_pcolumnv(n_cblocks,block_i,j,k-2));
+               mv.load(values + i_pcolumnv(n_cblocks,block_i,j,k-1));
+               cv.load(values + i_pcolumnv(n_cblocks,block_i,j,k));
+               pv.load(values + i_pcolumnv(n_cblocks,block_i,j,k+1));
+               ppv.load(values + i_pcolumnv(n_cblocks,block_i,j,k+2));
+               compute_ppm_coeff(mmv,mv,cv,pv,ppv,a[block_i * WID + k]);
+#endif
+            }
+         }
+
+         /*loop through all blocks in column and compute the mapping as integrals*/
          for (unsigned int block_i = 0; block_i<n_cblocks;block_i++){
             /*block indices of the current block. Now we know that in each column the blocks are in order*/
             velocity_block_indices_t block_indices = block_indices_begin;
@@ -278,26 +314,6 @@ bool map_1d(SpatialCell* spatial_cell,
                //lagrangian grid, the intersecting cells
                const Vec4i lagrangian_gk_l=truncate_to_int((v_l-intersection_min)/intersection_dk);
                const Vec4i lagrangian_gk_r=truncate_to_int((v_r-intersection_min)/intersection_dk);
-	
-#ifdef ACC_SEMILAG_PLM
-               Vec4 a[2];
-               Vec4 mv,cv,pv;
-               mv.load(values + i_pcolumnv(n_cblocks,block_i,j,k-1));
-               cv.load(values + i_pcolumnv(n_cblocks,block_i,j,k));
-               pv.load(values + i_pcolumnv(n_cblocks,block_i,j,k+1));
-               compute_plm_coeff(mv,cv,pv,a);
-
-#endif
-#ifdef ACC_SEMILAG_PPM
-               Vec4 a[3];
-               Vec4 mmv,mv,cv,pv,ppv;
-               mmv.load(values + i_pcolumnv(n_cblocks,block_i,j,k-2));
-               mv.load(values + i_pcolumnv(n_cblocks,block_i,j,k-1));
-               cv.load(values + i_pcolumnv(n_cblocks,block_i,j,k));
-               pv.load(values + i_pcolumnv(n_cblocks,block_i,j,k+1));
-               ppv.load(values + i_pcolumnv(n_cblocks,block_i,j,k+2));
-               compute_ppm_coeff(mmv,mv,cv,pv,ppv,a);
-#endif
                Vec4i gk(lagrangian_gk_l);	
                while (horizontal_or(gk <= lagrangian_gk_r)){
                   const Vec4i gk_div_WID = gk/WID;
@@ -320,20 +336,18 @@ bool map_1d(SpatialCell* spatial_cell,
                   const Vec4 v_2 = (min(to_float(gk + 1) * intersection_dk + intersection_min,       v_r) - v_l) * i_dv;
 #endif
 #ifdef ACC_SEMILAG_PCONSTM
-                  Vec4 cv;	    
-                  cv.load(values + i_pcolumnv(n_cblocks,block_i,j,k));
-                  const Vec4 target_density=(v_2 - v_1) *  cv;
+                  const Vec4 target_density=(v_2 - v_1) *  a[block_i * WID + k][0];
 #endif
 #ifdef ACC_SEMILAG_PLM	    
                   const Vec4 target_density=
-                     (v_2 - v_1) * a[0] +
-                     (v_2 * v_2 - v_1 * v_1) * a[1];
+                     (v_2 - v_1) * a[block_i * WID + k][0] +
+                     (v_2 * v_2 - v_1 * v_1) * a[block_i * WID + k][1];
 #endif
 #ifdef ACC_SEMILAG_PPM
                   const Vec4 target_density=
-                     (v_2 - v_1) * a[0] +
-                     (v_2 * v_2 - v_1 * v_1) * a[1] +
-                     (v_2 * v_2 * v_2 - v_1 * v_1 * v_1) * a[2];
+                     (v_2 - v_1) * a[block_i * WID + k][0] +
+                     (v_2 * v_2 - v_1 * v_1) * a[block_i * WID + k][1] +
+                     (v_2 * v_2 * v_2 - v_1 * v_1 * v_1) * a[block_i * WID + k][2];
 #endif
 	  
                   //store values, one element at a time
@@ -373,7 +387,6 @@ bool map_1d(SpatialCell* spatial_cell,
       }
    }
    delete [] blocks;
-   delete [] values;
    return true;
 }
 
