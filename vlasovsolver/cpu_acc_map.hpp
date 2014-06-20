@@ -76,31 +76,30 @@ inline void load_column_block_data(SpatialCell* spatial_cell, uint* blocks, uint
       
    
    /*first set the 0 values fot the two empty blocks we store above and below the existing blosk*/
-   for (uint i=0; i<WID3; ++i){
+
+   for (uint j=0; j<WID; ++j) {
       for (uint k=0; k<WID; ++k) {
-         for (uint j=0; j<WID; ++j) {
-            for (uint i=0; i<WID; ++i) {
-               values[i_pcolumn(n_blocks,-1,i,j,k)] = 0.0;
-               values[i_pcolumn(n_blocks,n_blocks,i,j,k)] = 0.0;
-            }
+         for (uint i=0; i<WID; ++i) {
+            values[i_pcolumn(n_blocks,-1,i,j,k)] = 0.0;
+            values[i_pcolumn(n_blocks,n_blocks,i,j,k)] = 0.0;
          }
       }
    }
+   
 
    /*copy block data for all blocks*/
    for(uint block_i = 0; block_i < n_blocks; block_i++){
       Velocity_Block *block=spatial_cell->at(blocks[block_i]);
       Realf * __restrict__ fx = block->fx;
       //  Copy volume averages of this block, taking into account the dimension shifting
-      for (uint k=0; k<WID; ++k) {
-         for (uint j=0; j<WID; ++j) {
+      for (uint j=0; j<WID; ++j) {
+         for (uint k=0; k<WID; ++k) {
             for (uint i=0; i<WID; ++i) {
                const uint cell =
                   i * cell_indices_to_id[0] +
                   j * cell_indices_to_id[1] +
                   k * cell_indices_to_id[2];
-               const Real value = fx[cell];
-               values[i_pcolumn(n_blocks,block_i,i,j,k)] = value;
+               values[i_pcolumn(n_blocks,block_i,i,j,k)] = (Real)fx[cell];
             }
          }
       }
@@ -201,7 +200,9 @@ bool map_1d(SpatialCell* spatial_cell,
    std::vector<uint> block_column_offsets;
    std::vector<uint> block_column_lengths;
    /*sort blocks according to dimension, and divide them into columns*/
+   phiprof::start("Sort_blocklist");
    sort_blocklist_by_dimension( spatial_cell, dimension, blocks, block_column_offsets, block_column_lengths);
+   phiprof::stop("Sort_blocklist");
    const uint max_column_length = *(std::max_element(block_column_lengths.begin(),block_column_lengths.end()));
    /*values array used to store column data*/
    Real *values = new Real[(max_column_length + 2) * WID3];
@@ -209,12 +210,13 @@ bool map_1d(SpatialCell* spatial_cell,
    /*these two temporary variables are used to optimize access to target cells*/
    uint previous_target_block = error_velocity_block;
    Realf *target_block_data = NULL;
-
+   int load_timer=phiprof::initializeTimer("load_block_data"); //initialize before to get timer index, faster to start and stops then
    for (unsigned int block_column_i = 0; block_column_i< block_column_offsets.size(); block_column_i++) {
       const uint n_cblocks = block_column_lengths[block_column_i];
       uint * cblocks = blocks + block_column_offsets[block_column_i]; /*column blocks*/      
+      phiprof::start(load_timer);
       load_column_block_data(spatial_cell, cblocks, n_cblocks, values, dimension);
-
+      phiprof::stop(load_timer);
       /*compute the common indices for this block column*/
       
       velocity_block_indices_t block_indices_begin=SpatialCell::get_velocity_block_indices(cblocks[0]); /*First block in column*/
