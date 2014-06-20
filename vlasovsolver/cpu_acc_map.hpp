@@ -27,8 +27,8 @@ using namespace spatial_cell;
 
 
 //index in the temporary and padded column data values array. At each there is an empty block
-#define i_pcolumn(nblocks, block_i, i, j, k) ( (i) + (j) * WID2 * nblocks + ( (k) + ( block_i + 1 ) * WID) *  WID )
-#define i_pcolumnv(nblocks, block_i, j, k) ( (j) * WID2 * nblocks + ( (k) + ( block_i + 1 ) * WID) *  WID )
+#define i_pcolumn(nblocks, block_i, i, j, k) ( (i) + (j) * WID2 * (nblocks + 2) + ( (k) + ( block_i + 1 ) * WID) *  WID )
+#define i_pcolumnv(nblocks, block_i, j, k) ( (j) * WID2 * (nblocks + 2) + ( (k) + ( block_i + 1 ) * WID) *  WID )
 
 
 
