@@ -304,15 +304,17 @@ bool map_1d(SpatialCell* spatial_cell,
           * explanations of their meening*/
          Vec4 v_r((WID * block_indices_begin[2]) * dv + v_min);
          Vec4i lagrangian_gk_r=truncate_to_int((v_r-intersection_min)/intersection_dk);
-         
          /*loop through all blocks in column and compute the mapping as integrals*/
          
          for (unsigned int block_i = 0; block_i<n_cblocks;block_i++){
             /*block indices of the current block. Now we know that in each column the blocks are in order*/
             velocity_block_indices_t block_indices = block_indices_begin;
             block_indices[2] += block_i;
+
             
             for (uint k=0; k<WID; ++k){ 
+               /*set the initial value for the integrand at the boundary at v = 0 (in reduced cell units), this will be shifted to target_density_1, see below*/
+               Vec4 target_density_r(0.0);
                /*v_l, v_r are the left and right velocity coordinates of source cell. Left is the old right*/
                Vec4 v_l = v_r; 
                v_r += dv;
@@ -337,53 +339,58 @@ bool map_1d(SpatialCell* spatial_cell,
                   //v_1 and v_2 normalized to be between 0 and 1 in the cell.
                   //For vector elements where gk is already larger than needed (lagrangian_gk_r), v_2=v_1=v_r and thus the value is zero.
 #ifdef DP
-                  const Vec4 v_1 = (min(max(to_double(gk) * intersection_dk + intersection_min, v_l), v_r) - v_l) * i_dv;
-                  const Vec4 v_2 = (min(to_double(gk + 1) * intersection_dk + intersection_min,       v_r) - v_l) * i_dv;
+                  const Vec4 v_cellnormalized_r = (min(to_double(gk + 1) * intersection_dk + intersection_min,       v_r) - v_l) * i_dv;
 #else
-                  const Vec4 v_1 = (min(max(to_float(gk) * intersection_dk + intersection_min, v_l), v_r) - v_l) * i_dv;
-                  const Vec4 v_2 = (min(to_float(gk + 1) * intersection_dk + intersection_min,       v_r) - v_l) * i_dv;
+                  const Vec4 v_cellnormalized_r = (min(to_float(gk + 1) * intersection_dk + intersection_min,       v_r) - v_l) * i_dv;
 #endif
+                  /*shift, old right is new left*/
+                  const Vec4 target_density_l = target_density_r;
+                  /*compute right integrand*/
 #ifdef ACC_SEMILAG_PCONSTM
-                  const Vec4 target_density=(v_2 - v_1) *  a[block_i * WID + k][0];
+                  target_density_r =
+                     v_cellnormalized_r * a[block_i * WID + k][0] +
+                     v_cellnormalized_r * v_cellnormalized_r * a[block_i * WID + k][1];
 #endif
-#ifdef ACC_SEMILAG_PLM	    
-                  const Vec4 target_density=
-                     (v_2 - v_1) * a[block_i * WID + k][0] +
-                     (v_2 * v_2 - v_1 * v_1) * a[block_i * WID + k][1];
+#ifdef ACC_SEMILAG_PLM
+                  target_density_r =
+                     v_cellnormalized_r * a[block_i * WID + k][0] +
+                     v_cellnormalized_r * v_cellnormalized_r * a[block_i * WID + k][1];
 #endif
 #ifdef ACC_SEMILAG_PPM
-                  const Vec4 target_density=
-                     (v_2 - v_1) * a[block_i * WID + k][0] +
-                     (v_2 * v_2 - v_1 * v_1) * a[block_i * WID + k][1] +
-                     (v_2 * v_2 * v_2 - v_1 * v_1 * v_1) * a[block_i * WID + k][2];
+                  target_density_r =
+                     v_cellnormalized_r * a[block_i * WID + k][0] +
+                     v_cellnormalized_r * v_cellnormalized_r * a[block_i * WID + k][1] +
+                     v_cellnormalized_r * v_cellnormalized_r * v_cellnormalized_r * a[block_i * WID + k][2];
 #endif
-	  
+                  /*total value of integrand*/
+                  const Vec4 target_density = target_density_r - target_density_l;
+                  
                   //store values, one element at a time
                   for(uint target_i = 0; target_i < 4;target_i ++ ){
                      const uint tblock=target_block[target_i];
-                     const uint tcell=target_cell[target_i];
-                     /*do the conversion from Real to Realf here, faster than doin in accumulation*/
-                     const Realf tval=target_density[target_i];
                      /*check that we are within sane limits. If gk is negative,
                       * or above blocks_per_dim * blockcells_per_dim then we
                       * are outside of the target grid.*/
                      /*TODO, count losses if these are not fulfilled*/
                      if (gk[target_i] >=0 &&
-                         gk[target_i] < max_v_length * WID &&
-                         tblock < SpatialCell::max_velocity_blocks &&
-                         tblock != error_velocity_block) {
+                         gk[target_i] < max_v_length * WID) {
                         if(previous_target_block != tblock) {
                            previous_target_block = tblock;
                            //not the same block as last time, lets create it if we
                            //need to and fetch its data array pointer and store it in target_block_data.
                            if (spatial_cell->count(tblock) == 0) {
-                              //count faster since the add_velocity_block call is more expensive
+                              //count faster since the same checks in
+                              //add_velocity_block call are more
+                              //expensive
                               spatial_cell->add_velocity_block(tblock);
                               phiprof_assert(spatial_cell->count(tblock) != 0);
                            }
                            Velocity_Block* block_ptr = spatial_cell->at_fast(tblock);
                            target_block_data=block_ptr->data;
                         }
+                        /*do the conversion from Real to Realf here, faster than doin in accumulation*/
+                        const Realf tval=target_density[target_i];
+                        const uint tcell=target_cell[target_i];
                         phiprof_assert(tcell < WID3);
                         target_block_data[tcell] += tval;
                      }
