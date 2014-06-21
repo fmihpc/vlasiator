@@ -44,7 +44,8 @@ inline void compute_plm_coeff_column(Real *values, uint n_cblocks, uint j, Vec4 
 inline void compute_ppm_coeff_column(Real *values, uint n_cblocks, uint j, Vec4 a[][RECONSTRUCTION_ORDER + 1]){
    Vec4 p_face;
    Vec4 m_face;
-   Vec4 mmmv,mmv,mv,cv,pv,ppv,pppv; /* values in z-direction*/
+   Vec4 p_face_unfiltered;
+   Vec4 mmv,mv,cv,pv,ppv,pppv; /* values in z-direction*/
    /*set up shifting operation. These will be shifted to mmv - pv*/
    mmv.load(values + i_pcolumnv(n_cblocks, 0, j, -3));
    mv.load(values + i_pcolumnv(n_cblocks, 0, j, -2));
@@ -52,20 +53,20 @@ inline void compute_ppm_coeff_column(Real *values, uint n_cblocks, uint j, Vec4 
    pv.load(values + i_pcolumnv(n_cblocks, 0, j, 0));
    ppv.load(values + i_pcolumnv(n_cblocks, 0, j, 1));
    pppv.load(values + i_pcolumnv(n_cblocks, 0, j, 2));
-   
+   p_face_unfiltered = 1.0/60.0 * (mmv  - 8.0 * mv  + 37.0 * cv + 37.0 * pv - 8.0 * ppv + pppv);   
    for (uint block_i = 0; block_i < n_cblocks; block_i++){
       for (uint k = 0; k < WID; ++k){
          /*shift values*/
-         mmmv = mmv;
          mmv = mv;
          mv = cv;
          cv = pv;
          pv = ppv;
          ppv = pppv;
          pppv.load(values + i_pcolumnv(n_cblocks, block_i, j, k + 3));
-         //white 08 H6 face estimates, better than H5
-         m_face = 1.0/60.0 * (mmmv - 8.0 * mmv + 37.0 * mv + 37.0 * cv - 8.0 * pv + ppv);
-         p_face = 1.0/60.0 * (mmv  - 8.0 * mv  + 37.0 * cv + 37.0 * pv - 8.0 * ppv + pppv);
+         //white 08 H6 face estimates, better than H5. Shift old unfilitered value at upper edge to the lower edge (identical edge)
+         m_face = p_face_unfiltered;
+         p_face_unfiltered = 1.0/60.0 * (mmv  - 8.0 * mv  + 37.0 * cv + 37.0 * pv - 8.0 * ppv + pppv);
+         p_face = p_face_unfiltered;
          //white 08 H5 face estimates
          //m_face = 1.0/60.0 * ( -3 * mmv + 27 * mv + 47 * cv - 13 * pv + 2 * ppv);
          //p_face = 1.0/60.0 * (  2 * mmv - 13 * mv + 47 * cv + 27 * pv - 3 * ppv);
