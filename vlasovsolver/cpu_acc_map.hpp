@@ -250,15 +250,19 @@ bool map_1d(SpatialCell* spatial_cell,
       */
 
       for (uint j = 0; j < WID; ++j){
-         /*Compute reconstructions*/
+         /*Compute reconstructions for fixed j and all k values. All k
+           values in value array are in a consecutative order. We start
+           from  block at -1 (this much extra space we have for stencils).*/
+
 #ifdef ACC_SEMILAG_PLM
-         compute_plm_coeff_explicit_column(values, n_cblocks, j, a);
+         compute_plm_coeff_explicit_column(values + i_pcolumnv(n_cblocks, -1, j, 0), n_cblocks, a);
 #endif
 #ifdef ACC_SEMILAG_PPM
-         compute_ppm_coeff_explicit_column(values, n_cblocks, j, a);
+         compute_ppm_coeff_explicit_column(values + i_pcolumnv(n_cblocks, -1, j, 0), n_cblocks, a);
 #endif
 #ifdef ACC_SEMILAG_PQM
-         compute_pqm_coeff_explicit_column(values, n_cblocks, j, a);
+         compute_pqm_coeff_explicit_column(values + i_pcolumnv(n_cblocks, -1, j, 0), n_cblocks, a);
+
 #endif
 
 
