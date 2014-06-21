@@ -22,7 +22,7 @@ t=(v-v_{i-0.5})/dv where v_{i-0.5} is the left face of a cell
 The factor 2.0 is in the polynom to ease integration, then integral is a[0]*t + a[1]*t**2
 */
 
-inline void compute_plm_coeff_column(Real *values, uint n_cblocks, uint j, Vec4 a[][RECONSTRUCTION_ORDER + 1]){
+inline void compute_plm_coeff_explicit_column(Real *values, uint n_cblocks, uint j, Vec4 a[][RECONSTRUCTION_ORDER + 1]){
    Vec4 mv,cv,pv; /* values in z-direction*/
    cv.load(values + i_pcolumnv(n_cblocks, 0, j, -1));
    pv.load(values + i_pcolumnv(n_cblocks, 0, j, 0));
@@ -41,7 +41,7 @@ inline void compute_plm_coeff_column(Real *values, uint n_cblocks, uint j, Vec4 
 
 
 
-inline void compute_ppm_coeff_column(Real *values, uint n_cblocks, uint j, Vec4 a[][RECONSTRUCTION_ORDER + 1]){
+inline void compute_ppm_coeff_explicit_column(Real *values, uint n_cblocks, uint j, Vec4 a[][RECONSTRUCTION_ORDER + 1]){
    Vec4 p_face;
    Vec4 m_face;
    Vec4 p_face_unfiltered;

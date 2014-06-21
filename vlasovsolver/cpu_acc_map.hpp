@@ -17,14 +17,14 @@ Copyright 2013, 2014 Finnish Meteorological Institute
 #include "cpu_sort_blocks_for_acc.hpp"
 
 #define MAX_BLOCKS_PER_DIM 100
-#ifdef ACC_SEMILAG_PCONSTM
-#define RECONSTRUCTION_ORDER 0
-#endif
 #ifdef ACC_SEMILAG_PLM
 #define RECONSTRUCTION_ORDER 1
 #endif
 #ifdef ACC_SEMILAG_PPM
 #define RECONSTRUCTION_ORDER 2
+#endif
+#ifdef ACC_SEMILAG_PQM
+#define RECONSTRUCTION_ORDER 4
 #endif
 
 //index in the temporary and padded column data values array. At each there is an empty block
@@ -253,30 +253,15 @@ bool map_1d(SpatialCell* spatial_cell,
       */
 
       for (uint j = 0; j < WID; ++j){
-         /*loop through column and compute reconstructions*/
-#ifdef ACC_SEMILAG_PCONSTM
-         for (unsigned int block_i = 0; block_i<n_cblocks;block_i++){
-            for (uint k=0; k<WID; ++k){ 
-               Vec4 cv;	    
-               cv.load(values + i_pcolumnv(n_cblocks,block_i,j,k));
-               a[block_i * WID + k][0] = cv;
-            }
-         }
-#endif
+         /*Compute reconstructions*/
 #ifdef ACC_SEMILAG_PLM
-         for (unsigned int block_i = 0; block_i<n_cblocks;block_i++){
-            for (uint k=0; k<WID; ++k){ 
-               Vec4 mv,cv,pv;
-               mv.load(values + i_pcolumnv(n_cblocks,block_i,j,k-1));
-               cv.load(values + i_pcolumnv(n_cblocks,block_i,j,k));
-               pv.load(values + i_pcolumnv(n_cblocks,block_i,j,k+1));
-               compute_plm_coeff(mv,cv,pv,a[block_i * WID + k]);
-            }
-         }
+         compute_plm_coeff_explicit_column(values, n_cblocks, j, a);
 #endif
-
 #ifdef ACC_SEMILAG_PPM
-         compute_ppm_coeff_column(values, n_cblocks, j, a);
+         compute_ppm_coeff_explicit_column(values, n_cblocks, j, a);
+#endif
+#ifdef ACC_SEMILAG_PQM
+         compute_pqm_coeff_explicit_column(values, n_cblocks, j, a);
 #endif
 
 
@@ -332,29 +317,33 @@ bool map_1d(SpatialCell* spatial_cell,
                   //v_1 and v_2 normalized to be between 0 and 1 in the cell.
                   //For vector elements where gk is already larger than needed (lagrangian_gk_r), v_2=v_1=v_r and thus the value is zero.
 #ifdef DP
-                  const Vec4 v_cellnormalized_r = (min(to_double(gk + 1) * intersection_dk + intersection_min,       v_r) - v_l) * i_dv;
+                  const Vec4 v_norm_r = (min(to_double(gk + 1) * intersection_dk + intersection_min,       v_r) - v_l) * i_dv;
 #else
-                  const Vec4 v_cellnormalized_r = (min(to_float(gk + 1) * intersection_dk + intersection_min,       v_r) - v_l) * i_dv;
+                  const Vec4 v_norm_r = (min(to_float(gk + 1) * intersection_dk + intersection_min,       v_r) - v_l) * i_dv;
 #endif
                   /*shift, old right is new left*/
                   const Vec4 target_density_l = target_density_r;
                   /*compute right integrand*/
-#ifdef ACC_SEMILAG_PCONSTM
-                  target_density_r =
-                     v_cellnormalized_r * a[block_i * WID + k][0] +
-                     v_cellnormalized_r * v_cellnormalized_r * a[block_i * WID + k][1];
-#endif
 #ifdef ACC_SEMILAG_PLM
                   target_density_r =
-                     v_cellnormalized_r * a[block_i * WID + k][0] +
-                     v_cellnormalized_r * v_cellnormalized_r * a[block_i * WID + k][1];
+                     v_norm_r * a[block_i * WID + k][0] +
+                     v_norm_r * v_norm_r * a[block_i * WID + k][1];
 #endif
 #ifdef ACC_SEMILAG_PPM
                   target_density_r =
-                     v_cellnormalized_r * a[block_i * WID + k][0] +
-                     v_cellnormalized_r * v_cellnormalized_r * a[block_i * WID + k][1] +
-                     v_cellnormalized_r * v_cellnormalized_r * v_cellnormalized_r * a[block_i * WID + k][2];
+                     v_norm_r * a[block_i * WID + k][0] +
+                     v_norm_r * v_norm_r * a[block_i * WID + k][1] +
+                     v_norm_r * v_norm_r * v_norm_r * a[block_i * WID + k][2];
 #endif
+#ifdef ACC_SEMILAG_PQM
+                  target_density_r =
+                     v_norm_r * a[block_i * WID + k][0] +
+                     v_norm_r * v_norm_r * a[block_i * WID + k][1] +
+                     v_norm_r * v_norm_r * v_norm_r * a[block_i * WID + k][2] +
+                     v_norm_r * v_norm_r * v_norm_r * v_norm_r * a[block_i * WID + k][3] +
+                     v_norm_r * v_norm_r * v_norm_r * v_norm_r * v_norm_r * a[block_i * WID + k][4];
+#endif
+
                   /*total value of integrand*/
                   const Vec4 target_density = target_density_r - target_density_l;
                   
