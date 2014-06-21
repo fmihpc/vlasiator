@@ -254,23 +254,6 @@ bool map_1d(SpatialCell* spatial_cell,
       */
 
       for (uint j = 0; j < WID; ++j){
-         /*target cell/block index contribution not dependent on k index*/
-         const Vec4i target_cell_index_common = j*cell_indices_to_id[1] + Vec4i(0, cell_indices_to_id[0], 2 * cell_indices_to_id[0], 3 * cell_indices_to_id[0]);
-         const int target_block_index_common(block_indices_begin[0] * block_indices_to_id[0] + block_indices_begin[1] * block_indices_to_id[1]);
-            
-         /* 
-            intersection_min is the intersection z coordinate (z after
-            swaps that is) of the lowest possible z plane for each i,j
-            index (i in vector)
-         */	 
-         const Real intersection_min_base = intersection +
-            (block_indices_begin[0]*WID)*intersection_di + 
-            (block_indices_begin[1]*WID+j)*intersection_dj;
-         const Vec4 intersection_min(intersection_min_base,
-                                     intersection_min_base + intersection_di,
-                                     intersection_min_base + 2.0 * intersection_di,
-                                     intersection_min_base + 3.0 * intersection_di);
-         
          /*loop through column and compute reconstructions*/
          for (unsigned int block_i = 0; block_i<n_cblocks;block_i++){
             for (uint k=0; k<WID; ++k){ 
@@ -298,20 +281,34 @@ bool map_1d(SpatialCell* spatial_cell,
             }
          }
 
+         /*Now it is time to compute the actual mapping*/
+         /*target cell/block index contribution not dependent on k index*/
+         const Vec4i target_cell_index_common = j*cell_indices_to_id[1] + Vec4i(0, cell_indices_to_id[0], 2 * cell_indices_to_id[0], 3 * cell_indices_to_id[0]);
+         const int target_block_index_common(block_indices_begin[0] * block_indices_to_id[0] + block_indices_begin[1] * block_indices_to_id[1]);
+         /* intersection_min is the intersection z coordinate (z after
+            swaps that is) of the lowest possible z plane for each i,j
+            index (i in vector)
+         */	 
+         const Real intersection_min_base = intersection +
+            (block_indices_begin[0]*WID)*intersection_di + 
+            (block_indices_begin[1]*WID+j)*intersection_dj;
+         const Vec4 intersection_min(intersection_min_base,
+                                     intersection_min_base + intersection_di,
+                                     intersection_min_base + 2.0 * intersection_di,
+                                     intersection_min_base + 3.0 * intersection_di);
+         
+
          /*compute some initial values, that are used to set up the
           * shifting of values as we go through all blocks in
           * order. See comments where they are shifted for
           * explanations of their meening*/
          Vec4 v_r((WID * block_indices_begin[2]) * dv + v_min);
          Vec4i lagrangian_gk_r=truncate_to_int((v_r-intersection_min)/intersection_dk);
-         /*loop through all blocks in column and compute the mapping as integrals*/
-         
-         for (unsigned int block_i = 0; block_i<n_cblocks;block_i++){
-            /*block indices of the current block. Now we know that in each column the blocks are in order*/
-            velocity_block_indices_t block_indices = block_indices_begin;
-            block_indices[2] += block_i;
 
-            
+         /*loop through all blocks in column and compute the mapping as integrals*/
+         for (unsigned int block_i = 0; block_i<n_cblocks;block_i++){
+            /*block index in k of the current block. Now we know that in each column the blocks are in order*/
+            const uint block_k =  block_indices_begin[2] + block_i;
             for (uint k=0; k<WID; ++k){ 
                /*set the initial value for the integrand at the boundary at v = 0 (in reduced cell units), this will be shifted to target_density_1, see below*/
                Vec4 target_density_r(0.0);
@@ -319,8 +316,7 @@ bool map_1d(SpatialCell* spatial_cell,
                Vec4 v_l = v_r; 
                v_r += dv;
                /*left(l) and right(r) k values (global index) in the target
-                 lagrangian grid, the intersecting cells. Again old right is new left*/
-               
+                 lagrangian grid, the intersecting cells. Again old right is new left*/               
                const Vec4i lagrangian_gk_l = lagrangian_gk_r;
                lagrangian_gk_r = truncate_to_int((v_r-intersection_min)/intersection_dk);
 
@@ -329,7 +325,7 @@ bool map_1d(SpatialCell* spatial_cell,
                   const Vec4i gk_div_WID = gk/WID;
                   const Vec4i gk_mod_WID = (gk - gk_div_WID * WID);
                   //the block of the lagrangian cell to which we map
-                  const Vec4i target_block(target_block_index_common + gk_div_WID * block_indices_to_id[2]);
+                  const Vec4i target_block(target_block_index_common + gk_div_WID * block_k);
                   //cell index in the target block 
                   const Vec4i target_cell(target_cell_index_common + gk_mod_WID * cell_indices_to_id[2]);
 	  
