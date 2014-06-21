@@ -14,7 +14,6 @@ Copyright 2013, 2014 Finnish Meteorological Institute
 #include "utility"
 #include "common.h"
 #include "spatial_cell.hpp"
-#include "cpu_1d_interpolations.hpp"
 #include "cpu_sort_blocks_for_acc.hpp"
 
 #define MAX_BLOCKS_PER_DIM 100
@@ -32,6 +31,8 @@ Copyright 2013, 2014 Finnish Meteorological Institute
 #define i_pcolumn(nblocks, block_i, i, j, k) ( (i) + (j) * WID2 * (nblocks + 2) + ( (k) + ( block_i + 1 ) * WID) *  WID )
 #define i_pcolumnv(nblocks, block_i, j, k) ( (j) * WID2 * (nblocks + 2) + ( (k) + ( block_i + 1 ) * WID) *  WID )
 
+//include this after the defines above which are needed
+#include "cpu_1d_interpolations.hpp"
 
 
 using namespace std;
@@ -264,31 +265,31 @@ bool map_1d(SpatialCell* spatial_cell,
 
       for (uint j = 0; j < WID; ++j){
          /*loop through column and compute reconstructions*/
+#ifdef ACC_SEMILAG_PCONSTM
          for (unsigned int block_i = 0; block_i<n_cblocks;block_i++){
             for (uint k=0; k<WID; ++k){ 
-#ifdef ACC_SEMILAG_PCONSTM
                Vec4 cv;	    
                cv.load(values + i_pcolumnv(n_cblocks,block_i,j,k));
                a[block_i * WID + k][0] = cv;
+            }
+         }
 #endif
 #ifdef ACC_SEMILAG_PLM
+         for (unsigned int block_i = 0; block_i<n_cblocks;block_i++){
+            for (uint k=0; k<WID; ++k){ 
                Vec4 mv,cv,pv;
                mv.load(values + i_pcolumnv(n_cblocks,block_i,j,k-1));
                cv.load(values + i_pcolumnv(n_cblocks,block_i,j,k));
                pv.load(values + i_pcolumnv(n_cblocks,block_i,j,k+1));
                compute_plm_coeff(mv,cv,pv,a[block_i * WID + k]);
-#endif
-#ifdef ACC_SEMILAG_PPM
-               Vec4 mmv,mv,cv,pv,ppv;
-               mmv.load(values + i_pcolumnv(n_cblocks,block_i,j,k-2));
-               mv.load(values + i_pcolumnv(n_cblocks,block_i,j,k-1));
-               cv.load(values + i_pcolumnv(n_cblocks,block_i,j,k));
-               pv.load(values + i_pcolumnv(n_cblocks,block_i,j,k+1));
-               ppv.load(values + i_pcolumnv(n_cblocks,block_i,j,k+2));
-               compute_ppm_coeff(mmv,mv,cv,pv,ppv,a[block_i * WID + k]);
-#endif
             }
          }
+#endif
+
+#ifdef ACC_SEMILAG_PPM
+         compute_ppm_coeff_column(values, n_cblocks, j, a);
+#endif
+
 
          /*Now it is time to compute the actual mapping*/
          /*target cell/block index contribution not dependent on k index*/
