@@ -6,7 +6,7 @@ include MAKE/Makefile.${ARCH}
 FP_PRECISION = DP
 
 #Set floating point precision for distribution function to SPF (single) or DPF (double)
-DISTRIBUTION_FP_PRECISION = DPF
+DISTRIBUTION_FP_PRECISION = SPF
 
 #set a default archive utility, can also be set in Makefile.arch
 AR ?= ar
@@ -18,11 +18,11 @@ FIELDSOLVER ?= londrillo_delzanna
 # CXXFLAGS += -DFS_1ST_ORDER_TIME
 
 #also use papi to report memory consumption?
-#CXXFLAGS += -DPAPI_MEM
+CXXFLAGS += -DPAPI_MEM
 
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
-#CXXFLAGS += -DUSE_JEMALLOC
+CXXFLAGS += -DUSE_JEMALLOC
 
 #is profiling on?
 CXXFLAGS += -DPROFILE

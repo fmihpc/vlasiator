@@ -316,8 +316,6 @@ bool map_1d(SpatialCell* spatial_cell,
 
          /*loop through all blocks in column and compute the mapping as integrals*/
          for (unsigned int block_i = 0; block_i<n_cblocks;block_i++){
-            /*block index in k of the current block. Now we know that in each column the blocks are in order*/
-            const uint block_k =  block_indices_begin[2] + block_i;
             for (uint k=0; k<WID; ++k){ 
                /*set the initial value for the integrand at the boundary at v = 0 (in reduced cell units), this will be shifted to target_density_1, see below*/
                Vec4 target_density_r(0.0);
@@ -334,7 +332,7 @@ bool map_1d(SpatialCell* spatial_cell,
                   const Vec4i gk_div_WID = gk/WID;
                   const Vec4i gk_mod_WID = (gk - gk_div_WID * WID);
                   //the block of the lagrangian cell to which we map
-                  const Vec4i target_block(target_block_index_common + gk_div_WID * block_k);
+                  const Vec4i target_block(target_block_index_common + gk_div_WID * block_indices_to_id[2]);
                   //cell index in the target block 
                   const Vec4i target_cell(target_cell_index_common + gk_mod_WID * cell_indices_to_id[2]);
 	  
