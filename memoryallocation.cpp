@@ -61,23 +61,22 @@ void operator delete[](void *p)
 uint64_t get_node_free_memory(){
    uint64_t mem_proc_free = 0;
    FILE * in_file = fopen("/proc/meminfo", "r");
-   if(in_file != NULL ) {
-      char attribute_name[200];
-      int memory;
-      char memory_unit[10];
-      const char * memfree_attribute_name = "MemFree:";
-      if( in_file ) {
+   char attribute_name[200];
+   int memory;
+   char memory_unit[10];
+   const char * memfree_attribute_name = "MemFree:";
+   if( in_file ) {
       // Read free memory:
-         while( fscanf( in_file, "%s %d %s", attribute_name, &memory, memory_unit ) != EOF ) {
+      while( fscanf( in_file, "%s %d %s", attribute_name, &memory, memory_unit ) != EOF ) {
          // Check if the attribute name equals memory free
-            if( strcmp(attribute_name, memfree_attribute_name ) == 0 ) {
+         if( strcmp(attribute_name, memfree_attribute_name ) == 0 ) {
             //free memory in KB, transform to B
-               mem_proc_free = (uint64_t)memory * 1024;
-            }
+            mem_proc_free = (uint64_t)memory * 1024;
          }
       }
-      fclose( in_file );
    }
+   fclose( in_file );
+   
    return mem_proc_free;
 }
 
@@ -109,7 +108,7 @@ void report_process_memory_consumption(){
 #endif
 
    // Report /proc/meminfo memory consumption:
-   /* double mem_proc_free = (double)get_node_free_memory();
+   double mem_proc_free = (double)get_node_free_memory();
    double total_mem_proc = 0;
    double min_free,max_free;
    const int root = 0;
@@ -119,7 +118,6 @@ void report_process_memory_consumption(){
    MPI_Reduce( &mem_proc_free, &max_free, numberOfParameters, MPI_DOUBLE, MPI_MAX, root, MPI_COMM_WORLD );
    logFile << "(MEM) Node free memory (avg, min, max): " << total_mem_proc/n_procs << " " << min_free << " " << max_free << endl;
    logFile << writeVerbose;
-   */
 }
 
 
