@@ -18,7 +18,16 @@ Copyright 2013, 2014 Finnish Meteorological Institute
 #include "cpu_sort_blocks_for_acc.hpp"
 
 #define MAX_BLOCKS_PER_DIM 100
+#ifdef ACC_SEMILAG_PCONSTM
+#define RECONSTRUCTION_ORDER 0
+#endif
+#ifdef ACC_SEMILAG_PLM
+#define RECONSTRUCTION_ORDER 1
+#endif
+#ifdef ACC_SEMILAG_PPM
 #define RECONSTRUCTION_ORDER 2
+#endif
+
 //index in the temporary and padded column data values array. At each there is an empty block
 #define i_pcolumn(nblocks, block_i, i, j, k) ( (i) + (j) * WID2 * (nblocks + 2) + ( (k) + ( block_i + 1 ) * WID) *  WID )
 #define i_pcolumnv(nblocks, block_i, j, k) ( (j) * WID2 * (nblocks + 2) + ( (k) + ( block_i + 1 ) * WID) *  WID )
