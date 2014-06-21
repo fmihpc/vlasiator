@@ -32,22 +32,11 @@ Copyright 2013, 2014 Finnish Meteorological Institute
 #define i_pcolumnv(nblocks, block_i, j, k) ( (j) * WID2 * (nblocks + 2) + ( (k) + ( block_i + 1 ) * WID) *  WID )
 
 //include this after the defines above which are needed
-#include "cpu_1d_interpolations.hpp"
+#include "cpu_1d_column_interpolations.hpp"
 
 
 using namespace std;
 using namespace spatial_cell;
-
-//#define i_pblock(i,j,k) ( ((k) + STENCIL_WIDTH ) * WID + (j) * WID * (WID + 2* STENCIL_WIDTH) + (i) )
-//#define i_pblockv(j,k) ( ((k) + STENCIL_WIDTH ) * WID + (j) * WID * (WID + 2* STENCIL_WIDTH) )
-
-
-
-
-
-
-
-
 
 /*!
   For dimension=0 data copy  we have rotated data

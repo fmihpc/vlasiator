@@ -35,4 +35,19 @@ typedef Vec4Real<float> Vec4;
 
 #endif
 
+
+
+const Vec4 one(1.0);
+const Vec4 minus_one(-1.0);
+const Vec4 two(2.0);
+const Vec4 half(0.5);
+const Vec4 zero(0.0);
+
+const Vec4 one_sixth(1.0/6.0);
+const Vec4 one_twelfth(1.0/12.0);
+const Vec4 seven_twelfth(7.0/12.0);
+const Vec4 one_third(1.0/3.0);
+
 #endif
+
+
