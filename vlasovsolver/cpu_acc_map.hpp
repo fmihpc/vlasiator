@@ -28,8 +28,7 @@ Copyright 2013, 2014 Finnish Meteorological Institute
 #endif
 
 //index in the temporary and padded column data values array. At each there is an empty block
-#define i_pcolumn(nblocks, block_i, i, j, k) ( (i) + (j) * WID2 * (nblocks + 2) + ( (k) + ( block_i + 1 ) * WID) *  WID )
-#define i_pcolumnv(nblocks, block_i, j, k) ( (j) * WID2 * (nblocks + 2) + ( (k) + ( block_i + 1 ) * WID) *  WID )
+#define i_pcolumnv(nblocks, block_i, j, k) ( (j) * WID * (nblocks + 2) +  (k) + ( block_i + 1 ) * WID )
 
 //include this after the defines above which are needed
 #include "cpu_1d_column_interpolations.hpp"
@@ -49,7 +48,7 @@ using namespace spatial_cell;
   k -> j
 
 */
-inline void load_column_block_data(SpatialCell* spatial_cell, uint* blocks, uint n_blocks, Real * __restrict__ values, int dimension){
+inline void load_column_block_data(SpatialCell* spatial_cell, uint* blocks, uint n_blocks, Vec4 * __restrict__ values, int dimension){
    uint cell_indices_to_id[3];
    switch (dimension){
        case 0:
@@ -84,10 +83,8 @@ inline void load_column_block_data(SpatialCell* spatial_cell, uint* blocks, uint
 
    for (uint j=0; j<WID; ++j) {
       for (uint k=0; k<WID; ++k) {
-         for (uint i=0; i<WID; ++i) {
-            values[i_pcolumn(n_blocks,-1,i,j,k)] = 0.0;
-            values[i_pcolumn(n_blocks,n_blocks,i,j,k)] = 0.0;
-         }
+         values[i_pcolumnv(n_blocks,-1,j,k)] = Vec4(0.0);
+         values[i_pcolumnv(n_blocks,n_blocks,j,k)] = Vec4(0.0);
       }
    }
    
@@ -104,7 +101,7 @@ inline void load_column_block_data(SpatialCell* spatial_cell, uint* blocks, uint
                   i * cell_indices_to_id[0] +
                   j * cell_indices_to_id[1] +
                   k * cell_indices_to_id[2];
-               values[i_pcolumn(n_blocks,block_i,i,j,k)] = (Real)fx[cell];
+               values[i_pcolumnv(n_blocks,block_i,j,k)].insert(i,(Real)fx[cell]);
             }
          }
       }
@@ -210,7 +207,7 @@ bool map_1d(SpatialCell* spatial_cell,
    phiprof::stop("Sort_blocklist");
    const uint max_column_length = *(std::max_element(block_column_lengths.begin(),block_column_lengths.end()));
    /*values array used to store column data*/
-   static Real values[(MAX_BLOCKS_PER_DIM + 2) * WID3];
+   static Vec4 values[(MAX_BLOCKS_PER_DIM + 2) * WID2];
    static Vec4 a[MAX_BLOCKS_PER_DIM*WID][RECONSTRUCTION_ORDER + 1];
    
    /*these two temporary variables are used to optimize access to target cells*/
