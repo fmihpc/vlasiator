@@ -421,8 +421,6 @@ void set_local_and_remote_velocity_cell_neighbors(
       for( int i_offset = -1; i_offset <= 1; ++i_offset ) for( int j_offset = -1; j_offset <= 1; ++j_offset ) for( int k_offset = -1; k_offset <= 1; ++k_offset ) {
          // if i=j=k=0 then we're looking at the velocity cell itself, not neighbor
          if( i_offset == 0 && j_offset == 0 && k_offset == 0 ) { continue; }
-         // note: this might not be the smartest idea: TODO: Remove this?
-         if( abs(i_offset) == abs(j_offset) || abs(i_offset) == abs(k_offset) || abs(j_offset) == abs(k_offset) ) { continue; }
 
          // Get the new indices:
          const int numberOfDirections = 3;
@@ -1508,7 +1506,7 @@ void population_algorithm(
 }
 
 // Function for getting the max number of populations:
-static uint max_number_of_populations( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) {
+static uint max_number_of_populations( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) {
    uint max_populations = 0;
    // Fetch cells:
    vector<uint64_t> local_cells = mpiGrid.get_cells();
@@ -1525,7 +1523,7 @@ static uint max_number_of_populations( dccrg::Dccrg<SpatialCell,dccrg::Cartesian
 }
 
 // Function for writing out rho for different populations:
-static inline bool write_rho( const uint max_populations, const vector<uint64_t> & local_cells, dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, Writer & vlsvWriter ) {
+static inline bool write_rho( const uint max_populations, const vector<uint64_t> & local_cells, const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, Writer & vlsvWriter ) {
    bool success = true;
    // Reserve space for writing out rho:
    Real * population_rho = new Real[max_populations * local_cells.size()];
@@ -1567,7 +1565,7 @@ static inline bool write_rho( const uint max_populations, const vector<uint64_t>
  \param mpiGrid                 The DCCRG grid with spatial cells
  \param vlsvWriter              The VLSV writer class for writing VLSV files, note that the file must have been opened already
  */
-bool write_population_variables( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, Writer & vlsvWriter ) {
+bool write_population_variables( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, Writer & vlsvWriter ) {
    // Get max number of populations (to be used in determining how many arrays to write)
    const uint max_populations = max_number_of_populations( mpiGrid );
    // Fetch cells:
@@ -1598,6 +1596,9 @@ bool write_population_distribution( const dccrg::Dccrg<SpatialCell,dccrg::Cartes
    const uint64_t arraySize_avgs = totalBlocks;
    const uint64_t vectorSize_avgs = WID3; // There are 64 elements in every velocity block
    const uint64_t dataSize_avgs = sizeof(Realf);
+   map<string,string> attribs;
+   attribs["mesh"] = "SpatialGrid";
+   attribs["name"] = "avgs"; // Name of the velocity space distribution is written avgs
 
    // Start multi write
    vlsvWriter.startMultiwrite(datatype_avgs,arraySize_avgs,vectorSize_avgs,dataSize_avgs);
