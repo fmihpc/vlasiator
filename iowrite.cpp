@@ -757,10 +757,15 @@ bool writePopulation( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       const bool writePopulations,
                       Writer & vlsvWriter ) {
    // Don't do anything if nothing is written
-   if( writeDistribution == false && writeRho == false && writePopulations == false ) { return true; }
+   if( writeDistribution == false && writeVariables == false && writePopulations == false ) { return true; }
    phiprof_assert( local_cells.size() != 0 );
    phiprof::start("write-population");
 
+   array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> local_vcell_neighbors;
+   array< vector< pair<int16_t, vector<uint16_t> > >, VELOCITY_BLOCK_LENGTH> remote_vcell_neighbors;
+
+   set_local_and_remote_velocity_cell_neighbors( local_vcell_neighbors, remote_vcell_neighbors );
+  
    // Calculate the populations, note that the populations are currently saved in the block_fx
    phiprof::start("calculate-population");
    #pragma omp parallel for schedule(dynamic,1)
@@ -951,6 +956,14 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       if( writeVelocitySpace<float>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
    } else {
       if( writeVelocitySpace<Realf>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
+   }
+
+   // Write out everything population-related
+   {
+      const bool writeDistribution = true;
+      const bool writeVariables = true;
+      const bool writePopulations = true;
+      if( writePopulation( mpiGrid, local_cells, writeDistribution, writeVariables, writePopulations, vlsvWriter ) ) return false;
    }
 
    //Write necessary variables:
