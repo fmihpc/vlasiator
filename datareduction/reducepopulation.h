@@ -37,7 +37,7 @@ void population_algorithm(
  \param mpiGrid                 The DCCRG grid with spatial cells
  \param vlsvWriter              The VLSV writer class for writing VLSV files, note that the file must have been opened already
  */
-bool write_population_variables( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, vlsv::Writer & vlsvWriter );
+bool write_population_variables( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, vlsv::Writer & vlsvWriter );
 
 /*! Writes the distribution function for different populations. Note that population_algorithm must have been called before this!
 
