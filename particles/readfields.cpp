@@ -12,6 +12,9 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
+std::string B_field_name;
+std::string E_field_name;
+
 /* Read the cellIDs into an array */
 std::vector<uint64_t> readCellIds(oldVlsv::Reader& r) {
 

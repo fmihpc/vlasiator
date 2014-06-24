@@ -49,7 +49,7 @@ void calculateCellVelocityMoments(
   \param mpiGrid Grid of spatial cells for which moments are computed 
   
 */
-void calculateVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
 
 

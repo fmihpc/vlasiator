@@ -89,33 +89,34 @@ void report_process_memory_consumption(){
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
 #ifdef PAPI_MEM
+   /*If we have PAPI, we can report the resident usage of the process*/
    if (PAPI_library_init(PAPI_VER_CURRENT) == PAPI_VER_CURRENT) {
       PAPI_dmem_info_t dmem;  
       PAPI_get_dmem_info(&dmem);
       double mem_papi[2] = {};
       double sum_mem_papi[2];
-      uint i=0;
+      double min_mem_papi[2];
+      double max_mem_papi[2];
       /*PAPI returns memory in KB units, transform to bytes*/
-      mem_papi[i++] = dmem.size * 1024; 
-      mem_papi[i++] = dmem.resident * 1024;
-      MPI_Reduce(mem_papi, sum_mem_papi, i, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-      i=0;
-      logFile << "(MEM) Average PAPI Size: " << sum_mem_papi[i++]/n_procs << endl;
-      logFile << "(MEM) Average PAPI Resident: " << sum_mem_papi[i++]/n_procs << endl;
-   }
-   
+      mem_papi[0] = dmem.size * 1024; 
+      mem_papi[1] = dmem.resident * 1024;
+      MPI_Reduce(mem_papi, sum_mem_papi, 2, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+      MPI_Reduce(mem_papi, min_mem_papi, 2, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD);
+      MPI_Reduce(mem_papi, max_mem_papi, 2, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+      logFile << "(MEM) PAPI Resident (avg, min, max): " << sum_mem_papi[1]/n_procs << " " << min_mem_papi[1] << " "  << max_mem_papi[1] << endl;
+   }   
 #endif
 
    // Report /proc/meminfo memory consumption:
    double mem_proc_free = (double)get_node_free_memory();
    double total_mem_proc = 0;
-   // Sum all process' results:
+   double min_free,max_free;
    const int root = 0;
    const int numberOfParameters = 1;
    MPI_Reduce( &mem_proc_free, &total_mem_proc, numberOfParameters, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD );
-
-   // Report memory consumption:
-   logFile << "(MEM) Average free memory: " << total_mem_proc/n_procs << endl;
+   MPI_Reduce( &mem_proc_free, &min_free, numberOfParameters, MPI_DOUBLE, MPI_MIN, root, MPI_COMM_WORLD );
+   MPI_Reduce( &mem_proc_free, &max_free, numberOfParameters, MPI_DOUBLE, MPI_MAX, root, MPI_COMM_WORLD );
+   logFile << "(MEM) Node free memory (avg, min, max): " << total_mem_proc/n_procs << " " << min_free << " " << max_free << endl;
    logFile << writeVerbose;
 }
 
