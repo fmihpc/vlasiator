@@ -491,6 +491,7 @@ int main(int argn,char* args[]) {
       //Check if dt needs to be changed, and propagate half-steps properly to change dt and set up new situation
       //do not compute new dt on first step (in restarts dt comes from file, otherwise it was initialized before we entered
       //simulation loop
+      // FIXME what if dt changes at a restart??
       if(P::dynamicTimestep  && P::tstep> P::tstep_min) {
          computeNewTimeStep(mpiGrid,newDt,dtIsChanged);
          addTimedBarrier("barrier-check-dt");
