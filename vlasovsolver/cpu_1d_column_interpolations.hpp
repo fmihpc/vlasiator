@@ -15,11 +15,7 @@ Copyright 2013, 2014 Finnish Meteorological Institute
 using namespace std;
 
 
-void tridiag_ih6(uint n, Vec4 *u, Vec4 *r){
-  const Vec4 a(4.0/12.0);
-  const Vec4 b(1.0);
-  const Vec4 c(4.0/12.0);
-
+void tridiag(uint n,const Vec4 &a,const Vec4 &b,const Vec4 &c,Vec4 *u, Vec4 *r){
   static Vec4 gam[MAX_BLOCKS_PER_DIM*WID];
   
   Vec4 bet=b;
@@ -52,35 +48,89 @@ inline void compute_h6_face_values(Vec4 *values, uint n_cblocks,  Vec4 *fv_l, Ve
   }
 }
 
-
-
-/*Compute all face values. For cell k (globla index), its left face
- * value is in fv_l[k] and right value in fv_r[k]. Based on implicit
- * ih6 estimate*/
-inline void compute_ih6_face_values(Vec4 *values, uint n_cblocks,  Vec4 *fv_l, Vec4 *fv_r){   
+inline void compute_ih4_face_values(Vec4 *values, uint n_cblocks,  Vec4 *fv_l, Vec4 *fv_r){   
   static Vec4 r[MAX_BLOCKS_PER_DIM*WID + 1];
-  
+  const Vec4 a(1.0/4.0);
+  const Vec4 b(1.0);
+  const Vec4 c(1.0/4.0);
   
   for (uint k = 0; k < n_cblocks * WID + 1; k++){
     //Note that these are now defined for left face values, so not exactly like in white
-    r[k] = (values[k - 2 + WID] + 29.0 * values[k - 1 + WID] + 29.0 * values[k + WID] + values[k + 1 + WID] )/36.0;
+    r[k] = ( 3.0 * values[k - 1 + WID] + 3.0 * values[k + WID])/4.0;
   }
   
-  tridiag_ih6(n_cblocks*WID + 1,fv_l,r);
+  tridiag(n_cblocks*WID + 1,a,b,c,fv_l,r);
 
   /*copy right face values */
   for (uint k = 1; k < n_cblocks * WID + 1; k++){
     fv_r[k-1] = fv_l[k];
   }
 
-  /*  if (n_cblocks>6) {
-    for (uint k = 0; k < n_cblocks * WID ; k++){
-      cout << k << " "<< fv_l[k][0] << " " <<values[ k + WID ][0]  << " " << fv_r[k][0] << endl;
-    }
-    exit(1);
+}
+
+
+
+/*Compute all face values. For cell k (globla index), its left face
+ * value is in fv_l[k] and right value in fv_r[k]. Based on implicit
+ * ih6 estimate from White - 2008. Note that the value for a and c is wrong in the paper. The original source is:
+
+[ Lacor, Chris, Sergey Smirnov, and Martine Baelmans. “A Finite Volume Formulation of Compact Central Schemes on Arbitrary Structured Grids.” Journal of Computational Physics 198, no. 2 (August 2004): 535–66. doi:10.1016/j.jcp.2004.01.025.]
+
+and solving for the variables there we get for the variable names in that paper (sympy): 
+solve([Eq(a + b, 1 + 2*alpha), Eq(a+(2**3 - 1)*b,6*alpha), Eq(a + (2**5 -1)*b,10*alpha)],a,alpha,b)
+Out[17]: {alpha: 1/3, b: 1/18, a: 29/18} 
+*/
+
+inline void compute_ih6_face_values(Vec4 *values, uint n_cblocks,  Vec4 *fv_l, Vec4 *fv_r){   
+  static Vec4 r[MAX_BLOCKS_PER_DIM*WID + 1];
+  const Vec4 a(1.0/3.0);
+  const Vec4 b(1.0);
+  const Vec4 c(1.0/3.0);
+  
+  for (uint k = 0; k < n_cblocks * WID + 1; k++){
+    //Note that these are now defined for left face values, so not exactly like in white
+    r[k] = (values[k - 2 + WID] + 29.0 * values[k - 1 + WID] + 29.0 * values[k + WID] + values[k + 1 + WID])/36.0;
   }
-    
-  */
+  
+  tridiag(n_cblocks*WID + 1,a,b,c,fv_l,r);
+
+  /*copy right face values */
+  for (uint k = 1; k < n_cblocks * WID + 1; k++){
+    fv_r[k-1] = fv_l[k];
+  }
+
+}
+
+/*
+Out[43]: 
+[a + b + c == 2*alpha + 1,
+ a + 7*b + 19*c == 6*alpha,
+ a + 31*b + 211*c == 10*alpha,
+ a + 127*b + 2059*c == 14*alpha]
+
+In [44]: solve(equations,a,b,c,alpha)
+Out[44]: {c: -1/240, alpha: 3/8, b: 23/240, a: 199/120}
+*/
+
+
+inline void compute_ih8_face_values(Vec4 *values, uint n_cblocks,  Vec4 *fv_l, Vec4 *fv_r){   
+  static Vec4 r[MAX_BLOCKS_PER_DIM*WID + 1];
+  const Vec4 a(3.0/8.0);
+  const Vec4 b(1.0);
+  const Vec4 c(3.0/8.0);
+  
+  for (uint k = 0; k < n_cblocks * WID + 1; k++){
+    //Note that these are now defined for left face values, so not exactly like in white
+    r[k] = ( -1.0*values[k-3+WID] + 23.0*values[k - 2 + WID] + 398.0*values[k - 1 + WID] + 398.0 * values[k + WID] + 23.0* values[k + 1 + WID] - 1.0*values[k+2+WID])/480.0;
+  }
+  
+  tridiag(n_cblocks*WID + 1,a,b,c,fv_l,r);
+
+  /*copy right face values */
+  for (uint k = 1; k < n_cblocks * WID + 1; k++){
+    fv_r[k-1] = fv_l[k];
+  }
+
 }
 
 
@@ -160,7 +210,7 @@ inline void compute_ppm_coeff_explicit_column(Vec4 *values, uint n_cblocks, Vec4
 
    //white 08 H6 face estimates, better than H5. Shift old unfilitered value at upper edge to the lower edge (identical edge)     
 
-   compute_ih6_face_values(values,n_cblocks,fv_l, fv_r); 
+   compute_ih4_face_values(values,n_cblocks,fv_l, fv_r); 
    filter_boundedness(values,n_cblocks,fv_l, fv_r); 
    filter_extrema(values,n_cblocks,fv_l, fv_r);
 //   filter_face_monotonicity(values,n_cblocks,fv);
