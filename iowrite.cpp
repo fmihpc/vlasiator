@@ -765,67 +765,66 @@ bool writePopulation( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    set_local_and_remote_velocity_cell_neighbors( local_vcell_neighbors, remote_vcell_neighbors );
 
    // Calculate the populations, note that the populations are currently saved in the block_fx
-//   phiprof::start("calculate-population");
+   phiprof::start("calculate-population");
    #pragma omp parallel for schedule(dynamic,1)
    for( unsigned int i = 0; i < local_cells.size(); ++i ) {
       const uint64_t cellId = local_cells[i];
       SpatialCell * cell = mpiGrid[cellId];
       population_algorithm( cell, local_vcell_neighbors, remote_vcell_neighbors );
    }
-//   phiprof::stop("calculate-population");
+   phiprof::stop("calculate-population");
 
    bool success = true;
 
 
    // Write out the distribution function:
    if( writeDistribution ) {
-//      phiprof::start("write-distribution-population");
+      phiprof::start("write-distribution-population");
       write_population_distribution( mpiGrid, local_cells, vlsvWriter );
-//      phiprof::stop("write-distribution-population");
+      phiprof::stop("write-distribution-population");
    }
 
    // Write out the population variables:
    if( writeVariables ) {
-//      phiprof::start("write-population-variables");
+      phiprof::start("write-population-variables");
       if( write_population_variables( mpiGrid, vlsvWriter )  == false ) {
-         cerr << "Error writing population variables" << endl;
          return false;
       }
-//      phiprof::stop("write-population-variables");
+      phiprof::stop("write-population-variables");
    }
-//   // Write out the number of populations:
-//   if( writePopulations ) {
-////      phiprof::start("write-numberofpopulations");
-//
-//      vector<uint32_t> populations;
-//      populations.resize( local_cells.size() );
-//
-//      // Fetch different populations:
-//      for( unsigned int i = 0; i < local_cells.size(); ++i ) {
-//         const uint64_t cellId = local_cells[i];
-//         SpatialCell * cell = mpiGrid[cellId];
-//         const uint32_t number_of_populations = cell->number_of_populations;
-//         populations[i] = number_of_populations;
-//      }
-//
-//      // Write the data out, we need arraySizze, vectorSize and name to do this
-//      const uint64_t arraySize = local_cells.size();
-//      const uint64_t vectorSize = 1; // Population is uint32_t, so a scalar (vector size 1)
-//      const string name = "Populations";
-//
-//      map<string, string> xmlAttributes;
-//      xmlAttributes["name"] = name;
-//      xmlAttributes["mesh"] = "SpatialGrid";
-//
-//      // Write the array and return false if the writing fails
-//
-//      if( vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, populations.data() ) == false ) {
-//         success = false;
-//      }
-////      phiprof::stop("write-numberofpopulations");
-//   }
+   // Write out the number of populations:
+   if( writePopulations ) {
+      phiprof::start("write-numberofpopulations");
 
-//   phiprof::stop("write-population");
+      vector<uint32_t> populations;
+      populations.resize( local_cells.size() );
+
+      // Fetch different populations:
+      for( unsigned int i = 0; i < local_cells.size(); ++i ) {
+         const uint64_t cellId = local_cells[i];
+         SpatialCell * cell = mpiGrid[cellId];
+         const uint32_t number_of_populations = cell->number_of_populations;
+         populations[i] = number_of_populations;
+      }
+
+      // Write the data out, we need arraySizze, vectorSize and name to do this
+      const uint64_t arraySize = local_cells.size();
+      const uint64_t vectorSize = 1; // Population is uint32_t, so a scalar (vector size 1)
+      const string name = "Populations";
+
+      map<string, string> xmlAttributes;
+      xmlAttributes["name"] = name;
+      xmlAttributes["mesh"] = "SpatialGrid";
+
+      // Write the array and return false if the writing fails
+
+      if( vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, populations.data() ) == false ) {
+         success = false;
+      }
+      phiprof::stop("write-numberofpopulations");
+   }
+
+   phiprof::stop("write-population");
    return success;
 }
 

@@ -663,7 +663,7 @@ static inline void cluster_simple(
                all_vCells[ id ] = clusterId;
                all_neighbors.push_back( tmp_neighbors[j] );
                if( debugging_iterator >= velocityCells.size() ) {
-                  cerr << "BUG FOUND2" << endl;
+                  cerr << "Error at " << __FILE__ << " " << __LINE__ << endl;
                   exit(1);
                }
                ++debugging_iterator;
@@ -690,7 +690,7 @@ static inline void cluster_simple(
                   all_vCells[ id ] = clusterId;
                   all_neighbors.push_back( *rit );
                   if( debugging_iterator >= velocityCells.size() ) {
-                     cerr << "BUG FOUND" << endl;
+                     cerr << "Error at " << __FILE__ << " " << __LINE__ << endl;
                      exit(1);
                   }
                   ++debugging_iterator;
@@ -884,17 +884,11 @@ static inline void cluster(
    }
 
    phiprof_assert( cell->block_fx.size() >= velocityCells.size() );
+   // Insert values
    for( uint i = 0; i < velocityCells.size(); ++i ) {
       const Realf value = clusters[clusterIds[i]].clusterId;
       cell->block_fx.at(i) = value;
    }
-
-   // Print out the number of clusterIds:
-//   cerr << "Clusters: " << clusterId << endl;
-//   cerr << "Merges: " << merges << endl;
-////   cerr << "Sizeof: " << sizeof(Realf) << endl;
-
-//   
 
    delete[] clusterIds;
    return;
@@ -1507,7 +1501,7 @@ void population_algorithm(
 
 // Function for getting the max number of populations:
 static uint max_number_of_populations( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) {
-   uint max_populations = 0;
+   uint local_max_populations = 0;
    // Fetch cells:
    vector<uint64_t> local_cells = mpiGrid.get_cells();
    // Loop through cells:
@@ -1517,54 +1511,54 @@ static uint max_number_of_populations( const dccrg::Dccrg<SpatialCell,dccrg::Car
       // Get the cell's spatial cell class:
       SpatialCell * cell = mpiGrid[cellid];
       // Check number of populations:
-      if( max_populations < cell->number_of_populations ) { max_populations = cell->number_of_populations; }
+      if( local_max_populations < cell->number_of_populations ) { local_max_populations = cell->number_of_populations; }
+   }
+   // Get the absolute maximum population out of all the processes:
+   uint max_populations = 0;
+   {
+      const int count = 1;
+      MPI_Allreduce( &local_max_populations, &max_populations, count, MPI_UNSIGNED, MPI_MAX, MPI_COMM_WORLD );
    }
    return max_populations;
 }
 
 // Function for writing out rho for different populations:
 static inline bool write_rho( const uint max_populations, const vector<uint64_t> & local_cells, const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, Writer & vlsvWriter ) {
-   //Declare attributes
-   map<string, string> xmlAttributes;
-   //We received mesh name as a parameter: MOST LIKELY THIS IS SpatialGrid!
-   xmlAttributes["mesh"] = "SpatialGrid";
-   xmlAttributes["name"] = "PopulationRho";
-   const unsigned int arraySize = local_cells.size();
-   const unsigned int vectorSize = max_populations;
    bool success = true;
-//   if( arraySize == 0 ) {
-//      const Real dummy_attribute = 0;
-//      const uint64_t dataSize = sizeof(Real);
-//      const string dataType = "float";
-//      cerr << "WRITING ARRAY" << endl;
-//      return vlsvWriter.writeArray("VARIABLE", xmlAttributes, dataType, arraySize, vectorSize, dataSize, (char*)(&dummy_attribute));
-//   }
-//   // Reserve space for writing out rho:
-//   vector<Real> population_rho;
-//   population_rho.resize(max_populations * local_cells.size());
-//   // Initialize to zero;
-//   for( uint i = 0; i < max_populations * local_cells.size(); ++i ) {
-//      population_rho[i] = 0;
-//   }
-//   // Loop through cells:
-//   for( uint i = 0; i < local_cells.size(); ++i ) {
-//      // Get cell:
-//      const uint64_t cellid = local_cells[i];
-//      // Get the cell's spatial cell class:
-//      const SpatialCell * cell = mpiGrid[cellid];
-//      const Velocity_Block* block_ptr = cell->at(cell->velocity_block_list[0]);
-//      const Real DV3 = block_ptr->parameters[BlockParams::DVX] * block_ptr->parameters[BlockParams::DVY] * block_ptr->parameters[BlockParams::DVZ];
-//      // Loop through velocity cells and write out the population:
-//      for( uint v = 0; v < cell->number_of_blocks * WID3; ++v ) {
-//         population_rho[max_populations*i + (uint)(cell->block_fx[v])] += cell->block_data[v] * DV3;
-//      }
-//   }
-//   // Print rho for debugging
-//   for( uint i = 0; i < max_populations * local_cells.size(); ++i ) {
-//      population_rho[i] += 4.17253e-11;
-//   }
    // Write out the population:
    //success = vlsvWriter.writeArray("VARIABLE", xmlAttributes, arraySize, 1, population_rho.data());
+   vector<Real> population_rho;
+   population_rho.resize( max_populations * local_cells.size() );
+
+   for(uint i = 0; i < population_rho.size(); ++i ) {
+      population_rho[i] = 0;
+   }
+
+   // Fetch different population_rho:
+   for( unsigned int i = 0; i < local_cells.size(); ++i ) {
+      const uint64_t cellId = local_cells[i];
+      SpatialCell * cell = mpiGrid[cellId];
+      const Velocity_Block* block_ptr = cell->at(cell->velocity_block_list[0]);
+      const Real DV3 = block_ptr->parameters[BlockParams::DVX] * block_ptr->parameters[BlockParams::DVY] * block_ptr->parameters[BlockParams::DVZ];
+      for( uint v = 0; v < cell->number_of_blocks * WID3; ++v ) {
+         population_rho[max_populations*i + (uint)(cell->block_fx[v])] += cell->block_data[v] * DV3;
+      }
+   }
+
+   // Write the data out, we need arraySizze, vectorSize and name to do this
+   const uint64_t arraySize = local_cells.size();
+   const uint64_t vectorSize = max_populations; // Population is Real, so a scalar (vector size 1)
+   const string name = "PopulationRho";
+
+   map<string, string> xmlAttributes;
+   xmlAttributes["name"] = name;
+   xmlAttributes["mesh"] = "SpatialGrid";
+
+   // Write the array and return false if the writing fails
+
+   if( vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, population_rho.data() ) == false ) {
+      success = false;
+   }
    return success;
 }
 
@@ -1574,16 +1568,12 @@ static inline bool write_rho( const uint max_populations, const vector<uint64_t>
  \param vlsvWriter              The VLSV writer class for writing VLSV files, note that the file must have been opened already
  */
 bool write_population_variables( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, Writer & vlsvWriter ) {
-cerr << __LINE__ << endl;
    // Get max number of populations (to be used in determining how many arrays to write)
    const uint max_populations = max_number_of_populations( mpiGrid );
-cerr << __LINE__ << endl;
    // Fetch cells:
    const vector<uint64_t> local_cells = mpiGrid.get_cells();
-cerr << __LINE__ << endl;
    // Write rho:
    bool success = write_rho( max_populations, local_cells, mpiGrid, vlsvWriter );
-cerr << __LINE__ << endl;
    return success;
 }
 
