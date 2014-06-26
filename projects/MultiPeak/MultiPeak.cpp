@@ -28,12 +28,6 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 
 #include "MultiPeak.h"
 
-// #ifndef _AIX
-// int32_t projects::MultiPeak::rndRho, projects::MultiPeak::rndVel1[3], projects::MultiPeak::rndVel2[3];
-// #else
-// int64_t projects::MultiPeak::rndRho, projects::MultiPeak::rndVel1[3], projects::MultiPeak::rndVel2[3];
-// #endif
-
 using namespace std;
 
 namespace projects {
@@ -41,18 +35,7 @@ namespace projects {
    MultiPeak::~MultiPeak() { }
 
 
-   bool MultiPeak::initialize(void) {
-      int myRank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      
-      memset(&(this->rngDataBuffer), 0, sizeof(this->rngDataBuffer));
-      #ifndef _AIX
-      initstate_r(this->seed*myRank, &(this->rngStateBuffer[0]), 256, &(this->rngDataBuffer));
-      #else
-      initstate_r(this->seed*myRank, &(this->rngStateBuffer[0]), 256, NULL, &(this->rngDataBuffer));
-      #endif
-      return true;
-   }
+   bool MultiPeak::initialize(void) {return true;}
 
    void MultiPeak::addParameters(){
       typedef Readparameters RP;
@@ -79,8 +62,8 @@ namespace projects {
       RP::add("MultiPeak.magXPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along x (T)", 1.0e-9);
       RP::add("MultiPeak.magYPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along y (T)", 1.0e-9);
       RP::add("MultiPeak.magZPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along z (T)", 1.0e-9);
-//       RP::add("MultiPeak.rho1PertRelAmp", "Relative amplitude of the density perturbation, first peak", 0.1);
-//       RP::add("MultiPeak.rho2PertRelAmp", "Relative amplitude of the density perturbation, second peak", 0.1);
+      RP::add("MultiPeak.rho1PertAbsAmp", "Absolute amplitude of the density perturbation, first peak", 0.1);
+      RP::add("MultiPeak.rho2PertAbsAmp", "Absolute amplitude of the density perturbation, second peak", 0.1);
 //       RP::add("MultiPeak.Vx1PertAbsAmp", "Absolute amplitude of the Vx perturbation, first peak", 1.0e6);
 //       RP::add("MultiPeak.Vy1PertAbsAmp", "Absolute amplitude of the Vy perturbation, first peak", 1.0e6);
 //       RP::add("MultiPeak.Vz1PertAbsAmp", "Absolute amplitude of the Vz perturbation, first peak", 1.0e6);
@@ -88,12 +71,12 @@ namespace projects {
 //       RP::add("MultiPeak.Vy2PertAbsAmp", "Absolute amplitude of the Vy perturbation, second peak", 1.0e6);
 //       RP::add("MultiPeak.Vz2PertAbsAmp", "Absolute amplitude of the Vz perturbation, second peak", 1.0e6);
       RP::add("MultiPeak.lambda", "B cosine perturbation wavelength (m)", 0.0);
-      RP::add("MultiPeak.seed", "Seed for the RNG", 42);
       RP::add("MultiPeak.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
    }
 
    void MultiPeak::getParameters(){
       typedef Readparameters RP;
+      Project::getParameters();
       RP::get("MultiPeak.rho1", this->rho[0]);
       RP::get("MultiPeak.rho2", this->rho[1]);
       RP::get("MultiPeak.Tx1", this->Tx[0]);
@@ -114,8 +97,8 @@ namespace projects {
       RP::get("MultiPeak.magXPertAbsAmp", this->magXPertAbsAmp);
       RP::get("MultiPeak.magYPertAbsAmp", this->magYPertAbsAmp);
       RP::get("MultiPeak.magZPertAbsAmp", this->magZPertAbsAmp);
-//       RP::get("MultiPeak.rho1PertRelAmp", this->rho1PertRelAmp);
-//       RP::get("MultiPeak.rho2PertRelAmp", this->rho2PertRelAmp);
+      RP::get("MultiPeak.rho1PertAbsAmp", this->rhoPertAbsAmp[0]);
+      RP::get("MultiPeak.rho2PertAbsAmp", this->rhoPertAbsAmp[1]);
 //       RP::get("MultiPeak.Vx1PertAbsAmp", this->Vx1PertAbsAmp);
 //       RP::get("MultiPeak.Vy1PertAbsAmp", this->Vy1PertAbsAmp);
 //       RP::get("MultiPeak.Vz1PertAbsAmp", this->Vz1PertAbsAmp);
@@ -138,7 +121,7 @@ namespace projects {
       
       Real value = 0.0;
       for(uint i=0; i<2; i++) {
-         value += this->rho[i] * pow(mass / (2.0 * M_PI * k ), 1.5) * 1.0 / sqrt(this->Tx[i]*this->Ty[i]*this->Tz[i]) *
+         value += this->rhoRnd[i] * pow(mass / (2.0 * M_PI * k ), 1.5) * 1.0 / sqrt(this->Tx[i]*this->Ty[i]*this->Tz[i]) *
       exp(- mass * (pow(vx - this->Vx[i], 2.0) / (2.0 * k * this->Tx[i]) + pow(vy - this->Vy[i], 2.0) / (2.0 * k * this->Ty[i]) + pow(vz - this->Vz[i], 2.0) / (2.0 * k * this->Tz[i])));
       }
       return value;
@@ -171,6 +154,10 @@ namespace projects {
       cellParams[CellParams::PERBX] += this->magXPertAbsAmp * (0.5 - getRandomNumber());
       cellParams[CellParams::PERBY] += this->magYPertAbsAmp * (0.5 - getRandomNumber());
       cellParams[CellParams::PERBZ] += this->magZPertAbsAmp * (0.5 - getRandomNumber());
+      
+      for(uint i=0; i<2; i++) {
+         this->rhoRnd[i] = this->rho[i] + this->rhoPertAbsAmp[i] * (0.5 - getRandomNumber());
+      }
    }
 
    void MultiPeak::setCellBackgroundField(SpatialCell* cell) {

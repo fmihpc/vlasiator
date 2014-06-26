@@ -1333,12 +1333,10 @@ namespace spatial_cell {
          }
          
          if (block == error_velocity_block) {
-            std::cerr << "ERROR: trying to add a block with the key error_velocity_block!" << std::endl;
             return false;
          }
 
          if (block >= SpatialCell::max_velocity_blocks) {
-            std::cerr << "ERROR: trying to add a block with a key > max_velocity_blocks!" << std::endl;
             return false;
          }
          //update number of blocks
@@ -1352,7 +1350,7 @@ namespace spatial_cell {
          //get pointer to block
          Velocity_Block* block_ptr = this->at(block);
          //fix block data pointers  
-         set_block_data_pointers(block_ptr, this->number_of_blocks-1);         
+         set_block_data_pointers(block_ptr, this->number_of_blocks-1);
          //clear block
          block_ptr->clear();
          // set block parameters

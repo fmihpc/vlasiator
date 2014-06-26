@@ -46,11 +46,8 @@ int main(int argc, char** argv) {
 	int input_file_counter=floor(ParticleParameters::start_time);
 	Field E[2],B[2],V;
 	snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter-1);
-	if(checkVersion(filename_buffer)) {
-		readfields<newVlsv::Reader>(filename_buffer,E[1],B[1],V);
-	} else {
-		readfields<oldVlsv::Reader>(filename_buffer,E[1],B[1],V);
-	}
+	readfields(filename_buffer,E[1],B[1],V);
+	E[0]=E[1]; B[0]=B[1];
 
 	/* Init particles */
 	std::vector<Particle> particles;
@@ -62,23 +59,12 @@ int main(int argc, char** argv) {
 
 	if(ParticleParameters::mode == "single") {
 
-		std::cerr << "Sorry, single-particle mode is currently broken, because urs was to lazy to implement it yet!" << std::endl;
-		return 1;
-
-		double pos[3], vel[3];
-		pos[0] = strtod(argv[3],NULL);
-		pos[1] = strtod(argv[4],NULL);
-		pos[2] = strtod(argv[5],NULL);
-		vel[0] = strtod(argv[6],NULL);
-		vel[1] = strtod(argv[7],NULL);
-		vel[2] = strtod(argv[8],NULL);
-
-		Vec3d Vpos, Vvel;
-		Vpos.load(pos);
-		Vvel.load(vel);
+		Vec3d vpos(ParticleParameters::init_x, ParticleParameters::init_y, ParticleParameters::init_z);
+		/* Look up builk velocity in the V-field */
+		Vec3d bulk_vel = V(vpos);
 
 		mode = single;
-		particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, Vpos, Vvel));
+		particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, vpos, bulk_vel));
 	} else if(ParticleParameters::mode == "distribution") {
 
 		mode = distribution;
@@ -118,24 +104,12 @@ int main(int argc, char** argv) {
 	/* Push them around */
 	for(int step=0; step<maxsteps; step++) {
 
+		bool newfile;
 		/* Load newer fields, if neccessary */
-		while(ParticleParameters::start_time + step*dt >= E[1].time) {
-			E[0]=E[1];
-			B[0]=B[1];
-
-			/* TODO: Don't reload V here! */
-			snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter++);
-			if(checkVersion(filename_buffer)) {
-				readfields<newVlsv::Reader>(filename_buffer,E[1],B[1],V);
-			} else {
-				readfields<oldVlsv::Reader>(filename_buffer,E[1],B[1],V);
-			}
-
-			/* This is also a good opportunity to write some output.
-			 * Note the -2 here, since we're writing this as we have just
-			 * passed that given timestep, and incremented it by 1. */
-			snprintf(filename_buffer,256, ParticleParameters::output_filename_pattern.c_str(),input_file_counter-2);
-			write_particles(particles, filename_buffer);
+		if(step >= 0) {
+			newfile = read_next_timestep(filename_pattern, ParticleParameters::start_time + step*dt, 1,E[0], E[1], B[0], B[1], input_file_counter);
+		} else {
+			newfile = read_next_timestep(filename_pattern, ParticleParameters::start_time + step*dt, -1,E[1], E[0], B[1], B[0], input_file_counter);
 		}
 
 		Interpolated_Field cur_E(E[0],E[1],step*dt);
@@ -151,6 +125,12 @@ int main(int argc, char** argv) {
 
 			/* Push them around */
 			particles[i].push(Bval,Eval,dt);
+		}
+
+		/* Write output */
+		if(newfile) {
+			snprintf(filename_buffer,256, ParticleParameters::output_filename_pattern.c_str(),input_file_counter-1);
+			write_particles(particles, filename_buffer);
 		}
 
 		/* Draw progress bar */

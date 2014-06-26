@@ -247,8 +247,6 @@ const uint SIZE_VELBLOCK    = WID3; /*!< Number of cells in a velocity block. */
 namespace physicalconstants {
    const Real MU_0 = 1.25663706e-6;  /*!< Permeability of vacuo, unit: (kg m) / (s^2 A^2).*/
    const Real K_B = 1.3806503e-23;   /*!< Boltzmann's constant, unit: (kg m^2) / (s^2 K).*/
-   
-   const Real MASS_ELECTRON = 1.60238188e-31; /*!< Electron rest mass.*/
    const Real MASS_PROTON = 1.67262158e-27; /*!< Proton rest mass.*/
    const Real R_E = 6.3712e6; /*!< radius of the Earth. */
 }

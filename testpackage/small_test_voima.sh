@@ -18,7 +18,7 @@ base_dir=${PBS_O_WORKDIR:=$(pwd)}
 cd  $base_dir
 
 #folder for reference data 
-reference_dir="/stornext/field/vlasiator/test_package_data/master_20_05_2014_SPF_080ec5d11b60e0f480bb3c57c11300bc6785c90f"
+reference_dir="/stornext/field/vlasiator/test_package_data/master_06_06_2014_d3fd27ff6ae098486510b08ffcfc67e67e10e32f_DP_SPF"
 
 #If 1, the reference vlsv files are generated
 # if 0 then we check the validity against the reference
