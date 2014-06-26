@@ -18,7 +18,7 @@ CXXFLAGS += -DNDEBUG
 #  ACC_SEMILAG_PLM 	2nd order	
 #  ACC_SEMILAG_PPM	3rd order (use this one unless you are testing)
 #  ACC_SEMILAG_PQM      5th order (in development)
-CXXFLAGS += -DACC_SEMILAG_PPM 
+CXXFLAGS += -DACC_SEMILAG_PLM 
 #define USE_AGNER_VECTORCLASS to use an external vector class that is used in some of the solvers
 #If not defined a slower but portable implementation is used, as the external one only supports 
 #Linux & x86 processors  
