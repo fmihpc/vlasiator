@@ -1,20 +1,7 @@
 #include <stdio.h>
-#include "definitions.h"
 #include "common.h"
-#include "vlasovsolver/vec4.h"
-
-#define MAX_BLOCKS_PER_DIM 100
-#ifdef ACC_SEMILAG_PLM
-#define RECONSTRUCTION_ORDER 1
-#endif
-#ifdef ACC_SEMILAG_PPM
-#define RECONSTRUCTION_ORDER 2
-#endif
-#ifdef ACC_SEMILAG_PQM
-#define RECONSTRUCTION_ORDER 4
-#endif
-
-#include "vlasovsolver/cpu_1d_column_interpolations.hpp"
+#include "vec4.h"
+#include "cpu_1d_column_interpolations.hpp"
 
 /*print all values in the vector valued values array. In this array
   there are blocks_per_dim blocks with a width of WID*/

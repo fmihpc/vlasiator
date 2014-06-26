@@ -71,8 +71,8 @@ clean:
 
 # Rules for making each object file needed by the executable
 
-map_test.o: map_test.cpp ../../vlasovsolver/
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -c map_test.cpp -I../..  ${INC_PROFILE}  ${INC_VECTORCLASS} 
+map_test.o: map_test.cpp 
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -c map_test.cpp   ${INC_PROFILE}  ${INC_VECTORCLASS} 
 
 # Make executable
 map_test: $(OBJS)
