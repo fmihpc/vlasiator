@@ -44,7 +44,7 @@ int main(void) {
   
   /*init values*/
   
-  Real intersection = v_min + 0.1*dv;
+  Real intersection = v_min + 0.6*dv;
   Real intersection_di = dv/4.0;
   Real intersection_dk = dv; 
   Real intersection_dj = dv; //does not matter here, fixed j.
@@ -66,7 +66,7 @@ int main(void) {
      values[i + WID] = Vec4(1.0);
  }
   
- /*loop over propagations*/
+/*loop over propagations*/
  for(int step = 0; step < iterations; step++){
    print_values(step,values,blocks_per_dim, v_min, dv);
 
@@ -86,6 +86,8 @@ int main(void) {
    const Real intersection_min_base =  intersection +
      (i_block * WID) * intersection_di + 
      (j_block * WID + j_cell) * intersection_dj;
+
+   //const Vec4 intersection_min(intersection_min_base);
    const Vec4 intersection_min(intersection_min_base + 0 * intersection_di,
 			       intersection_min_base + 1 * intersection_di,
 			       intersection_min_base + 2 * intersection_di,
@@ -114,15 +116,15 @@ int main(void) {
 	     
        Vec4i gk(lagrangian_gk_l);	
        while (horizontal_or(gk <= lagrangian_gk_r)){
-	 //the velocity between which we will integrate to put mass
+	 //the velocity for the right edge towards which we will integrate to put mass
 	 //in the targe cell. If both v_r and v_l are in same cell
 	 //then v_1,v_2 should be between v_l and v_r.
 	 //v_1 and v_2 normalized to be between 0 and 1 in the cell.
 	 //For vector elements where gk is already larger than needed (lagrangian_gk_r), v_2=v_1=v_r and thus the value is zero.
 #ifdef DP
-	 const Vec4 v_norm_r = (min(to_double(gk + 1) * intersection_dk + intersection_min,       v_r) - v_l) / dv;
+	 const Vec4 v_norm_r = (min(to_double(gk + 1) * intersection_dk + intersection_min,v_r) - v_l) / dv;
 #else
-	 const Vec4 v_norm_r = (min(to_float(gk + 1) * intersection_dk + intersection_min,       v_r) - v_l) / dv;
+	 const Vec4 v_norm_r = (min(to_float(gk + 1) * intersection_dk + intersection_min,v_r) - v_l) / dv;
 #endif
 	 /*shift, old right is new left*/
 	 const Vec4 target_density_l = target_density_r;
@@ -138,18 +140,17 @@ int main(void) {
 	   v_norm_r * v_norm_r * a[k_block * WID + k][1] +
 	   v_norm_r * v_norm_r * v_norm_r * a[k_block * WID + k][2];
 #endif
-
+	 
 	 /*total value of integrand*/
 	 const Vec4 target_density = target_density_r - target_density_l;
-	       
+	 
 	 //store values, one element at elema time
 	 for(uint elem = 0; elem < 4;elem ++ ){
-	   /*TODO, count losses if these are not fulfilled*/
 	   int k_in_target = gk[elem];
 	   if (k_in_target >=0 &&
 	       k_in_target < blocks_per_dim * WID) {
-	     const Real new_density = target[k_in_target][elem] + target_density[elem];
-	     target[k_in_target + WID].insert(elem,new_density);
+	     const Real new_density = target[k_in_target + WID][elem] + target_density[elem];
+	     target[k_in_target + WID].insert(elem, new_density);
 	   }
 	 }		   
 	 gk++; //next iteration in while loop
