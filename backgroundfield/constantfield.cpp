@@ -19,7 +19,7 @@ void ConstantField::initialize(const double Bx,const double By, const double Bz)
 
 
 
-double ConstantField::call( double x, double y, double z) const
+double ConstantField::call( double , double , double ) const
 {
    if(_derivative == 0) {
       //Value of B

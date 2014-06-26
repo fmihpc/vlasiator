@@ -188,7 +188,7 @@ namespace projects {
    /*!  Set random seed (thread-safe). Seed is based on the seed read
      in from cfg + the seedModifier parameter
 
-     \param seedModified d. Seed is based on the seed read in from cfg + the seedModifier parameter                                   
+     \param seedModifier d. Seed is based on the seed read in from cfg + the seedModifier parameter
    */
    
    void Project::setRandomSeed(CellID seedModifier) {
@@ -216,7 +216,7 @@ namespace projects {
       const creal dz = cellParams[CellParams::DZ];
       const CellID cellID = (int) ((x - Parameters::xmin) / dx) +
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
-         (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;      
+         (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
       setRandomSeed(cellID);
    }
 

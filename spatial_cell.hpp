@@ -1354,12 +1354,10 @@ namespace spatial_cell {
          }
          
          if (block == error_velocity_block) {
-            std::cerr << "ERROR: trying to add a block with the key error_velocity_block!" << std::endl;
             return false;
          }
 
          if (block >= SpatialCell::max_velocity_blocks) {
-            std::cerr << "ERROR: trying to add a block with a key > max_velocity_blocks!" << std::endl;
             return false;
          }
          //update number of blocks

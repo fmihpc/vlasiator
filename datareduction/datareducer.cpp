@@ -26,7 +26,13 @@ using namespace std;
 void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer)
 {
    typedef Parameters P;
-         
+   outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("X",CellParams::XCRD,1));
+   outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("Y",CellParams::YCRD,1));
+   outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("Z",CellParams::ZCRD,1));
+   outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("DX",CellParams::DX,1));
+   outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("DY",CellParams::DY,1));
+   outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("DZ",CellParams::DZ,1));
+   
    vector<string>::const_iterator it;
    for (it = P::outputVariableList.begin();
         it != P::outputVariableList.end();

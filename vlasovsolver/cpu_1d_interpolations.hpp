@@ -10,59 +10,10 @@ Copyright 2013, 2014 Finnish Meteorological Institute
 #include "vec4.h"
 #include "algorithm"
 #include "cmath"
+#include "cpu_slope_limiters.hpp"
 
 using namespace std;
 
-const Vec4 one(1.0);
-const Vec4 minus_one(-1.0);
-const Vec4 two(2.0);
-const Vec4 half(0.5);
-const Vec4 zero(0.0);
-
-const Vec4 one_sixth(1.0/6.0);
-const Vec4 one_twelfth(1.0/12.0);
-const Vec4 seven_twelfth(7.0/12.0);
-const Vec4 one_third(1.0/3.0);
-
-// indices in padded z block
-#define i_pblock(i,j,k) ( ((k) + STENCIL_WIDTH ) * WID + (j) * WID * (WID + 2* STENCIL_WIDTH) + (i) )
-#define i_pblockv(j,k) ( ((k) + STENCIL_WIDTH ) * WID + (j) * WID * (WID + 2* STENCIL_WIDTH) )
-
-
-/*!
-  MC slope limiter
-*/
-
-inline Vec4 slope_limiter(const Vec4& l,const Vec4& m, const Vec4& r) {
-  Vec4 sign;
-  Vec4 a=r-m;
-  Vec4 b=m-l; 
-  Vec4 minval=min(two*abs(a),two*abs(b));
-  minval=min(minval,half*abs(a+b));
-  
-  //check for extrema
-  Vec4 output = select(a*b < 0,zero,minval);
-  
-  //set sign
-  return select(a + b < 0,-output,output);
-}
-
-
-void slope_limiter(const Vec4& l,const Vec4& m, const Vec4& r, Vec4& slope_abs, Vec4& slope_sign) {
-  const Vec4 two(2.0);
-  const Vec4 half(0.5);
-  const Vec4 zero(0.0);
-  Vec4 sign;
-  Vec4 a=r-m;
-  Vec4 b=m-l; 
-  Vec4 minval=min(two*abs(a),two*abs(b));
-  minval=min(minval,half*abs(a+b));
-  
-  //check for extrema, set absolute value
-  slope_abs = select(a*b < 0, zero, minval);
-  slope_sign = select(a + b < 0, minus_one, one);
-
-}
 
 
 /*!

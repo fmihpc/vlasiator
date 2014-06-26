@@ -137,7 +137,6 @@ bool writeVelocityDistributionData(
          for (unsigned int block_i=0;block_i < SC->number_of_blocks;block_i++){
             unsigned int block = SC->velocity_block_list[block_i];
             velocityBlockIds.push_back( block );
-            Velocity_Block* block_data = SC->at(block);
          }
       }
    } catch (...) {
@@ -154,47 +153,46 @@ bool writeVelocityDistributionData(
    if (vlsvWriter.writeArray("BLOCKIDS", attribs, totalBlocks, vectorSize, velocityBlockIds.data()) == false) success = false;
    if (success == false) logFile << "(MAIN) writeGrid: ERROR failed to write BLOCKIDS to file!" << endl << writeVerbose;
    velocityBlockIds.clear();
-   
-   // Write values of distribution function (the velocity averages)
-   // FIXME CREATE ONLY SCENARIOS WHERE T IS UINT64_T, UINT32_T, FLOAT OR DOUBLE
-   std::vector<T> velocityBlockData;
-   try {
-      velocityBlockData.reserve(totalBlocks*SIZE_VELBLOCK);
-      for (size_t cell=0; cell<cells.size(); ++cell) {
-         SpatialCell* SC = mpiGrid[cells[cell]];
-         for (unsigned int block_i=0;block_i < SC->number_of_blocks;block_i++){
-            unsigned int block = SC->velocity_block_list[block_i];
-            Velocity_Block* block_data = SC->at(block);
-            for(unsigned int vc=0;vc<SIZE_VELBLOCK;++vc){
-               if( block_data->data[vc] > numeric_limits<T>::max() ) {
-                  logFile << "(MAIN) writeGrid: ERROR invalid conversion in velocityBlockData in writeVelocityDistributionData" << endl << writeVerbose;
-                  cerr << "(MAIN) writeGrid: ERROR invalid conversion in velocityBlockData in writeVelocityDistributionData" << endl;
-                  return false;
-               }
-               //Append to the vector:
-               velocityBlockData.push_back((T)(block_data->data[vc]));
-            }
-         }
-      }
+
+   // Write the velocity space data
+   // set everything that is needed for writing in data such as the array's name, size, data type, etc..
+   attribs.clear();
+   attribs["mesh"] = "SpatialGrid"; // Usually the mesh is SpatialGrid
+   attribs["name"] = "avgs"; // Name of the velocity space distribution is written avgs
+   const string datatype_avgs = "float";
+   const uint64_t arraySize_avgs = totalBlocks;
+   const uint64_t vectorSize_avgs = WID3; // There are 64 elements in every velocity block
+
+   // Get the data size needed for writing in data
+   uint64_t dataSize_avgs = sizeof(T);
+
+   // Start multi write
+   vlsvWriter.startMultiwrite(datatype_avgs,arraySize_avgs,vectorSize_avgs,dataSize_avgs);
+   // Loop over cells
+   for( size_t cell = 0; cell < cells.size(); ++cell ) {
+      // Get the spatial cell
+      SpatialCell* SC = mpiGrid[cells[cell]];
+      // Get the number of blocks in this cell
+      const uint64_t arrayElements = SC->number_of_blocks;
+      char * arrayToWrite = reinterpret_cast<char*>(SC->block_data.data());
+      // Add a subarray to write
+      vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements); // Note: We told beforehands that the vectorsize = WID3 = 64
    }
-   catch (...) {
-      success=false;
+   if(cells.size() == 0) {
+      vlsvWriter.addMultiwriteUnit(NULL, 0); //Dummy write to avoid hang in end multiwrite
+
    }
-   
+   // Write the subarrays
+   vlsvWriter.endMultiwrite("BLOCKVARIABLE", attribs);
+
    if( globalSuccess(success,"(MAIN) writeGrid: ERROR: Failed to fill temporary velocityBlockData array",MPI_COMM_WORLD) == false) {
       vlsvWriter.close();
       return false;
    }
 
-   
-   attribs.clear();
-   attribs["mesh"] = "SpatialGrid";
-   attribs["name"] = "avgs";
-   //Note: This could be done with &(velocityBlockData[0]), too
-   if (vlsvWriter.writeArray("BLOCKVARIABLE",attribs,totalBlocks,SIZE_VELBLOCK,velocityBlockData.data()) == false) success=false;
+
    if (success ==false)      logFile << "(MAIN) writeGrid: ERROR occurred when writing BLOCKVARIABLE f" << endl << writeVerbose;
-   velocityBlockData.clear();
-    
+
    return success;
 }
 
@@ -731,12 +729,10 @@ bool writeVelocitySpace( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mp
       uint64_t localNumVelSpaceCells;
       localNumVelSpaceCells=velSpaceCells.size();
       MPI_Allreduce(&localNumVelSpaceCells,&numVelSpaceCells,1,MPI_UINT64_T,MPI_SUM,MPI_COMM_WORLD);
-      if(numVelSpaceCells>0) {
-         //write out velocity space data, if there are cells with this data
-         if( writeVelocityDistributionData<T>( vlsvWriter, mpiGrid, velSpaceCells, MPI_COMM_WORLD ) == false ) {
-            cerr << "ERROR, FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT " << __FILE__ << " " << __LINE__ << endl;
-            logFile << "(MAIN) writeGrid: ERROR FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
-         }
+      //write out velocity space data NOTE: There is mpi communication in writeVelocityDistributionData
+      if( writeVelocityDistributionData<T>( vlsvWriter, mpiGrid, velSpaceCells, MPI_COMM_WORLD ) == false ) {
+         cerr << "ERROR, FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT " << __FILE__ << " " << __LINE__ << endl;
+         logFile << "(MAIN) writeGrid: ERROR FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
       }
       return true;
 }
@@ -817,7 +813,6 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          //Local cells empty but ghost cells not empty -- something very wrong
          cerr << "ERROR! LOCAL CELLS EMPTY BUT GHOST CELLS NOT AT: " << __FILE__ << " " << __LINE__ << endl;
       }
-      cerr << "Warning, inputting empty local cells at: " << __FILE__ << " " << __LINE__ << endl;;
    }
 
    //The mesh name is "SpatialGrid" (This is used for writing in data)
@@ -971,6 +966,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    //write the velocity distribution data -- note: it's expecting a vector of pointers:
    // Note: restart should always write double values to ensure the accuracy of the restart runs. In case of distribution data it is not as important as they are mainly used for visualization purposes
    writeVelocityDistributionData<Realf>(vlsvWriter, mpiGrid, local_cells, MPI_COMM_WORLD);
+   
    vlsvWriter.close();
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data

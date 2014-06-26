@@ -105,10 +105,6 @@ string P::loadBalanceAlgorithm = string("");
 string P::loadBalanceTolerance = string("");
 uint P::rebalanceInterval = numeric_limits<uint>::max();
 
-Real P::loadBalanceAlpha = 1.0;
-Real P::loadBalanceBeta = 4.0e-5;
-Real P::loadBalanceGamma = 0.0;
-
 vector<string> P::outputVariableList;
 vector<string> P::diagnosticVariableList;
 
@@ -195,10 +191,6 @@ bool Parameters::addParameters(){
    Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", std::string("RCB"));
    Readparameters::add("loadBalance.tolerance", "Load imbalance tolerance", std::string("1.05"));
    Readparameters::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
-   Readparameters::add("loadBalance.alpha", "alpha in LB weight = gamma + blocks * alpha + beta * blocks**2",1.0);
-   Readparameters::add("loadBalance.beta", "beta in LB weight = gamma + blocks * alpha + beta * blocks**2",4.0e-5);
-   Readparameters::add("loadBalance.gamma", "gamma in LB weight = gamma + blocks * alpha + beta * blocks**2",0);
-   
    
 // Output variable parameters
    Readparameters::addComposing("variables.output", "List of data reduction operators (DROs) to add to the grid file output. Each variable to be added has to be on a new line output = XXX. Available are B BackgroundB PerturbedB E Rho RhoV RhoLossAdjust RhoLossVelBoundary MPIrank Blocks BoundaryType BoundaryLayer VolE VolB Pressure PTensor derivs BVOLderivs MaxVdt MaxRdt MaxFieldsdt LBweight VelocitySubSteps.");
@@ -302,9 +294,6 @@ bool Parameters::getParameters(){
    Readparameters::get("loadBalance.algorithm", P::loadBalanceAlgorithm);
    Readparameters::get("loadBalance.tolerance", P::loadBalanceTolerance);
    Readparameters::get("loadBalance.rebalanceInterval", P::rebalanceInterval);
-   Readparameters::get("loadBalance.alpha", P::loadBalanceAlpha);
-   Readparameters::get("loadBalance.beta", P::loadBalanceBeta);
-   Readparameters::get("loadBalance.gamma", P::loadBalanceGamma);
    
    // Get output variable parameters
    Readparameters::get("variables.output", P::outputVariableList);

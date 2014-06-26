@@ -122,8 +122,6 @@ bool convertMesh(newVlsv::Reader& vlsvReader,
       cerr << "Failed to read cell ids at "  << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
-   //O: This is no longer needed ( Just keeping it commented until everything's tested)
-   //getLocalCellIds( vlsvReader, meshName, local_cells );
 
    list<pair<string, string> > variableAttributes;
    const string _varToExtract( varToExtract );
