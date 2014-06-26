@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<Object name="ExpressionList">
+    <Object name="Expression">
+        <Field name="name" type="string">PTensor</Field>
+        <Field name="definition" type="string">"{{PTensorDiagonal[0], PTensorOffDiagonal[2], PTensorOffDiagonal[1]},{PTensorOffDiagonal[2], PTensorDiagonal[1], PTensorOffDiagonal[0]},{PTensorOffDiagonal[1], PTensorOffDiagonal[0], PTensorDiagonal[2]}}"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">TensorMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">P_parallel</Field>
+        <Field name="definition" type="string">dot(normalize(B),PTensor*normalize(B))</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">P_perpendicular</Field>
+        <Field name="definition" type="string">0.5*(trace(PTensor)-P_parallel)</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">G</Field>
+        <Field name="definition" type="string">"P_perpendicular *{{1,0,0},  {0,1,0},  {0,0,1}}+(P_parallel-P_perpendicular)*{{B[0]*B[0],B[1]*B[0],B[2]*B[0]},  {B[0]*B[1],B[1]*B[1],B[2]*B[1]},  {B[0]*B[2],B[1]*B[2],B[2]*B[2]}}"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">TensorMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">N</Field>
+        <Field name="definition" type="string">"PTensor - G"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">TensorMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">Dng</Field>
+        <Field name="definition" type="string">"sqrt(N[0][0]^2 + N[0][1]^2 + N[0][2]^2 +       N[1][0]^2 + N[1][1]^2 + N[1][2]^2 +       N[2][0]^2 + N[2][1]^2 + N[2][2]^2) /trace(PTensor)"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+</Object>
