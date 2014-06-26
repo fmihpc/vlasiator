@@ -16,7 +16,7 @@ using namespace std;
 
 
 void tridiag(uint n,const Vec4 &a,const Vec4 &b,const Vec4 &c,Vec4 *u, Vec4 *r){
-  static Vec4 gam[MAX_BLOCKS_PER_DIM*WID];
+  Vec4 gam[MAX_BLOCKS_PER_DIM*WID];
   
   Vec4 bet=b;
   u[0]=r[0]/bet;
@@ -48,8 +48,8 @@ inline void compute_h6_face_values(Vec4 *values, uint n_cblocks,  Vec4 *fv_l, Ve
   }
 }
 
-inline void compute_ih4_face_values(Vec4 *values, uint n_cblocks,  Vec4 *fv_l, Vec4 *fv_r){   
-  static Vec4 r[MAX_BLOCKS_PER_DIM*WID + 1];
+inline void compute_ih4_face_values(Vec4 *values, uint n_cblocks,  Vec4 *fv_l, Vec4 *fv_r){
+   Vec4 r[MAX_BLOCKS_PER_DIM*WID + 1];
   const Vec4 a(1.0/4.0);
   const Vec4 b(1.0);
   const Vec4 c(1.0/4.0);
@@ -82,7 +82,7 @@ Out[17]: {alpha: 1/3, b: 1/18, a: 29/18}
 */
 
 inline void compute_ih6_face_values(Vec4 *values, uint n_cblocks,  Vec4 *fv_l, Vec4 *fv_r){   
-  static Vec4 r[MAX_BLOCKS_PER_DIM*WID + 1];
+  Vec4 r[MAX_BLOCKS_PER_DIM*WID + 1];
   const Vec4 a(1.0/3.0);
   const Vec4 b(1.0);
   const Vec4 c(1.0/3.0);
@@ -114,7 +114,7 @@ Out[44]: {c: -1/240, alpha: 3/8, b: 23/240, a: 199/120}
 
 
 inline void compute_ih8_face_values(Vec4 *values, uint n_cblocks,  Vec4 *fv_l, Vec4 *fv_r){   
-  static Vec4 r[MAX_BLOCKS_PER_DIM*WID + 1];
+  Vec4 r[MAX_BLOCKS_PER_DIM*WID + 1];
   const Vec4 a(3.0/8.0);
   const Vec4 b(1.0);
   const Vec4 c(3.0/8.0);

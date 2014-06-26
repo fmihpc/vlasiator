@@ -202,24 +202,19 @@ bool map_1d(SpatialCell* spatial_cell,
    std::vector<uint> block_column_offsets;
    std::vector<uint> block_column_lengths;
    /*sort blocks according to dimension, and divide them into columns*/
-   phiprof::start("Sort_blocklist");
    sort_blocklist_by_dimension( spatial_cell, dimension, blocks, block_column_offsets, block_column_lengths);
-   phiprof::stop("Sort_blocklist");
    const uint max_column_length = *(std::max_element(block_column_lengths.begin(),block_column_lengths.end()));
    /*values array used to store column data*/
-   static Vec4 values[(MAX_BLOCKS_PER_DIM + 2) * WID2];
-   static Vec4 a[MAX_BLOCKS_PER_DIM*WID][RECONSTRUCTION_ORDER + 1];
+   Vec4 values[(MAX_BLOCKS_PER_DIM + 2) * WID2];
+   Vec4 a[MAX_BLOCKS_PER_DIM*WID][RECONSTRUCTION_ORDER + 1];
    
    /*these two temporary variables are used to optimize access to target cells*/
    uint previous_target_block = error_velocity_block;
    Realf *target_block_data = NULL;
-   int load_timer=phiprof::initializeTimer("load_block_data"); //initialize before to get timer index, faster to start and stops then
    for (unsigned int block_column_i = 0; block_column_i< block_column_offsets.size(); block_column_i++) {
       const uint n_cblocks = block_column_lengths[block_column_i];
       uint * cblocks = blocks + block_column_offsets[block_column_i]; /*column blocks*/      
-      phiprof::start(load_timer);
       load_column_block_data(spatial_cell, cblocks, n_cblocks, values, dimension);
-      phiprof::stop(load_timer);
       /*compute the common indices for this block column*/
       
       velocity_block_indices_t block_indices_begin=SpatialCell::get_velocity_block_indices(cblocks[0]); /*First block in column*/
