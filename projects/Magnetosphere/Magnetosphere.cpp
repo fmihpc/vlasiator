@@ -225,8 +225,7 @@ namespace projects {
          }
       }
       
-//       // FIXME
-//       // TESTING HACK to be used when one wants to get the "zero" Hall field from the dipole
+//       // FIXME TESTING HACK to be used when one wants to get the "zero" Hall field from the dipole
 //       cell->parameters[CellParams::PERBX] = cell->parameters[CellParams::BGBX];
 //       cell->parameters[CellParams::PERBXVOL] = cell->parameters[CellParams::BGBXVOL];
 //       cell->parameters[CellParams::BGBX] = 0.0;
