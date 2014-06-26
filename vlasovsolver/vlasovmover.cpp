@@ -437,6 +437,11 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
       SC->parameters[CellParams::RHOVX_DT2] = SC->parameters[CellParams::RHOVX];
       SC->parameters[CellParams::RHOVY_DT2] = SC->parameters[CellParams::RHOVY];
       SC->parameters[CellParams::RHOVZ_DT2] = SC->parameters[CellParams::RHOVZ];
+      SC->parameters[CellParams::P_11_DT2] = SC->parameters[CellParams::P_11];
+      SC->parameters[CellParams::P_22_DT2] = SC->parameters[CellParams::P_22];
+      SC->parameters[CellParams::P_33_DT2] = SC->parameters[CellParams::P_33];
+
    }
    phiprof::stop("Calculate moments"); 
+
 }

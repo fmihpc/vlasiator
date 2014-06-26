@@ -281,22 +281,6 @@ int main(int argn,char* args[]) {
       //should not require changes
       adjustVelocityBlocks(mpiGrid);
       
-      // FIXME do we need to call now calculateInterpolatedVelocityMoments before going to the field solver?
-      // or is this now sufficient?
-      cells = mpiGrid.get_cells();
-      for (size_t c=0; c<cells.size(); ++c) {
-         const CellID cellID = cells[c];
-         SpatialCell* SC = mpiGrid[cellID];
-         SC->parameters[CellParams::RHO_DT2] = SC->parameters[CellParams::RHO];
-         SC->parameters[CellParams::RHOVX_DT2] = SC->parameters[CellParams::RHOVX];
-         SC->parameters[CellParams::RHOVY_DT2] = SC->parameters[CellParams::RHOVY];
-         SC->parameters[CellParams::RHOVZ_DT2] = SC->parameters[CellParams::RHOVZ];
-         SC->parameters[CellParams::P_11_DT2] = SC->parameters[CellParams::P_11];
-         SC->parameters[CellParams::P_22_DT2] = SC->parameters[CellParams::P_22];
-         SC->parameters[CellParams::P_33_DT2] = SC->parameters[CellParams::P_33];
-      }
-      // end of FIXME
-      
       if(P::propagateField) {
          propagateFields(mpiGrid, sysBoundaries, 0.0);
       }
