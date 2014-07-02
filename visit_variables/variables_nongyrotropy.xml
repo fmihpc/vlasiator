@@ -14,7 +14,7 @@
     </Object>
     <Object name="Expression">
         <Field name="name" type="string">P_parallel</Field>
-        <Field name="definition" type="string">dot(normalize(B),PTensor*normalize(B))</Field>
+        <Field name="definition" type="string">dot(Bn,PTensor*Bn)</Field>
         <Field name="hidden" type="bool">false</Field>
         <Field name="type" type="string">ScalarMeshVar</Field>
         <Field name="fromDB" type="bool">false</Field>
@@ -38,7 +38,7 @@
     </Object>
     <Object name="Expression">
         <Field name="name" type="string">G</Field>
-        <Field name="definition" type="string">"P_perpendicular *{{1,0,0},  {0,1,0},  {0,0,1}}+(P_parallel-P_perpendicular)*{{B[0]*B[0],B[1]*B[0],B[2]*B[0]},  {B[0]*B[1],B[1]*B[1],B[2]*B[1]},  {B[0]*B[2],B[1]*B[2],B[2]*B[2]}}"</Field>
+        <Field name="definition" type="string">"P_perpendicular *{{1,0,0},  {0,1,0},  {0,0,1}}+(P_parallel-P_perpendicular)*{{Bn[0]*Bn[0],Bn[1]*Bn[0],Bn[2]*Bn[0]},  {Bn[0]*Bn[1],Bn[1]*Bn[1],Bn[2]*Bn[1]},  {Bn[0]*Bn[2],Bn[1]*Bn[2],Bn[2]*Bn[2]}}"</Field>
         <Field name="hidden" type="bool">false</Field>
         <Field name="type" type="string">TensorMeshVar</Field>
         <Field name="fromDB" type="bool">false</Field>
@@ -62,9 +62,93 @@
     </Object>
     <Object name="Expression">
         <Field name="name" type="string">Dng</Field>
-        <Field name="definition" type="string">"sqrt(N[0][0]^2 + N[0][1]^2 + N[0][2]^2 +       N[1][0]^2 + N[1][1]^2 + N[1][2]^2 +       N[2][0]^2 + N[2][1]^2 + N[2][2]^2) /trace(PTensor)"</Field>
+        <Field name="definition" type="string">"2.0 * sqrt(N[0][0]^2 + N[0][1]^2 + N[0][2]^2 +       N[1][0]^2 + N[1][1]^2 + N[1][2]^2 +       N[2][0]^2 + N[2][1]^2 + N[2][2]^2) / trace(PTensor)"</Field>
         <Field name="hidden" type="bool">false</Field>
         <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">P_parallel_vol</Field>
+        <Field name="definition" type="string">dot(B_voln,PTensor*B_voln)</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">P_perpendicular_vol</Field>
+        <Field name="definition" type="string">0.5*(trace(PTensor)-P_parallel_vol)</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">G_vol</Field>
+        <Field name="definition" type="string">"P_perpendicular_vol *{{1,0,0},  {0,1,0},  {0,0,1}}+(P_parallel_vol-P_perpendicular_vol)*{{B_voln[0]*B_voln[0],B_voln[1]*B_voln[0],B_voln[2]*B_voln[0]},  {B_voln[0]*B_voln[1],B_voln[1]*B_voln[1],B_voln[2]*B_voln[1]},  {B_voln[0]*B_voln[2],B_voln[1]*B_voln[2],B_voln[2]*B_voln[2]}}"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">TensorMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">N_vol</Field>
+        <Field name="definition" type="string">"PTensor - G_vol"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">Dng_vol</Field>
+        <Field name="definition" type="string">"2.0 * sqrt(N_vol[0][0]^2 + N_vol[0][1]^2 + N_vol[0][2]^2 +       N_vol[1][0]^2 + N_vol[1][1]^2 + N_vol[1][2]^2 +       N_vol[2][0]^2 + N_vol[2][1]^2 + N_vol[2][2]^2) /trace(PTensor)"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">Bn</Field>
+        <Field name="definition" type="string">normalize(B)</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">VectorMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">B_voln</Field>
+        <Field name="definition" type="string">normalize(B_vol)</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">VectorMeshVar</Field>
         <Field name="fromDB" type="bool">false</Field>
         <Field name="fromOperator" type="bool">false</Field>
         <Field name="operatorName" type="string">__none__</Field>
