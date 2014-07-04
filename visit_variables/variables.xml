@@ -744,4 +744,124 @@
         <Field name="dbName" type="string">__none__</Field>
         <Field name="autoExpression" type="bool">false</Field>
     </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">Bx_linedipole_avg</Field>
+        <Field name="definition" type="string">"if(eq((X^2+Z^2)*(X^2+(DZ+Z)^2), 0.0),1.0e-9,-126.2e6*(DZ+2*Z)*X*((X^2+Z^2)*(X^2+(DZ+Z)^2))^(-1))"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">Bx_linedipole_diff</Field>
+        <Field name="definition" type="string">"if(eq(\<face/Bx\>, Bx_linedipole_avg),1.0e-1,abs(\<face/Bx\> - Bx_linedipole_avg) / B_magnitude)"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">Bz_linedipole_avg</Field>
+        <Field name="definition" type="string">"if(gt(abs(-126.2e6*(   (DX+X)/   (DX*(Z^2+(DX+X)^2)) -    X/   (DX*(Z^2+X^2)))), 1.0),1.0,-126.2e6*(   (DX+X)/   (DX*(Z^2+(DX+X)^2)) -    X/   (DX*(Z^2+X^2))))"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">Bz_linedipole_diff</Field>
+        <Field name="definition" type="string">"if(eq(\<face/Bz\>, Bz_linedipole_avg),1.0e-1,abs(\<face/Bz\> - Bz_linedipole_avg) * B_magnitude^-1)"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">BxVol_linedipole_avg</Field>
+        <Field name="definition" type="string">"126.2e6*(ln(DX^2 + 2*DX*X + DZ^2 + 2*DZ*Z + X^2 + Z^2, 1e-1) -ln(DX^2 + 2*DX*X + X^2 + Z^2, 1e-1) -ln((DZ^2 + 2*DZ*Z + X^2 + Z^2) * (X^2 + Z^2)^(-1), 1e-1))/(2.0*DX*DZ)"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">BxVol_linedipole_diff</Field>
+        <Field name="definition" type="string">"if(eq(BGB_vol_x, BxVol_linedipole_avg),1.0e-1,abs(BGB_vol_x - BxVol_linedipole_avg) / B_vol_magnitude)"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">BzVol_linedipole_avg</Field>
+        <Field name="definition" type="string">"-126.2e6*(atan((DZ+Z)*(DX+X)^(-1)) -atan(Z*(DX+X)^(-1)) -atan((DZ+Z)*X^(-1)) +atan(Z*X^(-1)))/(DX*DZ)"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">BzVol_linedipole_diff</Field>
+        <Field name="definition" type="string">"if(eq(BGB_vol_z, BzVol_linedipole_avg),1.0e-1,abs(BGB_vol_z - BzVol_linedipole_avg) / B_vol_magnitude)"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">BGB_vol_x</Field>
+        <Field name="definition" type="string">BGB_vol[0]</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">BGB_vol_z</Field>
+        <Field name="definition" type="string">BGB_vol[2]</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
 </Object>
