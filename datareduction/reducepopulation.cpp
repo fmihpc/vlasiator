@@ -421,6 +421,7 @@ void set_local_and_remote_velocity_cell_neighbors(
       for( int i_offset = -1; i_offset <= 1; ++i_offset ) for( int j_offset = -1; j_offset <= 1; ++j_offset ) for( int k_offset = -1; k_offset <= 1; ++k_offset ) {
          // if i=j=k=0 then we're looking at the velocity cell itself, not neighbor
          if( i_offset == 0 && j_offset == 0 && k_offset == 0 ) { continue; }
+         if( abs(i_offset) + abs(j_offset) + abs(k_offset) != 1 ) { continue; }
 
          // Get the new indices:
          const int numberOfDirections = 3;
@@ -1547,7 +1548,7 @@ static inline bool write_rho( const uint max_populations, const vector<uint64_t>
 
    // Write the data out, we need arraySizze, vectorSize and name to do this
    const uint64_t arraySize = local_cells.size();
-   const uint64_t vectorSize = max_populations; // Population is Real, so a scalar (vector size 1)
+   const uint64_t vectorSize = max_populations; // Population is Real, so a scalar
    const string name = "PopulationRho";
 
    map<string, string> xmlAttributes;
