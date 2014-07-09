@@ -758,7 +758,7 @@ bool writePopulation( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       Writer & vlsvWriter ) {
    // Don't do anything if nothing is written
    if( writeDistribution == false && writeVariables == false && writePopulations == false ) { return true; }
-//   phiprof::start("write-population");
+   phiprof::start("write-population");
    array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> local_vcell_neighbors;
    array< vector< pair<int16_t, vector<uint16_t> > >, VELOCITY_BLOCK_LENGTH> remote_vcell_neighbors;
 
@@ -787,8 +787,8 @@ bool writePopulation( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    // Write out the population variables:
    if( writeVariables ) {
       phiprof::start("write-population-variables");
-      if( write_population_variables( mpiGrid, vlsvWriter )  == false ) {
-         return false;
+      if( success == true && write_population_variables( mpiGrid, vlsvWriter )  == false) {
+         success = false;
       }
       phiprof::stop("write-population-variables");
    }
@@ -818,7 +818,7 @@ bool writePopulation( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
       // Write the array and return false if the writing fails
 
-      if( vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, populations.data() ) == false ) {
+      if( success == true && vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, populations.data() ) == false ) {
          success = false;
       }
       phiprof::stop("write-numberofpopulations");
