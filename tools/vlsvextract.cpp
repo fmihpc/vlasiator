@@ -324,14 +324,14 @@ static void background_perturbed_B_sum( T & vlsvReader, const uint64_t B_dataSiz
    const string background_name = "background_B";
    const uint vectorsToRead = 1;
    // Read 
-   if(vlsvReader.readArray("VARIABLE", background_name, cellIndex, vectorsToRead, B_char) == false) {
+   if(vlsvReader.readArray("VARIABLE", background_name, cellIndex, vectorsToRead, background_B) == false) {
       cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;exit(1);
    }
 
    const string perturbed_name = "perturbed_B";
    char * perturbed_B = new char[B_dataSize*B_vectorSize]; // Datasize is 4 or 8 -  4 = B is written in floats -  8 = B is written in double
    // Read
-   if(vlsvReader.readArray("VARIABLE", background_name, cellIndex, vectorsToRead, B_char) == false) {
+   if(vlsvReader.readArray("VARIABLE", perturbed_name, cellIndex, vectorsToRead, perturbed_B) == false) {
       cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;exit(1);
    }
 
@@ -462,7 +462,7 @@ Real * getB( oldVlsv::Reader& vlsvReader, const string& meshName, const uint64_t
    // B might be either double or float 
    double * B_double = reinterpret_cast<double*>(B_char);
    float * B_float = reinterpret_cast<float*>(B_char);
-
+   
    // Convert to Real (if necessary)
    Real * B;
    if( sizeof(Real) != variableDataSize ) {
@@ -879,7 +879,7 @@ bool convertVelocityBlocks2(
    } else {
       //rotate == true, do the rotation
       Real * B_ptr = getB( vlsvReader, meshName, cellID ); //Note: allocates memory and stores the vector value into B_ptr
-   
+      
 
       //Now rotate:
       //Using eigen3 library here.
