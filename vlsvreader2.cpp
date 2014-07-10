@@ -51,7 +51,7 @@ bool VLSVReader::close() {
    return true;
 }
 
-bool VLSVReader::getArrayInfo(const std::string& tagName,const std::string& arrayName,uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& byteSize) const {   
+bool VLSVReader::getArrayInfo(const std::string& tagName,const std::string&,uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& byteSize) const {   
    if (fileOpen == false) {
       cerr << __FILE__ << ":" << __LINE__ << " File is not open" << endl;
       return false;

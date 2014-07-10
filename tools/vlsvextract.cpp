@@ -276,7 +276,7 @@ void getVelocityBlockCoordinates(const CellStructure & cellStruct, const uint64_
 
 
 template <class T>
-bool convertVelocityBlockVariable(T& vlsvReader, const string& spatGridName, const string& velGridName, const uint64_t& cellID,
+bool convertVelocityBlockVariable(T& vlsvReader, const string& spatGridName, const string& velGridName,
         const uint64_t& N_blocks, const uint64_t& blockOffset, const string& varName) {
    bool success = true;
    list<pair<string, string> > attribs;
@@ -312,6 +312,52 @@ bool convertVelocityBlockVariable(T& vlsvReader, const string& spatGridName, con
    delete[] buffer;
    return success;
 }
+
+// Function for calculating the background and perturbed B sum
+template <class T>
+static void background_perturbed_B_sum( T & vlsvReader, const uint64_t B_dataSize, const uint64_t cellIndex, char * B_char ) {
+   // vector size of magnetic field is always 3
+   const uint B_vectorSize = 3;
+
+   // background_B perturbed_B
+   char * background_B = new char[B_dataSize*B_vectorSize]; // Datasize is 4 or 8 -  4 = B is written in floats -  8 = B is written in double
+   const string background_name = "background_B";
+   const uint vectorsToRead = 1;
+   // Read 
+   if(vlsvReader.readArray("VARIABLE", background_name, cellIndex, vectorsToRead, background_B) == false) {
+      cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;exit(1);
+   }
+
+   const string perturbed_name = "perturbed_B";
+   char * perturbed_B = new char[B_dataSize*B_vectorSize]; // Datasize is 4 or 8 -  4 = B is written in floats -  8 = B is written in double
+   // Read
+   if(vlsvReader.readArray("VARIABLE", perturbed_name, cellIndex, vectorsToRead, perturbed_B) == false) {
+      cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;exit(1);
+   }
+
+   // Cast to float and double:
+   float* B_float = reinterpret_cast<float*>(B_char);
+   double* B_double = reinterpret_cast<double*>(B_char);
+   float* background_B_float = reinterpret_cast<float*>(background_B);
+   double* background_B_double = reinterpret_cast<double*>(background_B);
+   float* perturbed_B_float = reinterpret_cast<float*>(perturbed_B);
+   double* perturbed_B_double = reinterpret_cast<double*>(perturbed_B);
+
+   // Do the sum:
+   for( uint i = 0; i < B_vectorSize; ++i ) {
+      if( B_dataSize == sizeof(float) ) {
+         // It's a float
+         B_float[i] = background_B_float[i] + perturbed_B_float[i];
+      } else {
+         // It's a double
+         B_double[i] = background_B_double[i] + perturbed_B_double[i];
+      }
+   }
+   // Free the memory:
+   delete[] background_B;
+   delete[] perturbed_B;
+}
+
 
 Real * getB( oldVlsv::Reader& vlsvReader, const string& meshName, const uint64_t& cellID ) {
    //Get B:
@@ -368,7 +414,6 @@ Real * getB( oldVlsv::Reader& vlsvReader, const string& meshName, const uint64_t
    variableNames.push_back("B");
    variableNames.push_back("B_vol");
    variableNames.push_back("background_B");
-   variableNames.push_back("perturbed_B");
    string variableName;
 
 
@@ -402,17 +447,22 @@ Real * getB( oldVlsv::Reader& vlsvReader, const string& meshName, const uint64_t
    const uint vectorsToRead = 1;
    char * B_char = new char[variableVectorSize * variableDataSize * vectorsToRead];
 
-   // Read the given cell id's value for B from the vlsv file and store into the B vector:
-   if(vlsvReader.readArray("VARIABLE", variableName, cellIndex, vectorsToRead, B_char) == false) {
-      cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
-      return 0;
+   // If the variable we read in is background_B we also need perturbed_B variables:
+   if( variableName == "background_B" ) {
+      background_perturbed_B_sum( vlsvReader, variableDataSize, cellIndex, B_char );
+   } else {
+      // Read the given cell id's value for B from the vlsv file and store into the B vector:
+      if(vlsvReader.readArray("VARIABLE", variableName, cellIndex, vectorsToRead, B_char) == false) {
+         cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
+         exit(1);
+         return 0;
+      }
    }
 
    // B might be either double or float 
    double * B_double = reinterpret_cast<double*>(B_char);
    float * B_float = reinterpret_cast<float*>(B_char);
-
+   
    // Convert to Real (if necessary)
    Real * B;
    if( sizeof(Real) != variableDataSize ) {
@@ -582,7 +632,7 @@ void doRotation(
 bool convertVelocityBlocks2(
    oldVlsv::Reader& vlsvReader,
    const string& meshName,
-   const CellStructure & cellStruct,
+   const CellStructure &,
    const uint64_t& cellID,
    const bool rotate,
    const bool plasmaFrame
@@ -829,7 +879,7 @@ bool convertVelocityBlocks2(
    } else {
       //rotate == true, do the rotation
       Real * B_ptr = getB( vlsvReader, meshName, cellID ); //Note: allocates memory and stores the vector value into B_ptr
-   
+      
 
       //Now rotate:
       //Using eigen3 library here.
@@ -874,7 +924,7 @@ bool convertVelocityBlocks2(
    }
    if (success == true) {
       for (list<string>::iterator it = blockVarNames.begin(); it != blockVarNames.end(); ++it) {
-         if (convertVelocityBlockVariable(vlsvReader, meshName, gridName, cellID, N_blocks, blockOffset, *it) == false) success = false;
+         if (convertVelocityBlockVariable(vlsvReader, meshName, gridName, N_blocks, blockOffset, *it) == false) success = false;
       }
    }
 
@@ -1128,12 +1178,13 @@ bool convertVelocityBlocks2(
       variableNames.push_back("B");
       variableNames.push_back("B_vol");
       variableNames.push_back("background_B");
-      variableNames.push_back("perturbed_B");
 
       bool foundB = false;
 
+      string variableName;
+
       for( vector<string>::const_iterator it = variableNames.begin(); it != variableNames.end(); ++it ) {
-         const string variableName = *it;
+         variableName = *it;
          if( vlsvReader.getVariable( variableName, cellID, B ) == true ) {
             // Found the B vector
             foundB = true;
@@ -1146,6 +1197,16 @@ bool convertVelocityBlocks2(
          delete[] vy_crds_rotated;
          delete[] vz_crds_rotated;
          return false;
+      }
+//      variableNames.push_back("perturbed_B");
+      // If the variable we found is background_B we also need perturbed_B
+      if( variableName == "background_B" ) {
+         array<Real, 3> B_perturbed;
+         if( vlsvReader.getVariable( "perturbed_B", cellID, B_perturbed ) == false ) { return false; }
+         // Sum:
+         for( uint j = 0; j < 3; ++j ) {
+            B[j] = B[j] + B_perturbed[j];
+         }
       }
 
 
@@ -1200,7 +1261,7 @@ bool convertVelocityBlocks2(
    //Writing SILO file
    if (success == true) {
       for (set<string>::iterator it = blockVarNames.begin(); it != blockVarNames.end(); ++it) {
-         if (convertVelocityBlockVariable( vlsvReader, meshName, gridName, cellID, N_blocks, vlsvReader.getBlockOffset(cellID), *it) == false) {
+         if (convertVelocityBlockVariable( vlsvReader, meshName, gridName, N_blocks, vlsvReader.getBlockOffset(cellID), *it) == false) {
             cerr << "ERROR, convertVelocityBlockVariable FAILED AT " << __FILE__ << " " << __LINE__ << endl;
          }
       }

@@ -95,7 +95,7 @@ namespace newVlsv {
       const uint16_t amountToReadIn = 1;
       char * buffer = new char[vectorSize * amountToReadIn * byteSize];
       //Read in variable to the buffer:
-      const uint16_t begin = findCell->first;
+      const uint16_t begin = findCell->second;
       if( readArray( "VARIABLE", xmlAttributes, begin, amountToReadIn, buffer ) == false ) return false;
       float * buffer_float = reinterpret_cast<float*>(buffer);
       double * buffer_double = reinterpret_cast<double*>(buffer);
