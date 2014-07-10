@@ -900,7 +900,7 @@ bool convertVelocityBlocks2(
 
    // Write zone list into silo file:
    stringstream ss;
-   ss << "VelGrid" << cellID;
+   ss << "VelGrid";
    const string zoneListName = ss.str() + "Zones";
    if (DBPutZonelist2(fileptr, zoneListName.c_str(), N_zones, N_dims, nodeList, nodeListSize, 0, 0, 0, shapeTypes, shapeSizes, shapeCnt, N_shapes, NULL) < 0) success = false;
 
@@ -1231,7 +1231,7 @@ bool convertVelocityBlocks2(
 
    // Write zone list into silo file:
    stringstream ss;
-   ss << "VelGrid" << cellID;
+   ss << "VelGrid";
    const string zoneListName = ss.str() + "Zones";
    //We're not writing a silo file now
    if (DBPutZonelist2(fileptr, zoneListName.c_str(), N_zones, N_dims, nodeList, nodeListSize, 0, 0, 0, shapeTypes, shapeSizes, shapeCnt, N_shapes, NULL) < 0) success = false;
