@@ -1202,7 +1202,7 @@ bool convertVelocityBlocks2(
       // If the variable we found is background_B we also need perturbed_B
       if( variableName == "background_B" ) {
          array<Real, 3> B_background;
-         if( vlsvReader.getVariable( "perturbed_B", cellID, B ) == false ) { return false; }
+         if( vlsvReader.getVariable( "perturbed_B", cellID, B_background ) == false ) { return false; }
          // Sum:
          for( uint j = 0; j < 3; ++j ) {
             B[j] = B[j] + B_background[j];
