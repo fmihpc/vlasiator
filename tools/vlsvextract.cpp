@@ -276,7 +276,7 @@ void getVelocityBlockCoordinates(const CellStructure & cellStruct, const uint64_
 
 
 template <class T>
-bool convertVelocityBlockVariable(T& vlsvReader, const string& spatGridName, const string& velGridName, const uint64_t& cellID,
+bool convertVelocityBlockVariable(T& vlsvReader, const string& spatGridName, const string& velGridName,
         const uint64_t& N_blocks, const uint64_t& blockOffset, const string& varName) {
    bool success = true;
    list<pair<string, string> > attribs;
@@ -632,7 +632,7 @@ void doRotation(
 bool convertVelocityBlocks2(
    oldVlsv::Reader& vlsvReader,
    const string& meshName,
-   const CellStructure & cellStruct,
+   const CellStructure &,
    const uint64_t& cellID,
    const bool rotate,
    const bool plasmaFrame
@@ -924,7 +924,7 @@ bool convertVelocityBlocks2(
    }
    if (success == true) {
       for (list<string>::iterator it = blockVarNames.begin(); it != blockVarNames.end(); ++it) {
-         if (convertVelocityBlockVariable(vlsvReader, meshName, gridName, cellID, N_blocks, blockOffset, *it) == false) success = false;
+         if (convertVelocityBlockVariable(vlsvReader, meshName, gridName, N_blocks, blockOffset, *it) == false) success = false;
       }
    }
 
@@ -1261,7 +1261,7 @@ bool convertVelocityBlocks2(
    //Writing SILO file
    if (success == true) {
       for (set<string>::iterator it = blockVarNames.begin(); it != blockVarNames.end(); ++it) {
-         if (convertVelocityBlockVariable( vlsvReader, meshName, gridName, cellID, N_blocks, vlsvReader.getBlockOffset(cellID), *it) == false) {
+         if (convertVelocityBlockVariable( vlsvReader, meshName, gridName, N_blocks, vlsvReader.getBlockOffset(cellID), *it) == false) {
             cerr << "ERROR, convertVelocityBlockVariable FAILED AT " << __FILE__ << " " << __LINE__ << endl;
          }
       }
