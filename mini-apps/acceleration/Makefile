@@ -37,26 +37,18 @@ CXXFLAGS += ${INC_PROFILE}
 CXXFLAGS += -D${FP_PRECISION} -D${DISTRIBUTION_FP_PRECISION}
 
 
-default: map_test
+default: map_test map_test_3d
 
-all: map_test
+all: map_test map_test_3d
 
 # Compile directory:
 INSTALL = $(CURDIR)
-
-# Executable:
-EXE = map_test
 
 # Collect libraries into single variable:
 LIBS += ${LIB_PROFILE}
 
 # Define common dependencies
 DEPS_COMMON = ../../common.h ../../definitions.h 
-
-#all objects for vlasiator
-
-OBJS = 	map_test.o
-
 
 
 help:
@@ -75,7 +67,14 @@ map_test.o: map_test.cpp
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -c map_test.cpp   ${INC_PROFILE}  ${INC_VECTORCLASS} 
 
 # Make executable
-map_test: $(OBJS)
-	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS)
+map_test: map_test.o
+	$(LNK) ${LDFLAGS} -o map_test map_test.o $(LIBS)
+
+map_test_3d.o: map_test_3d.cpp 
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -c map_test_3d.cpp   ${INC_PROFILE}  ${INC_VECTORCLASS} 
+
+# Make executable
+map_test_3d: map_test_3d.o
+	$(LNK) ${LDFLAGS} -o map_test_3d map_test_3d.o $(LIBS)
 
 
