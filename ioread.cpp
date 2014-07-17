@@ -5,6 +5,8 @@
 #include <vector>
 #include <sstream>
 #include <ctime>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "boost/array.hpp"
 #include "ioread.h"
 #include "phiprof.hpp"
@@ -52,20 +54,16 @@ void checkExternalCommands() {
       position = strTime.find(":");
    }
    
-   FILE *fp;
-   fp=fopen("STOP", "r");
-   if(fp != NULL) {
+   struct stat tempStat;
+   if (stat("STOP", &tempStat) == 0) {
       bailout(true, "Received an external STOP command. Setting bailout.write_restart to true.");
       P::bailout_write_restart = true;
-      fclose(fp);
       string newName = "STOP_" + strTime;
       rename("STOP", newName.c_str());
    }
-   fp=fopen("KILL", "r");
-   if(fp != NULL) {
+   if(stat("KILL", &tempStat) == 0) {
       bailout(true, "Received an external KILL command. Setting bailout.write_restart to false.");
       P::bailout_write_restart = false;
-      fclose(fp);
       string newName = "KILL_" + strTime;
       rename("KILL", newName.c_str());
    }
