@@ -26,7 +26,7 @@ void checkExternalCommands() {
    FILE *fp;
    fp=fopen("STOP", "r");
    if(fp != NULL) {
-      BAILOUT(true)
+      bailout(true, "Received an external STOP command.");
       fclose(fp);
    }
 }

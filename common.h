@@ -22,13 +22,23 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 #define CHECK_FLOAT(x) {}
 #endif
 
-#define BAILOUT(condition) \
-   if ((condition) && (globalflags::bailingOut == 0)) { \
-      int myRank; \
-      MPI_Comm_rank(MPI_COMM_WORLD,&myRank); \
-      std::cerr << "Process " << myRank << " bailing out at " << __FILE__ << ":" << __LINE__ << "." << std::endl; \
-      globalflags::bailingOut = 1; \
-   }
+void bailout(
+   const bool condition,
+   const std::string message
+);
+void bailout(
+   const bool condition,
+   const char * const file,
+   const int line
+);
+void bailout(
+   const bool condition,
+   const std::string message,
+   const char * const file,
+   const int line
+);
+
+
 
 #define sqr(x) ((x)*(x))
 #define pow2(x) sqr(x)
@@ -257,9 +267,6 @@ namespace physicalconstants {
    const Real MASS_PROTON = 1.67262158e-27; /*!< Proton rest mass.*/
    const Real R_E = 6.3712e6; /*!< radius of the Earth. */
 }
-
-
-
 
 #endif
 

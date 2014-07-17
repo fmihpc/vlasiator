@@ -132,17 +132,19 @@ namespace DRO {
       for (uint i=0; i<_vectorSize*sizeof(Real); ++i){
          buffer[i] = ptr[i];
       }
-      BAILOUT(std::isinf(*_data) || std::isnan(*_data))
       return true;
    }
    
    bool DataReductionOperatorCellParams::reduceData(const SpatialCell* cell,Real* buffer){
       //If _vectorSize is >1 it still works, we just give the first value and no other ones..
       *buffer=_data[0];
-      BAILOUT(std::isinf(*_data) || std::isnan(*_data))
       return true;
    }
    bool DataReductionOperatorCellParams::setSpatialCell(const SpatialCell* cell) {
+      if(std::isinf(cell->parameters[_parameterIndex]) || std::isnan(cell->parameters[_parameterIndex])) {
+         string message = "The DataReductionOperator " + this->getName() + " returned a nan or an inf.";
+         bailout(true, message, __FILE__, __LINE__);
+      }
       _data  = &(cell->parameters[_parameterIndex]);
       return true;
    }
@@ -197,6 +199,13 @@ namespace DRO {
       B[0] = cell->parameters[CellParams::PERBXVOL] +  cell->parameters[CellParams::BGBXVOL];
       B[1] = cell->parameters[CellParams::PERBYVOL] +  cell->parameters[CellParams::BGBYVOL];
       B[2] = cell->parameters[CellParams::PERBZVOL] +  cell->parameters[CellParams::BGBZVOL];
+      if(std::isinf(B[0]) || std::isnan(B[0]) ||
+         std::isinf(B[1]) || std::isnan(B[1]) ||
+         std::isinf(B[2]) || std::isnan(B[2])
+      ) {
+         string message = "The DataReductionOperator " + this->getName() + " returned a nan or an inf.";
+         bailout(true, message, __FILE__, __LINE__);
+      }
       return true;
    }
 
@@ -226,6 +235,13 @@ namespace DRO {
       B[0] = cell->parameters[CellParams::PERBX] +  cell->parameters[CellParams::BGBX];
       B[1] = cell->parameters[CellParams::PERBY] +  cell->parameters[CellParams::BGBY];
       B[2] = cell->parameters[CellParams::PERBZ] +  cell->parameters[CellParams::BGBZ];
+      if(std::isinf(B[0]) || std::isnan(B[0]) ||
+         std::isinf(B[1]) || std::isnan(B[1]) ||
+         std::isinf(B[2]) || std::isnan(B[2])
+      ) {
+         string message = "The DataReductionOperator " + this->getName() + " returned a nan or an inf.";
+         bailout(true, message, __FILE__, __LINE__);
+      }
       return true;
    }
    

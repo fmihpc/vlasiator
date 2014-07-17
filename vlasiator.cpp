@@ -273,6 +273,7 @@ int main(int argn,char* args[]) {
       for(uint si=0; si<P::systemWriteName.size(); si++) {
          P::systemWrites.push_back(0);
       }
+      
       const bool writeGhosts = true;
       if( writeGrid(mpiGrid,outputReducer,P::systemWriteName.size()-1, writeGhosts) == false ) {
          cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
@@ -630,7 +631,10 @@ int main(int argn,char* args[]) {
       phiprof::stop("Propagate",computedCells,"Cells");
       
       // Check timestep
-      BAILOUT(P::dt < 1.0e-6)
+      if(P::dt < 1.0e-6) {
+         string message = "The timestep went below " + to_string(1.0e-6) + ".";
+         bailout(true, message, __FILE__, __LINE__);
+      }
       //Move forward in time
       ++P::tstep;
       P::t += P::dt;
@@ -644,7 +648,7 @@ int main(int argn,char* args[]) {
    
    if (myRank == MASTER_RANK) {
       if(doBailout > 0) {
-         logFile << "(MAIN): Bailing out, see error log for details." << endl;
+         logFile << "(BAILOUT): Bailing out, see error log for details." << endl;
       }
       
       double timePerStep;
