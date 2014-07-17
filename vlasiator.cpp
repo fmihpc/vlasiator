@@ -442,7 +442,7 @@ int main(int argn,char* args[]) {
                P::saveRestartWalltimeInterval*wallTimeRestartCounter <=  MPI_Wtime()-initialWtime ||
                P::tstep ==P::tstep_max ||
                P::t >= P::t_max ||
-               doBailout > 0
+               (doBailout > 0 && P::bailout_write_restart)
             )
          ) {
             writeRestartNow = 1;
@@ -631,8 +631,8 @@ int main(int argn,char* args[]) {
       phiprof::stop("Propagate",computedCells,"Cells");
       
       // Check timestep
-      if(P::dt < 1.0e-6) {
-         string message = "The timestep went below " + to_string(1.0e-6) + ".";
+      if(P::dt < P::bailout_min_dt) {
+         string message = "The timestep went below bailout.bailout_min_dt (" + to_string(P::bailout_min_dt) + ").";
          bailout(true, message, __FILE__, __LINE__);
       }
       //Move forward in time
