@@ -26,22 +26,48 @@ typedef Parameters P;
  * \brief Checks for command files written to the local directory.
  * If a file STOP was written and is readable, then a bailout with restart writing is initiated.
  * If a file KILL was written and is readable, then a bailout without a restart is initiated.
- * 
+ * To avoid bailing out upfront on a new run the files are renamed with the date to keep a trace.
  * The function should only be called by MASTER_RANK. This ensures that resetting P::bailout_write_restart works.
  */
 void checkExternalCommands() {
+   string strTime;
+   // Get the current time.
+   const time_t rawTime = time(NULL);
+   strTime = ctime(&rawTime);
+   // Remove the line break from the string output given by ctime.
+   const size_t lineBreak = strTime.find('\n');
+   if (lineBreak != string::npos) {
+      strTime.erase(lineBreak,1);
+   }
+   // Replace spaces with underscores
+   size_t position = strTime.find(" ");
+   while(position != string::npos) {
+      strTime.replace(position, 1, "_");
+      position = strTime.find(" ");
+   }
+   // Replace semicolons with underscores
+   position = strTime.find(":");
+   while(position != string::npos) {
+      strTime.replace(position, 1, "_");
+      position = strTime.find(":");
+   }
+   
    FILE *fp;
    fp=fopen("STOP", "r");
    if(fp != NULL) {
       bailout(true, "Received an external STOP command. Setting bailout.write_restart to true.");
       P::bailout_write_restart = true;
       fclose(fp);
+      string newName = "STOP_" + strTime;
+      rename("STOP", newName.c_str());
    }
    fp=fopen("KILL", "r");
    if(fp != NULL) {
       bailout(true, "Received an external KILL command. Setting bailout.write_restart to false.");
       P::bailout_write_restart = false;
       fclose(fp);
+      string newName = "KILL_" + strTime;
+      rename("KILL", newName.c_str());
    }
 }
 
