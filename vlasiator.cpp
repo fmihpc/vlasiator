@@ -374,7 +374,7 @@ int main(int argn,char* args[]) {
       phiprof::start("IO");
       
       if(myRank ==  MASTER_RANK) {
-         // check whether STOP has been passed (as of 2014-05-02)
+         // check whether STOP or KILL has been passed, should be done by MASTER_RANK only as it can reset P::bailout_write_restart
          checkExternalCommands();
       }
       
@@ -432,10 +432,11 @@ int main(int argn,char* args[]) {
          }
       }
       
-      // Write restart data if needed (based on walltime)
-      int writeRestartNow;
       // Reduce globalflags::bailingOut from all processes
       MPI_Allreduce(&(globalflags::bailingOut), &(doBailout), 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      
+      // Write restart data if needed
+      int writeRestartNow;
       
       if (myRank == MASTER_RANK) {
          if (P::saveRestartWalltimeInterval >=0.0 && (

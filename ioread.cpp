@@ -22,11 +22,25 @@ extern Logger logFile, diagnostic;
 
 typedef Parameters P;
 
+/*!
+ * \brief Checks for command files written to the local directory.
+ * If a file STOP was written and is readable, then a bailout with restart writing is initiated.
+ * If a file KILL was written and is readable, then a bailout without a restart is initiated.
+ * 
+ * The function should only be called by MASTER_RANK. This ensures that resetting P::bailout_write_restart works.
+ */
 void checkExternalCommands() {
    FILE *fp;
    fp=fopen("STOP", "r");
    if(fp != NULL) {
-      bailout(true, "Received an external STOP command.");
+      bailout(true, "Received an external STOP command. Setting bailout.write_restart to true.");
+      P::bailout_write_restart = true;
+      fclose(fp);
+   }
+   fp=fopen("KILL", "r");
+   if(fp != NULL) {
+      bailout(true, "Received an external KILL command. Setting bailout.write_restart to false.");
+      P::bailout_write_restart = false;
       fclose(fp);
    }
 }
