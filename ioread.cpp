@@ -32,27 +32,12 @@ typedef Parameters P;
  * The function should only be called by MASTER_RANK. This ensures that resetting P::bailout_write_restart works.
  */
 void checkExternalCommands() {
-   string strTime;
+   char  buffer[80];
    // Get the current time.
    const time_t rawTime = time(NULL);
-   strTime = ctime(&rawTime);
-   // Remove the line break from the string output given by ctime.
-   const size_t lineBreak = strTime.find('\n');
-   if (lineBreak != string::npos) {
-      strTime.erase(lineBreak,1);
-   }
-   // Replace spaces with underscores
-   size_t position = strTime.find(" ");
-   while(position != string::npos) {
-      strTime.replace(position, 1, "_");
-      position = strTime.find(" ");
-   }
-   // Replace semicolons with underscores
-   position = strTime.find(":");
-   while(position != string::npos) {
-      strTime.replace(position, 1, "_");
-      position = strTime.find(":");
-   }
+   const struct tm * timeInfo = localtime(&rawTime);
+   strftime(buffer, 80, "%F_%H-%M-%S", timeInfo);
+   const string strTime = string(buffer);
    
    struct stat tempStat;
    if (stat("STOP", &tempStat) == 0) {
