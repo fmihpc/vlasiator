@@ -32,25 +32,28 @@ typedef Parameters P;
  * The function should only be called by MASTER_RANK. This ensures that resetting P::bailout_write_restart works.
  */
 void checkExternalCommands() {
-   char  buffer[80];
-   // Get the current time.
-   const time_t rawTime = time(NULL);
-   const struct tm * timeInfo = localtime(&rawTime);
-   strftime(buffer, 80, "%F_%H-%M-%S", timeInfo);
-   const string strTime = string(buffer);
-   
    struct stat tempStat;
    if (stat("STOP", &tempStat) == 0) {
       bailout(true, "Received an external STOP command. Setting bailout.write_restart to true.");
       P::bailout_write_restart = true;
-      string newName = "STOP_" + strTime;
-      rename("STOP", newName.c_str());
+      char newName[80];
+      // Get the current time.
+      const time_t rawTime = time(NULL);
+      const struct tm * timeInfo = localtime(&rawTime);
+      strftime(newName, 80, "STOP_%F_%H-%M-%S", timeInfo);
+      rename("STOP", newName);
+      return;
    }
    if(stat("KILL", &tempStat) == 0) {
       bailout(true, "Received an external KILL command. Setting bailout.write_restart to false.");
       P::bailout_write_restart = false;
-      string newName = "KILL_" + strTime;
-      rename("KILL", newName.c_str());
+      char newName[80];
+      // Get the current time.
+      const time_t rawTime = time(NULL);
+      const struct tm * timeInfo = localtime(&rawTime);
+      strftime(newName, 80, "KILL_%F_%H-%M-%S", timeInfo);
+      rename("KILL", newName);
+      return;
    }
 }
 
