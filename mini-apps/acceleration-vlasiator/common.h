@@ -34,6 +34,9 @@ typedef const float creal;
 #ifdef ACC_SEMILAG_PPM
 #define RECONSTRUCTION_ORDER 2
 #endif
+#ifdef ACC_SEMILAG_PQM
+#define RECONSTRUCTION_ORDER 4
+#endif
 
 
 

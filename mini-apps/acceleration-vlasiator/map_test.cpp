@@ -31,6 +31,9 @@ void propagate(Vec4 values[], uint  blocks_per_dim, Real v_min, Real dv,
 #ifdef ACC_SEMILAG_PPM
   compute_ppm_coeff_explicit_column(values, blocks_per_dim, a);
 #endif
+#ifdef ACC_SEMILAG_PQM
+         compute_pqm_coeff_explicit_column(values,blocks_per_dim, a);
+#endif
 
   /*clear temporary taret*/
   for (uint k=0; k<WID* (blocks_per_dim + 2); ++k){ 
@@ -105,6 +108,23 @@ void propagate(Vec4 values[], uint  blocks_per_dim, Real v_min, Real dv,
 	   v_int_norm_r * v_int_norm_r * a[k_block * WID + k_cell][1] +
 	   v_int_norm_r * v_int_norm_r * v_int_norm_r * a[k_block * WID + k_cell][2];
 #endif
+#ifdef ACC_SEMILAG_PQM
+	 Vec4 target_density_l =
+	   v_int_norm_l * a[k_block * WID + k_cell][0] +
+	   v_int_norm_l * v_int_norm_l * a[k_block * WID + k_cell][1] +
+	   v_int_norm_l * v_int_norm_l * v_int_norm_l * a[k_block * WID + k_cell][2] +
+	   v_int_norm_l * v_int_norm_l * v_int_norm_l * v_int_norm_l * a[k_block * WID + k_cell][3] +
+	   v_int_norm_l * v_int_norm_l * v_int_norm_l * v_int_norm_l * v_int_norm_l * a[k_block * WID + k_cell][4];
+
+	 Vec4 target_density_r =
+	   v_int_norm_r * a[k_block * WID + k_cell][0] +
+	   v_int_norm_r * v_int_norm_r * a[k_block * WID + k_cell][1] +
+	   v_int_norm_r * v_int_norm_r * v_int_norm_r * a[k_block * WID + k_cell][2] +
+	   v_int_norm_r * v_int_norm_r * v_int_norm_r * v_int_norm_r * a[k_block * WID + k_cell][3] +
+	   v_int_norm_r * v_int_norm_r * v_int_norm_r * v_int_norm_r * v_int_norm_r * a[k_block * WID + k_cell][4];
+
+#endif
+
 	 
 	 /*total value of integrand*/
 	 const Vec4 target_density = target_density_r - target_density_l;
