@@ -162,6 +162,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          diagnosticReducer->addOperator(new DRO::DiagnosticFluxE);
       if(*it == "Blocks")
          diagnosticReducer->addOperator(new DRO::Blocks);
+      if(*it == "Pressure")
+         diagnosticReducer->addOperator(new DRO::VariablePressure);
       if(*it == "Rho")
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho",CellParams::RHO,1));
       if(*it == "RhoLossAdjust")
