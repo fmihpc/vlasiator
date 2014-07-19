@@ -1,4 +1,6 @@
 *.dat
+*.vlsv
+*.silo
 *.o
 version.cpp
 \#*\#
