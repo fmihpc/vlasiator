@@ -1,3 +1,4 @@
+*.dat
 *.o
 version.cpp
 \#*\#
