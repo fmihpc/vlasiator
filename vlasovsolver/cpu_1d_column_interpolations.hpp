@@ -34,6 +34,26 @@ void tridiag(uint n,const Vec4 &a,const Vec4 &b,const Vec4 &c,Vec4 *u, Vec4 *r){
   }
 }
 
+
+/*Compute all face values. For cell k (globla index), its left face
+ * value is in fv_l[k] and right value in fv_r[k]. Based on explicit
+ * h4 estimate*/
+inline void compute_h4_face_values(Vec4 *values, uint n_cblocks,  Vec4 *fv_l, Vec4 *fv_r){   
+
+   /*we loop up to one extra cell. There is extra space in fv for the extra left value*/
+  for (int k = 0; k < n_cblocks * WID + 1; k++){
+      /*compute left values*/
+    fv_l[k] = 1.0/12.0 * ( - 1.0 * values[k - 2 + WID]  
+			   + 7.0 * values[k - 1 + WID] + 7.0 * values[k  + WID] 
+			   - 1.0 * values[k + 1 + WID]);
+    fv_r[k] = 1.0/12.0 * ( - 1.0 * values[k - 1 + WID]  
+			   + 7.0 * values[k  + WID] + 7.0 * values[k + 1  + WID] 
+			   - 1.0 * values[k + 2 + WID]);
+  }
+}
+
+
+
 /*Compute all face values. For cell k (globla index), its left face
  * value is in fv_l[k] and right value in fv_r[k]. Based on explicit
  *      h5 estimate*/
@@ -71,22 +91,26 @@ inline void compute_h6_face_values(Vec4 *values, uint n_cblocks,  Vec4 *fv_l, Ve
 
 
 
-/*Compute all face values. For cell k (globla index), its left face
- * value is in fv_l[k] and right value in fv_r[k]. Based on explicit
- * h4 estimate*/
-inline void compute_h4_face_values(Vec4 *values, uint n_cblocks,  Vec4 *fv_l, Vec4 *fv_r){   
+
+
+/*Compute all face derivatives. For cell k (globla index), its left face
+ * derivative is in fd_l[k] and right derivative in fd_r[k]. Based on explicit
+ * h5 estimate*/
+inline void compute_h5_face_derivatives(Vec4 *values, uint n_cblocks,  Vec4 *fd_l, Vec4 *fd_r){   
 
    /*we loop up to one extra cell. There is extra space in fv for the extra left value*/
   for (int k = 0; k < n_cblocks * WID + 1; k++){
-      /*compute left values*/
-    fv_l[k] = 1.0/12.0 * ( - 1.0 * values[k - 2 + WID]  
-			   + 7.0 * values[k - 1 + WID] + 7.0 * values[k  + WID] 
-			   - 1.0 * values[k + 1 + WID]);
-    fv_r[k] = 1.0/12.0 * ( - 1.0 * values[k - 1 + WID]  
-			   + 7.0 * values[k  + WID] + 7.0 * values[k + 1  + WID] 
-			   - 1.0 * values[k + 2 + WID]);
+    /*compute left values*/
+    fd_l[k] = 1.0/180.0 * (245 * (values[k + WID] - values[k - 1 + WID])  
+			   - 25 * (values[k + 1 + WID] - values[k - 2 + WID]) 
+			   + 2 * (values[k + 2 + WID] - values[k - 3 + WID]));
+    /*set right value*/
+    if(k>0)
+      fd_r[k-1] = fd_l[k];
   }
 }
+
+
 
 
 
@@ -265,7 +289,7 @@ inline void compute_ppm_coeff_explicit_column(Vec4 *values, uint n_cblocks, Vec4
    Vec4 fv_l[MAX_BLOCKS_PER_DIM * WID + 1]; /*left face value, extra space for ease of implementation*/
    Vec4 fv_r[MAX_BLOCKS_PER_DIM * WID + 1]; /*right face value*/
 
-   compute_h5_face_values(values,n_cblocks,fv_l, fv_r); 
+   compute_h6_face_values(values,n_cblocks,fv_l, fv_r); 
    filter_boundedness(values,n_cblocks,fv_l, fv_r); 
    filter_extrema(values,n_cblocks,fv_l, fv_r);
 //   filter_face_monotonicity(values,n_cblocks,fv);
@@ -300,6 +324,45 @@ inline void compute_ppm_coeff_explicit_column(Vec4 *values, uint n_cblocks, Vec4
 //   White, Laurent, and Alistair Adcroft. “A High-Order Finite Volume Remapping Scheme for Nonuniform Grids: The Piecewise Quartic Method (PQM).” Journal of Computational Physics 227, no. 15 (July 2008): 7394–7422. doi:10.1016/j.jcp.2008.04.026.
 // */
 
-// inline void compute_pqm_coeff_explicit_column(Real *values, uint n_cblocks, uint j, Vec4 a[][RECONSTRUCTION_ORDER + 1]){ }
+inline void compute_pqm_coeff_explicit_column(Vec4 *values, uint n_cblocks, Vec4 a[][RECONSTRUCTION_ORDER + 1]){
+   Vec4 p_value;
+   Vec4 m_value;
+   Vec4 fv_l[MAX_BLOCKS_PER_DIM * WID + 1]; /*left face value, extra space for ease of implementation*/
+   Vec4 fv_r[MAX_BLOCKS_PER_DIM * WID + 1]; /*right face value*/
+   Vec4 fd_l[MAX_BLOCKS_PER_DIM * WID + 1]; /*left face derivative, extra space for ease of implementation*/
+   Vec4 fd_r[MAX_BLOCKS_PER_DIM * WID + 1]; /*right face derivative*/
+
+   compute_h6_face_values(values,n_cblocks,fv_l, fv_r); 
+   compute_h5_face_derivatives(values,n_cblocks,fd_l, fd_r); 
+
+   filter_boundedness(values,n_cblocks,fv_l, fv_r); 
+   filter_extrema(values,n_cblocks,fv_l, fv_r);
+//   filter_value_monotonicity(values,n_cblocks,fv);
+   
+   for (uint k = 0; k < n_cblocks * WID; k++){
+      m_value = fv_l[k];
+      p_value = fv_r[k];
+      
+      //Coella et al, check for monotonicity   
+      m_value = select((p_value - m_value) * (values[k + WID] - 0.5 * (m_value + p_value)) >
+                      (p_value - m_value)*(p_value - m_value) * one_sixth,
+                      3 * values[k + WID] - 2 * p_value,
+                      m_value);
+      p_value = select(-(p_value - m_value) * (p_value - m_value) * one_sixth >
+                      (p_value - m_value) * (values[k + WID] - 0.5 * (m_value + p_value)),
+                      3 * values[k + WID] - 2 * m_value,
+                      p_value);
+
+      //Fit a second order polynomial for reconstruction see, e.g., White
+      //2008 (PQM article) (note additional integration factors built in,
+      //contrary to White (2008) eq. 4
+      a[k][0] = m_value;
+      a[k][1] = fd_l[k]/2.0;
+      a[k][2] = 10 * values[k + WID] - 4.0 * p_value - 6.0 * m_value + 0.5 * (fd_r[k] - 3 * fd_l[k]);
+      a[k][3] = -15 * values[k + WID]  + 1.5 * fd_l[k] - fd_r[k] + 7.0 * p_value + 8 * m_value;
+      a[k][4] = 6.0* values[k + WID] +  0.5 * (fd_r[k] - fd_l[k]) - 3.0 * (m_value + p_value);
+
+   }
+}
 
 #endif
