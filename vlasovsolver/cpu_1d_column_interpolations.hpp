@@ -226,23 +226,62 @@ inline void filter_extrema(Vec4 *values, uint n_cblocks, Vec4 *fv_l, Vec4 *fv_r)
 
 /*Filter according to Eq. 19 in White et al.*/
 inline void filter_boundedness(Vec4 *values, uint n_cblocks, Vec4 *fv_l, Vec4 *fv_r){   
-   /*First Eq. 19 & 20*/
-   for (int k = 0; k < n_cblocks * WID; k++){
-      bool fix_bounds = horizontal_or((values[k - 1 + WID] - fv_l[k]) * (fv_l[k] - values[k + WID]) < 0 ||
-                                      (values[k + 1 + WID] - fv_r[k]) * (fv_r[k] - values[k + WID]) < 0);
-      if(fix_bounds) {
-         Vec4 slope_abs,slope_sign;
-         slope_limiter(values[k -1 + WID], values[k + WID], values[k + 1 + WID], slope_abs, slope_sign);
-         //detect and  fix boundedness, as in WHITE 2008
-         fv_l[k] = select((values[k -1 + WID] - fv_l[k]) * (fv_l[k] - values[k + WID]) < 0,
-                         values[k + WID] - slope_sign * min( 0.5 * slope_abs, abs(fv_l[k] - values[k + WID])),
-                         fv_l[k]);
-         fv_r[k] = select((values[k + 1 + WID] - fv_r[k]) * (fv_r[k] - values[k + WID]) < 0,
-                                values[k + WID] + slope_sign * min( 0.5 * slope_abs, abs(fv_r[k] - values[k + WID])),
-                                fv_r[k]);
-      }
+  /*First Eq. 19 & 20*/
+  for (int k = 0; k < n_cblocks * WID; k++){
+    bool fix_bounds = horizontal_or((values[k - 1 + WID] - fv_l[k]) * (fv_l[k] - values[k + WID]) < 0 ||
+				     (values[k + 1 + WID] - fv_r[k]) * (fv_r[k] - values[k + WID]) < 0);
+     if(fix_bounds) {
+       Vec4 slope_abs,slope_sign;
+       slope_limiter(values[k -1 + WID], values[k + WID], values[k + 1 + WID], slope_abs, slope_sign);
+       //detect and  fix boundedness, as in WHITE 2008
+       fv_l[k] = select((values[k -1 + WID] - fv_l[k]) * (fv_l[k] - values[k + WID]) < 0,
+			values[k + WID] - slope_sign * min( 0.5 * slope_abs, abs(fv_l[k] - values[k + WID])),
+			fv_l[k]);
+       fv_r[k] = select((values[k + 1 + WID] - fv_r[k]) * (fv_r[k] - values[k + WID]) < 0,
+			values[k + WID] + slope_sign * min( 0.5 * slope_abs, abs(fv_r[k] - values[k + WID])),
+			fv_r[k]);
+     }
    }
 }
+
+
+/*Filters in section 2.6.1 of white et al.*/
+inline void filter_extrema_boundedness(Vec4 *values, uint n_cblocks, Vec4 *fv_l, Vec4 *fv_r, Vec4 *fd_l, Vec4 *fd_r){   
+  /*First Eq. 19 & 20*/
+  for (int k = 0; k < n_cblocks * WID; k++){
+    Vec4 slope_abs,slope_sign;
+    slope_limiter(values[k -1 + WID], values[k + WID], values[k + 1 + WID], slope_abs, slope_sign);
+
+    //check for extrema, flatten if it is
+    Vec4b is_extrema = (slope_abs == Vec4(0.0));
+    bool fix_extrema = horizontal_or(is_extrema);
+    if(fix_extrema) {
+      fv_r[k] = select(is_extrema, values[k + WID], fv_r[k]);
+      fv_l[k] = select(is_extrema, values[k + WID], fv_l[k]);
+      fd_l[k] = select(is_extrema, 0.0 , fd_l[k]);
+      fd_r[k] = select(is_extrema, 0.0 , fd_r[k]);
+    }
+    
+    //Check that boundary values are bounded, that is, between their neighboring values
+    Vec4b left_unbounded = (values[k -1 + WID] - fv_l[k]) * (fv_l[k] - values[k + WID]) < 0;
+    Vec4b right_unbounded = (values[k + 1 + WID] - fv_r[k]) * (fv_r[k] - values[k + WID]) < 0;
+    bool fix_bounds = horizontal_or(left_unbounded || right_unbounded );
+     if(fix_bounds) {
+       //detect and  fix boundedness, as in WHITE 2008
+       fv_l[k] = select(left_unbounded,
+			values[k + WID] - slope_sign * min( 0.5 * slope_abs, abs(fv_l[k] - values[k + WID])),
+			fv_l[k]);
+       fv_r[k] = select(right_unbounded,
+			values[k + WID] + slope_sign * min( 0.5 * slope_abs, abs(fv_r[k] - values[k + WID])),
+			fv_r[k]);
+       fd_r[k] = select(right_unbounded, 0.0, fd_r[k]);
+     }
+     //Check for slope consistency. We set it to be the PLM limited slope, if it does not have the same sign
+     fd_l[k] = select(slope_sign * fd_l[k] < 0.0, slope_sign * slope_abs, fd_l[k]);
+     fd_r[k] = select(slope_sign * fd_r[k] < 0.0, slope_sign * slope_abs, fd_r[k]);
+  }
+}
+
 
 /*"A final check is conducted to make sure
   that discontinuous edge values are monotonic at any edge. If edge values are discontinuous and nonmono-
@@ -327,15 +366,17 @@ inline void compute_ppm_coeff_explicit_column(Vec4 *values, uint n_cblocks, Vec4
 inline void compute_pqm_coeff_explicit_column(Vec4 *values, uint n_cblocks, Vec4 a[][RECONSTRUCTION_ORDER + 1]){
    Vec4 p_value;
    Vec4 m_value;
-   Vec4 fv_l[MAX_BLOCKS_PER_DIM * WID + 1]; /*left face value, extra space for ease of implementation*/
+   /*next face values and derivatives, extra space to ease
+     implementation (final left is not used, but copied to right*/
+   Vec4 fv_l[MAX_BLOCKS_PER_DIM * WID + 1]; /*left face value*/
    Vec4 fv_r[MAX_BLOCKS_PER_DIM * WID + 1]; /*right face value*/
-   Vec4 fd_l[MAX_BLOCKS_PER_DIM * WID + 1]; /*left face derivative, extra space for ease of implementation*/
+   Vec4 fd_l[MAX_BLOCKS_PER_DIM * WID + 1]; /*left face derivative*/
    Vec4 fd_r[MAX_BLOCKS_PER_DIM * WID + 1]; /*right face derivative*/
 
    compute_h6_face_values(values,n_cblocks,fv_l, fv_r); 
    compute_h5_face_derivatives(values,n_cblocks,fd_l, fd_r); 
-
-   filter_boundedness(values,n_cblocks,fv_l, fv_r); 
+   
+   filter_extrema_boundedness(values,n_cblocks,fv_l, fv_r, fd_l, fd_r); 
    filter_extrema(values,n_cblocks,fv_l, fv_r);
 //   filter_value_monotonicity(values,n_cblocks,fv);
    
