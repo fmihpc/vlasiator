@@ -116,6 +116,9 @@ string P::projectName = string("");
 Real P::maxSlAccelerationRotation=10.0;
 Real P::lorentzHallMinimumRho=1.0;
 
+bool P::bailout_write_restart = false;
+Real P::bailout_min_dt = NAN;
+
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
    Readparameters::add("io.diagnostic_write_interval", "Write diagnostic output every arg time steps",numeric_limits<uint>::max());
@@ -205,6 +208,10 @@ bool Parameters::addParameters(){
    Readparameters::add("variables.dr_backstream_vz", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.", 0.0);
    Readparameters::add("variables.dr_backstream_radius", "Radius of the maxwellian distribution. Used for calculating the backstream contriution for rho", 468621.0);
 
+   // bailout parameters
+   Readparameters::add("bailout.write_restart", "If 1, write a restart file on bailout. Gets reset when sending a STOP (1) or a KILL (0).", true);
+   Readparameters::add("bailout.min_dt", "Minimum time step below which bailout occurs.", 1e-6);
+   
    return true;
 }
 
@@ -311,7 +318,10 @@ bool Parameters::getParameters(){
    Readparameters::get("variables.dr_backstream_vx", P::backstreamvx);
    Readparameters::get("variables.dr_backstream_vy", P::backstreamvy);
    Readparameters::get("variables.dr_backstream_vz", P::backstreamvz);
-
+   
+   // Get parameters related to bailout
+   Readparameters::get("bailout.write_restart", P::bailout_write_restart);
+   Readparameters::get("bailout.min_dt", P::bailout_min_dt);
    
    return true;
 }

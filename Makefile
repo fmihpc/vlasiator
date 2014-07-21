@@ -104,7 +104,7 @@ LIBS += ${LIB_JEMALLOC}
 LIBS += ${LIB_PAPI}
 
 # Define common dependencies
-DEPS_COMMON = common.h definitions.h mpiconversion.h logger.h 
+DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h 
 
 # Define dependencies on all project files
 DEPS_PROJECTS =	projects/project.h projects/project.cpp \
@@ -136,7 +136,7 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	project.o projectTriAxisSearch.o \
 	Alfven.o Diffusion.o Dispersion.o Firehose.o Flowthrough.o Fluctuations.o  KHB.o Larmor.o Magnetosphere.o MultiPeak.o VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o test_trans.o verificationLarmor.o Shocktest.o \
 	grid.o ioread.o iowrite.o vlasiator.o logger.o muxml.o \
-	parameters.o readparameters.o spatial_cell.o \
+	common.o parameters.o readparameters.o spatial_cell.o \
 	vlscommon.o vlsvreader2.o  vlasovmover.o $(FIELDSOLVER).o 
 
 
@@ -275,9 +275,6 @@ project.o: ${DEPS_COMMON} $(DEPS_PROJECTS)
 projectTriAxisSearch.o: ${DEPS_COMMON} $(DEPS_PROJECTS)
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/projectTriAxisSearch.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
-projectTriAxisSearch.o: ${DEPS_COMMON} $(DEPS_PROJECTS)
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/projectTriAxisSearch.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
-
 spatial_cell.o: spatial_cell.cpp spatial_cell.hpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c spatial_cell.cpp $(INC_BOOST) ${INC_EIGEN}
 
@@ -304,6 +301,9 @@ logger.o: logger.h logger.cpp
 
 muxml.o: muxml.h muxml.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c muxml.cpp
+
+common.o: common.h common.cpp
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c common.cpp
 
 parameters.o: parameters.h parameters.cpp readparameters.h
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c parameters.cpp ${INC_BOOST} ${INC_EIGEN}

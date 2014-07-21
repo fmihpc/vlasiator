@@ -5,6 +5,8 @@
 #include <vector>
 #include <sstream>
 #include <ctime>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "boost/array.hpp"
 #include "ioread.h"
 #include "phiprof.hpp"
@@ -21,6 +23,39 @@ using namespace vlsv;
 extern Logger logFile, diagnostic;
 
 typedef Parameters P;
+
+/*!
+ * \brief Checks for command files written to the local directory.
+ * If a file STOP was written and is readable, then a bailout with restart writing is initiated.
+ * If a file KILL was written and is readable, then a bailout without a restart is initiated.
+ * To avoid bailing out upfront on a new run the files are renamed with the date to keep a trace.
+ * The function should only be called by MASTER_RANK. This ensures that resetting P::bailout_write_restart works.
+ */
+void checkExternalCommands() {
+   struct stat tempStat;
+   if (stat("STOP", &tempStat) == 0) {
+      bailout(true, "Received an external STOP command. Setting bailout.write_restart to true.");
+      P::bailout_write_restart = true;
+      char newName[80];
+      // Get the current time.
+      const time_t rawTime = time(NULL);
+      const struct tm * timeInfo = localtime(&rawTime);
+      strftime(newName, 80, "STOP_%F_%H-%M-%S", timeInfo);
+      rename("STOP", newName);
+      return;
+   }
+   if(stat("KILL", &tempStat) == 0) {
+      bailout(true, "Received an external KILL command. Setting bailout.write_restart to false.");
+      P::bailout_write_restart = false;
+      char newName[80];
+      // Get the current time.
+      const time_t rawTime = time(NULL);
+      const struct tm * timeInfo = localtime(&rawTime);
+      strftime(newName, 80, "KILL_%F_%H-%M-%S", timeInfo);
+      rename("KILL", newName);
+      return;
+   }
+}
 
 /*!
   \brief Collective exit on error functions
@@ -60,7 +95,6 @@ bool exitOnError(bool success,string message,MPI_Comm comm) {
  \param masterRank The simulation's master rank id (Vlasiator uses 0, which should be the default)
  \param comm MPI comm (MPI_COMM_WORLD should be the default)
 */
-
 bool readCellIds(VLSVParReader & file,
                  vector<uint64_t>& fileCells, int masterRank,MPI_Comm comm){
    // Get info on array containing cell Ids:
@@ -251,7 +285,6 @@ bool readNBlocks( T & file,
  \param mpiGrid Vlasiator's grid
  \sa exec_readGrid
 */
-
 template <typename fileReal>
 bool _readBlockData(
    VLSVParReader & file,
@@ -553,14 +586,16 @@ bool readBlockData(
  \return Returns true if the operation is successful
  */
 template <typename fileReal, class U>
-static bool _readCellParamsVariable(U & file,
-			    const vector<uint64_t>& fileCells,
-                            const uint64_t localCellStartOffset,
-			    const uint64_t localCells,
-			    const string& variableName,
-                            const size_t cellParamsIndex,
-                            const size_t expectedVectorSize,
-                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
+static bool _readCellParamsVariable(
+   U & file,
+   const vector<uint64_t>& fileCells,
+   const uint64_t localCellStartOffset,
+   const uint64_t localCells,
+   const string& variableName,
+   const size_t cellParamsIndex,
+   const size_t expectedVectorSize,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
+) {
    uint64_t arraySize;
    uint64_t vectorSize;
    datatype::type dataType;
@@ -611,14 +646,16 @@ static bool _readCellParamsVariable(U & file,
  \return Returns true if the operation is successful
  */
 template <class U>
-bool readCellParamsVariable(U & file,
-			    const vector<uint64_t>& fileCells,
-                            const uint64_t localCellStartOffset,
-			    const uint64_t localCells,
-			    const string& variableName,
-                            const size_t cellParamsIndex,
-                            const size_t expectedVectorSize,
-                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
+bool readCellParamsVariable(
+   U & file,
+   const vector<uint64_t>& fileCells,
+   const uint64_t localCellStartOffset,
+   const uint64_t localCells,
+   const string& variableName,
+   const size_t cellParamsIndex,
+   const size_t expectedVectorSize,
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
+) {
    uint64_t arraySize;
    uint64_t vectorSize;
    datatype::type dataType;
@@ -780,14 +817,14 @@ bool checkScalarParameter(U & file, const string & name, T correctValue, int mas
    readScalarParameter(file,name,value,masterRank,comm);
    if(value!=correctValue){
       std::ostringstream s;
-      s << "(RESTART) Parameter " << name << " has missmatching value.";
+      s << "(RESTART) Parameter " << name << " has mismatching value.";
       s << " CFG value = " << correctValue;
       s << " Restart file value = " << value;
-      exitOnError(false,s.str(),MPI_COMM_WORLD);      
+      exitOnError(false,s.str(),MPI_COMM_WORLD);
       return false;
    }
    else{
-      exitOnError(true,"",MPI_COMM_WORLD);      
+      exitOnError(true,"",MPI_COMM_WORLD);
       return true;
    }
 }

@@ -32,7 +32,7 @@ git branch  | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g' | gawk '{printf("%s\"%s\"%s\
 
 
 echo "    cout << endl << \"----------- git log (last 10 commits) --------- \"<<endl;" >>version.cpp
-git log --pretty=oneline   |head | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g' | gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}' >> version.cpp
+git log --pretty=oneline | head | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g' | gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}' >> version.cpp
 
 
 echo "    cout << endl << \"----------- module list --------- \"<<endl;" >>version.cpp

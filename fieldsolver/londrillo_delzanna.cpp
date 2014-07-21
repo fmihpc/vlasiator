@@ -2211,6 +2211,7 @@ bool propagateFields(
    
    calculateVolumeAveragedFields(mpiGrid);
    calculateBVOLDerivativesSimple(mpiGrid, sysBoundaries, localCells);
+   
    return true;
 }
 

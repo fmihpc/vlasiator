@@ -1,18 +1,7 @@
 /*
 This file is part of Vlasiator.
 
-Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
-
-
-
-
-
-
-
-
-
-
-
+Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 
 */
 
@@ -20,17 +9,36 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #define COMMON_H
 
 #include <limits>
+#include <string>
 #include "definitions.h"
 
 #ifdef DEBUG_SOLVERS
 #define CHECK_FLOAT(x) \
-	if ((x) != (x)) {\
-		std::cerr << __FILE__ << ":" << __LINE__ << " Illegal value: " << x << std::endl;\
-		abort();\
-	}
+   if ((x) != (x)) {\
+      std::cerr << __FILE__ << ":" << __LINE__ << " Illegal value: " << x << std::endl;\
+      abort();\
+   }
 #else
 #define CHECK_FLOAT(x) {}
 #endif
+
+void bailout(
+   const bool condition,
+   const std::string message
+);
+void bailout(
+   const bool condition,
+   const char * const file,
+   const int line
+);
+void bailout(
+   const bool condition,
+   const std::string message,
+   const char * const file,
+   const int line
+);
+
+
 
 #define sqr(x) ((x)*(x))
 #define pow2(x) sqr(x)
@@ -243,6 +251,13 @@ template<typename UINT> inline UINT cellIndex(const UINT& i,const UINT& j,const 
 
 const uint SIZE_VELBLOCK    = WID3; /*!< Number of cells in a velocity block. */
 
+/*!
+ * Name space for flags needed globally, such as the bailout flag.
+ */
+struct globalflags {
+   static int bailingOut; /*!< Global flag raised to true if a run bailout (write restart and stop the simulation peacefully) is needed. */
+};
+
 // Natural constants
 namespace physicalconstants {
    const Real MU_0 = 1.25663706e-6;  /*!< Permeability of vacuo, unit: (kg m) / (s^2 A^2).*/
@@ -250,9 +265,6 @@ namespace physicalconstants {
    const Real MASS_PROTON = 1.67262158e-27; /*!< Proton rest mass.*/
    const Real R_E = 6.3712e6; /*!< radius of the Earth. */
 }
-
-
-
 
 #endif
 
