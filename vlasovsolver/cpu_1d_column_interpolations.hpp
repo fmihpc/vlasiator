@@ -45,11 +45,12 @@ inline void compute_h4_face_values(Vec4 *values, uint n_cblocks,  Vec4 *fv_l, Ve
   for (int k = 0; k < n_cblocks * WID + 1; k++){
       /*compute left values*/
     fv_l[k] = 1.0/12.0 * ( - 1.0 * values[k - 2 + WID]  
-			   + 7.0 * values[k - 1 + WID] + 7.0 * values[k  + WID] 
+			   + 7.0 * values[k - 1 + WID] 
+			   + 7.0 * values[k  + WID] 
 			   - 1.0 * values[k + 1 + WID]);
-    fv_r[k] = 1.0/12.0 * ( - 1.0 * values[k - 1 + WID]  
-			   + 7.0 * values[k  + WID] + 7.0 * values[k + 1  + WID] 
-			   - 1.0 * values[k + 2 + WID]);
+    /*set right value*/
+    if(k>0)
+      fv_r[k-1] = fv_l[k];
   }
 }
 
@@ -63,10 +64,16 @@ inline void compute_h5_face_values(Vec4 *values, uint n_cblocks,  Vec4 *fv_l, Ve
    /*we loop up to one extra cell. There is extra space in fv for the extra left value*/
   for (int k = 0; k < n_cblocks * WID + 1; k++){
       /*compute left values*/
-     fv_l[k] = 1.0/60.0 * (- 3.0 * values[k - 2 + WID]  + 27.0 * values[k - 1 + WID] +
-			  47.0 * values[k  + WID] - 13.0 * values[k + 1 + WID] + 2 * values[k + 2 + WID]);
-     fv_r[k] = 1.0/60.0 * ( 2.0 * values[k - 2 + WID]  -13.0 * values[k - 1 + WID] +
-                            47.0 * values[k  + WID] + 27.0 * values[k + 1 + WID] - 3 * values[k + 2 + WID]);
+     fv_l[k] = 1.0/60.0 * (- 3.0 * values[k - 2 + WID]  
+			   + 27.0 * values[k - 1 + WID] 
+			   + 47.0 * values[k  + WID] 
+			   - 13.0 * values[k + 1 + WID] 
+			   + 2.0 * values[k + 2 + WID]);
+     fv_r[k] = 1.0/60.0 * ( 2.0 * values[k - 2 + WID] 
+			    - 13.0 * values[k - 1 + WID] 
+                            + 47.0 * values[k  + WID]
+			    + 27.0 * values[k + 1 + WID] 
+			    - 3 * values[k + 2 + WID]);
   }
 }
 
@@ -80,20 +87,17 @@ inline void compute_h6_face_values(Vec4 *values, uint n_cblocks,  Vec4 *fv_l, Ve
    /*we loop up to one extra cell. There is extra space in fv for the extra left value*/
   for (int k = 0; k < n_cblocks * WID + 1; k++){
     /*compute left values*/
-    fv_l[k] = 1.0/60.0 * (values[k - 3 + WID]  - 8.0 * values[k - 2 + WID]  
-			  + 37.0 * values[k - 1 + WID] + 37.0 * values[k  + WID] 
-			  - 8.0 * values[k + 1 + WID] + values[k + 2 + WID]);
+    fv_l[k] = 1.0/60.0 * (values[k - 3 + WID]  
+			  - 8.0 * values[k - 2 + WID]  
+			  + 37.0 * values[k - 1 + WID] 
+			  + 37.0 * values[k  + WID] 
+			  - 8.0 * values[k + 1 + WID] 
+			  + values[k + 2 + WID]);
     /*set right value*/
     if(k>0)
       fv_r[k-1] = fv_l[k];
   }
 }
-
-
-
-
-
-
 /*Compute all face derivatives. For cell k (globla index), its left face
  * derivative is in fd_l[k] and right derivative in fd_r[k]. Based on explicit
  * h5 estimate*/
@@ -112,7 +116,21 @@ inline void compute_h5_face_derivatives(Vec4 *values, uint n_cblocks,  Vec4 *fd_
 }
 
 
+/*Compute all face derivatives. For cell k (globla index), its left face
+ * derivative is in fd_l[k] and right derivative in fd_r[k]. Based on explicit
+ * h5 estimate*/
+inline void compute_h4_face_derivatives(Vec4 *values, uint n_cblocks,  Vec4 *fd_l, Vec4 *fd_r){   
 
+   /*we loop up to one extra cell. There is extra space in fd for the extra left value*/
+  for (int k = 0; k < n_cblocks * WID + 1; k++){
+    /*compute left values*/
+    fd_l[k] = 1.0/12.0 * (15.0 * (values[k + WID] - values[k - 1 + WID])
+			  - (values[k + 1 + WID] - values[k - 2 + WID]));
+    /*set right value*/
+    if(k>0)
+      fd_r[k-1] = fd_l[k];
+  }
+}
 
 
 /*Compute all face values. For cell k (globla index), its left face
@@ -492,7 +510,7 @@ inline void compute_pqm_coeff_explicit_column(Vec4 *values, uint n_cblocks, Vec4
    Vec4 fd_l[MAX_BLOCKS_PER_DIM * WID + 1]; /*left face derivative*/
    Vec4 fd_r[MAX_BLOCKS_PER_DIM * WID + 1]; /*right face derivative*/
 
-   compute_h6_face_values(values,n_cblocks,fv_l, fv_r); 
+   compute_h5_face_values(values,n_cblocks,fv_l, fv_r); 
    compute_h5_face_derivatives(values,n_cblocks,fd_l, fd_r); 
    
    filter_extrema_boundedness(values,n_cblocks,fv_l, fv_r, fd_l, fd_r); 
