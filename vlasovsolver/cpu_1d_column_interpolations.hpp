@@ -214,17 +214,16 @@ inline void compute_ih8_face_values(Vec4 *values, uint n_cblocks,  Vec4 *fv_l, V
 
 }
 
-
+//Coella1984 eq. 1.10, detect extrema and make values
 inline void filter_extrema(Vec4 *values, uint n_cblocks, Vec4 *fv_l, Vec4 *fv_r){   
    for (int k = 0; k < n_cblocks * WID; k++){
-      //Coella1984 eq. 1.10, detect extrema and make algorithm constant if it is
       Vec4 extrema_check = ((fv_r[k] - values[k + WID]) * (values[k + WID] - fv_l[k]));
       fv_l[k] = select(extrema_check < 0, values[k + WID], fv_l[k]);
       fv_r[k] = select(extrema_check < 0, values[k + WID], fv_r[k]);
    }
 }
 
-/*Filter according to Eq. 19 in White et al.*/
+/*Filter boundedness according to Eq. 19 in White et al.*/
 inline void filter_boundedness(Vec4 *values, uint n_cblocks, Vec4 *fv_l, Vec4 *fv_r){   
   /*First Eq. 19 & 20*/
   for (int k = 0; k < n_cblocks * WID; k++){
@@ -245,7 +244,11 @@ inline void filter_boundedness(Vec4 *values, uint n_cblocks, Vec4 *fv_l, Vec4 *f
 }
 
 
-/*Filters in section 2.6.1 of white et al.*/
+/*Filters in section 2.6.1 of white et al. to be used for PQM
+  1) Checks for extrema and flattens them
+  2) Makes face values bounded
+  3) Makes sure face slopes are consistent with PLM slope
+*/
 inline void filter_extrema_boundedness(Vec4 *values, uint n_cblocks, Vec4 *fv_l, Vec4 *fv_r, Vec4 *fd_l, Vec4 *fd_r){   
   /*First Eq. 19 & 20*/
   for (int k = 0; k < n_cblocks * WID; k++){
@@ -274,7 +277,6 @@ inline void filter_extrema_boundedness(Vec4 *values, uint n_cblocks, Vec4 *fv_l,
        fv_r[k] = select(right_unbounded,
 			values[k + WID] + slope_sign * min( 0.5 * slope_abs, abs(fv_r[k] - values[k + WID])),
 			fv_r[k]);
-       fd_r[k] = select(right_unbounded, 0.0, fd_r[k]);
      }
      //Check for slope consistency. We set it to be the PLM limited slope, if it does not have the same sign
      fd_l[k] = select(slope_sign * fd_l[k] < 0.0, slope_sign * slope_abs, fd_l[k]);
@@ -283,9 +285,9 @@ inline void filter_extrema_boundedness(Vec4 *values, uint n_cblocks, Vec4 *fv_l,
 }
 
 
-/*"A final check is conducted to make sure
-  that discontinuous edge values are monotonic at any edge. If edge values are discontinuous and nonmono-
-  tonic, they are both replaced by their average" */
+/*Filter to make sure that discontinuous edge values are monotonic at
+  any edge. If edge values are discontinuous and nonmono- tonic, they
+  are both replaced by their average" */
 inline void filter_face_monotonicity(Vec4 *values, uint n_cblocks, Vec4 *fv_l, Vec4 *fv_r){   
    for (int k = 0; k > n_cblocks * WID - 1; k++){
       /*shift to mean is how much we need to add (subract) from right
@@ -299,6 +301,125 @@ inline void filter_face_monotonicity(Vec4 *values, uint n_cblocks, Vec4 *fv_l, V
    }
 }
 
+/*make sure quartic polynomial is monotonic*/
+inline void filter_pqm_monotonicity(Vec4 *values, uint n_cblocks, Vec4 *fv_l, Vec4 *fv_r, Vec4 *fd_l, Vec4 *fd_r){   
+  const Real root_outside = 100; //fixed values give to roots clearly outside [0,1], or nonexisting ones*/
+  for (int k = 0; k < n_cblocks * WID; k++){
+    Vec4 slope_abs,slope_sign;
+    slope_limiter(values[k -1 + WID], values[k + WID], values[k + 1 + WID], slope_abs, slope_sign);
+    /*second derivative coefficients, eq 23 in qhite et al.*/
+    Vec4 b0 = 60.0 * values[k + WID] - 24.0 * fv_r[k] - 36.0 * fv_l[k] + 3.0 * (fd_r[k] - 3.0 * fd_l[k]);
+    Vec4 b1 = -360.0 * values[k + WID] + 36.0 * fd_l[k] - 24.0 * fd_r[k] + 168.0 * fv_r[k] + 192.0 * fv_l[k];
+    Vec4 b2 = 360.0 * values[k + WID] + 30.0 * (fd_r[k] - fd_l[k]) - 180.0 * (fv_l[k] + fv_r[k]);
+
+    /*first derivative coefficients*/
+    Vec4 c0 = fd_l[k];
+    Vec4 c1 = b1;
+    Vec4 c2 = b1 / 2.0;
+    Vec4 c3 = b2 / 3.0;
+
+    
+
+    //the following logic for finding inflexion points (roots of
+    //second derivative), is a bit difficult to handle with
+    //vectors. select command always executes both branches. 
+    for(uint i = 0;i < WID; i++) {
+      Real root1;
+      Real root2;
+      Real root1_slope;
+      Real root2_slope;
+
+      if(b2[i] == 0) {
+	//first order equation
+	if(b1[i] != 0) {
+	  root1 = -b0[i] / b1[i];
+	  root2 = root_outside;
+	}
+	else {
+	  //zeroth order equation 
+	  root1 = root_outside;
+	  root2 = root_outside;
+	}
+      }
+      else {
+	//second order equation. Check if we have real roots or not
+	if(  b1[i]* b1[i]- 4 * b0[i]* b2[i] < 0.0 )  {
+	  root1 = root_outside;
+	  root2 = root_outside;
+	}
+	else {
+	  root1 = ( -b1[i] + sqrt(b1[i] * b1[i]- 4 * b0[i]* b2[i])) / 2 * b2[i];
+	  root2 = ( -b1[i] - sqrt(b1[i] * b1[i]- 4 * b0[i]* b2[i])) / 2 * b2[i];
+	}
+      }
+      if( (root1 < 0.0 ||  root1 > 1.0 ) &&
+	  (root2 < 0.0 ||  root2 > 1.0 ) ) {
+	//no inflexion point inside, this is monotonic
+	continue;
+      }
+      //compute both slopes at inflexion points, at least one of these
+      //is with [0..1]. If the root is not in this range, we
+      //simplify later if statements by setting it to the plm slope
+      //sign
+      if(root1 >= 0.0 &&  root1 <= 1.0 ) {
+	root1_slope = c0[i]  + c1[i] * root1 + c2[i] * root1 * root1 + c3[i] * root1 * root1 * root1;
+      }
+      else { 
+	root1_slope = slope_sign[i];
+      }
+      if(root2 >= 0.0 &&  root2 <= 1.0 ) {
+	root2_slope = c0[i]  + c1[i] * root2 + c2[i] * root2 * root2 + c3[i] * root2 * root2 * root2;
+      }
+      else { 
+	root2_slope = slope_sign[i];
+      }
+      
+      
+      if (root1_slope * slope_sign[i] < 0.0 || root2_slope * slope_sign[i] < 0.0) {
+	//need to collapse, at least one inflexion point has wrong
+	//sign.
+	//compute left and right plm slopes
+	Real plm_slope_l = 2.0 * (values[k + WID][i] - values[k - 1 + WID][i]);
+	Real plm_slope_r = 2.0 * (values[k + 1 + WID][i] - values[k + WID][i]);
+	if(fabs(plm_slope_l) <= fabs(plm_slope_r)) {
+	  //collapse to left edge (eq 21)
+	  fd_l[k].insert( i, 1.0 / 3.0 * ( 10 * values[k + WID][i] - 2 * fv_r[k][i] - 8 * fv_l[k][i]));
+	  fd_r[k].insert( i, -10.0 * values[k + WID][i] + 6.0 * fv_r[k][i] + 4.0 * fv_l[k][i]);
+	  //check if PLM slope is consistent (eq 28 & 29)
+	  if (slope_sign[i] * fd_l[k][i] < 0) {
+	    fd_l[k].insert( i, 0);
+	    fv_r[k].insert( i, 5 * values[k + WID][i] - 4 * fv_l[k][i]);
+	    fd_r[k].insert( i, 20 * (values[k + WID][i] - fv_l[k][i]));
+	  }
+	  if (slope_sign[i] * fd_r[k][i] < 0) {
+	    fd_r[k].insert( i, 0);
+	    fv_l[k].insert( i, 0.5 * (5 * values[k + WID][i] - 3 * fv_r[k][i]));
+	    fd_l[k].insert( i, 10.0 / 3.0 * (-values[k + WID][i] + fv_r[k][i]));
+	  }
+
+
+	}
+	else {
+	  //collapse to right edge (eq 21)
+	  fd_l[k].insert( i, 10.0 * values[k + WID][i] - 6.0 * fv_l[k][i] - 4.0 * fv_r[k][i]);
+	  fd_r[k].insert( i, 1.0 / 3.0 * ( - 10.0 * values[k + WID][i] + 2 * fv_l[k][i] + 8 * fv_r[k][i]));
+
+	  //check if PLM slope is consistent (eq 28 & 29)
+	  if (slope_sign[i] * fd_l[k][i] < 0) {
+	    fd_l[k].insert( i, 0);
+	    fv_r[k].insert( i, 0.5 * ( 5 * values[k + WID][i] - 3 * fv_l[k][i]));
+	    fd_r[k].insert( i, 10.0 / 3.0 * (values[k + WID][i] - fv_l[k][i]));
+	  }
+	  if (slope_sign[i] * fd_r[k][i] < 0) {
+	    fd_r[k].insert( i, 0);
+	    fv_l[k].insert( i, 5 * values[k + WID][i] - 4 * fv_r[k][i]);
+	    fd_l[k].insert( i, 20.0 * ( - values[k + WID][i] + fv_r[k][i]));
+	  }
+	}
+      }
+    }
+  }
+}
 
 /*!
  Compute PLM coefficients
@@ -377,31 +498,18 @@ inline void compute_pqm_coeff_explicit_column(Vec4 *values, uint n_cblocks, Vec4
    compute_h5_face_derivatives(values,n_cblocks,fd_l, fd_r); 
    
    filter_extrema_boundedness(values,n_cblocks,fv_l, fv_r, fd_l, fd_r); 
-   filter_extrema(values,n_cblocks,fv_l, fv_r);
-//   filter_value_monotonicity(values,n_cblocks,fv);
+   filter_pqm_monotonicity(values,n_cblocks,fv_l, fv_r, fd_l, fd_r); 
+   //filter_value_monotonicity(values,n_cblocks,fv);
    
    for (uint k = 0; k < n_cblocks * WID; k++){
-      m_value = fv_l[k];
-      p_value = fv_r[k];
-      
-      //Coella et al, check for monotonicity   
-      m_value = select((p_value - m_value) * (values[k + WID] - 0.5 * (m_value + p_value)) >
-                      (p_value - m_value)*(p_value - m_value) * one_sixth,
-                      3 * values[k + WID] - 2 * p_value,
-                      m_value);
-      p_value = select(-(p_value - m_value) * (p_value - m_value) * one_sixth >
-                      (p_value - m_value) * (values[k + WID] - 0.5 * (m_value + p_value)),
-                      3 * values[k + WID] - 2 * m_value,
-                      p_value);
-
       //Fit a second order polynomial for reconstruction see, e.g., White
       //2008 (PQM article) (note additional integration factors built in,
       //contrary to White (2008) eq. 4
-      a[k][0] = m_value;
+      a[k][0] = fv_l[k];
       a[k][1] = fd_l[k]/2.0;
-      a[k][2] = 10 * values[k + WID] - 4.0 * p_value - 6.0 * m_value + 0.5 * (fd_r[k] - 3 * fd_l[k]);
-      a[k][3] = -15 * values[k + WID]  + 1.5 * fd_l[k] - fd_r[k] + 7.0 * p_value + 8 * m_value;
-      a[k][4] = 6.0* values[k + WID] +  0.5 * (fd_r[k] - fd_l[k]) - 3.0 * (m_value + p_value);
+      a[k][2] = 10 * values[k + WID] - 4.0 * fv_r[k] - 6.0 * fv_l[k] + 0.5 * (fd_r[k] - 3 * fd_l[k]);
+      a[k][3] = -15 * values[k + WID]  + 1.5 * fd_l[k] - fd_r[k] + 7.0 * fv_r[k] + 8 * fv_l[k];
+      a[k][4] = 6.0* values[k + WID] +  0.5 * (fd_r[k] - fd_l[k]) - 3.0 * (fv_l[k] + fv_r[k]);
 
    }
 }

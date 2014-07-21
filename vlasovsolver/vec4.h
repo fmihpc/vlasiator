@@ -20,8 +20,10 @@ vectorclass_fallback.h is used.
 #include "vectorclass.h"
 #ifdef DP
 typedef Vec4d Vec4;
+typedef Vec4db Vec4b;
 #else
 typedef Vec4f Vec4;
+typedef Vec4fb Vec4b;
 #endif
 
 #else
