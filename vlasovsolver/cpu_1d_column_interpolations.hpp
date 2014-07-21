@@ -308,7 +308,7 @@ inline void filter_extrema_boundedness(Vec4 *values, uint n_cblocks, Vec4 *fv_l,
   any edge. If edge values are discontinuous and nonmono- tonic, they
   are both replaced by their average" */
 inline void filter_face_value_monotonicity(Vec4 *values, uint n_cblocks, Vec4 *fv_l, Vec4 *fv_r){   
-   for (int k = 0; k > n_cblocks * WID - 1; k++){
+   for (int k = 0; k < n_cblocks * WID -1; k++){
       /*shift to mean is how much we need to add (subract) from right
        * cell face (left cell face of next cell) to make both values have the average value. It is zero if no
        * filtering needs to be done here*/
@@ -483,8 +483,10 @@ inline void compute_pqm_coeff_explicit_column(Vec4 *values, uint n_cblocks, Vec4
    compute_h5_face_values(values,n_cblocks,fv_l, fv_r); 
    compute_h5_face_derivatives(values,n_cblocks,fd_l, fd_r); 
    filter_extrema_boundedness(values,n_cblocks, fv_l, fv_r, fd_l, fd_r); 
-   filter_face_value_monotonicity(values,n_cblocks, fv_l, fv_r);
+   //face monotonicity disabled by default here, we do not like it
+   //filter_face_value_monotonicity(values,n_cblocks, fv_l, fv_r);
    filter_pqm_monotonicity(values,n_cblocks,fv_l, fv_r, fd_l, fd_r); 
+
    for (uint k = 0; k < n_cblocks * WID; k++){
       //Fit a second order polynomial for reconstruction see, e.g., White
       //2008 (PQM article) (note additional integration factors built in,
