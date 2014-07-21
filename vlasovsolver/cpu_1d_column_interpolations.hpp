@@ -480,14 +480,11 @@ inline void compute_pqm_coeff_explicit_column(Vec4 *values, uint n_cblocks, Vec4
    Vec4 fv_r[MAX_BLOCKS_PER_DIM * WID + 1]; /*right face value*/
    Vec4 fd_l[MAX_BLOCKS_PER_DIM * WID + 1]; /*left face derivative*/
    Vec4 fd_r[MAX_BLOCKS_PER_DIM * WID + 1]; /*right face derivative*/
-
    compute_h5_face_values(values,n_cblocks,fv_l, fv_r); 
    compute_h5_face_derivatives(values,n_cblocks,fd_l, fd_r); 
-   
-   filter_extrema_boundedness(values,n_cblocks,fv_l, fv_r, fd_l, fd_r); 
+   filter_extrema_boundedness(values,n_cblocks, fv_l, fv_r, fd_l, fd_r); 
+   filter_face_value_monotonicity(values,n_cblocks, fv_l, fv_r);
    filter_pqm_monotonicity(values,n_cblocks,fv_l, fv_r, fd_l, fd_r); 
-   //filter_value_monotonicity(values,n_cblocks,fv);
-   
    for (uint k = 0; k < n_cblocks * WID; k++){
       //Fit a second order polynomial for reconstruction see, e.g., White
       //2008 (PQM article) (note additional integration factors built in,
@@ -497,7 +494,6 @@ inline void compute_pqm_coeff_explicit_column(Vec4 *values, uint n_cblocks, Vec4
       a[k][2] = 10 * values[k + WID] - 4.0 * fv_r[k] - 6.0 * fv_l[k] + 0.5 * (fd_r[k] - 3 * fd_l[k]);
       a[k][3] = -15 * values[k + WID]  + 1.5 * fd_l[k] - fd_r[k] + 7.0 * fv_r[k] + 8 * fv_l[k];
       a[k][4] = 6.0* values[k + WID] +  0.5 * (fd_r[k] - fd_l[k]) - 3.0 * (fv_l[k] + fv_r[k]);
-
    }
 }
 
