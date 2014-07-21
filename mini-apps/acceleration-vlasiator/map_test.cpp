@@ -32,7 +32,7 @@ void propagate(Vec4 values[], uint  blocks_per_dim, Real v_min, Real dv,
   compute_ppm_coeff_explicit_column(values, blocks_per_dim, a);
 #endif
 #ifdef ACC_SEMILAG_PQM
-         compute_pqm_coeff_explicit_column(values,blocks_per_dim, a);
+  compute_pqm_coeff_explicit_column(values,blocks_per_dim, a);
 #endif
 
   /*clear temporary taret*/
@@ -93,10 +93,10 @@ void propagate(Vec4 values[], uint  blocks_per_dim, Real v_min, Real dv,
 #ifdef ACC_SEMILAG_PLM
 	 Vec4 target_density_l =
 	   v_int_norm_l * a[k_block * WID + k_cell][0] +
-	   v_int_norm_l * v_int_norm_l * a[k_block * WID + k][1];
-	 VEc4 target_density_r =
+	   v_int_norm_l * v_int_norm_l * a[k_block * WID + k_cell][1];
+	 Vec4 target_density_r =
 	   v_int_norm_r * a[k_block * WID + k_cell][0] +
-	   v_int_norm_r * v_int_norm_r * a[k_block * WID + k][1];
+	   v_int_norm_r * v_int_norm_r * a[k_block * WID + k_cell][1];
 #endif
 #ifdef ACC_SEMILAG_PPM
 	 Vec4 target_density_l =
@@ -197,7 +197,7 @@ void print_reconstruction(int step, Vec4 values[], uint  blocks_per_dim, Real v_
    * shifting of values as we go through all blocks in
    * order. See comments where they are shifted for
    * explanations of their meening*/
-  const int subcells = 20;
+  const int subcells = 50;
   /*loop through all blocks in column and divide into subcells. Print value of reconstruction*/
   for (unsigned int k_block = 0; k_block<blocks_per_dim;k_block++){
     for (uint k_cell=0; k_cell<WID; ++k_cell){ 
@@ -257,7 +257,7 @@ int main(void) {
   Real intersection_dk = dv; 
   Real intersection_dj = dv; //does not matter here, fixed j.
   
-  const int iterations=400;
+  const int iterations = 400;
 
    /*clear target & values array*/
   for (uint k=0; k<WID* (blocks_per_dim + 2); ++k){ 
@@ -275,10 +275,13 @@ int main(void) {
 
 /*loop over propagations*/
  for(int step = 0; step <= iterations; step++){
-   print_values(step,values,blocks_per_dim, v_min, dv);
-   print_reconstruction(step, values, blocks_per_dim, v_min, dv,
-			i_block, j_block, j_cell,
-			intersection, intersection_di, intersection_dj, intersection_dk);
+   if(step%10 == 0) {
+     std::cout <<" Step " << step << std::endl;
+     print_values(step,values,blocks_per_dim, v_min, dv);
+     print_reconstruction(step, values, blocks_per_dim, v_min, dv,
+			  i_block, j_block, j_cell,
+			  intersection, intersection_di, intersection_dj, intersection_dk);
+   }
    propagate(values, blocks_per_dim, v_min, dv,
 	     i_block, j_block, j_cell,
 	     intersection, intersection_di, intersection_dj, intersection_dk);
