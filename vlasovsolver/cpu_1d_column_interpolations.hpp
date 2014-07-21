@@ -7,6 +7,7 @@ Copyright 2013, 2014 Finnish Meteorological Institute
 #ifndef CPU_1D_COLUMN_INTERP_H
 #define CPU_1D_COLUMN_INTERP_H
 
+#include <iostream>
 #include "vec4.h"
 #include "algorithm"
 #include "cmath"
@@ -317,7 +318,7 @@ inline void filter_pqm_monotonicity(Vec4 *values, uint n_cblocks, Vec4 *fv_l, Ve
     Vec4 c1 = b1;
     Vec4 c2 = b1 / 2.0;
     Vec4 c3 = b2 / 3.0;
-
+    
     
 
     //the following logic for finding inflexion points (roots of
@@ -348,8 +349,8 @@ inline void filter_pqm_monotonicity(Vec4 *values, uint n_cblocks, Vec4 *fv_l, Ve
 	  root2 = root_outside;
 	}
 	else {
-	  root1 = ( -b1[i] + sqrt(b1[i] * b1[i]- 4 * b0[i]* b2[i])) / 2 * b2[i];
-	  root2 = ( -b1[i] - sqrt(b1[i] * b1[i]- 4 * b0[i]* b2[i])) / 2 * b2[i];
+	  root1 = ( -b1[i] + sqrt(b1[i] * b1[i]- 4 * b0[i]* b2[i])) / (2 * b2[i]);
+	  root2 = ( -b1[i] - sqrt(b1[i] * b1[i]- 4 * b0[i]* b2[i])) / (2 * b2[i]);
 	}
       }
       if( (root1 < 0.0 ||  root1 > 1.0 ) &&
@@ -374,7 +375,7 @@ inline void filter_pqm_monotonicity(Vec4 *values, uint n_cblocks, Vec4 *fv_l, Ve
 	root2_slope = slope_sign[i];
       }
       
-      
+
       if (root1_slope * slope_sign[i] < 0.0 || root2_slope * slope_sign[i] < 0.0) {
 	//need to collapse, at least one inflexion point has wrong
 	//sign.
@@ -391,7 +392,7 @@ inline void filter_pqm_monotonicity(Vec4 *values, uint n_cblocks, Vec4 *fv_l, Ve
 	    fv_r[k].insert( i, 5 * values[k + WID][i] - 4 * fv_l[k][i]);
 	    fd_r[k].insert( i, 20 * (values[k + WID][i] - fv_l[k][i]));
 	  }
-	  if (slope_sign[i] * fd_r[k][i] < 0) {
+	  else if (slope_sign[i] * fd_r[k][i] < 0) {
 	    fd_r[k].insert( i, 0);
 	    fv_l[k].insert( i, 0.5 * (5 * values[k + WID][i] - 3 * fv_r[k][i]));
 	    fd_l[k].insert( i, 10.0 / 3.0 * (-values[k + WID][i] + fv_r[k][i]));
@@ -410,7 +411,7 @@ inline void filter_pqm_monotonicity(Vec4 *values, uint n_cblocks, Vec4 *fv_l, Ve
 	    fv_r[k].insert( i, 0.5 * ( 5 * values[k + WID][i] - 3 * fv_l[k][i]));
 	    fd_r[k].insert( i, 10.0 / 3.0 * (values[k + WID][i] - fv_l[k][i]));
 	  }
-	  if (slope_sign[i] * fd_r[k][i] < 0) {
+	  else if (slope_sign[i] * fd_r[k][i] < 0) {
 	    fd_r[k].insert( i, 0);
 	    fv_l[k].insert( i, 5 * values[k + WID][i] - 4 * fv_r[k][i]);
 	    fd_l[k].insert( i, 20.0 * ( - values[k + WID][i] + fv_r[k][i]));
