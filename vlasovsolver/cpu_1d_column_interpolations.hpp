@@ -307,7 +307,7 @@ inline void filter_extrema_boundedness(Vec4 *values, uint n_cblocks, Vec4 *fv_l,
 /*Filter to make sure that discontinuous edge values are monotonic at
   any edge. If edge values are discontinuous and nonmono- tonic, they
   are both replaced by their average" */
-inline void filter_face_monotonicity(Vec4 *values, uint n_cblocks, Vec4 *fv_l, Vec4 *fv_r){   
+inline void filter_face_value_monotonicity(Vec4 *values, uint n_cblocks, Vec4 *fv_l, Vec4 *fv_r){   
    for (int k = 0; k > n_cblocks * WID - 1; k++){
       /*shift to mean is how much we need to add (subract) from right
        * cell face (left cell face of next cell) to make both values have the average value. It is zero if no
@@ -322,84 +322,55 @@ inline void filter_face_monotonicity(Vec4 *values, uint n_cblocks, Vec4 *fv_l, V
 
 /*make sure quartic polynomial is monotonic*/
 inline void filter_pqm_monotonicity(Vec4 *values, uint n_cblocks, Vec4 *fv_l, Vec4 *fv_r, Vec4 *fd_l, Vec4 *fd_r){   
-  const Real root_outside = 100; //fixed values give to roots clearly outside [0,1], or nonexisting ones*/
+  const Vec4 root_outside = Vec4(100.0); //fixed values give to roots clearly outside [0,1], or nonexisting ones*/
   for (int k = 0; k < n_cblocks * WID; k++){
-    Vec4 slope_abs,slope_sign;
-    slope_limiter(values[k -1 + WID], values[k + WID], values[k + 1 + WID], slope_abs, slope_sign);
-    /*second derivative coefficients, eq 23 in qhite et al.*/
+    /*second derivative coefficients, eq 23 in white et al.*/
     Vec4 b0 =   60.0 * values[k + WID] - 24.0 * fv_r[k] - 36.0 * fv_l[k] + 3.0 * (fd_r[k] - 3.0 * fd_l[k]);
     Vec4 b1 = -360.0 * values[k + WID] + 36.0 * fd_l[k] - 24.0 * fd_r[k] + 168.0 * fv_r[k] + 192.0 * fv_l[k];
     Vec4 b2 =  360.0 * values[k + WID] + 30.0 * (fd_r[k] - fd_l[k]) - 180.0 * (fv_l[k] + fv_r[k]);
-
+    /*let's compute sqrt value to be used for computing roots. If we
+      take sqrt of negaitve numbers, then we instead set a value that
+      will make the root to be +-100 which is well outside range
+      of[0,1]. We also guard the sqrt against sqrt with negative
+      numbers by doing a max*/
+    const Vec4 sqrt_val = select(b1 * b1- 4 * b0 * b2 < 0.0, 
+				 b1 + 200.0 * b2,
+				 sqrt(max(b1 * b1- 4 * b0 * b2, 0.0))); 
+    //compute roots. If b2 is zero, we set root value to be
+    //outside. Division is safe with vectorclass in any case
+    Vec4 root1 = select(b2 == 0.0, root_outside, (-b1 + sqrt_val) / (2 * b2));
+    Vec4 root2 = select(b2 == 0.0, root_outside, (-b1 - sqrt_val) / (2 * b2));
+    if( horizontal_and( (root1 < 0.0 || root1 > 1.0 ) &&
+			(root2 < 0.0 || root2 > 1.0 )) ) {
+      //no inflexion point for any vector component
+      continue;
+    }
+    /*PLM slope, MC limiter*/
+    Vec4 plm_slope_l = 2.0 * (values[k + WID] - values[k - 1 + WID]);
+    Vec4 plm_slope_r = 2.0 * (values[k + 1 + WID] - values[k + WID]);
+    Vec4 slope_sign = select(plm_slope_l + plm_slope_r < 0, -1.0, 1.0);
     /*first derivative coefficients*/
     Vec4 c0 = fd_l[k];
     Vec4 c1 = b0;
     Vec4 c2 = b1 / 2.0;
     Vec4 c3 = b2 / 3.0;
-    
-    
-
-    //the following logic for finding inflexion points (roots of
-    //second derivative), is a bit difficult to handle with
-    //vectors. select command always executes both branches. 
-    for(uint i = 0;i < WID; i++) {
-      Real root1;
-      Real root2;
-      Real root1_slope;
-      Real root2_slope;
-
-      if(b2[i] == 0) {
-	//first order equation
-	if(b1[i] != 0) {
-	  root1 = -b0[i] / b1[i];
-	  root2 = root_outside;
-	}
-	else {
-	  //zeroth order equation 
-	  root1 = root_outside;
-	  root2 = root_outside;
-	}
-      }
-      else {
-	//second order equation. Check if we have real roots or not
-	if(  b1[i]* b1[i]- 4 * b0[i]* b2[i] < 0.0 )  {
-	  root1 = root_outside;
-	  root2 = root_outside;
-	}
-	else {
-	  root1 = ( -b1[i] + sqrt(b1[i] * b1[i]- 4 * b0[i]* b2[i])) / (2 * b2[i]);
-	  root2 = ( -b1[i] - sqrt(b1[i] * b1[i]- 4 * b0[i]* b2[i])) / (2 * b2[i]);
-	}
-      }
-      if( (root1 < 0.0 ||  root1 > 1.0 ) &&
-	  (root2 < 0.0 ||  root2 > 1.0 ) ) {
-	//no inflexion point inside, this is monotonic
-	continue;
-      }
-      //compute both slopes at inflexion points, at least one of these
-      //is with [0..1]. If the root is not in this range, we
-      //simplify later if statements by setting it to the plm slope
-      //sign
-      if(root1 >= 0.0 && root1 <= 1.0 ) {
-	root1_slope = c0[i]  + c1[i] * root1 + c2[i] * root1 * root1 + c3[i] * root1 * root1 * root1;
-      }
-      else { 
-	root1_slope = slope_sign[i];
-      }
-      if(root2 >= 0.0 && root2 <= 1.0 ) {
-	root2_slope = c0[i]  + c1[i] * root2 + c2[i] * root2 * root2 + c3[i] * root2 * root2 * root2;
-      }
-      else { 
-	root2_slope = slope_sign[i];
-      }
-
-      if (root1_slope * slope_sign[i] < 0.0 || root2_slope * slope_sign[i] < 0.0) {
-	//need to collapse, at least one inflexion point has wrong
+    //compute both slopes at inflexion points, at least one of these
+    //is with [0..1]. If the root is not in this range, we
+    //simplify later if statements by setting it to the plm slope
+    //sign
+    Vec4 root1_slope = select(root1 >= 0.0 && root1 <= 1.0, 
+			 c0  + c1 * root1 + c2 * root1 * root1 + c3 * root1 * root1 * root1,
+			 slope_sign);
+    Vec4 root2_slope = select(root2 >= 0.0 && root2 <= 1.0, 
+			 c0  + c1 * root2 + c2 * root2 * root2 + c3 * root2 * root2 * root2,
+			 slope_sign);
+    if (horizontal_or (root1_slope * slope_sign < 0.0 || root2_slope * slope_sign < 0.0 )) {
+      //serialized the handling of inflexion points, these do not happen for smooth regions
+      for(uint i = 0;i < WID; i++) {
+	if(root1_slope[i] * slope_sign[i] < 0.0 || root2_slope[i] * slope_sign[i] < 0.0 ) {
+      	//need to collapse, at least one inflexion point has wrong
 	//sign.
-	//compute left and right plm slopes
-	Real plm_slope_l = 2.0 * (values[k + WID][i] - values[k - 1 + WID][i]);
-	Real plm_slope_r = 2.0 * (values[k + 1 + WID][i] - values[k + WID][i]);
-	if(fabs(plm_slope_l) <= fabs(plm_slope_r)) {
+	if(fabs(plm_slope_l[i]) <= fabs(plm_slope_r[i])) {
 	  //collapse to left edge (eq 21)
 	  fd_l[k].insert( i, 1.0 / 3.0 * ( 10 * values[k + WID][i] - 2.0 * fv_r[k][i] - 8.0 * fv_l[k][i]));
 	  fd_r[k].insert( i, -10.0 * values[k + WID][i] + 6.0 * fv_r[k][i] + 4.0 * fv_l[k][i]);
@@ -419,7 +390,6 @@ inline void filter_pqm_monotonicity(Vec4 *values, uint n_cblocks, Vec4 *fv_l, Ve
 	  //collapse to right edge (eq 21)
 	  fd_l[k].insert( i, 10.0 * values[k + WID][i] - 6.0 * fv_l[k][i] - 4.0 * fv_r[k][i]);
 	  fd_r[k].insert( i, 1.0 / 3.0 * ( - 10.0 * values[k + WID][i] + 2 * fv_l[k][i] + 8 * fv_r[k][i]));
-
 	  //check if PLM slope is consistent (eq 28 & 29)
 	  if (slope_sign[i] * fd_l[k][i] < 0) {
 	    fd_l[k].insert( i, 0);
@@ -435,6 +405,7 @@ inline void filter_pqm_monotonicity(Vec4 *values, uint n_cblocks, Vec4 *fv_l, Ve
       }
     }
   }
+}
 }
 
 /*!
