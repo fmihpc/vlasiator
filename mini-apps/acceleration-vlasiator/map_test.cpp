@@ -153,6 +153,92 @@ void propagate(Vec4 values[], uint  blocks_per_dim, Real v_min, Real dv,
   }   
 }
 
+
+
+
+
+
+
+
+void print_reconstruction(int step, Vec4 values[], uint  blocks_per_dim, Real v_min, Real dv,
+			  uint i_block, uint j_block, uint j_cell,
+			  Real intersection, Real intersection_di, Real intersection_dj, Real intersection_dk){
+  char name[256];
+  sprintf(name,"reconstructions_%03d.dat",step);
+  FILE* fp=fopen(name,"w");
+
+  Vec4 a[MAX_BLOCKS_PER_DIM*WID][RECONSTRUCTION_ORDER + 1];  
+  
+#ifdef ACC_SEMILAG_PLM
+  compute_plm_coeff_explicit_column(values, blocks_per_dim, a);
+#endif
+#ifdef ACC_SEMILAG_PPM
+  compute_ppm_coeff_explicit_column(values, blocks_per_dim, a);
+#endif
+#ifdef ACC_SEMILAG_PQM
+  compute_pqm_coeff_explicit_column(values,blocks_per_dim, a);
+#endif
+   
+  /* intersection_min is the intersection z coordinate (z after
+     swaps that is) of the lowest possible z plane for each i,j
+     index (i in vector)
+  */	 
+  const Real intersection_min_base =  
+    intersection +
+    (i_block * WID) * intersection_di + 
+    (j_block * WID + j_cell) * intersection_dj;
+  
+  //const Vec4 intersection_min(intersection_min_base);
+  const Vec4 intersection_min(intersection_min_base + 0 * intersection_di,
+			      intersection_min_base + 1 * intersection_di,
+			      intersection_min_base + 2 * intersection_di,
+			      intersection_min_base + 3 * intersection_di);
+  /*compute some initial values, that are used to set up the
+   * shifting of values as we go through all blocks in
+   * order. See comments where they are shifted for
+   * explanations of their meening*/
+  const int subcells = 20;
+  /*loop through all blocks in column and divide into subcells. Print value of reconstruction*/
+  for (unsigned int k_block = 0; k_block<blocks_per_dim;k_block++){
+    for (uint k_cell=0; k_cell<WID; ++k_cell){ 
+      Vec4 v_l = v_min + (k_block * WID + k_cell) * dv;
+      for (uint k_subcell=0; k_subcell< subcells; ++k_subcell){ 
+	Vec4 v_norm = (Real)(k_subcell + 0.5)/subcells; //normalized v of subcell in source cell
+	Vec4 v = v_l + v_norm * dv;
+
+#ifdef ACC_SEMILAG_PLM
+	Vec4 target = 
+	  a[k_block * WID + k_cell][0] +
+	  2.0 * v_norm * a[k_block * WID + k_cell][1];
+#endif
+#ifdef ACC_SEMILAG_PPM
+	Vec4 target = 
+	  a[k_block * WID + k_cell][0] +
+	  2.0 * v_norm * a[k_block * WID + k_cell][1] +
+	  3.0 * v_norm * v_norm * a[k_block * WID + k_cell][2];
+#endif
+#ifdef ACC_SEMILAG_PQM
+	Vec4 target = 
+	  a[k_block * WID + k_cell][0] +
+	  2.0 * v_norm * a[k_block * WID + k_cell][1] +
+	  3.0 * v_norm * v_norm * a[k_block * WID + k_cell][2] +
+	  4.0 * v_norm * v_norm * v_norm * a[k_block * WID + k_cell][3] +
+	  5.0 * v_norm * v_norm * v_norm * v_norm * a[k_block * WID + k_cell][4];
+#endif
+	fprintf(fp,"%20.12g %20.12g %20.12g\n", v[0], values[k_block * WID + k_cell + WID][0], target[0]);
+      }
+      fprintf(fp,"\n"); //empty line to deay wgments in gnuplot
+    }
+  }    
+    
+  fclose(fp);
+}
+
+
+
+
+
+
 int main(void) {
   const int dv = 20000;
   const Real v_min = -4e6;
@@ -171,7 +257,7 @@ int main(void) {
   Real intersection_dk = dv; 
   Real intersection_dj = dv; //does not matter here, fixed j.
   
-  const int iterations=1000;
+  const int iterations=400;
 
    /*clear target & values array*/
   for (uint k=0; k<WID* (blocks_per_dim + 2); ++k){ 
@@ -188,9 +274,11 @@ int main(void) {
   
 
 /*loop over propagations*/
- for(int step = 0; step < iterations; step++){
-   if(step % 10 ==0)
-     print_values(step,values,blocks_per_dim, v_min, dv);
+ for(int step = 0; step <= iterations; step++){
+   print_values(step,values,blocks_per_dim, v_min, dv);
+   print_reconstruction(step, values, blocks_per_dim, v_min, dv,
+			i_block, j_block, j_cell,
+			intersection, intersection_di, intersection_dj, intersection_dk);
    propagate(values, blocks_per_dim, v_min, dv,
 	     i_block, j_block, j_cell,
 	     intersection, intersection_di, intersection_dj, intersection_dk);
