@@ -111,8 +111,8 @@ int main(void) {
   /*define grid size*/
   const int dv = 20000;
   const Real v_min = -2e6;
-  const int blocks_per_dim_x = 50;
-  const int blocks_per_dim_y = 50;
+  const int blocks_per_dim_x = 10;
+  const int blocks_per_dim_y = 10;
   const int blocks_per_dim_z = 50;
   
 

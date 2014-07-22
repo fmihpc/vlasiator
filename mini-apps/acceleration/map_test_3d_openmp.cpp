@@ -24,11 +24,12 @@ void propagate(const Real * const values_in, Real *values_out,
 	       uint  blocks_per_dim_x, uint blocks_per_dim_y, uint blocks_per_dim_z, 
 	       Real v_min, Real dv,
 	       Real intersection, Real intersection_di, Real intersection_dj, Real intersection_dk){
-  
+#pragma omp parallel for    
   for (uint k=0; k< (blocks_per_dim_z+2) * blocks_per_dim_x * blocks_per_dim_z * WID3; ++k){ 
     values_out[k] = 0.0;
   }
-  
+
+#pragma omp parallel for collapse(2)  
   for(int i = 0; i < blocks_per_dim_x * WID; i++){
     for(int j = 0; j < blocks_per_dim_y * WID; j++){
       for (uint k = 0; k < blocks_per_dim_z * WID; k++){   
@@ -45,7 +46,9 @@ void propagate(const Real * const values_in, Real *values_out,
 	a[1] = d_cv * 0.5;
 #endif
 #ifdef ACC_SEMILAG_PPM
-	//	TODO
+	//	TODO!
+	cerr << "PPM not done yet"<<endl;
+	exit(1);
 #endif
 	/* intersection_min is the intersection z coordinate (z after
 	   swaps that is) of the lowest possible z plane for each i,j
@@ -101,7 +104,9 @@ void propagate(const Real * const values_in, Real *values_out,
 #endif
 	/*total value of integrand, if it is wihtin bounds*/
 	if ( gk >= 0 && gk <= blocks_per_dim_z * WID )
-	  values_out[ colindex(i,j) + gk + WID] +=  target_density_r - target_density_l;
+	  //atomic not needed if k index is not threaded
+	  //#pragma omp atomic update
+	  values_out[colindex(i,j) + gk + WID] +=  target_density_r - target_density_l;
 	}
       }
     }
@@ -113,8 +118,8 @@ int main(void) {
   /*define grid size*/
   const int dv = 20000;
   const Real v_min = -2e6;
-  const int blocks_per_dim_x = 2;
-  const int blocks_per_dim_y = 2;
+  const int blocks_per_dim_x = 10;
+  const int blocks_per_dim_y = 10;
   const int blocks_per_dim_z = 50;
   
 

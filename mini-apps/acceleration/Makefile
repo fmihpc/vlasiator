@@ -85,6 +85,6 @@ map_test_3d_openmp.o: map_test_3d_openmp.cpp
 
 # Make executable
 map_test_3d_openmp: map_test_3d_openmp.o
-	$(LNK) ${LDFLAGS} -o map_test_3d_openmp map_test_3d_openmp.o $(LIBS)
+	$(LNK) ${LDFLAGS} -o map_test_3d_openmp map_test_3d_openmp.o $(LIBS) $(LIB_MPI)
 
 
