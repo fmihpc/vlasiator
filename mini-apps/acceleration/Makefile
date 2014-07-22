@@ -37,9 +37,9 @@ CXXFLAGS += ${INC_PROFILE}
 CXXFLAGS += -D${FP_PRECISION} -D${DISTRIBUTION_FP_PRECISION}
 
 
-default: map_test map_test_3d
+default: all
 
-all: map_test map_test_3d
+all: map_test map_test_3d map_test_3d_openmp
 
 # Compile directory:
 INSTALL = $(CURDIR)
@@ -76,5 +76,15 @@ map_test_3d.o: map_test_3d.cpp
 # Make executable
 map_test_3d: map_test_3d.o
 	$(LNK) ${LDFLAGS} -o map_test_3d map_test_3d.o $(LIBS)
+
+
+
+
+map_test_3d_openmp.o: map_test_3d_openmp.cpp 
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -c map_test_3d_openmp.cpp   ${INC_PROFILE}  ${INC_VECTORCLASS} 
+
+# Make executable
+map_test_3d_openmp: map_test_3d_openmp.o
+	$(LNK) ${LDFLAGS} -o map_test_3d_openmp map_test_3d_openmp.o $(LIBS)
 
 
