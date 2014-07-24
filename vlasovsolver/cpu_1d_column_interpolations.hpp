@@ -213,7 +213,7 @@ inline void compute_ppm_coeff_explicit_column(Vec4 *values, uint n_cblocks, Vec4
    Vec4 fv_l[MAX_BLOCKS_PER_DIM * WID + 1]; /*left face value, extra space for ease of implementation*/
    Vec4 fv_r[MAX_BLOCKS_PER_DIM * WID + 1]; /*right face value*/
 
-   compute_h6_face_values(values,n_cblocks,fv_l, fv_r); 
+   compute_h5_face_values(values,n_cblocks,fv_l, fv_r); 
    filter_boundedness(values,n_cblocks,fv_l, fv_r); 
    filter_extrema(values,n_cblocks,fv_l, fv_r);
 //   filter_face_monotonicity(values,n_cblocks,fv);
