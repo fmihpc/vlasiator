@@ -90,14 +90,12 @@ The factor 2.0 & 3.0 is in the polynom to ease integration, then integral is a[0
 */
 inline void compute_pqm_coeff(Vec4 mmv,Vec4 mv, Vec4 cv, Vec4 pv,Vec4 ppv,
 			      Vec4 * __restrict__ a){
-   Vec4 fv_r;
-   Vec4 fv_l;
    //white 08 H5 face estimates (best one can do with this stencil)
-   fv_l = 1.0/60.0 * ( -3 * mmv + 27 * mv + 47 * cv - 13 * pv + 2 * ppv);
-   fv_r = 1.0/60.0 * (  2 * mmv - 13 * mv + 47 * cv + 27 * pv - 3 * ppv);
+   Vec4 fv_l = 1.0/60.0 * ( -3 * mmv + 27 * mv + 47 * cv - 13 * pv + 2 * ppv);
+   Vec4 fv_r = 1.0/60.0 * (  2 * mmv - 13 * mv + 47 * cv + 27 * pv - 3 * ppv);
    //white 08 H4 face derivative estimates (best one can do with this stencil)
-   fd_l = 1.0/12.0 * (15.0 * (cv - mv) - (pv - mmv));
-   fd_r = 1.0/12.0 * (15.0 * (pv - cv) - (ppv - mv));
+   Vec4 fd_l = 1.0/12.0 * (15.0 * (cv - mv) - (pv - mmv));
+   Vec4 fd_r = 1.0/12.0 * (15.0 * (pv - cv) - (ppv - mv));
 
 
 
