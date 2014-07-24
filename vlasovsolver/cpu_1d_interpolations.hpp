@@ -79,8 +79,8 @@ inline void compute_ppm_coeff(Vec4 mmv,Vec4 mv, Vec4 cv, Vec4 pv,Vec4 ppv,
    Vec4 p_face;
    Vec4 m_face;
    //white 08 H5 face estimates
-   m_face = 1.0/60.0 * ( -3 * mmv + 27 * mv + 47 * cv - 13 * pv + 2 * ppv);
-   p_face = 1.0/60.0 * (  2 * mmv - 13 * mv + 47 * cv + 27 * pv - 3 * ppv);
+   m_face = 1.0/60.0 * ( -3.0 * mmv + 27.0 * mv + 47.0 * cv - 13.0 * pv + 2.0 * ppv);
+   p_face = 1.0/60.0 * (  2.0 * mmv - 13.0 * mv + 47.0 * cv + 27.0 * pv - 3.0 * ppv);
 
 
    bool fix_bounds = horizontal_or((mv - m_face) * (m_face - cv) < 0 || (pv - p_face) * (p_face - cv) < 0);
@@ -99,15 +99,15 @@ inline void compute_ppm_coeff(Vec4 mmv,Vec4 mv, Vec4 cv, Vec4 pv,Vec4 ppv,
    
    //Coella1984 eq. 1.10, detect extrema and make algorithm constant if it is
    Vec4 extrema_check = ((p_face - cv) * (cv - m_face));
-   m_face = select(extrema_check < 0, cv, m_face);
-   p_face = select(extrema_check < 0, cv, p_face);
+   m_face = select(extrema_check < 0.0, cv, m_face);
+   p_face = select(extrema_check < 0.0, cv, p_face);
    
    //Coella et al, check for monotonicity   
    m_face = select((p_face-m_face)*(cv-0.5*(m_face+p_face))>(p_face-m_face)*(p_face-m_face)*one_sixth,
-		  3*cv-2*p_face,
+		  3.0*cv-2.*p_face,
 		  m_face);
    p_face = select(-(p_face-m_face)*(p_face-m_face)*one_sixth > (p_face-m_face)*(cv-0.5*(m_face+p_face)),
-		   3*cv-2*m_face,
+		   3.0*cv-2.0*m_face,
 		   p_face);
 
    //Fit a second order polynomial for reconstruction see, e.g., White
