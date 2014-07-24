@@ -49,7 +49,7 @@ public:
      return *this;
    }
    // Member function to load from array, aligned by 32
-   Vec4Simple & load_a(T const * p) const{
+   Vec4Simple & load_a(T const * p){
      return this->load(p);
    }
    

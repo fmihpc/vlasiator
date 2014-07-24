@@ -153,13 +153,6 @@ void propagate(Vec4 values[], uint  blocks_per_dim, Real v_min, Real dv,
   }   
 }
 
-
-
-
-
-
-
-
 void print_reconstruction(int step, Vec4 values[], uint  blocks_per_dim, Real v_min, Real dv,
 			  uint i_block, uint j_block, uint j_cell,
 			  Real intersection, Real intersection_di, Real intersection_dj, Real intersection_dk){
@@ -242,7 +235,7 @@ void print_reconstruction(int step, Vec4 values[], uint  blocks_per_dim, Real v_
 int main(void) {
   const int dv = 20000;
   const Real v_min = -4e6;
-  const int blocks_per_dim = 100;
+  const int blocks_per_dim = 1000;
   const int i_block = 0; //x index of block, fixed in this simple test
   const int j_block = 0; //y index of block, fixed in this simple test
   const int j_cell = 0; // y index of cell within block (0..WID-1)
@@ -252,12 +245,12 @@ int main(void) {
    
   /*initial values*/
   
-  Real intersection = v_min + 0.6*dv;
-  Real intersection_di = dv/4.0;
-  Real intersection_dk = dv; 
-  Real intersection_dj = dv; //does not matter here, fixed j.
+  Real intersection = v_min + 0.1*dv;
+  Real intersection_di = 0.025 * dv;
+  Real intersection_dk = dv;
+  Real intersection_dj = 0.0 * dv; //does not matter here, fixed j.
   
-  const int iterations = 400;
+  const int iterations = 10000;
 
    /*clear target & values array*/
   for (uint k=0; k<WID* (blocks_per_dim + 2); ++k){ 
@@ -268,22 +261,28 @@ int main(void) {
  for(int i=0; i < blocks_per_dim * WID; i++){
    Real v=v_min + i*dv;
    if (v > v_min +  0.8 * (blocks_per_dim * WID * dv) & 
-      v < v_min +  0.9 * (blocks_per_dim * WID * dv))
-     values[i + WID] = Vec4(1.0);
- }
-  
-
-/*loop over propagations*/
- for(int step = 0; step <= iterations; step++){
-   if(step%10 == 0) {
-     std::cout <<" Step " << step << std::endl;
-     print_values(step,values,blocks_per_dim, v_min, dv);
-     print_reconstruction(step, values, blocks_per_dim, v_min, dv,
-			  i_block, j_block, j_cell,
-			  intersection, intersection_di, intersection_dj, intersection_dk);
+       v < v_min +  0.9 * (blocks_per_dim * WID * dv)) {
+      values[i + WID] = Vec4(1.0);
    }
+ }
+
+
+ print_values(0,values,blocks_per_dim, v_min, dv);
+ print_reconstruction(0, values, blocks_per_dim, v_min, dv,
+                      i_block, j_block, j_cell,
+                      intersection, intersection_di, intersection_dj, intersection_dk);
+
+ clock_t t = clock();
+/*loop over propagations*/
+ for(int step = 0; step < iterations; step++){
    propagate(values, blocks_per_dim, v_min, dv,
 	     i_block, j_block, j_cell,
 	     intersection, intersection_di, intersection_dj, intersection_dk);
  }
+ printf("\nTime per iteration: %12.15g\n", ((double)(clock() - t)/CLOCKS_PER_SEC)/iterations);
+
+ print_values(iterations,values,blocks_per_dim, v_min, dv);
+ print_reconstruction(iterations, values, blocks_per_dim, v_min, dv,
+                      i_block, j_block, j_cell,
+                      intersection, intersection_di, intersection_dj, intersection_dk);
 }  

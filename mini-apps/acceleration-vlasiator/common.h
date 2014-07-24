@@ -27,7 +27,7 @@ typedef const float creal;
 #endif
 
 
-#define MAX_BLOCKS_PER_DIM 100
+#define MAX_BLOCKS_PER_DIM 1000
 #ifdef ACC_SEMILAG_PLM
 #define RECONSTRUCTION_ORDER 1
 #endif
