@@ -30,11 +30,12 @@ typedef Vec4fb Vec4b;
 //user portable vectorclass
 #include "vectorclass_fallback.h"
 #ifdef DP
-typedef Vec4Real<double> Vec4;
+typedef Vec4Simple<double> Vec4;
 #else
-typedef Vec4Real<float> Vec4;
+typedef Vec4Simple<float> Vec4;
 #endif
-
+typedef Vec4Simple<bool> Vec4b;
+typedef Vec4Simple<int> Vec4i;
 #endif
 
 
