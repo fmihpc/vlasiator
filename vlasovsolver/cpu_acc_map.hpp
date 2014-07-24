@@ -12,7 +12,7 @@ Copyright 2013, 2014 Finnish Meteorological Institute
 #include "utility"
 #include "common.h"
 #include "spatial_cell.hpp"
-#include "cpu_sort_blocks_for_acc.hpp"
+#include "cpu_acc_sort_blocks.hpp"
 #include "cpu_1d_pqm.hpp"
 #include "cpu_1d_ppm.hpp"
 #include "cpu_1d_plm.hpp"
