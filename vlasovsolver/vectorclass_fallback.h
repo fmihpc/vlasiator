@@ -1,6 +1,6 @@
 #ifndef VECTORCLASS_PORTABLE_H
 #define VECTORCLASS_PORTABLE_H
-
+#include <math.h>
 /*
   This file is part of Vlasiator.
 
