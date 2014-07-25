@@ -13,6 +13,11 @@ Copyright 2013, 2014 Finnish Meteorological Institute
 #include "cmath"
 #include "cpu_slope_limiters.hpp"
 
+/*enum for setting face value and derivative estimates. Implicit ones
+  not supported in the solver, so they are now not listed*/
+enum face_value_estimate {h4, h5, h6};
+enum face_derivative_estimate {dh4, dh5 };
+
 /*FIXME & NOTE. MAX_IH_CELLS should be in practice (MAX_BLOCKS_PER_DIM * WID), so 400
   supports up to 100 blocks. This can be too little at some point of
   time and no checks are done for bounds...*/

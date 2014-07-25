@@ -10,7 +10,9 @@
 #include "utility"
 #include "common.h"
 #include "spatial_cell.hpp"
-#include "cpu_1d_interpolations.hpp"
+#include "cpu_1d_plm.hpp"
+#include "cpu_1d_ppm.hpp"
+#include "cpu_1d_pqm.hpp"
 #include "grid.h"
 
 #ifdef TRANS_SEMILAG_PLM
@@ -19,15 +21,18 @@
 #ifdef TRANS_SEMILAG_PPM
 #define  TRANS_STENCIL_WIDTH 2
 #endif
+#ifdef TRANS_SEMILAG_PQM
+#define  TRANS_STENCIL_WIDTH 3
+#endif
 
 using namespace std;
 using namespace spatial_cell;
 
 
 // indices in padded block. b_k is the block index in z direction in
-// ordinary space, i,j,k are the cell ids inside on block.
-#define i_trans_pblock(b_k, i, j, k) ( (i) + (j) * WID + (k) * WID2 + ((b_k) + TRANS_STENCIL_WIDTH) * WID3 )
-#define i_trans_pblockv(b_k, j, k)  ( i_trans_pblock(b_k, 0, j, k) )
+// ordinary space (- TRANS_STENCIL_WIDTH to TRANS_STENCIL_WIDTH)
+//, i,j,k are the cell ids inside on block.
+#define i_trans_pblockv(b_k, j, k)  ( (b_k + TRANS_STENCIL_WIDTH ) + ( (j) + (k) * WID ) * ( 1 + 2 * TRANS_STENCIL_WIDTH) )
 
 // indices in padded target block, which has Vec4 elements. b_k is the
 // block index in z direction in ordinary space, i,j,k are the cell
@@ -199,7 +204,7 @@ void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cart
  * then neighboring spatial cells (in the dimension). neighbors
  * generated with compute_spatial_neighbors_wboundcond)*/
 
-inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const CellID cellID, const CellID *source_neighbors, const uint blockID, Real * __restrict__ values, int dimension){
+inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const CellID cellID, const CellID *source_neighbors, const uint blockID, Vec4* values, int dimension){
    uint cell_indices_to_id[3]={};
    switch (dimension){
        case 0:
@@ -236,7 +241,7 @@ inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesia
                   j * cell_indices_to_id[1] +
                   k * cell_indices_to_id[2];
                /*copy data, when reading data from fx we swap dimensions using cell_indices_to_id*/
-               values[i_trans_pblock(b,i,j,k)] = block->fx[cell];
+               values[i_trans_pblockv(b,j,k)].insert(i,(Real)block->fx[cell]);
             }
          }
       }
@@ -408,7 +413,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    #endif
    //do nothing if it is not a normal cell, or a cell that is in the first boundary layer
    if(get_spatial_neighbor(mpiGrid, cellID, true, 0, 0, 0) == INVALID_CELLID)
-      return true; 
+     return true; 
    
    /*compute spatial neighbors, separately for targets and source. In
     * source cells we have a wider stencil and take into account
@@ -487,11 +492,11 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       //init target_values
       for(uint i = 0; i < 3 * WID2; i++)
          target_values[i] = Vec4(0.0, 0.0, 0.0, 0.0);
-      /*buffer where we read in source data*/
-      Real values[(1 + 2 * TRANS_STENCIL_WIDTH) * WID3];
+      /*buffer where we read in source data. i index vectorized*/
+      Vec4 values[(1 + 2 * TRANS_STENCIL_WIDTH) * WID3];
       copy_trans_block_data(mpiGrid, cellID, source_neighbors, blockID, values, dimension);
       velocity_block_indices_t block_indices=SpatialCell::get_velocity_block_indices(blockID);
-    
+
       /*i,j,k are now relative to the order in which we copied data to the values array. 
         After this point in the k,j,i loops there should be no branches based on dimensions
       
@@ -520,22 +525,16 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          for (uint j = 0; j < WID; ++j){ 
             /*compute reconstruction*/
 #ifdef TRANS_SEMILAG_PLM
-            Vec4 a[2];
-            Vec4 mv,cv,pv;
-            mv.load(values + i_trans_pblockv(-1,j,k));
-            cv.load(values + i_trans_pblockv(0,j,k));
-            pv.load(values + i_trans_pblockv(1,j,k));
-            compute_plm_coeff(mv,cv,pv,a);
+            Vec4 a[3];
+            compute_plm_coeff_explicit(values + i_trans_pblockv(-TRANS_STENCIL_WIDTH , j, k), TRANS_STENCIL_WIDTH, a);
 #endif
 #ifdef TRANS_SEMILAG_PPM
             Vec4 a[3];
-            Vec4 mmv,mv,cv,pv,ppv;
-            mmv.load(values + i_trans_pblockv(-2,j,k));
-            mv.load(values + i_trans_pblockv(-1,j,k));
-            cv.load(values + i_trans_pblockv(0,j,k));
-            pv.load(values + i_trans_pblockv(1,j,k));
-            ppv.load(values + i_trans_pblockv(2,j,k));
-            compute_ppm_coeff(mmv,mv,cv,pv,ppv,a);
+            compute_ppm_coeff_explicit(values + i_trans_pblockv(-TRANS_STENCIL_WIDTH , j, k), h5, TRANS_STENCIL_WIDTH, a);
+#endif
+#ifdef TRANS_SEMILAG_PQM
+            Vec4 a[5];
+            compute_pqm_coeff_explicit(values + i_trans_pblockv(-TRANS_STENCIL_WIDTH , j, k), h5, dh4, TRANS_STENCIL_WIDTH, a);
 #endif
           
 #ifdef TRANS_SEMILAG_PLM	    
@@ -549,8 +548,16 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                (z_2 * z_2 - z_1 * z_1) * a[1] +
                (z_2 * z_2 * z_2 - z_1 * z_1 * z_1) * a[2];
 #endif
+#ifdef TRANS_SEMILAG_PQM
+            const Vec4 ngbr_target_density =
+               (z_2 - z_1) * a[0] +
+               (z_2 * z_2 - z_1 * z_1) * a[1] +
+               (z_2 * z_2 * z_2 - z_1 * z_1 * z_1) * a[2];
+               (z_2 * z_2 * z_2 * z_2 - z_1 * z_1 * z_1 * z_1) * a[3];
+               (z_2 * z_2 * z_2 * z_2 * z_2 - z_1 * z_1 * z_1 * z_1 * z_1) * a[4];
+#endif
             target_values[i_trans_ptblockv(target_scell_index,j,k)] +=  ngbr_target_density; //in the current original cells we will put this density        
-            target_values[i_trans_ptblockv(0,j,k)] +=  cv - ngbr_target_density; //in the current original cells we will put the rest of the original density
+            target_values[i_trans_ptblockv(0,j,k)] +=  values[i_trans_pblockv(0,j,k)] - ngbr_target_density; //in the current original cells we will put the rest of the original density
          }
       }
       

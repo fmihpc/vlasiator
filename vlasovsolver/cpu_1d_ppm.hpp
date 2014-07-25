@@ -18,10 +18,23 @@ using namespace std;
 /*
   Compute parabolic reconstruction with an explicit scheme
 */
-inline void compute_ppm_coeff_explicit(const Vec4 * const values, uint k, Vec4 a[3]){
+inline void compute_ppm_coeff_explicit(const Vec4 * const values, face_value_estimate value_estimate, uint k, Vec4 a[3]){
   Vec4 fv_l; /*left face value*/
   Vec4 fv_r; /*right face value*/
-  compute_h5_face_values(values, k ,fv_l, fv_r); 
+  switch(value_estimate) {
+  case h4:
+    compute_h4_left_face_value(values, k ,fv_l); 
+    compute_h4_left_face_value(values, k + 1, fv_r); 
+    break;
+  case h5:
+    compute_h5_face_values(values, k ,fv_l, fv_r); 
+    break;
+  case h6:
+    compute_h6_left_face_value(values, k ,fv_l); 
+    compute_h6_left_face_value(values, k + 1, fv_r); 
+    break;
+  }
+
    
   /*Filter boundedness according to Eq. 19 in White et al. 2008  Eq. 19 & 20*/
   bool fix_bounds = horizontal_or((values[k - 1] - fv_l) * (fv_l - values[k]) < 0 ||
