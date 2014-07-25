@@ -115,10 +115,7 @@ inline void compute_h6_left_face_value(const Vec4 * const avgs, uint k, Vec4 &fv
   \param fd_l Face derivative on left face of cell i
 */ 
 inline void compute_h4_left_face_derivative(const Vec4 * const avgs, uint k, Vec4 &fd_l){   
-  fd_l = 1.0/12.0 * (15.0 * (avgs[k] - avgs[k - 1])
-		     - (avgs[k + 1] - avgs[k - 2]));
-
-
+  fd_l = 1.0/12.0 * (15.0 * (avgs[k] - avgs[k - 1]) - (avgs[k + 1] - avgs[k - 2]));
 }
 
 

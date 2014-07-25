@@ -22,7 +22,8 @@
 #define  TRANS_STENCIL_WIDTH 2
 #endif
 #ifdef TRANS_SEMILAG_PQM
-#define  TRANS_STENCIL_WIDTH 3
+//note, we can at max use h5 and dh4 to stay in a stencil of 2
+#define  TRANS_STENCIL_WIDTH 2 
 #endif
 
 using namespace std;
@@ -550,10 +551,10 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 #endif
 #ifdef TRANS_SEMILAG_PQM
             const Vec4 ngbr_target_density =
-               (z_2 - z_1) * a[0] +
-               (z_2 * z_2 - z_1 * z_1) * a[1] +
-               (z_2 * z_2 * z_2 - z_1 * z_1 * z_1) * a[2];
-               (z_2 * z_2 * z_2 * z_2 - z_1 * z_1 * z_1 * z_1) * a[3];
+               (z_2                         - z_1                        ) * a[0] +
+               (z_2 * z_2                   - z_1 * z_1                  ) * a[1] +
+               (z_2 * z_2 * z_2             - z_1 * z_1 * z_1            ) * a[2] +
+               (z_2 * z_2 * z_2 * z_2       - z_1 * z_1 * z_1 * z_1      ) * a[3] +
                (z_2 * z_2 * z_2 * z_2 * z_2 - z_1 * z_1 * z_1 * z_1 * z_1) * a[4];
 #endif
             target_values[i_trans_ptblockv(target_scell_index,j,k)] +=  ngbr_target_density; //in the current original cells we will put this density        

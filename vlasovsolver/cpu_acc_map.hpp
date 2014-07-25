@@ -18,15 +18,6 @@ Copyright 2013, 2014 Finnish Meteorological Institute
 #include "cpu_1d_plm.hpp"
 
 #define MAX_BLOCKS_PER_DIM 100
-#ifdef ACC_SEMILAG_PLM
-#define RECONSTRUCTION_ORDER 1
-#endif
-#ifdef ACC_SEMILAG_PPM
-#define RECONSTRUCTION_ORDER 2
-#endif
-#ifdef ACC_SEMILAG_PQM
-#define RECONSTRUCTION_ORDER 4
-#endif
 
 //index in the temporary and padded column data values array. Each
 //column has an empty block in ether end.
@@ -269,14 +260,16 @@ bool map_1d(SpatialCell* spatial_cell,
 	     values + i_pcolumnv(n_cblocks, -1, j, 0) is the starting point of the column data for fixed j
 	     k + WID is the index where we have stored k index, WID amount of padding
 	   */ 
-	   Vec4 a[RECONSTRUCTION_ORDER + 1];
 #ifdef ACC_SEMILAG_PLM
+	   Vec4 a[2];
 	   compute_plm_coeff_explicit(values + i_pcolumnv(n_cblocks, -1, j, 0), k + WID , a);
 #endif
 #ifdef ACC_SEMILAG_PPM
+	   Vec4 a[3];
 	   compute_ppm_coeff_explicit(values + i_pcolumnv(n_cblocks, -1, j, 0), h5, k + WID, a);
 #endif
 #ifdef ACC_SEMILAG_PQM
+	   Vec4 a[5];
 	   compute_pqm_coeff_explicit(values + i_pcolumnv(n_cblocks, -1, j, 0), h5, dh5, k + WID, a);
 #endif
 	   
