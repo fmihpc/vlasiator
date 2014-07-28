@@ -344,7 +344,7 @@ namespace DRO {
       *buffer = 1.0 * nBlocks;
       return true;
    }
-   
+  
    bool Blocks::setSpatialCell(const SpatialCell* cell) {
       nBlocks = cell->number_of_blocks;
       return true;
@@ -405,6 +405,11 @@ namespace DRO {
       for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
+
+  bool VariablePressure::reduceData(const SpatialCell* cell,Real* buffer) {
+    reduceData(cell,(char*)buffer);
+    return true;
+  }
    
    bool VariablePressure::setSpatialCell(const SpatialCell* cell) {
       if(cell-> parameters[CellParams::RHO] != 0.0) {

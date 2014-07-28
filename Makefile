@@ -32,18 +32,14 @@ CXXFLAGS += -DNDEBUG
 # CXXFLAGS += -DDEBUG_SOLVERS
 
 #Set order of semilag solver in velocity space acceleration
-#  ACC_SEMILAG_PCONSTM	1st order
 #  ACC_SEMILAG_PLM 	2nd order	
-#  ACC_SEMILAG_PPM	3rd order (use this one unless you are testing, only ~20% slower than 2nd order)
+#  ACC_SEMILAG_PPM	3rd order 
+#  ACC_SEMILAG_PQM      5th order (use this one unless you are testing)
 #Set order of semilag solver in spatial translation
 #  TRANS_SEMILAG_PLM 	2nd order	
-#  TRANS_SEMILAG_PPM	3rd order 
-#If PPM is used in either trans or acc, then also set one opf these:
-#  PPM_COELLA84                            PPM like in the 1984 coella paper
-#  PPM_COELLA08                            PPM like in the 2008 coella paper
-#  PPM_COELLA84_WITH_WHITE08_H5FACEVALS    PPM with White 208 H5 bounded face values, with Coella 1984 extrema and monotonicity filters
-
-CXXFLAGS += -DACC_SEMILAG_PPM -DTRANS_SEMILAG_PPM -DPPM_COELLA84_WITH_WHITE08_H5FACEVALS   
+#  TRANS_SEMILAG_PPM	3rd order (for production use, use unless testing)
+#  TRANS_SEMILAG_PQM	5th order (in testing)
+CXXFLAGS += -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PQM 
 #define USE_AGNER_VECTORCLASS to use an external vector class that is used in some of the solvers
 #If not defined a slower but portable implementation is used, as the external one only supports 
 #Linux & x86 processors  

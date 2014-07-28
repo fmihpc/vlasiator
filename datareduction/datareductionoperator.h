@@ -189,6 +189,7 @@ namespace DRO {
         virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
         virtual std::string getName() const;
         virtual bool reduceData(const SpatialCell* cell,char* buffer);
+	virtual bool reduceData(const SpatialCell* cell,Real * result);
         virtual bool setSpatialCell(const SpatialCell* cell);
      
      protected:
