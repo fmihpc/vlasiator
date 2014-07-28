@@ -75,10 +75,9 @@ namespace projects {
    /*Real calcPhaseSpaceDensity(creal& z,creal& x,creal& y,creal& dz,creal& dx,creal& dy,
                creal& vz,creal& vx,creal& vy,creal& dvz,creal& dvx,creal& dvy) {*/
    Real Alfven::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
-      creal mass = 1.67262171e-27; // m_p in kg
-      creal k = 1.3806505e-23; // Boltzmann
-      creal mu0 = 1.25663706144e-6; // mu_0
-   //   creal q = 1.60217653e-19; // q_i
+      creal mass = physicalconstants::MASS_PROTON;
+      creal kb = physicalconstants::K_B;
+      creal mu0 = physicalconstants::MU_0;
       creal ALFVEN_VEL = this->B0 / sqrt(mu0 * this->DENSITY * mass);
 
       creal ksi = (x * cos(this->ALPHA) + y * sin(this->ALPHA)) / this->WAVELENGTH;
@@ -86,8 +85,8 @@ namespace projects {
       creal Vy = - this->A_VEL * ALFVEN_VEL * cos(this->ALPHA) * sin(2.0 * M_PI * ksi);
       creal Vz = - this->A_VEL * ALFVEN_VEL * cos(2.0 * M_PI * ksi);
    
-      creal den = this->DENSITY * pow(mass / (2.0 * M_PI * k * this->TEMPERATURE), 1.5) *
-      exp(- mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * k * this->TEMPERATURE));
+      creal den = this->DENSITY * pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) *
+      exp(- mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * kb * this->TEMPERATURE));
    return den;
    }
    

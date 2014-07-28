@@ -532,6 +532,7 @@ array<Real, 3> getBulkVelocity( oldVlsv::Reader& vlsvReader, const string& meshN
    //These are needed to determine the buffer size.
    vlsv::datatype::type variableDataType;
    uint64_t variableArraySize, variableVectorSize, variableDataSize;
+   bool foundSingleB = true;
    //getArrayInfo output: variableArraysize, variableVectorSize, ...
    xmlAttributes.clear();
    xmlAttributes.push_back(make_pair("mesh", meshName));
@@ -539,6 +540,8 @@ array<Real, 3> getBulkVelocity( oldVlsv::Reader& vlsvReader, const string& meshN
    // FIXME handle the case where moments is available/rho_v is not available
    xmlAttributes.push_back(make_pair("name", "rho_v"));
    if (vlsvReader.getArrayInfo("VARIABLE", xmlAttributes, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) {
+      xmlAttributes.pop_back();
+      
       cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
       exit(1);
    }
@@ -591,14 +594,13 @@ array<Real, 3> getBulkVelocity( oldVlsv::Reader& vlsvReader, const string& meshN
    bulkV[1] = (rho == 0.0) ? 0.0 : rhov[1] / rho;
    bulkV[2] = (rho == 0.0) ? 0.0 : rhov[2] / rho;
    return bulkV;
-   
 }
 
 void doRotation(
   Real * vx_crds_rotated, Real * vy_crds_rotated, Real * vz_crds_rotated,
   const Real * vx_crds, const Real * vy_crds, const Real * vz_crds, 
   const Real * B, const unsigned int vec_size
- 	      ) {
+) {
    //NOTE: assuming that B is a vector of size 3 and that _crds_rotated has been allocated
    //Using eigen3 library here.
    //Now we have the B vector, so now the idea is to rotate the v-coordinates so that B always faces z-direction

@@ -25,7 +25,7 @@
 
 #include "outflow.h"
 #include "../projects/projects_common.h"
-#include "../fieldsolver.h"
+#include "../fieldsolver/fs_common.h"
 
 using namespace std;
 
@@ -146,19 +146,40 @@ namespace SBC {
       cuint RKCase,
       cuint component
    ) {
+      if((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
+         mpiGrid[cellID]->parameters[CellParams::EX+component] = 0.0;
+      } else {// RKCase == RK_ORDER2_STEP1
+         mpiGrid[cellID]->parameters[CellParams::EX_DT2+component] = 0.0;
+      }
+   }
+   
+   void Outflow::fieldSolverBoundaryCondHallElectricField(
+      dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID,
+      cuint RKCase,
+      cuint component
+   ) {
       switch(component) {
          case 0:
-            calculateEdgeElectricFieldX(mpiGrid, cellID, RKCase);
+            mpiGrid[cellID]->parameters[CellParams::EXHALL_000_100] = 0.0;
+            mpiGrid[cellID]->parameters[CellParams::EXHALL_010_110] = 0.0;
+            mpiGrid[cellID]->parameters[CellParams::EXHALL_001_101] = 0.0;
+            mpiGrid[cellID]->parameters[CellParams::EXHALL_011_111] = 0.0;
             break;
          case 1:
-            calculateEdgeElectricFieldY(mpiGrid, cellID, RKCase);
+            mpiGrid[cellID]->parameters[CellParams::EYHALL_000_010] = 0.0;
+            mpiGrid[cellID]->parameters[CellParams::EYHALL_100_110] = 0.0;
+            mpiGrid[cellID]->parameters[CellParams::EYHALL_001_011] = 0.0;
+            mpiGrid[cellID]->parameters[CellParams::EYHALL_101_111] = 0.0;
             break;
          case 2:
-            calculateEdgeElectricFieldZ(mpiGrid, cellID, RKCase);
+            mpiGrid[cellID]->parameters[CellParams::EZHALL_000_001] = 0.0;
+            mpiGrid[cellID]->parameters[CellParams::EZHALL_100_101] = 0.0;
+            mpiGrid[cellID]->parameters[CellParams::EZHALL_010_011] = 0.0;
+            mpiGrid[cellID]->parameters[CellParams::EZHALL_110_111] = 0.0;
             break;
          default:
-            cerr << "ERROR: Reached end of switch in Outflow::fieldSolverBoundaryCondElectricField." << endl;
-            abort();
+            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
       }
    }
    

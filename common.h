@@ -82,7 +82,6 @@ namespace NbrsSpa {
  * the physical parameters of each velocity block.*/
 namespace BlockParams {
    enum {
-      //Q_PER_M, /*!< The charge-to-mass ratio of the particle species. DEPRECATED: GOING TO BE REMOVED!.*/
       VXCRD,   /*!< vx-coordinate of the bottom left corner of the block.*/
       VYCRD,   /*!< vy-coordinate of the bottom left corner of the block.*/
       VZCRD,   /*!< vz-coordinate of the bottom left corner of the block.*/
@@ -135,9 +134,45 @@ namespace CellParams {
       PERBXVOL,  /*!< perturbed magnetic field  PERBX averaged over spatial cell.*/
       PERBYVOL,  /*!< perturbed magnetic field  PERBY averaged over spatial cell.*/
       PERBZVOL,  /*!< perturbed magnetic field  PERBZ averaged over spatial cell.*/
+      BGBX_000_010,   /*!< Background Bx averaged along y on -x/-z edge of spatial cell (for Hall term only).*/
+      BGBX_100_110,   /*!< Background Bx averaged along y on +x/-z edge of spatial cell (for Hall term only).*/
+      BGBX_001_011,   /*!< Background Bx averaged along y on -x/+z edge of spatial cell (for Hall term only).*/
+      BGBX_101_111,   /*!< Background Bx averaged along y on +x/+z edge of spatial cell (for Hall term only).*/
+      BGBX_000_001,   /*!< Background Bx averaged along z on -x/-y edge of spatial cell (for Hall term only).*/
+      BGBX_100_101,   /*!< Background Bx averaged along z on +x/-y edge of spatial cell (for Hall term only).*/
+      BGBX_010_011,   /*!< Background Bx averaged along z on +y/-x edge of spatial cell (for Hall term only).*/
+      BGBX_110_111,   /*!< Background Bx averaged along z on +x/+y edge of spatial cell (for Hall term only).*/
+      BGBY_000_100,   /*!< Background By averaged along x on -y/-z edge of spatial cell (for Hall term only).*/
+      BGBY_010_110,   /*!< Background By averaged along x on +y/-z edge of spatial cell (for Hall term only).*/
+      BGBY_001_101,   /*!< Background By averaged along x on -y/+z edge of spatial cell (for Hall term only).*/
+      BGBY_011_111,   /*!< Background By averaged along x on +y/+z edge of spatial cell (for Hall term only).*/
+      BGBY_000_001,   /*!< Background By averaged along z on -x/-y edge of spatial cell (for Hall term only).*/
+      BGBY_100_101,   /*!< Background By averaged along z on +x/-y edge of spatial cell (for Hall term only).*/
+      BGBY_010_011,   /*!< Background By averaged along z on +y/-x edge of spatial cell (for Hall term only).*/
+      BGBY_110_111,   /*!< Background By averaged along z on +x/+y edge of spatial cell (for Hall term only).*/
+      BGBZ_000_100,   /*!< Background Bz averaged along x on -y/-z edge of spatial cell (for Hall term only).*/
+      BGBZ_010_110,   /*!< Background Bz averaged along x on +y/-z edge of spatial cell (for Hall term only).*/
+      BGBZ_001_101,   /*!< Background Bz averaged along x on -y/+z edge of spatial cell (for Hall term only).*/
+      BGBZ_011_111,   /*!< Background Bz averaged along x on +y/+z edge of spatial cell (for Hall term only).*/
+      BGBZ_000_010,   /*!< Background Bz averaged along y on -x/-z edge of spatial cell (for Hall term only).*/
+      BGBZ_100_110,   /*!< Background Bz averaged along y on +x/-z edge of spatial cell (for Hall term only).*/
+      BGBZ_001_011,   /*!< Background Bz averaged along y on -x/+z edge of spatial cell (for Hall term only).*/
+      BGBZ_101_111,   /*!< Background Bz averaged along y on +x/+z edge of spatial cell (for Hall term only).*/
       EXVOL,     /*!< Ex averaged over spatial cell.*/
       EYVOL,     /*!< Ey averaged over spatial cell.*/
       EZVOL,     /*!< Ez averaged over spatial cell.*/
+      EXHALL_000_100,   /*!< Hall term x averaged along x on -y/-z edge of spatial cell.*/
+      EYHALL_000_010,   /*!< Hall term y averaged along y on -x/-z edge of spatial cell.*/
+      EZHALL_000_001,   /*!< Hall term z averaged along z on -x/-y edge of spatial cell.*/
+      EYHALL_100_110,   /*!< Hall term y averaged along y on +x/-z edge of spatial cell.*/
+      EZHALL_100_101,   /*!< Hall term z averaged along z on +x/-y edge of spatial cell.*/
+      EXHALL_010_110,   /*!< Hall term x averaged along x on +y/-z edge of spatial cell.*/
+      EZHALL_010_011,   /*!< Hall term z averaged along z on +y/-x edge of spatial cell.*/
+      EZHALL_110_111,   /*!< Hall term z averaged along z on +x/+y edge of spatial cell.*/
+      EXHALL_001_101,   /*!< Hall term x averaged along x on -y/+z edge of spatial cell.*/
+      EYHALL_001_011,   /*!< Hall term y averaged along y on -x/+z edge of spatial cell.*/
+      EYHALL_101_111,   /*!< Hall term y averaged along y on +x/+z edge of spatial cell.*/
+      EXHALL_011_111,   /*!< Hall term x averaged along x on +y/+z edge of spatial cell.*/
       RHO_R,     /*!< RHO after propagation in ordinary space*/
       RHOVX_R,   /*!< RHOVX after propagation in ordinary space*/
       RHOVY_R,   /*!< RHOVX after propagation in ordinary space*/
@@ -146,6 +181,18 @@ namespace CellParams {
       RHOVX_V,   /*!< RHOVX after propagation in velocity space*/
       RHOVY_V,   /*!< RHOVX after propagation in velocity space*/
       RHOVZ_V,   /*!< RHOVX after propagation in velocity space*/
+      P_11,     /*!< Pressure P_xx component, computed by Vlasov propagator. */
+      P_22,     /*!< Pressure P_yy component, computed by Vlasov propagator. */
+      P_33,     /*!< Pressure P_zz component, computed by Vlasov propagator. */
+      P_11_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_11_R and P_11_V. */
+      P_22_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_22_R and P_22_V. */
+      P_33_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_33_R and P_33_V. */
+      P_11_R,   /*!< P_xx component after propagation in ordinary space */
+      P_22_R,   /*!< P_yy component after propagation in ordinary space */
+      P_33_R,   /*!< P_zz component after propagation in ordinary space */
+      P_11_V,   /*!< P_xx component after propagation in velocity space */
+      P_22_V,   /*!< P_yy component after propagation in velocity space */
+      P_33_V,   /*!< P_zz component after propagation in velocity space */
       RHOLOSSADJUST,      /*!< Counter for massloss from the destroying blocks in blockadjustment*/
       RHOLOSSVELBOUNDARY, /*!< Counter for massloss through outflow boundaries in velocity space*/
       MAXVDT,             /*!< maximum timestep allowed in velocity space for this cell**/
@@ -181,6 +228,37 @@ namespace fieldsolver {
       dPERBydz,     /*!< Derivative of face-averaged By to z-direction. */
       dPERBzdx,     /*!< Derivative of face-averaged Bz to x-direction. */
       dPERBzdy,     /*!< Derivative of face-averaged Bz to y-direction. */
+      // Insert for Hall term
+      // NOTE 2nd derivatives of BGBn are not needed as curl(dipole) = 0.0
+      // will change if BGB is not curl-free
+//       dBGBxdyy,     /*!< Second derivative of face-averaged Bx to yy-direction. */
+//       dBGBxdzz,     /*!< Second derivative of face-averaged Bx to zz-direction. */
+//       dBGBxdyz,     /*!< Second derivative of face-averaged Bx to yz-direction. */
+//       dBGBydxx,     /*!< Second derivative of face-averaged By to xx-direction. */
+//       dBGBydzz,     /*!< Second derivative of face-averaged By to zz-direction. */
+//       dBGBydxz,     /*!< Second derivative of face-averaged By to xz-direction. */
+//       dBGBzdxx,     /*!< Second derivative of face-averaged Bz to xx-direction. */
+//       dBGBzdyy,     /*!< Second derivative of face-averaged Bz to yy-direction. */
+//       dBGBzdxy,     /*!< Second derivative of face-averaged Bz to xy-direction. */
+      dPERBxdyy,     /*!< Second derivative of face-averaged Bx to yy-direction. */
+      dPERBxdzz,     /*!< Second derivative of face-averaged Bx to zz-direction. */
+      dPERBxdyz,     /*!< Second derivative of face-averaged Bx to yz-direction. */
+      dPERBydxx,     /*!< Second derivative of face-averaged By to xx-direction. */
+      dPERBydzz,     /*!< Second derivative of face-averaged By to zz-direction. */
+      dPERBydxz,     /*!< Second derivative of face-averaged By to xz-direction. */
+      dPERBzdxx,     /*!< Second derivative of face-averaged Bz to xx-direction. */
+      dPERBzdyy,     /*!< Second derivative of face-averaged Bz to yy-direction. */
+      dPERBzdxy,     /*!< Second derivative of face-averaged Bz to xy-direction. */
+      dp11dx,        /*!< Derivative of P_11 to x direction. */
+      dp11dy,        /*!< Derivative of P_11 to x direction. */
+      dp11dz,        /*!< Derivative of P_11 to x direction. */
+      dp22dx,        /*!< Derivative of P_22 to y direction. */
+      dp22dy,        /*!< Derivative of P_22 to y direction. */
+      dp22dz,        /*!< Derivative of P_22 to y direction. */
+      dp33dx,        /*!< Derivative of P_33 to z direction. */
+      dp33dy,        /*!< Derivative of P_33 to z direction. */
+      dp33dz,        /*!< Derivative of P_33 to z direction. */
+      // End of insert for Hall term
       dVxdx,     /*!< Derivative of volume-averaged Vx to x-direction. */
       dVxdy,     /*!< Derivative of volume-averaged Vx to y-direction. */
       dVxdz,     /*!< Derivative of volume-averaged Vx to z-direction. */
@@ -262,6 +340,7 @@ struct globalflags {
 namespace physicalconstants {
    const Real MU_0 = 1.25663706e-6;  /*!< Permeability of vacuo, unit: (kg m) / (s^2 A^2).*/
    const Real K_B = 1.3806503e-23;   /*!< Boltzmann's constant, unit: (kg m^2) / (s^2 K).*/
+   const Real CHARGE = 1.60217653e-19; /*!< Elementary charge, unit: C. */
    const Real MASS_PROTON = 1.67262158e-27; /*!< Proton rest mass.*/
    const Real R_E = 6.3712e6; /*!< radius of the Earth. */
 }

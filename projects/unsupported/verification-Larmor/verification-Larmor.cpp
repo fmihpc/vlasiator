@@ -77,12 +77,6 @@ namespace projects {
       if(isSet)
          return 0.0; //exactly one value to be set
 
-      
-      creal mass = Parameters::m;
-      creal q = Parameters::q;
-      creal k = 1.3806505e-23; // Boltzmann
-      creal mu0 = 1.25663706144e-6; // mu_0
-
       if( fabs(vx-this->VX0)<dvx &&
          fabs(vy-this->VY0)<dvy &&
          fabs(vz-this->VZ0)<dvz &&

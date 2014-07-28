@@ -59,16 +59,14 @@ namespace projects {
       creal& x,creal& y,creal& z,
       creal& vx,creal& vy,creal& vz
    ) {
-      creal mass = 1.67262171e-27; // m_p in kg
-      creal k = 1.3806505e-23; // Boltzmann
-      creal mu0 = 1.25663706144e-6; // mu_0
-      creal q = 1.60217653e-19; // q_i
+      creal mass = physicalconstants::MASS_PROTON;
+      creal kb = physicalconstants::K_B;
       
-      return this->DENSITY * pow(mass / (2.0 * M_PI * k * this->TEMPERATURE), 1.5) * (
+      return this->DENSITY * pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) * (
          5.0 * exp(- (pow(x, 2.0) / pow(this->SCA_X, 2.0) +  pow(y, 2.0) / pow(this->SCA_Y, 2.0))) * 
-         exp(- mass * (pow(vx, 2.0) + pow(vy, 2.0) + pow(vz, 2.0)) / (2.0 * k * this->TEMPERATURE))
+         exp(- mass * (pow(vx, 2.0) + pow(vy, 2.0) + pow(vz, 2.0)) / (2.0 * kb * this->TEMPERATURE))
          +
-         exp(- mass * (pow(vx, 2.0) + pow(vy, 2.0) + pow(vz, 2.0)) / (2.0 * k * this->TEMPERATURE)));
+         exp(- mass * (pow(vx, 2.0) + pow(vy, 2.0) + pow(vz, 2.0)) / (2.0 * kb * this->TEMPERATURE)));
    }
    
    Real Diffusion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {

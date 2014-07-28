@@ -21,7 +21,6 @@
 #include <iostream>
 #include <limits>
 #include <array>
-
 #include "datareductionoperator.h"
 #include "../vlscommon.h"
 //#include "../parameters.h"
@@ -418,6 +417,31 @@ namespace DRO {
          averageVZ = 0.0;
       }
       Pressure = 0.0;
+      return true;
+   }
+   
+   
+   // Scalar pressure from the solvers
+   VariablePressureSolver::VariablePressureSolver(): DataReductionOperator() { }
+   VariablePressureSolver::~VariablePressureSolver() { }
+   
+   std::string VariablePressureSolver::getName() const {return "Pressure_from_solver";}
+   
+   bool VariablePressureSolver::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 1;
+      return true;
+   }
+   
+   bool VariablePressureSolver::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(&Pressure);
+      for (uint i=0; i<sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariablePressureSolver::setSpatialCell(const SpatialCell* cell) {
+      Pressure = 1.0/3.0 * (cell->parameters[CellParams::P_11] + cell->parameters[CellParams::P_22] + cell->parameters[CellParams::P_33]);
       return true;
    }
    

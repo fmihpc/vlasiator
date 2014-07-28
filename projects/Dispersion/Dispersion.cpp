@@ -53,28 +53,13 @@
 
 #include "Dispersion.h"
 
-#ifndef _AIX
-int32_t projects::Dispersion::rndRho, projects::Dispersion::rndVel[3];
-#else
-int64_t projects::Dispersion::rndRho, projects::Dispersion::rndVel[3];
-#endif
+Real projects::Dispersion::rndRho, projects::Dispersion::rndVel[3];
 
 namespace projects {
    Dispersion::Dispersion(): Project() { }
    Dispersion::~Dispersion() { }
    
-   bool Dispersion::initialize(void) {
-      int myRank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      
-      memset(&(this->rngDataBuffer), 0, sizeof(this->rngDataBuffer));
-      #ifndef _AIX
-      initstate_r(this->seed*myRank, &(this->rngStateBuffer[0]), 256, &(this->rngDataBuffer));
-      #else
-      initstate_r(this->seed*myRank, &(this->rngStateBuffer[0]), 256, NULL, &(this->rngDataBuffer));
-      #endif
-      return true;
-   }
+   bool Dispersion::initialize(void) {return true;}
    
    void Dispersion::addParameters() {
       typedef Readparameters RP;
@@ -91,7 +76,6 @@ namespace projects {
       RP::add("Dispersion.magZPertAbsAmp", "Absolute amplitude of the magnetic perturbation along z (T)", 1.0e-9);
       RP::add("Dispersion.densityPertRelAmp", "Relative amplitude of the density perturbation", 0.1);
       RP::add("Dispersion.velocityPertAbsAmp", "Absolute amplitude of the velocity perturbation", 1.0e6);
-      RP::add("Dispersion.seed", "Seed for the RNG", 42);
       RP::add("Dispersion.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
       RP::add("Dispersion.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
       RP::add("Dispersion.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
@@ -99,6 +83,7 @@ namespace projects {
    
    void Dispersion::getParameters() {
       typedef Readparameters RP;
+      Project::getParameters();
       RP::get("Dispersion.B0", this->B0);
       RP::get("Dispersion.VX0", this->VX0);
       RP::get("Dispersion.VY0", this->VY0);
@@ -112,16 +97,15 @@ namespace projects {
       RP::get("Dispersion.magZPertAbsAmp", this->magZPertAbsAmp);
       RP::get("Dispersion.densityPertRelAmp", this->densityPertRelAmp);
       RP::get("Dispersion.velocityPertAbsAmp", this->velocityPertAbsAmp);
-      RP::get("Dispersion.seed", this->seed);
       RP::get("Dispersion.nSpaceSamples", this->nSpaceSamples);
       RP::get("Dispersion.nVelocitySamples", this->nVelocitySamples);
       RP::get("Dispersion.maxwCutoff", this->maxwCutoff);
    }
    
    Real Dispersion::getDistribValue(creal& vx,creal& vy, creal& vz) {
-      creal k = 1.3806505e-23; // Boltzmann
-      creal mass = 1.67262171e-27; // m_p in kg
-      return exp(- mass * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0) + (vz-this->VZ0)*(vz-this->VZ0)) / (2.0 * k * this->TEMPERATURE));
+      creal mass = physicalconstants::MASS_PROTON;
+      creal kb = physicalconstants::K_B;
+      return exp(- mass * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0) + (vz-this->VZ0)*(vz-this->VZ0)) / (2.0 * kb * this->TEMPERATURE));
    }
    
    Real Dispersion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
@@ -133,10 +117,8 @@ namespace projects {
          vz > Parameters::vzmax - 1.5 * dvz
       ) return 0.0;
       
-      creal mass = Parameters::m;
-      creal q = Parameters::q;
-      creal k = 1.3806505e-23; // Boltzmann
-      creal mu0 = 1.25663706144e-6; // mu_0
+      creal mass = physicalconstants::MASS_PROTON;
+      creal kb = physicalconstants::K_B;
       
       creal d_vx = dvx / (this->nVelocitySamples-1);
       creal d_vy = dvy / (this->nVelocitySamples-1);
@@ -148,15 +130,15 @@ namespace projects {
             for (uint vk=0; vk<this->nVelocitySamples; ++vk)
             {
                avg += getDistribValue(
-                  vx+vi*d_vx - this->velocityPertAbsAmp * (0.5 - (double)(this->rndVel[0]) / (double)RAND_MAX),
-                  vy+vj*d_vy - this->velocityPertAbsAmp * (0.5 - (double)(this->rndVel[1]) / (double)RAND_MAX),
-                  vz+vk*d_vz - this->velocityPertAbsAmp * (0.5 - (double)(this->rndVel[2]) / (double)RAND_MAX)
+                  vx+vi*d_vx - this->velocityPertAbsAmp * (0.5 - this->rndVel[0]),
+                  vy+vj*d_vy - this->velocityPertAbsAmp * (0.5 - this->rndVel[1]),
+                  vz+vk*d_vz - this->velocityPertAbsAmp * (0.5 - this->rndVel[2])
                );
             }
             
             creal result = avg *
-            this->DENSITY * (1.0 + this->densityPertRelAmp * (0.5 - (double)(Dispersion::rndRho) / (double)RAND_MAX)) *
-            pow(mass / (2.0 * M_PI * k * this->TEMPERATURE), 1.5) /
+            this->DENSITY * (1.0 + this->densityPertRelAmp * (0.5 - this->rndRho)) *
+            pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) /
             //            (Parameters::vzmax - Parameters::vzmin) / 
             (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
             if(result < this->maxwCutoff) {
@@ -174,37 +156,30 @@ namespace projects {
       creal z = cellParams[CellParams::ZCRD];
       creal dz = cellParams[CellParams::DZ];
       
-      uint cellID = (int) ((x - Parameters::xmin) / dx) +
-      (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
-      (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
+      CellID cellID = (int) ((x - Parameters::xmin) / dx) +
+         (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
+         (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
+      
+      setRandomSeed(cellID);
       
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;
       
-      #ifndef _AIX
-      int32_t rndBuffer[3];
-      random_r(&rngDataBuffer, &rndBuffer[0]);
-      random_r(&rngDataBuffer, &rndBuffer[1]);
-      random_r(&rngDataBuffer, &rndBuffer[2]);
-      random_r(&rngDataBuffer, &(this->rndRho));
-      random_r(&rngDataBuffer, &(this->rndVel[0]));
-      random_r(&rngDataBuffer, &(this->rndVel[1]));
-      random_r(&rngDataBuffer, &(this->rndVel[2]));
-      #else
-      int64_t rndBuffer[3];
-      random_r(&rndBuffer[0], &rngDataBuffer);
-      random_r(&rndBuffer[1], &rngDataBuffer);
-      random_r(&rndBuffer[2], &rngDataBuffer);
-      random_r(&(this->rndRho), &rngDataBuffer);
-      random_r(&(this->rndVel[0]), &rngDataBuffer);
-      random_r(&(this->rndVel[1]), &rngDataBuffer);
-      random_r(&(this->rndVel[2]), &rngDataBuffer);
-      #endif
+      this->rndRho=getRandomNumber();
+      
+      this->rndVel[0]=getRandomNumber();
+      this->rndVel[1]=getRandomNumber();
+      this->rndVel[2]=getRandomNumber();
+      
+      Real rndBuffer[3];
+      rndBuffer[0]=getRandomNumber();
+      rndBuffer[1]=getRandomNumber();
+      rndBuffer[2]=getRandomNumber();
 
-      cellParams[CellParams::PERBX] = this->magXPertAbsAmp * (0.5 - (double)rndBuffer[0] / (double)RAND_MAX);
-      cellParams[CellParams::PERBY] = this->magYPertAbsAmp * (0.5 - (double)rndBuffer[1] / (double)RAND_MAX);
-      cellParams[CellParams::PERBZ] = this->magZPertAbsAmp * (0.5 - (double)rndBuffer[2] / (double)RAND_MAX);
+      cellParams[CellParams::PERBX] = this->magXPertAbsAmp * (0.5 - rndBuffer[0]);
+      cellParams[CellParams::PERBY] = this->magYPertAbsAmp * (0.5 - rndBuffer[1]);
+      cellParams[CellParams::PERBZ] = this->magZPertAbsAmp * (0.5 - rndBuffer[2]);
 
    }
    

@@ -16,21 +16,22 @@ Copyright 2011, 2012 Finnish Meteorological Institute
 
 */
 
-#ifndef HARRIS_H
-#define HARRIS_H
+#ifndef TESTHALL_H
+#define TESTHALL_H
 
 #include "../../definitions.h"
 #include "../project.h"
 
 namespace projects {
-   class Harris: public Project {
+   class TestHall: public Project {
       public:
-         Harris();
-         virtual ~Harris();
+         TestHall();
+         virtual ~TestHall();
          
          virtual bool initialize(void);
          static void addParameters(void);
          virtual void getParameters(void);
+//          virtual void setCellBackgroundField(SpatialCell* cell);
          virtual void calcCellParameters(Real* cellParams,creal& t);
          virtual Real calcPhaseSpaceDensity(
             creal& x, creal& y, creal& z,
@@ -46,11 +47,19 @@ namespace projects {
             creal& dvx, creal& dvy, creal& dvz
          );
          
-         Real SCA_LAMBDA;
-         Real B0;
+         bool noDipoleInSW;
+         Real constBgB[3];
+         Real dipoleScalingFactor;
+         Real dipoleTilt;
+         Real BX0;
+         Real BY0;
+         Real BZ0;
+         Real VX0;
+         Real VY0;
+         Real VZ0;
          Real TEMPERATURE;
          Real DENSITY;
-   }; // class Harris
-} // namespace Harris
+   }; // class TestHall
+} // namespace TestHall
 
 #endif

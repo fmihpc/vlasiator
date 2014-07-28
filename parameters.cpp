@@ -50,9 +50,6 @@ uint P::vxblocks_ini = numeric_limits<uint>::max();
 uint P::vyblocks_ini = numeric_limits<uint>::max();
 uint P::vzblocks_ini = numeric_limits<uint>::max();
 
-Real P::q = NAN;
-Real P::m = NAN;
-Real P::q_per_m = NAN;
 Real P::t = 0;
 Real P::t_min = 0;
 Real P::t_max = LARGE_REAL;
@@ -76,7 +73,6 @@ std::vector<int> P::systemWriteDistributionWriteXlineStride;
 std::vector<int> P::systemWriteDistributionWriteYlineStride;
 std::vector<int> P::systemWriteDistributionWriteZlineStride;
 std::vector<int> P::systemWrites;
-   
 
 Real P::saveRestartWalltimeInterval = -1.0;
 uint P::exitAfterRestarts = numeric_limits<uint>::max();
@@ -92,16 +88,17 @@ bool P::propagateField = true;
 uint P::maxAccelerationSubsteps=1;
 bool P::dynamicTimestep = true;
 
-Real P::maxAlfvenVelocity = 0.0;
+Real P::maxWaveVelocity = 0.0;
 Real P::resistivity = NAN;
 bool P::fieldSolverDiffusiveEterms = true;
-bool P::ohmHallTerm = false;
+uint P::ohmHallTerm = 0;
 
 Real P::sparseMinValue = NAN;
 int P::sparseBlockAddWidthV = 1;
 bool P::sparse_conserve_mass = false;
 
-string P::restartFileName = string("");                
+
+string P::restartFileName = string("");
 bool P::isRestart=false;
 int P::writeAsFloat = false;
 string P::loadBalanceAlgorithm = string("");
@@ -166,18 +163,16 @@ bool Parameters::addParameters(){
    Readparameters::add("gridbuilder.vy_length","Initial number of velocity blocks in vy-direction.","");
    Readparameters::add("gridbuilder.vz_length","Initial number of velocity blocks in vz-direction.","");
    
-   Readparameters::add("gridbuilder.q","Charge of simulated particle species, in Coulombs.",1.60217653e-19);
-   Readparameters::add("gridbuilder.m","Mass of simulated particle species, in kilograms.",1.67262171e-27);
    Readparameters::add("gridbuilder.dt","Initial timestep in seconds.",0.0);
 
    Readparameters::add("gridbuilder.t_max","Maximum simulation time, in seconds. If timestep_max limit is hit first this time will never be reached",LARGE_REAL);
    Readparameters::add("gridbuilder.timestep_max","Max. value for timesteps. If t_max limit is hit first, this step will never be reached",numeric_limits<uint>::max());
    
    // Field solver parameters
-   Readparameters::add("fieldsolver.maxAlfvenVelocity", "Maximum Alfven velocity allowed in the fast MS velocity determination in m/s, default unlimited", LARGE_REAL);
+   Readparameters::add("fieldsolver.maxWaveVelocity", "Maximum wave velocity allowed in the fastest velocity determination in m/s, default unlimited", LARGE_REAL);
    Readparameters::add("fieldsolver.resistivity", "Resistivity for the eta*J term in Ohm's law.", 0.0);
    Readparameters::add("fieldsolver.diffusiveEterms", "Enable diffusive terms in the computation of E",true);
-   Readparameters::add("fieldsolver.ohmHallTerm", "Enable the Hall term in Ohm's law", false);
+   Readparameters::add("fieldsolver.ohmHallTerm", "Enable/choose spatial order of the Hall term in Ohm's law. 0: off, 1: 1st spatial order, 2: 2nd spatial order", 0);
    Readparameters::add("fieldsolver.maxCFL","The maximum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",0.5);
    Readparameters::add("fieldsolver.minCFL","The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",0.4);
 
@@ -206,7 +201,7 @@ bool Parameters::addParameters(){
    Readparameters::add("variables.dr_backstream_vx", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.", -500000.0);
    Readparameters::add("variables.dr_backstream_vy", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.", 0.0);
    Readparameters::add("variables.dr_backstream_vz", "Center coordinate for the maxwellian distribution. Used for calculating the backstream contriution for rho.", 0.0);
-   Readparameters::add("variables.dr_backstream_radius", "Radius of the maxwellian distribution. Used for calculating the backstream contriution for rho", 468621.0);
+   Readparameters::add("variables.dr_backstream_radius", "Radius of the maxwellian distribution. Used for calculating the backstream contribution for rho", 468621.0);
 
    // bailout parameters
    Readparameters::add("bailout.write_restart", "If 1, write a restart file on bailout. Gets reset when sending a STOP (1) or a KILL (0).", true);
@@ -270,24 +265,22 @@ bool Parameters::getParameters(){
    P::dy_ini = (P::ymax-P::ymin)/P::ycells_ini;
    P::dz_ini = (P::zmax-P::zmin)/P::zcells_ini;
    
-   Readparameters::get("gridbuilder.q",P::q);
-   Readparameters::get("gridbuilder.m",P::m);
    Readparameters::get("gridbuilder.dt",P::dt);
-
+   
    Readparameters::get("gridbuilder.t_max",P::t_max);
    Readparameters::get("gridbuilder.timestep_max",P::tstep_max);
-
+   
    if(P::dynamicTimestep)
       P::dt=0.0; //if dynamic timestep then first dt is always 0 
-   P::q_per_m = P::q/P::m;
+   
    //if we are restarting, t,t_min, tstep, tstep_min will be overwritten in readGrid
-   P::t_min=0;          
+   P::t_min=0;
    P::t = P::t_min;
    P::tstep_min=0;
    P::tstep = P::tstep_min;
    
    // Get field solver parameters
-   Readparameters::get("fieldsolver.maxAlfvenVelocity", P::maxAlfvenVelocity);
+   Readparameters::get("fieldsolver.maxWaveVelocity", P::maxWaveVelocity);
    Readparameters::get("fieldsolver.resistivity", P::resistivity);
    Readparameters::get("fieldsolver.diffusiveEterms", P::fieldSolverDiffusiveEterms);
    Readparameters::get("fieldsolver.ohmHallTerm", P::ohmHallTerm);
@@ -298,21 +291,21 @@ bool Parameters::getParameters(){
    Readparameters::get("vlasovsolver.lorentzHallMinimumRho",P::lorentzHallMinimumRho);
    Readparameters::get("vlasovsolver.maxCFL",P::vlasovSolverMaxCFL);
    Readparameters::get("vlasovsolver.minCFL",P::vlasovSolverMinCFL);
-
+   
    // Get sparsity parameters
    Readparameters::get("sparse.minValue", P::sparseMinValue);
    Readparameters::get("sparse.blockAddWidthV", P::sparseBlockAddWidthV); 
    Readparameters::get("sparse.conserve_mass", P::sparse_conserve_mass);
-
+   
    // Get load balance parameters
    Readparameters::get("loadBalance.algorithm", P::loadBalanceAlgorithm);
    Readparameters::get("loadBalance.tolerance", P::loadBalanceTolerance);
    Readparameters::get("loadBalance.rebalanceInterval", P::rebalanceInterval);
-
+   
    // Get output variable parameters
    Readparameters::get("variables.output", P::outputVariableList);
    Readparameters::get("variables.diagnostic", P::diagnosticVariableList);
-
+   
    //Get parameters related to calculating backstream contributions
    Readparameters::get("variables.dr_backstream_radius", P::backstreamradius);
    Readparameters::get("variables.dr_backstream_vx", P::backstreamvx);
