@@ -573,7 +573,6 @@ array<Real, 3> getBulkVelocity( oldVlsv::Reader& vlsvReader, const string& meshN
       cout << "ERROR " << __FILE__ << " " << __LINE__ << endl;
       exit(1);
    }
-   
    //Declare a buffer for reading the specific vector from the array
    char * rho_buffer = new char[variableVectorSize * variableDataSize];     //Needs to store vector times data size (Got that from getArrayInfo)
    the_actual_buffer_ptr = reinterpret_cast<Real*>(rho_buffer);
