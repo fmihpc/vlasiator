@@ -141,6 +141,14 @@ class Cluster_Fast {
 
          phiprof_assert( cluster_neighbor.clusterId != clusterId );
 
+         phiprof_assert( clusterId != NULL );
+
+         phiprof_assert( cluster_neighbor.clusterId != NULL );
+
+         phiprof_assert( *clusterId != 0 );
+
+         phiprof_assert( *cluster_neighbor.clusterId != 0 );
+
          // Optimize:
          if( cluster_neighbor.neighbor_clusters->size() > neighbor_clusters->size() ) {
             // It's faster to use this function the other way around if the neighbor is a bigger cluster:
@@ -433,7 +441,7 @@ void set_local_and_remote_velocity_cell_neighbors(
          bool isRemoteVCell = false;
          // Check if the indices are out of bounds:
          for( uint index = 0; index < numberOfDirections; ++index ) {
-            if( neighbor_indices[index] < 0 || neighbor_indices[index] >= WID ) {
+            if( neighbor_indices[index] < 0 || neighbor_indices[index] >= (int)WID ) {
                // Out of bounds -> this is a remove velocity cell
                isRemoteVCell = true;
             }
@@ -447,8 +455,8 @@ void set_local_and_remote_velocity_cell_neighbors(
                   // Move to neighbor block
                   neighbor_block_direction[index] -= 1;
                   // Move to neighbor indices in the neighbor block
-                  neighbor_indices[index] = WID-1;
-               } else if( neighbor_indices[index] >= WID ) {
+                  neighbor_indices[index] = (int)WID-1;
+               } else if( neighbor_indices[index] >= (int)WID ) {
                   // Move to neighbor block
                   neighbor_block_direction[index] += 1;
                   // Move to neighbor indices in the neighbor block
@@ -995,10 +1003,13 @@ static inline void cluster_advanced(
                //--------------------------------------------------------------
 
                // Update the highest avgs value counter:
-               highest_avgs_neighbor = it->get_avgs();
+               if( it->get_avgs() > highest_avgs_neighbor) {highest_avgs_neighbor = it->get_avgs();}
 
 
             } else if( clusters[index].find( index_neighbor ) ) {
+
+               phiprof_assert( index_neighbor != 0 );
+               phiprof_assert( index != 0 );
 
                // Clusters are separate clusters
 
@@ -1009,6 +1020,9 @@ static inline void cluster_advanced(
                Cluster_Fast & cluster_neighbor = clusters[index_neighbor];
                Cluster_Fast & cluster = clusters[index];
 
+               phiprof_assert( *cluster_neighbor.clusterId != 0 );
+               phiprof_assert( *cluster.clusterId != 0 );
+
                // Merge clusters if the clusters are ok:
                const uint32_t clusterMembers = *cluster.members;
                const uint32_t neighborClusterMembers = *cluster_neighbor.members;
@@ -1018,8 +1032,7 @@ static inline void cluster_advanced(
                   cluster_neighbor.merge( cluster, clusters );
                   ++merges;
                   break;
-               }
-               else if( highest_avgs_neighbor < it->get_avgs() ) {
+               } else if( highest_avgs_neighbor < it->get_avgs() ) {
                   // The velocity cell should belong to the other cluster, because the other cluster has a highest avgs value:
                   // Remove it from the previous cluster
                   clusters[index].append(-1);
@@ -1039,6 +1052,8 @@ static inline void cluster_advanced(
       if( clusterIds[id] == noCluster ) {
          ++clusterId;
 
+         phiprof_assert(clusterId != 0);
+
          // Create a new cluster
          //------------------------------------------------
          Cluster_Fast new_cluster;
@@ -1053,45 +1068,53 @@ static inline void cluster_advanced(
    }
 
    
+#ifndef NDEBUG
+int num_noclusters = 0;
+for( vector<Cluster_Fast>::const_iterator it = clusters.begin(); it != clusters.end(); ++it ) {
+   if( *(it->clusterId) == 0 ) { num_noclusters++; }
+}
+phiprof_assert( num_noclusters == 1 );
+#endif
 
-   // Fix cluster ids so that they start from 0 and move up: now the cluster list (cluster ids) can look like this: [1 5 7 3 6 8 8 3]
-   // Afterwards, it should look like this:                                                                         [1 3 5 2 4 6 6 2]
+   // Fix cluster ids so that they start from 0 and move up: now the cluster list (cluster ids) can look like this: [0 1 5 7 3 6 8 8 3]
+   // Afterwards, it should look like this:                                                                         [0 1 3 5 2 4 6 6 2]
    {
       unordered_map<uint32_t, uint32_t> ids; // (id, rank)
       {
          // get sorted cluster ids:
          vector<uint32_t> tmp_clusterIds; tmp_clusterIds.reserve(clusters.size());
          {
-            // Used to make sure we don't re-insert any cluster ids twice:
+            // Used to make sure we don't re-insert any cluster ids twice: So after this tmp_clusterids should look like this: [0 1 5 7 3 6 8]
             unordered_set<uint32_t> tmp_clusterIds_set;
             
             for( uint i = 0; i < clusters.size(); ++i ) {
                const uint32_t id = *clusters[i].clusterId;
-               if( id == 0) {continue;}
+               //if( id == 0) {continue;}
                if( tmp_clusterIds_set.find( id ) == tmp_clusterIds_set.end() ) { tmp_clusterIds_set.insert(id); tmp_clusterIds.push_back(id); }
             }
          }
          // Sort:
-         sort( tmp_clusterIds.begin(), tmp_clusterIds.end() );
-         // Map the ids:
+         sort( tmp_clusterIds.begin(), tmp_clusterIds.end() ); //tmp_clusterids should look like this: [0 1 3 5 6 7 8]
+         // Map the ids: after this, the ids should look like this: {0: 0, 1:1; 3:2, 5:3, 6:4, 7:5, 8:6}
          for( uint i = 0; i < tmp_clusterIds.size(); ++i ) {
-            // Before inserting, check if id has already been inserted:
+            // Get id, and insert
             const uint32_t id = tmp_clusterIds[i];
             // Map the id:
             ids.insert( make_pair( id, i ) );
          }
       }
 
+      // Make a temp copy of clusterids; clusterids_copy looks like [0 1 5 7 3 6 8 8 3]
       vector<uint32_t> clusterids_copy; clusterids_copy.resize(clusters.size());
 
       for( uint i = 0; i < clusters.size(); ++i ) {
          clusterids_copy[i] = *clusters[i].clusterId;
       }
 
-      // Fix the clusterids according to the mapped values
+      // Fix the clusterids according to the mapped values; afterwards clusters should look like this: [0 1 3 5 2 4 6 6 2]
       for( uint i = 0; i < clusters.size(); ++i ) {
          const uint32_t id = clusterids_copy[i];
-         if( id == 0) {continue;}
+         //if( id == 0) {continue;}
          *clusters[i].clusterId = ids.at(id);
       }
 
@@ -1099,11 +1122,19 @@ static inline void cluster_advanced(
       cell->number_of_populations = ids.size();
    }
 
-   
+#ifndef NDEBUG
+num_noclusters = 0;
+for( vector<Cluster_Fast>::const_iterator it = clusters.begin(); it != clusters.end(); ++it ) {
+   if( *(it->clusterId) == 0 ) { num_noclusters++; }
+}
+phiprof_assert( num_noclusters == 1 );
+#endif
+
 
    // Set values of clusters and calculate number of clusters
    phiprof_assert( cell->block_fx.size() >= velocityCells.size() );
    for( uint i = 0; i < velocityCells.size(); ++i ) {
+      phiprof_assert( clusterIds[i] != 0 );
       const Realf value = *clusters[clusterIds[i]].clusterId;
       cell->block_fx[i] = value;
    }
@@ -1524,10 +1555,22 @@ static uint max_number_of_populations( const dccrg::Dccrg<SpatialCell,dccrg::Car
 }
 
 // Function for writing out rho for different populations:
-static inline bool write_rho( const uint max_populations, const vector<uint64_t> & local_cells, const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, Writer & vlsvWriter ) {
+static inline bool write_rho( const uint max_populations, const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, Writer & vlsvWriter ) {
    bool success = true;
    // Write out the population:
    //success = vlsvWriter.writeArray("VARIABLE", xmlAttributes, arraySize, 1, population_rho.data());
+   vector<uint64_t> local_cells = mpiGrid.get_cells();
+   if( local_cells.size() == 0 ) {
+      const uint64_t arraySize = 0;
+      const uint64_t vectorSize = max_populations; // Population is Real, so a scalar
+      const string name = "PopulationRho";
+      map<string, string> xmlAttributes;
+      xmlAttributes["name"] = name;
+      xmlAttributes["mesh"] = "SpatialGrid";
+      Real dummy_data = 0;
+      return vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, &dummy_data );
+   }
+
    vector<Real> population_rho;
    population_rho.resize( max_populations * local_cells.size() );
 
@@ -1539,10 +1582,14 @@ static inline bool write_rho( const uint max_populations, const vector<uint64_t>
    for( unsigned int i = 0; i < local_cells.size(); ++i ) {
       const uint64_t cellId = local_cells[i];
       SpatialCell * cell = mpiGrid[cellId];
-      const Velocity_Block* block_ptr = cell->at(cell->velocity_block_list[0]);
-      const Real DV3 = block_ptr->parameters[BlockParams::DVX] * block_ptr->parameters[BlockParams::DVY] * block_ptr->parameters[BlockParams::DVZ];
-      for( uint v = 0; v < cell->number_of_blocks * WID3; ++v ) {
-         population_rho[max_populations*i + (uint)(cell->block_fx[v])] += cell->block_data[v] * DV3;
+      if( cell->number_of_blocks > 0 ) {
+         const Velocity_Block* block_ptr = cell->at(cell->velocity_block_list[0]);
+         const Real DV3 = block_ptr->parameters[BlockParams::DVX] * block_ptr->parameters[BlockParams::DVY] * block_ptr->parameters[BlockParams::DVZ];
+         for( uint v = 0; v < cell->number_of_blocks * WID3; ++v ) {
+            phiprof_assert( max_populations*i + (uint)(cell->block_fx[v]) < max_populations * local_cells.size() );
+            if( max_populations*i + (uint)(cell->block_fx[v]) > max_populations * local_cells.size() ) { cerr << "BAD VALUE" << endl; return false; }
+            population_rho[max_populations*i + (uint)(cell->block_fx[v])] += cell->block_data[v] * DV3;
+         }
       }
    }
 
@@ -1563,6 +1610,106 @@ static inline bool write_rho( const uint max_populations, const vector<uint64_t>
    return success;
 }
 
+
+
+// Function for writing out rho_v for different populations:
+static inline bool write_rho_v( const uint max_populations, const vector<uint64_t> & local_cells, const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, Writer & vlsvWriter ) {
+   bool success = true;
+   // Write out the population:
+   //success = vlsvWriter.writeArray("VARIABLE", xmlAttributes, arraySize, 1, population_rho.data());
+   vector<Real> population_rho_v_x;
+   population_rho_v_x.resize( max_populations * local_cells.size() );
+   vector<Real> population_rho_v_y;
+   population_rho_v_y.resize( max_populations * local_cells.size() );
+   vector<Real> population_rho_v_z;
+   population_rho_v_z.resize( max_populations * local_cells.size() );
+
+   const Real HALF = 0.5;
+
+   for(uint i = 0; i < population_rho_v_x.size(); ++i ) {
+      population_rho_v_x[i] = 0;
+      population_rho_v_y[i] = 0;
+      population_rho_v_z[i] = 0;
+   }
+
+   // Fetch different population_rho:
+   for( unsigned int i = 0; i < local_cells.size(); ++i ) {
+      const uint64_t cellId = local_cells[i];
+      SpatialCell * cell = mpiGrid[cellId];
+      const Velocity_Block* block_ptr = cell->at(cell->velocity_block_list[0]);
+      const Real DV3 = block_ptr->parameters[BlockParams::DVX] * block_ptr->parameters[BlockParams::DVY] * block_ptr->parameters[BlockParams::DVZ];
+      #pragma omp parallel
+      {
+         vector<Real> thread_population_rho_v_x; thread_population_rho_v_x.resize(max_populations);
+         vector<Real> thread_population_rho_v_y; thread_population_rho_v_y.resize(max_populations);
+         vector<Real> thread_population_rho_v_z; thread_population_rho_v_z.resize(max_populations);
+         for( uint j = 0; j < max_populations; ++j ) {
+            thread_population_rho_v_x[j] = 0;
+            thread_population_rho_v_y[j] = 0;
+            thread_population_rho_v_z[j] = 0;
+         }
+         #pragma omp for
+         for( uint b = 0; b < cell->number_of_blocks; ++b ) {
+            const unsigned int blockId = cell->velocity_block_list[b];
+            const Velocity_Block* block = cell->at( blockId );
+            for( uint vi = 0; vi < WID; ++vi ) for( uint vj = 0; vj < WID; ++vj ) for( uint vk = 0; vk < WID; ++vk ) {
+               const uint vCellId = vi + vj*WID + vk*WID*WID;
+               const uint v = b*WID3 + vCellId;
+               const Real VX = block->parameters[BlockParams::VXCRD] + (vi+HALF) * block->parameters[BlockParams::DVX];
+               const Real VY = block->parameters[BlockParams::VYCRD] + (vj+HALF) * block->parameters[BlockParams::DVY];
+               const Real VZ = block->parameters[BlockParams::VZCRD] + (vk+HALF) * block->parameters[BlockParams::DVZ];
+               thread_population_rho_v_x[(uint)(cell->block_fx[v])] += cell->block_data[v] * DV3 * VX;
+               thread_population_rho_v_y[(uint)(cell->block_fx[v])] += cell->block_data[v] * DV3 * VY;
+               thread_population_rho_v_z[(uint)(cell->block_fx[v])] += cell->block_data[v] * DV3 * VZ;
+            }
+         }
+
+         #pragma omp critical
+         {
+            for( uint j = 0; j < max_populations; ++j ) {
+               population_rho_v_x[max_populations*i + j] = thread_population_rho_v_x[j];
+               population_rho_v_y[max_populations*i + j] = thread_population_rho_v_y[j];
+               population_rho_v_z[max_populations*i + j] = thread_population_rho_v_z[j];
+            }
+         }
+      }
+   }
+
+   // Write the data out, we need arraySizze, vectorSize and name to do this
+   const uint64_t arraySize = local_cells.size();
+   const uint64_t vectorSize = max_populations; // Population is Real, so a scalar
+
+   map<string, string> xmlAttributes;
+   xmlAttributes["name"] = "PopulationRhoVX";
+   xmlAttributes["mesh"] = "SpatialGrid";
+
+   // Write the array and return false if the writing fails
+   if( vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, population_rho_v_x.data() ) == false ) {
+      success = false;
+   }
+
+   xmlAttributes.clear();
+   xmlAttributes["name"] = "PopulationRhoVY";
+   xmlAttributes["mesh"] = "SpatialGrid";
+
+   // Write the array and return false if the writing fails
+   if( vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, population_rho_v_y.data() ) == false ) {
+      success = false;
+   }
+
+   xmlAttributes.clear();
+   xmlAttributes["name"] = "PopulationRhoVZ";
+   xmlAttributes["mesh"] = "SpatialGrid";
+
+   // Write the array and return false if the writing fails
+   if( vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, population_rho_v_z.data() ) == false ) {
+      success = false;
+   }
+
+   return success;
+}
+
+
 /*! Writes the population variables, so variables for different populations.
 
  \param mpiGrid                 The DCCRG grid with spatial cells
@@ -1571,10 +1718,10 @@ static inline bool write_rho( const uint max_populations, const vector<uint64_t>
 bool write_population_variables( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, Writer & vlsvWriter ) {
    // Get max number of populations (to be used in determining how many arrays to write)
    const uint max_populations = max_number_of_populations( mpiGrid );
-   // Fetch cells:
-   const vector<uint64_t> local_cells = mpiGrid.get_cells();
+//   // Fetch cells:
+//   const vector<uint64_t> local_cells = mpiGrid.get_cells();
    // Write rho:
-   bool success = write_rho( max_populations, local_cells, mpiGrid, vlsvWriter );
+   bool success = write_rho( max_populations, mpiGrid, vlsvWriter );
    return success;
 }
 
