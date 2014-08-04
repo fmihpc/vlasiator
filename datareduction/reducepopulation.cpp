@@ -954,6 +954,10 @@ static inline void cluster_advanced(
       Cluster_Fast first_cluster;
       first_cluster.set_data( clusterId );
       clusters.push_back( first_cluster );
+      const Velocity_Cell & vCell = velocityCells[velocityCells.size()-1];
+      const uint32_t id = vCell.hash( startingPoint );
+      // Add the highest valued velocity cell to the first cluster:
+      clusterIds[id] = clusterId;
    }
    //----------------------------------------------
 
@@ -1136,7 +1140,7 @@ phiprof_assert( num_noclusters == 1 );
    for( uint i = 0; i < velocityCells.size(); ++i ) {
       phiprof_assert( clusterIds[i] != 0 );
       const Realf value = *clusters[clusterIds[i]].clusterId;
-      cell->block_fx[i] = value;
+      cell->block_fx[i] = value-1;
    }
 
 
