@@ -671,10 +671,7 @@ static inline void cluster_simple(
                // The velocity cell has a bigger value than the threshold so add it
                all_vCells[ id ] = clusterId;
                all_neighbors.push_back( tmp_neighbors[j] );
-               if( debugging_iterator >= velocityCells.size() ) {
-                  cerr << "Error at " << __FILE__ << " " << __LINE__ << endl;
-                  exit(1);
-               }
+               phiprof_assert( debugging_iterator < velocityCells.size() );
                ++debugging_iterator;
             }
          }
@@ -1575,6 +1572,8 @@ static inline bool write_rho( const uint max_populations, const dccrg::Dccrg<Spa
       return vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, &dummy_data );
    }
 
+
+
    vector<Real> population_rho;
    population_rho.resize( max_populations * local_cells.size() );
 
@@ -1589,10 +1588,28 @@ static inline bool write_rho( const uint max_populations, const dccrg::Dccrg<Spa
       if( cell->number_of_blocks > 0 ) {
          const Velocity_Block* block_ptr = cell->at(cell->velocity_block_list[0]);
          const Real DV3 = block_ptr->parameters[BlockParams::DVX] * block_ptr->parameters[BlockParams::DVY] * block_ptr->parameters[BlockParams::DVZ];
-         for( uint v = 0; v < cell->number_of_blocks * WID3; ++v ) {
-            phiprof_assert( max_populations*i + (uint)(cell->block_fx[v]) < max_populations * local_cells.size() );
-            if( max_populations*i + (uint)(cell->block_fx[v]) > max_populations * local_cells.size() ) { cerr << "BAD VALUE" << endl; return false; }
-            population_rho[max_populations*i + (uint)(cell->block_fx[v])] += cell->block_data[v] * DV3;
+         vector<Real> thread_population_rho;
+         thread_population_rho.resize( max_populations );
+         // Set to zero:
+         for( uint j = 0; j < max_populations; ++j ) { thread_population_rho[j] = 0; }
+         #pragma omp parallel
+         {
+            vector<Real> thread_population_rho;
+            thread_population_rho.resize( max_populations );
+            // Set to zero:
+            for( uint j = 0; j < max_populations; ++j ) { thread_population_rho[j] = 0; }
+            // Loop through velocity cells:
+            #pragma omp for
+            for( uint v = 0; v < cell->number_of_blocks * WID3; ++v ) {
+               phiprof_assert( max_populations*i + (uint)(cell->block_fx[v]) < max_populations * local_cells.size() );
+               phiprof_assert( max_populations > (uint)(cell->block_fx[v]) );
+               thread_population_rho[(uint)(cell->block_fx[v])] += cell->block_data[v] * DV3;
+            }
+            const uint cell_index = max_populations*i;
+            for( uint j = 0; j < max_populations; ++j ) {
+               #pragma omp atomic
+               population_rho[cell_index + j] += thread_population_rho[j];
+            }
          }
       }
    }
@@ -1642,16 +1659,22 @@ static inline bool write_rho_v( const uint max_populations, const vector<uint64_
       SpatialCell * cell = mpiGrid[cellId];
       const Velocity_Block* block_ptr = cell->at(cell->velocity_block_list[0]);
       const Real DV3 = block_ptr->parameters[BlockParams::DVX] * block_ptr->parameters[BlockParams::DVY] * block_ptr->parameters[BlockParams::DVZ];
+      // Loop through blocks:
       #pragma omp parallel
       {
-         vector<Real> thread_population_rho_v_x; thread_population_rho_v_x.resize(max_populations);
-         vector<Real> thread_population_rho_v_y; thread_population_rho_v_y.resize(max_populations);
-         vector<Real> thread_population_rho_v_z; thread_population_rho_v_z.resize(max_populations);
+         vector<Real> thread_population_rho_v_x;
+         thread_population_rho_v_x.resize( max_populations * local_cells.size() );
+         vector<Real> thread_population_rho_v_y;
+         thread_population_rho_v_y.resize( max_populations * local_cells.size() );
+         vector<Real> thread_population_rho_v_z;
+         thread_population_rho_v_z.resize( max_populations * local_cells.size() );
+
          for( uint j = 0; j < max_populations; ++j ) {
             thread_population_rho_v_x[j] = 0;
             thread_population_rho_v_y[j] = 0;
             thread_population_rho_v_z[j] = 0;
          }
+
          #pragma omp for
          for( uint b = 0; b < cell->number_of_blocks; ++b ) {
             const unsigned int blockId = cell->velocity_block_list[b];
@@ -1659,21 +1682,23 @@ static inline bool write_rho_v( const uint max_populations, const vector<uint64_
             for( uint vi = 0; vi < WID; ++vi ) for( uint vj = 0; vj < WID; ++vj ) for( uint vk = 0; vk < WID; ++vk ) {
                const uint vCellId = vi + vj*WID + vk*WID*WID;
                const uint v = b*WID3 + vCellId;
+               phiprof_assert( max_populations*i + (uint)(cell->block_fx[v]) < max_populations * local_cells.size() );
+               phiprof_assert( max_populations > (uint)(cell->block_fx[v]) );
                const Real VX = block->parameters[BlockParams::VXCRD] + (vi+HALF) * block->parameters[BlockParams::DVX];
                const Real VY = block->parameters[BlockParams::VYCRD] + (vj+HALF) * block->parameters[BlockParams::DVY];
                const Real VZ = block->parameters[BlockParams::VZCRD] + (vk+HALF) * block->parameters[BlockParams::DVZ];
+               // Input values into different populations
                thread_population_rho_v_x[(uint)(cell->block_fx[v])] += cell->block_data[v] * DV3 * VX;
                thread_population_rho_v_y[(uint)(cell->block_fx[v])] += cell->block_data[v] * DV3 * VY;
                thread_population_rho_v_z[(uint)(cell->block_fx[v])] += cell->block_data[v] * DV3 * VZ;
             }
          }
-
          #pragma omp critical
          {
             for( uint j = 0; j < max_populations; ++j ) {
-               population_rho_v_x[max_populations*i + j] = thread_population_rho_v_x[j];
-               population_rho_v_y[max_populations*i + j] = thread_population_rho_v_y[j];
-               population_rho_v_z[max_populations*i + j] = thread_population_rho_v_z[j];
+               population_rho_v_x[max_populations*i + j] += thread_population_rho_v_x[j];
+               population_rho_v_y[max_populations*i + j] += thread_population_rho_v_y[j];
+               population_rho_v_z[max_populations*i + j] += thread_population_rho_v_z[j];
             }
          }
       }
