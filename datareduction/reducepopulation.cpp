@@ -900,6 +900,65 @@ static inline void cluster(
    return;
 }
 
+static inline void test_neighbor_speed( 
+                                const vector<Velocity_Cell> & velocityCells,
+                                const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
+                                const array< vector< pair<int16_t, vector<uint16_t> > > , VELOCITY_BLOCK_LENGTH> & remote_vcell_neighbors,
+                                SpatialCell * cell,
+                                const Real resolution_threshold
+                                  ) {
+   if( velocityCells.size() == 0 ) { return; }
+   const uint numberOfVCells = velocityCells.size();
+   // Reserve a table for clusters:
+   //uint32_t * clusterIds = new uint32_t[numberOfVCells];
+   vector<Realf,aligned_allocator<Realf,64> > & clusterIds = cell->block_fx;
+
+   // Initialize to be part of no clusters:
+   const uint32_t noCluster = 0;
+   for( uint i = 0; i < velocityCells.size(); ++i ) {
+      clusterIds[i] = noCluster;
+   }
+
+   // Id for separating clusterIds
+   uint32_t clusterId = noCluster + 1;
+
+   // Set the first velocity cell to cluster one
+   uint32_t last_vCell = velocityCells.size()-1;
+   clusterIds[last_vCell] = clusterId;
+
+   // Start getting velocity neighbors
+   vector<Velocity_Cell> neighbors;
+   neighbors.reserve( numberOfVCellNeighbors );
+
+   const size_t startingPoint = (size_t)(cell->block_data.data());
+
+   uint32_t merges = 0;
+
+   Realf resolve = 0;
+
+   for( int i = velocityCells.size()-1; i >= 0; --i ) {
+      const Velocity_Cell & vCell = velocityCells[i];
+      // Get the neighbors:
+      get_neighbors( neighbors, vCell, local_vcell_neighbors, remote_vcell_neighbors, cell );
+      // Get the id of the velocity cell
+      //const uint32_t id = vCell.hash( startingPoint );
+
+      const uint32_t id = vCell.hash( startingPoint );
+      resolve += id;
+
+      // Keep track of the highest avgs of the neighbor:
+      for( vector<Velocity_Cell>::const_iterator it = neighbors.begin(); it != neighbors.end(); ++it ) {
+         const uint32_t neighbor_id = it->hash( startingPoint );
+         resolve += neighbor_id;
+      }
+   }
+
+   for( uint i = 0; i < velocityCells.size(); ++i ) {
+      cell->block_fx[i] = resolve;
+   }
+   return;
+}
+
 
 // A function for clustering velocity cells into separate populations.
 // This algorithm uses Cluster_Fast class to save different clusters. The algorithm starts from the highest-valued velocity cell, moves to the second-highest and puts the second-highest into the same cluster as its neighbor, if its neighbor is a part of a cluster.
@@ -1518,8 +1577,10 @@ void population_algorithm(
       }
    }
 
+   phiprof::start("sort_velocity_space");
    // Sort the list:
    sort(velocityCells.begin(), velocityCells.end());
+   phiprof::stop("sort_velocity_space");
 
    // Test clustering:
 
@@ -1527,6 +1588,7 @@ void population_algorithm(
    //cluster_simple( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
    //cluster_simple_two( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
    cluster_advanced( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell, resolution_threshold );
+   //test_neighbor_speed( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell, resolution_threshold );
    //cluster_advanced_two( velocityCells, local_vcell_neighbors, remote_vcell_neighbors, cell );
 
    return;

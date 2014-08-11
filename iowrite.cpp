@@ -770,13 +770,28 @@ bool writePopulation( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
                       const bool writeVariables,
                       const bool writePopulations,
                       Writer & vlsvWriter ) {
+
+int myrank;
+MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+
+MPI_Barrier( MPI_COMM_WORLD );
+if( myrank == 0 ) { cerr << __FILE__ << " " << __LINE__ << endl; }
+MPI_Barrier( MPI_COMM_WORLD );
+
+
    // Don't do anything if nothing is written
    if( writeDistribution == false && writeVariables == false && writePopulations == false ) { return true; }
    phiprof::start("write-population");
    array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> local_vcell_neighbors;
    array< vector< pair<int16_t, vector<uint16_t> > >, VELOCITY_BLOCK_LENGTH> remote_vcell_neighbors;
+MPI_Barrier( MPI_COMM_WORLD );
+if( myrank == 0 ) { cerr << __FILE__ << " " << __LINE__ << endl; }
+MPI_Barrier( MPI_COMM_WORLD );
 
    set_local_and_remote_velocity_cell_neighbors( local_vcell_neighbors, remote_vcell_neighbors );
+MPI_Barrier( MPI_COMM_WORLD );
+if( myrank == 0 ) { cerr << __FILE__ << " " << __LINE__ << endl; }
+MPI_Barrier( MPI_COMM_WORLD );
 
    // For writing out velocity space cells: Note: If we only write out distribution then population_algorithm should only be calculated for velocity space cells which we write out (for example in some distribution.vlsv files we might want to write out every 15th cell's distribution function
    vector<uint64_t> velSpaceCells;
@@ -784,12 +799,15 @@ bool writePopulation( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
       // Calculate which velocity space cells write out the velocity space
       compute_velocity_space_cells( mpiGrid, local_cells, index, velSpaceCells );
    }
+MPI_Barrier( MPI_COMM_WORLD );
+if( myrank == 0 ) { cerr << __FILE__ << " " << __LINE__ << endl; }
+MPI_Barrier( MPI_COMM_WORLD );
 
    // Calculate the populations, note that the populations are currently saved in the block_fx
    phiprof::start("calculate-population");
    {
       // Get which cells' populations need to be calculated: (This variable will only be used in the population_algorithm function
-      vector<uint64_t> * population_cells;
+      const vector<uint64_t> * population_cells;
       if( writeDistribution == true && writeVariables == false && writePopulations == false ) {
          // If we only write out  distribution function and not variables or population, it means that the populations should be calculated only for the cells which we write the distribution function for
          population_cells = &velSpaceCells;
@@ -806,6 +824,9 @@ bool writePopulation( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
       }
    }
    phiprof::stop("calculate-population");
+MPI_Barrier( MPI_COMM_WORLD );
+if( myrank == 0 ) { cerr << __FILE__ << " " << __LINE__ << endl; }
+MPI_Barrier( MPI_COMM_WORLD );
 
    bool success = true;
 
@@ -816,6 +837,9 @@ bool writePopulation( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
       write_population_distribution( mpiGrid, velSpaceCells, vlsvWriter );
       phiprof::stop("write-distribution-population");
    }
+MPI_Barrier( MPI_COMM_WORLD );
+if( myrank == 0 ) { cerr << __FILE__ << " " << __LINE__ << endl; }
+MPI_Barrier( MPI_COMM_WORLD );
 
    // Write out the population variables:
    if( writeVariables ) {
@@ -825,6 +849,9 @@ bool writePopulation( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
       }
       phiprof::stop("write-population-variables");
    }
+MPI_Barrier( MPI_COMM_WORLD );
+if( myrank == 0 ) { cerr << __FILE__ << " " << __LINE__ << endl; }
+MPI_Barrier( MPI_COMM_WORLD );
    // Write out the number of populations:
    if( writePopulations ) {
       phiprof::start("write-numberofpopulations");
@@ -856,6 +883,9 @@ bool writePopulation( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
       }
       phiprof::stop("write-numberofpopulations");
    }
+MPI_Barrier( MPI_COMM_WORLD );
+if( myrank == 0 ) { cerr << __FILE__ << " " << __LINE__ << endl; }
+MPI_Barrier( MPI_COMM_WORLD );
 
    phiprof::stop("write-population");
    return success;
