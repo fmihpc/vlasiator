@@ -778,13 +778,32 @@ bool writePopulation( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
 
    set_local_and_remote_velocity_cell_neighbors( local_vcell_neighbors, remote_vcell_neighbors );
 
+   // For writing out velocity space cells: Note: If we only write out distribution then population_algorithm should only be calculated for velocity space cells which we write out (for example in some distribution.vlsv files we might want to write out every 15th cell's distribution function
+   vector<uint64_t> velSpaceCells;
+   if( writeDistribution == true ) {
+      // Calculate which velocity space cells write out the velocity space
+      compute_velocity_space_cells( mpiGrid, local_cells, index, velSpaceCells );
+   }
+
    // Calculate the populations, note that the populations are currently saved in the block_fx
    phiprof::start("calculate-population");
-   #pragma omp parallel for schedule(dynamic,1)
-   for( unsigned int i = 0; i < local_cells.size(); ++i ) {
-      const uint64_t cellId = local_cells[i];
-      SpatialCell * cell = mpiGrid[cellId];
-      population_algorithm( cell, local_vcell_neighbors, remote_vcell_neighbors );
+   {
+      // Get which cells' populations need to be calculated: (This variable will only be used in the population_algorithm function
+      vector<uint64_t> * population_cells;
+      if( writeDistribution == true && writeVariables == false && writePopulations == false ) {
+         // If we only write out  distribution function and not variables or population, it means that the populations should be calculated only for the cells which we write the distribution function for
+         population_cells = &velSpaceCells;
+      } else {
+         // We calculate the population for all local cells:
+         population_cells = &local_cells;
+      }
+   
+      #pragma omp parallel for schedule(dynamic,1)
+      for( unsigned int i = 0; i < (*population_cells).size(); ++i ) {
+         const uint64_t cellId = (*population_cells)[i];
+         SpatialCell * cell = mpiGrid[cellId];
+         population_algorithm( cell, local_vcell_neighbors, remote_vcell_neighbors );
+      }
    }
    phiprof::stop("calculate-population");
 
@@ -794,9 +813,6 @@ bool writePopulation( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    // Write out the distribution function:
    if( writeDistribution ) {
       phiprof::start("write-distribution-population");
-      //Compute which cells will write out their velocity space
-      vector<uint64_t> velSpaceCells;
-      compute_velocity_space_cells( mpiGrid, local_cells, index, velSpaceCells );
       write_population_distribution( mpiGrid, velSpaceCells, vlsvWriter );
       phiprof::stop("write-distribution-population");
    }
