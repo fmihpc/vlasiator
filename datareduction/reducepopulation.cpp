@@ -961,8 +961,50 @@ static inline void test_neighbor_speed(
 }
 
 
-// A function for clustering velocity cells into separate populations.
-// This algorithm uses Cluster_Fast class to save different clusters. The algorithm starts from the highest-valued velocity cell, moves to the second-highest and puts the second-highest into the same cluster as its neighbor, if its neighbor is a part of a cluster.
+/*! A function that clusters velocity cells into separate populations. This algorithm uses the class Cluster to save different clusters and then writes them out into a spatial cell's block_fx values. It should be noted that this function changes spatial cell's block_fx value, so one should be careful when using this function. The algorithm starts from the highest-valued velocity cell, moves to the second-highest and puts the second highest into the same cluster as its neighbor, if its neighbor is part of a cluster.
+
+Pseudocode:
+\code{.cpp}
+pre-processing:
+// Sort velocity cells
+velocity_cells = sort(velocity_cells)
+
+cluster_advanced()
+  // Start with no populations (or clusters, whichever we want to call them)
+  populations=[]
+  // Go through each velocity cell starting from highest avgs value, second highest, third highest, etc..
+  for velocity_cell in velocity_cells
+    neighbors = get_neighbors(velocity_cell) // Gets all of velocity cell's neighbors, in total 6 neighbors from each face
+    for neighbor in neighbors // Go through every neighbor
+      if neighbor in populations // Check if the neighbor has been put into some population
+        if velocity_cell in populations // Check if the velocity cell is a part of a population
+          // Now both velocity_cell and neighbor are in populations! Get the populations!
+          velocity_cell_population = population( velocity_cell )
+          neighbor_population = population( neighbor )
+          // If one of the populations is really small, then merge the populations into one big population
+          if neighbor_population < really_small or velocity_cell_population < really_small
+             merge( velocity_cell_population and neighbor_population ) // Now all members of velocity_cell population are also members of neighbor_population, and vice-versa
+        else
+          // velocity_cell is not a part of a population, but the neighbor is! So add velocity_cell to the neighbor's population
+          neighbor_population = population( neighbor )
+          add( velocity_cell, neighbor_population ) // Now velocity cell is part of a population too
+      else
+        do_nothing()
+   //if velocity_cell is still not part of a population, it means that none of its neighbors are part of a population, so create a new population for it!
+   if velocity_cell not in populations
+      new_population = create_new_population()
+      populations.add( new_population )
+      add( velocity_cell, new_population ) // Now velocity cell is part of a new population of velocity cells
+      
+\endcode
+
+ \param velocityCells                         List of velocity cells within the spatial cell, note: this should be sorted based on the avgs value
+ \param local_vcell_neighbors                 local_vcell_neighbors[vCellId] gives the local neighbors of a velocity cell (neighbors that are within the same block)
+ \param remote_vcell_neighbors                remote_vcell_neighbors[vCellId] Gives a vector containing remote neighbors of the velocity cell (neighbors that are outside the block) in vector< pair<int16_t, vector<uint16_t> > > format. The pair's first index gives the neighbor block index (check spatial_cell.hpp for more information) and the second index gives the local velocity cells within that neighbor block.
+ \param cell                                  The spatial cell whose populatios will be calculated
+ \param resolution_threshold                A value for determining how large at minimum we want our populations to be. 0.006 seems ok unless there's a reason to believe otherwise.
+
+ */
 static inline void cluster_advanced( 
                                 const vector<Velocity_Cell> & velocityCells,
                                 const array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> & local_vcell_neighbors,
