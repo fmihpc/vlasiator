@@ -956,6 +956,7 @@ static inline void test_neighbor_speed(
    for( uint i = 0; i < velocityCells.size(); ++i ) {
       cell->block_fx[i] = resolve;
    }
+   cell->number_of_populations = (uint)(resolve);
    return;
 }
 
@@ -1618,11 +1619,10 @@ static uint max_number_of_populations( const dccrg::Dccrg<SpatialCell,dccrg::Car
 }
 
 // Function for writing out rho for different populations:
-static inline bool write_rho( const uint max_populations, const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, Writer & vlsvWriter ) {
+static inline bool write_rho( const uint max_populations, const vector<uint64_t> & local_cells, const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, Writer & vlsvWriter ) {
    bool success = true;
    // Write out the population:
    //success = vlsvWriter.writeArray("VARIABLE", xmlAttributes, arraySize, 1, population_rho.data());
-   vector<uint64_t> local_cells = mpiGrid.get_cells();
    if( local_cells.size() == 0 ) {
       const uint64_t arraySize = 0;
       const uint64_t vectorSize = max_populations; // Population is Real, so a scalar
@@ -1698,6 +1698,39 @@ static inline bool write_rho( const uint max_populations, const dccrg::Dccrg<Spa
 // Function for writing out rho_v for different populations:
 static inline bool write_rho_v( const uint max_populations, const vector<uint64_t> & local_cells, const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, Writer & vlsvWriter ) {
    bool success = true;
+
+   if( local_cells.size() == 0 ) {
+      const uint64_t arraySize = 0;
+      const uint64_t vectorSize = max_populations; // Population is Real, so a scalar
+      Real dummy_data = 0;
+
+
+      map<string, string> xmlAttributes;
+      xmlAttributes["name"] = "PopulationRhoVX";
+      xmlAttributes["mesh"] = "SpatialGrid";
+      // Write the array and return false if the writing fails
+      if( vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, &dummy_data ) == false ) {
+         success = false;
+      }
+   
+      xmlAttributes.clear();
+      xmlAttributes["name"] = "PopulationRhoVY";
+      xmlAttributes["mesh"] = "SpatialGrid";
+      // Write the array and return false if the writing fails
+      if( vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, &dummy_data ) == false ) {
+         success = false;
+      }
+   
+      xmlAttributes.clear();
+      xmlAttributes["name"] = "PopulationRhoVZ";
+      xmlAttributes["mesh"] = "SpatialGrid";
+        // Write the array and return false if the writing fails
+      if( vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, &dummy_data ) == false ) {
+         success = false;
+      }
+      return success;
+   }
+
    // Write out the population:
    //success = vlsvWriter.writeArray("VARIABLE", xmlAttributes, arraySize, 1, population_rho.data());
    vector<Real> population_rho_v_x;
@@ -1812,7 +1845,9 @@ bool write_population_variables( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian
 //   // Fetch cells:
 //   const vector<uint64_t> local_cells = mpiGrid.get_cells();
    // Write rho:
-   bool success = write_rho( max_populations, mpiGrid, vlsvWriter );
+   vector<uint64_t> local_cells = mpiGrid.get_cells();
+   bool success = write_rho( max_populations, local_cells, mpiGrid, vlsvWriter );
+   if( success == true ) { success == write_rho_v( max_populations, local_cells, mpiGrid, vlsvWriter ); }
    return success;
 }
 
@@ -1820,10 +1855,11 @@ bool write_population_variables( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian
 
 
 /*! Writes the distribution function for different populations. Note that population_algorithm must have been called before this!
-
+    
  \param mpiGrid                 The DCCRG grid with spatial cells
  \param vlsvWriter              The VLSV writer class for writing VLSV files, note that the file must have been opened already
- */
+ \param local_cells             The cells for which we write out the velocity space
+ */ 
 bool write_population_distribution( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const vector<uint64_t> & local_cells, vlsv::Writer & vlsvWriter ) {
    string name = "BLOCKVARIABLEPOPULATION";
 
