@@ -774,9 +774,6 @@ bool writePopulation( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
 int myrank;
 MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
 
-MPI_Barrier( MPI_COMM_WORLD );
-if( myrank == 0 ) { cerr << __FILE__ << " " << __LINE__ << endl; }
-MPI_Barrier( MPI_COMM_WORLD );
 
 
    // Don't do anything if nothing is written
@@ -784,24 +781,19 @@ MPI_Barrier( MPI_COMM_WORLD );
    phiprof::start("write-population");
    array<vector<uint16_t>, VELOCITY_BLOCK_LENGTH> local_vcell_neighbors;
    array< vector< pair<int16_t, vector<uint16_t> > >, VELOCITY_BLOCK_LENGTH> remote_vcell_neighbors;
-MPI_Barrier( MPI_COMM_WORLD );
-if( myrank == 0 ) { cerr << __FILE__ << " " << __LINE__ << endl; }
-MPI_Barrier( MPI_COMM_WORLD );
 
    set_local_and_remote_velocity_cell_neighbors( local_vcell_neighbors, remote_vcell_neighbors );
-MPI_Barrier( MPI_COMM_WORLD );
-if( myrank == 0 ) { cerr << __FILE__ << " " << __LINE__ << endl; }
-MPI_Barrier( MPI_COMM_WORLD );
 
-   // For writing out velocity space cells: Note: If we only write out distribution then population_algorithm should only be calculated for velocity space cells which we write out (for example in some distribution.vlsv files we might want to write out every 15th cell's distribution function
-   vector<uint64_t> velSpaceCells;
-   if( writeDistribution == true ) {
-      // Calculate which velocity space cells write out the velocity space
-      compute_velocity_space_cells( mpiGrid, local_cells, index, velSpaceCells );
-   }
-MPI_Barrier( MPI_COMM_WORLD );
-if( myrank == 0 ) { cerr << __FILE__ << " " << __LINE__ << endl; }
-MPI_Barrier( MPI_COMM_WORLD );
+//   // For writing out velocity space cells: Note: If we only write out distribution then population_algorithm should only be calculated for velocity space cells which we write out (for example in some distribution.vlsv files we might want to write out every 15th cell's distribution function
+//   vector<uint64_t> velSpaceCells;
+//   if( writeDistribution == true ) {
+//      // Calculate which velocity space cells write out the velocity space
+//      compute_velocity_space_cells( mpiGrid, local_cells, index, velSpaceCells );
+//   }
+
+MPI_Barrier(MPI_COMM_WORLD);
+cerr << __FILE__ << " " << __LINE__ << endl;
+MPI_Barrier(MPI_COMM_WORLD);
 
    // Calculate the populations, note that the populations are currently saved in the block_fx
    phiprof::start("calculate-population");
@@ -810,7 +802,7 @@ MPI_Barrier( MPI_COMM_WORLD );
       const vector<uint64_t> * population_cells;
       if( writeDistribution == true && writeVariables == false && writePopulations == false ) {
          // If we only write out  distribution function and not variables or population, it means that the populations should be calculated only for the cells which we write the distribution function for
-         population_cells = &velSpaceCells;
+         //population_cells = &velSpaceCells;
       } else {
          // We calculate the population for all local cells:
          population_cells = &local_cells;
@@ -824,9 +816,10 @@ MPI_Barrier( MPI_COMM_WORLD );
       }
    }
    phiprof::stop("calculate-population");
-MPI_Barrier( MPI_COMM_WORLD );
-if( myrank == 0 ) { cerr << __FILE__ << " " << __LINE__ << endl; }
-MPI_Barrier( MPI_COMM_WORLD );
+
+MPI_Barrier(MPI_COMM_WORLD);
+cerr << __FILE__ << " " << __LINE__ << endl;
+MPI_Barrier(MPI_COMM_WORLD);
 
    bool success = true;
 
@@ -834,58 +827,49 @@ MPI_Barrier( MPI_COMM_WORLD );
    // Write out the distribution function:
    if( writeDistribution ) {
       phiprof::start("write-distribution-population");
-      write_population_distribution( mpiGrid, velSpaceCells, vlsvWriter );
+//      write_population_distribution( mpiGrid, velSpaceCells, vlsvWriter );
       phiprof::stop("write-distribution-population");
    }
-MPI_Barrier( MPI_COMM_WORLD );
-if( myrank == 0 ) { cerr << __FILE__ << " " << __LINE__ << endl; }
-MPI_Barrier( MPI_COMM_WORLD );
 
    // Write out the population variables:
    if( writeVariables ) {
       phiprof::start("write-population-variables");
-      if( success == true && write_population_variables( mpiGrid, vlsvWriter )  == false) {
-         success = false;
-      }
+//      if( success == true && write_population_variables( mpiGrid, vlsvWriter )  == false) {
+//         success = false;
+//      }
       phiprof::stop("write-population-variables");
    }
-MPI_Barrier( MPI_COMM_WORLD );
-if( myrank == 0 ) { cerr << __FILE__ << " " << __LINE__ << endl; }
-MPI_Barrier( MPI_COMM_WORLD );
    // Write out the number of populations:
    if( writePopulations ) {
       phiprof::start("write-numberofpopulations");
 
-      vector<uint32_t> populations;
-      populations.resize( local_cells.size() );
-
-      // Fetch different populations:
-      for( unsigned int i = 0; i < local_cells.size(); ++i ) {
-         const uint64_t cellId = local_cells[i];
-         SpatialCell * cell = mpiGrid[cellId];
-         const uint32_t number_of_populations = cell->number_of_populations;
-         populations[i] = number_of_populations;
-      }
-
-      // Write the data out, we need arraySizze, vectorSize and name to do this
-      const uint64_t arraySize = local_cells.size();
-      const uint64_t vectorSize = 1; // Population is uint32_t, so a scalar (vector size 1)
-      const string name = "Populations";
-
-      map<string, string> xmlAttributes;
-      xmlAttributes["name"] = name;
-      xmlAttributes["mesh"] = "SpatialGrid";
-
-      // Write the array and return false if the writing fails
-
-      if( success == true && vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, populations.data() ) == false ) {
-         success = false;
-      }
+//      vector<uint32_t> populations;
+//      populations.resize( local_cells.size() );
+//
+//      // Fetch different populations:
+//      for( unsigned int i = 0; i < local_cells.size(); ++i ) {
+//         const uint64_t cellId = local_cells[i];
+//         SpatialCell * cell = mpiGrid[cellId];
+//         const uint32_t number_of_populations = cell->number_of_populations;
+//         populations[i] = number_of_populations;
+//      }
+//
+//      // Write the data out, we need arraySizze, vectorSize and name to do this
+//      const uint64_t arraySize = local_cells.size();
+//      const uint64_t vectorSize = 1; // Population is uint32_t, so a scalar (vector size 1)
+//      const string name = "Populations";
+//
+//      map<string, string> xmlAttributes;
+//      xmlAttributes["name"] = name;
+//      xmlAttributes["mesh"] = "SpatialGrid";
+//
+//      // Write the array and return false if the writing fails
+//
+//      if( success == true && vlsvWriter.writeArray( "VARIABLE", xmlAttributes, arraySize, vectorSize, populations.data() ) == false ) {
+//         success = false;
+//      }
       phiprof::stop("write-numberofpopulations");
    }
-MPI_Barrier( MPI_COMM_WORLD );
-if( myrank == 0 ) { cerr << __FILE__ << " " << __LINE__ << endl; }
-MPI_Barrier( MPI_COMM_WORLD );
 
    phiprof::stop("write-population");
    return success;
