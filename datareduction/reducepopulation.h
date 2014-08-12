@@ -43,5 +43,6 @@ bool write_population_variables( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian
 
  \param mpiGrid                 The DCCRG grid with spatial cells
  \param vlsvWriter              The VLSV writer class for writing VLSV files, note that the file must have been opened already
+ \param local_cells             The cells for which we write out the velocity space
  */
 bool write_population_distribution( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const vector<uint64_t> & local_cells, vlsv::Writer & vlsvWriter );
