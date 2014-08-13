@@ -554,7 +554,15 @@ void set_local_and_remote_velocity_cell_neighbors(
 //   return;
 //}
 
-// A function for retrieving the velocity cell neighbors of a given velocity cell. Note: There are alwayus 3*3*3-1=26 neighbors
+/*! A function for retrieving the velocity cell neighbors of a given velocity cell.
+
+ \param                      neighbors                           Empty vector where the neighbors of vCell gets stored
+ \param                      vCell                               The velocity cell whose neighbors will be fetched
+ \param                      local_vcell_neighbors               List of velocity cell neighbors within a block for each velocity cell within a block, note that this can be retrieved with the function set_local_and_remote_velocity_cell_neighbors
+ \param                      remote_vcell_neighbors              List of velocity cell neighbors outside of a block for each velocity cell within a block, note that this can be retrieved with the function set_local_and_remote_velocity_cell_neighbors
+ \param                      cell
+
+ */
 const static int numberOfVCellNeighbors = 26;
 static inline void get_neighbors(
                 vector<Velocity_Cell> & neighbors,
@@ -573,7 +581,7 @@ static inline void get_neighbors(
       neighbor.set_data( vCell.block, neighbor_vCellId );
       neighbors.push_back( neighbor );
    }
-   // Get the remote neighbors
+   // Get the remote neighbors (neighbors that are a part of another block)
    for( vector< pair<int16_t, vector<uint16_t> > >::const_iterator it = remote_vcell_neighbors[vCellId].begin(); it != remote_vcell_neighbors[vCellId].end(); ++it ) {
       // Get the neighbor block's index
       const uint32_t blockid = cell->get_velocity_block( vCell.block->parameters[BlockParams::VXCRD], 
