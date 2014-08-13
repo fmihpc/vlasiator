@@ -841,8 +841,10 @@ void population_algorithm(
    return;
 }
 
-// Function for getting the max number of populations:
+/*! Function for getting the max number of populations Note: the populations must have been saved
 
+ \param mpiGrid                 The DCCRG grid with spatial cells
+ */
 static uint max_number_of_populations( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) {
    uint local_max_populations = 0;
    // Fetch cells:
@@ -865,7 +867,14 @@ static uint max_number_of_populations( const dccrg::Dccrg<SpatialCell,dccrg::Car
    return max_populations;
 }
 
-// Function for writing out rho for different populations:
+/*! Function for writing out rho for different populations:
+
+ \param max_populations         Max number of populations in all cells
+ \param local_cells             Cells for which to write the population
+ \param mpiGrid                 The DCCRG grid with spatial cells
+ \param vlsvWriter              The VLSV writer class for writing VLSV files, note that the file must have been opened already
+
+ */
 static inline bool write_rho( const uint max_populations, const vector<uint64_t> & local_cells, const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, Writer & vlsvWriter ) {
    bool success = true;
    // Write out the population:
@@ -942,7 +951,14 @@ static inline bool write_rho( const uint max_populations, const vector<uint64_t>
 
 
 
-// Function for writing out rho_v for different populations:
+/*! Function for writing out rho_v for different populations:
+
+ \param max_populations         Max number of populations in all cells
+ \param local_cells             Cells for which to write the population
+ \param mpiGrid                 The DCCRG grid with spatial cells
+ \param vlsvWriter              The VLSV writer class for writing VLSV files, note that the file must have been opened already
+
+ */
 static inline bool write_rho_v( const uint max_populations, const vector<uint64_t> & local_cells, const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, Writer & vlsvWriter ) {
    bool success = true;
 
