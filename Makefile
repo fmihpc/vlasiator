@@ -6,7 +6,7 @@ include MAKE/Makefile.${ARCH}
 FP_PRECISION = DP
 
 #Set floating point precision for distribution function to SPF (single) or DPF (double)
-DISTRIBUTION_FP_PRECISION = DPF
+DISTRIBUTION_FP_PRECISION = SPF
 
 #set a default archive utility, can also be set in Makefile.arch
 AR ?= ar
@@ -39,7 +39,7 @@ CXXFLAGS += -DNDEBUG
 #  TRANS_SEMILAG_PLM 	2nd order	
 #  TRANS_SEMILAG_PPM	3rd order (for production use, use unless testing)
 #  TRANS_SEMILAG_PQM	5th order (in testing)
-CXXFLAGS += -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PQM 
+CXXFLAGS += -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PPM 
 #define USE_AGNER_VECTORCLASS to use an external vector class that is used in some of the solvers
 #If not defined a slower but portable implementation is used, as the external one only supports 
 #Linux & x86 processors  
