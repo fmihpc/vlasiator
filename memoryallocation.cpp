@@ -98,12 +98,13 @@ void report_process_memory_consumption(){
       double min_mem_papi[2];
       double max_mem_papi[2];
       /*PAPI returns memory in KB units, transform to bytes*/
-      mem_papi[0] = dmem.size * 1024; 
+      mem_papi[0] = dmem.high_water_mark * 1024; 
       mem_papi[1] = dmem.resident * 1024;
       MPI_Reduce(mem_papi, sum_mem_papi, 2, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
       MPI_Reduce(mem_papi, min_mem_papi, 2, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD);
       MPI_Reduce(mem_papi, max_mem_papi, 2, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
       logFile << "(MEM) PAPI Resident (avg, min, max): " << sum_mem_papi[1]/n_procs << " " << min_mem_papi[1] << " "  << max_mem_papi[1] << endl;
+      logFile << "(MEM) PAPI High water mark (avg, min, max): " << sum_mem_papi[0]/n_procs << " " << min_mem_papi[0] << " "  << max_mem_papi[0] << endl;
    }   
 #endif
 
