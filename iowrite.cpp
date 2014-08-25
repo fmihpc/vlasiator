@@ -701,20 +701,20 @@ bool writeVelocitySpace( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mp
          }
          // Cell lines selection
          // Determine cellID's 3D indices
-         lineX =  cells[i] % P::xcells_ini;
-         lineY = (cells[i] / P::xcells_ini) % P::ycells_ini;
-         lineZ = (cells[i] /(P::xcells_ini *  P::ycells_ini)) % P::zcells_ini;
+         lineX =  (cells[i]-1) % P::xcells_ini;
+         lineY = ((cells[i]-1) / P::xcells_ini) % P::ycells_ini;
+         lineZ = ((cells[i]-1) /(P::xcells_ini *  P::ycells_ini)) % P::zcells_ini;
          // Check that indices are in correct intersection at least in one plane
          if ((P::systemWriteDistributionWriteXlineStride[index] > 0 &&
               P::systemWriteDistributionWriteYlineStride[index] > 0 &&
               lineX % P::systemWriteDistributionWriteXlineStride[index] == 0 &&
               lineY % P::systemWriteDistributionWriteYlineStride[index] == 0)
-             ||
+             &&
              (P::systemWriteDistributionWriteYlineStride[index] > 0 &&
               P::systemWriteDistributionWriteZlineStride[index] > 0 &&
               lineY % P::systemWriteDistributionWriteYlineStride[index] == 0 &&
               lineZ % P::systemWriteDistributionWriteZlineStride[index] == 0)
-             ||
+             &&
              (P::systemWriteDistributionWriteZlineStride[index] > 0 &&
               P::systemWriteDistributionWriteXlineStride[index] > 0 &&
               lineZ % P::systemWriteDistributionWriteZlineStride[index] == 0 &&
