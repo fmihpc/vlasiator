@@ -24,11 +24,11 @@ void bailout(
          int myRank;
          MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
          std::cerr << "Process " << myRank << " bailing out";
-         if((strcmp(file, "") == 0) && (line != 0)) {
+         if((strcmp(file, "") != 0) && (line != 0)) {
             std::cerr << " at " << file << ":" << line;
          }
          std::cerr << ".";
-         if(strcmp(message.c_str(), "") == 0) {
+         if(strcmp(message.c_str(), "") != 0) {
             std::cerr << " " << message;
          }
          std::cerr << std::endl;
