@@ -218,8 +218,8 @@ bool Parameters::getParameters(){
    Readparameters::get("io.system_write_file_name", P::systemWriteName);
    Readparameters::get("io.system_write_distribution_stride", P::systemWriteDistributionWriteStride);
    Readparameters::get("io.system_write_distribution_xline_stride", P::systemWriteDistributionWriteXlineStride);
-   Readparameters::get("io.system_write_distribution_xline_stride", P::systemWriteDistributionWriteYlineStride);
-   Readparameters::get("io.system_write_distribution_xline_stride", P::systemWriteDistributionWriteZlineStride);
+   Readparameters::get("io.system_write_distribution_yline_stride", P::systemWriteDistributionWriteYlineStride);
+   Readparameters::get("io.system_write_distribution_zline_stride", P::systemWriteDistributionWriteZlineStride);
    //TODO, check that the systemWrite vectors are of equal length
    Readparameters::get("io.write_initial_state", P::writeInitialState);
    Readparameters::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);

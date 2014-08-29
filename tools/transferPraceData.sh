@@ -127,20 +127,87 @@ done < $inputfile
 }
 
 
+
+function transferFileListRsync {
+user=$1
+server=$2
+path=$3
+inputfile=$4
+localTapePath=$5
+
+while read line; do
+    #inputfile produced with ls -la, get name and size. sed one-liner to remove color-codes
+    file=$(echo $line| sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g" | gawk '{print $9}')  
+    size=$(echo $line | gawk '{print $5}')    
+
+    #file exists on archive folder, if it is incomplete on archive server then that is not taken into account in any way
+    if [ -e ${localTapePath}/${file} ] 
+    then
+	tapeSize=$( ls -la  ${localTapePath}/${file} | gawk '{print $5}' )
+	if [ $tapeSize -eq  $size ]
+	then
+	    #file complete
+	    retval=1
+	    echo "$(date) ${file}: File is already transferred and on archive"
+	fi
+    fi
+    
+    retval=0
+    retryIndex=0
+    while [ $retval -eq 0 ]
+    do
+	sleep 1 #short sleep to make it easier to cancel..
+	#offset into file where we start to download data
+	echo "$(date) ${file}: Starting download ($retryIndex retries)" 
+	startTime=$( date +"%s" )
+	rsync --inplace -P   ${user}@${server}:${path}/${file} ./
+	rc=$?
+	if [[ $rc != 0 ]] ; then
+	    echo "Failed:	rsync --inplace -P   ${user}@${server}:${path}/${file} ./"
+	    exit $rc
+	fi
+
+	localSize=$( ls -la  $file | gawk '{print $5}' )
+	if [ $localSize -eq $size ] 
+	then
+            #the whole file has been downloaded, excellent!
+	    echo "$(date) ${file}: Done"
+	    if [ -e ${localTapePath}/${file} ] 
+	    then
+		echo "$(date) ${file}: WARNING file with the same name already exists on ${localTapePath} - file not moved from staging at $(pwd)"
+	    else
+ 		mv ${file} ${localTapePath}/
+		echo "$(date) ${file}: Moved from staging at $( pwd ) to ${localTapePath}"
+	    fi
+	    retval=1
+	    retryIndex=0
+	else
+	    retryIndex=$(( retryIndex+1 ))
+	    echo "$(date) ${file}: transfer failed, retry number $retryIndex "
+	fi
+    done
+    
+done < $inputfile
+
+
+}
+
+
 # MAIN PROGRAM ##################################
 export GLOBUS_TCP_SOURCE_RANGE=20000,20500
 export GLOBUS_TCP_PORT_RANGE=20000,20500
 parallelTransfers=10
 
 
-if [ ! $# -eq 4 ]
+if [ ! $# -eq 5 ]
 then
 cat <<EOF
-transferPraceData server path transfer_file local_storage_path
+transferPraceData userserver path transfer_file local_storage_path
 
-    Script for transferring data using gridFTP from PRACE machines. Please start up the proxy using grid_proxy_init first
-
-    server           Either Hermit or Abel 
+    Script for transferring data using gridFTP or rsync (depends on machine). Please start up the proxy using grid_proxy_init first
+   
+    user             Username, option not used for gridftp transfers (put arbitrary name)
+    server           One of: Hermit (gridftp), Abel (gridftp), Sisu (rsync) 
     path             is a path on remote machine (e.g. /univ_1/ws1/ws/iprsalft-paper1-runs-0/2D/ecliptic/AAE)"
     transfer_file    is a file in the path on the remote machine created using ls -la *myfiles_to_transfer* > transfer_list.txt"       
     local_storage_path  is the folder where the files are ultimately copied after transfer, e.g., a tape drive. During transfer they go to the current folder. "." is also allowed.
@@ -148,21 +215,30 @@ EOF
 exit
 fi
 
+user=$1
+machine=$2
+path=$3
+inputfile=$4
+localTapePath=$5
 
 #read in command line variables
-if [ $1 == "Abel" ]
+if [ $machine == "Abel" ]
 then
   server=gsiftp://gridftp1.prace.uio.no:2811 
-elif [ $1 == "Hermit" ]
+  method=gridftp
+elif [ $machine == "Hermit" ]
 then
   server=gsiftp://gridftp-fr1.hww.de:2812
+  method=gridftp
+elif [ $machine == "Sisu" ]
+then
+  server=sisu.csc.fi
+  method=rsync
 else
-  echo "Allowed server values are Hermit and Abel"
+  echo "Allowed server values are Hermit, Abel, Sisu"
   exit 1
 fi
-path=$2
-inputfile=$3
-localTapePath=$4
+
 
 
 if [ ! -d $localTapePath ]
@@ -181,13 +257,30 @@ fi
 
 
 echo "Downloading inputfile $inputfile from $path" 
-globus-url-copy  -rst  ${server}/${path}/$inputfile ./$inputfile
-rc=$?
-if [[ $rc != 0 ]] ; then
-    echo "Failed: globus-url-copy -rst  ${server}/${path}/$inputfile ./$inputfile"
+if [ $method == "gridftp" ]
+then
+    globus-url-copy  -rst  ${server}/${path}/$inputfile ./$inputfile
+    rc=$?
+    if [[ $rc != 0 ]] ; then
+	echo "Failed: globus-url-copy -rst  ${server}/${path}/$inputfile ./$inputfile"
+	echo "Could not download list of files"
+	exit $rc
+    fi
+elif [ $method == "rsync" ]
+then
+    rsync -P --inplace  ${user}@${server}:${path}/$inputfile ./$inputfile
+    rc=$?
+    if [[ $rc != 0 ]] ; then
+	echo "Failed:     rsync -P --inplace  ${user}@${server}:${path}/$inputfile ./$inputfile"
+	echo "Could not download list of files"
+	exit $rc
+    fi
+else
+    echo "Failed: Unknown method $method"
     echo "Could not download list of files"
     exit $rc
 fi
+
 
 echo "Transferring files in $inputfile at $path" >> transferLog.txt
 echo "Files staged at $( pwd) and archived at ${localTapePath}" >> transferLog.txt
@@ -206,10 +299,16 @@ split -l $filesPerTransfer -d $inputfile .para_$inputfile_
 i=0
 for paraInput in .para_$inputfile_*
 do
-   transferFileList  $server $path $paraInput $localTapePath >> transferLog.txt &
-   echo "Started background transfer-job $!"
-   transferPids[$i]=$!
-   i=$((i+1))
+    if [ $method == "gridftp" ]
+    then
+	transferFileList  $server $path $paraInput $localTapePath >> transferLog.txt &
+    elif [ $method == "rsync" ]
+    then
+	transferFileListRsync  $user $server $path $paraInput $localTapePath >> transferLog.txt &
+	echo "Started background transfer-job $!"
+    fi
+    transferPids[$i]=$!
+    i=$((i+1))
 done 
 
 
