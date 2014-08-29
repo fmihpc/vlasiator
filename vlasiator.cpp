@@ -22,7 +22,7 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 #include "datareduction/datareducer.h"
 #include "sysboundary/sysboundary.h"
 
-#include "fieldsolver.h"
+#include "fieldsolver/fs_common.h"
 #include "projects/project.h"
 #include "grid.h"
 #include "iowrite.h"
@@ -86,7 +86,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       SpatialCell* cell = mpiGrid[*cell_id];
       if ( cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
            (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )) {
-         //spatial fluxes computed also for boundary cells              
+         //spatial fluxes computed also for boundary cells
          dtMaxLocal[0]=min(dtMaxLocal[0], cell->parameters[CellParams::MAXRDT]);
          dtMaxLocal[2]=min(dtMaxLocal[2], cell->parameters[CellParams::MAXFDT]);
       }
@@ -146,8 +146,7 @@ int main(int argn,char* args[]) {
    typedef Parameters P;
    Real newDt;
    bool dtIsChanged;
-
-
+   
 // Init MPI:
    int required=MPI_THREAD_FUNNELED;
    int provided;
@@ -165,6 +164,7 @@ int main(int argn,char* args[]) {
    MPI_Comm_rank(comm,&myRank);
    SysBoundary sysBoundaries;
    bool isSysBoundaryCondDynamic;
+   vector<uint64_t> cells;
    
    #ifdef CATCH_FPE
    // WARNING FE_INEXACT is too sensitive to be used. See man fenv.
@@ -231,6 +231,7 @@ int main(int argn,char* args[]) {
    DataReducer outputReducer, diagnosticReducer;
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    phiprof::stop("Init DROs");
+   
    phiprof::start("Init field propagator");
    // Initialize field propagator:
    if (initializeFieldPropagator(mpiGrid, sysBoundaries) == false) {
@@ -240,6 +241,7 @@ int main(int argn,char* args[]) {
    phiprof::stop("Init field propagator");
    // Free up memory:
    readparameters.finalize();
+   
    // Save restart data
    if (P::writeInitialState) {
       phiprof::start("write-initial-state");
@@ -270,17 +272,18 @@ int main(int argn,char* args[]) {
       phiprof::stop("write-initial-state");
    }
    
-         
-
+   
    if(P::dynamicTimestep && !P::isRestart) {
       //compute vlasovsolver once with zero dt, this is to initialize
       //per-cell dt limits. In restarts, we read in dt from file
       phiprof::start("compute-dt");
       calculateSpatialTranslation(mpiGrid,0.0);
       calculateAcceleration(mpiGrid,0.0);
+      
       //this is probably not ever needed, as a zero length step
       //should not require changes
       adjustVelocityBlocks(mpiGrid);
+      
       if(P::propagateField) {
          propagateFields(mpiGrid, sysBoundaries, 0.0);
       }
@@ -463,7 +466,7 @@ int main(int argn,char* args[]) {
       }
       
       //Re-loadbalance if needed
-      //TODO - add LB measure nad do LB if it exceeds threshold
+      //TODO - add LB measure and do LB if it exceeds threshold
       if( P::tstep%P::rebalanceInterval == 0 && P::tstep> P::tstep_min) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          balanceLoad(mpiGrid);
@@ -476,7 +479,8 @@ int main(int argn,char* args[]) {
       }
       
       //get local cells
-      vector<uint64_t> cells = mpiGrid.get_cells();
+      cells = mpiGrid.get_cells();
+      
       //compute how many spatial cells we solve for this step
       computedCells=0;
       for(uint i=0;i<cells.size();i++)  computedCells+=mpiGrid[cells[i]]->number_of_blocks*WID3;
@@ -512,6 +516,7 @@ int main(int argn,char* args[]) {
       }
       
       
+      
       phiprof::start("Propagate");
       //Propagate the state of simulation forward in time by dt:
       
@@ -527,7 +532,11 @@ int main(int argn,char* args[]) {
          CellParams::RHO_DT2,
          CellParams::RHOVX_DT2,
          CellParams::RHOVY_DT2,
-         CellParams::RHOVZ_DT2);
+         CellParams::RHOVZ_DT2,
+         CellParams::P_11_DT2,
+         CellParams::P_22_DT2,
+         CellParams::P_33_DT2
+      );
       
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::start("Update system boundaries (Vlasov)");
@@ -565,7 +574,11 @@ int main(int argn,char* args[]) {
          CellParams::RHO,
          CellParams::RHOVX,
          CellParams::RHOVY,
-         CellParams::RHOVZ);
+         CellParams::RHOVZ,
+         CellParams::P_11,
+         CellParams::P_22,
+         CellParams::P_33
+      );
       
       phiprof::stop("Propagate",computedCells,"Cells");
       

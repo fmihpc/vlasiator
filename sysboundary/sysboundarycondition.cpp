@@ -121,6 +121,16 @@ namespace SBC {
       exit(1);
    }
    
+   void SysBoundaryCondition::fieldSolverBoundaryCondHallElectricField(
+      dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID,
+      cuint RKCase,
+      cuint component
+   ) {
+      cerr << "ERROR: SysBoundaryCondition::fieldSolverBoundaryCondHallElectricField called instead of derived class function!" << endl;
+      exit(1);
+   }
+   
    void SysBoundaryCondition::fieldSolverBoundaryCondDerivatives(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -147,32 +157,56 @@ namespace SBC {
    ) {
       Real* const derivs = &(mpiGrid[cellID]->derivatives[0]);
       switch(component) {
-         case 0:
+         case 0: // x, xx
             derivs[fieldsolver::drhodx] = 0.0;
+            derivs[fieldsolver::dp11dx] = 0.0;
+            derivs[fieldsolver::dp22dx] = 0.0;
+            derivs[fieldsolver::dp33dx] = 0.0;
             derivs[fieldsolver::dPERBydx]  = 0.0;
             derivs[fieldsolver::dPERBzdx]  = 0.0;
             derivs[fieldsolver::dVxdx]  = 0.0;
             derivs[fieldsolver::dVydx]  = 0.0;
             derivs[fieldsolver::dVzdx]  = 0.0;
+            derivs[fieldsolver::dPERBydxx] = 0.0;
+            derivs[fieldsolver::dPERBzdxx] = 0.0;
             break;
-         case 1:
+         case 1: // y, yy
             derivs[fieldsolver::drhody] = 0.0;
+            derivs[fieldsolver::dp11dy] = 0.0;
+            derivs[fieldsolver::dp22dy] = 0.0;
+            derivs[fieldsolver::dp33dy] = 0.0;
             derivs[fieldsolver::dPERBxdy]  = 0.0;
             derivs[fieldsolver::dPERBzdy]  = 0.0;
             derivs[fieldsolver::dVxdy]  = 0.0;
             derivs[fieldsolver::dVydy]  = 0.0;
             derivs[fieldsolver::dVzdy]  = 0.0;
+            derivs[fieldsolver::dPERBxdyy] = 0.0;
+            derivs[fieldsolver::dPERBzdyy] = 0.0;
             break;
-         case 2:
+         case 2: // z, zz
             derivs[fieldsolver::drhodz] = 0.0;
+            derivs[fieldsolver::dp11dz] = 0.0;
+            derivs[fieldsolver::dp22dz] = 0.0;
+            derivs[fieldsolver::dp33dz] = 0.0;
             derivs[fieldsolver::dPERBxdz]  = 0.0;
             derivs[fieldsolver::dPERBydz]  = 0.0;
             derivs[fieldsolver::dVxdz]  = 0.0;
             derivs[fieldsolver::dVydz]  = 0.0;
             derivs[fieldsolver::dVzdz]  = 0.0;
+            derivs[fieldsolver::dPERBxdzz] = 0.0;
+            derivs[fieldsolver::dPERBydzz] = 0.0;
+            break;
+         case 3: // xy
+            derivs[fieldsolver::dPERBzdxy] = 0.0;
+            break;
+         case 4: // xz
+            derivs[fieldsolver::dPERBydxz] = 0.0;
+            break;
+         case 5: // yz
+            derivs[fieldsolver::dPERBxdyz] = 0.0;
             break;
          default:
-            cerr << "Invalid component" << endl;
+            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
       }
    }
    
@@ -196,7 +230,7 @@ namespace SBC {
             derivs[bvolderivatives::dPERBYVOLdz] = 0.0;
             break;
          default:
-            cerr << "Invalid component" << endl;
+            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
       }
    }
    
@@ -211,7 +245,7 @@ namespace SBC {
    //if the spatialcells are neighbors
    void SysBoundaryCondition::copyCellData(SpatialCell *from, SpatialCell *to,bool allowBlockAdjustment)
    {
-      if(to->sysBoundaryLayer == 1) { // Do this only for the first layer, the inner layer does not need this.
+      if(to->sysBoundaryLayer == 1) { // Do this only for the first layer, the other layers do not need this.
 
          if(allowBlockAdjustment) {
 /*prepare list of blocks to remove. It is not safe to loop over
@@ -263,7 +297,7 @@ namespace SBC {
                else {
                   for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
                      toBlock->data[i] = fromBlock->data[i];
-                  }     
+                  }
                }
             }
          }
@@ -273,10 +307,16 @@ namespace SBC {
       to->parameters[CellParams::RHOVX_DT2] = from->parameters[CellParams::RHOVX_DT2];
       to->parameters[CellParams::RHOVY_DT2] = from->parameters[CellParams::RHOVY_DT2];
       to->parameters[CellParams::RHOVZ_DT2] = from->parameters[CellParams::RHOVZ_DT2];
+      to->parameters[CellParams::P_11_DT2] = from->parameters[CellParams::P_11_DT2];
+      to->parameters[CellParams::P_22_DT2] = from->parameters[CellParams::P_22_DT2];
+      to->parameters[CellParams::P_33_DT2] = from->parameters[CellParams::P_33_DT2];
       to->parameters[CellParams::RHO] = from->parameters[CellParams::RHO];
       to->parameters[CellParams::RHOVX] = from->parameters[CellParams::RHOVX];
       to->parameters[CellParams::RHOVY] = from->parameters[CellParams::RHOVY];
       to->parameters[CellParams::RHOVZ] = from->parameters[CellParams::RHOVZ];
+      to->parameters[CellParams::P_11] = from->parameters[CellParams::P_11];
+      to->parameters[CellParams::P_22] = from->parameters[CellParams::P_22];
+      to->parameters[CellParams::P_33] = from->parameters[CellParams::P_33];
    }
    
    CellID SysBoundaryCondition::getClosestNonsysboundaryCell(

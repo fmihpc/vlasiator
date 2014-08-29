@@ -85,7 +85,7 @@ namespace SBC {
    
    Real SetMaxwellian::maxwellianDistribution(
       creal& rho,
-      creal& T, 
+      creal& T,
       creal& vx, creal& vy, creal& vz
    ) {
       return rho * pow(physicalconstants::MASS_PROTON /
@@ -104,7 +104,7 @@ namespace SBC {
    ) {
       vector<uint> blocksToInitialize;
       bool search = true;
-      int counter = 0;
+      uint counter = 0;
       
       while(search) {
          if(0.1 * P::sparseMinValue >
@@ -113,6 +113,8 @@ namespace SBC {
                T,
                counter*SpatialCell::block_dvx, 0.0, 0.0
             )
+            ||
+            counter > P::vxblocks_ini
          ) {
             search = false;
          }

@@ -92,19 +92,16 @@ namespace projects {
    }
    
    Real Shocktest::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
-      creal mass = 1.67262171e-27; // m_p in kg
-      creal k = 1.3806505e-23; // Boltzmann
-      //  creal mu0 = 1.25663706144e-6; // mu_0
-      //  creal q = 1.60217653e-19; // q_i
-      //  creal gamma = 5./3.;
+      creal mass = physicalconstants::MASS_PROTON;
+      creal kb = physicalconstants::K_B;
       
       cint side = (x < 0.0) ? this->LEFT : this->RIGHT;
 
       // Disable compiler warnings: (unused variables but the function is inherited)
       (void)y; (void)z; (void)dvx; (void)dvy; (void)dvz;
       
-      return this->rho[side] * pow(mass / (2.0 * M_PI * k * this->T[side]), 1.5) *
-      exp(- mass * (pow(vx - this->Vx[side], 2.0) + pow(vy - this->Vy[side], 2.0) + pow(vz - this->Vz[side], 2.0)) / (2.0 * k * this->T[side]));
+      return this->rho[side] * pow(mass / (2.0 * M_PI * kb * this->T[side]), 1.5) *
+      exp(- mass * (pow(vx - this->Vx[side], 2.0) + pow(vy - this->Vy[side], 2.0) + pow(vz - this->Vz[side], 2.0)) / (2.0 * kb * this->T[side]));
    }
 
 

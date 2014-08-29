@@ -94,6 +94,9 @@ namespace spatial_cell {
       const uint64_t CELL_DIMENSIONS          = (1<<19);
       const uint64_t CELL_IOLOCALCELLID       = (1<<20);
       const uint64_t NEIGHBOR_VEL_BLOCK_FLUXES = (1<<21);
+      const uint64_t CELL_HALL_TERM           = (1<<22);
+      const uint64_t CELL_P                   = (1<<23);
+      const uint64_t CELL_PDT2                = (1<<24);
       
       //all data, expect for the fx table (never needed on remote cells)
       const uint64_t ALL_DATA =
@@ -879,17 +882,19 @@ namespace spatial_cell {
                block_lengths.push_back(sizeof(Real) * 3);
             }
                
-            // send  BGBX BGBY BGBZ
-            if((SpatialCell::mpi_transfer_type & Transfer::CELL_BGB)!=0){
-               displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBX]) - (uint8_t*) this);
-               block_lengths.push_back(sizeof(Real) * 3);
-            }
+               // send  BGBX BGBY BGBZ and all edge-averaged BGBs
+               if((SpatialCell::mpi_transfer_type & Transfer::CELL_BGB)!=0){
+                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBX]) - (uint8_t*) this);
+                  block_lengths.push_back(sizeof(Real) * 3);
+                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBX_000_010]) - (uint8_t*) this);
+                  block_lengths.push_back(sizeof(Real) * 24);
+               }
             
-            // send  BXVOL BYVOL BZVOL
-            if((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL)!=0){
-               displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBXVOL]) - (uint8_t*) this);
-               block_lengths.push_back(sizeof(Real) * 6);
-            }
+               // send  BGBXVOL BGBYVOL BGBZVOL PERBXVOL PERBYVOL PERBZVOL
+               if((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL)!=0){
+                  displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBXVOL]) - (uint8_t*) this);
+                  block_lengths.push_back(sizeof(Real) * 6);
+               }
             
             // send  EX, EY EZ
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_E)!=0){
@@ -931,21 +936,37 @@ namespace spatial_cell {
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_DERIVATIVES)!=0){
                displacements.push_back((uint8_t*) &(this->derivatives[0]) - (uint8_t*) this);
                block_lengths.push_back(sizeof(Real) * fieldsolver::N_SPATIAL_CELL_DERIVATIVES);
-                  
             }
-
+            
             // send  spatial cell BVOL derivatives
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL_DERIVATIVES)!=0){
                displacements.push_back((uint8_t*) &(this->derivativesBVOL[0]) - (uint8_t*) this);
                block_lengths.push_back(sizeof(Real) * bvolderivatives::N_BVOL_DERIVATIVES);
             }
-
+            
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_IOLOCALCELLID)!=0){
                displacements.push_back((uint8_t*) &(this->ioLocalCellId) - (uint8_t*) this);
                block_lengths.push_back(sizeof(uint64_t));
             }
-
-            // send  sysBoundaryFlag        
+            
+            // send Hall term components
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_HALL_TERM)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::EXHALL_000_100]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 12);
+            }
+            
+            // send P tensor diagonal components
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_P)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::P_11]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 3);
+            }
+            
+            if((SpatialCell::mpi_transfer_type & Transfer::CELL_PDT2)!=0){
+               displacements.push_back((uint8_t*) &(this->parameters[CellParams::P_11_DT2]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(Real) * 3);
+            }
+            
+            // send  sysBoundaryFlag
             if((SpatialCell::mpi_transfer_type & Transfer::CELL_SYSBOUNDARYFLAG)!=0){
                displacements.push_back((uint8_t*) &(this->sysBoundaryFlag) - (uint8_t*) this);
                block_lengths.push_back(sizeof(uint));

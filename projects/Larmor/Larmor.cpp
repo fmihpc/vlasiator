@@ -70,27 +70,25 @@ namespace projects {
     }
 
     Real Larmor::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz) {
-      creal k = 1.3806505e-23; // Boltzmann
-      creal mass = 1.67262171e-27; // m_p in kg
+      creal kb = physicalconstants::K_B;
+      creal mass = physicalconstants::MASS_PROTON;
       
-      return exp(- mass * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0)+ (vz-this->VZ0)*(vz-this->VZ0)) / (2.0 * k * this->TEMPERATURE))*
-	  exp(-pow(x-Parameters::xmax/2.5, 2.0)/pow(this->SCA_X, 2.0))*exp(-pow(y-Parameters::ymax/2.0, 2.0)/pow(this->SCA_Y, 2.0));
+      return exp(- mass * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0)+ (vz-this->VZ0)*(vz-this->VZ0)) / (2.0 * kb * this->TEMPERATURE))*
+      exp(-pow(x-Parameters::xmax/2.5, 2.0)/pow(this->SCA_X, 2.0))*exp(-pow(y-Parameters::ymax/2.0, 2.0)/pow(this->SCA_Y, 2.0));
     }
 
 
     Real Larmor::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
       if(vx < Parameters::vxmin + 0.5 * dvx ||
-	  vy < Parameters::vymin + 0.5 * dvy ||
-	  vz < Parameters::vzmin + 0.5 * dvz ||
-	  vx > Parameters::vxmax - 1.5 * dvx ||
-	  vy > Parameters::vymax - 1.5 * dvy ||
-	  vz > Parameters::vzmax - 1.5 * dvz
+         vy < Parameters::vymin + 0.5 * dvy ||
+         vz < Parameters::vzmin + 0.5 * dvz ||
+         vx > Parameters::vxmax - 1.5 * dvx ||
+         vy > Parameters::vymax - 1.5 * dvy ||
+         vz > Parameters::vzmax - 1.5 * dvz
       ) return 0.0;
       
-      creal mass = Parameters::m;
-      creal q = Parameters::q;
-      creal k = 1.3806505e-23; // Boltzmann
-      creal mu0 = 1.25663706144e-6; // mu_0
+      creal mass = physicalconstants::MASS_PROTON;
+      creal kb = physicalconstants::K_B;
 
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_y = dy / (this->nSpaceSamples-1);
@@ -101,26 +99,25 @@ namespace projects {
       Real avg = 0.0;
       
       for (uint i=0; i<this->nSpaceSamples; ++i)
-	  for (uint j=0; j<this->nSpaceSamples; ++j)
-	    for (uint k=0; k<this->nSpaceSamples; ++k)
-		for (uint vi=0; vi<this->nVelocitySamples; ++vi)
-		  for (uint vj=0; vj<this->nVelocitySamples; ++vj)
-		      for (uint vk=0; vk<this->nVelocitySamples; ++vk)
-		      {
-			avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz);
-		      }
+         for (uint j=0; j<this->nSpaceSamples; ++j)
+            for (uint k=0; k<this->nSpaceSamples; ++k)
+               for (uint vi=0; vi<this->nVelocitySamples; ++vi)
+                  for (uint vj=0; vj<this->nVelocitySamples; ++vj)
+                     for (uint vk=0; vk<this->nVelocitySamples; ++vk)
+                     {
+                        avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz);
+                     }
       
-      creal result = avg *this->DENSITY * pow(mass / (2.0 * M_PI * k * this->TEMPERATURE), 1.5) /
-	  (this->nSpaceSamples*this->nSpaceSamples*this->nSpaceSamples) / 
-	  (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
+      creal result = avg *this->DENSITY * pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) /
+                     (this->nSpaceSamples*this->nSpaceSamples*this->nSpaceSamples) / 
+                     (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
       
-				      
       if(result < this->maxwCutoff) {
-	  return 0.0;
+         return 0.0;
       } else {
-	  return result;
+         return result;
       }
-    }
+   }
 
 
     void Larmor::calcCellParameters(Real* cellParams,creal& t) {

@@ -100,19 +100,16 @@ namespace projects {
    }
    
    Real KHB::getDistribValue(creal& x, creal& z, creal& vx, creal& vy, creal& vz){
-      creal mass = 1.67262171e-27; // m_p in kg
-      creal k = 1.3806505e-23; // Boltzmann     
-      //  creal mu0 = 1.25663706144e-6; // mu_0 
-      //  creal q = 1.60217653e-19; // q_i      
-      //  creal gamma = 5./3.;
+      creal mass = physicalconstants::MASS_PROTON;
+      creal kb = physicalconstants::K_B;
       Real rho = profile(this->rho[this->BOTTOM], this->rho[this->TOP], x, z);
       Real T = profile(this->T[this->BOTTOM], this->T[this->TOP], x, z);
       Real Vx = profile(this->Vx[this->BOTTOM], this->Vx[this->TOP], x, z);
       Real Vy = profile(this->Vy[this->BOTTOM], this->Vy[this->TOP], x, z);
       Real Vz = profile(this->Vz[this->BOTTOM], this->Vz[this->TOP], x, z);
       
-      return rho * pow(mass / (2.0 * M_PI * k * T), 1.5) *
-      exp(- mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * k * T));
+      return rho * pow(mass / (2.0 * M_PI * kb * T), 1.5) *
+      exp(- mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * kb * T));
    }
 
    Real KHB::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   

@@ -20,19 +20,37 @@ vectorclass_fallback.h is used.
 #include "vectorclass.h"
 #ifdef DP
 typedef Vec4d Vec4;
+typedef Vec4db Vec4b;
 #else
 typedef Vec4f Vec4;
+typedef Vec4fb Vec4b;
 #endif
 
 #else
 //user portable vectorclass
 #include "vectorclass_fallback.h"
 #ifdef DP
-typedef Vec4Real<double> Vec4;
+typedef Vec4Simple<double> Vec4;
 #else
-typedef Vec4Real<float> Vec4;
+typedef Vec4Simple<float> Vec4;
 #endif
+typedef Vec4Simple<bool> Vec4b;
+typedef Vec4Simple<int> Vec4i;
+#endif
+
+
+
+const Vec4 one(1.0);
+const Vec4 minus_one(-1.0);
+const Vec4 two(2.0);
+const Vec4 half(0.5);
+const Vec4 zero(0.0);
+
+const Vec4 one_sixth(1.0/6.0);
+const Vec4 one_twelfth(1.0/12.0);
+const Vec4 seven_twelfth(7.0/12.0);
+const Vec4 one_third(1.0/3.0);
 
 #endif
 
-#endif
+
