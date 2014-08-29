@@ -112,7 +112,7 @@ struct Parameters {
    static std::string projectName; /*!< Project to be used in this run. */
    
    static bool bailout_write_restart; /*!< If true, write a restart file on bailout. Gets reset when sending a STOP (true) or a KILL (false). */
-   static Real bailout_min_dt; /*!< Minimum time step below which bailout occurs. */
+   static Real bailout_min_dt; /*!< Minimum time step below which bailout occurs (s). */
    
    /*! \brief Add the global parameters.
     * 

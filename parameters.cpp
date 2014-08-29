@@ -205,7 +205,7 @@ bool Parameters::addParameters(){
 
    // bailout parameters
    Readparameters::add("bailout.write_restart", "If 1, write a restart file on bailout. Gets reset when sending a STOP (1) or a KILL (0).", true);
-   Readparameters::add("bailout.min_dt", "Minimum time step below which bailout occurs.", 1e-6);
+   Readparameters::add("bailout.min_dt", "Minimum time step below which bailout occurs (s).", 1e-6);
    
    return true;
 }
