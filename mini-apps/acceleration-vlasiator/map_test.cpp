@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include "common.h"
 #include "vlasovsolver/vec4.h"
-#include "vlasovsolver/cpu_1d_column_interpolations.hpp"
+#include "vlasovsolver/cpu_1d_pqm.hpp"
+#include "vlasovsolver/cpu_1d_ppm.hpp"
+#include "vlasovsolver/cpu_1d_plm.hpp"
 
 /*print all values in the vector valued values array. In this array
   there are blocks_per_dim blocks with a width of WID*/
@@ -21,20 +23,9 @@ void print_values(int step, Vec4 *values, uint blocks_per_dim, Real v_min, Real 
 void propagate(Vec4 values[], uint  blocks_per_dim, Real v_min, Real dv,
 	       uint i_block, uint j_block, uint j_cell,
 	       Real intersection, Real intersection_di, Real intersection_dj, Real intersection_dk){
-  Vec4 a[MAX_BLOCKS_PER_DIM*WID][RECONSTRUCTION_ORDER + 1];  
   Vec4 target[(MAX_BLOCKS_PER_DIM+2)*WID]; 
-  
-  
-#ifdef ACC_SEMILAG_PLM
-  compute_plm_coeff_explicit_column(values, blocks_per_dim, a);
-#endif
-#ifdef ACC_SEMILAG_PPM
-  compute_ppm_coeff_explicit_column(values, blocks_per_dim, a);
-#endif
-#ifdef ACC_SEMILAG_PQM
-  compute_pqm_coeff_explicit_column(values,blocks_per_dim, a);
-#endif
 
+  
   /*clear temporary taret*/
   for (uint k=0; k<WID* (blocks_per_dim + 2); ++k){ 
        target[k] = 0.0;
@@ -62,6 +53,22 @@ void propagate(Vec4 values[], uint  blocks_per_dim, Real v_min, Real dv,
   /*loop through all blocks in column and compute the mapping as integrals*/
   for (unsigned int k_block = 0; k_block<blocks_per_dim;k_block++){
     for (uint k_cell=0; k_cell<WID; ++k_cell){ 
+
+#ifdef ACC_SEMILAG_PLM
+      Vec4 a[2];
+      compute_plm_coeff_explicit(values, (k_block + 1) * WID + k_cell , a);
+#endif
+#ifdef ACC_SEMILAG_PPM
+      Vec4 a[3];
+      compute_ppm_coeff_explicit(values, h5, (k_block + 1) * WID + k_cell , a);
+#endif
+#ifdef ACC_SEMILAG_PQM
+      Vec4 a[5];
+      compute_pqm_coeff_explicit(values, h5, dh5, (k_block + 1) * WID + k_cell , a);
+#endif
+
+
+
       /*v_l, v_r are the left and right velocity coordinates of source cell*/
       Vec4 v_l = v_min + (k_block * WID + k_cell) * dv;
       Vec4 v_r = v_l + dv;
@@ -70,6 +77,8 @@ void propagate(Vec4 values[], uint  blocks_per_dim, Real v_min, Real dv,
       const Vec4i target_gk_l = truncate_to_int((v_l - intersection_min)/intersection_dk);
       const Vec4i target_gk_r = truncate_to_int((v_r - intersection_min)/intersection_dk);
       
+      
+
       Vec4i gk(target_gk_l);	
       while (horizontal_or(gk <= target_gk_r)){
 	//the velocity limits  for the integration  to put mass
@@ -92,36 +101,36 @@ void propagate(Vec4 values[], uint  blocks_per_dim, Real v_min, Real dv,
 	 /*compute left and right integrand*/
 #ifdef ACC_SEMILAG_PLM
 	 Vec4 target_density_l =
-	   v_int_norm_l * a[k_block * WID + k_cell][0] +
-	   v_int_norm_l * v_int_norm_l * a[k_block * WID + k_cell][1];
+	   v_int_norm_l * a[0] +
+	   v_int_norm_l * v_int_norm_l * a[1];
 	 Vec4 target_density_r =
-	   v_int_norm_r * a[k_block * WID + k_cell][0] +
-	   v_int_norm_r * v_int_norm_r * a[k_block * WID + k_cell][1];
+	   v_int_norm_r * a[0] +
+	   v_int_norm_r * v_int_norm_r * a[1];
 #endif
 #ifdef ACC_SEMILAG_PPM
 	 Vec4 target_density_l =
-	   v_int_norm_l * a[k_block * WID + k_cell][0] +
-	   v_int_norm_l * v_int_norm_l * a[k_block * WID + k_cell][1] +
-	   v_int_norm_l * v_int_norm_l * v_int_norm_l * a[k_block * WID + k_cell][2];
+	   v_int_norm_l * a[0] +
+	   v_int_norm_l * v_int_norm_l * a[1] +
+	   v_int_norm_l * v_int_norm_l * v_int_norm_l * a[2];
 	 Vec4 target_density_r =
-	   v_int_norm_r * a[k_block * WID + k_cell][0] +
-	   v_int_norm_r * v_int_norm_r * a[k_block * WID + k_cell][1] +
-	   v_int_norm_r * v_int_norm_r * v_int_norm_r * a[k_block * WID + k_cell][2];
+	   v_int_norm_r * a[0] +
+	   v_int_norm_r * v_int_norm_r * a[1] +
+	   v_int_norm_r * v_int_norm_r * v_int_norm_r * a[2];
 #endif
 #ifdef ACC_SEMILAG_PQM
 	 Vec4 target_density_l =
-	   v_int_norm_l * a[k_block * WID + k_cell][0] +
-	   v_int_norm_l * v_int_norm_l * a[k_block * WID + k_cell][1] +
-	   v_int_norm_l * v_int_norm_l * v_int_norm_l * a[k_block * WID + k_cell][2] +
-	   v_int_norm_l * v_int_norm_l * v_int_norm_l * v_int_norm_l * a[k_block * WID + k_cell][3] +
-	   v_int_norm_l * v_int_norm_l * v_int_norm_l * v_int_norm_l * v_int_norm_l * a[k_block * WID + k_cell][4];
+	   v_int_norm_l * a[0] +
+	   v_int_norm_l * v_int_norm_l * a[1] +
+	   v_int_norm_l * v_int_norm_l * v_int_norm_l * a[2] +
+	   v_int_norm_l * v_int_norm_l * v_int_norm_l * v_int_norm_l * a[3] +
+	   v_int_norm_l * v_int_norm_l * v_int_norm_l * v_int_norm_l * v_int_norm_l * a[4];
 
 	 Vec4 target_density_r =
-	   v_int_norm_r * a[k_block * WID + k_cell][0] +
-	   v_int_norm_r * v_int_norm_r * a[k_block * WID + k_cell][1] +
-	   v_int_norm_r * v_int_norm_r * v_int_norm_r * a[k_block * WID + k_cell][2] +
-	   v_int_norm_r * v_int_norm_r * v_int_norm_r * v_int_norm_r * a[k_block * WID + k_cell][3] +
-	   v_int_norm_r * v_int_norm_r * v_int_norm_r * v_int_norm_r * v_int_norm_r * a[k_block * WID + k_cell][4];
+	   v_int_norm_r * a[0] +
+	   v_int_norm_r * v_int_norm_r * a[1] +
+	   v_int_norm_r * v_int_norm_r * v_int_norm_r * a[2] +
+	   v_int_norm_r * v_int_norm_r * v_int_norm_r * v_int_norm_r * a[3] +
+	   v_int_norm_r * v_int_norm_r * v_int_norm_r * v_int_norm_r * v_int_norm_r * a[4];
 
 #endif
 
@@ -160,17 +169,7 @@ void print_reconstruction(int step, Vec4 values[], uint  blocks_per_dim, Real v_
   sprintf(name,"reconstructions_%03d.dat",step);
   FILE* fp=fopen(name,"w");
 
-  Vec4 a[MAX_BLOCKS_PER_DIM*WID][RECONSTRUCTION_ORDER + 1];  
   
-#ifdef ACC_SEMILAG_PLM
-  compute_plm_coeff_explicit_column(values, blocks_per_dim, a);
-#endif
-#ifdef ACC_SEMILAG_PPM
-  compute_ppm_coeff_explicit_column(values, blocks_per_dim, a);
-#endif
-#ifdef ACC_SEMILAG_PQM
-  compute_pqm_coeff_explicit_column(values,blocks_per_dim, a);
-#endif
    
   /* intersection_min is the intersection z coordinate (z after
      swaps that is) of the lowest possible z plane for each i,j
@@ -194,6 +193,19 @@ void print_reconstruction(int step, Vec4 values[], uint  blocks_per_dim, Real v_
   /*loop through all blocks in column and divide into subcells. Print value of reconstruction*/
   for (unsigned int k_block = 0; k_block<blocks_per_dim;k_block++){
     for (uint k_cell=0; k_cell<WID; ++k_cell){ 
+#ifdef ACC_SEMILAG_PLM
+      Vec4 a[2];
+      compute_plm_coeff_explicit(values, (k_block + 1) * WID + k_cell , a);
+#endif
+#ifdef ACC_SEMILAG_PPM
+      Vec4 a[3];
+      compute_ppm_coeff_explicit(values, h5, (k_block + 1) * WID + k_cell , a);
+#endif
+#ifdef ACC_SEMILAG_PQM
+      Vec4 a[5];
+      compute_pqm_coeff_explicit(values, h5, dh5, (k_block + 1) * WID + k_cell , a);
+#endif
+
       Vec4 v_l = v_min + (k_block * WID + k_cell) * dv;
       for (uint k_subcell=0; k_subcell< subcells; ++k_subcell){ 
 	Vec4 v_norm = (Real)(k_subcell + 0.5)/subcells; //normalized v of subcell in source cell
@@ -201,22 +213,22 @@ void print_reconstruction(int step, Vec4 values[], uint  blocks_per_dim, Real v_
 
 #ifdef ACC_SEMILAG_PLM
 	Vec4 target = 
-	  a[k_block * WID + k_cell][0] +
-	  2.0 * v_norm * a[k_block * WID + k_cell][1];
+	  a[0] +
+	  2.0 * v_norm * a[1];
 #endif
 #ifdef ACC_SEMILAG_PPM
 	Vec4 target = 
-	  a[k_block * WID + k_cell][0] +
-	  2.0 * v_norm * a[k_block * WID + k_cell][1] +
-	  3.0 * v_norm * v_norm * a[k_block * WID + k_cell][2];
+	  a[0] +
+	  2.0 * v_norm * a[1] +
+	  3.0 * v_norm * v_norm * a[2];
 #endif
 #ifdef ACC_SEMILAG_PQM
 	Vec4 target = 
-	  a[k_block * WID + k_cell][0] +
-	  2.0 * v_norm * a[k_block * WID + k_cell][1] +
-	  3.0 * v_norm * v_norm * a[k_block * WID + k_cell][2] +
-	  4.0 * v_norm * v_norm * v_norm * a[k_block * WID + k_cell][3] +
-	  5.0 * v_norm * v_norm * v_norm * v_norm * a[k_block * WID + k_cell][4];
+	  a[0] +
+	  2.0 * v_norm * a[1] +
+	  3.0 * v_norm * v_norm * a[2] +
+	  4.0 * v_norm * v_norm * v_norm * a[3] +
+	  5.0 * v_norm * v_norm * v_norm * v_norm * a[4];
 #endif
 	fprintf(fp,"%20.12g %20.12g %20.12g\n", v[0], values[k_block * WID + k_cell + WID][0], target[0]);
       }
