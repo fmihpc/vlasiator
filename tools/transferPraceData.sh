@@ -1,6 +1,6 @@
 #!/bin/bash
 # Sebastian von Alfthan sebastian.von.alfthan@fmi.fi
-
+# Yann Kempf yann.kempf@fmi.fi
 
 # FUNCTIONS ##################################
 
@@ -187,7 +187,7 @@ while read line; do
         echo transferSize $transferSize
 	echo "$(date) ${file}: Starting download of chunk $((i+1))/$totalChunks " 
 	startTime=$( date +"%s" )
-        ssh  ${user}@${server} "dd bs=${chunkSize} skip=$i count=1 if=${path}/${file}" > ${file}.partial 2>> dd.err
+        ssh -o Compression=no ${user}@${server} "dd iflag=fullblock bs=${chunkSize} skip=$i count=1 if=${path}/${file}" > ${file}.partial 2>> dd.err
 	endTime=$( date +"%s" )
 	localPartialSize=$( ls -la  ${file}.partial | gawk '{print $5}' )
         echo localPartialSize $localPartialSize
@@ -217,7 +217,8 @@ while read line; do
             rm ${file}.partial
 	fi 
 
-
+   # Initially it breaks if there is no file.
+   touch $file
 	localSize=$( ls -la  $file | gawk '{print $5}' )
 	if [ $localSize -eq $size ] 
 	then
