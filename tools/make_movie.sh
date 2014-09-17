@@ -45,6 +45,26 @@ aba_rho_log_with_inset()
         makemovie_${index}.png
 }
 
+aba_B_log_with_inset() 
+{
+    index=$1
+    t=$(echo $index|gawk '{printf "%.1f", $1*0.5}')
+    in_file=$(printf "stornext_vlasiator/visualizations/ABA/movies/B_mag_log/ABA_B_mag_log_%07d.png" $index)
+    if [ ! -e $in_file ]
+    then
+        return
+    fi
+
+    convert $in_file -crop 600x600+600+1900 -border 2  makemovie_zoom_${index}.png 
+    convert $in_file -pointsize 100 -fill white  -gravity SouthWest -draw "text 20,20 \"t=$t s\"" \
+        -gravity South -crop 3060x3292+0+0 -resize 50% \
+        makemovie_global_${index}.png 
+    convert makemovie_global_${index}.png makemovie_zoom_${index}.png -gravity NorthEast -geometry +10+10 -composite  \
+        -gravity NorthWest -pointsize 50 -fill white -draw "text 50,250 \"B magnitude, log scale\"" \
+        -gravity NorthWest -pointsize 70 -fill white -draw "text 50,150 \"VLASIATOR\"" \
+        makemovie_${index}.png
+}
+
 
 aba_rho_B_log() 
 {
@@ -84,6 +104,7 @@ aba_rho_B_log()
 
 export -f aba_rho_lin_with_inset_scale
 export -f aba_rho_log_with_inset
+export -f aba_B_log_with_inset
 export -f aba_rho_B_log
 
 #main script starts
