@@ -65,6 +65,24 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell, uint map_order, const Real d
                                     intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
           phiprof::stop("compute-intersections");
           phiprof::start("compute-mapping");
+          map_1d(spatial_cell, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); /*< map along x*/
+          map_1d(spatial_cell, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); /*< map along y*/
+          map_1d(spatial_cell, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); /*< map along z*/
+          phiprof::stop("compute-mapping");
+          break;
+          
+       case 1:
+          phiprof::start("compute-intersections");
+          //Map order YZX
+          compute_intersections_1st(spatial_cell, bwd_transform, fwd_transform, 1,
+                                    intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
+          compute_intersections_2nd(spatial_cell, bwd_transform, fwd_transform, 2,
+                                    intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
+          compute_intersections_3rd(spatial_cell, bwd_transform, fwd_transform, 0,
+                                    intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
+
+          phiprof::stop("compute-intersections");
+          phiprof::start("compute-mapping");
           map_1d(spatial_cell, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); /*< map along y*/
           map_1d(spatial_cell, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); /*< map along z*/
           map_1d(spatial_cell, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); /*< map along x*/
