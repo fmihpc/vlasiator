@@ -257,10 +257,11 @@ int main(void) {
    
   /*initial values*/
   
-  Real intersection = v_min + 0.1*dv;
+  Real intersection = v_min - 0.1*dv;
   Real intersection_di = 0.025 * dv;
   Real intersection_dk = dv;
   Real intersection_dj = 0.0 * dv; //does not matter here, fixed j.
+
   
   const int iterations = 10000;
 
@@ -270,14 +271,23 @@ int main(void) {
   }
 
  /*Add square wave*/
- for(int i=0; i < blocks_per_dim * WID; i++){
-   Real v=v_min + i*dv;
-   if (v > v_min +  0.8 * (blocks_per_dim * WID * dv) & 
-       v < v_min +  0.9 * (blocks_per_dim * WID * dv)) {
-      values[i + WID] = Vec4(1.0);
-   }
- }
-
+/*
+  for(int i=0; i < blocks_per_dim * WID; i++){
+     Real v=v_min + i*dv;
+     if (v > v_min +  0.8 * (blocks_per_dim * WID * dv) & 
+         v < v_min +  0.9 * (blocks_per_dim * WID * dv)) {
+        values[i + WID] = Vec4(1.0);
+     }
+  }
+*/
+  Real T = 500000;
+  Real rho = 1.0e6;
+  for(int i=0; i < blocks_per_dim * WID; i++){
+     Real v=v_min + i*dv;
+     values[i + WID] = rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * T), 1.5) *
+        exp(- physicalconstants::MASS_PROTON * v * v / (2.0 * physicalconstants::K_B * T));
+  }
+     
 
  print_values(0,values,blocks_per_dim, v_min, dv);
  print_reconstruction(0, values, blocks_per_dim, v_min, dv,
