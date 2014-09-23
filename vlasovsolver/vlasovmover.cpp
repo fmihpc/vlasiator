@@ -278,8 +278,11 @@ void calculateAcceleration(
 #pragma omp parallel for schedule(dynamic,1)
    for (size_t c=0; c<propagatedCells.size(); ++c) {
       const CellID cellID = propagatedCells[c];
+      //generate pseudo-random order which is always the same irrespectiive of parallelization, restarts, etc
+      srand(P::tstep + cellID);
+      uint map_order=rand()%3;
       phiprof::start("cell-semilag-acc");
-      cpu_accelerate_cell(mpiGrid[cellID],dt);
+      cpu_accelerate_cell(mpiGrid[cellID],map_order,dt);
       phiprof::stop("cell-semilag-acc");
    }
    phiprof::stop("semilag-acc");
