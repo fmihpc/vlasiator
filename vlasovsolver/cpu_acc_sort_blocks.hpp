@@ -51,10 +51,10 @@ static void sort_blocklist_by_dimension( const SpatialCell* spatial_cell,
       //   block = x + y*x_max + z*y_max*x_max 
       //=> block' = block - (x + y*x_max) + y + x*y_max = x + y*x_max + z*y_max*x_max - (x + y*x_max) + y + x*y_max
       //          = y + x*y_max + z*y_max*x_max
-      const uint x_indice = block%SpatialCell::vx_length;
-      const uint y_indice = (block/SpatialCell::vx_length)%SpatialCell::vy_length;
+      const uint x_indice = block%SpatialCell::get_velocity_base_grid_length()[0];
+      const uint y_indice = (block/SpatialCell::get_velocity_base_grid_length()[0])%SpatialCell::SpatialCell::get_velocity_base_grid_length()[1];
       // Mapping the block id to different coordinate system if dimension is not zero:
-      const uint blockId_mapped = block - (x_indice + y_indice*SpatialCell::vx_length) + y_indice + x_indice * SpatialCell::vy_length;
+      const uint blockId_mapped = block - (x_indice + y_indice*SpatialCell::get_velocity_base_grid_length()[0]) + y_indice + x_indice * SpatialCell::SpatialCell::get_velocity_base_grid_length()[1];
       block_pairs[i] = make_pair( blockId_mapped, block );
       break;
       }
@@ -63,11 +63,11 @@ static void sort_blocklist_by_dimension( const SpatialCell* spatial_cell,
       // Do operation: 
       //   block = x + y*x_max + z*y_max*x_max 
       //=> block' = z + y*z_max + x*z_max*y_max
-      const uint x_indice = block%SpatialCell::vx_length;
-      const uint y_indice = (block/SpatialCell::vx_length)%SpatialCell::vy_length;
-      const uint z_indice =  (block/(SpatialCell::vx_length*SpatialCell::vy_length));
+      const uint x_indice = block%SpatialCell::get_velocity_base_grid_length()[0];
+      const uint y_indice = (block/SpatialCell::get_velocity_base_grid_length()[0])%SpatialCell::SpatialCell::get_velocity_base_grid_length()[1];
+      const uint z_indice =  (block/(SpatialCell::get_velocity_base_grid_length()[0]*SpatialCell::SpatialCell::get_velocity_base_grid_length()[1]));
       // Mapping the block id to different coordinate system if dimension is not zero:
-      const uint blockId_mapped = z_indice + y_indice * SpatialCell::vz_length + x_indice*SpatialCell::vy_length*SpatialCell::vz_length;
+      const uint blockId_mapped = z_indice + y_indice * SpatialCell::SpatialCell::get_velocity_base_grid_length()[2] + x_indice*SpatialCell::SpatialCell::get_velocity_base_grid_length()[1]*SpatialCell::SpatialCell::get_velocity_base_grid_length()[2];
       block_pairs[i] = make_pair( blockId_mapped, block );
       break;
       }
@@ -85,16 +85,16 @@ static void sort_blocklist_by_dimension( const SpatialCell* spatial_cell,
      blocks[i] = block_pairs[i].second;
      switch( dimension ) {
          case 0:
-            column_id = block_pairs[i].first / SpatialCell::vx_length;
-            dimension_id = block_pairs[i].first % SpatialCell::vx_length;
+            column_id = block_pairs[i].first / SpatialCell::get_velocity_base_grid_length()[0];
+            dimension_id = block_pairs[i].first % SpatialCell::get_velocity_base_grid_length()[0];
             break;
          case 1:
-            column_id = block_pairs[i].first / SpatialCell::vy_length;
-            dimension_id = block_pairs[i].first % SpatialCell::vy_length;            
+            column_id = block_pairs[i].first / SpatialCell::SpatialCell::get_velocity_base_grid_length()[1];
+            dimension_id = block_pairs[i].first % SpatialCell::SpatialCell::get_velocity_base_grid_length()[1];            
             break;
          case 2:
-            column_id = block_pairs[i].first / SpatialCell::vz_length;
-            dimension_id = block_pairs[i].first % SpatialCell::vz_length;            
+            column_id = block_pairs[i].first / SpatialCell::SpatialCell::get_velocity_base_grid_length()[2];
+            dimension_id = block_pairs[i].first % SpatialCell::SpatialCell::get_velocity_base_grid_length()[2];            
             break;
      }
      if ( i > 0 &&  ( column_id != prev_column_id || dimension_id != (prev_dimension_id + 1) )){

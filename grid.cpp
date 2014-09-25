@@ -61,8 +61,6 @@ void initializeGrid(
    } else {
       logFile << "\t Zoltan " << zoltanVersion << " initialized successfully" << std::endl << writeVerbose;
    }
-
-
    
    MPI_Comm comm = MPI_COMM_WORLD;
    int neighborhood_size = 2; // At least this needed by fieldsolver. It is also fine for vlasovsolver
@@ -142,13 +140,17 @@ void initializeGrid(
       //  -Perturbed fields and ion distribution function in non-sysboundary cells
       //    Each initialization has to be independent to avoid threading problems 
       vector<uint64_t> cells = mpiGrid.get_cells();
-#pragma omp parallel for schedule(dynamic)
+      
+      #pragma omp parallel for schedule(dynamic)
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
          project.setCellBackgroundField(cell);
-         if(cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
+         
+	 if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             project.setCell(cell);
+	 }
       }
+      
       //initial state for sys-boundary cells
       phiprof::stop("Apply initial state");
       phiprof::start("Apply system boundary conditions state");
@@ -157,6 +159,7 @@ void initializeGrid(
          exit(1);
       }      
       phiprof::stop("Apply system boundary conditions state");
+      
       adjustVelocityBlocks(mpiGrid); // do not initialize mover, mover has not yet been initialized here
       shrink_to_fit_grid_data(mpiGrid); //get rid of excess data already here
 
@@ -187,34 +190,30 @@ void initializeGrid(
 
 // initialize velocity grid of spatial cells before creating cells in dccrg.initialize
 void initVelocityGridGeometry(){
-  spatial_cell::SpatialCell::vx_length = P::vxblocks_ini;
-  spatial_cell::SpatialCell::vy_length = P::vyblocks_ini;
-  spatial_cell::SpatialCell::vz_length = P::vzblocks_ini;
-  spatial_cell::SpatialCell::max_velocity_blocks = 
-   spatial_cell::SpatialCell::vx_length * spatial_cell::SpatialCell::vy_length * spatial_cell::SpatialCell::vz_length;
-   spatial_cell::SpatialCell::vx_min = P::vxmin;
-   spatial_cell::SpatialCell::vx_max = P::vxmax;
-   spatial_cell::SpatialCell::vy_min = P::vymin;
-   spatial_cell::SpatialCell::vy_max = P::vymax;
-   spatial_cell::SpatialCell::vz_min = P::vzmin;
-   spatial_cell::SpatialCell::vz_max = P::vzmax;
-   spatial_cell::SpatialCell::grid_dvx = spatial_cell::SpatialCell::vx_max - spatial_cell::SpatialCell::vx_min;
-   spatial_cell::SpatialCell::grid_dvy = spatial_cell::SpatialCell::vy_max - spatial_cell::SpatialCell::vy_min;
-   spatial_cell::SpatialCell::grid_dvz = spatial_cell::SpatialCell::vz_max - spatial_cell::SpatialCell::vz_min;
-   spatial_cell::SpatialCell::block_dvx = spatial_cell::SpatialCell::grid_dvx / spatial_cell::SpatialCell::vx_length;
-   spatial_cell::SpatialCell::block_dvy = spatial_cell::SpatialCell::grid_dvy / spatial_cell::SpatialCell::vy_length;
-   spatial_cell::SpatialCell::block_dvz = spatial_cell::SpatialCell::grid_dvz / spatial_cell::SpatialCell::vz_length;
-   spatial_cell::SpatialCell::cell_dvx = spatial_cell::SpatialCell::block_dvx / block_vx_length;
-   spatial_cell::SpatialCell::cell_dvy = spatial_cell::SpatialCell::block_dvy / block_vy_length;
-   spatial_cell::SpatialCell::cell_dvz = spatial_cell::SpatialCell::block_dvz / block_vz_length;
-   spatial_cell::SpatialCell::velocity_block_min_value = P::sparseMinValue;
+   Real meshLimits[6];
+   meshLimits[0] = P::vxmin;
+   meshLimits[1] = P::vxmax;
+   meshLimits[2] = P::vymin;
+   meshLimits[3] = P::vymax;
+   meshLimits[4] = P::vzmin;
+   meshLimits[5] = P::vzmax;
+   
+   unsigned int gridLength[3];
+   gridLength[0] = P::vxblocks_ini;
+   gridLength[1] = P::vyblocks_ini;
+   gridLength[2] = P::vzblocks_ini;
+   
+   unsigned int blockLength[3];
+   blockLength[0] = block_vx_length;
+   blockLength[1] = block_vy_length;
+   blockLength[2] = block_vz_length;
+   
+   spatial_cell::SpatialCell::initialize_mesh(meshLimits,gridLength,blockLength,P::sparseMinValue);
 }
-
-
 
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    vector<uint64_t> cells = mpiGrid.get_cells();
-#pragma omp parallel for
+   #pragma omp parallel for
    for (uint i=0; i<cells.size(); ++i) {
       boost::array<double, 3> cell_min = mpiGrid.geometry.get_min(cells[i]);
       boost::array<double, 3> cell_length = mpiGrid.geometry.get_length(cells[i]);
@@ -227,10 +226,6 @@ void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       mpiGrid[cells[i]]->parameters[CellParams::DZ  ] = cell_length[2];
    }
 }
-
-
-   
-
 
 void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
 // tell other processes which velocity blocks exist in remote spatial cells

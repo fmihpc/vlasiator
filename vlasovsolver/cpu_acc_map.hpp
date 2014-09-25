@@ -122,6 +122,7 @@ bool map_1d(SpatialCell* spatial_cell,
       spatial_cell->block_fx[cell] = spatial_cell->block_data[cell];
       spatial_cell->block_data[cell] = 0.0;
    }
+
    Real dv,v_min;
    Real is_temp;
    uint max_v_length;
@@ -131,17 +132,20 @@ bool map_1d(SpatialCell* spatial_cell,
        case 0:
           /* i and k coordinates have been swapped*/
           /*set cell size in dimension direction*/
-          dv=SpatialCell::cell_dvx; 
-          v_min=SpatialCell::vx_min;
-          max_v_length = SpatialCell::vx_length;
+          dv=SpatialCell::get_velocity_base_grid_cell_size()[0]; 
+          v_min = SpatialCell::get_velocity_grid_min_limits()[0];
+          max_v_length = SpatialCell::get_velocity_base_grid_length()[0];
+
           /*swap intersection i and k coordinates*/
           is_temp=intersection_di;
           intersection_di=intersection_dk;
           intersection_dk=is_temp;
+      
           /*set values in array that is used to transfer blockindices to id using a dot product*/
-          block_indices_to_id[0]=SpatialCell::vx_length * SpatialCell::vy_length;
-          block_indices_to_id[1]=SpatialCell::vx_length;
+          block_indices_to_id[0]=SpatialCell::get_velocity_base_grid_length()[0] * SpatialCell::get_velocity_base_grid_length()[1];
+          block_indices_to_id[1]=SpatialCell::get_velocity_base_grid_length()[0];
           block_indices_to_id[2]=1;
+      
           /*set values in array that is used to transfer blockindices to id using a dot product*/
           cell_indices_to_id[0]=WID2;
           cell_indices_to_id[1]=WID;
@@ -150,17 +154,19 @@ bool map_1d(SpatialCell* spatial_cell,
        case 1:
           /* j and k coordinates have been swapped*/
           /*set cell size in dimension direction*/
-          dv=SpatialCell::cell_dvy;
-          v_min=SpatialCell::vy_min;
-          max_v_length = SpatialCell::vy_length;
+          dv=SpatialCell::get_velocity_base_grid_cell_size()[1];
+          v_min = SpatialCell::get_velocity_grid_min_limits()[1];
+          max_v_length = SpatialCell::get_velocity_base_grid_length()[1];
+          
           /*swap intersection j and k coordinates*/
           is_temp=intersection_dj;
           intersection_dj=intersection_dk;
           intersection_dk=is_temp;
           /*set values in array that is used to transfer blockindices to id using a dot product*/
           block_indices_to_id[0]=1;
-          block_indices_to_id[1]=SpatialCell::vx_length * SpatialCell::vy_length;
-          block_indices_to_id[2]=SpatialCell::vx_length;
+          block_indices_to_id[1]=SpatialCell::get_velocity_base_grid_length()[0] * SpatialCell::get_velocity_base_grid_length()[1];
+          block_indices_to_id[2]=SpatialCell::get_velocity_base_grid_length()[0];
+      
           /*set values in array that is used to transfer blockindices to id using a dot product*/
           cell_indices_to_id[0]=1;
           cell_indices_to_id[1]=WID2;
@@ -168,13 +174,15 @@ bool map_1d(SpatialCell* spatial_cell,
           break;
        case 2:
           /*set cell size in dimension direction*/
-          dv=SpatialCell::cell_dvz;
-          v_min=SpatialCell::vz_min;
-          max_v_length = SpatialCell::vz_length;
+          dv=SpatialCell::get_velocity_base_grid_cell_size()[2];
+          v_min = SpatialCell::get_velocity_grid_min_limits()[2];
+          max_v_length = SpatialCell::get_velocity_base_grid_length()[2];
+          
           /*set values in array that is used to transfer blockindices to id using a dot product*/
           block_indices_to_id[0]=1;
-          block_indices_to_id[1]=SpatialCell::vx_length;
-          block_indices_to_id[2]=SpatialCell::vx_length * SpatialCell::vy_length;
+          block_indices_to_id[1]=SpatialCell::get_velocity_base_grid_length()[0];
+          block_indices_to_id[2]=SpatialCell::get_velocity_base_grid_length()[0] * SpatialCell::get_velocity_base_grid_length()[1];
+      
           /*set values in array that is used to transfer blockindices to id using a dot product*/
           cell_indices_to_id[0]=1;
           cell_indices_to_id[1]=WID;

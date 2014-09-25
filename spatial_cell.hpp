@@ -28,6 +28,9 @@ Copyright 2011 Finnish Meteorological Institute
 #include "common.h"
 #include "parameters.h"
 #include "definitions.h"
+
+#include "velocity_mesh_old.h"
+
 typedef Parameters P;
 
 // size of velocity blocks in velocity cells
@@ -66,10 +69,8 @@ as an index that would be outside of the velocity grid in this cell
 */
 #define error_velocity_block_index 0xFFFFFFFFu
 
-
-
 namespace spatial_cell {
-   //fixme namespaces in lower case
+   #warning FIXME: spatial_cell::Transfer namespace in lower case
    namespace Transfer {
       const uint64_t NONE                     = 0;
       const uint64_t CELL_PARAMETERS          = (1<<0);
@@ -111,50 +112,39 @@ namespace spatial_cell {
       | CELL_SYSBOUNDARYFLAG;
    }
 
+   #warning TODO: typedef unsigned int velocity_cell_t;
+   #warning TODO: typedef unsigned int velocity_block_t;
    
-/*!
-  Defines the indices of a velocity cell in a velocity block.
-  Indices start from 0 and the first value is the index in x direction.
-*/
-   typedef boost::array<unsigned int, 3> velocity_cell_indices_t;
-
-
+   typedef boost::array<unsigned int, 3> velocity_cell_indices_t;             /**< Defines the indices of a velocity cell in a velocity block.
+									       * Indices start from 0 and the first value is the index in x direction.
+									       * Note: these are the (i,j,k) indices of the cell within the block.
+									       * Valid values are ([0,block_vx_length[,[0,block_vy_length[,[0,block_vz_length[).*/
    
+   typedef boost::array<unsigned int, 3> velocity_block_indices_t;            /**< Defines the indices of a velocity block in the velocity grid.
+									       * Indices start from 0 and the first value is the index in x direction.
+									       * Note: these are the (i,j,k) indices of the block.
+									       * Valid values are ([0,vx_length[,[0,vy_length[,[0,vz_length[).*/
+
    class Velocity_Block {
    public:
-      // value of the distribution function
-      Realf *data;   
-      // spatial fluxes of this block
-      //fixme, fx could be called flux for leveque
-      Realf *fx;
-      /*block parameters (size, position in velocity space)*/
-      Real parameters[BlockParams::N_VELOCITY_BLOCK_PARAMS];
-      /*index in block_list vector*/
-      unsigned int block_list_index;
+      Realf* data;                                                            /**< Value of the distribution function.*/
+      #warning FIXME: Velocity_Block::fx could be called Velocity_Block::flux for leveque
+      Realf* fx;                                                              /**< Spatial fluxes of this block.*/
+      Real parameters[BlockParams::N_VELOCITY_BLOCK_PARAMS];                  /**< Block parameters (size, position in velocity space).*/
+      unsigned int block_list_index;                                          /**< Index in block_list vector.*/
+      
       /*!
         Sets data, derivatives and fluxes of this block to zero.
       */
-      void clear(void)
-         {
-            for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
-               this->data[i] = 0;
-            }
-            for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
-               this->fx[i] = 0;
-            }
-         }
-   
+      void clear(void) {
+	 for (unsigned int i=0; i<VELOCITY_BLOCK_LENGTH; ++i) {
+	    this->data[i] = 0;
+	 }
+	 for (unsigned int i=0; i<VELOCITY_BLOCK_LENGTH; ++i) {
+	    this->fx[i] = 0;
+	 }
+      }
    };
-
-/*!
-  Defines the indices of a velocity block in the velocity grid.
-  Indices start from 0 and the first value is the index in x direction.
-*/
-   typedef boost::array<unsigned int, 3> velocity_block_indices_t;
-
-// TODO: typedef unsigned int velocity_cell_t;
-// TODO: typedef unsigned int velocity_block_t;
-
 
    class SpatialCell {
    public:
@@ -168,11 +158,13 @@ namespace spatial_cell {
       bool is_null_block(Velocity_Block* block_ptr) const;
       size_t size(void) const;
 
-      static velocity_block_indices_t get_velocity_block_indices(const unsigned int block);
-      static unsigned int get_velocity_block(const velocity_block_indices_t indices);
+      static const unsigned int* get_velocity_base_grid_length();
+      static const Real* get_velocity_base_grid_block_size();
+      static const Real* get_velocity_base_grid_cell_size();
+      static velocity_block_indices_t get_velocity_block_indices(const unsigned int globalID);                             // OK
+      static unsigned int get_velocity_block(const velocity_block_indices_t indices);                                      // OK
       static unsigned int get_velocity_block(const Real vx,const Real vy,const Real vz);
-      unsigned int get_velocity_block_from_offsets(const unsigned int block,const int x_offset,
-						   const int y_offset,const int z_offset);
+      static void get_velocity_block_size(const unsigned int block,Real size[3]);
       static Real get_velocity_block_vx_min(const unsigned int block);
       static Real get_velocity_block_vx_max(const unsigned int block);
       static Real get_velocity_block_vy_min(const unsigned int block);
@@ -188,6 +180,8 @@ namespace spatial_cell {
       static Real get_velocity_cell_vy_max(const unsigned int velocity_block,const unsigned int velocity_cell);
       static Real get_velocity_cell_vz_min(const unsigned int velocity_block,const unsigned int velocity_cell);
       static Real get_velocity_cell_vz_max(const unsigned int velocity_block,const unsigned int velocity_cell);
+      static const Real* get_velocity_grid_min_limits();
+      static void initialize_mesh(Real v_limits[6],unsigned int meshSize[3],unsigned int blockSize[3],Real f_min);
 
       bool add_velocity_block(const unsigned int block);
       void adjustSingleCellVelocityBlocks();
@@ -196,6 +190,8 @@ namespace spatial_cell {
       bool compute_block_has_content(const unsigned int block) const;
       uint64_t get_cell_memory_capacity();
       uint64_t get_cell_memory_size();
+      unsigned int get_velocity_block_from_offsets(const unsigned int block,const int x_offset,
+						   const int y_offset,const int z_offset);
       void prepare_to_receive_blocks(void);
       void resize_block_data();
       void set_block_data_pointers(int block_index);
@@ -209,7 +205,7 @@ namespace spatial_cell {
       void increment_value(const unsigned int block,const unsigned int cell, const Real value);
       void set_value(const Real vx, const Real vy, const Real vz, const Realf value);
       void set_value(const unsigned int block,const unsigned int cell, const Realf value);
-      
+
       boost::tuple<void*, int, MPI_Datatype> get_mpi_datatype(const uint64_t cellID,const int sender_rank,const int receiver_rank,
 							      const bool receiving,const int neighborhood);
       static uint64_t get_mpi_transfer_type(void);
@@ -247,67 +243,61 @@ namespace spatial_cell {
       std::vector<unsigned int> velocity_block_with_no_content_list;          /**< List of existing cells with no content, only up-to-date after
 									       * call to update_has_content. This is also never transferred
 									       * over MPI, so is invalid on remote cells.*/
-      
-      
-      static unsigned int vx_length, vy_length, vz_length;                    /**< Size of the velocity grid in velocity blocks.*/
-      static Real vx_min, vx_max, vy_min, vy_max, vz_min, vz_max;             /**< Physical size of the velocity grid.*/
-      static unsigned int max_velocity_blocks;                                /**< Derived velocity grid parameters.*/
-      static Real grid_dvx, grid_dvy, grid_dvz;                               /**< Physical size of velocity grid.*/
-      static Real block_dvx, block_dvy, block_dvz;                            /**< Physical size of velocity blocks.*/
-      static Real cell_dvx, cell_dvy, cell_dvz;                               /**< Physical size of velocity cells.*/
+
+
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
       static Real velocity_block_min_value;                                   /**< Minimum value of distribution function in any phase space cell 
 									       * of a velocity block for the block to be considered to have content.*/
 
     private:
-      
-      SpatialCell & operator= (const SpatialCell&);
-      
+
+      SpatialCell& operator=(const SpatialCell&);
+
+      #warning FIXME: SpatialCell::initialized is set, but actually used for error checking.
       bool initialized;
       bool mpiTransferEnabled;
       Velocity_Block null_block;                                              /**< Used as a neighbour instead of blocks that don't
 									       * exist but would be inside of the velocity grid.
 									       * Neighbors that would be outside of the grid are always NULL.*/
       boost::unordered_map<unsigned int, Velocity_Block> velocity_blocks;     /**< Storage container for velocity blocks that exist in this cell.*/
+      vmesh::VelocityMesh<uint32_t,uint32_t> vmesh;
    };
 
    /****************************
     * Velocity block functions *
     ****************************/
 
+   inline const unsigned int* SpatialCell::get_velocity_base_grid_length() {
+      return vmesh::VelocityMesh<uint32_t,uint32_t>::getBaseGridLength();
+   }
+   
+   inline const Real* SpatialCell::get_velocity_base_grid_block_size() {
+      return vmesh::VelocityMesh<uint32_t,uint32_t>::getBaseGridBlockSize();
+   }
+
+   inline const Real* SpatialCell::get_velocity_base_grid_cell_size() {
+      return vmesh::VelocityMesh<uint32_t,uint32_t>::getBaseGridCellSize();
+   }
+   
    /*!
     Returns the indices of given velocity block
     */
    inline velocity_block_indices_t SpatialCell::get_velocity_block_indices(const unsigned int block) {
       velocity_block_indices_t indices;
-      
-      if (block >= SpatialCell::max_velocity_blocks) {
-	 indices[0] = indices[1] = indices[2] = error_velocity_block_index;
-      } else {
-	 indices[0] = block % SpatialCell::vx_length;
-	 indices[1] = (block / SpatialCell::vx_length) % SpatialCell::vy_length;
-	 indices[2] = block / (SpatialCell::vx_length * SpatialCell::vy_length);
-      }
-      
+      uint32_t refLevel;
+      vmesh::VelocityMesh<uint32_t,uint32_t>::getIndices(block,refLevel,indices[0],indices[1],indices[2]);
       return indices;
    }
-   
+
    /*!
     Returns the velocity block at given indices or error_velocity_block
     */
    inline unsigned int SpatialCell::get_velocity_block(const velocity_block_indices_t indices) {
-      if (indices[0] >= SpatialCell::vx_length
-	  || indices[1] >= SpatialCell::vy_length
-	  || indices[2] >= SpatialCell::vz_length) {
-	 return error_velocity_block;
-      }
-      
-      return indices[0]
-	+ indices[1] * SpatialCell::vx_length
-	+ indices[2] * SpatialCell::vx_length * SpatialCell::vy_length;
+      const uint32_t refLevel = 0;
+      return vmesh::VelocityMesh<uint32_t,uint32_t>::getGlobalID(refLevel,indices[0],indices[1],indices[2]);
    }
-   
+
    /*!
     Returns the velocity block at given location or
     error_velocity_block if outside of the velocity grid
@@ -317,100 +307,74 @@ namespace spatial_cell {
 						       const Real vy,
 						       const Real vz
 						      ) {
-      if (vx < SpatialCell::vx_min || vx >= SpatialCell::vx_max
-	  || vy < SpatialCell::vy_min || vy >= SpatialCell::vy_max
-             || vz < SpatialCell::vz_min || vz >= SpatialCell::vz_max) {
-	 return error_velocity_block;
-      }
-      
-      const velocity_block_indices_t indices = {{
-	 (unsigned int) floor((vx - SpatialCell::vx_min) / SpatialCell::block_dvx),
-	   (unsigned int) floor((vy - SpatialCell::vy_min) / SpatialCell::block_dvy),
-	   (unsigned int) floor((vz - SpatialCell::vz_min) / SpatialCell::block_dvz)
-      }};
-      
-      return SpatialCell::get_velocity_block(indices);
+      return vmesh::VelocityMesh<uint32_t,uint32_t>::getGlobalID(vx,vy,vz);
    }
-      
+
+   inline void SpatialCell::get_velocity_block_size(const unsigned int block,Real blockSize[3]) {
+      vmesh::VelocityMesh<uint32_t,uint32_t>::getBlockSize(block,blockSize);
+   }
+   
    /*!
     Returns the edge where given velocity block starts.
     */
    inline Real SpatialCell::get_velocity_block_vx_min(const unsigned int block) {
-      if (block == error_velocity_block) {
-	 return std::numeric_limits<Real>::quiet_NaN();
-      }
-      
-      if (block >= SpatialCell::max_velocity_blocks) {
-	 return std::numeric_limits<Real>::quiet_NaN();
-      }
-      
-      const velocity_block_indices_t indices = get_velocity_block_indices(block);
-      if (indices[0] == error_velocity_block_index) {
-	 return std::numeric_limits<Real>::quiet_NaN();
-      }
-      
-      return SpatialCell::vx_min + SpatialCell::block_dvx * indices[0];
+      Real coords[3];
+      vmesh::VelocityMesh<uint32_t,uint32_t>::getBlockCoordinates(block,coords);
+      return coords[0];
    }
 
    /*!
     Returns the edge where given velocity block ends.
     */
    inline Real SpatialCell::get_velocity_block_vx_max(const unsigned int block) {
-      return SpatialCell::get_velocity_block_vx_min(block) + SpatialCell::block_dvx;
+      Real coords[3];
+      vmesh::VelocityMesh<uint32_t,uint32_t>::getBlockCoordinates(block,coords);
+      
+      Real size[3];
+      vmesh::VelocityMesh<uint32_t,uint32_t>::getBlockSize(block,size);
+      return coords[0]+size[0];
    }
 
    /*!
     Returns the edge where given velocity block starts.
     */
    inline Real SpatialCell::get_velocity_block_vy_min(const unsigned int block) {
-      if (block == error_velocity_block) {
-	 return std::numeric_limits<Real>::quiet_NaN();
-      }
-      
-      if (block >= SpatialCell::max_velocity_blocks) {
-	 return std::numeric_limits<Real>::quiet_NaN();
-      }
-      
-      const velocity_block_indices_t indices = get_velocity_block_indices(block);
-      if (indices[1] == error_velocity_block_index) {
-	 return std::numeric_limits<Real>::quiet_NaN();
-      }
-      
-      return SpatialCell::vy_min + SpatialCell::block_dvy * indices[1];
+      Real coords[3];
+      vmesh::VelocityMesh<uint32_t,uint32_t>::getBlockCoordinates(block,coords);
+      return coords[1];
    }
 
    /*!
     Returns the edge where given velocity block ends.
     */
    inline Real SpatialCell::get_velocity_block_vy_max(const unsigned int block) {
-      return SpatialCell::get_velocity_block_vy_min(block) + SpatialCell::block_dvy;
+      Real coords[3];
+      vmesh::VelocityMesh<uint32_t,uint32_t>::getBlockCoordinates(block,coords);
+      
+      Real size[3];
+      vmesh::VelocityMesh<uint32_t,uint32_t>::getBlockSize(block,size);
+      return coords[1]+size[1];
    }
 
    /*!
     Returns the edge where given velocity block starts.
     */
    inline Real SpatialCell::get_velocity_block_vz_min(const unsigned int block) {
-      if (block == error_velocity_block) {
-	 return std::numeric_limits<Real>::quiet_NaN();
-      }
-      
-      if (block >= SpatialCell::max_velocity_blocks) {
-	 return std::numeric_limits<Real>::quiet_NaN();
-      }
-      
-      const velocity_block_indices_t indices = get_velocity_block_indices(block);
-      if (indices[2] == error_velocity_block_index) {
-	 return std::numeric_limits<Real>::quiet_NaN();
-      }
-      
-      return SpatialCell::vz_min + SpatialCell::block_dvz * indices[2];
+      Real coords[3];
+      vmesh::VelocityMesh<uint32_t,uint32_t>::getBlockCoordinates(block,coords);
+      return coords[2];
    }
    
    /*!
     Returns the edge where given velocity block ends.
     */
    inline Real SpatialCell::get_velocity_block_vz_max(const unsigned int block) {
-      return SpatialCell::get_velocity_block_vz_min(block) + SpatialCell::block_dvz;
+      Real coords[3];
+      vmesh::VelocityMesh<uint32_t,uint32_t>::getBlockCoordinates(block,coords);
+      
+      Real size[3];
+      vmesh::VelocityMesh<uint32_t,uint32_t>::getBlockSize(block,size);
+      return coords[2]+size[2];
    }
 
       /***************************
@@ -523,7 +487,7 @@ namespace spatial_cell {
 
       return block_vx_min + (block_vx_max - block_vx_min) / block_vx_length * (indices[0] + 1);
    }
-   
+
    /*!
     Returns the edge where given velocity cell in the given velocity block starts.
     */
@@ -610,6 +574,15 @@ namespace spatial_cell {
       const Real block_vz_max = get_velocity_block_vz_max(velocity_block);
 
       return block_vz_min + (block_vz_max - block_vz_min) / block_vz_length * (indices[2] + 1);
+   }
+   
+   inline const Real* SpatialCell::get_velocity_grid_min_limits() {
+      return vmesh::VelocityMesh<uint32_t,uint32_t>::getMeshMinLimits();
+   }
+
+   inline void SpatialCell::initialize_mesh(Real v_limits[6],unsigned int meshSize[3],unsigned int blockSize[3],Real f_min) {
+      vmesh::VelocityMesh<uint32_t,uint32_t>::initialize(v_limits,meshSize,blockSize);
+      velocity_block_min_value = f_min;
    }
 
    inline SpatialCell::SpatialCell() {
@@ -704,10 +677,11 @@ namespace spatial_cell {
     */
    inline Velocity_Block* SpatialCell::at(const unsigned int block){
       // check if block cannot exist, non-allowed block index
-      if(block==error_velocity_block || block >= SpatialCell::max_velocity_blocks) {
+      #warning FIXME Replace getMaxVelocityBlocks() with a check if block exists
+      if (block==error_velocity_block || block >= vmesh::VelocityMesh<uint32_t,uint32_t>::getMaxVelocityBlocks()) {
 	 return &(this->null_block);
       }
-      
+
       boost::unordered_map<unsigned int, Velocity_Block>::iterator iter=this->velocity_blocks.find(block);
       //check if it exists in map
       if(iter == this->velocity_blocks.end()){
@@ -722,14 +696,15 @@ namespace spatial_cell {
     A const version of the non-const at function.
     */
    inline Velocity_Block const* SpatialCell::at(const unsigned int block) const {
-      //  check if block cannot exist, non-allowed block inde        x
-      if(block==error_velocity_block || block >= SpatialCell::max_velocity_blocks) {
+      //  check if block cannot exist, non-allowed block index
+      #warning FIXME Replace getMaxVelocityBlocks() with a check if block exists
+      if(block==error_velocity_block || block >= vmesh::VelocityMesh<uint32_t,uint32_t>::getMaxVelocityBlocks()) {
 	 return &(this->null_block);
       }
-      
+
       boost::unordered_map<unsigned int, Velocity_Block>::const_iterator iter=this->velocity_blocks.find(block);
       //check if it exists in map
-      if(iter == this->velocity_blocks.end()){
+      if (iter == this->velocity_blocks.end()){
 	 return &(this->null_block);
       } else {
 	 return &(iter->second);
@@ -737,9 +712,9 @@ namespace spatial_cell {
    }
 
    inline bool SpatialCell::is_null_block(Velocity_Block* block_ptr) const {
-      return (block_ptr== &(this->null_block)|| block_ptr==NULL);
+      return (block_ptr== &(this->null_block) || block_ptr==NULL);
    }
-   
+
    /*!
     Returns the number of given velocity blocks that exist.
     */
@@ -781,63 +756,63 @@ namespace spatial_cell {
 
 //TODO - thread safe set/increment functions which do not create blocks automatically
 
-      /*! Sets the value of a particular cell in a block. The block is
-       *  created if it does not exist. This version is faster than
-       *  the velocity value based version.
-       *
-       * This function is not thread safe due to the creation of
-       * blocks.
-
-        \param block Block index of velocity-cell
-        \param cell  Cell index (0..WID3-1) of velocity-cell in block
-        \param value Value that is set for velocity-cell
-      */
+   /*! Sets the value of a particular cell in a block. The block is
+    *  created if it does not exist. This version is faster than
+    *  the velocity value based version.
+    *
+    * This function is not thread safe due to the creation of
+    * blocks.
+    * 
+    \param block Block index of velocity-cell
+    \param cell  Cell index (0..WID3-1) of velocity-cell in block
+    \param value Value that is set for velocity-cell
+    */
    inline void SpatialCell::set_value(const unsigned int block,const unsigned int cell, const Realf value) {
-            if (this->velocity_blocks.count(block) == 0) {
-               if (!this->add_velocity_block(block)) {
-                  std::cerr << "Couldn't add velocity block " << block << std::endl;
-                  abort();
-               }
-            }
-            Velocity_Block* block_ptr = &(this->velocity_blocks.at(block));
-            if (block_ptr == NULL) {
-               std::cerr << __FILE__ << ":" << __LINE__
-                  << " block_ptr == NULL" << std::endl;
-               abort();
-            }
-            block_ptr->data[cell] = value;
+      if (this->velocity_blocks.count(block) == 0) {
+	 if (!this->add_velocity_block(block)) {
+	    std::cerr << "Couldn't add velocity block " << block << std::endl;
+	    abort();
+	 }
+      }
+      Velocity_Block* block_ptr = &(this->velocity_blocks.at(block));
+      if (block_ptr == NULL) {
+	 std::cerr << __FILE__ << ":" << __LINE__
+	   << " block_ptr == NULL" << std::endl;
+	 abort();
+      }
+      block_ptr->data[cell] = value;
+   }
+   
+          
+   /*!
+    Increments the value of velocity cell at given coordinate-
+    * 
+    Creates the velocity block at given coordinates if it doesn't exist.
+    */
+   inline void SpatialCell::increment_value(const Real vx, const Real vy, const Real vz, const Realf value) {
+      const unsigned int block = get_velocity_block(vx, vy, vz);
+      if (this->velocity_blocks.count(block) == 0) {
+	 if (!this->add_velocity_block(block)) {
+	    std::cerr << "Couldn't add velocity block " << block << std::endl;
+	    abort();
+	 }
+      }
+      Velocity_Block* block_ptr = &(this->velocity_blocks.at(block));
+      if (block_ptr == NULL) {
+	 std::cerr << __FILE__ << ":" << __LINE__
+	   << " block_ptr == NULL" << std::endl;
+	 abort();
       }
       
-          
-      /*!
-        Increments the value of velocity cell at given coordinate-
-
-        Creates the velocity block at given coordinates if it doesn't exist.
-      */
-   inline void SpatialCell::increment_value(const Real vx, const Real vy, const Real vz, const Realf value) {
-            const unsigned int block = get_velocity_block(vx, vy, vz);
-            if (this->velocity_blocks.count(block) == 0) {
-               if (!this->add_velocity_block(block)) {
-                  std::cerr << "Couldn't add velocity block " << block << std::endl;
-                  abort();
-               }
-            }
-            Velocity_Block* block_ptr = &(this->velocity_blocks.at(block));
-            if (block_ptr == NULL) {
-               std::cerr << __FILE__ << ":" << __LINE__
-                  << " block_ptr == NULL" << std::endl;
-               abort();
-            }
-
-            const unsigned int cell = get_velocity_cell(block, vx, vy, vz);
-            block_ptr->data[cell] += value;
-      }
-
-      /*!
-        Increments the value of velocity cell at given index
-
-        Creates the velocity block if it doesn't exist.
-      */
+      const unsigned int cell = get_velocity_cell(block, vx, vy, vz);
+      block_ptr->data[cell] += value;
+   }
+   
+   /*!
+    Increments the value of velocity cell at given index
+    * 
+    Creates the velocity block if it doesn't exist.
+    */
    inline void SpatialCell::increment_value(const unsigned int block,const unsigned int cell, const Real value) {
       if (this->velocity_blocks.count(block) == 0) {
 	 if (!this->add_velocity_block(block)) {
@@ -879,18 +854,17 @@ namespace spatial_cell {
    
    /*! get mpi datatype for sending the cell data. */
    inline boost::tuple<void*, int, MPI_Datatype> SpatialCell::get_mpi_datatype(
-									const uint64_t cellID/*cell_id*/,
-									const int sender_rank/*sender*/,
-									const int receiver_rank/*receiver*/,
-									const bool receiving,
-									const int neighborhood) {
+									       const uint64_t cellID/*cell_id*/,
+									       const int sender_rank/*sender*/,
+									       const int receiver_rank/*receiver*/,
+									       const bool receiving,
+									       const int neighborhood) {
       std::vector<MPI_Aint> displacements;
       std::vector<int> block_lengths;
       unsigned int block_index = 0;
       
       /*create datatype for actual data if we are in the first two layers around a boundary, or if we send for thw whole system*/
       if(this->mpiTransferEnabled && (SpatialCell::mpiTransferAtSysBoundaries==false || this->sysBoundaryLayer ==1 || this->sysBoundaryLayer ==2 )) {
-	 
 	 //add data to send/recv to displacement and block length lists
 	 if((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE1)!=0){
 	    //first copy values in case this is the send operation
@@ -1019,7 +993,7 @@ namespace spatial_cell {
 	    displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHO_DT2]) - (uint8_t*) this);
 	    block_lengths.push_back(sizeof(Real) * 4);
 	 }
-            
+	 
 	 // send  spatial cell derivatives
 	 if ((SpatialCell::mpi_transfer_type & Transfer::CELL_DERIVATIVES)!=0){
 	    displacements.push_back((uint8_t*) &(this->derivatives[0]) - (uint8_t*) this);
@@ -1092,7 +1066,7 @@ namespace spatial_cell {
 	 datatype = MPI_BYTE;
       }
       
-      return  boost::make_tuple(address,count,datatype);
+      return boost::make_tuple(address,count,datatype);
    }
 
    /*!
@@ -1419,7 +1393,8 @@ namespace spatial_cell {
 	 return false;
       }
 
-      if (block >= SpatialCell::max_velocity_blocks) {
+      #warning FIXME Replace getMaxVelocityBlocks() with a check if block exists
+      if (block >= vmesh::VelocityMesh<uint32_t,uint32_t>::getMaxVelocityBlocks()) {
 	 return false;
       }
       //update number of blocks
@@ -1440,12 +1415,10 @@ namespace spatial_cell {
       block_ptr->parameters[BlockParams::VXCRD] = get_velocity_block_vx_min(block);
       block_ptr->parameters[BlockParams::VYCRD] = get_velocity_block_vy_min(block);
       block_ptr->parameters[BlockParams::VZCRD] = get_velocity_block_vz_min(block);
-      block_ptr->parameters[BlockParams::DVX] = SpatialCell::cell_dvx;
-      block_ptr->parameters[BlockParams::DVY] = SpatialCell::cell_dvy;
-      block_ptr->parameters[BlockParams::DVZ] = SpatialCell::cell_dvz;
+      vmesh::VelocityMesh<uint32_t,uint32_t>::getCellSize(block,&(block_ptr->parameters[BlockParams::DVX]));
       return true;
    }
-   
+
    /*!
     Removes given block from the velocity grid.
     Does nothing if given block doesn't exist.
@@ -1468,7 +1441,7 @@ namespace spatial_cell {
        */
       this->velocity_block_list[block_index] = this->velocity_block_list.back();
       this->velocity_block_list.pop_back(); //remove last item
-      
+
       //copy velocity block data to the removed blocks position in order to fill the hole
       for (unsigned int i=0;i<VELOCITY_BLOCK_LENGTH;i++){
 	 this->block_data[block_index*VELOCITY_BLOCK_LENGTH+i] = this->block_data[(this->number_of_blocks - 1)*VELOCITY_BLOCK_LENGTH+i];
@@ -1495,11 +1468,11 @@ namespace spatial_cell {
     the cell with empty blocks based on the new list
     */
    inline void SpatialCell::prepare_to_receive_blocks(void) {
-      // take copy of existing block  list so that we can safely loop over it while removing blocks
+      // Take copy of existing block list so that we can safely loop over it while removing blocks
       std::vector<unsigned int> old_block_list(&(this->velocity_block_list[0]),
 					       &(this->velocity_block_list[this->number_of_blocks]));
-      
-      //make set of  mpi block list to make element finding faster, use pointers as iterators
+
+      //make set of mpi block list to make element finding faster, use pointers as iterators
       std::set<unsigned int> mpi_velocity_block_set(&(this->mpi_velocity_block_list[0]),
 						    &(this->mpi_velocity_block_list[this->mpi_number_of_blocks]));
       

@@ -86,11 +86,12 @@ namespace projects {
       
       cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
       cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
-      
+
       this->setVelocitySpace(cell);
-      
+
       //let's get rid of blocks not fulfilling the criteria here to save memory.
       cell->adjustSingleCellVelocityBlocks();
+
       // Passing true for the doNotSkip argument as we want to calculate the moment no matter what when this function is called.
       calculateCellVelocityMoments(cell, true);
    }
@@ -101,9 +102,10 @@ namespace projects {
       for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
          for (uint jv=0; jv<P::vyblocks_ini; ++jv)
             for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
-               creal vx = P::vxmin + (iv+0.5) * SpatialCell::block_dvx; // vx-coordinate of the centre
-               creal vy = P::vymin + (jv+0.5) * SpatialCell::block_dvy; // vy-
-               creal vz = P::vzmin + (kv+0.5) * SpatialCell::block_dvz; // vz-
+	       creal vx = P::vxmin + (iv+0.5) * SpatialCell::get_velocity_base_grid_block_size()[0]; // vx-coordinate of the centre
+	       creal vy = P::vymin + (jv+0.5) * SpatialCell::get_velocity_base_grid_block_size()[1]; // vy-
+	       creal vz = P::vzmin + (kv+0.5) * SpatialCell::get_velocity_base_grid_block_size()[2];
+	       
                //FIXME, add_velocity_blocks should  not be needed as set_value handles it!!
                //FIXME,  We should get_velocity_block based on indices, not v
                cell->add_velocity_block(cell->get_velocity_block(vx, vy, vz));
@@ -115,15 +117,15 @@ namespace projects {
    
    void Project::setVelocitySpace(SpatialCell* cell) {
       vector<uint> blocksToInitialize = this->findBlocksToInitialize(cell);
-      
+
       for(uint i = 0; i < blocksToInitialize.size(); i++) {
          Velocity_Block* blockPtr = cell->at(blocksToInitialize.at(i));
          creal vxBlock = blockPtr->parameters[BlockParams::VXCRD];
          creal vyBlock = blockPtr->parameters[BlockParams::VYCRD];
          creal vzBlock = blockPtr->parameters[BlockParams::VZCRD];
-         creal dvxCell = SpatialCell::cell_dvx; // Size of one cell in a block in vx-direction
-         creal dvyCell = SpatialCell::cell_dvy; //                                vy
-         creal dvzCell = SpatialCell::cell_dvz; //                                vz
+	 creal dvxCell = blockPtr->parameters[BlockParams::DVX];
+	 creal dvyCell = blockPtr->parameters[BlockParams::DVY];
+	 creal dvzCell = blockPtr->parameters[BlockParams::DVZ];
          
          creal x = cell->parameters[CellParams::XCRD];
          creal y = cell->parameters[CellParams::YCRD];
@@ -159,7 +161,7 @@ namespace projects {
    }
 
    /*default one does not compute any parameters*/
-   void Project::calcCellParameters(Real* cellParams,creal& t) {}
+   void Project::calcCellParameters(Real* cellParams,creal& t) { }
    
    Real Project::calcPhaseSpaceDensity(
       creal& x, creal& y, creal& z,
@@ -214,13 +216,14 @@ namespace projects {
       const creal dx = cellParams[CellParams::DX];
       const creal dy = cellParams[CellParams::DY];
       const creal dz = cellParams[CellParams::DZ];
+      
       const CellID cellID = (int) ((x - Parameters::xmin) / dx) +
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
       setRandomSeed(cellID);
    }
 
-   
+
    
 Project* createProject() {
    if(Parameters::projectName == "Alfven") {

@@ -16,15 +16,15 @@ namespace projects {
       creal dy = cell->parameters[CellParams::DY];
       creal dz = cell->parameters[CellParams::DZ];
       
-      creal dvxCell = SpatialCell::cell_dvx; // Size of one cell in a block in vx-direction
-      creal dvyCell = SpatialCell::cell_dvy; //                                vy
-      creal dvzCell = SpatialCell::cell_dvz; //                                vz
-      creal dvxBlock = SpatialCell::block_dvx;
-      creal dvyBlock = SpatialCell::block_dvy;
-      creal dvzBlock = SpatialCell::block_dvz;
+      creal dvxCell = SpatialCell::get_velocity_base_grid_cell_size()[0];
+      creal dvyCell = SpatialCell::get_velocity_base_grid_cell_size()[1];
+      creal dvzCell = SpatialCell::get_velocity_base_grid_cell_size()[2];
+      creal dvxBlock = SpatialCell::get_velocity_base_grid_block_size()[0];
+      creal dvyBlock = SpatialCell::get_velocity_base_grid_block_size()[1];
+      creal dvzBlock = SpatialCell::get_velocity_base_grid_block_size()[2];
       
       const vector<std::array<Real, 3>> V0 = this->getV0(x+0.5*dx, y+0.5*dy, z+0.5*dz);
-      for(vector<std::array<Real, 3>>::const_iterator it = V0.begin(); it != V0.end(); it++) {
+      for (vector<std::array<Real, 3>>::const_iterator it = V0.begin(); it != V0.end(); it++) {
          // VX search
          search = true;
          counter = 0;
@@ -102,18 +102,18 @@ namespace projects {
                   creal vy = P::vymin + (jv+0.5) * dvyBlock; // vy-
                   creal vz = P::vzmin + (kv+0.5) * dvzBlock; // vz-
                   
-                  if((vx-it->at(0))*(vx-it->at(0)) + (vy-it->at(1))*(vy-it->at(1)) + (vz-it->at(2))*(vz-it->at(2)) < vRadiusSquared) {
+                  if ((vx-it->at(0))*(vx-it->at(0)) + (vy-it->at(1))*(vy-it->at(1)) + (vz-it->at(2))*(vz-it->at(2)) < vRadiusSquared) {
                      cell->add_velocity_block(cell->get_velocity_block(vx, vy, vz));
                      blocksToInitialize.insert(cell->get_velocity_block(vx, vy, vz));
                   }
          }
       }
-      
+
       vector<uint> returnVector;
-      for(set<uint>::const_iterator it = blocksToInitialize.begin(); it != blocksToInitialize.end(); it++) {
+      for (set<uint>::const_iterator it = blocksToInitialize.begin(); it != blocksToInitialize.end(); it++) {
          returnVector.push_back(*it);
       }
-      
+
       return returnVector;
    }
    

@@ -105,13 +105,14 @@ namespace SBC {
       vector<uint> blocksToInitialize;
       bool search = true;
       uint counter = 0;
-      
+
       while(search) {
          if(0.1 * P::sparseMinValue >
             maxwellianDistribution(
                rho,
                T,
-               counter*SpatialCell::block_dvx, 0.0, 0.0
+	       counter*SpatialCell::get_velocity_base_grid_block_size()[0], 0.0, 0.0
+				   
             )
             ||
             counter > P::vxblocks_ini
@@ -121,15 +122,16 @@ namespace SBC {
          counter++;
       }
       counter+=2;
-      Real vRadiusSquared = (Real)counter*(Real)counter*SpatialCell::block_dvx*SpatialCell::block_dvx;
+
+      Real vRadiusSquared = (Real)counter*(Real)counter*SpatialCell::get_velocity_base_grid_block_size()[0]*SpatialCell::get_velocity_base_grid_block_size()[0];
       
       for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
          for (uint jv=0; jv<P::vyblocks_ini; ++jv)
             for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
-               creal vx = P::vxmin + (iv+0.5) * SpatialCell::block_dvx; // vx-coordinate of the centre
-               creal vy = P::vymin + (jv+0.5) * SpatialCell::block_dvy; // vy-
-               creal vz = P::vzmin + (kv+0.5) * SpatialCell::block_dvz; // vz-
-               
+	       creal vx = P::vxmin + (iv+0.5) * SpatialCell::get_velocity_base_grid_block_size()[0]; // vx-coordinate of the centre
+	       creal vy = P::vymin + (jv+0.5) * SpatialCell::get_velocity_base_grid_block_size()[1]; // vy-
+	       creal vz = P::vzmin + (kv+0.5) * SpatialCell::get_velocity_base_grid_block_size()[2]; // vz-
+
                if((vx-VX0)*(vx-VX0) + (vy-VY0)*(vy-VY0) + (vz-VZ0)*(vz-VZ0) < vRadiusSquared) {
                   cell.add_velocity_block(cell.get_velocity_block(vx, vy, vz));
                   blocksToInitialize.push_back(cell.get_velocity_block(vx, vy, vz));
@@ -182,9 +184,9 @@ namespace SBC {
          creal vxBlock = blockPtr->parameters[BlockParams::VXCRD];
          creal vyBlock = blockPtr->parameters[BlockParams::VYCRD];
          creal vzBlock = blockPtr->parameters[BlockParams::VZCRD];
-         creal dvxCell = SpatialCell::cell_dvx; // Size of one cell in a block in vx-direction
-         creal dvyCell = SpatialCell::cell_dvy; //                                vy
-         creal dvzCell = SpatialCell::cell_dvz; //                                vz
+	 creal dvxCell = blockPtr->parameters[BlockParams::DVX];
+	 creal dvyCell = blockPtr->parameters[BlockParams::DVY];
+	 creal dvzCell = blockPtr->parameters[BlockParams::DVZ];
          
          creal x = templateCell.parameters[CellParams::XCRD];
          creal y = templateCell.parameters[CellParams::YCRD];

@@ -424,17 +424,19 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    CellID source_neighbors[1 + 2 * TRANS_STENCIL_WIDTH];
    CellID target_neighbors[3];
    compute_spatial_source_neighbors(mpiGrid,cellID,dimension,source_neighbors);
-   compute_spatial_target_neighbors(mpiGrid,cellID,dimension,target_neighbors); 
+   compute_spatial_target_neighbors(mpiGrid,cellID,dimension,target_neighbors);
+
    /*set cell size in dimension direction*/  
    switch (dimension){
        case 0:
           dz = P::dx_ini;
           z_min = P::xmin;
-          dvz = SpatialCell::cell_dvx;
-          vz_min = SpatialCell::vx_min;
-          block_indices_to_id[0]=SpatialCell::vx_length * SpatialCell::vy_length;
-          block_indices_to_id[1]=SpatialCell::vx_length;
+          dvz = SpatialCell::get_velocity_base_grid_cell_size()[0];
+          vz_min = SpatialCell::get_velocity_grid_min_limits()[0];
+          block_indices_to_id[0]=SpatialCell::get_velocity_base_grid_length()[0]*SpatialCell::get_velocity_base_grid_length()[1];
+          block_indices_to_id[1]=SpatialCell::get_velocity_base_grid_length()[0];
           block_indices_to_id[2]=1;
+      
           /*set values in array that is used to transfer blockindices to id using a dot product*/
           cell_indices_to_id[0]=WID2;
           cell_indices_to_id[1]=WID;
@@ -444,12 +446,14 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
        case 1:
           dz = P::dy_ini;
           z_min = P::ymin;
-          dvz = SpatialCell::cell_dvy;
-          vz_min = SpatialCell::vy_min;
+          dvz = SpatialCell::get_velocity_base_grid_cell_size()[1];
+          vz_min = SpatialCell::get_velocity_grid_min_limits()[1];
+      
           /*set values in array that is used to transfer blockindices to id using a dot product*/
           block_indices_to_id[0]=1;
-          block_indices_to_id[1]=SpatialCell::vx_length * SpatialCell::vy_length;
-          block_indices_to_id[2]=SpatialCell::vx_length;
+          block_indices_to_id[1]=SpatialCell::get_velocity_base_grid_length()[0]*SpatialCell::get_velocity_base_grid_length()[1];
+          block_indices_to_id[2]=SpatialCell::get_velocity_base_grid_length()[0];
+
           /*set values in array that is used to transfer blockindices to id using a dot product*/
           cell_indices_to_id[0]=1;
           cell_indices_to_id[1]=WID2;
@@ -459,12 +463,14 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
        case 2:
           dz = P::dz_ini;
           z_min = P::zmin;
-          dvz = SpatialCell::cell_dvz;
-          vz_min = SpatialCell::vz_min;
+          dvz = SpatialCell::get_velocity_base_grid_cell_size()[2];
+          vz_min = SpatialCell::get_velocity_grid_min_limits()[2];    
+      
           /*set values in array that is used to transfer blockindices to id using a dot product*/
           block_indices_to_id[0]=1;
-          block_indices_to_id[1]=SpatialCell::vx_length;
-          block_indices_to_id[2]=SpatialCell::vx_length * SpatialCell::vy_length;
+          block_indices_to_id[1]=SpatialCell::get_velocity_base_grid_length()[0];
+          block_indices_to_id[2]=SpatialCell::get_velocity_base_grid_length()[0]*SpatialCell::get_velocity_base_grid_length()[1];
+
           /*set values in array that is used to transfer blockindices to id using a dot product*/
           cell_indices_to_id[0]=1;
           cell_indices_to_id[1]=WID;
