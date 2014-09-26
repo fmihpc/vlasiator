@@ -32,7 +32,7 @@ static void sort_blocklist_by_dimension( const SpatialCell* spatial_cell,
                                          uint* blocks,
                                          std::vector<uint> & block_column_offsets,
                                          std::vector<uint> & block_column_lengths ) {
-   const uint nBlocks = spatial_cell->number_of_blocks; // Number of blocks
+   const uint nBlocks = spatial_cell->get_number_of_velocity_blocks(); // Number of blocks
   // Copy block data to vector
   vector<pair<uint, uint> > block_pairs;
   block_pairs.resize( nBlocks );

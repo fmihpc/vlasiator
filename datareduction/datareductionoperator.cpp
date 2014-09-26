@@ -346,7 +346,7 @@ namespace DRO {
    }
   
    bool Blocks::setSpatialCell(const SpatialCell* cell) {
-      nBlocks = cell->number_of_blocks;
+      nBlocks = cell->get_number_of_velocity_blocks();
       return true;
    }
    
@@ -375,7 +375,7 @@ namespace DRO {
          Real thread_nvy2_sum = 0.0;
          Real thread_nvz2_sum = 0.0;
          # pragma omp for
-         for(uint n=0; n<cell->number_of_blocks; n++) {
+         for(uint n=0; n<cell->get_number_of_velocity_blocks(); n++) {
             unsigned int blockId = cell->velocity_block_list[n];
             const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
             for (uint k=0; k<WID; ++k)
@@ -477,7 +477,7 @@ namespace DRO {
          Real thread_nvyvy_sum = 0.0;
          Real thread_nvzvz_sum = 0.0;
          # pragma omp for
-         for(uint n=0; n<cell->number_of_blocks; n++) {
+         for(uint n=0; n<cell->get_number_of_velocity_blocks(); n++) {
             unsigned int blockId = cell->velocity_block_list[n];
             const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
             for (uint k=0; k<WID; ++k)
@@ -544,7 +544,7 @@ namespace DRO {
          Real thread_nvzvx_sum = 0.0;
          Real thread_nvyvz_sum = 0.0;
          # pragma omp for
-         for(uint n=0; n<cell->number_of_blocks; n++) {
+         for(uint n=0; n<cell->get_number_of_velocity_blocks(); n++) {
             unsigned int blockId = cell->velocity_block_list[n];
             const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
             for (uint k=0; k<WID; ++k)
@@ -712,7 +712,7 @@ namespace DRO {
       {
          Real threadMax = std::numeric_limits<Real>::min();
          #pragma omp for
-         for(uint n=0; n<cell->number_of_blocks; n++) {
+         for(uint n=0; n<cell->get_number_of_velocity_blocks(); n++) {
             unsigned int blockId = cell->velocity_block_list[n];
             const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
             for (uint k=0; k<WID; ++k)
@@ -766,7 +766,7 @@ namespace DRO {
       {
          Real threadMin = std::numeric_limits<Real>::max();
          #pragma omp for
-         for(uint n=0; n<cell->number_of_blocks; n++) {
+         for(uint n=0; n<cell->get_number_of_velocity_blocks(); n++) {
             unsigned int blockId = cell->velocity_block_list[n];
             const Velocity_Block* block = cell->at(blockId); //returns a reference to block
             for (uint k=0; k<WID; ++k)
@@ -887,7 +887,7 @@ namespace DRO {
       {
          Real thread_n_sum = 0.0;
          # pragma omp for
-         for(uint n=0; n<cell->number_of_blocks; n++) {
+         for(uint n=0; n<cell->get_number_of_velocity_blocks(); n++) {
             const unsigned int blockId = cell->velocity_block_list[n];
             const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
             const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
@@ -927,7 +927,7 @@ namespace DRO {
          Real thread_nvy_sum = 0.0;
          Real thread_nvz_sum = 0.0;
          # pragma omp for
-         for(uint n=0; n<cell->number_of_blocks; n++) {
+         for(uint n=0; n<cell->get_number_of_velocity_blocks(); n++) {
             const unsigned int blockId = cell->velocity_block_list[n];
             const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
             const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ]; // Get the volume of a velocity cell
@@ -986,7 +986,7 @@ namespace DRO {
          Real thread_nvy2_sum = 0.0;
          Real thread_nvz2_sum = 0.0;
          # pragma omp for
-         for(uint n=0; n<cell->number_of_blocks; n++) {
+         for(uint n=0; n<cell->get_number_of_velocity_blocks(); n++) {
             unsigned int blockId = cell->velocity_block_list[n];
             const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
             const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
@@ -1036,7 +1036,7 @@ namespace DRO {
          Real thread_nvyvy_sum = 0.0;
          Real thread_nvzvz_sum = 0.0;
          # pragma omp for
-         for(uint n=0; n<cell->number_of_blocks; n++) {
+         for(uint n=0; n<cell->get_number_of_velocity_blocks(); n++) {
             unsigned int blockId = cell->velocity_block_list[n];
             const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
             const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];
@@ -1088,7 +1088,7 @@ namespace DRO {
          Real thread_nvzvx_sum = 0.0;
          Real thread_nvyvz_sum = 0.0;
          # pragma omp for
-         for(uint n=0; n<cell->number_of_blocks; n++) {
+         for(uint n=0; n<cell->get_number_of_velocity_blocks(); n++) {
             unsigned int blockId = cell->velocity_block_list[n];
             const Velocity_Block* block = cell->at(blockId); //returns a reference to block   
             const Real DV3 = block-> parameters[BlockParams::DVX] * block-> parameters[BlockParams::DVY] * block-> parameters[BlockParams::DVZ];

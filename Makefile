@@ -18,11 +18,11 @@ FIELDSOLVER ?= londrillo_delzanna
 # CXXFLAGS += -DFS_1ST_ORDER_TIME
 
 #also use papi to report memory consumption?
-CXXFLAGS += -DPAPI_MEM
+#CXXFLAGS += -DPAPI_MEM
 
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
-CXXFLAGS += -DUSE_JEMALLOC
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 #is profiling on?
 CXXFLAGS += -DPROFILE
@@ -107,28 +107,32 @@ LIBS += ${LIB_PAPI}
 DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h 
 
 # Define dependencies on all project files
+#DEPS_PROJECTS =	projects/project.h projects/project.cpp \
+#		projects/projectTriAxisSearch.h projects/projectTriAxisSearch.cpp \
+#		projects/Alfven/Alfven.h projects/Alfven/Alfven.cpp \
+#		projects/Diffusion/Diffusion.h projects/Diffusion/Diffusion.cpp \
+#		projects/Dispersion/Dispersion.h projects/Dispersion/Dispersion.cpp \
+#		projects/Firehose/Firehose.h projects/Firehose/Firehose.cpp \
+#		projects/Flowthrough/Flowthrough.h projects/Flowthrough/Flowthrough.cpp \
+#		projects/Fluctuations/Fluctuations.h projects/Fluctuations/Fluctuations.cpp \
+#		projects/Harris/Harris.h projects/Harris/Harris.cpp \
+#		projects/KHB/KHB.h projects/KHB/KHB.cpp \
+#		projects/Larmor/Larmor.h projects/Larmor/Larmor.cpp \
+#		projects/Magnetosphere/Magnetosphere.h projects/Magnetosphere/Magnetosphere.cpp\
+#		projects/MultiPeak/MultiPeak.h projects/MultiPeak/MultiPeak.cpp \
+#		projects/VelocityBox/VelocityBox.h projects/VelocityBox/VelocityBox.cpp \
+#		projects/Riemann1/Riemann1.h projects/Riemann1/Riemann1.cpp \
+#		projects/Shock/Shock.h projects/Shock/Shock.cpp \
+#		projects/Template/Template.h projects/Template/Template.cpp \
+#		projects/test_fp/test_fp.h projects/test_fp/test_fp.cpp \
+#		projects/testHall/testHall.h projects/testHall/testHall.cpp \
+#		projects/test_trans/test_trans.h projects/test_trans/test_trans.cpp \
+#		projects/verificationLarmor/verificationLarmor.h projects/verificationLarmor/verificationLarmor.cpp \
+#               projects/Shocktest/Shocktest.h projects/Shocktest/Shocktest.cpp
+
 DEPS_PROJECTS =	projects/project.h projects/project.cpp \
-		projects/projectTriAxisSearch.h projects/projectTriAxisSearch.cpp \
-		projects/Alfven/Alfven.h projects/Alfven/Alfven.cpp \
-		projects/Diffusion/Diffusion.h projects/Diffusion/Diffusion.cpp \
-		projects/Dispersion/Dispersion.h projects/Dispersion/Dispersion.cpp \
-		projects/Firehose/Firehose.h projects/Firehose/Firehose.cpp \
-		projects/Flowthrough/Flowthrough.h projects/Flowthrough/Flowthrough.cpp \
-		projects/Fluctuations/Fluctuations.h projects/Fluctuations/Fluctuations.cpp \
-		projects/Harris/Harris.h projects/Harris/Harris.cpp \
-		projects/KHB/KHB.h projects/KHB/KHB.cpp \
-		projects/Larmor/Larmor.h projects/Larmor/Larmor.cpp \
-		projects/Magnetosphere/Magnetosphere.h projects/Magnetosphere/Magnetosphere.cpp\
-		projects/MultiPeak/MultiPeak.h projects/MultiPeak/MultiPeak.cpp \
-		projects/VelocityBox/VelocityBox.h projects/VelocityBox/VelocityBox.cpp \
-		projects/Riemann1/Riemann1.h projects/Riemann1/Riemann1.cpp \
-		projects/Shock/Shock.h projects/Shock/Shock.cpp \
-		projects/Template/Template.h projects/Template/Template.cpp \
-		projects/test_fp/test_fp.h projects/test_fp/test_fp.cpp \
-		projects/testHall/testHall.h projects/testHall/testHall.cpp \
-		projects/test_trans/test_trans.h projects/test_trans/test_trans.cpp \
-		projects/verificationLarmor/verificationLarmor.h projects/verificationLarmor/verificationLarmor.cpp \
-                projects/Shocktest/Shocktest.h projects/Shocktest/Shocktest.cpp
+		projects/MultiPeak/MultiPeak.h projects/MultiPeak/MultiPeak.cpp
+
 #all objects for vlasiator
 
 OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipole.o constantfield.o integratefunction.o \
@@ -245,7 +249,7 @@ Larmor.o: ${DEPS_COMMON} projects/Larmor/Larmor.h projects/Larmor/Larmor.cpp
 Magnetosphere.o: ${DEPS_COMMON} projects/Magnetosphere/Magnetosphere.h projects/Magnetosphere/Magnetosphere.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Magnetosphere/Magnetosphere.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
-MultiPeak.o: ${DEPS_COMMON} projects/MultiPeak/MultiPeak.h projects/MultiPeak/MultiPeak.cpp
+MultiPeak.o: ${DEPS_COMMON} projects/MultiPeak/MultiPeak.h projects/MultiPeak/MultiPeak.cpp projects/projectTriAxisSearch.h projects/projectTriAxisSearch.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/MultiPeak/MultiPeak.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 VelocityBox.o: ${DEPS_COMMON} projects/VelocityBox/VelocityBox.h projects/VelocityBox/VelocityBox.cpp
@@ -278,7 +282,7 @@ Shocktest.o: ${DEPS_COMMON} projects/Shocktest/Shocktest.h projects/Shocktest/Sh
 project.o: ${DEPS_COMMON} $(DEPS_PROJECTS)
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/project.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
-projectTriAxisSearch.o: ${DEPS_COMMON} $(DEPS_PROJECTS)
+projectTriAxisSearch.o: ${DEPS_COMMON} $(DEPS_PROJECTS) projects/projectTriAxisSearch.h projects/projectTriAxisSearch.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/projectTriAxisSearch.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 spatial_cell.o: spatial_cell.cpp spatial_cell.hpp

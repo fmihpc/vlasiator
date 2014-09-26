@@ -192,7 +192,7 @@ void calculateSpatialTranslation(
       
       //Reset spatial max DT
       SC->parameters[CellParams::MAXRDT]=numeric_limits<Real>::max();
-      for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+      for(unsigned int block_i=0; block_i< SC->get_number_of_velocity_blocks();block_i++){
          unsigned int block = SC->velocity_block_list[block_i];
          Velocity_Block* block_ptr = SC->at(block);
          const Real* const blockParams = block_ptr->parameters;
@@ -221,7 +221,7 @@ void calculateSpatialTranslation(
             );   //set first moments after translation
       }
       // Second iteration needed as rho has to be already computed when computing pressure
-      for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+      for(unsigned int block_i=0; block_i< SC->get_number_of_velocity_blocks();block_i++){
          unsigned int block = SC->velocity_block_list[block_i];
          //compute second moments for this block
          if(SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
@@ -267,7 +267,7 @@ void calculateAcceleration(
       //disregard boundary cells
       //do not integrate cells with no blocks  (well, do not computes in practice)
       if(SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY &&
-         SC->number_of_blocks != 0) {
+         SC->get_number_of_velocity_blocks() != 0) {
          propagatedCells.push_back(cells[c]);
       }
    }
@@ -297,7 +297,7 @@ void calculateAcceleration(
       mpiGrid[cellID]->parameters[CellParams::P_22_V] = 0.0;
       mpiGrid[cellID]->parameters[CellParams::P_33_V] = 0.0;
       
-      for(unsigned int block_i=0; block_i< mpiGrid[cellID]->number_of_blocks;block_i++){
+      for(unsigned int block_i=0; block_i< mpiGrid[cellID]->get_number_of_velocity_blocks();block_i++){
          unsigned int block = mpiGrid[cellID]->velocity_block_list[block_i];
          cpu_calcVelocityFirstMoments(
             mpiGrid[cellID],
@@ -309,7 +309,7 @@ void calculateAcceleration(
          );   //set first moments after acceleration
       }
       // Second iteration needed as rho has to be already computed when computing pressure
-      for(unsigned int block_i=0; block_i< mpiGrid[cellID]->number_of_blocks;block_i++){
+      for(unsigned int block_i=0; block_i< mpiGrid[cellID]->get_number_of_velocity_blocks();block_i++){
          unsigned int block = mpiGrid[cellID]->velocity_block_list[block_i];
          cpu_calcVelocitySecondMoments(
             mpiGrid[cellID],
@@ -391,7 +391,7 @@ void calculateCellVelocityMoments(
    SC->parameters[CellParams::P_33 ] = 0.0;
    // Iterate through all velocity blocks in this spatial cell
    // and calculate velocity moments:
-   for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+   for(unsigned int block_i=0; block_i< SC->get_number_of_velocity_blocks();block_i++){
       unsigned int block = SC->velocity_block_list[block_i];
       cpu_calcVelocityFirstMoments(
          SC,
@@ -403,7 +403,7 @@ void calculateCellVelocityMoments(
       );
    }
    // Second iteration needed as rho has to be already computed when computing pressure
-   for(unsigned int block_i=0; block_i< SC->number_of_blocks;block_i++){
+   for(unsigned int block_i=0; block_i< SC->get_number_of_velocity_blocks();block_i++){
       unsigned int block = SC->velocity_block_list[block_i];
       cpu_calcVelocitySecondMoments(
          SC,

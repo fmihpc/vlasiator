@@ -170,7 +170,7 @@ void initializeGrid(
       /*set initial LB metric based on number of blocks, all others
        * will be based on time spent in acceleration*/
       for (uint i=0; i<cells.size(); ++i) {
-         mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = mpiGrid[cells[i]]->number_of_blocks;
+         mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = mpiGrid[cells[i]]->get_number_of_velocity_blocks();
       }
    }
    //Balance load before we transfer all data below
@@ -245,7 +245,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
       if (P::propagateVlasovAcceleration) 
          mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
       else
-         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->number_of_blocks);
+         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->get_number_of_velocity_blocks());
       //reset counter
       mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0.0;
    }
@@ -402,7 +402,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
        neighbor_ptrs.push_back(mpiGrid[*neighbor_id]);
      }
      if(P::sparse_conserve_mass) {
-       for (unsigned int block_i = 0; block_i < cell->number_of_blocks; block_i++) {
+       for (unsigned int block_i = 0; block_i < cell->get_number_of_velocity_blocks(); block_i++) {
          Velocity_Block * block_ptr = cell->at(cell->velocity_block_list[block_i]);
          for(unsigned int cell_i = 0;cell_i<WID3;cell_i++){
             density_pre_adjust+=block_ptr->data[cell_i]; 
@@ -412,14 +412,14 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
      cell->adjust_velocity_blocks(neighbor_ptrs);
      
      if(P::sparse_conserve_mass) {
-       for (unsigned int block_i = 0; block_i < cell->number_of_blocks; block_i++) {
+       for (unsigned int block_i = 0; block_i < cell->get_number_of_velocity_blocks(); block_i++) {
          Velocity_Block * block_ptr = cell->at(cell->velocity_block_list[block_i]);
          for(unsigned int cell_i = 0;cell_i<WID3;cell_i++){
             density_post_adjust+=block_ptr->data[cell_i]; 
          }
        }
        if(density_post_adjust!=0.0){
-         for (unsigned int block_i = 0; block_i < cell->number_of_blocks; block_i++) {
+         for (unsigned int block_i = 0; block_i < cell->get_number_of_velocity_blocks(); block_i++) {
             Velocity_Block * block_ptr = cell->at(cell->velocity_block_list[block_i]);
             for(unsigned int cell_i = 0;cell_i<WID3;cell_i++){
                block_ptr->data[cell_i]*=density_pre_adjust/density_post_adjust;                           

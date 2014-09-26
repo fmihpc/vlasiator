@@ -252,7 +252,7 @@ namespace SBC {
  * velocity_block_list while adding/removing blocks*/
             std::vector<uint> blocksToRemove;
             for(uint block_i=0;
-                block_i<to->number_of_blocks;
+                block_i<to->get_number_of_velocity_blocks();
                 block_i++) {
                cuint blockID=to->velocity_block_list[block_i];
                if(from->is_null_block(from->at(blockID))) {
@@ -271,7 +271,7 @@ namespace SBC {
          
             /*add blocks*/
             for(uint block_i=0;
-                block_i<from->number_of_blocks;
+                block_i<from->get_number_of_velocity_blocks();
                 block_i++) {
                cuint blockID = from->velocity_block_list[block_i];
 
@@ -285,7 +285,7 @@ namespace SBC {
          }
          else{
             //just copy data to existing blocks, no modification of to blocks allowed
-            for(uint block_i=0; block_i<to->number_of_blocks;block_i++) {
+            for(uint block_i=0; block_i<to->get_number_of_velocity_blocks();block_i++) {
                cuint blockID=to->velocity_block_list[block_i];
                const Velocity_Block* toBlock = to->at(blockID);
                const Velocity_Block* fromBlock = from->at(blockID);

@@ -483,7 +483,7 @@ int main(int argn,char* args[]) {
       
       //compute how many spatial cells we solve for this step
       computedCells=0;
-      for(uint i=0;i<cells.size();i++)  computedCells+=mpiGrid[cells[i]]->number_of_blocks*WID3;
+      for(uint i=0;i<cells.size();i++)  computedCells+=mpiGrid[cells[i]]->get_number_of_velocity_blocks()*WID3;
       computedTotalCells+=computedCells;
       
       //Check if dt needs to be changed, and propagate V back a half-step to change dt and set up new situation

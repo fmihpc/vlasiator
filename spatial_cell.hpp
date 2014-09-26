@@ -151,13 +151,10 @@ namespace spatial_cell {
       SpatialCell();
       SpatialCell(const SpatialCell& other);
 
-      Velocity_Block* at(const unsigned int block);
-      Velocity_Block const* at(const unsigned int block) const;
-      Velocity_Block* at_fast(const unsigned int block);
-      size_t count(const unsigned int block) const;
-      bool is_null_block(Velocity_Block* block_ptr) const;
-      size_t size(void) const;
-
+      // Following functions return velocity grid metadata //
+      Realf* get_data();
+      Realf* get_fx();
+      size_t get_number_of_velocity_blocks() const;
       static const unsigned int* get_velocity_base_grid_length();
       static const Real* get_velocity_base_grid_block_size();
       static const Real* get_velocity_base_grid_cell_size();
@@ -183,20 +180,27 @@ namespace spatial_cell {
       static const Real* get_velocity_grid_min_limits();
       static void initialize_mesh(Real v_limits[6],unsigned int meshSize[3],unsigned int blockSize[3],Real f_min);
 
+      // Following functions adjust velocity blocks stored on the cell //
       bool add_velocity_block(const unsigned int block);
       void adjustSingleCellVelocityBlocks();
       void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors, bool doDeleteEmptyBlocks=true);
+      Velocity_Block* at(const unsigned int block);
+      Velocity_Block const* at(const unsigned int block) const;
+      Velocity_Block* at_fast(const unsigned int block);
       void clear(void);
       bool compute_block_has_content(const unsigned int block) const;
+      size_t count(const unsigned int block) const;
       uint64_t get_cell_memory_capacity();
       uint64_t get_cell_memory_size();
       unsigned int get_velocity_block_from_offsets(const unsigned int block,const int x_offset,
 						   const int y_offset,const int z_offset);
+      bool is_null_block(Velocity_Block* block_ptr) const;
       void prepare_to_receive_blocks(void);
       void resize_block_data();
       void set_block_data_pointers(int block_index);
       void set_block_data_pointers(Velocity_Block* block_ptr,int block_index);
       bool shrink_to_fit();
+      size_t size(void) const;
       void update_velocity_block_content_lists(void);
       void remove_velocity_block(const unsigned int block);
       
@@ -206,16 +210,17 @@ namespace spatial_cell {
       void set_value(const Real vx, const Real vy, const Real vz, const Realf value);
       void set_value(const unsigned int block,const unsigned int cell, const Realf value);
 
+      
+      
+      // Following functions are related to MPI //
       boost::tuple<void*, int, MPI_Datatype> get_mpi_datatype(const uint64_t cellID,const int sender_rank,const int receiver_rank,
 							      const bool receiving,const int neighborhood);
       static uint64_t get_mpi_transfer_type(void);
       static void set_mpi_transfer_type(const uint64_t type,bool atSysBoundaries=false);
       void set_mpi_transfer_enabled(bool transferEnabled);
-
-      std::vector<Realf,aligned_allocator<Realf,64> > block_data;             /**< Vector for storing block data. We set pointers to this 
-									       * data storage in set_block_date_pointers().*/
-      std::vector<Realf,aligned_allocator<Realf,64> > block_fx;               /**< Vector for storing block data. We set pointers to this
-									       * data storage in set_block_date_pointers().*/
+      
+      
+      // Member variables //
       Real derivatives[fieldsolver::N_SPATIAL_CELL_DERIVATIVES];              /**< Derivatives of bulk variables in this spatial cell.*/
       Real derivativesBVOL[bvolderivatives::N_BVOL_DERIVATIVES];              /**< Derivatives of BVOL needed by the acceleration. 
 									       * Separate array because it does not need to be communicated.*/
@@ -231,7 +236,6 @@ namespace spatial_cell {
       Realf* neighbor_block_data;                                             /**< Pointers for translation operator. We can point to neighbor
 									       * cell block data. We do not allocate memory for the pointer.*/
       unsigned int neighbor_number_of_blocks;
-      unsigned int number_of_blocks;                                          /**< Number of blocks in cell (should be equal to velocity_block_list.size()).*/
       uint sysBoundaryFlag;                                                   /**< What type of system boundary does the cell belong to. 
 									       * Enumerated in the sysboundarytype namespace's enum.*/
       uint sysBoundaryLayer;                                                  /**< Layers counted from closest systemBoundary. If 0 then it has not 
@@ -251,12 +255,18 @@ namespace spatial_cell {
 									       * of a velocity block for the block to be considered to have content.*/
 
     private:
-
       SpatialCell& operator=(const SpatialCell&);
+
+      std::vector<Realf,aligned_allocator<Realf,64> > block_data;             /**< Vector for storing block data. We set pointers to this 
+									       * data storage in set_block_date_pointers().*/
+      std::vector<Realf,aligned_allocator<Realf,64> > block_fx;               /**< Vector for storing block data. We set pointers to this
+									       * data storage in set_block_date_pointers().*/
+
 
       #warning FIXME: SpatialCell::initialized is set, but actually used for error checking.
       bool initialized;
       bool mpiTransferEnabled;
+      unsigned int number_of_blocks;                                          /**< Number of blocks in cell (should be equal to velocity_block_list.size()).*/
       Velocity_Block null_block;                                              /**< Used as a neighbour instead of blocks that don't
 									       * exist but would be inside of the velocity grid.
 									       * Neighbors that would be outside of the grid are always NULL.*/
@@ -268,10 +278,22 @@ namespace spatial_cell {
     * Velocity block functions *
     ****************************/
 
+   inline Realf* SpatialCell::get_data() {
+      return block_data.data();
+   }
+
+   inline Realf* SpatialCell::get_fx() {
+      return block_fx.data();
+   }
+
+   inline size_t SpatialCell::get_number_of_velocity_blocks() const {
+      return number_of_blocks;
+   }
+
    inline const unsigned int* SpatialCell::get_velocity_base_grid_length() {
       return vmesh::VelocityMesh<uint32_t,uint32_t>::getBaseGridLength();
    }
-   
+
    inline const Real* SpatialCell::get_velocity_base_grid_block_size() {
       return vmesh::VelocityMesh<uint32_t,uint32_t>::getBaseGridBlockSize();
    }
@@ -279,7 +301,7 @@ namespace spatial_cell {
    inline const Real* SpatialCell::get_velocity_base_grid_cell_size() {
       return vmesh::VelocityMesh<uint32_t,uint32_t>::getBaseGridCellSize();
    }
-   
+
    /*!
     Returns the indices of given velocity block
     */
@@ -1165,21 +1187,21 @@ namespace spatial_cell {
      This function never decreases memory space. To do that one should
      call shrink_to_fit(!)
      
-   */   
-   inline void SpatialCell::resize_block_data(){
-         if((this->number_of_blocks+1)*VELOCITY_BLOCK_LENGTH >= this->block_data.size() ){
-            //resize so that free space is block_allocation_chunk blocks, and at least two in case of having zero blocks
-            int new_size = 2 + this->number_of_blocks * block_allocation_factor;
-            this->block_data.resize(new_size*VELOCITY_BLOCK_LENGTH);
-            this->block_fx.resize(new_size*VELOCITY_BLOCK_LENGTH);
-            
-            //fix block pointers if a reallocation occured
-            for(unsigned int block_index=0;block_index<this->number_of_blocks;block_index++){
-               set_block_data_pointers(block_index);
-            }
-         }
+   */
+   inline void SpatialCell::resize_block_data() {
+      if ((this->number_of_blocks+1)*VELOCITY_BLOCK_LENGTH >= this->block_data.size()){
+	 // Resize so that free space is block_allocation_chunk blocks, and at least two in case of having zero blocks
+	 int new_size = 2 + this->number_of_blocks * block_allocation_factor;
+	 this->block_data.resize(new_size*VELOCITY_BLOCK_LENGTH);
+	 this->block_fx.resize(new_size*VELOCITY_BLOCK_LENGTH);
+
+	 // Fix block pointers if a reallocation occured
+	 for (unsigned int block_index=0; block_index<this->number_of_blocks; ++block_index){
+	    set_block_data_pointers(block_index);
+	 }
       }
-      
+   }
+
    /*!
     Return the memory consumption in bytes as reported using the size()
     functions of the containers in spatial cell
@@ -1388,7 +1410,7 @@ namespace spatial_cell {
       if (this->velocity_blocks.count(block) > 0) {
 	 return true;
       }
-      
+
       if (block == error_velocity_block) {
 	 return false;
       }

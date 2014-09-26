@@ -343,10 +343,10 @@ bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 
    if(is_local && !is_boundary) {
 #pragma omp for nowait
-      for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->number_of_blocks; cell++) {
+      for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(); cell++) {
          //copy data to fx for solvers, and set data to zero as we will map new values there
-         spatial_cell->block_fx[cell] = spatial_cell->block_data[cell];
-         spatial_cell->block_data[cell] = 0.0;
+         spatial_cell->get_fx()[cell] = spatial_cell->get_data()[cell];
+         spatial_cell->get_data()[cell] = 0.0;
          return_value=true;
       }
       
@@ -355,30 +355,30 @@ bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    
    else if(!is_local && !is_boundary) {
 #pragma omp for nowait
-      for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->number_of_blocks; cell++) {
+      for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(); cell++) {
          //fx already up to date as we received to fx. data
          //needs to be reset as the updates we collect there will
          //be sent to other processes
-         spatial_cell->block_data[cell] = 0.0;
+         spatial_cell->get_data()[cell] = 0.0;
          return_value=true;
       }
    }
 
    else if(is_local && is_boundary) {
 #pragma omp for nowait
-      for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->number_of_blocks; cell++) {
+      for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(); cell++) {
          //data values are up to date, copy to fx for solvers. Do
          //not reset data as we will not propagate stuff there
-         spatial_cell->block_fx[cell] = spatial_cell->block_data[cell];
+         spatial_cell->get_fx()[cell] = spatial_cell->get_data()[cell];
          return_value=true;
       }
    }
    
    else if(!is_local && is_boundary) {
 #pragma omp for nowait
-      for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->number_of_blocks; cell++) {
+      for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(); cell++) {
          //fx already up to date as we received to fx. We copy to data, even if this is not needed...
-         spatial_cell->block_data[cell] = spatial_cell->block_fx[cell];
+         spatial_cell->get_data()[cell] = spatial_cell->get_fx()[cell];
          return_value=true;
       }
    }
@@ -487,7 +487,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
   
    /*Loop over blocks in spatial cell. In ordinary space the number of
     * blocks in this spatial cell does not change*/
-   for (unsigned int block_i = 0; block_i < spatial_cell->number_of_blocks; block_i++) {
+   for (unsigned int block_i = 0; block_i < spatial_cell->get_number_of_velocity_blocks(); block_i++) {
       const unsigned int blockID = spatial_cell->velocity_block_list[block_i];
       if(blockID % num_threads != thread_id)
          continue; //Each thread only computes a certain non-overlapping subset of blocks
@@ -599,7 +599,7 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
    for (size_t c=0; c<remote_cells.size(); ++c) {
       SpatialCell *ccell = mpiGrid[remote_cells[c]];
       //default values, to avoid any extra sends and receives
-      ccell->neighbor_block_data = &(ccell->block_data[0]);
+      ccell->neighbor_block_data = &(ccell->get_data()[0]);
       ccell->neighbor_number_of_blocks = 0;
    }
    
@@ -607,7 +607,7 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
    for (size_t c=0; c<local_cells.size(); ++c) {
       SpatialCell *ccell = mpiGrid[local_cells[c]];
       //default values, to avoid any extra sends and receives
-      ccell->neighbor_block_data = &(ccell->block_data[0]);
+      ccell->neighbor_block_data = &(ccell->get_data()[0]);
       ccell->neighbor_number_of_blocks = 0;
       CellID p_ngbr,m_ngbr;
       
@@ -647,8 +647,8 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
          //mapped to if 1) it is a valid target,
          //2) is remote cell, 3) if the source cell in center was
          //translated
-         ccell->neighbor_block_data = &(pcell->block_data[0]);
-         ccell->neighbor_number_of_blocks = pcell->number_of_blocks;
+         ccell->neighbor_block_data = &(pcell->get_data()[0]);
+         ccell->neighbor_number_of_blocks = pcell->get_number_of_velocity_blocks();
          send_cells.push_back(p_ngbr);
       }
       
@@ -658,8 +658,8 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
          ){
          //Receive data that mcell mapped to ccell to this local cell
          //fx array, if 1) m is a valid source cell, 2) center cell is to be updated (normal cell) 3)  m is remote
-         mcell->neighbor_block_data = &(ccell->block_fx[0]);
-         mcell->neighbor_number_of_blocks = ccell->number_of_blocks;
+         mcell->neighbor_block_data = &(ccell->get_fx()[0]);
+         mcell->neighbor_number_of_blocks = ccell->get_number_of_velocity_blocks();
          receive_cells.push_back(local_cells[c]);
       }
 
@@ -689,9 +689,9 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
       for (size_t c=0; c < receive_cells.size(); ++c) {
          SpatialCell *spatial_cell = mpiGrid[receive_cells[c]];      
 #pragma omp for nowait
-         for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->number_of_blocks; cell++) {
+         for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(); cell++) {
             //copy data to fx for solvers, and set data to zero as we will map new values there
-            spatial_cell->block_data[cell] += spatial_cell->block_fx[cell];
+            spatial_cell->get_data()[cell] += spatial_cell->get_fx()[cell];
          }
       }
 
@@ -702,8 +702,8 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
       for (size_t c=0; c < send_cells.size(); ++c) {
          SpatialCell *spatial_cell = mpiGrid[send_cells[c]];      
 #pragma omp for nowait
-         for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->number_of_blocks; cell++) {
-            spatial_cell->block_data[cell] = 0.0;
+         for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(); cell++) {
+            spatial_cell->get_data()[cell] = 0.0;
          }
       }
    }

@@ -117,10 +117,10 @@ bool map_1d(SpatialCell* spatial_cell,
    /*
      Move densities from data to fx and clear data, to prepare for mapping
    */
-   for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->number_of_blocks; cell++) {
+   for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(); cell++) {
       //copy data to fx for solvers, and set data to zero as we will map new values there
-      spatial_cell->block_fx[cell] = spatial_cell->block_data[cell];
-      spatial_cell->block_data[cell] = 0.0;
+      spatial_cell->get_fx()[cell] = spatial_cell->get_data()[cell];
+      spatial_cell->get_data()[cell] = 0.0;
    }
 
    Real dv,v_min;
@@ -192,7 +192,7 @@ bool map_1d(SpatialCell* spatial_cell,
    const Real i_dv=1.0/dv;
 
    /*sort blocks according to dimension, and divide them into columns*/
-   uint* blocks=new uint[spatial_cell->number_of_blocks];
+   uint* blocks=new uint[spatial_cell->get_number_of_velocity_blocks()];
    std::vector<uint> block_column_offsets;
    std::vector<uint> block_column_lengths;
    sort_blocklist_by_dimension( spatial_cell, dimension, blocks, block_column_offsets, block_column_lengths);
