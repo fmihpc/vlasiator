@@ -50,7 +50,7 @@
     </Object>
     <Object name="Expression">
         <Field name="name" type="string">Vlat</Field>
-        <Field name="definition" type="string">acos(Vcrds[2]/Vrad)</Field>
+        <Field name="definition" type="string">"atan2(Vcrds[2], sqrt(Vcrds[0]^2 + Vcrds[1]^2))"</Field>
         <Field name="hidden" type="bool">false</Field>
         <Field name="type" type="string">ScalarMeshVar</Field>
         <Field name="fromDB" type="bool">false</Field>
@@ -62,7 +62,7 @@
     </Object>
     <Object name="Expression">
         <Field name="name" type="string">Vlondeg</Field>
-        <Field name="definition" type="string">Vlon*180/3.14159265</Field>
+        <Field name="definition" type="string">rad2deg(Vlon)</Field>
         <Field name="hidden" type="bool">false</Field>
         <Field name="type" type="string">ScalarMeshVar</Field>
         <Field name="fromDB" type="bool">false</Field>
@@ -74,7 +74,7 @@
     </Object>
     <Object name="Expression">
         <Field name="name" type="string">Vlatdeg</Field>
-        <Field name="definition" type="string">Vlat*180/3.14159265</Field>
+        <Field name="definition" type="string">rad2deg(Vlat)</Field>
         <Field name="hidden" type="bool">false</Field>
         <Field name="type" type="string">ScalarMeshVar</Field>
         <Field name="fromDB" type="bool">false</Field>
