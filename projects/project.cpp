@@ -95,7 +95,7 @@ namespace projects {
       // Passing true for the doNotSkip argument as we want to calculate the moment no matter what when this function is called.
       calculateCellVelocityMoments(cell, true);
    }
-   
+
    vector<uint> Project::findBlocksToInitialize(SpatialCell* cell) {
       vector<uint> blocksToInitialize;
       
@@ -105,7 +105,7 @@ namespace projects {
 	       creal vx = P::vxmin + (iv+0.5) * SpatialCell::get_velocity_base_grid_block_size()[0]; // vx-coordinate of the centre
 	       creal vy = P::vymin + (jv+0.5) * SpatialCell::get_velocity_base_grid_block_size()[1]; // vy-
 	       creal vz = P::vzmin + (kv+0.5) * SpatialCell::get_velocity_base_grid_block_size()[2];
-	       
+
                //FIXME, add_velocity_blocks should  not be needed as set_value handles it!!
                //FIXME,  We should get_velocity_block based on indices, not v
                cell->add_velocity_block(cell->get_velocity_block(vx, vy, vz));
@@ -117,23 +117,26 @@ namespace projects {
    
    void Project::setVelocitySpace(SpatialCell* cell) {
       vector<uint> blocksToInitialize = this->findBlocksToInitialize(cell);
+      Real* parameters = cell->get_block_parameters();
 
-      for(uint i = 0; i < blocksToInitialize.size(); i++) {
-         Velocity_Block* blockPtr = cell->at(blocksToInitialize.at(i));
-         creal vxBlock = blockPtr->parameters[BlockParams::VXCRD];
-         creal vyBlock = blockPtr->parameters[BlockParams::VYCRD];
-         creal vzBlock = blockPtr->parameters[BlockParams::VZCRD];
-	 creal dvxCell = blockPtr->parameters[BlockParams::DVX];
-	 creal dvyCell = blockPtr->parameters[BlockParams::DVY];
-	 creal dvzCell = blockPtr->parameters[BlockParams::DVZ];
-         
+      for (uint i=0; i<blocksToInitialize.size(); ++i) {
+	 const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
+	 const vmesh::LocalID blockLID = cell->get_velocity_block_local_id(blockGID);
+
+         creal vxBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD];
+         creal vyBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD];
+         creal vzBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD];
+	 creal dvxCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+	 creal dvyCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+	 creal dvzCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+
          creal x = cell->parameters[CellParams::XCRD];
          creal y = cell->parameters[CellParams::YCRD];
          creal z = cell->parameters[CellParams::ZCRD];
          creal dx = cell->parameters[CellParams::DX];
          creal dy = cell->parameters[CellParams::DY];
          creal dz = cell->parameters[CellParams::DZ];
-         
+
          // Calculate volume average of distrib. function for each cell in the block.
          for (uint kc=0; kc<WID; ++kc) 
             for (uint jc=0; jc<WID; ++jc) 
@@ -147,8 +150,8 @@ namespace projects {
                      x, y, z, dx, dy, dz,
                      vxCell,vyCell,vzCell,
                      dvxCell,dvyCell,dvzCell);
-                  
-                  if(average!=0.0){
+
+                  if (average != 0.0){
                      //FIXME!!! set_value is slow as we again have to convert v -> index
                      // We should set_value to a specific block index (as we already have it!)
                      creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;

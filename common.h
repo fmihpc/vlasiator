@@ -38,7 +38,12 @@ void bailout(
    const int line
 );
 
-
+namespace vmesh {
+   typedef uint32_t GlobalID;
+   typedef uint32_t LocalID;
+   static const GlobalID INVALID_GLOBALID = std::numeric_limits<GlobalID>::max();
+   static const LocalID INVALID_LOCALID  = std::numeric_limits<LocalID>::max();
+}
 
 #define sqr(x) ((x)*(x))
 #define pow2(x) sqr(x)

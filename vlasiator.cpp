@@ -271,9 +271,8 @@ int main(int argn,char* args[]) {
       
       phiprof::stop("write-initial-state");
    }
-   
-   
-   if(P::dynamicTimestep && !P::isRestart) {
+
+   if (P::dynamicTimestep && !P::isRestart) {
       //compute vlasovsolver once with zero dt, this is to initialize
       //per-cell dt limits. In restarts, we read in dt from file
       phiprof::start("compute-dt");
@@ -293,13 +292,12 @@ int main(int argn,char* args[]) {
          P::dt=newDt;
       phiprof::stop("compute-dt");
    }
-   
-   
-   if(!P::isRestart) {
+
+   if (!P::isRestart) {
       //go forward by dt/2 in V, initializes leapfrog split. In restarts the
       //the distribution function is already propagated forward in time by dt/2
       phiprof::start("propagate-velocity-space-dt/2");
-      if(P::propagateVlasovAcceleration) {
+      if (P::propagateVlasovAcceleration) {
          calculateAcceleration(mpiGrid, 0.5*P::dt);
       } else {
          calculateAcceleration(mpiGrid, 0.0);
@@ -308,11 +306,7 @@ int main(int argn,char* args[]) {
       adjustVelocityBlocks(mpiGrid);
       addTimedBarrier("barrier-after-ad just-blocks");
    }
-
-   
-   
    phiprof::stop("Initialization");
-
 
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****

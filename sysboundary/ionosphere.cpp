@@ -538,14 +538,16 @@ namespace SBC {
       
       vector<uint> blocksToInitialize = this->findBlocksToInitialize(templateCell);
       
-      for(uint i = 0; i < blocksToInitialize.size(); i++) {
-         Velocity_Block* blockPtr = templateCell.at(blocksToInitialize.at(i));
-         creal vxBlock = blockPtr->parameters[BlockParams::VXCRD];
-         creal vyBlock = blockPtr->parameters[BlockParams::VYCRD];
-         creal vzBlock = blockPtr->parameters[BlockParams::VZCRD];
-	 creal dvxCell = blockPtr->parameters[BlockParams::DVX];
-	 creal dvyCell = blockPtr->parameters[BlockParams::DVY];
-	 creal dvzCell = blockPtr->parameters[BlockParams::DVZ];
+      for (uint i = 0; i < blocksToInitialize.size(); i++) {
+	 const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
+	 const vmesh::LocalID blockLID = templateCell.get_velocity_block_local_id(blockGID);
+	 const Real* block_parameters = templateCell.get_block_parameters(blockLID);
+         creal vxBlock = block_parameters[BlockParams::VXCRD];
+         creal vyBlock = block_parameters[BlockParams::VYCRD];
+         creal vzBlock = block_parameters[BlockParams::VZCRD];
+	 creal dvxCell = block_parameters[BlockParams::DVX];
+	 creal dvyCell = block_parameters[BlockParams::DVY];
+	 creal dvzCell = block_parameters[BlockParams::DVZ];
 
          creal x = templateCell.parameters[CellParams::XCRD];
          creal y = templateCell.parameters[CellParams::YCRD];

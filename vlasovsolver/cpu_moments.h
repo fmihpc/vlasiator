@@ -102,32 +102,32 @@ template<typename REAL> void cpu_blockVelocitySecondMoments(
 
 
 template<typename UINT> void cpu_calcVelocityFirstMoments(
-   SpatialCell *cell,
-   const UINT blockId,
-   const int cp_rho,
-   const int cp_rhovx,
-   const int cp_rhovy,
-   const int cp_rhovz
-) {
-   Velocity_Block* block=cell->at(blockId); //returns a reference to block
-   // Calculate velocity moments:
-   cpu_blockVelocityFirstMoments(block->data,block->parameters,cell->parameters,cp_rho,cp_rhovx,cp_rhovy,cp_rhovz);
+							  SpatialCell *cell,
+							  const UINT blockLID,
+							  const int cp_rho,
+							  const int cp_rhovx,
+							  const int cp_rhovy,
+							  const int cp_rhovz
+							 ) {
+   cpu_blockVelocityFirstMoments(cell->get_data(blockLID),
+				 cell->get_block_parameters(blockLID),
+				 cell->parameters,cp_rho,cp_rhovx,cp_rhovy,cp_rhovz);
 }
 
 template<typename UINT> void cpu_calcVelocitySecondMoments(
-   SpatialCell *cell,
-   const UINT blockId,
-   const int cp_rho,
-   const int cp_rhovx,
-   const int cp_rhovy,
-   const int cp_rhovz,
-   const int cp_p11,
-   const int cp_p22,
-   const int cp_p33
-) {
-   Velocity_Block* block=cell->at(blockId); //returns a reference to block
-   // Calculate velocity moments:
-   cpu_blockVelocitySecondMoments(block->data,block->parameters,cell->parameters,cp_rho,cp_rhovx,cp_rhovy,cp_rhovz,cp_p11,cp_p22,cp_p33);
+							   SpatialCell *cell,
+							   const UINT blockLID,
+							   const int cp_rho,
+							   const int cp_rhovx,
+							   const int cp_rhovy,
+							   const int cp_rhovz,
+							   const int cp_p11,
+							   const int cp_p22,
+							   const int cp_p33
+							  ) {
+   cpu_blockVelocitySecondMoments(cell->get_data(blockLID),
+				  cell->get_block_parameters(blockLID),
+				  cell->parameters,cp_rho,cp_rhovx,cp_rhovy,cp_rhovz,cp_p11,cp_p22,cp_p33);
 }
 
 #endif

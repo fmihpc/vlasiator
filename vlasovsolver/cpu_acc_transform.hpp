@@ -45,12 +45,9 @@ Transform<Real,3,Affine> compute_acceleration_transformation( SpatialCell* spati
    spatial_cell->parameters[CellParams::RHOVY_V] = 0.0;
    spatial_cell->parameters[CellParams::RHOVZ_V] = 0.0;
    
-   for(unsigned int block_i=0; block_i< spatial_cell->get_number_of_velocity_blocks();block_i++){
-      unsigned int block = spatial_cell->velocity_block_list[block_i];         
-      cpu_calcVelocityFirstMoments(spatial_cell,block,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V);   
+   for (vmesh::LocalID block_i=0; block_i<spatial_cell->get_number_of_velocity_blocks(); ++block_i) {
+      cpu_calcVelocityFirstMoments(spatial_cell,block_i,CellParams::RHO_V,CellParams::RHOVX_V,CellParams::RHOVY_V,CellParams::RHOVZ_V);
    }
-
-   
    
    const Real rho=spatial_cell->parameters[CellParams::RHO_V];
    //scale rho for hall term, if user requests

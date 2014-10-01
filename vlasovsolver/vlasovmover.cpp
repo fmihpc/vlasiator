@@ -192,10 +192,9 @@ void calculateSpatialTranslation(
       
       //Reset spatial max DT
       SC->parameters[CellParams::MAXRDT]=numeric_limits<Real>::max();
-      for(unsigned int block_i=0; block_i< SC->get_number_of_velocity_blocks();block_i++){
-         unsigned int block = SC->velocity_block_list[block_i];
-         Velocity_Block* block_ptr = SC->at(block);
-         const Real* const blockParams = block_ptr->parameters;
+      for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(); ++block_i) {
+	 const Real* const blockParams = SC->get_block_parameters(block_i);
+
          //compute maximum dt. Algorithm has a CFL condition, since it
          //is written only for the case where we have a stencil
          //supporting max translation of one cell
@@ -210,32 +209,31 @@ void calculateSpatialTranslation(
          }
          
          //compute first moments for this block
-         if(SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
+         if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
             cpu_calcVelocityFirstMoments(
-               SC,
-               block,
-               CellParams::RHO_R,
-               CellParams::RHOVX_R,
-               CellParams::RHOVY_R,
-               CellParams::RHOVZ_R
-            );   //set first moments after translation
+					 SC,
+					 block_i,			 
+					 CellParams::RHO_R,
+					 CellParams::RHOVX_R,
+					 CellParams::RHOVY_R,
+					 CellParams::RHOVZ_R
+					);   //set first moments after translation
       }
       // Second iteration needed as rho has to be already computed when computing pressure
-      for(unsigned int block_i=0; block_i< SC->get_number_of_velocity_blocks();block_i++){
-         unsigned int block = SC->velocity_block_list[block_i];
+      for (vmesh::LocalID block_i=0; block_i< SC->get_number_of_velocity_blocks(); ++block_i){
          //compute second moments for this block
-         if(SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
-            cpu_calcVelocitySecondMoments(
-               SC,
-               block,
-               CellParams::RHO_R,
-               CellParams::RHOVX_R,
-               CellParams::RHOVY_R,
-               CellParams::RHOVZ_R,
-               CellParams::P_11_R,
-               CellParams::P_22_R,
-               CellParams::P_33_R
-            );   //set second moments after translation
+         if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
+	   cpu_calcVelocitySecondMoments(
+					 SC,
+					 block_i,			  
+					 CellParams::RHO_R,
+					 CellParams::RHOVX_R,
+					 CellParams::RHOVY_R,
+					 CellParams::RHOVZ_R,
+					 CellParams::P_11_R,
+					 CellParams::P_22_R,
+					 CellParams::P_33_R
+					);   //set second moments after translation
       }
    }
    phiprof::stop("compute-moments-n-maxdt");
@@ -261,19 +259,18 @@ void calculateAcceleration(
    // volume) do not need to be propagated:
    
    
-//set initial cells to propagate
+   //set initial cells to propagate
    for (size_t c=0; c<cells.size(); ++c) {
       SpatialCell* SC = mpiGrid[cells[c]];
       //disregard boundary cells
       //do not integrate cells with no blocks  (well, do not computes in practice)
-      if(SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY &&
+      if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY &&
          SC->get_number_of_velocity_blocks() != 0) {
          propagatedCells.push_back(cells[c]);
       }
    }
-   
+
    //Semilagrangian acceleration
-   
    phiprof::start("semilag-acc");
 #pragma omp parallel for schedule(dynamic,1)
    for (size_t c=0; c<propagatedCells.size(); ++c) {
@@ -285,7 +282,7 @@ void calculateAcceleration(
    phiprof::stop("semilag-acc");
    
    phiprof::start("Compute moments");
-#pragma omp parallel for
+   #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       //compute moments after acceleration
@@ -297,45 +294,39 @@ void calculateAcceleration(
       mpiGrid[cellID]->parameters[CellParams::P_22_V] = 0.0;
       mpiGrid[cellID]->parameters[CellParams::P_33_V] = 0.0;
       
-      for(unsigned int block_i=0; block_i< mpiGrid[cellID]->get_number_of_velocity_blocks();block_i++){
-         unsigned int block = mpiGrid[cellID]->velocity_block_list[block_i];
+      for (vmesh::LocalID block_i=0; block_i<mpiGrid[cellID]->get_number_of_velocity_blocks(); ++block_i) {
          cpu_calcVelocityFirstMoments(
-            mpiGrid[cellID],
-            block,
-            CellParams::RHO_V,
-            CellParams::RHOVX_V,
-            CellParams::RHOVY_V,
-            CellParams::RHOVZ_V
-         );   //set first moments after acceleration
+				      mpiGrid[cellID],
+				      block_i,
+				      CellParams::RHO_V,
+				      CellParams::RHOVX_V,
+				      CellParams::RHOVY_V,
+				      CellParams::RHOVZ_V
+				     );   //set first moments after acceleration
       }
+
       // Second iteration needed as rho has to be already computed when computing pressure
-      for(unsigned int block_i=0; block_i< mpiGrid[cellID]->get_number_of_velocity_blocks();block_i++){
-         unsigned int block = mpiGrid[cellID]->velocity_block_list[block_i];
+      for (vmesh::LocalID block_i=0; block_i<mpiGrid[cellID]->get_number_of_velocity_blocks(); ++block_i) {
          cpu_calcVelocitySecondMoments(
-            mpiGrid[cellID],
-            block,
-            CellParams::RHO_V,
-            CellParams::RHOVX_V,
-            CellParams::RHOVY_V,
-            CellParams::RHOVZ_V,
-            CellParams::P_11_V,
-            CellParams::P_22_V,
-            CellParams::P_33_V
-         );   //set second moments after acceleration
+				       mpiGrid[cellID],
+				       block_i,
+				       CellParams::RHO_V,
+				       CellParams::RHOVX_V,
+				       CellParams::RHOVY_V,
+				       CellParams::RHOVZ_V,
+				       CellParams::P_11_V,
+				       CellParams::P_22_V,
+				       CellParams::P_33_V
+				      );   //set second moments after acceleration
       }
    }
    phiprof::stop("Compute moments");
 }
 
 
-
-
 /*--------------------------------------------------
   Functions for computing moments
   --------------------------------------------------*/
-
-
-
 
 void calculateInterpolatedVelocityMoments(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -391,34 +382,31 @@ void calculateCellVelocityMoments(
    SC->parameters[CellParams::P_33 ] = 0.0;
    // Iterate through all velocity blocks in this spatial cell
    // and calculate velocity moments:
-   for(unsigned int block_i=0; block_i< SC->get_number_of_velocity_blocks();block_i++){
-      unsigned int block = SC->velocity_block_list[block_i];
+   for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(); ++block_i) {
       cpu_calcVelocityFirstMoments(
-         SC,
-         block,
-         CellParams::RHO,
-         CellParams::RHOVX,
-         CellParams::RHOVY,
-         CellParams::RHOVZ
-      );
+				   SC,
+				   block_i,
+				   CellParams::RHO,
+				   CellParams::RHOVX,
+				   CellParams::RHOVY,
+				   CellParams::RHOVZ
+				  );
    }
    // Second iteration needed as rho has to be already computed when computing pressure
-   for(unsigned int block_i=0; block_i< SC->get_number_of_velocity_blocks();block_i++){
-      unsigned int block = SC->velocity_block_list[block_i];
+   for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(); ++block_i) {
       cpu_calcVelocitySecondMoments(
-         SC,
-         block,
-         CellParams::RHO,
-         CellParams::RHOVX,
-         CellParams::RHOVY,
-         CellParams::RHOVZ,
-         CellParams::P_11,
-         CellParams::P_22,
-         CellParams::P_33
-      );
+				    SC,
+				    block_i,
+				    CellParams::RHO,
+				    CellParams::RHOVX,
+				    CellParams::RHOVY,
+				    CellParams::RHOVZ,
+				    CellParams::P_11,
+				    CellParams::P_22,
+				    CellParams::P_33
+				   );
    }
 }
-
 
 void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    vector<CellID> cells;

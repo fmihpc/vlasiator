@@ -205,7 +205,10 @@ void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cart
  * then neighboring spatial cells (in the dimension). neighbors
  * generated with compute_spatial_neighbors_wboundcond)*/
 
-inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const CellID cellID, const CellID *source_neighbors, const uint blockID, Vec4* values, int dimension){
+inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+				  const CellID cellID,
+				  const CellID* source_neighbors,
+				  const vmesh::GlobalID blockGID,Vec4* values,int dimension) {
    uint cell_indices_to_id[3]={};
    switch (dimension){
        case 0:
@@ -227,8 +230,9 @@ inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesia
           break;
    }
    // Copy volume averages of this block from all spatial cells:
-   for(int b = -TRANS_STENCIL_WIDTH; b <= TRANS_STENCIL_WIDTH; b++){
-      Velocity_Block * block = mpiGrid[source_neighbors[b + TRANS_STENCIL_WIDTH]]->at(blockID);
+   for (int b = -TRANS_STENCIL_WIDTH; b <= TRANS_STENCIL_WIDTH; ++b) {
+      const vmesh::LocalID blockLID = mpiGrid[source_neighbors[b + TRANS_STENCIL_WIDTH]]->get_velocity_block_local_id(blockGID);
+      Realf* block_fx = mpiGrid[source_neighbors[b + TRANS_STENCIL_WIDTH]]->get_fx(blockLID);
       /* Copy fx table, spatial source_neighbors already taken care of when
        *   creating source_neighbors table. If a normal spatial cell does not
        *   simply have the block, its value will be its null_block which
@@ -242,7 +246,7 @@ inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesia
                   j * cell_indices_to_id[1] +
                   k * cell_indices_to_id[2];
                /*copy data, when reading data from fx we swap dimensions using cell_indices_to_id*/
-               values[i_trans_pblockv(b,j,k)].insert(i,(Real)block->fx[cell]);
+	       values[i_trans_pblockv(b,j,k)].insert(i,(Real)block_fx[cell]);
             }
          }
       }
@@ -263,7 +267,10 @@ inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesia
   k -> j
   
 */
-inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const CellID cellID, const CellID *target_neighbors, const uint blockID, Vec4 * __restrict__ target_values, int dimension){
+inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+				   const CellID cellID, const CellID *target_neighbors, 
+				   const vmesh::GlobalID blockGID,
+				   Vec4 * __restrict__ target_values,int dimension) {
    uint cell_indices_to_id[3];
   
    switch (dimension){
@@ -297,34 +304,34 @@ inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesi
 
    //Store volume averages in target blocks:
    for (int b=-1; b<=1; ++b) {
-      
       if (target_neighbors[b + 1] == INVALID_CELLID) {
          continue; //do not store to boundary cells or otherwise invalid cells
       }
       SpatialCell* spatial_cell = mpiGrid[target_neighbors[b + 1]];
-      Velocity_Block *block = spatial_cell->at(blockID);
-      if (spatial_cell->is_null_block(block)) {
-         /*block does not exist. If so, we do not create it and add stuff to it here. We
-          * have already created blocks around blocks with content in
-,          * spatial sense, so we have no need to create even more blocks here*/
-         /*TODO add loss counter*/
-         continue;
+      const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID);
+      if (blockLID == spatial_cell->invalid_local_id()) {
+	 // block does not exist. If so, we do not create it and add stuff to it here.
+	 // We have already created blocks around blocks with content in
+	 // spatial sense, so we have no need to create even more blocks here
+	 // TODO add loss counter
+	 continue;
       }
+
+      Realf* block_data = spatial_cell->get_data(blockLID);
       for (uint k=0; k<WID; ++k) {
          for (uint j=0; j<WID; ++j) {
             for (uint i=0; i<WID; ++i) {
                const uint cell =
-                  i * cell_indices_to_id[0] +
-                  j * cell_indices_to_id[1] +
-                  k * cell_indices_to_id[2];
+		 i * cell_indices_to_id[0] +
+		 j * cell_indices_to_id[1] +
+		 k * cell_indices_to_id[2];
                /*store data, when reading data from  data we swap dimensions using cell_indices_to_id*/
-               block->data[cell] += target_values[i_trans_ptblockv(b,j,k)][i];
+	       block_data[cell] += target_values[i_trans_ptblockv(b,j,k)][i];
             }
          }
       }
    }
 }
-
 
 /*
   For local cells that are not boundary cells  block data is copied from data to fx, and data is
@@ -487,22 +494,22 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
   
    /*Loop over blocks in spatial cell. In ordinary space the number of
     * blocks in this spatial cell does not change*/
-   for (unsigned int block_i = 0; block_i < spatial_cell->get_number_of_velocity_blocks(); block_i++) {
-      const unsigned int blockID = spatial_cell->velocity_block_list[block_i];
-      if(blockID % num_threads != thread_id)
-         continue; //Each thread only computes a certain non-overlapping subset of blocks
-      
-      Velocity_Block * __restrict__ block = spatial_cell->at(blockID);
-      
+   for (vmesh::LocalID block_i=0; block_i<spatial_cell->get_number_of_velocity_blocks(); ++block_i) {
+      const vmesh::GlobalID blockGID = spatial_cell->get_velocity_block_global_id(block_i);
+
+      //Each thread only computes a certain non-overlapping subset of blocks
+      if (blockGID % num_threads != thread_id) continue;
+
       /*buffer where we write data, initialized to 0*/
       Vec4 target_values[3 * WID2];
+
       //init target_values
-      for(uint i = 0; i < 3 * WID2; i++)
-         target_values[i] = Vec4(0.0, 0.0, 0.0, 0.0);
+      for (uint i = 0; i<3*WID2; ++i) target_values[i] = Vec4(0.0, 0.0, 0.0, 0.0);
+
       /*buffer where we read in source data. i index vectorized*/
       Vec4 values[(1 + 2 * TRANS_STENCIL_WIDTH) * WID3];
-      copy_trans_block_data(mpiGrid, cellID, source_neighbors, blockID, values, dimension);
-      velocity_block_indices_t block_indices=SpatialCell::get_velocity_block_indices(blockID);
+      copy_trans_block_data(mpiGrid, cellID, source_neighbors, blockGID, values, dimension);
+      velocity_block_indices_t block_indices = SpatialCell::get_velocity_block_indices(blockGID);
 
       /*i,j,k are now relative to the order in which we copied data to the values array. 
         After this point in the k,j,i loops there should be no branches based on dimensions
@@ -510,7 +517,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         Note that the i dimension is vectorized, and thus there are no loops over i
       */
     
-      for (uint k=0; k<WID; ++k){
+      for (uint k=0; k<WID; ++k) {
          const Real cell_vz = (block_indices[dimension] * WID + k + 0.5) * dvz + vz_min; //cell centered velocity
          const Real z_translation = cell_vz * dt * i_dz; // how much it moved in time dt (reduced units)
          const int target_scell_index = (z_translation > 0) ? 1: -1; //part of density goes here (cell index change along spatial direcion)
@@ -567,9 +574,9 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             target_values[i_trans_ptblockv(0,j,k)] +=  values[i_trans_pblockv(0,j,k)] - ngbr_target_density; //in the current original cells we will put the rest of the original density
          }
       }
-      
+
       //store values from target_values array to the actual blocks
-      store_trans_block_data(mpiGrid, cellID, target_neighbors, blockID,target_values,dimension);
+      store_trans_block_data(mpiGrid,cellID,target_neighbors,blockGID,target_values,dimension);
    }
 
    return true;
