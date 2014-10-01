@@ -108,31 +108,31 @@ DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h
 DEPS_CELL   = spatial_cell.hpp velocity_mesh_old.h velocity_block_container.h
 
 # Define dependencies on all project files
-#DEPS_PROJECTS =	projects/project.h projects/project.cpp \
-#		projects/projectTriAxisSearch.h projects/projectTriAxisSearch.cpp \
-#		projects/Alfven/Alfven.h projects/Alfven/Alfven.cpp \
-#		projects/Diffusion/Diffusion.h projects/Diffusion/Diffusion.cpp \
-#		projects/Dispersion/Dispersion.h projects/Dispersion/Dispersion.cpp \
-#		projects/Firehose/Firehose.h projects/Firehose/Firehose.cpp \
-#		projects/Flowthrough/Flowthrough.h projects/Flowthrough/Flowthrough.cpp \
-#		projects/Fluctuations/Fluctuations.h projects/Fluctuations/Fluctuations.cpp \
-#		projects/Harris/Harris.h projects/Harris/Harris.cpp \
-#		projects/KHB/KHB.h projects/KHB/KHB.cpp \
-#		projects/Larmor/Larmor.h projects/Larmor/Larmor.cpp \
-#		projects/Magnetosphere/Magnetosphere.h projects/Magnetosphere/Magnetosphere.cpp\
-#		projects/MultiPeak/MultiPeak.h projects/MultiPeak/MultiPeak.cpp \
-#		projects/VelocityBox/VelocityBox.h projects/VelocityBox/VelocityBox.cpp \
-#		projects/Riemann1/Riemann1.h projects/Riemann1/Riemann1.cpp \
-#		projects/Shock/Shock.h projects/Shock/Shock.cpp \
-#		projects/Template/Template.h projects/Template/Template.cpp \
-#		projects/test_fp/test_fp.h projects/test_fp/test_fp.cpp \
-#		projects/testHall/testHall.h projects/testHall/testHall.cpp \
-#		projects/test_trans/test_trans.h projects/test_trans/test_trans.cpp \
-#		projects/verificationLarmor/verificationLarmor.h projects/verificationLarmor/verificationLarmor.cpp \
-#               projects/Shocktest/Shocktest.h projects/Shocktest/Shocktest.cpp
-
 DEPS_PROJECTS =	projects/project.h projects/project.cpp \
-		projects/MultiPeak/MultiPeak.h projects/MultiPeak/MultiPeak.cpp ${DEPS_CELL}
+		projects/projectTriAxisSearch.h projects/projectTriAxisSearch.cpp \
+		projects/Alfven/Alfven.h projects/Alfven/Alfven.cpp \
+		projects/Diffusion/Diffusion.h projects/Diffusion/Diffusion.cpp \
+		projects/Dispersion/Dispersion.h projects/Dispersion/Dispersion.cpp \
+		projects/Firehose/Firehose.h projects/Firehose/Firehose.cpp \
+		projects/Flowthrough/Flowthrough.h projects/Flowthrough/Flowthrough.cpp \
+		projects/Fluctuations/Fluctuations.h projects/Fluctuations/Fluctuations.cpp \
+		projects/Harris/Harris.h projects/Harris/Harris.cpp \
+		projects/KHB/KHB.h projects/KHB/KHB.cpp \
+		projects/Larmor/Larmor.h projects/Larmor/Larmor.cpp \
+		projects/Magnetosphere/Magnetosphere.h projects/Magnetosphere/Magnetosphere.cpp\
+		projects/MultiPeak/MultiPeak.h projects/MultiPeak/MultiPeak.cpp \
+		projects/VelocityBox/VelocityBox.h projects/VelocityBox/VelocityBox.cpp \
+		projects/Riemann1/Riemann1.h projects/Riemann1/Riemann1.cpp \
+		projects/Shock/Shock.h projects/Shock/Shock.cpp \
+		projects/Template/Template.h projects/Template/Template.cpp \
+		projects/test_fp/test_fp.h projects/test_fp/test_fp.cpp \
+		projects/testHall/testHall.h projects/testHall/testHall.cpp \
+		projects/test_trans/test_trans.h projects/test_trans/test_trans.cpp \
+		projects/verificationLarmor/verificationLarmor.h projects/verificationLarmor/verificationLarmor.cpp \
+		projects/Shocktest/Shocktest.h projects/Shocktest/Shocktest.cpp ${DEPS_CELL}
+
+#DEPS_PROJECTS =	projects/project.h projects/project.cpp \
+#		projects/MultiPeak/MultiPeak.h projects/MultiPeak/MultiPeak.cpp ${DEPS_CELL}
 
 #all objects for vlasiator
 
