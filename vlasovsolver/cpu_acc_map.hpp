@@ -266,11 +266,11 @@ bool map_1d(SpatialCell* spatial_cell,
 #endif
 #ifdef ACC_SEMILAG_PPM
 	   Vec4 a[3];
-	   compute_ppm_coeff_explicit(values + i_pcolumnv(n_cblocks, -1, j, 0), h5, k + WID, a);
+	   compute_ppm_coeff_explicit(values + i_pcolumnv(n_cblocks, -1, j, 0), h6, k + WID, a);
 #endif
 #ifdef ACC_SEMILAG_PQM
 	   Vec4 a[5];
-	   compute_pqm_coeff_explicit(values + i_pcolumnv(n_cblocks, -1, j, 0), h5, dh5, k + WID, a);
+	   compute_pqm_coeff_explicit(values + i_pcolumnv(n_cblocks, -1, j, 0), h8, k + WID, a);
 #endif
 	   
 	   /*set the initial value for the integrand at the boundary at v = 0 (in reduced cell units), this will be shifted to target_density_1, see below*/
