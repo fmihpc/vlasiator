@@ -39,7 +39,7 @@ static void sort_blocklist_by_dimension( const SpatialCell* spatial_cell,
    for (vmesh::LocalID i = 0; i < nBlocks; ++i ) {
       const vmesh::GlobalID block = spatial_cell->get_velocity_block_global_id(i);
       switch( dimension ) {
-       case 0: 
+       case 0:
 	   {
 	      const vmesh::GlobalID blockId_mapped = block; // Mapping the block id to different coordinate system if dimension is not zero:
 	      block_pairs[i] = make_pair( blockId_mapped, block );
@@ -70,10 +70,6 @@ static void sort_blocklist_by_dimension( const SpatialCell* spatial_cell,
 	      const uint blockId_mapped = z_indice + y_indice * SpatialCell::SpatialCell::get_velocity_base_grid_length()[2] + x_indice*SpatialCell::SpatialCell::get_velocity_base_grid_length()[1]*SpatialCell::SpatialCell::get_velocity_base_grid_length()[2];
 	      block_pairs[i] = make_pair( blockId_mapped, block );
 	   }
-	 break;
-       default:
-	 std::cerr << "error in sort_blocklist_by_dimension" << std::endl;
-	 exit(1);
 	 break;
       }
    }

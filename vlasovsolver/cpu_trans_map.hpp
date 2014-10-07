@@ -231,8 +231,16 @@ inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesia
    }
    // Copy volume averages of this block from all spatial cells:
    for (int b = -TRANS_STENCIL_WIDTH; b <= TRANS_STENCIL_WIDTH; ++b) {
-      const vmesh::LocalID blockLID = mpiGrid[source_neighbors[b + TRANS_STENCIL_WIDTH]]->get_velocity_block_local_id(blockGID);
-      Realf* block_fx = mpiGrid[source_neighbors[b + TRANS_STENCIL_WIDTH]]->get_fx(blockLID);
+      const CellID srcCell = source_neighbors[b + TRANS_STENCIL_WIDTH];
+
+      Realf* block_fx;
+      const vmesh::LocalID blockLID = mpiGrid[srcCell]->get_velocity_block_local_id(blockGID);
+      if (blockLID == mpiGrid[srcCell]->invalid_local_id()) {
+	 block_fx = mpiGrid[srcCell]->null_block_fx;
+      } else {
+	 block_fx = mpiGrid[srcCell]->get_fx(blockLID);
+      }
+
       /* Copy fx table, spatial source_neighbors already taken care of when
        *   creating source_neighbors table. If a normal spatial cell does not
        *   simply have the block, its value will be its null_block which
@@ -346,22 +354,17 @@ bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    const bool is_boundary = (spatial_cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY);
    /*if the cell is remote, then we do no copy data to the fx table, it should already have been set there*/
    const bool is_local = mpiGrid.is_local(cellID);
-   
 
-   if(is_local && !is_boundary) {
-#pragma omp for nowait
+   if (is_local && !is_boundary) {
+      #pragma omp for nowait
       for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(); cell++) {
          //copy data to fx for solvers, and set data to zero as we will map new values there
          spatial_cell->get_fx()[cell] = spatial_cell->get_data()[cell];
          spatial_cell->get_data()[cell] = 0.0;
          return_value=true;
-      }
-      
-   }
-   
-   
-   else if(!is_local && !is_boundary) {
-#pragma omp for nowait
+      }      
+   } else if(!is_local && !is_boundary) {
+      #pragma omp for nowait
       for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(); cell++) {
          //fx already up to date as we received to fx. data
          //needs to be reset as the updates we collect there will
@@ -369,27 +372,23 @@ bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
          spatial_cell->get_data()[cell] = 0.0;
          return_value=true;
       }
-   }
-
-   else if(is_local && is_boundary) {
-#pragma omp for nowait
+   } else if(is_local && is_boundary) {
+      #pragma omp for nowait
       for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(); cell++) {
          //data values are up to date, copy to fx for solvers. Do
          //not reset data as we will not propagate stuff there
          spatial_cell->get_fx()[cell] = spatial_cell->get_data()[cell];
          return_value=true;
       }
-   }
-   
-   else if(!is_local && is_boundary) {
-#pragma omp for nowait
+   } else if(!is_local && is_boundary) {
+      #pragma omp for nowait
       for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(); cell++) {
          //fx already up to date as we received to fx. We copy to data, even if this is not needed...
          spatial_cell->get_data()[cell] = spatial_cell->get_fx()[cell];
          return_value=true;
       }
    }
-   
+
    return return_value;
 }
 
@@ -420,8 +419,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    num_threads = omp_get_num_threads(); 
    #endif
    //do nothing if it is not a normal cell, or a cell that is in the first boundary layer
-   if(get_spatial_neighbor(mpiGrid, cellID, true, 0, 0, 0) == INVALID_CELLID)
-     return true; 
+   if (get_spatial_neighbor(mpiGrid, cellID, true, 0, 0, 0) == INVALID_CELLID) return true; 
    
    /*compute spatial neighbors, separately for targets and source. In
     * source cells we have a wider stencil and take into account
@@ -491,7 +489,6 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    }
    const Real i_dz=1.0/dz;
 
-  
    /*Loop over blocks in spatial cell. In ordinary space the number of
     * blocks in this spatial cell does not change*/
    for (vmesh::LocalID block_i=0; block_i<spatial_cell->get_number_of_velocity_blocks(); ++block_i) {
@@ -511,12 +508,10 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       copy_trans_block_data(mpiGrid, cellID, source_neighbors, blockGID, values, dimension);
       velocity_block_indices_t block_indices = SpatialCell::get_velocity_block_indices(blockGID);
 
-      /*i,j,k are now relative to the order in which we copied data to the values array. 
-        After this point in the k,j,i loops there should be no branches based on dimensions
-      
-        Note that the i dimension is vectorized, and thus there are no loops over i
-      */
-    
+      //i,j,k are now relative to the order in which we copied data to the values array. 
+      //After this point in the k,j,i loops there should be no branches based on dimensions
+      //
+      //Note that the i dimension is vectorized, and thus there are no loops over i
       for (uint k=0; k<WID; ++k) {
          const Real cell_vz = (block_indices[dimension] * WID + k + 0.5) * dvz + vz_min; //cell centered velocity
          const Real z_translation = cell_vz * dt * i_dz; // how much it moved in time dt (reduced units)
@@ -537,7 +532,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          }
        
          for (uint j = 0; j < WID; ++j){ 
-            /*compute reconstruction*/
+            //compute reconstruction
 #ifdef TRANS_SEMILAG_PLM
             Vec4 a[3];
             compute_plm_coeff_explicit(values + i_trans_pblockv(-TRANS_STENCIL_WIDTH , j, k), TRANS_STENCIL_WIDTH, a);
@@ -674,7 +669,6 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
    //Do communication
    SpatialCell::set_mpi_transfer_type(Transfer::NEIGHBOR_VEL_BLOCK_FLUXES);
 
-   
    switch(dimension) {
        case 0:
           if(direction > 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_P_X_NEIGHBORHOOD_ID);  
