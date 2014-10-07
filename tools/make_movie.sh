@@ -130,13 +130,13 @@ movie_name=$4
 #All temporary files should be prefixed by makemovie_, these are all nuked when starting a new movie generation
 rm makemovie_*.png
 
-parallel  $frame_generator :::  $(seq $first_frame $last_frame) 
+parallel --progress $frame_generator :::  $(seq $first_frame $last_frame) 
 
 if [[ $# -eq 4 ]]
 then
 
 #    avconv -threads auto -f image2 -framerate 10  -i frame_%d.png  -pix_fmt yuv420p  -b 4000k  $movie_name
 #MAC safe movie
-    avconv -threads 8 -f  image2  -start_number $first_frame  -i makemovie_%d.png  -b 4000k -f mp4 -vcodec libx264  -pix_fmt yuv420p $movie_name
+    avconv -threads 8 -f  image2  -start_number $first_frame -i makemovie_%d.png  -b 4000k -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -f mp4 -vcodec libx264  -pix_fmt yuv420p $movie_name
 #    rm frame*.png
 fi
