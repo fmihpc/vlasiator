@@ -164,6 +164,7 @@ bool map_1d(SpatialCell* spatial_cell,
       is_temp=intersection_dj;
       intersection_dj=intersection_dk;
       intersection_dk=is_temp;
+      
       /*set values in array that is used to transfer blockindices to id using a dot product*/
       block_indices_to_id[0]=1;
       block_indices_to_id[1]=SpatialCell::get_velocity_base_grid_length()[0] * SpatialCell::get_velocity_base_grid_length()[1];
@@ -192,7 +193,7 @@ bool map_1d(SpatialCell* spatial_cell,
       break;
    }
    const Real i_dv=1.0/dv;
-
+   
    /*sort blocks according to dimension, and divide them into columns*/
    uint* blocks=new uint[spatial_cell->get_number_of_velocity_blocks()];
    std::vector<uint> block_column_offsets;
@@ -204,7 +205,7 @@ bool map_1d(SpatialCell* spatial_cell,
    /*these two temporary variables are used to optimize access to target cells*/
    uint previous_target_block = error_velocity_block;
    Realf *target_block_data = NULL;
-
+   
    /*loop over block columns*/
    for (vmesh::LocalID block_column_i=0; block_column_i<block_column_offsets.size(); ++block_column_i) {
       const vmesh::LocalID n_cblocks = block_column_lengths[block_column_i];
@@ -340,16 +341,19 @@ bool map_1d(SpatialCell* spatial_cell,
 
 	      //store values, one element at a time
 	      for (int target_i=0; target_i<4; ++target_i) {
-		 // tblock is the global ID of the target block
 		 const vmesh::GlobalID tblock = target_block[target_i];
 
 		 /*check that we are within sane limits. If gk is negative,
 		  * or above blocks_per_dim * blockcells_per_dim then we
 		  * are outside of the target grid.*/
 		 /*TODO, count losses if these are not fulfilled*/
-		 if (gk[target_i] >=0 && gk[target_i] < max_v_length * WID) {
+		 if (gk[target_i] >=0 && gk[target_i] < max_v_length * WID) {		    
 		    if (previous_target_block != tblock) {
+
+		       // BEGIN NOTE
+		       // The code inside this block is slower with the new AMR-related interface
 		       previous_target_block = tblock;
+
 		       //not the same block as last time, lets create it if we
 		       //need to and fetch its data array pointer and store it in target_block_data.
 		       if (spatial_cell->count(tblock) == 0) {
@@ -358,9 +362,11 @@ bool map_1d(SpatialCell* spatial_cell,
 			  spatial_cell->add_velocity_block(tblock);
 			  phiprof_assert(spatial_cell->count(tblock) != 0);
 		       }
-		       const vmesh::LocalID tblock_i = spatial_cell->get_velocity_block_local_id(tblock);
-		       target_block_data = spatial_cell->get_data(tblock_i);
+
+		       target_block_data = spatial_cell->get_data( spatial_cell->get_velocity_block_local_id(tblock) );
+		       // END NOTE
 		    }
+
 		    // do the conversion from Real to Realf here, faster than doing it in accumulation
 		    const Realf tval = target_density[target_i];
 		    const uint tcell = target_cell[target_i];

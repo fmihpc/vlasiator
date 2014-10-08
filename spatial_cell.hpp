@@ -1345,9 +1345,8 @@ namespace spatial_cell {
     of the velocity grid.
     */
    inline bool SpatialCell::add_velocity_block(const vmesh::GlobalID& block) {
-      if (block == error_velocity_block) {
-	 return false;
-      }
+      //if (count(block) > 0) return false;
+      //if (block == error_velocity_block) return false;
 
       // Block insert will fail, if the block already exists, or if 
       // there are too many blocks in the spatial cell
@@ -1355,6 +1354,7 @@ namespace spatial_cell {
       if (vmesh.push_back(block) == false) {
 	 return false;
       }
+
       const vmesh::LocalID VBC_LID = blockContainer.push_back();
 
       // Set block parameters:
@@ -1364,6 +1364,10 @@ namespace spatial_cell {
       parameters[BlockParams::VZCRD] = get_velocity_block_vz_min(block);
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getCellSize(block,&(parameters[BlockParams::DVX]));
 
+      // The following call 'should' be the fastest, but is actually 
+      // much slower that the parameter setting above
+      //vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getBlockInfo(block,get_block_parameters( blockContainer.push_back() ));
+      
       return success;
    }
 

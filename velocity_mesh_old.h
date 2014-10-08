@@ -31,6 +31,7 @@ namespace vmesh {
       static const Real* getBaseGridBlockSize();
       static const Real* getBaseGridCellSize();
       static bool getBlockCoordinates(const GID& globalID,Real coords[3]);
+      static void getBlockInfo(const GID& globalID,Real* array);
       static bool getBlockSize(const GID& globalID,Real size[3]);
       static bool getCellSize(const GID& globalID,Real size[3]);
 //      void     getChildren(const GlobalID& globalID,std::vector<GlobalID>& children);
@@ -180,6 +181,32 @@ namespace vmesh {
       coords[2] = meshMinLimits[2] + indices[2]*blockSize[2];
       return true;
    }
+   
+   template<typename GID,typename LID> inline
+   void VelocityMesh<GID,LID>::getBlockInfo(const GID& globalID,Real* array) {
+      #ifndef NDEBUG
+      if (globalID == invalidGlobalID()) {
+	 for (int i=0; i<6; ++i) array[i] = std::numeric_limits<Real>::infinity();
+      }
+      #endif
+
+      LID indices[3];
+      indices[0] = globalID % gridLength[0];
+      indices[1] = (globalID / gridLength[0]) % gridLength[1];
+      indices[2] = globalID / (gridLength[0] * gridLength[1]);
+
+      // Indices 0-2 contain coordinates of the lower left corner.
+      // The values are the same as if getBlockCoordinates(globalID,&(array[0])) was called
+      array[0] = meshMinLimits[0] + indices[0]*blockSize[0];
+      array[1] = meshMinLimits[1] + indices[1]*blockSize[1];
+      array[2] = meshMinLimits[2] + indices[2]*blockSize[2];
+
+      // Indices 3-5 contain the cell size.
+      // The values are the same as if getCellSize(globalID,&(array[3])) was called
+      array[3] = cellSize[0];
+      array[4] = cellSize[1];
+      array[5] = cellSize[2];
+   }
 
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::getBlockSize(const GID& globalID,Real size[3]) {
@@ -242,7 +269,7 @@ namespace vmesh {
 	 k = globalID / (gridLength[0] * gridLength[1]);
       }
    }
-   
+
    template<typename GID,typename LID> inline
    LID VelocityMesh<GID,LID>::getLocalID(const GID& globalID) const {
       typename std::unordered_map<GID,LID>::const_iterator it = globalToLocalMap.find(globalID);
