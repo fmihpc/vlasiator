@@ -113,6 +113,9 @@ inline void compute_pqm_coeff_explicit(Vec4 *values, face_estimate_order estimat
    Vec4 fd_r; /*right face derivative*/
 
    switch(estimate) {
+      case h5:
+         compute_filtered_h5_face_values_derivatives(values, k, fv_l, fv_r, fd_l, fd_r); 
+         break;
       case h6:
          compute_filtered_h6_face_values_derivatives(values, k, fv_l, fv_r, fd_l, fd_r); 
          break;
