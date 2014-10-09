@@ -203,7 +203,7 @@ bool map_1d(SpatialCell* spatial_cell,
    /*values array used to store column data*/
    Vec4 values[(MAX_BLOCKS_PER_DIM + 2) * WID2];
    /*these two temporary variables are used to optimize access to target cells*/
-   uint previous_target_block = error_velocity_block;
+   uint previous_target_block = SpatialCell::invalid_global_id();
    Realf *target_block_data = NULL;
    
    /*loop over block columns*/

@@ -22,6 +22,7 @@ namespace vmesh {
       VelocityMesh(const VelocityMesh& vm);
       ~VelocityMesh();
 
+      size_t capacityInBytes() const;
       bool check() const;
       void clear();
       bool copy(const LID& sourceLocalID,const LID& targetLocalID);
@@ -50,18 +51,17 @@ namespace vmesh {
 //      void     getSiblings(const GlobalID& globalID,std::vector<GlobalID>& siblings);
 
       static bool initialize(Real meshLimits[6],LID gridLength[3],LID blockLength[3]);
-      GID invalidGlobalID() const;
-      LID invalidLocalID() const;
+      static LID invalidBlockIndex();
+      static GID invalidGlobalID();
+      static LID invalidLocalID();
       void pop();
       bool push_back(const GID& globalID);
       bool setGrid(const std::vector<GID>& globalIDs);
       size_t size() const;
+      size_t sizeInBytes() const;
 
     private:
       VelocityMesh& operator=(const VelocityMesh& vm);
-
-      static const LID error_velocity_block       = 0xFFFFFFFFu;
-      static const GID error_velocity_block_index = 0xFFFFFFFFu;
 
       static LID max_velocity_blocks;                                           /**< Maximum valid block local ID.*/
       static LID blockLength[3];                                                /**< Number of cells in a block per coordinate.*/
@@ -93,7 +93,13 @@ namespace vmesh {
    
    template<typename GID,typename LID> inline
    VelocityMesh<GID,LID>::~VelocityMesh() { }
-   
+
+   template<typename GID,typename LID> inline
+   size_t VelocityMesh<GID,LID>::capacityInBytes() const {
+      return localToGlobalMap.capacity()*sizeof(GID)
+	+ globalToLocalMap.bucket_count()*(sizeof(GID)+sizeof(LID));
+   }
+
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::check() const {
       bool ok = true;
@@ -135,6 +141,7 @@ namespace vmesh {
       localToGlobalMap[targetLID]    = sourceGID;
       globalToLocalMap.at(targetGID) = sourceLID; // These are needed to make pop() work
       localToGlobalMap[sourceLID]    = targetGID;
+      return true;
    }
    
    template<typename GID,typename LID> inline
@@ -159,19 +166,15 @@ namespace vmesh {
 
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::getBlockCoordinates(const GID& globalID,Real coords[3]) {
-      if (globalID == error_velocity_block) {
+      if (globalID == invalidGlobalID()) {
 	 for (int i=0; i<3; ++i) coords[i] = std::numeric_limits<Real>::quiet_NaN();
 	 return false;
       }
-      if (globalID >= max_velocity_blocks) {
-	 for (int i=0; i<3; ++i) coords[i] = std::numeric_limits<Real>::quiet_NaN();
-	 return false;
-      }
-      
+
       uint32_t refLevel;
       LID indices[3];
       getIndices(globalID,refLevel,indices[0],indices[1],indices[2]);
-      if (indices[0] == error_velocity_block_index) {
+      if (indices[0] == invalidBlockIndex()) {
 	 for (int i=0; i<3; ++i) coords[i] = std::numeric_limits<Real>::quiet_NaN();
 	 return false;
       }
@@ -238,7 +241,7 @@ namespace vmesh {
    template<typename GID,typename LID> inline
    GID VelocityMesh<GID,LID>::getGlobalID(const uint32_t& refLevel,const LID& i,const LID& j,const LID& k) {
       if (i >= gridLength[0] || j >= gridLength[1] || k >= gridLength[2]) {
-	 return error_velocity_block;
+	 return invalidGlobalID();
       }
       return i + j*gridLength[0] + k*gridLength[0]*gridLength[1];
    }
@@ -246,7 +249,7 @@ namespace vmesh {
    template<typename GID,typename LID> inline
    GID VelocityMesh<GID,LID>::getGlobalID(const Real& x,const Real& y,const Real& z) {
       if (x < meshMinLimits[0] || x >= meshMaxLimits[0] || y < meshMinLimits[1] || y >= meshMaxLimits[1] || z < meshMinLimits[2] || z >= meshMaxLimits[2]) {
-	 return error_velocity_block;
+	 return invalidGlobalID();
       }
       
       const LID indices[3] = {
@@ -261,8 +264,8 @@ namespace vmesh {
    template<typename GID,typename LID> inline
    void VelocityMesh<GID,LID>::getIndices(const GID& globalID,uint32_t& refLevel,LID& i,LID& j,LID& k) {
       refLevel = 0;
-      if (globalID >= max_velocity_blocks) {
-	 i = j = k = error_velocity_block_index;
+      if (globalID >= invalidGlobalID()) {
+	 i = j = k = invalidBlockIndex();
       } else {
 	 i = globalID % gridLength[0];
 	 j = (globalID / gridLength[0]) % gridLength[1];
@@ -274,7 +277,7 @@ namespace vmesh {
    LID VelocityMesh<GID,LID>::getLocalID(const GID& globalID) const {
       typename std::unordered_map<GID,LID>::const_iterator it = globalToLocalMap.find(globalID);
       if (it != globalToLocalMap.end()) return it->second;
-      return vmesh::INVALID_LOCALID;
+      return invalidLocalID();
    }
 
    template<typename GID,typename LID> inline
@@ -325,14 +328,19 @@ namespace vmesh {
       max_velocity_blocks = gridLength[0]*gridLength[1]*gridLength[2];
       return true;
    }
+   
+   template<typename GID,typename LID> inline
+   LID VelocityMesh<GID,LID>::invalidBlockIndex() {
+      return INVALID_VEL_BLOCK_INDEX;
+   }
 
    template<typename GID,typename LID> inline
-   GID VelocityMesh<GID,LID>::invalidGlobalID() const {
+   GID VelocityMesh<GID,LID>::invalidGlobalID() {
       return INVALID_GLOBALID;
    }
    
    template<typename GID,typename LID> inline
-   LID VelocityMesh<GID,LID>::invalidLocalID() const {
+   LID VelocityMesh<GID,LID>::invalidLocalID() {
       return INVALID_LOCALID;
    }
 
@@ -375,6 +383,12 @@ namespace vmesh {
    template<typename GID,typename LID> inline
    size_t VelocityMesh<GID,LID>::size() const {
       return globalToLocalMap.size();
+   }
+   
+   template<typename GID,typename LID> inline
+   size_t VelocityMesh<GID,LID>::sizeInBytes() const {
+      return globalToLocalMap.size()*sizeof(GID)
+	+ localToGlobalMap.size()*(sizeof(GID)+sizeof(LID));
    }
 
 } // namespace vmesh

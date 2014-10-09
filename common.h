@@ -39,10 +39,17 @@ void bailout(
 );
 
 namespace vmesh {
-   typedef uint32_t GlobalID;
-   typedef uint32_t LocalID;
+   typedef uint32_t GlobalID;              /**< Datatype used for velocity block global IDs.*/
+   typedef uint32_t LocalID;               /**< Datatype used for velocity block local IDs.*/
+
+   /** Global ID of a non-existing or otherwise erroneous velocity block.*/
    static const GlobalID INVALID_GLOBALID = std::numeric_limits<GlobalID>::max();
+   
+   /** Local ID of a non-existing or otherwise erroneous velocity block.*/
    static const LocalID INVALID_LOCALID  = std::numeric_limits<LocalID>::max();
+   
+   /** Block index of a non-existing or erroneous velocity block.*/
+   static const LocalID INVALID_VEL_BLOCK_INDEX = INVALID_LOCALID;
 }
 
 #define sqr(x) ((x)*(x))

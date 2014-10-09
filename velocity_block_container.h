@@ -28,6 +28,7 @@ namespace vmesh {
       size_t capacityInBytes() const;
       void clear();
       void copy(const LID& source,const LID& target);
+      static double getBlockAllocationFactor();
       Realf* getData();
       const Realf* getData() const;
       Realf* getData(const LID& blockLID);
@@ -141,6 +142,11 @@ namespace vmesh {
       std::cerr << ss.str();
       sleep(1);
       exit(1);
+   }
+   
+   template<typename LID> inline
+   double VelocityBlockContainer<LID>::getBlockAllocationFactor() {
+      return BLOCK_ALLOCATION_FACTOR;
    }
    
    template<typename LID> inline
