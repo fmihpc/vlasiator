@@ -1074,6 +1074,10 @@ bool compareAvgs( const string fileName1,
    // Create a few variables for the cell id loop:
    vector< double > avgsDiffs;
    double totalAbsAvgs = 0;
+   double totalAbsDiff = 0;
+   double totalAbsLog10Diff = 0;
+   double threshold=1e-16;
+   uint64_t numOfRelevantCells = 0;
    uint64_t numOfIdenticalBlocks = 0;
    uint64_t numOfNonIdenticalBlocks = 0;
    if( cellIds1[0] == 0 || cellIds2[0] == 0 ) {
@@ -1177,8 +1181,16 @@ bool compareAvgs( const string fileName1,
          const array<double, velocityCellsPerBlock> & avgsValues2 = avgs2.at(blockId);
          // Get the diff:
          for( uint i = 0; i < velocityCellsPerBlock; ++i ) {
-            avgsDiffs.push_back( abs(avgsValues1[i] - avgsValues2[i]) );
-            totalAbsAvgs += (abs(avgsValues1[i]) + abs(avgsValues2[i]));
+            double val1=avgsValues1[i]>threshold?avgsValues1[i]:threshold;
+            double val2=avgsValues2[i]>threshold?avgsValues2[i]:threshold;
+            if(avgsValues1[i]>threshold || avgsValues2[i]>threshold)
+               numOfRelevantCells++;
+            
+            avgsDiffs.push_back( abs(val1 - val2) );
+            totalAbsAvgs += (abs(val1) + abs(val2));
+            totalAbsDiff +=  abs(val1 - val2);
+            totalAbsLog10Diff += abs(log10(val1) - log10(val2));
+            
          }
       }
       // Compare the avgs values of nonidentical blocks:
@@ -1209,8 +1221,15 @@ bool compareAvgs( const string fileName1,
          }
          // Get the diff:
          for( uint i = 0; i < velocityCellsPerBlock; ++i ) {
-            avgsDiffs.push_back( abs(avgsValues1->operator[](i) - avgsValues2->operator[](i)) );
-            totalAbsAvgs += (abs(avgsValues1->operator[](i)) + abs(avgsValues2->operator[](i)));
+            double val1=avgsValues1->operator[](i)>threshold?avgsValues1->operator[](i):threshold;
+            double val2=avgsValues2->operator[](i)>threshold?avgsValues2->operator[](i):threshold;
+            if( avgsValues1->operator[](i)>threshold || avgsValues2->operator[](i)>threshold)
+               numOfRelevantCells++;
+            
+            avgsDiffs.push_back( abs(val1 - val2) );
+            totalAbsAvgs += (abs(val1) + abs(val2));
+            totalAbsDiff +=  abs(val1 - val2);
+            totalAbsLog10Diff += abs(log10(val1) - log10(val2));
          }
       }
       numOfIdenticalBlocks += identicalBlockIds.size();
@@ -1229,8 +1248,17 @@ bool compareAvgs( const string fileName1,
          minDiff = *it;
       }
    }
+   
    const double relativeSumDiff = sumDiff / totalAbsAvgs;
-   cout << "File names: " << fileName1 << " & " << fileName2 << ": NonIdenticalBlocks: " << numOfNonIdenticalBlocks << " Identical blocks: " << numOfIdenticalBlocks << " sum of the avgs diff: " << sumDiff << " sum of the avgs diff relative to the total avgs: " << relativeSumDiff << " max avgs diff: " << maxDiff << " min avgs diff: " << minDiff << endl;
+   cout << "File names: " << fileName1 << " & " << fileName2 << endl <<
+      "NonIdenticalBlocks:      " << numOfNonIdenticalBlocks << endl <<
+      "IdenticalBlocks:         " << numOfIdenticalBlocks <<  endl <<
+      "Absolute_Error:          " << totalAbsDiff  << endl <<
+      "Mean-Absolute-Error:     " << totalAbsDiff / numOfRelevantCells << endl <<
+      "Max-Absolute-Error:      " << maxDiff << endl <<
+      "Absolute-log-Error:      " << totalAbsLog10Diff << endl <<
+      "Mean-Absolute-log-Error: " << totalAbsLog10Diff / numOfRelevantCells << endl;
+   
 
    return true;
 }
