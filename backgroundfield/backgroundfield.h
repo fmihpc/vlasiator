@@ -25,7 +25,8 @@ void setBackgroundField(
    FieldFunction& bgFunction,
    Real* cellParams,
    Real* faceDerivatives,
-   Real* volumeDerivatives
+   Real* volumeDerivatives,
+   bool append=false
 );
 
 void setBackgroundFieldToZero(
