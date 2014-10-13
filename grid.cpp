@@ -624,7 +624,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    const int vlasov_stencil_width=2;
 #endif
 #if TRANS_SEMILAG_PQM
-   const int vlasov_stencil_width=2;
+   const int vlasov_stencil_width=3;
 #endif
    
    // set reduced neighborhoods

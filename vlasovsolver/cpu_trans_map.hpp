@@ -22,8 +22,7 @@
 #define  TRANS_STENCIL_WIDTH 2
 #endif
 #ifdef TRANS_SEMILAG_PQM
-//note, we can at max use h5 and dh4 to stay in a stencil of 2
-#define  TRANS_STENCIL_WIDTH 2 
+#define  TRANS_STENCIL_WIDTH 3
 #endif
 
 using namespace std;
@@ -539,11 +538,11 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 #endif
 #ifdef TRANS_SEMILAG_PPM
             Vec4 a[3];
-            compute_ppm_coeff_explicit(values + i_trans_pblockv(-TRANS_STENCIL_WIDTH , j, k), h5, TRANS_STENCIL_WIDTH, a);
+            compute_ppm_coeff_explicit(values + i_trans_pblockv(-TRANS_STENCIL_WIDTH , j, k), h4, TRANS_STENCIL_WIDTH, a);
 #endif
 #ifdef TRANS_SEMILAG_PQM
             Vec4 a[5];
-            compute_pqm_coeff_explicit(values + i_trans_pblockv(-TRANS_STENCIL_WIDTH , j, k), h5, dh4, TRANS_STENCIL_WIDTH, a);
+            compute_pqm_coeff_explicit(values + i_trans_pblockv(-TRANS_STENCIL_WIDTH , j, k), h6, TRANS_STENCIL_WIDTH, a);
 #endif
           
 #ifdef TRANS_SEMILAG_PLM	    
