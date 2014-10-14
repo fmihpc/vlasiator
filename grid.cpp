@@ -621,9 +621,11 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    const int vlasov_stencil_width=1;
 #endif
 #if TRANS_SEMILAG_PPM
+   //assume h4 or h5
    const int vlasov_stencil_width=2;
 #endif
 #if TRANS_SEMILAG_PQM
+   //assume h6 or h8
    const int vlasov_stencil_width=3;
 #endif
    

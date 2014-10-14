@@ -15,13 +15,16 @@
 #include "cpu_1d_pqm.hpp"
 #include "grid.h"
 
+//Stencil size.
 #ifdef TRANS_SEMILAG_PLM
 #define  TRANS_STENCIL_WIDTH 1
 #endif
 #ifdef TRANS_SEMILAG_PPM
+//assume h4 or h5
 #define  TRANS_STENCIL_WIDTH 2
 #endif
 #ifdef TRANS_SEMILAG_PQM
+//assume h6 or h8
 #define  TRANS_STENCIL_WIDTH 3
 #endif
 
@@ -534,15 +537,15 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             //compute reconstruction
 #ifdef TRANS_SEMILAG_PLM
             Vec4 a[3];
-            compute_plm_coeff_explicit(values + i_trans_pblockv(-TRANS_STENCIL_WIDTH , j, k), TRANS_STENCIL_WIDTH, a);
+            compute_plm_coeff(values + i_trans_pblockv(-TRANS_STENCIL_WIDTH , j, k), TRANS_STENCIL_WIDTH, a);
 #endif
 #ifdef TRANS_SEMILAG_PPM
             Vec4 a[3];
-            compute_ppm_coeff_explicit(values + i_trans_pblockv(-TRANS_STENCIL_WIDTH , j, k), h4, TRANS_STENCIL_WIDTH, a);
+            compute_ppm_coeff(values + i_trans_pblockv(-TRANS_STENCIL_WIDTH , j, k), h4, TRANS_STENCIL_WIDTH, a);
 #endif
 #ifdef TRANS_SEMILAG_PQM
             Vec4 a[5];
-            compute_pqm_coeff_explicit(values + i_trans_pblockv(-TRANS_STENCIL_WIDTH , j, k), h6, TRANS_STENCIL_WIDTH, a);
+            compute_pqm_coeff(values + i_trans_pblockv(-TRANS_STENCIL_WIDTH , j, k), h6, TRANS_STENCIL_WIDTH, a);
 #endif
           
 #ifdef TRANS_SEMILAG_PLM	    
