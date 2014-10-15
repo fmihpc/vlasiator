@@ -21,7 +21,7 @@ public:
      this->initialized = false;
   }
 
-   void initialize(const double moment,const double tilt);
+   void initialize(const double moment, const double center_x, const double center_y, const double center_z);
   
    virtual double call(double x, double y, double z) const;
   

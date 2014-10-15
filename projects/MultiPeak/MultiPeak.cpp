@@ -142,7 +142,8 @@ namespace projects {
 
    void MultiPeak::calcCellParameters(Real* cellParams,creal& t) {
       setRandomCellSeed(cellParams);
-      if(this->lambda != 0.0) {
+
+      if (this->lambda != 0.0) {
          cellParams[CellParams::PERBX] = this->dBx*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
          cellParams[CellParams::PERBY] = this->dBy*sin(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);
          cellParams[CellParams::PERBZ] = this->dBz*cos(2.0 * M_PI * cellParams[CellParams::XCRD] / this->lambda);

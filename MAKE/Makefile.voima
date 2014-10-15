@@ -7,7 +7,7 @@ LNK = CC
 #                         errors that come up when using 
 #                         mpi.h in c++ on Cray
 
-CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK -DNDEBUG -DEIGEN_NO_DEBUG
+CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK -DEIGEN_NO_DEBUG
 
 FLAGS = 
 
@@ -19,7 +19,8 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 4.8.1
-CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -Wno-unused -fabi-version=0 -mavx 
+#CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -W -Wall -Wno-unused -fabi-version=0 -mavx 
+CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++0x -fabi-version=0 -mavx 
 
 
 MATHFLAGS = -ffast-math

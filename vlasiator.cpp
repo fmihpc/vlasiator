@@ -271,9 +271,8 @@ int main(int argn,char* args[]) {
       
       phiprof::stop("write-initial-state");
    }
-   
-   
-   if(P::dynamicTimestep && !P::isRestart) {
+
+   if (P::dynamicTimestep && !P::isRestart) {
       //compute vlasovsolver once with zero dt, this is to initialize
       //per-cell dt limits. In restarts, we read in dt from file
       phiprof::start("compute-dt");
@@ -293,13 +292,12 @@ int main(int argn,char* args[]) {
          P::dt=newDt;
       phiprof::stop("compute-dt");
    }
-   
-   
-   if(!P::isRestart) {
+
+   if (!P::isRestart) {
       //go forward by dt/2 in V, initializes leapfrog split. In restarts the
       //the distribution function is already propagated forward in time by dt/2
       phiprof::start("propagate-velocity-space-dt/2");
-      if(P::propagateVlasovAcceleration) {
+      if (P::propagateVlasovAcceleration) {
          calculateAcceleration(mpiGrid, 0.5*P::dt);
       } else {
          calculateAcceleration(mpiGrid, 0.0);
@@ -308,11 +306,7 @@ int main(int argn,char* args[]) {
       adjustVelocityBlocks(mpiGrid);
       addTimedBarrier("barrier-after-ad just-blocks");
    }
-
-   
-   
    phiprof::stop("Initialization");
-
 
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****
@@ -483,7 +477,7 @@ int main(int argn,char* args[]) {
       
       //compute how many spatial cells we solve for this step
       computedCells=0;
-      for(uint i=0;i<cells.size();i++)  computedCells+=mpiGrid[cells[i]]->number_of_blocks*WID3;
+      for(uint i=0;i<cells.size();i++)  computedCells+=mpiGrid[cells[i]]->get_number_of_velocity_blocks()*WID3;
       computedTotalCells+=computedCells;
       
       //Check if dt needs to be changed, and propagate V back a half-step to change dt and set up new situation
