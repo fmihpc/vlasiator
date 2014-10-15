@@ -15,27 +15,14 @@
 #include "cpu_1d_pqm.hpp"
 #include "grid.h"
 
-//Stencil size.
-#ifdef TRANS_SEMILAG_PLM
-#define  TRANS_STENCIL_WIDTH 1
-#endif
-#ifdef TRANS_SEMILAG_PPM
-//assume h4 or h5
-#define  TRANS_STENCIL_WIDTH 2
-#endif
-#ifdef TRANS_SEMILAG_PQM
-//assume h6 or h8
-#define  TRANS_STENCIL_WIDTH 3
-#endif
-
 using namespace std;
 using namespace spatial_cell;
 
 
 // indices in padded block. b_k is the block index in z direction in
-// ordinary space (- TRANS_STENCIL_WIDTH to TRANS_STENCIL_WIDTH)
+// ordinary space (- VLASOV_STENCIL_WIDTH to VLASOV_STENCIL_WIDTH)
 //, i,j,k are the cell ids inside on block.
-#define i_trans_pblockv(b_k, j, k)  ( (b_k + TRANS_STENCIL_WIDTH ) + ( (j) + (k) * WID ) * ( 1 + 2 * TRANS_STENCIL_WIDTH) )
+#define i_trans_pblockv(b_k, j, k)  ( (b_k + VLASOV_STENCIL_WIDTH ) + ( (j) + (k) * WID ) * ( 1 + 2 * VLASOV_STENCIL_WIDTH) )
 
 // indices in padded target block, which has Vec4 elements. b_k is the
 // block index in z direction in ordinary space, i,j,k are the cell
@@ -138,7 +125,7 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
 }
 
 /*compute spatial neighbors for source stencil with a size of 2*
- * TRANS_STENCIL_WIDTH + 1, cellID at TRANS_STENCIL_WIDTH. First
+ * VLASOV_STENCIL_WIDTH + 1, cellID at VLASOV_STENCIL_WIDTH. First
  * bondary layer included. Invalid cells are replaced by closest good
  * cells (i.e. boundary condition uses constant extrapolation for the
  * stencil values at boundaries*/
@@ -147,36 +134,36 @@ void compute_spatial_source_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cart
                                       const CellID& cellID,
                                       const uint dimension,
                                       CellID *neighbors){
-   for(int i = -TRANS_STENCIL_WIDTH; i <= TRANS_STENCIL_WIDTH; i++){
+   for(int i = -VLASOV_STENCIL_WIDTH; i <= VLASOV_STENCIL_WIDTH; i++){
       switch (dimension){
           case 0:
-             neighbors[i + TRANS_STENCIL_WIDTH] = get_spatial_neighbor(mpiGrid, cellID, true, i, 0, 0);
+             neighbors[i + VLASOV_STENCIL_WIDTH] = get_spatial_neighbor(mpiGrid, cellID, true, i, 0, 0);
              break;
           case 1:
-             neighbors[i + TRANS_STENCIL_WIDTH] = get_spatial_neighbor(mpiGrid, cellID, true, 0, i, 0);
+             neighbors[i + VLASOV_STENCIL_WIDTH] = get_spatial_neighbor(mpiGrid, cellID, true, 0, i, 0);
              break;
           case 2:
-             neighbors[i + TRANS_STENCIL_WIDTH] = get_spatial_neighbor(mpiGrid, cellID, true, 0, 0, i);
+             neighbors[i + VLASOV_STENCIL_WIDTH] = get_spatial_neighbor(mpiGrid, cellID, true, 0, 0, i);
              break;             
       }             
    }
 
    CellID last_good_cellID = cellID;
    /*loop to neative side and replace all invalid cells with the closest good cell*/
-   for(int i = -1;i>=-TRANS_STENCIL_WIDTH;i--){
-      if(neighbors[i + TRANS_STENCIL_WIDTH] == INVALID_CELLID) 
-         neighbors[i + TRANS_STENCIL_WIDTH] = last_good_cellID;
+   for(int i = -1;i>=-VLASOV_STENCIL_WIDTH;i--){
+      if(neighbors[i + VLASOV_STENCIL_WIDTH] == INVALID_CELLID) 
+         neighbors[i + VLASOV_STENCIL_WIDTH] = last_good_cellID;
       else
-         last_good_cellID = neighbors[i + TRANS_STENCIL_WIDTH];
+         last_good_cellID = neighbors[i + VLASOV_STENCIL_WIDTH];
    }
 
    last_good_cellID = cellID;
    /*loop to positive side and replace all invalid cells with the closest good cell*/
-   for(int i = 1; i <= TRANS_STENCIL_WIDTH; i++){
-      if(neighbors[i + TRANS_STENCIL_WIDTH] == INVALID_CELLID) 
-         neighbors[i + TRANS_STENCIL_WIDTH] = last_good_cellID;
+   for(int i = 1; i <= VLASOV_STENCIL_WIDTH; i++){
+      if(neighbors[i + VLASOV_STENCIL_WIDTH] == INVALID_CELLID) 
+         neighbors[i + VLASOV_STENCIL_WIDTH] = last_good_cellID;
       else
-         last_good_cellID = neighbors[i + TRANS_STENCIL_WIDTH];
+         last_good_cellID = neighbors[i + VLASOV_STENCIL_WIDTH];
    }
 }
 
@@ -232,8 +219,8 @@ inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesia
           break;
    }
    // Copy volume averages of this block from all spatial cells:
-   for (int b = -TRANS_STENCIL_WIDTH; b <= TRANS_STENCIL_WIDTH; ++b) {
-      const CellID srcCell = source_neighbors[b + TRANS_STENCIL_WIDTH];
+   for (int b = -VLASOV_STENCIL_WIDTH; b <= VLASOV_STENCIL_WIDTH; ++b) {
+      const CellID srcCell = source_neighbors[b + VLASOV_STENCIL_WIDTH];
 
       Realf* block_fx;
       const vmesh::LocalID blockLID = mpiGrid[srcCell]->get_velocity_block_local_id(blockGID);
@@ -428,7 +415,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
     * boundaries. For targets we only have actual cells as we do not
     * want to propagate boundary cells (array may contain
     * INVALID_CELLIDs at boundaries)*/
-   CellID source_neighbors[1 + 2 * TRANS_STENCIL_WIDTH];
+   CellID source_neighbors[1 + 2 * VLASOV_STENCIL_WIDTH];
    CellID target_neighbors[3];
    compute_spatial_source_neighbors(mpiGrid,cellID,dimension,source_neighbors);
    compute_spatial_target_neighbors(mpiGrid,cellID,dimension,target_neighbors);
@@ -506,7 +493,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       for (uint i = 0; i<3*WID2; ++i) target_values[i] = Vec4(0.0, 0.0, 0.0, 0.0);
 
       /*buffer where we read in source data. i index vectorized*/
-      Vec4 values[(1 + 2 * TRANS_STENCIL_WIDTH) * WID3];
+      Vec4 values[(1 + 2 * VLASOV_STENCIL_WIDTH) * WID3];
       copy_trans_block_data(mpiGrid, cellID, source_neighbors, blockGID, values, dimension);
       velocity_block_indices_t block_indices = SpatialCell::get_velocity_block_indices(blockGID);
 
@@ -537,15 +524,17 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             //compute reconstruction
 #ifdef TRANS_SEMILAG_PLM
             Vec4 a[3];
-            compute_plm_coeff(values + i_trans_pblockv(-TRANS_STENCIL_WIDTH , j, k), TRANS_STENCIL_WIDTH, a);
+            compute_plm_coeff(values + i_trans_pblockv(-VLASOV_STENCIL_WIDTH , j, k), VLASOV_STENCIL_WIDTH, a);
 #endif
 #ifdef TRANS_SEMILAG_PPM
             Vec4 a[3];
-            compute_ppm_coeff(values + i_trans_pblockv(-TRANS_STENCIL_WIDTH , j, k), h4, TRANS_STENCIL_WIDTH, a);
+            //Check that stencil width VLASOV_STENCIL_WIDTH in grid.h corresponds to order of face estimates  (h4 & h5 =2, H6=3, h8=4)
+            compute_ppm_coeff(values + i_trans_pblockv(-VLASOV_STENCIL_WIDTH , j, k), h4, VLASOV_STENCIL_WIDTH, a);
 #endif
 #ifdef TRANS_SEMILAG_PQM
             Vec4 a[5];
-            compute_pqm_coeff(values + i_trans_pblockv(-TRANS_STENCIL_WIDTH , j, k), h6, TRANS_STENCIL_WIDTH, a);
+            //Check that stencil width VLASOV_STENCIL_WIDTH in grid.h corresponds to order of face estimates (h4 & h5 =2, H6=3, h8=4)
+            compute_pqm_coeff(values + i_trans_pblockv(-VLASOV_STENCIL_WIDTH , j, k), h6, VLASOV_STENCIL_WIDTH, a);
 #endif
           
 #ifdef TRANS_SEMILAG_PLM	    
