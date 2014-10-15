@@ -162,7 +162,7 @@ void initializeGrid(
       
       adjustVelocityBlocks(mpiGrid); // do not initialize mover, mover has not yet been initialized here
       shrink_to_fit_grid_data(mpiGrid); //get rid of excess data already here
-      
+
       phiprof::start("Init moments");
       //compute moments, and set them  in RHO* and RHO_*_DT2. If restart, they are already read in
       calculateInitialVelocityMoments(mpiGrid);
@@ -207,7 +207,7 @@ void initVelocityGridGeometry(){
    blockLength[1] = block_vy_length;
    blockLength[2] = block_vz_length;
    
-   spatial_cell::SpatialCell::initialize_mesh(meshLimits,gridLength,blockLength,P::sparseMinValue);
+   spatial_cell::SpatialCell::initialize_mesh(meshLimits,gridLength,blockLength,P::sparseMinValue,P::maxVelocityRefLevel);
 }
 
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
@@ -362,11 +362,10 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    const vector<uint64_t> cells = mpiGrid.get_cells();
    
    phiprof::start("Compute with_content_list");
-#pragma omp parallel for  
-   for (uint i=0; i<cells.size(); ++i) 
-     mpiGrid[cells[i]]->update_velocity_block_content_lists();
+   #pragma omp parallel for  
+   for (uint i=0; i<cells.size(); ++i) mpiGrid[cells[i]]->update_velocity_block_content_lists();
    phiprof::stop("Compute with_content_list");
-   
+
    phiprof::initializeTimer("Transfer with_content_list","MPI");
    phiprof::start("Transfer with_content_list");
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1 );
@@ -374,7 +373,6 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2 );
    mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
    phiprof::stop("Transfer with_content_list");
-
    
    //Adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
    phiprof::start("Adjusting blocks");

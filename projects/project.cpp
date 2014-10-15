@@ -90,7 +90,7 @@ namespace projects {
       this->setVelocitySpace(cell);
 
       //let's get rid of blocks not fulfilling the criteria here to save memory.
-      cell->adjustSingleCellVelocityBlocks();
+      //cell->adjustSingleCellVelocityBlocks();
 
       // Passing true for the doNotSkip argument as we want to calculate the moment no matter what when this function is called.
       calculateCellVelocityMoments(cell, true);
@@ -119,6 +119,13 @@ namespace projects {
       vector<uint> blocksToInitialize = this->findBlocksToInitialize(cell);
       Real* parameters = cell->get_block_parameters();
 
+      creal x = cell->parameters[CellParams::XCRD];
+      creal y = cell->parameters[CellParams::YCRD];
+      creal z = cell->parameters[CellParams::ZCRD];
+      creal dx = cell->parameters[CellParams::DX];
+      creal dy = cell->parameters[CellParams::DY];
+      creal dz = cell->parameters[CellParams::DZ];
+      
       for (uint i=0; i<blocksToInitialize.size(); ++i) {
 	 const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
 	 const vmesh::LocalID blockLID = cell->get_velocity_block_local_id(blockGID);
@@ -129,13 +136,6 @@ namespace projects {
 	 creal dvxCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
 	 creal dvyCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
 	 creal dvzCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-
-         creal x = cell->parameters[CellParams::XCRD];
-         creal y = cell->parameters[CellParams::YCRD];
-         creal z = cell->parameters[CellParams::ZCRD];
-         creal dx = cell->parameters[CellParams::DX];
-         creal dy = cell->parameters[CellParams::DY];
-         creal dz = cell->parameters[CellParams::DZ];
 
          // Calculate volume average of distrib. function for each cell in the block.
          for (uint kc=0; kc<WID; ++kc) 
@@ -160,6 +160,106 @@ namespace projects {
                      cell->set_value(vxCellCenter,vyCellCenter,vzCellCenter,average);
                   }
          }
+      }
+
+      // Loop over blocks in the spatial cell until we reach the maximum
+      // refinement level, or until there are no more blocks left to refine
+      bool refine = true;
+      uint currentLevel = 0;
+      if (currentLevel == Parameters::maxVelocityRefLevel) refine = false;
+      while (refine == true) {
+	 Realf df_max = 4.0;
+
+	 // Loop over blocks and add blocks to be refined to vector refineList
+	 vector<vmesh::GlobalID> refineList;
+	 const vmesh::LocalID startIndex = 0;
+	 const vmesh::LocalID endIndex   = cell->get_number_of_velocity_blocks();
+	 for (vmesh::LocalID blockLID=startIndex; blockLID<endIndex; ++blockLID) {
+	    vector<vmesh::GlobalID> nbrs;
+	    int32_t refLevelDifference;
+	    const vmesh::GlobalID blockGID = cell->get_velocity_block_global_id(blockLID);
+	    
+	    // Fetch block data and nearest neighbors
+	    Realf array[(WID+2)*(WID+2)*(WID+2)];
+	    cell->fetch_data<1>(blockGID,array);
+
+	    bool flagForRefine = false;
+	    for (int kc=0; kc<WID; ++kc) for (int jc=0; jc<WID; ++jc) for (int ic=0; ic<WID; ++ic) {
+	       Realf f_lft = array[vblock::padIndex<1>(ic  ,jc+1,kc+1)];
+	       Realf f_cen = array[vblock::padIndex<1>(ic+1,jc+1,kc+1)];
+	       Realf f_rgt = array[vblock::padIndex<1>(ic+2,jc+1,kc+1)];
+	       
+	       Realf df = max(max(0.0,fabs(f_rgt-f_cen)-1e-15),max(0.0,fabs(f_cen-f_lft)-1e-15));
+	       df /= (f_cen + 1e-16);
+	       if (df >= df_max) {
+		  flagForRefine = true;
+		  goto exitBlockTest;
+	       }
+
+	       f_lft = array[vblock::padIndex<1>(ic+1,jc  ,kc+1)];
+	       f_rgt = array[vblock::padIndex<1>(ic+1,jc+2,kc+1)];
+	       df = max(max(0.0,fabs(f_rgt-f_cen)-1e-15),max(0.0,fabs(f_cen-f_lft)-1e-15));
+	       df /= (f_cen + 1e-16);
+	       if (df >= df_max) {
+		  flagForRefine = true;
+		  goto exitBlockTest;
+	       }
+
+	       f_lft = array[vblock::padIndex<1>(ic+1,jc+1,kc  )];
+	       f_rgt = array[vblock::padIndex<1>(ic+1,jc+1,kc+2)];
+	       df = max(max(0.0,fabs(f_rgt-f_cen)-1e-15),max(0.0,fabs(f_cen-f_lft)-1e-15));
+	       df /= (f_cen + 1e-16);
+	       if (df >= df_max) {
+		  flagForRefine = true;
+		  goto exitBlockTest;
+	       }
+	    }
+
+exitBlockTest:
+	    if (flagForRefine == true) refineList.push_back(blockGID);
+	 }
+
+	 // Refine blocks in vector refineList. All blocks that were created 
+	 // as a result of the refine, including blocks created because of induced 
+	 // refinement, are added to map insertedBlocks
+	 map<vmesh::GlobalID,vmesh::LocalID> insertedBlocks;
+	 for (size_t b=0; b<refineList.size(); ++b) {
+	    cell->refine_block(refineList[b],insertedBlocks);
+	 }
+
+	 // Loop over blocks in map insertedBlocks and recalculate 
+	 // values of distribution functions
+	 for (map<vmesh::GlobalID,vmesh::LocalID>::const_iterator it=insertedBlocks.begin(); it!=insertedBlocks.end(); ++it) {
+	    const vmesh::GlobalID blockGID = it->first;
+	    const vmesh::LocalID blockLID = it->second;
+	    parameters = cell->get_block_parameters();
+	    creal vxBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD];
+	    creal vyBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD];
+	    creal vzBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD];
+	    creal dvxCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+	    creal dvyCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+	    creal dvzCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+	    
+	    for (uint kc=0; kc<WID; ++kc) {
+	       for (uint jc=0; jc<WID; ++jc) {
+		  for (uint ic=0; ic<WID; ++ic) {
+			creal vxCell = vxBlock + ic*dvxCell;
+		     creal vyCell = vyBlock + jc*dvyCell;
+		     creal vzCell = vzBlock + kc*dvzCell;
+		     creal average =
+		       calcPhaseSpaceDensity(
+					     x, y, z, dx, dy, dz,
+					     vxCell,vyCell,vzCell,
+					     dvxCell,dvyCell,dvzCell);
+		     cell->get_data(blockLID)[kc*WID2+jc*WID+ic] = average;
+		  }
+	       }
+	    }
+	 }
+
+	 if (refineList.size() == 0) refine = false;
+	 ++currentLevel;
+	 if (currentLevel == Parameters::maxVelocityRefLevel) refine = false;
       }
    }
 

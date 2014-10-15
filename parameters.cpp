@@ -97,6 +97,7 @@ Real P::sparseMinValue = NAN;
 int P::sparseBlockAddWidthV = 1;
 bool P::sparse_conserve_mass = false;
 
+uint P::maxVelocityRefLevel = 0;
 
 string P::restartFileName = string("");
 bool P::isRestart=false;
@@ -206,6 +207,9 @@ bool Parameters::addParameters(){
    // bailout parameters
    Readparameters::add("bailout.write_restart", "If 1, write a restart file on bailout. Gets reset when sending a STOP (1) or a KILL (0).", true);
    Readparameters::add("bailout.min_dt", "Minimum time step below which bailout occurs (s).", 1e-6);
+
+   // Refinement parameters
+   Readparameters::add("refinement.max_velocity_level","Maximum velocity mesh refinement level",(uint)0);
    
    return true;
 }
@@ -256,6 +260,8 @@ bool Parameters::getParameters(){
    Readparameters::get("gridbuilder.vx_length",P::vxblocks_ini);
    Readparameters::get("gridbuilder.vy_length",P::vyblocks_ini);
    Readparameters::get("gridbuilder.vz_length",P::vzblocks_ini);
+   
+   Readparameters::get("refinement.max_velocity_level",P::maxVelocityRefLevel);
    
    if (P::xmax < P::xmin || (P::ymax < P::ymin || P::zmax < P::zmin)) return false;
    if (P::vxmax < P::vxmin || (P::vymax < P::vymin || P::vzmax < P::vzmin)) return false;
