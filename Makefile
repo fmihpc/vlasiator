@@ -6,7 +6,7 @@ include MAKE/Makefile.${ARCH}
 FP_PRECISION = DP
 
 #Set floating point precision for distribution function to SPF (single) or DPF (double)
-DISTRIBUTION_FP_PRECISION = SPF
+DISTRIBUTION_FP_PRECISION = DPF
 
 #set a default archive utility, can also be set in Makefile.arch
 AR ?= ar
@@ -113,6 +113,7 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/Alfven/Alfven.h projects/Alfven/Alfven.cpp \
 		projects/Diffusion/Diffusion.h projects/Diffusion/Diffusion.cpp \
 		projects/Dispersion/Dispersion.h projects/Dispersion/Dispersion.cpp \
+		projects/Distributions/Distributions.h projects/Distributions/Distributions.cpp \
 		projects/Firehose/Firehose.h projects/Firehose/Firehose.cpp \
 		projects/Flowthrough/Flowthrough.h projects/Flowthrough/Flowthrough.cpp \
 		projects/Fluctuations/Fluctuations.h projects/Fluctuations/Fluctuations.cpp \
@@ -141,7 +142,7 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o \
 	sysboundary.o sysboundarycondition.o \
 	project.o projectTriAxisSearch.o \
-	Alfven.o Diffusion.o Dispersion.o Firehose.o Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o Magnetosphere.o MultiPeak.o VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testHall.o test_trans.o verificationLarmor.o Shocktest.o \
+	Alfven.o Diffusion.o Dispersion.o Distributions.o Firehose.o Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o Magnetosphere.o MultiPeak.o VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testHall.o test_trans.o verificationLarmor.o Shocktest.o \
 	grid.o ioread.o iowrite.o vlasiator.o logger.o muxml.o \
 	common.o parameters.o readparameters.o spatial_cell.o \
 	vlscommon.o vlsvreader2.o vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o
@@ -227,6 +228,9 @@ Diffusion.o: ${DEPS_COMMON} projects/Diffusion/Diffusion.h projects/Diffusion/Di
 
 Dispersion.o: ${DEPS_COMMON} projects/Dispersion/Dispersion.h projects/Dispersion/Dispersion.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Dispersion/Dispersion.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+
+Distributions.o: ${DEPS_COMMON} projects/Distributions/Distributions.h projects/Distributions/Distributions.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Distributions/Distributions.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 Firehose.o: ${DEPS_COMMON} projects/Firehose/Firehose.h projects/Firehose/Firehose.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/Firehose/Firehose.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}

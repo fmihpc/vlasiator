@@ -940,7 +940,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    for(uint i=0;i<nBlocks.size();i++){
       totalNumberOfBlocks+=nBlocks[i];
-   }   
+   }
    numberOfBlocksPerProcess=1+totalNumberOfBlocks/processes;
 
 
