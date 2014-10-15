@@ -12,51 +12,17 @@ Copyright 2013, 2014 Finnish Meteorological Institute
 #include "algorithm"
 #include "cmath"
 #include "cpu_slope_limiters.hpp"
+#include "cpu_face_estimates.hpp"
 
 using namespace std;
 
 /*
   Compute parabolic reconstruction with an explicit scheme
 */
-inline void compute_ppm_coeff_explicit(const Vec4 * const values, face_value_estimate value_estimate, uint k, Vec4 a[3]){
+inline void compute_ppm_coeff(const Vec4 * const values, face_estimate_order order, uint k, Vec4 a[3]){
   Vec4 fv_l; /*left face value*/
   Vec4 fv_r; /*right face value*/
-  switch(value_estimate) {
-  case h4:
-    compute_h4_left_face_value(values, k ,fv_l); 
-    compute_h4_left_face_value(values, k + 1, fv_r); 
-    break;
-  case h5:
-    compute_h5_face_values(values, k ,fv_l, fv_r); 
-    break;
-  case h6:
-    compute_h6_left_face_value(values, k ,fv_l); 
-    compute_h6_left_face_value(values, k + 1, fv_r); 
-    break;
-  }
-
-   
-  /*Filter boundedness according to Eq. 19 in White et al. 2008  Eq. 19 & 20*/
-  bool fix_bounds = horizontal_or((values[k - 1] - fv_l) * (fv_l - values[k]) < 0 ||
-				  (values[k + 1] - fv_r) * (fv_r - values[k]) < 0);
-  if(fix_bounds) {
-    Vec4 slope_abs,slope_sign;
-    slope_limiter(values[k -1], values[k], values[k + 1], slope_abs, slope_sign);
-    //detect and  fix boundedness, as in WHITE 2008
-    fv_l = select((values[k -1] - fv_l) * (fv_l - values[k]) < 0,
-		  values[k] - slope_sign * min( 0.5 * slope_abs, abs(fv_l - values[k])),
-		  fv_l);
-    fv_r = select((values[k + 1] - fv_r) * (fv_r - values[k]) < 0,
-		  values[k] + slope_sign * min( 0.5 * slope_abs, abs(fv_r - values[k])),
-		  fv_r);
-  }
-
-
-  //Coella1984 eq. 1.10, detect extrema
-  Vec4 extrema_check = ((fv_r - values[k]) * (values[k] - fv_l));
-  fv_l = select(extrema_check < 0, values[k], fv_l);
-  fv_r = select(extrema_check < 0, values[k], fv_r);
-
+  compute_filtered_face_values(values, k, order, fv_l, fv_r); 
 
   //Coella et al, check for monotonicity   
   Vec4 m_face = fv_l;

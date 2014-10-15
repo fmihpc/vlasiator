@@ -32,6 +32,19 @@
 #define SHIFT_M_Y_NEIGHBORHOOD_ID 18 //Shift in -y direction
 #define SHIFT_M_Z_NEIGHBORHOOD_ID 19 //Shift in -z direction
 
+//fieldsolver stencil.
+#define FS_STENCIL_WIDTH 2
+//Vlasov propagator stencils in ordinary space, velocity space may be
+//higher. Assume H4 (or H5) for PPM, H6 for PQM
+#ifdef TRANS_SEMILAG_PLM
+#define  VLASOV_STENCIL_WIDTH 1
+#endif
+#ifdef TRANS_SEMILAG_PPM
+#define  VLASOV_STENCIL_WIDTH 2
+#endif
+#ifdef TRANS_SEMILAG_PQM
+#define  VLASOV_STENCIL_WIDTH 3
+#endif
 
 /*!
   \brief Initialize parallel grid

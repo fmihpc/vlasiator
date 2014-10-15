@@ -232,13 +232,17 @@ int main(int argn,char* args[]) {
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    phiprof::stop("Init DROs");
    
-   phiprof::start("Init field propagator");
+
    // Initialize field propagator:
-   if (initializeFieldPropagator(mpiGrid, sysBoundaries) == false) {
-       logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
-       exit(1);
+   if (P::propagateField ) { 
+      phiprof::start("Init field propagator");
+      if (initializeFieldPropagator(mpiGrid, sysBoundaries) == false) {
+         logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
+         exit(1);
+      }
+      phiprof::stop("Init field propagator");
    }
-   phiprof::stop("Init field propagator");
+
    // Free up memory:
    readparameters.finalize();
    
@@ -299,7 +303,9 @@ int main(int argn,char* args[]) {
       phiprof::start("propagate-velocity-space-dt/2");
       if (P::propagateVlasovAcceleration) {
          calculateAcceleration(mpiGrid, 0.5*P::dt);
-      } else {
+      }
+      else {
+         //zero step to set up moments _v
          calculateAcceleration(mpiGrid, 0.0);
       }
       phiprof::stop("propagate-velocity-space-dt/2");
@@ -493,9 +499,13 @@ int main(int argn,char* args[]) {
             if( P::propagateVlasovAcceleration ) {
                // Back half dt to real time, forward by new half dt
                calculateAcceleration(mpiGrid,-0.5*P::dt + 0.5*newDt);
-            } else {
-               calculateAcceleration(mpiGrid,0.0);
             }
+            else {
+               //zero step to set up moments _v
+               calculateAcceleration(mpiGrid, 0.0);
+            }
+
+
             
             //adjust blocks after acceleration
             adjustVelocityBlocks(mpiGrid);
@@ -541,7 +551,7 @@ int main(int argn,char* args[]) {
       
       // Propagate fields forward in time by dt. This needs to be done before the
       // moments for t + dt are computed (field uses t and t+0.5dt)
-      if (P::propagateField == true) {
+      if (P::propagateField) {
          phiprof::start("Propagate Fields");
          propagateFields(mpiGrid, sysBoundaries, P::dt);
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
@@ -551,13 +561,15 @@ int main(int argn,char* args[]) {
       phiprof::start("Velocity-space");
       if( P::propagateVlasovAcceleration ) {
          calculateAcceleration(mpiGrid,P::dt);
-         adjustVelocityBlocks(mpiGrid);
          addTimedBarrier("barrier-after-ad just-blocks");
       }
       else {
-         //do zero length step, just to get things set up (at least rho?_v)
-         calculateAcceleration(mpiGrid,0.0);
+         //zero step to set up moments _v
+         calculateAcceleration(mpiGrid, 0.0);
       }
+
+      adjustVelocityBlocks(mpiGrid);
+
       phiprof::stop("Velocity-space",computedCells,"Cells");
       addTimedBarrier("barrier-after-acceleration");
       
@@ -590,8 +602,9 @@ int main(int argn,char* args[]) {
    
    phiprof::stop("Simulation");
    phiprof::start("Finalization");
-   finalizeFieldPropagator(mpiGrid);
-   
+   if (P::propagateField ) { 
+      finalizeFieldPropagator(mpiGrid);
+   }
    if (myRank == MASTER_RANK) {
       if(doBailout > 0) {
          logFile << "(BAILOUT): Bailing out, see error log for details." << endl;
