@@ -257,32 +257,36 @@ void calculateAcceleration(
    // Iterate through all local cells and propagate distribution functions 
    // in velocity space. Ghost cells (spatial cells at the boundary of the simulation 
    // volume) do not need to be propagated:
-   
-   
-   //set initial cells to propagate
-   for (size_t c=0; c<cells.size(); ++c) {
-      SpatialCell* SC = mpiGrid[cells[c]];
-      //disregard boundary cells
-      //do not integrate cells with no blocks  (well, do not computes in practice)
-      if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY &&
-         SC->get_number_of_velocity_blocks() != 0) {
-         propagatedCells.push_back(cells[c]);
-      }
-   }
 
-   //Semilagrangian acceleration
-   phiprof::start("semilag-acc");
-   #pragma omp parallel for schedule(dynamic,1)
-   for (size_t c=0; c<propagatedCells.size(); ++c) {
-      const CellID cellID = propagatedCells[c];
+   
+   if(dt > 0) {
+      //do not propagate for zero or negative dt. Typically dt==0 when
+      //acceleration is turned off. 
+      //Aet initial cells to propagate
+      for (size_t c=0; c<cells.size(); ++c) {
+         SpatialCell* SC = mpiGrid[cells[c]];
+         //disregard boundary cells
+         //do not integrate cells with no blocks  (well, do not computes in practice)
+         if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY &&
+             SC->get_number_of_velocity_blocks() != 0) {
+            propagatedCells.push_back(cells[c]);
+         }
+      }
+      
+      //Semilagrangian acceleration
+      phiprof::start("semilag-acc");
+#pragma omp parallel for schedule(dynamic,1)
+      for (size_t c=0; c<propagatedCells.size(); ++c) {
+         const CellID cellID = propagatedCells[c];
       //generate pseudo-random order which is always the same irrespectiive of parallelization, restarts, etc
-      srand(P::tstep + cellID);
-      uint map_order=rand()%3;
-      phiprof::start("cell-semilag-acc");
-      cpu_accelerate_cell(mpiGrid[cellID],map_order,dt);
-      phiprof::stop("cell-semilag-acc");
+         srand(P::tstep + cellID);
+         uint map_order=rand()%3;
+         phiprof::start("cell-semilag-acc");
+         cpu_accelerate_cell(mpiGrid[cellID],map_order,dt);
+         phiprof::stop("cell-semilag-acc");
+      }
+      phiprof::stop("semilag-acc");   
    }
-   phiprof::stop("semilag-acc");   
    
    phiprof::start("Compute moments");
    #pragma omp parallel for
