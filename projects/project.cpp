@@ -184,7 +184,7 @@ namespace projects {
             vector<vmesh::GlobalID> nbrs;
             int32_t refLevelDifference;
             const vmesh::GlobalID blockGID = cell->get_velocity_block_global_id(blockLID);
-            
+
             // Fetch block data and nearest neighbors
             Realf array[(WID+2)*(WID+2)*(WID+2)];
             cell->fetch_data<1>(blockGID,cell->get_velocity_mesh(popID),cell->get_data(),array);
@@ -201,10 +201,8 @@ namespace projects {
          map<vmesh::GlobalID,vmesh::LocalID> insertedBlocks;
          for (size_t b=0; b<refineList.size(); ++b) {
             cell->refine_block(refineList[b],insertedBlocks);
-            //vmesh::LocalID blockLID = cell->get_velocity_block_local_id(refineList[b]);                                                                                   
-            //for (int i=0; i<WID3; ++i) cell->get_fx(blockLID)[i] = 1.0;
          }
-
+         
          // Loop over blocks in map insertedBlocks and recalculate 
          // values of distribution functions
          for (map<vmesh::GlobalID,vmesh::LocalID>::const_iterator it=insertedBlocks.begin(); it!=insertedBlocks.end(); ++it) {
@@ -217,7 +215,7 @@ namespace projects {
             creal dvxCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
             creal dvyCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
             creal dvzCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-            
+
             for (uint kc=0; kc<WID; ++kc) {
                for (uint jc=0; jc<WID; ++jc) {
                   for (uint ic=0; ic<WID; ++ic) {

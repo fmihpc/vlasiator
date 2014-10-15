@@ -97,7 +97,7 @@ namespace vmesh {
 
       static Real* blockSizes;
       static Real* cellSizes;
-      static GID* gridLengths;
+      static LID* gridLengths;
       static size_t referenceCount;
 
       std::vector<GID> localToGlobalMap;
@@ -979,6 +979,7 @@ namespace vmesh {
             ++adds;
          }
       }
+
       return adds;
    }
 
