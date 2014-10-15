@@ -39,8 +39,13 @@ void bailout(
 );
 
 namespace vmesh {
+   #ifndef AMR
    typedef uint32_t GlobalID;              /**< Datatype used for velocity block global IDs.*/
    typedef uint32_t LocalID;               /**< Datatype used for velocity block local IDs.*/
+   #else
+   typedef uint32_t GlobalID;
+   typedef uint32_t LocalID;
+   #endif
 
    /** Global ID of a non-existing or otherwise erroneous velocity block.*/
    static const GlobalID INVALID_GLOBALID = std::numeric_limits<GlobalID>::max();

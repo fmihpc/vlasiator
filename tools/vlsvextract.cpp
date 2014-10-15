@@ -21,6 +21,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "vlsvreader2.h"
 #include "definitions.h"
 #include "vlsv_reader.h"
+#include "vlsv_writer.h"
 #include "vlsvreaderinterface.h"
 
 #include <array> //std::array is from here
@@ -112,20 +113,14 @@ struct NodeComp {
 
 //A struct for holding info on cell structure (the grid)
 struct CellStructure {
-   //The number of cells in x, y, z direction (initialized somewhere in read parameters)
-   uint64_t cell_bounds[3];
-   //Length of a cell in x, y, z direction
-   Real cell_length[3];
-   //x_min, y_min, z_min are stored here
-   Real min_coordinates[3];
-   //The number of cells in x, y, z direction (initialized somewhere in read parameters)
-   uint64_t vcell_bounds[3];
-   //Length of a cell in x, y, z direction
-   Real vblock_length[3];
-   //vx_min, vy_min, vz_min are stored here
-   Real min_vcoordinates[3];
+   uint64_t cell_bounds[3];     /**< The number of cells in x, y, z direction (initialized somewhere in read parameters).*/
+   Real cell_length[3];         /**< Length of a cell in x, y, z direction. */
+   Real min_coordinates[3];     /**< x_min, y_min, z_min are stored here.*/
+   uint64_t vcell_bounds[3];    /**< The number of cells in x, y, z direction (initialized somewhere in read parameters).*/
+   Real vblock_length[3];       /**< Size (dvx,dvy,dvz) of a velocity block in vx, vy, vz directions.*/
+   Real min_vcoordinates[3];    /**< vx_min, vy_min, vz_min are stored here.*/
+   uint32_t maxVelRefLevel;     /**< Maximum refinement level of velocity meshes.*/
 };
-
 
 //A class for holding user options
 class UserOptions {
@@ -940,6 +935,175 @@ bool convertVelocityBlocks2(
    const bool rotate,
    const bool plasmaFrame
 ) {
+   bool success = true;
+   
+   string outputMeshName = "VelGrid";
+   int cellsInBlocksPerDirection = 4;
+
+   vlsv::Writer out;
+   if (out.open("velgrid.vlsv",MPI_COMM_SELF,0) == false) {
+      cerr << "ERROR, failed to open output file with vlsv::Writer at " << __FILE__ << " " << __LINE__ << endl;
+      return false;
+   }
+   
+   // Read velocity block global IDs and write them out
+   vector<uint64_t> blockIds;
+   if (vlsvReader.getBlockIds(cellID,blockIds) == false ) {
+      cerr << "ERROR, FAILED TO READ BLOCK IDS AT " << __FILE__ << " " << __LINE__ << endl;
+      return false;
+   }
+   const size_t N_blocks = blockIds.size();
+   
+   map<string,string> attributes;
+   attributes["name"] = outputMeshName;
+   attributes["type"] = vlsv::mesh::STRING_UCD_AMR;
+   stringstream ss;
+   ss << (uint32_t)cellStruct.maxVelRefLevel;
+   attributes["max_refinement_level"] = ss.str();
+   attributes["geometry"] = vlsv::geometry::STRING_CARTESIAN;
+   if (out.writeArray("MESH",attributes,blockIds.size(),1,&(blockIds[0])) == false) success = false;
+   
+   attributes["name"] = "VelBlocks";
+   if (out.writeArray("MESH",attributes,blockIds.size(),1,&(blockIds[0])) == false) success = false;
+   
+   attributes.clear();
+
+   // Make domain size array
+   uint64_t domainSize[2];
+   domainSize[0] = blockIds.size();
+   domainSize[1] = 0;
+   attributes["mesh"] = outputMeshName;
+   if (out.writeArray("MESH_DOMAIN_SIZES",attributes,1,2,domainSize) == false) success = false;
+     {
+	vector<uint64_t> ().swap(blockIds);
+     }
+   
+   attributes["mesh"] = "VelBlocks";
+   if (out.writeArray("MESH_DOMAIN_SIZES",attributes,1,2,domainSize) == false) success = false;
+
+   // Make bounding box array
+   uint64_t bbox[6];
+   bbox[0] = cellStruct.vcell_bounds[0];
+   bbox[1] = cellStruct.vcell_bounds[1];
+   bbox[2] = cellStruct.vcell_bounds[2];
+   
+   bbox[3] = 1;
+   bbox[4] = 1;
+   bbox[5] = 1;
+   attributes["mesh"] = "VelBlocks";
+   if (out.writeArray("MESH_BBOX",attributes,6,1,bbox) == false) success = false;
+   
+   bbox[3] = cellsInBlocksPerDirection;
+   bbox[4] = cellsInBlocksPerDirection;
+   bbox[5] = cellsInBlocksPerDirection;
+   const uint32_t blockSize = bbox[3]*bbox[4]*bbox[5];
+   attributes["mesh"] = outputMeshName;
+   if (out.writeArray("MESH_BBOX",attributes,6,1,bbox) == false) success = false;
+
+   // Make node coordinate arrays
+   vector<float> coords;
+   for (int crd=0; crd<3; ++crd) {
+      // crd enumerates the coordinate: 0 = vx, 1 = vy, 2 = vz
+      coords.clear();
+
+      // Generate node coordinates
+      for (size_t i=0; i<bbox[crd]; ++i) {
+	 for (size_t j=0; j<bbox[crd+3]; ++j) {
+	    coords.push_back( cellStruct.min_vcoordinates[crd] + i*cellStruct.vblock_length[crd] + j*cellStruct.vblock_length[crd]/bbox[crd+3] );
+	 }
+      }
+      coords.push_back( cellStruct.min_vcoordinates[crd] + bbox[crd]*cellStruct.vblock_length[crd] );
+
+      // Write them to output file
+      string arrayName;
+      if (crd == 0) arrayName = "MESH_NODE_CRDS_X";
+      else if (crd == 1) arrayName = "MESH_NODE_CRDS_Y";
+      else if (crd == 2) arrayName = "MESH_NODE_CRDS_Z";
+      
+      if (coords.size() != bbox[crd]*bbox[crd+3]+1) {
+	 cerr << "ERROR incorrect node coordinates at " << __FILE__ << " " << __LINE__ << endl;
+      }
+
+      attributes["mesh"] = outputMeshName;
+      if (out.writeArray(arrayName,attributes,coords.size(),1,&(coords[0])) == false) success = false;
+   }
+     {
+	vector<float> ().swap(coords);
+     }
+   
+   for (int crd=0; crd<3; ++crd) {
+      coords.clear();
+      for (size_t i=0; i<bbox[crd]; ++i) {
+	 coords.push_back( cellStruct.min_vcoordinates[crd] + i*cellStruct.vblock_length[crd] );
+      }
+      coords.push_back( cellStruct.min_vcoordinates[crd] + bbox[crd]*cellStruct.vblock_length[crd] );
+      
+      string arrayName;
+      if (crd == 0) arrayName = "MESH_NODE_CRDS_X";
+      else if (crd == 1) arrayName = "MESH_NODE_CRDS_Y";
+      else if (crd == 2) arrayName = "MESH_NODE_CRDS_Z";
+      
+      attributes["mesh"] = "VelBlocks";
+      if (out.writeArray(arrayName,attributes,coords.size(),1,&(coords[0])) == false) success = false;
+   }
+     {
+	vector<float> ().swap(coords);
+     }
+   
+   // Write dummy ghost zone data (not applicable here):
+   uint64_t dummy;
+   attributes["mesh"] = outputMeshName;
+   if (out.writeArray("MESH_GHOST_LOCALIDS",attributes,domainSize[1],1,&dummy) == false) success = false;
+   if (out.writeArray("MESH_GHOST_DOMAINS",attributes,domainSize[1],1,&dummy) == false) success = false;
+   
+   attributes["mesh"] = "VelBlocks";
+   if (out.writeArray("MESH_GHOST_LOCALIDS",attributes,domainSize[1],1,&dummy) == false) success = false;
+   if (out.writeArray("MESH_GHOST_DOMAINS",attributes,domainSize[1],1,&dummy) == false) success = false;
+
+   // ***** Convert variables ***** //
+   
+   //Get the name of variables:
+   set<string> blockVarNames;
+   const string attributeName = "name";
+   if (vlsvReader.getUniqueAttributeValues( "BLOCKVARIABLE", attributeName, blockVarNames) == false) {
+      cerr << "ERROR, FAILED TO GET UNIQUE ATTRIBUTE VALUES AT " << __FILE__ << " " << __LINE__ << endl;
+   }
+   
+   //Writing SILO file
+   if (success == true) {
+      for (set<string>::iterator it = blockVarNames.begin(); it != blockVarNames.end(); ++it) {
+	 list<pair<string, string> > attribs;
+	 attribs.push_back(make_pair("name", *it));
+	 attribs.push_back(make_pair("mesh", meshName));
+	 datatype::type dataType;
+	 uint64_t arraySize, vectorSize, dataSize;
+	 if (vlsvReader.getArrayInfo("BLOCKVARIABLE", attribs, arraySize, vectorSize, dataType, dataSize) == false) {
+	    cerr << "Could not read BLOCKVARIABLE array info" << endl;
+	    return false;
+	 }
+	 
+	 char* buffer = new char[N_blocks * vectorSize * dataSize];
+	 if (vlsvReader.readArray("BLOCKVARIABLE", attribs, vlsvReader.getBlockOffset(cellID), N_blocks, buffer) == false) {
+	    cerr << "ERROR could not read block variable" << endl;
+	    delete[] buffer;
+	    return success;
+	 }
+
+	 attributes["name"] = *it;
+	 attributes["mesh"] = outputMeshName;
+	 if (out.writeArray("VARIABLE",attributes,vlsv::getStringDatatype(dataType),arraySize*blockSize,vectorSize/blockSize,dataSize,buffer) == false) success = false;
+	 
+	 delete [] buffer; buffer = NULL;
+      }
+   }
+   
+   vlsvReader.clearCellsWithBlocks();
+   out.close();
+   return success;
+
+   
+/*
+
    //return true;
    bool success = true;
 
@@ -1035,7 +1199,7 @@ bool convertVelocityBlocks2(
          }
       }
    }
-   
+
    Real* vx_crds = new Real[nodes.size()];
    Real* vy_crds = new Real[nodes.size()];
    Real* vz_crds = new Real[nodes.size()];
@@ -1052,11 +1216,9 @@ bool convertVelocityBlocks2(
 
    const uint64_t nodeListSize = blockIds.size() * 64 * 8;
    int* nodeList = new int[nodeListSize];
-   //Iteratre through blocks
+   //Iterate through blocks
    uint b = 0;
    for (vector<uint64_t>::const_iterator i = blockIds.begin(); i != blockIds.end(); ++i, ++b) {
-
-
       const uint64_t & blockId = *i;
 
       //Get the block's coordinates:
@@ -1064,7 +1226,6 @@ bool convertVelocityBlocks2(
       getVelocityBlockCoordinates( cellStruct, blockId, blockCoordinates );
 
       const unsigned short int numberOfCoordinates = 3;
-
       const uint16_t cellsInBlocksPerDirection = 4;
 
       //Get the length of a velocity cell
@@ -1210,7 +1371,6 @@ bool convertVelocityBlocks2(
          }
       }
 
-
       //Now rotate:
       //Using eigen3 library here.
       //Now we have the B vector, so now the idea is to rotate the v-coordinates so that B always faces z-direction
@@ -1226,9 +1386,6 @@ bool convertVelocityBlocks2(
       nodeCoordinates[1] = vy_crds;
       nodeCoordinates[2] = vz_crds;
    }
-
-
-
 
    // Write zone list into silo file:
    stringstream ss;
@@ -1258,7 +1415,6 @@ bool convertVelocityBlocks2(
       cerr << "ERROR, FAILED TO GET UNIQUE ATTRIBUTE VALUES AT " << __FILE__ << " " << __LINE__ << endl;
    }
 
-
    //Writing SILO file
    if (success == true) {
       for (set<string>::iterator it = blockVarNames.begin(); it != blockVarNames.end(); ++it) {
@@ -1268,10 +1424,9 @@ bool convertVelocityBlocks2(
       }
    }
    vlsvReader.clearCellsWithBlocks();
-
    //vlsvWriter.close();
 
-   return success;
+   return success;*/
 }
 
 //Loads a parameter from a file
@@ -1296,7 +1451,7 @@ bool loadParameter( VLSVReader& vlsvReader, const string& name, T & parameter ) 
    }
    //Declare a buffer to write the parameter's data in (arraySize, etc was received from getArrayInfo)
    char * buffer = new char[arraySize * vectorSize * dataSize];
-  
+
    //Read data into the buffer and return error if something went wrong
    if( vlsvReader.readArray( "PARAMETERS", name, 0, vectorSize, buffer ) == false ) {
       cerr << "Error, could not read parameter '" << name << "' at: " << __FILE__ << " " << __LINE__; //FIX
@@ -1576,6 +1731,7 @@ void setCellVariables( oldVlsv::Reader & vlsvReader, CellStructure & cellStruct 
    cellStruct.min_coordinates[0] = x_min;
    cellStruct.min_coordinates[1] = y_min;
    cellStruct.min_coordinates[2] = z_min;
+
    return;
 }
 
@@ -1664,6 +1820,15 @@ void setCellVariables( Reader & vlsvReader, CellStructure & cellStruct ) {
          exit(1);
       }
    }
+   
+   // By default set an unrefined velocity mesh. Then check if the max refinement level 
+   // was actually given as a parameter.
+   uint32_t dummyUInt;
+   cellStruct.maxVelRefLevel = 0;
+   if (vlsvReader.readParameter("max_velocity_ref_level",dummyUInt) == true) {
+      cellStruct.maxVelRefLevel = dummyUInt;
+   }
+   
    return;
 }
 
@@ -2153,14 +2318,12 @@ void convertFileToSilo( const string & fileName, const UserOptions & mainOptions
       pos = outputFileName.find(".");
       if (pos != string::npos) outputFileName.replace(0, pos, newPrefix);
 
-
       //Declare the file path (used in DBCreate to save the file in the correct location)
       string outputFilePath;
       //Get the path (outputDirectoryPath was retrieved from user input and it's a vector<string>):
       outputFilePath.append( mainOptions.outputDirectoryPath.front() );
       //The complete file path is still missing the file name, so add it to the end:
-      outputFilePath.append( outputFileName );
-      
+      outputFilePath.append( outputFileName );      
 
       // Create a SILO file for writing:
       fileptr = DBCreate(outputFilePath.c_str(), DB_CLOBBER, DB_LOCAL, "Vlasov data file", DB_PDB);
@@ -2170,8 +2333,6 @@ void convertFileToSilo( const string & fileName, const UserOptions & mainOptions
          vlsvReader.close();
          return;
       }
-
-
 
       // Extract velocity grid from VLSV file, if possible, and convert into SILO format:
       bool velGridExtracted = true;
@@ -2211,13 +2372,6 @@ void convertFileToSilo( const string & fileName, const UserOptions & mainOptions
    vlsvReader.close();
 
 }
-
-
-
-
-
-
-
 
 int main(int argn, char* args[]) {
    int ntasks, rank;
