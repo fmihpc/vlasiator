@@ -265,14 +265,12 @@ bool Parameters::getParameters(){
    Readparameters::get("gridbuilder.vx_length",P::vxblocks_ini);
    Readparameters::get("gridbuilder.vy_length",P::vyblocks_ini);
    Readparameters::get("gridbuilder.vz_length",P::vzblocks_ini);
-   
    Readparameters::get("AMR.max_velocity_level",P::amrMaxVelocityRefLevel);
    Readparameters::get("AMR.vel_refinement_criterion",P::amrVelRefCriterion);
    Readparameters::get("AMR.refine_limit",P::amrRefineLimit);
    Readparameters::get("AMR.coarsen_limit",P::amrCoarsenLimit);
-
-   if (P::amrCoarsenLimit >= P::amrRefineLimit) return false;
    
+   if (P::amrCoarsenLimit >= P::amrRefineLimit) return false;
    if (P::xmax < P::xmin || (P::ymax < P::ymin || P::zmax < P::zmin)) return false;
    if (P::vxmax < P::vxmin || (P::vymax < P::vymin || P::vzmax < P::vzmin)) return false;
    

@@ -208,7 +208,7 @@ void initVelocityGridGeometry(){
    blockLength[0] = block_vx_length;
    blockLength[1] = block_vy_length;
    blockLength[2] = block_vz_length;
-   
+
    spatial_cell::SpatialCell::initialize_mesh(meshLimits,gridLength,blockLength,P::sparseMinValue,P::amrMaxVelocityRefLevel);
 }
 

@@ -733,5 +733,5 @@ namespace spatial_cell {
 
       insertedBlocks.insert(newInserted.begin(),newInserted.end());
    }
-   
+
 } // namespace spatial_cell

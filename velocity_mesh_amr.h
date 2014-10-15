@@ -25,6 +25,7 @@ namespace vmesh {
    class VelocityMesh {
     public:
       VelocityMesh();
+      VelocityMesh(const VelocityMesh& vm);
       ~VelocityMesh();
       
       size_t capacityInBytes() const;
@@ -79,6 +80,7 @@ namespace vmesh {
       void swap(VelocityMesh& vm);
 
     private:
+
       static LID max_velocity_blocks;                                           /**< Maximum valid block local ID.*/
       static LID blockLength[3];                                                /**< Number of cells in a block per coordinate.*/
       static Real blockSize[3];                                                 /**< Size of a block at base grid level.*/
@@ -90,7 +92,6 @@ namespace vmesh {
       static Real meshMaxLimits[3];                                             /**< Maximum coordinate values of the grid bounding box.*/
       static uint8_t refLevelMaxAllowed;      
       static std::vector<GID> offsets;                                          /**< Block global ID offsets for each refinement level.*/
-
       static Real* blockSizes;
       static Real* cellSizes;
       static LID* gridLengths;
@@ -379,10 +380,10 @@ namespace vmesh {
       
       // NUmber of blocks per coordinate at this refinement level:
       const GlobalID multiplier = std::pow(2,refLevel);
-      
       coords[0] = meshMinLimits[0] + indices[0]*blockSize[0]/multiplier;
       coords[1] = meshMinLimits[1] + indices[1]*blockSize[1]/multiplier;
       coords[2] = meshMinLimits[2] + indices[2]*blockSize[2]/multiplier;
+
       return true;
    }
 
@@ -533,7 +534,7 @@ namespace vmesh {
       const GID multiplier = std::pow(2,refLevel);
       const GID Nx = gridLength[0] * multiplier;
       const GID Ny = gridLength[1] * multiplier;
-      
+
       GID index = globalID - cellOffset;
       k = index / (Ny*Nx);
       index -= k*Ny*Nx;
@@ -848,7 +849,6 @@ namespace vmesh {
    bool VelocityMesh<GID,LID>::initialize(Real meshLimits[6],LID gridLength[3],LID blockLength[3],uint8_t refLevelMaxAllowed,
                                           LID maxVelocityBlocks) {
       if (initialized == true) return initialized;
-
       VelocityMesh<GID,LID>::refLevelMaxAllowed = refLevelMaxAllowed;
       
       meshMinLimits[0] = meshLimits[0];
@@ -937,7 +937,6 @@ namespace vmesh {
       #endif
 	  
       typename std::unordered_map<GID,LID>::iterator last = globalToLocalMap.find(lastGID);
-
       globalToLocalMap.erase(last);
       localToGlobalMap.pop_back();
    }
@@ -1000,7 +999,7 @@ namespace vmesh {
       if (refLevel >= getMaxAllowedRefinementLevel()) {
          return false;
       }
-      
+
       // Calculate childrens' global IDs
       i *= 2;
       j *= 2;

@@ -28,9 +28,6 @@ namespace vmesh {
       size_t count(const GID& globalID) const;
       GID findBlockDown(uint8_t& refLevel,GID cellIndices[3]);
       GID findBlock(uint8_t& refLevel,GID cellIndices[3]);
-      //static const GID* getBaseGridLength();
-      //static const Real* getBaseGridBlockSize();
-      //static const Real* getBaseGridCellSize();
       static bool getBlockCoordinates(const GID& globalID,Real coords[3]);
       static void getBlockInfo(const GID& globalID,Real* array);
       static const Real* getBlockSize(const uint8_t& refLevel);

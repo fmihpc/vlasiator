@@ -121,7 +121,6 @@ struct CellStructure {
    Real vblock_length[3];       /**< Size (dvx,dvy,dvz) of a velocity block in vx, vy, vz directions.*/
    Real min_vcoordinates[3];    /**< vx_min, vy_min, vz_min are stored here.*/
    uint32_t maxVelRefLevel;     /**< Maximum refinement level of velocity meshes.*/
-
    int slicedCoords[3];
    Real slicedCoordValues[3];
 };
@@ -1353,7 +1352,6 @@ bool convertVelocityBlocks2(
    vlsvReader.clearCellsWithBlocks();
    out.close();
    return success;
-   
    
 /*
 

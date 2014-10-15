@@ -41,7 +41,7 @@ namespace vblock {
 	      const int k = static_cast<int>(pos[2]);
 	      array[padIndex<PAD>(i+1,j+1,k+1)] += value;
 	   }
-	 break;
+         break;
        case interpmethod::CIC:
 	   {
 	      const int i = static_cast<int>(pos[0] + 0.5);
@@ -61,7 +61,7 @@ namespace vblock {
 	      array[padIndex<PAD>(i  ,j+1,k+1)] += value * (1-W_x)*( W_y )*( W_z );
 	      array[padIndex<PAD>(i+1,j+1,k+1)] += value * ( W_x )*( W_y )*( W_z );
 	   }
-	 break;
+         break;
        case interpmethod::TSC:
 	   {
 	      int indices[3];
@@ -87,7 +87,7 @@ namespace vblock {
 		 array[padIndex<PAD>(indices[0]+i_off+1,indices[1]+j_off+1,indices[2]+k_off+1)] += value*shapeFactor;
 	      }
 	   }
-	 break;
+         break;
        default:
 	 std::cerr << "Unknown accumulation method in " << __FILE__ << ' ' << __LINE__ << std::endl;
 	 exit(1);
@@ -126,49 +126,45 @@ namespace vblock {
    template<int METHOD,typename REAL> inline
    Realf interp_xy(const REAL* pos,const Realf* data) {
       switch (METHOD) {
-       case interpmethod::NGP:
-	   {
-	      const int i = static_cast<int>(pos[0]);
-	      const int j = static_cast<int>(pos[1]);
-	      const int k = static_cast<int>(pos[2]);
-	      return data[index(i,j,k)];
-	   }
-	 break;
-       case interpmethod::CIC:
-	   {
-	      const int i = static_cast<int>(pos[0] - 0.5);
-	      const int j = static_cast<int>(pos[1] - 0.5);
-	      const int k = static_cast<int>(pos[2] - 0.5);
-	      
-	      Realf W_x = pos[0]-i-0.5;
-	      Realf W_y = pos[1]-j-0.5;
-	      
-	      return data[index(i+0,j+0,k)]*(1-W_x)*(1-W_y)
-		   + data[index(i+1,j+0,k)]*( W_x )*(1-W_y)
-		   + data[index(i+0,j+1,k)]*(1-W_x)*( W_y )
-		   + data[index(i+1,j+1,k)]*( W_x )*( W_y );
-	   }
+       case interpmethod::NGP: {
+          const int i = static_cast<int>(pos[0]);
+          const int j = static_cast<int>(pos[1]);
+          const int k = static_cast<int>(pos[2]);
+          return data[index(i,j,k)];
+       }
+         break;
+       case interpmethod::CIC: {
+          const int i = static_cast<int>(pos[0] - 0.5);
+          const int j = static_cast<int>(pos[1] - 0.5);
+          const int k = static_cast<int>(pos[2] - 0.5);
+          
+          Realf W_x = pos[0]-i-0.5;
+          Realf W_y = pos[1]-j-0.5;
+          
+          return data[index(i+0,j+0,k)]*(1-W_x)*(1-W_y)
+            + data[index(i+1,j+0,k)]*( W_x )*(1-W_y)
+            + data[index(i+0,j+1,k)]*(1-W_x)*( W_y )
+            + data[index(i+1,j+1,k)]*( W_x )*( W_y );
+       }
 	 break;
        default:
-	 std::cerr << "Unknown interpolation method in " << __FILE__ << ' ' << __LINE__ << std::endl;
-	 exit(1);
-	 break;
+         std::cerr << "Unknown interpolation method in " << __FILE__ << ' ' << __LINE__ << std::endl;
+         exit(1);
+         break;
       }
    }
-   
+
    template<int METHOD,typename REAL> inline
    Realf interp_xz(const REAL* pos,const Realf* data) {
       switch (METHOD) {
-       case interpmethod::NGP:
-	   {
-	      const int i = static_cast<int>(pos[0]);
-	      const int j = static_cast<int>(pos[1]);
-	      const int k = static_cast<int>(pos[2]);
-	      return data[index(i,j,k)];
-	   }
+       case interpmethod::NGP: {
+          const int i = static_cast<int>(pos[0]);
+          const int j = static_cast<int>(pos[1]);
+          const int k = static_cast<int>(pos[2]);
+          return data[index(i,j,k)];
+       }
 	 break;
-       case interpmethod::CIC:
-	   {
+       case interpmethod::CIC: {
 	      const int i = static_cast<int>(pos[0] - 0.5);
 	      const int j = static_cast<int>(pos[1] - 0.5);
 	      const int k = static_cast<int>(pos[2] - 0.5);
@@ -192,27 +188,25 @@ namespace vblock {
    template<int METHOD,typename REAL> inline
    Realf interp_yz(const REAL* pos,const Realf* data) {
       switch (METHOD) {
-       case interpmethod::NGP:
-	   {
+       case interpmethod::NGP: {
 	      const int i = static_cast<int>(pos[0]);
 	      const int j = static_cast<int>(pos[1]);
 	      const int k = static_cast<int>(pos[2]);
 	      return data[index(i,j,k)];
 	   }
 	 break;
-       case interpmethod::CIC:
-	   {
-	      const int i = static_cast<int>(pos[0] - 0.5);
-	      const int j = static_cast<int>(pos[1] - 0.5);
-	      const int k = static_cast<int>(pos[2] - 0.5);
-
-	      Realf W_y = pos[1]-j-0.5;
-	      Realf W_z = pos[2]-k-0.5;
-
-	      return data[index(i,j+0,k+0)]*(1-W_y)*(1-W_z)
-		   + data[index(i,j+1,k+0)]*( W_y )*(1-W_z)
-		   + data[index(i,j+0,k+1)]*(1-W_y)*( W_z )
-		   + data[index(i,j+1,k+1)]*( W_y )*( W_z );
+       case interpmethod::CIC: {
+          const int i = static_cast<int>(pos[0] - 0.5);
+          const int j = static_cast<int>(pos[1] - 0.5);
+          const int k = static_cast<int>(pos[2] - 0.5);
+          
+          Realf W_y = pos[1]-j-0.5;
+          Realf W_z = pos[2]-k-0.5;
+          
+          return data[index(i,j+0,k+0)]*(1-W_y)*(1-W_z)
+            + data[index(i,j+1,k+0)]*( W_y )*(1-W_z)
+            + data[index(i,j+0,k+1)]*(1-W_y)*( W_z )
+            + data[index(i,j+1,k+1)]*( W_y )*( W_z );
 	   }
 	 break;
        default:
