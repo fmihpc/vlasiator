@@ -23,6 +23,7 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "vlsv_reader.h"
 #include "vlsv_writer.h"
 #include "vlsvreaderinterface.h"
+#include <vlsv_amr.h>
 
 #include <array> //std::array is from here
 #include <unordered_set> //std::unordered_set from here
@@ -120,6 +121,9 @@ struct CellStructure {
    Real vblock_length[3];       /**< Size (dvx,dvy,dvz) of a velocity block in vx, vy, vz directions.*/
    Real min_vcoordinates[3];    /**< vx_min, vy_min, vz_min are stored here.*/
    uint32_t maxVelRefLevel;     /**< Maximum refinement level of velocity meshes.*/
+
+   int slicedCoords[3];
+   Real slicedCoordValues[3];
 };
 
 //A class for holding user options
@@ -928,15 +932,262 @@ bool convertVelocityBlocks2(
    return success;
 }
 
+bool convertSlicedVelocityMesh(oldVlsv::Reader& vlsvReader,const string& fname,const string& meshName,
+                               CellStructure& cellStruct) {
+   cerr << "wrong vlsv" << endl; return false;
+}
+
+bool convertSlicedVelocityMesh(newVlsv::Reader& vlsvReader,const string& fname,const string& meshName,
+                               CellStructure& cellStruct) {
+   bool success = true;
+   
+   // TEST
+   cellStruct.slicedCoords[0] = 2;
+   cellStruct.slicedCoords[1] = 4;
+   cellStruct.slicedCoords[2] = 5;
+   cellStruct.slicedCoordValues[0] = 1e3;
+   cellStruct.slicedCoordValues[1] = 5e3;
+   cellStruct.slicedCoordValues[2] = 5e3;
+
+   string outputMeshName = "VelSlice";
+   vlsv::Writer out;
+   if (out.open(fname,MPI_COMM_SELF,0) == false) {
+      cerr << "ERROR, failed to open output file with vlsv::Writer at " << __FILE__ << " " << __LINE__ << endl;
+      return false;
+   }
+
+   vector<uint64_t> cellIDs;
+   if (vlsvReader.getCellIds(cellIDs) == false) {
+      cerr << "ERROR: failed to get cell IDs in " << __FILE__ << ' ' << __LINE__ << endl;
+      return false;
+   }
+
+   uint64_t bbox[6]; // Number of cells in the generated mesh
+   int dims[3];      // Output dimensions
+   if (cellStruct.slicedCoords[0] == 0) {
+      dims[0] = 1; dims[1] = 2;
+      bbox[0] = cellStruct.cell_bounds[1]; bbox[1] = cellStruct.cell_bounds[2];
+   } else if (cellStruct.slicedCoords[0] == 1) {
+      dims[0] = 0; dims[1] = 2;
+      bbox[0] = cellStruct.cell_bounds[0]; bbox[1] = cellStruct.cell_bounds[2];
+   } else {
+      dims[0] = 0; dims[1] = 1;
+      bbox[0] = cellStruct.cell_bounds[0]; bbox[1] = cellStruct.cell_bounds[2];
+   }
+   bbox[3]=1; bbox[4]=1; bbox[5]=4;
+
+   dims[2]=3;
+   if (cellStruct.slicedCoords[1] == 3) dims[2] = 4;
+   if (cellStruct.slicedCoords[2] == 4) dims[2] = 5;
+
+   if (vlsv::initMesh(cellStruct.vcell_bounds[0],cellStruct.vcell_bounds[0],cellStruct.vcell_bounds[0],cellStruct.maxVelRefLevel) == false) {
+      cerr << "ERROR: failed to init AMR mesh in " << __FILE__ << ' ' << __LINE__ << endl;
+      return false;
+   }
+
+   // Get the names of velocity mesh variables
+   set<string> blockVarNames;
+   const string attributeName = "name";
+   if (vlsvReader.getUniqueAttributeValues("BLOCKVARIABLE",attributeName,blockVarNames) == false) {
+      cerr << "ERROR, FAILED TO GET UNIQUE ATTRIBUTE VALUES AT " << __FILE__ << " " << __LINE__ << endl;
+   }
+
+   struct BlockVarInfo {
+      string name;
+      vlsv::datatype::type dataType;
+      uint64_t vectorSize;
+      uint64_t dataSize;
+   };
+   vector<BlockVarInfo> varInfo;
+
+   // Assume that two of the coordinates are spatial, i.e., that the first 
+   // sliced coordinate is a spatial one
+   vector<float> nodeCoords;
+   vector<int> connectivity;
+   vector<vector<char> > variables;
+   for (size_t cell=0; cell<cellIDs.size(); ++cell) {
+      uint64_t cellId = cellIDs[cell]-1;
+      uint64_t cellIndices[3];
+      cellIndices[0] = cellId % cellStruct.cell_bounds[0];
+      cellIndices[1] = ((cellId - cellIndices[0]) / cellStruct.cell_bounds[0]) % cellStruct.cell_bounds[1];
+      cellIndices[2] = ((cellId - cellStruct.cell_bounds[0]*cellIndices[1]) / (cellStruct.cell_bounds[0]*cellStruct.cell_bounds[1]));
+
+      // Calculate cell coordinates and check if the sliced spatial coordinate is in it
+      Real cellCrds[6];
+      for (int i=0; i<3; ++i) cellCrds[i  ] = cellStruct.min_coordinates[i] +   cellIndices[i]  * cellStruct.cell_length[i];
+      for (int i=0; i<3; ++i) cellCrds[i+3] = cellStruct.min_coordinates[i] + (cellIndices[i]+1)* cellStruct.cell_length[i];
+
+      if (cellCrds[cellStruct.slicedCoords[0]] > cellStruct.slicedCoordValues[0]) continue;
+      if (cellCrds[cellStruct.slicedCoords[0]+3] < cellStruct.slicedCoordValues[0]) continue;
+
+      cerr << "accept " << cellId << endl;
+      
+      // Buffer all velocity mesh variables
+      vector<char*> varBuffer(blockVarNames.size());
+      int counter=0;
+      for (set<string>::const_iterator var=blockVarNames.begin(); var!=blockVarNames.end(); ++var) {
+         varBuffer[counter] = NULL;
+         if (vlsvReader.getVelocityBlockVariables(*var,cellIDs[cell],varBuffer[counter],true) == false) {
+            varBuffer[counter] = NULL;
+         }
+         ++counter;
+      }
+
+      // Store block variable info, we need this to write the variable data
+      varInfo.clear();
+      for (set<string>::const_iterator var=blockVarNames.begin(); var!=blockVarNames.end(); ++var) {
+         list<pair<string,string> > attribs;
+         attribs.push_back(make_pair("name",*var));
+         attribs.push_back(make_pair("mesh",meshName));
+         uint64_t arraySize;
+         BlockVarInfo vinfo;
+         vinfo.name = *var;
+         if (vlsvReader.getArrayInfo("BLOCKVARIABLE",attribs,arraySize,vinfo.vectorSize,vinfo.dataType,vinfo.dataSize) == false) {
+            cerr << "Could not read BLOCKVARIABLE array info" << endl;
+         }
+         varInfo.push_back(vinfo);
+      }
+      if (varInfo.size() > variables.size()) variables.resize(varInfo.size());
+
+      vector<uint64_t> blockIDs;
+      if (vlsvReader.getBlockIds(cellIDs[cell],blockIDs) == false) {         
+         for (size_t v=0; v<varBuffer.size(); ++v) delete [] varBuffer[v];
+         continue;
+      }
+
+      counter=0;
+      for (size_t b=0; b<blockIDs.size(); ++b) {
+         uint64_t blockGID = blockIDs[b];
+
+         // Figure out block indices and refinement level
+         uint32_t refLevel;
+         uint32_t blockIndices[3];
+         vlsv::calculateCellIndices(blockGID,refLevel,blockIndices[0],blockIndices[1],blockIndices[2]);
+         uint32_t refMul  = pow(2,refLevel);
+         uint32_t refDiff = pow(2,cellStruct.maxVelRefLevel-refLevel);
+
+         // Calculate block coordinates
+         Real minBlockCoords[3];
+         Real maxBlockCoords[3];
+         for (int i=0; i<3; ++i) {
+            minBlockCoords[i] = cellStruct.min_vcoordinates[i] + blockIndices[i]*cellStruct.vblock_length[i]/refMul;
+            maxBlockCoords[i] = cellStruct.min_vcoordinates[i] + (blockIndices[i]+1)*cellStruct.vblock_length[i]/refMul;
+         }
+
+         // If the chosen velocity coordinates are in the block, store
+         // the relevant cell (with correct size in velocity direction)
+         if (cellStruct.slicedCoordValues[1] < minBlockCoords[cellStruct.slicedCoords[1]-3]
+             || cellStruct.slicedCoordValues[1] > maxBlockCoords[cellStruct.slicedCoords[1]-3]) continue;
+         if (cellStruct.slicedCoordValues[2] < minBlockCoords[cellStruct.slicedCoords[2]-3]
+             || cellStruct.slicedCoordValues[2] > maxBlockCoords[cellStruct.slicedCoords[2]-3]) continue;
+         
+         // Store node coordinates and cell connectivity entries for the accepted cells
+         const Real DV_cell = cellStruct.vblock_length[dims[2]-3]/refMul/4;
+         for (int i=0; i<4; ++i) {
+            const size_t offset = nodeCoords.size()/3;
+            nodeCoords.push_back(cellCrds[dims[0]  ]); nodeCoords.push_back(cellCrds[dims[1]  ]); nodeCoords.push_back(minBlockCoords[dims[2]-3]+i*DV_cell);
+            nodeCoords.push_back(cellCrds[dims[0]+3]); nodeCoords.push_back(cellCrds[dims[1]  ]); nodeCoords.push_back(minBlockCoords[dims[2]-3]+i*DV_cell);
+            nodeCoords.push_back(cellCrds[dims[0]  ]); nodeCoords.push_back(cellCrds[dims[1]+3]); nodeCoords.push_back(minBlockCoords[dims[2]-3]+i*DV_cell);
+            nodeCoords.push_back(cellCrds[dims[0]+3]); nodeCoords.push_back(cellCrds[dims[1]+3]); nodeCoords.push_back(minBlockCoords[dims[2]-3]+i*DV_cell);
+            nodeCoords.push_back(cellCrds[dims[0]  ]); nodeCoords.push_back(cellCrds[dims[1]  ]); nodeCoords.push_back(minBlockCoords[dims[2]-3]+(i+1)*DV_cell);
+            nodeCoords.push_back(cellCrds[dims[0]+3]); nodeCoords.push_back(cellCrds[dims[1]  ]); nodeCoords.push_back(minBlockCoords[dims[2]-3]+(i+1)*DV_cell);
+            nodeCoords.push_back(cellCrds[dims[0]  ]); nodeCoords.push_back(cellCrds[dims[1]+3]); nodeCoords.push_back(minBlockCoords[dims[2]-3]+(i+1)*DV_cell);
+            nodeCoords.push_back(cellCrds[dims[0]+3]); nodeCoords.push_back(cellCrds[dims[1]+3]); nodeCoords.push_back(minBlockCoords[dims[2]-3]+(i+1)*DV_cell);
+
+            connectivity.push_back(vlsv::celltype::VOXEL);
+            connectivity.push_back(8);
+            for (int j=0; j<8; ++j) connectivity.push_back(offset+j);
+         }
+
+         // Store value of distribution function in saved cells
+         const Real DVY_CELL = cellStruct.vblock_length[cellStruct.slicedCoords[1]-3]/refMul;
+         const Real DVZ_CELL = cellStruct.vblock_length[cellStruct.slicedCoords[2]-3]/refMul;
+         int j = static_cast<int>((cellStruct.slicedCoordValues[1] - minBlockCoords[cellStruct.slicedCoords[1]-3]) / DVY_CELL);
+         int k = static_cast<int>((cellStruct.slicedCoordValues[2] - minBlockCoords[cellStruct.slicedCoords[2]-3]) / DVY_CELL);
+
+         for (size_t v=0; v<varBuffer.size(); ++v) {
+            uint64_t entrySize = varInfo[v].vectorSize*varInfo[v].dataSize;
+            char* baseptr = &(varBuffer[v][0]) + b*entrySize;
+
+            for (int i=0; i<4; ++i) {
+               char* varptr = baseptr + i*varInfo[v].dataSize;
+               int index;
+               switch (dims[2]) {
+                case 3:
+                  for (uint64_t dummy=0; dummy<varInfo[v].dataSize; ++dummy) variables[v].push_back(varptr[dummy]);
+                  break;
+                case 4:
+                  for (uint64_t dummy=0; dummy<varInfo[v].dataSize; ++dummy) variables[v].push_back(varptr[dummy]);
+                  break;
+                case 5:
+                  for (uint64_t dummy=0; dummy<varInfo[v].dataSize; ++dummy) variables[v].push_back(varptr[dummy]);
+                  break;
+               }
+            }
+         }
+         ++counter;
+      }
+
+      for (size_t v=0; v<varBuffer.size(); ++v) delete [] varBuffer[v];
+   }
+
+   map<string,string> attributes;
+   attributes["name"] = outputMeshName;
+   attributes["type"] = vlsv::mesh::STRING_UCD_GENERIC_MULTI;
+   attributes["domains"] = "1";
+   attributes["cells"] = connectivity.size()/10;
+   attributes["nodes"] = nodeCoords.size()/3;
+
+   if (out.writeArray("MESH",attributes,connectivity.size(),1,&(connectivity[0])) == false) success = false;
+
+   attributes.clear();
+   attributes["mesh"] = outputMeshName;   
+   if (out.writeArray("MESH_NODE_CRDS",attributes,nodeCoords.size()/3,3,&(nodeCoords[0])) == false) success = false;
+   
+   bbox[0]=1; bbox[1]=1; bbox[2]=1; bbox[3]=1; bbox[4]=1; bbox[5]=1;
+   if (out.writeArray("MESH_BBOX",attributes,6,1,bbox) == false) success = false;
+   
+   uint32_t offsetEntries[vlsv::ucdgenericmulti::offsets::SIZE];
+   offsetEntries[vlsv::ucdgenericmulti::offsets::ZONE_ENTRIES] = connectivity.size();
+   offsetEntries[vlsv::ucdgenericmulti::offsets::NODE_ENTRIES] = nodeCoords.size()/3;
+   if (out.writeArray("MESH_OFFSETS",attributes,1,vlsv::ucdgenericmulti::offsets::SIZE,offsetEntries) == false) success=false;
+
+   uint32_t domainSize[vlsv::ucdgenericmulti::domainsizes::SIZE];
+   domainSize[vlsv::ucdgenericmulti::domainsizes::TOTAL_BLOCKS] = connectivity.size()/10;
+   domainSize[vlsv::ucdgenericmulti::domainsizes::GHOST_BLOCKS] = 0;
+   domainSize[vlsv::ucdgenericmulti::domainsizes::TOTAL_NODES] = nodeCoords.size()/3;
+   domainSize[vlsv::ucdgenericmulti::domainsizes::GHOST_NODES] = 0;
+   if (out.writeArray("MESH_DOMAIN_SIZES",attributes,1,vlsv::ucdgenericmulti::domainsizes::SIZE,domainSize) == false) success = false;
+
+   for (size_t v=0; v<variables.size(); ++v) {
+      uint64_t vectorSize = varInfo[v].vectorSize/64;
+      uint64_t entrySize = vectorSize*varInfo[v].dataSize;
+      uint64_t arraySize = variables[v].size() / entrySize;
+      if (variables[v].size() % entrySize != 0) {
+         cerr << "Error in variable array size in " << __FILE__ << ' ' << __LINE__ << endl;
+         continue;
+      }
+
+      attributes["name"] = varInfo[v].name;
+      char* ptr = reinterpret_cast<char*>(&(variables[v][0]));
+      if (out.writeArray("VARIABLE",attributes,vlsv::getStringDatatype(varInfo[v].dataType),arraySize,vectorSize,varInfo[v].dataSize,ptr) == false) {
+         cerr << "Failed to write variable '" << varInfo[v].name << "' to sliced velocity mesh" << endl;
+      }
+   }
+
+   out.close();
+   return success;
+}
+
 bool convertVelocityBlocks2(
-   newVlsv::Reader& vlsvReader,
-   const string& fname,
-   const string& meshName,
-   const CellStructure & cellStruct,
-   const uint64_t& cellID,
-   const bool rotate,
-   const bool plasmaFrame
-) {
+                            newVlsv::Reader& vlsvReader,
+                            const string& fname,
+                            const string& meshName,
+                            const CellStructure& cellStruct,
+                            const uint64_t& cellID,
+                            const bool rotate,
+                            const bool plasmaFrame
+                           ) {
    bool success = true;
    
    string outputMeshName = "VelGrid";
@@ -977,7 +1228,7 @@ bool convertVelocityBlocks2(
    attributes["mesh"] = outputMeshName;
    if (out.writeArray("MESH_DOMAIN_SIZES",attributes,1,2,domainSize) == false) success = false;
      {
-	vector<uint64_t> ().swap(blockIds);
+        vector<uint64_t> ().swap(blockIds);
      }
    
    attributes["mesh"] = "VelBlocks";
@@ -1010,9 +1261,9 @@ bool convertVelocityBlocks2(
 
       // Generate node coordinates
       for (size_t i=0; i<bbox[crd]; ++i) {
-	 for (size_t j=0; j<bbox[crd+3]; ++j) {
-	    coords.push_back( cellStruct.min_vcoordinates[crd] + i*cellStruct.vblock_length[crd] + j*cellStruct.vblock_length[crd]/bbox[crd+3] );
-	 }
+         for (size_t j=0; j<bbox[crd+3]; ++j) {
+            coords.push_back( cellStruct.min_vcoordinates[crd] + i*cellStruct.vblock_length[crd] + j*cellStruct.vblock_length[crd]/bbox[crd+3] );
+         }
       }
       coords.push_back( cellStruct.min_vcoordinates[crd] + bbox[crd]*cellStruct.vblock_length[crd] );
 
@@ -1023,20 +1274,20 @@ bool convertVelocityBlocks2(
       else if (crd == 2) arrayName = "MESH_NODE_CRDS_Z";
       
       if (coords.size() != bbox[crd]*bbox[crd+3]+1) {
-	 cerr << "ERROR incorrect node coordinates at " << __FILE__ << " " << __LINE__ << endl;
+         cerr << "ERROR incorrect node coordinates at " << __FILE__ << " " << __LINE__ << endl;
       }
 
       attributes["mesh"] = outputMeshName;
       if (out.writeArray(arrayName,attributes,coords.size(),1,&(coords[0])) == false) success = false;
    }
      {
-	vector<float> ().swap(coords);
+        vector<float> ().swap(coords);
      }
    
    for (int crd=0; crd<3; ++crd) {
       coords.clear();
       for (size_t i=0; i<bbox[crd]; ++i) {
-	 coords.push_back( cellStruct.min_vcoordinates[crd] + i*cellStruct.vblock_length[crd] );
+         coords.push_back( cellStruct.min_vcoordinates[crd] + i*cellStruct.vblock_length[crd] );
       }
       coords.push_back( cellStruct.min_vcoordinates[crd] + bbox[crd]*cellStruct.vblock_length[crd] );
       
@@ -1049,7 +1300,7 @@ bool convertVelocityBlocks2(
       if (out.writeArray(arrayName,attributes,coords.size(),1,&(coords[0])) == false) success = false;
    }
      {
-	vector<float> ().swap(coords);
+        vector<float> ().swap(coords);
      }
    
    // Write dummy ghost zone data (not applicable here):
@@ -1074,35 +1325,35 @@ bool convertVelocityBlocks2(
    //Writing SILO file
    if (success == true) {
       for (set<string>::iterator it = blockVarNames.begin(); it != blockVarNames.end(); ++it) {
-	 list<pair<string, string> > attribs;
-	 attribs.push_back(make_pair("name", *it));
-	 attribs.push_back(make_pair("mesh", meshName));
-	 datatype::type dataType;
-	 uint64_t arraySize, vectorSize, dataSize;
-	 if (vlsvReader.getArrayInfo("BLOCKVARIABLE", attribs, arraySize, vectorSize, dataType, dataSize) == false) {
-	    cerr << "Could not read BLOCKVARIABLE array info" << endl;
-	    return false;
-	 }
+         list<pair<string, string> > attribs;
+         attribs.push_back(make_pair("name", *it));
+         attribs.push_back(make_pair("mesh", meshName));
+         datatype::type dataType;
+         uint64_t arraySize, vectorSize, dataSize;
+         if (vlsvReader.getArrayInfo("BLOCKVARIABLE", attribs, arraySize, vectorSize, dataType, dataSize) == false) {
+            cerr << "Could not read BLOCKVARIABLE array info" << endl;
+            return false;
+         }
 	 
-	 char* buffer = new char[N_blocks * vectorSize * dataSize];
-	 if (vlsvReader.readArray("BLOCKVARIABLE", attribs, vlsvReader.getBlockOffset(cellID), N_blocks, buffer) == false) {
-	    cerr << "ERROR could not read block variable" << endl;
-	    delete[] buffer;
-	    return success;
-	 }
+         char* buffer = new char[N_blocks * vectorSize * dataSize];
+         if (vlsvReader.readArray("BLOCKVARIABLE", attribs, vlsvReader.getBlockOffset(cellID), N_blocks, buffer) == false) {
+            cerr << "ERROR could not read block variable" << endl;
+            delete[] buffer;
+            return success;
+         }
 
-	 attributes["name"] = *it;
-	 attributes["mesh"] = outputMeshName;
-	 if (out.writeArray("VARIABLE",attributes,vlsv::getStringDatatype(dataType),arraySize*blockSize,vectorSize/blockSize,dataSize,buffer) == false) success = false;
-	 
-	 delete [] buffer; buffer = NULL;
+         attributes["name"] = *it;
+         attributes["mesh"] = outputMeshName;
+         if (out.writeArray("VARIABLE",attributes,vlsv::getStringDatatype(dataType),arraySize*blockSize,vectorSize/blockSize,dataSize,buffer) == false) success = false;
+         
+         delete [] buffer; buffer = NULL;
       }
    }
    
    vlsvReader.clearCellsWithBlocks();
    out.close();
    return success;
-
+   
    
 /*
 
@@ -2321,6 +2572,11 @@ void convertFileToSilo( const string & fileName, const UserOptions & mainOptions
       pos = outputFileName.find(".");
       if (pos != string::npos) outputFileName.replace(0, pos, newPrefix);
 
+      string slicePrefix = "VelSlice";
+      string outputSliceName = fileName;
+      pos = outputSliceName.find(".");
+      if (pos != string::npos) outputSliceName.replace(0,pos,slicePrefix);
+
       //Declare the file path (used in DBCreate to save the file in the correct location)
       string outputFilePath;
       //Get the path (outputDirectoryPath was retrieved from user input and it's a vector<string>):
@@ -2343,6 +2599,7 @@ void convertFileToSilo( const string & fileName, const UserOptions & mainOptions
          vlsvReader.setCellsWithBlocks();
       }
       for (list<string>::const_iterator it2 = meshNames.begin(); it2 != meshNames.end(); ++it2) {
+         convertSlicedVelocityMesh(vlsvReader,outputSliceName,*it2,cellStruct);
          if (convertVelocityBlocks2(vlsvReader, outputFilePath, *it2, cellStruct, cellID, mainOptions.rotateVectors, mainOptions.plasmaFrame ) == false) {
             velGridExtracted = false;
          } else {

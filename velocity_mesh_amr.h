@@ -30,6 +30,7 @@ namespace vmesh {
       size_t capacityInBytes() const;
       bool check() const;
       void clear();
+      bool coarsenAllowed(const GID& globalID) const;
       bool copy(const LID& sourceLocalID,const LID& targetLocalID);
       size_t count(const GID& globalID) const;
       GID findBlockDown(uint8_t& refLevel,GID cellIndices[3]);
@@ -43,10 +44,10 @@ namespace vmesh {
       static void getChildren(const GID& globalID,std::vector<GID>& children);
       GID getGlobalID(const LID& localID) const;
       static GID getGlobalID(const uint8_t& refLevel,const Real* coords);
-      static GID getGlobalID(const uint8_t& refLevel,GID indices[3]);
+      static GID getGlobalID(const uint8_t& refLevel,LID indices[3]);
       static GID getGlobalID(const uint32_t& refLevel,const LID& i,const LID& j,const LID& k);
       static GID getGlobalIndexOffset(const uint8_t& refLevel);
-      static const GID* getGridLength(const uint8_t& refLevel);
+      static const LID* getGridLength(const uint8_t& refLevel);
       static void getIndices(const GID& globalID,uint8_t& refLevel,LID& i,LID& j,LID& k);
       LID getLocalID(const GID& globalID) const;
       static uint8_t getMaxAllowedRefinementLevel();
@@ -55,14 +56,16 @@ namespace vmesh {
       static const Real* getMeshMinLimits();
       static void getNeighborsAtSameLevel(const GID& globalID,std::vector<GID>& neighborIDs);
       static void getNeighborsExistingAtSameLevel(const GID& globalID,std::vector<GID>& neighborIDs);
-      void getNeighborsExistingAtOffset(const GID& globalID,const int& i,const int& j,const int& k,std::vector<LID>& neighborIDs,int32_t& refLevelDifference) const;
+      void getNeighborsExistingAtOffset(const GID& globalID,const int& i,const int& j,const int& k,std::vector<LID>& neighborLIDs,int32_t& refLevelDifference) const;
       static int getOctant(const GID& globalID);
       static GID getParent(const GID& globalID);
       static uint8_t getRefinementLevel(const GID& globalID);
-      void getSiblingNeighbors(const GID& globalID,std::vector<GID>& nbrs);
+      static void getSiblingNeighbors(const GID& globalID,std::vector<GID>& nbrs);
       static void getSiblings(const GID& globalID,std::vector<GID>& siblings);
       bool hasChildren(const GID& globalID) const;
-      static bool initialize(Real meshLimits[6],LID gridLength[3],LID blockLength[3],uint8_t refLevelMaxAllowed);
+      GID hasGrandParent(const GID& globalID) const;
+      static bool initialize(Real meshLimits[6],LID gridLength[3],LID blockLength[3],uint8_t refLevelMaxAllowed,
+                             LID maxVelocityBlocks=std::numeric_limits<LID>::max());
       static LID invalidBlockIndex();
       static GID invalidGlobalID();
       static LID invalidLocalID();
@@ -81,7 +84,7 @@ namespace vmesh {
       static Real blockSize[3];                                                 /**< Size of a block at base grid level.*/
       static Real cellSize[3];                                                  /**< Size of a cell in a block at base grid level.*/
       static Real gridSize[3];                                                  /**< Size of the grid.*/
-      static GID gridLength[3];                                                 /**< Number of blocks in the grid.*/
+      static LID gridLength[3];                                                 /**< Number of blocks in the grid.*/
       static bool initialized;
       static Real meshMinLimits[3];                                             /**< Minimum coordinate values of the grid bounding box.*/
       static Real meshMaxLimits[3];                                             /**< Maximum coordinate values of the grid bounding box.*/
@@ -90,7 +93,7 @@ namespace vmesh {
 
       static Real* blockSizes;
       static Real* cellSizes;
-      static GID* gridLengths;
+      static LID* gridLengths;
       static size_t referenceCount;
 
       std::vector<GID> localToGlobalMap;
@@ -109,8 +112,8 @@ namespace vmesh {
    template<typename GID,typename LID> Real VelocityMesh<GID,LID>::cellSize[3] = {NAN,NAN,NAN};
    template<typename GID,typename LID> Real* VelocityMesh<GID,LID>::cellSizes = NULL;
    template<typename GID,typename LID> Real VelocityMesh<GID,LID>::gridSize[3] = {NAN,NAN,NAN};
-   template<typename GID,typename LID> GID VelocityMesh<GID,LID>::gridLength[3] = {0,0,0};
-   template<typename GID,typename LID> GID* VelocityMesh<GID,LID>::gridLengths = NULL;
+   template<typename GID,typename LID> LID VelocityMesh<GID,LID>::gridLength[3] = {0,0,0};
+   template<typename GID,typename LID> LID* VelocityMesh<GID,LID>::gridLengths = NULL;
    template<typename GID,typename LID> bool VelocityMesh<GID,LID>::initialized = false;
    template<typename GID,typename LID> Real VelocityMesh<GID,LID>::meshMinLimits[3] = {NAN,NAN,NAN};
    template<typename GID,typename LID> Real VelocityMesh<GID,LID>::meshMaxLimits[3] = {NAN,NAN,NAN};
@@ -141,54 +144,53 @@ namespace vmesh {
    template<typename GID,typename LID> inline
    size_t VelocityMesh<GID,LID>::capacityInBytes() const {
       return localToGlobalMap.capacity()*sizeof(GID)
-	+ globalToLocalMap.bucket_count()*(sizeof(GID)+sizeof(LID));
+           + globalToLocalMap.bucket_count()*(sizeof(GID)+sizeof(LID));
    }
    
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::check() const {
       bool ok = true;
-	
+        
       if (localToGlobalMap.size() != globalToLocalMap.size()) {
-	 std::cerr << "VMO ERROR: sizes differ, " << localToGlobalMap.size() << " vs " << globalToLocalMap.size() << std::endl;
-	 ok = false;
+         std::cerr << "VMO ERROR: sizes differ, " << localToGlobalMap.size() << " vs " << globalToLocalMap.size() << std::endl;
+         ok = false;
       }
-	
+      
       for (size_t b=0; b<size(); ++b) {
-	 const LID globalID = localToGlobalMap[b];
-	 typename std::unordered_map<GID,LID>::const_iterator it = globalToLocalMap.find(globalID);
-	 const GID localID = it->second;
-	 if (localID != b) {
-	    ok = false;
-	    std::cerr << "VMO ERROR: localToGlobalMap[" << b << "] = " << globalID << " but ";
-	    std::cerr << "globalToLocalMap[" << globalID << "] = " << localID << std::endl;
-	 }
-
-	 // Recursively check that none of the possible children exist:
-	 std::vector<GID> children;
-	 getChildren(globalID,children);
-	 bool hasChildren = false;
-	 for (size_t c=0; c<children.size(); ++c) {
-	    if (children[c] == invalidGlobalID()) continue;
-	    if (checkChildren(children[c]) == true) hasChildren = true;
-	 }
-	 if (hasChildren == true) {
-	    std::cerr << "VM AMR ERROR: block " << globalID << " at refinement level " << (int)getRefinementLevel(globalID);
-	    std::cerr << " exists and has children or grandchildren" << std::endl;
-	    std::cerr << "\t ERROR from " << __FILE__ << ':' << __LINE__ << std::endl;
-	    ok = false;
-	 }
-	 /*
-	 // Recursively check that parents do not exist:
-	 bool hasParents = false;
-	 if (checkParent(globalID) == true) hasParents=true;
-	 if (hasParents == true) {
-	    std::cerr << "VM AMR ERROR: block " << globalID << " at refinement level " << (int)getRefinementLevel(globalID);
-	    std::cerr << " exists and has a parent or a grandparent" << std::endl;
-	    std::cerr << "\t ERROR from " << __FILE__ << ':' << __LINE__ << std::endl;
-	    ok = false;
-	 }*/
+         const LID globalID = localToGlobalMap[b];
+         typename std::unordered_map<GID,LID>::const_iterator it = globalToLocalMap.find(globalID);
+         const GID localID = it->second;
+         if (localID != b) {
+            ok = false;
+            std::cerr << "VMO ERROR: localToGlobalMap[" << b << "] = " << globalID << " but ";
+            std::cerr << "globalToLocalMap[" << globalID << "] = " << localID << std::endl;
+         }
+         
+         // Recursively check that none of the possible children exist:
+         std::vector<GID> children;
+         getChildren(globalID,children);
+         bool hasChildren = false;
+         for (size_t c=0; c<children.size(); ++c) {
+            if (children[c] == invalidGlobalID()) continue;
+            if (checkChildren(children[c]) == true) hasChildren = true;
+         }
+         if (hasChildren == true) {
+            std::cerr << "VM AMR ERROR: block " << globalID << " at refinement level " << (int)getRefinementLevel(globalID);
+            std::cerr << " exists and has children or grandchildren" << std::endl;
+            std::cerr << "\t ERROR from " << __FILE__ << ':' << __LINE__ << std::endl;
+            ok = false;
+         }
+         /*
+          // Recursively check that parents do not exist:
+          bool hasParents = false;
+          if (checkParent(globalID) == true) hasParents=true;
+          if (hasParents == true) {
+          std::cerr << "VM AMR ERROR: block " << globalID << " at refinement level " << (int)getRefinementLevel(globalID);
+          std::cerr << " exists and has a parent or a grandparent" << std::endl;
+          std::cerr << "\t ERROR from " << __FILE__ << ':' << __LINE__ << std::endl;
+          ok = false;
+          }*/
       }
-
       return ok;
    }
    
@@ -198,19 +200,18 @@ namespace vmesh {
       std::vector<GID> children;
       getChildren(globalID,children);
       for (size_t c=0; c<children.size(); ++c) {
-	 if (getLocalID(children[c]) != invalidLocalID()) {
-	    return true;
-	 }
+         if (getLocalID(children[c]) != invalidLocalID()) {
+            return true;
+         }
       }
       
       // Recursively check that none of the grandchildren exist:
       for (size_t c=0; c<children.size(); ++c) {
-	 if (checkChildren(children[c]) == true) return true;
+         if (checkChildren(children[c]) == true) return true;
       }
       return false;
    }
-   
-   
+
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::checkParent(const GID& globalID) const {
       GID parent = getParent(globalID);
@@ -226,15 +227,52 @@ namespace vmesh {
    }
    
    template<typename GID,typename LID> inline
+   bool VelocityMesh<GID,LID>::coarsenAllowed(const GID& globalID) const {
+      if (globalToLocalMap.count(globalID) == 0) return false;
+
+      uint8_t refLevel;
+      LID i,j,k;
+      getIndices(globalID,refLevel,i,j,k);
+      if (refLevel == 0) return false;
+
+      // Coarsen not allowed if any of the siblings have children
+      std::vector<GID> siblings;
+      getSiblings(globalID,siblings);
+      for (size_t s=0; s<siblings.size(); ++s) {
+         std::vector<GID> children;
+         getChildren(siblings[s],children);
+         for (size_t c=0; c<children.size(); ++c) {
+            if (globalToLocalMap.count(children[c]) > 0) return false;
+         }
+      }
+
+      // Get all neighbors of the blocks in this octant
+      std::vector<GID> octantNeighbors;
+      getSiblingNeighbors(globalID,octantNeighbors);
+
+      // Block cannot be coarsened if any of the octant neighbors have children
+      for (size_t n=0; n<octantNeighbors.size(); ++n) {
+         std::vector<GlobalID> children;
+         getChildren(octantNeighbors[n],children);
+         for (size_t c=0; c<children.size(); ++c) {
+            if (globalToLocalMap.count(children[c]) != 0) return false;
+         }
+      }
+
+      // Block can be coarsened
+      return true;
+   }
+   
+   template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::copy(const LID& sourceLID,const LID& targetLID) {
       #ifdef DEBUG_AMR_MESH
       bool ok=true;
       if (sourceLID >= localToGlobalMap.size()) ok=false;
       if (targetLID >= localToGlobalMap.size()) ok=false;
       if (ok == false) {
-	 std::cerr << "ERROR in copy, source/target LIDs are " << sourceLID << ' ' << targetLID << std::endl;
-	 std::cerr << "\t exiting from " << __FILE__ << ':' << __LINE__ << std::endl;
-	 exit(1);
+         std::cerr << "ERROR in copy, source/target LIDs are " << sourceLID << ' ' << targetLID << std::endl;
+         std::cerr << "\t exiting from " << __FILE__ << ':' << __LINE__ << std::endl;
+         exit(1);
       }
       #endif
 
@@ -245,16 +283,16 @@ namespace vmesh {
       if (globalToLocalMap.find(sourceGID) == globalToLocalMap.end()) ok=false;
       if (globalToLocalMap.find(targetGID) == globalToLocalMap.end()) ok=false;
       if (ok == false) {
-	 std::cerr << "ERROR in copy, source/target LIDs are " << sourceLID << ' ' << targetLID << std::endl;
-	 std::cerr << "                             GIDs are " << sourceGID << ' ' << targetGID << std::endl;
-	 std::cerr << "\t sourceGID valid? ";
-	 if (globalToLocalMap.find(sourceGID) != globalToLocalMap.end()) std::cerr << "yes" << std::endl;
-	 else std::cerr << "no" << std::endl;
-	 std::cerr << "\t targetGID valid? ";
-	 if (globalToLocalMap.find(targetGID) != globalToLocalMap.end()) std::cerr << "yes" << std::endl;
-	 else std::cerr << "no" << std::endl;
-	 std::cerr << "\t exiting from " << __FILE__ << ':' << __LINE__ << std::endl;
-	 exit(1);
+         std::cerr << "ERROR in copy, source/target LIDs are " << sourceLID << ' ' << targetLID << std::endl;
+         std::cerr << "                             GIDs are " << sourceGID << ' ' << targetGID << std::endl;
+         std::cerr << "\t sourceGID valid? ";
+         if (globalToLocalMap.find(sourceGID) != globalToLocalMap.end()) std::cerr << "yes" << std::endl;
+         else std::cerr << "no" << std::endl;
+         std::cerr << "\t targetGID valid? ";
+         if (globalToLocalMap.find(targetGID) != globalToLocalMap.end()) std::cerr << "yes" << std::endl;
+         else std::cerr << "no" << std::endl;
+         std::cerr << "\t exiting from " << __FILE__ << ':' << __LINE__ << std::endl;
+         exit(1);
       }
       #endif
       
@@ -277,21 +315,21 @@ namespace vmesh {
       int refMul = std::pow(2,getMaxAllowedRefinementLevel()-refLevel);
 
       while (refLevel <= getMaxAllowedRefinementLevel()) {
-	 // Calculate i/j/k indices of the block that would own the cell at refinement level r:
-	 GID i_block = cellIndices[0] / (blockLength[0] * refMul);
-	 GID j_block = cellIndices[1] / (blockLength[1] * refMul);
-	 GID k_block = cellIndices[2] / (blockLength[2] * refMul);
-	 
-	 // Calculate block global ID:
-	 GID blockGID = getGlobalID(refLevel,i_block,j_block,k_block);
-
-	 // If the block exists, return it:
-	 if (globalToLocalMap.find(blockGID) != globalToLocalMap.end()) {
-	    return blockGID;
-	 }
-
-	 refMul *= 2;
-	 --refLevel;
+         // Calculate i/j/k indices of the block that would own the cell at refinement level r:
+         GID i_block = cellIndices[0] / (blockLength[0] * refMul);
+         GID j_block = cellIndices[1] / (blockLength[1] * refMul);
+         GID k_block = cellIndices[2] / (blockLength[2] * refMul);
+         
+         // Calculate block global ID:
+         GID blockGID = getGlobalID(refLevel,i_block,j_block,k_block);
+         
+         // If the block exists, return it:
+         if (globalToLocalMap.find(blockGID) != globalToLocalMap.end()) {
+            return blockGID;
+         }
+         
+         refMul *= 2;
+         --refLevel;
       }
 
       refLevel = 0;
@@ -305,20 +343,20 @@ namespace vmesh {
 
       int refMul = std::pow(2,getMaxAllowedRefinementLevel()-refLevel);
       for (uint8_t r=refLevel; r<=getMaxAllowedRefinementLevel(); ++r) {
-	 // Calculate i/j/k indices of the block that would own the cell at refinement level r:
-	 GID i_block = cellIndices[0] / (blockLength[0] * refMul);
-	 GID j_block = cellIndices[1] / (blockLength[1] * refMul);
-	 GID k_block = cellIndices[2] / (blockLength[2] * refMul);
-	 
-	 // Calculate block global ID:
-	 GID blockGID = getGlobalID(r,i_block,j_block,k_block);
-	 
-	 // If the block exists, return it:
-	 if (globalToLocalMap.find(blockGID) != globalToLocalMap.end()) {
-	    refLevel = r;
-	    return blockGID;
-	 }
-	 refMul /= 2;
+         // Calculate i/j/k indices of the block that would own the cell at refinement level r:
+         GID i_block = cellIndices[0] / (blockLength[0] * refMul);
+         GID j_block = cellIndices[1] / (blockLength[1] * refMul);
+         GID k_block = cellIndices[2] / (blockLength[2] * refMul);
+         
+         // Calculate block global ID:
+         GID blockGID = getGlobalID(r,i_block,j_block,k_block);
+         
+         // If the block exists, return it:
+         if (globalToLocalMap.find(blockGID) != globalToLocalMap.end()) {
+            refLevel = r;
+            return blockGID;
+         }
+         refMul /= 2;
       }
       return invalidGlobalID();
    }
@@ -326,8 +364,8 @@ namespace vmesh {
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::getBlockCoordinates(const GID& globalID,Real coords[3]) {
       if (globalID == invalidGlobalID()) {
-	 for (int i=0; i<3; ++i) coords[i] = std::numeric_limits<Real>::quiet_NaN();
-	 return false;
+         for (int i=0; i<3; ++i) coords[i] = std::numeric_limits<Real>::quiet_NaN();
+         return false;
       }
       
       // Calculate block's refinement level and (i,j,k) indices:
@@ -335,8 +373,8 @@ namespace vmesh {
       LID indices[3];
       getIndices(globalID,refLevel,indices[0],indices[1],indices[2]);
       if (indices[0] == invalidBlockIndex()) {
-	 for (int i=0; i<3; ++i) coords[i] = std::numeric_limits<Real>::quiet_NaN();
-	 return false;
+         for (int i=0; i<3; ++i) coords[i] = std::numeric_limits<Real>::quiet_NaN();
+         return false;
       }
       
       // NUmber of blocks per coordinate at this refinement level:
@@ -352,7 +390,7 @@ namespace vmesh {
    void VelocityMesh<GID,LID>::getBlockInfo(const GID& globalID,Real* array) {
       #ifdef DEBUG_AMR_MESH
       if (globalID == invalidGlobalID()) {
-	 for (int i=0; i<6; ++i) array[i] = std::numeric_limits<Real>::infinity();
+         for (int i=0; i<6; ++i) array[i] = std::numeric_limits<Real>::infinity();
       }
       #endif
 
@@ -396,7 +434,7 @@ namespace vmesh {
       size[2] /= WID;
       return true;
    }
-   
+
    template<typename GID,typename LID> inline
    void VelocityMesh<GID,LID>::getChildren(const GID& globalID,std::vector<GID>& children) {
       children.clear();
@@ -429,10 +467,10 @@ namespace vmesh {
       const GID globalID = localToGlobalMap[localID];
       if (globalToLocalMap.find(globalID) == globalToLocalMap.end()) ok=false;
       if (ok == false) {
-	 std::cerr << "ERROR in getGlobalID, localID=" << localID << " and globalID=" << globalID;
-	 std::cerr << " but globalToLocalMap does not contain the block" << std::endl;
-	 std::cerr << "\t exiting from " << __FILE__ << ':' << __LINE__ << std::endl;
-	 exit(1);
+         std::cerr << "ERROR in getGlobalID, localID=" << localID << " and globalID=" << globalID;
+         std::cerr << " but globalToLocalMap does not contain the block" << std::endl;
+         std::cerr << "\t exiting from " << __FILE__ << ':' << __LINE__ << std::endl;
+         exit(1);
       }
       #endif
       
@@ -440,7 +478,7 @@ namespace vmesh {
    }
 
    template<typename GID,typename LID> inline
-   GID VelocityMesh<GID,LID>::getGlobalID(const uint8_t& refLevel,GID indices[3]) {
+   GID VelocityMesh<GID,LID>::getGlobalID(const uint8_t& refLevel,LID indices[3]) {
       const uint8_t multiplier = std::pow(2,refLevel);
       if (indices[0] >= gridLength[0]*multiplier) return invalidGlobalID();
       if (indices[1] >= gridLength[1]*multiplier) return invalidGlobalID();
@@ -461,16 +499,16 @@ namespace vmesh {
    template<typename GID,typename LID> inline
    GID VelocityMesh<GID,LID>::getGlobalID(const uint8_t& refLevel,const Real* coords) {
       if (coords[0] < meshMinLimits[0] || coords[0] >= meshMaxLimits[0] || 
-	 (coords[1] < meshMinLimits[1] || coords[1] >= meshMaxLimits[1] || 
-	  coords[2] < meshMinLimits[2] || coords[2] >= meshMaxLimits[2])) {
-	 return invalidGlobalID();
+         (coords[1] < meshMinLimits[1] || coords[1] >= meshMaxLimits[1] || 
+          coords[2] < meshMinLimits[2] || coords[2] >= meshMaxLimits[2])) {
+         return invalidGlobalID();
       }
-
+      
       const LID multiplier = std::pow(2,refLevel);
       const LID indices[3] = {
-	 static_cast<LID>(floor((coords[0] - meshMinLimits[0])*multiplier / blockSize[0])),
-	 static_cast<LID>(floor((coords[1] - meshMinLimits[1])*multiplier / blockSize[1])),
-	 static_cast<LID>(floor((coords[2] - meshMinLimits[2])*multiplier / blockSize[2]))
+         static_cast<LID>(floor((coords[0] - meshMinLimits[0])*multiplier / blockSize[0])),
+         static_cast<LID>(floor((coords[1] - meshMinLimits[1])*multiplier / blockSize[1])),
+         static_cast<LID>(floor((coords[2] - meshMinLimits[2])*multiplier / blockSize[2]))
       };
 
       return offsets[refLevel] + indices[2]*gridLength[1]*gridLength[0]*multiplier*multiplier 
@@ -483,10 +521,10 @@ namespace vmesh {
    }
    
    template<typename GID,typename LID> inline
-   const GID* VelocityMesh<GID,LID>::getGridLength(const uint8_t& refLevel) {
+   const LID* VelocityMesh<GID,LID>::getGridLength(const uint8_t& refLevel) {
       return gridLengths + refLevel*3;
    }
-   
+
    template<typename GID,typename LID> inline
    void VelocityMesh<GID,LID>::getIndices(const GID& globalID,uint8_t& refLevel,LID& i,LID& j,LID& k) {
       refLevel = std::upper_bound(offsets.begin(),offsets.end(),globalID)-offsets.begin()-1;
@@ -546,9 +584,9 @@ namespace vmesh {
       
       int nbr = 0;
       for (int k_off=-1; k_off<2; ++k_off) for (int j_off=-1; j_off<2; ++j_off) for (int i_off=-1; i_off<2; ++i_off) {
-	 if (i+i_off < Nx_max && (j+j_off < Ny_max && k+k_off < Nz_max)) neighborIDs[nbr] = getGlobalID(refLevel,i+i_off,j+j_off,k+k_off);
-	 else neighborIDs[nbr] = invalidGlobalID();
-	 ++nbr;
+         if (i+i_off < Nx_max && (j+j_off < Ny_max && k+k_off < Nz_max)) neighborIDs[nbr] = getGlobalID(refLevel,i+i_off,j+j_off,k+k_off);
+         else neighborIDs[nbr] = invalidGlobalID();
+         ++nbr;
       }
    }
 
@@ -567,15 +605,15 @@ namespace vmesh {
       const LID Ny_max = gridLength[1] * std::pow(2,refLevel);
       const LID Nz_max = gridLength[2] * std::pow(2,refLevel);
       for (int k_off=-1; k_off<2; ++k_off) {
-	 if (k+k_off >= Nz_max) continue;
-	 for (int j_off=-1; j_off<2; ++j_off) {
-	    if (j+j_off >= Ny_max) continue;
-	    for (int i_off=-1; i_off<2; ++i_off) {
-	       if (i+i_off >= Nx_max) continue;
-	       if (i_off == 0 && (j_off == 0 && k_off == 0)) continue;
-	       neighborIDs.push_back(getGlobalID(refLevel,i+i_off,j+j_off,k+k_off));
-	    }
-	 }
+         if (k+k_off >= Nz_max) continue;
+         for (int j_off=-1; j_off<2; ++j_off) {
+            if (j+j_off >= Ny_max) continue;
+            for (int i_off=-1; i_off<2; ++i_off) {
+               if (i+i_off >= Nx_max) continue;
+               if (i_off == 0 && (j_off == 0 && k_off == 0)) continue;
+               neighborIDs.push_back(getGlobalID(refLevel,i+i_off,j+j_off,k+k_off));
+            }
+         }
       }
    }
    
@@ -583,10 +621,10 @@ namespace vmesh {
    void VelocityMesh<GID,LID>::getNeighborsExistingAtOffset(const GID& globalID,const int& i_off,const int& j_off,const int& k_off,std::vector<LID>& neighborLocalIDs,int32_t& refLevelDifference) const {
       #ifdef DEBUG_AMR_MESH
       if (abs(i_off) > 1 || (abs(j_off) > 1 || abs(k_off) > 1)) { 
-	 std::stringstream ss;
-	 ss << "VelocityMesh ERROR: invalid offsets in getNeighborsExistingAtOffset " << i_off << ' ' << j_off << ' ' << k_off << std::endl;
-	 std::cerr << ss.str();
-	 exit(1);
+         std::stringstream ss;
+         ss << "VelocityMesh ERROR: invalid offsets in getNeighborsExistingAtOffset " << i_off << ' ' << j_off << ' ' << k_off << std::endl;
+         std::cerr << ss.str();
+         exit(1);
       }
       #endif
 
@@ -605,17 +643,17 @@ namespace vmesh {
 
       nbr = globalToLocalMap.find(nbrGlobalID);
       if (nbr != globalToLocalMap.end()) {
-	 neighborLocalIDs.push_back(nbr->second);
-	 refLevelDifference = 0;
-	 return;
+         neighborLocalIDs.push_back(nbr->second);
+         refLevelDifference = 0;
+         return;
       }
 
       // Check if parent of the neighbor exists
       nbr = globalToLocalMap.find(getParent(nbrGlobalID));
       if (nbr != globalToLocalMap.end()) {
-	 neighborLocalIDs.push_back(nbr->second);
-	 refLevelDifference = -1;
-	 return;
+         neighborLocalIDs.push_back(nbr->second);
+         refLevelDifference = -1;
+         return;
       }
 
       // Exit if neighbor cannot have children:
@@ -635,43 +673,43 @@ namespace vmesh {
       const int nbrTypeID = (k_off+1)*9+(j_off+1)*3+(i_off+1);
       switch (nbrTypeID) {
        case 4:  // -z face neighbor
-	 nbr = globalToLocalMap.find(nbrChildren[4]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[0] = nbr->second;}
-	 nbr = globalToLocalMap.find(nbrChildren[5]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[1] = nbr->second;}
-	 nbr = globalToLocalMap.find(nbrChildren[6]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[2] = nbr->second;}
-	 nbr = globalToLocalMap.find(nbrChildren[7]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[3] = nbr->second;}
-	 break;
+         nbr = globalToLocalMap.find(nbrChildren[4]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[0] = nbr->second;}
+         nbr = globalToLocalMap.find(nbrChildren[5]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[1] = nbr->second;}
+         nbr = globalToLocalMap.find(nbrChildren[6]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[2] = nbr->second;}
+         nbr = globalToLocalMap.find(nbrChildren[7]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[3] = nbr->second;}
+         break;
        case 10: // -y face neighbor
-	 nbr = globalToLocalMap.find(nbrChildren[3]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[0] = nbr->second;}
-	 nbr = globalToLocalMap.find(nbrChildren[2]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[1] = nbr->second;}
-	 nbr = globalToLocalMap.find(nbrChildren[7]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[2] = nbr->second;}
-	 nbr = globalToLocalMap.find(nbrChildren[6]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[3] = nbr->second;}
-	 break;
+         nbr = globalToLocalMap.find(nbrChildren[2]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[0] = nbr->second;}
+         nbr = globalToLocalMap.find(nbrChildren[3]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[1] = nbr->second;}
+         nbr = globalToLocalMap.find(nbrChildren[6]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[2] = nbr->second;}
+         nbr = globalToLocalMap.find(nbrChildren[7]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[3] = nbr->second;}
+         break;
        case 12: // -x face neighbor
-	 nbr = globalToLocalMap.find(nbrChildren[1]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[0] = nbr->second;}
-	 nbr = globalToLocalMap.find(nbrChildren[2]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[1] = nbr->second;}
-	 nbr = globalToLocalMap.find(nbrChildren[5]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[2] = nbr->second;}
-	 nbr = globalToLocalMap.find(nbrChildren[6]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[3] = nbr->second;}
-	 break;
+         nbr = globalToLocalMap.find(nbrChildren[1]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[0] = nbr->second;}
+         nbr = globalToLocalMap.find(nbrChildren[3]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[1] = nbr->second;}
+         nbr = globalToLocalMap.find(nbrChildren[5]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[2] = nbr->second;}
+         nbr = globalToLocalMap.find(nbrChildren[7]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[3] = nbr->second;}
+         break;
        case 14: // +x face neighbor
-	 nbr = globalToLocalMap.find(nbrChildren[0]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[0] = nbr->second;}
-	 nbr = globalToLocalMap.find(nbrChildren[3]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[1] = nbr->second;}
-	 nbr = globalToLocalMap.find(nbrChildren[4]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[2] = nbr->second;}
-	 nbr = globalToLocalMap.find(nbrChildren[7]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[3] = nbr->second;}
-	 break;
+         nbr = globalToLocalMap.find(nbrChildren[0]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[0] = nbr->second;}
+         nbr = globalToLocalMap.find(nbrChildren[2]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[1] = nbr->second;}
+         nbr = globalToLocalMap.find(nbrChildren[4]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[2] = nbr->second;}
+         nbr = globalToLocalMap.find(nbrChildren[6]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[3] = nbr->second;}
+         break;
        case 16: // +y face neighbor
-	 nbr = globalToLocalMap.find(nbrChildren[0]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[0] = nbr->second;}
-	 nbr = globalToLocalMap.find(nbrChildren[1]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[1] = nbr->second;}
-	 nbr = globalToLocalMap.find(nbrChildren[4]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[2] = nbr->second;}
-	 nbr = globalToLocalMap.find(nbrChildren[5]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[3] = nbr->second;}
-	 break;
+         nbr = globalToLocalMap.find(nbrChildren[0]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[0] = nbr->second;}
+         nbr = globalToLocalMap.find(nbrChildren[1]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[1] = nbr->second;}
+         nbr = globalToLocalMap.find(nbrChildren[4]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[2] = nbr->second;}
+         nbr = globalToLocalMap.find(nbrChildren[5]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[3] = nbr->second;}
+         break;
        case 22: // +z face neighbor
-	 nbr = globalToLocalMap.find(nbrChildren[0]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[0] = nbr->second;}
-	 nbr = globalToLocalMap.find(nbrChildren[1]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[1] = nbr->second;}
-	 nbr = globalToLocalMap.find(nbrChildren[2]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[2] = nbr->second;}
-	 nbr = globalToLocalMap.find(nbrChildren[3]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[3] = nbr->second;}
-	 break;
+         nbr = globalToLocalMap.find(nbrChildren[0]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[0] = nbr->second;}
+         nbr = globalToLocalMap.find(nbrChildren[1]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[1] = nbr->second;}
+         nbr = globalToLocalMap.find(nbrChildren[2]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[2] = nbr->second;}
+         nbr = globalToLocalMap.find(nbrChildren[3]); if (nbr != globalToLocalMap.end()) {neighborLocalIDs[3] = nbr->second;}
+         break;
        default:
-	 break;
+         break;
       }
    }
 
@@ -714,6 +752,35 @@ namespace vmesh {
    }
    
    template<typename GID,typename LID> inline
+   void VelocityMesh<GID,LID>::getSiblingNeighbors(const GID& globalID,std::vector<GID>& nbrs) {
+      nbrs.clear();
+      
+      // Get block indices
+      uint8_t refLevel;
+      LID i,j,k;
+      getIndices(globalID,refLevel,i,j,k);
+      
+      // Shift indices to bottom lower left corner in the octant
+      i -= (i % 2);
+      j -= (j % 2);
+      k -= (k % 2);
+      
+      // Calculate the global IDs of all common neighbors of the blocks in the octant
+      for (LID k_off=-1; k_off<3; ++k_off) {
+         for (LID j_off=-1; j_off<3; ++j_off) {
+            for (LID i_off=-1; i_off<3; ++i_off) {
+               int cntr=0;
+               if (i_off == 0 || i_off == 1) ++cntr;
+               if (j_off == 0 || j_off == 1) ++cntr;
+               if (k_off == 0 || k_off == 1) ++cntr;
+               if (cntr == 3) continue;
+               nbrs.push_back(getGlobalID(refLevel,i+i_off,j+j_off,k+k_off));
+            }
+         }
+      }
+   }
+
+   template<typename GID,typename LID> inline
    void VelocityMesh<GID,LID>::getSiblings(const GID& globalID,std::vector<GID>& siblings) {
       uint8_t refLevel;
       LID i,j,k;
@@ -745,13 +812,41 @@ namespace vmesh {
 
       // Check all children, if even one exists return 'true':
       for (size_t c=0; c<children.size(); ++c) {
-	 if (getLocalID(children[c]) != invalidLocalID()) return true;
+         if (getLocalID(children[c]) != invalidLocalID()) return true;
       }
       return false;
    }
    
+   /** Check if the block has any existing grandparents.
+    * @param globalID Global ID of the block.
+    * @return INVALID_GLOBALID if block has no existing grandparents, otherwise 
+    * the global ID of the grandparent is returned.*/
    template<typename GID,typename LID> inline
-   bool VelocityMesh<GID,LID>::initialize(Real meshLimits[6],LID gridLength[3],LID blockLength[3],uint8_t refLevelMaxAllowed) {
+   GID VelocityMesh<GID,LID>::hasGrandParent(const GID& globalID) const {
+       // Exit if the block cannot have grandparents
+       uint8_t refLevel = getRefinementLevel(globalID);
+       if (refLevel <= 1) return invalidGlobalID();
+       
+       // Calculate the global ID of the first possible grandparent
+       GID parentGID = getParent(globalID);
+       parentGID = getParent(parentGID);
+       
+       do {
+           // Grandparent exists, return its global ID
+           if (getLocalID(parentGID) != invalidLocalID()) return parentGID;
+           
+           // Move down one refinement level
+           GID tmp = parentGID;
+           parentGID = getParent(parentGID);
+           if (tmp == parentGID) break;
+       } while (true);
+
+       return invalidGlobalID();
+   }
+
+   template<typename GID,typename LID> inline
+   bool VelocityMesh<GID,LID>::initialize(Real meshLimits[6],LID gridLength[3],LID blockLength[3],uint8_t refLevelMaxAllowed,
+                                          LID maxVelocityBlocks) {
       if (initialized == true) return initialized;
 
       VelocityMesh<GID,LID>::refLevelMaxAllowed = refLevelMaxAllowed;
@@ -784,27 +879,25 @@ namespace vmesh {
       cellSize[1] = blockSize[1] / blockLength[1];
       cellSize[2] = blockSize[2] / blockLength[2];
 
-      #warning FIXME maxblocks
-      //max_velocity_blocks = gridLength[0]*gridLength[1]*gridLength[2];
-      max_velocity_blocks = 500000;
-      
+      max_velocity_blocks = maxVelocityBlocks;
+
       // Calculate global ID offsets:
       const GID N_blocks0 = gridLength[0]*gridLength[1]*gridLength[2];
       offsets.resize(refLevelMaxAllowed+1);
       offsets[0] = 0;
       for (size_t i=1; i<refLevelMaxAllowed+1; ++i) {
-	 offsets[i] = offsets[i-1] + N_blocks0 * std::pow(8,i-1);
+         offsets[i] = offsets[i-1] + N_blocks0 * std::pow(8,i-1);
       }
       
-      gridLengths = new GID[3*(refLevelMaxAllowed+1)];
+      gridLengths = new LID[3*(refLevelMaxAllowed+1)];
       blockSizes  = new Real[3*(refLevelMaxAllowed+1)];
       cellSizes   = new Real[3*(refLevelMaxAllowed+1)];
       uint32_t mul = 1;
       for (uint8_t r=0; r<refLevelMaxAllowed+1; ++r) {
-	 for (int i=0; i<3; ++i) gridLengths[3*r+i] = VelocityMesh<GID,LID>::gridLength[i] * mul;
-	 for (int i=0; i<3; ++i) blockSizes[3*r+i]  = VelocityMesh<GID,LID>::blockSize[i] / mul;
-	 for (int i=0; i<3; ++i) cellSizes[3*r+i]   = VelocityMesh<GID,LID>::blockSize[i] / (mul * WID);
-	 mul *= 2;
+         for (int i=0; i<3; ++i) gridLengths[3*r+i] = VelocityMesh<GID,LID>::gridLength[i] * mul;
+         for (int i=0; i<3; ++i) blockSizes[3*r+i]  = VelocityMesh<GID,LID>::blockSize[i] / mul;
+         for (int i=0; i<3; ++i) cellSizes[3*r+i]   = VelocityMesh<GID,LID>::blockSize[i] / (mul * WID);
+         mul *= 2;
       }
       initialized = true;
       return true;
@@ -836,11 +929,11 @@ namespace vmesh {
          bool ok = true;
          if (globalToLocalMap.find(lastGID) == globalToLocalMap.end()) ok = false;
          if (ok == false) {
-	    std::cerr << "ERROR in pop(): last localID=" << lastLID << " globalID=" << lastGID;
-	    std::cerr << " but globalToLocalMap does not contain that block" << std::endl;
-	    std::cerr << "\t exiting from " << __FILE__ << ':' << __LINE__ << std::endl;
-	    exit(1);
-	 }
+            std::cerr << "ERROR in pop(): last localID=" << lastLID << " globalID=" << lastGID;
+            std::cerr << " but globalToLocalMap does not contain that block" << std::endl;
+            std::cerr << "\t exiting from " << __FILE__ << ':' << __LINE__ << std::endl;
+            exit(1);
+         }
       #endif
 	  
       typename std::unordered_map<GID,LID>::iterator last = globalToLocalMap.find(lastGID);
@@ -853,15 +946,15 @@ namespace vmesh {
    bool VelocityMesh<GID,LID>::push_back(const GID& globalID) {
       if (globalID == invalidGlobalID()) return false;
       if (size() >= max_velocity_blocks) {
-	 std::cerr << "vmesh: too many blocks, current size is " << size() << " max " << max_velocity_blocks << std::endl;
-	 return false;
+         std::cerr << "vmesh: too many blocks, current size is " << size() << " max " << max_velocity_blocks << std::endl;
+         return false;
       }
 
       std::pair<typename std::unordered_map<GID,LID>::iterator,bool> position
-	= globalToLocalMap.insert(std::make_pair(globalID,localToGlobalMap.size()));
+        = globalToLocalMap.insert(std::make_pair(globalID,localToGlobalMap.size()));
 
       if (position.second == true) {	 
-	 localToGlobalMap.push_back(globalID);
+         localToGlobalMap.push_back(globalID);
       }
 
       return position.second;
@@ -870,22 +963,22 @@ namespace vmesh {
    template<typename GID,typename LID> inline
    uint8_t VelocityMesh<GID,LID>::push_back(const std::vector<vmesh::GlobalID>& blocks) {
       if (size()+blocks.size() >= max_velocity_blocks) {
-	 std::cerr << "vmesh: too many blocks, current size is " << size() << " max " << max_velocity_blocks << std::endl;
-	 return 0;
+         std::cerr << "vmesh: too many blocks, current size is " << size() << " max " << max_velocity_blocks << std::endl;
+         return 0;
       }
 
       // Attempt to add the given blocks
       uint8_t adds=0;
       for (size_t b=0; b<blocks.size(); ++b) {
-	 const GID globalID = blocks[b];
-	 std::pair<typename std::unordered_map<GID,LID>::iterator,bool> position
-	   = globalToLocalMap.insert(std::make_pair(globalID,localToGlobalMap.size()+b));
-	 if (position.second == true) {
-	    localToGlobalMap.push_back(globalID);
-	    ++adds;
-	 }
+         const GID globalID = blocks[b];
+         std::pair<typename std::unordered_map<GID,LID>::iterator,bool> position
+           = globalToLocalMap.insert(std::make_pair(globalID,localToGlobalMap.size()+b));
+         if (position.second == true) {
+            localToGlobalMap.push_back(globalID);
+            ++adds;
+         }
       }
-
+      
       return adds;
    }
 
@@ -894,7 +987,7 @@ namespace vmesh {
       // Check that the block exists
       typename std::unordered_map<GID,LID>::iterator it = globalToLocalMap.find(globalID);
       if (it == globalToLocalMap.end()) {
-	 return false;
+         return false;
       }
       const LID localID = it->second;
 
@@ -905,8 +998,7 @@ namespace vmesh {
 
       // Check that the block can still be refined
       if (refLevel >= getMaxAllowedRefinementLevel()) {
-	 
-	 return false;
+         return false;
       }
       
       // Calculate childrens' global IDs
@@ -936,24 +1028,24 @@ namespace vmesh {
       insertedBlocks.insert(std::make_pair(childrenGlobalIDs[0],localID));
 
       for (int i=1; i<8; ++i) {
-	 push_back(childrenGlobalIDs[i]);
-	 insertedBlocks.insert(std::make_pair(childrenGlobalIDs[i],localToGlobalMap.size()-1));
+         push_back(childrenGlobalIDs[i]);
+         insertedBlocks.insert(std::make_pair(childrenGlobalIDs[i],localToGlobalMap.size()-1));
       }
 
       // Enforce that neighbors have at maximum one refinement level difference
       std::vector<GID> nbrs;
       getNeighborsExistingAtSameLevel(globalID,nbrs);
       for (size_t n=0; n<nbrs.size(); ++n) {
-	 // Get parent of the neighbor:
-	 const GID parentID = getParent(nbrs[n]);
+         // Get parent of the neighbor:
+         const GID parentID = getParent(nbrs[n]);
 
-	 // If the parent exists, it is at two refinement levels higher than 
-	 // the block that was refined above. Refine the parent of the neighbor
-	 if (parentID == nbrs[n]) continue;
-	 it = globalToLocalMap.find(parentID);
-	 if (it != globalToLocalMap.end()) {
-	    refine(parentID,erasedBlocks,insertedBlocks);
-	 }
+         // If the parent exists, it is at two refinement levels higher than 
+         // the block that was refined above. Refine the parent of the neighbor
+         if (parentID == nbrs[n]) continue;
+         it = globalToLocalMap.find(parentID);
+         if (it != globalToLocalMap.end()) {
+            refine(parentID,erasedBlocks,insertedBlocks);
+         }
       }
 
       return true;
@@ -963,7 +1055,7 @@ namespace vmesh {
    bool VelocityMesh<GID,LID>::setGrid(const std::vector<GID>& globalIDs) {
       globalToLocalMap.clear();
       for (LID i=0; i<globalIDs.size(); ++i) {
-	 globalToLocalMap.insert(std::make_pair(globalIDs[i],i));
+         globalToLocalMap.insert(std::make_pair(globalIDs[i],i));
       }
       localToGlobalMap = globalIDs;
       return true;

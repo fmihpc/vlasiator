@@ -25,9 +25,9 @@ namespace vmesh {
       void clear();
       bool copy(const LID& sourceLocalID,const LID& targetLocalID);
       size_t count(const GID& globalID) const;
-      //static const GID* getBaseGridLength();
-      //static const Real* getBaseGridBlockSize();
-      //static const Real* getBaseGridCellSize();
+      static const GID* getBaseGridLength();
+      static const Real* getBaseGridBlockSize();
+      static const Real* getBaseGridCellSize();
       static bool getBlockCoordinates(const GID& globalID,Real coords[3]);
       static void getBlockInfo(const GID& globalID,Real* array);
       static const Real* getBlockSize(const uint8_t& refLevel);
