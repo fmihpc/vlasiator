@@ -4,8 +4,8 @@
  * Copyright 2014 Finnish Meteorological Institute
  */
 
-#ifndef VELOCITY_MESH_OLD
-#define VELOCITY_MESH_OLD
+#ifndef VELOCITY_MESH_OLD_H
+#define VELOCITY_MESH_OLD_H
 
 #include <stdint.h>
 #include <vector>
@@ -16,8 +16,7 @@ namespace vmesh {
 
    template<typename GID,typename LID>
    class VelocityMesh {
-    public:
-      
+    public:      
       VelocityMesh();
       VelocityMesh(const VelocityMesh& vm);
       ~VelocityMesh();
@@ -27,7 +26,6 @@ namespace vmesh {
       void clear();
       bool copy(const LID& sourceLocalID,const LID& targetLocalID);
       size_t count(const GID& globalID) const;
-//      LocalID  get(const GlobalID& globalID) const;
       static const GID* getBaseGridLength();
       static const Real* getBaseGridBlockSize();
       static const Real* getBaseGridCellSize();
@@ -42,6 +40,7 @@ namespace vmesh {
 //      void     getNeighbors(const GlobalID& globalID,std::vector<GlobalID>& neighborIDs);
       static void getIndices(const GID& globalID,uint32_t& refLevel,LID& i,LID& j,LID& k);
       LID getLocalID(const GID& globalID) const;
+      static uint8_t getMaxAllowedRefinementLevel();
       static GID getMaxVelocityBlocks();
       static const Real* getMeshMaxLimits();
       static const Real* getMeshMinLimits();
@@ -76,7 +75,8 @@ namespace vmesh {
       std::unordered_map<GID,LID> globalToLocalMap;
    };
 
-   /** INITIALIZERS FOR STATIC MEMBER VARIABLES **/
+   // ***** INITIALIZERS FOR STATIC MEMBER VARIABLES ***** //
+   
    template<typename GID,typename LID> LID VelocityMesh<GID,LID>::max_velocity_blocks = 0;
    template<typename GID,typename LID> LID VelocityMesh<GID,LID>::blockLength[3] = {0,0,0};
    template<typename GID,typename LID> Real VelocityMesh<GID,LID>::blockSize[3] = {NAN,NAN,NAN};
@@ -86,7 +86,7 @@ namespace vmesh {
    template<typename GID,typename LID> Real VelocityMesh<GID,LID>::meshMinLimits[3] = {NAN,NAN,NAN};
    template<typename GID,typename LID> Real VelocityMesh<GID,LID>::meshMaxLimits[3] = {NAN,NAN,NAN};
    
-   /** DEFINITIONS OF TEMPLATE MEMBER FUNCTIONS **/
+   // ***** DEFINITIONS OF TEMPLATE MEMBER FUNCTIONS ***** //
 
    template<typename GID,typename LID> inline
    VelocityMesh<GID,LID>::VelocityMesh() { }
@@ -278,6 +278,11 @@ namespace vmesh {
       typename std::unordered_map<GID,LID>::const_iterator it = globalToLocalMap.find(globalID);
       if (it != globalToLocalMap.end()) return it->second;
       return invalidLocalID();
+   }
+   
+   template<typename GID,typename LID> inline
+   uint8_t VelocityMesh<GID,LID>::getMaxAllowedRefinementLevel() {
+      return 0;
    }
 
    template<typename GID,typename LID> inline
