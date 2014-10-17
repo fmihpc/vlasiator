@@ -144,8 +144,7 @@ void initializeGrid(
       #pragma omp parallel for schedule(dynamic)
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
-         project.setCellBackgroundField(cell);
-         
+         project.setCellBackgroundField(cell);         
 	 if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             project.setCell(cell);
 	 }
@@ -427,9 +426,8 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
  */
 void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    std::vector<CellID> cells = mpiGrid.get_cells();
-   const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary();
-
-   // append remote cells to cells
+   const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(DIST_FUNC_NEIGHBORHOOD_ID);
+      // append remote cells to cells
    cells.insert(cells.end(),remote_cells.begin(),remote_cells.end());
    #pragma omp parallel for
    for(size_t i=0; i<cells.size(); ++i) {
@@ -650,15 +648,16 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    }
    mpiGrid.add_neighborhood(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID, neighborhood);
 
-   if(VLASOV_STENCIL_WIDTH>=3) {
-      /*add face neighbors if stencil width larger than 2*/
-      neighborhood.push_back({{ VLASOV_STENCIL_WIDTH, 0, 0}});
-      neighborhood.push_back({{-VLASOV_STENCIL_WIDTH, 0, 0}});
-      neighborhood.push_back({{0, VLASOV_STENCIL_WIDTH, 0}});
-      neighborhood.push_back({{0,-VLASOV_STENCIL_WIDTH, 0}});
-      neighborhood.push_back({{0, 0, VLASOV_STENCIL_WIDTH}});
-      neighborhood.push_back({{0, 0,-VLASOV_STENCIL_WIDTH}});     
+   /*add face neighbors if stencil width larger than 2*/
+   for (int d = 3; d <= VLASOV_STENCIL_WIDTH; d++) {
+      neighborhood.push_back({{ d, 0, 0}});
+      neighborhood.push_back({{-d, 0, 0}});
+      neighborhood.push_back({{0, d, 0}});
+      neighborhood.push_back({{0,-d, 0}});
+      neighborhood.push_back({{0, 0, d}});
+      neighborhood.push_back({{0, 0,-d}});     
    }
+   
    /*all possible communication pairs*/
    mpiGrid.add_neighborhood(FULL_NEIGHBORHOOD_ID, neighborhood);
 
