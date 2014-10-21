@@ -201,8 +201,10 @@ namespace projects {
          map<vmesh::GlobalID,vmesh::LocalID> insertedBlocks;
          for (size_t b=0; b<refineList.size(); ++b) {
             cell->refine_block(refineList[b],insertedBlocks);
+            //vmesh::LocalID blockLID = cell->get_velocity_block_local_id(refineList[b]);                                                                                   
+            //for (int i=0; i<WID3; ++i) cell->get_fx(blockLID)[i] = 1.0;
          }
-         
+
          // Loop over blocks in map insertedBlocks and recalculate 
          // values of distribution functions
          for (map<vmesh::GlobalID,vmesh::LocalID>::const_iterator it=insertedBlocks.begin(); it!=insertedBlocks.end(); ++it) {
@@ -262,10 +264,10 @@ namespace projects {
       cerr << "ERROR: Project::calcPhaseSpaceDensity called instead of derived class function!" << endl;
       return -1.0;
    }
-   
    /*!
      Get random number between 0 and 1.0. One should always first initialize the rng.
    */
+   
    Real Project::getRandomNumber() {
 #ifdef _AIX
       int64_t rndInt;
@@ -283,6 +285,7 @@ namespace projects {
 
      \param seedModifier d. Seed is based on the seed read in from cfg + the seedModifier parameter
    */
+   
    void Project::setRandomSeed(CellID seedModifier) {
       memset(&(this->rngDataBuffer), 0, sizeof(this->rngDataBuffer));
 #ifdef _AIX
