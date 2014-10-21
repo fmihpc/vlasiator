@@ -181,7 +181,7 @@ namespace projects {
 	    
 	    // Fetch block data and nearest neighbors
 	    Realf array[(WID+2)*(WID+2)*(WID+2)];
-	    cell->fetch_data<1>(blockGID,array);
+	    cell->fetch_data<1>(blockGID,cell->get_data(),array);
 
 	    bool flagForRefine = false;
 	    for (int kc=0; kc<WID; ++kc) for (int jc=0; jc<WID; ++jc) for (int ic=0; ic<WID; ++ic) {
@@ -261,6 +261,35 @@ exitBlockTest:
 	 ++currentLevel;
 	 if (currentLevel == Parameters::maxVelocityRefLevel) refine = false;
       }
+      /*
+      for (vmesh::LocalID blockLID=0; blockLID<cell->get_number_of_velocity_blocks(); ++blockLID) {
+	 const vmesh::GlobalID blockGID = cell->get_velocity_block_global_id(blockLID);
+	 const int PAD=4;
+	 Realf array[WID*WID+(WID+2*PAD)];
+	 cell->fetch_acc_data<PAD>(blockGID,1,cell->get_data(),array);
+
+	 for (uint32_t kc=0; kc<WID; ++kc) for (uint32_t jc=0; jc<WID; ++jc) for (uint32_t ic=0; ic<WID; ++ic) {
+	    const int srcIndex  = vblock::index(ic,jc,kc+8);
+	    const int trgtIndex = vblock::index(ic,jc,kc);
+	    cell->get_fx(blockLID)[trgtIndex] = array[srcIndex];
+	 }
+	 
+	 Realf array2[(WID+2*PAD)*(WID+2*PAD)*(WID+2*PAD)];
+	 cell->fetch_data<PAD>(blockGID,cell->get_data(),array2);
+	 for (uint32_t kc=0; kc<WID; ++kc) for (uint32_t jc=0; jc<WID; ++jc) for (uint32_t ic=0; ic<WID; ++ic) {
+	    const int srcIndex  = vblock::padIndex<PAD>(ic+PAD,jc+PAD-4,kc+PAD);
+	    const int trgtIndex = vblock::index(ic,jc,kc);
+	    cell->get_fx(blockLID)[trgtIndex] = array2[srcIndex];
+	 }
+
+	 for (uint32_t kc=0; kc<WID; ++kc) for (uint32_t jc=0; jc<WID; ++jc) for (uint32_t ic=0; ic<WID; ++ic) {
+	    const int srcIndex  = vblock::index(ic,jc,kc+PAD);
+	    const int trgtIndex = vblock::padIndex<PAD>(ic+PAD,kc+PAD,jc+PAD);
+	    if (fabs(array[srcIndex] - array2[trgtIndex]) > 1e-16) {
+	       std::cerr << "ERROR too big difference " << array[srcIndex] << " vs " << array2[trgtIndex] << std::endl; exit(1);
+	    }
+	 }
+      }*/
    }
 
    /*default one does not compute any parameters*/
