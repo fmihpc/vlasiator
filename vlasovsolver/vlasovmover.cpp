@@ -259,7 +259,7 @@ void calculateAcceleration(
    // volume) do not need to be propagated:
 
    
-   if(dt > 0) {
+//    if(dt > 0) { // FIXME this has to be deactivated to support regular projects but it breaks test_trans support most likely, with this on dt stays 0
       //do not propagate for zero or negative dt. Typically dt==0 when
       //acceleration is turned off. 
       //Aet initial cells to propagate
@@ -286,7 +286,7 @@ void calculateAcceleration(
          phiprof::stop("cell-semilag-acc");
       }
       phiprof::stop("semilag-acc");   
-   }
+//    }
    
    phiprof::start("Compute moments");
    #pragma omp parallel for
