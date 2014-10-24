@@ -276,7 +276,7 @@ bool map_1d(SpatialCell* spatial_cell,
 #endif
 #ifdef ACC_SEMILAG_PPM
 	   Vec4 a[3];
-	   compute_ppm_coeff(values + i_pcolumnv(n_cblocks, -1, j, 0), h8, k + WID, a);
+	   compute_ppm_coeff(values + i_pcolumnv(n_cblocks, -1, j, 0), h4, k + WID, a);
 #endif
 #ifdef ACC_SEMILAG_PQM
 	   Vec4 a[5];
