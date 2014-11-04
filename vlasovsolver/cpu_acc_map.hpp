@@ -256,7 +256,7 @@ bool map_1d(SpatialCell* spatial_cell,
                      intersection_min_base + intersection_di,
                      intersection_min_base + 2.0 * intersection_di,
                      intersection_min_base + 3.0 * intersection_di);
-
+         
          /*compute some initial values, that are used to set up the
           * shifting of values as we go through all blocks in
           * order. See comments where they are shifted for
@@ -292,7 +292,7 @@ bool map_1d(SpatialCell* spatial_cell,
             lagrangian grid, the intersecting cells. Again old right is new left*/
             const Vec4i lagrangian_gk_l = lagrangian_gk_r;
             lagrangian_gk_r = truncate_to_int((v_r-intersection_min)/intersection_dk);
-
+            
             Vec4i gk(lagrangian_gk_l);
             while (horizontal_or(gk <= lagrangian_gk_r)){
                const Vec4i gk_div_WID = gk/WID;
@@ -315,6 +315,7 @@ bool map_1d(SpatialCell* spatial_cell,
 #endif
                /*shift, old right is new left*/
                const Vec4 target_density_l = target_density_r;
+
                /*compute right integrand*/
 #ifdef ACC_SEMILAG_PLM
                target_density_r =

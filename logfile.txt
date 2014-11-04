@@ -1,0 +1,104 @@
+Fri Dec  5 09:47:45 2014 
+	 Zoltan 3.6 initialized successfully
+
+Fri Dec  5 09:47:45 2014 
+(INIT): Starting initial load balance.
+
+Fri Dec  5 09:47:45 2014 
+(INIT): Set initial state.
+
+Fri Dec  5 09:47:45 2014 
+(IO): Writing initial state to disk, tstep = 
+
+Fri Dec  5 09:47:45 2014 
+(MAIN): Starting main simulation loop.
+
+Fri Dec  5 09:47:45 2014 
+------------------ tstep = 0 t = 0 dt = 45 ------------------
+
+Fri Dec  5 09:47:45 2014 
+(IO): Writing spatial cell and reduced system data to disk, tstep = 0 t = 0
+
+Fri Dec  5 09:47:45 2014 
+(IO): .... done!
+
+Fri Dec  5 09:47:45 2014 
+------------------ tstep = 1 t = 45 dt = 45 ------------------
+
+Fri Dec  5 09:47:45 2014 
+(IO): Writing spatial cell and reduced system data to disk, tstep = 1 t = 45
+
+Fri Dec  5 09:47:45 2014 
+(IO): .... done!
+
+Fri Dec  5 09:47:45 2014 
+------------------ tstep = 2 t = 90 dt = 45 ------------------
+
+Fri Dec  5 09:47:45 2014 
+(IO): Writing spatial cell and reduced system data to disk, tstep = 2 t = 90
+
+Fri Dec  5 09:47:45 2014 
+(IO): .... done!
+
+Fri Dec  5 09:47:45 2014 
+------------------ tstep = 3 t = 135 dt = 45 ------------------
+
+Fri Dec  5 09:47:45 2014 
+(IO): Writing spatial cell and reduced system data to disk, tstep = 3 t = 135
+
+Fri Dec  5 09:47:45 2014 
+(IO): .... done!
+
+Fri Dec  5 09:47:45 2014 
+------------------ tstep = 4 t = 180 dt = 45 ------------------
+
+Fri Dec  5 09:47:45 2014 
+(IO): Writing spatial cell and reduced system data to disk, tstep = 4 t = 180
+
+Fri Dec  5 09:47:45 2014 
+(IO): .... done!
+
+Fri Dec  5 09:47:45 2014 
+------------------ tstep = 5 t = 225 dt = 45 ------------------
+
+Fri Dec  5 09:47:45 2014 
+(IO): Writing spatial cell and reduced system data to disk, tstep = 5 t = 225
+
+Fri Dec  5 09:47:45 2014 
+(IO): .... done!
+
+Fri Dec  5 09:47:45 2014 
+------------------ tstep = 6 t = 270 dt = 45 ------------------
+
+Fri Dec  5 09:47:45 2014 
+(IO): Writing spatial cell and reduced system data to disk, tstep = 6 t = 270
+
+Fri Dec  5 09:47:45 2014 
+(IO): .... done!
+
+Fri Dec  5 09:47:45 2014 
+------------------ tstep = 7 t = 315 dt = 45 ------------------
+
+Fri Dec  5 09:47:45 2014 
+(IO): Writing spatial cell and reduced system data to disk, tstep = 7 t = 315
+
+Fri Dec  5 09:47:45 2014 
+(IO): .... done!
+
+Fri Dec  5 09:47:45 2014 
+------------------ tstep = 8 t = 360 dt = 45 ------------------
+
+Fri Dec  5 09:47:45 2014 
+(IO): Writing spatial cell and reduced system data to disk, tstep = 8 t = 360
+
+Fri Dec  5 09:47:45 2014 
+(IO): .... done!
+
+Fri Dec  5 09:47:45 2014 
+(MAIN): All timesteps calculated.
+	 (TIME) total run time 0.0481989 s, total simulated time 360 s
+	 (TIME) seconds per timestep 0.00602487, seconds per simulated second 0.000133886
+
+Fri Dec  5 09:47:45 2014 
+(MAIN): Exiting.
+

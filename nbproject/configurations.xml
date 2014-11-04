@@ -1,0 +1,1595 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="95">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <df root="." name="0">
+      <df name="backgroundfield">
+        <df name="tests">
+          <in>test1.cpp</in>
+        </df>
+        <in>backgroundfield.cpp</in>
+        <in>constantfield.cpp</in>
+        <in>dipole.cpp</in>
+        <in>integratefunction.cpp</in>
+        <in>linedipole.cpp</in>
+        <in>quadr.cpp</in>
+      </df>
+      <df name="datareduction">
+        <in>datareducer.cpp</in>
+        <in>datareductionoperator.cpp</in>
+      </df>
+      <df name="fieldsolver">
+        <in>fs_common.cpp</in>
+        <in>fs_limiters.cpp</in>
+        <in>ldz_main.cpp</in>
+      </df>
+      <df name="mini-apps">
+        <df name="acceleration">
+          <in>map_test.cpp</in>
+          <in>map_test_3d.cpp</in>
+          <in>map_test_3d_openmp.cpp</in>
+        </df>
+        <df name="acceleration-vlasiator">
+          <in>map_test.cpp</in>
+        </df>
+      </df>
+      <df name="particles">
+        <in>distribution.cpp</in>
+        <in>particle_post_pusher.cpp</in>
+        <in>particleparameters.cpp</in>
+        <in>particles.cpp</in>
+        <in>physconst.cpp</in>
+        <in>readfields.cpp</in>
+      </df>
+      <df name="projects">
+        <df name="Alfven">
+          <in>Alfven.cpp</in>
+        </df>
+        <df name="Diffusion">
+          <in>Diffusion.cpp</in>
+        </df>
+        <df name="Dispersion">
+          <in>Dispersion.cpp</in>
+          <in>Dispersion.m</in>
+          <in>hamming.m</in>
+        </df>
+        <df name="Distributions">
+          <in>Distributions.cpp</in>
+        </df>
+        <df name="Firehose">
+          <in>Firehose.cpp</in>
+          <in>Firehose_save.cpp</in>
+        </df>
+        <df name="Flowthrough">
+          <in>Flowthrough.cpp</in>
+        </df>
+        <df name="Fluctuations">
+          <in>Fluctuations.cpp</in>
+        </df>
+        <df name="Harris">
+          <in>Harris.cpp</in>
+        </df>
+        <df name="KHB">
+          <in>KHB.cpp</in>
+        </df>
+        <df name="Larmor">
+          <in>Larmor.cpp</in>
+        </df>
+        <df name="Magnetosphere">
+          <in>Magnetosphere.cpp</in>
+        </df>
+        <df name="MultiPeak">
+          <in>MultiPeak.cpp</in>
+        </df>
+        <df name="Riemann1">
+          <in>Riemann1.cpp</in>
+        </df>
+        <df name="Shock">
+          <in>Shock.cpp</in>
+        </df>
+        <df name="Shocktest">
+          <in>Shocktest.cpp</in>
+        </df>
+        <df name="Template">
+          <in>Template.cpp</in>
+        </df>
+        <df name="test_fp">
+          <in>test_fp.cpp</in>
+        </df>
+        <df name="test_trans">
+          <in>test_trans.cpp</in>
+        </df>
+        <df name="testHall">
+          <in>testHall.cpp</in>
+        </df>
+        <df name="unsupported">
+          <df name="harm1D">
+            <in>harm1D.cpp</in>
+          </df>
+          <df name="KelvinHelmholtz">
+            <in>KelvinHelmholtz.cpp</in>
+          </df>
+          <df name="test_acc">
+            <in>test_acc.cpp</in>
+          </df>
+          <df name="test_trans2">
+            <in>test_trans2.cpp</in>
+          </df>
+          <df name="test_trans_1D">
+            <in>test_trans_1D.cpp</in>
+          </df>
+          <df name="velocity_rotation_1+3d">
+            <in>velocity_rotation_1+3d.cpp</in>
+          </df>
+          <df name="velrot2+2">
+            <in>velrot2+2.cpp</in>
+          </df>
+          <df name="verification-Larmor">
+            <in>verification-Larmor.cpp</in>
+          </df>
+        </df>
+        <df name="VelocityBox">
+          <in>VelocityBox.cpp</in>
+        </df>
+        <df name="verificationLarmor">
+          <in>verificationLarmor.cpp</in>
+        </df>
+        <in>project.cpp</in>
+        <in>projectTriAxisSearch.cpp</in>
+      </df>
+      <df name="sysboundary">
+        <in>donotcompute.cpp</in>
+        <in>ionosphere.cpp</in>
+        <in>outflow.cpp</in>
+        <in>setbyuser.cpp</in>
+        <in>setmaxwellian.cpp</in>
+        <in>sysboundary.cpp</in>
+        <in>sysboundarycondition.cpp</in>
+      </df>
+      <df name="tools">
+        <in>vlsv2bzt.cpp</in>
+        <in>vlsv2silo.cpp</in>
+        <in>vlsv2vtk.cpp</in>
+        <in>vlsvdiff.cpp</in>
+        <in>vlsvextract.cpp</in>
+        <in>vlsvreaderinterface.cpp</in>
+      </df>
+      <df name="vlasovsolver">
+        <in>vlasovmover.cpp</in>
+      </df>
+      <df name="vlasovsolver_amr">
+        <in>vlasovmover.cpp</in>
+      </df>
+      <in>amr_refinement_criteria.cpp</in>
+      <in>common.cpp</in>
+      <in>grid.cpp</in>
+      <in>ioread.cpp</in>
+      <in>iowrite.cpp</in>
+      <in>logger.cpp</in>
+      <in>memoryallocation.cpp</in>
+      <in>muxml.cpp</in>
+      <in>parameters.cpp</in>
+      <in>readparameters.cpp</in>
+      <in>spatial_cell.cpp</in>
+      <in>version.cpp</in>
+      <in>vlasiator.cpp</in>
+      <in>vlscommon.cpp</in>
+      <in>vlsvreader2.cpp</in>
+    </df>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>Makefile</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <sourceFolderFilter>^(nbproject)$</sourceFolderFilter>
+  <sourceRootList>
+    <Elem>.</Elem>
+  </sourceRootList>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Default" type="0">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>false</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <flagsDictionary>
+        <element flagsID="0" commonFlags="-O3 -std=c++0x -fopenmp -mavx"/>
+        <element flagsID="1" commonFlags="-O3 -std=c++0x -fopenmp -mavx -ffast-math"/>
+        <element flagsID="2"
+                 commonFlags="-O3 -std=c++0x -fopenmp -mavx -ffast-math -std=c++0x"/>
+      </flagsDictionary>
+      <codeAssistance>
+      </codeAssistance>
+      <makefileType>
+        <makeTool>
+          <buildCommandWorkingDir>.</buildCommandWorkingDir>
+          <buildCommand>${MAKE} "ARCH=arto" -j 8 -f Makefile</buildCommand>
+          <cleanCommand>${MAKE} "ARCH=arto" -j 8 -f Makefile clean</cleanCommand>
+          <executablePath>vlasiator</executablePath>
+        </makeTool>
+      </makefileType>
+      <item path="amr_refinement_criteria.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="1">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="backgroundfield/backgroundfield.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="backgroundfield/constantfield.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="backgroundfield/dipole.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="backgroundfield/integratefunction.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="backgroundfield/linedipole.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="backgroundfield/quadr.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="backgroundfield/tests/test1.cpp" ex="false" tool="1" flavor2="4">
+      </item>
+      <item path="common.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="datareduction/datareducer.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="datareduction/datareductionoperator.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <folder path="0/datareduction">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/fieldsolver">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>.</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/projects/Alfven">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/projects/Diffusion">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/projects/Dispersion">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/projects/Distributions">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/projects/Flowthrough">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/projects/Fluctuations">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/projects/Harris">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/projects/KHB">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/projects/Larmor">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/projects/Magnetosphere">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/projects/MultiPeak">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/projects/Riemann1">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/projects/Shock">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/projects/Shocktest">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/projects/Template">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/projects/VelocityBox">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/projects/testHall">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/projects/test_fp">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/projects/test_trans">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/projects/verificationLarmor">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/sysboundary">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/vlasovsolver">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>.</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>../../vectorclass</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>MOVER_VLASOV_ORDER=2</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/vlasovsolver_amr">
+        <ccTool>
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>.</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>../../vectorclass</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>MOVER_VLASOV_ORDER=2</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <item path="fieldsolver/fs_common.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="fieldsolver/fs_limiters.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="fieldsolver/ldz_main.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="grid.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>../../vlsv</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="ioread.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>../../vlsv</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="iowrite.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>../../vlsv</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="logger.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="memoryallocation.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="mini-apps/acceleration-vlasiator/map_test.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+      </item>
+      <item path="mini-apps/acceleration/map_test.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+      </item>
+      <item path="mini-apps/acceleration/map_test_3d.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+      </item>
+      <item path="mini-apps/acceleration/map_test_3d_openmp.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+      </item>
+      <item path="muxml.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="parameters.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="particles/distribution.cpp" ex="false" tool="1" flavor2="4">
+      </item>
+      <item path="particles/particle_post_pusher.cpp" ex="false" tool="1" flavor2="4">
+      </item>
+      <item path="particles/particleparameters.cpp" ex="false" tool="1" flavor2="4">
+      </item>
+      <item path="particles/particles.cpp" ex="false" tool="1" flavor2="4">
+      </item>
+      <item path="particles/physconst.cpp" ex="false" tool="1" flavor2="4">
+      </item>
+      <item path="particles/readfields.cpp" ex="false" tool="1" flavor2="4">
+      </item>
+      <item path="projects/Alfven/Alfven.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="projects/Diffusion/Diffusion.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="projects/Dispersion/Dispersion.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="projects/Dispersion/Dispersion.m" ex="false" tool="0" flavor2="2">
+      </item>
+      <item path="projects/Dispersion/hamming.m" ex="false" tool="0" flavor2="2">
+      </item>
+      <item path="projects/Distributions/Distributions.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="projects/Firehose/Firehose.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="projects/Firehose/Firehose_save.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+      </item>
+      <item path="projects/Flowthrough/Flowthrough.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="projects/Fluctuations/Fluctuations.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="projects/Harris/Harris.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="projects/KHB/KHB.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="projects/Larmor/Larmor.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="projects/Magnetosphere/Magnetosphere.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="projects/MultiPeak/MultiPeak.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="projects/Riemann1/Riemann1.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="projects/Shock/Shock.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="projects/Shocktest/Shocktest.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="projects/Template/Template.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="projects/VelocityBox/VelocityBox.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="projects/project.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="projects/projectTriAxisSearch.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+            <pElem>.</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="projects/testHall/testHall.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="projects/test_fp/test_fp.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="projects/test_trans/test_trans.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="projects/unsupported/KelvinHelmholtz/KelvinHelmholtz.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+      </item>
+      <item path="projects/unsupported/harm1D/harm1D.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+      </item>
+      <item path="projects/unsupported/test_acc/test_acc.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+      </item>
+      <item path="projects/unsupported/test_trans2/test_trans2.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+      </item>
+      <item path="projects/unsupported/test_trans_1D/test_trans_1D.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+      </item>
+      <item path="projects/unsupported/velocity_rotation_1+3d/velocity_rotation_1+3d.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+      </item>
+      <item path="projects/unsupported/velrot2+2/velrot2+2.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+      </item>
+      <item path="projects/unsupported/verification-Larmor/verification-Larmor.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+      </item>
+      <item path="projects/verificationLarmor/verificationLarmor.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="readparameters.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="spatial_cell.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="2">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>../../vectorclass</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="sysboundary/donotcompute.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="sysboundary/ionosphere.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="sysboundary/outflow.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="sysboundary/setbyuser.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="sysboundary/setmaxwellian.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="sysboundary/sysboundary.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="sysboundary/sysboundarycondition.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="tools/vlsv2bzt.cpp" ex="false" tool="1" flavor2="4">
+      </item>
+      <item path="tools/vlsv2silo.cpp" ex="false" tool="1" flavor2="4">
+      </item>
+      <item path="tools/vlsv2vtk.cpp" ex="false" tool="1" flavor2="4">
+      </item>
+      <item path="tools/vlsvdiff.cpp" ex="false" tool="1" flavor2="4">
+      </item>
+      <item path="tools/vlsvextract.cpp" ex="false" tool="1" flavor2="4">
+      </item>
+      <item path="tools/vlsvreaderinterface.cpp" ex="false" tool="1" flavor2="4">
+      </item>
+      <item path="version.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="vlasiator.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../dccrg</pElem>
+            <pElem>/usr/include/eigen3</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="vlasovsolver/vlasovmover.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="vlasovsolver_amr/vlasovmover.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="vlscommon.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="vlsvreader2.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+          <incDir>
+            <pElem>../../../libraries/include</pElem>
+            <pElem>../../phiprof/include</pElem>
+            <pElem>../../vlsv</pElem>
+            <pElem>/usr/lib/openmpi/include</pElem>
+            <pElem>/usr/lib/openmpi/include/openmpi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>ACC_SEMILAG_PQM</Elem>
+            <Elem>AMR</Elem>
+            <Elem>DP</Elem>
+            <Elem>JEMALLOC_NO_DEMANGLE</Elem>
+            <Elem>NDEBUG</Elem>
+            <Elem>PROFILE</Elem>
+            <Elem>SPF</Elem>
+            <Elem>TRANS_SEMILAG_PPM</Elem>
+            <Elem>USE_AGNER_VECTORCLASS</Elem>
+            <Elem>USE_JEMALLOC</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>

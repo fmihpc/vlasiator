@@ -1,0 +1,2 @@
+Makefile:3: MAKE/Makefile.: No such file or directory
+make: *** No rule to make target `MAKE/Makefile.'.  Stop.

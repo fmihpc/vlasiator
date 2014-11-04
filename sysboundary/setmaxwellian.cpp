@@ -95,26 +95,27 @@ namespace SBC {
    }
    
    vector<uint> SetMaxwellian::findBlocksToInitialize(
-      SpatialCell& cell,
-      creal& rho,
-      creal& T,
-      creal& VX0,
-      creal& VY0,
-      creal& VZ0
-   ) {
+                                                      SpatialCell& cell,
+                                                      creal& rho,
+                                                      creal& T,
+                                                      creal& VX0,
+                                                      creal& VY0,
+                                                      creal& VZ0
+                                                     ) {
       vector<uint> blocksToInitialize;
       bool search = true;
       uint counter = 0;
-
-      while(search) {
-         if(0.1 * P::sparseMinValue >
-            maxwellianDistribution(rho,
-                                   T,
-                                   counter*SpatialCell::get_velocity_grid_block_size()[0], 0.0, 0.0
-                                  )
-            ||
-            counter > P::vxblocks_ini
-           ) {
+      
+      while (search) {
+         if (0.1 * P::sparseMinValue >
+             maxwellianDistribution(
+                                    rho,
+                                    T,
+                                    counter*SpatialCell::get_velocity_grid_block_size()[0], 0.0, 0.0
+                                   )
+             ||
+             counter > P::vxblocks_ini
+            ) {
             search = false;
          }
          counter++;
@@ -130,12 +131,12 @@ namespace SBC {
                creal vy = P::vymin + (jv+0.5) * SpatialCell::get_velocity_grid_block_size()[1]; // vy-
                creal vz = P::vzmin + (kv+0.5) * SpatialCell::get_velocity_grid_block_size()[2]; // vz-
 
-               if((vx-VX0)*(vx-VX0) + (vy-VY0)*(vy-VY0) + (vz-VZ0)*(vz-VZ0) < vRadiusSquared) {
+               if ((vx-VX0)*(vx-VX0) + (vy-VY0)*(vy-VY0) + (vz-VZ0)*(vz-VZ0) < vRadiusSquared) {
                   cell.add_velocity_block(cell.get_velocity_block(vx, vy, vz));
                   blocksToInitialize.push_back(cell.get_velocity_block(vx, vy, vz));
                }
-      }
-      
+            }
+
       return blocksToInitialize;
    }
    
