@@ -1,0 +1,389 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="95">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <df root="." name="0">
+      <df name="backgroundfield">
+        <df name="tests">
+          <in>test1.cpp</in>
+        </df>
+        <in>backgroundfield.cpp</in>
+        <in>backgroundfield.h</in>
+        <in>constantfield.cpp</in>
+        <in>constantfield.hpp</in>
+        <in>dipole.cpp</in>
+        <in>dipole.hpp</in>
+        <in>fieldfunction.hpp</in>
+        <in>functions.hpp</in>
+        <in>integratefunction.cpp</in>
+        <in>integratefunction.hpp</in>
+        <in>linedipole.cpp</in>
+        <in>linedipole.hpp</in>
+        <in>quadr.cpp</in>
+        <in>quadr.hpp</in>
+      </df>
+      <df name="datareduction">
+        <in>datareducer.cpp</in>
+        <in>datareducer.h</in>
+        <in>datareductionoperator.cpp</in>
+        <in>datareductionoperator.h</in>
+      </df>
+      <df name="doc">
+        <df name="fieldsolver">
+          <df name="Hall_term">
+          </df>
+        </df>
+        <df name="vlsv2">
+        </df>
+      </df>
+      <df name="doxytmp">
+      </df>
+      <df name="fieldsolver">
+        <in>derivatives.hpp</in>
+        <in>fs_common.cpp</in>
+        <in>fs_common.h</in>
+        <in>fs_limiters.cpp</in>
+        <in>fs_limiters.h</in>
+        <in>ldz_electric_field.hpp</in>
+        <in>ldz_hall.hpp</in>
+        <in>ldz_magnetic_field.hpp</in>
+        <in>ldz_main.cpp</in>
+        <in>ldz_volume.hpp</in>
+        <in>limiters.h</in>
+      </df>
+      <df name="MAKE">
+      </df>
+      <df name="mini-apps">
+        <df name="acceleration">
+          <in>common.h</in>
+          <in>cpu_1d_column_interpolations.hpp</in>
+          <in>cpu_slope_limiters.hpp</in>
+          <in>map_test.cpp</in>
+          <in>map_test_3d.cpp</in>
+          <in>map_test_3d_openmp.cpp</in>
+        </df>
+        <df name="acceleration-vlasiator">
+          <in>common.h</in>
+          <in>map_test.cpp</in>
+        </df>
+      </df>
+      <df name="particles">
+        <in>distribution.cpp</in>
+        <in>distribution.h</in>
+        <in>field.h</in>
+        <in>particle_post_pusher.cpp</in>
+        <in>particleparameters.cpp</in>
+        <in>particleparameters.h</in>
+        <in>particles.cpp</in>
+        <in>particles.h</in>
+        <in>physconst.cpp</in>
+        <in>physconst.h</in>
+        <in>readfields.cpp</in>
+        <in>readfields.h</in>
+        <in>relativistic_math.h</in>
+        <in>stb_image_write.h</in>
+      </df>
+      <df name="projects">
+        <df name="Alfven">
+          <in>Alfven.cpp</in>
+          <in>Alfven.h</in>
+        </df>
+        <df name="Diffusion">
+          <in>Diffusion.cpp</in>
+          <in>Diffusion.h</in>
+        </df>
+        <df name="Dispersion">
+          <in>Dispersion.cpp</in>
+          <in>Dispersion.h</in>
+          <in>Dispersion.m</in>
+          <in>hamming.m</in>
+        </df>
+        <df name="Distributions">
+          <in>Distributions.cpp</in>
+          <in>Distributions.h</in>
+        </df>
+        <df name="Firehose">
+          <in>Firehose.cpp</in>
+          <in>Firehose.h</in>
+          <in>Firehose_save.cpp</in>
+          <in>Firehose_save.h</in>
+        </df>
+        <df name="Flowthrough">
+          <in>Flowthrough.cpp</in>
+          <in>Flowthrough.h</in>
+        </df>
+        <df name="Fluctuations">
+          <in>Fluctuations.cpp</in>
+          <in>Fluctuations.h</in>
+        </df>
+        <df name="Harris">
+          <in>Harris.cpp</in>
+          <in>Harris.h</in>
+        </df>
+        <df name="KHB">
+          <in>KHB.cpp</in>
+          <in>KHB.h</in>
+        </df>
+        <df name="Larmor">
+          <in>Larmor.cpp</in>
+          <in>Larmor.h</in>
+        </df>
+        <df name="Magnetosphere">
+          <in>Magnetosphere.cpp</in>
+          <in>Magnetosphere.h</in>
+        </df>
+        <df name="MultiPeak">
+          <in>MultiPeak.cpp</in>
+          <in>MultiPeak.h</in>
+        </df>
+        <df name="Riemann1">
+          <in>Riemann1.cpp</in>
+          <in>Riemann1.h</in>
+        </df>
+        <df name="Shock">
+          <in>Shock.cpp</in>
+          <in>Shock.h</in>
+        </df>
+        <df name="Shocktest">
+          <in>Shocktest.cpp</in>
+          <in>Shocktest.h</in>
+        </df>
+        <df name="Template">
+          <in>Template.cpp</in>
+          <in>Template.h</in>
+        </df>
+        <df name="test_fp">
+          <in>test_fp.cpp</in>
+          <in>test_fp.h</in>
+        </df>
+        <df name="test_trans">
+          <in>test_trans.cpp</in>
+          <in>test_trans.h</in>
+        </df>
+        <df name="testHall">
+          <in>testHall.cpp</in>
+          <in>testHall.h</in>
+        </df>
+        <df name="unsupported">
+          <df name="harm1D">
+            <in>harm1D.cpp</in>
+            <in>harm1D.h</in>
+          </df>
+          <df name="KelvinHelmholtz">
+            <in>KelvinHelmholtz.cpp</in>
+            <in>KelvinHelmholtz.h</in>
+          </df>
+          <df name="test_acc">
+            <in>test_acc.cpp</in>
+            <in>test_acc.h</in>
+          </df>
+          <df name="test_trans2">
+            <in>test_trans2.cpp</in>
+            <in>test_trans2.h</in>
+          </df>
+          <df name="test_trans_1D">
+            <in>test_trans_1D.cpp</in>
+            <in>test_trans_1D.h</in>
+          </df>
+          <df name="velocity_rotation_1+3d">
+            <in>velocity_rotation_1+3d.cpp</in>
+            <in>velocity_rotation_1+3d.h</in>
+          </df>
+          <df name="velrot2+2">
+            <in>velrot2+2.cpp</in>
+            <in>velrot2+2.h</in>
+          </df>
+          <df name="verification-Larmor">
+            <in>verification-Larmor.cpp</in>
+            <in>verification-Larmor.h</in>
+          </df>
+        </df>
+        <df name="VelocityBox">
+          <in>VelocityBox.cpp</in>
+          <in>VelocityBox.h</in>
+        </df>
+        <df name="verificationLarmor">
+          <in>verificationLarmor.cpp</in>
+          <in>verificationLarmor.h</in>
+        </df>
+        <in>project.cpp</in>
+        <in>project.h</in>
+        <in>projectTriAxisSearch.cpp</in>
+        <in>projectTriAxisSearch.h</in>
+        <in>projects_common.h</in>
+      </df>
+      <df name="sysboundary">
+        <in>donotcompute.cpp</in>
+        <in>donotcompute.h</in>
+        <in>ionosphere.cpp</in>
+        <in>ionosphere.h</in>
+        <in>outflow.cpp</in>
+        <in>outflow.h</in>
+        <in>setbyuser.cpp</in>
+        <in>setbyuser.h</in>
+        <in>setmaxwellian.cpp</in>
+        <in>setmaxwellian.h</in>
+        <in>sysboundary.cpp</in>
+        <in>sysboundary.h</in>
+        <in>sysboundarycondition.cpp</in>
+        <in>sysboundarycondition.h</in>
+      </df>
+      <df name="testpackage">
+        <df name="tests">
+          <df name="Fluctuations_medium">
+          </df>
+          <df name="Fluctuations_small">
+          </df>
+          <df name="Magnetosphere_medium">
+          </df>
+          <df name="Magnetosphere_small">
+          </df>
+        </df>
+      </df>
+      <df name="tools">
+        <df name="face_value_estimates">
+        </df>
+        <df name="HermitQueueWizard">
+        </df>
+        <df name="videos">
+        </df>
+        <in>vlsv2bzt.cpp</in>
+        <in>vlsv2silo.cpp</in>
+        <in>vlsv2vtk.cpp</in>
+        <in>vlsvdiff.cpp</in>
+        <in>vlsvextract.cpp</in>
+        <in>vlsvreaderinterface.cpp</in>
+        <in>vlsvreaderinterface.h</in>
+      </df>
+      <df name="visit_variables">
+      </df>
+      <df name="vlasovsolver">
+        <in>cpu_1d_plm.hpp</in>
+        <in>cpu_1d_ppm.hpp</in>
+        <in>cpu_1d_pqm.hpp</in>
+        <in>cpu_acc_intersections.hpp</in>
+        <in>cpu_acc_map.hpp</in>
+        <in>cpu_acc_semilag.hpp</in>
+        <in>cpu_acc_sort_blocks.hpp</in>
+        <in>cpu_acc_transform.hpp</in>
+        <in>cpu_face_estimates.hpp</in>
+        <in>cpu_moments.h</in>
+        <in>cpu_slope_limiters.hpp</in>
+        <in>cpu_trans_map.hpp</in>
+        <in>vec4.h</in>
+        <in>vectorclass_fallback.h</in>
+        <in>vlasovmover.cpp</in>
+      </df>
+      <df name="vlasovsolver_amr">
+        <in>cpu_1d_plm.hpp</in>
+        <in>cpu_1d_ppm.hpp</in>
+        <in>cpu_1d_pqm.hpp</in>
+        <in>cpu_acc_intersections.hpp</in>
+        <in>cpu_acc_map.hpp</in>
+        <in>cpu_acc_semilag.hpp</in>
+        <in>cpu_acc_sort_blocks.hpp</in>
+        <in>cpu_acc_transform.hpp</in>
+        <in>cpu_face_estimates.hpp</in>
+        <in>cpu_moments.h</in>
+        <in>cpu_slope_limiters.hpp</in>
+        <in>cpu_trans_map.hpp</in>
+        <in>vec4.h</in>
+        <in>vectorclass_fallback.h</in>
+        <in>vlasovmover.cpp</in>
+      </df>
+      <in>amr_refinement_criteria.cpp</in>
+      <in>amr_refinement_criteria.h</in>
+      <in>common.cpp</in>
+      <in>common.h</in>
+      <in>definitions.h</in>
+      <in>grid.cpp</in>
+      <in>grid.h</in>
+      <in>ioread.cpp</in>
+      <in>ioread.h</in>
+      <in>iowrite.cpp</in>
+      <in>iowrite.h</in>
+      <in>item_storage.h</in>
+      <in>logger.cpp</in>
+      <in>logger.h</in>
+      <in>memoryallocation.cpp</in>
+      <in>memoryallocation.h</in>
+      <in>mpiconversion.h</in>
+      <in>muxml.cpp</in>
+      <in>muxml.h</in>
+      <in>object_factory.h</in>
+      <in>object_wrapper.h</in>
+      <in>parameters.cpp</in>
+      <in>parameters.h</in>
+      <in>prefetch.hpp</in>
+      <in>readparameters.cpp</in>
+      <in>readparameters.h</in>
+      <in>spatial_cell.cpp</in>
+      <in>spatial_cell.hpp</in>
+      <in>velocity_block_container.h</in>
+      <in>velocity_blocks.h</in>
+      <in>velocity_mesh_amr.h</in>
+      <in>velocity_mesh_old.h</in>
+      <in>version.cpp</in>
+      <in>version.h</in>
+      <in>vlasiator.cpp</in>
+      <in>vlasovmover.h</in>
+      <in>vlscommon.cpp</in>
+      <in>vlscommon.h</in>
+      <in>vlsvreader2.cpp</in>
+      <in>vlsvreader2.h</in>
+    </df>
+  </logicalFolder>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Default" type="0">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <platform>2</platform>
+      </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
+      <dbx_gdbdebugger version="1">
+        <gdb_pathmaps>
+        </gdb_pathmaps>
+        <gdb_interceptlist>
+          <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
+        </gdb_interceptlist>
+        <gdb_options>
+          <DebugOptions>
+          </DebugOptions>
+        </gdb_options>
+        <gdb_buildfirst gdb_buildfirst_overriden="false" gdb_buildfirst_old="false"/>
+      </dbx_gdbdebugger>
+      <nativedebugger version="1">
+        <engine>gdb</engine>
+      </nativedebugger>
+      <runprofile version="9">
+        <runcommandpicklist>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
+          <runcommandpicklistitem>mpirun - n 1 "${OUTPUT_PATH}" --run_config=/home/sandroos/Desktop/Multipeak.cfg</runcommandpicklistitem>
+          <runcommandpicklistitem>"mpirun - n 1 ${OUTPUT_PATH}" --run_config=/home/sandroos/Desktop/Multipeak.cfg</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" --run_config=/home/sandroos/Desktop/Multipeak.cfg</runcommandpicklistitem>
+          <runcommandpicklistitem>mpirun -n 1 "${OUTPUT_PATH}" --run_config=/home/sandroos/Desktop/Multipeak.cfg</runcommandpicklistitem>
+          <runcommandpicklistitem>mpirun -n 1 "${OUTPUT_PATH}" --run_config=Multipeak.cfg</runcommandpicklistitem>
+        </runcommandpicklist>
+        <runcommand>mpirun -n 1 "${OUTPUT_PATH}" --run_config=Multipeak.cfg</runcommand>
+        <rundir>/home/sandroos/Codes/NetBeansProjects/vlasiator/.</rundir>
+        <buildfirst>false</buildfirst>
+        <terminal-type>0</terminal-type>
+        <remove-instrumentation>0</remove-instrumentation>
+        <environment>
+          <variable name="OMP_NUM_THREADS" value="1"/>
+        </environment>
+      </runprofile>
+    </conf>
+  </confs>
+</configurationDescriptor>

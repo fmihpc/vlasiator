@@ -95,13 +95,13 @@ namespace SBC {
    }
    
    vector<uint> SetMaxwellian::findBlocksToInitialize(
-      SpatialCell& cell,
-      creal& rho,
-      creal& T,
-      creal& VX0,
-      creal& VY0,
-      creal& VZ0
-   ) {
+                                                      SpatialCell& cell,
+                                                      creal& rho,
+                                                      creal& T,
+                                                      creal& VX0,
+                                                      creal& VY0,
+                                                      creal& VZ0
+                                                     ) {
       vector<uint> blocksToInitialize;
       bool search = true;
       uint counter = 0;
