@@ -25,7 +25,6 @@ namespace vmesh {
    class VelocityMesh {
     public:
       VelocityMesh();
-      VelocityMesh(const VelocityMesh& vm);
       ~VelocityMesh();
       
       size_t capacityInBytes() const;
@@ -80,7 +79,6 @@ namespace vmesh {
       void swap(VelocityMesh& vm);
 
     private:
-
       static LID max_velocity_blocks;                                           /**< Maximum valid block local ID.*/
       static LID blockLength[3];                                                /**< Number of cells in a block per coordinate.*/
       static Real blockSize[3];                                                 /**< Size of a block at base grid level.*/
@@ -95,6 +93,11 @@ namespace vmesh {
       static Real* blockSizes;
       static Real* cellSizes;
       static LID* gridLengths;
+      static size_t referenceCount;
+
+      static Real* blockSizes;
+      static Real* cellSizes;
+      static GID* gridLengths;
       static size_t referenceCount;
 
       std::vector<GID> localToGlobalMap;
@@ -383,7 +386,6 @@ namespace vmesh {
       coords[0] = meshMinLimits[0] + indices[0]*blockSize[0]/multiplier;
       coords[1] = meshMinLimits[1] + indices[1]*blockSize[1]/multiplier;
       coords[2] = meshMinLimits[2] + indices[2]*blockSize[2]/multiplier;
-
       return true;
    }
 
@@ -977,7 +979,6 @@ namespace vmesh {
             ++adds;
          }
       }
-      
       return adds;
    }
 
