@@ -16,12 +16,12 @@ namespace projects {
       creal dy = cell->parameters[CellParams::DY];
       creal dz = cell->parameters[CellParams::DZ];
       
-      creal dvxCell = SpatialCell::get_velocity_base_grid_cell_size()[0];
-      creal dvyCell = SpatialCell::get_velocity_base_grid_cell_size()[1];
-      creal dvzCell = SpatialCell::get_velocity_base_grid_cell_size()[2];
-      creal dvxBlock = SpatialCell::get_velocity_base_grid_block_size()[0];
-      creal dvyBlock = SpatialCell::get_velocity_base_grid_block_size()[1];
-      creal dvzBlock = SpatialCell::get_velocity_base_grid_block_size()[2];
+      creal dvxCell = SpatialCell::get_velocity_grid_cell_size()[0];
+      creal dvyCell = SpatialCell::get_velocity_grid_cell_size()[1];
+      creal dvzCell = SpatialCell::get_velocity_grid_cell_size()[2];
+      creal dvxBlock = SpatialCell::get_velocity_grid_block_size()[0];
+      creal dvyBlock = SpatialCell::get_velocity_grid_block_size()[1];
+      creal dvzBlock = SpatialCell::get_velocity_grid_block_size()[2];
       
       const vector<std::array<Real, 3>> V0 = this->getV0(x+0.5*dx, y+0.5*dy, z+0.5*dz);
       for (vector<std::array<Real, 3>>::const_iterator it = V0.begin(); it != V0.end(); it++) {
