@@ -43,10 +43,12 @@ namespace vmesh {
       const Real* getParameters(const LID& blockLID) const;
       void pop();
       LID push_back();
+      LID push_back(const uint32_t& N_blocks);
       bool recapacitate(const LID& capacity);
       bool setSize(const LID& newSize);
       LID size() const;
       size_t sizeInBytes() const;
+      void swap(VelocityBlockContainer& vbc);
 
       #ifdef DEBUG_VBC
       const Realf& getData(const LID& blockLID,const unsigned int& cell) const;
@@ -263,6 +265,21 @@ namespace vmesh {
       ++numberOfBlocks;
       return newIndex;
    }
+   
+   template<typename LID> inline
+   LID VelocityBlockContainer<LID>::push_back(const uint32_t& N_blocks) {
+      const LID newIndex = numberOfBlocks;
+      numberOfBlocks += N_blocks;
+      resize();
+      
+      // Clear velocity block data to zero values
+      for (size_t i=0; i<WID3*N_blocks; ++i) block_data[newIndex*WID3+i] = 0.0;
+      for (size_t i=0; i<WID3*N_blocks; ++i) block_fx[newIndex*WID3+i] = 0.0;
+      for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS*N_blocks; ++i)
+	parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
+
+      return newIndex;
+   }
 
    template<typename LID> inline
    bool VelocityBlockContainer<LID>::recapacitate(const LID& newCapacity) {
@@ -318,6 +335,21 @@ namespace vmesh {
       return block_data.size()*sizeof(Realf) + block_fx.size()*sizeof(Realf) + parameters.size()*sizeof(Real);
    }
 
+   template<typename LID> inline
+   void VelocityBlockContainer<LID>::swap(VelocityBlockContainer& vbc) {
+      block_data.swap(vbc.block_data);
+      block_fx.swap(vbc.block_fx);
+      parameters.swap(vbc.parameters);
+
+      LID dummy = currentCapacity;
+      currentCapacity = vbc.currentCapacity;
+      vbc.currentCapacity = dummy;
+      
+      dummy = numberOfBlocks;
+      numberOfBlocks = vbc.numberOfBlocks;
+      vbc.numberOfBlocks = dummy;
+   }
+   
    #ifdef DEBUG_VBC
 
    template<typename LID> inline

@@ -108,28 +108,27 @@ namespace SBC {
 
       while(search) {
          if(0.1 * P::sparseMinValue >
-            maxwellianDistribution(
-               rho,
-               T,
-               counter*SpatialCell::get_velocity_base_grid_block_size()[0], 0.0, 0.0
-            )
+            maxwellianDistribution(rho,
+                                   T,
+                                   counter*SpatialCell::get_velocity_grid_block_size()[0], 0.0, 0.0
+                                  )
             ||
             counter > P::vxblocks_ini
-         ) {
+           ) {
             search = false;
          }
          counter++;
       }
       counter+=2;
 
-      Real vRadiusSquared = (Real)counter*(Real)counter*SpatialCell::get_velocity_base_grid_block_size()[0]*SpatialCell::get_velocity_base_grid_block_size()[0];
+      Real vRadiusSquared = (Real)counter*(Real)counter*SpatialCell::get_velocity_grid_block_size()[0]*SpatialCell::get_velocity_grid_block_size()[0];
       
       for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
          for (uint jv=0; jv<P::vyblocks_ini; ++jv)
             for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
-               creal vx = P::vxmin + (iv+0.5) * SpatialCell::get_velocity_base_grid_block_size()[0]; // vx-coordinate of the centre
-               creal vy = P::vymin + (jv+0.5) * SpatialCell::get_velocity_base_grid_block_size()[1]; // vy-
-               creal vz = P::vzmin + (kv+0.5) * SpatialCell::get_velocity_base_grid_block_size()[2]; // vz-
+               creal vx = P::vxmin + (iv+0.5) * SpatialCell::get_velocity_grid_block_size()[0]; // vx-coordinate of the centre
+               creal vy = P::vymin + (jv+0.5) * SpatialCell::get_velocity_grid_block_size()[1]; // vy-
+               creal vz = P::vzmin + (kv+0.5) * SpatialCell::get_velocity_grid_block_size()[2]; // vz-
 
                if((vx-VX0)*(vx-VX0) + (vy-VY0)*(vy-VY0) + (vz-VZ0)*(vz-VZ0) < vRadiusSquared) {
                   cell.add_velocity_block(cell.get_velocity_block(vx, vy, vz));
