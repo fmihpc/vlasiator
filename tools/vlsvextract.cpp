@@ -627,6 +627,7 @@ void doRotation(
 
 bool convertVelocityBlocks2(
    oldVlsv::Reader& vlsvReader,
+   const string& fname,
    const string& meshName,
    const CellStructure &,
    const uint64_t& cellID,
@@ -929,6 +930,7 @@ bool convertVelocityBlocks2(
 
 bool convertVelocityBlocks2(
    newVlsv::Reader& vlsvReader,
+   const string& fname,
    const string& meshName,
    const CellStructure & cellStruct,
    const uint64_t& cellID,
@@ -941,7 +943,7 @@ bool convertVelocityBlocks2(
    int cellsInBlocksPerDirection = 4;
 
    vlsv::Writer out;
-   if (out.open("velgrid.vlsv",MPI_COMM_SELF,0) == false) {
+   if (out.open(fname,MPI_COMM_SELF,0) == false) {
       cerr << "ERROR, failed to open output file with vlsv::Writer at " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
@@ -2293,7 +2295,8 @@ void convertFileToSilo( const string & fileName, const UserOptions & mainOptions
       cout << "Cell id: " << cellID << endl;
       // Create a new file suffix for the output file:
       stringstream ss1;
-      ss1 << ".silo";
+      //ss1 << ".silo";
+      ss1 << ".vlsv";
       string newSuffix;
       ss1 >> newSuffix;
 
@@ -2340,7 +2343,7 @@ void convertFileToSilo( const string & fileName, const UserOptions & mainOptions
          vlsvReader.setCellsWithBlocks();
       }
       for (list<string>::const_iterator it2 = meshNames.begin(); it2 != meshNames.end(); ++it2) {
-         if (convertVelocityBlocks2(vlsvReader, *it2, cellStruct, cellID, mainOptions.rotateVectors, mainOptions.plasmaFrame ) == false) {
+         if (convertVelocityBlocks2(vlsvReader, outputFilePath, *it2, cellStruct, cellID, mainOptions.rotateVectors, mainOptions.plasmaFrame ) == false) {
             velGridExtracted = false;
          } else {
             //Display message for the user:

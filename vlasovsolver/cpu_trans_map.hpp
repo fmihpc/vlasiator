@@ -425,10 +425,10 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
        case 0:
           dz = P::dx_ini;
           z_min = P::xmin;
-          dvz = SpatialCell::get_velocity_base_grid_cell_size()[0];
+          dvz = SpatialCell::get_velocity_grid_cell_size()[0];
           vz_min = SpatialCell::get_velocity_grid_min_limits()[0];
-          block_indices_to_id[0]=SpatialCell::get_velocity_base_grid_length()[0]*SpatialCell::get_velocity_base_grid_length()[1];
-          block_indices_to_id[1]=SpatialCell::get_velocity_base_grid_length()[0];
+          block_indices_to_id[0]=SpatialCell::get_velocity_grid_length()[0]*SpatialCell::get_velocity_grid_length()[1];
+          block_indices_to_id[1]=SpatialCell::get_velocity_grid_length()[0];
           block_indices_to_id[2]=1;
       
           /*set values in array that is used to transfer blockindices to id using a dot product*/
@@ -440,13 +440,13 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
        case 1:
           dz = P::dy_ini;
           z_min = P::ymin;
-          dvz = SpatialCell::get_velocity_base_grid_cell_size()[1];
+          dvz = SpatialCell::get_velocity_grid_cell_size()[1];
           vz_min = SpatialCell::get_velocity_grid_min_limits()[1];
       
           /*set values in array that is used to transfer blockindices to id using a dot product*/
           block_indices_to_id[0]=1;
-          block_indices_to_id[1]=SpatialCell::get_velocity_base_grid_length()[0]*SpatialCell::get_velocity_base_grid_length()[1];
-          block_indices_to_id[2]=SpatialCell::get_velocity_base_grid_length()[0];
+          block_indices_to_id[1]=SpatialCell::get_velocity_grid_length()[0]*SpatialCell::get_velocity_grid_length()[1];
+          block_indices_to_id[2]=SpatialCell::get_velocity_grid_length()[0];
 
           /*set values in array that is used to transfer blockindices to id using a dot product*/
           cell_indices_to_id[0]=1;
@@ -457,13 +457,13 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
        case 2:
           dz = P::dz_ini;
           z_min = P::zmin;
-          dvz = SpatialCell::get_velocity_base_grid_cell_size()[2];
+          dvz = SpatialCell::get_velocity_grid_cell_size()[2];
           vz_min = SpatialCell::get_velocity_grid_min_limits()[2];    
       
           /*set values in array that is used to transfer blockindices to id using a dot product*/
           block_indices_to_id[0]=1;
-          block_indices_to_id[1]=SpatialCell::get_velocity_base_grid_length()[0];
-          block_indices_to_id[2]=SpatialCell::get_velocity_base_grid_length()[0]*SpatialCell::get_velocity_base_grid_length()[1];
+          block_indices_to_id[1]=SpatialCell::get_velocity_grid_length()[0];
+          block_indices_to_id[2]=SpatialCell::get_velocity_grid_length()[0]*SpatialCell::get_velocity_grid_length()[1];
 
           /*set values in array that is used to transfer blockindices to id using a dot product*/
           cell_indices_to_id[0]=1;

@@ -104,9 +104,9 @@ namespace projects {
       for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
          for (uint jv=0; jv<P::vyblocks_ini; ++jv)
             for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
-	       creal vx = P::vxmin + (iv+0.5) * SpatialCell::get_velocity_base_grid_block_size()[0]; // vx-coordinate of the centre
-	       creal vy = P::vymin + (jv+0.5) * SpatialCell::get_velocity_base_grid_block_size()[1]; // vy-
-	       creal vz = P::vzmin + (kv+0.5) * SpatialCell::get_velocity_base_grid_block_size()[2];
+	       creal vx = P::vxmin + (iv+0.5) * SpatialCell::get_velocity_grid_block_size()[0]; // vx-coordinate of the centre
+	       creal vy = P::vymin + (jv+0.5) * SpatialCell::get_velocity_grid_block_size()[1]; // vy-
+	       creal vz = P::vzmin + (kv+0.5) * SpatialCell::get_velocity_grid_block_size()[2];
 
                //FIXME, add_velocity_blocks should  not be needed as set_value handles it!!
                //FIXME,  We should get_velocity_block based on indices, not v
@@ -161,9 +161,10 @@ namespace projects {
                      creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
                      cell->set_value(vxCellCenter,vyCellCenter,vzCellCenter,average);
                   }
-         }
+	       }
       }
 
+      #ifdef AMR
       // Loop over blocks in the spatial cell until we reach the maximum
       // refinement level, or until there are no more blocks left to refine
       bool refine = true;
@@ -263,35 +264,7 @@ exitBlockTest:
 	 ++currentLevel;
 	 if (currentLevel == Parameters::maxVelocityRefLevel) refine = false;
       }
-      /*
-      for (vmesh::LocalID blockLID=0; blockLID<cell->get_number_of_velocity_blocks(); ++blockLID) {
-	 const vmesh::GlobalID blockGID = cell->get_velocity_block_global_id(blockLID);
-	 const int PAD=4;
-	 Realf array[WID*WID+(WID+2*PAD)];
-	 cell->fetch_acc_data<PAD>(blockGID,1,cell->get_data(),array);
-
-	 for (uint32_t kc=0; kc<WID; ++kc) for (uint32_t jc=0; jc<WID; ++jc) for (uint32_t ic=0; ic<WID; ++ic) {
-	    const int srcIndex  = vblock::index(ic,jc,kc+8);
-	    const int trgtIndex = vblock::index(ic,jc,kc);
-	    cell->get_fx(blockLID)[trgtIndex] = array[srcIndex];
-	 }
-	 
-	 Realf array2[(WID+2*PAD)*(WID+2*PAD)*(WID+2*PAD)];
-	 cell->fetch_data<PAD>(blockGID,cell->get_data(),array2);
-	 for (uint32_t kc=0; kc<WID; ++kc) for (uint32_t jc=0; jc<WID; ++jc) for (uint32_t ic=0; ic<WID; ++ic) {
-	    const int srcIndex  = vblock::padIndex<PAD>(ic+PAD,jc+PAD-4,kc+PAD);
-	    const int trgtIndex = vblock::index(ic,jc,kc);
-	    cell->get_fx(blockLID)[trgtIndex] = array2[srcIndex];
-	 }
-
-	 for (uint32_t kc=0; kc<WID; ++kc) for (uint32_t jc=0; jc<WID; ++jc) for (uint32_t ic=0; ic<WID; ++ic) {
-	    const int srcIndex  = vblock::index(ic,jc,kc+PAD);
-	    const int trgtIndex = vblock::padIndex<PAD>(ic+PAD,kc+PAD,jc+PAD);
-	    if (fabs(array[srcIndex] - array2[trgtIndex]) > 1e-16) {
-	       std::cerr << "ERROR too big difference " << array[srcIndex] << " vs " << array2[trgtIndex] << std::endl; exit(1);
-	    }
-	 }
-      }*/
+      #endif // #ifdef AMR
    }
 
    /*default one does not compute any parameters*/
