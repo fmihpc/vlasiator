@@ -5,12 +5,12 @@ from sympy import *
 def solve_face_value(integration_limits, has_mdv, has_pdv):
     il=integration_limits
     ans_a=solve([\
-                 integrate(rho_hat,(v,il[0][0],il[0][1]))-m3f,\
-                 integrate(rho_hat,(v,il[1][0],il[1][1]))-m2f,\
-                 integrate(rho_hat,(v,il[2][0],il[2][1]))-m1f,\
-                 integrate(rho_hat,(v,il[3][0],il[3][1]))-cf,\
-                 integrate(rho_hat,(v,il[4][0],il[4][1]))-p1f,\
-                 integrate(rho_hat,(v,il[5][0],il[5][1]))-p2f],\
+                 integrate(rho_hat,(v,il[0][0],il[0][1])) - m3f * (il[0][1] - il[0][0]),\
+                 integrate(rho_hat,(v,il[1][0],il[1][1])) - m2f * (il[1][1] - il[1][0]),\
+                 integrate(rho_hat,(v,il[2][0],il[2][1])) - m1f * (il[2][1] - il[2][0]),\
+                 integrate(rho_hat,(v,il[3][0],il[3][1])) - cf *  (il[3][1] - il[3][0]),\
+                 integrate(rho_hat,(v,il[4][0],il[4][1])) - p1f * (il[4][1] - il[4][0]),\
+                 integrate(rho_hat,(v,il[5][0],il[5][1])) - p2f * (il[5][1] - il[5][0])],\
                  [a,b,c,d,e,f])
     rho_hat_v=rho_hat.subs([(a,ans_a[a]),(b,ans_a[b]),(c,ans_a[c]),(d,ans_a[d]),(e,ans_a[e]),(f,ans_a[f])])
     rho_hat_ans=rho_hat_v.subs([(v,0)])
