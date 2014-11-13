@@ -161,6 +161,24 @@ namespace spatial_cell {
 	 }
       }
 
+/*      // TEST
+      for (size_t c=0; c<childrenGIDs.size(); ++c) {
+	 bool hasGrandChildren=false;
+	 vector<vmesh::GlobalID> grandChildren;
+	 if (vmesh.getLocalID(childrenGIDs[c]) != vmesh.invalidLocalID()) continue;
+	 vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getChildren(childrenGIDs[c],grandChildren);
+	 for (size_t cc=0; cc<grandChildren.size(); ++cc) {
+	    if (vmesh.getLocalID(grandChildren[cc]) != vmesh.invalidLocalID()) {
+	       hasGrandChildren = true;
+	       break;
+	    }
+	 }
+	 if (hasGrandChildren==true) {
+	    std::cerr << "block at r=" << (int)refLevel << " has lost grand children" << std::endl;
+	 }
+      }
+      // END TEST */
+      
       // No children, try to merge values to this block:
       if (hasChildren == false) {
 	 vmesh::LocalID blockLID = vmesh.getLocalID(blockGID);
@@ -177,10 +195,11 @@ namespace spatial_cell {
 	 if (parentGID == blockGID) {
 	    // If we enter here, the block is at the lowest refinement level.
 	    // If the block does not have enough content, flag it for removal
-	    for (unsigned int i=0; i<WID3; ++i) {
+	    //#warning REMOVED for debugging
+	    /*for (unsigned int i=0; i<WID3; ++i) {
 	       if (myData[i] >= SpatialCell::velocity_block_min_value) return;
 	    }
-	    blockRemovalList.insert(blockGID);
+	    blockRemovalList.insert(blockGID);*/
 	 } else {
 	    // Merge values to this block
 	    for (int i=0; i<WID3; ++i) myData[i] += data[i];
@@ -239,7 +258,7 @@ namespace spatial_cell {
 
       cerr << "should remove " << blockRemovalList.size() << " blocks" << endl;
       for (set<vmesh::GlobalID>::const_iterator it=blockRemovalList.begin(); it!=blockRemovalList.end(); ++it) {
-	 remove_velocity_block(*it);
+	 //remove_velocity_block(*it);
       }
    }
 
@@ -541,16 +560,16 @@ namespace spatial_cell {
 	 std::cerr << "invalid global ID, skip refinement" << std::endl;
 	 return;
       }
-      
+
       std::set<vmesh::GlobalID> erasedBlocks;
       std::map<vmesh::GlobalID,vmesh::LocalID> newInserted;
       if (vmesh.refine(blockGID,erasedBlocks,newInserted) == false) {
 	 return;
       }
-      
+
       const size_t newBlocks = newInserted.size()-erasedBlocks.size();
       blockContainer.setSize(blockContainer.size() + newBlocks);
-      
+
       for (std::map<vmesh::GlobalID,vmesh::LocalID>::iterator it=newInserted.begin(); it!=newInserted.end(); ++it) {
 	 // Set refined block parameters
 	 Real* blockParams = blockContainer.getParameters(it->second);
