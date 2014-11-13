@@ -159,7 +159,7 @@ namespace projects {
          N3_sum += N*N*N;
          ++N;
       } while (ok == false);
-      
+
       return avgTotal / N3_sum;
    }
 
@@ -191,10 +191,10 @@ namespace projects {
    }
    
    vector<std::array<Real, 3>> MultiPeak::getV0(
-      creal x,
-      creal y,
-      creal z
-   ) {
+                                                creal x,
+                                                creal y,
+                                                creal z
+                                               ) {
       vector<std::array<Real, 3>> centerPoints;
       for(uint i=0; i<this->numberOfPopulations; i++) {
          std::array<Real, 3> point {{this->Vx[i], this->Vy[i], this->Vz[i]}};
