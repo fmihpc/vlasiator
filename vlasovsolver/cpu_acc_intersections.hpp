@@ -119,20 +119,12 @@ void compute_intersections_1st(const SpatialCell* spatial_cell,
       
       // xy-coordinates of z-face on fixed grid
       const Eigen::Matrix<Real,3,1> line_point(0.5*SpatialCell::get_velocity_grid_cell_size(refLevel)[0]+SpatialCell::get_velocity_grid_min_limits()[0],
-                                               0.5*SpatialCell::get_velocity_grid_cell_size(refLevel)[1]+SpatialCell::get_velocity_grid_min_limits()[1],
-                                               0.0);
+					       0.5*SpatialCell::get_velocity_grid_cell_size(refLevel)[1]+SpatialCell::get_velocity_grid_min_limits()[1],
+					       0.0);
 
       const Eigen::Matrix<Real,3,1> euclidian_di  = Eigen::Matrix<Real,3,1>(SpatialCell::get_velocity_grid_cell_size(refLevel)[0],0,0.0); 
       const Eigen::Matrix<Real,3,1> euclidian_dj  = Eigen::Matrix<Real,3,1>(0,SpatialCell::get_velocity_grid_cell_size(refLevel)[1],0.0);
       const Eigen::Matrix<Real,3,1> lagrangian_dk = bwd_transform.linear()*Eigen::Matrix<Real,3,1>(0.0,0.0,SpatialCell::get_velocity_grid_cell_size(refLevel)[2]); 
-
-      //std::cerr << "intersect at r=" << (int)refLevel << std::endl;
-      //std::cerr << "\t plane_nrml:\t" << plane_normal(0,0) << '\t' << plane_normal(1,0) << '\t' << plane_normal(2,0) << std::endl;
-      //std::cerr << "\t plane_pont:\t" << plane_point(0,0) << '\t' << plane_point(1,0) << '\t' << plane_point(2,0) << std::endl;
-      //std::cerr << "\t line_point:\t" << line_point(0,0) << '\t' << line_point(1,0) << '\t' << line_point(2,0) << std::endl;
-      //std::cerr << "\t eucl_di   :\t" << euclidian_di(0,0) << '\t' << euclidian_di(1,0) << '\t' << euclidian_di(2,0) << std::endl;
-      //std::cerr << "\t eucl_dj   :\t" << euclidian_dj(0,0) << '\t' << euclidian_dj(1,0) << '\t' << euclidian_dj(2,0) << std::endl;
-      //std::cerr << "\t lagr_dk   :\t" << lagrangian_dk(0,0) << '\t' << lagrangian_dk(1,0) << '\t' << lagrangian_dk(2,0) << std::endl;
 
       // compute intersections, varying lines and plane in i,j,k
       const Eigen::Matrix<Real,3,1> intersection_0_0_0 = line_plane_intersection(line_point,                line_direction, plane_point,                 plane_normal);
@@ -143,10 +135,8 @@ void compute_intersections_1st(const SpatialCell* spatial_cell,
       intersection_di = intersection_1_0_0[dimension] - intersection_0_0_0[dimension];
       intersection_dj = intersection_0_1_0[dimension] - intersection_0_0_0[dimension];
       intersection_dk = intersection_0_0_1[dimension] - intersection_0_0_0[dimension];
-      //std::cerr << "\t" << intersection << '\t' << intersection_di << '\t' << intersection_dj << '\t' << intersection_dk << std::endl;
    }
 }
-  
 
 /*!
   Computes the second intersection data; this is x~ in section 2.4 in Zerroukat et al (2012). We assume all velocity cells have the same dimensions.

@@ -65,10 +65,24 @@ inline Vec4 slope_limiter_mc(const Vec4& l,const Vec4& m, const Vec4& r) {
   return select(a + b < 0,-output,output);
 }
 
-
+inline Vec4 slope_limiter_minmod_amr(const Vec4& l,const Vec4& m, const Vec4& r,const Vec4& a,const Vec4& b) {
+   Vec4 J = r-l;
+   Vec4 f = (m-l)/J;
+   f = min(1.0,f);
+   return min(f/(1+a),(1-f)/(1+b))*2*J;
+}
 
 inline Vec4 slope_limiter(const Vec4& l,const Vec4& m, const Vec4& r) {
-   return slope_limiter_sb(l,m,r);
+   //return slope_limiter_sb(l,m,r);
+   return slope_limiter_minmod(l,m,r);
+}
+
+/*
+ * @param a Cell size fraction dx[i-1]/dx[i] = 1/2, 1, or 2.
+ * @param b Cell size fraction dx[i+1]/dx[i] = 1/2, 1, or 2.
+ * @return Limited value of slope.*/
+inline Vec4 slope_limiter_amr(const Vec4& l,const Vec4& m, const Vec4& r,const Vec4& dx_left,const Vec4& dx_rght) {
+   return slope_limiter_minmod_amr(l,m,r,dx_left,dx_rght);
 }
 
 /* Slope limiter with abs and sign separatelym, uses the currently active slope limiter*/
@@ -77,7 +91,5 @@ inline void slope_limiter(const Vec4& l,const Vec4& m, const Vec4& r, Vec4& slop
    slope_abs=abs(slope);
    slope_sign=select(slope > 0, 1.0, -1.0);
 }
-
-
 
 #endif

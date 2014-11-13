@@ -303,8 +303,7 @@ int main(int argn,char* args[]) {
       phiprof::start("propagate-velocity-space-dt/2");
       if (P::propagateVlasovAcceleration) {
          calculateAcceleration(mpiGrid, 0.5*P::dt);
-      }
-      else {
+      } else {
          //zero step to set up moments _v
          calculateAcceleration(mpiGrid, 0.0);
       }
@@ -313,6 +312,7 @@ int main(int argn,char* args[]) {
       addTimedBarrier("barrier-after-ad just-blocks");
    }
    phiprof::stop("Initialization");
+
 
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****
@@ -472,7 +472,7 @@ int main(int argn,char* args[]) {
          balanceLoad(mpiGrid);
          addTimedBarrier("barrier-end-load-balance");
          phiprof::start("Shrink_to_fit");
-         /* shrink to fit after LB*/
+         // * shrink to fit after LB * //
          shrink_to_fit_grid_data(mpiGrid);
          phiprof::stop("Shrink_to_fit");
          logFile << "(LB): ... done!"  << endl << writeVerbose;
@@ -573,8 +573,8 @@ int main(int argn,char* args[]) {
       phiprof::stop("Velocity-space",computedCells,"Cells");
       addTimedBarrier("barrier-after-acceleration");
       
-      /*here we compute rho and rho_v for timestep t + dt, so next
-       * timestep*/
+      // *here we compute rho and rho_v for timestep t + dt, so next
+      // timestep * //
       calculateInterpolatedVelocityMoments(
          mpiGrid,
          CellParams::RHO,

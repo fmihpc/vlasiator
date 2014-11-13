@@ -115,7 +115,7 @@ namespace projects {
    Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
-      
+
       Real value = 0.0;
       for(uint i=0; i<2; i++) {
          value += this->rho[i] * pow(mass / (2.0 * M_PI * kb ), 1.5) * 1.0 / sqrt(this->Tx[i]*this->Ty[i]*this->Tz[i]) *
@@ -124,21 +124,56 @@ namespace projects {
       return value;
    }
 
-   Real MultiPeak::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   
-      creal d_vx = dvx / (this->nVelocitySamples-1);
-      creal d_vy = dvy / (this->nVelocitySamples-1);
-      creal d_vz = dvz / (this->nVelocitySamples-1);
-      Real avg = 0.0;
-   //#pragma omp parallel for collapse(6) reduction(+:avg)
-      for (uint vi=0; vi<this->nVelocitySamples; ++vi)
-      for (uint vj=0; vj<this->nVelocitySamples; ++vj)
-         for (uint vk=0; vk<this->nVelocitySamples; ++vk)
-            {
-               avg += getDistribValue(vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
-            }
-            return avg / (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
-   }
+   Real MultiPeak::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+      /*
+      // This is for debugging AMR, can be removed later
+      if (vz < 0 || vz > 1e5) return 0.0;
+      const Real v_limit = 0.75e5;
+      if (vx > v_limit) {
+	 if (fabs(vy) > v_limit) return 0.0;
+      }
+      if (vx < -v_limit) {
+	 if (fabs(vy) > v_limit) return 0.0;
+      }
+      */
+      
+      // Iterative sampling of the distribution function. Keep track of the 
+      // accumulated volume average over the iterations. When the next 
+      // iteration improves the average by less than 1%, return the value.
+      Real avgTotal = 0.0;
+      bool ok = false;
+      int N = nVelocitySamples; // Start by using nVelocitySamples
+      int N3_sum = 0;           // Sum of sampling points used so far
+      do {
+	 Real avg = 0.0;        // Volume average obtained during this sampling
+	 creal DVX = dvx / N; 
+	 creal DVY = dvy / N;
+	 creal DVZ = dvz / N;
 
+	 // Sample the distribution using N*N*N points
+	 for (uint vi=0; vi<N; ++vi) {
+	    for (uint vj=0; vj<N; ++vj) {
+	       for (uint vk=0; vk<N; ++vk) {
+		  creal VX = vx + 0.5*DVX + vi*DVX;
+		  creal VY = vy + 0.5*DVY + vj*DVX;
+		  creal VZ = vz + 0.5*DVZ + vk*DVX;
+		  avg += getDistribValue(VX,VY,VZ,DVX,DVY,DVZ);
+	       }
+	    }
+	 }
+
+	 // Compare the current and accumulated volume averages:
+	 Real avgAccum   = avgTotal / (1e-30 + N3_sum);
+	 Real avgCurrent = avg / (N*N*N);
+	 if (fabs(avgCurrent-avgAccum)/(avgAccum+1e-30) < 0.01) ok = true;
+
+	 avgTotal += avg;
+	 N3_sum += N*N*N;
+	 ++N;
+      } while (ok == false);
+
+      return avgTotal / N3_sum;
+   }
 
    void MultiPeak::calcCellParameters(Real* cellParams,creal& t) {
       setRandomCellSeed(cellParams);
