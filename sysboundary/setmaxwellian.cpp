@@ -111,8 +111,7 @@ namespace SBC {
             maxwellianDistribution(
                rho,
                T,
-	       counter*SpatialCell::get_velocity_base_grid_block_size()[0], 0.0, 0.0
-				   
+               counter*SpatialCell::get_velocity_base_grid_block_size()[0], 0.0, 0.0
             )
             ||
             counter > P::vxblocks_ini
@@ -128,9 +127,9 @@ namespace SBC {
       for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
          for (uint jv=0; jv<P::vyblocks_ini; ++jv)
             for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
-	       creal vx = P::vxmin + (iv+0.5) * SpatialCell::get_velocity_base_grid_block_size()[0]; // vx-coordinate of the centre
-	       creal vy = P::vymin + (jv+0.5) * SpatialCell::get_velocity_base_grid_block_size()[1]; // vy-
-	       creal vz = P::vzmin + (kv+0.5) * SpatialCell::get_velocity_base_grid_block_size()[2]; // vz-
+               creal vx = P::vxmin + (iv+0.5) * SpatialCell::get_velocity_base_grid_block_size()[0]; // vx-coordinate of the centre
+               creal vy = P::vymin + (jv+0.5) * SpatialCell::get_velocity_base_grid_block_size()[1]; // vy-
+               creal vz = P::vzmin + (kv+0.5) * SpatialCell::get_velocity_base_grid_block_size()[2]; // vz-
 
                if((vx-VX0)*(vx-VX0) + (vy-VY0)*(vy-VY0) + (vz-VZ0)*(vz-VZ0) < vRadiusSquared) {
                   cell.add_velocity_block(cell.get_velocity_block(vx, vy, vz));
@@ -180,15 +179,15 @@ namespace SBC {
       vector<uint> blocksToInitialize = this->findBlocksToInitialize(templateCell, rho, T, Vx, Vy, Vz);
       
       for(uint i = 0; i < blocksToInitialize.size(); i++) {
-	 const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
-	 const vmesh::LocalID blockLID = templateCell.get_velocity_block_local_id(blockGID);
-	 const Real* block_parameters = templateCell.get_block_parameters(blockLID);
+         const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
+         const vmesh::LocalID blockLID = templateCell.get_velocity_block_local_id(blockGID);
+         const Real* block_parameters = templateCell.get_block_parameters(blockLID);
          creal vxBlock = block_parameters[BlockParams::VXCRD];
          creal vyBlock = block_parameters[BlockParams::VYCRD];
          creal vzBlock = block_parameters[BlockParams::VZCRD];
-	 creal dvxCell = block_parameters[BlockParams::DVX];
-	 creal dvyCell = block_parameters[BlockParams::DVY];
-	 creal dvzCell = block_parameters[BlockParams::DVZ];
+         creal dvxCell = block_parameters[BlockParams::DVX];
+         creal dvyCell = block_parameters[BlockParams::DVY];
+         creal dvzCell = block_parameters[BlockParams::DVZ];
          
          creal x = templateCell.parameters[CellParams::XCRD];
          creal y = templateCell.parameters[CellParams::YCRD];
