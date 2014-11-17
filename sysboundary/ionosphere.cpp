@@ -41,6 +41,7 @@ namespace SBC {
       Readparameters::add("ionosphere.centerY", "Y coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.centerZ", "Z coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.radius", "Radius of ionosphere (m).", 1.0e7);
+      Readparameters::add("ionosphere.geometry", "Select the geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT)", 2);
       Readparameters::add("ionosphere.rho", "Number density of the ionosphere (m^-3)", 1.0e6);
       Readparameters::add("ionosphere.VX0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
       Readparameters::add("ionosphere.VY0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
@@ -65,6 +66,10 @@ namespace SBC {
          exit(1);
       }
       if(!Readparameters::get("ionosphere.radius", this->radius)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.geometry", this->geometry)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -127,9 +132,27 @@ namespace SBC {
          creal x = cellParams[CellParams::XCRD] + 0.5*dx;
          creal y = cellParams[CellParams::YCRD] + 0.5*dy;
          creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
-         creal r = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
+         Real r;
          
-         if(r < radius) {
+         switch(this->geometry) {
+            case 0:
+               // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
+               r = fabs(x) + fabs(y) + fabs(z);
+               break;
+            case 1:
+               // 1-norm, result is is a grid-aligned square in 2D
+               r = max(max(fabs(x), fabs(y)), fabs(z));
+               break;
+            case 2:
+               // 2-norm (Cartesian), result is a circle in 2D
+               r = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
+               break;
+            default:
+               std::cerr << __FILE__ << ":" << __LINE__ << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+               abort();
+         }
+         
+         if(r < this->radius) {
             mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
          }
       }
@@ -149,13 +172,6 @@ namespace SBC {
       }
       return true;
    }
-   
-//    bool Ionosphere::applySysBoundaryCondition(
-//       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-//       creal& t
-//    ) {
-//       return true;
-//    }
    
    Real Ionosphere::fieldSolverBoundaryCondMagneticField(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
