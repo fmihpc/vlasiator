@@ -139,6 +139,13 @@ namespace projects {
          creal dvyCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
          creal dvzCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
+         creal x = cell->parameters[CellParams::XCRD];
+         creal y = cell->parameters[CellParams::YCRD];
+         creal z = cell->parameters[CellParams::ZCRD];
+         creal dx = cell->parameters[CellParams::DX];
+         creal dy = cell->parameters[CellParams::DY];
+         creal dz = cell->parameters[CellParams::DZ];
+
          // Calculate volume average of distrib. function for each cell in the block.
          for (uint kc=0; kc<WID; ++kc) 
             for (uint jc=0; jc<WID; ++jc) 

@@ -248,14 +248,13 @@ namespace SBC {
       if(to->sysBoundaryLayer == 1) { // Do this only for the first layer, the other layers do not need this.
 
          if (allowBlockAdjustment) {
-         /*prepare list of blocks to remove. It is not safe to loop over
-          * velocity_block_list while adding/removing blocks*/
+         // prepare list of blocks to remove. It is not safe to loop over velocity_block_list while adding/removing blocks
             std::vector<uint> blocksToRemove;
             for (vmesh::LocalID block_i=0; block_i<to->get_number_of_velocity_blocks(); ++block_i) {
-            const vmesh::GlobalID blockGID = to->get_velocity_block_global_id(block_i);
+               const vmesh::GlobalID blockGID = to->get_velocity_block_global_id(block_i);
 
-            // If this block does not exist in from, mark it for removal.
-            if (from->get_velocity_block_local_id(blockGID) == from->invalid_local_id()) {
+               // If this block does not exist in from, mark it for removal.
+               if (from->get_velocity_block_local_id(blockGID) == from->invalid_local_id()) {
                   blocksToRemove.push_back(blockGID);
                }
             }
