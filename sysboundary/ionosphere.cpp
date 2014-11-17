@@ -148,7 +148,7 @@ namespace SBC {
                r = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
                break;
             default:
-               std::cerr << __FILE__ << ":" << __LINE__ << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
                abort();
          }
          
@@ -169,8 +169,205 @@ namespace SBC {
          SpatialCell* cell = mpiGrid[cells[i]];
          if(cell->sysBoundaryFlag != this->getIndex()) continue;
          setCellFromTemplate(cell);
+         
+         if(mpiGrid[cells[i]]->sysBoundaryLayer == 1) {
+            std::array<Real, 3> normalDirection = fieldSolverGetNormalDirection(mpiGrid, cells[i]);
+         }
       }
       return true;
+   }
+   
+   std::array<Real, 3> Ionosphere::fieldSolverGetNormalDirection(
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID
+   ) {
+      std::array<Real, 3> normalDirection{{ 0.0, 0.0, 0.0 }};
+      
+      static creal DIAG2 = 1.0 / sqrt(2.0);
+      static creal DIAG3 = 1.0 / sqrt(3.0);
+      
+      creal dx = mpiGrid[cellID]->parameters[CellParams::DX];
+      creal dy = mpiGrid[cellID]->parameters[CellParams::DY];
+      creal dz = mpiGrid[cellID]->parameters[CellParams::DZ];
+      creal x = mpiGrid[cellID]->parameters[CellParams::XCRD] + 0.5*dx;
+      creal y = mpiGrid[cellID]->parameters[CellParams::YCRD] + 0.5*dy;
+      creal z = mpiGrid[cellID]->parameters[CellParams::ZCRD] + 0.5*dz;
+      creal xsign = divideIfNonZero(x, fabs(x));
+      creal ysign = divideIfNonZero(y, fabs(y));
+      creal zsign = divideIfNonZero(z, fabs(z));
+      
+      Real length = 0.0;
+      
+      if (Parameters::xcells_ini == 1) {
+         if (Parameters::ycells_ini == 1) {
+            if (Parameters::zcells_ini == 1) {
+               // X,Y,Z
+               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "What do you expect to do with a single-cell simulation of ionosphere boundary type? Stop kidding." << std::endl;
+               abort();
+               // end of X,Y,Z
+            } else {
+               // X,Y
+               normalDirection[2] = zsign;
+               // end of X,Y
+            }
+         } else if (Parameters::zcells_ini == 1) {
+            // X,Z
+            normalDirection[1] = ysign;
+            // end of X,Z
+         } else {
+            // X
+            switch(this->geometry) {
+               case 0:
+                  normalDirection[1] = DIAG2*ysign;
+                  normalDirection[2] = DIAG2*zsign;
+                  break;
+               case 1:
+                  if(fabs(y) > (this->radius - dy)) {
+                     normalDirection[1] = ysign;
+                  }
+                  if(fabs(z) > (this->radius - dz)) {
+                     normalDirection[2] = zsign;
+                  }
+                  if(fabs(y) == fabs(z)) {
+                     normalDirection[1] = ysign*DIAG2;
+                     normalDirection[2] = zsign*DIAG2;
+                  }
+                  break;
+               case 2:
+                  length = sqrt(y*y + z*z);
+                  normalDirection[1] = y / length;
+                  normalDirection[2] = z / length;
+                  break;
+               default:
+                  std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+                  abort();
+            }
+            // end of X
+         }
+      } else if (Parameters::ycells_ini == 1) {
+         if (Parameters::zcells_ini == 1) {
+            // Y,Z
+            normalDirection[0] = xsign;
+            // end of Y,Z
+         } else {
+            // Y
+            switch(this->geometry) {
+               case 0:
+                  normalDirection[0] = DIAG3*xsign;
+                  normalDirection[2] = DIAG3*zsign;
+                  break;
+               case 1:
+                  if(fabs(x) > (this->radius - dx)) {
+                     normalDirection[0] = xsign;
+                  }
+                  if(fabs(z) > (this->radius - dz)) {
+                     normalDirection[2] = zsign;
+                  }
+                  if(fabs(x) == fabs(z)) {
+                     normalDirection[0] = xsign*DIAG2;
+                     normalDirection[2] = zsign*DIAG2;
+                  }
+                  break;
+               case 2:
+                  length = sqrt(x*x + z*z);
+                  normalDirection[0] = x / length;
+                  normalDirection[2] = z / length;
+                  break;
+               default:
+                  std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+                  abort();
+            }
+            // end of Y
+         }
+      } else if (Parameters::zcells_ini == 1) {
+         // Z
+         switch(this->geometry) {
+            case 0:
+               normalDirection[0] = DIAG3*xsign;
+               normalDirection[1] = DIAG3*ysign;
+               break;
+            case 1:
+               if(fabs(x) > (this->radius - dx)) {
+                  normalDirection[0] = xsign;
+               }
+               if(fabs(y) > (this->radius - dy)) {
+                  normalDirection[1] = ysign;
+               }
+               if(fabs(x) == fabs(y)) {
+                  normalDirection[0] = xsign*DIAG2;
+                  normalDirection[1] = ysign*DIAG2;
+               }
+               break;
+            case 2:
+               length = sqrt(x*x + y*y);
+               normalDirection[0] = x / length;
+               normalDirection[1] = y / length;
+               break;
+            default:
+               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+               abort();
+         }
+         // end of Z
+      } else {
+         // 3D
+         switch(this->geometry) {
+            case 0:
+               normalDirection[0] = DIAG3*xsign;
+               normalDirection[1] = DIAG3*ysign;
+               normalDirection[2] = DIAG3*zsign;
+               break;
+            case 1:
+               if(fabs(x) == fabs(y) && fabs(x) == fabs(z) && fabs(x) > this->radius - dx) {
+                  normalDirection[0] = xsign*DIAG3;
+                  normalDirection[1] = ysign*DIAG3;
+                  normalDirection[2] = zsign*DIAG3;
+                  break;
+               }
+               if(fabs(x) == fabs(y) && fabs(x) > this->radius - dx) {
+                  normalDirection[0] = xsign*DIAG2;
+                  normalDirection[1] = ysign*DIAG2;
+                  normalDirection[2] = 0.0;
+                  break;
+               }
+               if(fabs(y) == fabs(z) && fabs(y) > this->radius - dy) {
+                  normalDirection[0] = 0.0;
+                  normalDirection[1] = ysign*DIAG2;
+                  normalDirection[2] = zsign*DIAG2;
+                  break;
+               }
+               if(fabs(x) == fabs(z) && fabs(x) > this->radius - dz) {
+                  normalDirection[0] = xsign*DIAG2;
+                  normalDirection[1] = 0.0;
+                  normalDirection[2] = zsign*DIAG2;
+                  break;
+               }
+               if(fabs(x) > (this->radius - dx)) {
+                  normalDirection[0] = xsign;
+               }
+               if(fabs(y) > (this->radius - dy)) {
+                  normalDirection[1] = ysign;
+               }
+               if(fabs(z) > (this->radius - dz)) {
+                  normalDirection[2] = zsign;
+               }
+               break;
+            case 2:
+               length = sqrt(x*x + y*y + z*z);
+               normalDirection[0] = x / length;
+               normalDirection[1] = y / length;
+               normalDirection[2] = z / length;
+               break;
+            default:
+               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+               abort();
+         }
+         // end of 3D
+      }
+      
+      // Uncomment following line for debugging output to evaluate the correctness of the results. Best used with a single process and single thread.
+//       std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
+      
+      return normalDirection;
    }
    
    Real Ionosphere::fieldSolverBoundaryCondMagneticField(
