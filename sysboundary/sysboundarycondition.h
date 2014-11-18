@@ -116,7 +116,11 @@ namespace SBC {
             creal dx, creal dy, creal dz
          );
          void copyCellData(SpatialCell *from, SpatialCell *to,bool allowBlockAdjustment);
-         CellID getClosestNonsysboundaryCell(
+         CellID getTheClosestNonsysboundaryCell(
+            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            const CellID& cellID
+         );
+         std::vector<CellID> getAllClosestNonsysboundaryCells(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID
          );

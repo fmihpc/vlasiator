@@ -169,10 +169,6 @@ namespace SBC {
          SpatialCell* cell = mpiGrid[cells[i]];
          if(cell->sysBoundaryFlag != this->getIndex()) continue;
          setCellFromTemplate(cell);
-         
-         if(mpiGrid[cells[i]]->sysBoundaryLayer == 1) {
-            std::array<Real, 3> normalDirection = fieldSolverGetNormalDirection(mpiGrid, cells[i]);
-         }
       }
       return true;
    }
@@ -181,6 +177,7 @@ namespace SBC {
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
    ) {
+      phiprof::start("Ionosphere::fieldSolverGetNormalDirection");
       std::array<Real, 3> normalDirection{{ 0.0, 0.0, 0.0 }};
       
       static creal DIAG2 = 1.0 / sqrt(2.0);
@@ -222,15 +219,26 @@ namespace SBC {
                   normalDirection[2] = DIAG2*zsign;
                   break;
                case 1:
-                  if(fabs(y) > (this->radius - dy)) {
-                     normalDirection[1] = ysign;
-                  }
-                  if(fabs(z) > (this->radius - dz)) {
-                     normalDirection[2] = zsign;
-                  }
                   if(fabs(y) == fabs(z)) {
                      normalDirection[1] = ysign*DIAG2;
                      normalDirection[2] = zsign*DIAG2;
+                     break;
+                  }
+                  if(fabs(y) > (this->radius - dy)) {
+                     normalDirection[1] = ysign;
+                     break;
+                  }
+                  if(fabs(z) > (this->radius - dz)) {
+                     normalDirection[2] = zsign;
+                     break;
+                  }
+                  if(fabs(y) > (this->radius - 2.0*dy)) {
+                     normalDirection[1] = ysign;
+                     break;
+                  }
+                  if(fabs(z) > (this->radius - 2.0*dz)) {
+                     normalDirection[2] = zsign;
+                     break;
                   }
                   break;
                case 2:
@@ -253,19 +261,30 @@ namespace SBC {
             // Y
             switch(this->geometry) {
                case 0:
-                  normalDirection[0] = DIAG3*xsign;
-                  normalDirection[2] = DIAG3*zsign;
+                  normalDirection[0] = DIAG2*xsign;
+                  normalDirection[2] = DIAG2*zsign;
                   break;
                case 1:
-                  if(fabs(x) > (this->radius - dx)) {
-                     normalDirection[0] = xsign;
-                  }
-                  if(fabs(z) > (this->radius - dz)) {
-                     normalDirection[2] = zsign;
-                  }
                   if(fabs(x) == fabs(z)) {
                      normalDirection[0] = xsign*DIAG2;
                      normalDirection[2] = zsign*DIAG2;
+                     break;
+                  }
+                  if(fabs(x) > (this->radius - dx)) {
+                     normalDirection[0] = xsign;
+                     break;
+                  }
+                  if(fabs(z) > (this->radius - dz)) {
+                     normalDirection[2] = zsign;
+                     break;
+                  }
+                  if(fabs(x) > (this->radius - 2.0*dx)) {
+                     normalDirection[0] = xsign;
+                     break;
+                  }
+                  if(fabs(z) > (this->radius - 2.0*dz)) {
+                     normalDirection[2] = zsign;
+                     break;
                   }
                   break;
                case 2:
@@ -283,19 +302,30 @@ namespace SBC {
          // Z
          switch(this->geometry) {
             case 0:
-               normalDirection[0] = DIAG3*xsign;
-               normalDirection[1] = DIAG3*ysign;
+               normalDirection[0] = DIAG2*xsign;
+               normalDirection[1] = DIAG2*ysign;
                break;
             case 1:
-               if(fabs(x) > (this->radius - dx)) {
-                  normalDirection[0] = xsign;
-               }
-               if(fabs(y) > (this->radius - dy)) {
-                  normalDirection[1] = ysign;
-               }
                if(fabs(x) == fabs(y)) {
                   normalDirection[0] = xsign*DIAG2;
                   normalDirection[1] = ysign*DIAG2;
+                  break;
+               }
+               if(fabs(x) > (this->radius - dx)) {
+                  normalDirection[0] = xsign;
+                  break;
+               }
+               if(fabs(y) > (this->radius - dy)) {
+                  normalDirection[1] = ysign;
+                  break;
+               }
+               if(fabs(x) > (this->radius - 2.0*dx)) {
+                  normalDirection[0] = xsign;
+                  break;
+               }
+               if(fabs(y) > (this->radius - 2.0*dy)) {
+                  normalDirection[1] = ysign;
+                  break;
                }
                break;
             case 2:
@@ -323,19 +353,43 @@ namespace SBC {
                   normalDirection[2] = zsign*DIAG3;
                   break;
                }
-               if(fabs(x) == fabs(y) && fabs(x) > this->radius - dx) {
+               if(fabs(x) == fabs(y) && fabs(x) == fabs(z) && fabs(x) > this->radius - 2.0*dx) {
+                  normalDirection[0] = xsign*DIAG3;
+                  normalDirection[1] = ysign*DIAG3;
+                  normalDirection[2] = zsign*DIAG3;
+                  break;
+               }
+               if(fabs(x) == fabs(y) && fabs(x) > this->radius - dx && fabs(z) < this->radius - dz) {
                   normalDirection[0] = xsign*DIAG2;
                   normalDirection[1] = ysign*DIAG2;
                   normalDirection[2] = 0.0;
                   break;
                }
-               if(fabs(y) == fabs(z) && fabs(y) > this->radius - dy) {
+               if(fabs(y) == fabs(z) && fabs(y) > this->radius - dy && fabs(x) < this->radius - dx) {
                   normalDirection[0] = 0.0;
                   normalDirection[1] = ysign*DIAG2;
                   normalDirection[2] = zsign*DIAG2;
                   break;
                }
-               if(fabs(x) == fabs(z) && fabs(x) > this->radius - dz) {
+               if(fabs(x) == fabs(z) && fabs(x) > this->radius - dx && fabs(y) < this->radius - dy) {
+                  normalDirection[0] = xsign*DIAG2;
+                  normalDirection[1] = 0.0;
+                  normalDirection[2] = zsign*DIAG2;
+                  break;
+               }
+               if(fabs(x) == fabs(y) && fabs(x) > this->radius - 2.0*dx && fabs(z) < this->radius - 2.0*dz) {
+                  normalDirection[0] = xsign*DIAG2;
+                  normalDirection[1] = ysign*DIAG2;
+                  normalDirection[2] = 0.0;
+                  break;
+               }
+               if(fabs(y) == fabs(z) && fabs(y) > this->radius - 2.0*dy && fabs(x) < this->radius - 2.0*dx) {
+                  normalDirection[0] = 0.0;
+                  normalDirection[1] = ysign*DIAG2;
+                  normalDirection[2] = zsign*DIAG2;
+                  break;
+               }
+               if(fabs(x) == fabs(z) && fabs(x) > this->radius - 2.0*dx && fabs(y) < this->radius - 2.0*dy) {
                   normalDirection[0] = xsign*DIAG2;
                   normalDirection[1] = 0.0;
                   normalDirection[2] = zsign*DIAG2;
@@ -343,12 +397,27 @@ namespace SBC {
                }
                if(fabs(x) > (this->radius - dx)) {
                   normalDirection[0] = xsign;
+                  break;
                }
                if(fabs(y) > (this->radius - dy)) {
                   normalDirection[1] = ysign;
+                  break;
                }
                if(fabs(z) > (this->radius - dz)) {
                   normalDirection[2] = zsign;
+                  break;
+               }
+               if(fabs(x) > (this->radius - 2.0*dx)) {
+                  normalDirection[0] = xsign;
+                  break;
+               }
+               if(fabs(y) > (this->radius - 2.0*dy)) {
+                  normalDirection[1] = ysign;
+                  break;
+               }
+               if(fabs(z) > (this->radius - 2.0*dz)) {
+                  normalDirection[2] = zsign;
+                  break;
                }
                break;
             case 2:
@@ -364,20 +433,52 @@ namespace SBC {
          // end of 3D
       }
       
-      // Uncomment following line for debugging output to evaluate the correctness of the results. Best used with a single process and single thread.
+      // Uncomment one of the following line for debugging output to evaluate the correctness of the results. Best used with a single process and single thread.
+//       if (mpiGrid[cellID]->sysBoundaryLayer == 1) std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
+//       if (mpiGrid[cellID]->sysBoundaryLayer == 2) std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
 //       std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
-      
+      phiprof::stop("Ionosphere::fieldSolverGetNormalDirection");
       return normalDirection;
    }
    
+   /*! We want here to
+    * -- Average perturbed face B from the nearest neighbours
+    * -- Retain only the normal components of perturbed face B
+    */
    Real Ionosphere::fieldSolverBoundaryCondMagneticField(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       creal& dt,
       cuint& component
    ) {
-      // The perturbed magnetic field is reset to 0.0, the dipole field is in the background component.
-      return 0.0;
+      std::vector<CellID> closestCells = getAllClosestNonsysboundaryCells(mpiGrid, cellID);
+      if (closestCells.size() == 1 && closestCells[0] == INVALID_CELLID) {
+         std::cerr << __FILE__ << ":" << __LINE__ << ":" << "No closest cells found!" << std::endl;
+         abort();
+      }
+      
+      // Sum perturbed B component over all nearest NOT_SYSBOUNDARY neighbours
+      std::array<Real, 3> averageB = {{ 0.0 }};
+      int offset;
+      if (dt == 0.0) {
+         offset = 0;
+      } else {
+         offset = CellParams::PERBX_DT2 - CellParams::PERBX;
+      }
+      for(uint i=0; i<closestCells.size(); i++) {
+         averageB[0] += mpiGrid[closestCells[i]]->parameters[CellParams::PERBX+offset];
+         averageB[1] += mpiGrid[closestCells[i]]->parameters[CellParams::PERBY+offset];
+         averageB[2] += mpiGrid[closestCells[i]]->parameters[CellParams::PERBZ+offset];
+      }
+      
+      // Average and project to normal direction
+      std::array<Real, 3> normalDirection = fieldSolverGetNormalDirection(mpiGrid, cellID);
+      for(uint i=0; i<3; i++) {
+         averageB[i] *= normalDirection[i] / closestCells.size();
+      }
+      
+      // Return (|B_proj|*n)[component]
+      return sqrt(averageB[0]*averageB[0]+averageB[1]*averageB[1]+averageB[2]*averageB[2])*normalDirection[component];
    }
    
    void Ionosphere::fieldSolverBoundaryCondElectricField(
