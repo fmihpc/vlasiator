@@ -63,7 +63,7 @@ void initializeGrid(
    }
    
    MPI_Comm comm = MPI_COMM_WORLD;
-   int neighborhood_size = 2; // At least this needed by fieldsolver. It is also fine for vlasovsolver
+   int neighborhood_size = max(FS_STENCIL_WIDTH, VLASOV_STENCIL_WIDTH); 
 
    const boost::array<uint64_t, 3> grid_length = {{P::xcells_ini, P::ycells_ini, P::zcells_ini}};
    dccrg::Cartesian_Geometry::Parameters geom_params;
@@ -144,8 +144,7 @@ void initializeGrid(
       #pragma omp parallel for schedule(dynamic)
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
-         project.setCellBackgroundField(cell);
-         
+         project.setCellBackgroundField(cell);         
 	 if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             project.setCell(cell);
 	 }
@@ -427,9 +426,8 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
  */
 void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    std::vector<CellID> cells = mpiGrid.get_cells();
-   const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary();
-
-   // append remote cells to cells
+   const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(DIST_FUNC_NEIGHBORHOOD_ID);
+      // append remote cells to cells
    cells.insert(cells.end(),remote_cells.begin(),remote_cells.end());
    #pragma omp parallel for
    for(size_t i=0; i<cells.size(); ++i) {
@@ -616,17 +614,6 @@ SHIFT_P_X   xo
 */
 
 void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
-   
-#ifdef TRANS_SEMILAG_PLM
-   const int vlasov_stencil_width=1;
-#endif
-#if TRANS_SEMILAG_PPM
-   const int vlasov_stencil_width=2;
-#endif
-#if TRANS_SEMILAG_PQM
-   const int vlasov_stencil_width=3;
-#endif
-   
    // set reduced neighborhoods
    typedef dccrg::Types<3>::neighborhood_item_t neigh_t;
    
@@ -661,22 +648,23 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    }
    mpiGrid.add_neighborhood(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID, neighborhood);
 
-   if(vlasov_stencil_width>=3) {
-      /*add face neighbors if stencil width larger than 2*/
-      neighborhood.push_back({{ vlasov_stencil_width, 0, 0}});
-      neighborhood.push_back({{-vlasov_stencil_width, 0, 0}});
-      neighborhood.push_back({{0, vlasov_stencil_width, 0}});
-      neighborhood.push_back({{0,-vlasov_stencil_width, 0}});
-      neighborhood.push_back({{0, 0, vlasov_stencil_width}});
-      neighborhood.push_back({{0, 0,-vlasov_stencil_width}});     
+   /*add face neighbors if stencil width larger than 2*/
+   for (int d = 3; d <= VLASOV_STENCIL_WIDTH; d++) {
+      neighborhood.push_back({{ d, 0, 0}});
+      neighborhood.push_back({{-d, 0, 0}});
+      neighborhood.push_back({{0, d, 0}});
+      neighborhood.push_back({{0,-d, 0}});
+      neighborhood.push_back({{0, 0, d}});
+      neighborhood.push_back({{0, 0,-d}});     
    }
+   
    /*all possible communication pairs*/
    mpiGrid.add_neighborhood(FULL_NEIGHBORHOOD_ID, neighborhood);
 
    
    /*stencils for semilagrangian propagators*/ 
    neighborhood.clear();
-   for (int d = -vlasov_stencil_width; d <= vlasov_stencil_width; d++) {
+   for (int d = -VLASOV_STENCIL_WIDTH; d <= VLASOV_STENCIL_WIDTH; d++) {
      if (d != 0) {
         neighborhood.push_back({{d, 0, 0}});
         neighborhood.push_back({{0, d, 0}});
@@ -702,7 +690,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    mpiGrid.add_neighborhood(DIST_FUNC_NEIGHBORHOOD_ID, neighborhood);
    
    neighborhood.clear();
-   for (int d = -vlasov_stencil_width; d <= vlasov_stencil_width; d++) {
+   for (int d = -VLASOV_STENCIL_WIDTH; d <= VLASOV_STENCIL_WIDTH; d++) {
      if (d != 0) {
         neighborhood.push_back({{d, 0, 0}});
      }
@@ -711,7 +699,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
    
    neighborhood.clear();
-   for (int d = -vlasov_stencil_width; d <= vlasov_stencil_width; d++) {
+   for (int d = -VLASOV_STENCIL_WIDTH; d <= VLASOV_STENCIL_WIDTH; d++) {
      if (d != 0) {
         neighborhood.push_back({{0, d, 0}});
      }
@@ -720,7 +708,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
    
    neighborhood.clear();
-   for (int d = -vlasov_stencil_width; d <= vlasov_stencil_width; d++) {
+   for (int d = -VLASOV_STENCIL_WIDTH; d <= VLASOV_STENCIL_WIDTH; d++) {
      if (d != 0) {
         neighborhood.push_back({{0, 0, d}});
      }

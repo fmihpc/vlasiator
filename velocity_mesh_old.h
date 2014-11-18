@@ -359,6 +359,7 @@ namespace vmesh {
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::push_back(const GID& globalID) {
       if (size() >= max_velocity_blocks) return false;
+      if (globalID == invalidGlobalID()) return false;
 
       std::pair<typename std::unordered_map<GID,LID>::iterator,bool> position
 	= globalToLocalMap.insert(std::make_pair(globalID,localToGlobalMap.size()));

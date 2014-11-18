@@ -39,8 +39,8 @@ namespace projects {
       RP::add("Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
       RP::add("Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
       RP::add("Magnetosphere.dipoleScalingFactor","Scales the field strength of the magnetic dipole compared to Earths.", 1.0);
-      RP::add("Magnetosphere.dipoleType","0: Normal 3D dipole, 1: line-dipole for 2D polar simulations, 2: line-dipole with mirror", 0);
-      RP::add("Magnetosphere.dipoleMirrorLocationX","x-coordinate of line-dipoleMirror", -1.0);
+      RP::add("Magnetosphere.dipoleType","0: Normal 3D dipole, 1: line-dipole for 2D polar simulations, 2: line-dipole with mirror, 3: 3D dipole with mirror", 0);
+      RP::add("Magnetosphere.dipoleMirrorLocationX","x-coordinate of dipole Mirror", -1.0);
 
    }
    
@@ -190,7 +190,7 @@ namespace projects {
 
          switch(this->dipoleType) {
              case 0:
-                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0 );//set dipole moment
+                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
                 setBackgroundField(bgFieldDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
                 break;
              case 1:
@@ -203,7 +203,15 @@ namespace projects {
                 //Append mirror dipole
                 bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0 );
                 setBackgroundField(bgFieldLineDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL, true);
-                break;                
+                break;
+             case 3:
+                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
+                setBackgroundField(bgFieldDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
+                //Append mirror dipole                
+                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0, 0.0 );//mirror
+                setBackgroundField(bgFieldDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL, true);
+                break;
+                
              default:
                 setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
                 

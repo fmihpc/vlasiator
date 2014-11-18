@@ -12,24 +12,17 @@ Copyright 2013, 2014 Finnish Meteorological Institute
 #include "algorithm"
 #include "cmath"
 #include "cpu_slope_limiters.hpp"
+#include "cpu_face_estimates.hpp"
 
 using namespace std;
 
 /*
   Compute parabolic reconstruction with an explicit scheme
 */
-inline void compute_ppm_coeff_explicit(const Vec4 * const values, face_estimate_order estimate, uint k, Vec4 a[3]){
+inline void compute_ppm_coeff(const Vec4 * const values, face_estimate_order order, uint k, Vec4 a[3]){
   Vec4 fv_l; /*left face value*/
   Vec4 fv_r; /*right face value*/
-  switch(estimate) {
-      case h4:
-         compute_filtered_h4_face_values(values, k, fv_l, fv_r); 
-         break;
-      case h6:
-         compute_filtered_h6_face_values(values, k, fv_l, fv_r); 
-         break;
-  }
-  
+  compute_filtered_face_values(values, k, order, fv_l, fv_r); 
 
   //Coella et al, check for monotonicity   
   Vec4 m_face = fv_l;

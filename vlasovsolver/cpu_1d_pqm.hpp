@@ -106,24 +106,14 @@ inline void filter_pqm_monotonicity(Vec4 *values, uint k, Vec4 &fv_l, Vec4 &fv_r
 //   White, Laurent, and Alistair Adcroft. “A High-Order Finite Volume Remapping Scheme for Nonuniform Grids: The Piecewise Quartic Method (PQM).” Journal of Computational Physics 227, no. 15 (July 2008): 7394–7422. doi:10.1016/j.jcp.2008.04.026.
 // */
 
-inline void compute_pqm_coeff_explicit(Vec4 *values, face_estimate_order estimate, uint k, Vec4 a[5]){
+inline void compute_pqm_coeff(Vec4 *values, face_estimate_order order, uint k, Vec4 a[5]){
    Vec4 fv_l; /*left face value*/
    Vec4 fv_r; /*right face value*/
    Vec4 fd_l; /*left face derivative*/
    Vec4 fd_r; /*right face derivative*/
 
-   switch(estimate) {
-      case h5:
-         compute_filtered_h5_face_values_derivatives(values, k, fv_l, fv_r, fd_l, fd_r); 
-         break;
-      case h6:
-         compute_filtered_h6_face_values_derivatives(values, k, fv_l, fv_r, fd_l, fd_r); 
-         break;
-      case h8:
-         compute_filtered_h8_face_values_derivatives(values, k, fv_l, fv_r, fd_l, fd_r); 
-         break;
-  }
-  filter_pqm_monotonicity(values, k, fv_l, fv_r, fd_l, fd_r); 
+   compute_filtered_face_values_derivatives(values, k, order, fv_l, fv_r, fd_l, fd_r); 
+   filter_pqm_monotonicity(values, k, fv_l, fv_r, fd_l, fd_r); 
 
   //Fit a second order polynomial for reconstruction see, e.g., White
   //2008 (PQM article) (note additional integration factors built in,
