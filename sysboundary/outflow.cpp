@@ -188,7 +188,7 @@ namespace SBC {
       const CellID& cellID,
       cuint& component
    ) {
-      const CellID closestCell = getClosestNonsysboundaryCell(mpiGrid, cellID);
+      const CellID closestCell = getTheClosestNonsysboundaryCell(mpiGrid, cellID);
       
       if(closestCell == INVALID_CELLID) {
          cerr << cellID << " " << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
@@ -381,7 +381,7 @@ namespace SBC {
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
    ) {
-      const CellID closestCell = getClosestNonsysboundaryCell(mpiGrid, cellID);
+      const CellID closestCell = getTheClosestNonsysboundaryCell(mpiGrid, cellID);
       
       if(closestCell == INVALID_CELLID) {
          cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
