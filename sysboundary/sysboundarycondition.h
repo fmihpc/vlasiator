@@ -124,6 +124,10 @@ namespace SBC {
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID
          );
+         void vlasovBoundaryCopyFromExistingFaceNbr(
+            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            const CellID& cellID
+         );
          
          /*! Precedence value of the system boundary condition. */
          uint precedence;
