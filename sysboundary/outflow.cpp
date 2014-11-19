@@ -377,20 +377,6 @@ namespace SBC {
 //      phiprof::stop("vlasovBoundaryCondition (Outflow)");
    }
    
-   void Outflow::vlasovBoundaryCopyFromExistingFaceNbr(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID
-   ) {
-      const CellID closestCell = getTheClosestNonsysboundaryCell(mpiGrid, cellID);
-      
-      if(closestCell == INVALID_CELLID) {
-         cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
-         abort();
-      }
-      //Do not allow block adjustment, the block structure when calling vlasovBoundaryCondition should be static
-      copyCellData(mpiGrid[closestCell], mpiGrid[cellID],false);
-   }
-   
    void Outflow::getFaces(bool* faces) {
       for(uint i=0; i<6; i++) faces[i] = facesToProcess[i];
    }
