@@ -54,10 +54,6 @@ namespace SBC {
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             Project &project
          );
-//          virtual bool applySysBoundaryCondition(
-//             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-//             creal& t
-//          );
          virtual Real fieldSolverBoundaryCondMagneticField(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
@@ -115,7 +111,11 @@ namespace SBC {
             creal x, creal y, creal z,
             creal dx, creal dy, creal dz
          );
-         void copyCellData(SpatialCell *from, SpatialCell *to,bool allowBlockAdjustment);
+         void copyCellData(
+            SpatialCell *from,
+            SpatialCell *to,
+            bool allowBlockAdjustment
+         );
          CellID getTheClosestNonsysboundaryCell(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID
@@ -127,6 +127,11 @@ namespace SBC {
          void vlasovBoundaryCopyFromExistingFaceNbr(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID
+         );
+         void vlasovBoundaryReflect(
+            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            const CellID& cellID,
+            const std::array<Real, 3>& normalDirection
          );
          
          /*! Precedence value of the system boundary condition. */

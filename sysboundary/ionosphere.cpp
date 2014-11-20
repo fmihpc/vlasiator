@@ -855,10 +855,9 @@ namespace SBC {
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
    ) {
-      //phiprof::start("vlasovBoundaryCondition (Ionosphere)");
-      //No need to copy distribution function, will be constant throughout simulation
-      //copyCellData(&templateCell, mpiGrid[cellID],false);
-      //phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
+      phiprof::start("vlasovBoundaryCondition (Ionosphere)");
+      vlasovBoundaryReflect(mpiGrid, cellID, fieldSolverGetNormalDirection(mpiGrid, cellID));
+      phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
    }
    
    void Ionosphere::generateTemplateCell(Project &project) {
