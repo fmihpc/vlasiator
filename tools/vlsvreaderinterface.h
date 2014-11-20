@@ -92,10 +92,10 @@ namespace newVlsv {
          std::cerr << "ERROR, BAD VECTORSIZE AT " << __FILE__ << " " << __LINE__ << std::endl;
          return false;
       }
-      const uint16_t amountToReadIn = 1;
+      const uint64_t amountToReadIn = 1;
       char * buffer = new char[vectorSize * amountToReadIn * byteSize];
       //Read in variable to the buffer:
-      const uint16_t begin = findCell->second;
+      const uint64_t begin = findCell->second;
       if( readArray( "VARIABLE", xmlAttributes, begin, amountToReadIn, buffer ) == false ) return false;
       float * buffer_float = reinterpret_cast<float*>(buffer);
       double * buffer_double = reinterpret_cast<double*>(buffer);
