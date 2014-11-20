@@ -324,6 +324,60 @@ namespace SBC {
       to->parameters[CellParams::P_33] = from->parameters[CellParams::P_33];
    }
    
+   /*! Take neighboring distribution and reflect all parts going in the direction opposite to the normal vector given in.
+    * @param mpiGrid Grid
+    * @param cellID Cell in which to set the distribution where incoming velocity cells have been reflected/bounced.
+    * @param normalDirection Unit vector normal to the bounce/reflection plane.
+    */
+   void SysBoundaryCondition::vlasovBoundaryReflect(
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID,
+      const std::array<Real, 3>& normalDirection
+   ) {
+      SpatialCell * cell = mpiGrid[cellID];
+      SpatialCell * incomingCell = mpiGrid[this->getTheClosestNonsysboundaryCell(mpiGrid, cellID)];
+      
+      cell->clear();
+      
+      // add blocks
+      for (vmesh::LocalID blockLID=0; blockLID<incomingCell->get_number_of_velocity_blocks(); ++blockLID) {
+         const Real* blockParameters = incomingCell->get_block_parameters(blockLID);
+         // check where cells are
+         creal vxBlock = blockParameters[BlockParams::VXCRD];
+         creal vyBlock = blockParameters[BlockParams::VYCRD];
+         creal vzBlock = blockParameters[BlockParams::VZCRD];
+         creal dvxCell = blockParameters[BlockParams::DVX];
+         creal dvyCell = blockParameters[BlockParams::DVY];
+         creal dvzCell = blockParameters[BlockParams::DVZ];
+         for (uint kc=0; kc<WID; ++kc) 
+            for (uint jc=0; jc<WID; ++jc) 
+               for (uint ic=0; ic<WID; ++ic) {
+                  creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
+                  creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
+                  creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
+                  // scalar product v.n
+                  creal vNormal = vxCellCenter*normalDirection[0] + vyCellCenter*normalDirection[1] + vzCellCenter*normalDirection[2];
+                  if(vNormal >= 0.0) {
+                     // Not flowing in, leave as is.
+                     cell->increment_value(
+                        vxCellCenter,
+                        vyCellCenter,
+                        vzCellCenter,
+                        incomingCell->get_value(vxCellCenter, vyCellCenter, vzCellCenter)
+                     );
+                  } else {
+                     // Flowing in, bounce off.
+                     cell->increment_value(
+                        vxCellCenter - 2.0*vNormal*normalDirection[0],
+                        vyCellCenter - 2.0*vNormal*normalDirection[1],
+                        vzCellCenter - 2.0*vNormal*normalDirection[2],
+                        incomingCell->get_value(vxCellCenter, vyCellCenter, vzCellCenter)
+                     );
+                  }
+         }
+      }
+   }
+   
    /*! Get the cellID of the first closest cell of type NOT_SYSBOUNDARY found.
     * @return The cell index of that cell
     * @sa getAllClosestNonsysboundaryCells
