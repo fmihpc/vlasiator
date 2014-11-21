@@ -698,7 +698,7 @@ namespace spatial_cell {
       const vmesh::GlobalID blockGID = get_velocity_block(vx, vy, vz);
       if (count(blockGID) == 0) {
 	 if (!this->add_velocity_block(blockGID)) {
-	    std::cerr << "Couldn't add velocity block " << blockGID << std::endl;
+	    std::cerr << __FILE__ << ":" << __LINE__ << ": Couldn't add velocity block " << blockGID << std::endl;
 	    abort();
 	 }
       }
@@ -730,7 +730,7 @@ namespace spatial_cell {
    inline void SpatialCell::set_value(const vmesh::GlobalID& blockGID,const unsigned int cell, const Realf value) {
       if (count(blockGID) == 0) {
 	 if (!this->add_velocity_block(blockGID)) {
-	    std::cerr << "Couldn't add velocity block " << blockGID << std::endl;
+       std::cerr << __FILE__ << ":" << __LINE__ << ": Couldn't add velocity block " << blockGID << std::endl;
 	    abort();
 	 }
       }
@@ -752,7 +752,7 @@ namespace spatial_cell {
       const vmesh::GlobalID blockGID = get_velocity_block(vx, vy, vz);
       if (count(blockGID) == 0) {
 	 if (!this->add_velocity_block(blockGID)) {
-	    std::cerr << "Couldn't add velocity block " << blockGID << std::endl;
+       std::cerr << __FILE__ << ":" << __LINE__ << ": Couldn't add velocity block " << blockGID << std::endl;
 	    abort();
 	 }
       }
@@ -775,7 +775,7 @@ namespace spatial_cell {
    inline void SpatialCell::increment_value(const vmesh::GlobalID& blockGID,const unsigned int cell, const Real value) {
       if (count(blockGID) == 0) {
 	 if (!this->add_velocity_block(blockGID)) {
-	    std::cerr << "Couldn't add velocity block " << blockGID << std::endl;
+       std::cerr << __FILE__ << ":" << __LINE__ << ": Couldn't add velocity block " << blockGID << std::endl;
 	    abort();
 	 }
       }
