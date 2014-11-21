@@ -856,7 +856,21 @@ namespace SBC {
       const CellID& cellID
    ) {
       phiprof::start("vlasovBoundaryCondition (Ionosphere)");
-      vlasovBoundaryReflect(mpiGrid, cellID, fieldSolverGetNormalDirection(mpiGrid, cellID));
+      const SpatialCell * cell = mpiGrid[cellID];
+      const std::array<Real, 3> normalDirection = fieldSolverGetNormalDirection(mpiGrid, cellID);
+      const std::array<Real, 3> B = {{ cell->parameters[CellParams::BGBX] + cell->parameters[CellParams::PERBX_DT2],
+                                       cell->parameters[CellParams::BGBY] + cell->parameters[CellParams::PERBY_DT2],
+                                       cell->parameters[CellParams::BGBZ] + cell->parameters[CellParams::PERBZ_DT2] }};
+      creal Bmag = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
+      creal normalDotB = normalDirection[0]*B[0] + normalDirection[1]*B[1] + normalDirection[2]*B[2];
+      if (normalDotB > 0.0) {
+         vlasovBoundaryReflect(mpiGrid, cellID, B[0]/Bmag, B[1]/Bmag, B[2]/Bmag);
+      } else if (normalDotB < 0.0) {
+         vlasovBoundaryReflect(mpiGrid, cellID, -B[0]/Bmag, -B[1]/Bmag, -B[2]/Bmag);
+      } else if (normalDotB == 0.0) {
+         vlasovBoundaryReflect(mpiGrid, cellID, normalDirection[0], normalDirection[1], normalDirection[2]);
+      }
+      
       phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
    }
    
