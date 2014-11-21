@@ -131,7 +131,9 @@ namespace SBC {
          void vlasovBoundaryReflect(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
-            const std::array<Real, 3>& normalDirection
+            creal& nx,
+            creal& ny,
+            creal& nz
          );
          
          /*! Precedence value of the system boundary condition. */

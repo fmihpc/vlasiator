@@ -327,12 +327,16 @@ namespace SBC {
    /*! Take neighboring distribution and reflect all parts going in the direction opposite to the normal vector given in.
     * @param mpiGrid Grid
     * @param cellID Cell in which to set the distribution where incoming velocity cells have been reflected/bounced.
-    * @param normalDirection Unit vector normal to the bounce/reflection plane.
+    * @param nx Unit vector x component normal to the bounce/reflection plane.
+    * @param ny Unit vector y component normal to the bounce/reflection plane.
+    * @param nz Unit vector z component normal to the bounce/reflection plane.
     */
    void SysBoundaryCondition::vlasovBoundaryReflect(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
-      const std::array<Real, 3>& normalDirection
+      creal& nx,
+      creal& ny,
+      creal& nz
    ) {
       SpatialCell * cell = mpiGrid[cellID];
       SpatialCell * incomingCell = mpiGrid[this->getTheClosestNonsysboundaryCell(mpiGrid, cellID)];
@@ -356,7 +360,7 @@ namespace SBC {
                   creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
                   creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
                   // scalar product v.n
-                  creal vNormal = vxCellCenter*normalDirection[0] + vyCellCenter*normalDirection[1] + vzCellCenter*normalDirection[2];
+                  creal vNormal = vxCellCenter*nx + vyCellCenter*ny + vzCellCenter*nz;
                   if(vNormal >= 0.0) {
                      // Not flowing in, leave as is.
                      cell->increment_value(
@@ -368,9 +372,9 @@ namespace SBC {
                   } else {
                      // Flowing in, bounce off.
                      cell->increment_value(
-                        vxCellCenter - 2.0*vNormal*normalDirection[0],
-                        vyCellCenter - 2.0*vNormal*normalDirection[1],
-                        vzCellCenter - 2.0*vNormal*normalDirection[2],
+                        vxCellCenter - 2.0*vNormal*nx,
+                        vyCellCenter - 2.0*vNormal*ny,
+                        vzCellCenter - 2.0*vNormal*nz,
                         incomingCell->get_value(vxCellCenter, vyCellCenter, vzCellCenter)
                      );
                   }
