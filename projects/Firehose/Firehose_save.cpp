@@ -150,13 +150,13 @@ Real getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, cr
    
    return
    FH::rho[1] * pow(mass / (2.0 * M_PI * kb * FH::Tx[1]), 1.5) *
-   exp(- mass * (pow(vx - FH::Vx[1], 2.0) / (2.0 * kb * FH::Tx[1]) + 
-                 pow(vy - FH::Vy[1], 2.0) / (2.0 * kb * FH::Ty[1]) + 
-				 pow(vz - FH::Vz[1], 2.0) / (2.0 * kb * FH::Tz[1]))); 
+   exp(- mass * (pow(vx - FH::Vx[1], 2.0) / (2.0 * kb * FH::Tx[1])  
+                 pow(vy - FH::Vy[1], 2.0) / (2.0 * kb * FH::Ty[1]) +
+                 pow(vz - FH::Vz[1], 2.0) / (2.0 * kb * FH::Tz[1])));
 //   FH::rho[2] * pow(mass / (2.0 * M_PI * kb * FH::Tx[2]), 1.5) *
-//   exp(- mass * (pow(vx - FH::Vx[2], 2.0) / (2.0 * kb * FH::Tx[2]) + 
-//                 pow(vy - FH::Vy[2], 2.0) / (2.0 * kb * FH::Ty[2]) + 
-//				 pow(vz - FH::Vz[2], 2.0) / (2.0 * kb * FH::Tz[2]))); 
+//   exp(- mass * (pow(vx - FH::Vx[2], 2.0) / (2.0 * kb * FH::Tx[2]) +
+//                 pow(vy - FH::Vy[2], 2.0) / (2.0 * kb * FH::Ty[2]) +
+//                 pow(vz - FH::Vz[2], 2.0) / (2.0 * kb * FH::Tz[2])));
 }
 
 Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   
@@ -167,10 +167,10 @@ Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, c
 //#pragma omp parallel for collapse(6) reduction(+:avg)
    for (uint vi=0; vi<FH::nVelocitySamples; ++vi)
       for (uint vj=0; vj<FH::nVelocitySamples; ++vj)
-	 for (uint vk=0; vk<FH::nVelocitySamples; ++vk)
-	    {
-	       avg += getDistribValue(vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
-	    }
+         for (uint vk=0; vk<FH::nVelocitySamples; ++vk)
+         {
+            avg += getDistribValue(vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+         }
    return avg / pow(FH::nVelocitySamples, 3.0);
 }
 

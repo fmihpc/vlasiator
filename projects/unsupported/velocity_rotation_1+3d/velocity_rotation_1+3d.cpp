@@ -49,28 +49,28 @@ bool getProjectParameters(){return true;}
  * @return The integral of the distribution function over the given six-dimensional phase-space cell.
  */
 Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz, creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {
-	#define AMP (1.0 / dx / dy / dz / dvx / dvy / dvz)
-	#define DELTAX 50000
-	#define rad0 (1e6 / 2)
+      #define AMP (1.0 / dx / dy / dz / dvx / dvy / dvz)
+      #define DELTAX 50000
+      #define rad0 (1e6 / 2)
 
-	/*double phi = atan2(vy, vx);
-	double rad = sqrt(vx * vx + vy * vy);
+      /*double phi = atan2(vy, vx);
+      double rad = sqrt(vx * vx + vy * vy);
 
-	if (phi < 3 * M_PI / 4 && phi > M_PI / 4) {
-		return AMP * exp(-(rad - rad0) * (rad - rad0) / DELTAX / DELTAX);
-	} else {
-		return 0;
-	}*/
-	creal sw_vx = -5e5;
-	creal sw_vy = 5e5;
-	creal sw_vz = 5e5;
-	if (fabs(vx - sw_vx) <= dvx / 2
-	&& fabs(vy - sw_vy) <= dvy / 2
-	&& fabs(vz - sw_vz) <= dvz / 2) {
-		return 1e6;
-	} else {
-		return 0;
-	}
+      if (phi < 3 * M_PI / 4 && phi > M_PI / 4) {
+         return AMP * exp(-(rad - rad0) * (rad - rad0) / DELTAX / DELTAX);
+      } else {
+         return 0;
+      }*/
+      creal sw_vx = -5e5;
+      creal sw_vy = 5e5;
+      creal sw_vz = 5e5;
+      if (fabs(vx - sw_vx) <= dvx / 2
+      && fabs(vy - sw_vy) <= dvy / 2
+      && fabs(vz - sw_vz) <= dvz / 2) {
+         return 1e6;
+      } else {
+         return 0;
+      }
 }
 
 /** Calculate parameters for the given spatial cell at the given time.

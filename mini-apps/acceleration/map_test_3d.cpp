@@ -21,8 +21,8 @@ void print_values(int step, Real *values, uint blocks_per_dim, Real v_min, Real 
 
 
 void propagate(Real *values, uint  blocks_per_dim, Real v_min, Real dv,
-	       uint i_block, uint i_cell, uint j_block, uint j_cell,
-	       Real intersection, Real intersection_di, Real intersection_dj, Real intersection_dk){
+               uint i_block, uint i_cell, uint j_block, uint j_cell,
+               Real intersection, Real intersection_di, Real intersection_dj, Real intersection_dk){
   Real a[MAX_BLOCKS_PER_DIM*WID][RECONSTRUCTION_ORDER + 1];  
   Real target[(MAX_BLOCKS_PER_DIM+2)*WID]; 
   
@@ -42,7 +42,7 @@ void propagate(Real *values, uint  blocks_per_dim, Real v_min, Real dv,
    /* intersection_min is the intersection z coordinate (z after
       swaps that is) of the lowest possible z plane for each i,j
       index 
-   */	 
+   */
   const Real intersection_min = intersection +
      (i_block * WID + i_cell) * intersection_di + 
      (j_block * WID + j_cell) * intersection_dj;
@@ -60,7 +60,7 @@ void propagate(Real *values, uint  blocks_per_dim, Real v_min, Real dv,
       Real v_l = v_min + (k_block * WID + k_cell) * dv;
       Real v_r = v_l + dv;
       /*left(l) and right(r) k values (global index) in the target
-	lagrangian grid, the intersecting cells. Again old right is new left*/               
+        lagrangian grid, the intersecting cells. Again old right is new left*/               
       const int target_gk_l = (int)((v_l - intersection_min)/intersection_dk);
       const int target_gk_r = (int)((v_r - intersection_min)/intersection_dk);
 
@@ -69,33 +69,33 @@ void propagate(Real *values, uint  blocks_per_dim, Real v_min, Real dv,
          //in the targe cell. If both v_r and v_l are in same target cell
          //then v_int_l,v_int_r should be between v_l and v_r.
          //v_int_norm_l and v_int_norm_r normalized to be between 0 and 1 in the cell.
-	const Real v_int_l = min( max((Real)(gk) * intersection_dk + intersection_min, v_l), v_r);
-	const Real v_int_norm_l = (v_int_l - v_l)/dv;
-	const Real v_int_r = min((Real)(gk + 1) * intersection_dk + intersection_min, v_r);
-	const Real v_int_norm_r = (v_int_r - v_l)/dv;
-        
-	 /*compute left and right integrand*/
+         const Real v_int_l = min( max((Real)(gk) * intersection_dk + intersection_min, v_l), v_r);
+         const Real v_int_norm_l = (v_int_l - v_l)/dv;
+         const Real v_int_r = min((Real)(gk + 1) * intersection_dk + intersection_min, v_r);
+         const Real v_int_norm_r = (v_int_r - v_l)/dv;
+         
+         /*compute left and right integrand*/
 #ifdef ACC_SEMILAG_PLM
-	 Real target_density_l =
-	   v_int_norm_l * a[k_block * WID + k_cell][0] +
-	   v_int_norm_l * v_int_norm_l * a[k_block * WID + k_cell][1];
-	 Real target_density_r =
-	   v_int_norm_r * a[k_block * WID + k_cell][0] +
-	   v_int_norm_r * v_int_norm_r * a[k_block * WID + k_cell][1];
+         Real target_density_l =
+            v_int_norm_l * a[k_block * WID + k_cell][0] +
+            v_int_norm_l * v_int_norm_l * a[k_block * WID + k_cell][1];
+         Real target_density_r =
+            v_int_norm_r * a[k_block * WID + k_cell][0] +
+            v_int_norm_r * v_int_norm_r * a[k_block * WID + k_cell][1];
 #endif
 #ifdef ACC_SEMILAG_PPM
-	 Real target_density_l =
-	   v_int_norm_l * a[k_block * WID + k_cell][0] +
-	   v_int_norm_l * v_int_norm_l * a[k_block * WID + k_cell][1] +
-	   v_int_norm_l * v_int_norm_l * v_int_norm_l * a[k_block * WID + k_cell][2];
-	 Real target_density_r =
-	   v_int_norm_r * a[k_block * WID + k_cell][0] +
-	   v_int_norm_r * v_int_norm_r * a[k_block * WID + k_cell][1] +
-	   v_int_norm_r * v_int_norm_r * v_int_norm_r * a[k_block * WID + k_cell][2];
+         Real target_density_l =
+            v_int_norm_l * a[k_block * WID + k_cell][0] +
+            v_int_norm_l * v_int_norm_l * a[k_block * WID + k_cell][1] +
+            v_int_norm_l * v_int_norm_l * v_int_norm_l * a[k_block * WID + k_cell][2];
+         Real target_density_r =
+            v_int_norm_r * a[k_block * WID + k_cell][0] +
+            v_int_norm_r * v_int_norm_r * a[k_block * WID + k_cell][1] +
+            v_int_norm_r * v_int_norm_r * v_int_norm_r * a[k_block * WID + k_cell][2];
 #endif
-	 /*total value of integrand, if it is wihtin bounds*/
+         /*total value of integrand, if it is wihtin bounds*/
          if ( gk >= 0 && gk <= blocks_per_dim * WID )
-	   target[gk + WID] +=  target_density_r - target_density_l;
+            target[gk + WID] +=  target_density_r - target_density_l;
       }
     }
   }
@@ -135,10 +135,10 @@ int main(void) {
   for(int i=0; i < blocks_per_dim_x * WID; i++){
     for(int j=0; j < blocks_per_dim_y * WID; j++){
       for(int k=0; k < blocks_per_dim_z * WID; k++){
-	Real v = v_min + k * dv;
-	if (v > v_min +  0.8 * (blocks_per_dim_z * WID * dv) &&
-	    v < v_min +  0.9 * (blocks_per_dim_z * WID * dv))
-	  values[index(i,j,k)] = 1.0;
+         Real v = v_min + k * dv;
+         if (v > v_min +  0.8 * (blocks_per_dim_z * WID * dv) &&
+             v < v_min +  0.9 * (blocks_per_dim_z * WID * dv))
+            values[index(i,j,k)] = 1.0;
       }
     }
   }
@@ -149,15 +149,15 @@ int main(void) {
       print_values(step, values + colindex(0,0), blocks_per_dim_z, v_min, dv);
     for(int i = 0; i < blocks_per_dim_x * WID; i++){
       for(int j = 0; j < blocks_per_dim_y * WID; j++){
-	const int i_block = i / WID;
-	const int i_cell = i % WID;
-	const int j_block = j / WID;
-	const int j_cell = j % WID;
+         const int i_block = i / WID;
+         const int i_cell = i % WID;
+         const int j_block = j / WID;
+         const int j_cell = j % WID;
 
-	propagate(values + colindex(i,j), blocks_per_dim_z, v_min, dv,
-		  i_block, i_cell, j_block, j_cell,
-		  intersection, intersection_di, intersection_dj, intersection_dk);
+         propagate(values + colindex(i,j), blocks_per_dim_z, v_min, dv,
+                   i_block, i_cell, j_block, j_cell,
+                   intersection, intersection_di, intersection_dj, intersection_dk);
       }
     }
   }
-} 
+}

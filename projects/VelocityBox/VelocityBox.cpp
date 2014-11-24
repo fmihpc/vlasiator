@@ -67,8 +67,8 @@ namespace projects {
 
   Real VelocityBox::getDistribValue(creal& vx, creal& vy, creal& vz){
      if (vx >= this->Vx[0] && vx <= this->Vx[1] &&
-	 vy >= this->Vy[0] && vy <= this->Vy[1] &&
-	 vz >= this->Vz[0] && vz <= this->Vz[1])
+         vy >= this->Vy[0] && vy <= this->Vy[1] &&
+         vz >= this->Vz[0] && vz <= this->Vz[1])
        return this->rho;
      else
        return 0.0;
@@ -76,10 +76,12 @@ namespace projects {
 
 
 
-  Real VelocityBox::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, 
-					  creal& dx, creal& dy, creal& dz, 
-					  creal& vx, creal& vy, creal& vz, 
-					  creal& dvx, creal& dvy, creal& dvz) {   
+  Real VelocityBox::calcPhaseSpaceDensity(
+     creal& x, creal& y, creal& z,
+     creal& dx, creal& dy, creal& dz,
+     creal& vx, creal& vy, creal& vz,
+     creal& dvx, creal& dvy, creal& dvz
+  ) {
     return getDistribValue(vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz);
   }
 

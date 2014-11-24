@@ -31,7 +31,7 @@ enum cases {BXCASE,BYCASE,BZCASE};
 using namespace std;
 
 namespace projects {
-   test_fp::test_fp(): Project() { }
+   test_fp::test_fp(): TriAxisSearch() { }
    test_fp::~test_fp() { }
 
 
@@ -51,6 +51,7 @@ namespace projects {
 
    void test_fp::addParameters(void){
       typedef Readparameters RP;
+      RP::add("test_fp.V0", "Velocity magnitude (m/s)", 1.0e6);
       RP::add("test_fp.B0", "Magnetic field value in the non-zero patch (T)", 1.0e-9);
       RP::add("test_fp.rho", "Number density (m^-3)", 1.0e7);
       RP::add("test_fp.Temperature", "Temperature (K)", 1.0e-6);
@@ -62,6 +63,7 @@ namespace projects {
    void test_fp::getParameters(void){
       typedef Readparameters RP;
       RP::get("test_fp.B0", this->B0);
+      RP::get("test_fp.V0", this->V0);
       RP::get("test_fp.rho", this->DENSITY);
       RP::get("test_fp.Temperature", this->TEMPERATURE);
       RP::get("test_fp.angle", this->ALPHA);
@@ -77,62 +79,19 @@ namespace projects {
 
 
    Real test_fp::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {
-      Real VX,VY,VZ;
-      if (this->shear == true)
-      {
-         Real ksi,eta;
-         switch (this->CASE) {
-            case BXCASE:
-               ksi = ((y + 0.5 * dy)  * cos(this->ALPHA) + (z + 0.5 * dz) * sin(this->ALPHA)) / (2.0 * sqrt(2.0));
-               eta = (-(y + 0.5 * dy)  * sin(this->ALPHA) + (z + 0.5 * dz) * cos(this->ALPHA)) / (2.0 * sqrt(2.0));
-               VX = 0.0;
-               VY = sign(cos(this->ALPHA)) * 0.5 + 0.1*cos(this->ALPHA) * sin(2.0 * M_PI * eta);
-               VZ = sign(sin(this->ALPHA)) * 0.5 + 0.1*sin(this->ALPHA) * sin(2.0 * M_PI * eta);
-               break;
-            case BYCASE:
-               ksi = ((z + 0.5 * dz)  * cos(this->ALPHA) + (x + 0.5 * dx) * sin(this->ALPHA)) / (2.0 * sqrt(2.0));
-               eta = (-(z + 0.5 * dz)  * sin(this->ALPHA) + (x + 0.5 * dx) * cos(this->ALPHA)) / (2.0 * sqrt(2.0));
-               VX = sign(sin(this->ALPHA)) * 0.5 + 0.1*sin(this->ALPHA) * sin(2.0 * M_PI * eta);
-               VY = 0.0;
-               VZ = sign(cos(this->ALPHA)) * 0.5 + 0.1*cos(this->ALPHA) * sin(2.0 * M_PI * eta);
-               break;
-               case BZCASE:
-               ksi = ((x + 0.5 * dx)  * cos(this->ALPHA) + (y + 0.5 * dy) * sin(this->ALPHA)) / (2.0 * sqrt(2.0));
-               eta = (-(x + 0.5 * dx)  * sin(this->ALPHA) + (y + 0.5 * dy) * cos(this->ALPHA)) / (2.0 * sqrt(2.0));
-               VX = sign(cos(this->ALPHA)) * 0.5 + 0.1*cos(this->ALPHA) * sin(2.0 * M_PI * eta);
-               VY = sign(sin(this->ALPHA)) * 0.5 + 0.1*sin(this->ALPHA) * sin(2.0 * M_PI * eta);
-               VZ = 0.0;
-               break;
-         }
-      } else {
-         switch (this->CASE) {
-            case BXCASE:
-               VX = 0.0;
-               VY = cos(this->ALPHA) * 0.5;
-               VZ = sin(this->ALPHA) * 0.5; 
-               break;
-            case BYCASE:
-               VX = sin(this->ALPHA) * 0.5;
-               VY = 0.0;
-               VZ = cos(this->ALPHA) * 0.5;
-               break;
-            case BZCASE:
-               VX = cos(this->ALPHA) * 0.5;
-               VY = sin(this->ALPHA) * 0.5;
-               VZ = 0.0;
-               break;
-         }
-      }
       
-      creal VX2 = (vx+0.5*dvx-VX)*(vx+0.5*dvx-VX);
-      creal VY2 = (vy+0.5*dvy-VY)*(vy+0.5*dvy-VY);
-      creal VZ2 = (vz+0.5*dvz-VZ)*(vz+0.5*dvz-VZ);
+      vector<std::array<Real, 3>> V = this->getV0(x,y,z,dx,dy,dz);
+      
+      creal VX2 = (vx+0.5*dvx-V[0][0])*(vx+0.5*dvx-V[0][0]);
+      creal VY2 = (vy+0.5*dvy-V[0][1])*(vy+0.5*dvy-V[0][1]);
+      creal VZ2 = (vz+0.5*dvz-V[0][2])*(vz+0.5*dvz-V[0][2]);
       
       creal CONST = physicalconstants::MASS_PROTON / 2.0 / physicalconstants::K_B / this->TEMPERATURE;
       Real NORM = (physicalconstants::MASS_PROTON / 2.0 / M_PI / physicalconstants::K_B / this->TEMPERATURE);
       NORM = this->DENSITY * pow(NORM,1.5);
       
-      return NORM*exp(-CONST*(VX2+VY2+VZ2));
+      creal result = NORM*exp(-CONST*(VX2+VY2+VZ2));
+      return result;
    }
 
    void test_fp::calcCellParameters(Real* cellParams,creal& t) {
@@ -166,5 +125,84 @@ namespace projects {
          break;
       }
    }
-
+   
+   vector<std::array<Real, 3>> test_fp::getV0(
+      creal x,
+      creal y,
+      creal z,
+      creal dx,
+      creal dy,
+      creal dz
+   ) {
+      vector<std::array<Real, 3>> centerPoints;
+      
+      Real VX,VY,VZ;
+      if (this->shear == true)
+      {
+         Real ksi,eta;
+         switch (this->CASE) {
+            case BXCASE:
+               ksi = ((y + 0.5 * dy)  * cos(this->ALPHA) + (z + 0.5 * dz) * sin(this->ALPHA)) / (2.0 * sqrt(2.0));
+               eta = (-(y + 0.5 * dy)  * sin(this->ALPHA) + (z + 0.5 * dz) * cos(this->ALPHA)) / (2.0 * sqrt(2.0));
+               VX = 0.0;
+               VY = sign(cos(this->ALPHA)) * 0.5 + 0.1*cos(this->ALPHA) * sin(2.0 * M_PI * eta);
+               VZ = sign(sin(this->ALPHA)) * 0.5 + 0.1*sin(this->ALPHA) * sin(2.0 * M_PI * eta);
+               break;
+            case BYCASE:
+               ksi = ((z + 0.5 * dz)  * cos(this->ALPHA) + (x + 0.5 * dx) * sin(this->ALPHA)) / (2.0 * sqrt(2.0));
+               eta = (-(z + 0.5 * dz)  * sin(this->ALPHA) + (x + 0.5 * dx) * cos(this->ALPHA)) / (2.0 * sqrt(2.0));
+               VX = sign(sin(this->ALPHA)) * 0.5 + 0.1*sin(this->ALPHA) * sin(2.0 * M_PI * eta);
+               VY = 0.0;
+               VZ = sign(cos(this->ALPHA)) * 0.5 + 0.1*cos(this->ALPHA) * sin(2.0 * M_PI * eta);
+               break;
+            case BZCASE:
+               ksi = ((x + 0.5 * dx)  * cos(this->ALPHA) + (y + 0.5 * dy) * sin(this->ALPHA)) / (2.0 * sqrt(2.0));
+               eta = (-(x + 0.5 * dx)  * sin(this->ALPHA) + (y + 0.5 * dy) * cos(this->ALPHA)) / (2.0 * sqrt(2.0));
+               VX = sign(cos(this->ALPHA)) * 0.5 + 0.1*cos(this->ALPHA) * sin(2.0 * M_PI * eta);
+               VY = sign(sin(this->ALPHA)) * 0.5 + 0.1*sin(this->ALPHA) * sin(2.0 * M_PI * eta);
+               VZ = 0.0;
+               break;
+         }
+      } else {
+         switch (this->CASE) {
+            case BXCASE:
+               VX = 0.0;
+               VY = cos(this->ALPHA) * 0.5;
+               VZ = sin(this->ALPHA) * 0.5; 
+               break;
+            case BYCASE:
+               VX = sin(this->ALPHA) * 0.5;
+               VY = 0.0;
+               VZ = cos(this->ALPHA) * 0.5;
+               break;
+            case BZCASE:
+               VX = cos(this->ALPHA) * 0.5;
+               VY = sin(this->ALPHA) * 0.5;
+               VZ = 0.0;
+               break;
+         }
+      }
+      
+      VX *= this->V0 * 2.0;
+      VY *= this->V0 * 2.0;
+      VZ *= this->V0 * 2.0;
+      
+      std::array<Real, 3> point {{VX, VY, VZ}};
+      centerPoints.push_back(point);
+      return centerPoints;
+   }
+   
+   vector<std::array<Real, 3>> test_fp::getV0(
+      creal x,
+      creal y,
+      creal z
+   ) {
+      vector<std::array<Real, 3>> centerPoints;
+      
+      creal dx = 0.0;
+      creal dy = 0.0;
+      creal dz = 0.0;
+      
+      return this->getV0(x,y,z,dx,dy,dz);
+   }
 }// namespace projects

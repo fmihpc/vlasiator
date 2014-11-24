@@ -21,8 +21,8 @@ void print_values(int step, Vec4 *values, uint blocks_per_dim, Real v_min, Real 
 
 
 void propagate(Vec4 values[], uint  blocks_per_dim, Real v_min, Real dv,
-	       uint i_block, uint j_block, uint j_cell,
-	       Real intersection, Real intersection_di, Real intersection_dj, Real intersection_dk){
+               uint i_block, uint j_block, uint j_cell,
+               Real intersection, Real intersection_di, Real intersection_dj, Real intersection_dk){
   Vec4 target[(MAX_BLOCKS_PER_DIM+2)*WID]; 
 
   
@@ -34,7 +34,7 @@ void propagate(Vec4 values[], uint  blocks_per_dim, Real v_min, Real dv,
    /* intersection_min is the intersection z coordinate (z after
       swaps that is) of the lowest possible z plane for each i,j
       index (i in vector)
-   */	 
+   */
   const Real intersection_min_base =  
     intersection +
     (i_block * WID) * intersection_di + 
@@ -42,9 +42,9 @@ void propagate(Vec4 values[], uint  blocks_per_dim, Real v_min, Real dv,
   
   //const Vec4 intersection_min(intersection_min_base);
   const Vec4 intersection_min(intersection_min_base + 0 * intersection_di,
-			      intersection_min_base + 1 * intersection_di,
-			      intersection_min_base + 2 * intersection_di,
-			      intersection_min_base + 3 * intersection_di);
+                              intersection_min_base + 1 * intersection_di,
+                              intersection_min_base + 2 * intersection_di,
+                              intersection_min_base + 3 * intersection_di);
   /*compute some initial values, that are used to set up the
    * shifting of values as we go through all blocks in
    * order. See comments where they are shifted for
@@ -73,81 +73,81 @@ void propagate(Vec4 values[], uint  blocks_per_dim, Real v_min, Real dv,
       Vec4 v_l = v_min + (k_block * WID + k_cell) * dv;
       Vec4 v_r = v_l + dv;
       /*left(l) and right(r) k values (global index) in the target
-	lagrangian grid, the intersecting cells. Again old right is new left*/               
+        lagrangian grid, the intersecting cells. Again old right is new left*/               
       const Vec4i target_gk_l = truncate_to_int((v_l - intersection_min)/intersection_dk);
       const Vec4i target_gk_r = truncate_to_int((v_r - intersection_min)/intersection_dk);
       
       
 
-      Vec4i gk(target_gk_l);	
+      Vec4i gk(target_gk_l);
       while (horizontal_or(gk <= target_gk_r)){
-	//the velocity limits  for the integration  to put mass
-	//in the targe cell. If both v_r and v_l are in same target cell
-	//then v_int_l,v_int_r should be between v_l and v_r.
-	//v_int_norm_l and v_int_norm_r normalized to be between 0 and 1 in the cell.
+         //the velocity limits  for the integration  to put mass
+         //in the targe cell. If both v_r and v_l are in same target cell
+         //then v_int_l,v_int_r should be between v_l and v_r.
+         //v_int_norm_l and v_int_norm_r normalized to be between 0 and 1 in the cell.
 
 #ifdef DP
-	const Vec4 v_int_l = min( max(to_double(gk) * intersection_dk + intersection_min, v_l), v_r);
-	const Vec4 v_int_norm_l = (v_int_l - v_l)/dv;
-	const Vec4 v_int_r = min(to_double(gk + 1) * intersection_dk + intersection_min, v_r);
-	const Vec4 v_int_norm_r = (v_int_r - v_l)/dv;
+         const Vec4 v_int_l = min( max(to_double(gk) * intersection_dk + intersection_min, v_l), v_r);
+         const Vec4 v_int_norm_l = (v_int_l - v_l)/dv;
+         const Vec4 v_int_r = min(to_double(gk + 1) * intersection_dk + intersection_min, v_r);
+         const Vec4 v_int_norm_r = (v_int_r - v_l)/dv;
 #else
-	const Vec4 v_int_l = min( max(to_float(gk) * intersection_dk + intersection_min, v_l), v_r);
-	const Vec4 v_int_norm_l = (v_int_l - v_l)/dv;
-	const Vec4 v_int_r = min(to_float(gk + 1) * intersection_dk + intersection_min, v_r);
-	const Vec4 v_int_norm_r = (v_int_r - v_l)/dv;
+         const Vec4 v_int_l = min( max(to_float(gk) * intersection_dk + intersection_min, v_l), v_r);
+         const Vec4 v_int_norm_l = (v_int_l - v_l)/dv;
+         const Vec4 v_int_r = min(to_float(gk + 1) * intersection_dk + intersection_min, v_r);
+         const Vec4 v_int_norm_r = (v_int_r - v_l)/dv;
 #endif
 
-	 /*compute left and right integrand*/
+         /*compute left and right integrand*/
 #ifdef ACC_SEMILAG_PLM
-	 Vec4 target_density_l =
-	   v_int_norm_l * a[0] +
-	   v_int_norm_l * v_int_norm_l * a[1];
-	 Vec4 target_density_r =
-	   v_int_norm_r * a[0] +
-	   v_int_norm_r * v_int_norm_r * a[1];
+         Vec4 target_density_l =
+            v_int_norm_l * a[0] +
+            v_int_norm_l * v_int_norm_l * a[1];
+         Vec4 target_density_r =
+            v_int_norm_r * a[0] +
+            v_int_norm_r * v_int_norm_r * a[1];
 #endif
 #ifdef ACC_SEMILAG_PPM
-	 Vec4 target_density_l =
-	   v_int_norm_l * a[0] +
-	   v_int_norm_l * v_int_norm_l * a[1] +
-	   v_int_norm_l * v_int_norm_l * v_int_norm_l * a[2];
-	 Vec4 target_density_r =
-	   v_int_norm_r * a[0] +
-	   v_int_norm_r * v_int_norm_r * a[1] +
-	   v_int_norm_r * v_int_norm_r * v_int_norm_r * a[2];
+         Vec4 target_density_l =
+            v_int_norm_l * a[0] +
+            v_int_norm_l * v_int_norm_l * a[1] +
+            v_int_norm_l * v_int_norm_l * v_int_norm_l * a[2];
+         Vec4 target_density_r =
+            v_int_norm_r * a[0] +
+            v_int_norm_r * v_int_norm_r * a[1] +
+            v_int_norm_r * v_int_norm_r * v_int_norm_r * a[2];
 #endif
 #ifdef ACC_SEMILAG_PQM
-	 Vec4 target_density_l =
-	   v_int_norm_l * a[0] +
-	   v_int_norm_l * v_int_norm_l * a[1] +
-	   v_int_norm_l * v_int_norm_l * v_int_norm_l * a[2] +
-	   v_int_norm_l * v_int_norm_l * v_int_norm_l * v_int_norm_l * a[3] +
-	   v_int_norm_l * v_int_norm_l * v_int_norm_l * v_int_norm_l * v_int_norm_l * a[4];
+         Vec4 target_density_l =
+            v_int_norm_l * a[0] +
+            v_int_norm_l * v_int_norm_l * a[1] +
+            v_int_norm_l * v_int_norm_l * v_int_norm_l * a[2] +
+            v_int_norm_l * v_int_norm_l * v_int_norm_l * v_int_norm_l * a[3] +
+            v_int_norm_l * v_int_norm_l * v_int_norm_l * v_int_norm_l * v_int_norm_l * a[4];
 
-	 Vec4 target_density_r =
-	   v_int_norm_r * a[0] +
-	   v_int_norm_r * v_int_norm_r * a[1] +
-	   v_int_norm_r * v_int_norm_r * v_int_norm_r * a[2] +
-	   v_int_norm_r * v_int_norm_r * v_int_norm_r * v_int_norm_r * a[3] +
-	   v_int_norm_r * v_int_norm_r * v_int_norm_r * v_int_norm_r * v_int_norm_r * a[4];
+         Vec4 target_density_r =
+            v_int_norm_r * a[0] +
+            v_int_norm_r * v_int_norm_r * a[1] +
+            v_int_norm_r * v_int_norm_r * v_int_norm_r * a[2] +
+            v_int_norm_r * v_int_norm_r * v_int_norm_r * v_int_norm_r * a[3] +
+            v_int_norm_r * v_int_norm_r * v_int_norm_r * v_int_norm_r * v_int_norm_r * a[4];
 
 #endif
-
-	 
-	 /*total value of integrand*/
-	 const Vec4 target_density = target_density_r - target_density_l;
-	 
-	 //store values, one element at elema time
-	 for(uint elem = 0; elem < 4;elem ++ ){
-	   int k_in_target = gk[elem];
-	   if (k_in_target >=0 &&
-	       k_in_target < blocks_per_dim * WID) {
-	     const Real new_density = target[k_in_target + WID][elem] + target_density[elem];
-	     target[k_in_target + WID].insert(elem, new_density);
-	   }
-	 }		   
-	 gk++; //next iteration in while loop
+         
+         
+         /*total value of integrand*/
+         const Vec4 target_density = target_density_r - target_density_l;
+         
+         //store values, one element at elema time
+         for(uint elem = 0; elem < 4;elem ++ ){
+            int k_in_target = gk[elem];
+            if (k_in_target >=0 &&
+               k_in_target < blocks_per_dim * WID) {
+               const Real new_density = target[k_in_target + WID][elem] + target_density[elem];
+               target[k_in_target + WID].insert(elem, new_density);
+            }
+         }
+         gk++; //next iteration in while loop
       }
      }
   }
@@ -159,12 +159,12 @@ void propagate(Vec4 values[], uint  blocks_per_dim, Real v_min, Real dv,
       values[k_block * WID + k + WID] = target[k_block * WID + k + WID];
       target[k_block * WID + k + WID] = 0.0;
      }
-  }   
+  }
 }
 
 void print_reconstruction(int step, Vec4 values[], uint  blocks_per_dim, Real v_min, Real dv,
-			  uint i_block, uint j_block, uint j_cell,
-			  Real intersection, Real intersection_di, Real intersection_dj, Real intersection_dk){
+                          uint i_block, uint j_block, uint j_cell,
+                          Real intersection, Real intersection_di, Real intersection_dj, Real intersection_dk){
   char name[256];
   sprintf(name,"reconstructions_%03d.dat",step);
   FILE* fp=fopen(name,"w");
@@ -174,7 +174,7 @@ void print_reconstruction(int step, Vec4 values[], uint  blocks_per_dim, Real v_
   /* intersection_min is the intersection z coordinate (z after
      swaps that is) of the lowest possible z plane for each i,j
      index (i in vector)
-  */	 
+  */
   const Real intersection_min_base =  
     intersection +
     (i_block * WID) * intersection_di + 
@@ -182,9 +182,9 @@ void print_reconstruction(int step, Vec4 values[], uint  blocks_per_dim, Real v_
   
   //const Vec4 intersection_min(intersection_min_base);
   const Vec4 intersection_min(intersection_min_base + 0 * intersection_di,
-			      intersection_min_base + 1 * intersection_di,
-			      intersection_min_base + 2 * intersection_di,
-			      intersection_min_base + 3 * intersection_di);
+                              intersection_min_base + 1 * intersection_di,
+                              intersection_min_base + 2 * intersection_di,
+                              intersection_min_base + 3 * intersection_di);
   /*compute some initial values, that are used to set up the
    * shifting of values as we go through all blocks in
    * order. See comments where they are shifted for
@@ -208,34 +208,34 @@ void print_reconstruction(int step, Vec4 values[], uint  blocks_per_dim, Real v_
 
       Vec4 v_l = v_min + (k_block * WID + k_cell) * dv;
       for (uint k_subcell=0; k_subcell< subcells; ++k_subcell){ 
-	Vec4 v_norm = (Real)(k_subcell + 0.5)/subcells; //normalized v of subcell in source cell
-	Vec4 v = v_l + v_norm * dv;
+           Vec4 v_norm = (Real)(k_subcell + 0.5)/subcells; //normalized v of subcell in source cell
+           Vec4 v = v_l + v_norm * dv;
 
 #ifdef ACC_SEMILAG_PLM
-	Vec4 target = 
-	  a[0] +
-	  2.0 * v_norm * a[1];
+         Vec4 target = 
+            a[0] +
+            2.0 * v_norm * a[1];
 #endif
 #ifdef ACC_SEMILAG_PPM
-	Vec4 target = 
-	  a[0] +
-	  2.0 * v_norm * a[1] +
-	  3.0 * v_norm * v_norm * a[2];
+         Vec4 target = 
+            a[0] +
+            2.0 * v_norm * a[1] +
+            3.0 * v_norm * v_norm * a[2];
 #endif
 #ifdef ACC_SEMILAG_PQM
-	Vec4 target = 
-	  a[0] +
-	  2.0 * v_norm * a[1] +
-	  3.0 * v_norm * v_norm * a[2] +
-	  4.0 * v_norm * v_norm * v_norm * a[3] +
-	  5.0 * v_norm * v_norm * v_norm * v_norm * a[4];
+         Vec4 target = 
+            a[0] +
+            2.0 * v_norm * a[1] +
+            3.0 * v_norm * v_norm * a[2] +
+            4.0 * v_norm * v_norm * v_norm * a[3] +
+            5.0 * v_norm * v_norm * v_norm * v_norm * a[4];
 #endif
-	fprintf(fp,"%20.12g %20.12g %20.12g\n", v[0], values[k_block * WID + k_cell + WID][0], target[0]);
+         fprintf(fp,"%20.12g %20.12g %20.12g\n", v[0], values[k_block * WID + k_cell + WID][0], target[0]);
       }
       fprintf(fp,"\n"); //empty line to deay wgments in gnuplot
     }
-  }    
-    
+  }
+  
   fclose(fp);
 }
 
@@ -298,8 +298,8 @@ int main(void) {
 /*loop over propagations*/
  for(int step = 0; step < iterations; step++){
    propagate(values, blocks_per_dim, v_min, dv,
-	     i_block, j_block, j_cell,
-	     intersection, intersection_di, intersection_dj, intersection_dk);
+             i_block, j_block, j_cell,
+             intersection, intersection_di, intersection_dj, intersection_dk);
  }
  printf("\nTime per iteration: %12.15g\n", ((double)(clock() - t)/CLOCKS_PER_SEC)/iterations);
 
@@ -307,4 +307,4 @@ int main(void) {
  print_reconstruction(iterations, values, blocks_per_dim, v_min, dv,
                       i_block, j_block, j_cell,
                       intersection, intersection_di, intersection_dj, intersection_dk);
-}  
+}

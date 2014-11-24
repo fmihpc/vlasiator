@@ -338,28 +338,28 @@ bool _readBlockData(
    
    uint64_t bufferBlock=0;
    for(uint i=0;i<localCells;i++){
-     uint cell=fileCells[localCellStartOffset+i];
-     for (uint blockIndex=0;blockIndex<nBlocks[localCellStartOffset+i];blockIndex++){
-        creal vx_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VXCRD];
-        creal vy_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VYCRD];
-        creal vz_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VZCRD];
-        creal dvx_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVX];
-        creal dvy_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVY];
-        creal dvz_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVZ];
-        // set    volume average of distrib. function for each cell in the block.
-        for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-           creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
-           creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
-           creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
-
-           //todo, use faster set_value interface
-           #warning DEPRECATED: This function call needs to be replaced with something else in AMR mesh
-	   mpiGrid[cell]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgBuffer[bufferBlock*avgVectorSize+cellIndex(ic,jc,kc)]);
-        }
-        bufferBlock++; 
-     }
+      uint cell=fileCells[localCellStartOffset+i];
+      for (uint blockIndex=0;blockIndex<nBlocks[localCellStartOffset+i];blockIndex++){
+         creal vx_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VXCRD];
+         creal vy_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VYCRD];
+         creal vz_block = coordBuffer[bufferBlock*coordVectorSize+BlockParams::VZCRD];
+         creal dvx_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVX];
+         creal dvy_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVY];
+         creal dvz_blockCell = coordBuffer[bufferBlock*coordVectorSize+BlockParams::DVZ];
+         // set    volume average of distrib. function for each cell in the block.
+         for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
+            creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
+            creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
+            creal vz_cell_center = vz_block + (kc+convert<Real>(0.5))*dvz_blockCell;
+            
+            //todo, use faster set_value interface
+            #warning DEPRECATED: This function call needs to be replaced with something else in AMR mesh
+            mpiGrid[cell]->set_value(vx_cell_center,vy_cell_center,vz_cell_center,avgBuffer[bufferBlock*avgVectorSize+cellIndex(ic,jc,kc)]);
+         }
+         bufferBlock++; 
+      }
    }
-
+   
    delete(avgBuffer);
    delete(coordBuffer);
    return success;

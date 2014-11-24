@@ -124,7 +124,7 @@ void calculateSpatialTranslation(
          #pragma omp barrier
          phiprof::stop("prepare-block-data-x");
 
-	 phiprof::start("compute-mapping-x");
+         phiprof::start("compute-mapping-x");
          for (size_t c=0; c<local_cells.size(); ++c) {
             if (do_translate_cell(mpiGrid[local_cells[c]]))
                trans_map_1d(mpiGrid,local_cells[c], 0, dt); // map along x//
@@ -193,7 +193,7 @@ void calculateSpatialTranslation(
       //Reset spatial max DT
       SC->parameters[CellParams::MAXRDT]=numeric_limits<Real>::max();
       for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(); ++block_i) {
-	 const Real* const blockParams = SC->get_block_parameters(block_i);
+         const Real* const blockParams = SC->get_block_parameters(block_i);
 
          //compute maximum dt. Algorithm has a CFL condition, since it
          //is written only for the case where we have a stencil
@@ -211,29 +211,29 @@ void calculateSpatialTranslation(
          //compute first moments for this block
          if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
             cpu_calcVelocityFirstMoments(
-					 SC,
-					 block_i,			 
-					 CellParams::RHO_R,
-					 CellParams::RHOVX_R,
-					 CellParams::RHOVY_R,
-					 CellParams::RHOVZ_R
-					);   //set first moments after translation
+               SC,
+               block_i,
+               CellParams::RHO_R,
+               CellParams::RHOVX_R,
+               CellParams::RHOVY_R,
+               CellParams::RHOVZ_R
+            );   //set first moments after translation
       }
       // Second iteration needed as rho has to be already computed when computing pressure
       for (vmesh::LocalID block_i=0; block_i< SC->get_number_of_velocity_blocks(); ++block_i){
          //compute second moments for this block
          if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
-	   cpu_calcVelocitySecondMoments(
-					 SC,
-					 block_i,			  
-					 CellParams::RHO_R,
-					 CellParams::RHOVX_R,
-					 CellParams::RHOVY_R,
-					 CellParams::RHOVZ_R,
-					 CellParams::P_11_R,
-					 CellParams::P_22_R,
-					 CellParams::P_33_R
-					);   //set second moments after translation
+            cpu_calcVelocitySecondMoments(
+               SC,
+               block_i,
+               CellParams::RHO_R,
+               CellParams::RHOVX_R,
+               CellParams::RHOVY_R,
+               CellParams::RHOVZ_R,
+               CellParams::P_11_R,
+               CellParams::P_22_R,
+               CellParams::P_33_R
+            );   //set second moments after translation
       }
    }
    phiprof::stop("compute-moments-n-maxdt");
@@ -303,28 +303,28 @@ void calculateAcceleration(
       
       for (vmesh::LocalID block_i=0; block_i<mpiGrid[cellID]->get_number_of_velocity_blocks(); ++block_i) {
          cpu_calcVelocityFirstMoments(
-				      mpiGrid[cellID],
-				      block_i,
-				      CellParams::RHO_V,
-				      CellParams::RHOVX_V,
-				      CellParams::RHOVY_V,
-				      CellParams::RHOVZ_V
-				     );   //set first moments after acceleration
+            mpiGrid[cellID],
+            block_i,
+            CellParams::RHO_V,
+            CellParams::RHOVX_V,
+            CellParams::RHOVY_V,
+            CellParams::RHOVZ_V
+         );   //set first moments after acceleration
       }
 
       // Second iteration needed as rho has to be already computed when computing pressure
       for (vmesh::LocalID block_i=0; block_i<mpiGrid[cellID]->get_number_of_velocity_blocks(); ++block_i) {
          cpu_calcVelocitySecondMoments(
-				       mpiGrid[cellID],
-				       block_i,
-				       CellParams::RHO_V,
-				       CellParams::RHOVX_V,
-				       CellParams::RHOVY_V,
-				       CellParams::RHOVZ_V,
-				       CellParams::P_11_V,
-				       CellParams::P_22_V,
-				       CellParams::P_33_V
-				      );   //set second moments after acceleration
+            mpiGrid[cellID],
+            block_i,
+            CellParams::RHO_V,
+            CellParams::RHOVX_V,
+            CellParams::RHOVY_V,
+            CellParams::RHOVZ_V,
+            CellParams::P_11_V,
+            CellParams::P_22_V,
+            CellParams::P_33_V
+         );   //set second moments after acceleration
       }
    }
    phiprof::stop("Compute moments");
@@ -368,17 +368,18 @@ void calculateInterpolatedVelocityMoments(
 
 
 
-void calculateCellVelocityMoments(SpatialCell* SC,
-				  bool doNotSkip // default: false
-				  ) {
+void calculateCellVelocityMoments(
+   SpatialCell* SC,
+   bool doNotSkip // default: false
+) {
    // if doNotSkip == true then the first clause is false and we will never return, i.e. always compute
    // otherwise we skip DO_NOT_COMPUTE cells
    // or boundary cells of layer larger than 1
    if (!doNotSkip &&
        (SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-	(SC->sysBoundaryLayer != 1  &&
-	 SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))
-       ) return;
+       (SC->sysBoundaryLayer != 1  &&
+       SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))
+      ) return;
 
    SC->parameters[CellParams::RHO  ] = 0.0;
    SC->parameters[CellParams::RHOVX] = 0.0;
@@ -392,27 +393,27 @@ void calculateCellVelocityMoments(SpatialCell* SC,
    // and calculate velocity moments:
    for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(); ++block_i) {
       cpu_calcVelocityFirstMoments(SC,
-				   block_i,
-				   CellParams::RHO,
-				   CellParams::RHOVX,
-				   CellParams::RHOVY,
-				   CellParams::RHOVZ
-				   );
+         block_i,
+         CellParams::RHO,
+         CellParams::RHOVX,
+         CellParams::RHOVY,
+         CellParams::RHOVZ
+      );
    }
 
    // Second iteration needed as rho has to be already computed when computing pressure
    for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(); ++block_i) {
       cpu_calcVelocitySecondMoments(
-				    SC,
-				    block_i,
-				    CellParams::RHO,
-				    CellParams::RHOVX,
-				    CellParams::RHOVY,
-				    CellParams::RHOVZ,
-				    CellParams::P_11,
-				    CellParams::P_22,
-				    CellParams::P_33
-				   );
+         SC,
+         block_i,
+         CellParams::RHO,
+         CellParams::RHOVX,
+         CellParams::RHOVY,
+         CellParams::RHOVZ,
+         CellParams::P_11,
+         CellParams::P_22,
+         CellParams::P_33
+      );
    }
 }
 

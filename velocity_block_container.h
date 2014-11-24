@@ -114,20 +114,19 @@ namespace vmesh {
          if (target*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::N_VELOCITY_BLOCK_PARAMS-1 >= parameters.size()) ok = false;
          if (parameters.size()/BlockParams::N_VELOCITY_BLOCK_PARAMS != block_data.size()/WID3) ok = false;
          if (ok == false) {
-	    std::stringstream ss;
-	    ss << "VBC ERROR: invalid source LID=" << source << " in copy, target=" << target << " #blocks=" << numberOfBlocks << " capacity=" << currentCapacity << std::endl;
-	    ss << "or sizes are wrong, data.size()=" << block_data.size() << " fx.size()=" << block_fx.size() << " parameters.size()=" << parameters.size() << std::endl;
-	    std::cerr << ss.str();
-	    sleep(1);
-	    exit(1);
-	 }
+            std::stringstream ss;
+            ss << "VBC ERROR: invalid source LID=" << source << " in copy, target=" << target << " #blocks=" << numberOfBlocks << " capacity=" << currentCapacity << std::endl;
+            ss << "or sizes are wrong, data.size()=" << block_data.size() << " fx.size()=" << block_fx.size() << " parameters.size()=" << parameters.size() << std::endl;
+            std::cerr << ss.str();
+            sleep(1);
+            exit(1);
+         }
       #endif
 
       for (int i=0; i<WID3; ++i) block_data[target*WID3+i] = block_data[source*WID3+i];
       for (int i=0; i<WID3; ++i) block_fx[target*WID3+i]   = block_fx[source*WID3+i];
       for (int i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) {
-	 parameters[target*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 
-	   parameters[source*BlockParams::N_VELOCITY_BLOCK_PARAMS+i];
+         parameters[target*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = parameters[source*BlockParams::N_VELOCITY_BLOCK_PARAMS+i];
       }
    }
 
@@ -246,12 +245,12 @@ namespace vmesh {
 
       #ifdef DEBUG_VBC
       if (newIndex >= block_data.size()/WID3 || newIndex >= block_fx.size()/WID3 || newIndex >= parameters.size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) {
-	 std::stringstream ss;
-	 ss << "VBC ERROR in push_back, LID=" << newIndex << " for new block is out of bounds" << std::endl;
-	 ss << "\t data.size()=" << block_data.size() << " fx.size()=" << block_fx.size() << " parameters.size()=" << parameters.size() << std::endl;
-	 std::cerr << ss.str();
-	 sleep(1);
-	 exit(1);
+         std::stringstream ss;
+         ss << "VBC ERROR in push_back, LID=" << newIndex << " for new block is out of bounds" << std::endl;
+         ss << "\t data.size()=" << block_data.size() << " fx.size()=" << block_fx.size() << " parameters.size()=" << parameters.size() << std::endl;
+         std::cerr << ss.str();
+         sleep(1);
+         exit(1);
       }
       #endif
 
@@ -259,7 +258,7 @@ namespace vmesh {
       for (size_t i=0; i<WID3; ++i) block_data[newIndex*WID3+i] = 0.0;
       for (size_t i=0; i<WID3; ++i) block_fx[newIndex*WID3+i] = 0.0;
       for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) 
-	parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
+         parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
 
       ++numberOfBlocks;
       return newIndex;
@@ -268,21 +267,21 @@ namespace vmesh {
    template<typename LID> inline
    bool VelocityBlockContainer<LID>::recapacitate(const LID& newCapacity) {
       if (newCapacity < numberOfBlocks) return false;
-	{
-	   std::vector<Realf,aligned_allocator<Realf,WID3> > dummy_data(newCapacity*WID3);
-	   for (size_t i=0; i<numberOfBlocks*WID3; ++i) dummy_data[i] = block_data[i];
-	   dummy_data.swap(block_data);
-	}
-	{
-	   std::vector<Realf,aligned_allocator<Realf,WID3> > dummy_fx(newCapacity*WID3);
-	   for (size_t i=0; i<numberOfBlocks*WID3; ++i) dummy_fx[i] = block_fx[i];
-	   dummy_fx.swap(block_fx);
-	}
-	{
-	   std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > dummy_parameters(newCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
-	   for (size_t i=0; i<numberOfBlocks*BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) dummy_parameters[i] = parameters[i];
-	   dummy_parameters.swap(parameters);
-	}
+      {
+         std::vector<Realf,aligned_allocator<Realf,WID3> > dummy_data(newCapacity*WID3);
+         for (size_t i=0; i<numberOfBlocks*WID3; ++i) dummy_data[i] = block_data[i];
+         dummy_data.swap(block_data);
+      }
+      {
+         std::vector<Realf,aligned_allocator<Realf,WID3> > dummy_fx(newCapacity*WID3);
+         for (size_t i=0; i<numberOfBlocks*WID3; ++i) dummy_fx[i] = block_fx[i];
+         dummy_fx.swap(block_fx);
+      }
+      {
+         std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > dummy_parameters(newCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+         for (size_t i=0; i<numberOfBlocks*BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) dummy_parameters[i] = parameters[i];
+         dummy_parameters.swap(parameters);
+      }
       currentCapacity = newCapacity;
       return true;
    }
@@ -290,13 +289,13 @@ namespace vmesh {
    template<typename LID> inline
    void VelocityBlockContainer<LID>::resize() {
       if ((numberOfBlocks+1) >= currentCapacity) {
-	 // Resize so that free space is block_allocation_chunk blocks, 
-	 // and at least two in case of having zero blocks.
-	 // The order of velocity blocks is unaltered.
-	 currentCapacity = 2 + numberOfBlocks * BLOCK_ALLOCATION_FACTOR;
-	 block_data.resize(currentCapacity*WID3);
-	 block_fx.resize(currentCapacity*WID3);
-	 parameters.resize(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+         // Resize so that free space is block_allocation_chunk blocks, 
+         // and at least two in case of having zero blocks.
+         // The order of velocity blocks is unaltered.
+         currentCapacity = 2 + numberOfBlocks * BLOCK_ALLOCATION_FACTOR;
+         block_data.resize(currentCapacity*WID3);
+         block_fx.resize(currentCapacity*WID3);
+         parameters.resize(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       }
    }
 
@@ -328,11 +327,11 @@ namespace vmesh {
       if (blockLID >= numberOfBlocks) ok = false;
       if (blockLID*WID3+cell >= block_data.size()) ok = false;
       if (ok == false) {
-	 std::stringstream ss;
-	 ss << "VBC ERROR: out of bounds in getData, LID=" << blockLID << " cell=" << cell << " #blocks=" << numberOfBlocks << " data.size()=" << block_data.size() << std::endl;
-	 std::cerr << ss.str();
-	 sleep(1);
-	 exit(1);
+         std::stringstream ss;
+         ss << "VBC ERROR: out of bounds in getData, LID=" << blockLID << " cell=" << cell << " #blocks=" << numberOfBlocks << " data.size()=" << block_data.size() << std::endl;
+         std::cerr << ss.str();
+         sleep(1);
+         exit(1);
       }
 
       return block_data[blockLID*WID3+cell];
@@ -345,11 +344,11 @@ namespace vmesh {
       if (blockLID >= numberOfBlocks) ok = false;
       if (blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+cell >= parameters.size()) ok = false;
       if (ok == false) {
-	 std::stringstream ss;
-	 ss << "VBC ERROR: out of bounds in getParameters, LID=" << blockLID << " cell=" << cell << " #blocks=" << numberOfBlocks << " parameters.size()=" << parameters.size() << std::endl;
-	 std::cerr << ss.str();
-	 sleep(1);
-	 exit(1);
+         std::stringstream ss;
+         ss << "VBC ERROR: out of bounds in getParameters, LID=" << blockLID << " cell=" << cell << " #blocks=" << numberOfBlocks << " parameters.size()=" << parameters.size() << std::endl;
+         std::cerr << ss.str();
+         sleep(1);
+         exit(1);
       }
       
       return parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+cell];
@@ -362,11 +361,11 @@ namespace vmesh {
       if (blockLID >= numberOfBlocks) ok = false;
       if (blockLID*WID3+cell >= block_data.size()) ok = false;
       if (ok == false) {
-	 std::stringstream ss;
-	 ss << "VBC ERROR: out of bounds in setData, LID=" << blockLID << " cell=" << cell << " #blocks=" << numberOfBlocks << " data.size()=" << block_data.size() << std::endl;
-	 std::cerr << ss.str();
-	 sleep(1);
-	 exit(1);
+         std::stringstream ss;
+         ss << "VBC ERROR: out of bounds in setData, LID=" << blockLID << " cell=" << cell << " #blocks=" << numberOfBlocks << " data.size()=" << block_data.size() << std::endl;
+         std::cerr << ss.str();
+         sleep(1);
+         exit(1);
       }
       
       block_data[blockLID*WID3+cell] = value;

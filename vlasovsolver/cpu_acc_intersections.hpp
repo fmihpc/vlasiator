@@ -31,7 +31,7 @@ using namespace Eigen;
 
 
 Eigen::Matrix<Real,3,1> line_plane_intersection(const Eigen::Matrix<Real,3,1>& l_point,const Eigen::Matrix<Real,3,1>& l_direction,
-						const Eigen::Matrix<Real,3,1>& p_point,const Eigen::Matrix<Real,3,1>& p_normal){
+                                                const Eigen::Matrix<Real,3,1>& p_point,const Eigen::Matrix<Real,3,1>& p_normal){
   const Real nom=p_normal.dot(p_point-l_point);
   const Real dem=p_normal.dot(l_direction);
   return l_point+(nom/dem)*l_direction;

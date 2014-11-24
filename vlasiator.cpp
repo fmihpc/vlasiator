@@ -614,7 +614,7 @@ int main(int argn,char* args[]) {
       if(P::tstep == P::tstep_min) {
          timePerStep=0.0;
       } else {
-         timePerStep=double(after  - startTime) / (P::tstep-P::tstep_min);	
+         timePerStep=double(after  - startTime) / (P::tstep-P::tstep_min);
       }
       double timePerSecond=double(after  - startTime) / (P::t-P::t_min+DT_EPSILON);
       logFile << "(MAIN): All timesteps calculated." << endl;

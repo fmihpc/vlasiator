@@ -119,7 +119,7 @@ namespace projects {
       
       creal result = avg *this->DENSITY * pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) /
                      (this->nSpaceSamples*this->nSpaceSamples*this->nSpaceSamples) / 
-   //   	            (Parameters::vzmax - Parameters::vzmin) / 
+   //                (Parameters::vzmax - Parameters::vzmin) / 
                      (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
                
                

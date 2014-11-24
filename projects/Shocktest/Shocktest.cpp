@@ -149,13 +149,13 @@ namespace projects {
       Real avg = 0.0;
       for (uint i=0; i<this->nSpaceSamples; ++i)
          for (uint j=0; j<this->nSpaceSamples; ++j)
-   	 for (uint k=0; k<this->nSpaceSamples; ++k)
-   	    for (uint vi=0; vi<this->nVelocitySamples; ++vi)
-   	       for (uint vj=0; vj<this->nVelocitySamples; ++vj)
-   		  for (uint vk=0; vk<this->nVelocitySamples; ++vk)
-   		     {
-   			avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
-   		     }
+            for (uint k=0; k<this->nSpaceSamples; ++k)
+               for (uint vi=0; vi<this->nVelocitySamples; ++vi)
+                  for (uint vj=0; vj<this->nVelocitySamples; ++vj)
+                     for (uint vk=0; vk<this->nVelocitySamples; ++vk)
+                     {
+                        avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz);
+                     }
       return avg / pow(this->nSpaceSamples, 3.0) / pow(this->nVelocitySamples, 3.0);
    }
    
@@ -180,11 +180,11 @@ namespace projects {
       
       for (uint i=0; i<this->nSpaceSamples; ++i)
          for (uint j=0; j<this->nSpaceSamples; ++j)
-   	 for (uint k=0; k<this->nSpaceSamples; ++k) {
-   	    Bxavg += ((x + i * d_x) < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];
-   	    Byavg += ((x + i * d_x) < 0.0) ? this->By[this->LEFT] : this->By[this->RIGHT];
-   	    Bzavg += ((x + i * d_x) < 0.0) ? this->Bz[this->LEFT] : this->Bz[this->RIGHT];
-   	 }
+            for (uint k=0; k<this->nSpaceSamples; ++k) {
+               Bxavg += ((x + i * d_x) < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];
+               Byavg += ((x + i * d_x) < 0.0) ? this->By[this->LEFT] : this->By[this->RIGHT];
+               Bzavg += ((x + i * d_x) < 0.0) ? this->Bz[this->LEFT] : this->Bz[this->RIGHT];
+      }
       cuint nPts = pow(this->nSpaceSamples, 3.0);
       
       cellParams[CellParams::EX   ] = 0.0;

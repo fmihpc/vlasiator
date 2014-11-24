@@ -145,9 +145,9 @@ void initializeGrid(
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
          project.setCellBackgroundField(cell);         
-	 if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             project.setCell(cell);
-	 }
+         }
       }
 
       //initial state for sys-boundary cells
@@ -264,24 +264,24 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
    for (uint64_t transfer_part=0; transfer_part<num_part_transfers; transfer_part++) {
       //Set transfers on/off for the incming cells in this transfer set and prepare for receive
       for (unsigned int i=0;i<incoming_cells_list.size();i++){
-	 uint64_t cell_id=incoming_cells_list[i];
-	 SpatialCell* cell = mpiGrid[cell_id];
-	 if (cell_id%num_part_transfers!=transfer_part) {
-	    cell->set_mpi_transfer_enabled(false);
-	 } else {
-	    cell->set_mpi_transfer_enabled(true);
-	 }
+         uint64_t cell_id=incoming_cells_list[i];
+         SpatialCell* cell = mpiGrid[cell_id];
+         if (cell_id%num_part_transfers!=transfer_part) {
+            cell->set_mpi_transfer_enabled(false);
+         } else {
+            cell->set_mpi_transfer_enabled(true);
+         }
       }
       
       //Set transfers on/off for the outgoing cells in this transfer set
       for (unsigned int i=0; i<outgoing_cells_list.size(); i++) {
-	 uint64_t cell_id=outgoing_cells_list[i];
-	 SpatialCell* cell = mpiGrid[cell_id];
-	 if (cell_id%num_part_transfers!=transfer_part) {
-	    cell->set_mpi_transfer_enabled(false);
-	 } else {
-	    cell->set_mpi_transfer_enabled(true);
-	 }
+         uint64_t cell_id=outgoing_cells_list[i];
+         SpatialCell* cell = mpiGrid[cell_id];
+         if (cell_id%num_part_transfers!=transfer_part) {
+            cell->set_mpi_transfer_enabled(false);
+         } else {
+            cell->set_mpi_transfer_enabled(true);
+         }
       }
 
       //Transfer velocity block list
@@ -291,15 +291,14 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
       mpiGrid.continue_balance_load();
       
       for (unsigned int i=0; i<incoming_cells_list.size(); i++) {
-	 uint64_t cell_id=incoming_cells_list[i];
-	 SpatialCell* cell = mpiGrid[cell_id];
-	 if (cell_id%num_part_transfers==transfer_part) {
-	    phiprof::start("Preparing receives");
-	    // reserve space for velocity block data in arriving remote cells
-	    cell->prepare_to_receive_blocks();
-	    phiprof::stop("Preparing receives", incoming_cells_list.size(), "Spatial cells");
-	    
-	 }
+         uint64_t cell_id=incoming_cells_list[i];
+         SpatialCell* cell = mpiGrid[cell_id];
+         if (cell_id%num_part_transfers==transfer_part) {
+            phiprof::start("Preparing receives");
+            // reserve space for velocity block data in arriving remote cells
+            cell->prepare_to_receive_blocks();
+            phiprof::stop("Preparing receives", incoming_cells_list.size(), "Spatial cells");
+         }
       }
 
       //do the actual transfer of data for the set of cells to be transferred
@@ -310,10 +309,10 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
       
       //Free memory for cells that have been sent (the blockdata)
       for (unsigned int i=0;i<outgoing_cells_list.size();i++){
-	 uint64_t cell_id=outgoing_cells_list[i];
-	 SpatialCell* cell = mpiGrid[cell_id];
-	 if (cell_id%num_part_transfers==transfer_part)
-	   cell->clear(); //free memory of this cell as it has already been transferred. It will not be used anymore
+         uint64_t cell_id=outgoing_cells_list[i];
+         SpatialCell* cell = mpiGrid[cell_id];
+         if (cell_id%num_part_transfers==transfer_part)
+         cell->clear(); //free memory of this cell as it has already been transferred. It will not be used anymore
       }
    }
    phiprof::stop("Data transfers");
@@ -389,27 +388,27 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       vector<SpatialCell*> neighbor_ptrs;
       neighbor_ptrs.reserve(neighbors->size());
       for (vector<uint64_t>::const_iterator neighbor_id = neighbors->begin(); neighbor_id != neighbors->end(); ++neighbor_id) {
-	 if (*neighbor_id == 0 || *neighbor_id == cell_id) {
-	    continue;
-	 }
-	 neighbor_ptrs.push_back(mpiGrid[*neighbor_id]);
+         if (*neighbor_id == 0 || *neighbor_id == cell_id) {
+            continue;
+         }
+         neighbor_ptrs.push_back(mpiGrid[*neighbor_id]);
       }
       if (P::sparse_conserve_mass) {
-	 for (size_t i=0; i<cell->get_number_of_velocity_blocks()*WID3; ++i) {
-	    density_pre_adjust += cell->get_data()[i];
-	 }
+         for (size_t i=0; i<cell->get_number_of_velocity_blocks()*WID3; ++i) {
+            density_pre_adjust += cell->get_data()[i];
+         }
       }
       cell->adjust_velocity_blocks(neighbor_ptrs);
 
       if (P::sparse_conserve_mass) {
-	 for (size_t i=0; i<cell->get_number_of_velocity_blocks()*WID3; ++i) {
-	    density_post_adjust += cell->get_data()[i];
-	 }
-	 if (density_post_adjust != 0.0) {
-	    for (size_t i=0; i<cell->get_number_of_velocity_blocks()*WID3; ++i) {
-	       cell->get_data()[i] *= density_pre_adjust/density_post_adjust;
-	    }
-	 }
+         for (size_t i=0; i<cell->get_number_of_velocity_blocks()*WID3; ++i) {
+            density_post_adjust += cell->get_data()[i];
+         }
+         if (density_post_adjust != 0.0) {
+            for (size_t i=0; i<cell->get_number_of_velocity_blocks()*WID3; ++i) {
+               cell->get_data()[i] *= density_pre_adjust/density_post_adjust;
+            }
+         }
       }
    }
    phiprof::stop("Adjusting blocks");

@@ -60,7 +60,7 @@ class VLSVReader {
      \return Returns true for success, and false for error
    */   
    virtual bool getArrayInfo(const std::string& tagName,const std::string& arrayName,uint64_t& arraySize,
-			     uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& byteSize) const;
+                             uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& byteSize) const;
    /*!
      \brief Get information on array ientified by its tag, name meshName
      \param[in] tagName Name of tag
@@ -73,7 +73,7 @@ class VLSVReader {
      \return Returns true for success, and false for error
    */
    virtual bool getArrayInfo(const std::string& tagName,const std::string& arrayName,const std::string& meshName,
-			     uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& byteSize) const;
+                             uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& byteSize) const;
 
    /*!
      \brief Get information on array identified by attributes
@@ -86,7 +86,7 @@ class VLSVReader {
      \return Returns true for success, and false for error
    */
    virtual bool getArrayInfo(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
-			     uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& byteSize) const;
+                             uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& byteSize) const;
 
 
    /*!
@@ -139,7 +139,7 @@ class VLSVReader {
      \return Returns true for success, and false for error 
    */
    virtual bool readArray(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
-			  const uint64_t& begin,const uint64_t& amount,char* buffer);
+                          const uint64_t& begin,const uint64_t& amount,char* buffer);
 
    /*!
      \brief Read array
@@ -153,7 +153,7 @@ class VLSVReader {
    */
    virtual bool readArray(const std::string& tagName,const std::string& arrayName,
                           const std::list<std::pair<std::string,std::string> >& attribs,
-			  const uint64_t& begin,const uint64_t& amount,char* buffer);
+                          const uint64_t& begin,const uint64_t& amount,char* buffer);
    
  protected:
    unsigned char endiannessFile;   /*!< Endianness in VLSV file.*/
@@ -196,11 +196,11 @@ class VLSVParReader: public VLSVReader {
    
    bool close();
    bool getArrayInfo(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
-		     uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& byteSize);
+                     uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& byteSize);
    bool getArrayInfo(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
                      uint64_t& arraySize,uint64_t& vectorSize,vlsv::datatype::type& dataType,uint64_t& byteSize);
    bool getArrayInfoMaster(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
-			   uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& dataSize);
+                           uint64_t& arraySize,uint64_t& vectorSize,VLSV::datatype& dataType,uint64_t& dataSize);
    bool getArrayInfoMaster(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
                            uint64_t& arraySize,uint64_t& vectorSize,vlsv::datatype::type& dataType,uint64_t& dataSize);
    bool multiReadStart(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs);
@@ -208,9 +208,9 @@ class VLSVParReader: public VLSVReader {
    bool multiReadEnd(const uint64_t& offset);
    bool open(const std::string& fname,MPI_Comm comm,const int& masterRank,MPI_Info mpiInfo);
    bool readArrayMaster(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
-			const uint64_t& begin,const uint64_t& amount,char* buffer);
+                        const uint64_t& begin,const uint64_t& amount,char* buffer);
    bool readArray(const std::string& tagName,const std::list<std::pair<std::string,std::string> >& attribs,
-		  const uint64_t& begin,const uint64_t& amount,char* buffer);
+                  const uint64_t& begin,const uint64_t& amount,char* buffer);
    
  private:
    MPI_Comm comm;                  /*!< MPI communicator used to read the file.*/

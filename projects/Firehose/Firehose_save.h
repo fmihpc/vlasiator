@@ -103,7 +103,7 @@ void calcSimParameters(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiG
  * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
  */
 Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
-			   creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz);
+                           creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz);
 
 /*!\brief Set the fields and distribution of a cell according to the default simulation settings.
  * This is used for the NOT_SYSBOUNDARY cells and some other system boundary conditions (e.g. Outflow).
@@ -146,7 +146,7 @@ void setProjectCell(SpatialCell* cell);
  */
 template<typename T>
 T calcBoundVolAvg(cuint& iv,cuint& jv,cuint& kv,const T* const cellParams,
-		  const T* const blockParams,const T& avg,const int& crd,const bool& negSide) {
+                  const T* const blockParams,const T& avg,const int& crd,const bool& negSide) {
    return avg;
 }
 

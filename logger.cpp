@@ -75,7 +75,7 @@ bool Logger::flush(bool verbose) {
       
       const size_t lineBreak = strTime.find('\n');
       if (lineBreak != string::npos) {
-	 strTime.erase(lineBreak,1);
+         strTime.erase(lineBreak,1);
       }
       
       // Form a new output buffer containing the process number, date 

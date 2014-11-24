@@ -376,8 +376,8 @@ namespace DRO {
          Real thread_nvz2_sum = 0.0;
          # pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(); n++) {
-	    const Real* parameters = cell->get_block_parameters(n);
-	    const Realf* block_data = cell->get_data(n);
+            const Real* parameters = cell->get_block_parameters(n);
+            const Realf* block_data = cell->get_data(n);
             for (uint k=0; k<WID; ++k)
                for (uint j=0; j<WID; ++j)
                   for (uint i=0; i<WID; ++i) {
@@ -478,8 +478,8 @@ namespace DRO {
          # pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(); n++) {
             const Real* parameters = cell->get_block_parameters(n);
-	    const Realf* block_data = cell->get_data(n);
-	    for (uint k=0; k<WID; ++k)
+            const Realf* block_data = cell->get_data(n);
+            for (uint k=0; k<WID; ++k)
                for (uint j=0; j<WID; ++j)
                   for (uint i=0; i<WID; ++i) {
                      const Real VX = parameters[BlockParams::VXCRD] + (i+HALF) * parameters[BlockParams::DVX];
@@ -543,8 +543,8 @@ namespace DRO {
          Real thread_nvyvz_sum = 0.0;
          # pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(); n++) {
-	    const Real* parameters = cell->get_block_parameters(n);
-	    const Realf* block_data = cell->get_data(n);
+         const Real* parameters = cell->get_block_parameters(n);
+         const Realf* block_data = cell->get_data(n);
             for (uint k=0; k<WID; ++k)
                for (uint j=0; j<WID; ++j)
                   for (uint i=0; i<WID; ++i) {
@@ -710,7 +710,7 @@ namespace DRO {
          Real threadMax = std::numeric_limits<Real>::min();
          #pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(); ++n) {
-	    const Realf* block_data = cell->get_data(n);
+            const Realf* block_data = cell->get_data(n);
             for (uint k=0; k<WID; ++k)
                for (uint j=0; j<WID; ++j)
                   for (uint i=0; i<WID; ++i) {
@@ -763,7 +763,7 @@ namespace DRO {
          Real threadMin = std::numeric_limits<Real>::max();
          #pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(); ++n) {
-	    const Realf* block_data = cell->get_data(n);
+            const Realf* block_data = cell->get_data(n);
             for (uint k=0; k<WID; ++k)
                for (uint j=0; j<WID; ++j)
                   for (uint i=0; i<WID; ++i) {
@@ -831,8 +831,10 @@ namespace DRO {
       }
    }
    //Helper function for getting the velocity cell indices that are a part of the backstream population:
-   static void getBackstreamVelocityCellIndices(const Real* block_parameters,
-						vector<array<uint, 3>> & vCellIndices ) {
+   static void getBackstreamVelocityCellIndices(
+      const Real* block_parameters,
+      vector<array<uint, 3>> & vCellIndices
+   ) {
       const Real HALF = 0.5;
       // Go through a block's every velocity cell
       for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
@@ -883,8 +885,8 @@ namespace DRO {
          Real thread_n_sum = 0.0;
          # pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(); ++n) {
-	    const Real* parameters = cell->get_block_parameters(n);
-	    const Realf* block_data = cell->get_data(n);
+            const Real* parameters = cell->get_block_parameters(n);
+            const Realf* block_data = cell->get_data(n);
             const Real DV3 = parameters[BlockParams::DVX] * parameters[BlockParams::DVY] * parameters[BlockParams::DVZ];
             vector< uint64_t > vCells; //Velocity cell ids
             vCells.clear();
@@ -923,8 +925,8 @@ namespace DRO {
          Real thread_nvz_sum = 0.0;
          # pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(); ++n) {
-	    const Real* parameters = cell->get_block_parameters(n);
-	    const Realf* block_data = cell->get_data(n);
+            const Real* parameters = cell->get_block_parameters(n);
+            const Realf* block_data = cell->get_data(n);
             const Real DV3 = parameters[BlockParams::DVX] * parameters[BlockParams::DVY] * parameters[BlockParams::DVZ]; // Get the volume of a velocity cell
             // Get the velocity cell indices of the cells that are a part of the backstream population
             vector< array<uint, 3> > vCellIndices;
@@ -982,9 +984,9 @@ namespace DRO {
          Real thread_nvz2_sum = 0.0;
          # pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(); ++n) {
-	    const Real* parameters = cell->get_block_parameters(n);
-	    const Realf* block_data = cell->get_data(n);
-	    const Real DV3 = parameters[BlockParams::DVX] * parameters[BlockParams::DVY] * parameters[BlockParams::DVZ];
+            const Real* parameters = cell->get_block_parameters(n);
+            const Realf* block_data = cell->get_data(n);
+            const Real DV3 = parameters[BlockParams::DVX] * parameters[BlockParams::DVY] * parameters[BlockParams::DVZ];
             vector< array<uint, 3> > vCellIndices;
             vCellIndices.clear();
             //Note: Could use function pointers
@@ -1033,8 +1035,8 @@ namespace DRO {
          # pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(); ++n) {
             const Real* parameters = cell->get_block_parameters(n);
-	    const Realf* block_data = cell->get_data(n);
-	    const Real DV3 = parameters[BlockParams::DVX] * parameters[BlockParams::DVY] * parameters[BlockParams::DVZ];
+            const Realf* block_data = cell->get_data(n);
+            const Real DV3 = parameters[BlockParams::DVX] * parameters[BlockParams::DVY] * parameters[BlockParams::DVZ];
             vector< array<uint, 3> > vCellIndices;
             vCellIndices.clear();
             if( calculateBackstream == true ) {
@@ -1084,8 +1086,8 @@ namespace DRO {
          Real thread_nvyvz_sum = 0.0;
          # pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(); ++n) {
-	    const Real* parameters = cell->get_block_parameters(n);
-	    const Realf* block_data = cell->get_data(n);
+            const Real* parameters = cell->get_block_parameters(n);
+            const Realf* block_data = cell->get_data(n);
             const Real DV3 = parameters[BlockParams::DVX] * parameters[BlockParams::DVY] * parameters[BlockParams::DVZ];
             vector< array<uint, 3> > vCellIndices;
             if( calculateBackstream == true ) {

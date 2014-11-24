@@ -61,7 +61,7 @@ double Dipole::call( double x, double y, double z) const
           2*q[_fComponent]*r[_dComponent] +
           3*rdotq*sameComponent)/r5;
    }
-   return 0;	// dummy, but prevents gcc from yelling
+   return 0; // dummy, but prevents gcc from yelling
 }
 
 

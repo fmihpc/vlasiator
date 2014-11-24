@@ -23,7 +23,7 @@ inline void compute_h6_face_values(Real *values, uint n_cblocks,  Real *fv_l, Re
   for (int k = 0; k < n_cblocks * WID + 1; k++){
       /*compute left values*/
       fv_l[k] = 1.0/60.0 * (values[k - 3 + WID]  - 8.0 * values[k - 2 + WID]  + 37.0 * values[k - 1 + WID] +
-			    37.0 * values[k  + WID] - 8.0 * values[k + 1 + WID] + values[k + 2 + WID]);
+                37.0 * values[k  + WID] - 8.0 * values[k + 1 + WID] + values[k + 2 + WID]);
       /*set right value*/
       if(k>0)
          fv_r[k-1] = fv_l[k];

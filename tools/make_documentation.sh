@@ -28,28 +28,28 @@ touch $LOCKFILE
     echo VLASIATOR up to date $isUpToDate
     if [ "$1" = "--force" ]
     then
-	isUpToDate=0
+      isUpToDate=0
     fi
 
     if [ ${isUpToDate} -ne 1 ] 
     then
 
 #create additional svn log in doxygen docs
-	svnlogdoc=${VLASIATOR_DIR}/doc/svnlog.dox
-	echo '/*! \page svnlog SVN log ' > $svnlogdoc
-	echo '\verbatim'    >> $svnlogdoc
-	svn log --verbose   >> $svnlogdoc
-	echo '\endverbatim' >> $svnlogdoc
-	echo '*/'           >> $svnlogdoc
-	
-	
+      svnlogdoc=${VLASIATOR_DIR}/doc/svnlog.dox
+      echo '/*! \page svnlog SVN log ' > $svnlogdoc
+      echo '\verbatim'    >> $svnlogdoc
+      svn log --verbose   >> $svnlogdoc
+      echo '\endverbatim' >> $svnlogdoc
+      echo '*/'           >> $svnlogdoc
+      
+      
 #create doxygen docs
-	$DOXYGEN
-	rm -rf $VLASIATOR_DOXYGENDOCS
-	mv doc/html $VLASIATOR_DOXYGENDOCS
-	
+      $DOXYGEN
+      rm -rf $VLASIATOR_DOXYGENDOCS
+      mv doc/html $VLASIATOR_DOXYGENDOCS
+      
 #make files readable
-	chmod -R a+rX ~/public_html/vlasiator
+      chmod -R a+rX ~/public_html/vlasiator
     fi
 
 
@@ -60,20 +60,20 @@ touch $LOCKFILE
     echo DCCRG up to date $isUpToDate
     if [ "$1" = "--force" ]
     then
-	isUpToDate=0
+      isUpToDate=0
     fi
 
     if [ ${isUpToDate} -ne 1 ] 
     then
 #no commitlog is prodcued at the moment
-	
+    
 #create doxygen docs
-	$DOXYGEN
-	rm -rf $DCCRG_DOXYGENDOCS
-	cp -r documentation/html $DCCRG_DOXYGENDOCS
-	
+      $DOXYGEN
+      rm -rf $DCCRG_DOXYGENDOCS
+      cp -r documentation/html $DCCRG_DOXYGENDOCS
+      
 #make files readable
-	chmod -R a+rX $PUBLIC_HTML_DIR
+      chmod -R a+rX $PUBLIC_HTML_DIR
     fi
 
 #then dccrg
@@ -84,22 +84,21 @@ touch $LOCKFILE
 
     if [ "$1" = "--force" ]
     then
-	isUpToDate=0
+      isUpToDate=0
     fi
 
     if [ ${isUpToDate} -ne 1 ] 
     then
 #no commitlog is prodcued at the moment
-	
+      
 #create doxygen docs
-	$DOXYGEN
-	rm -rf $PHIPROF_DOXYGENDOCS
-	cp -r documentation/html $PHIPROF_DOXYGENDOCS
-	
+      $DOXYGEN
+      rm -rf $PHIPROF_DOXYGENDOCS
+      cp -r documentation/html $PHIPROF_DOXYGENDOCS
+      
 #make files readable
-	chmod -R a+rX $PUBLIC_HTML_DIR
+      chmod -R a+rX $PUBLIC_HTML_DIR
     fi
-
     
     rm $LOCKFILE
 else

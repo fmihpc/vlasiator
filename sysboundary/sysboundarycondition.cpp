@@ -248,14 +248,14 @@ namespace SBC {
       if(to->sysBoundaryLayer == 1) { // Do this only for the first layer, the other layers do not need this.
 
          if (allowBlockAdjustment) {
-	    /*prepare list of blocks to remove. It is not safe to loop over
-	     * velocity_block_list while adding/removing blocks*/
+         /*prepare list of blocks to remove. It is not safe to loop over
+          * velocity_block_list while adding/removing blocks*/
             std::vector<uint> blocksToRemove;
             for (vmesh::LocalID block_i=0; block_i<to->get_number_of_velocity_blocks(); ++block_i) {
-	       const vmesh::GlobalID blockGID = to->get_velocity_block_global_id(block_i);
+            const vmesh::GlobalID blockGID = to->get_velocity_block_global_id(block_i);
 
-	       // If this block does not exist in from, mark it for removal.
-	       if (from->get_velocity_block_local_id(blockGID) == from->invalid_local_id()) {
+            // If this block does not exist in from, mark it for removal.
+            if (from->get_velocity_block_local_id(blockGID) == from->invalid_local_id()) {
                   blocksToRemove.push_back(blockGID);
                }
             }
@@ -268,21 +268,21 @@ namespace SBC {
 
             /*add blocks*/
             for (vmesh::LocalID block_i=0; block_i<from->get_number_of_velocity_blocks(); ++block_i) {
-	       const vmesh::GlobalID blockGID = from->get_velocity_block_global_id(block_i);	       
+               const vmesh::GlobalID blockGID = from->get_velocity_block_global_id(block_i);
                to->add_velocity_block(blockGID);
-	       Realf* toBlock_data = to->get_data( to->get_velocity_block_local_id(blockGID) );
-	       const Realf* fromBlock_data = from->get_data(block_i);
+               Realf* toBlock_data = to->get_data( to->get_velocity_block_local_id(blockGID) );
+               const Realf* fromBlock_data = from->get_data(block_i);
                for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
-                  toBlock_data[i] = fromBlock_data[i];		  
+                  toBlock_data[i] = fromBlock_data[i];
                }
             }
          } else {
             //just copy data to existing blocks, no modification of to blocks allowed
             for (vmesh::LocalID block_i=0; block_i<to->get_number_of_velocity_blocks(); ++block_i) {
                const vmesh::GlobalID blockGID = to->get_velocity_block_global_id(block_i);
-	       const Realf* fromBlock_data = from->get_data( from->get_velocity_block_local_id(blockGID) );
-	       Realf* toBlock_data = to->get_data(block_i);
-	       if (from->get_velocity_block_local_id(blockGID) == from->invalid_local_id()) {
+               const Realf* fromBlock_data = from->get_data( from->get_velocity_block_local_id(blockGID) );
+               Realf* toBlock_data = to->get_data(block_i);
+               if (from->get_velocity_block_local_id(blockGID) == from->invalid_local_id()) {
                   for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
                      toBlock_data[i] = 0.0; //block did not exist in from cell, fill with zeros.
                   }

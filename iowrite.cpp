@@ -134,8 +134,8 @@ bool writeVelocityDistributionData(
       // gather data for writing
       for (size_t cell=0; cell<cells.size(); ++cell) {
          SpatialCell* SC = mpiGrid[cells[cell]];
-	 for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(); ++block_i) {
-	    vmesh::GlobalID block = SC->get_velocity_block_global_id(block_i);
+         for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(); ++block_i) {
+            vmesh::GlobalID block = SC->get_velocity_block_global_id(block_i);
             velocityBlockIds.push_back( block );
          }
       }

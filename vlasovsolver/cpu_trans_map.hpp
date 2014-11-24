@@ -194,10 +194,12 @@ void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cart
  * then neighboring spatial cells (in the dimension). neighbors
  * generated with compute_spatial_neighbors_wboundcond)*/
 
-inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-				  const CellID cellID,
-				  const CellID* source_neighbors,
-				  const vmesh::GlobalID blockGID,Vec4* values,int dimension) {
+inline void copy_trans_block_data(
+   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const CellID cellID,
+   const CellID* source_neighbors,
+   const vmesh::GlobalID blockGID,Vec4* values,int dimension
+) {
    uint cell_indices_to_id[3]={};
    switch (dimension){
        case 0:
@@ -225,9 +227,9 @@ inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesia
       Realf* block_fx;
       const vmesh::LocalID blockLID = mpiGrid[srcCell]->get_velocity_block_local_id(blockGID);
       if (blockLID == mpiGrid[srcCell]->invalid_local_id()) {
-	 block_fx = mpiGrid[srcCell]->null_block_fx;
+         block_fx = mpiGrid[srcCell]->null_block_fx;
       } else {
-	 block_fx = mpiGrid[srcCell]->get_fx(blockLID);
+         block_fx = mpiGrid[srcCell]->get_fx(blockLID);
       }
 
       /* Copy fx table, spatial source_neighbors already taken care of when
@@ -243,7 +245,7 @@ inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesia
                   j * cell_indices_to_id[1] +
                   k * cell_indices_to_id[2];
                /*copy data, when reading data from fx we swap dimensions using cell_indices_to_id*/
-	       values[i_trans_pblockv(b,j,k)].insert(i,(Real)block_fx[cell]);
+               values[i_trans_pblockv(b,j,k)].insert(i,(Real)block_fx[cell]);
             }
          }
       }
@@ -264,12 +266,14 @@ inline void copy_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesia
   k -> j
   
 */
-inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-				   const CellID cellID, const CellID *target_neighbors, 
-				   const vmesh::GlobalID blockGID,
-				   Vec4 * __restrict__ target_values,int dimension) {
+inline void store_trans_block_data(
+   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const CellID cellID, const CellID *target_neighbors,
+   const vmesh::GlobalID blockGID,
+   Vec4 * __restrict__ target_values,int dimension
+) {
    uint cell_indices_to_id[3];
-  
+   
    switch (dimension){
        case 0:
           /* i and k coordinates have been swapped*/
@@ -307,11 +311,11 @@ inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesi
       SpatialCell* spatial_cell = mpiGrid[target_neighbors[b + 1]];
       const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID);
       if (blockLID == spatial_cell->invalid_local_id()) {
-	 // block does not exist. If so, we do not create it and add stuff to it here.
-	 // We have already created blocks around blocks with content in
-	 // spatial sense, so we have no need to create even more blocks here
-	 // TODO add loss counter
-	 continue;
+         // block does not exist. If so, we do not create it and add stuff to it here.
+         // We have already created blocks around blocks with content in
+         // spatial sense, so we have no need to create even more blocks here
+         // TODO add loss counter
+         continue;
       }
 
       Realf* block_data = spatial_cell->get_data(blockLID);
@@ -319,11 +323,11 @@ inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesi
          for (uint j=0; j<WID; ++j) {
             for (uint i=0; i<WID; ++i) {
                const uint cell =
-		 i * cell_indices_to_id[0] +
-		 j * cell_indices_to_id[1] +
-		 k * cell_indices_to_id[2];
+                  i * cell_indices_to_id[0] +
+                  j * cell_indices_to_id[1] +
+                  k * cell_indices_to_id[2];
                /*store data, when reading data from  data we swap dimensions using cell_indices_to_id*/
-	       block_data[cell] += target_values[i_trans_ptblockv(b,j,k)][i];
+               block_data[cell] += target_values[i_trans_ptblockv(b,j,k)][i];
             }
          }
       }
@@ -334,7 +338,6 @@ inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesi
   For local cells that are not boundary cells  block data is copied from data to fx, and data is
   set to zero, if boundary cell then   we copy from data to fx, but do not
   touch data. FOr remote cells fx is already up to data as we receive there.
-  
 */
 bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const CellID cellID){
    bool return_value=false;
@@ -351,7 +354,7 @@ bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
          spatial_cell->get_fx()[cell] = spatial_cell->get_data()[cell];
          spatial_cell->get_data()[cell] = 0.0;
          return_value=true;
-      }      
+      }
    } else if(!is_local && !is_boundary) {
       #pragma omp for nowait
       for(unsigned int cell = 0; cell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(); cell++) {
@@ -420,61 +423,61 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    compute_spatial_source_neighbors(mpiGrid,cellID,dimension,source_neighbors);
    compute_spatial_target_neighbors(mpiGrid,cellID,dimension,target_neighbors);
 
-   /*set cell size in dimension direction*/  
+   /*set cell size in dimension direction*/
    switch (dimension){
-       case 0:
-          dz = P::dx_ini;
-          z_min = P::xmin;
-          dvz = SpatialCell::get_velocity_base_grid_cell_size()[0];
-          vz_min = SpatialCell::get_velocity_grid_min_limits()[0];
-          block_indices_to_id[0]=SpatialCell::get_velocity_base_grid_length()[0]*SpatialCell::get_velocity_base_grid_length()[1];
-          block_indices_to_id[1]=SpatialCell::get_velocity_base_grid_length()[0];
-          block_indices_to_id[2]=1;
-      
-          /*set values in array that is used to transfer blockindices to id using a dot product*/
-          cell_indices_to_id[0]=WID2;
-          cell_indices_to_id[1]=WID;
-          cell_indices_to_id[2]=1;
-
-          break;
-       case 1:
-          dz = P::dy_ini;
-          z_min = P::ymin;
-          dvz = SpatialCell::get_velocity_base_grid_cell_size()[1];
-          vz_min = SpatialCell::get_velocity_grid_min_limits()[1];
-      
-          /*set values in array that is used to transfer blockindices to id using a dot product*/
-          block_indices_to_id[0]=1;
-          block_indices_to_id[1]=SpatialCell::get_velocity_base_grid_length()[0]*SpatialCell::get_velocity_base_grid_length()[1];
-          block_indices_to_id[2]=SpatialCell::get_velocity_base_grid_length()[0];
-
-          /*set values in array that is used to transfer blockindices to id using a dot product*/
-          cell_indices_to_id[0]=1;
-          cell_indices_to_id[1]=WID2;
-          cell_indices_to_id[2]=WID;
-
-          break;
-       case 2:
-          dz = P::dz_ini;
-          z_min = P::zmin;
-          dvz = SpatialCell::get_velocity_base_grid_cell_size()[2];
-          vz_min = SpatialCell::get_velocity_grid_min_limits()[2];    
-      
-          /*set values in array that is used to transfer blockindices to id using a dot product*/
-          block_indices_to_id[0]=1;
-          block_indices_to_id[1]=SpatialCell::get_velocity_base_grid_length()[0];
-          block_indices_to_id[2]=SpatialCell::get_velocity_base_grid_length()[0]*SpatialCell::get_velocity_base_grid_length()[1];
-
-          /*set values in array that is used to transfer blockindices to id using a dot product*/
-          cell_indices_to_id[0]=1;
-          cell_indices_to_id[1]=WID;
-          cell_indices_to_id[2]=WID2;
-          break;
-
-       default:
-          cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
-          abort();
-          break;
+      case 0:
+         dz = P::dx_ini;
+         z_min = P::xmin;
+         dvz = SpatialCell::get_velocity_base_grid_cell_size()[0];
+         vz_min = SpatialCell::get_velocity_grid_min_limits()[0];
+         block_indices_to_id[0]=SpatialCell::get_velocity_base_grid_length()[0]*SpatialCell::get_velocity_base_grid_length()[1];
+         block_indices_to_id[1]=SpatialCell::get_velocity_base_grid_length()[0];
+         block_indices_to_id[2]=1;
+         
+         /*set values in array that is used to transfer blockindices to id using a dot product*/
+         cell_indices_to_id[0]=WID2;
+         cell_indices_to_id[1]=WID;
+         cell_indices_to_id[2]=1;
+         
+         break;
+      case 1:
+         dz = P::dy_ini;
+         z_min = P::ymin;
+         dvz = SpatialCell::get_velocity_base_grid_cell_size()[1];
+         vz_min = SpatialCell::get_velocity_grid_min_limits()[1];
+         
+         /*set values in array that is used to transfer blockindices to id using a dot product*/
+         block_indices_to_id[0]=1;
+         block_indices_to_id[1]=SpatialCell::get_velocity_base_grid_length()[0]*SpatialCell::get_velocity_base_grid_length()[1];
+         block_indices_to_id[2]=SpatialCell::get_velocity_base_grid_length()[0];
+         
+         /*set values in array that is used to transfer blockindices to id using a dot product*/
+         cell_indices_to_id[0]=1;
+         cell_indices_to_id[1]=WID2;
+         cell_indices_to_id[2]=WID;
+         
+         break;
+      case 2:
+         dz = P::dz_ini;
+         z_min = P::zmin;
+         dvz = SpatialCell::get_velocity_base_grid_cell_size()[2];
+         vz_min = SpatialCell::get_velocity_grid_min_limits()[2];    
+         
+         /*set values in array that is used to transfer blockindices to id using a dot product*/
+         block_indices_to_id[0]=1;
+         block_indices_to_id[1]=SpatialCell::get_velocity_base_grid_length()[0];
+         block_indices_to_id[2]=SpatialCell::get_velocity_base_grid_length()[0]*SpatialCell::get_velocity_base_grid_length()[1];
+         
+         /*set values in array that is used to transfer blockindices to id using a dot product*/
+         cell_indices_to_id[0]=1;
+         cell_indices_to_id[1]=WID;
+         cell_indices_to_id[2]=WID2;
+         break;
+         
+      default:
+         cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
+         abort();
+         break;
    }
    const Real i_dz=1.0/dz;
 
@@ -505,7 +508,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          const Real cell_vz = (block_indices[dimension] * WID + k + 0.5) * dvz + vz_min; //cell centered velocity
          const Real z_translation = cell_vz * dt * i_dz; // how much it moved in time dt (reduced units)
          const int target_scell_index = (z_translation > 0) ? 1: -1; //part of density goes here (cell index change along spatial direcion)
-	  
+         
          //the coordinates (scaled units from 0 to 1) between which we will
          //integrate to put mass in the target  neighboring cell. 
          //As we are below CFL<1, we know
@@ -519,7 +522,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             z_1 = 1.0 - z_translation;
             z_2 = 1.0;
          }
-       
+         
          for (uint j = 0; j < WID; ++j){ 
             //compute reconstruction
 #ifdef TRANS_SEMILAG_PLM
@@ -537,7 +540,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             compute_pqm_coeff(values + i_trans_pblockv(-VLASOV_STENCIL_WIDTH , j, k), h6, VLASOV_STENCIL_WIDTH, a);
 #endif
           
-#ifdef TRANS_SEMILAG_PLM	    
+#ifdef TRANS_SEMILAG_PLM
             const Vec4 ngbr_target_density =
                (z_2 - z_1) * a[0] +
                (z_2 * z_2 - z_1 * z_1) * a[1];
@@ -700,6 +703,5 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
       }
    }
 }
-   
 
-#endif   
+#endif
