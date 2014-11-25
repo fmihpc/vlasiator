@@ -18,7 +18,7 @@ FIELDSOLVER ?= londrillo_delzanna
 # CXXFLAGS += -DFS_1ST_ORDER_TIME
 
 #also use papi to report memory consumption?
-CXXFLAGS += -DPAPI_MEM
+#CXXFLAGS += -DPAPI_MEM
 
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
@@ -40,7 +40,7 @@ CXXFLAGS += -DNDEBUG
 #  TRANS_SEMILAG_PLM 	2nd order	
 #  TRANS_SEMILAG_PPM	3rd order (for production use, use unless testing)
 #  TRANS_SEMILAG_PQM	5th order (in testing)
-CXXFLAGS += -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PPM 
+CXXFLAGS += -DACC_SEMILAG_PLM -DTRANS_SEMILAG_PPM 
 #define USE_AGNER_VECTORCLASS to use an external vector class that is used in some of the solvers
 #If not defined a slower but portable implementation is used, as the external one only supports 
 #Linux & x86 processors  
@@ -49,6 +49,8 @@ CXXFLAGS += -DUSE_AGNER_VECTORCLASS
 #May cause problems
 # CXXFLAGS += -DCATCH_FPE
 
+#Define MESH=AMR if you want to use adaptive mesh refinement
+#MESH = AMR
 
 #Add -DFS_1ST_ORDER_SPACE or -DFS_1ST_ORDER_TIME to make the field solver first-order in space or time
 # CXXFLAGS += -DFS_1ST_ORDER_SPACE
@@ -72,6 +74,10 @@ CXXFLAGS += -D${DISTRIBUTION_FP_PRECISION}
 
 CXXEXTRAFLAGS = ${CXXFLAGS} -DTOOL_NOT_PARALLEL
 
+# If adaptive mesh refinement is used, add a precompiler flag
+ifeq ($(MESH),AMR)
+CXXFLAGS += -DAMR
+endif
 
 default: vlasiator
 
@@ -107,7 +113,7 @@ LIBS += ${LIB_PAPI}
 
 # Define common dependencies
 DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h
-DEPS_CELL   = spatial_cell.hpp velocity_mesh_old.h velocity_block_container.h
+DEPS_CELL   = spatial_cell.hpp velocity_mesh_old.h velocity_mesh_amr.h velocity_block_container.h
 
 # Define dependencies on all project files
 DEPS_PROJECTS =	projects/project.h projects/project.cpp \
@@ -134,18 +140,27 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/verificationLarmor/verificationLarmor.h projects/verificationLarmor/verificationLarmor.cpp \
 		projects/Shocktest/Shocktest.h projects/Shocktest/Shocktest.cpp ${DEPS_CELL}
 
+DEPS_VLSVMOVER = ${DEPS_CELL} vlasovsolver/vlasovmover.cpp vlasovsolver/cpu_acc_map.hpp vlasovsolver/cpu_acc_intersections.hpp \
+	vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_semilag.hpp vlasovsolver/cpu_acc_transform.hpp \
+	vlasovsolver/cpu_moments.h
+
+DEPS_VLSVMOVER_AMR = ${DEPS_CELL} vlasovsolver_amr/vlasovmover.cpp vlasovsolver_amr/cpu_acc_map.hpp vlasovsolver_amr/cpu_acc_intersections.hpp \
+	vlasovsolver_amr/cpu_acc_intersections.hpp vlasovsolver_amr/cpu_acc_semilag.hpp vlasovsolver_amr/cpu_acc_transform.hpp \
+	vlasovsolver_amr/cpu_moments.h
+
 #DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 #		projects/MultiPeak/MultiPeak.h projects/MultiPeak/MultiPeak.cpp ${DEPS_CELL}
 
 #all objects for vlasiator
 
 OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipole.o constantfield.o integratefunction.o \
-	datareducer.o datareductionoperator.o \
+	datareducer.o datareductionoperator.o amr_refinement_criteria.o\
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o \
 	sysboundary.o sysboundarycondition.o \
 	project.o projectTriAxisSearch.o \
-	Alfven.o Diffusion.o Dispersion.o Distributions.o Firehose.o Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o Magnetosphere.o MultiPeak.o VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testHall.o test_trans.o verificationLarmor.o Shocktest.o \
-	grid.o ioread.o iowrite.o vlasiator.o logger.o muxml.o \
+	Alfven.o Diffusion.o Dispersion.o Distributions.o Firehose.o Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o \
+	Magnetosphere.o MultiPeak.o VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testHall.o test_trans.o \
+	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o muxml.o \
 	common.o parameters.o readparameters.o spatial_cell.o \
 	vlscommon.o vlsvreader2.o vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o
 
@@ -175,6 +190,9 @@ version.cpp: FORCE
 
 version.o: version.cpp 
 	 ${CMP} ${CXXFLAGS} ${FLAGS} -c version.cpp
+
+amr_refinement_criteria.o: definitions.h velocity_blocks.h amr_refinement_criteria.h amr_refinement_criteria.cpp object_factory.h object_wrapper.h
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c amr_refinement_criteria.cpp
 
 memoryallocation.o: memoryallocation.cpp 
 	 ${CMP} ${CXXFLAGS} ${FLAGS} -c memoryallocation.cpp
@@ -296,8 +314,13 @@ projectTriAxisSearch.o: ${DEPS_COMMON} $(DEPS_PROJECTS) projects/projectTriAxisS
 spatial_cell.o: ${DEPS_CELL} spatial_cell.cpp
 	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -std=c++0x -c spatial_cell.cpp $(INC_BOOST) ${INC_EIGEN} ${INC_VECTORCLASS}
 
-vlasovmover.o: ${DEPS_CELL} vlasovsolver/vlasovmover.cpp vlasovsolver/cpu_acc_map.hpp vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_semilag.hpp vlasovsolver/cpu_acc_transform.hpp vlasovsolver/cpu_moments.h
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -DMOVER_VLASOV_ORDER=2  -c vlasovsolver/vlasovmover.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG}  ${INC_ZOLTAN}     ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN}  
+ifeq ($(MESH),AMR)
+vlasovmover.o: ${DEPS_VLSVMOVER_AMR}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -DMOVER_VLASOV_ORDER=2 -c vlasovsolver_amr/vlasovmover.cpp -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN}
+else
+vlasovmover.o: ${DEPS_VLSVMOVER}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -DMOVER_VLASOV_ORDER=2 -c vlasovsolver/vlasovmover.cpp -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN}  
+endif
 
 fs_common.o: fieldsolver/fs_common.h fieldsolver/fs_common.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/fs_common.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG}  ${INC_PROFILE}  ${INC_ZOLTAN}
