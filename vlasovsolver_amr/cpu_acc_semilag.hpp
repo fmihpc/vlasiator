@@ -20,9 +20,9 @@
 #include <Eigen/Geometry>
 #include <Eigen/Core>
 
-#include "vlasovsolver/cpu_acc_transform.hpp"
-#include "vlasovsolver/cpu_acc_intersections.hpp"
-#include "vlasovsolver/cpu_acc_map.hpp"
+#include "vlasovsolver_amr/cpu_acc_transform.hpp"
+#include "vlasovsolver_amr/cpu_acc_intersections.hpp"
+#include "vlasovsolver_amr/cpu_acc_map.hpp"
 
 using namespace std;
 using namespace spatial_cell;
