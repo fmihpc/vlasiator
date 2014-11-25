@@ -364,7 +364,7 @@ bool writeCommonGridData(
    if( vlsvWriter.writeParameter("vxblocks_ini", &P::vxblocks_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("vyblocks_ini", &P::vyblocks_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("vzblocks_ini", &P::vzblocks_ini) == false ) { return false; }
-   if ( vlsvWriter.writeParameter("max_velocity_ref_level", &P::maxVelocityRefLevel) == false) {return false;}
+   if ( vlsvWriter.writeParameter("max_velocity_ref_level", &P::amrMaxVelocityRefLevel) == false) {return false;}
 
    //Mark the new version:
    float version = 1.00;

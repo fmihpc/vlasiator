@@ -1,18 +1,19 @@
 #ifndef VELOCITY_BLOCKS_H
 #define VELOCITY_BLOCKS_H
 
+#include <iostream>
 #include "common.h"
 
 namespace vblock {
    
    namespace interpmethod {
       enum Method {
-	 NGP,                /**< Nearest grid point, i.e., no interpolation.*/
-	 CIC,                /**< Cloud in cell, i.e., linear interpolation.*/
-	 TSC
+         NGP,                /**< Nearest grid point, i.e., no interpolation.*/
+         CIC,                /**< Cloud in cell, i.e., linear interpolation.*/
+         TSC
       };
    }
-   
+
    template<int PADDING,int METHOD> void accum_xyz(Realf* array,const Real* coords,const Realf& value);
 
    template<int PADDING,typename T> void addToFine_x(const T& octant,const T* coarseOffset);

@@ -11,6 +11,7 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 #include <limits>
 #include <string>
 #include "definitions.h"
+#include "object_wrapper.h"
 
 #ifdef DEBUG_SOLVERS
 #define CHECK_FLOAT(x) \
@@ -361,6 +362,8 @@ namespace physicalconstants {
    const Real MASS_PROTON = 1.67262158e-27; /*!< Proton rest mass.*/
    const Real R_E = 6.3712e6; /*!< radius of the Earth. */
 }
+
+ObjectWrapper& getObjectWrapper();
 
 #endif
 

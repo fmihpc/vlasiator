@@ -28,6 +28,8 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 #include "iowrite.h"
 #include "ioread.h"
 
+#include "object_wrapper.h"
+
 #ifdef CATCH_FPE
 #include <fenv.h>
 #include <signal.h>
@@ -49,6 +51,8 @@ using namespace std;
 using namespace phiprof;
 
 int globalflags::bailingOut = 0;
+
+ObjectWrapper objectWrapper;
 
 void addTimedBarrier(string name){
 #ifdef NDEBUG
@@ -137,7 +141,9 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    return true;
 }
 
-
+ObjectWrapper& getObjectWrapper() {
+   return objectWrapper;
+}
 
 int main(int argn,char* args[]) {
    bool success = true;
@@ -213,6 +219,9 @@ int main(int argn,char* args[]) {
    }
    phiprof::stop("open logFile & diagnostic");
    
+   // Add AMR refinement criterias:
+   amr_ref_criteria::addRefinementCriteria();
+   
    phiprof::start("Init grid");
    /* Initialize grid.  After initializeGrid local cells have dist
       functions, and B fields set. Cells have also been classified for
@@ -231,7 +240,6 @@ int main(int argn,char* args[]) {
    DataReducer outputReducer, diagnosticReducer;
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    phiprof::stop("Init DROs");
-   
 
    // Initialize field propagator:
    if (P::propagateField ) { 
