@@ -73,8 +73,8 @@ inline Vec4 slope_limiter_minmod_amr(const Vec4& l,const Vec4& m, const Vec4& r,
 }
 
 inline Vec4 slope_limiter(const Vec4& l,const Vec4& m, const Vec4& r) {
-   //return slope_limiter_sb(l,m,r);
-   return slope_limiter_minmod(l,m,r);
+   return slope_limiter_sb(l,m,r);
+   //return slope_limiter_minmod(l,m,r);
 }
 
 /*
