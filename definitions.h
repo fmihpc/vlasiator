@@ -38,6 +38,9 @@ typedef uint64_t CellID;
 
 template<typename T> T convert(const T& number) {return number;}
 
-
+/** Definition of a function that takes in a velocity block with neighbor data, 
+ * and returns a number that is used to decide whether or not the block should 
+ * be refined or coarsened.*/
+typedef Realf (*AmrVelRefinement)(const Realf* velBlock);
 
 #endif

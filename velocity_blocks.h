@@ -1,6 +1,7 @@
 #ifndef VELOCITY_BLOCKS_H
 #define VELOCITY_BLOCKS_H
 
+#include <iostream>
 #include "common.h"
 
 namespace vblock {
