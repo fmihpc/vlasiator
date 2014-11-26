@@ -34,7 +34,6 @@ using namespace spatial_cell;
 // ids inside on block (i in vector elements).
 #define i_trans_ptblockv(b_k,j,k)  ( (j) + (k) * WID +((b_k) + 1 ) * WID2)
 
-
 //Is cell translated? It is not translated if DO_NO_COMPUTE or if it is sysboundary cell and not in first sysboundarylayer
 bool do_translate_cell(SpatialCell* SC) {
    if (SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||

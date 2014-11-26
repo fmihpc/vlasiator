@@ -297,7 +297,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
 */
 void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,Real dt) {
    return;
-   
+
    typedef Parameters P;
    const vector<CellID> cells = mpiGrid.get_cells();
    vector<CellID> propagatedCells;
