@@ -44,10 +44,10 @@ namespace vmesh {
       static void getChildren(const GID& globalID,std::vector<GID>& children);
       GID getGlobalID(const LID& localID) const;
       static GID getGlobalID(const uint8_t& refLevel,const Real* coords);
-      static GID getGlobalID(const uint8_t& refLevel,GID indices[3]);
+      static GID getGlobalID(const uint8_t& refLevel,LID indices[3]);
       static GID getGlobalID(const uint32_t& refLevel,const LID& i,const LID& j,const LID& k);
       static GID getGlobalIndexOffset(const uint8_t& refLevel);
-      static const GID* getGridLength(const uint8_t& refLevel);
+      static const LID* getGridLength(const uint8_t& refLevel);
       static void getIndices(const GID& globalID,uint8_t& refLevel,LID& i,LID& j,LID& k);
       LID getLocalID(const GID& globalID) const;
       static uint8_t getMaxAllowedRefinementLevel();
@@ -56,7 +56,7 @@ namespace vmesh {
       static const Real* getMeshMinLimits();
       static void getNeighborsAtSameLevel(const GID& globalID,std::vector<GID>& neighborIDs);
       static void getNeighborsExistingAtSameLevel(const GID& globalID,std::vector<GID>& neighborIDs);
-      void getNeighborsExistingAtOffset(const GID& globalID,const int& i,const int& j,const int& k,std::vector<LID>& neighborIDs,int32_t& refLevelDifference) const;
+      void getNeighborsExistingAtOffset(const GID& globalID,const int& i,const int& j,const int& k,std::vector<LID>& neighborLIDs,int32_t& refLevelDifference) const;
       static int getOctant(const GID& globalID);
       static GID getParent(const GID& globalID);
       static uint8_t getRefinementLevel(const GID& globalID);
@@ -83,7 +83,7 @@ namespace vmesh {
       static Real blockSize[3];                                                 /**< Size of a block at base grid level.*/
       static Real cellSize[3];                                                  /**< Size of a cell in a block at base grid level.*/
       static Real gridSize[3];                                                  /**< Size of the grid.*/
-      static GID gridLength[3];                                                 /**< Number of blocks in the grid.*/
+      static LID gridLength[3];                                                 /**< Number of blocks in the grid.*/
       static bool initialized;
       static Real meshMinLimits[3];                                             /**< Minimum coordinate values of the grid bounding box.*/
       static Real meshMaxLimits[3];                                             /**< Maximum coordinate values of the grid bounding box.*/
@@ -92,7 +92,7 @@ namespace vmesh {
 
       static Real* blockSizes;
       static Real* cellSizes;
-      static GID* gridLengths;
+      static LID* gridLengths;
       static size_t referenceCount;
 
       std::vector<GID> localToGlobalMap;
@@ -111,8 +111,8 @@ namespace vmesh {
    template<typename GID,typename LID> Real VelocityMesh<GID,LID>::cellSize[3] = {NAN,NAN,NAN};
    template<typename GID,typename LID> Real* VelocityMesh<GID,LID>::cellSizes = NULL;
    template<typename GID,typename LID> Real VelocityMesh<GID,LID>::gridSize[3] = {NAN,NAN,NAN};
-   template<typename GID,typename LID> GID VelocityMesh<GID,LID>::gridLength[3] = {0,0,0};
-   template<typename GID,typename LID> GID* VelocityMesh<GID,LID>::gridLengths = NULL;
+   template<typename GID,typename LID> LID VelocityMesh<GID,LID>::gridLength[3] = {0,0,0};
+   template<typename GID,typename LID> LID* VelocityMesh<GID,LID>::gridLengths = NULL;
    template<typename GID,typename LID> bool VelocityMesh<GID,LID>::initialized = false;
    template<typename GID,typename LID> Real VelocityMesh<GID,LID>::meshMinLimits[3] = {NAN,NAN,NAN};
    template<typename GID,typename LID> Real VelocityMesh<GID,LID>::meshMaxLimits[3] = {NAN,NAN,NAN};
@@ -478,7 +478,7 @@ namespace vmesh {
    }
 
    template<typename GID,typename LID> inline
-   GID VelocityMesh<GID,LID>::getGlobalID(const uint8_t& refLevel,GID indices[3]) {
+   GID VelocityMesh<GID,LID>::getGlobalID(const uint8_t& refLevel,LID indices[3]) {
       const uint8_t multiplier = std::pow(2,refLevel);
       if (indices[0] >= gridLength[0]*multiplier) return invalidGlobalID();
       if (indices[1] >= gridLength[1]*multiplier) return invalidGlobalID();
@@ -521,7 +521,7 @@ namespace vmesh {
    }
    
    template<typename GID,typename LID> inline
-   const GID* VelocityMesh<GID,LID>::getGridLength(const uint8_t& refLevel) {
+   const LID* VelocityMesh<GID,LID>::getGridLength(const uint8_t& refLevel) {
       return gridLengths + refLevel*3;
    }
 
@@ -862,7 +862,7 @@ namespace vmesh {
          offsets[i] = offsets[i-1] + N_blocks0 * std::pow(8,i-1);
       }
       
-      gridLengths = new GID[3*(refLevelMaxAllowed+1)];
+      gridLengths = new LID[3*(refLevelMaxAllowed+1)];
       blockSizes  = new Real[3*(refLevelMaxAllowed+1)];
       cellSizes   = new Real[3*(refLevelMaxAllowed+1)];
       uint32_t mul = 1;

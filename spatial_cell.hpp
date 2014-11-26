@@ -39,9 +39,9 @@ Copyright 2011 Finnish Meteorological Institute
 #include "velocity_blocks.h"
 #include "velocity_block_container.h"
 
-//#ifndef NDEBUG
+#ifndef NDEBUG
    #define DEBUG_SPATIAL_CELL
-//#endif
+#endif
 
 typedef Parameters P;
 
@@ -51,11 +51,7 @@ typedef Parameters P;
 #define block_vz_length WID
 //this is also defined in common.h as SIZE_VELBLOCK, we should remove either one
 #define VELOCITY_BLOCK_LENGTH WID3
-#define N_NEIGHBOR_VELOCITY_BLOCKS 28
-
-//extra memory allocated for block data. Should be in parameters and read in
-//#define block_allocation_factor 1.1
-
+//#define N_NEIGHBOR_VELOCITY_BLOCKS 28
 
 /*!
 Used as an error from functions returning velocity cells or
@@ -112,19 +108,16 @@ namespace spatial_cell {
       | CELL_SYSBOUNDARYFLAG;
    }
 
-   #warning TODO: typedef unsigned int velocity_cell_t;
-   #warning TODO: typedef unsigned int velocity_block_t;
-   
    typedef boost::array<unsigned int, 3> velocity_cell_indices_t;             /**< Defines the indices of a velocity cell in a velocity block.
                                                                                * Indices start from 0 and the first value is the index in x direction.
                                                                                * Note: these are the (i,j,k) indices of the cell within the block.
                                                                                * Valid values are ([0,block_vx_length[,[0,block_vy_length[,[0,block_vz_length[).*/
-   
-   typedef boost::array<unsigned int, 3> velocity_block_indices_t;            /**< Defines the indices of a velocity block in the velocity grid.
+
+   typedef boost::array<vmesh::LocalID,3> velocity_block_indices_t;           /**< Defines the indices of a velocity block in the velocity grid.
                                                                                * Indices start from 0 and the first value is the index in x direction.
                                                                                * Note: these are the (i,j,k) indices of the block.
                                                                                * Valid values are ([0,vx_length[,[0,vy_length[,[0,vz_length[).*/
-
+   
    class SpatialCell {
    public:
       SpatialCell();
@@ -264,8 +257,6 @@ namespace spatial_cell {
       SpatialCell& operator=(const SpatialCell&);
       
       bool compute_block_has_content(const vmesh::GlobalID& block) const;
-      vmesh::GlobalID get_velocity_block_from_offsets(const vmesh::GlobalID& block,const int x_offset,
-                                                      const int y_offset,const int z_offset);
       void merge_values_recursive(vmesh::GlobalID parentGID,vmesh::GlobalID blockGID,uint8_t refLevel,bool recursive,const Realf* data,
 				  std::set<vmesh::GlobalID>& blockRemovalList);
       void resize_block_data();
@@ -283,15 +274,15 @@ namespace spatial_cell {
    
    template<int PAD> inline
    void SpatialCell::fetch_acc_data(const vmesh::GlobalID& blockGID,const int& dim,
-				    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
-				    const Realf* src,Realf* array,Real cellSizeFractions[2]) {
+                                    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
+                                    const Realf* src,Realf* array,Real cellSizeFractions[2]) {
       const vmesh::LocalID blockLID = vmesh.getLocalID(blockGID);
-
+      
       #ifdef DEBUG_SPATIAL_CELL
-         if (blockGID == vmesh.invalidGlobalID() || blockLID == vmesh.invalidLocalID()) {
-	    std::cerr << "ERROR: block has invalid global or local index " << __FILE__ << ':' << __LINE__ << std::endl;
-	    exit(1);
-	 }
+      if (blockGID == vmesh.invalidGlobalID() || blockLID == vmesh.invalidLocalID()) {
+         std::cerr << "ERROR: block has invalid global or local index " << __FILE__ << ':' << __LINE__ << std::endl;
+         exit(1);
+      }
       #endif
 
       const Realf* ptr = NULL;
@@ -305,190 +296,189 @@ namespace spatial_cell {
       Real crd;
       switch (dim) {
        case 0: // Transpose i->k, j->j, k->i
-	 ptr = src + blockLID*WID3; // Copy values from this block
-	 for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
-	    array[vblock::index(k,j,i+PAD)] = ptr[vblock::index(i,j,k)];
-	 }
+         ptr = src + blockLID*WID3; // Copy values from this block
+         for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
+            array[vblock::index(k,j,i+PAD)] = ptr[vblock::index(i,j,k)];
+         }
 
-	 for (int i_nbr_off=-1; i_nbr_off<2; i_nbr_off+=2) { // Copy values from x face neighbors:
-	    // Get local IDs of neighbor blocks
-	    vmesh.getNeighborsExistingAtOffset(blockGID,i_nbr_off,+0,+0,nbrIDs,refLevelDiff);
-
-	    // Position that is used to interpolate values from neighbor blocks
-	    Real pos[3];
-	    if (i_nbr_off < 0) crd = WID-0.5-(PAD-1);
-	    else crd = 0.5;
-	    
-	    // i-index to array where interpolated values are stored
-	    uint32_t i_trgt = 0;
-	    if (i_nbr_off > 0) i_trgt = WID+PAD;
-	    
-	    if (nbrIDs.size() > 0) {     // This block has at least one existing neighbor
-	       if (refLevelDiff == -1) { // Neighbor is one level coarser, interpolate
-		  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data; // (this check might not be necessary here)
-		  else ptr = src + nbrIDs[0]*WID3;
-		  for (uint32_t i=0; i<PAD; ++i) for (uint32_t k=0; k<WID; ++k) for (uint32_t j=0; j<WID; ++j) {
-		     pos[0] = crd + i;
-		     pos[1] = 2*(j_block%2) + j/2 + 0.5;
-		     pos[2] = 2*(k_block%2) + k/2 + 0.5;
-		     array[vblock::index(k,j,i_trgt+i)] = vblock::interp_xy<vblock::interpmethod::NGP>(pos,ptr);
-		  }
-		  cellSizeFractions[(i_nbr_off+1)/2] = 2.0;
-	       } else if (refLevelDiff == 0) { // Neighbor at same level, copy data
-		  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data; // (this check might not be necessary here)
-		  else ptr = src + nbrIDs[0]*WID3;
-		  uint32_t i_src = 0;
-		  if (i_nbr_off < 0) i_src = WID-PAD;
-		  for (uint32_t i=0; i<PAD; ++i) for (uint32_t k=0; k<WID; ++k) for (uint32_t j=0; j<WID; ++j) {
-		     array[vblock::index(k,j,i_trgt+i)] = ptr[vblock::index(i_src+i,j,k)];
-		  }
-		  cellSizeFractions[(i_nbr_off+1)/2] = 1.0;
-	       } else if (refLevelDiff == +1) { // nbr one level more refined, interpolate from four neighbors
-		  for (uint32_t i=0; i<PAD; ++i) for (uint32_t k=0; k<WID; ++k) for (uint32_t j=0; j<WID; ++j) {
-
-		     int index = (k/2)*2 + j/2;
-		     if (nbrIDs[index] == invalid_local_id()) ptr = null_block_data;
-		     else ptr = src + nbrIDs[index]*WID3;
-
-		     pos[0] = crd + i;
-		     pos[1] = 2*(j%2) + 1;
-		     pos[2] = 2*(k%2) + 1;
-		     array[vblock::index(k,j,i_trgt+i)] = vblock::interp_xy<vblock::interpmethod::CIC>(pos,ptr);
-		  }
-		  cellSizeFractions[(i_nbr_off+1)/2] = 0.5;
-	       }
-	    } else { // Neighbor does not exist, return zero values
-	       for (uint32_t i=0; i<PAD; ++i) for (uint32_t k=0; k<WID; ++k) for (uint32_t j=0; j<WID; ++j) {
-		  array[vblock::index(k,j,i_trgt+i)] = 0.0;
-	       }
-	       cellSizeFractions[(i_nbr_off+1)/2] = 1.0;
-	    }
-	 }
-	 break;
+         for (int i_nbr_off=-1; i_nbr_off<2; i_nbr_off+=2) { // Copy values from x face neighbors:
+            // Get local IDs of neighbor blocks
+            vmesh.getNeighborsExistingAtOffset(blockGID,i_nbr_off,+0,+0,nbrIDs,refLevelDiff);
+            
+            // Position that is used to interpolate values from neighbor blocks
+            Real pos[3];
+            if (i_nbr_off < 0) crd = WID-0.5-(PAD-1);
+            else crd = 0.5;
+            
+            // i-index to array where interpolated values are stored
+            uint32_t i_trgt = 0;
+            if (i_nbr_off > 0) i_trgt = WID+PAD;
+            
+            if (nbrIDs.size() > 0) {     // This block has at least one existing neighbor
+               if (refLevelDiff == -1) { // Neighbor is one level coarser, interpolate
+                  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data; // (this check might not be necessary here)
+                  else ptr = src + nbrIDs[0]*WID3;
+                  for (uint32_t i=0; i<PAD; ++i) for (uint32_t k=0; k<WID; ++k) for (uint32_t j=0; j<WID; ++j) {
+                     pos[0] = crd + i;
+                     pos[1] = 2*(j_block%2) + j/2 + 0.5;
+                     pos[2] = 2*(k_block%2) + k/2 + 0.5;
+                     array[vblock::index(k,j,i_trgt+i)] = vblock::interp_xy<vblock::interpmethod::NGP>(pos,ptr);
+                  }
+                  cellSizeFractions[(i_nbr_off+1)/2] = 2.0;
+               } else if (refLevelDiff == 0) { // Neighbor at same level, copy data
+                  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data; // (this check might not be necessary here)
+                  else ptr = src + nbrIDs[0]*WID3;
+                  uint32_t i_src = 0;
+                  if (i_nbr_off < 0) i_src = WID-PAD;
+                  for (uint32_t i=0; i<PAD; ++i) for (uint32_t k=0; k<WID; ++k) for (uint32_t j=0; j<WID; ++j) {
+                     array[vblock::index(k,j,i_trgt+i)] = ptr[vblock::index(i_src+i,j,k)];
+                  }
+                  cellSizeFractions[(i_nbr_off+1)/2] = 1.0;
+               } else if (refLevelDiff == +1) { // nbr one level more refined, interpolate from four neighbors
+                  for (uint32_t i=0; i<PAD; ++i) for (uint32_t k=0; k<WID; ++k) for (uint32_t j=0; j<WID; ++j) {
+                     
+                     int index = (k/2)*2 + j/2;
+                     if (nbrIDs[index] == invalid_local_id()) ptr = null_block_data;
+                     else ptr = src + nbrIDs[index]*WID3;
+                     
+                     pos[0] = crd + i;
+                     pos[1] = 2*(j%2) + 1;
+                     pos[2] = 2*(k%2) + 1;
+                     array[vblock::index(k,j,i_trgt+i)] = vblock::interp_xy<vblock::interpmethod::CIC>(pos,ptr);
+                  }
+                  cellSizeFractions[(i_nbr_off+1)/2] = 0.5;
+               }
+            } else { // Neighbor does not exist, return zero values
+               for (uint32_t i=0; i<PAD; ++i) for (uint32_t k=0; k<WID; ++k) for (uint32_t j=0; j<WID; ++j) {
+                  array[vblock::index(k,j,i_trgt+i)] = 0.0;
+               }
+               cellSizeFractions[(i_nbr_off+1)/2] = 1.0;
+            }
+         }
+         break;
        case 1: // Transpose i->i, j->k, k->j
-	 ptr = src + blockLID*WID3; // Copy values from this block
-	 for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
-	    array[vblock::index(i,k,j+PAD)] = ptr[vblock::index(i,j,k)];
-	 }
-	 
-	 for (int j_nbr_off=-1; j_nbr_off<2; j_nbr_off+=2) { // Copy values from y face neighbors:
-	    // Get local IDs of neighbor blocks
-	    vmesh.getNeighborsExistingAtOffset(blockGID,+0,j_nbr_off,+0,nbrIDs,refLevelDiff);
-	    
-	    // Position that is used to interpolate values from neighbor blocks
-	    Real pos[3];
-	    if (j_nbr_off < 0) crd = WID-0.5-(PAD-1);
-	    else crd = 0.5;
-	    
-	    // j-index to array where interpolated values are stored
-	    uint32_t j_trgt = 0;
-	    if (j_nbr_off > 0) j_trgt = WID+PAD;
-	    
-	    if (nbrIDs.size() > 0) {     // This block has at least one existing neighbor
-	       if (refLevelDiff == -1) { // Neighbor is one level coarser, interpolate
-		  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data; // (this check might not be necessary here)
-		  else ptr = src + nbrIDs[0]*WID3;
-		  for (uint32_t j=0; j<PAD; ++j) for (uint32_t k=0; k<WID; ++k) for (uint32_t i=0; i<WID; ++i) {
-		     pos[0] = 2*(i_block%2) + i/2 + 0.5;
-		     pos[1] = crd + j;
-		     pos[2] = 2*(k_block%2) + k/2 + 0.5;
-		     array[vblock::index(i,k,j_trgt+j)] = vblock::interp_xy<vblock::interpmethod::NGP>(pos,ptr);
-		  }
-		  cellSizeFractions[(j_nbr_off+1)/2] = 2.0;
-	       } else if (refLevelDiff == 0) { // Neighbor at same level, copy data
-		  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data; // (this check might not be necessary here)
-		  else ptr = src + nbrIDs[0]*WID3;
-		  uint32_t j_src = 0;
-		  if (j_nbr_off < 0) j_src = WID-PAD;
-		  for (uint32_t j=0; j<PAD; ++j) for (uint32_t k=0; k<WID; ++k) for (uint32_t i=0; i<WID; ++i) {
-		     array[vblock::index(i,k,j_trgt+j)] = ptr[vblock::index(i,j_src+j,k)];
-		  }
-		  cellSizeFractions[(j_nbr_off+1)/2] = 1.0;
-	       } else if (refLevelDiff == +1) { // nbr one level more refined, interpolate from four neighbors
-		  for (uint32_t j=0; j<PAD; ++j) for (uint32_t k=0; k<WID; ++k) for (uint32_t i=0; i<WID; ++i) {
-		     // Iterate over the four neighbors. If the neighbor does not exist, 
-		     // interpolate values from the null block
-		     int index = (k/2)*2 + i/2;
-		     if (nbrIDs[index] == invalid_local_id()) ptr = null_block_data;
-		     else ptr = src + nbrIDs[index]*WID3;
-		     
-		     pos[0] = 2*(i%2) + 1;
-		     pos[1] = crd + j;
-		     pos[2] = 2*(k%2) + 1;
-		     array[vblock::index(i,k,j_trgt+j)] = vblock::interp_xy<vblock::interpmethod::CIC>(pos,ptr);
-		  }
-		  cellSizeFractions[(j_nbr_off+1)/2] = 0.5;
-	       }
-	    } else { // Neighbor does not exist, return zero values
-	       for (uint32_t j=0; j<PAD; ++j) for (uint32_t k=0; k<WID; ++k) for (uint32_t i=0; i<WID; ++i) {
-		  array[vblock::index(i,k,j_trgt+j)] = 0.0;
-	       }
-	       cellSizeFractions[(j_nbr_off+1)/2] = 1.0;
-	    }
-	 }
-	 break;
+         ptr = src + blockLID*WID3; // Copy values from this block
+         for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
+            array[vblock::index(i,k,j+PAD)] = ptr[vblock::index(i,j,k)];
+         }
+         
+         for (int j_nbr_off=-1; j_nbr_off<2; j_nbr_off+=2) { // Copy values from y face neighbors:
+            // Get local IDs of neighbor blocks
+            vmesh.getNeighborsExistingAtOffset(blockGID,+0,j_nbr_off,+0,nbrIDs,refLevelDiff);
+            
+            // Position that is used to interpolate values from neighbor blocks
+            Real pos[3];
+            if (j_nbr_off < 0) crd = WID-0.5-(PAD-1);
+            else crd = 0.5;
+            
+            // j-index to array where interpolated values are stored
+            uint32_t j_trgt = 0;
+            if (j_nbr_off > 0) j_trgt = WID+PAD;
+            
+            if (nbrIDs.size() > 0) {     // This block has at least one existing neighbor
+               if (refLevelDiff == -1) { // Neighbor is one level coarser, interpolate
+                  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data; // (this check might not be necessary here)
+                  else ptr = src + nbrIDs[0]*WID3;
+                  for (uint32_t j=0; j<PAD; ++j) for (uint32_t k=0; k<WID; ++k) for (uint32_t i=0; i<WID; ++i) {
+                     pos[0] = 2*(i_block%2) + i/2 + 0.5;
+                     pos[1] = crd + j;
+                     pos[2] = 2*(k_block%2) + k/2 + 0.5;
+                     array[vblock::index(i,k,j_trgt+j)] = vblock::interp_xy<vblock::interpmethod::NGP>(pos,ptr);
+                  }
+                  cellSizeFractions[(j_nbr_off+1)/2] = 2.0;
+               } else if (refLevelDiff == 0) { // Neighbor at same level, copy data
+                  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data; // (this check might not be necessary here)
+                  else ptr = src + nbrIDs[0]*WID3;
+                  uint32_t j_src = 0;
+                  if (j_nbr_off < 0) j_src = WID-PAD;
+                  for (uint32_t j=0; j<PAD; ++j) for (uint32_t k=0; k<WID; ++k) for (uint32_t i=0; i<WID; ++i) {
+                     array[vblock::index(i,k,j_trgt+j)] = ptr[vblock::index(i,j_src+j,k)];
+                  }
+                  cellSizeFractions[(j_nbr_off+1)/2] = 1.0;
+               } else if (refLevelDiff == +1) { // nbr one level more refined, interpolate from four neighbors
+                  for (uint32_t j=0; j<PAD; ++j) for (uint32_t k=0; k<WID; ++k) for (uint32_t i=0; i<WID; ++i) {
+                     // Iterate over the four neighbors. If the neighbor does not exist, 
+                     // interpolate values from the null block
+                     int index = (k/2)*2 + i/2;
+                     if (nbrIDs[index] == invalid_local_id()) ptr = null_block_data;
+                     else ptr = src + nbrIDs[index]*WID3;
+                     
+                     pos[0] = 2*(i%2) + 1;
+                     pos[1] = crd + j;
+                     pos[2] = 2*(k%2) + 1;
+                     array[vblock::index(i,k,j_trgt+j)] = vblock::interp_xy<vblock::interpmethod::CIC>(pos,ptr);
+                  }
+                  cellSizeFractions[(j_nbr_off+1)/2] = 0.5;
+               }
+            } else { // Neighbor does not exist, return zero values
+               for (uint32_t j=0; j<PAD; ++j) for (uint32_t k=0; k<WID; ++k) for (uint32_t i=0; i<WID; ++i) {
+                  array[vblock::index(i,k,j_trgt+j)] = 0.0;
+               }
+               cellSizeFractions[(j_nbr_off+1)/2] = 1.0;
+            }
+         }
+         break;
        case 2:
-	 ptr = src + blockLID*WID3; // Copy values from this block
-	 for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
-	    array[vblock::index(i,j,k+PAD)] = ptr[vblock::index(i,j,k)];
-	 }
+         ptr = src + blockLID*WID3; // Copy values from this block
+         for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
+            array[vblock::index(i,j,k+PAD)] = ptr[vblock::index(i,j,k)];
+         }
+         
+         for (int k_nbr_off=-1; k_nbr_off<2; k_nbr_off+=2) { // Copy values from z face neighbors:
+            // Get local IDs of neighbor blocks
+            vmesh.getNeighborsExistingAtOffset(blockGID,+0,+0,k_nbr_off,nbrIDs,refLevelDiff);
+            
+            // Position that is used to interpolate values from neighbor blocks
+            Real pos[3];
+            if (k_nbr_off < 0) crd = WID-0.5-(PAD-1);
+            else crd = 0.5;
 
-	 for (int k_nbr_off=-1; k_nbr_off<2; k_nbr_off+=2) { // Copy values from z face neighbors:
-	    // Get local IDs of neighbor blocks
-	    vmesh.getNeighborsExistingAtOffset(blockGID,+0,+0,k_nbr_off,nbrIDs,refLevelDiff);
-
-	    // Position that is used to interpolate values from neighbor blocks
-	    Real pos[3];
-	    if (k_nbr_off < 0) crd = WID-0.5-(PAD-1);
-	    else crd = 0.5;
-
-	    #warning CHECK this for a bug, k_trgt=WID-PAD?
-	    // k-index to array where interpolated values are stored
-	    uint32_t k_trgt = 0;
-	    if (k_nbr_off > 0) k_trgt = WID+PAD;
-
-	    if (nbrIDs.size() > 0) {     // This block has at least one existing neighbor
-	       if (refLevelDiff == -1) { // Neighbor is one level coarser, interpolate
-		  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data; // (this check might not be necessary here)
-		  else ptr = src + nbrIDs[0]*WID3;
-		  for (uint32_t k=0; k<PAD; ++k) for (uint32_t j=0; j<WID; ++j) for (uint32_t i=0; i<WID; ++i) {
-		     pos[0] = 2*(i_block%2) + i/2 + 0.5;
-		     pos[1] = 2*(j_block%2) + j/2 + 0.5;
-		     pos[2] = crd + k;
-		     array[vblock::index(i,j,k_trgt+k)] = vblock::interp_xy<vblock::interpmethod::NGP>(pos,ptr);
-		  }
-		  cellSizeFractions[(k_nbr_off+1)/2] = 2.0;
-	       } else if (refLevelDiff == 0) { // Neighbor at same level, copy data
-		  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data; // (this check might not be necessary here)
-		  else ptr = src + nbrIDs[0]*WID3;
-		  uint32_t k_src = 0;
-		  if (k_nbr_off < 0) k_src = WID-PAD;
-		  for (uint32_t k=0; k<PAD; ++k) for (uint32_t j=0; j<WID; ++j) for (uint32_t i=0; i<WID; ++i) {
-		     array[vblock::index(i,j,k_trgt+k)] = ptr[vblock::index(i,j,k_src+k)];
-		  }
-		  cellSizeFractions[(k_nbr_off+1)/2] = 1.0;
-	       } else if (refLevelDiff == +1) { // nbr one level more refined, interpolate from four neighbors
-		  for (uint32_t k=0; k<PAD; ++k) for (uint32_t j=0; j<WID; ++j) for (uint32_t i=0; i<WID; ++i) {
-		     // Iterate over the four neighbors. If the neighbor does not exist, 
-		     // interpolate values from the null block
-		     int index = (j/2)*2 + i/2;
-		     if (nbrIDs[index] == invalid_local_id()) ptr = null_block_data;
-		     else ptr = src + nbrIDs[index]*WID3;
-
-		     pos[0] = 2*(i%2) + 1;
-		     pos[1] = 2*(j%2) + 1;
-		     pos[2] = crd + k;
-		     array[vblock::index(i,j,k_trgt+k)] = vblock::interp_xy<vblock::interpmethod::CIC>(pos,ptr);
-		  }
-		  cellSizeFractions[(k_nbr_off+1)/2] = 0.5;
-	       }
-	    } else { // Neighbor does not exist, return zero values
-	       for (uint32_t k=0; k<PAD; ++k) for (uint32_t j=0; j<WID; ++j) for (uint32_t i=0; i<WID; ++i) {
-		  array[vblock::index(i,j,k_trgt+k)] = 0.0;
-	       }
-	       cellSizeFractions[(k_nbr_off+1)/2] = 1.0;
-	    }
-	 }
+            // k-index to array where interpolated values are stored
+            uint32_t k_trgt = 0;
+            if (k_nbr_off > 0) k_trgt = WID+PAD;
+            
+            if (nbrIDs.size() > 0) {     // This block has at least one existing neighbor
+               if (refLevelDiff == -1) { // Neighbor is one level coarser, interpolate
+                  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data; // (this check might not be necessary here)
+                  else ptr = src + nbrIDs[0]*WID3;
+                  for (uint32_t k=0; k<PAD; ++k) for (uint32_t j=0; j<WID; ++j) for (uint32_t i=0; i<WID; ++i) {
+                     pos[0] = 2*(i_block%2) + i/2 + 0.5;
+                     pos[1] = 2*(j_block%2) + j/2 + 0.5;
+                     pos[2] = crd + k;
+                     array[vblock::index(i,j,k_trgt+k)] = vblock::interp_xy<vblock::interpmethod::NGP>(pos,ptr);
+                  }
+                  cellSizeFractions[(k_nbr_off+1)/2] = 2.0;
+               } else if (refLevelDiff == 0) { // Neighbor at same level, copy data
+                  if (nbrIDs[0] == invalid_local_id()) ptr = null_block_data; // (this check might not be necessary here)
+                  else ptr = src + nbrIDs[0]*WID3;
+                  uint32_t k_src = 0;
+                  if (k_nbr_off < 0) k_src = WID-PAD;
+                  for (uint32_t k=0; k<PAD; ++k) for (uint32_t j=0; j<WID; ++j) for (uint32_t i=0; i<WID; ++i) {
+                     array[vblock::index(i,j,k_trgt+k)] = ptr[vblock::index(i,j,k_src+k)];
+                  }
+                  cellSizeFractions[(k_nbr_off+1)/2] = 1.0;
+               } else if (refLevelDiff == +1) { // nbr one level more refined, interpolate from four neighbors
+                  for (uint32_t k=0; k<PAD; ++k) for (uint32_t j=0; j<WID; ++j) for (uint32_t i=0; i<WID; ++i) {
+                     // Iterate over the four neighbors. If the neighbor does not exist, 
+                     // interpolate values from the null block
+                     int index = (j/2)*2 + i/2;
+                     if (nbrIDs[index] == invalid_local_id()) ptr = null_block_data;
+                     else ptr = src + nbrIDs[index]*WID3;
+                     
+                     pos[0] = 2*(i%2) + 1;
+                     pos[1] = 2*(j%2) + 1;
+                     pos[2] = crd + k;
+                     array[vblock::index(i,j,k_trgt+k)] = vblock::interp_xy<vblock::interpmethod::CIC>(pos,ptr);
+                  }
+                  cellSizeFractions[(k_nbr_off+1)/2] = 0.5;
+               }
+            } else { // Neighbor does not exist, return zero values
+               for (uint32_t k=0; k<PAD; ++k) for (uint32_t j=0; j<WID; ++j) for (uint32_t i=0; i<WID; ++i) {
+                  array[vblock::index(i,j,k_trgt+k)] = 0.0;
+               }
+               cellSizeFractions[(k_nbr_off+1)/2] = 1.0;
+            }
+         }
 	 break;
 
       } // end switch
@@ -1642,129 +1632,6 @@ namespace spatial_cell {
       capacity += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
       return capacity;
    }
-
-   /*!
-    Returns a block at given offsets from given block.
-    * 
-    Returns error_velocity_block if the returned block
-    would be outside of the velocity grid or all given
-    offsets are 0.
-    */
-   inline vmesh::GlobalID SpatialCell::get_velocity_block_from_offsets(
-      const vmesh::GlobalID& block,
-      const int x_offset, 
-      const int y_offset, 
-      const int z_offset
-   ) {
-      #warning This function needs to be redefined for AMR mesh
-      if (x_offset == 0  &&  y_offset == 0 && z_offset == 0) {
-         return invalid_global_id();
-      }
-      
-      const velocity_block_indices_t indices = get_velocity_block_indices(block);
-      if (indices[0] == invalid_block_index()) {
-         return invalid_global_id();
-      }
-      
-      const velocity_block_indices_t neighbor_indices = {{
-         indices[0] + x_offset,
-         indices[1] + y_offset,
-         indices[2] + z_offset
-      }};
-      
-      if (neighbor_indices[0] == invalid_block_index()) {
-         return invalid_global_id();
-      }
-
-      return get_velocity_block(neighbor_indices);
-   }
-
-   /*!  Adds "important" and removes "unimportant" velocity blocks
-    to/from this cell.
-    * 
-    velocity_block_with_content_list needs to be up to date in local and remote cells.
-    velocity_block_with_no_content_list needs to be up to date in local cells.
-        
-    update_velocity_block_with_content_lists() should have
-    been called with the current distribution function values, and then the contetn list transferred.
-    * 
-    Removes all velocity blocks from this spatial cell which don't
-    have content and don't have spatial or velocity neighbors with
-    content.  Adds neighbors for all velocity blocks which do have
-    content (including spatial neighbors).  All cells in
-    spatial_neighbors are assumed to be neighbors of this cell.
-    *
-    
-    This function is thread-safe when called for different cells
-    per thread. We need the block_has_content vector from
-    neighbouring cells, but these are not written to here. We only
-    modify local cell.
-    */
-/*   inline void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors, bool doDeleteEmptyBlocks) {
-      //  This set contains all those cellids which have neighbors in any
-      //  of the 6-dimensions Actually, we would only need to add
-      //  local blocks with no content here, as blocks with content
-      //  do not need to be created and also will not be removed as
-      //  we only check for removal for blocks with no content
-      boost::unordered_set<vmesh::GlobalID> neighbors_have_content;
-      
-      //add neighbor content info for velocity space neighbors to map. We loop over blocks
-      //with content and raise the neighbors_have_content for
-      //itself, and for all its neighbors
-      for (vmesh::LocalID block_index=0; block_index<velocity_block_with_content_list.size(); ++block_index) {
-         vmesh::GlobalID block = velocity_block_with_content_list[block_index];
-         const velocity_block_indices_t indices = get_velocity_block_indices(block);
-         neighbors_have_content.insert(block); //also add the cell itself
-         for (int offset_vx=-P::sparseBlockAddWidthV;offset_vx<=P::sparseBlockAddWidthV;offset_vx++)
-            for (int offset_vy=-P::sparseBlockAddWidthV;offset_vy<=P::sparseBlockAddWidthV;offset_vy++)
-            for (int offset_vz=-P::sparseBlockAddWidthV;offset_vz<=P::sparseBlockAddWidthV;offset_vz++){                  
-            const vmesh::GlobalID neighbor_block = get_velocity_block({{indices[0] + offset_vx, indices[1] + offset_vy, indices[2] + offset_vz}});
-            neighbors_have_content.insert(neighbor_block); //add all potential ngbrs of this block with content
-         }
-      }
-      //add neighbor content info for spatial space neighbors to map. We loop over
-      //neighbor cell lists with existing blocks, and raise the
-      //flag for the local block with same block id
-      for (std::vector<SpatialCell*>::const_iterator neighbor = spatial_neighbors.begin();
-         neighbor != spatial_neighbors.end(); neighbor++ ) {
-         for (vmesh::LocalID block_index=0;block_index< (*neighbor)->velocity_block_with_content_list.size();block_index++) {
-            vmesh::GlobalID block = (*neighbor)->velocity_block_with_content_list[block_index];
-            neighbors_have_content.insert(block);
-         }
-      }
-      
-      // REMOVE all blocks in this cell without content + without neighbors with content
-      // better to do it in the reverse order, as then blocks at the
-      // end are removed first, and we may avoid copying extra
-      // data.
-      if (doDeleteEmptyBlocks) {
-         for (int block_index= this->velocity_block_with_no_content_list.size()-1; block_index>=0; --block_index) {
-            const vmesh::GlobalID blockGID = this->velocity_block_with_no_content_list[block_index];
-            const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID);
-            boost::unordered_set<vmesh::GlobalID>::iterator it = neighbors_have_content.find(blockGID);
-            if (it == neighbors_have_content.end()) {
-               //No content, and also no neighbor have content -> remove
-               //increment rho loss counters
-               const Real* block_parameters = get_block_parameters(blockLID);
-               const Real DV3 = block_parameters[BlockParams::DVX]
-                        * block_parameters[BlockParams::DVY]
-                        * block_parameters[BlockParams::DVZ];
-               Real sum=0;
-               for (unsigned int i=0; i<WID3; ++i) sum += get_data(blockLID)[i];
-                  this->parameters[CellParams::RHOLOSSADJUST] += DV3*sum;
-
-               // and finally remove block
-               this->remove_velocity_block(blockGID);
-            }
-         }
-      }
-      
-      // ADD all blocks with neighbors in spatial or velocity space (if it exists then the block is unchanged)
-      for (boost::unordered_set<vmesh::GlobalID>::iterator it=neighbors_have_content.begin(); it != neighbors_have_content.end(); ++it) {
-         this->add_velocity_block(*it);
-      }
-   }
-*/
 
    inline void SpatialCell::adjustSingleCellVelocityBlocks() {
       //neighbor_ptrs is empty as we do not have any consistent
