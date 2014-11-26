@@ -204,10 +204,11 @@ namespace spatial_cell {
       size_t size(void) const;
       void remove_velocity_block(const vmesh::GlobalID& block);
       void swap(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
-      vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer);
-      const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& get_mesh() const;
-      void get_mesh(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
-                    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer);
+                vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer);
+      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& get_velocity_mesh(const size_t& popID);
+      vmesh::VelocityBlockContainer<vmesh::LocalID>& get_velocity_blocks(const size_t& popID);
+      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& get_velocity_mesh_temporary();
+      vmesh::VelocityBlockContainer<vmesh::LocalID>& get_velocity_blocks_temporary();
       Real get_value(const Real vx, const Real vy, const Real vz) const;
       void increment_value(const Real vx, const Real vy, const Real vz, const Realf value);
       void increment_value(const vmesh::GlobalID& block,const unsigned int cell, const Real value);      
@@ -264,8 +265,14 @@ namespace spatial_cell {
 
       bool initialized;
       bool mpiTransferEnabled;
+      
+      // Velocity mesh, one per population
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> vmesh;
       vmesh::VelocityBlockContainer<vmesh::LocalID> blockContainer;
+
+      // Temporary mesh used in acceleration and propagation
+      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> vmeshTemp;
+      vmesh::VelocityBlockContainer<vmesh::LocalID> blockContainerTemp;
    };
 
    /****************************
@@ -1257,6 +1264,22 @@ namespace spatial_cell {
       get_data(blockLID)[cell] += value;
    }
 
+   inline vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& SpatialCell::get_velocity_mesh(const size_t& popID) {
+      return vmesh;
+   }
+
+   inline vmesh::VelocityBlockContainer<vmesh::LocalID>& SpatialCell::get_velocity_blocks(const size_t& popID) {
+      return blockContainer;
+   }
+
+   inline vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& SpatialCell::get_velocity_mesh_temporary() {
+      return vmeshTemp;
+   }
+   
+   inline vmesh::VelocityBlockContainer<vmesh::LocalID>& SpatialCell::get_velocity_blocks_temporary() {
+      return blockContainerTemp;
+   }
+
    /*!
     * Gets the value of a velocity cell at given coordinates.
     * 
@@ -1803,16 +1826,6 @@ namespace spatial_cell {
 
       blockContainer.copy(lastLID,removedLID);
       blockContainer.pop();
-   }
-
-   inline const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& SpatialCell::get_mesh() const {
-      return vmesh;
-   }
-   
-   inline void SpatialCell::get_mesh(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
-                                     vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer) {
-      vmesh = this->vmesh;
-      blockContainer = this->blockContainer;
    }
 
    inline void SpatialCell::swap(vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,

@@ -210,8 +210,7 @@ namespace vmesh {
       }
       return false;
    }
-   
-   
+
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::checkParent(const GID& globalID) const {
       GID parent = getParent(globalID);
