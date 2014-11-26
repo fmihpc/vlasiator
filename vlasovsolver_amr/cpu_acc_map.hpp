@@ -68,17 +68,9 @@ void generateTargetMesh(SpatialCell* spatial_cell,const std::vector<vmesh::Local
 */
 
 bool map_1d(SpatialCell* spatial_cell,Transform<Real,3,Affine>& fwd_transform,Transform<Real,3,Affine>& bwd_transform,int dimension,int propag) {
-   //std::cerr << "mapping" << std::endl;
-   /*amr_ref_criteria::Base* refCriterion = getObjectWrapper().amrVelRefCriteria.create(Parameters::amrVelRefCriterion);
-   if (refCriterion != NULL) {
-      refCriterion->initialize("");
-      spatial_cell->coarsen_blocks(refCriterion);
-      delete refCriterion;
-   }*/
-   
    // Move the old velocity mesh and data to the variables below (very fast)
-   vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> vmesh;
-   vmesh::VelocityBlockContainer<vmesh::LocalID> blockContainer;
+   vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh_temporary();
+   vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
    spatial_cell->swap(vmesh,blockContainer);
 
    // Sort the blocks according to their refinement levels (very fast)
@@ -195,6 +187,8 @@ bool map_1d(SpatialCell* spatial_cell,Transform<Real,3,Affine>& fwd_transform,Tr
    }
 */   
    //rvalue = false;
+   vmesh.clear();
+   blockContainer.clear();
    return true;
 }
 

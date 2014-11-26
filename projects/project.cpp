@@ -187,7 +187,7 @@ namespace projects {
             
             // Fetch block data and nearest neighbors
             Realf array[(WID+2)*(WID+2)*(WID+2)];
-            cell->fetch_data<1>(blockGID,cell->get_mesh(),cell->get_data(),array);
+            cell->fetch_data<1>(blockGID,cell->get_velocity_mesh(popID),cell->get_data(),array);
 
             // If block should be refined, add it to refine list
             if (refCriterion->evaluate(array) > Parameters::amrRefineLimit) {

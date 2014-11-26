@@ -40,7 +40,6 @@ creal ONE     = 1.0;
 creal TWO     = 2.0;
 creal EPSILON = 1.0e-25;
 
-
 /*!
   
   Propagates the distribution function in spatial space. 
@@ -52,27 +51,23 @@ creal EPSILON = 1.0e-25;
 
 */
 
-void calculateSpatialTranslation(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   creal dt
-) {
+void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,creal dt) {
    typedef Parameters P;
    int trans_timer;
-   
-   
+
    phiprof::start("semilag-trans");
    phiprof::start("compute_cell_lists");
    const vector<CellID> local_cells = mpiGrid.get_cells();
    const vector<CellID> remote_stencil_cells_x = 
-      mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
+     mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
    const vector<CellID> remote_stencil_cells_y = 
-      mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
+     mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
    const vector<CellID> remote_stencil_cells_z = 
-      mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
+     mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
    phiprof::stop("compute_cell_lists");
 
    // ------------- SLICE - map dist function in Z --------------- //
-   if(P::zcells_ini > 1 ){
+   if (P::zcells_ini > 1) {
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-z","MPI");
       phiprof::start(trans_timer);
       //start by doing all transfers in a blocking fashion (communication stage can be optimized separately) //
@@ -80,21 +75,21 @@ void calculateSpatialTranslation(
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
       #pragma omp parallel
-      {
-         phiprof::start("prepare-block-data-z");
-         for (size_t c=0; c<local_cells.size(); ++c)
-            trans_prepare_block_data(mpiGrid,local_cells[c]);
-         for (size_t c=0; c<remote_stencil_cells_z.size(); ++c)
-            trans_prepare_block_data(mpiGrid,remote_stencil_cells_z[c]);
-         #pragma omp barrier
-         phiprof::stop("prepare-block-data-z");
-         phiprof::start("compute-mapping-z");
-         for (size_t c=0; c<local_cells.size(); ++c) {
-            if(do_translate_cell(mpiGrid[local_cells[c]]))
-               trans_map_1d(mpiGrid,local_cells[c], 2, dt); // map along z//
-         }
-         phiprof::stop("compute-mapping-z");
-      }
+        {
+           phiprof::start("prepare-block-data-z");
+           for (size_t c=0; c<local_cells.size(); ++c)
+             trans_prepare_block_data(mpiGrid,local_cells[c]);
+           for (size_t c=0; c<remote_stencil_cells_z.size(); ++c)
+             trans_prepare_block_data(mpiGrid,remote_stencil_cells_z[c]);
+           #pragma omp barrier
+           phiprof::stop("prepare-block-data-z");
+           phiprof::start("compute-mapping-z");
+           for (size_t c=0; c<local_cells.size(); ++c) {
+              if (do_translate_cell(mpiGrid[local_cells[c]]))
+                trans_map_1d(mpiGrid,local_cells[c], 2, dt); // map along z//
+           }
+           phiprof::stop("compute-mapping-z");
+        }
       
       trans_timer=phiprof::initializeTimer("update_remote-z","MPI");
       phiprof::start("update_remote-z");
@@ -104,7 +99,7 @@ void calculateSpatialTranslation(
    }   
    
    // ------------- SLICE - map dist function in X --------------- //
-   if(P::xcells_ini > 1 ){
+   if (P::xcells_ini > 1) {
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-x","MPI");
       phiprof::start(trans_timer);
       //start by doing all transfers in a blocking fashion (communication stage can be optimized separately) //
@@ -113,22 +108,22 @@ void calculateSpatialTranslation(
       phiprof::stop(trans_timer);
       
       #pragma omp parallel
-      {
-         phiprof::start("prepare-block-data-x");
-         for (size_t c=0; c<local_cells.size(); ++c)
-            trans_prepare_block_data(mpiGrid,local_cells[c]);
-         for (size_t c=0; c<remote_stencil_cells_x.size(); ++c)
-            trans_prepare_block_data(mpiGrid,remote_stencil_cells_x[c]);
-         #pragma omp barrier
-         phiprof::stop("prepare-block-data-x");
+        {
+           phiprof::start("prepare-block-data-x");
+           for (size_t c=0; c<local_cells.size(); ++c)
+             trans_prepare_block_data(mpiGrid,local_cells[c]);
+           for (size_t c=0; c<remote_stencil_cells_x.size(); ++c)
+             trans_prepare_block_data(mpiGrid,remote_stencil_cells_x[c]);
+           #pragma omp barrier
+           phiprof::stop("prepare-block-data-x");
 
-         phiprof::start("compute-mapping-x");
-         for (size_t c=0; c<local_cells.size(); ++c) {
-            if (do_translate_cell(mpiGrid[local_cells[c]]))
-               trans_map_1d(mpiGrid,local_cells[c], 0, dt); // map along x//
-         }
-         phiprof::stop("compute-mapping-x");
-      }
+           phiprof::start("compute-mapping-x");
+           for (size_t c=0; c<local_cells.size(); ++c) {
+              if (do_translate_cell(mpiGrid[local_cells[c]]))
+                trans_map_1d(mpiGrid,local_cells[c], 0, dt); // map along x//
+           }
+           phiprof::stop("compute-mapping-x");
+        }
 
       trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
       phiprof::start("update_remote-x");
@@ -138,7 +133,7 @@ void calculateSpatialTranslation(
    }
    
    // ------------- SLICE - map dist function in Y --------------- //
-   if(P::ycells_ini > 1 ){
+   if (P::ycells_ini > 1) {
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-y","MPI");
       phiprof::start(trans_timer);
       //start by doing all transfers in a blocking fashion (communication stage can be optimized separately) //
@@ -156,7 +151,7 @@ void calculateSpatialTranslation(
            phiprof::stop("prepare-block-data-y");         
            phiprof::start("compute-mapping-y");
            for (size_t c=0; c<local_cells.size(); ++c) {
-              if(do_translate_cell(mpiGrid[local_cells[c]]))
+              if (do_translate_cell(mpiGrid[local_cells[c]]))
                 trans_map_1d(mpiGrid,local_cells[c], 1, dt); // map along y//
            }
            phiprof::stop("compute-mapping-y");
@@ -167,7 +162,6 @@ void calculateSpatialTranslation(
       update_remote_mapping_contribution(mpiGrid, 1, 1);
       update_remote_mapping_contribution(mpiGrid, 1, -1);
       phiprof::stop("update_remote-y");
-
    }
    
    // Mapping complete, update moments //
@@ -243,12 +237,7 @@ void calculateSpatialTranslation(
   Acceleration (velocity space propagation)
   --------------------------------------------------
 */
-
-
-void calculateAcceleration(
-                           dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                           Real dt
-                          ) {
+void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,Real dt) {
    typedef Parameters P;
    const vector<CellID> cells = mpiGrid.get_cells();
    vector<CellID> propagatedCells;
@@ -331,17 +320,16 @@ void calculateAcceleration(
 /*--------------------------------------------------
   Functions for computing moments
   --------------------------------------------------*/
-
 void calculateInterpolatedVelocityMoments(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const int cp_rho,
-   const int cp_rhovx,
-   const int cp_rhovy,
-   const int cp_rhovz,
-   const int cp_p11,
-   const int cp_p22,
-   const int cp_p33
-) {
+                                          dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                          const int cp_rho,
+                                          const int cp_rhovx,
+                                          const int cp_rhovy,
+                                          const int cp_rhovz,
+                                          const int cp_p11,
+                                          const int cp_p22,
+                                          const int cp_p33
+                                         ) {
    vector<CellID> cells;
    cells=mpiGrid.get_cells();
    
@@ -362,12 +350,9 @@ void calculateInterpolatedVelocityMoments(
    }
 }
 
-
-
-
 void calculateCellVelocityMoments(SpatialCell* SC,
-				  bool doNotSkip // default: false
-				  ) {
+                                  bool doNotSkip // default: false
+                                 ) {
    // if doNotSkip == true then the first clause is false and we will never return, i.e. always compute
    // otherwise we skip DO_NOT_COMPUTE cells
    // or boundary cells of layer larger than 1
