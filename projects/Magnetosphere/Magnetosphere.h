@@ -52,6 +52,8 @@ namespace projects {
          Real ionosphereRho;
          Real ionosphereRadius;
          Real ionosphereTaperRadius;
+         uint ionosphereGeometry;
+         Real center[3];
          Real dipoleScalingFactor;
          Real dipoleMirrorLocationX;
          uint dipoleType;
