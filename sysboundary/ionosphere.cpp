@@ -42,8 +42,6 @@ namespace SBC {
       Readparameters::add("ionosphere.centerZ", "Z coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.radius", "Radius of ionosphere (m).", 1.0e7);
       Readparameters::add("ionosphere.geometry", "Select the geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT)", 2);
-      Readparameters::add("ionosphere.type", "Select the ionosphere boundary condition type, 0: zero out perturbed B in both layers and E in layer 2, E in layer 1 from \
-      field solver, 1: zero out E in layer 2 and tangential perturbed B in both layers, E in layer 1 from field solver (DEFAULT)", 1);
       Readparameters::add("ionosphere.rho", "Number density of the ionosphere (m^-3)", 1.0e6);
       Readparameters::add("ionosphere.VX0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
       Readparameters::add("ionosphere.VY0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
@@ -72,10 +70,6 @@ namespace SBC {
          exit(1);
       }
       if(!Readparameters::get("ionosphere.geometry", this->geometry)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("ionosphere.type", this->type)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -457,50 +451,34 @@ namespace SBC {
       creal& dt,
       cuint& component
    ) {
-      Real returnValue;
-      switch(this->type) {
-         case 0:
-            returnValue = 0.0;
-            break;
-         case 1:
-         { // scope needed here, or declaration of variables at top of switch...
-            std::vector<CellID> closestCells = getAllClosestNonsysboundaryCells(mpiGrid, cellID);
-            if (closestCells.size() == 1 && closestCells[0] == INVALID_CELLID) {
-               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "No closest cells found!" << std::endl;
-               abort();
-            }
-            
-            // Sum perturbed B component over all nearest NOT_SYSBOUNDARY neighbours
-            std::array<Real, 3> averageB = {{ 0.0 }};
-            int offset;
-            if (dt == 0.0) {
-               offset = 0;
-            } else {
-               offset = CellParams::PERBX_DT2 - CellParams::PERBX;
-            }
-            for(uint i=0; i<closestCells.size(); i++) {
-               averageB[0] += mpiGrid[closestCells[i]]->parameters[CellParams::PERBX+offset];
-               averageB[1] += mpiGrid[closestCells[i]]->parameters[CellParams::PERBY+offset];
-               averageB[2] += mpiGrid[closestCells[i]]->parameters[CellParams::PERBZ+offset];
-            }
-            
-            // Average and project to normal direction
-            std::array<Real, 3> normalDirection = fieldSolverGetNormalDirection(mpiGrid, cellID);
-            for(uint i=0; i<3; i++) {
-               averageB[i] *= normalDirection[i] / closestCells.size();
-            }
-            
-            // Return (|B_proj|*n)[component]
-            returnValue = (averageB[0]+averageB[1]+averageB[2])*normalDirection[component];
-            break;
-         }
-         default:
-            std::cerr << __FILE__ << ":" << __LINE__ << ":" << "Invalid ionosphere boundary type?" << std::endl;
-            abort();
-            returnValue = 0.0;
-            break;
+      std::vector<CellID> closestCells = getAllClosestNonsysboundaryCells(mpiGrid, cellID);
+      if (closestCells.size() == 1 && closestCells[0] == INVALID_CELLID) {
+         std::cerr << __FILE__ << ":" << __LINE__ << ":" << "No closest cells found!" << std::endl;
+         abort();
       }
-      return returnValue;
+      
+      // Sum perturbed B component over all nearest NOT_SYSBOUNDARY neighbours
+      std::array<Real, 3> averageB = {{ 0.0 }};
+      int offset;
+      if (dt == 0.0) {
+         offset = 0;
+      } else {
+         offset = CellParams::PERBX_DT2 - CellParams::PERBX;
+      }
+      for(uint i=0; i<closestCells.size(); i++) {
+         averageB[0] += mpiGrid[closestCells[i]]->parameters[CellParams::PERBX+offset];
+         averageB[1] += mpiGrid[closestCells[i]]->parameters[CellParams::PERBY+offset];
+         averageB[2] += mpiGrid[closestCells[i]]->parameters[CellParams::PERBZ+offset];
+      }
+      
+      // Average and project to normal direction
+      std::array<Real, 3> normalDirection = fieldSolverGetNormalDirection(mpiGrid, cellID);
+      for(uint i=0; i<3; i++) {
+         averageB[i] *= normalDirection[i] / closestCells.size();
+      }
+      
+      // Return (|B_proj|*n)[component]
+      return (averageB[0]+averageB[1]+averageB[2])*normalDirection[component];
    }
    
    void Ionosphere::fieldSolverBoundaryCondElectricField(
