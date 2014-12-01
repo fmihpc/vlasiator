@@ -131,6 +131,22 @@ namespace projects {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
+      if(!RP::get("ionosphere.centerX", this->center[0])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!RP::get("ionosphere.centerY", this->center[1])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!RP::get("ionosphere.centerZ", this->center[2])) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.geometry", this->ionosphereGeometry)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
       if(!RP::get("ionosphere.VX0", this->ionosphereV0[0])) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
@@ -289,7 +305,26 @@ namespace projects {
       Real initRho = this->tailRho;
       std::array<Real, 3> initV0 = this->getV0(x, y, z)[0];
       
-      creal radius = sqrt(x*x + y*y + z*z);
+      Real radius;
+      
+      switch(this->ionosphereGeometry) {
+         case 0:
+            // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
+            radius = fabs(x-center[0]) + fabs(y-center[1]) + fabs(z-center[2]);
+            break;
+         case 1:
+            // 1-norm, result is is a grid-aligned square in 2D
+            radius = max(max(fabs(x-center[0]), fabs(y-center[1])), fabs(z-center[2]));
+            break;
+         case 2:
+            // 2-norm (Cartesian), result is a circle in 2D
+            radius = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
+            break;
+         default:
+            std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+            abort();
+      }
+      
       if(radius < this->ionosphereTaperRadius) {
          // linear tapering
          //initRho = this->ionosphereRho - (ionosphereRho-tailRho)*(radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
@@ -317,7 +352,26 @@ namespace projects {
       std::array<Real, 3> V0 {{this->V0[0], this->V0[1], this->V0[2]}};
       std::array<Real, 3> ionosphereV0 = {{this->ionosphereV0[0], this->ionosphereV0[1], this->ionosphereV0[2]}};
       
-      creal radius = sqrt(x*x + y*y + z*z);
+      Real radius;
+      
+      switch(this->ionosphereGeometry) {
+         case 0:
+            // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
+            radius = fabs(x-center[0]) + fabs(y-center[1]) + fabs(z-center[2]);
+            break;
+         case 1:
+            // 1-norm, result is is a grid-aligned square in 2D
+            radius = max(max(fabs(x-center[0]), fabs(y-center[1])), fabs(z-center[2]));
+            break;
+         case 2:
+            // 2-norm (Cartesian), result is a circle in 2D
+            radius = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
+            break;
+         default:
+            std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2." << std::endl;
+            abort();
+      }
+      
       if(radius < this->ionosphereTaperRadius) {
          // linear tapering
          //initV0[i] *= (radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
