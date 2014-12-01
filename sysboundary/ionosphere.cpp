@@ -477,7 +477,7 @@ namespace SBC {
          averageB[i] *= normalDirection[i] / closestCells.size();
       }
       
-      // Return (|B_proj|*n)[component]
+      // Return (B.n)*normalVector[component]
       return (averageB[0]+averageB[1]+averageB[2])*normalDirection[component];
    }
    
