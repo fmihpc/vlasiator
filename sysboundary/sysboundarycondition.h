@@ -116,6 +116,11 @@ namespace SBC {
             SpatialCell *to,
             bool allowBlockAdjustment
          );
+         void averageCellData(
+            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            std::vector<CellID> cellList,
+            SpatialCell *to
+         );
          CellID getTheClosestNonsysboundaryCell(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID
@@ -124,11 +129,22 @@ namespace SBC {
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID
          );
-         void vlasovBoundaryCopyFromExistingFaceNbr(
+         void vlasovBoundaryCopyFromTheClosestNbr(
+            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            const CellID& cellID
+         );
+         void vlasovBoundaryCopyFromAllClosestNbrs(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID
          );
          void vlasovBoundaryReflect(
+            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            const CellID& cellID,
+            creal& nx,
+            creal& ny,
+            creal& nz
+         );
+         void vlasovBoundaryAbsorb(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
             creal& nx,

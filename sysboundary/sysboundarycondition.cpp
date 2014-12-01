@@ -242,7 +242,7 @@ namespace SBC {
       exit(1);
    }
    
-   void SysBoundaryCondition::vlasovBoundaryCopyFromExistingFaceNbr(
+   void SysBoundaryCondition::vlasovBoundaryCopyFromTheClosestNbr(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
    ) {
@@ -254,6 +254,19 @@ namespace SBC {
       }
       //Do not allow block adjustment, the block structure when calling vlasovBoundaryCondition should be static
       copyCellData(mpiGrid[closestCell], mpiGrid[cellID],false);
+   }
+   
+   void SysBoundaryCondition::vlasovBoundaryCopyFromAllClosestNbrs(
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID
+   ) {
+      const std::vector<CellID> closestCells = getAllClosestNonsysboundaryCells(mpiGrid, cellID);
+      
+      if(closestCells[0] == INVALID_CELLID) {
+         cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
+         abort();
+      }
+      averageCellData(mpiGrid, closestCells, mpiGrid[cellID]);
    }
    
    //if the spatialcells are neighbors
@@ -324,6 +337,84 @@ namespace SBC {
       to->parameters[CellParams::P_33] = from->parameters[CellParams::P_33];
    }
    
+   /*! Take a list of cells and set the destination cell distribution function to the average of the list's cells'.
+    * @param mpiGrid Grid
+    * @param cellList List of cells to copy from.
+    * @param to Cell in which to set the averaged distribution.
+    */
+   void SysBoundaryCondition::averageCellData(
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const std::vector<CellID> cellList,
+      SpatialCell *to
+   ) {
+      cuint numberOfCells = cellList.size();
+      if(numberOfCells == 1) {
+         copyCellData(mpiGrid[cellList[0]], to, true);
+      } else {
+         creal factor = 1.0 / convert<Real>(numberOfCells);
+         
+         to->parameters[CellParams::RHO_DT2] = 0.0;
+         to->parameters[CellParams::RHOVX_DT2] = 0.0;
+         to->parameters[CellParams::RHOVY_DT2] = 0.0;
+         to->parameters[CellParams::RHOVZ_DT2] = 0.0;
+         to->parameters[CellParams::P_11_DT2] = 0.0;
+         to->parameters[CellParams::P_22_DT2] = 0.0;
+         to->parameters[CellParams::P_33_DT2] = 0.0;
+         to->parameters[CellParams::RHO] = 0.0;
+         to->parameters[CellParams::RHOVX] = 0.0;
+         to->parameters[CellParams::RHOVY] = 0.0;
+         to->parameters[CellParams::RHOVZ] = 0.0;
+         to->parameters[CellParams::P_11] = 0.0;
+         to->parameters[CellParams::P_22] = 0.0;
+         to->parameters[CellParams::P_33] = 0.0;
+         
+         to->clear();
+         
+         for (uint i=0; i<numberOfCells; i++) {
+            const SpatialCell * incomingCell = mpiGrid[cellList[i]];
+            for (vmesh::LocalID blockLID=0; blockLID<incomingCell->get_number_of_velocity_blocks(); ++blockLID) {
+               const Real* blockParameters = incomingCell->get_block_parameters(blockLID);
+               // check where cells are
+               creal vxBlock = blockParameters[BlockParams::VXCRD];
+               creal vyBlock = blockParameters[BlockParams::VYCRD];
+               creal vzBlock = blockParameters[BlockParams::VZCRD];
+               creal dvxCell = blockParameters[BlockParams::DVX];
+               creal dvyCell = blockParameters[BlockParams::DVY];
+               creal dvzCell = blockParameters[BlockParams::DVZ];
+               for (uint kc=0; kc<WID; ++kc)
+                  for (uint jc=0; jc<WID; ++jc)
+                     for (uint ic=0; ic<WID; ++ic) {
+                        creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
+                        creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
+                        creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
+                        to->increment_value(
+                           vxCellCenter,
+                           vyCellCenter,
+                           vzCellCenter,
+                           factor*incomingCell->get_value(vxCellCenter, vyCellCenter, vzCellCenter)
+                        );
+               }
+            }
+            
+            // WARNING Time-independence assumed here. _R and _V not copied, as boundary conditions cells should not set/use them
+            to->parameters[CellParams::RHO_DT2] += factor*incomingCell->parameters[CellParams::RHO_DT2];
+            to->parameters[CellParams::RHOVX_DT2] += factor*incomingCell->parameters[CellParams::RHOVX_DT2];
+            to->parameters[CellParams::RHOVY_DT2] += factor*incomingCell->parameters[CellParams::RHOVY_DT2];
+            to->parameters[CellParams::RHOVZ_DT2] += factor*incomingCell->parameters[CellParams::RHOVZ_DT2];
+            to->parameters[CellParams::P_11_DT2] += factor*incomingCell->parameters[CellParams::P_11_DT2];
+            to->parameters[CellParams::P_22_DT2] += factor*incomingCell->parameters[CellParams::P_22_DT2];
+            to->parameters[CellParams::P_33_DT2] += factor*incomingCell->parameters[CellParams::P_33_DT2];
+            to->parameters[CellParams::RHO] += factor*incomingCell->parameters[CellParams::RHO];
+            to->parameters[CellParams::RHOVX] += factor*incomingCell->parameters[CellParams::RHOVX];
+            to->parameters[CellParams::RHOVY] += factor*incomingCell->parameters[CellParams::RHOVY];
+            to->parameters[CellParams::RHOVZ] += factor*incomingCell->parameters[CellParams::RHOVZ];
+            to->parameters[CellParams::P_11] += factor*incomingCell->parameters[CellParams::P_11];
+            to->parameters[CellParams::P_22] += factor*incomingCell->parameters[CellParams::P_22];
+            to->parameters[CellParams::P_33] += factor*incomingCell->parameters[CellParams::P_33];
+         }
+      }
+   }
+   
    /*! Take neighboring distribution and reflect all parts going in the direction opposite to the normal vector given in.
     * @param mpiGrid Grid
     * @param cellID Cell in which to set the distribution where incoming velocity cells have been reflected/bounced.
@@ -339,45 +430,115 @@ namespace SBC {
       creal& nz
    ) {
       SpatialCell * cell = mpiGrid[cellID];
-      SpatialCell * incomingCell = mpiGrid[this->getTheClosestNonsysboundaryCell(mpiGrid, cellID)];
+      const std::vector<CellID> cellList = this->getAllClosestNonsysboundaryCells(mpiGrid, cellID);
+      cuint numberOfCells = cellList.size();
+      creal factor = 1.0 / convert<Real>(numberOfCells);
       
       cell->clear();
       
-      // add blocks
-      for (vmesh::LocalID blockLID=0; blockLID<incomingCell->get_number_of_velocity_blocks(); ++blockLID) {
-         const Real* blockParameters = incomingCell->get_block_parameters(blockLID);
-         // check where cells are
-         creal vxBlock = blockParameters[BlockParams::VXCRD];
-         creal vyBlock = blockParameters[BlockParams::VYCRD];
-         creal vzBlock = blockParameters[BlockParams::VZCRD];
-         creal dvxCell = blockParameters[BlockParams::DVX];
-         creal dvyCell = blockParameters[BlockParams::DVY];
-         creal dvzCell = blockParameters[BlockParams::DVZ];
-         for (uint kc=0; kc<WID; ++kc) 
-            for (uint jc=0; jc<WID; ++jc) 
-               for (uint ic=0; ic<WID; ++ic) {
-                  creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
-                  creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
-                  creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
-                  // scalar product v.n
-                  creal vNormal = vxCellCenter*nx + vyCellCenter*ny + vzCellCenter*nz;
-                  if(vNormal >= 0.0) {
-                     // Not flowing in, leave as is.
-                     cell->increment_value(
-                        vxCellCenter,
-                        vyCellCenter,
-                        vzCellCenter,
-                        incomingCell->get_value(vxCellCenter, vyCellCenter, vzCellCenter)
-                     );
-                  } else {
-                     // Flowing in, bounce off.
-                     cell->increment_value(
-                        vxCellCenter - 2.0*vNormal*nx,
-                        vyCellCenter - 2.0*vNormal*ny,
-                        vzCellCenter - 2.0*vNormal*nz,
-                        incomingCell->get_value(vxCellCenter, vyCellCenter, vzCellCenter)
-                     );
-                  }
+      for(uint i=0; i<numberOfCells; i++) {
+         SpatialCell * incomingCell = mpiGrid[cellList[i]];
+         
+         // add blocks
+         for (vmesh::LocalID blockLID=0; blockLID<incomingCell->get_number_of_velocity_blocks(); ++blockLID) {
+            const Real* blockParameters = incomingCell->get_block_parameters(blockLID);
+            // check where cells are
+            creal vxBlock = blockParameters[BlockParams::VXCRD];
+            creal vyBlock = blockParameters[BlockParams::VYCRD];
+            creal vzBlock = blockParameters[BlockParams::VZCRD];
+            creal dvxCell = blockParameters[BlockParams::DVX];
+            creal dvyCell = blockParameters[BlockParams::DVY];
+            creal dvzCell = blockParameters[BlockParams::DVZ];
+            for (uint kc=0; kc<WID; ++kc) 
+               for (uint jc=0; jc<WID; ++jc) 
+                  for (uint ic=0; ic<WID; ++ic) {
+                     creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
+                     creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
+                     creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
+                     // scalar product v.n
+                     creal vNormal = vxCellCenter*nx + vyCellCenter*ny + vzCellCenter*nz;
+                     if(vNormal >= 0.0) {
+                        // Not flowing in, leave as is.
+                        cell->increment_value(
+                           vxCellCenter,
+                           vyCellCenter,
+                           vzCellCenter,
+                           factor*incomingCell->get_value(vxCellCenter, vyCellCenter, vzCellCenter)
+                        );
+                     } else {
+                        // Flowing in, bounce off.
+                        cell->increment_value(
+                           vxCellCenter - 2.0*vNormal*nx,
+                           vyCellCenter - 2.0*vNormal*ny,
+                           vzCellCenter - 2.0*vNormal*nz,
+                           factor*incomingCell->get_value(vxCellCenter, vyCellCenter, vzCellCenter)
+                        );
+                     }
+            }
+         }
+      }
+   }
+   
+   /*! Take neighboring distribution and absorb all parts going in the direction opposite to the normal vector given in.
+    * @param mpiGrid Grid
+    * @param cellID Cell in which to set the distribution where incoming velocity cells have been kept or swallowed.
+    * @param nx Unit vector x component normal to the bounce/reflection plane.
+    * @param ny Unit vector y component normal to the bounce/reflection plane.
+    * @param nz Unit vector z component normal to the bounce/reflection plane.
+    */
+   void SysBoundaryCondition::vlasovBoundaryAbsorb(
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID,
+      creal& nx,
+      creal& ny,
+      creal& nz
+   ) {
+      SpatialCell * cell = mpiGrid[cellID];
+      const std::vector<CellID> cellList = this->getAllClosestNonsysboundaryCells(mpiGrid, cellID);
+      cuint numberOfCells = cellList.size();
+      creal factor = 1.0 / convert<Real>(numberOfCells);
+      
+      cell->clear();
+      
+      for(uint i=0; i<numberOfCells; i++) {
+         SpatialCell * incomingCell = mpiGrid[cellList[i]];
+            
+         // add blocks
+         for (vmesh::LocalID blockLID=0; blockLID<incomingCell->get_number_of_velocity_blocks(); ++blockLID) {
+            const Real* blockParameters = incomingCell->get_block_parameters(blockLID);
+            // check where cells are
+            creal vxBlock = blockParameters[BlockParams::VXCRD];
+            creal vyBlock = blockParameters[BlockParams::VYCRD];
+            creal vzBlock = blockParameters[BlockParams::VZCRD];
+            creal dvxCell = blockParameters[BlockParams::DVX];
+            creal dvyCell = blockParameters[BlockParams::DVY];
+            creal dvzCell = blockParameters[BlockParams::DVZ];
+            for (uint kc=0; kc<WID; ++kc) 
+               for (uint jc=0; jc<WID; ++jc) 
+                  for (uint ic=0; ic<WID; ++ic) {
+                     creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
+                     creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
+                     creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
+                     // scalar product v.n
+                     creal vNormal = vxCellCenter*nx + vyCellCenter*ny + vzCellCenter*nz;
+                     if(vNormal >= 0.0) {
+                        // Not flowing in, leave as is.
+                        cell->increment_value(
+                           vxCellCenter,
+                           vyCellCenter,
+                           vzCellCenter,
+                           factor*incomingCell->get_value(vxCellCenter, vyCellCenter, vzCellCenter)
+                        );
+                     } else {
+                        // Flowing in, bounce off.
+                        cell->increment_value(
+                           vxCellCenter,
+                           vyCellCenter,
+                           vzCellCenter,
+                           0.0
+                        );
+                     }
+            }
          }
       }
    }

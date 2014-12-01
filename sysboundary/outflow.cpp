@@ -373,7 +373,7 @@ namespace SBC {
       const CellID& cellID
    ) {
 //      phiprof::start("vlasovBoundaryCondition (Outflow)");
-      vlasovBoundaryCopyFromExistingFaceNbr(mpiGrid, cellID);
+      vlasovBoundaryCopyFromTheClosestNbr(mpiGrid, cellID);
 //      phiprof::stop("vlasovBoundaryCondition (Outflow)");
    }
    
