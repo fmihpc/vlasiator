@@ -143,11 +143,11 @@ namespace SBC {
          switch(this->geometry) {
             case 0:
                // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
-               r = fabs(x) + fabs(y) + fabs(z);
+               r = fabs(x-center[0]) + fabs(y-center[1]) + fabs(z-center[2]);
                break;
             case 1:
                // 1-norm, result is is a grid-aligned square in 2D
-               r = max(max(fabs(x), fabs(y)), fabs(z));
+               r = max(max(fabs(x-center[0]), fabs(y-center[1])), fabs(z-center[2]));
                break;
             case 2:
                // 2-norm (Cartesian), result is a circle in 2D
@@ -491,7 +491,7 @@ namespace SBC {
             }
             
             // Return (|B_proj|*n)[component]
-            returnValue = sqrt(averageB[0]*averageB[0]+averageB[1]*averageB[1]+averageB[2]*averageB[2])*normalDirection[component];
+            returnValue = (averageB[0]+averageB[1]+averageB[2])*normalDirection[component];
             break;
          }
          default:
@@ -553,293 +553,8 @@ namespace SBC {
       cuint& RKCase,
       cuint& component
    ) {
-      // For B: use background B + perturbed B in normal cells, only background B in the ionosphere and DO_NOT_COMPUTE cells
-      // For RHO and V: use self. One could also use the DO_NOT_COMPUTE cells and give them the ionospheric values too but that means more code changes than just here.
-      Real* const array       = mpiGrid[cellID]->derivatives;
-      CellID leftNbrID,rghtNbrID;
-      creal* rhovLeft = NULL;
-      creal* left = NULL;
-      creal* cent = mpiGrid[cellID]->parameters;
-      creal* rhovRght = NULL;
-      creal* rght = NULL;
-      CellID botLeftNbrID, botRghtNbrID, topLeftNbrID, topRghtNbrID;
-      creal* botLeft = NULL;
-      creal* botRght = NULL;
-      creal* topLeft = NULL;
-      creal* topRght = NULL;
-      switch(component) {
-         namespace cp = CellParams;
-         namespace fs = fieldsolver;
-         case 0: // x,xx
-            leftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2  ,2  );
-            rghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2  ,2  );
-            left = mpiGrid[leftNbrID]->parameters;
-            rght = mpiGrid[rghtNbrID]->parameters;
-            if(mpiGrid[leftNbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-               rhovLeft = mpiGrid[cellID]->parameters;
-            } else{
-               rhovLeft = mpiGrid[leftNbrID]->parameters;
-            }
-            if(mpiGrid[rghtNbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-               rhovRght = mpiGrid[cellID]->parameters;
-            } else{
-               rhovRght = mpiGrid[rghtNbrID]->parameters;
-            }
-            if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-               array[fs::drhodx] = limiter(rhovLeft[cp::RHO],cent[cp::RHO],rhovRght[cp::RHO]);
-               array[fs::dp11dx] = limiter(rhovLeft[cp::P_11],cent[cp::P_11],rhovRght[cp::P_11]);
-               array[fs::dp22dx] = limiter(rhovLeft[cp::P_22],cent[cp::P_22],rhovRght[cp::P_22]);
-               array[fs::dp33dx] = limiter(rhovLeft[cp::P_33],cent[cp::P_33],rhovRght[cp::P_33]);
-               array[fs::dVxdx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX], rhovLeft[cp::RHO]),
-                                           divideIfNonZero(    cent[cp::RHOVX],     cent[cp::RHO]),
-                                           divideIfNonZero(rhovRght[cp::RHOVX], rhovRght[cp::RHO]));
-               array[fs::dVydx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVY], rhovLeft[cp::RHO]),
-                                           divideIfNonZero(    cent[cp::RHOVY],     cent[cp::RHO]),
-                                           divideIfNonZero(rhovRght[cp::RHOVY], rhovRght[cp::RHO]));
-               array[fs::dVzdx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ], rhovLeft[cp::RHO]),
-                                           divideIfNonZero(    cent[cp::RHOVZ],     cent[cp::RHO]),
-                                           divideIfNonZero(rhovRght[cp::RHOVZ], rhovRght[cp::RHO]));
-               array[fs::dPERBydx]  = limiter(left[cp::PERBY],cent[cp::PERBY],rght[cp::PERBY]);
-               array[fs::dBGBydx]  = limiter(left[cp::BGBY],cent[cp::BGBY],rght[cp::BGBY]);
-               array[fs::dPERBzdx]  = limiter(left[cp::PERBZ],cent[cp::PERBZ],rght[cp::PERBZ]);
-               array[fs::dBGBzdx]  = limiter(left[cp::BGBZ],cent[cp::BGBZ],rght[cp::BGBZ]);
-               if(Parameters::ohmHallTerm < 2) {
-                  array[fs::dPERBydxx] = 0.0;
-                  array[fs::dPERBzdxx] = 0.0;
-               } else {
-                  array[fs::dPERBydxx] = left[cp::PERBY] + rght[cp::PERBY] - 2.0*cent[cp::PERBY];
-                  array[fs::dPERBzdxx] = left[cp::PERBZ] + rght[cp::PERBZ] - 2.0*cent[cp::PERBZ];
-               }
-            }
-            if (RKCase == RK_ORDER2_STEP1) {
-               array[fs::drhodx] = limiter(rhovLeft[cp::RHO_DT2],cent[cp::RHO_DT2],rhovRght[cp::RHO_DT2]);
-               array[fs::dp11dx] = limiter(rhovLeft[cp::P_11_DT2],cent[cp::P_11_DT2],rhovRght[cp::P_11_DT2]);
-               array[fs::dp22dx] = limiter(rhovLeft[cp::P_22_DT2],cent[cp::P_22_DT2],rhovRght[cp::P_22_DT2]);
-               array[fs::dp33dx] = limiter(rhovLeft[cp::P_33_DT2],cent[cp::P_33_DT2],rhovRght[cp::P_33_DT2]);
-               array[fs::dVxdx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX_DT2], rhovLeft[cp::RHO_DT2]),
-                                           divideIfNonZero(    cent[cp::RHOVX_DT2],     cent[cp::RHO_DT2]),
-                                           divideIfNonZero(rhovRght[cp::RHOVX_DT2], rhovRght[cp::RHO_DT2]));
-               array[fs::dVydx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVY_DT2], rhovLeft[cp::RHO_DT2]),
-                                           divideIfNonZero(    cent[cp::RHOVY_DT2],     cent[cp::RHO_DT2]),
-                                           divideIfNonZero(rhovRght[cp::RHOVY_DT2], rhovRght[cp::RHO_DT2]));
-               array[fs::dVzdx]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ_DT2], rhovLeft[cp::RHO_DT2]),
-                                           divideIfNonZero(    cent[cp::RHOVZ_DT2],     cent[cp::RHO_DT2]),
-                                           divideIfNonZero(rhovRght[cp::RHOVZ_DT2], rhovRght[cp::RHO_DT2]));
-               array[fs::dPERBydx]  = limiter(left[cp::PERBY_DT2],cent[cp::PERBY_DT2],rght[cp::PERBY_DT2]);
-               array[fs::dBGBydx]  = limiter(left[cp::BGBY],cent[cp::BGBY],rght[cp::BGBY]);
-               array[fs::dPERBzdx]  = limiter(left[cp::PERBZ_DT2],cent[cp::PERBZ_DT2],rght[cp::PERBZ_DT2]);
-               array[fs::dBGBzdx]  = limiter(left[cp::BGBZ],cent[cp::BGBZ],rght[cp::BGBZ]);
-               if(Parameters::ohmHallTerm < 2) {
-                  array[fs::dPERBydxx] = 0.0;
-                  array[fs::dPERBzdxx] = 0.0;
-               } else {
-                  array[fs::dPERBydxx] = left[cp::PERBY_DT2] + rght[cp::PERBY_DT2] - 2.0*cent[cp::PERBY_DT2];
-                  array[fs::dPERBzdxx] = left[cp::PERBZ_DT2] + rght[cp::PERBZ_DT2] - 2.0*cent[cp::PERBZ_DT2];
-               }
-            }
-            break;
-         case 1: // y,yy
-            leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2-1,2  );
-            rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2+1,2  );
-            left = mpiGrid[leftNbrID]->parameters;
-            rght = mpiGrid[rghtNbrID]->parameters;
-            if(mpiGrid[leftNbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-               rhovLeft = mpiGrid[cellID]->parameters;
-            } else{
-               rhovLeft = mpiGrid[leftNbrID]->parameters;
-            }
-            if(mpiGrid[rghtNbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-               rhovRght = mpiGrid[cellID]->parameters;
-            } else{
-               rhovRght = mpiGrid[rghtNbrID]->parameters;
-            }
-            if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-               array[fs::drhody] = limiter(rhovLeft[cp::RHO],cent[cp::RHO],rhovRght[cp::RHO]);
-               array[fs::dp11dy] = limiter(rhovLeft[cp::P_11],cent[cp::P_11],rhovRght[cp::P_11]);
-               array[fs::dp22dy] = limiter(rhovLeft[cp::P_22],cent[cp::P_22],rhovRght[cp::P_22]);
-               array[fs::dp33dy] = limiter(rhovLeft[cp::P_33],cent[cp::P_33],rhovRght[cp::P_33]);
-               array[fs::dVxdy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX], rhovLeft[cp::RHO]),
-                                           divideIfNonZero(    cent[cp::RHOVX],     cent[cp::RHO]),
-                                           divideIfNonZero(rhovRght[cp::RHOVX], rhovRght[cp::RHO]));
-               array[fs::dVydy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVY], rhovLeft[cp::RHO]),
-                                           divideIfNonZero(    cent[cp::RHOVY],     cent[cp::RHO]),
-                                           divideIfNonZero(rhovRght[cp::RHOVY], rhovRght[cp::RHO]));
-               array[fs::dVzdy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ], rhovLeft[cp::RHO]),
-                                           divideIfNonZero(    cent[cp::RHOVZ],     cent[cp::RHO]),
-                                           divideIfNonZero(rhovRght[cp::RHOVZ], rhovRght[cp::RHO]));
-               array[fs::dPERBxdy]  = limiter(left[cp::PERBX],cent[cp::PERBX],rght[cp::PERBX]);
-               array[fs::dBGBxdy]  = limiter(left[cp::BGBX],cent[cp::BGBX],rght[cp::BGBX]);
-               array[fs::dPERBzdy]  = limiter(left[cp::PERBZ],cent[cp::PERBZ],rght[cp::PERBZ]);
-               array[fs::dBGBzdy]  = limiter(left[cp::BGBZ],cent[cp::BGBZ],rght[cp::BGBZ]);
-               if(Parameters::ohmHallTerm < 2) {
-                  array[fs::dPERBxdyy] = 0.0;
-                  array[fs::dPERBzdyy] = 0.0;
-               } else {
-                  array[fs::dPERBxdyy] = left[cp::PERBX] + rght[cp::PERBX] - 2.0*cent[cp::PERBX];
-                  array[fs::dPERBzdyy] = left[cp::PERBZ] + rght[cp::PERBZ] - 2.0*cent[cp::PERBZ];
-               }
-            }
-            if (RKCase == RK_ORDER2_STEP1) {
-               array[fs::drhody] = limiter(rhovLeft[cp::RHO_DT2],cent[cp::RHO_DT2],rhovRght[cp::RHO_DT2]);
-               array[fs::dp11dy] = limiter(rhovLeft[cp::P_11_DT2],cent[cp::P_11_DT2],rhovRght[cp::P_11_DT2]);
-               array[fs::dp22dy] = limiter(rhovLeft[cp::P_22_DT2],cent[cp::P_22_DT2],rhovRght[cp::P_22_DT2]);
-               array[fs::dp33dy] = limiter(rhovLeft[cp::P_33_DT2],cent[cp::P_33_DT2],rhovRght[cp::P_33_DT2]);
-               array[fs::dVxdy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX_DT2], rhovLeft[cp::RHO_DT2]),
-                                           divideIfNonZero(    cent[cp::RHOVX_DT2],     cent[cp::RHO_DT2]),
-                                           divideIfNonZero(rhovRght[cp::RHOVX_DT2], rhovRght[cp::RHO_DT2]));
-               array[fs::dVydy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVY_DT2], rhovLeft[cp::RHO_DT2]),
-                                           divideIfNonZero(    cent[cp::RHOVY_DT2],     cent[cp::RHO_DT2]),
-                                           divideIfNonZero(rhovRght[cp::RHOVY_DT2], rhovRght[cp::RHO_DT2]));
-               array[fs::dVzdy]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ_DT2], rhovLeft[cp::RHO_DT2]),
-                                           divideIfNonZero(    cent[cp::RHOVZ_DT2],     cent[cp::RHO_DT2]),
-                                           divideIfNonZero(rhovRght[cp::RHOVZ_DT2], rhovRght[cp::RHO_DT2]));
-               array[fs::dPERBxdy]  = limiter(left[cp::PERBX_DT2],cent[cp::PERBX_DT2],rght[cp::PERBX_DT2]);
-               array[fs::dBGBxdy]  = limiter(left[cp::BGBX],cent[cp::BGBX],rght[cp::BGBX]);
-               array[fs::dPERBzdy]  = limiter(left[cp::PERBZ_DT2],cent[cp::PERBZ_DT2],rght[cp::PERBZ_DT2]);
-               array[fs::dBGBzdy]  = limiter(left[cp::BGBZ],cent[cp::BGBZ],rght[cp::BGBZ]);
-               if(Parameters::ohmHallTerm < 2) {
-                  array[fs::dPERBxdyy] = 0.0;
-                  array[fs::dPERBzdyy] = 0.0;
-               } else {
-                  array[fs::dPERBxdyy] = left[cp::PERBX_DT2] + rght[cp::PERBX_DT2] - 2.0*cent[cp::PERBX_DT2];
-                  array[fs::dPERBzdyy] = left[cp::PERBZ_DT2] + rght[cp::PERBZ_DT2] - 2.0*cent[cp::PERBZ_DT2];
-               }
-            }
-            break;
-         case 2: // z, zz
-            leftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2-1);
-            rghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2  ,2+1);
-            left = mpiGrid[leftNbrID]->parameters;
-            rght = mpiGrid[rghtNbrID]->parameters;
-            if(mpiGrid[leftNbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-               rhovLeft = mpiGrid[cellID]->parameters;
-            } else{
-               rhovLeft = mpiGrid[leftNbrID]->parameters;
-            }
-            if(mpiGrid[rghtNbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-               rhovRght = mpiGrid[cellID]->parameters;
-            } else{
-               rhovRght = mpiGrid[rghtNbrID]->parameters;
-            }
-            if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-               array[fs::drhodz] = limiter(rhovLeft[cp::RHO],cent[cp::RHO],rhovRght[cp::RHO]);
-               array[fs::dp11dz] = limiter(rhovLeft[cp::P_11],cent[cp::P_11],rhovRght[cp::P_11]);
-               array[fs::dp22dz] = limiter(rhovLeft[cp::P_22],cent[cp::P_22],rhovRght[cp::P_22]);
-               array[fs::dp33dz] = limiter(rhovLeft[cp::P_33],cent[cp::P_33],rhovRght[cp::P_33]);
-               array[fs::dVxdz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX], rhovLeft[cp::RHO]),
-                                           divideIfNonZero(    cent[cp::RHOVX],     cent[cp::RHO]),
-                                           divideIfNonZero(rhovRght[cp::RHOVX], rhovRght[cp::RHO]));
-               array[fs::dVydz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVY], rhovLeft[cp::RHO]),
-                                           divideIfNonZero(    cent[cp::RHOVY],     cent[cp::RHO]),
-                                           divideIfNonZero(rhovRght[cp::RHOVY], rhovRght[cp::RHO]));
-               array[fs::dVzdz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ], rhovLeft[cp::RHO]),
-                                           divideIfNonZero(    cent[cp::RHOVZ],     cent[cp::RHO]),
-                                           divideIfNonZero(rhovRght[cp::RHOVZ], rhovRght[cp::RHO]));
-               array[fs::dPERBxdz]  = limiter(left[cp::PERBX],cent[cp::PERBX],rght[cp::PERBX]);
-               array[fs::dBGBxdz]  = limiter(left[cp::BGBX],cent[cp::BGBX],rght[cp::BGBX]);
-               array[fs::dPERBydz]  = limiter(left[cp::PERBY],cent[cp::PERBY],rght[cp::PERBY]);
-               array[fs::dBGBydz]  = limiter(left[cp::BGBY],cent[cp::BGBY],rght[cp::BGBY]);
-               if(Parameters::ohmHallTerm < 2) {
-                  array[fs::dPERBxdzz] = 0.0;
-                  array[fs::dPERBydzz] = 0.0;
-               } else {
-                  array[fs::dPERBxdzz] = left[cp::PERBX] + rght[cp::PERBX] - 2.0*cent[cp::PERBX];
-                  array[fs::dPERBydzz] = left[cp::PERBY] + rght[cp::PERBY] - 2.0*cent[cp::PERBY];
-               }
-            }
-            if (RKCase == RK_ORDER2_STEP1) {
-               array[fs::drhodz] = limiter(rhovLeft[cp::RHO_DT2],cent[cp::RHO_DT2],rhovRght[cp::RHO_DT2]);
-               array[fs::dp11dz] = limiter(rhovLeft[cp::P_11_DT2],cent[cp::P_11_DT2],rhovRght[cp::P_11_DT2]);
-               array[fs::dp22dz] = limiter(rhovLeft[cp::P_22_DT2],cent[cp::P_22_DT2],rhovRght[cp::P_22_DT2]);
-               array[fs::dp33dz] = limiter(rhovLeft[cp::P_33_DT2],cent[cp::P_33_DT2],rhovRght[cp::P_33_DT2]);
-               array[fs::dVxdz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVX_DT2], rhovLeft[cp::RHO_DT2]),
-                                           divideIfNonZero(    cent[cp::RHOVX_DT2],     cent[cp::RHO_DT2]),
-                                           divideIfNonZero(rhovRght[cp::RHOVX_DT2], rhovRght[cp::RHO_DT2]));
-               array[fs::dVydz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVY_DT2], rhovLeft[cp::RHO_DT2]),
-                                           divideIfNonZero(    cent[cp::RHOVY_DT2],     cent[cp::RHO_DT2]),
-                                           divideIfNonZero(rhovRght[cp::RHOVY_DT2], rhovRght[cp::RHO_DT2]));
-               array[fs::dVzdz]  = limiter(divideIfNonZero(rhovLeft[cp::RHOVZ_DT2], rhovLeft[cp::RHO_DT2]),
-                                           divideIfNonZero(    cent[cp::RHOVZ_DT2],     cent[cp::RHO_DT2]),
-                                           divideIfNonZero(rhovRght[cp::RHOVZ_DT2], rhovRght[cp::RHO_DT2]));
-               array[fs::dPERBxdz]  = limiter(left[cp::PERBX_DT2],cent[cp::PERBX_DT2],rght[cp::PERBX_DT2]);
-               array[fs::dBGBxdz]  = limiter(left[cp::BGBX],cent[cp::BGBX],rght[cp::BGBX]);
-               array[fs::dPERBydz]  = limiter(left[cp::PERBY_DT2],cent[cp::PERBY_DT2],rght[cp::PERBY_DT2]);
-               array[fs::dBGBydz]  = limiter(left[cp::BGBY],cent[cp::BGBY],rght[cp::BGBY]);
-               if(Parameters::ohmHallTerm < 2) {
-                  array[fs::dPERBxdzz] = 0.0;
-                  array[fs::dPERBydzz] = 0.0;
-               } else {
-                  array[fs::dPERBxdzz] = left[cp::PERBX_DT2] + rght[cp::PERBX_DT2] - 2.0*cent[cp::PERBX_DT2];
-                  array[fs::dPERBydzz] = left[cp::PERBY_DT2] + rght[cp::PERBY_DT2] - 2.0*cent[cp::PERBY_DT2];
-               }
-            }
-            break;
-         case 3: // xy
-            if(Parameters::ohmHallTerm < 2) {
-               array[fs::dPERBzdxy] = 0.0;
-            } else {
-               botLeftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2-1,2  );
-               botRghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2-1,2  );
-               topLeftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2+1,2  );
-               topRghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2+1,2  );
-               botLeft = mpiGrid[botLeftNbrID]->parameters;
-               botRght = mpiGrid[botRghtNbrID]->parameters;
-               topLeft = mpiGrid[topLeftNbrID]->parameters;
-               topRght = mpiGrid[topRghtNbrID]->parameters;
-               
-               if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-                  array[fs::dPERBzdxy] = FOURTH * (botLeft[cp::PERBZ] + topRght[cp::PERBZ] - botRght[cp::PERBZ] - topLeft[cp::PERBZ]);
-               }
-               if (RKCase == RK_ORDER2_STEP1) {
-                  array[fs::dPERBzdxy] = FOURTH * (botLeft[cp::PERBZ_DT2] + topRght[cp::PERBZ_DT2] - botRght[cp::PERBZ_DT2] - topLeft[cp::PERBZ_DT2]);
-               }
-            }
-            break;
-         case 4: // xz
-            if(Parameters::ohmHallTerm < 2) {
-               array[fs::dPERBydxz] = 0.0;
-            } else {
-               botLeftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2  ,2-1);
-               botRghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2  ,2-1);
-               topLeftNbrID = getNeighbourID(mpiGrid,cellID,2-1,2  ,2+1);
-               topRghtNbrID = getNeighbourID(mpiGrid,cellID,2+1,2  ,2+1);
-               botLeft = mpiGrid[botLeftNbrID]->parameters;
-               botRght = mpiGrid[botRghtNbrID]->parameters;
-               topLeft = mpiGrid[topLeftNbrID]->parameters;
-               topRght = mpiGrid[topRghtNbrID]->parameters;
-               
-               if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-                  array[fs::dPERBydxz] = FOURTH * (botLeft[cp::PERBY] + topRght[cp::PERBY] - botRght[cp::PERBY] - topLeft[cp::PERBY]);
-               }
-               if (RKCase == RK_ORDER2_STEP1) {
-                  array[fs::dPERBydxz] = FOURTH * (botLeft[cp::PERBY_DT2] + topRght[cp::PERBY_DT2] - botRght[cp::PERBY_DT2] - topLeft[cp::PERBY_DT2]);
-               }
-            }
-            break;
-         case 5: // yz
-            if(Parameters::ohmHallTerm < 2) {
-               array[fs::dPERBxdyz] = 0.0;
-            } else {
-               botLeftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2-1,2-1);
-               botRghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2+1,2-1);
-               topLeftNbrID = getNeighbourID(mpiGrid,cellID,2  ,2-1,2+1);
-               topRghtNbrID = getNeighbourID(mpiGrid,cellID,2  ,2+1,2+1);
-               botLeft = mpiGrid[botLeftNbrID]->parameters;
-               botRght = mpiGrid[botRghtNbrID]->parameters;
-               topLeft = mpiGrid[topLeftNbrID]->parameters;
-               topRght = mpiGrid[topRghtNbrID]->parameters;
-               
-               if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-                  array[fs::dPERBxdyz] = FOURTH * (botLeft[cp::PERBX] + topRght[cp::PERBX] - botRght[cp::PERBX] - topLeft[cp::PERBX]);
-               }
-               if (RKCase == RK_ORDER2_STEP1) {
-                  array[fs::dPERBxdyz] = FOURTH * (botLeft[cp::PERBX_DT2] + topRght[cp::PERBX_DT2] - botRght[cp::PERBX_DT2] - topLeft[cp::PERBX_DT2]);
-               }
-            }
-            break;
-         default:
-            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
-      }
+      this->setCellDerivativesToZero(mpiGrid, cellID, component);
+      return;
    }
    
    void Ionosphere::fieldSolverBoundaryCondBVOLDerivatives(
@@ -857,20 +572,7 @@ namespace SBC {
    ) {
       phiprof::start("vlasovBoundaryCondition (Ionosphere)");
       const SpatialCell * cell = mpiGrid[cellID];
-      const std::array<Real, 3> normalDirection = fieldSolverGetNormalDirection(mpiGrid, cellID);
-      const std::array<Real, 3> B = {{ cell->parameters[CellParams::BGBX] + cell->parameters[CellParams::PERBX_DT2],
-                                       cell->parameters[CellParams::BGBY] + cell->parameters[CellParams::PERBY_DT2],
-                                       cell->parameters[CellParams::BGBZ] + cell->parameters[CellParams::PERBZ_DT2] }};
-      creal Bmag = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
-      creal normalDotB = normalDirection[0]*B[0] + normalDirection[1]*B[1] + normalDirection[2]*B[2];
-      if (normalDotB > 0.0) {
-         vlasovBoundaryReflect(mpiGrid, cellID, B[0]/Bmag, B[1]/Bmag, B[2]/Bmag);
-      } else if (normalDotB < 0.0) {
-         vlasovBoundaryReflect(mpiGrid, cellID, -B[0]/Bmag, -B[1]/Bmag, -B[2]/Bmag);
-      } else if (normalDotB == 0.0) {
-         vlasovBoundaryReflect(mpiGrid, cellID, normalDirection[0], normalDirection[1], normalDirection[2]);
-      }
-      
+      this->vlasovBoundaryCopyFromAllClosestNbrs(mpiGrid, cellID);
       phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
    }
    
