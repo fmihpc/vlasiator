@@ -112,8 +112,6 @@ namespace SBC {
       Real center[3]; /*!< Coordinates of the centre of the ionosphere. */
       Real radius; /*!< Radius of the ionosphere. */
       uint geometry; /*!< Geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT). */
-      uint type; /*!< Type of ionosphere boundary behaviour, 0: zero out perturbed B in both layers and E in layer 2, E in layer 1 from 
-      field solver, 1: zero out E in layer 2 and tangential perturbed B in both layers, E in layer 1 from field solver (DEFAULT), 1*/
       
       Real T;
       Real rho;
