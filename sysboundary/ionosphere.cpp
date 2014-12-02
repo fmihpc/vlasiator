@@ -448,7 +448,9 @@ namespace SBC {
    }
    
    /*! We want here to
+    * 
     * -- Average perturbed face B from the nearest neighbours
+    * 
     * -- Retain only the normal components of perturbed face B
     */
    Real Ionosphere::fieldSolverBoundaryCondMagneticField(

@@ -84,7 +84,6 @@ namespace SBC {
    }
    
    /*! Function used to assign the system boundary condition type to a cell.
-    * \param cellParams Pointer to the cell's parameters array.
     * \return The system boundary condition type's index
     */
    bool SysBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
@@ -92,7 +91,9 @@ namespace SBC {
       return false;
    }
    
-   /*! Function used to apply the system boundary condition initial state to a cell. */
+   /*! Function used to apply the system boundary condition initial state to a cell. 
+    * \return Boolean true on success, false on failure.
+    */
    bool SysBoundaryCondition::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       Project &project
@@ -101,6 +102,14 @@ namespace SBC {
       return false;
    }
    
+   /*! Function used to return the system boundary condition cell's magnetic field component.
+    * \param mpiGrid The grid.
+    * \param cellID The cell's ID.
+    * \param dt 0 when at the beginning of a time step, non-zero for the _DT2 (Runge-Kutta stepping) value.
+    * \param component 0: x-component, 1: y-component, 2: z-component.
+    * 
+    * \return The requested component value.
+    */
    Real SysBoundaryCondition::fieldSolverBoundaryCondMagneticField(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -111,6 +120,16 @@ namespace SBC {
       exit(1);
    }
    
+   /*! Function used to return the system boundary condition cell's main electric field component (without Hall term).
+    * \param mpiGrid The grid.
+    * \param cellID The cell's ID.
+    * \param RKCase The step in Runge-Kutta (use values from enum defined in common.h).
+    * \param component 0: x-component, 1: y-component, 2: z-component.
+    * 
+    * \return The requested component value.
+    * 
+    * \sa fieldSolverBoundaryCondHallElectricField
+    */
    void SysBoundaryCondition::fieldSolverBoundaryCondElectricField(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -121,6 +140,12 @@ namespace SBC {
       exit(1);
    }
    
+   /*! Function used to compute the system boundary condition cell's Hall electric field components and save them into the cell parameters.
+    * \param mpiGrid The grid.
+    * \param cellID The cell's ID.
+    * \param RKCase The step in Runge-Kutta (use values from enum defined in common.h).
+    * \param component 0: x-component, 1: y-component, 2: z-component.
+    */
    void SysBoundaryCondition::fieldSolverBoundaryCondHallElectricField(
       dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -131,6 +156,12 @@ namespace SBC {
       exit(1);
    }
    
+   /*! Function used to compute the system boundary condition cell's derivatives and save them into the cell derivatives.
+    * \param mpiGrid The grid.
+    * \param cellID The cell's ID.
+    * \param RKCase The step in Runge-Kutta (use values from enum defined in common.h).
+    * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives, 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
+    */
    void SysBoundaryCondition::fieldSolverBoundaryCondDerivatives(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -141,6 +172,11 @@ namespace SBC {
       exit(1);
    }
    
+   /*! Function used to compute the system boundary condition cell's BVOL derivatives and save them into the cell derivatives.
+    * \param mpiGrid The grid.
+    * \param cellID The cell's ID.
+    * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
+    */
    void SysBoundaryCondition::fieldSolverBoundaryCondBVOLDerivatives(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -150,6 +186,11 @@ namespace SBC {
       exit(1);
    }
    
+   /*! Function used to set the system boundary condition cell's derivatives to 0.
+    * \param mpiGrid The grid.
+    * \param cellID The cell's ID.
+    * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives, 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
+    */
    void SysBoundaryCondition::setCellDerivativesToZero(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -210,6 +251,11 @@ namespace SBC {
       }
    }
    
+   /*! Function used to set the system boundary condition cell's BVOL derivatives to 0.
+    * \param mpiGrid The grid.
+    * \param cellID The cell's ID.
+    * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
+    */
    void SysBoundaryCondition::setCellBVOLDerivativesToZero(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -234,6 +280,10 @@ namespace SBC {
       }
    }
    
+   /*! Function used to compute the system boundary condition cell's distribution function and moments.
+    * \param mpiGrid The grid.
+    * \param cellID The cell's ID.
+    */
    void SysBoundaryCondition::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
@@ -242,6 +292,10 @@ namespace SBC {
       exit(1);
    }
    
+   /*! Function used to copy the distribution and moments from (one of) the closest sysboundarytype::NOT_SYSBOUNDARY cell.
+    * \param mpiGrid The grid.
+    * \param cellID The cell's ID.
+    */
    void SysBoundaryCondition::vlasovBoundaryCopyFromTheClosestNbr(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
@@ -256,6 +310,10 @@ namespace SBC {
       copyCellData(mpiGrid[closestCell], mpiGrid[cellID],false);
    }
    
+   /*! Function used to average and copy the distribution and moments from all the closest sysboundarytype::NOT_SYSBOUNDARY cells.
+    * \param mpiGrid The grid.
+    * \param cellID The cell's ID.
+    */
    void SysBoundaryCondition::vlasovBoundaryCopyFromAllClosestNbrs(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
@@ -269,9 +327,16 @@ namespace SBC {
       averageCellData(mpiGrid, closestCells, mpiGrid[cellID]);
    }
    
-   //if the spatialcells are neighbors
-   void SysBoundaryCondition::copyCellData(SpatialCell *from, SpatialCell *to,bool allowBlockAdjustment)
-   {
+   /*! Function used to copy the distribution and moments from one cell to another. In layer 2, copy only the moments.
+    * \param from Pointer to parent cell to copy from.
+    * \param to Pointer to destination cell.
+    * \param allowBlockAdjustment If true, blocks can be created or destroyed. If false, only blocks existing in the destination cell are copied.
+    */
+   void SysBoundaryCondition::copyCellData(
+      SpatialCell *from,
+      SpatialCell *to,
+      bool allowBlockAdjustment
+   ) {
       if(to->sysBoundaryLayer == 1) { // Do this only for the first layer, the other layers do not need this.
 
          if (allowBlockAdjustment) {
@@ -338,9 +403,9 @@ namespace SBC {
    }
    
    /*! Take a list of cells and set the destination cell distribution function to the average of the list's cells'.
-    * @param mpiGrid Grid
-    * @param cellList List of cells to copy from.
-    * @param to Cell in which to set the averaged distribution.
+    * \param mpiGrid Grid
+    * \param cellList List of cells to copy from.
+    * \param to Cell in which to set the averaged distribution.
     */
    void SysBoundaryCondition::averageCellData(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -416,11 +481,11 @@ namespace SBC {
    }
    
    /*! Take neighboring distribution and reflect all parts going in the direction opposite to the normal vector given in.
-    * @param mpiGrid Grid
-    * @param cellID Cell in which to set the distribution where incoming velocity cells have been reflected/bounced.
-    * @param nx Unit vector x component normal to the bounce/reflection plane.
-    * @param ny Unit vector y component normal to the bounce/reflection plane.
-    * @param nz Unit vector z component normal to the bounce/reflection plane.
+    * \param mpiGrid Grid
+    * \param cellID Cell in which to set the distribution where incoming velocity cells have been reflected/bounced.
+    * \param nx Unit vector x component normal to the bounce/reflection plane.
+    * \param ny Unit vector y component normal to the bounce/reflection plane.
+    * \param nz Unit vector z component normal to the bounce/reflection plane.
     */
    void SysBoundaryCondition::vlasovBoundaryReflect(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -480,11 +545,11 @@ namespace SBC {
    }
    
    /*! Take neighboring distribution and absorb all parts going in the direction opposite to the normal vector given in.
-    * @param mpiGrid Grid
-    * @param cellID Cell in which to set the distribution where incoming velocity cells have been kept or swallowed.
-    * @param nx Unit vector x component normal to the bounce/reflection plane.
-    * @param ny Unit vector y component normal to the bounce/reflection plane.
-    * @param nz Unit vector z component normal to the bounce/reflection plane.
+    * \param mpiGrid Grid
+    * \param cellID Cell in which to set the distribution where incoming velocity cells have been kept or swallowed.
+    * \param nx Unit vector x component normal to the bounce/reflection plane.
+    * \param ny Unit vector y component normal to the bounce/reflection plane.
+    * \param nz Unit vector z component normal to the bounce/reflection plane.
     */
    void SysBoundaryCondition::vlasovBoundaryAbsorb(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -544,8 +609,8 @@ namespace SBC {
    }
    
    /*! Get the cellID of the first closest cell of type NOT_SYSBOUNDARY found.
-    * @return The cell index of that cell
-    * @sa getAllClosestNonsysboundaryCells
+    * \return The cell index of that cell
+    * \sa getAllClosestNonsysboundaryCells
     */
    CellID SysBoundaryCondition::getTheClosestNonsysboundaryCell(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -574,8 +639,8 @@ namespace SBC {
    }
    
    /*! Get the cellIDs of all the closest cells of type NOT_SYSBOUNDARY.
-    * @return The vector of cell indices of those cells
-    * @sa getTheClosestNonsysboundaryCell
+    * \return The vector of cell indices of those cells
+    * \sa getTheClosestNonsysboundaryCell
     */
    std::vector<CellID> SysBoundaryCondition::getAllClosestNonsysboundaryCells(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -624,7 +689,7 @@ namespace SBC {
    }
    
    /*! Get the name of the system boundary condition.
-    * @return The name of the data. The base class function returns an empty string.
+    * \return The name of the data. The base class function returns an empty string.
     */
    string SysBoundaryCondition::getName() const {
       cerr << "ERROR: SysBoundaryCondition::getName called instead of derived class function!" << endl;
@@ -632,7 +697,7 @@ namespace SBC {
    }
    
    /*! Get the enum index of the system boundary condition.
-    * @return The index of the system boundary condition as enumerated in namespace sysboundarytype. The base class function returns 0.
+    * \return The index of the system boundary condition as enumerated in namespace sysboundarytype. The base class function returns 0.
     */
    uint SysBoundaryCondition::getIndex() const {
       cerr << "ERROR: SysBoundaryCondition::getIndex called instead of derived class function!" << endl;
@@ -640,12 +705,12 @@ namespace SBC {
    }
    
    /*! Get the precedence value of the system boundary condition.
-    * @return The precedence value of the system boundary condition as set by parameter.
+    * \return The precedence value of the system boundary condition as set by parameter.
     */
    uint SysBoundaryCondition::getPrecedence() const {return precedence;}
    
    /*! Returns whether the boundary condition is dynamic in time.
-    * @return Boolean value.
+    * \return Boolean value.
     */
    bool SysBoundaryCondition::isDynamic() const {return isThisDynamic;}
    
