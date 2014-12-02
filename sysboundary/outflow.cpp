@@ -188,7 +188,7 @@ namespace SBC {
       const CellID& cellID,
       cuint& component
    ) {
-      const CellID closestCell = getClosestNonsysboundaryCell(mpiGrid, cellID);
+      const CellID closestCell = getTheClosestNonsysboundaryCell(mpiGrid, cellID);
       
       if(closestCell == INVALID_CELLID) {
          cerr << cellID << " " << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
@@ -373,22 +373,8 @@ namespace SBC {
       const CellID& cellID
    ) {
 //      phiprof::start("vlasovBoundaryCondition (Outflow)");
-      vlasovBoundaryCopyFromExistingFaceNbr(mpiGrid, cellID);
+      vlasovBoundaryCopyFromTheClosestNbr(mpiGrid, cellID);
 //      phiprof::stop("vlasovBoundaryCondition (Outflow)");
-   }
-   
-   void Outflow::vlasovBoundaryCopyFromExistingFaceNbr(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID
-   ) {
-      const CellID closestCell = getClosestNonsysboundaryCell(mpiGrid, cellID);
-      
-      if(closestCell == INVALID_CELLID) {
-         cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
-         abort();
-      }
-      //Do not allow block adjustment, the block structure when calling vlasovBoundaryCondition should be static
-      copyCellData(mpiGrid[closestCell], mpiGrid[cellID],false);
    }
    
    void Outflow::getFaces(bool* faces) {

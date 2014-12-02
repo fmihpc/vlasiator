@@ -84,7 +84,6 @@ namespace SBC {
    }
    
    /*! Function used to assign the system boundary condition type to a cell.
-    * \param cellParams Pointer to the cell's parameters array.
     * \return The system boundary condition type's index
     */
    bool SysBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
@@ -92,7 +91,9 @@ namespace SBC {
       return false;
    }
    
-   /*! Function used to apply the system boundary condition initial state to a cell. */
+   /*! Function used to apply the system boundary condition initial state to a cell. 
+    * \return Boolean true on success, false on failure.
+    */
    bool SysBoundaryCondition::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       Project &project
@@ -101,6 +102,14 @@ namespace SBC {
       return false;
    }
    
+   /*! Function used to return the system boundary condition cell's magnetic field component.
+    * \param mpiGrid The grid.
+    * \param cellID The cell's ID.
+    * \param dt 0 when at the beginning of a time step, non-zero for the _DT2 (Runge-Kutta stepping) value.
+    * \param component 0: x-component, 1: y-component, 2: z-component.
+    * 
+    * \return The requested component value.
+    */
    Real SysBoundaryCondition::fieldSolverBoundaryCondMagneticField(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -111,6 +120,16 @@ namespace SBC {
       exit(1);
    }
    
+   /*! Function used to return the system boundary condition cell's main electric field component (without Hall term).
+    * \param mpiGrid The grid.
+    * \param cellID The cell's ID.
+    * \param RKCase The step in Runge-Kutta (use values from enum defined in common.h).
+    * \param component 0: x-component, 1: y-component, 2: z-component.
+    * 
+    * \return The requested component value.
+    * 
+    * \sa fieldSolverBoundaryCondHallElectricField
+    */
    void SysBoundaryCondition::fieldSolverBoundaryCondElectricField(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -121,6 +140,12 @@ namespace SBC {
       exit(1);
    }
    
+   /*! Function used to compute the system boundary condition cell's Hall electric field components and save them into the cell parameters.
+    * \param mpiGrid The grid.
+    * \param cellID The cell's ID.
+    * \param RKCase The step in Runge-Kutta (use values from enum defined in common.h).
+    * \param component 0: x-component, 1: y-component, 2: z-component.
+    */
    void SysBoundaryCondition::fieldSolverBoundaryCondHallElectricField(
       dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -131,6 +156,12 @@ namespace SBC {
       exit(1);
    }
    
+   /*! Function used to compute the system boundary condition cell's derivatives and save them into the cell derivatives.
+    * \param mpiGrid The grid.
+    * \param cellID The cell's ID.
+    * \param RKCase The step in Runge-Kutta (use values from enum defined in common.h).
+    * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives, 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
+    */
    void SysBoundaryCondition::fieldSolverBoundaryCondDerivatives(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -141,6 +172,11 @@ namespace SBC {
       exit(1);
    }
    
+   /*! Function used to compute the system boundary condition cell's BVOL derivatives and save them into the cell derivatives.
+    * \param mpiGrid The grid.
+    * \param cellID The cell's ID.
+    * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
+    */
    void SysBoundaryCondition::fieldSolverBoundaryCondBVOLDerivatives(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -150,6 +186,11 @@ namespace SBC {
       exit(1);
    }
    
+   /*! Function used to set the system boundary condition cell's derivatives to 0.
+    * \param mpiGrid The grid.
+    * \param cellID The cell's ID.
+    * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives, 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
+    */
    void SysBoundaryCondition::setCellDerivativesToZero(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -210,6 +251,11 @@ namespace SBC {
       }
    }
    
+   /*! Function used to set the system boundary condition cell's BVOL derivatives to 0.
+    * \param mpiGrid The grid.
+    * \param cellID The cell's ID.
+    * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
+    */
    void SysBoundaryCondition::setCellBVOLDerivativesToZero(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -234,6 +280,10 @@ namespace SBC {
       }
    }
    
+   /*! Function used to compute the system boundary condition cell's distribution function and moments.
+    * \param mpiGrid The grid.
+    * \param cellID The cell's ID.
+    */
    void SysBoundaryCondition::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
@@ -242,20 +292,61 @@ namespace SBC {
       exit(1);
    }
    
-   //if the spatialcells are neighbors
-   void SysBoundaryCondition::copyCellData(SpatialCell *from, SpatialCell *to,bool allowBlockAdjustment)
-   {
+   /*! Function used to copy the distribution and moments from (one of) the closest sysboundarytype::NOT_SYSBOUNDARY cell.
+    * \param mpiGrid The grid.
+    * \param cellID The cell's ID.
+    */
+   void SysBoundaryCondition::vlasovBoundaryCopyFromTheClosestNbr(
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID
+   ) {
+      const CellID closestCell = getTheClosestNonsysboundaryCell(mpiGrid, cellID);
+      
+      if(closestCell == INVALID_CELLID) {
+         cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
+         abort();
+      }
+      //Do not allow block adjustment, the block structure when calling vlasovBoundaryCondition should be static
+      copyCellData(mpiGrid[closestCell], mpiGrid[cellID],false);
+   }
+   
+   /*! Function used to average and copy the distribution and moments from all the closest sysboundarytype::NOT_SYSBOUNDARY cells.
+    * \param mpiGrid The grid.
+    * \param cellID The cell's ID.
+    */
+   void SysBoundaryCondition::vlasovBoundaryCopyFromAllClosestNbrs(
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID
+   ) {
+      const std::vector<CellID> closestCells = getAllClosestNonsysboundaryCells(mpiGrid, cellID);
+      
+      if(closestCells[0] == INVALID_CELLID) {
+         cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
+         abort();
+      }
+      averageCellData(mpiGrid, closestCells, mpiGrid[cellID]);
+   }
+   
+   /*! Function used to copy the distribution and moments from one cell to another. In layer 2, copy only the moments.
+    * \param from Pointer to parent cell to copy from.
+    * \param to Pointer to destination cell.
+    * \param allowBlockAdjustment If true, blocks can be created or destroyed. If false, only blocks existing in the destination cell are copied.
+    */
+   void SysBoundaryCondition::copyCellData(
+      SpatialCell *from,
+      SpatialCell *to,
+      bool allowBlockAdjustment
+   ) {
       if(to->sysBoundaryLayer == 1) { // Do this only for the first layer, the other layers do not need this.
 
          if (allowBlockAdjustment) {
-         /*prepare list of blocks to remove. It is not safe to loop over
-          * velocity_block_list while adding/removing blocks*/
+         // prepare list of blocks to remove. It is not safe to loop over velocity_block_list while adding/removing blocks
             std::vector<uint> blocksToRemove;
             for (vmesh::LocalID block_i=0; block_i<to->get_number_of_velocity_blocks(); ++block_i) {
-            const vmesh::GlobalID blockGID = to->get_velocity_block_global_id(block_i);
+               const vmesh::GlobalID blockGID = to->get_velocity_block_global_id(block_i);
 
-            // If this block does not exist in from, mark it for removal.
-            if (from->get_velocity_block_local_id(blockGID) == from->invalid_local_id()) {
+               // If this block does not exist in from, mark it for removal.
+               if (from->get_velocity_block_local_id(blockGID) == from->invalid_local_id()) {
                   blocksToRemove.push_back(blockGID);
                }
             }
@@ -311,10 +402,221 @@ namespace SBC {
       to->parameters[CellParams::P_33] = from->parameters[CellParams::P_33];
    }
    
-   CellID SysBoundaryCondition::getClosestNonsysboundaryCell(
+   /*! Take a list of cells and set the destination cell distribution function to the average of the list's cells'.
+    * \param mpiGrid Grid
+    * \param cellList List of cells to copy from.
+    * \param to Cell in which to set the averaged distribution.
+    */
+   void SysBoundaryCondition::averageCellData(
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const std::vector<CellID> cellList,
+      SpatialCell *to
+   ) {
+      cuint numberOfCells = cellList.size();
+      if(numberOfCells == 1) {
+         copyCellData(mpiGrid[cellList[0]], to, true);
+      } else {
+         creal factor = 1.0 / convert<Real>(numberOfCells);
+         
+         to->parameters[CellParams::RHO_DT2] = 0.0;
+         to->parameters[CellParams::RHOVX_DT2] = 0.0;
+         to->parameters[CellParams::RHOVY_DT2] = 0.0;
+         to->parameters[CellParams::RHOVZ_DT2] = 0.0;
+         to->parameters[CellParams::P_11_DT2] = 0.0;
+         to->parameters[CellParams::P_22_DT2] = 0.0;
+         to->parameters[CellParams::P_33_DT2] = 0.0;
+         to->parameters[CellParams::RHO] = 0.0;
+         to->parameters[CellParams::RHOVX] = 0.0;
+         to->parameters[CellParams::RHOVY] = 0.0;
+         to->parameters[CellParams::RHOVZ] = 0.0;
+         to->parameters[CellParams::P_11] = 0.0;
+         to->parameters[CellParams::P_22] = 0.0;
+         to->parameters[CellParams::P_33] = 0.0;
+         
+         to->clear();
+         
+         for (uint i=0; i<numberOfCells; i++) {
+            const SpatialCell * incomingCell = mpiGrid[cellList[i]];
+            for (vmesh::LocalID blockLID=0; blockLID<incomingCell->get_number_of_velocity_blocks(); ++blockLID) {
+               const Real* blockParameters = incomingCell->get_block_parameters(blockLID);
+               // check where cells are
+               creal vxBlock = blockParameters[BlockParams::VXCRD];
+               creal vyBlock = blockParameters[BlockParams::VYCRD];
+               creal vzBlock = blockParameters[BlockParams::VZCRD];
+               creal dvxCell = blockParameters[BlockParams::DVX];
+               creal dvyCell = blockParameters[BlockParams::DVY];
+               creal dvzCell = blockParameters[BlockParams::DVZ];
+               for (uint kc=0; kc<WID; ++kc)
+                  for (uint jc=0; jc<WID; ++jc)
+                     for (uint ic=0; ic<WID; ++ic) {
+                        creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
+                        creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
+                        creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
+                        to->increment_value(
+                           vxCellCenter,
+                           vyCellCenter,
+                           vzCellCenter,
+                           factor*incomingCell->get_value(vxCellCenter, vyCellCenter, vzCellCenter)
+                        );
+               }
+            }
+            
+            // WARNING Time-independence assumed here. _R and _V not copied, as boundary conditions cells should not set/use them
+            to->parameters[CellParams::RHO_DT2] += factor*incomingCell->parameters[CellParams::RHO_DT2];
+            to->parameters[CellParams::RHOVX_DT2] += factor*incomingCell->parameters[CellParams::RHOVX_DT2];
+            to->parameters[CellParams::RHOVY_DT2] += factor*incomingCell->parameters[CellParams::RHOVY_DT2];
+            to->parameters[CellParams::RHOVZ_DT2] += factor*incomingCell->parameters[CellParams::RHOVZ_DT2];
+            to->parameters[CellParams::P_11_DT2] += factor*incomingCell->parameters[CellParams::P_11_DT2];
+            to->parameters[CellParams::P_22_DT2] += factor*incomingCell->parameters[CellParams::P_22_DT2];
+            to->parameters[CellParams::P_33_DT2] += factor*incomingCell->parameters[CellParams::P_33_DT2];
+            to->parameters[CellParams::RHO] += factor*incomingCell->parameters[CellParams::RHO];
+            to->parameters[CellParams::RHOVX] += factor*incomingCell->parameters[CellParams::RHOVX];
+            to->parameters[CellParams::RHOVY] += factor*incomingCell->parameters[CellParams::RHOVY];
+            to->parameters[CellParams::RHOVZ] += factor*incomingCell->parameters[CellParams::RHOVZ];
+            to->parameters[CellParams::P_11] += factor*incomingCell->parameters[CellParams::P_11];
+            to->parameters[CellParams::P_22] += factor*incomingCell->parameters[CellParams::P_22];
+            to->parameters[CellParams::P_33] += factor*incomingCell->parameters[CellParams::P_33];
+         }
+      }
+   }
+   
+   /*! Take neighboring distribution and reflect all parts going in the direction opposite to the normal vector given in.
+    * \param mpiGrid Grid
+    * \param cellID Cell in which to set the distribution where incoming velocity cells have been reflected/bounced.
+    * \param nx Unit vector x component normal to the bounce/reflection plane.
+    * \param ny Unit vector y component normal to the bounce/reflection plane.
+    * \param nz Unit vector z component normal to the bounce/reflection plane.
+    */
+   void SysBoundaryCondition::vlasovBoundaryReflect(
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID,
+      creal& nx,
+      creal& ny,
+      creal& nz
+   ) {
+      SpatialCell * cell = mpiGrid[cellID];
+      const std::vector<CellID> cellList = this->getAllClosestNonsysboundaryCells(mpiGrid, cellID);
+      cuint numberOfCells = cellList.size();
+      creal factor = 1.0 / convert<Real>(numberOfCells);
+      
+      cell->clear();
+      
+      for(uint i=0; i<numberOfCells; i++) {
+         SpatialCell * incomingCell = mpiGrid[cellList[i]];
+         
+         // add blocks
+         for (vmesh::LocalID blockLID=0; blockLID<incomingCell->get_number_of_velocity_blocks(); ++blockLID) {
+            const Real* blockParameters = incomingCell->get_block_parameters(blockLID);
+            // check where cells are
+            creal vxBlock = blockParameters[BlockParams::VXCRD];
+            creal vyBlock = blockParameters[BlockParams::VYCRD];
+            creal vzBlock = blockParameters[BlockParams::VZCRD];
+            creal dvxCell = blockParameters[BlockParams::DVX];
+            creal dvyCell = blockParameters[BlockParams::DVY];
+            creal dvzCell = blockParameters[BlockParams::DVZ];
+            for (uint kc=0; kc<WID; ++kc) 
+               for (uint jc=0; jc<WID; ++jc) 
+                  for (uint ic=0; ic<WID; ++ic) {
+                     creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
+                     creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
+                     creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
+                     // scalar product v.n
+                     creal vNormal = vxCellCenter*nx + vyCellCenter*ny + vzCellCenter*nz;
+                     if(vNormal >= 0.0) {
+                        // Not flowing in, leave as is.
+                        cell->increment_value(
+                           vxCellCenter,
+                           vyCellCenter,
+                           vzCellCenter,
+                           factor*incomingCell->get_value(vxCellCenter, vyCellCenter, vzCellCenter)
+                        );
+                     } else {
+                        // Flowing in, bounce off.
+                        cell->increment_value(
+                           vxCellCenter - 2.0*vNormal*nx,
+                           vyCellCenter - 2.0*vNormal*ny,
+                           vzCellCenter - 2.0*vNormal*nz,
+                           factor*incomingCell->get_value(vxCellCenter, vyCellCenter, vzCellCenter)
+                        );
+                     }
+            }
+         }
+      }
+   }
+   
+   /*! Take neighboring distribution and absorb all parts going in the direction opposite to the normal vector given in.
+    * \param mpiGrid Grid
+    * \param cellID Cell in which to set the distribution where incoming velocity cells have been kept or swallowed.
+    * \param nx Unit vector x component normal to the bounce/reflection plane.
+    * \param ny Unit vector y component normal to the bounce/reflection plane.
+    * \param nz Unit vector z component normal to the bounce/reflection plane.
+    */
+   void SysBoundaryCondition::vlasovBoundaryAbsorb(
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID,
+      creal& nx,
+      creal& ny,
+      creal& nz
+   ) {
+      SpatialCell * cell = mpiGrid[cellID];
+      const std::vector<CellID> cellList = this->getAllClosestNonsysboundaryCells(mpiGrid, cellID);
+      cuint numberOfCells = cellList.size();
+      creal factor = 1.0 / convert<Real>(numberOfCells);
+      
+      cell->clear();
+      
+      for(uint i=0; i<numberOfCells; i++) {
+         SpatialCell * incomingCell = mpiGrid[cellList[i]];
+            
+         // add blocks
+         for (vmesh::LocalID blockLID=0; blockLID<incomingCell->get_number_of_velocity_blocks(); ++blockLID) {
+            const Real* blockParameters = incomingCell->get_block_parameters(blockLID);
+            // check where cells are
+            creal vxBlock = blockParameters[BlockParams::VXCRD];
+            creal vyBlock = blockParameters[BlockParams::VYCRD];
+            creal vzBlock = blockParameters[BlockParams::VZCRD];
+            creal dvxCell = blockParameters[BlockParams::DVX];
+            creal dvyCell = blockParameters[BlockParams::DVY];
+            creal dvzCell = blockParameters[BlockParams::DVZ];
+            for (uint kc=0; kc<WID; ++kc) 
+               for (uint jc=0; jc<WID; ++jc) 
+                  for (uint ic=0; ic<WID; ++ic) {
+                     creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
+                     creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
+                     creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
+                     // scalar product v.n
+                     creal vNormal = vxCellCenter*nx + vyCellCenter*ny + vzCellCenter*nz;
+                     if(vNormal >= 0.0) {
+                        // Not flowing in, leave as is.
+                        cell->increment_value(
+                           vxCellCenter,
+                           vyCellCenter,
+                           vzCellCenter,
+                           factor*incomingCell->get_value(vxCellCenter, vyCellCenter, vzCellCenter)
+                        );
+                     } else {
+                        // Flowing in, bounce off.
+                        cell->increment_value(
+                           vxCellCenter,
+                           vyCellCenter,
+                           vzCellCenter,
+                           0.0
+                        );
+                     }
+            }
+         }
+      }
+   }
+   
+   /*! Get the cellID of the first closest cell of type NOT_SYSBOUNDARY found.
+    * \return The cell index of that cell
+    * \sa getAllClosestNonsysboundaryCells
+    */
+   CellID SysBoundaryCondition::getTheClosestNonsysboundaryCell(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
    ) {
+      phiprof::start("getTheClosestNonsysboundaryCell");
       CellID closestCell = INVALID_CELLID;
       uint dist = numeric_limits<uint>::max();
       
@@ -326,13 +628,59 @@ namespace SBC {
                   if(mpiGrid[cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                      cuint d2 =  i*i+j*j+k*k;
                      if(d2 < dist) {
-                        dist = min(dist, d2);
+                        dist = d2;
                         closestCell = cell;
                      }
                   }
                }
             }
+      phiprof::stop("getTheClosestNonsysboundaryCell");
       return closestCell;
+   }
+   
+   /*! Get the cellIDs of all the closest cells of type NOT_SYSBOUNDARY.
+    * \return The vector of cell indices of those cells
+    * \sa getTheClosestNonsysboundaryCell
+    */
+   std::vector<CellID> SysBoundaryCondition::getAllClosestNonsysboundaryCells(
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const CellID& cellID
+   ) {
+      phiprof::start("getAllClosestNonsysboundaryCells");
+      std::vector<CellID> closestCells;
+      uint dist = numeric_limits<uint>::max();
+      
+      // First iteration of search to determine closest distance
+      for(int i=-2; i<3; i++)
+         for(int j=-2; j<3; j++)
+            for(int k=-2; k<3; k++) {
+               const CellID cell = getNeighbour(mpiGrid,cellID,i,j,k);
+               if(cell != INVALID_CELLID) {
+                  if(mpiGrid[cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                     cuint d2 = i*i+j*j+k*k;
+                     if(d2 < dist) {
+                        dist = d2;
+                     }
+                  }
+               }
+            }
+      // Second iteration to record the cellIDs of all cells at closest distance
+      for(int i=-2; i<3; i++)
+         for(int j=-2; j<3; j++)
+            for(int k=-2; k<3; k++) {
+               const CellID cell = getNeighbour(mpiGrid,cellID,i,j,k);
+               if(cell != INVALID_CELLID) {
+                  if(mpiGrid[cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                     cuint d2 = i*i+j*j+k*k;
+                     if(d2 == dist) {
+                        closestCells.push_back(cell);
+                     }
+                  }
+               }
+            }
+      if(closestCells.size() == 0) closestCells.push_back(INVALID_CELLID);
+      phiprof::stop("getAllClosestNonsysboundaryCells");
+      return closestCells;
    }
    
    /*! Function used in some cases to know which faces the system boundary condition is being applied to.*/
@@ -341,7 +689,7 @@ namespace SBC {
    }
    
    /*! Get the name of the system boundary condition.
-    * @return The name of the data. The base class function returns an empty string.
+    * \return The name of the system boundary. The base class function returns an empty string.
     */
    string SysBoundaryCondition::getName() const {
       cerr << "ERROR: SysBoundaryCondition::getName called instead of derived class function!" << endl;
@@ -349,7 +697,7 @@ namespace SBC {
    }
    
    /*! Get the enum index of the system boundary condition.
-    * @return The index of the system boundary condition as enumerated in namespace sysboundarytype. The base class function returns 0.
+    * \return The index of the system boundary condition as enumerated in namespace sysboundarytype. The base class function returns 0.
     */
    uint SysBoundaryCondition::getIndex() const {
       cerr << "ERROR: SysBoundaryCondition::getIndex called instead of derived class function!" << endl;
@@ -357,12 +705,12 @@ namespace SBC {
    }
    
    /*! Get the precedence value of the system boundary condition.
-    * @return The precedence value of the system boundary condition as set by parameter.
+    * \return The precedence value of the system boundary condition as set by parameter.
     */
    uint SysBoundaryCondition::getPrecedence() const {return precedence;}
    
    /*! Returns whether the boundary condition is dynamic in time.
-    * @return Boolean value.
+    * \return Boolean value.
     */
    bool SysBoundaryCondition::isDynamic() const {return isThisDynamic;}
    

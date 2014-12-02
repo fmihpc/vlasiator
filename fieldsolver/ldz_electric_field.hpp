@@ -187,7 +187,11 @@ template<typename REAL> REAL calculateWaveSpeedXY(const REAL* cp, const REAL* de
 /*! \brief Low-level electric field propagation function.
  * 
  * Computes the upwinded electric field X component along the cell's corresponding edge as the cross product of B and V in the YZ plane. Also includes the calculation of the maximally allowed time step.
+ * 
  * Selects the RHO/RHO_DT2 RHOV[XYZ]/RHOV[XYZ]1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
+ * 
+ * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
+ * 
  * \param cellID Index of the cell to process
  * \param mpiGrid Grid
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
@@ -226,12 +230,16 @@ void calculateEdgeElectricFieldX(
    creal* const derivs_NE = mpiGrid[nbr_NE]->derivatives;
    creal* const derivs_NW = mpiGrid[nbr_NW]->derivatives;
    
-   Real By_S, Bz_W, Bz_E, By_N;
+   Real By_S, Bz_W, Bz_E, By_N, perBy_S, perBz_W, perBz_E, perBy_N;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       By_S = cp_SW[CellParams::PERBY]+cp_SW[CellParams::BGBY];
       Bz_W = cp_SW[CellParams::PERBZ]+cp_SW[CellParams::BGBZ];
       Bz_E = cp_SE[CellParams::PERBZ]+cp_SE[CellParams::BGBZ];
       By_N = cp_NW[CellParams::PERBY]+cp_NW[CellParams::BGBY];
+      perBy_S = cp_SW[CellParams::PERBY];
+      perBz_W = cp_SW[CellParams::PERBZ];
+      perBz_E = cp_SE[CellParams::PERBZ];
+      perBy_N = cp_NW[CellParams::PERBY];
       Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY], cp_SW[CellParams::RHO]);
       Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ], cp_SW[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
@@ -239,6 +247,10 @@ void calculateEdgeElectricFieldX(
       Bz_W = cp_SW[CellParams::PERBZ_DT2]+cp_SW[CellParams::BGBZ];
       Bz_E = cp_SE[CellParams::PERBZ_DT2]+cp_SE[CellParams::BGBZ];
       By_N = cp_NW[CellParams::PERBY_DT2]+cp_NW[CellParams::BGBY];
+      perBy_S = cp_SW[CellParams::PERBY_DT2];
+      perBz_W = cp_SW[CellParams::PERBZ_DT2];
+      perBz_E = cp_SE[CellParams::PERBZ_DT2];
+      perBy_N = cp_NW[CellParams::PERBY_DT2];
       Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY_DT2], cp_SW[CellParams::RHO_DT2]);
       Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ_DT2], cp_SW[CellParams::RHO_DT2]);
    }
@@ -251,6 +263,10 @@ void calculateEdgeElectricFieldX(
    creal dBzdy_E = derivs_SE[fs::dPERBzdy] + derivs_SE[fs::dBGBzdy];
    creal dBydx_N = derivs_NW[fs::dPERBydx] + derivs_NW[fs::dBGBydx];
    creal dBydz_N = derivs_NW[fs::dPERBydz] + derivs_NW[fs::dBGBydz];
+   creal dperBydz_S = derivs_SW[fs::dPERBydz];
+   creal dperBydz_N = derivs_NW[fs::dPERBydz];
+   creal dperBzdy_W = derivs_SW[fs::dPERBzdy];
+   creal dperBzdy_E = derivs_SE[fs::dPERBzdy];
    
    // Ex and characteristic speeds on this cell:
    // 1st order terms:
@@ -439,12 +455,12 @@ void calculateEdgeElectricFieldX(
       if(Parameters::fieldSolverDiffusiveEterms) {
 #ifdef FS_1ST_ORDER_SPACE
          // 1st order diffusive terms:
-         cp_SW[CellParams::EX] -= az_pos*az_neg/(az_pos+az_neg+EPS)*(By_S-By_N);
-         cp_SW[CellParams::EX] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bz_W-Bz_E);
+         cp_SW[CellParams::EX] -= az_pos*az_neg/(az_pos+az_neg+EPS)*(perBy_S-perBy_N);
+         cp_SW[CellParams::EX] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(perBz_W-perBz_E);
 #else
          // 2nd     order diffusive terms
-         cp_SW[CellParams::EX] -= az_pos*az_neg/(az_pos+az_neg+EPS)*((By_S-HALF*dBydz_S) - (By_N+HALF*dBydz_N));
-         cp_SW[CellParams::EX] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bz_W-HALF*dBzdy_W) - (Bz_E+HALF*dBzdy_E));
+         cp_SW[CellParams::EX] -= az_pos*az_neg/(az_pos+az_neg+EPS)*((perBy_S-HALF*dperBydz_S) - (perBy_N+HALF*dperBydz_N));
+         cp_SW[CellParams::EX] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((perBz_W-HALF*dperBzdy_W) - (perBz_E+HALF*dperBzdy_E));
 #endif
       }
    }
@@ -454,12 +470,12 @@ void calculateEdgeElectricFieldX(
       if(Parameters::fieldSolverDiffusiveEterms) {
 #ifdef FS_1ST_ORDER_SPACE
          // 1st order diffusive terms:
-         cp_SW[CellParams::EX_DT2] -= az_pos*az_neg/(az_pos+az_neg+EPS)*(By_S-By_N);
-         cp_SW[CellParams::EX_DT2] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bz_W-Bz_E);
+         cp_SW[CellParams::EX_DT2] -= az_pos*az_neg/(az_pos+az_neg+EPS)*(perBy_S-perBy_N);
+         cp_SW[CellParams::EX_DT2] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(perBz_W-perBz_E);
 #else
          // 2nd order diffusive terms
-         cp_SW[CellParams::EX_DT2] -= az_pos*az_neg/(az_pos+az_neg+EPS)*((By_S-HALF*dBydz_S) - (By_N+HALF*dBydz_N));
-         cp_SW[CellParams::EX_DT2] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bz_W-HALF*dBzdy_W) - (Bz_E+HALF*dBzdy_E));
+         cp_SW[CellParams::EX_DT2] -= az_pos*az_neg/(az_pos+az_neg+EPS)*((perBy_S-HALF*dperBydz_S) - (perBy_N+HALF*dperBydz_N));
+         cp_SW[CellParams::EX_DT2] += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((perBz_W-HALF*dperBzdy_W) - (perBz_E+HALF*dperBzdy_E));
 #endif
       }
    }
@@ -482,7 +498,11 @@ void calculateEdgeElectricFieldX(
 /*! \brief Low-level electric field propagation function.
  * 
  * Computes the upwinded electric field Y component along the cell's corresponding edge as the cross product of B and V in the XZ plane. Also includes the calculation of the maximally allowed time step.
+ * 
  * Selects the RHO/RHO_DT2 RHOV[XYZ]/RHOV[XYZ]1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
+ * 
+ * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
+ * 
  * \param cellID Index of the cell to process
  * \param mpiGrid Grid
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
@@ -522,12 +542,16 @@ void calculateEdgeElectricFieldY(
    creal* const derivs_NW = mpiGrid[nbr_NW]->derivatives;
    
    // Fetch required plasma parameters:
-   Real Bz_S, Bx_W, Bx_E, Bz_N;
+   Real Bz_S, Bx_W, Bx_E, Bz_N, perBz_S, perBx_W, perBx_E, perBz_N;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       Bz_S = cp_SW[CellParams::PERBZ]+cp_SW[CellParams::BGBZ];
       Bx_W = cp_SW[CellParams::PERBX]+cp_SW[CellParams::BGBX];
       Bx_E = cp_SE[CellParams::PERBX]+cp_SE[CellParams::BGBX];
       Bz_N = cp_NW[CellParams::PERBZ]+cp_NW[CellParams::BGBZ];
+      perBz_S = cp_SW[CellParams::PERBZ];
+      perBx_W = cp_SW[CellParams::PERBX];
+      perBx_E = cp_SE[CellParams::PERBX];
+      perBz_N = cp_NW[CellParams::PERBZ];
       Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX], cp_SW[CellParams::RHO]);
       Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ], cp_SW[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
@@ -535,6 +559,10 @@ void calculateEdgeElectricFieldY(
       Bx_W = cp_SW[CellParams::PERBX_DT2]+cp_SW[CellParams::BGBX];
       Bx_E = cp_SE[CellParams::PERBX_DT2]+cp_SE[CellParams::BGBX];
       Bz_N = cp_NW[CellParams::PERBZ_DT2]+cp_NW[CellParams::BGBZ];
+      perBz_S = cp_SW[CellParams::PERBZ_DT2];
+      perBx_W = cp_SW[CellParams::PERBX_DT2];
+      perBx_E = cp_SE[CellParams::PERBX_DT2];
+      perBz_N = cp_NW[CellParams::PERBZ_DT2];
       Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX_DT2], cp_SW[CellParams::RHO_DT2]);
       Vz0  = divideIfNonZero(cp_SW[CellParams::RHOVZ_DT2], cp_SW[CellParams::RHO_DT2]);
    }
@@ -547,6 +575,10 @@ void calculateEdgeElectricFieldY(
    creal dBxdz_E = derivs_SE[fs::dPERBxdz] + derivs_SE[fs::dBGBxdz];
    creal dBzdx_N = derivs_NW[fs::dPERBzdx] + derivs_NW[fs::dBGBzdx];
    creal dBzdy_N = derivs_NW[fs::dPERBzdy] + derivs_NW[fs::dBGBzdy];
+   creal dperBzdx_S = derivs_SW[fs::dPERBzdx];
+   creal dperBzdx_N = derivs_NW[fs::dPERBzdx];
+   creal dperBxdz_W = derivs_SW[fs::dPERBxdz];
+   creal dperBxdz_E = derivs_SE[fs::dPERBxdz];
    
    // Ey and characteristic speeds on this cell:
    // 1st order terms:
@@ -735,11 +767,11 @@ void calculateEdgeElectricFieldY(
 
       if(Parameters::fieldSolverDiffusiveEterms) {
 #ifdef FS_1ST_ORDER_SPACE
-         cp_SW[CellParams::EY] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(Bz_S-Bz_N);
-         cp_SW[CellParams::EY] += az_pos*az_neg/(az_pos+az_neg+EPS)*(Bx_W-Bx_E);
+         cp_SW[CellParams::EY] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(perBz_S-perBz_N);
+         cp_SW[CellParams::EY] += az_pos*az_neg/(az_pos+az_neg+EPS)*(perBx_W-perBx_E);
 #else
-         cp_SW[CellParams::EY] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((Bz_S-HALF*dBzdx_S) - (Bz_N+HALF*dBzdx_N));
-         cp_SW[CellParams::EY] += az_pos*az_neg/(az_pos+az_neg+EPS)*((Bx_W-HALF*dBxdz_W) - (Bx_E+HALF*dBxdz_E));
+         cp_SW[CellParams::EY] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((perBz_S-HALF*dperBzdx_S) - (perBz_N+HALF*dperBzdx_N));
+         cp_SW[CellParams::EY] += az_pos*az_neg/(az_pos+az_neg+EPS)*((perBx_W-HALF*dperBxdz_W) - (perBx_E+HALF*dperBxdz_E));
 #endif
       }
    }
@@ -748,11 +780,11 @@ void calculateEdgeElectricFieldY(
       cp_SW[CellParams::EY_DT2] /= ((az_pos+az_neg)*(ax_pos+ax_neg)+EPS);
       if(Parameters::fieldSolverDiffusiveEterms) {
 #ifdef FS_1ST_ORDER_SPACE
-         cp_SW[CellParams::EY_DT2] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(Bz_S-Bz_N);
-         cp_SW[CellParams::EY_DT2] += az_pos*az_neg/(az_pos+az_neg+EPS)*(Bx_W-Bx_E);
+         cp_SW[CellParams::EY_DT2] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(perBz_S-perBz_N);
+         cp_SW[CellParams::EY_DT2] += az_pos*az_neg/(az_pos+az_neg+EPS)*(perBx_W-perBx_E);
 #else
-         cp_SW[CellParams::EY_DT2] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((Bz_S-HALF*dBzdx_S) - (Bz_N+HALF*dBzdx_N));
-         cp_SW[CellParams::EY_DT2] += az_pos*az_neg/(az_pos+az_neg+EPS)*((Bx_W-HALF*dBxdz_W) - (Bx_E+HALF*dBxdz_E));
+         cp_SW[CellParams::EY_DT2] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((perBz_S-HALF*dperBzdx_S) - (perBz_N+HALF*dperBzdx_N));
+         cp_SW[CellParams::EY_DT2] += az_pos*az_neg/(az_pos+az_neg+EPS)*((perBx_W-HALF*dperBxdz_W) - (perBx_E+HALF*dperBxdz_E));
 #endif
       }
    }
@@ -775,7 +807,11 @@ void calculateEdgeElectricFieldY(
 /*! \brief Low-level electric field propagation function.
  *
  * Computes the upwinded electric field Z component along the cell's corresponding edge as the cross product of B and V in the XY plane. Also includes the calculation of the maximally allowed time step.
+ * 
  * Selects the RHO/RHO_DT2 RHOV[XYZ]/RHOV[XYZ]1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
+ * 
+ * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
+ * 
  * \param cellID Index of the cell to process
  * \param mpiGrid Grid
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
@@ -816,12 +852,16 @@ void calculateEdgeElectricFieldZ(
    creal* const derivs_NW = mpiGrid[nbr_NW]->derivatives;
    
    // Fetch needed plasma parameters/derivatives from the four cells:
-   Real Bx_S, By_W, By_E, Bx_N;
+   Real Bx_S, By_W, By_E, Bx_N, perBx_S, perBy_W, perBy_E, perBx_N;
    if(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       Bx_S    = cp_SW[CellParams::PERBX] + cp_SW[CellParams::BGBX];
       By_W    = cp_SW[CellParams::PERBY] + cp_SW[CellParams::BGBY];
       By_E    = cp_SE[CellParams::PERBY] + cp_SE[CellParams::BGBY];
       Bx_N    = cp_NW[CellParams::PERBX] + cp_NW[CellParams::BGBX];
+      perBx_S    = cp_SW[CellParams::PERBX];
+      perBy_W    = cp_SW[CellParams::PERBY];
+      perBy_E    = cp_SE[CellParams::PERBY];
+      perBx_N    = cp_NW[CellParams::PERBX];
       Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX], cp_SW[CellParams::RHO]);
       Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY], cp_SW[CellParams::RHO]);
    } else { // RKCase == RK_ORDER2_STEP1
@@ -829,6 +869,10 @@ void calculateEdgeElectricFieldZ(
       By_W    = cp_SW[CellParams::PERBY_DT2] + cp_SW[CellParams::BGBY];
       By_E    = cp_SE[CellParams::PERBY_DT2] + cp_SE[CellParams::BGBY];
       Bx_N    = cp_NW[CellParams::PERBX_DT2] + cp_NW[CellParams::BGBX];
+      perBx_S    = cp_SW[CellParams::PERBX_DT2];
+      perBy_W    = cp_SW[CellParams::PERBY_DT2];
+      perBy_E    = cp_SE[CellParams::PERBY_DT2];
+      perBx_N    = cp_NW[CellParams::PERBX_DT2];
       Vx0  = divideIfNonZero(cp_SW[CellParams::RHOVX_DT2], cp_SW[CellParams::RHO_DT2]);
       Vy0  = divideIfNonZero(cp_SW[CellParams::RHOVY_DT2], cp_SW[CellParams::RHO_DT2]);
    }
@@ -841,6 +885,10 @@ void calculateEdgeElectricFieldZ(
    creal dBydz_E = derivs_SE[fs::dPERBydz] + derivs_SE[fs::dBGBydz];
    creal dBxdy_N = derivs_NW[fs::dPERBxdy] + derivs_NW[fs::dBGBxdy];
    creal dBxdz_N = derivs_NW[fs::dPERBxdz] + derivs_NW[fs::dBGBxdz];
+   creal dperBxdy_S = derivs_SW[fs::dPERBxdy];
+   creal dperBxdy_N = derivs_NW[fs::dPERBxdy];
+   creal dperBydx_W = derivs_SW[fs::dPERBydx];
+   creal dperBydx_E = derivs_SE[fs::dPERBydx];
    
    // Ez and characteristic speeds on SW cell:
    // 1st order terms:
@@ -1031,11 +1079,11 @@ void calculateEdgeElectricFieldZ(
 
       if(Parameters::fieldSolverDiffusiveEterms) {
 #ifdef FS_1ST_ORDER_SPACE
-         cp_SW[CellParams::EZ] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bx_S-Bx_N);
-         cp_SW[CellParams::EZ] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(By_W-By_E);
+         cp_SW[CellParams::EZ] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(perBx_S-perBx_N);
+         cp_SW[CellParams::EZ] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(perBy_W-perBy_E);
 #else
-         cp_SW[CellParams::EZ] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bx_S-HALF*dBxdy_S) - (Bx_N+HALF*dBxdy_N));
-         cp_SW[CellParams::EZ] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((By_W-HALF*dBydx_W) - (By_E+HALF*dBydx_E));
+         cp_SW[CellParams::EZ] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((perBx_S-HALF*dperBxdy_S) - (perBx_N+HALF*dperBxdy_N));
+         cp_SW[CellParams::EZ] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((perBy_W-HALF*dperBydx_W) - (perBy_E+HALF*dperBydx_E));
 #endif
       }
    }
@@ -1045,11 +1093,11 @@ void calculateEdgeElectricFieldZ(
 
       if(Parameters::fieldSolverDiffusiveEterms) {
 #ifdef FS_1ST_ORDER_SPACE
-         cp_SW[CellParams::EZ_DT2] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(Bx_S-Bx_N);
-         cp_SW[CellParams::EZ_DT2] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(By_W-By_E);
+         cp_SW[CellParams::EZ_DT2] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(perBx_S-perBx_N);
+         cp_SW[CellParams::EZ_DT2] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(perBy_W-perBy_E);
 #else
-         cp_SW[CellParams::EZ_DT2] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((Bx_S-HALF*dBxdy_S) - (Bx_N+HALF*dBxdy_N));
-         cp_SW[CellParams::EZ_DT2] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((By_W-HALF*dBydx_W) - (By_E+HALF*dBydx_E));
+         cp_SW[CellParams::EZ_DT2] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((perBx_S-HALF*dperBxdy_S) - (perBx_N+HALF*dperBxdy_N));
+         cp_SW[CellParams::EZ_DT2] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((perBy_W-HALF*dperBydx_W) - (perBy_E+HALF*dperBydx_E));
 #endif
       }
    }
@@ -1117,7 +1165,8 @@ void calculateUpwindedElectricFieldSimple(
       
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-            (cellSysBoundaryLayer != 1)) {
+            (cellSysBoundaryLayer != 1)
+         ) {
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
                fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 0);
          } else {
@@ -1126,7 +1175,8 @@ void calculateUpwindedElectricFieldSimple(
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-            (cellSysBoundaryLayer != 1)) {
+            (cellSysBoundaryLayer != 1)
+         ) {
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
             fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 1);
          } else {
@@ -1135,7 +1185,8 @@ void calculateUpwindedElectricFieldSimple(
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-            (cellSysBoundaryLayer != 1)) {
+            (cellSysBoundaryLayer != 1)
+         ) {
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
             fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 2);
          } else {
@@ -1163,7 +1214,8 @@ void calculateUpwindedElectricFieldSimple(
       
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EX) == CALCULATE_EX) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-            (cellSysBoundaryLayer != 1)) {
+            (cellSysBoundaryLayer != 1)
+         ) {
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
             fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 0);
          } else {
@@ -1172,7 +1224,8 @@ void calculateUpwindedElectricFieldSimple(
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EY) == CALCULATE_EY) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-            (cellSysBoundaryLayer != 1)) {
+            (cellSysBoundaryLayer != 1)
+         ) {
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
             fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 1);
          } else {
@@ -1181,7 +1234,8 @@ void calculateUpwindedElectricFieldSimple(
       }
       if ((fieldSolverSysBoundaryFlag & CALCULATE_EZ) == CALCULATE_EZ) {
          if((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) &&
-            (cellSysBoundaryLayer != 1)) {
+            (cellSysBoundaryLayer != 1)
+         ) {
             sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->
             fieldSolverBoundaryCondElectricField(mpiGrid, cellID, RKCase, 2);
          } else {

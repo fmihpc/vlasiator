@@ -332,8 +332,9 @@ bool SysBoundary::applyInitialState(
 
 /*!\brief Apply the Vlasov system boundary conditions to all system boundary cells at time t.
  *
- * Loops through all SysBoundaryConditions and calls the corresponding vlasovBoundaryCondition()
- * function.
+ * Loops through all SysBoundaryConditions and calls the corresponding vlasovBoundaryCondition() function.
+ * 
+ * WARNING (see end of the function) Blocks are changed but lists not updated now, if you need to use/communicate them before the next update is done, add an update at the end of this function.
  */
 void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t) {
    if(sysBoundaries.size()==0) {
@@ -388,13 +389,11 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell,dccr
    mpiGrid.wait_remote_neighbor_copy_update_sends();
    phiprof::stop(timer);
 
-//  No need to adjust, vlasovBoundaryCondition not allowed to modify block structure!!!
-/*
-  updateRemoteVelocityBlockLists(mpiGrid);
-  adjustVelocityBlocks(mpiGrid);
-*/
+   // WARNING Blocks are changed but lists not updated now, if you need to use/communicate them before the next update is done, add an update here.
+//   updateRemoteVelocityBlockLists(mpiGrid);
+//   adjustVelocityBlocks(mpiGrid);
 
-}   
+}
 
 /*! Get a pointer to the SysBoundaryCondition of given index.
  * \retval ptr Pointer to the instance of the SysBoundaryCondition.

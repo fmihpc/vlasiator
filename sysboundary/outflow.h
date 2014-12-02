@@ -100,10 +100,6 @@ namespace SBC {
          const CellID& cellID,
          cuint& component
       );
-      void vlasovBoundaryCopyFromExistingFaceNbr(
-         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID
-      );
    }; // class Outflow
 } // namespace SBC
 
