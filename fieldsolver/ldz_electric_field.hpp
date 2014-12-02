@@ -187,7 +187,11 @@ template<typename REAL> REAL calculateWaveSpeedXY(const REAL* cp, const REAL* de
 /*! \brief Low-level electric field propagation function.
  * 
  * Computes the upwinded electric field X component along the cell's corresponding edge as the cross product of B and V in the YZ plane. Also includes the calculation of the maximally allowed time step.
+ * 
  * Selects the RHO/RHO_DT2 RHOV[XYZ]/RHOV[XYZ]1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
+ * 
+ * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
+ * 
  * \param cellID Index of the cell to process
  * \param mpiGrid Grid
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
@@ -494,7 +498,11 @@ void calculateEdgeElectricFieldX(
 /*! \brief Low-level electric field propagation function.
  * 
  * Computes the upwinded electric field Y component along the cell's corresponding edge as the cross product of B and V in the XZ plane. Also includes the calculation of the maximally allowed time step.
+ * 
  * Selects the RHO/RHO_DT2 RHOV[XYZ]/RHOV[XYZ]1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
+ * 
+ * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
+ * 
  * \param cellID Index of the cell to process
  * \param mpiGrid Grid
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
@@ -799,7 +807,11 @@ void calculateEdgeElectricFieldY(
 /*! \brief Low-level electric field propagation function.
  *
  * Computes the upwinded electric field Z component along the cell's corresponding edge as the cross product of B and V in the XY plane. Also includes the calculation of the maximally allowed time step.
+ * 
  * Selects the RHO/RHO_DT2 RHOV[XYZ]/RHOV[XYZ]1 and B[XYZ]/B[XYZ]1 values depending on the stage of the Runge-Kutta time stepping method.
+ * 
+ * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
+ * 
  * \param cellID Index of the cell to process
  * \param mpiGrid Grid
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
