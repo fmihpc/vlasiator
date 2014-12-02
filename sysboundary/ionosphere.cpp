@@ -31,6 +31,10 @@
 #include "../fieldsolver/fs_limiters.h"
 #include "../common.h"
 
+#ifndef NDEBUG
+  #define DEBUG_IONOSPHERE
+#endif
+
 namespace SBC {
    Ionosphere::Ionosphere(): SysBoundaryCondition() { }
    
@@ -433,10 +437,12 @@ namespace SBC {
          // end of 3D
       }
       
+#ifdef DEBUG_IONOSPHERE
       // Uncomment one of the following line for debugging output to evaluate the correctness of the results. Best used with a single process and single thread.
 //       if (mpiGrid[cellID]->sysBoundaryLayer == 1) std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
 //       if (mpiGrid[cellID]->sysBoundaryLayer == 2) std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
-//       std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
+      std::cerr << x << " " << y << " " << z << " " << normalDirection[0] << " " << normalDirection[1] << " " << normalDirection[2] << std::endl;
+#endif
       phiprof::stop("Ionosphere::fieldSolverGetNormalDirection");
       return normalDirection;
    }
