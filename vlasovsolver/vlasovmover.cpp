@@ -246,7 +246,6 @@ void calculateSpatialTranslation(
   --------------------------------------------------
 */
 
-
 void calculateAcceleration(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    Real dt
@@ -278,9 +277,23 @@ void calculateAcceleration(
 #pragma omp parallel for schedule(dynamic,1)
       for (size_t c=0; c<propagatedCells.size(); ++c) {
          const CellID cellID = propagatedCells[c];
-      //generate pseudo-random order which is always the same irrespectiive of parallelization, restarts, etc
-         srand(P::tstep + cellID);
-         uint map_order=rand()%3;
+         
+         //generate pseudo-random order which is always the same irrespectiive of parallelization, restarts, etc
+         char rngStateBuffer[256];
+         random_data rngDataBuffer;
+         // set seed, initialise generator and get value
+         memset(&(rngDataBuffer), 0, sizeof(rngDataBuffer));
+         #ifdef _AIX
+         initstate_r(P::tstep + cellID, &(rngStateBuffer[0]), 256, NULL, &(rngDataBuffer));
+         int64_t rndInt;
+         random_r(&rndInt, &rngDataBuffer);
+         #else
+         initstate_r(P::tstep + cellID, &(rngStateBuffer[0]), 256, &(rngDataBuffer));
+         int32_t rndInt;
+         random_r(&rngDataBuffer, &rndInt);
+         #endif
+         
+         uint map_order=rndInt%3;
          phiprof::start("cell-semilag-acc");
          cpu_accelerate_cell(mpiGrid[cellID],map_order,dt);
          phiprof::stop("cell-semilag-acc");

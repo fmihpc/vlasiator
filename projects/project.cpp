@@ -176,10 +176,10 @@ namespace projects {
       cerr << "ERROR: Project::calcPhaseSpaceDensity called instead of derived class function!" << endl;
       return -1.0;
    }
+   
    /*!
      Get random number between 0 and 1.0. One should always first initialize the rng.
    */
-   
    Real Project::getRandomNumber() {
 #ifdef _AIX
       int64_t rndInt;
@@ -197,7 +197,6 @@ namespace projects {
 
      \param seedModifier d. Seed is based on the seed read in from cfg + the seedModifier parameter
    */
-   
    void Project::setRandomSeed(CellID seedModifier) {
       memset(&(this->rngDataBuffer), 0, sizeof(this->rngDataBuffer));
 #ifdef _AIX
