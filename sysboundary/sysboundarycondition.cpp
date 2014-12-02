@@ -689,7 +689,7 @@ namespace SBC {
    }
    
    /*! Get the name of the system boundary condition.
-    * \return The name of the data. The base class function returns an empty string.
+    * \return The name of the system boundary. The base class function returns an empty string.
     */
    string SysBoundaryCondition::getName() const {
       cerr << "ERROR: SysBoundaryCondition::getName called instead of derived class function!" << endl;
