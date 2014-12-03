@@ -28,18 +28,21 @@ namespace projects {
          // VX search
          search = true;
          counter = 0;
-         while (search) {
-            if (0.1 * P::sparseMinValue >
-                calcPhaseSpaceDensity(x,
-                                      y,
-                                      z,
-                                      dx,
-                                      dy,
-                                      dz,
-                                      it->at(0) + counter*dvxBlock, it->at(1), it->at(2),
-                                      dvxCell, dvyCell, dvzCell
-                                     )
-               ) {
+         while(search) {
+            if(0.1 * P::sparseMinValue >
+               calcPhaseSpaceDensity(
+                  x,
+                  y,
+                  z,
+                  dx,
+                  dy,
+                  dz,
+                  it->at(0) + counter*dvxBlock, it->at(1), it->at(2),
+                  dvxCell, dvyCell, dvzCell
+               )
+               ||
+               counter > P::vxblocks_ini
+            ) {
                search = false;
             }
             ++counter;
@@ -52,10 +55,20 @@ namespace projects {
          search = true;
          counter = 0;
          while(search) {
-            if (0.1 * P::sparseMinValue >
-               calcPhaseSpaceDensity(x,y,z,dx,dy,dz,
+            if(0.1 * P::sparseMinValue >
+               calcPhaseSpaceDensity(
+                                     x,
+                                     y,
+                                     z,
+                                     dx,
+                                     dy,
+                                     dz,
                                      it->at(0), it->at(1) + counter*dvyBlock, it->at(2),
-                                     dvxCell, dvyCell, dvzCell)) {
+                                     dvxCell, dvyCell, dvzCell
+                                    )
+               ||
+               counter > P::vxblocks_ini
+              ) {
                search = false;
             }
             ++counter;
@@ -68,11 +81,19 @@ namespace projects {
          search = true;
          counter = 0;
          while(search) {
-            if (0.1 * P::sparseMinValue >
-               calcPhaseSpaceDensity(x,y,z,dx,dy,dz,
+            if(0.1 * P::sparseMinValue >
+               calcPhaseSpaceDensity(
+                                     x,
+                                     y,
+                                     z,
+                                     dx,
+                                     dy,
+                                     dz,
                                      it->at(0), it->at(1), it->at(2) + counter*dvzBlock,
                                      dvxCell, dvyCell, dvzCell
                                     )
+               ||
+               counter > P::vxblocks_ini
               ) {
                search = false;
             }
