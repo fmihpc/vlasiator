@@ -40,7 +40,7 @@ namespace spatial_cell {
     * modify local cell.*/
    void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors, bool doDeleteEmptyBlocks) {
       #ifdef AMR
-         return;
+//         return;
       #endif
 
       //  This set contains all those cellids which have neighbors in any
@@ -50,7 +50,7 @@ namespace spatial_cell {
       //  we only check for removal for blocks with no content
       //boost::unordered_set<vmesh::GlobalID> neighbors_have_content;
       std::unordered_set<vmesh::GlobalID> neighbors_have_content;
-      
+
       #ifdef AMR
       for (vmesh::LocalID block_index=0; block_index<velocity_block_with_content_list.size(); ++block_index) {
          vmesh::GlobalID blockGID = velocity_block_with_content_list[block_index];

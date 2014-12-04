@@ -433,7 +433,7 @@ namespace vmesh {
       size[2] /= WID;
       return true;
    }
-   
+
    template<typename GID,typename LID> inline
    void VelocityMesh<GID,LID>::getChildren(const GID& globalID,std::vector<GID>& children) {
       children.clear();
@@ -811,11 +811,11 @@ namespace vmesh {
 
       // Check all children, if even one exists return 'true':
       for (size_t c=0; c<children.size(); ++c) {
-	 if (getLocalID(children[c]) != invalidLocalID()) return true;
+         if (getLocalID(children[c]) != invalidLocalID()) return true;
       }
       return false;
    }
-   
+
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::initialize(Real meshLimits[6],LID gridLength[3],LID blockLength[3],uint8_t refLevelMaxAllowed,
                                           LID maxVelocityBlocks) {
