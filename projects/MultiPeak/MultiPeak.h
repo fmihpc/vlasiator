@@ -51,14 +51,15 @@ namespace projects {
             creal z
          );
          
-         Real rho[2];
-         Real rhoRnd[2];
-         Real Tx[2];
-         Real Ty[2];
-         Real Tz[2];
-         Real Vx[2];
-         Real Vy[2];
-         Real Vz[2];
+         int numberOfPopulations;
+         vector<Real> rho;
+         vector<Real> rhoRnd;
+         vector<Real> Tx;
+         vector<Real> Ty;
+         vector<Real> Tz;
+         vector<Real> Vx;
+         vector<Real> Vy;
+         vector<Real> Vz;
          Real Bx;
          Real By;
          Real Bz;
@@ -68,13 +69,7 @@ namespace projects {
          Real magXPertAbsAmp;
          Real magYPertAbsAmp;
          Real magZPertAbsAmp;
-         Real rhoPertAbsAmp[2];
-//          Real Vx1PertAbsAmp;
-//          Real Vy1PertAbsAmp;
-//          Real Vz1PertAbsAmp;
-//          Real Vx2PertAbsAmp;
-//          Real Vy2PertAbsAmp;
-//          Real Vz2PertAbsAmp;
+         vector<Real> rhoPertAbsAmp;
          Real lambda;
          uint nVelocitySamples;
    }; // class MultiPeak
