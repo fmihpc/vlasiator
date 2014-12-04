@@ -18,13 +18,13 @@ using namespace spatial_cell;
 #include <dccrg_cartesian_geometry.hpp>
 
 void calculateAcceleration(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   Real dt
+                           dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                           Real dt
 );
 
 void calculateSpatialTranslation(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   creal dt);
+                                 dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                 Real dt);
 
 /*!
   \brief Compute real-time 1st order accurate moments from the moments after propagation in velocity and spatial space
