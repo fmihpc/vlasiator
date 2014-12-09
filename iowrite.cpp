@@ -12,7 +12,6 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include <iostream>
 #include <iomanip> // for setprecision()
 #include <cmath>
-#include <vector>
 #include <sstream>
 #include <ctime>
 #include <array>
@@ -21,7 +20,6 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 #include "phiprof.hpp"
 #include "parameters.h"
 #include "logger.h"
-#include "vlsv_writer.h"
 #include "vlasovmover.h"
 
 using namespace std;
@@ -89,20 +87,15 @@ bool globalSuccess(bool success,string errorMessage,MPI_Comm comm){
    }
 }
 
-/*! Writes the velocity distribution into the file. Template can be double or float depending on whether the user wants to write the distribution as floats or doubles into the file.
- \param vlsvWriter Some vlsv writer with a file open
- \param mpiGrid Vlasiator's grid
- \param cells Vector of local cells within this process (no ghost cells)
- \param comm The MPI comm
- \return Returns true if operation was successful
- */
-template <typename T>
-bool writeVelocityDistributionData(
-				   Writer& vlsvWriter,
-				   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-				   const vector<uint64_t> & cells,
-				   MPI_Comm comm
-				  ) {
+/** Writes the velocity distribution into the file.
+ @param vlsvWriter Some vlsv writer with a file open.
+ @param mpiGrid Vlasiator's grid.
+ @param cells Vector of local cells within this process (no ghost cells).
+ @param comm The MPI communicator.
+ @return Returns true if operation was successful.*/
+bool writeVelocityDistributionData(Writer& vlsvWriter,
+                                   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                   const vector<uint64_t> & cells,MPI_Comm comm) {
    // Write velocity blocks and related data. 
    // In restart we just write velocity grids for all cells.
    // First write global Ids of those cells which write velocity blocks (here: all cells):
@@ -163,7 +156,7 @@ bool writeVelocityDistributionData(
    const uint64_t vectorSize_avgs = WID3; // There are 64 elements in every velocity block
 
    // Get the data size needed for writing in data
-   uint64_t dataSize_avgs = sizeof(T);
+   uint64_t dataSize_avgs = sizeof(Realf);
 
    // Start multi write
    vlsvWriter.startMultiwrite(datatype_avgs,arraySize_avgs,vectorSize_avgs,dataSize_avgs);
@@ -692,20 +685,15 @@ bool writeMeshBoundingBox( Writer & vlsvWriter,
    return success;
 }
 
-/*! This function writes the velocity space. Note: Template can be either float or double and it determines 
- * in which format the avgs values of the velocity distribution will be written in. If floats are used, the file size is smaller.
- \param mpiGrid Vlasiator's grid
- \param vlsvWriter some vlsv writer with a file open
- \param index Index to call the correct member of the various parameter vectors
- \param cells Vector containing local cells of this process
- \return Returns true if the operation was successful
- \sa writeVelocityDistributionData
- */
-template <typename T>
-bool writeVelocitySpace( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                         Writer & vlsvWriter,
-                         int index,
-                         const vector<uint64_t> & cells ) {
+/** This function writes the velocity space.
+ * @param mpiGrid Vlasiator's grid.
+ * @param vlsvWriter some vlsv writer with a file open.
+ * @param index Index to call the correct member of the various parameter vectors.
+ * @param cells Vector containing local cells of this process.
+ * @return Returns true if the operation was successful.
+ * @sa writeVelocityDistributionData. */
+bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                        Writer& vlsvWriter,int index,const vector<uint64_t>& cells) {
       //Compute which cells will write out their velocity space
       vector<uint64_t> velSpaceCells;
       int lineX, lineY, lineZ;
@@ -749,7 +737,7 @@ bool writeVelocitySpace( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mp
       localNumVelSpaceCells=velSpaceCells.size();
       MPI_Allreduce(&localNumVelSpaceCells,&numVelSpaceCells,1,MPI_UINT64_T,MPI_SUM,MPI_COMM_WORLD);
       //write out velocity space data NOTE: There is mpi communication in writeVelocityDistributionData
-      if( writeVelocityDistributionData<T>( vlsvWriter, mpiGrid, velSpaceCells, MPI_COMM_WORLD ) == false ) {
+      if (writeVelocityDistributionData(vlsvWriter, mpiGrid, velSpaceCells, MPI_COMM_WORLD ) == false ) {
          cerr << "ERROR, FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT " << __FILE__ << " " << __LINE__ << endl;
          logFile << "(MAIN) writeGrid: ERROR FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
       }
@@ -858,12 +846,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    //Write ghost zone domain and local id numbers ( VisIt plugin needs this for MPI )
    if( writeGhostZoneDomainAndLocalIdNumbers( mpiGrid, vlsvWriter, meshName, ghost_cells ) == false ) return false;
-
-   if( P::writeAsFloat == 1 ) {
-      if( writeVelocitySpace<float>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
-   } else {
-      if( writeVelocitySpace<Realf>( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
-   }
+   if( writeVelocitySpace( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
 
    //Write necessary variables:
    //Determines whether we write in floats or doubles
@@ -985,7 +968,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    //write the velocity distribution data -- note: it's expecting a vector of pointers:
    // Note: restart should always write double values to ensure the accuracy of the restart runs. 
    // In case of distribution data it is not as important as they are mainly used for visualization purposes
-   writeVelocityDistributionData<Realf>(vlsvWriter, mpiGrid, local_cells, MPI_COMM_WORLD);
+   writeVelocityDistributionData(vlsvWriter, mpiGrid, local_cells, MPI_COMM_WORLD);
 
    vlsvWriter.close();
    //Updated newly adjusted velocity block lists on remote cells, and
