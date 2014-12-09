@@ -105,7 +105,6 @@ namespace SBC {
       vector<uint> blocksToInitialize;
       bool search = true;
       uint counter = 0;
-      
       while (search) {
          if (0.1 * P::sparseMinValue >
              maxwellianDistribution(
