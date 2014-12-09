@@ -5,7 +5,7 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 
 */
 
-/*! \file londrillo_delzanna.cpp
+/*! \file ldz_main.cpp
  * \brief Londrillo -- Del Zanna upwind constrained transport field solver.
  * 
  * On the divergence-free condition in Godunov-type schemes for
@@ -199,7 +199,7 @@ bool initializeFieldPropagator(
    // Calculate derivatives and upwinded edge-E. Exchange derivatives 
    // and edge-E:s between neighbouring processes and calculate 
    // face-averaged E,B fields.
-   calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+   calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, true);
    if(P::ohmHallTerm > 0) {
       calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
    }
@@ -240,21 +240,21 @@ bool propagateFields(
    }
 # ifdef FS_1ST_ORDER_TIME
    propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER1);
-   calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
+   calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, true);
    if(P::ohmHallTerm > 0) {
       calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
    }
    calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1);
 # else
    propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER2_STEP1);
-   calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
+   calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1, true);
    if(P::ohmHallTerm > 0) {
       calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
    }
    calculateUpwindedElectricFieldSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP1);
    
    propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER2_STEP2);
-   calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
+   calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2, true);
    if(P::ohmHallTerm > 0) {
       calculateHallTermSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER2_STEP2);
    }
