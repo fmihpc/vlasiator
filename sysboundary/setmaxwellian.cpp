@@ -105,14 +105,13 @@ namespace SBC {
       vector<uint> blocksToInitialize;
       bool search = true;
       uint counter = 0;
-
-      while(search) {
+      while (search) {
          if (0.1 * P::sparseMinValue >
-            maxwellianDistribution(
-                                   rho,
-                                   T,
-                                   counter*SpatialCell::get_velocity_grid_block_size()[0], 0.0, 0.0
-                                  )
+             maxwellianDistribution(
+                                    rho,
+                                    T,
+                                    counter*SpatialCell::get_velocity_grid_block_size()[0], 0.0, 0.0
+                                   )
              ||
              counter > P::vxblocks_ini
             ) {
