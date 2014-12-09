@@ -137,7 +137,7 @@ namespace projects {
          creal DVX = dvx / N; 
          creal DVY = dvy / N;
          creal DVZ = dvz / N;
-         
+
          // Sample the distribution using N*N*N points
          for (uint vi=0; vi<N; ++vi) {
             for (uint vj=0; vj<N; ++vj) {
@@ -151,10 +151,16 @@ namespace projects {
          }
          
          // Compare the current and accumulated volume averages:
-         Real avgAccum   = avgTotal / (1e-30 + N3_sum);
+         //ok = true;
+         Real eps = max(numeric_limits<creal>::min(),avg * 1e-6);
+         Real avgAccum   = avgTotal / (avg + N3_sum);
          Real avgCurrent = avg / (N*N*N);
-         if (fabs(avgCurrent-avgAccum)/(avgAccum+1e-30) < 0.01) ok = true;
-         
+         if (fabs(avgCurrent-avgAccum)/(avgAccum+eps) < 0.01) ok = true;
+         else if (avg < Parameters::sparseMinValue*0.01) ok = true;
+         else if (N > 10) {
+            ok = true;
+         }
+
          avgTotal += avg;
          N3_sum += N*N*N;
          ++N;

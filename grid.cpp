@@ -760,6 +760,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    mpiGrid.add_neighborhood(SHIFT_P_Z_NEIGHBORHOOD_ID, neighborhood);
 }
 
+#warning This is for testing, can be removed later
 void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    vector<CellID> cells = mpiGrid.get_cells();
    
@@ -773,7 +774,7 @@ void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) 
    
    vlsv::Writer vlsvWriter;
    vlsvWriter.open(fname.str(),MPI_COMM_WORLD,0,MPI_INFO_NULL);
-   writeVelocityDistributionData<float>(vlsvWriter,mpiGrid,cells,MPI_COMM_WORLD);   
+   writeVelocityDistributionData(vlsvWriter,mpiGrid,cells,MPI_COMM_WORLD);   
    vlsvWriter.close();
    
    ++counter;

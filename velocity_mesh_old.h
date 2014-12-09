@@ -61,6 +61,7 @@ namespace vmesh {
 //      void     getSiblings(const GlobalID& globalID,GlobalID siblings[8]);
       static void getSiblings(const GID& globalID,std::vector<GID>& siblings);
       bool hasChildren(const GID& globalID) const;
+      GID hasGrandParent(const GID& globalID) const;
       static bool initialize(Real meshLimits[6],LID gridLength[3],LID blockLength[3],uint8_t refLevelMaxAllowed=0);
       static LID invalidBlockIndex();
       static GID invalidGlobalID();
@@ -482,6 +483,11 @@ namespace vmesh {
       return false;
    }
 
+   template<typename GID,typename LID> inline
+   GID VelocityMesh<GID,LID>::hasGrandParent(const GID& globalID) const {
+      return invalidGlobalID();
+   }
+      
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::initialize(Real meshLimits[6],LID gridLength[3],LID blockLength[3],uint8_t refLevelMaxAllowed) {
       meshMinLimits[0] = meshLimits[0];
