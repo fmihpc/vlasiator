@@ -84,7 +84,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
 
    static int cntr=2;
 
-   int dim=cntr;
+   int dim=0;
 
    // Generate target mesh
    phiprof::start("target mesh generation");
@@ -98,15 +98,14 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       SpatialCell* spatial_cell = mpiGrid[local_cells[c]];
       vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh_temporary();
       vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
-      spatial_cell->swap(vmesh,blockContainer);
+      //spatial_cell->swap(vmesh,blockContainer);
    }
 
    phiprof::start("mapping");
    if (P::xcells_ini > 1) {
       for (size_t c=0; c<local_cells.size(); ++c) {
          if (do_translate_cell(mpiGrid[local_cells[c]])) {
-            cerr << "translate " << local_cells[c] << endl;
-            trans_map_1d(mpiGrid,local_cells[c],dim,dt);
+            //trans_map_1d(mpiGrid,local_cells[c],dim,dt);
          }
       }
    }

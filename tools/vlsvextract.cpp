@@ -1020,6 +1020,8 @@ bool convertSlicedVelocityMesh(newVlsv::Reader& vlsvReader,const string& fname,c
       if (cellCrds[cellStruct.slicedCoords[0]] > cellStruct.slicedCoordValues[0]) continue;
       if (cellCrds[cellStruct.slicedCoords[0]+3] < cellStruct.slicedCoordValues[0]) continue;
 
+      cerr << "accept " << cellId << endl;
+      
       // Buffer all velocity mesh variables
       vector<char*> varBuffer(blockVarNames.size());
       int counter=0;

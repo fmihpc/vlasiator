@@ -37,7 +37,10 @@ namespace spatial_cell {
     * This function is thread-safe when called for different cells
     * per thread. We need the block_has_content vector from
     * neighbouring cells, but these are not written to here. We only
-    * modify local cell.*/
+    * modify local cell.
+    * 
+    * NOTE: The AMR mesh must be valid, otherwise this function will
+    * remove some blocks that should not be removed.*/
    void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors, bool doDeleteEmptyBlocks) {
       #ifdef AMR
 //         return;
@@ -48,7 +51,6 @@ namespace spatial_cell {
       //  local blocks with no content here, as blocks with content
       //  do not need to be created and also will not be removed as
       //  we only check for removal for blocks with no content
-      //boost::unordered_set<vmesh::GlobalID> neighbors_have_content;
       std::unordered_set<vmesh::GlobalID> neighbors_have_content;
 
       #ifdef AMR
@@ -83,9 +85,9 @@ namespace spatial_cell {
       //add neighbor content info for spatial space neighbors to map. We loop over
       //neighbor cell lists with existing blocks, and raise the
       //flag for the local block with same block id
-      for (std::vector<SpatialCell*>::const_iterator neighbor = spatial_neighbors.begin();
-           neighbor != spatial_neighbors.end(); neighbor++ ) {
-         for (vmesh::LocalID block_index=0;block_index< (*neighbor)->velocity_block_with_content_list.size();block_index++){
+      for (std::vector<SpatialCell*>::const_iterator neighbor=spatial_neighbors.begin();
+           neighbor != spatial_neighbors.end(); ++neighbor) {
+         for (vmesh::LocalID block_index=0; block_index<(*neighbor)->velocity_block_with_content_list.size(); ++block_index) {
             vmesh::GlobalID block = (*neighbor)->velocity_block_with_content_list[block_index];
             neighbors_have_content.insert(block);
          }
@@ -97,17 +99,25 @@ namespace spatial_cell {
       if (doDeleteEmptyBlocks) {
          for (int block_index= this->velocity_block_with_no_content_list.size()-1; block_index>=0; --block_index) {
             const vmesh::GlobalID blockGID = this->velocity_block_with_no_content_list[block_index];
+            #ifdef DEBUG_SPATIAL_CELL
+               if (blockGID == invalid_global_id())
+                  cerr << "Got invalid block at " << __FILE__ << ' ' << __LINE__ << endl; exit(1);               
+            #endif
             const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID);
-
+            #ifdef DEBUG_SPATIAL_CELL
+               if (blockLID == invalid_local_id())
+                  cerr << "Could not find block in " << __FILE__ << ' ' << __LINE__ << endl; exit(1);               
+            #endif
+            
             bool removeBlock = false;
             #ifdef AMR
-            if (neighbors_have_content.find(blockGID) != neighbors_have_content.end()) {
-               continue;
-            }
-            if (neighbors_have_content.find(vmesh.getParent(blockGID)) != neighbors_have_content.end()) {
-               continue;
-            }
+            // Check this block in the neighbor cells
+            if (neighbors_have_content.find(blockGID) != neighbors_have_content.end()) continue;
             
+            // Check the parent of this block in the neighbor cells
+            if (neighbors_have_content.find(vmesh.getParent(blockGID)) != neighbors_have_content.end()) continue;
+            
+            // Check all the children of this block in the neighbor cells
             std::vector<vmesh::GlobalID> children;
             vmesh.getChildren(blockGID,children);
             int counter = 0;
@@ -115,6 +125,8 @@ namespace spatial_cell {
                if (neighbors_have_content.find(children[c]) != neighbors_have_content.end()) ++counter;
             }
             if (counter > 0) continue;
+            
+            // It is safe to remove this block
             removeBlock = true;
             #else
             std::unordered_set<vmesh::GlobalID>::iterator it = neighbors_have_content.find(blockGID);
@@ -123,7 +135,7 @@ namespace spatial_cell {
 
             if (removeBlock == true) {
                //No content, and also no neighbor have content -> remove
-               //increment rho loss counters
+               //and increment rho loss counters
                const Real* block_parameters = get_block_parameters(blockLID);
                const Real DV3 = block_parameters[BlockParams::DVX]
                  * block_parameters[BlockParams::DVY]
@@ -680,15 +692,35 @@ namespace spatial_cell {
          return;
       }
 
+      // Tell mesh to refine the given block. In return we get the erased 
+      // and inserted blocks. Note that multiple blocks can be removed 
+      // (and inserted) due to induced refinement. There are eight entries 
+      // in newInserted (the children) for each entry in erasedBlocks.
       std::set<vmesh::GlobalID> erasedBlocks;
       std::map<vmesh::GlobalID,vmesh::LocalID> newInserted;
       if (vmesh.refine(blockGID,erasedBlocks,newInserted) == false) {
          return;
       }
 
+      // Resize the block container, this preserves old data.
       const size_t newBlocks = newInserted.size()-erasedBlocks.size();
       blockContainer.setSize(blockContainer.size() + newBlocks);
 
+      std::map<vmesh::GlobalID,vmesh::LocalID>::const_iterator ins=newInserted.begin();
+      for (std::set<vmesh::GlobalID>::const_iterator er=erasedBlocks.begin(); er!=erasedBlocks.end(); ++er) {
+         for (int child=0; child<8; ++child) {
+            // Copy / interpolate data from old (coarse) block to new refined blocks.
+            
+            
+            // Set refined block parameters
+            Real* blockParams = blockContainer.getParameters(ins->second);
+            vmesh.getBlockCoordinates(ins->first,blockParams);
+            vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::getCellSize(ins->first,blockParams+3);
+            
+            ++ins;
+         }
+      }
+      
       for (std::map<vmesh::GlobalID,vmesh::LocalID>::iterator it=newInserted.begin(); it!=newInserted.end(); ++it) {
          // Set refined block parameters
          Real* blockParams = blockContainer.getParameters(it->second);
@@ -701,5 +733,5 @@ namespace spatial_cell {
 
       insertedBlocks.insert(newInserted.begin(),newInserted.end());
    }
-
+   
 } // namespace spatial_cell

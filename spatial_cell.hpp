@@ -218,7 +218,8 @@ namespace spatial_cell {
       void set_value(const vmesh::GlobalID& block,const unsigned int cell, const Realf value);
       void refine_block(const vmesh::GlobalID& block,std::map<vmesh::GlobalID,vmesh::LocalID>& insertedBlocks);
       bool velocity_block_has_children(const vmesh::GlobalID& blockGID) const;
-
+      vmesh::GlobalID velocity_block_has_grandparent(const vmesh::GlobalID& blockGID) const;
+      
       // Following functions are related to MPI //
       boost::tuple<void*, int, MPI_Datatype> get_mpi_datatype(const CellID cellID,const int sender_rank,const int receiver_rank,
                                                               const bool receiving,const int neighborhood);
@@ -1326,12 +1327,12 @@ namespace spatial_cell {
       const bool receiving,
       const int neighborhood
    ) {
-      std::vector<MPI_Aint> displacements;
-      std::vector<int> block_lengths;
-      vmesh::LocalID block_index = 0;
+       std::vector<MPI_Aint> displacements;
+       std::vector<int> block_lengths;
+       vmesh::LocalID block_index = 0;
       
-      /*create datatype for actual data if we are in the first two layers around a boundary, or if we send for thw whole system*/
-      if (this->mpiTransferEnabled && (SpatialCell::mpiTransferAtSysBoundaries==false || this->sysBoundaryLayer ==1 || this->sysBoundaryLayer ==2 )) {
+        /*create datatype for actual data if we are in the first two layers around a boundary, or if we send for the whole system*/
+        if (this->mpiTransferEnabled && (SpatialCell::mpiTransferAtSysBoundaries==false || this->sysBoundaryLayer ==1 || this->sysBoundaryLayer ==2 )) {
          //add data to send/recv to displacement and block length lists
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE1) != 0) {
             //first copy values in case this is the send operation
@@ -1348,14 +1349,14 @@ namespace spatial_cell {
                //mpi_number_of_blocks transferred earlier
                this->mpi_velocity_block_list.resize(this->mpi_number_of_blocks);
             } else {
-               //resize to correct size (it will avoid reallociation if it is big enough, I assume)
-               this->mpi_number_of_blocks = blockContainer.size();
-               this->mpi_velocity_block_list.resize(blockContainer.size());
+                //resize to correct size (it will avoid reallocation if it is big enough, I assume)
+                this->mpi_number_of_blocks = blockContainer.size();
+                this->mpi_velocity_block_list.resize(blockContainer.size());
                
-               //copy values if this is the send operation
-               for (vmesh::LocalID i=0; i<blockContainer.size(); ++i) {
-            this->mpi_velocity_block_list[i] = vmesh.getGlobalID(i);
-               }
+                //copy values if this is the send operation
+                for (vmesh::LocalID i=0; i<blockContainer.size(); ++i) {
+                    this->mpi_velocity_block_list[i] = vmesh.getGlobalID(i);
+                }
             }
 
             // send velocity block list
@@ -1901,6 +1902,10 @@ namespace spatial_cell {
       return vmesh.hasChildren(blockGID);
    }
 
+   inline vmesh::GlobalID SpatialCell::velocity_block_has_grandparent(const vmesh::GlobalID& blockGID) const {
+      return vmesh.hasGrandParent(blockGID);
+   }
+   
    inline SpatialCell& SpatialCell::operator=(const SpatialCell&) { 
       return *this;
    }

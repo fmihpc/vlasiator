@@ -561,8 +561,8 @@ void depositToNeighbor(const vmesh::GlobalID blockGID,const uint& dimension,Spat
    int N_targets = std::min((int)targetBlockData.size(),4);
    int k_trgt = k;
    if (N_targets > 1) k_trgt = (2*k) % 4;
-   //for (int n=0; n<N_targets; ++n) targetBlockData[0+n][vblock::index(i,j,k_trgt)] += amount/N_targets;
-   for (int n=0; n<N_targets; ++n) targetBlockData[0+n][vblock::index(k_trgt,i,j)] += amount;
+   for (int n=0; n<N_targets; ++n) targetBlockData[0+n][vblock::index(i,j,k_trgt)] += amount/N_targets;
+   //for (int n=0; n<N_targets; ++n) targetBlockData[0+n][vblock::index(k_trgt,i,j)] += amount;
 }
 
 /* 

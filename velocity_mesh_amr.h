@@ -63,6 +63,7 @@ namespace vmesh {
       static void getSiblingNeighbors(const GID& globalID,std::vector<GID>& nbrs);
       static void getSiblings(const GID& globalID,std::vector<GID>& siblings);
       bool hasChildren(const GID& globalID) const;
+      GID hasGrandParent(const GID& globalID) const;
       static bool initialize(Real meshLimits[6],LID gridLength[3],LID blockLength[3],uint8_t refLevelMaxAllowed,
                              LID maxVelocityBlocks=std::numeric_limits<LID>::max());
       static LID invalidBlockIndex();
@@ -814,6 +815,33 @@ namespace vmesh {
          if (getLocalID(children[c]) != invalidLocalID()) return true;
       }
       return false;
+   }
+   
+   /** Check if the block has any existing grandparents.
+    * @param globalID Global ID of the block.
+    * @return INVALID_GLOBALID if block has no existing grandparents, otherwise 
+    * the global ID of the grandparent is returned.*/
+   template<typename GID,typename LID> inline
+   GID VelocityMesh<GID,LID>::hasGrandParent(const GID& globalID) const {
+       // Exit if the block cannot have grandparents
+       uint8_t refLevel = getRefinementLevel(globalID);
+       if (refLevel <= 1) return invalidGlobalID();
+       
+       // Calculate the global ID of the first possible grandparent
+       GID parentGID = getParent(globalID);
+       parentGID = getParent(parentGID);
+       
+       do {
+           // Grandparent exists, return its global ID
+           if (getLocalID(parentGID) != invalidLocalID()) return parentGID;
+           
+           // Move down one refinement level
+           GID tmp = parentGID;
+           parentGID = getParent(parentGID);
+           if (tmp == parentGID) break;
+       } while (true);
+
+       return invalidGlobalID();
    }
 
    template<typename GID,typename LID> inline
