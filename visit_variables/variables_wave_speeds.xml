@@ -14,7 +14,7 @@
     </Object>
     <Object name="Expression">
         <Field name="name" type="string">whistlerSpeed</Field>
-        <Field name="definition" type="string">"2.0*3.1415927*alfvenSpeed^2*1.67e-27 / (min_edge_length()*1.62e-19*B_magnitude)"</Field>
+        <Field name="definition" type="string">"2.0*3.1415927*alfvenSpeed^2*1.67e-27 / (min_edge_length(SpatialGrid)*1.62e-19*B_magnitude)"</Field>
         <Field name="hidden" type="bool">false</Field>
         <Field name="type" type="string">ScalarMeshVar</Field>
         <Field name="fromDB" type="bool">false</Field>
