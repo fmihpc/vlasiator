@@ -95,11 +95,6 @@ namespace vmesh {
       static LID* gridLengths;
       static size_t referenceCount;
 
-      static Real* blockSizes;
-      static Real* cellSizes;
-      static LID* gridLengths;
-      static size_t referenceCount;
-
       std::vector<GID> localToGlobalMap;
       std::unordered_map<GID,LID> globalToLocalMap;
       
