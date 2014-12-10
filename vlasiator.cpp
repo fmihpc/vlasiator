@@ -77,7 +77,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    */
    Real dtMaxLocal[3];
    Real dtMaxGlobal[3];
-  
+   
    dtMaxLocal[0]=std::numeric_limits<Real>::max();
    dtMaxLocal[1]=std::numeric_limits<Real>::max();
    dtMaxLocal[2]=std::numeric_limits<Real>::max();
@@ -98,41 +98,54 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    }
    MPI_Allreduce(&(dtMaxLocal[0]), &(dtMaxGlobal[0]), 3, MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
    
-   //If any of the solvers are disable there should be no limits in timespace from it
-   if (P::propagateVlasovTranslation == false) 
+   //If any of the solvers are disabled there should be no limits in timespace from it
+   if (P::propagateVlasovTranslation == false)
       dtMaxGlobal[0]=std::numeric_limits<Real>::max();
-   if (P::propagateVlasovAcceleration == false) 
+   if (P::propagateVlasovAcceleration == false)
       dtMaxGlobal[1]=std::numeric_limits<Real>::max();
-   if (P::propagateField == false) 
+   if (P::propagateField == false)
       dtMaxGlobal[2]=std::numeric_limits<Real>::max();
+   
+   
+   creal meanVlasovCFL = 0.5*(P::vlasovSolverMaxCFL+ P::vlasovSolverMinCFL);
+   creal meanFieldsCFL = 0.5*(P::fieldSolverMaxCFL+ P::fieldSolverMinCFL);
+   
+   // Subcycle if field solver dt < acceleration dt (including CFL)
+   if (meanFieldsCFL*dtMaxGlobal[2] < meanVlasovCFL*dtMaxGlobal[1] && P::propagateField) {
+      P::fieldSolverSubcycles = min(convert<int>(ceil(meanVlasovCFL*dtMaxGlobal[1] / (meanFieldsCFL*dtMaxGlobal[2]))), P::maxFieldSolverSubcycles);
+   } else {
+      P::fieldSolverSubcycles = 1;
+   }
    
    //reduce dt if it is too high for any of the three propagators, or too low for all propagators
    if(( P::dt > dtMaxGlobal[0]*P::vlasovSolverMaxCFL ||
         P::dt > dtMaxGlobal[1]*P::vlasovSolverMaxCFL ||
-        P::dt > dtMaxGlobal[2]*P::fieldSolverMaxCFL ) ||
+        P::dt > dtMaxGlobal[2]*P::fieldSolverMaxCFL*P::maxFieldSolverSubcycles ) ||
       ( P::dt < dtMaxGlobal[0]*P::vlasovSolverMinCFL && 
         P::dt < dtMaxGlobal[1]*P::vlasovSolverMinCFL &&
-        P::dt < dtMaxGlobal[2]*P::fieldSolverMinCFL )
-      ) {
+        P::dt < dtMaxGlobal[2]*P::fieldSolverMinCFL*P::maxFieldSolverSubcycles )
+     ) {
      //new dt computed
      isChanged=true;
 
      //set new timestep to the lowest one of all interval-midpoints
      const Real half = 0.5;
-     newDt = half*(P::vlasovSolverMaxCFL+ P::vlasovSolverMinCFL)*dtMaxGlobal[0];
-     newDt = min(newDt,half*(P::vlasovSolverMaxCFL+ P::vlasovSolverMinCFL)*dtMaxGlobal[1]);
-     newDt = min(newDt,half*(P::fieldSolverMaxCFL+ P::fieldSolverMinCFL)*dtMaxGlobal[2]);
+     newDt = meanVlasovCFL*dtMaxGlobal[0];
+     newDt = min(newDt,meanVlasovCFL*dtMaxGlobal[1]);
+     newDt = min(newDt,meanFieldsCFL*dtMaxGlobal[2]*P::maxFieldSolverSubcycles);
    
      logFile <<"(TIMESTEP) New dt = " << newDt << " computed on step "<<  P::tstep <<" at " <<P::t << 
        "s   Maximum possible dt (not including  vlasovsolver CFL "<< 
        P::vlasovSolverMinCFL <<"-"<<P::vlasovSolverMaxCFL<<
        " or fieldsolver CFL "<< 
        P::fieldSolverMinCFL <<"-"<<P::fieldSolverMaxCFL<<
-       " ) in {r, v, BE} was " <<
+       " ) in {r, v, BE, BE subcycles} was " <<
        dtMaxGlobal[0] << " " <<
        dtMaxGlobal[1] << " " <<
-       dtMaxGlobal[2] << endl << writeVerbose;
+       dtMaxGlobal[2] << " " <<
+       P::fieldSolverSubcycles << endl << writeVerbose;
    }
+   
    phiprof::stop("compute-timestep");
    return true;
 }
@@ -288,7 +301,7 @@ int main(int argn,char* args[]) {
       adjustVelocityBlocks(mpiGrid);
       
       if(P::propagateField) {
-         propagateFields(mpiGrid, sysBoundaries, 0.0);
+         propagateFields(mpiGrid, sysBoundaries, 0.0, 1.0);
       }
       //compute new dt
       computeNewTimeStep(mpiGrid,newDt,dtIsChanged);
@@ -553,7 +566,7 @@ int main(int argn,char* args[]) {
       // moments for t + dt are computed (field uses t and t+0.5dt)
       if (P::propagateField) {
          phiprof::start("Propagate Fields");
-         propagateFields(mpiGrid, sysBoundaries, P::dt);
+         propagateFields(mpiGrid, sysBoundaries, P::dt, P::fieldSolverSubcycles);
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
       }
