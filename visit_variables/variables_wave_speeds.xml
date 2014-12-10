@@ -2,7 +2,7 @@
 <Object name="ExpressionList">
     <Object name="Expression">
         <Field name="name" type="string">alfvenSpeed</Field>
-        <Field name="definition" type="string">B_magnitude/sqrt(1.256637e-6*1.6726e-27*rho)</Field>
+        <Field name="definition" type="string">B_magnitude/sqrt(1.256637e-6*1.6726e-27*(rho+1))</Field>
         <Field name="hidden" type="bool">false</Field>
         <Field name="type" type="string">ScalarMeshVar</Field>
         <Field name="fromDB" type="bool">false</Field>
