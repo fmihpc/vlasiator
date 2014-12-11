@@ -231,7 +231,7 @@ bool propagateFields(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    SysBoundary& sysBoundaries,
    creal& dt,
-   creal& cycles
+   cint& cycles
 ) {
    // Reserve memory for derivatives for all cells on this process:
    vector<CellID> localCells = mpiGrid.get_cells();
@@ -240,7 +240,7 @@ bool propagateFields(
       const CellID cellID = localCells[cell];
       mpiGrid[cellID]->parameters[CellParams::MAXFDT]=std::numeric_limits<Real>::max();
    }
-   if(cycles == 1.0) {
+   if(cycles == 1) {
 # ifdef FS_1ST_ORDER_TIME
       propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt, localCells, RK_ORDER1);
       calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, true);
@@ -265,7 +265,7 @@ bool propagateFields(
 # endif
    } else {
       for (uint i=0; i<cycles; i++) {
-         propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt/cycles, localCells, RK_ORDER1);
+         propagateMagneticFieldSimple(mpiGrid, sysBoundaries, dt/convert<Real>(cycles), localCells, RK_ORDER1);
          if(i==0) {
             calculateDerivativesSimple(mpiGrid, sysBoundaries, localCells, RK_ORDER1, true);
          } else {
