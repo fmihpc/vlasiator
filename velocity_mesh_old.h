@@ -337,15 +337,6 @@ namespace vmesh {
       return gridLength;
    }
 
-   GID VelocityMesh<GID,LID>::getGlobalIndexOffset(const uint8_t& refLevel) {
-      return 0;
-   }
-
-   template<typename GID,typename LID> inline
-   const LID* VelocityMesh<GID,LID>::getGridLength(const uint8_t& refLevel) {
-      return gridLength;
-   }
-
    template<typename GID,typename LID> inline
    void VelocityMesh<GID,LID>::getIndices(const GID& globalID,uint8_t& refLevel,LID& i,LID& j,LID& k) {
       refLevel = 0;
