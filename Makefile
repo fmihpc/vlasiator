@@ -49,7 +49,7 @@ CXXFLAGS += -DUSE_AGNER_VECTORCLASS
 #May cause problems
 # CXXFLAGS += -DCATCH_FPE
 
-#Define MESH=AMR if you want to use adaptive mesh refinement
+#Define MESH=AMR if you want to use adaptive mesh refinement in velocity space
 #MESH = AMR
 
 #Add -DFS_1ST_ORDER_SPACE or -DFS_1ST_ORDER_TIME to make the field solver first-order in space or time
