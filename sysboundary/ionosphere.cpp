@@ -556,10 +556,10 @@ namespace SBC {
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID
    ) {
-      phiprof::start("vlasovBoundaryCondition (Ionosphere)");
-      const SpatialCell * cell = mpiGrid[cellID];
-      this->vlasovBoundaryCopyFromAllClosestNbrs(mpiGrid, cellID);
-      phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
+//       phiprof::start("vlasovBoundaryCondition (Ionosphere)");
+//       const SpatialCell * cell = mpiGrid[cellID];
+//       this->vlasovBoundaryCopyFromAllClosestNbrs(mpiGrid, cellID);
+//       phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
    }
    
    void Ionosphere::generateTemplateCell(Project &project) {
