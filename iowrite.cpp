@@ -332,6 +332,7 @@ bool writeCommonGridData(
    if( vlsvWriter.writeParameter("t", &P::t) == false ) { return false; }
    if( vlsvWriter.writeParameter("dt", &P::dt) == false ) { return false; }
    if( vlsvWriter.writeParameter("tstep", &P::tstep) == false ) { return false; }
+   if( vlsvWriter.writeParameter("fieldSolverSubcycles", &P::fieldSolverSubcycles) == false ) { return false; }
    if( vlsvWriter.writeParameter("fileIndex", &fileIndex) == false ) { return false; }
    if( vlsvWriter.writeParameter("xmin", &P::xmin) == false ) { return false; }
    if( vlsvWriter.writeParameter("xmax", &P::xmax) == false ) { return false; }
