@@ -1,7 +1,19 @@
 <?xml version="1.0"?>
 <Object name="ExpressionList">
     <Object name="Expression">
-        <Field name="name" type="string">alfvenSpeed</Field>
+        <Field name="name" type="string">waves/alfvenicMachNumber</Field>
+        <Field name="definition" type="string">V_magnitude*sqrt(1.256637e-6*1.6726e-27*rho)/B_magnitude</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">waves/alfvenSpeed</Field>
         <Field name="definition" type="string">B_magnitude/sqrt(1.256637e-6*1.6726e-27*(rho+1))</Field>
         <Field name="hidden" type="bool">false</Field>
         <Field name="type" type="string">ScalarMeshVar</Field>
@@ -13,8 +25,44 @@
         <Field name="autoExpression" type="bool">false</Field>
     </Object>
     <Object name="Expression">
-        <Field name="name" type="string">whistlerSpeed</Field>
-        <Field name="definition" type="string">"2.0*3.1415927*alfvenSpeed^2*1.67e-27 / (min_edge_length(SpatialGrid)*1.62e-19*B_magnitude)"</Field>
+        <Field name="name" type="string">waves/whistlerSpeed</Field>
+        <Field name="definition" type="string">"2.0*3.1415927*\<waves/alfvenSpeed\>^2*1.67e-27 / (min_edge_length(SpatialGrid)*1.62e-19*B_magnitude)"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">waves/soundSpeed</Field>
+        <Field name="definition" type="string">"sqrt(5/3*1.38e-23*Temperature / 1.67e-27)"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">waves/magnetosonicSpeed</Field>
+        <Field name="definition" type="string">"sqrt(\<waves/soundSpeed\>^2 + \<waves/alfvenSpeed\>^2)"</Field>
+        <Field name="hidden" type="bool">false</Field>
+        <Field name="type" type="string">ScalarMeshVar</Field>
+        <Field name="fromDB" type="bool">false</Field>
+        <Field name="fromOperator" type="bool">false</Field>
+        <Field name="operatorName" type="string">__none__</Field>
+        <Field name="meshName" type="string"></Field>
+        <Field name="dbName" type="string">__none__</Field>
+        <Field name="autoExpression" type="bool">false</Field>
+    </Object>
+    <Object name="Expression">
+        <Field name="name" type="string">waves/magnetosonicMachNumber</Field>
+        <Field name="definition" type="string">"V_magnitude * \<waves/magnetosonicSpeed\>^-1"</Field>
         <Field name="hidden" type="bool">false</Field>
         <Field name="type" type="string">ScalarMeshVar</Field>
         <Field name="fromDB" type="bool">false</Field>
