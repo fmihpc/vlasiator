@@ -85,7 +85,7 @@ struct Parameters {
    static bool propagateVlasovAcceleration;     /*!< If true, distribution function is propagated in velocity space during the simulation.*/
    static bool propagateVlasovTranslation;      /*!< If true, distribution function is propagated in ordinary space during the simulation.*/
    static bool periodic_x, periodic_y, periodic_z; /*!< Whether spatial vlasov grid is periodic */
-   
+
    static Real maxWaveVelocity; /*!< Maximum wave velocity allowed in LDZ. */
    static Real resistivity; /*!< Resistivity in Ohm's law eta*J term. */
    static uint ohmHallTerm; /*!< Enable/choos spatial order of Hall term in Ohm's law JXB term. 0: off, 1: 1st spatial order, 2: 2nd spatial order. */
@@ -113,7 +113,14 @@ struct Parameters {
    
    static bool bailout_write_restart; /*!< If true, write a restart file on bailout. Gets reset when sending a STOP (true) or a KILL (false). */
    static Real bailout_min_dt; /*!< Minimum time step below which bailout occurs (s). */
-   
+
+   static uint amrMaxVelocityRefLevel;    /**< Maximum velocity mesh refinement level, defaults to 0.*/
+   static Realf amrCoarsenLimit;          /**< If the value of refinement criterion is below this value, block can be coarsened.
+                                           * The value must be smaller than amrRefineLimit.*/
+   static Realf amrRefineLimit;           /**< If the value of refinement criterion is larger than this value, block should be refined.
+                                           * The value must be larger than amrCoarsenLimit.*/
+   static std::string amrVelRefCriterion; /**< Name of the velocity block refinement criterion function.*/
+
    /*! \brief Add the global parameters.
     * 
     * This function adds all the parameters that are loaded at a global level.

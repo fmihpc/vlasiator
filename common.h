@@ -11,6 +11,7 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 #include <limits>
 #include <string>
 #include "definitions.h"
+#include "object_wrapper.h"
 
 #ifdef DEBUG_SOLVERS
 #define CHECK_FLOAT(x) \
@@ -39,8 +40,13 @@ void bailout(
 );
 
 namespace vmesh {
+   #ifndef AMR
    typedef uint32_t GlobalID;              /**< Datatype used for velocity block global IDs.*/
    typedef uint32_t LocalID;               /**< Datatype used for velocity block local IDs.*/
+   #else
+   typedef uint32_t GlobalID;
+   typedef uint32_t LocalID;
+   #endif
 
    /** Global ID of a non-existing or otherwise erroneous velocity block.*/
    static const GlobalID INVALID_GLOBALID = std::numeric_limits<GlobalID>::max();
@@ -356,6 +362,8 @@ namespace physicalconstants {
    const Real MASS_PROTON = 1.67262158e-27; /*!< Proton rest mass.*/
    const Real R_E = 6.3712e6; /*!< radius of the Earth. */
 }
+
+ObjectWrapper& getObjectWrapper();
 
 #endif
 

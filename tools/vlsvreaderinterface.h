@@ -42,7 +42,8 @@ namespace newVlsv {
          cellsWithBlocksLocations.clear();
          cellsWithBlocksSet = false;
       }
-      bool getVelocityBlockVariables( const std::string & variableName, const uint64_t & cellId, char * buffer, bool allocateMemory = true );
+      bool getVelocityBlockVariables( const std::string & variableName, const uint64_t & cellId, char*& buffer, bool allocateMemory = true );
+      
       inline uint64_t getBlockOffset( const uint64_t & cellId ) {
          //Check if the cell id can be found:
          std::unordered_map<uint64_t, std::pair<uint64_t, uint32_t>>::const_iterator it = cellsWithBlocksLocations.find( cellId );

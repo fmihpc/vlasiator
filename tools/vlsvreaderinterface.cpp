@@ -122,7 +122,6 @@ namespace newVlsv {
       return true;
    }
 
-
    bool Reader::getCellIds( vector<uint64_t> & cellIds ) {
       uint64_t vectorSize, byteSize;
       uint64_t amountToReadIn;
@@ -329,7 +328,7 @@ namespace newVlsv {
       return true;
    }
 
-   bool Reader::getVelocityBlockVariables( const string & variableName, const uint64_t & cellId, char * buffer, bool allocateMemory ) {
+   bool Reader::getVelocityBlockVariables(const string & variableName,const uint64_t & cellId,char*& buffer,bool allocateMemory ) {
       if( cellsWithBlocksSet == false ) {
          cerr << "ERROR, CELLS WITH BLOCKS NOT SET AT " << __FILE__ << " " << __LINE__ << endl;
          return false;
@@ -366,7 +365,7 @@ namespace newVlsv {
       if (readArray("BLOCKVARIABLE", attribs, offset, amountToReadIn, buffer) == false) {
          cerr << "ERROR could not read block variable" << endl;
          if( allocateMemory == true ) {
-            delete[] buffer;
+            delete[] buffer; buffer = NULL;
          }
          return false;
       }
@@ -438,22 +437,3 @@ namespace oldVlsv {
       return true;
    }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

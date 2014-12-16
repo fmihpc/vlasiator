@@ -180,6 +180,19 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
    // Write the subarrays
    vlsvWriter.endMultiwrite("BLOCKVARIABLE", attribs);
 
+   #ifdef DEBUG_AMR
+   attribs["name"] = "fx";
+   vlsvWriter.startMultiwrite(datatype_avgs,arraySize_avgs,vectorSize_avgs,dataSize_avgs);
+   for (size_t cell = 0; cell<cells.size(); ++cell) {
+      SpatialCell* SC = mpiGrid[cells[cell]];
+      const uint64_t arrayElements = SC->get_number_of_velocity_blocks();
+      char* arrayToWrite = reinterpret_cast<char*>(SC->get_fx());
+      vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements);
+   }
+   if (cells.size() == 0) vlsvWriter.addMultiwriteUnit(NULL, 0);
+   vlsvWriter.endMultiwrite("BLOCKVARIABLE", attribs);
+   #endif
+
    if (globalSuccess(success,"(MAIN) writeGrid: ERROR: Failed to fill temporary velocityBlockData array",MPI_COMM_WORLD) == false) {
       vlsvWriter.close();
       return false;
@@ -344,6 +357,8 @@ bool writeCommonGridData(
    if( vlsvWriter.writeParameter("vxblocks_ini", &P::vxblocks_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("vyblocks_ini", &P::vyblocks_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("vzblocks_ini", &P::vzblocks_ini) == false ) { return false; }
+   if ( vlsvWriter.writeParameter("max_velocity_ref_level", &P::amrMaxVelocityRefLevel) == false) {return false;}
+
    //Mark the new version:
    float version = 1.00;
    if( vlsvWriter.writeParameter( "version", &version ) == false ) { return false; }
@@ -509,8 +524,9 @@ bool writeZoneGlobalIdNumbers( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
    map<string, string> xmlAttributes;
    //The name of the mesh (user input -- should be "SpatialGrid")
    xmlAttributes["name"] = meshName;
-   //A mandatory 'type' -- just something visit hopefully understands, because I dont :)
+   //A mandatory 'type' -- just something visit hopefully understands, because I dont (some of us do!) :)
    xmlAttributes["type"] = "multi_ucd";
+
    //Set periodicity:
    if( mpiGrid.topology.is_periodic( 0 ) ) { xmlAttributes["xperiodic"] = "yes"; } else { xmlAttributes["xperiodic"] = "no"; }
    if( mpiGrid.topology.is_periodic( 1 ) ) { xmlAttributes["yperiodic"] = "yes"; } else { xmlAttributes["yperiodic"] = "no"; }

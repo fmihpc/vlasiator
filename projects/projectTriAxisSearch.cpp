@@ -16,36 +16,34 @@ namespace projects {
       creal dy = cell->parameters[CellParams::DY];
       creal dz = cell->parameters[CellParams::DZ];
       
-      creal dvxCell = SpatialCell::get_velocity_base_grid_cell_size()[0];
-      creal dvyCell = SpatialCell::get_velocity_base_grid_cell_size()[1];
-      creal dvzCell = SpatialCell::get_velocity_base_grid_cell_size()[2];
-      creal dvxBlock = SpatialCell::get_velocity_base_grid_block_size()[0];
-      creal dvyBlock = SpatialCell::get_velocity_base_grid_block_size()[1];
-      creal dvzBlock = SpatialCell::get_velocity_base_grid_block_size()[2];
+      creal dvxCell = SpatialCell::get_velocity_grid_cell_size()[0];
+      creal dvyCell = SpatialCell::get_velocity_grid_cell_size()[1];
+      creal dvzCell = SpatialCell::get_velocity_grid_cell_size()[2];
+      creal dvxBlock = SpatialCell::get_velocity_grid_block_size()[0];
+      creal dvyBlock = SpatialCell::get_velocity_grid_block_size()[1];
+      creal dvzBlock = SpatialCell::get_velocity_grid_block_size()[2];
       
       const vector<std::array<Real, 3>> V0 = this->getV0(x+0.5*dx, y+0.5*dy, z+0.5*dz);
       for (vector<std::array<Real, 3>>::const_iterator it = V0.begin(); it != V0.end(); it++) {
          // VX search
          search = true;
          counter = 0;
-         while(search) {
-            if(0.1 * P::sparseMinValue >
-               calcPhaseSpaceDensity(
-                  x,
-                  y,
-                  z,
-                  dx,
-                  dy,
-                  dz,
-                  it->at(0) + counter*dvxBlock, it->at(1), it->at(2),
-                  dvxCell, dvyCell, dvzCell
-               )
-               ||
-               counter > P::vxblocks_ini
-            ) {
+         while (search) {
+            if (0.1 * P::sparseMinValue >
+                calcPhaseSpaceDensity(x,
+                                      y,
+                                      z,
+                                      dx,
+                                      dy,
+                                      dz,
+                                      it->at(0) + counter*dvxBlock, it->at(1), it->at(2),
+                                      dvxCell, dvyCell, dvzCell
+                                     )
+               ) {
                search = false;
             }
-            counter++;
+            ++counter;
+            if (counter >= cell->get_velocity_grid_length(0)[0]) search = false;
          }
          counter+=2;
          Real vRadiusSquared = (Real)counter*(Real)counter*dvxBlock*dvxBlock;
@@ -56,46 +54,48 @@ namespace projects {
          while(search) {
             if(0.1 * P::sparseMinValue >
                calcPhaseSpaceDensity(
-                  x,
-                  y,
-                  z,
-                  dx,
-                  dy,
-                  dz,
-                  it->at(0), it->at(1) + counter*dvyBlock, it->at(2),
-                  dvxCell, dvyCell, dvzCell
-               )
+                                     x,
+                                     y,
+                                     z,
+                                     dx,
+                                     dy,
+                                     dz,
+                                     it->at(0), it->at(1) + counter*dvyBlock, it->at(2),
+                                     dvxCell, dvyCell, dvzCell
+                                    )
                ||
                counter > P::vxblocks_ini
-            ) {
+              ) {
                search = false;
             }
-            counter++;
+            ++counter;
+            if (counter >= cell->get_velocity_grid_length(0)[1]) search = false;
          }
          counter+=2;
          vRadiusSquared = max(vRadiusSquared, (Real)counter*(Real)counter*dvyBlock*dvyBlock);
-         
+
          // VZ search
          search = true;
          counter = 0;
          while(search) {
             if(0.1 * P::sparseMinValue >
                calcPhaseSpaceDensity(
-                  x,
-                  y,
-                  z,
-                  dx,
-                  dy,
-                  dz,
-                  it->at(0), it->at(1), it->at(2) + counter*dvzBlock,
-                  dvxCell, dvyCell, dvzCell
-               )
+                                     x,
+                                     y,
+                                     z,
+                                     dx,
+                                     dy,
+                                     dz,
+                                     it->at(0), it->at(1), it->at(2) + counter*dvzBlock,
+                                     dvxCell, dvyCell, dvzCell
+                                    )
                ||
                counter > P::vxblocks_ini
-            ) {
+              ) {
                search = false;
             }
-            counter++;
+            ++counter;
+            if (counter >= cell->get_velocity_grid_length(0)[2]) search = false;
          }
          counter+=2;
          vRadiusSquared = max(vRadiusSquared, (Real)counter*(Real)counter*dvzBlock*dvzBlock);
@@ -112,7 +112,7 @@ namespace projects {
                      cell->add_velocity_block(cell->get_velocity_block(vx, vy, vz));
                      blocksToInitialize.insert(cell->get_velocity_block(vx, vy, vz));
                   }
-         }
+               }
       }
 
       vector<uint> returnVector;

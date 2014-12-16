@@ -28,6 +28,8 @@ Copyright 2010, 2011, 2012, 2013, 2014 Finnish Meteorological Institute
 #include "iowrite.h"
 #include "ioread.h"
 
+#include "object_wrapper.h"
+
 #ifdef CATCH_FPE
 #include <fenv.h>
 #include <signal.h>
@@ -49,6 +51,8 @@ using namespace std;
 using namespace phiprof;
 
 int globalflags::bailingOut = 0;
+
+ObjectWrapper objectWrapper;
 
 void addTimedBarrier(string name){
 #ifdef NDEBUG
@@ -137,7 +141,9 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    return true;
 }
 
-
+ObjectWrapper& getObjectWrapper() {
+   return objectWrapper;
+}
 
 int main(int argn,char* args[]) {
    bool success = true;
@@ -213,6 +219,9 @@ int main(int argn,char* args[]) {
    }
    phiprof::stop("open logFile & diagnostic");
    
+   // Add AMR refinement criterias:
+   amr_ref_criteria::addRefinementCriteria();
+   
    phiprof::start("Init grid");
    /* Initialize grid.  After initializeGrid local cells have dist
       functions, and B fields set. Cells have also been classified for
@@ -231,7 +240,6 @@ int main(int argn,char* args[]) {
    DataReducer outputReducer, diagnosticReducer;
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    phiprof::stop("Init DROs");
-   
 
    // Initialize field propagator:
    if (P::propagateField ) { 
@@ -303,8 +311,7 @@ int main(int argn,char* args[]) {
       phiprof::start("propagate-velocity-space-dt/2");
       if (P::propagateVlasovAcceleration) {
          calculateAcceleration(mpiGrid, 0.5*P::dt);
-      }
-      else {
+      } else {
          //zero step to set up moments _v
          calculateAcceleration(mpiGrid, 0.0);
       }
@@ -313,6 +320,7 @@ int main(int argn,char* args[]) {
       addTimedBarrier("barrier-after-ad just-blocks");
    }
    phiprof::stop("Initialization");
+
 
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****
@@ -472,7 +480,7 @@ int main(int argn,char* args[]) {
          balanceLoad(mpiGrid);
          addTimedBarrier("barrier-end-load-balance");
          phiprof::start("Shrink_to_fit");
-         /* shrink to fit after LB*/
+         // * shrink to fit after LB * //
          shrink_to_fit_grid_data(mpiGrid);
          phiprof::stop("Shrink_to_fit");
          logFile << "(LB): ... done!"  << endl << writeVerbose;
@@ -573,8 +581,8 @@ int main(int argn,char* args[]) {
       phiprof::stop("Velocity-space",computedCells,"Cells");
       addTimedBarrier("barrier-after-acceleration");
       
-      /*here we compute rho and rho_v for timestep t + dt, so next
-       * timestep*/
+      // *here we compute rho and rho_v for timestep t + dt, so next
+      // timestep * //
       calculateInterpolatedVelocityMoments(
          mpiGrid,
          CellParams::RHO,

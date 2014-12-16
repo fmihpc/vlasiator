@@ -97,7 +97,6 @@ Real P::sparseMinValue = NAN;
 int P::sparseBlockAddWidthV = 1;
 bool P::sparse_conserve_mass = false;
 
-
 string P::restartFileName = string("");
 bool P::isRestart=false;
 int P::writeAsFloat = false;
@@ -115,6 +114,11 @@ Real P::lorentzHallMinimumRho=1.0;
 
 bool P::bailout_write_restart = false;
 Real P::bailout_min_dt = NAN;
+
+uint P::amrMaxVelocityRefLevel = 0;
+Realf P::amrRefineLimit = 1.0;
+Realf P::amrCoarsenLimit = 0.5;
+string P::amrVelRefCriterion = "";
 
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
@@ -206,7 +210,12 @@ bool Parameters::addParameters(){
    // bailout parameters
    Readparameters::add("bailout.write_restart", "If 1, write a restart file on bailout. Gets reset when sending a STOP (1) or a KILL (0).", true);
    Readparameters::add("bailout.min_dt", "Minimum time step below which bailout occurs (s).", 1e-6);
-   
+
+   // Refinement parameters
+   Readparameters::add("AMR.vel_refinement_criterion","Name of the velocity refinement criterion",string(""));
+   Readparameters::add("AMR.max_velocity_level","Maximum velocity mesh refinement level",(uint)0);
+   Readparameters::add("AMR.refine_limit","If the refinement criterion function returns a larger value than this, block is refined",(Realf)1.0);
+   Readparameters::add("AMR.coarsen_limit","If the refinement criterion function returns a smaller value than this, block can be coarsened",(Realf)0.5);
    return true;
 }
 
@@ -256,7 +265,12 @@ bool Parameters::getParameters(){
    Readparameters::get("gridbuilder.vx_length",P::vxblocks_ini);
    Readparameters::get("gridbuilder.vy_length",P::vyblocks_ini);
    Readparameters::get("gridbuilder.vz_length",P::vzblocks_ini);
+   Readparameters::get("AMR.max_velocity_level",P::amrMaxVelocityRefLevel);
+   Readparameters::get("AMR.vel_refinement_criterion",P::amrVelRefCriterion);
+   Readparameters::get("AMR.refine_limit",P::amrRefineLimit);
+   Readparameters::get("AMR.coarsen_limit",P::amrCoarsenLimit);
    
+   if (P::amrCoarsenLimit >= P::amrRefineLimit) return false;
    if (P::xmax < P::xmin || (P::ymax < P::ymin || P::zmax < P::zmin)) return false;
    if (P::vxmax < P::vxmin || (P::vymax < P::vymin || P::vzmax < P::vzmin)) return false;
    
