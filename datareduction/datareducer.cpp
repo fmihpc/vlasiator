@@ -149,9 +149,10 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("BGB_vol",CellParams::BGBXVOL,3));
       if(*it == "PerturbedVolB")
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("PERB_vol",CellParams::PERBXVOL,3));
-      if(*it == "Pressure")
+      if(*it == "Pressure") {
          outputReducer->addOperator(new DRO::VariablePressure);
          outputReducer->addOperator(new DRO::VariablePressureSolver);
+      }
       if(*it == "PTensor") {
          outputReducer->addOperator(new DRO::VariablePTensorDiagonal);
          outputReducer->addOperator(new DRO::VariablePTensorOffDiagonal);

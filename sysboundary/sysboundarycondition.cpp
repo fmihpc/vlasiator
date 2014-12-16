@@ -403,6 +403,8 @@ namespace SBC {
    }
    
    /*! Take a list of cells and set the destination cell distribution function to the average of the list's cells'.
+    *  For layer 1 the whole distribution function is copied.
+    *  For layer >1, only moments are copied
     * \param mpiGrid Grid
     * \param cellList List of cells to copy from.
     * \param to Cell in which to set the averaged distribution.
@@ -437,30 +439,31 @@ namespace SBC {
          
          for (uint i=0; i<numberOfCells; i++) {
             const SpatialCell * incomingCell = mpiGrid[cellList[i]];
-            for (vmesh::LocalID blockLID=0; blockLID<incomingCell->get_number_of_velocity_blocks(); ++blockLID) {
-               const Real* blockParameters = incomingCell->get_block_parameters(blockLID);
-               // check where cells are
-               creal vxBlock = blockParameters[BlockParams::VXCRD];
-               creal vyBlock = blockParameters[BlockParams::VYCRD];
-               creal vzBlock = blockParameters[BlockParams::VZCRD];
-               creal dvxCell = blockParameters[BlockParams::DVX];
-               creal dvyCell = blockParameters[BlockParams::DVY];
-               creal dvzCell = blockParameters[BlockParams::DVZ];
-               for (uint kc=0; kc<WID; ++kc)
-                  for (uint jc=0; jc<WID; ++jc)
-                     for (uint ic=0; ic<WID; ++ic) {
-                        creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
-                        creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
-                        creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
-                        to->increment_value(
-                           vxCellCenter,
-                           vyCellCenter,
-                           vzCellCenter,
-                           factor*incomingCell->get_value(vxCellCenter, vyCellCenter, vzCellCenter)
-                        );
+            if(to->sysBoundaryLayer == 1) { // Do this only for the first layer, the other layers do not need this.       
+               for (vmesh::LocalID blockLID=0; blockLID<incomingCell->get_number_of_velocity_blocks(); ++blockLID) {
+                  const Real* blockParameters = incomingCell->get_block_parameters(blockLID);
+                  // check where cells are
+                  creal vxBlock = blockParameters[BlockParams::VXCRD];
+                  creal vyBlock = blockParameters[BlockParams::VYCRD];
+                  creal vzBlock = blockParameters[BlockParams::VZCRD];
+                  creal dvxCell = blockParameters[BlockParams::DVX];
+                  creal dvyCell = blockParameters[BlockParams::DVY];
+                  creal dvzCell = blockParameters[BlockParams::DVZ];
+                  for (uint kc=0; kc<WID; ++kc)
+                     for (uint jc=0; jc<WID; ++jc)
+                        for (uint ic=0; ic<WID; ++ic) {
+                           creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
+                           creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
+                           creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
+                           to->increment_value(
+                              vxCellCenter,
+                              vyCellCenter,
+                              vzCellCenter,
+                              factor*incomingCell->get_value(vxCellCenter, vyCellCenter, vzCellCenter)
+                                               );
+                        }
                }
-            }
-            
+            }           
             // WARNING Time-independence assumed here. _R and _V not copied, as boundary conditions cells should not set/use them
             to->parameters[CellParams::RHO_DT2] += factor*incomingCell->parameters[CellParams::RHO_DT2];
             to->parameters[CellParams::RHOVX_DT2] += factor*incomingCell->parameters[CellParams::RHOVX_DT2];
